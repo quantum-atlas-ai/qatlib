@@ -8,6 +8,31 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Tactic
 
+/-!
+# Counting accuracy from period readout
+
+This module defines the period parameter, its recovered angle, and the count expression N sin²θ.
+It transports a period-readout error below one into explicit count-error bounds, including
+scaled, relative, and second-pass forms; an error below one half recovers a natural-number count
+by rounding.
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `counting_error_from_period_readout`: For positive N and P and true and recovered angles in
+  [0, π], period-readout error below one gives count error below (2π/P)√(countEstimate N theta ·
+  N) + (π/P)²N.
+* `count_error_lt_half`: For c ≥ 14, true count t ≥ 1, and angles in [0, π], angle error below
+  π/(c√(tN)) gives count error strictly less than 1/2.
+* `count_round_eq_of_error_lt_half`: If a real estimate differs from a natural-number count by
+  less than 1/2, flooring the estimate plus 1/2 returns that count as an integer.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,12 +40,17 @@ namespace Qatlib.Papers.QSearchBoyer96.MainResults
 
 open Real
 
+/-- The period parameter Pθ/π associated with an amplification angle. -/
 def periodCount (P theta : ℝ) : ℝ := P * theta / Real.pi
 
+/-- The angle estimate fEst·π/P recovered from a period estimate. -/
 def angleFromPeriod (P fEst : ℝ) : ℝ := fEst * Real.pi / P
 
+/-- The count expression N sin²θ. -/
 def countEstimate (N theta : ℝ) : ℝ := N * Real.sin theta ^ 2
 
+/-- If Pθ is an integer multiple of π, shifting the iteration index by P leaves sin((2j + 1)θ)
+unchanged. -/
 theorem amplitude_period (theta : ℝ) (f : ℤ) (P j : ℕ)
     (hPtheta : (P : ℝ) * theta = Real.pi * (f : ℝ)) :
     Real.sin ((2 * ((j + P : ℕ) : ℝ) + 1) * theta) =
@@ -32,6 +62,7 @@ theorem amplitude_period (theta : ℝ) (f : ℤ) (P j : ℕ)
   rw [harg]
   exact Real.sin_add_int_mul_two_pi _ _
 
+/-- For P > 0, period-readout error below one gives angle error below π/P. -/
 theorem angle_error_of_period_error (P theta fEst : ℝ) (hP : 0 < P)
     (hf : |periodCount P theta - fEst| < 1) :
     |theta - angleFromPeriod P fEst| < Real.pi / P := by
@@ -45,6 +76,8 @@ theorem angle_error_of_period_error (P theta fEst : ℝ) (hP : 0 < P)
   rw [hkey, abs_mul, abs_of_pos hpos]
   nlinarith [hf]
 
+/-- For positive N and P and angles in [0, π] differing by less than π/P, the count error is
+below (2π/P)√(countEstimate N theta · N) + (π/P)²N. -/
 theorem count_error_bound (N P theta thetaEst : ℝ) (hN : 0 < N) (hP : 0 < P)
     (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi)
     (hthetaEst0 : 0 ≤ thetaEst) (hthetaEstpi : thetaEst ≤ Real.pi)
@@ -114,6 +147,8 @@ theorem count_error_bound (N P theta thetaEst : ℝ) (hN : 0 < N) (hP : 0 < P)
   rw [hrhs] at hmul
   exact hmul
 
+/-- For positive N and P and true and recovered angles in [0, π], period-readout error below one
+gives count error below (2π/P)√(countEstimate N theta · N) + (π/P)²N [BoyerEtAl1998]. -/
 theorem counting_error_from_period_readout (N P theta fEst : ℝ) (hN : 0 < N) (hP : 0 < P)
     (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi)
     (hreadout : |periodCount P theta - fEst| < 1)
@@ -125,6 +160,8 @@ theorem counting_error_from_period_readout (N P theta fEst : ℝ) (hN : 0 < N) (
   count_error_bound N P theta (angleFromPeriod P fEst) hN hP htheta0 hthetapi
     hthetaEst0 hthetaEstpi (angle_error_of_period_error P theta fEst hP hreadout)
 
+/-- For positive N and c and angles in [0, π], angle error below π/(c√N) gives count error below
+(2π/c)√(countEstimate N theta) + (π/c)². -/
 theorem count_error_bound_scaled (N c theta thetaEst : ℝ) (hN : 0 < N) (hc : 0 < c)
     (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi)
     (hthetaEst0 : 0 ≤ thetaEst) (hthetaEstpi : thetaEst ≤ Real.pi)
@@ -154,6 +191,8 @@ theorem count_error_bound_scaled (N c theta thetaEst : ℝ) (hN : 0 < N) (hc : 0
   rw [hterm1, hterm2] at hmain
   exact hmain
 
+/-- For positive N, t, and c with true count t and angles in [0, π], angle error below
+π/(c√(N/t)) gives count error below t((1 + π/c)² − 1) [BoyerEtAl1998]. -/
 theorem count_error_bound_relative (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht : 0 < t)
     (hc : 0 < c)
     (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi)
@@ -188,6 +227,8 @@ theorem count_error_bound_relative (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht
   rw [hexpand]
   linarith [hmain]
 
+/-- For positive N, t, and c with true count t and angles in [0, π], angle error below
+π/(c√(tN)) gives count error below 2π/c + π²/(c²t). -/
 theorem count_error_bound_second_pass (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht : 0 < t)
     (hc : 0 < c)
     (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi)
@@ -217,6 +258,8 @@ theorem count_error_bound_second_pass (N t c theta thetaEst : ℝ) (hN : 0 < N) 
   rw [hterm1, hterm2] at hmain
   exact hmain
 
+/-- For c ≥ 14 and t ≥ 1, the second-pass error expression 2π/c + π²/(c²t) is strictly less than
+1/2. -/
 theorem second_pass_error_lt_half {c t : ℝ} (hc : 14 ≤ c) (ht : 1 ≤ t) :
     2 * Real.pi / c + Real.pi ^ 2 / (c ^ 2 * t) < 1 / 2 := by
   have hcpos : (0 : ℝ) < c := by linarith
@@ -232,6 +275,8 @@ theorem second_pass_error_lt_half {c t : ℝ} (hc : 14 ≤ c) (ht : 1 ≤ t) :
     · nlinarith [ht, hc]
   nlinarith [h1, h2, hpi_sq]
 
+/-- For c ≥ 14, true count t ≥ 1, and angles in [0, π], angle error below π/(c√(tN)) gives count
+error strictly less than 1/2. -/
 theorem count_error_lt_half (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht : 1 ≤ t)
     (hc : 14 ≤ c)
     (htheta0 : 0 ≤ theta) (hthetapi : theta ≤ Real.pi)
@@ -244,6 +289,8 @@ theorem count_error_lt_half (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht : 1 �
       htheta0 hthetapi hthetaEst0 hthetaEstpi hcount hclose)
     (le_of_lt (second_pass_error_lt_half hc ht))
 
+/-- If a real estimate differs from a natural-number count by less than 1/2, flooring the
+estimate plus 1/2 returns that count as an integer [BoyerEtAl1998]. -/
 theorem count_round_eq_of_error_lt_half {t tEst : ℝ} {n : ℕ} (hn : t = n)
     (hclose : |tEst - t| < 1 / 2) : ⌊tEst + 1 / 2⌋ = (n : ℤ) := by
   have h1 : (n : ℝ) ≤ tEst + 1 / 2 := by

@@ -9,6 +9,25 @@ import Mathlib.RingTheory.ZMod.UnitsCyclic
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.ZMod.Defs
 
+/-!
+# Counting Lucas witnesses modulo a prime
+
+For prime `N`, this module counts solutions of `a ^ d = 1` among units and among all residues
+modulo `N`. The resulting gcd formula bounds below the fraction of residues satisfying a
+reduced-power inequality, supplying a sampling estimate for primality certificates [ChauLo1995].
+
+## Main statements
+
+* `units_pow_eq_one_card`: The unit solution count is gcd(N - 1, d).
+* `zmod_pow_eq_one_card`: The same count holds for all residues when d is positive.
+* `witness_fraction_ge_half`: At least half of all residues satisfy the reduced-power
+  inequality.
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 open scoped BigOperators
 
@@ -16,6 +35,8 @@ namespace Qatlib.Foundations.PrimalityCerts.LucasTests
 
 open Qatlib.Foundations.PrimalityCerts.PrimePowerOrder
 
+/-- For prime `N` and positive `d`, exactly `Nat.gcd (N - 1) d` units modulo `N` satisfy `u ^ d
+= 1`. -/
 theorem units_pow_eq_one_card (N d : ℕ) [NeZero N] (hN : N.Prime) (_hd : 0 < d) :
     (Finset.univ.filter (fun u : (ZMod N)ˣ => u ^ d = 1)).card
       = Nat.gcd (N - 1) d := by
@@ -32,6 +53,8 @@ theorem units_pow_eq_one_card (N d : ℕ) [NeZero N] (hN : N.Prime) (_hd : 0 < d
     _ = Nat.gcd (Fintype.card (ZMod N)ˣ) d := filter_card_orderOf_dvd _ d
     _ = Nat.gcd (N - 1) d := by rw [hcard]
 
+/-- For prime `N` and positive `d`, exactly `Nat.gcd (N - 1) d` residues modulo `N` satisfy `a ^
+d = 1`. -/
 theorem zmod_pow_eq_one_card (N d : ℕ) [NeZero N] (hN : N.Prime) (hd : 0 < d) :
     (Finset.univ.filter (fun a : ZMod N => a ^ d = 1)).card
       = Nat.gcd (N - 1) d := by
@@ -59,6 +82,8 @@ theorem zmod_pow_eq_one_card (N d : ℕ) [NeZero N] (hN : N.Prime) (hd : 0 < d) 
   rw [hset, Finset.card_image_of_injective _ Units.val_injective]
   exact units_pow_eq_one_card N d hN hd
 
+/-- For a prime divisor `q` of `N - 1` with `N` prime, at least half of all residues modulo `N`
+satisfy `a ^ ((N - 1) / q) ≠ 1`. See [ChauLo1995]. -/
 theorem witness_fraction_ge_half (N q : ℕ) [NeZero N] (hN : N.Prime) (hq : q.Prime)
     (hqd : q ∣ N - 1) :
     (1 : ℚ) / 2 ≤

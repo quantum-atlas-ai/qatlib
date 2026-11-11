@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+/-!
+# Derivatives for the coin-angle dispersion family
+
+For the dispersion family `dispersionTheta`, this module computes the first two derivative
+expressions and evaluates them at `kAlphaTheta`. Interior assumptions on the coin angle and
+scaled position ensure the required denominators are positive; the resulting identities support
+the parameterized line-walk analysis of [NayakVishwanath2000].
+
+## Main statements
+
+* `hasDerivAt_dispersionTheta`: differentiates the parameterized dispersion relation.
+* `dispersionTheta_second_at_kAlphaTheta`: identifies the stationary curvature expression.
+* `mean_abs_alpha_theta`: evaluates a normalized integral of the derivative expression.
+
+## References
+
+* [Nayak and Vishwanath, 2000][NayakVishwanath2000]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkLine00.MainResults
@@ -18,12 +38,14 @@ open scoped Interval
 
 noncomputable section
 
+/-- The sine of `dispersionTheta θ k` is `√(1 - (cos (θ / 2) * cos k)²)`. -/
 lemma sin_dispersionTheta (θ k : ℝ) :
     Real.sin (dispersionTheta θ k)
       = Real.sqrt (1 - (Real.cos (θ / 2) * Real.cos k) ^ 2) := by
   unfold dispersionTheta
   exact Real.sin_arccos _
 
+/-- The sine of the parameterized dispersion is positive when `|cos (θ / 2) * cos k| < 1`. -/
 lemma sin_dispersionTheta_pos {θ k : ℝ} (hk : |Real.cos (θ / 2) * Real.cos k| < 1) :
     0 < Real.sin (dispersionTheta θ k) := by
   rw [sin_dispersionTheta]
@@ -31,6 +53,7 @@ lemma sin_dispersionTheta_pos {θ k : ℝ} (hk : |Real.cos (θ / 2) * Real.cos k
   have := abs_lt.mp hk
   nlinarith [this.1, this.2]
 
+/-- For `0 < θ < π`, the square of `cos (θ / 2)` is strictly smaller than one. -/
 lemma cos_half_sq_lt_one {θ : ℝ} (h0 : 0 < θ) (hπ : θ < Real.pi) :
     Real.cos (θ / 2) ^ 2 < 1 := by
   have hlt : Real.cos (θ / 2) < 1 := by
@@ -41,6 +64,8 @@ lemma cos_half_sq_lt_one {θ : ℝ} (h0 : 0 < θ) (hπ : θ < Real.pi) :
     Real.cos_pos_of_mem_Ioo ⟨by linarith [Real.pi_pos], by linarith⟩
   nlinarith
 
+/-- When `|cos (θ / 2) * cos k| < 1`, the derivative of `dispersionTheta θ` at `k` is `sin k *
+cos (θ / 2) / sin (dispersionTheta θ k)`. See [NayakVishwanath2000]. -/
 theorem hasDerivAt_dispersionTheta {θ k : ℝ}
     (hk : |Real.cos (θ / 2) * Real.cos k| < 1) :
     HasDerivAt (fun x : ℝ => dispersionTheta θ x)
@@ -59,6 +84,9 @@ theorem hasDerivAt_dispersionTheta {θ k : ℝ}
   rw [Real.sin_arccos]
   field_simp
 
+/-- Under the strict interior condition, the derivative of the first-derivative expression is
+`cot (dispersionTheta θ k)` times one minus the square of that expression. See
+[NayakVishwanath2000]. -/
 theorem hasDerivAt_deriv_dispersionTheta {θ k : ℝ}
     (hk : |Real.cos (θ / 2) * Real.cos k| < 1) :
     HasDerivAt (fun x : ℝ => Real.sin x * Real.cos (θ / 2) / Real.sin (dispersionTheta θ x))
@@ -81,6 +109,8 @@ theorem hasDerivAt_deriv_dispersionTheta {θ k : ℝ}
   rw [hcos]
   field_simp
 
+/-- For `0 < θ < π` and `α² < cos² (θ / 2)`, the sine of `kAlphaTheta θ α` equals `α / √(1 - α²)
+* tan (θ / 2)`. See [NayakVishwanath2000]. -/
 theorem sin_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
     (hα : α ^ 2 < Real.cos (θ / 2) ^ 2) :
     Real.sin (kAlphaTheta θ α)
@@ -124,6 +154,8 @@ theorem sin_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
   rw [kAlphaTheta]
   rw [Real.sin_arcsin (le_of_lt (abs_lt.mp harg).1) (le_of_lt (abs_lt.mp harg).2)]
 
+/-- In the interior regime, `cos² (kAlphaTheta θ α)` equals `(cos² (θ / 2) - α²) / (cos² (θ / 2)
+* (1 - α²))`. -/
 theorem cos_sq_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
     (hα : α ^ 2 < Real.cos (θ / 2) ^ 2) :
     Real.cos (kAlphaTheta θ α) ^ 2
@@ -154,6 +186,8 @@ theorem cos_sq_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
   field_simp
   ring
 
+/-- In the interior regime, the squared sine of the dispersion at `kAlphaTheta θ α` equals `sin²
+(θ / 2) / (1 - α²)`. -/
 theorem sin_sq_dispersionTheta_at_kAlpha {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
     (hα : α ^ 2 < Real.cos (θ / 2) ^ 2) :
     Real.sin (dispersionTheta θ (kAlphaTheta θ α)) ^ 2
@@ -186,6 +220,8 @@ theorem sin_sq_dispersionTheta_at_kAlpha {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : 
   field_simp
   ring
 
+/-- In the interior regime, the first-derivative expression for `dispersionTheta θ` evaluated at
+`kAlphaTheta θ α` equals `α`. -/
 theorem dispersionTheta_deriv_at_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
     (hα : α ^ 2 < Real.cos (θ / 2) ^ 2) :
     Real.sin (kAlphaTheta θ α) * Real.cos (θ / 2)
@@ -226,6 +262,8 @@ theorem dispersionTheta_deriv_at_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθ�
   rw [htan]
   field_simp
 
+/-- In the interior regime, the second-derivative expression at `kAlphaTheta θ α` equals
+`omegaSecondAtStationaryTheta θ α`. See [NayakVishwanath2000]. -/
 theorem dispersionTheta_second_at_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi)
     (hα : α ^ 2 < Real.cos (θ / 2) ^ 2) :
     Real.cos (dispersionTheta θ (kAlphaTheta θ α))
@@ -290,6 +328,8 @@ theorem dispersionTheta_second_at_kAlphaTheta {θ α : ℝ} (hθ0 : 0 < θ) (hθ
   unfold omegaSecondAtStationaryTheta
   field_simp
 
+/-- For `0 < θ < π`, the quantity `|cos (θ / 2) * cos k|` is strictly smaller than one for every
+real `k`. -/
 lemma cos_half_mul_cos_lt_one {θ : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi) (k : ℝ) :
     |Real.cos (θ / 2) * Real.cos k| < 1 := by
   have hc2 : Real.cos (θ / 2) ^ 2 < 1 := cos_half_sq_lt_one hθ0 hθπ
@@ -302,6 +342,8 @@ lemma cos_half_mul_cos_lt_one {θ : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi) 
   have hck0 : 0 ≤ |Real.cos k| := abs_nonneg _
   nlinarith
 
+/-- For `0 < θ < π`, integrating the dispersion derivative expression over `[0, π / 2]` gives `π
+/ 2 - θ / 2`. See [NayakVishwanath2000]. -/
 theorem integral_dispersionTheta_deriv {θ : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi) :
     (∫ k in (0 : ℝ)..(Real.pi / 2),
         Real.sin k * Real.cos (θ / 2) / Real.sin (dispersionTheta θ k))
@@ -336,6 +378,8 @@ theorem integral_dispersionTheta_deriv {θ : ℝ} (hθ0 : 0 < θ) (hθπ : θ < 
     exact Real.arccos_cos (by linarith) (by linarith)
   rw [h1, h2]
 
+/-- For `0 < θ < π`, the integral of the dispersion derivative expression over `[0, π / 2]`,
+multiplied by `2 / π`, equals `1 - θ / π`. -/
 theorem mean_abs_alpha_theta {θ : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi) :
     (2 / Real.pi) * ∫ k in (0 : ℝ)..(Real.pi / 2),
         Real.sin k * Real.cos (θ / 2) / Real.sin (dispersionTheta θ k)

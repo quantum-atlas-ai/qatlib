@@ -8,6 +8,24 @@ import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Definitions
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentation
 import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Obstruction to raw log-two segmentation
+
+The scale estimates and an explicit zero-time instance show that `Ln2Segmentation` fails for raw
+reset-and-discard steps. `ln2Segmentation_obstruction` distinguishes this formulation from
+amplified segmented Taylor simulation [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `ln2_raw_zero_time_error`: A positive lower bound on the raw zero-time error.
+* `ln2Segmentation_obstruction`: Failure of the proposed raw segmentation property.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +39,8 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 open Matrix
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
+/-- At zero duration, the truncated Hamiltonian evolution series equals the identity for every
+cutoff. -/
 theorem truncatedSegment_zero {I : Type*} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (K : ℕ) : truncatedSegment H 0 K=1 := by
   unfold truncatedSegment
@@ -30,6 +50,7 @@ theorem truncatedSegment_zero {I : Type*} [Fintype I] [DecidableEq I]
     simp [zero_pow hk]
   · simp
 
+/-- The truncated exponential mass at `log 2` is at least one. -/
 theorem ln2Scale_ge_one (K : ℕ) : 1 ≤ ln2Scale K := by
   have hl : 0 ≤ Real.log 2 := Real.log_nonneg (by norm_num)
   have hs := Finset.single_le_sum (s := Finset.range (K+1))
@@ -38,6 +59,7 @@ theorem ln2Scale_ge_one (K : ℕ) : 1 ≤ ln2Scale K := by
     (show 0 ∈ Finset.range (K+1) by simp)
   simpa only [pow_zero, Nat.factorial_zero, Nat.cast_one, div_one] using! hs
 
+/-- For cutoff at least one, the truncated exponential mass at `log 2` exceeds `3 / 2`. -/
 theorem ln2Scale_gt_three_halves (K : ℕ) (hK : 1 ≤ K) : 3/2 < ln2Scale K := by
   have hl : 0 ≤ Real.log 2 := Real.log_nonneg (by norm_num)
   have hsub : ({0,1} : Finset ℕ) ⊆ Finset.range (K+1) := by
@@ -54,6 +76,8 @@ theorem ln2Scale_gt_three_halves (K : ℕ) (hK : 1 ≤ K) : 3/2 < ln2Scale K := 
   change 1+Real.log 2 ≤ ln2Scale K at hs
   linarith [Real.log_two_gt_d9]
 
+/-- A raw reset-and-discard step encoding the zero-time identity at scale `ln2Scale K` has
+trace-norm error greater than `1 / 4` when `K ≥ 1`. -/
 theorem ln2_raw_zero_time_error (J : Type*) [Fintype J] [DecidableEq J]
     (K : ℕ) (hK : 1 ≤ K) (W : Matrix (J × Unit) (J × Unit) ℂ) (j₀ : J)
     (hW : IsBlockEncoding W j₀ (truncatedSegment (0 : Matrix Unit Unit ℂ) 0 K) (ln2Scale K)) :
@@ -81,6 +105,7 @@ theorem ln2_raw_zero_time_error (J : Type*) [Fintype J] [DecidableEq J]
   rw [ht, Complex.norm_real, Real.norm_eq_abs, abs_of_neg (by linarith : s⁻¹^2-1 < 0)] at hn
   linarith
 
+/-- The exponential tail at `log 2` after order five is at most `(1 / 4) / 69`. -/
 theorem ln2_tail_five_le :
     (∑' j : ℕ, Real.log 2^(5+1+j)/((5+1+j).factorial : ℝ)) ≤ (1/4 : ℝ)/69 := by
   have hl0 : 0 ≤ Real.log 2 := Real.log_nonneg (by norm_num)
@@ -92,11 +117,15 @@ theorem ln2_tail_five_le :
   have hbound : 2*Real.log 2^6/720 ≤ (1/4 : ℝ)/69 := by nlinarith
   exact hh.trans hbound
 
+/-- For the given cutoff, the one-dimensional identity has a two-dimensional ancillary block
+encoding at scale `ln2Scale K`. -/
 theorem ln2_identity_encoding_exists (K : ℕ) (_hK : 1 ≤ K) :
     ∃ W : Matrix (Bool × Unit) (Bool × Unit) ℂ,
       IsBlockEncoding W false (1 : Matrix Unit Unit ℂ) (ln2Scale K) :=
   scaled_identity_encoding_exists (ln2Scale K) (ln2Scale_ge_one K)
 
+/-- The raw log-two segmentation proposition `Ln2Segmentation` is false for types in universe
+zero. -/
 theorem ln2Segmentation_obstruction : ¬Ln2Segmentation.{0,0} := by
   intro h
   obtain ⟨W,hW⟩ := ln2_identity_encoding_exists 5 (by norm_num)

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MainResults.PreparationScan
 import Qatlib.Concepts.WalkSearch.MainResults.FiniteEventFibers
+
+/-!
+# Failure counts for scoped search calls
+
+`safeGroverBadSeeds` collects seeds that fail to find an existing marked element. The module
+translates the scoped search family guarantee into cardinality bounds, pads them to a common
+cubic denominator, and bounds the event of any bad preparation call on a vertex seed tape. For
+background on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `safeGroverBadSeeds`: The seeds for which a marked element exists but the operational search
+  returns `none`.
+* `preparation_bad_calls_card`: Under the scope and exponent assumptions, the number of vertex
+  seed tapes with a bad preparation call times `(n * n + 1)^3` is at most `n` times the total
+  tape count.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,12 +40,15 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 
+/-- The seeds for which a marked element exists but the operational search returns `none`. -/
 def safeGroverBadSeeds (sgs : SGSExecution) {α : Type} [Fintype α] (marked : α → Bool)
     (check floor : ℕ) : Finset sgs.seed := by
   letI:=sgs.seedFin
   exact Finset.univ.filter
       (fun ρ=>(∃ x,marked x=true) ∧ operationalSgsFind sgs marked check floor ρ=none)
 
+/-- For a supported call, the bad seed count times `(max (Fintype.card α) floor +
+1)^family.cExp` is at most the total seed count. -/
 theorem safeGroverBadSeeds_source_bound (family : ScopedGroverFamily) (scope : SearchCallScope)
     {α : Type} [Fintype α] (marked : α → Bool) (check floor : ℕ)
     (h : scope.contains (Fintype.card α) check floor) :
@@ -46,6 +71,8 @@ theorem safeGroverBadSeeds_source_bound (family : ScopedGroverFamily) (scope : S
       simp [safeGroverBadSeeds,hm]
     simp only [he,Finset.card_empty,zero_mul,Nat.zero_le]
 
+/-- For a supported call with floor `n * n` and exponent at least three, the bad seed count
+times `(n * n + 1)^3` is at most the total seed count. -/
 theorem safeGroverBadSeeds_padded_bound (family : ScopedGroverFamily) (scope : SearchCallScope)
     {α : Type} [Fintype α] (marked : α → Bool) (n check : ℕ) (hc : 3≤ family.cExp)
     (h : scope.contains (Fintype.card α) check (n*n)) :
@@ -57,6 +84,8 @@ theorem safeGroverBadSeeds_padded_bound (family : ScopedGroverFamily) (scope : S
   exact (Nat.mul_le_mul_left _ hp).trans
       (safeGroverBadSeeds_source_bound family scope marked check (n*n) h)
 
+/-- Under the scope and exponent assumptions, the number of vertex seed tapes with a bad
+preparation call times `(n * n + 1)^3` is at most `n` times the total tape count. -/
 theorem preparation_bad_calls_card {n : ℕ} (G : UGraph n) (family : ScopedGroverFamily) (scope : SearchCallScope) (hc : 3≤ family.cExp)
     (hscope : scope.contains (n*n) 2 (n*n))
     (vs : List (Fin n)) :

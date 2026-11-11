@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetBridge
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
+
+/-!
+# Rewards for search completion before a deadline
+
+This module expresses nonnegative rewards for terminal search traces that finish strictly before
+a query budget. `rewardRow` isolates a terminal stage and `rewardPrefix` sums finitely many such
+stages.
+
+The recurrence formulas split off the first randomized search attempt in the retry framework of
+[BoyerEtAl1998].
+
+## Main statements
+
+* `rewardPrefix_succ`: The reward prefix at successor depth splits into immediate success and
+  continuation after a failed first attempt.
+* `rewardRow_terminal`: The payoff sum over terminal traces at stage `n` completing strictly
+  before the budget equals `rewardRow`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin
@@ -17,6 +40,8 @@ open Qatlib
 open scoped Classical BigOperators ENNReal
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The expected payoff contributed by successful stage-`n` histories whose total iteration cost
+is strictly below `budget`. -/
 def rewardRow (A : Finset I) (sizes : ℕ → ℕ) (budget n : ℕ)
     (payoff : I × Option ℕ → ℝ≥0∞) : ℝ≥0∞ :=
   ∑ h : TrialHistory sizes n, ∑ j : Fin (sizes n), ∑ i : I,
@@ -25,6 +50,8 @@ def rewardRow (A : Finset I) (sizes : ℕ → ℕ) (budget n : ℕ)
         payoff (i,some (budget-(HistoryIterations sizes n h+j.val)))
     else 0
 
+/-- The stage-zero reward is the sum of successful first-attempt payoffs for iteration counts
+strictly below the budget. -/
 theorem rewardRow_zero (A : Finset I) (sizes : ℕ → ℕ) (budget : ℕ)
     (payoff : I × Option ℕ → ℝ≥0∞) :
     rewardRow A sizes budget 0 payoff =
@@ -34,6 +61,8 @@ theorem rewardRow_zero (A : Finset I) (sizes : ℕ → ℕ) (budget : ℕ)
     Fin.prod_univ_zero,one_mul,zero_add]
   simp
 
+/-- The next-stage reward factors through a failed first attempt, reducing the budget and
+shifting the size schedule. -/
 theorem rewardRow_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (budget n : ℕ) (payoff : I × Option ℕ → ℝ≥0∞) :
     rewardRow A sizes budget (n+1) payoff =
@@ -79,10 +108,13 @@ theorem rewardRow_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ →
     intro i _
     rw [if_neg (by omega)]
 
+/-- The sum of completion rewards over terminal stages below `depth`. -/
 def rewardPrefix (A : Finset I) (sizes : ℕ → ℕ) (budget depth : ℕ)
     (payoff : I × Option ℕ → ℝ≥0∞) : ℝ≥0∞ :=
   ∑ n ∈ Finset.range depth, rewardRow A sizes budget n payoff
 
+/-- The reward prefix at successor depth splits into immediate success and continuation after a
+failed first attempt. -/
 theorem rewardPrefix_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (budget depth : ℕ) (payoff : I × Option ℕ → ℝ≥0∞) :
     rewardPrefix A sizes budget (depth+1) payoff =
@@ -102,6 +134,8 @@ theorem rewardPrefix_succ (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ 
     exact add_comm _ _
   · simp [hc]
 
+/-- The payoff sum over terminal traces at stage `n` completing strictly before the budget
+equals `rewardRow`. -/
 theorem rewardRow_terminal (A : Finset I) (sizes : ℕ → ℕ) (budget n : ℕ)
     (payoff : I × Option ℕ → ℝ≥0∞) :
     (∑ x : TerminalStage I sizes n,

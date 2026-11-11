@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.MixingContraction
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Combinatorics.SimpleGraph.Paths
+
+/-!
+# An elementary component spectral-gap bound
+
+`edgeEnergy` sums squared differences over ordered adjacent vertex pairs. Path estimates and a
+finite-range variance bound give a component Poincaré inequality, which bounds the quadratic
+form of `walkM` on component-supported vectors summing to zero.
+
+Polarization and a bilinear estimate yield Euclidean contraction with factor `elemRho`.
+Comparing this factor with the required bound proves `spectralGap_of_regular` for regular graphs
+of degree at least two. These results support the connectivity analysis in [Watrous1998].
+
+## Main statements
+
+* `poincare_edgeEnergy`: bound the squared norm by component size and edge energy.
+* `walkM_contraction`: derive the Euclidean contraction with factor `elemRho`.
+* `spectralGap_of_regular`: establish `SpectralGap` from regularity and the degree bound.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing
@@ -21,18 +44,23 @@ noncomputable section
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- The contraction coefficient `1 - 2 * walkB d / (compSize G u * (compSize G u - 1))`, with
+component sizes viewed as real numbers. -/
 def elemRho (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) (u : V) : ℝ :=
   1 - 2 * walkB d / ((compSize G u : ℝ) * ((compSize G u : ℝ) - 1))
 
+/-- The sum of `(x u - x v) ^ 2` over ordered adjacent vertex pairs. -/
 def edgeEnergy (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) : ℝ :=
   ∑ u, ∑ v, if G.Adj u v then (x u - x v) ^ 2 else 0
 
+/-- The edge energy is nonnegative. -/
 theorem edgeEnergy_nonneg (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
     0 ≤ edgeEnergy G x := by
   unfold edgeEnergy
   exact Finset.sum_nonneg fun u _ => Finset.sum_nonneg fun v _ => by
     split_ifs <;> positivity
 
+/-- The sum of the adjacency indicators in a row is the degree of its vertex. -/
 theorem sum_ite_adj_row (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     (∑ v, (if G.Adj u v then (1 : ℝ) else 0)) = ((G.neighborFinset u).card : ℝ) := by
   have hfilter : (Finset.univ.filter (fun v => G.Adj u v)) = G.neighborFinset u := by
@@ -44,6 +72,8 @@ theorem sum_ite_adj_row (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     rw [Finset.sum_const, nsmul_eq_mul, mul_one]
   rw [h, hfilter]
 
+/-- The quadratic form of the adjacency matrix is the sum of `x u * x v` over ordered adjacent
+vertex pairs. -/
 theorem dotProduct_adjMatrix_self (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
     x ⬝ᵥ (adjMatrix G *ᵥ x) = ∑ u, ∑ v, if G.Adj u v then x u * x v else 0 := by
   simp only [dotProduct, Matrix.mulVec, adjMatrix, Matrix.of_apply, Finset.mul_sum]
@@ -55,6 +85,8 @@ theorem dotProduct_adjMatrix_self (G : SimpleGraph V) [DecidableRel G.Adj] (x : 
   · simp [hv]
   · simp [hv]
 
+/-- The edge energy is twice the degree-weighted sum of coordinate squares minus twice the
+adjacency quadratic form. -/
 theorem edgeEnergy_eq (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
     edgeEnergy G x =
       2 * (∑ u, x u ^ 2 * (∑ v, (if G.Adj u v then (1 : ℝ) else 0)))
@@ -107,6 +139,8 @@ theorem edgeEnergy_eq (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
     _ = D + D - 2 * (x ⬝ᵥ (adjMatrix G *ᵥ x)) := by rw [hA, hB, hC]
     _ = 2 * D - 2 * (x ⬝ᵥ (adjMatrix G *ᵥ x)) := by ring
 
+/-- For a regular graph, the quadratic form of `walkM` equals the sum of coordinate squares
+minus `walkB d / 2` times the edge energy. -/
 theorem dotProduct_walkM_self (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (x : V → ℝ) :
     x ⬝ᵥ (walkM G d *ᵥ x) = (∑ u, x u ^ 2) - (walkB d / 2) * edgeEnergy G x := by
@@ -127,6 +161,8 @@ theorem dotProduct_walkM_self (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
   have h1 : walkA d + walkB d * d = 1 := walkA_add_walkB_mul d
   linear_combination (∑ u, x u ^ 2) * h1
 
+/-- A zero-sum family bounded between `m` and `M` on a finite set has sum of squares at most the
+set's cardinality times `(M - m) ^ 2 / 4`. -/
 theorem sum_sq_le_card_mul_range_sq {s : Finset V} (x : V → ℝ) {m M : ℝ}
     (hm : ∀ v ∈ s, m ≤ x v) (hM : ∀ v ∈ s, x v ≤ M) (hsum : ∑ v ∈ s, x v = 0) :
     ∑ v ∈ s, x v ^ 2 ≤ (s.card : ℝ) * (M - m) ^ 2 / 4 := by
@@ -153,6 +189,7 @@ theorem sum_sq_le_card_mul_range_sq {s : Finset V} (x : V → ℝ) {m M : ℝ}
         apply mul_le_mul_of_nonneg_left hMM (Nat.cast_nonneg _)
     _ = (s.card : ℝ) * (M - m) ^ 2 / 4 := by ring
 
+/-- Every vertex selected by `getVert` along a walk is reachable from its starting vertex. -/
 theorem walk_reachable_getVert {G : SimpleGraph V} {a b : V} (p : G.Walk a b) (i : ℕ) :
     G.Reachable a (p.getVert i) := by
   induction p generalizing i with
@@ -164,6 +201,7 @@ theorem walk_reachable_getVert {G : SimpleGraph V} {a b : V} (p : G.Walk a b) (i
       rw [SimpleGraph.Walk.getVert_cons_succ]
       exact (SimpleGraph.Adj.reachable h).trans (ih n)
 
+/-- Every vertex in the support of a walk is reachable from its starting vertex. -/
 theorem walk_reachable_of_mem_support {G : SimpleGraph V} {a b : V} (p : G.Walk a b) :
     ∀ w ∈ p.support, G.Reachable a w := by
   induction p with
@@ -179,6 +217,7 @@ theorem walk_reachable_of_mem_support {G : SimpleGraph V} {a b : V} (p : G.Walk 
     · exact SimpleGraph.Reachable.rfl
     · exact (SimpleGraph.Adj.reachable h).trans (ih w hw)
 
+/-- If a walk starts in the component of `u`, its finite support is contained in `compSet G u`. -/
 theorem support_toFinset_subset_compSet {G : SimpleGraph V} [DecidableRel G.Adj]
     {a b : V} (p : G.Walk a b) {u : V} (ha : G.Reachable u a) :
     p.support.toFinset ⊆ compSet G u := by
@@ -186,6 +225,7 @@ theorem support_toFinset_subset_compSet {G : SimpleGraph V} [DecidableRel G.Adj]
   rw [List.mem_toFinset] at hw
   exact mem_compSet.mpr (ha.trans (walk_reachable_of_mem_support p w hw))
 
+/-- A path starting in the component of `u` has length plus one at most `compSize G u`. -/
 theorem length_le_compSize {G : SimpleGraph V} [DecidableRel G.Adj] {a b u : V}
     (p : G.Walk a b) (hp : p.IsPath) (ha : G.Reachable u a) :
     p.length + 1 ≤ compSize G u := by
@@ -195,12 +235,15 @@ theorem length_le_compSize {G : SimpleGraph V} [DecidableRel G.Adj] {a b u : V}
   rw [hcard, SimpleGraph.Walk.length_support] at hle
   simpa [compSize] using hle
 
+/-- The sum of successive coordinate differences along a walk telescopes to the difference
+between its endpoint values. -/
 theorem sum_getVert_sub {G : SimpleGraph V} {a b : V} (p : G.Walk a b) (x : V → ℝ) :
     (∑ i ∈ Finset.range p.length, (x (p.getVert i) - x (p.getVert (i + 1))))
       = x a - x b := by
   have h := Finset.sum_range_sub' (fun i => x (p.getVert i)) p.length
   simpa using h
 
+/-- The sum of squared coordinate differences along a path is at most the total edge energy. -/
 theorem path_energy_le_edgeEnergy {G : SimpleGraph V} [DecidableRel G.Adj] {a b : V}
     (p : G.Walk a b) (hp : p.IsPath) (x : V → ℝ) :
     (∑ i ∈ Finset.range p.length, (x (p.getVert i) - x (p.getVert (i + 1))) ^ 2)
@@ -231,6 +274,8 @@ theorem path_energy_le_edgeEnergy {G : SimpleGraph V} [DecidableRel G.Adj] {a b 
   exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ _)
     (fun q _ _ => by split_ifs <;> positivity)
 
+/-- For a zero-sum vector supported in the component of `u`, the sum of coordinate squares is at
+most `compSize G u * (compSize G u - 1) / 4` times its edge energy. -/
 theorem poincare_edgeEnergy {G : SimpleGraph V} [DecidableRel G.Adj] {u : V} (x : V → ℝ)
     (hsupp : ∀ v, ¬ G.Reachable u v → x v = 0) (hsum : ∑ v, x v = 0) :
     ∑ v, x v ^ 2 ≤ (compSize G u : ℝ) * ((compSize G u : ℝ) - 1) * edgeEnergy G x / 4 := by
@@ -330,6 +375,7 @@ theorem poincare_edgeEnergy {G : SimpleGraph V} [DecidableRel G.Adj] {u : V} (x 
         exact mul_le_mul_of_nonneg_left hdiff_sq' (Nat.cast_nonneg _)
     _ = (compSize G u : ℝ) * ((compSize G u : ℝ) - 1) * edgeEnergy G x / 4 := by ring
 
+/-- On a regular graph, the edge energy is at most `4 * d` times the sum of coordinate squares. -/
 theorem edgeEnergy_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (x : V → ℝ) :
     edgeEnergy G x ≤ 4 * d * (∑ u, x u ^ 2) := by
@@ -402,6 +448,8 @@ theorem edgeEnergy_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     _ = 2 * d * (∑ u, x u ^ 2) + 2 * d * (∑ u, x u ^ 2) := by rw [hA, hB]
     _ = 4 * d * (∑ u, x u ^ 2) := by ring
 
+/-- On a regular graph, the quadratic form of `walkM` is at least `(1 - 2 * walkB d * d)` times
+the sum of coordinate squares. -/
 theorem dotProduct_walkM_self_ge (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (x : V → ℝ) :
     (1 - 2 * walkB d * d) * (∑ u, x u ^ 2) ≤ x ⬝ᵥ (walkM G d *ᵥ x) := by
@@ -414,6 +462,8 @@ theorem dotProduct_walkM_self_ge (G : SimpleGraph V) [DecidableRel G.Adj] {d : �
     mul_le_mul_of_nonneg_left (edgeEnergy_le G hreg x) hb2
   nlinarith [hmul]
 
+/-- For a zero-sum vector supported on a component of size at least two in a regular graph, the
+quadratic form of `walkM` is at most `elemRho G d u` times the sum of coordinate squares. -/
 theorem dotProduct_walkM_self_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (u : V) (hN2 : 2 ≤ compSize G u) (x : V → ℝ)
     (hsupp : ∀ v, ¬ G.Reachable u v → x v = 0) (hsum : ∑ v, x v = 0) :
@@ -443,6 +493,7 @@ theorem dotProduct_walkM_self_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : �
   rw [← hkey] at hmul
   nlinarith [hmul]
 
+/-- Every component of a regular graph of degree at least two contains at least three vertices. -/
 theorem compSize_ge_three (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (u : V) : 3 ≤ compSize G u := by
   classical
@@ -463,6 +514,8 @@ theorem compSize_ge_three (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     exact_mod_cast h2r
   omega
 
+/-- For `2 ≤ d` and `3 ≤ N`, the quantity `2 * walkB d / (N * (N - 1))` is at most `2 - 2 *
+walkB d * d`. -/
 theorem delta_le (d : ℝ) (N : ℕ) (hd : 2 ≤ d) (hN : 3 ≤ N) :
     2 * walkB d / ((N : ℝ) * ((N : ℝ) - 1)) ≤ 2 - 2 * walkB d * d := by
   have hNr : (3 : ℝ) ≤ (N : ℝ) := by exact_mod_cast hN
@@ -485,6 +538,7 @@ theorem delta_le (d : ℝ) (N : ℕ) (hd : 2 ≤ d) (hN : 3 ≤ N) :
   field_simp
   nlinarith [hkey, hp2]
 
+/-- The vertex-space walk matrix is symmetric. -/
 theorem walkM_transpose (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) :
     (walkM G d)ᵀ = walkM G d := by
   unfold walkM adjMatrix
@@ -494,12 +548,16 @@ theorem walkM_transpose (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) :
   ext i j
   simp [G.adj_comm]
 
+/-- The bilinear form defined by `walkM` is symmetric in its two real-vector arguments. -/
 theorem dotProduct_walkM_comm (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x y : V → ℝ) :
     x ⬝ᵥ (walkM G d *ᵥ y) = y ⬝ᵥ (walkM G d *ᵥ x) := by
   calc x ⬝ᵥ (walkM G d *ᵥ y) = x ⬝ᵥ ((walkM G d)ᵀ *ᵥ y) := by rw [walkM_transpose]
     _ = y ⬝ᵥ (walkM G d *ᵥ x) := Matrix.dotProduct_transpose_mulVec (walkM G d) x y
 
+/-- For a regular graph of degree at least two, the absolute quadratic form on a
+component-supported zero-sum vector is bounded by `elemRho G d u` times the sum of
+coordinate squares. -/
 theorem abs_dotProduct_walkM_self_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (u : V) (x : V → ℝ)
     (hsupp : ∀ v, ¬ G.Reachable u v → x v = 0) (hsum : ∑ v, x v = 0) :
@@ -519,6 +577,8 @@ theorem abs_dotProduct_walkM_self_le (G : SimpleGraph V) [DecidableRel G.Adj] {d
   · nlinarith [mul_le_mul_of_nonneg_right hρneg hS, hlow]
   · exact hup
 
+/-- For `2 ≤ d` and component size at least three, the coefficient `elemRho G d u` is
+nonnegative. -/
 theorem rho_nonneg (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ} (hd : 2 ≤ d) (u : V)
     (hN3 : 3 ≤ compSize G u) :
     (0 : ℝ) ≤ 1 - 2 * walkB d / ((compSize G u : ℝ) * ((compSize G u : ℝ) - 1)) := by
@@ -544,6 +604,8 @@ theorem rho_nonneg (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ} (hd : 2 �
     exact h2b
   linarith
 
+/-- The Euclidean norm of a real scalar multiple is the absolute value of the scalar times the
+original norm. -/
 theorem l2norm_smul {ι : Type*} [Fintype ι] (c : ℝ) (v : ι → ℝ) :
     l2norm (c • v) = |c| * l2norm v := by
   unfold l2norm
@@ -555,6 +617,7 @@ theorem l2norm_smul {ι : Type*} [Fintype ι] (c : ℝ) (v : ι → ℝ) :
     ring
   rw [hsq, Real.sqrt_mul (by positivity), Real.sqrt_sq_eq_abs]
 
+/-- A nonzero finite real vector has nonzero Euclidean norm. -/
 theorem l2norm_ne_zero {ι : Type*} [Fintype ι] {v : ι → ℝ} (hv : v ≠ 0) :
     l2norm v ≠ 0 := by
   intro h
@@ -567,6 +630,9 @@ theorem l2norm_ne_zero {ι : Type*} [Fintype ι] {v : ι → ℝ} (hv : v ≠ 0)
   have hall := (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => sq_nonneg (v j))).mp hsum0
   exact sq_eq_zero_iff.mp (hall i (Finset.mem_univ i))
 
+/-- For two zero-sum vectors supported in the same component of a regular graph of degree at
+least two, the absolute `walkM` bilinear form is bounded by `elemRho G d u / 2` times the
+sum of their squared norms. -/
 theorem abs_dotProduct_walkM_bilinear (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (u : V) (x y : V → ℝ)
     (hsuppx : ∀ v, ¬ G.Reachable u v → x v = 0) (hsumx : ∑ v, x v = 0)
@@ -623,6 +689,8 @@ theorem abs_dotProduct_walkM_bilinear (G : SimpleGraph V) [DecidableRel G.Adj] {
       _ = elemRho G d u * ((∑ v, (x + y) v ^ 2) + (∑ v, (x - y) v ^ 2)) := by ring
   nlinarith [hupper]
 
+/-- On a regular graph, a nonnegative `elemRho` and the stated bilinear estimate imply the
+corresponding Euclidean contraction for every component-supported zero-sum vector. -/
 theorem contraction_of_bilinear (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (u : V) (hρnn : 0 ≤ elemRho G d u)
     (hbil : ∀ x y : V → ℝ,
@@ -721,6 +789,8 @@ theorem contraction_of_bilinear (G : SimpleGraph V) [DecidableRel G.Adj] {d : �
     _ = L * c * B := by ring
     _ ≤ elemRho G d u * B := mul_le_mul_of_nonneg_right hbl (l2norm_nonneg x)
 
+/-- On a regular graph of degree at least two, `walkM` contracts component-supported zero-sum
+vectors in Euclidean norm by the factor `elemRho G d u`. -/
 theorem walkM_contraction (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (u : V) (x : V → ℝ)
     (hsupp : ∀ v, ¬ G.Reachable u v → x v = 0) (hsum : ∑ v, x v = 0) :
@@ -731,6 +801,8 @@ theorem walkM_contraction (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (fun x y hx hxs hy hys => abs_dotProduct_walkM_bilinear G hreg hd u x y hx hxs hy hys)
     x hsupp hsum
 
+/-- Every regular graph of degree at least two satisfies `SpectralGap G d u` at each vertex `u`.
+See [Watrous1998]. -/
 theorem spectralGap_of_regular (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (u : V) : SpectralGap G d u := by
   intro x hsupp hsum

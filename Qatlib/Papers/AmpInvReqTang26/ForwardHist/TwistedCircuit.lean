@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
 import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualDensity
+
+/-!
+# Absorbing fixed phases into forward-query algorithms
+
+A diagonal matrix of unit phases can be inserted into the noninitial interleaving steps to form
+`twistedAlgorithm`. The resulting circuit on an oracle assignment agrees with the original
+circuit on the pointwise phase-twisted assignment. This development supports the treatment in
+[TangWright2025].
+
+## Main statements
+
+* `unitPhase_query_unitary`: unitarity of a unit-phase query matrix.
+* `twistedAlgorithm_run`: the circuit identity implementing the twist.
+* `run_assignment`: phase evaluation can be absorbed into the oracle assignment.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +36,8 @@ open Matrix
 namespace Qatlib.Papers.AmpInvReqTang26.ForwardHist
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 
+/-- The query matrix for a unit-modulus phase assignment satisfies the unitary identity `Mᴴ * M
+= 1`. -/
 theorem unitPhase_query_unitary {d a : ℕ} (D : Fin d → ℂ) (hD : ∀i,‖D i‖=1) :
     (queryMat (a := a) id D)ᴴ*queryMat id D=1 := by
   ext i j
@@ -28,6 +50,8 @@ theorem unitPhase_query_unitary {d a : ℕ} (D : Fin d → ℂ) (hD : ∀i,‖D 
     norm_num
   · simp [hij]
 
+/-- The forward-query algorithm obtained by inserting a fixed diagonal unit-phase query into
+every noninitial interleaving step. -/
 def twistedAlgorithm {d a : ℕ} (D : Fin d → ℂ) (hD : ∀i,‖D i‖=1)
     (Alg : ForwardQueryAlgorithm d a) : ForwardQueryAlgorithm d a where
   init := Alg.init
@@ -43,6 +67,8 @@ def twistedAlgorithm {d a : ℕ} (D : Fin d → ℂ) (hD : ∀i,‖D i‖=1)
           simp only [Matrix.conjTranspose_mul,Matrix.mul_assoc]
         _ = 1 := by rw [Alg.hstep t,Matrix.mul_one,unitPhase_query_unitary D hD]
 
+/-- Running the twisted algorithm equals running the original algorithm with the oracle phases
+multiplied by the fixed twist. -/
 theorem twistedAlgorithm_run {d a : ℕ} {S : Type} (phi : S → ℂ)
     (D : Fin d → ℂ) (hD : ∀i,‖D i‖=1) (Alg : ForwardQueryAlgorithm d a)
     (n : ℕ) (U : Fin d → S) :
@@ -60,6 +86,8 @@ theorem twistedAlgorithm_run {d a : ℕ} {S : Type} (phi : S → ℂ)
     rw [← Matrix.mulVec_mulVec,ih]
     rw [Matrix.mulVec_mulVec (run id Alg n (fun i => D i*phi (U i))) (queryMat id D) (queryMat phi U),hQ]
 
+/-- Running with a phase map equals running with the identity map on the evaluated phase
+assignment. -/
 theorem run_assignment {d a : ℕ} {S : Type} (phi : S → ℂ)
     (Alg : ForwardQueryAlgorithm d a) (n : ℕ) (U : Fin d → S) :
     run phi Alg n U=run id Alg n (fun i => phi (U i)) := by

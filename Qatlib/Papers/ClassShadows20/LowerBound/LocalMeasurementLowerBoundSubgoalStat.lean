@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalStat
+
+/-!
+# Local measurement lower bound contract
+
+`LocalMeasurementLowerBoundSubgoal` states a conditional sample lower bound for product
+measurements of Pauli code states. It quantifies over finite qubit ensembles satisfying the
+supplied unitary and moment conditions, normalized local measurements, distinct weight-`k`
+signals, and predictors that may use the rotation setting.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `LocalMeasurementLowerBoundSubgoal`: specifies the bound `9Nε² / 3^k ≥ (1 - δ) log M - 1`
+  under its prediction hypothesis.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,9 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition asserting the local measurement sample lower bound under the stated ensemble
+moments, measurement completeness, distinct weight-`k` code words, and uniform prediction
+guarantee. Predictors may depend on both the local rotation setting and the outcome record. -/
 def LocalMeasurementLowerBoundSubgoal : Prop :=
   ∀ (n k N M : ℕ) (O : Type) [Fintype O] [DecidableEq O]
     (J : Type) [Fintype J] [DecidableEq J]

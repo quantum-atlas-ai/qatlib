@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Noisy value phase kickback
+
+This module studies the value-oracle phase-kickback construction described in
+[NielsenChuang2010]. The circuit `valueAccessWord` uses two queries and one phase gate, and
+`valueAccessWord_executed` identifies its operator exactly. A zero value register is returned to
+zero while the data register receives the table phase.
+
+`TablePhaseError` measures phase error modulo integers. The module bounds the resulting operator
+and state errors, extends the estimates to adjoint and Boolean-controlled access, and identifies
+the construction with the gradient-grid continuation.
+
+## Main statements
+
+* `valueAccessWord_resources`: exact query and gate counts.
+* `noisyValueKickbackOperatorError`: operator error at most `2πη`.
+* `noisyValueKickbackStateError`: Euclidean state error with a clean value register.
+* `frontier1`: the combined kickback specification.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -33,6 +58,7 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 set_option warningAsError false
 
+/-- The value phase coefficient on `ZMod Q` equals the standard additive character. -/
 theorem valuePhaseCoeff_eq_stdAddChar (Q : ℕ) [NeZero Q] (a : ZMod Q) :
     valuePhaseCoeff Q a = ZMod.stdAddChar a := by
   rw [ZMod.stdAddChar_apply, ZMod.toCircle_apply, valuePhaseCoeff]
@@ -40,6 +66,7 @@ theorem valuePhaseCoeff_eq_stdAddChar (Q : ℕ) [NeZero Q] (a : ZMod Q) :
   push_cast
   field_simp
 
+/-- Expresses the value phase coefficient as `exp (2πi a.val / Q)`. -/
 theorem valuePhaseCoeff_exp_form (Q : ℕ) [NeZero Q] (a : ZMod Q) :
     valuePhaseCoeff Q a
       = Complex.exp (2 * Real.pi * Complex.I
@@ -49,11 +76,13 @@ theorem valuePhaseCoeff_exp_form (Q : ℕ) [NeZero Q] (a : ZMod Q) :
   push_cast
   ring
 
+/-- The value phase coefficient sends addition in `ZMod Q` to multiplication in `ℂ`. -/
 theorem valuePhaseCoeff_add (Q : ℕ) [NeZero Q] (a b : ZMod Q) :
     valuePhaseCoeff Q (a + b) = valuePhaseCoeff Q a * valuePhaseCoeff Q b := by
   rw [valuePhaseCoeff_eq_stdAddChar, valuePhaseCoeff_eq_stdAddChar, valuePhaseCoeff_eq_stdAddChar,
     AddChar.map_add_eq_mul]
 
+/-- The diagonal value phase gate is unitary. -/
 theorem valuePhaseGate_unitary (Q : ℕ) [NeZero Q] :
     valuePhaseGate Q ∈ Matrix.unitaryGroup (ZMod Q) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -73,34 +102,45 @@ theorem valuePhaseGate_unitary (Q : ℕ) [NeZero Q] :
       + (((2 * Real.pi * ((y.val : ℝ) / (Q : ℝ)) : ℝ) : ℂ) * Complex.I) = 0 := by ring
   rw [hz, Complex.exp_zero]
 
+/-- The diagonal operator with entry `exp (2πi φ x)` at each basis index `x`. -/
 noncomputable def dataPhaseOperator {X : Type} [DecidableEq X] (φ : X → ℝ) : Matrix X X ℂ :=
   Matrix.diagonal (fun x => Complex.exp (2 * Real.pi * Complex.I * (φ x : ℂ)))
 
+/-- The adjoint-query circuit word consisting of a backward query, a value phase gate, and a
+forward query. -/
 noncomputable def valueAccessWord (X : Type) [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q] :
     List (AdjointStep (X × ZMod Q)) :=
   [.backward,
    .gate (TensorGate (1 : Matrix X X ℂ) (valuePhaseGate Q)),
    .forward]
 
+/-- The tensor product of the data phase operator for `φ` and the value-register phase gate. -/
 noncomputable def idealKickbackOperator {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (φ : X → ℝ) : Matrix (X × ZMod Q) (X × ZMod Q) ℂ :=
   TensorGate (dataPhaseOperator φ) (valuePhaseGate Q)
 
+/-- Requires the table phase and `φ` to differ pointwise by at most `η` after subtracting a
+suitable integer. -/
 def TablePhaseError {X : Type} (Q : ℕ) [NeZero Q] (v : X → ZMod Q) (φ : X → ℝ) (η : ℝ) : Prop :=
   ∀ x, ∃ k : ℤ, |gradientValuePhase Q v x - φ x - k| ≤ η
 
+/-- Extends a value table to a Boolean control, returning zero on the false branch. -/
 def controlledValueTable {X : Type} (Q : ℕ) [NeZero Q] (v : X → ZMod Q) :
     Bool × X → ZMod Q :=
   fun p => if p.1 then v p.2 else 0
 
+/-- Extends a real phase function to a Boolean control, returning zero on the false branch. -/
 def controlledPhase {X : Type} (φ : X → ℝ) : Bool × X → ℝ :=
   fun p => if p.1 then φ p.2 else 0
 
+/-- Applying a matrix product is the same as applying the right factor followed by the left
+factor. -/
 private theorem applyGate_mul' {I : Type*} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (ψ : QState I) :
     ApplyGate (A * B) ψ = ApplyGate A (ApplyGate B ψ) := by
   simp [ApplyGate, Matrix.mulVec_mulVec]
 
+/-- Matrix application commutes with complex scalar multiplication of a state. -/
 private theorem applyGate_smul' {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (c : ℂ) (ψ : QState I) : ApplyGate A (c • ψ) = c • ApplyGate A ψ := by
   funext i
@@ -108,6 +148,7 @@ private theorem applyGate_smul' {I : Type*} [Fintype I] [DecidableEq I]
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun j _ => by ring
 
+/-- A diagonal matrix acts on a basis ket by its corresponding diagonal entry. -/
 private theorem applyGate_diagonal_ket {I : Type*} [Fintype I] [DecidableEq I]
     (d : I → ℂ) (x : I) : ApplyGate (Matrix.diagonal d) (Ket x) = d x • Ket x := by
   funext i
@@ -115,6 +156,7 @@ private theorem applyGate_diagonal_ket {I : Type*} [Fintype I] [DecidableEq I]
     smul_eq_mul]
   by_cases h : i = x <;> simp [h]
 
+/-- Tensoring two scalar multiples multiplies their scalars. -/
 private theorem tensorState_smul_smul {I J : Type*} [Fintype I] [Fintype J] (a b : ℂ)
     (ψ : QState I) (φ : QState J) :
     TensorState (a • ψ) (b • φ) = (a * b) • TensorState ψ φ := by
@@ -122,6 +164,8 @@ private theorem tensorState_smul_smul {I J : Type*} [Fintype I] [Fintype J] (a b
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- The tensor product of the identity and a diagonal gate scales a basis ket by the second
+register's diagonal entry. -/
 private theorem tensorGate_one_diag_ket {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (d : J → ℂ) (x : I) (y : J) :
     ApplyGate (TensorGate (1 : Matrix I I ℂ) (Matrix.diagonal d))
@@ -133,12 +177,14 @@ private theorem tensorGate_one_diag_ket {I J : Type*} [Fintype I] [Fintype J]
   by_cases hi : i = x <;> by_cases hj : j = y
   <;> simp [Qatlib.Foundations.PureStateMath.Ket, hi, hj]
 
+/-- The gradient value oracle is the additive oracle for the same table. -/
 private theorem gradientValueOracle_eq_addOracle' {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) : gradientValueOracle Q v = AddOracle v := by
   rw [addOracle_eq_permMatrix]
   ext x y
   simp [gradientValueOracle, permMatrix, addOracleEquiv, Prod.ext_iff]
 
+/-- Matrices are equal if they act identically on every basis ket. -/
 private theorem matrix_eq_of_forall_mulVec_ket {I : Type*} [Fintype I] [DecidableEq I]
     {A B : Matrix I I ℂ} (h : ∀ j, A *ᵥ (Ket j) = B *ᵥ (Ket j)) : A = B := by
   have hentry : ∀ (M : Matrix I I ℂ) (i j : I), (M *ᵥ Ket j) i = M i j := by
@@ -150,6 +196,7 @@ private theorem matrix_eq_of_forall_mulVec_ket {I : Type*} [Fintype I] [Decidabl
   rw [hentry A i j, hentry B i j] at hij
   exact hij
 
+/-- A basis ket has Euclidean norm one. -/
 theorem toEuclidean_fromVec_ket_norm {I : Type*} [Fintype I] [DecidableEq I] (i : I) :
     ‖toEuclidean_fromVec (Ket i)‖ = 1 := by
   have hsq : ‖toEuclidean_fromVec (Ket i)‖ ^ 2 = 1 := by
@@ -161,6 +208,7 @@ theorem toEuclidean_fromVec_ket_norm {I : Type*} [Fintype I] [DecidableEq I] (i 
       exact absurd (Finset.mem_univ i) hc
   rw [← Real.sqrt_sq (norm_nonneg _), hsq, Real.sqrt_one]
 
+/-- The value phase gate fixes the zero basis ket. -/
 private theorem valuePhaseGate_ket_zero (Q : ℕ) [NeZero Q] :
     ApplyGate (valuePhaseGate Q) (Ket (0 : ZMod Q)) = Ket (0 : ZMod Q) := by
   rw [valuePhaseGate, applyGate_diagonal_ket]
@@ -168,6 +216,7 @@ private theorem valuePhaseGate_ket_zero (Q : ℕ) [NeZero Q] :
     simp [valuePhaseCoeff]
   rw [h0, one_smul]
 
+/-- The diagonal data phase operator associated with any real phase function is unitary. -/
 theorem dataPhaseOperator_unitary {X : Type} [Fintype X] [DecidableEq X] (φ : X → ℝ) :
     dataPhaseOperator φ ∈ Matrix.unitaryGroup X ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, dataPhaseOperator,
@@ -179,6 +228,8 @@ theorem dataPhaseOperator_unitary {X : Type} [Fintype X] [DecidableEq X] (φ : X
   rw [Complex.conj_mul', norm_exp_two_pi_I]
   norm_num
 
+/-- Evaluating the value-access word gives the tensor product of the table's data phase operator
+and the value phase gate. -/
 theorem valueAccessWord_executed {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) :
     evaluate (gradientValueOracle Q v) (valueAccessWord X Q)
@@ -213,6 +264,7 @@ theorem valueAccessWord_executed {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ
   congr 1
   ring
 
+/-- The evaluated value-access word is unitary. -/
 theorem valueAccessWord_unitary {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) :
     evaluate (gradientValueOracle Q v) (valueAccessWord X Q)
@@ -222,6 +274,8 @@ theorem valueAccessWord_unitary {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ)
   rw [valueAccessWord_executed]
   exact tensorGate_unitary hD (valuePhaseGate_unitary Q)
 
+/-- The evaluated value-access word scales `Ket (x, y)` by the product of the phase coefficients
+of `v x` and `y`. -/
 theorem valueAccessWord_ket_clean {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) (x : X) (y : ZMod Q) :
     (evaluate (gradientValueOracle Q v) (valueAccessWord X Q)) *ᵥ (Ket (x, y))
@@ -233,6 +287,8 @@ theorem valueAccessWord_ket_clean {X : Type} [Fintype X] [DecidableEq X] (Q : �
     applyGate_diagonal_ket _ x, applyGate_diagonal_ket _ y, tensorState_smul_smul,
     gradientValuePhase, ← valuePhaseCoeff_exp_form Q (v x)]
 
+/-- On a zero value register, the value-access word applies the table's data phase operator and
+returns that register to zero. -/
 theorem valueAccessWord_data_clean {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) (ψ : QState X) :
     ApplyGate (evaluate (gradientValueOracle Q v) (valueAccessWord X Q))
@@ -241,6 +297,7 @@ theorem valueAccessWord_data_clean {X : Type} [Fintype X] [DecidableEq X] (Q : �
           (Ket (0 : ZMod Q)) := by
   rw [valueAccessWord_executed, applyGate_tensorGate, valuePhaseGate_ket_zero]
 
+/-- The value-access word is well formed and uses exactly two oracle queries and one gate. -/
 theorem valueAccessWord_resources {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q] :
     WellFormedAdjointCircuit (valueAccessWord X Q)
       ∧ adjointQueryCount (valueAccessWord X Q) = 2
@@ -251,6 +308,7 @@ theorem valueAccessWord_resources {X : Type} [Fintype X] [DecidableEq X] (Q : �
   exact ⟨tensorGate_unitary (one_mem (Matrix.unitaryGroup _ ℂ)) (valuePhaseGate_unitary Q),
     WellFormedAdjointCircuit.nil⟩
 
+/-- Adding an integer-valued function to the phase leaves the data phase operator unchanged. -/
 theorem dataPhaseOperator_int_shift {X : Type} [DecidableEq X] (φ : X → ℝ) (k : X → ℤ) :
     dataPhaseOperator (fun x => φ x + (k x : ℝ)) = dataPhaseOperator φ := by
   unfold dataPhaseOperator
@@ -259,6 +317,8 @@ theorem dataPhaseOperator_int_shift {X : Type} [DecidableEq X] (φ : X → ℝ) 
   (try simp only [])
   rw [Complex.ofReal_add, mul_add, Complex.exp_add, exp_two_pi_I_int, mul_one]
 
+/-- A pointwise phase difference bounded by a nonnegative `B` gives an operator norm difference
+at most `2πB`. -/
 theorem dataPhaseOperator_sub_norm_le {X : Type} [Fintype X] [DecidableEq X] (φ ψ : X → ℝ)
     (B : ℝ) (hB : 0 ≤ B) (herror : ∀ x, |φ x - ψ x| ≤ B) :
     ‖dataPhaseOperator φ - dataPhaseOperator ψ‖ ≤ 2 * Real.pi * B := by
@@ -274,6 +334,8 @@ theorem dataPhaseOperator_sub_norm_le {X : Type} [Fintype X] [DecidableEq X] (φ
       rw [← mul_sub, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 2 * Real.pi)]
     _ ≤ 2 * Real.pi * B := mul_le_mul_of_nonneg_left (herror z) (by positivity)
 
+/-- A table phase error at most a nonnegative `η` bounds the operator norm error of value
+kickback by `2πη`. -/
 theorem noisyValueKickbackOperatorError {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) (φ : X → ℝ) (η : ℝ) (hη : 0 ≤ η) (herr : TablePhaseError Q v φ η) :
     ‖evaluate (gradientValueOracle Q v) (valueAccessWord X Q) - idealKickbackOperator Q φ‖
@@ -300,6 +362,8 @@ theorem noisyValueKickbackOperatorError {X : Type} [Fintype X] [DecidableEq X] (
   rw [l2_norm_unitary_eq_one (valuePhaseGate_unitary Q), mul_one]
   exact dataPhaseOperator_sub_norm_le ψ φ η hη hpoint
 
+/-- On an input with a zero value register, value kickback has Euclidean state error at most
+`2πη` times the Euclidean norm of the data state. -/
 theorem noisyValueKickbackStateError {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) (φ : X → ℝ) (η : ℝ) (hη : 0 ≤ η) (herr : TablePhaseError Q v φ η)
     (ψ : QState X) :
@@ -328,6 +392,7 @@ theorem noisyValueKickbackStateError {X : Type} [Fintype X] [DecidableEq X] (Q :
     _ ≤ 2 * Real.pi * η * ‖toEuclidean_fromVec ψ‖ :=
         mul_le_mul_of_nonneg_right hop (norm_nonneg _)
 
+/-- The adjoint value-access word is well formed and uses exactly two queries and one gate. -/
 theorem valueAccessWord_adjoint_resources {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] :
     WellFormedAdjointCircuit (adjointCircuit (valueAccessWord X Q))
@@ -353,6 +418,8 @@ theorem valueAccessWord_adjoint_resources {X : Type} [Fintype X] [DecidableEq X]
   · rw [adjointGateCount_adjointCircuit]
     rfl
 
+/-- Evaluating the adjoint word gives the conjugate transpose of the evaluated word, with
+operator norm error at most `2πη` from the ideal adjoint. -/
 theorem noisyValueKickbackAdjointAccess {X : Type} [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) (φ : X → ℝ) (η : ℝ) (hη : 0 ≤ η) (herr : TablePhaseError Q v φ η) :
     evaluate (gradientValueOracle Q v) (adjointCircuit (valueAccessWord X Q))
@@ -366,6 +433,7 @@ theorem noisyValueKickbackAdjointAccess {X : Type} [Fintype X] [DecidableEq X] (
   rw [h1, ← Matrix.conjTranspose_sub, Matrix.l2_opNorm_conjTranspose]
   exact noisyValueKickbackOperatorError Q v φ η hη herr
 
+/-- Adding a Boolean control preserves the table phase error bound when `η` is nonnegative. -/
 theorem controlled_table_error {X : Type} (Q : ℕ) [NeZero Q] (v : X → ZMod Q) (φ : X → ℝ)
     (η : ℝ) (hη : 0 ≤ η) (herr : TablePhaseError Q v φ η) :
     TablePhaseError Q (controlledValueTable Q v) (controlledPhase φ) η := by
@@ -381,6 +449,7 @@ theorem controlled_table_error {X : Type} (Q : ℕ) [NeZero Q] (v : X → ZMod Q
     exact hη
   · exact herr x
 
+/-- The controlled value oracle fixes every basis ket on the false control branch. -/
 theorem controlledValueOracle_uncontrolled_ket {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) (x : X) (y : ZMod Q) :
     ApplyGate (gradientValueOracle Q (controlledValueTable Q v)) (Ket ((false, x), y))
@@ -388,6 +457,8 @@ theorem controlledValueOracle_uncontrolled_ket {X : Type} [Fintype X] [Decidable
   rw [gradientValueOracle_eq_addOracle', applyGate_addOracle_ket]
   simp [controlledValueTable]
 
+/-- The controlled data phase operator has diagonal entry one on the false branch and the
+original phase entry on the true branch. -/
 theorem controlled_data_phase_entries {X : Type} [DecidableEq X] (Q : ℕ) [NeZero Q]
     (φ : X → ℝ) (x : X) :
     dataPhaseOperator (controlledPhase φ) (false, x) (false, x) = 1
@@ -397,6 +468,8 @@ theorem controlled_data_phase_entries {X : Type} [DecidableEq X] (Q : ℕ) [NeZe
   · simp [dataPhaseOperator, Matrix.diagonal_apply, controlledPhase]
   · simp [dataPhaseOperator, Matrix.diagonal_apply, controlledPhase]
 
+/-- The Boolean-controlled value-access word approximates the ideal controlled kickback operator
+with operator norm error at most `2πη`. -/
 theorem noisyValueKickbackControlledAccess {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) (φ : X → ℝ) (η : ℝ) (hη : 0 ≤ η)
     (herr : TablePhaseError Q v φ η) :
@@ -406,13 +479,17 @@ theorem noisyValueKickbackControlledAccess {X : Type} [Fintype X] [DecidableEq X
   noisyValueKickbackOperatorError Q (controlledValueTable Q v) (controlledPhase φ) η hη
     (controlled_table_error Q v φ η hη herr)
 
+/-- On the gradient grid, the value-access word agrees with the compute-kickback-uncompute word. -/
 theorem valueAccessWord_eq_continuation (d M : ℕ) (Q : ℕ) [NeZero Q] :
     valueAccessWord (GradientGrid d M) Q
       = valueComputeKickbackUncomputeWord d M Q := rfl
 
+/-- On the gradient grid, the data phase operator equals `gradientPhase`. -/
 theorem dataPhaseOperator_eq_gradientPhase (d M : ℕ) (φ : GradientGrid d M → ℝ) :
     dataPhaseOperator φ = Qatlib.Concepts.SignalPrimitive.GridGradient.gradientPhase d M φ := rfl
 
+/-- Collects exact value kickback, clean-register behavior, query and gate counts, phase-error
+estimates, adjoint and controlled access, and the gradient-grid identifications. -/
 def noisy_value_phase_kickback_spec : Prop :=
   (∀ (X : Type) [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q] (v : X → ZMod Q),
       evaluate (gradientValueOracle Q v) (valueAccessWord X Q)
@@ -464,6 +541,8 @@ def noisy_value_phase_kickback_spec : Prop :=
     ∧ ∀ (φ : GradientGrid d M → ℝ),
         dataPhaseOperator φ = Qatlib.Concepts.SignalPrimitive.GridGradient.gradientPhase d M φ)
 
+/-- Establishes `noisy_value_phase_kickback_spec`, including exact execution and resource counts
+together with noisy, adjoint, and controlled error bounds. -/
 theorem frontier1 : noisy_value_phase_kickback_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro X _ _ Q _ v

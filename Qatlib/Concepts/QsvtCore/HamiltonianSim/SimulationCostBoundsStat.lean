@@ -7,10 +7,29 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
+/-!
+# Simulation cost bound specification
+
+This module defines `SimulationCostBounds` for positive `t` and error `ε` in `(0, 1)`. It
+records two sided logarithmic bounds in the small time regime, a linear bound in the other
+regime, and an upper bound for every positive auxiliary parameter. The mathematical background
+is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `SimulationCostBounds`: the quantitative bounds for solutions of `(t / r) ^ r = ε`.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open scoped Real
 
 namespace Qatlib.Concepts.QsvtCore.HamiltonianSim
 
+/-- The assertion of logarithmic and linear bounds on `r ≥ t` solving `(t / r) ^ r = ε`,
+together with `r ≤ exp q * t + log (1 / ε) / q` for each positive `q`. -/
 def SimulationCostBounds : Prop :=
   ∀ (t ε r : ℝ), 0 < t → 0 < ε → ε < 1 → t ≤ r → (t / r) ^ r = ε →
     (t ≤ (Real.log (1/ε)) / (Real.exp 1) →

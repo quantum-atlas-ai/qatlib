@@ -8,6 +8,30 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricDegreeLower
 import Mathlib.Data.Nat.Dist
+
+/-!
+# Layer changes and the symmetric jump parameter
+
+The parameter `Gamma` is the infimum of distances `Nat.dist (2 * k + 1) n` over changing weight
+layers. For nonconstant symmetric functions this distance is attained, and layer values remain
+constant across bands with smaller distance; polynomial approximation also gives a root between
+each pair of changing layers. These constructions support the symmetric-function analysis of
+[BealsEtAl2001].
+
+## Main statements
+
+* `gamma_mem`: For a nonconstant symmetric Boolean function, the jump parameter belongs to its
+  changing-layer distance set.
+* `layerVal_const_on_band`: For a symmetric function, the layer values at `a ≤ b ≤ n` are equal
+  if every intervening layer distance is strictly below `Gamma f`.
+* `jump_root`: If `p` approximates a symmetric Boolean function within one third, each changing
+  layer `k < n` yields a root of `avgPoly p - 1 / 2` strictly between `k` and `k + 1`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,28 +47,36 @@ open scoped Classical BigOperators
 
 variable {n : ℕ}
 
+/-- The existence of words of weights `k` and `k + 1` on which `f` takes different values. -/
 def LayerChange (f : (Fin n → Bool) → Bool) (k : ℕ) : Prop :=
   ∃ x y : Fin n → Bool, boolWeight x = k ∧ boolWeight y = k + 1 ∧ f x ≠ f y
 
+/-- The set of distances `Nat.dist (2 * k + 1) n` for changing layers with `k < n`. -/
 def jumpDist (f : (Fin n → Bool) → Bool) : Set ℕ :=
   {d | ∃ k, k < n ∧ LayerChange f k ∧ d = Nat.dist (2 * k + 1) n}
 
+/-- The natural-number infimum of the changing-layer distance set `jumpDist f`. -/
 def Gamma (f : (Fin n → Bool) → Bool) : ℕ := sInf (jumpDist f)
 
+/-- The jump parameter is at most the distance associated with any changing layer `k < n`. -/
 theorem gamma_le_of_layerChange {f : (Fin n → Bool) → Bool} {k : ℕ}
     (hk : k < n) (hc : LayerChange f k) :
     Gamma f ≤ Nat.dist (2 * k + 1) n :=
   Nat.sInf_le ⟨k, hk, hc, rfl⟩
 
+/-- A layer `k < n` whose distance is strictly smaller than `Gamma f` cannot be a changing
+layer. See [Beals et al., 2001][BealsEtAl2001]. -/
 theorem gamma_band_no_change {f : (Fin n → Bool) → Bool} {k : ℕ} (hk : k < n)
     (h : Nat.dist (2 * k + 1) n < Gamma f) : ¬ LayerChange f k := by
   intro hc
   have hle := gamma_le_of_layerChange (f := f) hk hc
   omega
 
+/-- The value of `f` on a chosen word of weight `k` when `k ≤ n`, and false for larger `k`. -/
 def layerVal (f : (Fin n → Bool) → Bool) (k : ℕ) : Bool :=
   if h : k ≤ n then f (Classical.choose (exists_word_weight (n := n) h)) else false
 
+/-- For a symmetric function, its value on a word of weight `k` equals `layerVal f k`. -/
 theorem layerVal_eq {f : (Fin n → Bool) → Bool} (hsym : Symmetric f) {k : ℕ}
     (w : Fin n → Bool) (hw : boolWeight w = k) : f w = layerVal f k := by
   have hk : k ≤ n := by
@@ -55,6 +87,8 @@ theorem layerVal_eq {f : (Fin n → Bool) → Bool} (hsym : Symmetric f) {k : �
   rw [dif_pos hk]
   exact hsym w _ (hw.trans (Classical.choose_spec (exists_word_weight (n := n) hk)).symm)
 
+/-- A layer change of a symmetric function forces distinct values on the two adjacent weight
+layers. -/
 theorem layerVal_ne_of_layerChange {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {k : ℕ} (hc : LayerChange f k) : layerVal f k ≠ layerVal f (k + 1) := by
   intro heq
@@ -63,6 +97,7 @@ theorem layerVal_ne_of_layerChange {f : (Fin n → Bool) → Bool} (hsym : Symme
   have hy' : f y = layerVal f (k + 1) := layerVal_eq hsym y hy
   exact hxy (hx'.trans (heq.trans hy'.symm))
 
+/-- For a symmetric function and `k < n`, unequal adjacent layer values imply a layer change. -/
 theorem layerChange_of_layerVal_ne {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {k : ℕ} (hk : k < n) (h : layerVal f k ≠ layerVal f (k + 1)) :
     LayerChange f k := by
@@ -72,10 +107,14 @@ theorem layerChange_of_layerVal_ne {f : (Fin n → Bool) → Bool} (hsym : Symme
   rw [layerVal_eq hsym x hx, layerVal_eq hsym y hy]
   exact h
 
+/-- For a symmetric function and `k < n`, a layer change is equivalent to unequal adjacent layer
+values. -/
 theorem layerChange_iff {f : (Fin n → Bool) → Bool} (hsym : Symmetric f) {k : ℕ}
     (hk : k < n) : LayerChange f k ↔ layerVal f k ≠ layerVal f (k + 1) :=
   ⟨layerVal_ne_of_layerChange hsym, layerChange_of_layerVal_ne hsym hk⟩
 
+/-- For a symmetric function, the layer values at `a ≤ b ≤ n` are equal if no layer changes
+occur between them. -/
 theorem layerVal_const_of_no_change {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {a b : ℕ} (hab : a ≤ b) (hn : b ≤ n)
     (h : ∀ k, a ≤ k → k < b → ¬ LayerChange f k) : layerVal f a = layerVal f b := by
@@ -93,6 +132,8 @@ theorem layerVal_const_of_no_change {f : (Fin n → Bool) → Bool} (hsym : Symm
       exact (ih (by omega)).trans heq
   exact key b hab (le_refl b)
 
+/-- For a symmetric function, the layer values at `a ≤ b ≤ n` are equal if every intervening
+layer distance is strictly below `Gamma f`. See [Beals et al., 2001][BealsEtAl2001]. -/
 theorem layerVal_const_on_band {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {a b : ℕ} (hab : a ≤ b) (hbn : b ≤ n)
     (hband : ∀ k, a ≤ k → k < b → Nat.dist (2 * k + 1) n < Gamma f) :
@@ -100,6 +141,7 @@ theorem layerVal_const_on_band {f : (Fin n → Bool) → Bool} (hsym : Symmetric
   layerVal_const_of_no_change hsym hab hbn
     (fun k ha hk => gamma_band_no_change (by omega) (hband k ha hk))
 
+/-- A nonconstant symmetric Boolean function has a changing layer `k < n`. -/
 theorem exists_layerChange_of_symmetric_nonconstant {f : (Fin n → Bool) → Bool}
     (hsym : Symmetric f) (hnc : Nonconstant f) : ∃ k, k < n ∧ LayerChange f k := by
   classical
@@ -128,15 +170,20 @@ theorem exists_layerChange_of_symmetric_nonconstant {f : (Fin n → Bool) → Bo
       exact hcon ⟨k, by omega, hc⟩
     exact hne (layerVal_const_of_no_change hsym (le_of_lt hgt) hxn hno).symm
 
+/-- The changing-layer distance set of a nonconstant symmetric Boolean function is nonempty. -/
 theorem jumpDist_nonempty {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     (hnc : Nonconstant f) : (jumpDist f).Nonempty := by
   obtain ⟨k, hk, hc⟩ := exists_layerChange_of_symmetric_nonconstant hsym hnc
   exact ⟨Nat.dist (2 * k + 1) n, k, hk, hc, rfl⟩
 
+/-- For a nonconstant symmetric Boolean function, the jump parameter belongs to its
+changing-layer distance set. See [Beals et al., 2001][BealsEtAl2001]. -/
 theorem gamma_mem {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     (hnc : Nonconstant f) : Gamma f ∈ jumpDist f :=
   Nat.sInf_mem (jumpDist_nonempty hsym hnc)
 
+/-- For a nonconstant symmetric Boolean function on `n` bits, the jump parameter is at most `n -
+1`. -/
 theorem gamma_le_pred {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     (hnc : Nonconstant f) : Gamma f ≤ n - 1 := by
   obtain ⟨k, hk, hc, hd⟩ := gamma_mem hsym hnc
@@ -147,6 +194,7 @@ theorem gamma_le_pred {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
   · rw [Nat.dist_eq_sub_of_le_right (le_of_lt (Nat.lt_of_not_le h))]
     omega
 
+/-- A nonconstant symmetric Boolean function in even dimension has positive jump parameter. -/
 theorem gamma_pos_of_even {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     (hnc : Nonconstant f) (heven : Even n) : 0 < Gamma f := by
   obtain ⟨k, hk, hc, hd⟩ := gamma_mem hsym hnc
@@ -158,6 +206,9 @@ theorem gamma_pos_of_even {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     omega
   exact Nat.pos_of_ne_zero hpos
 
+/-- If `p` approximates a symmetric Boolean function within one third on the cube, its layer
+average approximates every valid layer value within one third. See [Beals et al.,
+2001][BealsEtAl2001]. -/
 theorem layerAverage_close_symmetric {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {p : MvPolynomial (Fin n) ℝ}
     (hyp : ∀ g : Fin n → Bool,
@@ -226,6 +277,9 @@ theorem layerAverage_close_symmetric {f : (Fin n → Bool) → Bool} (hsym : Sym
       simp only [Fintype.card_fin]
       field_simp [hck]
 
+/-- If `p` approximates a symmetric Boolean function within one third, each changing layer `k <
+n` yields a root of `avgPoly p - 1 / 2` strictly between `k` and `k + 1`. See [Beals et al.,
+2001][BealsEtAl2001]. -/
 theorem jump_root {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {p : MvPolynomial (Fin n) ℝ}
     (hyp : ∀ g : Fin n → Bool,

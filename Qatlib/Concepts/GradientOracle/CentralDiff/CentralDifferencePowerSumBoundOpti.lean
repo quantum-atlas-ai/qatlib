@@ -8,11 +8,32 @@ import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBound
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceBinomialBounds
+
+/-!
+# Absolute power-sum bounds for central differences
+
+`centralDiff_power_weight_abs` rewrites absolute weighted powers using nonnegative binomial
+ratios. The module combines this identity with exponential coefficient bounds to prove
+`centralDifferencePowerSumBound`, including a direct order-one estimate. See
+[GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDifferencePowerSumBound`: For positive `m` and `k ≥ 2 * m`, the absolute weighted
+  power sum is at most `6 * exp (-(7 / 6) * m) * m ^ (k + 3 / 2)`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 
+/-- For order one, every absolute coefficient power sum in the stated form is at most `6 * exp
+(-(7 / 6))`. -/
 theorem centralDifferencePowerSumBound_one (k : ℕ) :
     (∑ ℓ ∈ Finset.Ico (-1 : ℤ) 2,
       |centralDiffCoeff 1 ℓ * (ℓ : ℝ) ^ (k + 1)|) ≤
@@ -37,6 +58,8 @@ theorem centralDifferencePowerSumBound_one (k : ℕ) :
   change 1 ≤ 6 / Real.exp (7 / 6 : ℝ)
   exact (le_div_iff₀ (Real.exp_pos _)).2 (by simpa using he)
 
+/-- For a positive natural index, the absolute coefficient times the `(k + 1)`st power equals
+its binomial ratio times the `k`th power. -/
 theorem centralDiff_power_weight_abs (m l k : ℕ) (hl : 0<l) :
     |centralDiffCoeff m (l : ℤ)*(l : ℝ)^(k+1)|=
       ((Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ))*(l : ℝ)^k := by
@@ -49,6 +72,8 @@ theorem centralDiff_power_weight_abs (m l k : ℕ) (hl : 0<l) :
   rw [pow_succ]
   field_simp
 
+/-- For positive `m` and `k ≥ 2 * m`, the absolute weighted power sum is at most `6 * exp (-(7 /
+6) * m) * m ^ (k + 3 / 2)`. -/
 theorem centralDifferencePowerSumBound : CentralDifferencePowerSumBound := by
   intro m k hm hk
   let S := Finset.Ico (-(m : ℤ)) ((m : ℤ)+1)

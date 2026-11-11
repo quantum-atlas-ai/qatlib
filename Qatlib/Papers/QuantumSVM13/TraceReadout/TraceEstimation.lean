@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+
+/-!
+# Hamiltonian trace-readout formulas
+
+Constructs a block-diagonal Pauli-X Hamiltonian, a uniform initial state, and the explicit
+evolved state for trace estimation. Exact evolution and Born-probability identities lead to a
+quartic small-time error estimate, and Hermiticity ensures unitary evolution and normalization.
+See [RebentrostMohseniLloyd2014].
+
+## Main statements
+
+* `traceEvolution_matrix`: computes the Hamiltonian evolution block by block.
+* `traceSuccessProb_error`: gives the quartic readout error bound.
+* `traceEvolvedState_normalized`: proves normalization of the explicit output.
+
+## References
+
+* [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,19 +42,25 @@ open Qatlib.Foundations.PureStateMath
 
 variable {M : ℕ}
 
+/-- The two-dimensional Pauli-X matrix, with zero diagonal and unit off-diagonal entries. -/
 def pauliX : Matrix (Fin 2) (Fin 2) ℂ := fun i j => if i = j then 0 else 1
 
+/-- The Pauli-X matrix squares to the identity. -/
 theorem pauliX_mul_self : pauliX * pauliX = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The block-diagonal Hamiltonian with block `|x j| • pauliX` at index `j`. -/
 noncomputable def traceHamiltonian (x : Fin M → ℝ) :
     Matrix (Fin 2 × Fin M) (Fin 2 × Fin M) ℂ :=
   Matrix.blockDiagonal (fun j => ((|x j| : ℝ) : ℂ) • pauliX)
 
+/-- The state with ancilla zero and equal feature amplitudes `1 / Real.sqrt M`. -/
 noncomputable def uniformTraceState (_hM : 0 < M) : QState (Fin 2 × Fin M) :=
   fun p => if p.1 = 0 then (1 / (Real.sqrt (M : ℝ) : ℂ)) else 0
 
+/-- The explicit trace-readout state with cosine amplitudes on ancilla zero and negative
+imaginary sine amplitudes on ancilla one. -/
 noncomputable def traceEvolvedState (x : Fin M → ℝ) (t : ℝ) : QState (Fin 2 × Fin M) :=
   fun p =>
     if p.1 = 0 then
@@ -42,6 +68,8 @@ noncomputable def traceEvolvedState (x : Fin M → ℝ) (t : ℝ) : QState (Fin 
     else
       -(Complex.I * (Real.sin (|x p.2| * t) : ℂ)) * (1 / (Real.sqrt (M : ℝ) : ℂ))
 
+/-- Matrix-vector multiplication by a block-diagonal matrix acts within the block indexed by the
+second coordinate. -/
 theorem blockDiagonal_mulVec_apply (v : Fin M → Matrix (Fin 2) (Fin 2) ℂ)
     (ψ : Fin 2 × Fin M → ℂ) (i : Fin 2) (k : Fin M) :
     (Matrix.blockDiagonal v *ᵥ ψ) (i, k) = ∑ i', v k i i' * ψ (i', k) := by
@@ -55,6 +83,8 @@ theorem blockDiagonal_mulVec_apply (v : Fin M → Matrix (Fin 2) (Fin 2) ℂ)
   · intro hk
     exact absurd (Finset.mem_univ k) hk
 
+/-- The exponential of `-i c` times Pauli X equals `cos c` times the identity minus `i sin c`
+times Pauli X. -/
 theorem exp_smul_pauliX (c : ℝ) :
     NormedSpace.exp ((-Complex.I * (c : ℂ)) • pauliX)
       = (Real.cos c : ℂ) • (1 : Matrix (Fin 2) (Fin 2) ℂ)
@@ -69,6 +99,8 @@ theorem exp_smul_pauliX (c : ℝ) :
   rw [neg_smul]
   abel
 
+/-- The trace Hamiltonian evolves as a block-diagonal matrix of Pauli-X rotations with angles
+`|x j| * t` [RebentrostMohseniLloyd2014]. -/
 theorem traceEvolution_matrix (x : Fin M → ℝ) (t : ℝ) :
   HamiltonianEvolution (traceHamiltonian x) t
     = Matrix.blockDiagonal (fun j =>
@@ -85,6 +117,8 @@ theorem traceEvolution_matrix (x : Fin M → ℝ) (t : ℝ) :
   rw [show (-Complex.I*(t:ℂ))*((|x j|:ℝ):ℂ) = -Complex.I*((|x j| * t:ℝ):ℂ) by push_cast;ring]
   exact exp_smul_pauliX _
 
+/-- For positive `M`, evolving the uniform trace state gives the explicit state
+`traceEvolvedState x t` [RebentrostMohseniLloyd2014]. -/
 theorem traceEvolvedState_eq (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M) :
   ApplyGate (HamiltonianEvolution (traceHamiltonian x) t) (uniformTraceState hM)
     = traceEvolvedState (M := M) x t := by
@@ -94,6 +128,8 @@ theorem traceEvolvedState_eq (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M) :
   rw [ApplyGate,blockDiagonal_mulVec_apply]
   fin_cases i <;> simp [traceEvolvedState,uniformTraceState,pauliX,Matrix.one_apply]
 
+/-- For positive `M`, the total Born weight of ancilla outcome one equals the average of
+`Real.sin (|x j| * t) ^ 2` [RebentrostMohseniLloyd2014]. -/
 theorem traceSuccessProb_eq (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M) :
     (∑ p ∈ Finset.univ.filter (fun p : Fin 2 × Fin M => p.1 = 1),
         BornProb (traceEvolvedState (M := M) x t) p)
@@ -128,6 +164,8 @@ theorem traceSuccessProb_eq (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M) :
   rw [Finset.sum_congr rfl (fun j _ => hterm j)]
   rw [Finset.mul_sum]
 
+/-- For `0 ≤ u ≤ 1`, the absolute difference between `Real.sin u ^ 2` and `u ^ 2` is at most `u
+^ 4`. -/
 theorem sin_sq_sub_sq_le (u : ℝ) (h0 : 0 ≤ u) (h1 : u ≤ 1) :
     |Real.sin u ^ 2 - u ^ 2| ≤ u ^ 4 := by
   rcases h0.eq_or_lt with rfl | hu0
@@ -150,6 +188,9 @@ theorem sin_sq_sub_sq_le (u : ℝ) (h0 : 0 ≤ u) (h1 : u ≤ 1) :
     rw [abs_of_nonpos hnonpos, neg_sub]
     exact hmain
 
+/-- For positive `M` and nonnegative time with `|x j| * t ≤ 1`, the ancilla-one weight differs
+from `t ^ 2 / M * ∑ j, (x j) ^ 2` by at most `t ^ 4 / M * ∑ j, (x j) ^ 4`
+[RebentrostMohseniLloyd2014]. -/
 theorem traceSuccessProb_error (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M)
     (hx : ∀ j, |x j| * t ≤ 1) (ht : 0 ≤ t) :
     |(∑ p ∈ Finset.univ.filter (fun p : Fin 2 × Fin M => p.1 = 1),
@@ -206,19 +247,24 @@ theorem traceSuccessProb_error (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M)
         rw [hright]
         ring
 
+/-- The Pauli-X matrix is Hermitian. -/
 theorem pauliX_hermitian : pauliX.IsHermitian := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [pauliX,Matrix.conjTranspose_apply]
 
+/-- The trace Hamiltonian is Hermitian for every real input vector. -/
 theorem traceHamiltonian_hermitian (x : Fin M → ℝ) : (traceHamiltonian x).IsHermitian := by
   apply Matrix.isHermitian_blockDiagonal_iff.mpr
   intro j
   exact pauliX_hermitian.smul (by simp [IsSelfAdjoint])
 
+/-- Evolution under the trace Hamiltonian is unitary at every real time
+[RebentrostMohseniLloyd2014]. -/
 theorem traceHamiltonian_unitary (x : Fin M → ℝ) (t : ℝ) :
     HamiltonianEvolution (traceHamiltonian x) t ∈ Matrix.unitaryGroup (Fin 2×Fin M) ℂ :=
   hamiltonianEvolution_unitary (traceHamiltonian_hermitian x) t
 
+/-- For positive `M`, the uniform trace state is normalized [RebentrostMohseniLloyd2014]. -/
 theorem uniformTraceState_normalized (hM : 0<M) : Normalized (uniformTraceState hM) := by
   have hM0 : (0:ℝ)<M := by exact_mod_cast hM
   unfold Normalized uniformTraceState
@@ -226,6 +272,7 @@ theorem uniformTraceState_normalized (hM : 0<M) : Normalized (uniformTraceState 
   simp
   exact div_self hM0.ne'
 
+/-- For positive `M`, the explicit trace-readout state is normalized at every real time. -/
 theorem traceEvolvedState_normalized (x : Fin M → ℝ) (t : ℝ) (hM : 0<M) :
     Normalized (traceEvolvedState x t) := by
   rw [← traceEvolvedState_eq x t hM]

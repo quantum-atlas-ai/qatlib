@@ -117,6 +117,30 @@ import Mathlib.Topology.EMetricSpace.Defs
 import Mathlib.Topology.MetricSpace.Algebra
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Native preparation rotation oracles
+
+Defines a real rotation on a Boolean register and its workspace extension `oracle`. The module
+proves unitarity and an exact Gram identity for the difference from the identity, yielding an
+exact squared operator-norm distance on nonempty workspaces.
+
+`sourceOracle` specializes the rotation to preparation coefficients determined by an error
+parameter and allows either rotation direction. Preparation-query costs in quantum numerical
+algorithms motivate this model [MontanaroPallister2016].
+
+## Main statements
+
+* `oracle_distance_sq`: the squared distance from the identity is `2 * (1 - c)`.
+* `sourceOracle_unitary`: preparation oracles are unitary for error parameters in the unit
+  interval.
+* `sourceOracle_distance`: either oracle direction is within `2 * sqrt eps` of the identity.
+
+## References
+
+* [Montanaro and Pallister, 2016][MontanaroPallister2016]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 set_option backward.isDefEq.respectTransparency false
@@ -125,9 +149,12 @@ open Matrix
 open scoped BigOperators Kronecker Matrix.Norms.L2Operator
 namespace Qatlib.Concepts.QueryComplexity.PrepQueries
 
+/-- The real two-dimensional rotation matrix with rows `(c, -s)` and `(s, c)` in the Boolean
+basis. -/
 def rotation (c s : ℝ) : Matrix Bool Bool ℂ := fun i j =>
   if i then (if j then c else s) else (if j then -s else c)
 
+/-- The rotation matrix is unitary when `c^2 + s^2 = 1`. -/
 theorem rotation_unitary (c s : ℝ) (h : c^2+s^2=1) :
     rotation c s ∈ Matrix.unitaryGroup Bool ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
@@ -139,6 +166,8 @@ theorem rotation_unitary (c s : ℝ) (h : c^2+s^2=1) :
     ring_nf
   all_goals linear_combination hc
 
+/-- For a unitary rotation, the Gram matrix of its difference from the identity is `2 * (1 - c)`
+times the identity. -/
 theorem rotation_difference_gram (c s : ℝ) (h : c^2+s^2=1) :
     (1-rotation c s)ᴴ * (1-rotation c s) = (2*(1-c):ℂ) • (1:Matrix Bool Bool ℂ) := by
   ext i j
@@ -148,9 +177,11 @@ theorem rotation_difference_gram (c s : ℝ) (h : c^2+s^2=1) :
     ring_nf
   all_goals linear_combination hc
 
+/-- The rotation oracle acting on a Boolean register and identically on the workspace. -/
 def oracle {W : Type*} [DecidableEq W] (c s : ℝ) : Matrix (W×Bool) (W×Bool) ℂ :=
   (1:Matrix W W ℂ) ⊗ₖ rotation c s
 
+/-- The workspace rotation oracle is unitary when its coefficients satisfy `c^2 + s^2 = 1`. -/
 theorem oracle_unitary {W : Type*} [Fintype W] [DecidableEq W]
     (c s : ℝ) (h : c^2+s^2=1) : oracle (W:=W) c s ∈ Matrix.unitaryGroup (W×Bool) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
@@ -161,6 +192,8 @@ theorem oracle_unitary {W : Type*} [Fintype W] [DecidableEq W]
   rw [hr]
   simp
 
+/-- The Gram matrix of the identity minus the workspace oracle is `2 * (1 - c)` times the
+identity. -/
 theorem oracle_difference_gram {W : Type*} [Fintype W] [DecidableEq W]
     (c s : ℝ) (h : c^2+s^2=1) :
     (1-oracle (W:=W) c s)ᴴ * (1-oracle (W:=W) c s) =
@@ -173,6 +206,8 @@ theorem oracle_difference_gram {W : Type*} [Fintype W] [DecidableEq W]
     rotation_difference_gram c s h]
   simp [Matrix.kronecker_smul]
 
+/-- On a nonempty workspace, the squared operator-norm distance from the rotation oracle to the
+identity is `2 * (1 - c)`. -/
 theorem oracle_distance_sq {W : Type*} [Fintype W] [DecidableEq W] [Nonempty W]
     (c s : ℝ) (h : c^2+s^2=1) (hc : c≤1) :
     ‖(1:Matrix (W×Bool) (W×Bool) ℂ)-oracle c s‖^2 = 2*(1-c) := by
@@ -182,6 +217,7 @@ theorem oracle_distance_sq {W : Type*} [Fintype W] [DecidableEq W] [Nonempty W]
   rw [Complex.norm_real, Real.norm_eq_abs]
   exact abs_of_nonneg (by linarith)
 
+/-- A unitary matrix preserves the Euclidean norm under its associated continuous linear map. -/
 theorem native_norm_map {J : Type*} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A∈Matrix.unitaryGroup J ℂ) (x : EuclideanSpace ℂ J) :
     ‖Matrix.toEuclideanCLM (n:=J) (𝕜:=ℂ) A x‖ = ‖x‖ := by
@@ -193,21 +229,28 @@ theorem native_norm_map {J : Type*} [Fintype J] [DecidableEq J]
   · simpa only [← map_star, ← map_mul, map_one] using
       congrArg (Matrix.toEuclideanCLM (n:=J) (𝕜:=ℂ)) (Unitary.mul_star_self_of_mem hA)
 
+/-- The preparation oracle with coefficients `sqrt (1 - eps)` and signed `sqrt eps`, with the
+inverse flag choosing the negative sign. -/
 def sourceOracle {W : Type*} [DecidableEq W] (eps : ℝ) (inverse : Bool) :
     Matrix (W×Bool) (W×Bool) ℂ :=
   oracle (Real.sqrt (1-eps)) (if inverse then -Real.sqrt eps else Real.sqrt eps)
 
+/-- For `0 ≤ eps ≤ 1`, the preparation coefficients satisfy the rotation normalization identity
+for either sign. -/
 theorem source_coefficients (eps : ℝ) (he0 : 0≤eps) (he1 : eps≤1) (b : Bool) :
     Real.sqrt (1-eps)^2+(if b then -Real.sqrt eps else Real.sqrt eps)^2=1 := by
   have hc := Real.sq_sqrt (by linarith : 0≤1-eps)
   have hs := Real.sq_sqrt he0
   cases b <;> simp only [Bool.false_eq_true, ↓reduceIte, neg_sq] <;> linarith
 
+/-- The preparation oracle is unitary for `0 ≤ eps ≤ 1` and either inverse flag. -/
 theorem sourceOracle_unitary {W : Type*} [Fintype W] [DecidableEq W]
     (eps : ℝ) (he0 : 0≤eps) (he1 : eps≤1) (b : Bool) :
     sourceOracle (W:=W) eps b ∈ Matrix.unitaryGroup (W×Bool) ℂ :=
   oracle_unitary _ _ (source_coefficients eps he0 he1 b)
 
+/-- For `0 ≤ eps ≤ 1` on a nonempty workspace, the preparation oracle is within operator-norm
+distance `2 * sqrt eps` of the identity. -/
 theorem sourceOracle_distance {W : Type*} [Fintype W] [DecidableEq W] [Nonempty W]
     (eps : ℝ) (he0 : 0≤eps) (he1 : eps≤1) (b : Bool) :
     ‖(1:Matrix (W×Bool) (W×Bool) ℂ)-sourceOracle eps b‖ ≤ 2*Real.sqrt eps := by

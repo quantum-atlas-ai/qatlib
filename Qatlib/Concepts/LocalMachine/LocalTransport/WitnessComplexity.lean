@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
 import Lean
 import Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationSepa
+
+/-!
+# Witness verifier semantics and transport
+
+Witness verifiers are interpreted as unitary matrices with clean classical input and ancilla
+initialization. `witnessEmbed` identifies the witness subspace, while `acceptProb_born`,
+`acceptProb_nonneg`, and `acceptProb_le_one` relate density-matrix acceptance to Born
+probabilities and their bounds. Quantum-proof background is given in [MarriottWatrous2005].
+
+The module also verifies concrete empty and single-X programs and transports uniform verifier
+instructions to the witness model. Controlled XOR queries are represented by appending a control
+bit to the oracle address.
+
+## Main statements
+
+* `g1`: initialization, acceptance semantics, probability bounds, and concrete verifier
+  examples.
+* `controlledXor_eq_appended`: controlled access as a query to the appended-control oracle.
+* `g3`: oracle access identities and uniform-program transport properties.
+
+## References
+
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,6 +57,8 @@ open Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithACl
 open Matrix
 open scoped ComplexOrder
 
+/-- Reads a Boolean tape prefix up to its first blank, returning no result if the fuel bound is
+exceeded. -/
 def modelReadOutput : (fuel : ℕ) → (tape : Turing.ListBlank (Option Bool)) → Option (List Bool) := by
   run_tac do
     let moduleName :=
@@ -42,6 +69,7 @@ def modelReadOutput : (fuel : ℕ) → (tape : Turing.ListBlank (Option Bool)) �
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Encodes `n` as a tape input consisting of `n` copies of `some true`. -/
 def modelUnaryInput : (n : ℕ) → List (Option Bool) := by
   run_tac do
     let moduleName :=
@@ -52,6 +80,7 @@ def modelUnaryInput : (n : ℕ) → List (Option Bool) := by
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Returns the polynomial time allowance for generating the verifier at input length `n`. -/
 def modelGenFuel : (f : WitnessVerifierFamily) → (n : ℕ) → ℕ := by
   run_tac do
     let moduleName :=
@@ -62,6 +91,8 @@ def modelGenFuel : (f : WitnessVerifierFamily) → (n : ℕ) → ℕ := by
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Runs a Turing machine for at most the given number of transitions and returns its halted
+configuration when one is reached. -/
 def modelRunHalt : {k : ℕ} → Turing.TM0.Machine (Option Bool) (Fin (k + 1)) → ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) → Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1))) := by
   run_tac do
     let moduleName :=
@@ -72,6 +103,7 @@ def modelRunHalt : {k : ℕ} → Turing.TM0.Machine (Option Bool) (Fin (k + 1)) 
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Executes a list of uniform verifier instructions using the two supplied Boolean oracles. -/
 noncomputable def uniformRunInstr : (S U : ∀ ell, Reg ell → Bool) → (q : ℕ) → List UniformVerifierInstruction → QState (Reg q) → QState (Reg q) := by
   run_tac do
     let moduleName :=
@@ -82,6 +114,8 @@ noncomputable def uniformRunInstr : (S U : ∀ ell, Reg ell → Bool) → (q : �
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Returns the matrix of a uniform verifier instruction on `q` qubits with the supplied
+oracles. -/
 noncomputable def uniformInstrMatrix : (q : ℕ) → (S U : ∀ ell, Reg ell → Bool) → UniformVerifierInstruction → Matrix (Reg q) (Reg q) ℂ := by
   run_tac do
     let moduleName :=
@@ -92,6 +126,7 @@ noncomputable def uniformInstrMatrix : (q : ℕ) → (S U : ∀ ell, Reg ell →
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Requires in-range, distinct address wires and an in-range target outside the address list. -/
 def modelQueryLegal : (q : ℕ) → (addresses : List ℕ) → (target : ℕ) → Prop := by
   run_tac do
     let moduleName :=
@@ -102,11 +137,14 @@ def modelQueryLegal : (q : ℕ) → (addresses : List ℕ) → (target : ℕ) �
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- An all-true bitstring of length `n` decodes to the empty verifier with no witness, `n` input
+bits, and one ancilla. -/
 theorem decode_allTrue (n : ℕ) : decodeWitnessVerifierProgram (List.replicate n true) =
     some ⟨0, n, 1, 0, []⟩ := by
   unfold decodeWitnessVerifierProgram
   simp
 
+/-- Reading a unary tape with fuel `n + 1` returns the list of `n` true bits. -/
 theorem modelReadOutput_unary (n : ℕ) :
     modelReadOutput (n + 1) (Turing.ListBlank.mk (List.replicate n (some true))) =
       some (List.replicate n true) := by
@@ -121,6 +159,8 @@ theorem modelReadOutput_unary (n : ℕ) :
       show List.replicate (n + 1) true = true :: List.replicate n true from rfl, step, ih]
     rfl
 
+/-- At length `n`, `zeroVerifierFamily` generates the empty verifier with no witness, `n` input
+bits, and one ancilla. -/
 theorem zeroVerifierFamily_program (n : ℕ) :
     witnessProgramAt zeroVerifierFamily n = some ⟨0, n, 1, 0, []⟩ := by
   have hf : modelGenFuel zeroVerifierFamily n = 0 := by
@@ -156,6 +196,7 @@ theorem zeroVerifierFamily_program (n : ℕ) :
     exact hdec
   exact hall
 
+/-- The immediately halting verifier generator satisfies `witnessFamilyValid`. -/
 theorem zeroVerifierFamily_valid : witnessFamilyValid zeroVerifierFamily := by
   intro n
   refine ⟨⟨0, n, 1, 0, []⟩, zeroVerifierFamily_program n, rfl, ?_, ?_, ?_⟩
@@ -176,11 +217,13 @@ theorem zeroVerifierFamily_valid : witnessFamilyValid zeroVerifierFamily := by
     · intro i hi
       simp at hi
 
+/-- Combines the explicit generated program of `zeroVerifierFamily` with validity of the family. -/
 theorem zeroVerifierFamily_at (n : ℕ) :
     witnessProgramAt zeroVerifierFamily n = some ⟨0, n, 1, 0, []⟩ ∧
       witnessFamilyValid zeroVerifierFamily :=
   ⟨zeroVerifierFamily_program n, zeroVerifierFamily_valid⟩
 
+/-- Updating a target wire outside the address list leaves the extracted address unchanged. -/
 theorem readAddress_update {q : ℕ} (x : Reg q) (addresses : List ℕ) (target : ℕ)
     (htarget : target < q) (haddr : ∀ a ∈ addresses, a < q) (hdisjoint : target ∉ addresses)
     (b : Bool) :
@@ -195,6 +238,7 @@ theorem readAddress_update {q : ℕ} (x : Reg q) (addresses : List ℕ) (target 
       x ⟨addresses.get i, haddr _ (List.get_mem addresses i)⟩
   rw [Function.update_of_ne hneFin]
 
+/-- An XOR oracle update is involutive when the target is distinct from all address wires. -/
 theorem xorQueryUpdate_involutive {q : ℕ} (A : ClassicalOracle) (addresses : List ℕ)
     (target : ℕ) (htarget : target < q) (haddr : ∀ a ∈ addresses, a < q)
     (hdisjoint : target ∉ addresses) :
@@ -209,6 +253,7 @@ theorem xorQueryUpdate_involutive {q : ℕ} (A : ClassicalOracle) (addresses : L
     simp
   · simp [xorQueryUpdate, Function.update, hi]
 
+/-- The XOR oracle query matrix is unitary for a legal query. -/
 theorem xorQueryMatrix_unitary (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ)
     (target : ℕ) (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup) :
     xorQueryMatrix A q addresses target ∈ unitaryGroup (Reg q) ℂ := by
@@ -217,6 +262,7 @@ theorem xorQueryMatrix_unitary (A : ClassicalOracle) (q : ℕ) (addresses : List
   exact permMatrix_unitary
     (xorQueryUpdate_involutive A addresses target h.1 h.2.1 h.2.2.1)
 
+/-- The XOR oracle query matrix is self-adjoint for a legal query. -/
 theorem xorQueryMatrix_selfAdjoint (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ)
     (target : ℕ) (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup) :
     (xorQueryMatrix A q addresses target)ᴴ = xorQueryMatrix A q addresses target := by
@@ -225,6 +271,8 @@ theorem xorQueryMatrix_selfAdjoint (A : ClassicalOracle) (q : ℕ) (addresses : 
   exact permMatrix_conjTranspose
     (xorQueryUpdate_involutive A addresses target h.1 h.2.1 h.2.2.1)
 
+/-- Every witness instruction has a unitary matrix, including the identity interpretation of
+illegal query descriptions. -/
 theorem instructionMatrix_unitary (A : ClassicalOracle) (q : ℕ) (i : WitnessInstruction) :
     instructionMatrix A q i ∈ unitaryGroup (Reg q) ℂ := by
   cases i with
@@ -264,6 +312,7 @@ theorem instructionMatrix_unitary (A : ClassicalOracle) (q : ℕ) (i : WitnessIn
       rw [dif_neg h]
       exact Submonoid.one_mem (Matrix.unitaryGroup (Reg q) ℂ)
 
+/-- The matrix of every witness verifier program is unitary. -/
 theorem programMatrix_unitary (A : ClassicalOracle) (p : WitnessVerifierProgram) :
     programMatrix A p ∈ unitaryGroup (Reg (programQubits p)) ℂ := by
   unfold programMatrix
@@ -275,18 +324,22 @@ theorem programMatrix_unitary (A : ClassicalOracle) (p : WitnessVerifierProgram)
     exact Submonoid.mul_mem (Matrix.unitaryGroup (Reg (programQubits p)) ℂ) ih
       (instructionMatrix_unitary A (programQubits p) i)
 
+/-- Multiplying a verifier program matrix on the left by its adjoint gives the identity. -/
 theorem conjTranspose_programMatrix_mul_self (A : ClassicalOracle) (p : WitnessVerifierProgram) :
     (programMatrix A p)ᴴ * programMatrix A p = 1 := by
   have h := programMatrix_unitary A p
   rw [mem_unitaryGroup_iff', star_eq_conjTranspose] at h
   exact h
 
+/-- Multiplying a verifier program matrix on the right by its adjoint gives the identity. -/
 theorem programMatrix_mul_conjTranspose_self (A : ClassicalOracle) (p : WitnessVerifierProgram) :
     programMatrix A p * (programMatrix A p)ᴴ = 1 := by
   have h := programMatrix_unitary A p
   rw [mem_unitaryGroup_iff, star_eq_conjTranspose] at h
   exact h
 
+/-- Combines a witness register and a fixed classical input into a full configuration with zero
+ancillas. -/
 def embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits) (w : Reg p.witnessBits) :
     Reg (programQubits p) := fun i =>
   if h : i.val < p.witnessBits then w ⟨i.val, h⟩
@@ -294,12 +347,14 @@ def embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits) (w : Reg p.wi
     x ⟨i.val - p.witnessBits, by omega⟩
   else false
 
+/-- Restricting an embedded configuration to its witness wires recovers the witness. -/
 theorem witnessRestrict_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (w : Reg p.witnessBits) : witnessRestrict p (embedConfig p x w) = w := by
   funext i
   simp only [witnessRestrict, witnessWire, embedConfig]
   rw [dif_pos i.isLt]
 
+/-- Restricting an embedded configuration to its input wires recovers the input. -/
 theorem inputRestrict_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (w : Reg p.witnessBits) : inputRestrict p (embedConfig p x w) = x := by
   funext i
@@ -310,6 +365,7 @@ theorem inputRestrict_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputB
     · omega
   · omega
 
+/-- Every embedded configuration has all ancilla wires set to false. -/
 theorem ancillaZero_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (w : Reg p.witnessBits) : ancillaZero p (embedConfig p x w) := by
   intro i
@@ -317,12 +373,15 @@ theorem ancillaZero_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBit
   rw [dif_neg, dif_neg]
   all_goals omega
 
+/-- For a fixed input, the embedding of witness configurations is injective. -/
 theorem embedConfig_injective (p : WitnessVerifierProgram) (x : Reg p.inputBits) :
     Function.Injective (embedConfig p x) := by
   intro w w' h
   have := congrArg (witnessRestrict p) h
   simpa [witnessRestrict_embedConfig] using this
 
+/-- A configuration with the prescribed input and zero ancillas is the embedding of its witness
+restriction. -/
 theorem eq_embedConfig_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (h : inputRestrict p z = x ∧ ancillaZero p z) :
     z = embedConfig p x (witnessRestrict p z) := by
@@ -369,6 +428,8 @@ theorem eq_embedConfig_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputBit
       simp only [embedConfig, dif_neg hi, dif_neg hj]
       exact hzi
 
+/-- A configuration with an incorrect input or a nonzero ancilla differs from every witness
+embedding for that input. -/
 theorem ne_embedConfig_of_not_clean (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (w : Reg p.witnessBits)
     (h : ¬ (inputRestrict p z = x ∧ ancillaZero p z)) : z ≠ embedConfig p x w := by
@@ -377,14 +438,20 @@ theorem ne_embedConfig_of_not_clean (p : WitnessVerifierProgram) (x : Reg p.inpu
   rw [he]
   exact ⟨inputRestrict_embedConfig p x w, ancillaZero_embedConfig p x w⟩
 
+/-- The matrix embedding witness amplitudes into configurations with fixed classical input and
+zero ancillas. -/
 noncomputable def witnessEmbed (p : WitnessVerifierProgram) (x : Reg p.inputBits) :
     Matrix (Reg (programQubits p)) (Reg p.witnessBits) ℂ :=
   Matrix.of fun z w => if z = embedConfig p x w then (1 : ℂ) else 0
 
+/-- An entry of `witnessEmbed` is one exactly at the corresponding embedded configuration and
+zero elsewhere. -/
 theorem witnessEmbed_apply (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (w : Reg p.witnessBits) :
     witnessEmbed p x z w = if z = embedConfig p x w then (1 : ℂ) else 0 := rfl
 
+/-- A clean configuration selects exactly its witness restriction in the corresponding embedding
+row. -/
 theorem witnessEmbed_row_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (h : inputRestrict p z = x ∧ ancillaZero p z) :
     ∀ w : Reg p.witnessBits,
@@ -402,16 +469,20 @@ theorem witnessEmbed_row_of_clean (p : WitnessVerifierProgram) (x : Reg p.inputB
     have h2 : witnessRestrict p z = w := by simpa [witnessRestrict_embedConfig] using h1
     exact h2.symm
 
+/-- Every entry in an embedding row vanishes when the configuration has an incorrect input or
+nonzero ancillas. -/
 theorem witnessEmbed_row_of_not_clean (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (h : ¬ (inputRestrict p z = x ∧ ancillaZero p z)) :
     ∀ w : Reg p.witnessBits, witnessEmbed p x z w = 0 := by
   intro w
   rw [witnessEmbed_apply, if_neg (ne_embedConfig_of_not_clean p x z w h)]
 
+/-- Complex conjugation fixes the indicator of a decidable proposition. -/
 theorem star_ite_one (p : Prop) [Decidable p] :
     star (if p then (1 : ℂ) else 0) = if p then (1 : ℂ) else 0 := by
   by_cases h : p <;> simp [h]
 
+/-- A double finite sum with indicators selecting `a` and `b` evaluates to `g a b`. -/
 theorem sum_embedded_pair {n : Type*} [Fintype n] [DecidableEq n] (g : n → n → ℂ) (a b : n) :
     (∑ k : n, ∑ l : n, (if k = a then (1 : ℂ) else 0) * g k l * (if l = b then 1 else 0)) =
       g a b := by
@@ -447,12 +518,14 @@ theorem sum_embedded_pair {n : Type*} [Fintype n] [DecidableEq n] (g : n → n �
         · intro ha
           exact absurd (Finset.mem_univ a) ha
 
+/-- Every entry of the witness embedding is fixed by complex conjugation. -/
 theorem star_witnessEmbed (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (w : Reg p.witnessBits) :
     star (witnessEmbed p x z w) = witnessEmbed p x z w := by
   rw [witnessEmbed_apply]
   by_cases h : z = embedConfig p x w <;> simp [h]
 
+/-- Initialization of a witness matrix equals conjugation by the witness embedding matrix. -/
 theorem verifierInputDensity_eq_mul (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     verifierInputDensity p x σ =
@@ -488,6 +561,7 @@ theorem verifierInputDensity_eq_mul (p : WitnessVerifierProgram) (x : Reg p.inpu
     simp_rw [witnessEmbed_row_of_not_clean p x z (fun h => hz h)]
     simp
 
+/-- Each entry of the witness embedding is idempotent under multiplication. -/
 theorem witnessEmbed_sq (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (w : Reg p.witnessBits) :
     witnessEmbed p x z w * witnessEmbed p x z w = witnessEmbed p x z w := by
@@ -496,6 +570,7 @@ theorem witnessEmbed_sq (p : WitnessVerifierProgram) (x : Reg p.inputBits)
   · rw [if_pos hz]; ring
   · rw [if_neg hz]; ring
 
+/-- Entries in distinct witness columns have zero product within any fixed row. -/
 theorem witnessEmbed_mul_of_ne (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (z : Reg (programQubits p)) (w w' : Reg p.witnessBits) (h : w ≠ w') :
     witnessEmbed p x z w * witnessEmbed p x z w' = 0 := by
@@ -507,6 +582,7 @@ theorem witnessEmbed_mul_of_ne (p : WitnessVerifierProgram) (x : Reg p.inputBits
     · rw [if_neg h2]; ring
   · rw [if_neg h1]; ring
 
+/-- The inner product of two witness embedding columns is their equality indicator. -/
 theorem sum_witnessEmbed_col (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (w w' : Reg p.witnessBits) :
     (∑ z : Reg (programQubits p),
@@ -542,6 +618,7 @@ theorem sum_witnessEmbed_col (p : WitnessVerifierProgram) (x : Reg p.inputBits)
           Finset.sum_congr rfl fun z _ => hterm z
       _ = 0 := Finset.sum_const_zero
 
+/-- The witness embedding is an isometry: its adjoint multiplied by itself is the identity. -/
 theorem witnessEmbed_conjTranspose_mul (p : WitnessVerifierProgram) (x : Reg p.inputBits) :
     (witnessEmbed p x)ᴴ * witnessEmbed p x = 1 := by
   apply Matrix.ext
@@ -552,6 +629,7 @@ theorem witnessEmbed_conjTranspose_mul (p : WitnessVerifierProgram) (x : Reg p.i
   rw [hsum, sum_witnessEmbed_col]
   exact (Matrix.one_apply (i := w) (j := w')).symm
 
+/-- Initializing a Hermitian witness matrix produces a Hermitian full-register matrix. -/
 theorem verifierInputDensity_isHermitian (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) (h : σ.IsHermitian) :
     (verifierInputDensity p x σ).IsHermitian := by
@@ -562,18 +640,22 @@ theorem verifierInputDensity_isHermitian (p : WitnessVerifierProgram) (x : Reg p
   rw [hσ]
   rw [← Matrix.mul_assoc]
 
+/-- Initializing a positive semidefinite witness matrix preserves positive semidefiniteness. -/
 theorem verifierInputDensity_posSemidef (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) (h : σ.PosSemidef) :
     (verifierInputDensity p x σ).PosSemidef := by
   rw [verifierInputDensity_eq_mul]
   exact h.mul_mul_conjTranspose_same _
 
+/-- Initializing a witness matrix preserves its trace. -/
 theorem verifierInputDensity_trace (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     Matrix.trace (verifierInputDensity p x σ) = Matrix.trace σ := by
   rw [verifierInputDensity_eq_mul, Matrix.trace_mul_cycle, witnessEmbed_conjTranspose_mul,
     one_mul]
 
+/-- Initialization preserves Hermiticity, positive semidefiniteness, and trace for a Hermitian
+positive semidefinite witness. -/
 theorem cleanInitialization (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ)
     (hherm : σ.IsHermitian) (hpsd : σ.PosSemidef) :
@@ -584,6 +666,8 @@ theorem cleanInitialization (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     verifierInputDensity_posSemidef p x σ hpsd,
     verifierInputDensity_trace p x σ⟩
 
+/-- Initializing a pure witness density gives the outer product of the initialized witness
+state. -/
 theorem verifierInputDensity_pure (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (w : QState (Reg p.witnessBits)) :
     verifierInputDensity p x (pureWitnessDensity w) =
@@ -603,6 +687,7 @@ theorem verifierInputDensity_pure (p : WitnessVerifierProgram) (x : Reg p.inputB
     · rw [if_neg (fun h => hz ⟨h.1, h.2.2.1⟩), if_neg hz, if_neg hz']
       simp
 
+/-- The real part of a diagonal outer-product entry is the corresponding Born probability. -/
 theorem re_outerProduct_self {m : Type*} [Fintype m] (φ : QState m) (z : m) :
     (outerProduct φ z z).re = BornProb φ z := by
   have hterm : φ z * (starRingEnd ℂ) (φ z) = ((‖φ z‖ ^ 2 : ℝ) : ℂ) := by
@@ -611,10 +696,12 @@ theorem re_outerProduct_self {m : Type*} [Fintype m] (φ : QState m) (z : m) :
   rw [hterm]
   exact Complex.ofReal_re _
 
+/-- Taking the real part commutes with a finite sum of complex numbers. -/
 theorem re_sum_complex {m : Type*} [Fintype m] (f : m → ℂ) :
     (∑ z, f z).re = ∑ z, (f z).re :=
   map_sum RCLike.reLm f Finset.univ
 
+/-- Conjugating an outer product by a matrix gives the outer product of the transformed vector. -/
 theorem outerProduct_mul_conjTranspose {m : Type*} [Fintype m] [DecidableEq m]
     (U : Matrix m m ℂ) (ψ : QState m) :
     U * outerProduct ψ * Uᴴ = outerProduct (U *ᵥ ψ) := by
@@ -644,6 +731,8 @@ theorem outerProduct_mul_conjTranspose {m : Type*} [Fintype m] [DecidableEq m]
         intro l _
         ring
 
+/-- Acceptance of a pure witness equals the Born probability of the output event after running
+the verifier. -/
 theorem acceptProb_born (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) (w : QState (Reg p.witnessBits)) :
     acceptProb A p x (pureWitnessDensity w) =
@@ -658,6 +747,7 @@ theorem acceptProb_born (A : ClassicalOracle) (p : WitnessVerifierProgram)
   intro z _
   exact re_outerProduct_self _ _
 
+/-- Acceptance is nonnegative for every witness density satisfying `IsWitnessDensity`. -/
 theorem acceptProb_nonneg (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ)
     (hd : IsWitnessDensity σ) :
@@ -669,6 +759,7 @@ theorem acceptProb_nonneg (A : ClassicalOracle) (p : WitnessVerifierProgram)
   intro z _
   exact (Complex.nonneg_iff.mp (hpsd.diag_nonneg (i := z))).1
 
+/-- Acceptance is at most one for every witness density satisfying `IsWitnessDensity`. -/
 theorem acceptProb_le_one (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ)
     (hd : IsWitnessDensity σ) :
@@ -705,9 +796,11 @@ theorem acceptProb_le_one (A : ClassicalOracle) (p : WitnessVerifierProgram)
     _ = (Matrix.trace σ).re := by rw [htr]
     _ ≤ 1 := hre
 
+/-- Flips a single Boolean register wire and leaves every other wire unchanged. -/
 def flipWire {q : ℕ} (w : Fin q) : Reg q → Reg q :=
   fun z => Function.update z w (!z w)
 
+/-- Flipping the same register wire twice is the identity. -/
 theorem flipWire_involutive {q : ℕ} (w : Fin q) : Function.Involutive (flipWire w) := by
   intro z
   funext i
@@ -717,6 +810,7 @@ theorem flipWire_involutive {q : ℕ} (w : Fin q) : Function.Involutive (flipWir
   · rw [hi, Function.update_self, Function.update_self, Bool.not_not]
   · rw [Function.update_of_ne hi, Function.update_of_ne hi]
 
+/-- A Pauli X gate on one wire equals the permutation matrix of that wire flip. -/
 theorem wireGate_pauliX_permMatrix {q : ℕ} (w : Fin q) :
     wireGate q w PauliX = permMatrix (flipWire w) := by
   apply Matrix.ext
@@ -766,6 +860,8 @@ theorem wireGate_pauliX_permMatrix {q : ℕ} (w : Fin q) :
       rw [Function.update_of_ne hk]
     rw [if_neg hz]
 
+/-- Initializing a computational basis witness gives the basis state of its embedded
+configuration. -/
 theorem verifierInitialState_ket (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (u : Reg p.witnessBits) :
     verifierInitialState p x (Qatlib.Foundations.PureStateMath.Ket u) = Qatlib.Foundations.PureStateMath.Ket (embedConfig p x u) := by
@@ -786,6 +882,8 @@ theorem verifierInitialState_ket (p : WitnessVerifierProgram) (x : Reg p.inputBi
   · have hz : z ≠ embedConfig p x u := ne_embedConfig_of_not_clean p x z u hclean
     rw [if_neg hclean, if_neg hz]
 
+/-- The identity matrix on the empty witness register is the pure density of its unique basis
+state. -/
 theorem matrix_one_eq_pure_zero :
     (1 : Matrix (Reg 0) (Reg 0) ℂ) = pureWitnessDensity (Qatlib.Foundations.PureStateMath.Ket (fun _ => false)) := by
   have heq : ∀ (a b : Reg 0), a = b :=
@@ -796,6 +894,7 @@ theorem matrix_one_eq_pure_zero :
   simp only [pureWitnessDensity, outerProduct_apply, ket_self]
   simp
 
+/-- Measuring a basis state in an event containing that basis label has probability one. -/
 theorem measureProb_ket_of_mem {q : Type*} [Fintype q] [DecidableEq q] (ρ : q) (E : Finset q)
     (h : ρ ∈ E) : MeasureProb (Qatlib.Foundations.PureStateMath.Ket ρ) E = 1 := by
   unfold MeasureProb
@@ -803,9 +902,12 @@ theorem measureProb_ket_of_mem {q : Type*} [Fintype q] [DecidableEq q] (ρ : q) 
   rw [Finset.sum_ite_eq' E ρ]
   simp [h]
 
+/-- A witness-free verifier that flips its sole ancilla, chosen as the output wire, after the
+input register. -/
 def xVerifierProgram (m : ℕ) : WitnessVerifierProgram :=
   ⟨0, m, 1, m, [WitnessInstruction.fixed (.x m)]⟩
 
+/-- The single-X verifier is a legal witness verifier program. -/
 theorem xVerifierProgram_legal (m : ℕ) : witnessProgramLegal (xVerifierProgram m) := by
   refine ⟨?_, ?_⟩
   · show m < programQubits (xVerifierProgram m)
@@ -818,12 +920,14 @@ theorem xVerifierProgram_legal (m : ℕ) : witnessProgramLegal (xVerifierProgram
     show finiteCodeLegal (0 + m + 1) (.x m) = true
     simp [finiteCodeLegal]
 
+/-- The single-X verifier contains no oracle instructions. -/
 theorem xVerifierProgram_oracleFree (m : ℕ) : oracleFree (xVerifierProgram m) := by
   show (List.all [WitnessInstruction.fixed (.x m)] fun
     | .fixed _ => true
     | .oracle _ _ => false) = true
   rfl
 
+/-- The output ancilla of the initialized single-X verifier is false. -/
 theorem xVerifierProgram_embed_ancilla (m : ℕ) (x : Reg m) (u : Reg 0) :
     (embedConfig (xVerifierProgram m) x u)
       (⟨m, by show m < programQubits (xVerifierProgram m); show m < 0 + m + 1; omega⟩) = false := by
@@ -840,6 +944,8 @@ theorem xVerifierProgram_embed_ancilla (m : ℕ) (x : Reg m) (u : Reg 0) :
     exact absurd this (by omega)
   · rfl
 
+/-- With the constantly false oracle, the single-X verifier matrix is the permutation that flips
+its output ancilla. -/
 theorem xVerifierProgram_programMatrix (m : ℕ) :
     programMatrix (fun _ _ => false) (xVerifierProgram m) =
       permMatrix (flipWire (⟨m, by
@@ -863,6 +969,8 @@ theorem xVerifierProgram_programMatrix (m : ℕ) :
   rw [dif_pos hlt]
   exact wireGate_pauliX_permMatrix _
 
+/-- The single-X verifier sends an initialized basis configuration to the basis state with its
+output ancilla flipped. -/
 theorem xVerifierProgram_run (m : ℕ) (x : Reg m) (u : Reg 0) :
     programRun (fun _ _ => false) (xVerifierProgram m)
       (Qatlib.Foundations.PureStateMath.Ket (embedConfig (xVerifierProgram m) x u)) =
@@ -875,6 +983,8 @@ theorem xVerifierProgram_run (m : ℕ) (x : Reg m) (u : Reg 0) :
   rw [xVerifierProgram_programMatrix]
   exact applyGate_permMatrix_ket (flipWire_involutive _) _
 
+/-- Flipping the initialized output ancilla of the single-X verifier yields a configuration in
+its acceptance event. -/
 theorem xVerifierProgram_output_mem (m : ℕ) (x : Reg m) (u : Reg 0) :
     flipWire (⟨m, by
       show m < programQubits (xVerifierProgram m)
@@ -893,17 +1003,23 @@ theorem xVerifierProgram_output_mem (m : ℕ) (x : Reg m) (u : Reg 0) :
   rw [Function.update_self, xVerifierProgram_embed_ancilla]
   rfl
 
+/-- The empty witness identity for the single-X verifier is the density of the unique empty
+basis state. -/
 theorem xVerifierProgram_one_eq_pure (m : ℕ) :
     (1 : Matrix (Reg (xVerifierProgram m).witnessBits) (Reg (xVerifierProgram m).witnessBits) ℂ)
       = pureWitnessDensity (Qatlib.Foundations.PureStateMath.Ket (fun _ => false)) :=
   matrix_one_eq_pure_zero
 
+/-- The single-X verifier accepts every classical input with probability one. -/
 theorem xVerifierProgram_acceptProb (m : ℕ) (x : Reg m) :
     acceptProb (fun _ _ => false) (xVerifierProgram m) x 1 = 1 := by
   rw [xVerifierProgram_one_eq_pure, acceptProb_born, verifierInitialState_ket,
     xVerifierProgram_run]
   exact measureProb_ket_of_mem _ _ (xVerifierProgram_output_mem m x _)
 
+/-- Collects clean density initialization, pure-state acceptance semantics, probability bounds,
+validity of the empty verifier family, and a legal oracle-free verifier accepting with
+certainty. -/
 theorem g1 :
   (∀ (p : WitnessVerifierProgram) (x : Reg p.inputBits)
       (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ),
@@ -938,11 +1054,14 @@ theorem g1 :
     fun m => ⟨xVerifierProgram_legal m, xVerifierProgram_oracleFree m,
       fun x => xVerifierProgram_acceptProb m x⟩⟩
 
+/-- Translates a uniform instruction to a witness instruction by merging both oracle labels into
+one. -/
 def uniformToWitnessInstruction : UniformVerifierInstruction → WitnessInstruction
   | .fixed gate => .fixed gate
   | .queryS addresses target => .oracle addresses target
   | .queryU addresses target => .oracle addresses target
 
+/-- A legal XOR oracle matrix is both unitary and self-adjoint. -/
 theorem xorQueryMatrix_involution_access (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ)
     (target : ℕ)
     (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup) :
@@ -950,6 +1069,8 @@ theorem xorQueryMatrix_involution_access (A : ClassicalOracle) (q : ℕ) (addres
       (xorQueryMatrix A q addresses target)ᴴ = xorQueryMatrix A q addresses target :=
   ⟨xorQueryMatrix_unitary A q addresses target h, xorQueryMatrix_selfAdjoint A q addresses target h⟩
 
+/-- Translation of a uniform verifier preserves the sum of address lengths over its oracle
+instructions. -/
 theorem addressBitLedger_transport (p : UniformVerifierProgram) :
     addressBitLedger (fromUniformVerifierProgram p) =
       (p.instructions.filterMap fun
@@ -971,6 +1092,7 @@ theorem addressBitLedger_transport (p : UniformVerifierProgram) :
     cases i <;> rfl
   rw [key]
 
+/-- Every program produced by a valid uniform generator translates to a legal witness verifier. -/
 theorem legality_transport (g : UniformVerifierGenerator) (hg : uniformGeneratorValid g) :
     ∀ n : ℕ, ∀ p : UniformVerifierProgram,
       uniformGeneratedProgramAt g n = some p →
@@ -1017,6 +1139,8 @@ theorem legality_transport (g : UniformVerifierGenerator) (hg : uniformGenerator
         addresses.Nodup
       exact hins
 
+/-- For an oracle-free program, acceptance agrees with its value under the constantly false
+oracle. -/
 theorem acceptProb_oracleFree (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ)
     (hfree : oracleFree p) :
@@ -1040,6 +1164,8 @@ theorem acceptProb_oracleFree (A : ClassicalOracle) (p : WitnessVerifierProgram)
   unfold acceptProb
   rw [hmat]
 
+/-- Membership in `InQMA` implies `InQMAWith A` for any oracle, since these verifier families
+are oracle-free. -/
 theorem inQMA_inQMAWith (A : ClassicalOracle) (L : BitstringPromise) :
     InQMA L → InQMAWith A L := by
   intro h
@@ -1054,9 +1180,12 @@ theorem inQMA_inQMAWith (A : ClassicalOracle) (L : BitstringPromise) :
     rw [acceptProb_oracleFree A (familyProgram f x.length) (listToInput _ x) σ (hfree x.length)]
     exact hno x hx σ hσ
 
+/-- Establishes the imported spectral forrelation property `QmaVerifierSpectralForrelation`. -/
 theorem forrelation_core : QmaVerifierSpectralForrelation :=
   qmaVerifierSpectralForrelation
 
+/-- On an address followed by a control bit, `appendedControlOracle` returns the conjunction of
+that control bit and the original oracle value. -/
 theorem appendedControlOracle_readAddress {q : ℕ} (A : ClassicalOracle) (x : Reg q)
     (addresses : List ℕ) (control : ℕ) (haddr0 : ∀ a ∈ addresses, a < q) (hcontrol : control < q)
     (n : ℕ) (hn : n = addresses.length + 1) (r : Reg n)
@@ -1087,6 +1216,8 @@ theorem appendedControlOracle_readAddress {q : ℕ} (A : ClassicalOracle) (x : R
   show (r (Fin.last addresses.length) && A addresses.length (fun i => r i.castSucc)) = _
   rw [hlast, hcast]
 
+/-- A legal controlled XOR query equals an XOR query to `appendedControlOracle` with the control
+appended to the address. -/
 theorem controlledXor_eq_appended (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ)
     (target control : ℕ)
     (h : target < q ∧ control < q ∧ control ≠ target ∧ control ∉ addresses ∧
@@ -1158,6 +1289,7 @@ theorem controlledXor_eq_appended (A : ClassicalOracle) (q : ℕ) (addresses : L
         exact List.getElem_concat_length (l := addresses) (a := control)
           (show i.val = addresses.length from by omega) i.isLt)).symm
 
+/-- When both uniform oracle labels denote `A`, translation preserves each instruction matrix. -/
 theorem uniformInstrMatrix_eq (n : ℕ) (A : ClassicalOracle) (i : UniformVerifierInstruction) :
     uniformInstrMatrix n A A i = instructionMatrix A n (uniformToWitnessInstruction i) := by
   cases i with
@@ -1191,6 +1323,8 @@ theorem uniformInstrMatrix_eq (n : ℕ) (A : ClassicalOracle) (i : UniformVerifi
     · have hL : ¬modelQueryLegal n addresses target := fun hh => h hh
       rw [dif_neg hL, dif_neg h]
 
+/-- Executing uniform instructions with both oracle labels equal to `A` is multiplication by
+their reversed matrix product. -/
 theorem uniformRunInstr_eq_prod (A : ClassicalOracle) (q : ℕ)
     (is : List UniformVerifierInstruction) (ψ : QState (Reg q)) :
     uniformRunInstr A A q is ψ =
@@ -1208,6 +1342,8 @@ theorem uniformRunInstr_eq_prod (A : ClassicalOracle) (q : ℕ)
     rw [← Matrix.mulVec_mulVec]
     exact ih (ApplyGate (uniformInstrMatrix q A A i) ψ)
 
+/-- Translation preserves uniform instruction execution across an equality of register widths,
+with the corresponding state casts. -/
 theorem run_transport_cast {m n : ℕ} (h : m = n)
     (is : List UniformVerifierInstruction) (A : ClassicalOracle) (ψ : QState (Reg m)) :
     ((is.map (fun i => instructionMatrix A m (uniformToWitnessInstruction i))).reverse.prod) *ᵥ ψ
@@ -1222,6 +1358,8 @@ theorem run_transport_cast {m n : ℕ} (h : m = n)
   rw [key]
   rfl
 
+/-- A legal uniform program with matching translated width has the same execution as its witness
+translation when both oracles equal `A`. -/
 theorem run_transport (A : ClassicalOracle) (p : UniformVerifierProgram)
     (_hp : uniformProgramLegal p)
     (ψ : QState (Reg (programQubits (fromUniformVerifierProgram p))))
@@ -1247,6 +1385,8 @@ theorem run_transport (A : ClassicalOracle) (p : UniformVerifierProgram)
   rw [hrun]
   exact run_transport_cast hq p.instructions A ψ
 
+/-- Collects legal oracle-query identities, address accounting, execution and legality
+transport, oracle-independent QMA membership, and the spectral forrelation property. -/
 theorem g3 :
   (∀ (A : ClassicalOracle) (q : ℕ) (addresses : List ℕ) (target : ℕ)
       (h : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧

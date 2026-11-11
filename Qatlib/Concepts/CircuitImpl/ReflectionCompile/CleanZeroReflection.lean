@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Clean compilation of the zero-state reflection
+
+This module constructs a local gate program for reflection about the all-zero data state, using
+`n - 1` work wires initialized to zero. `localAndSteps` computes prefix conjunctions, and
+`localZeroReflectionSteps` combines bit flips, a phase gate, uncomputation, and a sign
+correction in the elementary-gate framework of [BarencoEtAl1995].
+
+The final semantics theorem applies to arbitrary data states embedded by `reflectionEmbed`: the
+work register returns to zero, and the program implements the reflection with an explicit gate
+count.
+
+## Main statements
+
+* `local_and_clean_prefix_action`: the length and basis-state action of the conjunction program.
+* `localZeroReflectionSteps_length`: the exact program length `localReflectionCost n`.
+* `local_zero_reflection_clean_semantics_and_cost`: legality, cost, and clean reflection
+  semantics.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,33 +50,42 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Split the extended register into `n` data wires and `n - 1` work wires. -/
 def reflectionSplit (n : ℕ) : Reg (n+(n-1)) ≃ Reg n × Reg (n-1) :=
   regAppendEquiv n (n-1)
 
+/-- Embed a data state by adjoining an all-zero work register. -/
 noncomputable def reflectionEmbed (n : ℕ) (ψ : QState (Reg n)) :
     QState (Reg (n+(n-1))) := fun z =>
   if (reflectionSplit n z).2 = (fun _ => false) then ψ (reflectionSplit n z).1 else 0
 
+/-- Lift a data-register matrix to the extended register by tensoring with the identity on the
+work wires. -/
 noncomputable def reflectionLift (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) :
     Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ :=
   relabelGate (reflectionSplit n).symm (TensorGate U 1)
 
+/-- The index of a data wire in the extended reflection register. -/
 abbrev reflectionDataWire (n : ℕ) (i : Fin n) : Fin (n+(n-1)) := Fin.castAdd (n-1) i
 
+/-- The index of a work wire in the extended reflection register. -/
 abbrev reflectionWorkWire (n : ℕ) (i : Fin (n-1)) : Fin (n+(n-1)) := Fin.natAdd n i
 
+/-- Joining data and work registers preserves the value at each data wire. -/
 @[simp] theorem reflectionJoin_data (n : ℕ) (x : Reg n) (w : Reg (n-1)) (i : Fin n) :
     (reflectionSplit n).symm (x,w) (reflectionDataWire n i) = x i := by
   have h := congrArg (fun p : Reg n × Reg (n-1) => p.1 i)
     ((reflectionSplit n).apply_symm_apply (x,w))
   exact h
 
+/-- Joining data and work registers preserves the value at each work wire. -/
 @[simp] theorem reflectionJoin_work (n : ℕ) (x : Reg n) (w : Reg (n-1)) (i : Fin (n-1)) :
     (reflectionSplit n).symm (x,w) (reflectionWorkWire n i) = w i := by
   have h := congrArg (fun p : Reg n × Reg (n-1) => p.2 i)
     ((reflectionSplit n).apply_symm_apply (x,w))
   exact h
 
+/-- The local Toffoli program computing the next prefix conjunction into work wire `i`. -/
 noncomputable def localAndStage (n : ℕ) (i : Fin (n-1)) :
     List (ReflectionGate (n+(n-1))) :=
   if h : i.val = 0 then
@@ -61,22 +95,29 @@ noncomputable def localAndStage (n : ℕ) (i : Fin (n-1)) :
     toffoliLocalSteps (reflectionDataWire n ⟨i.val+1, by omega⟩)
       (reflectionWorkWire n ⟨i.val-1, by omega⟩) (reflectionWorkWire n i)
 
+/-- Concatenate the first `m` conjunction stages, omitting indices beyond the available work
+wires. -/
 noncomputable def localAndPrefix (n : ℕ) : ℕ → List (ReflectionGate (n+(n-1)))
   | 0 => []
   | m+1 => localAndPrefix n m ++ if h : m < n-1 then localAndStage n ⟨m,h⟩ else []
 
+/-- The full prefix-conjunction program on the `n - 1` work wires. -/
 noncomputable def localAndSteps (n : ℕ) : List (ReflectionGate (n+(n-1))) :=
   localAndPrefix n (n-1)
 
+/-- The register with data `x`, the first `m` prefix-conjunction flags computed, and all
+remaining work bits zero. -/
 noncomputable def localAndPrefixBasis (n : ℕ) (x : Reg n) (m : ℕ) : Reg (n+(n-1)) :=
   (reflectionSplit n).symm (x, fun i =>
     if i.val < m then decide (∀ j : Fin n, j.val ≤ i.val+1 → x j = true) else false)
 
+/-- Each local conjunction stage contains exactly 15 gates. -/
 theorem localAndStage_length (n : ℕ) (i : Fin (n-1)) :
     (localAndStage n i).length = 15 := by
   unfold localAndStage
   split <;> exact toffoliLocalSteps_length _ _ _
 
+/-- For `m ≤ n - 1`, the first `m` conjunction stages contain exactly `15 * m` gates. -/
 theorem localAndPrefix_length (n m : ℕ) (hm : m ≤ n-1) :
     (localAndPrefix n m).length = 15*m := by
   induction m with
@@ -87,6 +128,7 @@ theorem localAndPrefix_length (n m : ℕ) (hm : m ≤ n-1) :
       ih (by omega)]
     omega
 
+/-- Each local conjunction stage satisfies the reflection-gate legality predicate. -/
 theorem localAndStage_legal (n : ℕ) (i : Fin (n-1)) : reflectionLegal (localAndStage n i) := by
   unfold localAndStage
   split
@@ -103,6 +145,7 @@ theorem localAndStage_legal (n : ℕ) (i : Fin (n-1)) : reflectionLegal (localAn
       simp [reflectionDataWire, reflectionWorkWire] at hv
       omega
 
+/-- Every prefix of the conjunction program satisfies the reflection-gate legality predicate. -/
 theorem localAndPrefix_legal (n m : ℕ) : reflectionLegal (localAndPrefix n m) := by
   induction m with
   | zero => intro g hg; simp [localAndPrefix] at hg
@@ -115,6 +158,8 @@ theorem localAndPrefix_legal (n m : ℕ) : reflectionLegal (localAndPrefix n m) 
       · exact localAndStage_legal n _ g hg
       · simp at hg
 
+/-- For at least two data wires, the conjunction of the first two bits is the Boolean indicator
+that both are true. -/
 private theorem prefixAnd_zero (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
     (x ⟨0, by omega⟩ && x ⟨1, by omega⟩) =
       decide (∀ j : Fin n, j.val ≤ 1 → x j = true) := by
@@ -132,6 +177,8 @@ private theorem prefixAnd_zero (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
   · intro h
     exact ⟨h _ (by simp), h _ (by simp)⟩
 
+/-- Conjoining the next data bit with the current prefix flag gives the flag for the extended
+prefix. -/
 private theorem prefixAnd_succ (n m : ℕ) (hm : m+1 < n) (x : Reg n) :
     (x ⟨m+1,hm⟩ && decide (∀ j : Fin n, j.val ≤ m → x j = true)) =
       decide (∀ j : Fin n, j.val ≤ m+1 → x j = true) := by
@@ -146,6 +193,8 @@ private theorem prefixAnd_succ (n m : ℕ) (hm : m+1 < n) (x : Reg n) :
   · intro h
     exact ⟨h _ (by simp), fun j hj => h j (by omega)⟩
 
+/-- A conjunction stage maps the basis register with its preceding flags computed to the
+register with one additional flag computed. -/
 private theorem localAndStage_action (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (localAndStage n i)) (Qatlib.Foundations.PureStateMath.Ket (localAndPrefixBasis n x i.val)) =
@@ -208,6 +257,8 @@ private theorem localAndStage_action (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
         have hlt : (j.val < i.val) = (j.val < i.val+1) := propext (by omega)
         simp only [hlt]
 
+/-- Starting with zero work bits, the conjunction prefix computes exactly the first `m` prefix
+flags. -/
 theorem localAndPrefix_action (n m : ℕ) (hm : m ≤ n-1) (x : Reg n) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (localAndPrefix n m))
@@ -220,6 +271,8 @@ theorem localAndPrefix_action (n m : ℕ) (hm : m ≤ n-1) (x : Reg n) :
     rw [localAndPrefix, dif_pos h, reflectionCompile_append, run_append, ih (by omega)]
     exact localAndStage_action n ⟨m,h⟩ x
 
+/-- For `n ≥ 2`, the conjunction program has `15 * (n - 1)` gates and computes every
+prefix-conjunction flag from a zero work register. -/
 theorem local_and_clean_prefix_action (n : ℕ) (_hn : 2 ≤ n) :
     (localAndSteps n).length = 15*(n-1) ∧ ∀ x : Reg n,
       Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
@@ -233,13 +286,17 @@ theorem local_and_clean_prefix_action (n : ℕ) (_hn : 2 ≤ n) :
   congr 1
   simp [localAndPrefixBasis]
 
+/-- The program that applies Pauli X to the first `m` data wires, omitting indices beyond `n`. -/
 noncomputable def reflectionFlipPrefix (n : ℕ) : ℕ → List (ReflectionGate (n+(n-1)))
   | 0 => []
   | m+1 => reflectionFlipPrefix n m ++ if h : m < n then
       [Sum.inl (reflectionDataWire n ⟨m,h⟩,PauliX)] else []
 
+/-- The program that flips all data wires of the extended reflection register. -/
 noncomputable def reflectionDataFlips (n : ℕ) := reflectionFlipPrefix n n
 
+/-- The local gate program for reflection about the all-zero data state with zero work bits,
+including separate zero- and one-wire cases. -/
 noncomputable def localZeroReflectionSteps (n : ℕ) : List (ReflectionGate (n+(n-1))) :=
   if h0 : n = 0 then [] else if h1 : n = 1 then
     [.inl (reflectionDataWire n ⟨0,by omega⟩,Rz Real.pi)] else
@@ -250,9 +307,12 @@ noncomputable def localZeroReflectionSteps (n : ℕ) : List (ReflectionGate (n+(
      .inl (reflectionWorkWire n ⟨0,by omega⟩,Rz Real.pi),
      .inl (reflectionWorkWire n ⟨0,by omega⟩,PauliX)]
 
+/-- The reflection program's gate count: zero for `n = 0`, one for `n = 1`, and `2 * n + 30 * (n
+- 1) + 4` otherwise. -/
 def localReflectionCost (n : ℕ) : ℕ :=
   if n = 0 then 0 else if n = 1 then 1 else 2*n+30*(n-1)+4
 
+/-- For `m ≤ n`, the data-flip prefix contains exactly `m` gates. -/
 theorem reflectionFlipPrefix_length (n m : ℕ) (hm : m ≤ n) :
     (reflectionFlipPrefix n m).length = m := by
   induction m with
@@ -261,6 +321,7 @@ theorem reflectionFlipPrefix_length (n m : ℕ) (hm : m ≤ n) :
     simp only [reflectionFlipPrefix, dif_pos (show m<n by omega), List.length_append,
       List.length_cons, List.length_nil, ih (by omega)]
 
+/-- Every data-flip prefix is a legal reflection-gate program. -/
 theorem reflectionFlipPrefix_legal (n m : ℕ) : reflectionLegal (reflectionFlipPrefix n m) := by
   induction m with
   | zero => intro g hg; simp [reflectionFlipPrefix] at hg
@@ -274,6 +335,7 @@ theorem reflectionFlipPrefix_legal (n m : ℕ) : reflectionLegal (reflectionFlip
       exact pauliX_unitary
     · intro g hg; simp at hg
 
+/-- The zero-state reflection program is legal for every register size. -/
 theorem localZeroReflectionSteps_legal (n : ℕ) : reflectionLegal (localZeroReflectionSteps n) := by
   unfold localZeroReflectionSteps
   split
@@ -298,6 +360,7 @@ theorem localZeroReflectionSteps_legal (n : ℕ) : reflectionLegal (localZeroRef
         · exact rz_unitary _
         · exact pauliX_unitary
 
+/-- The length of the zero-state reflection program equals `localReflectionCost n`. -/
 theorem localZeroReflectionSteps_length (n : ℕ) :
     (localZeroReflectionSteps n).length = localReflectionCost n := by
   unfold localZeroReflectionSteps localReflectionCost
@@ -311,6 +374,8 @@ theorem localZeroReflectionSteps_length (n : ℕ) :
         localAndPrefix_length n (n-1) le_rfl]
       omega
 
+/-- Embedding a state is tensoring it with the all-zero work state and relabeling by the
+register split. -/
 theorem reflectionEmbed_tensor (n : ℕ) (ψ : QState (Reg n)) :
     reflectionEmbed n ψ = relabelState (reflectionSplit n).symm
       (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket (fun _ : Fin (n-1) => false))) := by
@@ -319,6 +384,7 @@ theorem reflectionEmbed_tensor (n : ℕ) (ψ : QState (Reg n)) :
       Qatlib.Foundations.PureStateMath.Ket, Equiv.symm_symm]
   split <;> simp_all
 
+/-- Embedding a data basis state yields the basis state with the same data and zero work bits. -/
 @[simp] theorem reflectionEmbed_ket (n : ℕ) (x : Reg n) :
     reflectionEmbed n (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,fun _ => false)) := by
   rw [reflectionEmbed_tensor, tensorState_ket_ket]
@@ -329,24 +395,30 @@ theorem reflectionEmbed_tensor (n : ℕ) (ψ : QState (Reg n)) :
     (z = (reflectionSplit n).symm (x,fun _ => false)) from
       propext (reflectionSplit n).apply_eq_iff_eq_symm_apply]
 
+/-- The clean-work embedding commutes with scalar multiplication. -/
 @[simp] theorem reflectionEmbed_smul (n : ℕ) (c : ℂ) (ψ : QState (Reg n)) :
     reflectionEmbed n (c • ψ) = c • reflectionEmbed n ψ := by
   funext z
   simp only [reflectionEmbed, Pi.smul_apply, smul_eq_mul]
   split <;> simp
 
+/-- The clean-work embedding commutes with finite sums of states. -/
 theorem reflectionEmbed_sum {J : Type*} [Fintype J] (n : ℕ) (ψ : J → QState (Reg n)) :
     reflectionEmbed n (∑ j, ψ j) = ∑ j, reflectionEmbed n (ψ j) := by
   funext z
   simp only [reflectionEmbed, Finset.sum_apply]
   split <;> simp
 
+/-- Applying a lifted matrix to an embedded state agrees with embedding the matrix's action on
+the data state. -/
 theorem reflectionLift_embed (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) (ψ : QState (Reg n)) :
     ApplyGate (reflectionLift n U) (reflectionEmbed n ψ) =
       reflectionEmbed n (ApplyGate U ψ) := by
   rw [reflectionLift, reflectionEmbed_tensor, applyGate_relabelGate, applyGate_tensorGate,
     applyGate_one, ← reflectionEmbed_tensor]
 
+/-- An embedded state expands in the basis states with zero work bits, with coefficients given
+by the data amplitudes. -/
 theorem reflectionEmbed_expansion (n : ℕ) (ψ : QState (Reg n)) :
     reflectionEmbed n ψ = ∑ x : Reg n,
       ψ x • Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,fun _ => false)) := by
@@ -354,6 +426,8 @@ theorem reflectionEmbed_expansion (n : ℕ) (ψ : QState (Reg n)) :
   rw [reflectionEmbed_sum]
   simp only [reflectionEmbed_smul, reflectionEmbed_ket]
 
+/-- For `n ≥ 2`, the adjoint conjunction program restores computed prefix flags to zero without
+changing the data. -/
 theorem localAndSteps_uncompute (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (reflectionAdjoint (localAndSteps n)))
@@ -367,6 +441,8 @@ theorem localAndSteps_uncompute (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hu
   rw [hu, Matrix.one_mulVec]
 
+/-- A diagonal gate on one wire multiplies a register basis state by the diagonal entry selected
+by that wire's bit. -/
 private theorem wireGate_diagonal_ket (n : ℕ) (w : Fin n) (d : Bool → ℂ) (x : Reg n) :
     ApplyGate (wireGate n w (Matrix.diagonal d)) (Qatlib.Foundations.PureStateMath.Ket x) = d (x w) • Qatlib.Foundations.PureStateMath.Ket x := by
   rw [applyGate_wireGate_ket]
@@ -375,21 +451,27 @@ private theorem wireGate_diagonal_ket (n : ℕ) (w : Fin n) (d : Bool → ℂ) (
     Bool.false_eq_true, Bool.true_eq_false, zero_smul, add_zero, zero_add]
   all_goals rw [hx] at hup; rw [hup]
 
+/-- Pauli X on a wire flips that wire's bit in a register basis state. -/
 private theorem wireGate_X_ket (n : ℕ) (w : Fin n) (x : Reg n) :
     ApplyGate (wireGate n w PauliX) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x w (!(x w))) := by
   rw [applyGate_wireGate_ket]
   cases hx : x w <;> simp [PauliX, permMatrix]
 
+/-- The phase gate `Rz Real.pi` equals Pauli Z. -/
 private theorem rz_pi_eq : Rz Real.pi = PauliZ := by
   ext a b
   simp only [Rz, PauliZ, Matrix.diagonal_apply, Complex.exp_pi_mul_I]
 
+/-- The gate `Rz Real.pi` multiplies a register basis state by minus one precisely when the
+selected bit is true. -/
 private theorem wireGate_Z_ket (n : ℕ) (w : Fin n) (x : Reg n) :
     ApplyGate (wireGate n w (Rz Real.pi)) (Qatlib.Foundations.PureStateMath.Ket x) =
       (if x w then (-1 : ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket x := by
   rw [rz_pi_eq]
   exact wireGate_diagonal_ket n w _ x
 
+/-- Flipping data wire `m` extends a register's flipped data prefix from length `m` to length `m
++ 1`. -/
 private theorem flipPrefix_update (n m : ℕ) (hm : m<n) (x : Reg n) (w : Reg (n-1)) :
     Function.update ((reflectionSplit n).symm
       ((fun j => if j.val < m then !(x j) else x j),w))
@@ -415,6 +497,8 @@ private theorem flipPrefix_update (n m : ℕ) (hm : m<n) (x : Reg n) (w : Reg (n
     rw [Function.update_of_ne hne]
     simp only [reflectionJoin_work]
 
+/-- The data-flip prefix negates exactly the first `m` data bits of a basis register and
+preserves its work bits. -/
 private theorem reflectionFlipPrefix_action (n m : ℕ) (hm : m ≤ n) (x : Reg n) (w : Reg (n-1)) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (reflectionFlipPrefix n m)) (Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,w))) =
@@ -429,6 +513,8 @@ private theorem reflectionFlipPrefix_action (n m : ℕ) (hm : m ≤ n) (x : Reg 
     simp only [reflectionJoin_data, lt_self_iff_false, if_false]
     rw [flipPrefix_update n m h x w]
 
+/-- The complete data-flip program negates every data bit of a basis register and preserves its
+work bits. -/
 theorem reflectionDataFlips_action (n : ℕ) (x : Reg n) (w : Reg (n-1)) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (reflectionDataFlips n)) (Qatlib.Foundations.PureStateMath.Ket ((reflectionSplit n).symm (x,w))) =
@@ -436,6 +522,8 @@ theorem reflectionDataFlips_action (n : ℕ) (x : Reg n) (w : Reg (n-1)) :
   rw [reflectionDataFlips, reflectionFlipPrefix_action n n le_rfl]
   simp
 
+/-- The X-Z-X sequence on a zero work bit contributes a global minus sign and restores the work
+register. -/
 private theorem reflectionSignCorrection (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile [.inl (reflectionWorkWire n i,PauliX),
@@ -454,6 +542,8 @@ private theorem reflectionSignCorrection (n : ℕ) (i : Fin (n-1)) (x : Reg n) :
       (Function.update_eq_self (reflectionWorkWire n i) ((reflectionSplit n).symm (x,fun _ => false)))
   rw [he]
 
+/-- For `n ≥ 2`, the final conjunction flag of the negated data bits detects the all-zero data
+register. -/
 private theorem andLast_flag_zero (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
     decide (∀ j : Fin n, j.val ≤ n-2+1 → Bool.not (x j) = true) =
       decide (x = (fun _ => false)) := by
@@ -467,6 +557,8 @@ private theorem andLast_flag_zero (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
   · intro h j _
     simp [h]
 
+/-- For `n ≥ 2` and zero work bits, the reflection program fixes the all-zero data basis state
+and negates every other data basis state. -/
 private theorem zeroReflection_basis_large (n : ℕ) (hn : 2 ≤ n) (x : Reg n) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (localZeroReflectionSteps n))
@@ -492,6 +584,7 @@ private theorem zeroReflection_basis_large (n : ℕ) (hn : 2 ≤ n) (x : Reg n) 
   simp only [decide_eq_true_eq]
   split_ifs <;> norm_num
 
+/-- Reflection about a basis vector fixes that vector and negates every other basis vector. -/
 private theorem zeroReflection_ket {I : Type*} [Fintype I] [DecidableEq I] (z x : I) :
     ApplyGate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket z))) (Qatlib.Foundations.PureStateMath.Ket x) =
       (if x=z then (1 : ℂ) else -1) • Qatlib.Foundations.PureStateMath.Ket x := by
@@ -506,6 +599,8 @@ private theorem zeroReflection_ket {I : Type*} [Fintype I] [DecidableEq I] (z x 
   · rw [if_neg (Ne.symm h), zero_smul, smul_zero, zero_sub, if_neg h]
     simp
 
+/-- On an embedded data basis state, the local program implements reflection about the all-zero
+data state and restores zero work bits. -/
 private theorem zeroReflection_basis (n : ℕ) (x : Reg n) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
       (reflectionCompile (localZeroReflectionSteps n)) (reflectionEmbed n (Qatlib.Foundations.PureStateMath.Ket x)) =
@@ -531,6 +626,8 @@ private theorem zeroReflection_basis (n : ℕ) (x : Reg n) :
       cases hb : x ⟨0,by omega⟩ <;> simp [he,hb]
     · exact zeroReflection_basis_large n (by omega) x
 
+/-- The zero-state reflection program is legal, has the stated exact gate count, and implements
+the data reflection on every embedded state with the work register returned to zero. -/
 theorem local_zero_reflection_clean_semantics_and_cost (n : ℕ) :
     reflectionLegal (localZeroReflectionSteps n) ∧
     localReflectionCost n = (if n=0 then 0 else if n=1 then 1 else 2*n+30*(n-1)+4) ∧

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
 import Mathlib.Algebra.Group.Pointwise.Set.Basic
 import Mathlib.Algebra.Group.Subgroup.Pointwise
+
+/-!
+# Reduction through the abelianization
+
+The reduction uses the prime-order commutator of an extraspecial group to analyze a hidden
+subgroup and its join with the commutator. Hiding families for that join descend to the
+abelianization, while the original hiding function identifies the hidden subgroup inside it. The
+construction follows [IvanyosSanselmeSantha2007].
+
+## Main statements
+
+* `lemma1_finding_H_reduces_to_HG'`: packages the subgroup alternatives and recovery identity.
+* `lemma3_hiding_transfer`: descends a hiding family to the abelianization.
+* `theorem1_reduction`: combines descent with recovery.
+
+## References
+
+* [Ivanyos et al., 2007][IvanyosSanselmeSantha2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +38,8 @@ open scoped Pointwise commutatorElement BigOperators
 
 variable {G : Type*} [Group G] [Finite G]
 
+/-- A subgroup of the commutator of an extraspecial group is either trivial or the entire
+commutator. -/
 theorem commutator_eq_bot_or_eq_top_of_le {p : ℕ} (hE : IsExtraspecial G p)
     {K : Subgroup G} (hK : K ≤ commutator G) : K = ⊥ ∨ K = commutator G := by
   haveI : Fact (Nat.card ↥(commutator G)).Prime :=
@@ -33,6 +55,8 @@ theorem commutator_eq_bot_or_eq_top_of_le {p : ℕ} (hE : IsExtraspecial G p)
     have hle : commutator G ≤ K := Subgroup.subgroupOf_eq_top.mp htop
     exact le_antisymm hK hle
 
+/-- If a subgroup does not contain the commutator of an extraspecial group, their intersection
+is trivial. -/
 theorem inf_commutator_eq_bot_of_not_le {p : ℕ} (hE : IsExtraspecial G p) {H : Subgroup G}
     (h : ¬ commutator G ≤ H) : H ⊓ commutator G = ⊥ := by
   rcases commutator_eq_bot_or_eq_top_of_le hE
@@ -40,6 +64,8 @@ theorem inf_commutator_eq_bot_of_not_le {p : ℕ} (hE : IsExtraspecial G p) {H :
   · exact hb
   · exact absurd (ht ▸ (inf_le_left : H ⊓ commutator G ≤ H)) h
 
+/-- A subgroup with trivial intersection with the commutator of an extraspecial group is
+commutative. -/
 theorem isMulCommutative_of_inf_commutator_eq_bot {p : ℕ} (hE : IsExtraspecial G p)
     {H : Subgroup G} (hdis : H ⊓ commutator G = ⊥) : IsMulCommutative ↥H := by
   refine IsMulCommutative.of_comm (fun x y => Subtype.ext ?_)
@@ -55,6 +81,8 @@ theorem isMulCommutative_of_inf_commutator_eq_bot {p : ℕ} (hE : IsExtraspecial
   have hone : ⁅(x : G), (y : G)⁆ = 1 := by simpa using hmem
   exact commutatorElement_eq_one_iff_mul_comm.mp hone
 
+/-- The join of a subgroup with the commutator is commutative when their intersection is
+trivial. -/
 theorem isMulCommutative_sup_commutator {p : ℕ} (hE : IsExtraspecial G p) {H : Subgroup G}
     (hdis : H ⊓ commutator G = ⊥) : IsMulCommutative ↥(H ⊔ commutator G) := by
   have hH : IsMulCommutative ↥H := isMulCommutative_of_inf_commutator_eq_bot hE hdis
@@ -80,12 +108,16 @@ theorem isMulCommutative_sup_commutator {p : ℕ} (hE : IsExtraspecial G p) {H :
   have hab : Commute a b := (commute_iff_eq a b).mpr (setLike_mul_comm ha hb)
   exact (Commute.mul_right (Commute.mul_left hab hzb) (Commute.mul_left haw hzw)).eq
 
+/-- Inside any subgroup containing `H`, the fiber of a hiding function at the identity is
+exactly `H`. -/
 theorem setOf_mem_of_hiding {H : Subgroup G} {σ : Type*} {f : G → σ}
     (hf : IsHidingFamily H f) {K : Subgroup G} (hK : H ≤ K) :
     {g : G | g ∈ K ∧ f g = f 1} = (H : Set G) := by
   ext g
   exact ⟨fun h => (hf.mem_iff g).mp h.2, fun h => ⟨hK h, (hf.mem_iff g).mpr h⟩⟩
 
+/-- A hidden subgroup contains the cyclic commutator exactly when its hiding function takes the
+same value at the chosen generator and at the identity. -/
 theorem commutator_le_iff_hiding_eq_one {p : ℕ} (hE : IsExtraspecial G p) {H : Subgroup G}
     {σ : Type*} {f : G → σ} (hf : IsHidingFamily H f) {z : G}
     (hz : commutator G = Subgroup.zpowers z) :
@@ -97,6 +129,9 @@ theorem commutator_le_iff_hiding_eq_one {p : ℕ} (hE : IsExtraspecial G p) {H :
   · intro h
     exact Subgroup.zpowers_le.mpr ((hf.mem_iff z).mp h)
 
+/-- Packages the commutator test, the commutative join alternative, and recovery of `H` within
+`H ⊔ commutator G`. These are the subgroup identities used in Lemma 1 of
+[IvanyosSanselmeSantha2007]. -/
 theorem lemma1_finding_H_reduces_to_HG' {p : ℕ} (hE : IsExtraspecial G p) {H : Subgroup G}
     {σ : Type*} {f : G → σ} (hf : IsHidingFamily H f) {z : G}
     (hz : commutator G = Subgroup.zpowers z) :
@@ -116,6 +151,8 @@ theorem lemma1_finding_H_reduces_to_HG' {p : ℕ} (hE : IsExtraspecial G p) {H :
     rw [hK]
     exact setOf_mem_of_hiding hf le_sup_left
 
+/-- The preimage of the image of `H` in the abelianization is `H ⊔ commutator G`, and adjoining
+the commutator does not change that image. -/
 theorem lemma2_abelianization_preimage (H : Subgroup G) :
     (Subgroup.map (abelianizationMap G) H).comap (abelianizationMap G) = H ⊔ commutator G ∧
       Subgroup.map (abelianizationMap G) (H ⊔ commutator G) =
@@ -128,6 +165,8 @@ theorem lemma2_abelianization_preimage (H : Subgroup G) :
     simpa [abelianizationMap, QuotientGroup.ker_mk'] using hx
   rw [Subgroup.map_sup, hbot, sup_bot_eq]
 
+/-- A family hiding `H ⊔ commutator G` descends to a family on the abelianization hiding the
+image of `H`. -/
 theorem lemma3_hiding_transfer {H : Subgroup G} {σ : Type*} {ψ : G → σ}
     (hψ : IsHidingFamily (H ⊔ commutator G) ψ) :
     ∃ ψbar : Abelianization G → σ,
@@ -141,6 +180,9 @@ theorem lemma3_hiding_transfer {H : Subgroup G} {σ : Type*} {ψ : G → σ}
   rw [hψ (Quotient.out q) (Quotient.out q'), ← comap_map_abelianizationMap G H,
     Subgroup.mem_comap, map_mul, map_inv, hout, hout]
 
+/-- A hiding family for `H ⊔ commutator G` descends to the abelianization, and the original
+hiding function recovers `H` within that join. This is the formal reduction conclusion
+associated with Theorem 1 of [IvanyosSanselmeSantha2007]. -/
 theorem theorem1_reduction {H : Subgroup G}
     {σ : Type*} {f : G → σ} (hf : IsHidingFamily H f) {τ : Type*} {ψ : G → τ}
     (hψ : IsHidingFamily (H ⊔ commutator G) ψ) :
@@ -149,6 +191,8 @@ theorem theorem1_reduction {H : Subgroup G}
       {g : G | g ∈ H ⊔ commutator G ∧ f g = f 1} = (H : Set G) :=
   ⟨lemma3_hiding_transfer hψ, setOf_mem_of_hiding hf le_sup_left⟩
 
+/-- When `H` contains the commutator, its join with the commutator equals `H` and its hiding
+family descends to the abelianization. -/
 theorem corollary1_of_commutator_le {H : Subgroup G}
     {τ : Type*} {ψ : G → τ} (hψ : IsHidingFamily H ψ) (hGH : commutator G ≤ H) :
     H ⊔ commutator G = H ∧

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Joint halting laws for unbounded execution
+
+This module constructs `haltJoint`, `pendingMass`, and `nonterminationMass` from finite
+randomized executions. Stability of halted point masses and convergence of pending masses yield
+`unboundedLaw`, a probability law on optional output-cost pairs.
+
+These execution laws support expected-cost analyses of randomized algorithms, with quantum Monte
+Carlo applications motivating the cost model; see [Montanaro2015].
+
+## Main statements
+
+* `unbounded_finite_halt_pending_partition`: finite halted and pending mass partition
+* `haltJoint_tsum_add_nonterminationMass`: eventual halting and nontermination partition
+* `unbounded_nontermination_limit_and_joint_law`: limit and point-mass characterization of the
+  unbounded law
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -26,6 +49,7 @@ section PointMass
 
 variable {α : Type}
 
+/-- The probability of a singleton event equals the corresponding point mass. -/
 theorem event_point_mass (p : PMF α) (y : α) : CostedLaw.event p (fun x => x = y) = p y := by
   have hbind : (PMF.bind p PMF.pure) y = p y := by rw [PMF.bind_pure]
   rw [PMF.bind_apply] at hbind
@@ -33,6 +57,8 @@ theorem event_point_mass (p : PMF α) (y : α) : CostedLaw.event p (fun x => x =
   rw [← hbind]
   exact tsum_congr fun x => by simp [PMF.pure_apply, eq_comm]
 
+/-- Charging `n` shifts a costed law's cost coordinate by `n`, assigning zero mass to smaller
+costs. -/
 theorem charge_point_mass (q : CostedLaw α) (n : ℕ) (a : α) (j : ℕ) :
     CostedLaw.charge n q (a, j) = if n ≤ j then q (a, j - n) else 0 := by
   classical
@@ -62,6 +88,7 @@ end PointMass
 
 section RunForPoints
 
+/-- A tick from a running state has cost exactly one and configuration distribution `next s`. -/
 theorem tick_point_running (next : S → PMF (Configuration S O)) (s : S)
     (c : Configuration S O) (j : ℕ) :
     RandomizedExecution.tick next (Sum.inr s) (c, j) = if j = 1 then next s c else 0 := by
@@ -85,6 +112,7 @@ theorem tick_point_running (next : S → PMF (Configuration S O)) (s : S)
       omega
     rw [if_neg hj, CostedLaw.event_zero _ _ hc0]
 
+/-- Execution from a running state cannot halt at accumulated cost zero. -/
 theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
     ∀ (fuel : ℕ) (s : S) (o : O),
       runFor next fuel (Sum.inr s) ((Sum.inl o : Configuration S O), (0 : ℕ)) = 0 := by
@@ -115,6 +143,8 @@ theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
         simp
       · rw [tick_point_running, if_neg hj, zero_mul]
 
+/-- After `fuel` steps from a running state, a running configuration has zero mass at any cost
+different from `fuel`. -/
 theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
     ∀ (fuel : ℕ) (s s' : S) (j : ℕ), j ≠ fuel →
       runFor next fuel (Sum.inr s) ((Sum.inr s' : Configuration S O), (j : ℕ)) = 0 := by
@@ -161,6 +191,7 @@ theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
               rw [ih t s' (j - 1) (fun h => hj (by omega)), mul_zero]
       · rw [tick_point_running, if_neg hi1, zero_mul]
 
+/-- After `fuel` steps, a running configuration has zero mass at costs smaller than `fuel`. -/
 theorem runFor_point_running_lt_fuel (next : S → PMF (Configuration S O)) :
     ∀ (fuel : ℕ) (cfg : Configuration S O) (s : S) (i : ℕ), i < fuel →
       runFor next fuel cfg ((Sum.inr s : Configuration S O), (i : ℕ)) = 0 := by
@@ -173,6 +204,7 @@ theorem runFor_point_running_lt_fuel (next : S → PMF (Configuration S O)) :
       intro s i hi
       exact runFor_point_running_off_fuel next fuel s0 s i (Nat.ne_of_lt hi)
 
+/-- A finite execution assigns zero mass to accumulated costs exceeding its fuel. -/
 theorem runFor_point_cost_gt_fuel (next : S → PMF (Configuration S O)) (fuel : ℕ)
     (cfg : Configuration S O) (c : Configuration S O) (j : ℕ) (hj : fuel < j) :
     runFor next fuel cfg (c, j) = 0 := by
@@ -181,6 +213,7 @@ theorem runFor_point_cost_gt_fuel (next : S → PMF (Configuration S O)) (fuel :
     omega
   exact not_not.mp ((PMF.mem_support_iff (runFor next fuel cfg) (c, j)).not.mp hsup)
 
+/-- The mass of a halted output at cost `k` is unchanged by extending the fuel beyond `k`. -/
 theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (o : O) :
     ∀ (fuel k : ℕ), k ≤ fuel →
@@ -260,15 +293,21 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
 
 end RunForPoints
 
+/-- The joint mass of halting with output `o` at cost `k`, evaluated using exactly `k` units of
+fuel. -/
 noncomputable def haltJoint (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (o : O) (k : ℕ) : ℝ≥0∞ :=
   RandomizedExecution.runFor next k cfg ((Sum.inl o : Configuration S O), (k : ℕ))
 
+/-- The total mass of running configurations after `fuel` steps, summed over all reachable cost
+coordinates. -/
 noncomputable def pendingMass (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (fuel : ℕ) : ℝ≥0∞ :=
   ∑ s : S, ∑ k ∈ Finset.range (fuel + 1),
     RandomizedExecution.runFor next fuel cfg ((Sum.inr s : Configuration S O), (k : ℕ))
 
+/-- The halting joint mass agrees with the finite run at fuel `k` and remains unchanged at every
+larger fuel. -/
 theorem unbounded_first_halt_joint_stability (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (o : O) (k fuel : ℕ) :
     haltJoint next cfg o k = (RandomizedExecution.runFor next k cfg) (Sum.inl o, k) ∧
@@ -276,11 +315,13 @@ theorem unbounded_first_halt_joint_stability (next : S → PMF (Configuration S 
         = haltJoint next cfg o k) :=
   ⟨rfl, fun h => runFor_point_halt_ge next cfg o fuel k h⟩
 
+/-- A finite run with fuel at least `k` has halted point mass `haltJoint next cfg o k`. -/
 theorem haltJoint_eq_runFor_of_le {next : S → PMF (Configuration S O)} {cfg : Configuration S O}
     {o : O} {k fuel : ℕ} (h : k ≤ fuel) :
     runFor next fuel cfg ((Sum.inl o : Configuration S O), (k : ℕ)) = haltJoint next cfg o k :=
   (unbounded_first_halt_joint_stability next cfg o k fuel).2 h
 
+/-- The pending mass equals the finite survival probability. -/
 theorem pendingMass_eq_finiteSurvival (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
     pendingMass next cfg fuel = finiteSurvival next fuel cfg := by
@@ -334,11 +375,14 @@ theorem pendingMass_eq_finiteSurvival (next : S → PMF (Configuration S O))
     ← tsum_congr (fun s => hinner s)]
   exact hsplit.symm
 
+/-- Increasing the fuel by one cannot increase the pending mass. -/
 theorem pendingMass_succ_le (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (n : ℕ) : pendingMass next cfg (n + 1) ≤ pendingMass next cfg n := by
   rw [pendingMass_eq_finiteSurvival, pendingMass_eq_finiteSurvival]
   exact finiteSurvival_succ_le next n cfg
 
+/-- At finite fuel, halted joint masses and pending mass sum to one, and pending mass decreases
+at the next step. -/
 theorem unbounded_finite_halt_pending_partition (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
     pendingMass next cfg fuel
@@ -386,19 +430,24 @@ theorem unbounded_finite_halt_pending_partition (next : S → PMF (Configuration
     ← tsum_prod_type' (F := fun z : (O ⊕ S) × ℕ => runFor next fuel cfg z),
     PMF.tsum_coe]
 
+/-- The nontermination mass, defined as the infimum of all finite pending masses. -/
 noncomputable def nonterminationMass (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) : ℝ≥0∞ :=
   ⨅ fuel : ℕ, pendingMass next cfg fuel
 
+/-- Pending mass is an antitone function of the fuel. -/
 theorem pendingMass_antitone (next : S → PMF (Configuration S O)) (cfg : Configuration S O) :
     Antitone (pendingMass next cfg) :=
   antitone_nat_of_succ_le fun n => pendingMass_succ_le next cfg n
 
+/-- The finite pending masses converge to the nontermination mass as fuel tends to infinity. -/
 theorem pendingMass_tendsto_iInf (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
     Filter.Tendsto (pendingMass next cfg) Filter.atTop (nhds (nonterminationMass next cfg)) :=
   tendsto_atTop_iInf (pendingMass_antitone next cfg)
 
+/-- Pointwise convergence of finitely many extended nonnegative real sequences implies
+convergence of their finite sum. -/
 private theorem tendsto_finset_sum_ennreal {ι : Type} (s : Finset ι)
     (f : ι → ℕ → ℝ≥0∞) (g : ι → ℝ≥0∞)
     (h : ∀ i ∈ s, Filter.Tendsto (f i) Filter.atTop (nhds (g i))) :
@@ -411,6 +460,7 @@ private theorem tendsto_finset_sum_ennreal {ι : Type} (s : Finset ι)
       exact Filter.Tendsto.add (h i (Finset.mem_insert_self i s))
         (ih fun j hj => h j (Finset.mem_insert_of_mem hj))
 
+/-- The total halting mass through finite fuel converges to the sum of all halting joint masses. -/
 theorem haltJoint_partial_sum_tendsto (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
     Filter.Tendsto (fun fuel => ∑ o : O, ∑ k ∈ Finset.range (fuel + 1), haltJoint next cfg o k)
@@ -421,6 +471,7 @@ theorem haltJoint_partial_sum_tendsto (next : S → PMF (Configuration S O))
     (ENNReal.summable (f := haltJoint next cfg o)).hasSum).comp
     (Filter.tendsto_add_atTop_nat 1)
 
+/-- The total halting joint mass plus the nontermination mass equals one. -/
 theorem haltJoint_tsum_add_nonterminationMass (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
     (∑' o : O, ∑' k : ℕ, haltJoint next cfg o k) + nonterminationMass next cfg = 1 := by
@@ -436,6 +487,7 @@ theorem haltJoint_tsum_add_nonterminationMass (next : S → PMF (Configuration S
     exact hpart fuel
   exact tendsto_nhds_unique hconst tendsto_const_nhds
 
+/-- The equivalence between `Option α` and `Unit ⊕ α`, sending `none` to the unit summand. -/
 private def optionSumUnitEquiv (α : Type) : Option α ≃ Unit ⊕ α where
   toFun
     | none => Sum.inl ()
@@ -450,6 +502,7 @@ private def optionSumUnitEquiv (α : Type) : Option α ≃ Unit ⊕ α where
     | Sum.inl () => rfl
     | Sum.inr _ => rfl
 
+/-- A sum over `Option α` splits into its `none` term and the sum over `some` terms. -/
 private theorem tsum_option_split {α : Type} (F : Option α → ℝ≥0∞) :
     ∑' z : Option α, F z = F none + ∑' a : α, F (some a) := by
   have hsum := (ENNReal.summable
@@ -461,17 +514,21 @@ private theorem tsum_option_split {α : Type} (F : Option α → ℝ≥0∞) :
   rw [hunit, tsum_congr (fun a : α => rfl)] at hsum
   exact ((Equiv.hasSum_iff (optionSumUnitEquiv α).symm).mp hsum).tsum_eq
 
+/-- The mass function on optional output-cost pairs, with `none` representing nontermination. -/
 noncomputable def unboundedMass (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) : Option (O × ℕ) → ℝ≥0∞
   | none => nonterminationMass next cfg
   | some p => haltJoint next cfg p.1 p.2
 
+/-- The `none` mass of the unbounded execution is its nontermination mass. -/
 theorem unboundedMass_none (next : S → PMF (Configuration S O)) (cfg : Configuration S O) :
     unboundedMass next cfg none = nonterminationMass next cfg := rfl
 
+/-- The mass at `some (o, k)` is the joint mass of halting with output `o` and cost `k`. -/
 theorem unboundedMass_some (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (o : O) (k : ℕ) : unboundedMass next cfg (some (o, k)) = haltJoint next cfg o k := rfl
 
+/-- The mass function of the unbounded execution sums to one. -/
 theorem unboundedMass_tsum (next : S → PMF (Configuration S O)) (cfg : Configuration S O) :
     ∑' z : Option (O × ℕ), unboundedMass next cfg z = 1 := by
   rw [tsum_option_split, unboundedMass_none, add_comm]
@@ -481,6 +538,8 @@ theorem unboundedMass_tsum (next : S → PMF (Configuration S O)) (cfg : Configu
     exact tsum_congr fun o => tsum_congr fun k => rfl
   rw [hprod, haltJoint_tsum_add_nonterminationMass]
 
+/-- The probability mass function of the unbounded execution, recording either nontermination or
+a halted output-cost pair. -/
 noncomputable def unboundedLaw (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) : PMF (Option (O × ℕ)) := by
   have h1 : HasSum (unboundedMass next cfg) (1 : ℝ≥0∞) := by
@@ -488,9 +547,12 @@ noncomputable def unboundedLaw (next : S → PMF (Configuration S O))
     exact (ENNReal.summable (f := unboundedMass next cfg)).hasSum
   exact ⟨unboundedMass next cfg, h1⟩
 
+/-- The unbounded execution law has point masses given by `unboundedMass`. -/
 theorem unboundedLaw_apply (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (z : Option (O × ℕ)) : (unboundedLaw next cfg) z = unboundedMass next cfg z := rfl
 
+/-- The unbounded law combines the halting joint masses with the limit of the finite pending
+masses, and these masses sum to one. -/
 theorem unbounded_nontermination_limit_and_joint_law (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
     (∑' o : O, ∑' k : ℕ, haltJoint next cfg o k) + nonterminationMass next cfg = 1 ∧

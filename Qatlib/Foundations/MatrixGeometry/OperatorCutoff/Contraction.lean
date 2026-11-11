@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Analysis.Normed.Algebra.Basic
 import Mathlib.Tactic
+
+/-!
+# Contractions from an operator anticommutation identity
+
+An operator satisfying `A * A.adjoint + A.adjoint * A = 1` splits the squared norm between its
+action and its adjoint action. The results `car_opNorm` and `word_opNorm` give operator-norm
+bounds for such operators and finite products of contractions. See [McCleanEtAl2014] for related
+background.
+
+## Main statements
+
+* `car_norm_split`: The identity `A * A.adjoint + A.adjoint * A = 1` implies `‖A x‖² +
+  ‖A.adjoint x‖² = ‖x‖²` for every vector.
+* `word_opNorm`: A finite list product of continuous linear operators of norm at most one also
+  has norm at most one.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +36,8 @@ noncomputable section
 namespace Qatlib.Foundations.MatrixGeometry.OperatorCutoff
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E]
 
+/-- The identity `A * A.adjoint + A.adjoint * A = 1` implies `‖A x‖² + ‖A.adjoint x‖² = ‖x‖²`
+for every vector. -/
 theorem car_norm_split (A : E →L[ℂ] E)
     (hcar : A * A.adjoint + A.adjoint * A = 1) (x : E) :
     ‖A x‖^2 + ‖A.adjoint x‖^2 = ‖x‖^2 := by
@@ -34,11 +57,13 @@ theorem car_norm_split (A : E →L[ℂ] E)
   rw [hself] at hi
   linarith
 
+/-- An operator satisfying the stated anticommutation identity does not increase vector norms. -/
 theorem car_apply_norm (A : E →L[ℂ] E)
     (hcar : A * A.adjoint + A.adjoint * A = 1) (x : E) : ‖A x‖ ≤ ‖x‖ := by
   have hs := car_norm_split A hcar x
   exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp (by nlinarith [sq_nonneg ‖A.adjoint x‖])
 
+/-- An operator satisfying `A * A.adjoint + A.adjoint * A = 1` has operator norm at most one. -/
 theorem car_opNorm (A : E →L[ℂ] E)
     (hcar : A * A.adjoint + A.adjoint * A = 1) : ‖A‖ ≤ 1 := by
   apply A.opNorm_le_bound (by norm_num)
@@ -47,6 +72,8 @@ theorem car_opNorm (A : E →L[ℂ] E)
 
 omit [CompleteSpace E] in
 
+/-- A finite list product of continuous linear operators of norm at most one also has norm at
+most one. -/
 theorem word_opNorm (L : List (E →L[ℂ] E)) (hL : ∀ A ∈ L, ‖A‖ ≤ 1) : ‖L.prod‖ ≤ 1 := by
   induction L with
   | nil => simpa using! (ContinuousLinearMap.norm_id_le : ‖(1 : E →L[ℂ] E)‖ ≤ 1)

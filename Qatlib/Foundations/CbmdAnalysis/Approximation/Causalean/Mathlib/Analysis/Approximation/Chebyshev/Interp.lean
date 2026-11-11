@@ -9,6 +9,25 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Arg
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Topology.Algebra.Module.ModuleTopology
 
+/-!
+# Szegő trigonometric interpolants
+
+This module defines a single-frequency trigonometric interpolant with a prescribed value and, at
+positive frequency, a prescribed derivative at a chosen point. A phase-amplitude representation
+gives a uniform absolute bound, providing comparison functions for the approximation estimates
+used in the setting of [WangEtAl2026].
+
+## Main statements
+
+* `szegoInterp_self`: Recover the prescribed value.
+* `szegoInterp_hasDerivAt`: Recover the prescribed derivative at positive frequency.
+* `szegoInterp_amplitude`: Express the interpolant as a shifted cosine.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Approximation
 
 section
@@ -17,13 +36,16 @@ open Real
 
 namespace Causalean.Mathlib.Analysis.BernsteinSzegoTrig
 
+/-- The trigonometric interpolant `Q₀ * cos (β * (t - t₀)) + (Q₁ / β) * sin (β * (t - t₀))`. -/
 noncomputable def szegoInterp (β : ℕ) (Q₀ Q₁ t₀ : ℝ) (t : ℝ) : ℝ :=
   Q₀ * Real.cos ((β : ℝ) * (t - t₀)) + (Q₁ / (β : ℝ)) * Real.sin ((β : ℝ) * (t - t₀))
 
+/-- The Szegő interpolant takes the prescribed value `Q₀` at `t₀`. -/
 theorem szegoInterp_self (β : ℕ) (Q₀ Q₁ t₀ : ℝ) :
     szegoInterp β Q₀ Q₁ t₀ t₀ = Q₀ := by
   simp [szegoInterp]
 
+/-- For positive integer frequency, the Szegő interpolant has derivative `Q₁` at `t₀`. -/
 theorem szegoInterp_hasDerivAt (β : ℕ) (hβ : 1 ≤ β) (Q₀ Q₁ t₀ : ℝ) :
     HasDerivAt (fun t => szegoInterp β Q₀ Q₁ t₀ t) Q₁ t₀ := by
   let c : ℝ := β
@@ -53,6 +75,8 @@ theorem szegoInterp_hasDerivAt (β : ℕ) (hβ : 1 ≤ β) (Q₀ Q₁ t₀ : ℝ
     simpa [hc] using h
   simpa [szegoInterp, c] using hsum
 
+/-- A real linear combination of cosine and sine can be written as a phase-shifted cosine with
+amplitude `√(Q₀ ^ 2 + q ^ 2)`. -/
 theorem szegoInterp_amplitude_core (ω : ℝ) (Q₀ q t₀ : ℝ) :
     ∃ φ : ℝ, ∀ t,
       Q₀ * Real.cos (ω * (t - t₀)) + q * Real.sin (ω * (t - t₀))
@@ -81,6 +105,8 @@ theorem szegoInterp_amplitude_core (ω : ℝ) (Q₀ q t₀ : ℝ) :
         * Real.cos (ω * (t - t₀) - Complex.arg z) := by
       rw [hnorm]
 
+/-- The Szegő interpolant has a phase-shifted cosine representation with amplitude `√(Q₀ ^ 2 +
+(Q₁ / β) ^ 2)`. -/
 theorem szegoInterp_amplitude (β : ℕ) (Q₀ Q₁ t₀ : ℝ) :
     ∃ φ : ℝ, ∀ t, szegoInterp β Q₀ Q₁ t₀ t
       = Real.sqrt (Q₀ ^ 2 + (Q₁ / (β : ℝ)) ^ 2)
@@ -88,6 +114,7 @@ theorem szegoInterp_amplitude (β : ℕ) (Q₀ Q₁ t₀ : ℝ) :
   simpa [szegoInterp] using
     szegoInterp_amplitude_core (β : ℝ) Q₀ (Q₁ / (β : ℝ)) t₀
 
+/-- The absolute value of the Szegő interpolant is bounded by `√(Q₀ ^ 2 + (Q₁ / β) ^ 2)`. -/
 theorem szegoInterp_abs_le (β : ℕ) (Q₀ Q₁ t₀ t : ℝ) :
     |szegoInterp β Q₀ Q₁ t₀ t| ≤ Real.sqrt (Q₀ ^ 2 + (Q₁ / (β : ℝ)) ^ 2) := by
   obtain ⟨φ, hφ⟩ := szegoInterp_amplitude β Q₀ Q₁ t₀

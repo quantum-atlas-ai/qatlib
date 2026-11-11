@@ -9,6 +9,26 @@ import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+/-!
+# Specification of native CDF readout
+
+This module defines `NativeCDFReadoutRestricted`, the tail guarantee for the median of `2 * r +
+1` finite-precision amplitude-estimation samples of a CDF.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `NativeCDFReadoutRestricted`: The proposition that native CDF median decoding exceeds error `π
+  / M + π² / M² + 2⁻ᵇⁱᵗˢ` with probability at most `(8 / 9) ^ r` for unitary preparation and `M
+  ≥ 2`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,6 +62,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition that native CDF median decoding exceeds error `π / M + π² / M² + 2⁻ᵇⁱᵗˢ`
+with probability at most `(8 / 9) ^ r` for unitary preparation and `M ≥ 2`. -/
 def NativeCDFReadoutRestricted : Prop :=
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
       (loss : I → ℚ) (t : ℚ) (bits M r : ℕ)

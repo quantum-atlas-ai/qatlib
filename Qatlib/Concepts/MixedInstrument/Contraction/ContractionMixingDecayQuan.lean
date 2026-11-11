@@ -5,12 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedInstrument.Contraction.ContractionMixingDecayStat
+
+/-!
+# Geometric mixing for contractive channels
+
+`contractionMixingDecay` proves geometric decay of Schatten one distance to a fixed density
+operator. Each iteration contributes a factor `η` under a contraction hypothesis restricted to
+density operators, supporting the mixing analysis of [TemmeEtAl2011].
+
+## Main statements
+
+* `contractionMixingDecay`: For a channel contracting density operators by `0 ≤ η < 1`, the
+  Schatten one distance to a fixed density operator after `m` steps is at most `η ^ m` times the
+  initial distance; see [TemmeEtAl2011].
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.MixedInstrument.Contraction
 
+/-- For a channel contracting density operators by `0 ≤ η < 1`, the Schatten one distance to a
+fixed density operator after `m` steps is at most `η ^ m` times the initial distance; see
+[TemmeEtAl2011]. -/
 theorem contractionMixingDecay : ContractionMixingDecay := by
   intro D T sigma rho hs hrho hfix eta he0 _he1 hcontract m
   have hiter : ∀ k : ℕ, IsDensityOperator ((T.map^[k]) rho) := by

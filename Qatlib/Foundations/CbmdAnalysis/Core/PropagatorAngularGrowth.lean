@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.WaveAngularGrowth
 import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+
+/-!
+# Angular growth of Bessel and Airy propagators
+
+`waveAngularRate` combines the imaginary part of a complex parameter with a perturbation term
+involving the inverse square root of `H`. It is nonnegative for all matrices and parameters.
+
+When `H` is positive definite, this rate controls the Bessel and Airy propagators of `L + r² H`
+for nonzero `r` and nonnegative real time. These bounds support the special-function contour
+estimates of [WangEtAl2026].
+
+## Main statements
+
+* `besselPropagator_matrix_angular`: bounds the Bessel propagator using the angular rate.
+* `airyPropagator_matrix_angular`: bounds the Airy propagator with its time scale.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -17,13 +38,17 @@ open Complex MeasureTheory Set Filter
 open scoped Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- The rate `|r.im| * sqrt ‖H‖ + ‖r‖⁻¹ * ‖Ring.inverse (CFC.sqrt H) * L‖`. -/
 def waveAngularRate (L H : Matrix n n ℂ) (r : ℂ) : ℝ :=
   |r.im| * Real.sqrt ‖H‖ + ‖r‖⁻¹ * ‖Ring.inverse (CFC.sqrt H) * L‖
 
+/-- The angular growth rate is nonnegative for all matrices and complex parameters. -/
 theorem waveAngularRate_nonneg (L H : Matrix n n ℂ) (r : ℂ) : 0 ≤ waveAngularRate L H r := by
   unfold waveAngularRate
   positivity
 
+/-- For positive definite `H`, nonzero `r`, and `t ≥ 0`, the Bessel propagator of `L + r² H` has
+norm at most `exp (t * waveAngularRate L H r)`. -/
 theorem besselPropagator_matrix_angular (L H : Matrix n n ℂ) (hH : H.PosDef)
     (r : ℂ) (hr : r ≠ 0) (t : ℝ) (ht : 0 ≤ t) :
     ‖besselPropagator (L + r ^ 2 • H) (t : ℂ)‖ ≤ Real.exp (t * waveAngularRate L H r) := by
@@ -52,6 +77,8 @@ theorem besselPropagator_matrix_angular (L H : Matrix n n ℂ) (hH : H.PosDef)
       mul_le_mul_of_nonneg_left hi' (inv_nonneg.mpr Real.pi_pos.le)
     _ = _ := by rw [← mul_assoc, inv_mul_cancel₀ Real.pi_ne_zero, one_mul]
 
+/-- For positive definite `H`, nonzero `r`, and `t ≥ 0`, the Airy propagator of `L + r² H` has
+norm at most `exp (airyTimeScale t * waveAngularRate L H r)`. -/
 theorem airyPropagator_matrix_angular (L H : Matrix n n ℂ) (hH : H.PosDef)
     (r : ℂ) (hr : r ≠ 0) (t : ℝ) (ht : 0 ≤ t) :
     ‖airyPropagator (L + r ^ 2 • H) (t : ℂ)‖ ≤

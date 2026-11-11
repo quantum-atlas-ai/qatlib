@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MaximalSubgroupEnumerationSubgoalStat
+
+/-!
+# Character kernels and finite subgroup covers
+
+`aspCharacterKernel` is the subgroup on which a complex additive character equals one. Finite
+abelian duality supplies a nontrivial character vanishing on any proper subgroup, and
+`maximalSubgroupEnumerationSubgoal` uses character kernels to construct a proper-subgroup cover
+with fewer members than group elements. For background, see [Kitaev1995].
+
+## Main statements
+
+* `asp_proper_subgroup_character`: places each proper subgroup inside the kernel of a nontrivial
+  character.
+* `maximalSubgroupEnumerationSubgoal`: proves the existence and cardinality bound of a finite
+  proper-subgroup cover.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.BackendAudit
@@ -14,12 +35,15 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open scoped Classical
 
+/-- The additive subgroup of elements on which the complex additive character takes the value
+one. -/
 def aspCharacterKernel {H : Type*} [AddCommGroup H] (χ : AddChar H ℂ) : AddSubgroup H where
   carrier := {x | χ x=1}
   zero_mem' := χ.map_zero_eq_one
   add_mem' := by intro a b ha hb; change χ (a+b)=1; rw [χ.map_add_eq_mul, ha, hb, one_mul]
   neg_mem' := by intro a ha; change χ (-a)=1; rw [χ.map_neg_eq_inv, ha, inv_one]
 
+/-- The kernel of a nontrivial complex additive character is not the whole group. -/
 theorem aspCharacterKernel_ne_top {H : Type*} [AddCommGroup H] (χ : AddChar H ℂ)
     (hχ : χ ≠ 0) : aspCharacterKernel χ ≠ ⊤ := by
   intro he
@@ -28,6 +52,8 @@ theorem aspCharacterKernel_ne_top {H : Type*} [AddCommGroup H] (χ : AddChar H �
   have hx : x ∈ aspCharacterKernel χ := by rw [he]; trivial
   simpa using! hx
 
+/-- Every proper subgroup of a finite abelian group is contained in the kernel of a nontrivial
+complex additive character. -/
 theorem asp_proper_subgroup_character {H : Type*} [AddCommGroup H] [Fintype H]
     (L : AddSubgroup H) (hL : L < ⊤) :
     ∃ χ : AddChar H ℂ, χ ≠ 0 ∧ L ≤ aspCharacterKernel χ := by
@@ -51,6 +77,9 @@ theorem asp_proper_subgroup_character {H : Type*} [AddCommGroup H] [Fintype H]
   · intro y hy
     exact (mem_characterAnnihilator L (χ : AddChar H ℂ)).mp χ.property ⟨y,hy⟩
 
+/-- Every finite abelian group has a finite family of proper subgroups covering all proper
+subgroups by containment, with family cardinality strictly smaller than the group
+cardinality. -/
 theorem maximalSubgroupEnumerationSubgoal : MaximalSubgroupEnumerationSubgoal := by
   intro H _ _
   letI : Fintype (AddSubgroup H) := Fintype.ofInjective

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Covariance and amplitude bounds for energy estimation
+
+This module proves the finite-sum variance inequality underlying Equation 67 of [XuEtAl2026].
+`varForm` records the covariance expression, and `ampBound` is the squared sum of coefficient
+amplitudes scaled by standard deviations and positive inclusion allocations.
+
+The comparison uses a covariance bound and a geometric-mean bound on pair allocations.
+`conditional_allocation_bound` then substitutes an assumed coefficient-power allocation identity
+and an assumed cover-scale relation.
+
+## Main statements
+
+* `term_le_amp` bounds each covariance term by a product of amplitudes.
+* `source_eq67` sums these inequalities to bound `varForm` by `ampBound`.
+* `conditional_allocation_bound` derives the coefficient-power expression from the stated
+  allocation identities.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,15 +40,21 @@ namespace Qatlib.Papers.ShadowTomog26.MainResults
 
 variable {V : Type*} [Fintype V]
 
+/-- The double-sum covariance expression `∑ i, ∑ j, c i * c j * Cov i j * Tij i j / (T i * T
+j)`. -/
 def varForm (c : V → ℝ) (Cov Tij : V → V → ℝ) (T : V → ℝ) : ℝ :=
   ∑ i, ∑ j, c i * c j * Cov i j * Tij i j / (T i * T j)
 
+/-- The amplitude at vertex `i`, given by `|c i| * σ i / Real.sqrt (T i)`. -/
 def ampVec (c σ T : V → ℝ) (i : V) : ℝ := |c i| * σ i / Real.sqrt (T i)
 
+/-- The square of the sum of the amplitudes `ampVec c σ T i`. -/
 def ampBound (c σ T : V → ℝ) : ℝ := (∑ i, ampVec c σ T i) ^ 2
 
 omit [Fintype V] in
 
+/-- Amplitudes are nonnegative when each standard-deviation factor is nonnegative and each
+allocation is positive. -/
 lemma ampVec_nonneg {c σ T : V → ℝ} (hσ : ∀ i, 0 ≤ σ i) (hT : ∀ i, 0 < T i) (i : V) :
     0 ≤ ampVec c σ T i := by
   unfold ampVec
@@ -33,6 +62,8 @@ lemma ampVec_nonneg {c σ T : V → ℝ} (hσ : ∀ i, 0 ≤ σ i) (hT : ∀ i, 
 
 omit [Fintype V] in
 
+/-- For positive allocations, the product of two amplitudes is `|c i| * |c j| * (σ i * σ j) /
+Real.sqrt (T i * T j)`. -/
 lemma ampVec_mul_eq {c σ T : V → ℝ} (hT : ∀ i, 0 < T i) (i j : V) :
     ampVec c σ T i * ampVec c σ T j
       = |c i| * |c j| * (σ i * σ j) / Real.sqrt (T i * T j) := by
@@ -44,6 +75,9 @@ lemma ampVec_mul_eq {c σ T : V → ℝ} (hT : ∀ i, 0 < T i) (i j : V) :
 
 omit [Fintype V] in
 
+/-- A covariance summand is at most the product of the corresponding amplitudes when allocations
+are positive, pair allocations lie between zero and their geometric mean, and `|Cov i j| ≤ σ
+i * σ j` with nonnegative `σ`. -/
 lemma term_le_amp {c σ T : V → ℝ} {Cov Tij : V → V → ℝ}
     (hσ : ∀ i, 0 ≤ σ i) (hT : ∀ i, 0 < T i)
     (hTij0 : ∀ i j, 0 ≤ Tij i j) (hTij : ∀ i j, Tij i j ≤ Real.sqrt (T i * T j))
@@ -85,6 +119,9 @@ lemma term_le_amp {c σ T : V → ℝ} {Cov Tij : V → V → ℝ}
     rw [mul_div_assoc, key, mul_one_div]
   exact le_trans hdiv1 (le_trans hdiv2 (le_of_eq h3))
 
+/-- If allocations are positive, pair allocations lie between zero and their geometric mean, and
+the covariance magnitudes are bounded by products of nonnegative standard-deviation factors,
+then `varForm c Cov Tij T ≤ ampBound c σ T` [XuEtAl2026]. -/
 theorem source_eq67 {c σ T : V → ℝ} {Cov Tij : V → V → ℝ}
     (hσ : ∀ i, 0 ≤ σ i) (hT : ∀ i, 0 < T i)
     (hTij0 : ∀ i j, 0 ≤ Tij i j) (hTij : ∀ i j, Tij i j ≤ Real.sqrt (T i * T j))
@@ -95,6 +132,9 @@ theorem source_eq67 {c σ T : V → ℝ} {Cov Tij : V → V → ℝ}
   refine Finset.sum_le_sum (fun i _ => Finset.sum_le_sum (fun j _ => ?_))
   exact term_le_amp hσ hT hTij0 hTij hCov i j
 
+/-- Under unit covariance bounds and the positive-allocation and pair-allocation hypotheses,
+assume the amplitude bound equals `(∑ i, |c i|^(2/3))^3 / Tsub` and `Tsub = N / chif`. Then
+the covariance expression is at most `chif * (∑ i, |c i|^(2/3))^3 / N`. -/
 theorem conditional_allocation_bound {c : V → ℝ} {Cov Tij : V → V → ℝ} {T : V → ℝ}
     {N Tsub chif : ℝ}
     (hT : ∀ i, 0 < T i) (hTij0 : ∀ i j, 0 ≤ Tij i j)

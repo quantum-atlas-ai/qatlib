@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CollisionCount
+
+/-!
+# Rounding tensor energies to binary configurations
+
+The energy of `noRepeat A` is affine in each coordinate separately. Successively choosing
+endpoints of cube coordinates never increases this energy, so `round_to_binary` produces a
+binary configuration and `noRepeat_cube_eq_binary` identifies the cube and binary minima. This
+rounding argument supports the optimization comparison used alongside [GohMuller2026].
+
+## Main statements
+
+* `round_to_binary`: Every cube vector has a binary configuration with no greater energy for
+  `noRepeat A`.
+* `noRepeat_cube_eq_binary`: The Hilbert cube minimum and binary ground energy coincide for the
+  tensor `noRepeat A`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -18,6 +39,8 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTail
 open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder
 
+/-- The energy of `noRepeat A` is the affine interpolation of its values with coordinate `i`
+replaced by `-1` and `1`. -/
 theorem noRepeat_affine {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (i:Fin N) :
     tensorEnergy (noRepeat A) u=
       ((1-u i)/2)*tensorEnergy (noRepeat A) (Function.update u i (-1))+
@@ -53,6 +76,8 @@ theorem noRepeat_affine {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (i:Fin N) :
       ring
   · simp [noRepeat,hk]
 
+/-- For a cube vector, one can replace a chosen coordinate by a binary endpoint without
+increasing the energy of `noRepeat A`. -/
 theorem round_one {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (hu:u∈hilbertCube N) (i:Fin N) :
     ∃ b:Bool,tensorEnergy (noRepeat A) (Function.update u i (if b then 1 else -1))≤tensorEnergy (noRepeat A) u := by
   have he:=noRepeat_affine A u i
@@ -72,6 +97,8 @@ theorem round_one {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (hu:u∈hilbertCube N
   · exact ⟨false,hlo⟩
   · exact ⟨true,hhi⟩
 
+/-- For any finite set of coordinates, a cube vector can be replaced by another cube vector
+whose chosen coordinates are binary and whose `noRepeat A` energy is no greater. -/
 theorem round_finite {q N:ℕ} (A:Tensor q N) (S:Finset (Fin N)) (u:Fin N→ℝ) (hu:u∈hilbertCube N) :
     ∃ v:Fin N→ℝ,v∈hilbertCube N ∧ tensorEnergy (noRepeat A) v≤tensorEnergy (noRepeat A) u ∧
       ∀ i∈S,v i=1∨v i= -1 := by
@@ -92,6 +119,7 @@ theorem round_finite {q N:ℕ} (A:Tensor q N) (S:Finset (Fin N)) (u:Fin N→ℝ)
       · have hji:j≠i := fun h=>hi (h ▸ hj)
         simpa only [w,Function.update_of_ne hji] using hbin j hj
 
+/-- Every cube vector has a binary configuration with no greater energy for `noRepeat A`. -/
 theorem round_to_binary {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (hu:u∈hilbertCube N) :
     ∃ b:Fin N→Bool,tensorEnergy (noRepeat A) (binarySpin b)≤tensorEnergy (noRepeat A) u := by
   obtain ⟨v,hv,hE,hbin⟩ := round_finite A Finset.univ u hu
@@ -103,6 +131,7 @@ theorem round_to_binary {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (hu:u∈hilbert
     · norm_num [binarySpin,b,h]
   exact ⟨b,he ▸ hE⟩
 
+/-- The Hilbert cube minimum and binary ground energy coincide for the tensor `noRepeat A`. -/
 theorem noRepeat_cube_eq_binary {q N:ℕ} (A:Tensor q N) : cubeOpt (noRepeat A)=binaryGround (noRepeat A) := by
   obtain ⟨u,hu,he⟩ := cubeOpt_attained (noRepeat A)
   obtain ⟨b,hb⟩ := round_to_binary A u hu

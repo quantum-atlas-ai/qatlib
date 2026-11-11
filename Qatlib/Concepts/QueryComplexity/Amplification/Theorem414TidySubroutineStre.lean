@@ -8,6 +8,25 @@ import Qatlib.Concepts.QueryComplexity.Amplification.Theorem414TidySubroutineSta
 import Qatlib.Concepts.QueryComplexity.Amplification.Theorem413MajorityVoteAmpStre
 import Qatlib.Concepts.QueryComplexity.Amplification.SubroutineCleaning
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Tidy subroutine amplification theorem
+
+This module proves `theorem4_14TidySubroutine` by amplifying a circuit with zero queries,
+copying the majority answer, and reversing the amplified computation. The squared success
+identity yields probability at least 1 − ε of recovering the original input copies with the
+desired answer, within the stated gate budget, as in the cleaning argument of [BennettEtAl1997].
+
+## Main statements
+
+* `theorem4_14TidySubroutine`: construct a unitary circuit with zero queries that restores its
+  inputs with the correct answer.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.CircuitReversal.ReversalAlgebra
@@ -20,11 +39,16 @@ open Matrix
 
 open scoped Classical
 
+/-- The identity matrix is unitary. -/
 private theorem one_mem_unitaryGroup' {I : Type} [Fintype I] [DecidableEq I] :
     (1 : Matrix I I ℂ) ∈ Matrix.unitaryGroup I ℂ := by
   refine Matrix.mem_unitaryGroup_iff'.mpr ?_
   simp
 
+/-- A unitary circuit with zero queries and success probability at least 2/3 can achieve
+probability at least 1 − ε of restoring all input copies and producing the desired answer
+bit, using at most twice the repeated circuit's gate count plus one. This proves the finite
+circuit cleaning statement associated with [Bennett et al., Theorem 4.14][BennettEtAl1997]. -/
 theorem theorem4_14TidySubroutine : Theorem4_14TidySubroutine := by
   intro I _ _ C x₀ v b ε hC hC0 hb hε
 

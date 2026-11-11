@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountGateMergers
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Exact Toffoli middle words and frames
+
+`sourceToffoliMiddle` isolates a twelve-gate core, and `sourceToffoliFramed` restores the
+control phase and target Hadamard frames to give a fifteen-gate exact Toffoli word. The module
+compares this word with `toffoliLocalSteps` and establishes the basis semantics needed for the
+multi-control decompositions of [BarencoEtAl1995].
+
+## Main statements
+
+* `sourceToffoliFramed_matrix`: Equality with the standard local Toffoli program matrix.
+* `sourceToffoliFramed_ket`: Exact Toffoli action on basis vectors.
+* `sourceToffoliFramed_counts`: Lengths of the middle and framed words.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,21 +41,28 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliFrames
 open Matrix
 open scoped Classical BigOperators
 
+/-- The initial ten-gate segment of the Toffoli decomposition used in the frame comparison. -/
 private def earlyToffoli {N : ℕ} (a b t : Fin N) : List (ReflectionGate N) :=
   [.inl (t,Hadamard), .inr (b,t), .inl (t,tGateAdj), .inr (a,t), .inl (t,tGate),
     .inr (b,t), .inl (t,tGateAdj), .inr (a,t), .inl (b,tGate), .inl (t,tGate)]
 
+/-- The twelve-gate middle word of the exact Toffoli decomposition. -/
 def sourceToffoliMiddle {N : ℕ} (a b t : Fin N) : List (ReflectionGate N) :=
   [.inr (b,t), .inl (t,tGateAdj), .inr (a,t), .inl (t,tGate),
     .inr (b,t), .inl (t,tGateAdj), .inr (a,t), .inl (b,tGate), .inl (t,tGate),
     .inr (a,b), .inl (b,tGateAdj), .inr (a,b)]
 
+/-- The exact Toffoli middle word with an initial control phase and a pair of target Hadamard
+frames. -/
 def sourceToffoliFramed {N : ℕ} (a b t : Fin N) : List (ReflectionGate N) :=
   [.inl (a,tGate), .inl (t,Hadamard)] ++ sourceToffoliMiddle a b t ++ [.inl (t,Hadamard)]
 
+/-- The program matrix of a singleton gate word equals the matrix of its gate. -/
 private theorem singleton_matrix {N : ℕ} (g : ReflectionGate N) :
     reflectionProgramMatrix [g] = reflectionGateMatrix g := by simp [reflectionProgramMatrix]
 
+/-- On pairwise distinct control and target wires, the framed Toffoli word has the same program
+matrix as `toffoliLocalSteps`. -/
 theorem sourceToffoliFramed_matrix {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) :
     reflectionProgramMatrix (sourceToffoliFramed a b t) = reflectionProgramMatrix (toffoliLocalSteps a b t) := by
@@ -90,6 +117,7 @@ theorem sourceToffoliFramed_matrix {N : ℕ} (a b t : Fin N)
     _ = reflectionProgramMatrix (earlyToffoli a b t ++ [H] ++ tail) := hmoveH.symm
     _ = _ := rfl
 
+/-- The framed Toffoli word is legal when its controls and target are pairwise distinct. -/
 theorem sourceToffoliFramed_legal {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) : reflectionLegal (sourceToffoliFramed a b t) := by
   intro g hg
@@ -98,6 +126,7 @@ theorem sourceToffoliFramed_legal {N : ℕ} (a b t : Fin N)
     List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hg ⊢
   tauto
 
+/-- The exact Toffoli middle word is legal when its controls and target are pairwise distinct. -/
 theorem sourceToffoliMiddle_legal {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) : reflectionLegal (sourceToffoliMiddle a b t) := by
   intro g hg
@@ -106,6 +135,8 @@ theorem sourceToffoliMiddle_legal {N : ℕ} (a b t : Fin N)
       or_false] at hg ⊢
   tauto
 
+/-- On pairwise distinct wires, the framed Toffoli word maps each basis vector according to
+`noWorkToffoliUpdate`. -/
 theorem sourceToffoliFramed_ket {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (sourceToffoliFramed a b t))
@@ -113,6 +144,7 @@ theorem sourceToffoliFramed_ket {N : ℕ} (a b t : Fin N)
   rw [run_reflectionCompile, sourceToffoliFramed_matrix a b t hab hat hbt, ← run_reflectionCompile]
   exact (local_toffoli_fifteen_exact N a b t hab hat hbt).2.2 x
 
+/-- A Toffoli register update is involutive when both controls differ from the target. -/
 theorem sourceToffoliUpdate_involutive {N : ℕ} (a b t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) : Function.Involutive (noWorkToffoliUpdate a b t) := by
   intro x
@@ -122,6 +154,7 @@ theorem sourceToffoliUpdate_involutive {N : ℕ} (a b t : Fin N)
     simp [noWorkToffoliUpdate, Function.update_of_ne hat, Function.update_of_ne hbt]
   · simp [noWorkToffoliUpdate, Function.update_of_ne hkt]
 
+/-- The adjoint framed Toffoli word performs the same Toffoli register update on basis states. -/
 theorem sourceToffoliFramed_adjoint_ket {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (reflectionAdjoint (sourceToffoliFramed a b t)))
@@ -129,6 +162,7 @@ theorem sourceToffoliFramed_adjoint_ket {N : ℕ} (a b t : Fin N)
   source_adjoint_involutive_action _ (sourceToffoliFramed_legal a b t hab hat hbt)
     _ (sourceToffoliUpdate_involutive a b t hat hbt) (sourceToffoliFramed_ket a b t hab hat hbt) x
 
+/-- The exact Toffoli middle word has twelve gates and its framed form has fifteen gates. -/
 theorem sourceToffoliFramed_counts {N : ℕ} (a b t : Fin N) :
     (sourceToffoliMiddle a b t).length = 12 ∧ (sourceToffoliFramed a b t).length = 15 := by
   exact ⟨rfl,rfl⟩

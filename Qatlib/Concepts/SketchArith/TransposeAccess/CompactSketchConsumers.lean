@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchArith.TransposeAccess.SketchTransposeAccess
 import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+
+/-!
+# Mixture sampling consumers for compact sketches
+
+`compactMixtureLaw` combines two finite sampling laws with equal weights, and
+`compactMixtureBuild` records its construction costs. The module proves the induced product law,
+a matrix-product concentration bound, and an oversampling-overhead event bound for compact
+sketches in [ChiaEtAl2022].
+
+## Main statements
+
+* `compactMixtureBuild_eq`: The mixture builder returns the compact data for projected samples
+  with counters `(r, 2 * r, r)`.
+* `compact_sketch_actual_mixture_product_consumer`: Exact row-energy laws yield a mixture
+  distribution with the stated tagged product-law fibers, Frobenius product tail, and exact
+  compact construction and query counts. See [ChiaEtAl2022].
+* `compact_sketch_actual_sq_overhead_event`: With the stated sample budget and an entrywise
+  dominating matrix, the probability of zero sketch energy or oversampling overhead exceeding
+  twice its source ratio is at most `δ`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,12 +42,17 @@ namespace Qatlib.Concepts.SketchArith.TransposeAccess
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.Frobenius
 
+/-- The joint mass obtained by choosing a Boolean branch uniformly and then sampling from `px`
+or `py`. -/
 noncomputable def sketchMixtureMass {K : Type} [Fintype K] (px py : FinDist K) (z : Bool×K) : ℝ :=
   (1/2:ℝ)*(if z.1 then py.prob z.2 else px.prob z.2)
 
+/-- The equal-weight mixture probability `(px.prob i + py.prob i) / 2`. -/
 noncomputable def sketchMixtureProbability {K : Type} [Fintype K] (px py : FinDist K) (i : K) : ℝ :=
   (px.prob i+py.prob i)/2
 
+/-- Builds compact records from Boolean-tagged samples while counting one sample, two
+probability reads, and one branch choice per record. -/
 noncomputable def compactMixtureBuild {K : Type} [Fintype K] (px py : FinDist K) (r : ℕ)
     (ω : Fin r→Bool×K) : List (K×ℝ)×ℕ×ℕ×ℕ :=
   let a:=(List.ofFn (fun t : Fin r=> t)).foldl (fun a t=>
@@ -30,6 +60,7 @@ noncomputable def compactMixtureBuild {K : Type} [Fintype K] (px py : FinDist K)
       a.2.1+1,a.2.2.1+2,a.2.2.2+1)) ([],0,0,0);
   (a.1.reverse,a.2.1,a.2.2.1,a.2.2.2)
 
+/-- The finite distribution whose probabilities are the equal-weight mixture of `px` and `py`. -/
 noncomputable def compactMixtureLaw {K : Type} [Fintype K] (px py : FinDist K) : FinDist K where
   prob := sketchMixtureProbability px py
   nonneg i := div_nonneg (add_nonneg (px.nonneg i) (py.nonneg i)) (by norm_num)
@@ -37,6 +68,8 @@ noncomputable def compactMixtureLaw {K : Type} [Fintype K] (px py : FinDist K) :
     simp only [sketchMixtureProbability,← Finset.sum_div,Finset.sum_add_distrib,px.sum_one,py.sum_one]
     norm_num
 
+/-- The joint finite distribution of a uniform Boolean branch and a sample from the selected
+source law. -/
 noncomputable def compactMixtureJoint {K : Type} [Fintype K] (px py : FinDist K) : FinDist (Bool×K) where
   prob := sketchMixtureMass px py
   nonneg z := mul_nonneg (by norm_num) (by split_ifs <;> exact (by first | exact px.nonneg _ | exact py.nonneg _))
@@ -45,6 +78,7 @@ noncomputable def compactMixtureJoint {K : Type} [Fintype K] (px py : FinDist K)
       px.sum_one,py.sum_one]
     norm_num
 
+/-- Summing the tagged joint law over the fiber above `i` gives the mixture probability at `i`. -/
 private theorem compact_mixture_fiber {K : Type} [Fintype K] [DecidableEq K]
     (px py : FinDist K) (i : K) :
     (∑ z : Bool×K,if z.2=i then (compactMixtureJoint px py).prob z else 0) =
@@ -53,6 +87,8 @@ private theorem compact_mixture_fiber {K : Type} [Fintype K] [DecidableEq K]
     mul_ite]
   ring
 
+/-- Applying a map with the stated one-sample fiber probabilities to independent samples yields
+the corresponding product-law fiber probabilities. -/
 private theorem compact_fresh_fiber {X K : Type} [Fintype X] [DecidableEq X]
     [Fintype K] [DecidableEq K] (q : FinDist X) (p : FinDist K) (f : X→K)
     (hf : ∀ i,(∑ x,if f x=i then q.prob x else 0)=p.prob i)
@@ -74,6 +110,8 @@ private theorem compact_fresh_fiber {X K : Type} [Fintype X] [DecidableEq X]
   apply Finset.prod_congr rfl; intro t _
   simpa only [mul_ite,mul_one,mul_zero] using hf (v t)
 
+/-- Evaluates the mixture-record fold, increasing its counters by the list length, twice that
+length, and that length respectively. -/
 private theorem compact_mixture_fold {T K : Type} (xs : List T) (d : T→K×ℝ)
     (a : List (K×ℝ)) (b c e : ℕ) :
     xs.foldl (fun a t=>(d t::a.1,a.2.1+1,a.2.2.1+2,a.2.2.2+1)) (a,b,c,e) =
@@ -83,6 +121,8 @@ private theorem compact_mixture_fold {T K : Type} (xs : List T) (d : T→K×ℝ)
   | cons x xs ih => simp [List.foldl_cons,ih,List.reverse_cons,List.append_assoc,Nat.mul_add,
     Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
 
+/-- The mixture builder returns the compact data for projected samples with counters `(r, 2 * r,
+r)`. -/
 theorem compactMixtureBuild_eq {K : Type} [Fintype K] (px py : FinDist K) (r : ℕ)
     (ω : Fin r→Bool×K) :
     compactMixtureBuild px py r ω =
@@ -93,18 +133,24 @@ theorem compactMixtureBuild_eq {K : Type} [Fintype K] (px py : FinDist K) (r : �
     Nat.zero_add]
   rfl
 
+/-- Entrywise domination of squared entry norms implies domination of squared row norms. -/
 theorem sketchRowSquared_mono {K C : Type} [Fintype C] (A B : Matrix K C ℂ)
     (h : ∀ i j,Complex.normSq (A i j)≤Complex.normSq (B i j)) :
     ∀ i,sketchRowSquared A i≤ sketchRowSquared B i := fun i=>Finset.sum_le_sum fun j _=>h i j
 
+/-- Entrywise domination of squared entry norms implies domination of total squared Frobenius
+energies. -/
 theorem sketchSquared_mono {K C : Type} [Fintype K] [Fintype C] (A B : Matrix K C ℂ)
     (h : ∀ i j,Complex.normSq (A i j)≤Complex.normSq (B i j)) :
     sketchSquared A≤ sketchSquared B := Finset.sum_le_sum fun i _=>sketchRowSquared_mono A B h i
 
+/-- The sum of products of corresponding row norms is nonnegative. -/
 theorem sketchRowProductMass_nonneg {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) : 0≤ sketchRowProductMass X Y :=
   Finset.sum_nonneg fun _ _=>mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
 
+/-- The sum of products of corresponding row norms is bounded by the product of the Frobenius
+norms. -/
 theorem sketchRowProductMass_le_norms {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) :
     sketchRowProductMass X Y≤ Real.sqrt (sketchSquared X)*Real.sqrt (sketchSquared Y) := by
@@ -120,6 +166,8 @@ theorem sketchRowProductMass_le_norms {K C D : Type} [Fintype K] [Fintype C] [Fi
   rw [mul_pow,Real.sq_sqrt (sketchSquared_nonneg X),Real.sq_sqrt (sketchSquared_nonneg Y)]
   exact hc
 
+/-- If the total row-norm product mass is zero, every conjugate product of corresponding
+source-row entries vanishes. -/
 private theorem sketch_zero_row_products {K C D : Type} [Fintype K] [Fintype C] [DecidableEq C]
     [Fintype D] [DecidableEq D] (X : Matrix K C ℂ) (Y : Matrix K D ℂ)
     (hW : sketchRowProductMass X Y=0) : ∀ k i j,star (X k i)*Y k j=0 := by
@@ -133,6 +181,8 @@ private theorem sketch_zero_row_products {K C D : Type} [Fintype K] [Fintype C] 
   · have hz : sketchRowSquared Y k=0 := by rw [← Real.sq_sqrt (sketchRowSquared_nonneg Y k),hy]; norm_num
     rw [sketchRowSquared_eq_zero_entry Y k hz j,mul_zero]
 
+/-- The equal mixture of exact row-energy laws dominates each normalized product of source row
+norms. -/
 private theorem compact_mixture_row_dominance {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (px py : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ)
     (hX : 0<sketchSquared X) (hY : 0<sketchSquared Y)
@@ -156,6 +206,9 @@ private theorem compact_mixture_row_dominance {K C D : Type} [Fintype K] [Fintyp
   change px.prob i*py.prob i≤((px.prob i+py.prob i)/2)^2
   nlinarith [sq_nonneg (px.prob i-py.prob i)]
 
+/-- Exact row-energy laws yield a mixture distribution with the stated tagged product-law
+fibers, Frobenius product tail, and exact compact construction and query counts. See
+[ChiaEtAl2022]. -/
 theorem compact_sketch_actual_mixture_product_consumer : ∀ (K C D : Type) [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] [Fintype D] [DecidableEq D] (px py : FinDist K) (r : ℕ)
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (δ : ℝ),
@@ -239,6 +292,9 @@ theorem compact_sketch_actual_mixture_product_consumer : ∀ (K C D : Type) [Fin
     rw [compactMixtureBuild_eq]
     exact ⟨rfl,rfl⟩
 
+/-- With the stated sample budget and an entrywise dominating matrix, the probability of zero
+sketch energy or oversampling overhead exceeding twice its source ratio is at most `δ`. See
+[ChiaEtAl2022]. -/
 theorem compact_sketch_actual_sq_overhead_event : ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] (p : FinDist K) (r : ℕ) (A Ah : Matrix K C ℂ) (δ : ℝ),
   0< sketchSquared A → (∀ i j,Complex.normSq (A i j)≤ Complex.normSq (Ah i j)) →

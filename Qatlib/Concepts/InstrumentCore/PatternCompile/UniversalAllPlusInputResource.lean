@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+/-!
+# Specification of all-plus input resources
+
+The proposition `UniversalAllPlusInputResource` specifies an all-plus resource for legal
+reflection programs on a nonzero number of qubits. The resource is independent of the classical
+input, while the compiled input graph must have the stated length, wire count, legality, and
+density properties.
+
+The specification also requires explicit Pauli-frame branch states, exact raw and readout
+resource counts, and agreement of decoded and physical readout probabilities with the reflection
+program on each classical input. These are resource and readout requirements for the measurement
+scheme of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `UniversalAllPlusInputResource`: input-independent resources, branch semantics, and readout
+  probability requirements.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -21,6 +45,11 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The specification that legal reflection programs possess an all-plus graph resource
+independent of the classical input, with explicit compiled lengths, wire counts, branch
+states, and measurement resources. It requires the summed decoded events and physical
+readout acceptance to equal the reflection program's output probabilities on every classical
+input. -/
 def UniversalAllPlusInputResource : Prop :=
   ∀ (n : ℕ) [NeZero n] (gs : List (ReflectionGate n)), reflectionLegal gs →
     let L := 8*n+(mbqcCompiledWord gs).length

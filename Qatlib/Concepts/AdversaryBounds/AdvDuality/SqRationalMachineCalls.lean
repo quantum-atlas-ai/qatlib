@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalArithmetic
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs
 import Mathlib.Analysis.Real.Cardinality
+
+/-!
+# Subroutine calls for the rational word machine
+
+This module embeds framed-word input, copying, transfer, draining, table lookup, addition, and
+multiplication routines into the rational word machine. `Machine.Storage` describes the stack
+contents, the call lemmas such as `Machine.take_call` establish execution and clock bounds in a
+saved heap, and the corresponding payload lemmas such as `Machine.mul_data` express the
+resulting updates through `Machine.dataHeap`.
+
+The theorem `no_total_real_decoder` records the cardinality obstruction to decoding every real
+number from finite bit words. For general background on finite representations and computation,
+see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `no_total_real_decoder`: finite bit words cannot encode every real number.
+* `Machine.take_call`: execution of the embedded frame-reading routine.
+* `Machine.mul_data`: multiplication updates on payload heaps.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002] *Classical and Quantum Computation*.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
@@ -24,6 +49,7 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
+/-- No function from finite Boolean words to the real numbers is surjective. -/
 theorem no_total_real_decoder : ∀ decode : List Bool → ℝ, ¬Function.Surjective decode :=
   fun decode => not_surjective_countable_uncountable decode
 
@@ -34,6 +60,8 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open scoped Classical
 
+/-- The bit-word contents of the machine's program, values, lookup storage, arithmetic buffers,
+frame, and output stacks. -/
 structure Storage where
   code : Bits
   values : Bits
@@ -46,6 +74,8 @@ structure Storage where
 
 namespace Storage
 
+/-- Interpret a storage record as a machine heap, placing its fields in their payload slots and
+leaving auxiliary slots empty. -/
 def heap (s : Storage) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits
   | .inl .program => s.code
   | .inl .values => s.values
@@ -55,10 +85,14 @@ def heap (s : Storage) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMa
   | .inl (.lookup k) => ReadonlyTableGet.store s.table [] s.index s.found k
   | .inr _ => []
 
+/-- The storage representation of a word state and program code, with an encoded value stack, a
+reversed parameter stream, and empty working stacks. -/
 def canonical (code : Bits) (s : WordState) : Storage :=
   ⟨code,valueStack s.values,(TableGet.stream s.parameters).reverse,
     (fun _ => []),[],[],[],[]⟩
 
+/-- Updating the program slot of a storage heap agrees with updating the `code` field of the
+storage record. -/
 theorem update_program (s : Storage) (bits : Bits) :
     Function.update s.heap (.inl .program) bits = ({s with code:=bits} : Storage).heap := by
   funext k
@@ -67,6 +101,9 @@ theorem update_program (s : Storage) (bits : Bits) :
   | inr h => simp [heap]
 end Storage
 
+/-- The embedded take routine removes a leading frame and prepends its reversed payload to the
+destination, returning to the mode's return phase. Its stack-run clock is bounded by the
+stated cubic expression in the source and destination lengths. -/
 theorem take_call (mode : TakeMode) (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (bits tail out : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ ticks last,
       stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -100,6 +137,9 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open scoped Classical
 
+/-- The embedded copy routine preserves its reversed source word and prepends the framed word to
+the destination, returning to the mode's return phase. Its stack-run clock is at most `10000
+* (1 + bits.length + out.length)^3`. -/
 theorem copy_call (mode : CopyMode) (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (bits out : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ ticks,
       stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -124,6 +164,9 @@ theorem copy_call (mode : CopyMode) (outside : Qatlib.Concepts.AdversaryBounds.A
     FrameCopy.program Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (fun _ => rfl) v ticks _ _ hr
   exact ⟨ticks,hR,hC.trans_le hc⟩
 
+/-- In `bits.length + 1` stack steps, the embedded transfer routine empties its source and
+prepends its reversal to the destination. Its stack-run clock is at most `bits.length * (2 *
+(bits.length + out.length) + 5) + 3`. -/
 theorem transfer_call (mode : TransferMode) (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (bits out : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     let ticks := bits.length+1
     stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -147,6 +190,9 @@ theorem transfer_call (mode : TransferMode) (outside : Qatlib.Concepts.Adversary
     transferProgram Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (fun _ => rfl) v (bits.length+1) _ _ hr
   exact ⟨hR,(hC.trans (transfer_clock bits out (Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.getIO v))).le⟩
 
+/-- In `bits.length + 1` stack steps, the embedded drain routine empties its stack and reaches
+the mode's return phase. Its stack-run clock is at most `bits.length^2 + 3 * bits.length +
+3`. -/
 theorem drain_call (mode : DrainMode) (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (bits : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     let ticks := bits.length+1
     stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -170,6 +216,9 @@ theorem drain_call (mode : DrainMode) (outside : Qatlib.Concepts.AdversaryBounds
     Normalization.drainProgram Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (fun _ => rfl) v (bits.length+1) _ _ hr
   exact ⟨hR,(hC.trans (Normalization.drain_clock bits (Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.getIO v))).le⟩
 
+/-- The embedded lookup routine preserves the table, clears the index, and prepends the reversed
+selected word to the output, using the empty word for an out-of-range index. It reaches the
+lookup-copy entry with the stated polynomial stack-run clock bound. -/
 theorem lookup_call (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (values : List Bits) (index out : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ ticks last,
       stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -191,6 +240,9 @@ theorem lookup_call (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRati
     ReadonlyTableGet.program Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (fun _ => rfl) v ticks _ _ hr
   exact ⟨ticks,last,hR,hC.trans_le hc⟩
 
+/-- The embedded addition routine consumes the two operand stacks and writes the reversed
+`bitAdd` result in `max x.length y.length + 1` stack steps. It reaches the result-copy entry
+with stack-run clock at most `addClockBound x y`. -/
 theorem add_call (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (x y : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     let ticks := max x.length y.length+1
     stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -210,6 +262,9 @@ theorem add_call (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationa
     addProgram Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (fun _ => rfl) (putAdd v AddVar.init) _ _ _ hr
   exact ⟨hR,hC.trans_le hc⟩
 
+/-- The embedded multiplication routine reaches the master-clearing phase after `mulTotalTicks x
+y y.length + 2` stack steps with the `mulAcc` result and the preserved reversed first
+operand. Its stack-run clock is at most `31720 * (1 + x.length + y.length)^4`. -/
 theorem mul_call (outside : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (x y : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     let ticks := mulTotalTicks x y y.length+2
     stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks
@@ -238,10 +293,13 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open scoped Classical
 
+/-- Extend a payload-stack assignment to a machine heap by making every auxiliary stack empty. -/
 def dataHeap (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits
   | .inl p => S p
   | .inr _ => []
 
+/-- A framed heap equals a target heap when they agree on every injectively assigned call slot
+and the target agrees with the saved heap outside those slots. -/
 theorem frame_target {K : Type} [DecidableEq K] (code : K → Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot)
     (saved target : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot → Bits) (data : K → Bits) (hinj : Function.Injective code)
     (hm : ∀ k,target (code k)=data k)
@@ -255,10 +313,15 @@ theorem frame_target {K : Type} [DecidableEq K] (code : K → Qatlib.Concepts.Ad
   · rw [WordValidator.frame_outside code saved data bank (fun k hk => he ⟨k,hk⟩)]
     exact (ho bank (fun k hk => he ⟨k,hk⟩)).symm
 
+/-- The payload assignment after taking a frame: replace the source by its tail and prepend the
+reversed payload to the target. -/
 def takeResult (mode : TakeMode) (bits tail : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits :=
   Function.update (Function.update S (takeSource mode) tail) (takeTarget mode)
     (bits.reverse++S (takeTarget mode))
 
+/-- If the selected source begins with `framed bits`, the embedded take routine produces
+`takeResult` on the payload heap. It reaches the mode's return phase with the stated
+stack-run clock bound. -/
 theorem take_data (mode : TakeMode) (bits tail : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hr : S (takeSource mode)=framed bits++tail) :
     ∃ ticks last,
@@ -291,9 +354,13 @@ theorem take_data (mode : TakeMode) (bits tail : Bits) (S : Qatlib.Concepts.Adve
   rw [hsame] at hC
   exact ⟨ticks,last,hR,hC⟩
 
+/-- The payload assignment obtained by prepending `framed bits` to the selected copy target. -/
 def copyResult (mode : CopyMode) (bits : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits :=
   Function.update S (copyTarget mode) (framed bits++S (copyTarget mode))
 
+/-- If the selected source contains `bits.reverse`, the embedded copy routine produces
+`copyResult` on the payload heap. Its stack-run clock is at most `10000 * (1 + bits.length +
+(S (copyTarget mode)).length)^3`. -/
 theorem copy_data (mode : CopyMode) (bits : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hr : S (copySource mode)=bits.reverse) :
     ∃ ticks,
@@ -327,10 +394,15 @@ theorem copy_data (mode : CopyMode) (bits : Bits) (S : Qatlib.Concepts.Adversary
   rw [hsame] at hC
   exact ⟨ticks,hR,hC⟩
 
+/-- The payload assignment obtained by emptying the selected transfer source and prepending its
+reversal to the selected target. -/
 def transferResult (mode : TransferMode) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits :=
   Function.update (Function.update S (transferSource mode) []) (transferTarget mode)
     ((S (transferSource mode)).reverse++S (transferTarget mode))
 
+/-- The embedded transfer routine produces `transferResult` on an arbitrary payload heap and
+returns to the mode's return phase. Its stack-run clock satisfies the stated quadratic bound
+in the source and target lengths. -/
 theorem transfer_data (mode : TransferMode) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ ticks,
       stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks ⟨some (.transfer mode 0),v,dataHeap S⟩ =
@@ -364,9 +436,13 @@ theorem transfer_data (mode : TransferMode) (S : Qatlib.Concepts.AdversaryBounds
   rw [hsame] at hC
   exact ⟨_,hR,hC⟩
 
+/-- The payload assignment obtained by emptying the stack selected by the drain mode. -/
 def drainResult (mode : DrainMode) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits :=
   Function.update S (drainTarget mode) []
 
+/-- The embedded drain routine produces `drainResult` on an arbitrary payload heap and returns
+to the mode's return phase. Its stack-run clock is at most `L^2 + 3 * L + 3`, where `L` is
+the initial target length. -/
 theorem drain_data (mode : DrainMode) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ ticks,
       stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks ⟨some (.drain mode 0),v,dataHeap S⟩ =
@@ -405,11 +481,16 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open scoped Classical
 
+/-- Replace the lookup stacks by the completed lookup state, preserving the table, clearing the
+index, and prepending the reversed selected word to the output. -/
 def lookupResult (values : List Bits) (index out : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits
   | .lookup k => ReadonlyTableGet.store (TableGet.stream values).reverse [] []
       ((values.getD (binaryValue index) []).reverse++out) k
   | p => S p
 
+/-- From the specified lookup-stack encoding, the embedded lookup routine produces
+`lookupResult` and reaches the lookup-copy entry. Its stack-run clock satisfies the stated
+polynomial bound in the table, index, and output lengths. -/
 theorem lookup_data (values : List Bits) (index out : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hp : ∀ k,S (.lookup k)=ReadonlyTableGet.store (TableGet.stream values).reverse [] index out k) :
     ∃ ticks last,
@@ -440,10 +521,15 @@ theorem lookup_data (values : List Bits) (index out : Bits) (S : Qatlib.Concepts
   rw [hsame] at hC
   exact ⟨ticks,last,hR,hC⟩
 
+/-- The payload assignment obtained by clearing arithmetic stacks zero and one and placing the
+reversed `bitAdd` result in stack two. -/
 def addResult (x y : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits :=
   Function.update (Function.update (Function.update S (.arithmetic 0) []) (.arithmetic 1) [])
     (.arithmetic 2) (bitAdd x y).reverse
 
+/-- With the two operands in arithmetic stacks zero and one and stack two empty, the embedded
+addition routine produces `addResult`. It reaches the result-copy entry with stack-run clock
+at most `addClockBound x y`. -/
 theorem add_data (x y : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (h0 : S (.arithmetic 0)=x) (h1 : S (.arithmetic 1)=y) (h2 : S (.arithmetic 2)=[]) :
     ∃ ticks,
@@ -472,10 +558,15 @@ theorem add_data (x y : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.Sq
   rw [hsame] at hC
   exact ⟨_,hR,hC⟩
 
+/-- Replace the arithmetic stacks by the completed multiplication layout containing `mulAcc x y
+y.length` and the preserved reversed first operand. -/
 def mulResult (x y : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits
   | .arithmetic i => mulStacks (mulAcc x y y.length) [] [] x.reverse [] [] i
   | p => S p
 
+/-- From the specified initial multiplication layout, the embedded multiplication routine
+produces `mulResult` and reaches the master-clearing phase. Its stack-run clock is at most
+`31720 * (1 + x.length + y.length)^4`. -/
 theorem mul_data (x y : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hp : ∀ i,S (.arithmetic i)=mulStacks [] [] [] x.reverse y.reverse [] i) :
     ∃ ticks,

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CliffordGroup03.MainResults.Definitions
+
+/-!
+# Binary Clifford transformation formulas
+
+This module defines the binary label, phase, composition, and inverse expressions appearing in
+[DehaeneDeMoor2003]. The declarations `source_theorem_one_conjugation`,
+`source_theorem_two_composition`, and `source_theorem_three_inverse` package the corresponding
+formulas as propositions involving `RepresentsClifford`.
+
+## Main statements
+
+* `thm1_b2`, `thm1_delta2`, and `thm1_eps2`: conjugation update expressions.
+* `compH` and `invH`: sign-vector expressions for composition and inversion.
+* `conj_mul`: multiplicativity of conjugation under `Qᴴ*Q = 1`.
+
+## References
+
+* [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,17 +40,24 @@ open Qatlib.Concepts.PauliClifford.ExactRank (BooleanVec booleanDot)
 
 namespace Qatlib.Papers.CliffordGroup03.MainResults
 
+/-- The diagonal vector of `Cᵀ * Umat n * C` over `ZMod 2`. -/
 def dvec {n : ℕ} (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) : BV (2 * n) :=
   diagVec (Cᵀ * Umat n * C)
 
+/-- The transformed binary Pauli label `C.mulVec b1` in the conjugation formula of
+[DehaeneDeMoor2003]. -/
 def thm1_b2 {n : ℕ} (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (b1 : BV (2 * n)) :
     BV (2 * n) :=
   C.mulVec b1
 
+/-- The updated phase bit `booleanDot (dvec C) b1 + δ1` in the conjugation formula of
+[DehaeneDeMoor2003]. -/
 def thm1_delta2 {n : ℕ} (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2))
     (b1 : BV (2 * n)) (δ1 : ZMod 2) : ZMod 2 :=
   booleanDot (dvec C) b1 + δ1
 
+/-- The updated sign bit given by the extended linear and quadratic terms in the conjugation
+formula of [DehaeneDeMoor2003]. -/
 def thm1_eps2 {n : ℕ} (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h : BV (2 * n))
     (b1 : BV (2 * n)) (δ1 ε1 : ZMod 2) : ZMod 2 :=
   (let d := dvec C
@@ -38,6 +65,8 @@ def thm1_eps2 {n : ℕ} (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h : B
    ε1 + extDot (hbar h) (evec b1 δ1) +
      quadForm (lowsOpt (Cbᵀ * Ubar n * Cb)) (evec b1 δ1))
 
+/-- The binary sign-vector expression for composing the representations `(C1,h1)` and `(C2,h2)`,
+including the quadratic diagonal correction. -/
 def compH {n : ℕ} (C1 C2 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2))
     (h1 h2 : BV (2 * n)) : BV (2 * n) :=
   fun i =>
@@ -49,13 +78,18 @@ def compH {n : ℕ} (C1 C2 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2))
        (Matrix.mulVec Cb1ᵀ (hbar h2)) (some i) +
        diagVecOpt (Cb1ᵀ * lowsOpt (Cb2ᵀ * Ubar n * Cb2) * Cb1) (some i))
 
+/-- The matrix expression `Pmat n * C1ᵀ * Pmat n` used for the inverse binary Clifford
+representation. -/
 def invC {n : ℕ} (C1 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) :
     Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2) :=
   Pmat n * C1ᵀ * Pmat n
 
+/-- The vector obtained by applying the transpose of `invC C1` to `dvec C1`. -/
 def invd {n : ℕ} (C1 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) : BV (2 * n) :=
   (invC C1)ᵀ.mulVec (dvec C1)
 
+/-- The binary sign-vector expression for an inverse Clifford representation, using `invC`,
+`invd`, and the quadratic diagonal correction. -/
 def invH {n : ℕ} (C1 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h1 : BV (2 * n)) :
     BV (2 * n) :=
   fun i =>
@@ -65,6 +99,7 @@ def invH {n : ℕ} (C1 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h1 : BV (
      (Matrix.mulVec Cbiᵀ (hbar h1)) (some i) +
        diagVecOpt (Cbiᵀ * lowsOpt (Cbᵀ * Ubar n * Cb) * Cbi) (some i))
 
+/-- If `Qᴴ*Q = 1`, conjugation by `Q` preserves matrix multiplication; see [DehaeneDeMoor2003]. -/
 theorem conj_mul {n : ℕ} (Q M N : Matrix (Reg n) (Reg n) ℂ) (hQ : Qᴴ * Q = 1) :
     Q * (M * N) * Qᴴ = (Q * M * Qᴴ) * (Q * N * Qᴴ) := by
   symm
@@ -75,6 +110,9 @@ theorem conj_mul {n : ℕ} (Q M N : Matrix (Reg n) (Reg n) ℂ) (hQ : Qᴴ * Q =
       Matrix.mul_assoc Q (M * N) Qᴴ,
       Matrix.mul_assoc M N Qᴴ]
 
+/-- The proposition that `RepresentsClifford Q C h` implies the stated conjugation formula for a
+phase-weighted Pauli matrix using the updated label and phase bits. It encodes [Dehaene and
+De Moor, Theorem 1][DehaeneDeMoor2003]. -/
 def source_theorem_one_conjugation {n : ℕ}
     (Q : Matrix (Reg n) (Reg n) ℂ)
     (C : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h : BV (2 * n))
@@ -85,12 +123,18 @@ def source_theorem_one_conjugation {n : ℕ}
           ((-1 : ℂ) ^ (thm1_eps2 C h b1 δ1 ε1).val)) •
           tau (splitVec (thm1_b2 C b1))
 
+/-- The proposition that representations of `Q1` and `Q2` induce the representation `(C2*C1,
+compH C1 C2 h1 h2)` of `Q2*Q1`. It encodes [Dehaene and De Moor, Theorem
+2][DehaeneDeMoor2003]. -/
 def source_theorem_two_composition {n : ℕ}
     (Q1 Q2 : Matrix (Reg n) (Reg n) ℂ)
     (C1 C2 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h1 h2 : BV (2 * n)) : Prop :=
   RepresentsClifford Q1 C1 h1 → RepresentsClifford Q2 C2 h2 →
     RepresentsClifford (Q2 * Q1) (C2 * C1) (compH C1 C2 h1 h2)
 
+/-- The proposition that a representation of `Q1`, together with `Q1*Q1ᴴ = 1` and symplecticity
+of `C1`, yields the specified representation of `Q1ᴴ`. It encodes [Dehaene and De Moor,
+Theorem 3][DehaeneDeMoor2003]. -/
 def source_theorem_three_inverse {n : ℕ}
     (Q1 : Matrix (Reg n) (Reg n) ℂ)
     (C1 : Matrix (Fin (2 * n)) (Fin (2 * n)) (ZMod 2)) (h1 : BV (2 * n)) : Prop :=

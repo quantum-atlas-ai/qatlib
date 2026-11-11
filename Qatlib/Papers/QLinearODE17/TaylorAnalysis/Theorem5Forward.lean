@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Forward norm of the V2 Taylor matrix
+
+A Schur norm estimate bounds the jump and shift matrices on history labels. The decomposition
+`taylorV2_forward_decomposition` separates these contributions from the identity and gives
+`‖taylorStepMatrixV2 m k p M‖ ≤ 2 * sqrt k` for `k ≥ 5` and `‖M‖ ≤ 1`. See [BerryEtAl2017ODE]
+for the paper's setting.
+
+## Main statements
+
+* `weighted_sum_sq`: The square of a weighted finite sum is bounded by the total nonnegative
+  weight times the weighted sum of squares.
+* `taylorV2_forward_norm_le`: For `k ≥ 5` and `‖M‖ ≤ 1`, the V2 Taylor matrix has operator norm
+  at most `2 * sqrt k`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,8 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator Kronecker
 set_option warningAsError false
 
+/-- The square of a weighted finite sum is bounded by the total nonnegative weight times the
+weighted sum of squares. -/
 private theorem weighted_sum_sq {I : Type} [Fintype I]
     (a x : I → ℝ) (ha : ∀ i, 0 ≤ a i) :
     (∑ i, a i*x i)^2 ≤ (∑ i,a i)*(∑ i,a i*(x i)^2) := by
@@ -29,6 +52,8 @@ private theorem weighted_sum_sq {I : Type} [Fintype I]
   simpa only [mul_pow,Real.sq_sqrt (ha _),← mul_assoc,
     ← pow_two,Real.sq_sqrt (ha _)] using! h
 
+/-- If row and column sums of entry norms are bounded by nonnegative `r` and `c`, then the
+operator norm is at most `sqrt (r*c)`. -/
 theorem taylor_schur_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (r c : ℝ) (hr : 0 ≤ r) (hc : 0 ≤ c)
     (hrow : ∀ i, ∑ j,‖M i j‖ ≤ r) (hcol : ∀ j, ∑ i,‖M i j‖ ≤ c) :
@@ -53,6 +78,7 @@ theorem taylor_schur_norm_le {I : Type} [Fintype I] [DecidableEq I]
       exact hcol j
     _ = _ := by rw [← Finset.mul_sum]; ring
 
+/-- For `k ≥ 5`, the quantity `2 + sqrt (k+1)` is at most `2 * sqrt k`. -/
 theorem taylor_forward_sqrt_arithmetic (k : ℕ) (hk : 5 ≤ k) :
     2 + Real.sqrt (k+1 : ℕ) ≤ 2*Real.sqrt (k : ℝ) := by
   have hkr : (5 : ℝ) ≤ k := by exact_mod_cast hk
@@ -65,6 +91,7 @@ theorem taylor_forward_sqrt_arithmetic (k : ℕ) (hk : 5 ≤ k) :
   norm_num only [Nat.cast_add,Nat.cast_one] at ht ⊢
   nlinarith [Real.sqrt_nonneg (k+1 : ℕ)]
 
+/-- The number of labels in the half-open natural interval `[a, b)` is at most `b-a`. -/
 private theorem label_interval_card (d a b : ℕ) :
     (Finset.univ.filter (fun l : Fin d => a ≤ l.val ∧ l.val < b)).card ≤ b-a := by
   have hsub : (Finset.univ.filter (fun l : Fin d => a ≤ l.val ∧ l.val < b)).image Fin.val ⊆
@@ -76,11 +103,14 @@ private theorem label_interval_card (d a b : ℕ) :
   rw [Finset.card_image_of_injective _ Fin.val_injective,Nat.card_Ico] at hc
   exact hc
 
+/-- The label matrix whose boundary rows sum the entries of the preceding Taylor block. -/
 def taylorJumpLabels (m k p : ℕ) :
     Matrix (Fin (m*(k+1)+p+1)) (Fin (m*(k+1)+p+1)) ℂ := fun r c =>
   if r.val ≤ m*(k+1) ∧ 0 < r.val ∧ (k+1) ∣ r.val ∧
     r.val-(k+1) ≤ c.val ∧ c.val < r.val then 1 else 0
 
+/-- A column in the block preceding a positive multiple `r` of `k+1` determines that boundary as
+`(c/(k+1)+1)*(k+1)`. -/
 private theorem jump_label_target (k r c : ℕ) (hr : 0 < r) (hd : (k+1) ∣ r)
     (hlo : r-(k+1) ≤ c) (hi : c < r) : r=(c/(k+1)+1)*(k+1) := by
   obtain ⟨a,rfl⟩ := hd
@@ -92,6 +122,7 @@ private theorem jump_label_target (k r c : ℕ) (hr : 0 < r) (hd : (k+1) ∣ r)
     simpa only [Nat.sub_add_cancel ha,Nat.mul_comm] using! hi
   rw [Nat.div_eq_of_lt_le hlo' hi',Nat.sub_add_cancel ha,Nat.mul_comm]
 
+/-- The operator norm of the jump-label matrix is at most `sqrt (k+1)`. -/
 theorem taylorJumpLabels_norm (m k p : ℕ) :
     ‖taylorJumpLabels m k p‖ ≤ Real.sqrt (k+1 : ℕ) := by
   classical
@@ -128,9 +159,11 @@ theorem taylorJumpLabels_norm (m k p : ℕ) :
         split_ifs <;> norm_num
     exact (Finset.sum_le_sum (fun r _ => hpoint r)).trans_eq (by simp)
 
+/-- The one-step forward shift on the finite label register. -/
 def taylorShiftLabels (d : ℕ) : Matrix (Fin d) (Fin d) ℂ :=
   fun r c => if c.val+1=r.val then 1 else 0
 
+/-- The operator norm of the finite forward shift is at most one. -/
 theorem taylorShiftLabels_norm (d : ℕ) : ‖taylorShiftLabels d‖ ≤ 1 := by
   classical
   have hmass (f : Fin d → ℕ) (hf : Function.Injective f) (a : ℕ) :
@@ -150,16 +183,20 @@ theorem taylorShiftLabels_norm (d : ℕ) : ‖taylorShiftLabels d‖ ≤ 1 := by
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- The row coefficient for a forward shift: the scaled Taylor matrix at positive history
+orders, the identity in padding rows, and zero elsewhere. -/
 def taylorForwardRowBlock (m k p : ℕ) (M : Matrix N N ℂ)
     (l : Fin (m*(k+1)+p+1)) : Matrix N N ℂ :=
   if l.val < m*(k+1) ∧ 1 ≤ l.val%(k+1) then
     ((l.val%(k+1) : ℕ) : ℂ)⁻¹ • M
   else if m*(k+1) < l.val then 1 else 0
 
+/-- The block diagonal matrix of forward-row coefficients. -/
 def taylorForwardRowMatrix (m k p : ℕ) (M : Matrix N N ℂ) :
     Matrix (Fin (m*(k+1)+p+1) × N) (Fin (m*(k+1)+p+1) × N) ℂ :=
   fun r c => if r.1=c.1 then taylorForwardRowBlock m k p M r.1 r.2 c.2 else 0
 
+/-- When `‖M‖ ≤ 1`, every forward-row coefficient has operator norm at most one. -/
 theorem taylorForwardRowBlock_norm (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖≤1)
     (l : Fin (m*(k+1)+p+1)) : ‖taylorForwardRowBlock m k p M l‖ ≤ 1 := by
   unfold taylorForwardRowBlock
@@ -170,6 +207,8 @@ theorem taylorForwardRowBlock_norm (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M
   · exact l2_norm_unitary_le_one (Submonoid.one_mem _)
   · simp
 
+/-- When `‖M‖ ≤ 1`, the block diagonal matrix of forward-row coefficients has operator norm at
+most one. -/
 theorem taylorForwardRowMatrix_norm (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖≤1) :
     ‖taylorForwardRowMatrix m k p M‖ ≤ 1 := by
   apply taylor_opNorm_le_of_vec_sq (by norm_num)
@@ -189,6 +228,8 @@ theorem taylorForwardRowMatrix_norm (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖
   simpa only [one_pow,one_mul] using! h.trans (mul_le_mul_of_nonneg_right hn
     (Finset.sum_nonneg (fun _ _ => by positivity)))
 
+/-- The product of the forward-row matrix and the lifted label shift has only the indicated
+subdiagonal blocks. -/
 theorem taylorForwardRow_shift_entry (m k p : ℕ) (M : Matrix N N ℂ)
     (r c : Fin (m*(k+1)+p+1) × N) :
     (taylorForwardRowMatrix m k p M *
@@ -202,6 +243,8 @@ theorem taylorForwardRow_shift_entry (m k p : ℕ) (M : Matrix N N ℂ)
     simp [Ne.symm hj]
   · simp
 
+/-- The V2 Taylor matrix is the identity minus the weighted forward shift and the lifted
+jump-label matrix. -/
 theorem taylorV2_forward_decomposition (m k p : ℕ) (M : Matrix N N ℂ) :
     taylorStepMatrixV2 m k p M = 1 -
       taylorForwardRowMatrix m k p M *
@@ -235,6 +278,7 @@ theorem taylorV2_forward_decomposition (m k p : ℕ) (M : Matrix N N ℂ) :
   simp only [taylorStepMatrixV2,Matrix.one_apply]
   ring
 
+/-- For `k ≥ 5` and `‖M‖ ≤ 1`, the V2 Taylor matrix has operator norm at most `2 * sqrt k`. -/
 theorem taylorV2_forward_norm_le (m k p : ℕ) (M : Matrix N N ℂ)
     (hk : 5 ≤ k) (hM : ‖M‖≤1) : ‖taylorStepMatrixV2 m k p M‖ ≤ 2*Real.sqrt (k : ℝ) := by
   have hI : ‖(1 : Matrix N N ℂ)‖ ≤ 1 := l2_norm_unitary_le_one (Submonoid.one_mem _)

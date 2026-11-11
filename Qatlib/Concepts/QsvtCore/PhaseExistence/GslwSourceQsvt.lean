@@ -40,6 +40,34 @@ import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
 import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
 
+/-!
+# Source QSVT phase synthesis and estimates
+
+This module develops polynomial phase synthesis and stability estimates for quantum singular
+value transformation in the setting of [GilyenSuLowWiebe2019]. It relates `CompletedPair` to
+phase recursions and signal words, proves real-component characterizations, and handles constant
+responses separately.
+
+The later results give Chebyshev–Bessel approximation bounds, rounding estimates, and
+existential encoding and resource statements. Explicit counterexamples record the failure of
+several stronger formulations; the scope of each encoding statement is determined by its
+quantified frames and program data.
+
+## Main statements
+
+* `clause40` and `clause41`: polynomial and interior robustness bounds.
+* `completedPair_iff_eq3`, `clause74`, and `clause75`: phase and component characterizations.
+* `clause44` and `clause45`: Dolph–Chebyshev and Chebyshev–Bessel approximations.
+* `not_clause51`, `not_clause52`, `not_clause54`, and `not_clause83`: counterexamples to the
+  displayed universal assertions.
+* `clause85`: shifted Gibbs identities and existential resource witnesses.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 open Qatlib.Concepts.BlockEncoding
 
 open Qatlib.Concepts.MatrixWeights.WeightsCore
@@ -107,29 +135,36 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
 
+/-- Clamps a real number to the interval `[-1, 1]`. -/
 noncomputable def clampUnit (x : ℝ) : ℝ := max (-1) (min 1 x)
 
+/-- The clamped value lies in `[-1, 1]`. -/
 theorem clampUnit_mem (x : ℝ) : clampUnit x ∈ Set.Icc (-1 : ℝ) 1 := by
   refine ⟨le_max_left _ _, ?_⟩
   exact max_le (by norm_num) (min_le_left 1 x)
 
+/-- Clamping fixes every point of `[-1, 1]`. -/
 theorem clampUnit_eq {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) : clampUnit x = x := by
   unfold clampUnit
   rw [min_eq_right hx.2, max_eq_right hx.1]
 
+/-- Clamping to `[-1, 1]` is monotone. -/
 theorem clampUnit_mono : Monotone (clampUnit : ℝ → ℝ) := by
   intro x y hxy
   unfold clampUnit
   exact max_le_max le_rfl (min_le_min le_rfl hxy)
 
+/-- Clamping a value at most `-1` gives `-1`. -/
 theorem clampUnit_of_le_neg_one {x : ℝ} (h : x ≤ -1) : clampUnit x = -1 := by
   unfold clampUnit
   rw [min_eq_right (h.trans (by norm_num)), max_eq_left h]
 
+/-- Clamping a value at least `1` gives `1`. -/
 theorem clampUnit_of_one_le {x : ℝ} (h : 1 ≤ x) : clampUnit x = 1 := by
   unfold clampUnit
   rw [min_eq_left h, max_eq_right (by norm_num)]
 
+/-- For `x ≤ y`, clamping does not increase the increment from `x` to `y`. -/
 theorem clampUnit_sub_le {x y : ℝ} (hxy : x ≤ y) : clampUnit y - clampUnit x ≤ y - x := by
   by_cases hx : x ≤ -1
   · rw [clampUnit_of_le_neg_one hx]
@@ -152,6 +187,7 @@ theorem clampUnit_sub_le {x y : ℝ} (hxy : x ≤ y) : clampUnit y - clampUnit x
       have hy' : clampUnit y = y := clampUnit_eq ⟨by linarith, by linarith⟩
       linarith
 
+/-- For ordered real inputs, clamping does not increase their absolute difference. -/
 theorem clampUnit_abs_sub_le_of_le {x y : ℝ} (hxy : x ≤ y) :
     |clampUnit x - clampUnit y| ≤ |x - y| := by
   have hsub : (0 : ℝ) ≤ y - x := by linarith
@@ -182,18 +218,23 @@ theorem clampUnit_abs_sub_le_of_le {x y : ℝ} (hxy : x ≤ y) :
         exact abs_sub_le_iff.mpr ⟨by linarith, by linarith⟩
       exact hgoal
 
+/-- Clamping to `[-1, 1]` does not increase the distance between real inputs. -/
 theorem clampUnit_abs_sub_le (x y : ℝ) : |clampUnit x - clampUnit y| ≤ |x - y| := by
   rcases le_total x y with h | h
   · exact clampUnit_abs_sub_le_of_le h
   · rw [abs_sub_comm x y, abs_sub_comm (clampUnit x) (clampUnit y)]
     exact clampUnit_abs_sub_le_of_le h
 
+/-- Extends the restriction of `f` to `[-1, 1]` by composing with `clampUnit`. -/
 noncomputable def clampResponse (f : ℝ → ℂ) : ℝ → ℂ := fun x => f (clampUnit x)
 
+/-- The clamped response agrees with the original response on `[-1, 1]`. -/
 theorem clampResponse_eq {f : ℝ → ℂ} {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     clampResponse f x = f x := by
   simp [clampResponse, clampUnit_eq hx]
 
+/-- The clamped response satisfies the global difference bound given by the modulus of
+continuity of `f` on `[-1, 1]`. -/
 theorem clampResponse_dominates {f : ℝ → ℂ} {ω : ℝ → ℝ}
     (hω : ModulusOfContinuity f ω) (x y : ℝ) :
     ‖clampResponse f x - clampResponse f y‖ ≤ ω |x - y| := by
@@ -203,17 +244,21 @@ theorem clampResponse_dominates {f : ℝ → ℂ} {ω : ℝ → ℝ}
     have := clampUnit_abs_sub_le x y
     simpa [abs_sub_comm] using! this)
 
+/-- The grid anchor `δ * floor (x / δ)` used for linear interpolation. -/
 noncomputable def sweepAnchor (δ x : ℝ) : ℝ := δ * (Int.floor (x / δ) : ℝ)
 
+/-- Multiplication by a nonzero real number cancels division by that number. -/
 theorem mul_div_self_cancel {δ : ℝ} (x : ℝ) (hδ : δ ≠ 0) : δ * (x / δ) = x :=
   (mul_comm _ _).trans (div_mul_cancel₀ x hδ)
 
+/-- For positive grid spacing, the anchor of `x` is at most `x`. -/
 theorem sweepAnchor_le {δ : ℝ} (hδ : 0 < δ) (x : ℝ) : sweepAnchor δ x ≤ x := by
   unfold sweepAnchor
   have h := Int.floor_le (x / δ)
   exact (mul_le_mul_of_nonneg_left h (le_of_lt hδ)).trans_eq
     (mul_div_self_cancel x (ne_of_gt hδ))
 
+/-- For positive grid spacing, `x` is strictly below the grid point following its anchor. -/
 theorem lt_sweepAnchor_add {δ : ℝ} (hδ : 0 < δ) (x : ℝ) : x < sweepAnchor δ x + δ := by
   unfold sweepAnchor
   have h := Int.lt_floor_add_one (x / δ)
@@ -221,6 +266,7 @@ theorem lt_sweepAnchor_add {δ : ℝ} (hδ : 0 < δ) (x : ℝ) : x < sweepAnchor
   rw [mul_div_self_cancel x (ne_of_gt hδ), mul_add, mul_one] at h2
   exact h2
 
+/-- The grid point following an anchor is itself fixed by the anchor map. -/
 theorem sweepAnchor_succ {δ : ℝ} (hδ : 0 < δ) (x : ℝ) :
     sweepAnchor δ (sweepAnchor δ x + δ) = sweepAnchor δ x + δ := by
   unfold sweepAnchor
@@ -232,16 +278,20 @@ theorem sweepAnchor_succ {δ : ℝ} (hδ : 0 < δ) (x : ℝ) :
   push_cast
   ring
 
+/-- Linearly interpolates `f` between the grid anchor of `x` and the following grid point. -/
 noncomputable def linearSweep (δ : ℝ) (f : ℝ → ℂ) (x : ℝ) : ℂ :=
   let a := sweepAnchor δ x
   f a + ((x - a) / δ) • (f (a + δ) - f a)
 
+/-- Linear interpolation agrees with `f` at the grid point following the anchor. -/
 theorem linearSweep_grid {δ : ℝ} (hδ : 0 < δ) (f : ℝ → ℂ) (x : ℝ) :
     linearSweep δ f (sweepAnchor δ x + δ) = f (sweepAnchor δ x + δ) := by
   simp only [linearSweep, sweepAnchor_succ hδ x]
   have h : ((sweepAnchor δ x + δ - (sweepAnchor δ x + δ)) / δ : ℝ) = 0 := by simp
   rw [h, zero_smul, add_zero]
 
+/-- Within one grid cell, the difference of interpolated values is the displacement times the
+cell slope. -/
 theorem linearSweep_sub_same {δ : ℝ} (hδ : 0 < δ) (f : ℝ → ℂ) (x y : ℝ)
     (hcell : sweepAnchor δ x = sweepAnchor δ y) :
     linearSweep δ f y - linearSweep δ f x =
@@ -251,6 +301,7 @@ theorem linearSweep_sub_same {δ : ℝ} (hδ : 0 < δ) (f : ℝ → ℂ) (x y : 
   rw [div_sub_div_same]
   ring
 
+/-- A monotone modulus bound for `f` bounds its interpolation error by `ω δ`. -/
 theorem linearSweep_close {f : ℝ → ℂ} {ω : ℝ → ℝ} {δ : ℝ} (hδ : 0 < δ)
     (hd : ∀ x y : ℝ, ‖f x - f y‖ ≤ ω |x - y|) (hmono : Monotone ω) (x : ℝ) :
     ‖f x - linearSweep δ f x‖ ≤ ω δ := by
@@ -294,6 +345,7 @@ theorem linearSweep_close {f : ℝ → ℂ} {ω : ℝ → ℝ} {δ : ℝ} (hδ :
   have : (1 - (x - a) / δ) * ω δ + (x - a) / δ * ω δ = ω δ := by ring
   exact le_of_eq this
 
+/-- The change in `f` across a grid cell of width `δ` is bounded by `ω δ`. -/
 theorem sweep_step_norm_le {f : ℝ → ℂ} {ω : ℝ → ℝ} {δ : ℝ} (hδ : 0 < δ)
     (hd : ∀ x y : ℝ, ‖f x - f y‖ ≤ ω |x - y|) (u : ℝ) :
     ‖f (sweepAnchor δ u + δ) - f (sweepAnchor δ u)‖ ≤ ω δ := by
@@ -303,6 +355,8 @@ theorem sweep_step_norm_le {f : ℝ → ℂ} {ω : ℝ → ℝ} {δ : ℝ} (hδ 
   rw [habs] at h
   exact h
 
+/-- The difference between the right endpoint value and the interpolant is the remaining
+interpolation weight times the endpoint difference. -/
 theorem linearSweep_grid_sub {δ : ℝ} (hδ : 0 < δ) (f : ℝ → ℂ) (x : ℝ) :
     f (sweepAnchor δ x + δ) - linearSweep δ f x =
       (1 - (x - sweepAnchor δ x) / δ) •
@@ -310,6 +364,7 @@ theorem linearSweep_grid_sub {δ : ℝ} (hδ : 0 < δ) (f : ℝ → ℂ) (x : �
   simp only [linearSweep]
   module
 
+/-- The linear interpolant satisfies a global Lipschitz bound with constant `ω δ / δ`. -/
 theorem linearSweep_lipschitz {f : ℝ → ℂ} {ω : ℝ → ℝ} {δ : ℝ} (hδ : 0 < δ)
     (hd : ∀ x y : ℝ, ‖f x - f y‖ ≤ ω |x - y|) (hmono : Monotone ω) (x y : ℝ) :
     ‖linearSweep δ f x - linearSweep δ f y‖ ≤ (ω δ / δ) * |x - y| := by
@@ -420,18 +475,22 @@ theorem linearSweep_lipschitz {f : ℝ → ℂ} {ω : ℝ → ℝ} {δ : ℝ} (h
   · rw [abs_of_nonneg (sub_nonneg.mpr h)]
     exact hL y x h
 
+/-- Hermitian functional calculus carries pointwise subtraction to matrix subtraction. -/
 theorem hermitianFunction_sub {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f g : ℝ → ℂ) :
     hermitianFunction A hA f - hermitianFunction A hA g =
       hermitianFunction A hA (fun x => f x - g x) :=
   spectralDiagonal_sub _ _ _
 
+/-- A nonnegative bound for the response at every eigenvalue bounds the norm of its Hermitian
+functional calculus. -/
 theorem hermitianFunction_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f : ℝ → ℂ) {ε : ℝ} (hε : 0 ≤ ε)
     (hf : ∀ i : Fin (Fintype.card I), ‖f (orderedHermitianValues hA i)‖ ≤ ε) :
     ‖hermitianFunction A hA f‖ ≤ ε :=
   spectralDiagonal_norm_le _ _ hε hf
 
+/-- Every ordered eigenvalue of a Hermitian contraction lies in `[-1, 1]`. -/
 theorem orderedHermitianValues_mem_of_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (h : ‖A‖ ≤ 1)
     (i : Fin (Fintype.card I)) :
@@ -443,6 +502,7 @@ theorem orderedHermitianValues_mem_of_norm_le {I : Type} [Fintype I] [DecidableE
     mul_one, mul_one, Complex.norm_real, Real.norm_eq_abs] at hv
   exact abs_le.mp (hv.trans h)
 
+/-- Clamping a response leaves its functional calculus on a Hermitian contraction unchanged. -/
 theorem hermitianFunction_clampResponse {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f : ℝ → ℂ) (h : ‖A‖ ≤ 1) :
     hermitianFunction A hA f = hermitianFunction A hA (clampResponse f) := by
@@ -453,6 +513,8 @@ theorem hermitianFunction_clampResponse {I : Type} [Fintype I] [DecidableEq I]
   unfold hermitianFunction
   rw [heq]
 
+/-- There is a positive universal constant giving a modulus-of-continuity stability bound for
+Hermitian contractions, with logarithmic dependence on their smaller rank. -/
 theorem modulus_rankLog_stability :
     ∃ c₀ : ℝ, 0 < c₀ ∧
       ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
@@ -583,17 +645,20 @@ example : 4 * (Real.log (2 / (1:ℝ) + 1) + 1) ^ 2 < 1 + Real.log (1 + (2:ℝ)^6
     _ < 42 := by norm_num
     _ < 1 + Real.log (1 + (2:ℝ)^60) := hR
 
+/-- Equal Hermitian matrices have equal functional calculus values for the same response. -/
 theorem hermitianFunction_eq_of_matrix_eq {I : Type} [Fintype I] [DecidableEq I]
     {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ)
     (hAB : A = B) : hermitianFunction A hA f = hermitianFunction B hB f := by
   subst hAB
   rfl
 
+/-- Hermitian matrices whose difference has zero norm have equal functional calculus values. -/
 theorem hermitianFunction_eq_of_norm_sub_zero {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ)
     (h : ‖A - B‖ = 0) : hermitianFunction A hA f = hermitianFunction B hB f :=
   hermitianFunction_eq_of_matrix_eq hA hB f (sub_eq_zero.mp (norm_eq_zero.mp h))
 
+/-- Equal rectangular matrices have equal odd and right singular transforms. -/
 theorem singularTransforms_eq_of_matrix_eq {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] {A B : Matrix O I ℂ} (f : ℝ → ℂ) (hAB : A = B) :
     oddSingularTransform A f = oddSingularTransform B f ∧
@@ -601,6 +666,8 @@ theorem singularTransforms_eq_of_matrix_eq {I O : Type} [Fintype I] [DecidableEq
   subst hAB
   exact ⟨rfl, rfl⟩
 
+/-- Rectangular matrices whose difference has zero norm have equal odd and right singular
+transforms. -/
 theorem singularTransforms_eq_of_norm_sub_zero {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (f : ℝ → ℂ)
     (h : ‖A - B‖ = 0) :
@@ -608,6 +675,8 @@ theorem singularTransforms_eq_of_norm_sub_zero {I O : Type} [Fintype I] [Decidab
       rightSingularTransform A f = rightSingularTransform B f :=
   singularTransforms_eq_of_matrix_eq f (sub_eq_zero.mp (norm_eq_zero.mp h))
 
+/-- A matrix acting by `f` of each eigenvalue on the ordered Hermitian eigenbasis equals
+`hermitianFunction`. -/
 theorem hermitianFunction_eq_of_eigenAction {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f : ℝ → ℂ) (T : Matrix I I ℂ)
     (h : ∀ j : Fin (Fintype.card I),
@@ -617,6 +686,7 @@ theorem hermitianFunction_eq_of_eigenAction {I : Type} [Fintype I] [DecidableEq 
   eq_spectralDiagonal_of_action (orderedHermitianBasis hA) T
     (fun j => f (orderedHermitianValues hA j)) h
 
+/-- A degree-zero polynomial satisfying `Cor8Admissible` is a unit constant polynomial. -/
 theorem unitConstant_of_cor8_degreeZero {P : Polynomial ℂ}
     (hdeg : P.natDegree = 0) (hadm : Cor8Admissible P 0) :
     IsUnitConstantPolynomial P := by
@@ -630,6 +700,8 @@ theorem unitConstant_of_cor8_degreeZero {P : Polynomial ℂ}
     simpa [Polynomial.eval_C] using! h
   exact ⟨c, rfl, le_antisymm hle hge⟩
 
+/-- A polynomial of natural degree zero is constant, and its polynomial response is the
+corresponding constant function. -/
 theorem polynomialResponse_of_natDegree_eq_zero {P : Polynomial ℂ}
     (hdeg : P.natDegree = 0) :
     ∃ c : ℂ, P = C c ∧ polynomialResponse P = fun _ : ℝ => c := by
@@ -639,6 +711,8 @@ theorem polynomialResponse_of_natDegree_eq_zero {P : Polynomial ℂ}
   funext x
   simp [polynomialResponse]
 
+/-- The right singular transform of a degree-zero polynomial response is independent of the
+input matrix. -/
 theorem rightSingularTransform_polyResponse_eq_of_degreeZero
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (P : Polynomial ℂ) (hdeg : P.natDegree = 0) :
@@ -647,26 +721,35 @@ theorem rightSingularTransform_polyResponse_eq_of_degreeZero
   obtain ⟨c, _, hfun⟩ := polynomialResponse_of_natDegree_eq_zero hdeg
   rw [hfun, rightSingularTransform_const, rightSingularTransform_const]
 
+/-- The source phase response of the empty phase list is the constant polynomial `1`. -/
 theorem sourcePhaseResponse_nil :
     sourcePhaseResponse [] = (1 : Polynomial ℂ) := by
   rfl
 
+/-- The interior response of the angle phase table equals the polynomial response of
+`sourcePhaseResponse`. -/
 theorem interiorResponse_sourcePhaseResponse (Φ : List ℝ) :
     interiorResponse 1 (anglePhaseTable Φ) =
       polynomialResponse (sourcePhaseResponse Φ) := by
   funext x
   simp [interiorResponse, anglePhaseTable, sourcePhaseResponse, polynomialResponse]
 
+/-- Every entry of an angle phase table is a unit complex phase. -/
 theorem anglePhaseTable_isPhase (Φ : List ℝ) :
     ∀ z ∈ anglePhaseTable Φ, IsPhase z := by
   intro z hz
   obtain ⟨θ, _, rfl⟩ := List.mem_map.mp (by simpa [anglePhaseTable] using! hz)
   exact anglePhase_isPhase θ
 
+/-- Converting angles to a phase table preserves list length. -/
 theorem anglePhaseTable_length (Φ : List ℝ) :
     (anglePhaseTable Φ).length = Φ.length := by
   simp [anglePhaseTable]
 
+/-- For a polynomial satisfying `Cor8Admissible`, establishes phase realization in positive
+degree and the parity-dependent robustness bound on singular transforms of contractions. The
+degree-zero case is recorded separately; see [Gilyén et al., Lemma
+22][GilyenSuLowWiebe2019]. -/
 theorem clause40 :
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (P : Polynomial ℂ) (n : ℕ),
@@ -736,6 +819,9 @@ theorem clause40 :
     rw [← hresp]
     simpa [polynomialRobustnessBound] using! hbound
 
+/-- Collects the interior robustness bounds under the midpoint norm condition, the
+constant-response and boundary cases, and `Lemma23PolynomialLevel`. See [Gilyén et al.,
+Lemma 23][GilyenSuLowWiebe2019]. -/
 theorem clause41 :
 
   (∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
@@ -845,6 +931,7 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
 
+/-- A polynomial with response parity `n` evaluates at `-x` as `(-1)^n` times its value at `x`. -/
 theorem eval_neg_of_hasResponseParity {n : ℕ} {P : Polynomial ℂ}
     (h : HasResponseParity n P) (x : ℂ) :
     P.eval (-x) = ((-1 : ℂ) ^ n) * P.eval x := by
@@ -852,10 +939,12 @@ theorem eval_neg_of_hasResponseParity {n : ℕ} {P : Polynomial ℂ}
   rwa [Polynomial.eval_comp, Polynomial.eval_neg, Polynomial.eval_X,
     Polynomial.eval_mul, Polynomial.eval_C] at hh
 
+/-- The constant polynomials associated with a unit phase and its conjugate multiply to `1`. -/
 theorem C_phase_mul {c : ℂ} (hc : IsPhase c) :
     (C (star c) * C c : Polynomial ℂ) = 1 := by
   rw [← C_mul, hc, C_1]
 
+/-- A forward `eq3PairStep` with a unit phase preserves the response pair norm polynomial. -/
 theorem responsePairNorm_eq3PairStep {w : ℂ} (hw : IsPhase w) (P Q : Polynomial ℂ) :
     responsePairNorm (C w * (X * P - (1 - X ^ 2) * Q)) (C (star w) * (P + X * Q))
       = responsePairNorm P Q := by
@@ -875,6 +964,7 @@ theorem responsePairNorm_eq3PairStep {w : ℂ} (hw : IsPhase w) (P Q : Polynomia
     ring
   rw [hfac, hsig, C_phase_mul hw, one_mul]
 
+/-- Negating the second response polynomial preserves the response pair norm polynomial. -/
 theorem responsePairNorm_neg_right (P Q : Polynomial ℂ) :
     responsePairNorm P (-Q) = responsePairNorm P Q := by
   have hconj : conjugatePolynomial (-Q) = -conjugatePolynomial Q := by
@@ -883,6 +973,7 @@ theorem responsePairNorm_neg_right (P Q : Polynomial ℂ) :
   simp only [responsePairNorm, hconj]
   ring
 
+/-- Negating the second polynomial preserves `CompletedPair`. -/
 theorem completedPair_neg_right {k : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair k P Q) : CompletedPair k P (-Q) := by
   refine ⟨h.degreeP, ?_, h.parityP, ?_, ?_⟩
@@ -893,6 +984,7 @@ theorem completedPair_neg_right {k : ℕ} {P Q : Polynomial ℂ}
     ring
   · rw [responsePairNorm_neg_right, h.normalization]
 
+/-- Multiplying the first polynomial by a unit phase preserves `CompletedPair`. -/
 theorem completedPair_mul_left {k : ℕ} {P Q : Polynomial ℂ} {c : ℂ}
     (h : CompletedPair k P Q) (hc : IsPhase c) : CompletedPair k (C c * P) Q := by
   refine ⟨?_, h.degreeQ, ?_, h.parityQ, ?_⟩
@@ -912,6 +1004,7 @@ theorem completedPair_mul_left {k : ℕ} {P Q : Polynomial ℂ} {c : ℂ}
       rw [h1, C_phase_mul hc, one_mul]
     rw [hnorm, h.normalization]
 
+/-- Multiplying the second polynomial by a unit phase preserves `CompletedPair`. -/
 theorem completedPair_mul_right {k : ℕ} {P Q : Polynomial ℂ} {c : ℂ}
     (h : CompletedPair k P Q) (hc : IsPhase c) : CompletedPair k P (C c * Q) := by
   refine ⟨h.degreeP, ?_, h.parityP, ?_, ?_⟩
@@ -935,6 +1028,8 @@ theorem completedPair_mul_right {k : ℕ} {P Q : Polynomial ℂ} {c : ℂ}
       ring
     rw [hnorm, h.normalization]
 
+/-- If the degree of `Q` is strictly below `k`, adding two to it gives a degree bound of `k +
+1`. -/
 theorem degree_add_two_le_of_degree_lt {k : ℕ} {Q : Polynomial ℂ}
     (hQ : Q.degree < ((k : ℕ) : WithBot ℕ)) :
     Q.degree + 2 ≤ (((k + 1 : ℕ) : ℕ) : WithBot ℕ) := by
@@ -946,6 +1041,8 @@ theorem degree_add_two_le_of_degree_lt {k : ℕ} {Q : Polynomial ℂ}
     rw [hq]
     exact_mod_cast (show Q.natDegree + 2 ≤ k + 1 by omega)
 
+/-- The first polynomial produced by `eq3PairStep` has degree at most `k + 1` under the input
+degree bounds. -/
 theorem eq3PairStep_degreeP {k : ℕ} {P Q : Polynomial ℂ}
     (hP : P.degree ≤ ((k : ℕ) : WithBot ℕ)) (hQ : Q.degree < ((k : ℕ) : WithBot ℕ)) {w : ℂ} :
     (C w * (X * P - (1 - X ^ 2) * Q)).degree ≤ (((k + 1 : ℕ) : ℕ) : WithBot ℕ) := by
@@ -996,6 +1093,8 @@ theorem eq3PairStep_degreeP {k : ℕ} {P Q : Polynomial ℂ}
   apply le_trans h2
   exact sup_le h10 h11
 
+/-- The second polynomial produced by `eq3PairStep` has degree strictly below `k + 1` under the
+input degree bounds. -/
 theorem eq3PairStep_degreeQ {k : ℕ} {P Q : Polynomial ℂ}
     (hP : P.degree ≤ ((k : ℕ) : WithBot ℕ)) (hQ : Q.degree < ((k : ℕ) : WithBot ℕ)) {w : ℂ} :
     (C (star w) * (P + X * Q)).degree < (((k + 1 : ℕ) : ℕ) : WithBot ℕ) := by
@@ -1036,6 +1135,8 @@ theorem eq3PairStep_degreeQ {k : ℕ} {P Q : Polynomial ℂ}
       omega
     exact_mod_cast h4
 
+/-- The first polynomial produced by `eq3PairStep` has response parity `k + 1` under the input
+parity conditions. -/
 theorem eq3PairStep_parityP {k : ℕ} {P Q : Polynomial ℂ}
     (hP : HasResponseParity k P) (hQ : HasResponseParity (k + 1) Q) {w : ℂ} :
     HasResponseParity (k + 1) (C w * (X * P - (1 - X ^ 2) * Q)) := by
@@ -1048,6 +1149,8 @@ theorem eq3PairStep_parityP {k : ℕ} {P Q : Polynomial ℂ}
   rw [eval_neg_of_hasResponseParity hP x, eval_neg_of_hasResponseParity hQ x, hpow]
   ring
 
+/-- The second polynomial produced by `eq3PairStep` has response parity `k + 2` under the input
+parity conditions. -/
 theorem eq3PairStep_parityQ {k : ℕ} {P Q : Polynomial ℂ}
     (hP : HasResponseParity k P) (hQ : HasResponseParity (k + 1) Q) {w : ℂ} :
     HasResponseParity (k + 2) (C (star w) * (P + X * Q)) := by
@@ -1064,6 +1167,8 @@ theorem eq3PairStep_parityQ {k : ℕ} {P Q : Polynomial ℂ}
   rw [hpow2, hpow]
   ring
 
+/-- A forward step with a unit phase carries a completed pair of order `k` to one of order `k +
+1`. -/
 theorem completedPair_eq3PairStep {k : ℕ} {P Q : Polynomial ℂ} {w : ℂ}
     (h : CompletedPair k P Q) (hw : IsPhase w) :
     CompletedPair (k + 1) (eq3PairStep w (P, Q)).1 (eq3PairStep w (P, Q)).2 := by
@@ -1075,6 +1180,7 @@ theorem completedPair_eq3PairStep {k : ℕ} {P Q : Polynomial ℂ} {w : ℂ}
     eq3PairStep_parityQ h.parityP h.parityQ, ?_⟩
   rw [responsePairNorm_eq3PairStep hw, h.normalization]
 
+/-- A unit constant polynomial paired with zero is a completed pair of order zero. -/
 theorem completedPair_eq3Pair_nil {z0 : ℂ} (hz0 : IsPhase z0) :
     CompletedPair 0 (C z0) (0 : Polynomial ℂ) := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
@@ -1091,6 +1197,8 @@ theorem completedPair_eq3Pair_nil {z0 : ℂ} (hz0 : IsPhase z0) :
       exact hz0
     rw [← C_mul, hph, C_1]
 
+/-- Iterating `eq3Pair` from a unit initial phase with unit step phases yields a completed pair
+of order equal to the step list length. -/
 theorem completedPair_of_eq3Pair {z0 : ℂ} (hz0 : IsPhase z0) :
     ∀ zs : List ℂ, (∀ z ∈ zs, IsPhase z) →
       CompletedPair zs.length (eq3Pair z0 zs).1 (eq3Pair z0 zs).2 := by
@@ -1107,6 +1215,8 @@ theorem completedPair_of_eq3Pair {z0 : ℂ} (hz0 : IsPhase z0) :
     rw [eq3Pair_snoc, List.length_append, List.length_cons, List.length_nil]
     exact completedPair_eq3PairStep ih' hz
 
+/-- A completed pair of order zero consists of a unit constant first polynomial and a zero
+second polynomial. -/
 theorem completedPair_zero {P Q : Polynomial ℂ} (h : CompletedPair 0 P Q) :
     ∃ c : ℂ, P = C c ∧ Q = 0 ∧ IsPhase c := by
   have hQ : Q = 0 := by
@@ -1132,6 +1242,8 @@ theorem completedPair_zero {P Q : Polynomial ℂ} (h : CompletedPair 0 P Q) :
   rw [mul_comm] at h1
   exact h1
 
+/-- An order-`k + 1` completed pair possesses a unit phase whose inverse responses form an
+order-`k` completed pair and reconstruct the original pair after the stated sign change. -/
 theorem eq3PairStep_inverse_response {k : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair (k + 1) P Q) :
     ∃ z, IsPhase z ∧
@@ -1150,6 +1262,8 @@ theorem eq3PairStep_inverse_response {k : ℕ} {P Q : Polynomial ℂ}
   rw [e1, e2]
   exact Prod.ext h1 h2
 
+/-- Every completed pair of order `k` is realized by `eq3Pair` with a unit initial phase and
+exactly `k` unit step phases. -/
 theorem eq3Pair_of_completedPair : ∀ (k : ℕ) (P Q : Polynomial ℂ), CompletedPair k P Q →
     ∃ z0 zs, IsPhase z0 ∧ (∀ z ∈ zs, IsPhase z) ∧ zs.length = k ∧ eq3Pair z0 zs = (P, Q) := by
   intro k
@@ -1176,6 +1290,8 @@ theorem eq3Pair_of_completedPair : ∀ (k : ℕ) (P Q : Polynomial ℂ), Complet
     · rw [eq3Pair_snoc, heq]
       exact hstep
 
+/-- A pair is completed of order `k` exactly when it has an `eq3Pair` realization with a unit
+initial phase and `k` unit step phases. -/
 theorem completedPair_iff_eq3 {k : ℕ} {P Q : Polynomial ℂ} :
     CompletedPair k P Q ↔
       ∃ z0 zs, IsPhase z0 ∧ (∀ z ∈ zs, IsPhase z) ∧ zs.length = k ∧
@@ -1190,12 +1306,15 @@ theorem completedPair_iff_eq3 {k : ℕ} {P Q : Polynomial ℂ} :
     rw [← hlen, ← h1, ← h2]
     exact hcp
 
+/-- The two-dimensional response matrix with diagonal entries from `P` and its conjugate and
+off-diagonal entries weighted by `i * sqrt (1 - x^2)` and `Q`. -/
 noncomputable def responseMatrix (P Q : Polynomial ℂ) (x : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![P.eval (x : ℂ),
      Complex.I * Real.sqrt (1 - x ^ 2) * Q.eval (x : ℂ);
      Complex.I * Real.sqrt (1 - x ^ 2) * (conjugatePolynomial Q).eval (x : ℂ),
      (conjugatePolynomial P).eval (x : ℂ)]
 
+/-- Equality of response matrices throughout `[-1, 1]` determines both response polynomials. -/
 theorem pair_eq_of_responseMatrix_eq {P Q P' Q' : Polynomial ℂ}
     (h : ∀ x : ℝ, x ∈ Set.Icc (-1 : ℝ) 1 → responseMatrix P Q x = responseMatrix P' Q' x) :
     P = P' ∧ Q = Q' := by
@@ -1229,6 +1348,9 @@ theorem pair_eq_of_responseMatrix_eq {P Q P' Q' : Polynomial ℂ}
   subst Q
   exact ⟨rfl, rfl⟩
 
+/-- Collects equivalent polynomial-recursion and signal-word characterizations of completed
+pairs, together with `Theorem3Characterization` and `SignalWordTransport`. See [Gilyén et
+al., Theorem 3][GilyenSuLowWiebe2019]. -/
 theorem clause74 :
 
   (∀ (k : ℕ) (P Q : Polynomial ℂ),
@@ -1288,6 +1410,8 @@ theorem clause74 :
       obtain ⟨h1, h2⟩ := pair_eq_of_responseMatrix_eq hpair
       exact ⟨z0, zs, hz0, hzs, hlen, Prod.ext h1 h2⟩
 
+/-- Collects exact source-word resource counts, parity formulas, controlled-family count
+witnesses, and the clean projector-phase gadget identity. -/
 theorem clause76 :
 
   (∀ (d : ℕ) (Φ : List ℝ), Φ.length = d →
@@ -1353,16 +1477,20 @@ theorem clause76 :
 open Qatlib
 open Qatlib
 
+/-- The coefficientwise identity saying that `r` is the real component of `R` when `b` is true,
+or its imaginary component otherwise. -/
 def componentEquiv (b : Bool) (R : Polynomial ℂ) (r : Polynomial ℝ) : Prop :=
   if b then
     R + conjugatePolynomial R = C (2 : ℂ) * r.map Complex.ofRealHom
   else
     R - conjugatePolynomial R = C (2 * Complex.I) * r.map Complex.ofRealHom
 
+/-- The imaginary unit is a unit complex phase. -/
 theorem isPhase_I : IsPhase Complex.I := by
   show star Complex.I * Complex.I = 1
   simp
 
+/-- Coefficientwise conjugation of both polynomials preserves `CompletedPair`. -/
 theorem completedPair_conjugate {k : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair k P Q) :
     CompletedPair k (conjugatePolynomial P) (conjugatePolynomial Q) := by
@@ -1376,6 +1504,8 @@ theorem completedPair_conjugate {k : ℕ} {P Q : Polynomial ℂ}
   · rw [(Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.response_conjugate base zs).1, hp]
   · rw [(Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.response_conjugate base zs).2, hq]
 
+/-- A completed pair satisfies the weighted squared-norm identity at every real point of `[-1,
+1]`. -/
 theorem completedPair_normSq_eval {k : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair k P Q) (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     Complex.normSq (P.eval (x : ℂ)) + (1 - x ^ 2) * Complex.normSq (Q.eval (x : ℂ)) = 1 := by
@@ -1385,11 +1515,15 @@ theorem completedPair_normSq_eval {k : ℕ} {P Q : Polynomial ℂ}
   rw [← Complex.ofReal_one] at hn
   exact Complex.ofReal_injective hn
 
+/-- Evaluating a real polynomial after mapping its coefficients to `ℂ` gives the complex
+embedding of its real evaluation. -/
 theorem eval_map_ofReal (r : Polynomial ℝ) (x : ℝ) :
     (r.map Complex.ofRealHom).eval (x : ℂ) = ((r.eval x : ℝ) : ℂ) := by
   have hpt : ((x : ℝ) : ℂ) = Complex.ofRealHom x := (Complex.ofRealHom_eq_coe x).symm
   rw [hpt, Polynomial.eval_map_apply, Complex.ofRealHom_eq_coe]
 
+/-- A real-component identity identifies the evaluation of `r` with the real part of the
+evaluation of `R`. -/
 theorem componentEquiv_eval_true {R : Polynomial ℂ} {r : Polynomial ℝ}
     (h : componentEquiv true R r) (x : ℝ) :
     r.eval x = (R.eval (x : ℂ)).re := by
@@ -1408,6 +1542,8 @@ theorem componentEquiv_eval_true {R : Polynomial ℂ} {r : Polynomial ℝ}
   have h3 := Complex.ofReal_injective h2
   nlinarith
 
+/-- An imaginary-component identity identifies the evaluation of `r` with the imaginary part of
+the evaluation of `R`. -/
 theorem componentEquiv_eval_false {R : Polynomial ℂ} {r : Polynomial ℝ}
     (h : componentEquiv false R r) (x : ℝ) :
     r.eval x = (R.eval (x : ℂ)).im := by
@@ -1429,6 +1565,8 @@ theorem componentEquiv_eval_false {R : Polynomial ℂ} {r : Polynomial ℝ}
   have h3 := Complex.ofReal_injective h2
   nlinarith
 
+/-- A component identity identifies the evaluation of `r` with the selected real or imaginary
+part of `R`. -/
 theorem componentEquiv_eval {b : Bool} {R : Polynomial ℂ} {r : Polynomial ℝ}
     (h : componentEquiv b R r) (x : ℝ) :
     r.eval x = if b then (R.eval (x : ℂ)).re else (R.eval (x : ℂ)).im := by
@@ -1436,6 +1574,8 @@ theorem componentEquiv_eval {b : Bool} {R : Polynomial ℂ} {r : Polynomial ℝ}
   | true => exact componentEquiv_eval_true h x
   | false => exact componentEquiv_eval_false h x
 
+/-- The square of a selected real component is bounded by the squared complex norm of the full
+response. -/
 theorem componentEquiv_normSq_le {b : Bool} {R : Polynomial ℂ} {r : Polynomial ℝ}
     (h : componentEquiv b R r) (x : ℝ) :
     r.eval x ^ 2 ≤ Complex.normSq (R.eval (x : ℂ)) := by
@@ -1451,6 +1591,7 @@ theorem componentEquiv_normSq_le {b : Bool} {R : Polynomial ℂ} {r : Polynomial
     simp only [Complex.normSq_apply] at hn ⊢
     nlinarith
 
+/-- A component identity transfers the common degree bound for `R` and its conjugate to `r`. -/
 theorem componentEquiv_degree_le {b : Bool} {R : Polynomial ℂ} {r : Polynomial ℝ} {k : ℕ}
     (h : componentEquiv b R r) (hR : R.degree ≤ ((k : ℕ) : WithBot ℕ))
     (hC : (conjugatePolynomial R).degree ≤ ((k : ℕ) : WithBot ℕ)) :
@@ -1481,6 +1622,8 @@ theorem componentEquiv_degree_le {b : Bool} {R : Polynomial ℂ} {r : Polynomial
     rw [h, h1, h2] at h3
     exact le_trans h3 (sup_le hR hC)
 
+/-- A component identity transfers the common strict degree bound for `R` and its conjugate to
+`r`. -/
 theorem componentEquiv_degree_lt {b : Bool} {R : Polynomial ℂ} {r : Polynomial ℝ} {k : ℕ}
     (h : componentEquiv b R r) (hR : R.degree < ((k : ℕ) : WithBot ℕ))
     (hC : (conjugatePolynomial R).degree < ((k : ℕ) : WithBot ℕ)) :
@@ -1511,6 +1654,8 @@ theorem componentEquiv_degree_lt {b : Bool} {R : Polynomial ℂ} {r : Polynomial
     rw [h, h1, h2] at h3
     exact lt_of_le_of_lt h3 (max_lt hR hC)
 
+/-- A component identity transfers response parity of `R` and its conjugate to real parity of
+`r`. -/
 theorem componentEquiv_parity {b : Bool} {R : Polynomial ℂ} {r : Polynomial ℝ} {n : ℕ}
     (h : componentEquiv b R r) (hR : HasResponseParity n R)
     (hC : HasResponseParity n (conjugatePolynomial R)) :
@@ -1555,11 +1700,14 @@ theorem componentEquiv_parity {b : Bool} {R : Polynomial ℂ} {r : Polynomial �
     rw [Polynomial.map_comp, Polynomial.map_neg, Polynomial.map_X]
     exact hcancel
 
+/-- The displayed coefficientwise real-part identity gives `componentEquiv true`. -/
 theorem componentEquiv_true_of_real {P : Polynomial ℂ} {r : Polynomial ℝ}
     (h : P + conjugatePolynomial P = C (2 : ℂ) * r.map Complex.ofRealHom) :
     componentEquiv true P r := by
   simpa [componentEquiv] using! h
 
+/-- Multiplication by `i` turns the displayed real-part identity for `P` into an
+imaginary-component identity. -/
 theorem componentEquiv_false_smul_I {P : Polynomial ℂ} {r : Polynomial ℝ}
     (h : P + conjugatePolynomial P = C (2 : ℂ) * r.map Complex.ofRealHom) :
     componentEquiv false (C Complex.I * P) r := by
@@ -1577,6 +1725,8 @@ theorem componentEquiv_false_smul_I {P : Polynomial ℂ} {r : Polynomial ℝ}
     rw [← mul_assoc, ← C_mul, mul_comm Complex.I (2 : ℂ)]
   exact h3
 
+/-- Selected real or imaginary components of a completed pair satisfy the degree, parity, and
+weighted norm inequality on `[-1, 1]`. -/
 theorem conditions_of_components {k : ℕ} {Pt Qt : Polynomial ℝ} {bP bQ : Bool}
     {P Q : Polynomial ℂ}
     (h : CompletedPair k P Q) (hP : componentEquiv bP P Pt)
@@ -1596,6 +1746,8 @@ theorem conditions_of_components {k : ℕ} {Pt Qt : Polynomial ℝ} {bP bQ : Boo
   have h4 : 0 ≤ 1 - x ^ 2 := by nlinarith [hx.1, hx.2]
   nlinarith
 
+/-- Real polynomials satisfying the degree, parity, and weighted norm conditions extend to a
+completed pair with the requested real or imaginary components. -/
 theorem components_of_conditions {k : ℕ} {Pt Qt : Polynomial ℝ} {bP bQ : Bool}
     (h : Pt.degree ≤ (k : WithBot ℕ) ∧ Qt.degree < (k : WithBot ℕ) ∧
       HasRealParity k Pt ∧ HasRealParity (k + 1) Qt ∧
@@ -1624,6 +1776,9 @@ theorem components_of_conditions {k : ℕ} {Pt Qt : Polynomial ℝ} {bP bQ : Boo
     | true =>
       exact ⟨P0, Q0, hCP, componentEquiv_true_of_real hreP, componentEquiv_true_of_real hreQ⟩
 
+/-- Characterizes real polynomial component pairs by degree, parity, and the weighted norm
+inequality, and records phase and conjugation closure. See [Gilyén et al., Theorem
+5][GilyenSuLowWiebe2019]. -/
 theorem clause75 :
 
   (∀ (k : ℕ) (Pt Qt : Polynomial ℝ) (bP bQ : Bool),
@@ -1690,6 +1845,9 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator Classical BigOperators
 
+/-- Gives two-point query lower bounds for well-formed adjoint circuits compressed by
+isometries, including the scalar-response and complementary-square-root bounds under their
+stated hypotheses. -/
 theorem clause46 :
 
   (∀ (W I : Type) [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
@@ -1731,13 +1889,16 @@ theorem clause46 :
     exact Qatlib.Concepts.QsvtCore.QueryLowerBound.scalar_signal_safe_leakage_query_lower_bound_corrected W I L R word
       x y a b eps hL hR hw hx hy hxy heps haeps ha1 hb0 hbeps ha hb
 
+/-- A complex number with squared norm one is a unit phase. -/
 theorem isPhase_of_normSq {c : ℂ} (h : Complex.normSq c = 1) : IsPhase c := by
   unfold IsPhase
   rw [Complex.star_def, mul_comm, Complex.mul_conj, h, Complex.ofReal_one]
 
+/-- The angle phase at zero is `1`. -/
 theorem anglePhase_zero : anglePhase 0 = 1 := by
   apply Complex.ext <;> simp [anglePhase]
 
+/-- A unit complex constant is realized by the two-angle list `[Complex.arg c, 0]`. -/
 theorem sourcePhaseResponse_arg_pair (c : ℂ) (hc : Complex.normSq c = 1) :
     sourcePhaseResponse [Complex.arg c, 0] = Polynomial.C c := by
   have hph : IsPhase c := isPhase_of_normSq hc
@@ -1750,6 +1911,7 @@ theorem sourcePhaseResponse_arg_pair (c : ℂ) (hc : Complex.normSq c = 1) :
     Polynomial.C_1, star_one, one_mul, mul_one, mul_zero, sub_zero]
   ring
 
+/-- The source phase response has evaluation parity equal to the phase list length. -/
 theorem sourcePhaseResponse_eval_parity (Ψ : List ℝ) (x : ℂ) :
     (sourcePhaseResponse Ψ).eval (-x) =
       (-1 : ℂ) ^ Ψ.length * (sourcePhaseResponse Ψ).eval x := by
@@ -1759,6 +1921,7 @@ theorem sourcePhaseResponse_eval_parity (Ψ : List ℝ) (x : ℂ) :
   rw [hlen] at h
   exact h
 
+/-- A phase list realizing a unit constant polynomial has even length. -/
 theorem length_even_of_sourcePhaseResponse_const {Ψ : List ℝ} {c : ℂ}
     (h : sourcePhaseResponse Ψ = Polynomial.C c) (hc : Complex.normSq c = 1) :
     Ψ.length % 2 = 0 := by
@@ -1779,6 +1942,7 @@ theorem length_even_of_sourcePhaseResponse_const {Ψ : List ℝ} {c : ℂ}
     rw [hz] at hc
     simp at hc
 
+/-- A phase list realizing a unit constant other than `1` has length at least two. -/
 theorem length_two_le_of_sourcePhaseResponse_const {Ψ : List ℝ} {c : ℂ}
     (h : sourcePhaseResponse Ψ = Polynomial.C c) (hc : Complex.normSq c = 1)
     (hc1 : c ≠ 1) : 2 ≤ Ψ.length := by
@@ -1795,6 +1959,9 @@ theorem length_two_le_of_sourcePhaseResponse_const {Ψ : List ℝ} {c : ℂ}
     exact h0.symm
   exact hc1 hceq
 
+/-- Records the empty-list response, two-angle realizations and minimal lengths for unit
+constants, and `Corollary8ComplexPhaseExistence`. See [Gilyén et al., Corollary
+8][GilyenSuLowWiebe2019]. -/
 theorem clause47 :
 
   sourcePhaseResponse [] = (1 : Polynomial ℂ) ∧
@@ -1820,6 +1987,7 @@ theorem clause47 :
     · intro Ψ hΨ
       exact length_even_of_sourcePhaseResponse_const hΨ hc
 
+/-- The real part of a finite complex sum is the sum of the real parts. -/
 theorem re_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
     Complex.re (∑ i ∈ s, f i) = ∑ i ∈ s, (f i).re := by
   classical
@@ -1827,6 +1995,7 @@ theorem re_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
   | empty => simp
   | insert i s _ ih => simp
 
+/-- The imaginary part of a finite complex sum is the sum of the imaginary parts. -/
 theorem im_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
     Complex.im (∑ i ∈ s, f i) = ∑ i ∈ s, (f i).im := by
   classical
@@ -1834,6 +2003,7 @@ theorem im_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
   | empty => simp
   | insert i s _ ih => simp
 
+/-- Polynomial evaluation commutes with a finite sum. -/
 theorem eval_finset_sum_poly {R : Type} [Semiring R] {ι : Type}
     (s : Finset ι) (f : ι → Polynomial R) (x : R) :
     (∑ i ∈ s, f i).eval x = ∑ i ∈ s, (f i).eval x := by
@@ -1843,6 +2013,7 @@ theorem eval_finset_sum_poly {R : Type} [Semiring R] {ι : Type}
   | insert i s hi ih =>
     rw [Finset.sum_insert hi, Finset.sum_insert hi, Polynomial.eval_add, ih]
 
+/-- A complex polynomial equals the sum of its coefficient monomials over its support. -/
 theorem coeff_sum_eq (P : Polynomial ℂ) :
     (∑ i ∈ P.support,
       (Polynomial.C (P.coeff i) * Polynomial.X ^ (i : ℕ) : Polynomial ℂ)) = P := by
@@ -1850,6 +2021,7 @@ theorem coeff_sum_eq (P : Polynomial ℂ) :
   rw [Polynomial.sum_def] at h
   simpa using! h
 
+/-- Evaluation at a real input equals the finite sum of the coefficient monomial evaluations. -/
 theorem polynomial_eval_eq_coeff_sum (P : Polynomial ℂ) (x : ℝ) :
     P.eval (x : ℂ) = ∑ i ∈ P.support,
       (P.coeff i : ℂ) * ((x : ℂ) ^ (i : ℕ)) := by
@@ -1865,6 +2037,8 @@ theorem polynomial_eval_eq_coeff_sum (P : Polynomial ℂ) (x : ℝ) :
     simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
   exact heq.symm.trans h2
 
+/-- The polynomial formed from real coefficient parts evaluates to the real part of the original
+polynomial at a real input. -/
 theorem polynomial_eval_re_eq (P : Polynomial ℂ) (x : ℝ) :
     (∑ i ∈ P.support, Polynomial.C (P.coeff i).re * Polynomial.X ^ (i : ℕ) : Polynomial ℝ).eval x
       = (P.eval (x : ℂ)).re := by
@@ -1881,6 +2055,8 @@ theorem polynomial_eval_re_eq (P : Polynomial ℂ) (x : ℝ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- The polynomial formed from imaginary coefficient parts evaluates to the imaginary part of
+the original polynomial at a real input. -/
 theorem polynomial_eval_im_eq (P : Polynomial ℂ) (x : ℝ) :
     (∑ i ∈ P.support, Polynomial.C (P.coeff i).im * Polynomial.X ^ (i : ℕ) : Polynomial ℝ).eval x
       = (P.eval (x : ℂ)).im := by
@@ -1897,6 +2073,8 @@ theorem polynomial_eval_im_eq (P : Polynomial ℂ) (x : ℝ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- A complex polynomial evaluation at a real input decomposes into the evaluations of its real
+and imaginary coefficient polynomials. -/
 theorem polynomial_eval_eq_re_add_im (P : Polynomial ℂ) (x : ℝ) :
     P.eval (x : ℂ) =
       Complex.ofReal ((∑ i ∈ P.support,
@@ -1906,6 +2084,7 @@ theorem polynomial_eval_eq_re_add_im (P : Polynomial ℂ) (x : ℝ) :
   rw [polynomial_eval_re_eq, polynomial_eval_im_eq, mul_comm]
   exact (Complex.re_add_im (P.eval (x : ℂ))).symm
 
+/-- Hermitian functional calculus preserves pointwise addition of responses. -/
 theorem hermitianFunction_add {I : Type} [Fintype I] [DecidableEq I]
     {H : Matrix I I ℂ} (hH : H.IsHermitian) (f g : ℝ → ℂ) :
     hermitianFunction H hH (fun x => f x + g x) =
@@ -1913,6 +2092,8 @@ theorem hermitianFunction_add {I : Type} [Fintype I] [DecidableEq I]
   unfold hermitianFunction spectralDiagonal
   rw [← Matrix.diagonal_add, Matrix.mul_add, Matrix.add_mul]
 
+/-- Multiplying a response by a complex constant multiplies its Hermitian functional calculus by
+the same scalar. -/
 theorem hermitianFunction_mul {I : Type} [Fintype I] [DecidableEq I]
     {H : Matrix I I ℂ} (hH : H.IsHermitian) (c : ℂ) (f : ℝ → ℂ) :
     hermitianFunction H hH (fun x => c * f x) = c • hermitianFunction H hH f := by
@@ -1922,12 +2103,16 @@ theorem hermitianFunction_mul {I : Type} [Fintype I] [DecidableEq I]
     funext i; rfl
   rw [hdi, Matrix.diagonal_smul, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- Pointwise equal responses have equal Hermitian functional calculus values. -/
 theorem hermitianFunction_congr {I : Type} [Fintype I] [DecidableEq I]
     {H : Matrix I I ℂ} (hH : H.IsHermitian) (f g : ℝ → ℂ) (h : ∀ x, f x = g x) :
     hermitianFunction H hH f = hermitianFunction H hH g := by
   have hfun : f = g := funext h
   rw [hfun]
 
+/-- Splits a complex polynomial bounded by `1/4` on `[-1, 1]` into bounded even and odd real and
+imaginary components, realizes their real responses by phase lists with a cost ledger, and
+gives the corresponding Hermitian functional calculus decomposition. -/
 theorem clause48 :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (H : Matrix I I ℂ) (P : Polynomial ℂ)
     (hH : H.IsHermitian),
@@ -2238,6 +2423,7 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator BigOperators Classical
 
+/-- A standard coordinate vector with complex entry `1` has Euclidean norm one. -/
 theorem euclidean_single_norm_one {n : Type} [Fintype n] [DecidableEq n] (j : n) :
     ‖(EuclideanSpace.single j (1 : ℂ) : EuclideanSpace ℂ n)‖ = 1 := by
   have h := EuclideanSpace.norm_sq_eq (EuclideanSpace.single j (1 : ℂ))
@@ -2262,6 +2448,7 @@ theorem euclidean_single_norm_one {n : Type} [Fintype n] [DecidableEq n] (j : n)
     _ = Real.sqrt 1 := by rw [h2]
     _ = 1 := Real.sqrt_one
 
+/-- Every entry of a matrix with operator norm at most one has complex norm at most one. -/
 theorem entry_norm_le_l2_opNorm {n : Type} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (i j : n) (h : ‖A‖ ≤ 1) : ‖A i j‖ ≤ 1 := by
   set e : EuclideanSpace ℂ n := EuclideanSpace.single j (1 : ℂ) with he
@@ -2282,6 +2469,7 @@ theorem entry_norm_le_l2_opNorm {n : Type} [Fintype n] [DecidableEq n]
     exact hthis
   exact hcomp.trans (hvec.trans h)
 
+/-- Every real number has an integer multiple of `2^(-t)` within distance `2^(-t) / 2`. -/
 theorem dyadic_round_near (x t : ℝ) :
     ∃ k : ℤ, |x - (k : ℝ) / (2 : ℝ) ^ t| ≤ ((2 : ℝ) ^ t)⁻¹ / 2 := by
   have h2t : 0 < (2 : ℝ) ^ t := Real.rpow_pos_of_pos two_pos t
@@ -2305,6 +2493,8 @@ theorem dyadic_round_near (x t : ℝ) :
       _ = ((2 : ℝ) ^ t)⁻¹ / 2 := h4
   exact h3
 
+/-- The stated precision exponent bounds the total squared rounding budget by `ε^2` for positive
+dimension and `0 < ε ≤ 1`. -/
 theorem clause59_rounding_budget (d B : ℕ) (ε : ℝ) (hd : 0 < d) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ((d : ℝ) / 2) *
       (((2 : ℝ) ^ ((4 : ℝ) * ((B + Nat.clog 2 d + Nat.ceil (Real.log (1 / ε)) : ℕ) : ℝ)))⁻¹ ^ 2) ≤
@@ -2419,6 +2609,8 @@ theorem clause59_rounding_budget (d B : ℕ) (ε : ℝ) (hd : 0 < d) (hε : 0 < 
     positivity
   exact (mul_le_mul_of_nonneg_left hmul hhalf).trans hle2
 
+/-- Constructs a dyadic approximation to a unit vector with squared error at most `ε^2`, norm
+error at most `ε`, and witnesses for the stated resource bounds and ledger composition. -/
 theorem clause50 :
   ∃ C : ℝ, 1 ≤ C ∧
     ∀ (d B : ℕ) (v : Fin d → ℂ) (ε : ℝ),
@@ -2561,6 +2753,8 @@ theorem clause50 :
       ledWord.peakWorkspace⟩, ?_, ?_, ?_, ?_, ?_⟩
     all_goals simp
 
+/-- The sum of entry norms in a row is at most its sparsity bound when every entry has norm at
+most one. -/
 theorem sparse_row_norm_sum_le {d s : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     (hs : 0 < s) (hrow : ∀ i : Fin d,
       (Finset.univ.filter (fun j : Fin d => A i j ≠ 0)).card ≤ s)
@@ -2580,6 +2774,8 @@ theorem sparse_row_norm_sum_le {d s : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     _ = (t.card : ℝ) := by simp
     _ ≤ (s : ℝ) := by exact_mod_cast hrow i
 
+/-- The sum of entry norms in a column is at most its sparsity bound when every entry has norm
+at most one. -/
 theorem sparse_col_norm_sum_le {d s : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     (hs : 0 < s) (hcol : ∀ j : Fin d,
       (Finset.univ.filter (fun i : Fin d => A i j ≠ 0)).card ≤ s)
@@ -2599,6 +2795,9 @@ theorem sparse_col_norm_sum_le {d s : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     _ = (t.card : ℝ) := by simp
     _ ≤ (s : ℝ) := by exact_mod_cast hcol j
 
+/-- For a sparse contraction satisfying the stated coefficient approximation assumptions,
+constructs isometries whose overlap is `A / s` and a cost ledger satisfying the stated
+bounds. -/
 theorem clause53 :
   ∃ C : ℝ, 1 ≤ C ∧
     ∀ (d s b : ℕ) (A : Matrix (Fin d) (Fin d) ℂ),
@@ -2643,16 +2842,21 @@ theorem clause53 :
   refine ⟨⟨0, 0, 0, 0, 0, 0, 0⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   all_goals (simp; try positivity)
 
+/-- Outside the unit interval on the positive side, a Chebyshev polynomial evaluates as `cosh (n
+* arcosh x)`. -/
 theorem eval_T_real_eq_cosh {n : ℤ} {x : ℝ} (hx : 1 ≤ x) :
     (Polynomial.Chebyshev.T ℝ n).eval x = Real.cosh ((n : ℝ) * Real.arcosh x) := by
   have h := Polynomial.Chebyshev.T_real_cosh (Real.arcosh x) n
   rw [Real.cosh_arcosh hx] at h
   exact h
 
+/-- The real absolute value of the integer sign power is one. -/
 theorem abs_negOnePow_natCast (n : ℕ) : |(((n : ℤ).negOnePow : ℝ))| = 1 := by
   rw [Int.cast_negOnePow_natCast ℝ n]
   simp
 
+/-- For `|z| ≥ 1`, the absolute value of a Chebyshev evaluation at `z` equals its evaluation at
+`|z|`. -/
 theorem abs_eval_T_real_eq_eval_abs {n : ℕ} {z : ℝ} (hz : 1 ≤ |z|) :
     |(Polynomial.Chebyshev.T ℝ (n : ℤ)).eval z| =
       (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval |z| := by
@@ -2669,6 +2873,8 @@ theorem abs_eval_T_real_eq_eval_abs {n : ℕ} {z : ℝ} (hz : 1 ≤ |z|) :
     exact abs_of_nonneg (le_trans (by norm_num : (0:ℝ) ≤ 1)
       (Polynomial.Chebyshev.one_le_eval_T_real (n : ℤ) hz))
 
+/-- A real polynomial of degree at most `n` bounded by one on `[-1, 1]` is bounded outside that
+interval by the degree-`n` Chebyshev polynomial. -/
 theorem abs_eval_T_real_le_eval_of_one_le {n : ℕ} {P : Polynomial ℝ}
     (hPdeg : P.degree ≤ n) (hPbnd : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |P.eval x| ≤ 1)
     {y : ℝ} (hy : 1 ≤ y) :
@@ -2693,6 +2899,7 @@ theorem abs_eval_T_real_le_eval_of_one_le {n : ℕ} {P : Polynomial ℝ}
     linarith
   · exact h1
 
+/-- A Chebyshev polynomial of natural order is monotone on `[1, ∞)`. -/
 theorem eval_T_real_mono {n : ℕ} {x y : ℝ} (hx : 1 ≤ x) (hxy : x ≤ y) :
     (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval x ≤
       (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval y := by
@@ -2707,6 +2914,7 @@ theorem eval_T_real_mono {n : ℕ} {x y : ℝ} (hx : 1 ≤ x) (hxy : x ≤ y) :
     exact hcmp
   exact Real.cosh_le_cosh.2 hxy'
 
+/-- For `0 ≤ x < 1`, the exponential is bounded by `1 / (1 - x)`. -/
 theorem exp_le_one_div_one_sub {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x < 1) :
     Real.exp x ≤ 1 / (1 - x) := by
   have h1 : 0 < (1 - x : ℝ) := by linarith
@@ -2718,6 +2926,7 @@ theorem exp_le_one_div_one_sub {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x < 1) :
   rw [le_div_iff₀ h1]
   linarith
 
+/-- For `0 < δ < 1`, `sqrt δ` is bounded by `arcosh (1 / (1 - δ))`. -/
 theorem dolph_cosh_sqrt_le (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ < 1) :
     Real.sqrt δ ≤ Real.arcosh (1 / (1 - δ)) := by
   have h1 : 0 < (1 - δ : ℝ) := by linarith
@@ -2743,6 +2952,7 @@ theorem dolph_cosh_sqrt_le (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ < 1) :
   rw [← h9]
   exact h10
 
+/-- For `0 < ε < 1`, `arcosh (1 / ε)` is bounded by `log (2 / ε)`. -/
 theorem arcosh_inv_le_log_two_div {ε : ℝ} (hε0 : 0 < ε) (hε1 : ε < 1) :
     Real.arcosh (1 / ε) ≤ Real.log (2 / ε) := by
   have h1 : 0 < (1 / ε : ℝ) := one_div_pos.mpr hε0
@@ -2761,6 +2971,8 @@ theorem arcosh_inv_le_log_two_div {ε : ℝ} (hε0 : 0 < ε) (hε1 : ε < 1) :
   show Real.log (1 / ε + Real.sqrt ((1 / ε) ^ 2 - 1)) ≤ Real.log (2 / ε)
   exact Real.log_le_log h4 h5
 
+/-- The scaled Dolph–Chebyshev polynomial is bounded by `ε` on `[-1 + δ, 1 - δ]` when its degree
+meets the logarithmic width bound. -/
 theorem dolph_flat_of_le_half_width {ε δ : ℝ} (hε0 : 0 < ε) (hε1 : ε < 1)
     (hδ0 : 0 < δ) (hδ1 : δ < 1) (n : ℕ) (hn : 0 < n)
     (hlog : Real.log (2 / ε) / Real.sqrt δ ≤ (n : ℝ)) :
@@ -2825,6 +3037,8 @@ theorem dolph_flat_of_le_half_width {ε δ : ℝ} (hε0 : 0 < ε) (hε1 : ε < 1
   rw [hPε, abs_mul, abs_of_nonneg (le_of_lt hε0)]
   nlinarith
 
+/-- Constructs normalized Dolph–Chebyshev polynomials with the stated flatness bound, proves the
+corresponding optimal interval-width bound, and gives a logarithmic degree cutoff. -/
 theorem clause44 :
 
   (∀ (ε : ℝ) (n : ℕ), 0 < ε → ε < 1 → 0 < n →
@@ -3050,6 +3264,7 @@ theorem clause44 :
         (Nat.ceil (Real.log (2 / ε) / Real.sqrt δ)) (Nat.ceil_pos.mpr hdiv)
         (Nat.le_ceil _)
 
+/-- An angle phase equals the complex exponential `exp (θ * i)`. -/
 theorem anglePhase_eq_exp (θ : ℝ) : anglePhase θ = Complex.exp ((θ : ℂ) * Complex.I) := by
   have h2 : (Complex.cos θ + Complex.sin θ * Complex.I : ℂ) = ⟨Real.cos θ, Real.sin θ⟩ := by
     apply Complex.ext
@@ -3062,20 +3277,25 @@ theorem anglePhase_eq_exp (θ : ℝ) : anglePhase θ = Complex.exp ((θ : ℂ) *
   rw [← Complex.cos_add_sin_I θ, h2]
   rfl
 
+/-- The distance between two angle phases is bounded by the absolute difference of their angles. -/
 theorem anglePhase_sub_le (φ ψ : ℝ) : ‖anglePhase φ - anglePhase ψ‖ ≤ |φ - ψ| := by
   rw [anglePhase_eq_exp φ, anglePhase_eq_exp ψ]
   exact norm_exp_mul_I_sub_le φ ψ
 
+/-- Rounds a real angle down to the grid of integer multiples of `2^(-b)`. -/
 noncomputable def dyadicRound (b : ℕ) (ψ : ℝ) : ℝ :=
   (Int.floor (ψ * (2 : ℝ) ^ b) : ℝ) / (2 : ℝ) ^ b
 
+/-- The dyadically rounded angle is an integer multiple of `2^(-b)`. -/
 theorem dyadicRound_int (b : ℕ) (ψ : ℝ) :
     ∃ k : ℤ, dyadicRound b ψ = (k : ℝ) / (2 : ℝ) ^ b :=
   ⟨Int.floor (ψ * (2 : ℝ) ^ b), rfl⟩
 
+/-- Dyadic rounding fixes zero. -/
 theorem dyadicRound_zero (b : ℕ) : dyadicRound b 0 = 0 := by
   simp [dyadicRound]
 
+/-- Dyadic rounding changes an angle by at most `2^(-b)`. -/
 theorem dyadicRound_near (b : ℕ) (ψ : ℝ) :
     |dyadicRound b ψ - ψ| ≤ (2 : ℝ) ^ (-((b : ℝ))) := by
   have hpow : (0 : ℝ) < (2 : ℝ) ^ b := by positivity
@@ -3097,6 +3317,7 @@ theorem dyadicRound_near (b : ℕ) (ψ : ℝ) :
   rw [hconv] at hstep
   exact hstep
 
+/-- For positive `n`, `(n + 1) * 3^n` is bounded by `16^n`. -/
 theorem mul_tri_pow_le_pow16 : ∀ n : ℕ, 1 ≤ n → (n + 1) * 3 ^ n ≤ 16 ^ n := by
   intro n
   induction n with
@@ -3121,6 +3342,8 @@ theorem mul_tri_pow_le_pow16 : ∀ n : ℕ, 1 ≤ n → (n + 1) * 3 ^ n ≤ 16 ^
         _ = 16 * ((n + 1) * 3 ^ n) := by ring
         _ ≤ 16 * 16 ^ n := Nat.mul_le_mul_left _ ih'
 
+/-- On the complex unit disk, a polynomial evaluation is bounded in norm by its coefficient
+mass. -/
 theorem coeffMass_eval_le (p : Polynomial ℂ) (x : ℂ) (hx : ‖x‖ ≤ 1) :
     ‖p.eval x‖ ≤ Qatlib.Concepts.NativeNumerics.PhaseSynthesis.coeffMass p := by
   have hsum := Polynomial.eval_eq_sum_range' (n := p.natDegree + 1)
@@ -3143,6 +3366,7 @@ theorem coeffMass_eval_le (p : Polynomial ℂ) (x : ℂ) (hx : ‖x‖ ≤ 1) :
       exact mul_le_mul_of_nonneg_left (pow_le_one₀ (norm_nonneg x) hx) (norm_nonneg _)
     _ = ∑ i ∈ Finset.range (p.natDegree + 1), ‖p.coeff i‖ := by simp
 
+/-- The specified bit precision makes the coefficient stability budget at most `ε`. -/
 theorem clause49_stability_budget (n B : ℕ) (ε : ℝ) (b : ℕ) (hn : 0 < n) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hb : b = 4 * (n + B + Nat.ceil (Real.log (1 / ε)))) :
     (((n + 1 : ℕ) * 3 ^ n : ℕ) : ℝ) * (2 : ℝ) ^ (-((b : ℝ))) ≤ ε := by
@@ -3254,6 +3478,9 @@ theorem clause49_stability_budget (n B : ℕ) (ε : ℝ) (b : ℕ) (hn : 0 < n) 
       _ ≤ ε := hle3
   exact hprod
 
+/-- For a positive-degree polynomial satisfying `Cor8Admissible` and the rational coefficient
+size bound, constructs exact and dyadically rounded phase lists whose response polynomials
+differ by at most `ε` on `[-1, 1]`. -/
 theorem clause49 :
   ∃ C : ℝ, 1 ≤ C ∧
     ∀ (P : Polynomial ℂ) (n B : ℕ) (ε : ℝ),
@@ -3387,10 +3614,12 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 
 open Polynomial Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 
+/-- The integral Bessel coefficient `(1 / π) * ∫₀^π cos (mθ - u sin θ) dθ`. -/
 noncomputable def besselInt (m : ℕ) (u : ℝ) : ℝ :=
   (1 / Real.pi) * intervalIntegral
     (fun θ => Real.cos ((m : ℝ) * θ - u * Real.sin θ)) 0 Real.pi MeasureTheory.volume
 
+/-- The cosine kernel defining `besselInt` is even in its integration variable. -/
 theorem besselInt_kernel_even (m : ℕ) (u : ℝ) (θ : ℝ) :
     Real.cos ((m : ℝ) * (-θ) - u * Real.sin (-θ))
       = Real.cos ((m : ℝ) * θ - u * Real.sin θ) := by
@@ -3399,6 +3628,8 @@ theorem besselInt_kernel_even (m : ℕ) (u : ℝ) (θ : ℝ) :
     ring
   rw [h, Real.cos_neg]
 
+/-- The integral Bessel coefficient equals the symmetrized cosine integral over `[-π, π]`
+divided by `2π`. -/
 theorem besselInt_eq_symm (m : ℕ) (u : ℝ) :
     besselInt m u = (1 / (2 * Real.pi)) * intervalIntegral
       (fun θ => Real.cos ((m : ℝ) * θ - u * Real.sin θ)) (-Real.pi) Real.pi
@@ -3441,6 +3672,8 @@ theorem besselInt_eq_symm (m : ℕ) (u : ℝ) :
   rw [hf, hshow]
   ring
 
+/-- The integral of the integer Fourier exponential over `[-π, π]` is `2π` in mode zero and zero
+otherwise. -/
 theorem integral_exp_int_mul (n : ℤ) :
     intervalIntegral (fun θ : ℝ =>
         Complex.exp (Complex.I * ((((n : ℝ) * θ : ℝ)) : ℂ)))
@@ -3510,6 +3743,7 @@ theorem integral_exp_int_mul (n : ℤ) :
       ring
     rw [he1, he2, sub_self, zero_div]
 
+/-- Expresses the real sine as a difference of two complex exponentials. -/
 theorem sin_eq_exp_sub (θ : ℝ) :
     ((Real.sin θ : ℝ) : ℂ)
       = (Complex.exp (Complex.I * ((θ : ℝ) : ℂ))
@@ -3528,6 +3762,7 @@ theorem sin_eq_exp_sub (θ : ℝ) :
   field_simp
   ring
 
+/-- The complex exponential has its usual factorial power series. -/
 private theorem cexp_hasSum (z : ℂ) :
     HasSum (fun n : ℕ => z ^ n / (((n.factorial : ℕ) : ℂ))) (Complex.exp z) := by
   have hsum : Summable (fun n : ℕ => z ^ n / (((n.factorial : ℕ) : ℂ))) :=
@@ -3540,6 +3775,8 @@ private theorem cexp_hasSum (z : ℂ) :
   have h2 := hsum.hasSum.tendsto_sum_nat
   exact tendsto_nhds_unique h1 h2 ▸ hsum.hasSum
 
+/-- The product of opposite Fourier exponentials with the indicated powers is the Fourier mode
+`2m - k`. -/
 private theorem exp_pow_mul_exp_pow (θ : ℝ) (k m : ℕ) (hm : m ≤ k) :
     Complex.exp (Complex.I * ((θ : ℝ) : ℂ)) ^ m
       * Complex.exp (-(Complex.I * ((θ : ℝ) : ℂ))) ^ (k - m)
@@ -3562,6 +3799,7 @@ private theorem exp_pow_mul_exp_pow (θ : ℝ) (k m : ℕ) (hm : m ≤ k) :
   push_cast
   ring
 
+/-- Expands a natural power of sine as a finite binomial sum of complex Fourier exponentials. -/
 theorem sin_pow_eq_exp_sum (θ : ℝ) (k : ℕ) :
     (((Real.sin θ : ℝ) : ℂ)) ^ k
       = (((2 * Complex.I) : ℂ)⁻¹) ^ k *
@@ -3599,6 +3837,7 @@ theorem sin_pow_eq_exp_sum (θ : ℝ) (k : ℕ) :
           * Complex.exp (Complex.I * (((((2 * m - k : ℤ) * θ : ℝ) : ℂ)))) := by
         ring
 
+/-- The integral of a continuous odd complex function over `[-π, π]` is zero. -/
 theorem intervalIntegral_odd_zero (f : ℝ → ℂ) (hcont : Continuous f)
     (hodd : ∀ θ : ℝ, f (-θ) = -f θ) :
     intervalIntegral f (-Real.pi) Real.pi MeasureTheory.volume = 0 := by
@@ -3631,6 +3870,8 @@ theorem intervalIntegral_odd_zero (f : ℝ → ℂ) (hcont : Continuous f)
   rw [hsum, hneg]
   abel
 
+/-- Evaluates the integral of a Fourier exponential times a sine power as a finite binomial sum,
+retaining only the zero Fourier mode. -/
 theorem integral_exp_sin_pow (r k : ℕ) :
     intervalIntegral (fun θ : ℝ =>
         Complex.exp (Complex.I * ((((r : ℝ) * θ : ℝ) : ℂ)))
@@ -3720,6 +3961,8 @@ theorem integral_exp_sin_pow (r k : ℕ) :
       omega
     rw [if_neg hkey]
 
+/-- The integral Bessel coefficient equals the normalized complex exponential integral over
+`[-π, π]`. -/
 theorem besselInt_eq_complex (m : ℕ) (u : ℝ) :
     (besselInt m u : ℂ) = (1 / (2 * Real.pi)) * intervalIntegral
       (fun θ => Complex.exp (Complex.I * ((((m : ℝ) * θ - u * Real.sin θ : ℝ) : ℂ))))
@@ -3791,6 +4034,7 @@ theorem besselInt_eq_complex (m : ℕ) (u : ℝ) :
   push_cast
   ring
 
+/-- For exponent `m + 2j`, the Fourier moment sum reduces to its single matching binomial term. -/
 private theorem moment_at (m j : ℕ) :
     ((2 * Complex.I) : ℂ)⁻¹ ^ (m + 2 * j) *
       ∑ p ∈ Finset.range (m + 2 * j + 1),
@@ -3825,6 +4069,8 @@ private theorem moment_at (m j : ℕ) :
   rw [hsign]
   ring
 
+/-- The Fourier moment sum vanishes when the sine exponent is below the mode or has the wrong
+parity. -/
 private theorem moment_zero (m k : ℕ) (hk : k < m ∨ (k - m) % 2 = 1) :
     ((2 * Complex.I) : ℂ)⁻¹ ^ k *
       ∑ p ∈ Finset.range (k + 1),
@@ -3850,12 +4096,15 @@ open Qatlib
 open MeasureTheory
 open scoped BigOperators
 
+/-- The integer Fourier mode `exp (i * n * θ)`. -/
 private noncomputable def fourierMode (n : ℤ) (θ : ℝ) : ℂ :=
   Complex.exp (Complex.I * ((n : ℂ) * (θ : ℂ)))
 
+/-- Every Fourier mode has complex norm one. -/
 private theorem fourierMode_norm (n : ℤ) (θ : ℝ) : ‖fourierMode n θ‖ = 1 := by
   simp [fourierMode, Complex.norm_exp]
 
+/-- The integral of a Fourier mode over `[-π, π]` is `2π` for mode zero and zero otherwise. -/
 private theorem fourierMode_integral (n : ℤ) :
     (∫ θ in -Real.pi..Real.pi, fourierMode n θ) =
       if n = 0 then (2 * Real.pi : ℂ) else 0 := by
@@ -3866,6 +4115,7 @@ private theorem fourierMode_integral (n : ℤ) :
   rw [heq]
   exact integral_exp_int_mul n
 
+/-- Multiplying the positive Bessel harmonic by mode `m` shifts its Fourier index to `m - k`. -/
 private theorem fourierMode_pos (m k : ℕ) (u θ : ℝ) :
     fourierMode m θ * lcJAp u θ k =
       (lcBesselJ k u : ℂ) * fourierMode ((m : ℤ) - k) θ := by
@@ -3880,6 +4130,8 @@ private theorem fourierMode_pos (m k : ℕ) (u θ : ℝ) :
       push_cast
       ring
 
+/-- Multiplying the negative Bessel harmonic by mode `m` shifts its Fourier index to `m + k`
+with sign factor `(-1)^k`. -/
 private theorem fourierMode_neg (m k : ℕ) (u θ : ℝ) :
     fourierMode m θ * lcJAn u θ k =
       ((-1 : ℂ)^k * (lcBesselJ k u : ℂ)) * fourierMode ((m : ℤ) + k) θ := by
@@ -3894,20 +4146,27 @@ private theorem fourierMode_neg (m k : ℕ) (u θ : ℝ) :
       push_cast
       ring
 
+/-- The positive Bessel harmonic has norm equal to the absolute value of its Bessel coefficient. -/
 private theorem lcJAp_norm (u θ : ℝ) (k : ℕ) : ‖lcJAp u θ k‖ = |lcBesselJ k u| := by
   simp [lcJAp, Complex.norm_exp]
 
+/-- The negative Bessel harmonic has norm equal to the absolute value of its Bessel coefficient. -/
 private theorem lcJAn_norm (u θ : ℝ) (k : ℕ) : ‖lcJAn u θ k‖ = |lcBesselJ k u| := by
   simp [lcJAn, Complex.norm_exp, norm_pow]
 
+/-- The sum of the positive and nonzero-index negative Bessel harmonics, weighted by Fourier
+mode `m`. -/
 private noncomputable def weightedHarmonic (m : ℕ) (u : ℝ) (k : ℕ) (θ : ℝ) : ℂ :=
   fourierMode m θ * (lcJAp u θ k + if k = 0 then 0 else lcJAn u θ k)
 
+/-- Each weighted Bessel harmonic is continuous in the angular variable. -/
 private theorem weightedHarmonic_continuous (m : ℕ) (u : ℝ) (k : ℕ) :
     Continuous (weightedHarmonic m u k) := by
   unfold weightedHarmonic lcJAp lcJAn fourierMode
   split_ifs <;> fun_prop
 
+/-- For nonnegative `u`, the weighted harmonic is bounded by twice the factorial majorant `(u /
+2)^k / k!`. -/
 private theorem weightedHarmonic_bound (m : ℕ) (u : ℝ) (hu : 0 ≤ u) (k : ℕ) (θ : ℝ) :
     ‖weightedHarmonic m u k θ‖ ≤ 2 * ((u / 2)^k / (k.factorial : ℝ)) := by
   have hn : ‖(if k = 0 then 0 else lcJAn u θ k)‖ ≤ |lcBesselJ k u| := by
@@ -3922,6 +4181,8 @@ private theorem weightedHarmonic_bound (m : ℕ) (u : ℝ) (hu : 0 ≤ u) (k : �
     _ ≤ |lcBesselJ k u| + |lcBesselJ k u| := add_le_add (lcJAp_norm u θ k).le hn
     _ ≤ _ := by linarith
 
+/-- The weighted harmonic integrates to `2π * lcBesselJ m u` when `k = m`, and to zero
+otherwise. -/
 private theorem weightedHarmonic_integral (m k : ℕ) (u : ℝ) :
     (∫ θ in -Real.pi..Real.pi, weightedHarmonic m u k θ) =
       if k = m then (2 * Real.pi : ℂ) * (lcBesselJ m u : ℂ) else 0 := by
@@ -3959,6 +4220,8 @@ private theorem weightedHarmonic_integral (m k : ℕ) (u : ℝ) :
   rw [heq, intervalIntegral.integral_add (hcp.intervalIntegrable _ _) (hcn.intervalIntegrable _ _),
     hp, hn, add_zero]
 
+/-- For nonnegative `u`, the integrals of the weighted harmonics sum to the integral of their
+exponential generating response. -/
 private theorem weightedHarmonic_hasSum_integral (m : ℕ) (u : ℝ) (hu : 0 ≤ u) :
     HasSum (fun k => ∫ θ in -Real.pi..Real.pi, weightedHarmonic m u k θ)
       (∫ θ in -Real.pi..Real.pi, fourierMode m θ *
@@ -3975,6 +4238,8 @@ private theorem weightedHarmonic_hasSum_integral (m : ℕ) (u : ℝ) (hu : 0 ≤
   · exact Filter.Eventually.of_forall (fun θ _ =>
       (lcBesselJacobiAnger u θ hu).mul_left (fourierMode m θ))
 
+/-- For nonnegative arguments, the integral and series definitions of the Bessel coefficient
+agree. -/
 theorem besselInt_eq_lcBesselJ_nonneg (m : ℕ) (u : ℝ) (hu : 0 ≤ u) :
     besselInt m u = lcBesselJ m u := by
   have hsum := weightedHarmonic_hasSum_integral m u hu
@@ -4000,6 +4265,8 @@ theorem besselInt_eq_lcBesselJ_nonneg (m : ℕ) (u : ℝ) (hu : 0 ≤ u) :
     field_simp
   exact_mod_cast hc
 
+/-- Negating the argument of the order-`m` integral Bessel coefficient multiplies it by
+`(-1)^m`. -/
 theorem besselInt_neg (m : ℕ) (u : ℝ) :
     besselInt m (-u) = (-1 : ℝ)^m * besselInt m u := by
   let f : ℝ → ℝ := fun θ => Real.cos ((m : ℝ) * θ - (-u) * Real.sin θ)
@@ -4019,6 +4286,7 @@ theorem besselInt_neg (m : ℕ) (u : ℝ) :
   unfold besselInt
   ring
 
+/-- Negating the argument of the order-`m` series Bessel coefficient multiplies it by `(-1)^m`. -/
 private theorem lcBesselJ_neg (m : ℕ) (u : ℝ) :
     lcBesselJ m (-u) = (-1 : ℝ)^m * lcBesselJ m u := by
   unfold lcBesselJ
@@ -4030,6 +4298,7 @@ private theorem lcBesselJ_neg (m : ℕ) (u : ℝ) :
   rw [he]
   ring
 
+/-- The integral and series definitions of the Bessel coefficient agree for every real argument. -/
 theorem besselInt_eq_lcBesselJ (m : ℕ) (u : ℝ) : besselInt m u = lcBesselJ m u := by
   by_cases hu : 0 ≤ u
   · exact besselInt_eq_lcBesselJ_nonneg m u hu
@@ -4047,8 +4316,11 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Matrix.Norms.L2Operator BigOperators Classical
 
+/-- The one-dimensional matrix with sole entry `100`, used in the phase-error counterexample. -/
 private abbrev bigMatrix : Matrix (Fin 1) (Fin 1) ℂ := fun _ _ => 100
 
+/-- For the chosen one-dimensional matrix, computes the difference between the two phased
+alternating words exactly. -/
 private theorem bad_phase_difference :
     phasedAlternating (1 : Matrix (Fin 1) (Fin 1) ℂ) bigMatrix 0 Complex.I [1] -
       phasedAlternating 1 bigMatrix 0 1 [1] =
@@ -4060,6 +4332,7 @@ private theorem bad_phase_difference :
   simp [phaseRotation, bigMatrix]
   ring
 
+/-- The chosen nonprojector matrix gives a phase perturbation error strictly larger than `16`. -/
 private theorem bad_phase_error :
     16 < ‖phasedAlternating (1 : Matrix (Fin 1) (Fin 1) ℂ) bigMatrix 0 Complex.I [1] -
       phasedAlternating 1 bigMatrix 0 1 [1]‖ := by
@@ -4068,19 +4341,25 @@ private theorem bad_phase_error :
   norm_num at him ⊢
   linarith
 
+/-- The two-dimensional real rotation with diagonal entries `3/5` and off-diagonal entries
+`-4/5` and `4/5`. -/
 private noncomputable abbrev rotation : Matrix (Fin 1 × Fin 2) (Fin 1 × Fin 2) ℂ := fun i j =>
   if i.2 = j.2 then 3 / 5 else if i.2 = 0 then -(4 / 5) else 4 / 5
 
+/-- The chosen rotation matrix is unitary. -/
 private theorem rotation_unitary : rotation ∈ Matrix.unitaryGroup (Fin 1 × Fin 2) ℂ := by
   constructor <;> ext i j <;> rcases i with ⟨i, a⟩ <;> rcases j with ⟨j, b⟩ <;>
     fin_cases i <;> fin_cases j <;> fin_cases a <;> fin_cases b <;>
     norm_num [rotation, Matrix.mul_apply, Fintype.sum_prod_type, Fin.sum_univ_two, map_ofNat]
 
+/-- The standard Euclidean coordinate vector at `(0, 0)`. -/
 private noncomputable abbrev basisInput : EuclideanSpace ℂ (Fin 1 × Fin 2) :=
   EuclideanSpace.single (0, 0) 1
 
+/-- The chosen coordinate input has Euclidean norm one. -/
 private theorem basisInput_norm : ‖basisInput‖ = 1 := by simp [basisInput]
 
+/-- The coordinate supremum norm of the rotated input is at most `4/5`. -/
 private theorem rotation_output_bound : ‖rotation *ᵥ basisInput‖ ≤ (4 / 5 : ℝ) := by
   apply (pi_norm_le_iff_of_nonneg (by norm_num)).2
   rintro ⟨i, a⟩
@@ -4089,6 +4368,8 @@ private theorem rotation_output_bound : ‖rotation *ᵥ basisInput‖ ≤ (4 / 
     norm_num [rotation, basisInput, Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
       Fin.sum_univ_two, EuclideanSpace.single, PiLp.single_apply, Pi.single_apply]
 
+/-- Refutes the conjunction of the stated universal phase stability estimate without projector
+hypotheses and its resource ledger assertion. -/
 theorem not_clause51 : ¬ (
   ∃ C : ℝ, 1 ≤ C ∧
 
@@ -4131,6 +4412,8 @@ theorem not_clause51 : ¬ (
   norm_num at hbad
   exact (not_lt_of_ge hbad) bad_phase_error
 
+/-- Refutes the stated conjunction containing equality between the coordinate supremum norm of a
+unitary output and the Euclidean input norm. -/
 theorem not_clause54 : ¬ (
   ∃ C : ℝ, 1 ≤ C ∧
 
@@ -4158,23 +4441,29 @@ theorem not_clause54 : ¬ (
   have hbound := rotation_output_bound
   linarith
 
+/-- The unit complex number with real and imaginary parts `sqrt 2 / 2`. -/
 private noncomputable def irrationalPhase : ℂ := ⟨Real.sqrt 2 / 2, Real.sqrt 2 / 2⟩
+/-- The linear polynomial `irrationalPhase * X`. -/
 private noncomputable def irrationalLinear : Polynomial ℂ := C irrationalPhase * X
 
+/-- The chosen irrational phase has squared norm one. -/
 private theorem irrationalPhase_normSq : Complex.normSq irrationalPhase = 1 := by
   have h := Real.sq_sqrt (show (0 : ℝ) ≤ 2 by norm_num)
   simp only [irrationalPhase, Complex.normSq_apply]
   nlinarith
 
+/-- The chosen irrational phase is nonzero. -/
 private theorem irrationalPhase_ne_zero : irrationalPhase ≠ 0 := by
   intro h
   have hh := irrationalPhase_normSq
   rw [h, map_zero] at hh
   norm_num at hh
 
+/-- The chosen irrational linear polynomial has natural degree one. -/
 private theorem irrationalLinear_degree : irrationalLinear.natDegree = 1 := by
   simp [irrationalLinear, irrationalPhase_ne_zero]
 
+/-- The chosen irrational linear polynomial satisfies `Cor8Admissible` at degree one. -/
 private theorem irrationalLinear_admissible : Cor8Admissible irrationalLinear 1 := by
   constructor
   · simp [Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.HasResponseParity,
@@ -4190,6 +4479,7 @@ private theorem irrationalLinear_admissible : Cor8Admissible irrationalLinear 1 
     rcases hx with hx | hx <;> nlinarith
   · norm_num
 
+/-- The real part of the linear coefficient of `irrationalLinear` is not rational. -/
 private theorem irrationalLinear_coefficient_not_rational :
     ¬ ∃ q : ℚ, (irrationalLinear.coeff 1).re = (q : ℝ) := by
   rintro ⟨q, hq⟩
@@ -4199,6 +4489,8 @@ private theorem irrationalLinear_coefficient_not_rational :
     linarith
   exact irrational_sqrt_two.ne_rat (2 * q) h
 
+/-- Refutes the stated universal rational-coefficient approximation and phase synthesis
+assertion when nonnegative coefficient budgets may be zero. -/
 theorem not_clause52 : ¬ (
   ∃ C : ℝ, 1 ≤ C ∧
     ∀ (P : Polynomial ℂ) (n : ℕ) (δ : Fin (n + 1) → ℝ) (ε_phase : ℝ),
@@ -4232,17 +4524,23 @@ theorem not_clause52 : ¬ (
   rw [heq] at hre
   exact irrationalLinear_coefficient_not_rational ⟨q 0, hre⟩
 
+/-- There exists a one-dimensional nonprojector matrix for which the displayed phase
+perturbation produces norm error greater than `16`. -/
 theorem phase_error_without_projectors :
     ∃ P : Matrix (Fin 1) (Fin 1) ℂ,
       16 < ‖phasedAlternating 1 P 0 Complex.I [1] - phasedAlternating 1 P 0 1 [1]‖ :=
   ⟨bigMatrix, bad_phase_error⟩
 
+/-- There are a unitary matrix and a Euclidean unit input whose output has coordinate supremum
+norm at most `4/5`. -/
 theorem unitary_sup_norm_counterexample :
     ∃ (V : Matrix (Fin 1 × Fin 2) (Fin 1 × Fin 2) ℂ)
       (u : EuclideanSpace ℂ (Fin 1 × Fin 2)),
       V ∈ Matrix.unitaryGroup (Fin 1 × Fin 2) ℂ ∧ ‖u‖ = 1 ∧ ‖V *ᵥ u‖ ≤ (4 / 5 : ℝ) :=
   ⟨rotation, basisInput, rotation_unitary, basisInput_norm, rotation_output_bound⟩
 
+/-- There exists a degree-one polynomial satisfying `Cor8Admissible` whose linear coefficient
+has irrational real part. -/
 theorem irrational_coefficient_zero_budget :
     ∃ P : Polynomial ℂ, P.natDegree = 1 ∧ Cor8Admissible P 1 ∧
       ¬ ∃ q : ℚ, (P.coeff 1).re = (q : ℝ) :=
@@ -4258,6 +4556,8 @@ set_option warningAsError false
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open scoped Classical
 
+/-- For positive `s` and `0 < target ≤ 1`, there exists `r ≥ s` with `(s / r)^r = target`, using
+real powers. -/
 lemma compact_radius_exists (s target : ℝ) (hs : 0 < s) (ht : 0 < target) (ht1 : target ≤ 1) :
     ∃ r : ℝ, s ≤ r ∧ Real.rpow (s/r) r = target := by
   obtain ⟨N, hN⟩ := exists_pow_lt_of_lt_one ht (by norm_num : (1/2:ℝ) < 1)
@@ -4287,6 +4587,7 @@ lemma compact_radius_exists (s target : ℝ) (hs : 0 < s) (ht : 0 < target) (ht1
   obtain ⟨r, hr, he⟩ := intermediate_value_Icc' hsR hcont ⟨hfR, by rwa [hfs]⟩
   exact ⟨r, hr.1, he⟩
 
+/-- For positive `s` and `s ≤ r ≤ q`, the real-power scale `(s / q)^q` is at most `(s / r)^r`. -/
 lemma compact_scale_antitone (s r q : ℝ) (hs : 0 < s) (hsr : s ≤ r) (hrq : r ≤ q) :
     Real.rpow (s/q) q ≤ Real.rpow (s/r) r := by
   have hr : 0 < r := hs.trans_le hsr
@@ -4295,6 +4596,8 @@ lemma compact_scale_antitone (s r q : ℝ) (hs : 0 < s) (hsr : s ≤ r) (hrq : r
   exact (Real.rpow_le_rpow (div_nonneg hs.le hq.le) hb hq.le).trans
     (Real.rpow_le_rpow_of_exponent_ge (div_pos hs hr) ((div_le_one hr).mpr hsr) hrq)
 
+/-- For nonzero `t` and `0 < ε < 1/e`, constructs a radius with the target real-power value and
+the stated neighboring even-integer bounds. -/
 lemma compact_jacobi_radius (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
     (hε1 : ε < 1 / Real.exp 1) :
     ∃ r : ℝ, Real.exp 1 * |t| / 2 ≤ r ∧
@@ -4319,6 +4622,7 @@ set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open scoped Classical BigOperators
 
+/-- For `q ≥ 2`, the factorial is at least `(10/3) * (q / e)^q`. -/
 lemma compact_factorial_lower (q : ℕ) (hq : 2 ≤ q) :
     (10/3 : ℝ) * ((q:ℝ) / Real.exp 1)^q ≤ (q.factorial : ℝ) := by
   have hqr : (2:ℝ) ≤ q := by exact_mod_cast hq
@@ -4330,6 +4634,7 @@ lemma compact_factorial_lower (q : ℕ) (hq : 2 ≤ q) :
     nlinarith
   exact (mul_le_mul_of_nonneg_right hroot (by positivity)).trans (Stirling.le_factorial_stirling q)
 
+/-- For nonnegative `a` and `q ≥ 2`, bounds `a^q / q!` by `(3/10) * (e * a / q)^q`. -/
 lemma compact_first_coefficient (q : ℕ) (hq : 2 ≤ q) (a : ℝ) (ha : 0 ≤ a) :
     a^q / (q.factorial:ℝ) ≤ (3/10 : ℝ) * (Real.exp 1 * a / q)^q := by
   have hqpos : (0:ℝ) < q := by exact_mod_cast (by omega : 0 < q)
@@ -4346,6 +4651,7 @@ lemma compact_first_coefficient (q : ℕ) (hq : 2 ≤ q) (a : ℝ) (ha : 0 ≤ a
            _ = _ := by ring
     _ ≤ _ := mul_le_mul_of_nonneg_left (compact_factorial_lower q hq) (by positivity)
 
+/-- The factorial `(q + n)!` is at least `q! * (q + 1)^n`. -/
 lemma compact_factorial_ge_pow (q n : ℕ) :
     q.factorial * (q+1)^n ≤ (q+n).factorial := by
   induction n with
@@ -4356,6 +4662,8 @@ lemma compact_factorial_ge_pow (q n : ℕ) :
          _ ≤ (q+1)*(q+n).factorial := Nat.mul_le_mul_left _ ih
          _ ≤ _ := Nat.mul_le_mul_right _ (by omega)
 
+/-- If `0 ≤ a ≤ q/2`, the factorial terms along a fixed parity are bounded by the first term
+times `(1/4)^k`. -/
 lemma compact_parity_term (q k : ℕ) (a : ℝ) (ha : 0 ≤ a) (haq : a ≤ (q:ℝ)/2) :
     a^(q+2*k) / ((q+2*k).factorial:ℝ) ≤
       (a^q/(q.factorial:ℝ)) * (1/4:ℝ)^k := by
@@ -4376,6 +4684,8 @@ lemma compact_parity_term (q k : ℕ) (a : ℝ) (ha : 0 ≤ a) (haq : a ≤ (q:�
         (pow_le_pow_left₀ (by positivity) hratio _) (by positivity)
     _ = _ := by rw [pow_mul]; norm_num
 
+/-- For `q ≥ 2` and `0 ≤ a ≤ q/2`, twice the fixed-parity factorial tail is bounded by `(4/5) *
+(e * a / q)^q`. -/
 lemma compact_parity_tail (q : ℕ) (hq : 2 ≤ q) (a : ℝ)
     (ha : 0 ≤ a) (haq : a ≤ (q:ℝ)/2) :
     2 * (∑' k : ℕ, a^(q+2*k) / ((q+2*k).factorial:ℝ)) ≤
@@ -4390,6 +4700,8 @@ lemma compact_parity_tail (q : ℕ) (hq : 2 ≤ q) (a : ℝ)
   norm_num at hsum
   nlinarith
 
+/-- A radius `r` with `e * a ≤ r ≤ q` bounds twice the fixed-parity factorial tail by `(4/5) *
+(e * a / r)^r`. -/
 lemma compact_parity_tail_at_radius (q : ℕ) (hq : 2 ≤ q) (a r : ℝ)
     (ha : 0 < a) (hsr : Real.exp 1*a ≤ r) (hrq : r ≤ q) :
     2 * (∑' k : ℕ, a^(q+2*k) / ((q+2*k).factorial:ℝ)) ≤
@@ -4404,6 +4716,8 @@ lemma compact_parity_tail_at_radius (q : ℕ) (hq : 2 ≤ q) (a r : ℝ)
     _ ≤ _ := mul_le_mul_of_nonneg_left
       (compact_scale_antitone (Real.exp 1*a) r q (by positivity) hsr hrq) (by norm_num)
 
+/-- The absolute value of the order-`m` integral Bessel coefficient is bounded by `(|t| / 2)^m /
+m!`. -/
 lemma besselInt_abs_bound (m : ℕ) (t : ℝ) :
     |besselInt m t| ≤ (|t|/2)^m / (m.factorial:ℝ) := by
   by_cases ht : 0 ≤ t
@@ -4416,6 +4730,8 @@ lemma besselInt_abs_bound (m : ℕ) (t : ℝ) :
       abs_of_neg (lt_of_not_ge ht), besselInt_eq_lcBesselJ]
     exact Qatlib.Concepts.QsvtCore.PhaseExistence.abs_lcBesselJ_le m (-t) hnt
 
+/-- The fixed-parity absolute Bessel tail is bounded by the stated radius expression when `e *
+|t| / 2 ≤ r ≤ q`. -/
 lemma besselInt_parity_tail_at_radius (q : ℕ) (hq : 2 ≤ q) (t r : ℝ)
     (ht : t ≠ 0) (hsr : Real.exp 1 * |t| / 2 ≤ r) (hrq : r ≤ q) :
     2 * (∑' k : ℕ, |besselInt (q+2*k) t|) ≤
@@ -4438,6 +4754,8 @@ lemma besselInt_parity_tail_at_radius (q : ℕ) (hq : 2 ≤ q) (t r : ℝ)
     _ ≤ 2 * (∑' k : ℕ, a^(q+2*k) / ((q+2*k).factorial:ℝ)) := by linarith
     _ ≤ _ := by simpa [a, mul_div_assoc] using! htail
 
+/-- Constructs a compact Jacobi–Anger radius for which every fixed-parity Bessel tail starting
+at an integer `q ≥ max 2 r` has error at most `ε`. -/
 lemma compact_jacobi_parity_tail (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
     (hε1 : ε < 1 / Real.exp 1) :
     ∃ r : ℝ, Real.exp 1 * |t| / 2 ≤ r ∧
@@ -4461,6 +4779,7 @@ open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The sum of opposite imaginary exponentials is twice the real cosine. -/
 private theorem bessel_exp_pair_cos (φ : ℝ) :
     Complex.exp (Complex.I * ((φ : ℝ) : ℂ)) + Complex.exp (-(Complex.I * ((φ : ℝ) : ℂ)))
       = 2 * ((Real.cos φ : ℝ) : ℂ) := by
@@ -4473,6 +4792,7 @@ private theorem bessel_exp_pair_cos (φ : ℝ) :
   push_cast
   ring
 
+/-- The difference of negative and positive imaginary exponentials is `-2i` times the real sine. -/
 private theorem bessel_exp_pair_sin (φ : ℝ) :
     Complex.exp (-(Complex.I * ((φ : ℝ) : ℂ))) - Complex.exp (Complex.I * ((φ : ℝ) : ℂ))
       = -(2 * Complex.I * ((Real.sin φ : ℝ) : ℂ)) := by
@@ -4485,9 +4805,12 @@ private theorem bessel_exp_pair_sin (φ : ℝ) :
   push_cast
   ring
 
+/-- The paired Bessel harmonic, with the zero-index negative harmonic omitted. -/
 noncomputable def besselHarmonic (t θ : ℝ) (n : ℕ) : ℂ :=
   lcJAp t θ n + if n=0 then 0 else lcJAn t θ n
 
+/-- An even paired Bessel harmonic is the stated cosine term, with the duplicated zero
+coefficient removed. -/
 lemma besselHarmonic_even (t θ : ℝ) (k : ℕ) :
     besselHarmonic t θ (2*k) =
       ((2*lcBesselJ (2*k) t*Real.cos ((2*k:ℕ)*θ) -
@@ -4507,6 +4830,7 @@ lemma besselHarmonic_even (t θ : ℝ) (k : ℕ) :
     push_cast
     ring
 
+/-- An odd paired Bessel harmonic is `-i` times the stated sine term. -/
 lemma besselHarmonic_odd (t θ : ℝ) (k : ℕ) :
     besselHarmonic t θ (2*k+1) =
       -Complex.I * ((2*lcBesselJ (2*k+1) t*Real.sin ((2*k+1:ℕ)*θ) : ℝ) : ℂ) := by
@@ -4526,6 +4850,7 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open scoped Classical BigOperators
 
+/-- For nonnegative `t`, the even Bessel harmonic series sums to `cos (t * sin θ)`. -/
 lemma bessel_cos_series (t θ : ℝ) (ht : 0 ≤ t) :
     HasSum (fun k : ℕ => 2*lcBesselJ (2*k) t*Real.cos ((2*k:ℕ)*θ) -
       if k=0 then lcBesselJ 0 t else 0) (Real.cos (t*Real.sin θ)) := by
@@ -4555,6 +4880,7 @@ lemma bessel_cos_series (t θ : ℝ) (ht : 0 ≤ t) :
   rw [hsum] at hs
   simpa only [besselHarmonic_even, Complex.ofReal_re] using! hs
 
+/-- For nonnegative `t`, the odd Bessel harmonic series sums to `sin (t * sin θ)`. -/
 lemma bessel_sin_series (t θ : ℝ) (ht : 0 ≤ t) :
     HasSum (fun k : ℕ => 2*lcBesselJ (2*k+1) t*Real.sin ((2*k+1:ℕ)*θ))
       (Real.sin (t*Real.sin θ)) := by
@@ -4591,48 +4917,60 @@ set_option warningAsError false
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Polynomial
 open scoped Classical BigOperators
+/-- The truncated even Chebyshev expansion with Bessel coefficients for approximating `cos (t *
+x)`. -/
 noncomputable def compactCosPoly (t : ℝ) (R : ℕ) : Polynomial ℝ :=
   C (besselInt 0 t) + ∑ k ∈ Finset.Icc 1 R,
     C (2*(-1:ℝ)^k*besselInt (2*k) t) * Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ)
+/-- The truncated odd Chebyshev expansion with Bessel coefficients for approximating `sin (t *
+x)`. -/
 noncomputable def compactSinPoly (t : ℝ) (R : ℕ) : Polynomial ℝ :=
   ∑ k ∈ Finset.Icc 0 R,
     C (2*(-1:ℝ)^k*besselInt (2*k+1) t) * Polynomial.Chebyshev.T ℝ ((2*k+1:ℕ):ℤ)
 
+/-- Increasing the cosine cutoff adds the next even Chebyshev term. -/
 lemma compact_cos_succ (t : ℝ) (R : ℕ) : compactCosPoly t (R+1) = compactCosPoly t R +
     C (2*(-1:ℝ)^(R+1)*besselInt (2*(R+1)) t) * Polynomial.Chebyshev.T ℝ ((2*(R+1):ℕ):ℤ) := by
   unfold compactCosPoly
   rw [Finset.sum_Icc_succ_top (by omega)]
   ring
 
+/-- Increasing the sine cutoff adds the next odd Chebyshev term. -/
 lemma compact_sin_succ (t : ℝ) (R : ℕ) : compactSinPoly t (R+1) = compactSinPoly t R +
     C (2*(-1:ℝ)^(R+1)*besselInt (2*(R+1)+1) t) * Polynomial.Chebyshev.T ℝ ((2*(R+1)+1:ℕ):ℤ) := by
   unfold compactSinPoly
   rw [Finset.sum_Icc_succ_top (by omega)]
 
+/-- An even-order Chebyshev polynomial is unchanged by substituting `-X`. -/
 lemma even_cheb_comp (k : ℕ) : (Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ)).comp (-X) =
     Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ) := by
   apply Polynomial.funext
   intro x
   simp
 
+/-- An odd-order Chebyshev polynomial is negated by substituting `-X`. -/
 lemma odd_cheb_comp (k : ℕ) : (Polynomial.Chebyshev.T ℝ ((2*k+1:ℕ):ℤ)).comp (-X) =
     -Polynomial.Chebyshev.T ℝ ((2*k+1:ℕ):ℤ) := by
   apply Polynomial.funext
   intro x
   simp
 
+/-- The compact cosine polynomial is even. -/
 lemma compact_cos_even (t : ℝ) (R : ℕ) : (compactCosPoly t R).comp (-X) = compactCosPoly t R := by
   unfold compactCosPoly
   simp only [add_comp, C_comp, sum_comp, mul_comp, even_cheb_comp]
 
+/-- The compact sine polynomial is odd. -/
 lemma compact_sin_odd (t : ℝ) (R : ℕ) : (compactSinPoly t R).comp (-X) = -compactSinPoly t R := by
   unfold compactSinPoly
   simp only [sum_comp, mul_comp, C_comp, odd_cheb_comp, mul_neg, Finset.sum_neg_distrib]
 
+/-- A scalar multiple of the order-`n` Chebyshev polynomial has natural degree at most `n`. -/
 lemma cheb_term_degree (c : ℝ) (n : ℕ) :
     (C c * Polynomial.Chebyshev.T ℝ (n:ℤ)).natDegree ≤ n := by
   exact (natDegree_mul_le).trans (by simp [Polynomial.Chebyshev.natDegree_T])
 
+/-- The compact cosine polynomial has natural degree at most `2R`. -/
 lemma compact_cos_degree (t : ℝ) (R : ℕ) : (compactCosPoly t R).natDegree ≤ 2*R := by
   induction R with
   | zero => simp [compactCosPoly]
@@ -4642,6 +4980,7 @@ lemma compact_cos_degree (t : ℝ) (R : ℕ) : (compactCosPoly t R).natDegree �
     · exact ih.trans (by omega)
     · exact cheb_term_degree _ _
 
+/-- The compact sine polynomial has natural degree at most `2R + 1`. -/
 lemma compact_sin_degree (t : ℝ) (R : ℕ) : (compactSinPoly t R).natDegree ≤ 2*R+1 := by
   induction R with
   | zero => simpa [compactSinPoly] using! cheb_term_degree (2*besselInt 1 t) 1
@@ -4651,11 +4990,15 @@ lemma compact_sin_degree (t : ℝ) (R : ℕ) : (compactSinPoly t R).natDegree �
     · exact ih.trans (by omega)
     · exact cheb_term_degree _ _
 
+/-- A nonzero scalar multiple of the order-`n` Chebyshev polynomial has natural degree exactly
+`n`. -/
 lemma cheb_term_degree_exact (c : ℝ) (hc : c ≠ 0) (n : ℕ) :
     (C c * Polynomial.Chebyshev.T ℝ (n:ℤ)).natDegree = n := by
   rw [natDegree_C_mul hc, Polynomial.Chebyshev.natDegree_T]
   simp
 
+/-- If its highest even Bessel coefficient is nonzero, the compact cosine polynomial has natural
+degree exactly `2R`. -/
 lemma compact_cos_degree_exact (t : ℝ) (R : ℕ) (hJ : besselInt (2*R) t ≠ 0) :
     (compactCosPoly t R).natDegree = 2*R := by
   cases R with
@@ -4668,6 +5011,8 @@ lemma compact_cos_degree_exact (t : ℝ) (R : ℕ) (hJ : besselInt (2*R) t ≠ 0
     rw [natDegree_add_eq_right_of_natDegree_lt (by rw [hd]; have := compact_cos_degree t R; omega),
         hd]
 
+/-- If its highest odd Bessel coefficient is nonzero, the compact sine polynomial has natural
+degree exactly `2R + 1`. -/
 lemma compact_sin_degree_exact (t : ℝ) (R : ℕ) (hJ : besselInt (2*R+1) t ≠ 0) :
     (compactSinPoly t R).natDegree = 2*R+1 := by
   cases R with
@@ -4688,12 +5033,15 @@ set_option maxHeartbeats 1000000
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Polynomial Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open scoped Classical BigOperators
+/-- The `k`th even Chebyshev–Bessel term at `x`, with the zero-index coefficient counted once. -/
 noncomputable def compactCosTerm (t x : ℝ) (k : ℕ) : ℝ :=
   2*(-1:ℝ)^k*besselInt (2*k) t*(Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ)).eval x -
     if k=0 then besselInt 0 t else 0
+/-- The `k`th odd Chebyshev–Bessel term at `x`. -/
 noncomputable def compactSinTerm (t x : ℝ) (k : ℕ) : ℝ :=
   2*(-1:ℝ)^k*besselInt (2*k+1) t*(Polynomial.Chebyshev.T ℝ ((2*k+1:ℕ):ℤ)).eval x
 
+/-- The compact cosine polynomial evaluates to the sum of its first `R + 1` terms. -/
 lemma compact_cos_eval_sum (t x : ℝ) (R : ℕ) :
     (compactCosPoly t R).eval x = ∑ k ∈ Finset.range (R+1), compactCosTerm t x k := by
   induction R with
@@ -4702,6 +5050,7 @@ lemma compact_cos_eval_sum (t x : ℝ) (R : ℕ) :
     rw [compact_cos_succ, eval_add, ih, Finset.sum_range_succ (n:=R+1)]
     simp [compactCosTerm]
 
+/-- The compact sine polynomial evaluates to the sum of its first `R + 1` terms. -/
 lemma compact_sin_eval_sum (t x : ℝ) (R : ℕ) :
     (compactSinPoly t R).eval x = ∑ k ∈ Finset.range (R+1), compactSinTerm t x k := by
   induction R with
@@ -4710,6 +5059,7 @@ lemma compact_sin_eval_sum (t x : ℝ) (R : ℕ) :
     rw [compact_sin_succ, eval_add, ih, Finset.sum_range_succ (n:=R+1)]
     simp [compactSinTerm]
 
+/-- On `[-1, 1]`, the order-`n` Chebyshev polynomial evaluates as `cos (n * arccos x)`. -/
 lemma cheb_eval_arccos (x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (n : ℕ) :
     (Polynomial.Chebyshev.T ℝ (n:ℤ)).eval x = Real.cos ((n:ℝ)*Real.arccos x) := by
   calc
@@ -4717,6 +5067,7 @@ lemma cheb_eval_arccos (x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (n : ℕ) :
       rw [Real.cos_arccos hx.1 hx.2]
     _ = _ := by simp
 
+/-- Shifting the angle by its complement in `π/2` gives the stated even-order cosine identity. -/
 lemma even_shift_cos (k : ℕ) (φ : ℝ) :
     Real.cos ((2*k:ℕ)*(Real.pi/2-φ)) = (-1:ℝ)^k * Real.cos ((2*k:ℕ)*φ) := by
   have he : ((2*k:ℕ):ℝ)*(Real.pi/2-φ) = (k:ℝ)*Real.pi - ((2*k:ℕ):ℝ)*φ := by
@@ -4724,6 +5075,7 @@ lemma even_shift_cos (k : ℕ) (φ : ℝ) :
     ring
   rw [he, Real.cos_nat_mul_pi_sub]
 
+/-- Shifting the angle by its complement in `π/2` gives the stated odd-order sine identity. -/
 lemma odd_shift_sin (k : ℕ) (φ : ℝ) :
     Real.sin ((2*k+1:ℕ)*(Real.pi/2-φ)) = (-1:ℝ)^k * Real.cos ((2*k+1:ℕ)*φ) := by
   have he : ((2*k+1:ℕ):ℝ)*(Real.pi/2-φ) =
@@ -4732,6 +5084,7 @@ lemma odd_shift_sin (k : ℕ) (φ : ℝ) :
     ring
   rw [he, Real.sin_add_nat_mul_pi, Real.sin_pi_div_two_sub]
 
+/-- For nonnegative `t` and `x ∈ [-1, 1]`, the compact cosine terms sum to `cos (t * x)`. -/
 lemma compact_cos_hasSum_nonneg (t x : ℝ) (ht : 0 ≤ t) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     HasSum (compactCosTerm t x) (Real.cos (t*x)) := by
   have hs := bessel_cos_series t (Real.pi/2-Real.arccos x) ht
@@ -4742,6 +5095,7 @@ lemma compact_cos_hasSum_nonneg (t x : ℝ) (ht : 0 ≤ t) (hx : x ∈ Set.Icc (
   simp only [besselInt_eq_lcBesselJ]
   ring
 
+/-- For nonnegative `t` and `x ∈ [-1, 1]`, the compact sine terms sum to `sin (t * x)`. -/
 lemma compact_sin_hasSum_nonneg (t x : ℝ) (ht : 0 ≤ t) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     HasSum (compactSinTerm t x) (Real.sin (t*x)) := by
   have hs := bessel_sin_series t (Real.pi/2-Real.arccos x) ht
@@ -4751,14 +5105,17 @@ lemma compact_sin_hasSum_nonneg (t x : ℝ) (ht : 0 ≤ t) (hx : x ∈ Set.Icc (
   rw [compactSinTerm, cheb_eval_arccos x hx, odd_shift_sin, besselInt_eq_lcBesselJ]
   ring
 
+/-- Each compact cosine term is even in the time parameter. -/
 lemma compact_cos_term_neg (t x : ℝ) (k : ℕ) : compactCosTerm (-t) x k = compactCosTerm t x k := by
   simp [compactCosTerm, besselInt_neg, pow_mul]
 
+/-- Each compact sine term is odd in the time parameter. -/
 lemma compact_sin_term_neg (t x : ℝ) (k : ℕ) : compactSinTerm (-t) x k = -compactSinTerm t x k := by
   simp only [compactSinTerm, besselInt_neg, pow_add, pow_mul, neg_one_sq, one_pow,
     one_mul, pow_one]
   ring
 
+/-- For every real `t` and `x ∈ [-1, 1]`, the compact cosine terms sum to `cos (t * x)`. -/
 lemma compact_cos_hasSum (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     HasSum (compactCosTerm t x) (Real.cos (t*x)) := by
   by_cases ht : 0 ≤ t
@@ -4770,6 +5127,7 @@ lemma compact_cos_hasSum (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     rw [hf, neg_mul, Real.cos_neg] at hs
     exact hs
 
+/-- For every real `t` and `x ∈ [-1, 1]`, the compact sine terms sum to `sin (t * x)`. -/
 lemma compact_sin_hasSum (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     HasSum (compactSinTerm t x) (Real.sin (t*x)) := by
   by_cases ht : 0 ≤ t
@@ -4784,6 +5142,8 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open Polynomial
 open scoped Classical BigOperators
 
+/-- A summable majorant for the tail bounds the error of a finite truncation of a convergent
+real series. -/
 lemma real_series_truncation_bound (f b : ℕ → ℝ) (v : ℝ) (N : ℕ)
     (hf : HasSum f v) (hb : Summable b) (hbound : ∀ n, |f (n+N)| ≤ b n) :
     |v - ∑ i ∈ Finset.range N, f i| ≤ ∑' n, b n := by
@@ -4797,6 +5157,7 @@ lemma real_series_truncation_bound (f b : ℕ → ℝ) (v : ℝ) (N : ℕ)
     simpa only [Real.norm_eq_abs] using! norm_tsum_le_tsum_norm (f := fun n => f (n+N)) ha
   exact hn.trans (ha.tsum_le_tsum hbound hb)
 
+/-- The absolute Bessel coefficients along either fixed parity form a summable sequence. -/
 lemma besselInt_parity_summable (q : ℕ) (t : ℝ) : Summable (fun k : ℕ => |besselInt (q+2*k) t|) := by
   have hinj : Function.Injective (fun k : ℕ => q+2*k) := by
     intro i j h
@@ -4807,6 +5168,8 @@ lemma besselInt_parity_summable (q : ℕ) (t : ℝ) : Summable (fun k : ℕ => |
   exact Summable.of_nonneg_of_le (fun k => abs_nonneg _)
     (fun k => besselInt_abs_bound (q+2*k) t) hs
 
+/-- Every nonzero-index compact cosine term on `[-1, 1]` is bounded by twice the corresponding
+absolute Bessel coefficient. -/
 lemma compact_cos_term_bound (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (k : ℕ) (hk : k ≠ 0) :
     |compactCosTerm t x k| ≤ 2*|besselInt (2*k) t| := by
   have hc : |(Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ)).eval x| ≤ 1 := by
@@ -4817,6 +5180,8 @@ lemma compact_cos_term_bound (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (k : �
       simp [compactCosTerm, hk, abs_mul, abs_pow]
     _ ≤ _ := (mul_le_mul_of_nonneg_left hc (by positivity)).trans_eq (mul_one _)
 
+/-- Every compact sine term on `[-1, 1]` is bounded by twice the corresponding absolute Bessel
+coefficient. -/
 lemma compact_sin_term_bound (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (k : ℕ) :
     |compactSinTerm t x k| ≤ 2*|besselInt (2*k+1) t| := by
   have hc : |(Polynomial.Chebyshev.T ℝ ((2*k+1:ℕ):ℤ)).eval x| ≤ 1 := by
@@ -4827,6 +5192,8 @@ lemma compact_sin_term_bound (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (k : �
       simp [compactSinTerm, abs_mul, abs_pow]
     _ ≤ _ := (mul_le_mul_of_nonneg_left hc (by positivity)).trans_eq (mul_one _)
 
+/-- The compact cosine truncation error on `[-1, 1]` is bounded by twice the absolute even
+Bessel tail starting at `2R + 2`. -/
 lemma compact_cos_error (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (R : ℕ) :
     |Real.cos (t*x) - (compactCosPoly t R).eval x| ≤
       2*(∑' k : ℕ, |besselInt ((2*R+2)+2*k) t|) := by
@@ -4839,6 +5206,8 @@ lemma compact_cos_error (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (R : ℕ) :
       simpa only [show 2*(k+(R+1))=(2*R+2)+2*k by omega] using! h)
   simpa only [tsum_mul_left] using! hh
 
+/-- The compact sine truncation error on `[-1, 1]` is bounded by twice the absolute odd Bessel
+tail starting at `2R + 3`. -/
 lemma compact_sin_error (t x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) (R : ℕ) :
     |Real.sin (t*x) - (compactSinPoly t R).eval x| ≤
       2*(∑' k : ℕ, |besselInt ((2*R+3)+2*k) t|) := by
@@ -4856,6 +5225,9 @@ open Polynomial
 open scoped Classical BigOperators
 set_option maxHeartbeats 1000000
 
+/-- For nonzero `t` and `0 < ε < 1/e`, constructs a radius giving uniform cosine and sine
+Chebyshev–Bessel approximations with error at most `ε`, the stated parity and degree bounds,
+and exact degrees when the leading coefficients are nonzero. -/
 theorem clause45 : (
 ∀ (t ε : ℝ), t ≠ 0 → 0 < ε → ε < 1 / Real.exp 1 →
     let s := Real.exp 1 * |t| / 2
@@ -4914,10 +5286,13 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- Swaps the flag pairs `(0, 1)` and `(1, 0)` while preserving the remaining state and
+workspace coordinates. -/
 def qmaRejectSwap {S M : Type} (x : Fin 4 × Fin 2 × S × M) : Fin 4 × Fin 2 × S × M :=
   let z := Equiv.swap (0, 1) (1, 0) (x.1, x.2.1)
   (z.1, z.2, x.2.2)
 
+/-- The rejection flag swap is an involution. -/
 theorem qmaRejectSwap_involutive {S M : Type} :
     Function.Involutive (qmaRejectSwap (S := S) (M := M)) := by
   intro ⟨i, j, sm⟩
@@ -4925,11 +5300,14 @@ theorem qmaRejectSwap_involutive {S M : Type} :
   have h := Equiv.swap_apply_self (0, 1) (1, 0) (i, j)
   exact congrArg (fun z : Fin 4 × Fin 2 => (z.1, z.2, sm)) h
 
+/-- Applying the rejection swap to a state with first flag zero makes the second flag zero. -/
 theorem qmaRejectSwap_flag {S M : Type} (y : Fin 2 × S × M) :
     (qmaRejectSwap (0, y)).2.1 = 0 := by
   rcases y with ⟨i, sm⟩
   fin_cases i <;> simp [qmaRejectSwap, Equiv.swap_apply_def]
 
+/-- The accepting block of the rejection-swap permutation matrix vanishes on the specified
+initialized inputs. -/
 theorem qma_reject_accept_block_zero (S M : Type) [Fintype S] [DecidableEq S]
     [Fintype M] [DecidableEq M] (m0 : M) :
     (fun (x : Fin 4 × Fin 2 × S × M) (y : Fin 2 × S) =>
@@ -4945,6 +5323,7 @@ theorem qma_reject_accept_block_zero (S M : Type) [Fintype S] [DecidableEq S]
     simp [hx, permMatrix, hne]
   · simp [hx]
 
+/-- Each entry of a rectangular matrix is bounded in norm by its operator norm. -/
 theorem rectangular_entry_norm_le {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix I J ℂ) (i : I) (j : J) :
     ‖A i j‖ ≤ ‖A‖ := by
@@ -4961,11 +5340,15 @@ theorem rectangular_entry_norm_le {I J : Type} [Fintype I] [DecidableEq I]
   rw [he] at hi
   exact hi.trans hn
 
+/-- The accepting output block of `V` restricted to inputs with initialized first flag and
+workspace `m0`. -/
 def amplifiedAcceptBlock {S M : Type} (m0 : M)
     (V : Matrix (Fin 4 × Fin 2 × S × M) (Fin 4 × Fin 2 × S × M) ℂ) :
     Matrix (Fin 4 × Fin 2 × S × M) (Fin 2 × S) ℂ :=
   fun x y => if x.2.1 = 1 then V x (0, y.1, y.2, m0) else 0
 
+/-- For a nonempty state space, the accepting block of the identity has operator norm at least
+one. -/
 theorem identity_accept_block_norm_ge (S M : Type) [Fintype S] [DecidableEq S]
     [Fintype M] [DecidableEq M] [Nonempty S] (m0 : M) :
     1 ≤ ‖amplifiedAcceptBlock m0 (1 : Matrix (Fin 4 × Fin 2 × S × M)
@@ -4977,8 +5360,11 @@ theorem identity_accept_block_norm_ge (S M : Type) [Fintype S] [DecidableEq S]
     (0, 1, s, m0) (1, s)
   simpa [amplifiedAcceptBlock] using! h
 
+/-- The QSVT program with no angles and all cost ledger entries zero. -/
 def emptyQsvtProgram : QsvtProgram := ⟨[], ⟨0, 0, 0, 0, 0, 0, 0⟩⟩
 
+/-- Under the stated acceptance thresholds, provides a unitary with the required accepting-block
+norm implications and a program ledger satisfying the gap-dependent bounds. -/
 theorem clause78 : (
 ∀ (S M : Type) [Fintype S] [DecidableEq S] [Fintype M] [DecidableEq M]
       (m0 : M)
@@ -5045,6 +5431,8 @@ theorem clause78 : (
       rw [qma_reject_accept_block_zero, norm_zero]
       exact Real.sqrt_nonneg ε
 
+/-- There is a least positive integer radius for which `(s / r)^r ≤ target` when `s > 0` and `0
+< target ≤ 1`. -/
 theorem least_integer_compact_radius (s target : ℝ) (hs : 0 < s)
     (ht : 0 < target) (ht1 : target ≤ 1) :
     ∃ r : ℕ, 0 < r ∧ (s/(r:ℝ))^r ≤ target ∧
@@ -5064,6 +5452,7 @@ theorem least_integer_compact_radius (s target : ℝ) (hs : 0 < s)
   intro n hn hlt
   exact lt_of_not_ge fun hle => Nat.find_min hex hlt ⟨hn, hle⟩
 
+/-- The product of two compatible isometries is an isometry. -/
 theorem isometry_compose {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     {L : Matrix H I ℂ} {R : Matrix I J ℂ} (hL : IsIsometry L) (hR : IsIsometry R) :
@@ -5072,6 +5461,8 @@ theorem isometry_compose {H I J : Type} [Fintype H] [DecidableEq H]
   rw [Matrix.conjTranspose_mul, Matrix.mul_assoc, ← Matrix.mul_assoc Lᴴ, hL,
     Matrix.one_mul, hR]
 
+/-- A unitary matrix can be block encoded by the identity on the enlarged space using freely
+chosen isometric frames. -/
 theorem free_frame_unitary_encoding {W S : Type} [Fintype W] [DecidableEq W]
     [Fintype S] [DecidableEq S] (E : Matrix S S ℂ) (L : Matrix W S ℂ)
     (hE : E ∈ Matrix.unitaryGroup S ℂ) (hL : IsIsometry L) (ε : ℝ) (hε : 0 ≤ ε) :
@@ -5089,6 +5480,8 @@ theorem free_frame_unitary_encoding {W S : Type} [Fintype W] [DecidableEq W]
   simp only [hc, one_smul, sub_self, norm_zero]
   exact hε
 
+/-- Taking the Hermitian part of a matrix preserves Hermiticity and does not increase its
+operator-norm error from a Hermitian target. -/
 theorem hermitian_part_error {S : Type} [Fintype S] [DecidableEq S]
     (A H : Matrix S S ℂ) (hH : H.IsHermitian) :
     ((2:ℂ)⁻¹ • (A+Aᴴ)).IsHermitian ∧
@@ -5105,9 +5498,14 @@ theorem hermitian_part_error {S : Type} [Fintype S] [DecidableEq S]
     rw [show ‖(2:ℂ)⁻¹‖ = (1/2:ℝ) by norm_num]
     linarith
 
+/-- The empty-angle QSVT program whose only potentially nonzero cost is the specified peak
+workspace. -/
 def unlinkedProgram (workspace : ℕ) : QsvtProgram :=
   ⟨[], ⟨0, 0, 0, 0, 0, 0, workspace⟩⟩
 
+/-- Under the exact block-encoding hypotheses, provides the least positive truncation radius, an
+encoding of evolution at `-t` with existential frames, and program ledger and controlled-use
+witnesses satisfying the stated bounds. -/
 theorem clause82 : (
 ∀ (W S : Type) [Fintype W] [DecidableEq W] [Fintype S] [DecidableEq S]
       (H : Matrix S S ℂ) (U : Matrix W W ℂ) (L : Matrix W S ℂ) (R : Matrix W S ℂ)
@@ -5142,6 +5540,9 @@ theorem clause82 : (
   exact ⟨r, 1, L', R', unlinkedProgram (a+2), 3, hr, hbound, hmin, he,
     Nat.zero_le _, rfl, Nat.zero_le _, rfl⟩
 
+/-- Under the approximate block-encoding hypotheses, gives the evolution error budget, a
+Hermitian-part error bound, and existential encodings and separate resource witnesses for
+the two stated workspace bounds. -/
 theorem clause84 : (
 ∀ (W S : Type) [Fintype W] [DecidableEq W] [Fintype S] [DecidableEq S]
       (H : Matrix S S ℂ) (U : Matrix W W ℂ) (L : Matrix W S ℂ) (R : Matrix W S ℂ)
@@ -5201,6 +5602,8 @@ theorem clause84 : (
   · intro _
     exact ⟨he, hbudget.le⟩
 
+/-- The evolution of a real scalar multiple of the identity is the corresponding scalar phase
+times the identity. -/
 theorem scalar_identity_evolution {S : Type} [Fintype S] [DecidableEq S] (c t : ℝ) :
     HamiltonianEvolution ((c:ℂ) • (1 : Matrix S S ℂ)) t =
       Complex.exp (-Complex.I * (t:ℂ) * (c:ℂ)) • (1 : Matrix S S ℂ) := by
@@ -5211,16 +5614,21 @@ theorem scalar_identity_evolution {S : Type} [Fintype S] [DecidableEq S] (c t : 
   funext i
   simp only [Pi.smul_apply, smul_eq_mul, mul_one, Pi.coe_exp, ← Complex.exp_eq_exp_ℂ]
 
+/-- The identity block encodes itself exactly with identity left and right frames. -/
 theorem positive_identity_encoding (S : Type) [Fintype S] [DecidableEq S] :
     BlockEncoding (1 : Matrix S S ℂ) (1 : Matrix S S ℂ) 1 1 1 0 := by
   refine ⟨by simp, by simp [IsIsometry], by simp [IsIsometry], by norm_num, le_rfl, ?_⟩
   simp [compress]
 
+/-- The identity oracle with opposite left and right frames block encodes the negative identity
+exactly. -/
 theorem negative_identity_encoding (S : Type) [Fintype S] [DecidableEq S] :
     BlockEncoding (-1 : Matrix S S ℂ) (1 : Matrix S S ℂ) 1 (-1) 1 0 := by
   refine ⟨by simp, by simp [IsIsometry], by simp [IsIsometry], by norm_num, le_rfl, ?_⟩
   simp [compress]
 
+/-- The evolutions of the one-dimensional positive and negative identities at time `-π/2` differ
+in norm by exactly two. -/
 theorem opposite_identity_evolution_gap :
     ‖HamiltonianEvolution (1 : Matrix (Fin 1) (Fin 1) ℂ) (-(Real.pi/2)) -
       HamiltonianEvolution (-1 : Matrix (Fin 1) (Fin 1) ℂ) (-(Real.pi/2))‖ = 2 := by
@@ -5236,6 +5644,8 @@ theorem opposite_identity_evolution_gap :
   rw [hp, hm, sub_neg_eq_add, ← add_smul, ← two_mul, norm_smul, norm_mul]
   norm_num
 
+/-- No single oracle and fixed pair of frames can encode both specified opposite-identity
+evolutions with error at most `1/4`. -/
 theorem shared_oracle_frames_conflict {W : Type} [Fintype W] [DecidableEq W]
     (V : Matrix W W ℂ) (L R : Matrix W (Fin 1) ℂ) :
     ¬ (BlockEncoding (HamiltonianEvolution (1 : Matrix (Fin 1) (Fin 1) ℂ) (-(Real.pi/2)))
@@ -5253,6 +5663,8 @@ theorem shared_oracle_frames_conflict {W : Type} [Fintype W] [DecidableEq W]
   simp only [one_smul] at hp' hm'
   linarith
 
+/-- Refutes the stated evolution encoding assertion requiring one choice of oracle-word data and
+frames to work uniformly over all compatible input block encodings. -/
 theorem not_clause83 : ¬ (
 ∀ (W S : Type) [Fintype W] [DecidableEq W] [Fintype S] [DecidableEq S]
       (H : Matrix S S ℂ) (U : Matrix W W ℂ) (L : Matrix W S ℂ) (R : Matrix W S ℂ)
@@ -5317,10 +5729,13 @@ set_option maxHeartbeats 1000000
 local instance {S : Type} [Fintype S] [DecidableEq S] :
     CStarAlgebra (Matrix S S ℂ) where
 
+/-- The matrix response given by nonunital continuous functional calculus of `x ↦ 1 - (1 +
+x)⁻¹`. -/
 noncomputable def orAccept {S : Type} [Fintype S] [DecidableEq S]
     (A : Matrix S S ℂ) : Matrix S S ℂ :=
   cfcₙ (fun x : ℝ => 1 - (1+x)⁻¹) A
 
+/-- For positive `A`, the OR response is positive, at most the identity, and at most `A`. -/
 theorem orAccept_bounds {S : Type} [Fintype S] [DecidableEq S]
     (A : Matrix S S ℂ) (hA : 0 ≤ A) :
     0 ≤ orAccept A ∧ orAccept A ≤ 1 ∧ orAccept A ≤ A := by
@@ -5353,6 +5768,7 @@ theorem orAccept_bounds {S : Type} [Fintype S] [DecidableEq S]
     have hl : 1-x ≤ 1/(1+x) := (le_div_iff₀ hxp).mpr (by nlinarith [sq_nonneg x])
     linarith
 
+/-- The OR response of an orthogonal projector is half that projector. -/
 theorem orAccept_projector {S : Type} [Fintype S] [DecidableEq S]
     (P : Matrix S S ℂ) (hP : IsOrthogonalProjector P) :
     orAccept P = (1/2:ℝ) • P := by
@@ -5371,6 +5787,8 @@ theorem orAccept_projector {S : Type} [Fintype S] [DecidableEq S]
   rw [orAccept, hc]
   exact cfcₙ_const_mul_id (1/2:ℝ) P
 
+/-- If an orthogonal projector is bounded above by positive `A`, half the projector is bounded
+above by the OR response of `A`. -/
 theorem orAccept_projector_lower {S : Type} [Fintype S] [DecidableEq S]
     (P A : Matrix S S ℂ) (hP : IsOrthogonalProjector P) (hA : 0 ≤ A)
     (hPA : P ≤ A) : (1/2:ℝ) • P ≤ orAccept A := by
@@ -5381,9 +5799,12 @@ theorem orAccept_projector_lower {S : Type} [Fintype S] [DecidableEq S]
   rw [← orAccept_projector P hP]
   exact CFC.monotoneOn_one_sub_one_add_inv_real hp hA hPA
 
+/-- The equivalence that replaces a Boolean flag by `Fin 2` and moves it after the state
+coordinate. -/
 def orFlagEquiv (S : Type) : Bool × S ≃ S × Fin 2 :=
   (Equiv.prodCongr (boolEquivFin2) (Equiv.refl S)).trans (Equiv.prodComm _ _)
 
+/-- The flag flip controlled by an orthogonal projector is unitary. -/
 theorem or_projector_access (S : Type) [Fintype S] [DecidableEq S]
     (P : Matrix S S ℂ) (hP : IsOrthogonalProjector P) :
     Matrix.kronecker (1-P) (1 : Matrix (Fin 2) (Fin 2) ℂ) +
@@ -5396,6 +5817,8 @@ theorem or_projector_access (S : Type) [Fintype S] [DecidableEq S]
   rw [he]
   exact relabelGate_mem_unitary (cppNot_unitary hP) _
 
+/-- A finite family of orthogonal projectors has a unitary select matrix whose diagonal blocks
+are the associated controlled flag flips. -/
 theorem or_select_access (m n : ℕ) (P : Fin m → Matrix (Fin n) (Fin n) ℂ)
     (hP : ∀ i, IsOrthogonalProjector (P i)) :
     ∃ V : Matrix (Fin m × (Fin n × Fin 2)) (Fin m × (Fin n × Fin 2)) ℂ,
@@ -5409,6 +5832,8 @@ theorem or_select_access (m n : ℕ) (P : Fin m → Matrix (Fin n) (Fin n) ℂ)
   ext x y
   simp [select, Matrix.submatrix_apply]
 
+/-- Constructs a positive contraction with the stated quantum OR acceptance inequalities, a
+unitary projector-select matrix, and a program ledger satisfying the stated bounds. -/
 theorem clause79 : (
 ∀ (m n : ℕ) (projs : Fin m → Matrix (Fin n) (Fin n) ℂ) (η ν ε : ℝ),
     1 ≤ m → (∀ i : Fin m, IsOrthogonalProjector (projs i)) →
@@ -5487,6 +5912,8 @@ set_option backward.isDefEq.respectTransparency false
 local instance gibbsMatrixCStar {S : Type} [Fintype S] [DecidableEq S] :
     CStarAlgebra (Matrix S S ℂ) where
 
+/-- The exponential of a Hermitian matrix is positive semidefinite and has positive real trace
+on a nonempty finite index type. -/
 theorem finite_exp_positive_trace {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
     (A : Matrix S S ℂ) (hA : A.IsHermitian) :
     (NormedSpace.exp A).PosSemidef ∧ 0 < (Matrix.trace (NormedSpace.exp A)).re ∧
@@ -5504,6 +5931,8 @@ theorem finite_exp_positive_trace {S : Type} [Fintype S] [DecidableEq S] [Nonemp
     rw [← hreal]
     exact (HermitianMat.trace_eq_trace H.exp).symm
 
+/-- The adjoint product of the shifted half Gibbs exponential equals the full shifted Gibbs
+exponential. -/
 theorem gibbs_half_factorization {S : Type} [Fintype S] [DecidableEq S]
     (H : Matrix S S ℂ) (hH : H.IsHermitian) (β : ℝ) :
     (NormedSpace.exp (((-(β/2):ℝ):ℂ) • (H+1)))ᴴ *
@@ -5517,12 +5946,15 @@ theorem gibbs_half_factorization {S : Type} [Fintype S] [DecidableEq S]
   push_cast
   ring
 
+/-- Acting on the first factor of the diagonal entangled vector yields the corresponding matrix
+entry times its common amplitude. -/
 theorem entangled_matrix_action {S : Type} [Fintype S] [DecidableEq S]
     (K : Matrix S S ℂ) (c : ℂ) (p : S × S) :
     ((Matrix.kronecker K (1 : Matrix S S ℂ)) *ᵥ
       (fun q : S × S => if q.1 = q.2 then c else 0)) p = K p.1 p.2 * c := by
   simp [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, Matrix.one_apply, mul_ite]
 
+/-- The real trace of `Kᴴ * K` is the sum of the squared norms of all entries of `K`. -/
 theorem trace_gram_eq_entry_norms {S : Type} [Fintype S] [DecidableEq S]
     (K : Matrix S S ℂ) : (Kᴴ*K).trace.re = ∑ p : S × S, ‖K p.1 p.2‖^2 := by
   simp only [Matrix.trace, Matrix.diag_apply, Matrix.mul_apply, Matrix.conjTranspose_apply, Complex.re_sum,
@@ -5530,6 +5962,8 @@ theorem trace_gram_eq_entry_norms {S : Type} [Fintype S] [DecidableEq S]
     Complex.conj_im, neg_mul, sub_neg_eq_add, Complex.normSq_apply]
   rw [Fintype.sum_prod_type, Finset.sum_comm]
 
+/-- The squared mass obtained by applying `K` to one half of the normalized diagonal entangled
+vector is `trace (Kᴴ * K).re` divided by the dimension. -/
 theorem entangled_success_mass {S : Type} [Fintype S] [DecidableEq S]
     (K : Matrix S S ℂ) :
     (∑ p : S × S, ‖((Matrix.kronecker K (1 : Matrix S S ℂ)) *ᵥ
@@ -5542,6 +5976,7 @@ theorem entangled_success_mass {S : Type} [Fintype S] [DecidableEq S]
       inv_pow, Real.sq_sqrt (by positivity)]
   rw [hc, div_eq_mul_inv]
 
+/-- Distinct encoding fibers are orthogonal. -/
 theorem encoding_fibers_orthogonal {J W : Type} [Fintype J] [DecidableEq J]
     [Fintype W] [DecidableEq W] (i j : J) (h : i ≠ j) :
     (encodingFiber (I := W) i)ᴴ * encodingFiber (I := W) j = 0 := by
@@ -5555,6 +5990,8 @@ theorem encoding_fibers_orthogonal {J W : Type} [Fintype J] [DecidableEq J]
     simp [hn]
   · simp [hp]
 
+/-- Concatenating two copies of an isometry embedded in distinct encoding fibers gives an
+isometry. -/
 theorem doubled_frame_isometry {W S : Type} [Fintype W] [DecidableEq W]
     [Fintype S] [DecidableEq S] (L : Matrix W S ℂ) (hL : IsIsometry L) :
     IsIsometry (Matrix.fromCols (encodingFiber (I := W) (0 : Fin 4)*L)
@@ -5576,6 +6013,8 @@ theorem doubled_frame_isometry {W S : Type} [Fintype W] [DecidableEq W]
     h0,h1,hc,hc']
   exact Matrix.fromBlocks_one
 
+/-- A contraction can be block encoded by the identity on the enlarged space using freely chosen
+isometric frames. -/
 theorem free_frame_contraction_encoding {W S : Type} [Fintype W] [DecidableEq W]
     [Fintype S] [DecidableEq S] (K : Matrix S S ℂ) (L : Matrix W S ℂ)
     (hK : ‖K‖ ≤ 1) (hL : IsIsometry L) (ε : ℝ) (hε : 0 ≤ ε) :
@@ -5610,6 +6049,7 @@ theorem free_frame_contraction_encoding {W S : Type} [Fintype W] [DecidableEq W]
     by norm_num,hε,?_⟩
   simpa only [compress,Matrix.mul_one,hc,one_smul,sub_self,norm_zero] using! hε
 
+/-- Adding the identity to a Hermitian contraction gives a positive semidefinite matrix. -/
 theorem shifted_hermitian_contraction_psd {S : Type} [Fintype S] [DecidableEq S]
     (H : Matrix S S ℂ) (hH : H.IsHermitian) (hn : ‖H‖ ≤ 1) : (H+1).PosSemidef := by
   have hlow := (show IsSelfAdjoint H from hH).neg_algebraMap_norm_le_self
@@ -5622,6 +6062,8 @@ theorem shifted_hermitian_contraction_psd {S : Type} [Fintype S] [DecidableEq S]
     exact sub_nonneg.mpr ((neg_le_neg hs).trans hlow)
   simpa only [sub_zero] using! Matrix.le_iff.mp hnon
 
+/-- For nonnegative inverse temperature, the shifted half Gibbs exponential of a Hermitian
+contraction has operator norm at most one. -/
 theorem gibbs_half_contraction {S : Type} [Fintype S] [DecidableEq S]
     (H : Matrix S S ℂ) (hH : H.IsHermitian) (hn : ‖H‖ ≤ 1) (β : ℝ) (hβ : 0 ≤ β) :
     ‖NormedSpace.exp (((-(β/2):ℝ):ℂ) • (H+1))‖ ≤ 1 := by
@@ -5629,6 +6071,7 @@ theorem gibbs_half_contraction {S : Type} [Fintype S] [DecidableEq S]
     (β/2) (by positivity)
   exact h
 
+/-- The reduced matrix of the vector with entries `K i j * c` is `(c * star c)` times `K * Kᴴ`. -/
 theorem vectorized_reduced_matrix {S : Type} [Fintype S] [DecidableEq S]
     (K : Matrix S S ℂ) (c : ℂ) :
     (fun i j => ∑ z, (K i z*c) * star (K j z*c)) = (c*star c) • (K*Kᴴ) := by
@@ -5640,6 +6083,8 @@ theorem vectorized_reduced_matrix {S : Type} [Fintype S] [DecidableEq S]
   rw [RCLike.star_def]
   ring
 
+/-- For Hermitian `K` with positive Gram trace, its normalized vectorization is a normalized
+vector whose reduced matrix is the normalized Gram matrix. -/
 theorem normalized_vectorized_purification {S : Type} [Fintype S] [DecidableEq S]
     (K : Matrix S S ℂ) (hK : K.IsHermitian) (hZ : 0 < (Kᴴ*K).trace.re) :
     Normalized (fun p : S×S => K p.1 p.2 * (Real.sqrt (Kᴴ*K).trace.re : ℂ)⁻¹) ∧
@@ -5667,6 +6112,9 @@ theorem normalized_vectorized_purification {S : Type} [Fintype S] [DecidableEq S
     change ((Real.sqrt Z:ℂ)⁻¹ * star (Real.sqrt Z:ℂ)⁻¹) • (K*Kᴴ) = (Z:ℂ)⁻¹ • (Kᴴ*K)
     rw [hc,hK.eq]
 
+/-- For an exactly block-encoded Hermitian contraction, establishes shifted Gibbs factorization,
+trace positivity, and entangled success mass, together with existential encoding and
+resource witnesses and the case `β = 0`. -/
 theorem clause85 : (
 ∀ (W S : Type) [Fintype W] [DecidableEq W] [Fintype S] [DecidableEq S]
       (H : Matrix S S ℂ) (U : Matrix W W ℂ) (L : Matrix W S ℂ) (R : Matrix W S ℂ)

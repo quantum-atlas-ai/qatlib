@@ -9,30 +9,63 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
+/-!
+# Finite information divergence and testing bounds
+
+This module defines finite KL divergence, total variation, squared Hellinger distance, and
+binary testing error. It proves KL additivity for independent sample records and the comparisons
+`tv_sq_le_hellinger` and `hellinger_le_kl`, yielding testing and separated estimation lower
+bounds. Nonnegativity and KL comparisons use strictly positive masses. Information divergence
+and distinguishability provide the background [Watrous2018].
+
+## Main statements
+
+* `kl_records`: For strictly positive masses, the KL divergence of length `n` independent record
+  laws is `n` times the one sample KL divergence.
+* `tv_sq_le_kl`: For strictly positive masses, the square of total variation is at most the KL
+  divergence.
+* `records_testing_lower`: For strictly positive masses, every test on `n` independent
+  observations has summed error at least `1 - sqrt (n * kl p q)`.
+* `records_estimation_lower`: For strictly positive masses and parameter separation `2 * eps <
+  theta1 - theta0`, the two estimation failure probabilities sum to at least `1 - sqrt (n * kl p
+  q)`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteInformationDivergence
 open scoped BigOperators Classical
 noncomputable section
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The finite sum of `p.prob x * (log (p.prob x) - log (q.prob x))`, with logarithms
+interpreted as real functions. -/
 def kl (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : ℝ :=
   ∑ x, p.prob x * (Real.log (p.prob x)-Real.log (q.prob x))
 
+/-- The total variation expression equal to half the L1 difference of the finite mass functions. -/
 def tv (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : ℝ :=
     (∑ x, |p.prob x-q.prob x|)/2
 
+/-- The law of `n` independent observations drawn from `p`. -/
 def records (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin n → X) :=
   Qatlib.Concepts.MonteCarloMean.FinDistBounds.independentSampleLaw (fun _ => p)
 
 omit [DecidableEq X] in
 
+/-- The KL expression of a finite distribution relative to itself is zero. -/
 @[simp] theorem kl_self (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : kl p p = 0 := by simp [kl]
 omit [DecidableEq X] in
 
+/-- The total variation distance of a finite distribution from itself is zero. -/
 @[simp] theorem tv_self (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : tv p p = 0 := by simp [tv]
 
 omit [DecidableEq X] in
 
+/-- The KL divergence is nonnegative when both finite mass functions are strictly positive. -/
 theorem kl_nonneg (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) : 0 ≤ kl p q := by
   have h (x : X) : p.prob x-q.prob x ≤
@@ -47,6 +80,8 @@ theorem kl_nonneg (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
   have hs := Finset.sum_le_sum (fun x (_ : x ∈ (Finset.univ : Finset X)) => h x)
   simpa [kl, Finset.sum_sub_distrib, p.sum_one, q.sum_one] using hs
 
+/-- For strictly positive masses, the KL divergence of length `n` independent record laws is `n`
+times the one sample KL divergence. -/
 theorem kl_records (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) (n : ℕ) :
     kl (records p n) (records q n) = (n : ℝ) * kl p q := by
@@ -70,11 +105,14 @@ theorem kl_records (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X
       exact p.expect_coord i (fun x => Real.log (p.prob x)-Real.log (q.prob x))
     _ = (n : ℝ) * kl p q := by simp
 
+/-- The sum of the two binary testing error probabilities, using `p` mass where the decision is
+true and `q` mass where it is false. -/
 def errorSum (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (decideQ : X → Bool) : ℝ :=
   ∑ x, if decideQ x = true then p.prob x else q.prob x
 
 omit [DecidableEq X] in
 
+/-- Every Boolean test has summed error at least `1 - tv p q`. -/
 theorem errorSum_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (f : X → Bool) :
     1-tv p q ≤ errorSum p q f := by
   have h (x : X) : p.prob x+q.prob x-|p.prob x-q.prob x| ≤
@@ -88,9 +126,13 @@ theorem errorSum_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDi
   dsimp [tv, errorSum]
   linarith
 
+/-- The sum of squared differences between the square roots of the two finite probability mass
+functions. -/
 def hellingerSq (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : ℝ :=
   ∑ x, (Real.sqrt (p.prob x)-Real.sqrt (q.prob x))^2
 
+/-- For positive real `p` and `q`, the squared difference of their square roots is at most `p *
+(log p - log q) + q - p`. -/
 private theorem sqrt_log_bound (p q : ℝ) (hp : 0 < p) (hq : 0 < q) :
     (Real.sqrt p-Real.sqrt q)^2 ≤ p*(Real.log p-Real.log q)+q-p := by
   have ha := Real.sqrt_pos.mpr hp
@@ -107,6 +149,7 @@ private theorem sqrt_log_bound (p q : ℝ) (hp : 0 < p) (hq : 0 < q) :
 
 omit [DecidableEq X] in
 
+/-- For strictly positive masses, the squared Hellinger expression is at most the KL divergence. -/
 theorem hellinger_le_kl (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) : hellingerSq p q ≤ kl p q := by
   have hs := Finset.sum_le_sum (fun x (_ : x ∈ (Finset.univ : Finset X)) =>
@@ -116,6 +159,7 @@ theorem hellinger_le_kl (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinD
 
 omit [DecidableEq X] in
 
+/-- The square of total variation is at most the squared Hellinger expression. -/
 theorem tv_sq_le_hellinger (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : tv p q ^ 2 ≤ hellingerSq p q := by
   have hid (x : X) : |p.prob x-q.prob x| =
       |Real.sqrt (p.prob x)-Real.sqrt (q.prob x)| *
@@ -146,10 +190,13 @@ theorem tv_sq_le_hellinger (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.F
 
 omit [DecidableEq X] in
 
+/-- For strictly positive masses, the square of total variation is at most the KL divergence. -/
 theorem tv_sq_le_kl (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) : tv p q ^ 2 ≤ kl p q :=
   (tv_sq_le_hellinger p q).trans (hellinger_le_kl p q hp hq)
 
+/-- For strictly positive masses, every test on `n` independent observations has summed error at
+least `1 - sqrt (n * kl p q)`. -/
 theorem records_testing_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (hp : ∀ x, 0 < p.prob x) (hq : ∀ x, 0 < q.prob x)
     (n : ℕ) (f : (Fin n → X) → Bool) :
@@ -172,6 +219,8 @@ theorem records_testing_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBound
     nlinarith
   linarith
 
+/-- For strictly positive masses and parameter separation `2 * eps < theta1 - theta0`, the two
+estimation failure probabilities sum to at least `1 - sqrt (n * kl p q)`. -/
 theorem records_estimation_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (hp : ∀ x, 0 < p.prob x) (hq : ∀ x, 0 < q.prob x)
     (n : ℕ) (estimate : (Fin n → X) → ℝ) (theta0 theta1 eps : ℝ)

@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalEnergy
 import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+
+/-!
+# Legal-clock sectors and energy lower bounds
+
+This module splits a physical clock state into legal and illegal components, relates the legal
+component to `historyFrame`, and proves additive energy decomposition for `SectorPreserving`
+operators. These are ingredients of the history-state Hamiltonian method described in
+[KitaevShenVyalyi2002].
+
+`full_space_lower` lifts a normalized lower bound in the legal history space to the entire
+physical space after adding a sufficiently weighted clock penalty. The argument uses a
+homogeneous lower bound on the remaining operator and the penalty on illegal clock states.
+
+## Main statements
+
+* `sector_energy_parts`: energy decomposition across legal and illegal clock sectors.
+* `intertwine_energy`: preservation of energy under an isometric intertwining frame.
+* `full_space_lower`: a full-space lower bound from legal-sector control and clock penalties.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+* [Kempe, Kitaev, and Regev, 2006][KempeKitaevRegev2006]
+-/
+
 open Qatlib.Foundations.InstrumentCore.Measurement
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -21,9 +46,11 @@ open scoped Classical BigOperators Kronecker
 set_option autoImplicit false
 noncomputable section
 
+/-- The squared-amplitude mass of a finite state is nonnegative. -/
 theorem mass_nonneg {I : Type} [Fintype I] (ψ : QState I) : 0 ≤ mass ψ :=
   Finset.sum_nonneg (fun i _ => sq_nonneg ‖ψ i‖)
 
+/-- A finite state has zero mass exactly when it is the zero vector. -/
 theorem mass_zero_iff {I : Type} [Fintype I] (ψ : QState I) : mass ψ=0 ↔ ψ=0 := by
   constructor
   · intro h
@@ -35,6 +62,7 @@ theorem mass_zero_iff {I : Type} [Fintype I] (ψ : QState I) : mass ψ=0 ↔ ψ=
     rw [h]
     simp [mass]
 
+/-- Scaling a state by a real scalar scales its energy by the square of that scalar. -/
 theorem energy_real_smul {I : Type} [Fintype I] (H : Matrix I I ℂ)
     (r : ℝ) (ψ : QState I) : energy H ((r:ℂ) • ψ)=r^2*energy H ψ := by
   calc
@@ -52,11 +80,14 @@ theorem energy_real_smul {I : Type} [Fintype I] (H : Matrix I I ℂ)
       simp only [Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,zero_mul,sub_zero,pow_two]
     _ = r^2*energy H ψ := by rw [energy_entries]; simp only [Finset.mul_sum]
 
+/-- Scaling a state by a real scalar scales its mass by the square of that scalar. -/
 theorem mass_real_smul {I : Type} [Fintype I] (r : ℝ) (ψ : QState I) :
     mass ((r:ℂ) • ψ)=r^2*mass ψ := by
   simp only [mass,Pi.smul_apply,smul_eq_mul,norm_mul,mul_pow,Complex.norm_real,
     Real.norm_eq_abs,sq_abs,Finset.mul_sum]
 
+/-- An energy lower bound `b` on normalized states extends to the homogeneous bound `b*mass ψ ≤
+energy H ψ` for every state. -/
 theorem homogeneous_lower {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (b : ℝ)
     (h : ∀ψ : QState I,Normalized ψ → b≤energy H ψ) (ψ : QState I) :
@@ -83,19 +114,24 @@ theorem homogeneous_lower {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ mass ψ*energy H θ := mul_le_mul_of_nonneg_left (h θ hθ) (mass_nonneg ψ)
       _ = energy H ψ := he.symm
 
+/-- The component of a physical clock state supported on legal clock strings. -/
 def goodPart {m n : ℕ} (η : QState (Clock m×Reg n)) : QState (Clock m×Reg n) :=
   fun p => if LegalClock p.1 then η p else 0
 
+/-- The component of a physical clock state supported on illegal clock strings. -/
 def badPart {m n : ℕ} (η : QState (Clock m×Reg n)) : QState (Clock m×Reg n) :=
   fun p => if LegalClock p.1 then 0 else η p
 
+/-- Restrict a physical clock state to unary clock strings indexed by history times. -/
 def restricted {m n : ℕ} (η : QState (Clock m×Reg n)) : QState (Fin (m+1)×Reg n) :=
   fun p => η (unary p.1,p.2)
 
+/-- The legal and illegal clock components sum to the original state. -/
 theorem parts_add {m n : ℕ} (η : QState (Clock m×Reg n)) : goodPart η+badPart η=η := by
   funext p
   by_cases h : LegalClock p.1 <;> simp [goodPart,badPart,h]
 
+/-- The masses of the legal and illegal clock components sum to the original mass. -/
 theorem parts_mass {m n : ℕ} (η : QState (Clock m×Reg n)) :
     mass (goodPart η)+mass (badPart η)=mass η := by
   simp only [mass,← Finset.sum_add_distrib]
@@ -103,11 +139,15 @@ theorem parts_mass {m n : ℕ} (η : QState (Clock m×Reg n)) :
   intro p _
   by_cases h : LegalClock p.1 <;> simp [goodPart,badPart,h]
 
+/-- Evaluate the history-frame embedding as the sum of clock-frame coefficients at a fixed
+register value. -/
 theorem historyFrame_apply_clock {m n : ℕ} (ψ : QState (Fin (m+1)×Reg n))
     (c : Clock m) (z : Reg n) :
     (historyFrame m n*ᵥψ) (c,z)=∑t,clockFrame m c t*ψ (t,z) := by
   simp [historyFrame,Matrix.mulVec,dotProduct,Fintype.sum_prod_type,Matrix.one_apply,mul_ite]
 
+/-- The history-frame embedding equals the decoded history amplitude on legal clock strings and
+zero on illegal strings. -/
 theorem historyFrame_apply {m n : ℕ} (ψ : QState (Fin (m+1)×Reg n))
     (c : Clock m) (z : Reg n) :
     (historyFrame m n*ᵥψ) (c,z)=if LegalClock c then ψ (decode c,z) else 0 := by
@@ -121,6 +161,7 @@ theorem historyFrame_apply {m n : ℕ} (ψ : QState (Fin (m+1)×Reg n))
       exact hc (ht ▸ unary_legal t)
     simp [clockFrame,hn,hc]
 
+/-- Embedding the restriction of a physical state recovers its legal clock component. -/
 theorem embed_restricted {m n : ℕ} (η : QState (Clock m×Reg n)) :
     historyFrame m n*ᵥrestricted η=goodPart η := by
   funext ⟨c,z⟩
@@ -129,15 +170,18 @@ theorem embed_restricted {m n : ℕ} (η : QState (Clock m×Reg n)) :
   · simp [restricted,goodPart,hc,unary_decode c hc]
   · simp [goodPart,hc]
 
+/-- Restricting to unary clock strings preserves the mass of the legal clock component. -/
 theorem restricted_mass {m n : ℕ} (η : QState (Clock m×Reg n)) :
     mass (restricted η)=mass (goodPart η) := by
   rw [← embed_restricted]
   exact (historyFrame_mass m n (restricted η)).symm
 
+/-- The clock penalty tensored with the register identity annihilates the legal clock component. -/
 theorem clock_good_zero {m n : ℕ} (η : QState (Clock m×Reg n)) :
     TensorGate (clockPenalty m) (1:Matrix (Reg n) (Reg n) ℂ)*ᵥgoodPart η=0 := by
   rw [← embed_restricted,Matrix.mulVec_mulVec,lifted_clockPenalty_annihilates_history,Matrix.zero_mulVec]
 
+/-- The clock-penalty energy of the illegal component is at least its mass. -/
 theorem clock_bad_energy_lower {m n : ℕ} (η : QState (Clock m×Reg n)) :
     mass (badPart η)≤energy (TensorGate (clockPenalty m) (1:Matrix (Reg n) (Reg n) ℂ)) (badPart η) := by
   change mass (badPart η)≤energy (clockPenalty m⊗ₖ(1:Matrix (Reg n) (Reg n) ℂ)) (badPart η)
@@ -154,9 +198,13 @@ theorem clock_bad_energy_lower {m n : ℕ} (η : QState (Clock m×Reg n)) :
     _ ≤ ∑z : Reg n,energy (clockPenalty m) (fun c : Clock m => badPart η (c,z)) :=
       Finset.sum_le_sum (fun _ _ => clockPenalty_energy_lower _)
 
+/-- The proposition that every nonzero matrix entry connects clock strings with the same
+legality status. -/
 def SectorPreserving {m n : ℕ} (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ) : Prop :=
   ∀p q,H p q≠0 → (LegalClock p.1 ↔ LegalClock q.1)
 
+/-- The energy of a sector-preserving operator splits into the energies of the legal and illegal
+clock components. -/
 theorem sector_energy_parts {m n : ℕ} (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (hH : SectorPreserving H) (η : QState (Clock m×Reg n)) :
     energy H η=energy H (goodPart η)+energy H (badPart η) := by
@@ -178,6 +226,8 @@ theorem sector_energy_parts {m n : ℕ} (H : Matrix (Clock m×Reg n) (Clock m×R
     simp [goodPart,badPart,hp,hq,hz]
   · simp [goodPart,badPart,hp,hq]
 
+/-- An isometric frame intertwining `H` with `A` transports the energy of every input state
+exactly from `A` to `H`. -/
 theorem intertwine_energy {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (V : Matrix J I ℂ) (hV : Vᴴ*V=1)
     (H : Matrix J J ℂ) (A : Matrix I I ℂ) (h : H*V=V*A) (ψ : QState I) :
@@ -186,11 +236,13 @@ theorem intertwine_energy {I J : Type} [Fintype I] [DecidableEq I]
     inner_mulVec_left_rect,Matrix.mulVec_mulVec,hV,Matrix.one_mulVec]
   rfl
 
+/-- The zero matrix preserves the legal and illegal clock sectors. -/
 theorem sector_zero {m n : ℕ} :
     SectorPreserving (0:Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ) := by
   intro p q h
   exact False.elim (h rfl)
 
+/-- The sum of two sector-preserving matrices is sector preserving. -/
 theorem sector_add {m n : ℕ} (H K : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (hH : SectorPreserving H) (hK : SectorPreserving K) : SectorPreserving (H+K) := by
   intro p q h
@@ -199,6 +251,7 @@ theorem sector_add {m n : ℕ} (H K : Matrix (Clock m×Reg n) (Clock m×Reg n) �
     exact hK p q hk
   · exact hH p q hz
 
+/-- The difference of two sector-preserving matrices is sector preserving. -/
 theorem sector_sub {m n : ℕ} (H K : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (hH : SectorPreserving H) (hK : SectorPreserving K) : SectorPreserving (H-K) := by
   intro p q h
@@ -207,6 +260,7 @@ theorem sector_sub {m n : ℕ} (H K : Matrix (Clock m×Reg n) (Clock m×Reg n) �
     exact hK p q hk
   · exact hH p q hz
 
+/-- Every complex scalar multiple of a sector-preserving matrix is sector preserving. -/
 theorem sector_smul {m n : ℕ} (c : ℂ) (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (hH : SectorPreserving H) : SectorPreserving (c • H) := by
   intro p q h
@@ -214,6 +268,8 @@ theorem sector_smul {m n : ℕ} (c : ℂ) (H : Matrix (Clock m×Reg n) (Clock m�
   intro hz
   simp [hz] at h
 
+/-- A tensor gate preserves clock sectors whenever every nonzero clock-matrix entry connects
+strings with the same legality status. -/
 theorem tensor_sector {m n : ℕ} (M : Matrix (Clock m) (Clock m) ℂ)
     (U : Matrix (Reg n) (Reg n) ℂ)
     (hM : ∀c d,M c d≠0 → (LegalClock c ↔ LegalClock d)) : SectorPreserving (TensorGate M U) := by
@@ -223,6 +279,8 @@ theorem tensor_sector {m n : ℕ} (M : Matrix (Clock m) (Clock m) ℂ)
   intro hz
   simp [hz] at h
 
+/-- Every nonzero entry of a diagonal clock matrix connects strings with the same legality
+status. -/
 theorem diagonal_clock_sector {m : ℕ} (w : Clock m→ℂ) :
     ∀c d,Matrix.diagonal w c d≠0 → (LegalClock c ↔ LegalClock d) := by
   intro c d h
@@ -231,10 +289,12 @@ theorem diagonal_clock_sector {m : ℕ} (w : Clock m→ℂ) :
     rfl
   · simp [hc] at h
 
+/-- The clock penalty tensored with the register identity preserves clock sectors. -/
 theorem clock_sector (m n : ℕ) :
     SectorPreserving (TensorGate (clockPenalty m) (1:Matrix (Reg n) (Reg n) ℂ)) :=
   tensor_sector _ _ (diagonal_clock_sector _)
 
+/-- Every physical propagation term preserves the legal and illegal clock sectors. -/
 theorem propagation_sector {m n : ℕ} (i : Fin m) (U : Matrix (Reg n) (Reg n) ℂ) :
     SectorPreserving (physicalPropagation i U) := by
   have hp : SectorPreserving (TensorGate (postProjector i) (1:Matrix (Reg n) (Reg n) ℂ)) :=
@@ -249,16 +309,20 @@ theorem propagation_sector {m n : ℕ} (i : Fin m) (U : Matrix (Reg n) (Reg n) �
     exact (hop_nonzero_sector i d c ht).symm
   exact sector_smul _ _ (sector_sub _ _ (sector_sub _ _ (sector_add _ _ hp hq) hh) ha)
 
+/-- Every physical input penalty preserves the legal and illegal clock sectors. -/
 theorem input_sector {m n : ℕ} (j : Fin n) : SectorPreserving (physicalInput (m:=m) j) :=
   tensor_sector _ _ (diagonal_clock_sector _)
 
+/-- Every physical output penalty preserves the legal and illegal clock sectors. -/
 theorem output_sector {m n : ℕ} (j : Fin n) : SectorPreserving (physicalOutput (m:=m) j) :=
   tensor_sector _ _ (diagonal_clock_sector _)
 
+/-- Energy is additive in the matrix operator. -/
 theorem energy_add {I : Type} [Fintype I] (H K : Matrix I I ℂ) (ψ : QState I) :
     energy (H+K) ψ=energy H ψ+energy K ψ := by
   simp only [energy_entries,Matrix.add_apply,mul_add,add_mul,Complex.add_re,Finset.sum_add_distrib]
 
+/-- Multiplying the matrix operator by a real scalar scales energy by that scalar. -/
 theorem energy_matrix_real_smul {I : Type} [Fintype I] (r : ℝ) (H : Matrix I I ℂ)
     (ψ : QState I) : energy ((r:ℂ) • H) ψ=r*energy H ψ := by
   rw [energy_entries,energy_entries]
@@ -273,6 +337,10 @@ theorem energy_matrix_real_smul {I : Type} [Fintype I] (r : ℝ) (H : Matrix I I
   rw [he]
   simp only [Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,zero_mul,sub_zero]
 
+/-- For a sector-preserving operator intertwining the history frame with an operator bounded
+below by `b` on normalized states, assume the global homogeneous lower bound `-K*mass`, `K ≥
+0`, and `b ≤ 1`. Adding the clock penalty with weight `J ≥ K+1` gives energy at least `b` on
+every normalized physical state. -/
 theorem full_space_lower {m n : ℕ}
     (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (A : Matrix (Fin (m+1)×Reg n) (Fin (m+1)×Reg n) ℂ)

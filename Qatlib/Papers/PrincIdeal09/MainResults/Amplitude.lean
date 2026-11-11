@@ -71,12 +71,31 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Phase alignment and Fourier amplitude bounds
+
+A finite family of phases lying within π / 4 of a common center has a sum whose norm is at least
+its cardinality times √2 / 2. Applying this estimate to the expression `qftProb` gives a lower
+bound of p / (8q) when p and q are positive [Schmidt2009].
+
+## Main statements
+
+* `segment_sum_norm_ge`: Aligned phases give a linear lower bound on the norm of their
+  exponential sum.
+* `qftProb_ge`: The squared-amplitude expression is bounded below by p / (8q).
+
+## References
+
+* [Schmidt, 2009][Schmidt2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults
 
+/-- If `|x| ≤ π / 4`, then `cos x ≥ sqrt 2 / 2`. -/
 theorem cos_ge_cos_pi_div_four {x : ℝ} (hx : |x| ≤ Real.pi / 4) :
     Real.sqrt 2 / 2 ≤ Real.cos x := by
   rw [← Real.cos_pi_div_four]
@@ -89,6 +108,8 @@ theorem cos_ge_cos_pi_div_four {x : ℝ} (hx : |x| ≤ Real.pi / 4) :
   · linarith [Real.pi_pos]
   · exact hx
 
+/-- When every phase lies within `π / 4` of `c`, the real part of the centered exponential sum
+is at least `p * sqrt 2 / 2`. -/
 theorem segment_sum_re_ge {p : ℕ} (φ : Fin p → ℝ) {c : ℝ}
     (hc : ∀ i, |φ i - c| ≤ Real.pi / 4) :
     (p : ℝ) * (Real.sqrt 2 / 2) ≤
@@ -108,6 +129,8 @@ theorem segment_sum_re_ge {p : ℕ} (φ : Fin p → ℝ) {c : ℝ}
         intro i _
         exact cos_ge_cos_pi_div_four (hc i)
 
+/-- When every phase lies within `π / 4` of `c`, the norm of their exponential sum is at least
+`p * sqrt 2 / 2`. -/
 theorem segment_sum_norm_ge {p : ℕ} (φ : Fin p → ℝ) {c : ℝ}
     (hc : ∀ i, |φ i - c| ≤ Real.pi / 4) :
     (p : ℝ) * (Real.sqrt 2 / 2) ≤
@@ -142,9 +165,12 @@ theorem segment_sum_norm_ge {p : ℕ} (φ : Fin p → ℝ) {c : ℝ}
   rw [hnorm] at hle
   exact le_trans hre2 hle
 
+/-- The squared norm of the phase sum divided by `4 * p * q`. -/
 def qftProb (p : ℕ) (q : ℝ) (φ : Fin p → ℝ) : ℝ :=
   ‖∑ i, Complex.exp (((φ i : ℝ) : ℂ) * Complex.I)‖ ^ 2 / (4 * (p : ℝ) * q)
 
+/-- For positive `p` and `q`, phases within `π / 4` of a common center give `qftProb p q φ ≥ p /
+(8 * q)` [Schmidt2009]. -/
 theorem qftProb_ge {p : ℕ} {q : ℝ} (hp : 0 < p) (hq : 0 < q) (φ : Fin p → ℝ)
     {c : ℝ} (hc : ∀ i, |φ i - c| ≤ Real.pi / 4) :
     (p : ℝ) / (8 * q) ≤ qftProb p q φ := by

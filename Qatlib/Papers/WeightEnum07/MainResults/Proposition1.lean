@@ -12,6 +12,28 @@ import Mathlib.Logic.Equiv.Basic
 import Mathlib.Data.Fin.Basic
 import Mathlib.Algebra.Group.Fin.Basic
 import Mathlib.Logic.Equiv.Fin.Rotate
+
+/-!
+# A bound on distinct trace-code weights
+
+Multiplication of a trace parameter by powers of `α ^ N` cyclically permutes word coordinates
+and therefore preserves Hamming weight. Injectivity of this action on nonzero parameters yields
+`proposition1_weight_bound`, bounding the cardinality of the trace-code weight spectrum.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `hammingWeight_traceWord_mul_pow`: Multiplication of the trace parameter by `α ^ (d.val * N)`
+  preserves the Hamming weight of its trace word under the stated order hypothesis.
+* `proposition1_weight_bound`: Under the field, order, and minimality hypotheses, the trace-code
+  weight spectrum has cardinality at most `(Nat.card E - 1) / n`.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,13 +45,17 @@ open scoped BigOperators
 
 variable {F E : Type*} [Field F] [Field E] [Algebra F E]
 
+/-- The number of nonzero coordinates of a word. -/
 def hammingWeight {n : ℕ} (w : Fin n → F) : ℕ := Nat.card {i : Fin n // w i ≠ 0}
 
+/-- Hamming weight is invariant under a permutation of the coordinates. -/
 lemma hammingWeight_comp_perm {n : ℕ} (e : Equiv.Perm (Fin n)) (w : Fin n → F) :
     hammingWeight (fun i => w (e i)) = hammingWeight w := by
   unfold hammingWeight
   exact Nat.card_congr (Equiv.subtypeEquiv e (fun _ => Iff.rfl))
 
+/-- Under the order hypothesis, multiplying the trace parameter by `α ^ (d.val * N)` composes
+the trace word with the coordinate cycle `finCycle d`. -/
 lemma traceWord_mul_pow_eq_comp
     [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (hN : 0 < N)
     (hord : orderOf (Units.mk0 α hα) = n * N) (τ : E) (d : Fin n) :
@@ -55,6 +81,8 @@ lemma traceWord_mul_pow_eq_comp
     simpa [Units.val_pow_eq_pow_val, Units.val_mk0] using this
   rw [mul_assoc, ← pow_add, hexp]
 
+/-- Multiplication of the trace parameter by `α ^ (d.val * N)` preserves the Hamming weight of
+its trace word under the stated order hypothesis. -/
 lemma hammingWeight_traceWord_mul_pow
     [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (hN : 0 < N)
     (hord : orderOf (Units.mk0 α hα) = n * N) (τ : E) (d : Fin n) :
@@ -63,6 +91,8 @@ lemma hammingWeight_traceWord_mul_pow
   rw [traceWord_mul_pow_eq_comp α hα n N hN hord τ d]
   exact hammingWeight_comp_perm (finCycle d) _
 
+/-- For nonzero `τ` and the stated order of `α`, equality of the orbit elements indexed by `d`
+and `d'` forces `d = d'`. -/
 lemma mul_pow_inj
     [Finite E] (α : E) (hα : α ≠ 0) (n N : ℕ) (hn : 0 < n) (hN : 0 < N)
     (hord : orderOf (Units.mk0 α hα) = n * N)
@@ -80,10 +110,13 @@ lemma mul_pow_inj
   rw [Nat.mod_eq_of_lt hd, Nat.mod_eq_of_lt hd'] at hmod
   exact Fin.ext (Nat.eq_of_mul_eq_mul_right hN hmod)
 
+/-- The finite set of Hamming weights of trace words indexed by nonzero elements of `E`. -/
 def weightSpectrum [Fintype E] [DecidableEq E] (α : E) (N n : ℕ) : Finset ℕ :=
   Finset.univ.image (fun τ : {τ : E // τ ≠ 0} =>
     hammingWeight (traceWord (F := F) α N n τ))
 
+/-- Under the field, order, and minimality hypotheses, the trace-code weight spectrum has
+cardinality at most `(Nat.card E - 1) / n`. See [GeraciVanBussel2007]. -/
 theorem proposition1_weight_bound
     [Fintype F] [Fintype E] [DecidableEq E] [FiniteDimensional F E] [Algebra.IsSeparable F E]
     (α : E) (hα : α ≠ 0) (n N : ℕ) (hn : 0 < n) (hN : 0 < N)

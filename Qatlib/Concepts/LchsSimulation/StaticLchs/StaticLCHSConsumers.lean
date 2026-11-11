@@ -9,6 +9,30 @@ import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Postselected static LCHS outputs and finite windows
+
+`staticLchsDataBranch` extracts the selected label branch, and `staticLchsOutputDensity` forms
+its norm-normalized outer product. Prepared amplification preserves the density of every
+positive-success branch. Operator and quadrature error bounds imply a trace norm error of `4 * ε
+/ τ`, while the finite iteration mixture has success at least `1 / 8` and explicit access
+budgets.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `static_lchs_same_postselected_solution_state`: bounds the postselected solution density
+  error.
+* `static_lchs_finite_window_success_and_preparation_budget`: gives the finite-window success
+  and access bounds.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 open Qatlib.Foundations.PureStateMath.Reflection
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -34,17 +58,24 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The data vector obtained by restricting a joint label-and-data state to the label `j₀`. -/
 noncomputable def staticLchsDataBranch {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
     (j₀ : Fin N) (y : QState (Fin N × I)) : QState I := fun i => y (j₀,i)
 
+/-- The outer product of a vector scaled by the inverse of its Euclidean norm, yielding zero
+when the vector is zero. -/
 noncomputable def staticLchsOutputDensity {I : Type} [Fintype I] [DecidableEq I] (v : QState I) :=
   outerProduct (((‖toEuclidean_fromVec v‖⁻¹ : ℝ) : ℂ) • v)
 
+/-- The iteration window `max 1 (Nat.ceil (2 * α / τ))`. -/
 noncomputable def staticLchsWindow (α τ : ℝ) : ℕ := max 1 (Nat.ceil (2*α/τ))
 
+/-- The iteration weight given by half the uniform mass on `Fin m` plus an additional half mass
+at iteration zero. -/
 noncomputable def staticLchsIterationWeight (m : ℕ) (j : Fin m) : ℝ :=
   1/(2*(m:ℝ)) + if j.val = 0 then 1/2 else 0
 
+/-- For positive `m`, the iteration weights are nonnegative and sum to one. -/
 theorem static_lchs_iteration_weight_distribution (m : ℕ) (hm : 0 < m) :
     (∀ j : Fin m, 0 ≤ staticLchsIterationWeight m j) ∧
       (∑ j : Fin m, staticLchsIterationWeight m j) = 1 := by
@@ -66,6 +97,7 @@ theorem static_lchs_iteration_weight_distribution (m : ℕ) (hm : 0 < m) :
     field_simp
     ring
 
+/-- For positive `α` and `τ`, the static LCHS window is positive and at most `2 * α / τ + 1`. -/
 theorem static_lchs_window_bound (α τ : ℝ) (hα : 0 < α) (hτ : 0 < τ) :
     0 < staticLchsWindow α τ ∧ (staticLchsWindow α τ : ℝ) ≤ 2*α/τ+1 := by
   have hp : 0 < 2*α/τ := by positivity
@@ -73,6 +105,8 @@ theorem static_lchs_window_bound (α τ : ℝ) (hα : 0 < α) (hτ : 0 < τ) :
   simp only [staticLchsWindow, Nat.cast_max, Nat.cast_one]
   exact max_le (by linarith) (Nat.ceil_lt_add_one hp.le).le
 
+/-- Every iteration index in `Fin m` gives at most `2 * m + 1` input accesses and at most `2 * m
++ 1` selection accesses in the compiled static LCHS word. -/
 theorem static_lchs_window_actual_access_budget
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I)
@@ -85,6 +119,8 @@ theorem static_lchs_window_actual_access_budget
   rw [hif, hib, hsf, hsb]
   constructor <;> omega
 
+/-- The selected data branch at iteration zero equals the coefficient-mass-normalized linear
+combination of the unitary nodes applied to the prepared input. -/
 theorem static_lchs_actual_initial_data_branch
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I)
@@ -123,6 +159,8 @@ theorem static_lchs_actual_initial_data_branch
   simp_rw [Finset.sum_ite_irrel]
   simp
 
+/-- The joint-state probability of a selected label equals the total Born mass of its extracted
+data branch. -/
 theorem static_lchs_label_probability {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
     (j₀ : Fin N) (y : QState (Fin N × I)) :
     MeasureProb y (Finset.univ.filter (fun x : Fin N × I => x.1 = j₀)) =
@@ -132,6 +170,8 @@ theorem static_lchs_label_probability {I : Type} [Fintype I] [DecidableEq I] {N 
   rw [Finset.sum_comm]
   simp
 
+/-- Every amplification iterate of the prepared state lies in the span of its initial marked and
+unmarked components. -/
 private theorem staticLchs_prepared_span {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (x₀ : J) (S : Finset J) (hA : A ∈ unitaryGroup J ℂ) (k : ℕ) :
     ∃ a b : ℂ, ApplyGate ((preparedAAIterate A x₀ S)^k) (preparedAAState A x₀) =
@@ -153,6 +193,8 @@ private theorem staticLchs_prepared_span {J : Type} [Fintype J] [DecidableEq J]
     dsimp only [p]
     module
 
+/-- The selected data branch after any number of compiled amplification iterations is a scalar
+multiple of its iteration-zero branch. -/
 theorem static_lchs_actual_data_branch_collinear
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I) (k : ℕ)
@@ -186,6 +228,8 @@ theorem static_lchs_actual_data_branch_collinear
   ext i
   simp [staticLchsDataBranch, collapse_apply, S, preparedAAState, A, applyGate_mul]
 
+/-- Multiplying a vector by a nonzero complex scalar leaves its norm-normalized output density
+unchanged. -/
 theorem static_lchs_output_density_smul {I : Type} [Fintype I] [DecidableEq I]
     (v : QState I) (b : ℂ) (hb : b ≠ 0) :
     staticLchsOutputDensity (b • v) = staticLchsOutputDensity v := by
@@ -208,6 +252,8 @@ theorem static_lchs_output_density_smul {I : Type} [Fintype I] [DecidableEq I]
           ((‖toEuclidean_fromVec v‖ : ℂ)⁻¹ * (starRingEnd ℂ) (v j))) := by ring
     _ = _ := by rw [hbb']; field_simp
 
+/-- Every positive-success compiled amplification output has the same selected data density as
+the normalized linear combination of the unitary nodes acting on the prepared input. -/
 theorem static_lchs_actual_postselected_density_invariant
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I) (k : ℕ)
@@ -232,6 +278,8 @@ theorem static_lchs_actual_postselected_density_invariant
   rw [hb, static_lchs_output_density_smul _ b hb0,
     static_lchs_actual_initial_data_branch I N c V B j₀ i₀ hα hV hB]
 
+/-- An expectation under the iteration weights is half the uniform average plus half the value
+at iteration zero. -/
 private theorem staticLchs_mixture (m : ℕ) (hm : 0 < m) (f : Fin m → ℝ) :
     (∑ j : Fin m, staticLchsIterationWeight m j * f j) =
       (∑ j : Fin m, f j) / (2*(m:ℝ)) + f ⟨0, hm⟩ / 2 := by
@@ -247,6 +295,8 @@ private theorem staticLchs_mixture (m : ℕ) (hm : 0 < m) (f : Fin m → ℝ) :
   rw [hd, ← Finset.mul_sum]
   ring
 
+/-- If the initial success amplitude is at least `τ / (2 * α)`, the prescribed prepared
+amplification window has weighted success at least `1 / 8`. -/
 private theorem staticLchs_prepared_window_success {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (x₀ : J) (S : Finset J) (α τ : ℝ)
     (hA : A ∈ unitaryGroup J ℂ) (hα : 0 < α) (hτ : 0 < τ)
@@ -301,6 +351,8 @@ private theorem staticLchs_prepared_window_success {J : Type} [Fintype J] [Decid
     rw [he]
     linarith
 
+/-- An initial compiled LCHS success amplitude at least `τ / (2 * α)` ensures weighted window
+success at least `1 / 8`. -/
 theorem static_lchs_window_success_of_initial_mass
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I) (τ : ℝ)
@@ -326,6 +378,8 @@ theorem static_lchs_window_success_of_initial_mass
   simp only [preparedAACircuit, RepeatCircuit, List.append_nil, run_gate, run_nil]
   exact staticLchs_prepared_window_success A (j₀,i₀) S (coefficientMass c) τ hA hα hτ
 
+/-- The trace norm of the rank-one matrix with entries `u i * star (v j)` is at most the product
+of the Euclidean norms of `u` and `v`. -/
 private theorem staticLchs_rankOne_trace_bound {I : Type} [Fintype I] [DecidableEq I]
     (u v : QState I) :
     Matrix.traceNorm (Matrix.of (fun i j => u i * (starRingEnd ℂ) (v j))) ≤
@@ -357,6 +411,8 @@ private theorem staticLchs_rankOne_trace_bound {I : Type} [Fintype I] [Decidable
       exact norm_inner_le_norm _ _
     _ = _ := by rw [hn, mul_comm]
 
+/-- The trace norm distance between two outer products is at most the sum of the vector norms
+times the norm of their difference. -/
 theorem static_lchs_pure_trace_error {I : Type} [Fintype I] [DecidableEq I]
     (u v : QState I) :
     Matrix.traceNorm (outerProduct u - outerProduct v) ≤
@@ -374,6 +430,9 @@ theorem static_lchs_pure_trace_error {I : Type} [Fintype I] [DecidableEq I]
     ((add_le_add (staticLchs_rankOne_trace_bound (u-v) u)
       (staticLchs_rankOne_trace_bound v (u-v))).trans_eq (by ring))
 
+/-- If the Euclidean norm of `x` is at least `τ` and the Euclidean distance from `y` to `x` is
+at most `ε ≤ τ / 2`, with positive `ε` and `τ`, then `y` is nonzero and the normalized
+output densities differ in trace norm by at most `4 * ε / τ`. -/
 theorem static_lchs_output_density_error_of_vector_error
     {I : Type} [Fintype I] [DecidableEq I] (x y : QState I) (ε τ : ℝ)
     (hε : 0 < ε) (hτ : 0 < τ) (hετ : ε ≤ τ/2)
@@ -414,6 +473,8 @@ theorem static_lchs_output_density_error_of_vector_error
           _ = _ := by ring
       _ ≤ 4*ε/τ := div_le_div_of_nonneg_left (by positivity) hτ hτx
 
+/-- The iteration-zero selected data branch is the unnormalized unitary linear combination
+applied to the prepared input, scaled by the inverse coefficient mass. -/
 theorem static_lchs_initial_data_branch_raw
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I)
@@ -431,6 +492,8 @@ theorem static_lchs_initial_data_branch_raw
   intro j _
   rw [smul_smul, div_eq_mul_inv, mul_comm]
 
+/-- The square root of the probability of a selected label equals the Euclidean norm of its
+extracted data branch. -/
 private theorem staticLchs_sqrt_label_mass {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
     (j₀ : Fin N) (y : QState (Fin N × I)) :
     Real.sqrt (MeasureProb y (Finset.univ.filter (fun x : Fin N × I => x.1 = j₀))) =
@@ -442,6 +505,9 @@ private theorem staticLchs_sqrt_label_mass {I : Type} [Fintype I] [DecidableEq I
     rfl
   rw [he, Real.sqrt_sq (norm_nonneg _)]
 
+/-- An operator approximation error at most `ε ≤ τ / 2` and target output norm at least `τ`
+imply postselected density error at most `4 * ε / τ` at every positive-success iteration and
+weighted window success at least `1 / 8`. -/
 theorem static_lchs_actual_output_and_window_of_operator_error
     (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B T : Matrix I I ℂ) (j₀ : Fin N) (i₀ : I) (ε τ : ℝ)
@@ -503,6 +569,9 @@ theorem static_lchs_actual_output_and_window_of_operator_error
       _ ≤ ‖toEuclidean_fromVec y‖ / coefficientMass c := div_le_div_of_nonneg_right hnorm hα.le
       _ = _ := by ring
 
+/-- A static LCHS quadrature error at most `ε ≤ τ / 2` yields positive coefficient mass,
+postselected density error at most `4 * ε / τ`, and weighted window success at least `1 /
+8`. -/
 theorem static_lchs_output_and_window_of_quadrature_error
     (I : Type) [Fintype I] [DecidableEq I] (L H B : Matrix I I ℂ) (i₀ : I) (t ε τ : ℝ)
     (hL : L.PosSemidef) (hH : H.IsHermitian) (hB : B ∈ unitaryGroup I ℂ)
@@ -540,6 +609,9 @@ theorem static_lchs_output_and_window_of_quadrature_error
       (hH.add (hL.isHermitian.smul (R := ℝ) (IsSelfAdjoint.all _))) t)
     hB hε hτ hετ hτx he
 
+/-- For the prescribed static quadrature schedule, the coefficient mass lies in `(0, 2]`,
+quadrature error is at most `ε`, and every positive-success compiled output has density
+error at most `4 * ε / τ` [AnLiuLin2023]. -/
 theorem static_lchs_same_postselected_solution_state :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H B : Matrix I I ℂ) (i₀ : I) (t ε τ : ℝ),
     L.PosSemidef → H.IsHermitian → B ∈ unitaryGroup I ℂ → 0 ≤ t →
@@ -573,6 +645,9 @@ theorem static_lchs_same_postselected_solution_state :
   exact ((static_lchs_output_and_window_of_quadrature_error I L H B i₀ t ε τ
     hL hH hB ht hε hτ hετ hτx he).2 j₀).1 k hp
 
+/-- The static LCHS iteration weights sum to one, the window is at most `2 * α / τ + 1`, its
+success is at least `1 / 8`, and each sampled word uses at most `2 * m + 1` input and
+selection accesses [AnLiuLin2023]. -/
 theorem static_lchs_finite_window_success_and_preparation_budget :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H B : Matrix I I ℂ) (i₀ : I) (t ε τ : ℝ),
     L.PosSemidef → H.IsHermitian → B ∈ unitaryGroup I ℂ → 0 ≤ t →

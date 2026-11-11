@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Amplification by sixteen independent trials
+
+`lemma2_amplification` proves the numerical estimate underlying amplification by sixteen trials.
+Complement identities and the product formula for total failure yield
+`lemma2_sixteen_trial_mass` for finite Boolean trial distributions. The paper context is
+[BuhrmanSpalek2006].
+
+## Main statements
+
+* `probEvent_allFail`: product formula for all trials failing.
+* `lemma2_sixteen_trial_mass`: lower bound on success in sixteen trials.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -14,6 +32,8 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
+/-- For `1 / 8 ≤ p ≤ 1 / 2`, the amplified success expression `1 - (1 - p / 8) ^ 16` is at least
+`p`. See [BuhrmanSpalek2006]. -/
 theorem lemma2_amplification {p : ℝ} (hp8 : (1 : ℝ) / 8 ≤ p) (hp2 : p ≤ 1 / 2) :
     p ≤ 1 - (1 - p / 8) ^ 16 := by
   have hp0 : 0 ≤ p := by linarith
@@ -50,6 +70,8 @@ theorem lemma2_amplification {p : ℝ} (hp8 : (1 : ℝ) / 8 ≤ p) (hp2 : p ≤ 
       _ ≤ 2 * p / (1 + 2 * p) := div_le_div_of_nonneg_right hkey (le_of_lt hpos)
   linarith
 
+/-- The probabilities of an event and its complement under independent Boolean trials sum to
+one. -/
 theorem probEvent_add_compl (trial : FinDist Bool) {L : ℕ}
     (E : (Fin L → Bool) → Prop) [DecidablePred E] :
     trial.probEvent (L := L) E + trial.probEvent (L := L) (fun ω => ¬ E ω) = 1 := by
@@ -60,6 +82,7 @@ theorem probEvent_add_compl (trial : FinDist Bool) {L : ℕ}
   unfold FinDist.probEvent
   exact hsplit.trans hone
 
+/-- Pointwise equivalent events have equal probabilities under a finite product distribution. -/
 theorem probEvent_congr {X : Type*} [Fintype X] {L : ℕ} (p : FinDist X)
     {E E' : (Fin L → X) → Prop} [DecidablePred E] [DecidablePred E']
     (h : ∀ ω, E ω ↔ E' ω) : p.probEvent E = p.probEvent E' := by
@@ -67,6 +90,8 @@ theorem probEvent_congr {X : Type*} [Fintype X] {L : ℕ} (p : FinDist X)
   unfold FinDist.probEvent
   rw [Finset.filter_congr (fun ω _ => h ω)]
 
+/-- The probability that all `L` independent Boolean trials fail equals the single trial failure
+probability raised to `L`. -/
 theorem probEvent_allFail (trial : FinDist Bool) {L : ℕ} :
     trial.probEvent (L := L) (fun ω => ∀ i, ω i = false) = (trial.prob false) ^ L := by
   classical
@@ -78,6 +103,9 @@ theorem probEvent_allFail (trial : FinDist Bool) {L : ℕ} :
   rw [hfilter]
   simp [FinDist.probOf]
 
+/-- If a Boolean trial succeeds with probability at least `p / 8`, where `1 / 8 ≤ p ≤ 1 / 2`,
+then sixteen independent trials contain a success with probability at least `p`. See
+[BuhrmanSpalek2006]. -/
 theorem lemma2_sixteen_trial_mass (trial : FinDist Bool) {p : ℝ}
     (hp8 : (1 : ℝ) / 8 ≤ p) (hp2 : p ≤ 1 / 2) (hsucc : p / 8 ≤ trial.prob true) :
     p ≤ trial.probEvent (L := 16) (fun ω => ∃ i, ω i = true) := by

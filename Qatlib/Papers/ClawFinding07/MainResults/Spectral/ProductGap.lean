@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ProductLemmas
+
+/-!
+# Spectral gap bounds for product chains
+
+This module decomposes a function on a finite product into its coordinate means and a residual
+with vanishing row and column sums. The decomposition proves that product chains inherit the
+minimum of two gap bounds in `[0,1]`, supporting the product-walk analysis of [Tani2009].
+
+## Main statements
+
+* `resid_row_sum` and `resid_col_sum`: vanishing sums for the residual.
+* `spectralGap_chainProduct`: the minimum lower bound.
+* `spectralGap_chainProduct_eq`: equality under the predicates `SpectralGapEquals` for both
+  factors.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,29 +42,37 @@ section Means
 
 variable [Nonempty I] [Nonempty J]
 
+/-- The real cardinality of the finite nonempty type `I` is nonzero. -/
 theorem card_I_ne_zero : (Fintype.card I : ℝ) ≠ 0 :=
   Nat.cast_ne_zero.mpr (Fintype.card_pos (α := I)).ne'
 
+/-- The real cardinality of the finite nonempty type `J` is nonzero. -/
 theorem card_J_ne_zero : (Fintype.card J : ℝ) ≠ 0 :=
   Nat.cast_ne_zero.mpr (Fintype.card_pos (α := J)).ne'
 
+/-- The mean of a function on `I × J` over the first coordinate, viewed as a function on `J`. -/
 def colMean (V : I × J → ℝ) : J → ℝ :=
   fun y => (∑ x, V (x, y)) / (Fintype.card I : ℝ)
 
+/-- The mean of a function on `I × J` over the second coordinate, viewed as a function on `I`. -/
 def rowMean (V : I × J → ℝ) : I → ℝ :=
   fun x => (∑ y, V (x, y)) / (Fintype.card J : ℝ)
 
+/-- The residual obtained by subtracting both coordinate means from a function on `I × J`. -/
 def resid (V : I × J → ℝ) : I × J → ℝ :=
   fun p => V p - colMean V p.2 - rowMean V p.1
 
+/-- The column means sum to zero if the original function on the product sums to zero. -/
 theorem sum_colMean {V : I × J → ℝ} (hV : ∑ p, V p = 0) : ∑ y, colMean V y = 0 := by
   simp only [colMean]
   rw [← Finset.sum_div, sum_snd_fst V, hV, zero_div]
 
+/-- The row means sum to zero if the original function on the product sums to zero. -/
 theorem sum_rowMean {V : I × J → ℝ} (hV : ∑ p, V p = 0) : ∑ x, rowMean V x = 0 := by
   simp only [rowMean]
   rw [← Finset.sum_div, ← Fintype.sum_prod_type V, hV, zero_div]
 
+/-- If the original function sums to zero, every row of its residual sums to zero. -/
 theorem resid_row_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (x : I) :
     ∑ y, resid V (x, y) = 0 := by
   have hc := sum_colMean hV
@@ -53,6 +81,7 @@ theorem resid_row_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (x : I) :
   rw [mul_comm, div_mul_cancel₀ _ card_J_ne_zero]
   ring
 
+/-- If the original function sums to zero, every column of its residual sums to zero. -/
 theorem resid_col_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (y : J) :
     ∑ x, resid V (x, y) = 0 := by
   have hr := sum_rowMean hV
@@ -63,6 +92,8 @@ theorem resid_col_sum {V : I × J → ℝ} (hV : ∑ p, V p = 0) (y : J) :
 
 end Means
 
+/-- For finite nonempty state spaces and gap parameters in `[0,1]`, the product chain satisfies
+`SpectralGapAtLeast` with the minimum of the two factor parameters. -/
 theorem spectralGap_chainProduct [Nonempty I] [Nonempty J]
     {P : I → I → ℝ} {Q : J → J → ℝ} {δ₁ δ₂ : ℝ}
     (hδ₁0 : 0 ≤ δ₁) (hδ₁1 : δ₁ ≤ 1) (hδ₂0 : 0 ≤ δ₂) (hδ₂1 : δ₂ ≤ 1)
@@ -258,6 +289,8 @@ theorem spectralGap_chainProduct [Nonempty I] [Nonempty J]
       _ = (1 - min δ₁ δ₂) ^ 2 * (sqNorm C + sqNorm R + sqNorm W) := by ring
       _ = (1 - min δ₁ δ₂) ^ 2 * sqNorm V := by rw [hVnorm]
 
+/-- If both factor gap parameters satisfy `SpectralGapEquals`, every parameter satisfying
+`SpectralGapAtLeast` for the product is at most their minimum; see [Tani2009]. -/
 theorem spectralGap_chainProduct_le [Nonempty I] [Nonempty J]
     {P : I → I → ℝ} {Q : J → J → ℝ} {δ₁ δ₂ δ : ℝ}
     (hP : SpectralGapEquals P δ₁) (hQ : SpectralGapEquals Q δ₂)
@@ -309,6 +342,8 @@ theorem spectralGap_chainProduct_le [Nonempty I] [Nonempty J]
     exact le_of_mul_le_mul_left hprod' hpos
   exact le_min (hPmax δ hPle) (hQmax δ hQle)
 
+/-- For finite nonempty state spaces and exact factor parameters in `[0,1]`, the product
+satisfies `SpectralGapEquals` with their minimum. -/
 theorem spectralGap_chainProduct_eq [Nonempty I] [Nonempty J]
     {P : I → I → ℝ} {Q : J → J → ℝ} {δ₁ δ₂ : ℝ}
     (hδ₁0 : 0 ≤ δ₁) (hδ₁1 : δ₁ ≤ 1) (hδ₂0 : 0 ≤ δ₂) (hδ₂1 : δ₂ ≤ 1)

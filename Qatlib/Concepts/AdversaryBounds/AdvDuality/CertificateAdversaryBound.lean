@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
 import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+
+/-!
+# Certificate upper bound for the adversary value
+
+`advValue_le_of_certificates` bounds the adversary value by a uniform bound on certificate
+sizes. The required certificate property is that inputs with different outputs possess a
+differing coordinate in the intersection of their certificate sets. For background, see
+[AmbainisEtAl2009].
+
+## Main statements
+
+* `advValue_le_of_certificates`: If every certificate set has size at most a nonnegative `C` and
+  every pair with different outputs has a differing coordinate in both certificates, then
+  `advValue input g ≤ ENNReal.ofReal C`.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +37,9 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ENNReal
 open Classical BigOperators
 
+/-- If every certificate set has size at most a nonnegative `C` and every pair with different
+outputs has a differing coordinate in both certificates, then `advValue input g ≤
+ENNReal.ofReal C`. -/
 theorem advValue_le_of_certificates {X κ : Type} [Fintype X] [DecidableEq X]
     [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (c : X → Finset κ) (C : ℝ) (hC : 0 ≤ C)

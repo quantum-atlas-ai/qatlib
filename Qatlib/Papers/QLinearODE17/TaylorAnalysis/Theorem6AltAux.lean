@@ -8,6 +8,25 @@ import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorAux
 import Mathlib.Topology.Algebra.InfiniteSum.Order
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.SpecificLimits.Basic
+
+/-!
+# Taylor polynomials for homogeneous and forced evolution
+
+The polynomials `taylorPoly` and `taylorSrcPoly` approximate the exponential and its integrated
+source factor. The exponential series representation gives the explicit remainder estimate
+`taylorPoly_defect` on the unit disk. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorPoly`: The exponential Taylor polynomial `∑ j = 0,...,k, z^j / j!`.
+* `taylorPoly_defect`: For `k ≥ 5` and `‖z‖ ≤ 1`, the exponential Taylor remainder is at most
+  `(7/6) * ‖z‖^(k+1) / (k+1)!`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -16,18 +35,23 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
 
+/-- The exponential Taylor polynomial `∑ j = 0,...,k, z^j / j!`. -/
 noncomputable def taylorPoly (k : ℕ) (z : ℂ) : ℂ :=
   ∑ j ∈ Finset.range (k + 1), z ^ j / (Nat.factorial j : ℂ)
 
+/-- The source polynomial `∑ j = 0,...,k-1, z^j / (j+1)!`. -/
 noncomputable def taylorSrcPoly (k : ℕ) (z : ℂ) : ℂ :=
   ∑ j ∈ Finset.range k, z ^ j / (Nat.factorial (j + 1) : ℂ)
 
+/-- The complex exponential equals the infinite sum of its factorial power series. -/
 theorem complex_exp_eq_tsum (z : ℂ) :
     Complex.exp z = ∑' j : ℕ, z ^ j / (Nat.factorial j : ℂ) := by
   rw [Complex.exp_eq_exp_ℂ, NormedSpace.exp_eq_tsum_div]
 
 set_option maxHeartbeats 600000 in
 
+/-- For `k ≥ 5` and `‖z‖ ≤ 1`, the exponential Taylor remainder is at most `(7/6) * ‖z‖^(k+1) /
+(k+1)!`. -/
 theorem taylorPoly_defect (k : ℕ) (z : ℂ) (hk : 5 ≤ k) (hz1 : ‖z‖ ≤ 1) :
     ‖Complex.exp z - taylorPoly k z‖ ≤
       (7 / 6 : ℝ) * ‖z‖ ^ (k + 1) / ((Nat.factorial (k + 1) : ℕ) : ℝ) := by

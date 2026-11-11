@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+/-!
+# Specification of exact stabilizer phase readout
+
+`AbelianStabilizerReductionSubgoal` specifies the exact action of controlled powers and an
+inverse Fourier transform on a finite eigenvector superposition. Each uniform control register
+is replaced by the basis ket for its eigenvalue label, with the coefficient and eigenvector
+retained. [Kitaev1995]
+
+## Main statements
+
+* `AbelianStabilizerReductionSubgoal`: the proposition specifying linear exact phase readout.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -14,6 +32,9 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 
+/-- The proposition that controlled powers and an inverse Fourier transform replace the uniform
+control state by the exact phase ket in every term of a finite eigenvector superposition on
+the `M`th root of unity grid. -/
 def AbelianStabilizerReductionSubgoal : Prop :=
   ∀ (M : ℕ), 0 < M →
   ∀ (Idx I : Type) [Fintype Idx] [DecidableEq Idx] [Fintype I] [DecidableEq I]

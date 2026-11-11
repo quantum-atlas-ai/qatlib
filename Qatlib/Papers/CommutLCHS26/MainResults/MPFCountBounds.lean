@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFLongTime
+
+/-!
+# Segment and query bounds for Chebyshev formulas
+
+This module combines harmonic weight estimates with the root-based segment choice to bound the
+cost of Chebyshev multi-product simulation in [AftabAnTrivisa2026]. For scaled time at least one
+and tolerance in (0, 1], the segment count and `queryFactor` satisfy explicit bounds involving
+the 2m-th root of scaled time divided by tolerance.
+
+## Main statements
+
+* `segments_bound`: bounds the number of simulation segments.
+* `query_factor_bound`: includes the Chebyshev weight and node costs.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -16,10 +35,13 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator
 open MPFSegments MPFRootProfile MPFLongTime
 set_option warningAsError false
 
+/-- For positive m, the m-th harmonic number is at most m. -/
 theorem harmonic_le_order (m : ℕ) (hm : 0 < m) : (harmonic m : ℝ) ≤ (m : ℝ) := by
   have hmR : 0 < (m : ℝ) := by exact_mod_cast hm
   linarith [harmonic_le_one_add_log m, Real.log_le_sub_one_of_pos hmR]
 
+/-- For positive m, the 2m-th root of 1 plus 8π times the Chebyshev weight mass is at most 1 +
+16π. -/
 theorem mass_root_bound (m : ℕ) (hm : 0 < m) :
     (1 + 8 * Real.pi * (∑ j : Fin m, |ChebyshevNodes.weight m j|)) ^
       (((2 * m : ℕ) : ℝ)⁻¹) ≤ 1 + 16 * Real.pi := by
@@ -33,6 +55,8 @@ theorem mass_root_bound (m : ℕ) (hm : 0 < m) :
   have hm0 : 0 ≤ (m : ℝ) := Nat.cast_nonneg m
   nlinarith [Real.pi_pos]
 
+/-- For z ≥ 1, A ≥ 0, and 0 < ε ≤ 1, the root factor is bounded by the product of the stated
+coefficient-mass root and (z/ε)^(1/(2m)). -/
 theorem rootFactor_le (z A ε : ℝ) (m : ℕ) (hz : 1 ≤ z) (hA : 0 ≤ A)
     (hε : 0 < ε) (hε1 : ε ≤ 1) :
     rootFactor z A ε m ≤ (1 + 8 * Real.pi * A) ^ (((2 * m : ℕ) : ℝ)⁻¹) *
@@ -52,6 +76,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- For positive m, scaled time at least 1, and 0 < ε ≤ 1, the Chebyshev segment count is at
+most (3 + 32π) times scaled time times its tolerance-dependent 2m-th root. -/
 theorem segments_bound (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
     (T ε : ℝ) (hz : 1 ≤ mu xs m * |T|) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     (segments xs (ChebyshevNodes.weight m) m T ε : ℝ) ≤
@@ -76,12 +102,16 @@ theorem segments_bound (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
       exact one_le_mul_of_one_le_of_one_le hz hw
     _ = _ := by ring
 
+/-- The Chebyshev segment count multiplied by the total absolute weight and total repetition
+count. -/
 def queryFactor (xs : List (Matrix I I ℂ)) (m : ℕ) (T ε : ℝ) : ℝ :=
   (segments xs (ChebyshevNodes.weight m) m T ε : ℝ) *
     (∑ j : Fin m, |ChebyshevNodes.weight m j|) * (∑ j : Fin m, (ChebyshevNodes.node m j : ℝ))
 
 omit [DecidableEq I] in
 
+/-- Under the stated order, time, and tolerance hypotheses, the Chebyshev query factor has the
+explicit m² log²(m + 1) bound times scaled time and its tolerance-dependent root. -/
 theorem query_factor_bound (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
     (T ε : ℝ) (hz : 1 ≤ mu xs m * |T|) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     queryFactor xs m T ε ≤

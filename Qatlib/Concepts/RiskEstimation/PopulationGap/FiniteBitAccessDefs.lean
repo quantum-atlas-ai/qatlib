@@ -15,6 +15,29 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+
+/-!
+# Dyadic loading and rational phase gates
+
+This module defines downward dyadic loading of real inputs and proves its rounding-error bounds.
+It uses a rational Cayley phase construction to approximate `Rz` and realizes the resulting
+phase matrix as one legal fixed gate with zero queries.
+
+For the quantum gate and phase-rotation background, see [NielsenChuang2010].
+
+## Main statements
+
+* `loadReal_error`: The absolute dyadic loading error is strictly less than `2⁻ᵏ`.
+* `riskPhaseGate_error`: For `|θ| ≤ 1`, the rational risk phase gate differs from `Rz θ` by norm
+  at most `2 * 2⁻ᵏ`.
+* `riskPhaseGate_fixed_gate`: The one-bit risk phase matrix is realized exactly by a legal gate
+  list of length one with zero queries and one counted gate.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -60,32 +83,39 @@ open Qatlib.Concepts.RiskEstimation.PopulationGap (shorBitLength euclidGcd eucli
 open Qatlib.Concepts.RiskEstimation.PopulationGap (SpaceSchedule)
 set_option warningAsError false
 
+/-- The integer numerator obtained by flooring `x * 2 ^ k`. -/
 noncomputable def loadNumerator (k : ℕ) (x : ℝ) : ℤ := ⌊x * (2 : ℝ)^k⌋
 
+/-- The downward dyadic rational approximation `loadNumerator k x / 2 ^ k`. -/
 noncomputable def loadReal (k : ℕ) (x : ℝ) : ℚ :=
   (loadNumerator k x : ℚ) / ((2 : ℚ)^k)
 
+/-- The real-loading approximation equals `dyadicRound` at the same precision. -/
 theorem loadReal_eq_dyadicRound (k : ℕ) (x : ℝ) :
     loadReal k x = dyadicRound k x := by
   simp only [loadReal, loadNumerator, dyadicRound]
 
+/-- Casting `loadReal` to the reals gives its integer numerator divided by `2 ^ k`. -/
 theorem loadReal_cast (k : ℕ) (x : ℝ) :
     (loadReal k x : ℝ) = ((loadNumerator k x : ℤ) : ℝ) / (2 : ℝ)^k := by
   simp only [loadReal]
   push_cast
   ring
 
+/-- Downward dyadic loading never exceeds the original real input. -/
 theorem loadReal_le (k : ℕ) (x : ℝ) : (loadReal k x : ℝ) ≤ x := by
   have hf := Int.floor_le (x * (2 : ℝ)^k)
   have hp : (0:ℝ) < (2:ℝ)^k := by positivity
   rw [loadReal_cast, div_le_iff₀ hp]
   exact hf
 
+/-- The dyadic loading error multiplied by `2 ^ k` is strictly less than one. -/
 theorem loadReal_error_scaled (k : ℕ) (x : ℝ) :
     |(loadReal k x : ℝ) - x| * (2 : ℝ)^k < 1 := by
   rw [loadReal_eq_dyadicRound k x]
   exact dyadicRound_error k x
 
+/-- The absolute dyadic loading error is strictly less than `2⁻ᵏ`. -/
 theorem loadReal_error (k : ℕ) (x : ℝ) :
     |(loadReal k x : ℝ) - x| < (1/2 : ℝ)^k := by
   have h := loadReal_error_scaled k x
@@ -94,10 +124,12 @@ theorem loadReal_error (k : ℕ) (x : ℝ) :
   rw [← _root_.one_div_pow] at h'
   exact h'
 
+/-- Dyadic loading preserves nonpositivity. -/
 theorem loadReal_nonpos (k : ℕ) {x : ℝ} (hx : x ≤ 0) : (loadReal k x : ℝ) ≤ 0 := by
   have h := loadReal_le k x
   linarith
 
+/-- Dyadic loading preserves strict negativity. -/
 theorem loadReal_neg (k : ℕ) {x : ℝ} (hx : x < 0) : (loadReal k x : ℝ) < 0 := by
   have hfloor : ((⌊x * (2 : ℝ)^k⌋ : ℤ) : ℝ) < 0 := by
     have h1 := Int.floor_le (x * (2 : ℝ)^k)
@@ -109,6 +141,7 @@ theorem loadReal_neg (k : ℕ) {x : ℝ} (hx : x < 0) : (loadReal k x : ℝ) < 0
   simp only [loadNumerator]
   simpa using! hfloor
 
+/-- Dyadic loading represents every integer exactly. -/
 theorem loadReal_int (k : ℕ) (m : ℤ) : loadReal k (m : ℝ) = (m : ℚ) := by
   have hpow : (2 : ℝ)^k = (((2 ^ k : ℕ) : ℤ) : ℝ) := by
     have h1 : ((2 ^ k : ℕ) : ℝ) = (2 : ℝ)^k := Nat.cast_pow 2 k
@@ -121,6 +154,7 @@ theorem loadReal_int (k : ℕ) (m : ℤ) : loadReal k (m : ℝ) = (m : ℚ) := b
   have h2 : (2 : ℚ)^k ≠ 0 := by positivity
   field_simp
 
+/-- Dyadic loading preserves the bound `|x| ≤ 1`. -/
 theorem loadReal_abs_le_one (k : ℕ) {x : ℝ} (hx : |x| ≤ 1) :
     |(loadReal k x : ℝ)| ≤ 1 := by
   have hle := loadReal_le k x
@@ -158,14 +192,19 @@ theorem loadReal_abs_le_one (k : ℕ) {x : ℝ} (hx : |x| ≤ 1) :
   · have hx1 : x ≤ 1 := (abs_le.mp hx).2
     linarith
 
+/-- The dyadic rational phase approximation obtained by loading `θ` at precision `k`. -/
 noncomputable def solvePhase (k : ℕ) (θ : ℝ) : ℚ := loadReal k θ
 
+/-- The real cast of `solvePhase` agrees with the real cast of `loadReal`. -/
 theorem solvePhase_cast (k : ℕ) (θ : ℝ) : (solvePhase k θ : ℝ) = (loadReal k θ : ℝ) := rfl
 
+/-- The absolute error of the dyadic phase approximation is strictly less than `2⁻ᵏ`. -/
 theorem solvePhase_error (k : ℕ) (θ : ℝ) :
     |(solvePhase k θ : ℝ) - θ| < (1/2 : ℝ)^k :=
   loadReal_error k θ
 
+/-- The matrix-norm distance between two `Rz` rotations is at most the absolute difference of
+their angles. -/
 theorem rz_sub_le (θ a : ℝ) : ‖Rz θ - Rz a‖ ≤ |θ - a| := by
   have h : Rz θ - Rz a = Matrix.diagonal (fun b => if b then
       Complex.exp ((θ : ℂ) * Complex.I) - Complex.exp ((a : ℂ) * Complex.I) else 0) := by
@@ -182,6 +221,7 @@ theorem rz_sub_le (θ a : ℝ) : ‖Rz θ - Rz a‖ ≤ |θ - a| := by
     exact norm_exp_mul_I_sub_le θ a
   · simp [hb]
 
+/-- Replacing a phase by `solvePhase k θ` changes its `Rz` matrix by norm at most `2⁻ᵏ`. -/
 theorem solvePhase_phase_error (k : ℕ) (θ : ℝ) :
     ‖Rz θ - Rz (((solvePhase k θ : ℝ)))‖ ≤ (1/2 : ℝ)^k := by
   have h := rz_sub_le θ (solvePhase k θ : ℝ)
@@ -190,20 +230,25 @@ theorem solvePhase_phase_error (k : ℕ) (θ : ℝ) :
     _ = |(solvePhase k θ : ℝ) - θ| := abs_sub_comm _ _
     _ ≤ (1/2 : ℝ)^k := le_of_lt h'
 
+/-- The `k`th power of the reciprocal of two equals `(1 / 2) ^ k`. -/
 theorem inv2_pow (k : ℕ) : ((2 : ℝ) ⁻¹) ^ k = (1/2 : ℝ)^k := by
   have h1 : (1/2 : ℝ)^k = (1:ℝ)^k / (2:ℝ)^k := _root_.div_pow _ _ _
   have h2 : ((2 : ℝ) ⁻¹) ^ k = ((2:ℝ)^k)⁻¹ := inv_pow ..
   have h3 : ((2:ℝ)^k)⁻¹ = (1:ℝ) / (2:ℝ)^k := by rw [inv_eq_one_div]
   rw [h1, h2, h3, one_pow]
 
+/-- The rational phase gate constructed from a counted Cayley approximation to the dyadically
+loaded phase. -/
 noncomputable def riskPhaseGate (k : ℕ) (θ : ℝ) : Matrix Bool Bool ℂ :=
   rationalPhaseGate (countedCayleyPhase (solvePhase k θ) k).1
 
+/-- The rational risk phase gate is unitary. -/
 theorem riskPhaseGate_unitary (k : ℕ) (θ : ℝ) :
     riskPhaseGate k θ ∈ Matrix.unitaryGroup Bool ℂ := by
   exact rationalPhaseGate_mem_unitaryGroup
     (gaussianRatComplex_countedCayleyPhase_norm (solvePhase k θ) k)
 
+/-- For `|θ| ≤ 1`, the rational risk phase gate differs from `Rz θ` by norm at most `2 * 2⁻ᵏ`. -/
 theorem riskPhaseGate_error (k : ℕ) (θ : ℝ) (hθ : |θ| ≤ 1) :
     ‖riskPhaseGate k θ - Rz θ‖ ≤ 2 * (1/2 : ℝ)^k := by
   have hload : |(solvePhase k θ : ℝ)| ≤ 1 := loadReal_abs_le_one k hθ
@@ -234,6 +279,7 @@ theorem riskPhaseGate_error (k : ℕ) (θ : ℝ) (hθ : |θ| ≤ 1) :
     _ ≤ (1/2 : ℝ)^k + |(solvePhase k θ : ℝ) - θ| := add_le_add hsyn h2
     _ ≤ 2 * (1/2 : ℝ)^k := by linarith
 
+/-- For every natural `L`, `2 ^ (L + 1)` is strictly greater than `L + 1`. -/
 theorem two_pow_gt (L : ℕ) : (2 : ℕ) ^ (L + 1) > L + 1 := by
   induction L with
   | zero => simp
@@ -242,14 +288,17 @@ theorem two_pow_gt (L : ℕ) : (2 : ℕ) ^ (L + 1) > L + 1 := by
     rw [h1]
     omega
 
+/-- For every natural `L`, `2 ^ (L + 3)` is strictly greater than `L + 3`. -/
 theorem two_pow_gt_succ (L : ℕ) : (2 : ℕ) ^ (L + 3) > L + 3 := by
   have h := two_pow_gt (L + 2)
   rw [show L + 2 + 1 = L + 3 by omega] at h
   simpa using! h
 
+/-- The base-two logarithm of `2 ^ m` is `m`. -/
 theorem log2_pow_two (m : ℕ) : Nat.log2 (2 ^ m) = m := by
   rw [Nat.log2_eq_log_two, Nat.log_pow (by norm_num)]
 
+/-- The real cast of an integer's natural absolute value equals its real absolute value. -/
 theorem natAbs_cast_eq (m : ℤ) : ((m.natAbs : ℕ) : ℝ) = |(m : ℝ)| := by
   by_cases hm : 0 ≤ m
   · have h1 : (m.natAbs : ℤ) = m := Int.natAbs_of_nonneg hm
@@ -268,15 +317,19 @@ theorem natAbs_cast_eq (m : ℤ) : ((m.natAbs : ℕ) : ℝ) = |(m : ℝ)| := by
     have h4 : ((m : ℤ) : ℝ) ≤ 0 := by exact_mod_cast hm'
     simp [abs_of_nonpos h4]
 
+/-- The rational risk phase gate relabelled onto a one-bit register. -/
 noncomputable def riskPhaseGateRegister (k : ℕ) (θ : ℝ) : Matrix (Reg 1) (Reg 1) ℂ :=
   relabelGate noWorkOneBitEquiv.symm (riskPhaseGate k θ)
 
+/-- The risk phase gate on a one-bit register is unitary. -/
 theorem riskPhaseGateRegister_unitary (k : ℕ) (θ : ℝ) :
     riskPhaseGateRegister k θ ∈ Matrix.unitaryGroup (Reg 1) ℂ := by
   exact (relabelGate_mem_unitaryGroup noWorkOneBitEquiv.symm _).2
     (rationalPhaseGate_mem_unitaryGroup
       (gaussianRatComplex_countedCayleyPhase_norm (solvePhase k θ) k))
 
+/-- The one-bit risk phase matrix is realized exactly by a legal gate list of length one with
+zero queries and one counted gate. -/
 theorem riskPhaseGate_fixed_gate (k : ℕ) (θ : ℝ) :
     ∃ gs : List (ReflectionGate 1), reflectionLegal gs ∧ gs.length = 1 ∧
       QueryCount (reflectionCompile gs) = 0 ∧ GateCount (reflectionCompile gs) = 1 ∧
@@ -284,6 +337,8 @@ theorem riskPhaseGate_fixed_gate (k : ℕ) (θ : ℝ) :
         Run 1 (reflectionCompile gs) ψ = riskPhaseGateRegister k θ *ᵥ ψ :=
   noWork_one_bit_unitary_table _ (riskPhaseGateRegister_unitary k θ)
 
+/-- A gate list with one counted gate and zero queries exists for every choice of phase
+parameters. -/
 theorem riskPhaseGate_fixed_gate_ledger (k : ℕ) (θ : ℝ) :
     ∃ gs : List (ReflectionGate 1), GateCount (reflectionCompile gs) = 1 ∧
       QueryCount (reflectionCompile gs) = 0 := by

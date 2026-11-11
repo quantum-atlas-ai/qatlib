@@ -11,6 +11,31 @@ import Mathlib.Topology.Order.Basic
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.LinearAlgebra.Matrix.ToLin
 import Mathlib.Data.Fin.Tuple.Basic
+
+/-!
+# Translation invariant canonical forms and block algebra
+
+The module defines cyclic symmetry predicates and propositions describing site independent
+representations, canonical reductions, periodic decompositions, and uniqueness. These
+propositions are accompanied by concrete matrix lemmas for word products, cut matrix
+factorizations, and block decompositions.
+
+`proposition1_cutRank` proves the cut rank formula under spanning and normalization hypotheses,
+while `atMostOneNonzeroBlock_of_C1` shows that a spanning tensor family has at most one nonzero
+block. For the matrix product state setting, see [PerezGarciaEtAl2007].
+
+## Main statements
+
+* `cutMatrix_eq_mul`: factors a cut matrix using word product matrices.
+* `proposition1_cutRank_canonical`: cut rank equals `D ^ 2` under the stated canonical
+  hypotheses.
+* `atMostOneNonzeroBlock_of_C1`: uniqueness of a nonzero block under word spanning.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,48 +52,66 @@ open Qatlib.Papers.MatrixProd07.MainResults.Appendix
 open Matrix Filter
 open scoped BigOperators ComplexConjugate Topology
 
+/-- Rotates a configuration by `s` cyclic predecessor steps, using `s % n`. -/
 def rotateBy {d : ℕ} (n : ℕ) [NeZero n] (s : ℕ) (x : Fin n → Fin d) : Fin n → Fin d :=
   fun i => x ⟨(i.val + n - s % n) % n, Nat.mod_lt _ (NeZero.pos n)⟩
 
+/-- The condition that an amplitude function is invariant under rotation by `p` sites. -/
 def IsPPeriodic {n d : ℕ} [NeZero n] (p : ℕ) (ψ : (Fin n → Fin d) → ℂ) : Prop :=
   ∀ x, ψ (rotateBy n p x) = ψ x
 
+/-- The cyclic predecessor of an index in `Fin p`. -/
 def cycPred {p : ℕ} (k : Fin p) : Fin p :=
   ⟨(k.val + p - 1) % p, Nat.mod_lt _ k.pos⟩
 
+/-- The condition that a positive number `p` of pairwise annihilating idempotents sums to the
+identity and each `A i` moves a block to its cyclic predecessor. -/
 def HasCyclicUnitSpectrum {d D : ℕ} (A : Fin d → BM D) (p : ℕ) : Prop :=
   0 < p ∧ ∃ P : Fin p → BM D,
     (∀ k, P k * P k = P k) ∧ (∀ k l, k ≠ l → P k * P l = 0) ∧ (∑ k, P k = 1) ∧
       (∀ (k : Fin p) (i : Fin d), A i * P k = P (cycPred k) * A i)
 
+/-- The condition that any two left canonical bond dimension `D` representations of `ψ` are
+related at every site by one common unitary conjugation. -/
 def OBCUnique {n d D : ℕ} [NeZero D] (ψ : (Fin n → Fin d) → ℂ) : Prop :=
   ∀ A₁ A₂ : Fin n → Fin d → BM D,
     IsMpsRepresentation A₁ ψ → IsMpsRepresentation A₂ ψ →
       LeftCanonical A₁ → LeftCanonical A₂ →
         ∃ U : BM D, IsUnitary U ∧ ∀ (i : Fin n) (x : Fin d), A₁ i x = U * A₂ i x * Uᴴ
 
+/-- The tail sum of the squared products `v i * v j`, using the flattened pair indices at least
+`k`. -/
 def pairTail {D : ℕ} (v : Fin D → ℝ) (k : ℕ) : ℝ :=
   ∑ t : Fin (D * D),
     if k ≤ t.val then
       (v ((finProdFinEquiv (m := D) (n := D)).symm t).1 * v ((finProdFinEquiv (m := D) (n := D)).symm t).2) ^ 2
     else 0
 
+/-- The proposition that a cyclically invariant amplitude function has a site independent
+periodic matrix product representation with some nonzero bond dimension. -/
 def theorem3_site_independent  {n d : ℕ} [NeZero n] (ψ : (Fin n → Fin d) → ℂ)
     (_hTI : IsTICyclic ψ) : Prop :=
   ∃ (D : ℕ) (hD : NeZero D) (A : Fin d → BM D),
       ∀ x, @tiAmplitude n d D _ hD A x = ψ x
 
+/-- The proposition that `ψ` has a site independent periodic representation of bond dimension at
+most `n * D₀`, parameterized by a given bond dimension `D₀` representation. -/
 def theorem3_bond_increase  {n d D₀ : ℕ} [NeZero n] (ψ : (Fin n → Fin d) → ℂ)
     (hD₀ : 0 < D₀) (A₀ : Fin n → Fin d → Matrix (Fin D₀) (Fin D₀) ℂ)
     (_hrep : ∀ x, @mpsAmplitude n d D₀ ⟨Nat.pos_iff_ne_zero.mp hD₀⟩ A₀ x = ψ x) : Prop :=
   ∃ (D : ℕ) (hD : NeZero D) (A : Fin d → BM D),
       D ≤ n * D₀ ∧ ∀ x, @tiAmplitude n d D _ hD A x = ψ x
 
+/-- The proposition that a periodic representation can be replaced by one satisfying
+`TICanonicalForm` without increasing its bond dimension. -/
 def theorem4_TI_canonical  {n d D : ℕ} [NeZero n] [NeZero D] (ψ : (Fin n → Fin d) → ℂ)
     (A : Fin d → BM D) (_hrep : ∀ x, tiAmplitude A x = ψ x) : Prop :=
   ∃ (D' : ℕ) (hD' : NeZero D') (A' : Fin d → BM D'),
       TICanonicalForm A' ∧ (∀ x, @tiAmplitude n d D' _ hD' A' x = ψ x) ∧ D' ≤ D
 
+/-- The proposition that divisibility `p ∣ n` permits a sum of `p` periodic tensor amplitudes
+whose length `p` amplitudes satisfy `IsPPeriodic p`, while failure of divisibility forces
+`ψ` to vanish. -/
 def theorem5_periodic_decomposition  {n d D p : ℕ} [NeZero n] [NeZero D] [NeZero p]
     (A : Fin d → BM D) (ψ : (Fin n → Fin d) → ℂ)
     (_hcanon : TICanonicalFormWithBlocks 1 A)
@@ -79,6 +122,8 @@ def theorem5_periodic_decomposition  {n d D p : ℕ} [NeZero n] [NeZero D] [NeZe
           (∀ k : Fin p, IsPPeriodic p (fun (x : Fin p → Fin d) => tiAmplitude (B k) x)))
       ∧ ((¬ p ∣ n) → ∀ x, ψ x = 0)
 
+/-- The proposition combining a single-block canonical representation of `ψ` with cut rank `D ^
+2` whenever both sides of the cut have length at least a spanning length. -/
 def proposition1_single_block  {n d D : ℕ} [NeZero n] [NeZero D]
     (A : Fin d → BM D) (ψ : (Fin n → Fin d) → ℂ)
     (_hrep : ∀ x, tiAmplitude A x = ψ x)
@@ -89,12 +134,17 @@ def proposition1_single_block  {n d D : ℕ} [NeZero n] [NeZero D]
       ∧ (∀ (L0 R : ℕ), L0 < n → C1At A L0 → L0 ≤ R → L0 ≤ n - R →
             cutRank n d ψ R = D ^ 2)
 
+/-- The proposition that, for every `k`, the half-chain squared Schmidt tail converges to
+`pairTail v k` as the chain length tends to infinity. -/
 def theorem6_lambda_interpretation  {d D : ℕ} (v : Fin D → ℝ)
     (ψ : (N : ℕ) → (Fin N → Fin d) → ℂ)
     (_hNorm : ∀ N, ∑ x, Complex.normSq (ψ N x) = 1) : Prop :=
   ∀ k : ℕ, Tendsto (fun N => schmidtTailSq N d (ψ N) (N / 2) k) atTop
       (𝓝 (pairTail v k))
 
+/-- The proposition that the two supplied single-block canonical tensor families are related by
+one unitary conjugation under the stated representation, spanning, uniqueness, and length
+hypotheses. -/
 def theorem7_TI_uniqueness  {n d D : ℕ} [NeZero n] [NeZero D]
     (B C : Fin d → BM D) (ψ : (Fin n → Fin d) → ℂ)
     (_hBrep : ∀ x, tiAmplitude B x = ψ x)
@@ -106,6 +156,7 @@ def theorem7_TI_uniqueness  {n d D : ℕ} [NeZero n] [NeZero D]
     (_hN : ∀ L0, L0 < n → C1At B L0 → 2 * L0 + D ^ 4 < n) : Prop :=
   ∃ U : BM D, IsUnitary U ∧ ∀ i, B i = U * C i * Uᴴ
 
+/-- The matrix `B ⊗ 1` with pair indices encoded in `Fin (D * D)`. -/
 def kronRightOne {D : ℕ} (B : BM D) : BM (D * D) :=
   Matrix.of fun i j =>
     if ((finProdFinEquiv (m := D) (n := D)).symm i).2 =
@@ -114,6 +165,8 @@ def kronRightOne {D : ℕ} (B : BM D) : BM (D * D) :=
         ((finProdFinEquiv (m := D) (n := D)).symm j).1
     else 0
 
+/-- The condition that invertible gauge pairs relate the selected interior open boundary tensors
+to `B ⊗ 1`, and `B` satisfies `∑ i, B i * (B i)ᴴ = 1`. -/
 def SatisfiesSystemS {n d D L0 : ℕ} (Aoc : (m : Fin n) → Fin d → BM (D * D))
     (B : Fin d → BM D) : Prop :=
   ∃ Y Z : (j : Fin (n + 1)) → BM (D * D),
@@ -123,6 +176,9 @@ def SatisfiesSystemS {n d D L0 : ℕ} (Aoc : (m : Fin n) → Fin d → BM (D * D
             Z ⟨j.val + 1, Nat.succ_lt_succ j.isLt⟩) ∧
       (∑ i, B i * (B i)ᴴ = 1)
 
+/-- The proposition combining existence of a solution to `SatisfiesSystemS` from a spanning
+periodic representation with unitary equivalence of each solution to `Ac`, under the
+supplied rank, canonical, and length data. -/
 def theorem8_obtain_canonical  {n d D L0 : ℕ} [NeZero n] [NeZero D]
     (ψ : (Fin n → Fin d) → ℂ) (Aoc : (m : Fin n) → Fin d → BM (D * D)) (Ac : Fin d → BM D)
     (_hOBC : OBCUnique (D := D) ψ)
@@ -134,10 +190,13 @@ def theorem8_obtain_canonical  {n d D L0 : ℕ} [NeZero n] [NeZero D]
       ∧ (∀ B : Fin d → BM D, SatisfiesSystemS (L0 := L0) Aoc B →
           ∃ U : BM D, IsUnitary U ∧ ∀ i, Ac i = U * B i * Uᴴ)
 
+/-- The trace of a matrix product equals the double sum of `P a b * Q b a`. -/
 lemma trace_mul_sum {D : ℕ} (P Q : BM D) :
     (P * Q).trace = ∑ a, ∑ b, P a b * Q b a := by
   simp [Matrix.trace, Matrix.mul_apply]
 
+/-- The recursive chain product of a sequence of selected generators equals its finite word
+product. -/
 lemma chainProd_eq_wordProd {d D : ℕ} (A : Fin d → BM D) :
     ∀ (m : ℕ) (w : ℕ → Fin d),
       chainProd (fun k => A (w k)) m = wordProd A m (fun i : Fin m => w i) := by
@@ -157,6 +216,8 @@ lemma chainProd_eq_wordProd {d D : ℕ} (A : Fin d → BM D) :
         | cast i => simp
       rw [chainProd_succ, ih w, hw, wordProd_snoc]
 
+/-- Splits a chain product of length `r + s` into the first `r` factors and the next `s`
+factors. -/
 lemma chainProd_split {ι : Type} [Fintype ι] [DecidableEq ι] (M : ℕ → Matrix ι ι ℂ) :
     ∀ r s : ℕ, chainProd M (r + s) = chainProd M r * chainProd (fun k => M (r + k)) s := by
   intro r s
@@ -169,6 +230,8 @@ lemma chainProd_split {ι : Type} [Fintype ι] [DecidableEq ι] (M : ℕ → Mat
       rw [chainProd_succ]
       rw [Matrix.mul_assoc]
 
+/-- Expresses the periodic amplitude of a joined configuration as the trace contraction of the
+word products on the two sides. -/
 lemma tiAmplitude_splitJoin {n d D : ℕ} [NeZero n] [NeZero D] (A : Fin d → BM D)
     {R : ℕ} (hR : R ≤ n) (u : Fin R → Fin d) (v : Fin (n - R) → Fin d) :
     tiAmplitude A (splitJoin n R d u v) =
@@ -202,32 +265,41 @@ lemma tiAmplitude_splitJoin {n d D : ℕ} [NeZero n] [NeZero D] (A : Fin d → B
     exact Fin.ext (by simp [hmod])
   rw [hu, hv]
 
+/-- The complex linear map sending a matrix to its function of ordered index pairs. -/
 def matFunLin (D : ℕ) : BM D →ₗ[ℂ] (Fin D × Fin D → ℂ) where
   toFun M := fun p => M p.1 p.2
   map_add' M N := by funext p; rcases p with ⟨a, b⟩; rfl
   map_smul' c M := by funext p; rcases p with ⟨a, b⟩; rfl
 
+/-- The complex linear map sending a matrix to its entries with the two indices exchanged. -/
 def matFunLinT (D : ℕ) : BM D →ₗ[ℂ] (Fin D × Fin D → ℂ) where
   toFun M := fun p => M p.2 p.1
   map_add' M N := by funext p; rcases p with ⟨a, b⟩; rfl
   map_smul' c M := by funext p; rcases p with ⟨a, b⟩; rfl
 
+/-- Every complex function on pairs of bond indices is the entry function of a matrix. -/
 lemma matFunLin_surj (D : ℕ) : Function.Surjective (matFunLin D) := by
   intro f
   exact ⟨Matrix.of fun a b => f (a, b), by funext p; rcases p with ⟨a, b⟩; rfl⟩
 
+/-- Every complex function on pairs of bond indices is the transposed entry function of a
+matrix. -/
 lemma matFunLinT_surj (D : ℕ) : Function.Surjective (matFunLinT D) := by
   intro f
   exact ⟨Matrix.of fun a b => f (b, a), by funext p; rcases p with ⟨a, b⟩; rfl⟩
 
+/-- The matrix whose columns are the vectorized word products of length `R`, using the finite
+word encoding. -/
 def Fmat {d D : ℕ} (A : Fin d → BM D) (R : ℕ) :
     Matrix (Fin D × Fin D) (Fin (d ^ R)) ℂ :=
   fun p i => wordProd A R ((finPowEnc d R).symm i) p.1 p.2
 
+/-- The matrix whose columns are the transposed entry functions of word products of length `m`. -/
 def Gmat {d D : ℕ} (A : Fin d → BM D) (m : ℕ) :
     Matrix (Fin D × Fin D) (Fin (d ^ m)) ℂ :=
   fun p j => wordProd A m ((finPowEnc d m).symm j) p.2 p.1
 
+/-- If length `R` word products span all bond matrices, then `Fmat A R` has rank `D * D`. -/
 lemma rank_Fmat {d D : ℕ} (A : Fin d → BM D) {R : ℕ} (hC1 : C1At A R) :
     (Fmat A R).rank = D * D := by
   rw [Matrix.rank_eq_finrank_span_cols]
@@ -247,6 +319,7 @@ lemma rank_Fmat {d D : ℕ} (A : Fin d → BM D) {R : ℕ} (hC1 : C1At A R) :
     LinearMap.range_eq_top.mpr (matFunLin_surj D), finrank_top, Module.finrank_pi]
   simp [Fintype.card_prod]
 
+/-- If length `m` word products span all bond matrices, then `Gmat A m` has rank `D * D`. -/
 lemma rank_Gmat {d D : ℕ} (A : Fin d → BM D) {m : ℕ} (hC1 : C1At A m) :
     (Gmat A m).rank = D * D := by
   rw [Matrix.rank_eq_finrank_span_cols]
@@ -266,6 +339,8 @@ lemma rank_Gmat {d D : ℕ} (A : Fin d → BM D) {m : ℕ} (hC1 : C1At A m) :
     LinearMap.range_eq_top.mpr (matFunLinT_surj D), finrank_top, Module.finrank_pi]
   simp [Fintype.card_prod]
 
+/-- If length `m` word products span all bond matrices, then multiplication by `Gmat A m` is
+surjective. -/
 lemma range_mulVecLin_Gmat {d D : ℕ} (A : Fin d → BM D) {m : ℕ} (hC1 : C1At A m) :
     LinearMap.range (Gmat A m).mulVecLin = ⊤ := by
   have hrank : (Gmat A m).rank = D * D := rank_Gmat A hC1
@@ -274,6 +349,8 @@ lemma range_mulVecLin_Gmat {d D : ℕ} (A : Fin d → BM D) {m : ℕ} (hC1 : C1A
   rw [hrank, Module.finrank_pi]
   simp [Fintype.card_prod]
 
+/-- The cut matrix of a represented periodic state factors as `(Fmat A R)ᵀ * Gmat A (n - R)`.
+See [PerezGarciaEtAl2007]. -/
 lemma cutMatrix_eq_mul {n d D : ℕ} [NeZero n] [NeZero D] (A : Fin d → BM D)
     (ψ : (Fin n → Fin d) → ℂ) (hrep : ∀ x, tiAmplitude A x = ψ x) {R : ℕ} (hR : R ≤ n) :
     cutMatrix n d ψ R = (Fmat A R)ᵀ * Gmat A (n - R) := by
@@ -284,6 +361,8 @@ lemma cutMatrix_eq_mul {n d D : ℕ} [NeZero n] [NeZero D] (A : Fin d → BM D)
   rw [tiAmplitude_splitJoin A hR]
   rw [Fintype.sum_prod_type]
 
+/-- A single-block canonical family satisfies `∑ i, A i * (A i)ᴴ = c • 1` for some nonzero
+complex scalar `c`. See [PerezGarciaEtAl2007]. -/
 lemma hsum_of_single_block {d D : ℕ} (A : Fin d → BM D)
     (h : TICanonicalFormWithBlocks 1 A) :
     ∃ c : ℂ, c ≠ 0 ∧ ∑ i, A i * (A i)ᴴ = c • 1 := by
@@ -311,6 +390,8 @@ lemma hsum_of_single_block {d D : ℕ} (A : Fin d → BM D)
       _ = (((lam 0 : ℝ) : ℂ) ^ 2) • P 0 := by rw [hnorm 0]
       _ = (((lam 0 : ℝ) : ℂ) ^ 2) • 1 := by rw [hP0]
 
+/-- If the normalization sum is a nonzero scalar multiple of the identity, spanning at length
+`L` implies spanning at length `L + 1`. -/
 lemma C1At_succ {d D : ℕ} (A : Fin d → BM D) {c : ℂ} (hc : c ≠ 0)
     (hsum : ∑ i, A i * (A i)ᴴ = c • 1) {L : ℕ} (h : C1At A L) : C1At A (L + 1) := by
   show wordSpan A (L + 1) = ⊤
@@ -333,12 +414,17 @@ lemma C1At_succ {d D : ℕ} (A : Fin d → BM D) {c : ℂ} (hc : c ≠ 0)
     exact Submodule.mem_top
   exact map_mulLeft_le_wordSpan_succ A L i (Submodule.mem_map.mpr ⟨(A i)ᴴ * X, hmem, rfl⟩)
 
+/-- If the normalization sum is a nonzero scalar multiple of the identity, spanning at length
+`L` implies spanning at every length `L' ≥ L`. -/
 lemma C1At_mono {d D : ℕ} (A : Fin d → BM D) {c : ℂ} (hc : c ≠ 0)
     (hsum : ∑ i, A i * (A i)ᴴ = c • 1) {L L' : ℕ} (h : C1At A L) (hLL : L ≤ L') :
     C1At A L' :=
   Nat.le_induction (P := fun k _ => C1At A k) h
     (fun _ _ ih => C1At_succ A hc hsum ih) L' hLL
 
+/-- If length `L0 > 0` word products span all matrices and the normalization sum is a nonzero
+scalar multiple of the identity, every cut with both sides at least `L0` has rank `D ^ 2`.
+See [PerezGarciaEtAl2007]. -/
 theorem proposition1_cutRank {n d D : ℕ} [NeZero n] [NeZero D]
     (A : Fin d → BM D) (ψ : (Fin n → Fin d) → ℂ)
     (hrep : ∀ x, tiAmplitude A x = ψ x)
@@ -356,6 +442,8 @@ theorem proposition1_cutRank {n d D : ℕ} [NeZero n] [NeZero D]
   change ((Fmat A R)ᵀ).rank = D ^ 2
   rw [Matrix.rank_transpose, rank_Fmat A hC1R, Nat.pow_two]
 
+/-- For a single-block canonical representation spanning at length `L0 > 0`, every cut with both
+sides at least `L0` has rank `D ^ 2`. See [PerezGarciaEtAl2007]. -/
 theorem proposition1_cutRank_canonical {n d D : ℕ} [NeZero n] [NeZero D]
     (A : Fin d → BM D) (ψ : (Fin n → Fin d) → ℂ)
     (hrep : ∀ x, tiAmplitude A x = ψ x)
@@ -366,14 +454,18 @@ theorem proposition1_cutRank_canonical {n d D : ℕ} [NeZero n] [NeZero D]
   obtain ⟨c, hc, hsum⟩ := hsum_of_single_block A hcanon
   exact proposition1_cutRank A ψ hrep hc hsum hL0pos hL0 hC1 hR1 hR2
 
+/-- Left multiplication by an idempotent twice equals left multiplication by it once. -/
 lemma mul_idem_assoc {D : ℕ} {p : BM D} (hp : p * p = p) (z : BM D) :
     p * (p * z) = p * z := by
   rw [← Matrix.mul_assoc, hp]
 
+/-- If `p * q = 0`, then `p * (q * z) = 0`. -/
 lemma mul_of_mul_eq_zero {D : ℕ} {p q : BM D} (h : p * q = 0) (z : BM D) :
     p * (q * z) = 0 := by
   rw [← Matrix.mul_assoc, h, Matrix.zero_mul]
 
+/-- The product of two block diagonal sums over pairwise annihilating idempotents is the sum of
+their products within each block. -/
 lemma blockDiag_mul_form {D b : ℕ} (P : Fin b → BM D)
     (hPid : ∀ j, P j * P j = P j) (hPorth : ∀ j k, j ≠ k → P j * P k = 0)
     (X Y : BM D) :
@@ -391,6 +483,8 @@ lemma blockDiag_mul_form {D b : ℕ} (P : Fin b → BM D)
   · intro hj
     exact absurd (Finset.mem_univ j) hj
 
+/-- Compressing the product of two block diagonal sums to block `j` gives `P j * X * P j * Y * P
+j`. -/
 lemma block_proj_mul {D b : ℕ} (P : Fin b → BM D)
     (hPid : ∀ j, P j * P j = P j) (hPorth : ∀ j k, j ≠ k → P j * P k = 0)
     (X Y : BM D) (j : Fin b) :
@@ -407,6 +501,8 @@ lemma block_proj_mul {D b : ℕ} (P : Fin b → BM D)
   · intro hi
     exact absurd (Finset.mem_univ j) hi
 
+/-- If `Y` is block diagonal, compressing `X * Y` to block `j` inserts `P j` between `X` and
+`Y`. -/
 lemma block_proj_mul_right {D b : ℕ} (P : Fin b → BM D)
     (hPid : ∀ j, P j * P j = P j) (hPorth : ∀ j k, j ≠ k → P j * P k = 0)
     (X Y : BM D) (hY : Y = ∑ k, P k * Y * P k) (j : Fin b) :
@@ -424,6 +520,8 @@ lemma block_proj_mul_right {D b : ℕ} (P : Fin b → BM D)
   · intro hk
     exact absurd (Finset.mem_univ j) hk
 
+/-- If all generators are block diagonal with respect to idempotents summing to one, every word
+product is block diagonal with respect to the same idempotents. -/
 lemma wordProd_blockDiag {d D b : ℕ} (P : Fin b → BM D) (A : Fin d → BM D)
     (hPid : ∀ j, P j * P j = P j) (hPorth : ∀ j k, j ≠ k → P j * P k = 0)
     (hPsum : ∑ j, P j = 1) (hA : ∀ i, A i = ∑ j, P j * A i * P j) :
@@ -460,6 +558,8 @@ lemma wordProd_blockDiag {d D b : ℕ} (P : Fin b → BM D) (A : Fin d → BM D)
               exact (block_proj_mul_right P hPid hPorth (wordProd A m (Fin.init w))
                 (A (w (Fin.last m))) hAe j).symm
 
+/-- The trace pairing of an off-diagonal block with any word product of block diagonal
+generators is zero. -/
 lemma trace_offdiag_wordProd {d D b : ℕ} (P : Fin b → BM D) (A : Fin d → BM D)
     (hPid : ∀ j, P j * P j = P j) (hPorth : ∀ j k, j ≠ k → P j * P k = 0)
     (hPsum : ∑ j, P j = 1) (hA : ∀ i, A i = ∑ j, P j * A i * P j)
@@ -490,6 +590,8 @@ lemma trace_offdiag_wordProd {d D b : ℕ} (P : Fin b → BM D) (A : Fin d → B
               simp
             rw [hz, Matrix.trace_zero]
 
+/-- If length `L` word products span all matrices and `X` has zero trace pairing with each such
+product, then `X = 0`. -/
 lemma eq_zero_of_trace_wordProd {d D : ℕ} (A : Fin d → BM D) {L : ℕ} (hC1 : C1At A L)
     (X : BM D) (hX : ∀ w : Fin L → Fin d, (X * wordProd A L w).trace = 0) : X = 0 := by
   classical
@@ -511,6 +613,8 @@ lemma eq_zero_of_trace_wordProd {d D : ℕ} (A : Fin d → BM D) {L : ℕ} (hC1 
   have h0 : phi W = 0 := hW
   simpa using! h0
 
+/-- If a block diagonal family spans all matrices at some word length, every off-diagonal block
+`P a * M * P b'` with `a ≠ b'` vanishes. See [PerezGarciaEtAl2007]. -/
 theorem offdiag_block_eq_zero_of_C1 {d D b : ℕ} (P : Fin b → BM D) (A : Fin d → BM D)
     (lam : Fin b → ℝ) (hdec : IsBlockDiagonalDecomp P A lam) {L0 : ℕ} (hC1 : C1At A L0)
     {a b' : Fin b} (hab : a ≠ b') (M : BM D) : P a * M * P b' = 0 := by
@@ -518,6 +622,7 @@ theorem offdiag_block_eq_zero_of_C1 {d D b : ℕ} (P : Fin b → BM D) (A : Fin 
   exact eq_zero_of_trace_wordProd A hC1 (P a * M * P b')
     (fun w => trace_offdiag_wordProd P A hPid hPorth hPsum hA hab M L0 w)
 
+/-- The `(i, j)` entry of `X * Matrix.single k l 1 * Y` equals `X i k * Y l j`. -/
 lemma mul_single_mul_apply {D : ℕ} (X Y : BM D) (k l : Fin D) (i j : Fin D) :
     (X * Matrix.single k l (1 : ℂ) * Y) i j = X i k * Y l j := by
   simp only [Matrix.mul_apply, Matrix.single, Matrix.of_apply]
@@ -538,6 +643,7 @@ lemma mul_single_mul_apply {D : ℕ} (X Y : BM D) (k l : Fin D) (i j : Fin D) :
   · intro hl
     exact absurd (Finset.mem_univ l) hl
 
+/-- For nonzero square matrices `X` and `Y`, some matrix `M` satisfies `X * M * Y ≠ 0`. -/
 lemma exists_mul_ne_zero {D : ℕ} {X Y : BM D} (hX : X ≠ 0) (hY : Y ≠ 0) :
     ∃ M : BM D, X * M * Y ≠ 0 := by
   have hXe : ∃ i k, X i k ≠ 0 := by
@@ -561,6 +667,8 @@ lemma exists_mul_ne_zero {D : ℕ} {X Y : BM D} (hX : X ≠ 0) (hY : Y ≠ 0) :
   rw [mul_single_mul_apply] at hval
   exact mul_ne_zero hik hlj hval
 
+/-- If a block diagonal tensor family has word products spanning all matrices, any two nonzero
+block idempotents have the same index. See [PerezGarciaEtAl2007]. -/
 theorem atMostOneNonzeroBlock_of_C1 {d D b : ℕ} (P : Fin b → BM D) (A : Fin d → BM D)
     (lam : Fin b → ℝ) (hdec : IsBlockDiagonalDecomp P A lam) {L0 : ℕ} (hC1 : C1At A L0) :
     ∀ a b' : Fin b, P a ≠ 0 → P b' ≠ 0 → a = b' := by

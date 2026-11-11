@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CommutingAssembly
+
+/-!
+# Closure properties of Hamiltonian simulation
+
+This module proves that finite sums of pairwise commuting simulatable Hamiltonians are
+simulatable in `simulatable_sum_of_pairwise_commute`. It also relates scalar multiplication to
+rescaled evolution time through `timeEvolution_smul_ham` and proves simulation closure under
+positive scalar factors at most one. The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `simulatable_sum_of_pairwise_commute`: A finite sum of pairwise commuting simulatable
+  Hamiltonians is simulatable.
+* `simulatable_smul_of_pos_le_one`: Multiplying a simulatable Hamiltonian by a positive real
+  scalar at most one preserves simulability.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,16 +40,21 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- Right multiplication by the last Hamiltonian distributes over the sum of the preceding
+Hamiltonians. -/
 theorem fin_sum_castSucc_mul {M : ℕ} (Hs : Fin (M + 1) → Ham n) :
     (∑ i : Fin M, Hs (Fin.castSucc i)) * Hs (Fin.last M)
       = ∑ i : Fin M, Hs (Fin.castSucc i) * Hs (Fin.last M) :=
   Finset.sum_mul _ _ _
 
+/-- Left multiplication by the last Hamiltonian distributes over the sum of the preceding
+Hamiltonians. -/
 theorem fin_sum_mul_castSucc {M : ℕ} (Hs : Fin (M + 1) → Ham n) :
     Hs (Fin.last M) * (∑ i : Fin M, Hs (Fin.castSucc i))
       = ∑ i : Fin M, Hs (Fin.last M) * Hs (Fin.castSucc i) :=
   Finset.mul_sum _ _ _
 
+/-- A finite sum of pairwise commuting simulatable Hamiltonians is simulatable. -/
 theorem simulatable_sum_of_pairwise_commute (M : ℕ) (Hs : Fin M → Ham n)
     (hcomm : ∀ i j : Fin M, Hs i * Hs j = Hs j * Hs i)
     (hsim : ∀ i, Simulatable (Hs i)) :
@@ -48,15 +74,19 @@ theorem simulatable_sum_of_pairwise_commute (M : ℕ) (Hs : Fin M → Ham n)
         exact Finset.sum_congr rfl (fun i _ => hcomm _ _)
       exact simulatable_add_of_commute hlastcomm ihsum (hsim (Fin.last M))
 
+/-- Real scalar multiplication of a complex Hamiltonian matrix agrees with multiplication by the
+corresponding complex scalar. -/
 theorem real_smul_matrix (r : ℝ) (H : Ham n) : r • H = ((r : ℂ)) • H := by
   ext i j
   simp
 
+/-- Passing from a Hamiltonian matrix to its operator commutes with real scalar multiplication. -/
 theorem toOp_smul_ham (H : Ham n) (r : ℝ) : toOp (r • H) = r • toOp H := by
   rw [real_smul_matrix, real_smul_op]
   unfold toOp
   exact map_smul _ _ _
 
+/-- Evolving the scalar multiple `r • H` for time `t` equals evolving `H` for time `t * r`. -/
 theorem timeEvolution_smul_ham (H : Ham n) (r t : ℝ) :
     timeEvolution (r • H) t = timeEvolution H (t * r) := by
   unfold timeEvolution
@@ -69,6 +99,8 @@ theorem timeEvolution_smul_ham (H : Ham n) (r t : ℝ) :
     ring
   rw [h1]
 
+/-- A `PolySize3` bound at positive time `t'` also holds at any larger time `t`, for positive
+accuracy. -/
 theorem PolySize3.mono_time {C : Circuit n} {t t' α : ℝ} (ht' : 0 < t') (hα : 0 < α)
     (htt : t' ≤ t) (h : PolySize3 n t' α C) : PolySize3 n t α C := by
   obtain ⟨c, k, hc⟩ := h
@@ -82,6 +114,8 @@ theorem PolySize3.mono_time {C : Circuit n} {t t' α : ℝ} (ht' : 0 < t') (hα 
         have := mul_le_mul_of_nonneg_left hpow hc0
         linarith
 
+/-- Multiplying a simulatable Hamiltonian by a positive real scalar at most one preserves
+simulability. -/
 theorem simulatable_smul_of_pos_le_one {H : Ham n} (hH : Simulatable H)
     {r : ℝ} (hr0 : 0 < r) (hr1 : r ≤ 1) : Simulatable (r • H) := by
   intro t ht α hα hα1

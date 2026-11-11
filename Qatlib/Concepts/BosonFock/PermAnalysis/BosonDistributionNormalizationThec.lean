@@ -8,6 +8,27 @@ import Qatlib.Concepts.BosonFock.PermAnalysis.BosonDistributionNormalizationStat
 import Mathlib.Data.Fintype.Perm
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.LinearAlgebra.Matrix.Permanent
+
+/-!
+# Normalization of bosonic permanent distributions
+
+`bosonDistributionNormalization` proves normalization of the occupation weights for matrices
+with orthonormal columns. The proof groups mode assignments by their occupation counts and
+counts the permutations in each fiber using products of occupation factorials.
+
+The mathematical background is described in [KoehlerLeung2026].
+
+## Main statements
+
+* `card_perm_fiber`: permutation fiber cardinalities from occupation counts.
+* `sum_perm_comp`: replacement of permutation sums by occupation fibers.
+* `bosonDistributionNormalization`: total bosonic permanent weight equals one.
+
+## References
+
+* [Koehler and Leung, 2026][KoehlerLeung2026]
+-/
+
 open Qatlib.Concepts.BosonFock.BosonOperators
 open Qatlib
 
@@ -17,9 +38,11 @@ open Qatlib
 
 open scoped Matrix Nat
 
+/-- The function counting how many particle positions are assigned to each mode. -/
 private def occFn {m n : ℕ} (f : Fin n → Fin m) : Fin m → ℕ :=
   fun i => ∑ j : Fin n, if f j = i then 1 else 0
 
+/-- Permuting the positions of a mode assignment preserves its occupation counts. -/
 private theorem occFn_comp_perm {m n : ℕ} (f : Fin n → Fin m) (σ : Equiv.Perm (Fin n)) :
     occFn (fun j => f (σ j)) = occFn f := by
   funext i
@@ -27,6 +50,7 @@ private theorem occFn_comp_perm {m n : ℕ} (f : Fin n → Fin m) (σ : Equiv.Pe
   exact Fintype.sum_equiv σ (fun j => if f (σ j) = i then (1 : ℕ) else 0)
     (fun j => if f j = i then (1 : ℕ) else 0) (fun _ => rfl)
 
+/-- The sum of the mode counts of an assignment is `n`. -/
 private theorem occFn_sum {m n : ℕ} (f : Fin n → Fin m) : ∑ i, occFn f i = n := by
   have hcomm : ∑ i : Fin m, ∑ j : Fin n, (if f j = i then (1 : ℕ) else 0)
       = ∑ j : Fin n, ∑ i : Fin m, (if f j = i then (1 : ℕ) else 0) :=
@@ -38,22 +62,27 @@ private theorem occFn_sum {m n : ℕ} (f : Fin n → Fin m) : ∑ i, occFn f i =
   rw [hcomm]
   simp [hinner]
 
+/-- Each mode count of an assignment is at most `n`. -/
 private theorem occFn_le {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) : occFn f i ≤ n := by
   have hle : occFn f i ≤ ∑ i', occFn f i' :=
     Finset.single_le_sum (fun i' _ => Nat.zero_le _) (Finset.mem_univ i)
   rw [occFn_sum] at hle
   exact hle
 
+/-- The mode-count function represented by bounded natural numbers in `Fin (n + 1)`. -/
 private def occFin {m n : ℕ} (f : Fin n → Fin m) : Fin m → Fin (n + 1) :=
   fun i => ⟨occFn f i, by have := occFn_le f i; omega⟩
 
+/-- The natural value of a bounded occupation count equals `occFn f i`. -/
 private theorem occFin_val {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) :
     ((occFin f i : Fin (n + 1)) : ℕ) = occFn f i := rfl
 
+/-- The bounded occupation counts of an assignment sum to `n`. -/
 private theorem occFin_sum {m n : ℕ} (f : Fin n → Fin m) :
     ∑ i, ((occFin f i : Fin (n + 1)) : ℕ) = n := by
   refine (Finset.sum_congr rfl fun i _ => occFin_val f i).trans (occFn_sum f)
 
+/-- Pointwise equivalent predicates give finite subtypes of the same cardinality. -/
 private theorem card_subtype_iff {α : Type*} (p q : α → Prop)
     [Fintype { x // p x }] [Fintype { x // q x }] (h : ∀ a, p a ↔ q a) :
     Fintype.card { x // p x } = Fintype.card { x // q x } := by
@@ -63,18 +92,23 @@ private theorem card_subtype_iff {α : Type*} (p q : α → Prop)
       ⟨fun x y hxy => Subtype.ext (by simpa using hxy),
         fun y => ⟨⟨(y : α), (h _).2 y.2⟩, Subtype.ext (by simp)⟩⟩)
 
+/-- The cardinality of a predicate filter of the finite universe equals the cardinality of its
+subtype. -/
 private theorem card_filter_subtype {α : Type*} [Fintype α] (p : α → Prop) [DecidablePred p] :
     (Finset.univ.filter p).card = Fintype.card { x // p x } := by
   classical
   rw [card_subtype_iff p (fun x => x ∈ Finset.univ.filter p) (fun a => by simp),
     Fintype.card_coe]
 
+/-- The fiber of an assignment at a mode has cardinality equal to its occupation count. -/
 private theorem card_fiber_subtype {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) :
     Fintype.card { j : Fin n // f j = i } = occFn f i := by
   classical
   rw [← card_filter_subtype (fun j => f j = i), Finset.card_filter]
   rfl
 
+/-- An equivalence between finite types identifies the number of equivalences between them with
+the number of permutations of the source. -/
 private theorem card_perm_equiv_perm {α β : Type*} [DecidableEq α] [Fintype α] [Fintype β]
     [DecidableEq β] [Fintype (α ≃ β)] [Fintype (Equiv.Perm α)] (e : α ≃ β) :
     Fintype.card (α ≃ β) = Fintype.card (Equiv.Perm α) := by
@@ -83,6 +117,8 @@ private theorem card_perm_equiv_perm {α β : Type*} [DecidableEq α] [Fintype �
       fun φ => Equiv.ext fun a => by simp,
       fun ψ => Equiv.ext fun a => by simp⟩ : (α ≃ β) ≃ Equiv.Perm α)
 
+/-- If two assignments have equal occupations, the number of permutations relating them is the
+product of their mode-count factorials. -/
 private theorem perm_fiber_card {m n : ℕ} (f g : Fin n → Fin m) (h : occFn f = occFn g) :
     Fintype.card { τ : Equiv.Perm (Fin n) // ∀ j, f (τ j) = g j } = ∏ i, (occFn f i)! := by
   classical
@@ -143,6 +179,8 @@ private theorem perm_fiber_card {m n : ℕ} (f g : Fin n → Fin m) (h : occFn f
   have e₀ : {j : Fin n // g j = i} ≃ {j : Fin n // f j = i} := Fintype.equivOfCardEq hce
   rw [card_perm_equiv_perm e₀, Fintype.card_perm, card_fiber_subtype g i, ← h]
 
+/-- The number of permutations relating two mode assignments is the occupation factorial product
+when their counts agree, and zero otherwise. -/
 private theorem card_perm_fiber {m n : ℕ} (f g : Fin n → Fin m) :
     Fintype.card { τ : Equiv.Perm (Fin n) // ∀ j, f (τ j) = g j }
       = if occFn f = occFn g then ∏ i, (occFn f i)! else 0 := by
@@ -155,6 +193,8 @@ private theorem card_perm_fiber {m n : ℕ} (f g : Fin n → Fin m) :
     have h2 : (fun j => f ((τ : Equiv.Perm (Fin n)) j)) = g := funext fun j => h1 j
     exact (occFn_comp_perm f (τ : Equiv.Perm (Fin n))).symm.trans (by rw [h2])
 
+/-- The sum over permutations of a fixed mode assignment equals its occupation factorial product
+times the sum over assignments with matching counts. -/
 private theorem sum_perm_comp {m n : ℕ} (f₀ : Fin n → Fin m) (Φ : (Fin n → Fin m) → ℂ) :
     ∑ σ : Equiv.Perm (Fin n), Φ (fun j => f₀ (σ j))
       = (∏ i, (occFn f₀ i)! : ℕ) * ∑ g : Fin n → Fin m,
@@ -199,6 +239,7 @@ private theorem sum_perm_comp {m n : ℕ} (f₀ : Fin n → Fin m) (Φ : (Fin n 
   rw [Finset.sum_congr rfl (fun F _ => hterm F), ← Finset.sum_mul]
   exact mul_comm _ _
 
+/-- Summing the indicator of a list value over all positions gives its count. -/
 private theorem sum_get_count {α : Type*} [DecidableEq α] (L : List α) (a : α) :
     ∑ p : Fin L.length, (if L.get p = a then (1 : ℕ) else 0) = L.count a := by
   induction L with
@@ -217,6 +258,7 @@ private theorem sum_get_count {α : Type*} [DecidableEq α] (L : List α) (a : �
       · subst hxa; simp [Nat.add_comm]
       · simp [hxa]
 
+/-- Mode `i₀` occurs in the repeated mode list exactly as many times as its occupation count. -/
 private theorem count_bosonRows {m : ℕ} (s : Fin m → ℕ) (i₀ : Fin m) :
     (bosonRows s).count i₀ = s i₀ := by
   induction m with
@@ -254,6 +296,8 @@ private theorem count_bosonRows {m : ℕ} (s : Fin m → ℕ) (i₀ : Fin m) :
           exact Fin.succ_ne_zero j hmem.2
         rw [hne, Nat.zero_add, ih (fun j : Fin m => s ((Fin.succ : Fin m → Fin (m + 1)) j))]
 
+/-- For a matrix with orthonormal columns, the permanent-based boson weights sum to one over all
+output occupations. -/
 theorem bosonDistributionNormalization : BosonDistributionNormalization := by
   unfold BosonDistributionNormalization
   intro m n A hA

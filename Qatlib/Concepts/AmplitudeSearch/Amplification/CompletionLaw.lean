@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+
+/-!
+# Completion laws for naturally charged runs
+
+`runCharge` sums natural call costs, and `RankedCallLaw.completionMass` sums the masses of
+terminating runs that fit a budget. The module proves normalization bounds, the terminal
+threshold-zero case, and a first-call recurrence for completion mass.
+
+A final summation result averages these completion probabilities over a uniform initial rank,
+supporting budgeted quantum minimum-finding analysis as in [DurrHoyer1996].
+
+## Main statements
+
+* `RankedCallLaw.completion_law`: shows that completion mass lies between zero and one.
+* `RankedCallLaw.completion_step`: decomposes completion through affordable first calls.
+* `RankedCallLaw.initial_completion_hasSum`: gives the uniform initial completion average.
+
+## References
+
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,14 +40,19 @@ namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
 variable {N : ℕ} {Ω : Type}
 
+/-- The sum of the natural call charges along a run. -/
 def runCharge (charge : Ω → ℕ) (xs : List Ω) : ℕ := (xs.map charge).sum
 
 namespace RankedCallLaw
 
+/-- The total mass of terminating ranked runs whose accumulated natural charge is within the
+budget. -/
 noncomputable def completionMass (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (charge : Ω → ℕ) (t budget : ℕ) : ℝ :=
   ∑' xs : List Ω, if runCharge charge xs ≤ budget then law.runMass skip t xs else 0
 
+/-- For `t < N`, budget-completing run masses sum to `completionMass`, which lies between zero
+and one. -/
 theorem completion_law (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge : Ω → ℕ)
     (t : ℕ) (htN : t < N) (budget : ℕ) :
     HasSum (fun xs : List Ω => if runCharge charge xs ≤ budget then law.runMass skip t xs else 0)
@@ -42,6 +69,7 @@ theorem completion_law (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge : 
   have h := Summable.tsum_le_tsum (fun xs => (hf xs).2) hs hm.summable
   rwa [hm.tsum_eq] at h
 
+/-- At threshold zero, the completion mass is one for any natural budget and nonempty rank type. -/
 theorem completion_zero (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge : Ω → ℕ)
     (hN : 0 < N) (budget : ℕ) : law.completionMass skip charge 0 budget = 1 := by
   have heq : (fun xs : List Ω => if runCharge charge xs ≤ budget then law.runMass skip 0 xs else 0) =
@@ -52,6 +80,8 @@ theorem completion_zero (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge :
   rw [heq]
   exact (law.runMass_normalized skip 0 hN).tsum_eq
 
+/-- For a positive threshold below `N`, completion mass is the sum over affordable first calls
+of their mass times the remaining-budget continuation mass. -/
 theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge : Ω → ℕ)
     (t : ℕ) (ht : 0 < t) (htN : t < N) (budget : ℕ) :
     HasSum (fun x : Ω => if charge x ≤ budget then law.mass t x *
@@ -117,6 +147,8 @@ theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge :
   rw [heq]
   exact hgs.hasSum
 
+/-- The budget-completing initial run mass sums to the uniform average of the corresponding
+completion masses over starting ranks. -/
 theorem initial_completion_hasSum (law : RankedCallLaw N Ω) (skip : RankSkip N) (charge : Ω → ℕ)
     (hN : 0 < N) (budget : ℕ) :
     HasSum (fun x : Fin N × List Ω => if runCharge charge x.2 ≤ budget then law.initialMass skip x else 0)

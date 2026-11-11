@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.BlockSubstitution
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.DiscreteNodeDerivative
+
+/-!
+# Block sensitivity bounds from approximating polynomials
+
+This module proves `ApproximatePolynomialBlockSensitivity` from a derivative estimate for
+polynomials bounded at discrete nodes. The argument uses block substitution and Boolean layer
+averaging to obtain a degree bound of the form used in the polynomial method [BealsEtAl2001].
+
+## Main statements
+
+* `approximatePolynomialBlockSensitivity_of_discrete`: reduces the block sensitivity estimate to
+  a discrete derivative inequality.
+* `approximatePolynomialBlockSensitivity`: establishes the estimate using
+  `discrete_node_derivative_bound`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,8 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The stated derivative bound for polynomials bounded at integer nodes implies
+`ApproximatePolynomialBlockSensitivity`. -/
 theorem approximatePolynomialBlockSensitivity_of_discrete
     (hdiscrete : ∀ (N : ℕ) (p : Polynomial ℝ) (b1 b2 c x : ℝ), 0 < c →
       (∀ i : ℕ, i ≤ N → b1 ≤ p.eval (i:ℝ) ∧ p.eval (i:ℝ) ≤ b2) →
@@ -121,6 +143,9 @@ theorem approximatePolynomialBlockSensitivity_of_discrete
   rw [hmax',hmax'']
   exact hfamily x F hF'
 
+/-- A polynomial with Boolean cube values in `[0, 1]` that approximates `f` within `ε < 1 / 2`
+satisfies the block sensitivity estimate encoded by `ApproximatePolynomialBlockSensitivity`
+[BealsEtAl2001]. -/
 theorem approximatePolynomialBlockSensitivity : ApproximatePolynomialBlockSensitivity :=
   approximatePolynomialBlockSensitivity_of_discrete discrete_node_derivative_bound
 

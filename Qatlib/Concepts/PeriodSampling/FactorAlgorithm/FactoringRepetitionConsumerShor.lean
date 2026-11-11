@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringRepetitionConsumerStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+
+/-!
+# Amplification of factoring attempt success
+
+Applies the independent-trial identity to amplify the single-attempt factoring bound. The
+theorem `factoringRepetitionConsumer` combines this success estimate with soundness of
+individual factors in the probability model associated with [Shor1997].
+
+## Main statements
+
+* `fresh_success_bound`: Amplifies a lower bound on a single-event probability.
+* `factoringRepetitionConsumer`: Establishes repeated-attempt success and factor soundness.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -21,6 +39,8 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- A lower bound `c` on a single-trial event probability gives lower bound `1 - (1 - c) ^ R` on
+the probability of at least one success in `R` independent trials. -/
 private theorem fresh_success_bound {A : Type*} [Fintype A] [DecidableEq A]
     (p : FinDist A) (P : A → Prop) [DecidablePred P] (R : ℕ) (c : ℝ)
     (hc : c ≤ p.probEvent (L := 1) (fun ω => P (ω 0))) :
@@ -57,6 +77,8 @@ private theorem fresh_success_bound {A : Type*} [Fintype A] [DecidableEq A]
   rw [hbad] at hrecords
   linarith
 
+/-- Establishes the amplified factoring-attempt success bound and soundness of every returned
+factor in the model associated with [Shor1997]. -/
 theorem factoringRepetitionConsumer : FactoringRepetitionConsumer := by
   intro N M k R _ hM hk hN hodd hs hsize
   have h := sampledAttemptSuccess N M k hM hk hN hodd hs hsize

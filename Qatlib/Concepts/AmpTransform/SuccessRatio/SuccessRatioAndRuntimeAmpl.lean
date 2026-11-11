@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.SuccessRatio.SuccessRatioAndRuntimeStat
 import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+
+/-!
+# Amplified Fourier success ratios and query budgets
+
+`SuccessRatioAndRuntimeOriginal` expresses the ratio of amplified to baseline probability on
+nonzero Fourier outcomes. The module proves this ratio bound and combines it with the expected
+query budget for verified period recovery in `successRatioAndRuntime_answer`. See [Cornwell2014]
+for background.
+
+## Main statements
+
+* `successRatioAndRuntime_original_answer`: The amplified and baseline nonzero outcome
+  probabilities satisfy `SuccessRatioAndRuntimeOriginal`.
+* `successRatio_actual_paid_budget`: Under the progression, density, and decoder separation
+  hypotheses, the expected counted cost of fresh period recovery is at most `(aqRounds N M + 3)
+  / aqSuccessLower N M P`. See [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,8 @@ set_option autoImplicit false
 open scoped Classical
 namespace Qatlib.Concepts.AmpTransform.SuccessRatio
 
+/-- The nonzero Fourier success probability ratio identity and its upper and lower bounds for a
+nonwrapping marked progression. -/
 def SuccessRatioAndRuntimeOriginal : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (s M P : ℕ) (f : Fin N → Bool),
     2 ≤ M → 0 < P → s + (M - 1) * P < N → 2 * M ≤ N → AQMarkPromise f s M P →
@@ -29,6 +53,8 @@ def SuccessRatioAndRuntimeOriginal : Prop :=
       aqRatio N M ∧
     aqRatio N M ≤ (N : ℝ) ^ 2 / (4 * (M : ℝ) * ((N - M : ℕ) : ℝ))
 
+/-- The amplified and baseline nonzero outcome probabilities satisfy
+`SuccessRatioAndRuntimeOriginal`. -/
 theorem successRatioAndRuntime_original_answer : SuccessRatioAndRuntimeOriginal := by
   intro N hN s M P f hM hP hbound hhalf hmark
   (try dsimp only)
@@ -47,6 +73,9 @@ theorem successRatioAndRuntime_original_answer : SuccessRatioAndRuntimeOriginal 
   · rw [hr]
     simpa using! mul_le_mul_of_nonneg_left hg.2.2.2.1 hp
 
+/-- Under the progression, density, and decoder separation hypotheses, the expected counted cost
+of fresh period recovery is at most `(aqRounds N M + 3) / aqSuccessLower N M P`. See
+[Cornwell2014]. -/
 theorem successRatio_actual_paid_budget (N : ℕ) (hN : 0 < N)
     (s M P B R : ℕ) (f : Fin N → Bool)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N)
@@ -58,6 +87,8 @@ theorem successRatio_actual_paid_budget (N : ℕ) (hN : 0 < N)
   (amplified_progression_actual_fresh_retry N hN s M P B R f hM hP hb
     hhalf hMP hPB hsep hf).2.2.2
 
+/-- The success probability ratio bounds and the expected counted period recovery budget hold
+together. See [Cornwell2014]. -/
 theorem successRatioAndRuntime_answer : SuccessRatioAndRuntime :=
   ⟨successRatioAndRuntime_original_answer, successRatio_actual_paid_budget⟩
 

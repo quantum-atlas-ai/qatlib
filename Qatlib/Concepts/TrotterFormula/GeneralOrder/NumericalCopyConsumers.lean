@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalCopyQPE
+
+/-!
+# Numerical copy coherence and controlled qubit swaps
+
+This module specializes numerical copy and controlled-swap constructions to explicit coherence
+and basis-state calculations. The theorem `numerical_copy_coherence_and_qubit_swap_consumers`
+records the scalar copy phase, the length-40 qubit swap program, and its precision-dependent
+vector error.
+
+The copy-evolution setting is motivated by density-matrix simulation
+[LloydMohseniRebentrost2014]; the result here retains the phase `-i` in the controlled-swap
+output.
+
+## Main statements
+
+* `numerical_copy_coherence_and_qubit_swap_consumers`: scalar coherence, program length, and
+  basis-state swap error.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -40,6 +63,9 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Computes the off-diagonal coherence of the scalar numerical copy step and shows that the
+qubit controlled-swap program has length 40. On each specified basis input, its output is
+within `2 * (2⁻¹)^k` of the swapped state with phase `-i`. -/
 theorem numerical_copy_coherence_and_qubit_swap_consumers : ∀ b k : ℕ,
   numericCopyRawStep 0 (1 : Operator 1) b k (fun _ _ => (1/2:ℂ))
     (false,(0:Fin 1)) (true,(0:Fin 1)) = gaussianRatComplex (copyPhaseData b k)/2 ∧

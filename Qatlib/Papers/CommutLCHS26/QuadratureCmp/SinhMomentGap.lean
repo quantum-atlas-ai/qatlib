@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
+
+/-!
+# A gap in uniform sinh moment bounds
+
+This module constructs a family of budget-selected sinh rules in the setting of
+[AftabAnTrivisa2026] whose zeroth moments exceed every fixed multiple of the proposed moment
+growth factor. The choice `unitBudget` forces unit mesh step, while the sinh scale grows as
+`2c`.
+
+The witness remains within the analytic-width conditions and shows why an unrestricted scale
+cannot satisfy the displayed uniform moment bound.
+
+## Main statements
+
+* `selected_moment_exceeds`: a selected rule exceeding any prescribed positive bound constant.
+* `not_uniform_selected_moment_bound`: failure of a uniform bound over the witness family.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -28,13 +50,16 @@ open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
 set_option warningAsError false
 
+/-- The mesh budget `2M / (exp (2πβ) - 1)` that selects unit mesh step. -/
 def unitBudget (β M : ℝ) : ℝ := 2 * M / (Real.exp (2 * Real.pi * β) - 1)
 
+/-- The unit-step budget is positive for positive strip half-width and mass. -/
 theorem unitBudget_pos {β M : ℝ} (hβ : 0 < β) (hM : 0 < M) : 0 < unitBudget β M := by
   have hd : 0 < Real.exp (2 * Real.pi * β) - 1 :=
       sub_pos.mpr (Real.one_lt_exp_iff.mpr (by positivity))
   exact div_pos (by positivity) hd
 
+/-- The mesh logarithm for the unit-step budget equals `2πβ` when both parameters are positive. -/
 theorem meshLog_unitBudget {β M : ℝ} (hβ : 0 < β) (hM : 0 < M) :
     meshLog M (unitBudget β M) = 2 * Real.pi * β := by
   have hd : Real.exp (2 * Real.pi * β) - 1 ≠ 0 :=
@@ -46,12 +71,16 @@ theorem meshLog_unitBudget {β M : ℝ} (hβ : 0 < β) (hM : 0 < M) :
   unfold meshLog
   rw [he, Real.log_exp]
 
+/-- The unit-step budget makes the selected mesh step equal to one. -/
 theorem step_unitBudget {β M : ℝ} (hβ : 0 < β) (hM : 0 < M) : step β M (unitBudget β M) = 1 := by
   unfold step
   rw [meshLog_unitBudget hβ hM, div_self (by positivity : 2 * Real.pi * β ≠ 0), min_self]
 
+/-- The witness strip half-width `1 / (4c)`. -/
 def witnessBeta (c : ℝ) : ℝ := 1 / (4 * c)
 
+/-- For `c ≥ 1`, the witness half-width is positive, below `π / 4`, and below the analytic width
+for the specified two-dimensional zero-generator instance. -/
 theorem witness_width {c : ℝ} (hc : 1 ≤ c) :
     0 < witnessBeta c ∧ witnessBeta c < Real.pi / 4 ∧
       ((witnessBeta c : ℝ) : EReal) < analyticWidth 2 1 c 1 1 (2 * c)
@@ -71,6 +100,7 @@ theorem witness_width {c : ℝ} (hc : 1 ≤ c) :
   exact ⟨hβ₀, hβπ, lt_width_of_gaps 2 (by positivity) hβ₀.le (by linarith [Real.pi_pos])
     1 c 1 1 (0 : Matrix (Fin 2) (Fin 2) ℂ) 0 hsin (Or.inr hsin)⟩
 
+/-- The strip mass of the specified witness instance is positive for `c ≥ 1`. -/
 theorem witness_mass_pos {c : ℝ} (hc : 1 ≤ c) :
     0 < stripMass 2 1 c 1 (2 * c) (witnessBeta c) 0 := by
   obtain ⟨hβ₀, hβπ, hw⟩ := witness_width hc
@@ -78,6 +108,8 @@ theorem witness_mass_pos {c : ℝ} (hc : 1 ≤ c) :
     (by norm_num) (by linarith) (by positivity) hβ₀.le hβπ 1
     (0 : Matrix (Fin 2) (Fin 2) ℂ) 0 hw
 
+/-- For every positive `C`, a budget-selected witness with sinh scale `2c` and unit mesh step
+has zeroth moment strictly exceeding `kernelScale * C * momentGrowth`. -/
 theorem selected_moment_exceeds (C : ℝ) (hC : 0 < C) :
     ∃ c : ℝ, 1 ≤ c ∧
       let β := witnessBeta c
@@ -115,6 +147,8 @@ theorem selected_moment_exceeds (C : ℝ) (hC : 0 < C) :
     have he : C < 2 * c := by dsimp [c]; linarith
     exact (mul_lt_mul_of_pos_left he hs).trans_le (by simpa only [mul_comm] using! hcentral)
 
+/-- No positive constant uniformly bounds the selected zeroth moments of the witness family by
+`kernelScale * momentGrowth` for all `c ≥ 1`. -/
 theorem not_uniform_selected_moment_bound :
     ¬ ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 1 ≤ c →
       let β := witnessBeta c

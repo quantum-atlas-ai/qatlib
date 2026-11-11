@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecoveryProbability
+
+/-!
+# Boolean recovery as detection outside the subgroup
+
+For samples in the orthogonal complement of `H`, exact recovery means that every vector outside
+`H` has nonzero pairing with at least one sample. This module transfers that deterministic
+characterization to recovery probabilities and fresh-sample event masses. See [Simon1997] for
+the mathematical background.
+
+## Main statements
+
+* `booleanSampleCandidate_eq_iff_hits_outside`: characterize exact recovery by nonzero pairings
+  outside `H`.
+* `hiddenSubgroupFreshSamples_boolean_recovery_success_eq_hit_event`: identify the corresponding
+  fresh-sample event masses.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -18,6 +39,8 @@ namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
 open scoped Classical
 
+/-- For samples orthogonal to `H`, the sample candidate equals `H` exactly when every vector
+outside `H` has nonzero dot product with some sample. -/
 theorem booleanSampleCandidate_eq_iff_hits_outside {n m : ℕ}
     (H : AddSubgroup (BooleanVec n)) (samples : Fin m → BooleanVec n)
     (hsupported : ∀ i, samples i ∈ booleanOrthogonal H) :
@@ -51,6 +74,8 @@ theorem booleanSampleCandidate_eq_iff_hits_outside {n m : ℕ}
 variable {n : ℕ} {R : Type*}
   [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- For a hiding oracle, exact recovery has the same probability as detecting every vector
+outside `H` by a nonzero decoded-sample pairing. -/
 theorem hiddenSubgroupSampleDist_boolean_recovery_success_eq_hit_event
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -66,6 +91,8 @@ theorem hiddenSubgroupSampleDist_boolean_recovery_success_eq_hit_event
   intro xs hs
   exact booleanSampleCandidate_eq_iff_hits_outside H (booleanDecodedSamples xs) hs
 
+/-- For a hiding oracle, the fresh-sample mass of exact recovery equals the mass of the event
+that every vector outside `H` is detected by some decoded sample. -/
 theorem hiddenSubgroupFreshSamples_boolean_recovery_success_eq_hit_event
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)

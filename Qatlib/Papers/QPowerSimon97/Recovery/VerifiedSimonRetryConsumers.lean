@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
+
+/-!
+# Concrete consumers of verified Simon retry bounds
+
+This module specializes the verified Simon retry results to the projection oracle and the
+identity oracle on two Boolean bits [Simon1997]. The theorem
+`simon_verified_zero_nonzero_actual_consumers` records zero nontermination mass, an expected
+retry bound, and a concrete four-step pending-mass estimate.
+
+## Main statements
+
+* `simon_verified_zero_nonzero_actual_consumers`: The projection and two-bit identity oracles
+  have zero verified-retry nontermination mass; the projection has expected retry time at most
+  two, and the identity has pending mass at step four at most `1 / 16`.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AbelianDecoders.SimonDecoding
@@ -23,6 +43,9 @@ open Qatlib.Concepts.AbelianDecoders.SimonDecoding Qatlib.Concepts.HspRecovery.B
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian Qatlib.Concepts.HspRecovery.Distinguisher
 open scoped ENNReal
 
+/-- The projection and two-bit identity oracles have zero verified-retry nontermination mass;
+the projection has expected retry time at most two, and the identity has pending mass at
+step four at most `1 / 16`. -/
 theorem simon_verified_zero_nonzero_actual_consumers :
     generalNeverMass (simonVerifiedRetryKernel simonProjectionOracle) (Sum.inr ()) = 0 ∧
     generalUnboundedTime (simonVerifiedRetryKernel simonProjectionOracle) (Sum.inr ()) ≤ 2 ∧

@@ -9,6 +9,24 @@ import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
 import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma52CertificateBlockSensitivityBeal
 import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockBeal
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+
+/-!
+# Deterministic query complexity from block sensitivity
+
+This module proves `sensitivityDominanceCorollary` by combining the certificate tree query
+budget with the certificate complexity bounds. The resulting inequality D(f) ≤ bs(f)³ holds for
+every total Boolean function, following the deterministic query argument in [BealsEtAl2001].
+
+## Main statements
+
+* `sensitivityDominanceCorollary`: bound deterministic query complexity by the cube of block
+  sensitivity.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -19,6 +37,9 @@ namespace Qatlib.Concepts.QueryComplexity.DecisionTrees
 open Qatlib
 open scoped Classical
 
+/-- The deterministic query complexity of every total Boolean function is at most the cube of
+its block sensitivity, by combining the certificate tree bound with the certificate
+inequalities of [BealsEtAl2001]. -/
 theorem sensitivityDominanceCorollary : SensitivityDominanceCorollary := by
   intro N f
   obtain ⟨t, ht, hb⟩ := lemma53DeterministicCertificateBlock N f

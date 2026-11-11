@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Diffusion and two-amplitude states
+
+This module defines `AverageProjection`, Grover diffusion `Diffusion`, and states `MarkedVector`
+with constant amplitudes on marked and unmarked outcomes. It proves the reflection formula for
+diffusion and computes the normalization and measurement weights of these states, as used in
+quantum search [Grover1996].
+
+## Main statements
+
+* `diffusion_unitary`: diffusion is unitary for a nonempty finite basis.
+* `diffusion_eq_hadamardN_zeroPhaseReflection`: realize register diffusion by Hadamard
+  conjugation.
+* `normalized_markedVector_iff`: characterize normalization by two amplitudes.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
@@ -16,9 +37,11 @@ set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The constant matrix with every entry equal to the reciprocal of the basis cardinality. -/
 noncomputable def AverageProjection (I : Type*) [Fintype I] : Matrix I I ℂ :=
   Matrix.of fun _ _ => (Fintype.card I : ℂ)⁻¹
 
+/-- For a basis of positive cardinality, the averaging matrix is idempotent. -/
 theorem averageProjection_mul_self (hN : 0 < Fintype.card I) :
     AverageProjection I * AverageProjection I = AverageProjection I := by
   have hc : (Fintype.card I : ℂ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hN)
@@ -27,28 +50,35 @@ theorem averageProjection_mul_self (hN : 0 < Fintype.card I) :
     Finset.card_univ, nsmul_eq_mul]
   field_simp
 
+/-- Applying the averaging matrix replaces every amplitude by the arithmetic mean of all
+amplitudes. -/
 theorem applyGate_averageProjection (ψ : QState I) (i : I) :
     ApplyGate (AverageProjection I) ψ i = (∑ j, ψ j) / (Fintype.card I : ℂ) := by
   simp only [ApplyGate, AverageProjection, Matrix.mulVec, dotProduct, Matrix.of_apply]
   rw [← Finset.mul_sum]
   simp [div_eq_mul_inv, mul_comm]
 
+/-- The diffusion matrix `2 * AverageProjection I - 1` implementing reflection about the mean. -/
 noncomputable def Diffusion (I : Type*) [Fintype I] [DecidableEq I] : Matrix I I ℂ :=
   (2 : ℂ) • AverageProjection I - 1
 
+/-- For a basis of positive cardinality, the diffusion matrix squares to the identity. -/
 theorem diffusion_mul_self (hN : 0 < Fintype.card I) : Diffusion I * Diffusion I = 1 := by
   have hP := averageProjection_mul_self (I := I) hN
   simp only [Diffusion, sub_mul, mul_sub, smul_mul_assoc, mul_smul_comm, one_mul, mul_one, hP]
   module
 
+/-- The diffusion matrix equals its conjugate transpose. -/
 theorem diffusion_conjTranspose : (Diffusion I)ᴴ = Diffusion I := by
   ext i j
   simp [Diffusion, AverageProjection, Matrix.conjTranspose_apply, Matrix.one_apply, eq_comm]
 
+/-- For a basis of positive cardinality, the diffusion matrix is unitary. -/
 theorem diffusion_unitary (hN : 0 < Fintype.card I) : Diffusion I ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, diffusion_conjTranspose]
   exact diffusion_mul_self hN
 
+/-- Diffusion sends each amplitude to twice the mean amplitude minus its original value. -/
 theorem applyGate_diffusion (ψ : QState I) (i : I) :
     ApplyGate (Diffusion I) ψ i = -ψ i + 2 * ((∑ j, ψ j) / (Fintype.card I : ℂ)) := by
   have hp := applyGate_averageProjection ψ i
@@ -59,9 +89,13 @@ theorem applyGate_diffusion (ψ : QState I) (i : I) :
   rw [hp]
   ring
 
+/-- The diagonal register matrix that fixes the all-zero basis vector and negates all other
+basis vectors. -/
 noncomputable def ZeroPhaseReflection (n : ℕ) : Matrix (Reg n) (Reg n) ℂ :=
   Matrix.diagonal fun x => if x = ZeroStr n then 1 else -1
 
+/-- Register diffusion is the conjugation of the all-zero phase reflection by the register
+Hadamard transform. -/
 theorem diffusion_eq_hadamardN_zeroPhaseReflection (n : ℕ) :
     Diffusion (Reg n) = HadamardN n * ZeroPhaseReflection n * HadamardN n := by
   classical
@@ -98,12 +132,16 @@ theorem diffusion_eq_hadamardN_zeroPhaseReflection (n : ℕ) :
   rw [hR, mul_sub, sub_mul, mul_one, mul_smul_comm, smul_mul_assoc, hP, hWW]
   rfl
 
+/-- The amplitude vector taking value `a` on the marked set `A` and value `b` elsewhere. -/
 noncomputable def MarkedVector (A : Finset I) (a b : ℂ) : QState I :=
   fun i => if i ∈ A then a else b
 
+/-- Evaluate a two-amplitude marked vector by membership in the marked set. -/
 theorem markedVector_apply (A : Finset I) (a b : ℂ) (i : I) :
     MarkedVector A a b i = if i ∈ A then a else b := rfl
 
+/-- The sum of marked-vector amplitudes is the marked cardinality times `a` plus the
+complementary cardinality times `b`. -/
 theorem sum_markedVector (A : Finset I) (a b : ℂ) :
     (∑ i, MarkedVector A a b i) = (A.card : ℂ) * a + ((Fintype.card I : ℂ) - A.card) * b := by
   have hv (i : I) : MarkedVector A a b i = (if i ∈ A then a - b else 0) + b := by
@@ -115,6 +153,8 @@ theorem sum_markedVector (A : Finset I) (a b : ℂ) :
     Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   ring
 
+/-- The squared norm sum of a marked vector is the cardinality-weighted sum of the two squared
+amplitude norms. -/
 theorem sum_normSq_markedVector (A : Finset I) (a b : ℂ) :
     (∑ i, Complex.normSq (MarkedVector A a b i)) =
       (A.card : ℝ) * Complex.normSq a +
@@ -128,6 +168,8 @@ theorem sum_normSq_markedVector (A : Finset I) (a b : ℂ) :
     Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   ring
 
+/-- A marked vector is normalized exactly when its cardinality-weighted squared amplitude norms
+sum to one. -/
 theorem normalized_markedVector_iff (A : Finset I) (a b : ℂ) :
     Normalized (MarkedVector A a b) ↔
       (A.card : ℝ) * Complex.normSq a +
@@ -136,6 +178,8 @@ theorem normalized_markedVector_iff (A : Finset I) (a b : ℂ) :
   simp_rw [← Complex.normSq_eq_norm_sq]
   rw [sum_normSq_markedVector]
 
+/-- The Born weight on the marked set is its cardinality times the squared norm of the marked
+amplitude. -/
 theorem measureProb_markedVector (A : Finset I) (a b : ℂ) :
     MeasureProb (MarkedVector A a b) A = (A.card : ℝ) * Complex.normSq a := by
   unfold MeasureProb
@@ -146,6 +190,8 @@ theorem measureProb_markedVector (A : Finset I) (a b : ℂ) :
       simp [BornProb, MarkedVector, hi, Complex.normSq_eq_norm_sq]
     _ = _ := by simp
 
+/-- The uniform state is a marked vector with both amplitudes equal to the reciprocal square
+root of the basis cardinality. -/
 theorem uniform_eq_markedVector (A : Finset I) :
     Uniform I = MarkedVector A (Real.sqrt (Fintype.card I) : ℂ)⁻¹
       (Real.sqrt (Fintype.card I) : ℂ)⁻¹ := by

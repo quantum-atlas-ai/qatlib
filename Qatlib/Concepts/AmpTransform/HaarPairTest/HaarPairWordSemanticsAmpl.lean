@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairWordSemanticsStat
+
+/-!
+# Semantics and counts of the Haar pair circuit
+
+This module relates the prepared-step encoding of an ordinary circuit to its evaluation and
+resource counts. `haarPairWordSemantics` identifies the resulting Haar-pair state with a
+phase-queried Grover state followed by a Boolean Hadamard, as used in [Cornwell2014].
+
+## Main statements
+
+* `haarPairWordSemantics`: Proves circuit validity, exact resource counts, normalization, and
+  the Grover-state expression for the Haar-pair output; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 
@@ -42,6 +60,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Reversing and translating a circuit preserves its data-query and fixed-gate counts and
+introduces no input queries. -/
 theorem haar_source_counts (C : Circuit (I × Bool)) :
     preparedDataQueries (C.reverse.map aqHaarPreparedOfStep) = QueryCount C ∧
     preparedInputQueries (C.reverse.map aqHaarPreparedOfStep) = 0 ∧
@@ -54,6 +74,7 @@ theorem haar_source_counts (C : Circuit (I × Bool)) :
       aqHaarPreparedOfStep, preparedDataQueries, preparedInputQueries,
       preparedFixedGates, QueryCount, GateCount, ih.1, ih.2.1, ih.2.2]
 
+/-- Evaluating the reversed prepared-step encoding agrees with `Run` on the original circuit. -/
 theorem haar_source_eval (U B : Matrix (I × Bool) (I × Bool) ℂ)
     (C : Circuit (I × Bool)) (ψ : QState (I × Bool)) :
     evaluatePrepared U B (C.reverse.map aqHaarPreparedOfStep) *ᵥ ψ = Run U C ψ := by
@@ -64,6 +85,7 @@ theorem haar_source_eval (U B : Matrix (I × Bool) (I × Bool) ℂ)
       List.map_nil, evaluatePrepared_append, evaluatePrepared, aqHaarPreparedOfStep,
       preparedInstruction, Matrix.mul_one, ← Matrix.mulVec_mulVec, ih, Run, ApplyGate]
 
+/-- The reversed prepared-step encoding of a unitary circuit satisfies `PreparedCircuitValid`. -/
 theorem haar_source_valid (C : Circuit (I × Bool)) (hC : IsUnitaryCircuit C) :
     PreparedCircuitValid (C.reverse.map aqHaarPreparedOfStep) := by
   intro c hc
@@ -73,10 +95,14 @@ theorem haar_source_valid (C : Circuit (I × Bool)) (hC : IsUnitaryCircuit C) :
   | gate V => exact hC V hs'
   | query => trivial
 
+/-- The phase oracle marking pairs with first coordinate in E equals the set oracle for
+`aqHaarPairMarked E`. -/
 theorem haar_pair_setOracle (E : Finset I) :
     PhaseOracle (fun z : I × Bool => decide (z.1 ∈ E)) = SetOracle (aqHaarPairMarked E) := by
   simp only [SetOracle, aqHaarPairMarked, Finset.mem_filter, Finset.mem_univ, true_and]
 
+/-- Proves circuit validity, exact resource counts, normalization, and the Grover-state
+expression for the Haar-pair output; see [Cornwell2014]. -/
 theorem haarPairWordSemantics : HaarPairWordSemantics := by
   intro I _ _ T' seed hT hprep j
   haveI : Nonempty (I × Bool) := ⟨seed⟩

@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
 import Qatlib.Papers.Cbmd26.Algorithms.CountedQSVTBridge
 import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
+
+/-!
+# Static Words over the Original Matrix Oracle
+
+This module compiles indexed Hermitian response words and their four-branch coefficient
+combination into access to the original matrix oracle. `originalResponseWord` expands the padded
+first-order input construction, and `originalFourSampleWord` selects the corresponding
+four-branch response for each sample.
+
+`originalStaticWorkspaceEquiv` collects the sample, branch, and control registers into
+`OriginalStaticLabels`. After this reindexing, `originalStaticOuterWord` uses `cleanMaskedWord`
+to implement the outer coefficient LCU with a clean control register, retaining explicit query
+and fixed-gate counts. See [WangEtAl2026].
+
+## Main statements
+
+* `originalResponseWord_evaluate` and `originalFourSampleWord_evaluate` identify the selected
+  response matrices.
+* `originalStaticSource_reindex` identifies the reindexed source as a masked original oracle.
+* `originalStaticOuterWord_cost` gives two queries and thirteen fixed gates per total response
+  phase, plus sixteen fixed gates.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,21 +73,29 @@ namespace CBMD
 open Matrix Polynomial
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The response workspace consisting of three Boolean registers and the original oracle
+register. -/
 abbrev OriginalResponseSpace (W : Type) := Bool × (Bool × (Bool × W))
 
 variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I]
 
+/-- Expands the indexed Hermitian response word using the padded first-order input word and
+phase data shared across all sample labels. -/
 def originalResponseWord (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (d : ℕ) (base : ℂ) (zs : List ℂ) : List (AdjointStep (J × OriginalResponseSpace W)) :=
   expandedIndexedResponseWord (paddedFirstOrderInputWord α Λ s)
     (tagFrame false (tagFrame false R)) d (fun _ => base) (zs.map (fun z => fun _ => z))
 
+/-- Evaluates the Hermitian response word for a single real sample parameter against the
+parallel padded first-order input matrix. -/
 def originalResponseUnitary (U : Matrix W W ℂ) (R : Matrix W I ℂ) (α Λ s : ℝ)
     (d : ℕ) (base : ℂ) (zs : List ℂ) : Matrix (OriginalResponseSpace W) (OriginalResponseSpace W) ℂ :=
   evaluate (parallelOracle (paddedFirstOrderInputUnitary U α Λ s))
     (hermitianResponseWord (tagFrame false (tagFrame false R)) d base zs)
 
+/-- Lifts the controlled original oracle to the indexed response workspace by parallel action on
+the sample and response labels. -/
 def originalResponseQuery (U : Matrix W W ℂ) :
     Matrix (J × OriginalResponseSpace W) (J × OriginalResponseSpace W) ℂ :=
   parallelOracle (J := J) (parallelOracle (J := Bool)
@@ -68,6 +103,8 @@ def originalResponseQuery (U : Matrix W W ℂ) :
 
 omit [DecidableEq I] in
 
+/-- The expanded response word evaluated with `originalResponseQuery U` selects the
+single-sample response matrix associated with each sample label. -/
 theorem originalResponseWord_evaluate (U : Matrix W W ℂ) (R : Matrix W I ℂ)
     (α Λ : ℝ) (s : J → ℝ) (d : ℕ) (base : ℂ) (zs : List ℂ) :
     evaluate (originalResponseQuery U) (originalResponseWord R α Λ s d base zs) =
@@ -82,6 +119,7 @@ theorem originalResponseWord_evaluate (U : Matrix W W ℂ) (R : Matrix W I ℂ)
 
 omit [DecidableEq I] in
 
+/-- The response word uses `2 * zs.length` oracle queries and `9 * zs.length + 1` fixed gates. -/
 theorem originalResponseWord_cost (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (d : ℕ) (base : ℂ) (zs : List ℂ) :
     adjointQueryCount (originalResponseWord R α Λ s d base zs) = 2 * zs.length ∧
@@ -93,6 +131,8 @@ theorem originalResponseWord_cost (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → 
   refine ⟨hq, hg.trans ?_⟩
   omega
 
+/-- The response word is well formed when `R` is an isometry, the scales are positive and
+satisfy the sample bounds, and every supplied phase has unit modulus. -/
 theorem originalResponseWord_wellFormed (R : Matrix W I ℂ) (hR : IsIsometry R)
     (α Λ : ℝ) (s : J → ℝ) (hα : 0 < α) (hΛ : 0 < Λ)
     (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ)
@@ -106,12 +146,16 @@ theorem originalResponseWord_wellFormed (R : Matrix W I ℂ) (hR : IsIsometry R)
   obtain ⟨w, hw, rfl⟩ := List.mem_map.mp hz
   exact hzs w hw
 
+/-- Forms the four-branch coefficient LCU of the original-oracle response matrices at a single
+sample parameter, using branch tag zero. -/
 def originalFourSampleUnitary (U : Matrix W W ℂ) (R : Matrix W I ℂ)
     (α Λ s : ℝ) (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     Matrix (Fin 4 × OriginalResponseSpace W) (Fin 4 × OriginalResponseSpace W) ℂ :=
   coefficientLCUUnitary fourBranchCoefficients
     (fun k => originalResponseUnitary U R α Λ s (d k) (base k) (zs k)) 0
 
+/-- Combines four indexed response words with `fourBranchCoefficients` and reindexes the result
+so that the sample label is outermost. -/
 def originalFourSampleWord (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     List (AdjointStep (J × (Fin 4 × OriginalResponseSpace W))) :=
@@ -119,6 +163,8 @@ def originalFourSampleWord (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (fourCoefficientWord fourBranchCoefficients
       (fun k => originalResponseWord R α Λ s (d k) (base k) (zs k)))
 
+/-- Masks the response query by the active four-branch labels and reindexes it into the
+sample-first four-response workspace. -/
 def originalFourQuery (U : Matrix W W ℂ) :
     Matrix (J × (Fin 4 × OriginalResponseSpace W)) (J × (Fin 4 × OriginalResponseSpace W)) ℂ :=
   (maskedOracle fourActive (originalResponseQuery (J := J) U)).submatrix
@@ -127,6 +173,8 @@ def originalFourQuery (U : Matrix W W ℂ) :
 
 omit [DecidableEq I] in
 
+/-- Evaluating the four-sample word with `originalFourQuery U` selects the four-branch sample
+matrix corresponding to each sample parameter. -/
 theorem originalFourSampleWord_evaluate (U : Matrix W W ℂ) (R : Matrix W I ℂ)
     (α Λ : ℝ) (s : J → ℝ) (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     evaluate (originalFourQuery U) (originalFourSampleWord R α Λ s d base zs) =
@@ -138,6 +186,8 @@ theorem originalFourSampleWord_evaluate (U : Matrix W W ℂ) (R : Matrix W I ℂ
 
 omit [DecidableEq I] in
 
+/-- The four-sample word uses twice the total branch phase-list length in oracle queries and
+nine times that length plus thirteen fixed gates. -/
 theorem originalFourSampleWord_cost (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     adjointQueryCount (originalFourSampleWord R α Λ s d base zs) = 2 * ∑ k, (zs k).length ∧
@@ -153,6 +203,8 @@ theorem originalFourSampleWord_cost (R : Matrix W I ℂ) (α Λ : ℝ) (s : J �
     Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_one] at hg
   exact ⟨hq, hg.trans (by omega)⟩
 
+/-- The four-sample word is well formed under the isometric-frame, positive-scale, sample-bound,
+and unit-phase assumptions. -/
 theorem originalFourSampleWord_wellFormed (R : Matrix W I ℂ) (hR : IsIsometry R)
     (α Λ : ℝ) (s : J → ℝ) (hα : 0 < α) (hΛ : 0 < Λ)
     (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ)
@@ -165,8 +217,12 @@ theorem originalFourSampleWord_wellFormed (R : Matrix W I ℂ) (hR : IsIsometry 
   exact originalResponseWord_wellFormed R hR α Λ s hα hΛ hbound
     (d k) (base k) (hp k).1 (zs k) (hp k).2
 
+/-- The combined static label type containing the sample index, one of four branches, and the
+three Boolean response labels. -/
 abbrev OriginalStaticLabels (J : Type) := J × (Fin 4 × (Bool × (Bool × Bool)))
 
+/-- Reassociates the static label and oracle register into the sample-first four-response
+workspace without changing their component values. -/
 def originalStaticWorkspaceEquiv (J W : Type) :
     OriginalStaticLabels J × W ≃ J × (Fin 4 × OriginalResponseSpace W) where
   toFun := fun ⟨⟨j,k,b,c,a⟩,w⟩ => (j,k,b,c,a,w)
@@ -174,11 +230,15 @@ def originalStaticWorkspaceEquiv (J W : Type) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Activates an original-oracle query exactly when the four-branch label is active and the
+innermost response control is true. -/
 def originalStaticMask (label : OriginalStaticLabels J) : Bool :=
   fourActive label.2.1 && label.2.2.2.2
 
 omit [Fintype J] [Fintype W] in
 
+/-- Reindexing `originalFourQuery U` by `originalStaticWorkspaceEquiv` yields the original
+oracle masked by `originalStaticMask`. -/
 theorem originalStaticSource_reindex (U : Matrix W W ℂ) :
     (originalFourQuery (J := J) U).submatrix
       (originalStaticWorkspaceEquiv J W) (originalStaticWorkspaceEquiv J W) =
@@ -191,12 +251,16 @@ theorem originalStaticSource_reindex (U : Matrix W W ℂ) :
       controlOracle, hj, hk, hb, hc, ha]
   all_goals cases hactive : fourActive k <;> cases a <;> simp_all [Matrix.one_apply]
 
+/-- Adds the outer coefficient preparation to the four-sample word using the coefficients scaled
+by the common sample normalization four. -/
 def originalStaticRawOuterWord (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (c : J → ℂ) (j₀ : J) (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     List (AdjointStep (J × (Fin 4 × OriginalResponseSpace W))) :=
   outerCoefficientWord (scaledLCUCoefficients c (fun _ => 4)) j₀
     (originalFourSampleWord R α Λ s d base zs)
 
+/-- Reindexes the raw outer word into the static labels and compiles its masked oracle access
+using a clean Boolean control. -/
 def originalStaticOuterWord (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (c : J → ℂ) (j₀ : J) (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     List (AdjointStep (Bool × (OriginalStaticLabels J × W))) :=
@@ -206,6 +270,8 @@ def originalStaticOuterWord (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
 
 omit [DecidableEq I] in
 
+/-- The compiled static outer word uses twice the total branch phase-list length in oracle
+queries and thirteen times that length plus sixteen fixed gates. -/
 theorem originalStaticOuterWord_cost (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)
     (c : J → ℂ) (j₀ : J) (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     adjointQueryCount (originalStaticOuterWord R α Λ s c j₀ d base zs) = 2 * ∑ k, (zs k).length ∧
@@ -225,6 +291,8 @@ theorem originalStaticOuterWord_cost (R : Matrix W I ℂ) (α Λ : ℝ) (s : J �
 
 omit [DecidableEq I] in
 
+/-- Evaluating the raw static outer word gives the coefficient LCU of the four-branch sample
+matrices with coefficients scaled by four. -/
 theorem originalStaticRawOuterWord_evaluate (U : Matrix W W ℂ) (R : Matrix W I ℂ)
     (α Λ : ℝ) (s : J → ℝ) (c : J → ℂ) (j₀ : J)
     (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :

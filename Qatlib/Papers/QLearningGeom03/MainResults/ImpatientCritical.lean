@@ -10,6 +10,28 @@ import Mathlib.Analysis.Calculus.Deriv.Pow
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.LinearAlgebra.Matrix.Hermitian
 import Mathlib.LinearAlgebra.Matrix.Trace
+
+/-!
+# Critical points of the impatient learning objective
+
+This module studies the first variation of the diagonal squared norm `diagNormSq` in
+skew-Hermitian directions. The predicate `IsOrbitCritical` requires these derivatives to vanish
+and is characterized by Hermiticity of `B * (diagProj B)ᴴ`.
+
+For Hermitian `B`, criticality is equivalent to commutation with its diagonal projection. These
+statements formalize Proposition 3.1 and Corollary 3.2 of [HunzikerEtAl2003].
+
+## Main statements
+
+* `hasDerivAt_diagNormSq_unitPath`: The first-variation formula for the diagonal objective.
+* `critical_iff_hermitian`: Criticality characterized by a Hermitian matrix product.
+* `hermitian_critical_iff_commutes_diag`: The commutation criterion for Hermitian matrices.
+
+## References
+
+* [Hunziker et al., 2003][HunzikerEtAl2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,24 +45,31 @@ open scoped Matrix
 
 variable {n : ℕ}
 
+/-- The diagonal matrix whose diagonal entries agree with those of `B`. -/
 def diagProj (B : Matrix (Fin n) (Fin n) ℂ) : Matrix (Fin n) (Fin n) ℂ :=
   Matrix.diagonal fun i => B i i
 
+/-- The sum of the squared complex norms of the diagonal entries of `B`. -/
 noncomputable def diagNormSq (B : Matrix (Fin n) (Fin n) ℂ) : ℝ :=
   ∑ i, Complex.normSq (B i i)
 
+/-- The predicate that the conjugate transpose of a matrix is its negative. -/
 def IsSkewHermitian (A : Matrix (Fin n) (Fin n) ℂ) : Prop := Aᴴ = -A
 
+/-- Diagonal projection commutes with conjugate transpose. -/
 lemma diagProj_conjTranspose (B : Matrix (Fin n) (Fin n) ℂ) :
     (diagProj B)ᴴ = diagProj Bᴴ := by
   unfold diagProj
   rw [Matrix.diagonal_conjTranspose]
   simp [Matrix.conjTranspose_apply]
 
+/-- Multiplication by `1 + t • ζ` expands as `B + t • (ζ * B)`. -/
 lemma unitPath_mul (t : ℝ) (ζ B : Matrix (Fin n) (Fin n) ℂ) :
     (1 + t • ζ) * B = B + t • (ζ * B) := by
   rw [Matrix.add_mul, Matrix.one_mul, Matrix.smul_mul]
 
+/-- The derivative at zero of the squared norm of `c + t • d` is twice the real part of c times
+the conjugate of d. -/
 lemma hasDerivAt_normSq_add_smul (c d : ℂ) :
     HasDerivAt (fun t : ℝ => Complex.normSq (c + t • d)) (2 * (c * star d).re) 0 := by
   have hpoly : ∀ t : ℝ,
@@ -67,18 +96,24 @@ lemma hasDerivAt_normSq_add_smul (c d : ℂ) :
   have h4 := (h3.add h1).add h2
   simpa using! h4
 
+/-- The trace pairing of the conjugate transpose of `diagProj B` with `X` is the sum of the
+corresponding diagonal-entry products. -/
 lemma trace_diagProj_conjTranspose_mul (B X : Matrix (Fin n) (Fin n) ℂ) :
     Matrix.trace ((diagProj B)ᴴ * X) = ∑ i, star (B i i) * X i i := by
   unfold diagProj
   rw [Matrix.diagonal_conjTranspose, Matrix.trace]
   exact Finset.sum_congr rfl fun i _ => by simp [Matrix.diagonal_mul]
 
+/-- The sum of the real parts of the diagonal products Bᵢᵢ times the conjugate of Xᵢᵢ is the
+real part of the diagonal-projection trace pairing. -/
 lemma sum_mul_conj_re_eq_trace_re (B X : Matrix (Fin n) (Fin n) ℂ) :
     (∑ i, (B i i * star (X i i)).re) = (Matrix.trace ((diagProj B)ᴴ * X)).re := by
   rw [trace_diagProj_conjTranspose_mul, Complex.re_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   simp
 
+/-- The derivative at zero of `diagNormSq ((1 + t • ζ) * B)` is twice the real part of the trace
+of `(diagProj B)ᴴ * (ζ * B)`. -/
 lemma hasDerivAt_diagNormSq_unitPath (B ζ : Matrix (Fin n) (Fin n) ℂ) :
     HasDerivAt (fun t : ℝ => diagNormSq ((1 + t • ζ) * B))
       (2 * (Matrix.trace ((diagProj B)ᴴ * (ζ * B))).re) 0 := by
@@ -102,16 +137,20 @@ lemma hasDerivAt_diagNormSq_unitPath (B ζ : Matrix (Fin n) (Fin n) ℂ) :
     rw [← sum_mul_conj_re_eq_trace_re, Finset.mul_sum]
   simpa only [hval] using hsum
 
+/-- A complex number whose conjugate equals its negative has zero real part. -/
 lemma re_eq_zero_of_star_eq_neg {z : ℂ} (h : star z = -z) : z.re = 0 := by
   have h' := congrArg Complex.re h
   simp at h'
   linarith
 
+/-- The trace of a skew-Hermitian matrix has zero real part. -/
 lemma trace_re_eq_zero_of_isSkewHermitian {X : Matrix (Fin n) (Fin n) ℂ}
     (h : IsSkewHermitian X) : (Matrix.trace X).re = 0 := by
   refine re_eq_zero_of_star_eq_neg ?_
   rw [← Matrix.trace_conjTranspose, h, Matrix.trace_neg]
 
+/-- The trace of `Aᴴ * A` is the sum of the squared complex norms of the entries of `A`,
+embedded in the complex numbers. -/
 lemma trace_conjTranspose_mul_self (A : Matrix (Fin n) (Fin n) ℂ) :
     Matrix.trace (Aᴴ * A) = ((∑ i, ∑ j, Complex.normSq (A j i) : ℝ) : ℂ) := by
   rw [Matrix.trace, Complex.ofReal_sum]
@@ -123,10 +162,13 @@ lemma trace_conjTranspose_mul_self (A : Matrix (Fin n) (Fin n) ℂ) :
   push_cast
   ring
 
+/-- Swapping the row and column indices in the double sum of squared entry norms leaves the sum
+unchanged. -/
 lemma normSq_sum_swap (A : Matrix (Fin n) (Fin n) ℂ) :
     (∑ i, ∑ j, Complex.normSq (A j i)) = ∑ i, ∑ j, Complex.normSq (A i j) := by
   rw [Finset.sum_comm]
 
+/-- A complex matrix is zero if the trace of `Aᴴ * A` is zero. -/
 lemma eq_zero_of_trace_conjTranspose_mul_self {A : Matrix (Fin n) (Fin n) ℂ}
     (h : Matrix.trace (Aᴴ * A) = 0) : A = 0 := by
   have hreal : (∑ i, ∑ j, Complex.normSq (A i j) : ℝ) = 0 := by
@@ -144,6 +186,7 @@ lemma eq_zero_of_trace_conjTranspose_mul_self {A : Matrix (Fin n) (Fin n) ℂ}
     exact h j (Finset.mem_univ j)
   exact Complex.normSq_eq_zero.mp hzero
 
+/-- The skew part `(M - Mᴴ) / 2` is skew-Hermitian. -/
 lemma isSkewHermitian_skewPart (M : Matrix (Fin n) (Fin n) ℂ) :
     IsSkewHermitian ((2 : ℂ)⁻¹ • (M - Mᴴ)) := by
   unfold IsSkewHermitian
@@ -151,12 +194,16 @@ lemma isSkewHermitian_skewPart (M : Matrix (Fin n) (Fin n) ℂ) :
   rw [show star (2 : ℂ)⁻¹ = (2 : ℂ)⁻¹ by norm_num]
   rw [show Mᴴ - M = -(M - Mᴴ) by abel, smul_neg]
 
+/-- The Hermitian part `(M + Mᴴ) / 2` is Hermitian. -/
 lemma isHermitian_hermitianPart (M : Matrix (Fin n) (Fin n) ℂ) :
     Matrix.IsHermitian ((2 : ℂ)⁻¹ • (M + Mᴴ)) := by
   unfold Matrix.IsHermitian
   rw [Matrix.conjTranspose_smul, Matrix.conjTranspose_add, Matrix.conjTranspose_conjTranspose]
   rw [show star (2 : ℂ)⁻¹ = (2 : ℂ)⁻¹ by norm_num, add_comm]
 
+/-- A matrix `M` is Hermitian exactly when the real part of `trace (ζ * M)` vanishes for every
+skew-Hermitian `ζ`. This gives the trace criterion used in [Hunziker et al., Proposition
+3.1][HunzikerEtAl2003]. -/
 theorem forall_trace_re_eq_zero_iff_isHermitian (M : Matrix (Fin n) (Fin n) ℂ) :
     (∀ ζ, IsSkewHermitian ζ → (Matrix.trace (ζ * M)).re = 0) ↔ Matrix.IsHermitian M := by
   constructor
@@ -200,9 +247,13 @@ theorem forall_trace_re_eq_zero_iff_isHermitian (M : Matrix (Fin n) (Fin n) ℂ)
     rw [show M * -ζ = -(M * ζ) by rw [mul_neg], Matrix.trace_neg,
       Matrix.trace_mul_comm M ζ]
 
+/-- The predicate that the diagonal squared norm has derivative zero at t = 0 along every
+variation `(1 + t • ζ) * B` with skew-Hermitian `ζ`. -/
 def IsOrbitCritical (B : Matrix (Fin n) (Fin n) ℂ) : Prop :=
   ∀ ζ, IsSkewHermitian ζ → HasDerivAt (fun t : ℝ => diagNormSq ((1 + t • ζ) * B)) 0 0
 
+/-- The diagonal objective is critical in every skew-Hermitian direction exactly when `B *
+(diagProj B)ᴴ` is Hermitian, as in [Hunziker et al., Proposition 3.1][HunzikerEtAl2003]. -/
 theorem critical_iff_hermitian (B : Matrix (Fin n) (Fin n) ℂ) :
     IsOrbitCritical B ↔ Matrix.IsHermitian (B * (diagProj B)ᴴ) := by
   have hcyc : ∀ ζ : Matrix (Fin n) (Fin n) ℂ,
@@ -225,6 +276,8 @@ theorem critical_iff_hermitian (B : Matrix (Fin n) (Fin n) ℂ) :
       rw [htr]; ring
     simpa only [hz] using hasDerivAt_diagNormSq_unitPath B ζ
 
+/-- For Hermitian `B`, criticality of the diagonal objective is equivalent to commutation of `B`
+with `diagProj B`, as in [Hunziker et al., Corollary 3.2][HunzikerEtAl2003]. -/
 theorem hermitian_critical_iff_commutes_diag (B : Matrix (Fin n) (Fin n) ℂ)
     (hB : Matrix.IsHermitian B) :
     IsOrbitCritical B ↔ B * diagProj B = diagProj B * B := by
@@ -237,6 +290,9 @@ theorem hermitian_critical_iff_commutes_diag (B : Matrix (Fin n) (Fin n) ℂ)
   rw [hd, hrhs]
   exact ⟨Eq.symm, Eq.symm⟩
 
+/-- For a Hermitian matrix `B` satisfying `B * B = G`, criticality is equivalent to commutation
+with its diagonal projection. This is the square-root formulation of [Hunziker et al.,
+Corollary 3.2][HunzikerEtAl2003]. -/
 theorem gram_sqrt_critical_iff_commutes_diag (G B : Matrix (Fin n) (Fin n) ℂ)
     (hB : Matrix.IsHermitian B) (_hG : B * B = G) :
     IsOrbitCritical B ↔ B * diagProj B = diagProj B * B :=

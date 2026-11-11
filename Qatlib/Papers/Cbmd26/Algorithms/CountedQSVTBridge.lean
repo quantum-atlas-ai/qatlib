@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.FourBranchWordBridge
 import Qatlib.Papers.Cbmd26.Algorithms.StaticExponentialBridge
+
+/-!
+# Counted four-branch polynomial transformation
+
+Combines four real parity branches in `fourQSVTWord`, a clean controlled QSVT word with exact
+query and gate counts. Uniform phase choices encode a bounded complex polynomial of a Hermitian
+input, and `static_exponential_counted_qsvt_uniform` gives the corresponding exponential
+encoding. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `complex_polynomial_counted_qsvt_uniform`: encodes bounded complex polynomials with scale
+  four.
+* `static_exponential_counted_qsvt_uniform`: supplies an exponential encoding and a degree-based
+  query bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,6 +67,7 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- An isometric frame and unit-modulus phase data make the Hermitian response word well formed. -/
 theorem hermitianResponseWord_wellFormed (F : Matrix H I ℂ) (hF : IsIsometry F)
     (d : ℕ) (base : ℂ) (hb : IsPhase base) (zs : List ℂ)
     (hzs : ∀ z ∈ zs, IsPhase z) :
@@ -57,17 +79,21 @@ theorem hermitianResponseWord_wellFormed (F : Matrix H I ℂ) (hF : IsIsometry F
   · exact hw
   · exact hw.swapQueries
 
+/-- Combines four Hermitian response words using the clean four-coefficient LCU construction. -/
 def fourQSVTWord (F : Matrix H I ℂ) (d : Fin 4 → ℕ)
     (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     List (AdjointStep (Bool × (Fin 4 × (Bool × H)))) :=
   cleanFourCoefficientWord fourBranchCoefficients
     (fun j => hermitianResponseWord F (d j) (base j) (zs j))
 
+/-- The four branch coefficients have total absolute mass four. -/
 theorem fourBranchCoefficients_mass : coefficientMass fourBranchCoefficients = 4 := by
   norm_num [coefficientMass, fourBranchCoefficients, Fin.sum_univ_succ]
 
 omit [DecidableEq I] in
 
+/-- With phase-list lengths matching the branch degrees, the four-branch word uses the sum of
+the degrees in queries and three times that sum plus thirteen gates. -/
 theorem fourQSVTWord_cost (F : Matrix H I ℂ) (d : Fin 4 → ℕ)
     (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) (hlen : ∀ j, (zs j).length = d j) :
     adjointQueryCount (fourQSVTWord F d base zs) = ∑ j, d j ∧
@@ -82,6 +108,8 @@ theorem fourQSVTWord_cost (F : Matrix H I ℂ) (d : Fin 4 → ℕ)
       smul_eq_mul, mul_one] at hg
   omega
 
+/-- The four-branch clean controlled word preserves the specified LCU block encoding and is well
+formed, with the stated exact query and gate counts. -/
 theorem fourQSVTWord_blockEncoding (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (F : Matrix H I ℂ) (hF : IsIsometry F)
     (d : Fin 4 → ℕ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ)
@@ -107,6 +135,9 @@ theorem fourQSVTWord_blockEncoding (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     A (tagFrame 0 (averageFrame F)) α ε henc
   exact ⟨hw, he, fourQSVTWord_cost F d base zs (fun j => (hp j).2.2)⟩
 
+/-- A complex polynomial bounded by one on `[-1, 1]` has uniform phase data giving an exact
+scale-four encoding of its evaluation on any Hermitian projected input, with at most `4 * (2
+* P.natDegree + 1)` queries [WangEtAl2026]. -/
 theorem complex_polynomial_counted_qsvt_uniform (P : Polynomial ℂ)
     (hP : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖P.eval (x : ℂ)‖ ≤ 1) :
     ∃ (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),
@@ -136,6 +167,8 @@ theorem complex_polynomial_counted_qsvt_uniform (P : Polynomial ℂ)
       Finset.sum_le_sum (fun j _ => ComplexPolynomialSplit.branchDegrees_le P j)
     _ = _ := by simp
 
+/-- Constructs uniform polynomial and phase data encoding `exp (-iτA)` with scale four and error
+`ε`, with degree and query bounds given by the stated dyadic order [WangEtAl2026]. -/
 theorem static_exponential_counted_qsvt_uniform (τ ε : ℝ) (hε : 0 < ε) :
     ∃ (P : Polynomial ℂ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),
       P.natDegree ≤ dyadicOrder ((ε/2) / (2 * Real.exp (2 * |τ|))) ∧

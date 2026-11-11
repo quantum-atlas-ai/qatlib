@@ -8,6 +8,34 @@ import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2FiniteSDP
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+/-!
+# Filtered γ₂ optimization and adversary values
+
+This module defines `filteredGamma2DualValue` and `generalAdversaryValue` and proves strong
+duality, finite-value attainment, and the support criterion for finiteness. Compression and
+real-part arguments identify the adversary value with the output-masked dual and show that real
+symmetric adversary matrices suffice, in the framework of [LeeEtAl2011].
+
+## Main statements
+
+* `filteredGamma2_strong_duality`: The filtered γ₂ value equals its Schur multiplier dual, and
+  every finite value is attained by a feasible multiplier [Lee et al., Lemma A.1][LeeEtAl2011].
+
+* `generalAdversaryValue_eq_relaxed_dual`: The general adversary value equals the filtered γ₂
+  dual value of the function-evaluation matrix with output-masked query filters.
+
+* `generalAdversaryValue_eq_real_symmetric_sup`: The general adversary value is the supremum
+  over real symmetric feasible adversary matrices.
+
+* `generalAdversaryValue_real_attained`: Every finite general adversary value is attained by a
+  real symmetric feasible adversary matrix.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,22 +54,29 @@ namespace Qatlib.Concepts.GramQueryCore.GammaDuality
 open Matrix
 open scoped Matrix.Norms.L2Operator ENNReal BigOperators
 
+/-- The supremum of `ENNReal.ofReal ‖A ⊙ M‖` over multipliers whose entrywise products with
+every filter have operator norm at most one. -/
 noncomputable def filteredGamma2DualValue {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) : ℝ≥0∞ :=
   ⨆ M : {M : Matrix X X ℂ // ∀ j, ‖Z j ⊙ M‖ ≤ 1}, ENNReal.ofReal ‖A ⊙ M.1‖
 
+/-- The supremum of the operator norms of Hermitian adversary matrices vanishing on equal
+outputs and satisfying every query-filter norm constraint. -/
 noncomputable def generalAdversaryValue {X E : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (input : X → Fin n → Bool) (f : X → E) : ℝ≥0∞ :=
   ⨆ Γ : {Γ : Matrix X X ℂ // Γ.IsHermitian ∧
       (∀ x y, f x = f y → Γ x y = 0) ∧
       ∀ j, ‖gramFilterDelta input j ⊙ Γ‖ ≤ 1}, ENNReal.ofReal ‖Γ.1‖
 
+/-- The Schur multiplier dual value is bounded by the filtered γ₂ value. -/
 theorem filteredGamma2DualValue_le {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) :
     filteredGamma2DualValue A Z ≤ filteredGamma2 A Z := by
   unfold filteredGamma2DualValue
   exact iSup_le fun M => filteredGamma2_dual_ge A Z M.1 M.2
 
+/-- The general adversary value is bounded by the query-filtered γ₂ value of the
+function-evaluation matrix. -/
 theorem generalAdversaryValue_le_queryDelta {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     generalAdversaryValue input f ≤
@@ -49,6 +84,8 @@ theorem generalAdversaryValue_le_queryDelta {X E : Type} [Fintype X] [DecidableE
   unfold generalAdversaryValue
   exact iSup_le fun Γ => adversary_le_filteredGamma2_queryDelta input f Γ.1 Γ.2.2.1 Γ.2.2.2
 
+/-- If every query-filtered adversary matrix has norm at most one, its aggregated filter bound
+is at most one. -/
 theorem generalAdversary_filter_bound {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (input : X → Fin n → Bool) (Γ : Matrix X X ℂ)
     (hΓ : ∀ j, ‖gramFilterDelta input j ⊙ Γ‖ ≤ 1) : advFilterBound input Γ ≤ 1 := by
@@ -71,6 +108,8 @@ theorem generalAdversary_filter_bound {X : Type} [Fintype X] [DecidableEq X]
     exact hΓ j
   · norm_num
 
+/-- For every nonnegative budget `W`, the filtered γ₂ value is at most `ENNReal.ofReal W`
+exactly when a certificate at budget `W` exists [LeeEtAl2011]. -/
 theorem filteredGamma2_budget_boundary :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (n : ℕ)
       (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (W : ℝ), 0 ≤ W →
@@ -80,6 +119,7 @@ theorem filteredGamma2_budget_boundary :
 section DualAttainment
 variable {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
 
+/-- The norm of every matrix entry is bounded by the matrix operator norm. -/
 theorem gamma2_operator_entry_bound (M : Matrix X X ℂ) (x y : X) : ‖M x y‖ ≤ ‖M‖ := by
   classical
   have hk : M *ᵥ Ket y = fun z => M z y := by
@@ -98,6 +138,7 @@ theorem gamma2_operator_entry_bound (M : Matrix X X ℂ) (x y : X) : ‖M x y‖
   nlinarith [norm_nonneg (M x y), norm_nonneg M,
     norm_nonneg (toEuclidean_fromVec (fun z => M z y))]
 
+/-- A target with finite filtered γ₂ value vanishes wherever all filters vanish. -/
 theorem gamma2_finite_support (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hf : filteredGamma2 A Z < ⊤) :
     ∀ x y, (∀ j, Z j x y = 0) → A x y = 0 := by
@@ -108,6 +149,8 @@ theorem gamma2_finite_support (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ
   rw [he]
   simp [hz]
 
+/-- If the filtered γ₂ value is finite, the Schur multiplier dual supremum is attained by a
+feasible matrix. -/
 theorem filteredGamma2DualValue_attained (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hf : filteredGamma2 A Z < ⊤) :
     ∃ M : Matrix X X ℂ, (∀ j, ‖Z j ⊙ M‖ ≤ 1) ∧
@@ -205,6 +248,8 @@ theorem filteredGamma2DualValue_attained (A : Matrix X X ℂ) (Z : Fin n → Mat
 
 end DualAttainment
 
+/-- A nonzero target entry at which every filter vanishes makes both the primal and dual
+filtered γ₂ values infinite. -/
 theorem filteredGamma2_unsupported_top {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (x y : X)
     (ha : A x y ≠ 0) (hz : ∀ j, Z j x y = 0) :
@@ -237,6 +282,7 @@ theorem filteredGamma2_unsupported_top {X : Type} [Fintype X] [DecidableEq X] {n
     exact filteredGamma2DualValue_le A Z
   exact ⟨hp, hd⟩
 
+/-- The general adversary value of a constant function is zero. -/
 theorem generalAdversaryValue_constant {X E : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (input : X → Fin n → Bool) (f : X → E) (hf : ∀ x y, f x = f y) :
     generalAdversaryValue input f = 0 := by
@@ -247,6 +293,8 @@ theorem generalAdversaryValue_constant {X E : Type} [Fintype X] [DecidableEq X]
   have hΓ : Γ.1 = 0 := by ext x y; exact Γ.2.2.1 x y (hf x y)
   simp [hΓ]
 
+/-- The general adversary value is bounded by the filtered γ₂ dual value with query filters
+masked by the function-evaluation matrix. -/
 theorem generalAdversaryValue_le_relaxed_dual {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     generalAdversaryValue input f ≤ filteredGamma2DualValue (gramFunctionEvaluationMatrix f)
@@ -268,6 +316,9 @@ theorem generalAdversaryValue_le_relaxed_dual {X E : Type} [Fintype X] [Decidabl
     · simp [Matrix.hadamard_apply, gramFunctionEvaluationMatrix, h]
   exact le_iSup_of_le ⟨Γ.1, fun j => by rw [hz]; exact Γ.2.2.2 j⟩ (by rw [he])
 
+/-- Identifying the adversary value with the output-masked primal value gives a two-sided
+comparison with the unmasked query-filtered value, with factor `2 * (1 - 1 / Fintype.card
+E)`. -/
 theorem generalAdversaryValueComparison_of_identification {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
     (input : X → Fin n → Bool) (f : X → E)
@@ -281,6 +332,8 @@ theorem generalAdversaryValueComparison_of_identification {X E : Type}
   rw [he]
   exact filteredGamma2_queryDelta_le_of_evalRelaxed input f
 
+/-- Two inputs with identical query symbols and different outputs force the general adversary
+value to be infinite. -/
 theorem generalAdversaryValue_collision_top {X E : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (input : X → Fin n → Bool) (f : X → E) (x y : X)
     (hi : ∀ j, input x j = input y j) (hf : f x ≠ f y) :
@@ -322,6 +375,7 @@ theorem generalAdversaryValue_collision_top {X E : Type} [Fintype X] [DecidableE
   rw [← ENNReal.iSup_natCast]
   exact iSup_le hbound
 
+/-- A finite matrix supported on the union of the filter supports has finite filtered γ₂ value. -/
 theorem gamma2_support_finite {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hs : ∀ x y, (∀ j, Z j x y = 0) → A x y = 0) : filteredGamma2 A Z < ⊤ := by
@@ -366,6 +420,7 @@ theorem gamma2_support_finite {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
       simp [dotProduct, u, v, Fintype.sum_prod_type]
   exact (filteredGamma2_le_of_gramFilteredCert hcert).trans_lt ENNReal.ofReal_lt_top
 
+/-- An infinite filtered γ₂ value implies that its Schur multiplier dual value is infinite. -/
 theorem filteredGamma2_infinite_duality {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hf : filteredGamma2 A Z = ⊤) : filteredGamma2DualValue A Z = ⊤ := by
@@ -379,11 +434,14 @@ theorem filteredGamma2_infinite_duality {X : Type} [Fintype X] [DecidableEq X] {
   rw [hf] at hfin
   exact (lt_irrefl ⊤) hfin
 
+/-- The filtered γ₂ value of the zero matrix is zero. -/
 theorem filteredGamma2_zero_matrix {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) : filteredGamma2 (0 : Matrix X X ℂ) Z = 0 := by
   apply bot_unique
   simpa using! filteredGamma2_le_of_gramFilteredCert (gramFilteredCert_zero Z (le_refl (0 : ℝ)))
 
+/-- A zero filtered γ₂ value equals its dual value and is attained by a feasible dual
+multiplier. -/
 theorem filteredGamma2_zero_value_duality {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (hz : filteredGamma2 A Z = 0) :
     filteredGamma2 A Z = filteredGamma2DualValue A Z ∧
@@ -414,6 +472,7 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- For a nonempty index type, the first singular value is the matrix operator norm. -/
 theorem gamma2_first_singular_value_norm {X : Type} [Fintype X] [DecidableEq X]
     [Nonempty X] (Q : Matrix X X ℂ) : matrixSingularValues Q 0 = ‖Q‖ := by
   let i0 : Fin (Fintype.card X) := ⟨0,Fintype.card_pos⟩
@@ -438,6 +497,8 @@ theorem gamma2_first_singular_value_norm {X : Type} [Fintype X] [DecidableEq X]
   rw [norm_apply_rightSingularBasis, norm_rightSingularBasis, mul_one] at hlower
   exact le_antisymm hlower hupper
 
+/-- A nonzero matrix has unit left and right vectors whose real matrix pairing equals its
+operator norm. -/
 theorem gamma2_norm_singular_pair {X : Type} [Fintype X] [DecidableEq X]
     (Q : Matrix X X ℂ) (hQ : Q ≠ 0) :
     ∃ u v : X → ℂ, ‖toEuclidean_fromVec u‖=1 ∧ ‖toEuclidean_fromVec v‖=1 ∧
@@ -467,6 +528,7 @@ theorem gamma2_norm_singular_pair {X : Type} [Fintype X] [DecidableEq X]
   refine ⟨WithLp.ofLp u, WithLp.ofLp v, hu, hv, ?_⟩
   simpa only [EuclideanSpace.inner_eq_star_dotProduct, dotProduct_comm] using! hp
 
+/-- The Hermitian dilation of a contraction is a contraction. -/
 theorem gamma2_hermitian_dilation_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ) (hT : ‖T‖ ≤ 1) :
     ‖Matrix.fromBlocks (0 : Matrix X X ℂ) T Tᴴ 0‖ ≤ 1 := by
@@ -494,6 +556,8 @@ theorem gamma2_hermitian_dilation_norm_le {X : Type} [Fintype X] [DecidableEq X]
   nlinarith [norm_nonneg (toEuclidean_fromVec s),
     norm_nonneg (toEuclidean_fromVec ((Matrix.fromBlocks 0 T Tᴴ 0)*ᵥs))]
 
+/-- Stacking two diagonal matrices gives a contraction when the squared norms of their
+corresponding entries sum to at most one. -/
 theorem gamma2_paired_diagonal_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (p q : X → ℂ) (h : ∀ x, Complex.normSq (p x)+Complex.normSq (q x) ≤ 1) :
     ‖Matrix.fromRows (Matrix.diagonal p) (Matrix.diagonal q)‖ ≤ 1 := by
@@ -518,6 +582,8 @@ theorem gamma2_paired_diagonal_norm_le {X : Type} [Fintype X] [DecidableEq X]
   rw [Matrix.l2_opNorm_conjTranspose_mul_self] at hd
   nlinarith [norm_nonneg C]
 
+/-- Compressing a Hermitian dilation by two stacked diagonal matrices gives the sum of the
+weighted matrix and its adjoint. -/
 theorem gamma2_paired_compression {X : Type} [Fintype X] [DecidableEq X]
     (p q : X → ℂ) (T : Matrix X X ℂ) :
     let C := Matrix.fromRows (Matrix.diagonal p) (Matrix.diagonal q)
@@ -530,12 +596,16 @@ theorem gamma2_paired_compression {X : Type} [Fintype X] [DecidableEq X]
   simp only [Matrix.mul_zero, zero_add, add_zero]
   exact add_comm _ _
 
+/-- Pairing with the adjoint matrix gives the complex conjugate of the reversed pairing with the
+original matrix. -/
 theorem gamma2_adjoint_pairing {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ) (u v : X → ℂ) :
     star v ⬝ᵥ (Tᴴ*ᵥu) = star (star u ⬝ᵥ (T*ᵥv)) := by
   rw [Matrix.dotProduct_mulVec, Matrix.vecMul_conjTranspose, star_star]
   exact star_dotProduct _ _
 
+/-- The real quadratic form of a matrix is bounded by its operator norm times the squared
+Euclidean norm of the vector. -/
 theorem gamma2_rayleigh_re_le_norm {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ) (d : X → ℂ) :
     (star d ⬝ᵥ (T*ᵥd)).re ≤ ‖T‖*‖toEuclidean_fromVec d‖^2 := by
@@ -552,12 +622,16 @@ theorem gamma2_rayleigh_re_le_norm {X : Type} [Fintype X] [DecidableEq X]
       exact l2_norm_mulVec_fromVec_le T d
     _ = _ := by ring
 
+/-- The quadratic form of `Cᴴ * T * C` at `d` is the quadratic form of `T` at `C *ᵥ d`. -/
 theorem gamma2_quad_sandwich {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (C : Matrix Y X ℂ) (T : Matrix Y Y ℂ) (d : X → ℂ) :
     star d ⬝ᵥ ((Cᴴ*T*C)*ᵥd) = star (C*ᵥd) ⬝ᵥ (T*ᵥ(C*ᵥd)) := by
   rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec,
     Matrix.vecMul_conjTranspose, star_star]
 
+/-- A unit singular pair attaining the norm of `Q` yields a contraction formed from stacked
+diagonal matrices and a real unit vector whose compressed Hermitian-dilation quadratic form
+equals `‖Q‖`. -/
 theorem gamma2_balanced_compression_witness {X : Type} [Fintype X] [DecidableEq X]
     (Q : Matrix X X ℂ) (u v : X → ℂ)
     (hu : ‖toEuclidean_fromVec u‖=1) (hv : ‖toEuclidean_fromVec v‖=1)
@@ -637,6 +711,8 @@ theorem gamma2_balanced_compression_witness {X : Type} [Fintype X] [DecidableEq 
     linarith [hpair]
   exact ⟨p,q,d,hC,hdnorm,hquad⟩
 
+/-- A unit singular pair attaining the norm of `Q` yields a contraction formed from stacked
+diagonal matrices whose compression of the Hermitian dilation has norm at least `‖Q‖`. -/
 theorem gamma2_balanced_compression {X : Type} [Fintype X] [DecidableEq X]
     (Q : Matrix X X ℂ) (u v : X → ℂ)
     (hu : ‖toEuclidean_fromVec u‖=1) (hv : ‖toEuclidean_fromVec v‖=1)
@@ -654,6 +730,9 @@ theorem gamma2_balanced_compression {X : Type} [Fintype X] [DecidableEq X]
   rw [hquad,hdnorm,mul_one] at hb
   exact hb
 
+/-- A norm-attaining unit singular pair yields a contraction formed from stacked diagonal
+matrices such that the entrywise real part of the compressed Hermitian dilation has norm at
+least `‖Q‖`. -/
 theorem gamma2_balanced_real_compression {X : Type} [Fintype X] [DecidableEq X]
     (Q : Matrix X X ℂ) (u v : X → ℂ)
     (hu : ‖toEuclidean_fromVec u‖=1) (hv : ‖toEuclidean_fromVec v‖=1)
@@ -671,6 +750,8 @@ theorem gamma2_balanced_real_compression {X : Type} [Fintype X] [DecidableEq X]
   rw [gamma2RealPart_real_rayleigh, hquad,hdnorm,mul_one] at hb
   exact hb
 
+/-- For a Hermitian mask, entrywise masking commutes with compression of a Hermitian dilation by
+stacked diagonal matrices. -/
 theorem gamma2_masked_compression {X : Type} [Fintype X] [DecidableEq X]
     (p q : X → ℂ) (T R : Matrix X X ℂ)
     (hR : ∀ x y, star (R y x) = R x y) :
@@ -685,6 +766,9 @@ theorem gamma2_masked_compression {X : Type} [Fintype X] [DecidableEq X]
     star_mul, hR]
   ring
 
+/-- Every multiplier feasible for the output-masked query filters yields a real Hermitian
+adversary matrix satisfying the unmasked constraints and with at least the original
+objective norm. -/
 theorem gamma2_masked_real_hermitian_symmetrization {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (n : ℕ) (input : X → Fin n → Bool)
     (f : X → E) (M : Matrix X X ℂ)
@@ -754,6 +838,8 @@ theorem gamma2_masked_real_hermitian_symmetrization {X E : Type} [Fintype X] [De
   · intro x y
     simp [Γ,gamma2RealPart]
 
+/-- Every multiplier feasible for the output-masked query filters yields a Hermitian adversary
+matrix satisfying the unmasked constraints and with at least the original objective norm. -/
 theorem gamma2_masked_hermitian_symmetrization {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (n : ℕ) (input : X → Fin n → Bool)
     (f : X → E) (M : Matrix X X ℂ)
@@ -767,6 +853,8 @@ theorem gamma2_masked_hermitian_symmetrization {X E : Type} [Fintype X] [Decidab
     gamma2_masked_real_hermitian_symmetrization n input f M hM
   exact ⟨Γ,hherm,hzero,hfilter,hbound⟩
 
+/-- The general adversary value equals the filtered γ₂ dual value of the function-evaluation
+matrix with output-masked query filters. -/
 theorem generalAdversaryValue_eq_relaxed_dual {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     generalAdversaryValue input f = filteredGamma2DualValue (gramFunctionEvaluationMatrix f)
@@ -780,6 +868,8 @@ theorem generalAdversaryValue_eq_relaxed_dual {X E : Type} [Fintype X] [Decidabl
   exact (ENNReal.ofReal_le_ofReal hbound).trans
     (le_iSup_of_le ⟨Γ,hherm,hzero,hfilter⟩ le_rfl)
 
+/-- The filtered γ₂ value equals its Schur multiplier dual, and every finite value is attained
+by a feasible multiplier [Lee et al., Lemma A.1][LeeEtAl2011]. -/
 theorem filteredGamma2_strong_duality (X : Type) [Fintype X] [DecidableEq X]
     (n : ℕ) (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) :
     filteredGamma2 A Z=filteredGamma2DualValue A Z ∧
@@ -814,6 +904,8 @@ theorem filteredGamma2_strong_duality (X : Type) [Fintype X] [DecidableEq X]
   obtain ⟨M,hM,hmax⟩ := filteredGamma2DualValue_attained A Z hf
   exact ⟨M,hM,he.trans hmax⟩
 
+/-- The general adversary value can be computed by restricting its supremum to Hermitian
+matrices with real entries. -/
 theorem generalAdversaryValue_eq_real_sup {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     generalAdversaryValue input f =
@@ -834,6 +926,7 @@ theorem generalAdversaryValue_eq_real_sup {X E : Type} [Fintype X] [DecidableEq 
     intro Γ
     exact le_iSup_of_le ⟨Γ.1,Γ.2.1,Γ.2.2.1,Γ.2.2.2.1⟩ le_rfl
 
+/-- A complex matrix with real entries is Hermitian exactly when it is symmetric. -/
 theorem gamma2_real_hermitian_iff_symmetric {X : Type} (Γ : Matrix X X ℂ)
     (hreal : ∀ x y, (Γ x y).im=0) : Γ.IsHermitian ↔ Γ.IsSymm := by
   have he : Γᴴ=Γᵀ := by
@@ -845,6 +938,7 @@ theorem gamma2_real_hermitian_iff_symmetric {X : Type} (Γ : Matrix X X ℂ)
   change Γᴴ=Γ ↔ Γᵀ=Γ
   rw [he]
 
+/-- The general adversary value is the supremum over real symmetric feasible adversary matrices. -/
 theorem generalAdversaryValue_eq_real_symmetric_sup {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     generalAdversaryValue input f =
@@ -863,6 +957,8 @@ theorem generalAdversaryValue_eq_real_symmetric_sup {X E : Type} [Fintype X] [De
     have hh := (gamma2_real_hermitian_iff_symmetric Γ.1 Γ.2.2.2.2).mpr Γ.2.1
     exact le_iSup_of_le ⟨Γ.1,hh,Γ.2.2.1,Γ.2.2.2.1⟩ le_rfl
 
+/-- Every finite general adversary value is attained by a real symmetric feasible adversary
+matrix. -/
 theorem generalAdversaryValue_real_attained {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E)
     (hf : generalAdversaryValue input f < ⊤) :

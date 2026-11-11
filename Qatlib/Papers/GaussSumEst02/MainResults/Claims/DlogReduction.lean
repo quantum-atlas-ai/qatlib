@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+
+/-!
+# Discrete logarithms from Gauss-sum phases
+
+This module relates the discrete logarithm of a nonzero field element to the ratio of two
+Gauss-sum phases. The theorem `lemma2_dlogReduction` includes uniqueness of the encoded exponent
+and a conditional estimation-cost bound using `PhaseAccessModel`. See [VanDamSeroussi2002].
+
+## Main statements
+
+* `exp_neg_two_pi_div_injective`: For positive `n`, the values `exp(-2πiℓ/n)` distinguish
+  natural exponents strictly below `n`.
+* `lemma2_dlogReduction`: Under the generator and character-value hypotheses, a nonzero element
+  has a bounded discrete logarithm uniquely encoded by the ratio of its Gauss-sum phase to the
+  phase at one. Given `PhaseAccessModel` and a polylogarithmic per-sample cost, the phase
+  difference has protocols of arbitrarily small expected absolute error with the stated
+  `sampleCount` cost bound.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +41,8 @@ namespace Qatlib.Papers.GaussSumEst02.MainResults.Claims
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- For positive `n`, the values `exp(-2πiℓ/n)` distinguish natural exponents strictly below `n`
+[VanDamSeroussi2002]. -/
 lemma exp_neg_two_pi_div_injective {n : ℕ} (hn : 0 < n) :
     ∀ ℓ ℓ' : ℕ, ℓ < n → ℓ' < n →
       Complex.exp ((-(2 * Real.pi * (ℓ' : ℝ) / (n : ℝ))) * Complex.I)
@@ -78,6 +103,11 @@ lemma exp_neg_two_pi_div_injective {n : ℕ} (hn : 0 < n) :
   have hEq : (ℓ : ℝ) = (ℓ' : ℝ) := by linarith
   exact eq_comm.mp (by exact_mod_cast hEq)
 
+/-- Under the generator and character-value hypotheses, a nonzero element has a bounded discrete
+logarithm uniquely encoded by the ratio of its Gauss-sum phase to the phase at one. Given
+`PhaseAccessModel` and a polylogarithmic per-sample cost, the phase difference has protocols
+of arbitrarily small expected absolute error with the stated `sampleCount` cost bound
+[VanDamSeroussi2002]. -/
 theorem lemma2_dlogReduction {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     (e : AddChar K) (g : K)
     (hgen : ∀ y : K, y ≠ 0 → ∃ j : ℕ, j < Fintype.card K - 1 ∧ g ^ j = y)

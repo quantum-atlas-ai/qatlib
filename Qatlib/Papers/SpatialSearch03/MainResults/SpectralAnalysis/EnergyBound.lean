@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.TimeBound
+
+/-!
+# Lattice energies and Fourier normalization
+
+This module proves elementary energy and normalization estimates for the periodic lattice model
+of [ChildsGoldstone2004]. It also supplies the scalar inequality `ground_amplitude_bound`, which
+bounds an amplitude prefactor under a lower bound on the secular slope.
+
+## Main statements
+
+* `latticeEnergy_nonneg` and `latticeEnergy_le`: lattice energies lie between zero and `4 * d`.
+* `normalized_fourierMode`: Fourier modes are normalized when the lattice side length is
+  positive.
+* `ground_amplitude_bound`: comparison of the two scalar amplitude bounds.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +36,7 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.SpatialSearch03.MainResults
 
+/-- Every periodic lattice energy is nonnegative. -/
 theorem latticeEnergy_nonneg (d n : ℕ) (m : LatticeVertex d n) : 0 ≤ latticeEnergy d n m := by
   unfold latticeEnergy
   have hterm : ∀ j : Fin d, 0 ≤ 1 - Real.cos (2 * Real.pi * (m j).val / (n : ℝ)) := by
@@ -24,6 +45,7 @@ theorem latticeEnergy_nonneg (d n : ℕ) (m : LatticeVertex d n) : 0 ≤ lattice
   have := Finset.sum_nonneg (fun j (_ : j ∈ Finset.univ) => hterm j)
   linarith
 
+/-- Every periodic lattice energy in dimension `d` is at most `4 * d`. -/
 theorem latticeEnergy_le (d n : ℕ) (m : LatticeVertex d n) :
     latticeEnergy d n m ≤ 4 * (d : ℝ) := by
   unfold latticeEnergy
@@ -35,6 +57,8 @@ theorem latticeEnergy_le (d n : ℕ) (m : LatticeVertex d n) :
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul] at hsum
   linarith
 
+/-- Each entry of a lattice Fourier mode has norm equal to the inverse square root of the number
+of lattice vertices. -/
 theorem norm_fourierMode_apply (d n : ℕ) (m x : LatticeVertex d n) :
     ‖fourierMode d n m x‖ =
       (Real.sqrt (Fintype.card (LatticeVertex d n) : ℝ))⁻¹ := by
@@ -43,6 +67,7 @@ theorem norm_fourierMode_apply (d n : ℕ) (m x : LatticeVertex d n) :
     abs_of_nonneg (Real.sqrt_nonneg _),
     Complex.norm_exp_I_mul_ofReal, mul_one]
 
+/-- Every lattice Fourier mode is normalized when the side length is positive. -/
 theorem normalized_fourierMode (d n : ℕ) (hn : 0 < n) (m : LatticeVertex d n) :
     Normalized (fourierMode d n m) := by
   unfold Normalized
@@ -61,6 +86,9 @@ theorem normalized_fourierMode (d n : ℕ) (hn : 0 < n) (m : LatticeVertex d n) 
   rw [hsq]
   exact mul_inv_cancel₀ (ne_of_gt hNpos)
 
+/-- For positive `N`, `E`, and `F'`, the inequality `1 ≤ N * E ^ 2 * F'` implies `2 / (Real.sqrt
+N * E * F') ≤ 2 * Real.sqrt N * E`. This scalar estimate supports the amplitude bounds in
+[ChildsGoldstone2004]. -/
 theorem ground_amplitude_bound {N : ℕ} {E F' : ℝ}
     (hN : 0 < N) (hE : 0 < E) (hF' : 0 < F')
     (hNF : 1 ≤ (N : ℝ) * E ^ 2 * F') :

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingCoreDefs
 import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+/-!
+# Quantum prefix execution and conditional mixtures
+
+This module proves exact prefix and resume formulas for `quantumRunFor`, additive query and gate
+receipts, and normalization under unitary execution. It also exhibits failure of cost-indexed
+finite-fuel halting stability at zero cost and expresses a coarse instrument posterior as a
+mixture of fine posteriors.
+
+The unitary and instrument interpretations are standard quantum-information constructions; see
+[Watrous2018].
+
+## Main statements
+
+* `quantumRunFor_prefix`: exact remaining circuit and prefix state
+* `quantumRunFor_resume`: composition of quantum continuations
+* `zero_charge_stability_failure`: a zero-cost halting counterexample
+* `coarse_conditional_mixture`: fine-outcome decomposition of a coarse posterior
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -22,6 +46,8 @@ namespace Qatlib.Concepts.StoppingCore.InterruptBridge
 open Qatlib
 open scoped BigOperators ComplexOrder
 
+/-- Running `k` steps leaves the suffix `C.drop k` and the quantum state obtained by running the
+prefix `C.take k`. -/
 theorem quantumRunFor_prefix {I : Type*} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (k : ℕ) (C : Circuit I) (ψ : QState I) :
     quantumRunFor O k ⟨C,ψ⟩ = ⟨C.drop k, Run O (C.take k) ψ⟩ := by
@@ -33,6 +59,7 @@ theorem quantumRunFor_prefix {I : Type*} [Fintype I] [DecidableEq I]
     | cons s C =>
       cases s <;> simp [quantumRunFor, quantumTick, ih]
 
+/-- Running `m + n` quantum steps agrees with running `m` steps and then resuming for `n` steps. -/
 theorem quantumRunFor_resume {I : Type*} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (m n : ℕ) (cfg : QuantumContinuation I) :
     quantumRunFor O (m+n) cfg = quantumRunFor O n (quantumRunFor O m cfg) := by
@@ -40,6 +67,8 @@ theorem quantumRunFor_resume {I : Type*} [Fintype I] [DecidableEq I]
   | zero => simp [quantumRunFor]
   | succ m ih => simpa only [Nat.succ_add, quantumRunFor] using ih (quantumTick O cfg)
 
+/-- Prefix and suffix query and gate counts add to the full circuit counts, and the prefix's
+total count is `min k C.length`. -/
 theorem quantum_prefix_receipts {I : Type*} [Fintype I] [DecidableEq I]
     (C : Circuit I) (k : ℕ) :
     QueryCount (C.take k) + QueryCount (C.drop k) = QueryCount C ∧
@@ -54,6 +83,8 @@ theorem quantum_prefix_receipts {I : Type*} [Fintype I] [DecidableEq I]
   · simpa only [List.take_append_drop] using (gateCount_append (C.take k) (C.drop k)).symm
   · simpa only [List.length_take] using hlength (C.take k)
 
+/-- A finite prefix preserves normalization when the oracle, fixed circuit gates, and initial
+state satisfy the stated unitarity and normalization assumptions. -/
 theorem quantumRunFor_normalized {I : Type*} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (k : ℕ)
     (C : Circuit I) (hC : IsUnitaryCircuit C) (ψ : QState I) (hψ : Normalized ψ) :
@@ -62,6 +93,8 @@ theorem quantumRunFor_normalized {I : Type*} [Fintype I] [DecidableEq I]
   exact normalized_run O hO (C.take k)
     (fun U hU => hC U (List.mem_of_mem_take hU)) hψ
 
+/-- Zero-cost countdown execution has zero `weightedHaltJoint` mass at cost zero but halts with
+mass one at cost zero after two steps. -/
 theorem zero_charge_stability_failure :
     weightedHaltJoint zeroCountdownNext (fun _ => 0) (.inr true) () 0 = 0 ∧
       weightedRunFor zeroCountdownNext (fun _ => 0) 2 (.inr true) (.inl (),0) = 1 := by
@@ -72,6 +105,8 @@ theorem zero_charge_stability_failure :
     rw [weightedRunFor_succ_running]
     simp [zeroCountdownNext, weightedRunFor, CostedLaw.ret, PMF.pure_apply]
 
+/-- Conditioning on a positive-probability coarse instrument outcome yields the mixture of its
+fine conditional states weighted by their relative probabilities. -/
 theorem coarse_conditional_mixture {O P : Type*} [Fintype O] [Fintype P] [DecidableEq P]
     {D E : ℕ} (I : Instrument O D E) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (f : O → P) (p : P) (hp : 0 < instrumentProb (I.coarsen f) ρ p) :

@@ -8,6 +8,31 @@ import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificat
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
 import Mathlib.Algebra.BigOperators.Pi
 import Mathlib.Data.List.GetD
+
+/-!
+# Auxiliary constructions for adaptive purification
+
+This module develops recorded branch operators, their completeness identities, and isometric
+embeddings for legal adaptive computations. `sourceAdaptivePureMatrix` packages the recorded
+output as an isometry, using the finite-dimensional instrument framework described in
+[Watrous2018].
+
+`SourcePurificationProgram` represents a known initial gate followed by layers containing a
+forward and an adjoint oracle call. Padding and block-diagonal constructions support the
+recursive purification compiler.
+
+## Main statements
+
+* `sourceAdaptive_operators_complete`: completeness of adaptive branch operators.
+* `sourceAdaptivePureMatrix_isometry`: isometry of the recorded output matrix.
+* `sourceAdaptive_zero_query_compiler`: compilation of computations with no oracle calls.
+* `sourcePurificationBlockProgram_matrix`: evaluation of block-diagonal programs.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -28,6 +53,7 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 noncomputable section
 
+/-- The inner product is additive over a finite sum in its second argument. -/
 theorem sourceInner_sum_right {H I : Type} [Fintype H] [Fintype I]
     (ψ : QState H) (φ : I → QState H) : Qatlib.Foundations.PureStateMath.Inner ψ (∑ i,φ i)=∑ i,Qatlib.Foundations.PureStateMath.Inner ψ (φ i) := by
   simp only [Qatlib.Foundations.PureStateMath.Inner,dotProduct,Finset.sum_apply,Finset.mul_sum]
@@ -35,6 +61,8 @@ theorem sourceInner_sum_right {H I : Type} [Fintype H] [Fintype I]
 end
 noncomputable section
 
+/-- A complete family of Kraus matrices preserves the total squared norm when summed over its
+outcomes. -/
 theorem sourceInstrument_mass {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
     (K : Fin m → Matrix H H ℂ) (hK : (∑ i,(K i)ᴴ*K i)=1) (ψ : QState H) :
     (∑ i, ‖toEuclidean_fromVec (K i*ᵥψ)‖^2)=‖toEuclidean_fromVec ψ‖^2 := by
@@ -49,6 +77,7 @@ theorem sourceInstrument_mass {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 end
 noncomputable section
 
+/-- A complete instrument on a nonempty state space has at least one outcome. -/
 theorem sourceInstrument_outcome_positive {H : Type} [Fintype H] [DecidableEq H] [Nonempty H]
     {m : ℕ} (K : Fin m → Matrix H H ℂ) (hK : (∑ i,(K i)ᴴ*K i)=1) : 0<m := by
   by_contra hm
@@ -59,6 +88,7 @@ theorem sourceInstrument_outcome_positive {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- A legal adaptive computation on a nonempty state space has a positive number of leaves. -/
 theorem sourceAdaptive_leaves_positive {H : Type} [Fintype H] [DecidableEq H] [Nonempty H]
     (T : SourceAdaptive H) (hT : sourceAdaptiveLegal T) : 0<sourceAdaptiveLeaves T := by
   induction T with
@@ -75,6 +105,7 @@ theorem sourceAdaptive_leaves_positive {H : Type} [Fintype H] [DecidableEq H] [N
 end
 noncomputable section
 
+/-- The branch-state list has length equal to the number of leaves of the adaptive computation. -/
 theorem sourceAdaptive_branches_length {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) (ψ : QState H) :
     (sourceAdaptiveBranches O T ψ).length=sourceAdaptiveLeaves T := by
@@ -91,6 +122,8 @@ theorem sourceAdaptive_branches_length {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- For a unitary oracle and a legal adaptive computation, the sum of squared branch norms
+equals the squared input norm. -/
 theorem sourceAdaptive_branches_mass {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (hO : O ∈ Matrix.unitaryGroup H ℂ)
     (T : SourceAdaptive H) (hT : sourceAdaptiveLegal T) (ψ : QState H) :
@@ -118,6 +151,8 @@ theorem sourceAdaptive_branches_mass {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Summing a function over a list padded to length `L` with a default of zero contribution
+equals the mapped list sum. -/
 theorem sourceList_sum_getD {A B : Type} [AddCommMonoid B]
     (l : List A) (d : A) (g : A → B) (hg : g d=0) (L : ℕ) (hL : l.length≤L) :
     (∑ i : Fin L,g (l.getD i.val d))=(l.map g).sum := by
@@ -134,6 +169,8 @@ theorem sourceList_sum_getD {A B : Type} [AddCommMonoid B]
 end
 noncomputable section
 
+/-- The adaptive density matrix is the sum over record labels of the outer products of the
+recorded pure-output slices. -/
 theorem sourceAdaptive_density_pure {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) (ψ : QState H) (p t : H) :
     sourceAdaptiveDensity O T ψ p t=
@@ -144,6 +181,8 @@ theorem sourceAdaptive_density_pure {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Recorded adaptive purification preserves the squared norm for legal computations and unitary
+oracles. -/
 theorem sourceAdaptive_pure_mass {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (hO : O ∈ Matrix.unitaryGroup H ℂ)
     (T : SourceAdaptive H) (hT : sourceAdaptiveLegal T) (ψ : QState H) :
@@ -158,6 +197,8 @@ theorem sourceAdaptive_pure_mass {H : Type} [Fintype H] [DecidableEq H]
   exact sourceAdaptive_branches_mass O hO T hT ψ
 end
 noncomputable section
+/-- The encoding that packs a record label and old workspace index into the new workspace index
+while preserving the other registers. -/
 def sourceTreeCode {H : Type} (n q old records new : ℕ) (h : records*old≤new) :
     Fin records × SourceSpace n q H old → SourceSpace n q H new :=
   fun p => (p.2.1,(p.2.2.1,⟨p.1.val*old+p.2.2.2.val,by
@@ -167,6 +208,8 @@ def sourceTreeCode {H : Type} (n q old records new : ℕ) (h : records*old≤new
 end
 noncomputable section
 
+/-- The tree-record encoding is injective when the new workspace can contain every record and
+old workspace pair. -/
 theorem sourceTreeCode_injective {H : Type} (n q old records new : ℕ) (h : records*old≤new) :
     Function.Injective (sourceTreeCode (H := H) n q old records new h) := by
   intro a b he
@@ -189,6 +232,8 @@ theorem sourceTreeCode_injective {H : Type} (n q old records new : ℕ) (h : rec
 end
 noncomputable section
 
+/-- The tree frame equals the basis frame of the tree-record encoding under the workspace size
+bound. -/
 theorem sourceTreeFrame_eq_basis {H : Type} [DecidableEq H]
     (n q old records new : ℕ) (h : records*old≤new) :
     sourceTreeFrame (H := H) n q old records new=sourceBasisFrame (sourceTreeCode n q old records new h) := by
@@ -197,6 +242,7 @@ theorem sourceTreeFrame_eq_basis {H : Type} [DecidableEq H]
 end
 noncomputable section
 
+/-- The tree frame is an isometry when `records*old ≤ new`. -/
 theorem sourceTreeFrame_isometry {H : Type} [Fintype H] [DecidableEq H]
     (n q old records new : ℕ) (h : records*old≤new) :
     (sourceTreeFrame (H := H) n q old records new)ᴴ*sourceTreeFrame (H := H) n q old records new=1 := by
@@ -204,6 +250,8 @@ theorem sourceTreeFrame_isometry {H : Type} [Fintype H] [DecidableEq H]
   exact sourceBasisFrame_isometry _ (sourceTreeCode_injective (H := H) n q old records new h)
 end
 noncomputable section
+/-- The list of branch operators obtained by composing known gates, oracle calls, and Kraus
+operators along each adaptive branch. -/
 def sourceAdaptiveOperators {H : Type} [Fintype H] [DecidableEq H] (O : Matrix H H ℂ) :
     SourceAdaptive H → List (Matrix H H ℂ)
   | .finish => [1]
@@ -213,6 +261,8 @@ def sourceAdaptiveOperators {H : Type} [Fintype H] [DecidableEq H] (O : Matrix H
 end
 noncomputable section
 
+/-- The branch-state list is obtained by applying the adaptive branch operators to the input
+state. -/
 theorem sourceAdaptive_branches_operators {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) (ψ : QState H) :
     sourceAdaptiveBranches O T ψ=(sourceAdaptiveOperators O T).map (fun A => A*ᵥψ) := by
@@ -225,6 +275,7 @@ theorem sourceAdaptive_branches_operators {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- The adaptive branch-operator list has length equal to the number of leaves. -/
 theorem sourceAdaptive_operators_length {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) : (sourceAdaptiveOperators O T).length=sourceAdaptiveLeaves T := by
   have hh := sourceAdaptive_branches_length O T (0 : QState H)
@@ -232,11 +283,13 @@ theorem sourceAdaptive_operators_length {H : Type} [Fintype H] [DecidableEq H]
   exact hh
 end
 noncomputable section
+/-- The sum of `Aᴴ*A` over the matrices in the given list. -/
 def sourceKrausTotal {H : Type} [Fintype H] [DecidableEq H] (l : List (Matrix H H ℂ)) : Matrix H H ℂ :=
   (l.map (fun A => Aᴴ*A)).sum
 end
 noncomputable section
 
+/-- Right-composing each matrix in a Kraus list by `U` conjugates its Kraus total by `U`. -/
 theorem sourceKrausTotal_comp {H : Type} [Fintype H] [DecidableEq H]
     (l : List (Matrix H H ℂ)) (U : Matrix H H ℂ) :
     sourceKrausTotal (l.map (fun A => A*U))=Uᴴ*sourceKrausTotal l*U := by
@@ -249,6 +302,8 @@ theorem sourceKrausTotal_comp {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- For a legal adaptive computation with a unitary oracle, the adaptive branch operators have
+Kraus total equal to the identity. -/
 theorem sourceAdaptive_operators_complete {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (hO : O ∈ Matrix.unitaryGroup H ℂ)
     (T : SourceAdaptive H) (hT : sourceAdaptiveLegal T) : sourceKrausTotal (sourceAdaptiveOperators O T)=1 := by
@@ -272,12 +327,15 @@ theorem sourceAdaptive_operators_complete {H : Type} [Fintype H] [DecidableEq H]
     exact hT.1
 end
 noncomputable section
+/-- The matrix whose record slices are the adaptive branch operators, padded with zero matrices
+when necessary. -/
 def sourceAdaptivePureMatrix {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) : Matrix (Fin (max 1 (sourceAdaptiveLeaves T)) × H) H ℂ :=
   fun p t => ((sourceAdaptiveOperators O T).getD p.1.val 0) p.2 t
 end
 noncomputable section
 
+/-- Applying the adaptive pure matrix to an input produces the recorded adaptive pure output. -/
 theorem sourceAdaptivePureMatrix_apply {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) (ψ : QState H) :
     sourceAdaptivePureMatrix O T *ᵥψ=sourceAdaptivePure O T ψ := by
@@ -291,6 +349,7 @@ theorem sourceAdaptivePureMatrix_apply {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Evaluating a finite list sum of matrices at an entry equals summing the entries of the list. -/
 theorem sourceMatrixList_sum_apply {H : Type} (l : List (Matrix H H ℂ)) (p t : H) :
     l.sum p t=(l.map (fun A => A p t)).sum := by
   induction l with
@@ -299,6 +358,7 @@ theorem sourceMatrixList_sum_apply {H : Type} (l : List (Matrix H H ℂ)) (p t :
 end
 noncomputable section
 
+/-- The adaptive pure matrix is an isometry for a legal computation and a unitary oracle. -/
 theorem sourceAdaptivePureMatrix_isometry {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (hO : O ∈ Matrix.unitaryGroup H ℂ)
     (T : SourceAdaptive H) (hT : sourceAdaptiveLegal T) :
@@ -317,11 +377,13 @@ theorem sourceAdaptivePureMatrix_isometry {H : Type} [Fintype H] [DecidableEq H]
   simpa only [sourceKrausTotal,sourceMatrixList_sum_apply,List.map_map,Function.comp_def] using! hh
 end
 noncomputable section
+/-- The matrix that stacks the Kraus operators in an outcome register. -/
 def sourceInstrumentMatrix {H : Type} {m : ℕ} (K : Fin m → Matrix H H ℂ) :
     Matrix (Fin m × H) H ℂ := fun p t => K p.1 p.2 t
 end
 noncomputable section
 
+/-- Stacking a complete Kraus family gives an isometry. -/
 theorem sourceInstrumentMatrix_isometry {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
     (K : Fin m → Matrix H H ℂ) (hK : (∑ i,(K i)ᴴ*K i)=1) :
     (sourceInstrumentMatrix K)ᴴ*sourceInstrumentMatrix K=1 := by
@@ -332,39 +394,52 @@ theorem sourceInstrumentMatrix_isometry {H : Type} [Fintype H] [DecidableEq H] {
 end
 noncomputable section
 
+/-- Two isometries with the same source and target dimensions are related by a unitary acting on
+their target. -/
 theorem sourcePublic_isometry_transport {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (F A : Matrix S T ℂ) (hF : Fᴴ*F=1) (hA : Aᴴ*A=1) :
     ∃ G : Matrix S S ℂ, G ∈ Matrix.unitaryGroup S ℂ ∧ G*F=A :=
   gram_equal_actual_unitary_transport S T F A (hF.trans hA.symm)
 end
 noncomputable section
+/-- A purification program consisting of a known initial matrix and a list of pairs of known
+matrices. -/
 structure SourcePurificationProgram (S : Type) where
   start : Matrix S S ℂ
   layers : List (Matrix S S ℂ × Matrix S S ℂ)
 end
 noncomputable section
+/-- The four-instruction word consisting of a forward oracle call, the first known matrix, an
+adjoint oracle call, and the second known matrix. -/
 def sourcePurificationLayerWord {S : Type} (p : Matrix S S ℂ × Matrix S S ℂ) : SourceWord S :=
   [.inr false,.inl p.1,.inr true,.inl p.2]
 end
 noncomputable section
+/-- The source word consisting of the initial known matrix followed by the words of all
+purification layers. -/
 def sourcePurificationProgramWord {S : Type} (P : SourcePurificationProgram S) : SourceWord S :=
   .inl P.start::P.layers.flatMap sourcePurificationLayerWord
 end
 noncomputable section
+/-- Legality of a purification program requires its initial matrix and both known matrices in
+every layer to be unitary. -/
 def sourcePurificationProgramLegal {S : Type} [Fintype S] [DecidableEq S] (P : SourcePurificationProgram S) : Prop :=
   P.start ∈ Matrix.unitaryGroup S ℂ ∧ ∀ p ∈ P.layers, p.1 ∈ Matrix.unitaryGroup S ℂ ∧ p.2 ∈ Matrix.unitaryGroup S ℂ
 end
 noncomputable section
+/-- The matrix `p.2*Oᴴ*p.1*O` implementing a purification layer. -/
 def sourcePurificationLayerMatrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (p : Matrix S S ℂ × Matrix S S ℂ) : Matrix S S ℂ := p.2*Oᴴ*p.1*O
 end
 noncomputable section
 
+/-- A purification layer uses exactly two oracle calls. -/
 theorem sourcePurificationLayerWord_calls {S : Type} (p : Matrix S S ℂ × Matrix S S ℂ) :
     sourceWordCalls (sourcePurificationLayerWord p)=2 := by simp [sourcePurificationLayerWord,sourceWordCalls]
 end
 noncomputable section
 
+/-- The word of a purification layer evaluates to its layer matrix. -/
 theorem sourcePurificationLayerWord_matrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (p : Matrix S S ℂ × Matrix S S ℂ) :
     sourceWordMatrix O (sourcePurificationLayerWord p)=sourcePurificationLayerMatrix O p := by
@@ -372,6 +447,8 @@ theorem sourcePurificationLayerWord_matrix {S : Type} [Fintype S] [DecidableEq S
 end
 noncomputable section
 
+/-- The matrix of a concatenation of instruction words is the product of their matrices in
+reverse list order. -/
 theorem sourceWordMatrix_flatMap {A S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (l : List A) (f : A → SourceWord S) :
     sourceWordMatrix O (l.flatMap f)=(l.map (fun a => sourceWordMatrix O (f a))).reverse.prod := by
@@ -381,6 +458,8 @@ theorem sourceWordMatrix_flatMap {A S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- A purification program evaluates to the reverse-ordered product of its layer matrices
+multiplied by its initial matrix. -/
 theorem sourcePurificationProgramWord_matrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (P : SourcePurificationProgram S) :
     sourceWordMatrix O (sourcePurificationProgramWord P)=
@@ -393,6 +472,7 @@ theorem sourcePurificationProgramWord_matrix {S : Type} [Fintype S] [DecidableEq
 end
 noncomputable section
 
+/-- A purification program word uses twice as many oracle calls as it has layers. -/
 theorem sourcePurificationProgramWord_calls {S : Type} (P : SourcePurificationProgram S) :
     sourceWordCalls (sourcePurificationProgramWord P)=2*P.layers.length := by
   have he (l : List (Matrix S S ℂ × Matrix S S ℂ)) : sourceWordCalls (l.flatMap sourcePurificationLayerWord)=2*l.length := by
@@ -406,6 +486,7 @@ theorem sourcePurificationProgramWord_calls {S : Type} (P : SourcePurificationPr
 end
 noncomputable section
 
+/-- The word of a legal purification program is legal. -/
 theorem sourcePurificationProgramWord_legal {S : Type} [Fintype S] [DecidableEq S]
     (P : SourcePurificationProgram S) (hP : sourcePurificationProgramLegal P) :
     sourceWordLegal (sourcePurificationProgramWord P) := by
@@ -426,6 +507,8 @@ theorem sourcePurificationProgramWord_legal {S : Type} [Fintype S] [DecidableEq 
 end
 noncomputable section
 
+/-- For a unitary oracle, the purification layer with both known matrices equal to identity
+evaluates to identity. -/
 theorem sourcePurificationLayer_identity {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (hO : O ∈ Matrix.unitaryGroup S ℂ) : sourcePurificationLayerMatrix O (1,1)=1 := by
   simp only [sourcePurificationLayerMatrix,Matrix.one_mul,Matrix.mul_one]
@@ -433,6 +516,8 @@ theorem sourcePurificationLayer_identity {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Reading a list with default `d` at every index below `L` produces that list followed by
+`L-l.length` copies of `d`, when `l.length ≤ L`. -/
 theorem sourceList_pad_getD {A : Type} (l : List A) (d : A) (L : ℕ) (hL : l.length≤L) :
     List.ofFn (fun i : Fin L => l.getD i.val d)=l++List.replicate (L-l.length) d := by
   induction l generalizing L with
@@ -447,11 +532,15 @@ theorem sourceList_pad_getD {A : Type} (l : List A) (d : A) (L : ℕ) (hL : l.le
       rw [ih L (by simpa using! hL)]
 end
 noncomputable section
+/-- The purification program with exactly `L` layers obtained by indexed lookup, using identity
+pairs beyond the original layer list. -/
 def sourcePurificationPad {S : Type} [DecidableEq S] (P : SourcePurificationProgram S) (L : ℕ) : SourcePurificationProgram S :=
   ⟨P.start,List.ofFn (fun i : Fin L => P.layers.getD i.val (1,1))⟩
 end
 noncomputable section
 
+/-- Padding a purification program to at least its original length preserves its matrix for a
+unitary oracle. -/
 theorem sourcePurificationPad_matrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (hO : O ∈ Matrix.unitaryGroup S ℂ) (P : SourcePurificationProgram S)
     (L : ℕ) (hL : P.layers.length≤L) :
@@ -464,6 +553,7 @@ theorem sourcePurificationPad_matrix {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The initial value of a maximum fold is at most the fold result. -/
 theorem sourceList_le_foldl_max (l : List ℕ) (a : ℕ) : a≤l.foldl max a := by
   induction l generalizing a with
   | nil => rfl
@@ -471,6 +561,8 @@ theorem sourceList_le_foldl_max (l : List ℕ) (a : ℕ) : a≤l.foldl max a := 
 end
 noncomputable section
 
+/-- Every element of a list of natural numbers is at most the result of folding maximum over the
+list. -/
 theorem sourceList_mem_le_foldl_max (l : List ℕ) (a x : ℕ) (hx : x ∈ l) : x≤l.foldl max a := by
   induction l generalizing a with
   | nil => simp at hx
@@ -481,6 +573,8 @@ theorem sourceList_mem_le_foldl_max (l : List ℕ) (a x : ℕ) (hx : x ∈ l) : 
 end
 noncomputable section
 
+/-- The call count of any continuation of an instrument is at most the call count of the
+complete instrument node. -/
 theorem sourceAdaptiveCalls_instrument_ge {H : Type} {m : ℕ}
     (K : Fin m → Matrix H H ℂ) (next : Fin m → SourceAdaptive H) (i : Fin m) :
     sourceAdaptiveCalls (next i)≤sourceAdaptiveCalls (.instrument m K next) :=
@@ -488,6 +582,8 @@ theorem sourceAdaptiveCalls_instrument_ge {H : Type} {m : ℕ}
 end
 noncomputable section
 
+/-- The branch operators of a zero-call adaptive computation are independent of the oracle and
+equal those for the identity oracle. -/
 theorem sourceAdaptiveOperators_zeroCalls {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) (hT : sourceAdaptiveCalls T=0) :
     sourceAdaptiveOperators O T=sourceAdaptiveOperators 1 T := by
@@ -504,6 +600,7 @@ theorem sourceAdaptiveOperators_zeroCalls {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- The recorded pure output of a zero-call adaptive computation is independent of the oracle. -/
 theorem sourceAdaptivePure_zeroCalls {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (T : SourceAdaptive H) (hT : sourceAdaptiveCalls T=0) (ψ : QState H) :
     sourceAdaptivePure O T ψ=sourceAdaptivePure 1 T ψ := by
@@ -518,11 +615,13 @@ theorem sourceAdaptivePure_zeroCalls {H : Type} [Fintype H] [DecidableEq H]
     _ = _ := sourceAdaptivePureMatrix_apply 1 T ψ
 end
 noncomputable section
+/-- The basis frame that adjoins the zero record to an input state. -/
 def sourceRootFrame {H : Type} [DecidableEq H] (L : ℕ) (hL : 0<L) : Matrix (Fin L × H) H ℂ :=
   sourceBasisFrame (fun p => ((⟨0,hL⟩ : Fin L),p))
 end
 noncomputable section
 
+/-- The zero-record root frame is an isometry. -/
 theorem sourceRootFrame_isometry {H : Type} [Fintype H] [DecidableEq H] (L : ℕ) (hL : 0<L) :
     (sourceRootFrame (H := H) L hL)ᴴ*sourceRootFrame (H := H) L hL=1 := by
   apply sourceBasisFrame_isometry
@@ -531,6 +630,7 @@ theorem sourceRootFrame_isometry {H : Type} [Fintype H] [DecidableEq H] (L : ℕ
 end
 noncomputable section
 
+/-- Applying the root frame tensors the input with the zero basis record. -/
 theorem sourceRootFrame_apply {H : Type} [Fintype H] [DecidableEq H]
     (L : ℕ) (hL : 0<L) (ψ : QState H) :
     sourceRootFrame L hL*ᵥψ=TensorState (Ket (⟨0,hL⟩ : Fin L)) ψ := by
@@ -541,6 +641,7 @@ theorem sourceRootFrame_apply {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- The product of two composable isometries is an isometry. -/
 theorem sourceComposeFrames_isometry {S T U : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] [Fintype U] [DecidableEq U]
     (F : Matrix S T ℂ) (A : Matrix T U ℂ) (hF : Fᴴ*F=1) (hA : Aᴴ*A=1) :
@@ -552,6 +653,8 @@ theorem sourceComposeFrames_isometry {S T U : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- A legal zero-call adaptive computation is exactly simulated by a single unitary on the
+workspace enlarged to hold its branch records. -/
 theorem sourceAdaptive_zero_query_compiler {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r : ℕ} (_hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (T : SourceAdaptive (SourceSpace n q H r))
@@ -582,6 +685,7 @@ theorem sourceAdaptive_zero_query_compiler {X H : Type} [Fintype X] [DecidableEq
 end
 noncomputable section
 
+/-- Relabeling a gate commutes with conjugate transpose. -/
 theorem sourceRelabelGate_conjTranspose {S T : Type} [DecidableEq S] [DecidableEq T]
     (e : S ≃ T) (U : Matrix S S ℂ) : (relabelGate e U)ᴴ=relabelGate e Uᴴ := by
   ext p t
@@ -589,6 +693,7 @@ theorem sourceRelabelGate_conjTranspose {S T : Type} [DecidableEq S] [DecidableE
 end
 noncomputable section
 
+/-- Relabeling gates preserves matrix multiplication. -/
 theorem sourceRelabelGate_mul {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (e : S ≃ T) (U V : Matrix S S ℂ) :
     relabelGate e (U*V)=relabelGate e U*relabelGate e V := by
@@ -598,6 +703,7 @@ theorem sourceRelabelGate_mul {S T : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Relabeling the identity gate gives the identity gate. -/
 theorem sourceRelabelGate_one {S T : Type} [DecidableEq S] [DecidableEq T]
     (e : S ≃ T) : relabelGate e (1 : Matrix S S ℂ)=1 := by
   ext p t
@@ -605,6 +711,7 @@ theorem sourceRelabelGate_one {S T : Type} [DecidableEq S] [DecidableEq T]
 end
 noncomputable section
 
+/-- Relabeling a unitary gate gives a unitary gate. -/
 theorem sourceRelabelGate_unitary {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (e : S ≃ T) (U : Matrix S S ℂ)
     (hU : U ∈ Matrix.unitaryGroup S ℂ) : relabelGate e U ∈ Matrix.unitaryGroup T ℂ := by
@@ -614,6 +721,8 @@ theorem sourceRelabelGate_unitary {S T : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Indexed layer lookup in a legal purification program returns two unitary matrices, including
+when the default identity pair is used. -/
 theorem sourcePurification_getD_legal {S : Type} [Fintype S] [DecidableEq S]
     (P : SourcePurificationProgram S) (hP : sourcePurificationProgramLegal P) (j : ℕ) :
     (P.layers.getD j (1,1)).1 ∈ Matrix.unitaryGroup S ℂ ∧
@@ -625,6 +734,7 @@ theorem sourcePurification_getD_legal {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Taking `L` layers with default identity pairs preserves purification-program legality. -/
 theorem sourcePurificationPad_legal {S : Type} [Fintype S] [DecidableEq S]
     (P : SourcePurificationProgram S) (hP : sourcePurificationProgramLegal P) (L : ℕ) :
     sourcePurificationProgramLegal (sourcePurificationPad P L) := by
@@ -635,6 +745,7 @@ theorem sourcePurificationPad_legal {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- A block-diagonal matrix with unitary diagonal blocks is unitary. -/
 theorem sourceBlockDiagonal_unitary {I : Type} [Fintype I] [DecidableEq I]
     {S : I → Type} [∀ i,Fintype (S i)] [∀ i,DecidableEq (S i)]
     (U : ∀ i,Matrix (S i) (S i) ℂ) (hU : ∀ i,U i ∈ Matrix.unitaryGroup (S i) ℂ) :
@@ -647,6 +758,8 @@ theorem sourceBlockDiagonal_unitary {I : Type} [Fintype I] [DecidableEq I]
   rw [he,Matrix.blockDiagonal'_one]
 end
 noncomputable section
+/-- The purification program formed by combining initial matrices and indexed layers
+block-diagonally across a family of programs. -/
 def sourcePurificationBlockProgram {I : Type} [DecidableEq I]
     {S : I → Type} [∀ i,DecidableEq (S i)] (P : ∀ i,SourcePurificationProgram (S i)) (L : ℕ) :
     SourcePurificationProgram (Sigma S) :=
@@ -656,6 +769,7 @@ def sourcePurificationBlockProgram {I : Type} [DecidableEq I]
 end
 noncomputable section
 
+/-- The block-diagonal purification program is legal when each component program is legal. -/
 theorem sourcePurificationBlockProgram_legal {I : Type} [Fintype I] [DecidableEq I]
     {S : I → Type} [∀ i,Fintype (S i)] [∀ i,DecidableEq (S i)]
     (P : ∀ i,SourcePurificationProgram (S i)) (hP : ∀ i,sourcePurificationProgramLegal (P i)) (L : ℕ) :
@@ -668,6 +782,7 @@ theorem sourcePurificationBlockProgram_legal {I : Type} [Fintype I] [DecidableEq
 end
 noncomputable section
 
+/-- A purification layer with block-diagonal oracle and known matrices evaluates blockwise. -/
 theorem sourcePurificationLayer_block {I : Type} [Fintype I] [DecidableEq I]
     {S : I → Type} [∀ i,Fintype (S i)] [∀ i,DecidableEq (S i)]
     (O : ∀ i,Matrix (S i) (S i) ℂ) (p : ∀ i,Matrix (S i) (S i) ℂ × Matrix (S i) (S i) ℂ) :
@@ -679,6 +794,7 @@ theorem sourcePurificationLayer_block {I : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Forming a block-diagonal matrix commutes with taking a finite list product. -/
 theorem sourceBlockDiagonal_list_prod {I : Type} [Fintype I] [DecidableEq I]
     {S : I → Type} [∀ i,Fintype (S i)] [∀ i,DecidableEq (S i)]
     (l : List (∀ i,Matrix (S i) (S i) ℂ)) :
@@ -687,6 +803,8 @@ theorem sourceBlockDiagonal_list_prod {I : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- The block-diagonal purification program evaluates to the block-diagonal matrix of the
+component programs truncated or padded to `L` layers. -/
 theorem sourcePurificationBlockProgram_matrix {I : Type} [Fintype I] [DecidableEq I]
     {S : I → Type} [∀ i,Fintype (S i)] [∀ i,DecidableEq (S i)]
     (O : ∀ i,Matrix (S i) (S i) ℂ) (P : ∀ i,SourcePurificationProgram (S i)) (L : ℕ) :

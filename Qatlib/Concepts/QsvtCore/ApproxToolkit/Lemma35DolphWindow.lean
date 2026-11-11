@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
 
+/-!
+# Extremality and degree bounds for Dolph windows
+
+This module proves the central-width extremality of the Dolph–Chebyshev polynomial and a
+sufficient degree for suppressing the interval of radius 1 − δ. The results package the
+windowing construction associated with Lemma 35, together with the degree-zero and
+unit-tolerance cases. Background and related constructions are discussed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `dolphFlatCenter_le_scale_inv`: bounds the flat-center width of a normalized polynomial.
+* `dolphWindow_degree_budget`: proves the sufficient degree bound.
+* `clause39_accepted`: collects the window construction and extremality guarantees.
+
+## References
+
+* [Gilyén et al., Lemma 35][GilyenSuLowWiebe2019]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,20 +35,28 @@ open Polynomial
 open scoped Classical BigOperators
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 
+/-- States that, for 0 < ε < 1, feasibility of `P` forces every positive flat-center radius to
+be at most the reciprocal Dolph scale. -/
 def DolphFlatCenterOptimal (n : ℕ) (ε : ℝ) (P : Polynomial ℝ) : Prop :=
   0 < ε → ε < 1 → DolphFeasible n P →
     ∀ lam : ℝ, 0 < lam → DolphFlatCenter P ε lam →
       lam ≤ (dolphWindowScale ε n)⁻¹
 
+/-- States that, for every 0 < δ < 1, the selected Dolph-window degree suppresses the interval
+|x| ≤ 1 − δ to tolerance `ε`. -/
 def DolphDegreeBudget (ε : ℝ) : Prop :=
   ∀ δ : ℝ, 0 < δ → δ < 1 →
     DolphFlatCenter (dolphWindowPolynomial ε (dolphWindowDegree ε δ)) ε (1 - δ)
 
+/-- Combines the conditional flat-center optimality statement for the Dolph polynomial with its
+sufficient degree budget. -/
 def DolphWindowComplete (n : ℕ) (ε : ℝ) : Prop :=
   (0 < ε → ε < 1 →
     DolphFlatCenterOptimal n ε (dolphWindowPolynomial ε n)) ∧
   DolphDegreeBudget ε
 
+/-- A real polynomial of degree at most `n` bounded by one on [−1, 1] has value at most Tₙ(x)
+for x ≥ 1. -/
 theorem chebyshev_growth_le_of_norm_le_one {n : ℕ} {P : Polynomial ℝ} {x : ℝ}
     (hx : 1 ≤ x) (hPdeg : P.degree ≤ n)
     (hPbnd : ∀ y : ℝ, |y| ≤ 1 → |P.eval y| ≤ 1) :
@@ -38,6 +66,8 @@ theorem chebyshev_growth_le_of_norm_le_one {n : ℕ} {P : Polynomial ℝ} {x : �
       (fun y hy => hPbnd y (abs_le.mpr hy))
   simpa using h
 
+/-- For positive `n` and 0 < ε < 1, a polynomial of degree at most `n` normalized at one cannot
+have a positive ε-flat radius larger than the reciprocal Dolph scale. -/
 theorem dolphFlatCenter_le_scale_inv {n : ℕ} {ε : ℝ} {P : Polynomial ℝ}
     (hn : 0 < n) (hε : 0 < ε) (hε1 : ε < 1)
     (hdeg : P.degree ≤ n)
@@ -125,6 +155,8 @@ theorem dolphFlatCenter_le_scale_inv {n : ℕ} {ε : ℝ} {P : Polynomial ℝ}
     exact h2.trans_eq h3
   exact hfinal
 
+/-- For positive degree and tolerance strictly between zero and one, the Dolph polynomial
+satisfies `DolphFlatCenterOptimal`. -/
 theorem dolphFlatCenter_optimal {n : ℕ} {ε : ℝ} (hn : 0 < n) (hε : 0 < ε) (hε1 : ε < 1) :
     DolphFlatCenterOptimal n ε (dolphWindowPolynomial ε n) := by
   intro _ _ hfeas
@@ -132,6 +164,8 @@ theorem dolphFlatCenter_optimal {n : ℕ} {ε : ℝ} (hn : 0 < n) (hε : 0 < ε)
   intro lam hlam hflat
   exact dolphFlatCenter_le_scale_inv hn hε hε1 hdeg hone hlam hflat
 
+/-- For positive degree and 0 < ε ≤ 1, the Dolph polynomial satisfies the degree, interval
+bound, and endpoint requirements of `DolphFeasible`. -/
 theorem dolphWindow_feasible {n : ℕ} (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1) :
     DolphFeasible n (dolphWindowPolynomial ε n) := by
   refine ⟨?_, ?_, ?_, ?_⟩
@@ -144,6 +178,7 @@ theorem dolphWindow_feasible {n : ℕ} (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) (h
   · exact dolphWindowPolynomial_eval_one ε n hn hε hε1
   · exact dolphWindowPolynomial_eval_neg_one ε n hn hε hε1
 
+/-- For 0 < ε ≤ 1, arcosh(ε⁻¹) is at most log(2/ε). -/
 theorem arcosh_inv_le_log_two_div (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     Real.arcosh (ε⁻¹) ≤ Real.log (2 / ε) := by
   have hεinv : 1 ≤ ε⁻¹ := by
@@ -165,6 +200,8 @@ theorem arcosh_inv_le_log_two_div (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     exact Real.log_nonneg h1
   exact (Real.cosh_strictMonoOn.le_iff_le (Real.arcosh_nonneg hεinv) hlog0).mp hstep
 
+/-- For 0 < ε ≤ 1, the selected degree makes the Dolph polynomial ε-flat on every target
+interval of radius 1 − δ with 0 < δ < 1. -/
 theorem dolphWindow_degree_budget {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1) :
     DolphDegreeBudget ε := by
   intro δ hδ hδ1
@@ -245,6 +282,8 @@ theorem dolphWindow_degree_budget {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1) :
     exact h1
   simpa [hndef] using hflat
 
+/-- At degree zero, the Dolph scale is one and the Dolph polynomial is the constant polynomial
+`ε`. -/
 theorem dolphWindow_degree_zero (ε : ℝ) :
     dolphWindowScale ε 0 = 1 ∧
       dolphWindowPolynomial ε 0 = Polynomial.C ε ∧
@@ -265,6 +304,8 @@ theorem dolphWindow_degree_zero (ε : ℝ) :
       rw [hT, Polynomial.one_comp, mul_one]
     rw [h, Polynomial.eval_C]
 
+/-- At tolerance one and positive degree, the Dolph scale is one and the window equals the
+ordinary Chebyshev polynomial, bounded by one on [−1, 1]. -/
 theorem dolphWindow_eps_one {n : ℕ} (hn : 0 < n) :
     dolphWindowScale 1 n = 1 ∧
       (∀ x : ℝ, (dolphWindowPolynomial 1 n).eval x =
@@ -286,6 +327,8 @@ theorem dolphWindow_eps_one {n : ℕ} (hn : 0 < n) :
   · intro x hx
     exact dolphWindowPolynomial_norm_le_one 1 n hn (by norm_num) (le_refl 1) x hx
 
+/-- For positive degree and tolerance strictly between zero and one, the Dolph polynomial
+satisfies the combined optimality and degree-budget specification. -/
 theorem dolphWindowComplete {n : ℕ} {ε : ℝ} (hn : 0 < n) (hε : 0 < ε) (hε1 : ε < 1) :
     DolphWindowComplete n ε := by
   refine ⟨?_, ?_⟩
@@ -293,6 +336,9 @@ theorem dolphWindowComplete {n : ℕ} {ε : ℝ} (hn : 0 < n) (hε : 0 < ε) (h�
     exact dolphFlatCenter_optimal hn hε' hε1'
   · exact dolphWindow_degree_budget hε (le_of_lt hε1)
 
+/-- Collects the exact degree, feasibility, sharp flat-center characterization, extremal width
+bound, and sufficient degree formula for the Dolph window, including its degree-zero and
+unit-tolerance cases [Gilyén et al., Lemma 35][GilyenSuLowWiebe2019]. -/
 theorem clause39_accepted :
     (∀ (n : ℕ) (ε : ℝ), 0 < n → 0 < ε → ε < 1 →
       (dolphWindowPolynomial ε n).natDegree = n ∧

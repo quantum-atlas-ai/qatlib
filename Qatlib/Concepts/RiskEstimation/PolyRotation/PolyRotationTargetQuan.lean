@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationTargetStat
+
+/-!
+# Exact arcsine payoff rotation
+
+This module proves `riskPolyRotationTarget`, the exact squared-sine identity for the scaled
+arcsine target. A positive scale at most one and a payoff in `[0, 1]` produce the desired affine
+payoff probability.
+
+The polynomial payoff-rotation setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `riskPolyRotationTarget`: For `0 < c ≤ 1` and `0 ≤ y ≤ 1`, the exact arcsine target gives
+  squared-sine probability `c * (y - 1 / 2) + 1 / 2`; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -12,6 +32,8 @@ open Qatlib.Concepts.RiskEstimation.PolyReadout
 
 namespace Qatlib.Concepts.RiskEstimation.PolyRotation
 
+/-- For `0 < c ≤ 1` and `0 ≤ y ≤ 1`, the exact arcsine target gives squared-sine probability `c
+* (y - 1 / 2) + 1 / 2`; see [WoernerEgger2019]. -/
 theorem riskPolyRotationTarget : PolyRotationTarget := by
   intro c y hc hc1 hy0 hy1
   have hs0 : 0 ≤ c * (y - 1 / 2) + 1 / 2 := by nlinarith

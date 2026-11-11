@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.SecularLowerBound
+
+/-!
+# Uniform first lattice-sum bound
+
+This module bounds `latSum1 n d` independently of the side length in dimensions at least three.
+It also specializes the negative secular-root bound to an explicit coupling above this uniform
+estimate, following the lattice analysis of [ChildsGoldstone2004].
+
+## Main statements
+
+* `latSum1_le`: bounds the first lattice sum by `(3 ^ (d + 1) + 1) / 16`.
+* `ground_energy_bound_d3`: upper bound on the magnitude of a negative secular root at the
+  specified coupling.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +36,8 @@ open Finset
 
 variable {d : ℕ}
 
+/-- For positive side length and dimension at least three, the first lattice sum is at most `(3
+^ (d + 1) + 1) / 16`, independently of the side length [ChildsGoldstone2004]. -/
 theorem latSum1_le {n d : ℕ} [NeZero n] [NeZero d] (hn : 0 < n) (hd : 3 ≤ d) :
     latSum1 n d ≤ (3 ^ (d + 1) + 1) / 16 := by
   have hnR : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn
@@ -191,6 +212,8 @@ theorem latSum1_le {n d : ℕ} [NeZero n] [NeZero d] (hn : 0 < n) (hd : 3 ≤ d)
           (mul_le_mul_of_nonneg_left hmain (by positivity)) (by positivity)
     _ = (3^(d+1)+1)/16 := hid
 
+/-- In dimension at least three, a negative secular root at coupling `γ = (3 ^ (d + 1) + 1) / 16
++ 1` has magnitude at most `γ / (n ^ d * (γ - latSum1 n d))` for positive side length. -/
 theorem ground_energy_bound_d3 {n d : ℕ} [NeZero n] [NeZero d] (hn : 0 < n) (hd : 3 ≤ d)
     {E₀ : ℝ} (hE₀ : E₀ < 0)
     (hF : secular ((3 ^ (d + 1) + 1) / 16 + 1) n d E₀ = 1) :

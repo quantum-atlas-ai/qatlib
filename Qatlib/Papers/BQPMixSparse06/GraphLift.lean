@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem2PathsReduction
+
+/-!
+# Invariant blocks of the signed graph lift
+
+The signed-to-unsigned conversion `blockConvert` decomposes into antisymmetric and symmetric
+two-point sectors. The theorem `blockConvert_decomp` identifies these sectors with the signed
+matrix and its entrywise absolute value, respectively, in the graph-lift construction of
+[JanzingWocjan2006].
+
+## Main statements
+
+* `blockConvert_decomp`: decomposes the lifted matrix using `phiMinus` and `phiPlus`.
+* `lift_automorphism`: the lift is invariant under swapping the two copies of every vertex.
+* `blockConvert_row_card`: the number of nonzero entries in each lifted row is preserved.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,15 +35,21 @@ namespace Qatlib.Papers.BQPMixSparse06.GraphLift
 open Finset Matrix
 open Qatlib.Papers.BQPMixSparse06.MainResults
 
+/-- The integer nonzero indicator: zero at `a = 0` and one otherwise; it equals absolute value
+on `{-1, 0, 1}`. -/
 def absEntry (a : ℤ) : ℤ := if a = 0 then 0 else 1
 
+/-- The integer matrix formed by applying the nonzero indicator `absEntry` to each entry of `A`. -/
 def absMat {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ) : Matrix (Fin N) (Fin N) ℤ :=
   A.map absEntry
 
+/-- The doubled matrix with entry `u s * A i j * v t` at `((s, i), (t, j))`. -/
 def outerLift {N : ℕ} (u v : Fin 2 → ℝ) (A : Matrix (Fin N) (Fin N) ℝ) :
     Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ :=
   fun p q => u p.1 * v q.1 * A p.2 q.2
 
+/-- For entries in `{-1, 0, 1}`, each lifted entry splits into its antisymmetric signed part and
+symmetric absolute-value part [JanzingWocjan2006]. -/
 theorem blockConvert_entry_decomp {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (i j : Fin N) (s t : Fin 2) :
     blockConvert A (s, i) (t, j) =
@@ -39,6 +65,9 @@ theorem blockConvert_entry_decomp {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
       simp [h, blockConvert, gammaBlock, phiMinus, phiPlus, absEntry] <;>
       nlinarith [hsq_sqrt_two]
 
+/-- The lift of a matrix with entries in `{-1, 0, 1}` is the sum of the antisymmetric lift of
+the signed matrix and the symmetric lift of its entrywise absolute value
+[JanzingWocjan2006]. -/
 theorem blockConvert_decomp {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) :
     blockConvert A =
@@ -51,11 +80,15 @@ theorem blockConvert_decomp {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
   rw [blockConvert_entry_decomp A hA i j s t]
   ring
 
+/-- Simultaneously swapping the two copies of every vertex leaves the signed-to-unsigned graph
+lift unchanged [JanzingWocjan2006]. -/
 theorem lift_automorphism {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) :
     pairFlip * blockConvert A * pairFlip = blockConvert A :=
   pairFlip_conj_blockConvert A hA
 
+/-- For a matrix with entries in `{-1, 0, 1}`, each lifted row has exactly as many nonzero
+entries as its original row [JanzingWocjan2006]. -/
 theorem blockConvert_row_card {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (s : Fin 2) (i : Fin N) :
     (univ.filter (fun q : Fin 2 × Fin N => blockConvert A (s, i) q ≠ 0)).card =

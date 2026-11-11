@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
 import Mathlib.Data.Nat.Totient
 import Mathlib.Data.Set.Card
+
+/-!
+# Prime-order units modulo prime powers
+
+This module classifies prime-order units modulo `p ^ r` in the cases used for cyclic semidirect
+products. `candUnit` supplies the units `1 + t * p ^ (r - 1)` for the odd-prime case, while
+separate residue calculations describe the involutions modulo powers of two. See
+[InuiLeGall2007] for the mathematical setting.
+
+## Main statements
+
+* `prop4_case_ii_characterization`: describes all order-`p` units for odd prime `p` and `r > 1`.
+* `prop4_case_iii_gt_two`: lists the three involution residues modulo `2 ^ r` for `r > 2`.
+* `prop4_only_cases`: restricts a prime order `q` to the two possible arithmetic cases.
+
+## References
+
+* [Inui and Le Gall, 2007][InuiLeGall2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +36,7 @@ namespace Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition4
 
 open Qatlib.Papers.SemiDirectHSP04.MainResults.Model
 
+/-- The unit modulo `p ^ r` represented by `1 + t * p ^ (r - 1)`, for prime `p` and `r ≥ 2`. -/
 def candUnit (p r t : ℕ) (hp : p.Prime) (hr : 2 ≤ r) : (ZMod (p ^ r))ˣ :=
   ZMod.unitOfCoprime (1 + t * p ^ (r - 1)) (by
     have hpdvd : p ∣ p ^ (r - 1) := dvd_pow_self p (by omega)
@@ -31,12 +52,16 @@ def candUnit (p r t : ℕ) (hp : p.Prime) (hr : 2 ≤ r) : (ZMod (p ^ r))ˣ :=
     rw [Nat.coprime_pow_right_iff (by omega)]
     exact hcop)
 
+/-- The underlying residue of `candUnit` is the natural number `1 + t * p ^ (r - 1)` cast modulo
+`p ^ r`. -/
 @[simp]
 theorem candUnit_coe (p r t : ℕ) (hp : p.Prime) (hr : 2 ≤ r) :
     ((candUnit p r t hp hr : (ZMod (p ^ r))ˣ) : ZMod (p ^ r))
       = ((1 + t * p ^ (r - 1) : ℕ) : ZMod (p ^ r)) := by
   simp [candUnit]
 
+/-- If prime `q` divides `p - 1` and `r ≥ 1`, exactly `q - 1` units modulo `p ^ r` have order
+`q`. See [Inui and Le Gall, 2007, Proposition 4][InuiLeGall2007]. -/
 theorem prop4_case_i (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (hqr : q ∣ p - 1) :
     Nat.card {α : (ZMod (p ^ r))ˣ // orderOf α = q} = q - 1 := by
@@ -58,6 +83,7 @@ theorem prop4_case_i (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
   rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
   exact hcard
 
+/-- For odd prime `p`, `r ≥ 2`, and `0 < t < p`, the candidate unit has order `p`. -/
 theorem prop4_case_ii_candUnit_order (p r t : ℕ) (hp : p.Prime) (hp2 : p ≠ 2)
     (hr : 2 ≤ r) (ht0 : 0 < t) (htp : t < p) :
     orderOf (candUnit p r t hp hr) = p := by
@@ -84,6 +110,8 @@ theorem prop4_case_ii_candUnit_order (p r t : ℕ) (hp : p.Prime) (hp2 : p ≠ 2
   rw [← orderOf_units, hcoe]
   exact hord
 
+/-- For odd prime `p` and `r > 1`, exactly `p - 1` units modulo `p ^ r` have order `p`. See
+[Inui and Le Gall, 2007, Proposition 4][InuiLeGall2007]. -/
 theorem prop4_case_ii_card (p r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2) (hr : 1 < r) :
     Nat.card {α : (ZMod (p ^ r))ˣ // orderOf α = p} = p - 1 := by
   classical
@@ -98,6 +126,8 @@ theorem prop4_case_ii_card (p r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2) (hr : 1 < 
   rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
   exact hcard
 
+/-- For odd prime `p` and `r > 1`, the order-`p` units are precisely the candidate units with
+parameter `0 < t < p`. See [Inui and Le Gall, 2007, Proposition 4][InuiLeGall2007]. -/
 theorem prop4_case_ii_characterization (p r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2)
     (hr : 1 < r) :
     {α : (ZMod (p ^ r))ˣ | orderOf α = p}
@@ -194,6 +224,7 @@ theorem prop4_case_ii_characterization (p r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2
     rw [heqproof]
     exact prop4_case_ii_candUnit_order p r t hp hp2 h2 ht0 htp
 
+/-- For `r > 2`, the square of `2 ^ (r - 1)` vanishes modulo `2 ^ r`. -/
 theorem zpow_sq_zero (r : ℕ) (hr : 2 < r) :
     (((2 ^ (r - 1) : ℕ)) : ZMod (2 ^ r)) ^ 2 = 0 := by
   rw [← Nat.cast_pow]
@@ -203,10 +234,12 @@ theorem zpow_sq_zero (r : ℕ) (hr : 2 < r) :
   obtain ⟨c, hc⟩ := hdvd
   rw [hc, Nat.cast_mul, ZMod.natCast_self, zero_mul]
 
+/-- For `r ≥ 1`, the natural power `2 ^ r` equals `2 * 2 ^ (r - 1)`. -/
 theorem two_pow_eq_two_mul (r : ℕ) (hr : 1 ≤ r) : (2 : ℕ) ^ r = 2 * 2 ^ (r - 1) := by
   conv_lhs => rw [show r = (r - 1) + 1 by omega]
   rw [pow_succ]; ring
 
+/-- For `r > 2`, twice the residue of `2 ^ (r - 1)` vanishes modulo `2 ^ r`. -/
 theorem two_mul_zpow_eq_zero (r : ℕ) (hr : 2 < r) :
     (2 : ZMod (2 ^ r)) * ((2 ^ (r - 1) : ℕ) : ZMod (2 ^ r)) = 0 := by
   have hmul : ((2 * 2 ^ (r - 1) : ℕ) : ZMod (2 ^ r))
@@ -214,6 +247,7 @@ theorem two_mul_zpow_eq_zero (r : ℕ) (hr : 2 < r) :
     rw [Nat.cast_mul]; norm_num
   rw [← hmul, ← two_pow_eq_two_mul r (by omega), ZMod.natCast_self]
 
+/-- For `r > 2`, the residue of `2 ^ (r - 1) + 1` has square one modulo `2 ^ r`. -/
 theorem sq_zpow_add_one (r : ℕ) (hr : 2 < r) :
     ((2 ^ (r - 1) + 1 : ℕ) : ZMod (2 ^ r)) ^ 2 = 1 := by
   have hz2 := zpow_sq_zero r hr
@@ -228,6 +262,7 @@ theorem sq_zpow_add_one (r : ℕ) (hr : 2 < r) :
     _ = 0 + 0 + 1 := by rw [hz2, h2z]
     _ = 1 := by ring
 
+/-- For `r > 2`, the residue of `2 ^ (r - 1) - 1` has square one modulo `2 ^ r`. -/
 theorem sq_zpow_sub_one (r : ℕ) (hr : 2 < r) :
     ((2 ^ (r - 1) - 1 : ℕ) : ZMod (2 ^ r)) ^ 2 = 1 := by
   have hz2 := zpow_sq_zero r hr
@@ -242,6 +277,7 @@ theorem sq_zpow_sub_one (r : ℕ) (hr : 2 < r) :
     _ = 0 - 0 + 1 := by rw [hz2, h2z]
     _ = 1 := by ring
 
+/-- The residue of the natural number `2 ^ r - 1` has square one modulo `2 ^ r`. -/
 theorem sq_pow_sub_one (r : ℕ) :
     ((2 ^ r - 1 : ℕ) : ZMod (2 ^ r)) ^ 2 = 1 := by
   have hcast : ((2 ^ r - 1 : ℕ) : ZMod (2 ^ r)) = -1 := by
@@ -249,6 +285,7 @@ theorem sq_pow_sub_one (r : ℕ) :
     ring
   rw [hcast]; ring
 
+/-- A natural number strictly between one and `2 ^ r` does not represent one modulo `2 ^ r`. -/
 theorem natCast_ne_one_of_gt {r x : ℕ} (h1 : 1 < x) (h2 : x < 2 ^ r) :
     ((x : ℕ) : ZMod (2 ^ r)) ≠ 1 := by
   intro hc
@@ -259,6 +296,8 @@ theorem natCast_ne_one_of_gt {r x : ℕ} (h1 : 1 < x) (h2 : x < 2 ^ r) :
   have := Nat.eq_zero_of_dvd_of_lt hd hlt
   omega
 
+/-- A unit modulo `2 ^ r` whose underlying residue has square one and differs from one has order
+two. -/
 theorem orderOf_eq_two_of_residue (r : ℕ) (α : (ZMod (2 ^ r))ˣ)
     (hsq : ((α : ZMod (2 ^ r))) ^ 2 = 1) (hne : ((α : ZMod (2 ^ r))) ≠ 1) :
     orderOf α = 2 := by
@@ -271,6 +310,9 @@ theorem orderOf_eq_two_of_residue (r : ℕ) (α : (ZMod (2 ^ r))ˣ)
     apply hne
     rw [hcontra, Units.val_one]
 
+/-- For `r > 2`, a unit modulo `2 ^ r` has order two exactly when its residue is `2 ^ (r - 1) +
+1`, `2 ^ (r - 1) - 1`, or `2 ^ r - 1`. See [Inui and Le Gall, 2007, Proposition
+4][InuiLeGall2007]. -/
 theorem prop4_case_iii_gt_two (r : ℕ) (hr : 2 < r) :
     ∀ α : (ZMod (2 ^ r))ˣ, orderOf α = 2 ↔
       ((α : ZMod (2 ^ r)) = ((2 ^ (r - 1) + 1 : ℕ) : ZMod (2 ^ r))
@@ -416,6 +458,7 @@ theorem prop4_case_iii_gt_two (r : ℕ) (hr : 2 < r) :
       · rw [h3]; exact sq_pow_sub_one r
       · rw [h3]; exact natCast_ne_one_of_gt hx3g hx3l
 
+/-- A unit modulo four has natural representative one or three. -/
 theorem units_zmod_four_val (α : (ZMod 4)ˣ) :
     (α : ZMod 4).val = 1 ∨ (α : ZMod 4).val = 3 := by
   have hunit : IsUnit (α : ZMod 4) := α.isUnit
@@ -432,6 +475,8 @@ theorem units_zmod_four_val (α : (ZMod 4)ˣ) :
   · simp [Nat.Coprime] at hcop
   · right; rfl
 
+/-- A unit modulo four has order two exactly when its residue is three. See [Inui and Le Gall,
+2007, Proposition 4][InuiLeGall2007]. -/
 theorem prop4_case_iii_two :
     ∀ α : (ZMod 4)ˣ, orderOf α = 2 ↔ (α : ZMod 4) = 3 := by
   intro α
@@ -465,6 +510,8 @@ theorem prop4_case_iii_two :
       exact absurd hcoe (by decide)
     exact orderOf_eq_prime hpow hne
 
+/-- If a unit modulo `p ^ r` has prime order `q`, then `q` divides `p - 1` or `r > 1` and `q =
+p`. See [Inui and Le Gall, 2007, Proposition 4][InuiLeGall2007]. -/
 theorem prop4_only_cases (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (α : (ZMod (p ^ r))ˣ) (hα : orderOf α = q) :
     q ∣ p - 1 ∨ (1 < r ∧ q = p) := by

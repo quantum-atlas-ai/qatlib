@@ -5,10 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.RecordExtract.CharacterTransform
+
+/-!
+# Specification of regular summand extraction
+
+`SourceSummandExtraction` states the matrix properties required of the regular difference gate
+for a finite group. It requires unitarity, an intertwining identity, and preservation of
+positivity, trace one, and subgroup invariance under conjugation by the gate. See
+[Kuperberg2005] for the mathematical background.
+
+## Main statements
+
+* `SourceSummandExtraction`: the finite-group extraction specification.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 open scoped ComplexOrder
 set_option autoImplicit false
 namespace Qatlib.Concepts.HspRecovery.RecordExtract
 
+/-- The regular difference gate is unitary and intertwines diagonal left action with
+right-factor left action, transporting invariant positive trace-one matrices accordingly. -/
 def SourceSummandExtraction : Prop := by
   classical
   exact

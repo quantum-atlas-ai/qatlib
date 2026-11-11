@@ -6,6 +6,36 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationStat
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Rectangular filtered budget realization
+
+This module identifies the rectangular value with the filtered γ₂ value of `sourceRectLift` and
+proves that every nonnegative budget bound is realized by a certificate. Witness compression in
+`rectangularWitness_compress` yields finite dimension bounds and attainment of finite values,
+connecting the rectangular and Gram formulations of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceRectValue_eq_lift`: The rectangular filtered value equals the filtered γ₂ value of the
+  rectangular lifts.
+
+* `sourceRectValue_budget_boundary`: For a nonnegative budget `w`, the rectangular filtered
+  value is at most `ENNReal.ofReal w` exactly when a certificate of budget `w` exists.
+
+* `sourceRectCert_fixed_width`: Every rectangular certificate has witnesses of dimension
+  `Fintype.card R + Fintype.card S` satisfying the factorization and the same row and column
+  budget bounds.
+
+* `rectangularBudgetRealization`: The rectangular filtered value agrees with the lifted γ₂ value
+  and has exact nonnegative budget certificates. Every finite value is attained by witnesses of
+  dimension at most `n * (Fintype.card R + Fintype.card S)` [LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +54,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Rectangular witnesses can be compressed to dimension `Fintype.card R + Fintype.card S`,
+preserving each filtered cross pairing and each squared Euclidean norm. -/
 theorem rectangularWitness_compress
     {R S Q : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] [Fintype Q]
     {n : ℕ} (u : Fin n → R → Q → ℂ) (v : Fin n → S → Q → ℂ) :
@@ -58,6 +90,8 @@ theorem rectangularWitness_compress
   · intro s j
     exact hmass j (.inr s)
 
+/-- A Gram certificate for the rectangular lifts of a target and its filters yields a
+rectangular certificate with the same budget. -/
 theorem sourceRectCert_of_lift
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} {A : Matrix R S ℂ} {Z : Fin n → Matrix R S ℂ} {w : ℝ}
@@ -77,6 +111,8 @@ theorem sourceRectCert_of_lift
     simp_rw [hvmass]
     exact hv (.inr s)
 
+/-- A rectangular certificate with nonnegative budget lifts to a Gram filtered certificate at
+the same budget. -/
 theorem liftCert_of_sourceRectCert
     {R S : Type} {n : ℕ} {A : Matrix R S ℂ} {Z : Fin n → Matrix R S ℂ} {w : ℝ}
     (hw : 0 ≤ w) (h : sourceRectCert n A Z w) :
@@ -100,6 +136,8 @@ theorem liftCert_of_sourceRectCert
       simp only [sourceRectLift, u', v', Sum.elim_inl, Sum.elim_inr,
         dotProduct, Pi.star_apply] <;> simp [heq]
 
+/-- For a nonnegative budget, a rectangular certificate is equivalent to a Gram certificate for
+the rectangular lifts. -/
 theorem sourceRectCert_iff_lift
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} {A : Matrix R S ℂ} {Z : Fin n → Matrix R S ℂ} {w : ℝ} (hw : 0 ≤ w) :
@@ -107,6 +145,7 @@ theorem sourceRectCert_iff_lift
       gramFilteredCert (sourceRectLift A) (fun j => sourceRectLift (Z j)) w :=
   ⟨liftCert_of_sourceRectCert hw, sourceRectCert_of_lift⟩
 
+/-- The rectangular filtered value equals the filtered γ₂ value of the rectangular lifts. -/
 theorem sourceRectValue_eq_lift
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -123,6 +162,8 @@ theorem sourceRectValue_eq_lift
     rw [hb, ENNReal.ofReal_max]
     simp
 
+/-- For a nonnegative budget `w`, the rectangular filtered value is at most `ENNReal.ofReal w`
+exactly when a certificate of budget `w` exists. -/
 theorem sourceRectValue_budget_boundary
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (w : ℝ) (hw : 0 ≤ w) :
@@ -131,6 +172,8 @@ theorem sourceRectValue_budget_boundary
   exact (filteredGamma2_budget_boundary (R ⊕ S) n (sourceRectLift A)
     (fun j => sourceRectLift (Z j)) w hw).trans (sourceRectCert_iff_lift hw).symm
 
+/-- Every rectangular certificate has witnesses of dimension `Fintype.card R + Fintype.card S`
+satisfying the factorization and the same row and column budget bounds. -/
 theorem sourceRectCert_fixed_width
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} {A : Matrix R S ℂ} {Z : Fin n → Matrix R S ℂ} {w : ℝ}
@@ -153,6 +196,9 @@ theorem sourceRectCert_fixed_width
     simp_rw [hvmass]
     simpa only [Complex.normSq_eq_norm_sq, norm_toEuclidean_fromVec_sq] using! hv s
 
+/-- The rectangular filtered value agrees with the lifted γ₂ value and has exact nonnegative
+budget certificates. Every finite value is attained by witnesses of dimension at most `n *
+(Fintype.card R + Fintype.card S)` [LeeEtAl2011]. -/
 theorem rectangularBudgetRealization :
     ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),

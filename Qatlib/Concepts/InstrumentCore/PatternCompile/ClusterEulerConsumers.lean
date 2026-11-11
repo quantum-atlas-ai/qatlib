@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+
+/-!
+# Actual cluster Euler rotation examples
+
+The definitions `clusterEulerWord` and `clusterEulerRotation` specialize cluster measurement
+sequences to a four-measurement Euler rotation, following the measurement-based framework of
+[RaussendorfBriegel2000]. The actual branch sum implements conjugation by the rotation even with
+a finite reference system, and each observed branch has explicit gate and measurement counts.
+
+Concrete examples compute the three-angle `π/2` matrix and its action on a basis-state density.
+Further statements verify the empty sequence and the four-unit-phase identity sequence,
+including a mixed-state input.
+
+## Main statements
+
+* `cluster_euler_four_measurement_actual_consumer`: Euler rotation semantics and exact branch
+  resource counts.
+* `cluster_euler_nontrivial_hadamard_density_consumer`: a nontrivial basis-density
+  transformation.
+* `cluster_sequence_empty_and_identity_mixed_reference_consumer`: empty and identity sequence
+  behavior with reference systems.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -22,22 +49,27 @@ namespace Qatlib.Concepts.InstrumentCore.PatternCompile
 open Matrix
 open scoped ComplexOrder
 
+/-- The four-entry cluster phase word `[exp(γ*I), exp(β*I), exp(α*I), 1]`. -/
 noncomputable def clusterEulerWord (α β γ : ℝ) : List ℂ :=
   [Complex.exp ((γ : ℂ)*Complex.I), Complex.exp ((β : ℂ)*Complex.I),
     Complex.exp ((α : ℂ)*Complex.I), 1]
 
+/-- The relabeled one-qubit matrix `Rz α * Hadamard * Rz β * Hadamard * Rz γ`. -/
 noncomputable def clusterEulerRotation (α β γ : ℝ) : Operator 2 :=
   relabelGate boolEquivFin2 (Rz α * Hadamard * Rz β * Hadamard * Rz γ)
 
+/-- A cluster phase with parameter `exp(θ*I)` equals the relabeled gate `Rz θ`. -/
 private theorem euler_phase (θ : ℝ) :
     clusterPhase (Complex.exp ((θ : ℂ)*Complex.I)) = relabelGate boolEquivFin2 (Rz θ) := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [clusterPhase, Rz, relabelGate, boolEquivFin2]
 
+/-- Every entry of the cluster Euler word has complex norm one. -/
 private theorem euler_word_norm (α β γ : ℝ) :
     ∀ z ∈ clusterEulerWord α β γ, ‖z‖ = 1 := by
   simp [clusterEulerWord]
 
+/-- The sequence matrix of the cluster Euler word equals `clusterEulerRotation α β γ`. -/
 private theorem euler_word_unitary (α β γ : ℝ) :
     clusterSequenceUnitary (clusterEulerWord α β γ) = clusterEulerRotation α β γ := by
   simp only [clusterEulerWord, clusterSequenceUnitary, Matrix.one_mul, clusterJ_one]
@@ -47,6 +79,9 @@ private theorem euler_word_unitary (α β γ : ℝ) :
   rw [hadamard_mul_self, Matrix.one_mul]
   rfl
 
+/-- The four-entry cluster Euler word realizes the stated Euler rotation, and summing its actual
+branches implements conjugation by that rotation with any finite reference system. Every
+observed branch uses exactly 23 gates and four measurements [RaussendorfBriegel2000]. -/
 theorem cluster_euler_four_measurement_actual_consumer (α β γ : ℝ) :
     (clusterEulerWord α β γ).length = 4 ∧
     (∀ z ∈ clusterEulerWord α β γ, ‖z‖ = 1) ∧
@@ -72,11 +107,14 @@ theorem cluster_euler_four_measurement_actual_consumer (α β γ : ℝ) :
       (euler_word_norm α β γ)).2.2.2 ω
     exact ⟨h.2.2.1, h.2.2.2.1⟩
 
+/-- The complex exponential `exp((π/2)*I)` equals `I`. -/
 private theorem euler_half_pi_phase :
     Complex.exp (((Real.pi/2 : ℝ) : ℂ)*Complex.I) = Complex.I := by
   rw [Complex.exp_mul_I]
   simp
 
+/-- At three angles equal to `π/2`, the cluster Euler rotation is one half times the matrix with
+rows `(1+I, 1+I)` and `(1+I, -1-I)`. -/
 private theorem euler_half_pi_matrix :
     clusterEulerRotation (Real.pi/2) (Real.pi/2) (Real.pi/2) =
       (1/2 : ℂ) • !![1+Complex.I,1+Complex.I;1+Complex.I,-1-Complex.I] := by
@@ -94,6 +132,9 @@ private theorem euler_half_pi_matrix :
       Matrix.smul_apply, smul_eq_mul, sqrt2_inv_sq] <;>
     ring_nf <;> simp [hs2, hs4, Complex.I_sq] <;> ring
 
+/-- The three-angle `π/2` specialization has the stated phase-scaled Hadamard matrix and sends
+the zero-basis pure density to the all-ones matrix divided by two after summing actual
+branches. This output differs from the input density. -/
 theorem cluster_euler_nontrivial_hadamard_density_consumer :
     clusterEulerRotation (Real.pi/2) (Real.pi/2) (Real.pi/2) =
       (1/2 : ℂ) • !![1+Complex.I,1+Complex.I;1+Complex.I,-1-Complex.I] ∧
@@ -130,6 +171,9 @@ theorem cluster_euler_nontrivial_hadamard_density_consumer :
   have h00 := congrArg (fun M : Operator 2 => M 0 0) h
   norm_num [Matrix.smul_apply, smul_eq_mul, outerProduct, ket_apply] at h00
 
+/-- Every empty-sequence branch fixes its input, while the four-unit-phase sequence sums to the
+identity channel with any finite reference system. The maximally mixed qubit is a non-pure
+density operator and is fixed by this sequence. -/
 theorem cluster_sequence_empty_and_identity_mixed_reference_consumer :
     (∀ (ρ : Operator 2) (ω : Reg 0), clusterSequenceActualBranchMap [] ω ρ = ρ) ∧
     IsDensityOperator ((1/2 : ℂ) • (1 : Operator 2)) ∧

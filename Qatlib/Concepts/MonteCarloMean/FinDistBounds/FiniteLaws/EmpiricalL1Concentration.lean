@@ -6,18 +6,45 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 
+/-!
+# Concentration of empirical L1 error
+
+`histogram` records empirical frequencies and `deviation` sums their absolute differences from a
+target mass function. This module proves that changing one observation changes the deviation by
+at most `2 / n`, and derives one sided and two sided exponential tails for independent, possibly
+nonidentically distributed observations. Monte Carlo estimation provides the application context
+[Montanaro2015].
+
+## Main statements
+
+* `coordinate_difference`: For positive record length, changing only one observation changes the
+  L1 deviation by at most `2 / n`.
+* `tail`: For independent samples of positive length and `u > 0`, L1 deviation has upper tail at
+  most `exp (-u ^ 2 * n / 2)` above its mean and absolute deviation tail at most twice this
+  bound.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.EmpiricalL1Concentration
 open scoped BigOperators
 noncomputable section
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The empirical frequency of `x` in a finite sample record, defined as the sample average of
+its indicator. -/
 def histogram {n : ℕ} (ω : Fin n → X) (x : X) : ℝ :=
   Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (fun y => if y = x then 1 else 0) ω
 
+/-- The L1 distance between the empirical histogram and a real target function. -/
 def deviation {n : ℕ} (target : X → ℝ) (ω : Fin n → X) : ℝ :=
   ∑ x, |histogram ω x - target x|
 
+/-- For positive record length, changing only one observation changes the L1 deviation by at
+most `2 / n`. -/
 theorem coordinate_difference {n : ℕ} (hn : 0 < n) (target : X → ℝ)
     (ω τ : Fin n → X) (i : Fin n) (h : ∀ j, j ≠ i → ω j = τ j) :
     |deviation target ω - deviation target τ| ≤ 2 / (n : ℝ) := by
@@ -55,6 +82,8 @@ theorem coordinate_difference {n : ℕ} (hn : 0 < n) (target : X → ℝ)
       simp_rw [hdiff]; rw [Finset.sum_div]
     _ ≤ 2/(n : ℝ) := div_le_div_of_nonneg_right hsum hnR.le
 
+/-- For independent samples of positive length and `u > 0`, L1 deviation has upper tail at most
+`exp (-u ^ 2 * n / 2)` above its mean and absolute deviation tail at most twice this bound. -/
 theorem tail (n : ℕ) (hn : 0 < n) (p : Fin n → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (target : X → ℝ) (u : ℝ) (hu : 0 < u) :
     let μ :=

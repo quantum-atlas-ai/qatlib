@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapCorrectedStat
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Effective spectral gap with a nonzero witness
+
+Proves `EffectiveSpectralGapCorrected` using a nonzero vector in the kernel of the adjoint
+biadjacency and a lower bound on its target overlap. The module establishes complete-frame
+Parseval, the Hermitian adjacency identity, and the image of the extended witness at the root.
+
+The resulting root spectral-mass bound is the corrected effective-gap formulation associated
+with [Reichardt2011].
+
+## Main statements
+
+* `complete_frame_parseval`: complete frame coefficients preserve squared norm.
+* `effective_gap_witness_image`: the extended kernel witness maps to its target overlap times
+  the root ket.
+* `effectiveSpectralGapCorrected`: root mass below energy `γ` is at most `8 * γ^2 / δ`.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -23,6 +46,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators
 
+/-- A complete frame satisfying `V * Vᴴ = 1` preserves squared norm when taking frame
+coefficients with `Vᴴ`. -/
 theorem complete_frame_parseval {S J : Type} [Fintype S] [DecidableEq S]
     [Fintype J] [DecidableEq J] (V : Matrix S J ℂ) (hV : V*Vᴴ=1) (z : QState S) :
     ∑ i,‖(Vᴴ*ᵥz) i‖^2=∑ r,‖z r‖^2 := by
@@ -30,6 +55,7 @@ theorem complete_frame_parseval {S J : Type} [Fintype S] [DecidableEq S]
   simpa [MeasureProb,BornProb] using
       Qatlib.Concepts.BlockEncoding.Postselection.Encoding.IsIsometry.measureProb_mulVec hi z
 
+/-- The effective-gap adjacency matrix is Hermitian. -/
 theorem effective_gap_adjacency_hermitian {T U : Type} [DecidableEq T] [DecidableEq U]
     (B : Matrix T U ℂ) (t : QState T) : (effectiveGapAdjacency B t).IsHermitian := by
   ext p q
@@ -39,6 +65,8 @@ theorem effective_gap_adjacency_hermitian {T U : Type} [DecidableEq T] [Decidabl
     | inr q=>cases q <;> simp [effectiveGapAdjacency,Matrix.conjTranspose_apply]
   | inr p=>cases p <;> cases q <;> simp [effectiveGapAdjacency,Matrix.conjTranspose_apply]
 
+/-- If `Bᴴ` annihilates `ψ`, the effective-gap adjacency sends its row-side embedding to the
+root basis vector scaled by `Inner t ψ`. -/
 theorem effective_gap_witness_image {T U : Type} [Fintype T] [DecidableEq T]
     [Fintype U] [DecidableEq U] (B : Matrix T U ℂ) (t ψ : QState T) (hψ : Bᴴ*ᵥψ=0) :
     effectiveGapAdjacency B t*ᵥSum.elim ψ 0=Qatlib.Foundations.PureStateMath.Inner t ψ • Ket (Sum.inr (Sum.inl ())) := by
@@ -52,6 +80,9 @@ theorem effective_gap_witness_image {T U : Type} [Fintype T] [DecidableEq T]
       simpa [effectiveGapAdjacency,Matrix.mulVec,dotProduct,Fintype.sum_sum_type,
         Matrix.conjTranspose_apply,Ket] using he
 
+/-- A nonzero kernel witness with the specified overlap lower bound yields root spectral mass at
+energies at most `γ` bounded by `8 * γ^2 / δ`. This is the corrected effective-gap
+formulation associated with [Reichardt2011]. -/
 theorem effectiveSpectralGapCorrected : EffectiveSpectralGapCorrected := by
   intro T U _ _ _ _ B t ψ δ hδ hn hker hover γ hγ k V ρ _hV hVV hEV
   let M:=effectiveGapAdjacency B t

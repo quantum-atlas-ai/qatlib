@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CircuitCalculus
+
+/-!
+# Finite chains of state transfers
+
+This module proves reflexivity of `TransfersState` using the identity circuit and combines
+successive transfers over a finite sequence. The theorem `transfersState_chain` supplies the
+transfer from the first state to the last. The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `TransfersState.refl`: Every state transfers to itself using the identity circuit.
+* `transfersState_chain`: Transfers between consecutive states of a finite sequence compose to a
+  transfer from its initial state to its final state.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,14 +38,18 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- The identity circuit satisfies the polynomial-size predicate `PolySize`. -/
 theorem polySize_circId (n : ℕ) : PolySize (circId n) := by
   refine ⟨0, 0, ?_⟩
   simp [circId]
 
+/-- Every state transfers to itself using the identity circuit. -/
 theorem TransfersState.refl (ψ : State n) : TransfersState ψ ψ := by
   intro ε hε
   exact ⟨circId n, polySize_circId n, by simp [circId, hε.le]⟩
 
+/-- Transfers between consecutive states of a finite sequence compose to a transfer from its
+initial state to its final state. -/
 theorem transfersState_chain : ∀ {T : ℕ} (α : Fin (T + 1) → State n),
     (∀ t : Fin T, TransfersState (α (Fin.castSucc t)) (α (Fin.succ t))) →
     TransfersState (α 0) (α (Fin.last T))

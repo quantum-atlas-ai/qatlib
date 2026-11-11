@@ -9,17 +9,43 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Finset.Card
 import Mathlib.Tactic
 
+/-!
+# State amplitudes and preparation counts
+
+This module defines the signed source amplitudes of a function with values in `{-1, 0, 1}` and
+proves their normalization when the nonzero support has positive known size. It also gives the
+numerical Grover iteration and preparation-call bounds, together with norm preservation of the
+associated sign operation.
+
+For the weighing-matrix query problem, see [VanDam2002].
+
+## Main statements
+
+* `sourceState_norm`: normalization of signed source amplitudes.
+* `groverIterations_suffice`: the chosen iteration angle reaches `π / 2`.
+* `source_lemma1_stateConstruction`: combined numerical and amplitude statements for Lemma 1.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.WeighMatrix00.MainResults
 
+/-- The numerical iteration count `ceil (π / 4 * sqrt (n / k))`. -/
 def groverIterations (n k : ℕ) : ℕ :=
   Nat.ceil (Real.pi / 4 * Real.sqrt ((n : ℝ) / (k : ℝ)))
 
+/-- The preparation-call count, equal to one when `k = n` and to `groverIterations n k + 1`
+otherwise. -/
 def statePreparationCalls (n k : ℕ) : ℕ :=
   if k = n then 1 else groverIterations n k + 1
 
+/-- For a function valued in `{-1, 0, 1}`, multiplying each real amplitude by its nonzero sign,
+and by one at zero values, preserves the sum of squared amplitudes. -/
 theorem phaseKickback_preserves_norm {n : ℕ} (f : Fin n → ℤ) (x : Fin n → ℝ)
     (hentry : ∀ i, f i = -1 ∨ f i = 0 ∨ f i = 1) :
     ∑ i : Fin n, ((if f i = 0 then (1 : ℝ) else (f i : ℝ)) * x i) ^ 2 =
@@ -28,6 +54,8 @@ theorem phaseKickback_preserves_norm {n : ℕ} (f : Fin n → ℤ) (x : Fin n �
   intro i _
   rcases hentry i with h | h | h <;> simp [h]
 
+/-- For a function valued in `{-1, 0, 1}` with exactly `k` nonzero entries, the sum of squared
+real values is `k`. -/
 theorem sum_sq_eq_card_nonzero {n k : ℕ} (f : Fin n → ℤ)
     (hentry : ∀ i, f i = -1 ∨ f i = 0 ∨ f i = 1)
     (hcard : (Finset.univ.filter (fun i => f i ≠ 0)).card = k) :
@@ -43,9 +71,13 @@ theorem sum_sq_eq_card_nonzero {n k : ℕ} (f : Fin n → ℤ)
     exact_mod_cast hnat
   exact hcast
 
+/-- The signed source amplitude `f i / sqrt k`, with the integer function value cast to the
+reals. -/
 def sourceStateAmplitude {n : ℕ} (f : Fin n → ℤ) (k : ℕ) (i : Fin n) : ℝ :=
   (f i : ℝ) / Real.sqrt (k : ℝ)
 
+/-- For a function valued in `{-1, 0, 1}` with exactly `k > 0` nonzero entries, its source
+amplitudes have sum of squares one. See [Lemma 1][VanDam2002]. -/
 theorem sourceState_norm {n k : ℕ} (f : Fin n → ℤ)
     (hentry : ∀ i, f i = -1 ∨ f i = 0 ∨ f i = 1)
     (hcard : (Finset.univ.filter (fun i => f i ≠ 0)).card = k) (hk : 0 < k) :
@@ -58,6 +90,8 @@ theorem sourceState_norm {n k : ℕ} (f : Fin n → ℤ)
   rw [hsq, sum_sq_eq_card_nonzero f hentry hcard, Real.sq_sqrt hk0.le]
   exact div_self hk0.ne'
 
+/-- For `0 < k ≤ n`, the chosen iteration count makes `(2 * groverIterations n k + 1) * arcsin
+(sqrt (k / n))` at least `π / 2`. See [Lemma 1][VanDam2002]. -/
 theorem groverIterations_suffice {n k : ℕ} (hk : 0 < k) (hkn : k ≤ n) :
     Real.pi / 2 ≤ (2 * (groverIterations n k : ℝ) + 1) *
       Real.arcsin (Real.sqrt ((k : ℝ) / (n : ℝ))) := by
@@ -114,6 +148,9 @@ theorem groverIterations_suffice {n k : ℕ} (hk : 0 < k) (hkn : k ≤ n) :
   have h2m0' : 0 ≤ 2 * (groverIterations n k : ℝ) * θ := by positivity
   nlinarith [hkey, hstep2, hθ0]
 
+/-- Combines the preparation-call upper bound, the one-call full-support case, and the
+iteration-angle inequality. It also proves normalization of the signed source amplitudes and
+norm preservation of the sign operation. See [Lemma 1][VanDam2002]. -/
 theorem source_lemma1_stateConstruction {n k : ℕ} (hk : 0 < k) (hkn : k ≤ n) :
     statePreparationCalls n k ≤ Nat.ceil (Real.pi / 4 * Real.sqrt ((n : ℝ) / (k : ℝ))) + 1 ∧
     statePreparationCalls n n ≤ 1 ∧

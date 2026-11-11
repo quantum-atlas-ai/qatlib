@@ -11,6 +11,26 @@ import Mathlib.Tactic.NoncommRing
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.NormNum
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EulerDecomposition
+
+/-!
+# Euler decompositions of unit quaternions and SU(2)
+
+Quaternionic trigonometric expressions `expq`, `expqJ`, and `expUnit` give the explicit Euler
+identity and an Euler decomposition of every unit quaternion. The module also provides a matrix
+`Rz–Ry–Rz` decomposition and defines `EulerTwoAxis`, the stronger assertion for arbitrary
+distinct, nonopposite pure unit axes [KauffmanLomonaco2006].
+
+## Main statements
+
+* `euler_identity`: expands the three-factor quaternion product.
+* `exists_euler_angles`: decomposes a unit quaternion along the standard two axes.
+* `exists_euler_rz_ry_rz`: decomposes a unitary two-by-two matrix of determinant one.
+
+## References
+
+* [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,17 +46,24 @@ open Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo.Euler
 
 namespace Qatlib.Papers.AnyonicSpin06.MainResults.SU2Euler
 
+/-- The standard quaternion unit with imaginary coordinates `(1, 0, 0)`. -/
 def Iq : ℍ[ℝ] := ⟨0, 1, 0, 0⟩
 
+/-- The standard quaternion unit with imaginary coordinates `(0, 1, 0)`. -/
 def Jq : ℍ[ℝ] := ⟨0, 0, 1, 0⟩
 
+/-- The quaternion `cos θ + sin θ * Iq`. -/
 def expq (θ : ℝ) : ℍ[ℝ] := (Real.cos θ : ℍ[ℝ]) + (Real.sin θ : ℍ[ℝ]) * Iq
 
+/-- The quaternion `cos θ + sin θ * Jq`. -/
 def expqJ (θ : ℝ) : ℍ[ℝ] := (Real.cos θ : ℍ[ℝ]) + (Real.sin θ : ℍ[ℝ]) * Jq
 
+/-- The quaternionic trigonometric expression `cos θ + sin θ * u`. -/
 def expUnit (θ : ℝ) (u : ℍ[ℝ]) : ℍ[ℝ] :=
   (Real.cos θ : ℍ[ℝ]) + (Real.sin θ : ℍ[ℝ]) * u
 
+/-- The product `expq a * expqJ b * expq c` equals `cos b * expq (a + c) + sin b * (expq (a - c)
+* Jq)` [KauffmanLomonaco2006]. -/
 theorem euler_identity (a b c : ℝ) :
     expq a * expqJ b * expq c
       = (Real.cos b : ℍ[ℝ]) * expq (a + c)
@@ -45,11 +72,15 @@ theorem euler_identity (a b c : ℝ) :
     re_add, imI_add, imJ_add, imK_add, re_coe, imI_coe, imJ_coe, imK_coe,
     Real.cos_add, Real.sin_add, Real.cos_sub, Real.sin_sub] <;> ring
 
+/-- Every unitary two-by-two complex matrix with determinant one is a product `rzMat β * ryMat γ
+* rzMat δ` for suitable real angles [KauffmanLomonaco2006]. -/
 theorem exists_euler_rz_ry_rz {U : Matrix (Fin 2) (Fin 2) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) (hdet : U.det = 1) :
     ∃ β γ δ : ℝ, U = rzMat β * ryMat γ * rzMat δ :=
   exists_euler_of_det_one hU hdet
 
+/-- The product `rzMat β * ryMat γ * rzMat δ` has the displayed entries involving half-angle
+sines and cosines and phases at half the sums and differences of the outer angles. -/
 theorem rz_ry_rz_matrix_form (β γ δ : ℝ) :
     rzMat β * ryMat γ * rzMat δ =
       !![expI (-((β + δ) / 2)) * (Real.cos (γ / 2) : ℂ),
@@ -58,6 +89,8 @@ theorem rz_ry_rz_matrix_form (β γ δ : ℝ) :
           expI ((β + δ) / 2) * (Real.cos (γ / 2) : ℂ)] :=
   rz_ry_rz_eq β γ δ
 
+/-- If real `u` and `v` satisfy `u ^ 2 + v ^ 2 = 1`, they are respectively the cosine and sine
+of a common real angle. -/
 lemma exists_cos_sin_of_sq_add_one {u v : ℝ} (h : u ^ 2 + v ^ 2 = 1) :
     ∃ θ : ℝ, Real.cos θ = u ∧ Real.sin θ = v := by
   have hu_le : u ≤ 1 := by nlinarith [sq_nonneg v, sq_nonneg (u - 1)]
@@ -73,6 +106,8 @@ lemma exists_cos_sin_of_sq_add_one {u v : ℝ} (h : u ^ 2 + v ^ 2 = 1) :
     · rw [Real.cos_neg, Real.cos_arccos hu_ge hu_le]
     · rw [Real.sin_neg, Real.sin_arccos, hsqrt, abs_of_neg hv]; ring
 
+/-- If `p ≥ 0` and `p ^ 2 = u ^ 2 + v ^ 2`, some real angle satisfies `p * cos θ = u` and `p *
+sin θ = v`. -/
 lemma exists_mul_cos_sin {p u v : ℝ} (hp : 0 ≤ p) (h : p ^ 2 = u ^ 2 + v ^ 2) :
     ∃ θ : ℝ, p * Real.cos θ = u ∧ p * Real.sin θ = v := by
   rcases eq_or_lt_of_le hp with hp0 | hpos
@@ -89,6 +124,8 @@ lemma exists_mul_cos_sin {p u v : ℝ} (hp : 0 ≤ p) (h : p ^ 2 = u ^ 2 + v ^ 2
     · rw [hc]; field_simp
     · rw [hs]; field_simp
 
+/-- Every real quaternion of squared norm one can be written as `expq a * expqJ b * expq c` for
+real angles `a`, `b`, and `c` [KauffmanLomonaco2006]. -/
 theorem exists_euler_angles (q : ℍ[ℝ]) (hq : normSq q = 1) :
     ∃ a b c : ℝ, q = expq a * expqJ b * expq c := by
   obtain ⟨w, x, y, z⟩ := q
@@ -114,6 +151,8 @@ theorem exists_euler_angles (q : ℍ[ℝ]) (hq : normSq q = 1) :
     re_add, imI_add, imJ_add, imK_add, re_coe, imI_coe, imJ_coe, imK_coe] <;>
     simp only [hbcos, hbsin] <;> ring_nf <;> nlinarith [hc1, hs1, hc2, hs2']
 
+/-- The assertion that, for every pair of distinct, nonopposite pure unit quaternions `u`, `v`,
+every unit quaternion has a three-factor decomposition along axes `u`, `v`, `u`. -/
 def EulerTwoAxis : Prop :=
   ∀ (u v : ℍ[ℝ]), u.re = 0 → v.re = 0 → normSq u = 1 → normSq v = 1 →
     u ≠ v → u ≠ -v →

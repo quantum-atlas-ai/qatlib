@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+/-!
+# The uncorrected teleportation depolarization contract
+
+`TeleportGuessingDepolarizing` states that summing uncorrected teleportation branches gives the
+completely depolarizing map. It includes the qubit formula `trace ρ / 2` and the qudit formula
+`trace ρ / n`. The law describes the receiver's information before the classical teleportation
+message arrives [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `TeleportGuessingDepolarizing`: The proposition that summed uncorrected qubit and qudit
+  branches send every operator `ρ` to `(trace ρ / d) • 1` in the corresponding dimension `d`.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +39,8 @@ namespace Qatlib.Concepts.QuditTeleport.DepolarizingLaw
 
 open Matrix
 
+/-- The proposition that summed uncorrected qubit and qudit branches send every operator `ρ` to
+`(trace ρ / d) • 1` in the corresponding dimension `d`. -/
 def TeleportGuessingDepolarizing : Prop :=
   (∀ ρ : Operator 2,
     ∑ o : Bool × Bool, conjBranch (teleportBranchKraus o) ρ

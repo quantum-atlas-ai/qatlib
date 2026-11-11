@@ -48,6 +48,33 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.GroverArbAmp98.MainResults.Dynamics
+
+/-!
+# Two measurement phases for arbitrary initial amplitudes
+
+The oscillatory success profile `successAt` is evaluated at phases separated by π. The module
+proves that one of these values reaches the average success probability and at least half the
+maximal value when the oscillation amplitude is bounded by the average.
+
+`probMarked_eq_phase` connects this profile to the Grover orbit, while
+`source_two_measurement_strategy` and `slowdown_factor_four` express the phase shift and
+reciprocal probability calculation behind the two measurement strategy. See [BihamEtAl1999].
+
+## Main statements
+
+* `two_measurement_guarantee`: If `0 ≤ ΔP ≤ Pav`, the larger of the two success values at
+  opposite phases is at least `(Pav + ΔP) / 2`.
+* `probMarked_eq_phase`: When both the marked and unmarked registers are nonempty, the marked
+  probability along the orbit equals `successAt` with phase `2 * omega * t + arg hC`.
+* `source_two_measurement_dynamics`: For any initial amplitude data and nonzero `ω`, the two
+  profile values separated in time by `π / (2 * ω)` have maximum at least `Dynamics.Pmax x0 /
+  2`.
+
+## References
+
+* [Biham et al., 1999][BihamEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -55,14 +82,18 @@ noncomputable section
 
 namespace Qatlib.Papers.GroverArbAmp98.MainResults.TwoMeasurements
 
+/-- The oscillatory success profile `Pav - ΔP * Real.cos θ` at phase `θ`. -/
 def successAt (Pav ΔP θ : ℝ) : ℝ := Pav - ΔP * Real.cos θ
 
+/-- The success values at phases `θ` and `θ + π` sum to twice `Pav`. -/
 lemma two_phase_sum (Pav ΔP θ : ℝ) :
     successAt Pav ΔP θ + successAt Pav ΔP (θ + Real.pi) = 2 * Pav := by
   unfold successAt
   rw [Real.cos_add_pi]
   ring
 
+/-- For nonnegative `ΔP`, at least one of two success values with phases separated by π is at
+least `Pav`. -/
 lemma one_ge_average (Pav ΔP θ : ℝ) (hΔ0 : 0 ≤ ΔP) :
     Pav ≤ max (successAt Pav ΔP θ) (successAt Pav ΔP (θ + Real.pi)) := by
   unfold successAt
@@ -75,16 +106,21 @@ lemma one_ge_average (Pav ΔP θ : ℝ) (hΔ0 : 0 ≤ ΔP) :
       nlinarith [mul_nonpos_of_nonneg_of_nonpos hΔ0 hc]
     exact le_trans h1 (le_max_left _ _)
 
+/-- If `0 ≤ ΔP ≤ Pav`, the larger of the two success values at opposite phases is at least `(Pav
++ ΔP) / 2`. -/
 theorem two_measurement_guarantee (Pav ΔP θ : ℝ) (hΔ0 : 0 ≤ ΔP) (hΔ : ΔP ≤ Pav) :
     (Pav + ΔP) / 2 ≤ max (successAt Pav ΔP θ) (successAt Pav ΔP (θ + Real.pi)) := by
   have hPav : (Pav + ΔP) / 2 ≤ Pav := by linarith
   exact le_trans hPav (one_ge_average Pav ΔP θ hΔ0)
 
+/-- For nonzero `ω`, increasing time by `π / (2 * ω)` increases the phase `2 * ω * T1` by π. -/
 lemma quarter_period_phase (ω T1 : ℝ) (hω : ω ≠ 0) :
     2 * ω * (T1 + Real.pi / (2 * ω)) = 2 * ω * T1 + Real.pi := by
   field_simp
   try ring
 
+/-- Combines the time shift `π / (2 * ω)` with the average and half peak bounds for the two
+success values, assuming `0 ≤ ΔP ≤ Pav` and `ω ≠ 0`. See [BihamEtAl1999]. -/
 theorem source_two_measurement_strategy (Pav ΔP φ ω T1 : ℝ)
     (hΔ0 : 0 ≤ ΔP) (hΔ : ΔP ≤ Pav) (hω : ω ≠ 0) :
     (2 * ω * (T1 + Real.pi / (2 * ω)) = 2 * ω * T1 + Real.pi) ∧
@@ -102,11 +138,15 @@ theorem source_two_measurement_strategy (Pav ΔP φ ω T1 : ℝ)
   · rw [hphase]
     exact two_measurement_guarantee Pav ΔP (2 * ω * T1 + 2 * φ) hΔ0 hΔ
 
+/-- For positive `Pmax`, twice the reciprocal of `Pmax / 2` equals four times the reciprocal of
+`Pmax`. See [BihamEtAl1999]. -/
 theorem slowdown_factor_four (Pmax : ℝ) (hpos : 0 < Pmax) :
     (2 : ℝ) * (1 / (Pmax / 2)) = 4 * (1 / Pmax) := by
   field_simp
   try ring
 
+/-- When both the marked and unmarked registers are nonempty, the marked probability along the
+orbit equals `successAt` with phase `2 * omega * t + arg hC`. -/
 theorem probMarked_eq_phase (r m : ℕ) (hr : 1 ≤ r) (hm : 1 ≤ m)
     (x0 : Dynamics.Amps r m) (t : ℕ) :
     Dynamics.probMarked (Dynamics.orbit x0 t)
@@ -117,6 +157,8 @@ theorem probMarked_eq_phase (r m : ℕ) (hr : 1 ≤ r) (hm : 1 ≤ m)
   rw [show 2 * (Dynamics.omega r m * (t : ℝ) + (Dynamics.hC x0).arg / 2)
       = 2 * Dynamics.omega r m * (t : ℝ) + (Dynamics.hC x0).arg from by ring]
 
+/-- For any initial amplitude data and nonzero `ω`, the two profile values separated in time by
+`π / (2 * ω)` have maximum at least `Dynamics.Pmax x0 / 2`. See [BihamEtAl1999]. -/
 theorem source_two_measurement_dynamics (r m : ℕ) (x0 : Dynamics.Amps r m)
     (ω T1 : ℝ) (hω : ω ≠ 0) :
     (Dynamics.Pmax x0) / 2 ≤

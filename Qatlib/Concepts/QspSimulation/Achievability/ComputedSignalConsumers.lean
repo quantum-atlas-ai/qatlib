@@ -7,6 +7,39 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
 import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Composable computed signal simulation
+
+This module proves complete correctness and exact resource counts for the computed, segmented
+Hamiltonian simulation word. Repetition adds clean-workspace error linearly, and the chosen
+cutoff and segmentation produce error at most `2` to the negative precision parameter, in the
+QSP simulation setting of [LowChuang2017].
+
+It also bounds the effect of oracle perturbations, composes words for two rational evolution
+times, and proves exact cancellation of a word with its own adjoint under a common unitary
+oracle. These are circuit-level consumers of the block-encoding and QSVT framework
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `computed_signal_full_segmented_program_and_cost` proves well-formedness, explicit counts, and
+  the clean-workspace error bound.
+* `computed_signal_oracle_noise_and_inverse` adds query count times oracle error to the
+  simulation error and preserves counts under adjoint formation.
+* `computedSignalComposeWord` and `computed_signal_two_time_consumer` give additive costs and
+  errors for two evolution times.
+* `computed_signal_same_word_round_trip` proves identity evaluation and doubled counts for a
+  word followed by its adjoint.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017], *Optimal Hamiltonian Simulation by Quantum Signal
+  Processing*.
+* [Gilyen, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019], *Quantum singular value
+  transformation and beyond: exponential improvements for quantum matrix arithmetics*.
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -48,14 +81,20 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Multiplication by a unitary matrix `U` preserves the Euclidean norm of a state represented
+through `toEuclidean_fromVec`. -/
 theorem computed_signal_unitary_vector_norm {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     ‖toEuclidean_fromVec (U*ᵥψ)‖ = ‖toEuclidean_fromVec ψ‖ :=
   isometry_mulVec_norm (by simpa only [IsIsometry,Matrix.star_eq_conjTranspose] using! hU.1) ψ
 
+/-- The conversion `toEuclidean_fromVec` preserves addition of quantum-state vectors. -/
 theorem computed_signal_wrap_add {I : Type} [Fintype I] (ψ φ : QState I) :
     toEuclidean_fromVec (ψ+φ) = toEuclidean_fromVec ψ + toEuclidean_fromVec φ := rfl
 
+/-- If unitary `W` approximates unitary `V` through the frame `R` with relative vector error at
+most nonnegative `ε`, then their `n`th powers satisfy the corresponding workspace bound with
+error at most `n * ε` times the input norm. -/
 theorem computed_signal_repeated_workspace_bound {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (V : Matrix I I ℂ) (W : Matrix H H ℂ) (R : Matrix H I ℂ)
     (ε : ℝ) (hε : 0 ≤ ε) (hV : V ∈ Matrix.unitaryGroup I ℂ) (hW : W ∈ Matrix.unitaryGroup H ℂ)
@@ -100,6 +139,8 @@ theorem computed_signal_repeated_workspace_bound {H I : Type} [Fintype H] [Decid
         push_cast
         ring
 
+/-- For positive `r`, the `r`th power of `hamiltonianEvolution A (t/r)` equals
+`hamiltonianEvolution A t`. -/
 theorem computed_signal_evolution_segment_power {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (t : ℝ) (r : ℕ) (hr : 0 < r) :
     (hamiltonianEvolution A (t/r))^r = hamiltonianEvolution A t := by
@@ -118,6 +159,11 @@ theorem computed_signal_evolution_segment_power {I : Type} [Fintype I] [Decidabl
   have hr0 : (r:ℝ) ≠ 0 := by exact_mod_cast hr.ne'
   rw [mul_div_cancel₀ _ hr0]
 
+/-- For Hermitian `A` with a projected unitary encoding, `computedSignalWord F t k` is well
+formed and approximates evolution at rational time `t` on the clean encoded workspace with
+relative error at most `(1/2)^k`. Writing `n` for `computedSignalCutoff t k` and `r` for
+`computedSignalSegments t`, its exact query and gate counts are `r*(27*(4*n+1))` and
+`r*(27*(4*n+6)+79)`. -/
 theorem computed_signal_full_segmented_program_and_cost : ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ) (t : ℚ) (k : ℕ),
   A.IsHermitian → ProjectedUnitaryEncoding A U F F →
@@ -167,6 +213,8 @@ theorem computed_signal_full_segmented_program_and_cost : ∀ (H I : Type) [Fint
     rw [hword,hrep.1]
     exact herr.trans (mul_le_mul_of_nonneg_right hbudget (norm_nonneg _))
 
+/-- The operator-norm difference between `controlOracle V` and `controlOracle U` is at most the
+operator-norm difference between `V` and `U`. -/
 theorem computed_signal_control_noise_le {H : Type} [Fintype H] [DecidableEq H]
     (U V : Matrix H H ℂ) : ‖controlOracle V-controlOracle U‖ ≤ ‖V-U‖ := by
   let P : Matrix Bool Bool ℂ := Matrix.diagonal (fun b => if b then 1 else 0)
@@ -183,6 +231,8 @@ theorem computed_signal_control_noise_le {H : Type} [Fintype H] [DecidableEq H]
   rw [he,l2_norm_tensorGate]
   exact (mul_le_mul_of_nonneg_right hP (norm_nonneg _)).trans_eq (one_mul _)
 
+/-- Lifting `U` and `V` by the Boolean parallel oracle, control, and an identity tensor factor
+does not increase their operator-norm difference. -/
 theorem computed_signal_lifted_oracle_noise_le {H : Type} [Fintype H] [DecidableEq H]
     (U V : Matrix H H ℂ) :
     ‖TensorGate (1 : Matrix Bool Bool ℂ) (controlOracle (parallelOracle (J:=Bool) V)) -
@@ -192,6 +242,9 @@ theorem computed_signal_lifted_oracle_noise_le {H : Type} [Fintype H] [Decidable
   rw [parallelOracle_eq_kronecker,parallelOracle_eq_kronecker,kronecker_sub_right,
     l2_norm_kronecker,l2_norm_one_eq,one_mul]
 
+/-- Replacing the encoded oracle by unitary `V` at distance at most nonnegative `δ` gives the
+computed signal word relative workspace error at most `(1/2)^k` plus its query count times
+`δ`. Taking `adjointCircuit` preserves both its query count and gate count. -/
 theorem computed_signal_oracle_noise_and_inverse : ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   (A : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ) (t : ℚ) (k : ℕ) (δ : ℝ),
   A.IsHermitian → ProjectedUnitaryEncoding A U F F → V∈Matrix.unitaryGroup H ℂ →
@@ -231,10 +284,15 @@ theorem computed_signal_oracle_noise_and_inverse : ∀ (H I : Type) [Fintype H] 
   rw [hsplit,computed_signal_wrap_add]
   exact (norm_add_le _ _).trans ((add_le_add hdiff' (hcorrect ψ)).trans_eq (by ring))
 
+/-- The word `computedSignalComposeWord F t u k l` concatenates the computed signal words for
+times `t` and `u` with precision parameters `k` and `l`. -/
 noncomputable def computedSignalComposeWord {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) (t u : ℚ) (k l : ℕ) :=
   computedSignalWord F t k ++ computedSignalWord F u l
 
+/-- For Hermitian `A` with a projected unitary encoding, `computedSignalComposeWord` is well
+formed, has the sum of the two constituent query and gate counts, and approximates evolution
+at time `t + u`. Its relative clean-workspace vector error is at most `(1/2)^k + (1/2)^l`. -/
 theorem computed_signal_two_time_consumer {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ)
     (t u : ℚ) (k l : ℕ) (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
@@ -284,6 +342,9 @@ theorem computed_signal_two_time_consumer {H I : Type} [Fintype H] [DecidableEq 
       rw [computed_signal_unitary_vector_norm hW]
       exact (add_le_add (heu ψ) hstep).trans_eq (by ring))
 
+/-- Evaluating `computedSignalWord F t k` concatenated with its own `adjointCircuit` under the
+same lifted unitary oracle `V` gives the identity exactly. This concatenation has twice the
+original query count and twice the original gate count. -/
 theorem computed_signal_same_word_round_trip {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ)
     (t : ℚ) (k : ℕ) (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)

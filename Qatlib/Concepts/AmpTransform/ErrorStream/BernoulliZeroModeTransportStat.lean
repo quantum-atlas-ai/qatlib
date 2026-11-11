@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoiseConsumers
+
+/-!
+# Statement of Bernoulli zero-mode transport
+
+`BernoulliErrorStreamZeroModeTransport` specifies the zero-frequency behavior of the conditional
+amplified-QFT circuit for a planted progression and noise on its complement. At each
+nonsaturated layer, both the individual and averaged Born probabilities equal `cos (2 * k * θ L)
+^ 2`.
+
+The proposition also records progression and complement cardinalities, unitary circuit costs,
+binomial mixing, and the avoidance factor in the full disjoint-noise sum.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `BernoulliErrorStreamZeroModeTransport`: the zero-mode conditional and Bernoulli transport
+  interface.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -18,6 +42,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- The proposition collecting the exact zero-mode Born probability `cos (2 * k * θ L) ^ 2`, its
+fixed-cardinality means and Bernoulli mixtures, progression cardinalities, and circuit costs
+under the stated angle and register assumptions. -/
 def BernoulliErrorStreamZeroModeTransport : Prop :=
   ∀ (N k : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∀ (d : FinDist (Finset (ZMod N))),

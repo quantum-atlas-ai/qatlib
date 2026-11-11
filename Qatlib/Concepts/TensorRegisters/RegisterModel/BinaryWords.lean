@@ -36,15 +36,35 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Binary words as finite indices
+
+The equivalence `blockEquiv` encodes Boolean words as indices below a power of two.
+`blockEquiv_value` computes the encoded index as the sum of bit values weighted by `2 ^ j.val`,
+fixing the significance of each coordinate. For background, see [NielsenChuang2010].
+
+## Main statements
+
+* `blockEquiv_value`: explicit binary expansion of the finite index.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 namespace Qatlib.Concepts.TensorRegisters.RegisterModel.BinaryWords
 set_option autoImplicit false
 noncomputable section
 
+/-- The natural-number value of a Boolean bit, equal to one for true and zero for false. -/
 def bitValue (b : Bool) : ℕ := if b then 1 else 0
 
+/-- The standard Boolean-to-`Fin 2` equivalence has numeric value `bitValue b`. -/
 theorem bitEquiv_value (b : Bool) : (finTwoEquiv.symm b).val = bitValue b := by
   cases b <;> rfl
 
+/-- The equivalence from Boolean words of length `u` to `Fin (2 ^ u)`, with coordinate zero
+least significant. -/
 def blockEquiv : (u : ℕ) → (Fin u → Bool) ≃ Fin (2^u)
   | 0 => { toFun := fun _ => 0
            invFun := fun _ i => Fin.elim0 i
@@ -55,6 +75,7 @@ def blockEquiv : (u : ℕ) → (Fin u → Bool) ≃ Fin (2^u)
         ((Equiv.prodCongr (blockEquiv u) finTwoEquiv.symm).trans
           (finProdFinEquiv.trans (finCongr (by omega : 2^u * 2 = 2^(u+1))))))
 
+/-- The value of the encoded word is `∑ j, bitValue (x j) * 2 ^ j.val`. -/
 theorem blockEquiv_value (u : ℕ) (x : Fin u → Bool) :
     (blockEquiv u x).val = ∑ j : Fin u, bitValue (x j) * 2^j.val := by
   induction u with

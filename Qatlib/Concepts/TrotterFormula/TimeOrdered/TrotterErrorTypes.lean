@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
 import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+/-!
+# Representations of product-formula error
+
+This module defines the left and right defects `pfWordDefectLeft` and `pfWordDefectRight` of a
+matrix exponential word relative to a target generator. Prefix and suffix conjugation sums
+express these defects explicitly.
+
+The word has additive, time-ordered, and multiplicative representations, with
+`pfWordMultiplicativeField` providing the conjugated defect for the last representation. These
+identities formalize finite-dimensional product-formula error representations in the setting of
+[ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `pfWordDefectRight_suffix_sum`: the right defect as a suffix conjugation sum minus the
+  conjugated target generator.
+* `pfWordDefectLeft_prefix_sum`: the left defect as a prefix conjugation sum minus the target
+  generator.
+* `pf_word_additive_representation`: an integral representation of the approximation error.
+* `pf_word_exponentiated_representation`: the word as a time-ordered evolution.
+* `pf_word_multiplicative_representation`: factorization into exact evolution and time-ordered
+  error evolution.
+
+## References
+
+* [Childs et al., 2021, Theorem 8][ChildsEtAl2021Trotter]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 700000
@@ -22,18 +51,26 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The difference between the left generator `pfLeftGenerator xs τ` of an exponential word and
+the target generator `H`. -/
 def pfWordDefectLeft (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (τ : ℝ) :
     Matrix I I ℂ := pfLeftGenerator xs τ - H
 
+/-- The left defect conjugated by the exponential word, namely `S⁻¹ * pfWordDefectLeft xs H τ *
+S` for `S = suzukiExponentialWord xs τ`. -/
 def pfWordDefectRight (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (τ : ℝ) :
     Matrix I I ℂ :=
   Ring.inverse (suzukiExponentialWord xs τ) *
     (pfWordDefectLeft xs H τ * suzukiExponentialWord xs τ)
 
+/-- The left word defect conjugated by the exact evolution as `exp (-τ • H) * pfWordDefectLeft
+xs H τ * exp (τ • H)`. -/
 def pfWordMultiplicativeField (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ)
     (τ : ℝ) : Matrix I I ℂ :=
   NormedSpace.exp ((-τ) • H) * pfWordDefectLeft xs H τ * NormedSpace.exp (τ • H)
 
+/-- Conjugating the left generator by its exponential word gives the sum of the generators
+conjugated by the suffix words that follow them. -/
 theorem pf_word_right_generator_suffix_sum (xs : List (Matrix I I ℂ)) (t : ℝ) :
     Ring.inverse (suzukiExponentialWord xs t) *
         (pfLeftGenerator xs t * suzukiExponentialWord xs t) =
@@ -78,6 +115,8 @@ theorem pf_word_right_generator_suffix_sum (xs : List (Matrix I I ℂ)) (t : ℝ
     simp only [Fin.val_zero, Fin.val_succ, zero_add, List.getD_cons_zero,
       List.getD_cons_succ, List.drop_succ_cons, List.drop_zero]
 
+/-- The right word defect equals the sum of suffix-conjugated generators minus the target
+generator conjugated by the full word. -/
 theorem pfWordDefectRight_suffix_sum (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) :
     pfWordDefectRight xs H t =
@@ -88,12 +127,16 @@ theorem pfWordDefectRight_suffix_sum (xs : List (Matrix I I ℂ))
   rw [pfWordDefectRight, pfWordDefectLeft, sub_mul, mul_sub,
     pf_word_right_generator_suffix_sum, mul_assoc]
 
+/-- The left word defect equals the sum of prefix-conjugated generators minus the target
+generator `H`. -/
 theorem pfWordDefectLeft_prefix_sum (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) :
     pfWordDefectLeft xs H t =
       (∑ j : Fin xs.length, pfConjWord (xs.take j.val) (xs.getD j.val 0) t) - H := by
   rw [pfWordDefectLeft, pfLeftGenerator_prefix_sum]
 
+/-- The difference between an exponential word and `exp (t • H)` equals the integral of exact
+evolution times the word and its right defect. -/
 theorem pf_word_additive_representation (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) :
     suzukiExponentialWord xs t - NormedSpace.exp (t • H) =
@@ -105,6 +148,8 @@ theorem pf_word_additive_representation (xs : List (Matrix I I ℂ))
     rw [← mul_assoc, Ring.mul_inverse_cancel _ (pf_word_isUnit xs τ), one_mul]
   simpa only [hr] using! pf_word_duhamel xs H t
 
+/-- An exponential word equals the time-ordered evolution with coefficient field `-(H +
+pfWordDefectLeft xs H τ)` from zero to `t`. -/
 theorem pf_word_exponentiated_representation (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) :
     suzukiExponentialWord xs t =
@@ -124,6 +169,8 @@ theorem pf_word_exponentiated_representation (xs : List (Matrix I I ℂ))
     (orderedEvolution_hasDerivAt A hA 0)
   exact congrFun he t
 
+/-- An exponential word factors as `exp (t • H)` times the time-ordered evolution generated by
+the negative multiplicative defect field. -/
 theorem pf_word_multiplicative_representation (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) :
     suzukiExponentialWord xs t = NormedSpace.exp (t • H) *

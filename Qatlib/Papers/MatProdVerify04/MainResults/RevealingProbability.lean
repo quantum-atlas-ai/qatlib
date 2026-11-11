@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Revealing probabilities over finite fields
+
+The module counts roots of affine and bilinear expressions over a finite field.
+`affinePairZeros_card_le` bounds the number of zero pairs, and `revealing_pair_mass_ge` gives a
+uniform one-quarter lower bound for a nonzero bilinear value. The paper context is
+[BuhrmanSpalek2006].
+
+## Main statements
+
+* `affinePairZeros_card_le`: at most `2 * Fintype.card K - 1` zero pairs.
+* `revealing_pair_mass_ge`: nonzero probability at least one quarter.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -19,6 +38,7 @@ set_option warningAsError false
 
 variable {K : Type*} [Field K] [Fintype K] [DecidableEq K]
 
+/-- The uniform distribution on the elements of the finite field `K`. -/
 def uniformField : FinDist K where
   prob _ := ((Fintype.card K : ℝ))⁻¹
   nonneg _ := by positivity
@@ -31,11 +51,14 @@ def uniformField : FinDist K where
 
 omit [Fintype K] [DecidableEq K] in
 
+/-- An affine expression with nonzero linear coefficient has at most one root. -/
 theorem affine_root_unique {a b : K} (ha : a ≠ 0) {x y : K}
     (hx : a * x + b = 0) (hy : a * y + b = 0) : x = y :=
   mul_left_cancel₀ ha
     ((eq_neg_of_add_eq_zero_left hx).trans (eq_neg_of_add_eq_zero_left hy).symm)
 
+/-- The set of roots of an affine expression with nonzero linear coefficient has cardinality at
+most one. See [BuhrmanSpalek2006]. -/
 theorem affine_root_card_le_one {a b : K} (ha : a ≠ 0) :
     (Finset.univ.filter (fun x => a * x + b = 0)).card ≤ 1 := by
   classical
@@ -43,6 +66,8 @@ theorem affine_root_card_le_one {a b : K} (ha : a ≠ 0) :
   intro x hx y hy
   exact affine_root_unique ha (Finset.mem_filter.mp hx).2 (Finset.mem_filter.mp hy).2
 
+/-- A nonconstant affine expression vanishes on a uniform field element with probability at most
+the reciprocal of the field cardinality. See [BuhrmanSpalek2006]. -/
 theorem uniform_affine_root_mass_le {a b : K} (ha : a ≠ 0) :
     eventMass (uniformField (K := K)) (fun x => a * x + b = 0)
       ≤ ((Fintype.card K : ℝ))⁻¹ := by
@@ -59,10 +84,13 @@ theorem uniform_affine_root_mass_le {a b : K} (ha : a ≠ 0) :
     mul_le_mul_of_nonneg_right hcard_le (by positivity)
   linarith
 
+/-- The pairs at which `z.1 * (a * z.2 + c1) + c2 * z.2 + c3` vanishes. -/
 def affinePairZeros (a c1 c2 c3 : K) : Finset (K × K) :=
   (Finset.univ : Finset (K × K)).filter
     (fun z : K × K => z.1 * (a * z.2 + c1) + c2 * z.2 + c3 = 0)
 
+/-- When `a ≠ 0`, the bilinear expression defining `affinePairZeros` has at most `2 *
+Fintype.card K - 1` zero pairs. See [BuhrmanSpalek2006]. -/
 theorem affinePairZeros_card_le (a c1 c2 c3 : K) (ha : a ≠ 0) :
     (affinePairZeros a c1 c2 c3).card ≤ 2 * Fintype.card K - 1 := by
   classical
@@ -135,6 +163,7 @@ theorem affinePairZeros_card_le (a c1 c2 c3 : K) (ha : a ≠ 0) :
               * (Fintype.card K - 1) := hsum
     _ ≤ 2 * Fintype.card K - 1 := hle
 
+/-- The uniform distribution on ordered pairs of elements of `K`. -/
 def uniformPairField : FinDist (K × K) where
   prob _ := ((Fintype.card (K × K) : ℝ))⁻¹
   nonneg _ := by positivity
@@ -145,6 +174,8 @@ def uniformPairField : FinDist (K × K) where
       exact_mod_cast hc
     exact mul_inv_cancel₀ hpos.ne'
 
+/-- When the mixed coefficient is nonzero, the zero probability of the bilinear expression is at
+most `(2 * Fintype.card K - 1) / (Fintype.card K) ^ 2`. See [BuhrmanSpalek2006]. -/
 theorem affinePair_bad_mass_le (a c1 c2 c3 : K) (ha : a ≠ 0) :
     eventMass (uniformPairField (K := K))
         (fun z : K × K => z.1 * (a * z.2 + c1) + c2 * z.2 + c3 = 0)
@@ -186,6 +217,7 @@ theorem affinePair_bad_mass_le (a c1 c2 c3 : K) (ha : a ≠ 0) :
         congr 1
         ring
 
+/-- The masses of an event and its complement sum to one. -/
 theorem eventMass_compl {X : Type*} [Fintype X] (p : FinDist X)
     (E : X → Prop) [DecidablePred E] :
     eventMass p E + eventMass p (fun x => ¬ E x) = 1 := by
@@ -195,6 +227,8 @@ theorem eventMass_compl {X : Type*} [Fintype X] (p : FinDist X)
     (f := fun x => p.prob x)]
   exact p.sum_one
 
+/-- A bilinear expression with nonzero mixed coefficient is nonzero on a uniform field pair with
+probability at least one quarter. See [BuhrmanSpalek2006]. -/
 theorem revealing_pair_mass_ge (a c1 c2 c3 : K) (ha : a ≠ 0) :
     (1 / 4 : ℝ) ≤ 1 - eventMass (uniformPairField (K := K))
         (fun z : K × K => z.1 * (a * z.2 + c1) + c2 * z.2 + c3 = 0) := by

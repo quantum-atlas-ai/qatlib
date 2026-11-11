@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.Parameters
+
+/-!
+# Accuracy of actual PCA records
+
+Defines correctness of retained PCA outputs through squared singular value estimates and vector
+approximation up to a complex phase. The theorems turn simultaneous Gram control, a singular
+value cutoff, and spectral gaps into record accuracy and a failure bound for [Tang2021].
+
+## Main statements
+
+* `pca_actual_record_accuracy`: Under the cutoff, gap, and good Gram hypotheses, every retained
+  small-sketch value has error at most `s * sketchSquared A`, and its lifted vector is within
+  `v` of the target up to phase [Tang2021].
+* `pca_actual_pca_failure`: With the specified parameters, the probability that the actual
+  sketch record fails `pcaRecordCorrect` is at most `delta` [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,7 @@ open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.RandCompile.ChannelBudget
 
+/-- Event probability is monotone under implication for decidable predicates on sample records. -/
 theorem pca_event_mono_decidable {X : Type} [Fintype X] (p : FinDist X) {L : ℕ}
     (P Q : (Fin L→X)→Prop) [DecidablePred P] [DecidablePred Q]
     (h : ∀ z,P z→Q z) : p.probEvent P≤p.probEvent Q := by
@@ -28,9 +50,12 @@ theorem pca_event_mono_decidable {X : Type} [Fintype X] (p : FinDist X) {L : ℕ
   · intro z _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- Embeds a retained index in a larger finite index type using `hkN`. -/
 def pcaRetainedIndex {k N : ℕ} (hkN : k ≤ N) (i : Fin k) : Fin N :=
     ⟨i.val, lt_of_lt_of_le i.isLt hkN⟩
 
+/-- The number of singular values above the positive cutoff is bounded by the chosen Gram sample
+count. -/
 theorem pca_retained_le_samples {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (k : ℕ) (hkd : k ≤ d) (sigma : ℝ) (hsigma : 0 < sigma)
     (hcut : ∀ i ∈ Finset.range k, sigma ≤ matrixSingularValues A i) (e delta : ℝ) :
@@ -39,6 +64,9 @@ theorem pca_retained_le_samples {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   have hkR : (k:ℝ) ≤ sketchSquared A/sigma^2 := (le_div_iff₀ (sq_pos_of_pos hsigma)).mpr hc
   exact_mod_cast hkR.trans (pcaGramSamples_rank (sketchSquared A/sigma^2) e delta).2
 
+/-- Under the cutoff, gap, and good Gram hypotheses, every retained small-sketch value has error
+at most `s * sketchSquared A`, and its lifted vector is within `v` of the target up to phase
+[Tang2021]. -/
 theorem pca_actual_record_accuracy {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (k : ℕ) (hk : 1 ≤ k)
     (hkn : k ≤ n) (hkd : k ≤ d) (sigma eta s v delta : ℝ)
@@ -104,6 +132,8 @@ theorem pca_actual_record_accuracy {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     hA hsigma hK1 he.le heta hEta1 hv.le hv1 hF
     (source_theorem9_eps_le_vector_branch s v eta K) hmu hRnorm)
 
+/-- Correctness of a sketch record: all retained squared singular value estimates meet the
+energy-scaled tolerance, and all lifted vectors meet the phase-adjusted vector tolerance. -/
 def pcaRecordCorrect {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k q : ℕ) (hkd : k≤d) (hkq : k≤q)
     (s v : ℝ) (z : (Fin q→Fin n) × (Fin q→Fin d)) : Prop :=
@@ -114,6 +144,8 @@ def pcaRecordCorrect {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
       ‖pcaOutput (pcaRowSketch A hA q z.1) (pcaSmallMatrix A hA hd q z.1 z.2)
         (pcaRetainedIndex hkq i)-zeta • pcaTarget A (pcaRetainedIndex hkd i)‖≤v
 
+/-- With the specified parameters, the probability that the actual sketch record fails
+`pcaRecordCorrect` is at most `delta` [Tang2021]. -/
 theorem pca_actual_pca_failure {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (k : ℕ) (hk : 1 ≤ k)
     (hkn : k ≤ n) (hkd : k ≤ d) (sigma eta s v delta : ℝ)

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationStat
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Mathlib.Combinatorics.Hall.Finite
+
+/-!
+# Spectral matching for normal matrices
+
+The module proves unitary invariance of the squared Frobenius norm and constructs orthonormal
+eigenbases for finite normal complex matrices. A balanced-matrix permutation argument gives a
+matching of their eigenvalues with squared error bounded by the squared Frobenius distance.
+
+`normalSpectralPerturbation_answer` packages these estimates for the unitary perturbation
+analysis of Johnson walks. See [Bhatia1997] for the mathematical background.
+
+## Main statements
+
+* `normal_spectral_matching`: eigenvalue matching for normal matrices.
+* `normalSpectralPerturbation_answer`: the spectral perturbation contract.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +44,7 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open Matrix
 open scoped BigOperators InnerProductSpace
 
+/-- Left multiplication by a unitary matrix preserves the squared Frobenius norm. -/
 theorem frobeniusSq_unitary_left (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     (A : Matrix (Fin m) (Fin n) ℂ) (hU : U ∈ Matrix.unitaryGroup (Fin m) ℂ) :
     frobeniusSq (U*A) = frobeniusSq A := by
@@ -35,6 +57,7 @@ theorem frobeniusSq_unitary_left (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
   simpa only [norm_toEuclidean_fromVec_sq, ApplyGate, Matrix.mulVec, dotProduct,
     Matrix.mul_apply] using! h
 
+/-- A normal complex matrix has an orthonormal basis of eigenvectors in Euclidean space. -/
 theorem normal_euclidean_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     (hu : Uᴴ*U = U*Uᴴ) :
     ∃ (b : OrthonormalBasis (Fin m) ℂ (EuclideanSpace ℂ (Fin m))) (μ : Fin m → ℂ),
@@ -104,6 +127,8 @@ theorem normal_euclidean_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     rw [hHj, hKj, smul_smul, ← add_smul]
   exact ⟨b, μ, heig⟩
 
+/-- A normal complex matrix has a unitary eigenvector matrix `E` satisfying `A * E = E *
+diagonal μ`. -/
 theorem normal_matrix_eigenbasis (n : ℕ) (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : Aᴴ*A = A*Aᴴ) :
     ∃ (E : Matrix (Fin n) (Fin n) ℂ) (μ : Fin n → ℂ),
@@ -120,6 +145,8 @@ theorem normal_matrix_eigenbasis (n : ℕ) (A : Matrix (Fin n) (Fin n) ℂ)
   rw [Matrix.mul_diagonal]
   simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct, mul_comm] using! congrFun h i
 
+/-- A nonnegative square matrix with all row and column sums equal to a positive number has a
+permutation supported on strictly positive entries. -/
 theorem balanced_positive_permutation (n : ℕ) (W : Matrix (Fin n) (Fin n) ℝ)
     (s : ℝ) (hs : 0 < s) (hW : ∀ i j, 0 ≤ W i j)
     (hrow : ∀ i, ∑ j, W i j = s) (hcol : ∀ j, ∑ i, W i j = s) :
@@ -154,6 +181,8 @@ theorem balanced_positive_permutation (n : ℕ) (W : Matrix (Fin n) (Fin n) ℝ)
   let σ : Equiv.Perm (Fin n) := Equiv.ofBijective f ((Finite.injective_iff_bijective).mp hf)
   exact ⟨σ, fun i => (Finset.mem_filter.mp (hmem i)).2⟩
 
+/-- For a nonnegative matrix with common positive row and column sum `s`, there is a permutation
+whose cost multiplied by `s` is at most the matrix-weighted total cost. -/
 theorem balanced_permutation_cost (n : ℕ) (W cost : Matrix (Fin n) (Fin n) ℝ)
     (s : ℝ) (hs : 0 < s) (hW : ∀ i j, 0 ≤ W i j)
     (hrow : ∀ i, ∑ j, W i j = s) (hcol : ∀ j, ∑ i, W i j = s) :
@@ -240,18 +269,21 @@ theorem balanced_permutation_cost (n : ℕ) (W cost : Matrix (Fin n) (Fin n) ℝ
       exact (mul_nonneg_iff_of_pos_left hremaining).mp h3 |> sub_nonneg.mp
   exact main (support W).card W rfl s hs hW hrow hcol
 
+/-- The conjugate transpose of a unitary matrix is unitary. -/
 private theorem spectral_adjoint_unitary {n : ℕ} {U : Matrix (Fin n) (Fin n) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin n) ℂ) : Uᴴ ∈ Matrix.unitaryGroup (Fin n) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
     Matrix.conjTranspose_conjTranspose]
   simpa only [Matrix.star_eq_conjTranspose] using! hU.2
 
+/-- Taking the conjugate transpose preserves the squared Frobenius norm. -/
 theorem frobeniusSq_adjoint {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℂ) :
     frobeniusSq Aᴴ = frobeniusSq A := by
   unfold frobeniusSq
   rw [Finset.sum_comm]
   simp [Matrix.conjTranspose_apply]
 
+/-- Right multiplication by a unitary matrix preserves the squared Frobenius norm. -/
 theorem frobeniusSq_unitary_right (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ)
     (U : Matrix (Fin n) (Fin n) ℂ) (hU : U ∈ Matrix.unitaryGroup (Fin n) ℂ) :
     frobeniusSq (A*U) = frobeniusSq A := by
@@ -261,6 +293,7 @@ theorem frobeniusSq_unitary_right (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ)
     _ = frobeniusSq Aᴴ := frobeniusSq_unitary_left n m Uᴴ Aᴴ (spectral_adjoint_unitary hU)
     _ = frobeniusSq A := frobeniusSq_adjoint A
 
+/-- For a unitary matrix, each row sum and each column sum of squared entry norms equals 1. -/
 theorem unitary_squared_entries_balanced (n : ℕ) (P : Matrix (Fin n) (Fin n) ℂ)
     (hP : P ∈ Matrix.unitaryGroup (Fin n) ℂ) :
     (∀ i, ∑ j, ‖P i j‖^2 = 1) ∧ (∀ j, ∑ i, ‖P i j‖^2 = 1) := by
@@ -286,6 +319,9 @@ theorem unitary_squared_entries_balanced (n : ℕ) (P : Matrix (Fin n) (Fin n) �
     simpa [Matrix.mul_apply, Matrix.conjTranspose_apply,
       hprod, Complex.ofReal_sum] using! h
 
+/-- Two normal complex matrices possess unitary eigenbases and a permutation matching their
+eigenvalues with total squared error bounded by the squared Frobenius norm of their
+difference. -/
 theorem normal_spectral_matching (n : ℕ) (C D : Matrix (Fin n) (Fin n) ℂ)
     (hC : Cᴴ*C = C*Cᴴ) (hD : Dᴴ*D = D*Dᴴ) :
     ∃ (E F : Matrix (Fin n) (Fin n) ℂ) (c d : Fin n → ℂ) (σ : Equiv.Perm (Fin n)),
@@ -330,6 +366,8 @@ theorem normal_spectral_matching (n : ℕ) (C D : Matrix (Fin n) (Fin n) ℂ)
   refine ⟨E, F, c, d, σ, hE, hF, hCE, hDF, ?_⟩
   simpa [hcost] using! hσ
 
+/-- Given a unitary eigenbasis for `A`, the squared Frobenius norm of `A - 1` equals the sum of
+squared distances of its eigenvalues from 1. -/
 theorem frobeniusSq_eigenvalue_distance (n : ℕ) (A E : Matrix (Fin n) (Fin n) ℂ)
     (μ : Fin n → ℂ) (hE : E ∈ Matrix.unitaryGroup (Fin n) ℂ)
     (hAE : A*E = E*Matrix.diagonal μ) :
@@ -347,12 +385,15 @@ theorem frobeniusSq_eigenvalue_distance (n : ℕ) (A E : Matrix (Fin n) (Fin n) 
     _ = frobeniusSq (Matrix.diagonal (fun i => μ i-1)) := by rw [htransport]
     _ = _ := by simp [frobeniusSq, Matrix.diagonal, apply_ite]
 
+/-- A unitary matrix commutes with its conjugate transpose. -/
 private theorem spectral_unitary_normal {n : ℕ} {U : Matrix (Fin n) (Fin n) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin n) ℂ) : Uᴴ*U = U*Uᴴ := by
   have hL : Uᴴ*U = 1 := by simpa only [Matrix.star_eq_conjTranspose] using! hU.1
   have hR : U*Uᴴ = 1 := by simpa only [Matrix.star_eq_conjTranspose] using! hU.2
   rw [hL, hR]
 
+/-- Establishes the normal-matrix spectral matching and unitary Frobenius perturbation estimates
+packaged by `NormalSpectralPerturbation`. See [Bhatia1997]. -/
 theorem normalSpectralPerturbation_answer : NormalSpectralPerturbation := by
   refine ⟨frobeniusSq_unitary_left, normal_spectral_matching, ?_⟩
   intro n A B hA hB

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.NoiseMoments.MixedHighOrderTailStat
 import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
+
+/-!
+# Fourth-moment and tail bounds for noisy intensity
+
+`finite_centered_tail` derives a fourth-moment bound and a second-moment tail estimate for a
+bounded finite family. `mixedHighOrderTail_answer` applies this estimate to the centered Fourier
+noise intensity using a variance that includes order-two resonance, in the setting of
+[Cornwell2014].
+
+## Main statements
+
+* `finite_centered_tail`: For a nonnegative weight a and |Xᵢ| ≤ B, a prescribed second moment v
+  bounds the weighted fourth moment by B²v and the weighted tail above t > 0 by v/t².
+* `mixedHighOrderTail_answer`: Proves fourth-moment and tail bounds for centered affine Fourier
+  noise intensity using its resonance-corrected variance.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -16,6 +37,8 @@ set_option maxHeartbeats 1000000
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments
 
+/-- For a nonnegative weight a and |Xᵢ| ≤ B, a prescribed second moment v bounds the weighted
+fourth moment by B²v and the weighted tail above t > 0 by v/t². -/
 theorem finite_centered_tail {I : Type*} [Fintype I] (X : I → ℝ) (a B v : ℝ)
     (ha : 0 ≤ a) (hB : 0 ≤ B) (hx : ∀ i, |X i| ≤ B)
     (hv : a * ∑ i, (X i)^2 = v) :
@@ -39,6 +62,8 @@ theorem finite_centered_tail {I : Type*} [Fintype I] (X : I → ℝ) (a B v : �
     · nlinarith [sq_abs (X i), abs_nonneg (X i)]
     · simpa using sq_nonneg (X i)
 
+/-- Proves fourth-moment and tail bounds for centered affine Fourier noise intensity using its
+resonance-corrected variance. -/
 theorem mixedHighOrderTail_answer : MixedHighOrderTail := by
   intro N L _ y c b hy
   (try dsimp only)

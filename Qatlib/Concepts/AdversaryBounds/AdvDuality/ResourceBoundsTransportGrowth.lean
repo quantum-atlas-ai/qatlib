@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+
+/-!
+# Asymptotic transport and search resource growth
+
+This module proves elementary rules for the resource-bound predicates `BigO`, `BigOmega`, and
+`BigTheta`, and transfers explicit polylogarithmic gate budgets to asymptotic precision bounds.
+Polylogarithmic synthesis costs are discussed by [Dawson and Nielsen, 2006][DawsonNielsen2006].
+
+For the singleton-search construction of [Grover1996], it identifies the query and macro-gate
+ledgers and proves matching upper and lower growth estimates along the input-size filter.
+
+## Main statements
+
+* `gate_budget_bigTheta`: Matching explicit precision bounds yield a polylogarithmic growth
+  equivalence.
+* `search_iterations_lower`: Search iterations are at least one quarter of the square root of
+  the search-space size for `n ≥ 4`.
+* `search_query_bigTheta_size`: Search queries have square-root growth in the search-space size.
+* `search_gates_bigTheta_size`: Search macro gates have the same growth order.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -24,6 +49,7 @@ set_option warningAsError false
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 noncomputable section
 
+/-- Every real-valued function is bounded in `BigO` by itself along any filter. -/
 theorem bigO_refl {α : Type*} (F : Filter α) (f : α → ℝ) : BigO F f f := by
   refine ⟨1, by norm_num, ?_⟩
   refine Filter.Eventually.of_forall ?_
@@ -33,6 +59,7 @@ theorem bigO_refl {α : Type*} (F : Filter α) (f : α → ℝ) : BigO F f f := 
 end
 noncomputable section
 
+/-- A `BigOWith` bound remains valid when its constant is replaced by its absolute value. -/
 theorem bigOWith_abs {α : Type*} (c : ℝ) (F : Filter α) (f g : α → ℝ)
     (h : BigOWith c F f g) : BigOWith |c| F f g := by
   refine h.mono ?_
@@ -41,6 +68,7 @@ theorem bigOWith_abs {α : Type*} (c : ℝ) (F : Filter α) (f g : α → ℝ)
 end
 noncomputable section
 
+/-- The `BigO` relation is transitive along a fixed filter. -/
 theorem bigO_trans {α : Type*} (F : Filter α) (f g h : α → ℝ)
     (hfg : BigO F f g) (hgh : BigO F g h) : BigO F f h := by
   obtain ⟨c1, hc1, h1⟩ := hfg
@@ -53,6 +81,7 @@ theorem bigO_trans {α : Type*} (F : Filter α) (f g h : α → ℝ)
 end
 noncomputable section
 
+/-- Multiplying a function by a nonnegative constant preserves its `BigO` bound. -/
 theorem bigO_smul {α : Type*} (c : ℝ) (F : Filter α) (f g : α → ℝ)
     (hc : 0 ≤ c) (h : BigO F f g) : BigO F (fun x => c * f x) g := by
   obtain ⟨c1, hc1, h1⟩ := h
@@ -64,11 +93,14 @@ theorem bigO_smul {α : Type*} (c : ℝ) (F : Filter α) (f g : α → ℝ)
 end
 noncomputable section
 
+/-- A `BigTheta` relation is equivalent to the two opposite `BigO` bounds. -/
 theorem bigTheta_iff {α : Type*} (F : Filter α) (f g : α → ℝ) :
     BigTheta F f g ↔ (BigO F f g ∧ BigO F g f) := Iff.rfl
 end
 noncomputable section
 
+/-- The `k`th polylogarithm is bounded in `BigO` by the next polylogarithm along the precision
+filter. -/
 theorem polylog_bigO (k : ℕ) : BigO precFilter (polylog k) (polylog (k + 1)) := by
   refine ⟨1, by norm_num, ?_⟩
   have hev : Filter.Eventually (fun E : ℝ => Real.exp 1 ≤ E) (Filter.atTop : Filter ℝ) :=
@@ -87,6 +119,8 @@ theorem polylog_bigO (k : ℕ) : BigO precFilter (polylog k) (polylog (k + 1)) :
 end
 noncomputable section
 
+/-- A nonnegative gate budget with the stated uniform polylogarithmic upper bound and legal
+synthesis witnesses satisfies the corresponding `BigO` bound. -/
 theorem gate_budget_bigO (k c : ℕ) (n : ℕ) (wordLen : GateBudget)
     (hcert : ∀ E : ℝ, 1 ≤ E → ∃ s : SynthCertificate n,
       0 ≤ wordLen n E ∧ wordLen n E ≤ c * polylog k E ∧ finiteWordLegal n s.word = true) :
@@ -104,6 +138,8 @@ theorem gate_budget_bigO (k c : ℕ) (n : ℕ) (wordLen : GateBudget)
 end
 noncomputable section
 
+/-- Multiplying a uniformly polylogarithmically bounded word length by a fixed natural bit cost
+preserves its polylogarithmic `BigO` bound. -/
 theorem bit_time_bigO (k c bitCost n : ℕ) (wordLen : GateBudget)
     (hbound : ∀ E : ℝ, 1 ≤ E → |wordLen n E| ≤ c * polylog k E) :
     BigO precFilter (fun E => (bitCost : ℝ) * wordLen n E) (polylog k) := by
@@ -122,12 +158,16 @@ theorem bit_time_bigO (k c bitCost n : ℕ) (wordLen : GateBudget)
 end
 noncomputable section
 
+/-- Representation bits, work-tape size, and auxiliary bits can be packaged as the corresponding
+fields of `LowerPremises`. -/
 theorem lower_premises_explicit (repr work aux : ℕ) :
     ∃ p : LowerPremises, p.reprBits = repr ∧ p.workTape = work ∧ p.auxBits = aux := by
   exact ⟨⟨repr, work, aux⟩, rfl, rfl, rfl⟩
 end
 noncomputable section
 
+/-- Multiplication by a natural bit cost of at least one preserves the polylogarithmic
+`BigTheta` class. -/
 theorem bit_time_bigTheta (k bitCost : ℕ) (hbit : 1 ≤ bitCost) :
     BigTheta precFilter (fun E => (bitCost : ℝ) * polylog k E) (polylog k) := by
   refine ⟨?_, ?_⟩
@@ -147,17 +187,21 @@ theorem bit_time_bigTheta (k bitCost : ℕ) (hbit : 1 ≤ bitCost) :
 end
 noncomputable section
 
+/-- Every real-valued function is bounded in `BigOmega` by itself along any filter. -/
 theorem bigOmega_refl {α : Type*} (F : Filter α) (f : α → ℝ) : BigOmega F f f :=
   bigO_refl F f
 end
 noncomputable section
 
+/-- The `BigOmega` relation is transitive along a fixed filter. -/
 theorem bigOmega_trans {α : Type*} (F : Filter α) (f g h : α → ℝ)
     (hfg : BigOmega F f g) (hgh : BigOmega F g h) : BigOmega F f h :=
   bigO_trans F h g f hgh hfg
 end
 noncomputable section
 
+/-- A gate budget with the stated uniform polylogarithmic lower bound, coefficient at least one,
+and legal synthesis witnesses satisfies the corresponding `BigOmega` bound. -/
 theorem gate_budget_bigOmega (k c : ℕ) (n : ℕ) (wordLen : GateBudget) (hc : 1 ≤ c)
     (hcert : ∀ E : ℝ, 1 ≤ E → ∃ s : SynthCertificate n,
       c * polylog k E ≤ wordLen n E ∧ finiteWordLegal n s.word = true) :
@@ -182,6 +226,8 @@ theorem gate_budget_bigOmega (k c : ℕ) (n : ℕ) (wordLen : GateBudget) (hc : 
 end
 noncomputable section
 
+/-- Matching uniform upper and lower polylogarithmic gate-budget bounds with the stated legal
+synthesis witnesses give the corresponding `BigTheta` relation. -/
 theorem gate_budget_bigTheta (k c : ℕ) (n : ℕ) (wordLen : GateBudget) (hc : 1 ≤ c)
     (hup : ∀ E : ℝ, 1 ≤ E → ∃ s : SynthCertificate n,
       0 ≤ wordLen n E ∧ wordLen n E ≤ c * polylog k E ∧ finiteWordLegal n s.word = true)
@@ -192,11 +238,14 @@ theorem gate_budget_bigTheta (k c : ℕ) (n : ℕ) (wordLen : GateBudget) (hc : 
 end
 noncomputable section
 
+/-- The sum of the representation-bit, work-tape, and auxiliary-bit fields of lower-bound
+premises. -/
 def lowerCost (p : LowerPremises) : ℕ :=
   p.reprBits + p.workTape + p.auxBits
 end
 noncomputable section
 
+/-- Specifying the three fields of lower-bound premises identifies `lowerCost` with their sum. -/
 theorem lower_premises_same_cost_unit (repr work aux : ℕ) (p : LowerPremises)
     (h : p.reprBits = repr ∧ p.workTape = work ∧ p.auxBits = aux) :
     lowerCost p = repr + work + aux := by
@@ -204,6 +253,8 @@ theorem lower_premises_same_cost_unit (repr work aux : ℕ) (p : LowerPremises)
 end
 noncomputable section
 
+/-- Multiplication by a fixed natural bit count preserves a first-order polylogarithmic `BigO`
+bound. -/
 theorem lower_cost_transport (bits : ℕ) (F : Filter ℝ) (f : ℝ → ℝ)
     (h : BigO F f (polylog 1)) :
     BigO F (fun E => (bits : ℝ) * f E) (polylog 1) := by
@@ -217,6 +268,7 @@ theorem lower_cost_transport (bits : ℕ) (F : Filter ℝ) (f : ℝ → ℝ)
 end
 noncomputable section
 
+/-- The forward-query field of the search account equals the singleton-search iteration count. -/
 theorem search_account_queries (n : ℕ) :
     (searchAccount n).queries = singletonSearchIterations n := by
   obtain ⟨_, hQ, _, _⟩ :=
@@ -225,6 +277,8 @@ theorem search_account_queries (n : ℕ) :
 end
 noncomputable section
 
+/-- The search account uses three macro gates per singleton-search iteration and three
+additional macro gates. -/
 theorem search_account_gates (n : ℕ) :
     (searchAccount n).macroGates = 3 * singletonSearchIterations n + 3 := by
   obtain ⟨_, _, hG, _⟩ :=
@@ -233,6 +287,8 @@ theorem search_account_gates (n : ℕ) :
 end
 noncomputable section
 
+/-- For positive `n`, the singleton-search angle is at most pi divided by twice the square root
+of the search-space size. -/
 theorem search_angle_bound (n : ℕ) (hn : 1 ≤ n) :
     singletonSearchAngle n ≤ Real.pi / (2 * Real.sqrt (searchSpace n)) := by
   have hcard : (Fintype.card (Reg n) : ℝ) = searchSpace n := by
@@ -289,6 +345,7 @@ theorem search_angle_bound (n : ℕ) (hn : 1 ≤ n) :
 end
 noncomputable section
 
+/-- For `n ≥ 4`, the square root of the search-space size is at least four. -/
 theorem search_space_sqrt_four (n : ℕ) (hn : 4 ≤ n) :
     (4 : ℝ) ≤ Real.sqrt (searchSpace n) := by
   have h16 : (16 : ℕ) ≤ 2 ^ n := by
@@ -307,6 +364,8 @@ theorem search_space_sqrt_four (n : ℕ) (hn : 4 ≤ n) :
 end
 noncomputable section
 
+/-- For `n ≥ 4`, the singleton-search iteration count is at least one quarter of the square root
+of the search-space size. -/
 theorem search_iterations_lower (n : ℕ) (hn : 4 ≤ n) :
     (singletonSearchIterations n : ℝ) ≥ Real.sqrt (searchSpace n) / 4 := by
   have h2 : 2 ≤ n := by omega
@@ -354,6 +413,8 @@ theorem search_iterations_lower (n : ℕ) (hn : 4 ≤ n) :
 end
 noncomputable section
 
+/-- For `n ≥ 4`, the search macro-gate count is at most `3 * (Real.pi + 1) / 4` times the square
+root of the search-space size. -/
 theorem search_gate_bound (n : ℕ) (hn : 4 ≤ n) :
     (3 * singletonSearchIterations n + 3 : ℝ)
       ≤ (3 * (Real.pi + 1) / 4) * Real.sqrt (searchSpace n) := by
@@ -370,6 +431,8 @@ theorem search_gate_bound (n : ℕ) (hn : 4 ≤ n) :
 end
 noncomputable section
 
+/-- For `n ≥ 4`, the square root of the search-space size is at most four thirds of the search
+macro-gate count. -/
 theorem search_gate_lower (n : ℕ) (hn : 4 ≤ n) :
     Real.sqrt (searchSpace n) ≤ (4 / 3) * (3 * singletonSearchIterations n + 3 : ℝ) := by
   have hlo : (singletonSearchIterations n : ℝ) ≥ Real.sqrt (searchSpace n) / 4 :=
@@ -378,6 +441,8 @@ theorem search_gate_lower (n : ℕ) (hn : 4 ≤ n) :
 end
 noncomputable section
 
+/-- The search account's query count has a square-root `BigO` bound along the input-size filter,
+as expected for Grover search [Grover1996]. -/
 theorem search_query_bigO_size :
     BigO sizeFilter (fun n => (searchAccount n).queries) searchSizeCost := by
   have hpi : (0 : ℝ) < Real.pi := Real.pi_pos
@@ -400,6 +465,8 @@ theorem search_query_bigO_size :
 end
 noncomputable section
 
+/-- The search account's query count has a square-root `BigOmega` bound along the input-size
+filter. -/
 theorem search_query_bigOmega_size :
     BigOmega sizeFilter (fun n => (searchAccount n).queries) searchSizeCost := by
   refine ⟨4, by norm_num, ?_⟩
@@ -417,12 +484,16 @@ theorem search_query_bigOmega_size :
 end
 noncomputable section
 
+/-- The search account's query count has square-root `BigTheta` growth along the input-size
+filter [Grover1996]. -/
 theorem search_query_bigTheta_size :
     BigTheta sizeFilter (fun n => (searchAccount n).queries) searchSizeCost :=
   ⟨search_query_bigO_size, search_query_bigOmega_size⟩
 end
 noncomputable section
 
+/-- The search account's macro-gate count has square-root `BigTheta` growth along the input-size
+filter [Grover1996]. -/
 theorem search_gates_bigTheta_size :
     BigTheta sizeFilter (fun n => (searchAccount n).macroGates) searchSizeCost := by
   have hpi : (0 : ℝ) < Real.pi := Real.pi_pos

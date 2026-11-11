@@ -11,6 +11,27 @@ import Mathlib.GroupTheory.OrderOfElement
 import Mathlib.FieldTheory.Finite.GaloisField
 import Mathlib.Data.Fintype.Units
 
+/-!
+# Counting solutions of exponential congruences
+
+The functions `numSolutions` and `numSolutionsAt` count exponent pairs in finite boxes
+satisfying `a * f ^ x + b * g ^ y = c`. Elementary counting identities give size bounds and
+existence criteria, while assumed deviation and second-moment estimates yield conditional
+worst-case and typical solvability statements. These statements formalize components of
+[VanDamShparlinski2008].
+
+## Main statements
+
+* `sum_numSolutionsAt`: counts all exponent pairs by summing over target field elements.
+* `lemma2_typical_count_of_second_moment`: bounds an exceptional set using a supplied
+  second-moment estimate.
+* `corollary1_solvable_of_bound`: deduces solvability from a supplied uniform counting estimate.
+
+## References
+
+* [van Dam and Shparlinski, 2008][VanDamShparlinski2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,21 +39,29 @@ namespace Qatlib.Papers.ExpCongruence08.MainResults
 
 open scoped Classical
 
+/-- The field value `a * f ^ x + b * g ^ y` associated with an exponent pair. -/
 def solValue {F : Type*} [Field F] (a b f g : Fˣ) (p : ℕ × ℕ) : F :=
   (a : F) * (f : F) ^ p.1 + (b : F) * (g : F) ^ p.2
 
+/-- The number of exponent pairs with `x < s` and `y < r` whose field value equals the nonzero
+target `c`. See [VanDamShparlinski2008]. -/
 def numSolutions {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ) : ℕ :=
   (((Finset.range s).product (Finset.range r)).filter
     (fun p : ℕ × ℕ => solValue a b f g p = (c : F))).card
 
+/-- The number of exponent pairs in the box with field value equal to the arbitrary target `c`. -/
 def numSolutionsAt {F : Type*} [Field F] (a b : Fˣ) (c : F) (f g : Fˣ) (s r : ℕ) : ℕ :=
   (((Finset.range s).product (Finset.range r)).filter
     (fun p : ℕ × ℕ => solValue a b f g p = c)).card
 
+/-- Counting solutions for a unit target agrees with counting for its underlying field element.
+See [VanDamShparlinski2008]. -/
 theorem numSolutions_eq_numSolutionsAt {F : Type*} [Field F]
     (a b c f g : Fˣ) (s r : ℕ) :
     numSolutions a b c f g s r = numSolutionsAt a b (c : F) f g s r := rfl
 
+/-- The box solution count is zero exactly when every exponent pair in that box fails the
+equation. See [VanDamShparlinski2008]. -/
 theorem numSolutions_eq_zero_iff {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ) :
     numSolutions a b c f g s r = 0 ↔
       ∀ x y : ℕ, x < s → y < r →
@@ -48,6 +77,7 @@ theorem numSolutions_eq_zero_iff {F : Type*} [Field F] (a b c f g : Fˣ) (s r : 
       h p.1 p.2 (Finset.mem_range.mp (Finset.mem_product.mp hp).1)
         (Finset.mem_range.mp (Finset.mem_product.mp hp).2) heq
 
+/-- A positive box solution count yields exponents satisfying the equation within the box. -/
 theorem exists_of_numSolutions_pos {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
     (h : 0 < numSolutions a b c f g s r) :
     ∃ x y : ℕ, x < s ∧ y < r ∧
@@ -60,6 +90,8 @@ theorem exists_of_numSolutions_pos {F : Type*} [Field F] (a b c f g : Fˣ) (s r 
   exact ⟨p.1, p.2, Finset.mem_range.mp (Finset.mem_product.mp hp.1).1,
     Finset.mem_range.mp (Finset.mem_product.mp hp.1).2, hp.2⟩
 
+/-- The multiplicative order of a unit in a finite field is at most the field cardinality minus
+one. -/
 theorem orderOf_le_card_sub_one {F : Type*} [Field F] [Fintype F] (f : Fˣ) :
     orderOf f ≤ Fintype.card F - 1 := by
   classical
@@ -70,6 +102,8 @@ theorem orderOf_le_card_sub_one {F : Type*} [Field F] [Fintype F] (f : Fˣ) :
     omega
   exact Nat.le_of_dvd hq hdvd
 
+/-- If both box side lengths are within the respective multiplicative orders, the solution count
+is at most the second side length. See [VanDamShparlinski2008]. -/
 theorem numSolutions_le_r {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
     (hs : s ≤ orderOf f) (hr : r ≤ orderOf g) :
     numSolutions a b c f g s r ≤ r := by
@@ -103,6 +137,8 @@ theorem numSolutions_le_r {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
       exact Prod.ext hxeq heq
   simpa using key
 
+/-- If both box side lengths are within the respective multiplicative orders, the solution count
+is at most the first side length. See [VanDamShparlinski2008]. -/
 theorem numSolutions_le_s {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
     (hs : s ≤ orderOf f) (hr : r ≤ orderOf g) :
     numSolutions a b c f g s r ≤ s := by
@@ -136,6 +172,7 @@ theorem numSolutions_le_s {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
       exact Prod.ext heq hyeq
   simpa using key
 
+/-- Increasing the second side length cannot decrease the solution count. -/
 theorem numSolutions_mono_r {F : Type*} [Field F] (a b c f g : Fˣ) (s : ℕ)
     {r₁ r₂ : ℕ} (h : r₁ ≤ r₂) :
     numSolutions a b c f g s r₁ ≤ numSolutions a b c f g s r₂ := by
@@ -149,6 +186,8 @@ theorem numSolutions_mono_r {F : Type*} [Field F] (a b c f g : Fˣ) (s : ℕ)
     Finset.mem_range.mpr (lt_of_lt_of_le
       (Finset.mem_range.mp (Finset.mem_product.mp hp.1).2) h)⟩
 
+/-- When the second side covers the order of `g`, positivity of the count with first side
+`orderOf f` is equivalent to unrestricted solvability. -/
 theorem numSolutions_pos_iff_exists {F : Type*} [Field F] [Fintype F] (a b c f g : Fˣ) (r : ℕ)
     (hr : orderOf g ≤ r) :
     0 < numSolutions a b c f g (orderOf f) r ↔
@@ -176,6 +215,8 @@ theorem numSolutions_pos_iff_exists {F : Type*} [Field F] [Fintype F] (a b c f g
         rw [hx', hy']; exact hxy
     exact Finset.card_pos.mpr ⟨_, hmem⟩
 
+/-- Summing the box solution counts over all field targets counts each of the `s * r` exponent
+pairs once. See [VanDamShparlinski2008]. -/
 theorem sum_numSolutionsAt {F : Type*} [Field F] [Fintype F] (a b f g : Fˣ) (s r : ℕ) :
     (∑ c : F, numSolutionsAt a b c f g s r) = s * r := by
   classical
@@ -186,6 +227,7 @@ theorem sum_numSolutionsAt {F : Type*} [Field F] [Fintype F] (a b f g : Fˣ) (s 
     (fun p _ => Finset.mem_univ _)
   simpa using h.symm
 
+/-- Some field target has box solution count at least the average `s * r / |F|`. -/
 theorem exists_numSolutionsAt_ge {F : Type*} [Field F] [Fintype F]
     (a b f g : Fˣ) (s r : ℕ) :
     ∃ c : F, (s : ℝ) * (r : ℝ) / (Fintype.card F : ℝ)
@@ -210,6 +252,8 @@ theorem exists_numSolutionsAt_ge {F : Type*} [Field F] [Fintype F]
   rw [hsum, hconst] at hsum_lt
   exact lt_irrefl _ hsum_lt
 
+/-- For `r ≤ orderOf g`, the deviation of the count from `r * orderOf f / (|F| - 1)` is at most
+`orderOf g`. See [VanDamShparlinski2008]. -/
 theorem abs_numSolutions_sub_le_orderOf {F : Type*} [Field F] [Fintype F]
     (a b c f g : Fˣ) (r : ℕ) (hr : r ≤ orderOf g) :
     |(numSolutions a b c f g (orderOf f) r : ℝ)
@@ -236,6 +280,8 @@ theorem abs_numSolutions_sub_le_orderOf {F : Type*} [Field F] [Fintype F]
   rw [abs_le]
   constructor <;> linarith [Nat.cast_nonneg (α := ℝ) (numSolutions a b c f g (orderOf f) r)]
 
+/-- If `(|F| - 1) ^ 2 / orderOf f < r ≤ orderOf g`, the equation has a solution with `x <
+orderOf f` and `y < r`. See [VanDamShparlinski2008]. -/
 theorem corollary1_solvable_weak {F : Type*} [Field F] [Fintype F]
     (a b c f g : Fˣ) (r : ℕ)
     (hlow : ((Fintype.card F : ℝ) - 1) ^ 2 / (orderOf f : ℝ) < (r : ℝ))
@@ -272,6 +318,8 @@ theorem corollary1_solvable_weak {F : Type*} [Field F] [Fintype F]
     nlinarith [hmain]
   linarith
 
+/-- The finite set of nonzero targets whose count deviates from `r * s / |F|` by at least `δ *
+√r`. See [VanDamShparlinski2008]. -/
 def badSet {F : Type*} [Field F] [Fintype F] (a b f g : Fˣ) (s r : ℕ) (δ : ℝ) :
     Finset Fˣ :=
   Finset.univ.filter (fun c : Fˣ =>
@@ -279,6 +327,8 @@ def badSet {F : Type*} [Field F] [Fintype F] (a b f g : Fˣ) (s r : ℕ) (δ : �
       |(numSolutions a b c f g s r : ℝ)
         - (r : ℝ) * (s : ℝ) / (Fintype.card F : ℝ)|)
 
+/-- For positive `δ`, the exceptional-set cardinality times `δ ^ 2 * r` is bounded by the sum of
+squared count deviations. See [VanDamShparlinski2008]. -/
 theorem badSet_card_mul_le_sum_sq {F : Type*} [Field F] [Fintype F]
     (a b f g : Fˣ) (s r : ℕ) (δ : ℝ) (hδ : 0 < δ) :
     ((badSet a b f g s r δ).card : ℝ) * (δ ^ 2 * (r : ℝ))
@@ -314,6 +364,8 @@ theorem badSet_card_mul_le_sum_sq {F : Type*} [Field F] [Fintype F]
         · exact Finset.filter_subset _ _
         · intro c _ _; positivity
 
+/-- A second-moment bound of `|F| * r` yields at most `|F| / δ ^ 2` exceptional nonzero targets,
+outside which the count deviation is less than `δ * √r`. See [VanDamShparlinski2008]. -/
 theorem lemma2_typical_count_of_second_moment {F : Type*} [Field F] [Fintype F]
     (a b f g : Fˣ) (r : ℕ) (δ : ℝ) (hr : 1 ≤ r) (hδ : 0 < δ)
     (hW : (∑ c : Fˣ, ((numSolutions a b c f g (orderOf f) r : ℝ)
@@ -342,6 +394,9 @@ theorem lemma2_typical_count_of_second_moment {F : Type*} [Field F] [Fintype F]
     simp only [badSet, Finset.mem_filter, Finset.mem_univ, true_and, not_le] at hc
     exact hc
 
+/-- Under the stated uniform deviation estimate, a scan length above the given `K`-dependent
+threshold and at most `orderOf g` guarantees a solution in the box. See
+[VanDamShparlinski2008]. -/
 theorem corollary1_solvable_of_bound {F : Type*} [Field F] [Fintype F]
     (a b c f g : Fˣ) (K : ℝ) (hK : 0 < K)
     (hbound : ∀ r : ℕ, 1 ≤ r → r ≤ orderOf g →
@@ -407,6 +462,9 @@ theorem corollary1_solvable_of_bound {F : Type*} [Field F] [Fintype F]
     mul_pos hsqrtpos hlogpos
   nlinarith [hKcontra, hposprod]
 
+/-- Under the supplied second-moment estimate and field-size condition, a scan length between
+the typical threshold and `orderOf g` yields solutions for all but at most `ε * |F|` nonzero
+targets. See [VanDamShparlinski2008]. -/
 theorem corollary2_typical_solvable_of_second_moment {F : Type*} [Field F] [Fintype F]
     (a b f g : Fˣ)
     (hW : ∀ r : ℕ, 1 ≤ r → r ≤ orderOf g →

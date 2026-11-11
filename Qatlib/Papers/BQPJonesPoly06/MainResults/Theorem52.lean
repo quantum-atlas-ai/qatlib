@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Theorem32
+
+/-!
+# Parameter-dependent braid synthesis bounds
+
+The inequality `theorem52_base_mono` replaces logarithmic precision dependence by
+inverse-precision dependence while retaining the factor `k + 1`. The synthesis theorems apply
+this estimate simultaneously to crossing counts and a supplied cost function in the development
+of Theorem 5.2 of [AharonovArad2011].
+
+## Main statements
+
+* `theorem52_density_efficiency`: converts assumed logarithmic crossing and cost bounds into
+  bounds polynomial in inverse precision and `k`.
+* `theorem52_synthesis`: provides this conversion with the stated parameter and
+  norm-preservation hypotheses.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +34,8 @@ namespace Qatlib.Papers.BQPJonesPoly06.MainResults
 
 open Model
 
+/-- For `0 < δ ≤ 1`, replacing `log (1 / δ) + 1` by `δ⁻¹ + 1` increases the stated power bound
+with parameter factor `k + 1` [AharonovArad2011]. -/
 theorem theorem52_base_mono (C d k : ℕ) :
     ∀ δ : ℝ, 0 < δ → δ ≤ 1 →
       (C : ℝ) * ((Real.log (1 / δ) + 1) * (k + 1)) ^ d ≤
@@ -31,6 +54,9 @@ theorem theorem52_base_mono (C d k : ℕ) :
     mul_nonneg hb0 hk0
   exact mul_le_mul_of_nonneg_left (pow_le_pow_left₀ hmul0 hmul d) (by positivity)
 
+/-- Assumed logarithmic precision bounds for both crossing count and cost yield polynomial
+bounds in inverse precision and `k`, with the same approximation on unit vectors
+[AharonovArad2011, Theorem 5.2][AharonovArad2011]. -/
 theorem theorem52_density_efficiency {H : Type*} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] (k : ℕ)
     (ρ : BraidWord 8 → H →L[ℂ] H) (Ũ : H →L[ℂ] H) (cost : BraidWord 8 → ℕ)
@@ -48,6 +74,9 @@ theorem theorem52_density_efficiency {H : Type*} [NormedAddCommGroup H]
   have hmono := theorem52_base_mono C d k δ hδ hδ1
   exact ⟨b, le_trans hb hmono, le_trans hc hmono, happrox⟩
 
+/-- Under the stated parameter and norm-preservation hypotheses, the supplied synthesis
+guarantee yields crossing and cost bounds polynomial in inverse precision and `k`
+[AharonovArad2011, Theorem 5.2][AharonovArad2011]. -/
 theorem theorem52_synthesis {H : Type*} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] (k : ℕ) (_hk : 4 < k) (_hk6 : k ≠ 6)
     (ρ : BraidWord 8 → H →L[ℂ] H) (Ũ : H →L[ℂ] H) (cost : BraidWord 8 → ℕ)

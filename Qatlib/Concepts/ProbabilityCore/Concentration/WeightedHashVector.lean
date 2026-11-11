@@ -16,10 +16,32 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.SimpRw
 
+/-!
+# Average vector hash deviation bounds
+
+The module combines finite averaging, a sum of squares inequality, and the scalar hash second
+moment identity to control vector bucket deviations. Reciprocal cardinality collision
+probabilities give a square root bound in terms of the total squared component mass.
+
+The argument supplies finite weighted aggregation estimates for sampling and sketching contexts
+such as [ChiaEtAl2022].
+
+## Main statements
+
+* `vector_hash_average_sum_square_le`: a finite averaging and sum of squares estimate.
+* `weighted_hash_vector_deviation_bound`: average vector deviation bounded by `sqrt ((|A| - 1) *
+  weightedHashVectorMass f)`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
 open scoped BigOperators
 
+/-- Finite hash averaging commutes with summation over vector components. -/
 private theorem vector_hash_average_sum
     {H T : Type} [Fintype H] [Fintype T] (g : H → T → ℝ) :
     finiteHashAverage (fun r : H => ∑ k : T, g r k) =
@@ -27,6 +49,8 @@ private theorem vector_hash_average_sum
   unfold finiteHashAverage
   rw [Finset.sum_comm, Finset.mul_sum]
 
+/-- The square of the average sum over `A` is at most `|A|` times the average sum of squares,
+for a nonempty seed type. -/
 private theorem vector_hash_average_sum_square_le
     {H A : Type} [Fintype H] [Nonempty H] [Fintype A]
     (g : H → A → ℝ) :
@@ -59,6 +83,8 @@ private theorem vector_hash_average_sum_square_le
           (∑ r : H, ∑ a : A, (g r a) ^ 2)) := by
       field_simp [hn]
 
+/-- Under reciprocal cardinality pair collision probabilities, the average vector hash deviation
+is at most `sqrt ((|A| - 1) * weightedHashVectorMass f)`. -/
 theorem weighted_hash_vector_deviation_bound
     (H X A T : Type) [Fintype H] [Nonempty H] [Fintype X]
     [Fintype A] [Nonempty A] [DecidableEq A] [Fintype T]

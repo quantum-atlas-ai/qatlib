@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleDefs
+
+/-!
+# Value and probability phase oracle readout
+
+This module connects value and probability phase access to the actual Fourier gradient word and
+its readout probabilities. It proves unitarity and phase convention identities for
+`probabilityPhaseOperator`, transports value phase errors to event probabilities, and verifies
+the framed probability phase program. Fourier gradient estimation provides the algorithmic
+setting [Jordan2005Gradient].
+
+The decoder and success theorems certify signed gradient estimates on a joint modular window,
+dyadic output values, and explicit circuit and register ledgers.
+
+## Main statements
+
+* `value_phase_readout_event_error`: phase error `δ` modulo integers gives event error at most
+  `4 * π * δ`.
+* `probability_phase_frame_bound`: framed approximation with exact circuit counts.
+* `readout_joint_success`: an affine residual bound controls the joint good window probability.
+* `readout_backend_ledger`: integer, space, query, and gate counts.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -35,6 +61,7 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 set_option warningAsError false
 
+/-- A complex exponential with a purely imaginary real argument has norm one. -/
 private theorem probabilityPhaseCoeff_norm (p : ℝ) :
     ‖Complex.exp (Complex.I * (p : ℂ))‖ = 1 := by
   rw [Complex.norm_exp]
@@ -44,6 +71,7 @@ private theorem probabilityPhaseCoeff_norm (p : ℝ) :
   rw [hre]
   norm_num
 
+/-- The diagonal probability phase operator is unitary for every real valued function. -/
 theorem probability_phase_operator_unitary {X : Type} [Fintype X] [DecidableEq X]
     (p : X → ℝ) : probabilityPhaseOperator p ∈ Matrix.unitaryGroup X ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -55,6 +83,8 @@ theorem probability_phase_operator_unitary {X : Type} [Fintype X] [DecidableEq X
   rw [Complex.conj_mul', probabilityPhaseCoeff_norm (p x)]
   norm_num
 
+/-- The probability phase operator equals the gradient phase operator after division of the
+phase function by `2 * π`. -/
 theorem probability_phase_operator_eq_gradient_phase (d M : ℕ)
     (p : GradientGrid d M → ℝ) :
     probabilityPhaseOperator p = gradientPhase d M (probabilityReadoutPhase p) := by
@@ -67,6 +97,8 @@ theorem probability_phase_operator_eq_gradient_phase (d M : ℕ)
     field_simp
   rw [hexp]
 
+/-- The probability phase readout equals execution of the gradient word with the probability
+phase operator from the zero basis state. -/
 theorem probability_phase_readout_coincides (d M : ℕ) (hM : 0 < M)
     (p : GradientGrid d M → ℝ) :
     gradientReadout d M hM (probabilityReadoutPhase p) =
@@ -74,6 +106,8 @@ theorem probability_phase_readout_coincides (d M : ℕ) (hM : 0 < M)
   unfold gradientReadout
   rw [probability_phase_operator_eq_gradient_phase]
 
+/-- A value phase error at most `δ` modulo integers changes every readout event probability by
+at most `4 * π * δ`. -/
 theorem value_phase_readout_event_error :
     ∀ (d M Q : ℕ) [NeZero Q] (hM : 0 < M)
       (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
@@ -110,6 +144,9 @@ theorem value_phase_readout_event_error :
   rw [← hread] at h
   exact h
 
+/-- For a unitary primitive preserving input labels, the probability phase word is well formed,
+has the stated exact query and gate counts, and approximates the ideal phase action in the
+specified frame with relative error at most `2^(-k)`. -/
 theorem probability_phase_frame_bound :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -131,12 +168,16 @@ theorem probability_phase_frame_bound :
   intro X A _ _ _ _ U hU a₀ good hlabel k
   exact probability_phase_clean_frame_bound U hU a₀ good hlabel k
 
+/-- The gradient readout equals execution of the Fourier gradient word with the given phase
+operator from the zero basis state. -/
 theorem readout_is_actual_fourier_word_born_law :
     ∀ (d M : ℕ) (hM : 0 < M) (φ : GradientGrid d M → ℝ),
       gradientReadout d M hM φ =
         Run (gradientPhase d M φ) (gradientWord d M) (Ket (gradientZero d M hM)) :=
   fun _ _ _ _ => rfl
 
+/-- For bounded gradient coordinates and window width at most `1 / 8`, the decoder has
+coordinate error at most the window width on every good sample. -/
 theorem readout_decoder_error :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
       (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
@@ -147,6 +188,8 @@ theorem readout_decoder_error :
   have h := gradient_signed_decode_window M hM (z j) (g j) w (hg j) hw (hgood j)
   simpa only [readoutDecoder] using! h
 
+/-- A phase within `B` of an affine function yields joint window probability at least `1 - 16 *
+d / (M * w) - 4 * π * B` under the stated positivity conditions. -/
 theorem readout_joint_success :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
       (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -157,12 +200,15 @@ theorem readout_joint_success :
         ≥ 1 - 16 * (d : ℝ) / ((M : ℝ) * w) - 4 * Real.pi * B :=
   gradient_actual_phase_error_transport
 
+/-- The one coordinate decoder on a grid of size `2^m` returns an integer multiple of `2^(-m)`. -/
 theorem readout_decoder_dyadic (m : ℕ) (z : Fin (2 ^ m)) :
     ∃ n : ℤ, readoutDecoder (d := 1) (fun _ => z) 0 = (n : ℝ) / (2 : ℝ) ^ m := by
   obtain ⟨n, hn⟩ := centered_output_dyadic m z
   refine ⟨n, ?_⟩
   simpa only [readoutDecoder] using! hn
 
+/-- The readout uses `K + k` integer bits, the stated grid and character space, one query, and
+`2 * d` gates. -/
 theorem readout_backend_ledger (d M K k : ℕ) (hM : 0 < M) :
     readoutIntegerBits K k = K + k ∧
       readoutSpaceBits d M K k = d * Nat.clog 2 (max 2 M) + K + k ∧
@@ -171,6 +217,8 @@ theorem readout_backend_ledger (d M K k : ℕ) (hM : 0 < M) :
   obtain ⟨hC, hq, hg⟩ := gradient_coordinate_qft_word_unitarity d M hM
   exact ⟨rfl, rfl, hq, hg⟩
 
+/-- Establishes the oracle specification for value kickback, phase error transport, probability
+phases, and their framed implementation. -/
 theorem clause2_endpoint : stageB_gradient_oracle_clause2_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro d M Q _ v x
@@ -193,6 +241,8 @@ theorem clause2_endpoint : stageB_gradient_oracle_clause2_spec := by
   · intro X A _ _ _ _ U hU a₀ good hlabel k
     exact probability_phase_frame_bound X A U hU a₀ good hlabel k
 
+/-- Establishes the readout specification for circuit semantics, decoding accuracy, joint
+success, dyadic output, the zero precision obstruction, and resource counts. -/
 theorem clause8_endpoint : stageB_gradient_oracle_clause8_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro d M hM φ

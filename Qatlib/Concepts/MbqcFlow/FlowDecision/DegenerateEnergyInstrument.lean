@@ -6,6 +6,36 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Foundations.PureStateMath.Tensor
+
+/-!
+# Projective energy readout with degenerate sectors
+
+A finite label map and a unitary basis change define the sector operators `energyProjector`,
+allowing several basis vectors to share a label. These operators form an orthogonal resolution
+of the identity and define `energyInstrument`, with branches given by compression to the
+corresponding sectors. This is the projective measurement construction described in [Kraus1983].
+
+`energyDilation` implements coherent label readout with an ancillary register. The module proves
+repeatability, preservation of operators commuting with all sector projectors, preservation of
+the expectation of `energyHamiltonian`, and the branch formula in the presence of a reference
+system.
+
+## Main statements
+
+* `energy_projector_actual_orthogonal_resolution`: Hermitian, idempotent, mutually orthogonal
+  sector projectors summing to the identity.
+* `energy_readout_dilation_unitary_and_branch_amplitudes`: a unitary dilation with the required
+  projected amplitudes.
+* `energy_nondemolition_and_repeatable_outcome`: preservation of commuting inputs and vanishing
+  successive distinct branches.
+* `energy_readout_preserves_energy_expectation`: the forgotten measurement preserves the
+  Hamiltonian trace pairing.
+
+## References
+
+* [Kraus, 1983][Kraus1983]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -21,6 +51,7 @@ set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The conjugate transpose of a unitary finite-dimensional operator is unitary. -/
 theorem energyConjTranspose_unitary {D : ℕ} {V : Operator D}
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     V.conjTranspose ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -30,10 +61,14 @@ theorem energyConjTranspose_unitary {D : ℕ} {V : Operator D}
     Matrix.conjTranspose_conjTranspose]
   exact h
 
+/-- The diagonal selector for a label fiber conjugated by `V`, giving its sector projector when
+`V` is unitary. -/
 noncomputable def energyProjector {D M : ℕ} (label : Fin D → Fin M) (V : Operator D)
     (a : Fin M) : Operator D :=
   V * Matrix.diagonal (fun i => if label i = a then (1:ℂ) else 0) * V.conjTranspose
 
+/-- For unitary `V`, the label-sector operators have the stated conjugated diagonal form and are
+Hermitian idempotents. Distinct sectors are orthogonal, and their sum is the identity. -/
 theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D → Fin M)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     (∀ a, energyProjector label V a = V * Matrix.diagonal (fun i => if label i=a then (1:ℂ) else 0) * Vᴴ) ∧
@@ -140,6 +175,7 @@ theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D
       _ = V * 1 * V.conjTranspose := by rw [hsumD]
       _ = 1 := by rw [Matrix.mul_one, hVVt]
 
+/-- Adding and then subtracting the same element in `Fin M` returns the original element. -/
 theorem fin_add_sub_cancel {M : ℕ} (a b : Fin M) : (a + b) - b = a := by
   apply Fin.ext
   have ha := a.isLt
@@ -155,6 +191,7 @@ theorem fin_add_sub_cancel {M : ℕ} (a b : Fin M) : (a + b) - b = a := by
     have hsum : M - b.val + (a.val + b.val - M) = a.val := by omega
     rw [hmod, hsum, Nat.mod_eq_of_lt ha]
 
+/-- Subtracting and then adding the same element in `Fin M` returns the original element. -/
 theorem fin_sub_add_cancel {M : ℕ} (a b : Fin M) : (a - b) + b = a := by
   apply Fin.ext
   have ha := a.isLt
@@ -172,6 +209,8 @@ theorem fin_sub_add_cancel {M : ℕ} (a b : Fin M) : (a - b) + b = a := by
     have hsum : M - b.val + a.val - M + b.val = a.val := by omega
     rw [hsum, Nat.mod_eq_of_lt ha]
 
+/-- The reversible map that adds the system basis label to the ancillary label register and
+leaves the system index fixed. -/
 def energyLabelEquiv {D M : ℕ} (label : Fin D → Fin M) :
     (Fin M × Fin D) ≃ (Fin M × Fin D) where
   toFun p := ⟨p.1 + label p.2, p.2⟩
@@ -185,10 +224,14 @@ def energyLabelEquiv {D M : ℕ} (label : Fin D → Fin M) :
     simp only [Prod.mk.injEq]
     exact ⟨fin_sub_add_cancel b (label i), trivial⟩
 
+/-- The permutation matrix implementing `energyLabelEquiv` on the joint label and system
+register. -/
 noncomputable def energyLabelPerm {D M : ℕ} (label : Fin D → Fin M) :
     Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ :=
   Matrix.of fun q p => if energyLabelEquiv label p = q then (1:ℂ) else 0
 
+/-- The label permutation acts on state amplitudes by composition with the inverse of
+`energyLabelEquiv`. -/
 theorem energyLabelPerm_mulVec {D M : ℕ} (label : Fin D → Fin M)
     (v : QState (Fin M × Fin D)) (q : Fin M × Fin D) :
     (energyLabelPerm label *ᵥ v) q = v ((energyLabelEquiv label).symm q) := by
@@ -204,6 +247,7 @@ theorem energyLabelPerm_mulVec {D M : ℕ} (label : Fin D → Fin M)
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The matrix implementing reversible addition of the system label is unitary. -/
 theorem energyLabelPerm_unitary {D M : ℕ} (label : Fin D → Fin M) :
     energyLabelPerm label ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -221,11 +265,14 @@ theorem energyLabelPerm_unitary {D M : ℕ} (label : Fin D → Fin M) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The label-addition matrix conjugated by the system basis change, implementing coherent
+sector readout when `V` is unitary. -/
 noncomputable def energyDilation {D M : ℕ} (label : Fin D → Fin M) (V : Operator D) :
     Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ :=
   TensorGate (1 : Operator M) V * energyLabelPerm label
     * TensorGate (1 : Operator M) V.conjTranspose
 
+/-- The product of two unitary matrices on a finite index type is unitary. -/
 theorem unitaryGroup_mul {ι : Type} [Fintype ι] [DecidableEq ι] {A B : Matrix ι ι ℂ}
     (hA : A ∈ Matrix.unitaryGroup ι ℂ) (hB : B ∈ Matrix.unitaryGroup ι ℂ) :
     A * B ∈ Matrix.unitaryGroup ι ℂ := by
@@ -238,6 +285,7 @@ theorem unitaryGroup_mul {ι : Type} [Fintype ι] [DecidableEq ι] {A B : Matrix
   rw [Matrix.mem_unitaryGroup_iff, Matrix.star_eq_conjTranspose, Matrix.conjTranspose_mul, h1,
     hB', Matrix.mul_one, hA']
 
+/-- The coherent energy-readout dilation is unitary whenever its system basis change is unitary. -/
 theorem energyDilation_unitary {D M : ℕ} (label : Fin D → Fin M) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     energyDilation label V ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ := by
@@ -251,6 +299,9 @@ theorem energyDilation_unitary {D M : ℕ} (label : Fin D → Fin M) (V : Operat
       (energyLabelPerm_unitary label))
     (tensorGate_unitary h1u (energyConjTranspose_unitary hV))
 
+/-- For a nonempty label register and unitary `V`, the energy dilation is unitary. Starting the
+label register at zero, its amplitude at `(a, i)` equals component `i` of the input
+projected onto sector `a`. -/
 theorem energy_readout_dilation_unitary_and_branch_amplitudes (D M : ℕ) (hM : 0 < M)
     (label : Fin D → Fin M) (V : Operator D) (ψ : QState (Fin D))
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -367,6 +418,8 @@ theorem energy_readout_dilation_unitary_and_branch_amplitudes (D M : ℕ) (hM : 
         simp only [Matrix.mulVec, dotProduct]
         rw [hL]
 
+/-- The instrument whose Kraus operator for each outcome is the corresponding energy-sector
+projector. -/
 noncomputable def energyInstrument {D M : ℕ} (label : Fin D → Fin M) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) : Instrument (Fin M) D D :=
   Instrument.ofKraus (energyProjector label V)
@@ -376,6 +429,8 @@ noncomputable def energyInstrument {D M : ℕ} (label : Fin D → Fin M) (V : Op
         rw [(hG1.2.1 a).1, (hG1.2.1 a).2]]
       exact hG1.2.2.2)
 
+/-- An energy-instrument branch compresses the input operator by its sector projector on both
+sides. Its outcome weight is the real part of the trace pairing with that projector. -/
 theorem energy_actual_instrument_projector_map (D M : ℕ) (label : Fin D → Fin M)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : Fin M) (X : Operator D) :
     (energyInstrument label V hV).branch a X = energyProjector label V a * X * energyProjector label V a ∧
@@ -390,6 +445,9 @@ theorem energy_actual_instrument_projector_map (D M : ℕ) (label : Fin D → Fi
       rw [Matrix.trace_mul_cycle, (hG1.2.1 a).2]
     rw [hcycle]
 
+/-- Forgetting the energy-readout outcome preserves any operator commuting with all sector
+projectors. Applying a different outcome branch after a given branch gives the zero
+operator. -/
 theorem energy_nondemolition_and_repeatable_outcome (D M : ℕ) (label : Fin D → Fin M)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (X : Operator D) :
     ((∀ a, energyProjector label V a * X = X * energyProjector label V a) →
@@ -419,10 +477,14 @@ theorem energy_nondemolition_and_repeatable_outcome (D M : ℕ) (label : Fin D �
     rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, hG1.2.2.1 b a (Ne.symm hab)]
     simp
 
+/-- The operator obtained by assigning a real energy to each label and conjugating the resulting
+diagonal matrix by `V`. -/
 noncomputable def energyHamiltonian {D M : ℕ} (label : Fin D → Fin M) (V : Operator D)
     (E : Fin M → ℝ) : Operator D :=
   V * Matrix.diagonal (fun i => (E (label i):ℂ)) * V.conjTranspose
 
+/-- For unitary `V`, the energy Hamiltonian has the stated conjugated diagonal form. Forgetting
+the energy-readout outcome preserves its trace pairing with every input operator. -/
 theorem energy_readout_preserves_energy_expectation (D M : ℕ) (label : Fin D → Fin M)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (E : Fin M → ℝ) (X : Operator D) :
     energyHamiltonian label V E = V * Matrix.diagonal (fun i => (E (label i):ℂ)) * Vᴴ ∧
@@ -486,6 +548,8 @@ theorem energy_readout_preserves_energy_expectation (D M : ℕ) (label : Fin D �
     _ = Matrix.trace (energyHamiltonian label V E * X) := by
         rw [← Matrix.trace_sum, ← Finset.sum_mul, ← Finset.mul_sum, hG1.2.2.2, Matrix.mul_one]
 
+/-- An energy branch acting on the system and leaving a finite reference unchanged compresses
+the joint operator by the sector projector tensored with the reference identity. -/
 theorem energy_readout_reference_branches (D M r : ℕ) (label : Fin D → Fin M) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : Fin M)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :

@@ -6,11 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.BooleanEnergy.HadamardGram.Carrier
 
+/-!
+# Finite pair expansions for Gram energies
+
+This module proves finite-sum square expansions indexed by increasing pairs. The ordered
+finite-set identities culminate in `sum_square_pairs`, which supplies the pair combinatorics for
+expanding the Gram energies used in [SuksmonoMinato2019].
+
+## Main statements
+
+* `sum_sq_eq_sum_sq_add_two_offDiag_finset`: Expand the square of a finite sum.
+* `sum_square_pairs`: Express cross terms using `ColumnPair`.
+
+## References
+
+* [Suksmono and Minato, 2019][SuksmonoMinato2019]
+-/
+
 set_option autoImplicit false
 open scoped BigOperators
 open Finset
 namespace Qatlib.Foundations.BooleanEnergy.HadamardGram
 
+/-- Filtering a singleton-left product by strict order is the same as filtering the right factor
+above the singleton element. -/
 theorem product_singleton_filter_lt_left {ι : Type*} [LinearOrder ι] [DecidableEq ι]
     (a : ι) (s : Finset ι) :
     ({a} ×ˢ s).filter (fun p : ι × ι => p.1 < p.2)
@@ -23,6 +42,8 @@ theorem product_singleton_filter_lt_left {ι : Type*} [LinearOrder ι] [Decidabl
   · rintro ⟨hp1, hp2, hlt⟩
     exact ⟨⟨hp1, hp2⟩, hp1 ▸ hlt⟩
 
+/-- Filtering a singleton-right product by strict order is the same as filtering the left factor
+below the singleton element. -/
 theorem product_singleton_filter_lt_right {ι : Type*} [LinearOrder ι] [DecidableEq ι]
     (a : ι) (s : Finset ι) :
     (s ×ˢ {a}).filter (fun p : ι × ι => p.1 < p.2)
@@ -35,6 +56,8 @@ theorem product_singleton_filter_lt_right {ι : Type*} [LinearOrder ι] [Decidab
   · rintro ⟨⟨hp1, hlt⟩, hp2⟩
     exact ⟨⟨hp1, hp2⟩, hp2 ▸ hlt⟩
 
+/-- If `a` is outside a finite set, the sums over elements above and below `a` add to the sum
+over the entire set. -/
 theorem filter_lt_add_filter_gt {ι : Type*} [LinearOrder ι] [DecidableEq ι]
     {a : ι} {s : Finset ι} (ha : a ∉ s) (g : ι → ℝ) :
     ∑ x ∈ s.filter (fun x => a < x), g x + ∑ x ∈ s.filter (fun x => x < a), g x
@@ -53,6 +76,8 @@ theorem filter_lt_add_filter_gt {ι : Type*} [LinearOrder ι] [DecidableEq ι]
       · exact absurd hgt hna
   rw [h, Finset.sum_filter_add_sum_filter_not]
 
+/-- Inserting a new element splits the increasing off-diagonal pairs into old pairs and the two
+types of pairs involving the new element. -/
 theorem offDiag_filter_lt_insert {ι : Type*} [LinearOrder ι] [DecidableEq ι]
     {a : ι} {s : Finset ι} (ha : a ∉ s) :
     (insert a s).offDiag.filter (fun p : ι × ι => p.1 < p.2)
@@ -61,6 +86,8 @@ theorem offDiag_filter_lt_insert {ι : Type*} [LinearOrder ι] [DecidableEq ι]
         ∪ (s ×ˢ {a}).filter (fun p : ι × ι => p.1 < p.2) := by
   rw [Finset.offDiag_insert ha, Finset.filter_union, Finset.filter_union]
 
+/-- The square of a finite sum is the sum of squares plus twice the sum of products over
+increasing off-diagonal pairs. -/
 theorem sum_sq_eq_sum_sq_add_two_offDiag_finset {ι : Type*} [LinearOrder ι]
     [DecidableEq ι] (s : Finset ι) (f : ι → ℝ) :
     (∑ i ∈ s, f i) ^ 2
@@ -119,6 +146,7 @@ theorem sum_sq_eq_sum_sq_add_two_offDiag_finset {ι : Type*} [LinearOrder ι]
     rw [hsq, ih]
     ring
 
+/-- On a finite linearly ordered type, increasing pairs are already off the diagonal. -/
 theorem univ_offDiag_filter_lt {ι : Type*} [LinearOrder ι] [Fintype ι] [DecidableEq ι] :
     (univ : Finset ι).offDiag.filter (fun p : ι × ι => p.1 < p.2)
       = univ.filter (fun p : ι × ι => p.1 < p.2) := by
@@ -130,6 +158,8 @@ theorem univ_offDiag_filter_lt {ι : Type*} [LinearOrder ι] [Fintype ι] [Decid
   · intro hlt
     exact ⟨ne_of_lt hlt, hlt⟩
 
+/-- The square of a sum over a finite linearly ordered type is the sum of squares plus twice the
+sum of products over increasing pairs. -/
 theorem sum_sq_eq_sum_sq_add_two_offDiag {ι : Type*} [LinearOrder ι] [Fintype ι]
     [DecidableEq ι] (f : ι → ℝ) :
     (∑ i, f i) ^ 2
@@ -138,6 +168,8 @@ theorem sum_sq_eq_sum_sq_add_two_offDiag {ι : Type*} [LinearOrder ι] [Fintype 
   have h := sum_sq_eq_sum_sq_add_two_offDiag_finset (univ : Finset ι) f
   rwa [univ_offDiag_filter_lt] at h
 
+/-- The square of a sum over `Fin M` expands as the sum of squares plus twice the sum of
+products indexed by `ColumnPair M`. -/
 theorem sum_square_pairs (M : ℕ) (f : Fin M → ℝ) :
     (∑ r, f r)^2 = (∑ r, f r^2) +
       2 * ∑ p : ColumnPair M, f (left p)*f (right p) := by

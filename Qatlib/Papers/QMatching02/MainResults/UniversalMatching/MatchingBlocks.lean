@@ -122,6 +122,31 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# Spectral blocks for universal quantum matching
+
+This module computes the three-dimensional blocks used in universal quantum matching in
+[SasakiCarlini2002]. The matrix `blockMat b c` has explicit vector relations at scalars `√(b² +
+c²)`, its negative, and zero; normalized outer products give positive effects summing to the
+identity when `b² + c² > 0`.
+
+Specializing to the binomial coefficients `binomB` and `binomC` evaluates the weighted
+positive-block trace sum. The final score formula separates the two endpoint contributions from
+the interior binomial terms.
+
+## Main statements
+
+* `block_povm_complete`: the three normalized effects sum to the identity for a nonzero block.
+* `universal_matching_blocks`: positivity, block completeness, and the total weighted trace
+  formula.
+* `universal_machine_score`: the resulting score including the baseline one half.
+
+## References
+
+* [Sasaki and Carlini, 2002][SasakiCarlini2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -133,33 +158,45 @@ open scoped BigOperators ComplexOrder
 
 namespace Qatlib.Papers.QMatching02.MainResults.UniversalMatching
 
+/-- The symmetric three-by-three matrix with adjacent off-diagonal entries `-b` and `c` and zero
+elsewhere. -/
 def blockMat (b c : ℝ) : Matrix (Fin 3) (Fin 3) ℂ :=
   !![(0 : ℂ), -(b : ℂ), 0; -(b : ℂ), 0, (c : ℂ); 0, (c : ℂ), 0]
 
+/-- The nonnegative real number `√(b ^ 2 + c ^ 2)` associated with the block. -/
 def blockEig (b c : ℝ) : ℝ := Real.sqrt (b ^ 2 + c ^ 2)
 
+/-- The vector `(-b, blockEig b c, c)` for the positive scalar relation. -/
 def ePlus (b c : ℝ) : Fin 3 → ℂ := ![-(b : ℂ), (blockEig b c : ℂ), (c : ℂ)]
 
+/-- The vector `(b, blockEig b c, -c)` for the negative scalar relation. -/
 def eMinus (b c : ℝ) : Fin 3 → ℂ := ![(b : ℂ), (blockEig b c : ℂ), -(c : ℂ)]
 
+/-- The kernel vector `(c, 0, b)` of the block matrix. -/
 def eZero (b c : ℝ) : Fin 3 → ℂ := ![(c : ℂ), (0 : ℂ), (b : ℂ)]
 
+/-- The square of `blockEig b c` is `b ^ 2 + c ^ 2`. -/
 theorem blockEig_sq (b c : ℝ) : blockEig b c ^ 2 = b ^ 2 + c ^ 2 :=
   Real.sq_sqrt (by positivity)
 
+/-- The block value `blockEig b c` is positive when `b ^ 2 + c ^ 2 > 0`. -/
 theorem blockEig_pos {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) : 0 < blockEig b c :=
   Real.sqrt_pos.mpr h
 
+/-- The product of the complex image of `blockEig b c` with itself is the complex image of `b ^
+2 + c ^ 2`. -/
 theorem blockEig_mul_self (b c : ℝ) :
     (blockEig b c : ℂ) * (blockEig b c : ℂ) = ((b ^ 2 + c ^ 2 : ℝ) : ℂ) := by
   have h := blockEig_sq b c
   rw [pow_two] at h
   rw [← Complex.ofReal_mul, h]
 
+/-- The square of the complex image of `blockEig b c` is the complex image of `b ^ 2 + c ^ 2`. -/
 theorem blockEig_sq_complex (b c : ℝ) :
     ((blockEig b c : ℂ)) ^ 2 = ((b ^ 2 + c ^ 2 : ℝ) : ℂ) := by
   rw [pow_two, blockEig_mul_self]
 
+/-- The block matrix sends `ePlus b c` to `blockEig b c` times that vector. -/
 theorem blockMat_mulVec_ePlus (b c : ℝ) :
     blockMat b c *ᵥ ePlus b c = (blockEig b c : ℂ) • ePlus b c := by
   funext i
@@ -169,6 +206,7 @@ theorem blockMat_mulVec_ePlus (b c : ℝ) :
   · rw [blockEig_mul_self]; push_cast; ring
   · ring
 
+/-- The block matrix sends `eMinus b c` to `-blockEig b c` times that vector. -/
 theorem blockMat_mulVec_eMinus (b c : ℝ) :
     blockMat b c *ᵥ eMinus b c = -((blockEig b c : ℂ)) • eMinus b c := by
   funext i
@@ -178,6 +216,7 @@ theorem blockMat_mulVec_eMinus (b c : ℝ) :
   · rw [blockEig_mul_self]; push_cast; ring
   · ring
 
+/-- The block matrix annihilates `eZero b c`. -/
 theorem blockMat_mulVec_eZero (b c : ℝ) :
     blockMat b c *ᵥ eZero b c = 0 := by
   funext i
@@ -185,29 +224,38 @@ theorem blockMat_mulVec_eZero (b c : ℝ) :
     simp [blockMat, eZero, Matrix.mulVec]
   all_goals ring
 
+/-- The vector `ePlus b c` is fixed by complex conjugation. -/
 theorem star_ePlus (b c : ℝ) : star (ePlus b c) = ePlus b c := by
   funext i; fin_cases i <;> simp [ePlus]
 
+/-- The vector `eMinus b c` is fixed by complex conjugation. -/
 theorem star_eMinus (b c : ℝ) : star (eMinus b c) = eMinus b c := by
   funext i; fin_cases i <;> simp [eMinus]
 
+/-- The vector `eZero b c` is fixed by complex conjugation. -/
 theorem star_eZero (b c : ℝ) : star (eZero b c) = eZero b c := by
   funext i; fin_cases i <;> simp [eZero]
 
+/-- The dot product of `ePlus b c` with itself is the complex image of `2 * blockEig b c ^ 2`. -/
 theorem dot_ePlus (b c : ℝ) :
     (ePlus b c) ⬝ᵥ (ePlus b c) = ((2 * blockEig b c ^ 2 : ℝ) : ℂ) := by
   simp [dotProduct, ePlus, Fin.sum_univ_three, pow_two, blockEig_mul_self]
   ring
 
+/-- The outer product of `ePlus b c` with its conjugate, scaled by `1 / (2 * blockEig b c ^ 2)`. -/
 def projPlus (b c : ℝ) : Matrix (Fin 3) (Fin 3) ℂ :=
   ((1 / (2 * blockEig b c ^ 2) : ℝ)) • vecMulVec (ePlus b c) (star (ePlus b c))
 
+/-- The outer product of `eMinus b c` with its conjugate, scaled by `1 / (2 * blockEig b c ^
+2)`. -/
 def projMinus (b c : ℝ) : Matrix (Fin 3) (Fin 3) ℂ :=
   ((1 / (2 * blockEig b c ^ 2) : ℝ)) • vecMulVec (eMinus b c) (star (eMinus b c))
 
+/-- The outer product of `eZero b c` with its conjugate, scaled by `1 / blockEig b c ^ 2`. -/
 def projZero (b c : ℝ) : Matrix (Fin 3) (Fin 3) ℂ :=
   ((1 / (blockEig b c ^ 2) : ℝ)) • vecMulVec (eZero b c) (star (eZero b c))
 
+/-- For a nonzero block, `projPlus b c` has trace one. -/
 theorem trace_projPlus {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) : (projPlus b c).trace = 1 := by
   have hp : (0:ℝ) < 2 * blockEig b c ^ 2 := by
     have := blockEig_pos h; positivity
@@ -218,34 +266,41 @@ theorem trace_projPlus {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) : (projPlus b c).trac
       rw [one_div, inv_mul_cancel₀ (ne_of_gt hp)]]
   simp
 
+/-- Left multiplication by `blockMat b c` scales `projPlus b c` by `blockEig b c`. -/
 theorem blockMat_mul_projPlus (b c : ℝ) :
     blockMat b c * projPlus b c = (blockEig b c : ℂ) • projPlus b c := by
   unfold projPlus
   rw [Matrix.mul_smul, Matrix.mul_vecMulVec, blockMat_mulVec_ePlus, Matrix.smul_vecMulVec]
   exact smul_comm _ _ _
 
+/-- For a nonzero block, the trace of `blockMat b c * projPlus b c` is `blockEig b c`. -/
 theorem trace_blockMat_projPlus {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) :
     (blockMat b c * projPlus b c).trace = (blockEig b c : ℂ) := by
   rw [blockMat_mul_projPlus, Matrix.trace_smul, trace_projPlus h, smul_eq_mul, mul_one]
 
+/-- For a nonzero block, the matrix `projPlus b c` is positive semidefinite. -/
 theorem projPlus_posSemidef {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) :
     (projPlus b c).PosSemidef := by
   have hp : (0:ℝ) < blockEig b c ^ 2 := pow_pos (blockEig_pos h) 2
   unfold projPlus
   exact (Matrix.posSemidef_vecMulVec_self_star (ePlus b c)).smul (by positivity)
 
+/-- For a nonzero block, the matrix `projMinus b c` is positive semidefinite. -/
 theorem projMinus_posSemidef {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) :
     (projMinus b c).PosSemidef := by
   have hp : (0:ℝ) < blockEig b c ^ 2 := pow_pos (blockEig_pos h) 2
   unfold projMinus
   exact (Matrix.posSemidef_vecMulVec_self_star (eMinus b c)).smul (by positivity)
 
+/-- For a nonzero block, the matrix `projZero b c` is positive semidefinite. -/
 theorem projZero_posSemidef {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) :
     (projZero b c).PosSemidef := by
   have hp : (0:ℝ) < blockEig b c ^ 2 := pow_pos (blockEig_pos h) 2
   unfold projZero
   exact (Matrix.posSemidef_vecMulVec_self_star (eZero b c)).smul (by positivity)
 
+/-- When `b ^ 2 + c ^ 2 > 0`, the three block effects sum to the identity. See
+[SasakiCarlini2002]. -/
 theorem block_povm_complete {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) :
     projPlus b c + projMinus b c + projZero b c = 1 := by
   have hp : (0:ℝ) < 2 * blockEig b c ^ 2 := by
@@ -272,19 +327,25 @@ theorem block_povm_complete {b c : ℝ} (h : 0 < b ^ 2 + c ^ 2) :
     rw [smul_sub, hmul, sub_self]
   exact sub_eq_zero.mp ((smul_eq_zero.mp hzero).resolve_left hne)
 
+/-- The scalar block weight `√2 / 2 ^ (N + 4)`. -/
 def blockWeight (N : ℕ) : ℝ := Real.sqrt 2 / (2 : ℝ) ^ (N + 4)
 
+/-- The product of the square roots of `choose N k` and `choose N (k + 1)`. -/
 def binomB (N k : ℕ) : ℝ :=
   Real.sqrt (Nat.choose N k) * Real.sqrt (Nat.choose N (k + 1))
 
+/-- The product of the square roots of `choose N k` and `choose N (k - 1)`, with the value at `k
+= 0` set to zero. -/
 def binomC (N k : ℕ) : ℝ :=
   if k = 0 then 0 else Real.sqrt (Nat.choose N k) * Real.sqrt (Nat.choose N (k - 1))
 
+/-- The binomial block magnitude, using a zero lower-neighbor term at `k = 0`. -/
 def binomS (N k : ℕ) : ℝ :=
   Real.sqrt (Nat.choose N k) *
     Real.sqrt ((Nat.choose N (k + 1) : ℝ) +
       (if k = 0 then 0 else (Nat.choose N (k - 1) : ℝ)))
 
+/-- The block value at `binomB N k` and `binomC N k` equals `binomS N k`. -/
 theorem blockEig_binom (N k : ℕ) :
     blockEig (binomB N k) (binomC N k) = binomS N k := by
   unfold blockEig binomB binomC binomS
@@ -300,6 +361,8 @@ theorem blockEig_binom (N k : ℕ) :
         rw [mul_pow, Real.sq_sqrt (by positivity), Real.sq_sqrt (by positivity)]]
     rw [← mul_add, ← Real.sqrt_mul (by positivity)]
 
+/-- For `N ≥ 1` and `k ≤ N`, the sum of the squares of `binomB N k` and `binomC N k` is
+positive. -/
 theorem binom_block_pos {N k : ℕ} (hN : 1 ≤ N) (hk : k ≤ N) :
     0 < binomB N k ^ 2 + binomC N k ^ 2 := by
   have hchoose : (1 : ℝ) ≤ (Nat.choose N k : ℝ) := by
@@ -325,10 +388,12 @@ theorem binom_block_pos {N k : ℕ} (hN : 1 ≤ N) (hk : k ≤ N) :
     rw [hc, hcN]
     nlinarith [sq_nonneg (binomB N N)]
 
+/-- The binomial block magnitude at `k = 0` is `√N`. -/
 theorem binomS_zero (N : ℕ) : binomS N 0 = Real.sqrt N := by
   unfold binomS
   simp [Nat.choose_one_right]
 
+/-- For `N ≥ 1`, the binomial block magnitude at `k = N` is `√N`. -/
 theorem binomS_top {N : ℕ} (hN : 1 ≤ N) : binomS N N = Real.sqrt N := by
   unfold binomS
   have hN0 : N ≠ 0 := by omega
@@ -337,12 +402,16 @@ theorem binomS_top {N : ℕ} (hN : 1 ≤ N) : binomS N N = Real.sqrt N := by
       rw [Nat.choose_symm hN]; exact Nat.choose_one_right N]
   simp
 
+/-- For `k ≥ 1`, `binomS N k` is the square root of `choose N k` times the square root of the
+sum of its two neighboring binomial coefficients. -/
 theorem binomS_interior {N k : ℕ} (hk : 1 ≤ k) :
     binomS N k = Real.sqrt (Nat.choose N k) *
       Real.sqrt ((Nat.choose N (k + 1) : ℝ) + (Nat.choose N (k - 1) : ℝ)) := by
   unfold binomS
   rw [if_neg (by omega)]
 
+/-- For `N ≥ 1`, the sum of the block values splits into two `√N` endpoint terms and the
+interior sum of `binomS`. -/
 theorem sum_blockEig_split (N : ℕ) (hN : 1 ≤ N) :
     (∑ k ∈ Finset.range (N + 1), blockEig (binomB N k) (binomC N k))
       = Real.sqrt N + (∑ k ∈ Finset.Icc 1 (N - 1), binomS N k) + Real.sqrt N := by
@@ -363,6 +432,8 @@ theorem sum_blockEig_split (N : ℕ) (hN : 1 ≤ N) :
   rw [hshift]
   ring
 
+/-- For `N ≥ 1`, the weighted block-value sum equals the expression with two endpoint terms and
+the interior binomial square-root sum. See [SasakiCarlini2002]. -/
 theorem qmScore_blocks (N : ℕ) (hN : 1 ≤ N) :
     blockWeight N * (∑ k ∈ Finset.range (N + 1), blockEig (binomB N k) (binomC N k))
       = blockWeight N * (2 * Real.sqrt N +
@@ -379,9 +450,12 @@ theorem qmScore_blocks (N : ℕ) (hN : 1 ≤ N) :
   rw [sum_blockEig_split N hN, hS]
   ring
 
+/-- The binomial block matrix multiplied by the scalar `blockWeight N`. -/
 def deltaW (N k : ℕ) : Matrix (Fin 3) (Fin 3) ℂ :=
   blockWeight N • blockMat (binomB N k) (binomC N k)
 
+/-- For a nonzero binomial block, the real trace of `deltaW N k * projPlus` is the block weight
+times the block value. See [SasakiCarlini2002]. -/
 theorem trace_deltaW_projPlus {N k : ℕ} (h : 0 < binomB N k ^ 2 + binomC N k ^ 2) :
     Complex.re ((deltaW N k * projPlus (binomB N k) (binomC N k)).trace)
       = blockWeight N * blockEig (binomB N k) (binomC N k) := by
@@ -389,6 +463,9 @@ theorem trace_deltaW_projPlus {N k : ℕ} (h : 0 < binomB N k ^ 2 + binomC N k ^
   rw [Matrix.smul_mul, Matrix.trace_smul, trace_blockMat_projPlus h, Complex.real_smul,
     ← Complex.ofReal_mul, Complex.ofReal_re]
 
+/-- For `N ≥ 1`, the positive effects are positive semidefinite, each block triple sums to the
+identity, and the weighted trace sum has the stated binomial expression. See
+[SasakiCarlini2002]. -/
 theorem universal_matching_blocks (N : ℕ) (hN : 1 ≤ N) :
     (∀ k ∈ Finset.range (N + 1), (projPlus (binomB N k) (binomC N k)).PosSemidef)
     ∧ (∀ k ∈ Finset.range (N + 1),
@@ -418,6 +495,8 @@ theorem universal_matching_blocks (N : ℕ) (hN : 1 ≤ N) :
               Real.sqrt ((Nat.choose N (k + 1) : ℝ) + (Nat.choose N (k - 1) : ℝ))) :=
         qmScore_blocks N hN
 
+/-- For `N ≥ 1`, adding one half to the weighted positive-block trace sum gives the displayed
+universal matching score formula. See [SasakiCarlini2002]. -/
 theorem universal_machine_score (N : ℕ) (hN : 1 ≤ N) :
     1 / 2 + (∑ k ∈ Finset.range (N + 1),
         Complex.re ((deltaW N k * projPlus (binomB N k) (binomC N k)).trace))

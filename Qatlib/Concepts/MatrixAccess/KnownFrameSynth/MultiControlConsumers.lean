@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+
+/-!
+# Consumers of multiple-control qubit synthesis
+
+This module applies the multiple-control construction to repeated forward and inverse operations
+and to phase kickback. `multiKnownGate` preserves identity and multiplication, while the
+compiled constructions restore the clean work register.
+
+These applications use the elementary controlled-gate setting of [BarencoEtAl1995].
+
+## Main statements
+
+* `multi_known_control_paid_inverse_and_clean_reuse`: gives the exact cost of repeated inverse
+  pairs.
+* `multi_known_control_all_true_phase_kickback_consumer`: applies a phase change to the all-true
+  control branch.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,11 +40,13 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Controlling the identity qubit matrix on all control bits gives the identity matrix. -/
 theorem multiKnownGate_one (n : ℕ) :
     multiKnownGate n (1 : Matrix Bool Bool ℂ) = 1 := by
   ext ⟨x,a⟩ ⟨y,b⟩
   by_cases h : x = y <;> simp [multiKnownGate, h, Matrix.one_apply, Prod.ext_iff]
 
+/-- The all-true controlled construction preserves multiplication of qubit matrices. -/
 theorem multiKnownGate_mul (n : ℕ) (U V : Matrix Bool Bool ℂ) :
     multiKnownGate n U * multiKnownGate n V = multiKnownGate n (U * V) := by
   ext ⟨x,a⟩ ⟨y,b⟩
@@ -46,6 +70,8 @@ theorem multiKnownGate_mul (n : ℕ) (U V : Matrix Bool Bool ℂ) :
       _ = 0 := Finset.sum_const_zero
       _ = _ := by simp [multiKnownGate, hxy]
 
+/-- Repeating a synthesized controlled gate followed by its synthesized inverse r times restores
+the embedded state, uses no queries, and costs `2*r*multiKnownCost n` gates. -/
 theorem multi_known_control_paid_inverse_and_clean_reuse
     (n : ℕ) (p : KnownQubitAngles) (r : ℕ) (ψ : QState (Reg n × Bool)) :
     let cs := (List.replicate r (reflectionCompile (multiKnownSteps n p) ++
@@ -77,6 +103,7 @@ theorem multi_known_control_paid_inverse_and_clean_reuse
     · rw [ih.2.1]; ring
     · exact ih.2.2
 
+/-- The Euler parameters (π/2, 0, π, π) represent `PauliX`. -/
 theorem multiKnown_pauliX_angles :
     knownQubitUnitary ⟨Real.pi/2,0,Real.pi,Real.pi⟩ = PauliX := by
   ext a b
@@ -86,6 +113,8 @@ theorem multiKnown_pauliX_angles :
       Complex.ofReal_div, Complex.exp_pi_div_two_mul_I, Complex.exp_neg,
       Real.cos_pi_div_two, Real.sin_pi_div_two, PauliX, permMatrix]
 
+/-- An all-true controlled `PauliX` with target state `Minus` negates exactly the amplitudes on
+the all-true control branch and preserves the target state. -/
 theorem multiKnownGate_phase_minus (n : ℕ) (ψ : QState (Reg n)) :
     multiKnownGate n PauliX *ᵥ TensorState ψ Minus =
       TensorState (fun x => if allControlTrue n x then -ψ x else ψ x) Minus := by
@@ -99,6 +128,8 @@ theorem multiKnownGate_phase_minus (n : ℕ) (ψ : QState (Reg n)) :
     simp [multiKnownGate, Ne.symm hy]
   · intro h; exact (h (Finset.mem_univ x)).elim
 
+/-- The explicit local synthesis of the controlled `PauliX` produces all-true phase kickback on
+an arbitrary control state with target `Minus`. -/
 theorem multi_known_control_all_true_phase_kickback_consumer
     (n : ℕ) (ψ : QState (Reg n)) :
     let p : KnownQubitAngles := ⟨Real.pi/2,0,Real.pi,Real.pi⟩

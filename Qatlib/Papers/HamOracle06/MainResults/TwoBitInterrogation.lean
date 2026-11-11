@@ -87,21 +87,52 @@ import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Geometric formulas for two-bit oracle interrogation
+
+This module defines the quadratic metric expression `hamMetricSpeed` and the climb, turn, and
+excursion formulas used in the two-bit interrogation analysis. It proves the control
+normalization, excursion decompositions, a round-trip lower bound, and monotonicity in the
+initial cosine.
+
+The theorem `twoBitQueryTime_numeric` provides a witness with initial cosine within 0.01 of
+0.7477 and excursion time within 0.001 of 0.9052 for target cosine √2/2. See [Mochon2007] for
+the Hamiltonian oracle formulation.
+
+## Main statements
+
+* `hamMetricSpeed_control`: If tan θ is nonzero, substituting the control velocities (π / 2)wθ
+  and (π / 2)wφ / tan θ into `hamMetricSpeed` yields wθ² + wφ².
+* `twoBitExcursionTime_strictMonoOn`: For a fixed positive target cosine cθ, the excursion time
+  is strictly increasing as a function of cθ₀ on [cθ, ∞).
+* `twoBitQueryTime_numeric`: There exists an initial cosine within 0.01 of 0.7477 whose
+  excursion time to target cosine √2 / 2 is within 0.001 of 0.9052.
+
+## References
+
+* [Mochon, 2007][Mochon2007]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
 
 namespace Qatlib.Papers.HamOracle06.MainResults
 
+/-- The quadratic squared-speed expression (4 / π²)(θdot² + tan² θ · φdot²) for the Hamiltonian
+interrogation metric. -/
 def hamMetricSpeed (θ θdot φdot : ℝ) : ℝ :=
   (4 / Real.pi ^ 2) * (θdot ^ 2 + Real.tan θ ^ 2 * φdot ^ 2)
 
+/-- The quadratic expression `hamMetricSpeed θ θdot φdot` is nonnegative. -/
 theorem hamMetricSpeed_nonneg (θ θdot φdot : ℝ) : 0 ≤ hamMetricSpeed θ θdot φdot := by
   unfold hamMetricSpeed
   have hpi : 0 ≤ 4 / Real.pi ^ 2 := by positivity
   have hq : 0 ≤ θdot ^ 2 + Real.tan θ ^ 2 * φdot ^ 2 := by positivity
   exact mul_nonneg hpi hq
 
+/-- If tan θ is nonzero, substituting the control velocities (π / 2)wθ and (π / 2)wφ / tan θ
+into `hamMetricSpeed` yields wθ² + wφ². See [Mochon2007]. -/
 theorem hamMetricSpeed_control (θ wθ wφ : ℝ) (h : Real.tan θ ≠ 0) :
     hamMetricSpeed θ (Real.pi / 2 * wθ) (Real.pi / 2 * (wφ / Real.tan θ))
       = wθ ^ 2 + wφ ^ 2 := by
@@ -109,20 +140,27 @@ theorem hamMetricSpeed_control (θ wθ wφ : ℝ) (h : Real.tan θ ≠ 0) :
   field_simp
   ring
 
+/-- The apex climb-time expression cos θ₀. -/
 def apexClimbTime (θ0 : ℝ) : ℝ := Real.cos θ0
 
+/-- The apex turn-angle expression (π / 2)(1 − sin θ₀). -/
 def apexTurnAngle (θ0 : ℝ) : ℝ := Real.pi / 2 * (1 - Real.sin θ0)
 
+/-- The excursion-time expression 2cθ₀(1 − arcsin(cθ / cθ₀) / π) in terms of the initial and
+target cosines. -/
 def twoBitExcursionTime (cθ0 cθ : ℝ) : ℝ :=
   2 * cθ0 * (1 - (1 / Real.pi) * Real.arcsin (cθ / cθ0))
 
+/-- The excursion time minus the climb contribution cθ₀. -/
 def twoBitDescentTime (cθ0 cθ : ℝ) : ℝ := twoBitExcursionTime cθ0 cθ - cθ0
 
+/-- The two-bit excursion time is the sum of cθ₀ and the descent-time expression. -/
 theorem twoBitExcursionTime_decomposition (cθ0 cθ : ℝ) :
     twoBitExcursionTime cθ0 cθ = cθ0 + twoBitDescentTime cθ0 cθ := by
   unfold twoBitDescentTime
   ring
 
+/-- The two-bit excursion time equals cθ₀ + (2cθ₀ / π) arccos(cθ / cθ₀). -/
 theorem twoBitExcursionTime_eq_arccos (cθ0 cθ : ℝ) :
     twoBitExcursionTime cθ0 cθ =
       cθ0 + (2 * cθ0 / Real.pi) * Real.arccos (cθ / cθ0) := by
@@ -134,6 +172,7 @@ theorem twoBitExcursionTime_eq_arccos (cθ0 cθ : ℝ) :
   field_simp
   ring
 
+/-- For 0 ≤ θ₀ ≤ π / 4, twice the apex climb time is at least √2. See [Mochon2007]. -/
 theorem apexRoundTrip_ge (θ0 : ℝ) (h0 : 0 ≤ θ0) (h : θ0 ≤ Real.pi / 4) :
     Real.sqrt 2 ≤ 2 * apexClimbTime θ0 := by
   have hpi4 : Real.pi / 4 ≤ Real.pi := by nlinarith [Real.pi_pos]
@@ -143,6 +182,8 @@ theorem apexRoundTrip_ge (θ0 : ℝ) (h0 : 0 ≤ θ0) (h : θ0 ≤ Real.pi / 4) 
   rw [Real.cos_pi_div_four] at hcos
   nlinarith
 
+/-- For a fixed positive target cosine cθ, the excursion time is strictly increasing as a
+function of cθ₀ on [cθ, ∞). See [Mochon2007]. -/
 theorem twoBitExcursionTime_strictMonoOn (cθ : ℝ) (hcθ : 0 < cθ) :
     StrictMonoOn (fun cθ0 => twoBitExcursionTime cθ0 cθ) (Set.Ici cθ) := by
   intro c1 hc1 c2 hc2 hlt
@@ -175,6 +216,8 @@ theorem twoBitExcursionTime_strictMonoOn (cθ : ℝ) (hcθ : 0 < cθ) :
   field_simp
   nlinarith [hπc, hterm]
 
+/-- There exists an initial cosine within 0.01 of 0.7477 whose excursion time to target cosine
+√2 / 2 is within 0.001 of 0.9052. See [Mochon2007]. -/
 theorem twoBitQueryTime_numeric :
     ∃ cθ0 : ℝ, |cθ0 - 0.7477| < 0.01 ∧
       |twoBitExcursionTime cθ0 (Real.sqrt 2 / 2) - 0.9052| < 0.001 := by

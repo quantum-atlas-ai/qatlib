@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotation
+
+/-!
+# Corrected subset-controlled rotation semantics
+
+This module defines a subset-rotation frame with enough available work wires and uses only the
+required initial work segment. It proves legality, exact word lengths, coherent target-fiber
+semantics, and work uncomputation for individual rotations and their concatenation.
+
+The polynomial payoff-rotation setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `subset_rotation_actual_table_semantics_cost_corrected`: The corrected subset-rotation word is
+  legal, has the prescribed exact cost, and applies the target rotation precisely when all
+  controls are true on inputs with clean work wires.
+* `figtwo_rotation_program_semantics_and_cost_corrected`: A concatenation of corrected subset
+  rotations is legal, has cost equal to the sum of the individual costs, and rotates the target
+  by `subsetRotationAngle` on inputs with clean work wires.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,26 +48,35 @@ namespace Qatlib.Concepts.RiskEstimation.PolyRotation
 open Matrix
 open scoped Classical
 
+/-- The corrected subset-rotation frame, with distinct disjoint control and work lists separated
+from the target and at least `S.length - 1` work wires. -/
 def subsetRotationFrameCorrected {N : ℕ} (S : List (Fin N)) (target : Fin N)
     (works : List (Fin N)) : Prop :=
   S.Nodup ∧ works.Nodup ∧ S.length-1 ≤ works.length ∧
     (∀ w∈S,w≠target) ∧ (∀ w∈works,w≠target) ∧
     (∀ w∈S,∀ u∈works,w≠u)
 
+/-- The first `S.length - 1` work wires used by a subset-control computation. -/
 def subsetActiveWorks {N : ℕ} (S works : List (Fin N)) : List (Fin N) :=
   works.take (S.length-1)
 
+/-- The corrected Toffoli ladder that combines the first two controls and folds each remaining
+control into an active work wire. -/
 def subsetAndLadderCorrected {N : ℕ} (S works : List (Fin N)) : List (ReflectionGate N) :=
   match S,subsetActiveWorks S works with
   | c0::c1::cs,w::ws=>toffoliLocalSteps c0 c1 w++subsetAndFold w cs ws
   | _,_=>[]
 
+/-- The corrected flag wire, using the target for no controls, the control itself for one
+control, and the final active work wire otherwise. -/
 def subsetFlagWireCorrected {N : ℕ} (S : List (Fin N)) (target : Fin N) (works : List (Fin N)) : Fin N :=
   match S with
   | []=>target
   | [c]=>c
   | _=> (subsetActiveWorks S works).getLastD target
 
+/-- The corrected subset-rotation word, formed from an unconditional rotation or a compute,
+controlled-rotate, and uncompute sequence. -/
 def subsetRotationStepsCorrected {N : ℕ} (S : List (Fin N)) (target : Fin N)
     (works : List (Fin N)) (θ : ℝ) : List (ReflectionGate N) :=
   match S with
@@ -52,13 +85,16 @@ def subsetRotationStepsCorrected {N : ℕ} (S : List (Fin N)) (target : Fin N)
     multiKnownPairSteps (subsetFlagWireCorrected S target works) target ⟨0,0,θ,0⟩++
     reflectionAdjoint (subsetAndLadderCorrected S works)
 
+/-- The concatenation of corrected subset-rotation words for the given angle terms. -/
 def figTwoRotationStepsCorrected {N : ℕ} (target : Fin N) (works : List (Fin N))
     (terms : List (List (Fin N) × ℝ)) : List (ReflectionGate N) :=
   terms.flatMap fun p=>subsetRotationStepsCorrected p.1 target works p.2
 
+/-- If enough work wires are available, the active work list has length `S.length - 1`. -/
 theorem subsetActiveWorks_length {N : ℕ} (S ws : List (Fin N)) (h : S.length-1 ≤ ws.length) :
     (subsetActiveWorks S ws).length=S.length-1 := by simp [subsetActiveWorks,List.length_take,Nat.min_eq_left h]
 
+/-- A Toffoli fold with equal-length control and work lists has length `15 * cs.length`. -/
 theorem subsetAndFold_length {N : ℕ} (f : Fin N) (cs ws : List (Fin N)) (h : cs.length=ws.length) :
     (subsetAndFold f cs ws).length=15*cs.length := by
   induction cs generalizing f ws with
@@ -71,6 +107,7 @@ theorem subsetAndFold_length {N : ℕ} (f : Fin N) (cs ws : List (Fin N)) (h : c
       simp only [subsetAndFold,List.length_append,toffoliLocalSteps_length,ih w ws hh,List.length_cons]
       omega
 
+/-- With enough work wires, the corrected ladder has length `15 * (S.length - 1)`. -/
 theorem subsetAndLadderCorrected_length {N : ℕ} (S ws : List (Fin N))
     (h : S.length-1 ≤ ws.length) :
     (subsetAndLadderCorrected S ws).length=15*(S.length-1) := by
@@ -88,6 +125,7 @@ theorem subsetAndLadderCorrected_length {N : ℕ} (S ws : List (Fin N))
           subsetAndFold_length w cs ww hlen,List.length_cons]
         omega
 
+/-- The Toffoli fold is legal under the stated disjointness and distinct-work conditions. -/
 theorem subsetAndFold_legal {N : ℕ} (cs ws : List (Fin N)) (f : Fin N)
     (hdis : ∀ c∈cs,∀ w∈ws,c≠w) (hwn : ws.Nodup)
     (hf : ∀ v,v∈cs ∨ v∈ws → f≠v) : reflectionLegal (subsetAndFold f cs ws) := by
@@ -113,6 +151,7 @@ theorem subsetAndFold_legal {N : ℕ} (cs ws : List (Fin N)) (f : Fin N)
       · exact toffoliLocalSteps_legal f c w hfc hfw hcw g hg
       · exact ih ws w hdis' hwn' hwf g hg
 
+/-- The fold basis transformation preserves every wire outside its work list. -/
 theorem subsetFoldBasis_preserves {N : ℕ} (cs ws : List (Fin N)) (f : Fin N) (x : Reg N)
     (t : Fin N) (ht : t∉ws) : subsetFoldBasis f cs ws x t=x t := by
   induction cs generalizing ws f x with
@@ -125,6 +164,8 @@ theorem subsetFoldBasis_preserves {N : ℕ} (cs ws : List (Fin N)) (f : Fin N) (
       have htail : t∉ws := fun hh=>ht (List.mem_cons_of_mem _ hh)
       rw [subsetFoldBasis,ih ws w _ htail,subsetStageBasis,Function.update_of_ne htw]
 
+/-- A Toffoli basis stage commutes with updating a wire distinct from its two controls and
+target. -/
 theorem subsetStageBasis_update {N : ℕ} (x : Reg N) (a c w t : Fin N) (b : Bool)
     (ha : a≠t) (hc : c≠t) (hw : w≠t) :
     subsetStageBasis (Function.update x t b) a c w=Function.update (subsetStageBasis x a c w) t b := by
@@ -132,6 +173,8 @@ theorem subsetStageBasis_update {N : ℕ} (x : Reg N) (a c w t : Fin N) (b : Boo
   rw [Function.update_of_ne hw,Function.update_of_ne ha,Function.update_of_ne hc,
     Function.update_comm hw]
 
+/-- The fold basis transformation commutes with updating a wire distinct from its initial flag,
+controls, and work wires. -/
 theorem subsetFoldBasis_update {N : ℕ} (cs ws : List (Fin N)) (f t : Fin N) (x : Reg N) (b : Bool)
     (hf : f≠t) (hcs : ∀ c∈cs,c≠t) (hws : ∀ w∈ws,w≠t) :
     subsetFoldBasis f cs ws (Function.update x t b)=Function.update (subsetFoldBasis f cs ws x) t b := by
@@ -145,11 +188,15 @@ theorem subsetFoldBasis_update {N : ℕ} (cs ws : List (Fin N)) (f t : Fin N) (x
         (fun u hu=>hcs u (List.mem_cons_of_mem _ hu))
         (fun u hu=>hws u (List.mem_cons_of_mem _ hu))
 
+/-- The register transformation of the corrected ladder, combining the first two controls before
+folding the remaining controls. -/
 def subsetLadderBasisCorrected {N : ℕ} (S ws : List (Fin N)) (x : Reg N) : Reg N :=
   match S,subsetActiveWorks S ws with
   | a::b::cs,w::ww=>subsetFoldBasis w cs ww (subsetStageBasis x a b w)
   | _,_=>x
 
+/-- The active work list inherits distinctness and separation from the target and controls from
+the corrected frame. -/
 theorem subsetActiveWorks_frame {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) :
     (subsetActiveWorks S ws).Nodup ∧
@@ -161,9 +208,13 @@ theorem subsetActiveWorks_frame {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
   · intro c hc w hw
     exact h.2.2.2.2.2 c hc w (List.mem_of_mem_take hw)
 
+/-- The last element with fallback of a nonempty work list equals that of its tail with the head
+as fallback. -/
 private theorem subsetWorkLast {α : Type} (w : α) (ws : List α) (t : α) :
     (w::ws).getLastD t=ws.getLastD w := by cases ws <;> simp [List.getLastD]
 
+/-- Under a corrected frame, the ladder is legal and transports basis kets according to
+`subsetLadderBasisCorrected`. -/
 theorem subsetAndLadderCorrected_transport {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) :
     reflectionLegal (subsetAndLadderCorrected S ws) ∧
@@ -203,6 +254,7 @@ theorem subsetAndLadderCorrected_transport {N : ℕ} (S ws : List (Fin N)) (t : 
           rw [(local_toffoli_fifteen_exact N a b w hab haw hbw).2.2 x]
           exact subsetAndFold_basis_transport cs ww hd hn w hf _
 
+/-- The corrected ladder basis transformation commutes with updating its separated target wire. -/
 theorem subsetLadderBasisCorrected_update {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) (x : Reg N) (b : Bool) :
     subsetLadderBasisCorrected S ws (Function.update x t b)=
@@ -223,6 +275,8 @@ theorem subsetLadderBasisCorrected_update {N : ℕ} (S ws : List (Fin N)) (t : F
         exact subsetFoldBasis_update cs ww w t _ b (ha.2.1 w (by simp))
           (fun u hu=>h.2.2.2.1 u (by simp [hu])) (fun u hu=>ha.2.1 u (by simp [hu]))
 
+/-- For a nonempty control list and clean work wires, the corrected flag equals
+`subsetControlTrue` after the ladder transformation. -/
 theorem subsetLadderBasisCorrected_flag {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) (hne : S≠[])
     (x : Reg N) (hc : ∀ w∈ws,x w=false) :
@@ -264,6 +318,8 @@ theorem subsetLadderBasisCorrected_flag {N : ℕ} (S ws : List (Fin N)) (t : Fin
         · intro hs
           exact ⟨⟨hs a (by simp),hs b (by simp)⟩,fun u hu=>by rw [hcontrol u hu];exact hs u (by simp [hu])⟩
 
+/-- For a nonempty control list in a corrected frame, the selected flag wire differs from the
+target. -/
 theorem subsetFlagWireCorrected_ne {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) (hne : S≠[]) : subsetFlagWireCorrected S t ws≠t := by
   cases S with
@@ -281,6 +337,8 @@ theorem subsetFlagWireCorrected_ne {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
           exact List.getLastD_mem_cons
         exact ha.2.1 _ hm
 
+/-- The corrected ladder transports an arbitrary target-qubit fiber while applying its basis
+transformation to the surrounding register. -/
 theorem subsetAndLadderCorrected_fiber {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) (x : Reg N) (φ : QState Bool) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (subsetAndLadderCorrected S ws))
@@ -292,6 +350,8 @@ theorem subsetAndLadderCorrected_fiber {N : ℕ} (S ws : List (Fin N)) (t : Fin 
   rw [run_reflectionCompile]
   simp only [multiWireState,reflectionApplyGate_add,reflectionApplyGate_smul,hb]
 
+/-- The inverse corrected ladder restores the original surrounding register on every transported
+target-qubit fiber. -/
 theorem subsetAndLadderCorrected_uncompute {N : ℕ} (S ws : List (Fin N)) (t : Fin N)
     (h : subsetRotationFrameCorrected S t ws) (x : Reg N) (φ : QState Bool) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (reflectionAdjoint (subsetAndLadderCorrected S ws)))
@@ -303,9 +363,12 @@ theorem subsetAndLadderCorrected_uncompute {N : ℕ} (S ws : List (Fin N)) (t : 
   rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose] at hu
   rw [hu,Matrix.one_mulVec]
 
+/-- The known-angle controlled pair construction has length six. -/
 private theorem subsetPairSteps_length {N : ℕ} (c t : Fin N) (p : KnownQubitAngles) :
     (multiKnownPairSteps c t p).length=6 := by rfl
 
+/-- Under a corrected frame, the subset-rotation word is legal and has length `multiKnownCost
+S.length`. -/
 theorem subsetRotationStepsCorrected_legal_cost {N : ℕ} (S ws : List (Fin N)) (t : Fin N) (θ : ℝ)
     (h : subsetRotationFrameCorrected S t ws) :
     reflectionLegal (subsetRotationStepsCorrected S t ws θ) ∧
@@ -337,6 +400,8 @@ theorem subsetRotationStepsCorrected_legal_cost {N : ℕ} (S ws : List (Fin N)) 
         subsetPairSteps_length,subsetAndLadderCorrected_length _ _ h.2.2.1,multiKnownCost,List.length_cons]
       split_ifs <;> first | contradiction | omega
 
+/-- The corrected subset-rotation word is legal, has the prescribed exact cost, and applies the
+target rotation precisely when all controls are true on inputs with clean work wires. -/
 theorem subset_rotation_actual_table_semantics_cost_corrected :
     ∀ (N : ℕ) (S : List (Fin N)) (target : Fin N) (works : List (Fin N)) (θ : ℝ),
     subsetRotationFrameCorrected S target works →
@@ -365,6 +430,9 @@ theorem subset_rotation_actual_table_semantics_cost_corrected :
       simp [knownQubitUnitary,qubitEulerPhase_zero]
     rw [hp]
 
+/-- A concatenation of corrected subset rotations is legal, has cost equal to the sum of the
+individual costs, and rotates the target by `subsetRotationAngle` on inputs with clean work
+wires. -/
 theorem figtwo_rotation_program_semantics_and_cost_corrected :
     ∀ (N : ℕ) (target : Fin N) (works : List (Fin N)) (terms : List (List (Fin N) × ℝ)),
     (∀ p∈terms,subsetRotationFrameCorrected p.1 target works) →

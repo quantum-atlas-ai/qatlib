@@ -37,6 +37,30 @@ import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
 import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
 import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
 import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+
+/-!
+# Definitions for LCU and QSVT applications
+
+This module defines the robustness conditions, word plans, query ledgers, corrected integer
+nodes, and retry costs used in the application statements associated with
+[GilyenSuLowWiebe2019]. The predicates `SparseSimulationWord`, `SparseEigenphaseTransport`, and
+`Lc17EndpointContract` specify the spectral simulation and synthesis guarantees assembled by the
+companion results.
+
+## Main statements
+
+* `printedRobustnessAdequacy`: Compares the rank dependent constant with the printed robustness
+  factor.
+* `SparseSimulationWord`: Specifies simulation error and success mass on normalized
+  eigenvectors.
+* `Lc17EndpointContract`: Collects phase synthesis, word transport, and sparse simulation
+  requirements.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -70,14 +94,20 @@ open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The explicit constant 144 used in the quasicommutator estimates. -/
 noncomputable def quasicommutatorConstant : ℝ := 144
 
+/-- The condition that the printed robustness factor at δ dominates 2 plus the quasicommutator
+constant times the rank logarithmic weight. -/
 noncomputable def printedRobustnessAdequacy (δ : ℝ) (r : ℕ) : Prop :=
   2 + quasicommutatorConstant * hermitianRankLogWeight r ≤ modulusRobustnessFactor δ
 
+/-- The rank dependent perturbation threshold 2/(exp(7 + 2r) − 1). -/
 noncomputable def printedRobustnessThreshold (r : ℕ) : ℝ :=
   2 / (Real.exp (7 + 2 * r) - 1)
 
+/-- The conditional printed perturbation bounds for odd and even singular transforms of
+contractions, subject to a modulus of continuity and dilation rank adequacy. -/
 noncomputable def SvtRobustnessBound : Prop :=
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ),
@@ -93,6 +123,8 @@ noncomputable def SvtRobustnessBound : Prop :=
         ‖rightSingularTransform A f - rightSingularTransform B f‖ ≤
           modulusRobustnessFactor ‖A - B‖ * ω ‖A - B‖)
 
+/-- The assertion that zero matrix distance implies equality of both odd and right singular
+transforms. -/
 noncomputable def SvtEqualityAtZero : Prop :=
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (f : ℝ → ℂ),
@@ -100,10 +132,13 @@ noncomputable def SvtEqualityAtZero : Prop :=
       oddSingularTransform A f = oddSingularTransform B f ∧
         rightSingularTransform A f = rightSingularTransform B f
 
+/-- The polynomial bridge robustness bound specialized to degree zero. -/
 noncomputable def zeroDegreeBridgeRate (δ : ℝ) : ℝ := polynomialRobustnessBound 0 δ
 
+/-- The interior robustness rate specialized to degree zero. -/
 noncomputable def zeroDegreeInteriorRate (m δ : ℝ) : ℝ := interiorRobustnessRate 0 m δ
 
+/-- A record of a polynomial degree, a real angle list, and a QSVT cost ledger. -/
 structure LcuWordPlan where
 
   degree : ℕ
@@ -112,6 +147,8 @@ structure LcuWordPlan where
 
   ledger : QsvtCostLedger
 
+/-- The QSVT ledger obtained from the source compilation counts at degree d, together with
+supplied integer time and peak workspace values. -/
 def lcuWordLedger (d : ℕ) (bitTime peakWorkspace : ℕ) : QsvtCostLedger where
   dataQueries := (sourceCppQuadruple d).1
   adjointQueries := (sourceCppQuadruple d).1
@@ -121,30 +158,41 @@ def lcuWordLedger (d : ℕ) (bitTime peakWorkspace : ℕ) : QsvtCostLedger where
   integerBitTime := bitTime
   peakWorkspace := peakWorkspace
 
+/-- The natural ceiling of exp((k + 1) `gammaReq` η k), used as the corrected integer node. -/
 noncomputable def integerNodeNat (η : ℝ) (k : ℕ) : ℕ :=
   Nat.ceil (Real.exp (((k + 1 : ℕ) : ℝ) * gammaReq η k))
 
+/-- The repetition count equal to q for q ≤ k and to the corrected integer node otherwise. -/
 noncomputable def repetitionCount (η : ℝ) (k q : ℕ) : ℕ :=
   if q ≤ k then q else integerNodeNat η k
 
+/-- The natural count 5rk times the corrected integer node times 2m5^(k − 1). -/
 noncomputable def exponentialCount (η : ℝ) (k m r : ℕ) : ℕ :=
   5 * r * k * integerNodeNat η k * (2 * m * 5 ^ (k - 1))
 
+/-- The real exponential budget 1000m5^(k − 1)k^(9/4)exp((1 + log(η)/2)k)r. -/
 noncomputable def eq67Budget (η : ℝ) (k m r : ℕ) : ℝ :=
   1000 * (m : ℝ) * (5 : ℝ) ^ (k - 1) * (k : ℝ) ^ (9 / 4 : ℝ) *
     Real.exp ((1 + Real.log η / 2) * (k : ℝ)) * (r : ℝ)
 
+/-- The number 3r of recovery attempts. -/
 def retryAttemptCount (r : ℕ) : ℕ := 3 * r
 
+/-- The number 2r of tolerated recovery failures. -/
 def retryToleratedFailures (r : ℕ) : ℕ := 2 * r
 
+/-- The recovery step budget 5r. -/
 def retryStepBudget (r : ℕ) : ℕ := 5 * r
 
+/-- The exponential recovery failure bound exp(−r/14). -/
 noncomputable def retryFailureBound (r : ℕ) : ℝ := Real.exp (-(r : ℝ) / 14)
 
+/-- The natural conversion of the integer retry count for the supplied simulation parameters. -/
 noncomputable def retryCountNat (m h t ε β : ℝ) (k : ℕ) : ℕ :=
   (retryCount m h t ε β k).toNat
 
+/-- A record of an integer node, gamma parameter, retry rounds, exponential count, and real
+budget. -/
 structure LcuNodeLedger where
 
   node : ℕ
@@ -157,6 +205,7 @@ structure LcuNodeLedger where
 
   budget : ℝ
 
+/-- Two boundary angles and a list of internal phase angles specifying a source word plan. -/
 structure SourceWordPlan where
 
   gamma0 : ℝ
@@ -165,12 +214,18 @@ structure SourceWordPlan where
 
   psis : List ℝ
 
+/-- The number of internal phase angles in a source word plan. -/
 def SourceWordPlan.phaseGates (w : SourceWordPlan) : ℕ := w.psis.length
 
+/-- Twice the natural half of the internal phase list length. -/
 def SourceWordPlan.projectorNots (w : SourceWordPlan) : ℕ := 2 * (w.psis.length / 2)
 
+/-- The fixed count of two boundary rotations in a source word plan. -/
 def SourceWordPlan.boundaryRotations (w : SourceWordPlan) : ℕ := 2
 
+/-- The existence of a phase list of the specified corrected length whose compressed simulation
+has squared error at most ε² and success mass at least 1 − 2ε on every normalized
+eigenvector. -/
 noncomputable def SparseSimulationWord (n d : ℕ) (b : ℝ)
     (O : LqSparseOracle n d b)
     (L : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -187,6 +242,8 @@ noncomputable def SparseSimulationWord (n d : ℕ) (b : ℝ)
         1 - 2 * ε ≤ ∑ i, ‖(Qatlib.Concepts.Execution.WorkspaceCP.compress (lcPlusFrame L)
               (lcSimWord (lcWalk S L) phis) (lcPlusFrame L) *ᵥ ψ) i‖ ^ 2
 
+/-- The decomposition of each normalized sparse matrix eigenvector after frame embedding into
+two normalized walk eigenvectors with the stated eigenphases and conditional orthogonality. -/
 noncomputable def SparseEigenphaseTransport (n d : ℕ) (b : ℝ)
     (O : LqSparseOracle n d b)
     (L : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -208,8 +265,12 @@ noncomputable def SparseEigenphaseTransport (n d : ℕ) (b : ℝ)
           (Complex.exp (Complex.I * (ap : ℂ)) • wp +
             Complex.exp (Complex.I * (am : ℂ)) • wm))
 
+/-- The corrected Jacobi–Anger window count `lcCorrectedQ` τ ε. -/
 noncomputable def lcuWindowCount (τ ε : ℝ) : ℕ := lcCorrectedQ τ ε
 
+/-- The conjunction of polynomial pair characterization, bounded phase synthesis, source word
+realization and approximation, sparse eigenphase transport and simulation, and corrected
+window count estimates. -/
 noncomputable def Lc17EndpointContract : Prop :=
     (∀ (n : ℕ) (P Q : Polynomial ℂ),
       (∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧

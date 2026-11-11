@@ -8,6 +8,35 @@ import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpoi
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersQuan
 import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
+
+/-!
+# Optimized state-conversion complexity endpoints
+
+Proves coherent and noncoherent lower bounds from successful legal source words and relates word
+query counts to the corresponding query complexities. Ancillary output states are handled
+through `sourceGarbageEquiv`, normalization, and the entrywise product rule for Gram matrices.
+
+`optimizedConversionEndpoints` combines these bounds with the constructed upper endpoints,
+giving the tolerance changes and logarithmic error overhead recorded in
+`OptimizedConversionEndpoints`. This is the state-conversion comparison associated with
+[LeeEtAl2011].
+
+## Main statements
+
+* `sourceGarbageTarget_gram`: output and ancillary Gram matrices combine by entrywise
+  multiplication.
+* `sourceCoherent_raw_lower`: the coherent raw quantity is at most twice coherent query
+  complexity.
+* `sourceNoncoherent_raw_lower`: the noncoherent raw quantity is at most twice noncoherent query
+  complexity.
+* `optimizedConversionEndpoints`: establishes the uniform coherent and noncoherent endpoint
+  comparisons.
+
+## References
+
+* [Lee et al., Theorem 4.9][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,6 +55,8 @@ namespace Qatlib.Concepts.QueryComplexity.StateConversion
 open Matrix
 open scoped Classical BigOperators ENNReal ComplexOrder
 
+/-- Reorders the source register into the output register `H` followed by the combined ancillary
+registers. -/
 def sourceGarbageEquiv (n q r : ℕ) (H : Type) :
     SourceSpace n q H r ≃ H × ((Fin (n+1) × Fin (q+1)) × (Bool × Fin r)) where
   toFun p := (p.2.1.2,(p.1,(p.2.1.1,p.2.2)))
@@ -33,16 +64,22 @@ def sourceGarbageEquiv (n q r : ℕ) (H : Type) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The source garbage target is the tensor product of the output and ancillary states relabeled
+into source-register order. -/
 theorem sourceGarbageTarget_relabel {H : Type} {n q r : ℕ} (σ : QState H)
     (ξ : QState ((Fin (n+1) × Fin (q+1)) × (Bool × Fin r))) :
     sourceGarbageTarget n q r σ ξ=relabelState (sourceGarbageEquiv n q r H).symm (qStateTensor σ ξ) := rfl
 
+/-- A source garbage target is normalized when both its output state and ancillary state are
+normalized. -/
 theorem sourceGarbageTarget_normalized {H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (σ : QState H) (ξ : QState ((Fin (n+1) × Fin (q+1)) × (Bool × Fin r)))
     (hσ : Normalized σ) (hξ : Normalized ξ) : Normalized (sourceGarbageTarget n q r σ ξ) := by
   rw [sourceGarbageTarget_relabel]
   exact normalized_relabelState _ (normalized_qStateTensor hσ hξ)
 
+/-- The Gram matrix of the source garbage targets is the entrywise product of the output and
+ancillary Gram matrices. -/
 theorem sourceGarbageTarget_gram {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (σ : X → QState H)
     (ξ : X → QState ((Fin (n+1) × Fin (q+1)) × (Bool × Fin r))) :
@@ -53,6 +90,8 @@ theorem sourceGarbageTarget_gram {X H : Type} [Fintype H] [DecidableEq H]
   simp only [gramStateMatrix,sourceGarbageTarget_relabel]
   exact inner_relabelState _ _ _
 
+/-- For normalized state families and `0 < ε ≤ 1/3`, a legal coherently successful source word
+bounds `sourceQDelta` at tolerance `2 * sqrt (2 * ε)` by twice its query count. -/
 theorem sourceCoherent_actual_word_raw_lower {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q r : ℕ}
     (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -88,6 +127,8 @@ theorem sourceCoherent_actual_word_raw_lower {X H : Type}
     rw [ENNReal.ofReal_mul (by norm_num : (0 : ℝ)≤2),ENNReal.ofReal_natCast]
     norm_num))
 
+/-- For normalized state families and `0 < ε ≤ 1/3`, `sourceQDelta` at tolerance `2 * sqrt (2 *
+ε)` is at most twice the coherent query complexity. -/
 theorem sourceCoherent_raw_lower {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -104,6 +145,9 @@ theorem sourceCoherent_raw_lower {X H : Type}
   rw [hb]
   exact sourceCoherent_actual_word_raw_lower hr input ρ σ ε hn hε hε1 C hC hSuccess
 
+/-- For normalized state families and `0 < ε ≤ 1/3`, a legal source word achieving the required
+overlap with normalized garbage targets bounds `sourceQNoncoherentDelta` at tolerance `2 *
+sqrt (2 * ε)` by twice its query count. -/
 theorem sourceNoncoherent_actual_word_raw_lower {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q r : ℕ}
     (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -166,6 +210,8 @@ theorem sourceNoncoherent_actual_word_raw_lower {X H : Type}
       if sourceUnfiltered (τ.val-gramStateMatrix σ ⊙ K.val)≤ENNReal.ofReal (2*Real.sqrt (2*ε)) then
         sourceRectValue (gramStateMatrix ρ-τ.val) (sourceAlphabetDelta input) else ⊤) τ0).trans hInner
 
+/-- For normalized state families and `0 < ε ≤ 1/3`, `sourceQNoncoherentDelta` at tolerance `2 *
+sqrt (2 * ε)` is at most twice the noncoherent query complexity. -/
 theorem sourceNoncoherent_raw_lower {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -182,6 +228,8 @@ theorem sourceNoncoherent_raw_lower {X H : Type}
   rw [hb]
   exact sourceNoncoherent_actual_word_raw_lower hr input ρ σ ε hn hε hε1 C hC hSuccess
 
+/-- Any legal source word satisfying the coherent overlap threshold gives an upper bound on
+coherent query complexity by its query count. -/
 theorem sourceCoherentQ_le_calls {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -194,6 +242,8 @@ theorem sourceCoherentQ_le_calls {X H : Type} [Fintype X] [DecidableEq X]
   simp only [Set.mem_setOf_eq]
   exact ⟨r,hr,C,rfl,hC,hSuccess⟩
 
+/-- Any legal source word satisfying the noncoherent overlap threshold with normalized ancillary
+states bounds noncoherent query complexity by its query count. -/
 theorem sourceNoncoherentQ_le_calls {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -207,12 +257,17 @@ theorem sourceNoncoherentQ_le_calls {X H : Type} [Fintype X] [DecidableEq X]
   simp only [Set.mem_setOf_eq]
   exact ⟨r,hr,C,rfl,hC,hSuccess⟩
 
+/-- A real upper bound on a source word's query count induces the corresponding upper bound in
+the extended nonnegative reals. -/
 theorem sourceCalls_le_ofReal {n q : ℕ} {r : ℕ} {H : Type} {C : SourceWord (SourceSpace n q H r)}
     {B : ℝ} (h : (sourceWordCalls C : ℝ)≤B) :
     (sourceWordCalls C : ℝ≥0∞) ≤ ENNReal.ofReal B := by
   have := ENNReal.ofReal_le_ofReal h
   rwa [ENNReal.ofReal_natCast] at this
 
+/-- Coherent and noncoherent state-conversion query complexities satisfy the optimized lower and
+upper endpoint comparisons with their raw filtered-norm quantities. See [Lee et al., Theorem
+4.9][LeeEtAl2011]. -/
 theorem optimizedConversionEndpoints : OptimizedConversionEndpoints := by
   refine ⟨17179869184,by norm_num,?_⟩
   intro X _ _ H _ _ _ n q input ρ σ ε hn hε hε1

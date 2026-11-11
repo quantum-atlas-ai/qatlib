@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationStat
 import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationQuan
 import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3ReferenceTransport
+
+/-!
+# Exact Phi3 simulation of a QTM window
+
+This module proves `QtmPhi3WindowSimulation` by combining binary cell encoding, reference
+circuit simulation, and Phi3 compilation. Injectivity of the cell code yields normalization and
+amplitude preservation for the encoded window states.
+
+For background, see [Yao1993].
+
+## Main statements
+
+* `qtmWindowBasisCode_injective`: injectivity of the combined cell code.
+* `qtmPhi3State_apply_basis`: recovery of encoded amplitudes.
+* `qtmPhi3WindowSimulation`: exact simulation with the specified gate and wire bounds.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +47,8 @@ namespace Qatlib.Concepts.UniformBqp.Phi3Compile
 open Matrix
 open scoped Classical
 
+/-- An injective cell encoding induces an injective binary encoding of the entire window
+register. -/
 theorem qtmWindowBasisCode_injective {Q A : Type} (t b : ℕ)
     (e : CellState Q A → Reg b) (he : Function.Injective e) :
     Function.Injective (qtmWindowBasisCode t b e) := by
@@ -36,6 +59,7 @@ theorem qtmWindowBasisCode_injective {Q A : Type} (t b : ℕ)
   have hh := congrFun h ((finProdFinEquiv (m := 2*t+1) (n := b)) (i,u))
   simpa only [qtmWindowBasisCode, Equiv.symm_apply_apply] using! hh
 
+/-- An injective cell encoding ensures that the Phi3 state embedding preserves normalization. -/
 theorem qtmPhi3State_normalized {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (t b : ℕ) (e : CellState Q A → Reg b)
     (he : Function.Injective e) {ψ : QState (WReg t Q A)} (hψ : Normalized ψ) :
@@ -44,6 +68,8 @@ theorem qtmPhi3State_normalized {Q A : Type} [Fintype Q] [DecidableEq Q]
     (finiteBasisPadState_normalized (qtmWindowBasisCode t b e)
       (qtmWindowBasisCode_injective t b e he) hψ)
 
+/-- Evaluating the encoded Phi3 state at an encoded basis register recovers the original window
+amplitude. -/
 theorem qtmPhi3State_apply_basis {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (t b : ℕ) (e : CellState Q A → Reg b)
     (he : Function.Injective e) (ψ : QState (WReg t Q A)) (r : WReg t Q A) :
@@ -53,6 +79,9 @@ theorem qtmPhi3State_apply_basis {Q A : Type} [Fintype Q] [DecidableEq Q]
   exact finiteBasisPadState_apply_image (qtmWindowBasisCode t b e)
     (qtmWindowBasisCode_injective t b e he) ψ r
 
+/-- Every finite local QTM with the stated cell-code capacity and positive input and time bounds
+has the exact bounded Phi3 window simulation specified by `QtmPhi3WindowSimulation`
+[Yao1993]. -/
 theorem qtmPhi3WindowSimulation : QtmPhi3WindowSimulation := by
   intro Q _ _ A _ _ M b n t hb hn ht hnt
   let e := finiteBasisCode (CellState Q A) b hb

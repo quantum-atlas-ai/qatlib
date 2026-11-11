@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Tensor
 import Mathlib.MeasureTheory.Measure.Haar.Unique
+
+/-!
+# Polynomial extraction from tensor convolution
+
+This module represents tensor Jackson convolution of a continuous function on the normalized
+cube as a multivariate polynomial evaluated at `cosPoint`. Coordinatewise evenness and
+trigonometric degree bounds yield explicit bounds on the exponents and total degree. The
+Lipschitz estimate supplies quantitative approximation input for [WangEtAl2026].
+
+## Main statements
+
+* `tensorConvolution_exists_mvPolynomial`: polynomial representation with coordinate degree at
+  most `2 * (K - 1)`.
+* `tensorConvolution_approx_lipschitz`: error at most `32 * d * L / K` for an ℓ¹ Lipschitz
+  bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Approximation
@@ -17,6 +38,8 @@ namespace Causalean.Mathlib.Analysis.JacksonApproximation
 open MeasureTheory Real
 open scoped BigOperators
 
+/-- The integral of a continuous function over a product period box can be computed by
+integrating the first coordinate separately. -/
 private theorem integral_periodBox_succ {d : ℕ}
     (F : (Fin (d + 1) → ℝ) → ℝ) (hF : Continuous F) :
     (∫ u in periodBox (d + 1), F u) =
@@ -48,6 +71,7 @@ private theorem integral_periodBox_succ {d : ℕ}
         rw [show periodBox d = {u | ∀ i, u i ∈ Set.Icc (-Real.pi) Real.pi} by rfl]
         exact isCompact_pi_infinite fun _ => isCompact_Icc))
 
+/-- Reflecting any single coordinate preserves the integral over `periodBox`. -/
 private theorem periodBox_reflect_coord {d : ℕ}
     (F : (Fin d → ℝ) → ℝ) (i : Fin d) :
     (∫ u in periodBox d, F (Function.update u i (-u i))) =
@@ -95,6 +119,8 @@ private theorem periodBox_reflect_coord {d : ℕ}
       simpa only [he_box] using
         (hem.setIntegral_preimage_emb e.measurableEmbedding F (periodBox d))
 
+/-- For a continuous function that is `2π`-periodic in each coordinate, replacing its argument
+by `x - u` preserves its integral over the period box. -/
 private theorem periodBox_translate {d : ℕ}
     (F : (Fin d → ℝ) → ℝ) (hF : Continuous F)
     (hper : ∀ (i : Fin d) (y : Fin d → ℝ),
@@ -180,6 +206,8 @@ private theorem periodBox_translate {d : ℕ}
         ← integral_Icc_eq_integral_Ioc]
       rw [integral_periodBox_succ F hF]
 
+/-- Embedding a univariate polynomial of degree at most `n` into variable `i` gives degree at
+most `n` in that variable and degree zero in every other variable. -/
 private lemma toMvPolynomial_degreeOf_le {σ : Type*} [DecidableEq σ]
     (n : ℕ) (i j : σ) (p : Polynomial ℝ) (hp : p.natDegree ≤ n) :
     (p.toMvPolynomial i).degreeOf j ≤ if j = i then n else 0 := by
@@ -200,6 +228,8 @@ private lemma toMvPolynomial_degreeOf_le {σ : Type*} [DecidableEq σ]
   · rw [MvPolynomial.degreeOf_X_pow_of_ne k hji]
     simp
 
+/-- Embedding a univariate polynomial of degree at most `n` into one multivariate variable
+preserves the total degree bound. -/
 private lemma toMvPolynomial_totalDegree_le {σ : Type*} [DecidableEq σ]
     (n : ℕ) (i : σ) (p : Polynomial ℝ) (hp : p.natDegree ≤ n) :
     (p.toMvPolynomial i).totalDegree ≤ n := by
@@ -213,6 +243,7 @@ private lemma toMvPolynomial_totalDegree_le {σ : Type*} [DecidableEq σ]
   rw [MvPolynomial.totalDegree_C, MvPolynomial.totalDegree_X_pow, zero_add]
   exact Nat.le_of_lt_succ (Finset.mem_range.mp hk)
 
+/-- A trigonometric polynomial with integer frequencies is `2π`-periodic. -/
 private lemma trigPoly_periodic {n : ℕ} {q : ℝ → ℝ}
     (hq : IsTrigPolyLE n q) : Function.Periodic q (2 * Real.pi) := by
   classical
@@ -233,6 +264,8 @@ private lemma trigPoly_periodic {n : ℕ} {q : ℝ → ℝ}
       Real.sin_add_nat_mul_two_pi]
   rw [hc, hs]
 
+/-- For positive `K` and continuous `f` on the cube, tensor convolution equals the integral with
+the shift transferred to the Jackson kernel. -/
 private lemma tensorConvolution_shifted {d K : ℕ} (hK : 0 < K)
     (f : (Fin d → ℝ) → ℝ) (hf : ContinuousOn f (normalizedCube d))
     (x : Fin d → ℝ) :
@@ -289,6 +322,7 @@ private lemma tensorConvolution_shifted {d K : ℕ} (hK : 0 < K)
       change u i = x i - (x i - u i)
       ring
 
+/-- Tensor Jackson convolution of a continuous function on the cube is even in each coordinate. -/
 private lemma tensorConvolution_coord_even {d K : ℕ}
     (f : (Fin d → ℝ) → ℝ) (hf : ContinuousOn f (normalizedCube d))
     (x : Fin d → ℝ) (i : Fin d) :
@@ -339,6 +373,8 @@ private lemma tensorConvolution_coord_even {d K : ℕ}
             split <;> simp_all
     _ = ∫ u in periodBox d, F u := periodBox_reflect_coord F i
 
+/-- For positive `K`, every coordinate slice of tensor Jackson convolution has trigonometric
+degree at most `2 * (K - 1)`. -/
 private lemma tensorConvolution_coord_trig {d K : ℕ} (hK : 0 < K)
     (f : (Fin d → ℝ) → ℝ) (hf : ContinuousOn f (normalizedCube d))
     (x : Fin d → ℝ) (i : Fin d) :
@@ -438,6 +474,9 @@ private lemma tensorConvolution_coord_trig {d K : ℕ} (hK : 0 < K)
               b k * Real.cos ((k : ℝ) * v i)) * Real.sin ((k : ℝ) * t))).continuousOn
               |>.integrableOn_compact hcompact
 
+/-- A function that is even and has trigonometric degree at most `n` in each coordinate is a
+polynomial in the coordinatewise cosines. Each exponent is at most `n`, and the total degree
+is at most `d * n`. -/
 private theorem exists_mvPolynomial_of_coord_even_trig {d n : ℕ}
     (q : (Fin d → ℝ) → ℝ)
     (htrig : ∀ (i : Fin d) (x : Fin d → ℝ),
@@ -601,6 +640,9 @@ private theorem exists_mvPolynomial_of_coord_even_trig {d n : ℕ}
             _ ≤ d * n + n := Nat.add_le_add_right (hptail j).2.2 n
             _ = (d + 1) * n := (Nat.succ_mul d n).symm
 
+/-- For positive `K`, tensor convolution of a continuous function on the cube is a polynomial in
+the coordinatewise cosines, with each exponent at most `2 * (K - 1)` and total degree at
+most `d * (2 * (K - 1))`. -/
 theorem tensorConvolution_exists_mvPolynomial {d K : ℕ} (hK : 0 < K)
     (f : (Fin d → ℝ) → ℝ) (hf : ContinuousOn f (normalizedCube d)) :
     ∃ p : MvPolynomial (Fin d) ℝ,
@@ -614,6 +656,9 @@ theorem tensorConvolution_exists_mvPolynomial {d K : ℕ} (hK : 0 < K)
       (Function.update x i t) i
     simpa [Function.update] using h
 
+/-- If `f` is continuous on the cube and satisfies an ℓ¹ Lipschitz bound with constant `L ≥ 0`,
+its tensor Jackson convolution differs from `f (cosPoint x)` by at most `32 * d * L / K` for
+positive `K`. -/
 theorem tensorConvolution_approx_lipschitz {d K : ℕ} (hK : 0 < K)
     (f : (Fin d → ℝ) → ℝ) (L : ℝ) (hL : 0 ≤ L)
     (hf : ContinuousOn f (normalizedCube d))

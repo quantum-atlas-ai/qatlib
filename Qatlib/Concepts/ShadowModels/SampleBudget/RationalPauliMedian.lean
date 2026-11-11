@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.ShadowPurityConsumers
 import Qatlib.Concepts.ShadowModels.SampleBudget.RationalLinearSelection
+
+/-!
+# Rational qubit purity medians
+
+This module implements a rational qubit purity group estimator and an odd-block median using
+`qSelect`. Record equivalences transport probabilities, means, and variance bounds between
+native one-qubit records and the tensor Pauli model.
+
+The main guarantees identify the rational output with the real purity median, give its classical
+and quantum resource counts, and provide a computable tolerance-dependent block budget with a
+median failure bound. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `native_pauli_same_record_purity_mean_and_derived_variance`: unbiasedness and a `100/m`
+  mean-square bound.
+* `native_pauli_linear_median_same_output_and_all_ledgers`: output equality and resource counts.
+* `native_pauli_computable_tolerance_budget_and_purity_probability`: the explicit rational
+  tolerance budget.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 
 
@@ -24,27 +49,37 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 set_option autoImplicit false
 namespace Qatlib.Concepts.ShadowModels.SampleBudget
 
+/-- View a native single-qubit measurement record as a record indexed by the one-qubit register. -/
 def onePauliRecord (x : Fin 3 × Bool) : Fin 1 → Fin 3 × Bool := fun _ => x
+/-- Embed a sequence of native single-qubit records into the tensor Pauli record format. -/
 def onePauliRecords {m : ℕ} (ω : Fin m → Fin 3 × Bool) : Fin m → Fin 1 → Fin 3 × Bool :=
   fun j => onePauliRecord (ω j)
+/-- The counted rational purity U-statistic computed from a group of native single-qubit
+records. -/
 def nativePauliGroup {m : ℕ} (ω : Fin m → Fin 3 × Bool) : ℚ × ℕ × ℕ :=
   tensorPurityURationalCounted 1 (onePauliRecords ω)
+/-- The rational median of `2*r+1` group purity estimates, together with the accumulated group
+counters and selection comparison count. -/
 def nativePauliMedian (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin 3 × Bool) :
     ℚ × ℕ × ℕ × ℕ :=
   let groups := List.ofFn (fun b => nativePauliGroup (ω b))
   let result := qSelect (groups.map Prod.fst) r
   (result.1,(groups.map (fun z => z.2.1)).sum,(groups.map (fun z => z.2.2)).sum,result.2)
 
+/-- The computable block size `max 2 (Nat.ceil (1600/ε²))` for a rational tolerance. -/
 def nativePauliBlockBudget (ε : ℚ) : ℕ := max 2 (Nat.ceil (1600/ε^2))
 
 open Matrix
 open scoped Classical BigOperators ComplexOrder
+/-- The total product probability of record blocks for which the native purity median differs
+from the state's purity by more than `ε`. -/
 noncomputable def nativePauliBadMass (m r : ℕ) (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (ε : ℝ) : ℝ :=
   ∑ ω ∈ Finset.univ.filter (fun ω : Fin (2*r+1) → Fin m → Fin 3 × Bool =>
     ε < |((nativePauliMedian m r ω).1 : ℝ)-(Matrix.trace (ρ*ρ)).re|),
     ∏ b, (pauliRecordDist ρ hρ).probOf (ω b)
 
+/-- A one-qubit tensor product operator is its sole factor. -/
 theorem nativePauli_single_product (A : Fin 1 → Operator 2) : tensorPauliProduct 1 A=A 0 := by
   have hb : (bitVecEquiv 1).symm=(fun r : Fin 2 => fun _ : Fin 1 => boolEquivFin2.symm r) := by
     funext r i
@@ -53,6 +88,8 @@ theorem nativePauli_single_product (A : Fin 1 → Operator 2) : tensorPauliProdu
   simp [tensorPauliProduct,relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,
     pauliProductDensity,hb]
 
+/-- A native one-qubit record has the same probability as its embedding in the one-qubit tensor
+Pauli law. -/
 theorem nativePauli_record_law (ρ : Operator 2) (hρ : IsDensityOperator ρ) (o : Fin 3 × Bool) :
     (pauliRecordDist ρ hρ).prob o=(tensorPauliLaw 1 ρ hρ).prob (onePauliRecord o) := by
   have hk : tensorPauliKraus 1 (onePauliRecord o)=pauliRecordKraus o := by
@@ -61,6 +98,9 @@ theorem nativePauli_record_law (ρ : Operator 2) (hρ : IsDensityOperator ρ) (o
   simp only [pauliRecordDist,tensorPauliLaw,instrumentProb,pauliShadowRecordInstrument,
     tensorPauliInstrument,Instrument.ofKraus_branch,hk]
 
+/-- The rational group estimate casts to the tensor purity U-statistic, both group counters
+equal `m.choose 2`, and groups of size below two return zero; native and tensor record
+probabilities also agree. -/
 theorem native_pauli_rational_group_and_physical_record_bridge :
     ∀ (m : ℕ) (ω : Fin m → Fin 3 × Bool),
       ((nativePauliGroup ω).1 : ℝ)=tensorPurityU 1 (onePauliRecords ω) ∧
@@ -75,6 +115,7 @@ theorem native_pauli_rational_group_and_physical_record_bridge :
   have hchoose : m.choose 2=0 := Nat.choose_eq_zero_of_lt hm
   simp [nativePauliGroup,tensorPurityURationalCounted,hchoose]
 
+/-- The equivalence between native single-qubit records and records indexed by `Fin 1`. -/
 def onePauliRecordEquiv : (Fin 3 × Bool) ≃ (Fin 1 → Fin 3 × Bool) where
   toFun := onePauliRecord
   invFun o := o 0
@@ -85,9 +126,13 @@ def onePauliRecordEquiv : (Fin 3 × Bool) ≃ (Fin 1 → Fin 3 × Bool) where
     subst i
     rfl
 
+/-- The equivalence between native record sequences of length `m` and one-qubit tensor record
+sequences. -/
 def onePauliRecordsEquiv (m : ℕ) : (Fin m → Fin 3 × Bool) ≃ (Fin m → Fin 1 → Fin 3 × Bool) :=
   Equiv.piCongrRight (fun _ => onePauliRecordEquiv)
 
+/-- The joint probability of a native record sequence equals that of its tensor-format
+embedding. -/
 theorem nativePauli_record_probOf (m : ℕ) (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (ω : Fin m → Fin 3 × Bool) :
     (pauliRecordDist ρ hρ).probOf ω=(tensorPauliLaw 1 ρ hρ).probOf (onePauliRecords ω) := by
@@ -96,6 +141,8 @@ theorem nativePauli_record_probOf (m : ℕ) (ρ : Operator 2) (hρ : IsDensityOp
   intro j _
   exact nativePauli_record_law ρ hρ (ω j)
 
+/-- Weighted sums over native record sequences equal weighted sums over the corresponding
+one-qubit tensor record sequences. -/
 theorem nativePauli_sum_transport (m : ℕ) (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (F : (Fin m → Fin 1 → Fin 3 × Bool) → ℝ) :
     (∑ ω : Fin m → Fin 3 × Bool,(pauliRecordDist ρ hρ).probOf ω*F (onePauliRecords ω))=
@@ -104,6 +151,8 @@ theorem nativePauli_sum_transport (m : ℕ) (ρ : Operator 2) (hρ : IsDensityOp
   exact (onePauliRecordsEquiv m).sum_comp
     (fun ω => (tensorPauliLaw 1 ρ hρ).probOf ω*F ω)
 
+/-- For groups of at least two native records, the rational purity estimate is unbiased and its
+expected squared error is at most `100/m`. -/
 theorem native_pauli_same_record_purity_mean_and_derived_variance :
     ∀ (m : ℕ) (ρ : Operator 2) (hρ : IsDensityOperator ρ),2 ≤ m →
     (∑ ω : Fin m → Fin 3 × Bool,(pauliRecordDist ρ hρ).probOf ω*((nativePauliGroup ω).1 : ℝ))=
@@ -142,6 +191,9 @@ theorem native_pauli_same_record_purity_mean_and_derived_variance :
       linarith
     exact hv.trans hb
 
+/-- The rational native median equals the real tensor purity median, its group counters are
+`(2*r+1) * m.choose 2`, its selection cost is at most `10000 * (2*r+1)`, and its
+fresh-record quantum resources have the stated exact counts. -/
 theorem native_pauli_linear_median_same_output_and_all_ledgers :
     ∀ (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin 3 × Bool),
       ((nativePauliMedian m r ω).1 : ℝ)=tensorPurityMedian 1 m (2*r+1)
@@ -175,6 +227,8 @@ theorem native_pauli_linear_median_same_output_and_all_ledgers :
   · simpa only [Nat.mul_one,Nat.one_mul] using!
       tensorPauliFreshResourceCounts_spec 1 m (2*r+1) (fun b => onePauliRecords (ω b))
 
+/-- For a positive rational tolerance, the native block budget is at least two and makes the
+displayed scaled purity variance bound at most the squared tolerance. -/
 theorem nativePauli_budget_spec (ε : ℚ) (hε : 0<ε) :
     2≤nativePauliBlockBudget ε ∧
     16*(4*(5 : ℝ)^1/(nativePauliBlockBudget ε : ℝ)+
@@ -204,11 +258,15 @@ theorem nativePauli_budget_spec (ε : ℚ) (hε : 0<ε) :
     norm_num
   linarith
 
+/-- The equivalence between `2*r+1` blocks of native records and blocks of one-qubit tensor
+records. -/
 def onePauliBlocksEquiv (m r : ℕ) :
     (Fin (2*r+1) → Fin m → Fin 3 × Bool) ≃
       (Fin (2*r+1) → Fin m → Fin 1 → Fin 3 × Bool) :=
   Equiv.piCongrRight (fun _ => onePauliRecordsEquiv m)
 
+/-- The native median failure mass equals the failure mass of the tensor purity median under the
+blockwise record equivalence. -/
 theorem nativePauli_badMass_eq (m r : ℕ) (ρ : Operator 2) (hρ : IsDensityOperator ρ) (ε : ℝ) :
     nativePauliBadMass m r ρ hρ ε=
       ∑ ω ∈ Finset.univ.filter (fun ω : Fin (2*r+1) → Fin m → Fin 1 → Fin 3 × Bool =>
@@ -226,6 +284,8 @@ theorem nativePauli_badMass_eq (m r : ℕ) (ρ : Operator 2) (hρ : IsDensityOpe
   rw [(native_pauli_linear_median_same_output_and_all_ledgers m r ω).1,hprob]
   rfl
 
+/-- For every positive rational tolerance, the computable native block budget is at least two
+and bounds the purity median failure mass by `2^(2*r+1) * (1/16)^(r+1)`. -/
 theorem native_pauli_computable_tolerance_budget_and_purity_probability :
     ∀ (r : ℕ) (ρ : Operator 2) (hρ : IsDensityOperator ρ) (ε : ℚ),0<ε →
       2≤nativePauliBlockBudget ε ∧

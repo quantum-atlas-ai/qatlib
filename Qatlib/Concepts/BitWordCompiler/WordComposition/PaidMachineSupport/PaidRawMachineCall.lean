@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Clocked calls to raw binary machines
+
+`program` wraps a binary `TM0` machine in a stack-machine call. It reverses the raw input into a
+reader stack, prepares the simulated tape, runs the machine, and returns reversed output with
+clean workspace.
+
+The phase lemmas culminate in `source_exec`, whose explicit budget is quadratic in input length
+and the supplied raw-machine time bound.
+
+The computational background is described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `start_call` and `prepare_call`: establish the input-preparation phases.
+* `source_exec`: completes the simulated call with blank auxiliary stacks.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,32 +37,50 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 namespace Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.RawCall
 
+/-- Stack slots for raw input, reader data, temporary storage, simulated tape halves, and
+output. -/
 inductive Slot where
   | raw | reader | temp | left | right | output
   deriving DecidableEq, Fintype
+/-- Control labels for input transfer, tape preparation, simulated execution, and completion. -/
 inductive Label (q : ℕ) where
   | start (l : Fin 1) | prepare (l : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Preparation.Label)
   | call (l : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Subroutine.Label (Fin (q + 1))) | done
   deriving DecidableEq, Fintype
 instance (q : ℕ) : Inhabited (Label q) := ⟨.start 0⟩
+/-- The preparation routine's local state, containing simulated head and I/O symbols. -/
 abbrev Local := Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Preparation.Local
+/-- Configurations of the raw-machine call wrapper. -/
 abbrev Config (q : ℕ) := TM2.Cfg (fun _ : Slot => Bool) (Label q) Local
+/-- The distinguished raw-input stack slot. -/
 abbrev rawSlot : Slot := .raw
+/-- The distinguished output stack slot. -/
 abbrev outputSlot : Slot := .output
+/-- Assigns bit strings to the wrapper's six stacks. -/
 def state (raw reader temp left right output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | .raw => raw | .reader => reader | .temp => temp | .left => left | .right => right | .output => output
+/-- Initializes the wrapper with reversed input on the raw-input stack. -/
 def initial {q : ℕ} (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Config q :=
     TM2.init rawSlot input.reverse
+/-- Extracts the I/O symbol from the local state. -/
 def getIO (v : Local) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol := v.2
+/-- Replaces the local I/O symbol while preserving the simulated head symbol. -/
 def putIO (v : Local) (w : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol) : Local :=
     (v.1, w)
+/-- Extracts the simulated head symbol from the local state. -/
 def getHead (v : Local) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol := v.1
+/-- Replaces the simulated head symbol while preserving the I/O symbol. -/
 def putHead (v : Local) (w : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol) :
     Local := (w, v.2)
+/-- Maps the initial transfer subroutine to the raw-input and reader stacks. -/
 def startCode : Fin 2 → Slot | 0 => .raw | _ => .reader
+/-- Maps the preparation subroutine to reader, temporary, left, and right stacks. -/
 def prepCode : Fin 4 → Slot | 0 => .reader | 1 => .temp | 2 => .left | _ => .right
+/-- Maps the simulated subroutine to the left, right, and output stacks. -/
 def subCode : Fin 3 → Slot | 0 => .left | 1 => .right | _ => .output
 
+/-- The stack-machine wrapper that transfers input, prepares a simulated tape, calls `M`, and
+halts with cleared local data. -/
 def program {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))) :
     Label q → TM2.Stmt (fun _ : Slot => Bool) (Label q) Local
   | .start l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt startCode Label.start (.prepare .head)
@@ -49,6 +90,8 @@ def program {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.Canonical
   | .call l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt subCode Label.call .done getHead putHead (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Subroutine.program M l)
   | .done => .load (fun _ => default) .halt
 
+/-- A stack-call frame equals a proposed store when selected stack contents agree and unselected
+stacks are preserved. -/
 private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot)
     (hinj : Function.Injective code) (S T : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (data : K → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hi : ∀ k, T (code k) = data k)
@@ -63,6 +106,8 @@ private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot)
   · rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator.frame_outside code S data j (by simpa using hj)]
     exact (ho j (by simpa using hj)).symm
 
+/-- Lifts a subroutine execution into the raw-machine wrapper with the same budget under
+compatible stack and local-state assignments. -/
 private theorem lift {q : ℕ} {K Λ σ : Type} [DecidableEq K]
     (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1)))
     (code : K → Slot) (hinj : Function.Injective code) (labels : Λ → Label q) (ret : Label q)
@@ -92,15 +137,20 @@ private theorem lift {q : ℕ} {K Λ σ : Type} [DecidableEq K]
   · simpa only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.cfg,
       Option.map_some, Option.getD_some, hs, hi] using hnc.trans_le hc
 
+/-- The initial transfer's stack assignment is injective. -/
 private theorem startCode_inj : Function.Injective startCode := by
   intro i j h; fin_cases i <;> fin_cases j <;> simp_all [startCode]
 
+/-- The preparation subroutine's stack assignment is injective. -/
 private theorem prepCode_inj : Function.Injective prepCode := by
   intro i j h; fin_cases i <;> fin_cases j <;> simp_all [prepCode]
 
+/-- The simulated subroutine's stack assignment is injective. -/
 private theorem subCode_inj : Function.Injective subCode := by
   intro i j h; fin_cases i <;> fin_cases j <;> simp_all [subCode]
 
+/-- The initial transfer moves the reversed raw input into the reader stack in forward order
+within a quadratic clock bound. -/
 theorem start_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution (program M) (initial input)
       ⟨some (.prepare .head), default, state [] input [] [] [] []⟩
@@ -128,6 +178,8 @@ theorem start_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.Ca
   · intro j hj
     cases j <;> first | rfl | exact (hj 0 rfl).elim | exact (hj 1 rfl).elim
 
+/-- The preparation phase sets the head symbol and packs the input tail onto the right stack
+within a quadratic clock bound. -/
 theorem prepare_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution (program M)
       ⟨some (.prepare .head), default, state [] input [] [] [] []⟩
@@ -151,12 +203,16 @@ theorem prepare_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.
     cases j <;> first | rfl | exact (hj 0 rfl).elim | exact (hj 1 rfl).elim |
       exact (hj 2 rfl).elim | exact (hj 3 rfl).elim
 
+/-- The first symbol of an input mapped to optional bits is its optional head. -/
 private theorem mapped_head (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (input.map some).headI = input.head? := by
   cases input <;> rfl
 
+/-- Taking the tail commutes with mapping input bits to optional symbols. -/
 private theorem mapped_tail (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (input.map some).tail = input.tail.map some := by
   cases input <;> rfl
 
+/-- A clean bounded run of `M` yields a wrapper call ending with reversed output and blank
+simulation stacks within a quadratic time-derived clock bound. -/
 theorem call_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1)))
     (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (time space : ℕ) (h : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs M input output time space) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution (program M)
@@ -176,8 +232,11 @@ theorem call_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.Can
   · intro j hj
     cases j <;> first | rfl | exact (hj 0 rfl).elim | exact (hj 1 rfl).elim | exact (hj 2 rfl).elim
 
+/-- The raw-call budget, equal to `10050 * (1 + inputLength + time)²`. -/
 def budget (inputLength time : ℕ) : ℕ := 10050 * (1 + inputLength + time) ^ 2
 
+/-- A clean bounded run of `M` yields a halting wrapper execution with only reversed output
+remaining, within the specified raw-call budget. -/
 theorem source_exec {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1)))
     (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (time space : ℕ) (h : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs M input output time space) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution (program M) (initial input)

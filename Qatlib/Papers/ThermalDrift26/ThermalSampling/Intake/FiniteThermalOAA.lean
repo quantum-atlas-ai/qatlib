@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalRotationWord
 import Mathlib.Tactic.NoncommRing
 import Mathlib.Tactic.LinearCombination
+
+/-!
+# Thermal Amplification Error Identities
+
+This module supplies algebraic identities and error estimates for the finite thermal preparation
+used in [JiangEtAl2026]. `thermalOAA_polynomial` works in an arbitrary ring, and the real
+coefficient lemmas analyze the amplification factor `(3 - (c^2 + s^2))/2`.
+
+`thermalWord_full_error_identity` expresses the full state error through its two clean
+amplitudes. The subsequent results turn coordinate under-approximation bounds into a bound for
+`cleanWordErrorSq` and then into a joint classical and quantum source error.
+
+## Main statements
+
+- `thermalOAA_polynomial` expands the reflected amplification word inside an idempotent corner.
+* `thermalAmplified_error_bound` bounds the amplified coefficient and leakage expression by
+  `6*e^2`.
+- `thermalWord_hclean_of_coefficients` proves a full preparation error bound for a legal word.
+* `thermalWord_source_cq_of_coefficients` adds the index-distribution error to the preparation
+  error.
+
+## References
+
+* [Jiang et al., 2026][JiangEtAl2026], *Thermal-Drift Sampling: Generating Thermal Ensembles for
+  Learning Many-Body Systems*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +44,8 @@ namespace Qatlib.Papers.ThermalDrift26.ThermalSampling
 open Qatlib Matrix
 open scoped BigOperators
 
+/-- In any ring, mutually inverse `U,V` and an idempotent `P` satisfy
+`P*(-(U*(1-2*P)*V*(1-2*P)*U))*P = 3*(P*U*P) - 4*(P*U*P*V*P*U*P)`. -/
 theorem thermalOAA_polynomial {R : Type*} [Ring R] (U V P : R)
     (hUV : U*V=1) (hVU : V*U=1) (hP : P*P=P) :
     P * (-(U*(1-2*P)*V*(1-2*P)*U)) * P =
@@ -31,6 +60,8 @@ theorem thermalOAA_polynomial {R : Type*} [Ring R] (U V P : R)
       simp only [mul_assoc,hP]
       noncomm_ring
 
+/-- An intertwining relation `U*G = G*u` implies `V*G = G*v` when `V*U = 1` and `u*v = 1`, even
+if the two matrix spaces have different dimensions. -/
 theorem thermalInverse_intertwine {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (U V : Matrix I I ℂ) (u v : Matrix J J ℂ)
     (G : Matrix I J ℂ) (hVU : V*U=1) (huv : u*v=1) (hUG : U*G=G*u) :
@@ -42,6 +73,8 @@ theorem thermalInverse_intertwine {I J : Type*} [Fintype I] [Fintype J]
     _=(V*U)*G*v := by simp only [Matrix.mul_assoc]
     _=G*v := by rw [hVU,Matrix.one_mul]
 
+/-- For `k = c^2 + s^2` and `gamma = (3-k)/2`, the identity `gamma^2*k + (1-k)^2*(4-k)/4 = 1`
+separates the amplified coefficient mass from its complementary term. -/
 theorem thermalAmplified_coefficients (c s : ℝ) :
     let k := c^2+s^2
     let gamma := (3-k)/2
@@ -49,6 +82,8 @@ theorem thermalAmplified_coefficients (c s : ℝ) :
   dsimp
   ring
 
+/-- For a unit target `(C,S)`, the amplified coefficient error plus `(1-k)^2*(4-k)/4` equals
+`2*r^2 + q - r*q`, where `k = c^2+s^2`, `r = C*(C-c)+S*(S-s)`, and `q = (C-c)^2+(S-s)^2`. -/
 theorem thermalAmplified_full_error (C S c s : ℝ) (hunit : C^2+S^2=1) :
     let k := c^2+s^2
     let gamma := (3-k)/2
@@ -58,6 +93,9 @@ theorem thermalAmplified_full_error (C S c s : ℝ) (hunit : C^2+S^2=1) :
   dsimp
   linear_combination (C*c+S*s+c^2+s^2-C^2-S^2-1)*hunit
 
+/-- If `(C,S)` is a nonnegative unit vector and both coordinate deficits `C-c` and `S-s` lie
+between zero and `e`, the amplified coefficient error plus `(1-k)^2*(4-k)/4` is at most
+`6*e^2`, with `k = c^2+s^2`. -/
 theorem thermalAmplified_error_bound (C S c s e : ℝ) (hunit : C^2+S^2=1)
     (hC : 0≤C) (hS : 0≤S) (hc : 0≤C-c) (hs : 0≤S-s)
     (hcE : C-c≤e) (hsE : S-s≤e) :
@@ -79,6 +117,8 @@ theorem thermalAmplified_error_bound (C S c s e : ℝ) (hunit : C^2+S^2=1)
     nlinarith [mul_nonneg (sub_nonneg.mpr hsE) (add_nonneg he hs)]
   nlinarith [mul_nonneg hr hq]
 
+/-- For a legal word whose clean signal amplitudes are the real numbers `p,q`, the full squared
+vector error against `targetWordState w a` is `2 - 2*(p*directCos a + q*directSin a)`. -/
 theorem thermalWord_full_error_identity (w : ℕ) (gs : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode)
     (hlegal : Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal (w+1) gs=true) (a p q : ℝ)
     (h0 : splitWordState w gs (0,fun _ => false)=(p:ℂ))
@@ -100,6 +140,9 @@ theorem thermalWord_full_error_identity (w : ℕ) (gs : List Qatlib.Concepts.Gat
   rw [Finset.sum_sub_distrib,Finset.sum_add_distrib,← Finset.mul_sum,hu,hv,hc]
   ring
 
+/-- A legal word with clean amplitudes `gamma*c,gamma*s`, where `gamma = (3-(c^2+s^2))/2`, has
+squared full-state error at most `epsilon^2` when `a >= 0`, the two target-coordinate
+deficits lie in `[0,e]`, and `6*e^2 <= epsilon^2`. -/
 theorem thermalWord_hclean_of_coefficients (w : ℕ) (gs : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode)
     (hlegal : Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal (w+1) gs=true) (a c s e epsilon : ℝ) (ha : 0≤a)
     (hc : 0≤directCos a-c) (hs : 0≤directSin a-s)
@@ -125,6 +168,9 @@ theorem thermalWord_hclean_of_coefficients (w : ℕ) (gs : List Qatlib.Concepts.
   rw [hid] at hb
   exact hb.trans heps
 
+/-- Under the stated legality and amplified-coordinate hypotheses, with `a >= 0`, `epsilon >=
+0`, `6*e^2 <= epsilon^2`, and index total variation at most `delta`, the joint prepared
+readout differs from the ideal one by at most `epsilon + delta` in half trace norm. -/
 theorem thermalWord_source_cq_of_coefficients {L d : ℕ} (F : ReflectionFamily L d)
     (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (w : ℕ) (gs : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode)
     (hlegal : Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal (w+1) gs=true) (a c s e epsilon delta : ℝ) (ha : 0≤a)

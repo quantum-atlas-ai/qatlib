@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
+
+/-!
+# Specification of continued-fraction candidate recording
+
+This module defines `aqCandidateRecord`, its query cost, and `aqSourceSuccessfulWindow`, then
+states their combined recovery guarantee in `FullLayerCFDenoiseUniqueP`. The contract controls
+the probability that the planted period appears among verified candidates in the noisy
+amplified-transform setting of [Cornwell2014].
+
+## Main statements
+
+* `aqCandidateRecord`: The list of period candidates returned by `aqAttempt` on the input
+  samples, retaining order and repetitions and discarding unsuccessful attempts.
+* `aqSourceSuccessfulWindow`: The finite set of samples y whose ratio y/N is within 1/(2P²) of a
+  reduced fraction a/P with a < P.
+* `FullLayerCFDenoiseUniqueP`: The recovery contract giving positive successful-window mass,
+  continued-fraction denominators, repeated planted-period inclusion, verified recorded
+  candidates, and a query bound under the stated noisy-progression assumptions.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,18 +43,27 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.FullLayerCF
 
+/-- The list of period candidates returned by `aqAttempt` on the input samples, retaining order
+and repetitions and discarding unsuccessful attempts. -/
 def aqCandidateRecord {N : ℕ} (h : Fin N → Bool) (s M B : ℕ)
     (xs : List (Fin N)) : List ℕ :=
   xs.filterMap (fun y => (aqAttempt h s M B y).1)
 
+/-- The total query cost of the candidate-record procedure, charging k amplification queries and
+the attempt's verification queries for each sample. -/
 def aqCandidateRecordQueries {N : ℕ} (h : Fin N → Bool) (s M B k : ℕ)
     (xs : List (Fin N)) : ℕ :=
   (xs.map (fun y => k + (aqAttempt h s M B y).2.1)).sum
 
+/-- The finite set of samples y whose ratio y/N is within 1/(2P²) of a reduced fraction a/P with
+a < P. -/
 def aqSourceSuccessfulWindow (N P : ℕ) : Finset (Fin N) :=
   Finset.univ.filter (fun y => ∃ a < P, Nat.Coprime a P ∧
     |(y.val : ℚ) / N - (a : ℚ) / P| ≤ 1 / (2 * (P : ℚ) ^ 2))
 
+/-- The recovery contract giving positive successful-window mass, continued-fraction
+denominators, repeated planted-period inclusion, verified recorded candidates, and a query
+bound under the stated noisy-progression assumptions. -/
 def FullLayerCFDenoiseUniqueP : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (s M L P B R v : ℕ) (G : Finset (Fin N)) (h : Fin N → Bool),
     2 ≤ M → 2 ≤ P → s + (M - 1) * P < N → M * P ≤ N → P ≤ B → 2 * B ^ 2 < N →

@@ -5,12 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationStat
+
+/-!
+# Existence and uniqueness of simulation cost
+
+This module proves `SimulationCostEquation`, establishing a unique real cost parameter above `t`
+for the equation `(t / r) ^ r = ε`. Its auxiliary lemmas express the logarithm of the left side
+through the strictly increasing function `x * log x` on `[1, ∞)`. The mathematical background is
+developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `simulationCostEquation_answer`: existence and uniqueness of the cost parameter.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.QsvtCore.HamiltonianSim
 
 open Real
 
+/-- The function `x * log x` is strictly increasing for real arguments at least one. -/
 theorem sim157_log_mul_strictMono {x y : ℝ} (hx : 1 ≤ x) (hxy : x < y) :
     x * Real.log x < y * Real.log y := by
   have hx0 : (0:ℝ) ≤ Real.log x := Real.log_nonneg hx
@@ -22,6 +41,7 @@ theorem sim157_log_mul_strictMono {x y : ℝ} (hx : 1 ≤ x) (hxy : x < y) :
       (by linarith : (0:ℝ) < y)
   linarith
 
+/-- For positive `t` and `z`, `z * log (t / z)` equals `-t * ((z / t) * log (z / t))`. -/
 theorem sim157_flip {t z : ℝ} (ht : 0 < t) (hz : 0 < z) :
     z * Real.log (t/z) = -t * ((z/t) * Real.log (z/t)) := by
   rw [Real.log_div (ne_of_gt ht) (ne_of_gt hz),
@@ -31,6 +51,8 @@ theorem sim157_flip {t z : ℝ} (ht : 0 < t) (hz : 0 < z) :
 
 set_option maxHeartbeats 400000 in
 
+/-- For positive `t` and `0 < ε < 1`, there is a unique `r ≥ t` solving `(t / r) ^ r = ε`; see
+[Gilyén et al., Lemma 59][GilyenSuLowWiebe2019]. -/
 theorem simulationCostEquation_answer : SimulationCostEquation := by
   intro t ε ht hε hε1
   have hε0 : (0:ℝ) < ε := hε

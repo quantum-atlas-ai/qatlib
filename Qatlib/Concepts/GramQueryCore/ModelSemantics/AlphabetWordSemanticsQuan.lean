@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.AlphabetWordSemanticsStat
 import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
 import Qatlib.Foundations.PureStateMath.Tensor
+
+/-!
+# Unitary semantics of alphabet query words
+
+Proves that the padded alphabet shift and every legal word evaluated at a unitary oracle are
+unitary. It also checks that clean tagged embeddings preserve normalization.
+
+These results establish the discrete alphabet query semantics underlying the state conversion
+model in [LeeEtAl2011].
+
+## Main statements
+
+* `sourceAlphabetOracle_unitary`: the padded alphabet oracle is unitary.
+* `sourceWordMatrix_unitary`: legal words preserve unitarity.
+* `alphabetWordSemantics`: proves the complete semantic specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +43,7 @@ namespace Qatlib.Concepts.GramQueryCore.ModelSemantics
 open Matrix
 open scoped Classical BigOperators
 
+/-- The padded alphabet shift is injective because addition of the input symbol is cancellable. -/
 theorem sourceAlphabetShift_injective {X S : Type} {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     Function.Injective (fun p : ((Fin (n+1) × Fin (q+1)) × S) =>
@@ -34,11 +56,13 @@ theorem sourceAlphabetShift_injective {X S : Type} {n q : ℕ}
   rw [ha] at hb
   exact Prod.ext (Prod.ext ha (add_right_cancel hb)) hs
 
+/-- The padded alphabet oracle is a unitary permutation matrix. -/
 theorem sourceAlphabetOracle_unitary {X S : Type} [Fintype S] [DecidableEq S]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X) :
     sourceAlphabetOracle (W:=S) input x ∈ Matrix.unitaryGroup _ ℂ :=
   permMatrix_unitary_of_injective (sourceAlphabetShift_injective input x)
 
+/-- A legal source word evaluated at a unitary oracle has a unitary matrix. -/
 theorem sourceWordMatrix_unitary {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (hO : O ∈ Matrix.unitaryGroup S ℂ)
     (C : SourceWord S) (hC : sourceWordLegal C) :
@@ -59,12 +83,15 @@ theorem sourceWordMatrix_unitary {S : Type} [Fintype S] [DecidableEq S]
     | inl U => exact hs
     | inr adj => cases adj <;> simp_all
 
+/-- The clean tagged source embedding of a normalized state is normalized. -/
 theorem sourceClean_normalized {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState H) (hψ : Normalized ψ) :
     Normalized (sourceClean n q r hr tag ψ) :=
   normalized_tensorState (normalized_ket _) (normalized_tensorState
     (normalized_tensorState (normalized_ket _) hψ) (normalized_ket _))
 
+/-- Proves the unitarity and clean-state normalization properties of the alphabet word model
+used in [LeeEtAl2011]. -/
 theorem alphabetWordSemantics : AlphabetWordSemantics := by
   intro X S _ _ n q input x
   exact ⟨sourceAlphabetOracle_unitary input x,

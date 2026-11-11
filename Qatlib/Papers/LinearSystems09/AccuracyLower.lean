@@ -70,6 +70,26 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Foundations.PureStateMath.Qubit
 
+/-!
+# Accuracy dependence and exact counting
+
+The functions `countingProbability` and `exactCountingPrecision` describe an exact-counting
+precision scale for the linear-systems lower-bound argument in [HarrowHassidimLloyd2009]. The
+module proves separation and uniqueness of counts at this precision and derives an exponent
+constraint from an assumed eventual runtime bound.
+
+## Main statements
+
+* `exact_count_unique`: Shows that sufficiently accurate probability estimates determine the
+  count.
+* `source_theorem6_exact_counting_lower_bound`: Derives `1 ≤ α + β` from the stated counting
+  lower bound.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -77,9 +97,12 @@ namespace Qatlib.Papers.LinearSystems09.AccuracyLower
 
 open Qatlib.Foundations.PureStateMath
 
+/-- The runtime model `2^(α * n) * 2^(β * n)` for the exact-counting accuracy argument. -/
 noncomputable def estimationRuntime (α β : ℝ) (n : ℕ) : ℝ :=
   (2 : ℝ) ^ (α * (n : ℝ)) * (2 : ℝ) ^ (β * (n : ℝ))
 
+/-- If `estimationRuntime α β n` is eventually at least `2^n`, then `1 ≤ α + β`, giving the
+exponent constraint used in Theorem 6 of [HarrowHassidimLloyd2009]. -/
 theorem source_theorem6_exact_counting_lower_bound (α β : ℝ)
     (hcounting : ∀ᶠ n : ℕ in Filter.atTop,
       (2 : ℝ) ^ (n : ℝ) ≤ estimationRuntime α β n) :
@@ -103,10 +126,14 @@ theorem source_theorem6_exact_counting_lower_bound (α β : ℝ)
     nlinarith [hmono]
   nlinarith [hmul, hnpos]
 
+/-- The probability `C / 2^n` associated with a count `C` among `2^n` possibilities. -/
 noncomputable def countingProbability (n C : ℕ) : ℝ := (C : ℝ) / (2 : ℝ) ^ n
 
+/-- The precision `1 / 2^(2 * n)` used to recover an exact count from a probability estimate. -/
 noncomputable def exactCountingPrecision (n : ℕ) : ℝ := 1 / (2 : ℝ) ^ (2 * n)
 
+/-- Distinct counts between zero and `2^n` have probabilities separated by at least `1 / 2^n`,
+as used in Theorem 6 of [HarrowHassidimLloyd2009]. -/
 theorem countingProbability_separation {n C D : ℕ} (hC : C ≤ 2 ^ n)
     (hD : D ≤ 2 ^ n) (hne : C ≠ D) :
     (1 : ℝ) / (2 : ℝ) ^ n ≤
@@ -127,6 +154,8 @@ theorem countingProbability_separation {n C D : ℕ} (hC : C ≤ 2 ^ n)
   rw [hdiff, abs_div, abs_of_pos hden]
   exact div_le_div_of_nonneg_right hCD hden.le
 
+/-- For `n ≥ 2`, two counts whose probabilities are both within `exactCountingPrecision n` of
+the same estimate must coincide [HarrowHassidimLloyd2009]. -/
 theorem exact_count_unique {n : ℕ} (hn : 2 ≤ n) {C D : ℕ} (hC : C ≤ 2 ^ n)
     (hD : D ≤ 2 ^ n) (p : ℝ)
     (hpC : |p - countingProbability n C| ≤ exactCountingPrecision n)
@@ -163,6 +192,8 @@ theorem exact_count_unique {n : ℕ} (hn : 2 ≤ n) {C D : ℕ} (hC : C ≤ 2 ^ 
     nlinarith [hden, h2n, mul_pos hden (by linarith : (0 : ℝ) < (2 : ℝ) ^ n - 2)]
   linarith
 
+/-- The logarithm of the reciprocal exact-counting precision is `2 * n * log 2`
+[HarrowHassidimLloyd2009]. -/
 theorem exact_counting_precision_log (n : ℕ) :
     Real.log (1 / exactCountingPrecision n) = 2 * (n : ℝ) * Real.log 2 := by
   unfold exactCountingPrecision
@@ -170,12 +201,16 @@ theorem exact_counting_precision_log (n : ℕ) :
   push_cast
   ring
 
+/-- The logarithm of the exact-counting precision is `-(2 * n * log 2)`
+[HarrowHassidimLloyd2009]. -/
 theorem exact_counting_precision_log_neg (n : ℕ) :
     Real.log (exactCountingPrecision n) = -(2 * (n : ℝ) * Real.log 2) := by
   have h : exactCountingPrecision n = (1 / exactCountingPrecision n)⁻¹ := by
     rw [one_div, inv_inv]
   rw [h, Real.log_inv, exact_counting_precision_log]
 
+/-- Data for a matrix-inversion estimation instance: a Hermitian matrix, an input vector, and a
+positive parameter recording a condition bound. -/
 structure MatrixInversionEstimationInstance (N : ℕ) where
 
   A : Matrix (Fin N) (Fin N) ℂ

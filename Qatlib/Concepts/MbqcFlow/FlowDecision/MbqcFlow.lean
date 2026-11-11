@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# MBQC flow definitions and finite gate boundaries
+
+This import module exposes the definitions in `MbqcFlowCoreDefs` together with the finite gate
+phase boundary interface. The available MBQC definitions include `MbqcGraph`, `MbqcHasFlow`, and
+`mbqcPatternInstrument`, providing graph and branch semantics for the one-way model
+[DanosKashefi2006].
+
+The module contains no additional declarations; its imports make the flow definitions and finite
+gate interface available together.
+
+## Main declarations from imports
+
+* `MbqcHasFlow`: existence of a causal flow on an open graph.
+* `mbqcFlowDecide`: finite search over flow maps and rank assignments.
+* `mbqcPatternInstrument`: an instrument built from pattern branches and a supplied
+  trace-preservation proof.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false

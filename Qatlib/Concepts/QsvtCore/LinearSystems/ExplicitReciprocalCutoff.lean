@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.ReciprocalApproximation
+
+/-!
+# An explicit reciprocal approximation cutoff
+
+This module defines `explicitInverseCutoff κ k = κ * κ * (k + κ + 1)` and proves a geometric
+reciprocal approximation bound at gap `κ⁻¹`. The truncation index is positive for positive `κ`
+and achieves error at most `2⁻ᵏ`. The mathematical background is developed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `explicit_inverse_cutoff_integer_formula`: the integer cutoff formula and positivity.
+* `explicit_inverse_geometric_precision`: the reciprocal approximation error bound.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,13 +50,16 @@ open Qatlib
 open Qatlib
 set_option autoImplicit false
 
+/-- The integer reciprocal truncation index `κ * κ * (k + κ + 1)`. -/
 def explicitInverseCutoff (κ k : ℕ) : ℕ := κ * κ * (k + κ + 1)
 
+/-- The explicit cutoff has its defining integer formula and is positive when `κ` is positive. -/
 theorem explicit_inverse_cutoff_integer_formula (κ k : ℕ) :
     explicitInverseCutoff κ k = κ*κ*(k+κ+1) ∧
       (0<κ → 0<explicitInverseCutoff κ k) :=
   ⟨rfl, fun hκ => Nat.mul_pos (Nat.mul_pos hκ hκ) (Nat.succ_pos _)⟩
 
+/-- Every natural number `m` is strictly less than `2 ^ m`. -/
 private theorem nat_lt_two_pow (m : ℕ) : m < (2:ℕ)^m := by
   induction m with
   | zero => norm_num
@@ -46,6 +68,7 @@ private theorem nat_lt_two_pow (m : ℕ) : m < (2:ℕ)^m := by
     have h1 : (1:ℕ) ≤ (2:ℕ)^n := Nat.one_le_iff_ne_zero.mpr (pow_ne_zero _ two_ne_zero)
     omega
 
+/-- For every natural `κ`, the product `(2⁻¹) ^ (κ + 1) * κ` is at most one. -/
 private theorem half_pow_succ_mul_le_one (κ : ℕ) :
     ((2:ℝ)⁻¹)^(κ+1) * (κ:ℝ) ≤ 1 := by
   have hcast : (κ:ℝ) ≤ ((2:ℝ)^(κ+1)) := by
@@ -55,6 +78,8 @@ private theorem half_pow_succ_mul_le_one (κ : ℕ) :
   rw [inv_pow]
   exact (inv_mul_le_one₀ (by positivity)).mpr hcast
 
+/-- For positive `κ`, truncation at `explicitInverseCutoff κ k` gives reciprocal error at gap
+`κ⁻¹` at most `2⁻ᵏ`. -/
 theorem explicit_inverse_geometric_precision :
     ∀ (κ k : ℕ), 0<κ →
       reciprocalError (κ:ℝ)⁻¹ (explicitInverseCutoff κ k) ≤ (2:ℝ)⁻¹^k := by

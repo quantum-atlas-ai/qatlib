@@ -8,6 +8,29 @@ import Qatlib.Papers.PrincIdeal09.MainResults.Framework
 import Qatlib.Papers.PrincIdeal09.MainResults.Periodicity
 import Qatlib.Papers.PrincIdeal09.MainResults.NumericBounds
 import Qatlib.Papers.PrincIdeal09.MainResults.Amplitude
+
+/-!
+# Regulator dual sampling and reconstruction bounds
+
+The record `RegulatorDualModel` collects sampling, counting, approximation, and register-size
+hypotheses. These imply a bounded-error dual sample and explicit success and resource bounds;
+separate ratio estimates give the accuracy used for continued-fraction reconstruction, and
+`RegulatorModel` packages the final success expression [Schmidt2009].
+
+## Main statements
+
+* `theorem1_regulator_dual`: Combines the sample relation, success lower bound, and resource
+  upper bound.
+* `lemma3_continued_fraction_regime`: The sample ratio approximates the integer ratio within 1 /
+  (2z₂²).
+* `theorem2_regulator`: The final model has success at least 2⁻²⁶ and the inherited resource
+  bound.
+
+## References
+
+* [Schmidt, 2009][Schmidt2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +40,8 @@ open Classical
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults
 
+/-- A record of regulator dual-sampling parameters with size, sample-error, counting, success,
+and register-size hypotheses. -/
 structure RegulatorDualModel where
 
   Δ : ℝ
@@ -74,12 +99,14 @@ structure RegulatorDualModel where
 
 namespace RegulatorDualModel
 
+/-- The dual model's register parameter satisfies `q ≤ 10 * Δ * (log Δ)²`. -/
 theorem q_le_ten (M : RegulatorDualModel) :
     M.q ≤ 10 * M.Δ * (Real.log M.Δ) ^ 2 := by
   have h1 := M.q_lower
   have h2 := M.q_upper
   linarith
 
+/-- The regulator dual model has success value at least `2^(-11)` [Schmidt2009]. -/
 theorem success_ge (M : RegulatorDualModel) :
     (2 : ℝ) ^ (-11 : ℤ) ≤ M.successProb := by
   have hR : 0 < M.R := M.R_pos
@@ -116,6 +143,8 @@ theorem success_ge (M : RegulatorDualModel) :
 
 end RegulatorDualModel
 
+/-- A regulator dual model possesses the stated integer sample relation with error at most one
+half, success value at least `2^(-11)`, and the logarithmic resource bound [Schmidt2009]. -/
 theorem theorem1_regulator_dual (M : RegulatorDualModel) :
     (∃ z : ℤ, ∃ ω : ℝ, |ω| ≤ 1 / 2 ∧ M.y = (M.q / M.R) * (z : ℝ) + ω) ∧
       (2 : ℝ) ^ (-11 : ℤ) ≤ M.successProb ∧
@@ -131,10 +160,14 @@ theorem theorem1_regulator_dual (M : RegulatorDualModel) :
   rw [M.qubits_eq]
   linarith
 
+/-- The resource value of a regulator dual model is at most `2 * logb 2 Δ + 2 * logb 2 (log Δ) +
+N + 7` [Schmidt2009]. -/
 theorem theorem1_qubit_clause (M : RegulatorDualModel) :
     M.qubits ≤ 2 * Real.logb 2 M.Δ + 2 * Real.logb 2 (Real.log M.Δ) + M.N + 7 :=
   theorem1_regulator_dual M |>.2.2
 
+/-- Under the stated sample and positivity bounds, the ratio error `|y1 / y2 - z1 / z2|` is at
+most `R / (q * z2 - R / 2)` [Schmidt2009]. -/
 theorem lemma3_intermediate
     (q R y1 y2 z1 z2 ω1 ω2 : ℝ)
     (hR : 0 < R) (hq : R ^ 2 < q)
@@ -182,6 +215,8 @@ theorem lemma3_intermediate
   rw [hkey, abs_div, abs_of_pos hden]
   exact le_trans hstep1 hstep2
 
+/-- Under the stated sample bounds, including `z2 ≤ R / 4` and `R² < q`, the ratio error is at
+most `1 / (2 * z2²)` [Schmidt2009]. -/
 theorem lemma3_continued_fraction_regime
     (q R y1 y2 z1 z2 ω1 ω2 : ℝ)
     (hR : 0 < R) (hq : R ^ 2 < q)
@@ -231,11 +266,14 @@ theorem lemma3_continued_fraction_regime
   rw [hkey, abs_div, abs_of_pos hden]
   exact le_trans hstep hstep2
 
+/-- A regulator dual model together with a success value equal to `(6 / π²) * 2^(-25)`. -/
 structure RegulatorModel where
   dual : RegulatorDualModel
   successProb : ℝ
   prob_eq : successProb = (6 / Real.pi ^ 2) * (2 : ℝ) ^ (-25 : ℤ)
 
+/-- A regulator model has success value at least `2^(-26)` and inherits the stated logarithmic
+resource bound from its dual model [Schmidt2009]. -/
 theorem theorem2_regulator (M : RegulatorModel) :
     (2 : ℝ) ^ (-26 : ℤ) ≤ M.successProb ∧
       M.dual.qubits ≤

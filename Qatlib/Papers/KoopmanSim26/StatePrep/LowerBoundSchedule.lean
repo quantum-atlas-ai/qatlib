@@ -8,6 +8,40 @@ import Qatlib.Papers.KoopmanSim26.StatePrep.ObservablePreparation
 import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
 import Mathlib.Tactic
+
+/-!
+# Randomized preparation from a probability lower bound
+
+This module constructs a finite randomized amplitude amplification schedule for a unitary
+preparation matrix with marked probability at least a known positive lower bound. The schedule
+samples a Boolean branch and a uniform round index: `chosenRound` uses zero rounds on one branch
+and the sampled index on the other. `jointLaw` combines this choice with the actual Born
+measurement, and `lower_bound_schedule` proves success at least 1/8 with expected preparation
+access count at most 5 divided by the square root of the lower bound. This supplies a concrete
+preparation schedule for the observable input construction of [ZhangEtAl2026].
+
+For observable states, `balanced_source_schedule` specializes the cost to a balanced collection
+of amplitudes. The span results and `actual_successful_density` show that every successful
+amplified branch retains the same complex target direction, so averaging the branches gives the
+target pure density multiplied by its success probability.
+
+## Main statements
+
+* `window_bounds` controls the integer amplification window by the inverse square root of the
+  supplied probability bound.
+* `lower_bound_schedule` proves the actual success and expected access bounds for the finite
+  joint law.
+* `balanced_source_schedule` gives the expected access bound 5/(c sqrt(eta)) under balanced
+  observable amplitudes.
+* `actual_successful_density` identifies the successful density exactly, and
+  `mature_window_success` gives constant success for any sufficiently large window.
+
+## References
+
+* [Zhang et al., 2026][ZhangEtAl2026], Quantum simulation of real-world nonlinear dynamics via
+  Koopman method.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Matrix
@@ -22,10 +56,15 @@ open scoped Classical
 set_option warningAsError false
 namespace Qatlib.Papers.KoopmanSim26.StatePrep.LowerSchedule
 
+/-- The amplification window is the larger of one and the natural ceiling of the inverse square
+root of the supplied real lower bound. -/
 noncomputable def window (ℓ : ℝ) : ℕ := max 1 (Nat.ceil (1/Real.sqrt ℓ))
 
+/-- The chosen amplification window is positive for every real input. -/
 theorem window_pos (ℓ : ℝ) : 0 < window ℓ := by unfold window; omega
 
+/-- For a lower bound strictly between zero and one inclusive, the window times its square root
+is at least one, while the window itself is at most twice its inverse square root. -/
 theorem window_bounds (ℓ : ℝ) (hℓ : 0 < ℓ) (hℓ1 : ℓ ≤ 1) :
     1 ≤ (window ℓ : ℝ) * Real.sqrt ℓ ∧ (window ℓ : ℝ) ≤ 2 / Real.sqrt ℓ := by
   have hr : 0 < Real.sqrt ℓ := Real.sqrt_pos.mpr hℓ
@@ -43,18 +82,26 @@ theorem window_bounds (ℓ : ℝ) (hℓ : 0 < ℓ) (hℓ1 : ℓ ≤ 1) :
   · have h1 : 1 ≤ 1/Real.sqrt ℓ := (le_div_iff₀ hr).mpr (by simpa using! hr1)
     linarith [show 2 / Real.sqrt ℓ = 2 * (1/Real.sqrt ℓ) by ring]
 
+/-- Selects zero amplification rounds when the Boolean branch is true and the supplied finite
+index otherwise. -/
 def chosenRound {M : ℕ} (z : Bool × Fin M) : ℕ := if z.1 then 0 else z.2.val
 
+/-- The state obtained by running prepared amplitude amplification from the basis seed with the
+round count selected by `chosenRound` and marked set `S`. -/
 noncomputable def runState {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (S : Finset I) {M : ℕ} (z : Bool × Fin M) : QState I :=
   Run (preparedMark S) (preparedAACircuit A j (chosenRound z)) (Ket j)
 
+/-- A unitary preparation matrix makes every state selected by the randomized schedule
+normalized. -/
 theorem runState_normalized {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     {M : ℕ} (z : Bool × Fin M) : Normalized (runState A j S z) :=
   (prepared_aa_actual_circuit A j S (chosenRound z) hA).1.normalized_run
     (prepared_aa_reflection_and_access A j S hA).1 (normalized_ket j)
 
+/-- The finite joint distribution of a uniform Boolean branch, a uniform index in the positive
+window, and the Born measurement outcome of the corresponding amplified state. -/
 noncomputable def jointLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) : FinDist ((Bool × Fin M) × I) where
@@ -66,14 +113,20 @@ noncomputable def jointLaw {I : Type} [Fintype I] [DecidableEq I]
     simp
     field_simp
 
+/-- The probability mass function obtained from the finite joint law of the randomized schedule
+and its measurement outcome. -/
 noncomputable def jointPMF {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) : PMF ((Bool × Fin M) × I) := toPMF (jointLaw A hA j S M hM)
 
+/-- The sum of marked measurement masses over all Boolean and round choices, each weighted by
+the reciprocal of twice the window size. -/
 noncomputable def success {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (M : ℕ) : ℝ :=
   ∑ z : Bool × Fin M, 1/(2*(M:ℝ)) * MeasureProb (runState A j S z) S
 
+/-- For a unitary preparation and positive window, `success` equals the expectation of the
+marked outcome indicator under the actual joint law. -/
 theorem success_is_actual {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) :
@@ -83,6 +136,9 @@ theorem success_is_actual {I : Type} [Fintype I] [DecidableEq I]
   intro z _
   simp [MeasureProb, Finset.mul_sum]
 
+/-- For a positive window, the schedule's success is half the unamplified marked probability
+plus half the average marked probability over round counts from zero to one less than the
+window size. -/
 theorem success_formula {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (M : ℕ) (hM : 0 < M) :
     success A j S M = (1/2)*MeasureProb (preparedAAState A j) S +
@@ -97,6 +153,9 @@ theorem success_formula {I : Type} [Fintype I] [DecidableEq I]
   have hMr : (M:ℝ) ≠ 0 := by exact_mod_cast hM.ne'
   field_simp
 
+/-- For a unitary preparation, if a positive lower bound does not exceed the initial marked
+probability and that probability is at most one, the randomized schedule using `window` has
+success at least 1/8. -/
 theorem lower_bound_success {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (ℓ : ℝ) (hℓ : 0 < ℓ) (hlower : ℓ ≤ MeasureProb (preparedAAState A j) S)
@@ -139,6 +198,8 @@ theorem lower_bound_success {I : Type} [Fintype I] [DecidableEq I]
   · have hp' : 1/2 ≤ MeasureProb (preparedAAState A j) S := le_of_not_gt hp
     linarith
 
+/-- Every selected amplification word uses at most twice the window size plus one preparation
+accesses when the preparation matrix is unitary. -/
 theorem selected_count_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     {M : ℕ} (z : Bool × Fin M) :
@@ -147,6 +208,8 @@ theorem selected_count_le {I : Type} [Fintype I] [DecidableEq I]
   unfold chosenRound
   split_ifs <;> omega
 
+/-- For a unitary preparation and positive window size M, the expected preparation access count
+under the joint law is at most 2M + 1. -/
 theorem expected_count_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) :
@@ -162,6 +225,9 @@ theorem expected_count_le {I : Type} [Fintype I] [DecidableEq I]
       exact_mod_cast selected_count_le A hA j S x.1
     _ = 2*(M:ℝ)+1 := by rw [← Finset.sum_mul, law.sum_one, one_mul]
 
+/-- For a unitary preparation, a positive lower bound on an initial marked probability at most
+one yields actual success at least 1/8 and expected preparation access count at most five
+divided by the square root of that lower bound. -/
 theorem lower_bound_schedule {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (ℓ : ℝ) (hℓ : 0 < ℓ) (hlower : ℓ ≤ MeasureProb (preparedAAState A j) S)
@@ -182,6 +248,10 @@ theorem lower_bound_schedule {I : Type} [Fintype I] [DecidableEq I]
     linarith [show 2 / Real.sqrt ℓ = 2 * (1/Real.sqrt ℓ) by ring,
       show 5 / Real.sqrt ℓ = 5 * (1/Real.sqrt ℓ) by ring]
 
+/-- For positive G, c, and eta, if at least an eta fraction of the observable indices have
+amplitude norm at least cG and all encoded values are bounded by G, the schedule based on
+eta c^2 succeeds with probability at least 1/8. Its expected preparation access count is at
+most 5/(c sqrt(eta)). -/
 theorem balanced_source_schedule {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G c η : ℝ) (hG : 0 < G) (hc : 0 < c) (hη : 0 < η)
     (hvalue : ∀ v, ‖value v‖ ≤ G) (S : Finset (Reg n))
@@ -203,6 +273,9 @@ theorem balanced_source_schedule {n m : ℕ} (b : Reg n → Reg m) (value : Reg 
     ring
   simpa only [hroot] using! hs.2
 
+/-- For a unitary preparation with positive marked probability at most one, the marked component
+after any number of amplification rounds is a complex scalar multiple of its original marked
+component. -/
 theorem aa_good_span {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -230,6 +303,8 @@ theorem aa_good_span {I : Type} [Fintype I] [DecidableEq I]
     ext i
     by_cases hi : i ∈ S <;> simp [collapse_apply, hi]
 
+/-- For a bounded observable preparation with nonzero target, the successful index amplitudes
+after any amplification round count lie in the complex span of `postselected`. -/
 theorem amplified_index_span {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0) (k : ℕ) :
     ∃ z : ℂ, (fun j => Run (preparedMark (goodSet n m))
@@ -255,6 +330,8 @@ theorem amplified_index_span {n m : ℕ} (b : Reg n → Reg m) (value : Reg m �
       (j,(ZeroStr m,false)) / (Real.sqrt p : ℂ))
   field_simp
 
+/-- Multiplying a state by a complex scalar multiplies its outer product by the squared norm of
+that scalar. -/
 theorem outerProduct_scale {I : Type} [Fintype I] [DecidableEq I] (v : QState I) (z : ℂ) :
     outerProduct (z • v) = ((‖z‖^2 : ℝ) : ℂ) • outerProduct v := by
   have hz : ((‖z‖^2 : ℝ) : ℂ) = z * (starRingEnd ℂ) z := by
@@ -264,6 +341,8 @@ theorem outerProduct_scale {I : Type} [Fintype I] [DecidableEq I] (v : QState I)
   simp only [outerProduct_apply, Pi.smul_apply, Matrix.smul_apply, smul_eq_mul, map_mul, hz]
   ring
 
+/-- If a state lies in the complex span of a normalized state, its outer product is the
+normalized state's outer product multiplied by the sum of its own squared amplitude norms. -/
 theorem outerProduct_of_span {I : Type} [Fintype I] [DecidableEq I]
     (u v : QState I) (hu : Normalized u) (hspan : ∃ z : ℂ, v=z • u) :
     outerProduct v = (((∑ i, ‖v i‖^2 : ℝ)) : ℂ) • outerProduct u := by
@@ -273,11 +352,15 @@ theorem outerProduct_of_span {I : Type} [Fintype I] [DecidableEq I]
     rw [hu, mul_one]
   rw [outerProduct_scale, hmass]
 
+/-- The unnormalized successful index density formed by averaging the outer products of the
+successful amplitude vectors over the Boolean and round choices of the schedule. -/
 noncomputable def successfulDensity {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (M : ℕ) : Matrix (Reg n) (Reg n) ℂ :=
   ∑ z : Bool × Fin M, ((1/(2*(M:ℝ)) : ℝ) : ℂ) • outerProduct
     (fun j => runState (preparation b value G) (seed n m) (goodSet n m) z (j,(ZeroStr m,false)))
 
+/-- For bounded observable values and a nonzero target, the successful density equals the
+schedule's success mass times the outer product of the normalized postselected state. -/
 theorem actual_successful_density {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0) (M : ℕ) :
     successfulDensity b value G M =
@@ -295,6 +378,8 @@ theorem actual_successful_density {n m : ℕ} (b : Reg n → Reg m) (value : Reg
   congr 1
   simp only [success, Complex.ofReal_sum, Complex.ofReal_mul]
 
+/-- For a unitary preparation with marked probability p in (0, 1], every positive window M
+satisfying M sqrt(p) at least one gives randomized schedule success at least 1/8. -/
 theorem mature_window_success {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (hp0 : 0 < MeasureProb (preparedAAState A j) S)

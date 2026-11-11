@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.CbDegreeBridge.CbForms
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Matrix amplification identities for tensor forms
+
+This module develops path expansions and coefficient extraction for the sandwich expressions of
+`CbForms`. It constructs finite matrix amplifications, proves contraction bounds for their
+products, and identifies the amplified sandwich with a tensor matrix substitution; the operator
+norm background is described in [Paulsen2002].
+
+## Main statements
+
+* `cbFiberSum_full`: extract tensor coefficients from fully labelled path patterns.
+* `cbNbig_prod_norm_le`: bound an amplified sandwich product of contractions by one.
+* `cbAmplified`: identify the tensor substitution inner product with an amplified sandwich inner
+  product.
+
+## References
+
+* [Paulsen, 2002][Paulsen2002]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -26,11 +47,14 @@ section Paths
 
 variable {R : Type} [Fintype R] [DecidableEq R]
 
+/-- A nonempty ordered matrix product splits into its first matrix times the product of the
+remaining matrices. -/
 theorem matProdFin_succ_left {k : ℕ} (M : Fin (k + 1) → Matrix R R ℂ) :
     matProdFin (k + 1) M = M 0 * matProdFin k (fun j => M j.succ) := by
   simp only [matProdFin, List.finRange_succ, List.map_cons, List.prod_cons, List.map_map,
     Function.comp_def]
 
+/-- The equivalence between a function on `Fin 1` and its single value. -/
 def fin1Equiv (R : Type) : (Fin 1 → R) ≃ R where
   toFun r := r 0
   invFun x := fun _ => x
@@ -41,6 +65,7 @@ def fin1Equiv (R : Type) : (Fin 1 → R) ≃ R where
     | succ j' => exact absurd j'.isLt (Nat.not_lt_zero _)
   right_inv _ := rfl
 
+/-- The equivalence that prepends one value to a function indexed by `Fin k`. -/
 def consEquiv {R : Type} [Fintype R] [DecidableEq R] {k : ℕ} : R × (Fin k → R) ≃ (Fin (k + 1) → R) where
   toFun p := Fin.cons (α := fun _ => R) p.1 p.2
   invFun x := (x 0, Fin.tail x)
@@ -56,6 +81,8 @@ def consEquiv {R : Type} [Fintype R] [DecidableEq R] {k : ℕ} : R × (Fin k →
     | zero => rfl
     | succ j' => rfl
 
+/-- Expand the inner product of an ordered matrix product into a sum over all intermediate
+matrix indices. -/
 theorem inner_mulVec_matProdFin {k : ℕ} (M : Fin k → Matrix R R ℂ) (u v : QState R) :
     Inner u (matProdFin k M *ᵥ v) =
       ∑ r : Fin (k + 1) → R, (starRingEnd ℂ) (u (r 0)) *
@@ -166,9 +193,12 @@ theorem inner_mulVec_matProdFin {k : ℕ} (M : Fin k → Matrix R R ℂ) (u v : 
         (∏ j : Fin (k + 1), M j (x j.castSucc) (x j.succ)) * v (x (Fin.last (k + 1))))
       (fun p => h4 p.1 p.2)
 
+/-- The ordered product of a family indexed by `Fin 0` is the identity matrix. -/
 theorem matProdFin_zero (M : Fin 0 → Matrix R R ℂ) : matProdFin 0 M = 1 := by
   simp [matProdFin, List.finRange_zero]
 
+/-- A nonempty ordered matrix product splits into the product of its initial matrices times its
+last matrix. -/
 theorem matProdFin_succ_right {k : ℕ} (M : Fin (k + 1) → Matrix R R ℂ) :
     matProdFin (k + 1) M = matProdFin k (fun j => M j.castSucc) * M (Fin.last k) := by
   induction k with
@@ -185,37 +215,49 @@ section Sandwich
 
 variable {κ : Type} [Fintype κ] {R : Type} [Fintype R] [DecidableEq R] {s : ℕ}
 
+/-- The diagonal substitution value at `r`, equal to one when `δ r` is `none` and to `w k` when
+it is `some k`. -/
 def dzval (δ : R → Option κ) (w : κ → ℂ) (r : R) : ℂ :=
   match δ r with | none => 1 | some k => w k
 
+/-- Extend a complex coordinate vector to optional indices by assigning one to `none`. -/
 def dzO (w : κ → ℂ) : Option κ → ℂ :=
   fun o => match o with | none => 1 | some k => w k
 
+/-- The diagonal substitution value is the optional coordinate evaluation at the label `δ r`. -/
 theorem dzval_eq_dzO (δ : R → Option κ) (w : κ → ℂ) (r : R) : dzval δ w r = dzO w (δ r) := rfl
 
+/-- The entries of `cbDelta` are its substitution values on the diagonal and zero elsewhere. -/
 theorem cbDelta_apply (δ : R → Option κ) (w : κ → ℂ) (r r' : R) :
     cbDelta δ w r r' = if r = r' then dzval δ w r else 0 := by
   rw [cbDelta, Matrix.diagonal_apply]; rfl
 
+/-- Right multiplication by `cbDelta` multiplies each column by its diagonal substitution value. -/
 theorem mul_cbDelta_apply (M : Matrix R R ℂ) (δ : R → Option κ) (w : κ → ℂ) (i j : R) :
     (M * cbDelta δ w) i j = M i j * dzval δ w j := by
   rw [cbDelta]
   exact Matrix.mul_diagonal (fun r => match δ r with | none => 1 | some k => w k) M i j
 
+/-- The factors of the matrix sandwich product, combining each initial matrix with its
+coordinate diagonal and retaining the final matrix. -/
 noncomputable def cbSlot (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (z : Fin s → κ → ℂ)
     (j : Fin (s + 1)) : Matrix R R ℂ :=
   if h : (j : ℕ) < s then W ⟨j, by omega⟩ * cbDelta δ (z ⟨j, h⟩) else W ⟨j, by omega⟩
 
+/-- An initial slot of the sandwich product is the corresponding matrix times its coordinate
+diagonal. -/
 theorem cbSlot_castSucc (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (z : Fin s → κ → ℂ)
     (j : Fin s) : cbSlot W δ z j.castSucc = W j.castSucc * cbDelta δ (z j) := by
   rw [cbSlot, dif_pos (show ((j.castSucc : Fin (s + 1)) : ℕ) < s by
     rw [Fin.val_castSucc]; exact j.isLt)]
   rfl
 
+/-- The last slot of the sandwich product is the final matrix `W`. -/
 theorem cbSlot_last (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (z : Fin s → κ → ℂ) :
     cbSlot W δ z (Fin.last s) = W (Fin.last s) := by
   rw [cbSlot, dif_neg (by simp)]
 
+/-- The matrix sandwich equals the ordered product of all its slots. -/
 theorem cbSandwichMatrix_eq (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (z : Fin s → κ → ℂ) :
     cbSandwichMatrix W δ z = matProdFin (s + 1) (cbSlot W δ z) := by
@@ -224,15 +266,20 @@ theorem cbSandwichMatrix_eq (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Opt
   refine congrArg List.prod (List.map_congr_left fun j _ => ?_)
   exact (cbSlot_castSucc W δ z j).symm
 
+/-- The coefficient of a matrix index path, formed from the conjugated initial boundary
+amplitude, all matrix entries, and the final boundary amplitude. -/
 def cbPathVal (W : Fin (s + 1) → Matrix R R ℂ) (u v : QState R) (r : Fin (s + 2) → R) : ℂ :=
   (starRingEnd ℂ) (u (r 0)) *
     (∏ i : Fin s, W i.castSucc (r i.castSucc.castSucc) (r i.castSucc.succ)) *
     W (Fin.last s) (r (Fin.last s).castSucc) (r (Fin.last s).succ) *
     v (r (Fin.last (s + 1)))
 
+/-- The optional coordinate labels encountered at the internal vertices of a matrix index path. -/
 def cbPattern (δ : R → Option κ) (r : Fin (s + 2) → R) : Fin s → Option κ :=
   fun j => δ (r j.castSucc.succ)
 
+/-- Expand a matrix sandwich into a sum of path coefficients times their diagonal substitution
+products. -/
 theorem cbSandwich_eq_sum (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (u v : QState R) (z : Fin s → κ → ℂ) :
     cbSandwich W δ u v z =
@@ -254,6 +301,7 @@ theorem cbSandwich_eq_sum (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Optio
   unfold cbPathVal
   ring
 
+/-- Regroup a finite weighted sum by the fibers of a pattern map. -/
 theorem sum_pattern_distrib {X P : Type} [Fintype X] [Fintype P] [DecidableEq P]
     (pat : X → P) (c : X → ℂ) (g : P → ℂ) :
     ∑ x, c x * g (pat x)
@@ -274,10 +322,13 @@ theorem sum_pattern_distrib {X P : Type} [Fintype X] [Fintype P] [DecidableEq P]
   rw [Finset.sum_congr rfl (fun p _ => by rw [ite_mul, zero_mul]), Finset.sum_ite_eq,
     if_pos (Finset.mem_univ _)]
 
+/-- The sum of matrix path coefficients whose optional label pattern equals `p`. -/
 noncomputable def cbFiberSum (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ) (u v : QState R)
     (p : Fin s → Option κ) : ℂ :=
   ∑ r : Fin (s + 2) → R, (if cbPattern δ r = p then (1 : ℂ) else 0) * cbPathVal W u v r
 
+/-- A matrix sandwich is the sum over optional label patterns of their fiber coefficients times
+their coordinate products. -/
 theorem cbSandwich_eq_fiber (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (u v : QState R) (z : Fin s → κ → ℂ) :
     cbSandwich W δ u v z = ∑ p : Fin s → Option κ,
@@ -293,6 +344,8 @@ theorem cbSandwich_eq_fiber (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Opt
       (fun p => ∏ j, dzO (z j) (p j))]
   rfl
 
+/-- If a linear combination of the optional coordinate monomials vanishes for every complex
+substitution, every coefficient is zero. -/
 theorem mono_indep {s : ℕ} (g : (Fin s → Option κ) → ℂ)
     (h : ∀ z : Fin s → κ → ℂ, ∑ p, g p * ∏ j, dzO (z j) (p j) = 0) :
     ∀ p, g p = 0 := by
@@ -373,6 +426,8 @@ theorem mono_indep {s : ℕ} (g : (Fin s → Option κ) → ℂ)
       · intro hmem
         exact absurd (Finset.mem_univ k) hmem
 
+/-- When a sandwich represents a tensor evaluation, the fiber coefficient of a fully labelled
+pattern is the corresponding tensor coefficient. -/
 theorem cbFiberSum_full {T : RealTensor κ s} {W : Fin (s + 1) → Matrix R R ℂ}
     {δ : R → Option κ} {u v : QState R}
     (hcert : ∀ z : Fin s → κ → ℂ, tensorEval T z = cbSandwich W δ u v z) :
@@ -418,6 +473,8 @@ theorem cbFiberSum_full {T : RealTensor κ s} {W : Fin (s + 1) → Matrix R R �
           exact Option.some.inj (congrFun hbe j))), zero_mul]
   · intro hmem; exact absurd (Finset.mem_univ i) hmem
 
+/-- When a sandwich represents a tensor evaluation, every pattern containing an unlabelled slot
+has zero fiber coefficient. -/
 theorem cbFiberSum_partial {T : RealTensor κ s} {W : Fin (s + 1) → Matrix R R ℂ}
     {δ : R → Option κ} {u v : QState R}
     (hcert : ∀ z : Fin s → κ → ℂ, tensorEval T z = cbSandwich W δ u v z)
@@ -471,13 +528,17 @@ section Norms
 
 variable {m : Type} [Fintype m] [DecidableEq m]
 
+/-- Squaring preserves an inequality between nonnegative real numbers. -/
 theorem sq_le_sq_nn {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (h : a ≤ b) : a ^ 2 ≤ b ^ 2 :=
   sq_le_sq.mpr (by rwa [abs_of_nonneg ha, abs_of_nonneg hb])
 
+/-- The Euclidean operator norm of the identity matrix is at most one. -/
 theorem l2_opNorm_one_le : ‖(1 : Matrix m m ℂ)‖ ≤ 1 := by
   refine l2_opNorm_le_of_mulVec_le zero_le_one _ fun v => ?_
   rw [Matrix.one_mulVec, one_mul]
 
+/-- The Euclidean operator norm of an ordered matrix product is at most the product of the
+factor norms. -/
 theorem l2_opNorm_matProdFin_le {k : ℕ} (M : Fin k → Matrix m m ℂ) :
     ‖matProdFin k M‖ ≤ ∏ j, ‖M j‖ := by
   induction k with
@@ -497,6 +558,7 @@ theorem l2_opNorm_matProdFin_le {k : ℕ} (M : Fin k → Matrix m m ℂ) :
     refine le_trans (l2_opNorm_mul _ _) ?_
     exact mul_le_mul (le_refl _) (ih (Fin.tail M)) (norm_nonneg _) (norm_nonneg _)
 
+/-- The inner product is additive over a finite sum in its second argument. -/
 theorem inner_sum_right {ι : Type} [Fintype ι] (ξ : QState m) (w : ι → QState m) :
     Inner ξ (∑ i, w i) = ∑ i, Inner ξ (w i) := by
   rw [inner_apply]
@@ -504,6 +566,7 @@ theorem inner_sum_right {ι : Type} [Fintype ι] (ξ : QState m) (w : ι → QSt
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl fun i _ => (inner_apply ξ (w i)).symm
 
+/-- Matrix application distributes over a finite sum of matrices. -/
 theorem mulVec_sum_left {ι : Type} [Fintype ι] (M : ι → Matrix m m ℂ) (η : QState m) :
     (∑ i, M i) *ᵥ η = ∑ i, (M i *ᵥ η) :=
   Matrix.sum_mulVec Finset.univ M η
@@ -514,27 +577,37 @@ section Amplified
 
 variable {κ : Type} [Fintype κ] {R : Type} [Fintype R] [DecidableEq R] {s : ℕ}
 
+/-- The matrix acting as `M` on the `R` coordinate and as the identity on the finite
+amplification coordinate. -/
 def cbBigW {d : ℕ} (M : Matrix R R ℂ) : Matrix (R × Fin d) (R × Fin d) ℂ :=
   Matrix.kroneckerMap (· * ·) M (1 : Matrix (Fin d) (Fin d) ℂ)
 
+/-- The entry of `cbBigW M` is the corresponding entry of `M` when amplification coordinates
+agree, and zero otherwise. -/
 theorem cbBigW_apply {d : ℕ} (M : Matrix R R ℂ) (x y : R × Fin d) :
     cbBigW M x y = if x.2 = y.2 then M x.1 y.1 else 0 := by
   simp [cbBigW, Matrix.one_apply]
 
+/-- Amplifying a matrix by a finite identity factor does not increase its Euclidean operator
+norm. -/
 theorem cbBigW_norm_le {d : ℕ} {M : Matrix R R ℂ} : ‖cbBigW (d := d) M‖ ≤ ‖M‖ := by
   refine le_trans (l2_norm_kronecker_le M (1 : Matrix (Fin d) (Fin d) ℂ)) ?_
   calc ‖M‖ * ‖(1 : Matrix (Fin d) (Fin d) ℂ)‖ ≤ ‖M‖ * 1 :=
         mul_le_mul_of_nonneg_left l2_opNorm_one_le (norm_nonneg _)
     _ = ‖M‖ := mul_one _
 
+/-- The matrix selected by the optional label of `r`, with the zero matrix assigned to `none`. -/
 def cbBlock {d : ℕ} (δ : R → Option κ) (Bj : κ → Matrix (Fin d) (Fin d) ℂ) (r : R) :
     Matrix (Fin d) (Fin d) ℂ :=
   match δ r with | none => 0 | some k => Bj k
 
+/-- The block diagonal matrix whose block at `r` is the coordinate matrix selected by `δ r` for
+slot `j`. -/
 def cbBigD {d : ℕ} (δ : R → Option κ) (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s) :
     Matrix (R × Fin d) (R × Fin d) ℂ :=
   Matrix.of fun x y => if x.1 = y.1 then cbBlock δ (B j) x.1 x.2 y.2 else 0
 
+/-- Applying `cbBigD` to a vector acts independently on each `R` slice by the selected block. -/
 theorem cbBigD_mulVec_apply {d : ℕ} (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s)
     (z : QState (R × Fin d)) (x : R × Fin d) :
@@ -551,6 +624,8 @@ theorem cbBigD_mulVec_apply {d : ℕ} (δ : R → Option κ)
     · simp [hq]
   rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq, if_pos (Finset.mem_univ _)]
 
+/-- If all coordinate matrices in a slot are contractions, the corresponding block diagonal
+matrix has operator norm at most one. -/
 theorem cbBigD_norm_le {d : ℕ} (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s) (hB : ∀ k, ‖B j k‖ ≤ 1) :
     ‖cbBigD δ B j‖ ≤ 1 := by
@@ -594,6 +669,8 @@ theorem cbBigD_norm_le {d : ℕ} (δ : R → Option κ)
     _ ≤ Real.sqrt ((1 * ‖toEuclidean_fromVec z‖) ^ 2) := Real.sqrt_le_sqrt hsq
     _ = 1 * ‖toEuclidean_fromVec z‖ := by rw [Real.sqrt_sq (mul_nonneg zero_le_one (norm_nonneg _))]
 
+/-- The entries of an amplified matrix followed by a block diagonal substitution factor as the
+original matrix entry times the selected block entry. -/
 theorem cbBigW_mul_cbBigD_apply {d : ℕ} (M : Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s) (x y : R × Fin d) :
     (cbBigW (d := d) M * cbBigD δ B j) x y = M x.1 y.1 * cbBlock δ (B j) y.1 x.2 y.2 := by
@@ -611,20 +688,26 @@ theorem cbBigW_mul_cbBigD_apply {d : ℕ} (M : Matrix R R ℂ) (δ : R → Optio
     · simp [hq]
   rw [Finset.sum_congr rfl (fun q _ => h1 q), Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
 
+/-- The block selected by an unlabelled index is zero. -/
 theorem cbBlock_none {d : ℕ} (δ : R → Option κ) (Bj : κ → Matrix (Fin d) (Fin d) ℂ)
     {r : R} (h : δ r = none) : cbBlock δ Bj r = 0 := by
   rw [cbBlock, h]
 
+/-- The block at an index labelled by `some k` is the coordinate matrix `Bj k`. -/
 theorem cbBlock_some {d : ℕ} (δ : R → Option κ) (Bj : κ → Matrix (Fin d) (Fin d) ℂ)
     {r : R} {k : κ} (h : δ r = some k) : cbBlock δ Bj r = Bj k := by
   rw [cbBlock, h]
 
+/-- The factors of the amplified sandwich product, using amplified matrices and block diagonal
+coordinate substitutions. -/
 noncomputable def cbNbig {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin (s + 1)) :
     Matrix (R × Fin d) (R × Fin d) ℂ :=
   if h : (j : ℕ) < s then cbBigW (W ⟨j, by omega⟩) * cbBigD δ B ⟨j, h⟩
   else cbBigW (W ⟨j, by omega⟩)
 
+/-- An initial amplified sandwich factor has entries equal to a matrix entry times the
+appropriate coordinate block entry. -/
 theorem cbNbig_castSucc {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (j : Fin s) (x y : R × Fin d) :
     cbNbig W δ B j.castSucc x y = W j.castSucc x.1 y.1 * cbBlock δ (B j) y.1 x.2 y.2 := by
@@ -632,11 +715,15 @@ theorem cbNbig_castSucc {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R �
     rw [Fin.val_castSucc]; exact j.isLt)]
   exact cbBigW_mul_cbBigD_apply (W j.castSucc) δ B j x y
 
+/-- The final amplified sandwich factor has entries of the last matrix when amplification
+coordinates agree and zero otherwise. -/
 theorem cbNbig_last {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ) (x y : R × Fin d) :
     cbNbig W δ B (Fin.last s) x y = if x.2 = y.2 then W (Fin.last s) x.1 y.1 else 0 := by
   rw [cbNbig, dif_neg (by simp), cbBigW_apply]
 
+/-- If every matrix and coordinate substitution is a contraction, each amplified sandwich factor
+has operator norm at most one. -/
 theorem cbNbig_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ)
     (hW : ∀ j, ‖W j‖ ≤ 1) (hB : ∀ j k, ‖B j k‖ ≤ 1) (j : Fin (s + 1)) :
@@ -654,6 +741,8 @@ theorem cbNbig_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R �
     calc ‖cbBigW (W ⟨j, by omega⟩)‖ ≤ ‖W ⟨j, by omega⟩‖ := cbBigW_norm_le
       _ ≤ 1 := hW _
 
+/-- If all matrices and coordinate substitutions are contractions, their amplified sandwich
+product has operator norm at most one. -/
 theorem cbNbig_prod_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (B : Fin s → κ → Matrix (Fin d) (Fin d) ℂ)
     (hW : ∀ j, ‖W j‖ ≤ 1) (hB : ∀ j k, ‖B j k‖ ≤ 1) :
@@ -667,6 +756,8 @@ theorem cbNbig_prod_norm_le {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ :
 
 end Amplified
 
+/-- The inner product with a scalar multiple in its second argument equals that scalar times the
+inner product. -/
 theorem inner_smul_right {m : Type} [Fintype m] [DecidableEq m]
     (ξ : QState m) (c : ℂ) (w : QState m) :
     Inner ξ (c • w) = c * Inner ξ w := by
@@ -674,6 +765,7 @@ theorem inner_smul_right {m : Type} [Fintype m] [DecidableEq m]
   simp only [Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   exact Finset.sum_congr rfl fun x _ => by ring
 
+/-- The equivalence that appends one value to a function indexed by `Fin k`. -/
 def snocEquiv {k d : ℕ} : (Fin k → Fin d) × Fin d ≃ (Fin (k + 1) → Fin d) where
   toFun p := Fin.snoc p.1 p.2
   invFun a := (Fin.init a, a (Fin.last k))
@@ -681,6 +773,8 @@ def snocEquiv {k d : ℕ} : (Fin k → Fin d) × Fin d ≃ (Fin (k + 1) → Fin 
     (Fin.snoc_last (α := fun _ => Fin d) p.2 p.1)
   right_inv a := Fin.snoc_init_self a
 
+/-- A sum restricted to paths whose final two coordinates coincide reduces to a sum over shorter
+paths with the final coordinate repeated. -/
 theorem sum_snoc_collapse {k d : ℕ} (F : (Fin (k + 2) → Fin d) → ℂ) :
     ∑ a : Fin (k + 2) → Fin d,
         (if a (Fin.last k).castSucc = a (Fin.last (k + 1)) then (1 : ℂ) else 0) * F a
@@ -716,6 +810,8 @@ theorem sum_snoc_collapse {k d : ℕ} (F : (Fin (k + 2) → Fin d) → ℂ) :
   · intro hmem
     exact absurd (Finset.mem_univ _) hmem
 
+/-- The equivalence between a pair of finite indexed functions and the function of their
+pointwise pairs. -/
 def piProdEquiv {X Y : Type} (k : ℕ) : ((Fin k → X) × (Fin k → Y)) ≃ (Fin k → X × Y) where
   toFun p := fun i => (p.1 i, p.2 i)
   invFun f := (fun i => (f i).1, fun i => (f i).2)
@@ -732,6 +828,9 @@ variable {κ : Type} [Fintype κ] {R : Type} [Fintype R] [DecidableEq R] {s : �
 
 set_option maxHeartbeats 1000000 in
 
+/-- If the fully labelled fiber coefficients equal the tensor coefficients, the inner product of
+any matrix substitution equals the corresponding amplified sandwich inner product on product
+boundary vectors. -/
 theorem cbAmplified {d : ℕ} (W : Fin (s + 1) → Matrix R R ℂ) (δ : R → Option κ)
     (u v : QState R) (T : RealTensor κ s)
     (hT : ∀ i : Fin s → κ, cbFiberSum W δ u v (fun j => some (i j)) = (T i : ℂ))

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.SubtractionRetryTailStat
+
+/-!
+# Exponential tail bound for subtraction retries
+
+This module proves `SubtractionRetryTail` using the Bernoulli product amplitudes of
+`retryState`. A generating-function identity bounds the probability of at least `2 * r + 1` true
+outcomes among `3 * r` independent trials when each parameter is between zero and one half.
+
+The intermediate bound `retry_rational_tail` is converted into `exp (-r / 14)`, giving the retry
+tail estimate used in the analysis of [ChildsWiebe2012].
+
+## Main statements
+
+* `retry_weighted_sum`: evaluates the moment weighted by powers of two.
+* `retry_rational_tail`: bounds exhaustion mass by `(1 / 2) * (27 / 32) ^ r`.
+* `subtractionRetryTail`: proves the exponential retry tail contract.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
@@ -12,6 +34,8 @@ namespace Qatlib.Papers.HamLCUSim12.LCUDeferred
 
 open scoped BigOperators
 
+/-- When all parameters lie in `[0, 1 / 2]`, the Born mass of a retry string is the product of
+`p i` at true bits and `1 - p i` at false bits. -/
 private theorem retry_born (m : ℕ) (p : Fin m → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hhalf : ∀ i, p i ≤ 1 / 2) (z : Fin m → Bool) :
     BornProb (retryState m p) z = ∏ i, if z i then p i else 1 - p i := by
@@ -23,6 +47,8 @@ private theorem retry_born (m : ℕ) (p : Fin m → ℝ)
     Real.sq_sqrt]
   cases z i <;> simp <;> linarith [hp i, hhalf i]
 
+/-- For retry parameters in `[0, 1 / 2]`, summing Born masses weighted by two to the number of
+true outcomes gives `∏ i, (1 + p i)`. -/
 private theorem retry_weighted_sum (m : ℕ) (p : Fin m → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hhalf : ∀ i, p i ≤ 1 / 2) :
     (∑ z : Fin m → Bool,
@@ -47,6 +73,8 @@ private theorem retry_weighted_sum (m : ℕ) (p : Fin m → ℝ)
   simp
   ring
 
+/-- With each retry parameter in `[0, 1 / 2]`, exhaustion after `3 * r` trials has mass at most
+`(1 / 2) * (27 / 32) ^ r`. -/
 private theorem retry_rational_tail (r : ℕ) (p : Fin (3 * r) → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hhalf : ∀ i, p i ≤ 1 / 2) :
     MeasureProb (retryState (3 * r) p) (retryExhausted r) ≤
@@ -96,6 +124,9 @@ private theorem retry_rational_tail (r : ℕ) (p : Fin (3 * r) → ℝ)
     exact hm.trans hprod
   exact le_of_mul_le_mul_left hcompare (by positivity)
 
+/-- For positive `r` and retry parameters in `[0, 1 / 2]`, exhaustion has mass at most `exp (-r
+/ 14)`, establishing the retry tail contract associated with [Childs and Wiebe, Lemma
+11][ChildsWiebe2012]. -/
 theorem subtractionRetryTail : SubtractionRetryTail := by
   intro r _hr p hp hhalf
   have he : Real.exp (1 / 14) ≤ (14 / 13 : ℝ) := by

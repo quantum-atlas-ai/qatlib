@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
 import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+
+/-!
+# Effective fidelity search and exact-resampling schedules
+
+This module proves rational bisection invariants for `fidelityBracket` and relates selected
+levels to real solutions of the water-filling fidelity equation. It also bounds the scale,
+angle, and source calls of the associated exact-resampling schedule, supporting quantum
+rejection sampling [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `fidelityBracket_props`: preserve endpoint tests and halve the bracket width at each step.
+* `schedule_windows`: bound exact-resampling schedule parameters.
+* `gext2`: collect search invariants, real-level approximation, threshold comparison, and
+  schedule bounds.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -48,6 +69,7 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
 variable {m : ℕ} (π σ : Fin m → ℝ)
 variable {m : ℕ} (π σ : Fin m → ℚ)
 
+/-- For nonnegative rational profiles, the computed upper water level is at least one. -/
 theorem computedWaterHigh_pos (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) :
     1 ≤ computedWaterHigh π σ := by
   have hsum : (0 : ℚ) ≤ ∑ j, π j / σ j :=
@@ -55,10 +77,14 @@ theorem computedWaterHigh_pos (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j
   unfold computedWaterHigh
   linarith
 
+/-- For a nonnegative source profile, water filling at level zero gives zero in every
+coordinate. -/
 theorem waterFill_zero (hπ : ∀ j, 0 ≤ π j) (j : Fin m) : waterFill π σ 0 j = 0 := by
   unfold waterFill
   rw [zero_mul, min_eq_right (hπ j)]
 
+/-- For a nonnegative source profile, both the computed mass and target overlap vanish at water
+level zero. -/
 theorem computedMass_dot_zero (hπ : ∀ j, 0 ≤ π j) :
     computedMass π σ 0 = 0 ∧ computedDot π σ 0 = 0 := by
   refine ⟨?_, ?_⟩
@@ -67,6 +93,8 @@ theorem computedMass_dot_zero (hπ : ∀ j, 0 ≤ π j) :
   · show (∑ j, σ j * waterFill π σ 0 j) = 0
     exact Finset.sum_eq_zero fun j _ => by rw [waterFill_zero π σ hπ j]; ring
 
+/-- If the initial lower endpoint passes the fidelity test and the upper endpoint fails it,
+every bisection bracket preserves those tests and has the stated dyadic width. -/
 private theorem fidelityBracket_props {m : ℕ} (π σ : Fin m → ℚ) (q : ℚ)
     (hH0 : 0 ≤ computedWaterHigh π σ)
     (hr0 : fidelityReaches π σ q 0)
@@ -102,6 +130,8 @@ private theorem fidelityBracket_props {m : ℕ} (π σ : Fin m → ℚ) (q : ℚ
           ring
         rw [h2, hw, pow_succ, div_div]
 
+/-- For `0 < β ≤ 1`, establish the exact-resampling scale, angle, phase, and query bounds,
+together with sine bounds stable under an absolute error in `β`. -/
 private theorem schedule_windows (β : ℝ) (hβ : 0 < β) (hβ1 : β ≤ 1) :
     1 / 2 ≤ resamplingExactScale β ∧ resamplingExactScale β ≤ 1 ∧
       0 < resamplingExactAngle β ∧ resamplingExactAngle β ≤ Real.pi / 2 ∧
@@ -130,6 +160,10 @@ private theorem schedule_windows (β : ℝ) (hβ : 0 < β) (hβ1 : β ≤ 1) :
     · rw [hsin]
       nlinarith [hscaleHi]
 
+/-- For normalized nonnegative profiles and an interior fidelity threshold, collect bisection
+invariants and work counts, proximity to an exact real fidelity level, comparison across
+thresholds, and conditional exact-resampling schedule bounds. The search supports quantum
+rejection sampling [OzolsRoettelerRoland2013]. -/
 theorem gext2 :
     ∀ (m : ℕ) (π σ : Fin m → ℚ) (p : ℚ),
     (∀ i, 0 ≤ π i) → (∀ i, 0 ≤ σ i) →

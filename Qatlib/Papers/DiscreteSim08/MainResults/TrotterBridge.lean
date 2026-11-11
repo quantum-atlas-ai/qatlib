@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.DiscreteSim08.MainResults.Defs
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+
+/-!
+# Gram-distance bounds for source evolution
+
+Continuous source programs and fractional Boolean oracle steps are connected to
+`sourceRectValue` bounds for the change in their Gram matrices. The bounds use total continuous
+time and fractional-query angle, respectively, with normalization hypotheses on the state
+families.
+
+This development follows [CleveEtAl2009].
+
+## Main statements
+
+* `source_trotter_suzuki_distance`: continuous evolution has Gram-distance bound `(1 + π ^ 2) *
+  sourceContinuousTime C`.
+* `source_fractional_query_distance`: a fractional Boolean oracle step has bound `lam * π * sqrt
+  2`.
+
+## References
+
+* [Cleve et al., 2009][CleveEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +44,9 @@ open scoped BigOperators ENNReal Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.DiscreteSim08.MainResults
 
+/-- For a legal continuous source program and normalized input state family, the
+`sourceRectValue` of the Gram-matrix change is at most `ENNReal.ofReal ((1 + π ^ 2) *
+sourceContinuousTime C)`. See [CleveEtAl2009]. -/
 theorem source_trotter_suzuki_distance {X W : Type}
     [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W] {n q : ℕ}
     (input : X → Fin n → Fin (q + 1))
@@ -35,6 +61,8 @@ theorem source_trotter_suzuki_distance {X W : Type}
   Qatlib.Concepts.ConversionCore.WitnessCompile.continuousConversion_source_program_distance
     input C hC ψ hψ
 
+/-- For a nonnegative fractional Boolean query parameter and a normalized state family, the
+`sourceRectValue` of the Gram-matrix change is at most `ENNReal.ofReal (lam * π * sqrt 2)`. -/
 theorem source_fractional_query_distance {X W : Type}
     [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam : ℝ) (hlam : 0 ≤ lam)

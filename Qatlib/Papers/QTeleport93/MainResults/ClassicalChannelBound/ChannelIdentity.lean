@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.MeasurementPatterns
+
+/-!
+# Extending identity recovery to reference systems
+
+A complex linear map that fixes every density operator fixes every positive semidefinite
+operator and hence every operator. `density_identity_on_reference` then shows that applying this
+map to one factor fixes every joint operator with a finite reference.
+
+These linear extension results support the reference preserving recovery arguments used for
+teleportation in [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `density_identity_on_psd` extends density operator recovery to positive semidefinite inputs.
+* `density_identity_on_all_operators` extends recovery to the full operator space.
+* `density_identity_on_reference` extends recovery to a finite reference system.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +39,8 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.QuditTeleport.ResourceIff
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 
+/-- A complex linear map that fixes every density operator also fixes every positive
+semidefinite operator. -/
 theorem density_identity_on_psd {n : ℕ} (G : Operator n →ₗ[ℂ] Operator n)
     (hfix : ∀ ρ, IsDensityOperator ρ → G ρ = ρ)
     (A : Operator n) (hA : A.PosSemidef) : G A = A := by
@@ -50,6 +74,8 @@ theorem density_identity_on_psd {n : ℕ} (G : Operator n →ₗ[ℂ] Operator n
     have hscaled := congrArg (fun B : Operator n => (t : ℂ) • B) he
     simpa only [smul_smul, hc, one_smul] using hscaled
 
+/-- A complex linear map that fixes every density operator is the identity on the entire
+operator space. -/
 theorem density_identity_on_all_operators {n : ℕ}
     (G : Operator n →ₗ[ℂ] Operator n)
     (hfix : ∀ ρ, IsDensityOperator ρ → G ρ = ρ) : ∀ A, G A = A := by
@@ -60,6 +86,9 @@ theorem density_identity_on_all_operators {n : ℕ}
   · intro v
     exact density_identity_on_psd G hfix _ (outerProduct_posSemidef v)
 
+/-- A complex linear map fixing every density operator also fixes every joint operator when
+applied to one factor with a finite reference, supporting reference recovery in
+[BennettEtAl1993Teleportation]. -/
 theorem density_identity_on_reference {n R : ℕ}
     (G : Operator n →ₗ[ℂ] Operator n)
     (hfix : ∀ ρ, IsDensityOperator ρ → G ρ = ρ)

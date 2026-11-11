@@ -12,6 +12,26 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Algebra.Field.GeomSum
 
+/-!
+# Annealing complexity and phase-estimation bounds
+
+This module derives scalar identities for the classical and quantum simulated-annealing
+complexity expressions in [SommaBoixoBarnum2007]. It also proves a chord lower bound and a
+geometric-sum amplitude bound for the phase-estimation subroutine, with explicit inequalities
+connecting register size and accuracy.
+
+## Main statements
+
+* `qsa_beats_classical_eventually`: comparison of inverse-square-root and inverse-gap costs.
+* `classical_sa_complexity_eq1`: the classical schedule substitution.
+* `qsa_complexity_eq20`: the quantum schedule substitution.
+* `pea_zero_amplitude_bound`: a phase-estimation zero-amplitude bound.
+
+## References
+
+* [Somma et al., 2007][SommaBoixoBarnum2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,6 +39,8 @@ namespace Qatlib.Papers.QAnnealing07.MainResults.Complexity
 
 open scoped Classical BigOperators
 
+/-- For a gap strictly between zero and one, its reciprocal square root is strictly smaller than
+its reciprocal [SommaBoixoBarnum2007]. -/
 theorem one_div_sqrt_lt_one_div {δ : ℝ} (h0 : 0 < δ) (h1 : δ < 1) :
     1 / Real.sqrt δ < 1 / δ := by
   have hs : 0 < Real.sqrt δ := Real.sqrt_pos.mpr h0
@@ -33,6 +55,8 @@ theorem one_div_sqrt_lt_one_div {δ : ℝ} (h0 : 0 < δ) (h1 : δ < 1) :
   rw [div_lt_div_iff₀ hs h0]
   simpa using hlt
 
+/-- For positive constants `cQ` and `cS`, the cost `cQ / sqrt δ` is below `cS / δ` whenever `0 <
+δ < (cS / cQ) ^ 2` [SommaBoixoBarnum2007]. -/
 theorem qsa_beats_classical_eventually (cQ cS δ : ℝ) (hcQ : 0 < cQ) (hcS : 0 < cS)
     (hδ0 : 0 < δ) (hδ : δ < (cS / cQ) ^ 2) :
     cQ / Real.sqrt δ < cS / δ := by
@@ -50,6 +74,8 @@ theorem qsa_beats_classical_eventually (cQ cS δ : ℝ) (hcQ : 0 < cQ) (hcS : 0 
     _ = (cQ * Real.sqrt δ) * Real.sqrt δ := by ring
     _ < cS * Real.sqrt δ := mul_lt_mul_of_pos_right hnum hs
 
+/-- Substituting the stated temperature step and final inverse temperature into `βf / Δβ` gives
+the classical complexity expression of Equation (1) [SommaBoixoBarnum2007]. -/
 theorem classical_sa_complexity_eq1
     (EM γ δ Δβ βf d ε : ℝ) (hEM : EM ≠ 0) (hδ : δ ≠ 0) (hγ : γ ≠ 0)
     (hΔ : Δβ = δ / EM) (hβ : βf = Real.log (d / ε ^ 2) / γ) :
@@ -58,6 +84,9 @@ theorem classical_sa_complexity_eq1
   subst hβ
   field_simp
 
+/-- Substituting the stated step count and temperature increment into the total phase-estimation
+cost gives the expression with cubic `βf * EM` dependence and denominator `ε ^ 2 * sqrt δ`
+[SommaBoixoBarnum2007]. -/
 theorem qsa_complexity_eq20
     (c βf EM δ ε Q Δβ : ℝ) (hEM : EM ≠ 0) (hδ : 0 < δ) (hε : ε ≠ 0)
     (hβf : βf ≠ 0) (hQ0 : Q ≠ 0)
@@ -69,6 +98,8 @@ theorem qsa_complexity_eq20
   have hs : Real.sqrt δ ≠ 0 := ne_of_gt (Real.sqrt_pos.mpr hδ)
   field_simp
 
+/-- The logarithmic quantum complexity expression factors into the cube of `EM / γ` times the
+cube of the logarithm, divided by `ε ^ 2 * sqrt δ` [SommaBoixoBarnum2007]. -/
 theorem qsa_complexity_log_form
     (EM γ δ ε d : ℝ) (hγ : γ ≠ 0) (hδ : 0 < δ) (hε : ε ≠ 0) :
     (Real.log (2 * d / ε ^ 2) / γ * EM) ^ 3 / (ε ^ 2 * Real.sqrt δ)
@@ -77,6 +108,8 @@ theorem qsa_complexity_log_form
   have hε2 : ε ^ 2 ≠ 0 := pow_ne_zero 2 hε
   field_simp
 
+/-- For `0 ≤ θ ≤ π`, the chord length `‖1 - exp (iθ)‖` is at least `2θ / π`
+[SommaBoixoBarnum2007]. -/
 theorem norm_one_sub_exp_I_ge (θ : ℝ) (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi) :
     2 * θ / Real.pi ≤ ‖1 - Complex.exp (θ * Complex.I)‖ := by
   have hπpos : 0 < Real.pi := Real.pi_pos
@@ -108,6 +141,8 @@ theorem norm_one_sub_exp_I_ge (θ : ℝ) (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi) 
   calc 2 * θ / Real.pi = 2 * (2 / Real.pi * (θ / 2)) := by ring
     _ ≤ 2 * Real.sin (θ / 2) := by linarith
 
+/-- For a positive phase at most `π` and `N ≥ 1`, the norm of the normalized exponential sum is
+at most `π / (Nθ)` [SommaBoixoBarnum2007]. -/
 theorem pea_zero_amplitude_bound (N : ℕ) (hN : 1 ≤ N) (θ : ℝ) (h0 : 0 < θ)
     (hπ : θ ≤ Real.pi) :
     ‖(N : ℂ)⁻¹ * ∑ m ∈ Finset.range N, Complex.exp ((m : ℝ) * θ * Complex.I)‖
@@ -167,6 +202,8 @@ theorem pea_zero_amplitude_bound (N : ℕ) (hN : 1 ≤ N) (θ : ℝ) (h0 : 0 < �
         have hπpos : 0 < Real.pi := Real.pi_pos
         field_simp
 
+/-- For positive `N`, `θ`, and `ν`, the inequality `π / (Nθ) ≤ ν` implies `N ≥ π / (θν)`
+[SommaBoixoBarnum2007]. -/
 theorem pea_bits_from_amplitude (N θ ν : ℝ) (hN : 0 < N) (hθ : 0 < θ) (hν : 0 < ν)
     (hamp : Real.pi / (N * θ) ≤ ν) :
     Real.pi / (θ * ν) ≤ N := by
@@ -176,6 +213,9 @@ theorem pea_bits_from_amplitude (N θ ν : ℝ) (hN : 0 < N) (hθ : 0 < θ) (hν
   have h := (div_le_iff₀ hNθ).mp hamp
   nlinarith [h]
 
+/-- The specified equality for `2 ^ p` and the coverage hypothesis imply both the chosen
+register-size formula and the required lower bound `π / (θν) ≤ 2 ^ p`
+[SommaBoixoBarnum2007]. -/
 theorem pea_cost_of_bit_choice (C ν δ θ : ℝ) (p : ℕ)
     (hp : (2 : ℝ) ^ p = C / (ν * Real.sqrt δ))
     (hcover : Real.pi / (θ * ν) ≤ C / (ν * Real.sqrt δ)) :
@@ -185,6 +225,8 @@ theorem pea_cost_of_bit_choice (C ν δ θ : ℝ) (p : ℕ)
   rw [hp]
   exact hcover
 
+/-- For positive `ν`, `δ`, and `c`, a phase at least `c * sqrt δ` satisfies the stated
+reciprocal-accuracy inequality [SommaBoixoBarnum2007]. -/
 theorem pea_bits_suffice (ν δ c : ℝ) (hν : 0 < ν) (hc : 0 < c) (hδ : 0 < δ) :
     ∀ φ : ℝ, c * Real.sqrt δ ≤ φ → 0 < φ →
       1 / ν ≤ (1 / (ν * 2 * c * Real.sqrt δ)) * (2 * φ) := by

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+/-!
+# Graph-edge accounting for classification
+
+Bounds the graph edges moved by low- and high-degree branches of a classification scan.
+`classifyScan_edge_account` expresses the total in terms of the recorded test and high-branch
+counts, using correct tests and a thin initial pair set; see [Ambainis2005] for quantum search
+background.
+
+## Main statements
+
+* `lowStep_graph_card`: A correct degree test reporting low degree bounds the graph edges
+  incident to `v` in the current pair set by `2 * dHi`.
+* `classifyScan_edge_account`: For correct scan tests and an initially thin pair set, graph
+  edges in `movedE` are bounded by `2 * dHi` per test plus `2 * n * (tThin + 1)` per high-degree
+  branch.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +38,8 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- A correct degree test reporting low degree bounds the graph edges incident to `v` in the
+current pair set by `2 * dHi`. -/
 theorem lowStep_graph_card (G : UGraph n) (S : SymmetricPairSet n) (dHi dLo K c : ℕ)
     (v : Fin n) (tape : Fin K→Fin c→Fin n)
     (hc : testCorrectCorrected (presentGraph G S.edges S.symm) v dHi dLo K c tape)
@@ -29,6 +53,8 @@ theorem lowStep_graph_card (G : UGraph n) (S : SymmetricPairSet n) (dHi dLo K c 
   rw [pairsAt_inter_graph]
   exact (pairsAt_card_le_twice_degree (G.edges∩S.edges) v).trans (Nat.mul_le_mul_left 2 hd)
 
+/-- For correct scan tests and an initially thin pair set, graph edges in `movedE` are bounded
+by `2 * dHi` per test plus `2 * n * (tThin + 1)` per high-degree branch. -/
 theorem classifyScan_edge_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c tThin : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n)

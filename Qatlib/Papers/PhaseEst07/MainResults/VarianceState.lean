@@ -8,6 +8,27 @@ import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
 import Qatlib.Papers.PhaseEst07.MainResults.Shared.SinusoidSums
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Tactic
+
+/-!
+# Optimal sine state for the variance cost
+
+The normalized sine vector `sourceVarianceVector` has adjacent correlation `cos (π / (q + 1))`.
+The path correlation bound proves that its variance cost is the minimum over real vectors of
+squared norm one, with value `sin (π / (2 * (q + 1))) ^ 2`. The phase-estimation setting is
+described in [VanDamEtAl2007].
+
+## Main statements
+
+* `source_variance_cost_ge`: For positive `q`, every real sequence of squared norm one over `q`
+  coordinates has variance cost at least `sin (π / (2 * (q + 1))) ^ 2`.
+* `source_variance_attains`: For positive `q`, the sine vector attains the lower bound `sin (π /
+  (2 * (q + 1))) ^ 2` for the variance cost using the `q - 1` adjacent pairs.
+
+## References
+
+* [van Dam et al., 2007][VanDamEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,15 +39,19 @@ namespace Qatlib.Papers.PhaseEst07.MainResults.VarianceState
 open Qatlib.Papers.PhaseEst07.MainResults.Shared
 open scoped BigOperators
 
+/-- The real sine sequence with entries `sqrt (2 / (q + 1)) * sin ((j + 1) * π / (q + 1))`. -/
 noncomputable def sourceVarianceVector (q : ℕ) (j : ℕ) : ℝ :=
   Real.sqrt (2 / ((q + 1 : ℕ) : ℝ)) *
     Real.sin (((j : ℝ) + 1) * Real.pi / ((q + 1 : ℕ) : ℝ))
 
+/-- The product of two sines is one half of the difference of the cosines of the difference and
+sum of their arguments. -/
 theorem source_sin_mul_sin_eq (A B : ℝ) :
     Real.sin A * Real.sin B = (Real.cos (A - B) - Real.cos (A + B)) / 2 := by
   rw [Real.cos_sub, Real.cos_add]
   ring
 
+/-- For positive `q`, the first `q` entries of the sine vector have squared norm one. -/
 theorem source_variance_vector_normalized (q : ℕ) (hq : 1 ≤ q) :
     ∑ j ∈ Finset.range q, (sourceVarianceVector q j) ^ 2 = 1 := by
   have hM2 : 2 ≤ q + 1 := by omega
@@ -44,6 +69,8 @@ theorem source_variance_vector_normalized (q : ℕ) (hq : 1 ≤ q) :
   have hMpos : (0 : ℝ) < ((q + 1 : ℕ) : ℝ) := by positivity
   field_simp
 
+/-- For positive `q`, the sum of the shifted odd-angle cosines over `q` indices is `-cos (π / (q
++ 1))`. -/
 theorem source_cos_odd_shift_q (q : ℕ) (hq : 1 ≤ q) :
     ∑ j ∈ Finset.range q,
         Real.cos ((2 * (j : ℝ) + 3) * Real.pi / ((q + 1 : ℕ) : ℝ))
@@ -66,6 +93,8 @@ theorem source_cos_odd_shift_q (q : ℕ) (hq : 1 ≤ q) :
   rw [hcongr] at hodd
   linarith
 
+/-- For positive `q`, the sine vector's adjacent correlation over `q` terms is `cos (π / (q +
+1))`. -/
 theorem source_variance_adjacent_correlation (q : ℕ) (hq : 1 ≤ q) :
     ∑ j ∈ Finset.range q, sourceVarianceVector q j * sourceVarianceVector q (j + 1)
       = Real.cos (Real.pi / ((q + 1 : ℕ) : ℝ)) := by
@@ -110,9 +139,12 @@ theorem source_variance_adjacent_correlation (q : ℕ) (hq : 1 ≤ q) :
   have hMne : (((q + 1 : ℕ)) : ℝ) ≠ 0 := by positivity
   field_simp
 
+/-- One half of one minus the adjacent correlation of the sine vector over `q` terms. -/
 noncomputable def sourceVarianceCost (q : ℕ) : ℝ :=
   (1 - ∑ j ∈ Finset.range q, sourceVarianceVector q j * sourceVarianceVector q (j + 1)) / 2
 
+/-- For positive `q`, the sine-vector variance cost is `sin (π / (2 * (q + 1))) ^ 2`. See [van
+Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_variance_minimum_cost (q : ℕ) (hq : 1 ≤ q) :
     sourceVarianceCost q = Real.sin (Real.pi / (2 * ((q + 1 : ℕ) : ℝ))) ^ 2 := by
   have hsq : Real.sin (Real.pi / (2 * ((q + 1 : ℕ) : ℝ))) ^ 2
@@ -125,6 +157,7 @@ theorem source_variance_minimum_cost (q : ℕ) (hq : 1 ≤ q) :
   unfold sourceVarianceCost
   rw [source_variance_adjacent_correlation q hq, hsq]
 
+/-- The sine vector vanishes at index `q`. -/
 theorem source_variance_vector_end (q : ℕ) :
     sourceVarianceVector q q = 0 := by
   unfold sourceVarianceVector
@@ -134,6 +167,8 @@ theorem source_variance_vector_end (q : ℕ) :
     field_simp
   rw [harg, Real.sin_pi, mul_zero]
 
+/-- For positive `q`, every real sequence of squared norm one over `q` coordinates has variance
+cost at least `sin (π / (2 * (q + 1))) ^ 2`. See [van Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_variance_cost_ge (q : ℕ) (hq : 1 ≤ q) (x : ℕ → ℝ)
     (hx : ∑ j ∈ Finset.range q, (x j) ^ 2 = 1) :
     Real.sin (Real.pi / (2 * ((q + 1 : ℕ) : ℝ))) ^ 2
@@ -158,6 +193,9 @@ theorem source_variance_cost_ge (q : ℕ) (hq : 1 ≤ q) (x : ℕ → ℝ)
   rw [hsq]
   linarith
 
+/-- For positive `q`, the sine vector attains the lower bound `sin (π / (2 * (q + 1))) ^ 2` for
+the variance cost using the `q - 1` adjacent pairs. See [van Dam et al.,
+2007][VanDamEtAl2007]. -/
 theorem source_variance_attains (q : ℕ) (hq : 1 ≤ q) :
     (1 - ∑ j ∈ Finset.range (q - 1),
         sourceVarianceVector q j * sourceVarianceVector q (j + 1)) / 2

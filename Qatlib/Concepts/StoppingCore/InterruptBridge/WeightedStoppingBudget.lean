@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
 import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+
+/-!
+# Expected weighted costs and online budgets
+
+`weightedExpectedCost` sums state-charge occupation over time, while `weightedBudgetRun`
+executes only positive-cost steps fitting the available budget. The module relates finite and
+unbounded expected costs, proves positive-cost halting decompositions, and bounds the
+probability of remaining pending after budget exhaustion.
+
+This abstract accounting supports expected-resource analyses of randomized quantum algorithms,
+such as the Monte Carlo algorithms in [Montanaro2015].
+
+## Main statements
+
+* `weightedExpectedCost_eq_iSup`: expected cost as a supremum of finite expectations
+* `weighted_expected_cost_occupation_and_halt`: cost-weighted halting and nontermination
+  decomposition
+* `weighted_online_budget_joint_prefix_and_cutoff`: budget boundedness, exact halted masses, and
+  a cutoff estimate
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
@@ -24,18 +49,25 @@ open scoped Classical BigOperators ENNReal
 
 variable {S O : Type} [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
 
+/-- The expected state charge at time `n`, computed from the running-state marginal of unit-cost
+execution. -/
 noncomputable def weightedOccupation (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n : ℕ) : ℝ≥0∞ :=
   ∑ s, (RandomizedExecution.runFor next n cfg).map Prod.fst (.inr s) * (c s : ℝ≥0∞)
 
+/-- The extended expected accumulated charge, defined as the sum of weighted occupations over
+all times. -/
 noncomputable def weightedExpectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : ℝ≥0∞ := ∑' n, weightedOccupation next c cfg n
 
+/-- The expected weighted cost from an already halted output is zero. -/
 @[simp] theorem weightedExpectedCost_halted (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (o : O) : weightedExpectedCost next c (.inl o) = 0 := by
   simp [weightedExpectedCost, weightedOccupation, RandomizedExecution.runFor_halted,
     CostedLaw.ret, PMF.pure_map, PMF.pure_apply]
 
+/-- Execute a transition only when its state cost is positive and fits the remaining budget,
+subtracting that cost and accumulating the resulting charge. -/
 noncomputable def weightedBudgetRun (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (budget : ℕ) (cfg : O ⊕ S) : CostedLaw (O ⊕ S) :=
   match cfg with
@@ -45,10 +77,12 @@ noncomputable def weightedBudgetRun (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     else CostedLaw.ret (.inr s)
 termination_by budget
 
+/-- Budgeted execution preserves an already halted output with zero additional cost. -/
 @[simp] theorem weightedBudgetRun_halted (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (o : O) : weightedBudgetRun next c B (.inl o) = CostedLaw.ret (.inl o) := by
   rw [weightedBudgetRun]
 
+/-- A zero budget returns the initial configuration without additional cost. -/
 @[simp] theorem weightedBudgetRun_zero (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : weightedBudgetRun next c 0 cfg = CostedLaw.ret cfg := by
   cases cfg with
@@ -57,17 +91,22 @@ termination_by budget
     rw [weightedBudgetRun]
     exact dif_neg (by omega)
 
+/-- Budgeted execution stays at the current running state when its cost is zero or exceeds the
+remaining budget. -/
 theorem weightedBudgetRun_pending (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (s : S) (h : ¬ (0 < c s ∧ c s ≤ B)) :
     weightedBudgetRun next c B (.inr s) = CostedLaw.ret (.inr s) := by
   rw [weightedBudgetRun, dif_neg h]
 
+/-- When the positive state cost fits the budget, execution samples the next configuration and
+recurses on the reduced budget while charging that cost. -/
 theorem weightedBudgetRun_paid (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (s : S) (h : 0 < c s ∧ c s ≤ B) :
     weightedBudgetRun next c B (.inr s) =
       (next s).bind (fun d => CostedLaw.charge (c s) (weightedBudgetRun next c (B-c s) d)) := by
   rw [weightedBudgetRun, dif_pos h]
 
+/-- Every supported accumulated cost of budgeted execution is at most its initial budget. -/
 theorem weightedBudgetRun_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (B : ℕ) (cfg : O ⊕ S) : CostedLaw.BoundedBy (weightedBudgetRun next c B cfg) B := by
   induction B using Nat.strong_induction_on generalizing cfg with
@@ -84,16 +123,21 @@ theorem weightedBudgetRun_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       · rw [weightedBudgetRun_pending next c B s h]
         exact CostedLaw.boundedBy_ret _ _
 
+/-- The extended nonnegative state charge, equal to zero for halted configurations and `c s` for
+running states. -/
 noncomputable def weightedStateCharge (c : S → ℕ) : O ⊕ S → ℝ≥0∞
   | .inl _ => 0
   | .inr s => c s
 
+/-- The expected cost of a weighted tick equals the charge of its starting configuration. -/
 theorem weightedTick_expectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : CostedLaw.expectedCost (weightedTick next c cfg) = weightedStateCharge c cfg := by
   cases cfg with
   | inl o => exact CostedLaw.expectedCost_ret _
   | inr s => simp [weightedTick, weightedStateCharge, CostedLaw.expectedCost]
 
+/-- Weighted occupation is the expectation of `weightedStateCharge` under the finite-run
+configuration marginal. -/
 theorem weightedOccupation_eq_expectation (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n : ℕ) :
     weightedOccupation next c cfg n = CostedLaw.expectation
@@ -102,6 +146,8 @@ theorem weightedOccupation_eq_expectation (next : S → PMF (O ⊕ S)) (c : S �
   rw [tsum_sum_type']
   simp [weightedStateCharge, tsum_fintype]
 
+/-- The expected cost of one additional weighted step equals the previous expected cost plus the
+weighted occupation at that time. -/
 theorem weightedRunFor_expectedCost_succ (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n : ℕ) :
     CostedLaw.expectedCost (weightedRunFor next c (n+1) cfg) =
@@ -112,6 +158,8 @@ theorem weightedRunFor_expectedCost_succ (next : S → PMF (O ⊕ S)) (c : S →
   rw [← CostedLaw.expectation_map _ Prod.fst, weightedRunFor_marginal,
     weightedOccupation_eq_expectation]
 
+/-- The expected cost of a finite weighted run is the sum of its weighted occupations before the
+fuel cutoff. -/
 theorem weightedRunFor_expectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n : ℕ) :
     CostedLaw.expectedCost (weightedRunFor next c n cfg) =
@@ -120,12 +168,15 @@ theorem weightedRunFor_expectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   | zero => simp
   | succ n ih => rw [weightedRunFor_expectedCost_succ, ih, Finset.sum_range_succ]
 
+/-- The unbounded expected weighted cost is the supremum of the finite weighted-run expected
+costs. -/
 theorem weightedExpectedCost_eq_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) :
     weightedExpectedCost next c cfg = ⨆ n, CostedLaw.expectedCost (weightedRunFor next c n cfg) := by
   simp_rw [weightedRunFor_expectedCost]
   exact ENNReal.tsum_eq_iSup_nat
 
+/-- The pending mass is the sum of the running-state marginal probabilities. -/
 theorem pendingMass_eq_marginal_sum (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) (n : ℕ) :
     pendingMass next cfg n = ∑ s, (RandomizedExecution.runFor next n cfg).map Prod.fst (.inr s) := by
   rw [pendingMass_eq_finiteSurvival]
@@ -136,6 +187,7 @@ theorem pendingMass_eq_marginal_sum (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
   rw [tsum_sum_type']
   simp [tsum_fintype]
 
+/-- With constant unit costs, expected weighted cost equals the unbounded expected running time. -/
 theorem weightedExpectedCost_unit_cost (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) :
     weightedExpectedCost next (fun _ => 1) cfg = unboundedTime next cfg := by
   apply tsum_congr
@@ -144,6 +196,8 @@ theorem weightedExpectedCost_unit_cost (next : S → PMF (O ⊕ S)) (cfg : O ⊕
   simp only [Nat.cast_one, mul_one]
   exact (pendingMass_eq_marginal_sum next cfg n).symm
 
+/-- When state costs lie between one and `C`, weighted occupation lies between pending mass and
+`C` times pending mass. -/
 theorem weightedOccupation_bounds (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n C : ℕ) (hc : ∀ s, 1 ≤ c s ∧ c s ≤ C) :
     pendingMass next cfg n ≤ weightedOccupation next c cfg n ∧
@@ -162,6 +216,7 @@ theorem weightedOccupation_bounds (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     rw [mul_comm (C : ℝ≥0∞)]
     exact mul_le_mul_right (by exact_mod_cast (hc s).2) _
 
+/-- If every state costs at least one, expected running time is at most expected weighted cost. -/
 theorem unboundedTime_le_weightedExpectedCost (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (hc : ∀ s, 1 ≤ c s) :
     unboundedTime next cfg ≤ weightedExpectedCost next c cfg := by
@@ -175,12 +230,15 @@ theorem unboundedTime_le_weightedExpectedCost (next : S → PMF (O ⊕ S)) (c : 
     _ = (RandomizedExecution.runFor next n cfg).map Prod.fst (.inr s) * 1 := (mul_one _).symm
     _ ≤ _ := mul_le_mul_right (by exact_mod_cast hc s) _
 
+/-- Under costs at least one, finite expected weighted cost implies zero nontermination mass. -/
 theorem weightedExpectedCost_finite_nontermination (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (hc : ∀ s, 1 ≤ c s) (h : weightedExpectedCost next c cfg < ⊤) :
     nonterminationMass next cfg = 0 :=
   (unbounded_expected_time_tail_sum next cfg).2.2
     (lt_of_le_of_lt (unboundedTime_le_weightedExpectedCost next c cfg hc) h)
 
+/-- If state costs lie between one and `C`, expected weighted cost is at most `C` times expected
+running time. -/
 theorem weightedExpectedCost_le_charge_time (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (C : ℕ) (hc : ∀ s, 1 ≤ c s ∧ c s ≤ C) :
     weightedExpectedCost next c cfg ≤ (C : ℝ≥0∞) * unboundedTime next cfg := by
@@ -188,6 +246,8 @@ theorem weightedExpectedCost_le_charge_time (next : S → PMF (O ⊕ S)) (c : S 
   rw [← ENNReal.tsum_mul_left]
   exact ENNReal.tsum_le_tsum fun n => (weightedOccupation_bounds next c cfg n C hc).2
 
+/-- Costs between one and `C` and a uniform continuation bound `q < 1` give zero nontermination
+mass and expected cost at most `C / (1 - q)`. -/
 theorem weighted_bounded_charge_geometric_consumer :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (c : S → ℕ) (s : S) (C : ℕ) (q : ℝ≥0∞),
@@ -204,6 +264,8 @@ theorem weighted_bounded_charge_geometric_consumer :
     _ ≤ (C : ℝ≥0∞) * (1-q)⁻¹ := mul_le_mul_right hg.2.2 _
     _ = _ := rfl
 
+/-- Under positive state costs, the budgeted mass of a halted pair with cost at most the budget
+equals its weighted halting joint mass. -/
 theorem weightedBudgetRun_halt_point (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) (o : O) (k B : ℕ) (hk : k ≤ B) :
     weightedBudgetRun next c B cfg (.inl o,k) = weightedHaltJoint next c cfg o k := by
@@ -241,14 +303,17 @@ theorem weightedBudgetRun_halt_point (next : S → PMF (O ⊕ S)) (c : S → ℕ
           rw [weightedRunFor_succ_running_point, if_neg hcs]
           simp [CostedLaw.ret, PMF.pure_apply]
 
+/-- The accumulated cost on halted outcomes, extended by zero on running outcomes. -/
 noncomputable def weightedHaltedCharge : (O ⊕ S) × ℕ → ℝ≥0∞
   | (.inl _, k) => k
   | (.inr _, _) => 0
 
+/-- The extended nonnegative indicator of a running configuration in a costed outcome. -/
 noncomputable def weightedPendingIndicator : (O ⊕ S) × ℕ → ℝ≥0∞
   | (.inl _, _) => 0
   | (.inr _, _) => 1
 
+/-- The expectation of the pending indicator equals the running-event probability. -/
 theorem weightedPendingIndicator_expectation (p : CostedLaw (O ⊕ S)) :
     CostedLaw.expectation p weightedPendingIndicator =
       CostedLaw.event p (fun z => ∃ s, z.1 = Sum.inr s) := by
@@ -257,12 +322,16 @@ theorem weightedPendingIndicator_expectation (p : CostedLaw (O ⊕ S)) :
   rcases z with ⟨d,k⟩
   cases d <;> simp [weightedPendingIndicator]
 
+/-- The expected halted charge is the sum of halted point masses weighted by their cost
+coordinates. -/
 theorem weightedHaltedCharge_expectation (p : CostedLaw (O ⊕ S)) :
     CostedLaw.expectation p weightedHaltedCharge = ∑' o, ∑' k : ℕ, (k : ℝ≥0∞) * p (.inl o,k) := by
   unfold CostedLaw.expectation
   rw [tsum_prod_type', tsum_sum_type']
   simp [weightedHaltedCharge, mul_comm]
 
+/-- For a prefix bounded by `D`, its expected cost is at most the continuation's expected halted
+charge plus `D` times its pending probability. -/
 theorem weighted_prefix_expense_le (p : CostedLaw (O ⊕ S)) (f : O ⊕ S → CostedLaw (O ⊕ S))
     (D : ℕ) (hp : CostedLaw.BoundedBy p D) :
     CostedLaw.expectedCost p ≤ CostedLaw.expectation (CostedLaw.bind p f) weightedHaltedCharge +
@@ -296,6 +365,8 @@ theorem weighted_prefix_expense_le (p : CostedLaw (O ⊕ S)) (f : O ⊕ S → Co
     | inr s => simpa [weightedHaltedCharge, weightedPendingIndicator] using
         (show (x.2 : ℝ≥0∞) ≤ (D : ℝ≥0∞) by exact_mod_cast hd)
 
+/-- If every state cost is at most `C`, an `n`-step weighted run has accumulated cost at most `n
+* C`. -/
 theorem weightedRunFor_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (C : ℕ) (hc : ∀ s, c s ≤ C) (n : ℕ) (cfg : O ⊕ S) :
     CostedLaw.BoundedBy (weightedRunFor next c n cfg) (n*C) := by
@@ -311,6 +382,8 @@ theorem weightedRunFor_bounded (next : S → PMF (O ⊕ S)) (c : S → ℕ)
         exact hc s
     simpa [weightedRunFor, Nat.add_mul, Nat.add_comm] using ht.bind ih
 
+/-- With positive state costs, the supremum of finite expected halted charges equals the
+cost-weighted eventual halting joint mass. -/
 theorem weightedHaltedCharge_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) :
     (⨆ n, CostedLaw.expectation (weightedRunFor next c n cfg) weightedHaltedCharge) =
@@ -332,6 +405,8 @@ theorem weightedHaltedCharge_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
 
 set_option maxHeartbeats 800000 in
 
+/-- With positive state costs and zero nontermination mass, expected weighted cost equals the
+cost-weighted halting joint mass. -/
 theorem weightedExpectedCost_eq_halt_of_nontermination_zero (next : S → PMF (O ⊕ S))
     (c : S → ℕ) (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S)
     (hzero : nonterminationMass next cfg = 0) :
@@ -375,6 +450,8 @@ theorem weightedExpectedCost_eq_halt_of_nontermination_zero (next : S → PMF (O
     rcases z with ⟨d,k⟩
     cases d <;> simp [weightedHaltedCharge]
 
+/-- With positive state costs, expected weighted cost equals the cost-weighted halting mass plus
+`⊤` times nontermination mass; finite expectation forces zero nontermination mass. -/
 theorem weighted_expected_cost_occupation_and_halt :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (c : S → ℕ) (cfg : O ⊕ S), (∀ s, 1 ≤ c s) →
@@ -391,6 +468,7 @@ theorem weighted_expected_cost_occupation_and_halt :
       exact hz (weightedExpectedCost_finite_nontermination next c cfg hc (lt_top_iff_ne_top.mpr h))
     simp [ht, ENNReal.top_mul hz]
 
+/-- For any costed law, total halted mass plus running-event probability equals one. -/
 theorem weighted_law_halt_pending_partition (p : CostedLaw (O ⊕ S)) :
     (∑' o, ∑' k : ℕ, p (.inl o,k)) +
       CostedLaw.event p (fun z => ∃ s, z.1 = Sum.inr s) = 1 := by
@@ -402,6 +480,8 @@ theorem weighted_law_halt_pending_partition (p : CostedLaw (O ⊕ S)) :
   rw [he, ← tsum_sum_type' (F := fun d : O ⊕ S => ∑' k : ℕ, p (d,k)),
     ← tsum_prod_type' (F := fun z : (O ⊕ S) × ℕ => p z), PMF.tsum_coe]
 
+/-- With positive state costs, halted joint masses through the budget plus the budgeted pending
+probability sum to one. -/
 theorem weightedBudgetRun_partition (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) (B : ℕ) :
     (∑ o, ∑ k ∈ Finset.range (B+1), weightedHaltJoint next c cfg o k) +
@@ -421,6 +501,8 @@ theorem weightedBudgetRun_partition (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   simp_rw [hh, tsum_fintype] at hp
   exact hp
 
+/-- Total weighted halting mass splits into cost coordinates at most `B` and those greater than
+`B`. -/
 theorem weightedHaltJoint_tsum_split (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (B : ℕ) :
     (∑' o, ∑' k : ℕ, weightedHaltJoint next c cfg o k) =
@@ -442,6 +524,8 @@ theorem weightedHaltJoint_tsum_split (next : S → PMF (O ⊕ S)) (c : S → ℕ
   simp_rw [hk]
   rw [ENNReal.tsum_add, tsum_fintype]
 
+/-- With positive state costs, budgeted pending probability equals the halting-cost tail beyond
+the budget plus nontermination mass. -/
 theorem weightedBudgetRun_pending_tail (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) (B : ℕ) :
     CostedLaw.event (weightedBudgetRun next c B cfg) (fun z => ∃ s, z.1 = Sum.inr s) =
@@ -457,6 +541,8 @@ theorem weightedBudgetRun_pending_tail (next : S → PMF (O ⊕ S)) (c : S → �
       _ = 1 := hpart
   exact WithTop.add_left_cancel hfinite (hpart.trans htotal.symm)
 
+/-- With positive state costs, the budgeted pending probability is at most expected weighted
+cost divided by `B + 1`. -/
 theorem weightedBudgetRun_cutoff (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) (B : ℕ) :
     CostedLaw.event (weightedBudgetRun next c B cfg) (fun z => ∃ s, z.1 = Sum.inr s) ≤
@@ -479,6 +565,8 @@ theorem weightedBudgetRun_cutoff (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     · exact mul_le_mul_left le_top _
   exact (ENNReal.le_div_iff_mul_le (by simp) (by simp)).mpr (by simpa [mul_comm] using hmul)
 
+/-- With positive state costs, online budget execution respects the budget, preserves every
+halted joint mass within it, and satisfies the expected-cost cutoff bound. -/
 theorem weighted_online_budget_joint_prefix_and_cutoff :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (c : S → ℕ) (cfg : O ⊕ S) (B : ℕ),

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Positive decompositions of the identity map
+
+`qudit_positive_family_scalar_one` studies finite families of complex linear maps that preserve
+positive semidefinite operators and sum to the identity map. It proves that every member sends
+the identity operator to a scalar multiple of the identity.
+
+The proof uses positivity on pure inputs and a Hermitian matrix identity for balanced pairs of
+basis vectors. This is a finite dimensional positive map argument in the setting of
+[Watrous2018].
+
+## Main statements
+
+* `balanced_pair`: equality of diagonal entries from an annihilated balanced vector.
+* `qudit_positive_family_scalar_one`: scalar images of the identity under positive summands.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +44,8 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder
 set_option linter.unusedSimpArgs false
 
+/-- If a Hermitian matrix annihilates `Ket i + t • Ket j` for real `t` with `t² = 1`, its `i`
+and `j` diagonal entries agree. -/
 private theorem balanced_pair {n : ℕ} (A : Operator n) (hA : A.IsHermitian)
     (i j : Fin n) (t : ℝ) (ht : t^2 = 1)
     (hk : A *ᵥ (Qatlib.Foundations.PureStateMath.Ket i + (t : ℂ) • Qatlib.Foundations.PureStateMath.Ket j) = 0) : A i i = A j j := by
@@ -39,6 +63,8 @@ private theorem balanced_pair {n : ℕ} (A : Operator n) (hA : A.IsHermitian)
   have hc : (t : ℂ)^2 = 1 := by exact_mod_cast ht
   linear_combination h0 + (A j j) * hc
 
+/-- If a finite family of positive complex linear maps sums to the identity map in nonzero
+dimension, each map sends the identity operator to a scalar multiple of itself. -/
 theorem qudit_positive_family_scalar_one (m n : ℕ) [NeZero n]
     (F : Fin m → Operator n → Operator n)
     (hadd : ∀ s A B, F s (A + B) = F s A + F s B)

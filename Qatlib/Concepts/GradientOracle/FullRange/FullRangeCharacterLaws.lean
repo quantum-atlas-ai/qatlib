@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueLabels
+
+/-!
+# Fourier-character laws for full-range phase kickback
+
+The module evaluates and shifts the additive character used by the full-range value register.
+`full_range_character_preparation` and `full_range_character_normalized` establish preparation
+and normalization of the character state, while `full_range_query_kickback` proves its exact
+response to the value oracle. See [Jordan2005Gradient] for background.
+
+## Main statements
+
+* `full_range_character_preparation`: Applying the inverse modular QFT to the character-index
+  basis ket prepares the full-range kickback state.
+* `full_range_query_kickback`: The value oracle multiplies the input state by the diagonal
+  full-range phase while leaving the tensor-factor kickback state unchanged.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
@@ -22,6 +43,8 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical BigOperators
 
+/-- The additive character at the full-range character index equals the exponential phase
+determined by the residue representative divided by `2 ^ k`. -/
 theorem full_range_character_phase (K k : ℕ) (a : ZMod (2^(K+k))) :
     ZMod.stdAddChar (fullRangeCharacterIndex K k*a) =
       Complex.exp (2*Real.pi*Complex.I*(((a.val:ℝ)/(2:ℝ)^k):ℂ)) := by
@@ -33,6 +56,8 @@ theorem full_range_character_phase (K k : ℕ) (a : ZMod (2^(K+k))) :
   rw [pow_add (2:ℂ)]
   field_simp
 
+/-- Translating the conjugate additive character by `a` multiplies it by the character evaluated
+at `j * a`. -/
 theorem full_range_character_shift {N : ℕ} [NeZero N] (j y a : ZMod N) :
     star (ZMod.stdAddChar (j*(y-a))) = ZMod.stdAddChar (j*a)*star (ZMod.stdAddChar (j*y)) := by
   have hm : ZMod.stdAddChar (j*(y-a))*ZMod.stdAddChar (j*a) = ZMod.stdAddChar (j*y) := by
@@ -49,6 +74,8 @@ theorem full_range_character_shift {N : ℕ} [NeZero N] (j y a : ZMod N) :
     _ = ZMod.stdAddChar (j*a)*star (ZMod.stdAddChar (j*(y-a))*ZMod.stdAddChar (j*a)) := by rw [star_mul];ring
     _ = _ := by rw [hm]
 
+/-- Applying the inverse modular QFT to the character-index basis ket prepares the full-range
+kickback state. -/
 theorem full_range_character_preparation (K k : ℕ) :
     ApplyGate ((zmodQFTGate (N:=2^(K+k)))ᴴ) (Ket (fullRangeCharacterIndex K k)) = fullRangeKickState K k := by
   ext y
@@ -57,6 +84,7 @@ theorem full_range_character_preparation (K k : ℕ) :
     fullRangeKickState,star_mul,Complex.star_def]
   simp [mul_comm]
 
+/-- The full-range Fourier-character kickback state is normalized. -/
 theorem full_range_character_normalized (K k : ℕ) : Normalized (fullRangeKickState K k) := by
   have hN : (0:ℝ)<(2^(K+k):ℕ) := by positivity
   have hn (y : ZMod (2^(K+k))) : ‖fullRangeKickState K k y‖^2=((2^(K+k):ℕ):ℝ)⁻¹ := by
@@ -66,6 +94,8 @@ theorem full_range_character_normalized (K k : ℕ) : Normalized (fullRangeKickS
   unfold Normalized
   simp [hn,ZMod.card]
 
+/-- The value oracle multiplies the input state by the diagonal full-range phase while leaving
+the tensor-factor kickback state unchanged. -/
 theorem full_range_query_kickback {X : Type} [Fintype X] [DecidableEq X]
     (K k : ℕ) (v : X → ZMod (2^(K+k))) (ψ : QState X) :
     ApplyGate (gradientValueOracle (2^(K+k)) v) (TensorState ψ (fullRangeKickState K k)) =

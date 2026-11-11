@@ -71,13 +71,34 @@ import Mathlib.Tactic.Push
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Two-level avoided crossings
+
+The real symmetric matrix `twoLevel` has explicit characteristic roots `upperEigen` and
+`lowerEigen`, whose difference is `levelGap`. The alternative normalization `paperGap` gives the
+two-level gap used in the avoided-crossing discussion [AltshulerKroviRoland2010].
+
+## Main statements
+
+* `eigen_gap`: identifies the difference of the characteristic roots.
+* `paperGap_eq_abs_iff`: characterizes equality with the coupling magnitude.
+* `paperGap_eq_zero_iff`: characterizes vanishing of the gap.
+
+## References
+
+* [Altshuler et al., 2010][AltshulerKroviRoland2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.AndersonLoc09.MainResults
 
+/-- The real symmetric two-level matrix with diagonal energies `E1`, `E2` and off-diagonal
+coupling `V`. -/
 def twoLevel (E1 E2 V : ℝ) : Matrix (Fin 2) (Fin 2) ℝ := !![E1, V; V, E2]
 
+/-- Subtracting a scalar matrix shifts both diagonal energies of `twoLevel` by the scalar. -/
 theorem twoLevel_sub_scalar (E1 E2 V lam : ℝ) :
     twoLevel E1 E2 V - Matrix.scalar (Fin 2) lam
       = !![E1 - lam, V; V, E2 - lam] := by
@@ -85,18 +106,24 @@ theorem twoLevel_sub_scalar (E1 E2 V lam : ℝ) :
   fin_cases i <;> fin_cases j <;>
     simp [twoLevel, Matrix.sub_apply, Matrix.scalar_apply]
 
+/-- The determinant of the shifted two-level matrix is `(E1 - lam) * (E2 - lam) - V ^ 2`. -/
 theorem twoLevel_det_sub (E1 E2 V lam : ℝ) :
     (twoLevel E1 E2 V - Matrix.scalar (Fin 2) lam).det
       = (E1 - lam) * (E2 - lam) - V ^ 2 := by
   rw [twoLevel_sub_scalar, Matrix.det_fin_two_of]
   ring
 
+/-- The upper characteristic root of `twoLevel`, given by the mean diagonal energy plus the
+square root of the squared half-difference and squared coupling. -/
 def upperEigen (E1 E2 V : ℝ) : ℝ :=
   (E1 + E2) / 2 + Real.sqrt (((E1 - E2) / 2) ^ 2 + V ^ 2)
 
+/-- The lower characteristic root of `twoLevel`, given by the mean diagonal energy minus the
+square root of the squared half-difference and squared coupling. -/
 def lowerEigen (E1 E2 V : ℝ) : ℝ :=
   (E1 + E2) / 2 - Real.sqrt (((E1 - E2) / 2) ^ 2 + V ^ 2)
 
+/-- The determinant of `twoLevel` shifted by `upperEigen` vanishes. -/
 theorem upperEigen_charpoly (E1 E2 V : ℝ) :
     (twoLevel E1 E2 V - Matrix.scalar (Fin 2) (upperEigen E1 E2 V)).det = 0 := by
   rw [twoLevel_det_sub]
@@ -105,6 +132,7 @@ theorem upperEigen_charpoly (E1 E2 V : ℝ) :
     Real.sq_sqrt (by positivity)
   nlinarith [h]
 
+/-- The determinant of `twoLevel` shifted by `lowerEigen` vanishes. -/
 theorem lowerEigen_charpoly (E1 E2 V : ℝ) :
     (twoLevel E1 E2 V - Matrix.scalar (Fin 2) (lowerEigen E1 E2 V)).det = 0 := by
   rw [twoLevel_det_sub]
@@ -113,8 +141,10 @@ theorem lowerEigen_charpoly (E1 E2 V : ℝ) :
     Real.sq_sqrt (by positivity)
   nlinarith [h]
 
+/-- The two-level gap `sqrt ((E1 - E2) ^ 2 + 4 * V ^ 2)`. -/
 def levelGap (E1 E2 V : ℝ) : ℝ := Real.sqrt ((E1 - E2) ^ 2 + 4 * V ^ 2)
 
+/-- The upper characteristic root minus the lower characteristic root equals `levelGap`. -/
 theorem eigen_gap (E1 E2 V : ℝ) :
     upperEigen E1 E2 V - lowerEigen E1 E2 V = levelGap E1 E2 V := by
   unfold upperEigen lowerEigen levelGap
@@ -132,20 +162,26 @@ theorem eigen_gap (E1 E2 V : ℝ) :
   rw [hgap]
   ring
 
+/-- The gap expression `sqrt ((E1 - E2) ^ 2 + V12 ^ 2)` in the paper's coupling normalization. -/
 def paperGap (E1 E2 V12 : ℝ) : ℝ := Real.sqrt ((E1 - E2) ^ 2 + V12 ^ 2)
 
+/-- The paper's gap equals `levelGap` when the off-diagonal coupling is `V12 / 2`
+[AltshulerKroviRoland2010]. -/
 theorem paperGap_eq_levelGap (E1 E2 V12 : ℝ) :
     paperGap E1 E2 V12 = levelGap E1 E2 (V12 / 2) := by
   unfold paperGap levelGap
   congr 1
   ring
 
+/-- The paper's gap is at least the absolute value of its coupling parameter. -/
 theorem paperGap_ge_abs (E1 E2 V12 : ℝ) : |V12| ≤ paperGap E1 E2 V12 := by
   unfold paperGap
   have h : V12 ^ 2 ≤ (E1 - E2) ^ 2 + V12 ^ 2 := by nlinarith [sq_nonneg (E1 - E2)]
   calc |V12| = Real.sqrt (V12 ^ 2) := (Real.sqrt_sq_eq_abs V12).symm
     _ ≤ Real.sqrt ((E1 - E2) ^ 2 + V12 ^ 2) := Real.sqrt_le_sqrt h
 
+/-- The paper's gap equals the coupling magnitude exactly when the diagonal energies coincide
+[AltshulerKroviRoland2010]. -/
 theorem paperGap_eq_abs_iff (E1 E2 V12 : ℝ) :
     paperGap E1 E2 V12 = |V12| ↔ E1 = E2 := by
   constructor
@@ -164,6 +200,8 @@ theorem paperGap_eq_abs_iff (E1 E2 V12 : ℝ) :
     rw [h]
     simp [Real.sqrt_sq_eq_abs]
 
+/-- The paper's gap vanishes exactly when the diagonal energies coincide and the coupling is
+zero [AltshulerKroviRoland2010]. -/
 theorem paperGap_eq_zero_iff (E1 E2 V12 : ℝ) :
     paperGap E1 E2 V12 = 0 ↔ E1 = E2 ∧ V12 = 0 := by
   unfold paperGap
@@ -178,6 +216,8 @@ theorem paperGap_eq_zero_iff (E1 E2 V12 : ℝ) :
     subst h2
     ring
 
+/-- The paper's gap is positive exactly when the diagonal energies differ or the coupling is
+nonzero. -/
 theorem paperGap_pos_iff (E1 E2 V12 : ℝ) :
     0 < paperGap E1 E2 V12 ↔ E1 ≠ E2 ∨ V12 ≠ 0 := by
   have hnonneg : 0 ≤ paperGap E1 E2 V12 := Real.sqrt_nonneg _

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.PermMix
 import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
 import Mathlib.Analysis.Convex.Birkhoff
+
+/-!
+# Doubly stochastic mixing of spectra
+
+This module proves that a finite real vector majorizes its image under a doubly stochastic
+matrix, using a convex decomposition into permutation matrices. This supplies a spectral mixing
+ingredient for the entanglement criterion of [Nielsen1999].
+
+In dimension two, `exists_tTransform_eq_mulVec_of_doublyStochastic_two` expresses the matrix
+action as a single T-transform with mixing parameter in the unit interval.
+
+## Main statements
+
+* `majorizes_mulVec_doublyStochastic`: proves majorization under doubly stochastic mixing.
+* `exists_tTransform_eq_mulVec_of_doublyStochastic_two`: represents two-dimensional mixing by a
+  T-transform.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +44,7 @@ open Qatlib.Papers.EntangleTrans99.MainResults.TTransform
 open Matrix
 open scoped BigOperators
 
+/-- A finite real vector majorizes its image under a doubly stochastic matrix [Nielsen1999]. -/
 theorem majorizes_mulVec_doublyStochastic {n : ℕ} (a : Fin n → ℝ)
     (D : Matrix (Fin n) (Fin n) ℝ) (hD : D ∈ doublyStochastic ℝ (Fin n)) :
     Majorizes a (D *ᵥ a) := by
@@ -34,6 +57,8 @@ theorem majorizes_mulVec_doublyStochastic {n : ℕ} (a : Fin n → ℝ)
   rw [hmix]
   exact majorizes_permMix a w hw0 hw1
 
+/-- The action of a two-dimensional doubly stochastic matrix on any real vector equals a
+T-transform with a parameter in `[0, 1]` [Nielsen1999]. -/
 theorem exists_tTransform_eq_mulVec_of_doublyStochastic_two
     (a : Fin 2 → ℝ) (D : Matrix (Fin 2) (Fin 2) ℝ)
     (hD : D ∈ doublyStochastic ℝ (Fin 2)) :

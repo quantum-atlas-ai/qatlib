@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QImagingLimit06.MainResults.FisherCore
+
+/-!
+# Comparison of intensity and field resolution scales
+
+This module compares positive resolution parameters defined by inverse squared derivative sums.
+A pointwise bound for the derivative of a complex field magnitude yields `a_ge_b_of_field`, the
+inequality `b ≤ a`. See [DelaubertEtAl2008] for the paper context.
+
+## Main statements
+
+* `a_ge_b_of_pointwise`: Pointwise domination of squared derivative terms implies `b ≤ a` when
+  their sums equal the inverse squares of positive scales `a` and `b`.
+* `abs_deriv_sq_le`: The squared radial derivative expression `(a*c + b*d) / sqrt(a² + b²)` is
+  at most `c² + d²` when the denominator is nonzero.
+* `a_ge_b_of_field`: For a field with nonzero pixel magnitudes, the positive scale defined by
+  magnitude derivatives is at least the scale defined by both field derivatives.
+
+## References
+
+* [Delaubert et al., 2008][DelaubertEtAl2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +36,8 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QImagingLimit06.MainResults
 
+/-- Pointwise domination of squared derivative terms implies `b ≤ a` when their sums equal the
+inverse squares of positive scales `a` and `b`. -/
 theorem a_ge_b_of_pointwise {ι : Type} [Fintype ι] {a b : ℝ} (ha : 0 < a)
     (hb : 0 < b) (dAbsU dU : ι → ℝ)
     (hpoint : ∀ k, (dAbsU k) ^ 2 ≤ (dU k) ^ 2)
@@ -40,6 +64,8 @@ theorem a_ge_b_of_pointwise {ι : Type} [Fintype ι] {a b : ℝ} (ha : 0 < a)
   have hroot := Real.sqrt_le_sqrt hsq
   rwa [Real.sqrt_sq hb.le, Real.sqrt_sq ha.le] at hroot
 
+/-- The squared radial derivative expression `(a*c + b*d) / sqrt(a² + b²)` is at most `c² + d²`
+when the denominator is nonzero. See [DelaubertEtAl2008]. -/
 theorem abs_deriv_sq_le {a b c d : ℝ} (hn : a ^ 2 + b ^ 2 ≠ 0) :
     ((a * c + b * d) / Real.sqrt (a ^ 2 + b ^ 2)) ^ 2 ≤ c ^ 2 + d ^ 2 := by
   have hnonneg : (0 : ℝ) ≤ a ^ 2 + b ^ 2 := by positivity
@@ -52,6 +78,9 @@ theorem abs_deriv_sq_le {a b c d : ℝ} (hn : a ^ 2 + b ^ 2 ≠ 0) :
   calc (a * c + b * d) ^ 2 ≤ (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) := hkey
     _ = (c ^ 2 + d ^ 2) * (a ^ 2 + b ^ 2) := by ring
 
+/-- For a field with nonzero pixel magnitudes, the positive scale defined by magnitude
+derivatives is at least the scale defined by both field derivatives. See
+[DelaubertEtAl2008]. -/
 theorem a_ge_b_of_field {ι : Type} [Fintype ι] {a b : ℝ} (ha : 0 < a)
     (hb : 0 < b) (uRe uIm duRe duIm : ι → ℝ)
     (hn : ∀ k, uRe k ^ 2 + uIm k ^ 2 ≠ 0)

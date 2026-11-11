@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QComplexity97.MachineModel.LocalMachineUniformDefs
+
+/-!
+# Local well-formedness and the normal-form control schedule
+
+The module checks the local normalization and orthogonality conditions for `nfRule`, using
+disjoint supports and the two Hadamard scan rows. It constructs `nfRule_toLocal` and proves that
+all stay amplitudes vanish.
+
+The deterministic control trace `nfCtrlRun` is evaluated through its forward scan, return scan,
+and final three moves. `clause4_complete` collects the local conditions and the exact `2 * n +
+4` schedule returning to cell one. See [BernsteinVazirani1997].
+
+## Main statements
+
+* `nfRule_localWellformed`: verifies the five local well-formedness conditions.
+* `nfCtrlRun_halt`: evaluates the control trace at its budget.
+* `clause4_complete`: collects the local and control-schedule results.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.StandardDefs.WindowSim
@@ -19,11 +42,13 @@ set_option autoImplicit false
 namespace Qatlib.Papers.QComplexity97.MachineDefs
 namespace LocalMachineUniform
 
+/-- The transition amplitude of `nfRule` vanishes outside `nfSupport`. -/
 theorem nfStep_eq_zero_off {q : NFState} {a : FourierSymbol} {d : QtmMove} {q' : NFState}
     {b : FourierSymbol} (h : (d, q', b) ∉ nfSupport q a) :
     nfRule.step q a d q' b = 0 := by
   simp [nfRule, h]
 
+/-- Every nonzero transition amplitude of `nfRule` has its slot in `nfSupport`. -/
 theorem nfStep_mem_of_ne_zero {q : NFState} {a : FourierSymbol} {d : QtmMove} {q' : NFState}
     {b : FourierSymbol} (h : nfRule.step q a d q' b ≠ 0) :
     (d, q', b) ∈ nfSupport q a := by
@@ -32,10 +57,12 @@ theorem nfStep_mem_of_ne_zero {q : NFState} {a : FourierSymbol} {d : QtmMove} {q
   · exact hc
   · exact absurd h (by simp)
 
+/-- Every transition slot in `nfSupport q a` moves left or right rather than staying. -/
 theorem nfSupport_no_stay (q : NFState) (a : FourierSymbol) :
     ∀ slot ∈ nfSupport q a, slot.1 ≠ QtmMove.stay := by
   cases q <;> cases a <;> simp [nfSupport]
 
+/-- All stay-move transition amplitudes of `nfRule` are zero. -/
 theorem nfRule_no_stay : ∀ (q : NFState) (a : FourierSymbol) (q' : NFState) (b : FourierSymbol),
     nfRule.step q a QtmMove.stay q' b = 0 := by
   intro q a q' b
@@ -45,31 +72,42 @@ theorem nfRule_no_stay : ∀ (q : NFState) (a : FourierSymbol) (q' : NFState) (b
       exact (nfSupport_no_stay q a (QtmMove.stay, q', b) hm) rfl)
   · exact nfStep_eq_zero_off hm
 
+/-- The target state `q'` occurs in a right-moving slot of the support at `v`. -/
 abbrev nfRightTarget (q' : NFState) (v : NFState × FourierSymbol) : Prop :=
   ∃ c : FourierSymbol, (QtmMove.right, q', c) ∈ nfSupportOf v
 
+/-- The target state `q'` occurs in a left-moving slot of the support at `v`. -/
 abbrev nfLeftTarget (q' : NFState) (v : NFState × FourierSymbol) : Prop :=
   ∃ c : FourierSymbol, (QtmMove.left, q', c) ∈ nfSupportOf v
 
+/-- No target state occurs in both a right-moving support row and a left-moving support row. -/
 theorem nfRight_left_disjoint : ∀ (v1 v2 : NFState × FourierSymbol) (q' : NFState),
     ¬ (nfRightTarget q' v1 ∧ nfLeftTarget q' v2) := by
   decide
 
+/-- The two source pairs are the binary scan rows `(.scan, .bit0)` and `(.scan, .bit1)`, in
+either order. -/
 abbrev nfHadamardPair (v1 v2 : NFState × FourierSymbol) : Prop :=
   (v1 = (.scan, .bit0) ∧ v2 = (.scan, .bit1)) ∨
   (v1 = (.scan, .bit1) ∧ v2 = (.scan, .bit0))
 
+/-- The Boolean test that every slot of the first support list is absent from the second support
+list. -/
 def nfDisjointCheck (v1 v2 : NFState × FourierSymbol) : Bool :=
   (nfSupportOf v1).all (fun slot => !(nfSupportOf v2).contains slot)
 
+/-- The Boolean test that the source pairs form the two binary Hadamard scan rows, in either
+order. -/
 def nfHadamardCheck (v1 v2 : NFState × FourierSymbol) : Bool :=
   decide (v1 = (.scan, .bit0) ∧ v2 = (.scan, .bit1)) ||
     decide (v1 = (.scan, .bit1) ∧ v2 = (.scan, .bit0))
 
+/-- Two distinct source pairs either have disjoint support lists or form the Hadamard scan pair. -/
 theorem nfDisjoint_or_hadamard : ∀ (v1 v2 : NFState × FourierSymbol), v1 ≠ v2 →
     nfDisjointCheck v1 v2 = true ∨ nfHadamardCheck v1 v2 = true := by
   decide
 
+/-- Distinct source pairs either form `nfHadamardPair` or have disjoint transition supports. -/
 theorem nfSupport_meet (v1 v2 : NFState × FourierSymbol) (hne : v1 ≠ v2) :
     nfHadamardPair v1 v2 ∨ (∀ slot ∈ nfSupportOf v1, slot ∉ nfSupportOf v2) := by
   rcases nfDisjoint_or_hadamard v1 v2 hne with hd | hh
@@ -86,6 +124,7 @@ theorem nfSupport_meet (v1 v2 : NFState × FourierSymbol) (hne : v1 ≠ v2) :
     · exact Or.inl ⟨h1, h2⟩
     · exact Or.inr ⟨h1, h2⟩
 
+/-- Every entry of `fourierH` between nonblank symbols has squared complex norm `1 / 2`. -/
 lemma normSq_fourierH (b' b : FourierSymbol) (h1 : b' ≠ FourierSymbol.blank)
     (h2 : b ≠ FourierSymbol.blank) : ‖fourierH b' b‖ ^ 2 = (1 / 2 : ℝ) := by
   have habs : ‖((Real.sqrt 2 : ℝ) : ℂ)‖ = Real.sqrt 2 := by
@@ -99,18 +138,24 @@ lemma normSq_fourierH (b' b : FourierSymbol) (h1 : b' ≠ FourierSymbol.blank)
   · simp [fourierH, h1, h2, h3, hinv]
   · simp [fourierH, h1, h2, h3, hinv]
 
+/-- The full finite set of normal-form states consists of `scan`, `back`, `zig`, `zin`, and
+`halt`. -/
 theorem nfState_univ : (Finset.univ : Finset NFState) =
     ({NFState.scan, NFState.back, NFState.zig, NFState.zin, NFState.halt} : Finset NFState) := by
   decide
 
+/-- The full finite symbol set consists of `blank`, `bit0`, and `bit1`. -/
 theorem nfSymbol_univ : (Finset.univ : Finset FourierSymbol) =
     ({FourierSymbol.blank, FourierSymbol.bit0, FourierSymbol.bit1} : Finset FourierSymbol) := by
   decide
 
+/-- The full finite move set consists of left, stay, and right moves. -/
 theorem nfMove_univ : (Finset.univ : Finset QtmMove) =
     ({QtmMove.left, QtmMove.stay, QtmMove.right} : Finset QtmMove) := by
   decide
 
+/-- For every source state and symbol, the sum of squared transition amplitudes of `nfRule` is
+one. -/
 theorem nfRule_wf_norm : ∀ (q : NFState) (a : FourierSymbol),
     ∑ q' : NFState, ∑ b : FourierSymbol, ∑ d : QtmMove,
       ‖nfRule.step q a d q' b‖ ^ 2 = 1 := by
@@ -118,18 +163,21 @@ theorem nfRule_wf_norm : ∀ (q : NFState) (a : FourierSymbol),
   rw [nfState_univ, nfSymbol_univ, nfMove_univ]
   cases q <;> cases a <;> simp [nfRule, nfSupport, nfValue, normSq_fourierH] <;> norm_num
 
+/-- The transition rows for scanning `bit0` and scanning `bit1` have zero complex inner product. -/
 theorem nfHadamard_inner_bit0 :
     ∑ q' : NFState, ∑ b : FourierSymbol, ∑ d : QtmMove,
       star (nfRule.step (.scan) (.bit0) d q' b) * nfRule.step (.scan) (.bit1) d q' b = 0 := by
   rw [nfState_univ, nfSymbol_univ, nfMove_univ]
   simp [nfRule, nfSupport, nfValue, fourierH]
 
+/-- The transition rows for scanning `bit1` and scanning `bit0` have zero complex inner product. -/
 theorem nfHadamard_inner_bit1 :
     ∑ q' : NFState, ∑ b : FourierSymbol, ∑ d : QtmMove,
       star (nfRule.step (.scan) (.bit1) d q' b) * nfRule.step (.scan) (.bit0) d q' b = 0 := by
   rw [nfState_univ, nfSymbol_univ, nfMove_univ]
   simp [nfRule, nfSupport, nfValue, fourierH]
 
+/-- The transition rows of `nfRule` at distinct source state-symbol pairs are orthogonal. -/
 theorem nfRule_wf_sameCell : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ : NFState) (a₂ : FourierSymbol),
     (q₁, a₁) ≠ (q₂, a₂) →
       ∑ q' : NFState, ∑ b : FourierSymbol, ∑ d : QtmMove,
@@ -152,6 +200,8 @@ theorem nfRule_wf_sameCell : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ :
     refine Finset.sum_eq_zero fun b _ => ?_
     exact Finset.sum_eq_zero fun d _ => hterm q' b d
 
+/-- The right-moving and stay-moving transition rows of `nfRule` have zero overlap in the stated
+local condition. -/
 theorem nfRule_wf_rightStay : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ : NFState) (a₂ : FourierSymbol)
     (c d : FourierSymbol),
     ∑ q' : NFState, nfRule.step q₁ a₁ QtmMove.right q' c *
@@ -161,6 +211,8 @@ theorem nfRule_wf_rightStay : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ 
   rw [nfRule_no_stay]
   simp
 
+/-- The stay-moving and left-moving transition rows of `nfRule` have zero overlap in the stated
+local condition. -/
 theorem nfRule_wf_stayLeft : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ : NFState) (a₂ : FourierSymbol)
     (c d : FourierSymbol),
     ∑ q' : NFState, nfRule.step q₁ a₁ QtmMove.stay q' c *
@@ -170,6 +222,8 @@ theorem nfRule_wf_stayLeft : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ :
   rw [nfRule_no_stay]
   simp
 
+/-- The right-moving and left-moving transition rows of `nfRule` have zero overlap in the stated
+local condition. -/
 theorem nfRule_wf_rightLeft : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ : NFState) (a₂ : FourierSymbol)
     (c d : FourierSymbol),
     ∑ q' : NFState, nfRule.step q₁ a₁ QtmMove.right q' c *
@@ -192,16 +246,21 @@ theorem nfRule_wf_rightLeft : ∀ (q₁ : NFState) (a₁ : FourierSymbol) (q₂ 
   refine Finset.sum_eq_zero fun q' _ => ?_
   exact hterm q'
 
+/-- The rule `nfRule` satisfies `QtmRule.LocalWellformed`. -/
 theorem nfRule_localWellformed : nfRule.LocalWellformed :=
   ⟨nfRule_wf_norm, nfRule_wf_sameCell, nfRule_wf_rightStay, nfRule_wf_stayLeft,
     nfRule_wf_rightLeft⟩
 
+/-- The locally well-formed machine obtained from `nfRule` and its local well-formedness proof. -/
 noncomputable def nfRule_toLocal : LocalQTM NFState FourierSymbol :=
   nfRule.toLocal nfRule_localWellformed
 
+/-- The control trace at successor time is obtained by applying `nfCtrlStep` to the previous
+trace value. -/
 theorem nfCtrlRun_succ (n t : ℕ) :
     nfCtrlRun n (Nat.succ t) = nfCtrlStep n (nfCtrlRun n t) := rfl
 
+/-- At every time `t ≤ n`, the control trace is in state `scan` at cell `1 + t`. -/
 theorem nfCtrlRun_scan (n : ℕ) : ∀ t, t ≤ n →
     nfCtrlRun n t = (.scan, 1 + t) := by
   intro t
@@ -215,6 +274,7 @@ theorem nfCtrlRun_scan (n : ℕ) : ∀ t, t ≤ n →
     simp [nfCtrlStep, nfCellClass, hdata]
     omega
 
+/-- For `n < t ≤ 2 * n`, the control trace is in state `back` at cell `2 * n + 1 - t`. -/
 theorem nfCtrlRun_back (n : ℕ) : ∀ t, n < t → t ≤ 2 * n →
     nfCtrlRun n t = (.back, 2 * n + 1 - t) := by
   intro t
@@ -235,6 +295,7 @@ theorem nfCtrlRun_back (n : ℕ) : ∀ t, n < t → t ≤ 2 * n →
       simp [nfCtrlStep, nfCellClass, hdata]
       omega
 
+/-- For `n ≥ 1`, the control trace at time `2 * n + 1` is `(.back, 0)`. -/
 theorem nfCtrlRun_at_2n1 (n : ℕ) (hn : 1 ≤ n) :
     nfCtrlRun n (2 * n + 1) = (.back, 0) := by
   show nfCtrlRun n (Nat.succ (2 * n)) = _
@@ -243,6 +304,7 @@ theorem nfCtrlRun_at_2n1 (n : ℕ) (hn : 1 ≤ n) :
     refine ⟨by omega, by omega⟩
   simp [nfCtrlStep, nfCellClass, hdata]
 
+/-- For `n ≥ 1`, the control trace at time `2 * n + 2` is `(.zig, 1)`. -/
 theorem nfCtrlRun_at_2n2 (n : ℕ) (hn : 1 ≤ n) :
     nfCtrlRun n (2 * n + 2) = (.zig, 1) := by
   show nfCtrlRun n (Nat.succ (Nat.succ (2 * n))) = _
@@ -251,6 +313,7 @@ theorem nfCtrlRun_at_2n2 (n : ℕ) (hn : 1 ≤ n) :
     simp [nfDataCell]
   simp [nfCtrlStep, nfCellClass, hnd]
 
+/-- For `n ≥ 1`, the control trace at time `2 * n + 3` is `(.zin, 2)`. -/
 theorem nfCtrlRun_at_2n3 (n : ℕ) (hn : 1 ≤ n) :
     nfCtrlRun n (2 * n + 3) = (.zin, 2) := by
   show nfCtrlRun n (Nat.succ (Nat.succ (Nat.succ (2 * n)))) = _
@@ -259,6 +322,7 @@ theorem nfCtrlRun_at_2n3 (n : ℕ) (hn : 1 ≤ n) :
     refine ⟨by omega, by omega⟩
   simp [nfCtrlStep, nfCellClass, hdata]
 
+/-- For `n ≥ 1`, the control trace at `nfBudget n` is in state `halt` at the starting cell one. -/
 theorem nfCtrlRun_halt (n : ℕ) (hn : 1 ≤ n) :
     nfCtrlRun n (nfBudget n) = (.halt, 1) := by
   have h : nfBudget n = Nat.succ (Nat.succ (Nat.succ (Nat.succ (2 * n)))) := by
@@ -269,6 +333,8 @@ theorem nfCtrlRun_halt (n : ℕ) (hn : 1 ≤ n) :
   · simp [nfCtrlStep, nfCellClass, hdata]
   · simp [nfCtrlStep, nfCellClass, hdata]
 
+/-- For `n ≥ 1` and time at most `nfBudget n`, the control state follows the displayed scan,
+back, zig, zin, and halt schedule. -/
 theorem nfCtrlRun_schedule (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudget n) :
     (nfCtrlRun n t).1 =
       if t ≤ n then NFState.scan
@@ -307,6 +373,8 @@ theorem nfCtrlRun_schedule (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudge
             rw [nfCtrlRun_halt n hn]
             simp [h1', h2', h3, h4, h5, h6]
 
+/-- For `n ≥ 1` and time at most `nfBudget n`, the cell index follows the displayed forward
+scan, return scan, and final positions zero, one, two, and one. -/
 theorem nfCtrlRun_cell (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudget n) :
     (nfCtrlRun n t).2 =
       if t ≤ n then 1 + t
@@ -345,6 +413,10 @@ theorem nfCtrlRun_cell (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudget n)
             rw [nfCtrlRun_halt n hn]
             simp [h1', h2', h3, h4, h5, h6]
 
+/-- The machine satisfies the five local conditions, has no stay transitions, and possesses the
+displayed exact control-state and cell schedule, ending at `(.halt, 1)` after `2 * n + 4`
+steps for `n ≥ 1`. These are the local and scheduling components related to Theorem 8.4.1 of
+[BernsteinVazirani1997]. -/
 theorem clause4_complete :
     Qatlib.Concepts.UniformBqp.Phi3Compile.LocalQTMFiveConditions nfRule_toLocal ∧
     (∀ (q : NFState) (a : FourierSymbol) (q' : NFState) (b : FourierSymbol),

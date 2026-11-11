@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Sear
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2AttemptAuxiliary
+
+/-!
+# Tolerant recursive amplitude amplification
+
+Proves `Lemma2`, the tolerant recursive amplitude-amplification guarantee of
+[MagniezNayakRolandSantha2011]. The argument controls the deviation of unsuccessful attempt
+states and combines the amplification window with the accumulated reflection costs.
+
+## Main statements
+
+* `mnrs_tolerant_raa_lemma_two`: Establishes `Lemma2`, including the tolerant success lower
+  bound `1 / 12 - 3 * γ` for nonzero marked mass and the cumulative cost bound [Magniez et al.,
+  Lemma 2][MagniezNayakRolandSantha2011].
+* `mnrs2_delta_chain`: Under the reflection-error hypotheses with `γ ≤ 1 / 40` and the ideal
+  final-angle window, the remainder before the final attempt is within `π / 8 + (3 / 2) * γ` of
+  `x₀`.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,7 @@ namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 open scoped Real BigOperators
 variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
 
+/-- Provides the numerical bounds `7 / 10 ≤ 1 / Real.sqrt 2` and `Real.sqrt (1 / 6) ≤ 41 / 100`. -/
 private theorem mnrs_sqrt_numeric : (7/10 : ℝ) ≤ 1/Real.sqrt 2 ∧
     Real.sqrt (1/6) ≤ (41/100 : ℝ) := by
   constructor
@@ -26,12 +49,14 @@ private theorem mnrs_sqrt_numeric : (7/10 : ℝ) ≤ 1/Real.sqrt 2 ∧
   · have h := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 1/6)
     nlinarith only [h, Real.sqrt_nonneg (1/6)]
 
+/-- The quantities `Real.sqrt 2 / 2` and `1 / Real.sqrt 2` coincide. -/
 private theorem mnrs2_sqrt_two_div_two : Real.sqrt 2 / 2 = 1 / Real.sqrt 2 := by
   have hn : Real.sqrt 2 ≠ 0 := (Real.sqrt_pos.mpr (by norm_num : (0 : ℝ) < 2)).ne'
   have hsq := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
   field_simp
   nlinarith only [hsq]
 
+/-- The reciprocal square root of `2` is at most `99 / 140`. -/
 private theorem mnrs2_one_div_sqrt_two_le : 1 / Real.sqrt 2 ≤ 99 / 140 := by
   have h2 : Real.sqrt 2 * Real.sqrt 2 = 2 := Real.mul_self_sqrt (by norm_num)
   have hA : (99 / 140 * Real.sqrt 2) ^ 2 = 2 * (99 / 140) ^ 2 := by
@@ -42,6 +67,7 @@ private theorem mnrs2_one_div_sqrt_two_le : 1 / Real.sqrt 2 ≤ 99 / 140 := by
   exact (div_le_iff₀ (Real.sqrt_pos.mpr (by norm_num : (0 : ℝ) < 2))).mpr
     ((sq_le_sq₀ (by norm_num : (0 : ℝ) ≤ 1) h3).mp h1)
 
+/-- The sine is at least `1 / Real.sqrt 2` on `[π / 4, 3 * π / 4]`. -/
 private theorem mnrs2_sin_window (a : ℝ) (ha : a ∈ Set.Icc (π / 4) (3 * π / 4)) :
     1 / Real.sqrt 2 ≤ Real.sin a := by
   have hs : Real.sin (π / 4) ≤ Real.sin a := by
@@ -54,6 +80,7 @@ private theorem mnrs2_sin_window (a : ℝ) (ha : a ∈ Set.Icc (π / 4) (3 * π 
   rw [Real.sin_pi_div_four] at hs
   rwa [mnrs2_sqrt_two_div_two] at hs
 
+/-- Subtracting the orthogonal marked projection does not increase the norm. -/
 private theorem mnrs2_unmarked_norm_le (Mr : Submodule ℂ W) (ψ : W) :
     ‖ψ - markProj Mr ψ‖ ≤ ‖ψ‖ := by
   set y : W := markProj Mr ψ with hydef
@@ -77,6 +104,8 @@ private theorem mnrs2_unmarked_norm_le (Mr : Submodule ℂ W) (ψ : W) :
   have h3 : ‖z‖ ^ 2 ≤ ‖ψ‖ ^ 2 := by linarith
   exact (sq_le_sq₀ h1 (norm_nonneg ψ)).mp h3
 
+/-- If `‖b‖ ≥ 2 / 3`, the distance between the normalizations of `a` and `b` is at most `3 * ‖a
+- b‖`. -/
 private theorem mnrs2_normalize_sub (a b : W) (hc : 2 / 3 ≤ ‖b‖) :
     ‖NormedSpace.normalize a - NormedSpace.normalize b‖ ≤ 3 * ‖a - b‖ := by
   have hbn : 0 ≤ ‖b‖ := norm_nonneg b
@@ -120,8 +149,12 @@ private theorem mnrs2_normalize_sub (a b : W) (hc : 2 / 3 ≤ ‖b‖) :
     linarith
   nlinarith [h5, hc, hd, hbn, norm_nonneg (a - b)]
 
+/-- The `RCLike.ofReal` and `Complex.ofReal` embeddings agree for real scalars in `ℂ`. -/
 private theorem mnrs2_ofReal_eq (r : ℝ) : (RCLike.ofReal r : ℂ) = Complex.ofReal r := rfl
 
+/-- Expresses one approximate amplification step as its ideal triple-angle good-bad
+superposition plus an error vector with the stated homogeneous bound. The marked projection
+norm error is bounded by the same vector norm. -/
 private theorem mnrs2_step_decomp
     (Mr Rs : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)
     (hMneg : ∀ z ∈ Mr, unmarkRefl z = -z)
@@ -410,6 +443,9 @@ private theorem mnrs2_step_decomp
       _ ≤ ‖ω‖ := Submodule.norm_starProjection_apply_le Mr ω
   exact ⟨ω, hstate, hωnorm, hmain⟩
 
+/-- Before the final amplification level, each recursive state remains in `Rs` and its marked
+projection norm differs from the ideal sine by at most the stated reciprocal-square error
+sum. -/
 private theorem mnrs2_env
     (Mr Rs : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)
     (hMneg : ∀ z ∈ Mr, unmarkRefl z = -z)
@@ -709,6 +745,8 @@ private theorem mnrs2_env
   intro j hj
   exact hP j hj
 
+/-- Under the reflection-error hypotheses with `γ ≤ 1 / 40` and the ideal final-angle window,
+the remainder before the final attempt is within `π / 8 + (3 / 2) * γ` of `x₀`. -/
 private theorem mnrs2_delta_chain
     (Mr Rs : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)
     (hMneg : ∀ z ∈ Mr, unmarkRefl z = -z)
@@ -1497,6 +1535,9 @@ private theorem mnrs2_delta_chain
     exact ((hA.trans_eq hEq1).trans hstep2).trans ((le_of_eq hEq2).trans hfinal)
   linarith [hmain, h1, h2]
 
+/-- Establishes `Lemma2`, including the tolerant success lower bound `1 / 12 - 3 * γ` for
+nonzero marked mass and the cumulative cost bound [Magniez et al., Lemma
+2][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_tolerant_raa_lemma_two : Lemma2 := by
   intro W _ _ _ Mr unmarkRefl hMneg hMid x₀ hx₀ γ hγ0 hγ1 ε hε0 hε1 hεle
     tMax R c₁ c₂ hc₁ hc₂ costR costMark Rs hxRs hclose hRRs hfix hbound hcost hmark hwin hmin

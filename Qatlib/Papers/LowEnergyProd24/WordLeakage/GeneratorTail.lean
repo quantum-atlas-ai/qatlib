@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LowEnergyProd24.ProductError.GeneratorExpansion
 import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
 import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+/-!
+# Weighted tails of the product-word defect
+
+This module sums the weighted defect series starting at the cancellation order. It bounds that
+tail by an explicit geometric majorant, supplying the generator estimate used for low-energy
+product-word leakage in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_weighted_defect_tail`: Identifies the weighted defect with the coefficient series
+  starting at order `p`.
+* `actual_weighted_defect_bound`: Bounds its norm under a small-step condition.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +42,8 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- For positive cancellation order `p`, the series of weighted computed coefficients with
+powers `t ^ (n + p)` sums to the weighted defect. -/
 theorem actual_weighted_defect_tail (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M))
     (p : ℕ) (hp : 0 < p) (horder : lowerOrderCancellation h stages p) (lam t : ℝ) :
     HasSum (fun n : ℕ => t^(n+p) • weighted h.total (computedCoefficient h stages (n+p)) lam)
@@ -49,6 +70,8 @@ theorem actual_weighted_defect_tail (h : Hamiltonian N R M k d J) (stages : List
   rw [he]
   exact hs
 
+/-- Under the locality and cancellation hypotheses, the weighted defect norm is bounded by the
+explicit geometric tail with ratio `2 * J * k * d * timeBudget stages * t < 1`. -/
 theorem actual_weighted_defect_bound (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))

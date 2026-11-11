@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Query direct-sum specification
+
+`QueryDirectSumConsumer` specifies a universal constant comparing the query complexity of
+independent function evaluations with the copy count times the single-instance complexity. It
+also requires a legal word computing the full output tuple with success probability at least
+`2/3` under an explicit real query budget.
+
+This is the direct-sum framework of [LeeEtAl2011].
+
+## Main statements
+
+* `QueryDirectSumConsumer`: the two-sided direct-sum comparison and budgeted evaluation-word
+  specification.
+
+## References
+
+* [Lee et al., 2011, Corollary 5.3][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -20,6 +41,10 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The existence of a universal positive constant comparing the query cost of `m` independent
+function evaluations with `m` times the single-instance cost in both directions, together
+with legal tuple-evaluation words using at most `ceil (c*m*Q)` calls and succeeding with
+probability at least `2/3` for every nonnegative single-instance budget `Q`. -/
 def QueryDirectSumConsumer : Prop :=
   ∃ c : ℕ, 0<c ∧ ∀ (X E : Type) [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (n m q : ℕ)

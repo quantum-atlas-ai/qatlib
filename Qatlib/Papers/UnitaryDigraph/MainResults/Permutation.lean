@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 import Mathlib.Data.Matrix.Diagonal
+
+/-!
+# Permutation invariance of unitary digraphs
+
+This module proves that unitary realizability is invariant under `PermEquivalentTo`. The
+equivalence `lemma2` formalizes Lemma 2 of [Severini2003], allowing unitary realizations and
+obstructions to be transported between permutation-equivalent digraphs.
+
+## Main statements
+
+* `permEquiv_unitary_forward`: Transport a unitary realization along permutation equivalence.
+* `lemma2`: Unitary realizability is equivalent for permutation-equivalent digraphs.
+
+## References
+
+* [Severini, 2003][Severini2003]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +38,8 @@ open Matrix
 
 variable {V W : Type} [Fintype V] [DecidableEq V] [Fintype W] [DecidableEq W]
 
+/-- Unitary realizability transfers from `D` to a permutation-equivalent digraph `D'`
+[Severini2003]. -/
 theorem permEquiv_unitary_forward {D : Digraph V} {D' : Digraph W}
     (h : PermEquivalentTo D D') (hD : IsUnitaryDigraph D) : IsUnitaryDigraph D' := by
   obtain ⟨U, hU, hpat⟩ := hD
@@ -59,6 +79,8 @@ theorem permEquiv_unitary_forward {D : Digraph V} {D' : Digraph W}
         (hadj (σ.symm a) (τ.symm b)).symm
     exact hpat'.trans hadj'
 
+/-- Permutation-equivalent digraphs are either both unitary digraphs or both fail to be unitary
+digraphs [Severini2003]. -/
 theorem lemma2 {D : Digraph V} {D' : Digraph W} (h : PermEquivalentTo D D') :
     (IsUnitaryDigraph D ↔ IsUnitaryDigraph D') := by
   constructor

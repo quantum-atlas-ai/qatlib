@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ExactSimon97.MainResults.AmplificationHilbert
 import Qatlib.Papers.ExactSimon97.MainResults.Amplification
 import Qatlib.Papers.ExactSimon97.MainResults.ShrinkCoherent
+
+/-!
+# State formulas for exact amplitude amplification
+
+This module expresses a phase update directly in terms of complex state amplitudes and their
+good and bad components. Equal good and bad masses eliminate all bad amplitudes; coordinate
+balance then yields support on nonzero vectors of a binary subspace. These constructions support
+the results of [BrassardHoyer1997].
+
+## Main statements
+
+* `lemma8_general_output`: computes both components of the phase-updated state.
+* `theorem4_coordinate_amplification`: restricts the updated support to a chosen coordinate-one
+  fiber.
+* `cosetBlock_good_half`: proves that balanced coset blocks have good mass one half.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,29 +42,41 @@ namespace Qatlib.Papers.ExactSimon97.MainResults
 
 variable {I : Type} [Fintype I]
 
+/-- The finite Hermitian inner product `∑ i, star (f i) * g i`. -/
 def hInner (f g : I → ℂ) : ℂ := ∑ i, star (f i) * g i
 
+/-- The sum of squared amplitude magnitudes on indices marked true by `χ`, expressed as a
+complex number. -/
 def goodMass (χ : I → Bool) (ψ : I → ℂ) : ℂ :=
   ∑ i ∈ Finset.univ.filter (fun i => χ i = true), star (ψ i) * ψ i
 
+/-- The sum of squared amplitude magnitudes on indices marked false by `χ`, expressed as a
+complex number. -/
 def badMass (χ : I → Bool) (ψ : I → ℂ) : ℂ :=
   ∑ i ∈ Finset.univ.filter (fun i => χ i = false), star (ψ i) * ψ i
 
+/-- Multiply the amplitudes marked by `χ` by `Complex.I`, leaving the other amplitudes
+unchanged. -/
 def phaseGood (χ : I → Bool) (ψ : I → ℂ) : I → ℂ :=
   fun i => if χ i then Complex.I * ψ i else ψ i
 
+/-- The state update `w + (Complex.I - 1) * ⟨Ψ, w⟩ * Ψ`, without a normalization assumption. -/
 def zeroReflState (Ψ w : I → ℂ) : I → ℂ :=
   fun i => (Complex.I - 1) * hInner Ψ w * Ψ i + w i
 
+/-- The restriction of a state to indices marked true by `χ`. -/
 def goodPart (χ : I → Bool) (ψ : I → ℂ) : I → ℂ := fun i => if χ i then ψ i else 0
 
+/-- The restriction of a state to indices marked false by `χ`. -/
 def badPart (χ : I → Bool) (ψ : I → ℂ) : I → ℂ := fun i => if χ i then 0 else ψ i
 
+/-- Every element of `ZMod 2` is zero or one. -/
 theorem zmod2_zero_or_one (z : ZMod 2) : z = 0 ∨ z = 1 := by
   fin_cases z
   · exact Or.inl rfl
   · exact Or.inr rfl
 
+/-- The sums over the true and false fibers of a Boolean predicate add to the full sum. -/
 theorem sum_split_filter (χ : I → Bool) (f : I → ℂ) :
     (∑ i ∈ Finset.univ.filter (fun i => χ i = true), f i) +
         (∑ i ∈ Finset.univ.filter (fun i => χ i = false), f i) = ∑ i, f i := by
@@ -58,6 +91,7 @@ theorem sum_split_filter (χ : I → Bool) (f : I → ℂ) :
   rw [hcompl] at h
   simpa using h
 
+/-- The inner product with the phase-marked state is `Complex.I * goodMass χ ψ + badMass χ ψ`. -/
 theorem hInner_phaseGood (χ : I → Bool) (ψ : I → ℂ) :
     hInner ψ (phaseGood χ ψ) = Complex.I * goodMass χ ψ + badMass χ ψ := by
   classical
@@ -79,6 +113,8 @@ theorem hInner_phaseGood (χ : I → Bool) (ψ : I → ℂ) :
     rw [Finset.mem_filter] at hi
     rw [if_neg (by simpa using hi.2)]
 
+/-- If good and bad masses sum to one, each good amplitude is multiplied by `2 * Complex.I * (1
+- goodMass χ ψ) - 1` by the combined update. -/
 theorem phase_component_good (χ : I → Bool) (ψ : I → ℂ)
     (h : goodMass χ ψ + badMass χ ψ = 1) :
     ∀ i, χ i = true →
@@ -95,6 +131,8 @@ theorem phase_component_good (χ : I → Bool) (ψ : I → ℂ)
   rw [hI2]
   ring
 
+/-- If good and bad masses sum to one, each bad amplitude is multiplied by `Complex.I * (1 - 2 *
+goodMass χ ψ)` by the combined update. -/
 theorem phase_component_bad (χ : I → Bool) (ψ : I → ℂ)
     (h : goodMass χ ψ + badMass χ ψ = 1) :
     ∀ i, χ i = false →
@@ -111,6 +149,8 @@ theorem phase_component_bad (χ : I → Bool) (ψ : I → ℂ)
   rw [hI2]
   ring
 
+/-- When good and bad masses sum to one, the phase-updated state is the stated linear
+combination of its good and bad parts. See [BrassardHoyer1997]. -/
 theorem lemma8_general_output (χ : I → Bool) (ψ : I → ℂ)
     (h : goodMass χ ψ + badMass χ ψ = 1) :
     zeroReflState ψ (phaseGood χ ψ) =
@@ -126,6 +166,8 @@ theorem lemma8_general_output (χ : I → Bool) (ψ : I → ℂ)
     simp only [goodPart, badPart, hf, Bool.false_eq_true, if_false]
     ring
 
+/-- When both masses equal one half, every bad amplitude vanishes after the combined phase
+update. See [BrassardHoyer1997]. -/
 theorem lemma8_state_at_half (χ : I → Bool) (ψ : I → ℂ)
     (hg : goodMass χ ψ = 1 / 2) (hb : badMass χ ψ = 1 / 2) :
     ∀ i, χ i = false → zeroReflState ψ (phaseGood χ ψ) i = 0 := by
@@ -134,6 +176,8 @@ theorem lemma8_state_at_half (χ : I → Bool) (ψ : I → ℂ)
   rw [phase_component_bad χ ψ hsum i hi, hg]
   norm_num
 
+/-- If `Ψ` and `w` are supported on a predicate `S`, their rank-one phase update is also
+supported on `S`. -/
 theorem zeroReflState_support {S : I → Prop} (Ψ w : I → ℂ)
     (hΨ : ∀ i, Ψ i ≠ 0 → S i) (hw : ∀ i, w i ≠ 0 → S i) :
     ∀ i, zeroReflState Ψ w i ≠ 0 → S i := by
@@ -147,6 +191,7 @@ theorem zeroReflState_support {S : I → Prop} (Ψ w : I → ℂ)
 
 omit [Fintype I] in
 
+/-- Multiplying selected amplitudes by `Complex.I` preserves any given support predicate. -/
 theorem phaseGood_support {S : I → Prop} (χ : I → Bool) (ψ : I → ℂ)
     (h : ∀ i, ψ i ≠ 0 → S i) : ∀ i, phaseGood χ ψ i ≠ 0 → S i := by
   intro i hi
@@ -162,13 +207,18 @@ theorem phaseGood_support {S : I → Prop} (χ : I → Bool) (ψ : I → ℂ)
     rw [hval] at hi
     exact h i hi
 
+/-- The Boolean predicate marking states whose first-register coordinate `i` is one. -/
 def coordGood {n : ℕ} {S : Type} (i : Fin n) (p : BoolVec n × S) : Bool :=
   decide (p.1 i = 1)
 
+/-- The predicate `coordGood i` is true exactly when the first register has coordinate `i` equal
+to one. -/
 @[simp] theorem coordGood_eq_true {n : ℕ} {S : Type} (i : Fin n) (p : BoolVec n × S) :
     coordGood i p = true ↔ p.1 i = 1 := by
   simp [coordGood]
 
+/-- For a state supported on `K` with equal good and bad masses, the combined update is
+supported on vectors of `K` whose chosen coordinate is one. See [BrassardHoyer1997]. -/
 theorem theorem4_coordinate_amplification {n : ℕ} {S : Type} [Fintype S]
     (ψ : BoolVec n × S → ℂ) (K : Submodule (ZMod 2) (BoolVec n)) (i : Fin n)
     (hsupp : ∀ p, ψ p ≠ 0 → p.1 ∈ K)
@@ -189,6 +239,8 @@ theorem theorem4_coordinate_amplification {n : ℕ} {S : Type} [Fintype S]
     · simp [coordGood, h]
   exact hp (lemma8_state_at_half (coordGood (S := S) i) ψ hg hb p hfalse)
 
+/-- For a state supported on `K` with equal good and bad masses, the combined update is
+supported on nonzero vectors of `K`. See [BrassardHoyer1997]. -/
 theorem theorem4_coordinate_nonzero {n : ℕ} {S : Type} [Fintype S]
     (ψ : BoolVec n × S → ℂ) (K : Submodule (ZMod 2) (BoolVec n)) (i : Fin n)
     (hsupp : ∀ p, ψ p ≠ 0 → p.1 ∈ K)
@@ -203,6 +255,8 @@ theorem theorem4_coordinate_nonzero {n : ℕ} {S : Type} [Fintype S]
   rw [hzero] at hi
   simp at hi
 
+/-- A nonzero binary submodule contains a vector with some coordinate equal to one. See
+[BrassardHoyer1997]. -/
 theorem exists_one_of_ne_bot {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     (hK : K ≠ ⊥) : ∃ (i : Fin n) (k : BoolVec n), k ∈ K ∧ k i = 1 := by
   by_contra h
@@ -220,6 +274,8 @@ theorem exists_one_of_ne_bot {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     rw [hx]
     exact K.zero_mem
 
+/-- A binary submodule all of whose vectors have every coordinate zero is the zero submodule.
+See [BrassardHoyer1997]. -/
 theorem eq_bot_of_forall_zero {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     (h : ∀ (i : Fin n) (k : BoolVec n), k ∈ K → k i = 0) : K = ⊥ := by
   ext x
@@ -232,17 +288,22 @@ theorem eq_bot_of_forall_zero {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     rw [hx]
     exact K.zero_mem
 
+/-- The state supported on `K` with block amplitudes `c s * normFactor K * charFun (t s) x`. -/
 def cosetBlockState {n : ℕ} {S : Type} [Fintype S]
     (K : Submodule (ZMod 2) (BoolVec n)) (t : S → BoolVec n) (c : S → ℂ) :
     BoolVec n × S → ℂ :=
   fun p => if p.1 ∈ K then c p.2 * normFactor K * charFun (t p.2) p.1 else 0
 
+/-- On vectors belonging to `K`, `cosetBlockState` evaluates to its defining normalized
+character amplitude. -/
 theorem cosetBlockState_apply {n : ℕ} {S : Type} [Fintype S]
     (K : Submodule (ZMod 2) (BoolVec n)) (t : S → BoolVec n) (c : S → ℂ)
     (p : BoolVec n × S) (hp : p.1 ∈ K) :
     cosetBlockState K t c p = c p.2 * normFactor K * charFun (t p.2) p.1 := by
   simp [cosetBlockState, hp]
 
+/-- The squared magnitude of the normalization factor is the reciprocal of the submodule
+cardinality. -/
 theorem star_normFactor_mul {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) :
     star (normFactor K) * normFactor K = ((Nat.card K : ℂ))⁻¹ := by
   have hpos : (0 : ℝ) < (Nat.card K : ℝ) := by
@@ -258,6 +319,7 @@ theorem star_normFactor_mul {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) :
   rw [hc]
   norm_num
 
+/-- Every Boolean character value has squared magnitude one. -/
 theorem star_charFun_mul {n : ℕ} (a x : BoolVec n) :
     star (charFun a x) * charFun a x = 1 := by
   unfold charFun
@@ -267,6 +329,8 @@ theorem star_charFun_mul {n : ℕ} (a x : BoolVec n) :
   · rw [h, stdAddChar_one_zmod2]
     norm_num
 
+/-- The squared magnitude of a scaled normalized character amplitude equals `star c * c` times
+the squared normalization factor. -/
 theorem star_block_mul {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     (t : BoolVec n) (c : ℂ) (x : BoolVec n) :
     star (c * normFactor K * charFun t x) * (c * normFactor K * charFun t x) =
@@ -279,12 +343,15 @@ theorem star_block_mul {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     _ = star c * c * (star (normFactor K) * normFactor K) := by
         rw [star_charFun_mul, mul_one]
 
+/-- The cardinality of a binary submodule is nonzero when viewed as a complex number. -/
 theorem natCard_ne_zero {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) :
     (Nat.card K : ℂ) ≠ 0 := by
   haveI : Nonempty K := ⟨0⟩
   have h : Nat.card K ≠ 0 := Nat.card_pos.ne'
   exact_mod_cast h
 
+/-- If coordinate `i` takes the value one on `K`, twice the size of its one fiber equals the
+cardinality of `K`. -/
 theorem bitOne_card_mul_two {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) (i : Fin n)
     (hfib : ∃ k ∈ K, k i = 1) :
     (bitOne K i).card * 2 = Nat.card K := by
@@ -316,6 +383,8 @@ theorem bitOne_card_mul_two {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) (i : 
   rw [hKcard, hsplit, Finset.card_union_of_disjoint hdisj, hb]
   omega
 
+/-- If coordinate `i` is nonzero on `K`, the normalized character state's mass on its one fiber
+is one half. See [BrassardHoyer1997]. -/
 theorem fiberMass_half {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) (t : BoolVec n)
     (i : Fin n) (hfib : ∃ k ∈ K, k i = 1) :
     (∑ k ∈ bitOne K i, star (normFactor K * charFun t k) *
@@ -338,6 +407,8 @@ theorem fiberMass_half {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) (t : BoolV
   field_simp
   rw [← h2]
 
+/-- If the block coefficients have total squared magnitude one and coordinate `i` is nonzero on
+`K`, the good mass of the coset-block state is one half. See [BrassardHoyer1997]. -/
 theorem cosetBlock_good_half {n : ℕ} {S : Type} [Fintype S]
     (K : Submodule (ZMod 2) (BoolVec n)) (t : S → BoolVec n) (c : S → ℂ)
     (hc : ∑ s, star (c s) * c s = 1) (i : Fin n)

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ExactSimon97.MainResults.Defs
+
+/-!
+# Normalization of the Simon sampling distribution
+
+The function `uniformOnSub` assigns reciprocal-cardinality weight to elements of a binary
+submodule and zero elsewhere. The module proves that these weights sum to one on the orthogonal
+submodule used for Simon sampling. The development follows [BrassardHoyer1997].
+
+## Main statements
+
+* `natCard_ortho_pos`: proves positivity of the orthogonal submodule cardinality.
+* `theorem3_uniform_distribution`: normalizes the uniform weights on `ortho H0`.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,16 +34,20 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The reciprocal-cardinality weight on `S`, extended by zero to vectors outside `S`. -/
 noncomputable def uniformOnSub {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n)) (z : BoolVec n) : ℝ :=
   by
     classical
     exact if z ∈ S then ((Nat.card S : ℝ))⁻¹ else 0
 
+/-- The orthogonal submodule of any binary submodule has positive cardinality. -/
 lemma natCard_ortho_pos {n : ℕ} (H : Submodule (ZMod 2) (BoolVec n)) :
     0 < Nat.card (ortho H) := by
   haveI : Nonempty (ortho H) := ⟨0, by simp⟩
   exact Nat.card_pos
 
+/-- The weights `uniformOnSub (ortho H0)` sum to one over the ambient binary vector space. See
+[BrassardHoyer1997]. -/
 theorem theorem3_uniform_distribution {n : ℕ}
     (H0 : Submodule (ZMod 2) (BoolVec n)) :
     (∑ z, uniformOnSub (ortho H0) z) = 1 := by

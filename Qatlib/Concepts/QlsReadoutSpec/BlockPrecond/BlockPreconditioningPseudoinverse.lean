@@ -9,6 +9,33 @@ import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
+
+/-!
+# Pseudoinverse identities under state scaling
+
+This module proves the product formula for the pseudoinverse of `stateScaling s b * A` when the
+scaling commutes with the range projector `A * matrixPseudoinverse A`. Consistency of the
+right-hand side implies this commutation and gives inverse scaling of the solution direction. An
+explicit two-dimensional counterexample shows that the product formula need not hold without the
+range condition.
+
+Range projections and generalized inverses belong to the matrix-analysis background
+[Bhatia1997].
+
+## Main statements
+
+* `stateScaling_pseudoinverse_counterexample`: Exhibits failure of the unrestricted product
+  formula.
+* `stateScaling_pseudoinverse_of_consistent`: Proves the product formula for a consistent
+  normalized right-hand side.
+* `stateScaling_pseudoinverse_direction_of_consistent`: Computes the preconditioned solution
+  vector.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,22 +63,27 @@ variable {H O : Type} [Fintype H] [DecidableEq H] [Fintype O] [DecidableEq O]
 namespace Qatlib.Concepts.QlsReadoutSpec.BlockPrecond
 noncomputable section
 
+/-- The normalized counterexample state with amplitudes `3 / 5` at `false` and `4 / 5` at
+`true`. -/
 def preconditioningCounterState : QState Bool :=
   fun j => if j then ((4 / 5 : ℝ) : ℂ) else ((3 / 5 : ℝ) : ℂ)
 end
 noncomputable section
 
+/-- The diagonal two-dimensional matrix with diagonal entries one at `false` and zero at `true`. -/
 def preconditioningCounterMatrix : Matrix Bool Bool ℂ :=
   Matrix.diagonal (fun j => if j then (0 : ℂ) else 1)
 end
 noncomputable section
 
+/-- The explicit counterexample state is normalized. -/
 theorem preconditioningCounterState_normalized : Normalized preconditioningCounterState := by
   norm_num [Normalized, BornProb, preconditioningCounterState, Fintype.sum_bool,
     Complex.norm_real, Real.norm_eq_abs]
 end
 noncomputable section
 
+/-- The counterexample diagonal projector equals its own pseudoinverse. -/
 private theorem preconditioningCounterMatrix_pseudoinverse :
     matrixPseudoinverse preconditioningCounterMatrix = preconditioningCounterMatrix := by
   symm
@@ -64,6 +96,9 @@ private theorem preconditioningCounterMatrix_pseudoinverse :
 end
 noncomputable section
 
+/-- For scale `1 / 2` and the explicit counterexample state and matrix, the pseudoinverse of the
+state-scaled matrix differs from the original pseudoinverse multiplied by the inverse
+scaling. -/
 theorem stateScaling_pseudoinverse_counterexample :
     matrixPseudoinverse (stateScaling (1 / 2) preconditioningCounterState *
         preconditioningCounterMatrix) ≠
@@ -80,6 +115,7 @@ theorem stateScaling_pseudoinverse_counterexample :
 end
 noncomputable section
 
+/-- The counterexample state does not belong to the range of the counterexample matrix. -/
 theorem preconditioningCounterState_not_in_range :
     ¬ ∃ z : QState Bool, preconditioningCounterMatrix *ᵥ z = preconditioningCounterState := by
   rintro ⟨z, hz⟩
@@ -89,6 +125,8 @@ theorem preconditioningCounterState_not_in_range :
 end
 noncomputable section
 
+/-- For a nonzero scale and normalized `b`, commutation of the state scaling with `A *
+matrixPseudoinverse A` implies the pseudoinverse product formula. -/
 theorem stateScaling_pseudoinverse_of_range_commutation {I : Type}
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (s : ℝ) (b : QState O)
     (hs : s ≠ 0) (hb : Normalized b)
@@ -127,6 +165,8 @@ theorem stateScaling_pseudoinverse_of_range_commutation {I : Type}
 end
 noncomputable section
 
+/-- For normalized `b` in the range of `A`, state scaling commutes with the range projector `A *
+matrixPseudoinverse A`. -/
 theorem stateScaling_commutes_range_of_consistent {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (s : ℝ) (b : QState O) (hb : Normalized b)
     (hc : ∃ z : QState I, A *ᵥ z = b) :
@@ -153,6 +193,8 @@ theorem stateScaling_commutes_range_of_consistent {I : Type} [Fintype I] [Decida
 end
 noncomputable section
 
+/-- For a nonzero scale and normalized consistent right-hand side, the preconditioned
+pseudoinverse equals the original pseudoinverse multiplied by the inverse state scaling. -/
 theorem stateScaling_pseudoinverse_of_consistent {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (s : ℝ) (b : QState O) (hs : s ≠ 0) (hb : Normalized b)
     (hc : ∃ z : QState I, A *ᵥ z = b) :
@@ -163,6 +205,8 @@ theorem stateScaling_pseudoinverse_of_consistent {I : Type} [Fintype I] [Decidab
 end
 noncomputable section
 
+/-- For a nonzero scale and normalized consistent right-hand side, applying the preconditioned
+pseudoinverse to `b` multiplies the original solution vector by `s⁻¹`. -/
 theorem stateScaling_pseudoinverse_direction_of_consistent {I : Type}
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (s : ℝ) (b : QState O)
     (hs : s ≠ 0) (hb : Normalized b) (hc : ∃ z : QState I, A *ᵥ z = b) :

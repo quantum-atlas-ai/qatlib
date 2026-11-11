@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.SchattenDiamond
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+
+/-!
+# Binary channel discrimination bounds
+
+This module defines the equal-prior binary measurement success functional `measurementSuccess`
+and proves the upper bound `1/2 + traceNorm(rho - sigma) / 4` by centering an effect at half the
+identity. The measurement-discrimination setting has background in [Helstrom1976]. A
+diamond-norm bound on two trace-preserving maps then gives a corresponding success bound for
+every reference-assisted density input.
+
+The definitions `binaryEffectPOVM`, `discriminationLaw`, and `referenceDiscriminationLaw`
+express the experiment as a normalized finite law of a hidden label and a measurement outcome.
+Their success theorems identify the correct-label event and bound its probability by `1/2 +
+delta / 4` when the channel difference has diamond norm at most `delta`.
+
+## Main statements
+
+* `opNorm_centered_effect_le`: bounds the operator norm of a centered binary effect by `1/2`.
+* `measurementSuccess_le_half_add_quarter`: proves the trace-norm upper bound on success.
+* `measurementSuccess_le_half_add_diamond`: derives the bound for amplified trace-preserving
+  maps.
+* `discriminationLaw_success`: identifies the correct-label event with `measurementSuccess`.
+* `referenceDiscriminationLaw_success_le`: bounds success with an arbitrary finite reference.
+
+## References
+
+* [Helstrom, 1976][Helstrom1976]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -28,10 +57,13 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
+/-- The equal-prior binary success functional, defined as half the sum of the real traces of `M
+* rho` and `(1 - M) * sigma`. -/
 noncomputable def measurementSuccess {ι : Type} [Fintype ι] [DecidableEq ι]
     (M ρ σ : Matrix ι ι ℂ) : ℝ :=
   ((M * ρ).trace.re + ((1 - M) * σ).trace.re) / 2
 
+/-- The amplified difference of two trace-preserving maps has trace zero on every input matrix. -/
 theorem tensorLeft_trace_sub_eq_zero {D E r : ℕ} {T S : Operator D →ₗ[ℂ] Operator E}
     (hT : TracePreserving T) (hS : TracePreserving S)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -40,6 +72,8 @@ theorem tensorLeft_trace_sub_eq_zero {D E r : ℕ} {T S : Operator D →ₗ[ℂ]
     Qatlib.Concepts.ReferenceError.RefTraceError.tensorLeft_trace_map T hT X,
     Qatlib.Concepts.ReferenceError.RefTraceError.tensorLeft_trace_map S hS X, sub_self]
 
+/-- If `sigma` has trace one and `rho - sigma` has trace zero, binary measurement success equals
+`1/2` plus half the real trace pairing of `M - (1/2) I` with `rho - sigma`. -/
 theorem measurementSuccess_eq_half_add_centered {ι : Type} [Fintype ι] [DecidableEq ι]
     {M ρ σ : Matrix ι ι ℂ} (hσ : Matrix.trace σ = 1) (hΔ : Matrix.trace (ρ - σ) = 0) :
     measurementSuccess M ρ σ = 1/2 + ((M - (1/2 : ℂ) • 1) * (ρ - σ)).trace.re / 2 := by
@@ -54,6 +88,8 @@ theorem measurementSuccess_eq_half_add_centered {ι : Type} [Fintype ι] [Decida
     rw [Matrix.sub_mul, Matrix.trace_sub, hsmul, Matrix.trace_smul, hΔ, smul_zero, sub_zero]
   rw [hexp, hcenter]
 
+/-- The L2 operator norm of a finite unitary matrix is at most one, including the empty-index
+case. -/
 private lemma opNorm_mem_unitaryGroup_le_one {ι : Type} [Fintype ι] [DecidableEq ι]
     {V : Matrix ι ι ℂ} (hV : V ∈ Matrix.unitaryGroup ι ℂ) : ‖V‖ ≤ 1 := by
   have hU : Vᴴ * V = 1 := by
@@ -66,6 +102,8 @@ private lemma opNorm_mem_unitaryGroup_le_one {ι : Type} [Fintype ι] [Decidable
     exact (pi_norm_le_iff_of_nonneg (by norm_num)).mpr fun _ => by simp
   nlinarith [norm_nonneg V]
 
+/-- Unitary conjugation of a real diagonal matrix whose entries have absolute value at most
+`1/2` has L2 operator norm at most `1/2`. -/
 private lemma opNorm_conj_diagonal_le {ι : Type} [Fintype ι] [DecidableEq ι]
     (V : Matrix ι ι ℂ) (hV : V ∈ Matrix.unitaryGroup ι ℂ) (ν : ι → ℝ)
     (hν : ∀ j, |ν j| ≤ 1/2) :
@@ -89,6 +127,8 @@ private lemma opNorm_conj_diagonal_le {ι : Type} [Fintype ι] [DecidableEq ι]
     _ ≤ 1 * (1/2 * 1) := by gcongr
     _ = 1/2 := by ring
 
+/-- If both `M` and `1 - M` are positive semidefinite, the centered effect `M - (1/2) I` has L2
+operator norm at most `1/2`. -/
 theorem opNorm_centered_effect_le {ι : Type} [Fintype ι] [DecidableEq ι]
     {M : Matrix ι ι ℂ} (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef) :
     ‖M - (1/2 : ℂ) • 1‖ ≤ 1/2 := by
@@ -148,6 +188,8 @@ theorem opNorm_centered_effect_le {ι : Type} [Fintype ι] [DecidableEq ι]
   exact opNorm_conj_diagonal_le V hVmem (fun j => μ j - 1/2)
     (fun j => abs_le.mpr ⟨by linarith [hμpos j, hμle j], by linarith [hμpos j, hμle j]⟩)
 
+/-- For a binary effect `M` and any matrix `Delta`, the absolute real trace pairing of `M -
+(1/2) I` with `Delta` is at most `traceNorm Delta / 2`. -/
 theorem abs_trace_centered_effect_le {ι : Type} [Fintype ι] [DecidableEq ι]
     {M Δ : Matrix ι ι ℂ} (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef) :
     |((M - (1/2 : ℂ) • 1) * Δ).trace.re| ≤ Matrix.traceNorm Δ / 2 := by
@@ -161,6 +203,8 @@ theorem abs_trace_centered_effect_le {ι : Type} [Fintype ι] [DecidableEq ι]
             (Matrix.traceNorm_nonneg _)
     _ = Matrix.traceNorm Δ / 2 := by ring
 
+/-- If `M` and `1 - M` are positive semidefinite, `sigma` has trace one, and `rho - sigma` has
+trace zero, then `measurementSuccess M rho sigma <= 1/2 + traceNorm (rho - sigma) / 4`. -/
 theorem measurementSuccess_le_half_add_quarter {ι : Type} [Fintype ι] [DecidableEq ι]
     {M ρ σ : Matrix ι ι ℂ} (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef)
     (hσ : Matrix.trace σ = 1) (hΔ : Matrix.trace (ρ - σ) = 0) :
@@ -170,6 +214,9 @@ theorem measurementSuccess_le_half_add_quarter {ι : Type} [Fintype ι] [Decidab
   rcases abs_le.mp h with ⟨h1, h2⟩
   linarith
 
+/-- For two trace-preserving maps with difference of finite diamond norm at most nonnegative
+`delta`, every density input with a finite reference and every binary effect have
+measurement success at most `1/2 + delta / 4`. -/
 theorem measurementSuccess_le_half_add_diamond {D E r : ℕ}
     {T S : Operator D →ₗ[ℂ] Operator E}
     (hT : TracePreserving T) (hS : TracePreserving S)
@@ -199,6 +246,8 @@ theorem measurementSuccess_le_half_add_diamond {D E r : ℕ}
     exact (ENNReal.ofReal_le_ofReal_iff hδ0).mp (hle.trans hδ)
   linarith
 
+/-- The Boolean POVM with effect `M` for outcome `true` and effect `1 - M` for outcome `false`,
+assuming both effects are positive semidefinite. -/
 noncomputable def binaryEffectPOVM {E : ℕ} (M : Operator E)
     (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef) : POVM Bool (Fin E) where
   mats b := if b then ⟨M, hM.1⟩ else ⟨1 - M, hMc.1⟩
@@ -210,6 +259,8 @@ noncomputable def binaryEffectPOVM {E : ℕ} (M : Operator E)
     apply Subtype.ext
     simp [HermitianMat.mat_add, HermitianMat.mat_one]
 
+/-- The normalized finite law of an equally likely Boolean label and the outcome of `I`, using
+state `rho` for label `true` and `sigma` for label `false`. -/
 noncomputable def discriminationLaw {E F : ℕ} (I : Instrument Bool E F)
     (ρ σ : Operator E) (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     FinDist (Bool × Bool) where
@@ -223,6 +274,7 @@ noncomputable def discriminationLaw {E F : ℕ} (I : Instrument Bool E F)
     simp only [Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, ↓reduceIte]
     linarith
 
+/-- Each hidden label in `discriminationLaw` has marginal probability `1/2`. -/
 theorem discriminationLaw_label {E F : ℕ} (I : Instrument Bool E F)
     (ρ σ : Operator E) (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) (b : Bool) :
     (∑ o, (discriminationLaw I ρ σ hρ hσ).prob (b, o)) = 1 / 2 := by
@@ -230,6 +282,8 @@ theorem discriminationLaw_label {E F : ℕ} (I : Instrument Bool E F)
   rw [← Finset.mul_sum, sum_instrumentProb_isDensityOperator I
     (show IsDensityOperator (if b then ρ else σ) by cases b <;> assumption), mul_one]
 
+/-- For the instrument associated with `binaryEffectPOVM M`, the probability that outcome equals
+label in `discriminationLaw` is exactly `measurementSuccess M rho sigma`. -/
 theorem discriminationLaw_success {E : ℕ} (M : Operator E)
     (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef)
     (ρ σ : Operator E) (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
@@ -241,6 +295,9 @@ theorem discriminationLaw_success {E : ℕ} (M : Operator E)
     measurementSuccess, HermitianMat.mat_one, HermitianMat.mat_sub]
   ring
 
+/-- If the difference of two quantum channels has finite diamond norm at most nonnegative
+`delta`, their equal-prior discrimination law on any density input and binary effect has
+correct-label probability at most `1/2 + delta / 4`. -/
 theorem discriminationLaw_success_le_diamond {D E : ℕ}
     (T S : QuantumChannel D E) (X : Operator D) (hX : IsDensityOperator X)
     (M : Operator E) (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef)
@@ -276,17 +333,22 @@ theorem discriminationLaw_success_le_diamond {D E : ℕ}
   have hb := (ENNReal.ofReal_le_ofReal_iff hδ0).mp (hn.trans hδ)
   linarith
 
+/-- Relabeling both indices of a finite square matrix by an equivalence preserves its trace. -/
 private theorem trace_relabel {ι κ : Type} [Fintype ι] [Fintype κ]
     (e : ι ≃ κ) (A : Matrix ι ι ℂ) :
     Matrix.trace (Matrix.reindex e e A) = Matrix.trace A := by
   simpa only [Matrix.trace, Matrix.diag_apply, Matrix.reindex_apply, Matrix.submatrix_apply]
     using e.symm.sum_comp (fun i => A i i)
 
+/-- A positive semidefinite matrix of trace one remains a density operator after relabeling its
+finite indices by an equivalence with `Fin K`. -/
 private theorem density_relabel {ι : Type} [Fintype ι] [DecidableEq ι] {K : ℕ}
     (e : ι ≃ Fin K) (A : Matrix ι ι ℂ) (hA : A.PosSemidef) (htr : Matrix.trace A = 1) :
     IsDensityOperator (Matrix.reindex e e A) :=
   ⟨hA.submatrix e.symm, (trace_relabel e A).trans htr⟩
 
+/-- If the complement `1 - M` is positive semidefinite, the complement of the matrix obtained by
+relabeling `M` is positive semidefinite as well. -/
 private theorem complement_relabel {ι : Type} [Fintype ι] [DecidableEq ι] {K : ℕ}
     (e : ι ≃ Fin K) (M : Matrix ι ι ℂ) (hMc : (1 - M).PosSemidef) :
     (1 - Matrix.reindex e e M).PosSemidef := by
@@ -296,6 +358,9 @@ private theorem complement_relabel {ι : Type} [Fintype ι] [DecidableEq ι] {K 
   rw [heq]
   exact hMc.submatrix e.symm
 
+/-- The equal-prior discrimination law for channel outputs on a joint system-reference density
+input, measured with binary effect `M`. It relabels the output product indices as `Fin (E *
+r)` to construct the finite instrument law. -/
 noncomputable def referenceDiscriminationLaw {D E r : ℕ}
     (T S : QuantumChannel D E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -311,6 +376,9 @@ noncomputable def referenceDiscriminationLaw {D E r : ℕ}
     (density_relabel e _ (tensorLeft_posSemidef S.completelyPositive hX)
       (by rw [tensorLeft_trace_map S.map S.tracePreserving, hXtr]))
 
+/-- If the channel difference has finite diamond norm at most nonnegative `delta`, the
+correct-label probability in `referenceDiscriminationLaw` is at most `1/2 + delta / 4` for
+every finite reference, density input, and binary effect. -/
 theorem referenceDiscriminationLaw_success_le {D E r : ℕ}
     (T S : QuantumChannel D E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)

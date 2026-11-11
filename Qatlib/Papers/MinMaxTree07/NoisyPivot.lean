@@ -7,16 +7,43 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Real.Basic
 import Mathlib.Tactic
 
+/-!
+# Pivot shrinkage and finite error budgets
+
+This module studies the integer recurrence `rangeAfter` for repeated Min-Max pivots. Middle-half
+pivots reduce the remaining range by a factor of at most three quarters, and iteration gives a
+geometric bound and a sufficient condition for termination.
+
+Finite union and counting bounds provide two-thirds success estimates from explicit error
+budgets, supporting the pivot analysis in [CleveGavinskyYongeMallo2007].
+
+## Main statements
+
+* `shrink_half_pivots`: At least `m / 2` pivots satisfy the three-quarter shrink bound.
+* `rangeAfter_eq_zero_of_small`: A geometric bound below one forces the remaining range to
+  vanish.
+* `success_two_thirds_of_error_total`: A total error budget bounds the fraction of outcomes
+  below an error threshold.
+
+## References
+
+* [Cleve et al., 2007][CleveGavinskyYongeMallo2007]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.MinMaxTree07.NoisyPivot
 
+/-- A pivot satisfying `m ≤ 4 * k ≤ 3 * m` leaves both side sizes at most three quarters of `m`,
+expressed without division. -/
 theorem shrink_of_middle_pivot {m k : ℕ} (hlo : m ≤ 4 * k) (hhi : 4 * k ≤ 3 * m) :
     4 * max k (m - k) ≤ 3 * m := by
   have hkm : k ≤ 3 * m / 4 := by omega
   have hmk : m - k ≤ 3 * m / 4 := by omega
   omega
 
+/-- For positive `m`, at least `m / 2` indices in `1, ..., m` satisfy the middle-half pivot
+inequalities; see [CleveGavinskyYongeMallo2007]. -/
 theorem pivot_middle_half (m : ℕ) (hm : 1 ≤ m) :
     m / 2 ≤ ((Finset.Icc 1 m).filter (fun k => m ≤ 4 * k ∧ 4 * k ≤ 3 * m)).card := by
   have hset : (Finset.Icc 1 m).filter (fun k => m ≤ 4 * k ∧ 4 * k ≤ 3 * m)
@@ -29,14 +56,19 @@ theorem pivot_middle_half (m : ℕ) (hm : 1 ≤ m) :
 
 section IteratedShrink
 
+/-- The larger of the two natural-number side sizes `k` and `m - k` after a pivot. -/
 def pivotStep (m k : ℕ) : ℕ := max k (m - k)
 
+/-- A middle-half pivot bounds `pivotStep m k` by the natural-number quotient `3 * m / 4`; see
+[CleveGavinskyYongeMallo2007]. -/
 theorem pivotStep_le_shrink {m k : ℕ} (hlo : m ≤ 4 * k) (hhi : 4 * k ≤ 3 * m) :
     pivotStep m k ≤ 3 * m / 4 := by
   have h := shrink_of_middle_pivot hlo hhi
   simp only [pivotStep]
   omega
 
+/-- For positive `m`, at least `m / 2` pivot indices produce a remaining size at most `3 * m /
+4`; see [CleveGavinskyYongeMallo2007]. -/
 theorem shrink_half_pivots (m : ℕ) (hm : 1 ≤ m) :
     m / 2 ≤ ((Finset.Icc 1 m).filter (fun k => pivotStep m k ≤ 3 * m / 4)).card := by
   refine le_trans (pivot_middle_half m hm) (Finset.card_le_card ?_)
@@ -44,12 +76,17 @@ theorem shrink_half_pivots (m : ℕ) (hm : 1 ≤ m) :
   simp only [Finset.mem_filter] at hk ⊢
   exact ⟨hk.1, pivotStep_le_shrink hk.2.1 hk.2.2⟩
 
+/-- The remaining range size obtained by starting at `m` and repeatedly applying `pivotStep`
+with the pivot sequence `k`. -/
 def rangeAfter (m : ℕ) (k : ℕ → ℕ) : ℕ → ℕ
   | 0 => m
   | t + 1 => pivotStep (rangeAfter m k t) (k t)
 
+/-- The natural-number shrink map `a ↦ 3 * a / 4` is monotone. -/
 theorem shrink_mono {a b : ℕ} (h : a ≤ b) : 3 * a / 4 ≤ 3 * b / 4 := by omega
 
+/-- If every pivot satisfies the middle-half inequalities for its current range, the range after
+`t` steps is bounded by the `t`-fold shrink map; see [CleveGavinskyYongeMallo2007]. -/
 theorem rangeAfter_le_shrink_iterate (m : ℕ) (k : ℕ → ℕ)
     (hk : ∀ t, rangeAfter m k t ≤ 4 * k t ∧ 4 * k t ≤ 3 * rangeAfter m k t) (t : ℕ) :
     rangeAfter m k t ≤ (fun x => 3 * x / 4)^[t] m := by
@@ -59,6 +96,7 @@ theorem rangeAfter_le_shrink_iterate (m : ℕ) (k : ℕ → ℕ)
     rw [Function.iterate_succ_apply']
     exact le_trans (pivotStep_le_shrink (hk t).1 (hk t).2) (shrink_mono ih)
 
+/-- The real cast of the iterated integer shrink bound is at most `(3 / 4)^t * m`. -/
 theorem shrink_iterate_cast_le (m t : ℕ) :
     (((fun x => 3 * x / 4)^[t] m : ℕ) : ℝ) ≤ ((3 : ℝ) / 4) ^ t * m := by
   induction t with
@@ -80,6 +118,8 @@ theorem shrink_iterate_cast_le (m t : ℕ) :
           exact mul_le_mul_of_nonneg_left ih h0
       _ = (3 / 4 : ℝ) ^ (t + 1) * m := by ring
 
+/-- Under the middle-half pivot hypotheses, the remaining range vanishes once `(3 / 4)^t * m <
+1`; see [CleveGavinskyYongeMallo2007]. -/
 theorem rangeAfter_eq_zero_of_small (m : ℕ) (k : ℕ → ℕ)
     (hk : ∀ t, rangeAfter m k t ≤ 4 * k t ∧ 4 * k t ≤ 3 * rangeAfter m k t)
     {t : ℕ} (hsmall : ((3 : ℝ) / 4) ^ t * m < 1) :
@@ -95,10 +135,15 @@ theorem rangeAfter_eq_zero_of_small (m : ℕ) (k : ℕ → ℕ)
 
 end IteratedShrink
 
+/-- The cardinality of a finite union is at most the sum of the cardinalities of its constituent
+sets. -/
 theorem card_biUnion_le_sum {Ω : Type*} [DecidableEq Ω] (n : ℕ) (S : Fin n → Finset Ω) :
     (Finset.univ.biUnion S).card ≤ ∑ i, (S i).card := by
   simpa using Finset.card_biUnion_le (s := (Finset.univ : Finset (Fin n))) (t := S)
 
+/-- If each of `n` bad sets has size at most a `1 / (3 * n)` fraction of the finite outcome
+space, at least two thirds of the outcomes avoid their union; see
+[CleveGavinskyYongeMallo2007]. -/
 theorem amplified_success_two_thirds (Ω : Type*) [Fintype Ω] [DecidableEq Ω]
     (n : ℕ) (hn : 0 < n) (S : Fin n → Finset Ω)
     (hS : ∀ i, 3 * n * (S i).card ≤ Fintype.card Ω) :
@@ -120,10 +165,14 @@ theorem amplified_success_two_thirds (Ω : Type*) [Fintype Ω] [DecidableEq Ω]
   rw [Finset.card_sdiff, Finset.inter_univ, Finset.card_univ]
   omega
 
+/-- If at most one third of `n` steps are incorrect, the natural-number net count `n - 2 *
+incorrect` is at least `n / 3`; see [CleveGavinskyYongeMallo2007]. -/
 theorem net_progress (n incorrect : ℕ) (h : 3 * incorrect ≤ n) :
     n / 3 ≤ n - 2 * incorrect := by
   omega
 
+/-- The number of outcomes whose nonnegative integer weight is at least `k`, multiplied by `k`,
+is bounded by the total weight. -/
 theorem card_ge_le_sum {Ω : Type*} [Fintype Ω] (w : Ω → ℕ) {k : ℕ} (_hk : 0 < k) :
     k * (Finset.univ.filter (fun ω => k ≤ w ω)).card ≤ ∑ ω, w ω := by
   have h₁ : (Finset.univ.filter (fun ω => k ≤ w ω)).sum (fun _ => k)
@@ -140,6 +189,8 @@ theorem card_ge_le_sum {Ω : Type*} [Fintype Ω] (w : Ω → ℕ) {k : ℕ} (_hk
   rw [h₂] at h₁
   exact le_trans h₁ h₃
 
+/-- A bound `E` on the total error count bounds `k` times the number of outcomes with at least
+`k` errors; see [CleveGavinskyYongeMallo2007]. -/
 theorem bad_count_mul_le {Ω : Type*} [Fintype Ω] (errs : Ω → ℕ) {E k : ℕ} (hk : 0 < k)
     (hE : ∑ ω, errs ω ≤ E) :
     (Finset.univ.filter (fun ω => k ≤ errs ω)).card * k ≤ E := by
@@ -148,6 +199,8 @@ theorem bad_count_mul_le {Ω : Type*} [Fintype Ω] (errs : Ω → ℕ) {E k : �
     _ ≤ ∑ ω, errs ω := card_ge_le_sum errs hk
     _ ≤ E := hE
 
+/-- If the total error count is at most `E` and `3 * E ≤ k * Fintype.card Ω`, at least two
+thirds of the outcomes have fewer than `k` errors; see [CleveGavinskyYongeMallo2007]. -/
 theorem success_two_thirds_of_error_total {Ω : Type*} [Fintype Ω] (errs : Ω → ℕ)
     {E k : ℕ} (hk : 0 < k) (hE : ∑ ω, errs ω ≤ E)
     (hbudget : 3 * E ≤ k * Fintype.card Ω) :

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedFailureMass
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFailureCorrectedStat
+
+/-!
+# Failure bound for the corrected signed LCU protocol
+
+This module proves the corrected failure bound corresponding to Theorem 3 of [ChildsWiebe2012].
+For nonzero signed coefficients with both signs present, pairwise unitary-difference bounds give
+a failure estimate of `k * Δ ^ 2 / 4 + 4 * κ / (κ + 1) ^ 2`, where `κ` is the ratio of positive
+to absolute negative coefficient mass.
+
+The proof uses the signed-mixture norm identity and bounds for the positive and negative state
+means. Singleton sign groups have unit norm, supplying the case of two total terms.
+
+## Main statements
+
+* `cw_positive_mean_singleton_norm`: gives unit norm for a singleton positive group.
+* `cw_negative_mean_singleton_norm`: gives unit norm for a singleton negative group.
+* `theorem3LCUFailureCorrected`: proves the corrected signed LCU failure contract.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +42,8 @@ open Matrix
 open scoped Classical
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- If the positive coefficient group contains exactly one index, its normalized weighted state
+mean has norm one for unitary system matrices and a normalized input. -/
 theorem cw_positive_mean_singleton_norm (k : ℕ) (c : Fin (k+1)→ℝ)
     (U : Fin (k+1)→Matrix I I ℂ) (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ)
     (hp : ∃ q,0<c q) (hcard : (cwPositiveTerms k c).card=1)
@@ -34,6 +59,8 @@ theorem cw_positive_mean_singleton_norm (k : ℕ) (c : Fin (k+1)→ℝ)
   rw [he]
   exact (normalized_iff_stateVector_norm _).mp (normalized_applyGate (hU q) hψ)
 
+/-- If the negative coefficient group contains exactly one index, its normalized absolute-weight
+state mean has norm one for unitary system matrices and a normalized input. -/
 theorem cw_negative_mean_singleton_norm (k : ℕ) (c : Fin (k+1)→ℝ)
     (U : Fin (k+1)→Matrix I I ℂ) (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ)
     (hn : ∃ q,c q<0) (hcard : (cwNegativeTerms k c).card=1)
@@ -49,6 +76,9 @@ theorem cw_negative_mean_singleton_norm (k : ℕ) (c : Fin (k+1)→ℝ)
   rw [he]
   exact (normalized_iff_stateVector_norm _).mp (normalized_applyGate (hU q) hψ)
 
+/-- The corrected signed LCU protocol satisfies the failure bound `k * Δ ^ 2 / 4 + 4 * κ / (κ +
+1) ^ 2` under the unitary, coefficient-sign, and uniform difference hypotheses of
+`Theorem3LCUFailureCorrected` [Childs and Wiebe, Theorem 3][ChildsWiebe2012]. -/
 theorem theorem3LCUFailureCorrected : Theorem3LCUFailureCorrected := by
   intro k I _ _ hk U hU c hc hp hn Δ _ hΔ ψ hψ
   let a := cwPositiveWeight k c

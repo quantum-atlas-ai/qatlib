@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputStat
+
+/-!
+# Spectral and on-grid self-tomography outputs
+
+This module expands ideal copy-QPE output in a unitary eigenbasis, with phase amplitudes given
+by `qpeKernel`. When each eigenphase lies on the phase grid, the output becomes a mixture with a
+definite phase label for each eigenvector.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `selfTomography_spectral_output`: the general spectral kernel expansion.
+* `selfTomographyOnGridOutput`: the exact on-grid output formula.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +50,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- Matrix conjugation carries a pure-state outer product to the outer product of the
+transformed state. -/
 private theorem copyQPE_outer_conj {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (ψ : QState I) :
     MatrixMap.conj U (outerProduct ψ) = outerProduct (ApplyGate U ψ) := by
@@ -43,11 +65,14 @@ private theorem copyQPE_outer_conj {I : Type*} [Fintype I] [DecidableEq I]
   simp only [RCLike.star_def]
   ring
 
+/-- Applying an operator to basis vector `i` gives its `i`th column. -/
 private theorem copyQPE_column (D : ℕ) (V : Operator D) (i : Fin D) :
     ApplyGate V (Qatlib.Foundations.PureStateMath.Ket i) = fun j => V j i := by
   funext j
   simp [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- A matrix expressed as `V` times an eigenvalue diagonal times `Vᴴ` equals the
+eigenvalue-weighted sum of outer products of the columns of `V`. -/
 private theorem copyQPE_spectral_density_sum (D : ℕ) (V : Operator D) (eig : Fin D → ℝ) :
     V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ =
       ∑ i, (eig i : ℂ) • outerProduct (fun j => V j i) := by
@@ -60,6 +85,8 @@ private theorem copyQPE_spectral_density_sum (D : ℕ) (V : Operator D) (eig : F
   simp only [RCLike.star_def]
   ring
 
+/-- Under the stated unitary spectral decomposition, column `i` of `V` is an eigenvector of
+time-`π` Hamiltonian evolution with phase `-eig i / 2`. -/
 private theorem copyQPE_eigenphase (D : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : ρ = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) (i : Fin D) :
@@ -81,6 +108,8 @@ private theorem copyQPE_eigenphase (D : ℕ) (ρ V : Operator D) (eig : Fin D �
     Complex.exp (2 * Real.pi * Complex.I * ((-eig i / 2 : ℝ) : ℂ)) * V j i
   rw [h, hphase, mul_comm]
 
+/-- Executing the ideal copy-QPE program on an outer product equals the outer product of the
+corresponding pure-state circuit execution. -/
 private theorem copyQPEIdealProgram_outer (D M : ℕ) (ρ : Operator D)
     (C : Circuit (Fin M × (Bool × Fin D))) (ψ : QState (Fin M × (Bool × Fin D))) :
     copyQPEIdealProgram D M ρ C (outerProduct ψ) =
@@ -91,6 +120,8 @@ private theorem copyQPEIdealProgram_outer (D M : ℕ) (ρ : Operator D)
   | cons s C ih =>
     cases s <;> simp only [copyQPEIdealProgram, Run, copyQPE_outer_conj, ih]
 
+/-- The linear matrix map implementing a circuit with the ideal controlled Hamiltonian-evolution
+query. -/
 private noncomputable def copyQPEIdealProgramMap (D M : ℕ) (ρ : Operator D) :
     Circuit (Fin M × (Bool × Fin D)) →
       MatrixMap (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ
@@ -100,6 +131,8 @@ private noncomputable def copyQPEIdealProgramMap (D M : ℕ) (ρ : Operator D) :
       (MatrixMap.conj (TensorGate (1 : Operator M)
         (controlOracle (hamiltonianEvolution ρ Real.pi))))
 
+/-- Applying `copyQPEIdealProgramMap` agrees with executing `copyQPEIdealProgram` on the same
+matrix. -/
 private theorem copyQPEIdealProgramMap_apply (D M : ℕ) (ρ : Operator D)
     (C : Circuit (Fin M × (Bool × Fin D)))
     (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
@@ -109,6 +142,8 @@ private theorem copyQPEIdealProgramMap_apply (D M : ℕ) (ρ : Operator D)
   | cons s C ih => cases s <;> simp only [copyQPEIdealProgramMap, LinearMap.comp_apply,
       copyQPEIdealProgram, ih]
 
+/-- Initializing the phase and control registers distributes over an eigenvalue-weighted sum of
+system outer products. -/
 private theorem copyQPEInput_spectral_sum (D M : ℕ) (hM : 0 < M)
     (V : Operator D) (eig : Fin D → ℝ) :
     copyQPEInput D M (∑ i, (eig i : ℂ) • outerProduct (fun j => V j i)) =
@@ -122,6 +157,8 @@ private theorem copyQPEInput_spectral_sum (D M : ℕ) (hM : 0 < M)
   intro i _
   ring
 
+/-- On an eigenvector of the evolution query, ideal phase estimation produces the outer product
+of its QPE kernel state with the false control branch. -/
 private theorem copyQPEIdealProgram_eigen (D M : ℕ) (hM : 0 < M) (ρ : Operator D)
     (ψ : QState (Fin D)) (φ : ℝ)
     (hψ : ApplyGate (hamiltonianEvolution ρ Real.pi) ψ =
@@ -134,6 +171,8 @@ private theorem copyQPEIdealProgram_eigen (D M : ℕ) (hM : 0 < M) (ρ : Operato
       (hamiltonianEvolution ρ Real.pi) ψ).1, qpeOutput_eigen M _ ψ φ hψ]
   rfl
 
+/-- A unitary spectral decomposition gives the ideal copy-QPE output as an eigenvalue-weighted
+sum of kernel-state outer products [LloydMohseniRebentrost2014]. -/
 theorem selfTomography_spectral_output (D M : ℕ) (hM : 0 < M)
     (ρ V : Operator D) (eig : Fin D → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -164,6 +203,9 @@ theorem selfTomography_spectral_output (D M : ℕ) (hM : 0 < M)
     simp only [map_smul, copyQPEIdealProgramMap_apply, hpure']
   exact hout
 
+/-- Proves that ideal QPE assigns a definite matching phase label to each eigenvector when every
+eigenphase lies on the grid, yielding the stated spectral mixture
+[LloydMohseniRebentrost2014]. -/
 theorem selfTomographyOnGridOutput : SelfTomographyOnGridOutput := by
   classical
   intro D M ρ V eig hM _hρ hV hs _he hg

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+/-!
+# Frozen-segment bounds for ordered evolution
+
+This module compares ordered Hamiltonian evolution on a segment with evolution under the
+Hamiltonian frozen at its left endpoint. `orderedEvolution_congr_on_segment` localizes the
+generator data, and `orderedSegmentClamp` lets the unitarity and error results use Hermitian
+hypotheses only on the segment.
+
+The mathematical background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `orderedEvolution_frozen_segment_error`: bounds freezing error by the integrated Hamiltonian
+  variation.
+* `orderedEvolution_frozen_segment_error_on_segment`: uses Hermiticity only on the relevant time
+  segment.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
@@ -22,6 +45,8 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Freezing a continuous Hermitian Hamiltonian at the left endpoint gives operator error at
+most the integral of `‖H u - H s‖` over the ordered segment. -/
 theorem orderedEvolution_frozen_segment_error
     (H : ℝ → Matrix I I ℂ) (hcont : Continuous H)
     (hHerm : ∀ t, (H t).IsHermitian) {s t : ℝ} (hst : s ≤ t) :
@@ -84,6 +109,7 @@ theorem orderedEvolution_frozen_segment_error
       (Filter.Eventually.of_forall (fun u _ => hb u))
       ((hcont.sub continuous_const).norm.intervalIntegrable s t)
 
+/-- Generators that agree on `[s, t]` have the same ordered evolution from `s` to `t`. -/
 theorem orderedEvolution_congr_on_segment
     (A B : ℝ → Matrix I I ℂ) {s t : ℝ} (hst : s ≤ t)
     (hAB : ∀ u ∈ Set.Icc s t, A u = B u) :
@@ -105,16 +131,21 @@ theorem orderedEvolution_congr_on_segment
   unfold orderedEvolution
   exact tsum_congr (fun n => hterm n t ⟨hst, le_rfl⟩)
 
+/-- The real-valued clamp `max s (min t u)` onto an ordered time segment. -/
 def orderedSegmentClamp (s t u : ℝ) : ℝ := max s (min t u)
 
+/-- For `s ≤ t`, clamping any real number gives an element of `[s, t]`. -/
 theorem orderedSegmentClamp_mem {s t : ℝ} (hst : s ≤ t) (u : ℝ) :
     orderedSegmentClamp s t u ∈ Set.Icc s t := by
   exact ⟨le_max_left _ _, max_le hst (min_le_left _ _)⟩
 
+/-- Clamping a point already in `[s, t]` leaves it unchanged. -/
 theorem orderedSegmentClamp_eq {s t u : ℝ} (hu : u ∈ Set.Icc s t) :
     orderedSegmentClamp s t u = u := by
   simp only [orderedSegmentClamp, min_eq_right hu.2, max_eq_right hu.1]
 
+/-- A continuous Hamiltonian that is Hermitian on `[s, t]` has unitary ordered evolution from
+`s` to `t`. -/
 theorem orderedEvolution_unitary_on_segment
     (H : ℝ → Matrix I I ℂ) (hcont : Continuous H)
     {s t : ℝ} (hst : s ≤ t) (hHerm : ∀ u ∈ Set.Icc s t, (H u).IsHermitian) :
@@ -130,6 +161,8 @@ theorem orderedEvolution_unitary_on_segment
   rw [← he]
   exact ordered_evolution_hermitian_unitary I G hc hg s t
 
+/-- For a continuous Hamiltonian Hermitian on `[s, t]`, freezing at `s` gives operator error at
+most the integral of `‖H u - H s‖` on that segment. -/
 theorem orderedEvolution_frozen_segment_error_on_segment
     (H : ℝ → Matrix I I ℂ) (hcont : Continuous H)
     {s t : ℝ} (hst : s ≤ t) (hHerm : ∀ u ∈ Set.Icc s t, (H u).IsHermitian) :

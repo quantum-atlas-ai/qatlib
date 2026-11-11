@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.WeightedCost.PaidExpectation
+
+/-!
+# Expected paid cost of initialized descent
+
+`actual_paid_bound` combines the exact visit-weighted cost formula for initialized descent with
+the telescoping search-sum estimate. A row charge bounded by `2 * C * N / sqrt (prefixSum q j)`
+gives total expected paid cost at most `4 * C * N / sqrt (popt q)`.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `actual_paid_bound`: For a nonempty rank distribution with positive optimal mass and the
+  stated row law, if each positive-rank mean charge is at most `2 * C * N / sqrt (prefixSum q
+  j)`, then initialized descent has expected paid cost at most `4 * C * N / sqrt (popt q)` for
+  `C > 0` and `N ≥ 0`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +36,10 @@ open scoped Classical
 open Qatlib.Foundations.ProbabilityCore.FiniteBranch
 open Qatlib.Papers.QAOAScaling23.BiasedProcess
 
+/-- For a nonempty rank distribution with positive optimal mass and the stated row law, if each
+positive-rank mean charge is at most `2 * C * N / sqrt (prefixSum q j)`, then initialized
+descent has expected paid cost at most `4 * C * N / sqrt (popt q)` for `C > 0` and `N ≥ 0`.
+See [ShaydulinEtAl2024]. -/
 theorem actual_paid_bound {L : ℕ} (hL : 0<L) (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L,(p i).toReal=q i.val) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows)

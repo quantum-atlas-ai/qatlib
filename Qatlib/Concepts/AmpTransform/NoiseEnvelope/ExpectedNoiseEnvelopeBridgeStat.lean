@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ErrorExpectationMinimizedAtMinLAmpl
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+/-!
+# Specification of the expected-noise envelope bridge
+
+`ExpectedNoiseEnvelopeBridge` joins the real-variable minimizer for M ≥ 2, the physical boundary
+minimum for M = 1, and an upper bound on the actual expected intensity. The intensity includes
+the tangent density prefactor and the amplification gain used in [Cornwell2014].
+
+## Main statements
+
+* `ExpectedNoiseEnvelopeBridge`: The corrected noise-envelope contract combining a positive
+  interior minimum for M ≥ 2, the boundary minimum for M=1, and a rational bound on the tangent-
+  and gain-weighted uniform noise average.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 
+/-- The corrected noise-envelope contract combining a positive interior minimum for M ≥ 2, the
+boundary minimum for M=1, and a rational bound on the tangent- and gain-weighted uniform
+noise average. -/
 def ExpectedNoiseEnvelopeBridge : Prop :=
   (∀ M N : ℕ, 2 ≤ M → 0 < N →
     let t : ℝ := -(M : ℝ)^2 +

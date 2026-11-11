@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Amplified suffix ray consistency contract
+
+Defines `Clause6AmplifiedSuffixRays` for unitary amplified prefixes compatible with the stage
+evolution after projection. Given positive projected suffix norms at a common clock index, it
+requires equality of normalized states and equality of relative norms at another common index.
+This is the suffix consistency property used in [LowSu2026].
+
+## Main statements
+
+* `Clause6AmplifiedSuffixRays`: states normalized projected suffix and relative-norm
+  consistency.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +45,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The contract that compatible unitary prefix states have equal normalized projected suffix
+states and equal relative projected norms at common later clock indices, subject to the
+specified positivity hypotheses. -/
 def Clause6AmplifiedSuffixRays : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)

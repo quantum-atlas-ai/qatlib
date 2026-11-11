@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityMont
+
+/-!
+# Exact-sampling partition-function contract
+
+States the exact-Gibbs-sampling version of Theorem 8 of [Montanaro2015] for the concrete product
+of amplified relative estimators. The assumptions specify a monotone schedule starting at zero,
+exact Gibbs measurement laws, the Chebyshev schedule inequality, and explicit pilot, layer, and
+median parameters.
+
+## Main statements
+
+* `MontanaroTheorem8ExactSamplingSubgoal` requires the cardinality-scaled product of ratio
+  medians to estimate the final partition function within relative error `ε` with failure
+  probability at most `1 / 4`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,9 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 
 open Qatlib
 
+/-- The proposition specifying the exact-sampling partition-function guarantee of Theorem 8 of
+[Montanaro2015]. Exact Gibbs preparations, the schedule inequality, and the stated estimator
+parameters imply the required relative-error failure bound of `1 / 4`. -/
 def MontanaroTheorem8ExactSamplingSubgoal : Prop :=
   ∀ (Ω : Type) [Fintype Ω] [DecidableEq Ω] (H : Ω → ℕ) (ℓ : ℕ)
     (β : Fin (ℓ + 1) → ℝ) (As : Fin ℓ → Matrix Ω Ω ℂ) (js : Fin ℓ → Ω)

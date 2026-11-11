@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
+
+/-!
+# Legacy discrete-logarithm contracts
+
+Records earlier formulations of the two-dimensional sampling, good-output, marginal, and
+divisibility contracts. These definitions preserve the precise statements examined by
+counterexamples elsewhere, including omitted generator hypotheses and a fiber formula without
+its Fourier normalization factor, in the setting associated with [Shor1997].
+
+## Main statements
+
+* `DlogTwoDimSamplingLawLegacy`: Records the earlier sampling-law formula.
+* `DlogGoodOutputProbabilityLegacy`: Records the probability contract without the generator
+  assumption.
+* `DlogPrimePowerDivisibilityLegacy`: Records the earlier injectivity, range, and divisibility
+  bounds.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +43,9 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open Qatlib
 open scoped Classical
 
+/-- The legacy sampling-law contract requires normalization, the full double-sum probability
+formula, and a single-fiber formula without the additional reciprocal Fourier-modulus
+factor. -/
 def DlogTwoDimSamplingLawLegacy : Prop :=
   ∀ (p q : ℕ) [NeZero p] (g x : ZMod p), Nat.Prime p → 3 ≤ p → x ≠ 0 →
     (p : ℕ) < q →
@@ -48,6 +73,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb.Shor1997
 open Qatlib
 open scoped Classical
 
+/-- The legacy good-output probability contract specifies total and individual outcome lower
+bounds without requiring `g` to have order `p - 1`. -/
 def DlogGoodOutputProbabilityLegacy : Prop :=
   ∀ (p q r : ℕ) [NeZero p] (g x : ZMod p), Nat.Prime p → 3 ≤ p → x ≠ 0 →
     (p : ℕ) < q → x = g ^ r →
@@ -72,6 +99,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb.Shor1997
 open Qatlib
 open scoped Classical
 
+/-- The legacy first-coordinate marginal contract specifies the two marginal lower bounds
+without requiring `g` to have order `p - 1`. -/
 def DlogGoodCMarginalLegacy : Prop :=
   ∀ (p q r : ℕ) [NeZero p] (g x : ZMod p), Nat.Prime p → 3 ≤ p → x ≠ 0 →
     (p : ℕ) < q → x = g ^ r →
@@ -92,6 +121,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb.Shor1997
 
 open scoped Classical
 
+/-- The legacy divisibility contract requires injectivity of `dlogCprime` on small residues, its
+stated integer range, and an upper bound on the count divisible by each divisor of `p - 1`. -/
 def DlogPrimePowerDivisibilityLegacy : Prop :=
   ∀ (p q : ℕ) [NeZero p], Nat.Prime p → 3 ≤ p → (p : ℕ) < q →
     (∀ c₁ c₂ : Fin q, dlogSmallResidue p q c₁ → dlogSmallResidue p q c₂ →

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# General output Gram bridge specification
+
+Defines `GeneralOutputGramBridges`, combining three relations between query programs, state
+overlaps, and Gram matrix values. The bounds connect legal alphabet words to filtered Gram
+distance and normalized output overlaps to unfiltered Gram distance [LeeEtAl2011].
+
+The converse clause requires a legal zero-query conversion with finite workspace and Euclidean
+error bounded by the square root of twice the unfiltered budget.
+
+## Main statements
+
+* `GeneralOutputGramBridges`: packages the query bound, overlap estimate, and zero-query
+  approximation.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of a twice-query filtered Gram bound, an overlap-based unfiltered Gram
+estimate, and a zero-query approximate conversion for normalized state families with bounded
+unfiltered Gram difference. -/
 def GeneralOutputGramBridges : Prop :=
   (∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
       (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ : X → QState H)

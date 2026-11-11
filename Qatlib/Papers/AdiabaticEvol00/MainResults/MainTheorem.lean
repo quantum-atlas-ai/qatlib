@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
 import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+/-!
+# Exact evolution of fixed Hamiltonian eigenvectors
+
+This module defines vector overlap, fidelity, a time-ordered evolution operator, and the linear
+schedule `scheduled`. It proves exact phase evolution for a normalized vector that is an
+eigenvector of every Hamiltonian in the family, and derives unit fidelity in
+`static_eigenvector_fidelity` and `proportional_schedule_fidelity`; it also records
+nonnegativity of `minGap`. The mathematical context is [FarhiEtAl2000].
+
+## Main statements
+
+* `orderedEvolution_static_eigenvector`: A normalized common eigenvector of a continuous
+  Hamiltonian family evolves exactly by the dynamical phase associated with its continuous
+  eigenvalue function.
+* `proportional_schedule_fidelity`: A normalized eigenvector retains fidelity one under the
+  linear schedule from `HB` to a real scalar multiple of `HB`.
+
+## References
+
+* [Farhi et al., 2000][FarhiEtAl2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,32 +43,45 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Papers.AdiabaticEvol00.MainResults
 open scoped Matrix.Norms.L2Operator ComplexOrder BigOperators
 
+/-- The complex inner product `∑ i, star (φ i) * ψ i` of two finite coordinate vectors. -/
 def overlap {D : ℕ} (φ ψ : Fin D → ℂ) : ℂ := ∑ i, star (φ i) * ψ i
 
+/-- The squared complex norm of the overlap of `φ` and `ψ`. -/
 def fidelity {D : ℕ} (φ ψ : Fin D → ℂ) : ℝ := Complex.normSq (overlap φ ψ)
 
+/-- The sum of the squared complex norms of the coordinates of `ψ`. -/
 def vecNormSq {D : ℕ} (ψ : Fin D → ℂ) : ℝ := ∑ i, Complex.normSq (ψ i)
 
+/-- The condition that the sum of squared coordinate norms of a vector equals one. -/
 def IsUnitVec {D : ℕ} (ψ : Fin D → ℂ) : Prop := vecNormSq ψ = 1
 
+/-- The time-ordered Hamiltonian evolution associated with `H` from time zero to time `T`. -/
 def evolutionOperator {D : ℕ} (H : ℝ → Operator D) (T : ℝ) : Operator D :=
   Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution
     (fun t => Complex.I • H t) 0 T
 
+/-- The Hamiltonian family obtained by evaluating `interpolate HB HP` at the time fraction `t /
+T`. -/
 def scheduled {D : ℕ} (HB HP : Operator D) (T : ℝ) : ℝ → Operator D :=
   fun t => interpolate HB HP (t / T)
 
+/-- The linear interpolation starts at the initial Hamiltonian `HB`. -/
 theorem start_hamiltonian {D : ℕ} (HB HP : Operator D) :
     interpolate HB HP 0 = HB := interpolate_zero HB HP
 
+/-- The linear interpolation ends at the problem Hamiltonian `HP`. -/
 theorem end_hamiltonian {D : ℕ} (HB HP : Operator D) :
     interpolate HB HP 1 = HP := interpolate_one HB HP
 
+/-- The interpolated operator is Hermitian at every real parameter when both endpoint
+Hamiltonians are Hermitian. -/
 theorem scheduled_isHermitian {D : ℕ} (HB HP : Operator D)
     (hB : HB.IsHermitian) (hP : HP.IsHermitian) (s : ℝ) :
     (interpolate HB HP s).IsHermitian :=
   interpolate_isHermitian HB HP hB hP s
 
+/-- The infimum of the instantaneous lowest-eigenvalue gaps along a Hermitian interpolation is
+nonnegative in dimension at least two [FarhiEtAl2000]. -/
 theorem zero_le_minGap {D : ℕ} (hD : 2 ≤ D) (HB HP : Operator D)
     (hB : HB.IsHermitian) (hP : HP.IsHermitian) :
     0 ≤ minGap hD HB HP hB hP := by
@@ -55,15 +91,20 @@ theorem zero_le_minGap {D : ℕ} (hD : 2 ≤ D) (HB HP : Operator D)
   · rintro _ ⟨s, -, rfl⟩
     exact instantaneousGap_nonneg hD _ _
 
+/-- The outer-product matrix with entries `ψ i * star (ψ j)`, which is an orthogonal projection
+when `ψ` is a unit vector. -/
 def rankOneProj {D : ℕ} (ψ : Fin D → ℂ) : Operator D :=
   Matrix.of fun i j => ψ i * star (ψ j)
 
+/-- The outer-product matrix `rankOneProj ψ` sends `v` to the vector with coordinates `ψ i *
+overlap ψ v`. -/
 theorem rankOneProj_mulVec {D : ℕ} (ψ v : Fin D → ℂ) :
     rankOneProj ψ *ᵥ v = fun i => ψ i * overlap ψ v := by
   funext i
   simp only [rankOneProj, Matrix.mulVec, dotProduct, Matrix.of_apply, overlap, Finset.mul_sum]
   exact Finset.sum_congr rfl (fun j _ => by ring)
 
+/-- The outer-product matrix of a unit vector fixes that vector. -/
 theorem rankOneProj_mulVec_self {D : ℕ} (ψ : Fin D → ℂ) (hψ : IsUnitVec ψ) :
     rankOneProj ψ *ᵥ ψ = ψ := by
   rw [rankOneProj_mulVec]
@@ -76,6 +117,8 @@ theorem rankOneProj_mulVec_self {D : ℕ} (ψ : Fin D → ℂ) (hψ : IsUnitVec 
   rw [hov, hψ]
   simp
 
+/-- If `ψ` satisfies the eigenvector equation for `H` with real eigenvalue `E`, then left
+multiplication of its outer-product matrix by `H` equals multiplication by `E`. -/
 theorem mul_rankOneProj_of_eigen {D : ℕ} (H : Operator D) (ψ : Fin D → ℂ) (E : ℝ)
     (hψ : H *ᵥ ψ = fun i => (E : ℂ) * ψ i) :
     H * rankOneProj ψ = (E : ℂ) • rankOneProj ψ := by
@@ -90,9 +133,12 @@ theorem mul_rankOneProj_of_eigen {D : ℕ} (H : Operator D) (ψ : Fin D → ℂ)
     _ = ((E : ℂ) * ψ i) * star (ψ j) := by rw [h]
     _ = (E : ℂ) * (ψ i * star (ψ j)) := by ring
 
+/-- The dynamical phase `exp (-i * ∫ E)` accumulated from time zero to `t`. -/
 def phaseExp (E : ℝ → ℝ) (t : ℝ) : ℂ :=
   Complex.exp (-(Complex.I) * ∫ u in (0)..t, (E u : ℂ))
 
+/-- For a continuous real energy function, the derivative of its dynamical phase is `-i * E t *
+phaseExp E t`. -/
 theorem phaseExp_hasDerivAt {E : ℝ → ℝ} (hE : Continuous fun t => (E t : ℂ)) (t : ℝ) :
     HasDerivAt (phaseExp E) (-(Complex.I) * (E t : ℂ) * phaseExp E t) t := by
   have hInt : HasDerivAt (fun t => ∫ u in (0)..t, (E u : ℂ)) ((E t : ℂ)) t :=
@@ -103,11 +149,16 @@ theorem phaseExp_hasDerivAt {E : ℝ → ℝ} (hE : Continuous fun t => (E t : �
   have h := harg.cexp
   simpa only [phaseExp, mul_assoc, mul_comm, mul_left_comm] using! h
 
+/-- The sum of time-ordered evolution multiplied by `1 - rankOneProj ψ` and the phase `phaseExp
+E t` times `rankOneProj ψ`. -/
 def trackedProp {D : ℕ} (H : ℝ → Operator D) (ψ : Fin D → ℂ) (E : ℝ → ℝ)
     (t : ℝ) : Operator D :=
   orderedEvolution (fun t => Complex.I • H t) 0 t * (1 - rankOneProj ψ) +
     phaseExp E t • rankOneProj ψ
 
+/-- For continuous Hamiltonian and energy families with a fixed common eigenvector `ψ`,
+`trackedProp` satisfies the differential equation with derivative `-(Complex.I • H t *
+trackedProp H ψ E t)`. -/
 theorem trackedProp_hasDerivAt {D : ℕ} {H : ℝ → Operator D} {ψ : Fin D → ℂ}
     {E : ℝ → ℝ} (hH : Continuous H) (hE : Continuous fun t => (E t : ℂ))
     (hψ : ∀ t, H t *ᵥ ψ = fun i => (E t : ℂ) * ψ i) (t : ℝ) :
@@ -138,6 +189,8 @@ theorem trackedProp_hasDerivAt {D : ℕ} {H : ℝ → Operator D} {ψ : Fin D �
   rw [hrhs]
   exact hder
 
+/-- A normalized common eigenvector of a continuous Hamiltonian family evolves exactly by the
+dynamical phase associated with its continuous eigenvalue function [FarhiEtAl2000]. -/
 theorem orderedEvolution_static_eigenvector {D : ℕ} {H : ℝ → Operator D} {ψ : Fin D → ℂ}
     {E : ℝ → ℝ} (hH : Continuous H) (hE : Continuous fun t => (E t : ℂ))
     (hunit : IsUnitVec ψ) (hψ : ∀ t, H t *ᵥ ψ = fun i => (E t : ℂ) * ψ i) (T : ℝ) :
@@ -158,6 +211,8 @@ theorem orderedEvolution_static_eigenvector {D : ℕ} {H : ℝ → Operator D} {
   · exact trackedProp_hasDerivAt hH hE hψ
   · exact orderedEvolution_hasDerivAt _ hA 0
 
+/-- The fidelity of a normalized common eigenvector with its time-ordered evolution under the
+continuous Hamiltonian family is one [FarhiEtAl2000]. -/
 theorem static_eigenvector_fidelity {D : ℕ} {H : ℝ → Operator D} {ψ : Fin D → ℂ}
     {E : ℝ → ℝ} (hH : Continuous H) (hE : Continuous fun t => (E t : ℂ))
     (hunit : IsUnitVec ψ) (hψ : ∀ t, H t *ᵥ ψ = fun i => (E t : ℂ) * ψ i) (T : ℝ) :
@@ -182,6 +237,8 @@ theorem static_eigenvector_fidelity {D : ℕ} {H : ℝ → Operator D} {ψ : Fin
   simp only [Complex.ofReal_one, mul_one]
   exact hnorm
 
+/-- A normalized eigenvector retains fidelity one under the linear schedule from `HB` to a real
+scalar multiple of `HB` [FarhiEtAl2000]. -/
 theorem proportional_schedule_fidelity {D : ℕ} (HB : Operator D) (c : ℝ)
     (ψ : Fin D → ℂ) (E : ℝ) (hunit : IsUnitVec ψ)
     (hψ : HB *ᵥ ψ = fun i => (E : ℂ) * ψ i) (T : ℝ) :
@@ -207,6 +264,7 @@ theorem proportional_schedule_fidelity {D : ℕ} (HB : Operator D) (c : ℝ)
     ring
   exact static_eigenvector_fidelity hH hE hunit hψ' T
 
+/-- For positive `g`, the runtime inequality `E / g ^ 2 ≤ T` yields `TimeSufficient T E g`. -/
 theorem time_sufficient_of_gap {T E g : ℝ} (hg : 0 < g)
     (h : E / g ^ 2 ≤ T) : TimeSufficient T E g :=
   timeSufficient_of_gap T E g hg h

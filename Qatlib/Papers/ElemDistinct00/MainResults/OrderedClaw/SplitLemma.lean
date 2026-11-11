@@ -7,23 +7,59 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Int.Basic
 import Mathlib.Tactic
 
+/-!
+# Splitting a claw between ordered lists
+
+The predicate `OrderedOn N` expresses monotonicity on the one-based interval `[1, N]`. The
+predicates `FirstSubproblemClaw` and `SecondSubproblemClaw` combine a block of length at most
+`r` in one list with a length-at-most-`r` window in the other, whose start is a least index
+satisfying a threshold comparison.
+
+For positive `r`, `split_lemma` says that two ordered lists contain a claw exactly when one of
+these subproblems contains a claw. This is the finite-index formulation of Lemma 6 in
+[BuhrmanEtAl2005]; `block_bounds` and the strict-inequality lemmas justify the block and
+first-occurrence arguments.
+
+## Main statements
+
+* `block_bounds`: each index in `[1, N]` lies in its quotient-indexed block, whose index is at
+  most `(N - 1) / r`.
+* `split_lemma`: a global claw exists if and only if a first-family or second-family subproblem
+  has a claw.
+
+## References
+
+* [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
+  arXiv:quant-ph/0007016 (2000 preprint).
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.ElemDistinct00.MainResults.OrderedClaw
 
+/-- Require an integer-valued function on natural indices to be monotone on the one-based
+interval `[1, N]`. -/
 def OrderedOn (N : ℕ) (h : ℕ → ℤ) : Prop :=
   ∀ x y : ℕ, 1 ≤ x → x ≤ y → y ≤ N → h x ≤ h y
 
+/-- Require `j` to be the least index in `[1, N]` with `f (i * r + 1) ≤ g j`, and require a claw
+between the `i`th block of `f` and the length-`r` window of `g` starting at `j`, with both
+windows truncated at `N`. -/
 def FirstSubproblemClaw (N r : ℕ) (f g : ℕ → ℤ) (i j : ℕ) : Prop :=
   IsLeast {j' : ℕ | 1 ≤ j' ∧ j' ≤ N ∧ f (i * r + 1) ≤ g j'} j ∧
   ∃ x y : ℕ, i * r + 1 ≤ x ∧ x ≤ (i + 1) * r ∧ x ≤ N ∧
     j ≤ y ∧ y ≤ j + r - 1 ∧ y ≤ N ∧ f x = g y
 
+/-- Require `i` to be the least index in `[1, N]` with `g (j * r + 1) ≤ f i`, and require a claw
+between the length-`r` window of `f` starting at `i` and the `j`th block of `g`, with both
+windows truncated at `N`. -/
 def SecondSubproblemClaw (N r : ℕ) (f g : ℕ → ℤ) (j i : ℕ) : Prop :=
   IsLeast {i' : ℕ | 1 ≤ i' ∧ i' ≤ N ∧ g (j * r + 1) ≤ f i'} i ∧
   ∃ x y : ℕ, i ≤ x ∧ x ≤ i + r - 1 ∧ x ≤ N ∧
     j * r + 1 ≤ y ∧ y ≤ (j + 1) * r ∧ y ≤ N ∧ f x = g y
 
+/-- If `b` is the first index in `[1, N]` taking the value `g b`, then monotonicity forces every
+earlier index `y` in that interval to satisfy `g y < g b`. -/
 theorem g_lt_of_lt_first {N : ℕ} {g : ℕ → ℤ} (hg : OrderedOn N g)
     {b y : ℕ} (hb : 1 ≤ b) (hbN : b ≤ N) (hy : 1 ≤ y) (hyb : y < b)
     (h : ∀ y', 1 ≤ y' → y' ≤ N → g y' = g b → b ≤ y') :
@@ -34,6 +70,8 @@ theorem g_lt_of_lt_first {N : ℕ} {g : ℕ → ℤ} (hg : OrderedOn N g)
   · exact hlt
   · exact absurd (h y hy hyN heq) (by omega)
 
+/-- If `a` is the first index in `[1, N]` taking the value `f a`, then monotonicity forces every
+earlier index `x` in that interval to satisfy `f x < f a`. -/
 theorem f_lt_of_lt_first {N : ℕ} {f : ℕ → ℤ} (hf : OrderedOn N f)
     {a x : ℕ} (ha : 1 ≤ a) (haN : a ≤ N) (hx : 1 ≤ x) (hxa : x < a)
     (h : ∀ x', 1 ≤ x' → x' ≤ N → f x' = f a → a ≤ x') :
@@ -44,6 +82,9 @@ theorem f_lt_of_lt_first {N : ℕ} {f : ℕ → ℤ} (hf : OrderedOn N f)
   · exact hlt
   · exact absurd (h x hx hxN heq) (by omega)
 
+/-- For positive block length `r`, an index `a` in `[1, N]` lies in the block numbered `(a - 1)
+/ r`, whose start is at most `N` and whose number is at most `(N - 1) / r`. This is the
+block arithmetic used for Lemma 6 of [BuhrmanEtAl2005]. -/
 theorem block_bounds {a N r : ℕ} (hr : 0 < r) (ha : 1 ≤ a) (haN : a ≤ N) :
     (a - 1) / r * r + 1 ≤ a ∧ a ≤ ((a - 1) / r + 1) * r ∧
     (a - 1) / r * r + 1 ≤ N ∧ (a - 1) / r ≤ (N - 1) / r := by
@@ -53,6 +94,9 @@ theorem block_bounds {a N r : ℕ} (hr : 0 < r) (ha : 1 ≤ a) (haN : a ≤ N) :
   have h3 : α ≤ (N - 1) / r := Nat.div_le_div_right (by omega)
   omega
 
+/-- For functions monotone on `[1, N]` and positive `r`, a claw exists exactly when one of the
+two families of block-and-window subproblems contains a claw. This is the indexed splitting
+statement of Lemma 6 in [BuhrmanEtAl2005]. -/
 theorem split_lemma (N r : ℕ) (hr : 0 < r) (f g : ℕ → ℤ)
     (hf : OrderedOn N f) (hg : OrderedOn N g) :
     (∃ x y : ℕ, 1 ≤ x ∧ x ≤ N ∧ 1 ≤ y ∧ y ≤ N ∧ f x = g y) ↔

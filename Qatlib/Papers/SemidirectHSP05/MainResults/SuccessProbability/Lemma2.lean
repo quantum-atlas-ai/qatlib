@@ -85,6 +85,25 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Pretty good measurement success bounds
+
+This module defines `pgmSuccess` from matrix sum multiplicities and proves the success
+probability inequalities of Lemma 2 of [BaconChildsVanDam2005]. A specialization gives a lower
+bound of one sixteenth when at least one quarter of the relevant instances have one or two
+solutions.
+
+## Main statements
+
+* `lemma2_success_bounds`: A lower-tail hypothesis on multiplicities yields lower and upper
+  bounds for pgmSuccess.
+* `success_ge_sixteenth`: One-or-two solution concentration gives success at least 1/16.
+
+## References
+
+* [Bacon et al., 2005][BaconChildsVanDam2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -94,6 +113,7 @@ open scoped Classical BigOperators
 
 variable {A : Type*} [Fintype A] [Nonempty A]
 
+/-- The real square root of a natural number is at most that number [BaconChildsVanDam2005]. -/
 lemma sqrt_natCast_le (n : ℕ) : Real.sqrt (n : ℝ) ≤ (n : ℝ) := by
   rcases n with _ | n
   · simp
@@ -104,10 +124,15 @@ lemma sqrt_natCast_le (n : ℕ) : Real.sqrt (n : ℝ) ≤ (n : ℝ) := by
         ≤ Real.sqrt (((n + 1 : ℕ) : ℝ) ^ 2) := Real.sqrt_le_sqrt hle
       _ = ((n + 1 : ℕ) : ℝ) := Real.sqrt_sq (by positivity)
 
+/-- The normalized sum of squared sums of square roots of multiplicities, giving the pretty good
+measurement success expression for parameters `p` and `k`. -/
 def pgmSuccess (p k : ℕ) (η : (Fin k → A) → A → ℕ) : ℝ :=
   (1 / ((Fintype.card A : ℝ) ^ (k + 1) * (p : ℝ) ^ k)) *
     ∑ x : Fin k → A, (∑ w : A, Real.sqrt (η x w)) ^ 2
 
+/-- If each multiplicity row sums to `p ^ k` and a fraction at least `β` of entries are at least
+`α`, then `pgmSuccess` lies between `α * β ^ 2 * |A| / p ^ k` and `p ^ k / |A|`. This is
+Lemma 2 of [BaconChildsVanDam2005]. -/
 theorem lemma2_success_bounds (p k : ℕ) (hp : 0 < p)
     (η : (Fin k → A) → A → ℕ)
     (hcount : ∀ x : Fin k → A, ∑ w : A, η x w = p ^ k)
@@ -254,6 +279,9 @@ theorem lemma2_success_bounds (p k : ℕ) (hp : 0 < p)
           mul_le_mul_of_nonneg_left hsum_bound hfactor_nonneg
       _ = (p : ℝ) ^ k / (Fintype.card A : ℝ) := harith_upper
 
+/-- For multiplicities over r-dimensional vectors in `ZMod p`, the stated row sums and a
+one-quarter fraction of one-or-two entries imply `pgmSuccess ≥ 1/16`
+[BaconChildsVanDam2005]. -/
 theorem success_ge_sixteenth (p r : ℕ) (hp : p.Prime) [NeZero p]
     (η : (Fin r → (Fin r → ZMod p)) → (Fin r → ZMod p) → ℕ)
     (hcount : ∀ x : Fin r → (Fin r → ZMod p), ∑ w, η x w = p ^ r)

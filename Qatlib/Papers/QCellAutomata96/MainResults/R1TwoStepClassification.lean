@@ -6,12 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QcaDynamics.PairWeights
 
+/-!
+# Classification of two-step radius-one solutions
+
+This module classifies solutions of `Eq6` into four algebraic alternatives. The alternatives
+describe two unit-modulus transport cases and two cases with specified zero coefficients and a
+unitary two-by-two block. See [Meyer1996a].
+
+## Main statements
+
+* `eq6_classification`: Every solution of `Eq6` belongs to one of the four displayed cases: two
+  phased transport patterns, or one of two coefficient patterns with a unitary block.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Complex Qatlib.Concepts.QcaDynamics.PairWeights
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- Every solution of `Eq6` belongs to one of the four displayed cases: two phased transport
+patterns, or one of two coefficient patterns with a unitary block. See [Meyer1996a]. -/
 theorem eq6_classification (a b c d e f : ℂ) (h : Eq6 a b c d e f) :
     (b = 0 ∧ c = 0 ∧ e = 0 ∧ f = 0 ∧ ‖a‖ = 1 ∧ ‖d‖ = 1) ∨
     (a = 0 ∧ b = 0 ∧ d = 0 ∧ e = 0 ∧ ‖c‖ = 1 ∧ ‖f‖ = 1) ∨

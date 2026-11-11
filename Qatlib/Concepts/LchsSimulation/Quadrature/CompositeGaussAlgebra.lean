@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.Quadrature.NearExponentialKernelQuadrature
 import Mathlib.Data.Nat.Choose.Central
+
+/-!
+# Factorial estimates for composite Gauss quadrature
+
+Central binomial estimates bound the factorial ratio in the Gauss remainder coefficient. The
+theorem `gauss_cell_budget_le` turns a derivative-growth budget into a geometric cell-width
+bound used in high-precision LCHS quadrature. See [AnChildsLin2026] for the mathematical
+setting.
+
+## Main statements
+
+* `gauss_factorial_ratio_le`: The factorial ratio `(Q.factorial)^4 / ((2 * Q).factorial)^2` is
+  at most `1 / 2^(2 * Q)` after coercion to the reals.
+* `gauss_cell_budget_le`: For nonnegative `C`, `h`, and `B`, the displayed Gauss factorial
+  remainder coefficient times the derivative budget is at most `C * h^(2 * Q + 1) * (B / 2)^(2 *
+  Q)`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -13,6 +35,7 @@ set_option maxHeartbeats 600000
 noncomputable section
 namespace Qatlib.Concepts.LchsSimulation.Quadrature
 
+/-- The central binomial coefficient `Nat.centralBinom n` is at least `2^n`. -/
 private theorem two_pow_le_central_binom (n : ℕ) : 2^n≤Nat.centralBinom n := by
   induction n with
   | zero => simp
@@ -25,6 +48,8 @@ private theorem two_pow_le_central_binom (n : ℕ) : 2^n≤Nat.centralBinom n :=
          _≤2*Nat.centralBinom n := Nat.mul_le_mul_left _ ih
          _≤_ := hs
 
+/-- The factorial ratio `(Q.factorial)^4 / ((2 * Q).factorial)^2` is at most `1 / 2^(2 * Q)`
+after coercion to the reals. -/
 theorem gauss_factorial_ratio_le (Q : ℕ) :
     (Q.factorial:ℝ)^4/((2*Q).factorial:ℝ)^2≤1/(2:ℝ)^(2*Q) := by
   have heNat : (2*Q).factorial=Nat.centralBinom Q*Q.factorial*Q.factorial := by
@@ -42,6 +67,8 @@ theorem gauss_factorial_ratio_le (Q : ℕ) :
   apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
   nlinarith [hcb,pow_pos (by norm_num : (0:ℝ)<2) Q]
 
+/-- For nonnegative `C`, `h`, and `B`, the displayed Gauss factorial remainder coefficient times
+the derivative budget is at most `C * h^(2 * Q + 1) * (B / 2)^(2 * Q)`. -/
 theorem gauss_cell_budget_le (Q : ℕ) (C h B : ℝ) (hC : 0≤C) (hh : 0≤h) (hB : 0≤B) :
     ((Q.factorial:ℝ)^4*h^(2*Q+1))/((2*Q+1:ℕ)*((2*Q).factorial:ℝ)^3)*
       (C*((2*Q).factorial:ℝ)*(2*Q+1:ℕ)*B^(2*Q))≤C*h^(2*Q+1)*(B/2)^(2*Q) := by

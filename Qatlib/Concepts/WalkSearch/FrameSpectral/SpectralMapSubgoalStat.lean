@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+/-!
+# Specification of the Szegedy spectral rotation
+
+The proposition `SpectralMapSubgoal` states the finite discriminant-to-walk rotation
+correspondence. It requires two normalized orthogonal walk states associated with each
+normalized real discriminant eigenvector of eigenvalue `cos θ` when `sin θ` is nonzero. The
+quantum walk spectral framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `SpectralMapSubgoal`: The prescribed angle-doubling action on an orthonormal pair.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -16,6 +34,9 @@ open Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- The requirement that a normalized real discriminant eigenvector of eigenvalue `cos θ`, with
+`sin θ ≠ 0`, determines an orthonormal pair carrying the stated Szegedy walk rotation at
+angle `2 * θ` [Szegedy2004]. -/
 def SpectralMapSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (P : I → I → ℝ), IsTransitionMatrix P →
     ∀ (v : I → ℝ), (∑ i, v i ^ 2 = 1) →

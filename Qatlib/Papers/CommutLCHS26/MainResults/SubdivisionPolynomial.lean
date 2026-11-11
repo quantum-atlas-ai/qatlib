@@ -12,6 +12,29 @@ import Mathlib.Algebra.Polynomial.Reverse
 import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.RingTheory.PowerSeries.Exp
 import Mathlib.RingTheory.PowerSeries.Inverse
+
+/-!
+# Subdivision polynomials and cancellation moments
+
+This module constructs polynomial dependence of repeated Strang-series coefficients on the
+inverse subdivision count. The formal series `wordSeries`, exponent interpolation
+`powerPolynomial`, and reflected `subdivisionPolynomial` encode the algebra used in the
+multi-product analysis of [AftabAnTrivisa2026].
+
+Reversal symmetry eliminates odd powers of the inverse subdivision count, so scalar even-moment
+cancellation recovers exponential coefficients through the stated order.
+
+## Main statements
+
+* `subdivisionPolynomial_odd`: vanishing of odd coefficients.
+* `coefficients_from_scalar_moments`: exact exponential coefficients from scalar cancellation
+  moments.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,14 +50,18 @@ open Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The formal matrix power series whose coefficients are `suzukiSeries` for the matrix word
+`ws`. -/
 def wordSeries (ws : List (Matrix I I ℂ)) : PowerSeries (Matrix I I ℂ) :=
   PowerSeries.mk (suzukiSeries ws)
 
+/-- The power series of the empty matrix word is one. -/
 private theorem wordSeries_nil : wordSeries ([] : List (Matrix I I ℂ)) = 1 := by
   apply PowerSeries.ext
   intro n
   cases n <;> simp [wordSeries, suzukiSeries]
 
+/-- Concatenation of matrix words corresponds to multiplication of their formal power series. -/
 theorem wordSeries_append (xs ys : List (Matrix I I ℂ)) :
     wordSeries (xs ++ ys) = wordSeries xs * wordSeries ys := by
   induction xs with
@@ -55,6 +82,8 @@ theorem wordSeries_append (xs ys : List (Matrix I I ℂ)) :
       _ = (wordSeries [X] * wordSeries xs) * wordSeries ys := (mul_assoc _ _ _).symm
       _ = _ := by rw [← hc xs]
 
+/-- The power series of `q` repeated copies of a word equals the `q`th power of the word's
+series. -/
 theorem wordSeries_replicate (ws : List (Matrix I I ℂ)) (q : ℕ) :
     wordSeries (List.replicate q ws).flatten = wordSeries ws ^ q := by
   induction q with
@@ -62,6 +91,7 @@ theorem wordSeries_replicate (ws : List (Matrix I I ℂ)) (q : ℕ) :
   | succ q ih =>
     simp only [List.replicate_succ, List.flatten_cons, wordSeries_append, ih, pow_succ']
 
+/-- Scaling every matrix in a word by `a` scales its coefficient of order `n` by `aⁿ`. -/
 theorem word_coefficient_scale (ws : List (Matrix I I ℂ)) (a : ℝ) (n : ℕ) :
     suzukiSeries (ws.map (fun X => a • X)) n = a ^ n • suzukiSeries ws n := by
   induction ws generalizing n with
@@ -73,9 +103,13 @@ theorem word_coefficient_scale (ws : List (Matrix I I ℂ)) (a : ℝ) (n : ℕ) 
     rw [smul_pow, ih, smul_smul, mul_comm ((p.1.factorial : ℝ)⁻¹), ← smul_smul,
       smul_mul_smul_comm, ← pow_add, Finset.HasAntidiagonal.mem_antidiagonal.mp hp]
 
+/-- The complex polynomial obtained by dividing the descending Pochhammer polynomial of order
+`j` by `j!`. -/
 def choosePolynomial (j : ℕ) : Polynomial ℂ :=
   (j.factorial : ℂ)⁻¹ • descPochhammer ℂ j
 
+/-- Evaluating `choosePolynomial j` at a natural number `q` gives the binomial coefficient
+`q.choose j`. -/
 theorem choosePolynomial_eval (j q : ℕ) :
     (choosePolynomial j).eval (q : ℂ) = (q.choose j : ℂ) := by
   rw [choosePolynomial, Polynomial.eval_smul, descPochhammer_eval_eq_descFactorial,
@@ -83,9 +117,11 @@ theorem choosePolynomial_eval (j q : ℕ) :
   have hj : (j.factorial : ℂ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero j
   field_simp
 
+/-- The degree of `choosePolynomial j` is at most `j`. -/
 theorem choosePolynomial_degree (j : ℕ) : (choosePolynomial j).natDegree ≤ j := by
   exact (Polynomial.natDegree_smul_le _ _).trans_eq (descPochhammer_natDegree ℂ j)
 
+/-- The coefficient of degree `j` in `choosePolynomial j` is `1 / j!`. -/
 theorem choosePolynomial_leading (j : ℕ) :
     (choosePolynomial j).coeff j = (j.factorial : ℂ)⁻¹ := by
   rw [choosePolynomial, Polynomial.coeff_smul]
@@ -93,9 +129,13 @@ theorem choosePolynomial_leading (j : ℕ) :
   rw [descPochhammer_natDegree] at h
   simp only [h, smul_eq_mul, mul_one]
 
+/-- The polynomial in the exponent that interpolates the `(i, j)` entry of the coefficient of
+order `n` in powers of a matrix power series. -/
 def powerPolynomial (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) (i j : I) : Polynomial ℂ :=
   ∑ k ∈ Finset.range (n + 1), ((PowerSeries.coeff n ((f - 1) ^ k) : Matrix I I ℂ) i j) • choosePolynomial k
 
+/-- For a matrix power series with constant coefficient one, `powerPolynomial` evaluated at a
+natural exponent gives the corresponding coefficient of that power. -/
 theorem powerPolynomial_eval (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1)
     (n q : ℕ) (i j : I) :
     (powerPolynomial f n i j).eval (q : ℂ) = PowerSeries.coeff n (f ^ q) i j := by
@@ -107,6 +147,7 @@ theorem powerPolynomial_eval (f : PowerSeries (Matrix I I ℂ)) (hf : f.constant
   intro k _
   ring
 
+/-- The degree of `powerPolynomial` for coefficient order `n` is at most `n`. -/
 theorem powerPolynomial_degree (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) (i j : I) :
     (powerPolynomial f n i j).natDegree ≤ n := by
   apply Polynomial.natDegree_le_iff_coeff_eq_zero.mpr
@@ -119,6 +160,8 @@ theorem powerPolynomial_degree (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) (i j
   rw [Polynomial.coeff_eq_zero_of_natDegree_lt ((choosePolynomial_degree k).trans_lt (hk'.trans_lt hN))]
   simp
 
+/-- For a power series with zero constant coefficient, the coefficient of order `n` in its `n`th
+power is the `n`th power of its linear coefficient. -/
 private theorem power_coeff_leading {A : Type} [Ring A] (f : PowerSeries A)
     (hf : f.constantCoeff = 0) (n : ℕ) :
     PowerSeries.coeff n (f ^ n) = (PowerSeries.coeff 1 f) ^ n := by
@@ -142,6 +185,8 @@ private theorem power_coeff_leading {A : Type} [Ring A] (f : PowerSeries A)
           exact (h (by simp)).elim
       _ = _ := by rw [ih, pow_succ]
 
+/-- The coefficient of degree `n` in `powerPolynomial` is `1 / n!` times the corresponding entry
+of the `n`th power of the series' linear coefficient. -/
 theorem powerPolynomial_leading (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1)
     (n : ℕ) (i j : I) :
     (powerPolynomial f n i j).coeff n =
@@ -160,27 +205,34 @@ theorem powerPolynomial_leading (f : PowerSeries (Matrix I I ℂ)) (hf : f.const
   · intro h
     exact (h (by simp)).elim
 
+/-- For positive coefficient order, `powerPolynomial` has zero constant coefficient when the
+underlying series has constant coefficient one. -/
 theorem powerPolynomial_zero (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1)
     (n : ℕ) (hn : 0 < n) (i j : I) : (powerPolynomial f n i j).coeff 0 = 0 := by
   have h := powerPolynomial_eval f hf n 0 i j
   simpa only [Nat.cast_zero, Polynomial.coeff_zero_eq_eval_zero, pow_zero, PowerSeries.coeff_one,
     if_neg (by omega : n ≠ 0), Matrix.zero_apply] using! h
 
+/-- The formal power series of the Strang word `[X / 2, Y, X / 2]`. -/
 def strangSeries (X Y : Matrix I I ℂ) : PowerSeries (Matrix I I ℂ) :=
   wordSeries [(1 / 2 : ℝ) • X, Y, (1 / 2 : ℝ) • X]
 
+/-- The linear coefficient of the Strang series is `X + Y`. -/
 theorem strangSeries_first (X Y : Matrix I I ℂ) :
     PowerSeries.coeff 1 (strangSeries X Y) = X + Y := by
   simp only [strangSeries, wordSeries, PowerSeries.coeff_mk, suzukiSeries_cons_one,
     suzukiSeries_nil_succ]
   module
 
+/-- The constant coefficient of the Strang series is one. -/
 theorem strangSeries_constant (X Y : Matrix I I ℂ) :
     (strangSeries X Y).constantCoeff = 1 := by
   simp [strangSeries, wordSeries]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The repeated Strang word is obtained by concatenating `q` copies of the basic word and
+scaling every matrix by `q⁻¹`. -/
 theorem strangRepeats_scale (X Y : Matrix I I ℂ) (q : ℕ) :
     strangRepeats X Y q =
       ((List.replicate q [(1 / 2 : ℝ) • X, Y, (1 / 2 : ℝ) • X]).flatten).map
@@ -188,6 +240,8 @@ theorem strangRepeats_scale (X Y : Matrix I I ℂ) (q : ℕ) :
   simp [strangRepeats, List.map_flatten, List.map_replicate, smul_smul,
     div_eq_mul_inv, mul_inv_rev, mul_comm]
 
+/-- The coefficient of a repeated Strang word is the corresponding coefficient of the `q`th
+power of the Strang series, scaled by `(q⁻¹)ⁿ`. -/
 theorem strangRepeats_coefficient (X Y : Matrix I I ℂ) (q n : ℕ) :
     suzukiSeries (strangRepeats X Y q) n =
       ((q : ℝ)⁻¹) ^ n • PowerSeries.coeff n (strangSeries X Y ^ q) := by
@@ -197,9 +251,13 @@ theorem strangRepeats_coefficient (X Y : Matrix I I ℂ) (q n : ℕ) :
     (wordSeries_replicate [(1 / 2 : ℝ) • X, Y, (1 / 2 : ℝ) • X] q)
   simpa only [wordSeries, strangSeries, PowerSeries.coeff_mk] using! h
 
+/-- The reflection at degree `n` of the Strang power polynomial, giving a polynomial in the
+inverse subdivision count. -/
 def subdivisionPolynomial (X Y : Matrix I I ℂ) (n : ℕ) (i j : I) : Polynomial ℂ :=
   (powerPolynomial (strangSeries X Y) n i j).reflect n
 
+/-- At the inverse of a positive subdivision count, `subdivisionPolynomial` equals the
+corresponding entry of the repeated Strang coefficient. -/
 theorem subdivisionPolynomial_eval (X Y : Matrix I I ℂ) (n q : ℕ) (hq : 0 < q) (i j : I) :
     (subdivisionPolynomial X Y n i j).eval ((q : ℂ)⁻¹) =
       suzukiSeries (strangRepeats X Y q) n i j := by
@@ -219,16 +277,20 @@ theorem subdivisionPolynomial_eval (X Y : Matrix I I ℂ) (n q : ℕ) (hq : 0 < 
   rw [← mul_assoc, mul_inv_cancel₀ (pow_ne_zero n hq0), one_mul]
   simpa only [subdivisionPolynomial, mul_comm] using! hp
 
+/-- The degree of the subdivision polynomial for coefficient order `n` is at most `n`. -/
 theorem subdivisionPolynomial_degree (X Y : Matrix I I ℂ) (n : ℕ) (i j : I) :
     (subdivisionPolynomial X Y n i j).natDegree ≤ n := by
   exact Polynomial.natDegree_reflect_le.trans (max_le le_rfl (powerPolynomial_degree _ _ _ _))
 
+/-- The constant coefficient of the subdivision polynomial is `1 / n!` times the corresponding
+entry of `(X + Y)ⁿ`. -/
 theorem subdivisionPolynomial_constant (X Y : Matrix I I ℂ) (n : ℕ) (i j : I) :
     (subdivisionPolynomial X Y n i j).coeff 0 =
       (n.factorial : ℂ)⁻¹ * ((X + Y) ^ n) i j := by
   rw [subdivisionPolynomial, Polynomial.coeff_reflect, Polynomial.revAt_zero,
     powerPolynomial_leading _ (strangSeries_constant X Y), strangSeries_first]
 
+/-- For positive `n`, the subdivision polynomial has degree at most `n - 1`. -/
 theorem subdivisionPolynomial_degree_pred (X Y : Matrix I I ℂ) (n : ℕ) (hn : 0 < n) (i j : I) :
     (subdivisionPolynomial X Y n i j).natDegree ≤ n - 1 := by
   apply Polynomial.natDegree_le_iff_coeff_eq_zero.mpr
@@ -242,6 +304,7 @@ theorem subdivisionPolynomial_degree_pred (X Y : Matrix I I ℂ) (n : ℕ) (hn :
     · exact Polynomial.coeff_eq_zero_of_natDegree_lt
         ((subdivisionPolynomial_degree X Y n i j).trans_lt hlt)
 
+/-- Two complex polynomials agreeing at every natural number are equal. -/
 private theorem polynomial_eq_of_nat_eval (p q : Polynomial ℂ)
     (h : ∀ n : ℕ, p.eval (n : ℂ) = q.eval (n : ℂ)) : p = q := by
   apply Polynomial.eq_of_infinite_eval_eq
@@ -249,6 +312,8 @@ private theorem polynomial_eq_of_nat_eval (p q : Polynomial ℂ)
   rintro _ ⟨n, rfl⟩
   exact h n
 
+/-- Shifting the exponent variable in `powerPolynomial` by a natural number gives the
+coefficient convolution with the corresponding natural power of the series. -/
 theorem powerPolynomial_shift (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1)
     (n q : ℕ) (i j : I) :
     (powerPolynomial f n i j).comp (Polynomial.X + Polynomial.C (q : ℂ)) =
@@ -264,9 +329,13 @@ theorem powerPolynomial_shift (f : PowerSeries (Matrix I I ℂ)) (hf : f.constan
   intro p _
   simp only [Matrix.mul_apply, powerPolynomial_eval f hf]
 
+/-- The formal matrix power series obtained by evaluating every coefficient interpolation
+polynomial at a complex exponent. -/
 def continuedPower (f : PowerSeries (Matrix I I ℂ)) (z : ℂ) : PowerSeries (Matrix I I ℂ) :=
   PowerSeries.mk fun n => fun i j => (powerPolynomial f n i j).eval z
 
+/-- For a series with constant coefficient one, `continuedPower` at a natural exponent equals
+the ordinary power. -/
 theorem continuedPower_nat (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1) (q : ℕ) :
     continuedPower f (q : ℂ) = f ^ q := by
   apply PowerSeries.ext
@@ -274,6 +343,8 @@ theorem continuedPower_nat (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCo
   ext i j
   simpa only [continuedPower, PowerSeries.coeff_mk] using! powerPolynomial_eval f hf n q i j
 
+/-- Adding a natural number to a continued exponent multiplies the continued power by the
+corresponding ordinary power. -/
 theorem continuedPower_add_nat (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1)
     (z : ℂ) (q : ℕ) : continuedPower f (z + q) = continuedPower f z * f ^ q := by
   apply PowerSeries.ext
@@ -284,11 +355,15 @@ theorem continuedPower_add_nat (f : PowerSeries (Matrix I I ℂ)) (hf : f.consta
     Matrix.sum_apply, Matrix.mul_apply, Polynomial.eval_comp, Polynomial.eval_add,
     Polynomial.eval_X, Polynomial.eval_C, Polynomial.eval_finsetSum, Polynomial.eval_mul] using! h
 
+/-- The continued power at a negative natural exponent is a left inverse of the corresponding
+ordinary power. -/
 theorem continuedPower_neg_mul (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1)
     (q : ℕ) : continuedPower f (-(q : ℂ)) * f ^ q = 1 := by
   rw [← continuedPower_add_nat f hf]
   simpa only [neg_add_cancel, Nat.cast_zero, pow_zero] using! continuedPower_nat f hf 0
 
+/-- The convolution of the scalar exponential coefficients for `a` and `b` is the coefficient
+for `a + b`. -/
 private theorem scalar_exp_convolution (a b : ℝ) (n : ℕ) :
     (∑ p ∈ Finset.HasAntidiagonal.antidiagonal n,
       (a ^ p.1 / (p.1.factorial : ℝ)) * (b ^ p.2 / (p.2.factorial : ℝ))) =
@@ -297,6 +372,7 @@ private theorem scalar_exp_convolution (a b : ℝ) (n : ℕ) :
   simpa only [PowerSeries.coeff_mul, PowerSeries.coeff_rescale, PowerSeries.coeff_exp,
     map_div₀, map_mul, map_inv₀, map_one, map_natCast, div_eq_mul_inv, one_mul] using! h
 
+/-- The series of two scalar multiples of a single matrix multiply to the series of their sum. -/
 theorem wordSeries_singleton_mul (X : Matrix I I ℂ) (a b : ℝ) :
     wordSeries [a • X] * wordSeries [b • X] = wordSeries [(a + b) • X] := by
   apply PowerSeries.ext
@@ -313,11 +389,14 @@ theorem wordSeries_singleton_mul (X : Matrix I I ℂ) (a b : ℝ) :
       congr 1; ring
     _ = _ := by rw [← Finset.sum_smul, scalar_exp_convolution, smul_smul]; congr 1; ring
 
+/-- The word consisting of the zero matrix has power series one. -/
 private theorem wordSeries_zero : wordSeries [(0 : Matrix I I ℂ)] = 1 := by
   apply PowerSeries.ext
   intro n
   cases n <;> simp [wordSeries, suzukiSeries_singleton]
 
+/-- Reversing a matrix word and negating every entry gives a power series that is a left inverse
+of the original word series. -/
 theorem wordSeries_reverse_inverse (ws : List (Matrix I I ℂ)) :
     wordSeries (ws.reverse.map (fun X => -X)) * wordSeries ws = 1 := by
   induction ws with
@@ -335,6 +414,8 @@ theorem wordSeries_reverse_inverse (ws : List (Matrix I I ℂ)) :
           (wordSeries [-X] * wordSeries [X]) * wordSeries xs := by noncomm_ring
       _ = 1 := by rw [he, mul_one, ih]
 
+/-- Scaling every matrix in a word scales the coefficient of order `n` in every natural power of
+its series by `aⁿ`. -/
 theorem word_power_scaled_coefficient (ws : List (Matrix I I ℂ)) (a : ℝ) (n q : ℕ) :
     PowerSeries.coeff n (wordSeries (ws.map (fun X => a • X)) ^ q) =
       a ^ n • PowerSeries.coeff n (wordSeries ws ^ q) := by
@@ -344,6 +425,8 @@ theorem word_power_scaled_coefficient (ws : List (Matrix I I ℂ)) (a : ℝ) (n 
     simp only [List.map_flatten, List.map_replicate]
   simp only [he, wordSeries, PowerSeries.coeff_mk, word_coefficient_scale]
 
+/-- For a reversal-symmetric word, the coefficient interpolation polynomial at `-q` is `(-1)ⁿ`
+times its value at `q`. -/
 theorem symmetric_powerPolynomial_neg (ws : List (Matrix I I ℂ)) (hws : ws.reverse = ws)
     (n q : ℕ) (i j : I) :
     (powerPolynomial (wordSeries ws) n i j).eval (-(q : ℂ)) =
@@ -372,6 +455,8 @@ theorem symmetric_powerPolynomial_neg (ws : List (Matrix I I ℂ)) (hws : ws.rev
   rw [← powerPolynomial_eval f hf n q i j] at hc
   simpa only [f, Complex.ofReal_pow, Complex.ofReal_neg, Complex.ofReal_one] using! hc
 
+/-- For a reversal-symmetric word, the coefficient interpolation polynomial has parity
+determined by the coefficient order `n`. -/
 theorem symmetric_powerPolynomial_parity (ws : List (Matrix I I ℂ)) (hws : ws.reverse = ws)
     (n : ℕ) (i j : I) :
     (powerPolynomial (wordSeries ws) n i j).comp (-Polynomial.X) =
@@ -382,6 +467,7 @@ theorem symmetric_powerPolynomial_parity (ws : List (Matrix I I ℂ)) (hws : ws.
     Polynomial.eval_smul, smul_eq_mul]
   exact symmetric_powerPolynomial_neg ws hws n q i j
 
+/-- Every odd-degree coefficient of the Strang subdivision polynomial is zero. -/
 theorem subdivisionPolynomial_odd (X Y : Matrix I I ℂ) (n r : ℕ) (hr : Odd r) (i j : I) :
     (subdivisionPolynomial X Y n i j).coeff r = 0 := by
   by_cases hle : r ≤ n
@@ -402,6 +488,7 @@ theorem subdivisionPolynomial_odd (X Y : Matrix I I ℂ) (n r : ℕ) (hr : Odd r
   · exact Polynomial.coeff_eq_zero_of_natDegree_lt
       ((subdivisionPolynomial_degree X Y n i j).trans_lt (Nat.lt_of_not_ge hle))
 
+/-- A sum over the first `2m` natural numbers splits into the paired even and odd terms. -/
 private theorem sum_range_pairs (f : ℕ → ℂ) (m : ℕ) :
     (∑ r ∈ Finset.range (2 * m), f r) =
       ∑ r ∈ Finset.range m, (f (2 * r) + f (2 * r + 1)) := by
@@ -411,6 +498,8 @@ private theorem sum_range_pairs (f : ℕ → ℂ) (m : ℕ) :
     rw [Nat.mul_succ, Finset.sum_range_succ, Finset.sum_range_succ, Finset.sum_range_succ, ih]
     ring
 
+/-- An even polynomial of degree below `2m` evaluates under weights satisfying the stated
+even-moment conditions to its constant coefficient. -/
 theorem polynomial_moment_evaluation {J : Type} [Fintype J]
     (p : Polynomial ℂ) (a x : J → ℂ) (m : ℕ) (hm : 0 < m)
     (hdegree : p.natDegree < 2 * m) (hodd : ∀ r : ℕ, Odd r → p.coeff r = 0)
@@ -441,6 +530,8 @@ theorem polynomial_moment_evaluation {J : Type} [Fintype J]
       · intro h
         exact (h (Finset.mem_range.mpr hm)).elim
 
+/-- Scalar cancellation moments through order `m - 1` force the weighted Strang subdivision
+coefficients below order `2m + 1` to equal the exponential coefficients. -/
 theorem coefficients_from_scalar_moments {J : Type} [Fintype J]
     (X Y : Matrix I I ℂ) (q : J → ℕ) (a : J → ℝ) (m : ℕ) (hm : 0 < m)
     (hq : ∀ l, 0 < q l)

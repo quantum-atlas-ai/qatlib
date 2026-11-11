@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtractionData
 import Qatlib.Papers.PolyTransform26.ResidualCert.Basic
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.GramContraction
+
+/-!
+# Extracting a contraction from a residual certificate
+
+The compact successor equation determines the initial, transition, and collection blocks of a
+response matrix. A positive semidefinite difference of successor Gram matrices gives a
+contraction satisfying these identities; residual nilpotence supplies truncation and the
+coefficient representation supplies tail collection. The residual-certificate setting follows
+[ShenEtAl2026].
+
+## Main statements
+
+* `compact_successor_blocks`: The compact successor equation determines the initial-vector
+  column, scalar corner, residual transition equations, and collection-row equations of `V`.
+* `compact_certificate_response`: Under the tail-coefficient and length-`D` nilpotence
+  assumptions, a positive semidefinite successor Gram difference yields a contraction satisfying
+  the successor equation, initial and scalar block identities, response recurrence, truncation,
+  and tail collection.
+
+## References
+
+* [Shen et al., 2026][ShenEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +46,8 @@ variable {X Y J : Type} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] [DecidableEq Y] [Fintype J] [DecidableEq J] in
 
+/-- The compact successor equation determines the initial-vector column, scalar corner, residual
+transition equations, and collection-row equations of `V`. -/
 theorem compact_successor_blocks {r : ℕ} (F : J → Matrix Y X ℂ)
     (Q : Matrix X (Fin r) ℂ) (a0 : EuclideanSpace ℂ (Fin r))
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (d : ℂ) (pRow : J → Fin r → ℂ)
@@ -47,6 +73,8 @@ theorem compact_successor_blocks {r : ℕ} (F : J → Matrix Y X ℂ)
 
 omit [DecidableEq Y] [Fintype J] [DecidableEq J] in
 
+/-- If `a * (F j * Q) = Q * Ares j` for each `j`, then `a * F j` maps the compact response at
+`w` to the response at `j :: w`. -/
 theorem compact_response_recurrence {r : ℕ} (F : J → Matrix Y X ℂ)
     (Q : Matrix X (Fin r) ℂ) (a0 : EuclideanSpace ℂ (Fin r))
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (a : Matrix X Y ℂ)
@@ -60,6 +88,8 @@ theorem compact_response_recurrence {r : ℕ} (F : J → Matrix Y X ℂ)
 
 omit [DecidableEq X] [DecidableEq Y] [Fintype J] [DecidableEq J] in
 
+/-- The collection-row and residual coefficient identities express each nonempty-word
+coefficient of `q` as the stated row applied to `compactResponse`. -/
 theorem compact_response_collection {r : ℕ} (F : J → Matrix Y X ℂ)
     (Q : Matrix X (Fin r) ℂ) (a0 : EuclideanSpace ℂ (Fin r))
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (c : Y → ℂ)
@@ -82,6 +112,8 @@ theorem compact_response_collection {r : ℕ} (F : J → Matrix Y X ℂ)
 
 omit [Fintype X] [DecidableEq X] [Fintype J] [DecidableEq J] in
 
+/-- If every residual matrix product of length `D` is zero, the compact response vanishes on all
+words of length at least `D`. -/
 theorem compact_response_truncation {r D : ℕ} (Q : Matrix X (Fin r) ℂ)
     (a0 : EuclideanSpace ℂ (Fin r)) (Ares : J → Matrix (Fin r) (Fin r) ℂ)
     (hn : ∀ w : List J, w.length=D → matrixWord Ares w=0) :
@@ -89,6 +121,10 @@ theorem compact_response_truncation {r D : ℕ} (Q : Matrix X (Fin r) ℂ)
   intro w hw
   rw [compactResponse,residualCoeff_truncate a0 Ares D hn w hw,map_zero]
 
+/-- Under the tail-coefficient and length-`D` nilpotence assumptions, a positive semidefinite
+successor Gram difference yields a contraction satisfying the successor equation, initial
+and scalar block identities, response recurrence, truncation, and tail collection. See [Shen
+et al., 2026][ShenEtAl2026]. -/
 theorem compact_certificate_response : ∀ (X Y J : Type) [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] [Fintype J] [DecidableEq J]
     (r D : ℕ) (F : J → Matrix Y X ℂ) (Q : Matrix X (Fin r) ℂ)

@@ -10,6 +10,37 @@ import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+/-!
+# Trace-norm perturbation of Hermitian exponentials
+
+This module bounds changes in matrix exponentials without a commutativity assumption.
+`exp_trace_le` controls the partition function through operator-norm perturbations, and
+`noncommuting_exp_trace_norm` bounds the trace norm of the exponential difference by the same
+relative exponential factor.
+
+The proof uses Schatten estimates and the product path `exp ((1 - t) • H) * exp (t • K)`, with
+differentiation supplied by `hasDerivAt_product_path`. These trace-ideal methods belong to
+standard matrix analysis [Bhatia1997], and the resulting estimates support the
+matrix-exponential perturbation arguments in [ChiaEtAl2022].
+
+## Main statements
+
+* `exp_trace_eq_sum` and `exp_trace_le` express and compare exponential traces using Hermitian
+  eigenvalues.
+- `product_path_bound` bounds the trace norm of the derivative along the product path.
+* `noncommuting_exp_trace_norm` gives the exponential perturbation bound for arbitrary Hermitian
+  matrices.
+* `trace_duality_exp_consumer` packages trace duality with the induced observable-error
+  estimate.
+
+## References
+
+- [Bhatia, 1997][Bhatia1997]. Matrix Analysis.
+* [Chia et al., 2022][ChiaEtAl2022]. Sampling-based Sublinear Low-rank Matrix Arithmetic
+  Framework for Dequantizing Quantum Machine Learning.
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 
@@ -23,10 +54,14 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Bounds the modulus of `trace (A * B)` by the operator norm of `A` times the trace norm of
+`B`. -/
 theorem norm_trace_mul_le (A B : Matrix I I ℂ) :
     ‖Matrix.trace (A * B)‖ ≤ ‖A‖ * Matrix.traceNorm B :=
   (Matrix.abs_trace_le_traceNorm _).trans (Matrix.traceNorm_mul_le_opNorm_traceNorm A B)
 
+/-- Expresses the real trace of a Hermitian matrix exponential as the sum of the exponentials of
+its ordered eigenvalues. -/
 theorem exp_trace_eq_sum (H : Matrix I I ℂ) (hH : H.IsHermitian) :
     (Matrix.trace (NormedSpace.exp H)).re = ∑ i, Real.exp (orderedHermitianValues hH i) := by
   let U := Unitary.toUnits hH.eigenvectorUnitary
@@ -38,6 +73,8 @@ theorem exp_trace_eq_sum (H : Matrix I I ℂ) (hH : H.IsHermitian) :
   exact (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card I))).symm.sum_comp
     (fun i => Real.exp (orderedHermitianValues hH i))
 
+/-- Bounds the partition function of Hermitian `K` by that of Hermitian `H` multiplied by `exp
+‖H - K‖`. -/
 theorem exp_trace_le (H K : Matrix I I ℂ) (hH : H.IsHermitian) (hK : K.IsHermitian) :
     (Matrix.trace (NormedSpace.exp K)).re ≤
       Real.exp ‖H - K‖ * (Matrix.trace (NormedSpace.exp H)).re := by
@@ -50,11 +87,14 @@ theorem exp_trace_le (H K : Matrix I I ℂ) (hH : H.IsHermitian) (hK : K.IsHermi
   rw [norm_sub_rev K H] at hw
   linarith [(abs_le.mp hw).2]
 
+/-- Identifies the Schatten norm at exponent one with the matrix trace norm. -/
 theorem schatten_one (A : Matrix I I ℂ) : schattenNorm A 1 = Matrix.traceNorm A := by
   rw [schattenNorm_eq_sum_singularValues_rpow A (by norm_num),
     Matrix.traceNorm_eq_sum_singularValues]
   simp
 
+/-- For every positive exponent `p`, bounds the Schatten expression of `A * B` by the operator
+norm of `A` times the Schatten expression of `B`. -/
 theorem schatten_mul_le_op (A B : Matrix I I ℂ) (p : ℝ) (hp : 0 < p) :
     schattenNorm (A * B) p ≤ ‖A‖ * schattenNorm B p := by
   have hbound (i : Fin (Fintype.card I)) : singularValuesSorted A i ≤ ‖A‖ := by
@@ -93,6 +133,8 @@ variable [Nonempty I]
 
 omit [Nonempty I] in
 
+/-- Identifies the underlying matrix of the Hermitian functional-calculus exponential with the
+normed-space matrix exponential. -/
 theorem hermitian_exp_mat (H : HermitianMat I ℂ) : H.exp.mat = NormedSpace.exp H.mat := by
   rw [HermitianMat.exp, HermitianMat.mat_cfc]
   letI : ContinuousFunctionalCalculus ℝ (Matrix I I ℂ) IsSelfAdjoint :=
@@ -101,6 +143,8 @@ theorem hermitian_exp_mat (H : HermitianMat I ℂ) : H.exp.mat = NormedSpace.exp
 
 omit [Nonempty I] in
 
+/-- For `s > 0`, identifies the Schatten expression of `exp (s • H)` at exponent `1 / s` with
+the `s`th power of the partition function of `H`. -/
 theorem schatten_exp_inv (H : HermitianMat I ℂ) (s : ℝ) (hs : 0 < s) :
     schattenNorm (NormedSpace.exp (s • H.mat)) (1 / s) =
       (Matrix.trace (NormedSpace.exp H.mat)).re ^ s := by
@@ -118,12 +162,16 @@ theorem schatten_exp_inv (H : HermitianMat I ℂ) (s : ℝ) (hs : 0 < s) :
   rw [he, one_div_one_div, HermitianMat.trace_eq_re_trace, hermitian_exp_mat]
   rfl
 
+/-- The real trace of the exponential of a Hermitian matrix is strictly positive on a nonempty
+index type. -/
 theorem exp_trace_pos (H : HermitianMat I ℂ) :
     0 < (Matrix.trace (NormedSpace.exp H.mat)).re := by
   have h := HermitianMat.trace_pos H.exp_pos
   rw [HermitianMat.trace_eq_re_trace, hermitian_exp_mat] at h
   exact h
 
+/-- For `0 < t < 1`, bounds the trace norm of `exp ((1 - t) • H) * (K - H) * exp (t • K)` by `‖H
+- K‖ * re (trace (exp H)) * exp (t * ‖H - K‖)`. -/
 theorem product_path_bound (H K : HermitianMat I ℂ) (t : ℝ) (ht : 0 < t) (ht1 : t < 1) :
     Matrix.traceNorm (NormedSpace.exp ((1 - t) • H.mat) * (K.mat - H.mat) *
       NormedSpace.exp (t • K.mat)) ≤
@@ -159,6 +207,8 @@ theorem product_path_bound (H K : HermitianMat I ℂ) (t : ℝ) (ht : 0 < t) (ht
 
 omit [Nonempty I] in
 
+/-- Differentiates the product path `exp ((1 - s) • H) * exp (s • K)`, giving `exp ((1 - t) • H)
+* (K - H) * exp (t • K)` at `t`. -/
 theorem hasDerivAt_product_path (H K : Matrix I I ℂ) (t : ℝ) :
     HasDerivAt (fun s : ℝ => NormedSpace.exp ((1-s) • H) * NormedSpace.exp (s • K))
       (NormedSpace.exp ((1-t) • H) * (K-H) * NormedSpace.exp (t • K)) t := by
@@ -170,6 +220,8 @@ theorem hasDerivAt_product_path (H K : Matrix I I ℂ) (t : ℝ) :
   simp only [Function.comp_def, neg_smul, one_smul]
   noncomm_ring
 
+/-- For every unitary `U`, bounds the real trace of `U * (exp K - exp H)` by `(exp ‖H - K‖ - 1)
+* re (trace (exp H))` for Hermitian inputs. -/
 theorem unitary_trace_exp_sub_le (H K : HermitianMat I ℂ) (U : Matrix.unitaryGroup I ℂ) :
     (Matrix.trace (U.val * (NormedSpace.exp K.mat - NormedSpace.exp H.mat))).re ≤
       (Real.exp ‖H.mat-K.mat‖ - 1) * (Matrix.trace (NormedSpace.exp H.mat)).re := by
@@ -215,6 +267,9 @@ theorem unitary_trace_exp_sub_le (H K : HermitianMat I ℂ) (U : Matrix.unitaryG
 
 end Nonempty
 
+/-- For arbitrary Hermitian `H` and `K`, bounds `traceNorm (exp H - exp K)` by `(exp ‖H - K‖ -
+1) * re (trace (exp H))`. This gives trace-norm control for partition-function perturbation
+arguments such as those in [ChiaEtAl2022]. -/
 theorem noncommuting_exp_trace_norm :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H K : Matrix I I ℂ),
       H.IsHermitian → K.IsHermitian →
@@ -240,6 +295,9 @@ theorem noncommuting_exp_trace_norm :
       rw [← Matrix.traceNorm_neg, neg_sub]
     exact hn.trans_le hb
 
+/-- Packages operator-norm/trace-norm trace duality with the resulting bound for `trace (A *
+(exp H - exp K))` for Hermitian `H` and `K`. The latter supplies observable perturbation
+control of the kind used in [ChiaEtAl2022]. -/
 theorem trace_duality_exp_consumer :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ),
       ‖Matrix.trace (A * B)‖ ≤ ‖A‖ * Matrix.traceNorm B) ∧

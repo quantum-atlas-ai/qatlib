@@ -9,6 +9,30 @@ import Qatlib.Foundations.CbmdAnalysis.Core.KernelCircleBounds
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonKernel
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewiseInput
 import Mathlib.Order.Filter.AtTopBot.Interval
+
+/-!
+# The integer sampling series identity
+
+Finite symmetric sums of weighted real samples converge to their absolutely convergent integer
+series. Passing to the limit in the finite circle identity gives
+`integer_kernel_series_identity`, which expresses the target `U (-i)` as that series minus the
+auxiliary correction.
+
+For an entire `U` satisfying the half-plane exponential growth bound, the prescribed finite
+sampling parameters then give error at most `δ`. This establishes the analytic sampling step of
+contour-based matrix decomposition [WangEtAl2026].
+
+## Main statements
+
+* `integer_kernel_series_identity`: expresses the target through real samples and auxiliary
+  residues.
+* `integerLCU_target_error_le`: bounds the finite target approximation.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -23,12 +47,16 @@ open scoped Topology BigOperators Matrix.Norms.L2Operator ComplexOrder
 section Banach
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- For `a ≥ 1` and `U` contractive on the real axis, the symmetric finite LCU sums converge to
+the infinite weighted integer sample sum. -/
 theorem integerLCUSum_tendsto (m : ℕ) {a : ℝ} (ha : 1 ≤ a) (U : ℂ → E)
     (hUreal : ∀ x : ℝ, ‖U (x : ℂ)‖ ≤ 1) :
     Tendsto (fun n : ℕ => integerLCUSum m a n U) atTop
       (𝓝 (∑' k : ℤ, integerSample m a U k)) := by
   exact ((integerSample_norm_summable m ha U hUreal).of_norm.hasSum).comp Finset.tendsto_Icc_neg
 
+/-- For `a ≥ 1`, `ρ ≤ 2πa`, and an entire `U` with the stated half-plane growth bound, `U (-i)`
+equals the infinite weighted sample sum minus the auxiliary correction [WangEtAl2026]. -/
 theorem integer_kernel_series_identity (m : ℕ) {a ρ : ℝ} (ha : 1 ≤ a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E) (hUanalytic : Differentiable ℂ U)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) :
@@ -52,6 +80,9 @@ theorem integer_kernel_series_identity (m : ℕ) {a ρ : ℝ} (ha : 1 ≤ a)
         integerAuxiliaryCorrection m a U) + (∑' k : ℤ, integerSample m a U k) - integerAuxiliaryCorrection m a U := by abel
     _ = _ := by rw [hz, zero_add]
 
+/-- For `0 < δ ≤ 1`, the prescribed order, spacing, and cutoff approximate `U (-i)` within `δ`
+whenever `U` is entire and satisfies the stated half-plane exponential growth bound
+[WangEtAl2026]. -/
 theorem integerLCU_target_error_le (ρ : ℝ) {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (U : ℂ → E) (hUanalytic : Differentiable ℂ U)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) :

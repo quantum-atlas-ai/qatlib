@@ -42,6 +42,31 @@ import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
+
+/-!
+# Strict amplitude-estimation probability bounds
+
+This module proves strict lower bounds for phase and amplitude readout windows in the
+amplitude-estimation analysis of [BrassardEtAl2002]. The bounds pass from
+`bhmt11WindowMass_strict` through QPE kernels to prepared amplitude estimation and
+Fourier-prepared counting.
+
+The module also bounds both expected query counters of the source and shifted search loops by
+`400 / √a` when the marked mass `a` is positive, uniformly over finite horizons.
+
+## Main statements
+
+* `strictSpacedTail`: a strict reciprocal-square tail bound for separated values.
+* `preparedAeWindow_strict`: a strict probability bound for the prepared amplitude window.
+* `countingWindow_strict`: the corresponding strict counting bound.
+* `source_and_shifted_two_ledger_budget`: expected query bounds for both search loops.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -74,6 +99,8 @@ open Filter
 open scoped Topology
 set_option warningAsError false
 
+/-- For positive marked mass `a`, each of the two expected query counters of both search loops
+is at most `400 / √a`, uniformly in the finite horizon `T`. -/
 theorem source_and_shifted_two_ledger_budget {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (T : ℕ) (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
@@ -94,6 +121,8 @@ theorem source_and_shifted_two_ledger_budget {I : Type} [Fintype I] [DecidableEq
     have h' := h.2.2 ha
     exact h'.2
 
+/-- The sum of reciprocal squares of finitely many real values greater than `k > 1`, separated
+pairwise by at least one, is strictly less than `1 / (k - 1)`. -/
 theorem strictSpacedTail {α : Type*} (s : Finset α) (f : α → ℝ) (k : ℝ) (hk : 1 < k)
     (hlo : ∀ a ∈ s, k < f a)
     (hsep : ∀ a ∈ s, ∀ b ∈ s, a ≠ b → 1 ≤ |f a - f b|) :
@@ -138,6 +167,8 @@ theorem strictSpacedTail {α : Type*} (s : Finset α) (f : α → ℝ) (k : ℝ)
     _ < 1 / (f a - 1) := hlt
     _ < 1 / (k - 1) := hlast
 
+/-- For positive grid size `M` and `k > 1`, the BHMT phase window of radius `k / M` has mass
+strictly greater than `1 - 1 / (2 * (k - 1))`. -/
 theorem bhmt11WindowMass_strict (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk : 1 < k) :
     1 - 1 / (2 * (k - 1)) < bhmt11WindowMass M ω (k / (M : ℝ)) := by
   classical
@@ -215,6 +246,8 @@ theorem bhmt11WindowMass_strict (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk 
     · simp [h]
   linarith
 
+/-- For positive `M` and `k > 1`, the QPE kernel mass within circular phase distance `k / M` of
+`φ` is strictly greater than `1 - 1 / (2 * (k - 1))`. -/
 theorem qpeReadoutWindow_strict (M : ℕ) (φ : ℝ) (hM : 0 < M) (k : ℝ) (hk : 1 < k) :
     1 - 1 / (2 * (k - 1)) <
       ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -223,6 +256,8 @@ theorem qpeReadoutWindow_strict (M : ℕ) (φ : ℝ) (hM : 0 < M) (k : ℝ) (hk 
   rw [bhmt_k2_window_mass_bridge M φ (k / (M : ℝ)) hM]
   exact bhmt11WindowMass_strict M φ hM k hk
 
+/-- For positive `M` and `k ≥ 2`, the QPE kernel assigns mass strictly greater than `1 - 1 / (2
+* (k - 1))` to the amplitude error window `2πk√(a(1-a))/M + k²π²/M²`, where `a = sin²(πφ)`. -/
 theorem aeErrorWindow_strict (M : ℕ) (hM : 0 < M) (φ : ℝ) (k : ℕ) (hk : 2 ≤ k) :
     let a := Real.sin (Real.pi * φ) ^ 2
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -240,6 +275,9 @@ theorem aeErrorWindow_strict (M : ℕ) (hM : 0 < M) (φ : ℝ) (k : ℕ) (hk : 2
   · intro z _ _
     exact sq_nonneg _
 
+/-- For a unitary preparation, `M ≥ 2`, and `k ≥ 2`, the prepared amplitude-estimation law
+places mass strictly greater than `1 - 1 / (2 * (k - 1))` in the BHMT amplitude error window
+[BrassardEtAl2002]. -/
 theorem preparedAeWindow_strict (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : ℕ) (hk : 2 ≤ k) :
     let a := MeasureProb (preparedAAState A j) S
@@ -289,6 +327,9 @@ theorem preparedAeWindow_strict (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fins
   rw [← Finset.sum_div, Finset.sum_add_distrib]
   linarith
 
+/-- For `N > 0`, `M ≥ 2`, and `k ≥ 2`, the Fourier-prepared counting estimate lies within
+`2πk√(t(N-t))/M + π²k²N/M²` of `t = S.card` with probability strictly greater than `1 - 1 /
+(2 * (k - 1))` [BrassardEtAl2002]. -/
 theorem countingWindow_strict (N M : ℕ) (S : Finset (Fin N)) (hN : 0 < N)
     (hM : 2 ≤ M) (k : ℕ) (hk : 2 ≤ k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>

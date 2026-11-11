@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+
+/-!
+# Smooth payoff bounds for all prepared amplitudes
+
+This module bounds smooth payoff error under the actual prepared amplitude-estimation law
+directly in terms of its success probability. `payoff_at_zero` and `payoff_at_one` handle
+endpoint probabilities, and `actual_mean_smooth_error` combines them with the interior estimate
+when the readout size is even. See [KanekoEtAl2020].
+
+## Main statements
+
+* `payoff_at_zero` and `payoff_at_one`: exact endpoint payoff expectations.
+* `actual_mean_smooth_error`: a derivative and curvature bound valid at every prepared success
+  probability.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,8 @@ open Qatlib.Concepts.AmplitudeCore.PreparedReadout
 
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.MeanPayoff
 
+/-- If the prepared success probability is zero and `M ≥ 2`, the actual QAE payoff expectation
+is exactly `g 0`. -/
 theorem payoff_at_zero {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ unitaryGroup I ℂ) (ha : MeasureProb (preparedAAState A j) S=0) (D : ℝ) (g : ℝ → ℝ) :
@@ -34,6 +56,8 @@ theorem payoff_at_zero {I : Type} [Fintype I] [DecidableEq I]
     rw [hp,if_neg hk,zero_mul]
   · simp
 
+/-- If the prepared success probability is one and `M ≥ 2` is even, the actual QAE payoff
+expectation is exactly `g D`. -/
 theorem payoff_at_one {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (hEven : 2 ∣ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ unitaryGroup I ℂ) (ha : MeasureProb (preparedAAState A j) S=1) (D : ℝ) (g : ℝ → ℝ) :
@@ -59,6 +83,9 @@ theorem payoff_at_one {I : Type} [Fintype I] [DecidableEq I]
     rw [hp,if_neg hk,zero_mul]
   · simp
 
+/-- For even `M ≥ 2`, a payoff with a globally `K`-Lipschitz derivative has actual QAE error at
+most `(|gp (D*a)|*|D|+K*D^2)/M`, where `a` is the prepared success probability. See
+[KanekoEtAl2020]. -/
 theorem actual_mean_smooth_error {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (hEven : 2 ∣ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ unitaryGroup I ℂ) (D : ℝ) (g gp : ℝ → ℝ) (K : NNReal)

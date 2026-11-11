@@ -7,17 +7,38 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Invalid fraction identities
+
+This module records exact scalar identities for the invalid fraction expressions used in the
+elliptic curve resource analysis. It combines two equal exceptional contributions and expands
+both the squared validity factor and its complementary failure fraction for a pair of words.
+
+The mathematical setting follows [RoettelerEtAl2017].
+
+## Main statements
+
+* `overall_invalid_fraction`: simplification of the sum of two case fractions.
+* `pair_validity_square` and `pair_failure_fraction`: exact paired fraction expansions.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.ECDLPResource17.InvalidBorn
 
 open Real
 
+/-- The sum of two copies of `n / 2^(n + 1)` equals `2 * n / 2^(n + 1)`. -/
 theorem two_case_fraction_sum (n : ℕ) :
     (n : ℝ) / (2 : ℝ) ^ (n + 1) + (n : ℝ) / (2 : ℝ) ^ (n + 1) =
       (2 * (n : ℝ)) / (2 : ℝ) ^ (n + 1) := by
   ring
 
+/-- The expression `2 * n / 2^(n + 1)` equals `n / 2^n`. -/
 theorem overall_invalid_fraction (n : ℕ) :
     (2 * (n : ℝ)) / (2 : ℝ) ^ (n + 1) = (n : ℝ) / (2 : ℝ) ^ n := by
   have hpow : (2 : ℝ) ^ (n + 1) = (2 : ℝ) ^ n * 2 := by
@@ -25,6 +46,7 @@ theorem overall_invalid_fraction (n : ℕ) :
   rw [hpow]
   field_simp
 
+/-- For `n ≥ 1`, the squared validity factor expands as `1 - n / 2^(n - 1) + n² / 2^(2 * n)`. -/
 theorem pair_validity_square (n : ℕ) (hn : 1 ≤ n) :
     (1 - (n : ℝ) / (2 : ℝ) ^ n) ^ 2 =
       1 - (n : ℝ) / (2 : ℝ) ^ (n - 1) + (n : ℝ) ^ 2 / (2 : ℝ) ^ (2 * n) := by
@@ -38,6 +60,8 @@ theorem pair_validity_square (n : ℕ) (hn : 1 ≤ n) :
   rw [hm, h2n, div_div_eq_mul_div, ← div_pow]
   ring
 
+/-- For `n ≥ 1`, the complement of the squared validity factor equals `n / 2^(n - 1) - n² / 2^(2
+* n)`. -/
 theorem pair_failure_fraction (n : ℕ) (hn : 1 ≤ n) :
     1 - (1 - (n : ℝ) / (2 : ℝ) ^ n) ^ 2 =
       (n : ℝ) / (2 : ℝ) ^ (n - 1) - (n : ℝ) ^ 2 / (2 : ℝ) ^ (2 * n) := by

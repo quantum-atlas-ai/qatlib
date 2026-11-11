@@ -10,6 +10,28 @@ import Mathlib.Data.Fintype.Order
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Finset.Max
 import Mathlib.Tactic.Linarith
+
+/-!
+# Finite partitions and interval induction
+
+Constructs an open interval avoiding a finite family of real points and proves
+`Icc_induction_of_disjoint_Ioo`. The induction principle reduces an interval property to pieces
+avoiding a finite set and a gluing rule.
+
+These finite-partition tools support piecewise contour arguments associated with [WangEtAl2026].
+
+## Main statements
+
+* `exists_Ioo_disjoint_range_of_finite`: A finite family of real numbers is disjoint from some
+  nonempty open interval.
+* `Icc_induction_of_disjoint_Ioo`: Proves a property of a closed interval by establishing it on
+  subintervals whose interiors avoid a fixed finite set and gluing across intermediate points.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +43,7 @@ open Set
 
 namespace TauCeti
 
+/-- A finite family of real numbers is disjoint from some nonempty open interval. -/
 theorem exists_Ioo_disjoint_range_of_finite {ι : Type*} [Finite ι] (a : ι → ℝ) :
     ∃ p q x : ℝ, (∀ i, a i ∉ Ioo p q) ∧ x ∈ Ioo p q := by
   obtain ⟨S, hbound⟩ := Finite.exists_le a
@@ -35,6 +58,8 @@ theorem exists_Ioo_disjoint_range_of_finite {ι : Type*} [Finite ι] (a : ι →
   have hx : x ∈ Ioo p q := by dsimp [x, q]; constructor <;> linarith
   exact ⟨p, q, x, ha, hx⟩
 
+/-- Proves a property of a closed interval by establishing it on subintervals whose interiors
+avoid a fixed finite set and gluing across intermediate points. -/
 theorem Icc_induction_of_disjoint_Ioo {α : Type*} [LinearOrder α] {p : Finset α} {s : Set α}
     {Q : α → α → Prop}
     (hbase : ∀ c d : α, c ≤ d → Icc c d ⊆ s → Disjoint (↑p : Set α) (Ioo c d) → Q c d)

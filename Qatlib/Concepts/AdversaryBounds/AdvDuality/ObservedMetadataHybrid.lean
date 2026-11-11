@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedHybridDefs
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Data.List.OfFn
+
+/-!
+# Metadata scores from paired state distance
+
+`observed_metadata_score_sq_le_distance` converts paired terminal state distance into a bound on
+the difference of `observedMetadataScore` values. The score may depend on acceptance and the
+complete outcome record, provided its absolute value is at most one. This connects classical
+branch statistics to the state distinguishability viewpoint discussed in [Watrous2018].
+
+The proof first bounds a single scored difference of squared norms, then sums with
+Cauchy--Schwarz. Normalization of both executions and agreement of paired metadata yield the
+final factor of four.
+
+## Main statements
+
+* `metadata_leaf_bound` controls a scored difference of squared norms for one pair.
+* `metadata_list_score_sq` bounds the squared total score difference for normalized families.
+* `observed_metadata_score_sq_le_distance` applies this estimate to unitary oracle executions of
+  a well-formed circuit.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +42,8 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
+/-- The square of a real list sum of products is bounded by the product of the corresponding
+sums of squares. -/
 private theorem metadata_list_cauchy {α : Type*} (xs : List α) (f g : α → ℝ) :
     ((xs.map fun x => f x * g x).sum) ^ 2 ≤
       (xs.map fun x => f x ^ 2).sum * (xs.map fun x => g x ^ 2).sum := by
@@ -27,6 +54,7 @@ private theorem metadata_list_cauchy {α : Type*} (xs : List α) (f g : α → �
     List.ofFn_getElem_eq_map xs (fun x => f x ^ 2),
     List.ofFn_getElem_eq_map xs (fun x => g x ^ 2)] using h
 
+/-- Summing pointwise differences over a list equals the difference of the two list sums. -/
 private theorem metadata_sum_sub {α : Type*} (xs : List α) (f g : α → ℝ) :
     (xs.map fun x => f x - g x).sum = (xs.map f).sum - (xs.map g).sum := by
   induction xs with
@@ -35,6 +63,8 @@ private theorem metadata_sum_sub {α : Type*} (xs : List α) (f g : α → ℝ) 
     simp only [List.map_cons, List.sum_cons, ih]
     ring
 
+/-- A pointwise inequality on elements of a list gives the corresponding inequality between
+mapped sums. -/
 private theorem metadata_sum_mono {α : Type*} (xs : List α) (f g : α → ℝ)
     (h : ∀ x ∈ xs, f x ≤ g x) : (xs.map f).sum ≤ (xs.map g).sum := by
   induction xs with
@@ -44,6 +74,8 @@ private theorem metadata_sum_mono {α : Type*} (xs : List α) (f g : α → ℝ)
     exact add_le_add (h x List.mem_cons_self)
       (ih fun y hy => h y (List.mem_cons_of_mem x hy))
 
+/-- The absolute value of a real list sum is at most the sum of the absolute values of its
+terms. -/
 private theorem metadata_abs_sum_le {α : Type*} (xs : List α) (f : α → ℝ) :
     |(xs.map f).sum| ≤ (xs.map fun x => |f x|).sum := by
   induction xs with
@@ -52,6 +84,8 @@ private theorem metadata_abs_sum_le {α : Type*} (xs : List α) (f : α → ℝ)
     simp only [List.map_cons, List.sum_cons]
     exact (abs_add_le _ _).trans (add_le_add (le_refl _) ih)
 
+/-- A difference of squared norms multiplied by a score of absolute value at most one is bounded
+in absolute value by the distance times the sum of the norms. -/
 private theorem metadata_leaf_bound {E : Type*} [NormedAddCommGroup E]
     (u v : E) (c : ℝ) (hc : |c| ≤ 1) :
     |c * (‖u‖ ^ 2 - ‖v‖ ^ 2)| ≤ ‖u - v‖ * (‖u‖ + ‖v‖) := by
@@ -68,6 +102,8 @@ private theorem metadata_leaf_bound {E : Type*} [NormedAddCommGroup E]
         (mul_nonneg (abs_nonneg _) hplus) zero_le_one
     _ = _ := one_mul _
 
+/-- For two families whose squared norms each sum to one, a bounded score's squared weighted
+mass difference is at most four times the total squared distance. -/
 private theorem metadata_list_score_sq {α E : Type*} [NormedAddCommGroup E]
     (xs : List α) (u v : α → E) (score : α → ℝ)
     (hscore : ∀ x ∈ xs, |score x| ≤ 1)
@@ -119,11 +155,15 @@ private theorem metadata_list_score_sq {α E : Type*} [NormedAddCommGroup E]
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The mass of a pure branch equals the squared Euclidean norm of its state vector. -/
 private theorem metadata_mass_norm (ψ : QState I) :
     branchMass ψ = ‖toEuclidean_fromVec ψ‖ ^ 2 := by
   change (∑ i, ‖ψ i‖ ^ 2) = _
   exact (norm_toEuclidean_fromVec_sq ψ).symm
 
+/-- For two unitary oracle executions of a well-formed circuit from a normalized common input, a
+metadata score bounded in absolute value by one has squared expectation difference at most
+four times total paired squared terminal distance. -/
 theorem observed_metadata_score_sq_le_distance
     (A B : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hB : B ∈ Matrix.unitaryGroup I ℂ)

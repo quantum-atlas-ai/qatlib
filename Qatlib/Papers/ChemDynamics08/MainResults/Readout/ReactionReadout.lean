@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+/-!
+# Reaction region readout
+
+`regionProb` sums squared amplitudes over a reaction region, and `locatedState` records the
+region label in an additional register. The module identifies the resulting measurement
+probabilities and proves their normalization, together with scalar bounds for sampling error and
+amplitude estimation precision.
+
+These constructions support the treatment in [KassalEtAl2008].
+
+## Main statements
+
+* `reaction_region_probability`: identifies the region ancilla probabilities and their sum.
+* `amplitude_estimation_error_bound`: bounds amplitude error under a phase-distance hypothesis.
+
+## References
+
+* [Kassal et al., 2008][KassalEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,12 +43,16 @@ section Region
 
 variable {X ι : Type*} [Fintype X] [DecidableEq X] [Fintype ι] [DecidableEq ι]
 
+/-- The sum of squared amplitudes of `ψ` over basis states whose region label is `i`. -/
 noncomputable def regionProb (ψ : QState X) (R : X → ι) (i : ι) : ℝ :=
   Finset.sum (Finset.univ.filter (fun x => R x = i)) (fun x => ‖ψ x‖ ^ 2)
 
+/-- The joint state that attaches the label `R x` to each basis state `x`, preserving its
+amplitude. -/
 noncomputable def locatedState (ψ : QState X) (R : X → ι) : QState (X × ι) :=
   fun p => if p.2 = R p.1 then ψ p.1 else 0
 
+/-- Measuring region label `i` in the located state gives `regionProb ψ R i`. -/
 theorem measureProb_locatedState_region (ψ : QState X) (R : X → ι) (i : ι) :
     MeasureProb (locatedState ψ R) (Finset.univ ×ˢ ({i} : Finset ι)) =
       regionProb ψ R i := by
@@ -41,6 +66,7 @@ theorem measureProb_locatedState_region (ψ : QState X) (R : X → ι) (i : ι) 
   · rw [if_neg (fun hi : i = R x => h hi.symm), if_neg h]
     simp
 
+/-- The region probabilities of a normalized state sum to one. -/
 theorem sum_regionProb (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
     ∑ i, regionProb ψ R i = 1 := by
   unfold regionProb
@@ -59,6 +85,7 @@ theorem sum_regionProb (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
           exact absurd (Finset.mem_univ (R x)) h
     _ = 1 := hψ
 
+/-- Attaching a deterministic region label preserves normalization of the state. -/
 theorem locatedState_normalized (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
     Normalized (locatedState ψ R) := by
   unfold Normalized
@@ -75,6 +102,8 @@ theorem locatedState_normalized (ψ : QState X) (R : X → ι) (hψ : Normalized
     _ = ∑ x : X, ‖ψ x‖ ^ 2 := Finset.sum_congr rfl fun x _ => hinner x
     _ = 1 := hψ
 
+/-- For a normalized state, the region ancilla measurement gives the region probabilities, which
+sum to one [KassalEtAl2008]. -/
 theorem reaction_region_probability (ψ : QState X) (R : X → ι) (hψ : Normalized ψ) :
     (∀ i : ι, MeasureProb (locatedState ψ R)
         (Finset.univ ×ˢ ({i} : Finset ι)) = regionProb ψ R i) ∧
@@ -83,6 +112,8 @@ theorem reaction_region_probability (ψ : QState X) (R : X → ι) (hψ : Normal
 
 end Region
 
+/-- For a probability `p` and positive sample count `M`, the Bernoulli standard error is at most
+`1 / (2 * Real.sqrt M)` [KassalEtAl2008]. -/
 theorem sampling_standard_error (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (M : ℕ) (hM : 0 < M) :
     Real.sqrt (p * (1 - p) / (M : ℝ)) ≤ 1 / (2 * Real.sqrt (M : ℝ)) := by
@@ -101,6 +132,8 @@ theorem sampling_standard_error (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     _ = 1 / (2 * Real.sqrt (M : ℝ)) := by
         rw [hrewrite, Real.sqrt_sq (by positivity)]
 
+/-- Phase distance at most `1 / M` bounds the amplitude estimate error by `2π / M + π² / M²`
+[KassalEtAl2008]. -/
 theorem amplitude_estimation_error_bound (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M)
     (hd : phaseDistance φ ((z.val : ℝ) / (M : ℝ)) ≤ 1 / (M : ℝ)) :
     |aeEstimate M z - (Real.sin (Real.pi * φ)) ^ 2| ≤
@@ -130,6 +163,8 @@ theorem amplitude_estimation_error_bound (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : 
       _ = 2 * Real.pi / (M : ℝ) := by ring
   linarith
 
+/-- Every positive tolerance exceeds `2π / M + π² / M²` for some positive integer `M`
+[KassalEtAl2008]. -/
 theorem amplitude_estimation_precision_guarantee (eps : ℝ) (heps : 0 < eps) :
     ∃ M : ℕ, 0 < M ∧
       2 * Real.pi / (M : ℝ) + Real.pi ^ 2 / (M : ℝ) ^ 2 ≤ eps := by

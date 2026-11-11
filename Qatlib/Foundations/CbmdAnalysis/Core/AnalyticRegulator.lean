@@ -8,6 +8,26 @@ import Qatlib.Foundations.CbmdAnalysis.Core.FiniteResidue
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Analysis.Calculus.Deriv.Polynomial
 
+/-!
+# Analytic regulators with simple zeros
+
+This module factors a finite set of simple zeros from an analytic regulator and evaluates the
+resulting vector-valued circle integral. The normalized identity isolates a chosen target value
+and the contributions from the remaining zeros, giving an analytic-regulator form of the contour
+decomposition in [WangEtAl2026].
+
+## Main statements
+
+* `extract_finite_simple_zeros`: removes the prescribed simple zeros and leaves a factor
+  nonvanishing on the closed disk.
+* `circleIntegral_analytic_regulator`: evaluates the circle integral as a finite residue sum.
+* `cbmd_analytic_regulator_circle`: isolates one distinguished value in the normalized integral.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -21,6 +41,8 @@ open scoped Topology
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- Taking the divided slope at a point inside a ball preserves complex differentiability on the
+ball and continuity on its closure. -/
 theorem diffContOnCl_dslope {F : ℂ → E} {c a : ℂ} {R : ℝ}
     (hF : DiffContOnCl ℂ F (ball c R)) (ha : a ∈ ball c R) :
     DiffContOnCl ℂ (dslope F a) (ball c R) := by
@@ -30,6 +52,9 @@ theorem diffContOnCl_dslope {F : ℂ → E} {c a : ℂ} {R : ℝ}
   · exact (continuousOn_dslope (closedBall_mem_nhds_of_mem ha)).mpr
       ⟨hF.continuousOn_ball, hF.differentiableAt isOpen_ball ha⟩
 
+/-- An analytic regulator whose zeros on a closed disk form the given finite set of simple
+interior zeros factors into their linear factors and a function nonvanishing on the closed
+disk. -/
 theorem extract_finite_simple_zeros (s : Finset ℂ) {c : ℂ} {R : ℝ}
     (h : ℂ → ℂ) (hh : DiffContOnCl ℂ h (ball c R))
     (hinside : ∀ p ∈ s, p ∈ ball c R)
@@ -81,6 +106,9 @@ theorem extract_finite_simple_zeros (s : Finset ℂ) {c : ℂ} {R : ℝ}
     intro z
     rw [hfactor, hkg, Finset.prod_insert ha, mul_assoc]
 
+/-- For an analytic numerator and a regulator with exactly the specified simple interior zeros
+on the closed disk, the circle integral of the numerator divided by the regulator is `2πI`
+times the sum of values divided by the regulator derivatives. -/
 theorem circleIntegral_analytic_regulator (s : Finset ℂ) {c : ℂ} {R : ℝ}
     (hR : 0 ≤ R) (F : ℂ → E) (h : ℂ → ℂ)
     (hF : DiffContOnCl ℂ F (ball c R))
@@ -128,6 +156,8 @@ theorem circleIntegral_analytic_regulator (s : Finset ℂ) {c : ℂ} {R : ℝ}
     simpa only [Finset.prod_empty, inv_one, one_smul, Finset.sum_empty, smul_zero]
       using hGF.circleIntegral_eq_zero hR
 
+/-- Normalizing the regulator circle integral by the derivative at a distinguished simple zero
+yields the numerator value there plus derivative-ratio-weighted values at the other zeros. -/
 theorem cbmd_analytic_regulator_circle (s : Finset ℂ) (p₀ : ℂ) (hp₀ : p₀ ∈ s)
     {c : ℂ} {R : ℝ} (F : ℂ → E) (h : ℂ → ℂ)
     (hF : DiffContOnCl ℂ F (ball c R))

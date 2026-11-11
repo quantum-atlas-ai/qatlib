@@ -8,6 +8,31 @@ import Qatlib.Papers.HiddenShift02.MainResults.RingCharacter
 import Qatlib.Papers.HiddenShift02.MainResults.FieldCharacter
 import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
 import Mathlib.Data.Nat.Totient
+
+/-!
+# Fourier support for prime moduli
+
+This module characterizes the nonzero Fourier frequencies of a shifted nontrivial multiplicative
+character over a prime residue field. It also packages the support and recovery probability
+identities over `ZMod ell` under the explicit unit-cardinality and Fourier-norm hypotheses in
+`source_theorem3_reduction`.
+
+The development follows [VanDamHallgrenIp2006].
+
+## Main statements
+
+* `source_theorem3_prime`: Under the stated primitivity and Fourier-norm hypotheses, the shifted
+  character modulo prime ell has Fourier support exactly at nonzero residues. Those residues
+  have representatives coprime to ell, and the support cardinality is φ(ell).
+* `source_theorem3_reduction`: Under positive unit-cardinality and unit Fourier-norm hypotheses,
+  both the preparation fraction and normalized recovery squared amplitude equal φ(ell)/ell, and
+  the displayed product equals its cube.
+
+## References
+
+* [van Dam et al., 2006][VanDamHallgrenIp2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +43,8 @@ open scoped BigOperators ComplexConjugate
 
 namespace Qatlib.Papers.HiddenShift02.MainResults.UnknownModulus
 
+/-- For a nontrivial multiplicative character modulo a prime, the Fourier coefficient of any
+shift at the zero frequency multiplier vanishes ([Theorem 3][VanDamHallgrenIp2006]). -/
 theorem fourier_mulShift_zero {ell : ℕ} [Fact ell.Prime]
     (χ : MulChar (ZMod ell) ℂ) (hχ : χ ≠ 1) (ψ : AddChar (ZMod ell) ℂ) (s : ZMod ell) :
     fourier (fun x => χ (x + s)) (ψ.mulShift 0) = 0 := by
@@ -33,6 +60,9 @@ theorem fourier_mulShift_zero {ell : ℕ} [Fact ell.Prime]
     rw [hz, mul_zero]
   rw [htriv, fourier_shift, hsum, mul_zero]
 
+/-- For a nontrivial multiplicative character modulo a prime with a unit-norm Fourier
+coefficient at `ψ`, every nonzero frequency multiplier gives a nonzero coefficient of the
+shifted character ([Theorem 3][VanDamHallgrenIp2006]). -/
 theorem fourier_mulShift_ne_zero_of_ne_zero {ell : ℕ} [Fact ell.Prime]
     (χ : MulChar (ZMod ell) ℂ) (hχ : χ ≠ 1) (ψ : AddChar (ZMod ell) ℂ)
     (hψhat : ‖fourier χ ψ‖ = 1) (s : ZMod ell) {y : ZMod ell} (hy : y ≠ 0) :
@@ -48,6 +78,9 @@ theorem fourier_mulShift_ne_zero_of_ne_zero {ell : ℕ} [Fact ell.Prime]
   rw [fourier_shift, FieldCharacter.fourier_mulShift_char χ ψ hy, ← mul_assoc]
   exact mul_ne_zero (mul_ne_zero hval hχy) hF
 
+/-- Under the stated primitivity and Fourier-norm hypotheses, the shifted character modulo prime
+ell has Fourier support exactly at nonzero residues. Those residues have representatives
+coprime to ell, and the support cardinality is φ(ell) ([Theorem 3][VanDamHallgrenIp2006]). -/
 theorem source_theorem3_prime {ell : ℕ} [Fact ell.Prime]
     (χ : MulChar (ZMod ell) ℂ) (hχ : χ ≠ 1) (ψ : AddChar (ZMod ell) ℂ)
     (hψ : ψ.IsPrimitive) (hψhat : ‖fourier χ ψ‖ = 1) (s : ZMod ell) :
@@ -87,6 +120,9 @@ theorem source_theorem3_prime {ell : ℕ} [Fact ell.Prime]
     rw [hfilt, Finset.card_erase_of_mem (Finset.mem_univ _), Finset.card_univ, ZMod.card,
       Nat.totient_prime (Fact.out)]
 
+/-- Under positive unit-cardinality and unit Fourier-norm hypotheses, both the preparation
+fraction and normalized recovery squared amplitude equal φ(ell)/ell, and the displayed
+product equals its cube ([Theorem 3][VanDamHallgrenIp2006]). -/
 theorem source_theorem3_reduction {ell : ℕ} [NeZero ell]
     (χ : MulChar (ZMod ell) ℂ) (ψ : AddChar (ZMod ell) ℂ) (s : ZMod ell)
     (hU : 0 < Fintype.card (ZMod ell)ˣ) (hψhat : ‖fourier χ ψ‖ = 1) :

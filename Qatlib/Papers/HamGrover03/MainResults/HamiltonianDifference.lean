@@ -9,6 +9,31 @@ import Qatlib.Concepts.LchsSimulation.TimeLchs
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Hamiltonian Perturbation Bound
+
+This module proves the operator-norm evolution estimate corresponding to Lemma 1 of
+[RolandCerf2003]. For continuous Hermitian Hamiltonians `H` and `H'`, a nonnegative integrable
+function `delta` bounding `norm(H u - H' u)` on `[0,T]` yields an evolution difference bounded
+by `sqrt(2 * integral(delta))`, provided `T >= 0`. The evolutions use `orderedEvolution` with
+generators `i * H` and `i * H'`, hence the convention `U' = -i*H*U`.
+
+The proof combines the stronger integral perturbation estimate with the bound `2` for the
+difference of two unitary operators. The scalar inequality `min_two_le_sqrt_two_mul` then
+converts these bounds into the stated square-root estimate.
+
+## Main statements
+
+- `min_two_le_sqrt_two_mul` bounds `min(2,x)` by `sqrt(2*x)` for nonnegative `x`.
+* `lemma1_hamiltonian_difference_bound` gives the square-root bound for the two ordered
+  evolutions in the L2 operator norm.
+
+## References
+
+- [Roland and Cerf, 2003][RolandCerf2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +45,7 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 
 namespace Qatlib.Papers.HamGrover03.MainResults
 
+/-- For nonnegative `x`, the smaller of `2` and `x` is at most `sqrt(2*x)`. -/
 private theorem min_two_le_sqrt_two_mul {x : ℝ} (hx : 0 ≤ x) :
     min 2 x ≤ Real.sqrt (2 * x) := by
   rcases le_total x 2 with h | h
@@ -28,6 +54,10 @@ private theorem min_two_le_sqrt_two_mul {x : ℝ} (hx : 0 ≤ x) :
   · rw [min_eq_left h]
     exact Real.le_sqrt_of_sq_le (by nlinarith)
 
+/-- For continuous Hermitian `H` and `H'`, nonnegative `T`, and a nonnegative integrable bound
+`delta` on their pointwise difference over `[0,T]`, the L2 operator-norm difference of their
+evolutions is at most `sqrt(2 * integral(delta))` [RolandCerf2003]. Both evolutions use the
+convention `U' = -i*H*U` through the generators `i * H` and `i * H'`. -/
 theorem lemma1_hamiltonian_difference_bound
     {I : Type} [Fintype I] [DecidableEq I]
     (H H' : ℝ → Matrix I I ℂ) (δ : ℝ → ℝ) (T : ℝ)

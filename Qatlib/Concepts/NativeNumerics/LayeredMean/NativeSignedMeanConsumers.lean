@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeLayeredMean
 import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
 
+/-!
+# Native signed mean guarantees and resource counts
+
+This module transfers layered and signed mean-estimation guarantees to the finite-precision
+record laws built from `nativeLayerPrepare`. The sampled-center construction and median
+amplification are developed in the quantum Monte Carlo setting of [Montanaro2015].
+
+It also records the actual lists of amplitude-estimation circuits and counts their queries,
+fixed gates, preparation accesses, and rational square-root comparisons.
+
+## Main statements
+
+* `native_signed_centered_same_program_consumer`: A variance bound yields success probability at
+  least `13/24` at error `8 * σ * (1/2)^k`.
+* `native_signed_fresh_median`: Independent median repetition bounds failure by `(143/144)^r`.
+* `native_signed_actual_program_ledger`: Exact comparison, circuit, query, gate, and access
+  counts for the signed program.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 600000
@@ -25,6 +48,7 @@ namespace Qatlib.Concepts.NativeNumerics.LayeredMean
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- An ℓ¹ distance bound `δ` between finite laws lowers any event probability by at most `δ`. -/
 theorem native_record_event_lower {X : Type} [Fintype X] [DecidableEq X]
     (p q : FinDist X) (δ : ℝ) (hd : (∑ x,|p.prob x-q.prob x|)≤δ) (E : Finset X) :
     (∑ x∈E,p.prob x)≥(∑ x∈E,q.prob x)-δ := by
@@ -35,6 +59,9 @@ theorem native_record_event_lower {X : Type} [Fintype X] [DecidableEq X]
   have hl := (abs_le.mp hh).1
   linarith
 
+/-- For nonnegative `f` with second moment at most one, the native layered estimator has error
+at most `(1/2)^k` with probability at least `1 - 2 * (1/2)^k`. This transfers the layered
+guarantee associated with [Montanaro2015, Lemma 4][Montanaro2015] to the native record law. -/
 theorem native_layered_actual_mean_guarantee
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (k : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ) (hf : ∀ i,0≤f i)
@@ -66,6 +93,8 @@ theorem native_layered_actual_mean_guarantee
         |layerEstimate (k+1) ω-∑ i,BornProb (A*ᵥKet j) i*(f i:ℝ)|≤(1/2:ℝ)^(k+1)))
     linarith
 
+/-- The native signed record law obtained by sampling a center from the Born distribution and
+independently generating its positive and negative layered records. -/
 noncomputable def nativeSignedLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (σ : ℚ) (k : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ)
@@ -91,6 +120,8 @@ noncomputable def nativeSignedLaw {I : Type} [Fintype I] [DecidableEq I]
         simp only [← Finset.mul_sum, N.sum_one, mul_one, P.sum_one]
       _ = 1 := normalized_applyGate hA (normalized_ket j)
 
+/-- The ℓ¹ distance between two product laws on pairs is at most the sum of the ℓ¹ distances of
+the two pairs of marginal laws. -/
 theorem native_pair_record_l1 {X : Type} [Fintype X] [DecidableEq X]
     (p q r s : FinDist X) :
     (∑ u,∑ v,|p.prob u*r.prob v-q.prob u*s.prob v|)≤
@@ -106,16 +137,20 @@ theorem native_pair_record_l1 {X : Type} [Fintype X] [DecidableEq X]
       simp only [Finset.sum_add_distrib, ← Finset.mul_sum, r.sum_one, mul_one, ← Finset.sum_mul,
           q.sum_one, one_mul]
 
+/-- Casting the rational positive centered payoff to the reals gives `centerPositive`. -/
 theorem native_center_positive_cast {I : Type} (f : I→ℚ) (σ : ℚ) (x : I) :
     (fun i => ((max 0 ((f i-f x)/(4*σ)):ℚ):ℝ))=centerPositive (fun i => (f i:ℝ)) (σ:ℝ) x := by
   funext i
   simp [centerPositive, max_comm]
 
+/-- Casting the rational negative centered payoff to the reals gives `centerNegative`. -/
 theorem native_center_negative_cast {I : Type} (f : I→ℚ) (σ : ℚ) (x : I) :
     (fun i => ((max 0 ((f x-f i)/(4*σ)):ℚ):ℝ))=centerNegative (fun i => (f i:ℝ)) (σ:ℝ) x := by
   funext i
   simp [centerNegative, max_comm]
 
+/-- The native signed record law has ℓ¹ distance at most `2 * (1/2)^k` from the ideal signed
+mean law. -/
 theorem native_signed_record_l1
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (σ : ℚ) (k : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ)
@@ -150,6 +185,10 @@ theorem native_signed_record_l1
       exact (native_pair_record_l1 _ _ _ _).trans (by linarith [hplus x,hminus x])
     _ = _ := by rw [← Finset.sum_mul,hnorm,one_mul]
 
+/-- For `k ≥ 4` and positive `σ` bounding the standard deviation, there is a native signed
+record law with the stated product probabilities and success mass at least `13/24` at error
+`8 * σ * (1/2)^k`. This is a native sampled-center guarantee in the setting of
+[Montanaro2015, Theorem 5][Montanaro2015]. -/
 theorem native_signed_centered_same_program_consumer
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (j : I) (f : I→ℚ) (σ : ℚ) (k : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ)
@@ -194,6 +233,8 @@ theorem native_signed_centered_same_program_consumer
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
 set_option warningAsError false
 
+/-- If a single estimate exceeds error `ε ≥ 0` with probability at most `11/24`, the sorted
+median of `2*r+1` independent estimates fails with probability at most `(143/144)^r`. -/
 theorem native_sorted_median_failure {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I) (v : I → ℝ) (r : ℕ) (μ ε : ℝ)
     (hε : 0 ≤ ε) (hb : mass p (fun x => ε < |v x-μ|) ≤ 11/24) :
     p.probEvent (fun ω : Fin (2*r+1) → I =>
@@ -245,10 +286,15 @@ theorem native_sorted_median_failure {I : Type} [Fintype I] [DecidableEq I] (p :
       have hp : 0 ≤ (143/144 : ℝ)^r := by positivity
       nlinarith
 
+/-- The total number of rational square-root bracket comparisons used to build a single native
+layer's payoff table and its complementary table. -/
 def nativeLayerTableComparisons {I : Type} [Fintype I] (f : I→ℚ) (k l : ℕ) : ℕ :=
   ∑ i, ((rationalSqrtBracket (nativeLayerPayoff f l i) (nativeLayerBits k)).2.2+
     (rationalSqrtBracket (1-nativeLayerPayoff f l i) (nativeLayerBits k)).2.2)
 
+/-- Each layer table uses `2 * card I * nativeLayerBits k` comparisons, while its
+amplitude-estimation word uses `layerGrid k` forward accesses and `layerGrid k - 1` backward
+accesses and queries; the stated doubled repetition count is additive. -/
 theorem native_layered_paid_ledger
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (k : ℕ)
     (_hA : A∈Matrix.unitaryGroup I ℂ) (hf : ∀ i,0≤f i) :
@@ -277,6 +323,9 @@ theorem native_layered_paid_ledger
         (prepared_ae_access_ledger (layerGrid k) (layerGrid_pos k) (nativeLayerPrepare A f k l) (j,false)).1
     exact ⟨hsep.1,hsep.2.1,hquery⟩
 
+/-- A certified pilot scale bounding the variance yields a native signed law whose estimate is
+within positive tolerance `eps` with probability at least `13/24`, under the stated payoff
+and pilot assumptions. -/
 theorem native_signed_pilot_scale_consumer
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ)
     (N h : ℕ) (nu eps : ℚ) (pilot : Fin N→I)
@@ -314,6 +363,10 @@ theorem native_signed_pilot_scale_consumer
     exact Finset.mem_filter.mpr ⟨Finset.mem_univ _,(Finset.mem_filter.mp hω).2.trans hp.2.1⟩
   · intro ω _ _; exact law.nonneg ω
 
+/-- Under the variance bound, `k ≥ 4`, and `σ > 0`, there is a native signed record law whose
+median over `2*r+1` fresh records exceeds error `8 * σ * (1/2)^k` with probability at most
+`(143/144)^r`. This supplies median amplification for the native signed estimator associated
+with [Montanaro2015, Theorem 5][Montanaro2015]. -/
 theorem native_signed_fresh_median : ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
   (j : I) (f : I→ℚ) (σ : ℚ) (k r : ℕ), A∈Matrix.unitaryGroup I ℂ → 4≤k → 0 < σ →
   let μ := ∑ i,BornProb (A*ᵥKet j) i*(f i:ℝ)
@@ -347,12 +400,16 @@ theorem native_signed_fresh_median : ∀ (I : Type) [Fintype I] [DecidableEq I] 
     linarith
   exact native_sorted_median_failure law v r μ ε (by dsimp [ε]; positivity) hbad
 
+/-- The list of counted amplitude-estimation circuits for every native layer and all its
+repetitions. -/
 noncomputable def nativeLayerAEPrograms {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℚ) :
     List (Circuit (Fin (layerGrid k) × (Bool × (I × Bool)))) :=
   (List.ofFn (fun l : Fin (k+2) => List.replicate (2*layerRepetitions k+1)
     (countedAECircuit (layerGrid k) (nativeLayerPrepare A f k l.val) (j,false)))).flatten
 
+/-- The native layered circuit list has `q = (k+2) * (2 * layerRepetitions k + 1)` elements, `q
+* (layerGrid k - 1)` queries, and `q * (5 * (layerGrid k - 1) + 3)` fixed gates. -/
 theorem nativeLayerAEPrograms_counts {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℚ) :
     let q := (k+2)*(2*layerRepetitions k+1)
@@ -372,15 +429,21 @@ theorem nativeLayerAEPrograms_counts {I : Type} [Fintype I] [DecidableEq I]
         hquery, hgate, nsmul_eq_mul, Finset.sum_const, Finset.card_univ, Fintype.card_fin]
     all_goals push_cast; ring
 
+/-- The total table-comparison count for the positive and negative centered payoff layers at
+center `x`. -/
 def nativeSignedTableComparisons {I : Type} [Fintype I] (f : I→ℚ) (σ : ℚ) (k : ℕ) (x : I) : ℕ :=
   ∑ l : Fin (k+2), (nativeLayerTableComparisons (fun i => max 0 ((f i-f x)/(4*σ))) k l+
     nativeLayerTableComparisons (fun i => max 0 ((f x-f i)/(4*σ))) k l)
 
+/-- The signed estimator's circuit list, formed by concatenating the positive and negative
+centered layered programs. -/
 noncomputable def nativeSignedAEPrograms {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (σ : ℚ) (k : ℕ) (x : I) :=
   nativeLayerAEPrograms k A j (fun i => max 0 ((f i-f x)/(4*σ))) ++
     nativeLayerAEPrograms k A j (fun i => max 0 ((f x-f i)/(4*σ)))
 
+/-- The actual signed program uses `4 * (k+2) * card I * nativeLayerBits k` table comparisons
+and the stated exact totals for circuits, queries, gates, and forward and backward accesses. -/
 theorem native_signed_actual_program_ledger
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (σ : ℚ) (k : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ) (x : I) :

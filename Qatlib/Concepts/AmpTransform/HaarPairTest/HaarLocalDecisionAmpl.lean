@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarLocalDecisionStat
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairAmplitude
+
+/-!
+# Local decision by amplified Haar pairs
+
+`haarLocalDecision` proves the circuit validity, resource counts, and orientation success bounds
+for amplified Haar pairs. A common marked-pair parity determines the successful orientation, as
+in the amplified Haar-transform analysis of [Cornwell2014].
+
+## Main statements
+
+* `haarLocalDecision`: Proves the local Haar-pair decision contract, including exact circuit
+  counts, marked correct-orientation mass, a success lower bound of 1−M/|I|, and a 2/3 bound
+  when 3M ≤ |I|; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -39,6 +58,9 @@ open Qatlib
 open Qatlib
 open scoped Classical BigOperators
 
+/-- Proves the local Haar-pair decision contract, including exact circuit counts, marked
+correct-orientation mass, a success lower bound of 1−M/|I|, and a 2/3 bound when 3M ≤ |I|;
+see [Cornwell2014]. -/
 theorem haarLocalDecision : HaarLocalDecision := by
   intro I _ _ hN T' seed hT hprep M θ hθpos hθπ hθ
   let k := Nat.floor (Real.pi / (4 * θ))

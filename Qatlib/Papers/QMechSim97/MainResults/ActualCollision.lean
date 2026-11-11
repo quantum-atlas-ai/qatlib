@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
 import Qatlib.Foundations.PureStateMath.Tensor
 import Mathlib.LinearAlgebra.UnitaryGroup
+
+/-!
+# Two-qubit collisions and number sectors
+
+This module implements the four-dimensional collision matrix used in [BoghosianTaylor1998],
+fixing the vacuum and doubly occupied basis states and mixing the two singly occupied states.
+The condition `IsUnitaryPair a b` ensures that `collision a b` is unitary.
+
+Tensoring this collision with the identity on a finite spectator space preserves unitarity. The
+support predicate `InNumberSector` allows the number-sector preservation theorem to cover states
+with arbitrary correlations with the spectator coordinates.
+
+## Main statements
+
+* `collision_unitary`: unitarity under the two collision-parameter constraints.
+* `collision_single_particle`: the explicit action on the singly occupied sector.
+* `collision_preserves_number_sector`: preservation of total-number support with spectators.
+
+## References
+
+* [Boghosian and Taylor, 1998][BoghosianTaylor1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,11 +41,17 @@ open Qatlib.Papers.QMechSim97.MainResults.Defs
 open Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
 open scoped Classical BigOperators
 
+/-- The four-by-four collision matrix fixing the first and last basis vectors and acting by
+`collision2 a b` on the middle two coordinates. -/
 def collision (a b : ℂ) : Matrix (Fin 4) (Fin 4) ℂ :=
   !![1, 0, 0, 0; 0, b, a, 0; 0, a, b, 0; 0, 0, 0, 1]
 
+/-- The particle count of a two-bit basis label: zero at label zero, two at label three, and one
+otherwise. -/
 def pairOccupation (i : Fin 4) : ℕ := if i = 0 then 0 else if i = 3 then 2 else 1
 
+/-- If `a` and `b` satisfy `IsUnitaryPair`, the four-dimensional collision matrix is unitary.
+See [BoghosianTaylor1998]. -/
 theorem collision_unitary (a b : ℂ) (hp : IsUnitaryPair a b) :
     collision a b ∈ Matrix.unitaryGroup (Fin 4) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff']
@@ -39,27 +68,37 @@ theorem collision_unitary (a b : ℂ) (hp : IsUnitaryPair a b) :
     simp [collision, Matrix.mul_apply, Fin.sum_univ_succ, haa, hbb, hn,
       add_comm, hab]
 
+/-- The collision matrix has zero entries between basis labels of different particle counts. -/
 theorem collision_off_sector (a b : ℂ) (i j : Fin 4)
     (h : pairOccupation i ≠ pairOccupation j) : collision a b i j = 0 := by
   fin_cases i <;> fin_cases j <;> simp_all [collision, pairOccupation]
 
+/-- On the singly occupied sector, the collision sends amplitudes `(α, β)` to `(b * α + a * β, a
+* α + b * β)`. See [BoghosianTaylor1998]. -/
 theorem collision_single_particle (a b α β : ℂ) :
     (collision a b).mulVec ![0, α, β, 0] = ![0, b * α + a * β, a * α + b * β, 0] := by
   ext i
   fin_cases i <;> simp [collision, Matrix.mulVec, dotProduct, Fin.sum_univ_succ]
 
+/-- The support condition that a state vanishes outside total occupation number `n`, counting
+both the pair and the spectator label. -/
 def InNumberSector {W : Type} (outsideCount : W → ℕ) (n : ℕ)
     (ψ : Fin 4 × W → ℂ) : Prop :=
   ∀ z, pairOccupation z.1 + outsideCount z.2 ≠ n → ψ z = 0
 
+/-- The tensor product of the two-qubit collision with the identity on the spectator space. -/
 def collisionWithSpectator {W : Type} [DecidableEq W] (a b : ℂ) :
     Matrix (Fin 4 × W) (Fin 4 × W) ℂ := TensorGate (collision a b) 1
 
+/-- Under `IsUnitaryPair a b`, the spectator-extended collision is unitary on the finite product
+space. -/
 theorem collisionWithSpectator_unitary {W : Type} [Fintype W] [DecidableEq W]
     (a b : ℂ) (hp : IsUnitaryPair a b) :
     collisionWithSpectator (W := W) a b ∈ Matrix.unitaryGroup (Fin 4 × W) ℂ :=
   tensorGate_unitary (collision_unitary a b hp) (Submonoid.one_mem _)
 
+/-- At fixed spectator label `w`, the extended collision acts by summing only over the four pair
+labels. -/
 theorem collisionWithSpectator_apply {W : Type} [Fintype W] [DecidableEq W]
     (a b : ℂ) (ψ : QState (Fin 4 × W)) (i : Fin 4) (w : W) :
     ApplyGate (collisionWithSpectator a b) ψ (i, w) =
@@ -73,6 +112,8 @@ theorem collisionWithSpectator_apply {W : Type} [Fintype W] [DecidableEq W]
     ring
   · rw [Matrix.one_apply_ne (fun h => hv h.symm), mul_zero, zero_mul]
 
+/-- The spectator-extended collision preserves the support of every fixed total-number sector.
+See [BoghosianTaylor1998]. -/
 theorem collision_preserves_number_sector {W : Type} [Fintype W] [DecidableEq W]
     (a b : ℂ) (outsideCount : W → ℕ) (n : ℕ) (ψ : QState (Fin 4 × W))
     (hψ : InNumberSector outsideCount n ψ) :

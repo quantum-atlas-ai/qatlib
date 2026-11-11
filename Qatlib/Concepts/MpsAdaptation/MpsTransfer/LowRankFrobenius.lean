@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
+
+/-!
+# A Frobenius error bound for low-rank approximations
+
+This module proves `spectralFrobenius_lowRank_error`: subtracting a matrix `X` from `A` leaves
+squared spectral Frobenius norm at least `spectralFrobenius A ^ 2 - X.rank * ‖A‖ ^ 2`. The
+estimate combines singular-value tail bounds with the operator norm bound on each singular
+value, using the matrix analysis framework of [HornJohnson2013].
+
+The result supplies a rank-dependent error estimate relevant to low-rank matrix arithmetic, as
+studied in [ChiaEtAl2022].
+
+## Main statements
+
+* `spectralFrobenius_lowRank_error`: the squared Frobenius residual bound for arbitrary
+  rectangular complex matrices.
+
+## References
+
+* [Horn and Johnson, 2013][HornJohnson2013]
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,6 +59,8 @@ open Qatlib
 open Qatlib.Concepts.SketchSpectral.MatrixFunctions.RankLogStability.Decomposition
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The squared spectral Frobenius norm of `A - X` is at least that of `A` minus the rank of `X`
+times the squared operator norm of `A`. -/
 theorem spectralFrobenius_lowRank_error
     {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A X : Matrix O I ℂ) :

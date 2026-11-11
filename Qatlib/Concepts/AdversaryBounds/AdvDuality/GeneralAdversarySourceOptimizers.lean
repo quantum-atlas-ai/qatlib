@@ -18,6 +18,33 @@ import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
+
+/-!
+# Optimizers for cost-weighted nonnegative adversaries
+
+Defines `CostAdversaryFeasible` for real symmetric entrywise nonnegative witnesses and proves
+that its feasible set is compact when outputs are observable from the input encoding and costs
+are nonnegative. Normalization then yields optimal witnesses for positive costs and nonconstant
+functions.
+
+`OutputObservable` separates finite optima from collisions that force infinite adversary value.
+The module also establishes simultaneous adversary and minimax optimizer existence, supporting
+the weighted adversary framework of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `costAdversary_norm_max_exists`: a feasible matrix attains the maximum norm.
+* `advAlphaR_optimal_exists`: a nonzero source witness attains the weighted adversary value.
+* `adversary_minimax_optimizers_exist`: simultaneous existence of optimal adversary and minimax
+  witnesses.
+* `advAlphaR_finite_iff_observable`: finiteness is equivalent to output observability under the
+  stated hypotheses.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -44,6 +71,8 @@ variable {d : ℕ}
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 noncomputable section
 
+/-- A real symmetric entrywise nonnegative matrix vanishing on equal Boolean outputs whose
+coordinate filter norms are bounded by the specified costs. -/
 def CostAdversaryFeasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (Gamma : Matrix X X ℝ) : Prop :=
   Gamma.IsSymm ∧ (∀ x y, 0 ≤ Gamma x y) ∧ (∀ x y, f x = f y → Gamma x y = 0) ∧
@@ -51,6 +80,7 @@ def CostAdversaryFeasible (input : X → K → Bool) (f : X → Bool) (alpha : K
 end
 noncomputable section
 
+/-- The absolute value of every entry of a real matrix is bounded by its operator norm. -/
 theorem real_operator_entry_bound (M : Matrix X X ℝ) (x y : X) : ‖M x y‖ ≤ ‖M‖ := by
   let v : EuclideanSpace ℝ X := PiLp.single 2 y 1
   let w : EuclideanSpace ℝ X := (EuclideanSpace.equiv X ℝ).symm (M *ᵥ v)
@@ -64,12 +94,16 @@ theorem real_operator_entry_bound (M : Matrix X X ℝ) (x y : X) : ‖M x y‖ �
 end
 noncomputable section
 
+/-- The condition that every pair with different Boolean outputs is separated by at least one
+input coordinate. -/
 def OutputObservable (input : X → K → Bool) (f : X → Bool) : Prop :=
   ∀ x y, f x ≠ f y → ∃ i, input x i ≠ input y i
 end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- The zero matrix is a feasible cost-weighted nonnegative adversary whenever all coordinate
+costs are nonnegative. -/
 theorem costAdversary_zero (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 ≤ alpha i) : CostAdversaryFeasible input f alpha 0 := by
   refine ⟨by rfl,by simp,by simp,?_⟩
@@ -84,6 +118,7 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- The set of feasible cost-weighted nonnegative adversary matrices is closed. -/
 theorem costAdversary_closed (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) :
     IsClosed {Gamma : Matrix X X ℝ | CostAdversaryFeasible input f alpha Gamma} := by
   have hc (i : K) : Continuous (fun G : Matrix X X ℝ => genAdvFilter input G i) := by
@@ -122,6 +157,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs and nonnegative costs, each entry of a feasible adversary is bounded
+in absolute value by the sum of the costs. -/
 theorem costAdversary_entry_bound (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 ≤ alpha i) (hobs : OutputObservable input f)
     (Gamma : Matrix X X ℝ) (hG : CostAdversaryFeasible input f alpha Gamma) (x y : X) :
@@ -138,6 +175,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs and nonnegative costs, the feasible cost-weighted nonnegative
+adversary set is compact. -/
 theorem costAdversary_compact (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 ≤ alpha i) (hobs : OutputObservable input f) :
     IsCompact {Gamma : Matrix X X ℝ | CostAdversaryFeasible input f alpha Gamma} := by
@@ -156,6 +195,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs and nonnegative costs, some feasible adversary matrix maximizes the
+operator norm over the feasible set. -/
 theorem costAdversary_norm_max_exists (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 ≤ alpha i) (hobs : OutputObservable input f) :
     ∃ Gamma : Matrix X X ℝ, CostAdversaryFeasible input f alpha Gamma ∧
@@ -166,6 +207,7 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K] in
 
+/-- Adversary filtering of real matrices commutes with real scalar multiplication. -/
 theorem genAdvFilter_real_smul (input : X → K → Bool) (Gamma : Matrix X X ℝ) (c : ℝ) (i : K) :
     genAdvFilter input (c • Gamma) i = c • genAdvFilter input Gamma i := by
   ext x y
@@ -176,6 +218,8 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- For observable outputs, a nonzero real matrix vanishing on equal outputs has a coordinate
+filter with positive norm. -/
 theorem nonzero_adversary_filter (input : X → K → Bool) (f : X → Bool)
     (hobs : OutputObservable input f) (Gamma : Matrix X X ℝ)
     (hz : ∀ x y, f x = f y → Gamma x y = 0) (hne : Gamma ≠ 0) :
@@ -196,6 +240,9 @@ theorem nonzero_adversary_filter (input : X → K → Bool) (f : X → Bool)
 end
 noncomputable section
 
+/-- With positive costs and observable outputs, a nonzero symmetric nonnegative supported
+witness can be normalized to a nonzero feasible matrix whose norm bounds its weighted
+witness value. -/
 theorem costAdversary_normalize (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f)
     (Gamma : Matrix X X ℝ) (hs : Gamma.IsSymm) (hp : ∀ x y, 0 ≤ Gamma x y)
@@ -251,6 +298,8 @@ theorem costAdversary_normalize (input : X → K → Bool) (f : X → Bool) (alp
 end
 noncomputable section
 
+/-- With positive costs, the norm of a feasible nonnegative adversary matrix is bounded by its
+weighted witness value. -/
 theorem costAdversary_norm_le_witness (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (Gamma : Matrix X X ℝ)
     (hG : CostAdversaryFeasible input f alpha Gamma) :
@@ -275,12 +324,16 @@ theorem costAdversary_norm_le_witness (input : X → K → Bool) (f : X → Bool
 end
 noncomputable section
 
+/-- The real matrix equal to one on the two ordered edges joining `a` and `b`, and zero
+elsewhere. -/
 def adversaryEdge (a b : X) : Matrix X X ℝ :=
   fun x y => if (x = a ∧ y = b) ∨ (x = b ∧ y = a) then 1 else 0
 end
 noncomputable section
 omit [Fintype X] [Fintype K] [DecidableEq K] in
 
+/-- Inputs with different Boolean outputs determine a nonzero symmetric nonnegative edge matrix
+vanishing on equal-output pairs. -/
 theorem adversaryEdge_source (f : X → Bool) (a b : X) (hab : f a ≠ f b) :
     (adversaryEdge a b).IsSymm ∧ (∀ x y, 0 ≤ adversaryEdge a b x y) ∧
       (∀ x y, f x = f y → adversaryEdge a b x y = 0) ∧ adversaryEdge a b ≠ 0 := by
@@ -306,6 +359,8 @@ theorem adversaryEdge_source (f : X → Bool) (a b : X) (hab : f a ≠ f b) :
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs and positive costs, a nonzero feasible
+matrix attains `advAlphaR`, and this value equals its norm. -/
 theorem advAlphaR_optimal_exists_of_observable
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f) (hnc : ∃ a b, f a ≠ f b) :
@@ -336,6 +391,7 @@ theorem advAlphaR_optimal_exists_of_observable
 end
 noncomputable section
 
+/-- An injective Boolean input encoding makes every Boolean output function observable. -/
 theorem outputObservable_of_injective {A J : Type} (input : A → J → Bool) (f : A → Bool)
     (hi : Function.Injective input) : OutputObservable input f := by
   intro x y hxy
@@ -347,6 +403,8 @@ theorem outputObservable_of_injective {A J : Type} (input : A → J → Bool) (f
 end
 noncomputable section
 
+/-- For a nonconstant function on a domain of Boolean words with positive costs, a nonzero
+feasible matrix attains the real nonnegative adversary value as its norm. -/
 theorem advAlphaR_word_optimal_exists (D : Set (K → Bool)) (f : D → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ a b, f a ≠ f b) :
     ∃ Gamma : Matrix D D ℝ, CostAdversaryFeasible (fun x : D => x.val) f alpha Gamma ∧ Gamma ≠ 0 ∧
@@ -358,6 +416,8 @@ end
 noncomputable section
 omit [Fintype X] [Fintype K] [DecidableEq K] in
 
+/-- If two encoded inputs agree at every coordinate, all coordinate filters of their edge matrix
+vanish. -/
 theorem adversaryEdge_filter_zero (input : X → K → Bool) (a b : X)
     (hinput : ∀ i, input a i = input b i) (i : K) :
     genAdvFilter input (adversaryEdge a b) i = 0 := by
@@ -373,6 +433,8 @@ theorem adversaryEdge_filter_zero (input : X → K → Bool) (a b : X)
 end
 noncomputable section
 
+/-- With positive costs, identically encoded inputs with different outputs yield an edge witness
+of infinite value and force `advAlphaR` to be infinite. -/
 theorem advAlphaR_infinite_of_collision (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (a b : X) (hab : f a ≠ f b)
     (hinput : ∀ i, input a i = input b i) :
@@ -394,6 +456,8 @@ theorem advAlphaR_infinite_of_collision (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- For a nonconstant Boolean function with positive costs, a nonzero symmetric nonnegative
+matrix supported on different outputs attains the weighted real adversary value. -/
 theorem advAlphaR_optimal_exists (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ a b, f a ≠ f b) :
     ∃ Gamma : Matrix X X ℝ, Gamma.IsSymm ∧ (∀ x y, 0 ≤ Gamma x y) ∧
@@ -413,6 +477,9 @@ theorem advAlphaR_optimal_exists (input : X → K → Bool) (f : X → Bool) (al
 end
 noncomputable section
 
+/-- For a nonconstant function with positive costs and nonempty coordinate type, both an optimal
+nonzero symmetric nonnegative adversary matrix and an optimal minimax probability family
+exist. -/
 theorem adversary_minimax_optimizers_exist [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ a b, f a ≠ f b) :
@@ -426,6 +493,8 @@ theorem adversary_minimax_optimizers_exist [Nonempty K]
 end
 noncomputable section
 
+/-- For a nonconstant function on a domain of Boolean words with positive costs, optimal
+nonnegative adversary and minimax witnesses exist simultaneously. -/
 theorem adversary_minimax_word_optimizers_exist (D : Set (K → Bool)) (f : D → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ a b, f a ≠ f b) :
     ∃ (Gamma : Matrix D D ℝ) (p : D → K → ℝ),
@@ -441,6 +510,8 @@ theorem adversary_minimax_word_optimizers_exist (D : Set (K → Bool)) (f : D �
 end
 noncomputable section
 
+/-- For a nonconstant function with positive costs, the real nonnegative adversary value is
+finite exactly when outputs are observable from the input encoding. -/
 theorem advAlphaR_finite_iff_observable (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ a b, f a ≠ f b) :
     advAlphaR input f alpha < ⊤ ↔ OutputObservable input f := by
@@ -458,6 +529,8 @@ theorem advAlphaR_finite_iff_observable (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs and positive costs, the real nonnegative
+adversary value is bounded by the minimax value. -/
 theorem advAlphaR_le_minimax_of_observable (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f) (hnc : ∃ a b, f a ≠ f b) :
     advAlphaR input f alpha ≤ minimaxAlpha input f alpha := by

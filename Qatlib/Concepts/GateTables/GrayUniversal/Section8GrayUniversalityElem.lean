@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayUniversalityStat
 import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayTwoLevelElem
+
+/-!
+# Exact Gray-code universality
+
+`section8GrayUniversality` compiles a two-level factorization of an arbitrary unitary into a
+legal reflection-gate word on the same nonempty register. Combining the factor count with
+`section8GrayTwoLevel` gives the explicit bound in `Section8GrayUniversality`.
+
+The result provides exact circuit semantics and counts in the unitary synthesis framework of
+[BarencoEtAl1995].
+
+## Main statements
+
+* `section8GrayUniversality`: proves exact universality with zero queries and the stated `O(n³ *
+  4^n)` length bound.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.GateTables.GrayUniversal
 open Matrix
 open scoped Classical BigOperators
 
+/-- Every unitary on `n ≥ 1` qubits has a legal reflection-word implementation of length at most
+`2^(n - 1) * (2^n + 1) * ((2 * n - 1) * (256 * n^2 + 2 * n - 2))`. The circuit has zero
+queries, gate count equal to word length, and agrees with the unitary on every state. -/
 theorem section8GrayUniversality : Section8GrayUniversality := by
   intro n hn U hU
   let C := (2*n-1)*(256*n^2+2*n-2)

@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
 import QuantumInfo.ForMathlib.HermitianMat.CFC
 import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+
+/-!
+# Counterexamples to SDP execution contracts
+
+This module constructs finite counterexamples to four quantified execution contracts using
+`MixedReceipt`, `Step2Search`, and `SamplerTree`. The examples expose a query budget smaller
+than the number of required distinct queries, a recorded outcome law unsupported by an
+atom-weight product condition, an invalid no-output implication, and an exact finite sampler
+requirement for a non-dyadic law.
+
+The contracts concern implementation details in the quantum SDP setting of [BrandaoSvore2017].
+The refutations apply to the precise formal interfaces stated here, while the helper lemmas
+establish the counting and probability facts needed by those counterexamples.
+
+## Main statements
+
+* `clause6_refuted`: Six required distinct queries cannot fit the access receipt's query
+  allowance of four.
+* `G7.clause7_refuted`: The stated joint-weight and filtration conditions do not force the
+  claimed conditional Born law.
+* `G8.clause8_refuted`: Exact search estimates and no output do not imply the stated
+  no-cheap-separator conclusion.
+* `G9.clause9_refuted`: An arbitrary mixture law cannot always be realized exactly by a finite
+  fair-bit sampler tree.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
@@ -31,6 +61,7 @@ open Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
 
+/-- An element belonging to a list has count at least one when its Boolean equality is lawful. -/
 theorem one_le_count_of_mem {α : Type} [BEq α] [LawfulBEq α] {a : α} {l : List α}
     (h : a ∈ l) : 1 ≤ l.count a := by
   induction l with
@@ -44,6 +75,8 @@ theorem one_le_count_of_mem {α : Type} [BEq α] [LawfulBEq α] {a : α} {l : Li
       · exact absurd h.symm hb
       · exact ih h
 
+/-- The sum of the indicators that query descriptors equal `q₀` is the number of occurrences of
+`q₀` in the list. -/
 theorem sum_ite_eq_count (t : List QueryDesc) (q₀ : QueryDesc) :
     (t.map (fun q => if q = q₀ then (1:ℕ) else 0)).sum = t.count q₀ := by
   induction t with
@@ -54,6 +87,8 @@ theorem sum_ite_eq_count (t : List QueryDesc) (q₀ : QueryDesc) :
     · rw [h]; simp; omega
     · rw [if_neg h]; simp [h]
 
+/-- For a list of distinct query descriptors, the total number of their query-step occurrences
+is at most the total query count of the execution steps. -/
 theorem sum_count_queries_le (l : List QuantumStep) (t : List QueryDesc) (ht : t.Nodup) :
     (t.map (fun q => l.count (QuantumStep.query q))).sum ≤ (l.map QuantumStep.queries).sum := by
   induction l with
@@ -96,33 +131,53 @@ theorem sum_count_queries_le (l : List QuantumStep) (t : List QueryDesc) (ht : t
       · rw [List.count_eq_one_of_mem ht hm]
       · have h0 : t.count q₀ = 0 := List.count_eq_zero.mpr hm
         omega
+/-- The single zero constraint matrix in dimension two used by the clause 6 query-count
+counterexample. -/
 noncomputable def A0 : Fin 1 → Operator 2 := fun _ => 0
+/-- The zero objective matrix in dimension two used by the clause 6 query-count counterexample. -/
 noncomputable def Cv0 : Operator 2 := 0
+/-- The zero Hamiltonian in dimension two used by the clause 6 execution contract
+counterexample. -/
 noncomputable def H0 : Operator 2 := 0
+/-- The rational weight function assigning weight one to the sole constraint. -/
 noncomputable def wt0 : Fin 1 → ℚ := fun _ => 1
+/-- The sparse input for the sole zero constraint matrix, with sparsity and bit parameters both
+equal to one. -/
 noncomputable def encA0 : Fin 1 → SparseMatrixInput 2 := fun _ => ⟨1, 1, fun _ _ => 0⟩
+/-- The sparse input for the zero objective matrix, with sparsity and bit parameters both equal
+to one. -/
 noncomputable def encC0 : SparseMatrixInput 2 := ⟨1, 1, fun _ _ => 0⟩
+/-- The one-outcome POVM on dimension two whose sole effect is the identity. -/
 noncomputable def Lam0 : POVM (Fin 1) (Fin 2) where
   mats := fun _ => (1 : HermitianMat (Fin 2) ℂ)
   nonneg := fun _ => HermitianMat.zero_le_iff.mpr (by
     rw [HermitianMat.mat_one]; exact Matrix.PosSemidef.one)
   normalized := by
     rw [Fin.sum_univ_one]
+/-- The payoff function assigning zero to the only outcome of `Lam0`. -/
 noncomputable def f0 : Fin 1 → ℝ := fun _ => 0
 
+/-- The six required query descriptors consisting of all four objective-entry queries and the
+two row queries for the sole constraint matrix. -/
 noncomputable def q6 : List QueryDesc :=
   [QueryDesc.payoffEntry 2 Cv0 0 0, QueryDesc.payoffEntry 2 Cv0 0 1,
    QueryDesc.payoffEntry 2 Cv0 1 0, QueryDesc.payoffEntry 2 Cv0 1 1,
    QueryDesc.sparseRow 2 1 A0 0 0, QueryDesc.sparseRow 2 1 A0 0 1]
 
+/-- The six query descriptors in `q6` are pairwise distinct. -/
 theorem q6_nodup : q6.Nodup := by
   simp [q6, List.nodup_cons]
 
+/-- The sparse input length used as the clause 6 access-query allowance evaluates to four for
+the chosen dimension, constraint count, and encoding parameters. -/
 theorem sparseInputLength_val :
     sparseInputLength 2 1 encC0.s encC0.bits = 4 := by
   show sparseInputLength 2 1 1 1 = 4
   norm_num [sparseInputLength]
 
+/-- Refutes the stated universal receipt-construction contract because its access receipt must
+contain six distinct queries while its query count is bounded by four. This contradiction is
+independent of the proposed global cost function `B`. -/
 theorem clause6_refuted : ¬
     (  ∃ B : ℕ → ℕ → ℕ → ℕ → ℚ → ℚ → IntCost,
     ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
@@ -299,6 +354,8 @@ open Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
 
+/-- The time-independent two-outcome POVM on dimension one with both effects equal to half the
+identity. -/
 noncomputable def Lam : ℕ → POVM (Fin 2) (Fin 1) := fun _ =>
   { mats := fun _ => (2:ℝ)⁻¹ • (1 : HermitianMat (Fin 1) ℂ)
     nonneg := fun _ => HermitianMat.zero_le_iff.mpr
@@ -310,11 +367,17 @@ noncomputable def Lam : ℕ → POVM (Fin 2) (Fin 1) := fun _ =>
       have h : ((2:ℝ)⁻¹ + (2:ℝ)⁻¹) = (1:ℝ) := by ring
       rw [← add_smul, h, one_smul] }
 
+/-- The time-independent payoff that is one at outcome zero and zero at outcome one. -/
 noncomputable def f0 : ℕ → Fin 2 → ℝ := fun _ o => if o = 0 then (1:ℝ) else 0
+/-- The payoff observable obtained from the half-identity POVM `Lam` and the indicator payoff
+`f0` at each time. -/
 noncomputable def M0 : ℕ → Operator 1 := fun t =>
   Qatlib.Concepts.SdpDuality.ConeSeparation.payoffObservable (Lam t) (f0 t)
+/-- The constant identity state in dimension one used as the approximate state in the clause 7
+counterexample. -/
 noncomputable def approx0 : ℕ → Operator 1 := fun _ => 1
 
+/-- The finite probability space on two atoms, each of probability one half. -/
 noncomputable def S2 : FiniteSupportSpace (Fin 2) where
   prob := fun _ => (1:ℝ) / 2
   prob_nonneg := fun _ => by norm_num
@@ -322,8 +385,11 @@ noncomputable def S2 : FiniteSupportSpace (Fin 2) where
     rw [Fin.sum_univ_two]
     norm_num
 
+/-- The record map that returns outcome zero for every time, sample index, and atom. -/
 def Zrec0 : ℕ → Fin 1 → Fin 2 → Fin 2 := fun _ _ _ => 0
 
+/-- The constant trivial filtration whose events are exactly the empty set and the whole
+two-atom space. -/
 def F0 : Filtration (Fin 2) where
   events := fun _ => {E | E = ∅ ∨ E = Set.univ}
   mono := fun _ _ _ E hE => hE
@@ -339,12 +405,18 @@ def F0 : Filtration (Fin 2) where
     · rw [hE, hF, Set.union_empty]; exact Or.inr rfl
     · rw [hE, hF, Set.union_self]; exact Or.inr rfl
 
+/-- A time-independent receipt with no execution steps or paid primitives and a single fair-bit
+output tree emitting zero or one. -/
 noncomputable def Rprog0 : ℕ → MixedReceipt (Fin 2) := fun _ =>
   { width := 0, steps := [], prims := [],
     out := SamplerTree.bit (SamplerTree.emit 0) (SamplerTree.emit 1) }
+/-- The identically zero state-approximation error allowance for the clause 7 counterexample. -/
 noncomputable def xi0 : ℕ → ℝ := fun _ => 0
+/-- The identically zero program-law error allowance for the clause 7 counterexample. -/
 noncomputable def eprog0 : ℕ → ℝ := fun _ => 0
 
+/-- The initial matrix multiplicative weights state in dimension one is the identity, for any
+payoff history and learning rate. -/
 theorem mmwState_one_zero (M : ℕ → Operator 1) (η : ℝ) :
     mmwState 1 M η 0 = (1 : Operator 1) := by
   have hwt : Qatlib.Concepts.MatrixWeights.WeightsCore.mmwWeight 1 M η 0 = (1 : Operator 1) := by
@@ -355,6 +427,8 @@ theorem mmwState_one_zero (M : ℕ → Operator 1) (η : ℝ) :
   show (((1 : Operator 1) 0 0).re : ℂ)⁻¹ • (1 : Operator 1) = 1
   simp
 
+/-- Each outcome of `Lam 0` has Born probability one half on the identity state in dimension
+one. -/
 theorem bornLaw_half : ∀ o : Fin 2, bornLaw (Lam 0) (1 : Operator 1) o = (1:ℝ) / 2 := by
   intro o
   show (Matrix.trace (((Lam 0).mats o).mat * (1 : Operator 1))).re = _
@@ -364,6 +438,7 @@ theorem bornLaw_half : ∀ o : Fin 2, bornLaw (Lam 0) (1 : Operator 1) o = (1:�
   show (((2:ℝ)⁻¹ • (1 : Matrix (Fin 1) (Fin 1) ℂ)) 0 0).re = _
   simp
 
+/-- The probability of the whole two-atom space `S2` is one. -/
 theorem S2_eventProb_univ : S2.eventProb Set.univ = 1 := by
   unfold FiniteSupportSpace.eventProb
   simp only [Set.mem_univ, if_true]
@@ -371,6 +446,8 @@ theorem S2_eventProb_univ : S2.eventProb Set.univ = 1 := by
   rw [Fin.sum_univ_two]
   norm_num
 
+/-- Conditioned on the whole space, the indicator that the constant record is zero has
+expectation one. -/
 theorem condExpect_univ_one :
     S2.condExpect Set.univ (fun ω : Fin 2 => if Zrec0 0 0 ω = 0 then (1:ℝ) else 0) = 1 := by
   have hZ : ∀ ω : Fin 2, (if Zrec0 0 0 ω = 0 then (1:ℝ) else 0) = 1 := by
@@ -385,6 +462,9 @@ theorem condExpect_univ_one :
   rw [Fin.sum_univ_two]
   norm_num
 
+/-- Refutes the stated universal sampling and concentration contract using a constant record on
+two equiprobable atoms. The listed atom-weight product and filtration conditions hold, but
+the claimed conditional outcome probability would equate one with one half. -/
 theorem clause7_refuted : ¬
     (  ∀ (D T L : ℕ) (M : ℕ → Operator D) (approx : ℕ → Operator D)
       (O : Type) (_ : Fintype O) (_ : DecidableEq O)
@@ -540,14 +620,23 @@ open Filter Topology
 open Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
+/-- The sole scalar constraint matrix equal to minus the identity in the clause 8
+counterexample. -/
 noncomputable def A0 : Fin 1 → Operator 1 := fun _ => -(1 : Operator 1)
+/-- The scalar identity objective matrix in the clause 8 counterexample. -/
 noncomputable def Cv0 : Operator 1 := 1
+/-- The constraint bound assigning value one to the sole scalar constraint. -/
 noncomputable def b0 : Fin 1 → ℝ := fun _ => 1
+/-- The identically zero history of constraint weights for the clause 8 counterexample. -/
 noncomputable def yhist0 : ℕ → Fin 1 → ℝ := fun _ _ => 0
 
+/-- The initial matrix multiplicative weights state for the clause 8 data, with target parameter
+three and learning rate one half. -/
 noncomputable def ρ8 : Operator 1 :=
   mmwState 1 (sdpDualPayoff 1 1 A0 Cv0 (3:ℝ) yhist0) (1/2:ℝ) 0
 
+/-- The deterministic one-constraint search record with 300 grid points, one sample of each
+kind, and exact constraint and objective measurements minus one and one. -/
 noncomputable def S8 : Step2Search 1 1 300 1 1 1 where
   law := fun _ _ => 1
   draws := fun _ _ _ => 0
@@ -555,6 +644,7 @@ noncomputable def S8 : Step2Search 1 1 300 1 1 1 where
   measC := fun _ _ _ => 1
   idx := fun _ _ _ => 0
 
+/-- The initial state `ρ8` equals the identity in dimension one. -/
 theorem rho8_eq : ρ8 = (1 : Operator 1) := by
   have hwt : Qatlib.Concepts.MatrixWeights.WeightsCore.mmwWeight 1
       (sdpDualPayoff 1 1 A0 Cv0 (3:ℝ) yhist0) (1/2:ℝ) 0 = (1 : Operator 1) := by
@@ -565,6 +655,7 @@ theorem rho8_eq : ρ8 = (1 : Operator 1) := by
   show (((1 : Operator 1) 0 0).re : ℂ)⁻¹ • (1 : Operator 1) = 1
   simp
 
+/-- The real trace payoff of the sole constraint matrix against `ρ8` is minus one. -/
 theorem trA (i : Fin 1) : (Matrix.trace (A0 i * ρ8)).re = (-1:ℝ) := by
   show (Matrix.trace (-(1 : Operator 1) * ρ8)).re = -1
   rw [rho8_eq, Matrix.mul_one]
@@ -572,11 +663,14 @@ theorem trA (i : Fin 1) : (Matrix.trace (A0 i * ρ8)).re = (-1:ℝ) := by
   rw [Matrix.trace_neg, Matrix.trace_fin_one]
   simp
 
+/-- The real trace payoff of the objective matrix against `ρ8` is one. -/
 theorem trC : (Matrix.trace (Cv0 * ρ8)).re = (1:ℝ) := by
   rw [rho8_eq, Matrix.mul_one, Matrix.trace_fin_one]
   show ((1 : Operator 1) 0 0).re = 1
   simp
 
+/-- For every grid point in `S8`, the sparsified scaled payoff equals the source scaled payoff
+of the corresponding round vector exactly. -/
 theorem scaled_eq (k : Fin 1) (N : Fin 300) :
     sdpScaledSparsifiedPayoff 1 1 1 A0 Cv0 (3:ℝ)
         (Step2Search.gridMass (1/100) N) (S8.idx k N)
@@ -584,6 +678,8 @@ theorem scaled_eq (k : Fin 1) (N : Fin 300) :
   unfold sdpScaledSparsifiedPayoff sourceScaledPayoff Step2Search.roundVector
   simp only [S8, Fin.sum_univ_one, Nat.cast_one, inv_one, one_smul, mul_one]
 
+/-- The deterministic record `S8` satisfies its good-event inequalities for target three, grid
+spacing `1 / 100`, radius one, and measurement tolerance `1 / 1000`. -/
 theorem good_event :
     S8.goodEvent b0 A0 Cv0 ρ8 (3:ℝ) (1/100) (1:ℝ) (1/1000) := by
   intro k N
@@ -598,6 +694,8 @@ theorem good_event :
   · rw [scaled_eq k N, sub_self, norm_zero]
     norm_num
 
+/-- No grid point of `S8` is accepted for target three, radius one, grid spacing `1 / 100`, and
+tolerance `1 / 1000`. -/
 theorem no_output :
     S8.noOutput b0 (3:ℝ) (1:ℝ) (1/100) (1/1000) := by
   intro k N
@@ -613,6 +711,9 @@ theorem no_output :
   push_cast at ht1
   linarith
 
+/-- Refutes the stated universal search contract using a record with exact estimates, a good
+event, and no output. A nonnegative weight of `1 / 4` meets `eq75Threshold` while its
+objective lies below `noCheapWidth`, contradicting the required no-output conclusion. -/
 theorem clause8_refuted : ¬
     (  ∀ (D m γ Nmax M L Q : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
       (b : Fin m → ℝ) (α R ε κ ν η δin : ℝ) (t : ℕ) (yhist : ℕ → Fin m → ℝ)
@@ -729,6 +830,8 @@ open Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
 
+/-- Every outcome mass of a finite sampler tree built from emission, failure, and fair-bit
+branching is dyadic. -/
 theorem samplerTree_law_dyadic {n : ℕ} (t : SamplerTree (Fin n)) (i : Fin n) :
     IsDyadic (t.law i) := by
   induction t with
@@ -752,6 +855,8 @@ theorem samplerTree_law_dyadic {n : ℕ} (t : SamplerTree (Fin n)) (i : Fin n) :
     field_simp [ne_of_gt hp1, ne_of_gt hp2]
     ring
 
+/-- The real number one third has no representation as an integer divided by a natural power of
+two. -/
 theorem not_isDyadic_one_div_three : ¬ IsDyadic ((1:ℝ) / 3) := by
   rintro ⟨z, k, h⟩
   have hpow : (0:ℝ) < (2:ℝ) ^ k := pow_pos (by norm_num) k
@@ -770,11 +875,16 @@ theorem not_isDyadic_one_div_three : ¬ IsDyadic ((1:ℝ) / 3) := by
   have h6 : (3:ℕ) ∣ 2 := Nat.prime_three.dvd_of_dvd_pow h5
   norm_num at h6
 
+/-- The single-round distribution on two outcomes with masses one third and two thirds. -/
 noncomputable def q0 : Fin 1 → Fin 2 → ℝ := fun _ i => if i = 0 then (1:ℝ) / 3 else (2:ℝ) / 3
+/-- The grid-count function assigning one to the only round of the clause 9 counterexample. -/
 def Nt0 : Fin 1 → ℕ := fun _ => 1
+/-- The mixture mass function assigning one to the only round of the clause 9 counterexample. -/
 noncomputable def mu0 : Fin 1 → ℝ := fun _ => 1
+/-- The identically zero component-law error allowance for the clause 9 counterexample. -/
 noncomputable def nus0 : Fin 1 → ℝ := fun _ => 0
 
+/-- Each round distribution specified by `q0` is nonnegative and sums to one. -/
 theorem q0_law : ∀ t : Fin 1, (∀ i : Fin 2, 0 ≤ q0 t i) ∧ (∑ i : Fin 2, q0 t i) = 1 := by
   intro t
   constructor
@@ -786,6 +896,8 @@ theorem q0_law : ∀ t : Fin 1, (∀ i : Fin 2, 0 ≤ q0 t i) ∧ (∑ i : Fin 2
     rw [h0, h1]
     norm_num
 
+/-- Mixing the distinguished outcome zero with the single `q0` component, each with mass one
+before normalization, gives outcome one probability one third. -/
 theorem dualMixtureLaw_q0_one : dualMixtureLaw (0:Fin 2) (1:ℝ) mu0 q0 1 = (1:ℝ) / 3 := by
   have hif : ¬ ((1:Fin 2) = (0:Fin 2)) := by decide
   have hsum1 : (∑ t : Fin 1, mu0 t * q0 t 1) = (2:ℝ) / 3 := by
@@ -803,6 +915,9 @@ theorem dualMixtureLaw_q0_one : dualMixtureLaw (0:Fin 2) (1:ℝ) mu0 q0 1 = (1:�
   rw [if_neg hif, if_neg hif]
   norm_num
 
+/-- Refutes the stated universal mixture-sampling contract through its demand for an exact
+finite receipt for an unrestricted approximate component law. Choosing zero component error
+forces an output mass of one third, which no finite fair-bit sampler tree can realize. -/
 theorem clause9_refuted : ¬
     (  ∀ (m T : ℕ) (q : Fin T → Fin m → ℝ) (Nt : Fin T → ℕ) (μ : Fin T → ℝ)
       (a δ α R ε : ℝ) (j₀ : Fin m) (νs : Fin T → ℝ),

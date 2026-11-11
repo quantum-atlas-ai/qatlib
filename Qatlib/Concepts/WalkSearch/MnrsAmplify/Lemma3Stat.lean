@@ -7,9 +7,31 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.SingularValues
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Logic.Relation
+
+/-!
+# Discriminant singular-value specification
+
+Defines `Lemma3WalkSpec.expected`, the unit-interval singular-value contract for the
+stationary-distribution discriminant of a finite irreducible chain. This is the spectral bound
+used by MNRS quantum walk search [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `expected`: The assertion that every dimension-indexed singular value of the discriminant of a
+  finite irreducible stochastic matrix with a normalized positive stationary distribution lies
+  in `[0, 1]` [Magniez et al., Lemma 3][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma3WalkSpec
+/-- The assertion that every dimension-indexed singular value of the discriminant of a finite
+irreducible stochastic matrix with a normalized positive stationary distribution lies in
+`[0, 1]` [Magniez et al., Lemma 3][MagniezNayakRolandSantha2011]. -/
 def expected : Prop :=
   (∀ (X : Type*) [Fintype X] [DecidableEq X]
     (P : Matrix X X ℝ) (π : X → ℝ),

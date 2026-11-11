@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalStat
+
+/-!
+# Born probabilities for the eigenphase Hadamard test
+
+This module proves the ancilla output state and bit probabilities of a Hadamard test on an
+eigenvector. `hadamardTestBitLawSubgoal` packages the state identity and the cosine-dependent
+probabilities used in the phase estimation method of [Kitaev1995].
+
+## Main statements
+
+* `eigenPhase_norm`: a phase factor has unit norm.
+* `hadamardTestBitState_born`: the probabilities are `(1 + cos (2πφ))/2` and `(1 - cos
+  (2πφ))/2`.
+* `hadamardTestBitLawSubgoal`: the full eigenvector state identity and bit law.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.HspRecovery.KitaevReadout
 open Matrix
 open scoped BigOperators
 
+/-- Expresses `eigenPhase φ` as the complex exponential of the real angle `2 * π * φ` multiplied
+by the imaginary unit. -/
 theorem eigenPhase_eq_exp_real (φ : ℝ) :
     eigenPhase φ = Complex.exp (((2 * Real.pi * φ : ℝ) : ℂ) * Complex.I) := by
   unfold eigenPhase
@@ -24,9 +46,12 @@ theorem eigenPhase_eq_exp_real (φ : ℝ) :
   push_cast
   ring
 
+/-- Every phase factor `eigenPhase φ` has norm one. -/
 theorem eigenPhase_norm (φ : ℝ) : ‖eigenPhase φ‖ = 1 := by
   rw [eigenPhase_eq_exp_real, Complex.norm_exp_ofReal_mul_I]
 
+/-- The false and true Born probabilities of the eigenphase ancilla state are `(1 + cos (2πφ)) /
+2` and `(1 - cos (2πφ)) / 2`, respectively. -/
 theorem hadamardTestBitState_born (φ : ℝ) :
     BornProb (hadamardTestBitState (eigenPhase φ)) false =
         (1 + Real.cos (2 * Real.pi * φ)) / 2 ∧
@@ -48,6 +73,8 @@ theorem hadamardTestBitState_born (φ : ℝ) :
     norm_num [Complex.normSq_sub, hns, hre]
     ring
 
+/-- On an eigenvector of `U`, the controlled matrix preserves the first tensor factor and
+multiplies the true-control amplitude by the corresponding eigenphase. -/
 private theorem controlled_eigenstate {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hU : U *ᵥ ψ = eigenPhase φ • ψ) (ν : QState Bool) :
@@ -68,6 +95,8 @@ private theorem controlled_eigenstate {I : Type} [Fintype I] [DecidableEq I]
     rw [← Finset.sum_mul, hi]
     ring
 
+/-- Proves the Hadamard test output identity on an eigenvector and the cosine-dependent
+probabilities of both ancilla bits, as used in [Kitaev1995]. -/
 theorem hadamardTestBitLawSubgoal : HadamardTestBitLawSubgoal := by
   intro I _ _ U ψ φ hU
   refine ⟨?_, hadamardTestBitState_born φ⟩

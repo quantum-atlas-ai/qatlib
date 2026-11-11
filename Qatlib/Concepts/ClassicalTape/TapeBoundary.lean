@@ -10,6 +10,33 @@ import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
 import Mathlib.Data.List.TakeWhile
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
 import Qatlib.Concepts.ClassicalTape.FairCoinTape
+
+/-!
+# Tape-computation boundary examples and concentration
+
+This module verifies a two-coin OR machine and a repeated-read construction that reuses one
+stored result. For the latter, the false-output probability remains `1 / 4`, contradicting the
+proposed `(8 / 9)^12` error bound. These explicit machines illustrate the role of fresh samples
+in the randomized-computation setting of [NielsenChuang2010].
+
+The module also exposes a finite-distribution median-of-means bound, relevant to the Monte Carlo
+setting of [Montanaro2015], and bundles stack-copy, reset, encoding, concentration, and boundary
+results in `g4`.
+
+## Main statements
+
+* `boundary_neg`: the repeated-read construction does not satisfy the proposed amplification
+  implication.
+* `median_block`: a median-of-means tail bound `3^(M / 2) / 2^M` under the stated variance
+  hypothesis.
+* `g4`: the combined machine, encoding, concentration, and counterexample statements.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
@@ -26,6 +53,8 @@ open Turing
 namespace Qatlib.Concepts.ClassicalTape.TapeBoundary
 open Turing
 
+/-- From its initial control state on any tape, the OR machine returns the disjunction of its
+two supplied coins. -/
 theorem orRun_run_aux (T : Turing.Tape (Tracks 2)) (c0 c1 : Bool) :
     (coinTapeRunAux orRunTable orRunAccept [c0, c1]
       (⟨.read1, T⟩ : Turing.TM0.Cfg (Tracks 2) OrRunCtrl)).1 = some (c0 || c1) := by
@@ -53,6 +82,7 @@ theorem orRun_run_aux (T : Turing.Tape (Tracks 2)) (c0 c1 : Bool) :
     (⟨.outC (c0 || c1), T⟩ : Turing.TM0.Cfg (Tracks 2) OrRunCtrl) hc2]
   rfl
 
+/-- On every input tape, the OR machine returns the disjunction of its two supplied coins. -/
 theorem orRun_run (input : List (Tracks 2)) (c0 c1 : Bool) :
     (coinTapeRun orRunTable orRunAccept input [c0, c1]).1 = some (c0 || c1) := by
   unfold coinTapeRun
@@ -62,6 +92,8 @@ theorem orRun_run (input : List (Tracks 2)) (c0 c1 : Bool) :
   rw [hin]
   exact orRun_run_aux _ c0 c1
 
+/-- Given a stored bit `v` and enough remaining coins, the repeated-read phase returns `v` after
+completing the remaining iterations. -/
 theorem naive_fake_fst (r : ℕ) (v : Bool) :
     ∀ (m j : ℕ) (hm : 1 ≤ m) (hj : j + m = 2 * r)
       (t : Turing.Tape (Tracks 2)) (ht : t.head 1 = some v)
@@ -139,6 +171,8 @@ theorem naive_fake_fst (r : ℕ) (v : Bool) :
         (⟨.outC v, t⟩ : Turing.TM0.Cfg (Tracks 2) (NaiveCtrl r)) hcO]
       rfl
 
+/-- For positive `r` and at least `4 * r` trailing coins, the repeated-read machine returns the
+disjunction of its first two coins. -/
 theorem naive_run_aux (r : ℕ) (hr : 0 < r) (T : Turing.Tape (Tracks 2)) (c0 c1 c2 : Bool)
     (cs : List Bool) (hlen : 4 * r ≤ cs.length) :
     (coinTapeRunAux (naiveMajorityTable r) (naiveMajorityAccept r) (c0 :: c1 :: c2 :: cs)
@@ -187,6 +221,8 @@ theorem naive_run_aux (r : ℕ) (hr : 0 < r) (T : Turing.Tape (Tracks 2)) (c0 c1
   exact naive_fake_fst r (c0 || c1) (2 * r) 0 hm2 hj2
     (T.write (fun k => if k.val = 1 then some (c0 || c1) else T.head k)) hnew cs hlen2
 
+/-- From an initialized tape, the repeated-read machine returns the disjunction of its first two
+coins under the stated positive-`r` and coin-length bounds. -/
 theorem naive_run (r : ℕ) (hr : 0 < r) (input : List (Tracks 2)) (c0 c1 c2 : Bool)
     (cs : List Bool) (hlen : 4 * r ≤ cs.length) :
     (coinTapeRunAux (naiveMajorityTable r) (naiveMajorityAccept r) (c0 :: c1 :: c2 :: cs)
@@ -197,14 +233,19 @@ theorem naive_run (r : ℕ) (hr : 0 < r) (input : List (Tracks 2)) (c0 c1 c2 : B
   rw [hin]
   exact naive_run_aux r hr _ c0 c1 c2 cs hlen
 
+/-- Appending a final bit to a Boolean function of length at least two preserves its entry at
+zero. -/
 theorem snoc_at_zero (m : ℕ) (u : Fin (m + 2) → Bool) (b : Bool) :
     (Fin.snoc u b : Fin (m + 3) → Bool) 0 = u 0 := by
   rw [show (0 : Fin (m + 3)) = Fin.castSucc (0 : Fin (m + 2)) by simp, Fin.snoc_castSucc]
 
+/-- Appending a final bit to a Boolean function of length at least two preserves its entry at
+one. -/
 theorem snoc_at_one (m : ℕ) (u : Fin (m + 2) → Bool) (b : Bool) :
     (Fin.snoc u b : Fin (m + 3) → Bool) 1 = u 1 := by
   rw [show (1 : Fin (m + 3)) = Fin.castSucc (1 : Fin (m + 2)) by simp, Fin.snoc_castSucc]
 
+/-- Exactly one Boolean string of length two has false disjunction of its two bits. -/
 theorem sum_or_two :
     (∑ ω : Fin 2 → Bool, if (ω 0 || ω 1) = false then (1 : ℝ) else 0) = 1 := by
   rw [Finset.sum_boole]
@@ -213,6 +254,8 @@ theorem sum_or_two :
   rw [hcard]
   norm_num
 
+/-- If a real-valued function is independent of the last bit, summing over that bit multiplies
+the remaining sum by two. -/
 theorem sum_snoc_last {n : ℕ} (g : (Fin (n + 1) → Bool) → ℝ)
     (hg : ∀ (u : Fin n → Bool) (b : Bool), g (Fin.snoc u b) = g (Fin.snoc u false)) :
     (∑ ω : Fin (n + 1) → Bool, g ω) = 2 * ∑ u : Fin n → Bool, g (Fin.snoc u false) := by
@@ -225,6 +268,8 @@ theorem sum_snoc_last {n : ℕ} (g : (Fin (n + 1) → Bool) → ℝ)
   rw [Finset.sum_congr rfl (fun u _ => h2 u)]
   rw [← Finset.mul_sum]
 
+/-- Adding an unused final bit doubles the number of strings whose first two bits have false
+disjunction. -/
 theorem sum_or_snoc (m : ℕ) :
     (∑ ω : Fin (m + 3) → Bool, if (ω 0 || ω 1) = false then (1 : ℝ) else 0)
       = 2 * ∑ u : Fin (m + 2) → Bool, if (u 0 || u 1) = false then (1 : ℝ) else 0 := by
@@ -253,6 +298,8 @@ theorem sum_or_snoc (m : ℕ) :
   rw [Finset.sum_congr rfl (fun u _ => h2 u)]
   rw [← Finset.mul_sum]
 
+/-- There are `2^m` Boolean strings of length `m + 2` whose first two bits have false
+disjunction. -/
 theorem sum_or_pow (m : ℕ) :
     (∑ ω : Fin (m + 2) → Bool, if (ω 0 || ω 1) = false then (1 : ℝ) else 0) = 2 ^ m := by
   induction m with
@@ -261,12 +308,15 @@ theorem sum_or_pow (m : ℕ) :
     rw [sum_or_snoc m, ih]
     rw [pow_succ, mul_comm]
 
+/-- Running the OR machine on the list associated with a two-bit function returns the
+disjunction of its entries. -/
 theorem orRun_ofFn (input : List (Tracks 2)) (ω : Fin 2 → Bool) :
     (coinTapeRun orRunTable orRunAccept input (List.ofFn ω)).1 = some (ω 0 || ω 1) := by
   have h : List.ofFn ω = [ω 0, ω 1] := by simp [List.ofFn_succ]
   rw [h]
   exact orRun_run input (ω 0) (ω 1)
 
+/-- The two-coin OR machine returns false with probability exactly `1 / 4` on every input. -/
 theorem orRun_false_mass (input : List (Tracks 2)) :
     fairTapeSuccess orRunTable orRunAccept input 2 false = 1 / 4 := by
   unfold fairTapeSuccess
@@ -280,6 +330,8 @@ theorem orRun_false_mass (input : List (Tracks 2)) :
   rw [sum_or_two]
   norm_num
 
+/-- With parameter 12 and 51 supplied coins, the repeated-read machine returns the disjunction
+of the first two coins. -/
 theorem naive_ofFn12 (input : List (Tracks 2)) (ω : Fin 51 → Bool) :
     (coinTapeRunAux (naiveMajorityTable 12) (naiveMajorityAccept 12) (List.ofFn ω)
       (Turing.TM0.init input)).1 = some (ω 0 || ω 1) := by
@@ -290,12 +342,15 @@ theorem naive_ofFn12 (input : List (Tracks 2)) (ω : Fin 51 → Bool) :
     simp [List.length_ofFn]
   exact naive_run 12 (by norm_num) input (ω 0) (ω 1) (ω 2) ((List.ofFn ω).drop 3) hlen
 
+/-- The repeated-read machine with parameter 12 returns a decision on every 51-coin path. -/
 theorem naive_run_ne_none (input : List (Tracks 2)) (ω : Fin 51 → Bool) :
     (coinTapeRun (naiveMajorityTable 12) (naiveMajorityAccept 12) input (List.ofFn ω)).1 ≠ none := by
   unfold coinTapeRun
   rw [naive_ofFn12 input ω]
   exact Option.some_ne_none _
 
+/-- At its prescribed budget, the repeated-read machine with parameter 12 returns false with
+probability exactly `1 / 4`. -/
 theorem naive_false_mass (input : List (Tracks 2)) :
     fairTapeSuccess (naiveMajorityTable 12) (naiveMajorityAccept 12) input
       (naiveBudget 12) false = 1 / 4 := by
@@ -313,8 +368,11 @@ theorem naive_false_mass (input : List (Tracks 2)) :
   rw [h]
   norm_num
 
+/-- The value `(8 / 9)^12` is strictly smaller than `1 / 4`. -/
 theorem boundary_eight_nine : (8 / 9 : ℝ) ^ 12 < 1 / 4 := by norm_num
 
+/-- The implication from base false-output probability at most `1 / 3` to repeated-read
+false-output probability at most `(8 / 9)^12` fails for the specified machines. -/
 theorem boundary_neg :
     ¬ (∀ input : List Bool,
         fairTapeSuccess orRunTable orRunAccept (twoTrackBitEncode input) 2 false ≤ 1 / 3 →
@@ -334,6 +392,8 @@ theorem boundary_neg :
 open Turing
 open scoped Classical
 
+/-- For positive block sizes and tolerance, the stated variance hypothesis bounds the
+median-of-means failure probability by `3^(M / 2) / 2^M`. -/
 theorem median_block : ∀ (X : Type) [Fintype X] (L M : ℕ) (p : FinDist X) (f : X → ℝ),
     0 < L → 0 < M → ∀ ε : ℝ, 0 < ε →
       4 * p.variance f ≤ (L : ℝ) * ε ^ 2 →
@@ -343,6 +403,8 @@ theorem median_block : ∀ (X : Type) [Fintype X] (L M : ℕ) (p : FinDist X) (f
   intro X _ L M p f hL hM ε hε hvar
   exact Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.median_of_means_concentration p f hL hM ε hε hvar
 
+/-- Combine the stack-machine copy and reset guarantees, encoding injectivity, the
+median-of-means bound, and the repeated-read amplification counterexample. -/
 theorem g4 :
 
   (∀ input : List Bool,

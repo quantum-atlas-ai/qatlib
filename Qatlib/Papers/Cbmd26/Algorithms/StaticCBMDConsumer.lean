@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
 import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
 import Qatlib.Papers.Cbmd26.Algorithms.StaticQueryBudget
+
+/-!
+# Static CBMD state preparation
+
+This module assembles a static contour-based matrix decomposition circuit from an exact encoding
+of `L + Complex.I • H`, with `L` positive semidefinite and `H` Hermitian. It combines sample
+approximation, computational postselection, and randomized amplitude amplification for the
+static setting of [WangEtAl2026].
+
+## Main statements
+
+* `staticCBMDWord`: the circuit querying the original matrix oracle.
+* `static_cbmd_original_oracle_algorithm`: gives a heralded normalized-output algorithm with
+  success probability at least `1/8` and explicit expected query bounds.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +70,10 @@ namespace CBMD
 open Matrix Polynomial
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The static kernel index type at the analytic error budget `staticAnalyticBudget ε η`. -/
 abbrev StaticCBMDIndex (α t ε η : ℝ) := StaticKernelIndex α t (staticAnalyticBudget ε η)
+/-- The original-oracle static workspace for the chosen kernel index and the input
+ancilla-system space `Anc × I`. -/
 abbrev StaticCBMDSpace (Anc I : Type) (α t ε η : ℝ) :=
   OriginalStaticSpace (StaticCBMDIndex α t ε η) (Anc × I)
 
@@ -59,6 +82,8 @@ local instance cbmdStaticCBMDConsumerInstance1 (J : Type) [DecidableEq J] : Deci
 
 variable {Anc I : Type} [Fintype Anc] [DecidableEq Anc] [Fintype I] [DecidableEq I]
 
+/-- The decoded static CBMD word using the chosen kernel samples, normalized polynomial
+approximation, and four-branch phase lists. -/
 def staticCBMDWord (a₀ : Anc) (α t ε η : ℝ) (P : Polynomial ℂ)
     (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ) :
     List (AdjointStep (StaticCBMDSpace Anc I α t ε η)) :=
@@ -70,10 +95,16 @@ def staticCBMDWord (a₀ : Anc) (α t ε η : ℝ) (P : Polynomial ℂ)
     (ComplexPolynomialSplit.branchDegrees (normalizedApproximation P (staticSampleBudget ε η / 2)))
     base zs
 
+/-- The explicit source-query budget obtained from the dyadic approximation order at the chosen
+static sample error and kernel normalization. -/
 def staticCBMDQueryBudget (α t ε η : ℝ) : ℕ :=
   8 * (2 * dyadicOrder ((staticSampleBudget ε η / 2) /
     (2 * Real.exp (2 * |t * staticKernelNormalization α (staticAnalyticBudget ε η)|))) + 1)
 
+/-- An exact encoding of the dissipative generator and a unitary input preparation yield a valid
+static CBMD circuit with heralding probability at least `1/8` and explicit expected input
+and data query bounds. Every supported successful branch returns an `ε`-accurate normalized
+exponential output up to a unit-modulus phase. -/
 theorem static_cbmd_original_oracle_algorithm
     (L H : Matrix I I ℂ) (hL : L.PosSemidef) (hH : H.IsHermitian)
     (U : Matrix (Anc × I) (Anc × I) ℂ) (a₀ : Anc) (α t ε η : ℝ)

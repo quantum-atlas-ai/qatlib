@@ -8,6 +8,26 @@ import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+/-!
+# The Gram spectral-readout specification
+
+This module defines `GramSpectralReadoutSubgoal`, the eventwise accuracy and resource
+specification for fresh-copy QPE on a Gram density operator. The comparison law weights QPE
+kernel probabilities by the eigenvalues in a unitary spectral decomposition.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `GramSpectralReadoutSubgoal`: error at most `8 * (M - 1) * π² / n` and exact fresh-copy
+  resource counts.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
@@ -23,6 +43,9 @@ namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 
 open Matrix
 
+/-- The proposition that fresh-copy QPE on a normalized Gram density operator approximates every
+spectral label event within `8 * (M - 1) * π² / n`, using `(M - 1) * n` copies, gates, and
+discards. -/
 def GramSpectralReadoutSubgoal : Prop :=
   ∀ (r d M n : ℕ) (ψ : Fin r → QState (Fin d)), (∀ i, Normalized (ψ i)) →
     ∀ (w : Fin r → ℝ), (∀ i, 0 ≤ w i) → (∑ i, (w i) ^ 2 = 1) →

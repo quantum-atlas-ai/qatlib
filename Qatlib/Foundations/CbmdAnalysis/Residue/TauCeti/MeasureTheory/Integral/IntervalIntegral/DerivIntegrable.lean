@@ -9,6 +9,26 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 import Mathlib.Analysis.Calculus.ContDiff.Defs
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import Mathlib.Analysis.Calculus.ContDiff.Deriv
+
+/-!
+# Integrability of derivatives on compact intervals
+
+Proves `ContDiffOn.intervalIntegrable_deriv`: continuous differentiability of order at least one
+on an unordered closed interval yields interval integrability of the derivative.
+
+This compact-interval regularity fact supports contour integration in the framework associated
+with [WangEtAl2026].
+
+## Main statements
+
+* `ContDiffOn.intervalIntegrable_deriv`: A function continuously differentiable to order at
+  least one on the unordered closed interval has an interval-integrable derivative.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +39,8 @@ section
 open MeasureTheory Set
 open scoped ContDiff
 
+/-- A function continuously differentiable to order at least one on the unordered closed
+interval has an interval-integrable derivative. -/
 theorem ContDiffOn.intervalIntegrable_deriv {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {f : ℝ → E} {a b : ℝ} {n : ℕ∞ω} (hf : ContDiffOn ℝ n f (uIcc a b)) (hn : 1 ≤ n) :
     IntervalIntegrable (deriv f) volume a b := by

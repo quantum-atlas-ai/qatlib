@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SparseHam05.MainResults.SuzukiError
+
+/-!
+# Exponential counts for recursive Suzuki simulation
+
+This module chooses the repetition count `theorem1R` and proves that it meets the Suzuki error
+conditions with target accuracy `ε`. The resulting word-length and error estimates give the
+finite-matrix form of Theorem 1 in [BerryEtAl2007Sparse], under the stated Hermiticity, norm,
+and scaled-time hypotheses.
+
+## Main statements
+
+* `theorem1R_bounds`: Under the stated positive-parameter and scaled-time hypotheses,
+  `theorem1R` is positive, satisfies `PaperLemma1Conditions`, makes `paperSuzukiError` at most
+  `ε`, and obeys the explicit exponential-count bound.
+* `source_theorem1_exponential_count`: For the stated Hermitian list and norm bounds, the chosen
+  positive repetition count yields simulation error at most `ε` and word length at most
+  `2*m*5^(2*k)*(m*τ)^(1+1/(2*k))/ε^(1/(2*k))`, where `m = hs.length` and `τ = ‖hs.sum‖*t`.
+
+## References
+
+* [Berry et al., 2007][BerryEtAl2007Sparse]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,16 +40,20 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.SparseHam05.MainResults
 
+/-- The natural-number ceiling of `4 * 5^(k-1/2) * (m*τ)^(1+1/(2*k)) / ε^(1/(2*k))`, used as the
+Suzuki repetition count. See [BerryEtAl2007Sparse]. -/
 def theorem1R (m k : ℕ) (τ ε : ℝ) : ℕ :=
   Nat.ceil (4 * (5 : ℝ) ^ ((k : ℝ) - 1 / 2) *
     ((m : ℝ) * τ) ^ (1 + 1 / (2 * (k : ℝ))) / ε ^ (1 / (2 * (k : ℝ))))
 
+/-- For positive integer `k`, multiplying `1 + 1/(2*k)` by `2*k` gives `2*k + 1` over the reals. -/
 lemma expo_id (k : ℕ) (hk : 1 ≤ k) :
     (1 + 1 / (2 * (k : ℝ))) * ((2 * k : ℕ) : ℝ) = 2 * (k : ℝ) + 1 := by
   have hkR : (0:ℝ) < (k:ℝ) := by exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_one hk)
   have hcast : ((2 * k : ℕ) : ℝ) = 2 * (k : ℝ) := by push_cast; ring
   rw [hcast]; field_simp
 
+/-- For `k ≥ 1`, the natural-number exponent identity `2*k² - k = (k-1)*(2*k+1) + 1` holds. -/
 lemma nat_expo (k : ℕ) (hk : 1 ≤ k) :
     2*k^2 - k = (k-1)*(2*k+1) + 1 := by
   obtain ⟨j, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (by omega : k ≠ 0)
@@ -35,6 +62,8 @@ lemma nat_expo (k : ℕ) (hk : 1 ≤ k) :
   simp only [Nat.succ_eq_add_one, Nat.succ_sub_one]
   ring
 
+/-- For positive parameters and `k ≥ 1`, the `2*k` power of the real expression defining
+`theorem1R` equals `2^(2*k-1) * 5 * (2 * 5^(k-1) * (m*τ))^(2*k+1) / ε`. -/
 lemma suzuki_pow (m k : ℕ) (τ ε : ℝ) (hm : 0 < m) (hk : 1 ≤ k) (hτ0 : 0 < τ)
     (hε0 : 0 < ε) :
     (4 * (5 : ℝ) ^ ((k : ℝ) - 1 / 2) * ((m : ℝ) * τ) ^ (1 + 1 / (2 * (k : ℝ)))
@@ -87,6 +116,7 @@ lemma suzuki_pow (m k : ℕ) (τ ε : ℝ) (hm : 0 < m) (hk : 1 ≤ k) (hτ0 : 0
   rw [h2b, h5c, div_eq_mul_inv]
   ring
 
+/-- For `k ≥ 1`, the product of `5^k` with the reciprocal of `2 * 5^(k-1)` is `5/2`. -/
 lemma five_pow_mul (k : ℕ) (hk : 1 ≤ k) :
     (5:ℝ)^k * (1/(2*(5:ℝ)^(k-1))) = 5/2 := by
   have hk1 : (5:ℝ)^k = (5:ℝ)^(k-1) * 5 := by
@@ -96,22 +126,27 @@ lemma five_pow_mul (k : ℕ) (hk : 1 ≤ k) :
   have hp : (5:ℝ)^(k-1) ≠ 0 := by positivity
   field_simp
 
+/-- For positive `x`, the product `x^a * x^b` equals `x^c` whenever `a + b = c`. -/
 lemma rpow_mul_eq (x : ℝ) (hx : 0 < x) (a b c : ℝ) (h : a + b = c) :
     x ^ a * x ^ b = x ^ c := by
   rw [← h]
   exact (Real.rpow_add hx a b).symm
 
+/-- For positive `x`, the product of a real power `x^a` and a natural power `x^n` equals `x^c`
+when `a + n = c`. -/
 lemma rpow_mul_natCast (x : ℝ) (hx : 0 < x) (a c : ℝ) (n : ℕ) (h : a + (n:ℝ) = c) :
     x ^ a * x ^ n = x ^ c := by
   rw [← Real.rpow_natCast x n]
   exact rpow_mul_eq x hx a (n:ℝ) c h
 
+/-- For `k ≥ 1`, the real power `2^(2*k)` equals `2 * 2^(2*k-1)`. -/
 lemma two_pow_two_k (k : ℕ) (hk : 1 ≤ k) :
     (2 : ℝ) ^ (2 * k) = 2 * (2 : ℝ) ^ (2 * k - 1) := by
   have hp := pow_succ (2:ℝ) (2 * k - 1)
   rw [show 2 * k - 1 + 1 = 2 * k by omega] at hp
   rw [hp]; ring
 
+/-- The real number `5^(3/2)` is at least six. -/
 lemma six_le_five_three_halves : (6 : ℝ) ≤ (5 : ℝ) ^ ((3:ℝ) / 2) := by
   have h5 : (0:ℝ) < 5 := by norm_num
   have h3 : (5:ℝ)^((3:ℝ)/2) = 5 * Real.sqrt 5 := by
@@ -125,6 +160,7 @@ lemma six_le_five_three_halves : (6 : ℝ) ≤ (5 : ℝ) ^ ((3:ℝ) / 2) := by
   rw [h3]
   nlinarith
 
+/-- For `k ≥ 1`, multiplying `5^(3/2)`, `5^(k-1/2)`, and `5^(k-1)` gives `5^(2*k)`. -/
 lemma five_three_halves_mul (k : ℕ) (hk : 1 ≤ k) :
     (5 : ℝ) ^ ((3:ℝ) / 2) * (5 : ℝ) ^ ((k : ℝ) - 1 / 2) * (5 : ℝ) ^ (k - 1)
       = (5 : ℝ) ^ (2 * k) := by
@@ -143,6 +179,9 @@ lemma five_three_halves_mul (k : ℕ) (hk : 1 ≤ k) :
     _ = (5:ℝ)^((2*k:ℕ):ℝ) := by rw [h3]
     _ = (5:ℝ)^(2*k) := Real.rpow_natCast 5 (2*k)
 
+/-- Under the stated positive-parameter and scaled-time hypotheses, `theorem1R` is positive,
+satisfies `PaperLemma1Conditions`, makes `paperSuzukiError` at most `ε`, and obeys the
+explicit exponential-count bound. See [BerryEtAl2007Sparse]. -/
 lemma theorem1R_bounds (m k : ℕ) (τ ε : ℝ) (hm : 1 ≤ m) (hk : 1 ≤ k)
     (hτ0 : 0 < τ) (hε0 : 0 < ε) (hε1 : ε ≤ 1)
     (hτ : 1 ≤ 2 * (m : ℝ) * (5 : ℝ) ^ (k - 1) * τ) :
@@ -288,6 +327,10 @@ lemma theorem1R_bounds (m k : ℕ) (τ ε : ℝ) (hm : 1 ≤ m) (hk : 1 ≤ k)
 
   exact ⟨hr_pos, ⟨haP', hcond2⟩, herr, hcount⟩
 
+/-- For the stated Hermitian list and norm bounds, the chosen positive repetition count yields
+simulation error at most `ε` and word length at most
+`2*m*5^(2*k)*(m*τ)^(1+1/(2*k))/ε^(1/(2*k))`, where `m = hs.length` and `τ = ‖hs.sum‖*t`. See
+[BerryEtAl2007Sparse]. -/
 theorem source_theorem1_exponential_count {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (t ε : ℝ)
     (hh : ∀ X ∈ hs, Xᴴ = X) (hk : 1 ≤ k) (hm : 0 < hs.length)

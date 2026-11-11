@@ -41,6 +41,31 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Source and shifted quantum-search rounds
+
+This module defines randomized search rounds with an initial direct preparation trial and a
+uniformly sampled amplitude-amplification depth after failure. `sourceQSearchRound` samples
+depths 1 through M, while `shiftedQSearchRound` samples depths 0 through M − 1, where M is the
+geometric search window. The construction uses the search framework of [BrassardEtAl2002].
+
+`sourceWindowAverage` and `shiftedWindowAverage` describe the corresponding success averages.
+Their difference is an explicit boundary term, which also gives the exact difference between the
+two round success probabilities.
+
+## Main statements
+
+* `depthSuccessMass_eq_sin`: the success probability after a fixed amplification depth.
+* `sourceWindowAverage_sub_shiftedWindowAverage`: the boundary correction between depth windows.
+* `sourceRound_successMass` and `shiftedRound_successMass`: real-valued round success formulas.
+* `shiftedRound_eq_frozenRound`: identification with the existing BHMT search round.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -72,13 +97,16 @@ set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
+/-- The source amplification depth associated with index i in a window of size M, namely i + 1. -/
 def sourceDepth (M : ℕ) (i : Fin M) : ℕ := i.val + 1
 
+/-- Every source depth in a window of size M is at most M. -/
 theorem sourceDepth_lt (M : ℕ) (i : Fin M) : sourceDepth M i ≤ M := by
   have hi := i.isLt
   simp only [sourceDepth]
   omega
 
+/-- Distinct indices in a source window give distinct amplification depths. -/
 theorem sourceDepth_injective (M : ℕ) : Function.Injective (sourceDepth M) := by
   intro i j hij
   have hv : i.val = j.val := by
@@ -86,17 +114,25 @@ theorem sourceDepth_injective (M : ℕ) : Function.Injective (sourceDepth M) := 
     omega
   exact Fin.ext hv
 
+/-- The marked-set measurement probability after running the prepared amplitude-amplification
+circuit at depth k from the basis state indexed by j₀. -/
 noncomputable def depthSuccessMass (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (k : ℕ) : ℝ :=
   MeasureProb (Run (preparedMark S) (preparedAACircuit A j₀ k) (Qatlib.Foundations.PureStateMath.Ket j₀)) S
 
+/-- The average of the depth-success masses at depths 0 through M − 1, expressed as the finite
+sum divided by M. -/
 noncomputable def shiftedWindowAverage (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) : ℝ :=
   (∑ i : Fin M, depthSuccessMass A j₀ S i.val) / (M : ℝ)
 
+/-- The average of the depth-success masses at source depths 1 through M, expressed as the
+finite sum divided by M. -/
 noncomputable def sourceWindowAverage (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) : ℝ :=
   (∑ i : Fin M, depthSuccessMass A j₀ S (sourceDepth M i)) / (M : ℝ)
 
+/-- Summing a real sequence over source depths replaces the depth-zero term of the shifted
+window sum by the depth-M term. -/
 theorem sum_sourceDepth_eq (p : ℕ → ℝ) (M : ℕ) :
     (∑ i : Fin M, p (sourceDepth M i)) = (∑ i : Fin M, p i.val) + p M - p 0 := by
   have hL : (∑ i : Fin M, p (sourceDepth M i)) = ∑ k ∈ Finset.range M, p (k + 1) := by
@@ -117,6 +153,8 @@ theorem sum_sourceDepth_eq (p : ℕ → ℝ) (M : ℕ) :
     simpa using! (Finset.sum_range_succ p M)
   rw [hL, hR, hs, hs']
 
+/-- Adding the depth-zero term to the source-depth sum gives the sum over all depths from zero
+through M. -/
 theorem sum_source_eq_sum_shifted_succ (p : ℕ → ℝ) (M : ℕ) :
     (∑ i : Fin M, p (sourceDepth M i)) + p 0 = ∑ i : Fin (M + 1), p i.val := by
   have hL : (∑ i : Fin M, p (sourceDepth M i)) = ∑ k ∈ Finset.range M, p (k + 1) := by
@@ -133,6 +171,8 @@ theorem sum_source_eq_sum_shifted_succ (p : ℕ → ℝ) (M : ℕ) :
   have hss := Finset.sum_range_succ' p M
   linarith
 
+/-- For positive M, the source-window average equals the shifted-window average plus the depth-M
+minus depth-zero success mass divided by M. -/
 theorem sourceWindowAverage_eq_shifted (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) :
     sourceWindowAverage A j₀ S M =
@@ -144,6 +184,8 @@ theorem sourceWindowAverage_eq_shifted (A : Matrix I I ℂ) (j₀ : I) (S : Fins
   simp only [sub_div, add_div]
   ring
 
+/-- For positive M, the difference of the source and shifted averages is exactly the difference
+of their endpoint success masses divided by M. -/
 theorem sourceWindowAverage_sub_shiftedWindowAverage (A : Matrix I I ℂ) (j₀ : I)
     (S : Finset I) (M : ℕ) (hM : 0 < M) :
     sourceWindowAverage A j₀ S M - shiftedWindowAverage A j₀ S M
@@ -151,6 +193,8 @@ theorem sourceWindowAverage_sub_shiftedWindowAverage (A : Matrix I I ℂ) (j₀ 
   have h := sourceWindowAverage_eq_shifted A j₀ S M hM
   linarith
 
+/-- For a positive window, the source and shifted averages differ whenever the depth-M and
+depth-zero success masses differ. -/
 theorem sourceWindowAverage_ne_shifted_of_boundary (A : Matrix I I ℂ) (j₀ : I)
     (S : Finset I) (M : ℕ) (hM : 0 < M)
     (hbound : depthSuccessMass A j₀ S M ≠ depthSuccessMass A j₀ S 0) :
@@ -167,12 +211,16 @@ theorem sourceWindowAverage_ne_shifted_of_boundary (A : Matrix I I ℂ) (j₀ : 
   have hne : depthSuccessMass A j₀ S M = depthSuccessMass A j₀ S 0 := by linarith
   exact hbound hne
 
+/-- For unitary preparation with initial marked probability sin² θ and 0 < θ < π/2, success
+after k amplification steps is sin²((2k + 1)θ) [BrassardEtAl2002]. -/
 theorem depthSuccessMass_eq_sin (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (θ : ℝ)
     (k : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (hprob : MeasureProb (preparedAAState A j₀) S = (Real.sin θ)^2) :
     depthSuccessMass A j₀ S k = (Real.sin ((2 * (k : ℝ) + 1) * θ))^2 := by
   exact prepared_aa_born_success A j₀ S θ k hA hθ0 hθ1 hprob
 
+/-- Under the stated unitary and amplitude-angle hypotheses, the sum of success masses at depths
+0 through M − 1 is M/2 − sin(4Mθ)/(4 sin(2θ)) for positive M. -/
 theorem shiftedWindowSum_closed (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
     (θ : ℝ) (M : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 0 < M)
     (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -190,6 +238,9 @@ theorem shiftedWindowSum_closed (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
   rw [div_eq_iff hM'] at hu
   linarith
 
+/-- Under the stated unitary and amplitude-angle hypotheses, the success sum at depths 1 through
+M is the corresponding sum through depth M starting at zero, minus sin² θ, with the
+displayed trigonometric closed form. -/
 theorem sourceWindowSum_closed (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
     (θ : ℝ) (M : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 0 < M)
     (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -219,10 +270,14 @@ theorem sourceWindowSum_closed (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
             / (4 * ((M + 1 : ℕ) : ℝ) * Real.sin (2 * θ))) - (Real.sin θ)^2 := by
         rw [hconv, hbig, hz]
 
+/-- Every geometric quantum-search window has positive size. -/
 theorem qSearchWindow_pos (l : ℕ) : 0 < qSearchWindow l := by
   have h : 1 ≤ qSearchWindow l := Nat.le_max_left _ _
   omega
 
+/-- Performs a direct preparation trial and, on failure, a uniformly selected trial from the
+supplied window. It returns only marked outcomes, with costs (1, 1) for direct success and
+the supplied window ledger otherwise. -/
 noncomputable def windowRound {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (trial : Fin M → CostedLaw (I × ℕ))
@@ -238,6 +293,8 @@ noncomputable def windowRound {I : Type} [Fintype I] [DecidableEq I]
           PMF.pure (if st2.1.1 ∈ S then some st2.1.1 else none,
             (ledger j).1, (ledger j).2)
 
+/-- A search round whose fallback trial samples depths 1 through the geometric window size M
+uniformly, recording fallback costs (2 + 2k, 2 + k) at depth k. -/
 noncomputable def sourceQSearchRound {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (l : ℕ) : PMF (Option I × ℕ × ℕ) :=
@@ -247,6 +304,8 @@ noncomputable def sourceQSearchRound {I : Type} [Fintype I] [DecidableEq I]
         : Fin (sourceDepth (qSearchWindow l) j + 1)))
     (fun j => (2 + 2 * sourceDepth (qSearchWindow l) j, 2 + sourceDepth (qSearchWindow l) j))
 
+/-- A search round whose fallback trial samples depths 0 through M − 1 uniformly for the
+geometric window size M, recording fallback costs (2 + 2k, 2 + k) at depth k. -/
 noncomputable def shiftedQSearchRound {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (l : ℕ) : PMF (Option I × ℕ × ℕ) :=
@@ -254,6 +313,8 @@ noncomputable def shiftedQSearchRound {I : Type} [Fintype I] [DecidableEq I]
     (fun j => preparedAATrial A hA j₀ S j)
     (fun j => (2 + 2 * j.val, 2 + j.val))
 
+/-- The expectation of a constant c on an event and zero elsewhere equals c times the event mass
+in the extended nonnegative reals. -/
 theorem expectation_indicator_mul' {α : Type} (p : PMF α) (P : α → Prop)
     [DecidablePred P] (c : ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun a => if P a then c else 0) = c * Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P := by
@@ -262,6 +323,8 @@ theorem expectation_indicator_mul' {α : Type} (p : PMF α) (P : α → Prop)
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr
       (fun a => by by_cases hP : P a <;> simp [hP])
 
+/-- The direct preparation trial returns a marked index with mass equal to the initial marked
+measurement probability, cast to the extended nonnegative reals. -/
 theorem directABranch_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAATrial A hA j₀ S (⟨0, Nat.zero_lt_one⟩ : Fin 1))
@@ -271,6 +334,8 @@ theorem directABranch_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup 
     show ((⟨0, Nat.zero_lt_one⟩ : Fin 1) : ℕ) = 0 from rfl,
     (prepared_aa_actual_circuit A j₀ S 0 hA).2.2.2, pow_zero, applyGate_one]
 
+/-- The unmarked-event mass of the direct preparation trial is one minus its initial marked
+measurement probability. -/
 theorem directABranch_compl (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAATrial A hA j₀ S (⟨0, Nat.zero_lt_one⟩ : Fin 1))
@@ -282,11 +347,14 @@ theorem directABranch_compl (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
   rw [add_comm] at hpair
   exact ENNReal.eq_sub_of_add_eq ENNReal.ofReal_ne_top hpair
 
+/-- The uniform distribution on `Fin m` assigns each index mass 1/m when m is positive. -/
 private theorem uniform_apply_univ' {m : ℕ} (hm : 0 < m)
     (hs : (Finset.univ : Finset (Fin m)).Nonempty) (j : Fin m) :
     PMF.uniformOfFinset (Finset.univ : Finset (Fin m)) hs j = ((m : ℕ) : ℝ≥0∞)⁻¹ := by
   rw [PMF.uniformOfFinset_apply, if_pos (Finset.mem_univ j), Finset.card_univ, Fintype.card_fin]
 
+/-- If each trial's marked-event mass equals its specified depth-success mass, averaging over
+the uniform window gives the sum of these masses divided by the window size. -/
 private theorem uniform_trial_event {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (trial : Fin M → CostedLaw (I × ℕ)) (depth : Fin M → ℕ)
@@ -309,6 +377,9 @@ private theorem uniform_trial_event {I : Type} [Fintype I] [DecidableEq I]
     rw [uniform_apply_univ' hM ⟨⟨0, hM⟩, Finset.mem_univ _⟩ j]),
     ← Finset.mul_sum, Finset.sum_congr rfl (fun j _ => htrial j)]
 
+/-- The success-event mass of a window round is the initial marked mass plus its complement
+times the uniform average of the fallback depth-success masses, under the stated trial-mass
+identities. -/
 theorem windowRound_success_mass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (trial : Fin M → CostedLaw (I × ℕ)) (ledger : Fin M → ℕ × ℕ)
@@ -397,6 +468,8 @@ theorem windowRound_success_mass {I : Type} [Fintype I] [DecidableEq I]
     directABranch_mass, directABranch_compl]
   ring
 
+/-- The source round's success-event mass is the initial marked mass plus its complement times
+the average fallback success mass over depths 1 through the search-window size. -/
 theorem sourceRound_success_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (sourceQSearchRound A hA j₀ S l) (fun out => ∃ y, out.1 = some y)
@@ -411,6 +484,9 @@ theorem sourceRound_success_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
     (⟨sourceDepth (qSearchWindow l) j, by omega⟩
       : Fin (sourceDepth (qSearchWindow l) j + 1))).2.2
 
+/-- The shifted round's success-event mass is the initial marked mass plus its complement times
+the average fallback success mass over depths zero through one less than the search-window
+size. -/
 theorem shiftedRound_success_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (shiftedQSearchRound A hA j₀ S l) (fun out => ∃ y, out.1 = some y)
@@ -423,6 +499,8 @@ theorem shiftedRound_success_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
   intro j
   exact (prepared_aa_trial_actual_metadata A j₀ S hA j).2.2
 
+/-- The shifted search-round distribution equals the existing `BHMTQSearch.qSearchRound`
+distribution. -/
 theorem shiftedRound_eq_frozenRound (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     shiftedQSearchRound A hA j₀ S l = BHMTQSearch.qSearchRound A hA j₀ S l := by
@@ -431,13 +509,18 @@ theorem shiftedRound_eq_frozenRound (A : Matrix I I ℂ) (hA : A ∈ Matrix.unit
   intro x
   simp only [PMF.bind_apply]
 
+/-- The marked measurement mass after any prepared amplification depth is nonnegative. -/
 theorem depthSuccessMass_nonneg (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (k : ℕ) :
     0 ≤ depthSuccessMass A j₀ S k :=
   measureProb_nonneg _ _
 
+/-- The real-valued mass of the event that a round's optional index is present. -/
 noncomputable def roundSuccessMass {I : Type} (p : PMF (Option I × ℕ × ℕ)) : ℝ :=
   (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun out => ∃ y, out.1 = some y)).toReal
 
+/-- Under the stated trial-mass identities, a window round's real success mass is a + (1 − a) ·
+w, where a is the initial marked probability and w is the average fallback depth-success
+mass. -/
 theorem windowRound_successMass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (trial : Fin M → CostedLaw (I × ℕ)) (ledger : Fin M → ℕ × ℕ)
@@ -498,6 +581,8 @@ theorem windowRound_successMass {I : Type} [Fintype I] [DecidableEq I]
     exact add_nonneg ha0 (mul_nonneg hone1 hquot)
   rw [ENNReal.toReal_ofReal hpos]
 
+/-- The source round's real success mass is a + (1 − a) · w, where a is the initial marked
+probability and w is `sourceWindowAverage` at the geometric window size. -/
 theorem sourceRound_successMass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     roundSuccessMass (sourceQSearchRound A hA j₀ S l)
@@ -511,6 +596,8 @@ theorem sourceRound_successMass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
     (⟨sourceDepth (qSearchWindow l) j, by omega⟩
       : Fin (sourceDepth (qSearchWindow l) j + 1))).2.2
 
+/-- The shifted round's real success mass is a + (1 − a) · w, where a is the initial marked
+probability and w is `shiftedWindowAverage` at the geometric window size. -/
 theorem shiftedRound_successMass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     roundSuccessMass (shiftedQSearchRound A hA j₀ S l)
@@ -522,6 +609,9 @@ theorem shiftedRound_successMass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
   intro j
   exact (prepared_aa_trial_actual_metadata A j₀ S hA j).2.2
 
+/-- The source-minus-shifted round success mass equals (1 − a) times the depth-M minus
+depth-zero success mass divided by M, where a is the initial marked probability and M is the
+search-window size. -/
 theorem sourceRound_successMass_sub_shiftedRound (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ) :
     roundSuccessMass (sourceQSearchRound A hA j₀ S l)
@@ -536,6 +626,8 @@ theorem sourceRound_successMass_sub_shiftedRound (A : Matrix I I ℂ)
   rw [hs, ht, hwin]
   ring
 
+/-- The source and shifted round success masses differ when their endpoint depth-success masses
+differ and the initial marked probability is not one. -/
 theorem sourceRound_successMass_ne_shiftedRound_of_boundary (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ)
     (hbound : depthSuccessMass A j₀ S (qSearchWindow l) ≠ depthSuccessMass A j₀ S 0)

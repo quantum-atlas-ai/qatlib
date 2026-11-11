@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.DissipVarFw26.FrameworkCost.Convergence
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Conditional iteration bounds from trajectory flatness
+
+A uniform upper bound on each decrease of a gap sequence gives a lower bound on the number of
+steps between two prescribed endpoint gaps. Substituting an exponentially small descent scale
+and combining this estimate with a smooth PL precision budget yields the conditional comparison
+`theorem2_separation`.
+
+This development follows [YaoEtAl2026].
+
+## Main statements
+
+* `lemma4_trajectory_flat_steps`: bounded per-step decrease gives an endpoint-based step lower
+  bound.
+* `lemma4_exponential_lower`: the same bound with descent scale `m * B * b ^ (-n)`.
+* `theorem2_separation`: a PL precision guarantee and budget estimate hold together with the
+  trajectory lower bound.
+
+## References
+
+* [Yao et al., 2026][YaoEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +46,9 @@ open Qatlib.Papers.DissipVarFw26.FrameworkCost.Convergence
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 
+/-- If every gap decrease before time `T` is at most `(3 * η / 2) * G` with `η, G > 0`, and the
+endpoint gaps are at least `δ0` initially and at most `ε` finally, then `T ≥ 2 * (δ0 - ε) /
+(3 * η * G)`. See [YaoEtAl2026]. -/
 theorem lemma4_trajectory_flat_steps
     (gap : ℕ → ℝ) (η G δ0 ε : ℝ) (T : ℕ)
     (hη : 0 < η) (hG : 0 < G)
@@ -53,6 +80,9 @@ theorem lemma4_trajectory_flat_steps
   have hTnn : (0 : ℝ) ≤ (T : ℝ) := Nat.cast_nonneg T
   nlinarith [hge, hTnn]
 
+/-- With positive `η`, `m`, and `B` and `b > 1`, a per-step gap decrease at most `(3 * η / 2) *
+(m * B * b ^ (-n))` gives `T ≥ 2 * (δ0 - ε) / (3 * η * (m * B * b ^ (-n)))` under the stated
+endpoint bounds. See [YaoEtAl2026]. -/
 theorem lemma4_exponential_lower
     (gap : ℕ → ℝ) (η m B b δ0 ε : ℝ) (T n : ℕ)
     (hη : 0 < η) (hm : 0 < m) (hB : 0 < B) (hb : 1 < b)
@@ -67,6 +97,10 @@ theorem lemma4_exponential_lower
   exact lemma4_trajectory_flat_steps gap η (m * B * b ^ (-(n : ℝ))) δ0 ε T hη hG
     hstep h0 hT
 
+/-- Under the stated smoothness, PL, lower-bound, and ratio hypotheses, the precision iterate
+reaches gap `ε` within a budget less than `P * log ((C θ0 - Cdis_star) / ε) + 1`, while the
+separately bounded gap trajectory requires at least `2 * (δ0 - ε) / (3 * ηuni * Guni)`
+steps. See [YaoEtAl2026]. -/
 theorem theorem2_separation
     (C : E → ℝ) (βdis μdis Cdis_star : ℝ) (hβd : 0 < βdis)
     (hsmooth_d : SmoothGrad C βdis) (hpl_d : PLCond C μdis Cdis_star)

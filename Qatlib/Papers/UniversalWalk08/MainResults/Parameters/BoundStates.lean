@@ -10,19 +10,41 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Tactic
 
+/-!
+# Decay, energy gaps, and bound-state phases
+
+This module records exponential decay and small-parameter energy estimates used to control
+bound-state contributions in [Childs2009]. It bounds `boundDecay` and `2 * cosh κ - 2`, and
+verifies that the two opposite phases agree at integer multiples of `π`.
+
+## Main statements
+
+* `boundDecay_m4_le`: Quartic distance and decay-rate bounds imply decay at most `exp(-1)`.
+* `boundEnergy_gap`: Control the energy gap by an inverse eighth power.
+* `boundPhase_two_signs`: The opposite bound-state phases agree at integer multiples of `π`.
+
+## References
+
+* [Childs, 2009][Childs2009]
+-/
+
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Parameters
 
 open Real
 
 set_option autoImplicit false
 
+/-- The exponential decay factor `exp(-(κ * x))`. -/
 noncomputable def boundDecay (κ x : ℝ) : ℝ := Real.exp (-(κ * x))
 
+/-- If `κ * x ≥ 1`, the decay factor is at most `exp(-1)`. -/
 theorem boundDecay_le_exp_neg_one {κ x : ℝ} (hx : 1 ≤ κ * x) :
     boundDecay κ x ≤ Real.exp (-1) := by
   unfold boundDecay
   exact Real.exp_le_exp.mpr (by linarith)
 
+/-- For positive `m`, a decay rate at least `1 / m ^ 4` and distance at least `m ^ 4` give decay
+at most `exp(-1)` [Childs2009]. -/
 theorem boundDecay_m4_le (m κ x : ℝ) (hm : 0 < m) (hκ : 1 / m ^ 4 ≤ κ)
     (hx : m ^ 4 ≤ x) : boundDecay κ x ≤ Real.exp (-1) := by
   apply boundDecay_le_exp_neg_one
@@ -34,6 +56,7 @@ theorem boundDecay_m4_le (m κ x : ℝ) (hm : 0 < m) (hκ : 1 / m ^ 4 ≤ κ)
     field_simp
   rwa [hone] at hprod
 
+/-- For `0 ≤ κ ≤ 1`, the quantity `2 * cosh κ - 2` is at most `κ² * exp(1 / 2)` [Childs2009]. -/
 theorem two_cosh_sub_two_le_sq {κ : ℝ} (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) :
     2 * Real.cosh κ - 2 ≤ κ ^ 2 * Real.exp (1 / 2) := by
   have hcosh : Real.cosh κ ≤ Real.exp (κ ^ 2 / 2) := Real.cosh_le_exp_half_sq κ
@@ -54,6 +77,8 @@ theorem two_cosh_sub_two_le_sq {κ : ℝ} (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) :
     mul_le_mul_of_nonneg_left hexp ht0
   nlinarith [hcosh, hkey, hstep]
 
+/-- For `m ≥ 1` and `0 ≤ κ ≤ 1 / m ^ 4`, the energy gap `2 * cosh κ - 2` is at most `exp(1 / 2)
+/ m ^ 8` [Childs2009]. -/
 theorem boundEnergy_gap (m κ : ℝ) (hm : 1 ≤ m) (hκ0 : 0 ≤ κ)
     (hκ : κ ≤ 1 / m ^ 4) :
     2 * Real.cosh κ - 2 ≤ Real.exp (1 / 2) / m ^ 8 := by
@@ -77,6 +102,7 @@ theorem boundEnergy_gap (m κ : ℝ) (hm : 1 ≤ m) (hκ0 : 0 ≤ κ)
   rw [hcoef] at hb
   linarith [hmain]
 
+/-- The complex phase `exp(2πni)` equals one for every integer `n`. -/
 theorem boundPhase_pi_multiple (n : ℤ) :
     Complex.exp (((2 * Real.pi * n : ℝ) : ℂ) * Complex.I) = 1 := by
   have h : ((2 * Real.pi * n : ℝ) : ℂ) * Complex.I = n * (2 * Real.pi * Complex.I) := by
@@ -84,6 +110,7 @@ theorem boundPhase_pi_multiple (n : ℤ) :
     ring
   rw [h, Complex.exp_int_mul_two_pi_mul_I]
 
+/-- The complex phases `exp(2πni)` and `exp(-2πni)` agree for every integer `n` [Childs2009]. -/
 theorem boundPhase_two_signs (n : ℤ) :
     Complex.exp (((2 * Real.pi * n : ℝ) : ℂ) * Complex.I) =
       Complex.exp (((-(2 * Real.pi * n) : ℝ) : ℂ) * Complex.I) := by

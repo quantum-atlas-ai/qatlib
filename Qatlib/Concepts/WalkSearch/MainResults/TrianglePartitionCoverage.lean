@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSpecification
 import Qatlib.Concepts.WalkSearch.MainResults.PromisedEdgeSearch
+
+/-!
+# Triangle coverage under an edge partition
+
+`triangleMarked` checks candidate triangles from `trianglesOf T` against the actual graph edges.
+`true_triangle_partition_coverage` shows that covering the graph edges by `T ∪ E` places any
+existing graph triangle either among the marked candidates from `T` or among triangles with a
+graph edge in `E`. For background on quantum search and amplitude amplification, see
+[BrassardEtAl2002].
+
+## Main statements
+
+* `triangleMarked`: Test whether all three edges of a candidate in `trianglesOf T` belong to
+  `G.edges`.
+* `true_triangle_partition_coverage`: If `G.edges ⊆ T ∪ E` and the graph has a triangle, either
+  a triangle candidate from `T` is marked or `edgeTriangleExists G E` holds.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,9 +39,11 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical
 variable {n : ℕ}
 
+/-- Test whether all three edges of a candidate in `trianglesOf T` belong to `G.edges`. -/
 def triangleMarked (G : UGraph n) (T : Finset (Fin n×Fin n)) : {t //t∈trianglesOf T}→Bool :=
   fun t=>decide ((t.val.1,t.val.2.1)∈G.edges ∧ (t.val.1,t.val.2.2)∈G.edges ∧ (t.val.2.1,t.val.2.2)∈G.edges)
 
+/-- A marked candidate satisfies `tri3` in the graph and has all three graph edges. -/
 theorem triangleMarked_sound (G : UGraph n) (T : Finset (Fin n×Fin n)) (t : {t //t∈trianglesOf T})
     (hm : triangleMarked G T t=true) :
     tri3 G.edges t.val.1 t.val.2.1 t.val.2.2 ∧ (t.val.1,t.val.2.1)∈G.edges ∧
@@ -30,9 +54,13 @@ theorem triangleMarked_sound (G : UGraph n) (T : Finset (Fin n×Fin n)) (t : {t 
   exact ⟨(tri3_iff _ _ _ _).mpr ⟨ht.1.ne,ht.2.1.ne,(ht.1.trans ht.2.1).ne,
     Or.inl hg.1,Or.inl hg.2.2,Or.inl hg.2.1⟩,hg⟩
 
+/-- A triple of distinct vertices forms a graph triangle whose first ordered edge also belongs
+to `E`. -/
 def edgeTriangleExists (G : UGraph n) (E : Finset (Fin n×Fin n)) : Prop :=
   ∃ a b c : Fin n,a≠b ∧ b≠c ∧ a≠c ∧ (a,b)∈E ∧ (a,b)∈G.edges ∧ (a,c)∈G.edges ∧ (b,c)∈G.edges
 
+/-- If `G.edges ⊆ T ∪ E` and the graph has a triangle, either a triangle candidate from `T` is
+marked or `edgeTriangleExists G E` holds. -/
 theorem true_triangle_partition_coverage (G : UGraph n) (T E : Finset (Fin n×Fin n))
     (hG : G.edges⊆T∪E) (htri : 1≤triCount G.edges) :
     (∃ t : {t //t∈trianglesOf T},triangleMarked G T t=true) ∨ edgeTriangleExists G E := by

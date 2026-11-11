@@ -8,6 +8,26 @@ import Qatlib.Papers.SemiDirectHSP06.MainResults.Defs
 import Qatlib.Papers.SemiDirectHSP06.MainResults.Lemma1Componentwise
 import Qatlib.Papers.SemiDirectHSP06.MainResults.SdpSplitTrivialFirst
 import Mathlib.GroupTheory.SpecificGroups.Cyclic
+
+/-!
+# Splitting a coprime cyclic factor from a semidirect product
+
+The induced first-coordinate homomorphisms are upgraded to automorphisms and assembled into
+`sdpFstAction`. For distinct primes with `p` not dividing `q - 1`, this action is trivial, so
+`lemma2_factor_decomposition` splits off the cyclic group of order `q ^ s` as a direct factor.
+See [ChiKimLee2006] for the mathematical setting.
+
+## Main statements
+
+* `sdp_action_trivial_first`: shows that the action fixes the first cyclic factor pointwise.
+* `lemma2_factor_decomposition`: produces an action on the remaining factor and a direct-product
+  decomposition.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,11 +39,15 @@ open SemidirectProduct
 
 variable {p q s r : ℕ}
 
+/-- Every element of the multiplicatively written cyclic group modulo nonzero `n` has `n`th
+power one. -/
 lemma ofAdd_pow_card (n : ℕ) [NeZero n] (x : Multiplicative (ZMod n)) : x ^ n = 1 := by
   have hx : x = Multiplicative.ofAdd x.toAdd := by simp
   rw [hx, ← ofAdd_nsmul, nsmul_eq_mul, ZMod.natCast_self]
   simp
 
+/-- If `k` is coprime to nonzero `n`, an element of the cyclic group modulo `n` whose `k`th
+power is one is the identity. -/
 lemma mul_eq_one_of_pow_eq_one {n k : ℕ} [NeZero n] (hcop : Nat.Coprime k n)
     {x : Multiplicative (ZMod n)} (h : x ^ k = 1) : x = 1 := by
   have hx : x = Multiplicative.ofAdd x.toAdd := by simp
@@ -38,6 +62,8 @@ lemma mul_eq_one_of_pow_eq_one {n k : ℕ} [NeZero n] (hcop : Nat.Coprime k n)
   rw [hx, hz]
   simp
 
+/-- For distinct primes, applying the product action to an element of the first cyclic factor
+leaves its second coordinate equal to one. -/
 lemma sdp_second_coord_trivial (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -55,6 +81,8 @@ lemma sdp_second_coord_trivial (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     simpa using this
   exact mul_eq_one_of_pow_eq_one (coprime_prime_powers hp hq hpq) hbpow
 
+/-- For distinct primes, applying the product action to an element of the second cyclic factor
+leaves its first coordinate equal to one. -/
 lemma sdp_first_coord_trivial (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -72,6 +100,8 @@ lemma sdp_first_coord_trivial (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     simpa using this
   exact mul_eq_one_of_pow_eq_one (coprime_prime_powers hp hq hpq).symm habpow
 
+/-- The endomorphism of the first cyclic factor obtained by embedding it into the product,
+applying `φ g`, and projecting back. -/
 def sdpFstHom
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -90,6 +120,8 @@ def sdpFstHom
       ext <;> simp
     exact congrArg Prod.fst hprod
 
+/-- The induced first-coordinate homomorphism is injective if the action preserves the first
+factor. -/
 lemma sdpFstHom_injective
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -104,6 +136,8 @@ lemma sdpFstHom_injective
   have := (φ g).injective hpairs
   simpa using congrArg Prod.fst this
 
+/-- For prime `q`, the induced first-coordinate homomorphism is surjective under the
+factor-preservation hypothesis. -/
 lemma sdpFstHom_surjective (hq : q.Prime)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -114,6 +148,8 @@ lemma sdpFstHom_surjective (hq : q.Prime)
   haveI : Finite (Multiplicative (ZMod (q ^ s))) := inferInstance
   exact (Finite.injective_iff_surjective).mp (sdpFstHom_injective φ hA g)
 
+/-- The automorphism of the first cyclic factor obtained from the induced homomorphism under the
+factor-preservation hypothesis. -/
 def sdpFstAut (hq : q.Prime)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -123,6 +159,7 @@ def sdpFstAut (hq : q.Prime)
   MulEquiv.ofBijective (sdpFstHom φ g)
     ⟨sdpFstHom_injective φ hA g, sdpFstHom_surjective hq φ hA g⟩
 
+/-- The induced first-factor automorphism sends `a` to the first coordinate of `φ g (a, 1)`. -/
 lemma sdpFstAut_apply (hq : q.Prime)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -131,6 +168,7 @@ lemma sdpFstAut_apply (hq : q.Prime)
     (g : Multiplicative (ZMod p)) (a : Multiplicative (ZMod (q ^ s))) :
     sdpFstAut hq φ hA g a = (φ g (a, 1)).1 := rfl
 
+/-- The induced first-factor automorphisms respect multiplication of acting-group elements. -/
 lemma sdpFstAut_map_mul (hq : q.Prime)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -148,6 +186,8 @@ lemma sdpFstAut_map_mul (hq : q.Prime)
   rw [key]
   rfl
 
+/-- The action on the first cyclic factor obtained from `φ` under the factor-preservation
+hypothesis. -/
 def sdpFstAction (hq : q.Prime)
     (φ : Multiplicative (ZMod p) →*
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
@@ -161,6 +201,8 @@ def sdpFstAction (hq : q.Prime)
     simp
   map_mul' := sdpFstAut_map_mul hq φ hA
 
+/-- For distinct primes `p` and `q`, positive `s`, and `p` not dividing `q - 1`, the action
+fixes every element of the first cyclic factor. -/
 lemma sdp_action_trivial_first (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     (hs : 0 < s) (hndvd : ¬ p ∣ q - 1)
     (φ : Multiplicative (ZMod p) →*
@@ -218,6 +260,9 @@ lemma sdp_action_trivial_first (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     simpa [sdpFstAction, sdpFstAut, sdpFstHom] using h1a
   exact Prod.ext hfirst (hA g a)
 
+/-- For distinct primes `p` and `q`, positive exponents, and `p` not dividing `q - 1`, the
+semidirect product is isomorphic to the first cyclic factor times a semidirect product on
+the second factor. See [Chi et al., 2006, Lemma 2][ChiKimLee2006]. -/
 theorem lemma2_factor_decomposition
     {p q s r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     (hs : 0 < s) (_hr : 0 < r) (hndvd : ¬ p ∣ q - 1)

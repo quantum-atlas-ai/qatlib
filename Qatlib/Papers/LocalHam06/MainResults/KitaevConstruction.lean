@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LocalHam06.MainResults.ProjectionLemma
+
+/-!
+# Energy estimates for history-Hamiltonian constructions
+
+This module applies the projection estimate to the energy thresholds appearing in Lemmas 2 and 3
+of [KempeKitaevRegev2006]. Under the stated symmetric decomposition and penalty-gap assumptions,
+`kitaev_lemma2` and `two_local_lemma3` combine a low-energy witness implication with a
+conditional ground-energy lower bound.
+
+## Main statements
+
+* `kitaev_lemma2`: Uses the section-energy threshold based on `3 / 4 - ε`.
+* `two_local_lemma3`: Uses the section-energy threshold based on `1 / 2 - ε`.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -20,6 +39,9 @@ open Qatlib.Papers.LocalHam06.MainResults.ProjectionLemma
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
   [FiniteDimensional ℂ E] [Nontrivial E]
 
+/-- Under the stated projection hypotheses, a unit witness of energy below `ε` forces ground
+energy below `ε`, and the given section-energy bound forces ground energy at least `3 / 4 -
+ε`. These are the abstract energy estimates used for Lemma 2 of [KempeKitaevRegev2006]. -/
 theorem kitaev_lemma2
     (H H1 H2 : E →L[ℂ] E) (S : Submodule ℂ E) (J ε : ℝ)
     (hH : H = H1 + H2)
@@ -45,6 +67,9 @@ theorem kitaev_lemma2
     have hlower := hpl.1
     linarith
 
+/-- Under the stated projection hypotheses, a unit witness of energy below `ε` forces ground
+energy below `ε`, and the given section-energy bound forces ground energy at least `1 / 2 -
+ε`. These are the abstract energy estimates used for Lemma 3 of [KempeKitaevRegev2006]. -/
 theorem two_local_lemma3
     (H H1 H2 : E →L[ℂ] E) (S : Submodule ℂ E) (J ε : ℝ)
     (hH : H = H1 + H2)

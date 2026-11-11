@@ -9,6 +9,28 @@ import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
 import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 
+/-!
+# Exact Dyson source series
+
+The recursively integrated terms `dysonSourceTerm` define the inhomogeneous Dyson series
+`dysonSourceSeries`. For continuous matrix coefficients and driving terms, this module proves
+convergence, differentiability, and the variation of constants representation of solutions to
+`x' = A x + b`. It also records dissipative contraction estimates and scalar expressions used in
+resource bounds.
+
+The mathematical setting follows [BerryCosta2024].
+
+## Main statements
+
+* `dysonSourceSeries_hasDerivAt`: the source series solves the inhomogeneous equation.
+* `solution_eq_initial_add_dyson`: decomposition into homogeneous evolution and source series.
+* `dissipative_contraction`: contraction under the nonpositive logarithmic norm condition.
+
+## References
+
+* [Berry and Costa, 2024][BerryCosta2024]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 1000000
@@ -29,6 +51,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- For a continuous state valued function, conversion to Euclidean space commutes with interval
+integration. -/
 theorem toEuclidean_intervalIntegral (f : ℝ → QState I) (hf : Continuous f) (s t : ℝ) :
     toEuclidean_fromVec (∫ u in s..t, f u) = ∫ u in s..t, toEuclidean_fromVec (f u) := by
   let e : QState I ≃L[ℂ] EuclideanSpace ℂ I :=
@@ -40,6 +64,7 @@ theorem toEuclidean_intervalIntegral (f : ℝ → QState I) (hf : Continuous f) 
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Converting a continuous state valued function to Euclidean space preserves continuity. -/
 theorem continuous_toEuclidean {f : ℝ → QState I} (hf : Continuous f) :
     Continuous (fun u => toEuclidean_fromVec (f u)) := by
   let e : QState I ≃L[ℂ] EuclideanSpace ℂ I :=
@@ -47,12 +72,15 @@ theorem continuous_toEuclidean {f : ℝ → QState I} (hf : Continuous f) :
   have he : ⇑e = toEuclidean_fromVec := rfl
   simpa [he] using! (e : QState I →L[ℂ] EuclideanSpace ℂ I).continuous.comp hf
 
+/-- The Euclidean norm of a matrix applied to a state is bounded by the operator norm times the
+Euclidean norm of the state. -/
 theorem norm_mulVec_le (A : Matrix I I ℂ) (v : QState I) :
     ‖toEuclidean_fromVec (A *ᵥ v)‖ ≤ ‖A‖ * ‖toEuclidean_fromVec v‖ := by
   simpa using! Matrix.l2_opNorm_mulVec A (toEuclidean_fromVec v)
 
 omit [DecidableEq I] in
 
+/-- The function space norm of a state is at most its Euclidean norm. -/
 theorem pi_norm_le_toEuclidean (v : QState I) : ‖v‖ ≤ ‖toEuclidean_fromVec v‖ := by
   refine (pi_norm_le_iff_of_nonneg (norm_nonneg _)).mpr fun i => ?_
   have h := PiLp.norm_apply_le (p := 2) (toEuclidean_fromVec v) i
@@ -60,6 +88,7 @@ theorem pi_norm_le_toEuclidean (v : QState I) : ‖v‖ ≤ ‖toEuclidean_fromV
 
 omit [DecidableEq I] in
 
+/-- Matrix multiplication commutes with the sum of a summable state valued series. -/
 theorem mulVec_tsum (A : Matrix I I ℂ) (f : ℕ → QState I) (h : Summable f) :
     (∑' n, A *ᵥ f n) = A *ᵥ (∑' n, f n) := by
   let L : QState I →L[ℂ] QState I := (Matrix.mulVecLin A).toContinuousLinearMap
@@ -67,17 +96,21 @@ theorem mulVec_tsum (A : Matrix I I ℂ) (f : ℕ → QState I) (h : Summable f)
   have := L.map_tsum h
   simpa [hL] using! this.symm
 
+/-- The recursively integrated source term, starting with the integral of `b` and then
+repeatedly integrating multiplication by `A`. -/
 noncomputable def dysonSourceTerm (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s : ℝ) : ℕ → ℝ → QState I
   | 0, t => ∫ u in s..t, b u
   | n + 1, t => ∫ u in s..t, A u *ᵥ dysonSourceTerm A b s n u
 
+/-- The infinite sum of the recursively integrated Dyson source terms. -/
 noncomputable def dysonSourceSeries (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s t : ℝ) : QState I :=
   ∑' n, dysonSourceTerm A b s n t
 
 omit [DecidableEq I] in
 
+/-- Every successor indexed source term vanishes when its endpoint equals its initial time. -/
 @[simp]
 theorem dysonSourceTerm_succ_self (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s : ℝ) (n : ℕ) : dysonSourceTerm A b s (n + 1) s = 0 := by
@@ -85,6 +118,7 @@ theorem dysonSourceTerm_succ_self (A : ℝ → Matrix I I ℂ) (b : ℝ → QSta
 
 omit [DecidableEq I] in
 
+/-- The zeroth source term vanishes when its endpoint equals its initial time. -/
 @[simp]
 theorem dysonSourceTerm_zero_self (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s : ℝ) : dysonSourceTerm A b s 0 s = 0 := by
@@ -92,6 +126,7 @@ theorem dysonSourceTerm_zero_self (A : ℝ → Matrix I I ℂ) (b : ℝ → QSta
 
 omit [DecidableEq I] in
 
+/-- The Dyson source series vanishes when the initial and final times coincide. -/
 @[simp] theorem dysonSourceSeries_self (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s : ℝ) : dysonSourceSeries A b s s = 0 := by
   unfold dysonSourceSeries
@@ -104,6 +139,7 @@ omit [DecidableEq I] in
 
 omit [DecidableEq I] in
 
+/-- Each Dyson source term is continuous in its final time when `A` and `b` are continuous. -/
 theorem dysonSourceTerm_continuous (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s : ℝ) (n : ℕ) :
     Continuous (dysonSourceTerm A b s n) := by
@@ -116,6 +152,8 @@ theorem dysonSourceTerm_continuous (A : ℝ → Matrix I I ℂ) (b : ℝ → QSt
 
 omit [DecidableEq I] in
 
+/-- The derivative of the successor source term at `t` is `A t` applied to the preceding source
+term at `t`, for continuous `A` and `b`. -/
 theorem dysonSourceTerm_hasDerivAt_succ (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s : ℝ) (n : ℕ) (t : ℝ) :
     HasDerivAt (dysonSourceTerm A b s (n + 1)) (A t *ᵥ dysonSourceTerm A b s n t) t := by
@@ -124,6 +162,8 @@ theorem dysonSourceTerm_hasDerivAt_succ (A : ℝ → Matrix I I ℂ) (b : ℝ �
   exact intervalIntegral.integral_hasDerivAt_right (hc.intervalIntegrable _ _)
     hc.aestronglyMeasurable.stronglyMeasurableAtFilter hc.continuousAt
 
+/-- Bounds `M` on the matrix norm and `C` on the Euclidean driving norm give the source term
+bound `C * |t - s| * (M * |t - s|)^n / (n + 1)!`. -/
 theorem dysonSourceTerm_norm_le (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s t M C : ℝ)
     (hM : 0 ≤ M) (_hC : 0 ≤ C)
@@ -211,6 +251,8 @@ theorem dysonSourceTerm_norm_le (A : ℝ → Matrix I I ℂ) (b : ℝ → QState
               ring
             exact le_of_eq halg
 
+/-- For continuous `A` and `b`, the Dyson source terms form a summable series at any fixed pair
+of times. -/
 theorem dysonSourceTerm_summable (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s t : ℝ) :
     Summable (fun n => dysonSourceTerm A b s n t) := by
@@ -243,6 +285,7 @@ theorem dysonSourceTerm_summable (A : ℝ → Matrix I I ℂ) (b : ℝ → QStat
           dysonSourceTerm_norm_le A b hA hb s t M C hM hC hboundA hboundb n
     _ = (C * |t - s|) * ((M * |t - s|) ^ n / ((n + 1).factorial : ℝ)) := by ring
 
+/-- The factorial majorant for source term derivatives is summable for nonnegative `M` and `R`. -/
 theorem summable_factorial_majorant (M C R : ℝ) (hM : 0 ≤ M) (hR : 0 ≤ R) :
     Summable (fun n : ℕ => M * ((C * R) * ((M * R) ^ n / ((n + 1).factorial : ℝ)))) := by
   have hfac : Summable (fun n : ℕ => (M * R) ^ n / ((n + 1).factorial : ℝ)) := by
@@ -254,6 +297,8 @@ theorem summable_factorial_majorant (M C R : ℝ) (hM : 0 ≤ M) (hR : 0 ≤ R) 
     exact div_le_div_of_nonneg_left (by positivity) (by positivity) hle
   simpa [mul_assoc] using! ((hfac.mul_left (C * R)).mul_left M)
 
+/-- Uniform bounds on the matrix and driving terms in an interval give the stated factorial
+majorant for the norm of `A u` applied to a source term at an interior point. -/
 theorem dysonSourceTerm_deriv_norm_le (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s M C R : ℝ)
     (hM : 0 ≤ M) (hC : 0 ≤ C) (hR : 0 < R)
@@ -298,6 +343,9 @@ theorem dysonSourceTerm_deriv_norm_le (A : ℝ → Matrix I I ℂ) (b : ℝ → 
     exact mul_le_mul_of_nonneg_left hbracket hM
   exact hfirst.trans ((mul_le_mul hAu hb' (norm_nonneg _) hM).trans hmul)
 
+/-- For continuous `A` and `b`, the source series has derivative `A t` applied to the series
+plus `b t`. See [Berry and Costa, 2024, Section 1.1–1.2; Eqs. (2)–(11),
+(91)][BerryCosta2024]. -/
 theorem dysonSourceSeries_hasDerivAt (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s t : ℝ) :
     HasDerivAt (dysonSourceSeries A b s) (A t *ᵥ dysonSourceSeries A b s t + b t) t := by
@@ -355,6 +403,8 @@ theorem dysonSourceSeries_hasDerivAt (A : ℝ → Matrix I I ℂ) (b : ℝ → Q
   rw [hsum'] at hsum
   simpa [add_comm] using! hsum
 
+/-- For continuous `A` and `b`, the Dyson source series equals the integral of the driving term
+propagated from each integration time to the endpoint. -/
 theorem dysonSourceSeries_eq_sourceIntegral (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (hA : Continuous A) (hb : Continuous b) (s t : ℝ) :
     dysonSourceSeries A b s t =
@@ -369,6 +419,9 @@ theorem dysonSourceSeries_eq_sourceIntegral (A : ℝ → Matrix I I ℂ) (b : �
   rw [hval]
   simp [orderedForcedSolution]
 
+/-- Any solution of `x' = A x + b` with continuous coefficients equals its propagated initial
+value plus the Dyson source series. See [Berry and Costa, 2024, Section 1.1–1.2; Eqs.
+(2)–(11), (91)][BerryCosta2024]. -/
 theorem solution_eq_initial_add_dyson (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (x : ℝ → QState I) (hA : Continuous A) (hb : Continuous b) (s : ℝ)
     (hx : ∀ t, HasDerivAt x (A t *ᵥ x t + b t) t) :
@@ -381,39 +434,56 @@ theorem solution_eq_initial_add_dyson (A : ℝ → Matrix I I ℂ) (b : ℝ → 
   simp only [orderedForcedSolution]
   rw [dysonSourceSeries_eq_sourceIntegral A b hA hb s t]
 
+/-- The condition that `-A u - (A u)ᴴ` is positive semidefinite at every time. -/
 def HasNonpositiveLogNorm (A : ℝ → Matrix I I ℂ) : Prop :=
   ∀ u, ((-A u) + (-A u)ᴴ).PosSemidef
 
+/-- Continuous coefficients with nonpositive logarithmic norm have forward ordered evolution of
+operator norm at most one. See [Berry and Costa, 2024, Eq. (27) and stability
+discussion][BerryCosta2024]. -/
 theorem dissipative_contraction (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (hlog : HasNonpositiveLogNorm A) {s t : ℝ} (hst : s ≤ t) :
     ‖orderedEvolution (fun u => -A u) s t‖ ≤ 1 :=
   ordered_evolution_psd_contraction I (fun u => -A u) hA.neg hlog s t hst
 
+/-- A uniform upper bound `xMax` on the norm of a trajectory throughout the interval `[0, T]`. -/
 def SolutionMaxBound (x : ℝ → EuclideanSpace ℂ I) (T xMax : ℝ) : Prop :=
   ∀ t ∈ Icc (0 : ℝ) T, ‖x t‖ ≤ xMax
 
+/-- A uniform upper bound `bMax` on the norm of the driving term throughout the interval `[0,
+T]`. -/
 def DrivingMaxBound (b : ℝ → EuclideanSpace ℂ I) (T bMax : ℝ) : Prop :=
   ∀ t ∈ Icc (0 : ℝ) T, ‖b t‖ ≤ bMax
 
+/-- The maximum of the matrix scale `lamA` and the ratio `bMax / xMax`. -/
 def lambdaAx (lamA bMax xMax : ℝ) : ℝ := max lamA (bMax / xMax)
 
+/-- The time step `T / nSteps` for a uniform subdivision. -/
 def deltaT (T : ℝ) (nSteps : ℕ) : ℝ := T / (nSteps : ℝ)
 
+/-- The scalar expression `(xMax / xT) * (lamB / lamA) / (vMin - eps * xMax / (lamA * T))` used
+in the variable coefficient resource bound. -/
 def RBound41 (xMax xT lamB lamA T eps vMin : ℝ) : ℝ :=
   (xMax / xT) * (lamB / lamA) / (vMin - eps * xMax / (lamA * T))
 
+/-- The derivative scale expression `(1 + T * bMax / (lamA * xMax)) * dA + db / xMax`. -/
 def DBound (T bMax lamA xMax dA db : ℝ) : ℝ :=
   (1 + T * bMax / (lamA * xMax)) * dA + db / xMax
 
+/-- The ratio `xMax / xT` used in the constant coefficient resource bound. -/
 def RBound42 (xMax xT : ℝ) : ℝ := xMax / xT
 
+/-- The combined scale `lambdaAx` is at least the matrix scale `lamA`. -/
 theorem le_lambdaAx (lamA bMax xMax : ℝ) : lamA ≤ lambdaAx lamA bMax xMax :=
   le_max_left _ _
 
+/-- The combined scale `lambdaAx` is at least the driving to solution ratio `bMax / xMax`. -/
 theorem div_bMax_le_lambdaAx (lamA bMax xMax : ℝ) :
     bMax / xMax ≤ lambdaAx lamA bMax xMax :=
   le_max_right _ _
 
+/-- A positive number of steps satisfying `lamA * T ≤ nSteps` gives the bound `lamA * deltaT T
+nSteps ≤ 1`. See [Berry and Costa, 2024, Eqs. (71)–(77), (88), (92)][BerryCosta2024]. -/
 theorem lamA_mul_deltaT_le_one (lamA T : ℝ) (nSteps : ℕ)
     (_hlam : 0 < lamA) (hn : 0 < nSteps) (hstep : lamA * T ≤ (nSteps : ℝ)) :
     lamA * deltaT T nSteps ≤ 1 := by
@@ -424,17 +494,21 @@ theorem lamA_mul_deltaT_le_one (lamA T : ℝ) (nSteps : ℕ)
   rw [hmul, div_le_one hnpos]
   exact hstep
 
+/-- If `0 < xT ≤ xMax`, the ratio `RBound42 xMax xT` is at least one. -/
 theorem one_le_RBound42 (xMax xT : ℝ) (hxT : 0 < xT) (hx : xT ≤ xMax) :
     1 ≤ RBound42 xMax xT := by
   unfold RBound42
   rw [le_div_iff₀ hxT]
   simpa using! hx
 
+/-- For positive `xT`, the ratio `RBound42` is monotone in its numerator `xMax`. -/
 theorem RBound42_mono (xMax xMax' xT : ℝ) (hxT : 0 < xT) (h : xMax ≤ xMax') :
     RBound42 xMax xT ≤ RBound42 xMax' xT := by
   unfold RBound42
   exact div_le_div_of_nonneg_right h hxT.le
 
+/-- A solution with constant matrix and driving term equals its propagated value at `s` plus the
+constant coefficient Dyson source series. -/
 theorem constant_solution_representation
     (A₀ : Matrix I I ℂ) (b₀ : QState I) (x : ℝ → QState I) (s : ℝ)
     (hx : ∀ t, HasDerivAt x (A₀ *ᵥ x t + b₀) t) :
@@ -443,11 +517,16 @@ theorem constant_solution_representation
   exact solution_eq_initial_add_dyson (fun _ => A₀) (fun _ => b₀) x
     continuous_const continuous_const s hx
 
+/-- For constant `A`, ordered evolution from zero to `t` with coefficient `-A` equals the matrix
+exponential of `t • A`. See [Berry and Costa, 2024, Section 1.1–1.2; Eqs. (2)–(11),
+(91)][BerryCosta2024]. -/
 theorem constant_ordered_eq_exp (A : Matrix I I ℂ) (t : ℝ) :
     orderedEvolution (fun _ => -A) 0 t = NormedSpace.exp (t • A) := by
   rw [← Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution_eq_ordered]
   simp [Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution]
 
+/-- If `-A - Aᴴ` is positive semidefinite, the matrix exponential of `t • A` has operator norm
+at most one for nonnegative `t`. -/
 theorem constant_exp_contraction (A : Matrix I I ℂ)
     (hA : ((-A)+(-A)ᴴ).PosSemidef) {t : ℝ} (ht : 0≤t) :
     ‖NormedSpace.exp (t • A)‖≤1 := by
@@ -455,6 +534,9 @@ theorem constant_exp_contraction (A : Matrix I I ℂ)
     smul_neg,neg_smul,neg_neg] using!
     Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.norm_evolution_le_one (-A) hA ht
 
+/-- A solution of the constant coefficient inhomogeneous equation equals the matrix exponential
+applied to its initial value plus the Dyson source series. See [Berry and Costa, 2024,
+Section 1.3; Eqs. (15)–(18)][BerryCosta2024]. -/
 theorem constant_solution_exp (A : Matrix I I ℂ) (b : QState I) (x : ℝ → QState I)
     (hx : ∀ t, HasDerivAt x (A *ᵥ x t + b) t) (t : ℝ) :
     x t = NormedSpace.exp (t • A) *ᵥ x 0 + dysonSourceSeries (fun _ => A) (fun _ => b) 0 t := by

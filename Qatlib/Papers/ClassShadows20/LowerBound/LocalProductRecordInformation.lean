@@ -11,6 +11,28 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Information bounds for local product records
+
+The module bounds finite relative-entropy expressions using first and second moments, proves an
+event-based decoding lower bound, and decomposes the log ratio for independent product laws.
+These estimates combine into a Fano-style sample bound for a finite code family with auxiliary
+rotation information.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `local_product_log_ratio`: decomposes the product-record relative entropy.
+* `local_product_record_moment_fano`: bounds decoding demand by the total per-shot moment
+  budget.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -18,6 +40,8 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Qatlib
 open scoped Classical BigOperators
 
+/-- For nonnegative `p` and positive `w`, the log-ratio term `p * log (p / w)` is at most `p² /
+w - p`. -/
 lemma local_log_ratio_upper (p w : ℝ) (hp : 0 ≤ p) (hw : 0 < w) :
     p * Real.log (p / w) ≤ p^2 / w - p := by
   rcases hp.eq_or_lt with hp | hp
@@ -28,6 +52,8 @@ lemma local_log_ratio_upper (p w : ℝ) (hp : 0 ≤ p) (hw : 0 < w) :
         (Real.log_le_sub_one_of_pos (div_pos hp hw)) hp.le
       _ = _ := by ring
 
+/-- Nonnegative weights and values with weighted mean `w` and second moment at most `w² * (1 +
+v)` have weighted log-ratio sum at most `w * v`. -/
 lemma local_moment_log_budget {I : Type} [Fintype I]
     (α p : I → ℝ) (hα : ∀ i, 0 ≤ α i) (hp : ∀ i, 0 ≤ p i)
     (w v : ℝ) (hw : 0 ≤ w)
@@ -55,6 +81,8 @@ lemma local_moment_log_budget {I : Type} [Fintype I]
         (div_le_div_of_nonneg_right hsecond hw.le) w
       _ = w * v := by field_simp; ring
 
+/-- A positive score with reference-weighted mean at most one has expected log score at most the
+log-ratio sum, under the stated normalization and support assumptions. -/
 lemma local_entropy_score_bound {I : Type} [Fintype I]
     (p r c : I → ℝ) (hp : ∀ i, 0 ≤ p i) (hr : ∀ i, 0 ≤ r i)
     (hc : ∀ i, 0 < c i) (hsupport : ∀ i, 0 < p i → 0 < r i)
@@ -80,6 +108,8 @@ lemma local_entropy_score_bound {I : Type} [Fintype I]
   rw [Finset.sum_sub_distrib, Finset.sum_add_distrib, hpsum] at hsum
   linarith
 
+/-- An event of reference probability `1 / M` and target probability at least `1 - δ` forces the
+log-ratio sum to be at least `(1 - δ) * log M - 1`. -/
 lemma local_entropy_event_lower {I : Type} [Fintype I]
     (p r : I → ℝ) (hp : ∀ i, 0 ≤ p i) (hr : ∀ i, 0 ≤ r i)
     (hsupport : ∀ i, 0 < p i → 0 < r i)
@@ -126,6 +156,8 @@ lemma local_entropy_event_lower {I : Type} [Fintype I]
     exact this
   linarith
 
+/-- Under coordinatewise support inclusion, the log-ratio sum of two independent product laws
+equals the sum of the coordinate log-ratio sums. -/
 lemma local_product_log_ratio {N : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (q w : Fin N → FinDist O)
     (hsupport : ∀ j o, 0 < (q j).prob o → 0 < (w j).prob o) :
@@ -156,6 +188,8 @@ lemma local_product_log_ratio {N : ℕ} {O : Type} [Fintype O] [DecidableEq O]
   intro j _
   exact independentSampleLaw_expect_coord q j (fun o => Real.log ((q j).prob o / (w j).prob o))
 
+/-- The stated averaged first and second shot moments and decoding success on the
+positive-probability auxiliary support imply `N * v ≥ (1 - δ) * log M - 1`. -/
 lemma local_product_record_moment_fano_supported
     (M N : ℕ) (U O : Type) [Fintype U] [Fintype O]
     (μ : FinDist U) (w : Fin N → FinDist O)
@@ -292,6 +326,8 @@ lemma local_product_record_moment_fano_supported
     (M:ℝ) (by exact_mod_cast (by omega : 1 ≤ M)) hE δ hgoodjoint
   exact hl.trans hjoint
 
+/-- The stated averaged shot moments and decoding success for every code and auxiliary setting
+imply `N * v ≥ (1 - δ) * log M - 1`. -/
 theorem local_product_record_moment_fano :
 ∀ (M N : ℕ) (U O : Type) [Fintype U] [Fintype O]
     (μ : FinDist U) (w : Fin N → FinDist O)

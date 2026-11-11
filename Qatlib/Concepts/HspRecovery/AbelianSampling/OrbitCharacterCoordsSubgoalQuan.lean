@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitCharacterCoordsSubgoalStat
+
+/-!
+# Character coordinates on a generating family
+
+`orbitCharacterCoordsSubgoal` proves that values on a generating family distinguish the complex
+additive characters of a finite abelian group. It also places each character value on the root
+of unity grid of order equal to the group cardinality, providing exact phase coordinates for
+readout. [Kitaev1995]
+
+## Main statements
+
+* `orbitCharacterCoordsSubgoal`: proves injectivity of generator coordinates and existence of
+  root of unity labels.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +38,7 @@ variable (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E]
 
 omit [Fintype E] [DecidableEq E] in
 
+/-- A complex additive character equal to one on a generating family is the trivial character. -/
 private theorem addChar_eq_zero_of_generator_eq_one {k : ℕ} {V : Fin k → E}
     (hV : AddSubgroup.closure (Set.range V) = ⊤) {ψ : AddChar E ℂ}
     (hψ : ∀ j, ψ (V j) = 1) : ψ = 0 := by
@@ -40,10 +60,14 @@ private theorem addChar_eq_zero_of_generator_eq_one {k : ℕ} {V : Fin k → E}
 
 omit [DecidableEq E] in
 
+/-- A character value on a finite abelian group raised to the group cardinality equals one. -/
 private theorem addChar_apply_pow_card (χ : AddChar E ℂ) (x : E) :
     (χ x) ^ (Fintype.card E) = 1 := by
   rw [← AddChar.map_nsmul_eq_pow, card_nsmul_eq_zero, AddChar.map_zero_eq_one]
 
+/-- Complex additive characters of a finite abelian group are determined by their values on any
+generating family, and every such value is a power of the primitive root of order equal to
+the group cardinality [Kitaev1995]. -/
 theorem orbitCharacterCoordsSubgoal : OrbitCharacterCoordsSubgoal := by
   intro E _ _ _ k V hV
   constructor

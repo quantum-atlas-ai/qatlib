@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+
+/-!
+# Extraction of sum and difference phase qubits
+
+This module models extraction from a pair of phase qubits by applying `CNOT` and measuring its
+second output. The extracted state is a sum-label or difference-label phase qubit up to a scalar
+of norm one, as used by the dihedral sieve [Kuperberg2005].
+
+`dihedralExtractionLaw` gives the complete probability mass function: the two tagged conditional
+states each have mass one half. The module also defines Hadamard-basis parity readout and proves
+the conditional-state identities needed for extraction.
+
+## Main statements
+
+* `dihedralExtraction`: extraction law on tagged normalized qubits.
+* `parityReadout`: computational measurement after a Hadamard gate.
+* `dihedralExtractionLaw`: the exact sum/difference extraction distribution.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 
@@ -22,6 +45,8 @@ namespace Qatlib.Concepts.HspRecovery.RecordExtract
 open Matrix
 open scoped Classical BigOperators
 
+/-- Apply `CNOT` to two normalized qubits and return the law of the measured second bit together
+with the normalized conditional first qubit. -/
 noncomputable def dihedralExtraction (ψ φ : QState Bool) (hψ : Normalized ψ)
     (hφ : Normalized φ) : PMF (Bool × NormQ) :=
   let χ : QState (Bool × Bool) := ApplyGate CNOT (TensorState ψ φ)
@@ -31,32 +56,42 @@ noncomputable def dihedralExtraction (ψ φ : QState Bool) (hψ : Normalized ψ)
       let branch : QState Bool := fun a => χ (a, q.2)
       (q.2, actualRecordState branch)
 
+/-- The Boolean Born distribution obtained by applying a Hadamard gate to a normalized qubit. -/
 noncomputable def parityReadout (ψ : QState Bool) (hψ : Normalized ψ) : PMF Bool :=
   bornDistribution (ApplyGate Hadamard ψ) (normalized_applyGate hadamard_unitary hψ)
 
+/-- Multiplying a normalized qubit by a complex scalar of norm one preserves normalization. -/
 private theorem extraction_unit_scalar_normalized (u : ℂ) (hu : ‖u‖=1)
     (ξ : QState Bool) (hξ : Normalized ξ) : Normalized (u • ξ) := by
   unfold Normalized
   simp only [Pi.smul_apply,smul_eq_mul,norm_mul,hu,one_mul]
   exact hξ
 
+/-- Applying a function after proof-dependent option elimination equals eliminating the option
+with that function composed into each branch. -/
 private theorem extraction_option_guard_map {α β γ : Type} (x : Option α) (P : Option α → Prop)
     (f : P none → β) (g : ∀ a, P (some a) → β) (hx : P x) (H : β → γ) :
     H (Option.rec (motive := fun o => P o → β) f g x hx) =
       Option.rec (motive := fun o => P o → γ) (fun h => H (f h)) (fun a h => H (g a h)) x hx := by
   cases x <;> rfl
 
+/-- Transporting a proof-dependent subtype construction along equality preserves its underlying
+value. -/
 private theorem extraction_guarded_subtype_cast {α A : Type} (P : α → Prop) (R : A → Prop)
     {x y : α} (h : x=y) (a : A) (f : P x → R a) (hy : P y) :
     (Eq.ndrec (motive := fun z => P z → Subtype R) (fun hp => ⟨a,f hp⟩) h hy).val=a := by
   cases h
   rfl
 
+/-- An option eliminator whose outputs do not depend on its guard proofs equals ordinary option
+elimination. -/
 private theorem extraction_option_guard_forget {α β : Type} (x : Option α) (P : Option α → Prop)
     (hx : P x) (b : β) (f : α → β) :
     Option.rec (motive := fun o => P o → β) (fun _ => b) (fun a _ => f a) x hx =
       x.elim b f := by cases x <;> rfl
 
+/-- When `ConditionalState ψ` returns the normalized state `ξ`, `actualRecordState ψ` is the
+subtype value represented by `ξ`. -/
 theorem actualRecordState_eq_of_some (ψ ξ : QState Bool) (hξ : Normalized ξ) (hc : ConditionalState ψ=some ξ) :
     actualRecordState ψ=⟨ξ,hξ⟩ := by
   apply Subtype.ext
@@ -66,6 +101,8 @@ theorem actualRecordState_eq_of_some (ψ ξ : QState Bool) (hξ : Normalized ξ)
   rw [extraction_option_guard_forget,hc]
   rfl
 
+/-- The conditional record state of a normalized qubit scaled by `1 / sqrt 2` is the original
+normalized qubit. -/
 private theorem extraction_half_conditional (ξ : QState Bool) (hξ : Normalized ξ) :
     actualRecordState (fun a => ((1 : ℂ)/Real.sqrt 2)*ξ a)=⟨ξ,hξ⟩ := by
   have hα : ‖(1 : ℂ)/Real.sqrt 2‖^2=1/2 := by
@@ -89,6 +126,9 @@ private theorem extraction_half_conditional (ξ : QState Bool) (hξ : Normalized
     rw [hmass,if_pos (by norm_num : (0 : ℝ) < 1/2),hp]
   exact actualRecordState_eq_of_some _ ξ hξ hc
 
+/-- Extracting phase qubits with labels `k` and `ℓ` produces the tagged sum and difference
+states, up to scalars of norm one, each with mass one half and zero mass elsewhere
+[Kuperberg2005]. -/
 theorem dihedralExtractionLaw (N : ℕ) [NeZero N] (s k ℓ : ZMod N) :
     ∃ xiPlus xiMinus : QState Bool, ∃ _hPlus : Normalized xiPlus, ∃ _hMinus : Normalized xiMinus,
     ∃ uPlus uMinus : ℂ, ‖uPlus‖=1 ∧ ‖uMinus‖=1 ∧

@@ -13,6 +13,32 @@ import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
 import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
 import Mathlib.Data.List.GetD
+
+/-!
+# Native checked search attempts
+
+This module verifies binary comparison and encoded checked BBHT attempts [BoyerEtAl1998] for
+quantum minimum search [DurrHoyer1996]. It relates tape comparison to numeric table order,
+identifies the circuit branch traces, and derives success probabilities and operation counts.
+
+For power-of-two table sizes, explicit Hadamard and bit-flip words prepare the uniform search
+register with a minus ancilla. The prepared instruments have the same checked-search success
+law, with state-preparation gates included in the cost formulas.
+
+## Main statements
+
+* `tableCompare_correct`: relates native register comparison to strict numeric order.
+* `bbhtInstrument_success`: expresses success as sampler-return mass times checked-search
+  success.
+* `prepPowCircuit_run`: verifies explicit preparation of the encoded uniform-minus state.
+* `preparedBBHTInstrument_expected_queries`: computes the exact expected query count.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -65,12 +91,16 @@ open scoped ENNReal
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- Folding the comparison update over any list preserves every comparison state other than the
+undecided state zero. -/
 @[simp] theorem compareFold_stable (xs : List (Bool × Bool)) (q : Fin 3) (hq : q ≠ 0) :
     xs.foldl compareUpdate q = q := by
   induction xs with
   | nil => rfl
   | cons ab xs ih => simpa only [List.foldl_cons, compareUpdate, if_neg hq] using! ih
 
+/-- The acceptance test after folding the comparison update from state zero equals Boolean
+lexicographic less-than. -/
 theorem compareFold_less (xs : List (Bool × Bool)) :
     compareAccept (xs.foldl compareUpdate 0) = lexLess xs := by
   induction xs with
@@ -81,6 +111,7 @@ theorem compareFold_less (xs : List (Bool × Bool)) :
       cases a <;> cases b <;> simp [List.foldl_cons, compareUpdate, lexLess, compareAccept,
         compareFold_stable, ih]
 
+/-- The value of a Boolean word is strictly less than two raised to its length. -/
 theorem binaryValue_lt (bs : List Bool) : binaryValue bs < 2 ^ bs.length := by
   induction bs with
   | nil => decide
@@ -89,6 +120,8 @@ theorem binaryValue_lt (bs : List Bool) : binaryValue bs < 2 ^ bs.length := by
       cases b <;> simp only [binaryValue, List.length_cons, Nat.pow_succ, Bool.false_eq_true,
         ↓reduceIte, zero_add] <;> omega
 
+/-- Boolean lexicographic less-than on paired bits is true exactly when the first component word
+has smaller binary value than the second. -/
 theorem lexLess_numeric (xs : List (Bool × Bool)) :
     lexLess xs = true ↔ binaryValue (xs.map Prod.fst) < binaryValue (xs.map Prod.snd) := by
   induction xs with
@@ -100,11 +133,16 @@ theorem lexLess_numeric (xs : List (Bool × Bool)) :
       rcases ab with ⟨a,b⟩
       cases a <;> cases b <;> simp [lexLess, binaryValue, ih, List.length_map] <;> omega
 
+/-- After `j` right moves on a tape initialized from a list, the head symbol is the list's
+defaulted entry at `j`. -/
 theorem pairedTape_head (l : List (Option (Bool × Bool))) (j : ℕ) :
     ((Turing.Tape.move Turing.Dir.right)^[j] (Turing.Tape.mk₁ l)).head = l.getI j := by
   rw [Turing.Tape.move_right_n_head]
   simp [Turing.Tape.mk₁, Turing.Tape.mk₂]
 
+/-- After at most the input length in steps, the comparison machine is in the state obtained by
+folding over the scanned prefix, with its tape head moved right by the same number of
+positions. -/
 theorem compare_after (xs : List (Bool × Bool)) (j : ℕ) (hj : j ≤ xs.length) :
     BitMachineAfter compareMachine (xs.map some) j =
       some ⟨(xs.take j).foldl compareUpdate 0,
@@ -137,6 +175,8 @@ theorem compare_after (xs : List (Bool × Bool)) (j : ℕ) (hj : j ≤ xs.length
         rfl
       · rw [Function.iterate_succ_apply']
 
+/-- Running the comparison machine with fuel equal to the paired-word length returns the
+decision of strict inequality between the two binary values. -/
 theorem compare_correct (xs : List (Bool × Bool)) :
     tapeDecision compareMachine compareAccept (xs.map some) xs.length =
       some (decide (binaryValue (xs.map Prod.fst) < binaryValue (xs.map Prod.snd))) := by
@@ -157,6 +197,8 @@ theorem compare_correct (xs : List (Bool × Bool)) :
     compare_after xs xs.length le_rfl, hs, ?_⟩
   simpa only [List.take_length] using! (compareFold_less xs).trans hnum
 
+/-- The comparison machine returns no decision when its fuel is smaller than the paired-word
+length. -/
 theorem compare_timeout (xs : List (Bool × Bool)) (fuel : ℕ) (hf : fuel < xs.length) :
     tapeDecision compareMachine compareAccept (xs.map some) fuel = none := by
   cases hr : tapeDecision compareMachine compareAccept (xs.map some) fuel with
@@ -178,14 +220,20 @@ theorem compare_timeout (xs : List (Bool × Bool)) (fuel : ℕ) (hf : fuel < xs.
       rw [hhead] at ht
       simp [compareMachine] at ht
 
+/-- Register comparison returns the decision of strict inequality between the registers' binary
+values. -/
 theorem compareRegisters_correct {n : ℕ} (x y : Reg n) :
     compareRegisters x y = some (decide (binaryValue (List.ofFn x) < binaryValue (List.ofFn y))) := by
   simpa [compareRegisters, registerPairs, List.map_ofFn] using! compare_correct (registerPairs x y)
 
+/-- Encoded-table comparison returns the decision that the first entry's numeric value is
+strictly smaller than the second's. -/
 theorem tableCompare_correct {N width : ℕ} (T : EncodedTable N width) (i j : Fin N) :
     tableCompare T i j = some (decide (tableValue T i < tableValue T j)) :=
   compareRegisters_correct _ _
 
+/-- The number of entries whose native comparison with the entry at rank `y` returns true equals
+the sorted table's lower-cut value at `y`. -/
 theorem tableCompare_marked_card {N width : ℕ} (T : EncodedTable N width) (y : Fin N) :
     let R := Qatlib.Concepts.AmplitudeSearch.Amplification.SortedRankedTable.ofTable (tableValue T)
     (Finset.univ.filter (fun j => tableCompare T j (R.indexOfRank y) = some true)).card =
@@ -202,9 +250,12 @@ theorem tableCompare_marked_card {N width : ℕ} (T : EncodedTable N width) (y :
       congrArg Finset.card (Finset.filter_congr fun j _ => hp j)
     _ = _ := R.marked_card y
 
+/-- The total of unit weights on `Fin N` is `N`. -/
 theorem initialIndexWeights_total (N : ℕ) : weightTotal (fun _ : Fin N => 1) = N := by
   simp [weightTotal]
 
+/-- On a nonempty table, the initial sampler returns the index of each fixed rank with
+probability `1 / N` times one minus the capped rejection probability. -/
 theorem initialIndex_rank_law {N width : ℕ} (T : EncodedTable N width) (hN : 0 < N)
     (cap : ℕ) (r : Fin N) :
     let R := Qatlib.Concepts.AmplitudeSearch.Amplification.SortedRankedTable.ofTable (tableValue T)
@@ -219,6 +270,8 @@ theorem initialIndex_rank_law {N width : ℕ} (T : EncodedTable N width) (hN : 0
   simpa only [initialIndexCode, initialIndexWeights_total, Nat.cast_one, rationalRejectMass] using!
     weightedSampler_return (fun _ : Fin N => 1) (Nat.clog 2 N) cap hW hb (R.indexOfRank r)
 
+/-- The uncapped initial-index sampler has zero probability of never returning when `N` is
+positive. -/
 theorem initialIndex_never_zero (N : ℕ) (hN : 0 < N) :
     weightedSamplerNever (fun _ : Fin N => 1) (Nat.clog 2 N) = 0 := by
   apply weightedSamplerNever_eq_zero
@@ -227,10 +280,13 @@ theorem initialIndex_never_zero (N : ℕ) (hN : 0 < N) :
     exact Nat.le_pow_clog (by decide : 1 < 2) N
 open Qatlib.Concepts.SearchStopping.GroverSuccess Qatlib.Concepts.SearchStopping.UnknownCount Matrix
 
+/-- Reindexing an index-ancilla operator with `encodeGate` preserves unitarity. -/
 theorem encodeGate_unitary {N : ℕ} {U : Matrix (Fin N × Bool) (Fin N × Bool) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin N × Bool) ℂ) :
     encodeGate U ∈ Matrix.unitaryGroup (Fin (N * 2)) ℂ := unitaryGroup_reindex _ hU
 
+/-- Applying an encoded gate to an encoded state equals encoding the original gate's action on
+the state. -/
 theorem encodeGate_apply {N : ℕ} (U : Matrix (Fin N × Bool) (Fin N × Bool) ℂ)
     (ψ : QState (Fin N × Bool)) :
     ApplyGate (encodeGate U) (encodeState ψ) = encodeState (ApplyGate U ψ) := by
@@ -238,6 +294,8 @@ theorem encodeGate_apply {N : ℕ} (U : Matrix (Fin N × Bool) (Fin N × Bool) �
   exact (indexBitEquiv N).symm.sum_comp
     (fun y => U ((indexBitEquiv N).symm x) y * ψ y)
 
+/-- Running an encoded circuit with an encoded oracle on an encoded state equals encoding the
+original circuit execution. -/
 theorem encodeCircuit_run {N : ℕ} (O : Matrix (Fin N × Bool) (Fin N × Bool) ℂ)
     (C : Circuit (Fin N × Bool)) (ψ : QState (Fin N × Bool)) :
     Run (encodeGate O) (encodeCircuit C) (encodeState ψ) = encodeState (Run O C ψ) := by
@@ -252,16 +310,20 @@ theorem encodeCircuit_run {N : ℕ} (O : Matrix (Fin N × Bool) (Fin N × Bool) 
           change Run (encodeGate O) (.query :: encodeCircuit C) (encodeState ψ) = _
           simp only [Run, encodeGate_apply, ih]
 
+/-- Applying the same encoded ancilla flip twice is the identity. -/
 theorem resetFlip_involutive (N : ℕ) (b : Bool) : Function.Involutive (resetFlip N b) := by
   intro x
   have hx (a b : Bool) : ((a ^^ b) ^^ b) = a := by cases a <;> cases b <;> rfl
   simp only [resetFlip, Equiv.symm_apply_apply, hx]
   exact (indexBitEquiv N).apply_symm_apply x
 
+/-- The encoded checked-readout circuit is well formed. -/
 theorem checkedReadout_legal (N : ℕ) : observedWellFormed (checkedReadout N) := by
   intro x
   exact ⟨permMatrix_unitary (resetFlip_involutive N _), fun _ => trivial⟩
 
+/-- Collapsing a state to a singleton basis event yields its amplitude at that basis index times
+the corresponding ket. -/
 theorem collapse_singleton {D : ℕ} (ψ : QState (Fin D)) (x : Fin D) :
     Collapse ψ (Finset.univ.filter fun y => y = x) = ψ x • Qatlib.Foundations.PureStateMath.Ket x := by
   ext y
@@ -269,6 +331,8 @@ theorem collapse_singleton {D : ℕ} (ψ : QState (Fin D)) (x : Fin D) :
   · subst y; simp [collapse_apply, Qatlib.Foundations.PureStateMath.Ket]
   · simp [collapse_apply, Qatlib.Foundations.PureStateMath.Ket, h]
 
+/-- Resetting the ancilla of a fully collapsed state preserves the index and amplitude and sets
+the ancilla to false. -/
 theorem reset_collapsed {N : ℕ} (ψ : QState (Fin (N * 2))) (x : Fin (N * 2)) :
     ApplyGate (resetGate N ((indexBitEquiv N).symm x).2)
       (Collapse ψ (Finset.univ.filter fun y => y = x)) =
@@ -280,16 +344,21 @@ theorem reset_collapsed {N : ℕ} (ψ : QState (Fin (N * 2))) (x : Fin (N * 2)) 
       applyGate_permMatrix_ket (resetFlip_involutive N _) x]
   simp [resetFlip]
 
+/-- Encoding a basis ket gives the basis ket at the corresponding `indexBitEquiv` index. -/
 theorem encodeState_ket {N : ℕ} (p : Fin N × Bool) :
     encodeState (Qatlib.Foundations.PureStateMath.Ket p) = Qatlib.Foundations.PureStateMath.Ket (indexBitEquiv N p) := by
   ext x
   simp [encodeState, Qatlib.Foundations.PureStateMath.Ket, Equiv.symm_apply_eq]
 
+/-- The encoded Boolean oracle preserves the basis index and XORs its ancilla with the oracle
+value. -/
 theorem encoded_query_ket {N : ℕ} (f : Fin N → Bool) (i : Fin N) (b : Bool) :
     ApplyGate (encodeGate (BitOracleOn f)) (Qatlib.Foundations.PureStateMath.Ket (indexBitEquiv N (i,b))) =
       Qatlib.Foundations.PureStateMath.Ket (indexBitEquiv N (i, b ^^ f i)) := by
   rw [← encodeState_ket, encodeGate_apply, applyGate_bitOracleOn_ket, encodeState_ket]
 
+/-- Resetting a collapsed ancilla and querying the oracle yields the original amplitude on the
+basis ket whose ancilla is the oracle value at the measured index. -/
 theorem query_reset_collapsed {N : ℕ} (f : Fin N → Bool)
     (ψ : QState (Fin (N * 2))) (x : Fin (N * 2)) :
     ApplyGate (encodeGate (BitOracleOn f))
@@ -301,6 +370,8 @@ theorem query_reset_collapsed {N : ℕ} (f : Fin N → Bool)
     Qatlib.Foundations.PureStateMath.Ket (indexBitEquiv N (((indexBitEquiv N).symm x).1, f ((indexBitEquiv N).symm x).1)) from
       by simpa only [Bool.false_xor] using! encoded_query_ket f _ false]
 
+/-- Collapsing an encoded basis ket onto a given ancilla label preserves the scaled ket when the
+label matches and gives zero otherwise. -/
 theorem collapse_encoded_bit {N : ℕ} (c : ℂ) (p : Fin N × Bool) (b : Fin 2) :
     Collapse (c • Qatlib.Foundations.PureStateMath.Ket (indexBitEquiv N p)) (Finset.univ.filter fun y => bitLabel N y = b) =
       if boolEquivFin2 p.2 = b then c • Qatlib.Foundations.PureStateMath.Ket (indexBitEquiv N p) else 0 := by
@@ -310,6 +381,8 @@ theorem collapse_encoded_bit {N : ℕ} (c : ℂ) (p : Fin N × Bool) (b : Fin 2)
     by_cases hb : boolEquivFin2 p.2 = b <;> simp [collapse_apply, bitLabel, Qatlib.Foundations.PureStateMath.Ket, hb]
   · by_cases hb : boolEquivFin2 p.2 = b <;> simp [collapse_apply, Qatlib.Foundations.PureStateMath.Ket, hy, hb]
 
+/-- The checked-readout traces are exactly the flattened lists of `checkedTrace` values over
+full-basis and ancilla-bit outcomes. -/
 theorem checkedReadout_traces {N : ℕ} (f : Fin N → Bool) (ψ : QState (Fin (N * 2))) :
     observedTraces (encodeGate (BitOracleOn f)) (checkedReadout N) ψ =
       (List.ofFn (fun x : Fin (N * 2) => List.ofFn (fun b : Fin 2 => checkedTrace f ψ x b))).flatten := by
@@ -323,6 +396,8 @@ theorem checkedReadout_traces {N : ℕ} (f : Fin N → Bool) (ψ : QState (Fin (
   change (List.ofFn (fun b : Fin 2 => [checkedTrace f ψ x b])).flatten = _
   simp [List.ofFn_succ]
 
+/-- The traces of a prepended circuit are the continuation's traces on the circuit's output
+state, with the circuit counts added. -/
 theorem prependCircuit_traces {D : ℕ} (O : Operator D) (C : Circuit (Fin D))
     (P : ObservedCircuit (Fin D)) (ψ : QState (Fin D)) :
     observedTraces O (prependCircuit C P) ψ =
@@ -338,6 +413,7 @@ theorem prependCircuit_traces {D : ℕ} (O : Operator D) (C : Circuit (Fin D))
       cases s <;> simp [prependCircuit, observedTraces, Run, ih, addCircuitCounts,
         QueryCount, GateCount, List.map_map, Function.comp_def, Nat.add_assoc]
 
+/-- Prepending a unitary circuit to a well-formed observed circuit preserves well-formedness. -/
 theorem prependCircuit_legal {D : ℕ} (C : Circuit (Fin D)) (hC : IsUnitaryCircuit C)
     (P : ObservedCircuit (Fin D)) (hP : observedWellFormed P) :
     observedWellFormed (prependCircuit C P) := by
@@ -350,6 +426,7 @@ theorem prependCircuit_legal {D : ℕ} (C : Circuit (Fin D)) (hC : IsUnitaryCirc
           exact ⟨hU, ih hC⟩
       | query => exact ih ((isUnitaryCircuit_query C).mp hC)
 
+/-- Encoding a unitary circuit preserves its unitary-circuit property. -/
 theorem encodeCircuit_legal {N : ℕ} (C : Circuit (Fin N × Bool)) (hC : IsUnitaryCircuit C) :
     IsUnitaryCircuit (encodeCircuit C) := by
   induction C with
@@ -361,6 +438,7 @@ theorem encodeCircuit_legal {N : ℕ} (C : Circuit (Fin N × Bool)) (hC : IsUnit
           exact (isUnitaryCircuit_gate _ _).mpr ⟨encodeGate_unitary hU, ih hC⟩
       | query => exact (isUnitaryCircuit_query _).mpr (ih ((isUnitaryCircuit_query C).mp hC))
 
+/-- Encoding a circuit preserves both query count and gate count. -/
 theorem encodeCircuit_counts {N : ℕ} (C : Circuit (Fin N × Bool)) :
     QueryCount (encodeCircuit C) = QueryCount C ∧ GateCount (encodeCircuit C) = GateCount C := by
   induction C with
@@ -368,12 +446,15 @@ theorem encodeCircuit_counts {N : ℕ} (C : Circuit (Fin N × Bool)) :
   | cons s C ih =>
       cases s <;> simpa [encodeCircuit, encodeStep, QueryCount, GateCount] using! ih
 
+/-- A checked search attempt is well formed when the number of indices is positive. -/
 theorem checkedAttempt_legal {N : ℕ} (hN : 0 < N) (j : ℕ) :
     observedWellFormed (checkedAttempt N j) :=
   prependCircuit_legal _ (encodeCircuit_legal _
     (Qatlib.Concepts.SearchStopping.KnownCount.isUnitaryCircuit_groverCircuit (by simpa using! hN) j).lift)
       _ (checkedReadout_legal N)
 
+/-- The traces of a checked search attempt on the uniform-minus input are exactly the enumerated
+`attemptTrace` values. -/
 theorem checkedAttempt_traces {N : ℕ} (A : Finset (Fin N)) (j : ℕ) :
     observedTraces (encodeGate (BitOracleOn (fun i => decide (i ∈ A)))) (checkedAttempt N j)
         (encodeState (WithMinus (Uniform (Fin N)))) =
@@ -384,6 +465,8 @@ theorem checkedAttempt_traces {N : ℕ} (A : Finset (Fin N)) (j : ℕ) :
   rw [checkedReadout_traces, List.map_flatten, List.map_ofFn]
   congr 1
 
+/-- A checked-readout trace has the original full-basis Born probability when its ancilla
+outcome matches the oracle value, and zero mass otherwise. -/
 theorem checkedTrace_mass {N : ℕ} (f : Fin N → Bool)
     (ψ : QState (Fin (N * 2))) (x : Fin (N * 2)) (b : Fin 2) :
     branchMass (checkedTrace f ψ x b).state =
@@ -396,6 +479,8 @@ theorem checkedTrace_mass {N : ℕ} (f : Fin N → Bool)
     rfl
   · simp [branchMass, MeasureProb, BornProb]
 
+/-- Every checked-attempt trace at depth `j` records `j + 1` queries, `j + 1` gates, and two
+measurements. -/
 theorem attemptTrace_counts {N : ℕ} (A : Finset (Fin N)) (j : ℕ)
     (x : Fin (N * 2)) (b : Fin 2) :
     (attemptTrace A j x b).queries = j + 1 ∧ (attemptTrace A j x b).gates = j + 1 ∧
@@ -407,6 +492,8 @@ theorem attemptTrace_counts {N : ℕ} (A : Finset (Fin N)) (j : ℕ)
   simp [SearchCircuit, Qatlib.Concepts.SearchStopping.KnownCount.GroverCircuit, gateCount_repeatCircuit,
     Qatlib.Concepts.SearchStopping.KnownCount.GroverStep, GateCount, Nat.add_comm]
 
+/-- Summing accepted trace masses over the initial ancilla values at index `i` gives
+`CheckedOutputMass A j i`. -/
 theorem attemptTrace_output_mass {N : ℕ} (A : Finset (Fin N)) (j : ℕ) (i : Fin N) :
     (∑ a : Bool, branchMass (attemptTrace A j (indexBitEquiv N (i,a)) 1).state) =
       CheckedOutputMass A j i := by
@@ -422,6 +509,8 @@ theorem attemptTrace_output_mass {N : ℕ} (A : Finset (Fin N)) (j : ℕ) (i : F
   rw [hv]
   by_cases hi : i ∈ A <;> simp [f, hi, boolEquivFin2, BornProb, encodeState]
 
+/-- The total accepted trace mass of a checked search attempt equals the sum of its checked
+output masses over all indices. -/
 theorem checkedAttempt_success_sum {N : ℕ} (A : Finset (Fin N)) (j : ℕ) :
     ((observedTraces (encodeGate (BitOracleOn (fun i => decide (i ∈ A)))) (checkedAttempt N j)
       (encodeState (WithMinus (Uniform (Fin N))))).map
@@ -436,6 +525,8 @@ theorem checkedAttempt_success_sum {N : ℕ} (A : Finset (Fin N)) (j : ℕ) :
     Fintype.sum_prod_type]
   exact Finset.sum_congr rfl (fun i _ => attemptTrace_output_mass A j i)
 
+/-- For a nonempty search space, the checked-attempt instrument's acceptance probability equals
+the sum of its checked output masses. -/
 theorem checkedAttempt_instrument_success {N : ℕ} (hN : 0 < N) (A : Finset (Fin N)) (j : ℕ) :
     (∑ k : Fin (observedLeafCount (checkedAttempt N j)),
       instrumentProb (observedInstrument _ (encodeGate_unitary (bitOracleOn_unitary
@@ -450,6 +541,7 @@ theorem checkedAttempt_instrument_success {N : ℕ} (hN : 0 < N) (A : Finset (Fi
   rw [instrumentProb_observedInstrument]
   rfl
 
+/-- The capped-feedback BBHT program is legal when the number of indices is positive. -/
 theorem bbhtProgram_legal {N : ℕ} (hN : 0 < N) (m : ℕ) : (bbhtProgram N m).Legal := by
   constructor
   · trivial
@@ -458,10 +550,14 @@ theorem bbhtProgram_legal {N : ℕ} (hN : 0 < N) (m : ℕ) : (bbhtProgram N m).L
     cases cfg with
     | inr s => trivial
     | inl z => exact checkedAttempt_legal hN z.1.val
+/-- The quantum instrument of the capped-feedback BBHT program with its encoded membership
+oracle. -/
 noncomputable def bbhtInstrument {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : Finset (Fin N)) :=
   (bbhtProgram N m).instrument cap (encodeGate (BitOracleOn (fun i => decide (i ∈ A))))
     (encodeGate_unitary (bitOracleOn_unitary _)) (bbhtProgram_legal hN m)
 
+/-- The BBHT instrument's acceptance probability is the sampler-path-weighted sum of checked
+success over its returned depths. -/
 theorem bbhtInstrument_success_paths {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : Finset (Fin N)) :
     (∑ z, instrumentProb (bbhtInstrument hN m cap A) (bbhtInput N) z *
       (if (((bbhtProgram N m).compile cap).record
@@ -506,6 +602,8 @@ theorem bbhtInstrument_success_paths {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : F
 open Qatlib.Concepts.SearchStopping.GroverSuccess Qatlib.Concepts.SearchStopping.UnknownCount Matrix
 open Classical
 
+/-- The successful-path payoff sum equals the sum over depths of their sampler return-event
+probabilities times their payoffs. -/
 theorem codeSuccess_eq_events {m : ℕ} (p : CoinCode (SamplerRecord m)) (F : Fin m → ℝ) :
     codeSuccess p F = ∑ j : Fin m,
       (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p.law (fun x => rejectionOutcome x.1.1 = .inl j)).toReal * F j := by
@@ -530,6 +628,8 @@ theorem codeSuccess_eq_events {m : ℕ} (p : CoinCode (SamplerRecord m)) (F : Fi
   intro c _
   split_ifs <;> ring
 
+/-- For a positive depth width, the successful-path payoff sum is the sampler-return mass times
+the uniform average of the depth payoff. -/
 theorem uniformDepth_success {m : ℕ} (hm : 0 < m) (cap : ℕ) (F : Fin m → ℝ) :
     codeSuccess (weightedSampler (fun _ : Fin m => 1) (Nat.clog 2 m) cap) F =
       (1 - (rationalRejectMass (fun _ : Fin m => 1) (Nat.clog 2 m) ^ cap).toReal) *
@@ -549,6 +649,8 @@ theorem uniformDepth_success {m : ℕ} (hm : 0 < m) (cap : ℕ) (F : Fin m → �
   rw [← Finset.mul_sum]
   ring
 
+/-- For positive search-space and depth sizes, the BBHT instrument's success probability equals
+the sampler-return mass times `CheckedSuccess A m` [BoyerEtAl1998]. -/
 theorem bbhtInstrument_success {N m : ℕ} (hN : 0 < N) (hm : 0 < m)
     (cap : ℕ) (A : Finset (Fin N)) :
     (∑ z, instrumentProb (bbhtInstrument hN m cap A) (bbhtInput N) z *
@@ -564,6 +666,7 @@ open Qatlib.Concepts.SearchStopping.GroverSuccess Qatlib.Concepts.SearchStopping
 open Classical
 open scoped ComplexOrder
 
+/-- The encoded uniform-minus input is a density operator when the search space is nonempty. -/
 theorem bbhtInput_density {N : ℕ} (hN : 0 < N) : IsDensityOperator (bbhtInput N) := by
   have hψ : Normalized (WithMinus (Uniform (Fin N))) :=
     normalized_tensorState (normalized_uniform (by simpa using! hN)) normalized_minus
@@ -573,6 +676,8 @@ theorem bbhtInput_density {N : ℕ} (hN : 0 < N) : IsDensityOperator (bbhtInput 
       (fun p => ‖WithMinus (Uniform (Fin N)) p‖ ^ 2)).trans hψ
   exact ⟨outerProduct_posSemidef _, by rw [bbhtInput, trace_outerProduct, he]; rfl⟩
 
+/-- Every checked-attempt instrument leaf at depth `j` has `j + 1` queries, `j + 1` gates, and
+two measurements. -/
 theorem checkedAttempt_leaf_counts {N : ℕ} (A : Finset (Fin N)) (j : ℕ)
     (k : Fin (observedLeafCount (checkedAttempt N j))) :
     let leaf :=
@@ -595,6 +700,8 @@ theorem checkedAttempt_leaf_counts {N : ℕ} (A : Finset (Fin N)) (j : ℕ)
     hg.symm.trans (attemptTrace_counts A j x b).2.1,
     hm.symm.trans (attemptTrace_counts A j x b).2.2⟩
 
+/-- For a nonempty search space, the expected query count of the depth-`j` checked-attempt
+instrument is exactly `j + 1`. -/
 theorem checkedAttempt_instrument_queries {N : ℕ} (hN : 0 < N) (A : Finset (Fin N)) (j : ℕ) :
     (∑ k : Fin (observedLeafCount (checkedAttempt N j)),
       instrumentProb (observedInstrument _ (encodeGate_unitary (bitOracleOn_unitary
@@ -606,6 +713,8 @@ theorem checkedAttempt_instrument_queries {N : ℕ} (hN : 0 < N) (A : Finset (Fi
   rw [← Finset.sum_mul, sum_instrumentProb_isDensityOperator _ (bbhtInput_density hN), one_mul,
     Nat.cast_add, Nat.cast_one]
 
+/-- The BBHT instrument's expected query count is the sampler-path-weighted sum of the returned
+depth plus one. -/
 theorem bbhtInstrument_queries_paths {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : Finset (Fin N)) :
     (∑ z, instrumentProb (bbhtInstrument hN m cap A) (bbhtInput N) z *
       ((((bbhtProgram N m).compile cap).record
@@ -651,6 +760,8 @@ theorem bbhtInstrument_queries_paths {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : F
     rw [Fin.sum_univ_one]
     simp [go, observedLeaf, observedKrausLeaves]
 
+/-- For positive search-space and depth sizes, the expected BBHT query count is the
+sampler-return mass times `(m + 1) / 2`. -/
 theorem bbhtInstrument_expected_queries {N m : ℕ} (hN : 0 < N) (hm : 0 < m)
     (cap : ℕ) (A : Finset (Fin N)) :
     (∑ z, instrumentProb (bbhtInstrument hN m cap A) (bbhtInput N) z *
@@ -668,18 +779,23 @@ theorem bbhtInstrument_expected_queries {N m : ℕ} (hN : 0 < N) (hm : 0 < m)
   have hm0 : (m : ℝ) ≠ 0 := by exact_mod_cast hm.ne'
   field_simp
 
+/-- The unit-weight total of the BBHT sampler fits within the bit capacity of every feedback
+stage. -/
 theorem bbhtProgram_capacity (N m : ℕ) :
     ∀ i, weightTotal ((bbhtProgram N m).weights i) ≤ 2 ^ (bbhtProgram N m).width i := by
   intro i
   change weightTotal (fun _ : Fin m => 1) ≤ 2 ^ Nat.clog 2 m
   simpa [weightTotal] using! Nat.le_pow_clog (by norm_num : 1 < 2) m
 
+/-- For positive depth width, every BBHT feedback stage has positive total sampling weight. -/
 theorem bbhtProgram_weights_positive (N : ℕ) {m : ℕ} (hm : 0 < m) :
     ∀ i, 0 < weightTotal ((bbhtProgram N m).weights i) := by
   intro i
   change 0 < weightTotal (fun _ : Fin m => 1)
   simpa [weightTotal] using! hm
 
+/-- The BBHT program's timeout mass is exactly its depth sampler's rejection mass raised to the
+cap. -/
 theorem bbhtProgram_timeout {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : Finset (Fin N)) :
     (bbhtProgram N m).timeoutMass cap (encodeGate (BitOracleOn (fun i => decide (i ∈ A))))
       (encodeGate_unitary (bitOracleOn_unitary _)) (bbhtProgram_legal hN m) (bbhtInput N) =
@@ -709,15 +825,21 @@ theorem bbhtProgram_timeout {N : ℕ} (hN : 0 < N) (m cap : ℕ) (A : Finset (Fi
     rw [← weightedSampler_timeout _ _ _ hb]
     exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _)
 
+/-- For positive search-space and depth sizes, the BBHT program has zero mass of never
+returning. -/
 theorem bbhtProgram_never_zero {N m : ℕ} (hN : 0 < N) (hm : 0 < m) (A : Finset (Fin N)) :
     (bbhtProgram N m).neverMass (encodeGate (BitOracleOn (fun i => decide (i ∈ A))))
       (encodeGate_unitary (bitOracleOn_unitary _)) (bbhtProgram_legal hN m) (bbhtInput N) = 0 :=
   (bbhtProgram N m).neverMass_eq_zero _ _ _ _ (bbhtProgram_weights_positive N hm) (bbhtProgram_capacity N m)
 
+/-- An index belongs to the native marked set exactly when its numeric table value is strictly
+below the current value. -/
 theorem mem_nativeMarked {N width : ℕ} (T : EncodedTable N width) (y i : Fin N) :
     i ∈ nativeMarked T y ↔ tableValue T i < tableValue T y := by
   simp [nativeMarked, tableCompare_correct]
 
+/-- Accepted trace mass at an index equals its search-state Born probability when its table
+value strictly improves the current value, and equals zero otherwise. -/
 theorem attemptTrace_native_output_mass {N width : ℕ} (hN : 0 < N)
     (T : EncodedTable N width) (y : Fin N) (j : ℕ) (i : Fin N) :
     (∑ a : Bool, branchMass (attemptTrace (nativeMarked T y) j (indexBitEquiv N (i,a)) 1).state) =
@@ -726,20 +848,25 @@ theorem attemptTrace_native_output_mass {N width : ℕ} (hN : 0 < N)
       (search_checked_attempt (by simpa using! hN) (nativeMarked T y) j).2.1 i]
   simp only [mem_nativeMarked]
 
+/-- The all-wire Hadamard word on `n` wires has length `n`. -/
 theorem hadamardWord_length (n : ℕ) : (hadamardWord n).length = n := by simp [hadamardWord]
 
+/-- The all-wire Hadamard word passes the finite-word legality test. -/
 theorem hadamardWord_legal (n : ℕ) : finiteWordLegal n (hadamardWord n) = true := by
   apply List.all_eq_true.mpr
   intro g hg
   obtain ⟨i,_,rfl⟩ := List.mem_map.mp hg
   exact decide_eq_true i.isLt
 
+/-- The finite-code Hadamard matrix at a valid wire equals the corresponding local-gate matrix. -/
 theorem finiteCode_h_eq_local {n : ℕ} (i : Fin n) :
     finiteCodeMatrix n (.h i.val) = localGateMatrix (.h i) := by
   rw [finiteCodeMatrix, dif_pos i.isLt]
   ext x y
   rw [wireGate_apply, localGateMatrix_h]
 
+/-- Compiling the all-wire Hadamard word gives the circuit of the local all-wire Hadamard
+program. -/
 theorem hadamardWord_circuit (n : ℕ) :
     finiteCodeCircuit n (hadamardWord n) = localProgramCircuit (localHadamard n) := by
   unfold finiteCodeCircuit hadamardWord localProgramCircuit localHadamard
@@ -748,31 +875,40 @@ theorem hadamardWord_circuit (n : ℕ) :
   intro i _
   rw [finiteCode_h_eq_local]
 
+/-- Running the all-wire Hadamard circuit applies `HadamardN n` to the input state. -/
 theorem hadamardWord_run (n : ℕ) (ψ : QState (Reg n)) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n (hadamardWord n)) ψ =
       ApplyGate (HadamardN n) ψ := by
   rw [hadamardWord_circuit, (localDyadicProgram_run_adjoint_cost n (localHadamard n) ψ).1,
     localProgramMatrix_localHadamard]
 
+/-- The finite-word interpreter for the all-wire Hadamard word maps the all-zero ket to the
+uniform register state. -/
 theorem hadamardWord_prepare (n : ℕ) :
     finiteWordRun n (hadamardWord n) (Qatlib.Foundations.PureStateMath.Ket (ZeroStr n)) = some (Uniform (Reg n)) := by
   rw [finiteWordRun, hadamardWord_legal]
   simp only [↓reduceIte, hadamardWord_run, applyGate_hadamardN_ket_zero]
 
+/-- The uniform-minus preparation word has length `n + 2`. -/
 theorem uniformMinusWord_length (n : ℕ) : (uniformMinusWord n).length = n + 2 := by
   simp only [uniformMinusWord, List.length_cons, hadamardWord_length]
 
+/-- The uniform-minus preparation word is legal on `n + 1` wires. -/
 theorem uniformMinusWord_legal (n : ℕ) : finiteWordLegal (n + 1) (uniformMinusWord n) = true := by
   simp only [uniformMinusWord, finiteWordLegal, List.all_cons, finiteCodeLegal,
     decide_eq_true (Nat.lt_succ_self n), Bool.true_and]
   exact hadamardWord_legal (n + 1)
 
+/-- The initial last-wire bit flip in uniform-minus preparation maps the all-zero ket to the
+`lastOne n` ket. -/
 theorem uniformMinusWord_x (n : ℕ) :
     ApplyGate (finiteCodeMatrix (n + 1) (.x n)) (Qatlib.Foundations.PureStateMath.Ket (ZeroStr (n + 1))) = Qatlib.Foundations.PureStateMath.Ket (lastOne n) := by
   rw [finiteCodeMatrix, dif_pos (Nat.lt_succ_self n), applyGate_wireGate_ket]
   simp [ZeroStr, PauliX, permMatrix, lastOne]
   rfl
 
+/-- Running the uniform-minus word on the all-zero ket yields the relabeled tensor product of
+the uniform `n`-bit register state and the minus state. -/
 theorem uniformMinusWord_run (n : ℕ) :
     Run (1 : Matrix (Reg (n + 1)) (Reg (n + 1)) ℂ)
       (finiteCodeCircuit (n + 1) (uniformMinusWord n)) (Qatlib.Foundations.PureStateMath.Ket (ZeroStr (n + 1))) =
@@ -795,6 +931,7 @@ theorem uniformMinusWord_run (n : ℕ) :
   rw [hp]
   rfl
 
+/-- The explicit power-of-two preparation circuit has zero queries and exactly `n + 2` gates. -/
 theorem prepPowCircuit_counts (n : ℕ) :
     QueryCount (prepPowCircuit n) = 0 ∧ GateCount (prepPowCircuit n) = n + 2 := by
   have h := relabelCircuit_legality_resources (prepLayout n)
@@ -802,15 +939,19 @@ theorem prepPowCircuit_counts (n : ℕ) :
   exact ⟨h.2.1.trans (finiteCodeCircuit_counts _ _).1,
     h.2.2.1.trans ((finiteCodeCircuit_counts _ _).2.trans (uniformMinusWord_length n))⟩
 
+/-- The explicit power-of-two preparation circuit is a unitary circuit. -/
 theorem prepPowCircuit_legal (n : ℕ) : IsUnitaryCircuit (prepPowCircuit n) :=
   (relabelCircuit_legality_resources _ _).1.mpr
     ((finite_gate_description_rejection_unitarity_and_counts _ _).2 (uniformMinusWord_legal n)).1
 
+/-- Relabeling a basis ket along an equivalence gives the ket at the relabeled basis index. -/
 theorem relabel_ket {I J : Type} [DecidableEq I] [DecidableEq J] (e : I ≃ J) (i : I) :
     relabelState e (Qatlib.Foundations.PureStateMath.Ket i) = Qatlib.Foundations.PureStateMath.Ket (e i) := by
   ext j
   simp [relabelState, Qatlib.Foundations.PureStateMath.Ket, Equiv.symm_apply_eq]
 
+/-- Relabeling the uniform-register tensor minus state by the preparation layout gives the
+encoded uniform index state with a minus ancilla. -/
 theorem prepLayout_state (n : ℕ) :
     relabelState (prepLayout n)
       (relabelState (regSuccEquiv n).symm (TensorState (Uniform (Reg n)) Minus)) =
@@ -819,6 +960,8 @@ theorem prepLayout_state (n : ℕ) :
   simp [prepLayout, relabelState, encodeState, Qatlib.Concepts.QueryComplexity.AdaptiveQuery.WithMinus,
     TensorState, Uniform]
 
+/-- For any oracle, explicit preparation maps the encoded all-zero ket to the encoded uniform
+index state with a minus ancilla. -/
 theorem prepPowCircuit_run (n : ℕ) (O : Operator (2 ^ n * 2)) :
     Run O (prepPowCircuit n) (Qatlib.Foundations.PureStateMath.Ket (prepLayout n (ZeroStr (n + 1)))) =
       encodeState (Qatlib.Concepts.QueryComplexity.AdaptiveQuery.WithMinus (Uniform (Fin (2 ^ n)))) := by
@@ -829,10 +972,13 @@ theorem prepPowCircuit_run (n : ℕ) (O : Operator (2 ^ n * 2)) :
       uniformMinusWord_run, prepLayout_state] at h
   exact (run_eq_of_queryCount_eq_zero O 1 _ (prepPowCircuit_counts n).1 _).trans h
 
+/-- Every explicitly prepared observed attempt is well formed. -/
 theorem preparedAttempt_legal (n j : ℕ) : observedWellFormed (preparedAttempt n j) :=
   prependCircuit_legal _ (prepPowCircuit_legal n) _
     (checkedAttempt_legal (Nat.two_pow_pos n) j)
 
+/-- The traces of a prepared attempt from the zero basis state are the checked-attempt traces
+from the uniform-minus state, with preparation counts added. -/
 theorem preparedAttempt_traces (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
     observedTraces (encodeGate (BitOracleOn (fun i => decide (i ∈ A)))) (preparedAttempt n j)
       (Qatlib.Foundations.PureStateMath.Ket (prepZero n)) =
@@ -840,6 +986,8 @@ theorem preparedAttempt_traces (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
         (encodeState (WithMinus (Uniform (Fin (2 ^ n)))))).map (addCircuitCounts (prepPowCircuit n)) := by
   rw [preparedAttempt, prependCircuit_traces, prepZero, prepPowCircuit_run]
 
+/-- The total accepted trace mass of a prepared attempt equals the sum of its checked output
+masses. -/
 theorem preparedAttempt_success_sum (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
     ((observedTraces (encodeGate (BitOracleOn (fun i => decide (i ∈ A)))) (preparedAttempt n j)
       (Qatlib.Foundations.PureStateMath.Ket (prepZero n))).map
@@ -848,6 +996,8 @@ theorem preparedAttempt_success_sum (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
   rw [preparedAttempt_traces, List.map_map]
   exact checkedAttempt_success_sum A j
 
+/-- The prepared-attempt instrument's acceptance probability equals the sum of its checked
+output masses. -/
 theorem preparedAttempt_instrument_success (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ k : Fin (observedLeafCount (preparedAttempt n j)),
       instrumentProb (observedInstrument _ (encodeGate_unitary (bitOracleOn_unitary
@@ -862,6 +1012,7 @@ theorem preparedAttempt_instrument_success (n j : ℕ) (A : Finset (Fin (2 ^ n))
   rw [preparedInput, instrumentProb_observedInstrument]
   rfl
 
+/-- The explicitly prepared capped-feedback BBHT program is legal. -/
 theorem preparedBBHTProgram_legal (n m : ℕ) : (preparedBBHTProgram n m).Legal := by
   constructor
   · trivial
@@ -870,10 +1021,14 @@ theorem preparedBBHTProgram_legal (n m : ℕ) : (preparedBBHTProgram n m).Legal 
     cases cfg with
     | inr s => trivial
     | inl z => exact preparedAttempt_legal n z.1.val
+/-- The quantum instrument of the explicitly prepared capped-feedback BBHT program with its
+encoded membership oracle. -/
 noncomputable def preparedBBHTInstrument (n m cap : ℕ) (A : Finset (Fin (2 ^ n))) :=
   (preparedBBHTProgram n m).instrument cap (encodeGate (BitOracleOn (fun i => decide (i ∈ A))))
     (encodeGate_unitary (bitOracleOn_unitary _)) (preparedBBHTProgram_legal n m)
 
+/-- The prepared BBHT instrument's acceptance probability is the sampler-path-weighted sum of
+checked success over returned depths. -/
 theorem preparedBBHTInstrument_success_paths (n m cap : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ z, instrumentProb (preparedBBHTInstrument n m cap A) (preparedInput n) z *
       (if (((preparedBBHTProgram n m).compile cap).record
@@ -916,6 +1071,8 @@ theorem preparedBBHTInstrument_success_paths (n m cap : ℕ) (A : Finset (Fin (2
     rw [Fin.sum_univ_one]
     simp [go, observedLeaf, observedKrausLeaves]
 
+/-- For a positive depth width, the prepared BBHT instrument's success probability equals
+sampler-return mass times `CheckedSuccess A m` [BoyerEtAl1998]. -/
 theorem preparedBBHTInstrument_success (n : ℕ) {m : ℕ} (hm : 0 < m)
     (cap : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ z, instrumentProb (preparedBBHTInstrument n m cap A) (preparedInput n) z *
@@ -928,10 +1085,13 @@ theorem preparedBBHTInstrument_success (n : ℕ) {m : ℕ} (hm : 0 < m)
   rw [← Fin.sum_univ_eq_sum_range]
   ring
 
+/-- The zero basis input used for explicit preparation is a density operator. -/
 theorem preparedInput_density (n : ℕ) : IsDensityOperator (preparedInput n) := by
   exact ⟨outerProduct_posSemidef _, by
     rw [preparedInput, trace_outerProduct, normalized_ket]; rfl⟩
 
+/-- Every prepared-attempt leaf at depth `j` has `j + 1` queries, `j + 1 + (n + 2)` gates, and
+two measurements. -/
 theorem preparedAttempt_leaf_counts (n j : ℕ) (A : Finset (Fin (2 ^ n)))
     (k : Fin (observedLeafCount (preparedAttempt n j))) :
     let leaf :=
@@ -958,6 +1118,7 @@ theorem preparedAttempt_leaf_counts (n j : ℕ) (A : Finset (Fin (2 ^ n)))
     Nat.add_zero, hc.1, hc.2.1, hc.2.2] at hq hg hm
   exact ⟨hq.symm, hg.symm, hm.symm⟩
 
+/-- The expected query count of a depth-`j` prepared-attempt instrument is exactly `j + 1`. -/
 theorem preparedAttempt_instrument_queries (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ k : Fin (observedLeafCount (preparedAttempt n j)),
       instrumentProb (observedInstrument _ (encodeGate_unitary (bitOracleOn_unitary
@@ -969,6 +1130,8 @@ theorem preparedAttempt_instrument_queries (n j : ℕ) (A : Finset (Fin (2 ^ n))
   rw [← Finset.sum_mul, sum_instrumentProb_isDensityOperator _ (preparedInput_density n), one_mul,
     Nat.cast_add, Nat.cast_one]
 
+/-- The expected gate count of a depth-`j` prepared-attempt instrument is exactly `j + 1 + (n +
+2)`. -/
 theorem preparedAttempt_instrument_gates (n j : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ k : Fin (observedLeafCount (preparedAttempt n j)),
       instrumentProb (observedInstrument _ (encodeGate_unitary (bitOracleOn_unitary
@@ -981,6 +1144,8 @@ theorem preparedAttempt_instrument_gates (n j : ℕ) (A : Finset (Fin (2 ^ n))) 
   push_cast
   rfl
 
+/-- The prepared BBHT instrument's expected query count is the sampler-path-weighted sum of
+returned depth plus one. -/
 theorem preparedBBHTInstrument_queries_paths (n m cap : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ z, instrumentProb (preparedBBHTInstrument n m cap A) (preparedInput n) z *
       ((((preparedBBHTProgram n m).compile cap).record
@@ -1026,6 +1191,8 @@ theorem preparedBBHTInstrument_queries_paths (n m cap : ℕ) (A : Finset (Fin (2
     rw [Fin.sum_univ_one]
     simp [go, observedLeaf, observedKrausLeaves]
 
+/-- The prepared BBHT instrument's expected gate count is the sampler-path-weighted sum of
+returned depth plus one and the `n + 2` preparation gates. -/
 theorem preparedBBHTInstrument_gates_paths (n m cap : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ z, instrumentProb (preparedBBHTInstrument n m cap A) (preparedInput n) z *
       ((((preparedBBHTProgram n m).compile cap).record
@@ -1071,6 +1238,8 @@ theorem preparedBBHTInstrument_gates_paths (n m cap : ℕ) (A : Finset (Fin (2 ^
     rw [Fin.sum_univ_one]
     simp [go, observedLeaf, observedKrausLeaves]
 
+/-- For a positive depth width, the expected query count of the prepared BBHT instrument is
+sampler-return mass times `(m + 1) / 2`. -/
 theorem preparedBBHTInstrument_expected_queries (n : ℕ) {m : ℕ} (hm : 0 < m)
     (cap : ℕ) (A : Finset (Fin (2 ^ n))) :
     (∑ z, instrumentProb (preparedBBHTInstrument n m cap A) (preparedInput n) z *

@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SchattenDiamond.DiamondSdp
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+
+/-!
+# Helstrom success and diamond-norm bounds
+
+This module proves optimal equal-prior binary discrimination bounds for two quantum-channel
+outputs on a common density input. `frontier1` expresses success through the centered
+measurement effect, bounds it by one half plus one quarter of the output trace-norm difference,
+and constructs an effect attaining equality, following the Helstrom formulation [Helstrom1976].
+
+The output trace-norm difference is bounded by a finite diamond-norm bound on the channel
+difference. `helstromInstrument_optimal` states attainment and optimality in terms of the
+success event of the binary POVM instrument's discrimination law.
+
+## Main statements
+
+* `frontier1`: the trace-norm optimum, attaining effect, and diamond-norm success bound.
+* `helstromInstrument_optimal`: an optimal binary instrument and the bound for all binary
+  effects.
+
+## References
+
+* [Helstrom, 1976][Helstrom1976]
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -22,16 +47,20 @@ set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- A density operator has trace norm one. -/
 private lemma density_traceNorm_one {d : ℕ} {X : Operator d} (hX : IsDensityOperator X) :
     Matrix.traceNorm X = 1 := by
   have h := hX.1.traceNorm_eq_trace
   rw [hX.2] at h
   exact Complex.ofReal_injective (by simpa using! h)
 
+/-- The equivalence removing a singleton right register from `Fin D × Fin 1`. -/
 private def finProd1Equiv (D : ℕ) : (Fin D × Fin 1) ≃ Fin D :=
   ⟨Prod.fst, fun a => (a, 0),
     fun a => by ext <;> simp [Subsingleton.elim a.2 0], fun _ => rfl⟩
 
+/-- A nonnegative upper bound on the finite diamond norm of `T - S` bounds the trace norm of
+their output difference on a density operator. -/
 private lemma traceNorm_sub_output_le_diamond {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
     (X : Operator D) (hX : IsDensityOperator X) {δ : ℝ} (hδ0 : 0 ≤ δ)
     (hδ : Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm (T - S) ≤ ENNReal.ofReal δ) :
@@ -48,6 +77,8 @@ private lemma traceNorm_sub_output_le_diamond {D E : ℕ} (T S : Operator D →�
     Qatlib.Concepts.SchattenDiamond.DiamondNorm.diamond_traceNorm_reindex, hXn, ENNReal.ofReal_one, mul_one] at hle
   exact (ENNReal.ofReal_le_ofReal_iff hδ0).mp (hle.trans hδ)
 
+/-- A finite family of real numbers possesses a positive lower bound, at most one, for the
+absolute values of all its nonzero members. -/
 private lemma exists_gamma_le_one {d : ℕ} (x : Fin d → ℝ) :
     ∃ γ : ℝ, 0 < γ ∧ γ ≤ 1 ∧ ∀ j, x j ≠ 0 → γ ≤ |x j| := by
   classical
@@ -66,6 +97,9 @@ private lemma exists_gamma_le_one {d : ℕ} (x : Fin d → ℝ) :
   · refine ⟨1, by norm_num, le_rfl, fun j hj => ?_⟩
     exact absurd (Finset.mem_filter.mpr ⟨Finset.mem_univ j, hj⟩) (fun hmem => hne ⟨j, hmem⟩)
 
+/-- For two channel outputs on the same density input, binary measurement success is bounded by
+`1 / 2` plus one quarter of their trace-norm difference, and a positive spectral effect
+achieves equality. A finite diamond-norm bound `δ` also bounds success by `1 / 2 + δ / 4`. -/
 theorem frontier1 {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
     (hTcp : CompletelyPositive T) (hScp : CompletelyPositive S)
     (hTtp : TracePreserving T) (hStp : TracePreserving S)
@@ -112,6 +146,9 @@ theorem frontier1 {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
   have hn := traceNorm_sub_output_le_diamond T S X hX hδ0 hδ
   linarith
 
+/-- A binary POVM instrument achieves discrimination success `1 / 2 + Matrix.traceNorm (T.map X
+- S.map X) / 4`, and every binary effect instrument has success at most this value. This is
+the Helstrom optimum [Helstrom1976]. -/
 theorem helstromInstrument_optimal {D E : ℕ} (T S : QuantumChannel D E)
     (X : Operator D) (hX : IsDensityOperator X) :
     ∃ M : Operator E, ∃ hM : M.PosSemidef, ∃ hMc : (1 - M).PosSemidef,

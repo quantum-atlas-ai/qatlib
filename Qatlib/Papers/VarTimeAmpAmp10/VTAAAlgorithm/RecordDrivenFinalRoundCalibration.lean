@@ -10,6 +10,25 @@ import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
 import Mathlib.Tactic.NormNum.RealSqrt
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenWindowBounds
+
+/-!
+# Final-round calibration for record-driven amplification
+
+This module controls the first odd-angle crossing used by the final amplification search. It
+bounds the search range and amplification multiplier, and unrolls cascade time into a weighted
+product sum for the variable-time analysis associated with [Ambainis2012].
+
+## Main statements
+
+* `rdvt_final_crossing_exists`: existence of a crossing within the round cap.
+* `rdvt_final_mult_bound`: a bound on the multiplier before the first crossing.
+* `rdvt_cascade_time_unroll`: explicit cascade-time expansion.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +45,7 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 noncomputable section
 
+/-- For `k ≥ 1`, consecutive odd multiples of `r` differ by `2 * r`. -/
 theorem rdvt_odd_step (k : ℕ) (hk : 1 ≤ k) (r : ℝ) :
     (2*(k:ℕ)+1)*r = (2*(k-1:ℕ)+1)*r+2*r := by
   have hkc : ((k-1:ℕ):ℝ)+1 = ((k:ℕ):ℝ) := by
@@ -40,6 +60,8 @@ theorem rdvt_odd_step (k : ℕ) (hk : 1 ≤ k) (r : ℝ) :
 end
 noncomputable section
 
+/-- For `0 < th < π / 2`, some odd multiple first reaches `π / 4` while remaining at most `3 * π
+/ 4`. -/
 theorem rdvt_first_quarter (th : ℝ) (h0 : 0 < th) (h1 : th < Real.pi/2) :
     ∃ j : ℕ, Real.pi/4 ≤ (2*(j:ℕ)+1)*th ∧ (2*(j:ℕ)+1)*th ≤ 3*Real.pi/4 ∧
       ∀ j' : ℕ, j' < j → (2*(j' : ℕ)+1)*th < Real.pi/4 := by
@@ -87,6 +109,8 @@ theorem rdvt_first_quarter (th : ℝ) (h0 : 0 < th) (h1 : th < Real.pi/2) :
 end
 noncomputable section
 
+/-- For `m ≥ 1` and an estimate in `[1 / (2 * 10^12 * m³), 1)`, some round count within the
+prescribed cap gives estimated sine-squared success at least `1 / 2`. -/
 theorem rdvt_final_crossing_exists {m : ℕ} (hm : 1 ≤ m) (est : ℝ)
     (h0 : 1/(2*10^12*(m : ℝ)^3) ≤ est) (h1 : est < 1) :
     ∃ k ≤ recordDrivenRoundCap m,
@@ -185,6 +209,8 @@ theorem rdvt_final_crossing_exists {m : ℕ} (hm : 1 ≤ m) (est : ℝ)
 end
 noncomputable section
 
+/-- For a positive estimate below `1 / 2`, if all earlier round counts have estimated success
+below `1 / 2`, then `(2 * k + 1) * sqrt est ≤ 10 / 3`. -/
 theorem rdvt_final_mult_bound {est : ℝ} {k : ℕ} (h0 : 0 < est) (h1 : est < 1/2) (hk : 1 ≤ k)
     (hmin : ∀ j : ℕ, j < k →
       (Real.sin ((2*(j:ℕ)+1)*Real.arcsin (Real.sqrt est)))^2 < 1/2) :
@@ -241,6 +267,8 @@ theorem rdvt_final_mult_bound {est : ℝ} {k : ℕ} (h0 : 0 < est) (h1 : est < 1
 end
 noncomputable section
 
+/-- The charged time of a cascade prefix equals the sum of dyadic stage costs multiplied by the
+subsequent odd schedule multipliers. -/
 theorem rdvt_cascade_time_unroll (sched : ℕ → ℕ) :
     ∀ j : ℕ, (dataVtWordTime (cascadeWord sched j) : ℝ) =
       ∑ i ∈ Finset.Ico 0 j, (2:ℝ)^i*∏ k ∈ Finset.Ico i j, ((2*(sched k)+1 : ℕ) : ℝ) := by

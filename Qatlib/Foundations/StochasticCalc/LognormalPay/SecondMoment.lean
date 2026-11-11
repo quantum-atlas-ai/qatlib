@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.StochasticCalc.LognormalPay.CallPrice
 import Qatlib.Foundations.StochasticCalc.LognormalPay.VarianceBound
+
+/-!
+# Second moment and variance of a lognormal call payoff
+
+This module evaluates truncated powers of the lognormal terminal level and derives the call
+payoff second moment in terms of `d1`, `d2`, and `d3`. It also proves square integrability and
+transfers the Gaussian formulas to random variables with the prescribed Gaussian law.
+
+The theorem `call_variance_exact` subtracts the squared call expectation from the second moment
+to obtain an explicit variance formula.
+
+The mathematical background is discussed in [RebentrostGuptBromley2018].
+
+## Main statements
+
+* `truncated_power`: evaluates Gaussian upper-tail integrals of terminal-level powers.
+* `call_memLp_two`: establishes square integrability of the payoff.
+* `call_second_moment` and `call_variance_exact`: give explicit payoff moment formulas.
+
+## References
+
+* [Rebentrost et al., 2018][RebentrostGuptBromley2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +38,8 @@ set_option autoImplicit false
 noncomputable section
 open MeasureTheory ProbabilityTheory
 
+/-- A natural power of the terminal level factors into its deterministic drift factor and an
+exponential linear in the Gaussian input. -/
 lemma terminalLevel_pow (S0 r σ T w : ℝ) (n : ℕ) :
     terminalLevel S0 r σ w T ^ n =
       (S0 ^ n * Real.exp ((n : ℝ) * (r - σ ^ 2 / 2) * T)) *
@@ -23,6 +49,8 @@ lemma terminalLevel_pow (S0 r σ T w : ℝ) (n : ℕ) :
     (n : ℝ) * (r - σ ^ 2 / 2) * T + ((n : ℝ) * σ) * w by ring, Real.exp_add]
   ring
 
+/-- For positive variance, the Gaussian density times any natural power of the terminal level is
+integrable. -/
 lemma integrable_density_power {T : ℝ} (hT : 0 < T) (S0 r σ : ℝ) (n : ℕ) :
     Integrable (fun w => gaussianPDFReal 0 ⟨T, hT.le⟩ w * terminalLevel S0 r σ w T ^ n) := by
   simp_rw [terminalLevel_pow]
@@ -35,6 +63,8 @@ lemma integrable_density_power {T : ℝ} (hT : 0 < T) (S0 r σ : ℝ) (n : ℕ) 
   rw [heq]
   exact (integrable_gaussianPDFReal_exp hT _).const_mul _
 
+/-- Evaluate an upper-tail integral of a terminal-level power as a deterministic exponential
+factor times a shifted normal CDF. -/
 lemma truncated_power {T : ℝ} (hT : 0 < T) (S0 r σ a : ℝ) (n : ℕ) :
     (∫ w in Set.Ioi a, gaussianPDFReal 0 ⟨T, hT.le⟩ w * terminalLevel S0 r σ w T ^ n) =
       S0 ^ n * Real.exp ((n : ℝ) * (r - σ ^ 2 / 2) * T + ((n : ℝ) * σ) ^ 2 * T / 2) *
@@ -50,6 +80,8 @@ lemma truncated_power {T : ℝ} (hT : 0 < T) (S0 r σ a : ℝ) (n : ℕ) :
   rw [Real.exp_add]
   ring
 
+/-- For positive maturity, `d3` equals `2 * σ * sqrt T` minus the standardized exercise
+threshold. -/
 lemma d3_eq_tilt_threshold {S0 K r σ T : ℝ} (hT : 0 < T) :
     d3 S0 K r σ T = (2 * σ) * Real.sqrt T - bsThreshold S0 K r σ T / Real.sqrt T := by
   have hd1 := d1_eq_tilt_threshold (S0 := S0) (K := K) (r := r) (σ := σ) hT
@@ -61,6 +93,9 @@ lemma d3_eq_tilt_threshold {S0 K r σ T : ℝ} (hT : 0 < T) :
   rw [h, hd1]
   ring
 
+/-- For positive maturity, initial level, strike, and volatility, the Gaussian call second
+moment is the sum of the terminal-square and strike-square tail terms minus twice the mixed
+tail term. -/
 theorem call_second_moment_gaussian {S0 K r σ T : ℝ}
     (hT : 0 < T) (hS0 : 0 < S0) (hK : 0 < K) (hσ : 0 < σ) :
     (∫ w, callPayoff K (terminalLevel S0 r σ w T) ^ 2 ∂gaussianReal 0 ⟨T, hT.le⟩) =
@@ -103,6 +138,8 @@ theorem call_second_moment_gaussian {S0 K r σ T : ℝ}
     ← d3_eq_tilt_threshold hT, ← d1_eq_tilt_threshold hT, ← d2_eq_neg_threshold hT]
   ring
 
+/-- A call payoff driven by a centered Gaussian of variance `T ≥ 0` belongs to `L²` when the
+initial level and strike are nonnegative. -/
 theorem call_memLp_two {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
     [IsProbabilityMeasure Q] {W : Ω → ℝ} {S0 K r σ T : ℝ}
     (hT : 0 ≤ T) (hS0 : 0 ≤ S0) (hK : 0 ≤ K)
@@ -131,6 +168,9 @@ theorem call_memLp_two {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
     max_le (by linarith) hs
   nlinarith
 
+/-- Transfer the explicit call second-moment formula in `d3`, `d1`, and `d2` to an
+almost-everywhere measurable input with the specified Gaussian law, under the stated
+positivity assumptions. -/
 theorem call_second_moment {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
     [IsProbabilityMeasure Q] {W : Ω → ℝ} {S0 K r σ T : ℝ}
     (hT : 0 < T) (hS0 : 0 < S0) (hK : 0 < K) (hσ : 0 < σ)
@@ -146,6 +186,8 @@ theorem call_second_moment {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
   rw [← integral_map hWm hm, hW]
   exact call_second_moment_gaussian hT hS0 hK hσ
 
+/-- Under the stated positive parameters and Gaussian law, the call variance is its explicit
+second moment minus the square of `S0 * exp (r * T) * normalCDF d1 - K * normalCDF d2`. -/
 theorem call_variance_exact {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
     [IsProbabilityMeasure Q] {W : Ω → ℝ} {S0 K r σ T : ℝ}
     (hT : 0 < T) (hS0 : 0 < S0) (hK : 0 < K) (hσ : 0 < σ)

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.SegmentProduct.EffectiveProductPerturbationStat
+
+/-!
+# Perturbation bounds for reverse products
+
+`effectiveProductPerturbation` establishes a telescoping norm bound for reverse-ordered products
+in a normed ring whose identity has norm at most one. Each local difference is weighted by
+products of norms of the surrounding factors. These estimates support the interaction-picture
+simulation analysis of [LowWiebe2018].
+
+## Main statements
+
+* `norm_reverse_prod_le`: the norm bound for a reversed list product.
+* `effectiveProductPerturbation`: the weighted perturbation estimate.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -14,6 +33,8 @@ namespace Qatlib.Concepts.InteractionEvo.SegmentProduct
 open scoped BigOperators
 set_option warningAsError false
 
+/-- Bounds the norm of a reversed list product by the product of the factor norms, assuming the
+identity has norm at most one. -/
 private theorem norm_reverse_prod_le {A : Type} [NormedRing A]
     (l : List A) (h1 : ‖(1 : A)‖ ≤ 1) :
     ‖l.reverse.prod‖ ≤ (l.map norm).prod := by
@@ -27,6 +48,8 @@ private theorem norm_reverse_prod_le {A : Type} [NormedRing A]
       _ ≤ (l.map norm).prod * ‖a‖ := mul_le_mul_of_nonneg_right ih (norm_nonneg _)
       _ = _ := mul_comm _ _
 
+/-- Proves the weighted perturbation bound for reverse-ordered products in
+`EffectiveProductPerturbation`; compare [Low and Wiebe, Equation (12)][LowWiebe2018]. -/
 theorem effectiveProductPerturbation : EffectiveProductPerturbation := by
   intro A _ u v L h1
   induction L with

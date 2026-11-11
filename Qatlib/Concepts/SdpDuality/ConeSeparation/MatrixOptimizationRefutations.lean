@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
 import Qatlib.Concepts.MatrixWeights.WeightsCore
 import Mathlib.Tactic.FinCases
+
+/-!
+# Counterexamples to SDP threshold and sparsification contracts
+
+This module refutes specific universal interfaces built from `SdpRoundOracleFailure`,
+`Step2Run`, and the sparsification and sampling records. The scalar examples show that the
+stated hypotheses do not justify the claimed no-output failure condition or the existence of a
+sample satisfying a prescribed operator-error bound.
+
+The surrounding quantum SDP framework is motivated by [BrandaoSvore2017]. These results concern
+the formal contracts displayed in the theorem types: `thresholdGoal_refuted` uses an empty scan
+dimension, while `clause12_refuted` forces every single sampled constraint to have operator
+error `17 / 96`, exceeding `sparsifyDeviation 2`.
+
+## Main statements
+
+* `sdpRoundOracleFailure_refuted`: The specified zero-matrix instance fails the universal
+  lower-width condition.
+* `thresholdGoal_refuted`: The full threshold contract is false for a one-constraint instance
+  whose prescribed scan dimension is zero.
+* `clause12_refuted`: The stated universal combined sparsification and execution contract fails
+  for two opposite scalar constraint matrices and one sample.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixWeights.WeightsCore
@@ -22,6 +50,9 @@ open scoped Matrix.Norms.L2Operator BigOperators ComplexOrder MatrixOrder
 
 namespace Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationRefutations
 
+/-- Refutes `SdpRoundOracleFailure` for the specified one-dimensional zero-matrix instance. The
+zero nonnegative vector meets its payoff premise but violates its positive lower bound on
+the constraint objective. -/
 theorem sdpRoundOracleFailure_refuted :
     ¬ SdpRoundOracleFailure 1 1 (fun _ => (0 : Operator 1)) (0 : Operator 1)
       (fun _ => (1 : ℝ)) (1 : ℝ) (1 : ℝ) (0.1 : ℝ) (0.1 : ℝ)
@@ -48,6 +79,9 @@ theorem sdpRoundOracleFailure_refuted :
   norm_num at hconcl
 open Qatlib.Concepts.RationalScan.Step2Scan Qatlib.Concepts.SdpDuality.ConeSeparation
 
+/-- Refutes the stated universal threshold contract for a valid one-constraint sparse SDP
+instance. Its prescribed `step2Gamma` is zero, forcing no output while the resulting
+`SdpRoundOracleFailure` conclusion is contradicted by the zero vector. -/
 theorem thresholdGoal_refuted : ¬
     (∀ (D m s : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
         (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (t : ℕ) (α R δ ε κ ν η ξ : ℝ),
@@ -179,24 +213,37 @@ theorem thresholdGoal_refuted : ¬
   norm_num at hconcl
 open Qatlib.Concepts.RationalScan.Step2Scan Qatlib.Concepts.SdpDuality.ConeSeparation
 set_option maxHeartbeats 800000
+/-- The two scalar constraint matrices minus the identity and the identity used in the clause 12
+counterexample. -/
 private noncomputable def A0 : Fin 2 → Operator 1 :=
   fun i => if i = 0 then -(1 : Operator 1) else (1 : Operator 1)
+/-- The zero scalar objective matrix used in the clause 12 counterexample. -/
 private noncomputable def Cv0 : Operator 1 := 0
+/-- The bounds one and two for the two scalar constraints of the clause 12 counterexample. -/
 private def b0 : Fin 2 → ℝ := fun i => if i = 0 then (1:ℝ) else (2:ℝ)
+/-- The constant weight history assigning `17 / 24` to each of the two scalar constraints. -/
 private noncomputable def y0 : ℕ → Fin 2 → ℝ := fun _ _ => (17:ℝ) / 24
 
+/-- Constraint zero of `A0` equals minus the scalar identity matrix. -/
 private theorem hA0 : A0 0 = -(1 : Operator 1) := if_pos rfl
 
+/-- Constraint one of `A0` equals the scalar identity matrix. -/
 private theorem hA1 : A0 1 = (1 : Operator 1) := if_neg (by decide)
 
+/-- The first constraint bound in `b0` is one. -/
 private theorem hb0 : b0 0 = (1:ℝ) := if_pos rfl
 
+/-- The second constraint bound in `b0` is two. -/
 private theorem hb1 : b0 1 = (2:ℝ) := if_neg (by decide)
 
+/-- Every index in `Fin 2` is zero or one. -/
 private theorem hfin2_clause12 : ∀ i : Fin 2, i = 0 ∨ i = 1 := by
   intro i
   fin_cases i <;> simp
 
+/-- Refutes the stated universal combined sparsification, estimation, and execution contract
+using two opposite scalar constraints and a single sampled index. Either possible sample has
+scaled operator error `17 / 96`, which exceeds the required `sparsifyDeviation 2` bound. -/
 theorem clause12_refuted : ¬ (
   ∀ (D m s Q T : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε η ξ : ℝ),

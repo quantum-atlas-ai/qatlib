@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartSearchWordStat
+
+/-!
+# Execution of the bit-oracle Grover circuit
+
+Proves `actualRestartSearchWord`, connecting the lifted source-gate circuit to its
+Boolean-oracle execution. The result supplies the precise state evolution and resource counts
+used by the paid restart laws. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `actualRestartSearchWord`: Establishes `ActualRestartSearchWord`, giving the exact bit-oracle
+  Grover output state, circuit unitarity, and query and gate counts.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +36,8 @@ namespace Qatlib.Concepts.SearchStopping.PaidRestart
 open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open scoped Classical BigOperators
 
+/-- Establishes `ActualRestartSearchWord`, giving the exact bit-oracle Grover output state,
+circuit unitarity, and query and gate counts. See [BoyerEtAl1998]. -/
 theorem actualRestartSearchWord : ActualRestartSearchWord := by
   intro I _ _ hN T' v hT hv hprep A j
   have hs := section6SourceGateSubgoal I hN T' v hT hv hprep A j

@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+
+/-!
+# Kraus factorization for cluster measurement patterns
+
+For a measurement pattern, a fixed measurement history determines a core matrix obtained by
+contracting the measured coordinates and applying the output Pauli corrections. Each auxiliary
+readout Kraus matrix is the core multiplied by the product of the measurement-vector coordinates
+selected by that readout.
+
+The coordinate formulas separate measured and output register bits and expand the readout,
+correction, and projector matrix products used in measurement-only cluster computation
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `corePre` and `core` define the corrected contraction before and after reindexing the input
+  register.
+* `readout_mul`, `corr_mul`, and `proj_mul` give explicit coordinate formulas for the
+  constituent matrix products.
+* `kraus_eq_smul_core` factors each Kraus matrix into a readout scalar and the history-dependent
+  core.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,10 +51,14 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns
 namespace Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns
 
+/-- Assembles a register whose measured coordinates are `z` and whose output coordinates are the
+bit vector represented by `xp`. -/
 private def readoutRow {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) : Reg (w + m) :=
   fun t => if h : (t : ℕ) < w then z ⟨t, h⟩
     else (bitVecEquiv m).symm xp ⟨(t : ℕ) - w, by omega⟩
 
+/-- Two registers of length `w + m` are equal if they agree on all measured coordinates and all
+output coordinates. -/
 theorem reg_ext {w m : ℕ} (u v : Reg (w + m))
     (hmeas : ∀ j : Fin w, u (Fin.castLE (by omega : w ≤ w + m) j) = v (Fin.castLE (by omega) j))
     (hout : ∀ k : Fin m, u (Fin.natAdd w k) = v (Fin.natAdd w k)) : u = v := by
@@ -40,14 +71,18 @@ theorem reg_ext {w m : ℕ} (u v : Reg (w + m))
       ext; simp; omega
     rw [ht']; exact hout _
 
+/-- The measured coordinate `j` of `readoutRow z xp` is `z j`. -/
 theorem readoutRow_meas {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) (j : Fin w) :
     readoutRow z xp (Fin.castLE (by omega : w ≤ w + m) j) = z j := by
   simp [readoutRow]
 
+/-- The output coordinate `k` of `readoutRow z xp` is coordinate `k` of the bit vector
+represented by `xp`. -/
 theorem readoutRow_out {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) (k : Fin m) :
     readoutRow z xp (Fin.natAdd w k) = (bitVecEquiv m).symm xp k := by
   simp [readoutRow]
 
+/-- A register with measured coordinates `z` and output index `xp` equals `readoutRow z xp`. -/
 theorem readoutRow_eq {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) (u : Reg (w + m))
     (h1 : ∀ j : Fin w, u (Fin.castLE (by omega : w ≤ w + m) j) = z j)
     (h2 : bitVecEquiv m (fun k => u (Fin.natAdd w k)) = xp) : u = readoutRow z xp := by
@@ -59,15 +94,20 @@ theorem readoutRow_eq {w m : ℕ} (z : Fin w → Bool) (xp : Fin (2 ^ m)) (u : R
     rw [show u (Fin.natAdd w k) = (bitVecEquiv m).symm xp k from (congrFun h2' k).symm]
     exact (readoutRow_out z xp k).symm
 
+/-- Returns output coordinate `k` of `xp` after XOR with the pattern's history-dependent X
+correction. -/
 def mpOutBit {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
     (xp : Fin (2 ^ m)) (k : Fin m) : Bool :=
   xor (P.xCorr k s) ((bitVecEquiv m).symm xp k)
 
+/-- Applies the pattern's X-correction bits to the output coordinates of a register while
+preserving its measured coordinates. -/
 def flipRow {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) (u : Reg (w + m)) :
     Reg (w + m) :=
   fun t => if h : (t : ℕ) < w then u t
     else xor (P.xCorr ⟨(t : ℕ) - w, by omega⟩ s) (u t)
 
+/-- Applying `flipRow` preserves every measured coordinate. -/
 theorem flipRow_meas {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
     (u : Reg (w + m)) (j : Fin w) :
     flipRow P s u (Fin.castLE (by omega : w ≤ w + m) j) = u (Fin.castLE (by omega) j) := by
@@ -76,6 +116,7 @@ theorem flipRow_meas {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
   simp only [flipRow]
   rw [dif_pos hlt]
 
+/-- Applying `flipRow` XORs output coordinate `k` with `P.xCorr k s`. -/
 theorem flipRow_out {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
     (u : Reg (w + m)) (k : Fin m) :
     flipRow P s u (Fin.natAdd w k) = xor (P.xCorr k s) (u (Fin.natAdd w k)) := by
@@ -88,6 +129,8 @@ theorem flipRow_out {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool)
   ext
   simp [Fin.val_natAdd, Nat.add_sub_cancel_left]
 
+/-- Defines the corrected core by contracting the entangled loaded state against the conjugate
+measurement vectors and enforcing the corrected output bits. -/
 noncomputable def corePre {n w m : ℕ} (P : MpPattern n w m)
     (resource : QState (Reg (w + m - n))) (s : Fin w → Bool) :
     Matrix (Fin (2 ^ m)) (Reg n) ℂ :=
@@ -99,11 +142,14 @@ noncomputable def corePre {n w m : ℕ} (P : MpPattern n w m)
           * (if ∀ v : Fin m, c (Fin.natAdd w v) = mpOutBit P s xp v then (1 : ℂ) else 0)
           * (P.entangler * mpLoadMatrix P resource) c y
 
+/-- Reindexes the input columns of `corePre` from Boolean registers to finite basis indices. -/
 noncomputable def core {n w m : ℕ} (P : MpPattern n w m)
     (resource : QState (Reg (w + m - n))) (s : Fin w → Bool) :
     Matrix (Fin (2 ^ m)) (Fin (2 ^ n)) ℂ :=
   Matrix.reindex (Equiv.refl _) (bitVecEquiv n) (corePre P resource s)
 
+/-- Left multiplication by the readout matrix selects the row with measured coordinates `z` and
+output index `xp`. -/
 theorem readout_mul {w m : ℕ} (z : Fin w → Bool) {ρ : Type*} [Fintype ρ]
     (M : Matrix (Reg (w + m)) ρ ℂ) :
     mpReadout w m z * M = Matrix.of fun xp y => M (readoutRow z xp) y := by
@@ -120,6 +166,8 @@ theorem readout_mul {w m : ℕ} (z : Fin w → Bool) {ρ : Type*} [Fintype ρ]
     exact hne (readoutRow_eq z xp u hc.1 hc.2)
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- Left multiplication by the correction matrix selects the X-flipped row and multiplies it by
+the corresponding product of Z-correction signs. -/
 theorem corr_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : Type*} [Fintype ρ]
     (M : Matrix (Reg (w + m)) ρ ℂ) :
     mpCorrection P s * M = Matrix.of fun u y =>
@@ -157,6 +205,8 @@ theorem corr_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : 
     · rw [if_neg hmeas, zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- Expands left multiplication by the measurement projector into measurement-vector coordinates
+and a sum that preserves the output bits. -/
 theorem proj_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : Type*} [Fintype ρ]
     (M : Matrix (Reg (w + m)) ρ ℂ) :
     mpProjector P s * M = Matrix.of fun a y =>
@@ -202,6 +252,8 @@ theorem proj_mul {n w m : ℕ} (P : MpPattern n w m) (s : Fin w → Bool) {ρ : 
   simp_rw [hterm]
   rw [← Finset.mul_sum]
 
+/-- The readout-correction-projector-entangler-load product is `corePre` scaled by the product
+of the measurement-vector coordinates selected by `z`. -/
 theorem kraus_pre_eq_smul {n w m : ℕ} (P : MpPattern n w m)
     (resource : QState (Reg (w + m - n))) (s z : Fin w → Bool) :
     mpReadout w m z * mpCorrection P s * mpProjector P s * P.entangler * mpLoadMatrix P resource
@@ -255,6 +307,8 @@ theorem kraus_pre_eq_smul {n w m : ℕ} (P : MpPattern n w m)
   rw [hA, hsign, hdelta]
   ring
 
+/-- Each pattern Kraus matrix is `core` scaled by the product of the measurement-vector
+coordinates selected by the auxiliary readout `z`. -/
 theorem kraus_eq_smul_core {n w m : ℕ} (P : MpPattern n w m)
     (resource : QState (Reg (w + m - n))) (s z : Fin w → Bool) :
     mpPatternKraus P resource s z

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionConsumers
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+/-!
+# Capped fair-bit weighted sampling for qDRIFT
+
+This module implements capped weighted rejection sampling from finite fair-bit records, with
+explicit bit and comparison counters. It proves that the pathwise implementation has the
+rational rejection-run law and derives the mixture of the normalized weight law with a fallback
+point mass, for use in qDRIFT [Campbell2019].
+
+For positive weight mass, the one-trial rejection probability is at most one half. The final
+cost theorem gives both worst-case path costs and expected bit and comparison bounds.
+
+## Main statements
+
+* `fairQdriftPick`: returns a sampled label and its bit and comparison costs.
+* `fair_bit_qdrift_actual_sampler_law`: computes the capped sampler probability law.
+* `fair_bit_qdrift_actual_coin_path_cost`: bounds pathwise and expected sampling costs.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,8 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 set_option autoImplicit false
 
+/-- Performs one counted weighted-decoding trial from a `b`-bit record, updating bit and
+comparison counters and returning either an accepted label or a pending configuration. -/
 def fairQdriftTrial {L : ℕ} (w : Fin L → ℕ) (b : ℕ) (BD : ℕ × ℕ)
     (bits : Reg b) : Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ) :=
   let decoded := weightDecodeCounted w (bitVecEquiv b bits).val
@@ -33,6 +58,8 @@ def fairQdriftTrial {L : ℕ} (w : Fin L → ℕ) (b : ℕ) (BD : ℕ × ℕ)
   | some j => .inl (j, BD.1 + b, BD.2 + decoded.2)
   | none => .inr (BD.1 + b, BD.2 + decoded.2)
 
+/-- Executes at most `R` counted sampling trials from a finite bit record, stopping at
+acceptance and returning the final configuration and number of trials performed. -/
 def fairQdriftRawRun {L : ℕ} (w : Fin L → ℕ) (b : ℕ) :
     (R : ℕ) → (Fin R → Reg b) → Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ) →
       Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ) × ℕ
@@ -42,17 +69,22 @@ def fairQdriftRawRun {L : ℕ} (w : Fin L → ℕ) (b : ℕ) :
     let result := fairQdriftRawRun w b R (Fin.tail ω) (fairQdriftTrial w b BD (ω 0))
     (result.1, 1 + result.2)
 
+/-- Extracts an accepted label or substitutes `j0` for a pending configuration, preserving its
+bit and comparison counters. -/
 def fairQdriftFallback {L : ℕ} (j0 : Fin L)
     (c : Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ)) : Fin L × ℕ × ℕ :=
   match c with
   | .inl out => out
   | .inr BD => (j0, BD.1, BD.2)
 
+/-- The capped fair-bit weighted sampler with fallback label `j0` and counted costs; zero total
+weight returns the fallback with zero costs. -/
 def fairQdriftPick {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
     (ω : Fin R → Reg (Nat.clog 2 (weightTotal w))) : Fin L × ℕ × ℕ :=
   if weightTotal w = 0 then (j0, 0, 0) else
     fairQdriftFallback j0 (fairQdriftRawRun w _ R ω (.inr (0, 0))).1
 
+/-- The uniform finite distribution on a nonempty finite type. -/
 noncomputable def fairQdriftUniform (A : Type) [Fintype A] [Nonempty A] : FinDist A where
   prob _ := (Fintype.card A : ℝ)⁻¹
   nonneg _ := by positivity
@@ -60,6 +92,8 @@ noncomputable def fairQdriftUniform (A : Type) [Fintype A] [Nonempty A] : FinDis
     simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     exact mul_inv_cancel₀ (by exact_mod_cast Fintype.card_ne_zero)
 
+/-- The finite distribution obtained by summing source probabilities over the fibers of a
+function. -/
 noncomputable def fairQdriftPushforward {A B : Type} [Fintype A] [Fintype B]
     [DecidableEq B] (d : FinDist A) (f : A → B) : FinDist B where
   prob y := ∑ a, if f a = y then d.prob a else 0
@@ -71,11 +105,15 @@ noncomputable def fairQdriftPushforward {A B : Type} [Fintype A] [Fintype B]
     rw [Finset.sum_comm]
     simpa [eq_comm] using d.sum_one
 
+/-- The output-label law obtained by running the capped sampler on a uniformly distributed
+finite bit record. -/
 noncomputable def fairQdriftLaw {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ) :
     FinDist (Fin L) :=
   fairQdriftPushforward (fairQdriftUniform (Fin R → Reg (Nat.clog 2 (weightTotal w))))
     (fun ω => (fairQdriftPick w j0 R ω).1)
 
+/-- A uniform record of length `R + 1` can be sampled as a uniform head followed by an
+independent uniform tail, before applying any function. -/
 private theorem uniform_record_split {A B : Type} [Fintype A] [Nonempty A]
     (R : ℕ) (f : (Fin (R + 1) → A) → B) :
     (PMF.uniformOfFintype' (Fin (R + 1) → A)).map f =
@@ -94,6 +132,7 @@ private theorem uniform_record_split {A B : Type} [Fintype A] [Nonempty A]
   change (if y = f (Fin.cons a ω) then _ else 0) = _
   split_ifs <;> simp_all [ENNReal.mul_inv, mul_comm]
 
+/-- The costed fair-bit law is the uniform `b`-bit record law with deterministic cost `b`. -/
 private theorem fairBitsCosted_eq_uniform (b : ℕ) :
     fairBitsCosted b = (PMF.uniformOfFintype' (Reg b)).map (fun ω => (ω,b)) := by
   ext z
@@ -104,12 +143,16 @@ private theorem fairBitsCosted_eq_uniform (b : ℕ) :
     simp
   · simp [hk]
 
+/-- A uniform bit record passed through the counted trial gives the rational counted next-step
+law. -/
 theorem fairQdriftTrial_law {L : ℕ} (w : Fin L → ℕ) (b : ℕ) (BD : ℕ × ℕ) :
     (PMF.uniformOfFintype' (Reg b)).map (fairQdriftTrial w b BD) =
       rationalCountedNext w b BD := by
   rw [rationalCountedNext, fairBitsCosted_eq_uniform, PMF.map_comp]
   congr 1
 
+/-- Running the deterministic sampler on a uniform finite bit record gives the same costed law
+as the bounded probabilistic rejection run. -/
 theorem fairQdriftRawRun_law {L : ℕ} (w : Fin L → ℕ) (b R : ℕ)
     (c : Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ)) :
     (PMF.uniformOfFintype' (Fin R → Reg b)).map (fun ω => fairQdriftRawRun w b R ω c) =
@@ -139,6 +182,8 @@ theorem fairQdriftRawRun_law {L : ℕ} (w : Fin L → ℕ) (b R : ℕ)
       rw [runFor, tick, CostedLaw.bind, PMF.bind_map, ← fairQdriftTrial_law, PMF.bind_map]
       rfl
 
+/-- For positive weight mass, the sampler's joint output-label and cost law equals the
+rejection-run law followed by the fallback operation. -/
 theorem fairQdriftPick_law {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
     (hW : 0 < weightTotal w) :
     (PMF.uniformOfFintype' (Fin R → Reg (Nat.clog 2 (weightTotal w)))).map
@@ -150,6 +195,8 @@ theorem fairQdriftPick_law {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
   funext ω
   simp [fairQdriftPick, ne_of_gt hW]
 
+/-- The real probability of an event under a uniform finite law is the sum of
+reciprocal-cardinality weights over its satisfying elements. -/
 private theorem uniform_event_real {A : Type} [Fintype A] [Nonempty A]
     (E : A → Prop) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (PMF.uniformOfFintype' A) E).toReal =
@@ -164,11 +211,15 @@ private theorem uniform_event_real {A : Type} [Fintype A] [Nonempty A]
   dsimp
   by_cases h : E a <;> simp [h, PMF.uniformOfFintype'_apply, ENNReal.toReal_inv]
 
+/-- Event probability under a mapped probability law equals the probability of the event's
+preimage under the original law. -/
 private theorem event_map {A B : Type} (p : PMF A) (f : A → B) (E : B → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (p.map f) E = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun a => E (f a)) := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
   exact Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map p f _
 
+/-- For positive weight mass, a sampler label probability equals the real probability that the
+rejection run followed by fallback returns that label. -/
 theorem fairQdriftLaw_prob_event {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
     (hW : 0 < weightTotal w) (j : Fin L) :
     (fairQdriftLaw w j0 R).prob j =
@@ -179,6 +230,8 @@ theorem fairQdriftLaw_prob_event {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R :
   rw [← he, ← fairQdriftPick_law w j0 R hW, event_map, uniform_event_real]
   simp [fairQdriftLaw, fairQdriftPushforward, fairQdriftUniform]
 
+/-- A fallback-label event splits into the accepted-label event and, when the label equals the
+fallback, the pending event. -/
 private theorem fallback_event_split {L : ℕ} (j0 j : Fin L)
     (p : PMF (Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ) × ℕ)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun z => (fairQdriftFallback j0 z.1).1 = j) =
@@ -194,6 +247,8 @@ private theorem fallback_event_split {L : ℕ} (j0 j : Fin L)
   rcases c with ⟨i,B,D⟩ | ⟨B,D⟩ <;>
     simp [fairQdriftFallback, rejectionOutcome, eq_comm]
 
+/-- For positive total weight `W` and width `b = Nat.clog 2 W`, the real one-trial rejection
+mass is `1 - W / 2^b` and lies between zero and one half. -/
 theorem fairQdriftReject_real {L : ℕ} (w : Fin L → ℕ) (hW : 0 < weightTotal w) :
     let b := Nat.clog 2 (weightTotal w)
     (rationalRejectMass w b).toReal = 1 - (weightTotal w : ℝ) / (2 ^ b : ℝ) ∧
@@ -212,6 +267,9 @@ theorem fairQdriftReject_real {L : ℕ} (w : Fin L → ℕ) (hW : 0 < weightTota
   rw [← he]
   simpa only [ENNReal.toReal_div, ENNReal.toReal_one, ENNReal.toReal_ofNat] using hh
 
+/-- For positive total weight, the capped sampler law is `(1 - q^R)` times the normalized weight
+law plus `q^R` times the fallback point mass, where `q` is the one-trial rejection
+probability. See [Campbell2019]. -/
 theorem fair_bit_qdrift_actual_sampler_law (L R : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (hW : 0 < weightTotal w) :
     let b := Nat.clog 2 (weightTotal w)
@@ -241,6 +299,8 @@ theorem fair_bit_qdrift_actual_sampler_law (L R : ℕ) (w : Fin L → ℕ) (j0 :
     rw [hq]
     ring
 
+/-- The real expectation of a natural-valued function under a uniform finite law is its
+uniformly weighted finite sum. -/
 private theorem uniform_nat_expect_real {A : Type} [Fintype A] [Nonempty A] (f : A → ℕ) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (PMF.uniformOfFintype' A) (fun a => (f a : ℝ≥0∞))).toReal =
       ∑ a, (Fintype.card A : ℝ)⁻¹ * (f a : ℝ) := by
@@ -249,20 +309,26 @@ private theorem uniform_nat_expect_real {A : Type} [Fintype A] [Nonempty A] (f :
     ENNReal.mul_ne_top ((PMF.uniformOfFintype' A).apply_ne_top a) (by simp))]
   simp [PMF.uniformOfFintype'_apply, ENNReal.toReal_mul, ENNReal.toReal_inv]
 
+/-- Every length-`R` record of `b` bits has uniform mass `(1/2)^(b * R)`. -/
 private theorem raw_uniform_mass (b R : ℕ) :
     (Fintype.card (Fin R → Reg b) : ℝ)⁻¹ = ((2 : ℝ)⁻¹)^(b*R) := by
   rw [Fintype.card_fun, card_reg, Fintype.card_fin, Nat.cast_pow, Nat.cast_pow,
     Nat.cast_ofNat]
   simp only [← inv_pow, pow_mul]
 
+/-- Applying fallback preserves the configuration's counted bit usage. -/
 private theorem fallback_bits {L : ℕ} (j0 : Fin L)
     (c : Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ)) :
     (fairQdriftFallback j0 c).2.1 = rejectionBits c := by cases c <;> rfl
 
+/-- Applying fallback preserves the configuration's counted comparison usage. -/
 private theorem fallback_comparisons {L : ℕ} (j0 : Fin L)
     (c : Configuration (ℕ × ℕ) (Fin L × ℕ × ℕ)) :
     (fairQdriftFallback j0 c).2.2 = rejectionComparisons c := by cases c <;> rfl
 
+/-- For positive weight mass, every sampler path uses at most `b * R` bits and `L * R`
+comparisons, where `b` is the sampling width. The corresponding uniform expectations are at
+most `2 * b` and `2 * L`. See [Campbell2019]. -/
 theorem fair_bit_qdrift_actual_coin_path_cost (L R : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (hW : 0 < weightTotal w) :
     let b := Nat.clog 2 (weightTotal w)

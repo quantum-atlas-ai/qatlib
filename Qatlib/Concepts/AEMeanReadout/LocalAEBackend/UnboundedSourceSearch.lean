@@ -42,6 +42,26 @@ import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
+
+/-!
+# Survival and stopping laws for source search
+
+This module gives the source-search loop an unbounded transition semantics with two accumulated
+cost counters. For positive initial marked mass, `sourceSurvival_tendsto_zero` and
+`sourceStopLaw` express eventual termination; finite-loop expectations are expanded using reach
+probabilities in the search setting of [BrassardEtAl2002].
+
+## Main statements
+
+* `sourceSurvival_tendsto_zero`: vanishing survival probability for positive marked mass.
+* `sourceStopLaw`: the normalized stopping-index law.
+* `sourceRunFor_ledger_eq_loop`: agreement of transition-run and finite-loop cost expectations.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -74,10 +94,15 @@ open Filter
 open scoped Topology
 set_option warningAsError false
 
+/-- The running search state, consisting of the round index and two accumulated cost counters. -/
 abbrev SourceRunState := ℕ × ℕ × ℕ
 
+/-- The halted search outcome, consisting of an optional output label and two accumulated cost
+counters. -/
 abbrev SourceRunOutcome (I : Type) := Option I × ℕ × ℕ
 
+/-- The one-round transition law that halts on a successful output and otherwise advances the
+round index, adding both round costs. -/
 noncomputable def sourceTransition {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r : ℕ) (c1 c2 : ℕ) : PMF (Configuration SourceRunState (SourceRunOutcome I)) :=
@@ -86,15 +111,19 @@ noncomputable def sourceTransition {I : Type} [Fintype I] [DecidableEq I]
       else Sum.inr (r + 1, c1 + out.2.1, c2 + out.2.2))
     (sourceQSearchRound A hA j₀ S r)
 
+/-- The source-search transition kernel obtained by unpacking the round index and accumulated
+counters. -/
 noncomputable def sourceNext {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) :
     SourceRunState → PMF (Configuration SourceRunState (SourceRunOutcome I)) :=
   fun st => sourceTransition A hA j₀ S st.1 st.2.1 st.2.2
 
+/-- The initial running configuration at round one with both cost counters zero. -/
 noncomputable def sourceInitial {I : Type} [Fintype I] [DecidableEq I] :
     Configuration SourceRunState (SourceRunOutcome I) :=
   Sum.inr (1, 0, 0)
 
+/-- Every supported halted transition carrying `some y` has `y ∈ S`. -/
 theorem sourceTransition_halt_marked {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r c1 c2 : ℕ) (cfg : Configuration SourceRunState (SourceRunOutcome I))
@@ -123,6 +152,8 @@ theorem sourceTransition_halt_marked {I : Type} [Fintype I] [DecidableEq I]
     rw [← hy0y]
     exact hshape y0 hy0
 
+/-- The probability that a transition remains running equals the failure probability of its
+source-search round. -/
 theorem sourceTransition_running_mass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r c1 c2 : ℕ) :
@@ -137,6 +168,7 @@ theorem sourceTransition_running_mass {I : Type} [Fintype I] [DecidableEq I]
   · rw [hy0, Option.isSome_some]
     simp
 
+/-- The source-round failure mass is at most one minus the initial marked mass. -/
 theorem sourceRound_fail_mass_le (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (sourceQSearchRound A hA j₀ S l) (fun out => out.1 = none)
@@ -171,6 +203,7 @@ theorem sourceRound_fail_mass_le (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
         add_le_add hge (le_refl _)
     _ = 1 := hpart
 
+/-- Every fixed-depth amplified success mass is zero if the initial marked mass is zero. -/
 theorem depthSuccessMass_eq_zero_of_zero (A : Matrix I I ℂ) (j₀ : I) (S : Finset I)
     (k : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j₀) S = 0) :
@@ -178,6 +211,7 @@ theorem depthSuccessMass_eq_zero_of_zero (A : Matrix I I ℂ) (j₀ : I) (S : Fi
   unfold depthSuccessMass
   rw [(prepared_aa_endpoint_states A j₀ S k hA).1 ha, ha]
 
+/-- A source-search round has zero success probability if the initial marked mass is zero. -/
 theorem sourceRound_success_mass_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ)
     (ha : MeasureProb (preparedAAState A j₀) S = 0) :
@@ -192,11 +226,15 @@ theorem sourceRound_success_mass_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.un
   rw [ha, ENNReal.ofReal_zero, hsum]
   simp
 
+/-- The probability that source search is still running after `n` transitions from its initial
+configuration. -/
 noncomputable def sourceSurvival {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (n : ℕ) : ℝ≥0∞ :=
   finiteSurvival (sourceNext A hA j₀ S) n (sourceInitial (I := I))
 
+/-- The survival probability after `n` transitions is at most `(1 - a)^n`, embedded in extended
+nonnegative reals, for initial marked mass `a`. -/
 theorem sourceSurvival_le_pow {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (n : ℕ) :
@@ -219,6 +257,7 @@ theorem sourceSurvival_le_pow {I : Type} [Fintype I] [DecidableEq I]
     rw [hq] at hbound
     exact hbound
 
+/-- For positive initial marked mass, the source-search survival probability tends to zero. -/
 theorem sourceSurvival_tendsto_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
@@ -238,6 +277,8 @@ theorem sourceSurvival_tendsto_zero {I : Type} [Fintype I] [DecidableEq I]
   · filter_upwards [] with n
     exact sourceSurvival_le_pow A hA j₀ S n
 
+/-- For zero initial marked mass, the source-search survival probability is one at every finite
+horizon. -/
 theorem sourceSurvival_eq_one_of_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : MeasureProb (preparedAAState A j₀) S = 0) :
@@ -300,11 +341,14 @@ theorem sourceSurvival_eq_one_of_zero {I : Type} [Fintype I] [DecidableEq I]
   intro n
   exact hmain n (1, 0, 0)
 
+/-- The stopping mass at index `k`, defined as survival at `k` minus survival at `k + 1`. -/
 noncomputable def sourceStopMass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (k : ℕ) : ℝ≥0∞ :=
   sourceSurvival A hA j₀ S k - sourceSurvival A hA j₀ S (k + 1)
 
+/-- Within a finite run of at least `k ≥ 1` steps, the probability of first halting at step `k`
+equals `sourceStopMass` at index `k - 1`. -/
 theorem sourceStopMass_eq_first_stop {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (fuel k : ℕ) (hk : 1 ≤ k) (hkf : k ≤ fuel) :
@@ -316,6 +360,7 @@ theorem sourceStopMass_eq_first_stop {I : Type} [Fintype I] [DecidableEq I]
   rw [Nat.sub_add_cancel hk]
   exact h
 
+/-- The stopping masses before horizon `N` plus the survival mass at `N` sum to one. -/
 theorem sum_sourceStopMass_add_survival {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (N : ℕ) :
@@ -337,6 +382,8 @@ theorem sum_sourceStopMass_add_survival {I : Type} [Fintype I] [DecidableEq I]
       have hsum := Finset.sum_range_succ (sourceStopMass A hA j₀ S) N
       rw [hsum, add_assoc, hstep N, ih]
 
+/-- The probability mass function on stopping indices obtained from `sourceStopMass` when the
+initial marked mass is positive. -/
 noncomputable def sourceStopLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) : PMF ℕ :=
@@ -361,12 +408,14 @@ noncomputable def sourceStopLaw {I : Type} [Fintype I] [DecidableEq I]
       simpa using! ENNReal.Tendsto.sub (tendsto_const_nhds)
         (sourceSurvival_tendsto_zero A hA j₀ S ha) (Or.inl ENNReal.one_ne_top))⟩
 
+/-- The stopping-index law assigns index `k` exactly the mass `sourceStopMass` at `k`. -/
 theorem sourceStopLaw_mass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) (k : ℕ) :
     sourceStopLaw A hA j₀ S ha k = sourceStopMass A hA j₀ S k :=
   rfl
 
+/-- Every stopping mass is zero when the initial marked mass is zero. -/
 theorem sourceStopMass_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : MeasureProb (preparedAAState A j₀) S = 0) (k : ℕ) :
@@ -375,6 +424,8 @@ theorem sourceStopMass_zero {I : Type} [Fintype I] [DecidableEq I]
     sourceSurvival_eq_one_of_zero A hA j₀ S ha]
   simp
 
+/-- For an additive cost ledger, the finite-loop expectation is the first-round expectation plus
+the first-round failure mass times the continuation expectation. -/
 theorem windowLoop_ledger_expectation_succ {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ))
@@ -440,28 +491,36 @@ theorem windowLoop_ledger_expectation_succ {I : Type} [Fintype I] [DecidableEq I
   · rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, expectation_indicator_mul']
     ring
 
+/-- The first cost counter of a search output, embedded in extended nonnegative reals. -/
 noncomputable def ledger1 {I : Type} (out : Option I × ℕ × ℕ) : ℝ≥0∞ :=
   (out.2.1 : ℝ≥0∞)
 
+/-- The second cost counter of a search output, embedded in extended nonnegative reals. -/
 noncomputable def ledger2 {I : Type} (out : Option I × ℕ × ℕ) : ℝ≥0∞ :=
   (out.2.2 : ℝ≥0∞)
 
+/-- The first ledger is additive when two pairs of cost counters are added. -/
 theorem ledger1_add {I : Type} (r out : Option I × ℕ × ℕ) :
     ledger1 (r.1, r.2.1 + out.2.1, r.2.2 + out.2.2) = ledger1 r + ledger1 out := by
   obtain ⟨_, r2, _⟩ := r
   obtain ⟨_, o2, _⟩ := out
   simp [ledger1, Nat.cast_add]
 
+/-- The second ledger is additive when two pairs of cost counters are added. -/
 theorem ledger2_add {I : Type} (r out : Option I × ℕ × ℕ) :
     ledger2 (r.1, r.2.1 + out.2.1, r.2.2 + out.2.2) = ledger2 r + ledger2 out := by
   obtain ⟨_, r2, _⟩ := r
   obtain ⟨_, o2, _⟩ := out
   simp [ledger2, Nat.cast_add]
 
+/-- The first ledger vanishes on the output with no result and two zero costs. -/
 theorem ledger1_zero {I : Type} : ledger1 ((none : Option I), 0, 0) = 0 := by simp [ledger1]
 
+/-- The second ledger vanishes on the output with no result and two zero costs. -/
 theorem ledger2_zero {I : Type} : ledger2 ((none : Option I), 0, 0) = 0 := by simp [ledger2]
 
+/-- The expectation of an additive ledger vanishing at zero is nondecreasing as the loop horizon
+increases by one. -/
 theorem windowLoop_ledger_expectation_mono {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ))
@@ -499,6 +558,7 @@ theorem windowLoop_ledger_expectation_mono {I : Type} [Fintype I] [DecidableEq I
       exact add_le_add_right hmul
           (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (round (off+1)) L)
 
+/-- The expected first cost counter of source search is nondecreasing in the finite horizon. -/
 theorem sourceLoop_ledger1_expectation_mono {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (T : ℕ) :
@@ -513,6 +573,7 @@ theorem sourceLoop_ledger1_expectation_mono {I : Type} [Fintype I] [DecidableEq 
       simp [Nat.cast_add]) (by simp) T 0
   exact h
 
+/-- The expected second cost counter of source search is nondecreasing in the finite horizon. -/
 theorem sourceLoop_ledger2_expectation_mono {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (T : ℕ) :
@@ -527,25 +588,33 @@ theorem sourceLoop_ledger2_expectation_mono {I : Type} [Fintype I] [DecidableEq 
       simp [Nat.cast_add]) (by simp) T 0
   exact h
 
+/-- The failure probability of source-search round `l`. -/
 noncomputable def sourceFailMass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (l : ℕ) : ℝ≥0∞ :=
   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (sourceQSearchRound A hA j₀ S l) (fun out => out.1 = none)
 
+/-- The product of `n` consecutive failure masses starting at round `r`, defined recursively. -/
 noncomputable def reachMass (fail : ℕ → ℝ≥0∞) : ℕ → ℕ → ℝ≥0∞
   | r, 0 => 1
   | r, n + 1 => fail r * reachMass fail (r + 1) n
 
+/-- The reach mass for `n + 1` rounds factors into failure at the first round and reach mass for
+the remaining rounds. -/
 theorem reachMass_succ (fail : ℕ → ℝ≥0∞) (r n : ℕ) :
     reachMass fail r (n + 1) = fail r * reachMass fail (r + 1) n := rfl
 
+/-- The reach mass for zero rounds is one. -/
 theorem reachMass_zero (fail : ℕ → ℝ≥0∞) (r : ℕ) : reachMass fail r 0 = 1 := rfl
 
+/-- The product of the source-search failure probabilities for `n` rounds starting at `r`. -/
 noncomputable def sourceReachFrom {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r n : ℕ) : ℝ≥0∞ :=
   reachMass (sourceFailMass A hA j₀ S) r n
 
+/-- The source reach probability for `n + 1` rounds factors into the first failure mass and the
+remaining reach probability. -/
 theorem sourceReachFrom_succ {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r n : ℕ) :
@@ -554,11 +623,14 @@ theorem sourceReachFrom_succ {I : Type} [Fintype I] [DecidableEq I]
   unfold sourceReachFrom
   rw [reachMass_succ]
 
+/-- The source reach probability from round one through `k` failures. -/
 noncomputable def sourceReachMass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (k : ℕ) : ℝ≥0∞ :=
   sourceReachFrom A hA j₀ S 1 k
 
+/-- Survival for `n` transitions from any running state equals the corresponding source reach
+probability and does not depend on the accumulated costs. -/
 theorem sourceSurvival_eq_reachFrom {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) :
     ∀ (n : ℕ) (r c1 c2 : ℕ),
@@ -593,6 +665,7 @@ theorem sourceSurvival_eq_reachFrom {I : Type} [Fintype I] [DecidableEq I]
       rw [sourceReachFrom_succ A hA j₀ S r n]
       exact mul_comm _ _
 
+/-- Survival from the initial configuration equals `sourceReachMass`. -/
 theorem sourceSurvival_eq_reachMass {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (n : ℕ) :
@@ -600,6 +673,8 @@ theorem sourceSurvival_eq_reachMass {I : Type} [Fintype I] [DecidableEq I]
   rw [sourceSurvival, sourceReachMass]
   exact sourceSurvival_eq_reachFrom A hA j₀ S n 1 0 0
 
+/-- Expands a finite-loop additive-ledger expectation as the sum of round expectations weighted
+by the probabilities of reaching those rounds. -/
 theorem windowLoop_ledger_expectation_unfold {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ))
@@ -650,12 +725,16 @@ theorem windowLoop_ledger_expectation_unfold {I : Type} [Fintype I] [DecidableEq
       rw [Finset.mul_sum]
       ring
 
+/-- Applies an accumulation function to the two cost counters in either a halted or a running
+configuration. -/
 def sourceAccumulated {I : Type} (acc : ℕ → ℕ → ℕ)
     (cfg : Configuration SourceRunState (SourceRunOutcome I)) : ℕ :=
   match cfg with
   | Sum.inl a => acc a.2.1 a.2.2
   | Sum.inr s => acc s.2.1 s.2.2
 
+/-- For an additive accumulator vanishing at zero, the transition-run expectation equals the
+initial accumulated cost plus the corresponding finite-loop cost expectation. -/
 theorem sourceRunFor_ledger_eq_loop {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (acc : ℕ → ℕ → ℕ)

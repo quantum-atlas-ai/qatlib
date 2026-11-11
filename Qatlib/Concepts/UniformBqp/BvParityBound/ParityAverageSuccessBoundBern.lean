@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.UniformBqp.BvParityBound.ParityAverageSuccessBoundStat
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+/-!
+# Average classical success for parity-secret recovery
+
+This module proves the aggregate success bound for randomized adaptive Boolean query trees
+recovering a parity secret. A single probability distribution on trees with at most `T` queries
+has success probabilities, summed over all secrets, at most `2 ^ T`; the counting argument
+complements the oracle separation of [BernsteinVazirani1997].
+
+## Main statements
+
+* `parityAverageSuccessBound`: establishes `ParityAverageSuccessBound` for every input length
+  and query bound.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -19,6 +38,8 @@ namespace Qatlib.Concepts.UniformBqp.BvParityBound
 open Qatlib
 open scoped BigOperators ENNReal
 
+/-- A deterministic Boolean query tree correctly recovers at most `2 ^ MaxQueries τ` parity
+secrets, expressed as a sum in the extended nonnegative reals. -/
 private theorem bv_correct_secret_count (n : ℕ) (τ : BoolQueryTree (Reg n) (Reg n)) :
     (∑ k : Reg n, if (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run (bvCharBit k) τ).1 = k then (1 : ℝ≥0∞) else 0) ≤
       ((2 ^ Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.MaxQueries τ : ℕ) : ℝ≥0∞) := by
@@ -37,6 +58,8 @@ private theorem bv_correct_secret_count (n : ℕ) (τ : BoolQueryTree (Reg n) (R
   rw [he]
   exact_mod_cast hc
 
+/-- For any probability distribution on Boolean query trees with at most `T` queries, the real
+success probabilities of recovering parity secrets sum to at most `2 ^ T` over all secrets. -/
 theorem parityAverageSuccessBound : ParityAverageSuccessBound := by
   classical
   intro n T P hT

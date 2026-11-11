@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutStat
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientLaws
+
+/-!
+# Full-range gradient readout
+
+`fullRangeGradientReadout` proves the readout specification for the dyadic value-oracle program.
+It combines clean character kickback with phase-error transport and an affine-output probability
+bound, following the finite-grid mechanism of [Jordan2005Gradient].
+
+## Main statements
+
+* `fullRangeGradientReadout`: one-query readout has the specified resources, event-error bound,
+  and affine success guarantee.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +37,10 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical BigOperators
 
+/-- Proves the full-range readout specification, including one-query resources, normalization,
+clean output factorization, event stability, and the affine cosine-squared success bound.
+This formalizes the finite-grid value-oracle construction associated with
+[Jordan2005Gradient]. -/
 theorem fullRangeGradientReadout : FullRangeGradientReadout := by
   intro d M hM K k f lo s R hk hs hR hguard hf
   obtain ⟨hunit,hqueries,hgates⟩ := full_range_program_resources d M hM K k

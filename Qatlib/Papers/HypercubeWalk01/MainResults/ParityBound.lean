@@ -10,6 +10,28 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Ring.Parity
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
+
+/-!
+# Fourier bounds relative to a parity class
+
+This module relates the true-coordinate parity character `wchar` to the full-subset character
+`chi` and proves normalization and Fourier identities for parity mass functions. These
+identities yield the parity version of the Fourier total variation bound used in
+[MooreRussell2001], followed by a conditional discrete mixing theorem.
+
+## Main statements
+
+* `tvDistParity_sq_le`: bounds squared distance from the appropriate parity mass using only
+  proper nonempty subsets.
+* `discDist_tvDistParity_sq_le`: groups the discrete-walk bound by subset cardinality.
+* `discreteWalk_mixing_of_parity_structure`: deduces mixing from supplied normalization, parity
+  support, and coefficient bounds.
+
+## References
+
+* [Moore and Russell, 2001][MooreRussell2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,34 +44,44 @@ open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 namespace Qatlib.Papers.HypercubeWalk01.MainResults
 
+/-- The number of true coordinates of a cube vertex. -/
 def trueWeight {n : ℕ} (x : Cube n) : ℕ := ∑ i, if x i then (1 : ℕ) else 0
 
+/-- The product of coordinate signs, with true contributing `-1` and false contributing `1`. -/
 def wchar {n : ℕ} (x : Cube n) : ℝ := ∏ i, if x i then (-1 : ℝ) else 1
 
+/-- The true-coordinate weight equals the cardinality of the set of coordinates at which `x` is
+true. -/
 theorem trueWeight_eq_card {n : ℕ} (x : Cube n) :
     trueWeight x = (Finset.univ.filter (fun i => x i)).card := by
   rw [trueWeight, Finset.sum_boole]
   simp
 
+/-- The power `(-1) ^ m` is one for even `m` and negative one for odd `m`. -/
 theorem negOne_pow_eq {m : ℕ} : (-1 : ℝ) ^ m = if m % 2 = 0 then 1 else -1 := by
   rcases Nat.mod_two_eq_zero_or_one m with h | h
   · rw [if_pos h]; exact Even.neg_one_pow (Nat.even_iff.mpr h)
   · rw [if_neg (by omega)]; exact Odd.neg_one_pow (Nat.odd_iff.mpr h)
 
+/-- Every even natural power of negative one is one. -/
 theorem negOne_pow_two_mul {k : ℕ} : (-1 : ℝ) ^ (2 * k) = 1 := by
   rw [pow_mul]; norm_num
 
+/-- The parity character `wchar x` equals `(-1) ^ trueWeight x`. -/
 theorem wchar_eq_pow {n : ℕ} (x : Cube n) : wchar x = (-1 : ℝ) ^ trueWeight x := by
   have hpt : ∀ i : Fin n, (if x i then (-1 : ℝ) else 1) = (-1 : ℝ) ^ (if x i then (1 : ℕ) else 0) := by
     intro i; cases x i <;> simp
   rw [wchar, trueWeight, Finset.prod_congr rfl (fun i _ => hpt i)]
   exact Finset.prod_pow_eq_pow_sum _ _ _
 
+/-- The parity character is one on vertices of even true weight and negative one on vertices of
+odd true weight. -/
 theorem wchar_eq_pm {n : ℕ} (x : Cube n) :
     wchar x = if trueWeight x % 2 = 0 then (1 : ℝ) else -1 := by
   rw [wchar_eq_pow]
   exact negOne_pow_eq
 
+/-- If the true weight of `x` has the same parity as `t`, then `wchar x = (-1) ^ t`. -/
 theorem wchar_eq_negOne_pow {n : ℕ} {t : ℕ} {x : Cube n}
     (hx : trueWeight x % 2 = t % 2) : wchar x = (-1 : ℝ) ^ t := by
   rw [wchar_eq_pow, negOne_pow_eq (m := trueWeight x), negOne_pow_eq (m := t)]
@@ -57,6 +89,7 @@ theorem wchar_eq_negOne_pow {n : ℕ} {t : ℕ} {x : Cube n}
   · rw [if_pos ht, if_pos (by omega : trueWeight x % 2 = 0)]
   · rw [if_neg ht, if_neg (by omega : ¬ trueWeight x % 2 = 0)]
 
+/-- The parity character equals `(-1) ^ n` times the full-subset character. -/
 theorem wchar_eq_univ_chi {n : ℕ} (x : Cube n) :
     wchar x = (-1 : ℝ) ^ n * chi (Finset.univ) x := by
   have hpt : ∀ i : Fin n, (if x i then (-1 : ℝ) else 1) = (-1 : ℝ) * (if x i then (1 : ℝ) else -1) := by
@@ -67,6 +100,7 @@ theorem wchar_eq_univ_chi {n : ℕ} (x : Cube n) :
     Finset.prod_const]
   simp [Finset.card_univ]
 
+/-- The full-subset character equals `(-1) ^ n` times the parity character. -/
 theorem chi_univ_eq_negOne_mul_wchar {n : ℕ} (x : Cube n) :
     chi (Finset.univ) x = (-1 : ℝ) ^ n * wchar x := by
   have hnn : (-1 : ℝ) ^ n * (-1 : ℝ) ^ n = 1 := by
@@ -76,21 +110,29 @@ theorem chi_univ_eq_negOne_mul_wchar {n : ℕ} (x : Cube n) :
     _ = (-1 : ℝ) ^ n * ((-1 : ℝ) ^ n * chi (Finset.univ) x) := by ring
     _ = (-1 : ℝ) ^ n * wchar x := by rw [← wchar_eq_univ_chi]
 
+/-- On the parity class corresponding to `t`, the full-subset character is the constant `(-1) ^
+(n + t)`. -/
 theorem chi_univ_eq_on_parityClass {n t : ℕ} {x : Cube n}
     (hx : trueWeight x % 2 = t % 2) : chi (Finset.univ) x = (-1 : ℝ) ^ (n + t) := by
   rw [chi_univ_eq_negOne_mul_wchar, wchar_eq_negOne_pow hx, ← pow_add]
 
+/-- Multiplying `chi S` by the parity character gives `(-1) ^ n` times the character indexed by
+the symmetric difference of `S` and the full coordinate set. -/
 theorem wchar_mul_chi {n : ℕ} (S : Finset (Fin n)) (x : Cube n) :
     wchar x * chi S x = (-1 : ℝ) ^ n * chi (S ∆ Finset.univ) x := by
   rw [wchar_eq_univ_chi, mul_assoc, chi_mul, symmDiff_comm]
 
+/-- The finite set of cube vertices whose true weight has the same parity as `b`. -/
 def parityClass (n b : ℕ) : Finset (Cube n) :=
   Finset.univ.filter (fun x => trueWeight x % 2 = b % 2)
 
+/-- Membership in `parityClass n b` is equivalent to equality of true-weight parity with `b`
+modulo two. -/
 theorem mem_parityClass {n b : ℕ} {x : Cube n} :
     x ∈ parityClass n b ↔ trueWeight x % 2 = b % 2 := by
   simp [parityClass]
 
+/-- The indicator of the parity class of `b` equals `(1 + (-1) ^ b * wchar x) / 2`. -/
 theorem indicator_parityClass {n b : ℕ} (x : Cube n) :
     (if trueWeight x % 2 = b % 2 then (1 : ℝ) else 0) = (1 + (-1 : ℝ) ^ b * wchar x) / 2 := by
   rw [negOne_pow_eq (m := b), wchar_eq_pm]
@@ -100,6 +142,8 @@ theorem indicator_parityClass {n b : ℕ} (x : Cube n) :
   · rw [if_neg hb, if_pos hx, if_neg (by omega)]; norm_num
   · rw [if_neg hb, if_neg hx, if_pos (by omega)]; norm_num
 
+/-- A sum restricted to a parity class equals the unrestricted sum weighted by its character
+indicator. -/
 theorem sum_parityClass_eq {n b : ℕ} (f : Cube n → ℝ) :
     (∑ x ∈ parityClass n b, f x) = ∑ x : Cube n, (1 + (-1 : ℝ) ^ b * wchar x) / 2 * f x := by
   rw [parityClass, Finset.sum_filter]
@@ -107,6 +151,8 @@ theorem sum_parityClass_eq {n b : ℕ} (f : Cube n → ℝ) :
   rw [← indicator_parityClass (b := b) x]
   by_cases h : trueWeight x % 2 = b % 2 <;> simp [h]
 
+/-- For positive dimension and a proper nonempty subset `S`, the sum of `chi S` over either
+parity class is zero. -/
 theorem sum_parityClass_chi_zero {n b : ℕ} (_hn : 1 ≤ n) {S : Finset (Fin n)}
     (hS : S ≠ ∅) (hSu : S ≠ Finset.univ) :
     (∑ x ∈ parityClass n b, chi S x) = 0 := by
@@ -128,6 +174,7 @@ theorem sum_parityClass_chi_zero {n b : ℕ} (_hn : 1 ≤ n) {S : Finset (Fin n)
     exact Finset.sum_congr rfl fun x _ => by ring
   rw [hsplit, h1, hw]; ring
 
+/-- In positive dimension, either parity class has `2 ^ (n - 1)` vertices. -/
 theorem card_parityClass {n b : ℕ} (hn : 1 ≤ n) : (parityClass n b).card = 2 ^ (n - 1) := by
   have hw : (∑ x : Cube n, wchar x) = 0 := by
     have hstep : (∑ x : Cube n, wchar x)
@@ -157,6 +204,7 @@ theorem card_parityClass {n b : ℕ} (hn : 1 ≤ n) : (parityClass n b).card = 2
     simp
   exact_mod_cast hreal
 
+/-- In positive dimension, the time-dependent parity mass function has total mass one. -/
 theorem sum_parityParityMass {n t : ℕ} (hn : 1 ≤ n) :
     (∑ x : Cube n, parityParityMass n t x) = 1 := by
   have hcongr : (∑ x : Cube n, parityParityMass n t x)
@@ -176,12 +224,15 @@ theorem sum_parityParityMass {n t : ℕ} (hn : 1 ≤ n) :
   rw [hcast]
   exact inv_mul_cancel₀ (by positivity)
 
+/-- The time-dependent parity mass vanishes at vertices with parity different from `t`. -/
 theorem parityParityMass_eq_zero_of_notMem {n t : ℕ} {x : Cube n}
     (hx : trueWeight x % 2 ≠ t % 2) : parityParityMass n t x = 0 := by
   simp only [parityParityMass]
   rw [if_neg]
   simpa [trueWeight] using hx
 
+/-- In positive dimension, the parity mass function has zero Fourier coefficient at every proper
+nonempty subset. -/
 theorem fourierCoeff_parityParityMass_zero {n t : ℕ} (hn : 1 ≤ n) {S : Finset (Fin n)}
     (hS : S ≠ ∅) (hSu : S ≠ Finset.univ) :
     fourierCoeff (parityParityMass n t) S = 0 := by
@@ -208,6 +259,8 @@ theorem fourierCoeff_parityParityMass_zero {n t : ℕ} (hn : 1 ≤ n) {S : Finse
     rw [Finset.mul_sum]
   rw [fourierCoeff, hcongr, hstep, sum_parityClass_chi_zero hn hS hSu, mul_zero]
 
+/-- A real function of total mass one supported on the parity class of `t` has full-subset
+Fourier coefficient `(-1) ^ (n + t)`. -/
 theorem fourierCoeff_univ_eq_of_paritySupport {n t : ℕ} {P : Cube n → ℝ}
     (hmass : ∑ x, P x = 1)
     (hsupp : ∀ x : Cube n, trueWeight x % 2 ≠ t % 2 → P x = 0) :
@@ -237,11 +290,16 @@ theorem fourierCoeff_univ_eq_of_paritySupport {n t : ℕ} {P : Cube n → ℝ}
     _ = 1 * (-1 : ℝ) ^ (n + t) := by rw [← hcollapseP, hmass]
     _ = (-1 : ℝ) ^ (n + t) := one_mul _
 
+/-- In positive dimension, the full-subset Fourier coefficient of the parity mass function is
+`(-1) ^ (n + t)`. -/
 theorem fourierCoeff_parityParityMass_univ {n t : ℕ} (hn : 1 ≤ n) :
     fourierCoeff (parityParityMass n t) (Finset.univ) = (-1 : ℝ) ^ (n + t) :=
   fourierCoeff_univ_eq_of_paritySupport (sum_parityParityMass hn)
     (fun _ hx => parityParityMass_eq_zero_of_notMem hx)
 
+/-- For positive dimension and a real function of total mass one supported on the parity class
+of `t`, squared distance to the parity mass is at most one quarter of the sum of squared
+coefficients over proper nonempty subsets. -/
 theorem tvDistParity_sq_le {n t : ℕ} (hn : 1 ≤ n) (P : Cube n → ℝ)
     (hmass : ∑ x, P x = 1)
     (hsupp : ∀ x : Cube n, trueWeight x % 2 ≠ t % 2 → P x = 0) :
@@ -337,6 +395,8 @@ theorem tvDistParity_sq_le {n t : ℕ} (hn : 1 ≤ n) (P : Cube n → ℝ)
           _ = (1 / 4) * ∑ S ∈ (Finset.univ.erase (∅ : Finset (Fin n))).erase Finset.univ,
                   (fourierCoeff P S) ^ 2 := by ring
 
+/-- For positive dimension, a cardinality-dependent sum over proper nonempty subsets equals the
+binomially weighted sum over sizes from one to `n - 1`. -/
 theorem sum_by_card_middle {n : ℕ} (hn : 1 ≤ n) (g : ℕ → ℝ) :
     (∑ S ∈ (Finset.univ.erase (∅ : Finset (Fin n))).erase Finset.univ, g S.card)
       = ∑ k ∈ Finset.range (n - 1), (Nat.choose n (k + 1) : ℝ) * g (k + 1) := by
@@ -360,6 +420,9 @@ theorem sum_by_card_middle {n : ℕ} (hn : 1 ≤ n) (g : ℕ → ℝ) :
     simp only [show n - 1 + 1 = n by omega, Nat.choose_self, Nat.cast_one, one_mul]
   linarith
 
+/-- For positive dimension, assuming total mass one and support on the time-`t` parity class,
+the squared parity distance of `discDist n t` is bounded by one quarter of its interior
+binomially weighted squared coefficients. -/
 theorem discDist_tvDistParity_sq_le (n t : ℕ) (hn : 1 ≤ n)
     (hmass : ∑ x, discDist n t x = 1)
     (hsupp : ∀ x : Cube n, trueWeight x % 2 ≠ t % 2 → discDist n t x = 0) :
@@ -379,6 +442,10 @@ theorem discDist_tvDistParity_sq_le (n t : ℕ) (hn : 1 ≤ n)
             (Nat.choose n (k + 1) : ℝ) * (discCoeff n t (k + 1)) ^ 2 := by
         rw [sum_by_card_middle hn (fun k => (discCoeff n t k) ^ 2)]
 
+/-- Assuming normalization and parity support of `discDist` in positive dimension and the stated
+uniform coefficient estimate, its parity distance is at most `C * n ^ (-7 / 6)` at rounded
+odd multiples of `π * n / 4` for all sufficiently large `n`. This is the conditional mixing
+conclusion associated with [Moore and Russell, Theorem 1][MooreRussell2001]. -/
 theorem discreteWalk_mixing_of_parity_structure
     (hpar : ∀ (n t : ℕ), 1 ≤ n →
       ((∑ x, discDist n t x) = 1 ∧

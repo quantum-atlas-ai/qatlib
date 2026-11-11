@@ -6,11 +6,37 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundHami
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductGammaThresholdStat
+
+/-!
+# A threshold for the multiproduct exponent
+
+This module proves `multiproductGammaThreshold`, deriving coefficient-mass control and a
+terminal-node ratio bound from an explicit lower threshold on γ. The scalar lemma
+`multiproduct_gamma_numerical` provides the exponential inequalities used to combine the
+coefficient and mass estimates. See [ChildsWiebe2012] for the multiproduct and
+linear-combination simulation framework.
+
+## Main statements
+
+* `multiproductGammaThreshold`: Under the analytic hypotheses and the stated threshold on γ,
+  four times the negative coefficient mass is at most δ times the positive mass, and k²
+  exp(−2γ(k + 1)) is at most 1 / 2.
+* `multiproduct_gamma_numerical`: For K ≥ 1, γ > 0, η > 1 / 4, and 0 < δ ≤ 1, the stated
+  logarithmic threshold on γ implies 2K² ≤ exp(2γ(K + 1)) and that δ times the explicit mass
+  scale is at least 4.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical
 
+/-- For K ≥ 1, γ > 0, η > 1 / 4, and 0 < δ ≤ 1, the stated logarithmic threshold on γ implies
+2K² ≤ exp(2γ(K + 1)) and that δ times the explicit mass scale is at least 4. -/
 theorem multiproduct_gamma_numerical (K γ η δ : ℝ) (hK : 1 ≤ K) (hγ : 0 < γ)
     (hη : 1/4 < η) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (ht : 1+Real.log η/2+(1/(2*K))*Real.log ((2*K)^((5 : ℝ)/2)/δ) ≤ γ) :
@@ -62,6 +88,9 @@ theorem multiproduct_gamma_numerical (K γ η δ : ℝ) (hK : 1 ≤ K) (hγ : 0 
     nlinarith
   exact ⟨hcrit, (Real.log_le_log_iff (by norm_num) (mul_pos hδ hscale)).mp hl4⟩
 
+/-- Under the analytic hypotheses and the stated threshold on γ, four times the negative
+coefficient mass is at most δ times the positive mass, and k² exp(−2γ(k + 1)) is at most 1 /
+2. See [ChildsWiebe2012]. -/
 theorem multiproductGammaThreshold : MultiproductGammaThreshold := by
   intro k hk γ η δ hγ hη hδ hδ1 hE hF ht
   have hkR : (1 : ℝ) ≤ k := by exact_mod_cast hk

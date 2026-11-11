@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.K2WindowSupport
+
+/-!
+# Amplitude estimation windows for larger error parameters
+
+This module proves the `k ≥ 2` probability bound from amplitude estimation in
+[BrassardEtAl2002]. For a unitary preparation and grid size `M ≥ 2`, the amplitude estimate lies
+within `2πk√(a(1 - a))/M + k²π²/M²` of the marked probability with probability at least `1 - 1 /
+(2 * (k - 1))`.
+
+The proof handles the zero and unit amplitudes separately and combines the two phase
+distributions for intermediate amplitudes. The result is also exported through
+`Theorem12K2WindowSpec.expected`.
+
+## Main statements
+
+* `bhmt_amplitude_estimation_k2_window`: the amplitude estimation window bound for `k ≥ 2`.
+* `bhmt_amplitude_estimation_k2_window_contract`: the same result in the specification
+  interface.
+
+## References
+
+* [Brassard et al., Theorem 12][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +44,9 @@ open Matrix
 open scoped Classical
 set_option autoImplicit false
 
+/-- For `M ≥ 2` and `k ≥ 2`, the amplitude estimation window of radius `2πk√(a(1 - a))/M +
+k²π²/M²` has probability at least `1 - 1 / (2 * (k - 1))` [Brassard et al., Theorem
+12][BrassardEtAl2002]. -/
 theorem bhmt_amplitude_estimation_k2_window
     (I : Type) [Fintype I] [DecidableEq I] (M : ℕ) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -70,6 +97,8 @@ theorem bhmt_amplitude_estimation_k2_window
   rw [← Finset.sum_div, Finset.sum_add_distrib]
   linarith
 
+/-- The amplitude estimation window bound for `k ≥ 2` satisfies `Theorem12K2WindowSpec.expected`
+[BrassardEtAl2002]. -/
 theorem bhmt_amplitude_estimation_k2_window_contract :
     Theorem12K2WindowSpec.expected :=
   bhmt_amplitude_estimation_k2_window

@@ -8,28 +8,57 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Low-energy transmission estimates for NAND trees
+
+This module defines `sinTheta` and the complex transmission amplitude `transmissionCoeff`, then
+controls their denominators by elementary norm estimates. Under |E| < 1/(16√N),
+`section3_transmission_table` combines the reflection estimate for large |y| and the near-unit
+transmission estimate for small |y|. See [FarhiGoldstoneGutmann2008] for the Hamiltonian
+NAND-tree setting.
+
+## Main statements
+
+* `reflect_transmission_bound`: For N ≥ 1, nonzero E with |E| < 1 / (16√N), and |y| > 1 / (4√N
+  |E|), the transmission amplitude has norm less than 8√N |E|.
+* `transmit_transmission_bound`: For N ≥ 1, |E| < 1 / (16√N), and |y| < 4√N |E|, the
+  transmission amplitude differs from 1 by norm less than 3√N |E|.
+* `section3_transmission_table`: For N ≥ 1 and nonzero |E| < 1 / (16√N), combines the reflection
+  bound for |y| > 1 / (4√N |E|) with the near-unit transmission bound for |y| < 4√N |E|.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmann2008]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.HamNANDTree07.MainResults.TransmissionTable
 
+/-- The nonnegative quantity √(1 − E² / 4) used in the transmission formula. -/
 def sinTheta (E : ℝ) : ℝ := Real.sqrt (1 - E ^ 2 / 4)
 
+/-- The complex transmission amplitude 2i · `sinTheta E` / (2i · `sinTheta E` + y). -/
 def transmissionCoeff (E y : ℝ) : ℂ :=
   (2 * sinTheta E * Complex.I) / (2 * sinTheta E * Complex.I + (y : ℂ))
 
+/-- The quantity `sinTheta E` is nonnegative for every real E. -/
 lemma sinTheta_nonneg (E : ℝ) : 0 ≤ sinTheta E := Real.sqrt_nonneg _
 
+/-- The quantity `sinTheta E` is at most 1 for every real E. -/
 lemma sinTheta_le_one (E : ℝ) : sinTheta E ≤ 1 := by
   rw [sinTheta, Real.sqrt_le_one]
   nlinarith [sq_nonneg E]
 
+/-- If |E| < 2, then `sinTheta E` squared equals 1 − E² / 4. -/
 lemma sinTheta_sq_of_abs_lt_two (E : ℝ) (hE : |E| < 2) :
     sinTheta E ^ 2 = 1 - E ^ 2 / 4 := by
   rw [sinTheta, Real.sq_sqrt]
   nlinarith [abs_nonneg E, sq_abs E, (abs_lt.mp hE).1, (abs_lt.mp hE).2]
 
+/-- For N ≥ 1 and |E| < 1 / (16√N), `sinTheta E` is at least 3 / 4. -/
 lemma sinTheta_ge_three_quarters (N : ℕ) (hN : 1 ≤ N) (E : ℝ)
     (hE : |E| < 1 / (16 * Real.sqrt N)) : 3 / 4 ≤ sinTheta E := by
   have hNpos : (0 : ℝ) < Real.sqrt N := by
@@ -53,6 +82,7 @@ lemma sinTheta_ge_three_quarters (N : ℕ) (hN : 1 ≤ N) (E : ℝ)
     nlinarith
   exact le_of_sq_le_sq hsq' (sinTheta_nonneg E)
 
+/-- The squared norm of the transmission denominator equals y² + 4 · `sinTheta E`². -/
 lemma denom_norm_sq (E y : ℝ) :
     ‖2 * sinTheta E * Complex.I + (y : ℂ)‖ ^ 2 = y ^ 2 + 4 * sinTheta E ^ 2 := by
   rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply]
@@ -60,6 +90,7 @@ lemma denom_norm_sq (E y : ℝ) :
     Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im]
   ring
 
+/-- The absolute value of y is at most the norm of the transmission denominator. -/
 lemma abs_le_denom_norm (E y : ℝ) :
     |y| ≤ ‖2 * sinTheta E * Complex.I + (y : ℂ)‖ := by
   have hsq := denom_norm_sq E y
@@ -68,6 +99,8 @@ lemma abs_le_denom_norm (E y : ℝ) :
     nlinarith [sq_nonneg (sinTheta E)]
   exact abs_le_of_sq_le_sq hle (norm_nonneg _)
 
+/-- When `sinTheta E` is nonnegative, twice this quantity is at most the norm of the
+transmission denominator. -/
 lemma two_sin_le_denom_norm (E y : ℝ) (hs : 0 ≤ sinTheta E) :
     2 * sinTheta E ≤ ‖2 * sinTheta E * Complex.I + (y : ℂ)‖ := by
   have hsq := denom_norm_sq E y
@@ -79,12 +112,15 @@ lemma two_sin_le_denom_norm (E y : ℝ) (hs : 0 ≤ sinTheta E) :
     _ ≤ ‖2 * sinTheta E * Complex.I + (y : ℂ)‖ :=
         abs_le_of_sq_le_sq hle (norm_nonneg _)
 
+/-- When `sinTheta E` is nonnegative, the norm of 2i · `sinTheta E` equals 2 · `sinTheta E`. -/
 lemma norm_two_sin_I (E : ℝ) (hs : 0 ≤ sinTheta E) :
     ‖2 * sinTheta E * Complex.I‖ = 2 * sinTheta E := by
   rw [norm_mul, norm_mul, Complex.norm_I, mul_one]
   simp only [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hs]
   norm_num
 
+/-- For N ≥ 1, nonzero E with |E| < 1 / (16√N), and |y| > 1 / (4√N |E|), the transmission
+amplitude has norm less than 8√N |E|. See [FarhiGoldstoneGutmann2008]. -/
 theorem reflect_transmission_bound (N : ℕ) (hN : 1 ≤ N) (E y : ℝ)
     (hE0 : E ≠ 0)
     (hE : |E| < 1 / (16 * Real.sqrt N))
@@ -113,6 +149,8 @@ theorem reflect_transmission_bound (N : ℕ) (hN : 1 ≤ N) (E y : ℝ)
     nlinarith
   exact lt_of_le_of_lt (le_trans hstep1 hstep2) hstep3
 
+/-- For N ≥ 1, |E| < 1 / (16√N), and |y| < 4√N |E|, the transmission amplitude differs from 1 by
+norm less than 3√N |E|. See [FarhiGoldstoneGutmann2008]. -/
 theorem transmit_transmission_bound (N : ℕ) (hN : 1 ≤ N) (E y : ℝ)
     (hE : |E| < 1 / (16 * Real.sqrt N))
     (hy : |y| < 4 * Real.sqrt N * |E|) :
@@ -164,6 +202,9 @@ theorem transmit_transmission_bound (N : ℕ) (hN : 1 ≤ N) (E y : ℝ)
     _ = (2 / 3) * |y| := hstep3
     _ < 3 * Real.sqrt N * |E| := hstep4
 
+/-- For N ≥ 1 and nonzero |E| < 1 / (16√N), combines the reflection bound for |y| > 1 / (4√N
+|E|) with the near-unit transmission bound for |y| < 4√N |E|. See
+[FarhiGoldstoneGutmann2008]. -/
 theorem section3_transmission_table (N : ℕ) (hN : 1 ≤ N) (E y : ℝ)
     (hE0 : E ≠ 0) (hE : |E| < 1 / (16 * Real.sqrt N)) :
     (1 / (4 * Real.sqrt N * |E|) < |y| →

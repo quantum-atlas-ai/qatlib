@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.CoherentBound.QueryDistanceLowerBoundStat
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+/-!
+# Query distance certificates for coherent state conversion
+
+`stateConversionQueryDistanceLowerBound` constructs a positive semidefinite intermediate Gram
+matrix from the output of a unitary Boolean query circuit. A real overlap guarantee gives an
+unfiltered certificate of budget `2 * Real.sqrt (2 * ε)`, while `T` queries give a
+query-filtered certificate of budget `2 * T`.
+
+The mathematical context is discussed in [LeeEtAl2011].
+
+## Main statements
+
+* `stateConversionQueryDistanceLowerBound`: The intermediate Gram matrix and its two certificate
+  bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +42,9 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 
 namespace Qatlib.Concepts.ConversionCore.CoherentBound
 
+/-- For a unitary circuit with `T` queries and real overlaps at least √(1 − ε), where 0 < ε ≤ 1,
+there exists a positive semidefinite intermediate Gram matrix with unfiltered error budget
+2√(2ε) and query-filtered budget 2T [Lee et al., Theorem 4.9][LeeEtAl2011]. -/
 theorem stateConversionQueryDistanceLowerBound : StateConversionQueryDistanceLowerBound := by
   intro X _ _ n T R input ε hε hε1 ρ σ hρ hσ C hT hC hov
   let τ (x : X) := Run (workspaceBitOracle (W := Fin R) (input x)) C (ρ x)

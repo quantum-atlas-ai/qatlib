@@ -7,12 +7,28 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.LinearMap
 import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
 
+/-!
+# Rank-one support of a finite positive sum
+
+If a finite sum of operators `|u_j⟩⟨u_j|` equals a scalar multiple of
+`|v⟩⟨v|`, every summand vector lies in the span of `v`. The proof tests the
+identity on the orthogonal complement of that span and uses nonnegativity of
+squared inner products. No normalization of the vectors is required.
+
+This is useful for pure outputs of operator-sum maps [Kraus1971]. Orthogonal
+complements and rank-one operators are standard functional analysis; see
+[Reed & Simon, *Functional Analysis*][ReedSimon1980I] and [Bhatia2007].
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Foundations.ChannelTheory.PureOutput
 
 open scoped BigOperators
 
+/-- Every vector in a finite rank-one positive decomposition of a rank-one
+operator belongs to its supporting line. This is the support argument used for
+pure outputs in [Kraus, state changes][Kraus1971]. -/
 theorem mem_span_of_sum_rankOne_eq_smul_rankOne
     {E J : Type} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [Fintype J]
     (u : J → E) (v : E) (r : ℂ)

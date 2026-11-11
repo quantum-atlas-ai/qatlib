@@ -13,6 +13,25 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.ContDif
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Order.Interval.Finite
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.Order.Interval
+
+/-!
+# Piecewise C¹ functions on intervals
+
+This module defines `IsPiecewiseC1On` using finite interior breakpoints and C¹ regularity on the
+resulting pieces. It proves closure, restriction, and gluing properties, together with
+derivative integrability and boundedness needed for the contour analysis supporting
+[WangEtAl2026].
+
+## Main statements
+
+* `IsPiecewiseC1On.if_le`: gluing at a shared endpoint.
+* `IsPiecewiseC1On.intervalIntegrable_deriv`: integrability of the derivative.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -27,12 +46,16 @@ open Filter MeasureTheory Set Topology
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] {γ : ℝ → E} {a b : ℝ}
 
+/-- Piecewise C¹ regularity on an unordered closed interval, expressed by continuity and a
+finite set of interior breakpoints. -/
 def IsPiecewiseC1On (γ : ℝ → E) (a b : ℝ) : Prop :=
   ContinuousOn γ (uIcc a b) ∧
     ∃ p : Finset ℝ, ↑p ⊆ Ioo (min a b) (max a b) ∧
       ∀ c d : ℝ, Icc c d ⊆ uIcc a b → Disjoint (↑p : Set ℝ) (Ioo c d) →
         ContDiffOn ℝ 1 γ (Icc c d)
 
+/-- Unfolds piecewise C¹ regularity into continuity and C¹ regularity on subintervals whose
+interiors avoid a finite breakpoint set. -/
 theorem isPiecewiseC1On_iff :
     IsPiecewiseC1On γ a b ↔
       ContinuousOn γ (uIcc a b) ∧
@@ -41,14 +64,18 @@ theorem isPiecewiseC1On_iff :
             ContDiffOn ℝ 1 γ (Icc c d) :=
   Iff.rfl
 
+/-- A piecewise C¹ function is continuous on its parameter interval. -/
 theorem IsPiecewiseC1On.continuousOn (h : IsPiecewiseC1On γ a b) :
     ContinuousOn γ (uIcc a b) :=
   h.1
 
+/-- A C¹ function on an unordered closed interval is piecewise C¹ there. -/
 theorem IsPiecewiseC1On.of_contDiffOn (h : ContDiffOn ℝ 1 γ (uIcc a b)) :
     IsPiecewiseC1On γ a b :=
   ⟨h.continuousOn, ∅, by simp, fun c d hcd _ => h.mono hcd⟩
 
+/-- Constructs piecewise C¹ regularity from continuity and C¹ pieces separated by a finite set
+of interior breakpoints. -/
 theorem IsPiecewiseC1On.of_breakpoints (hcont : ContinuousOn γ (uIcc a b)) (p : Finset ℝ)
     (hp : ↑p ⊆ Ioo (min a b) (max a b))
     (hC1 : ∀ c d : ℝ, Icc c d ⊆ uIcc a b → Disjoint (↑p : Set ℝ) (Ioo c d) →
@@ -56,12 +83,15 @@ theorem IsPiecewiseC1On.of_breakpoints (hcont : ContinuousOn γ (uIcc a b)) (p :
     IsPiecewiseC1On γ a b :=
   ⟨hcont, p, hp, hC1⟩
 
+/-- A piecewise C¹ function possesses finitely many interior breakpoints outside which every
+closed subinterval is C¹. -/
 theorem IsPiecewiseC1On.exists_breakpoints (h : IsPiecewiseC1On γ a b) :
     ∃ p : Finset ℝ, ↑p ⊆ Ioo (min a b) (max a b) ∧
       ∀ c d : ℝ, Icc c d ⊆ uIcc a b → Disjoint (↑p : Set ℝ) (Ioo c d) →
         ContDiffOn ℝ 1 γ (Icc c d) :=
   h.2
 
+/-- Piecewise C¹ regularity restricts to any contained unordered closed interval. -/
 theorem IsPiecewiseC1On.mono (h : IsPiecewiseC1On γ a b) {c d : ℝ}
     (hsub : uIcc c d ⊆ uIcc a b) : IsPiecewiseC1On γ c d := by
   obtain ⟨p, _, hC1⟩ := h.exists_breakpoints
@@ -72,12 +102,15 @@ theorem IsPiecewiseC1On.mono (h : IsPiecewiseC1On γ a b) {c d : ℝ}
   obtain ⟨hlu, hvu⟩ := (Icc_subset_Icc_iff (hxuv.1.trans hxuv.2).le).1 huv
   exact Finset.mem_filter.mpr ⟨hxp, hlu.trans_lt hxuv.1, hxuv.2.trans_le hvu⟩
 
+/-- Piecewise C¹ regularity is unchanged when the interval endpoints are exchanged. -/
 theorem isPiecewiseC1On_comm : IsPiecewiseC1On γ a b ↔ IsPiecewiseC1On γ b a := by
   simp only [isPiecewiseC1On_iff, Set.uIcc_comm a b, min_comm a b, max_comm a b]
 
+/-- Reverses the endpoints in a piecewise C¹ regularity statement. -/
 theorem IsPiecewiseC1On.symm (h : IsPiecewiseC1On γ a b) : IsPiecewiseC1On γ b a :=
   isPiecewiseC1On_comm.mp h
 
+/-- The pointwise sum of two piecewise C¹ functions is piecewise C¹. -/
 theorem IsPiecewiseC1On.add {γ₁ γ₂ : ℝ → E} (h₁ : IsPiecewiseC1On γ₁ a b)
     (h₂ : IsPiecewiseC1On γ₂ a b) : IsPiecewiseC1On (fun t => γ₁ t + γ₂ t) a b := by
   obtain ⟨p₁, hp₁, hC₁⟩ := h₁.exists_breakpoints
@@ -87,6 +120,7 @@ theorem IsPiecewiseC1On.add {γ₁ γ₂ : ℝ → E} (h₁ : IsPiecewiseC1On γ
   rw [Finset.coe_union, disjoint_union_left] at hdisj
   exact (hC₁ c d hcd hdisj.1).add (hC₂ c d hcd hdisj.2)
 
+/-- The pointwise difference of two piecewise C¹ functions is piecewise C¹. -/
 theorem IsPiecewiseC1On.sub {γ₁ γ₂ : ℝ → E} (h₁ : IsPiecewiseC1On γ₁ a b)
     (h₂ : IsPiecewiseC1On γ₂ a b) : IsPiecewiseC1On (fun t => γ₁ t - γ₂ t) a b := by
   obtain ⟨p₁, hp₁, hC₁⟩ := h₁.exists_breakpoints
@@ -96,6 +130,7 @@ theorem IsPiecewiseC1On.sub {γ₁ γ₂ : ℝ → E} (h₁ : IsPiecewiseC1On γ
   rw [Finset.coe_union, disjoint_union_left] at hdisj
   exact (hC₁ c d hcd hdisj.1).sub (hC₂ c d hcd hdisj.2)
 
+/-- Multiplication by a constant scalar preserves piecewise C¹ regularity. -/
 theorem IsPiecewiseC1On.const_smul {R : Type*} [Semiring R] [Module R E] [SMulCommClass ℝ R E]
     [ContinuousConstSMul R E] (c : R) (h : IsPiecewiseC1On γ a b) :
     IsPiecewiseC1On (fun t => c • γ t) a b := by
@@ -103,6 +138,8 @@ theorem IsPiecewiseC1On.const_smul {R : Type*} [Semiring R] [Module R E] [SMulCo
   exact ⟨h.continuousOn.const_smul c, p, hp,
     fun u v huv hdisj => (hC1 u v huv hdisj).const_smul c⟩
 
+/-- Reflection of the parameter by `t ↦ c - t` preserves piecewise C¹ regularity on the
+reflected interval. -/
 theorem IsPiecewiseC1On.comp_const_sub (h : IsPiecewiseC1On γ a b) (c : ℝ) :
     IsPiecewiseC1On (fun t => γ (c - t)) (c - a) (c - b) := by
   obtain ⟨p, hp, hC1⟩ := h.exists_breakpoints
@@ -128,6 +165,8 @@ theorem IsPiecewiseC1On.comp_const_sub (h : IsPiecewiseC1On γ a b) (c : ℝ) :
     exact (hC1 _ _ hsub hdisj').comp (contDiff_const.sub contDiff_id).contDiffOn
       fun t ht => ⟨by linarith [ht.2], by linarith [ht.1]⟩
 
+/-- Two piecewise C¹ functions agreeing at a common endpoint glue to a piecewise C¹ function on
+the combined interval. -/
 theorem IsPiecewiseC1On.if_le {δ : ℝ → E} {c : ℝ} (h₁ : IsPiecewiseC1On γ a b)
     (h₂ : IsPiecewiseC1On δ b c) (hab : a ≤ b) (hbc : b ≤ c) (hb : γ b = δ b) :
     IsPiecewiseC1On (fun t => if t ≤ b then γ t else δ t) a c := by
@@ -168,6 +207,7 @@ theorem IsPiecewiseC1On.if_le {δ : ℝ → E} {c : ℝ} (h₁ : IsPiecewiseC1On
       refine (hC₂ d e (uIcc_of_le hbc ▸ hsub) (Set.disjoint_left.2 fun x hx hxde =>
         hnot x (by simp [Finset.mem_coe.1 hx]) hxde)).congr fun t ht => hη₂ (hsub ht)
 
+/-- A piecewise C¹ function is differentiable at every interior point outside a finite set. -/
 theorem IsPiecewiseC1On.exists_finset_differentiableAt (h : IsPiecewiseC1On γ a b) :
     ∃ p : Finset ℝ,
       ∀ t ∈ Ioo (min a b) (max a b) \ (↑p : Set ℝ), DifferentiableAt ℝ γ t := by
@@ -178,12 +218,15 @@ theorem IsPiecewiseC1On.exists_finset_differentiableAt (h : IsPiecewiseC1On γ a
   exact ((hC1 c d hsub hdisj).differentiableOn one_ne_zero).differentiableAt
     (Icc_mem_nhds htcd.1 htcd.2)
 
+/-- A piecewise C¹ function is differentiable at every interior point outside a countable set. -/
 theorem IsPiecewiseC1On.exists_countable_differentiableAt (h : IsPiecewiseC1On γ a b) :
     ∃ P : Set ℝ, P.Countable ∧
       ∀ t ∈ Ioo (min a b) (max a b) \ P, DifferentiableAt ℝ γ t :=
   let ⟨p, hp⟩ := h.exists_finset_differentiableAt
   ⟨↑p, p.countable_toSet, hp⟩
 
+/-- Near an interior point, a piecewise C¹ function is eventually differentiable within any set
+excluding that point. -/
 theorem IsPiecewiseC1On.eventually_differentiableAt (h : IsPiecewiseC1On γ a b) {t₀ : ℝ}
     (ht₀ : t₀ ∈ Ioo (min a b) (max a b)) {u : Set ℝ} (hu : t₀ ∉ u) :
     ∀ᶠ t in 𝓝[u] t₀, DifferentiableAt ℝ γ t := by
@@ -193,6 +236,7 @@ theorem IsPiecewiseC1On.eventually_differentiableAt (h : IsPiecewiseC1On γ a b)
     nhdsWithin_le_nhds (isOpen_Ioo.mem_nhds ht₀), self_mem_nhdsWithin] with t htc htIoo htu
   exact hp t ⟨htIoo, fun htp => htc ⟨htp, fun h_eq => hu (h_eq ▸ htu)⟩⟩
 
+/-- The derivative of a piecewise C¹ function is interval integrable. -/
 theorem IsPiecewiseC1On.intervalIntegrable_deriv (h : IsPiecewiseC1On γ a b) :
     IntervalIntegrable (fun t ↦ deriv γ t) volume a b := by
   obtain ⟨p, -, hC1⟩ := h.exists_breakpoints
@@ -204,6 +248,8 @@ theorem IsPiecewiseC1On.intervalIntegrable_deriv (h : IsPiecewiseC1On γ a b) :
     (fun _ _ _ _ _ h₁ h₂ => h₁.trans h₂) min_le_max Icc_min_max.subset).mono_set ?_
   rw [uIcc_of_le min_le_max, Icc_min_max]
 
+/-- The derivative of a piecewise C¹ function has bounded image on its unordered closed
+interval. -/
 theorem IsPiecewiseC1On.isBounded_image_deriv (h : IsPiecewiseC1On γ a b) :
     Bornology.IsBounded (deriv γ '' uIcc a b) := by
   obtain ⟨p, -, hC1⟩ := h.exists_breakpoints

@@ -100,6 +100,28 @@ import Mathlib.Topology.MetricSpace.Algebra
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Cauchy
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Coordinate event projections and Born weights
+
+Defines the coordinate event projector `eventProjector` and its squared-norm weight `born` on
+finite complex Euclidean spaces. The weight equals the sum of squared coordinate moduli on the
+event, with no normalization required for this identity.
+
+For unit vectors, `born_difference` bounds event-weight variation by twice the state distance.
+These are finite-dimensional measurement estimates in the framework of [NielsenChuang2010].
+
+## Main statements
+
+* `eventProjector_norm`: event projections have operator norm at most one.
+* `born_eq_sum`: event weight is a coordinate sum.
+* `born_difference`: event weights of unit states differ by at most twice their distance.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 set_option backward.isDefEq.respectTransparency false
@@ -108,10 +130,13 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 namespace Qatlib.Concepts.QueryComplexity.PrepQueries
 
+/-- The coordinate projection onto the event `S`, represented as a continuous linear map on
+Euclidean space. -/
 def eventProjector {J : Type*} [Fintype J] [DecidableEq J] (S : Finset J) :
     EuclideanSpace ℂ J →L[ℂ] EuclideanSpace ℂ J :=
   Matrix.toEuclideanCLM (n:=J) (𝕜:=ℂ) (Matrix.diagonal (fun i => if i∈S then (1:ℂ) else 0))
 
+/-- The operator norm of an event projection is at most one. -/
 theorem eventProjector_norm {J : Type*} [Fintype J] [DecidableEq J] (S : Finset J) :
     ‖eventProjector S‖ ≤ 1 := by
   rw [eventProjector, Matrix.l2_opNorm_toEuclideanCLM, Matrix.l2_opNorm_diagonal]
@@ -119,15 +144,19 @@ theorem eventProjector_norm {J : Type*} [Fintype J] [DecidableEq J] (S : Finset 
   intro i
   split_ifs <;> norm_num
 
+/-- The unnormalized Born weight of an event, defined as the squared norm of its projected
+state. -/
 def born {J : Type*} [Fintype J] [DecidableEq J] (S : Finset J) (x : EuclideanSpace ℂ J) : ℝ :=
   ‖eventProjector S x‖^2
 
+/-- The Born weight of an event equals the sum of the squared moduli of its state coordinates. -/
 theorem born_eq_sum {J : Type*} [Fintype J] [DecidableEq J]
     (S : Finset J) (x : EuclideanSpace ℂ J) :
     born S x = ∑ i∈S, Complex.normSq (x i) := by
   rw [born, PiLp.norm_sq_eq_of_L2]
   simp [eventProjector, Matrix.mulVec_diagonal, Complex.sq_norm, apply_ite]
 
+/-- Projecting onto an event does not increase the norm of a state. -/
 theorem eventProjector_apply_norm {J : Type*} [Fintype J] [DecidableEq J]
     (S : Finset J) (x : EuclideanSpace ℂ J) : ‖eventProjector S x‖ ≤ ‖x‖ := by
   calc
@@ -135,6 +164,8 @@ theorem eventProjector_apply_norm {J : Type*} [Fintype J] [DecidableEq J]
     _ ≤ 1*‖x‖ := mul_le_mul_of_nonneg_right (eventProjector_norm S) (norm_nonneg x)
     _ = ‖x‖ := one_mul _
 
+/-- For unit vectors, the absolute difference of event Born weights is at most twice their
+distance. -/
 theorem born_difference {J : Type*} [Fintype J] [DecidableEq J]
     (S : Finset J) (x y : EuclideanSpace ℂ J) (hx : ‖x‖=1) (hy : ‖y‖=1) :
     |born S x-born S y| ≤ 2*‖x-y‖ := by

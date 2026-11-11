@@ -69,6 +69,32 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
 import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+/-!
+# Character orthogonality and subgroup Fourier sampling
+
+This module records character orthogonality, Fourier transformation of a uniform subgroup state,
+and the interaction of translations with character phases. The recovery theorem
+`theorem3_13_recovery` bounds the probability that character-table decoding reconstructs the
+hidden subgroup under the explicit sample-budget condition.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `theorem3_11`: The abelian Fourier transform of the uniform subgroup state equals the uniform
+  state on its character annihilator.
+* `theorem3_12_eq69`: Applying the Fourier transform after translation by `t` equals multiplying
+  the transformed function by evaluation at `t`.
+* `theorem3_13_recovery`: If `f` hides `H` and the Boolean table correctly tests character
+  kernels, then m samples recover `H` with probability at least 1 − 1/|G| whenever |G|2^(−m) ≤
+  1/|G|.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -86,14 +112,19 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- The sum of a character over a finite abelian group is the group cardinality for the trivial
+character and zero otherwise ([Theorem 3.9][Lomont2004]). -/
 theorem theorem3_9 (G : Type*) [AddCommGroup G] [Fintype G] (χ : AddChar G ℂ) :
     (∑ g : G, χ g) = if χ = 0 then (Fintype.card G : ℂ) else 0 := by
   classical
   exact AddChar.sum_eq_ite χ
 
+/-- The uniform subgroup amplitude function, defined as the coset state of `H` at zero. -/
 def subgroupKet {G : Type*} [AddCommGroup G] [Fintype G] (H : AddSubgroup G) : G → ℂ :=
   abelianCosetState H 0
 
+/-- The amplitude function on the dual group that is constant with value 1/√|H⊥| on the
+character annihilator and zero elsewhere. -/
 def annihilatorKet {G : Type*} [AddCommGroup G] [Fintype G]
     (H : AddSubgroup G) : AddChar G ℂ → ℂ :=
   fun χ =>
@@ -101,6 +132,7 @@ def annihilatorKet {G : Type*} [AddCommGroup G] [Fintype G]
       ((Real.sqrt (Fintype.card (characterAnnihilator H) : ℝ) : ℂ))⁻¹
     else 0
 
+/-- For positive natural numbers a and b with ba = c, the complex-cast ratio √a/√c equals 1/√b. -/
 theorem sqrt_card_ratio (a b c : ℕ) (ha : 0 < a) (hb : 0 < b) (h : b * a = c) :
     (Real.sqrt (a : ℝ) : ℂ) * ((Real.sqrt (c : ℝ) : ℂ))⁻¹ =
       ((Real.sqrt (b : ℝ) : ℂ))⁻¹ := by
@@ -125,6 +157,8 @@ theorem sqrt_card_ratio (a b c : ℕ) (ha : 0 < a) (hb : 0 < b) (h : b * a = c) 
   push_cast
   ring
 
+/-- The abelian Fourier transform of the uniform subgroup state equals the uniform state on its
+character annihilator ([Theorem 3.11][Lomont2004]). -/
 theorem theorem3_11 (G : Type*) [AddCommGroup G] [Fintype G]
     (H : AddSubgroup G) :
     abelianQFT (subgroupKet H) = annihilatorKet H := by
@@ -142,20 +176,27 @@ theorem theorem3_11 (G : Type*) [AddCommGroup G] [Fintype G]
   · rw [if_neg hχ]
     simp [annihilatorKet, hχ]
 
+/-- Translation of an amplitude function by `t`, sending `x` to `u (x - t)`. -/
 def translation {G : Type*} [AddCommGroup G] (t : G) (u : G → ℂ) : G → ℂ :=
   fun x => u (x - t)
 
+/-- Pointwise multiplication of an amplitude function by the values of the character `χ`. -/
 def phase {G : Type*} [AddCommGroup G] (χ : AddChar G ℂ) (u : G → ℂ) : G → ℂ :=
   fun g => χ g * u g
 
+/-- Translation of a function on the dual group by `ψ`, sending `χ` to `v (χ - ψ)`. -/
 def translationDual {G : Type*} [AddCommGroup G]
     (ψ : AddChar G ℂ) (v : AddChar G ℂ → ℂ) : AddChar G ℂ → ℂ :=
   fun χ => v (χ - ψ)
 
+/-- Pointwise multiplication of a function on the dual group by evaluation of each character at
+`t`. -/
 def phaseDual {G : Type*} [AddCommGroup G]
     (t : G) (v : AddChar G ℂ → ℂ) : AddChar G ℂ → ℂ :=
   fun χ => χ t * v χ
 
+/-- Translation and character phase multiplication commute up to the scalar `h t`, in the
+displayed order ([Theorem 3.12 (Commutative laws of the G-operators)][Lomont2004]). -/
 theorem theorem3_12_eq67 {G : Type*} [AddCommGroup G] (h : AddChar G ℂ) (t : G)
     (u : G → ℂ) :
     (fun g => h t * translation t (phase h u) g) = phase h (translation t u) := by
@@ -165,6 +206,8 @@ theorem theorem3_12_eq67 {G : Type*} [AddCommGroup G] (h : AddChar G ℂ) (t : G
   have ht : h t ≠ 0 := (AddChar.val_isUnit h t).ne_zero
   field_simp [ht] <;> ring_nf
 
+/-- Applying the Fourier transform after the phase `h` equals translating the Fourier transform
+by −h on the dual group ([Theorem 3.12 (Commutative laws of the G-operators)][Lomont2004]). -/
 theorem theorem3_12_eq68 {G : Type*} [AddCommGroup G] [Fintype G]
     (h : AddChar G ℂ) (u : G → ℂ) :
     abelianQFT (phase h u) = translationDual (-h) (abelianQFT u) := by
@@ -175,6 +218,9 @@ theorem theorem3_12_eq68 {G : Type*} [AddCommGroup G] [Fintype G]
   intro x _
   ring
 
+/-- Applying the Fourier transform after translation by `t` equals multiplying the transformed
+function by evaluation at `t` ([Theorem 3.12 (Commutative laws of the
+G-operators)][Lomont2004]). -/
 theorem theorem3_12_eq69 {G : Type*} [AddCommGroup G] [Fintype G]
     (t : G) (u : G → ℂ) :
     abelianQFT (translation t u) = phaseDual t (abelianQFT u) := by
@@ -192,6 +238,9 @@ theorem theorem3_12_eq69 {G : Type*} [AddCommGroup G] [Fintype G]
   rw [AddChar.map_add_eq_mul]
   ring
 
+/-- If `f` hides `H` and the Boolean table correctly tests character kernels, then m samples
+recover `H` with probability at least 1 − 1/|G| whenever |G|2^(−m) ≤ 1/|G| ([Theorem 3.13
+(Finite abelian HSP algorithm)][Lomont2004]). -/
 theorem theorem3_13_recovery {G R : Type} [AddCommGroup G] [Fintype G] [DecidableEq G]
     [AddCommGroup R] [Fintype R] [DecidableEq R]
     (f : G → R) (e : G ≃+ AddChar G ℂ) (tab : G → G → Bool)

@@ -6,11 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.Lemma6Stat
 
+/-!
+# Quantum search hybrid estimates
+
+Proves `lemma6` from the hybrid distance, projection, and query-fiber mass bounds. The theorem
+packages these estimates in the proposition `Lemma6` for arbitrary finite coordinate and label
+types. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `lemma6`: Establishes `Lemma6`, the individual hybrid-distance and projection-deficit
+  estimates together with their summed quadratic bound.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 
 open scoped BigOperators
 universe u v
 
+/-- Establishes `Lemma6`, the individual hybrid-distance and projection-deficit estimates
+together with their summed quadratic bound. See [BoyerEtAl1998]. -/
 theorem lemma6 : Lemma6.{u, v} := by
   intro C Y _ _ _ _ U V f ψ hψ r hagree
   let A (i : ℕ) (y : Y) := Finset.univ.filter (fun c => f i c = some y)

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Sampling accuracy with simulation error
+
+For finite-distribution observables taking values in `[0, 1]`, this module bounds the variance
+by `1 / 4` and derives a Chebyshev estimate for repeated independent samples. `sampleCount`
+selects a sufficient number of samples, and `measurement_accuracy_with_simulation` adds a
+supplied bias bound to the sampling tolerance.
+
+The mathematical setting is that of [Wiesner1996].
+
+## Main statements
+
+* `repeated_measurement_accuracy`: For an observable valued in `[0, 1]`, the selected
+  independent sample average differs from its expectation by more than `δ` with probability at
+  most `η`.
+* `measurement_accuracy_with_simulation`: If the expectation is within `eobs` of a target `μ`,
+  the selected sample average differs from `μ` by more than `eobs + δ` with probability at most
+  `η`.
+
+## References
+
+* [Wiesner, 1996][Wiesner1996]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
@@ -17,6 +41,7 @@ namespace Qatlib.Papers.ManyBodySim96.MainResults
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The expectation of a function valued in `[0, 1]` also lies in `[0, 1]`. -/
 theorem expect_mem_unit (p : FinDist X) (f : X → ℝ)
     (hf0 : ∀ x, 0 ≤ f x) (hf1 : ∀ x, f x ≤ 1) :
     0 ≤ p.expect f ∧ p.expect f ≤ 1 := by
@@ -28,6 +53,8 @@ theorem expect_mem_unit (p : FinDist X) (f : X → ℝ)
           exact mul_le_mul_of_nonneg_left (hf1 x) (p.nonneg x)
       _ = 1 := by simp [p.sum_one]
 
+/-- A function valued in `[0, 1]` has variance at most `1 / 4` under a finite probability
+distribution. -/
 theorem variance_le_quarter (p : FinDist X) (f : X → ℝ)
     (hf0 : ∀ x, 0 ≤ f x) (hf1 : ∀ x, f x ≤ 1) :
     p.variance f ≤ 1 / 4 := by
@@ -41,6 +68,8 @@ theorem variance_le_quarter (p : FinDist X) (f : X → ℝ)
     exact mul_le_mul_of_nonneg_left hx (p.nonneg x)
   nlinarith [sq_nonneg (p.expect f - 1 / 2)]
 
+/-- For positive sample size and tolerance, the probability that the empirical average differs
+from its expectation by more than `δ` is at most `1 / (4 * L * δ ^ 2)`. -/
 theorem avg_tail_quarter {L : ℕ} (p : FinDist X) (f : X → ℝ)
     (hf0 : ∀ x, 0 ≤ f x) (hf1 : ∀ x, f x ≤ 1)
     (hL : 0 < L) (δ : ℝ) (hδ : 0 < δ) :
@@ -54,13 +83,17 @@ theorem avg_tail_quarter {L : ℕ} (p : FinDist X) (f : X → ℝ)
     _ ≤ (1 / 4) / ((L : ℝ) * δ ^ 2) := div_le_div_of_nonneg_right hquarter hden
     _ = 1 / (4 * (L : ℝ) * δ ^ 2) := by ring
 
+/-- Selects `max 1 (ceil(1 / (4 * δ ^ 2 * η)))` samples for tolerance `δ` and failure bound `η`. -/
 def sampleCount (δ η : ℝ) : ℕ :=
   max 1 (Nat.ceil (1 / (4 * δ ^ 2 * η)))
 
+/-- The selected sample count is always positive. -/
 theorem sampleCount_pos (δ η : ℝ) : 0 < sampleCount δ η := by
   unfold sampleCount
   omega
 
+/-- Positive tolerance and failure bound make the selected sample count's Chebyshev bound at
+most `η`. -/
 theorem sampleCount_tail (δ η : ℝ) (hδ : 0 < δ) (hη : 0 < η) :
     1 / (4 * (sampleCount δ η : ℝ) * δ ^ 2) ≤ η := by
   have hLpos : (0 : ℝ) < (sampleCount δ η : ℝ) := by
@@ -76,6 +109,8 @@ theorem sampleCount_tail (δ η : ℝ) (hδ : 0 < δ) (hη : 0 < η) :
   rw [div_le_iff₀ (by positivity : (0 : ℝ) < 4 * (sampleCount δ η : ℝ) * δ ^ 2)]
   nlinarith [hmul]
 
+/-- For an observable valued in `[0, 1]`, the selected independent sample average differs from
+its expectation by more than `δ` with probability at most `η`. -/
 theorem repeated_measurement_accuracy (p : FinDist X) (f : X → ℝ)
     (hf0 : ∀ x, 0 ≤ f x) (hf1 : ∀ x, f x ≤ 1)
     (δ η : ℝ) (hδ : 0 < δ) (hη : 0 < η) :
@@ -84,6 +119,8 @@ theorem repeated_measurement_accuracy (p : FinDist X) (f : X → ℝ)
   refine (avg_tail_quarter p f hf0 hf1 (sampleCount_pos δ η) δ hδ).trans
     (sampleCount_tail δ η hδ hη)
 
+/-- Pointwise implication between sample events gives the corresponding inequality between their
+probabilities. -/
 theorem probEvent_le_of_imp {L : ℕ} (p : FinDist X) {E F : (Fin L → X) → Prop}
     [DecidablePred E] [DecidablePred F] (h : ∀ ω, E ω → F ω) :
     p.probEvent (L := L) E ≤ p.probEvent (L := L) F := by
@@ -95,6 +132,8 @@ theorem probEvent_le_of_imp {L : ℕ} (p : FinDist X) {E F : (Fin L → X) → P
   · intro ω _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg (ω i)
 
+/-- If the expectation is within `eobs` of a target `μ`, the selected sample average differs
+from `μ` by more than `eobs + δ` with probability at most `η`. [Wiesner1996] -/
 theorem measurement_accuracy_with_simulation (p : FinDist X) (f : X → ℝ)
     (hf0 : ∀ x, 0 ≤ f x) (hf1 : ∀ x, f x ≤ 1)
     (μ eobs δ η : ℝ) (hμ : |p.expect f - μ| ≤ eobs)

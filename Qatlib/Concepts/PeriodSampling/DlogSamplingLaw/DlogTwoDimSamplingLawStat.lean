@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
+
+/-!
+# Two-dimensional sampling-law contract
+
+Defines `DlogTwoDimSamplingLaw`, specifying normalization and Born-probability formulas for the
+discrete-logarithm state. Its single-fiber expression retains both reciprocal normalization
+factors, as required by the Fourier sampling construction associated with [Shor1997].
+
+## Main statements
+
+* `DlogTwoDimSamplingLaw`: Specifies normalization and the double-sum and single-fiber formulas.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +36,9 @@ namespace Qatlib.Concepts.PeriodSampling.DlogSamplingLaw
 open Qatlib
 open scoped Classical
 
+/-- The sampling-law contract requires normalization, the full double-sum Born-probability
+formula, and the generator-fiber formula with both reciprocal `p - 1` and reciprocal `q`
+factors. -/
 def DlogTwoDimSamplingLaw : Prop :=
   ∀ (p q : ℕ) [NeZero p] (g x : ZMod p), Nat.Prime p → 3 ≤ p → x ≠ 0 →
     (p : ℕ) < q →

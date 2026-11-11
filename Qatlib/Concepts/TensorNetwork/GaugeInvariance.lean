@@ -7,6 +7,44 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkCoreDefs
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Mathlib.Analysis.Normed.Group.Basic
+
+/-!
+# Gauge invariance and matrix product representations
+
+This module proves invariance of `netContract` under network isomorphisms and unitary gauges on
+internal edges. The constructions `mpsNet`, `perNet`, and `pepsNet` encode open-boundary matrix
+product states, periodic matrix product states, and rectangular projected entangled pair states
+as tensor networks, with matching contraction formulas. These constructions use the
+tensor-network framework discussed in [Schollwock2011].
+
+The module also relates `cutRank` to MPS bond dimension and uses singular-value decompositions
+to construct left-canonical representations and approximations controlled by `schmidtTailSq`,
+following [PerezGarciaEtAl2007]. Explicit examples and counterexamples record the behavior of
+the evaluation procedures and their proposed resource bounds.
+
+## Main statements
+
+* `clause1_clause1`: contraction is invariant under a network isomorphism.
+* `clause1_clause2`: contraction is invariant under unitary gauges on internal edges.
+* `netContract_mpsNet_eq_mpsAmplitude`: the capped MPS network contracts to its zero-boundary
+  amplitude.
+* `clause1_clause4` and `clause1_clause5`: periodic MPS and PEPS amplitudes have tensor-network
+  representations with the prescribed bond-dimension bound.
+* `clause2_clause1`: MPS bond dimension bounds every cut rank below the site count.
+* `clause2_clause2`: a normalized state on at least one site has a left-canonical MPS
+  representation with bond dimension equal to the maximum of one and its cut-rank supremum.
+* `clause2_clause3`: a normalized state on at least one site has a bond-dimension-`D` MPS
+  approximation, for positive `D`, with squared error bounded by twice the sum of squared
+  Schmidt tails.
+* `clause3_counter`: the displayed conjunction of universal evaluation and resource claims
+  fails.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+* [Schollwock, 2011][Schollwock2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,6 +64,8 @@ variable {n d D : ℕ}
 instance : Subsingleton (Fin (n - 1) → Fin 1) :=
   ⟨fun _a _b => funext fun _i => Subsingleton.elim _ _⟩
 
+/-- For bond dimension one, the MPS amplitude is the product of the scalar entries at the
+selected physical indices. -/
 @[simp]
 theorem sum_single_bond_prod (A : Fin n → Fin d → Matrix (Fin 1) (Fin 1) ℂ)
     (x : Fin n → Fin d) :
@@ -37,6 +77,7 @@ theorem sum_single_bond_prod (A : Fin n → Fin d → Matrix (Fin 1) (Fin 1) ℂ
     exact absurd (funext fun i => Subsingleton.elim (b i) 0) hb
   · simp
 
+/-- A tensor network contracts to zero if some internal edge has dimension zero. -/
 theorem netContract_of_isEmpty_internal {N : TensorNet}
     (hd : ∃ i : InternalEdge N, N.dims i.val = 0)
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val)) : netContract N ext = 0 := by
@@ -47,6 +88,7 @@ theorem netContract_of_isEmpty_internal {N : TensorNet}
     exact _h0 (f i)
   simp [netContract]
 
+/-- The contraction of a tensor network with no vertices and no half-edges is one. -/
 theorem netContract_of_empty_net {N : TensorNet} (hnv : N.nv = 0) (hnh : N.nh = 0)
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val)) : netContract N ext = 1 := by
   have hnv' : IsEmpty (Fin N.nv) := by rw [hnv]; infer_instance
@@ -69,10 +111,12 @@ theorem netContract_of_empty_net {N : TensorNet} (hnv : N.nv = 0) (hnh : N.nh = 
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_unique]
         simp
 
+/-- Identifies a function from `Fin 1` to `Fin 2` with its value at the unique input. -/
 def equivSingle21 : (Fin 1 → Fin 2) ≃ Fin 2 :=
   ⟨fun f => f 0, fun k _ => k, fun f => funext fun i => congrArg f (Subsingleton.elim 0 i),
     fun _ => rfl⟩
 
+/-- The MPS with bond dimension one and site scalars `g` has amplitude `∏ i, g i (x i)`. -/
 theorem mpsAmplitude_product (n d : ℕ) (g : Fin n → Fin d → ℂ) (x : Fin n → Fin d) :
     @mpsAmplitude n d 1 _ (fun i y => Matrix.of fun _ _ => g i y) x = ∏ i, g i (x i) := by
   have key : ∀ b : Fin (n - 1) → Fin 1, b = (fun _ => (0 : Fin 1) : Fin (n - 1) → Fin 1) :=
@@ -85,11 +129,14 @@ theorem mpsAmplitude_product (n d : ℕ) (g : Fin n → Fin d → ℂ) (x : Fin 
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Identifies assignments to the single bond of a two-site chain with elements of `Fin D`. -/
 def equivSingleBond (D : ℕ) : (Fin (2 - 1) → Fin D) ≃ Fin D :=
   ⟨fun f => f ⟨0, by omega⟩, fun k _ => k,
     fun f => funext fun i => congrArg f (Fin.eq_of_val_eq (by have := i.isLt; omega)),
     fun _ => rfl⟩
 
+/-- The amplitude of a two-site MPS is the sum over its common bond index, with both outer
+indices fixed to zero. -/
 theorem mpsAmplitude_two_site {d D : ℕ} [NeZero D]
     (A : Fin 2 → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin 2 → Fin d) :
     mpsAmplitude A x = ∑ k : Fin D, A 0 (x 0) 0 k * A 1 (x 1) k 0 := by
@@ -103,6 +150,8 @@ theorem mpsAmplitude_two_site {d D : ℕ} [NeZero D]
   rw [mpsAmplitude, Fintype.sum_equiv (equivSingleBond D) _
     (fun k => A 0 (x 0) 0 k * A 1 (x 1) k 0) hbody]
 
+/-- Identifies the two binary bond indices of a three-site chain with a pair of elements of `Fin
+2`. -/
 def equivBond22 : (Fin (3 - 1) → Fin 2) ≃ Fin 2 × Fin 2 :=
   ⟨fun f => (f ⟨0, by omega⟩, f ⟨1, by omega⟩),
     fun p i => if (i : ℕ) = 0 then p.1 else p.2,
@@ -111,6 +160,8 @@ def equivBond22 : (Fin (3 - 1) → Fin 2) ≃ Fin 2 × Fin 2 :=
       fin_cases i <;> simp,
     fun _ => rfl⟩
 
+/-- The displayed two-site tensors have amplitude `1 / √2` when the two physical indices agree
+and zero otherwise. -/
 theorem bell_consumer :
     ∀ x : Fin 2 → Fin 2,
       @mpsAmplitude 2 2 2 _
@@ -125,6 +176,8 @@ theorem bell_consumer :
   rcases hx0 with a0 | a0 <;> rcases hx1 with a1 | a1 <;>
     simp [a0, a1, ← Fin.val_eq_val, Matrix.of_apply]
 
+/-- The explicit three-site binary tensors used in `short_chain_consumer`, with bond dimension
+two. -/
 def shortChainTensors : Fin 3 → Fin 2 → Matrix (Fin 2) (Fin 2) ℂ :=
   fun (i : Fin 3) (y : Fin 2) => Matrix.of fun a b =>
     if (i : ℕ) = 0 then
@@ -138,6 +191,8 @@ def shortChainTensors : Fin 3 → Fin 2 → Matrix (Fin 2) (Fin 2) ℂ :=
         (if (y : ℕ) = 0 then (if (a : ℕ) = 1 then 1 else 0) else 1)
       else 0)
 
+/-- The amplitude of `shortChainTensors` vanishes unless the middle index is zero; otherwise it
+counts the end indices equal to one. -/
 theorem short_chain_consumer :
     ∀ x : Fin 3 → Fin 2,
       @mpsAmplitude 3 2 2 _ shortChainTensors x
@@ -166,6 +221,8 @@ theorem short_chain_consumer :
   rcases hx0 with v0 | v0 <;> rcases hx1 with v1 | v1 <;> rcases hx2 with v2 | v2 <;>
     simp [v0, v1, v2, Matrix.of_apply, shortChainTensors]
 
+/-- The norm of a tensor-network contraction is bounded by the product of the local
+`tensorSumNorm` values. -/
 theorem netContract_norm_bound (N : TensorNet) (ext : ∀ o : OpenLeg N, Fin (N.dims o.val)) :
     ‖netContract N ext‖ ≤ ∏ v : Fin N.nv, tensorSumNorm N v := by
 
@@ -233,8 +290,12 @@ theorem netContract_norm_bound (N : TensorNet) (ext : ∀ o : OpenLeg N, Fin (N.
 
 section Encoding
 
+/-- Assigns dimension `D` to the bond half-edges and dimension `d` to the physical legs in the
+capped MPS encoding. -/
 def mpsDim (n d D : ℕ) (j : ℕ) : ℕ := if j < 2 * (n + 1) then D else d
 
+/-- Pairs consecutive bond half-edges in the capped MPS encoding and leaves physical legs
+unpaired. -/
 def mpsPartner (n : ℕ) (j : Fin (3 * n + 2)) : Option (Fin (3 * n + 2)) :=
   if h : (j : ℕ) < 2 * (n + 1) then
     some ⟨if (j : ℕ) % 2 = 0 then (j : ℕ) + 1 else (j : ℕ) - 1, by
@@ -242,6 +303,8 @@ def mpsPartner (n : ℕ) (j : Fin (3 * n + 2)) : Option (Fin (3 * n + 2)) :=
       split_ifs <;> omega⟩
   else none
 
+/-- Assigns each half-edge of the capped MPS encoding to a physical site or one of the two
+boundary vertices. -/
 def mpsSite (n : ℕ) (j : Fin (3 * n + 2)) : Fin (n + 2) :=
   if (j : ℕ) = 1 then ⟨n, by omega⟩
   else if (j : ℕ) = 2 * n then ⟨n + 1, by omega⟩
@@ -250,13 +313,16 @@ def mpsSite (n : ℕ) (j : Fin (3 * n + 2)) : Fin (n + 2) :=
     else ⟨((j : ℕ) - 3) / 2, by have := h; have := h2; omega⟩
   else ⟨(j : ℕ) - (2 * (n + 1)), by have := j.isLt; omega⟩
 
+/-- A bond half-edge in the capped MPS encoding has dimension `D`. -/
 theorem mpsDim_bond (n d D : ℕ) {j : ℕ} (h : j < 2 * (n + 1)) : mpsDim n d D j = D := by
   rw [mpsDim, if_pos h]
 
+/-- A physical half-edge in the capped MPS encoding has dimension `d`. -/
 theorem mpsDim_phys (n d D : ℕ) (i : ℕ) (h : ¬(2 * (n + 1) + i < 2 * (n + 1))) :
     mpsDim n d D (2 * (n + 1) + i) = d := by
   rw [mpsDim, if_neg h]
 
+/-- The physical half-edge indexed by `i` belongs to site `i`. -/
 theorem mpsSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
     mpsSite n ⟨2 * (n + 1) + i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [mpsSite]
@@ -265,6 +331,7 @@ theorem mpsSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
   show 2 * (n + 1) + i - 2 * (n + 1) = i
   omega
 
+/-- The bond half-edge numbered `2 * i` belongs to physical site `i` when `i < n`. -/
 theorem mpsSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
     mpsSite n ⟨2 * i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [mpsSite]
@@ -273,6 +340,7 @@ theorem mpsSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
   show 2 * i / 2 = i
   omega
 
+/-- The bond half-edge numbered `2 * i + 3` belongs to physical site `i` when `i < n`. -/
 theorem mpsSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
     mpsSite n ⟨2 * i + 3, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [mpsSite]
@@ -281,12 +349,16 @@ theorem mpsSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
   show (2 * i + 3 - 3) / 2 = i
   omega
 
+/-- Half-edge one belongs to the left boundary vertex of the capped MPS encoding. -/
 theorem mpsSite_capL (n : ℕ) : mpsSite n ⟨1, by omega⟩ = ⟨n, by omega⟩ := by
   simp [mpsSite]
 
+/-- Half-edge `2 * n` belongs to the right boundary vertex of the capped MPS encoding. -/
 theorem mpsSite_capR (n : ℕ) : mpsSite n ⟨2 * n, by omega⟩ = ⟨n + 1, by omega⟩ := by
   simp [mpsSite]
 
+/-- The local tensor for the capped MPS network, using `A` at physical vertices and zero-index
+boundary constraints at the two caps. -/
 noncomputable def mpsTensor (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (v : Fin (n + 2))
     (a : ∀ h : {h : Fin (3 * n + 2) // mpsSite n h = v}, Fin (mpsDim n d D h.val.val)) : ℂ :=
@@ -315,6 +387,8 @@ noncomputable def mpsTensor (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D
             rw [mpsSite_capR n]
             exact Fin.ext (by omega : (n + 1 : ℕ) = v.val))))).val = 0 then (1 : ℂ) else 0
 
+/-- Encodes the MPS tensors `A` as a tensor network with `n` physical vertices and two boundary
+caps. -/
 noncomputable def mpsNet (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     TensorNet where
   nv := n + 2
@@ -397,6 +471,7 @@ end Aux
 
 section MainThm
 
+/-- A half-edge with a partner in the capped MPS encoding lies in the bond range. -/
 theorem mpsPartner_isSome {n : ℕ} {j k : Fin (3 * n + 2)}
     (h : mpsPartner n j = some k) : (j : ℕ) < 2 * (n + 1) := by
   by_cases hlt : (j : ℕ) < 2 * (n + 1)
@@ -404,6 +479,7 @@ theorem mpsPartner_isSome {n : ℕ} {j k : Fin (3 * n + 2)}
   · rw [mpsPartner, dif_neg hlt] at h
     exact absurd h (by simp)
 
+/-- An unpaired half-edge in the capped MPS encoding lies beyond the bond range. -/
 theorem mpsPartner_none_ge {n : ℕ} {j : Fin (3 * n + 2)} (h : mpsPartner n j = none) :
     2 * (n + 1) ≤ (j : ℕ) := by
   by_cases hlt : (j : ℕ) < 2 * (n + 1)
@@ -411,6 +487,7 @@ theorem mpsPartner_none_ge {n : ℕ} {j : Fin (3 * n + 2)} (h : mpsPartner n j =
     exact absurd h (by simp)
   · omega
 
+/-- The partner of bond half-edge `2 * j` is half-edge `2 * j + 1`. -/
 theorem mpsPartner_even (n : ℕ) (j : Fin (n + 1)) :
     mpsPartner n ⟨2 * (j : ℕ), by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩ := by
@@ -420,6 +497,7 @@ theorem mpsPartner_even (n : ℕ) (j : Fin (n + 1)) :
       = (2 * (j : ℕ)) + 1
   rw [if_pos (by omega : 2 * (j : ℕ) % 2 = 0)]
 
+/-- The partner of bond half-edge `2 * j + 1` is half-edge `2 * j`. -/
 theorem mpsPartner_odd (n : ℕ) (j : Fin (n + 1)) :
     mpsPartner n ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ), by have := j.isLt; omega⟩ := by
@@ -430,6 +508,7 @@ theorem mpsPartner_odd (n : ℕ) (j : Fin (n + 1)) :
   rw [if_neg (by omega : ¬(2 * (j : ℕ) + 1) % 2 = 0)]
   omega
 
+/-- The network bond dimension of `mpsNet n d D A` is at most `D`. -/
 theorem netBondDimension_mpsNet_le (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     netBondDimension (mpsNet n d D A) ≤ D := by
   rw [netBondDimension]
@@ -439,6 +518,7 @@ theorem netBondDimension_mpsNet_le (n d D : ℕ) (A : Fin n → Fin d → Matrix
   show mpsDim n d D (j : ℕ) ≤ D
   rw [mpsDim, if_pos hb]
 
+/-- Encodes the physical configuration `x` as an assignment to the open legs of `mpsNet`. -/
 noncomputable def mpsEnc (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) (o : OpenLeg (mpsNet n d D A)) :
     Fin ((mpsNet n d D A).dims o.val) :=
@@ -451,6 +531,7 @@ noncomputable def mpsEnc (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (
       have := o.val.isLt
       omega⟩)
 
+/-- The internal edge of the capped MPS network corresponding to bond position `j`. -/
 def bondEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (j : Fin (n + 1)) : InternalEdge (mpsNet n d D A) :=
   ⟨⟨2 * (j : ℕ), by show 2 * (j : ℕ) < 3 * n + 2; have := j.isLt; omega⟩,
@@ -458,6 +539,7 @@ def bondEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
       mpsPartner_even n j,
       Fin.mk_lt_mk.mpr (by omega)⟩⟩
 
+/-- Recovers the bond position represented by an internal edge of the capped MPS network. -/
 def halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (i : InternalEdge (mpsNet n d D A)) : Fin (n + 1) :=
   ⟨(i.val.val) / 2, by
@@ -465,12 +547,14 @@ def halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     have := mpsPartner_isSome (n := n) hk
     omega⟩
 
+/-- Recovering the position of `bondEdge j` returns `j`. -/
 theorem halfEdge_bondEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (j : Fin (n + 1)) : halfEdge n d D A (bondEdge n d D A j) = j := by
   apply Fin.ext
   show (2 * (j : ℕ)) / 2 = (j : ℕ)
   omega
 
+/-- Reconstructing an internal edge from its bond position returns the original edge. -/
 theorem bondEdge_halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (i : InternalEdge (mpsNet n d D A)) : bondEdge n d D A (halfEdge n d D A i) = i := by
   obtain ⟨k, hk, hlt⟩ := i.property
@@ -487,6 +571,8 @@ theorem bondEdge_halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) 
   · rw [if_neg h2] at hvk
     exact absurd hlt (by omega)
 
+/-- Identifies internal-edge assignments of the capped MPS network with functions `Fin (n + 1) →
+Fin D`. -/
 noncomputable def edgeIdxEquiv (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     (∀ i : InternalEdge (mpsNet n d D A), Fin ((mpsNet n d D A).dims i.val)) ≃
       (Fin (n + 1) → Fin D) where
@@ -512,6 +598,7 @@ noncomputable def edgeIdxEquiv (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fi
     show (β (halfEdge n d D A (bondEdge n d D A j))).val = (β j).val
     rw [hb]
 
+/-- At the smaller endpoint of an internal edge, `portValue` equals the assigned edge index. -/
 theorem portValue_of_partner_eq {N : TensorNet}
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val))
@@ -525,6 +612,8 @@ theorem portValue_of_partner_eq {N : TensorNet}
     subst k'
     rw [dif_pos hjk]
 
+/-- At the larger endpoint of an internal edge, `portValue` equals the assigned edge index
+transported across the dimension equality. -/
 theorem portValue_of_partner_eq_rev {N : TensorNet}
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val))
@@ -540,6 +629,7 @@ theorem portValue_of_partner_eq_rev {N : TensorNet}
     have hnlt : ¬(j < k) := by omega
     rw [dif_neg hnlt]
 
+/-- At an unpaired half-edge, `portValue` equals the supplied open-leg assignment. -/
 theorem portValue_of_partner_none {N : TensorNet}
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val))
@@ -550,6 +640,8 @@ theorem portValue_of_partner_none {N : TensorNet}
   · next hnone => rfl
   · next k' hk' => exact absurd (hj.symm.trans hk') (by simp)
 
+/-- The natural value of the port at half-edge `2 * j` is the value of the encoded bond
+assignment `β j`. -/
 theorem portValue_bond_even (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (ext : ∀ o : OpenLeg (mpsNet n d D A), Fin ((mpsNet n d D A).dims o.val))
     (β : Fin (n + 1) → Fin D) (j : Fin (n + 1)) :
@@ -567,6 +659,8 @@ theorem portValue_bond_even (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D
     omega
   rw [hij]
 
+/-- The natural value of the port at half-edge `2 * j + 1` is the value of the encoded bond
+assignment `β j`. -/
 theorem portValue_bond_odd (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (ext : ∀ o : OpenLeg (mpsNet n d D A), Fin ((mpsNet n d D A).dims o.val))
     (β : Fin (n + 1) → Fin D) (j : Fin (n + 1)) :
@@ -585,6 +679,7 @@ theorem portValue_bond_odd (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D)
     omega
   rw [hij]
 
+/-- The physical port at site `i` has the natural value of `x i` under `mpsEnc`. -/
 theorem portValue_phys (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d)
     (e : ∀ i : InternalEdge (mpsNet n d D A), Fin ((mpsNet n d D A).dims i.val))
@@ -603,6 +698,8 @@ theorem portValue_phys (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fi
     omega
   rw [hij]
 
+/-- Evaluating a physical vertex tensor of `mpsNet` gives the corresponding entry of `A` with
+adjacent bond indices from `β`. -/
 theorem siteTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) (β : Fin (n + 1) → Fin D) (v : Fin (n + 2)) (hv : (v : ℕ) < n) :
     (mpsNet n d D A).tensor v
@@ -649,6 +746,8 @@ theorem siteTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
       = A ⟨(v : ℕ), hv⟩ (x ⟨(v : ℕ), hv⟩) (β ⟨(v : ℕ), by omega⟩) (β ⟨(v : ℕ) + 1, by omega⟩)
   rw [e1, e2, e3]
 
+/-- The left boundary tensor equals one precisely when the leftmost bond index is zero, and
+equals zero otherwise. -/
 theorem capLTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) (β : Fin (n + 1) → Fin D) :
     (mpsNet n d D A).tensor (Fin.castSucc (Fin.last n))
@@ -676,6 +775,8 @@ theorem capLTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
         ⟨1, by show 1 < 3 * n + 2; omega⟩).val = 0) := by rw [hval]; exact h0
     rw [if_neg h0, if_neg h1]
 
+/-- The right boundary tensor equals one precisely when the rightmost bond index is zero, and
+equals zero otherwise. -/
 theorem capRTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) (β : Fin (n + 1) → Fin D) :
     (mpsNet n d D A).tensor (Fin.last (n + 1))
@@ -703,6 +804,8 @@ theorem capRTensor_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin
         ⟨2 * n, by show 2 * n < 3 * n + 2; omega⟩).val = 0) := by rw [hval]; exact h0
     rw [if_neg h0, if_neg h1]
 
+/-- Expands the capped MPS network contraction as a sum over all bond assignments, with
+zero-index constraints on both boundary bonds. -/
 theorem netContract_mps_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) :
     netContract (mpsNet n d D A) (mpsEnc n d D A x)
@@ -754,14 +857,17 @@ theorem netContract_mps_eq (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D)
           (fun h => portValue (mpsNet n d D A) (mpsEnc n d D A x) e h.val))
       hprod]
 
+/-- Extends the internal bond assignment by fixing both outer bond indices to zero. -/
 def capPin (n D : ℕ) [NeZero D] (α : Fin (n - 1) → Fin D) : Fin (n + 1) → Fin D :=
   fun j => dite ((j : ℕ) = 0) (fun _ => 0) (fun h1 =>
     dite ((j : ℕ) = n) (fun _ => 0) (fun h2 =>
       α ⟨(j : ℕ) - 1, by have := j.isLt; omega⟩))
 
+/-- Restricts a full capped-chain bond assignment to its internal bond indices. -/
 def capUnpin (n D : ℕ) (β : Fin (n + 1) → Fin D) : Fin (n - 1) → Fin D :=
   fun j => β ⟨(j : ℕ) + 1, by have := j.isLt; omega⟩
 
+/-- Restricting an assignment extended by `capPin` recovers each original internal bond index. -/
 theorem capUnpin_pin (n D : ℕ) [NeZero D] (α : Fin (n - 1) → Fin D)
     (j : Fin (n - 1)) : capUnpin n D (capPin n D α) j = α j := by
   show capPin n D α ⟨(j : ℕ) + 1, by have := j.isLt; omega⟩ = α j
@@ -770,6 +876,8 @@ theorem capUnpin_pin (n D : ℕ) [NeZero D] (α : Fin (n - 1) → Fin D)
     dif_neg (by have := j.isLt; omega : ¬((j : ℕ) + 1 = n))]
   rfl
 
+/-- A bond assignment with both boundary indices zero is recovered by restricting it and then
+applying `capPin`. -/
 theorem capPin_unpin {n D : ℕ} [NeZero D] (β : Fin (n + 1) → Fin D)
     (h0 : (β ⟨0, by omega⟩ : Fin D).val = 0) (hn : (β ⟨(n : ℕ), by omega⟩ : Fin D).val = 0) :
     capPin n D (capUnpin n D β) = β := by
@@ -796,6 +904,7 @@ theorem capPin_unpin {n D : ℕ} [NeZero D] (β : Fin (n + 1) → Fin D)
       exact hn'.symm
     · exact absurd hgt (by have := j.isLt; omega)
 
+/-- Equality of two capped bond assignments implies equality of their internal assignments. -/
 theorem capPin_inj {n D : ℕ} [NeZero D] (α α' : Fin (n - 1) → Fin D)
     (h : capPin n D α = capPin n D α') : α = α' := by
   funext j
@@ -811,6 +920,8 @@ theorem capPin_inj {n D : ℕ} [NeZero D] (α α' : Fin (n - 1) → Fin D)
     congrArg α' (Fin.ext (by show (j : ℕ) + 1 - 1 = (j : ℕ); omega))
   exact hl.trans (h1.trans hr)
 
+/-- The image of `capPin` consists exactly of bond assignments whose two boundary indices are
+zero. -/
 theorem capPin_image_eq (n D : ℕ) [NeZero D] :
     (Finset.univ.image (capPin n D) : Finset (Fin (n + 1) → Fin D))
       = Finset.univ.filter (fun β : Fin (n + 1) → Fin D =>
@@ -832,6 +943,8 @@ theorem capPin_image_eq (n D : ℕ) [NeZero D] :
   · rintro ⟨h0, hn⟩
     exact ⟨capUnpin n D β, capPin_unpin β h0 hn⟩
 
+/-- The capped bond index immediately left of site `i` equals `mpsLeftIdx` of the internal
+assignment. -/
 theorem capPin_left {n D : ℕ} [NeZero D] (α : Fin (n - 1) → Fin D) {i : ℕ} (hi : i < n) :
     capPin n D α ⟨i, by omega⟩ = mpsLeftIdx α ⟨i, hi⟩ := by
   simp only [capPin, mpsLeftIdx]
@@ -840,6 +953,8 @@ theorem capPin_left {n D : ℕ} [NeZero D] (α : Fin (n - 1) → Fin D) {i : ℕ
   · rw [dif_neg h0, if_neg h0, dif_neg (by omega : ¬(i = n)),
       dif_pos (by omega : i - 1 < n - 1)]
 
+/-- The capped bond index immediately right of site `i` equals `mpsRightIdx` of the internal
+assignment. -/
 theorem capPin_right {n D : ℕ} [NeZero D] (α : Fin (n - 1) → Fin D) {i : ℕ} (hi : i < n) :
     capPin n D α ⟨i + 1, by omega⟩ = mpsRightIdx α ⟨i, hi⟩ := by
   simp only [capPin, mpsRightIdx]
@@ -849,6 +964,8 @@ theorem capPin_right {n D : ℕ} [NeZero D] (α : Fin (n - 1) → Fin D) {i : �
   · rw [dif_neg hn, dif_pos (by omega : i < n - 1)]
     rfl
 
+/-- The sum over full bond assignments with both boundary indices constrained to zero equals the
+MPS amplitude. -/
 theorem normalForm_eq_amplitude {n d D : ℕ} [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d) :
     ∑ β : Fin (n + 1) → Fin D,
@@ -888,6 +1005,8 @@ theorem normalForm_eq_amplitude {n d D : ℕ} [NeZero D]
     capPin_right α i.isLt
   rw [hl, hr]
 
+/-- Contracting the capped MPS network at the encoded physical configuration gives `mpsAmplitude
+A x`. -/
 theorem netContract_mpsNet_eq_mpsAmplitude (n d D : ℕ) [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d) :
     netContract (mpsNet n d D A) (mpsEnc n d D A x) = mpsAmplitude A x :=
@@ -899,13 +1018,18 @@ section Clause14Counterexample
 
 open scoped BigOperators
 
+/-- The all-ones `2 × 2` tensor family for a one-site system with physical dimension one and
+bond dimension two. -/
 def clause14BadA : Fin 1 → Fin 1 → Matrix (Fin 2) (Fin 2) ℂ :=
   fun _ _ => Matrix.of fun _ _ => 1
 
+/-- The zero-boundary MPS amplitude of `clause14BadA` at the unique physical configuration is
+one. -/
 theorem clause14Amplitude_eq_one :
     mpsAmplitude (n := 1) (d := 1) (D := 2) clause14BadA (fun _ => 0) = 1 := by
   simp [mpsAmplitude, mpsLeftIdx, mpsRightIdx, clause14BadA]
 
+/-- The value of `mpsEval` on `clause14BadA` at the unique physical configuration is two. -/
 theorem clause14Eval_eq_two :
     mpsEval (n := 1) (d := 1) (D := 2) clause14BadA (fun _ => 0) = 2 := by
   have hv : mpsEvalVector clause14BadA (fun _ => 0) (⟨0, by omega⟩ : Fin 1)
@@ -915,12 +1039,15 @@ theorem clause14Eval_eq_two :
   rw [hv]
   simp
 
+/-- For `clause14BadA`, `mpsEval` differs from the zero-boundary MPS amplitude. -/
 theorem clause14Eval_ne_amplitude :
     mpsEval (n := 1) (d := 1) (D := 2) clause14BadA (fun _ => 0)
       ≠ mpsAmplitude (n := 1) (d := 1) (D := 2) clause14BadA (fun _ => 0) := by
   rw [clause14Eval_eq_two, clause14Amplitude_eq_one]
   norm_num
 
+/-- The displayed conjunction of universal evaluation, resource, inner-product, sampling, and
+PEPS claims is false, since its first evaluation identity fails. -/
 theorem clause3_counter : ¬ (
 
   (∀ (n d D : ℕ) (hn : NeZero n) (hD : NeZero D)
@@ -980,12 +1107,16 @@ section ThresholdClause1
 
 variable {n d D : ℕ}
 
+/-- Packages an internal bond position `k ≥ c` as an index in the right-bond subtype. -/
 def thresholdGoalRB (n c : ℕ) (k : ℕ) (h1 : k < n - 1) (h2 : c ≤ k) :
     {j : Fin (n - 1) // c ≤ (j : ℕ)} := ⟨⟨k, h1⟩, h2⟩
 
+/-- The underlying finite index of `thresholdGoalRB` is the original index `k`. -/
 theorem thresholdGoalRB_val (n c : ℕ) (k : ℕ) (h1 : k < n - 1) (h2 : c ≤ k) :
     (thresholdGoalRB n c k h1 h2 : Fin (n - 1)) = ⟨k, h1⟩ := rfl
 
+/-- At a nontrivial cut `1 ≤ c < n`, combines left internal bonds, the cut bond, and right
+internal bonds into a full internal bond assignment. -/
 def thresholdGoalBondEnc (c : ℕ) (h1 : 1 ≤ c) (_hn : c < n)
     (p : (Fin (c - 1) → Fin D) × Fin D × ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D)) :
     Fin (n - 1) → Fin D := fun j =>
@@ -993,12 +1124,15 @@ def thresholdGoalBondEnc (c : ℕ) (h1 : 1 ≤ c) (_hn : c < n)
   else if h2 : (j : ℕ) = c - 1 then p.2.1
   else p.2.2 (thresholdGoalRB n c (j : ℕ) (by have hj := j.isLt; omega) (by omega))
 
+/-- At a nontrivial cut `1 ≤ c < n`, splits an internal bond assignment into its left portion,
+cut index, and right portion. -/
 def thresholdGoalBondDec (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (α : Fin (n - 1) → Fin D) :
     (Fin (c - 1) → Fin D) × Fin D × ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D) :=
   (fun j => α ⟨(j : ℕ), by have hj := j.isLt; omega⟩,
     α ⟨c - 1, by omega⟩,
     fun j => α j)
 
+/-- Encoding the three parts obtained from a bond assignment recovers that assignment. -/
 theorem thresholdGoalBondEnc_dec (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (α : Fin (n - 1) → Fin D) :
     thresholdGoalBondEnc c h1 hn (thresholdGoalBondDec c h1 hn α) = α := by
   funext j
@@ -1010,6 +1144,7 @@ theorem thresholdGoalBondEnc_dec (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (α : Fin
     · simp only [thresholdGoalBondEnc, thresholdGoalBondDec, dif_neg h, dif_neg h2,
         thresholdGoalRB_val]
 
+/-- Decoding an encoded triple of bond data recovers the triple. -/
 theorem thresholdGoalBondDec_enc (c : ℕ) (h1 : 1 ≤ c) (hn : c < n)
     (p : (Fin (c - 1) → Fin D) × Fin D × ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D)) :
     thresholdGoalBondDec c h1 hn (thresholdGoalBondEnc c h1 hn p) = p := by
@@ -1032,16 +1167,22 @@ theorem thresholdGoalBondDec_enc (c : ℕ) (h1 : 1 ≤ c) (hn : c < n)
   simp only [thresholdGoalBondDec]
   exact Prod.ext hσ (Prod.ext hβ hτ)
 
+/-- At a nontrivial cut `1 ≤ c < n`, the equivalence between full internal bond assignments and
+left bonds, a cut index, and right bonds. -/
 def thresholdGoalBondSplit (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) :
     (Fin (c - 1) → Fin D) × Fin D × ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D) ≃
       (Fin (n - 1) → Fin D) :=
   ⟨thresholdGoalBondEnc c h1 hn, thresholdGoalBondDec c h1 hn,
     thresholdGoalBondDec_enc c h1 hn, thresholdGoalBondEnc_dec c h1 hn⟩
 
+/-- The forward map of `thresholdGoalBondSplit` is `thresholdGoalBondEnc` at every bond
+position. -/
 theorem thresholdGoalBondSplit_apply (c : ℕ) (h1 : 1 ≤ c) (hn : c < n)
     (p : (Fin (c - 1) → Fin D) × Fin D × ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D))
     (j : Fin (n - 1)) : thresholdGoalBondSplit c h1 hn p j = thresholdGoalBondEnc c h1 hn p j := rfl
 
+/-- The left partial contraction matrix at a nontrivial cut `1 ≤ c < n`, indexed by left
+physical configurations and the cut bond. -/
 noncomputable def thresholdGoalLeft [NeZero D] (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (c : ℕ)
     (h1 : 1 ≤ c) (hn : c < n) : Matrix (Fin (d ^ c)) (Fin D) ℂ :=
   Matrix.of fun u β =>
@@ -1053,6 +1194,8 @@ noncomputable def thresholdGoalLeft [NeZero D] (A : Fin n → Fin d → Matrix (
             else σ ⟨(i : ℕ) - 1, by have hi := i.isLt; omega⟩)
           (if h1' : (i : ℕ) < c - 1 then σ ⟨(i : ℕ), h1'⟩ else β)
 
+/-- The right partial contraction matrix at a nontrivial cut `1 ≤ c < n`, indexed by the cut
+bond and right physical configurations. -/
 noncomputable def thresholdGoalRight [NeZero D] (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (c : ℕ)
     (h1 : 1 ≤ c) (hn : c < n) : Matrix (Fin D) (Fin (d ^ (n - c))) ℂ :=
   Matrix.of fun β w =>
@@ -1067,6 +1210,8 @@ noncomputable def thresholdGoalRight [NeZero D] (A : Fin n → Fin d → Matrix 
             τ (thresholdGoalRB n c (c + (j : ℕ)) (by have hj := j.isLt; omega) (by omega))
           else 0)
 
+/-- Splits a product over `Fin n` into the product over the first `c` positions and the
+remaining positions, for `c ≤ n`. -/
 theorem prod_split_fin (F : Fin n → ℂ) (c : ℕ) (hcn : c ≤ n) :
     (∏ i : Fin n, F i) =
       (∏ i : Fin c, F ⟨(i : ℕ), by have hi := i.isLt; omega⟩) *
@@ -1117,16 +1262,22 @@ theorem prod_split_fin (F : Fin n → ℂ) (c : ℕ) (hcn : c ≤ n) :
 
 set_option linter.unusedSimpArgs false
 
+/-- Reading a position before the cut from `splitJoin` recovers the corresponding left
+configuration entry. -/
 theorem splitJoin_left (c : ℕ) (_h1 : 1 ≤ c) (hn : c < n) (u : Fin c → Fin d) (w : Fin (n - c) → Fin d) (i : Fin c) :
     splitJoin n c d u w ⟨(i : ℕ), Nat.lt_trans i.isLt hn⟩ = u ⟨(i : ℕ), i.isLt⟩ := by
   simp only [splitJoin, dif_pos i.isLt]
 
+/-- Reading a position after the cut from `splitJoin` recovers the corresponding right
+configuration entry. -/
 theorem splitJoin_right (c : ℕ) (_h1 : 1 ≤ c) (_hn : c < n) (u : Fin c → Fin d) (w : Fin (n - c) → Fin d) (j : Fin (n - c)) :
     splitJoin n c d u w ⟨c + (j : ℕ), by have hj := j.isLt; omega⟩ = w ⟨(j : ℕ), j.isLt⟩ := by
   have h : ¬(c + (j : ℕ) < c) := by omega
   simp only [splitJoin, dif_neg h]
   exact congrArg w (Fin.ext (show (c : ℕ) + (j : ℕ) - c = (j : ℕ) from by omega))
 
+/-- On the left block, the encoded left bond index is zero at the boundary and otherwise comes
+from the left internal assignment. -/
 theorem mpsLeftIdx_left [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (Fin (c - 1) → Fin D) × Fin D ×
       ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D)) (i : Fin c) :
     mpsLeftIdx (thresholdGoalBondEnc c h1 hn p) ⟨(i : ℕ), Nat.lt_trans i.isLt hn⟩ =
@@ -1139,6 +1290,8 @@ theorem mpsLeftIdx_left [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (F
     have hi3 : (i : ℕ) - 1 < c - 1 := by have hk := i.isLt; omega
     simp [hi, hi2, hi3]
 
+/-- On the left block, the encoded right bond index comes from the left assignment except at the
+cut, where it is the cut index. -/
 theorem mpsRightIdx_left [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (Fin (c - 1) → Fin D) × Fin D ×
       ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D)) (i : Fin c) :
     mpsRightIdx (thresholdGoalBondEnc c h1 hn p) ⟨(i : ℕ), Nat.lt_trans i.isLt hn⟩ =
@@ -1151,6 +1304,8 @@ theorem mpsRightIdx_left [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (
   · have h2 : (i : ℕ) = c - 1 := by have hk := i.isLt; omega
     simp [h, h2]
 
+/-- On the right block, the encoded left bond index is the cut index at the first site and
+otherwise comes from the right assignment. -/
 theorem mpsLeftIdx_right [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (Fin (c - 1) → Fin D) × Fin D ×
       ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D)) (j : Fin (n - c)) :
     mpsLeftIdx (thresholdGoalBondEnc c h1 hn p) ⟨c + (j : ℕ), by have hj := j.isLt; omega⟩ =
@@ -1170,6 +1325,8 @@ theorem mpsLeftIdx_right [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (
     have h3 : ¬((c : ℕ) + (j : ℕ) - 1 = c - 1) := by omega
     simp [hi, h2, h3, h, hc0]
 
+/-- On the right block, the encoded right bond index comes from the right assignment except at
+the outer boundary, where it is zero. -/
 theorem mpsRightIdx_right [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : (Fin (c - 1) → Fin D) × Fin D ×
       ({j : Fin (n - 1) // c ≤ (j : ℕ)} → Fin D)) (j : Fin (n - c)) :
     mpsRightIdx (thresholdGoalBondEnc c h1 hn p) ⟨c + (j : ℕ), by have hj := j.isLt; omega⟩ =
@@ -1185,6 +1342,8 @@ theorem mpsRightIdx_right [NeZero D] (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) (p : 
   · have hlt : ¬((j : ℕ) < n - c - 1) := by omega
     simp [h, hlt]
 
+/-- At a nontrivial cut, the cut matrix of an MPS factors as `thresholdGoalLeft *
+thresholdGoalRight`. -/
 theorem cutMatrix_eq [NeZero D] (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (ψ : (Fin n → Fin d) → ℂ) (hψ : IsMpsRepresentation A ψ)
     (c : ℕ) (h1 : 1 ≤ c) (hn : c < n) :
@@ -1256,6 +1415,8 @@ theorem cutMatrix_eq [NeZero D] (A : Fin n → Fin d → Matrix (Fin D) (Fin D) 
   rw [Finset.sum_comm]
   simp only [Finset.sum_mul_sum]
 
+/-- Every cut `c < n` of a state represented by bond-dimension-`D` MPS tensors has cut rank at
+most `D`. -/
 theorem cutRank_le_of_isMps [NeZero D] (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (ψ : (Fin n → Fin d) → ℂ) (hψ : IsMpsRepresentation A ψ)
     (c : ℕ) (hc : c < n) : cutRank n d ψ c ≤ D := by
@@ -1273,6 +1434,8 @@ theorem cutRank_le_of_isMps [NeZero D] (A : Fin n → Fin d → Matrix (Fin D) (
     exact le_trans (Matrix.rank_mul_le_right _ _)
       (le_trans (Matrix.rank_le_height _) le_rfl)
 
+/-- For a normalized state with an MPS representation of bond dimension `D`, every cut `c < n`
+has rank at most `D`. -/
 theorem clause2_clause1 (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     (_hnorm : ∑ x, Complex.normSq (ψ x) = 1) :
     ∀ (D : ℕ) (hD : NeZero D) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -1286,14 +1449,19 @@ section Clause1Periodic
 
 variable {n d D : ℕ}
 
+/-- Assigns dimension `D` to periodic bond half-edges and dimension `d` to physical legs. -/
 def perDim (n d D : ℕ) (j : ℕ) : ℕ := if j < 2 * n then D else d
 
+/-- A periodic bond half-edge has dimension `D`. -/
 theorem perDim_bond (n d D : ℕ) {j : ℕ} (h : j < 2 * n) : perDim n d D j = D := by
   rw [perDim, if_pos h]
 
+/-- A half-edge beyond the periodic bond range has dimension `d`. -/
 theorem perDim_phys (n d D : ℕ) {j : ℕ} (h : ¬(j < 2 * n)) : perDim n d D j = d := by
   rw [perDim, if_neg h]
 
+/-- Pairs consecutive bond half-edges in the periodic encoding and leaves physical legs
+unpaired. -/
 def perPartner (n : ℕ) (j : Fin (3 * n)) : Option (Fin (3 * n)) :=
   if h : (j : ℕ) < 2 * n then
     some ⟨if (j : ℕ) % 2 = 0 then (j : ℕ) + 1 else (j : ℕ) - 1, by
@@ -1301,6 +1469,8 @@ def perPartner (n : ℕ) (j : Fin (3 * n)) : Option (Fin (3 * n)) :=
       split_ifs <;> omega⟩
   else none
 
+/-- Assigns half-edges to the sites of the periodic chain, using cyclic predecessor indexing for
+odd bond half-edges. -/
 def perSite (n : ℕ) (j : Fin (3 * n)) : Fin n :=
   if h : (j : ℕ) < 2 * n then
     if (j : ℕ) % 2 = 0 then ⟨(j : ℕ) / 2, by have := h; omega⟩
@@ -1310,6 +1480,7 @@ def perSite (n : ℕ) (j : Fin (3 * n)) : Fin n :=
       · exact Nat.mod_lt _ (by omega)⟩
   else ⟨(j : ℕ) - 2 * n, by have := j.isLt; omega⟩
 
+/-- In the periodic encoding, half-edge `2 * j` is paired with half-edge `2 * j + 1`. -/
 theorem perPartner_even (n : ℕ) (j : Fin n) :
     perPartner n ⟨2 * (j : ℕ), by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩ := by
@@ -1317,6 +1488,7 @@ theorem perPartner_even (n : ℕ) (j : Fin n) :
   simp only [perPartner, dif_pos h]
   simp
 
+/-- In the periodic encoding, half-edge `2 * j + 1` is paired with half-edge `2 * j`. -/
 theorem perPartner_odd (n : ℕ) (j : Fin n) :
     perPartner n ⟨2 * (j : ℕ) + 1, by have := j.isLt; omega⟩
       = some ⟨2 * (j : ℕ), by have := j.isLt; omega⟩ := by
@@ -1324,6 +1496,7 @@ theorem perPartner_odd (n : ℕ) (j : Fin n) :
   simp only [perPartner, dif_pos h]
   simp
 
+/-- The even periodic bond half-edge `2 * i` belongs to site `i`. -/
 theorem perSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
     perSite n ⟨2 * i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [perSite]
@@ -1334,6 +1507,7 @@ theorem perSite_left (n : ℕ) (i : ℕ) (hi : i < n) :
   show 2 * i / 2 = i
   omega
 
+/-- The odd periodic bond half-edge `2 * i + 1` belongs to the cyclic predecessor of site `i`. -/
 theorem perSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
     perSite n ⟨2 * i + 1, by omega⟩ = ⟨(i + n - 1) % n, by
       by_cases hn0 : n = 0
@@ -1348,6 +1522,7 @@ theorem perSite_right (n : ℕ) (i : ℕ) (hi : i < n) :
   have : (2 * i + 1) / 2 = i := by omega
   rw [this]
 
+/-- The periodic physical leg numbered `2 * n + i` belongs to site `i`. -/
 theorem perSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
     perSite n ⟨2 * n + i, by omega⟩ = ⟨i, by omega⟩ := by
   simp only [perSite]
@@ -1356,6 +1531,8 @@ theorem perSite_phys (n : ℕ) (i : ℕ) (hi : i < n) :
   show 2 * n + i - 2 * n = i
   omega
 
+/-- For `i < n` and positive `n`, taking a cyclic successor followed by a cyclic predecessor
+returns `i`. -/
 theorem add_mod_pred_eq (i n : ℕ) (hi : i < n) (hn : 0 < n) :
     (((i + 1) % n) + n - 1) % n = i := by
   have hlt : i + 1 < n ∨ i + 1 = n := by omega
@@ -1372,12 +1549,14 @@ theorem add_mod_pred_eq (i n : ℕ) (hi : i < n) (hn : 0 < n) :
     rw [h1]
     omega
 
+/-- The odd bond half-edge at the cyclic successor of `i` belongs to site `i`. -/
 theorem perSite_right' (n : ℕ) (i : ℕ) (hi : i < n) (hn : 0 < n) :
     perSite n ⟨2 * ((i + 1) % n) + 1, by
       have := Nat.mod_lt (i + 1) hn; omega⟩ = ⟨i, by omega⟩ := by
   rw [perSite_right n ((i + 1) % n) (Nat.mod_lt _ hn)]
   exact Fin.ext (add_mod_pred_eq i n hi hn)
 
+/-- The odd half-edge at the cyclic successor of a site lies below `3 * n`. -/
 theorem perLeg_bound (n : ℕ) (v : Fin n) :
     2 * (((v : ℕ) + 1) % n) + 1 < 3 * n := by
   by_cases hn0 : n = 0
@@ -1386,6 +1565,7 @@ theorem perLeg_bound (n : ℕ) (v : Fin n) :
     have h2 : (v : ℕ) < n := v.isLt
     omega
 
+/-- The odd half-edge at the cyclic successor of a site lies in the bond range below `2 * n`. -/
 theorem perLeg_bound2 (n : ℕ) (v : Fin n) :
     2 * (((v : ℕ) + 1) % n) + 1 < 2 * n := by
   by_cases hn0 : n = 0
@@ -1394,18 +1574,22 @@ theorem perLeg_bound2 (n : ℕ) (v : Fin n) :
     have h2 : (v : ℕ) < n := v.isLt
     omega
 
+/-- The successor of a periodic bond half-edge index lies below `3 * n`. -/
 theorem perJ_succ_bound (n : ℕ) (j : Fin (3 * n)) (h : (j : ℕ) < 2 * n) :
     (j : ℕ) + 1 < 3 * n := by
   by_cases hn0 : n = 0
   · subst hn0; exact absurd h (by omega)
   · have := j.isLt; omega
 
+/-- The truncated predecessor of a periodic bond half-edge index lies below `3 * n`. -/
 theorem perJ_pred_bound (n : ℕ) (j : Fin (3 * n)) (h : (j : ℕ) < 2 * n) :
     (j : ℕ) - 1 < 3 * n := by
   by_cases hn0 : n = 0
   · subst hn0; exact absurd h (by omega)
   · have := j.isLt; omega
 
+/-- The local tensor of the periodic network, obtained from `A` using the site's physical leg
+and two cyclic bond legs. -/
 noncomputable def perTensor (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (v : Fin n)
     (a : ∀ h : {h : Fin (3 * n) // perSite n h = v}, Fin (perDim n d D h.val.val)) : ℂ :=
@@ -1423,6 +1607,7 @@ noncomputable def perTensor (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D
         a (Subtype.mk ⟨2 * (((v : ℕ) + 1) % n) + 1, perLeg_bound n v⟩
           (perSite_right' n (v : ℕ) v.isLt (by have := v.isLt; omega : 0 < n)))))
 
+/-- If a periodic half-edge is paired with another, the latter is paired back with the former. -/
 theorem perPartner_involution_aux (n : ℕ) (j k : Fin (3 * n))
     (hj : perPartner n j = some k) : perPartner n k = some j := by
   simp only [perPartner] at hj
@@ -1461,6 +1646,7 @@ theorem perPartner_involution_aux (n : ℕ) (j k : Fin (3 * n))
   · rw [dif_neg h] at hj
     exact absurd hj (by simp)
 
+/-- A paired periodic half-edge is distinct from its partner. -/
 theorem perPartner_no_self (n : ℕ) (j k : Fin (3 * n))
     (hj : perPartner n j = some k) : j ≠ k := by
   intro heq
@@ -1476,6 +1662,7 @@ theorem perPartner_no_self (n : ℕ) (j k : Fin (3 * n))
   · rw [dif_neg h] at hj
     exact absurd hj (by simp)
 
+/-- Paired half-edges in the periodic encoding have equal dimensions. -/
 theorem perPartner_dims (n d D : ℕ) (j k : Fin (3 * n))
     (hj : perPartner n j = some k) :
     perDim n d D (j : ℕ) = perDim n d D (k : ℕ) := by
@@ -1492,6 +1679,8 @@ theorem perPartner_dims (n d D : ℕ) (j k : Fin (3 * n))
   · rw [dif_neg h] at hj
     exact absurd hj (by simp)
 
+/-- Encodes the tensor family `A` as a periodic tensor network with one physical leg and two
+bond half-edges at each site. -/
 noncomputable def perNet (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     TensorNet where
   nv := n
@@ -1510,6 +1699,7 @@ noncomputable def perNet (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (
     exact perPartner_dims n d D j k hj
   tensor := perTensor n d D A
 
+/-- A half-edge with a partner in the periodic encoding lies below `2 * n`. -/
 theorem perPartner_isSome (n : ℕ) {j k : Fin (3 * n)} (h : perPartner n j = some k) :
     (j : ℕ) < 2 * n := by
   simp only [perPartner] at h
@@ -1518,12 +1708,14 @@ theorem perPartner_isSome (n : ℕ) {j k : Fin (3 * n)} (h : perPartner n j = so
   · rw [dif_neg h'] at h
     exact absurd h (by simp)
 
+/-- An unpaired half-edge in the periodic encoding does not lie below `2 * n`. -/
 theorem perPartner_none_lt (n : ℕ) {j : Fin (3 * n)} (h : perPartner n j = none) :
     ¬((j : ℕ) < 2 * n) := by
   intro hj
   simp only [perPartner, dif_pos hj] at h
   exact absurd h (by simp)
 
+/-- The internal edge at bond position `b` in the periodic network. -/
 def perBondEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (b : Fin n) : InternalEdge (perNet n d D A) :=
   ⟨⟨2 * (b : ℕ), by show 2 * (b : ℕ) < 3 * n; have := b.isLt; omega⟩,
@@ -1531,6 +1723,7 @@ def perBondEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) �
       perPartner_even n b,
       Fin.mk_lt_mk.mpr (by omega)⟩⟩
 
+/-- Recovers the bond position of an internal edge in the periodic network. -/
 def perHalfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (i : InternalEdge (perNet n d D A)) : Fin n :=
   ⟨(i.val.val) / 2, by
@@ -1538,12 +1731,14 @@ def perHalfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) �
     have hb := perPartner_isSome n hk
     omega⟩
 
+/-- Recovering the position of `perBondEdge b` returns `b`. -/
 theorem perHalfEdge_bondEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (b : Fin n) : perHalfEdge n d D A (perBondEdge n d D A b) = b := by
   apply Fin.ext
   show (2 * (b : ℕ)) / 2 = (b : ℕ)
   omega
 
+/-- Reconstructing a periodic internal edge from its bond position returns that edge. -/
 theorem perBondEdge_halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (i : InternalEdge (perNet n d D A)) : perBondEdge n d D A (perHalfEdge n d D A i) = i := by
   obtain ⟨k, hk, hlt⟩ := i.property
@@ -1560,6 +1755,7 @@ theorem perBondEdge_halfEdge (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin 
   · rw [if_neg h2] at hvk
     exact absurd hlt (by omega)
 
+/-- Encodes a physical configuration as an open-leg assignment of the periodic network. -/
 noncomputable def perEnc (n d D : ℕ) [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d)
     (o : OpenLeg (perNet n d D A)) : Fin ((perNet n d D A).dims o.val) :=
@@ -1570,6 +1766,7 @@ noncomputable def perEnc (n d D : ℕ) [NeZero D]
       have h := perPartner_none_lt n o.property
       omega)).symm)
 
+/-- Identifies internal-edge assignments of the periodic network with functions `Fin n → Fin D`. -/
 noncomputable def perEdgeIdxEquiv (n d D : ℕ) [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     (∀ i : InternalEdge (perNet n d D A), Fin ((perNet n d D A).dims i.val)) ≃
@@ -1598,6 +1795,7 @@ noncomputable def perEdgeIdxEquiv (n d D : ℕ) [NeZero D]
     show (β (perHalfEdge n d D A (perBondEdge n d D A b))).val = (β b).val
     rw [hb]
 
+/-- The even half-edge at the cyclic successor of a bond position lies below `3 * n`. -/
 theorem perM_bound (n : ℕ) (b : Fin n) : 2 * (((b : ℕ) + 1) % n) < 3 * n := by
   by_cases hn0 : n = 0
   · subst hn0; exact absurd b.isLt (Nat.not_lt_zero _)
@@ -1605,6 +1803,7 @@ theorem perM_bound (n : ℕ) (b : Fin n) : 2 * (((b : ℕ) + 1) % n) < 3 * n := 
     have h2 := b.isLt
     omega
 
+/-- The even half-edge at the cyclic successor of a bond position lies below `2 * n`. -/
 theorem perM_bound2 (n : ℕ) (b : Fin n) : 2 * (((b : ℕ) + 1) % n) < 2 * n := by
   by_cases hn0 : n = 0
   · subst hn0; exact absurd b.isLt (Nat.not_lt_zero _)
@@ -1612,12 +1811,16 @@ theorem perM_bound2 (n : ℕ) (b : Fin n) : 2 * (((b : ℕ) + 1) % n) < 2 * n :=
     have h2 := b.isLt
     omega
 
+/-- The even half-edge at a periodic bond position lies below `3 * n`. -/
 theorem perLeg2_bound (n : ℕ) (b : Fin n) : 2 * (b : ℕ) < 3 * n := by
   have := b.isLt; omega
 
+/-- The odd half-edge at a periodic bond position lies below `3 * n`. -/
 theorem perLeg2_bound1 (n : ℕ) (b : Fin n) : 2 * (b : ℕ) + 1 < 3 * n := by
   have := b.isLt; omega
 
+/-- The left port at a periodic site equals the index assigned to its bond edge, after
+transporting dimensions. -/
 theorem perPort_left [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d)
     (e : ∀ i : InternalEdge (perNet n d D A), Fin ((perNet n d D A).dims i.val))
@@ -1645,6 +1848,8 @@ theorem perPort_left [NeZero D]
     rw [dif_pos hjk]
     rfl
 
+/-- The right port at a periodic site equals the index assigned to the cyclic successor bond,
+after transporting dimensions. -/
 theorem perPort_right [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d)
     (e : ∀ i : InternalEdge (perNet n d D A), Fin ((perNet n d D A).dims i.val))
@@ -1675,6 +1880,8 @@ theorem perPort_right [NeZero D]
     rw [dif_neg hnlt]
     rfl
 
+/-- The physical port of the periodic network at site `v` equals `x v`, after transporting
+dimensions. -/
 theorem perPort_phys [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d)
     (e : ∀ i : InternalEdge (perNet n d D A), Fin ((perNet n d D A).dims i.val))
@@ -1694,6 +1901,8 @@ theorem perPort_phys [NeZero D]
     simp only [perEnc, Fin.val_cast, Nat.add_sub_cancel_left]
   · next k' hk' => exact absurd (h1.symm.trans hk') (by simp)
 
+/-- Evaluating the periodic local tensor gives the entry of `A` selected by the physical index
+and the two adjacent cyclic bond indices. -/
 theorem perTensor_at [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d)
     (e : ∀ i : InternalEdge (perNet n d D A), Fin ((perNet n d D A).dims i.val))
@@ -1726,6 +1935,7 @@ theorem perTensor_at [NeZero D]
         (perDim_bond n d D (perM_bound2 n v)))
   rw [hphys, hleft, hright]
 
+/-- The bond dimension of the periodic tensor network is at most `D`. -/
 theorem netBondDimension_perNet_le [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     netBondDimension (perNet n d D A) ≤ D := by
@@ -1736,6 +1946,8 @@ theorem netBondDimension_perNet_le [NeZero D]
   have hd : ((perNet n d D A).dims i.val) = D := perDim_bond n d D hb
   rw [hd]
 
+/-- Contracting the periodic network at the encoded physical configuration gives
+`periodicMpsAmplitude A x`. -/
 theorem netContract_perNet_eq [NeZero n] [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d) :
     netContract (perNet n d D A) (perEnc n d D A x) = periodicMpsAmplitude A x := by
@@ -1760,6 +1972,8 @@ theorem netContract_perNet_eq [NeZero n] [NeZero D]
     rw [perTensor_at A x e v]
     rfl
 
+/-- Every periodic MPS with positive site count and nonzero bond dimension is represented by a
+tensor network of bond dimension at most `D`. -/
 theorem clause1_clause4 :
     ∀ (n d D : ℕ) (hn : NeZero n) (hD : NeZero D)
       (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -1778,18 +1992,23 @@ section Clause1NetIso
 
 variable {N₁ N₂ : TensorNet}
 
+/-- Two partners of the same half-edge are equal. -/
 theorem partner_unique {N : TensorNet} {h k₁ k₂ : Fin N.nh}
     (h1 : N.partner h = some k₁) (h2 : N.partner h = some k₂) : k₁ = k₂ :=
   Option.some.inj (h1.symm.trans h2)
 
+/-- Maps two half-edges through a network isomorphism and orders their images increasingly. -/
 def isoEndMap (iso : NetIso N₁ N₂) (h k : Fin N₁.nh) : Fin N₂.nh × Fin N₂.nh :=
   if iso.halfMap h < iso.halfMap k then (iso.halfMap h, iso.halfMap k)
   else (iso.halfMap k, iso.halfMap h)
 
+/-- Maps two half-edges through the inverse half-edge equivalence and orders their preimages
+increasingly. -/
 def isoEndMapInv (iso : NetIso N₁ N₂) (h k : Fin N₂.nh) : Fin N₁.nh × Fin N₁.nh :=
   if iso.halfMap.symm h < iso.halfMap.symm k then (iso.halfMap.symm h, iso.halfMap.symm k)
   else (iso.halfMap.symm k, iso.halfMap.symm h)
 
+/-- The ordered images of paired half-edges under a network isomorphism remain paired. -/
 theorem isoEndMap_partner (iso : NetIso N₁ N₂) {h k : Fin N₁.nh}
     (hpk : N₁.partner h = some k) :
     N₂.partner (isoEndMap iso h k).1 = some (isoEndMap iso h k).2 := by
@@ -1806,6 +2025,8 @@ theorem isoEndMap_partner (iso : NetIso N₁ N₂) {h k : Fin N₁.nh}
       rfl
     exact N₂.involution _ _ hpk'
 
+/-- The ordered images of distinct half-edges under a network isomorphism are strictly
+increasing. -/
 theorem isoEndMap_lt (iso : NetIso N₁ N₂) {h k : Fin N₁.nh} (hne : h ≠ k) :
     (isoEndMap iso h k).1 < (isoEndMap iso h k).2 := by
   unfold isoEndMap
@@ -1818,6 +2039,7 @@ theorem isoEndMap_lt (iso : NetIso N₁ N₂) {h k : Fin N₁.nh} (hne : h ≠ k
       fun he => hne (iso.halfMap.injective he)
     omega
 
+/-- The inverse half-edge map of a network isomorphism preserves the partner relation. -/
 theorem isoEndMapInv_partner_core (iso : NetIso N₁ N₂) {h k : Fin N₂.nh}
     (hpk : N₂.partner h = some k) :
     N₁.partner (iso.halfMap.symm h) = some (iso.halfMap.symm k) := by
@@ -1834,6 +2056,7 @@ theorem isoEndMapInv_partner_core (iso : NetIso N₁ N₂) {h k : Fin N₂.nh}
     congr 1
     exact iso.halfMap.injective (hmk.trans (iso.halfMap.apply_symm_apply k).symm)
 
+/-- The ordered preimages of paired half-edges remain paired. -/
 theorem isoEndMapInv_partner (iso : NetIso N₁ N₂) {h k : Fin N₂.nh}
     (hpk : N₂.partner h = some k) :
     N₁.partner (isoEndMapInv iso h k).1 = some (isoEndMapInv iso h k).2 := by
@@ -1846,6 +2069,7 @@ theorem isoEndMapInv_partner (iso : NetIso N₁ N₂) {h k : Fin N₂.nh}
     show N₁.partner (iso.halfMap.symm k) = some (iso.halfMap.symm h)
     exact N₁.involution _ _ (isoEndMapInv_partner_core iso hpk)
 
+/-- The ordered preimages of distinct half-edges are strictly increasing. -/
 theorem isoEndMapInv_lt (iso : NetIso N₁ N₂) {h k : Fin N₂.nh} (hne : h ≠ k) :
     (isoEndMapInv iso h k).1 < (isoEndMapInv iso h k).2 := by
   unfold isoEndMapInv
@@ -1858,6 +2082,7 @@ theorem isoEndMapInv_lt (iso : NetIso N₁ N₂) {h k : Fin N₂.nh} (hne : h �
       fun he => hne (iso.halfMap.symm.injective he)
     omega
 
+/-- Mapping an increasing pair forward and then backward recovers the pair. -/
 theorem isoEndMapInv_isoEndMap (iso : NetIso N₁ N₂) {h k : Fin N₁.nh} (hlt : h < k) :
     isoEndMapInv iso (isoEndMap iso h k).1 (isoEndMap iso h k).2 = (h, k) := by
   unfold isoEndMap isoEndMapInv
@@ -1875,6 +2100,7 @@ theorem isoEndMapInv_isoEndMap (iso : NetIso N₁ N₂) {h k : Fin N₁.nh} (hlt
     rw [if_neg hs]
     simp only [Equiv.symm_apply_apply]
 
+/-- Mapping an increasing pair backward and then forward recovers the pair. -/
 theorem isoEndMap_isoEndMapInv (iso : NetIso N₁ N₂) {h k : Fin N₂.nh} (hlt : h < k) :
     isoEndMap iso (isoEndMapInv iso h k).1 (isoEndMapInv iso h k).2 = (h, k) := by
   unfold isoEndMap isoEndMapInv
@@ -1892,6 +2118,8 @@ theorem isoEndMap_isoEndMapInv (iso : NetIso N₁ N₂) {h k : Fin N₂.nh} (hlt
     rw [if_neg hs]
     simp only [Equiv.apply_symm_apply]
 
+/-- The internal edge induced by a network isomorphism, represented by its smaller image
+endpoint. -/
 noncomputable def isoEdgeMap (iso : NetIso N₁ N₂) (i : InternalEdge N₁) : InternalEdge N₂ :=
   let k := Classical.choose i.property
   have hpk : N₁.partner i.val = some k := (Classical.choose_spec i.property).1
@@ -1899,6 +2127,7 @@ noncomputable def isoEdgeMap (iso : NetIso N₁ N₂) (i : InternalEdge N₁) : 
   ⟨(isoEndMap iso i.val k).1,
     ⟨(isoEndMap iso i.val k).2, isoEndMap_partner iso hpk, isoEndMap_lt iso hne⟩⟩
 
+/-- The internal edge induced by the inverse half-edge equivalence of a network isomorphism. -/
 noncomputable def isoEdgeMapInv (iso : NetIso N₁ N₂) (j : InternalEdge N₂) : InternalEdge N₁ :=
   let k := Classical.choose j.property
   have hpk : N₂.partner j.val = some k := (Classical.choose_spec j.property).1
@@ -1906,31 +2135,40 @@ noncomputable def isoEdgeMapInv (iso : NetIso N₁ N₂) (j : InternalEdge N₂)
   ⟨(isoEndMapInv iso j.val k).1,
     ⟨(isoEndMapInv iso j.val k).2, isoEndMapInv_partner iso hpk, isoEndMapInv_lt iso hne⟩⟩
 
+/-- The representative of an image edge is the first endpoint returned by `isoEndMap`. -/
 theorem isoEdgeMap_val (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
     (isoEdgeMap iso i).val = (isoEndMap iso i.val (Classical.choose i.property)).1 :=
   rfl
 
+/-- The partner of an image edge's representative is the second endpoint returned by
+`isoEndMap`. -/
 theorem isoEdgeMap_partner' (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
     N₂.partner (isoEdgeMap iso i).val =
       some (isoEndMap iso i.val (Classical.choose i.property)).2 :=
   isoEndMap_partner iso (Classical.choose_spec i.property).1
 
+/-- The representative of an inverse image edge is the first endpoint returned by
+`isoEndMapInv`. -/
 theorem isoEdgeMapInv_val (iso : NetIso N₁ N₂) (j : InternalEdge N₂) :
     (isoEdgeMapInv iso j).val = (isoEndMapInv iso j.val (Classical.choose j.property)).1 :=
   rfl
 
+/-- The chosen partner of an image edge is the second endpoint returned by `isoEndMap`. -/
 theorem isoEdgeMap_choose (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
     Classical.choose (isoEdgeMap iso i).property =
       (isoEndMap iso i.val (Classical.choose i.property)).2 :=
   partner_unique (Classical.choose_spec (isoEdgeMap iso i).property).1
     (isoEdgeMap_partner' iso i)
 
+/-- The chosen partner of an inverse image edge is the second endpoint returned by
+`isoEndMapInv`. -/
 theorem isoEdgeMapInv_choose (iso : NetIso N₁ N₂) (j : InternalEdge N₂) :
     Classical.choose (isoEdgeMapInv iso j).property =
       (isoEndMapInv iso j.val (Classical.choose j.property)).2 :=
   partner_unique (Classical.choose_spec (isoEdgeMapInv iso j).property).1
     (isoEndMapInv_partner iso (Classical.choose_spec j.property).1)
 
+/-- The inverse edge map recovers an internal edge from its image. -/
 theorem isoEdgeMapInv_isoEdgeMap (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
     isoEdgeMapInv iso (isoEdgeMap iso i) = i := by
   apply Subtype.ext
@@ -1940,6 +2178,7 @@ theorem isoEdgeMapInv_isoEdgeMap (iso : NetIso N₁ N₂) (i : InternalEdge N₁
   have h := isoEndMapInv_isoEndMap iso hlt
   exact congrArg Prod.fst h
 
+/-- The forward edge map recovers an internal edge from its inverse image. -/
 theorem isoEdgeMap_isoEdgeMapInv (iso : NetIso N₁ N₂) (j : InternalEdge N₂) :
     isoEdgeMap iso (isoEdgeMapInv iso j) = j := by
   apply Subtype.ext
@@ -1948,12 +2187,14 @@ theorem isoEdgeMap_isoEdgeMapInv (iso : NetIso N₁ N₂) (j : InternalEdge N₂
   have h := isoEndMap_isoEndMapInv iso hlt
   exact congrArg Prod.fst h
 
+/-- The equivalence of internal edges induced by a network isomorphism. -/
 noncomputable def edgeEquiv (iso : NetIso N₁ N₂) : InternalEdge N₁ ≃ InternalEdge N₂ where
   toFun := isoEdgeMap iso
   invFun := isoEdgeMapInv iso
   left_inv := isoEdgeMapInv_isoEdgeMap iso
   right_inv := isoEdgeMap_isoEdgeMapInv iso
 
+/-- A network isomorphism preserves the dimension of every internal edge. -/
 theorem isoEdgeMap_dims (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
     N₂.dims (isoEdgeMap iso i).val = N₁.dims i.val := by
   rw [isoEdgeMap_val]
@@ -1967,19 +2208,25 @@ theorem isoEdgeMap_dims (iso : NetIso N₁ N₂) (i : InternalEdge N₁) :
     rw [iso.dims_map]
     exact (N₁.dims_match i.val _ hpk).symm
 
+/-- Pulls an open-leg assignment back along a network isomorphism, transporting each finite
+index across the dimension equality. -/
 noncomputable def ext₁ (iso : NetIso N₁ N₂) (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val)) :
     ∀ o : OpenLeg N₁, Fin (N₁.dims o.val) :=
   fun o => (ext ⟨iso.halfMap o.val, by
     rw [iso.partner_map, o.property, Option.map_none]⟩).cast (iso.dims_map o.val)
 
+/-- Transporting a finite index along an equality of bounds preserves its natural value. -/
 theorem fin_cast_val {n m : ℕ} (h : n = m) (x : Fin n) : (x.cast h).val = x.val := by
   simp
 
+/-- Pulls an internal-edge assignment back along the induced edge map of a network isomorphism. -/
 noncomputable def edgeValMap (iso : NetIso N₁ N₂)
     (e₂ : ∀ i : InternalEdge N₂, Fin (N₂.dims i.val)) (i : InternalEdge N₁) :
     Fin (N₁.dims i.val) :=
   (e₂ (isoEdgeMap iso i)).cast (isoEdgeMap_dims iso i)
 
+/-- The equivalence between internal-edge assignments induced contravariantly by a network
+isomorphism. -/
 noncomputable def edgeValEquiv (iso : NetIso N₁ N₂) :
     (∀ i : InternalEdge N₂, Fin (N₂.dims i.val)) ≃
       (∀ i : InternalEdge N₁, Fin (N₁.dims i.val)) where
@@ -2001,10 +2248,14 @@ noncomputable def edgeValEquiv (iso : NetIso N₁ N₂) :
     apply Fin.ext
     exact congrArg (fun z => (e₁ z).val) (isoEdgeMapInv_isoEdgeMap iso i)
 
+/-- The chosen partner in an internal edge's witness equals any specified partner of its
+representative. -/
 theorem choose_eq_of_partner {N : TensorNet} (i : InternalEdge N) {k : Fin N.nh}
     (hpk : N.partner i.val = some k) : Classical.choose i.property = k :=
   partner_unique (Classical.choose_spec i.property).1 hpk
 
+/-- For an explicitly presented internal edge, the representative of its image is the first
+ordered image endpoint. -/
 theorem isoEdgeMap_val_fst (iso : NetIso N₁ N₂) {h k : Fin N₁.nh}
     (hpk : N₁.partner h = some k) (hlt : h < k) :
     (isoEdgeMap iso (⟨h, ⟨k, hpk, hlt⟩⟩ : InternalEdge N₁)).val = (isoEndMap iso h k).1 := by
@@ -2012,11 +2263,14 @@ theorem isoEdgeMap_val_fst (iso : NetIso N₁ N₂) {h k : Fin N₁.nh}
   refine congrArg (fun z => (isoEndMap iso h z).1) ?_
   exact choose_eq_of_partner (⟨h, ⟨k, hpk, hlt⟩⟩ : InternalEdge N₁) hpk
 
+/-- Pulling back an edge assignment preserves the natural value at the corresponding image edge. -/
 theorem edgeValMap_val (iso : NetIso N₁ N₂)
     (e₂ : ∀ i : InternalEdge N₂, Fin (N₂.dims i.val)) (i : InternalEdge N₁) :
     (edgeValMap iso e₂ i).val = (e₂ (isoEdgeMap iso i)).val :=
   fin_cast_val (isoEdgeMap_dims iso i) (e₂ (isoEdgeMap iso i))
 
+/-- Corresponding ports under a network isomorphism have the same natural value when external
+and internal assignments are pulled back. -/
 theorem portValue_iso_val (iso : NetIso N₁ N₂)
     (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val))
     (e₂ : ∀ i : InternalEdge N₂, Fin (N₂.dims i.val))
@@ -2124,6 +2378,8 @@ theorem portValue_iso_val (iso : NetIso N₁ N₂)
         rw [hL, hR]
         exact (congrArg (fun z => (e₂ z).val) key).symm
 
+/-- A port value is preserved by a network isomorphism after transporting it across the
+dimension equality. -/
 theorem portValue_iso_fin (iso : NetIso N₁ N₂)
     (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val))
     (e₂ : ∀ i : InternalEdge N₂, Fin (N₂.dims i.val))
@@ -2136,6 +2392,8 @@ theorem portValue_iso_fin (iso : NetIso N₁ N₂)
   rw [fin_cast_val]
   exact portValue_iso_val iso ext e₂ h
 
+/-- Expresses a target port value using the inverse half-edge map and the pulled-back
+assignments. -/
 theorem portValue_iso_fin' (iso : NetIso N₁ N₂)
     (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val))
     (e₂ : ∀ i : InternalEdge N₂, Fin (N₂.dims i.val))
@@ -2155,6 +2413,8 @@ theorem portValue_iso_fin' (iso : NetIso N₁ N₂)
     rw [hpp]
   exact hcong.trans hval
 
+/-- Corresponding vertex tensors evaluate equally under a network isomorphism and the induced
+pullback of port assignments. -/
 theorem vertexTensor_eq (iso : NetIso N₁ N₂)
     (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val))
     (e₂ : ∀ i : InternalEdge N₂, Fin (N₂.dims i.val))
@@ -2183,6 +2443,8 @@ theorem vertexTensor_eq (iso : NetIso N₁ N₂)
       (fun hh => portValue N₁ (ext₁ iso ext) (edgeValMap iso e₂) hh.val)
   exact hten
 
+/-- Tensor-network contraction is invariant under network isomorphism when the open-leg
+assignment is pulled back. -/
 theorem clause1_clause1 :
     ∀ (N₁ N₂ : TensorNet) (iso : NetIso N₁ N₂)
         (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val)),
@@ -2226,40 +2488,51 @@ set_option warningAsError false
 
 open scoped ComplexConjugate
 
+/-- An assignment of a finite index of the appropriate dimension to every half-edge of a tensor
+network. -/
 abbrev HalfAssign (N : TensorNet) : Type := ∀ h : Fin N.nh, Fin (N.dims h)
 
+/-- The partner endpoint of the representative of an internal edge. -/
 def edgeOther {N : TensorNet} (i : InternalEdge N) : Fin N.nh :=
   (N.partner i.val).getD i.val
 
+/-- A specified partner of an internal edge's representative equals its `edgeOther` endpoint. -/
 lemma edgeOther_of_partner {N : TensorNet} {i : InternalEdge N} {k : Fin N.nh}
     (hk : N.partner i.val = some k) : edgeOther i = k := by
   show (N.partner i.val).getD i.val = k
   rw [hk]
   rfl
 
+/-- The representative of an internal edge is paired with its `edgeOther` endpoint. -/
 lemma partner_edgeOther {N : TensorNet} (i : InternalEdge N) :
     N.partner i.val = some (edgeOther i) := by
   obtain ⟨k, hk, _hlt⟩ := i.property
   rw [edgeOther_of_partner hk]
   exact hk
 
+/-- The `edgeOther` endpoint is paired back with the representative of the internal edge. -/
 lemma partner_edgeOther_inv {N : TensorNet} (i : InternalEdge N) :
     N.partner (edgeOther i) = some i.val :=
   N.involution i.val (edgeOther i) (partner_edgeOther i)
 
+/-- The representative endpoint of an internal edge is strictly smaller than its other endpoint. -/
 lemma edgeOther_lt {N : TensorNet} (i : InternalEdge N) : i.val < edgeOther i := by
   obtain ⟨k, hk, hlt⟩ := i.property
   rw [edgeOther_of_partner hk]
   exact hlt
 
+/-- The two endpoints of an internal edge have equal dimensions. -/
 lemma dims_edgeOther {N : TensorNet} (i : InternalEdge N) :
     N.dims i.val = N.dims (edgeOther i) :=
   N.dims_match i.val (edgeOther i) (partner_edgeOther i)
 
+/-- The dimension at the other endpoint of an internal edge equals that at its representative. -/
 lemma dims_edgeOther' {N : TensorNet} (i : InternalEdge N) :
     N.dims (edgeOther i) = N.dims i.val :=
   (dims_edgeOther i).symm
 
+/-- The local gauge kernel on a half-edge, using the identity kernel on open legs and
+`gaugeKernel` on paired legs. -/
 noncomputable def legK {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (j : Fin N.nh) (a x : Fin (N.dims j)) : ℂ :=
@@ -2267,6 +2540,8 @@ noncomputable def legK {N : TensorNet}
   | none => if a = x then (1 : ℂ) else 0
   | some _k => gaugeKernel N U hk a x
 
+/-- Expands a gauge-transformed vertex tensor as a sum over local half-edge indices weighted by
+the product of `legK` kernels. -/
 lemma gaugeTensor_eq {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (v : Fin N.nv) (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
@@ -2275,17 +2550,21 @@ lemma gaugeTensor_eq {N : TensorNet}
         (∏ h : {h : Fin N.nh // N.site h = v}, legK U h.val (a h) (x h)) * N.tensor v x :=
   rfl
 
+/-- The port at the representative of an internal edge equals its assigned edge index. -/
 lemma portValue_rep {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val)) (i : InternalEdge N) :
     portValue N ext e i.val = e i :=
   portValue_of_partner_eq ext e i.val (edgeOther i) (partner_edgeOther i) (edgeOther_lt i)
 
+/-- The port at the other endpoint equals the assigned edge index transported across the
+endpoint dimension equality. -/
 lemma portValue_other {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val)) (i : InternalEdge N) :
     portValue N ext e (edgeOther i) = (e i).cast (dims_edgeOther i) :=
   portValue_of_partner_eq_rev ext e (edgeOther i) i.val
     (partner_edgeOther_inv i) (edgeOther_lt i) (partner_edgeOther i) (dims_edgeOther i)
 
+/-- Gauge transformation preserves port values for fixed external and internal assignments. -/
 lemma portValue_gaugeNet {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
@@ -2305,6 +2584,7 @@ lemma portValue_gaugeNet {N : TensorNet}
       rw [portValue_of_partner_eq_rev ext e j k hj hkj
         (N.involution j k hj) (N.dims_match k j (N.involution j k hj))]
 
+/-- On an open leg, `legK` is the Kronecker delta kernel. -/
 lemma legK_none {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     {j : Fin N.nh} (hj : N.partner j = none) (a x : Fin (N.dims j)) :
@@ -2314,6 +2594,7 @@ lemma legK_none {N : TensorNet}
   · next hnone => rfl
   · next k hk => exact absurd (hj.symm.trans hk) (by simp)
 
+/-- On the representative of an internal edge, `legK` is the corresponding gauge matrix entry. -/
 lemma legK_rep {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (i : InternalEdge N) (a x : Fin (N.dims i.val)) :
@@ -2328,6 +2609,8 @@ lemma legK_rep {N : TensorNet}
     simp only [gaugeKernel, dif_pos hlt]
     rfl
 
+/-- On the other endpoint of an internal edge, `legK` is the conjugate gauge matrix entry after
+transporting indices. -/
 lemma legK_other {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (i : InternalEdge N) (a x : Fin (N.dims (edgeOther i))) :
@@ -2343,12 +2626,15 @@ lemma legK_other {N : TensorNet}
     simp only [gaugeKernel, dif_neg hnlt]
     rfl
 
+/-- Maps an open leg or one of the two endpoints of an internal edge to its half-edge index. -/
 def halfEdgeDecFun (N : TensorNet) (z : OpenLeg N ⊕ InternalEdge N ⊕ InternalEdge N) : Fin N.nh :=
   match z with
   | Sum.inl o => o.val
   | Sum.inr (Sum.inl i) => i.val
   | Sum.inr (Sum.inr i) => edgeOther i
 
+/-- Classifies a half-edge as an open leg, an internal edge representative, or the other
+endpoint of an internal edge. -/
 def halfEdgeDecInv (N : TensorNet) (j : Fin N.nh) :
     OpenLeg N ⊕ InternalEdge N ⊕ InternalEdge N :=
   match hj : N.partner j with
@@ -2359,6 +2645,7 @@ def halfEdgeDecInv (N : TensorNet) (j : Fin N.nh) :
         Sum.inr (Sum.inr ⟨k, ⟨j, N.involution j k hj,
           (lt_or_gt_of_ne (N.no_self_loop j k hj)).resolve_left hlt⟩⟩)
 
+/-- Reconstructing a half-edge from its classification returns the original half-edge. -/
 lemma halfEdgeDecFun_inv (N : TensorNet) (j : Fin N.nh) :
     halfEdgeDecFun N (halfEdgeDecInv N j) = j := by
   simp only [halfEdgeDecInv]
@@ -2370,6 +2657,8 @@ lemma halfEdgeDecFun_inv (N : TensorNet) (j : Fin N.nh) :
     · next hnlt =>
       exact edgeOther_of_partner (N.involution j k hk)
 
+/-- Classifying a half-edge constructed from open-leg or internal-edge endpoint data recovers
+those data. -/
 lemma halfEdgeDecInv_fun (N : TensorNet)
     (z : OpenLeg N ⊕ InternalEdge N ⊕ InternalEdge N) :
     halfEdgeDecInv N (halfEdgeDecFun N z) = z := by
@@ -2405,6 +2694,7 @@ lemma halfEdgeDecInv_fun (N : TensorNet)
         · next hlt => exact absurd hlt (lt_asymm (edgeOther_lt i))
         · next hnlt => rfl
 
+/-- Decomposes all half-edges into open legs and two copies of the internal edges. -/
 def halfEdgeDec (N : TensorNet) :
     (OpenLeg N ⊕ InternalEdge N ⊕ InternalEdge N) ≃ Fin N.nh where
   toFun := halfEdgeDecFun N
@@ -2412,6 +2702,7 @@ def halfEdgeDec (N : TensorNet) :
   left_inv := halfEdgeDecInv_fun N
   right_inv := halfEdgeDecFun_inv N
 
+/-- A product over a finite sum type factors into the products over its two summands. -/
 lemma prod_sum_elim {ι κ : Type} [Fintype ι] [Fintype κ] (f : ι ⊕ κ → ℂ) :
     (∏ z : ι ⊕ κ, f z) = (∏ i : ι, f (Sum.inl i)) * ∏ k : κ, f (Sum.inr k) := by
   have h1 : (Finset.univ : Finset (ι ⊕ κ)) = Finset.univ.disjSum Finset.univ := by
@@ -2424,6 +2715,8 @@ lemma prod_sum_elim {ι κ : Type} [Fintype ι] [Fintype κ] (f : ι ⊕ κ → 
   exact Finset.prod_sumElim Finset.univ Finset.univ
     (fun i => f (Sum.inl i)) (fun k => f (Sum.inr k))
 
+/-- A product over all half-edges factors into open-leg factors and paired endpoint factors for
+each internal edge. -/
 lemma prod_halfEdge_eq {N : TensorNet} (f : Fin N.nh → ℂ) :
     (∏ h : Fin N.nh, f h)
       = (∏ o : OpenLeg N, f o.val) * ∏ i : InternalEdge N, (f i.val * f (edgeOther i)) := by
@@ -2434,6 +2727,8 @@ lemma prod_halfEdge_eq {N : TensorNet} (f : Fin N.nh → ℂ) :
   simp only [halfEdgeDecFun]
   rw [← Finset.prod_mul_distrib]
 
+/-- Identifies a vertex together with an incident half-edge with the corresponding global
+half-edge. -/
 def siteFiber (N : TensorNet) :
     (Σ v : Fin N.nv, {h : Fin N.nh // N.site h = v}) ≃ Fin N.nh where
   toFun x := x.2.val
@@ -2450,6 +2745,8 @@ def siteFiber (N : TensorNet) :
     intro j
     rfl
 
+/-- A product over vertices and their incident half-edges equals the product over all
+half-edges. -/
 lemma prod_local_eq_prod_global {N : TensorNet}
     (g : (v : Fin N.nv) → {h : Fin N.nh // N.site h = v} → ℂ) :
     (∏ v : Fin N.nv, ∏ h : {h : Fin N.nh // N.site h = v}, g v h)
@@ -2465,6 +2762,7 @@ lemma prod_local_eq_prod_global {N : TensorNet}
           subst hj
           rfl)
 
+/-- Identifies collections of local vertex assignments with a global half-edge assignment. -/
 def localAssignEquiv (N : TensorNet) :
     (∀ v : Fin N.nv, ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val))
       ≃ HalfAssign N where
@@ -2482,13 +2780,18 @@ def localAssignEquiv (N : TensorNet) :
     funext j
     rfl
 
+/-- The product of all vertex tensor entries evaluated at a global half-edge assignment. -/
 noncomputable def netTheta (N : TensorNet) (σ : HalfAssign N) : ℂ :=
   ∏ v : Fin N.nv, N.tensor v (fun h => σ h.val)
 
+/-- The global half-edge assignment determined by external leg values and internal edge values
+through `portValue`. -/
 noncomputable def portAssign {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val)) : HalfAssign N :=
   fun h => portValue N ext e h
 
+/-- The product of vertex tensor entries at local assignments equals `netTheta` at the
+corresponding global assignment. -/
 lemma prod_tensor_eq_netTheta {N : TensorNet}
     (F : ∀ v : Fin N.nv, ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
     (∏ v : Fin N.nv, N.tensor v (F v)) = netTheta N (localAssignEquiv N F) := by
@@ -2501,16 +2804,20 @@ lemma prod_tensor_eq_netTheta {N : TensorNet}
     subst hj
     rfl
 
+/-- The complex Kronecker delta is symmetric in its two arguments. -/
 lemma if_eq_comm {α : Type} [DecidableEq α] (a b : α) :
     (if a = b then (1 : ℂ) else 0) = if b = a then (1 : ℂ) else 0 := by
   by_cases h : a = b
   · rw [if_pos h, if_pos h.symm]
   · rw [if_neg h, if_neg (fun he => h he.symm)]
 
+/-- Transporting a finite index along an equality of bounds and then back returns the index. -/
 lemma cast_cast_self {n m : ℕ} (h1 : n = m) (h2 : m = n) (x : Fin n) :
     ((x.cast h1).cast h2) = x :=
   Fin.ext (by simp [Fin.cast])
 
+/-- Summing a unitary gauge matrix entry times a conjugate entry over the shared row gives the
+Kronecker delta of the endpoint indices. -/
 lemma unitary_edge_sum {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (hU : ∀ i, U i ∈ Matrix.unitaryGroup (Fin (N.dims i.val)) ℂ)
@@ -2550,16 +2857,21 @@ lemma unitary_edge_sum {N : TensorNet}
             exact he.symm
           rw [if_neg hp]
 
+/-- A half-edge assignment is consistent when it matches the external assignment on open legs
+and has equal natural values at paired endpoints. -/
 def GaugeConsistent {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (σ : HalfAssign N) : Prop :=
   (∀ o : OpenLeg N, σ o.val = ext o) ∧
     (∀ i : InternalEdge N, (σ i.val).val = (σ (edgeOther i)).val)
 
+/-- The product of Kronecker delta factors imposing the external assignments and equality of
+internal endpoint values. -/
 def deltaFactor {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (σ : HalfAssign N) : ℂ :=
   (∏ o : OpenLeg N, if σ o.val = ext o then (1 : ℂ) else 0) *
     ∏ i : InternalEdge N, if (σ i.val).val = (σ (edgeOther i)).val then (1 : ℂ) else 0
 
+/-- The delta factor of a consistent half-edge assignment is one. -/
 lemma deltaFactor_of_consistent {N : TensorNet}
     {ext : ∀ o : OpenLeg N, Fin (N.dims o.val)} {σ : HalfAssign N}
     (hc : GaugeConsistent ext σ) : deltaFactor ext σ = 1 := by
@@ -2569,6 +2881,7 @@ lemma deltaFactor_of_consistent {N : TensorNet}
   rw [Finset.prod_congr rfl (fun i _ => if_pos (hi i))]
   simp
 
+/-- The delta factor of an inconsistent half-edge assignment is zero. -/
 lemma deltaFactor_of_not_consistent {N : TensorNet}
     {ext : ∀ o : OpenLeg N, Fin (N.dims o.val)} {σ : HalfAssign N}
     (hc : ¬ GaugeConsistent ext σ) : deltaFactor ext σ = 0 := by
@@ -2589,6 +2902,8 @@ lemma deltaFactor_of_not_consistent {N : TensorNet}
     rw [Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)]
     simp
 
+/-- For unitary edge gauges, summing the product of half-edge kernels over internal assignments
+gives `deltaFactor`. -/
 lemma sum_e_legK {N : TensorNet}
     (U : ∀ i : InternalEdge N, Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ)
     (hU : ∀ i, U i ∈ Matrix.unitaryGroup (Fin (N.dims i.val)) ℂ)
@@ -2645,6 +2960,7 @@ lemma sum_e_legK {N : TensorNet}
           unitary_edge_sum U hU i (σ i.val) (σ (edgeOther i)))]
     _ = deltaFactor ext σ := rfl
 
+/-- The half-edge assignment induced by external and internal values is gauge consistent. -/
 lemma portAssign_consistent {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val)) :
     GaugeConsistent ext (portAssign ext e) := by
@@ -2656,6 +2972,7 @@ lemma portAssign_consistent {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dim
     rw [portValue_rep, portValue_other]
     simp [Fin.cast]
 
+/-- Two internal-edge assignments inducing the same half-edge assignment are equal. -/
 lemma portAssign_inj {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     {e₁ e₂ : ∀ i : InternalEdge N, Fin (N.dims i.val)}
     (h : portAssign ext e₁ = portAssign ext e₂) : e₁ = e₂ := by
@@ -2665,6 +2982,8 @@ lemma portAssign_inj {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val
   simp only [portValue_rep] at h1
   exact h1
 
+/-- A consistent half-edge assignment is recovered from its values at the representative
+internal endpoints and the prescribed external values. -/
 lemma portAssign_of_consistent {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (σ : HalfAssign N) (hc : GaugeConsistent ext σ) :
     portAssign ext (fun i => σ i.val) = σ := by
@@ -2689,6 +3008,8 @@ lemma portAssign_of_consistent {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.
           exact h2
         exact Fin.ext hi'
 
+/-- A sum over all half-edge assignments weighted by `deltaFactor` reduces to a sum over
+internal-edge assignments. -/
 lemma sum_delta_collapse {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (Θ : HalfAssign N → ℂ) :
     (∑ σ : HalfAssign N, Θ σ * deltaFactor ext σ)
@@ -2720,6 +3041,8 @@ lemma sum_delta_collapse {N : TensorNet} (ext : ∀ o : OpenLeg N, Fin (N.dims o
       rfl
   rw [hite, ← Finset.sum_filter, ← hbij]
 
+/-- Tensor-network contraction is invariant under unitary gauge transformations on all internal
+edges. -/
 theorem clause1_clause2 :
     ∀ (N : TensorNet) (U : ∀ i : InternalEdge N,
       Matrix (Fin (N.dims i.val)) (Fin (N.dims i.val)) ℂ),
@@ -2840,21 +3163,27 @@ section Structural
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The cut rank is the matrix rank of the corresponding cut matrix. -/
 theorem cutRank_eq_matrixRank (c : ℕ) :
     cutRank n d ψ c = Matrix.rank (cutMatrix n d ψ c) := rfl
 
+/-- The cut rank is at most the number `d ^ c` of left physical configurations. -/
 theorem cutRank_le_pow_left (c : ℕ) : cutRank n d ψ c ≤ d ^ c :=
   Matrix.rank_le_height (cutMatrix n d ψ c)
 
+/-- The cut rank is at most the number `d ^ (n - c)` of right physical configurations. -/
 theorem cutRank_le_pow_right (c : ℕ) : cutRank n d ψ c ≤ d ^ (n - c) :=
   Matrix.rank_le_width (cutMatrix n d ψ c)
 
+/-- The cut rank at the left boundary is at most one. -/
 theorem cutRank_le_one_left : cutRank n d ψ 0 ≤ 1 := by
   simpa [Nat.pow_zero] using! cutRank_le_pow_left ψ 0
 
+/-- The cut rank at the right boundary is at most one. -/
 theorem cutRank_le_one_right : cutRank n d ψ n ≤ 1 := by
   simpa [Nat.sub_self, Nat.pow_zero] using! cutRank_le_pow_right ψ n
 
+/-- A state whose squared amplitudes sum to one has a nonzero amplitude. -/
 theorem exists_ne_zero_of_normSq_eq_one (hnorm : ∑ x, Complex.normSq (ψ x) = 1) :
     ∃ x, ψ x ≠ 0 := by
   by_contra hn
@@ -2866,6 +3195,8 @@ theorem exists_ne_zero_of_normSq_eq_one (hnorm : ∑ x, Complex.normSq (ψ x) = 
     Finset.sum_eq_zero (fun x _ => by simp [hzero x])
   linarith
 
+/-- The rank of a complex matrix equals the complex dimension of the range of its associated
+Euclidean linear map. -/
 theorem rank_eq_finrank_range_toEuclideanLin {m k : ℕ} (M : Matrix (Fin m) (Fin k) ℂ) :
     Matrix.rank M = Module.finrank ℂ (LinearMap.range M.toEuclideanLin) := by
   rw [Matrix.rank_eq_finrank_range_toLin M
@@ -2876,24 +3207,31 @@ theorem rank_eq_finrank_range_toEuclideanLin {m k : ℕ} (M : Matrix (Fin m) (Fi
       (EuclideanSpace.basisFun (Fin m) ℂ).toBasis M := rfl
   rw [hM]
 
+/-- The support of the finitely supported singular-value sequence is exactly the natural-number
+range below the matrix rank. -/
 theorem support_matrixSingularValues_eq_range_rank {m k : ℕ} (M : Matrix (Fin m) (Fin k) ℂ) :
     (matrixSingularValues M).support = Finset.range (Matrix.rank M) := by
   rw [Qatlib.Concepts.RandCompile.ChannelBudget.support_matrixSingularValues,
     rank_eq_finrank_range_toEuclideanLin]
 
+/-- The singular-value support of a cut matrix is exactly the range below the cut rank. -/
 theorem support_matrixSingularValues_cutMatrix (c : ℕ) :
     (matrixSingularValues (cutMatrix n d ψ c)).support =
       Finset.range (cutRank n d ψ c) := by
   rw [support_matrixSingularValues_eq_range_rank, cutRank_eq_matrixRank]
 
+/-- The squared Schmidt tail is the sum of squared singular values at supported indices at least
+`D`. -/
 theorem schmidtTailSq_eq_sum (c D : ℕ) :
     schmidtTailSq n d ψ c D =
       ∑ i ∈ (matrixSingularValues (cutMatrix n d ψ c)).support.filter (fun i => D ≤ i),
         (matrixSingularValues (cutMatrix n d ψ c) i) ^ 2 := rfl
 
+/-- The squared Schmidt tail is nonnegative. -/
 theorem schmidtTailSq_nonneg (c D : ℕ) : 0 ≤ schmidtTailSq n d ψ c D :=
   Finset.sum_nonneg (fun _ _ => sq_nonneg _)
 
+/-- The squared Schmidt tail beyond `D` vanishes when the cut rank is at most `D`. -/
 theorem schmidtTailSq_eq_zero_of_cutRank_le {c D : ℕ} (h : cutRank n d ψ c ≤ D) :
     schmidtTailSq n d ψ c D = 0 := by
   unfold schmidtTailSq
@@ -2903,6 +3241,7 @@ theorem schmidtTailSq_eq_zero_of_cutRank_le {c D : ℕ} (h : cutRank n d ψ c �
   simp only [Finset.mem_filter, Finset.mem_range] at hi
   exact (by omega : False).elim
 
+/-- The squared Schmidt tail decreases when the truncation threshold increases. -/
 theorem schmidtTailSq_mono (c : ℕ) {D D' : ℕ} (h : D ≤ D') :
     schmidtTailSq n d ψ c D' ≤ schmidtTailSq n d ψ c D := by
   unfold schmidtTailSq
@@ -2910,6 +3249,8 @@ theorem schmidtTailSq_mono (c : ℕ) {D D' : ℕ} (h : D ≤ D') :
   simp only [Finset.mem_filter] at hi ⊢
   exact ⟨hi.1, le_trans h hi.2⟩
 
+/-- At sites satisfying `i + 2 ≤ n`, left canonicity gives orthonormal columns after summing
+over the physical and left bond indices. -/
 theorem leftCanonical_entrywise {D : ℕ} {A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ}
     (hA : LeftCanonical A) {i : Fin n} (hi : (i : ℕ) + 2 ≤ n) :
     ∀ r₁ r₂ : Fin D, (∑ x : Fin d, ∑ l : Fin D, star (A i x l r₁) * A i x l r₂)
@@ -2931,15 +3272,19 @@ theorem leftCanonical_entrywise {D : ℕ} {A : Fin n → Fin d → Matrix (Fin D
   rw [hsum, Matrix.one_apply (i := r₁) (j := r₂)] at hentry
   exact hentry
 
+/-- The maximum of one and the supremum of the cut ranks below `n` is nonzero. -/
 theorem neZero_max_one_supCutRank (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ) :
     NeZero (max 1 ((Finset.range n).sup fun c => cutRank n d ψ c)) :=
   ⟨Nat.pos_iff_ne_zero.mp
     (lt_of_lt_of_le (by norm_num : (0 : ℕ) < 1) (Nat.le_max_left 1 _))⟩
 
+/-- Every cut rank with `c < n` is bounded by the maximum of one and the supremum of those cut
+ranks. -/
 theorem cutRank_le_max_one_supCutRank (c : ℕ) (hc : c < n) :
     cutRank n d ψ c ≤ max 1 ((Finset.range n).sup fun c => cutRank n d ψ c) :=
   le_trans (Finset.le_sup (Finset.mem_range.mpr hc)) (Nat.le_max_right 1 _)
 
+/-- A complex matrix has rank zero exactly when it is the zero matrix. -/
 theorem matrixRank_eq_zero_iff {m k : ℕ} (M : Matrix (Fin m) (Fin k) ℂ) :
     Matrix.rank M = 0 ↔ M = 0 := by
   constructor
@@ -2958,6 +3303,7 @@ theorem matrixRank_eq_zero_iff {m k : ℕ} (M : Matrix (Fin m) (Fin k) ℂ) :
   · intro h
     rw [h, Matrix.rank_zero]
 
+/-- The boundary cut matrix at cut zero recovers each amplitude in its unique row. -/
 theorem cutMatrix_zero_apply (x : Fin n → Fin d) :
     cutMatrix n d ψ 0 ⟨0, by simp⟩ ((finPowEnc d n) x) = ψ x := by
   show ψ (splitJoin n 0 d ((finPowEnc d 0).symm ⟨0, by simp⟩)
@@ -2969,6 +3315,7 @@ theorem cutMatrix_zero_apply (x : Fin n → Fin d) :
   simp only [dif_neg hk]
   simp
 
+/-- A state with a nonzero amplitude has cut rank one at cut zero. -/
 theorem cutRank_zero_eq_one_of_ne (hψ : ∃ x, ψ x ≠ 0) : cutRank n d ψ 0 = 1 := by
   have hle : cutRank n d ψ 0 ≤ 1 := cutRank_le_one_left ψ
   have hne : cutRank n d ψ 0 ≠ 0 := by
@@ -2982,6 +3329,7 @@ theorem cutRank_zero_eq_one_of_ne (hψ : ∃ x, ψ x ≠ 0) : cutRank n d ψ 0 =
     exact hx key
   omega
 
+/-- The squared Schmidt tail beyond `D` vanishes exactly when the cut rank is at most `D`. -/
 theorem schmidtTailSq_eq_zero_iff {c D : ℕ} :
     schmidtTailSq n d ψ c D = 0 ↔ cutRank n d ψ c ≤ D := by
   constructor
@@ -3013,6 +3361,7 @@ end Structural
 
 section AmplitudeSmall
 
+/-- The amplitude of a one-site MPS is its tensor entry with both bond indices zero. -/
 theorem mpsAmplitude_one {d D : ℕ} [NeZero D] (A : Fin 1 → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin 1 → Fin d) : mpsAmplitude A x = A 0 (x 0) 0 0 := by
   unfold mpsAmplitude
@@ -3029,6 +3378,8 @@ end AmplitudeSmall
 
 section Clause2One
 
+/-- A normalized one-site state has a left-canonical MPS representation whose bond dimension is
+the maximum of one and its cut-rank supremum. -/
 theorem clause2_clause2_one (d : ℕ) (ψ : (Fin 1 → Fin d) → ℂ)
     (_hnorm : ∑ x, Complex.normSq (ψ x) = 1) :
     ∃ (D : ℕ) (hD : NeZero D) (A : Fin 1 → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -3056,21 +3407,26 @@ end Clause2One
 
 section Embed
 
+/-- Embeds a square matrix into a larger square matrix by padding all entries outside its
+original index range with zeros. -/
 noncomputable def mpsEmbed {D₀ D : ℕ} (_h : D₀ ≤ D) (B : Matrix (Fin D₀) (Fin D₀) ℂ) :
     Matrix (Fin D) (Fin D) ℂ :=
   Matrix.of fun i j =>
     if hi : (i : ℕ) < D₀ then if hj : (j : ℕ) < D₀ then B ⟨i, hi⟩ ⟨j, hj⟩ else 0 else 0
 
+/-- Inside the original row and column ranges, `mpsEmbed` agrees with the original matrix. -/
 theorem mpsEmbed_apply_of_lt {D₀ D : ℕ} {h : D₀ ≤ D} {B : Matrix (Fin D₀) (Fin D₀) ℂ}
     {i j : Fin D} (hi : (i : ℕ) < D₀) (hj : (j : ℕ) < D₀) :
     mpsEmbed h B i j = B ⟨i, hi⟩ ⟨j, hj⟩ := by
   simp [mpsEmbed, hi, hj]
 
+/-- An entry of `mpsEmbed` is zero when its row lies beyond the original matrix size. -/
 theorem mpsEmbed_apply_eq_zero_of_le {D₀ D : ℕ} {h : D₀ ≤ D} {B : Matrix (Fin D₀) (Fin D₀) ℂ}
     {i j : Fin D} (hi : D₀ ≤ (i : ℕ)) : mpsEmbed h B i j = 0 := by
   have hnot : ¬((i : ℕ) < D₀) := Nat.not_lt.mpr hi
   simp [mpsEmbed, hnot]
 
+/-- An entry of `mpsEmbed` is zero when its column lies beyond the original matrix size. -/
 theorem mpsEmbed_apply_eq_zero_of_le_right {D₀ D : ℕ} {h : D₀ ≤ D}
     {B : Matrix (Fin D₀) (Fin D₀) ℂ} {i j : Fin D} (hj : D₀ ≤ (j : ℕ)) :
     mpsEmbed h B i j = 0 := by
@@ -3079,6 +3435,8 @@ theorem mpsEmbed_apply_eq_zero_of_le_right {D₀ D : ℕ} {h : D₀ ≤ D}
     simp [mpsEmbed, hi, hnot]
   · exact mpsEmbed_apply_eq_zero_of_le (Nat.le_of_not_lt hi)
 
+/-- For positive `D₀`, if every internal bond value is below `D₀`, each left bond index is also
+below `D₀`. -/
 theorem mpsLeftIdx_lt_of_forall_lt {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
     {α : Fin (n - 1) → Fin D} (hα : ∀ j, (α j : ℕ) < D₀) (i : Fin n) :
     (mpsLeftIdx α i : ℕ) < D₀ := by
@@ -3092,6 +3450,8 @@ theorem mpsLeftIdx_lt_of_forall_lt {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
     · simp only [h1, ↓reduceDIte]
       exact NeZero.pos D₀
 
+/-- For positive `D₀`, if every internal bond value is below `D₀`, each right bond index is also
+below `D₀`. -/
 theorem mpsRightIdx_lt_of_forall_lt {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
     {α : Fin (n - 1) → Fin D} (hα : ∀ j, (α j : ℕ) < D₀) (i : Fin n) :
     (mpsRightIdx α i : ℕ) < D₀ := by
@@ -3102,6 +3462,7 @@ theorem mpsRightIdx_lt_of_forall_lt {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
   · simp only [h1, ↓reduceDIte]
     exact NeZero.pos D₀
 
+/-- Restricting bond values to `Fin D₀` commutes with forming the left bond index. -/
 theorem mpsLeftIdx_trunc {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
     {α : Fin (n - 1) → Fin D} (hα : ∀ j, (α j : ℕ) < D₀) (i : Fin n) :
     mpsLeftIdx (fun j => (⟨α j, hα j⟩ : Fin D₀)) i
@@ -3115,6 +3476,7 @@ theorem mpsLeftIdx_trunc {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
     · simp only [h1, ↓reduceDIte]
       exact Fin.ext rfl
 
+/-- Restricting bond values to `Fin D₀` commutes with forming the right bond index. -/
 theorem mpsRightIdx_trunc {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
     {α : Fin (n - 1) → Fin D} (hα : ∀ j, (α j : ℕ) < D₀) (i : Fin n) :
     mpsRightIdx (fun j => (⟨α j, hα j⟩ : Fin D₀)) i
@@ -3125,6 +3487,8 @@ theorem mpsRightIdx_trunc {n D D₀ : ℕ} [NeZero D] [NeZero D₀]
   · simp only [h1, ↓reduceDIte]
     exact Fin.ext rfl
 
+/-- When every bond value lies in the original index range, the product of embedded tensor
+entries equals the product of the original entries. -/
 theorem prod_embed_eq_prod_of_good {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (h : D₀ ≤ D)
     {A : Fin n → Fin d → Matrix (Fin D₀) (Fin D₀) ℂ} {x : Fin n → Fin d}
     {α : Fin (n - 1) → Fin D} (hα : ∀ j, (α j : ℕ) < D₀) :
@@ -3137,6 +3501,8 @@ theorem prod_embed_eq_prod_of_good {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (
   rw [mpsEmbed_apply_of_lt hl hr]
   rw [← mpsLeftIdx_trunc hα i, ← mpsRightIdx_trunc hα i]
 
+/-- The product of embedded tensor entries vanishes if some internal bond index lies outside the
+original range. -/
 theorem prod_embed_eq_zero_of_exists {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (h : D₀ ≤ D)
     {A : Fin n → Fin d → Matrix (Fin D₀) (Fin D₀) ℂ} {x : Fin n → Fin d}
     {α : Fin (n - 1) → Fin D} (hα : ∃ j, D₀ ≤ (α j : ℕ)) :
@@ -3155,6 +3521,7 @@ theorem prod_embed_eq_zero_of_exists {n d D₀ D : ℕ} [NeZero D₀] [NeZero D]
     exact mpsEmbed_apply_eq_zero_of_le_right hj
   exact Finset.prod_eq_zero (Finset.mem_univ j') hfac
 
+/-- Padding MPS tensors with zero rows and columns preserves every MPS amplitude. -/
 theorem mpsAmplitude_embed {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (h : D₀ ≤ D)
     (A : Fin n → Fin d → Matrix (Fin D₀) (Fin D₀) ℂ) (x : Fin n → Fin d) :
     mpsAmplitude (fun i y => mpsEmbed h (A i y)) x = mpsAmplitude A x := by
@@ -3204,6 +3571,7 @@ theorem mpsAmplitude_embed {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (h : D₀
       exact prod_embed_eq_prod_of_good h hα
   rw [hsplit, hfilter]
 
+/-- Padding MPS tensors with zeros preserves their representation of the state `ψ`. -/
 theorem isMpsRepresentation_embed {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (h : D₀ ≤ D)
     {A : Fin n → Fin d → Matrix (Fin D₀) (Fin D₀) ℂ} {ψ : (Fin n → Fin d) → ℂ}
     (hA : IsMpsRepresentation A ψ) :
@@ -3214,6 +3582,9 @@ theorem isMpsRepresentation_embed {n d D₀ D : ℕ} [NeZero D₀] [NeZero D] (h
 
 end Embed
 
+/-- If `ψ` has an exact MPS representation of bond dimension at most positive `D` and all its
+cut ranks are at most `D`, it has a bond-dimension-`D` approximation satisfying the stated
+Schmidt-tail bound. -/
 theorem clause2_clause3_of_exact_le (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ) {D : ℕ} (hD : 0 < D)
     (hex : ∃ (D₀ : ℕ) (h₀ : NeZero D₀) (A : Fin n → Fin d → Matrix (Fin D₀) (Fin D₀) ℂ),
       @IsMpsRepresentation n d D₀ h₀ A ψ ∧ D₀ ≤ D)
@@ -3238,6 +3609,8 @@ theorem clause2_clause3_of_exact_le (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     exact schmidtTailSq_eq_zero_of_cutRank_le ψ (hrank c hc)
   rw [hzero, Finset.sum_eq_zero htail, mul_zero]
 
+/-- For any one-site state and positive `D`, there are bond-dimension-`D` MPS tensors satisfying
+the squared-error bound by twice the sum of squared Schmidt tails. -/
 theorem clause2_clause3_one (d : ℕ) (ψ : (Fin 1 → Fin d) → ℂ) :
     ∀ D : ℕ, 0 < D →
       ∃ (hD : NeZero D) (A : Fin 1 → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -3259,6 +3632,7 @@ theorem clause2_clause3_one (d : ℕ) (ψ : (Fin 1 → Fin d) → ℂ) :
     subst hc0
     exact le_trans (cutRank_le_one_left ψ) (by omega : (1 : ℕ) ≤ D)
 
+/-- If `Mᴴ * M = 1`, the entrywise inner products of the columns of `M` are Kronecker deltas. -/
 theorem gram_apply_of_eq_one {m k : ℕ} {M : Matrix (Fin m) (Fin k) ℂ} (h : Mᴴ * M = 1)
     (j₁ j₂ : Fin k) : (∑ i : Fin m, star (M i j₁) * M i j₂) = if j₁ = j₂ then (1 : ℂ) else 0 := by
   have hentry := congrFun (congrFun h j₁) j₂
@@ -3271,6 +3645,7 @@ theorem gram_apply_of_eq_one {m k : ℕ} {M : Matrix (Fin m) (Fin k) ℂ} (h : M
   rw [hexp, Matrix.one_apply (i := j₁) (j := j₂)] at hentry
   exact hentry
 
+/-- Kronecker delta inner products of all column pairs imply `Mᴴ * M = 1`. -/
 theorem eq_one_of_gram_apply {m k : ℕ} (M : Matrix (Fin m) (Fin k) ℂ)
     (h : ∀ j₁ j₂ : Fin k, (∑ i : Fin m, star (M i j₁) * M i j₂) = if j₁ = j₂ then (1 : ℂ) else 0) :
     Mᴴ * M = 1 := by
@@ -3284,6 +3659,8 @@ theorem eq_one_of_gram_apply {m k : ℕ} (M : Matrix (Fin m) (Fin k) ℂ)
   rw [h1, Matrix.one_apply (i := j₁) (j := j₂)]
   exact h j₁ j₂
 
+/-- For positive `d` and `r ≤ D`, an isometric matrix with `r` columns in dimension `D * d`
+extends to an isometric matrix with `D` columns, preserving the original columns. -/
 theorem exists_isometry_extend {D r d : ℕ} (hr : r ≤ D) (hd : 0 < d)
     (V₀ : Matrix (Fin (D * d)) (Fin r) ℂ) (hV₀ : V₀ᴴ * V₀ = 1) :
     ∃ V : Matrix (Fin (D * d)) (Fin D) ℂ, Vᴴ * V = 1 ∧
@@ -3385,49 +3762,64 @@ section Clause1Peps
 
 variable {a b d D : ℕ}
 
+/-- The number of half-edges in the PEPS encoding: five per lattice site and, for a nonempty
+grid, `2 * (a + b)` additional half-edges. -/
 def pepsNh (a b : ℕ) : ℕ := 5 * a * b + (if a = 0 ∨ b = 0 then 0 else 2 * (a + b))
 
+/-- The PEPS encoding has zero half-edges if either lattice dimension is zero. -/
 theorem pepsNh_of_zero (h : a = 0 ∨ b = 0) : pepsNh a b = 0 := by
   rw [pepsNh, if_pos h, Nat.add_zero]
   rcases h with h | h <;> rw [h] <;> ring
 
+/-- For positive lattice dimensions, the PEPS encoding has `5 * a * b + 2 * (a + b)` half-edges. -/
 theorem pepsNh_of_pos (ha : 0 < a) (hb : 0 < b) : pepsNh a b = 5 * a * b + 2 * (a + b) := by
   rw [pepsNh, if_neg (by omega : ¬(a = 0 ∨ b = 0))]
 
+/-- The PEPS half-edge count is at least `5 * a * b`. -/
 theorem pepsNh_le (a b : ℕ) : 5 * a * b ≤ pepsNh a b := by
   rw [pepsNh]
   split_ifs <;> omega
 
+/-- An index in the additional PEPS half-edge range has offset below `2 * (a + b)`. -/
 theorem pepsNh_lt_add (a b : ℕ) (h : ¬(a = 0 ∨ b = 0)) (j : ℕ) (hj : 5 * a * b ≤ j)
     (hj2 : j < pepsNh a b) : j - 5 * a * b < 2 * (a + b) := by
   rw [pepsNh, if_neg h] at hj2
   omega
 
+/-- If neither lattice dimension is zero, both are positive. -/
 theorem pepsNh_pos_of_nzero (a b : ℕ) (h : ¬(a = 0 ∨ b = 0)) :
     0 < a ∧ 0 < b := by
   constructor <;> by_contra hc <;> apply h <;> omega
 
+/-- Assigns dimension `d` to each physical PEPS leg and dimension `D` to all other half-edges. -/
 def pepsDim (a b d D : ℕ) (j : ℕ) : ℕ := if j < 5 * a * b ∧ j % 5 = 0 then d else D
 
+/-- A regular PEPS half-edge whose index is divisible by five has physical dimension `d`. -/
 theorem pepsDim_phys (a b d D : ℕ) {j : ℕ} (h : j < 5 * a * b) (h2 : j % 5 = 0) :
     pepsDim a b d D j = d := by
   rw [pepsDim, if_pos ⟨h, h2⟩]
 
+/-- A PEPS half-edge whose index is not divisible by five has bond dimension `D`. -/
 theorem pepsDim_reg (a b d D : ℕ) {j : ℕ} (h2 : j % 5 ≠ 0) :
     pepsDim a b d D j = D := by
   rw [pepsDim, if_neg (fun ⟨_, hc⟩ => h2 hc)]
 
+/-- An additional half-edge beyond the five-per-site range has dimension `D`. -/
 theorem pepsDim_dummy (a b d D : ℕ) {j : ℕ} (h : 5 * a * b ≤ j) :
     pepsDim a b d D j = D := by
   rw [pepsDim, if_neg (fun ⟨hj, _⟩ => absurd hj (by omega))]
 
+/-- For `r < 5`, the remainder of `5 * k + r` modulo five is `r`. -/
 theorem pepsLeg_mod (k r : ℕ) (hr : r < 5) : (5 * k + r) % 5 = r := by
   rw [Nat.add_comm, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hr]
 
+/-- For `r < 5`, dividing `5 * k + r` by five gives `k`. -/
 theorem pepsLeg_div (k r : ℕ) (hr : r < 5) : (5 * k + r) / 5 = k := by
   rw [Nat.add_comm, Nat.add_mul_div_left _ _ (show 0 < 5 by omega), Nat.div_eq_of_lt hr]
   omega
 
+/-- For a site index `k < a * b` and leg offset `r < 5`, the regular half-edge index lies below
+`5 * a * b`. -/
 theorem pepsLeg_lt (a b k r : ℕ) (hk : k < a * b) (hr : r < 5) : 5 * k + r < 5 * a * b := by
   have h1 : 5 * k + r < 5 * (k + 1) := by omega
   have h2 : k + 1 ≤ a * b := by omega
@@ -3435,14 +3827,18 @@ theorem pepsLeg_lt (a b k r : ℕ) (hk : k < a * b) (hr : r < 5) : 5 * k + r < 5
   have h4 : 5 * a * b = 5 * (a * b) := by ring
   omega
 
+/-- Every regular PEPS leg index lies below the total half-edge count. -/
 theorem pepsLeg_lt_nh (a b k r : ℕ) (hk : k < a * b) (hr : r < 5) :
     5 * k + r < pepsNh a b := by
   have := pepsLeg_lt a b k r hk hr
   have := pepsNh_le a b
   omega
 
+/-- Division and remainder reconstruct a natural index as `b * (k / b) + k % b`. -/
 theorem peps_divmod (k b : ℕ) : b * (k / b) + k % b = k := Nat.div_add_mod k b
 
+/-- If incrementing the remainder does not reach `b`, incrementing an index preserves its
+quotient and increments its remainder. -/
 theorem peps_mod_div_succ (k b : ℕ) (hb : 0 < b) (h : k % b + 1 < b) :
     (k + 1) % b = k % b + 1 ∧ (k + 1) / b = k / b := by
   have hd := peps_divmod k b
@@ -3456,6 +3852,8 @@ theorem peps_mod_div_succ (k b : ℕ) (hb : 0 < b) (h : k % b + 1 < b) :
     omega
   exact ⟨by rw [he]; exact h1, by rw [he]; exact h2⟩
 
+/-- For a positive divisor and nonzero remainder, decrementing an index preserves its quotient
+and decrements its remainder. -/
 theorem peps_mod_div_pred (k b : ℕ) (hb : 0 < b) (h : k % b ≠ 0) :
     (k - 1) % b = k % b - 1 ∧ (k - 1) / b = k / b := by
   have hd := peps_divmod k b
@@ -3471,6 +3869,7 @@ theorem peps_mod_div_pred (k b : ℕ) (hb : 0 < b) (h : k % b ≠ 0) :
     omega
   exact ⟨by rw [he]; exact h1, by rw [he]; exact h2⟩
 
+/-- For positive `a` and `b`, the last index `a * b - 1` has remainder `b - 1` modulo `b`. -/
 theorem peps_mod_last (a b : ℕ) (ha : 0 < a) (hb : 0 < b) : (a * b - 1) % b = b - 1 := by
   have h1 : b * (a - 1) + (b - 1) = a * b - 1 := by
     have h5 : (a - 1) + 1 = a := by omega
@@ -3484,6 +3883,8 @@ theorem peps_mod_last (a b : ℕ) (ha : 0 < a) (hb : 0 < b) : (a * b - 1) % b = 
   rw [← h1, Nat.add_comm (b * (a - 1)), Nat.add_mul_mod_self_left,
     Nat.mod_eq_of_lt (by omega : b - 1 < b)]
 
+/-- A regular site index can be incremented within the grid when its remainder modulo `b` has
+room to increase. -/
 theorem peps_down_bound (a b k : ℕ) (ha : 0 < a) (hb : 0 < b) (h : k % b + 1 < b)
     (h2 : k < a * b) : k + 1 < a * b := by
   by_contra hc
@@ -3492,6 +3893,8 @@ theorem peps_down_bound (a b k : ℕ) (ha : 0 < a) (hb : 0 < b) (h : k % b + 1 <
   rw [hk] at h
   omega
 
+/-- Assigns regular PEPS legs to their lattice sites and additional half-edge pairs to boundary
+sites. -/
 def pepsSite (a b : ℕ) (j : Fin (pepsNh a b)) : Fin (a * b) :=
   if h : a = 0 ∨ b = 0 then
     (by
@@ -3524,6 +3927,8 @@ def pepsSite (a b : ℕ) (j : Fin (pepsNh a b)) : Fin (a * b) :=
             Nat.mul_le_mul_right b h2
           omega⟩
 
+/-- Pairs neighboring PEPS bond legs and the additional half-edge pairs, leaving physical and
+outer boundary legs unpaired. -/
 def pepsPartner (a b : ℕ) (j : Fin (pepsNh a b)) : Option (Fin (pepsNh a b)) :=
   if h : a = 0 ∨ b = 0 then
     none
@@ -3591,9 +3996,11 @@ def pepsPartner (a b : ℕ) (j : Fin (pepsNh a b)) : Option (Fin (pepsNh a b)) :
         have := j.isLt
         omega⟩
 
+/-- Positive lattice dimensions imply that neither lattice dimension is zero. -/
 theorem peps_not_zero (a b : ℕ) (ha : 0 < a) (hb : 0 < b) : ¬(a = 0 ∨ b = 0) := by
   omega
 
+/-- A physical PEPS leg is unpaired. -/
 theorem pepsPartner_phys (a b k : ℕ) (ha : 0 < a) (hb : 0 < b) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k, pepsLeg_lt_nh a b k 0 hk (by omega)⟩ = none := by
   have hz := peps_not_zero a b ha hb
@@ -3603,6 +4010,7 @@ theorem pepsPartner_phys (a b k : ℕ) (ha : 0 < a) (hb : 0 < b) (hk : k < a * b
   simp only [pepsPartner, dif_neg hz, dif_pos hreg, hmod, hdiv,
     dif_pos (by trivial : True)]
 
+/-- For `b ≤ k`, the left leg at site `k` is paired with the right leg at site `k - b`. -/
 theorem pepsPartner_left_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : b ≤ k) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 1, pepsLeg_lt_nh a b k 1 hk (by omega)⟩
@@ -3622,6 +4030,7 @@ theorem pepsPartner_left_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   show (5 * k + 1 : ℕ) - 5 * b + 1 = 5 * (k - b) + 2
   omega
 
+/-- For `k < b`, the left leg at site `k` is an unpaired boundary leg. -/
 theorem pepsPartner_left_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : k < b) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 1, pepsLeg_lt_nh a b k 1 hk (by omega)⟩ = none := by
@@ -3633,6 +4042,7 @@ theorem pepsPartner_left_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     dif_neg (by omega : ¬((1 : ℕ) = 0)), dif_pos (by trivial : True),
     dif_pos hkb]
 
+/-- If `k + b < a * b`, the right leg at site `k` is paired with the left leg at site `k + b`. -/
 theorem pepsPartner_right_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : k + b < a * b) :
     pepsPartner a b ⟨5 * k + 2, pepsLeg_lt_nh a b k 2 (by omega) (by omega)⟩
@@ -3652,6 +4062,7 @@ theorem pepsPartner_right_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   show (5 * k + 2 : ℕ) + 5 * b - 1 = 5 * (k + b) + 1
   omega
 
+/-- If `k + b` lies beyond the grid, the right leg at site `k` is unpaired. -/
 theorem pepsPartner_right_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : ¬(k + b < a * b)) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 2, pepsLeg_lt_nh a b k 2 hk (by omega)⟩ = none := by
@@ -3663,6 +4074,7 @@ theorem pepsPartner_right_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     dif_neg (by omega : ¬((2 : ℕ) = 0)), dif_neg (by omega : ¬((2 : ℕ) = 1)),
     dif_pos (by trivial : True), dif_neg hkb]
 
+/-- If `k % b + 1 < b`, the down leg at site `k` is paired with the up leg at site `k + 1`. -/
 theorem pepsPartner_down_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : k % b + 1 < b) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 3, pepsLeg_lt_nh a b k 3 hk (by omega)⟩
@@ -3683,6 +4095,7 @@ theorem pepsPartner_down_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   show (5 * k + 3 : ℕ) + 6 = 5 * (k + 1) + 4
   omega
 
+/-- If `k % b + 1` is not below `b`, the down leg at site `k` is unpaired. -/
 theorem pepsPartner_down_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : ¬(k % b + 1 < b)) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 3, pepsLeg_lt_nh a b k 3 hk (by omega)⟩ = none := by
@@ -3695,6 +4108,7 @@ theorem pepsPartner_down_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     dif_neg (by omega : ¬((3 : ℕ) = 2)), dif_pos (by trivial : True),
     dif_neg hkb]
 
+/-- If `k % b` is nonzero, the up leg at site `k` is paired with the down leg at site `k - 1`. -/
 theorem pepsPartner_up_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : k % b ≠ 0) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 4, pepsLeg_lt_nh a b k 4 hk (by omega)⟩
@@ -3724,6 +4138,7 @@ theorem pepsPartner_up_bond (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
   show (5 * k + 4 : ℕ) - 6 = 5 * (k - 1) + 3
   omega
 
+/-- If `k % b = 0`, the up leg at site `k` is unpaired. -/
 theorem pepsPartner_up_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hkb : k % b = 0) (hk : k < a * b) :
     pepsPartner a b ⟨5 * k + 4, pepsLeg_lt_nh a b k 4 hk (by omega)⟩ = none := by
@@ -3736,6 +4151,8 @@ theorem pepsPartner_up_open (a b k : ℕ) (ha : 0 < a) (hb : 0 < b)
     dif_neg (by omega : ¬((4 : ℕ) = 2)), dif_neg (by omega : ¬((4 : ℕ) = 3)),
     dif_pos hkb]
 
+/-- The additional half-edge at offset `2 * m` from `5 * a * b` is paired with the one at offset
+`2 * m + 1`. -/
 theorem pepsPartner_dummy_even (a b m : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hm : m < a + b) :
     pepsPartner a b ⟨5 * a * b + 2 * m, by
@@ -3749,6 +4166,8 @@ theorem pepsPartner_dummy_even (a b m : ℕ) (ha : 0 < a) (hb : 0 < b)
   have hmod : ((5 * a * b + 2 * m) - 5 * a * b) % 2 = 0 := by omega
   simp only [pepsPartner, dif_neg hz, dif_neg hreg, dif_pos hmod]
 
+/-- The additional half-edge at offset `2 * m + 1` from `5 * a * b` is paired with the one at
+offset `2 * m`. -/
 theorem pepsPartner_dummy_odd (a b m : ℕ) (ha : 0 < a) (hb : 0 < b)
     (hm : m < a + b) :
     pepsPartner a b ⟨5 * a * b + 2 * m + 1, by
@@ -3766,6 +4185,8 @@ theorem pepsPartner_dummy_odd (a b m : ℕ) (ha : 0 < a) (hb : 0 < b)
   show (5 * a * b + 2 * m + 1 : ℕ) - 1 = 5 * a * b + 2 * m
   omega
 
+/-- Every paired PEPS half-edge belongs to one of the four directed lattice-bond cases or the
+two directed additional-pair cases. -/
 theorem pepsPartner_classify (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
     (j k : Fin (pepsNh a b)) (hj : pepsPartner a b j = some k) :
     (∃ m, (j : ℕ) = 5 * m + 1 ∧ (k : ℕ) = 5 * (m - b) + 2 ∧ b ≤ m ∧ m < a * b) ∨
@@ -3845,6 +4266,7 @@ theorem pepsPartner_classify (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
         exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
           ⟨((j : ℕ) - 5 * a * b) / 2, by omega, by omega, by omega⟩))))
 
+/-- The PEPS partner relation is involutive. -/
 theorem pepsPartner_involution (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
     (j k : Fin (pepsNh a b)) (hj : pepsPartner a b j = some k) :
     pepsPartner a b k = some j := by
@@ -3922,6 +4344,7 @@ theorem pepsPartner_involution (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
     show (5 * a * b + 2 * m + 1 : ℕ) = (j : ℕ)
     omega
 
+/-- A paired PEPS half-edge is distinct from its partner. -/
 theorem pepsPartner_no_self (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
     (j k : Fin (pepsNh a b)) (hj : pepsPartner a b j = some k) : j ≠ k := by
   intro heq
@@ -3942,6 +4365,7 @@ theorem pepsPartner_no_self (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
   · omega
   · omega
 
+/-- Paired PEPS half-edges have equal dimensions. -/
 theorem pepsPartner_dims (a b d D : ℕ) (ha : 0 < a) (hb : 0 < b)
     (j k : Fin (pepsNh a b)) (hj : pepsPartner a b j = some k) :
     pepsDim a b d D j = pepsDim a b d D k := by
@@ -3956,10 +4380,12 @@ theorem pepsPartner_dims (a b d D : ℕ) (ha : 0 < a) (hb : 0 < b)
   · rw [pepsDim_dummy a b d D (by omega), pepsDim_dummy a b d D (by omega)]
   · rw [pepsDim_dummy a b d D (by omega), pepsDim_dummy a b d D (by omega)]
 
+/-- Every half-edge that is not a physical PEPS leg has dimension `D`. -/
 theorem pepsDim_of_not_phys (a b d D : ℕ) {j : ℕ}
     (h : ¬(j < 5 * a * b ∧ j % 5 = 0)) : pepsDim a b d D j = D := by
   rw [pepsDim, if_neg h]
 
+/-- All five regular legs at a PEPS site are assigned to that site. -/
 theorem pepsSite_leg (a b : ℕ) (v : Fin (a * b)) (r : ℕ) (hr : r < 5) :
     pepsSite a b ⟨5 * (v : ℕ) + r, pepsLeg_lt_nh a b (v : ℕ) r v.isLt hr⟩ = v := by
   by_cases hz : a = 0 ∨ b = 0
@@ -3970,12 +4396,15 @@ theorem pepsSite_leg (a b : ℕ) (v : Fin (a * b)) (r : ℕ) (hr : r < 5) :
     show (5 * (v : ℕ) + r) / 5 = (v : ℕ)
     exact pepsLeg_div (v : ℕ) r hr
 
+/-- A regular PEPS leg with nonzero offset below five has dimension `D`. -/
 theorem pepsDim_bond_leg (a b d D v r : ℕ) (hr : r < 5) (hne : r ≠ 0) :
     pepsDim a b d D (5 * v + r) = D := by
   apply pepsDim_reg
   rw [pepsLeg_mod v r hr]
   exact hne
 
+/-- The local PEPS tensor obtained from `T` using the physical and four directional legs, with
+outer boundary bond indices fixed to zero. -/
 noncomputable def pepsTensor (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (v : Fin (a * b))
@@ -4004,6 +4433,8 @@ noncomputable def pepsTensor (a b d D : ℕ) [NeZero D]
         (α ⟨⟨5 * (v : ℕ) + 4, pepsLeg_lt_nh a b (v : ℕ) 4 v.isLt (by omega)⟩,
           pepsSite_leg a b v 4 (by omega)⟩))
 
+/-- Encodes the PEPS tensors `T` as a tensor network on the rectangular grid, including the
+additional paired half-edges. -/
 noncomputable def pepsNet (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ) :
     TensorNet where
@@ -4047,6 +4478,8 @@ noncomputable def pepsNet (a b d D : ℕ) [NeZero D]
       exact pepsPartner_dims a b d D ha hb j k hj
   tensor := pepsTensor a b d D T
 
+/-- Encodes the physical configuration on PEPS physical legs and assigns zero to all other open
+legs. -/
 noncomputable def pepsEnc (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4062,9 +4495,11 @@ noncomputable def pepsEnc (a b d D : ℕ) [NeZero D]
   else
     (0 : Fin D).cast (pepsDim_of_not_phys a b d D h).symm
 
+/-- Incrementing the first lattice coordinate increases the flattened site index by `b`. -/
 theorem peps_ib_succ (i c b : ℕ) : (i + 1) * b + c = i * b + c + b := by
   ring
 
+/-- Flattening valid coordinates `i < a` and `c < b` gives an index below `a * b`. -/
 theorem peps_ib_lt (a b i c : ℕ) (hi : i < a) (hc : c < b) : i * b + c < a * b := by
   have h1 : (a - 1) * b + b = a * b := by
     have : (a - 1) + 1 = a := by omega
@@ -4073,6 +4508,7 @@ theorem peps_ib_lt (a b i c : ℕ) (hi : i < a) (hc : c < b) : i * b + c < a * b
   have h3 : i * b ≤ (a - 1) * b := Nat.mul_le_mul_right b h2
   nlinarith
 
+/-- If the next first-coordinate site exists, its flattened index remains below `a * b`. -/
 theorem peps_ib_add_b_lt (a b i c : ℕ) (hi : i + 1 < a) (hc : c < b) :
     i * b + c + b < a * b := by
   have h1 : (a - 1) * b + b = a * b := by
@@ -4083,28 +4519,39 @@ theorem peps_ib_add_b_lt (a b i c : ℕ) (hi : i + 1 < a) (hc : c < b) :
   have h4 : (i + 1) * b + c = i * b + c + b := peps_ib_succ i c b
   nlinarith
 
+/-- The flattened index `i * b + (c + 1)` remains below `a * b` when `i < a` and `c + 1 < b`. -/
 theorem peps_ib_succ_col (a b i c : ℕ) (hi : i < a) (hc : c + 1 < b) :
     i * b + (c + 1) < a * b := by
   exact peps_ib_lt a b i (c + 1) hi hc
 
+/-- The existence of a lattice coordinate in `Fin a × Fin b` forces both lattice dimensions to
+be positive. -/
 theorem peps_pos_of_fin (a b : ℕ) (p : Fin a × Fin b) : 0 < a ∧ 0 < b := by
   constructor
   · by_contra hc; exact absurd p.1.isLt (by omega)
   · by_contra hc; exact absurd p.2.isLt (by omega)
 
+/-- Taking the remainder of the flattened index `i * b + c` modulo positive `b` recovers `c`
+whenever `c < b`. -/
 theorem peps_ib_mod (i c b : ℕ) (_hb : 0 < b) (hc : c < b) : (i * b + c) % b = c := by
   rw [Nat.add_comm (i * b), Nat.mul_comm i b, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hc]
 
+/-- The half-edge index `5 * a * b + 2 * m` of a dummy pair lies below `pepsNh a b` for positive
+lattice dimensions and `m < a + b`. -/
 theorem pepsNh_dummy_lt (a b m : ℕ) (ha : 0 < a) (hb : 0 < b) (hm : m < a + b) :
     5 * a * b + 2 * m < pepsNh a b := by
   have := pepsNh_of_pos ha hb
   omega
 
+/-- The half-edge index `5 * a * b + 2 * m + 1` of a dummy pair lies below `pepsNh a b` for
+positive lattice dimensions and `m < a + b`. -/
 theorem pepsNh_dummy_lt1 (a b m : ℕ) (ha : 0 < a) (hb : 0 < b) (hm : m < a + b) :
     5 * a * b + 2 * m + 1 < pepsNh a b := by
   have := pepsNh_of_pos ha hb
   omega
 
+/-- Selects the internal edge for the right-going bond at a PEPS site, using the corresponding
+dummy edge when the site lies on the right boundary. -/
 noncomputable def pepsEdgeR (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) : InternalEdge (pepsNet a b d D T) :=
@@ -4128,6 +4575,8 @@ noncomputable def pepsEdgeR (a b d D : ℕ) [NeZero D]
         pepsPartner_dummy_even a b (p.2 : ℕ) hpos.1 hpos.2 hm,
         Fin.mk_lt_mk.mpr (by omega)⟩⟩
 
+/-- Selects the internal edge for the downward bond at a PEPS site, using the corresponding
+dummy edge when the site lies on the bottom boundary. -/
 noncomputable def pepsEdgeD (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) : InternalEdge (pepsNet a b d D T) :=
@@ -4157,9 +4606,12 @@ noncomputable def pepsEdgeD (a b d D : ℕ) [NeZero D]
         pepsPartner_dummy_even a b (b + (p.1 : ℕ)) hpos.1 hpos.2 hm,
         Fin.mk_lt_mk.mpr (by omega)⟩⟩
 
+/-- Dividing the flattened index `i * b + c` by positive `b` recovers `i` whenever `c < b`. -/
 theorem peps_ib_div (i c b : ℕ) (hb : 0 < b) (hc : c < b) : (i * b + c) / b = i := by
   rw [Nat.mul_comm i b, Nat.mul_add_div hb, Nat.div_eq_of_lt hc, Nat.add_zero]
 
+/-- For an in-bounds coordinate, a right neighbor exists exactly when adding `b` to its
+flattened index remains below `a * b`. -/
 theorem peps_right_cond (a b i c : ℕ) (_hb : 0 < b) (hi : i < a) (hc : c < b) :
     (i + 1 < a) ↔ (i * b + c + b < a * b) := by
   constructor
@@ -4175,10 +4627,14 @@ theorem peps_right_cond (a b i c : ℕ) (_hb : 0 < b) (hi : i < a) (hc : c < b) 
       exact Nat.mul_le_mul_right b this
     nlinarith
 
+/-- An index below `a * b` has quotient by `b` strictly below `a`. -/
 theorem peps_mb_div (a b m : ℕ) (hmb : m < a * b) : m / b < a := by
   apply Nat.div_lt_of_lt_mul
   rwa [Nat.mul_comm]
 
+/-- The smaller half-edge of a PEPS internal edge is either a right-bond leg, a down-bond leg,
+or the even half of a dummy pair. Each case includes the bounds on its underlying site or
+dummy index. -/
 theorem peps_rep_form (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
     (j k : Fin (pepsNh a b)) (hj : pepsPartner a b j = some k) (hlt : j < k) :
     (∃ m, (j : ℕ) = 5 * m + 2 ∧ m + b < a * b ∧ m < a * b) ∨
@@ -4206,6 +4662,9 @@ theorem peps_rep_form (a b : ℕ) (ha : 0 < a) (hb : 0 < b)
       simp only [Fin.lt_def]
       omega)
 
+/-- Decodes a PEPS internal edge into a lattice site and a direction flag, with `true` for
+right-going edges and `false` for downward edges. Dummy edges decode to their associated
+boundary sites. -/
 noncomputable def pepsEdgeIdx (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (i : InternalEdge (pepsNet a b d D T)) : (Fin a × Fin b) × Bool :=
@@ -4250,30 +4709,40 @@ noncomputable def pepsEdgeIdx (a b d D : ℕ) [NeZero D]
           omega⟩,
         ⟨b - 1, by omega⟩⟩, false)
 
+/-- Away from the right boundary, the representative half-edge of `pepsEdgeR` has index `5 *
+(p.1 * b + p.2) + 2`. -/
 theorem pepsEdgeR_val_bond (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : (p.1 : ℕ) + 1 < a) :
     ((pepsEdgeR a b d D T p).val : ℕ) = 5 * ((p.1 : ℕ) * b + (p.2 : ℕ)) + 2 := by
   simp only [pepsEdgeR, dif_pos h]
 
+/-- At the right boundary, the representative half-edge of `pepsEdgeR` has dummy index `5 * a *
+b + 2 * p.2`. -/
 theorem pepsEdgeR_val_dummy (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : ¬(p.1 : ℕ) + 1 < a) :
     ((pepsEdgeR a b d D T p).val : ℕ) = 5 * a * b + 2 * (p.2 : ℕ) := by
   simp only [pepsEdgeR, dif_neg h]
 
+/-- Away from the bottom boundary, the representative half-edge of `pepsEdgeD` has index `5 *
+(p.1 * b + p.2) + 3`. -/
 theorem pepsEdgeD_val_bond (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : (p.2 : ℕ) + 1 < b) :
     ((pepsEdgeD a b d D T p).val : ℕ) = 5 * ((p.1 : ℕ) * b + (p.2 : ℕ)) + 3 := by
   simp only [pepsEdgeD, dif_pos h]
 
+/-- At the bottom boundary, the representative half-edge of `pepsEdgeD` has dummy index `5 * a *
+b + 2 * (b + p.1)`. -/
 theorem pepsEdgeD_val_dummy (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) (h : ¬(p.2 : ℕ) + 1 < b) :
     ((pepsEdgeD a b d D T p).val : ℕ) = 5 * a * b + 2 * (b + (p.1 : ℕ)) := by
   simp only [pepsEdgeD, dif_neg h]
 
+/-- Decoding the right-going edge associated with `p` returns the site `p` and the direction
+flag `true`. -/
 theorem pepsEdgeIdx_edgeR (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) :
@@ -4306,6 +4775,8 @@ theorem pepsEdgeIdx_edgeR (a b d D : ℕ) [NeZero D]
     have h2 : a - 1 = (p.1 : ℕ) := by have := p.1.isLt; omega
     simp only [h2]
 
+/-- Decoding the downward edge associated with `p` returns the site `p` and the direction flag
+`false`. -/
 theorem pepsEdgeIdx_edgeD (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (p : Fin a × Fin b) :
@@ -4340,9 +4811,12 @@ theorem pepsEdgeIdx_edgeD (a b d D : ℕ) [NeZero D]
     have h2 : b - 1 = (p.2 : ℕ) := by have := p.2.isLt; omega
     simp only [h2]
 
+/-- The quotient and remainder reconstruct a natural number as `(m / b) * b + m % b = m`. -/
 theorem peps_divmod_symm (m b : ℕ) : (m / b) * b + m % b = m := by
   rw [Nat.mul_comm, Nat.div_add_mod]
 
+/-- Every internal edge of the encoded PEPS network has dimension `D`, including its dummy
+edges. -/
 theorem pepsDim_internal (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (i : InternalEdge (pepsNet a b d D T)) :
@@ -4365,6 +4839,8 @@ theorem pepsDim_internal (a b d D : ℕ) [NeZero D]
   · rw [pepsDim_reg a b d D (by omega)]
   · rw [pepsDim_dummy a b d D (by omega)]
 
+/-- Reconstructing the right-going or downward edge selected by `pepsEdgeIdx` recovers the
+original PEPS internal edge. -/
 theorem pepsEdge_of_idx (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (i : InternalEdge (pepsNet a b d D T)) :
@@ -4460,6 +4936,9 @@ theorem pepsEdge_of_idx (a b d D : ℕ) [NeZero D]
       show ((pepsEdgeD a b d D T ⟨⟨m - b, by omega⟩, ⟨b - 1, by omega⟩⟩).val : ℕ) = i.val.val
       rw [hval, hjm]
 
+/-- Identifies assignments to PEPS internal edges with a pair of `Fin D` values at every lattice
+site. The two components label the site's right-going and downward edges, including boundary
+dummy edges. -/
 noncomputable def pepsEdgeEquiv (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ) :
     (∀ i : InternalEdge (pepsNet a b d D T), Fin ((pepsNet a b d D T).dims i.val)) ≃
@@ -4500,13 +4979,20 @@ noncomputable def pepsEdgeEquiv (a b d D : ℕ) [NeZero D]
     · exact Fin.ext (by rfl)
     · exact Fin.ext (by rfl)
 
+/-- Decodes a flattened PEPS vertex index into its pair of lattice coordinates using the
+standard finite-product equivalence. -/
 def pepsP (a b : ℕ) (v : Fin (a * b)) : Fin a × Fin b :=
   (finProdFinEquiv (m := a) (n := b)).symm v
 
+/-- The first coordinate of `pepsP a b v` is the quotient of the flattened index `v` by `b`. -/
 theorem pepsP_fst (a b : ℕ) (v : Fin (a * b)) : ((pepsP a b v).1 : ℕ) = (v : ℕ) / b := rfl
 
+/-- The second coordinate of `pepsP a b v` is the remainder of the flattened index `v` modulo
+`b`. -/
 theorem pepsP_snd (a b : ℕ) (v : Fin (a * b)) : ((pepsP a b v).2 : ℕ) = (v : ℕ) % b := rfl
 
+/-- The existence of a flattened vertex in `Fin (a * b)` forces both lattice dimensions to be
+positive. -/
 theorem peps_pos_of_v (a b : ℕ) (v : Fin (a * b)) : 0 < a ∧ 0 < b := by
   constructor
   · by_contra hc
@@ -4520,10 +5006,13 @@ theorem peps_pos_of_v (a b : ℕ) (v : Fin (a * b)) : 0 < a ∧ 0 < b := by
     have hlt := v.isLt
     omega
 
+/-- Flattening the two coordinates decoded by `pepsP` recovers the original vertex index. -/
 theorem peps_coord_right (a b : ℕ) (v : Fin (a * b)) :
     ((pepsP a b v).1 : ℕ) * b + ((pepsP a b v).2 : ℕ) = (v : ℕ) := by
   rw [pepsP_fst, pepsP_snd, peps_divmod_symm]
 
+/-- Decreasing a nonzero first coordinate by one decreases the flattened PEPS vertex index by
+`b`. -/
 theorem peps_coord_left (a b : ℕ) (v : Fin (a * b)) (hne : ((pepsP a b v).1 : ℕ) ≠ 0) :
     (((pepsP a b v).1 : ℕ) - 1) * b + ((pepsP a b v).2 : ℕ) = (v : ℕ) - b := by
   have hne' : (v : ℕ) / b ≠ 0 := hne
@@ -4543,6 +5032,8 @@ theorem peps_coord_left (a b : ℕ) (v : Fin (a * b)) (hne : ((pepsP a b v).1 : 
   rw [pepsP_fst, pepsP_snd, h4]
   omega
 
+/-- Decreasing a nonzero second coordinate by one decreases the flattened PEPS vertex index by
+one. -/
 theorem peps_coord_up (a b : ℕ) (v : Fin (a * b)) (hne : ((pepsP a b v).2 : ℕ) ≠ 0) :
     ((pepsP a b v).1 : ℕ) * b + (((pepsP a b v).2 : ℕ) - 1) = (v : ℕ) - 1 := by
   have hne' : (v : ℕ) % b ≠ 0 := hne
@@ -4556,6 +5047,8 @@ theorem peps_coord_up (a b : ℕ) (v : Fin (a * b)) (hne : ((pepsP a b v).2 : �
   rw [pepsP_fst, pepsP_snd]
   omega
 
+/-- Evaluates the PEPS tensor at a site using its physical label and the adjacent bond values
+from `γ`. Missing boundary bonds are fixed to zero. -/
 noncomputable def pepsFactor {a b d D : ℕ} [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4568,6 +5061,8 @@ noncomputable def pepsFactor {a b d D : ℕ} [NeZero D]
     (if h : (p.2 : ℕ) = 0 then 0
       else (γ (p.1, (⟨(p.2 : ℕ) - 1, by have := p.2.isLt; omega⟩ : Fin b))).2)
 
+/-- Expresses the PEPS amplitude as the sum over sitewise bond pairs of the product of local
+factors `pepsFactor`. -/
 theorem pepsAmplitude_eq (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d) :
@@ -4575,6 +5070,8 @@ theorem pepsAmplitude_eq (a b d D : ℕ) [NeZero D]
       = ∑ γ : Fin a × Fin b → Fin D × Fin D,
           ∏ p : Fin a × Fin b, pepsFactor T x γ p := rfl
 
+/-- The physical port value at an encoded PEPS vertex equals the physical configuration label at
+its decoded lattice coordinates, after casting the dimension. -/
 theorem pepsPort_phys (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4619,6 +5116,8 @@ theorem pepsPort_phys (a b d D : ℕ) [NeZero D]
   rw [hport, key]
   rfl
 
+/-- The boundary-adjusted right port value agrees with the first component of the site's bond
+assignment under `pepsEdgeEquiv`. Both expressions are zero at the right boundary. -/
 theorem pepsPort_right (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4679,6 +5178,9 @@ theorem pepsPort_right (a b d D : ℕ) [NeZero D]
     simp only [Fin.val_cast]
     exact congrArg (fun i : InternalEdge (pepsNet a b d D T) => (e i).val) hsub
 
+/-- The boundary-adjusted left port value agrees with the first bond component at the preceding
+first coordinate under `pepsEdgeEquiv`. Both expressions are zero when the first coordinate
+is zero. -/
 theorem pepsPort_left (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4769,6 +5271,8 @@ theorem pepsPort_left (a b d D : ℕ) [NeZero D]
     simp only [Fin.val_cast]
     exact congrArg (fun i : InternalEdge (pepsNet a b d D T) => (e i).val) hsub
 
+/-- The boundary-adjusted downward port value agrees with the second component of the site's
+bond assignment under `pepsEdgeEquiv`. Both expressions are zero at the bottom boundary. -/
 theorem pepsPort_down (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4835,6 +5339,9 @@ theorem pepsPort_down (a b d D : ℕ) [NeZero D]
     simp only [Fin.val_cast]
     exact congrArg (fun i : InternalEdge (pepsNet a b d D T) => (e i).val) hsub
 
+/-- The boundary-adjusted upward port value agrees with the second bond component at the
+preceding second coordinate under `pepsEdgeEquiv`. Both expressions are zero when the second
+coordinate is zero. -/
 theorem pepsPort_up (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4919,6 +5426,8 @@ theorem pepsPort_up (a b d D : ℕ) [NeZero D]
     simp only [Fin.val_cast]
     exact congrArg (fun i : InternalEdge (pepsNet a b d D T) => (e i).val) hsub
 
+/-- Evaluating the encoded network tensor at a vertex gives `pepsFactor` at its decoded lattice
+site with bond assignment `pepsEdgeEquiv e`. -/
 theorem pepsTensor_at (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d)
@@ -4966,6 +5475,8 @@ theorem pepsTensor_at (a b d D : ℕ) [NeZero D]
           ((pepsP a b v).1, ⟨((pepsP a b v).2 : ℕ) - 1, by have := (pepsP a b v).2.isLt; omega⟩)).2)
   rw [hphys, hleft, hright, hdown, hup]
 
+/-- The bond dimension of the tensor network encoding a PEPS is at most the PEPS bond dimension
+`D`. -/
 theorem netBondDimension_pepsNet_le (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ) :
     netBondDimension (pepsNet a b d D T) ≤ D := by
@@ -4973,6 +5484,8 @@ theorem netBondDimension_pepsNet_le (a b d D : ℕ) [NeZero D]
   intro i _
   exact (pepsDim_internal a b d D T i).le
 
+/-- Contracting the encoded PEPS network with the encoded physical configuration reproduces the
+PEPS amplitude. -/
 theorem netContract_pepsNet_eq (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d) :
@@ -4997,6 +5510,8 @@ theorem netContract_pepsNet_eq (a b d D : ℕ) [NeZero D]
       (fun p => pepsFactor T x (pepsEdgeEquiv a b d D T e) p)
       (fun v => pepsTensor_at a b d D T x e v)]
 
+/-- Every PEPS with nonzero bond dimension `D` has a tensor-network realization of bond
+dimension at most `D` whose contraction reproduces every physical amplitude. -/
 theorem clause1_clause5 :
     ∀ (a b d D : ℕ) (hD : NeZero D)
       (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ),
@@ -5012,6 +5527,10 @@ theorem clause1_clause5 :
 
 end Clause1Peps
 
+/-- Collects network reindexing and unitary gauge invariance, open and periodic MPS
+realizations, PEPS realizations, and the explicit product, Bell, and three-site amplitude
+identities. It also records the contraction norm bound, vanishing for a zero-dimensional
+internal edge, and the value one for an empty network. -/
 theorem g1 :
 
   (∀ (N₁ N₂ : TensorNet) (iso : NetIso N₁ N₂) (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val)),
@@ -5101,6 +5620,8 @@ section FrobeniusRankOne
 
 variable {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
 
+/-- The complex Euclidean inner product is the coordinate sum of the conjugated first vector
+times the second vector. -/
 theorem g10g_inner_eq_sum {ι : Type} [Fintype ι] (u w : EuclideanSpace ℂ ι) :
     inner ℂ u w = ∑ p : ι, star (u p) * w p := by
   rw [PiLp.inner_apply]
@@ -5108,14 +5629,19 @@ theorem g10g_inner_eq_sum {ι : Type} [Fintype ι] (u w : EuclideanSpace ℂ ι)
   simp only [RCLike.inner_apply]
   rw [mul_comm, Complex.star_def]
 
+/-- The complex embedding of `Complex.normSq z` equals `z * star z`. -/
 theorem g10g_ofReal_normSq_eq_mul_star (z : ℂ) :
     ((Complex.normSq z : ℝ) : ℂ) = z * star z := by
   rw [Complex.normSq_eq_conj_mul_self, Complex.star_def, mul_comm]
 
+/-- Complex conjugation fixes a real number embedded in the complex numbers. -/
 theorem g10g_star_ofReal (r : ℝ) : star ((r : ℂ)) = (r : ℂ) := by
   rw [Complex.star_def]
   exact Complex.conj_ofReal r
 
+/-- An entry of the singular-value-scaled outer product equals the singular value times the
+corresponding left singular-vector coordinate and conjugated right singular-vector
+coordinate. -/
 theorem g10g_rankOne_apply (A : Matrix O I ℂ)
     (i : Fin (Fintype.card I)) (p : O) (q : I) :
     (((matrixSingularValues A i : ℂ) •
@@ -5124,6 +5650,8 @@ theorem g10g_rankOne_apply (A : Matrix O I ℂ)
         (leftSingularVector A i p * star (rightSingularBasis A i q)) := by
   simp [Matrix.smul_apply, Matrix.vecMulVec]
 
+/-- Factors the product of a singular rank-one entry and the conjugate of another into
+singular-value, left-coordinate, and right-coordinate contributions. -/
 theorem g10g_rankOne_cross (A : Matrix O I ℂ) (i j : Fin (Fintype.card I)) (p : O) (q : I) :
     ((matrixSingularValues A i : ℂ) *
         (leftSingularVector A i p * star (rightSingularBasis A i q)))
@@ -5135,6 +5663,8 @@ theorem g10g_rankOne_cross (A : Matrix O I ℂ) (i j : Fin (Fintype.card I)) (p 
   simp only [star_mul, star_star, g10g_star_ofReal]
   ring
 
+/-- A finite double sum of `a * P p * Q q` factors as `a` times the separate sums of `P` and
+`Q`. -/
 theorem g10g_sum_sum_mul_split {ι κ : Type} [Fintype ι] [Fintype κ]
     (a : ℂ) (P : ι → ℂ) (Q : κ → ℂ) :
     (∑ p : ι, ∑ q : κ, a * P p * Q q) = a * (∑ p : ι, P p) * (∑ q : κ, Q q) := by
@@ -5146,6 +5676,7 @@ theorem g10g_sum_sum_mul_split {ι κ : Type} [Fintype ι] [Fintype κ]
       Finset.sum_congr rfl (fun p _ => h1 p)]
   rw [← Finset.sum_mul, ← Finset.mul_sum]
 
+/-- Interchanges the two coordinate sums with the two finite-set sums in a fourfold complex sum. -/
 theorem g10g_sum_swap {α β γ δ : Type} [Fintype α] [Fintype β]
     (s : Finset γ) (t : Finset δ) (G : γ → δ → α → β → ℂ) :
     (∑ p : α, ∑ q : β, ∑ i ∈ s, ∑ j ∈ t, G i j p q)
@@ -5170,6 +5701,8 @@ section FrobeniusSum
 
 variable {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
 
+/-- The squared Frobenius norm of any finite sum of singular rank-one terms equals the sum of
+the corresponding squared singular values. -/
 theorem g10g_spectralFrobenius_sq_sum_singularRankOne (A : Matrix O I ℂ)
     (s : Finset (Fin (Fintype.card I))) :
     spectralFrobenius (∑ i ∈ s, (matrixSingularValues A i : ℂ) •
@@ -5256,12 +5789,16 @@ section Truncation
 
 variable {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
 
+/-- Truncates the singular-value decomposition of a complex matrix to the terms with index
+strictly below `D`. -/
 noncomputable def g10g_svdTrunc (A : Matrix O I ℂ) (D : ℕ) : Matrix O I ℂ :=
   ∑ i : Fin (Fintype.card I), if (i : ℕ) < D then
     (matrixSingularValues A i : ℂ) •
       vecMulVec (leftSingularVector A i) (star (rightSingularBasis A i))
   else 0
 
+/-- Writes the SVD truncation as the sum of singular rank-one terms over the finite set of
+indices below `D`. -/
 theorem g10g_svdTrunc_eq_sum_filter (A : Matrix O I ℂ) (D : ℕ) :
     g10g_svdTrunc A D
       = ∑ i ∈ Finset.univ.filter (fun i : Fin (Fintype.card I) => (i : ℕ) < D),
@@ -5269,6 +5806,8 @@ theorem g10g_svdTrunc_eq_sum_filter (A : Matrix O I ℂ) (D : ℕ) :
           vecMulVec (leftSingularVector A i) (star (rightSingularBasis A i)) := by
   rw [g10g_svdTrunc, ← Finset.sum_filter]
 
+/-- Subtracting the SVD truncation from a matrix leaves precisely the singular rank-one terms
+with indices at least `D`. -/
 theorem g10g_svdTrunc_sub_eq (A : Matrix O I ℂ) (D : ℕ) :
     A - g10g_svdTrunc A D
       = ∑ i ∈ Finset.univ.filter (fun i : Fin (Fintype.card I) => D ≤ (i : ℕ)),
@@ -5294,6 +5833,8 @@ theorem g10g_svdTrunc_sub_eq (A : Matrix O I ℂ) (D : ℕ) :
   conv_lhs => simp only [hp]
   rw [← Finset.sum_filter]
 
+/-- The squared Frobenius error of SVD truncation is the sum of the squared singular values at
+indices at least `D`. -/
 theorem g10g_svdTrunc_error_sq (A : Matrix O I ℂ) (D : ℕ) :
     spectralFrobenius (A - g10g_svdTrunc A D) ^ 2
       = ∑ i : Fin (Fintype.card I), if (i : ℕ) < D then 0
@@ -5305,6 +5846,8 @@ theorem g10g_svdTrunc_error_sq (A : Matrix O I ℂ) (D : ℕ) :
   · simp [hi]
   · simp [hi]
 
+/-- The squared Frobenius norm of the SVD truncation is the sum of the squared singular values
+at indices below `D`. -/
 theorem g10g_svdTrunc_sq (A : Matrix O I ℂ) (D : ℕ) :
     spectralFrobenius (g10g_svdTrunc A D) ^ 2
       = ∑ i : Fin (Fintype.card I), if (i : ℕ) < D
@@ -5316,6 +5859,8 @@ section CutTail
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- For a cut matrix, the squared singular-value tail can be summed over indices below `d ^ (n -
+c)` instead of over the support of the singular-value sequence. -/
 theorem g10g_tail_support_eq_range (c D : ℕ) :
     ∑ i ∈ (matrixSingularValues (cutMatrix n d ψ c)).support.filter (fun i => D ≤ i),
         (matrixSingularValues (cutMatrix n d ψ c) i) ^ 2
@@ -5337,6 +5882,8 @@ theorem g10g_tail_support_eq_range (c D : ℕ) :
       simp
     · exact absurd hi.2 hnd
 
+/-- Expresses the squared Schmidt tail as the sum of squared cut-matrix singular values over
+indices from `D` up to `d ^ (n - c) - 1`. -/
 theorem g10g_schmidtTailSq_eq_filter_sum (c D : ℕ) :
     schmidtTailSq n d ψ c D
       = ∑ i ∈ (Finset.range (d ^ (n - c))).filter (fun i => D ≤ i),
@@ -5344,6 +5891,8 @@ theorem g10g_schmidtTailSq_eq_filter_sum (c D : ℕ) :
   rw [schmidtTailSq_eq_sum ψ c D]
   exact g10g_tail_support_eq_range ψ c D
 
+/-- Expresses the squared Schmidt tail as a finite sum over `Fin (d ^ (n - c))`, with zero
+contributions at indices below `D`. -/
 theorem g10g_schmidtTailSq_eq_ite_sum (c D : ℕ) :
     schmidtTailSq n d ψ c D
       = ∑ i : Fin (d ^ (n - c)), if (i : ℕ) < D then 0
@@ -5356,6 +5905,8 @@ theorem g10g_schmidtTailSq_eq_ite_sum (c D : ℕ) :
   · have hge : D ≤ (i : ℕ) := Nat.le_of_not_gt hi
     simp [hi, hge]
 
+/-- The squared Schmidt tail equals the squared Frobenius distance between the cut matrix and
+its SVD truncation at `D`. -/
 theorem g10g_schmidtTailSq_eq_frob_sub_trunc (c D : ℕ) :
     schmidtTailSq n d ψ c D
       = spectralFrobenius (cutMatrix n d ψ c
@@ -5376,6 +5927,7 @@ theorem g10g_schmidtTailSq_eq_frob_sub_trunc (c D : ℕ) :
       (fun k => if k < D then 0 else (matrixSingularValues (cutMatrix n d ψ c) k) ^ 2) _
   rw [hR, hL]
 
+/-- The sum of all squared singular values of the cut matrix equals its squared Frobenius norm. -/
 theorem g10g_singularSq_sum_eq_frob (c : ℕ) :
     (∑ i : Fin (d ^ (n - c)), (matrixSingularValues (cutMatrix n d ψ c) i) ^ 2)
       = spectralFrobenius (cutMatrix n d ψ c) ^ 2 := by
@@ -5395,6 +5947,8 @@ theorem g10g_singularSq_sum_eq_frob (c : ℕ) :
 
 end CutTail
 
+/-- The squared Frobenius norm of a matrix splits into the squared norm of its SVD truncation
+and the squared norm of the residual. -/
 theorem g10g_pythagoras_svdTrunc [DecidableEq O] (A : Matrix O I ℂ) (D : ℕ) :
     spectralFrobenius A ^ 2 = spectralFrobenius (g10g_svdTrunc A D) ^ 2
       + spectralFrobenius (A - g10g_svdTrunc A D) ^ 2 := by
@@ -5409,23 +5963,31 @@ end Truncation
 
 section NestedRank
 
+/-- Appends a symbol `y` to a configuration of length `c`, placing it at the final coordinate of
+the resulting configuration of length `c + 1`. -/
 def g10g_snoc {c d : ℕ} (u : Fin c → Fin d) (y : Fin d) : Fin (c + 1) → Fin d :=
   fun k => if h : (k : ℕ) < c then u ⟨k, h⟩ else y
 
+/-- Appending a symbol preserves every coordinate whose index is below the original length `c`. -/
 theorem g10g_snoc_of_lt {c d : ℕ} (u : Fin c → Fin d) (y : Fin d)
     {k : Fin (c + 1)} (hk : (k : ℕ) < c) : g10g_snoc u y k = u ⟨k, hk⟩ := by
   simp [g10g_snoc, hk]
 
+/-- The final coordinate of `g10g_snoc u y` is the appended symbol `y`. -/
 theorem g10g_snoc_last {c d : ℕ} (u : Fin c → Fin d) (y : Fin d) :
     g10g_snoc u y ⟨c, by omega⟩ = y := by
   simp [g10g_snoc]
 
+/-- Restricts a configuration of length `c + 1` to its first `c` coordinates. -/
 def g10g_init {c d : ℕ} (u : Fin (c + 1) → Fin d) : Fin c → Fin d :=
   fun k => u ⟨(k : ℕ), by omega⟩
 
+/-- Returns the final symbol of a configuration of length `c + 1`. -/
 def g10g_last {c d : ℕ} (u : Fin (c + 1) → Fin d) : Fin d :=
   u ⟨c, by omega⟩
 
+/-- Appending a configuration's last symbol to its initial segment reconstructs the
+configuration. -/
 theorem g10g_snoc_init_last {c d : ℕ} (u : Fin (c + 1) → Fin d) :
     g10g_snoc (g10g_init u) (g10g_last u) = u := by
   funext k
@@ -5445,15 +6007,19 @@ theorem g10g_snoc_init_last {c d : ℕ} (u : Fin (c + 1) → Fin d) :
     rw [← heq]
     simp [g10g_last]
 
+/-- Taking the initial segment after appending a symbol recovers the original configuration. -/
 theorem g10g_init_snoc {c d : ℕ} (u : Fin c → Fin d) (y : Fin d) :
     g10g_init (g10g_snoc u y) = u := by
   funext k
   simp [g10g_init, g10g_snoc, k.isLt]
 
+/-- Taking the final symbol after appending `y` returns `y`. -/
 theorem g10g_last_snoc {c d : ℕ} (u : Fin c → Fin d) (y : Fin d) :
     g10g_last (g10g_snoc u y) = y := by
   simp [g10g_last, g10g_snoc]
 
+/-- An appended configuration equals `u'` exactly when its initial segment and appended symbol
+equal the initial segment and final symbol of `u'`. -/
 theorem g10g_snoc_eq_iff {c d : ℕ} {u' : Fin (c + 1) → Fin d} {u : Fin c → Fin d} {y : Fin d} :
     g10g_snoc u y = u' ↔ u = g10g_init u' ∧ y = g10g_last u' := by
   constructor
@@ -5464,29 +6030,38 @@ theorem g10g_snoc_eq_iff {c d : ℕ} {u' : Fin (c + 1) → Fin d} {u : Fin c →
   · intro h
     rw [h.1, h.2, g10g_snoc_init_last]
 
+/-- Prepends a symbol to a suffix configuration when `c + 1 ≤ n`, increasing its length from `n
+- (c + 1)` to `n - c`. -/
 def g10g_cons {n c d : ℕ} (_hc : c + 1 ≤ n) (y : Fin d)
     (v : Fin (n - (c + 1)) → Fin d) : Fin (n - c) → Fin d :=
   fun k => if h : (k : ℕ) = 0 then y else v ⟨(k : ℕ) - 1, by
     have hk := k.isLt
     omega⟩
 
+/-- The zeroth coordinate of a configuration formed by prepending `y` is `y`. -/
 theorem g10g_cons_zero {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d)
     (v : Fin (n - (c + 1)) → Fin d) :
     g10g_cons hc y v ⟨0, by omega⟩ = y := by
   simp [g10g_cons]
 
+/-- At a successor coordinate, a configuration formed by prepending a symbol returns the
+corresponding coordinate of the original suffix. -/
 theorem g10g_cons_succ {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d)
     (v : Fin (n - (c + 1)) → Fin d) (k : Fin (n - (c + 1))) :
     g10g_cons hc y v ⟨(k : ℕ) + 1, by have hk := k.isLt; omega⟩ = v k := by
   simp [g10g_cons]
 
+/-- Returns the first symbol of a suffix of length `n - c`, which is nonempty under `c + 1 ≤ n`. -/
 def g10g_head {n c d : ℕ} (hc : c + 1 ≤ n) (v : Fin (n - c) → Fin d) : Fin d :=
   v ⟨0, by omega⟩
 
+/-- Removes the first symbol of a suffix of length `n - c`, producing a suffix of length `n - (c
++ 1)`. -/
 def g10g_tail {n c d : ℕ} (hc : c + 1 ≤ n) (v : Fin (n - c) → Fin d) :
     Fin (n - (c + 1)) → Fin d :=
   fun k => v ⟨(k : ℕ) + 1, by have hk := k.isLt; omega⟩
 
+/-- Prepending the head of a nonempty suffix to its tail reconstructs that suffix. -/
 theorem g10g_cons_head_tail {n c d : ℕ} (hc : c + 1 ≤ n) (v : Fin (n - c) → Fin d) :
     g10g_cons hc (g10g_head hc v) (g10g_tail hc v) = v := by
   funext k
@@ -5508,15 +6083,19 @@ theorem g10g_cons_head_tail {n c d : ℕ} (hc : c + 1 ≤ n) (v : Fin (n - c) �
       omega
     rw [heq]
 
+/-- The head of a suffix formed by prepending `y` is `y`. -/
 theorem g10g_head_cons {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d)
     (v : Fin (n - (c + 1)) → Fin d) : g10g_head hc (g10g_cons hc y v) = y := by
   simp [g10g_head, g10g_cons]
 
+/-- Taking the tail of a suffix formed by prepending a symbol recovers the original suffix. -/
 theorem g10g_tail_cons {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d)
     (v : Fin (n - (c + 1)) → Fin d) : g10g_tail hc (g10g_cons hc y v) = v := by
   funext k
   simp [g10g_tail, g10g_cons]
 
+/-- A prepended suffix equals `v` exactly when the prepended symbol is the head of `v` and the
+remaining suffix is its tail. -/
 theorem g10g_cons_eq_iff {n c d : ℕ} (hc : c + 1 ≤ n)
     {v : Fin (n - c) → Fin d} {y : Fin d} {v' : Fin (n - (c + 1)) → Fin d} :
     g10g_cons hc y v' = v ↔ y = g10g_head hc v ∧ v' = g10g_tail hc v := by
@@ -5528,6 +6107,8 @@ theorem g10g_cons_eq_iff {n c d : ℕ} (hc : c + 1 ≤ n)
   · intro h
     rw [h.1, h.2, g10g_cons_head_tail]
 
+/-- Moving the final symbol of a prefix of length `c + 1` to the head of the suffix leaves the
+joined full configuration unchanged. -/
 theorem g10g_splitJoin_snoc_cons {n c d : ℕ} (hc : c + 1 ≤ n)
     (u' : Fin (c + 1) → Fin d) (v' : Fin (n - (c + 1)) → Fin d) :
     splitJoin n c d (g10g_init u') (g10g_cons hc (g10g_last u') v')
@@ -5551,16 +6132,22 @@ end NestedRank
 
 section NestedRankFactor
 
+/-- The zero-one matrix that appends a fixed physical symbol `y` to an encoded prefix
+configuration. -/
 def g10g_leftFactor {c d : ℕ} (y : Fin d) : Matrix (Fin (d ^ (c + 1))) (Fin (d ^ c)) ℂ :=
   Matrix.of fun i' w =>
     if (finPowEnc d (c + 1)).symm i' = g10g_snoc ((finPowEnc d c).symm w) y then 1 else 0
 
+/-- The zero-one matrix that prepends a fixed physical symbol `y` to an encoded suffix
+configuration. -/
 def g10g_rightFactor {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d) :
     Matrix (Fin (d ^ (n - c))) (Fin (d ^ (n - (c + 1)))) ℂ :=
   Matrix.of fun w j' =>
     if (finPowEnc d (n - c)).symm w = g10g_cons hc y ((finPowEnc d (n - (c + 1))).symm j')
       then 1 else 0
 
+/-- At the column encoding a row configuration's initial segment, the left factor is one exactly
+when `y` is that configuration's last symbol, and zero otherwise. -/
 theorem g10g_leftFactor_self {c d : ℕ} (y : Fin d) (i' : Fin (d ^ (c + 1))) :
     g10g_leftFactor y i' (finPowEnc d c (g10g_init ((finPowEnc d (c + 1)).symm i')))
       = if y = g10g_last ((finPowEnc d (c + 1)).symm i') then 1 else 0 := by
@@ -5571,6 +6158,8 @@ theorem g10g_leftFactor_self {c d : ℕ} (y : Fin d) (i' : Fin (d ^ (c + 1))) :
     rw [eq_comm, g10g_snoc_eq_iff, and_iff_right rfl]
   simp only [hiff]
 
+/-- A left-factor entry vanishes unless its column encodes the initial segment of its decoded
+row configuration. -/
 theorem g10g_leftFactor_eq_zero_of_ne {c d : ℕ} (y : Fin d) (i' : Fin (d ^ (c + 1)))
     (w : Fin (d ^ c)) (hw : w ≠ finPowEnc d c (g10g_init ((finPowEnc d (c + 1)).symm i'))) :
     g10g_leftFactor y i' w = 0 := by
@@ -5583,12 +6172,16 @@ theorem g10g_leftFactor_eq_zero_of_ne {c d : ℕ} (y : Fin d) (i' : Fin (d ^ (c 
     simp
   exact hw key
 
+/-- The right factor is one at the row encoding the configuration obtained by prepending `y` to
+its decoded column configuration. -/
 theorem g10g_rightFactor_self {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d)
     (j' : Fin (d ^ (n - (c + 1)))) :
     g10g_rightFactor hc y
         (finPowEnc d (n - c) (g10g_cons hc y ((finPowEnc d (n - (c + 1))).symm j'))) j' = 1 := by
   simp [g10g_rightFactor]
 
+/-- A right-factor entry vanishes unless its row encodes `y` prepended to its decoded column
+configuration. -/
 theorem g10g_rightFactor_eq_zero_of_ne {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin d)
     (v : Fin (d ^ (n - c))) (j' : Fin (d ^ (n - (c + 1))))
     (hv : v ≠ finPowEnc d (n - c) (g10g_cons hc y ((finPowEnc d (n - (c + 1))).symm j'))) :
@@ -5601,6 +6194,9 @@ theorem g10g_rightFactor_eq_zero_of_ne {n c d : ℕ} (hc : c + 1 ≤ n) (y : Fin
     simp
   exact hv key
 
+/-- Evaluates an entry of the cut matrix multiplied by the left and right factors for `y`. The
+entry is zero unless `y` matches the decoded row's last symbol; otherwise it uses the
+shortened prefix and the suffix with `y` prepended. -/
 theorem g10g_factor_prod_apply {n d c : ℕ} (hc : c + 1 ≤ n) (ψ : (Fin n → Fin d) → ℂ)
     (y : Fin d) (i' : Fin (d ^ (c + 1))) (j' : Fin (d ^ (n - (c + 1)))) :
     (g10g_leftFactor (c := c) y * cutMatrix n d ψ c * g10g_rightFactor hc y) i' j'
@@ -5638,6 +6234,8 @@ theorem g10g_factor_prod_apply {n d c : ℕ} (hc : c + 1 ≤ n) (ψ : (Fin n →
   · intro hnot
     exact absurd (Finset.mem_univ _) hnot
 
+/-- The cut matrix at `c + 1` is the sum over physical symbols of the cut matrix at `c`
+multiplied by the corresponding left and right factors. -/
 theorem g10g_cutMatrix_succ_eq_sum_factor {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
     (c : ℕ) (hc : c + 1 ≤ n) :
     cutMatrix n d ψ (c + 1)
@@ -5688,6 +6286,7 @@ end NestedRankFactor
 
 section NestedRankBound
 
+/-- The rank of the sum of two finite complex matrices is at most the sum of their ranks. -/
 theorem g10g_matrixRank_add_le {m k : ℕ} (A B : Matrix (Fin m) (Fin k) ℂ) :
     Matrix.rank (A + B) ≤ Matrix.rank A + Matrix.rank B := by
   rw [rank_eq_finrank_range_toEuclideanLin (A + B), rank_eq_finrank_range_toEuclideanLin A,
@@ -5701,6 +6300,7 @@ theorem g10g_matrixRank_add_le {m k : ℕ} (A B : Matrix (Fin m) (Fin k) ℂ) :
   exact le_trans (Submodule.finrank_mono hle)
     (Submodule.finrank_add_le_finrank_add_finrank _ _)
 
+/-- The rank of a finite sum of complex matrices is at most the sum of their ranks. -/
 theorem g10g_matrixRank_sum_le {m k d : ℕ} (T : Fin d → Matrix (Fin m) (Fin k) ℂ) :
     Matrix.rank (∑ y : Fin d, T y) ≤ ∑ y : Fin d, Matrix.rank (T y) := by
   have hgen : ∀ s : Finset (Fin d),
@@ -5713,6 +6313,8 @@ theorem g10g_matrixRank_sum_le {m k d : ℕ} (T : Fin d → Matrix (Fin m) (Fin 
       exact le_trans (g10g_matrixRank_add_le _ _) (add_le_add le_rfl ih)
   simpa using! hgen Finset.univ
 
+/-- Moving a valid cut one site to the right increases its rank by at most a factor of the local
+dimension `d`. -/
 theorem g10g_cutRank_succ_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c : ℕ) (hc : c + 1 ≤ n) :
     cutRank n d ψ (c + 1) ≤ d * cutRank n d ψ c := by
   have hM := g10g_cutMatrix_succ_eq_sum_factor ψ c hc
@@ -5746,6 +6348,8 @@ open scoped BigOperators Nat ComplexConjugate
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Module
 
+/-- Identifies a prefix of length `c` and a suffix of length `n - c` with a full configuration
+of length `n`, provided `c ≤ n`. -/
 def g10a_splitJoinEquiv (n c d : ℕ) (hc : c ≤ n) :
     ((Fin c → Fin d) × (Fin (n - c) → Fin d)) ≃ (Fin n → Fin d) where
   toFun := fun p => splitJoin n c d p.1 p.2
@@ -5779,12 +6383,16 @@ def g10a_splitJoinEquiv (n c d : ℕ) (hc : c ≤ n) :
     · simp only [hk, ↓reduceDIte]
       exact congrArg x (Fin.ext (Nat.add_sub_of_le (le_of_not_gt hk)))
 
+/-- An entry of a cut matrix is the state amplitude at the full configuration obtained by
+decoding and joining its row and column indices. -/
 theorem g10a_cutMatrix_apply {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c : ℕ)
     (i : Fin (d ^ c)) (j : Fin (d ^ (n - c))) :
     cutMatrix n d ψ c i j
       = ψ (splitJoin n c d ((finPowEnc d c).symm i) ((finPowEnc d (n - c)).symm j)) :=
   rfl
 
+/-- For a cut position `c ≤ n`, the squared Frobenius norm of the cut matrix equals the sum of
+squared moduli of all state amplitudes. -/
 theorem g10a_parseval {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) {c : ℕ} (hc : c ≤ n) :
     spectralFrobenius (cutMatrix n d ψ c) ^ 2 = ∑ x, Complex.normSq (ψ x) := by
   rw [spectralFrobenius_sq]
@@ -5814,6 +6422,8 @@ theorem g10a_parseval {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) {c : ℕ} (hc
     (fun p => Complex.normSq (ψ (splitJoin n c d p.1 p.2)))
     (fun x => Complex.normSq (ψ x)) (fun _ => rfl)
 
+/-- When `n ≤ c`, a cut-matrix entry is the state amplitude at the restriction of its decoded
+row configuration to the first `n` sites. -/
 theorem g10a_cutMatrix_apply_of_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) {c : ℕ}
     (hc : n ≤ c) (i : Fin (d ^ c)) (j : Fin (d ^ (n - c))) :
     cutMatrix n d ψ c i j
@@ -5825,12 +6435,15 @@ theorem g10a_cutMatrix_apply_of_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) 
   have hk : ((k : ℕ) < c) := lt_of_lt_of_le k.isLt hc
   simp [hk]
 
+/-- A cut at or beyond the full chain length has rank at most one. -/
 theorem g10a_cutRank_le_one_of_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) {c : ℕ}
     (hc : n ≤ c) : cutRank n d ψ c ≤ 1 := by
   have h := cutRank_le_pow_right ψ c
   rw [Nat.sub_eq_zero_of_le hc, Nat.pow_zero] at h
   exact h
 
+/-- Restricting a joined configuration of length `c` to its prefix of length `n` recovers that
+prefix when `n ≤ c`. -/
 theorem g10a_restrict_splitJoin {n c d : ℕ} (hc : n ≤ c) (x : Fin n → Fin d)
     (w : Fin (c - n) → Fin d) :
     (fun k : Fin n => splitJoin c n d x w ⟨(k : ℕ), lt_of_lt_of_le k.isLt hc⟩) = x := by
@@ -5839,12 +6452,16 @@ theorem g10a_restrict_splitJoin {n c d : ℕ} (hc : n ≤ c) (x : Fin n → Fin 
   have hk : ((k : ℕ) < n) := k.isLt
   simp [hk]
 
+/-- Restricting the configuration produced by the split-and-join equivalence to its first `n`
+coordinates returns the pair's first component. -/
 theorem g10a_restrict_splitJoinEquiv {n c d : ℕ} (hc : n ≤ c)
     (p : (Fin n → Fin d) × (Fin (c - n) → Fin d)) :
     (fun k : Fin n => g10a_splitJoinEquiv c n d hc p
       ⟨(k : ℕ), lt_of_lt_of_le k.isLt hc⟩) = p.1 :=
   g10a_restrict_splitJoin hc p.1 p.2
 
+/-- Summing a real-valued function of the first `n` coordinates over configurations of length `c
+≥ n` multiplies its sum over length-`n` configurations by `d ^ (c - n)`. -/
 theorem g10a_sum_restrict {n c d : ℕ} (hc : n ≤ c) (F : (Fin n → Fin d) → ℝ) :
     (∑ u : Fin c → Fin d, F (fun k : Fin n => u ⟨(k : ℕ), lt_of_lt_of_le k.isLt hc⟩))
       = (d ^ (c - n) : ℝ) * ∑ x, F x := by
@@ -5867,6 +6484,8 @@ theorem g10a_sum_restrict {n c d : ℕ} (hc : n ≤ c) (F : (Fin n → Fin d) �
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl (fun x _ => h3 x)
 
+/-- For a cut position `c ≥ n`, the squared Frobenius norm of the cut matrix is `d ^ (c - n)`
+times the sum of squared moduli of the state amplitudes. -/
 theorem g10a_parseval_of_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) {c : ℕ} (hc : n ≤ c) :
     spectralFrobenius (cutMatrix n d ψ c) ^ 2
       = (d ^ (c - n) : ℝ) * ∑ x, Complex.normSq (ψ x) := by
@@ -5897,6 +6516,8 @@ theorem g10a_parseval_of_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) {c : �
   rw [hre]
   exact g10a_sum_restrict hc (fun x => Complex.normSq (ψ x))
 
+/-- For a rational fraction with positive denominator and coprime numerator and denominator,
+`ratEntryWidth` is the maximum of their binary lengths, computed from their absolute values. -/
 theorem clause14Aux_ratEntryWidth_div {a b : ℤ} (hb : 0 < b)
     (hc : Nat.Coprime a.natAbs b.natAbs) :
     ratEntryWidth ((a / b : ℚ)) = max (Nat.log2 a.natAbs + 1) (Nat.log2 b.natAbs + 1) := by
@@ -5907,6 +6528,7 @@ theorem clause14Aux_ratEntryWidth_div {a b : ℤ} (hb : 0 < b)
     rw [Rat.den_div_eq_of_coprime hb hc, Int.natAbs_of_nonneg hb.le]
   simp only [ratEntryWidth, hn, hd]
 
+/-- For `p ≥ 2`, the rational entry width of `1 / p` is `Nat.log2 p + 1`. -/
 theorem clause14Aux_ratEntryWidth_one_div {p : ℕ} (hp : 2 ≤ p) :
     ratEntryWidth ((1 : ℚ) / p) = Nat.log2 p + 1 := by
   have he : ((1 : ℚ) / p) = (((1 : ℤ) / (p : ℤ) : ℚ)) := by norm_num
@@ -5920,20 +6542,26 @@ theorem clause14Aux_ratEntryWidth_one_div {p : ℕ} (hp : 2 ≤ p) :
   rw [h1]
   omega
 
+/-- The rational entry width of one is one. -/
 theorem clause14Aux_ratEntryWidth_one : ratEntryWidth (1 : ℚ) = 1 := by
   have h1 : Nat.log2 1 = 0 := by decide
   simp only [ratEntryWidth, Rat.num_one, Rat.den_one, Int.natAbs_one, h1]
   decide
 
+/-- The four denominators `19`, `23`, `29`, and `31` used in the rational MPS width
+counterexample. -/
 def clause14Aux_primes : Fin 4 → ℕ := ![19, 23, 29, 31]
 
+/-- Each of the four denominators selected by `clause14Aux_primes` is at least two. -/
 theorem clause14Aux_primes_le (k : Fin 4) : 2 ≤ clause14Aux_primes k := by
   fin_cases k <;> decide
 
+/-- The reciprocal of each selected denominator has rational entry width `Nat.log2 p + 1`. -/
 theorem clause14Aux_primes_width (k : Fin 4) :
     ratEntryWidth ((1 : ℚ) / clause14Aux_primes k) = Nat.log2 (clause14Aux_primes k) + 1 :=
   clause14Aux_ratEntryWidth_one_div (clause14Aux_primes_le k)
 
+/-- The reciprocal of each selected denominator has rational entry width at most five. -/
 theorem clause14Aux_primes_width_le (k : Fin 4) :
     ratEntryWidth ((1 : ℚ) / clause14Aux_primes k) ≤ 5 := by
   rw [clause14Aux_primes_width]
@@ -5941,11 +6569,16 @@ theorem clause14Aux_primes_width_le (k : Fin 4) :
     fin_cases k <;> decide
   omega
 
+/-- A two-site rational MPS of bond dimension four whose first tensor has reciprocal-prime
+columns and whose second tensor has every entry equal to one. -/
 def g14rA3 : Fin 2 → Fin 1 → Matrix (Fin 4) (Fin 4) ℚ :=
   fun i _ => Matrix.of fun _ k => if i.val = 0 then 1 / (clause14Aux_primes k : ℚ) else 1
 
+/-- The unique physical configuration for the two-site rational MPS with local physical
+dimension one. -/
 def g14rX3 : Fin 2 → Fin 1 := fun _ => 0
 
+/-- Every entry of the rational MPS `g14rA3` has rational entry width at most five. -/
 theorem g14rA3_width : ∀ i y a b, ratEntryWidth (g14rA3 i y a b) ≤ 5 := by
   intro i y a b
   by_cases h : i.val = 0
@@ -5958,15 +6591,21 @@ theorem g14rA3_width : ∀ i y a b, ratEntryWidth (g14rA3 i y a b) ≤ 5 := by
     rw [he, clause14Aux_ratEntryWidth_one]
     decide
 
+/-- Every entry of the second tensor of `g14rA3`, evaluated at its physical configuration, is
+one. -/
 theorem g14rA3_site1 (i : Fin 2) (hi : i.val = 1) (k j : Fin 4) :
     g14rA3 i (g14rX3 i) k j = 1 := by
   simp [g14rA3, Matrix.of_apply, hi]
 
+/-- The component indexed by `j` of the first MPS evaluation vector is the reciprocal of
+`clause14Aux_primes j`. -/
 theorem g14rA3_v0 (j : Fin 4) :
     mpsEvalVector g14rA3 g14rX3 (⟨0, by omega⟩ : Fin 2) j = 1 / (clause14Aux_primes j : ℚ) := by
   rw [mpsEvalVector.eq_1]
   simp [g14rA3, Matrix.of_apply]
 
+/-- Every component of the second MPS evaluation vector is the sum of the reciprocals of the
+four selected denominators. -/
 theorem g14rA3_v1 (j : Fin 4) :
     mpsEvalVector g14rA3 g14rX3 (⟨1, by omega⟩ : Fin 2) j
       = ∑ k : Fin 4, 1 / (clause14Aux_primes k : ℚ) := by
@@ -5974,6 +6613,8 @@ theorem g14rA3_v1 (j : Fin 4) :
   simp only [g14rA3_site1, mul_one]
   exact Finset.sum_congr rfl fun k _ => g14rA3_v0 k
 
+/-- The sum of the reciprocals of `19`, `23`, `29`, and `31` equals `63978 / 392863` as a
+rational number. -/
 theorem g14rA3_sum_eq :
     (∑ k : Fin 4, 1 / (clause14Aux_primes k : ℚ)) = (63978 : ℚ) / 392863 := by
   have e0 : (1 : ℚ) / (clause14Aux_primes 0 : ℚ) = 1 / ((19 : ℕ) : ℚ) := by
@@ -5987,6 +6628,7 @@ theorem g14rA3_sum_eq :
   simp only [Fin.sum_univ_four, e0, e1, e2, e3]
   norm_num
 
+/-- The rational entry width of the sum of the four selected reciprocals is exactly nineteen. -/
 theorem g14rA3_sum_width : ratEntryWidth (∑ k : Fin 4, 1 / (clause14Aux_primes k : ℚ)) = 19 := by
   have h : ratEntryWidth (((63978 : ℤ) / (392863 : ℤ) : ℚ))
       = max (Nat.log2 63978 + 1) (Nat.log2 392863 + 1) :=
@@ -5995,6 +6637,8 @@ theorem g14rA3_sum_width : ratEntryWidth (∑ k : Fin 4, 1 / (clause14Aux_primes
   rw [g14rA3_sum_eq, h2, h]
   decide
 
+/-- The second evaluation vector of the explicit rational MPS violates the proposed width bound
+`2 * (5 + Nat.log2 4 + 2)`, whose value is eighteen. -/
 theorem g14rA3_width_fail :
     ¬ (ratEntryWidth (mpsEvalVector g14rA3 g14rX3 (⟨1, by omega⟩ : Fin 2) ⟨0, by omega⟩)
         ≤ 2 * (5 + Nat.log2 4 + 2)) := by
@@ -6004,6 +6648,9 @@ theorem g14rA3_width_fail :
   rw [h19, g14rA3_sum_width] at h
   exact absurd h (by decide)
 
+/-- Refutes the universal rational-MPS claim combining the proposed evaluation-vector width
+bound with bit-cost and storage bounds. The two-site example `g14rA3` already violates its
+width bound. -/
 theorem clause3_clause3_counter : ¬ (
     (∀ (n d D B : ℕ) (hn : NeZero n) (hD : NeZero D)
       (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℚ) (x : Fin n → Fin d),
@@ -6021,11 +6668,15 @@ theorem clause3_clause3_counter : ¬ (
     g14rA3 g14rX3 g14rA3_width
   exact g14rA3_width_fail (h.1 ⟨1, by omega⟩ ⟨0, by omega⟩)
 
+/-- The constant-one PEPS tensor on a single site with physical dimension one and bond dimension
+two. -/
 def g14rT7 : Fin 1 → Fin 1 → Fin 1 → Fin 2 → Fin 2 → Fin 2 → Fin 2 → ℂ :=
   fun _ _ _ _ _ _ _ => 1
 
+/-- The unique physical configuration of the single-site PEPS with physical dimension one. -/
 def g14rX7 : Fin 1 → Fin 1 → Fin 1 := fun _ _ => 0
 
+/-- The PEPS amplitude of the single-site constant-one example with bond dimension two is four. -/
 theorem clause14Aux_pepsAmplitude_eq :
     pepsAmplitude (a := 1) (b := 1) (d := 1) (D := 2) g14rT7 g14rX7 = 4 := by
   have h : pepsAmplitude (a := 1) (b := 1) (d := 1) (D := 2) g14rT7 g14rX7
@@ -6042,6 +6693,8 @@ theorem clause14Aux_pepsAmplitude_eq :
   rw [hc]
   norm_num
 
+/-- Every column-kernel value of the single-site constant-one PEPS example is one, independently
+of its three boundary configurations. -/
 theorem clause14Aux_peps_kernel (σ ρ χ : Fin 1 → Fin 2) :
     pepsColKernel (a := 1) (b := 1) (d := 1) (D := 2) g14rT7 g14rX7
       (⟨0, by omega⟩ : Fin 1) σ ρ χ = 1 := by
@@ -6049,12 +6702,15 @@ theorem clause14Aux_peps_kernel (σ ρ χ : Fin 1 → Fin 2) :
   simp only [g14rT7]
   exact Finset.prod_eq_one fun _ _ => rfl
 
+/-- Summing a constant over the two functions from `Fin 1` to `Fin 2` gives twice that constant
+in any additive commutative monoid. -/
 theorem clause14Aux_sum_const2 {M : Type} [AddCommMonoid M] (c : M) :
     (∑ _ρ : Fin 1 → Fin 2, c) = (2:ℕ) • c := by
   rw [Finset.sum_const, Finset.card_univ]
   have hc : Fintype.card (Fin 1 → Fin 2) = 2 := by decide
   rw [hc]
 
+/-- A finite sum whose only nonzero summand is the value `b` at the index `z` equals `b`. -/
 theorem clause14Aux_sum_ite_const {ι : Type} [Fintype ι] [DecidableEq ι] (z : ι) (b : ℂ) :
     (∑ x : ι, (if x = z then b else 0)) = b := by
   rw [Finset.sum_eq_single z]
@@ -6064,6 +6720,8 @@ theorem clause14Aux_sum_ite_const {ι : Type} [Fintype ι] [DecidableEq ι] (z :
   · intro h
     exact absurd (Finset.mem_univ z) h
 
+/-- For the explicit one-site tensor `g14rT7` and configuration `g14rX7`, one strip-fold step
+produces the constant boundary function with value two. -/
 theorem clause14Aux_pepsFold_fst :
     (pepsStripFold (a := 1) (b := 1) (d := 1) (D := 2) g14rT7 g14rX7 1).1
       = (fun _ : Fin 1 → Fin 2 => (2:ℂ)) := by
@@ -6079,6 +6737,7 @@ theorem clause14Aux_pepsFold_fst :
   simp only [clause14Aux_sum_const2, smul_ite, nsmul_one, nsmul_zero]
   exact clause14Aux_sum_ite_const _ 2
 
+/-- The value returned by the counted strip evaluator for `g14rT7` and `g14rX7` is two. -/
 theorem clause14Aux_pepsStrip_val :
     (pepsStripEvalWithCount (a := 1) (b := 1) (d := 1) (D := 2) g14rT7 g14rX7).1 = (2:ℂ) := by
   rw [pepsStripEvalWithCount.eq_def]
@@ -6086,6 +6745,9 @@ theorem clause14Aux_pepsStrip_val :
     (fun _ : Fin 1 => (0:Fin 2)) = (2:ℂ)
   rw [clause14Aux_pepsFold_fst]
 
+/-- The universal conjunction of correctness and the stated operation-count bound for
+`pepsStripEvalWithCount` is false. The explicit one-site example contradicts the asserted
+equality with `pepsAmplitude`. -/
 theorem clause3_clause7_counter : ¬ (
     (∀ (a b d D : ℕ) (hD : NeZero D)
       (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
@@ -6097,64 +6759,85 @@ theorem clause3_clause7_counter : ¬ (
   rw [clause14Aux_pepsStrip_val, clause14Aux_pepsAmplitude_eq] at h
   exact absurd h.1 (by norm_num)
 
+/-- The two-dimensional matrix unit whose only nonzero entry is one at row one and column one. -/
 def g14rE11 : Matrix (Fin 2) (Fin 2) ℂ :=
   Matrix.of fun i j => if i.val = 1 ∧ j.val = 1 then 1 else 0
 
+/-- The two-by-two complex matrix with every entry equal to one. -/
 def g14rJ : Matrix (Fin 2) (Fin 2) ℂ := Matrix.of fun _ _ => 1
 
+/-- The two-by-two complex matrix whose column one consists of ones and whose column zero
+vanishes. -/
 def g14rK : Matrix (Fin 2) (Fin 2) ℂ := Matrix.of fun _ j => if j.val = 1 then 1 else 0
 
+/-- A two-site, one-dimensional physical tensor family using `g14rE11` at site zero and `g14rJ`
+at site one. -/
 def g14rA4 : Fin 2 → Fin 1 → Matrix (Fin 2) (Fin 2) ℂ :=
   fun i _ => if i.val = 0 then g14rE11 else g14rJ
 
+/-- The unique physical configuration for the two-site example with physical dimension one. -/
 def g14rX4 : Fin 2 → Fin 1 := fun _ => 0
 
+/-- The one-by-one observable whose unique entry is one. -/
 def g14rO : Matrix (Fin 1) (Fin 1) ℂ := Matrix.of fun _ _ => 1
 
+/-- The matrix unit `g14rE11` is equal to its conjugate transpose. -/
 theorem g14rE11_adjoint : g14rE11.conjTranspose = g14rE11 := by
   ext i j
   fin_cases i <;> fin_cases j
   all_goals simp [Matrix.conjTranspose_apply, g14rE11, Matrix.of_apply, star_one, star_zero]
 
+/-- The matrix unit `g14rE11` is idempotent. -/
 theorem g14rE11_mul_self : g14rE11 * g14rE11 = g14rE11 := by
   ext i j
   fin_cases i <;> fin_cases j
   all_goals rw [Matrix.mul_apply, Fin.sum_univ_two]
   all_goals simp [g14rE11, Matrix.of_apply]
 
+/-- The all-ones matrix `g14rJ` is equal to its conjugate transpose. -/
 theorem g14rJ_adjoint : g14rJ.conjTranspose = g14rJ := by
   ext i j
   simp [Matrix.conjTranspose_apply, g14rJ, Matrix.of_apply, star_one]
 
+/-- Multiplying `g14rJ` on the right by `g14rE11` gives `g14rK`. -/
 theorem g14rJ_mul_E11 : g14rJ * g14rE11 = g14rK := by
   ext i j
   fin_cases i <;> fin_cases j
   all_goals rw [Matrix.mul_apply, Fin.sum_univ_two]
   all_goals simp [g14rJ, g14rE11, g14rK, Matrix.of_apply]
 
+/-- Multiplying `g14rK` on the right by `g14rJ` gives `g14rJ`. -/
 theorem g14rK_mul_J : g14rK * g14rJ = g14rJ := by
   ext i j
   fin_cases i <;> fin_cases j
   all_goals rw [Matrix.mul_apply, Fin.sum_univ_two]
   all_goals simp [g14rJ, g14rK, Matrix.of_apply]
 
+/-- The product of `g14rJ`, `g14rE11`, and `g14rJ`, in that order, is `g14rJ`. -/
 theorem g14rJ_E11_J : g14rJ * g14rE11 * g14rJ = g14rJ := by
   rw [g14rJ_mul_E11, g14rK_mul_J]
 
+/-- The row-zero, column-zero entry of `g14rJ` is one. -/
 theorem g14rJ_zero_zero : g14rJ 0 0 = 1 := by simp [g14rJ, Matrix.of_apply]
 
+/-- At a site whose natural-number index is zero, `g14rA4` equals `g14rE11` for every physical
+index. -/
 theorem g14rA4_at_zero (i : Fin 2) (hi : i.val = 0) (y : Fin 1) :
     g14rA4 i y = g14rE11 := by
   simp [g14rA4, hi]
 
+/-- At a site whose natural-number index is one, `g14rA4` equals `g14rJ` for every physical
+index. -/
 theorem g14rA4_at_one (i : Fin 2) (hi : i.val = 1) (y : Fin 1) :
     g14rA4 i y = g14rJ := by
   simp [g14rA4, hi]
 
+/-- The row-zero entries of `g14rA4` vanish at site zero. -/
 theorem g14rA4_row0 (i : Fin 2) (hi : i.val = 0) (y : Fin 1) (k : Fin 2) :
     g14rA4 i y 0 k = 0 := by
   simp [g14rA4, g14rE11, Matrix.of_apply, hi]
 
+/-- Every open-boundary MPS amplitude of the explicit tensor family `g14rA4` is zero. -/
 theorem clause14Aux_amp_zero (x : Fin 2 → Fin 1) :
     mpsAmplitude (n := 2) (d := 1) (D := 2) g14rA4 x = 0 := by
   rw [mpsAmplitude.eq_def]
@@ -6166,6 +6849,7 @@ theorem clause14Aux_amp_zero (x : Fin 2 → Fin 1) :
   rw [show mpsLeftIdx α (⟨0, by omega⟩ : Fin 2) = 0 by simp [mpsLeftIdx]]
   exact g14rA4_row0 _ (by decide) _ _
 
+/-- The self inner-transfer matrix of `g14rA4` at site zero equals `g14rE11`. -/
 theorem g14rA4_t0 : mpsInnerTransfer g14rA4 g14rA4 (⟨0, by omega⟩ : Fin 2) = g14rE11 := by
   rw [mpsInnerTransfer.eq_1]
   simp only [Fin.sum_univ_one]
@@ -6173,11 +6857,14 @@ theorem g14rA4_t0 : mpsInnerTransfer g14rA4 g14rA4 (⟨0, by omega⟩ : Fin 2) =
   rw [g14rE11_adjoint]
   exact g14rE11_mul_self
 
+/-- The self inner-transfer matrix of `g14rA4` at site one equals `g14rJ`. -/
 theorem g14rA4_t1 : mpsInnerTransfer g14rA4 g14rA4 (⟨1, by omega⟩ : Fin 2) = g14rJ := by
   rw [mpsInnerTransfer.eq_2]
   simp only [Fin.sum_univ_one, g14rA4_at_one, g14rA4_t0, g14rJ_adjoint]
   exact g14rJ_E11_J
 
+/-- The value component of the counted self inner-transfer calculation at site zero equals
+`g14rE11`. -/
 theorem g14rA4_tc0 : (mpsInnerTransferCount g14rA4 g14rA4 (⟨0, by omega⟩ : Fin 2)).1
     = g14rE11 := by
   rw [mpsInnerTransferCount.eq_1]
@@ -6185,12 +6872,16 @@ theorem g14rA4_tc0 : (mpsInnerTransferCount g14rA4 g14rA4 (⟨0, by omega⟩ : F
   rw [g14rE11_adjoint]
   exact g14rE11_mul_self
 
+/-- The value component of the counted self inner-transfer calculation at site one equals
+`g14rJ`. -/
 theorem g14rA4_tc1 : (mpsInnerTransferCount g14rA4 g14rA4 (⟨1, by omega⟩ : Fin 2)).1
     = g14rJ := by
   rw [mpsInnerTransferCount.eq_2]
   simp only [Fin.sum_univ_one, g14rA4_at_one, g14rA4_tc0, g14rJ_adjoint]
   exact g14rJ_E11_J
 
+/-- The self inner-product evaluator returns one for `g14rA4`, although all of its MPS
+amplitudes vanish. -/
 theorem clause14Aux_mpsInnerEval_eq :
     mpsInnerEval (n := 2) (d := 1) (D := 2) g14rA4 g14rA4 = 1 := by
   show mpsInnerTransfer g14rA4 g14rA4 (⟨1, by omega⟩ : Fin 2)
@@ -6198,6 +6889,7 @@ theorem clause14Aux_mpsInnerEval_eq :
   rw [g14rA4_t1]
   exact g14rJ_zero_zero
 
+/-- The value component of the counted self inner-product evaluator is one for `g14rA4`. -/
 theorem clause14Aux_mpsInnerEvalCount_fst :
     (mpsInnerEvalWithCount (n := 2) (d := 1) (D := 2) g14rA4 g14rA4).1 = 1 := by
   show (mpsInnerTransferCount g14rA4 g14rA4 (⟨1, by omega⟩ : Fin 2)).1
@@ -6205,6 +6897,8 @@ theorem clause14Aux_mpsInnerEvalCount_fst :
   rw [g14rA4_tc1]
   exact g14rJ_zero_zero
 
+/-- Applying the unique one-dimensional identity observable at site zero leaves `g14rA4`
+unchanged. -/
 theorem clause14Aux_obs_eq : obsTensors (n := 2) (d := 1) (D := 2) g14rA4 (0 : Fin 2) g14rO
     = g14rA4 := by
   funext i x
@@ -6218,6 +6912,7 @@ theorem clause14Aux_obs_eq : obsTensors (n := 2) (d := 1) (D := 2) g14rA4 (0 : F
     exact one_smul ℂ g14rE11
   · simp only [obsTensors, if_neg h]
 
+/-- The sum of squared amplitude magnitudes for `g14rA4` is zero. -/
 theorem clause14Aux_amp_pair_sum :
     (∑ x : Fin 2 → Fin 1, conj (mpsAmplitude (n := 2) (d := 1) (D := 2) g14rA4 x)
       * mpsAmplitude (n := 2) (d := 1) (D := 2) g14rA4 x) = 0 := by
@@ -6226,6 +6921,7 @@ theorem clause14Aux_amp_pair_sum :
   rw [clause14Aux_amp_zero x]
   simp
 
+/-- The direct amplitude sum for the observable `g14rO` at site zero of `g14rA4` is zero. -/
 theorem clause14Aux_obs_sum :
     (∑ x : Fin 2 → Fin 1, conj (mpsAmplitude (n := 2) (d := 1) (D := 2) g14rA4 x)
       * ∑ y : Fin 1, g14rO (x (0 : Fin 2)) y
@@ -6236,6 +6932,9 @@ theorem clause14Aux_obs_sum :
   rw [clause14Aux_amp_zero x]
   simp
 
+/-- The universal conjunction of correctness and the stated operation-count bound for
+`mpsInnerEvalWithCount` is false. The tensor family `g14rA4` contradicts its asserted
+equality with the direct amplitude inner product. -/
 theorem clause3_clause4_counter : ¬ (
     (∀ (n d D : ℕ) (hn : NeZero n) (hD : NeZero D)
       (A B : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -6247,6 +6946,9 @@ theorem clause3_clause4_counter : ¬ (
   rw [clause14Aux_mpsInnerEvalCount_fst, clause14Aux_amp_pair_sum] at h
   exact absurd h.1 (by norm_num)
 
+/-- The claimed universal equality between `mpsInnerEval` with observable-modified tensors and
+the direct local-observable amplitude sum is false. The tensor family `g14rA4` and
+observable `g14rO` give a counterexample. -/
 theorem clause3_clause5_counter : ¬ (
     (∀ (n d D : ℕ) (hn : NeZero n) (hD : NeZero D)
       (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (z : Fin n)
@@ -6261,15 +6963,19 @@ theorem clause3_clause5_counter : ¬ (
 
 set_option linter.unusedSimpArgs false
 
+/-- The cumulative sum of the natural-number counts strictly before time `t`. -/
 def clause14Aux_cum (cnt : ℕ → ℕ) : ℕ → ℕ := fun t => (Finset.range t).sum cnt
 
+/-- The cumulative count at time zero is zero. -/
 theorem clause14Aux_cum_zero (cnt : ℕ → ℕ) : clause14Aux_cum cnt 0 = 0 := by
   simp [clause14Aux_cum]
 
+/-- Advancing the cumulative count from `t` to `t + 1` adds the count at `t`. -/
 theorem clause14Aux_cum_succ (cnt : ℕ → ℕ) (t : ℕ) :
     clause14Aux_cum cnt (t + 1) = clause14Aux_cum cnt t + cnt t := by
   simp [clause14Aux_cum, Finset.sum_range_succ]
 
+/-- The cumulative sum of natural-number counts is monotone in its time argument. -/
 theorem clause14Aux_cum_mono {cnt : ℕ → ℕ} {a b : ℕ} (h : a ≤ b) :
     clause14Aux_cum cnt a ≤ clause14Aux_cum cnt b := by
   induction b with
@@ -6292,17 +6998,21 @@ open scoped BigOperators Nat ComplexConjugate
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Module
 
+/-- A function on `Fin 1` equals the constant function given by its value at the unique index. -/
 theorem g10a_finOne_eta {d : ℕ} (f : Fin 1 → Fin d) :
     f = fun _ => f ⟨0, by omega⟩ := by
   funext t
   exact congrArg f (Fin.ext (by have := t.isLt; omega))
 
+/-- Encoding a one-site constant configuration with `finPowEnc` preserves the natural-number
+value of its physical index. -/
 theorem g10a_finPowEnc_one_val (d : ℕ) (y : Fin d) :
     (finPowEnc d 1 (fun _ => y) : ℕ) = y := by
   show (finFunctionFinEquiv (fun _ : Fin 1 => y) : ℕ) = _
   rw [finFunctionFinEquiv_apply, Fin.sum_univ_one]
   simp
 
+/-- The equivalence from `Fin d` to `Fin (d ^ 1)` obtained by encoding one-site configurations. -/
 def g10a_finPowEnc_one (d : ℕ) : Fin d ≃ Fin (d ^ 1) where
   toFun := fun y => finPowEnc d 1 (fun _ => y)
   invFun := fun i => (finPowEnc d 1).symm i ⟨0, by omega⟩
@@ -6320,14 +7030,18 @@ def g10a_finPowEnc_one (d : ℕ) : Fin d ≃ Fin (d ^ 1) where
       exact g10a_finPowEnc_one_val d _
     exact Fin.ext (hval.trans hright.symm)
 
+/-- Decoding a one-site index, reading its unique value, and encoding the resulting constant
+configuration recovers that index. -/
 theorem g10a_finPowEnc_one_symm (d : ℕ) (i : Fin (d ^ 1)) :
     finPowEnc d 1 (fun _ => (finPowEnc d 1).symm i ⟨0, by omega⟩) = i :=
   (g10a_finPowEnc_one d).apply_symm_apply i
 
+/-- The two-site configuration obtained by decoding `i` at site zero and `j` at site one. -/
 def g10a_twoCfg (d : ℕ) (i j : Fin (d ^ 1)) : Fin 2 → Fin d :=
   fun k => if (k : ℕ) = 0 then (finPowEnc d 1).symm i ⟨0, by omega⟩
     else (finPowEnc d 1).symm j ⟨0, by omega⟩
 
+/-- Joining the one-site configurations decoded from `i` and `j` gives `g10a_twoCfg d i j`. -/
 theorem g10a_splitJoin_two (d : ℕ) (i j : Fin (d ^ 1)) :
     splitJoin 2 1 d ((finPowEnc d 1).symm i) ((finPowEnc d 1).symm j)
       = g10a_twoCfg d i j := by
@@ -6340,6 +7054,8 @@ theorem g10a_splitJoin_two (d : ℕ) (i j : Fin (d ^ 1)) :
     have hk2 : (k : ℕ) - 1 = 0 := by have := k.isLt; omega
     simp [hk, hk1, hk2]
 
+/-- Encoding the two entries of a two-site configuration separately and combining them with
+`g10a_twoCfg` recovers the configuration. -/
 theorem g10a_twoCfg_self (d : ℕ) (x : Fin 2 → Fin d) :
     g10a_twoCfg d (finPowEnc d 1 (fun _ => x 0)) (finPowEnc d 1 (fun _ => x 1)) = x := by
   funext k
@@ -6351,45 +7067,60 @@ theorem g10a_twoCfg_self (d : ℕ) (x : Fin 2 → Fin d) :
     rw [if_neg hk, Equiv.symm_apply_apply]
     rw [hk1]
 
+/-- At site zero, `g10a_twoCfg d i j` equals the unique entry decoded from `i`. -/
 theorem g10a_twoCfg_zero (d : ℕ) (i j : Fin (d ^ 1)) :
     g10a_twoCfg d i j 0 = (finPowEnc d 1).symm i ⟨0, by omega⟩ := by
   unfold g10a_twoCfg
   simp
 
+/-- At site one, `g10a_twoCfg d i j` equals the unique entry decoded from `j`. -/
 theorem g10a_twoCfg_one (d : ℕ) (i j : Fin (d ^ 1)) :
     g10a_twoCfg d i j 1 = (finPowEnc d 1).symm j ⟨0, by omega⟩ := by
   unfold g10a_twoCfg
   simp
 
+/-- An entry of the central cut matrix of a two-site state is its amplitude at the configuration
+assembled from the two matrix indices. -/
 theorem g10a_cutMatrix_two {d : ℕ} (ψ : (Fin 2 → Fin d) → ℂ) (i j : Fin (d ^ 1)) :
     cutMatrix 2 d ψ 1 i j = ψ (g10a_twoCfg d i j) := by
   rw [g10a_cutMatrix_apply, g10a_splitJoin_two]
 
+/-- A two-site amplitude is the corresponding entry of its central cut matrix, with each
+physical value encoded as a one-site index. -/
 theorem g10a_psi_eq_cutMatrix_two {d : ℕ} (ψ : (Fin 2 → Fin d) → ℂ) (x : Fin 2 → Fin d) :
     ψ x = cutMatrix 2 d ψ 1
       (finPowEnc d 1 (fun _ => x 0)) (finPowEnc d 1 (fun _ => x 1)) := by
   rw [g10a_cutMatrix_two, g10a_twoCfg_self]
 
+/-- For positive bond dimension, the left bond index at site zero of a two-site open-boundary
+MPS is zero. -/
 theorem g10a_mpsLeftIdx_two_zero {D : ℕ} [NeZero D] (α : Fin (2 - 1) → Fin D) :
     mpsLeftIdx α (0 : Fin 2) = 0 := by
   unfold mpsLeftIdx
   simp
 
+/-- For positive bond dimension, the right bond index at site zero of a two-site MPS is its
+unique internal bond value. -/
 theorem g10a_mpsRightIdx_two_zero {D : ℕ} [NeZero D] (α : Fin (2 - 1) → Fin D) :
     mpsRightIdx α (0 : Fin 2) = α ⟨0, by omega⟩ := by
   unfold mpsRightIdx
   simp
 
+/-- For positive bond dimension, the left bond index at site one of a two-site MPS is its unique
+internal bond value. -/
 theorem g10a_mpsLeftIdx_two_one {D : ℕ} [NeZero D] (α : Fin (2 - 1) → Fin D) :
     mpsLeftIdx α (1 : Fin 2) = α ⟨0, by omega⟩ := by
   unfold mpsLeftIdx
   simp
 
+/-- For positive bond dimension, the right bond index at site one of a two-site open-boundary
+MPS is zero. -/
 theorem g10a_mpsRightIdx_two_one {D : ℕ} [NeZero D] (α : Fin (2 - 1) → Fin D) :
     mpsRightIdx α (1 : Fin 2) = 0 := by
   unfold mpsRightIdx
   simp
 
+/-- The equivalence between a bond assignment on `Fin 1` and its unique value in `Fin D`. -/
 def g10a_finOneFun (D : ℕ) : (Fin 1 → Fin D) ≃ Fin D where
   toFun := fun f => f ⟨0, by omega⟩
   invFun := fun β _ => β
@@ -6399,6 +7130,9 @@ def g10a_finOneFun (D : ℕ) : (Fin 1 → Fin D) ≃ Fin D where
     exact congrArg f (Fin.ext (by have := i.isLt; omega))
   right_inv := fun _ => rfl
 
+/-- For positive bond dimension, the amplitude of a two-site MPS is the sum over its internal
+bond of the product of the first tensor's boundary row and the second tensor's boundary
+column. -/
 theorem g10a_mpsAmplitude_two {d D : ℕ} [NeZero D]
     (A : Fin 2 → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin 2 → Fin d) :
     mpsAmplitude A x = ∑ β : Fin D, A 0 (x 0) 0 β * A 1 (x 1) β 0 := by
@@ -6428,6 +7162,8 @@ theorem g10a_mpsAmplitude_two {d D : ℕ} [NeZero D]
 
 open Complex
 
+/-- When `D` is at most `m`, summing over indices in `Fin m` smaller than `D` equals summing
+over their canonical embeddings from `Fin D`. -/
 theorem g10a_sum_univ_filter_lt {m D : ℕ} (hD : D ≤ m) (f : Fin m → ℂ) :
     (∑ i ∈ (Finset.univ : Finset (Fin m)).filter (fun (i : Fin m) => (i : ℕ) < D), f i)
       = ∑ β : Fin D, f (⟨(β : ℕ), lt_of_lt_of_le β.isLt hD⟩ : Fin m) := by
@@ -6445,6 +7181,8 @@ theorem g10a_sum_univ_filter_lt {m D : ℕ} (hD : D ≤ m) (f : Fin m → ℂ) :
   · intro i _hi
     rfl
 
+/-- When `D` does not exceed the column dimension, an entry of the truncated two-site cut matrix
+is the sum of its first `D` singular components. -/
 theorem g10a_svdTrunc_two {d : ℕ} (ψ : (Fin 2 → Fin d) → ℂ) (D : ℕ)
     (hD : D ≤ Fintype.card (Fin (d ^ (2 - 1))))
     (p : Fin (d ^ 1)) (q : Fin (d ^ (2 - 1))) :
@@ -6467,6 +7205,10 @@ theorem g10a_svdTrunc_two {d : ℕ} (ψ : (Fin 2 → Fin d) → ℂ) (D : ℕ)
   simp only [hterm] at h
   rw [h, g10a_sum_univ_filter_lt hD]
 
+/-- These two-site MPS tensors use the first `D` singular components of the central cut matrix,
+assuming `D` is at most the physical dimension. The first tensor stores left singular
+vectors in boundary row zero, and the second stores singular-value-weighted conjugate right
+singular vectors in boundary column zero. -/
 noncomputable def g10a_twoTensor (d D : ℕ) (ψ : (Fin 2 → Fin d) → ℂ)
     (hD : D ≤ Fintype.card (Fin (d ^ (2 - 1)))) :
     Fin 2 → Fin d → Matrix (Fin D) (Fin D) ℂ :=
@@ -6483,6 +7225,8 @@ noncomputable def g10a_twoTensor (d D : ℕ) (ψ : (Fin 2 → Fin d) → ℂ)
             ⟨(a : ℕ), lt_of_lt_of_le a.isLt hD⟩ (finPowEnc d 1 (fun _ => y)))
       else 0
 
+/-- The first tensor of `g10a_twoTensor` contains left singular-vector entries in row zero and
+vanishes in all other rows. -/
 theorem g10a_twoTensor_zero {d D : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
     (hD : D ≤ Fintype.card (Fin (d ^ (2 - 1)))) (y : Fin d) (a b : Fin D) :
     g10a_twoTensor d D ψ hD 0 y a b
@@ -6494,6 +7238,8 @@ theorem g10a_twoTensor_zero {d D : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
   simp only [Matrix.of_apply]
   rw [if_pos (show ((0 : Fin 2) : ℕ) = 0 from rfl)]
 
+/-- The second tensor of `g10a_twoTensor` contains singular-value-weighted conjugate right
+singular-vector entries in column zero and vanishes in all other columns. -/
 theorem g10a_twoTensor_one {d D : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
     (hD : D ≤ Fintype.card (Fin (d ^ (2 - 1)))) (y : Fin d) (a b : Fin D) :
     g10a_twoTensor d D ψ hD 1 y a b
@@ -6506,6 +7252,8 @@ theorem g10a_twoTensor_one {d D : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
   simp only [Matrix.of_apply]
   rw [if_neg (show ¬((1 : Fin 2) : ℕ) = 0 from by decide)]
 
+/-- For positive bond dimension, the amplitude of `g10a_twoTensor` equals the corresponding
+entry of the truncated central cut matrix. -/
 theorem g10a_twoTensor_amplitude {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin d) → ℂ)
     (hD : D ≤ Fintype.card (Fin (d ^ (2 - 1)))) (x : Fin 2 → Fin d) :
     mpsAmplitude (g10a_twoTensor d D ψ hD) x
@@ -6526,6 +7274,7 @@ theorem g10a_twoTensor_amplitude {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin d) 
   rw [Finset.sum_congr rfl (fun β _ => hterm β)]
   exact (g10a_svdTrunc_two ψ D hD _ _).symm
 
+/-- Negating a matrix preserves its spectral Frobenius norm. -/
 theorem g10a_spectralFrobenius_neg {O I : Type} [Fintype O] [Fintype I] (B : Matrix O I ℂ) :
     spectralFrobenius (-B) = spectralFrobenius B := by
   have h : (∑ i, ∑ j, Complex.normSq ((-B) i j)) = ∑ i, ∑ j, Complex.normSq (B i j) := by
@@ -6536,12 +7285,15 @@ theorem g10a_spectralFrobenius_neg {O I : Type} [Fintype O] [Fintype I] (B : Mat
   unfold spectralFrobenius
   rw [h]
 
+/-- Swapping the order of two matrices in a difference preserves its spectral Frobenius norm. -/
 theorem g10a_spectralFrobenius_sub_swap {O I : Type} [Fintype O] [Fintype I]
     (B C : Matrix O I ℂ) :
     spectralFrobenius (B - C) = spectralFrobenius (C - B) := by
   have h : B - C = -(C - B) := (neg_sub C B).symm
   rw [h, g10a_spectralFrobenius_neg]
 
+/-- For positive `D` at most the physical dimension, the total squared amplitude error of the
+two-site SVD tensors equals the discarded squared Schmidt tail at the central cut. -/
 theorem g10a_twoTensor_error {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin d) → ℂ)
     (hD : D ≤ Fintype.card (Fin (d ^ (2 - 1)))) :
     ∑ x, Complex.normSq (mpsAmplitude (g10a_twoTensor d D ψ hD) x - ψ x)
@@ -6568,6 +7320,8 @@ theorem g10a_twoTensor_error {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin d) → 
     (by omega : (1 : ℕ) ≤ 2), hmat, g10a_spectralFrobenius_sub_swap]
   exact (g10g_schmidtTailSq_eq_frob_sub_trunc (n := 2) (d := d) ψ 1 D).symm
 
+/-- The two-site SVD tensors are left canonical when `D` is positive and does not exceed the
+rank of the central cut matrix. -/
 theorem g10a_twoTensor_leftCanonical {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin d) → ℂ)
     {hD : D ≤ Fintype.card (Fin (d ^ (2 - 1)))}
     (hr : D ≤ Matrix.rank (cutMatrix 2 d ψ 1)) :
@@ -6643,6 +7397,7 @@ theorem g10a_twoTensor_leftCanonical {d D : ℕ} [NeZero D] (ψ : (Fin 2 → Fin
       simp [h]
   rw [hinner, Matrix.one_apply]
 
+/-- Truncating the central two-site cut matrix at its rank recovers the entire matrix. -/
 theorem g10a_svdTrunc_self {d r : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
     (hr : r = Matrix.rank (cutMatrix 2 d ψ 1)) :
     g10g_svdTrunc (cutMatrix 2 d ψ 1) r = cutMatrix 2 d ψ 1 := by
@@ -6676,6 +7431,8 @@ theorem g10a_svdTrunc_self {d r : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
   rw [g10g_svdTrunc, Finset.sum_congr rfl (fun i _ => hall i),
     ← matrix_eq_sum_singularVectors (cutMatrix 2 d ψ 1)]
 
+/-- If the central two-site cut matrix has positive rank `r`, the state has an exact
+left-canonical MPS representation of bond dimension `r`. -/
 theorem g10a_two_exact_core {d r : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
     (hr : r = Matrix.rank (cutMatrix 2 d ψ 1)) (hr1 : 1 ≤ r) :
     ∃ (hD : NeZero r) (A : Fin 2 → Fin d → Matrix (Fin r) (Fin r) ℂ),
@@ -6690,6 +7447,8 @@ theorem g10a_two_exact_core {d r : ℕ} (ψ : (Fin 2 → Fin d) → ℂ)
       g10a_psi_eq_cutMatrix_two ψ x]
   · exact g10a_twoTensor_leftCanonical ψ (by rw [hr])
 
+/-- When the physical dimension is zero, any real-valued sum over two-site configurations is
+zero. -/
 theorem g10a_sum_empty_cfg {d : ℕ} (hd : d = 0) (F : (Fin 2 → Fin d) → ℝ) :
     (∑ x : Fin 2 → Fin d, F x) = 0 := by
   subst hd
@@ -6698,6 +7457,8 @@ theorem g10a_sum_empty_cfg {d : ℕ} (hd : d = 0) (F : (Fin 2 → Fin d) → ℝ
     Finset.card_eq_zero.mp (by rw [Finset.card_univ]; exact hcard)
   rw [he, Finset.sum_empty]
 
+/-- Every normalized two-site state has an exact left-canonical MPS representation whose bond
+dimension is the maximum of one and its cut ranks. -/
 theorem g10a_clause2_two (d : ℕ) (ψ : (Fin 2 → Fin d) → ℂ)
     (hnorm : ∑ x, Complex.normSq (ψ x) = 1) :
     ∃ (D : ℕ) (hD : NeZero D) (A : Fin 2 → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -6738,6 +7499,8 @@ theorem g10a_clause2_two (d : ℕ) (ψ : (Fin 2 → Fin d) → ℂ)
     cutRank_eq_matrixRank ψ 1
   omega
 
+/-- For every positive bond dimension, a two-site state has an MPS approximation with total
+squared amplitude error at most twice the sum of its discarded squared Schmidt tails. -/
 theorem g10a_clause3_two (d : ℕ) (ψ : (Fin 2 → Fin d) → ℂ) :
     ∀ D : ℕ, 0 < D →
       ∃ (hD : NeZero D) (A : Fin 2 → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -6815,15 +7578,21 @@ open Qatlib
 open Qatlib.Concepts.TensorNetwork.GaugeInvariance
 open scoped ComplexConjugate BigOperators Nat
 
+/-- The cumulative sum of natural-number counts over the times strictly smaller than the
+argument. -/
 def clause3Aux_cum (cnt : ℕ → ℕ) : ℕ → ℕ := fun t => (Finset.range t).sum cnt
 
+/-- The cumulative count used in the sampling construction is zero at time zero. -/
 theorem clause3Aux_cum_zero (cnt : ℕ → ℕ) : clause3Aux_cum cnt 0 = 0 := by
   simp [clause3Aux_cum]
 
+/-- The next cumulative count is the current cumulative count plus the count at the current
+time. -/
 theorem clause3Aux_cum_succ (cnt : ℕ → ℕ) (t : ℕ) :
     clause3Aux_cum cnt (t + 1) = clause3Aux_cum cnt t + cnt t := by
   simp [clause3Aux_cum, Finset.sum_range_succ]
 
+/-- The cumulative count used in the sampling construction is monotone. -/
 theorem clause3Aux_cum_mono {cnt : ℕ → ℕ} {a b : ℕ} (h : a ≤ b) :
     clause3Aux_cum cnt a ≤ clause3Aux_cum cnt b := by
   induction b with
@@ -6838,6 +7607,8 @@ theorem clause3Aux_cum_mono {cnt : ℕ → ℕ} {a b : ℕ} (h : a ≤ b) :
       rw [clause3Aux_cum_succ]
       exact Nat.le_add_right _ _
 
+/-- Extending a count function on `Fin N` by zero and taking its cumulative sum through `N`
+gives the sum over `Fin N`. -/
 theorem clause3Aux_cum_cast (N : ℕ) (cnt : Fin N → ℕ) :
     clause3Aux_cum (fun t => if h : t < N then cnt ⟨t, h⟩ else 0) N = ∑ j : Fin N, cnt j := by
   rw [clause3Aux_cum]
@@ -6853,9 +7624,12 @@ theorem clause3Aux_cum_cast (N : ℕ) (cnt : Fin N → ℕ) :
   · intro j _
     simp
 
+/-- An equivalence between length-`k` Boolean strings and the finite index type of size `2 ^ k`. -/
 def clause3Aux_bitsEnc (k : ℕ) : (Fin k → Bool) ≃ Fin (2 ^ k) :=
   (Equiv.piCongrRight fun _ => finTwoEquiv.symm).trans finFunctionFinEquiv
 
+/-- An equivalence between indices in `Fin T` lying in the interval from `a` inclusive to `b`
+exclusive and `Fin (b - a)`, provided `b` is at most `T`. -/
 def clause3Aux_IcoFinEquiv' (T a b : ℕ) (hb : b ≤ T) : {u : Fin T // a ≤ u ∧ u < b} ≃ Fin (b - a) where
   toFun u := ⟨u.val - a, by have := u.property; omega⟩
   invFun v := by
@@ -6879,6 +7653,10 @@ def clause3Aux_IcoFinEquiv' (T a b : ℕ) (hb : b ≤ T) : {u : Fin T // a ≤ u
     have := v.isLt
     omega
 
+/-- For every normalized MPS amplitude law with positive bond dimension and every positive
+tolerance, a deterministic map from uniformly distributed Boolean strings approximates that
+law in total variation. Its string length is bounded by the stated sum of binary logarithms
+of the configuration count and the rounded reciprocal tolerance, plus two. -/
 theorem clause3_clause6 : ∀ (n d D : ℕ) (hD : NeZero D)
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ),
     (∑ x, Complex.normSq (@mpsAmplitude n d D hD A x) = 1) →
@@ -7224,17 +8002,25 @@ open scoped BigOperators ComplexConjugate
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The left singular-vector amplitude at cut `c`, evaluated on an encoded prefix configuration
+and extended by zero to natural-number singular indices outside the column dimension. -/
 noncomputable def g10gL (c : ℕ) (k : ℕ) (u : Fin c → Fin d) : ℂ :=
   if h : k < Fintype.card (Fin (d ^ (n - c))) then
     leftSingularVector (cutMatrix n d ψ c) ⟨k, h⟩ (finPowEnc d c u)
   else 0
 
+/-- The singular-value-weighted conjugate right singular-vector amplitude at cut `c`, evaluated
+on an encoded suffix and extended by zero outside the column dimension. -/
 noncomputable def g10gS (c : ℕ) (k : ℕ) (v : Fin (n - c) → Fin d) : ℂ :=
   if h : k < Fintype.card (Fin (d ^ (n - c))) then
     ((matrixSingularValues (cutMatrix n d ψ c) k : ℂ)) *
       star (rightSingularBasis (cutMatrix n d ψ c) ⟨k, h⟩ (finPowEnc d (n - c) v))
   else 0
 
+/-- The transition coefficient between adjacent cuts, formed from the right singular-vector
+overlap after inserting physical value `y` and scaled by the current singular value and
+inverse next singular value. It is zero when the cut or either singular index is outside its
+permitted range. -/
 noncomputable def g10gLink (c : ℕ) (k' k : ℕ) (y : Fin d) : ℂ :=
   if hc : c + 1 ≤ n then
     if hk' : k' < Fintype.card (Fin (d ^ (n - (c + 1)))) then
@@ -7250,11 +8036,15 @@ noncomputable def g10gLink (c : ℕ) (k' k : ℕ) (y : Fin d) : ℂ :=
     else 0
   else 0
 
+/-- For a singular index in the column range, `g10gL` is the corresponding left singular-vector
+entry at the encoded prefix. -/
 theorem g10gL_fin (c : ℕ) (k : Fin (Fintype.card (Fin (d ^ (n - c))))) (u : Fin c → Fin d) :
     g10gL ψ c k u = leftSingularVector (cutMatrix n d ψ c) k (finPowEnc d c u) := by
   unfold g10gL
   rw [dif_pos k.isLt]
 
+/-- For a singular index in the column range, `g10gS` is the singular value times the conjugate
+right singular-vector entry at the encoded suffix. -/
 theorem g10gS_fin (c : ℕ) (k : Fin (Fintype.card (Fin (d ^ (n - c)))))
     (v : Fin (n - c) → Fin d) :
     g10gS ψ c k v = ((matrixSingularValues (cutMatrix n d ψ c) k : ℂ)) *
@@ -7262,6 +8052,8 @@ theorem g10gS_fin (c : ℕ) (k : Fin (Fintype.card (Fin (d ^ (n - c)))))
   unfold g10gS
   rw [dif_pos k.isLt]
 
+/-- For valid adjacent cuts and singular indices, `g10gLink` equals its singular-value-scaled
+overlap formula without the range checks. -/
 theorem g10gLink_fin (c : ℕ) (hc : c + 1 ≤ n)
     (k' : Fin (Fintype.card (Fin (d ^ (n - (c + 1))))))
     (k : Fin (Fintype.card (Fin (d ^ (n - c))))) (y : Fin d) :
@@ -7276,12 +8068,16 @@ theorem g10gLink_fin (c : ℕ) (hc : c + 1 ≤ n)
   unfold g10gLink
   rw [dif_pos hc, dif_pos k'.isLt, dif_pos k.isLt]
 
+/-- For a valid adjacent-cut pair, the link coefficient vanishes when its next-cut singular
+index is at least the next cut matrix's column dimension. -/
 theorem g10gLink_eq_zero_of_k' (c : ℕ) (hc : c + 1 ≤ n) {k' : ℕ}
     (hk' : Fintype.card (Fin (d ^ (n - (c + 1)))) ≤ k') (k : ℕ) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
   unfold g10gLink
   rw [dif_pos hc, dif_neg (by omega)]
 
+/-- For a valid adjacent-cut pair, the link coefficient vanishes when its current-cut singular
+index is at least the current cut matrix's column dimension. -/
 theorem g10gLink_eq_zero_of_k (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) {k : ℕ}
     (hk : Fintype.card (Fin (d ^ (n - c))) ≤ k) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
@@ -7291,21 +8087,29 @@ theorem g10gLink_eq_zero_of_k (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) {k : ℕ}
   · rw [dif_pos hk', dif_neg (by omega)]
   · rw [dif_neg hk']
 
+/-- The extended left singular amplitude is zero at a singular index outside the cut matrix's
+column dimension. -/
 theorem g10gL_eq_zero_of_not_lt (c : ℕ) {k : ℕ} (hk : Fintype.card (Fin (d ^ (n - c))) ≤ k)
     (u : Fin c → Fin d) : g10gL ψ c k u = 0 := by
   unfold g10gL
   rw [dif_neg (by omega)]
 
+/-- The extended weighted right singular amplitude is zero at a singular index outside the cut
+matrix's column dimension. -/
 theorem g10gS_eq_zero_of_not_lt (c : ℕ) {k : ℕ} (hk : Fintype.card (Fin (d ^ (n - c))) ≤ k)
     (v : Fin (n - c) → Fin d) : g10gS ψ c k v = 0 := by
   unfold g10gS
   rw [dif_neg (by omega)]
 
+/-- An entry of a cut matrix is the state amplitude at the configuration obtained by decoding
+and joining its row and column indices. -/
 theorem g10g_cutMatrix_entry (c : ℕ) (p : Fin (d ^ c)) (q : Fin (d ^ (n - c))) :
     cutMatrix n d ψ c p q
       = ψ (splitJoin n c d ((finPowEnc d c).symm p) ((finPowEnc d (n - c)).symm q)) := by
   simp [cutMatrix]
 
+/-- Every cut-matrix entry is the sum of its singular values times the corresponding left
+singular-vector entry and conjugate right singular-vector entry. -/
 theorem g10g_matrix_entry_svd (c : ℕ) (p : Fin (d ^ c)) (q : Fin (d ^ (n - c))) :
     cutMatrix n d ψ c p q
       = ∑ i : Fin (Fintype.card (Fin (d ^ (n - c)))),
@@ -7317,6 +8121,8 @@ theorem g10g_matrix_entry_svd (c : ℕ) (p : Fin (d ^ c)) (q : Fin (d ^ (n - c))
   simp only [Matrix.smul_apply, Matrix.vecMulVec_apply] at h
   exact h
 
+/-- At a valid cut, the amplitude of a joined prefix and suffix is the sum of the products
+`g10gL` and `g10gS` over all singular indices. -/
 theorem g10g_svd_reconstruct (c : ℕ) (_hc : c ≤ n) (u : Fin c → Fin d) (v : Fin (n - c) → Fin d) :
     ψ (splitJoin n c d u v)
       = ∑ k : Fin (Fintype.card (Fin (d ^ (n - c)))), g10gL ψ c k u * g10gS ψ c k v := by
@@ -7327,6 +8133,8 @@ theorem g10g_svd_reconstruct (c : ℕ) (_hc : c ≤ n) (u : Fin c → Fin d) (v 
   rw [g10gL_fin, g10gS_fin]
   ring
 
+/-- When `c + 1` is at most the chain length, moving the last value of a prefix to the beginning
+of the suffix identifies the corresponding entries of the cut matrices at `c + 1` and `c`. -/
 theorem g10g_entry_transfer (c : ℕ) (hc : c + 1 ≤ n) (u : Fin c → Fin d) (y : Fin d)
     (j' : Fin (d ^ (n - (c + 1)))) :
     cutMatrix n d ψ (c + 1) (finPowEnc d (c + 1) (g10g_snoc u y)) j'
@@ -7353,6 +8161,8 @@ theorem g10g_entry_transfer (c : ℕ) (hc : c + 1 ≤ n) (u : Fin c → Fin d) (
   · intro hy
     exact absurd (Finset.mem_univ _) hy
 
+/-- The insertion matrix `g10g_rightFactor` has entry one exactly when the old suffix index
+encodes physical value `y` followed by the decoded new suffix, and entry zero otherwise. -/
 theorem g10g_rightFactor_entry (c : ℕ) (hc : c + 1 ≤ n) (y : Fin d)
     (q : Fin (d ^ (n - c))) (j' : Fin (d ^ (n - (c + 1)))) :
     g10g_rightFactor (n := n) (c := c) hc y q j'
@@ -7365,12 +8175,17 @@ theorem g10g_rightFactor_entry (c : ℕ) (hc : c + 1 ≤ n) (y : Fin d)
   · rw [g10g_rightFactor_eq_zero_of_ne hc y q j' (by simpa using! he)]
     simp [he]
 
+/-- Multiplication by the suffix-insertion matrix is the finite sum of its entries times the
+input vector entries. -/
 theorem g10g_rightFactor_mulVec (c : ℕ) (hc : c + 1 ≤ n) (y : Fin d)
     (w : Fin (d ^ (n - (c + 1))) → ℂ) (q : Fin (d ^ (n - c))) :
     (g10g_rightFactor (n := n) (c := c) hc y).mulVec w q
       = ∑ j' : Fin (d ^ (n - (c + 1))), (g10g_rightFactor (n := n) (c := c) hc y) q j' * w j' :=
   rfl
 
+/-- For adjacent valid cuts, the next-cut left singular amplitude of an extended prefix is the
+cut-matrix action on the matching right singular vector multiplied by the inverse singular
+value, when its index is in range. It is zero outside that range. -/
 theorem g10gL_snoc_eq (c : ℕ) (_hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → Fin d) (y : Fin d) :
     g10gL ψ (c + 1) k' (g10g_snoc u y)
       = if hk' : k' < Fintype.card (Fin (d ^ (n - (c + 1)))) then
@@ -7405,6 +8220,9 @@ theorem g10gL_snoc_eq (c : ℕ) (_hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → Fi
     rw [hexp]
   · rw [g10gL_eq_zero_of_not_lt ψ (c + 1) (by omega), dif_neg hk']
 
+/-- For adjacent valid cuts and an in-range next-cut singular index, the extended-prefix left
+singular amplitude is expressed using the previous cut matrix, suffix insertion, and the
+inverse next singular value. -/
 theorem g10g_expand_common (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → Fin d) (y : Fin d)
     (hk' : k' < Fintype.card (Fin (d ^ (n - (c + 1))))) :
     g10gL ψ (c + 1) k' (g10g_snoc u y)
@@ -7417,6 +8235,8 @@ theorem g10g_expand_common (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c �
   congr 1
   exact Finset.sum_congr rfl (fun j' _ => by rw [g10g_entry_transfer ψ c hc u y j'])
 
+/-- The overlap sum involving the suffix-insertion matrix reduces to a sum over the shorter
+suffix indices, evaluating the current right singular vector at each inserted suffix. -/
 theorem g10g_filter_sum (c : ℕ) (hc : c + 1 ≤ n) (y : Fin d)
     (k : Fin (Fintype.card (Fin (d ^ (n - c)))))
     (k' : Fin (Fintype.card (Fin (d ^ (n - (c + 1)))))) :
@@ -7485,6 +8305,8 @@ theorem g10g_filter_sum (c : ℕ) (hc : c + 1 ≤ n) (y : Fin d)
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- At adjacent valid cuts, each next-cut left singular amplitude expands as a sum of
+current-cut left singular amplitudes multiplied by their link coefficients. -/
 theorem g10g_expand_link (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → Fin d) (y : Fin d) :
     g10gL ψ (c + 1) k' (g10g_snoc u y)
       = ∑ k : Fin (Fintype.card (Fin (d ^ (n - c)))),
@@ -7583,6 +8405,7 @@ theorem g10g_expand_link (c : ℕ) (hc : c + 1 ≤ n) (k' : ℕ) (u : Fin c → 
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- A singular value of a cut matrix is zero when its index is at least the cut rank. -/
 theorem g10g_singular_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k) :
     matrixSingularValues (cutMatrix n d ψ c) k = 0 := by
   by_contra hne
@@ -7592,6 +8415,7 @@ theorem g10g_singular_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c �
   simp only [Finset.mem_range] at hmem
   omega
 
+/-- The extended left singular amplitude vanishes at every index at least the cut rank. -/
 theorem g10gL_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     (u : Fin c → Fin d) : g10gL ψ c k u = 0 := by
   unfold g10gL
@@ -7605,6 +8429,7 @@ theorem g10gL_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     simp
   · rw [dif_neg hlt]
 
+/-- The weighted right singular amplitude vanishes at every index at least the cut rank. -/
 theorem g10gS_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     (v : Fin (n - c) → Fin d) : g10gS ψ c k v = 0 := by
   unfold g10gS
@@ -7614,6 +8439,8 @@ theorem g10gS_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     simp
   · rw [dif_neg hlt]
 
+/-- For adjacent valid cuts, a link coefficient vanishes when its current-cut singular index is
+at least the current cut rank. -/
 theorem g10gLink_eq_zero_of_cutRank_le_left {c k : ℕ} (hc : c + 1 ≤ n)
     (hk : cutRank n d ψ c ≤ k) (k' : ℕ) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
@@ -7628,6 +8455,8 @@ theorem g10gLink_eq_zero_of_cutRank_le_left {c k : ℕ} (hc : c + 1 ≤ n)
     · rw [dif_neg hk2]
   · rw [dif_neg hk']
 
+/-- For adjacent valid cuts, a link coefficient vanishes when its next-cut singular index is at
+least the next cut rank. -/
 theorem g10gLink_eq_zero_of_cutRank_le_right {c k' : ℕ} (hc : c + 1 ≤ n)
     (hk' : cutRank n d ψ (c + 1) ≤ k') (k : ℕ) (y : Fin d) :
     g10gLink ψ c k' k y = 0 := by
@@ -7647,6 +8476,8 @@ theorem g10gLink_eq_zero_of_cutRank_le_right {c k' : ℕ} (hc : c + 1 ≤ n)
     · rw [dif_neg hk2]
   · rw [dif_neg hk'2]
 
+/-- Left singular amplitudes with indices below the cut rank are orthonormal under summation
+over prefix configurations. -/
 theorem g10gL_inner_eq_ite (c : ℕ) (k k' : Fin (Fintype.card (Fin (d ^ (n - c)))))
     (hk : (k : ℕ) < cutRank n d ψ c) (hk' : (k' : ℕ) < cutRank n d ψ c) :
     ∑ u : Fin c → Fin d, star (g10gL ψ c k u) * g10gL ψ c k' u
@@ -7674,12 +8505,16 @@ theorem g10gL_inner_eq_ite (c : ℕ) (k k' : Fin (Fintype.card (Fin (d ^ (n - c)
   · rw [inner_leftSingularVector_of_ne (cutMatrix n d ψ c) heq]
     simp [heq]
 
+/-- Every value of the left singular amplitude is zero when its singular index is at least the
+cut rank. -/
 theorem g10gL_inner_self_eq_zero_of_cutRank_le {c k : ℕ} (hk : cutRank n d ψ c ≤ k)
     (u : Fin c → Fin d) : g10gL ψ c k u = 0 :=
   g10gL_eq_zero_of_cutRank_le ψ hk u
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The equivalence between a prefix together with one physical value and the configuration
+obtained by appending that value. -/
 def g10g_snocEquiv {c d : ℕ} : ((Fin c → Fin d) × Fin d) ≃ (Fin (c + 1) → Fin d) where
   toFun := fun p => g10g_snoc p.1 p.2
   invFun := fun u => (g10g_init u, g10g_last u)
@@ -7690,9 +8525,12 @@ def g10g_snocEquiv {c d : ℕ} : ((Fin c → Fin d) × Fin d) ≃ (Fin (c + 1) �
     rw [g10g_init_snoc, g10g_last_snoc]
   right_inv := fun u => g10g_snoc_init_last u
 
+/-- Applying `g10g_snocEquiv` to a prefix and a physical value appends that value to the prefix. -/
 theorem g10g_snocEquiv_apply {c d : ℕ} (u : Fin c → Fin d) (y : Fin d) :
     g10g_snocEquiv (u, y) = g10g_snoc u y := rfl
 
+/-- The Gram sum of two extended left singular amplitudes is one exactly when their indices
+agree below the cut rank, and zero otherwise. -/
 theorem g10gL_gram (c : ℕ) (k j : Fin (Fintype.card (Fin (d ^ (n - c))))) :
     (∑ u : Fin c → Fin d, star (g10gL ψ c k u) * g10gL ψ c j u)
       = if k = j ∧ (k : ℕ) < cutRank n d ψ c then (1 : ℂ) else 0 := by
@@ -7723,6 +8561,8 @@ theorem g10gL_gram (c : ℕ) (k j : Fin (Fintype.card (Fin (d ^ (n - c))))) :
       rw [if_neg (fun h => hk h.2)]
     · rw [if_neg (fun h => heq h.1)]
 
+/-- For adjacent valid cuts, link coefficients for next-cut indices below the next cut rank are
+orthonormal after summing over the current singular index and physical value. -/
 theorem g10g_link_gram (c : ℕ) (hc : c + 1 ≤ n)
     (k' k'' : Fin (Fintype.card (Fin (d ^ (n - (c + 1))))))
     (hk' : (k' : ℕ) < cutRank n d ψ (c + 1)) (hk'' : (k'' : ℕ) < cutRank n d ψ (c + 1)) :
@@ -7858,6 +8698,8 @@ theorem g10g_link_gram (c : ℕ) (hc : c + 1 ≤ n)
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- Two finite sums of a natural-indexed complex function agree when both ranges contain its
+support below `K` and the function vanishes at every index at least `K`. -/
 theorem g10g_sum_fin_eq_of_zero {K m m' : ℕ} (f : ℕ → ℂ) (hm : K ≤ m) (hm' : K ≤ m')
     (hz : ∀ k : ℕ, K ≤ k → f k = 0) : (∑ k : Fin m, f k) = ∑ k : Fin m', f k := by
   have h1 : (∑ k : Fin m, f k) = ∑ k ∈ Finset.range K, f k := by
@@ -7870,6 +8712,8 @@ theorem g10g_sum_fin_eq_of_zero {K m m' : ℕ} (f : ℕ → ℂ) (hm : K ≤ m) 
       (fun k _ hnot => hz k (Nat.le_of_not_lt (fun h => hnot (Finset.mem_range.mpr h))))).symm
   exact h1.trans h2.symm
 
+/-- A product indexed by `Fin (m + 1)` factors into the product over its first `m` indices and
+its final factor. -/
 theorem g10g_prod_fin_succ {m : ℕ} {α : Type} [CommMonoid α] (g : Fin (m + 1) → α) :
     (∏ i : Fin (m + 1), g i) = (∏ i : Fin m, g ⟨(i : ℕ), by omega⟩) * g ⟨m, by omega⟩ := by
   set f : ℕ → α := fun k => if h : k < m + 1 then g ⟨k, h⟩ else 1
@@ -7891,6 +8735,8 @@ theorem g10g_prod_fin_succ {m : ℕ} {α : Type} [CommMonoid α] (g : Fin (m + 1
     simp [f]
   rw [hL, Finset.prod_range_succ, ← hM, hm1]
 
+/-- The first-site block formed from the cut-one left singular amplitudes, placed in rows whose
+incoming bond index is zero. -/
 noncomputable def g10g_site0Block (D : ℕ) :
     Matrix (Fin (D * d)) (Fin (cutRank n d ψ 1)) ℂ :=
   Matrix.of fun p j =>
@@ -7898,12 +8744,15 @@ noncomputable def g10g_site0Block (D : ℕ) :
       g10gL ψ 1 (j : ℕ) (fun _ => ((finProdFinEquiv (m := D) (n := d)).symm p).2)
     else 0
 
+/-- An entry of the first-site block is the matching cut-one left singular amplitude when the
+incoming bond index is zero, and is zero otherwise. -/
 theorem g10g_site0Block_apply (D : ℕ) (p : Fin (D * d)) (j : Fin (cutRank n d ψ 1)) :
     g10g_site0Block ψ D p j
       = if (((finProdFinEquiv (m := D) (n := d)).symm p).1 : ℕ) = 0 then
         g10gL ψ 1 (j : ℕ) (fun _ => ((finProdFinEquiv (m := D) (n := d)).symm p).2) else 0 :=
   rfl
 
+/-- The first-site block has orthonormal columns when the cut-one rank is at most `D`. -/
 theorem g10g_site0Block_gram {D : ℕ} (hr : cutRank n d ψ 1 ≤ D) :
     (g10g_site0Block ψ D)ᴴ * g10g_site0Block ψ D = 1 := by
   refine eq_one_of_gram_apply _ (fun j₁ j₂ => ?_)
@@ -7998,6 +8847,8 @@ theorem g10g_site0Block_gram {D : ℕ} (hr : cutRank n d ψ 1 ≤ D) :
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The site block whose rows combine the incoming bond and physical indices and whose columns
+are link coefficients indexed below the next cut rank. -/
 noncomputable def g10g_siteIBlock (i : ℕ) (_hi : i + 1 ≤ n) (D : ℕ) :
     Matrix (Fin (D * d)) (Fin (cutRank n d ψ (i + 1))) ℂ :=
   Matrix.of fun p j =>
@@ -8005,6 +8856,8 @@ noncomputable def g10g_siteIBlock (i : ℕ) (_hi : i + 1 ≤ n) (D : ℕ) :
       (((finProdFinEquiv (m := D) (n := d)).symm p).1 : ℕ)
       ((finProdFinEquiv (m := D) (n := d)).symm p).2
 
+/-- An entry of the site block equals the link coefficient obtained by unpacking its row into
+incoming bond and physical indices. -/
 theorem g10g_siteIBlock_apply (i : ℕ) (_hi : i + 1 ≤ n) (D : ℕ)
     (p : Fin (D * d)) (j : Fin (cutRank n d ψ (i + 1))) :
     g10g_siteIBlock ψ i _hi D p j
@@ -8013,6 +8866,8 @@ theorem g10g_siteIBlock_apply (i : ℕ) (_hi : i + 1 ≤ n) (D : ℕ)
           ((finProdFinEquiv (m := D) (n := d)).symm p).2 :=
   rfl
 
+/-- The site block at a valid cut has orthonormal columns when `D` contains the current cut
+rank. -/
 theorem g10g_siteIBlock_gram (i : ℕ) (hi : i + 1 ≤ n) (D : ℕ)
     (hri : cutRank n d ψ i ≤ D) :
     (g10g_siteIBlock ψ i hi D)ᴴ * g10g_siteIBlock ψ i hi D = 1 := by
@@ -8092,33 +8947,43 @@ theorem g10g_siteIBlock_gram (i : ℕ) (hi : i + 1 ≤ n) (D : ℕ)
   simp only [hiff] at hgr
   exact hgr
 
+/-- An isometric extension of the first-site block to `D` columns, chosen when the cut-one rank
+is at most `D` and the physical dimension is positive. -/
 noncomputable def g10g_site0Ext {D : ℕ} (hr : cutRank n d ψ 1 ≤ D) (hd : 0 < d) :
     Matrix (Fin (D * d)) (Fin D) ℂ :=
   Classical.choose (exists_isometry_extend hr hd (g10g_site0Block ψ D) (g10g_site0Block_gram ψ hr))
 
+/-- The chosen extension of the first-site block has orthonormal columns. -/
 theorem g10g_site0Ext_gram {D : ℕ} {hr : cutRank n d ψ 1 ≤ D} {hd : 0 < d} :
     (g10g_site0Ext ψ hr hd)ᴴ * g10g_site0Ext ψ hr hd = 1 :=
   (Classical.choose_spec
     (exists_isometry_extend hr hd (g10g_site0Block ψ D) (g10g_site0Block_gram ψ hr))).1
 
+/-- On columns below the cut-one rank, the chosen first-site extension agrees with the original
+first-site block. -/
 theorem g10g_site0Ext_apply {D : ℕ} {hr : cutRank n d ψ 1 ≤ D} {hd : 0 < d}
     (p : Fin (D * d)) (j : Fin (cutRank n d ψ 1)) :
     g10g_site0Ext ψ hr hd p ⟨(j : ℕ), lt_of_lt_of_le j.isLt hr⟩ = g10g_site0Block ψ D p j :=
   (Classical.choose_spec
     (exists_isometry_extend hr hd (g10g_site0Block ψ D) (g10g_site0Block_gram ψ hr))).2 j p
 
+/-- An isometric extension of the link-based site block to `D` columns, assuming both adjacent
+cut ranks are at most `D` and the physical dimension is positive. -/
 noncomputable def g10g_siteIExt (i : ℕ) (hi : i + 1 ≤ n) {D : ℕ}
     (hri : cutRank n d ψ i ≤ D) (hr : cutRank n d ψ (i + 1) ≤ D) (hd : 0 < d) :
     Matrix (Fin (D * d)) (Fin D) ℂ :=
   Classical.choose (exists_isometry_extend hr hd (g10g_siteIBlock ψ i hi D)
     (g10g_siteIBlock_gram ψ i hi D hri))
 
+/-- The chosen extension of a link-based site block has orthonormal columns. -/
 theorem g10g_siteIExt_gram (i : ℕ) (hi : i + 1 ≤ n) {D : ℕ}
     {hri : cutRank n d ψ i ≤ D} {hr : cutRank n d ψ (i + 1) ≤ D} {hd : 0 < d} :
     (g10g_siteIExt ψ i hi hri hr hd)ᴴ * g10g_siteIExt ψ i hi hri hr hd = 1 :=
   (Classical.choose_spec (exists_isometry_extend hr hd (g10g_siteIBlock ψ i hi D)
     (g10g_siteIBlock_gram ψ i hi D hri))).1
 
+/-- On columns below the next cut rank, the chosen site extension agrees with its original
+link-based block. -/
 theorem g10g_siteIExt_apply (i : ℕ) (hi : i + 1 ≤ n) {D : ℕ}
     {hri : cutRank n d ψ i ≤ D} {hr : cutRank n d ψ (i + 1) ≤ D} {hd : 0 < d}
     (p : Fin (D * d)) (j : Fin (cutRank n d ψ (i + 1))) :
@@ -8129,6 +8994,10 @@ theorem g10g_siteIExt_apply (i : ℕ) (hi : i + 1 ≤ n) {D : ℕ}
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The MPS tensor chain assembled from the extended first-site and intermediate isometries,
+with the weighted right singular amplitude closing the final boundary. It is defined for at
+least two sites, positive physical dimension, and a bond dimension bounding every cut rank
+before `n`. -/
 noncomputable def g10g_chainA (D : ℕ) (_h2 : 2 ≤ n) (hd : 0 < d)
     (hle : ∀ c, c < n → cutRank n d ψ c ≤ D) :
     Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ :=
@@ -8141,6 +9010,9 @@ noncomputable def g10g_chainA (D : ℕ) (_h2 : 2 ≤ n) (hd : 0 < d)
       g10g_siteIExt ψ i (by omega) (hle i (by omega)) (hle (i + 1) (by omega)) hd
         (finProdFinEquiv (m := D) (n := d) (a, y)) b
 
+/-- Entries of the constructed chain are given by the first-site extension, the final weighted
+right singular amplitude in column zero, or the intermediate extension according to the site
+index. -/
 theorem g10g_chainA_apply {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (i : Fin n) (y : Fin d) (a b : Fin D) :
     g10g_chainA ψ D h2 hd hle i y a b
@@ -8153,6 +9025,7 @@ theorem g10g_chainA_apply {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
             (finProdFinEquiv (m := D) (n := d) (a, y)) b :=
   rfl
 
+/-- At site zero, the constructed MPS chain equals the packed first-site isometric extension. -/
 theorem g10g_chainA_zero {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (y : Fin d) (a b : Fin D) :
     g10g_chainA ψ D h2 hd hle ⟨0, by omega⟩ y a b
@@ -8160,6 +9033,8 @@ theorem g10g_chainA_zero {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   rw [g10g_chainA_apply]
   exact dif_pos rfl
 
+/-- At the final site, the constructed chain contains the weighted right singular amplitude in
+column zero and vanishes in the other columns. -/
 theorem g10g_chainA_last {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (y : Fin d) (a b : Fin D) :
     g10g_chainA ψ D h2 hd hle ⟨n - 1, by omega⟩ y a b
@@ -8172,6 +9047,8 @@ theorem g10g_chainA_last {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   have hn1 : (((⟨n - 1, by omega⟩ : Fin n) : ℕ) = n - 1) := rfl
   rw [dif_neg h0, dif_pos hn1]
 
+/-- At a site strictly between the first and final sites, the constructed chain equals the
+packed intermediate isometric extension. -/
 theorem g10g_chainA_mid {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} {i : Fin n}
     (hi0 : (0 : ℕ) < i) (hi1 : (i : ℕ) + 1 < n) (y : Fin d) (a b : Fin D) :
@@ -8181,6 +9058,8 @@ theorem g10g_chainA_mid {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   rw [g10g_chainA_apply]
   rw [dif_neg (by omega : ¬(i : ℕ) = 0), dif_neg (by omega : ¬(i : ℕ) = n - 1)]
 
+/-- At site zero and incoming boundary index zero, a column below the first cut rank equals the
+corresponding left singular amplitude. -/
 theorem g10g_chainA_zero_used {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (y : Fin d) {b : Fin D}
     (hb : (b : ℕ) < cutRank n d ψ 1) :
@@ -8197,6 +9076,8 @@ theorem g10g_chainA_zero_used {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   rw [hp]
   simp
 
+/-- At an intermediate site, columns below the next cut rank of the constructed tensor equal the
+corresponding link coefficients. -/
 theorem g10g_chainA_mid_used {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} {i : Fin n}
     (hi0 : (0 : ℕ) < i) (hi1 : (i : ℕ) + 1 < n) (y : Fin d) (a : Fin D) {b : Fin D}
@@ -8215,6 +9096,8 @@ theorem g10g_chainA_mid_used {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     (finProdFinEquiv (m := D) (n := d)).symm_apply_apply _
   rw [hp]
 
+/-- At an intermediate site, a tensor entry vanishes when its incoming index is at least the
+current cut rank and its outgoing index is below the next cut rank. -/
 theorem g10g_chainA_mid_eq_zero_of_cutRank_le {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} {i : Fin n}
     (hi0 : (0 : ℕ) < i) (hi1 : (i : ℕ) + 1 < n) (y : Fin d) (a : Fin D) {b : Fin D}
@@ -8224,6 +9107,8 @@ theorem g10g_chainA_mid_eq_zero_of_cutRank_le {D : ℕ} {h2 : 2 ≤ n} {hd : 0 <
     @g10g_chainA_mid_used n d ψ D h2 hd hle i hi0 hi1 y a b hb]
   exact g10gLink_eq_zero_of_cutRank_le_left ψ (by omega) ha (b : ℕ) y
 
+/-- In boundary column zero, the final tensor of the constructed chain equals the weighted right
+singular amplitude at the last cut. -/
 theorem g10g_chainA_last_col {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (y : Fin d) (a b : Fin D)
     (hb : (b : ℕ) = 0) :
@@ -8232,6 +9117,8 @@ theorem g10g_chainA_last_col {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   rw [g10g_chainA_last]
   simp [hb]
 
+/-- An entry in boundary column zero of the final tensor vanishes when its incoming index is at
+least the last cut rank. -/
 theorem g10g_chainA_last_eq_zero_of_cutRank_le {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (y : Fin d) (a b : Fin D)
     (ha : cutRank n d ψ (n - 1) ≤ (a : ℕ)) (hb : (b : ℕ) = 0) :
@@ -8241,6 +9128,9 @@ theorem g10g_chainA_last_eq_zero_of_cutRank_le {D : ℕ} {h2 : 2 ≤ n} {hd : 0 
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The sequential contraction of an MPS prefix with a fixed physical configuration and a free
+outgoing bond. Its initial value is the indicator of bond index zero, and a step beyond the
+chain returns zero. -/
 noncomputable def g10g_contr {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) : ℕ → Fin D → ℂ
   | 0, k => if (k : ℕ) = 0 then (1 : ℂ) else 0
@@ -8248,10 +9138,13 @@ noncomputable def g10g_contr {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin 
       ∑ j : Fin D, g10g_contr A x m j * A ⟨m, h⟩ (x ⟨m, h⟩) j k
     else 0
 
+/-- The initial prefix contraction is one at bond index zero and zero at every other bond index. -/
 theorem g10g_contr_zero {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) (k : Fin D) :
     g10g_contr A x 0 k = if (k : ℕ) = 0 then (1 : ℂ) else 0 := rfl
 
+/-- For a site within the chain, extending a prefix contraction multiplies by the site's tensor
+and sums over the previous outgoing bond. -/
 theorem g10g_contr_succ {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) (m : ℕ) (hm : m < n) (k : Fin D) :
     g10g_contr A x (m + 1) k
@@ -8261,6 +9154,8 @@ theorem g10g_contr_succ {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D) (F
     = ∑ j : Fin D, g10g_contr A x m j * A ⟨m, hm⟩ (x ⟨m, hm⟩) j k
   rw [dif_pos hm]
 
+/-- The explicit sum over all bond assignments of a length-`m` prefix, constrained to start at
+zero and end at `k`, equals its sequential contraction at `k`. -/
 theorem g10g_contr_freeEnd {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ)
     (x : Fin n → Fin d) :
     ∀ (m : ℕ) (_hm : m ≤ n) (k : Fin D),
@@ -8489,9 +9384,13 @@ theorem g10g_contr_freeEnd {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
 
 variable {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ)
 
+/-- The restriction of a configuration to its first `m` sites, assuming `m` is at most the chain
+length. -/
 def g10g_prefix {n d : ℕ} (x : Fin n → Fin d) (m : ℕ) (_hm : m ≤ n) : Fin m → Fin d :=
   fun i => x ⟨(i : ℕ), by omega⟩
 
+/-- Appending the physical value at site `m` to the length-`m` prefix gives the length-`m + 1`
+prefix. -/
 theorem g10g_prefix_snoc {n d : ℕ} (x : Fin n → Fin d) (m : ℕ) (hm : m + 1 ≤ n) :
     g10g_snoc (g10g_prefix x m (by omega)) (x ⟨m, by omega⟩)
       = g10g_prefix x (m + 1) hm := by
@@ -8504,6 +9403,8 @@ theorem g10g_prefix_snoc {n d : ℕ} (x : Fin n → Fin d) (m : ℕ) (hm : m + 1
     rw [hfi, g10g_snoc_last]
     rfl
 
+/-- For a chain of at least two sites, joining its prefix of length `n - 1` with its final
+physical value recovers the full configuration. -/
 theorem g10g_splitJoin_prefix_last {n d : ℕ} (x : Fin n → Fin d) (hm : 2 ≤ n) :
     splitJoin n (n - 1) d (g10g_prefix x (n - 1) (by omega))
       (fun _ => x ⟨n - 1, by omega⟩) = x := by
@@ -8518,6 +9419,8 @@ theorem g10g_splitJoin_prefix_last {n d : ℕ} (x : Fin n → Fin d) (hm : 2 ≤
     have hke : (k : ℕ) = n - 1 := by have hk' := k.isLt; omega
     exact congrArg x (Fin.ext hke.symm)
 
+/-- For positive bond dimension, the full sequential contraction evaluated at outgoing boundary
+index zero equals the open-boundary MPS amplitude. -/
 theorem g10g_contr_eq_mpsAmplitude {n d D : ℕ} [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d) :
     g10g_contr A x n (0 : Fin D) = mpsAmplitude A x := by
@@ -8540,6 +9443,9 @@ theorem g10g_contr_eq_mpsAmplitude {n d D : ℕ} [NeZero D]
   refine Finset.sum_congr rfl (fun β _ => ?_)
   rw [hdelta β]
 
+/-- For positive bond dimension and a nonempty prefix of length at most `n - 1`, contracting the
+constructed tensor chain at an index below the prefix cut rank gives the corresponding left
+singular amplitude. -/
 theorem g10g_contr_eq_g10gL {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} [NeZero D]
     (x : Fin n → Fin d) :
@@ -8631,6 +9537,8 @@ theorem g10g_contr_eq_g10gL {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
       congr 1
       exact g10g_prefix_snoc x m (by omega)
 
+/-- For nonzero bond dimension, the constructed tensor chain reproduces every amplitude of the
+original state exactly. -/
 theorem g10g_chainA_amplitude {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (hD : NeZero D)
     (x : Fin n → Fin d) :
@@ -8676,6 +9584,8 @@ theorem g10g_chainA_amplitude {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     (g10g_prefix x (n - 1) (by omega)) (fun _ => x ⟨n - 1, by omega⟩)]
   exact congrArg ψ (g10g_splitJoin_prefix_last x h2)
 
+/-- The constructed tensor chain is an exact MPS representation of the state for nonzero bond
+dimension. -/
 theorem g10g_chainA_isMps {n d D : ℕ} (ψ : (Fin n → Fin d) → ℂ)
     {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} (hD : NeZero D) :
@@ -8683,6 +9593,8 @@ theorem g10g_chainA_isMps {n d D : ℕ} (ψ : (Fin n → Fin d) → ℂ)
   intro x
   exact g10g_chainA_amplitude ψ hD x
 
+/-- Packing the rows of a matrix into incoming-bond and physical indices expresses its Gram
+matrix as the sum of the packed tensors' Gram matrices over the physical index. -/
 theorem g10g_rowPacking_gram {d D : ℕ} (W : Matrix (Fin (D * d)) (Fin D) ℂ) :
     ∑ y : Fin d, ((Matrix.of fun a b => W (finProdFinEquiv (m := D) (n := d) (a, y)) b)ᴴ *
         (Matrix.of fun a b => W (finProdFinEquiv (m := D) (n := d) (a, y)) b)) = Wᴴ * W := by
@@ -8739,6 +9651,8 @@ theorem g10g_rowPacking_gram {d D : ℕ} (W : Matrix (Fin (D * d)) (Fin D) ℂ) 
   refine Matrix.ext (fun k k' => ?_)
   exact hentry k k'
 
+/-- At a site whose index is zero, the constructed tensor is the matrix obtained by packing the
+first-site isometric extension. -/
 theorem g10g_chainA_zero_matrix {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} {i : Fin n} (hi : (i : ℕ) = 0) (y : Fin d) :
     g10g_chainA ψ D h2 hd hle i y
@@ -8748,6 +9662,8 @@ theorem g10g_chainA_zero_matrix {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   rw [g10g_chainA_apply, dif_pos hi]
   rfl
 
+/-- At a site strictly between the boundaries, the constructed tensor is the matrix obtained by
+packing the intermediate isometric extension. -/
 theorem g10g_chainA_mid_matrix {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} {i : Fin n}
     (hi0 : 0 < (i : ℕ)) (hi1 : (i : ℕ) + 1 < n) (y : Fin d) :
@@ -8760,6 +9676,7 @@ theorem g10g_chainA_mid_matrix {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
   rw [dif_neg (by omega : ¬(i : ℕ) = n - 1)]
   rfl
 
+/-- The MPS chain assembled from the extended singular-vector blocks is left canonical. -/
 theorem g10g_chainA_leftCanonical {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
     {hle : ∀ c, c < n → cutRank n d ψ c ≤ D} :
     LeftCanonical (g10g_chainA ψ D h2 hd hle) := by
@@ -8789,11 +9706,15 @@ theorem g10g_chainA_leftCanonical {D : ℕ} {h2 : 2 ≤ n} {hd : 0 < d}
       Finset.sum_congr rfl (fun y _ => by rw [hmat y])]
     exact (g10g_rowPacking_gram _).trans (g10g_siteIExt_gram ψ i (by omega))
 
+/-- For a nonempty chain with zero physical dimension, every real-valued sum over physical
+configurations is zero. -/
 theorem g10g_sum_empty_cfg {n d : ℕ} (hn : 1 ≤ n) (hd : d = 0) (F : (Fin n → Fin d) → ℝ) :
     (∑ x : Fin n → Fin d, F x) = 0 := by
   subst hd
   exact Fintype.sum_eq_zero F (fun x => Fin.elim0 (x ⟨0, by omega⟩))
 
+/-- On a chain with at least one site and nonzero bond dimension, setting every tensor to zero
+makes every MPS amplitude zero. -/
 theorem g10g_mpsAmplitude_zero {n d D : ℕ} (hD : NeZero D) (hn : 1 ≤ n) (x : Fin n → Fin d) :
     @mpsAmplitude n d D hD (fun _ _ => 0) x = 0 := by
   haveI : NeZero D := hD
@@ -8802,6 +9723,10 @@ theorem g10g_mpsAmplitude_zero {n d D : ℕ} (hD : NeZero D) (hn : 1 ≤ n) (x :
   refine Finset.prod_eq_zero (Finset.mem_univ (⟨0, by omega⟩ : Fin n)) ?_
   simp [Matrix.zero_apply]
 
+/-- Every normalized state on at least one site has an exact left-canonical MPS representation
+with bond dimension equal to the maximum of one and its cut ranks before `n`. This
+formalizes the completeness and canonical-form construction associated with Theorem 1 of
+[PerezGarciaEtAl2007]. -/
 theorem clause2_clause2 (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     (_hnorm : ∑ x, Complex.normSq (ψ x) = 1) :
     1 ≤ n → ∃ (D : ℕ) (hD : NeZero D) (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ),
@@ -8823,6 +9748,9 @@ theorem clause2_clause2 (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     · exact g10g_chainA_isMps ψ (neZero_max_one_supCutRank n d ψ)
     · exact g10g_chainA_leftCanonical ψ
 
+/-- For a normalized state on a nonempty chain, the desired MPS approximation bound holds
+whenever twice the total discarded squared Schmidt tail is at least one. Any positive
+requested bond dimension can be used. -/
 theorem g10g_clause3_of_one_le_two_tail (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     (hnorm : ∑ x, Complex.normSq (ψ x) = 1) (hn : 1 ≤ n) (D : ℕ) (hDpos : 0 < D)
     (htail : 1 ≤ 2 * ∑ c ∈ Finset.range n, schmidtTailSq n d ψ c D) :
@@ -8840,6 +9768,9 @@ theorem g10g_clause3_of_one_le_two_tail (n d : ℕ) (ψ : (Fin n → Fin d) → 
   rw [hsum]
   exact htail
 
+/-- For a nonempty chain, if every cut rank before `n` is at most a positive bond dimension `D`,
+there is a bond-`D` MPS satisfying the bound by twice the total discarded squared Schmidt
+tail. -/
 theorem g10g_clause3_of_cutRank_le (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     (hn : 1 ≤ n) (D : ℕ) (hDpos : 0 < D)
     (hrank : ∀ c ∈ Finset.range n, cutRank n d ψ c ≤ D) :
@@ -8866,6 +9797,9 @@ theorem g10g_clause3_of_cutRank_le (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
         Finset.sup_le (fun c hc => hrank c hc)
       exact Nat.max_le.mpr ⟨h1, hsup⟩
 
+/-- An amplitude function whose cut ranks are at most positive `D` and whose squared error has
+the required Schmidt-tail bound yields a bond-`D` MPS with the same error bound, for a
+nonempty chain. -/
 theorem g10g_clause3_of_approximant (n d : ℕ) (ψ ψ' : (Fin n → Fin d) → ℂ)
     (hn : 1 ≤ n) (D : ℕ) (hDpos : 0 < D)
     (hcut : ∀ c < n, cutRank n d ψ' c ≤ D)
@@ -8897,11 +9831,15 @@ theorem g10g_clause3_of_approximant (n d : ℕ) (ψ ψ' : (Fin n → Fin d) → 
               rw [hamp x]
         _ ≤ 2 * ∑ c ∈ Finset.range n, schmidtTailSq n d ψ c D := herr
 
+/-- The amplitude function obtained from a matrix at cut `c` by splitting each configuration and
+encoding its prefix and suffix as row and column indices. -/
 noncomputable def g10t_ofCut {n d : ℕ} (c : ℕ) (hc : c ≤ n)
     (M : Matrix (Fin (d ^ c)) (Fin (d ^ (n - c))) ℂ) : (Fin n → Fin d) → ℂ :=
   fun x => M (finPowEnc d c ((g10a_splitJoinEquiv n c d hc).symm x).1)
       (finPowEnc d (n - c) ((g10a_splitJoinEquiv n c d hc).symm x).2)
 
+/-- Taking the cut matrix of the amplitude function reconstructed from a matrix at the same
+valid cut recovers that matrix. -/
 theorem g10t_cutMatrix_ofCut {n d : ℕ} {c : ℕ} (hc : c ≤ n)
     (M : Matrix (Fin (d ^ c)) (Fin (d ^ (n - c))) ℂ) :
     cutMatrix n d (g10t_ofCut c hc M) c = M := by
@@ -8916,6 +9854,7 @@ theorem g10t_cutMatrix_ofCut {n d : ℕ} {c : ℕ} (hc : c ≤ n)
   rw [← hpair, Equiv.symm_apply_apply]
   simp
 
+/-- Reconstructing an amplitude function from its matrix at a valid cut recovers the function. -/
 theorem g10t_ofCut_cutMatrix {n d : ℕ} {c : ℕ} (hc : c ≤ n) (f : (Fin n → Fin d) → ℂ) :
     g10t_ofCut c hc (cutMatrix n d f c) = f := by
   funext x
@@ -8924,44 +9863,56 @@ theorem g10t_ofCut_cutMatrix {n d : ℕ} {c : ℕ} (hc : c ≤ n) (f : (Fin n �
   rw [g10a_cutMatrix_apply, Equiv.symm_apply_apply, Equiv.symm_apply_apply]
   exact congrArg f ((g10a_splitJoinEquiv n c d hc).apply_symm_apply x)
 
+/-- Reconstruction from a matrix at a valid cut preserves addition. -/
 theorem g10t_ofCut_add {n d : ℕ} {c : ℕ} (hc : c ≤ n)
     (M N : Matrix (Fin (d ^ c)) (Fin (d ^ (n - c))) ℂ) :
     g10t_ofCut c hc (M + N) = g10t_ofCut c hc M + g10t_ofCut c hc N := by
   funext x
   simp [g10t_ofCut]
 
+/-- Reconstruction from a matrix at a valid cut preserves multiplication by a complex scalar. -/
 theorem g10t_ofCut_smul {n d : ℕ} {c : ℕ} (hc : c ≤ n) (a : ℂ)
     (M : Matrix (Fin (d ^ c)) (Fin (d ^ (n - c))) ℂ) :
     g10t_ofCut c hc (a • M) = a • g10t_ofCut c hc M := by
   funext x
   simp [g10t_ofCut]
 
+/-- The cut-matrix construction preserves addition of amplitude functions. -/
 theorem g10t_cutMatrix_add {n d : ℕ} {c : ℕ} (f χ : (Fin n → Fin d) → ℂ) :
     cutMatrix n d (f + χ) c = cutMatrix n d f c + cutMatrix n d χ c := by
   ext i j
   simp [g10a_cutMatrix_apply]
 
+/-- The cut-matrix construction preserves multiplication of an amplitude function by a complex
+scalar. -/
 theorem g10t_cutMatrix_smul {n d : ℕ} {c : ℕ} (a : ℂ) (f : (Fin n → Fin d) → ℂ) :
     cutMatrix n d (a • f) c = a • cutMatrix n d f c := by
   ext i j
   simp [g10a_cutMatrix_apply]
 
+/-- The cut-matrix construction preserves subtraction of amplitude functions. -/
 theorem g10t_cutMatrix_sub {n d : ℕ} {c : ℕ} (f χ : (Fin n → Fin d) → ℂ) :
     cutMatrix n d (f - χ) c = cutMatrix n d f c - cutMatrix n d χ c := by
   ext i j
   simp [g10a_cutMatrix_apply]
 
+/-- The outer product of a left singular vector with its conjugate, viewed as a square matrix on
+the output indices. -/
 noncomputable def g10t_rk {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (k : Fin (Fintype.card I)) : Matrix O O ℂ :=
   Matrix.of fun p q =>
     leftSingularVector A k p * star (leftSingularVector A k q)
 
+/-- An entry of `g10t_rk A k` is the left singular-vector value at its row times the conjugate
+value at its column. -/
 @[simp] theorem g10t_rk_apply {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     {A : Matrix O I ℂ} {k : Fin (Fintype.card I)} (p q : O) :
     g10t_rk A k p q
       = leftSingularVector A k p * star (leftSingularVector A k q) :=
   rfl
 
+/-- The inner product of two left singular vectors is one exactly when their indices agree and
+the corresponding singular value is nonzero, and is zero otherwise. -/
 theorem g10t_inner_leftSingular {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     {A : Matrix O I ℂ} (k j : Fin (Fintype.card I)) :
     (∑ p : O, star (leftSingularVector A k p) * leftSingularVector A j p)
@@ -8981,12 +9932,16 @@ theorem g10t_inner_leftSingular {O I : Type} [Fintype O] [Fintype I] [DecidableE
   · rw [if_neg hkj]
     rw [if_neg (fun h => hkj h.1 : ¬(k = j ∧ matrixSingularValues A k ≠ 0))]
 
+/-- The outer product matrix associated with a left singular vector is equal to its conjugate
+transpose. -/
 theorem g10t_rk_conjTranspose {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     {A : Matrix O I ℂ} (k : Fin (Fintype.card I)) : (g10t_rk A k)ᴴ = g10t_rk A k := by
   ext p q
   rw [Matrix.conjTranspose_apply, g10t_rk_apply, g10t_rk_apply]
   simp only [star_mul, star_star]
 
+/-- The outer product matrices of distinct left singular vectors multiply to zero, while each
+such matrix is idempotent. -/
 theorem g10t_rk_mul_rk {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     {A : Matrix O I ℂ} (k j : Fin (Fintype.card I)) :
     g10t_rk A k * g10t_rk A j = if k = j then g10t_rk A k else 0 := by
@@ -9039,17 +9994,22 @@ theorem g10t_rk_mul_rk {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
         if_neg (fun h => hkj h.1 : ¬(k = j ∧ matrixSingularValues A k ≠ 0))]
     rw [hgram, mul_zero]
 
+/-- The sum of the left singular-vector outer products of the cut matrix whose singular indices
+are smaller than `D`. -/
 noncomputable def g10t_projMat {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) :
     Matrix (Fin (d ^ c)) (Fin (d ^ c)) ℂ :=
   ∑ k : Fin (Fintype.card (Fin (d ^ (n - c)))),
     if (k : ℕ) < D then g10t_rk (cutMatrix n d ψ c) k else 0
 
+/-- The cut projection matrix is the sum of the left singular-vector outer products over the
+finite set of singular indices smaller than `D`. -/
 theorem g10t_projMat_eq_sum_filter {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) :
     g10t_projMat ψ c D
       = ∑ k ∈ Finset.univ.filter (fun k : Fin (Fintype.card (Fin (d ^ (n - c)))) =>
           (k : ℕ) < D), g10t_rk (cutMatrix n d ψ c) k := by
   rw [g10t_projMat, ← Finset.sum_filter]
 
+/-- The cut projection matrix is idempotent. -/
 theorem g10t_projMat_mul_self {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) :
     g10t_projMat ψ c D * g10t_projMat ψ c D = g10t_projMat ψ c D := by
   rw [g10t_projMat_eq_sum_filter]
@@ -9082,12 +10042,15 @@ theorem g10t_projMat_mul_self {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D 
   simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hk
   simp [hk]
 
+/-- The cut projection matrix is equal to its conjugate transpose. -/
 theorem g10t_projMat_conjTranspose {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) :
     (g10t_projMat ψ c D)ᴴ = g10t_projMat ψ c D := by
   rw [g10t_projMat_eq_sum_filter]
   rw [Matrix.conjTranspose_sum]
   refine Finset.sum_congr rfl (fun k _ => g10t_rk_conjTranspose k)
 
+/-- Pairing a left singular vector with a matrix column gives the corresponding singular value
+times the conjugate right singular-vector entry. -/
 theorem g10t_inner_row {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (k : Fin (Fintype.card I)) (q : I) :
     (∑ r : O, star (leftSingularVector A k r) * A r q)
@@ -9141,6 +10104,7 @@ theorem g10t_inner_row {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
   · intro hk
     exact absurd (Finset.mem_univ k) hk
 
+/-- Right multiplication of a finite sum of matrices distributes over that sum. -/
 theorem g10t_sum_mul_matrix {m n p : ℕ} {ι : Type} [Fintype ι]
     (T : ι → Matrix (Fin m) (Fin n) ℂ) (B : Matrix (Fin n) (Fin p) ℂ) :
     (∑ i : ι, T i) * B = ∑ i : ι, T i * B := by
@@ -9151,6 +10115,8 @@ theorem g10t_sum_mul_matrix {m n p : ℕ} {ι : Type} [Fintype ι]
     Finset.sum_congr rfl (fun j _ => Finset.sum_mul _ _ _)
   rw [hstep, Finset.sum_comm]
 
+/-- Left-multiplying a matrix by the outer product of its `k`th left singular vector extracts
+its `k`th singular component. -/
 theorem g10t_rk_mul_matrix {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (k : Fin (Fintype.card I)) :
     g10t_rk A k * A
@@ -9171,6 +10137,8 @@ theorem g10t_rk_mul_matrix {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
   rw [← Finset.mul_sum, g10t_inner_row]
   ring
 
+/-- Left multiplication of a cut matrix by its cut projection matrix gives the SVD truncation at
+`D`. -/
 theorem g10t_projMat_mul_cutMatrix {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) :
     g10t_projMat ψ c D * cutMatrix n d ψ c
       = g10g_svdTrunc (cutMatrix n d ψ c) D := by
@@ -9188,16 +10156,22 @@ theorem g10t_projMat_mul_cutMatrix {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) 
     exact g10t_rk_mul_matrix (cutMatrix n d ψ c) k
   · rw [if_neg hk, if_neg hk, Matrix.zero_mul _]
 
+/-- The operator on amplitude functions that left-multiplies their cut matrices by the
+projection onto the reference state's first `D` left singular components and then
+reconstructs the functions. -/
 noncomputable def g10t_cutProj {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) (hc : c ≤ n) :
     ((Fin n → Fin d) → ℂ) → ((Fin n → Fin d) → ℂ) :=
   fun f => g10t_ofCut c hc (g10t_projMat ψ c D * cutMatrix n d f c)
 
+/-- At the projection's own valid cut, the matrix of a projected amplitude function is the
+projection matrix times the original cut matrix. -/
 theorem g10t_cutMatrix_cutProj {n d : ℕ} {c : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ)
     (hc : c ≤ n) (f : (Fin n → Fin d) → ℂ) :
     cutMatrix n d (g10t_cutProj ψ c D hc f) c
       = g10t_projMat ψ c D * cutMatrix n d f c :=
   g10t_cutMatrix_ofCut hc _
 
+/-- The cut projection operator preserves addition of amplitude functions. -/
 theorem g10t_cutProj_add {n d : ℕ} {c : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ)
     (hc : c ≤ n) (f g : (Fin n → Fin d) → ℂ) :
     g10t_cutProj ψ c D hc (f + g)
@@ -9205,6 +10179,7 @@ theorem g10t_cutProj_add {n d : ℕ} {c : ℕ} (ψ : (Fin n → Fin d) → ℂ) 
   unfold g10t_cutProj
   rw [g10t_cutMatrix_add, Matrix.mul_add, g10t_ofCut_add]
 
+/-- Applying the same cut projection twice has the same result as applying it once. -/
 theorem g10t_cutProj_self {n d : ℕ} {c : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ)
     (hc : c ≤ n) (f : (Fin n → Fin d) → ℂ) :
     g10t_cutProj ψ c D hc (g10t_cutProj ψ c D hc f) = g10t_cutProj ψ c D hc f := by
@@ -9214,17 +10189,21 @@ theorem g10t_cutProj_self {n d : ℕ} {c : ℕ} (ψ : (Fin n → Fin d) → ℂ)
   rw [g10t_cutMatrix_cutProj, ← Matrix.mul_assoc, g10t_projMat_mul_self]
   rfl
 
+/-- The cut projection operator preserves multiplication by a complex scalar. -/
 theorem g10t_cutProj_smul {n d : ℕ} {c : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ)
     (hc : c ≤ n) (a : ℂ) (f : (Fin n → Fin d) → ℂ) :
     g10t_cutProj ψ c D hc (a • f) = a • g10t_cutProj ψ c D hc f := by
   unfold g10t_cutProj
   rw [g10t_cutMatrix_smul, Matrix.mul_smul, g10t_ofCut_smul]
 
+/-- Negating a matrix preserves the square of its spectral Frobenius norm. -/
 theorem g10t_frob_neg {O I : Type} [Fintype O] [Fintype I] (Y : Matrix O I ℂ) :
     spectralFrobenius (-Y) ^ 2 = spectralFrobenius Y ^ 2 := by
   rw [spectralFrobenius_sq, spectralFrobenius_sq]
   simp only [Matrix.neg_apply, Complex.normSq_neg]
 
+/-- If `A * B` is zero, then the trace of `X` conjugate-transposed times `A`, `B`, and `Y`, in
+that order, is zero. -/
 theorem g10t_trace_cross_zero {m n : ℕ} (X Y : Matrix (Fin m) (Fin n) ℂ)
     (A B : Matrix (Fin m) (Fin m) ℂ) (hAB : A * B = 0) :
     Matrix.trace ((X ᴴ * A) * (B * Y)) = 0 := by
@@ -9235,6 +10214,8 @@ theorem g10t_trace_cross_zero {m n : ℕ} (X Y : Matrix (Fin m) (Fin n) ℂ)
   rw [h1, hAB]
   simp
 
+/-- When the trace inner product of `X` and `Y` is zero, the squared spectral Frobenius norm of
+their sum is the sum of their squared norms. -/
 theorem g10t_frob_add {m n : ℕ} (X Y : Matrix (Fin m) (Fin n) ℂ)
     (h : Matrix.trace (X ᴴ * Y) = 0) :
     spectralFrobenius (X + Y) ^ 2 = spectralFrobenius X ^ 2 + spectralFrobenius Y ^ 2 := by
@@ -9248,6 +10229,8 @@ theorem g10t_frob_add {m n : ℕ} (X Y : Matrix (Fin m) (Fin n) ℂ)
   rw [hre] at hmain
   linarith
 
+/-- Left multiplication by a self-adjoint idempotent matrix cannot increase the squared spectral
+Frobenius norm. -/
 theorem g10t_frob_proj_le {m n : ℕ} (P : Matrix (Fin m) (Fin m) ℂ) (X : Matrix (Fin m) (Fin n) ℂ)
     (hP : P * P = P) (hPh : P ᴴ = P) :
     spectralFrobenius (P * X) ^ 2 ≤ spectralFrobenius X ^ 2 := by
@@ -9263,6 +10246,8 @@ theorem g10t_frob_proj_le {m n : ℕ} (P : Matrix (Fin m) (Fin m) ℂ) (X : Matr
   have hnonneg : 0 ≤ spectralFrobenius ((1 - P) * X) ^ 2 := sq_nonneg _
   linarith
 
+/-- For a self-adjoint idempotent `P`, the squared norm of `M - P * N` splits into the squared
+norm of `M - P * M` and that of `P * (M - N)`. -/
 theorem g10t_frob_pythagoras {m n : ℕ} (P : Matrix (Fin m) (Fin m) ℂ)
     (M N : Matrix (Fin m) (Fin n) ℂ) (hP : P * P = P) (hPh : P ᴴ = P) :
     spectralFrobenius (M - P * N) ^ 2
@@ -9281,6 +10266,8 @@ theorem g10t_frob_pythagoras {m n : ℕ} (P : Matrix (Fin m) (Fin m) ℂ)
     abel
   rw [hdecomp, hadd]
 
+/-- Projecting the reference state at a valid cut gives a total squared amplitude error equal to
+that cut's discarded squared Schmidt tail. -/
 theorem g10t_error_self {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) (hc : c ≤ n) :
     ∑ x, Complex.normSq (ψ x - g10t_cutProj ψ c D hc ψ x) = schmidtTailSq n d ψ c D := by
   have hM : cutMatrix n d (ψ - g10t_cutProj ψ c D hc ψ) c
@@ -9292,6 +10279,8 @@ theorem g10t_error_self {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ)
   rw [hparse, hM]
   exact (g10g_schmidtTailSq_eq_frob_sub_trunc ψ c D).symm
 
+/-- Projecting an approximating amplitude function at a valid cut increases its squared error
+from the reference state by at most that cut's discarded squared Schmidt tail. -/
 theorem g10t_error_step {n d : ℕ} (ψ f : (Fin n → Fin d) → ℂ) (c D : ℕ) (hc : c ≤ n) :
     ∑ x, Complex.normSq (ψ x - g10t_cutProj ψ c D hc f x)
       ≤ schmidtTailSq n d ψ c D + ∑ x, Complex.normSq (ψ x - f x) := by
@@ -9331,11 +10320,15 @@ theorem g10t_error_step {n d : ℕ} (ψ f : (Fin n → Fin d) → ℂ) (c D : �
           Finset.sum_congr rfl (fun x _ => rfl)
         rw [hconv, ← g10a_parseval (ψ - f) hc]
 
+/-- The sequence beginning at the reference state and successively applying its cut projections
+at cuts `n - 1 - k`. -/
 noncomputable def g10t_iter {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ) :
     ℕ → ((Fin n → Fin d) → ℂ)
   | 0 => ψ
   | k + 1 => g10t_cutProj ψ (n - 1 - k) D (by omega) (g10t_iter ψ D k)
 
+/-- After `k` successive cut projections, the total squared error is bounded by the sum of the
+discarded squared Schmidt tails at the cuts used in those steps. -/
 theorem g10t_iter_error {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ) :
     ∀ k, ∑ x, Complex.normSq (ψ x - g10t_iter ψ D k x)
       ≤ ∑ j ∈ Finset.range k, schmidtTailSq n d ψ (n - 1 - j) D := by
@@ -9357,6 +10350,8 @@ theorem g10t_iter_error {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ) :
         rw [Finset.sum_range_succ]
         exact add_comm _ _
 
+/-- For a nonempty chain, the squared error after `n - 1` cut projections is at most twice the
+total discarded squared Schmidt tail over cuts before `n`. -/
 theorem g10t_iter_error_final {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (hn : 1 ≤ n) (D : ℕ) :
     ∑ x, Complex.normSq (g10t_iter ψ D (n - 1) x - ψ x)
       ≤ 2 * ∑ c ∈ Finset.range n, schmidtTailSq n d ψ c D := by
@@ -9392,6 +10387,7 @@ theorem g10t_iter_error_final {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (hn :
     Finset.sum_nonneg (fun c _ => schmidtTailSq_nonneg ψ c D)
   linarith
 
+/-- The outer product matrix of a left singular vector has rank at most one. -/
 theorem g10t_rk_rank_le {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (k : Fin (Fintype.card I)) : Matrix.rank (g10t_rk A k) ≤ 1 := by
   have h : g10t_rk A k = Matrix.vecMulVec (fun p => leftSingularVector A k p)
@@ -9401,6 +10397,8 @@ theorem g10t_rk_rank_le {O I : Type} [Fintype O] [Fintype I] [DecidableEq I]
   rw [h]
   exact rank_vecMulVec_le _ _
 
+/-- The number of indices in `Fin N` whose natural-number values are smaller than `D` is at most
+`D`. -/
 theorem g10t_card_lt_le (N D : ℕ) :
     (Finset.univ.filter (fun k : Fin N => (k : ℕ) < D)).card ≤ D := by
   have key : (Finset.univ.filter (fun k : Fin N => (k : ℕ) < D)).card
@@ -9411,6 +10409,7 @@ theorem g10t_card_lt_le (N D : ℕ) :
       (fun x _ y _ h => Fin.ext h)
   rwa [Finset.card_range] at key
 
+/-- The cut projection matrix has rank at most `D`. -/
 theorem g10t_projMat_rank_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D : ℕ) :
     Matrix.rank (g10t_projMat ψ c D) ≤ D := by
   have hterm : ∀ k : Fin (Fintype.card (Fin (d ^ (n - c)))),
@@ -9432,12 +10431,16 @@ theorem g10t_projMat_rank_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (c D :
     exact g10g_matrixRank_sum_le _
   exact le_trans hsum (le_trans (Finset.sum_le_sum (fun k _ => hterm k)) hcount)
 
+/-- Projecting at a valid cut makes the resulting amplitude function's rank at that cut at most
+`D`. -/
 theorem g10t_cutProj_cutRank_self {n d : ℕ} (ψ f : (Fin n → Fin d) → ℂ) (c D : ℕ)
     (hc : c ≤ n) : cutRank n d (g10t_cutProj ψ c D hc f) c ≤ D := by
   show Matrix.rank (cutMatrix n d (g10t_cutProj ψ c D hc f) c) ≤ D
   rw [g10t_cutMatrix_cutProj]
   exact le_trans (Matrix.rank_mul_le_left _ _) (g10t_projMat_rank_le ψ c D)
 
+/-- For `j` at most `c`, the first `j` entries of a configuration joined at cut `j` recover its
+first component. -/
 theorem g10t_splitJoin_head {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin j → Fin d)
     (u₂ : Fin (c - j) → Fin d) :
     (fun k : Fin j => splitJoin c j d u₁ u₂ ⟨(k : ℕ), lt_of_lt_of_le k.isLt hjc⟩) = u₁ := by
@@ -9447,6 +10450,8 @@ theorem g10t_splitJoin_head {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin j → Fin 
   simp only [Fin.is_lt]
   exact congrArg u₁ (Fin.ext rfl)
 
+/-- For `j` at most `c`, the entries from `j` onward of a configuration joined at cut `j`
+recover its second component. -/
 theorem g10t_splitJoin_tail {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin j → Fin d)
     (u₂ : Fin (c - j) → Fin d) :
     (fun k : Fin (c - j) => splitJoin c j d u₁ u₂ ⟨j + (k : ℕ), by omega⟩) = u₂ := by
@@ -9459,6 +10464,8 @@ theorem g10t_splitJoin_tail {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin j → Fin 
   show j + (k : ℕ) - j = (k : ℕ)
   omega
 
+/-- When `j` is at most `c` and `c` is at most `n`, a configuration joined at cut `c` can
+instead be joined at cut `j` by splitting its prefix again. -/
 theorem g10t_splitJoin_assoc {n d j c : ℕ} (hjc : j ≤ c) (hcn : c ≤ n)
     (u : Fin c → Fin d) (v : Fin (n - c) → Fin d) :
     splitJoin n c d u v
@@ -9489,6 +10496,8 @@ theorem g10t_splitJoin_assoc {n d j c : ℕ} (hjc : j ≤ c) (hcn : c ≤ n)
       show (x : ℕ) - c = (x : ℕ) - j - (c - j)
       omega
 
+/-- Joining three consecutive configuration blocks first at cut `j` or first within the prefix
+of length `c` gives the same full configuration, for `j` at most `c` at most `n`. -/
 theorem g10t_splitJoin_assoc' {n d j c : ℕ} (hjc : j ≤ c) (hcn : c ≤ n)
     (u₁ : Fin j → Fin d) (u₂ : Fin (c - j) → Fin d) (v : Fin (n - c) → Fin d) :
     splitJoin n j d u₁ (fun k : Fin (n - j) =>
@@ -9515,18 +10524,25 @@ theorem g10t_splitJoin_assoc' {n d j c : ℕ} (hjc : j ≤ c) (hcn : c ≤ n)
       show (x : ℕ) - j - (c - j) = (x : ℕ) - c
       omega
 
+/-- The encoded first `j` entries of a configuration encoded by an index of `Fin (d ^ c)`,
+assuming `j` is at most `c`. -/
 noncomputable def g10t_headEnc {d j c : ℕ} (hjc : j ≤ c) (i : Fin (d ^ c)) : Fin (d ^ j) :=
   finPowEnc d j (fun k : Fin j => (finPowEnc d c).symm i
     ⟨(k : ℕ), lt_of_lt_of_le k.isLt hjc⟩)
 
+/-- The encoded final `c - j` entries of a configuration encoded by an index of `Fin (d ^ c)`,
+assuming `j` is at most `c`. -/
 noncomputable def g10t_tailEnc {d j c : ℕ} (hjc : j ≤ c) (i : Fin (d ^ c)) : Fin (d ^ (c - j)) :=
   finPowEnc d (c - j) (fun k : Fin (c - j) => (finPowEnc d c).symm i
     ⟨j + (k : ℕ), by have h := hjc; omega⟩)
 
+/-- The index encoding the join of decoded blocks of lengths `j` and `c - j`. -/
 noncomputable def g10t_joinEnc {d j c : ℕ} (_hjc : j ≤ c) (u₁ : Fin (d ^ j))
     (u₂ : Fin (d ^ (c - j))) : Fin (d ^ c) :=
   finPowEnc d c (splitJoin c j d ((finPowEnc d j).symm u₁) ((finPowEnc d (c - j)).symm u₂))
 
+/-- Extracting the encoded head of the join of two encoded configuration blocks recovers the
+first block's index. -/
 theorem g10t_headEnc_joinEnc {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin (d ^ j))
     (u₂ : Fin (d ^ (c - j))) :
     g10t_headEnc hjc (g10t_joinEnc hjc u₁ u₂) = u₁ := by
@@ -9534,6 +10550,8 @@ theorem g10t_headEnc_joinEnc {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin (d ^ j))
   rw [g10t_splitJoin_head hjc]
   exact (finPowEnc d j).apply_symm_apply u₁
 
+/-- Extracting the encoded tail of the join of two encoded configuration blocks recovers the
+second block's index. -/
 theorem g10t_tailEnc_joinEnc {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin (d ^ j))
     (u₂ : Fin (d ^ (c - j))) :
     g10t_tailEnc hjc (g10t_joinEnc hjc u₁ u₂) = u₂ := by
@@ -9541,6 +10559,7 @@ theorem g10t_tailEnc_joinEnc {d j c : ℕ} (hjc : j ≤ c) (u₁ : Fin (d ^ j))
   rw [g10t_splitJoin_tail hjc]
   exact (finPowEnc d (c - j)).apply_symm_apply u₂
 
+/-- Joining the encoded head and tail extracted from a configuration index recovers that index. -/
 theorem g10t_joinEnc_head_tail {d j c : ℕ} (hjc : j ≤ c) (i : Fin (d ^ c)) :
     g10t_joinEnc hjc (g10t_headEnc hjc i) (g10t_tailEnc hjc i) = i := by
   simp only [g10t_headEnc, g10t_tailEnc, g10t_joinEnc]
@@ -9553,6 +10572,8 @@ theorem g10t_joinEnc_head_tail {d j c : ℕ} (hjc : j ≤ c) (i : Fin (d ^ c)) :
   rw [h]
   exact (finPowEnc d c).apply_symm_apply i
 
+/-- The equivalence between a pair of encoded configuration blocks of lengths `j` and `c - j`
+and an encoded configuration of length `c`. -/
 noncomputable def g10t_joinEncEquiv {d j c : ℕ} (hjc : j ≤ c) :
     (Fin (d ^ j) × Fin (d ^ (c - j))) ≃ Fin (d ^ c) where
   toFun := fun p => g10t_joinEnc hjc p.1 p.2
@@ -9567,6 +10588,8 @@ noncomputable def g10t_joinEncEquiv {d j c : ℕ} (hjc : j ≤ c) :
     intro i
     exact g10t_joinEnc_head_tail hjc i
 
+/-- A sum over encoded configurations of length `c` equals the iterated sum over their encoded
+head and tail blocks. -/
 theorem g10t_sum_joinEnc {d j c : ℕ} (hjc : j ≤ c) (F : Fin (d ^ c) → ℂ) :
     ∑ i : Fin (d ^ c), F i
       = ∑ u₁ : Fin (d ^ j), ∑ u₂ : Fin (d ^ (c - j)), F (g10t_joinEnc hjc u₁ u₂) := by
@@ -9576,6 +10599,8 @@ theorem g10t_sum_joinEnc {d j c : ℕ} (hjc : j ≤ c) (F : Fin (d ^ c) → ℂ)
   refine Finset.sum_congr rfl (fun u₂ _ => ?_)
   rfl
 
+/-- Regrouping a configuration at cuts `j` and `c` preserves it when the middle block is taken
+from the tail of a length-`c` configuration, assuming `j` is at most `c` at most `n`. -/
 theorem g10t_splitJoin_assoc_mid {n d j c : ℕ} (hjc : j ≤ c) (hcn : c ≤ n)
     (u₁ : Fin j → Fin d) (u : Fin c → Fin d) (v : Fin (n - c) → Fin d) :
     splitJoin n j d u₁ (fun k : Fin (n - j) =>
@@ -9604,12 +10629,16 @@ theorem g10t_splitJoin_assoc_mid {n d j c : ℕ} (hjc : j ≤ c) (hcn : c ≤ n)
       show (x : ℕ) - j - (c - j) = (x : ℕ) - c
       omega
 
+/-- The matrix acting by `P` on the encoded head of length `j` and by the identity on the
+encoded tail of length `c - j`. -/
 noncomputable def g10t_leftKron {d j c : ℕ} (hjc : j ≤ c)
     (P : Matrix (Fin (d ^ j)) (Fin (d ^ j)) ℂ) : Matrix (Fin (d ^ c)) (Fin (d ^ c)) ℂ :=
   Matrix.of fun i i' =>
     P (g10t_headEnc hjc i) (g10t_headEnc hjc i')
       * if g10t_tailEnc hjc i = g10t_tailEnc hjc i' then 1 else 0
 
+/-- An entry of the extended head matrix is the corresponding entry of `P` when the encoded
+tails agree, and zero otherwise. -/
 theorem g10t_leftKron_apply {d j c : ℕ} (hjc : j ≤ c)
     (P : Matrix (Fin (d ^ j)) (Fin (d ^ j)) ℂ) (i i' : Fin (d ^ c)) :
     g10t_leftKron hjc P i i'
@@ -9617,6 +10646,8 @@ theorem g10t_leftKron_apply {d j c : ℕ} (hjc : j ≤ c)
         * if g10t_tailEnc hjc i = g10t_tailEnc hjc i' then 1 else 0 :=
   rfl
 
+/-- Applying the extended head matrix to a vector sums over head indices while keeping the
+output index's encoded tail fixed. -/
 theorem g10t_leftKron_entry {d j c : ℕ} (hjc : j ≤ c)
     (P : Matrix (Fin (d ^ j)) (Fin (d ^ j)) ℂ) (i : Fin (d ^ c)) (F' : Fin (d ^ c) → ℂ) :
     (∑ i' : Fin (d ^ c), g10t_leftKron hjc P i i' * F' i')
@@ -9647,6 +10678,9 @@ theorem g10t_leftKron_entry {d j c : ℕ} (hjc : j ≤ c)
       (fun ha => absurd (Finset.mem_univ (g10t_tailEnc hjc i)) ha)
   rw [hδ, if_pos rfl, mul_one]
 
+/-- For `j < c` and `c` at most `n`, evaluating the cut-`j` projection on a configuration joined
+at `c` is the corresponding entry of the projected cut-`j` matrix after regrouping its
+blocks. -/
 theorem g10t_cutProj_apply_left {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : c ≤ n)
     (ψ f : (Fin n → Fin d) → ℂ) (D : ℕ) (u : Fin c → Fin d) (v : Fin (n - c) → Fin d) :
     g10t_cutProj ψ j D (le_of_lt (lt_of_lt_of_le hjc hcn)) f (splitJoin n c d u v)
@@ -9684,6 +10718,8 @@ theorem g10t_cutProj_apply_left {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : c �
               else v ⟨(k : ℕ) - (c - j), by omega⟩)) from rfl]
   rw [Equiv.symm_apply_apply]
 
+/-- For `j < c` and `c` at most `n`, an entry of the cut-`c` matrix after projection at `j` is a
+sum over head indices weighted by the cut-`j` projection matrix, with the tail index fixed. -/
 theorem g10t_cutProj_entry_lt {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : c ≤ n)
     (ψ f : (Fin n → Fin d) → ℂ) (D : ℕ) (i : Fin (d ^ c)) (jcol : Fin (d ^ (n - c))) :
     cutMatrix n d (g10t_cutProj ψ j D (le_of_lt (lt_of_lt_of_le hjc hcn)) f) c i jcol
@@ -9741,6 +10777,8 @@ theorem g10t_cutProj_entry_lt {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : c ≤
     exact ((finPowEnc d (c - j)).symm_apply_apply _).symm
   rw [hfin]
 
+/-- For `j < c` and `c` at most `n`, projecting at cut `j` acts on the cut-`c` matrix by left
+multiplication with the projection matrix extended by the identity on the intervening block. -/
 theorem g10t_cutMatrix_cutProj_of_lt {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : c ≤ n)
     (ψ f : (Fin n → Fin d) → ℂ) (D : ℕ) :
     cutMatrix n d (g10t_cutProj ψ j D (le_of_lt (lt_of_lt_of_le hjc hcn)) f) c
@@ -9750,6 +10788,7 @@ theorem g10t_cutMatrix_cutProj_of_lt {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn 
     g10t_leftKron_entry (le_of_lt hjc) (g10t_projMat ψ j D) i
       (fun i' => cutMatrix n d f c i' jcol)]
 
+/-- Projection at an earlier cut `j` cannot increase the rank at a later valid cut `c`. -/
 theorem g10t_cutRank_cutProj_of_lt {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : c ≤ n)
     (ψ f : (Fin n → Fin d) → ℂ) (D : ℕ) :
     cutRank n d (g10t_cutProj ψ j D (le_of_lt (lt_of_lt_of_le hjc hcn)) f) c
@@ -9759,6 +10798,8 @@ theorem g10t_cutRank_cutProj_of_lt {n d : ℕ} {j c : ℕ} (hjc : j < c) (hcn : 
   rw [g10t_cutMatrix_cutProj_of_lt hjc hcn ψ f D]
   exact Matrix.rank_mul_le_right _ _
 
+/-- After `k` successive projections, every cut `c` with `n - k` at most `c` and `c < n` has
+rank at most `D`. -/
 theorem g10t_iter_cutRank_aux {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ) :
     ∀ k c, n - k ≤ c → c < n → cutRank n d (g10t_iter ψ D k) c ≤ D := by
   intro k
@@ -9779,6 +10820,8 @@ theorem g10t_iter_cutRank_aux {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : 
         (g10t_cutRank_cutProj_of_lt hlt (le_of_lt h2) ψ (g10t_iter ψ D k) D)
         (ih c (by omega) h2)
 
+/-- For positive `D`, every cut before `n` of the state obtained after `n - 1` successive
+projections has rank at most `D`. -/
 theorem g10t_iter_cutRank_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : ℕ) (hD : 0 < D) :
     ∀ c < n, cutRank n d (g10t_iter ψ D (n - 1)) c ≤ D := by
   intro c hc
@@ -9787,6 +10830,9 @@ theorem g10t_iter_cutRank_le {n d : ℕ} (ψ : (Fin n → Fin d) → ℂ) (D : �
     exact le_trans (cutRank_le_one_left (g10t_iter ψ D (n - 1))) (by omega)
   · exact g10t_iter_cutRank_aux ψ D (n - 1) c (by omega) hc
 
+/-- For a nonempty chain and positive `D`, there is an approximating amplitude function with
+every cut rank before `n` at most `D` and squared error at most twice the total discarded
+squared Schmidt tail. -/
 theorem g10t_trunc_approximant (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ) (hn : 1 ≤ n)
     (D : ℕ) (hDpos : 0 < D) :
     ∃ ψ' : (Fin n → Fin d) → ℂ, (∀ c < n, cutRank n d ψ' c ≤ D)
@@ -9795,6 +10841,10 @@ theorem g10t_trunc_approximant (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ) (hn 
   refine ⟨g10t_iter ψ D (n - 1), g10t_iter_cutRank_le ψ D hDpos,
     g10t_iter_error_final ψ hn D⟩
 
+/-- Every normalized state on at least one site has, for each positive bond dimension `D`, an
+MPS approximation with total squared amplitude error at most twice the sum of its discarded
+squared Schmidt tails over cuts before `n`. This is the approximation estimate associated
+with Theorem 15 of [PerezGarciaEtAl2007]. -/
 theorem clause2_clause3 (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ)
     (_hnorm : ∑ x, Complex.normSq (ψ x) = 1) :
     1 ≤ n → ∀ D : ℕ, 0 < D →

@@ -11,6 +11,28 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovLobatto
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Sharp Markov derivative bound
+
+This module proves the sharp inequality `|p'(x)| ≤ d ^ 2 * C` for a real polynomial of
+degree at most `d` bounded in absolute value by `C` on `[-1, 1]`.
+This is the Markov estimate recorded in [NayakWu1998].
+
+The proof combines explicit low-degree interpolation, the algebraic Bernstein bound,
+and Chebyshev–Lobatto estimates near the endpoints.
+
+## Main statements
+
+* `sharp_markov_cubic_derivative_identity`: four-node interpolation of a cubic derivative.
+* `sharp_markov_degree_three`: the cubic bound with constant nine.
+* `sharp_markov_derivative`: the sharp bound for every degree.
+
+## References
+
+* [Nayak and Wu, 1998, Fact A.5][NayakWu1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,8 @@ set_option maxHeartbeats 1000000
 noncomputable section
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- The sum of the absolute values of the four specified cubic derivative interpolation weights
+is at most nine on `[-1, 1]`. -/
 theorem sharp_markov_cubic_weight_sum (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(-2 * x^2 + 4/3*x + 1/6)| + |4*x^2 - 4/3*x - 4/3| +
       |-4*x^2 - 4/3*x + 4/3| + |2*x^2 + 4/3*x - 1/6| ≤ 9 := by
@@ -25,6 +49,8 @@ theorem sharp_markov_cubic_weight_sum (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1
   simp only [abs_eq_max_neg, max_def]
   split_ifs <;> nlinarith [hx.1,hx.2,sq_nonneg x,sq_nonneg (x-1/6),sq_nonneg (x+1/6)]
 
+/-- For a polynomial of degree at most three, its derivative is the specified weighted
+combination of its values at `-1`, `-1 / 2`, `1 / 2`, and `1`. -/
 theorem sharp_markov_cubic_derivative_identity (p : Polynomial ℝ)
     (hd : p.natDegree ≤ 3) (x : ℝ) :
     p.derivative.eval x =
@@ -36,6 +62,8 @@ theorem sharp_markov_cubic_derivative_identity (p : Polynomial ℝ)
   norm_num [Finset.sum_range_succ, Polynomial.derivative_mul, Polynomial.derivative_pow]
   ring
 
+/-- A polynomial of degree at most three bounded by `C ≥ 0` on `[-1, 1]` has derivative bounded
+there by `9 * C`. -/
 theorem sharp_markov_degree_three (p : Polynomial ℝ) (hd : p.natDegree ≤ 3)
     {C : ℝ} (hC : 0 ≤ C) (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C)
     {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) : |p.derivative.eval x| ≤ 9*C := by
@@ -60,6 +88,8 @@ theorem sharp_markov_degree_three (p : Polynomial ℝ) (hd : p.natDegree ≤ 3)
       rw [← add_mul, ← add_mul, ← add_mul]
       exact mul_le_mul_of_nonneg_right (sharp_markov_cubic_weight_sum x hx) hC
 
+/-- If a polynomial has degree at most both `d` and three and is bounded by `C ≥ 0` on `[-1,
+1]`, its derivative is bounded there by `d ^ 2 * C`. -/
 theorem sharp_markov_of_degree_le_three (d : ℕ) (p : Polynomial ℝ) (C : ℝ)
     (hd : p.natDegree ≤ d) (h3 : p.natDegree ≤ 3) (hC : 0 ≤ C)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C)
@@ -75,6 +105,8 @@ theorem sharp_markov_of_degree_le_three (d : ℕ) (p : Polynomial ℝ) (C : ℝ)
     · convert sharp_markov_degree_two p hd hC hb hx using 1
       norm_num
 
+/-- A real polynomial of degree at most `d` bounded by `C ≥ 0` on `[-1, 1]` has derivative
+bounded there by `d ^ 2 * C`. See [Nayak and Wu, Fact A.5][NayakWu1998]. -/
 theorem sharp_markov_derivative (d : ℕ) (p : Polynomial ℝ) (C : ℝ)
     (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C)

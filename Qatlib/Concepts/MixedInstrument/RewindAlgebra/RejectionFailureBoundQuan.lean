@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundStat
 import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Spectral bounds for rejection failure
+
+This module reduces rejection histories for two projectors to scalar products in compressed
+spectral coordinates. `rejection_failure_spectral_formula` gives the exact weighted scalar
+formula, and `rejection_failure_bound_all_rounds` bounds it by `1 / (2 * (n + 1))` for every
+natural round count. This supplies the rejection estimate used in quantum Metropolis sampling
+[TemmeEtAl2011].
+
+## Main statements
+
+* `rejection_failure_spectral_formula`: The failure probability equals the sum of `t i * (1 - t
+  i) * (t i ^ 2 + (1 - t i) ^ 2) ^ n` weighted by squared compressed input coordinates under the
+  stated projector and compression hypotheses.
+* `rejection_failure_bound_all_rounds`: For orthogonal projectors and a normalized input fixed
+  by `P`, rejection failure is at most `1 / (2 * (n + 1))` for every natural `n`.
+* `rejectionFailureBound`: The rejection failure estimate specified by `RejectionFailureBound`
+  holds; see the rejection analysis in [TemmeEtAl2011].
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -26,6 +51,7 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators
 
+/-- For `0 ≤ x ≤ 1`, the geometric term `(1 - x) * x ^ n` is at most `1 / (n + 1)`. -/
 theorem rejection_geometric_bound (x : ℝ) (hx0 : 0 ≤ x) (hx1 : x ≤ 1) (n : ℕ) :
     (1 - x) * x ^ n ≤ 1 / (n + 1) := by
   have hsum : ((n + 1 : ℕ) : ℝ) * x ^ n ≤ ∑ j ∈ Finset.range (n + 1), x ^ j := by
@@ -42,6 +68,8 @@ theorem rejection_geometric_bound (x : ℝ) (hx0 : 0 ≤ x) (hx1 : x ≤ 1) (n :
   push_cast at hm
   nlinarith only [hm,hp]
 
+/-- For `0 ≤ t ≤ 1`, the scalar rejection term `t * (1 - t) * (t ^ 2 + (1 - t) ^ 2) ^ n` is at
+most `1 / (2 * (n + 1))`. -/
 theorem rejection_scalar_bound (t : ℝ) (ht : t ∈ Set.Icc 0 1) (n : ℕ) :
     t * (1 - t) * (t ^ 2 + (1 - t) ^ 2) ^ n ≤ 1 / (2 * (n + 1)) := by
   have hx0 : 0 ≤ t ^ 2 + (1 - t) ^ 2 := by positivity
@@ -55,8 +83,11 @@ theorem rejection_scalar_bound (t : ℝ) (ht : t ∈ Set.Icc 0 1) (n : ℕ) :
   rw [heq]
   linarith
 
+/-- The scalar rejection factor `1 - t` for the true branch and `t` for the false branch. -/
 def rejectionEigenFactor (t : ℝ) (s : Bool) : ℝ := if s then 1 - t else t
 
+/-- Under the stated isometry and diagonal compression hypotheses, a rejection round acts on
+`csCrossRaw` by a diagonal matrix of `rejectionEigenFactor` values. -/
 theorem rejection_raw_round {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (P Q : Matrix H H ℂ)
     (hQ : IsOrthogonalProjector Q) (A : Matrix H J ℂ) (t : J → ℝ)
@@ -98,6 +129,8 @@ theorem rejection_raw_round {H J : Type} [Fintype H] [DecidableEq H]
     change B - (B - B * R) = B * R
     abel
 
+/-- Under the stated isometry and diagonal compression hypotheses, a rejection word acts on
+`csCrossRaw` by the diagonal products of its scalar rejection factors. -/
 theorem rejection_raw_word {D : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (P Q : Operator D) (hQ : IsOrthogonalProjector Q) (A : Matrix (Fin D) J ℂ)
     (t : J → ℝ) (hA : IsIsometry A) (hP : A * Aᴴ = P)
@@ -119,6 +152,8 @@ theorem rejection_raw_word {D : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     ext i j
     simp [Fin.prod_univ_succ,Complex.ofReal_mul]
 
+/-- A diagonal Gram matrix with entries `t i * (1 - t i)` expresses the squared norm of `B *ᵥ z`
+as the corresponding weighted sum of squared coordinate norms. -/
 theorem rejection_raw_norm {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (B : Matrix H J ℂ) (t : J → ℝ)
     (hgram : Bᴴ * B = diagonal (fun i => ((t i * (1 - t i) : ℝ) : ℂ)))
@@ -135,6 +170,8 @@ theorem rejection_raw_norm {H J : Type} [Fintype H] [DecidableEq H]
     ring
   rw [he,← Complex.ofReal_sum,Complex.ofReal_re]
 
+/-- The sum of squared scalar history products over all Boolean words of length `n` equals `(t ^
+2 + (1 - t) ^ 2) ^ n`. -/
 theorem rejection_word_sum (t : ℝ) (n : ℕ) :
     (∑ s : Fin n → Bool, (∏ j, rejectionEigenFactor t (s j)) ^ 2) =
       (t ^ 2 + (1 - t) ^ 2) ^ n := by
@@ -142,6 +179,8 @@ theorem rejection_word_sum (t : ℝ) (n : ℕ) :
   rw [← (Fintype.prod_sum (fun _j : Fin n => fun b : Bool => rejectionEigenFactor t b ^ 2))]
   simp [rejectionEigenFactor,add_comm]
 
+/-- For an input fixed by `P`, the initial failed measurement vector equals minus `csCrossRaw`
+applied to its compressed coordinates under the stated factorization hypotheses. -/
 theorem rejection_raw_start {D : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (P Q : Operator D) (A : Matrix (Fin D) J ℂ) (t : J → ℝ)
     (hP : A * Aᴴ = P) (ht : Aᴴ * Q * A = diagonal (fun i => (t i : ℂ)))
@@ -161,6 +200,9 @@ theorem rejection_raw_start {D : ℕ} {J : Type} [Fintype J] [DecidableEq J]
       _ = _ := by rw [Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,Matrix.mul_assoc,hNQA]
   rw [Matrix.sub_mulVec 1 Q ψ,Matrix.one_mulVec,Matrix.mulVec_sub,hNψ,zero_sub,hNQψ]
 
+/-- The failure probability equals the sum of `t i * (1 - t i) * (t i ^ 2 + (1 - t i) ^ 2) ^ n`
+weighted by squared compressed input coordinates under the stated projector and compression
+hypotheses. -/
 theorem rejection_failure_spectral_formula {D : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (P Q : Operator D) (hQ : IsOrthogonalProjector Q) (A : Matrix (Fin D) J ℂ)
     (t : J → ℝ) (hA : IsIsometry A) (hP : A * Aᴴ = P)
@@ -199,6 +241,8 @@ theorem rejection_failure_spectral_formula {D : ℕ} {J : Type} [Fintype J] [Dec
   intro i _hi
   rw [← Finset.sum_mul,← Finset.mul_sum,rejection_word_sum]
 
+/-- For orthogonal projectors and a normalized input fixed by `P`, rejection failure is at most
+`1 / (2 * (n + 1))` for every natural `n`. -/
 theorem rejection_failure_bound_all_rounds (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (ψ : QState (Fin D)) (hnorm : Qatlib.Foundations.PureStateMath.Inner ψ ψ=1) (hψ : P*ᵥψ=ψ) (n : ℕ) :
@@ -227,10 +271,14 @@ theorem rejection_failure_bound_all_rounds (D : ℕ) (P Q : Operator D)
       exact mul_le_mul_of_nonneg_right (rejection_scalar_bound (t i) (hb i) n) (sq_nonneg _)
     _ = _ := by rw [← Finset.mul_sum,hznorm,mul_one]
 
+/-- The rejection failure estimate specified by `RejectionFailureBound` holds; see the rejection
+analysis in [TemmeEtAl2011]. -/
 theorem rejectionFailureBound : RejectionFailureBound := by
   intro D P Q hPs hPi hQs hQi ψ hnorm hψ n _hn
   exact rejection_failure_bound_all_rounds D P Q hPs hPi hQs hQi ψ hnorm hψ n
 
+/-- The rejection failure expression is nonnegative for every pair of operators, input vector,
+and natural round count. -/
 theorem rejectFailProb_nonneg {D : ℕ} (P Q : Operator D) (ψ : QState (Fin D)) (n : ℕ) :
     0 ≤ rejectFailProb P Q ψ n := by
   unfold rejectFailProb

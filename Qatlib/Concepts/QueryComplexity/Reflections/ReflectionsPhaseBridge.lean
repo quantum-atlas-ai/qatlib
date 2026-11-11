@@ -10,6 +10,33 @@ import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
 import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+
+/-!
+# From reflection witnesses to phase and interference bounds
+
+Connects the source graph witnesses with products of reflections, root resolvent vectors, and
+eigenphase mass. A positive input gives a nonzero fixed vector concentrated at the root, while a
+negative input gives a controlled-norm preimage under `1 - U`.
+
+The module uses these identities to separate positive and negative inputs by averaged power
+interference and supplies a complete CS decomposition of the two projectors. These are
+interfaces for the random-power and phase arguments of [Reichardt2011].
+
+## Main statements
+
+* `reflections_true_zero_witness`: true inputs possess a fixed vector with root mass at least
+  `9/10`.
+* `reflections_false_root_inverse`: false inputs possess a root preimage with squared norm at
+  most `(5/2) * W^2`.
+* `reflections_true_power_mean`: positive root interference means are at least `9/10`.
+* `reflections_false_power_mean`: the specified negative root interference mean is at most
+  `3/5`.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -30,6 +57,8 @@ open scoped Classical BigOperators
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- For an orthogonal projector `P`, projecting the residual of the product of reflections gives
+`2 • (P * (1 - Q))`. -/
 theorem reflections_projected_residual (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) :
     P * (1 - ReflectionAbout P * ReflectionAbout Q) = (2 : ℂ) • (P * (1 - Q)) := by
@@ -41,11 +70,13 @@ theorem reflections_projected_residual (P Q : Matrix H H ℂ)
   simp only [ReflectionAbout, mul_sub, mul_smul_comm, mul_one]
   module
 
+/-- The product of reflections about two orthogonal projectors is unitary. -/
 theorem reflections_product_unitary (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q) :
     ReflectionAbout P * ReflectionAbout Q ∈ Matrix.unitaryGroup H ℂ :=
   (Matrix.unitaryGroup H ℂ).mul_mem (reflectionAbout_unitary hP) (reflectionAbout_unitary hQ)
 
+/-- A vector fixed by both projectors is fixed by the product of their reflections. -/
 theorem reflections_common_fixed (P Q : Matrix H H ℂ) (ψ : QState H)
     (hp : P *ᵥ ψ = ψ) (hq : Q *ᵥ ψ = ψ) :
     (ReflectionAbout P * ReflectionAbout Q) *ᵥ ψ = ψ := by
@@ -55,6 +86,8 @@ theorem reflections_common_fixed (P Q : Matrix H H ℂ) (ψ : QState H)
 
 variable {X : Type} [Fintype X] [DecidableEq X] {n m : ℕ}
 
+/-- The extended source positive witness lies in the kernel of the unmarked adjacency whenever
+it lies in the kernel of the source marked biadjacency. -/
 theorem reflections_positive_unmarked_kernel
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ)
     (W : ℝ) (x : X) (hψ : sourceMarkedBiadj input f v W x *ᵥ
@@ -67,6 +100,7 @@ theorem reflections_positive_unmarked_kernel
     Matrix.fromCols_apply_inl, Matrix.fromCols_apply_inr, Matrix.fromRows_apply_inl,
     Matrix.of_apply, Pi.zero_apply] using hr
 
+/-- The input projector fixes the zero-extended source positive witness. -/
 theorem reflections_positive_input_fixed
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ)
     (W : ℝ) (x : X) :
@@ -81,6 +115,9 @@ theorem reflections_positive_input_fixed
     · cases hb : input x j <;> cases b <;>
         simp [complementMark, sourcePositiveWitness, hb]
 
+/-- For a true input and source dual-feasible data with `W ≥ 1`, the two-reflection operator has
+a nonzero fixed vector with at least `9/10` of its squared mass at the root. See [Reichardt,
+Lemma 3.4][Reichardt2011]. -/
 theorem reflections_true_zero_witness
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ)
     (W : ℝ) (hd : SourceDualFeasible input f v W) (hW : 1 ≤ W)
@@ -105,6 +142,8 @@ theorem reflections_true_zero_witness
       Pi.zero_apply, norm_zero, zero_pow (by decide : 2 ≠ 0), Finset.sum_const_zero,
       zero_add] using hk.2.2
 
+/-- A Hermitian matrix and the orthogonal projector onto its kernel annihilate each other in
+both multiplication orders. -/
 theorem reflections_kernel_annihilates (B Δ : Matrix H H ℂ)
     (hB : B.IsHermitian) (hΔ : IsOrthogonalProjector Δ)
     (hk : ∀ z, B *ᵥ z = 0 ↔ Δ *ᵥ z = z) : B * Δ = 0 ∧ Δ * B = 0 := by
@@ -121,12 +160,16 @@ theorem reflections_kernel_annihilates (B Δ : Matrix H H ℂ)
   simpa only [Matrix.conjTranspose_mul, hB.eq,
     show Δᴴ = Δ from hΔ.2, Matrix.conjTranspose_zero] using hs
 
+/-- The vector with root coordinate `1 / (3 * sqrt W)`, witness entries on complement input
+labels, and zero row-side coordinates. -/
 def reflectionsFalseRow (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (x : X) : QState (Vertex X f n m)
   | .inl _ => 0
   | .inr (.inl _) => ((1 / (3 * Real.sqrt W) : ℝ) : ℂ)
   | .inr (.inr (j, b, k)) => if b = !(input x j) then v x j k else 0
 
+/-- For a false input, applying the adjacency to its row basis vector gives
+`reflectionsFalseRow`. -/
 theorem reflectionsFalseRow_image (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (x : X) (hx : f x = false) :
     adjacency input f v W *ᵥ Qatlib.Foundations.PureStateMath.Ket (Sum.inl ⟨x, hx⟩) =
@@ -141,6 +184,8 @@ theorem reflectionsFalseRow_image (input : X → Fin n → Bool) (f : X → Bool
         simp [adjacency, blockAdjacency, biadj, bigA, reflectionsFalseRow, hb,
           RCLike.star_def]
 
+/-- The input projector sends `reflectionsFalseRow` to the root basis vector scaled by `1 / (3 *
+sqrt W)`. -/
 theorem reflectionsFalseRow_input_projection (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (x : X) :
     pixProj input f x *ᵥ reflectionsFalseRow input f v W x =
@@ -155,6 +200,8 @@ theorem reflectionsFalseRow_input_projection (input : X → Fin n → Bool) (f :
     · cases hi : input x j <;> cases b <;>
         simp [reflectionsFalseRow, complementMark, hi, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- For a false input, the residual `1 - twoReflectionUnitary` sends `reflectionsFalseRow` to
+the root basis vector scaled by `2 / (3 * sqrt W)`. -/
 theorem reflections_false_resolvent (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ)
     (Δ : Matrix (Vertex X f n m) (Vertex X f n m) ℂ)
@@ -176,6 +223,8 @@ theorem reflections_false_resolvent (input : X → Fin n → Bool) (f : X → Bo
 
 omit [DecidableEq X] in
 
+/-- The squared norm of `reflectionsFalseRow` is its squared root coefficient plus the total
+squared norm of the input witness family. -/
 theorem reflectionsFalseRow_norm (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (x : X) :
     (∑ z, ‖reflectionsFalseRow input f v W x z‖ ^ 2) =
@@ -185,6 +234,9 @@ theorem reflectionsFalseRow_norm (input : X → Fin n → Bool) (f : X → Bool)
   rw [source_fiber_norm n m (fun j => !(input x j)) (v x),
     Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- For a false input and source dual-feasible data with `W ≥ 1`, the root basis vector has a
+preimage under `1 - twoReflectionUnitary` with squared norm at most `(5/2) * W^2`. See
+[Reichardt2011]. -/
 theorem reflections_false_root_inverse (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (hd : SourceDualFeasible input f v W)
     (hW : 1 ≤ W) (Δ : Matrix (Vertex X f n m) (Vertex X f n m) ℂ)
@@ -228,10 +280,14 @@ theorem reflections_false_root_inverse (input : X → Fin n → Bool) (f : X →
 section PowerMean
 variable {J : Type} [Fintype J] [DecidableEq J]
 
+/-- The average squared interference norm of `r` with its first `τ` unitary iterates, scaled by
+`1 / (4 * τ)`. -/
 def reflectionsPowerMean (τ : ℕ) (U : Matrix J J ℂ) (r : QState J) : ℝ :=
   (4 * (τ : ℝ))⁻¹ * ∑ t : Fin τ,
     ‖toEuclidean_fromVec (r + U ^ (t.val + 1) *ᵥ r)‖ ^ 2
 
+/-- If `(1 - U) *ᵥ η = r`, the sum of the first `τ` positive iterates of `r` telescopes to `U *ᵥ
+η - U^(τ + 1) *ᵥ η`. -/
 theorem reflections_inverse_power_sum (U : Matrix J J ℂ) (η r : QState J)
     (hη : (1 - U) *ᵥ η = r) (τ : ℕ) :
     (∑ t : Fin τ, U ^ (t.val + 1) *ᵥ r) = U *ᵥ η - U ^ (τ + 1) *ᵥ η := by
@@ -248,6 +304,8 @@ theorem reflections_inverse_power_sum (U : Matrix J J ℂ) (η r : QState J)
   rw [happly, hsum, ← hη, Matrix.mulVec_mulVec, Matrix.mul_assoc, geom_sum_mul_neg,
     mul_sub, mul_one, ← pow_succ', Matrix.sub_mulVec]
 
+/-- For unitary `U`, the telescoping power sum of a residual vector has norm at most twice the
+norm of its preimage. -/
 theorem reflections_inverse_power_sum_norm (U : Matrix J J ℂ)
     (hU : U ∈ Matrix.unitaryGroup J ℂ) (η r : QState J)
     (hη : (1 - U) *ᵥ η = r) (τ : ℕ) :
@@ -267,6 +325,8 @@ theorem reflections_inverse_power_sum_norm (U : Matrix J J ℂ)
       rw [hnU, hnP]
       ring
 
+/-- A nonzero fixed vector with relative squared mass at least `p` at `z` forces every
+basis-state interference norm squared at `z` to be at least `4 * p`. -/
 theorem reflections_fixed_interference_lower (U : Matrix J J ℂ)
     (hU : U ∈ Matrix.unitaryGroup J ℂ) (ψ : QState J) (hψ : ψ ≠ 0)
     (hfix : U *ᵥ ψ = ψ) (z : J) (p : ℝ)
@@ -301,6 +361,8 @@ theorem reflections_fixed_interference_lower (U : Matrix J J ℂ)
   rw [norm_toEuclidean_fromVec_sq]
   nlinarith
 
+/-- For a normalized state and a unitary, the squared interference norm equals two plus twice
+the real part of the overlap with its iterate. -/
 theorem reflections_power_interference_formula (U : Matrix J J ℂ)
     (hU : U ∈ Matrix.unitaryGroup J ℂ) (r : QState J) (hr : Normalized r) (k : ℕ) :
     ‖toEuclidean_fromVec (r + U ^ k *ᵥ r)‖ ^ 2 =
@@ -315,6 +377,8 @@ theorem reflections_power_interference_formula (U : Matrix J J ℂ)
   change 1 + 2 * (Qatlib.Foundations.PureStateMath.Inner r (U ^ k *ᵥ r)).re + 1 = _
   ring
 
+/-- For positive `τ`, the normalized interference mean equals one half plus the real overlap
+with the power sum divided by `2 * τ`. -/
 theorem reflections_power_mean_formula (U : Matrix J J ℂ)
     (hU : U ∈ Matrix.unitaryGroup J ℂ) (r : QState J) (hr : Normalized r)
     (τ : ℕ) (hτ : 0 < τ) :
@@ -332,6 +396,8 @@ theorem reflections_power_mean_formula (U : Matrix J J ℂ)
   field_simp
   ring
 
+/-- A normalized residual vector with preimage `η` has interference mean at most `1/2 + ‖η‖ / τ`
+for positive `τ`. -/
 theorem reflections_inverse_power_mean_upper (U : Matrix J J ℂ)
     (hU : U ∈ Matrix.unitaryGroup J ℂ) (η r : QState J) (hr : Normalized r)
     (hη : (1 - U) *ᵥ η = r) (τ : ℕ) (hτ : 0 < τ) :
@@ -358,6 +424,9 @@ theorem reflections_inverse_power_mean_upper (U : Matrix J J ℂ)
 
 end PowerMean
 
+/-- For true inputs, source dual feasibility and `W ≥ 1` give root interference mean at least
+`9/10` for every positive averaging length. This supplies the positive-input estimate for
+the random-power test in [Reichardt2011]. -/
 theorem reflections_true_power_mean (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (hd : SourceDualFeasible input f v W)
     (hW : 1 ≤ W) (Δ : Matrix (Vertex X f n m) (Vertex X f n m) ℂ)
@@ -378,6 +447,9 @@ theorem reflections_true_power_mean (input : X → Fin n → Bool) (f : X → Bo
   apply (le_div_iff₀ (by positivity : 0 < 4 * (τ : ℝ))).mpr
   nlinarith
 
+/-- For false inputs, source dual feasibility and `W ≥ 1` bound the root interference mean over
+`4000 * Nat.ceil W` powers by `3/5`. This supplies the negative-input estimate for the
+random-power test in [Reichardt2011]. -/
 theorem reflections_false_power_mean (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (hd : SourceDualFeasible input f v W)
     (hW : 1 ≤ W) (Δ : Matrix (Vertex X f n m) (Vertex X f n m) ℂ)
@@ -407,6 +479,8 @@ theorem reflections_false_power_mean (input : X → Fin n → Bool) (f : X → B
 section PhaseMass
 variable {J : Type} [Fintype J] [DecidableEq J]
 
+/-- In a complete eigenphase frame, a normalized residual vector has mass at phases of absolute
+value at most `Θ` bounded by both one and `Θ^2` times the squared norm of its preimage. -/
 theorem reflections_inverse_phase_mass (U : Matrix H H ℂ) (r η : QState H)
     (V : Matrix H J ℂ) (θ : J → ℝ) (hV : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry V) (hfull : V * Vᴴ = 1)
     (hEV : U * V = V * Matrix.diagonal (fun i => Complex.exp (Complex.I * θ i)))
@@ -467,6 +541,9 @@ theorem reflections_inverse_phase_mass (U : Matrix H H ℂ) (r η : QState H)
 
 end PhaseMass
 
+/-- For false inputs with source dual-feasible data and `W ≥ 1`, root mass in eigenphases of
+absolute value at most `Θ` is at most `(2 * sqrt (6 * Θ * W) + Θ/2)^2`. See [Reichardt,
+Lemma 3.4][Reichardt2011]. -/
 theorem reflections_false_root_phase (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) (hd : SourceDualFeasible input f v W)
     (hW : 1 ≤ W) (Δ : Matrix (Vertex X f n m) (Vertex X f n m) ℂ)
@@ -497,6 +574,10 @@ theorem reflections_false_root_phase (input : X → Fin n → Bool) (f : X → B
   · have hlarge : 1 < Θ * W := by linarith
     linarith
 
+/-- There is an orthogonal projector onto the adjacency kernel such that, for every input, it
+and the input projector possess a complete CS decomposition with all nontrivial parameters
+strictly between zero and one. This realizes the two-projector decomposition used in
+[Reichardt2011]. -/
 theorem reflections_source_full_cs (input : X → Fin n → Bool) (f : X → Bool)
     (v : X → Fin n → Fin m → ℂ) (W : ℝ) :
     ∃ Δ : Matrix (Vertex X f n m) (Vertex X f n m) ℂ,

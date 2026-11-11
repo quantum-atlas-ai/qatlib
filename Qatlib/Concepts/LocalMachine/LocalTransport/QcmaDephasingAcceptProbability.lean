@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LocalMachine.LocalTransport.QcmaDephasingVerifier
+
+/-!
+# Acceptance probabilities after witness dephasing
+
+Copying a computational-basis witness into fresh ancillas removes its off-diagonal contributions
+to the verifier acceptance functional. The module proves this directly from circuit matrices and
+readout sums, using the standard dephasing mechanism described in [NielsenChuang2010].
+
+`frontier1` gives the diagonal formula for arbitrary witness matrices. For density matrices it
+transfers classical-witness soundness bounds to the dephased verifier, while preserving
+classical-witness completeness, oracle counts, and uniform-family witness width.
+
+## Main statements
+
+* `acceptProb_dephase_classical`: preserve acceptance on each classical basis witness.
+* `frontier1`: express acceptance using only diagonal witness entries.
+* `dephase_soundness_bound`: transfer a classical-witness bound to arbitrary witness density
+  matrices.
+* `dephaseFamily`: lift dephasing to uniform witness families with polynomial resource bounds.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +56,7 @@ open Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitness
 open Qatlib
 open Matrix
 
+/-- Each witness-copy instruction is legal on the workspace of the dephased verifier. -/
 theorem copyInstruction_legal (p : WitnessVerifierProgram) (i : Fin p.witnessBits) :
     instructionLegal (programQubits (dephaseProgram p)) (copyInstruction p i) := by
   have hq := dephase_qubits p
@@ -51,6 +77,8 @@ theorem copyInstruction_legal (p : WitnessVerifierProgram) (i : Fin p.witnessBit
   simp only [finiteCodeLegal, decide_eq_true_eq]
   exact ⟨hc, ht, hne⟩
 
+/-- Every instruction in a partial witness-copy word is legal on the dephased verifier
+workspace. -/
 theorem copyInstrs_legal (p : WitnessVerifierProgram) :
     ∀ (m : ℕ) (hm : m ≤ p.witnessBits),
       ∀ i ∈ copyInstrs p m hm, instructionLegal (programQubits (dephaseProgram p)) i := by
@@ -64,6 +92,7 @@ theorem copyInstrs_legal (p : WitnessVerifierProgram) :
       · exact copyInstruction_legal p ⟨m, hm⟩
       · exact ih (Nat.le_of_lt hm) i hi
 
+/-- The full witness-copy word has one instruction per witness bit. -/
 theorem copyInstructions_length (p : WitnessVerifierProgram) :
     (copyInstructions p).length = p.witnessBits := by
   have h : ∀ (m : ℕ) (hm : m ≤ p.witnessBits), (copyInstrs p m hm).length = m := by
@@ -75,6 +104,7 @@ theorem copyInstructions_length (p : WitnessVerifierProgram) :
         simp only [copyInstrs, List.length_cons, ih (Nat.le_of_lt hm)]
   exact h p.witnessBits (Nat.le_refl p.witnessBits)
 
+/-- Every instruction in a partial witness-copy word is a fixed gate instruction. -/
 theorem copyInstrs_mem_fixed (p : WitnessVerifierProgram) :
     ∀ (m : ℕ) (hm : m ≤ p.witnessBits), ∀ i ∈ copyInstrs p m hm,
       ∃ gate : FiniteGateCode, i = WitnessInstruction.fixed gate := by
@@ -88,6 +118,8 @@ theorem copyInstrs_mem_fixed (p : WitnessVerifierProgram) :
       · exact ⟨_, rfl⟩
       · exact ih (Nat.le_of_lt hm) i hi
 
+/-- Filtering a list of fixed instructions gives the empty list when the filter returns `none`
+on every fixed gate. -/
 theorem list_filterMap_fixed_eq_nil {α : Type*} (l : List WitnessInstruction)
     (hl : ∀ i ∈ l, ∃ gate : FiniteGateCode, i = WitnessInstruction.fixed gate)
     (g : WitnessInstruction → Option α)
@@ -99,6 +131,8 @@ theorem list_filterMap_fixed_eq_nil {α : Type*} (l : List WitnessInstruction)
       obtain ⟨gate, rfl⟩ := hl a (by simp)
       simp only [List.filterMap_cons, hg gate, ih (fun i hi => hl i (by simp [hi]))]
 
+/-- A Boolean predicate true on every fixed gate is true on all entries of a list consisting of
+fixed instructions. -/
 theorem list_all_fixed (l : List WitnessInstruction)
     (hl : ∀ i ∈ l, ∃ gate : FiniteGateCode, i = WitnessInstruction.fixed gate)
     (f : WitnessInstruction → Bool)
@@ -111,6 +145,7 @@ theorem list_all_fixed (l : List WitnessInstruction)
       simp only [List.all_cons, hf gate, Bool.true_and,
         ih (fun i hi => hl i (by simp [hi]))]
 
+/-- Dephasing preserves legality of a witness verifier program. -/
 theorem dephaseProgram_legal (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) : witnessProgramLegal (dephaseProgram p) := by
   have hq := dephase_qubits p
@@ -126,11 +161,13 @@ theorem dephaseProgram_legal (p : WitnessVerifierProgram)
       have hmono := instructionLegal_mono (q := programQubits p) (n := p.witnessBits) i horig
       rwa [hq.symm] at hmono
 
+/-- Dephasing adds exactly one instruction per witness bit to the original instruction count. -/
 theorem dephase_instruction_count (p : WitnessVerifierProgram) :
     (dephaseProgram p).instructions.length
       = p.witnessBits + p.instructions.length := by
   rw [dephaseProgram_instructions, List.length_append, copyInstructions_length]
 
+/-- Dephasing preserves the number of oracle queries. -/
 theorem dephase_oracleQueryCount (p : WitnessVerifierProgram) :
     oracleQueryCount (dephaseProgram p) = oracleQueryCount p := by
   simp only [oracleQueryCount, dephaseProgram_instructions, copyInstructions,
@@ -139,6 +176,7 @@ theorem dephase_oracleQueryCount (p : WitnessVerifierProgram) :
     (copyInstrs_mem_fixed p p.witnessBits (Nat.le_refl p.witnessBits)) _ (by intro gate; rfl)]
   simp
 
+/-- Dephasing preserves the oracle address-bit ledger. -/
 theorem dephase_addressBitLedger (p : WitnessVerifierProgram) :
     addressBitLedger (dephaseProgram p) = addressBitLedger p := by
   simp only [addressBitLedger, dephaseProgram_instructions, copyInstructions,
@@ -147,6 +185,7 @@ theorem dephase_addressBitLedger (p : WitnessVerifierProgram) :
     (copyInstrs_mem_fixed p p.witnessBits (Nat.le_refl p.witnessBits)) _ (by intro gate; rfl)]
   simp
 
+/-- The dephased program is oracle free if and only if the original program is oracle free. -/
 theorem dephaseProgram_oracleFree {p : WitnessVerifierProgram} :
     oracleFree (dephaseProgram p) ↔ oracleFree p := by
   simp only [oracleFree, dephaseProgram_instructions, copyInstructions, List.all_append]
@@ -154,14 +193,18 @@ theorem dephaseProgram_oracleFree {p : WitnessVerifierProgram} :
     (copyInstrs_mem_fixed p p.witnessBits (Nat.le_refl p.witnessBits)) _ (by intro gate; rfl)]
   simp
 
+/-- The front coordinates of a glued register are the coordinates of its first component. -/
 theorem wireGlue_front {q n : ℕ} (y : Reg q) (c : Reg n) (i : Fin q) :
     wireGlue y c (Fin.castAdd n i) = y i := by
   simp only [wireGlue, Fin.append_left]
 
+/-- The back coordinates of a glued register are the coordinates of its second component. -/
 theorem wireGlue_back {q n : ℕ} (y : Reg q) (c : Reg n) (j : Fin n) :
     wireGlue y c (Fin.natAdd q j) = c j := by
   simp only [wireGlue, Fin.append_right]
 
+/-- The dephased input configuration is the original embedded input with zeroed copy ancillas,
+transported by `toDephase`. -/
 theorem embedConfig_toDephase (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (e : Reg p.witnessBits) :
     embedConfig (dephaseProgram p) x e
@@ -212,6 +255,8 @@ theorem embedConfig_toDephase (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     have hk2 : ¬((k : ℕ) < p.witnessBits + p.inputBits) := by omega
     rw [hkj, wireGlue_back, dif_neg hk1, dif_neg hk2]
 
+/-- Copying the witness in an embedded dephased input places the witness bits in the appended
+copy register. -/
 theorem copyUpdate_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (e : Reg p.witnessBits) :
     copyUpdate p (embedConfig (dephaseProgram p) x e)
@@ -231,6 +276,8 @@ theorem copyUpdate_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits
     exact congrArg e (Fin.ext rfl)
   rw [hfun]
 
+/-- On coordinates belonging to the original workspace, `toDephase` of a glued register agrees
+with its first component. -/
 theorem toDephase_val_front (p : WitnessVerifierProgram)
     {k : Fin (programQubits (dephaseProgram p))}
     (hk : (k : ℕ) < programQubits p) (y : Reg (programQubits p)) (c : Reg p.witnessBits) :
@@ -239,6 +286,8 @@ theorem toDephase_val_front (p : WitnessVerifierProgram)
   rw [cast_eq_castAdd (dephase_qubits p) hk]
   exact wireGlue_front y c ⟨(k : ℕ), hk⟩
 
+/-- For a legal verifier, summing over the dephased output event separates into a sum over the
+original output event and all copy-register values. -/
 theorem sum_programOutputEvent_dephase (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) {M : Type*} [AddCommMonoid M]
     (g : Reg (programQubits (dephaseProgram p)) → M) :
@@ -312,6 +361,8 @@ theorem sum_programOutputEvent_dephase (p : WitnessVerifierProgram)
       rw [hL, if_neg hy]
   rw [Finset.sum_congr rfl (fun y _ => hpush y), ← Finset.sum_filter]
 
+/-- The readout matrix retaining the original verifier amplitude only when the appended copy
+register equals the basis witness index. -/
 noncomputable def dephaseReadout (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) :
     Matrix (Reg (programQubits (dephaseProgram p))) (Reg p.witnessBits) ℂ :=
@@ -320,6 +371,8 @@ noncomputable def dephaseReadout (A : ClassicalOracle) (p : WitnessVerifierProgr
     then programMatrix A p (wireTake (ofDephase p z)) (embedConfig p x e)
     else 0
 
+/-- In glued coordinates, the dephasing readout equals the original verifier amplitude when the
+copy value equals the witness and is zero otherwise. -/
 theorem dephaseReadout_apply (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) (y : Reg (programQubits p)) (c e : Reg p.witnessBits) :
     dephaseReadout A p x (toDephase p (wireGlue y c)) e
@@ -327,6 +380,8 @@ theorem dephaseReadout_apply (A : ClassicalOracle) (p : WitnessVerifierProgram)
   simp only [dephaseReadout, Matrix.of_apply, ofDephase_toDephase, wireGlue_drop,
     wireGlue_take]
 
+/-- For a legal verifier, the dephased program matrix composed with witness embedding equals
+`dephaseReadout`. -/
 theorem programMatrix_mul_witnessEmbed_dephase (A : ClassicalOracle)
     (p : WitnessVerifierProgram) (hlegal : witnessProgramLegal p) (x : Reg p.inputBits) :
     programMatrix A (dephaseProgram p) * witnessEmbed (dephaseProgram p) x
@@ -361,6 +416,8 @@ theorem programMatrix_mul_witnessEmbed_dephase (A : ClassicalOracle)
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
 
+/-- Acceptance on a classical basis witness is the sum of squared verifier amplitudes over the
+output event. -/
 theorem acceptProb_classical_eq (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (x : Reg p.inputBits) (e : Reg p.witnessBits) :
     acceptProb A p x (classicalWitnessDensity e)
@@ -391,6 +448,8 @@ theorem acceptProb_classical_eq (A : ClassicalOracle) (p : WitnessVerifierProgra
   refine Finset.sum_congr rfl (fun y _ => ?_)
   exact hval y
 
+/-- Rewrite evolution of an embedded matrix as conjugation by the product of the evolution and
+embedding matrices. -/
 private theorem matrix_assoc_push {ι κ : Type*} [Fintype ι] [Fintype κ]
     [DecidableEq ι] [DecidableEq κ]
     (M : Matrix ι ι ℂ) (S : Matrix ι κ ℂ) (ρ : Matrix κ κ ℂ) :
@@ -406,6 +465,8 @@ private theorem matrix_assoc_push {ι κ : Type*} [Fintype ι] [Fintype κ]
       ← Matrix.mul_assoc (M * S) ρ (Sᴴ * Mᴴ)]
   rw [h1, h2, h3, h4, Matrix.conjTranspose_mul]
 
+/-- For a legal verifier, dephasing preserves acceptance probability on every classical basis
+witness. -/
 theorem acceptProb_dephase_classical (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits) (e : Reg p.witnessBits) :
     acceptProb A (dephaseProgram p) x (classicalWitnessDensity e)
@@ -440,6 +501,7 @@ theorem acceptProb_dephase_classical (A : ClassicalOracle) (p : WitnessVerifierP
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
 
+/-- The real part of `z * c * conj z` equals the real part of `c` times the squared norm of `z`. -/
 private theorem re_mul_conj_mul_self (z c : ℂ) :
     (z * c * (starRingEnd ℂ) z).re = c.re * ‖z‖ ^ 2 := by
   have h1 : z * (starRingEnd ℂ) z = ((‖z‖ ^ 2 : ℝ) : ℂ) := by
@@ -448,6 +510,7 @@ private theorem re_mul_conj_mul_self (z c : ℂ) :
   simp only [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- The dephased legal verifier satisfies the classical acceptance functional identity. -/
 theorem dephase_classicalAcceptFunctional (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits) :
     WcClassicalAcceptFunctional A (dephaseProgram p) x := by
@@ -506,6 +569,8 @@ theorem dephase_classicalAcceptFunctional (A : ClassicalOracle) (p : WitnessVeri
     rw [acceptProb_dephase_classical A p hlegal x w, acceptProb_classical_eq A p x w]
   exact hgoal
 
+/-- For any witness matrix, acceptance by the dephased legal verifier is the sum of the real
+diagonal entries times the original classical-witness acceptance probabilities. -/
 theorem frontier1 (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
@@ -516,6 +581,8 @@ theorem frontier1 (A : ClassicalOracle) (p : WitnessVerifierProgram)
   exact Finset.sum_congr rfl (fun e _ => by
     rw [acceptProb_dephase_classical A p hlegal x e])
 
+/-- A uniform upper bound on acceptance for all classical witnesses bounds acceptance of every
+witness density matrix after dephasing. -/
 theorem dephase_soundness_bound (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits) {b : ℝ}
     (hsound : ∀ e : Reg p.witnessBits,
@@ -551,6 +618,8 @@ theorem dephase_soundness_bound (A : ClassicalOracle) (p : WitnessVerifierProgra
     have hsb := hsound (fun _ => false)
     exact absurd (hnn.trans hsb) hb
 
+/-- If every classical witness has acceptance probability at most `1 / 3`, every witness density
+matrix has acceptance probability at most `1 / 3` after dephasing. -/
 theorem dephase_soundness_third (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits)
     (hsound : ∀ e : Reg p.witnessBits,
@@ -560,18 +629,24 @@ theorem dephase_soundness_third (A : ClassicalOracle) (p : WitnessVerifierProgra
     acceptProb A (dephaseProgram p) x σ ≤ 1 / 3 :=
   dephase_soundness_bound A p hlegal x hsound hσ
 
+/-- Any acceptance lower bound for a classical witness remains valid for that witness in the
+dephased verifier. -/
 theorem dephase_completeness_preserved (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits) (e : Reg p.witnessBits)
     {t : ℝ} (hacc : t ≤ acceptProb A p x (classicalWitnessDensity e)) :
     t ≤ acceptProb A (dephaseProgram p) x (classicalWitnessDensity e) :=
   hacc.trans (acceptProb_dephase_classical A p hlegal x e).symm.le
 
+/-- The dephased program bit ledger is `(witnessBits + instructions.length) * (4 + 2 *
+(programQubits p + witnessBits))`. -/
 theorem programBitLedger_dephase (p : WitnessVerifierProgram) :
     programBitLedger (dephaseProgram p)
       = (p.witnessBits + p.instructions.length)
           * (4 + 2 * (programQubits p + p.witnessBits)) := by
   rw [programBitLedger_eq, dephase_instruction_count, dephase_qubits]
 
+/-- Apply program dephasing to a uniform witness family, preserving witness width and supplying
+updated polynomial gate, space, and bit-ledger bounds. -/
 def dephaseFamily (f : UniformWitnessFamily) : UniformWitnessFamily where
   witnessWidth := f.witnessWidth
   generator := fun x => dephaseProgram (f.generator x)
@@ -696,12 +771,16 @@ def dephaseFamily (f : UniformWitnessFamily) : UniformWitnessFamily where
           rw [Nat.pow_add]
           ring
 
+/-- The generator of the dephased family returns the dephased program generated by the original
+family. -/
 theorem dephaseFamily_generator (f : UniformWitnessFamily) (x : List Bool) :
     (dephaseFamily f).generator x = dephaseProgram (f.generator x) := rfl
 
+/-- Dephasing a uniform witness family preserves its witness-width function. -/
 theorem dephaseFamily_width (f : UniformWitnessFamily) (n : ℕ) :
     (dephaseFamily f).witnessWidth n = f.witnessWidth n := rfl
 
+/-- Dephasing preserves oracle freeness of a uniform witness family. -/
 theorem dephaseFamily_oracleFree (f : UniformWitnessFamily)
     (h : f.OracleFree) : (dephaseFamily f).OracleFree := by
   intro x

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.ResourceCompile.ClusterStabilizerResourceStat
 import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationQuan
+
+/-!
+# Stabilizer properties of cluster resources
+
+This module proves normalization and stabilizer properties for ordered finite graph resources.
+It shows that the frame word carries `sourceResource` to `czResource`, whose graph stabilizers
+fix it, while the source resource has the specified incoming-edge parity signs.
+
+The result `clusterStabilizerResource` packages these resource-state properties for the
+measurement-based construction of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `czResource_stabilizer`: each graph stabilizer fixes the CZ resource.
+* `clusterStabilizerResource`: normalization, source eigenvalues, and frame-word transport.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,15 +38,19 @@ open Qatlib.Concepts.ClusterPatterns.ClusterCompile
 namespace Qatlib.Concepts.ClusterPatterns.ResourceCompile
 open Qatlib
 
+/-- Each amplitude of the CZ resource is the uniform amplitude multiplied by its graph CZ phase. -/
 private theorem czResource_apply {n : ℕ} (edges : Finset (Fin n × Fin n)) (x : Reg n) :
     czResource edges x = czPhase edges x * Uniform (Reg n) x := by
   exact Matrix.mulVec_diagonal _ _ _
 
+/-- The frame matrix acts pointwise by multiplication by `framePhase`. -/
 private theorem frameMatrix_apply {n : ℕ} (edges : Finset (Fin n × Fin n))
     (ψ : QState (Reg n)) (x : Reg n) :
     ApplyGate (frameMatrix edges) ψ x = framePhase edges x * ψ x := by
   exact Matrix.mulVec_diagonal _ _ _
 
+/-- For edges ordered by their endpoints, the graph stabilizer at any vertex fixes the CZ
+resource. -/
 theorem czResource_stabilizer {n : ℕ} (edges : Finset (Fin n × Fin n))
     (horder : ∀ e ∈ edges, e.1 < e.2) (v : Fin n) :
     ApplyGate (stabilizer edges v) (czResource edges) = czResource edges := by
@@ -36,6 +61,9 @@ theorem czResource_stabilizer {n : ℕ} (edges : Finset (Fin n × Fin n))
     Uniform (Reg n) x) = _
   rw [← mul_assoc, ← mul_assoc, neighborPhase_sq, one_mul]
 
+/-- Ordered graph resources are normalized, have the stated stabilizer eigenvalues, and are
+carried from the source resource to the stabilized CZ resource by the frame word. See
+[RaussendorfBriegel2000]. -/
 theorem clusterStabilizerResource : ClusterStabilizerResource := by
   classical
   intro n edges horder

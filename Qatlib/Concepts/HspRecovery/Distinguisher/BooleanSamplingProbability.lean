@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecovery
 import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupRepetition
+
+/-!
+# Boolean Fourier halfspace probabilities
+
+Identifies the Boolean orthogonal complement of a subgroup with its character annihilator.
+Restricting the Boolean dot product to a subgroup gives an additive homomorphism to `ZMod 2`,
+whose kernel has half the subgroup's cardinality when the homomorphism is nonzero.
+
+Uses this count to show that a hidden subgroup sample is orthogonal to a fixed vector outside
+the hidden subgroup with probability one half, and that all `m` fresh samples are orthogonal
+with probability `(1 / 2) ^ m`. This is the halfspace estimate used in Simon-type recovery
+[Simon1997].
+
+## Main statements
+
+* `booleanOrthogonalCharacterEquiv`: identifies orthogonal vectors with annihilating characters.
+* `booleanDotOnSubgroupHom_ker_card_mul_two`: counts the kernel of a nonzero dot-product map.
+* `hiddenSubgroupFreshSamples_boolean_halfspace`: computes the fresh-sample halfspace
+  probability.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -21,6 +46,8 @@ namespace Qatlib.Concepts.HspRecovery.Distinguisher
 
 open scoped Classical
 
+/-- The additive equivalence between the Boolean orthogonal complement of `H` and its character
+annihilator, induced by `booleanCharacterEquiv`. -/
 noncomputable def booleanOrthogonalCharacterEquiv {n : ℕ}
     (H : AddSubgroup (BooleanVec n)) :
     booleanOrthogonal H ≃+ characterAnnihilator H where
@@ -42,30 +69,38 @@ noncomputable def booleanOrthogonalCharacterEquiv {n : ℕ}
       booleanCharacterEquiv n (a : BooleanVec n) + booleanCharacterEquiv n (b : BooleanVec n)
     exact map_add (booleanCharacterEquiv n) (a : BooleanVec n) (b : BooleanVec n)
 
+/-- The orthogonal-complement equivalence sends a vector to its Boolean character. -/
 @[simp] theorem booleanOrthogonalCharacterEquiv_apply {n : ℕ}
     (H : AddSubgroup (BooleanVec n)) (a : booleanOrthogonal H) :
     ((booleanOrthogonalCharacterEquiv H a : characterAnnihilator H) :
       AddChar (BooleanVec n) ℂ) = booleanCharacterEquiv n a := rfl
 
+/-- The inverse orthogonal-complement equivalence sends an annihilating character to its Boolean
+vector index. -/
 @[simp] theorem booleanOrthogonalCharacterEquiv_symm_apply {n : ℕ}
     (H : AddSubgroup (BooleanVec n)) (χ : characterAnnihilator H) :
     (((booleanOrthogonalCharacterEquiv H).symm χ : booleanOrthogonal H) : BooleanVec n) =
       (booleanCharacterEquiv n).symm χ := rfl
 
+/-- The additive homomorphism on `K` obtained by taking the Boolean dot product with `x`. -/
 def booleanDotOnSubgroupHom {n : ℕ} (K : AddSubgroup (BooleanVec n)) (x : BooleanVec n) :
     K →+ ZMod 2 :=
   (booleanDotHom x).comp K.subtype
 
+/-- The restricted dot-product homomorphism evaluates to `booleanDot x a`. -/
 @[simp] theorem booleanDotOnSubgroupHom_apply {n : ℕ}
     (K : AddSubgroup (BooleanVec n)) (x : BooleanVec n) (a : K) :
     booleanDotOnSubgroupHom K x a = booleanDot x a := rfl
 
+/-- Every element of `ZMod 2` equals zero or one. -/
 private theorem zmod_two_eq_zero_or_one (z : ZMod 2) : z = 0 ∨ z = 1 := by
   have hz : z.val ≤ 1 := Nat.le_of_lt_succ (by simpa using z.val_lt)
   rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hz with hz | hz
   · exact Or.inl ((ZMod.val_eq_zero z).1 hz)
   · exact Or.inr ((ZMod.val_eq_one (by norm_num) z).1 hz)
 
+/-- If `x` is outside the orthogonal complement of `K`, dot product with `x` maps `K`
+surjectively onto `ZMod 2`. -/
 theorem booleanDotOnSubgroupHom_surjective_of_not_mem_orthogonal {n : ℕ}
     (K : AddSubgroup (BooleanVec n)) (x : BooleanVec n)
     (hx : x ∉ booleanOrthogonal K) :
@@ -80,6 +115,8 @@ theorem booleanDotOnSubgroupHom_surjective_of_not_mem_orthogonal {n : ℕ}
   · exact ⟨0, by simp [booleanDotOnSubgroupHom]⟩
   · exact ⟨a, by simpa [booleanDotOnSubgroupHom] using! ha1⟩
 
+/-- If `x` is outside the orthogonal complement of `K`, twice the cardinality of the restricted
+dot-product kernel equals the cardinality of `K`. -/
 theorem booleanDotOnSubgroupHom_ker_card_mul_two {n : ℕ}
     (K : AddSubgroup (BooleanVec n)) (x : BooleanVec n)
     (hx : x ∉ booleanOrthogonal K) :
@@ -92,6 +129,8 @@ theorem booleanDotOnSubgroupHom_ker_card_mul_two {n : ℕ}
   norm_num at hcard ⊢
   exact hcard
 
+/-- For independent samples, the probability that every entry satisfies `P` is the one-sample
+probability of `P` raised to the number of samples. -/
 theorem FinDist.sum_probOf_forall_eq_pow {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (P : X → Prop) [DecidablePred P] (m : ℕ) :
     (∑ xs ∈ Finset.univ.filter (fun xs : Fin m → X => ∀ i, P (xs i)), p.probOf xs) =
@@ -134,6 +173,8 @@ theorem FinDist.sum_probOf_forall_eq_pow {X : Type*} [Fintype X] [DecidableEq X]
 variable {n : ℕ} {R : Type*}
   [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- For a function hiding `H` and `x ∉ H`, the probability that a decoded Fourier sample is
+orthogonal to `x` is exactly one half. -/
 theorem hiddenSubgroupSampleDist_boolean_halfspace
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -222,6 +263,8 @@ theorem hiddenSubgroupSampleDist_boolean_halfspace
   rw [hsum, Finset.sum_const, nsmul_eq_mul, hfilterCard, hreal]
   field_simp [ne_of_gt hker_pos]
 
+/-- For a function hiding `H` and `x ∉ H`, the probability that all `m` fresh decoded Fourier
+samples are orthogonal to `x` is `ENNReal.ofReal ((1 / 2) ^ m)`. -/
 theorem hiddenSubgroupFreshSamples_boolean_halfspace
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)

@@ -12,6 +12,26 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.BigOperators.Field
 import Mathlib.Algebra.Order.Floor.Ring
+
+/-!
+# Trigonometric estimates for Grover interpolation
+
+This module supplies explicit trigonometric bounds for the secular equation in the small-overlap
+regime. The estimates control inverse spectral denominators, endpoint signs, iteration rounding,
+and the final amplitude margin.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `grover_weighted_endpoint_signs`: bounds the secular expression at the two chosen endpoints.
+* `grover_interpolation_iteration`: bounds the rounded quarter-turn iteration count.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +39,7 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.GroverInterp
 
+/-- For `0 ≤ x ≤ 1`, the quantity `1 - cos x` lies between `x^2 / 3` and `x^2 / 2`. -/
 theorem grover_one_sub_cos_bounds (x : ℝ) (hx : 0 ≤ x) (hx1 : x ≤ 1) :
     x ^ 2 / 3 ≤ 1 - Real.cos x ∧ 1 - Real.cos x ≤ x ^ 2 / 2 := by
   refine ⟨?_, by linarith [Real.one_sub_sq_div_two_le_cos (x := x)]⟩
@@ -37,6 +58,8 @@ theorem grover_one_sub_cos_bounds (x : ℝ) (hx : 0 ≤ x) (hx1 : x ≤ 1) :
   rw [hxdouble] at hid
   nlinarith
 
+/-- For `0 ≤ β ≤ ε / 2` and `0 ≤ ε ≤ 1`, the cosine difference `cos β - cos ε` is at least `ε^2
+/ 6`. -/
 theorem grover_cos_separation (ε β : ℝ) (hε : 0 ≤ ε) (hε1 : ε ≤ 1)
     (hβ : 0 ≤ β) (hβhalf : β ≤ ε / 2) :
     ε ^ 2 / 6 ≤ Real.cos β - Real.cos ε := by
@@ -45,6 +68,8 @@ theorem grover_cos_separation (ε β : ℝ) (hε : 0 ≤ ε) (hε1 : ε ≤ 1)
   have hsq : β ^ 2 ≤ ε ^ 2 / 4 := by nlinarith
   nlinarith
 
+/-- Nonnegative weights with eigenvalues in `[-1, cos ε]` give inverse-denominator sums between
+half their total mass and `6 / ε^2` times that mass. -/
 theorem grover_weighted_inverse_bounds {ι : Type*} [Fintype ι]
     (ε β : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hβ : 0 ≤ β) (hβhalf : β ≤ ε / 2)
@@ -72,6 +97,8 @@ theorem grover_weighted_inverse_bounds {ι : Type*} [Fintype ι]
       _ ≤ ∑ j, 6 * w j / ε ^ 2 := Finset.sum_le_sum fun j _ => hpoint j
       _ = _ := by rw [← Finset.sum_div, ← Finset.mul_sum]
 
+/-- In the small-overlap regime, the weighted secular expression is nonpositive at `13 * α / 5`
+and nonnegative at `ε * α / sqrt (2π)`. -/
 theorem grover_weighted_endpoint_signs {ι : Type*} [Fintype ι]
     (ε α : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hα : 0 < α)
     (hsmall : α ≤ ε ^ 2 / 200)
@@ -135,6 +162,8 @@ theorem grover_weighted_endpoint_signs {ι : Type*} [Fintype ι]
       nlinarith [sq_nonneg α]
     linarith
 
+/-- Rounding `π / (2β)` down gives at most `8 / (ε * α)` iterations and a remaining angle in
+`[0, β)`. -/
 theorem grover_interpolation_iteration (ε α β : ℝ) (hε : 0 < ε) (hα : 0 < α)
     (hβ : ε * α / Real.sqrt (2 * Real.pi) ≤ β) :
     let t := Nat.floor (Real.pi / (2 * β))
@@ -162,6 +191,8 @@ theorem grover_interpolation_iteration (ε α β : ℝ) (hε : 0 < ε) (hα : 0 
   · have hh := (div_lt_iff₀ (by positivity : 0 < 2 * β)).mp ht'
     nlinarith
 
+/-- The weighted squared inverse-denominator sum is at most `6 / ε^2` times the corresponding
+inverse-denominator sum. -/
 theorem grover_weighted_inverse_square_bound {ι : Type*} [Fintype ι]
     (ε β : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hβ : 0 ≤ β)
     (hβhalf : β ≤ ε / 2) (w eig : ι → ℝ) (hw : ∀ j, 0 ≤ w j)
@@ -189,6 +220,8 @@ theorem grover_weighted_inverse_square_bound {ι : Type*} [Fintype ι]
     _ ≤ ∑ j, (6 / ε ^ 2) * (w j / (Real.cos β - eig j)) := Finset.sum_le_sum fun j _ => hp j
     _ = _ := by rw [Finset.mul_sum]
 
+/-- The small-overlap bounds leave an amplitude margin of at least `ε^3 / 1000` in the stated
+error estimate. -/
 theorem grover_small_overlap_amplitude_margin (ε α β : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hsmall : α ≤ ε ^ 2 / 200)
     (hβ : β ≤ (13 / 5 : ℝ) * α) :

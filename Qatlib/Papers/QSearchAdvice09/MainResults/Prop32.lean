@@ -80,6 +80,30 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.QSearchAdvice09.MainResults.AmplifyCost
+
+/-!
+# Explicit constants for geometric advice search
+
+This module fixes the growth factor `algThreeK` to 1.162 and bounds cumulative
+amplification-round costs. It proves finite first-success and worst-case sum bounds, together
+with the numerical constants used in the analytic estimates for Proposition 3.2.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `roundCost_le`: The cumulative round cost through j rounds is at most algThreeKʲ/(algThreeK −
+  1).
+* `worstCase_const53`: If algThreeKᴶ ≤ √n, the cumulative round-cost sum plus (π/4)√n is at most
+  53√n.
+* `firstBranch_const83`: The explicit coefficient expression for the first cost branch at
+  `algThreeK` is at most 83.
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -90,15 +114,19 @@ open Finset
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- The geometric growth factor 1162/1000 used for Algorithm 3. -/
 def algThreeK : ℝ := 1162 / 1000
 
+/-- The growth factor `algThreeK` lies strictly between 1 and 4/3. -/
 theorem algThreeK_bounds : 1 < algThreeK ∧ algThreeK < 4 / 3 := by
   constructor <;> norm_num [algThreeK]
 
+/-- For nonnegative k, the natural floor of kⁱ, viewed as a real number, is at most kⁱ. -/
 theorem floor_pow_le (k : ℝ) (hk : 0 ≤ k) (i : ℕ) :
     ((⌊k ^ i⌋₊ : ℕ) : ℝ) ≤ k ^ i :=
   Nat.floor_le (pow_nonneg hk i)
 
+/-- For the chosen growth factor, 3j(algThreeK − 1) ≤ algThreeKʲ + 1. -/
 theorem three_mul_le_pow_add_one (j : ℕ) :
     3 * (j : ℝ) * (algThreeK - 1) ≤ algThreeK ^ j + 1 := by
   have hk1 : (1 : ℝ) ≤ algThreeK := (algThreeK_bounds).1.le
@@ -120,6 +148,8 @@ theorem three_mul_le_pow_add_one (j : ℕ) :
         nlinarith [ih, hD, hpow, hkn]
     exact key j (by omega)
 
+/-- The cumulative round cost through j rounds is at most algThreeKʲ/(algThreeK − 1)
+[Montanaro2011]. -/
 theorem roundCost_le (j : ℕ) :
     roundCost algThreeK j ≤ algThreeK ^ j / (algThreeK - 1) := by
   have hk1 : (1 : ℝ) < algThreeK := (algThreeK_bounds).1
@@ -147,6 +177,8 @@ theorem roundCost_le (j : ℕ) :
     nlinarith [hkey, hpow, hD]
   linarith [hle, hsum, hmain]
 
+/-- For probabilities in [0, 1], the finite sum of first-success weights is at most one
+[Montanaro2011]. -/
 theorem first_success_sum_le_one (P : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i)
     (hP1 : ∀ i, P i ≤ 1) (n : ℕ) :
     ∑ j ∈ range n, (∏ i ∈ range j, (1 - P i)) * P j ≤ 1 := by
@@ -171,6 +203,8 @@ theorem first_success_sum_le_one (P : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i)
     linarith [hP1 i]
   linarith
 
+/-- If algThreeKᴶ ≤ √n, the sum of cumulative round costs through J + 1 rounds is at most
+algThreeK²√n/(algThreeK − 1)². -/
 theorem worstCaseSum_le (n J : ℕ) (hJ : algThreeK ^ J ≤ Real.sqrt (n : ℝ)) :
     ∑ j ∈ range (J + 1), roundCost algThreeK (j + 1)
       ≤ algThreeK ^ 2 / (algThreeK - 1) ^ 2 * Real.sqrt (n : ℝ) := by
@@ -217,6 +251,8 @@ theorem worstCaseSum_le (n J : ℕ) (hJ : algThreeK ^ J ≤ Real.sqrt (n : ℝ))
           field_simp
   linarith
 
+/-- If algThreeKᴶ ≤ √n, the cumulative round-cost sum plus (π/4)√n is at most 53√n
+[Montanaro2011]. -/
 theorem worstCase_const53 (n J : ℕ) (hJ : algThreeK ^ J ≤ Real.sqrt (n : ℝ)) :
     ∑ j ∈ range (J + 1), roundCost algThreeK (j + 1) + Real.pi / 4 * Real.sqrt (n : ℝ)
       ≤ 53 * Real.sqrt (n : ℝ) := by
@@ -233,6 +269,8 @@ theorem worstCase_const53 (n J : ℕ) (hJ : algThreeK ^ J ≤ Real.sqrt (n : ℝ
     _ ≤ 53 * Real.sqrt (n : ℝ) := by
         apply mul_le_mul_of_nonneg_right hcoef hs
 
+/-- The explicit coefficient expression for the first cost branch at `algThreeK` is at most 83
+[Montanaro2011]. -/
 theorem firstBranch_const83 :
     algThreeK / (algThreeK - 1)
         + 4 * algThreeK ^ 2 / ((algThreeK - 1) * (4 - 3 * algThreeK))
@@ -244,6 +282,8 @@ theorem firstBranch_const83 :
     norm_num [algThreeK]
   linarith
 
+/-- The explicit coefficient expression for the three-quarter branch at `algThreeK` is at most
+16.5 [Montanaro2011]. -/
 theorem threeQuarter_const :
     3 / ((algThreeK - 1) * (4 - algThreeK))
         + algThreeK / (algThreeK - 1) + 2 + Real.pi / 4 ≤ 16.5 := by

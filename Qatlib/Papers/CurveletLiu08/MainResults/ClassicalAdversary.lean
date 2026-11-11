@@ -8,6 +8,25 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
+/-!
+# Averaging a classical adversary bound
+
+This module extracts a hard input for a finite randomized mixture from uniform average failure
+bounds for each deterministic choice. The theorem `source_theorem8` assumes the deterministic
+bounds and preserves their threshold under averaging.
+
+These constructions accompany the results of [Liu2009].
+
+## Main statements
+
+* `source_theorem8`: finds an input whose mixture-averaged failure reaches the deterministic
+  average threshold.
+
+## References
+
+* [Liu, 2009][Liu2009]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -16,6 +35,9 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.CurveletLiu08.MainResults
 
+/-- If each deterministic choice has uniform average failure at least `1 - 2 ^ (-(n * m / 2))`,
+some input has randomized failure at least the same threshold under the given probability
+weights. This is the averaging step associated with Theorem 8 of [Liu2009]. -/
 theorem source_theorem8
     (n R δ μ m ℓ : ℝ) (_hR : 0 < R) (_hμ : 0 < μ)
     (_hm : m = Real.log (R / μ) / Real.log 2)

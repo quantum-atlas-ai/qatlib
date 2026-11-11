@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.InteractHybrid.HybridObservableRepresentationStat
 import Qatlib.Concepts.LchsSimulation.InteractHybrid.HybridObservableReprCounterexample
 import Mathlib.Analysis.InnerProductSpace.LinearMap
+
+/-!
+# Hybrid observable representation in forward time
+
+The vector-valued Cauchy integral identity yields the double-integral representation of an
+observable quadratic form. The theorem `hybridObservableRepresentation` applies for nonnegative
+final time and arbitrary observable matrices. See [AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `hybridObservableRepresentation`: For nonnegative final time, the evolved observable quadratic
+  form equals the double-Cauchy integral of the corresponding unitary-family matrix elements.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -31,6 +49,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- For `s ≤ t`, the Cauchy-weighted unitary evolution applied to a vector is integrable and its
+integral equals the dissipative ordered evolution applied to that vector. -/
 private theorem cauchy_integral_action {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H)
     (hPSD : ∀ u, (L u).PosSemidef) (hHerm : ∀ u, (H u).IsHermitian)
@@ -69,6 +89,8 @@ private theorem cauchy_integral_action {I : Type} [Fintype I] [DecidableEq I]
   · simpa only [Pi.smul_apply', hb, hmapply, Matrix.smul_mulVec] using! m.integrable_comp hi
   · simpa only [hmapply, Matrix.smul_mulVec] using! hm
 
+/-- For nonnegative final time, the evolved observable quadratic form equals the double-Cauchy
+integral of the corresponding unitary-family matrix elements. See [AnLiuLin2023]. -/
 theorem hybridObservableRepresentation : HybridObservableRepresentation := by
   intro I _ _ L H O u₀ t hL hH hPSD hHerm ht
   (try dsimp only)

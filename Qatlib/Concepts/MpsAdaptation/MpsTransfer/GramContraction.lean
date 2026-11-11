@@ -8,6 +8,29 @@ import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Contractions from Gram matrix domination
+
+This module proves a finite-dimensional contraction factorization from positive semidefinite
+domination of Gram matrices. `gram_dominated_contraction` constructs a matrix `V` with operator
+norm at most 1 and `V * X = Y` when `Xᴴ * X - Yᴴ * Y` is positive semidefinite. The matrix
+positivity and operator norm framework is standard in [Bhatia1997].
+
+When `Xᴴ * X` is invertible, `gram_full_rank_transfer` verifies the explicit transfer matrix `Y
+* (Xᴴ * X)⁻¹ * Xᴴ`.
+
+## Main statements
+
+* `gram_dominated_contraction`: existence of a contraction realizing the prescribed matrix
+  transfer.
+* `gram_full_rank_transfer`: the explicit transfer formula in the full column rank case.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +44,7 @@ variable {I O C : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq O] in
 
+/-- If `1 - Vᴴ * V` is positive semidefinite, then the operator norm of `V` is at most 1. -/
 private theorem norm_le_one_of_defect (V : Matrix O I ℂ)
     (h : (1-Vᴴ*V).PosSemidef) : ‖V‖ ≤ 1 := by
   have hb : Vᴴ*V ≤ 1 := sub_nonneg.mp h.nonneg
@@ -29,6 +53,8 @@ private theorem norm_le_one_of_defect (V : Matrix O I ℂ)
   rw [Matrix.l2_opNorm_conjTranspose_mul_self] at hn
   nlinarith [norm_nonneg V]
 
+/-- If the Gram matrix of `X` dominates that of `Y`, there exists a contraction `V` satisfying
+`V * X = Y`. -/
 theorem gram_dominated_contraction (X : Matrix I C ℂ) (Y : Matrix O C ℂ)
     (h : (Xᴴ*X-Yᴴ*Y).PosSemidef) : ∃ V : Matrix O I ℂ, ‖V‖ ≤ 1 ∧ V*X=Y := by
   obtain ⟨W,hW⟩ :=
@@ -63,6 +89,8 @@ theorem gram_dominated_contraction (X : Matrix I C ℂ) (Y : Matrix O C ℂ)
 
 omit [DecidableEq O] in
 
+/-- If `Xᴴ * X` is invertible and dominates `Yᴴ * Y`, then `Y * (Xᴴ * X)⁻¹ * Xᴴ` has operator
+norm at most 1 and maps `X` to `Y`. -/
 theorem gram_full_rank_transfer (X : Matrix I C ℂ) (Y : Matrix O C ℂ)
     (hX : IsUnit (Xᴴ*X).det) (h : (Xᴴ*X-Yᴴ*Y).PosSemidef) :
     let V := Y*(Xᴴ*X)⁻¹*Xᴴ

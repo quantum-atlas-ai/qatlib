@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
 import Mathlib.RingTheory.RootsOfUnity.Complex
+
+/-!
+# Expectations of finite phase laws
+
+The root `omega` is primitive, and the uniform phase law has zero expectation for `q > 1`. A
+Dirichlet-kernel identity and trigonometric estimates show that the right-arc law eventually has
+real expectation strictly between `1/2` and `1`. This development supports the treatment in
+[TangWright2025].
+
+## Main statements
+
+* `omega_isPrimitiveRoot`: primitivity of the chosen root of unity.
+* `cExpect_mu0_phase`: zero mean of the uniform phase law.
+* `lemma23_mu1_bounds`: the expectation bounds of Lemma 2.3.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,6 +40,7 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 set_option warningAsError false
 
+/-- The chosen `q`th root of unity raised to the positive order `q` equals one. -/
 theorem omega_pow_card (q : ℕ) (hq : 0 < q) : omega q ^ q = 1 := by
   rw [omega, ← Complex.exp_nat_mul]
   have harg : (q : ℂ) * (Complex.ofReal (2 * Real.pi / (q : ℝ)) * Complex.I) =
@@ -38,6 +59,7 @@ theorem omega_pow_card (q : ℕ) (hq : 0 < q) : omega q ^ q = 1 := by
   rw [Complex.exp_ofReal_mul_I]
   simp [Real.cos_two_pi, Real.sin_two_pi]
 
+/-- For positive `q`, `omega q` is a primitive root of unity of order `q`. -/
 theorem omega_isPrimitiveRoot (q : ℕ) (hq : 0 < q) :
     IsPrimitiveRoot (omega q) q := by
   have h := Complex.isPrimitiveRoot_exp q hq.ne'
@@ -47,6 +69,7 @@ theorem omega_isPrimitiveRoot (q : ℕ) (hq : 0 < q) :
   push_cast
   ring
 
+/-- The sum of all `q` root phases is zero when `q > 1`. -/
 theorem phase_sum_zero (q : ℕ) (hq : 1 < q) : ∑ k : Fin q, phase q k = 0 := by
   have hq0 : 0 < q := by omega
   have hζ : IsPrimitiveRoot (omega q) q := omega_isPrimitiveRoot q hq0
@@ -59,12 +82,15 @@ theorem phase_sum_zero (q : ℕ) (hq : 1 < q) : ∑ k : Fin q, phase q k = 0 := 
   rw [htrans]
   exact hsum
 
+/-- The uniform finite phase law has zero complex expectation when `q > 1` [TangWright2025]. -/
 theorem cExpect_mu0_phase (q : ℕ) (hq : 1 < q) :
     cExpect (mu0 q (by omega)) (phase q) = 0 := by
   have h : ∑ k : Fin q, phase q k = 0 := phase_sum_zero q hq
   simp only [cExpect, mu0]
   rw [← Finset.mul_sum, h, mul_zero]
 
+/-- The difference of the complex exponentials with exponents `z * I` and `-z * I` equals `2 * I
+* sin z`. -/
 private theorem exp_sub_exp_eq (z : ℂ) :
     Complex.exp (z * Complex.I) - Complex.exp (-(z * Complex.I))
       = 2 * Complex.I * Complex.sin z := by
@@ -73,9 +99,12 @@ private theorem exp_sub_exp_eq (z : ℂ) :
   rw [Complex.I_sq]
   ring
 
+/-- The complex sine of a real number is the complex embedding of its real sine. -/
 private theorem sin_ofReal' (x : ℝ) :
     Complex.sin ((x : ℂ)) = ((Real.sin x : ℝ) : ℂ) := (Complex.ofReal_sin x).symm
 
+/-- For `q ≥ 2`, the sum of the right-arc phases is the ratio `sin(halfCount(q) * π/q) /
+sin(π/q)`. -/
 private theorem rightPhase_dirichlet {q : ℕ} (hq : 2 ≤ q) :
     ∑ j : Fin (halfCount q), rightPhase q j
       = Complex.sin (Complex.ofReal (((halfCount q : ℕ) : ℝ) * (Real.pi / (q : ℝ))))
@@ -199,6 +228,8 @@ private theorem rightPhase_dirichlet {q : ℕ} (hq : 2 ≤ q) :
     mul_div_assoc', hnum, mul_div_mul_left _ _ (Complex.exp_ne_zero _),
     harghc, harg1, sin_ofReal', sin_ofReal', mul_div_mul_left _ _ hI]
 
+/-- For nonnegative angles with sum at most `π`, sine of the sum is at most the sum of their
+sines. -/
 private theorem sin_add_le {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hab : a + b ≤ Real.pi) :
     Real.sin (a + b) ≤ Real.sin a + Real.sin b := by
   rw [Real.sin_add]
@@ -211,6 +242,7 @@ private theorem sin_add_le {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hab : a + 
         · exact mul_le_mul_of_nonneg_right (Real.cos_le_one a) hsb
     _ = Real.sin a + Real.sin b := by rw [mul_one, one_mul]
 
+/-- For nonnegative `x` with `N * x ≤ π`, one has `sin(N * x) ≤ N * sin x`. -/
 private theorem sin_le_mul_sin {N : ℕ} {x : ℝ} (hx : 0 ≤ x)
     (hpi : (N : ℝ) * x ≤ Real.pi) :
     Real.sin ((N : ℝ) * x) ≤ (N : ℝ) * Real.sin x := by
@@ -243,6 +275,7 @@ private theorem sin_le_mul_sin {N : ℕ} {x : ℝ} (hx : 0 ≤ x)
         _ ≤ (N : ℝ) * Real.sin x + Real.sin x := add_le_add_left (ih hNxpi) _
         _ = ((N : ℝ) + 1) * Real.sin x := by ring
 
+/-- For `N ≥ 2`, `0 < x ≤ π/2`, and `N * x ≤ π`, one has `sin(N * x) < N * sin x`. -/
 private theorem sin_lt_mul_sin {N : ℕ} {x : ℝ} (hN : 2 ≤ N) (hx : 0 < x)
     (hx2 : x ≤ Real.pi / 2) (hNpi : (N : ℝ) * x ≤ Real.pi) :
     Real.sin ((N : ℝ) * x) < (N : ℝ) * Real.sin x := by
@@ -294,6 +327,7 @@ private theorem sin_lt_mul_sin {N : ℕ} {x : ℝ} (hN : 2 ≤ N) (hx : 0 < x)
         rw [← hc2]
         ring
 
+/-- The real number `π` is strictly less than `15/4`. -/
 private theorem pi_lt_fifteen_quarters : Real.pi < 15 / 4 := by
   have h1 : (0 : ℝ) < 15 / 16 := by norm_num
   have h2 : (15 : ℝ) / 16 ≤ 1 := by norm_num
@@ -321,6 +355,8 @@ private theorem pi_lt_fifteen_quarters : Real.pi < 15 / 4 := by
     linarith
   · linarith
 
+/-- For all sufficiently large root orders, the right-arc phase expectation is real with real
+part strictly between `1/2` and `1` [Tang and Wright, Lemma 2.3][TangWright2025]. -/
 theorem lemma23_mu1_bounds :
     ∃ Q : ℕ, ∀ q : ℕ, Q ≤ q →
       (cExpect (mu1 q) (rightPhase q)).im = 0 ∧

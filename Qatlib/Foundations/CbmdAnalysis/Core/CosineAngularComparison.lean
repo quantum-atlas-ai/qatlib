@@ -8,6 +8,27 @@ import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorAngularGrowth
 import Qatlib.Foundations.CbmdAnalysis.Core.CosinePropagators
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleDenominator
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleLimit
+
+/-!
+# Angular comparison with the cosine regulator
+
+This module compares the angular growth bounds for wave, Bessel, and Airy matrix numerators with
+the cosine regulator on expanding circles. The constant `cosineAngularConstant` absorbs the
+contribution of `L`; positive definiteness of `H` and the bound `‖H‖ ≤ γ` yield the eventual
+circle comparisons needed for [WangEtAl2026].
+
+## Main statements
+
+* `cosine_angular_exp_le`: bounds the wave angular exponential by the regulator norm.
+* `waveCosineNumerator_circle_comparison`: eventual circle comparison for the wave numerator.
+* `airyCosineNumerator_circle_comparison`: the corresponding Airy comparison after the Airy time
+  change.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -19,12 +40,18 @@ open Complex Metric Set Filter
 open scoped Topology Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- The positive comparison constant `4 * exp 1 * exp (τ * ‖Ring.inverse (CFC.sqrt H) * L‖)` for
+cosine contour estimates. -/
 def cosineAngularConstant (L H : Matrix n n ℂ) (τ : ℝ) : ℝ :=
   4 * Real.exp 1 * Real.exp (τ * ‖Ring.inverse (CFC.sqrt H) * L‖)
 
+/-- The cosine angular comparison constant is strictly positive for every `L`, `H`, and real
+`τ`. -/
 theorem cosineAngularConstant_pos (L H : Matrix n n ℂ) (τ : ℝ) :
     0 < cosineAngularConstant L H τ := by unfold cosineAngularConstant; positivity
 
+/-- If the cosine circle radius is at least one, the norm of `sqrt (I * z)` is at least one at
+every point on that circle. -/
 private theorem circle_root_norm_ge_one {γ τ : ℝ} {N : ℕ}
     (hR : 1 ≤ cosineCircleRadius γ τ N) {z : ℂ}
     (hz : ‖z‖ = cosineCircleRadius γ τ N) : 1 ≤ ‖Complex.sqrt (I * z)‖ := by
@@ -33,6 +60,8 @@ private theorem circle_root_norm_ge_one {γ τ : ℝ} {N : ℕ}
   rw [norm_pow, norm_mul, norm_I, one_mul, hz] at hn
   nlinarith [norm_nonneg (Complex.sqrt (I * z))]
 
+/-- If the cosine circle radius is at least one, `sqrt (I * z)` is nonzero at every point on
+that circle. -/
 private theorem circle_root_ne_zero {γ τ : ℝ} {N : ℕ}
     (hR : 1 ≤ cosineCircleRadius γ τ N) {z : ℂ}
     (hz : ‖z‖ = cosineCircleRadius γ τ N) : Complex.sqrt (I * z) ≠ 0 := by
@@ -41,6 +70,8 @@ private theorem circle_root_ne_zero {γ τ : ℝ} {N : ℕ}
   rw [he, norm_zero] at h
   norm_num at h
 
+/-- For positive `γ` and `τ`, `‖H‖ ≤ γ`, and an index and circle radius at least one, the wave
+angular exponential is bounded by `cosineAngularConstant L H τ` times the regulator norm. -/
 theorem cosine_angular_exp_le (L H : Matrix n n ℂ) {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hγH : ‖H‖ ≤ γ) (N : ℕ) (hN : 1 ≤ N)
     (hR : 1 ≤ cosineCircleRadius γ τ N) (z : ℂ)
@@ -76,6 +107,9 @@ theorem cosine_angular_exp_le (L H : Matrix n n ℂ) {γ τ : ℝ}
       mul_le_mul_of_nonneg_right hden (Real.exp_pos _).le
     _ = _ := by unfold cosineAngularConstant; ring
 
+/-- For positive definite `H`, positive `γ` and `τ`, and `‖H‖ ≤ γ`, the wave numerator on all
+sufficiently large cosine circles is bounded by the angular constant times the regulator
+norm. -/
 theorem waveCosineNumerator_circle_comparison (L H : Matrix n n ℂ) (hH : H.PosDef)
     {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (hγH : ‖H‖ ≤ γ) :
     ∀ᶠ N : ℕ in atTop, ∀ z ∈ sphere (0 : ℂ) (cosineCircleRadius γ τ N),
@@ -92,6 +126,9 @@ theorem waveCosineNumerator_circle_comparison (L H : Matrix n n ℂ) (hH : H.Pos
   rw [hs] at h
   exact h.trans (cosine_angular_exp_le L H hγ hτ hγH N hN hR z hzn)
 
+/-- For positive definite `H`, positive `γ` and `τ`, and `‖H‖ ≤ γ`, the Bessel numerator on all
+sufficiently large cosine circles is bounded by the angular constant times the regulator
+norm. -/
 theorem besselCosineNumerator_circle_comparison (L H : Matrix n n ℂ) (hH : H.PosDef)
     {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (hγH : ‖H‖ ≤ γ) :
     ∀ᶠ N : ℕ in atTop, ∀ z ∈ sphere (0 : ℂ) (cosineCircleRadius γ τ N),
@@ -108,10 +145,14 @@ theorem besselCosineNumerator_circle_comparison (L H : Matrix n n ℂ) (hH : H.P
   rw [hs] at h
   exact h.trans (cosine_angular_exp_le L H hγ hτ hγH N hN hR z hzn)
 
+/-- The Airy time scale is strictly positive at every positive real time. -/
 theorem airyTimeScale_pos_of_pos {t : ℝ} (ht : 0 < t) : 0 < airyTimeScale t := by
   unfold airyTimeScale
   positivity
 
+/-- For positive definite `H`, positive `γ` and time, and `‖H‖ ≤ γ`, the Airy numerator is
+eventually bounded on the cosine circles by the regulator norm times the angular constant
+evaluated at `airyTimeScale t`. -/
 theorem airyCosineNumerator_circle_comparison (L H : Matrix n n ℂ) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) :
     ∀ᶠ N : ℕ in atTop, ∀ z ∈ sphere (0 : ℂ) (cosineCircleRadius γ (airyTimeScale t) N),

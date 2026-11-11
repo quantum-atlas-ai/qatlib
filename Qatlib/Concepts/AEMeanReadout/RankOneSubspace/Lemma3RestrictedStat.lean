@@ -8,9 +8,28 @@ import Mathlib.Data.Complex.Basic
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
 import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 
+/-!
+# Two-dimensional phase-action specification
+
+`Lemma3RestrictedSpec.expected` states the action of a rank-one phase iterate on the good and
+bad parts of the prepared first column. For unit-modulus phase parameters, the coefficients
+depend only on the phase parameters and good mass, as in [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `Lemma3RestrictedSpec.expected`: the two-dimensional phase-action contract.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedSpec
+/-- Specifies the two-dimensional action formulas for the phase iterate on the good and bad
+first-column components, with coefficients determined by the good mass and unit-modulus
+phase parameters. -/
 def expected : Prop :=
   (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
     (g : Fin (n + 1) → Bool) (φ ϕ : ℂ),

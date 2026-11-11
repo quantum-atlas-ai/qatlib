@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoalStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryBlockTransport
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# Singleton phase-query search lower bound
+
+`section6LowerBoundSubgoal` establishes the fixed-space singleton search lower bound at success
+threshold 1/2. The supporting lemmas relate singleton phase oracles and direct label decoding to
+the underlying query model.
+
+For the mathematical background, see [BealsEtAl2001].
+
+## Main statements
+
+* `section6LowerBoundSubgoal`: Singleton phase-oracle search has fixed-space query lower bound
+  ⌊sin(π/8)√N⌋ at success threshold 1/2.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -24,6 +44,7 @@ open scoped BigOperators
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The singleton phase oracle for w fixes a basis vector at any distinct index c. -/
 private theorem mark_fixes_single (w c : I) (hc : c ≠ w) :
     MarkOracle w *ᵥ (EuclideanSpace.single c (1 : ℂ)).ofLp =
       (EuclideanSpace.single c (1 : ℂ)).ofLp := by
@@ -33,6 +54,8 @@ private theorem mark_fixes_single (w c : I) (hc : c ≠ w) :
     simp [MarkOracle, PhaseOracle, Matrix.mulVec_diagonal, hc]
   · simp [MarkOracle, PhaseOracle, Matrix.mulVec_diagonal, hj]
 
+/-- Identity decoding succeeds at target w with probability equal to the Born mass of the
+singleton {w}. -/
 private theorem identity_label_success (ψ : QState I) (w : I) :
     QuerySuccess (fun c : I => some c) (toEuclidean_fromVec ψ) w = MeasureProb ψ {w} := by
   simp [QuerySuccess, QueryProjection, EuclideanSpace.norm_sq_eq,
@@ -43,6 +66,8 @@ private theorem identity_label_success (ψ : QState I) (w : I) :
     simp [hbw]
   · simp
 
+/-- Singleton phase-oracle search has fixed-space query lower bound ⌊sin(π/8)√N⌋ at success
+threshold 1/2. -/
 theorem section6LowerBoundSubgoal : Section6LowerBoundSubgoal := by
   intro I _ _
   refine ⟨⟨by norm_num, by norm_num⟩, markOracle_unitary, ?_⟩

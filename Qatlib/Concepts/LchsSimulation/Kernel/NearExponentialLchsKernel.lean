@@ -13,6 +13,32 @@ import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 
+/-!
+# Near-exponential analytic kernels for LCHS
+
+`highKernelF` is built from a principal complex power, and `highKernelG` is its Cauchy-weighted
+real boundary value. The module proves analyticity, normalization, integrability, and
+quantitative unitary-weighted tail bounds, with an explicit cutoff for any positive precision.
+See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `near_exponential_kernel_analytic_normalization`: For `0 < β < 1`, the kernel numerator is
+  analytic in the open lower half-plane and continuous on its closure, and `highKernelG β` is
+  integrable with integral one.
+* `near_exponential_kernel_actual_unitary_tail`: For `0 < β < 1` and `K ≥ 1`, the
+  kernel-weighted integral of a continuous unitary family is entrywise integrable and its
+  truncation error is at most `(highKernelTailC β / K) * exp (-K^β * cos (β * Real.pi / 2) /
+  2)`.
+* `near_exponential_kernel_chosen_precision_window`: For a continuous unitary family and
+  positive `ε`, the cutoff `highKernelCutoff β ε` is at least one and gives kernel-weighted
+  truncation error at most `ε` when `0 < β < 1`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 
 open Qatlib.Foundations.OperatorErrors.OperatorError
 
@@ -28,31 +54,43 @@ open Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder Topology
 set_option warningAsError false
 
+/-- The positive normalization factor `2 * Real.pi * Real.exp (-(2 : ℝ)^β)` for the
+principal-power kernel. -/
 noncomputable def highKernelC (β : ℝ) : ℝ :=
   2 * Real.pi * Real.exp (-(2 : ℝ) ^ β)
 
+/-- The analytic kernel numerator `Complex.exp (-(1 + Complex.I * z)^β)` divided by `highKernelC
+β`, using the principal complex power. -/
 noncomputable def highKernelF (β : ℝ) (z : ℂ) : ℂ :=
   Complex.exp (-Complex.cpow (1 + Complex.I * z) (β : ℂ)) / (highKernelC β : ℂ)
 
+/-- The real-axis Cauchy-weighted kernel `highKernelF β k / (1 - Complex.I * k)`. -/
 noncomputable def highKernelG (β k : ℝ) : ℂ :=
   highKernelF β (k : ℂ) / (1 - Complex.I * (k : ℂ))
 
+/-- The explicit tail-budget constant built from `ceil (1 / β)`, its factorial, `highKernelC β`,
+and `Real.cos (β * Real.pi / 2)`. -/
 noncomputable def highKernelTailC (β : ℝ) : ℝ :=
   let m := Nat.ceil (1 / β)
   (2 : ℝ) ^ (m + 1) * (Nat.factorial m : ℝ) /
     (highKernelC β * (Real.cos (β * Real.pi / 2)) ^ m)
 
+/-- The integer cutoff, at least one, defined from the logarithmic tail budget for kernel
+parameter `β` and requested precision `ε`. -/
 noncomputable def highKernelCutoff (β ε : ℝ) : ℕ :=
   max 1 (Nat.ceil (((2 / Real.cos (β * Real.pi / 2)) *
     Real.log (max (Real.exp (Real.cos (β * Real.pi / 2) / 2))
       (highKernelTailC β / ε))) ^ (1 / β)))
 
+/-- The normalization factor `highKernelC β` is positive for every real `β`. -/
 theorem highKernelC_pos (β : ℝ) : 0 < highKernelC β := by
   exact mul_pos (mul_pos (by norm_num) Real.pi_pos) (Real.exp_pos _)
 
+/-- The normalization factor `highKernelC β` is nonzero. -/
 theorem highKernelC_ne_zero (β : ℝ) : highKernelC β ≠ 0 :=
   (highKernelC_pos β).ne'
 
+/-- For `z` in the closed lower half-plane, `1 + Complex.I * z` lies in the complex slit plane. -/
 theorem highKernel_slitPlane (z : ℂ) (hz : z.im ≤ 0) :
     1 + Complex.I * z ∈ Complex.slitPlane := by
   apply Or.inl
@@ -60,6 +98,8 @@ theorem highKernel_slitPlane (z : ℂ) (hz : z.im ≤ 0) :
     Complex.I_re, Complex.I_im, zero_mul, one_mul, zero_sub]
   linarith
 
+/-- The kernel numerator `highKernelF β` is complex analytic at every point of the closed lower
+half-plane. -/
 theorem highKernelF_analyticAt (β : ℝ) (z : ℂ) (hz : z.im ≤ 0) :
     AnalyticAt ℂ (highKernelF β) z := by
   have ha : AnalyticAt ℂ (fun w : ℂ => 1 + Complex.I * w) z :=
@@ -67,16 +107,20 @@ theorem highKernelF_analyticAt (β : ℝ) (z : ℂ) (hz : z.im ≤ 0) :
   exact ((ha.cpow analyticAt_const (highKernel_slitPlane z hz)).neg.cexp).div
     analyticAt_const (by exact_mod_cast highKernelC_ne_zero β)
 
+/-- The function `highKernelF β` is analytic on a neighborhood of each point in the open lower
+half-plane. -/
 theorem highKernelF_analyticOnNhd (β : ℝ) :
     AnalyticOnNhd ℂ (highKernelF β) {z : ℂ | z.im < 0} := by
   intro z hz
   exact highKernelF_analyticAt β z hz.le
 
+/-- The function `highKernelF β` is continuous on the closed lower half-plane. -/
 theorem highKernelF_continuousOn (β : ℝ) :
     ContinuousOn (highKernelF β) {z : ℂ | z.im ≤ 0} := by
   intro z hz
   exact (highKernelF_analyticAt β z hz).continuousAt.continuousWithinAt
 
+/-- The real-axis kernel `highKernelG β` is continuous. -/
 theorem highKernelG_continuous (β : ℝ) : Continuous (highKernelG β) := by
   apply continuous_iff_continuousAt.mpr
   intro k
@@ -88,20 +132,25 @@ theorem highKernelG_continuous (β : ℝ) : Continuous (highKernelG β) := by
     Complex.continuous_ofReal.continuousAt).div
       (continuous_const.sub (continuous_const.mul Complex.continuous_ofReal)).continuousAt hn
 
+/-- For `0 < β < 1`, the number `Real.cos (β * Real.pi / 2)` is positive. -/
 theorem highKernel_cos_pos (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     0 < Real.cos (β * Real.pi / 2) := by
   apply Real.cos_pos_of_mem_Ioo
   constructor <;> nlinarith [Real.pi_pos]
 
+/-- For `0 < β < 1`, the tail constant `highKernelTailC β` is positive. -/
 theorem highKernelTailC_pos (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     0 < highKernelTailC β := by
   dsimp [highKernelTailC]
   exact div_pos (mul_pos (by positivity) (by positivity))
     (mul_pos (highKernelC_pos β) (pow_pos (highKernel_cos_pos β hβ hβ1) _))
 
+/-- The cutoff `highKernelCutoff β ε` is at least one. -/
 theorem highKernelCutoff_one_le (β ε : ℝ) : 1 ≤ highKernelCutoff β ε :=
   le_max_left _ _
 
+/-- For `0 < β < 1` and `z` in the closed right half-plane, the real part of the principal power
+`z^β` is at least `‖z‖^β * Real.cos (β * Real.pi / 2)`. -/
 theorem highKernel_cpow_re_lower (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (z : ℂ) (hz : 0 ≤ z.re) :
     ‖z‖ ^ β * Real.cos (β * Real.pi / 2) ≤ (Complex.cpow z (β : ℂ)).re := by
@@ -114,6 +163,8 @@ theorem highKernel_cpow_re_lower (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     have := Complex.abs_arg_le_pi_div_two_iff.mpr hz
     nlinarith
 
+/-- For `0 < β < 1`, the kernel numerator on the closed lower half-plane is bounded by the
+stated stretched-exponential envelope divided by `highKernelC β`. -/
 theorem highKernelF_norm_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (z : ℂ) (hz : z.im ≤ 0) :
     ‖highKernelF β z‖ ≤
@@ -129,6 +180,8 @@ theorem highKernelF_norm_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     linarith)
   linarith
 
+/-- For `0 < β < 1`, the real-axis kernel norm is at most `exp (-|k|^β * cos (β * Real.pi / 2))
+/ highKernelC β`. -/
 theorem highKernelG_norm_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) (k : ℝ) :
     ‖highKernelG β k‖ ≤
       Real.exp (-(|k| ^ β) * Real.cos (β * Real.pi / 2)) / highKernelC β := by
@@ -150,6 +203,8 @@ theorem highKernelG_norm_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) (k : ℝ) 
       have hc := highKernel_cos_pos β hβ hβ1
       nlinarith
 
+/-- For positive `β` and `c`, the stretched-exponential envelope `Real.exp (-c * |k|^β)` is
+integrable on the real line. -/
 theorem highKernel_envelope_integrable (β c : ℝ) (hβ : 0 < β) (hc : 0 < c) :
     MeasureTheory.Integrable (fun k : ℝ => Real.exp (-c * |k| ^ β)) := by
   have hp : IntegrableOn (fun k : ℝ => Real.exp (-c * k ^ β)) (Ioi 0) := by
@@ -166,6 +221,7 @@ theorem highKernel_envelope_integrable (β c : ℝ) (hβ : 0 < β) (hc : 0 < c) 
   rw [← integrableOn_univ, ← Iic_union_Ioi (a := (0 : ℝ)), integrableOn_union]
   exact ⟨Iff.mpr integrableOn_Iic_iff_integrableOn_Iio hl, hr⟩
 
+/-- For `0 < β < 1`, the real-axis kernel `highKernelG β` is integrable. -/
 theorem highKernelG_integrable (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     MeasureTheory.Integrable (highKernelG β) := by
   apply ((highKernel_envelope_integrable β (Real.cos (β * Real.pi / 2)) hβ
@@ -174,6 +230,8 @@ theorem highKernelG_integrable (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
   exact Filter.Eventually.of_forall (fun k => by
     simpa [neg_mul, mul_comm] using! highKernelG_norm_le β hβ hβ1 k)
 
+/-- For `0 < β < 1` and positive `ε`, the explicit tail budget evaluated at `highKernelCutoff β
+ε` is at most `ε`. -/
 theorem highKernelCutoff_tail_le (β ε : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (hε : 0 < ε) :
     let K : ℝ := highKernelCutoff β ε
@@ -221,6 +279,8 @@ theorem highKernelCutoff_tail_le (β ε : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
   change (T / K) * Real.exp (-(K ^ β) * c / 2) ≤ ε
   exact (mul_le_mul (div_le_self hT.le hK) hexp (Real.exp_pos _).le hT.le).trans hlast
 
+/-- For positive `β` and `c`, the stretched-exponential envelope has integral `2 * c^(-1 / β) *
+Real.Gamma (1 / β + 1)`. -/
 theorem highKernel_envelope_integral (β c : ℝ) (hβ : 0 < β) (hc : 0 < c) :
     (∫ k : ℝ, Real.exp (-c * |k| ^ β)) =
       2 * c ^ (-1 / β) * Real.Gamma (1 / β + 1) := by
@@ -237,6 +297,8 @@ theorem highKernel_envelope_integral (β c : ℝ) (hβ : 0 < β) (hc : 0 < c) :
   simp only [compl_Iic, hn, hp]
   ring
 
+/-- For `0 < β < 1`, multiplying a continuous unitary matrix family by `highKernelG β` yields
+both entrywise and matrix-valued integrable functions. -/
 theorem highKernel_unitary_integrable (I : Type) [Fintype I] [DecidableEq I]
     (β : ℝ) (U : ℝ → Matrix I I ℂ) (hβ : 0 < β) (hβ1 : β < 1)
     (hU : Continuous U) (hu : ∀ k, U k ∈ Matrix.unitaryGroup I ℂ) :
@@ -258,6 +320,8 @@ theorem highKernel_unitary_integrable (I : Type) [Fintype I] [DecidableEq I]
       rw [norm_smul]
       exact mul_le_of_le_one_right (norm_nonneg _) (l2_norm_unitary_le_one (hu k)))
 
+/-- Outside a cutoff `K ≥ 1`, the kernel norm is bounded by the stated product of a
+cutoff-dependent stretched-exponential factor and an integrable envelope. -/
 theorem highKernelG_outside_norm_le (β K k : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (hK : 1 ≤ K) (hk : K ≤ |k|) :
     ‖highKernelG β k‖ ≤
@@ -293,6 +357,8 @@ theorem highKernelG_outside_norm_le (β K k : ℝ) (hβ : 0 < β) (hβ1 : β < 1
       exact div_le_div_of_nonneg_right he (mul_pos (highKernelC_pos β) hK0).le
     _ = _ := by dsimp [c]; ring
 
+/-- For `0 < β < 1`, the integral of the half-rate stretched-exponential envelope is at most
+`highKernelC β * highKernelTailC β`. -/
 theorem highKernel_envelope_integral_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     (∫ k : ℝ, Real.exp (-(Real.cos (β * Real.pi / 2) / 2) * |k| ^ β)) ≤
       highKernelC β * highKernelTailC β := by
@@ -324,6 +390,9 @@ theorem highKernel_envelope_integral_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1
     rw [div_pow, pow_succ]
     field_simp [highKernelC_ne_zero β, hc.ne']
 
+/-- For `0 < β < 1` and `K ≥ 1`, the kernel-weighted integral of a continuous unitary family is
+entrywise integrable and its truncation error is at most `(highKernelTailC β / K) * exp
+(-K^β * cos (β * Real.pi / 2) / 2)`. See [AnChildsLin2026]. -/
 theorem near_exponential_kernel_actual_unitary_tail :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (β K : ℝ)
       (U : ℝ → Matrix I I ℂ), 0 < β → β < 1 → 1 ≤ K → Continuous U →
@@ -373,6 +442,9 @@ theorem near_exponential_kernel_actual_unitary_tail :
       mul_le_mul_of_nonneg_left (highKernel_envelope_integral_le β hβ hβ1) ha
     _ = _ := by dsimp [a, c]; field_simp [highKernelC_ne_zero β]
 
+/-- For a continuous unitary family and positive `ε`, the cutoff `highKernelCutoff β ε` is at
+least one and gives kernel-weighted truncation error at most `ε` when `0 < β < 1`. See
+[AnChildsLin2026]. -/
 theorem near_exponential_kernel_chosen_precision_window :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (β ε : ℝ)
       (U : ℝ → Matrix I I ℂ), 0 < β → β < 1 → 0 < ε → Continuous U →
@@ -387,9 +459,13 @@ theorem near_exponential_kernel_chosen_precision_window :
   exact ⟨hK, (near_exponential_kernel_actual_unitary_tail I β K U hβ hβ1 hK hU hu).2.trans
     (highKernelCutoff_tail_le β ε hβ hβ1 hε)⟩
 
+/-- The regularized lower-half-plane Cauchy expression formed from the divided slope of `H` at
+`-Complex.I` and the correction `H (-Complex.I) / (1 + Complex.I * z)`. -/
 private noncomputable def lowerCauchyRegular (H : ℂ → ℂ) (z : ℂ) : ℂ :=
   Complex.I * dslope H (-Complex.I) z - H (-Complex.I) / (1 + Complex.I * z)
 
+/-- If `H` is complex differentiable on the closed lower half-plane, then `lowerCauchyRegular H`
+is differentiable there as well. -/
 private theorem lowerCauchyRegular_differentiableOn (H : ℂ → ℂ)
     (hd : DifferentiableOn ℂ H {z : ℂ | z.im ≤ 0}) :
     DifferentiableOn ℂ (lowerCauchyRegular H) {z : ℂ | z.im ≤ 0} := by
@@ -406,6 +482,8 @@ private theorem lowerCauchyRegular_differentiableOn (H : ℂ → ℂ)
   exact ((differentiableAt_const Complex.I).differentiableWithinAt.mul (hs z hz)).sub
     ((differentiableAt_const (H (-Complex.I))).differentiableWithinAt.div ha hne)
 
+/-- Away from the stated denominator zeros, `lowerCauchyRegular H` equals `H z / (1 - Complex.I
+* z)` minus the explicit pole correction. -/
 private theorem lowerCauchyRegular_eq (H : ℂ → ℂ) (z : ℂ)
     (hz : z ≠ -Complex.I) (hm : (1 : ℂ) - Complex.I * z ≠ 0)
     (hp : (1 : ℂ) + Complex.I * z ≠ 0) :
@@ -419,6 +497,8 @@ private theorem lowerCauchyRegular_eq (H : ℂ → ℂ) (z : ℂ)
   simp only [Complex.I_sq, Complex.I_pow_three]
   ring
 
+/-- On the real axis, `lowerCauchyRegular H` equals the Cauchy-weighted boundary value minus `2
+* H (-Complex.I)` times `(1 + k^2)⁻¹`. -/
 private theorem lowerCauchyRegular_real_eq (H : ℂ → ℂ) (k : ℝ) :
     lowerCauchyRegular H (k : ℂ) = H (k : ℂ) / (1 - Complex.I * (k : ℂ)) -
       ((1 + k ^ 2)⁻¹ : ℝ) • (2 * H (-Complex.I)) := by
@@ -443,6 +523,8 @@ private theorem lowerCauchyRegular_real_eq (H : ℂ → ℂ) (k : ℝ) :
   rw [he]
   simp [div_eq_mul_inv, mul_comm, Complex.real_smul]
 
+/-- Under the stated stretched-exponential bound on `H`, the regularized expression outside
+radius `R ≥ 2` satisfies the explicit exponential and inverse-square norm bound. -/
 private theorem lowerCauchyRegular_norm_le (H : ℂ → ℂ) (β c A R : ℝ)
     (hβ : 0 < β) (hc : 0 < c) (hA : 0 ≤ A) (hR : 2 ≤ R)
     (hH : ∀ z : ℂ, z.im ≤ 0 →
@@ -490,6 +572,9 @@ private theorem lowerCauchyRegular_norm_le (H : ℂ → ℂ) (β c A R : ℝ)
   field_simp
   ring
 
+/-- For differentiable `H` with the stated stretched-exponential decay, the integral of its
+regularized expression over `[-R, R]` obeys the explicit exponential and inverse-radius
+bound. -/
 private theorem lowerCauchyRegular_rectangle_norm_le (H : ℂ → ℂ) (β c A R : ℝ)
     (hβ : 0 < β) (hc : 0 < c) (hA : 0 ≤ A) (hR : 2 ≤ R)
     (hd : DifferentiableOn ℂ H {z : ℂ | z.im ≤ 0})
@@ -555,6 +640,8 @@ private theorem lowerCauchyRegular_rectangle_norm_le (H : ℂ → ℂ) (β c A R
     _ ≤ (B * (2 * R) + B * R) + B * R := add_le_add (add_le_add hb hr) hl
     _ = _ := by dsimp [B]; field_simp; ring
 
+/-- For a complex differentiable function with the stated lower-half-plane decay and boundary
+integrability, its Cauchy-weighted real-line integral equals `2 * Real.pi * H (-Complex.I)`. -/
 theorem highKernel_lower_cauchy_integral (H : ℂ → ℂ) (β c A : ℝ)
     (hβ : 0 < β) (hc : 0 < c) (hA : 0 ≤ A)
     (hd : DifferentiableOn ℂ H {z : ℂ | z.im ≤ 0})
@@ -597,6 +684,7 @@ theorem highKernel_lower_cauchy_integral (H : ℂ → ℂ) (β c A : ℝ)
   simpa only [Complex.real_smul, Complex.ofReal_mul, Complex.ofReal_ofNat, mul_assoc, mul_comm,
     mul_left_comm] using! he
 
+/-- The normalization of `highKernelF β` gives `(2 * Real.pi) * highKernelF β (-Complex.I) = 1`. -/
 theorem highKernelF_pole_value (β : ℝ) :
     (2 * Real.pi : ℂ) * highKernelF β (-Complex.I) = 1 := by
   have hp : 1 + Complex.I * (-Complex.I) = (2 : ℂ) := by
@@ -612,6 +700,9 @@ theorem highKernelF_pole_value (β : ℝ) :
   push_cast
   field_simp
 
+/-- For `0 < β < 1`, the kernel numerator is analytic in the open lower half-plane and
+continuous on its closure, and `highKernelG β` is integrable with integral one. See
+[AnChildsLin2026]. -/
 theorem near_exponential_kernel_analytic_normalization :
     ∀ β : ℝ, 0 < β → β < 1 →
       AnalyticOnNhd ℂ (highKernelF β) {z : ℂ | z.im < 0} ∧

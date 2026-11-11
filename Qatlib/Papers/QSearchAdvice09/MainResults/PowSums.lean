@@ -108,6 +108,27 @@ import Mathlib.Topology.Defs.Filter
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 import Qatlib.Papers.QSearchAdvice09.MainResults.Harmonic
+
+/-!
+# Real power sums and their asymptotics
+
+This module derives finite bounds on `sumPow` from monotonicity and mean-value estimates for
+real powers. It proves the three asymptotic regimes: growth as n^(r + 1) for r > −1, logarithmic
+growth for r = −1, and bounded positive order for r < −1.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `sumPow_isTheta_pos`: For r > −1, the power sum is Theta(n^(r + 1)) at infinity.
+* `sumPow_isTheta_neg_one`: The power sum with exponent −1 is Theta(log n) at infinity.
+* `sumPow_isTheta_lt`: For r < −1, the power sum is Theta(1) at infinity.
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -120,6 +141,7 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- A nonpositive real power reverses the order of positive bases. -/
 theorem rpow_antitone_of_nonpos {z : ℝ} (hz : z ≤ 0) {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     b ^ z ≤ a ^ z := by
   rcases lt_or_eq_of_le hz with hz' | rfl
@@ -132,10 +154,12 @@ theorem rpow_antitone_of_nonpos {z : ℝ} (hz : z ≤ 0) {a b : ℝ} (ha : 0 < a
       _ = a ^ z := by ring
   · simp
 
+/-- A nonnegative real power preserves the order of nonnegative bases. -/
 theorem rpow_monotone_of_nonneg {z : ℝ} (hz : 0 ≤ z) {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) :
     a ^ z ≤ b ^ z :=
   Real.rpow_le_rpow ha hab hz
 
+/-- For r ≤ 0 and x ≥ 1, (x + 1)ʳ is at least 2ʳxʳ. -/
 theorem rpow_succ_ge_two_mul {r : ℝ} (hr : r ≤ 0) {x : ℝ} (hx : 1 ≤ x) :
     2 ^ r * x ^ r ≤ (x + 1) ^ r := by
   have hx0 : (0 : ℝ) < x := by linarith
@@ -145,6 +169,7 @@ theorem rpow_succ_ge_two_mul {r : ℝ} (hr : r ≤ 0) {x : ℝ} (hx : 1 ≤ x) :
         rw [Real.mul_rpow (by norm_num) hx0.le]
     _ ≤ (x + 1) ^ r := rpow_antitone_of_nonpos hr (by linarith) hx1
 
+/-- For r ≥ 0 and x ≥ 1, (x + 1)ʳ is at most 2ʳxʳ. -/
 theorem rpow_succ_le_two_mul {r : ℝ} (hr : 0 ≤ r) {x : ℝ} (hx : 1 ≤ x) :
     (x + 1) ^ r ≤ 2 ^ r * x ^ r := by
   have hx0 : (0 : ℝ) < x := by linarith
@@ -152,6 +177,7 @@ theorem rpow_succ_le_two_mul {r : ℝ} (hr : 0 ≤ r) {x : ℝ} (hx : 1 ≤ x) :
   calc (x + 1) ^ r ≤ (2 * x) ^ r := rpow_monotone_of_nonneg hr (by positivity) hx1
     _ = 2 ^ r * x ^ r := Real.mul_rpow (by norm_num) hx0.le
 
+/-- For x ≥ 1, some c strictly between x and x + 1 satisfies (x + 1)ˢ − xˢ = s·c^(s − 1). -/
 theorem rpow_slope_exists {s : ℝ} {x : ℝ} (hx : 1 ≤ x) :
     ∃ c ∈ Set.Ioo x (x + 1), (x + 1) ^ s - x ^ s = s * c ^ (s - 1) := by
   have hlt : x < x + 1 := by linarith
@@ -170,6 +196,8 @@ theorem rpow_slope_exists {s : ℝ} {x : ℝ} (hx : 1 ≤ x) :
   rw [show x + 1 - x = 1 by ring, div_one] at hcd
   linarith
 
+/-- For s ≤ 0 or s ≥ 1 and x ≥ 1, the increment of xˢ between x and x + 1 lies between the
+derivatives at the two endpoints. -/
 theorem rpow_diff_bounds_convex {s : ℝ} (hs : s ≤ 0 ∨ 1 ≤ s) {x : ℝ} (hx : 1 ≤ x) :
     s * x ^ (s - 1) ≤ (x + 1) ^ s - x ^ s ∧
       (x + 1) ^ s - x ^ s ≤ s * (x + 1) ^ (s - 1) := by
@@ -198,6 +226,8 @@ theorem rpow_diff_bounds_convex {s : ℝ} (hs : s ≤ 0 ∨ 1 ≤ s) {x : ℝ} (
     · have := mul_le_mul_of_nonneg_left h2 (by linarith : (0:ℝ) ≤ s)
       linarith [heq]
 
+/-- For 0 < s ≤ 1 and x ≥ 1, the increment of xˢ lies between the derivative at x + 1 and the
+derivative at x. -/
 theorem rpow_diff_bounds_concave {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) {x : ℝ} (hx : 1 ≤ x) :
     s * (x + 1) ^ (s - 1) ≤ (x + 1) ^ s - x ^ s ∧
       (x + 1) ^ s - x ^ s ≤ s * x ^ (s - 1) := by
@@ -215,14 +245,17 @@ theorem rpow_diff_bounds_concave {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) {x : �
   · have := mul_le_mul_of_nonneg_left h1 hs0.le
     linarith [heq]
 
+/-- The finite real power sum of (k + 1)ʳ over k < n. -/
 def sumPow (r : ℝ) (n : ℕ) : ℝ := ∑ k ∈ range n, ((k : ℝ) + 1) ^ r
 
+/-- Every finite real power sum `sumPow r n` is nonnegative. -/
 theorem sumPow_nonneg (r : ℝ) (n : ℕ) : 0 ≤ sumPow r n := by
   unfold sumPow
   refine sum_nonneg ?_
   intro k _
   positivity
 
+/-- A power sum with at least one term is positive. -/
 theorem sumPow_pos (r : ℝ) {n : ℕ} (hn : 1 ≤ n) : 0 < sumPow r n := by
   unfold sumPow
   refine sum_pos' ?_ ?_
@@ -230,12 +263,14 @@ theorem sumPow_pos (r : ℝ) {n : ℕ} (hn : 1 ≤ n) : 0 < sumPow r n := by
     positivity
   · exact ⟨0, by simp only [mem_range]; omega, by simp⟩
 
+/-- The sum of successive power increments from 1 through n + 1 telescopes to (n + 1)ˢ − 1. -/
 theorem sum_range_pow_succ_sub (s : ℝ) (n : ℕ) :
     ∑ k ∈ range n, ((((k + 1 : ℕ) : ℝ) + 1) ^ s - ((k : ℝ) + 1) ^ s)
       = ((n : ℝ) + 1) ^ s - 1 := by
   have h := Finset.sum_range_sub (fun k : ℕ => ((k : ℝ) + 1) ^ s) n
   simpa using h
 
+/-- For r > 0, the power sum is at most (n + 1)^(r + 1)/(r + 1). -/
 theorem sumPow_upper_pos {r : ℝ} (hr : 0 < r) (n : ℕ) :
     sumPow r n ≤ ((n : ℝ) + 1) ^ (r + 1) / (r + 1) := by
   have hstep : ∀ k ∈ range n, ((k : ℝ) + 1) ^ r ≤
@@ -261,6 +296,7 @@ theorem sumPow_upper_pos {r : ℝ} (hr : 0 < r) (n : ℕ) :
         apply div_le_div_of_nonneg_right _ (by linarith : (0 : ℝ) ≤ r + 1)
         linarith
 
+/-- For r > 0, the power sum is at least ((n + 1)^(r + 1) − 1)/((r + 1)2ʳ). -/
 theorem sumPow_lower_pos {r : ℝ} (hr : 0 < r) (n : ℕ) :
     (((n : ℝ) + 1) ^ (r + 1) - 1) / ((r + 1) * 2 ^ r) ≤ sumPow r n := by
   have hstep : ∀ k ∈ range n,
@@ -286,6 +322,7 @@ theorem sumPow_lower_pos {r : ℝ} (hr : 0 < r) (n : ℕ) :
         unfold sumPow
         exact sum_le_sum hstep
 
+/-- For −1 < r < 0, the power sum is at least ((n + 1)^(r + 1) − 1)/(r + 1). -/
 theorem sumPow_lower_neg {r : ℝ} (hr0 : -1 < r) (hr1 : r < 0) (n : ℕ) :
     (((n : ℝ) + 1) ^ (r + 1) - 1) / (r + 1) ≤ sumPow r n := by
   have hs0 : (0 : ℝ) < r + 1 := by linarith
@@ -312,6 +349,7 @@ theorem sumPow_lower_neg {r : ℝ} (hr0 : -1 < r) (hr1 : r < 0) (n : ℕ) :
         unfold sumPow
         exact sum_le_sum hstep
 
+/-- For −1 < r < 0, the power sum is at most (n + 1)^(r + 1)/((r + 1)2ʳ). -/
 theorem sumPow_upper_neg {r : ℝ} (hr0 : -1 < r) (hr1 : r < 0) (n : ℕ) :
     sumPow r n ≤ ((n : ℝ) + 1) ^ (r + 1) / ((r + 1) * 2 ^ r) := by
   have hs0 : (0 : ℝ) < r + 1 := by linarith
@@ -339,12 +377,14 @@ theorem sumPow_upper_neg {r : ℝ} (hr0 : -1 < r) (hr1 : r < 0) (n : ℕ) :
         apply div_le_div_of_nonneg_right _ (by positivity : (0 : ℝ) ≤ (r + 1) * 2 ^ r)
         linarith
 
+/-- The sum of successive power decrements from 1 through n + 1 telescopes to 1 − (n + 1)ˢ. -/
 theorem sum_range_pow_sub_succ (s : ℝ) (n : ℕ) :
     ∑ k ∈ range n, (((k : ℝ) + 1) ^ s - (((k + 1 : ℕ) : ℝ) + 1) ^ s)
       = 1 - ((n : ℝ) + 1) ^ s := by
   have h := Finset.sum_range_sub' (fun k : ℕ => ((k : ℝ) + 1) ^ s) n
   simpa using h
 
+/-- For r < −1 and n ≥ 1, the power sum is at least (1 − 2^(r + 1))/(−(r + 1)). -/
 theorem sumPow_lower_lt {r : ℝ} (hr : r < -1) {n : ℕ} (hn : 1 ≤ n) :
     (1 - 2 ^ (r + 1)) / (-(r + 1)) ≤ sumPow r n := by
   have hs : r + 1 < 0 := by linarith
@@ -375,6 +415,7 @@ theorem sumPow_lower_lt {r : ℝ} (hr : r < -1) {n : ℕ} (hn : 1 ≤ n) :
         unfold sumPow
         exact sum_le_sum hstep
 
+/-- For r < −1, the power sum is at most 1/(−(r + 1)2ʳ). -/
 theorem sumPow_upper_lt {r : ℝ} (hr : r < -1) (n : ℕ) :
     sumPow r n ≤ 1 / (-(r + 1) * 2 ^ r) := by
   have hs : r + 1 < 0 := by linarith
@@ -405,16 +446,19 @@ theorem sumPow_upper_lt {r : ℝ} (hr : r < -1) (n : ℕ) :
             (Real.rpow_pos_of_pos (by norm_num) r)))
         linarith [Real.rpow_nonneg (by positivity : (0:ℝ) ≤ (n:ℝ) + 1) (r + 1)]
 
+/-- The power sum with exponent zero equals n. -/
 theorem sumPow_zero (n : ℕ) : sumPow 0 n = (n : ℝ) := by
   unfold sumPow
   simp
 
+/-- The power sum with exponent −1 equals the harmonic sum. -/
 theorem sumPow_neg_one (n : ℕ) : sumPow (-1) n = harmSum n := by
   unfold sumPow harmSum
   apply Finset.sum_congr rfl
   intro k _
   rw [Real.rpow_neg_one, one_div]
 
+/-- For positive s, (n + 1)ˢ is eventually at least two. -/
 theorem eventually_two_le_rpow {s : ℝ} (hs : 0 < s) :
     ∀ᶠ n : ℕ in Filter.atTop, (2 : ℝ) ≤ ((n : ℝ) + 1) ^ s := by
   obtain ⟨N, hN⟩ := exists_nat_gt ((2 : ℝ) ^ (1 / s))
@@ -430,6 +474,7 @@ theorem eventually_two_le_rpow {s : ℝ} (hs : 0 < s) :
         rw [h1, Real.rpow_one]
     _ ≤ ((n : ℝ) + 1) ^ s := Real.rpow_le_rpow hbase (le_of_lt hNle) hs.le
 
+/-- For r > −1, the power sum is Theta(n^(r + 1)) at infinity [Montanaro2011]. -/
 theorem sumPow_isTheta_pos {r : ℝ} (hr : -1 < r) :
     Asymptotics.IsTheta Filter.atTop (fun n : ℕ => sumPow r n)
       (fun n : ℕ => (n : ℝ) ^ (r + 1)) := by
@@ -533,6 +578,7 @@ theorem sumPow_isTheta_pos {r : ℝ} (hr : -1 < r) :
       rw [hleft] at hmul
       exact hmul
 
+/-- For r < −1, the power sum is Theta(1) at infinity [Montanaro2011]. -/
 theorem sumPow_isTheta_lt {r : ℝ} (hr : r < -1) :
     Asymptotics.IsTheta Filter.atTop (fun n : ℕ => sumPow r n) (fun _ : ℕ => (1 : ℝ)) := by
   constructor
@@ -558,6 +604,7 @@ theorem sumPow_isTheta_lt {r : ℝ} (hr : r < -1) :
       simpa using (Finset.single_le_sum hnonneg hmem)
     simpa using hsingle
 
+/-- The power sum with exponent −1 is Theta(log n) at infinity [Montanaro2011]. -/
 theorem sumPow_isTheta_neg_one :
     Asymptotics.IsTheta Filter.atTop (fun n : ℕ => sumPow (-1) n)
       (fun n : ℕ => Real.log (n : ℝ)) := by
@@ -567,6 +614,7 @@ theorem sumPow_isTheta_neg_one :
   rw [hfun]
   exact harmSum_isTheta
 
+/-- The power sum over the interval from 1 through n equals `sumPow r n`. -/
 theorem sum_Icc_one_eq_sumPow (r : ℝ) (n : ℕ) :
     ∑ x ∈ Finset.Icc 1 n, (x : ℝ) ^ r = sumPow r n := by
   unfold sumPow
@@ -582,12 +630,14 @@ theorem sum_Icc_one_eq_sumPow (r : ℝ) (n : ℕ) :
   push_cast
   ring
 
+/-- A Theta relation at infinity is preserved under eventual equality of both functions. -/
 theorem isTheta_congr {f₁ f₂ g₁ g₂ : ℕ → ℝ}
     (h : Asymptotics.IsTheta Filter.atTop f₁ g₁)
     (hf : f₁ =ᶠ[Filter.atTop] f₂) (hg : g₁ =ᶠ[Filter.atTop] g₂) :
     Asymptotics.IsTheta Filter.atTop f₂ g₂ :=
   ⟨h.1.congr' hf hg, h.2.congr' hg hf⟩
 
+/-- If a − b = c, then nᵃ/nᵇ is Theta(nᶜ) at infinity. -/
 theorem isTheta_rpow_div {a b c : ℝ} (hc : a - b = c) :
     Asymptotics.IsTheta Filter.atTop (fun n : ℕ => (n : ℝ) ^ a / (n : ℝ) ^ b)
       (fun n : ℕ => (n : ℝ) ^ c) := by

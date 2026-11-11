@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiReadoutHelpers
+
+/-!
+# Fourier characterization of translation-invariant unitaries
+
+This module proves that unitary matrices commuting with cyclic translation act by phases in
+Fourier coordinates. The symmetry comes from the invariant algorithms of [FarhiEtAl1999], while
+[ChildsLandahlParrilo2007] provides the ordered-search polynomial context. The distinct values
+of `tiMomentumRoot` make the translation spectrum simple.
+
+`ti_commuting_diagonal` supplies the finite-dimensional algebraic step: a matrix commuting with
+a diagonal matrix with distinct entries is diagonal. Applied in the Fourier basis, this yields
+`ti_invariant_fourier_diagonal` and preservation of every Fourier-coordinate norm.
+`ti_source_root_mode` also identifies each root of `z^n = (-1)^t` with a momentum mode of the
+required parity.
+
+## Main statements
+
+- `ti_momentum_roots_injective` proves distinctness of the momentum roots.
+- `ti_source_root_mode` realizes each relevant polynomial root as an active mode.
+* `ti_invariant_fourier_diagonal` obtains unit-modulus Fourier phases from unitarity and
+  translation commutation.
+- `ti_invariant_fourier_norm` proves preservation of each Fourier-coordinate norm.
+
+## References
+
+- [Farhi et al., 1999][FarhiEtAl1999], invariant quantum algorithms for ordered search.
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007], polynomial and semidefinite
+  ordered-search methods.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +50,8 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped Classical BigOperators
 
+/-- Proves that distinct indices in `Fin (2*n)` have distinct momentum roots when `n` is
+nonzero. -/
 theorem ti_momentum_roots_injective (n : ℕ) [NeZero n] :
     Function.Injective (tiMomentumRoot n) := by
   intro i j hij
@@ -28,6 +60,8 @@ theorem ti_momentum_roots_injective (n : ℕ) [NeZero n] :
   apply inv_injective
   simpa only [tiMomentumRoot,_root_.zpow_neg,zpow_natCast] using hij
 
+/-- Shows that every complex root of `z^n = (-1)^t` is a momentum root at an index whose parity
+equals that of `t`. -/
 theorem ti_source_root_mode (n t : ℕ) [NeZero n] (z : ℂ)
     (hz : z^n=(-1:ℂ)^t) :
     ∃ l : Fin (2*n), tiMomentumRoot n l=z ∧ l.val%2=t%2 := by
@@ -49,6 +83,8 @@ theorem ti_source_root_mode (n t : ℕ) [NeZero n] (z : ℂ)
   · norm_num [ht,hi'] at hp
   · omega
 
+/-- Shows that a matrix commuting with a diagonal matrix whose diagonal entries are pairwise
+distinct is itself diagonal. -/
 theorem ti_commuting_diagonal {I : Type*} [Fintype I] [DecidableEq I]
     (d : I → ℂ) (hd : Function.Injective d) (V : Matrix I I ℂ)
     (hc : Matrix.diagonal d*V=V*Matrix.diagonal d) :
@@ -64,6 +100,8 @@ theorem ti_commuting_diagonal {I : Type*} [Fintype I] [DecidableEq I]
     have hv := (mul_eq_zero.mp hz).resolve_left hne
     simp [hij,hv]
 
+/-- Shows that a unitary matrix commuting with cyclic translation acts in Fourier coordinates by
+a diagonal function whose values all have modulus one. -/
 theorem ti_invariant_fourier_diagonal (n : ℕ) [NeZero n]
     (U : Matrix (Fin (2*n)) (Fin (2*n)) ℂ)
     (hu : U ∈ Matrix.unitaryGroup (Fin (2*n)) ℂ)
@@ -114,6 +152,8 @@ theorem ti_invariant_fourier_diagonal (n : ℕ) [NeZero n]
     dsimp [V]
     rw [Matrix.mul_assoc,Matrix.mul_assoc,hFF,Matrix.mul_one]
 
+/-- Proves that a unitary matrix commuting with cyclic translation preserves the norm of every
+coordinate of the adjoint Fourier transform of any state. -/
 theorem ti_invariant_fourier_norm (n : ℕ) [NeZero n]
     (U : Matrix (Fin (2*n)) (Fin (2*n)) ℂ)
     (hu : U ∈ Matrix.unitaryGroup (Fin (2*n)) ℂ)

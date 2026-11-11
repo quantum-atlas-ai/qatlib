@@ -8,6 +8,27 @@ import Qatlib.Concepts.WalshMoment.Forrelation.FiniteAbelian
 import Mathlib.Analysis.Complex.Norm
 import Mathlib.Tactic
 
+/-!
+# Fourier identities on finite abelian groups
+
+This module records linearity, translation covariance, and preservation of the sum of squared
+norms for the normalized Fourier transform on a finite abelian group. The translation formula
+`fourier_shift` expresses a hidden shift as an additive-character phase.
+
+The development follows [VanDamHallgrenIp2006].
+
+## Main statements
+
+* `fourier_shift`: Translating the argument of `g` by `s` multiplies its Fourier coefficient at
+  `ψ` by `ψ s`.
+* `sum_normSq_fourier`: The sum of squared norms of all Fourier coefficients equals the sum of
+  squared norms of the original function values.
+
+## References
+
+* [van Dam et al., 2006][VanDamHallgrenIp2006]
+-/
+
 set_option autoImplicit false
 
 open Qatlib.Concepts.WalshMoment.Forrelation
@@ -17,14 +38,17 @@ namespace Qatlib.Papers.HiddenShift02.MainResults.FourierCore
 
 variable {G : Type*} [AddCommGroup G] [Fintype G]
 
+/-- The normalized Fourier transform preserves pointwise addition. -/
 theorem fourier_add (f g : G → ℂ) : fourier (f + g) = fourier f + fourier g := by
   funext ψ
   simp only [fourier, Pi.add_apply, Matrix.mulVec_add]
 
+/-- The normalized Fourier transform commutes with multiplication by a complex scalar. -/
 theorem fourier_smul (c : ℂ) (f : G → ℂ) : fourier (c • f) = c • fourier f := by
   funext ψ
   simp only [fourier, Pi.smul_apply, Matrix.mulVec_smul]
 
+/-- Translating the argument of `g` by `s` multiplies its Fourier coefficient at `ψ` by `ψ s`. -/
 theorem fourier_shift (g : G → ℂ) (s : G) (ψ : AddChar G ℂ) :
     fourier (fun x => g (x + s)) ψ = ψ s * fourier g ψ := by
   classical
@@ -61,6 +85,8 @@ theorem fourier_shift (g : G → ℂ) (s : G) (ψ : AddChar G ℂ) :
           rw [hconjneg, fourier_apply]
           ring
 
+/-- The sum of squared norms of all Fourier coefficients equals the sum of squared norms of the
+original function values. -/
 theorem sum_normSq_fourier (f : G → ℂ) :
     (∑ ψ : AddChar G ℂ, ‖fourier f ψ‖ ^ 2) = ∑ x : G, ‖f x‖ ^ 2 := by
   classical

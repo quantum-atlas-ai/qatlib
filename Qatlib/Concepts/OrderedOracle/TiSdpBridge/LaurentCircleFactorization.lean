@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
 import Qatlib.Concepts.LaurentPolys.CircleComplement
+
+/-!
+# Complex Laurent coefficients and circle factors
+
+`complexLaurentCoefficient` extends a finite coefficient vector by conjugate symmetry, and
+`complexLaurentEval` evaluates its Laurent window. The module relates these coefficients to
+matrix generalized traces and to `gramOuter` factors, then proves
+`polynomial_closed_disk_circle_factor` by reflecting roots while preserving boundary norms.
+These are algebraic ingredients of the Laurent factorization approach to ordered search
+[ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `complexLaurent_coeff_eq_of_eval_eq`: equality of circle evaluations determines the
+  coefficient vector.
+* `complexLaurentNonnegative_of_gram_posSemidef`: a matching positive semidefinite Gram matrix
+  certifies Laurent nonnegativity.
+* `gramOuter_coeff_of_circle_factor`: a square-norm factor determines all generalized traces of
+  its outer Gram matrix.
+* `polynomial_closed_disk_circle_factor`: replacement of any polynomial by one of no larger
+  degree with the same circle norm and closed-disk roots when nonzero.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,21 +42,31 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Polynomial Matrix
 open scoped BigOperators Classical ComplexOrder
 
+/-- Extends a finite complex coefficient vector to integer indices by conjugating negative-index
+coefficients and assigning zero outside the absolute-index range. -/
 def complexLaurentCoefficient {n : ℕ} (a : Fin n → ℂ) (j : ℤ) : ℂ :=
   if h : j.natAbs < n then
     if j < 0 then star (a ⟨j.natAbs,h⟩) else a ⟨j.natAbs,h⟩
   else 0
 
+/-- The Laurent sum of the extended coefficients over integer exponents from `-n + 1` through `n
+- 1`. -/
 def complexLaurentEval {n : ℕ} (a : Fin n → ℂ) (z : ℂ) : ℂ :=
   ∑ j ∈ Finset.Icc (-(n : ℤ)+1) ((n : ℤ)-1), complexLaurentCoefficient a j * z^j
 
+/-- The condition that the zeroth Laurent coefficient is real and the real part of the Laurent
+evaluation is nonnegative at every unit-circle point. -/
 def complexLaurentNonnegative {n : ℕ} (a : Fin n → ℂ) : Prop :=
   (complexLaurentCoefficient a 0).im = 0 ∧
   ∀ z : ℂ, ‖z‖=1 → 0 ≤ (complexLaurentEval a z).re
 
+/-- The ordinary complex polynomial with coefficient vector `p`, formed by summing the
+corresponding monomials. -/
 def laurentCoefficientPolynomial {n : ℕ} (p : Fin n → ℂ) : Polynomial ℂ :=
   ∑ i : Fin n, Polynomial.monomial i.val (p i)
 
+/-- For a Hermitian matrix, the complex Laurent evaluation formed from its nonnegative
+generalized traces equals its matrix Laurent evaluation at every complex input. -/
 theorem complexLaurentEval_genTrace {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.IsHermitian) (z : ℂ) :
     complexLaurentEval (n := n) (fun k : Fin n => genTrace A (k : ℤ)) z = matrixLaurent A z := by
@@ -50,6 +87,8 @@ theorem complexLaurentEval_genTrace {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ)
   · have hnabs : (⟨j.natAbs, hlt⟩ : Fin n).val = j := Int.natAbs_of_nonneg (by omega)
     simp only [hnabs, if_neg hjz]
 
+/-- Agreement of two complex Laurent evaluations on the unit circle implies equality of each
+entry of their finite coefficient vectors. -/
 theorem complexLaurent_coeff_eq_of_eval_eq {n : ℕ} (a b : Fin n → ℂ)
     (h : ∀ z : ℂ, ‖z‖ = 1 → complexLaurentEval a z = complexLaurentEval b z)
     (i : Fin n) : a i = b i := by
@@ -113,6 +152,8 @@ theorem complexLaurent_coeff_eq_of_eval_eq {n : ℕ} (a b : Fin n → ℂ)
   · rw [← hcoef a i, ← hcoef b i]
     exact hd i hi0
 
+/-- Matching all generalized traces of a matrix to the extended Laurent coefficients makes its
+matrix Laurent evaluation equal the coefficient-family evaluation. -/
 theorem complexLaurentEval_eq_matrixLaurent_of_genTrace {n : ℕ} (a : Fin n → ℂ)
     (A : Matrix (Fin n) (Fin n) ℂ)
     (hcoeff : ∀ j : ℤ, genTrace A j = complexLaurentCoefficient a j) (z : ℂ) :
@@ -120,6 +161,8 @@ theorem complexLaurentEval_eq_matrixLaurent_of_genTrace {n : ℕ} (a : Fin n →
   unfold complexLaurentEval matrixLaurent
   exact Finset.sum_congr rfl fun j _ => by rw [hcoeff j]
 
+/-- A positive semidefinite matrix whose generalized traces match a Laurent coefficient family
+certifies that family's `complexLaurentNonnegative` condition. -/
 theorem complexLaurentNonnegative_of_gram_posSemidef {n : ℕ} (a : Fin n → ℂ)
     (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef)
     (hcoeff : ∀ j : ℤ, genTrace A j = complexLaurentCoefficient a j) :
@@ -135,6 +178,8 @@ theorem complexLaurentNonnegative_of_gram_posSemidef {n : ℕ} (a : Fin n → �
   · rw [complexLaurentEval_eq_matrixLaurent_of_genTrace a A hcoeff z]
     exact (matrixLaurent_real_nonneg_of_posSemidef A hA hz).2
 
+/-- The generalized trace of an `n` by `n` matrix vanishes at every integer offset whose
+absolute value is at least `n`. -/
 theorem genTrace_eq_zero_of_natAbs_ge {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ)
     (j : ℤ) (hj : n ≤ j.natAbs) : genTrace A j = 0 := by
   unfold genTrace
@@ -148,15 +193,20 @@ theorem genTrace_eq_zero_of_natAbs_ge {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ)
     omega
   simp [hne]
 
+/-- At the nonnegative integer index of a `Fin n` element, the extended Laurent coefficient is
+the original vector entry. -/
 theorem complexLaurentCoefficient_nat {n : ℕ} (a : Fin n → ℂ) (i : Fin n) :
     complexLaurentCoefficient a (i.val : ℤ) = a i := by
   simp only [complexLaurentCoefficient, Int.natAbs_natCast, dif_pos i.isLt]
   simp
 
+/-- Evaluating the coefficient polynomial gives the finite sum of `p i * z^i.val`. -/
 theorem laurentCoefficientPolynomial_eval {n : ℕ} (p : Fin n → ℂ) (z : ℂ) :
     (laurentCoefficientPolynomial p).eval z = ∑ i : Fin n, p i*z^i.val := by
   simp [laurentCoefficientPolynomial, Polynomial.eval_finsetSum, Polynomial.eval_monomial]
 
+/-- The coefficient polynomial has coefficient `p k` below `n`, and zero at every index at least
+`n`. -/
 theorem laurentCoefficientPolynomial_coeff {n : ℕ} (p : Fin n → ℂ) (k : ℕ) :
     (laurentCoefficientPolynomial p).coeff k = if h : k<n then p ⟨k,h⟩ else 0 := by
   unfold laurentCoefficientPolynomial
@@ -175,6 +225,7 @@ theorem laurentCoefficientPolynomial_coeff {n : ℕ} (p : Fin n → ℂ) (k : �
     have hv : i.val≠k := by have := i.isLt; omega
     simp [Polynomial.coeff_monomial,hv]
 
+/-- The coefficient polynomial has natural degree at most `n - 1`. -/
 theorem laurentCoefficientPolynomial_degree {n : ℕ} (p : Fin n → ℂ) :
     (laurentCoefficientPolynomial p).natDegree ≤ n-1 := by
   apply natDegree_le_of_degree_le
@@ -185,6 +236,9 @@ theorem laurentCoefficientPolynomial_degree {n : ℕ} (p : Fin n → ℂ) :
   exact (degree_monomial_le i.val (p i)).trans
     (by exact_mod_cast (show i.val ≤ n-1 by omega))
 
+/-- A polynomial square-norm representation of a Laurent family on the unit circle makes each
+nonnegative generalized trace of the outer Gram matrix equal the corresponding Laurent
+vector entry. -/
 theorem gramOuter_positive_coeff_of_circle_factor {n : ℕ} (a p : Fin n → ℂ)
     (h : ∀ z : ℂ, ‖z‖=1 → complexLaurentEval a z =
       ((‖(laurentCoefficientPolynomial p).eval z‖^2 : ℝ) : ℂ)) (i : Fin n) :
@@ -196,6 +250,9 @@ theorem gramOuter_positive_coeff_of_circle_factor {n : ℕ} (a p : Fin n → ℂ
     matrixLaurent_outer_eq_abs_sq p hz, ← laurentCoefficientPolynomial_eval]
   exact h z hz
 
+/-- For a Hermitian matrix, matching generalized traces at all nonnegative indices below `n`
+determines the generalized traces at every integer index by the extended Laurent
+coefficients. -/
 theorem genTrace_eq_complexLaurentCoefficient_of_positive {n : ℕ} (a : Fin n → ℂ)
     (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.IsHermitian)
     (h : ∀ i : Fin n, genTrace A (i.val : ℤ) = a i) (j : ℤ) :
@@ -215,6 +272,8 @@ theorem genTrace_eq_complexLaurentCoefficient_of_positive {n : ℕ} (a : Fin n �
   · rw [genTrace_eq_zero_of_natAbs_ge A j (by omega)]
     simp [complexLaurentCoefficient, hj]
 
+/-- A polynomial square-norm representation on the unit circle identifies every generalized
+trace of the outer Gram matrix with the extended Laurent coefficient. -/
 theorem gramOuter_coeff_of_circle_factor {n : ℕ} (a p : Fin n → ℂ)
     (h : ∀ z : ℂ, ‖z‖=1 → complexLaurentEval a z =
       ((‖(laurentCoefficientPolynomial p).eval z‖^2 : ℝ) : ℂ)) (j : ℤ) :
@@ -222,6 +281,7 @@ theorem gramOuter_coeff_of_circle_factor {n : ℕ} (a p : Fin n → ℂ)
   genTrace_eq_complexLaurentCoefficient_of_positive a (gramOuter p)
     (gramOuter_posSemidef p).isHermitian (gramOuter_positive_coeff_of_circle_factor a p h) j
 
+/-- On the unit circle, the reflected factor `1 - star r * z` has the same norm as `z - r`. -/
 private theorem laurent_reflected_factor_circle_norm (r z : ℂ) (hz : ‖z‖=1) :
     ‖1-star r*z‖ = ‖z-r‖ := by
   have hzz : z*star z=1 := by simp [Complex.mul_conj, Complex.normSq_eq_norm_sq, hz]
@@ -229,6 +289,9 @@ private theorem laurent_reflected_factor_circle_norm (r z : ℂ) (hz : ‖z‖=1
     _ = ‖z*star (z-r)‖ := by congr 1; rw [star_sub, mul_sub, hzz]; ring
     _ = _ := by rw [norm_mul, hz, norm_star, one_mul]
 
+/-- Every complex polynomial has a replacement of no larger degree with the same evaluation norm
+on the unit circle and equivalent vanishing as a polynomial. If the replacement is nonzero,
+all its roots lie in the closed unit disk. -/
 theorem polynomial_closed_disk_circle_factor (A : Polynomial ℂ) :
     ∃ B : Polynomial ℂ, B.natDegree ≤ A.natDegree ∧ (B=0 ↔ A=0) ∧
       (∀ z : ℂ, ‖z‖=1 → ‖B.eval z‖=‖A.eval z‖) ∧

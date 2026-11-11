@@ -29,6 +29,24 @@ import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.QueryDirectSumConsumerQuan
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.NativeCodeSemanticsQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ActualNativeNonzeroQueryConsumerQuan
+
+/-!
+# Consumer checks for witness-conversion interfaces
+
+This module checks that the imported results inhabit the residual specification predicates for
+filtered norms, spectral geometry, adaptive purification, and concrete query semantics. Its
+anonymous examples include `WitnessSpectralMasses`, `RealBudgetConversionAlgorithm`, and
+`ActualNativeNonzeroQueryConsumer`.
+
+These checks assemble interfaces for the filtered state-conversion framework of [LeeEtAl2011]
+and reflection algorithms of [Reichardt2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

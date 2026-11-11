@@ -13,6 +13,27 @@ import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
 import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgramGraph
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Uncorrected bipartite effective-gap contract
+
+Defines `BipartiteEffectiveGap`, a proposition combining positive-input kernel concentration and
+negative-input low-energy spectral bounds under a witness norm budget alone. This contract uses
+`markedAdjacency` and does not require source dual feasibility.
+
+The formulation is retained for comparison with the corrected graph construction associated with
+[Reichardt2011]; this module defines the proposition without proving it.
+
+## Main statements
+
+* `BipartiteEffectiveGap`: packages the uncorrected root kernel-mass and low-energy spectral
+  assertions.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -22,6 +43,9 @@ namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 open scoped BigOperators
 
+/-- The uncorrected contract asserting a positive-input kernel witness with root mass at least
+`9/10` and a negative-input low-energy mass bound of `72 * (1 + 1/W) * c^2` from a witness
+norm budget alone. -/
 def BipartiteEffectiveGap : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (n m : ℕ)
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ) (W : ℝ),

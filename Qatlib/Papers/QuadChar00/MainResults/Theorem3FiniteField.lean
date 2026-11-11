@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QuadChar00.MainResults.Lemma2TraceFourier
 import Mathlib.Algebra.CharP.Algebra
 import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+
+/-!
+# Shift recovery for finite field quadratic characters
+
+This module proves the shifted trace Fourier amplitude identity and injectivity of the shift in
+the quadratic character function. The final theorem combines a two query count, a polynomial
+bound for a cubic function, and the existence of a decoder for the complete shifted character
+function. See [VanDamHallgren2000].
+
+## Main statements
+
+* `theorem3_traceFourier_amplitude`: For a finite field over an odd prime field, the shifted
+  quadratic character trace Fourier sum factors into its Gauss sum, shift phase, and character
+  at the frequency.
+* `theorem3_shiftedQuadChar_solved`: In characteristic other than two, Algorithm 3 has query
+  count two and a polynomially bounded cubic cost function, and a decoder exists that recovers
+  every shift from its complete character function.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,8 +39,12 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- The query count assigned to Algorithm 3, equal to two. -/
 def algorithm3Queries : ℕ := 2
 
+/-- For a finite field over an odd prime field, the shifted quadratic character trace Fourier
+sum factors into its Gauss sum, shift phase, and character at the frequency. See
+[VanDamHallgren2000]. -/
 theorem theorem3_traceFourier_amplitude (p : ℕ) [Fact p.Prime]
     (F : Type*) [Field F] [Fintype F] [DecidableEq F] [Algebra (ZMod p) F]
     (hp : p ≠ 2) (s y : F) :
@@ -89,6 +116,8 @@ theorem theorem3_traceFourier_amplitude (p : ℕ) [Fact p.Prime]
     simp only [finiteFieldGaussSum, finiteFieldQuadChar]
     ring
 
+/-- Over a finite field of characteristic other than two, distinct shifts give distinct shifted
+quadratic character functions. See [VanDamHallgren2000]. -/
 theorem theorem3_shift_injective (F : Type*) [Field F] [Fintype F] [DecidableEq F]
     (_hF : ringChar F ≠ 2) :
     Function.Injective (fun s : F => fun x : F => finiteFieldQuadChar F (x + s)) := by
@@ -101,9 +130,13 @@ theorem theorem3_shift_injective (F : Type*) [Field F] [Fintype F] [DecidableEq 
   have hsub : t - s = 0 := by rw [← neg_add_eq_sub]; exact heq
   exact (sub_eq_zero.mp hsub).symm
 
+/-- The cubic function `n ↦ n ^ 3` is polynomially bounded. See [VanDamHallgren2000]. -/
 theorem theorem3_polynomialTime : PolynomiallyBounded (fun n => n ^ 3) :=
   ⟨1, 3, fun n => by rw [one_mul]; exact Nat.pow_le_pow_left (Nat.le_succ n) 3⟩
 
+/-- In characteristic other than two, Algorithm 3 has query count two and a polynomially bounded
+cubic cost function, and a decoder exists that recovers every shift from its complete
+character function. See [VanDamHallgren2000]. -/
 theorem theorem3_shiftedQuadChar_solved (F : Type*) [Field F] [Fintype F]
     [DecidableEq F] (hF : ringChar F ≠ 2) :
     algorithm3Queries = 2 ∧

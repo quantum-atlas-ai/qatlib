@@ -14,6 +14,27 @@ import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessQua
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
 import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
 import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+/-!
+# Copy evolution and self-tomography
+
+This module assembles the copy-evolution guarantees into `StageACopyEvolutionPaidWalk` and
+`StageACopyEvolutionClause16`. The results combine legal QRAM loading, explicit resource
+accounting, fresh-copy simulation bounds, spectral self-tomography, Gram-state density
+operators, and finite-copy discrimination.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `stageA_copy_evolution_walkGoal`: the paid loading and copy-evolution specification.
+* `stageA_copy_evolution_clause16`: the self-tomography and discrimination specification.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -75,6 +96,8 @@ open Qatlib.Concepts.WalkFind.WalkSpectrum
 open Qatlib.Concepts.CopyEvolution.SelfTomography
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
+/-- Establishes `StageACopyEvolutionPaidWalk`, combining legal loading and resource accounting
+with fresh-copy error bounds and exact partial-swap identities. -/
 theorem stageA_copy_evolution_walkGoal : StageACopyEvolutionPaidWalk := by
   refine ⟨fun hg ψ => legal_qram_preserves_address hg ψ,
           fun hg ψ => legal_qram_target_bounds hg ψ,
@@ -97,6 +120,9 @@ theorem stageA_copy_evolution_walkGoal : StageACopyEvolutionPaidWalk := by
           copy_entangled_reference_swap_consumer,
           fun ρ hρ σ => copy_zero_and_full_swap_limits ρ hρ σ⟩
 
+/-- Establishes `StageACopyEvolutionClause16`, including self-tomography, positivity and trace
+preservation, Gram-state density operators, and finite-copy discrimination
+[LloydMohseniRebentrost2014]. -/
 theorem stageA_copy_evolution_clause16 : StageACopyEvolutionClause16 := by
   refine ⟨epsilonCubedSelfTomography,
           selfTomographyOnGridOutput,

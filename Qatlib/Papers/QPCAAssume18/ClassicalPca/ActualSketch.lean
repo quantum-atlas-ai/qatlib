@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ClassicalPCA
 import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchSingularValueL2StabilitySamp
+
+/-!
+# Actual row and column PCA sketches
+
+Constructs the length-squared row law, the rescaled row sketch, the conditional column law, and
+the resulting small matrix. The concrete sample count `pcaGramSamples` and tolerance
+`pcaGramTolerance` supply Gram concentration parameters for the sketching method in [Tang2021].
+
+## Main statements
+
+* `pca_gram_tail`: The row Gram error is at least the stated square-root concentration threshold
+  with probability at most `delta`.
+* `pcaGramSamples_scale`: For positive `K` and `e`, the square-root Gram concentration scale is
+  at most `pcaGramTolerance K e`.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +43,8 @@ open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib.Concepts.SketchSpectral.SketchAnalysis
 
+/-- The row sampling distribution assigning each row its squared norm divided by the total
+squared Frobenius norm. -/
 def pcaRowLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) : FinDist (Fin n) where
   prob i := sketchRowSquared A i / sketchSquared A
@@ -32,33 +54,42 @@ def pcaRowLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     change sketchSquared A / sketchSquared A = 1
     exact div_self hA.ne'
 
+/-- The distribution concentrated on coordinate zero in a nonempty finite coordinate type. -/
 def pcaPointLaw {d : ℕ} (hd : 0 < d) : FinDist (Fin d) where
   prob j := if j = ⟨0, hd⟩ then 1 else 0
   nonneg j := by split_ifs <;> norm_num
   sum_one := by simp
 
+/-- The rescaled row sketch obtained from the supplied row sample record and `pcaRowLaw`. -/
 def pcaRowSketch {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) :
     Matrix (Fin q) (Fin d) ℂ :=
   compactSketched (compactSketchData (pcaRowLaw A hA) q rows) A
 
+/-- The length-squared column law of the row sketch, with a point-distribution fallback when the
+sketch has zero energy. -/
 def pcaColumnLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) (rows : Fin q → Fin n) :
     FinDist (Fin d) :=
   if hR : 0 < sketchSquared (pcaRowSketch A hA q rows)ᴴ then
     pcaRowLaw (pcaRowSketch A hA q rows)ᴴ hR else pcaPointLaw hd
 
+/-- The square matrix obtained by conditionally sampling and rescaling columns of the row
+sketch. -/
 def pcaSmallMatrix {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ)
     (rows : Fin q → Fin n) (cols : Fin q → Fin d) : Matrix (Fin q) (Fin q) ℂ :=
   (compactSketched (compactSketchData (pcaColumnLaw A hA hd q rows) q cols)
     (pcaRowSketch A hA q rows)ᴴ)ᴴ
 
+/-- The joint law of the row sample record and its conditional column sample record. -/
 def pcaSketchLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) :
     FinDist ((Fin q → Fin n) × (Fin q → Fin d)) :=
   twoSketchRecordLaw (pcaRowLaw A hA) q q (pcaColumnLaw A hA hd q)
 
+/-- When the adjoint row sketch has positive energy, the conditional column probability is its
+row energy divided by its total energy. -/
 theorem pcaColumnLaw_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) (rows : Fin q → Fin n)
     (hR : 0 < sketchSquared (pcaRowSketch A hA q rows)ᴴ) (j : Fin d) :
@@ -67,17 +98,20 @@ theorem pcaColumnLaw_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
         sketchSquared (pcaRowSketch A hA q rows)ᴴ := by
   simp only [pcaColumnLaw, dif_pos hR, pcaRowLaw]
 
+/-- The row sampling law satisfies length-squared domination with constant one. -/
 theorem pcaRowLaw_domination {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (i : Fin n) :
     sketchRowSquared A i / (1 * sketchSquared A) ≤ (pcaRowLaw A hA).prob i := by
   simp [pcaRowLaw]
 
+/-- For a positive sample count, the row sketch energy is at most the input energy. -/
 theorem pcaRowSketch_energy {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (hq : 0 < q) (rows : Fin q → Fin n) :
     sketchSquared (pcaRowSketch A hA q rows) ≤ sketchSquared A := by
   simpa only [one_mul] using! (compact_sketch_frobenius_norm_bounds_and_tail (Fin n) (Fin d)
     (pcaRowLaw A hA) q A 1 hq (by norm_num) hA (pcaRowLaw_domination A hA)).2.1 rows
 
+/-- The row-product mass of a matrix paired with itself equals its squared Frobenius energy. -/
 theorem pcaRowProductMass_self {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) :
     sketchRowProductMass A A = sketchSquared A := by
   unfold sketchRowProductMass sketchSquared
@@ -85,6 +119,8 @@ theorem pcaRowProductMass_self {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) :
   intro i _
   exact Real.mul_self_sqrt (sketchRowSquared_nonneg A i)
 
+/-- The row Gram error is at least the stated square-root concentration threshold with
+probability at most `delta`. -/
 theorem pca_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (hq : 0 < q)
     (delta : ℝ) (hdelta : 0 < delta) (hdelta1 : delta < 1) :
@@ -104,11 +140,15 @@ theorem pca_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     ← spectralFrobenius_eq_sampling_norm] at ht
   exact ht
 
+/-- The Gram sample count, given by the natural ceilings of `K` and `80000 * K^4 / e^2 * log (4
+/ delta)`, plus one. -/
 def pcaGramSamples (K e delta : ℝ) : ℕ :=
   ⌈K⌉₊ + ⌈80000 * K ^ 4 / e ^ 2 * Real.log (4 / delta)⌉₊ + 1
 
+/-- The dimensionless Gram error tolerance `e / (100 * K^2)`. -/
 def pcaGramTolerance (K e : ℝ) : ℝ := e / (100 * K ^ 2)
 
+/-- The Gram sample count is positive and, viewed as a real number, at least `K`. -/
 theorem pcaGramSamples_rank (K e delta : ℝ) :
     0 < pcaGramSamples K e delta ∧ K ≤ (pcaGramSamples K e delta : ℝ) := by
   constructor
@@ -120,6 +160,8 @@ theorem pcaGramSamples_rank (K e delta : ℝ) :
     have hN := Nat.cast_nonneg (α := ℝ) ⌈80000 * K ^ 4 / e ^ 2 * Real.log (4 / delta)⌉₊
     linarith
 
+/-- For positive `K` and `e`, the sample count times the squared tolerance dominates `8 * log (4
+/ delta)`. -/
 theorem pcaGramSamples_budget (K e delta : ℝ) (hK : 0 < K) (he : 0 < e) :
     8 * Real.log (4 / delta) ≤
       (pcaGramSamples K e delta : ℝ) * pcaGramTolerance K e ^ 2 := by
@@ -139,6 +181,8 @@ theorem pcaGramSamples_budget (K e delta : ℝ) (hK : 0 < K) (he : 0 < e) :
     ring
   rwa [hid] at hmul
 
+/-- For positive `K` and `e`, the square-root Gram concentration scale is at most
+`pcaGramTolerance K e`. -/
 theorem pcaGramSamples_scale (K e delta : ℝ) (hK : 0 < K) (he : 0 < e) :
     Real.sqrt (8 * Real.log (4 / delta) / (pcaGramSamples K e delta : ℝ)) ≤
       pcaGramTolerance K e := by

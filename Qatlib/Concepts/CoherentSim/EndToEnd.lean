@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.TaylorEncoding.LogarithmicTaylorSimulation
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.CleanSubroutinePhaseReadout
 import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+
+/-!
+# Taylor simulation with spectral phase readout
+
+`logTaylorQPEPreparedWord` combines a prepared data state with clean phase estimation using
+logarithmic Taylor simulation. The spectral event and energy-window bounds include explicit
+query and gate counts and a dyadic simulation error, combining the method of
+[BerryEtAl2015Taylor] with phase estimation [NielsenChuang2010].
+
+## Main statements
+
+* `log_taylor_actual_spectral_qpe_and_cost`: Spectral event probabilities with resource counts.
+* `log_taylor_actual_energy_window`: A phase-window success bound for a prepared eigenstate.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,12 +64,18 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 variable {J : Type} [Fintype J] [DecidableEq J]
 
+/-- The simulation precision obtained by adding a binary logarithmic phase-estimation overhead
+to `k`. -/
 def logTaylorQPEPrecision (M k : ℕ) : ℕ := k+Nat.clog 2 (max 1 (2*(M-1)))
 
+/-- The operator applying `B` to the data register and the identity to the Taylor ancillary
+registers. -/
 noncomputable def logTaylorDataGate {D : ℕ} (K : ℕ) (B : Operator D) :=
   TensorGate (1 : Matrix (TaylorWordLabel J K) (TaylorWordLabel J K) ℂ)
     (TensorGate (1 : Matrix Bool Bool ℂ) (TensorGate (1 : Matrix J J ℂ) B))
 
+/-- The clean phase-estimation word for logarithmic Taylor simulation, with an initial
+data-preparation gate. -/
 noncomputable def logTaylorQPEPreparedWord {D : ℕ} (h : J → ℝ) (j0 : J)
     (t : ℝ) (Lambda T M k : ℕ) (B : Operator D) :=
   let p := logTaylorQPEPrecision M k
@@ -58,6 +84,8 @@ noncomputable def logTaylorQPEPreparedWord {D : ℕ} (h : J → ℝ) (j0 : J)
     [.gate (TensorGate (1 : Operator M)
       (TensorGate (1 : Matrix Bool Bool ℂ) (logTaylorDataGate (J := J) K B)))]
 
+/-- The output vector of the prepared Taylor phase-estimation circuit on the basis state indexed
+by `j`. -/
 noncomputable def logTaylorQPEOutput {D : ℕ} (h : J → ℝ) (U : J → Operator D) (j0 : J)
     (t : ℝ) (Lambda T M k : ℕ) (hM : 0 < M) (B : Operator D) (j : Fin D) :=
   let p := logTaylorQPEPrecision M k
@@ -66,6 +94,8 @@ noncomputable def logTaylorQPEOutput {D : ℕ} (h : J → ℝ) (U : J → Operat
     (logTaylorQPEPreparedWord h j0 t Lambda T M k B) *ᵥ
     cleanQPEInput M hM (taylorFrame j0 K *ᵥ Ket j)
 
+/-- A unitary spectral decomposition of `A` diagonalizes its Hamiltonian evolution, with
+diagonal entries `exp (-I * t * eig i)`. -/
 private theorem logTaylor_evolution_spectral (D : ℕ) (A V : Operator D) (eig : Fin D → ℝ)
     (t : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : A = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) :
@@ -92,6 +122,8 @@ private theorem logTaylor_evolution_spectral (D : ℕ) (A V : Operator D) (eig :
   funext i
   rw [Pi.coe_exp, ← Complex.exp_eq_exp_ℂ]
 
+/-- Hamiltonian evolution multiplies each supplied spectral eigenvector by the phase with angle
+`-t * eig i`. -/
 private theorem logTaylor_eigen (D : ℕ) (A V : Operator D) (eig : Fin D → ℝ)
     (t : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : A = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) (i : Fin D) :
@@ -114,6 +146,8 @@ private theorem logTaylor_eigen (D : ℕ) (A V : Operator D) (eig : Fin D → �
     by_cases hj : j = i <;> simp [Matrix.mulVec, dotProduct, Ket, hj]
   rw [hd, Matrix.mulVec_smul, hp]
 
+/-- The chosen simulation precision bounds the accumulated phase-estimation perturbation by
+`2⁻ᵏ`. -/
 theorem logTaylor_qpe_budget (M k : ℕ) :
     2 * ((M-1 : ℕ) : ℝ) * (1/2:ℝ)^logTaylorQPEPrecision M k ≤ (1/2:ℝ)^k := by
   have hb : (2 * ((M-1 : ℕ) : ℝ)) ≤ (2:ℝ)^Nat.clog 2 (max 1 (2*(M-1))) := by
@@ -129,6 +163,7 @@ theorem logTaylor_qpe_budget (M k : ℕ) :
   rw [pow_add]
   nlinarith [mul_le_mul_of_nonneg_left h (show 0 ≤ (1/2:ℝ)^k by positivity)]
 
+/-- Applying the lifted data operator to the Taylor frame equals embedding after applying `B`. -/
 theorem logTaylor_data_frame {D : ℕ} (K : ℕ) (B : Operator D) (j0 : J) :
     logTaylorDataGate (J := J) K B * taylorFrame (I := Fin D) j0 K =
       taylorFrame (I := Fin D) j0 K * B := by
@@ -139,12 +174,15 @@ theorem logTaylor_data_frame {D : ℕ} (K : ℕ) (B : Operator D) (j0 : J) :
       taylorFrame, Prod.mk.injEq]
   simp_all only [eq_comm, false_and, if_false, Finset.sum_const_zero]
 
+/-- Lifting a unitary data operator by identity factors preserves unitarity. -/
 theorem logTaylor_data_unitary {D : ℕ} (K : ℕ) (B : Operator D)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     logTaylorDataGate (J := J) K B ∈ Matrix.unitaryGroup _ ℂ :=
   tensorGate_unitary (Submonoid.one_mem _) (tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary (Submonoid.one_mem _) hB))
 
+/-- Membership in the matrix unitary group is independent of the chosen decidable equality
+instance. -/
 private theorem logTaylor_unitary_decidableEq {X : Type} [Fintype X]
     {d e : DecidableEq X} {A : Matrix X X ℂ}
     (h : letI := d; A ∈ Matrix.unitaryGroup X ℂ) :
@@ -153,6 +191,7 @@ private theorem logTaylor_unitary_decidableEq {X : Type} [Fintype X]
   subst e
   exact h
 
+/-- Circuit evaluation agrees with evaluation using classical decidable equality. -/
 private theorem logTaylor_evaluate_classical {X : Type} [Fintype X] [d : DecidableEq X]
     (O : Matrix X X ℂ) (cs : List (AdjointStep X)) :
     evaluate O cs = @evaluate X _ (Classical.decEq X) O cs := by
@@ -160,6 +199,8 @@ private theorem logTaylor_evaluate_classical {X : Type} [Fintype X] [d : Decidab
   cases hde
   rfl
 
+/-- Well-formedness of an adjoint circuit is independent of the chosen decidable equality
+instance. -/
 private theorem logTaylor_wellformed_decidableEq {X : Type} [Fintype X]
     {d e : DecidableEq X} {cs : List (AdjointStep X)}
     (h : @WellFormedAdjointCircuit X _ d cs) :
@@ -168,6 +209,8 @@ private theorem logTaylor_wellformed_decidableEq {X : Type} [Fintype X]
   subst e
   exact h
 
+/-- A unitary data-preparation operator gives a well-formed singleton preparation circuit on the
+full phase-estimation register. -/
 theorem logTaylor_preparation_wellformed {D : ℕ} (M K : ℕ) (B : Operator D)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     WellFormedAdjointCircuit
@@ -181,6 +224,8 @@ theorem logTaylor_preparation_wellformed {D : ℕ} (M K : ℕ) (B : Operator D)
     (logTaylor_data_unitary (J := J) K B hB))
   exact logTaylor_unitary_decidableEq hu
 
+/-- The prepared output equals clean phase estimation applied to the Taylor embedding of `B *ᵥ
+Ket j`. -/
 theorem logTaylor_output_preparation {D : ℕ} (h : J → ℝ) (U : J → Operator D)
     (j0 : J) (t : ℝ) (Lambda T M k : ℕ) (hM : 0 < M) (B : Operator D) (j : Fin D) :
     logTaylorQPEOutput h U j0 t Lambda T M k hM B j =
@@ -196,6 +241,10 @@ theorem logTaylor_output_preparation {D : ℕ} (h : J → ℝ) (U : J → Operat
       logTaylor_data_frame (J := J)
       (logTaylorCutoff (taylorSegments Lambda T) (logTaylorQPEPrecision M k)) B j0, ← Matrix.mulVec_mulVec]
 
+/-- For Hermitian unitary summands and the supplied spectral decomposition, the prepared Taylor
+phase-estimation circuit is well formed with the stated exact query and gate counts. Its
+event mass differs from the spectral mixture of ideal phase-estimation kernels by at most
+`2⁻ᵏ`. -/
 theorem log_taylor_actual_spectral_qpe_and_cost : ∀ (D : ℕ) (h : J → ℝ) (U : J → Operator D) (j0 : J)
     (t : ℝ) (Lambda T M k : ℕ) (hM : 2 ≤ M) (B S : Operator D)
     (eig : Fin D → ℝ) (j : Fin D) (E : Finset (Fin M)),
@@ -271,6 +320,8 @@ theorem log_taylor_actual_spectral_qpe_and_cost : ∀ (D : ℕ) (h : J → ℝ) 
   · rw [logTaylor_output_preparation]
     simpa only [logTaylor_evaluate_classical] using! herr.trans (logTaylor_qpe_budget M k)
 
+/-- For a prepared eigenstate, the Taylor phase-estimation mass within phase distance `1 / M` of
+its eigenphase is at least `8 / π² - 2⁻ᵏ` under the stated coefficient and time bounds. -/
 theorem log_taylor_actual_energy_window : ∀ (D : ℕ) (h : J → ℝ) (U : J → Operator D) (j0 : J)
     (t : ℝ) (Lambda T M k : ℕ) (hM : 2 ≤ M) (B S : Operator D)
     (eig : Fin D → ℝ) (j i : Fin D),

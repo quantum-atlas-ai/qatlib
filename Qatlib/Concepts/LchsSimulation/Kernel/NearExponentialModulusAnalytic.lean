@@ -9,6 +9,29 @@ import Mathlib.Analysis.Complex.Liouville
 import Mathlib.Analysis.Complex.RealDeriv
 import Mathlib.MeasureTheory.Integral.IntegrableOn
 
+/-!
+# Analytic extension of the kernel modulus
+
+`modulusExtension` extends the real-axis modulus of `highKernelG` to the strip `|z.im| < 1`.
+Strip norm bounds and Cauchy estimates give explicit derivative bounds, while a separate
+argument bounds the real-line modulus integral. See [AnChildsLin2026] for the mathematical
+setting.
+
+## Main statements
+
+* `modulusExtension_ofReal`: On real inputs, `modulusExtension β` equals the complex coercion of
+  the norm of `highKernelG β`.
+* `modulusExtension_iteratedDeriv_le`: For `0 < β < 1`, the `p`-th complex derivative of
+  `modulusExtension β` at a real point has norm at most `p.factorial * (4 / highKernelC β) / (1
+  / 2)^p`.
+* `highKernelG_abs_integral_le_aux`: For `0 < β < 1`, the integral of the kernel modulus is at
+  most `exp(1)^2 / Real.pi * (1 + 1 / (β * cos (β * Real.pi / 2)))`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
@@ -23,6 +46,7 @@ open Filter
 open scoped ENNReal ComplexConjugate
 set_option warningAsError false
 
+/-- For nonnegative `x`, `Real.exp (-x) ≤ 1 / (1 + x)`. -/
 private theorem exp_neg_le_inv_one_add (x : ℝ) (hx : 0 ≤ x) :
     Real.exp (-x) ≤ 1 / (1 + x) := by
   have h1 : x + 1 ≤ Real.exp x := Real.add_one_le_exp x
@@ -31,6 +55,7 @@ private theorem exp_neg_le_inv_one_add (x : ℝ) (hx : 0 ≤ x) :
   rw [← Real.exp_add, neg_add_cancel, Real.exp_zero] at h2
   exact (le_div_iff₀ (by linarith : (0 : ℝ) < 1 + x)).mpr h2
 
+/-- For `r ≥ 1 / 2`, the negative half power `r^(-1 / 2)` is at most two. -/
 private theorem half_neg_rpow_le_two (r : ℝ) (hr : 1 / 2 ≤ r) :
     r ^ (-(1 / 2 : ℝ)) ≤ 2 := by
   have hr0 : (0 : ℝ) < r := by linarith
@@ -43,6 +68,8 @@ private theorem half_neg_rpow_le_two (r : ℝ) (hr : 1 / 2 ≤ r) :
   rw [Real.rpow_neg_eq_inv_rpow, ← Real.sqrt_eq_rpow, Real.sqrt_le_iff]
   exact ⟨by norm_num, h5.trans_eq (by norm_num : (4 : ℝ) = 2 ^ 2)⟩
 
+/-- An integrable function bounded by `B` on `(0, 1)` and by `B' * k^(-(β + 1))` on `[1, ∞)` has
+positive-half-line integral at most `B + B' / β` when `β > 0`. -/
 private theorem integral_Ioi_le_of_bounds (β : ℝ) (hβ : 0 < β) (B B' : ℝ)
     (f : ℝ → ℝ) (hint : IntegrableOn f (Ioi (0 : ℝ)))
     (h1 : ∀ k ∈ Ioo (0 : ℝ) 1, f k ≤ B)
@@ -82,6 +109,8 @@ private theorem integral_Ioi_le_of_bounds (β : ℝ) (hβ : 0 < β) (B B' : ℝ)
         rw [hB1, integral_Ici_eq_integral_Ioi, integral_const_mul, htail]
         ring
 
+/-- For `0 < β < 1`, the integral of the kernel modulus is at most `exp(1)^2 / Real.pi * (1 + 1
+/ (β * cos (β * Real.pi / 2)))`. -/
 theorem highKernelG_abs_integral_le_aux (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     (∫ k : ℝ, ‖highKernelG β k‖) ≤
       (Real.exp 1) ^ 2 / Real.pi * (1 + 1 / (β * Real.cos (β * Real.pi / 2))) := by
@@ -210,19 +239,24 @@ theorem highKernelG_abs_integral_le_aux (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1
         have hE0 : (0 : ℝ) < (Real.exp 1) ^ 2 := pow_pos (Real.exp_pos 1) 2
         field_simp [Real.pi_ne_zero, hβ.ne', hc0.ne', hE0.ne']
 
+/-- The complex extension of the real-axis kernel modulus formed from the symmetric
+principal-power exponential and the two inverse square-root factors. -/
 noncomputable def modulusExtension (β : ℝ) (z : ℂ) : ℂ :=
   Complex.exp (-(((1 + Complex.I * z) ^ (β : ℂ) + (1 - Complex.I * z) ^ (β : ℂ)) / 2)) /
     (highKernelC β : ℂ) *
     (1 + Complex.I * z) ^ (Complex.ofReal (-(1 / 2 : ℝ))) *
     (1 - Complex.I * z) ^ (Complex.ofReal (-(1 / 2 : ℝ)))
 
+/-- The real part of `1 + Complex.I * z` is `1 - z.im`. -/
 private theorem re_add_I_mul (z : ℂ) : (1 + Complex.I * z).re = 1 - z.im := by
   simp
   ring
 
+/-- The real part of `1 - Complex.I * z` is `1 + z.im`. -/
 private theorem re_sub_I_mul (z : ℂ) : (1 - Complex.I * z).re = 1 + z.im := by
   simp
 
+/-- The function `modulusExtension β` is analytic at every point with `|z.im| < 1`. -/
 theorem modulusExtension_analyticAt (β : ℝ) {z : ℂ} (hz : |z.im| < 1) :
     AnalyticAt ℂ (modulusExtension β) z := by
   have him := abs_lt.mp hz
@@ -248,6 +282,8 @@ theorem modulusExtension_analyticAt (β : ℝ) {z : ℂ} (hz : |z.im| < 1) :
     av.cpow (g := fun _ : ℂ => Complex.ofReal (-(1 / 2 : ℝ))) analyticAt_const (Or.inl hv)
   exact ((pe.div analyticAt_const hC).mul p1).mul p2
 
+/-- On real inputs, `modulusExtension β` equals the complex coercion of the norm of `highKernelG
+β`. -/
 theorem modulusExtension_ofReal (β : ℝ) (k : ℝ) :
     modulusExtension β (k : ℂ) = ((‖highKernelG β k‖ : ℝ) : ℂ) := by
   have hzc : conj ((1 : ℂ) + Complex.I * (k : ℂ)) = 1 - Complex.I * (k : ℂ) := by
@@ -290,6 +326,7 @@ theorem modulusExtension_ofReal (β : ℝ) (k : ℝ) :
   push_cast
   rw [div_eq_mul_inv, mul_assoc, ← mul_inv, ← div_eq_mul_inv]
 
+/-- For `0 < β < 1` and `|z.im| ≤ 1 / 2`, the extension norm is at most `4 / highKernelC β`. -/
 theorem modulusExtension_norm_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) {z : ℂ}
     (hz : |z.im| ≤ 1 / 2) :
     ‖modulusExtension β z‖ ≤ 4 / highKernelC β := by
@@ -343,6 +380,8 @@ theorem modulusExtension_norm_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) {z : 
           (norm_nonneg _) (mul_nonneg hcinv0 (by norm_num))
     _ = 4 / highKernelC β := by ring
 
+/-- For `0 < β < 1`, the `p`-th complex derivative of `modulusExtension β` at a real point has
+norm at most `p.factorial * (4 / highKernelC β) / (1 / 2)^p`. -/
 theorem modulusExtension_iteratedDeriv_le (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (p : ℕ) (k : ℝ) :
     ‖iteratedDeriv p (modulusExtension β) (k : ℂ)‖ ≤
@@ -371,6 +410,8 @@ theorem modulusExtension_iteratedDeriv_le (β : ℝ) (hβ : 0 < β) (hβ1 : β <
     exact modulusExtension_norm_le β hβ hβ1 (himof z h1.le)
   exact Complex.norm_iteratedDeriv_le_of_forall_mem_sphere_norm_le p one_half_pos hdiff hsph
 
+/-- If `f` is analytic at every real point, each iterated complex derivative is analytic there,
+and the iterated real derivative of the restricted real part equals its real part. -/
 private theorem iteratedDeriv_re_ofReal_aux (f : ℂ → ℂ)
     (han : ∀ x : ℝ, AnalyticAt ℂ f (x : ℂ)) :
     ∀ p : ℕ, (∀ x : ℝ, AnalyticAt ℂ (iteratedDeriv p f) (x : ℂ)) ∧
@@ -391,6 +432,8 @@ private theorem iteratedDeriv_re_ofReal_aux (f : ℂ → ℂ)
       ((ih.1 k).differentiableAt).hasDerivAt
     exact (hd.real_of_complex).deriv
 
+/-- For a function analytic at every real point, taking the real part of its iterated complex
+derivative agrees with iterated real differentiation of the restricted real part. -/
 theorem iteratedDeriv_re_comp_ofReal_eq (f : ℂ → ℂ) (han : ∀ x : ℝ, AnalyticAt ℂ f (x : ℂ))
     (p : ℕ) (k : ℝ) :
     iteratedDeriv p (fun x : ℝ => (f (x : ℂ)).re) k = (iteratedDeriv p f (k : ℂ)).re :=

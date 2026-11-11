@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Query-cost expressions and parameter regimes
+
+This module defines scalar cost expressions for Algorithms 4–6 of [Itakura2005] and evaluates
+them at the specified power-law choices of the subset parameter. It also compares `directBound`,
+`collisionBound`, and `twoLevelBound` under explicit inequalities on positive size parameters.
+
+The results are algebraic evaluations and comparisons of these expressions; each regime theorem
+states the parameter range needed for its inequality.
+
+## Main statements
+
+* `alg4Cost_at_optimal`: Evaluates the Algorithm 4 expression at `r = k ^ (2 / 3)`.
+* `alg6Cost_at_optimal`: Evaluates the Algorithm 6 expression at `r = k ^ (2 / 5) * n ^ (2 /
+  5)`.
+* `regime_large_collision_twolevel`: Compares the collision and two-level expressions for `k ≥ n
+  ^ (3 / 2)`.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -14,42 +37,57 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.CommuteTest05.MainResults.CostBounds
 
+/-- The reciprocal square-root gap-product expression `1 / sqrt(δ * ε)` used for Szegedy-walk
+time estimates. -/
 def szegedyTime (δ ε : ℝ) : ℝ := 1 / Real.sqrt (δ * ε)
 
+/-- The Algorithm 4 cost expression `r * n ^ 2 + (k / sqrt r) * n ^ 2`. -/
 def alg4Cost (k n r : ℝ) : ℝ := r * n ^ 2 + (k / Real.sqrt r) * n ^ 2
 
+/-- The Algorithm 5 cost expression `r * n + n ^ 3 * k ^ 2 / r ^ (3 / 2)`. -/
 def alg5Cost (k n r : ℝ) : ℝ := r * n + n ^ 3 * k ^ 2 / r ^ ((3 : ℝ) / 2)
 
+/-- The Algorithm 6 cost expression `r ^ 2 * n + 2 * k * n ^ 2 / sqrt r`. -/
 def alg6Cost (k n r : ℝ) : ℝ := r ^ 2 * n + 2 * k * n ^ 2 / Real.sqrt r
 
+/-- For positive real `x`, multiplying real powers adds their exponents. -/
 theorem rpow_mul_add (x : ℝ) (hx : 0 < x) (a b : ℝ) :
     x ^ a * x ^ b = x ^ (a + b) := (Real.rpow_add hx a b).symm
 
+/-- For positive real `x`, taking a real power of a real power multiplies the exponents. -/
 theorem rpow_pow_mul (x : ℝ) (hx : 0 < x) (a b : ℝ) :
     (x ^ a) ^ b = x ^ (a * b) := (Real.rpow_mul hx.le a b).symm
 
+/-- For positive `x`, the square root of `x ^ (2 / 3)` equals `x ^ (1 / 3)`. -/
 theorem sqrt_rpow_two_thirds (x : ℝ) (hx : 0 < x) :
     Real.sqrt (x ^ ((2 : ℝ) / 3)) = x ^ ((1 : ℝ) / 3) := by
   rw [Real.sqrt_eq_rpow, rpow_pow_mul x hx]
   norm_num
 
+/-- For positive `x`, dividing `x` by `x ^ (1 / 3)` gives `x ^ (2 / 3)`. -/
 theorem div_rpow_third (x : ℝ) (hx : 0 < x) :
     x / x ^ ((1 : ℝ) / 3) = x ^ ((2 : ℝ) / 3) := by
   rw [div_eq_iff (Real.rpow_pos_of_pos hx _).ne',
     rpow_mul_add x hx ((2 : ℝ) / 3) ((1 : ℝ) / 3)]
   rw [show (2 : ℝ) / 3 + 1 / 3 = 1 by norm_num, Real.rpow_one]
 
+/-- For positive `k`, evaluating `alg4Cost` at `r = k ^ (2 / 3)` gives `2 * k ^ (2 / 3) * n ^
+2`, the balanced scale for Algorithm 4 in [Itakura2005]. -/
 theorem alg4Cost_at_optimal (k n : ℝ) (hk : 0 < k) :
     alg4Cost k n (k ^ ((2 : ℝ) / 3)) = 2 * k ^ ((2 : ℝ) / 3) * n ^ 2 := by
   unfold alg4Cost
   rw [sqrt_rpow_two_thirds k hk, div_rpow_third k hk]
   ring
 
+/-- For positive `k`, the Algorithm 4 expression at `r = k ^ (2 / 3)` is at most `2 * (k ^ (2 /
+3) * n ^ 2)`. See [Itakura2005]. -/
 theorem alg4Cost_bound (k n : ℝ) (hk : 0 < k) :
     alg4Cost k n (k ^ ((2 : ℝ) / 3)) ≤ 2 * (k ^ ((2 : ℝ) / 3) * n ^ 2) := by
   rw [alg4Cost_at_optimal k n hk]
   exact le_of_eq (by ring)
 
+/-- For positive `k` and `n`, raising `k ^ (4 / 5) * n ^ (4 / 5)` to the power `3 / 2` gives `k
+^ (6 / 5) * n ^ (6 / 5)`. -/
 theorem alg5_rpow_three_halves (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
     (k ^ ((4 : ℝ) / 5) * n ^ ((4 : ℝ) / 5)) ^ ((3 : ℝ) / 2) =
       k ^ ((6 : ℝ) / 5) * n ^ ((6 : ℝ) / 5) := by
@@ -57,6 +95,8 @@ theorem alg5_rpow_three_halves (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
   rw [rpow_pow_mul k hk, rpow_pow_mul n hn]
   norm_num
 
+/-- For positive `k` and `n`, evaluating `alg5Cost` at `r = k ^ (4 / 5) * n ^ (4 / 5)` gives `2
+* k ^ (4 / 5) * n ^ (9 / 5)`. -/
 theorem alg5Cost_at_optimal (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
     alg5Cost k n (k ^ ((4 : ℝ) / 5) * n ^ ((4 : ℝ) / 5)) =
       2 * (k ^ ((4 : ℝ) / 5) * n ^ ((9 : ℝ) / 5)) := by
@@ -96,12 +136,16 @@ theorem alg5Cost_at_optimal (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
   rw [h32, hfirst, hterm]
   ring
 
+/-- For positive `k` and `n ≥ 1`, the Algorithm 5 expression at the specified power-law choice
+of `r` is at most `2 * k ^ (4 / 5) * n ^ (9 / 5)`. -/
 theorem alg5Cost_bound (k n : ℝ) (hk : 0 < k) (hn : 1 ≤ n) :
     alg5Cost k n (k ^ ((4 : ℝ) / 5) * n ^ ((4 : ℝ) / 5)) ≤
       2 * (k ^ ((4 : ℝ) / 5) * n ^ ((9 : ℝ) / 5)) := by
   have hn0 : 0 < n := lt_of_lt_of_le zero_lt_one hn
   rw [alg5Cost_at_optimal k n hk hn0]
 
+/-- For positive `k` and `n`, evaluating `alg6Cost` at `r = k ^ (2 / 5) * n ^ (2 / 5)` gives `3
+* k ^ (4 / 5) * n ^ (9 / 5)`, the Algorithm 6 scale in [Itakura2005]. -/
 theorem alg6Cost_at_optimal (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
     alg6Cost k n (k ^ ((2 : ℝ) / 5) * n ^ ((2 : ℝ) / 5)) =
       3 * (k ^ ((4 : ℝ) / 5) * n ^ ((9 : ℝ) / 5)) := by
@@ -149,17 +193,24 @@ theorem alg6Cost_at_optimal (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
   rw [hkdiv]
   ring
 
+/-- For positive `k` and `n`, the Algorithm 6 expression at the specified power-law choice of
+`r` is at most `3 * k ^ (4 / 5) * n ^ (9 / 5)`. -/
 theorem alg6Cost_bound (k n : ℝ) (hk : 0 < k) (hn : 0 < n) :
     alg6Cost k n (k ^ ((2 : ℝ) / 5) * n ^ ((2 : ℝ) / 5)) ≤
       3 * (k ^ ((4 : ℝ) / 5) * n ^ ((9 : ℝ) / 5)) := by
   rw [alg6Cost_at_optimal k n hk hn]
 
+/-- The direct-search comparison expression `k * n ^ (5 / 3)`. -/
 def directBound (k n : ℝ) : ℝ := k * n ^ ((5 : ℝ) / 3)
 
+/-- The collision-search comparison expression `k ^ (2 / 3) * n ^ 2`. -/
 def collisionBound (k n : ℝ) : ℝ := k ^ ((2 : ℝ) / 3) * n ^ 2
 
+/-- The two-level-search comparison expression `k ^ (4 / 5) * n ^ (9 / 5)`. -/
 def twoLevelBound (k n : ℝ) : ℝ := k ^ ((4 : ℝ) / 5) * n ^ ((9 : ℝ) / 5)
 
+/-- For `k, n ≥ 1` and `k ≤ n ^ (2 / 3)`, `directBound k n ≤ twoLevelBound k n`, as in the cost
+comparisons of [Itakura2005]. -/
 theorem regime_small (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     (hkn : k ≤ n ^ ((2 : ℝ) / 3)) :
     directBound k n ≤ twoLevelBound k n := by
@@ -193,6 +244,8 @@ theorem regime_small (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
   rw [← key] at hnonneg
   linarith
 
+/-- For `k, n ≥ 1` and `k ≤ n ^ (3 / 2)`, `twoLevelBound k n ≤ collisionBound k n`, as in
+[Itakura2005]. -/
 theorem regime_mid_collision (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     (hkn : k ≤ n ^ ((3 : ℝ) / 2)) :
     twoLevelBound k n ≤ collisionBound k n := by
@@ -227,6 +280,7 @@ theorem regime_mid_collision (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
   rw [← key] at hnonneg
   linarith
 
+/-- For `k, n ≥ 1` and `n ≤ k`, `collisionBound k n ≤ directBound k n`, as in [Itakura2005]. -/
 theorem regime_mid_direct (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     (hkn : n ≤ k) :
     collisionBound k n ≤ directBound k n := by
@@ -256,6 +310,8 @@ theorem regime_mid_direct (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
   rw [← key] at hnonneg
   linarith
 
+/-- For positive `n`, both `directBound n n` and `collisionBound n n` equal `n ^ (8 / 3)`,
+giving their common crossover value in [Itakura2005]. -/
 theorem all_bounds_at_k_eq_n (n : ℝ) (hn : 0 < n) :
     directBound n n = n ^ ((8 : ℝ) / 3) ∧
       collisionBound n n = n ^ ((8 : ℝ) / 3) := by
@@ -269,6 +325,7 @@ theorem all_bounds_at_k_eq_n (n : ℝ) (hn : 0 < n) :
     rw [show (2 : ℝ) / 3 + ((2 : ℕ) : ℝ) = 8 / 3 by norm_num, Real.rpow_natCast] at h
     exact h.symm
 
+/-- For `k, n ≥ 1` and `k ≤ n`, `directBound k n ≤ collisionBound k n`, as in [Itakura2005]. -/
 theorem regime_small_collision (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     (hkn : k ≤ n) :
     directBound k n ≤ collisionBound k n := by
@@ -298,6 +355,8 @@ theorem regime_small_collision (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
       (by linarith)
   linarith
 
+/-- For `k, n ≥ 1` and `n ^ (2 / 3) ≤ k`, `twoLevelBound k n ≤ directBound k n`, as in
+[Itakura2005]. -/
 theorem regime_mid_twolevel_direct (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     (hkn : n ^ ((2 : ℝ) / 3) ≤ k) :
     twoLevelBound k n ≤ directBound k n := by
@@ -332,6 +391,8 @@ theorem regime_mid_twolevel_direct (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     exact mul_nonpos_of_nonneg_of_nonpos hfac hle
   linarith
 
+/-- For `k, n ≥ 1` and `n ^ (3 / 2) ≤ k`, `collisionBound k n ≤ twoLevelBound k n`, as in
+[Itakura2005]. -/
 theorem regime_large_collision_twolevel (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n)
     (hkn : n ^ ((3 : ℝ) / 2) ≤ k) :
     collisionBound k n ≤ twoLevelBound k n := by
@@ -367,6 +428,8 @@ theorem regime_large_collision_twolevel (k n : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n
     exact mul_nonpos_of_nonneg_of_nonpos hfac hle
   linarith
 
+/-- For positive `n`, `twoLevelBound n n = n ^ (13 / 5)`, giving its value on the diagonal
+parameter choice in [Itakura2005]. -/
 theorem twoLevelBound_self (n : ℝ) (hn : 0 < n) :
     twoLevelBound n n = n ^ ((13 : ℝ) / 5) := by
   unfold twoLevelBound

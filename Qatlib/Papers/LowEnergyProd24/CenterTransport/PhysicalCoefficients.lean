@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWeights
 import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Centering
+
+/-!
+# Centered bounds for physical generator coefficients
+
+Positive-degree coefficients of the physical product generator agree with those computed from
+centered interactions. The module transfers weighted coefficient bounds to the physical
+Hamiltonian and proves `physical_weighted_generator_hasSum` for the weighted generator series.
+See [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `physical_positive_coefficient`: For positive degree, the physical generator coefficient
+  equals the coefficient computed from the normalized centered Hamiltonian.
+* `physical_coefficient_weighted_bound`: For positive degree `n` and positive `J`, `k`, and `d`,
+  the weighted physical coefficient is bounded by `L * (2 * J) * timeBudget stages` times `(2 *
+  J * k * d * timeBudget stages)^n`, assuming every group has at most `L` labels.
+* `physical_weighted_generator_hasSum`: The series of weighted physical coefficients multiplied
+  by `t^n` sums to the weighted physical product generator.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +44,8 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- For positive degree, the physical generator coefficient equals the coefficient computed from
+the normalized centered Hamiltonian. See [HejaziZiniArrazola2024]. -/
 theorem physical_positive_coefficient (h : PhysicalHamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (n : ℕ) (hn : 0 < n) :
     physicalCoefficient h stages n=ProductError.computedCoefficient h.normalized stages n := by
@@ -30,6 +56,8 @@ theorem physical_positive_coefficient (h : PhysicalHamiltonian N R M k d J)
   rw [ProductError.computedCoefficient_eq_actual]
   exact hs
 
+/-- Imaginary-time weighting of any matrix is unchanged when the total physical Hamiltonian is
+replaced by its centered total. -/
 theorem physical_weight_centered (h : PhysicalHamiltonian N R M k d J)
     (A : Matrix (Register N) (Register N) ℂ) (lam : ℝ) :
     weighted h.total A lam=weighted h.normalized.total A lam := by
@@ -41,6 +69,9 @@ theorem physical_weight_centered (h : PhysicalHamiltonian N R M k d J)
     exact Complex.real_smul
   simpa only [he, Complex.ofReal_neg, ← physical_total_centered h, weighted] using hs
 
+/-- For positive degree `n` and positive `J`, `k`, and `d`, the weighted physical coefficient is
+bounded by `L * (2 * J) * timeBudget stages` times `(2 * J * k * d * timeBudget stages)^n`,
+assuming every group has at most `L` labels. -/
 theorem physical_coefficient_weighted_bound (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M)) (n : ℕ) (hn : 0 < n) :
@@ -49,6 +80,8 @@ theorem physical_coefficient_weighted_bound (h : PhysicalHamiltonian N R M k d J
   rw [physical_positive_coefficient h stages n hn, physical_weight_centered]
   exact ProductError.actual_coefficient_weighted_bound h.normalized hJ hk hd L hL stages n
 
+/-- The series of weighted physical coefficients multiplied by `t^n` sums to the weighted
+physical product generator. -/
 theorem physical_weighted_generator_hasSum (h : PhysicalHamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (lam t : ℝ) :
     HasSum (fun n : ℕ => t^n • weighted h.total (physicalCoefficient h stages n) lam)

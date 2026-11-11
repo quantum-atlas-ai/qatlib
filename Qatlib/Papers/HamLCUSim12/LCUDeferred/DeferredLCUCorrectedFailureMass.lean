@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedHami
+
+/-!
+# Failure mass as a signed mixture of state means
+
+This module rewrites the corrected signed LCU output using the positive and negative coefficient
+distributions. The means `cwStateMeanPositive` and `cwStateMeanNegative` average the Euclidean
+vectors obtained by applying the system unitaries to the input, providing the state geometry
+used in the failure analysis of Theorem 3 in [ChildsWiebe2012].
+
+For normalized input, `cwFailureProbCorrected_complement` identifies failure mass with one minus
+the squared norm of the zero ancilla fiber. `cw_failure_signed_mix` then expresses it using a
+signed mixture of the two means, while `cw_state_means_bounds` controls each mean's norm loss
+under the pairwise distance hypothesis.
+
+## Main statements
+
+* `cw_positive_coeff_normalized` and `cw_negative_coeff_normalized` prove that the two sign
+  distributions have nonnegative weights summing to one.
+* `cw_state_means_bounds` bounds both mean norms by one and both squared norm losses by `Δ^2 /
+  2`.
+* `cw_success_vector_signed_mix` identifies the success vector with the mass-weighted difference
+  of the means.
+- `cw_failure_signed_mix` gives the corresponding exact failure identity for normalized input.
+
+## References
+
+- [Childs and Wiebe, 2012][ChildsWiebe2012], Theorem 3.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,18 +47,28 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The positive-sign coefficient distribution, assigning `c q / cwPositiveWeight k c` to
+positive terms and zero to all other indices. -/
 def cwPositiveCoeff (k : ℕ) (c : Fin (k+1)→ℝ) (q : Fin (k+1)) : ℝ :=
   if 0<c q then c q/cwPositiveWeight k c else 0
 
+/-- The negative-sign coefficient distribution, assigning `|c q| / cwNegativeWeight k c` to
+negative terms and zero to all other indices. -/
 def cwNegativeCoeff (k : ℕ) (c : Fin (k+1)→ℝ) (q : Fin (k+1)) : ℝ :=
   if c q<0 then |c q|/cwNegativeWeight k c else 0
 
+/-- The weighted Euclidean mean of the vectors `U q *ᵥ ψ`, using the positive-sign coefficient
+distribution. -/
 def cwStateMeanPositive (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ) (ψ : QState I) :=
   nearbyLCUMean (cwPositiveCoeff k c) (fun q=>stateVector (U q*ᵥψ))
 
+/-- The weighted Euclidean mean of the vectors `U q *ᵥ ψ`, using the negative-sign coefficient
+distribution. -/
 def cwStateMeanNegative (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ) (ψ : QState I) :=
   nearbyLCUMean (cwNegativeCoeff k c) (fun q=>stateVector (U q*ᵥψ))
 
+/-- If a positive coefficient exists, all positive-sign distribution weights are nonnegative and
+their sum is one. -/
 theorem cw_positive_coeff_normalized (k : ℕ) (c : Fin (k+1)→ℝ) (hp : ∃ q,0<c q) :
     (∀ q,0≤cwPositiveCoeff k c q) ∧ ∑ q,cwPositiveCoeff k c q=1 := by
   constructor
@@ -50,6 +89,8 @@ theorem cw_positive_coeff_normalized (k : ℕ) (c : Fin (k+1)→ℝ) (hp : ∃ q
       simp only [cwPositiveWeight,cwPositiveTerms,Finset.sum_filter]
     rw [hsum,div_self (cw_positive_weight_pos k c hp).ne']
 
+/-- If a negative coefficient exists, all negative-sign distribution weights are nonnegative and
+their sum is one. -/
 theorem cw_negative_coeff_normalized (k : ℕ) (c : Fin (k+1)→ℝ) (hn : ∃ q,c q<0) :
     (∀ q,0≤cwNegativeCoeff k c q) ∧ ∑ q,cwNegativeCoeff k c q=1 := by
   constructor
@@ -70,6 +111,8 @@ theorem cw_negative_coeff_normalized (k : ℕ) (c : Fin (k+1)→ℝ) (hn : ∃ q
       simp only [cwNegativeWeight,cwNegativeTerms,Finset.sum_filter]
     rw [hsum,div_self (cw_negative_weight_pos k c hn).ne']
 
+/-- For normalized input, unitary payloads, and nonzero coefficients of both signs, corrected
+failure probability equals one minus the total squared amplitude on the zero ancilla fiber. -/
 theorem cwFailureProbCorrected_complement (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ) (hc : ∀ q,c q≠0)
     (hp : ∃ q,0<c q) (hn : ∃ q,c q<0) (ψ : QState I) (hψ : Normalized ψ) :
@@ -86,6 +129,9 @@ theorem cwFailureProbCorrected_complement (k : ℕ) (c : Fin (k+1)→ℝ) (U : F
   rw [hnorm] at he
   linarith
 
+/-- For normalized input and unitary payloads with both coefficient signs present, each sign
+mean has norm at most one. Under the uniform pairwise squared-distance bound `Δ^2`, each
+mean also satisfies `1 - ‖mean‖^2 ≤ Δ^2 / 2`. -/
 theorem cw_state_means_bounds (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ) (hp : ∃ q,0<c q) (hn : ∃ q,c q<0)
     (Δ : ℝ) (hΔ : ∀ q q',∀ φ : QState I,Normalized φ→∑ x : I,‖((U q-U q')*ᵥφ) x‖^2≤Δ^2)
@@ -107,6 +153,8 @@ theorem cw_state_means_bounds (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→M
     nearbyLCUMean_loss_le _ _ Δ hb.1 hb.2 hv hd⟩
 omit [DecidableEq I] in
 
+/-- Each coordinate of the positive mean equals the positive weighted matrix sum applied to `ψ`,
+divided by the positive coefficient mass. -/
 theorem cw_positive_mean_coordinate (k : ℕ) (c : Fin (k+1)→ℝ)
     (U : Fin (k+1)→Matrix I I ℂ) (ψ : QState I) (x : I) :
     cwStateMeanPositive k c U ψ x=((∑ q∈cwPositiveTerms k c,c q • U q)*ᵥψ) x/(cwPositiveWeight k c:ℂ) := by
@@ -123,6 +171,8 @@ theorem cw_positive_mean_coordinate (k : ℕ) (c : Fin (k+1)→ℝ)
 
 omit [DecidableEq I] in
 
+/-- Each coordinate of the negative mean equals the absolute-weight negative matrix sum applied
+to `ψ`, divided by the negative coefficient mass. -/
 theorem cw_negative_mean_coordinate (k : ℕ) (c : Fin (k+1)→ℝ)
     (U : Fin (k+1)→Matrix I I ℂ) (ψ : QState I) (x : I) :
     cwStateMeanNegative k c U ψ x=((∑ q∈cwNegativeTerms k c,|c q| • U q)*ᵥψ) x/(cwNegativeWeight k c:ℂ) := by
@@ -137,6 +187,10 @@ theorem cw_negative_mean_coordinate (k : ℕ) (c : Fin (k+1)→ℝ)
   intro q _
   split_ifs <;> push_cast <;> ring
 
+/-- Under the corrected Theorem 3 hypotheses, the zero ancilla success vector is the positive
+mean times its fraction of total absolute mass minus the negative mean times its fraction of
+that mass. The identity holds for arbitrary input vectors and uses the corrected fiber
+result associated with [ChildsWiebe2012]. -/
 theorem cw_success_vector_signed_mix (k : ℕ) (hk : 1≤k) (c : Fin (k+1)→ℝ)
     (U : Fin (k+1)→Matrix I I ℂ) (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ)
     (hc : ∀ q,c q≠0) (hp : ∃ q,0<c q) (hn : ∃ q,c q<0) (ψ : QState I) :
@@ -158,6 +212,9 @@ theorem cw_success_vector_signed_mix (k : ℕ) (hk : 1≤k) (c : Fin (k+1)→ℝ
   push_cast at ha hb hs ⊢
   field_simp [ha,hb,hs]
 
+/-- For normalized input under the corrected Theorem 3 hypotheses, failure probability is one
+minus the squared norm of the mass-weighted difference of the positive and negative means.
+This exact identity supports the failure analysis of [ChildsWiebe2012]. -/
 theorem cw_failure_signed_mix (k : ℕ) (hk : 1≤k) (c : Fin (k+1)→ℝ)
     (U : Fin (k+1)→Matrix I I ℂ) (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ)
     (hc : ∀ q,c q≠0) (hp : ∃ q,0<c q) (hn : ∃ q,c q<0) (ψ : QState I) (hψ : Normalized ψ) :

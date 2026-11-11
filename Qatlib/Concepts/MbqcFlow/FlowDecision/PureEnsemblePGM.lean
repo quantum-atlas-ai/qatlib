@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurement
 import Qatlib.Concepts.MbqcFlow.FlowDecision.GramSquareRootBound
+
+/-!
+# Pretty-good measurement probabilities for pure ensembles
+
+Computes the Born probabilities of `prettyGoodPOVM W` on normalized columns of `W`. The
+complementary outcome has probability zero, and the labeled probabilities are squared moduli of
+entries of the Gram square root.
+
+The theorem `pure_ensemble_pgm_born_and_row_failure` also bounds the probability of an incorrect
+label by the sum of squared off-diagonal Gram entries in the input row. The pure-state
+measurement setting is described in [Watrous2018].
+
+## Main statements
+
+* `pure_ensemble_pgm_born_and_row_failure`: exact labeled probabilities and an overlap bound on
+  failure.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -19,6 +41,8 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 open Matrix
 open scoped ComplexOrder MatrixOrder
 
+/-- The real trace of the product of two pure outer products equals the squared modulus of the
+vectors' inner product. -/
 private theorem trace_outer_products_re {D : ℕ}
     (φ ψ : QState (Fin D)) :
     (Matrix.trace (outerProduct φ * outerProduct ψ)).re =
@@ -52,6 +76,7 @@ private theorem trace_outer_products_re {D : ℕ}
   rw [htrace]
   rfl
 
+/-- A normalized column of `W` gives diagonal Gram entry one. -/
 private theorem normalized_ensemble_gram_diagonal
     {I : Type} [Fintype I] [DecidableEq I] {D : ℕ}
     (W : Matrix (Fin D) I ℂ) (i : I)
@@ -70,6 +95,8 @@ private theorem normalized_ensemble_gram_diagonal
       exact hterm d
     _ = 1 := by exact_mod_cast hi
 
+/-- If a Gram diagonal entry is one, the squared moduli in the corresponding Gram-square-root
+column sum to one. -/
 private theorem normalized_ensemble_sqrt_column_sum
     {I : Type} [Fintype I] [DecidableEq I] {D : ℕ}
     (W : Matrix (Fin D) I ℂ) (i : I)
@@ -95,6 +122,10 @@ private theorem normalized_ensemble_sqrt_column_sum
       _ = 1 := hi
   simpa only [Complex.ofReal_re, Complex.one_re] using congrArg Complex.re hsum
 
+/-- For normalized ensemble columns, proves that the input outer product is a density operator,
+the complementary PGM outcome has zero probability, and labeled Born probabilities are
+squared Gram-square-root entries. The failure probability is bounded by the sum of squared
+off-diagonal Gram entries in the input row. -/
 theorem pure_ensemble_pgm_born_and_row_failure
     (I : Type) [Fintype I] [DecidableEq I] (D : ℕ)
     (W : Matrix (Fin D) I ℂ)

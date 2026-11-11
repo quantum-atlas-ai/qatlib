@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+/-!
+# The on-grid self-tomography specification
+
+This module defines `SelfTomographyOnGridOutput`, the exact ideal-QPE output proposition for a
+density operator whose eigenphases all lie on the finite phase grid. It requires a unitary
+spectral decomposition and selects one matching phase label for each eigenvector.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `SelfTomographyOnGridOutput`: ideal QPE output as an eigenvalue-weighted mixture with definite
+  matching labels.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +42,9 @@ open Matrix
 
 set_option autoImplicit false
 
+/-- The proposition that a density operator with a unitary spectral decomposition and on-grid
+eigenphases has ideal QPE output equal to the eigenvalue-weighted mixture of the
+corresponding labeled eigenvectors. -/
 def SelfTomographyOnGridOutput : Prop :=
   ∀ (D M : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ),
     0 < M → IsDensityOperator ρ → V ∈ Matrix.unitaryGroup (Fin D) ℂ →

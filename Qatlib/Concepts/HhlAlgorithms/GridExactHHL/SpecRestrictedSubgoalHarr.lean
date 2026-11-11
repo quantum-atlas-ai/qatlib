@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.SpecRestrictedSubgoalStat
+
+/-!
+# Exact phase readout and spectral inversion
+
+This module proves `SpecRestrictedSubgoal` for a linear-system problem whose unitary eigenphases
+lie exactly on the Fourier grid. It combines exact phase-estimation readout with an
+inverse-eigenvalue solution expansion and a positive norm bound, following the spectral strategy
+of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `specRestrictedSubgoal`: exact grid readout and existence of the spectral linear-system
+  solution.
+
+## References
+
+* [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
@@ -15,6 +34,9 @@ namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 open Qatlib
 open Matrix
 
+/-- Under the exact grid eigenphase hypotheses, phase estimation reads each eigenvector label
+with probability one, and the inverse-eigenvalue expansion solves the system with positive
+squared coefficient norm at least `1 / κ²`. -/
 theorem specRestrictedSubgoal : SpecRestrictedSubgoal := by
   intro I _ _ p M hM U _hU g hUeig _hlink β hβ
   constructor

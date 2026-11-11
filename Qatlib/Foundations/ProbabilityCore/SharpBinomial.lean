@@ -87,21 +87,46 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Binomial Chernoff bounds with binary relative entropy
+
+This module defines `binaryKL`, explicit binomial masses, and upper tails beginning at the
+natural ceiling of ΔN. It proves the relative-entropy Chernoff bound for `0 < p < Δ < 1` and
+transfers it to Mathlib's `PMF.binomial`; such concentration estimates and relative entropy are
+standard tools in quantum information [NielsenChuang2010].
+
+## Main statements
+
+* `binomial_chernoff_tail`: The explicit tail is at most exp(-N binaryKL(Δ,p)).
+* `nativeTail_eq`: The native PMF tail agrees with the explicit finite sum.
+* `native_chernoff`: The native tail satisfies the same bound with a positive rate.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators NNReal ENNReal
 open Finset
 namespace Qatlib.Foundations.ProbabilityCore.SharpBinomial
 
+/-- The binary relative-entropy expression Δ log(Δ/p) + (1 - Δ) log((1 - Δ)/(1 - p)), using real
+logarithms. -/
 def binaryKL (Δ p : ℝ) : ℝ :=
   Δ*Real.log (Δ/p)+(1-Δ)*Real.log ((1-Δ)/(1-p))
 
+/-- The real binomial mass expression `N.choose x * p ^ x * (1 - p) ^ (N - x)`. -/
 def binomPMF (N : ℕ) (p : ℝ) (x : ℕ) : ℝ :=
   (N.choose x : ℝ) * p ^ x * (1 - p) ^ (N - x)
 
+/-- The sum of binomial mass expressions over natural counts from `Nat.ceil (Δ * N)` through
+`N`. -/
 def binomTail (N : ℕ) (p Δ : ℝ) : ℝ :=
   ∑ x ∈ Finset.Icc (Nat.ceil (Δ * (N : ℝ))) N, binomPMF N p x
 
+/-- The binary relative entropy `binaryKL Δ p` is strictly positive when `0 < p < Δ < 1`. -/
 theorem binaryKL_pos (p Δ : ℝ) (hp : 0 < p) (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
     0 < binaryKL Δ p := by
   have hΔp : 0 < Δ := lt_trans hp hpΔ
@@ -144,6 +169,7 @@ theorem binaryKL_pos (p Δ : ℝ) (hp : 0 < p) (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
   show 0 < Δ * Real.log (Δ / p) + (1 - Δ) * Real.log ((1 - Δ) / (1 - p))
   linarith [hstrict1, hloglb2]
 
+/-- For `0 < p < Δ < 1`, the binomial upper tail is at most exp(-N binaryKL(Δ,p)). -/
 theorem binomial_chernoff_tail (N : ℕ) (p Δ : ℝ) (hp : 0 < p)
     (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
     binomTail N p Δ ≤ Real.exp (-(N : ℝ) * binaryKL Δ p) := by
@@ -277,15 +303,21 @@ theorem binomial_chernoff_tail (N : ℕ) (p Δ : ℝ) (hp : 0 < p)
   rw [mul_one] at h1
   exact h1
 
+/-- For `N ≥ 1` and `0 < p < Δ < 1`, the binomial upper tail satisfies the relative-entropy
+exponential bound and its rate is strictly positive. -/
 theorem binomial_chernoff
     (N : ℕ) (p Δ : ℝ) (_hN : 1 ≤ N) (hp : 0 < p) (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
     binomTail N p Δ ≤ Real.exp (-(N : ℝ) * binaryKL Δ p) ∧ 0 < binaryKL Δ p :=
   ⟨binomial_chernoff_tail N p Δ hp hpΔ hΔ1, binaryKL_pos p Δ hp hpΔ hΔ1⟩
 
+/-- The real upper-tail probability computed from `PMF.binomial`, summing counts at least
+`Nat.ceil (Δ * N)`. -/
 def nativeTail (N : ℕ) (p : ℝ≥0) (hp : p ≤ 1) (Δ : ℝ) : ℝ :=
   ∑ i ∈ Finset.univ.filter (fun i : Fin (N+1) => Nat.ceil (Δ*(N : ℝ)) ≤ i.val),
     (PMF.binomial p hp N i).toReal
 
+/-- The real mass of Mathlib's binomial PMF at a finite count equals the explicit `binomPMF`
+expression. -/
 theorem native_mass (N : ℕ) (p : ℝ≥0) (hp : p ≤ 1) (i : Fin (N+1)) :
     (PMF.binomial p hp N i).toReal = binomPMF N p i.val := by
   have hi : i.val ≤ N := Nat.le_of_lt_succ i.isLt
@@ -297,6 +329,7 @@ theorem native_mass (N : ℕ) (p : ℝ≥0) (hp : p ≤ 1) (i : Fin (N+1)) :
   unfold binomPMF
   ring
 
+/-- The upper tail computed from `PMF.binomial` equals the explicit finite sum `binomTail`. -/
 theorem nativeTail_eq (N : ℕ) (p : ℝ≥0) (hp : p ≤ 1) (Δ : ℝ) :
     nativeTail N p hp Δ = binomTail N p Δ := by
   classical
@@ -312,6 +345,8 @@ theorem nativeTail_eq (N : ℕ) (p : ℝ≥0) (hp : p ≤ 1) (Δ : ℝ) :
   · intro i _
     exact native_mass N p hp i
 
+/-- For `0 < p < Δ < 1`, the native binomial upper tail satisfies the relative-entropy Chernoff
+bound with strictly positive rate. -/
 theorem native_chernoff (N : ℕ) (p : ℝ≥0) (hp : 0 < p) (Δ : ℝ)
     (hpΔ : (p : ℝ) < Δ) (hΔ1 : Δ < 1) :
     nativeTail N p (by exact_mod_cast hpΔ.le.trans hΔ1.le) Δ ≤

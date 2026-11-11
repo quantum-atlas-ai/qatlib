@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeCDFReadoutJointStat
 import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+
+/-!
+# Joint empirical CDF readout guarantee
+
+This module proves `empiricalNativeCDFReadoutJoint`, combining independent sampling with native
+empirical CDF readout. The guarantee controls deviation from the population CDF by combining
+sampling error, preparation error, amplitude-estimation error, and finite readout precision.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `empiricalNativeCDFReadoutJoint`: Establishes the joint sampling and native CDF readout bound
+  `EmpiricalNativeCDFReadoutJoint`, with failure probability at most 1/(4Nν²) + (8/9)^r under
+  its stated positivity hypotheses.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
@@ -30,6 +51,9 @@ namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 
+/-- Establishes the joint sampling and native CDF readout bound
+`EmpiricalNativeCDFReadoutJoint`, with failure probability at most 1/(4Nν²) + (8/9)^r under
+its stated positivity hypotheses [WoernerEgger2019]. -/
 theorem empiricalNativeCDFReadoutJoint : EmpiricalNativeCDFReadoutJoint := by
   intro n N ebits bits M r p loss t ν hN hν hM
   let B : (Fin N → Option (Fin n)) → Prop := fun ω =>

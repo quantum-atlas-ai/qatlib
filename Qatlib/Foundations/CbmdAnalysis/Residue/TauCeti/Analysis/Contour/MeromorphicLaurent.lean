@@ -7,6 +7,26 @@ Authors: Chris Birkbeck, Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Residue.Basic
+
+/-!
+# Finite Laurent polar parts of meromorphic functions
+
+This module extracts finite polar data from `MeromorphicAt`, defining `meromorphicPolarOrderAt`,
+`meromorphicPolarCoeffAt`, and `meromorphicPolarPartAt` together with an analytic remainder. It
+identifies the simple-pole coefficient with the residue and proves uniqueness of the zero-padded
+coefficient sequence, supporting the contour decomposition tools for [WangEtAl2026].
+
+## Main statements
+
+* `exists_laurent_data_of_meromorphicAt`: existence of a finite polar expansion.
+* `meromorphicPolarCoeffAt_zero_eq_residue`: identification of the residue coefficient.
+* `laurent_coeff_unique`: uniqueness of polar coefficients.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,19 +40,24 @@ namespace TauCeti.Contour
 
 open Filter Set Topology
 
+/-- The nonnegative polar order obtained from the negative finite meromorphic order, with value
+zero when the meromorphic order is infinite. -/
 def meromorphicPolarOrderAt (f : ℂ → ℂ) (s : ℂ) : ℕ :=
   (-(meromorphicOrderAt f s).untop₀).toNat
 
+/-- If the meromorphic order is the integer `n`, the polar order is `(-n).toNat`. -/
 theorem meromorphicPolarOrderAt_eq_of_order_eq {f : ℂ → ℂ} {s : ℂ}
     {n : ℤ} (h : meromorphicOrderAt f s = n) :
     meromorphicPolarOrderAt f s = (-n).toNat := by
   rw [meromorphicPolarOrderAt, h, WithTop.untop₀_coe]
 
+/-- A meromorphic order of `-1` gives polar order one. -/
 theorem meromorphicPolarOrderAt_eq_one {f : ℂ → ℂ} {s : ℂ} (h : meromorphicOrderAt f s = -1) :
     meromorphicPolarOrderAt f s = 1 := by
   rw [meromorphicPolarOrderAt_eq_of_order_eq h]
   rfl
 
+/-- The negative polar order is a lower bound for the meromorphic order. -/
 theorem neg_meromorphicPolarOrderAt_le (f : ℂ → ℂ) (s : ℂ) :
     (-(meromorphicPolarOrderAt f s : ℤ) : WithTop ℤ) ≤ meromorphicOrderAt f s := by
   rcases eq_or_ne (meromorphicOrderAt f s) ⊤ with h | h
@@ -43,6 +68,7 @@ theorem neg_meromorphicPolarOrderAt_le (f : ℂ → ℂ) (s : ℂ) :
       WithTop.coe_le_coe, meromorphicPolarOrderAt]
     omega
 
+/-- A positive polar order determines the meromorphic order as its negative. -/
 theorem meromorphicOrderAt_eq_neg_of_meromorphicPolarOrderAt_pos {f : ℂ → ℂ} {s : ℂ}
     (h_pos : 0 < meromorphicPolarOrderAt f s) :
     meromorphicOrderAt f s = (-(meromorphicPolarOrderAt f s : ℤ) : WithTop ℤ) := by
@@ -54,12 +80,14 @@ theorem meromorphicOrderAt_eq_neg_of_meromorphicPolarOrderAt_pos {f : ℂ → �
     norm_cast
     omega
 
+/-- A polar order greater than one forces the meromorphic order to be less than `-1`. -/
 theorem meromorphicOrderAt_lt_neg_one_of_one_lt_meromorphicPolarOrderAt {f : ℂ → ℂ} {s : ℂ}
     (h : 1 < meromorphicPolarOrderAt f s) :
     meromorphicOrderAt f s < (-1 : ℤ) := by
   rw [meromorphicOrderAt_eq_neg_of_meromorphicPolarOrderAt_pos (by omega)]
   exact_mod_cast WithTop.coe_lt_coe.mpr (by omega)
 
+/-- The polar order is at most one exactly when the meromorphic order is at least `-1`. -/
 @[simp]
 theorem meromorphicPolarOrderAt_le_one_iff {f : ℂ → ℂ} {s : ℂ} :
     meromorphicPolarOrderAt f s ≤ 1 ↔
@@ -74,6 +102,8 @@ theorem meromorphicPolarOrderAt_le_one_iff {f : ℂ → ℂ} {s : ℂ} :
       meromorphicOrderAt_lt_neg_one_of_one_lt_meromorphicPolarOrderAt (by omega)
     exact (not_lt_of_ge h) hlt
 
+/-- An analytic function locally equals a polynomial of degree below `k` plus `(z - s)^k` times
+an analytic remainder. -/
 private theorem analyticAt_taylor_decomp {g : ℂ → ℂ} {s : ℂ} (hg : AnalyticAt ℂ g s) (k : ℕ) :
     ∃ (c : Fin k → ℂ) (R : ℂ → ℂ), AnalyticAt ℂ R s ∧
       ∀ᶠ z in 𝓝 s, g z = (∑ j : Fin k, c j * (z - s) ^ j.val) + (z - s) ^ k * R z := by
@@ -102,12 +132,15 @@ private theorem analyticAt_taylor_decomp {g : ℂ → ℂ} {s : ℂ} (hg : Analy
   rw [smul_eq_mul]
   ring
 
+/-- For nonzero `w` and `j < k`, the product `w^j * (w^k)⁻¹` is `(w^(k - j))⁻¹`. -/
 private theorem pow_div_pow_neg {w : ℂ} (hw : w ≠ 0) {k j : ℕ} (hjk : j < k) :
     w ^ j * (w ^ k)⁻¹ = (w ^ (k - j))⁻¹ := by
   have h_exp : (k - j) + j = k := by omega
   rw [show (w ^ k)⁻¹ = (w ^ ((k - j) + j))⁻¹ by rw [h_exp], pow_add]
   field_simp
 
+/-- Reverses the indexing of a finite inverse-power sum so that its denominators have increasing
+exponents. -/
 private theorem reindex_sum_fin_neg {k : ℕ} (c : Fin k → ℂ) (w : ℂ) :
     (∑ j : Fin k, c j / w ^ (k - j.val)) =
       ∑ i : Fin k,
@@ -128,6 +161,8 @@ private theorem reindex_sum_fin_neg {k : ℕ} (c : Fin k → ℂ) (w : ℂ) :
   simp only [σ]
   omega
 
+/-- A punctured local factorization by `(z - s)^(-k)` times an analytic function yields a finite
+polar expansion with an analytic remainder. -/
 private theorem laurent_data_of_zpow_factor {f g₀ : ℂ → ℂ} {s : ℂ} (k : ℕ)
     (hg₀_an : AnalyticAt ℂ g₀ s) (hg₀_eq : ∀ᶠ z in 𝓝[≠] s, f z = (z - s) ^ (-(k : ℤ)) • g₀ z) :
     ∃ (a : Fin k → ℂ) (g : ℂ → ℂ),
@@ -150,6 +185,8 @@ private theorem laurent_data_of_zpow_factor {f g₀ : ℂ → ℂ} {s : ℂ} (k 
         pow_div_pow_neg hz_sub j.isLt]]
   exact reindex_sum_fin_neg c (z - s)
 
+/-- A function meromorphic at `s` locally decomposes on a punctured neighborhood into an
+analytic function and a finite polar sum of length `meromorphicPolarOrderAt f s`. -/
 theorem exists_laurent_data_of_meromorphicAt {f : ℂ → ℂ} {s : ℂ} (hMero : MeromorphicAt f s) :
     ∃ (a : Fin (meromorphicPolarOrderAt f s) → ℂ) (g : ℂ → ℂ),
       AnalyticAt ℂ g s ∧
@@ -159,25 +196,35 @@ theorem exists_laurent_data_of_meromorphicAt {f : ℂ → ℂ} {s : ℂ} (hMero 
     exists_analyticAt_eventuallyEq_zpow_smul hMero (neg_meromorphicPolarOrderAt_le f s)
   exact laurent_data_of_zpow_factor _ hg₀_an hg₀_eq
 
+/-- The coefficient of `(z - s)⁻(k + 1)` in a chosen finite local polar expansion of a
+meromorphic function. -/
 def meromorphicPolarCoeffAt {f : ℂ → ℂ} {s : ℂ} (hMero : MeromorphicAt f s)
     (k : Fin (meromorphicPolarOrderAt f s)) : ℂ :=
   (exists_laurent_data_of_meromorphicAt hMero).choose k
 
+/-- The finite polar sum associated with the chosen local expansion of a meromorphic function at
+`s`. -/
 def meromorphicPolarPartAt {f : ℂ → ℂ} {s : ℂ} (hMero : MeromorphicAt f s) (z : ℂ) : ℂ :=
   ∑ k : Fin (meromorphicPolarOrderAt f s), meromorphicPolarCoeffAt hMero k / (z - s) ^ (k.val + 1)
 
+/-- The analytic remainder chosen for the local polar expansion of a meromorphic function at
+`s`. -/
 def meromorphicAnalyticPartAt {f : ℂ → ℂ} {s : ℂ} (hMero : MeromorphicAt f s) : ℂ → ℂ :=
   (exists_laurent_data_of_meromorphicAt hMero).choose_spec.choose
 
+/-- The chosen analytic part of a meromorphic local expansion is analytic at its center. -/
 theorem meromorphicAnalyticPartAt_analyticAt {f : ℂ → ℂ} {s : ℂ}
     (hMero : MeromorphicAt f s) : AnalyticAt ℂ (meromorphicAnalyticPartAt hMero) s :=
   (exists_laurent_data_of_meromorphicAt hMero).choose_spec.choose_spec.1
 
+/-- On a punctured neighborhood of `s`, a meromorphic function equals its chosen analytic part
+plus its polar part. -/
 theorem eventuallyEq_meromorphicAnalyticPartAt_add_meromorphicPolarPartAt {f : ℂ → ℂ} {s : ℂ}
     (hMero : MeromorphicAt f s) :
     ∀ᶠ z in 𝓝[≠] s, f z = meromorphicAnalyticPartAt hMero z + meromorphicPolarPartAt hMero z :=
   (exists_laurent_data_of_meromorphicAt hMero).choose_spec.choose_spec.2
 
+/-- Expands the chosen polar part as its finite sum of inverse powers. -/
 theorem meromorphicPolarPartAt_eq_sum {f : ℂ → ℂ} {s : ℂ} (hMero : MeromorphicAt f s) (z : ℂ) :
     meromorphicPolarPartAt hMero z =
       ∑ k : Fin (meromorphicPolarOrderAt f s),
@@ -185,6 +232,7 @@ theorem meromorphicPolarPartAt_eq_sum {f : ℂ → ℂ} {s : ℂ} (hMero : Merom
   unfold meromorphicPolarPartAt
   rfl
 
+/-- The polar part centered at `s` is analytic at every distinct point. -/
 theorem meromorphicPolarPartAt_analyticAt_of_ne {f : ℂ → ℂ} {s : ℂ}
     (hMero : MeromorphicAt f s) {w : ℂ} (hw : w ≠ s) :
     AnalyticAt ℂ (meromorphicPolarPartAt hMero) w := by
@@ -193,6 +241,8 @@ theorem meromorphicPolarPartAt_analyticAt_of_ne {f : ℂ → ℂ} {s : ℂ}
   exact analyticAt_const.div ((analyticAt_id.sub analyticAt_const).pow _)
     (pow_ne_zero _ (sub_ne_zero.mpr hw))
 
+/-- When the polar order is positive, the coefficient of the simple inverse power equals the
+residue. -/
 theorem meromorphicPolarCoeffAt_zero_eq_residue {f : ℂ → ℂ} {s : ℂ}
     (hMero : MeromorphicAt f s) (h_pos : 0 < meromorphicPolarOrderAt f s) :
     meromorphicPolarCoeffAt hMero ⟨0, h_pos⟩ = residue f s := by
@@ -202,6 +252,8 @@ theorem meromorphicPolarCoeffAt_zero_eq_residue {f : ℂ → ℂ} {s : ℂ}
   rw [dif_pos h_pos] at hres
   exact hres.symm
 
+/-- If a finite inverse-power sum agrees near a puncture with a function continuous at the
+center, its highest-index coefficient vanishes. -/
 private theorem coeff_top_eq_zero_of_eventuallyEq {s : ℂ} {N : ℕ} {c : ℕ → ℂ}
     {g : ℂ → ℂ} (hg : ContinuousAt g s) (h_eq : ∀ᶠ z in 𝓝[≠] s,
       ∑ k ∈ Finset.range (N + 1), c k / (z - s) ^ (k + 1) = g z) :
@@ -241,6 +293,8 @@ private theorem coeff_top_eq_zero_of_eventuallyEq {s : ℂ} {N : ℕ} {c : ℕ �
     simpa using h0
   exact tendsto_nhds_unique (h_lhs.congr' h_mul) h_rhs
 
+/-- If a finite inverse-power sum agrees near a puncture with a function continuous at the
+center, all its coefficients vanish. -/
 private theorem laurent_coeff_eq_zero_of_eventuallyEq {s : ℂ} {g : ℂ → ℂ} (hg : ContinuousAt g s) :
     ∀ {N : ℕ} {c : ℕ → ℂ},
       (∀ᶠ z in 𝓝[≠] s, ∑ k ∈ Finset.range N, c k / (z - s) ^ (k + 1) = g z) →
@@ -259,6 +313,8 @@ private theorem laurent_coeff_eq_zero_of_eventuallyEq {s : ℂ} {g : ℂ → ℂ
     · exact IH h_eq' k hk'
     · exact h_top
 
+/-- Rewrites a finite polar sum over `Fin N` as a sum over a larger natural-number range by
+padding its coefficients with zeros. -/
 private theorem sum_fin_div_pow_eq_sum_range {s : ℂ} {N L : ℕ} (hNL : N ≤ L)
     (a : Fin N → ℂ) (z : ℂ) :
     ∑ k : Fin N, a k / (z - s) ^ (k.val + 1)
@@ -275,6 +331,8 @@ private theorem sum_fin_div_pow_eq_sum_range {s : ℂ} {N L : ℕ} (hNL : N ≤ 
     fun k _ hk => by
     rw [dif_neg (Finset.mem_range.not.mp hk), zero_div]
 
+/-- Two finite polar expansions with continuous remainders that agree on a punctured
+neighborhood have equal coefficients after padding with zeros. -/
 theorem laurent_coeff_unique {s : ℂ} {N M : ℕ} {a : Fin N → ℂ} {b : Fin M → ℂ}
     {g h : ℂ → ℂ} (hg : ContinuousAt g s) (hh : ContinuousAt h s) (h_eq : ∀ᶠ z in 𝓝[≠] s,
       g z + ∑ k : Fin N, a k / (z - s) ^ (k.val + 1)
@@ -298,6 +356,8 @@ theorem laurent_coeff_unique {s : ℂ} {N M : ℕ} {a : Fin N → ℂ} {b : Fin 
       (laurent_coeff_eq_zero_of_eventuallyEq (hh.sub hg) h_diff k hk_lt)
   · rw [dif_neg (by omega : ¬ k < N), dif_neg (by omega : ¬ k < M)]
 
+/-- Every finite polar expansion of a meromorphic function with a continuous remainder has the
+same zero-padded coefficients as `meromorphicPolarCoeffAt`. -/
 theorem laurent_coeff_eq_meromorphicPolarCoeffAt {f : ℂ → ℂ} {s : ℂ}
     (hMero : MeromorphicAt f s) {N : ℕ} {a : Fin N → ℂ} {g : ℂ → ℂ} (hg : ContinuousAt g s)
     (h_eq : ∀ᶠ z in 𝓝[≠] s, f z = g z + ∑ k : Fin N, a k / (z - s) ^ (k.val + 1)) (k : ℕ) :

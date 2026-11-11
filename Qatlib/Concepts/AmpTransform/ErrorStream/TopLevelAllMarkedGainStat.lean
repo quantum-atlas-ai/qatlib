@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoiseConsumers
+
+/-!
+# Specification of the all-marked boundary
+
+`TopLevelAllMarkedGain` specifies amplified Fourier sampling when every label is marked. It
+records circuit unitarity, concentration at zero, and the Bernoulli weight of the complementary
+noise set in the setting of [Cornwell2014].
+
+## Main statements
+
+* `TopLevelAllMarkedGain`: Specifies circuit unitarity and concentration at zero for an entirely
+  marked domain, together with the complement's Bernoulli weight and the corresponding weighted
+  Born probabilities.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -18,6 +37,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- Specifies circuit unitarity and concentration at zero for an entirely marked domain,
+together with the complement's Bernoulli weight and the corresponding weighted Born
+probabilities. -/
 def TopLevelAllMarkedGain : Prop :=
   ∀ (N k : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∀ (d : FinDist (Finset (ZMod N))),

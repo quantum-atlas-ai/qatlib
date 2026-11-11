@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
 import Qatlib.Concepts.QueryComplexity.Amplification.SubroutineCleaning
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+/-!
+# Standard-oracle majority amplification specification
+
+`StandardOracleMajorityAmplification` specifies majority-vote error reduction for a family of
+inputs sharing a unitary circuit and basis seed. The statement records the repetition bound,
+exact routing costs, and success probability for the majority readout. The background is
+described in [BennettEtAl1997].
+
+## Main statements
+
+* `StandardOracleMajorityAmplification`: the quantified majority amplification guarantee.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +38,9 @@ namespace Qatlib.Concepts.UniformBqp.OracleAmplify
 open Matrix
 open scoped Classical BigOperators
 
+/-- The assertion that a unitary bit-oracle circuit succeeding with probability at least `2/3`
+can be amplified to success at least `1 - ε` by an odd number of routed copies and majority
+vote. It includes a logarithmic repetition bound and exact query and gate counts. -/
 def StandardOracleMajorityAmplification : Prop :=
   ∀ (n : ℕ) (hn : 0 < n) (W X : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     [Fintype X] [DecidableEq X] (C : Circuit ((Fin n × Bool) × W))

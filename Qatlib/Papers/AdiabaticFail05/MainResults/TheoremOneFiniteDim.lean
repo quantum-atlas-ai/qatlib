@@ -10,6 +10,32 @@ import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Finite-dimensional estimates for an adiabatic lower bound
+
+This module proves overlap and squared-distance inequalities used in the finite-dimensional
+adiabatic runtime argument. The theorem `overlap_sum_le_sqrt_mul` controls normalized vectors in
+a common finite orthonormal span, `eq10_lower_bound_with_sqrt` inserts this overlap bound into
+the distance estimate, and `deriv_abs_integral_bound` integrates the specified derivative bound.
+The mathematical context is [FarhiGoldstoneGutmannNagaj2008].
+
+## Main statements
+
+* `overlap_sum_le_sqrt_mul`: For an orthonormal family of size `N` and unit vectors lying in the
+  span of an orthonormal family of size `k`, the sum of the corresponding absolute overlaps is
+  at most `Real.sqrt (N * k)`.
+* `eq10_lower_bound_with_sqrt`: Under the unit-vector and orthogonality hypotheses, an
+  overlap-sum bound `Real.sqrt (N * k)` gives the squared-distance lower bound `2 * N * (1 -
+  Real.sqrt (1 - b)) - 2 * Real.sqrt b * Real.sqrt (N * k)` for `b ∈ [0, 1]`.
+* `deriv_abs_integral_bound`: For nonnegative `T`, if `S T = 0`, the derivative exists and is
+  interval integrable, and `|deriv S t| ≤ 2 * E * (1 - t / T) * K` on the interval, then `S 0 ≤
+  E * T * K`.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmannNagaj2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,6 +46,9 @@ open Finset intervalIntegral MeasureTheory
 
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
 
+/-- For an orthonormal family of size `N` and unit vectors lying in the span of an orthonormal
+family of size `k`, the sum of the corresponding absolute overlaps is at most `Real.sqrt (N
+* k)` [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem overlap_sum_le_sqrt_mul
     (N k : ℕ) (e : Fin N → V) (he : Orthonormal ℂ e)
     (v : Fin k → V) (hv : Orthonormal ℂ v)
@@ -106,6 +135,10 @@ theorem overlap_sum_le_sqrt_mul
     _ ≤ Real.sqrt (N : ℝ) * Real.sqrt (k : ℝ) := hstep
     _ = Real.sqrt ((N : ℝ) * (k : ℝ)) := (Real.sqrt_mul (Nat.cast_nonneg N) _).symm
 
+/-- For `b ∈ [0, 1]` and unit vector families with `e x` orthogonal to `u x`, the sum of squared
+distances from `Real.sqrt b • e x + Real.sqrt (1 - b) • u x` to `i x` is at least `2 * N *
+(1 - Real.sqrt (1 - b)) - 2 * Real.sqrt b * ∑ x, ‖⟪e x, i x⟫‖`
+[FarhiGoldstoneGutmannNagaj2008]. -/
 theorem eq10_lower_bound
     (N : ℕ) (e u i : Fin N → V) (b : ℝ)
     (he : ∀ x, ‖e x‖ = 1)
@@ -188,6 +221,9 @@ theorem eq10_lower_bound
     _ ≤ ∑ x : Fin N,
           ‖(Real.sqrt b : ℂ) • e x + (Real.sqrt (1 - b) : ℂ) • u x - i x‖ ^ 2 := hsum_point
 
+/-- Under the unit-vector and orthogonality hypotheses, an overlap-sum bound `Real.sqrt (N * k)`
+gives the squared-distance lower bound `2 * N * (1 - Real.sqrt (1 - b)) - 2 * Real.sqrt b *
+Real.sqrt (N * k)` for `b ∈ [0, 1]` [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem eq10_lower_bound_with_sqrt
     (N k : ℕ) (e u i : Fin N → V) (b : ℝ)
     (he : ∀ x, ‖e x‖ = 1)
@@ -204,6 +240,9 @@ theorem eq10_lower_bound_with_sqrt
   have hmul := mul_le_mul_of_nonneg_left hbound (by positivity : (0 : ℝ) ≤ 2 * Real.sqrt b)
   linarith [hbase, hmul]
 
+/-- For nonnegative `T`, if `S T = 0`, the derivative exists and is interval integrable, and
+`|deriv S t| ≤ 2 * E * (1 - t / T) * K` on the interval, then `S 0 ≤ E * T * K`
+[FarhiGoldstoneGutmannNagaj2008]. -/
 theorem deriv_abs_integral_bound
     (S : ℝ → ℝ) (E T K : ℝ) (hT : 0 ≤ T)
     (hST : S T = 0)

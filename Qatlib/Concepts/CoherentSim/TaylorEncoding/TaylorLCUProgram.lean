@@ -21,6 +21,36 @@ import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximatio
 import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
 import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+
+/-!
+# Taylor LCU circuits with balanced coefficients
+
+`TaylorWordLabel` indexes truncated operator words and two cancelling padding branches. The
+coefficient magnitudes have total mass two under the stated segment bounds, supplying a
+preparation matrix, coefficient-phase gate, input frame, and routed SELECT circuit for the
+Taylor method [BerryEtAl2015Taylor].
+
+The branch identities identify the compressed evaluated circuit with half the exponential Taylor
+polynomial. Remainder estimates then give a scale-two encoding of Hamiltonian evolution, with
+explicit query and gate counts and additional preparation and compression results for segments
+of size at most `log 2`.
+
+## Main statements
+
+* `taylor_lcu_actual_prepare_select_and_counts`: The frame is isometric and the word is well
+  formed, with exact resource counts.
+* `taylor_actual_lcu_corner_polynomial`: Compression yields half the exponential Taylor
+  polynomial.
+* `taylor_actual_scale_two_evolution_encoding`: A scale-two evolution encoding with a dyadic
+  truncation error.
+* `taylor_actual_lcu_corner_polynomial_ln2`: The compression identity under the log-two segment
+  bound.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,33 +85,44 @@ open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The type of words in `J` of length at most `K`, together with two Boolean padding labels. -/
 abbrev TaylorWordLabel (J : Type) (K : ℕ) := (Σ l : Fin (K + 1), Fin l.val → J) ⊕ Bool
 
+/-- The unique word of length zero over the label type `J`. -/
 def taylorEmptyWord (J : Type) : Fin 0 → J := fun i => i.elim0
 
+/-- The Taylor label representing the empty word. -/
 def taylorEmptyLabel (J : Type) (K : ℕ) : TaylorWordLabel J K :=
   Sum.inl ⟨0, taylorEmptyWord J⟩
 
+/-- The length of an ordinary Taylor word, with value zero on either padding label. -/
 def taylorWordLen {J : Type} {K : ℕ} : TaylorWordLabel J K → ℕ
   | Sum.inl w => w.1.val
   | Sum.inr _ => 0
 
+/-- The Taylor coefficient of an operator word: its coefficient product multiplied by `(-I *
+τ)^l / l!`. -/
 noncomputable def taylorWordCoefficient {J : Type} (h : J → ℝ) (τ : ℝ) {K : ℕ}
     (w : Σ l : Fin (K + 1), Fin l.val → J) : ℂ :=
   ((-Complex.I * (τ : ℂ)) ^ (w.1.val : ℕ) / (w.1.val.factorial : ℂ)) *
     ∏ i, ((h (w.2 i) : ℂ))
 
+/-- The total absolute mass of the real coefficient family `h`. -/
 def taylorLambda {J : Type} [Fintype J] (h : J → ℝ) : ℝ := ∑ j, |h j|
 
+/-- The finite exponential sum in `taylorLambda h * |τ|` through order `K`. -/
 noncomputable def taylorS0 {J : Type} [Fintype J] (h : J → ℝ) (τ : ℝ) (K : ℕ) : ℝ :=
   ∑ l ∈ Finset.range (K + 1), (taylorLambda h * |τ|) ^ l / l.factorial
 
+/-- The Taylor-word coefficients augmented by two opposite padding coefficients determined by
+the deficit of `taylorS0` from two. -/
 noncomputable def taylorCoeff {J : Type} [Fintype J] (h : J → ℝ) (τ : ℝ) (K : ℕ) :
     TaylorWordLabel J K → ℂ :=
   fun x => match x with
     | Sum.inl w => taylorWordCoefficient h τ w
     | Sum.inr b => if b then (2 - taylorS0 h τ K) / 2 else -(2 - taylorS0 h τ K) / 2
 
+/-- The nonnegative square root of half the norm of a padded Taylor coefficient. -/
 noncomputable def taylorAmplitudeReal {J : Type} [Fintype J] (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (x : TaylorWordLabel J K) : ℝ := Real.sqrt (‖taylorCoeff h τ K x‖ / 2)
 
@@ -89,12 +130,16 @@ section Balancing
 
 variable {J : Type} [Fintype J]
 
+/-- The sum of products of absolute coefficients over all length-`l` words equals the `l`th
+power of their total absolute mass. -/
 theorem taylor_sum_prod_abs (h : J → ℝ) (l : ℕ) :
     ∑ w : Fin l → J, ∏ i, |h (w i)| = (taylorLambda h) ^ l := by
   rw [← Fintype.piFinset_univ, ← Finset.prod_univ_sum
     (fun _ : Fin l => (Finset.univ : Finset J)) (fun (_ : Fin l) (j : J) => |h j|),
     Finset.prod_const, Finset.card_univ, Fintype.card_fin, taylorLambda]
 
+/-- The norm of a Taylor-word coefficient is `|τ|^l / l!` times the product of the absolute
+coefficients of its letters. -/
 theorem abs_taylorWordCoefficient (h : J → ℝ) (τ : ℝ) {K : ℕ}
     (w : Σ l : Fin (K + 1), Fin l.val → J) :
     ‖taylorWordCoefficient h τ w‖ =
@@ -107,6 +152,8 @@ theorem abs_taylorWordCoefficient (h : J → ℝ) (τ : ℝ) {K : ℕ}
     exact Finset.prod_congr rfl fun i _ => by rw [Complex.norm_real, Real.norm_eq_abs]
   rw [taylorWordCoefficient, norm_mul, norm_div, h1, h2, Complex.norm_natCast]
 
+/-- If coefficient mass times absolute duration is at most `1 / 2`, the truncated exponential
+mass is at most `2 - 2⁻ᴷ`. -/
 theorem taylorS0_lt_two (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ 1 / 2) : taylorS0 h τ K ≤ 2 - (1 / 2 : ℝ) ^ K := by
   have hpos : 0 ≤ taylorLambda h * |τ| := mul_nonneg (Finset.sum_nonneg fun j _ => abs_nonneg _)
@@ -127,10 +174,13 @@ theorem taylorS0_lt_two (h : J → ℝ) (τ : ℝ) (K : ℕ)
         field_simp
         ring
 
+/-- On an ordinary word label, the padded coefficient equals its Taylor-word coefficient. -/
 theorem taylorCoeff_inl (h : J → ℝ) (τ : ℝ) {K : ℕ}
     (w : Σ l : Fin (K + 1), Fin l.val → J) :
     taylorCoeff h τ K (Sum.inl w) = taylorWordCoefficient h τ w := rfl
 
+/-- Under the small-segment bound `taylorLambda h * |τ| ≤ 1 / 2`, the norms of all padded Taylor
+coefficients sum to two. -/
 theorem taylor_sum_norm_eq_two (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ 1 / 2) : ∑ x, ‖taylorCoeff h τ K x‖ = 2 := by
   have hs0 := taylorS0_lt_two h τ K hτ
@@ -178,6 +228,7 @@ theorem taylor_sum_norm_eq_two (h : J → ℝ) (τ : ℝ) (K : ℕ)
   rw [Fintype.sum_sum_type, hinl', hinr]
   linarith
 
+/-- Under the small-segment bound, the squared real Taylor amplitudes sum to one. -/
 theorem taylor_amplitude_sq_sum (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ 1 / 2) :
     ∑ x, (taylorAmplitudeReal h τ K x) ^ 2 = 1 := by
@@ -192,13 +243,18 @@ section Program
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The delta-function frame embedding data vectors with empty Taylor word, false control bit,
+and fixed address `j0`. -/
 noncomputable def taylorFrame (j0 : J) (K : ℕ) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) I ℂ :=
   Matrix.of fun x i => if x = (taylorEmptyLabel J K, (false, (j0, i))) then (1 : ℂ) else 0
 
+/-- The index map placing a data index in the empty-word sector with false control and fixed
+address `j0`. -/
 private def taylorFrameMap (j0 : J) {K : ℕ} : I → TaylorWordLabel J K × (Bool × (J × I)) :=
   fun i => (taylorEmptyLabel J K, (false, (j0, i)))
 
+/-- The Taylor-frame index map is injective. -/
 private theorem taylorFrameMap_injective (j0 : J) {K : ℕ} :
     Function.Injective (taylorFrameMap (I := I) (K := K) j0) := by
   intro a b hab
@@ -206,6 +262,7 @@ private theorem taylorFrameMap_injective (j0 : J) {K : ℕ} :
   simp at hab
   exact hab
 
+/-- A delta-function matrix associated with an injective index map is an isometry. -/
 private theorem isIsometry_of_delta' {X : Type} [Fintype X] [DecidableEq X]
     {Y : Type} [Fintype Y] [DecidableEq Y] {f : Y → X} (hf : Function.Injective f)
     (V : Matrix X Y ℂ) (hV : ∀ x y, V x y = if x = f y then (1 : ℂ) else 0) :
@@ -232,12 +289,15 @@ private theorem isIsometry_of_delta' {X : Type} [Fintype X] [DecidableEq X]
           simp [Ne.symm hne]
         · simp [hx]
 
+/-- The Taylor input frame is an isometry. -/
 theorem taylorFrame_isIsometry (j0 : J) (K : ℕ) : IsIsometry (taylorFrame (I := I) j0 K) :=
   isIsometry_of_delta' (taylorFrameMap_injective j0) _ fun _ _ => rfl
 
+/-- The address map interchanging `j0` and `a` and fixing all other addresses. -/
 def taylorSwapAddr {J : Type} [DecidableEq J] (j0 a : J) : J → J :=
   fun x => if x = j0 then a else if x = a then j0 else x
 
+/-- Interchanging the two designated addresses twice gives the original address. -/
 theorem taylorSwapAddr_involutive {J : Type} [DecidableEq J] (j0 a : J) :
     Function.Involutive (taylorSwapAddr j0 a) := by
   intro x
@@ -259,13 +319,17 @@ theorem taylorSwapAddr_involutive {J : Type} [DecidableEq J] (j0 a : J) :
       show taylorSwapAddr j0 a (taylorSwapAddr j0 a x) = x
       rw [e1, e1]
 
+/-- The Boolean test that position `j` is smaller than the length of the Taylor word. -/
 def taylorActive {J : Type} {K : ℕ} (w : Σ l : Fin (K + 1), Fin l.val → J) (j : Fin K) : Bool :=
   (j : ℕ) < w.1.val
 
+/-- The letter at an active Taylor-word position, with default value `j0` outside the word. -/
 def taylorWordAt {J : Type} {K : ℕ} (j0 : J) (w : Σ l : Fin (K + 1), Fin l.val → J)
     (j : Fin K) : J :=
   if h : (j : ℕ) < w.1.val then w.2 ⟨j, h⟩ else j0
 
+/-- The workspace map that, at an active ordinary-word position, flips the control and swaps the
+fixed address with that position's letter address. -/
 def taylorRouteSwap (j0 : J) {K : ℕ} (j : Fin K) :
     TaylorWordLabel J K × (Bool × (J × I)) → TaylorWordLabel J K × (Bool × (J × I)) :=
   fun x => match x.1 with
@@ -275,6 +339,7 @@ def taylorRouteSwap (j0 : J) {K : ℕ} (j : Fin K) :
             else x.2.2.1, x.2.2.2)))
     | Sum.inr _ => x
 
+/-- The routing map for each Taylor-word position is an involution. -/
 theorem taylorRouteSwap_involutive (j0 : J) {K : ℕ} (j : Fin K) :
     Function.Involutive (taylorRouteSwap (I := I) (K := K) j0 j) := by
   intro ⟨wl, f, a, d⟩
@@ -301,20 +366,25 @@ theorem taylorRouteSwap_involutive (j0 : J) {K : ℕ} (j : Fin K) :
             _ = (Sum.inl w, (f, (a, d))) := h1
   | Sum.inr b => rfl
 
+/-- The permutation matrix of the Taylor-word routing involution. -/
 noncomputable def taylorRouteMatrix (j0 : J) {K : ℕ} (j : Fin K) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) (TaylorWordLabel J K × (Bool × (J × I))) ℂ :=
   permMatrix (taylorRouteSwap (I := I) j0 j)
 
+/-- Each Taylor routing permutation matrix is unitary. -/
 theorem taylorRouteMatrix_unitary (j0 : J) {K : ℕ} (j : Fin K) :
     taylorRouteMatrix (I := I) j0 j ∈
       Matrix.unitaryGroup (TaylorWordLabel J K × (Bool × (J × I))) ℂ :=
   permMatrix_unitary (taylorRouteSwap_involutive j0 j)
 
+/-- The controlled SELECT query on the address and data registers, tensored with the identity on
+Taylor-word labels. -/
 noncomputable def taylorQuery (U : J → Matrix I I ℂ) (K : ℕ) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) (TaylorWordLabel J K × (Bool × (J × I))) ℂ :=
   TensorGate (1 : Matrix (TaylorWordLabel J K) (TaylorWordLabel J K) ℂ)
     (controlOracle (select U))
 
+/-- The Taylor query is unitary when all selected summand operators are unitary. -/
 theorem taylorQuery_unitary (U : J → Matrix I I ℂ) (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
     (K : ℕ) :
     taylorQuery U K ∈
@@ -322,10 +392,12 @@ theorem taylorQuery_unitary (U : J → Matrix I I ℂ) (hU : ∀ j, U j ∈ Matr
   tensorGate_unitary (Matrix.unitaryGroup _ ℂ).one_mem
     (controlOracle_unitary (select_unitary U hU))
 
+/-- The diagonal gate whose entries are the phases of the padded Taylor coefficients. -/
 noncomputable def taylorPhaseGate (h : J → ℝ) (τ : ℝ) (K : ℕ) :
     Matrix (TaylorWordLabel J K) (TaylorWordLabel J K) ℂ :=
   Matrix.diagonal (fun x => coefficientPhase (taylorCoeff h τ K x))
 
+/-- The diagonal Taylor coefficient-phase gate is unitary. -/
 theorem taylorPhaseGate_unitary (h : J → ℝ) (τ : ℝ) (K : ℕ) :
     taylorPhaseGate h τ K ∈ Matrix.unitaryGroup (TaylorWordLabel J K) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, taylorPhaseGate,
@@ -334,24 +406,34 @@ theorem taylorPhaseGate_unitary (h : J → ℝ) (τ : ℝ) (K : ℕ) :
   funext x
   exact coefficientPhase_unit _
 
+/-- The nonnegative preparation matrix with amplitudes given by the square roots of half the
+coefficient norms, based at the empty word. -/
 noncomputable def taylorPrepare (h : J → ℝ) (τ : ℝ) (K : ℕ) : Matrix (TaylorWordLabel J K) (TaylorWordLabel J K) ℂ :=
   nonnegativePrepare (fun x => Real.sqrt (‖taylorCoeff h τ K x‖ / 2)) (taylorEmptyLabel J K)
 
+/-- The empty-label column of the Taylor preparation matrix consists of the square roots of half
+the coefficient norms. -/
 theorem taylorPrepare_column (h : J → ℝ) (τ : ℝ) (K : ℕ) (x : TaylorWordLabel J K) :
     taylorPrepare h τ K x (taylorEmptyLabel J K)
       = (Real.sqrt (‖taylorCoeff h τ K x‖ / 2) : ℂ) :=
   nonnegativePrepare_column _ _ (fun _ => Real.sqrt_nonneg _) x
 
+/-- The Taylor preparation matrix is unitary under the small-segment bound `taylorLambda h * |τ|
+≤ 1 / 2`. -/
 theorem taylorPrepare_unitary (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ 1 / 2) :
     taylorPrepare h τ K ∈ Matrix.unitaryGroup (TaylorWordLabel J K) ℂ :=
   nonnegativePrepare_unitary _ _ (fun _ => Real.sqrt_nonneg _)
     (taylor_amplitude_sq_sum h τ K hτ)
 
+/-- The instruction word that applies a routing gate, one forward query, and the same routing
+gate for a specified position. -/
 noncomputable def taylorQueryRouteStep (j0 : J) {K : ℕ} (j : Fin K) :
     List (AdjointStep (TaylorWordLabel J K × (Bool × (J × I)))) :=
   [.gate (taylorRouteMatrix j0 j), .forward, .gate (taylorRouteMatrix j0 j)]
 
+/-- The recursively assembled routing-and-query instruction word for the first `n` Taylor
+positions, where `n ≤ K`. -/
 noncomputable def taylorBlockList (j0 : J) (K : ℕ) : (n : ℕ) → n ≤ K →
     List (AdjointStep (TaylorWordLabel J K × (Bool × (J × I))))
   | 0, _ => []
@@ -359,6 +441,7 @@ noncomputable def taylorBlockList (j0 : J) (K : ℕ) : (n : ℕ) → n ≤ K →
       taylorQueryRouteStep j0 (K := K) ⟨n, Nat.lt_of_succ_le hn⟩ ++
         taylorBlockList j0 K n (Nat.le_of_succ_le hn)
 
+/-- The recursive matrix product of routed Taylor-query factors for the first `n` positions. -/
 noncomputable def taylorSelectProductAux (U : J → Matrix I I ℂ) (j0 : J) (K : ℕ) :
     (n : ℕ) → n ≤ K →
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) (TaylorWordLabel J K × (Bool × (J × I))) ℂ
@@ -368,6 +451,8 @@ noncomputable def taylorSelectProductAux (U : J → Matrix I I ℂ) (j0 : J) (K 
         taylorRouteMatrix j0 (K := K) ⟨n, Nat.lt_of_succ_le hn⟩ *
         taylorSelectProductAux U j0 K n (Nat.le_of_succ_le hn)
 
+/-- The Taylor LCU instruction word combining preparation, coefficient phases, and the full list
+of routed query blocks. -/
 noncomputable def taylorLCUWord (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ) :
     List (AdjointStep (TaylorWordLabel J K × (Bool × (J × I)))) :=
   [.gate (TensorGate (taylorPrepare h τ K)ᴴ
@@ -378,6 +463,8 @@ noncomputable def taylorLCUWord (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ) :
     [.gate (TensorGate (taylorPrepare h τ K)
       (1 : Matrix (Bool × (J × I)) (Bool × (J × I)) ℂ))]
 
+/-- The matrix product of inverse preparation, coefficient phases, routed SELECT factors, and
+preparation for the Taylor LCU construction. -/
 noncomputable def taylorLCUUnitary (h : J → ℝ) (U : J → Matrix I I ℂ) (j0 : J) (τ : ℝ)
     (K : ℕ) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) (TaylorWordLabel J K × (Bool × (J × I))) ℂ :=
@@ -386,6 +473,7 @@ noncomputable def taylorLCUUnitary (h : J → ℝ) (U : J → Matrix I I ℂ) (j
     taylorSelectProductAux U j0 K K le_rfl *
     TensorGate (taylorPrepare h τ K) (1 : Matrix (Bool × (J × I)) (Bool × (J × I)) ℂ)
 
+/-- The first `n` Taylor query blocks use `n` queries and `2 * n` gates. -/
 private theorem counts_taylorBlockList (j0 : J) (K : ℕ) : ∀ (n : ℕ) (hn : n ≤ K),
     adjointQueryCount (taylorBlockList (I := I) j0 K n hn) = n ∧
     adjointGateCount (taylorBlockList (I := I) j0 K n hn) = 2 * n := by
@@ -402,6 +490,7 @@ private theorem counts_taylorBlockList (j0 : J) (K : ℕ) : ∀ (n : ℕ) (hn : 
       simp only [taylorQueryRouteStep, adjointQueryCount, adjointGateCount]
       exact ⟨by omega, by omega⟩
 
+/-- Every Taylor block list with `n ≤ K` is a well-formed adjoint circuit. -/
 private theorem taylorBlockList_wellFormed (j0 : J) (K : ℕ) : ∀ (n : ℕ) (hn : n ≤ K),
     WellFormedAdjointCircuit (taylorBlockList (I := I) j0 K n hn) := by
   intro n
@@ -419,6 +508,8 @@ private theorem taylorBlockList_wellFormed (j0 : J) (K : ℕ) : ∀ (n : ℕ) (h
       exact ⟨taylorRouteMatrix_unitary j0 ⟨m, Nat.lt_of_succ_le hm⟩,
         taylorRouteMatrix_unitary j0 ⟨m, Nat.lt_of_succ_le hm⟩⟩
 
+/-- Under the small-segment bound, the Taylor frame is isometric and the LCU word is well
+formed, using `K` queries and `2 * K + 3` gates. -/
 theorem taylor_lcu_actual_prepare_select_and_counts (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ)
     (hτ : (∑ j, |h j|) * |τ| ≤ 1 / 2) :
     IsIsometry (taylorFrame (I := I) j0 K) ∧
@@ -459,16 +550,21 @@ theorem taylor_lcu_actual_prepare_select_and_counts (h : J → ℝ) (j0 : J) (τ
     simp only [adjointGateCount]
     omega
 
+/-- The delta-function frame embedding data into a specified Taylor-word branch with false
+control and fixed address `j0`. -/
 noncomputable def taylorBranchFrame (j0 : J) (K : ℕ) (wl : TaylorWordLabel J K) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) I ℂ :=
   Matrix.of fun x i => if (wl, (false, (j0, i))) = x then (1 : ℂ) else 0
 
+/-- The data operator selected by a word at an active position, or the identity for an inactive
+position or padding branch. -/
 noncomputable def taylorBranchStep (U : J → Matrix I I ℂ) {K : ℕ} (j : Fin K)
     (wl : TaylorWordLabel J K) : Matrix I I ℂ :=
   match wl with
   | Sum.inl w => if h : (j : ℕ) < w.1.val then U (w.2 ⟨j, h⟩) else 1
   | Sum.inr _ => 1
 
+/-- The recursive product of the first `n` branch-position operators for a fixed Taylor label. -/
 noncomputable def taylorBranchWord (U : J → Matrix I I ℂ) (K : ℕ) :
     (n : ℕ) → n ≤ K → TaylorWordLabel J K → Matrix I I ℂ
   | 0, _, _ => 1
@@ -476,6 +572,8 @@ noncomputable def taylorBranchWord (U : J → Matrix I I ℂ) (K : ℕ) :
       taylorBranchStep U ⟨n, Nat.lt_of_succ_le hn⟩ wl *
         taylorBranchWord U K n (Nat.le_of_succ_le hn) wl
 
+/-- The branch frame inserts a data vector into its designated word, false-control, and address
+sector and is zero elsewhere. -/
 private theorem taylorBranchFrame_mulVec (j0 : J) (K : ℕ) (wl : TaylorWordLabel J K)
     (ψ : QState I) (x : TaylorWordLabel J K × (Bool × (J × I))) :
     (taylorBranchFrame j0 K wl *ᵥ ψ) x =
@@ -495,10 +593,14 @@ private theorem taylorBranchFrame_mulVec (j0 : J) (K : ℕ) (wl : TaylorWordLabe
     intro h1
     exact absurd h1 hw
 
+/-- The delta-function frame embedding data into the sector specified by a word label, control
+bit, and address. -/
 private noncomputable def taylorSectorFrame (K : ℕ) (wl : TaylorWordLabel J K)
     (b : Bool) (a : J) : Matrix (TaylorWordLabel J K × (Bool × (J × I))) I ℂ :=
   Matrix.of fun x i => if x = (wl, (b, (a, i))) then 1 else 0
 
+/-- Multiplying a matrix by a sector frame extracts the columns with that sector's fixed
+ancillary indices. -/
 private theorem mul_taylorSectorFrame {K : ℕ} (A : Matrix
     (TaylorWordLabel J K × (Bool × (J × I)))
     (TaylorWordLabel J K × (Bool × (J × I))) ℂ)
@@ -506,6 +608,8 @@ private theorem mul_taylorSectorFrame {K : ℕ} (A : Matrix
     (A * taylorSectorFrame (I := I) K wl b a) x i = A x (wl, (b, (a, i))) := by
   simp [Matrix.mul_apply, taylorSectorFrame, mul_ite]
 
+/-- Multiplying a sector frame by a data matrix embeds that matrix in the designated sector and
+is zero elsewhere. -/
 private theorem taylorSectorFrame_mul (K : ℕ) (wl : TaylorWordLabel J K)
     (b : Bool) (a : J) (V : Matrix I I ℂ) (x : TaylorWordLabel J K × (Bool × (J × I))) (i : I) :
     (taylorSectorFrame (I := I) K wl b a * V) x i =
@@ -514,6 +618,8 @@ private theorem taylorSectorFrame_mul (K : ℕ) (wl : TaylorWordLabel J K)
   by_cases hw : w = wl <;> by_cases hf : f = b <;> by_cases hj : j = a <;>
     simp [Matrix.mul_apply, taylorSectorFrame, hw, hf, hj, ite_mul]
 
+/-- On a fixed sector, the Taylor query applies the addressed summand when the control is true
+and the identity otherwise. -/
 private theorem taylorQuery_sector (U : J → Matrix I I ℂ) (K : ℕ)
     (wl : TaylorWordLabel J K) (b : Bool) (a : J) :
     taylorQuery U K * taylorSectorFrame (I := I) K wl b a =
@@ -524,6 +630,8 @@ private theorem taylorQuery_sector (U : J → Matrix I I ℂ) (K : ℕ)
     simp [taylorQuery, TensorGate, controlOracle, select,
       Matrix.one_apply, hw, hj]
 
+/-- The routing matrix maps a sector to the sector obtained by the active-position control flip
+and address swap, fixing padding sectors. -/
 private theorem taylorRoute_sector (j0 : J) {K : ℕ} (j : Fin K)
     (wl : TaylorWordLabel J K) (b : Bool) (a : J) :
     taylorRouteMatrix (I := I) j0 j * taylorSectorFrame (I := I) K wl b a =
@@ -535,6 +643,8 @@ private theorem taylorRoute_sector (j0 : J) {K : ℕ} (j : Fin K)
   rw [mul_taylorSectorFrame]
   cases wl <;> rfl
 
+/-- A routed query factor on the false-control, fixed-address sector acts as the corresponding
+branch-position operator and returns to the same sector. -/
 private theorem taylorPosition_sector (U : J → Matrix I I ℂ) (j0 : J) {K : ℕ}
     (j : Fin K) (wl : TaylorWordLabel J K) :
     (taylorRouteMatrix (I := I) j0 j * taylorQuery U K * taylorRouteMatrix (I := I) j0 j) *
@@ -562,6 +672,8 @@ private theorem taylorPosition_sector (U : J → Matrix I I ℂ) (j0 : J) {K : �
         rw [taylorRoute_sector]
         simp [taylorActive, hj, taylorBranchStep]
 
+/-- The product of routed query factors acts on each false-control, fixed-address sector as the
+corresponding recursive branch word. -/
 private theorem taylorSelectProduct_sector (U : J → Matrix I I ℂ) (j0 : J) (K : ℕ) :
     ∀ (n : ℕ) (hn : n ≤ K) (wl : TaylorWordLabel J K),
       taylorSelectProductAux U j0 K n hn * taylorSectorFrame (I := I) K wl false j0 =
@@ -574,6 +686,7 @@ private theorem taylorSelectProduct_sector (U : J → Matrix I I ℂ) (j0 : J) (
       simp only [taylorSelectProductAux, taylorBranchWord]
       rw [Matrix.mul_assoc, ih, ← Matrix.mul_assoc, taylorPosition_sector, Matrix.mul_assoc]
 
+/-- The routed SELECT product intertwines each branch frame with its branch-word data operator. -/
 theorem taylorSelectProduct_branch (U : J → Matrix I I ℂ) (j0 : J) (K n : ℕ)
     (hn : n ≤ K) (wl : TaylorWordLabel J K) :
     taylorSelectProductAux U j0 K n hn * taylorBranchFrame j0 K wl =
@@ -584,6 +697,8 @@ theorem taylorSelectProduct_branch (U : J → Matrix I I ℂ) (j0 : J) (K n : �
   rw [he]
   exact taylorSelectProduct_sector U j0 K n hn wl
 
+/-- Evaluating the Taylor block instruction list gives the corresponding recursive routed SELECT
+matrix product. -/
 private theorem evaluate_taylorBlockList (U : J → Matrix I I ℂ) (j0 : J) (K : ℕ) :
     ∀ (n : ℕ) (hn : n ≤ K),
       evaluate (taylorQuery U K) (taylorBlockList j0 K n hn) =
@@ -598,10 +713,13 @@ private theorem evaluate_taylorBlockList (U : J → Matrix I I ℂ) (j0 : J) (K 
 
       simp only [Matrix.mul_assoc]
 
+/-- The frame embedding word-label and data pairs into the full workspace with false control and
+fixed address `j0`. -/
 private noncomputable def taylorScratchFrame (j0 : J) (K : ℕ) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) (TaylorWordLabel J K × I) ℂ :=
   Matrix.of fun x y => if x = (y.1, (false, (j0, y.2))) then 1 else 0
 
+/-- The scratch-register embedding frame is an isometry. -/
 private theorem taylorScratchFrame_isIsometry (j0 : J) (K : ℕ) :
     IsIsometry (taylorScratchFrame (I := I) j0 K) := by
   apply isIsometry_of_delta' (f := fun y => (y.1, (false, (j0, y.2))))
@@ -609,6 +727,8 @@ private theorem taylorScratchFrame_isIsometry (j0 : J) (K : ℕ) :
     simpa only [Prod.mk.injEq, and_true, true_and, Prod.ext_iff] using hab
   · intro x y; rfl
 
+/-- A selected branch operator followed by the scratch embedding has the stated branch-sector
+matrix entries. -/
 private theorem taylorScratchFrame_select (j0 : J) (K : ℕ)
     (V : TaylorWordLabel J K → Matrix I I ℂ)
     (x : TaylorWordLabel J K × (Bool × (J × I))) (wl : TaylorWordLabel J K) (i : I) :
@@ -617,6 +737,8 @@ private theorem taylorScratchFrame_select (j0 : J) (K : ℕ)
   simp [Matrix.mul_apply, select, taylorScratchFrame, taylorSectorFrame,
     Fintype.sum_prod_type, mul_ite]
 
+/-- On the scratch-frame range, the full routed SELECT product equals the SELECT operator of the
+branch-word family. -/
 private theorem taylorSelectProduct_scratch (U : J → Matrix I I ℂ) (j0 : J) (K : ℕ) :
     taylorSelectProductAux U j0 K K le_rfl * taylorScratchFrame (I := I) j0 K =
       taylorScratchFrame (I := I) j0 K * select (taylorBranchWord U K K le_rfl) := by
@@ -625,6 +747,8 @@ private theorem taylorSelectProduct_scratch (U : J → Matrix I I ℂ) (j0 : J) 
   change (taylorSelectProductAux U j0 K K le_rfl * taylorSectorFrame (I := I) K wl false j0) x i = _
   rw [taylorSelectProduct_sector]
 
+/-- Left multiplication by the scratch frame embeds a matrix into the false-control,
+fixed-address subspace and is zero outside that subspace. -/
 private theorem taylorScratchFrame_mul {O : Type} (j0 : J) (K : ℕ)
     (V : Matrix (TaylorWordLabel J K × I) O ℂ)
     (x : TaylorWordLabel J K × (Bool × (J × I))) (y : O) :
@@ -641,6 +765,8 @@ private theorem taylorScratchFrame_mul {O : Type} (j0 : J) (K : ℕ)
     simp [hj]
   all_goals simp [Matrix.mul_apply, taylorScratchFrame, hj]
 
+/-- A matrix acting on Taylor-word labels commutes through the scratch embedding with the
+corresponding label-data tensor action. -/
 private theorem taylorTensor_scratch {K : ℕ}
     (A : Matrix (TaylorWordLabel J K) (TaylorWordLabel J K) ℂ) (j0 : J) :
     TensorGate A (1 : Matrix (Bool × (J × I)) (Bool × (J × I)) ℂ) *
@@ -654,6 +780,8 @@ private theorem taylorTensor_scratch {K : ℕ}
   by_cases hb : b = false <;> by_cases hj : j = j0 <;>
     simp [tensorGate_apply, Matrix.one_apply, hb, hj]
 
+/-- Applying the Taylor preparation to the input frame equals the scratch embedding of the
+amplitude preparation lift. -/
 private theorem taylorPrepare_frame (h : J → ℝ) (τ : ℝ) (K : ℕ) (j0 : J) :
     TensorGate (taylorPrepare h τ K) (1 : Matrix (Bool × (J × I)) (Bool × (J × I)) ℂ) *
         taylorFrame (I := I) j0 K =
@@ -668,6 +796,7 @@ private theorem taylorPrepare_frame (h : J → ℝ) (τ : ℝ) (K : ℕ) (j0 : J
     simp [tensorGate_apply, taylorPrepare_column, taylorAmplitudeReal,
       Matrix.one_apply, prepareLift, hj]
 
+/-- Evaluating the Taylor LCU instruction word gives its explicitly defined LCU matrix product. -/
 private theorem evaluate_taylorLCUWord (h : J → ℝ) (U : J → Matrix I I ℂ)
     (j0 : J) (τ : ℝ) (K : ℕ) :
     evaluate (taylorQuery U K) (taylorLCUWord h j0 τ K) =
@@ -675,6 +804,8 @@ private theorem evaluate_taylorLCUWord (h : J → ℝ) (U : J → Matrix I I ℂ
   simp only [taylorLCUWord, evaluate_append, evaluate_taylorBlockList,
     evaluate, instructionMatrix, Matrix.mul_one, taylorLCUUnitary, Matrix.mul_assoc]
 
+/-- Multiplying SELECT by the Taylor phase gate absorbs each coefficient phase into its selected
+branch operator. -/
 private theorem taylorPhase_select (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (B : TaylorWordLabel J K → Matrix I I ℂ) :
     TensorGate (taylorPhaseGate h τ K) (1 : Matrix I I ℂ) * select B =
@@ -689,6 +820,8 @@ private theorem taylorPhase_select (h : J → ℝ) (τ : ℝ) (K : ℕ)
   funext w
   simp [phaseAbsorbed]
 
+/-- If the padded coefficient norms sum to two, compression of the evaluated Taylor LCU word
+equals the sum of branch words weighted by half their coefficients. -/
 private theorem taylor_lcu_corner_sum_mass (h : J → ℝ) (U : J → Matrix I I ℂ)
     (j0 : J) (τ : ℝ) (K : ℕ) (hm : ∑ x, ‖taylorCoeff h τ K x‖ = 2) :
     compress (taylorFrame (I := I) j0 K) (evaluate (taylorQuery U K) (taylorLCUWord h j0 τ K))
@@ -735,6 +868,8 @@ private theorem taylor_lcu_corner_sum_mass (h : J → ℝ) (U : J → Matrix I I
       rw [prepare_select_compress, hA, coefficientLCU_matrix _ _ (by rw [hmm]; norm_num)]
       simp only [hmm, Complex.ofReal_ofNat, B]
 
+/-- Under the small-segment bound, the Taylor LCU compression equals the sum of branch words
+weighted by half their padded coefficients. -/
 private theorem taylor_lcu_corner_sum (h : J → ℝ) (U : J → Matrix I I ℂ)
     (j0 : J) (τ : ℝ) (K : ℕ) (hτ : taylorLambda h * |τ| ≤ 1 / 2) :
     compress (taylorFrame (I := I) j0 K) (evaluate (taylorQuery U K) (taylorLCUWord h j0 τ K))
@@ -742,11 +877,15 @@ private theorem taylor_lcu_corner_sum (h : J → ℝ) (U : J → Matrix I I ℂ)
       ∑ w, (taylorCoeff h τ K w / 2) • taylorBranchWord U K K le_rfl w :=
   taylor_lcu_corner_sum_mass h U j0 τ K (taylor_sum_norm_eq_two h τ K hτ)
 
+/-- The recursive product of summand matrices associated with a finite word, placing the last
+letter's matrix on the left. -/
 private noncomputable def taylorMatrixWord (U : J → Matrix I I ℂ) :
     (l : ℕ) → (Fin l → J) → Matrix I I ℂ
   | 0, _ => 1
   | l + 1, w => U (w (Fin.last l)) * taylorMatrixWord U l (fun i => w i.castSucc)
 
+/-- Before the word length is reached, the recursive branch word equals the matrix word for its
+first `n` letters. -/
 private theorem taylorBranchWord_prefix (U : J → Matrix I I ℂ) (K : ℕ) :
     ∀ (n : ℕ) (hn : n ≤ K) (l : Fin (K + 1)) (w : Fin l.val → J) (hl : n ≤ l.val),
       taylorBranchWord U K n hn (Sum.inl ⟨l, w⟩) =
@@ -761,6 +900,8 @@ private theorem taylorBranchWord_prefix (U : J → Matrix I I ℂ) (K : ℕ) :
       rw [ih (Nat.le_of_succ_le hn) l w (Nat.le_of_succ_le hl)]
       rfl
 
+/-- Once the number of branch steps reaches the word length, the branch operator equals the full
+matrix word. -/
 private theorem taylorBranchWord_saturated (U : J → Matrix I I ℂ) (K : ℕ) :
     ∀ (n : ℕ) (hn : n ≤ K) (l : Fin (K + 1)) (w : Fin l.val → J) (_hl : l.val ≤ n),
       taylorBranchWord U K n hn (Sum.inl ⟨l, w⟩) = taylorMatrixWord U l.val w := by
@@ -784,6 +925,7 @@ private theorem taylorBranchWord_saturated (U : J → Matrix I I ℂ) (K : ℕ) 
         simp only [taylorBranchWord, taylorBranchStep, dif_neg hj, Matrix.one_mul]
         exact ih (Nat.le_of_succ_le hn) ⟨l, hlK⟩ w hln
 
+/-- Every partial branch word for a padding label is the identity. -/
 private theorem taylorBranchWord_padding (U : J → Matrix I I ℂ) (K : ℕ) :
     ∀ (n : ℕ) (hn : n ≤ K) (b : Bool), taylorBranchWord U K n hn (Sum.inr b) = 1 := by
   intro n
@@ -791,6 +933,8 @@ private theorem taylorBranchWord_padding (U : J → Matrix I I ℂ) (K : ℕ) :
   | zero => intro hn b; rfl
   | succ n ih => intro hn b; simp [taylorBranchWord, taylorBranchStep, ih]
 
+/-- Summing length-`l` matrix words with their coefficient products gives the `l`th power of the
+weighted summand matrix. -/
 private theorem taylor_sum_matrix_words (h : J → ℝ) (U : J → Matrix I I ℂ) (l : ℕ) :
     ∑ w : Fin l → J, (∏ i, (h (w i) : ℂ)) • taylorMatrixWord U l w =
       (∑ j, (h j : ℂ) • U j) ^ l := by
@@ -812,6 +956,8 @@ private theorem taylor_sum_matrix_words (h : J → ℝ) (U : J → Matrix I I �
           simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
         _ = _ := by rw [ih, ← Finset.sum_mul, pow_succ']
 
+/-- The sum of all padded Taylor coefficients times their branch-word operators equals the
+exponential Taylor polynomial evaluated at the weighted summand matrix. -/
 private theorem taylor_coefficient_matrix_sum (h : J → ℝ) (U : J → Matrix I I ℂ)
     (τ : ℝ) (K : ℕ) :
     ∑ wl, taylorCoeff h τ K wl • taylorBranchWord U K K le_rfl wl =
@@ -833,6 +979,9 @@ private theorem taylor_coefficient_matrix_sum (h : J → ℝ) (U : J → Matrix 
   rw [← Finset.smul_sum, taylor_sum_matrix_words]
   simp only [_root_.smul_pow, smul_smul, div_eq_mul_inv, mul_comm]
 
+/-- For unitary summands under the small-segment bound, compression of the evaluated Taylor
+circuit equals half the exponential Taylor polynomial of the weighted operator sum. See
+[BerryEtAl2015Taylor]. -/
 theorem taylor_actual_lcu_corner_polynomial (h : J → ℝ) (U : J → Matrix I I ℂ)
     (j0 : J) (τ : ℝ) (K : ℕ) (_hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
     (hτ : (∑ j, |h j|) * |τ| ≤ 1 / 2) :
@@ -850,6 +999,9 @@ theorem taylor_actual_lcu_corner_polynomial (h : J → ℝ) (U : J → Matrix I 
 
 set_option maxHeartbeats 800000 in
 
+/-- For Hermitian unitary summands with coefficient mass times absolute duration at most `1 /
+2`, the order-`K` Taylor approximation to Hamiltonian evolution has norm error at most
+`2⁻ᴷ`. See [BerryEtAl2015Taylor]. -/
 theorem taylor_derived_matrix_exponential_remainder
     (h : J → ℝ) (U : J → Matrix I I ℂ) (τ : ℝ) (K : ℕ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ ∧ (U j).IsHermitian)
@@ -902,6 +1054,7 @@ theorem taylor_derived_matrix_exponential_remainder
       simp [pow_succ]
       ring
 
+/-- The Taylor LCU word uses exactly `K` queries and `2 * K + 3` gates. -/
 theorem taylorLCUWord_counts (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ) :
     adjointQueryCount (taylorLCUWord (I := I) h j0 τ K) = K ∧
       adjointGateCount (taylorLCUWord (I := I) h j0 τ K) = 2 * K + 3 := by
@@ -910,6 +1063,9 @@ theorem taylorLCUWord_counts (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ) :
     hq, hg, adjointQueryCount, adjointGateCount]
   constructor <;> omega
 
+/-- For Hermitian unitary summands under the small-segment bound, the evaluated Taylor word
+block-encodes Hamiltonian evolution at scale two with error `2⁻ᴷ`. See
+[BerryEtAl2015Taylor]. -/
 theorem taylor_actual_scale_two_evolution_encoding (h : J → ℝ) (U : J → Matrix I I ℂ)
     (j0 : J) (τ : ℝ) (K : ℕ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ ∧ (U j).IsHermitian)
@@ -927,6 +1083,8 @@ theorem taylor_actual_scale_two_evolution_encoding (h : J → ℝ) (U : J → Ma
   rw [norm_sub_rev]
   exact taylor_derived_matrix_exponential_remainder h U τ K hU hτ
 
+/-- If coefficient mass times absolute duration is at most `log 2`, the truncated Taylor
+coefficient mass is at most two. -/
 theorem taylorS0_le_two_ln2 {J : Type} [Fintype J] [DecidableEq J]
     (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ Real.log 2) :
@@ -950,6 +1108,7 @@ theorem taylorS0_le_two_ln2 {J : Type} [Fintype J] [DecidableEq J]
     _ ≤ Real.exp (Real.log 2) := Real.exp_le_exp.mpr hτ
     _ = 2 := Real.exp_log (by norm_num)
 
+/-- Under the log-two segment bound, the norms of the padded Taylor coefficients sum to two. -/
 theorem taylor_sum_norm_eq_two_ln2 {J : Type} [Fintype J] [DecidableEq J]
     (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ Real.log 2) :
@@ -998,6 +1157,7 @@ theorem taylor_sum_norm_eq_two_ln2 {J : Type} [Fintype J] [DecidableEq J]
   rw [Fintype.sum_sum_type, hinl', hinr]
   linarith
 
+/-- The Taylor preparation matrix is unitary under the log-two segment bound. -/
 theorem taylorPrepare_unitary_ln2 {J : Type} [Fintype J] [DecidableEq J]
     (h : J → ℝ) (τ : ℝ) (K : ℕ)
     (hτ : taylorLambda h * |τ| ≤ Real.log 2) :
@@ -1007,6 +1167,8 @@ theorem taylorPrepare_unitary_ln2 {J : Type} [Fintype J] [DecidableEq J]
   rw [← Finset.sum_div, taylor_sum_norm_eq_two_ln2 h τ K hτ]
   norm_num
 
+/-- Under the log-two segment bound, the Taylor frame is isometric and the LCU circuit is well
+formed, using `K` queries and `2 * K + 3` gates. -/
 theorem taylor_lcu_actual_prepare_select_and_counts_ln2 {J I : Type}
     [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ)
@@ -1049,6 +1211,8 @@ theorem taylor_lcu_actual_prepare_select_and_counts_ln2 {J I : Type}
     simp only [adjointGateCount]
     omega
 
+/-- For unitary summands under the log-two segment bound, compression of the evaluated Taylor
+LCU circuit equals half the exponential Taylor polynomial of the weighted operator sum. -/
 theorem taylor_actual_lcu_corner_polynomial_ln2 {J I : Type}
     [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (h : J → ℝ) (U : J → Matrix I I ℂ) (j0 : J) (τ : ℝ) (K : ℕ)

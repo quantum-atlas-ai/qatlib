@@ -8,6 +8,24 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Scalar roots for the walk spectrum
+
+This module defines the two scalar walk roots `walkEigen` associated with a real parameter. It
+proves their unit modulus and quadratic equation when `lam² ≤ 1`, characterizes the endpoint
+roots, and derives a scalar amplitude soundness inequality used in [ReichardtSpalek2008].
+
+## Main statements
+
+* `walkEigen_root`: If `lam² ≤ 1`, each scalar walk root satisfies `z² - 2*I*lam*z - 1 = 0`.
+* `amp_soundness`: Positive `lam` and `w`, a nonzero `bO`, and the stated amplitude relation and
+  upper bound imply `w² ≤ c3 * lam² * Adv`.
+
+## References
+
+* [Reichardt and Spalek, 2008][ReichardtSpalek2008]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -16,10 +34,13 @@ namespace Qatlib.Papers.SpanProgram07.MainResults
 
 open Complex
 
+/-- The complex value with imaginary part `lam` and real part either `sqrt (1-lam²)` or its
+negative, selected by `s`. -/
 def walkEigen (lam : ℝ) (s : Bool) : ℂ :=
   ((if s then Real.sqrt (1 - lam ^ 2) else -Real.sqrt (1 - lam ^ 2) : ℝ) : ℂ)
     + (lam : ℂ) * Complex.I
 
+/-- If `lam² ≤ 1`, either value of `walkEigen lam s` has norm one. See [ReichardtSpalek2008]. -/
 theorem walkEigen_modulus {lam : ℝ} (h : lam ^ 2 ≤ 1) (s : Bool) :
     ‖walkEigen lam s‖ = 1 := by
   have h1 : 0 ≤ 1 - lam ^ 2 := by linarith
@@ -36,6 +57,8 @@ theorem walkEigen_modulus {lam : ℝ} (h : lam ^ 2 ≤ 1) (s : Bool) :
   rw [hsq] at heq
   nlinarith [norm_nonneg (walkEigen lam s)]
 
+/-- If `x² + y² = 1`, then the complex number with coordinates `(x, y)` satisfies the quadratic
+equation `z² - 2*I*y*z - 1 = 0`. -/
 theorem root_general (x y : ℝ) (hx : x ^ 2 + y ^ 2 = 1) :
     (((x : ℝ) : ℂ) + (y : ℂ) * Complex.I) ^ 2
       - 2 * Complex.I * (y : ℂ) * (((x : ℝ) : ℂ) + (y : ℂ) * Complex.I) - 1 = 0 := by
@@ -48,6 +71,8 @@ theorem root_general (x y : ℝ) (hx : x ^ 2 + y ^ 2 = 1) :
     exact sub_eq_zero.mpr hsum
   linear_combination hx' + (-((y : ℝ) : ℂ) ^ 2) * hI
 
+/-- If `lam² ≤ 1`, each scalar walk root satisfies `z² - 2*I*lam*z - 1 = 0`. See
+[ReichardtSpalek2008]. -/
 theorem walkEigen_root {lam : ℝ} (h : lam ^ 2 ≤ 1) (s : Bool) :
     (walkEigen lam s) ^ 2 - 2 * Complex.I * (lam : ℂ) * walkEigen lam s - 1 = 0 := by
   have h1 : 0 ≤ 1 - lam ^ 2 := by linarith
@@ -63,6 +88,8 @@ theorem walkEigen_root {lam : ℝ} (h : lam ^ 2 ≤ 1) (s : Bool) :
   rw [walkEigen]
   exact root_general _ _ hx
 
+/-- Under `lam² ≤ 1`, the root with nonnegative real part equals one exactly when `lam = 0`. See
+[ReichardtSpalek2008]. -/
 theorem walkEigen_true_eq_one {lam : ℝ} (h : lam ^ 2 ≤ 1) :
     walkEigen lam true = 1 ↔ lam = 0 := by
   constructor
@@ -73,6 +100,8 @@ theorem walkEigen_true_eq_one {lam : ℝ} (h : lam ^ 2 ≤ 1) :
     subst hl
     simp [walkEigen]
 
+/-- Under `lam² ≤ 1`, the root with nonpositive real part equals minus one exactly when `lam =
+0`. See [ReichardtSpalek2008]. -/
 theorem walkEigen_false_eq_neg_one {lam : ℝ} (h : lam ^ 2 ≤ 1) :
     walkEigen lam false = -1 ↔ lam = 0 := by
   constructor
@@ -83,6 +112,8 @@ theorem walkEigen_false_eq_neg_one {lam : ℝ} (h : lam ^ 2 ≤ 1) :
     subst hl
     norm_num [walkEigen]
 
+/-- Positive `lam` and `w`, a nonzero `bO`, and the stated amplitude relation and upper bound
+imply `w² ≤ c3 * lam² * Adv`. See [ReichardtSpalek2008]. -/
 theorem amp_soundness {lam w Adv aO bO c3 : ℝ} (hlam : 0 < lam) (hw : 0 < w)
     (hbO : bO ≠ 0) (hrel : lam * aO = w * bO)
     (hbound : |aO| ≤ c3 * (lam * Adv / w) * |bO|) :

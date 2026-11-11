@@ -10,6 +10,30 @@ import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPhaseAsymptoticQuan
 import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
 import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
 import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
+
+/-!
+# Johnson-walk spectral claims
+
+The module gives named statements and proofs for the type-space reduction, Johnson-walk
+spectrum, and finite-matrix perturbation results used in the element-distinctness walk.
+`Lemma2Statement` combines unitarity, a fixed start vector, the full spectrum, and phase
+asymptotics.
+
+The matrix statements distinguish normal-matrix eigenvalue matching from unitary multiplication
+estimates, and `Claim1Statement` records the first half-step in type coordinates. See
+[Ambainis2007ElementDistinctness] for the mathematical background.
+
+## Main statements
+
+* `lemma1`: transport to the reduced type space.
+* `lemma2`: the combined Johnson-walk spectral properties.
+* `theorem8`: squared eigenvalue matching for normal matrices.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,24 +46,35 @@ set_option autoImplicit false
 set_option linter.unusedVariables false
 set_option maxHeartbeats 1000000
 
+/-- The proposition that the full Johnson walk and marked phase flip transport to their reduced
+type-space matrices. -/
 def Lemma1Statement : Prop :=
   Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransport
 
+/-- Establishes transport of the Johnson walk and marked phase flip to the reduced type space.
+See [Ambainis2007ElementDistinctness]. -/
 theorem lemma1 : Lemma1Statement :=
   Qatlib.Concepts.WalkFind.WalkSpectrum.walkTypeTransport_answer
 
+/-- The conjunction of Johnson-walk unitarity, invariance of the start vector, the full-spectrum
+contract, and the phase-asymptotic contract. -/
 def Lemma2Statement : Prop :=
   Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitary ∧
     Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixed ∧
     Qatlib.Concepts.WalkFind.SearchAlgorithm.JohnsonFullSpectrumContract ∧
     Qatlib.Concepts.WalkFind.SearchAlgorithm.JohnsonPhaseAsymptoticContract
 
+/-- Establishes the combined unitarity, fixed-start, full-spectrum, and phase-asymptotic
+properties in `Lemma2Statement`. See [Ambainis2007ElementDistinctness]. -/
 theorem lemma2 : Lemma2Statement :=
   ⟨Qatlib.Concepts.WalkFind.UniqueCollision.walkUnitary,
     Qatlib.Concepts.WalkFind.UniqueCollision.walkStartFixed,
     Qatlib.Concepts.WalkFind.WalkSpectrum.johnsonFullSpectrum_answer,
     Qatlib.Concepts.WalkFind.WalkSpectrum.johnsonPhaseAsymptotic_answer⟩
 
+/-- The proposition that unitary matrices `A`, `B`, and `A * B` have unitary eigenbases and an
+index map matching each eigenvalue of `B` to one of `A * B` within the root sum of squared
+eigenvalue distances of `A` from 1. -/
 def Theorem6Statement : Prop :=
   ∀ (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ),
     A ∈ Matrix.unitaryGroup (Fin m) ℂ →
@@ -56,6 +91,8 @@ def Theorem6Statement : Prop :=
           ‖eigenB j - eigenAB (σ j)‖ ≤
             Real.sqrt (∑ i : Fin m, ‖eigenA i - (1 : ℂ)‖ ^ 2)
 
+/-- Establishes the pointwise eigenvalue perturbation bound for multiplication by a unitary
+matrix, as formulated in `Theorem6Statement`. See [Ambainis2007ElementDistinctness]. -/
 theorem theorem6 : Theorem6Statement := by
   intro m A B hA hB
   obtain ⟨E, F, G, eigenA, eigenB, eigenAB, σ, hE, hF, hG, hAE, hBF, hABG, hsum⟩ :=
@@ -73,17 +110,23 @@ theorem theorem6 : Theorem6Statement := by
     _ ≤ Real.sqrt (∑ i : Fin m, ‖eigenA i - (1 : ℂ)‖ ^ 2) :=
         Real.sqrt_le_sqrt hsum
 
+/-- The proposition that left multiplication by a unitary matrix preserves the squared Frobenius
+norm. -/
 def Theorem7Statement : Prop :=
   ∀ (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (C : Matrix (Fin m) (Fin n) ℂ),
     U ∈ Matrix.unitaryGroup (Fin m) ℂ →
       Qatlib.Concepts.WalkFind.SearchAlgorithm.frobeniusSq (U * C) =
         Qatlib.Concepts.WalkFind.SearchAlgorithm.frobeniusSq C
 
+/-- Establishes unitary invariance of the squared Frobenius norm under left multiplication. See
+[Bhatia1997]. -/
 theorem theorem7 : Theorem7Statement :=
   fun m n U C hU =>
     Qatlib.Concepts.WalkFind.WalkSpectrum.normalSpectralPerturbation_answer.1
       m n U C hU
 
+/-- The proposition that two normal complex matrices have unitary eigenbases and a permutation
+matching their eigenvalues with squared error bounded by their squared Frobenius distance. -/
 def Theorem8Statement : Prop :=
   ∀ (n : ℕ) (C D : Matrix (Fin n) (Fin n) ℂ),
     C.conjTranspose * C = C * C.conjTranspose →
@@ -97,11 +140,15 @@ def Theorem8Statement : Prop :=
         (∑ i : Fin n, ‖eigenC i - eigenD (σ i)‖ ^ 2) ≤
           Qatlib.Concepts.WalkFind.SearchAlgorithm.frobeniusSq (C - D)
 
+/-- Establishes the normal-matrix eigenvalue matching bound in `Theorem8Statement`. See
+[Bhatia1997]. -/
 theorem theorem8 : Theorem8Statement :=
   fun n C D hC hD =>
     Qatlib.Concepts.WalkFind.WalkSpectrum.normalSpectralPerturbation_answer.2.1
       n C D hC hD
 
+/-- The entrywise description of `jwStep1` as `jwD2` blocks indexed by equal intersection counts
+in `jwPsiCoord`. -/
 def Claim1Statement : Prop :=
   ∀ (k N r : ℕ) (i j : Fin (2 * k + 1)),
     Qatlib.Concepts.WalkFind.UniqueCollision.jwStep1 k N r i j =
@@ -114,6 +161,8 @@ def Claim1Statement : Prop :=
           (Qatlib.Concepts.WalkFind.UniqueCollision.jwPsiCoord k j).2
       else 0
 
+/-- Establishes the first Johnson-walk half-step formula in type coordinates. See
+[Ambainis2007ElementDistinctness]. -/
 theorem claim1 : Claim1Statement :=
   Qatlib.Concepts.WalkFind.WalkSpectrum.jwStep1_entry_types
 

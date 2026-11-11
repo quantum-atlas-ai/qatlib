@@ -8,6 +8,30 @@ import Qatlib.Papers.ElemDistinct00.MainResults.OrderedClaw.Basic
 import Mathlib.Data.Nat.Log
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Binary search for ordered claw finding
+
+The depth-limited procedure `bsearch` searches a monotone integer-valued function by repeatedly
+comparing at a midpoint. If an interval of length at most `2^d` contains the target value,
+`bsearch_spec` proves that depth `d` returns an index with that value.
+
+The specialization `exists_bsearch_of_ordered` uses `Nat.clog 2 N` as a sufficient depth on the
+first `N` indices. The expression `orderedClawUpperCost` records `sqrt M * Nat.clog 2 N`, the
+search cost scale associated with the ordered claw setting of [BuhrmanEtAl2005].
+
+## Main statements
+
+* `bsearch_spec`: a target already present in a sufficiently short interval is found.
+* `exists_bsearch_of_ordered`: ceiling-logarithmic depth suffices on `[0, N)` for `N ≥ 1`.
+* `log_le_orderedDepth`: the floor binary logarithm is bounded by the ceiling binary logarithm.
+
+## References
+
+* [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
+  arXiv:quant-ph/0007016 (2000 preprint).
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +39,9 @@ noncomputable section
 
 namespace Qatlib.Papers.ElemDistinct00.MainResults.OrderedClaw
 
+/-- Search for an integer target in a depth-limited binary search over natural indices, using
+midpoint comparisons when the depth is positive. At depth zero, test the lower endpoint
+directly. -/
 def bsearch (f : ℕ → ℤ) (y : ℤ) : ℕ → ℕ → ℕ → Option ℕ
   | 0, lo, hi => if f lo = y then some lo else none
   | d + 1, lo, hi =>
@@ -25,6 +52,9 @@ def bsearch (f : ℕ → ℤ) (y : ℤ) : ℕ → ℕ → ℕ → Option ℕ
         else bsearch f y d lo mid
       else none
 
+/-- If `f` is monotone, `hi - lo ≤ 2^d`, and the target occurs in `[lo, hi)`, then binary search
+at depth `d` returns an index with that value. This proves a search-correctness component of
+the ordered claw construction in [BuhrmanEtAl2005]. -/
 theorem bsearch_spec (f : ℕ → ℤ) (hmono : Monotone f) (y : ℤ) :
     ∀ d lo hi, hi - lo ≤ 2 ^ d →
       (∃ x, lo ≤ x ∧ x < hi ∧ f x = y) →
@@ -76,6 +106,9 @@ theorem bsearch_spec (f : ℕ → ℤ) (hmono : Monotone f) (y : ℤ) :
     · obtain ⟨x, hxlo, hxhi, _⟩ := hex
       exact absurd hlo (by omega)
 
+/-- For `N ≥ 1`, a target occurring among the first `N` values of a monotone function is found
+by `bsearch` with depth `Nat.clog 2 N`. This specializes the search-correctness component of
+the ordered setting in [BuhrmanEtAl2005]. -/
 theorem exists_bsearch_of_ordered {N : ℕ} (hN : 1 ≤ N) (f : ℕ → ℤ)
     (hmono : Monotone f) (y : ℤ) (hex : ∃ x, x < N ∧ f x = y) :
     ∃ x', bsearch f y (Nat.clog 2 N) 0 N = some x' ∧ f x' = y := by
@@ -85,8 +118,11 @@ theorem exists_bsearch_of_ordered {N : ℕ} (hN : 1 ≤ N) (f : ℕ → ℤ)
   · obtain ⟨x, hx, hxy⟩ := hex
     exact ⟨x, Nat.zero_le _, hx, hxy⟩
 
+/-- Define the real-valued ordered claw cost expression `sqrt M * Nat.clog 2 N`. -/
 def orderedClawUpperCost (M N : ℕ) : ℝ := Real.sqrt (M : ℝ) * (Nat.clog 2 N : ℝ)
 
+/-- The floor binary logarithm of `N` is at most its ceiling binary logarithm. This compares the
+logarithmic quantities used in the ordered claw cost discussion of [BuhrmanEtAl2005]. -/
 theorem log_le_orderedDepth (N : ℕ) : Nat.log 2 N ≤ Nat.clog 2 N :=
   Nat.log_le_clog 2 N
 

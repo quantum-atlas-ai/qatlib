@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+
+/-!
+# Partial-swap kernel evolution
+
+Defines the kernel commutator and derives an exact partial-swap output formula for a density
+kernel. The first-order commutator approximation has an explicit quadratic error bound, with
+constant six under unit norm and trace bounds. See [RebentrostMohseniLloyd2014].
+
+## Main statements
+
+* `kernel_swap_exact`: gives the exact reduced evolution.
+* `kernel_swap_quadratic_error_six`: bounds the first-order error by `6 * θ ^ 2`.
+
+## References
+
+* [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,8 +41,12 @@ open Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.D
 
 variable {D : ℕ}
 
+/-- The operator commutator `K * ρ - ρ * K`. -/
 noncomputable def commutator (K ρ : Operator D) : Operator D := K * ρ - ρ * K
 
+/-- For a density operator `K`, expresses the partial-swap output as the cosine-squared input
+term, the sine-squared trace-weighted kernel term, and the commutator term
+[RebentrostMohseniLloyd2014]. -/
 theorem kernel_swap_exact (K ρ : Operator D) (hK : IsDensityOperator K) (θ : ℝ) :
     partialSwapOutput K θ ρ =
       ((Real.cos θ) ^ 2 : ℂ) • ρ +
@@ -34,12 +56,18 @@ theorem kernel_swap_exact (K ρ : Operator D) (hK : IsDensityOperator K) (θ : �
   rw [hK.2, one_smul]
   simp only [commutator]
 
+/-- Bounds the norm error of the first-order kernel commutator step by `θ ^ 2 * (‖Matrix.trace
+ρ‖ * ‖K‖ + ‖ρ‖ + 4 * ‖K‖ * ‖ρ‖)` when `K` is a density operator
+[RebentrostMohseniLloyd2014]. -/
 theorem kernel_swap_quadratic_error (K ρ : Operator D) (hK : IsDensityOperator K) (θ : ℝ) :
     ‖partialSwapOutput K θ ρ - (ρ - (Complex.I * (θ : ℂ)) • commutator K ρ)‖ ≤
       θ ^ 2 * (‖Matrix.trace ρ‖ * ‖K‖ + ‖ρ‖ + 4 * ‖K‖ * ‖ρ‖) := by
   have h := (partial_swap_trig_and_quadratic_error.2 K hK ρ θ)
   simpa only [commutator] using h
 
+/-- If `K` is a density operator and the kernel norm, input norm, and absolute input trace are
+at most one, the first-order partial-swap error is at most `6 * θ ^ 2`
+[RebentrostMohseniLloyd2014]. -/
 theorem kernel_swap_quadratic_error_six (K ρ : Operator D) (hK : IsDensityOperator K)
     (θ : ℝ) (hKnorm : ‖K‖ ≤ 1) (hρnorm : ‖ρ‖ ≤ 1) (htr : ‖Matrix.trace ρ‖ ≤ 1) :
     ‖partialSwapOutput K θ ρ - (ρ - (Complex.I * (θ : ℂ)) • commutator K ρ)‖ ≤

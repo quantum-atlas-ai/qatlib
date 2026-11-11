@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FairRandomBits.GeometricRetry
+
+/-!
+# Fixed-price restart laws with output labels
+
+Develops the joint output and receipt laws for a retry process with a single continuing state
+and a fixed transition price. `unitRestart_exact_receipt` gives the geometric mass formula,
+while `unitRestart_never_time_eq` compares the labeled process with a Boolean retry process. For
+the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `unitRestart_exact_receipt`: For a positive fixed price, the joint mass of output `i` at
+  receipt `(r + 1) * price` is `q ^ r * a i`.
+* `unitRestart_support`: Every nonzero joint halting mass in a positive fixed-price restart
+  process occurs at a receipt `(r + 1) * price`.
+* `unitRestart_never_time_eq`: For positive price and matching success and failure masses, the
+  labeled restart process and Boolean retry process have equal nontermination mass and equal
+  unbounded expected time.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -29,6 +53,8 @@ include hs
 
 omit [Fintype O] [DecidableEq O] in
 
+/-- If every transition is supported at a positive fixed price, every transition with nonzero
+mass costs at least one. -/
 theorem unitRestart_positive (hp : 0 < price) :
     ∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k := by
   intro s cfg k hm
@@ -39,6 +65,8 @@ theorem unitRestart_positive (hp : 0 < price) :
 
 include ha hq
 
+/-- Expresses the finite-run mass at a halted output and receipt as the sum of a retry
+contribution with the price subtracted and a one-attempt success contribution. -/
 theorem unitRestart_point (n k : ℕ) (i : O) :
     branchCostRun next (n+1) (Sum.inr ()) (Sum.inl i,k) =
       q*(if price ≤ k then branchCostRun next n (Sum.inr ()) (Sum.inl i,k-price) else 0) +
@@ -63,6 +91,8 @@ theorem unitRestart_point (n k : ℕ) (i : O) :
   · have hn : price ≠ k := by omega
     simp [hfit,hn]
 
+/-- The finite-run mass of a halted output is zero at every receipt below the fixed transition
+price. -/
 theorem unitRestart_below_price (n k : ℕ) (i : O) (hk : k < price) :
     branchCostRun next n (Sum.inr ()) (Sum.inl i,k) = 0 := by
   cases n with
@@ -71,6 +101,8 @@ theorem unitRestart_below_price (n k : ℕ) (i : O) (hk : k < price) :
     rw [unitRestart_point next price a q ha hq hs]
     simp [show ¬ price ≤ k by omega, show price ≠ k by omega]
 
+/-- For a positive fixed price, the eventual joint halting mass satisfies the retry recurrence
+with failure multiplier `q` and success mass `a i`. -/
 theorem unitRestart_halt_recursion (hp : 0 < price) (k : ℕ) (i : O) :
     branchHaltJoint next (Sum.inr ()) i k =
       q*(if price ≤ k then branchHaltJoint next (Sum.inr ()) i (k-price) else 0) +
@@ -89,6 +121,8 @@ theorem unitRestart_halt_recursion (hp : 0 < price) (k : ℕ) (i : O) :
       rfl
     · rw [if_neg hfit, if_neg hfit]
 
+/-- For a positive fixed price, the joint mass of output `i` at receipt `(r + 1) * price` is `q
+^ r * a i`. -/
 theorem unitRestart_exact_receipt (hp : 0 < price) (r : ℕ) (i : O) :
     branchHaltJoint next (Sum.inr ()) i ((r+1)*price) = q^r*a i := by
   induction r with
@@ -107,12 +141,16 @@ theorem unitRestart_exact_receipt (hp : 0 < price) (r : ℕ) (i : O) :
     rw [if_pos hfit, if_neg hne, he, ih, add_zero, pow_succ']
     ring
 
+/-- If the one-attempt success mass of an output is zero, every finite-run mass at that output
+is zero. -/
 theorem unitRestart_zero_address (i : O) (hi : a i = 0) (n k : ℕ) :
     branchCostRun next n (Sum.inr ()) (Sum.inl i,k) = 0 := by
   induction n generalizing k with
   | zero => simp [branchCostRun, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret, PMF.pure_apply]
   | succ n ih => simp [unitRestart_point next price a q ha hq hs, ih, hi]
 
+/-- Every nonzero joint halting mass in a positive fixed-price restart process occurs at a
+receipt `(r + 1) * price`. -/
 theorem unitRestart_support (hp : 0 < price) (i : O) (k : ℕ)
     (hm : branchHaltJoint next (Sum.inr ()) i k ≠ 0) :
     ∃ r : ℕ, k = (r+1)*price := by
@@ -127,6 +165,8 @@ theorem unitRestart_support (hp : 0 < price) (i : O) (k : ℕ)
       obtain ⟨r,hr⟩ := ih (k-price) (by omega) (right_ne_zero_of_mul hm)
       exact ⟨r+1, by rw [Nat.add_mul, Nat.one_mul]; omega⟩
 
+/-- Summing the labeled joint halting masses gives the Boolean retry halting mass when the
+Boolean success and failure masses match the labeled transition. -/
 theorem unitRestart_total_halt (coin : PMF Bool)
     (hc : coin true = ∑ i, a i) (hf : coin false = q) (k : ℕ) :
     (∑ i, branchHaltJoint next (Sum.inr ()) i k) =
@@ -147,6 +187,8 @@ theorem unitRestart_total_halt (coin : PMF Bool)
         simp [hfit,hk]
   exact he k k
 
+/-- For positive price and matching success and failure masses, the labeled restart process and
+Boolean retry process have equal nontermination mass and equal unbounded expected time. -/
 theorem unitRestart_never_time_eq (coin : PMF Bool)
     (hc : coin true = ∑ i, a i) (hf : coin false = q) (hp : 0 < price) :
     generalNeverMass (branchClockNext next) (branchClockEmbed (Sum.inr ())) =

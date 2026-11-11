@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MixedDyson
 import Qatlib.Papers.CommutLCHS26.MainResults.MultilinearSums
+
+/-!
+# Dyson coefficients in inverse repetition powers
+
+The coefficients `powerCoefficient` collect fixed-depth Dyson terms by their inverse-even-power
+dependence on the repetition count. Under odd-coefficient control, these coefficients give
+convergent series for the perturbative simulation analysis of [AftabAnTrivisa2026], with norms
+bounded by `massProfile` divided by a factorial.
+
+## Main statements
+
+* `tuple_factor`: extracts the repetition factor from a multilinear term.
+* `depth_hasSum`: expands a Dyson term in inverse repetition powers.
+* `powerCoefficient_norm`: bounds each collected coefficient.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,11 +40,14 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The antidiagonal sum of mixed multilinear terms built from odd BCH perturbation coefficients
+with total index n and depth l. -/
 def powerCoefficient (xs : List (Matrix I I ℂ)) (t : ℝ) (l n : ℕ) : Matrix I I ℂ :=
   ∑ v ∈ Finset.finAntidiagonal l n,
     mixedMultilinear (t • ((-Complex.I) • xs.sum)) l 1
       (fun i => t ^ (2 * v i + 3) • BCHPerturbation.coefficient xs (2 * v i + 3))
 
+/-- The norm of the time-scaled odd BCH coefficient is bounded by its scalar mass term. -/
 theorem input_norm_le (xs : List (Matrix I I ℂ)) (t : ℝ) (j : ℕ) :
     ‖t ^ (2 * j + 3) • BCHPerturbation.coefficient xs (2 * j + 3)‖ ≤ massTerm xs t j := by
   rw [norm_smul, Real.norm_eq_abs, abs_pow]
@@ -36,6 +59,8 @@ theorem input_norm_le (xs : List (Matrix I I ℂ)) (t : ℝ) (j : ℕ) :
         (pow_nonneg (abs_nonneg _) _)
     _ = _ := by unfold massTerm; ring
 
+/-- On a length-l antidiagonal of total n, the product of inverse repetition powers equals
+q^(-2(n + l)). -/
 theorem fiber_scalar (q l n : ℕ) (v : Fin l → ℕ) (hv : v ∈ Finset.finAntidiagonal l n) :
     (∏ i, (1 / (q : ℝ) ^ (2 * v i + 2))) = 1 / (q : ℝ) ^ (2 * (n + l)) := by
   have he : ∑ i, (2 * v i + 2) = 2 * (n + l) := by
@@ -47,6 +72,8 @@ theorem fiber_scalar (q l n : ℕ) (v : Fin l → ℕ) (hv : v ∈ Finset.finAnt
   simp only [Finset.prod_const_one]
   rw [Finset.prod_pow_eq_pow_sum, he]
 
+/-- A mixed Dyson term for a tuple of total n factors into q^(-2(n + l)) times a multilinear
+expression independent of q. -/
 theorem tuple_factor (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (t : ℝ) (q l n : ℕ) (v : Fin l → ℕ) (hv : v ∈ Finset.finAntidiagonal l n) :
     mixedMap (t • ((-Complex.I) • xs.sum)) (target_skew xs hxs t) l 1
@@ -65,6 +92,8 @@ theorem tuple_factor (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
   rw [hi, ContinuousMultilinearMap.map_smul_univ, fiber_scalar q l n v hv]
   rfl
 
+/-- Under odd-coefficient control and Hermitian generators, the inverse-power series of depth-l
+coefficients sums to the depth-l Dyson term. -/
 theorem depth_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q)
     (t : ℝ) (ht : |t| ≤ r) (l : ℕ) :
@@ -87,6 +116,8 @@ theorem depth_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
   intro v hv
   exact (tuple_factor xs hxs t q l n v hv).symm
 
+/-- For Hermitian generators, the norm of a depth-l coefficient is at most its mass profile
+divided by l factorial. -/
 theorem powerCoefficient_norm (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (t : ℝ) (l n : ℕ) :
     ‖powerCoefficient xs t l n‖ ≤ massProfile xs t l n / (l.factorial : ℝ) := by

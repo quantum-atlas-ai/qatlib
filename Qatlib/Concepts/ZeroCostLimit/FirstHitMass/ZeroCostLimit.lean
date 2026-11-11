@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimitDefs
+
+/-!
+# Halting mass with zero-cost transitions
+
+This module compares accumulated-cost and first-hit descriptions of a finite probabilistic
+process. Marginalization and monotone partial sums show that summing over all costs recovers
+output halting mass, and that total halting mass plus nontermination mass equals one; these
+process estimates support probabilistic algorithm analysis such as [DeckerDraismaWocjan2009].
+
+## Main statements
+
+* `g1`: Establish cost marginalization and total probability conservation.
+
+## References
+
+* [Decker et al., 2009][DeckerDraismaWocjan2009]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 
@@ -19,6 +37,8 @@ namespace Qatlib.Concepts.ZeroCostLimit.FirstHitMass
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped BigOperators ENNReal Classical
 
+/-- Summing a joint probability mass function over its natural-number charge coordinate gives
+its first marginal. -/
 lemma charge_marginal {α : Type} (μ : PMF (α × ℕ)) (a : α) :
     (∑' k, μ (a, k)) = μ.map Prod.fst a := by
   rw [PMF.map_apply, tsum_prod_type']
@@ -30,6 +50,8 @@ lemma charge_marginal {α : Type} (μ : PMF (α × ℕ)) (a : α) :
   rw [tsum_eq_single a hzero]
   simp
 
+/-- At finite fuel, summing weighted halted mass over total cost equals summing unweighted
+halted mass over step count. -/
 lemma weighted_halted_eq_runFor {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (O ⊕ S)) (cost : S → ℕ)
     (n : ℕ) (cfg : O ⊕ S) (o : O) :
@@ -37,6 +59,7 @@ lemma weighted_halted_eq_runFor {S O : Type} [Fintype S] [DecidableEq S]
       ∑' j, runFor next n cfg (.inl o, j) := by
   rw [charge_marginal, charge_marginal, weightedRunFor_marginal]
 
+/-- The halted mass after finite fuel is the sum of first-hit masses through that fuel. -/
 lemma runFor_halted_partial {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (O ⊕ S))
     (fuel : ℕ) (cfg : O ⊕ S) (o : O) :
@@ -56,6 +79,7 @@ lemma runFor_halted_partial {S O : Type} [Fintype S] [DecidableEq S]
       omega
     exact haltJoint_eq_runFor_of_le hle
 
+/-- The supremum of finite partial sums of first-hit masses equals their infinite sum. -/
 lemma iSup_partial_haltJoint {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) (o : O) :
     (⨆ fuel, ∑ j ∈ Finset.range (fuel + 1), haltJoint next cfg o j) =
@@ -71,6 +95,8 @@ lemma iSup_partial_haltJoint {S O : Type} [Fintype S] [DecidableEq S]
       (Filter.tendsto_add_atTop_nat 1)
   exact tendsto_nhds_unique (tendsto_atTop_iSup hmono) htend
 
+/-- For finite state and output spaces, summing halted mass over costs gives the first-hit
+output mass, and total halted mass plus nontermination mass equals one. -/
 theorem g1 :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (cfg : O ⊕ S),

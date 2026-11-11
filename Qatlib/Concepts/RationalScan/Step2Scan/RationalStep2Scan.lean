@@ -9,6 +9,27 @@ import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
 import Mathlib.Data.List.FinRange
 import Mathlib.Logic.Equiv.Fin.Basic
 import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmRefutations
+
+/-!
+# Correctness of the rational Step 2 scan
+
+This module proves that `run` scans rational candidate tables in row-major order and returns the
+first accepted pair, with an exact visited count and resource ledger. It transfers the rational
+acceptance test to real inequalities and proves width and separation bounds for the same
+returned candidate, in the SDP setting of [BrandaoSvore2017].
+
+## Main statements
+
+* `run_first_accepted`: first-success semantics, failure characterization, and visited-resource
+  formulas.
+* `run_candidate_sound`: real acceptance, sampled-width control, and a separation lower bound
+  for a returned pair.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.RationalScan.Step2Scan
 
@@ -20,6 +41,9 @@ open Matrix Qatlib.Concepts.RationalScan.Step2Scan
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Scanning a duplicate-free candidate list visits at most its length and returns no choice
+exactly when every test fails. A returned candidate is the first accepted entry, with
+visited count equal to its zero-based index plus one. -/
 private theorem scan_spec {m γ Nmax M : ℕ} (d : Input m γ Nmax M)
     (xs : List (Fin γ × Fin Nmax)) (hn : xs.Nodup) :
     (scan d xs).visited ≤ xs.length ∧
@@ -74,6 +98,7 @@ private theorem scan_spec {m γ Nmax M : ℕ} (d : Input m γ Nmax M)
             apply hfirst q hq
             simpa [List.idxOf_cons,hne,haq] using! hlt
 
+/-- Enumerating the inverse finite-product equivalence gives the row-major candidate list. -/
 private theorem candidates_ofFn (γ Nmax : ℕ) :
     List.ofFn (finProdFinEquiv.symm : Fin (γ*Nmax) → Fin γ × Fin Nmax) = candidates γ Nmax := by
   rw [List.ofFn_mul]
@@ -86,17 +111,21 @@ private theorem candidates_ofFn (γ Nmax : ℕ) :
   simp_rw [hp]
   simp [candidates,List.ofFn_eq_map,List.flatMap_def]
 
+/-- The row-major candidate list has no duplicate pairs. -/
 private theorem candidates_nodup (γ Nmax : ℕ) : (candidates γ Nmax).Nodup := by
   rw [← candidates_ofFn]
   exact List.nodup_ofFn_ofInjective finProdFinEquiv.symm.injective
 
+/-- The row-major candidate list has length `γ*Nmax`. -/
 private theorem candidates_length (γ Nmax : ℕ) : (candidates γ Nmax).length=γ*Nmax := by
   rw [← candidates_ofFn,List.length_ofFn]
 
+/-- Every pair of valid finite indices belongs to the candidate list. -/
 private theorem candidates_mem {γ Nmax : ℕ} (p : Fin γ × Fin Nmax) : p ∈ candidates γ Nmax := by
   rw [← candidates_ofFn,List.mem_ofFn]
   exact ⟨finProdFinEquiv p,Equiv.symm_apply_apply _ p⟩
 
+/-- The zero-based list index of a candidate pair is `p.1.val*Nmax+p.2.val`. -/
 private theorem candidates_idxOf {γ Nmax : ℕ} (p : Fin γ × Fin Nmax) :
     (candidates γ Nmax).idxOf p = p.1.val*Nmax+p.2.val := by
   rw [← candidates_ofFn]
@@ -114,6 +143,9 @@ private theorem candidates_idxOf {γ Nmax : ℕ} (p : Fin γ × Fin Nmax) :
     p.2.val+Nmax*p.1.val at hh
   simpa only [Nat.mul_comm,Nat.add_comm] using! hh
 
+/-- The full scan returns the first row-major accepted candidate, or no choice exactly when
+every candidate fails, with exact visited counts. Its Gibbs and law-draw counts agree and
+satisfy the grid bound, and its state-copy count is `(M+1)*L*visited`. -/
 theorem run_first_accepted :
   ∀ (m γ Nmax M : ℕ) (d : Input m γ Nmax M),
     (run d).visited ≤ γ*Nmax ∧
@@ -142,6 +174,8 @@ theorem run_first_accepted :
   · intro L
     exact ⟨Nat.mul_le_mul_left M hbound,rfl,rfl⟩
 
+/-- A true rational acceptance test implies the corresponding real-valued `step2Accepts`
+predicate after casting the input data. -/
 private theorem accepts_cast {m γ Nmax M : ℕ} (d : Input m γ Nmax M)
     (p : Fin γ × Fin Nmax) (h : accepts d p = true) :
     step2Accepts m M (fun i => (d.b i:ℝ)) (fun i => (d.estA p.1 p.2 i:ℝ))
@@ -157,6 +191,10 @@ private theorem accepts_cast {m γ Nmax M : ℕ} (d : Input m γ Nmax M)
   push_cast at h₁ h₂
   exact ⟨h₁,h₂⟩
 
+/-- Under the stated positivity, sampling-law, and estimation assumptions, a returned candidate
+satisfies real acceptance and the sampled-width objective bound. Its separation is at least
+`-(μ*(2*(κ+ν)+ν)+ν)`, where `μ` is the returned mass and parameters are cast to real
+numbers. -/
 theorem run_candidate_sound :
   ∀ (D m γ Nmax M : ℕ) (d : Input m γ Nmax M) (A : Fin m → Operator D) (Cv ρ : Operator D),
     0<M → 0<d.κ → 0≤d.R → 0≤d.ν → d.κ*(Nmax:ℚ)≤d.α →

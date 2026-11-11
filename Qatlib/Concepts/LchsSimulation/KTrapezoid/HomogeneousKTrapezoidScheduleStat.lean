@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureStat
+
+/-!
+# Trapezoidal LCHS schedule specification
+
+`HomogeneousKTrapezoidSchedule` specifies a cutoff and a subdivision count using a uniform bound
+on `‖L u‖`. The conclusion asserts positivity of the subdivision count and operator-norm
+accuracy `ε` for `kTrapSum`. See [AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `HomogeneousKTrapezoidSchedule`: The explicit homogeneous trapezoidal schedule specification
+  asserting positive subdivision count and approximation error at most `ε` for the stated cutoff
+  and square-root-based count.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -24,6 +43,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The explicit homogeneous trapezoidal schedule specification asserting positive subdivision
+count and approximation error at most `ε` for the stated cutoff and square-root-based count. -/
 def HomogeneousKTrapezoidSchedule : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t ε lamL : ℝ),

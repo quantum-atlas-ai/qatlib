@@ -68,6 +68,31 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Abstract search data and phase choices
+
+This module provides finite-dimensional complex vector operations and `AbstractSearchSetup`,
+which packages the reflection update, paired phase eigenvectors, cotangent equation, and chosen
+search eigenvectors used in the abstract search framework of [AmbainisKempeRivosh2004]. The
+associated definitions `wStart`, `wGood`, `wPrime`, `alphaScale`, `lemma4Scale`, and `goodScale`
+describe vectors and spectral quantities for that framework.
+
+The theorem `lemma2_realEqualCoefficients` shows that conjugate vectors can be multiplied by
+unit complex phases so that their inner products with a real vector are equal and real.
+
+## Main statements
+
+* `AbstractSearchSetup` records the matrices, vectors, phase parameters, and algebraic
+  hypotheses for abstract search.
+* `AbstractSearchSetup.wStart` applies `normalize` to the scaled difference of the selected
+  search eigenvectors.
+* `lemma2_realEqualCoefficients` gives the phase choice corresponding to Lemma 2.
+
+## References
+
+* [Ambainis et al., 2004][AmbainisKempeRivosh2004]
+-/
+
 open Matrix
 open scoped BigOperators ComplexOrder
 
@@ -76,27 +101,39 @@ noncomputable section
 
 namespace Qatlib.Papers.QWalkAmbainis04.MainResults.AbstractSearch
 
+/-- The Hermitian inner product of finite complex vectors, conjugate-linear in the first
+argument. -/
 def inner {n : ℕ} (u v : Fin n → ℂ) : ℂ := ∑ i, star (u i) * v i
 
+/-- The sum of the squared complex norms of the coordinates of `v`. -/
 def normSq {n : ℕ} (v : Fin n → ℂ) : ℝ := ∑ i, ‖v i‖ ^ 2
 
+/-- The nonnegative square root of `normSq v`. -/
 def vnorm {n : ℕ} (v : Fin n → ℂ) : ℝ := Real.sqrt (normSq v)
 
+/-- The outer-product matrix with entries `u i * star (v j)`. -/
 def rankOne {n : ℕ} (u v : Fin n → ℂ) : Matrix (Fin n) (Fin n) ℂ :=
   Matrix.of fun i j => u i * star (v j)
 
+/-- The matrix `I - 2 * p p*`, formed from `rankOne p p`. -/
 def reflection {n : ℕ} (p : Fin n → ℂ) : Matrix (Fin n) (Fin n) ℂ :=
   1 - (2 : ℂ) • rankOne p p
 
+/-- Divides every coordinate of `v` by `vnorm v`, using totalized complex division. -/
 def normalize {n : ℕ} (v : Fin n → ℂ) : Fin n → ℂ :=
   fun i => v i / (vnorm v : ℂ)
 
+/-- States that `M` has a nonzero vector satisfying the eigenvector equation with scalar `μ`. -/
 def HasEig {n : ℕ} (M : Matrix (Fin n) (Fin n) ℂ) (μ : ℂ) : Prop :=
   ∃ v : Fin n → ℂ, v ≠ 0 ∧ M *ᵥ v = μ • v
 
+/-- States that `μ = exp (I * θ)` for a real angle `θ` strictly between `-tmin` and `tmin`. -/
 def InArc (tmin : ℝ) (μ : ℂ) : Prop :=
   ∃ θ : ℝ, -tmin < θ ∧ θ < tmin ∧ μ = Complex.exp (Complex.I * θ)
 
+/-- Packages matrices, paired phase eigenvectors, a cotangent equation, and selected
+eigenvectors for the abstract search update. It records the reflection action and the
+factorization `U' = U₂ * U₁`. -/
 structure AbstractSearchSetup where
 
   n : ℕ
@@ -159,28 +196,37 @@ namespace AbstractSearchSetup
 
 variable (D : AbstractSearchSetup)
 
+/-- The difference of the selected eigenvectors `wα` and `wmα`, scaled by `1 / sqrt 2`. -/
 def wStartRaw : Fin D.n → ℂ :=
   fun i => ((1 / Real.sqrt 2 : ℝ) : ℂ) * D.wα i - ((1 / Real.sqrt 2 : ℝ) : ℂ) * D.wmα i
 
+/-- Applies `normalize` to the scaled eigenvector difference `wStartRaw`. -/
 def wStart : Fin D.n → ℂ := normalize (wStartRaw D)
 
+/-- The sum of the selected eigenvectors `wα` and `wmα`, scaled by `1 / sqrt 2`. -/
 def wGood : Fin D.n → ℂ :=
   fun i => ((1 / Real.sqrt 2 : ℝ) : ℂ) * D.wα i + ((1 / Real.sqrt 2 : ℝ) : ℂ) * D.wmα i
 
+/-- The cotangent-weighted combination of `ψstart` and the paired vectors `Φp` and `Φm` at phase
+parameter `β`. -/
 def wPrime (β : ℝ) : Fin D.n → ℂ :=
   fun i => D.a0 * Real.cot (β / 2) * D.ψstart i +
     ∑ j : Fin D.m, D.a j *
       (Real.cot ((β - D.θ j) / 2) * D.Φp j i +
        Real.cot ((β + D.θ j) / 2) * D.Φm j i)
 
+/-- The reciprocal square root of the sum of `(a j)^2 / a0^2` weighted by `1 / (1 - cos (θ j))`. -/
 def alphaScale : ℝ :=
   1 / Real.sqrt (∑ j : Fin D.m, (D.a j) ^ 2 / (D.a0) ^ 2 *
     (1 / (1 - Real.cos (D.θ j))))
 
+/-- The quantity `α^4` times the sum of `(a j)^2 / a0^2` weighted by `1 / (1 - cos (θ j))^2`. -/
 def lemma4Scale : ℝ :=
   D.α ^ 4 * (∑ j : Fin D.m, (D.a j) ^ 2 / (D.a0) ^ 2 *
     (1 / (1 - Real.cos (D.θ j)) ^ 2))
 
+/-- The minimum of `1` and the reciprocal square root of the weighted sum `∑ j, (a j)^2 * cot (θ
+j / 4)^2`. -/
 def goodScale : ℝ :=
   min (1 / Real.sqrt (∑ j : Fin D.m, (D.a j) ^ 2 *
     (Real.cot (D.θ j / 4)) ^ 2)) 1
@@ -189,11 +235,14 @@ end AbstractSearchSetup
 
 open AbstractSearchSetup
 
+/-- A complex number with zero imaginary part equals its conjugate. -/
 private lemma star_eq_self_of_im_zero {z : ℂ} (h : z.im = 0) : star z = z := by
   apply Complex.ext
   · simp
   · simp [h]
 
+/-- Multiplying the first vector by a complex scalar multiplies its inner product by the
+conjugate scalar. -/
 private lemma inner_smul_left {n : ℕ} (u : ℂ) (Φ ψ : Fin n → ℂ) :
     inner (fun i => u * Φ i) ψ = star u * inner Φ ψ := by
   unfold inner
@@ -203,6 +252,8 @@ private lemma inner_smul_left {n : ℕ} (u : ℂ) (Φ ψ : Fin n → ℂ) :
   rw [star_mul]
   ring
 
+/-- For any complex number `a`, chooses unit complex numbers `u` and `v` so that `star u * a`
+and `star v * star a` coincide and have zero imaginary part. -/
 private lemma exists_unit_phases (a : ℂ) :
     ∃ u v : ℂ, ‖u‖ = 1 ∧ ‖v‖ = 1 ∧ star u * a = star v * star a ∧
       (star u * a).im = 0 := by
@@ -231,6 +282,9 @@ private lemma exists_unit_phases (a : ℂ) :
       rw [hval]
       simp
 
+/-- Conjugate vectors can be multiplied by unit complex phase factors to make their inner
+products with a coordinatewise real vector equal and real. This is the phase-choice
+statement of Lemma 2 in [AmbainisKempeRivosh2004]. -/
 theorem lemma2_realEqualCoefficients {n : ℕ} (Φp Φm ψ : Fin n → ℂ)
     (hconj : ∀ i, Φm i = star (Φp i)) (hψreal : ∀ i, (ψ i).im = 0) :
     ∃ u v : ℂ, ‖u‖ = 1 ∧ ‖v‖ = 1 ∧

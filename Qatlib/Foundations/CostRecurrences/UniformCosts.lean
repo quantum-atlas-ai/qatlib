@@ -12,11 +12,39 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Tactic
 
+/-!
+# Uniform bounds for prime-factor cost recurrences
+
+Proves an induction principle for recurrences over the distinct prime factors of `N - 1`. A
+contraction bound on the sum of comparison weights yields the uniform estimate `P N ≤ C * bc N`;
+a separate lemma bounds the number of prime factors by a base-two logarithm.
+
+These results support recurrence estimates for the quantum primality-test analysis of
+[ChauLo1995].
+
+## Main statements
+
+* `cost_induction_closed`: A recurrence over the distinct prime factors of `N - 1` satisfies `P
+  N ≤ C * bc N` when the base cases, nonnegativity, cost allowance, and contracted weight sum
+  satisfy the stated bounds. This is an abstract induction tool for the cost analysis of
+  [ChauLo1995].
+* `card_primeFactors_le_log2`: For `M ≥ 2`, the number of distinct prime factors of `M` is at
+  most its base-two natural logarithm, an estimate used in the recurrence analysis associated
+  with [ChauLo1995].
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Foundations.CostRecurrences.UniformCosts
 
+/-- A recurrence over the distinct prime factors of `N - 1` satisfies `P N ≤ C * bc N` when the
+base cases, nonnegativity, cost allowance, and contracted weight sum satisfy the stated
+bounds. This is an abstract induction tool for the cost analysis of [ChauLo1995]. -/
 theorem cost_induction_closed (P bc : ℕ → ℝ) (c C θ : ℝ)
     (hbc : ∀ N, 0 ≤ bc N)
     (_hθ1 : θ < 1) (hC0 : 0 ≤ C)
@@ -53,6 +81,8 @@ theorem cost_induction_closed (P bc : ℕ → ℝ) (c C θ : ℝ)
             apply mul_le_mul_of_nonneg_right _ (hbc N)
             nlinarith [hC]
 
+/-- For `M ≥ 2`, the number of distinct prime factors of `M` is at most its base-two natural
+logarithm, an estimate used in the recurrence analysis associated with [ChauLo1995]. -/
 theorem card_primeFactors_le_log2 (M : ℕ) (hM : 2 ≤ M) :
     M.primeFactors.card ≤ Nat.log 2 M := by
   have h2 : 2 ^ M.primeFactors.card ≤ ∏ p ∈ M.primeFactors, p := by

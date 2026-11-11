@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Walk compilation and resource boundaries
+
+Proves finite-word and walk-geometry facts used by the MNRS search interfaces
+[MagniezNayakRolandSantha2011]. The results include an obstruction to exact coverage by the
+fixed finite gate vocabulary, empty-marked-set impossibility, invariant two-plane dynamics,
+unitary completion of isometric frames, and graph-access witnesses.
+
+## Main statements
+
+* `no_exact_gate_cover`: No sequence of legal words over the fixed finite gate vocabulary
+  exactly represents every two-qubit unitary.
+* `reachable_span_invariant`: For a transition matrix, the Szegedy walk preserves its reachable
+  span.
+* `addressed_frame_completion`: An isometric frame extends to a unitary that sends each basis
+  vector addressed by the embedding `e` to the corresponding frame column.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -31,14 +54,19 @@ open Matrix
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The recursive matrix evaluation `finiteWordMatrix` agrees with `finiteCodeWordMatrix` for
+every finite gate word. -/
 lemma finiteWordMatrix_eq_code (w : ℕ) (gs : List FiniteGateCode) :
     finiteWordMatrix w gs = finiteCodeWordMatrix w gs := by
   induction gs with
   | nil => rfl
   | cons g gs ih => rw [finiteWordMatrix, finite_phase_word_cons, ih]
+/-- The two-qubit diagonal matrix with entry `finiteGaussianScalar` at the all-zero basis index
+and entry one elsewhere. -/
 noncomputable def exactCoverWitness : Matrix (Reg 2) (Reg 2) ℂ :=
   Matrix.diagonal (fun i : Reg 2 => if i=(fun _ => false) then finiteGaussianScalar else 1)
 
+/-- The diagonal matrix `exactCoverWitness` is unitary. -/
 lemma exactCoverWitness_unitary : exactCoverWitness ∈ Matrix.unitaryGroup (Reg 2) ℂ := by
   have hc : (starRingEnd ℂ) finiteGaussianScalar * finiteGaussianScalar = 1 := by
     rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
@@ -51,9 +79,12 @@ lemma exactCoverWitness_unitary : exactCoverWitness ∈ Matrix.unitaryGroup (Reg
   funext i
   by_cases h : i=(fun _ => false) <;> simp [h, hc]
 
+/-- The determinant of `exactCoverWitness` is `finiteGaussianScalar`. -/
 lemma exactCoverWitness_det : Matrix.det exactCoverWitness = finiteGaussianScalar := by
   simp [exactCoverWitness, Matrix.det_diagonal]
 
+/-- No sequence of legal words over the fixed finite gate vocabulary exactly represents every
+two-qubit unitary. -/
 theorem no_exact_gate_cover : noCountableExactGateCover := by
   rintro ⟨words, hw⟩
   obtain ⟨k, hk, he⟩ := hw exactCoverWitness exactCoverWitness_unitary
@@ -66,6 +97,8 @@ theorem no_exact_gate_cover : noCountableExactGateCover := by
   rw [h16] at hr
   norm_num at hr
 
+/-- The real-element find contract cannot hold for an empty marked set, for any supplied cost
+bounds. -/
 lemma not_empty_find {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (Sc Uc Cc bound : ℝ) : ¬ HasRealElementFind P ∅ Sc Uc Cc bound := by
   rintro ⟨Mq, k, t, L, w, sw, uw, cw, h⟩
@@ -73,15 +106,19 @@ lemma not_empty_find {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
   rw [h0 rfl] at hs
   norm_num at hs
 
+/-- The constant-one transition matrix on the singleton state space satisfies
+`IsTransitionMatrix`. -/
 lemma singleton_transition : IsTransitionMatrix (fun _ _ : Fin 1 => (1:ℝ)) := by
   constructor <;> simp
 
+/-- The singleton constant-one chain satisfies `SymmetricChainGap` with gap one. -/
 lemma singleton_gap : SymmetricChainGap (fun _ _ : Fin 1 => (1:ℝ)) 1 := by
   refine ⟨singleton_transition, by simp, ?_⟩
   intro v hv
   have hv0 : v 0 = 0 := by simpa using! hv
   simp [hv0]
 
+/-- The walk-find contract cannot hold for an empty marked set, for any supplied cost bounds. -/
 lemma not_empty_walk_find {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (Sc Uc Cc bound : ℝ) : ¬ HasWalkFind P ∅ Sc Uc Cc bound := by
   rintro ⟨k, t, M, _, h, _⟩
@@ -90,6 +127,8 @@ lemma not_empty_walk_find {I : Type} [Fintype I] [DecidableEq I]
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 set_option maxHeartbeats 1000000
 
+/-- For two isometric frames with Hermitian cross Gram matrix, computes the product of frame
+reflections on the two lifted copies of an eigenvector of that Gram matrix. -/
 lemma two_frame_eigen_action {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A B : Matrix H I ℂ)
     (hA : Aᴴ*A=1) (hB : Bᴴ*B=1) (hGram : (Aᴴ*B)ᴴ=Aᴴ*B)
@@ -122,6 +161,7 @@ lemma two_frame_eigen_action {H I : Type} [Fintype H] [DecidableEq H]
     simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- Every transition matrix satisfies the reachable two-plane action law for its Szegedy walk. -/
 lemma reachable_two_plane {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (hP : IsTransitionMatrix P) : ReachableTwoPlaneLaw P := by
   intro u lam hu
@@ -140,6 +180,7 @@ lemma reachable_two_plane {I : Type} [Fintype I] [DecidableEq I]
       (szegedyIsometry_conjTranspose_mul P hP) (szegedyIsometryB_conjTranspose_mul P hP)
       (szegedy_gram_hermitian P hP) (complexLift u) (lam:ℂ) he
 
+/-- Both Szegedy frame images of a state belong to the walk's reachable span. -/
 lemma frame_vector_mem {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (v : QState I) :
     SzegedyIsometry P *ᵥ v ∈ walkReachableSpan P ∧
@@ -155,6 +196,7 @@ lemma frame_vector_mem {I : Type} [Fintype I] [DecidableEq I]
     exact Submodule.sum_mem _ fun i _ => Submodule.smul_mem _ _
       (Submodule.subset_span (Or.inr ⟨i, rfl⟩))
 
+/-- For a transition matrix, the Szegedy walk preserves its reachable span. -/
 lemma reachable_span_invariant {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (hP : IsTransitionMatrix P) : WalkPreservesReachableSpan P := by
   have hA (ψ : QState (I×I)) (hψ : ψ ∈ walkReachableSpan P) :
@@ -189,6 +231,8 @@ lemma reachable_span_invariant {I : Type} [Fintype I] [DecidableEq I]
       rw [Matrix.mulVec_smul]
       exact (walkReachableSpan P).smul_mem c hx
 
+/-- An isometric frame extends to a unitary that sends each basis vector addressed by the
+embedding `e` to the corresponding frame column. -/
 lemma addressed_frame_completion {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (e : I ↪ H) (F : Matrix H I ℂ) (hF : IsIsometry F) :
     ∃ U : Matrix H H ℂ, U ∈ unitaryGroup H ℂ ∧
@@ -226,6 +270,9 @@ lemma addressed_frame_completion {H I : Type} [Fintype H] [DecidableEq H]
     rw [ve] at hi
     exact congrArg (fun w : EuclideanSpace ℂ H => w x) hi
 
+/-- For a transition matrix on a nonempty finite state space, constructs unitary row-state
+preparations that send a uniform input to the detection initial state and give the
+marked-fraction probability identity. -/
 lemma graph_setup {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (hP : IsTransitionMatrix P) : GraphSetupAccount P S := by
   intro j
@@ -249,6 +296,8 @@ lemma graph_setup {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
         mul_comm]
   · exact (detection_marked_initial_mass P S hP).2
 
+/-- For `d ≤ n`, constructs an injective vertex encoding and legal words satisfying the padded
+neighbor-lookup and marked-bit equations in `HasGraphBitAccess`, with zero workspace width. -/
 lemma graph_bit_access_zero_workspace (n d : ℕ) (hdn : d ≤ n)
     (adj : Fin n → Fin n → Bool) (M : Fin n → Bool) :
     HasGraphBitAccess n d hdn adj M := by

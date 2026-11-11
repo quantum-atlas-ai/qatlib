@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.OneWayDanos05.MainResults.BiFlowAdjunction
 import Qatlib.Papers.OneWayDanos05.MainResults.FlowFrame
 import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
+
+/-!
+# Commutation identities for Pauli pattern operators
+
+This module expresses local X, local Z, and dependent Z matrices as tensor products through
+`pauliProductDensity`. Pointwise commutation then yields commutation of disjoint local
+corrections and of dependent Z corrections with X outside their support. These are algebraic
+ingredients for the one-way flow arguments in [DanosKashefi2006].
+
+## Main statements
+
+* `pauliProductDensity_comm`: Tensor products of two operator families commute if the
+  corresponding single-qubit operators commute on every wire.
+* `localZ_comm_localX_disjoint`: Local Z and local X operators commute when they act on distinct
+  wires.
+* `depZMatrix_comm_localX_of_not_mem`: A dependent Z correction commutes with local X on any
+  wire outside its neighborhood support.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,32 +46,40 @@ namespace Qatlib.Papers.OneWayDanos05.MainResults
 
 variable {n : ℕ}
 
+/-- The Pauli X matrix has zero diagonal entries and off-diagonal entries one. -/
 theorem pauliX_apply (i j : Fin 2) : pauliX i j = if i = j then 0 else 1 := by
   fin_cases i <;> fin_cases j <;> simp [pauliX]
 
+/-- The Pauli Z matrix is diagonal with entries one and minus one. -/
 theorem pauliZ_apply (i j : Fin 2) :
     pauliZ i j = if i = j then (if i = 0 then 1 else -1) else 0 := by
   fin_cases i <;> fin_cases j <;> norm_num [pauliZ]
 
+/-- The two-dimensional identity matrix has entry one exactly when its indices agree. -/
 theorem one2_apply (i j : Fin 2) : (1 : Operator 2) i j = if i = j then 1 else 0 :=
   Matrix.one_apply
 
+/-- The Pauli X matrix squares to the identity. -/
 theorem pauliX_mul_self : pauliX * pauliX = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The Pauli Z matrix squares to the identity. -/
 theorem pauliZ_mul_self : pauliZ * pauliZ = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- Pointwise equal families of single-qubit operators have equal tensor-product matrices. -/
 theorem pauliProductDensity_congr {m : ℕ} {A B : Fin m → Operator 2}
     (h : ∀ k, A k = B k) : pauliProductDensity A = pauliProductDensity B := by
   ext x y
   simp only [pauliProductDensity, Matrix.of_apply]
   exact Finset.prod_congr rfl fun k _ => by rw [h k]
 
+/-- Tensor products of two operator families commute if the corresponding single-qubit operators
+commute on every wire [DanosKashefi2006]. -/
 theorem pauliProductDensity_comm {m : ℕ} (A B : Fin m → Operator 2)
     (h : ∀ k, A k * B k = B k * A k) :
     pauliProductDensity A * pauliProductDensity B
@@ -56,6 +87,7 @@ theorem pauliProductDensity_comm {m : ℕ} (A B : Fin m → Operator 2)
   rw [pauliProductDensity_mul, pauliProductDensity_mul]
   exact pauliProductDensity_congr h
 
+/-- A matrix commuting with both factors also commutes with their product. -/
 theorem comm_mul_of_comm {X A B : Matrix (Reg n) (Reg n) ℂ}
     (hA : X * A = A * X) (hB : X * B = B * X) : X * (A * B) = (A * B) * X := by
   calc X * (A * B) = (X * A) * B := (Matrix.mul_assoc X A B).symm
@@ -64,6 +96,8 @@ theorem comm_mul_of_comm {X A B : Matrix (Reg n) (Reg n) ℂ}
     _ = A * (B * X) := by rw [hB]
     _ = (A * B) * X := (Matrix.mul_assoc A B X).symm
 
+/-- A local Z matrix is the tensor product with Pauli Z on its selected wire and identity on
+every other wire. -/
 theorem localZ_eq_ppd (v : Fin n) :
     localZ v = pauliProductDensity (fun k => if k = v then pauliZ else (1 : Operator 2)) := by
   ext x y
@@ -83,6 +117,8 @@ theorem localZ_eq_ppd (v : Fin n) :
         rw [if_pos rfl, pauliZ_apply, if_neg (fun he => hi (boolEquivFin2.injective he))]
       · rw [if_neg hiv, one2_apply, if_neg (fun he => hi (boolEquivFin2.injective he))])
 
+/-- A local X matrix is the tensor product with Pauli X on its selected wire and identity on
+every other wire. -/
 theorem localX_eq_ppd (v : Fin n) :
     localX v = pauliProductDensity (fun k => if k = v then pauliX else (1 : Operator 2)) := by
   ext x y
@@ -128,6 +164,8 @@ theorem localX_eq_ppd (v : Fin n) :
       refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
       rw [if_neg hiv, one2_apply, if_neg (fun he => hixy (boolEquivFin2.injective he))]
 
+/-- The diagonal product of Z phases on a finite wire set equals the tensor product applying
+Pauli Z on exactly those wires. -/
 theorem zDiag_eq_ppd (L : Finset (Fin n)) :
     Matrix.diagonal (fun x : Reg n => ∏ k ∈ L, (if x k then (-1 : ℂ) else 1))
       = pauliProductDensity (fun k => if k ∈ L then pauliZ else (1 : Operator 2)) := by
@@ -160,6 +198,8 @@ theorem zDiag_eq_ppd (L : Finset (Fin n)) :
       · rw [if_pos hiL, pauliZ_apply, if_neg (fun he => hi (boolEquivFin2.injective he))]
       · rw [if_neg hiL, one2_apply, if_neg (fun he => hi (boolEquivFin2.injective he))])
 
+/-- The dependent Z correction is the tensor product applying Pauli Z to the neighbors of `w`
+other than `v`. -/
 theorem depZMatrix_eq_ppd (G : MbqcGraph n) (w v : Fin n) :
     depZMatrix G w v
       = pauliProductDensity
@@ -167,6 +207,7 @@ theorem depZMatrix_eq_ppd (G : MbqcGraph n) (w v : Fin n) :
   unfold depZMatrix depZVal
   exact zDiag_eq_ppd ((nbhd G w).erase v)
 
+/-- Local Z and local X operators commute when they act on distinct wires [DanosKashefi2006]. -/
 theorem localZ_comm_localX_disjoint (v w : Fin n) (hvw : v ≠ w) :
     localZ v * localX w = localX w * localZ v := by
   rw [localZ_eq_ppd, localX_eq_ppd]
@@ -180,6 +221,8 @@ theorem localZ_comm_localX_disjoint (v w : Fin n) (hvw : v ≠ w) :
       simp [hkv]
     · simp [hkv, hkw]
 
+/-- A dependent Z correction commutes with local X on any wire outside its neighborhood support
+[DanosKashefi2006]. -/
 theorem depZMatrix_comm_localX_of_not_mem (G : MbqcGraph n) (w v u : Fin n)
     (hu : u ∉ (nbhd G w).erase v) :
     depZMatrix G w v * localX u = localX u * depZMatrix G w v := by

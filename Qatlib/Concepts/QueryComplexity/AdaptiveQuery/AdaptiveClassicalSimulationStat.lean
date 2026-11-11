@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+
+/-!
+# The adaptive classical simulation proposition
+
+This module defines `AdaptiveClassicalSimulation`, which asserts an exact deterministic decision
+tree simulation of bounded error observed circuits. For a well formed circuit of query depth `T`
+and a normalized initial state, error at most one third yields both a tree and a deterministic
+query complexity bound of `4096T⁶`.
+
+This packages the deterministic versus quantum query comparison of [BealsEtAl2001] for the
+adaptive circuit model.
+
+## Main statements
+
+* `AdaptiveClassicalSimulation`: the existence and cost bound of an exact classical simulation.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,9 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition that any total Boolean function computed by a well formed observed circuit
+of query depth `T` with error at most one third has an exact deterministic query tree of
+cost at most `4096T⁶` and the same bound on deterministic query complexity. -/
 def AdaptiveClassicalSimulation : Prop :=
   ∀ (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))

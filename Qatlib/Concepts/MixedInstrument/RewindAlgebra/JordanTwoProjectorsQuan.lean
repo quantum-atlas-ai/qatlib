@@ -8,6 +8,32 @@ import Qatlib.Concepts.MixedInstrument.RewindAlgebra.JordanTwoProjectorsStat
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionOriginalContracts
 import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+/-!
+# Jordan decomposition for two projectors
+
+This module proves `jordanTwoProjectors`, decomposing two orthogonal projectors into one and two
+dimensional invariant pieces with zero companion vectors at endpoint eigenvalues. It also
+refutes the legacy formulation and supplies normalized coordinates for states in the range of
+the first projector. This is the two projector framework used in amplification
+[NagajWocjanZhang2009].
+
+## Main statements
+
+* `jordanTwoProjectors_false`: The legacy two projector proposition requiring all companion
+  vectors to be normalized is false.
+* `jordanTwoProjectors`: Two orthogonal projectors possess the decomposition specified by
+  `JordanTwoProjectors`, with normalized companion vectors only for interior eigenvalues; see
+  [NagajWocjanZhang2009].
+* `jordan_range_state_coordinates`: A normalized vector fixed by `P` has an expansion in a
+  finite orthonormal family with squared coordinate norms summing to one, under the stated
+  projector hypotheses.
+
+## References
+
+* [Nagaj, Wocjan, and Zhang, 2009][NagajWocjanZhang2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -23,6 +49,8 @@ open Qatlib.Concepts.WalkSearch.Spectral
 namespace Qatlib.Concepts.MixedInstrument.RewindAlgebra
 open Matrix
 
+/-- The legacy two projector proposition requiring all companion vectors to be normalized is
+false. -/
 theorem jordanTwoProjectors_false : ¬ JordanTwoProjectorsLegacy := by
   classical
   intro h
@@ -52,10 +80,14 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators
 
+/-- The inner product of columns `i` and `j` of two matrices is entry `(i, j)` of their
+conjugate transpose product. -/
 private theorem column_inner {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] (A B : Matrix H J ℂ) (i j : J) :
     Qatlib.Foundations.PureStateMath.Inner (fun h => A h i) (fun h => B h j) = (Aᴴ*B) i j := rfl
 
+/-- The action of `A * Aᴴ` is the sum of the columns of `A` weighted by their inner products
+with the input vector. -/
 private theorem column_resolution {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] (A : Matrix H J ℂ) (x : QState H) :
     (A*Aᴴ)*ᵥx = ∑ i, Qatlib.Foundations.PureStateMath.Inner (fun h => A h i) x • (fun h => A h i) := by
@@ -67,6 +99,8 @@ private theorem column_resolution {H J : Type} [Fintype H] [DecidableEq H]
   intro i _
   ring
 
+/-- Two orthogonal projectors possess the decomposition specified by `JordanTwoProjectors`, with
+normalized companion vectors only for interior eigenvalues; see [NagajWocjanZhang2009]. -/
 theorem jordanTwoProjectors : JordanTwoProjectors := by
   classical
   intro D P Q hPs hPi hQs hQi
@@ -132,6 +166,8 @@ theorem jordanTwoProjectors : JordanTwoProjectors := by
       Matrix.mulVec, dotProduct, u, v, d, B, Pi.add_apply, Pi.smul_apply,
       Complex.real_smul, smul_eq_mul, Complex.ofReal_sub, Complex.ofReal_one, mul_comm] using he
 
+/-- A normalized vector fixed by `P` has an expansion in a finite orthonormal family with
+squared coordinate norms summing to one, under the stated projector hypotheses. -/
 theorem jordan_range_state_coordinates (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (ψ : QState (Fin D)) (hψ : P*ᵥψ=ψ) (hnorm : Qatlib.Foundations.PureStateMath.Inner ψ ψ=1) :

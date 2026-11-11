@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.LocalModel.Nested
+
+/-!
+# Counting connected interaction words
+
+The recursive list `words` enumerates local interaction words by extending through terms whose
+supports meet the current region. The bounds `words_count` and `grouped_words_count` control the
+number of words by a factorial times powers of the locality and degree bounds. See
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `words_length`: Every generated interaction word has the same length as its group-index list.
+* `words_count`: The number of generated words for one local seed is at most `(k * d)^xs.length
+  * xs.length!`.
+* `grouped_words_count`: If the seed group has at most `L` labels, the total number of generated
+  words across its seeds is at most `L * (k * d)^xs.length * xs.length!`.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +37,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 namespace Qatlib.Papers.LowEnergyProd24.LocalModel.Hamiltonian
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- If every value of a natural-valued function on a list is at most `C`, the sum of those
+values is at most the list length times `C`. -/
 theorem sum_map_bound {α : Type*} (l : List α) (f : α→ℕ) (C : ℕ) (hf : ∀ a∈l,f a ≤ C) :
     (l.map f).sum ≤ l.length*C := by
   induction l with
@@ -25,10 +49,13 @@ theorem sum_map_bound {α : Type*} (l : List α) (f : α→ℕ) (C : ℕ) (hf : 
       _ ≤ C+l.length*C := Nat.add_le_add (hf a (List.mem_cons_self)) (ih (fun b hb=>hf b (List.mem_cons_of_mem a hb)))
       _ = (l.length+1)*C := by ring
 
+/-- The recursively generated local interaction words for a group-index list, extending each
+tail by labels in the indicated group whose support meets the tail region. -/
 def words (h : Hamiltonian N R M k d J) (seed : Fin R) : List (Fin M)→List (List (Fin R))
   | []=>[[]]
   | m::xs=>(h.words seed xs).flatMap (fun w=>(h.active m (h.region seed w)).toList.map (fun a=>a::w))
 
+/-- Every generated interaction word has the same length as its group-index list. -/
 theorem words_length (h : Hamiltonian N R M k d J) (seed : Fin R) (xs : List (Fin M)) :
     ∀ w∈h.words seed xs,w.length=xs.length := by
   induction xs with
@@ -43,6 +70,8 @@ theorem words_length (h : Hamiltonian N R M k d J) (seed : Fin R) (xs : List (Fi
     obtain ⟨a,_,rfl⟩:=List.mem_map.mp hw
     simpa only [List.length_cons] using congrArg (fun n=>n+1) (ih v hv)
 
+/-- The number of generated words for one local seed is at most `(k * d)^xs.length *
+xs.length!`. -/
 theorem words_count (h : Hamiltonian N R M k d J) (seed : Fin R) (xs : List (Fin M)) :
     (h.words seed xs).length ≤ (k*d)^xs.length*xs.length.factorial := by
   induction xs with
@@ -64,6 +93,8 @@ theorem words_count (h : Hamiltonian N R M k d J) (seed : Fin R) (xs : List (Fin
         simp only [List.length_cons,Nat.factorial_succ,pow_succ]
         ring
 
+/-- If the seed group has at most `L` labels, the total number of generated words across its
+seeds is at most `L * (k * d)^xs.length * xs.length!`. See [HejaziZiniArrazola2024]. -/
 theorem grouped_words_count (h : Hamiltonian N R M k d J) (m : Fin M) (xs : List (Fin M))
     (L : ℕ) (hL : (h.labels m).card ≤ L) :
     ((h.labels m).toList.flatMap (fun seed=>h.words seed xs)).length ≤ L*(k*d)^xs.length*xs.length.factorial := by

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionStat
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Construction of the two reflection projectors
+
+Proves that the span-program graph adjacency is Hermitian and its input-dependent diagonal
+matrix is an orthogonal projector. The corresponding reflection is identified with the phase
+oracle marking complement input labels.
+
+`twoReflectionConstruction` also supplies an orthogonal projector onto the adjacency kernel,
+completing the matrix construction associated with [Reichardt2011].
+
+## Main statements
+
+* `pixProj_reflection`: the input-projector reflection equals the complement-marking phase
+  oracle.
+* `twoReflectionConstruction`: packages the graph, input-projection, and kernel-projection
+  properties.
+
+## References
+
+* [Reichardt, Eqs. (2.2)-(2.6)][Reichardt2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -40,11 +63,13 @@ open Qatlib
 open Qatlib
 open scoped BigOperators
 
+/-- The block adjacency matrix of any complex biadjacency equals its conjugate transpose. -/
 private theorem blockAdjacency_hermitian {R C : Type} [DecidableEq R] [DecidableEq C]
     (B : Matrix R C ℂ) : (blockAdjacency B)ᴴ = blockAdjacency B := by
   ext p q
   cases p <;> cases q <;> simp [blockAdjacency, Matrix.conjTranspose_apply]
 
+/-- The input-dependent diagonal matrix `pixProj` is an orthogonal projector. -/
 private theorem pixProj_orthogonal {X : Type} [Fintype X] [DecidableEq X] (n m : ℕ)
     (input : X → Fin n → Bool) (f : X → Bool) (x : X) :
     IsOrthogonalProjector (pixProj (m := m) input f x) := by
@@ -65,6 +90,8 @@ private theorem pixProj_orthogonal {X : Type} [Fintype X] [DecidableEq X] (n m :
     | inl r => simp
     | inr c => cases complementMark input f x c <;> simp
 
+/-- Reflection about the input projector equals the phase oracle marking complement input
+labels. -/
 private theorem pixProj_reflection {X : Type} [Fintype X] [DecidableEq X] (n m : ℕ)
     (input : X → Fin n → Bool) (f : X → Bool) (x : X) :
     (2 : ℂ) • pixProj (m := m) input f x - 1 =
@@ -82,6 +109,9 @@ private theorem pixProj_reflection {X : Type} [Fintype X] [DecidableEq X] (n m :
         norm_num [pixProj, PhaseOracle, Matrix.smul_apply, hc]
   · simp [pixProj, PhaseOracle, Matrix.smul_apply, hpq]
 
+/-- The graph adjacency is Hermitian, input projections are orthogonal with the prescribed
+phase-oracle reflections, and an orthogonal projector onto the adjacency kernel exists. See
+[Reichardt, Eqs. (2.2)-(2.6)][Reichardt2011]. -/
 theorem twoReflectionConstruction : TwoReflectionConstruction := by
   classical
   intro X _ _ n m input f v W

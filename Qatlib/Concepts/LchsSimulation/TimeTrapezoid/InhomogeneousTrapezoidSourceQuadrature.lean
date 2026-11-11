@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.TrapezoidSourceDerivatives
+
+/-!
+# Trapezoidal time quadrature for the LCHS source
+
+`inhomogeneousTrapezoidSourceQuadrature` establishes the source-response error estimate for
+trapezoidal time sampling combined with the finite Cauchy parameter grid. The proof uses
+Euclidean-state differentiation and separates time integration error from the
+Hamiltonian-parameter quadrature error.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneousTrapezoidSourceQuadrature`: proves the trapezoidal source quadrature estimate.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -29,9 +49,14 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+/-- The real continuous linear identification of finite complex state vectors with Euclidean
+space. -/
 private def trapEuclideanMap {I : Type} [Fintype I] : QState I →L[ℝ] EuclideanSpace ℂ I :=
   (PiLp.continuousLinearEquiv 2 ℝ (fun _ : I => ℂ)).symm.toContinuousLinearMap
 
+/-- The trapezoidal source quadrature estimate for the Duhamel representation holds under the
+continuity, positivity, derivative, and norm hypotheses in
+`InhomogeneousTrapezoidSourceQuadrature` [AnLiuLin2023]. -/
 theorem inhomogeneousTrapezoidSourceQuadrature : InhomogeneousTrapezoidSourceQuadrature := by
   intro I _ _ L L' H H' b b' b'' s t K N Mt β β₂ lamL lamH lamLd lamHd bmax
     hL hH hb hPSD hHerm hst hK hN hMt hdL hdH hnLd hnHd hd hd' hβ hβ₂ hbmax hlL hlH

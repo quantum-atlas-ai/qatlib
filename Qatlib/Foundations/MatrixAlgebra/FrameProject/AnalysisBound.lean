@@ -11,12 +11,35 @@ import Mathlib.Analysis.InnerProductSpace.Orthonormal
 import Mathlib.Analysis.Normed.Module.FiniteDimension
 import Mathlib.Tactic
 
+/-!
+# Analysis bounds from finite synthesis bounds
+
+A positive lower bound on finite synthesis controls the squared analysis coefficients of vectors
+in the span of the family. `analysis_bound_of_synthesis` derives this estimate directly, and
+`synthesis_bound_subtype` transfers synthesis bounds to subfamilies.
+
+`orthonormal_analysis_bound` compares analysis against any orthonormal family lying in that
+span. These estimates support the geometric arguments associated with [TangWright2025].
+
+## Main statements
+
+* `analysis_bound_of_synthesis`: Lower analysis bound on the family span.
+* `synthesis_bound_subtype`: Restriction of a synthesis bound to a subfamily.
+* `orthonormal_analysis_bound`: Comparison with an orthonormal family in the span.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators ComplexConjugate
 namespace Qatlib.Foundations.MatrixAlgebra.FrameProject
 variable {I E : Type*} [Fintype I] [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- A finite family with positive synthesis lower bound `c` satisfies the same analysis lower
+bound on its span: `c * ‖w‖² ≤ ∑ i, ‖inner ℂ (F i) w‖²`. -/
 theorem analysis_bound_of_synthesis (F : I → E) (c : ℝ) (hc : 0 < c)
     (hF : ∀ a : I → ℂ, c * (∑ i, ‖a i‖^2) ≤ ‖∑ i, a i • F i‖^2)
     (w : E) (hw : w ∈ Submodule.span ℂ (Set.range F)) :
@@ -48,6 +71,8 @@ theorem analysis_bound_of_synthesis (F : I → E) (c : ℝ) (hc : 0 < c)
   · have hp : 0 < ‖w‖^2 := sq_pos_of_ne_zero hw0
     nlinarith
 
+/-- A synthesis lower bound for a finite family also holds for every subfamily selected by a
+decidable predicate. -/
 theorem synthesis_bound_subtype (F : I → E) (c : ℝ)
     (hF : ∀ a : I → ℂ, c * (∑ i, ‖a i‖^2) ≤ ‖∑ i, a i • F i‖^2)
     (p : I → Prop) [DecidablePred p] (a : {i // p i} → ℂ) :
@@ -64,6 +89,9 @@ theorem synthesis_bound_subtype (F : I → E) (c : ℝ)
     simpa only [hb1, hb0, zero_smul, Finset.sum_const_zero, add_zero] using hs.symm
   simpa only [hb, hv] using hF b
 
+/-- In a finite-dimensional complex inner product space, a positive synthesis lower bound
+controls the analysis coefficients of any orthonormal family in the span by the analysis
+coefficients of `F`. -/
 theorem orthonormal_analysis_bound [FiniteDimensional ℂ E]
     {J : Type*} [Fintype J] (F : I → E) (c : ℝ) (hc : 0<c)
     (hF : ∀ a : I → ℂ, c * (∑ i, ‖a i‖^2) ≤ ‖∑ i, a i • F i‖^2)

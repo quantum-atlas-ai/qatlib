@@ -8,6 +8,26 @@ import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrecte
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentation
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Simu
 import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+
+/-!
+# Amplified reset-and-discard error bounds
+
+`ResetDiscardStepCorrected` preserves density operators when the workspace is unitary. The
+module controls its trace-norm error through the amplified corner and proves linear accumulation
+under iteration, yielding the corrected segmentation guarantee for Taylor simulation
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `resetDiscardStepCorrected_density`: Preservation of positivity and unit trace.
+* `resetDiscardStepCorrected_iterate_error`: Linear accumulation of the corner error.
+* `resetDiscardSegmentation`: The corrected perturbation-dependent segmentation bound.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,15 +45,19 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The reduced-operator definition agrees with the matrix partial trace `traceLeft`. -/
 private theorem reduced_eq_traceLeft (σ : Matrix (J × I) (J × I) ℂ) :
     ReducedState σ = σ.traceLeft := rfl
 
+/-- Oblivious amplification about the ancillary fiber of a unitary workspace is unitary. -/
 private theorem amplified_unitary (W : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (hW : W ∈ Matrix.unitaryGroup (J × I) ℂ) :
     ObliviousAmplitudeAmplification (FiberProjector j₀) W ∈ Matrix.unitaryGroup (J × I) ℂ := by
   have hp := isOrthogonalProjector_fiberProjector (I := I) j₀
   exact obliviousAmplitudeAmplification_mem_unitary _ _ ⟨hp.1,hp.2⟩ hW
 
+/-- Conjugating a system operator with a unitary after adjoining the ancillary basis state
+preserves its trace. -/
 private theorem unitary_fiber_trace (O : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (hO : O ∈ Matrix.unitaryGroup (J × I) ℂ) (ρ : Matrix I I ℂ) :
     Matrix.trace (O*AncillaSystemOp (vecOuter (Ket j₀)) ρ*Oᴴ) = Matrix.trace ρ := by
@@ -44,6 +68,8 @@ private theorem unitary_fiber_trace (O : Matrix (J × I) (J × I) ℂ) (j₀ : J
   rw [Matrix.trace_mul_comm,Matrix.mul_assoc,← Matrix.mul_assoc Oᴴ,hunit,Matrix.one_mul]
   rw [Matrix.trace_mul_comm,Matrix.mul_assoc,hF,Matrix.mul_one]
 
+/-- A corrected reset-and-discard step with a unitary workspace maps a positive semidefinite
+unit-trace operator to another such operator. -/
 theorem resetDiscardStepCorrected_density (W : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (hW : W ∈ Matrix.unitaryGroup (J × I) ℂ) (ρ : Matrix I I ℂ)
     (hρ : ρ.PosSemidef) (ht : Matrix.trace ρ=1) :
@@ -57,6 +83,8 @@ theorem resetDiscardStepCorrected_density (W : Matrix (J × I) (J × I) ℂ) (j�
   rw [reduced_eq_traceLeft]
   exact ⟨hp.traceLeft,(Matrix.traceLeft_trace _).trans ((unitary_fiber_trace O j₀ hO ρ).trans ht)⟩
 
+/-- The reduced operator splits into the reduced diagonal blocks for an ancillary fiber and its
+orthogonal complement. -/
 private theorem reduced_split (σ : Matrix (J × I) (J × I) ℂ) (j₀ : J) :
     ReducedState σ = ReducedState (FiberProjector j₀*σ*FiberProjector j₀)+
       ReducedState ((1-FiberProjector j₀)*σ*(1-FiberProjector j₀)) := by
@@ -70,6 +98,8 @@ private theorem reduced_split (σ : Matrix (J × I) (J × I) ℂ) (j₀ : J) :
   simp only [fiberProjector_mul,mul_fiberProjector,Matrix.of_apply,Matrix.sub_apply]
   by_cases ha : a=j₀ <;> simp [ha]
 
+/-- On a density operator, the corrected step's trace-norm error is at most twice the trace-norm
+error of conjugation by its amplified corner. -/
 theorem resetDiscardStepCorrected_error_from_corner
     (W : Matrix (J × I) (J × I) ℂ) (j₀ : J) (U : Matrix I I ℂ)
     (hW : W ∈ Matrix.unitaryGroup (J × I) ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
@@ -121,6 +151,8 @@ theorem resetDiscardStepCorrected_error_from_corner
   rw [he]
   exact (Matrix.traceNorm_add_le _ _).trans (by linarith only [hfbound])
 
+/-- The corner of an amplified scale-`s` encoding of `X` equals `(3 / s) • X - (4 / s³) • (X *
+Xᴴ * X)`. -/
 theorem resetDiscardStepCorrected_corner
     (W : Matrix (J × I) (J × I) ℂ) (j₀ : J) (X : Matrix I I ℂ) (s : ℝ)
     (hW : IsBlockEncoding W j₀ X s) :
@@ -132,6 +164,8 @@ theorem resetDiscardStepCorrected_corner
   have hh := congrArg (fun A : Matrix (J × I) (J × I) ℂ => A (j₀,i) (j₀,j)) he
   simpa only [fiberEmbed_apply,and_self,if_true] using hh
 
+/-- An amplified corner within norm distance `e` of a unitary gives corrected-step trace-norm
+error at most `4 * e` on density operators. -/
 theorem resetDiscardStepCorrected_error
     (W : Matrix (J × I) (J × I) ℂ) (j₀ : J) (U : Matrix I I ℂ) (e : ℝ)
     (hW : W ∈ Matrix.unitaryGroup (J × I) ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
@@ -157,6 +191,8 @@ theorem resetDiscardStepCorrected_error
   exact (resetDiscardStepCorrected_error_from_corner W j₀ U hW hU ρ hρ ht).trans
     (by linarith only [he])
 
+/-- If the amplified corner is within `e` of a unitary, `r` corrected steps have trace-norm
+error at most `4 * r * e` relative to conjugation by `U^r`. -/
 theorem resetDiscardStepCorrected_iterate_error
     (W : Matrix (J × I) (J × I) ℂ) (j₀ : J) (U : Matrix I I ℂ) (e : ℝ)
     (hW : W ∈ Matrix.unitaryGroup (J × I) ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
@@ -190,6 +226,9 @@ theorem resetDiscardStepCorrected_iterate_error
     have hh := (Matrix.traceNorm_add_le _ _).trans (add_le_add hs (hn.trans ih))
     exact hh.trans_eq (by push_cast; ring)
 
+/-- The corrected reset-and-discard segmentation property holds, with total trace-norm error
+bounded by `4 * r` times the stated cubic perturbation expression. See
+[BerryEtAl2015Taylor]. -/
 theorem resetDiscardSegmentation : ResetDiscardSegmentationCorrected := by
   intro J I _ _ _ _ W j₀ X U s δ₁ δ₂ r hW hU hX hs hclose hδ ρ hρ ht
   apply resetDiscardStepCorrected_iterate_error W j₀ U _ hW.1 hU _ ρ hρ ht r

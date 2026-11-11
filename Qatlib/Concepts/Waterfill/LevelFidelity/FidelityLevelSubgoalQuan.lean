@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalStat
+
+/-!
+# Existence and optimality of source-constrained fidelity levels
+
+The theorem `sourceFidelityLevelSubgoal` proves that normalized nonnegative rational source and
+positive target profiles possess a water level in a tight nondegenerate bracket for every
+threshold between `waterPmin` and `waterPmax`. The selected profile maximizes squared mass among
+source-box competitors satisfying the fidelity inequality, as in quantum rejection sampling
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `sourceFidelityLevelSubgoal`: establish the water-level existence and source-box optimality
+  statement.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +36,10 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity
 
 open scoped BigOperators
 
+/-- For normalized nonnegative source and positive target profiles with tight distinct bracket
+endpoints, every threshold between `waterPmin` and `waterPmax` has a bracketed water level
+satisfying the fidelity equality and maximizing squared mass among feasible source-box
+vectors [OzolsRoettelerRoland2013]. -/
 theorem sourceFidelityLevelSubgoal : SourceFidelityLevelSubgoal := by
   intro m π σ γlo γhi hπ hσ hπnorm _hσnorm hlohi hlow hwit hhigh hwit2 p hpmin hpmax
   obtain ⟨i₀, hπ₀, heq₀⟩ := hwit

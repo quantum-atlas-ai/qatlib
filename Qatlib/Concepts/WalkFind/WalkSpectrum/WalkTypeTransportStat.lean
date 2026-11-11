@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkFind.UniqueCollision.JohnsonWalk
+
+/-!
+# Johnson-walk type transport statement
+
+`WalkTypeTransport` states that the span of the type vectors is preserved by the full Johnson
+walk and the marked phase flip. It specifies their matrices in the reduced type coordinates
+under explicit population conditions. See [Ambainis2007ElementDistinctness] for the mathematical
+background.
+
+## Main statements
+
+* `WalkTypeTransport`: the walk and marked-flip transport identities.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 set_option autoImplicit false
@@ -15,6 +33,8 @@ open Qatlib.Concepts.WalkFind.UniqueCollision
 
 open Matrix
 
+/-- The proposition that, under the stated size assumptions and `I.card = k`, the full walk and
+marked flip act on type vectors with reduced matrices `jwWalk` and `jwFlipTilde`. -/
 def WalkTypeTransport : Prop :=
   ∀ (k N r : ℕ), 1 ≤ k → k ≤ r → k < N - r →
     ∀ (I : Finset (Fin N)), I.card = k →

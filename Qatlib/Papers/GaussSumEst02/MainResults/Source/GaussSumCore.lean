@@ -11,6 +11,28 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Arg
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.FieldTheory.Finite.Basic
 
+/-!
+# Finite-field characters and Gauss-sum phases
+
+This module introduces `MultChar`, nontrivial additive characters `AddChar`, and finite-field
+`gaussSum`. It proves orthogonality, frequency scaling, the square-root norm for nontrivial
+characters, and the normalized Fourier-character identity `algorithm1_phase_change`. See
+[VanDamSeroussi2002].
+
+## Main statements
+
+* `gaussSum_scale`: Scaling the frequency by a nonzero `β` multiplies the Gauss sum by `χ(β⁻¹)`.
+* `gaussSum_norm`: For a nontrivial multiplicative character and nonzero frequency, the Gauss
+  sum has norm equal to the square root of the field cardinality.
+* `algorithm1_phase_change`: For a nontrivial character and nonzero frequency, multiplying the
+  Fourier-character amplitudes by `χ(y)²` yields `chiState` scaled by the Gauss sum divided by
+  `√(card K)`.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,6 +41,8 @@ open Finset
 
 namespace Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- A complex multiplicative character on a field, extended by zero at zero and having unit norm
+at nonzero elements. -/
 structure MultChar (K : Type*) [Field K] where
   toFun : K → ℂ
   map_zero' : toFun 0 = 0
@@ -30,6 +54,7 @@ namespace MultChar
 
 variable {K : Type*} [Field K] (χ : MultChar K)
 
+/-- A multiplicative character is nonzero at every nonzero field element. -/
 lemma toFun_ne_zero {x : K} (hx : x ≠ 0) : χ.toFun x ≠ 0 := by
   intro h
   have h1 := χ.map_mul' x x⁻¹
@@ -37,6 +62,7 @@ lemma toFun_ne_zero {x : K} (hx : x ≠ 0) : χ.toFun x ≠ 0 := by
   rw [h, zero_mul] at h1
   exact one_ne_zero h1
 
+/-- Complex conjugation equals inversion for a complex number of norm one. -/
 lemma conj_eq_inv_of_norm_one {z : ℂ} (hz : ‖z‖ = 1) : conj z = z⁻¹ := by
   have hsq : Complex.normSq z = 1 := by
     rw [Complex.normSq_eq_norm_sq, hz, one_pow]
@@ -46,23 +72,29 @@ lemma conj_eq_inv_of_norm_one {z : ℂ} (hz : ‖z‖ = 1) : conj z = z⁻¹ := 
     exact h.symm
   exact eq_inv_of_mul_eq_one_left h2
 
+/-- At a nonzero field element, the conjugate character value equals its complex inverse. -/
 lemma conj_apply {x : K} (hx : x ≠ 0) : conj (χ.toFun x) = (χ.toFun x)⁻¹ :=
   conj_eq_inv_of_norm_one (χ.norm_eq_one x hx)
 
+/-- A multiplicative character maps the inverse of a nonzero element to the inverse character
+value. -/
 lemma inv_apply {x : K} (hx : x ≠ 0) : χ.toFun x⁻¹ = (χ.toFun x)⁻¹ := by
   have h := χ.map_mul' x x⁻¹
   rw [mul_inv_cancel₀ hx, χ.map_one'] at h
   exact eq_inv_of_mul_eq_one_left (by rw [mul_comm]; exact h.symm)
 
+/-- A multiplicative character maps natural powers to powers of its values. -/
 lemma pow_apply (x : K) (n : ℕ) : χ.toFun (x ^ n) = χ.toFun x ^ n := by
   induction n with
   | zero => simp [χ.map_one']
   | succ n ih => rw [pow_succ, χ.map_mul', ih, pow_succ]
 
+/-- The multiplicative character takes a value different from one at some nonzero field element. -/
 def IsNontrivial : Prop := ∃ x : K, x ≠ 0 ∧ χ.toFun x ≠ 1
 
 end MultChar
 
+/-- A nontrivial complex additive character, mapping zero to one and addition to multiplication. -/
 structure AddChar (K : Type*) [AddCommGroup K] where
   toFun : K → ℂ
   map_zero' : toFun 0 = 1
@@ -73,11 +105,14 @@ namespace AddChar
 
 variable {K : Type*} [AddCommGroup K] (e : AddChar K)
 
+/-- An additive character maps a natural multiple of an element to the corresponding power of
+its value. -/
 lemma pow_apply (n : ℕ) (x : K) : e.toFun (n • x) = e.toFun x ^ n := by
   induction n with
   | zero => simp [e.map_zero']
   | succ n ih => rw [succ_nsmul, e.map_add', ih, pow_succ]
 
+/-- Every value of an additive character is nonzero. -/
 lemma apply_ne_zero (x : K) : e.toFun x ≠ 0 := by
   intro h
   have hh : e.toFun x * e.toFun (-x) = 1 := by
@@ -85,6 +120,7 @@ lemma apply_ne_zero (x : K) : e.toFun x ≠ 0 := by
   rw [h, zero_mul] at hh
   exact zero_ne_one hh
 
+/-- An additive character on a finite group has unit norm at every element. -/
 lemma norm_eq_one [Fintype K] (x : K) : ‖e.toFun x‖ = 1 := by
   have hpow := e.pow_apply (Fintype.card K) x
   rw [card_nsmul_eq_zero, e.map_zero'] at hpow
@@ -98,10 +134,14 @@ lemma norm_eq_one [Fintype K] (x : K) : ‖e.toFun x‖ = 1 := by
   · exact h
   · rw [h] at hnn; norm_num at hnn
 
+/-- For an additive character on a finite group, conjugation of its value equals evaluation at
+the negative element. -/
 lemma conj_apply [Fintype K] (x : K) : conj (e.toFun x) = e.toFun (-x) := by
   rw [MultChar.conj_eq_inv_of_norm_one (e.norm_eq_one x)]
   exact (eq_inv_of_mul_eq_one_right (by rw [← e.map_add', add_neg_cancel, e.map_zero'])).symm
 
+/-- A nontrivial additive character sums to zero after multiplication of the argument by a
+nonzero finite-field element. -/
 lemma sum_mul_eq_zero {F : Type*} [Field F] [Fintype F] (e' : AddChar F) {c : F}
     (hc : c ≠ 0) : (∑ x : F, e'.toFun (c * x)) = 0 := by
   obtain ⟨z, hz⟩ := e'.nontrivial
@@ -124,9 +164,11 @@ lemma sum_mul_eq_zero {F : Type*} [Field F] [Fintype F] (e' : AddChar F) {c : F}
 
 end AddChar
 
+/-- The finite-field sum of the weight `χ(x)` times the additive-character value `e(βx)`. -/
 def gaussSum {K : Type*} [Field K] [Fintype K] (χ : K → ℂ) (e : AddChar K) (β : K) : ℂ :=
   ∑ x : K, χ x * e.toFun (β * x)
 
+/-- A nontrivial multiplicative character sums to zero over the finite field. -/
 theorem multChar_sum_eq_zero {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     (hnt : χ.IsNontrivial) : (∑ x : K, χ.toFun x) = 0 := by
   obtain ⟨a, ha0, ha⟩ := hnt
@@ -142,6 +184,8 @@ theorem multChar_sum_eq_zero {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     rw [sub_mul, one_mul, hmul, sub_self]
   exact (mul_eq_zero.mp h2).resolve_left (sub_ne_zero.mpr ha)
 
+/-- Scaling the frequency by a nonzero `β` multiplies the Gauss sum by `χ(β⁻¹)`
+[VanDamSeroussi2002]. -/
 theorem gaussSum_scale {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : AddChar K)
     {β δ : K} (hβ : β ≠ 0) :
     gaussSum χ.toFun e (β * δ) = χ.toFun β⁻¹ * gaussSum χ.toFun e δ := by
@@ -162,6 +206,8 @@ theorem gaussSum_scale {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : 
           (fun z : K => χ.toFun β⁻¹ * (χ.toFun z * e.toFun (δ * z)))
         simpa using h
 
+/-- For a nontrivial multiplicative character and nonzero frequency, the squared complex norm of
+the Gauss sum is the field cardinality [VanDamSeroussi2002]. -/
 theorem gaussSum_normSq {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : AddChar K)
     (hnt : χ.IsNontrivial) {β : K} (hβ : β ≠ 0) :
     Complex.normSq (gaussSum χ.toFun e β) = (Fintype.card K : ℝ) := by
@@ -248,6 +294,8 @@ theorem gaussSum_normSq {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e :
   rw [Complex.normSq_eq_conj_mul_self (z := G)]
   exact hval
 
+/-- For a nontrivial multiplicative character and nonzero frequency, the Gauss sum has norm
+equal to the square root of the field cardinality [VanDamSeroussi2002]. -/
 theorem gaussSum_norm {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : AddChar K)
     (hnt : χ.IsNontrivial) {β : K} (hβ : β ≠ 0) :
     ‖gaussSum χ.toFun e β‖ = Real.sqrt (Fintype.card K) := by
@@ -257,6 +305,8 @@ theorem gaussSum_norm {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : A
       = Real.sqrt (‖gaussSum χ.toFun e β‖ ^ 2) := (Real.sqrt_sq (norm_nonneg _)).symm
     _ = Real.sqrt (Fintype.card K) := by rw [hsq]
 
+/-- A Gauss sum with nontrivial multiplicative character and nonzero frequency has a real phase
+and modulus `√(card K)`. -/
 theorem gaussSum_polar {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : AddChar K)
     (hnt : χ.IsNontrivial) {β : K} (hβ : β ≠ 0) :
     ∃ γ : ℝ, gaussSum χ.toFun e β
@@ -275,6 +325,7 @@ theorem gaussSum_polar {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : 
   rw [hγ]
   field_simp
 
+/-- The multiplicative character equal to one on nonzero elements and zero at zero. -/
 def trivialMultChar (K : Type*) [Field K] : MultChar K where
   toFun := fun x => by classical exact (if x = 0 then 0 else 1)
   map_zero' := by classical exact if_pos rfl
@@ -291,11 +342,14 @@ def trivialMultChar (K : Type*) [Field K] : MultChar K where
         simp [hx, hy, hxy]
   norm_eq_one x hx := by classical simp [hx]
 
+/-- The trivial multiplicative character equals one at every nonzero field element. -/
 theorem trivialMultChar_apply_ne_zero {K : Type*} [Field K] {x : K} (hx : x ≠ 0) :
     (trivialMultChar K).toFun x = 1 := by
   classical
   simp [trivialMultChar, hx]
 
+/-- At frequency zero, the Gauss sum for the trivial multiplicative character equals the field
+cardinality minus one [VanDamSeroussi2002]. -/
 theorem gaussSum_trivial_zero {K : Type*} [Field K] [Fintype K] (e : AddChar K) :
     gaussSum (trivialMultChar K).toFun e 0 = ((Fintype.card K - 1 : ℕ) : ℂ) := by
   classical
@@ -322,6 +376,8 @@ theorem gaussSum_trivial_zero {K : Type*} [Field K] [Fintype K] (e : AddChar K) 
   push_cast
   ring
 
+/-- At a nonzero frequency, the Gauss sum for the trivial multiplicative character is `-1`
+[VanDamSeroussi2002]. -/
 theorem gaussSum_trivial_ne {K : Type*} [Field K] [Fintype K] (e : AddChar K) {β : K}
     (hβ : β ≠ 0) : gaussSum (trivialMultChar K).toFun e β = -1 := by
   classical
@@ -354,20 +410,28 @@ theorem gaussSum_trivial_ne {K : Type*} [Field K] [Fintype K] (e : AddChar K) {�
   have := congrArg (fun z : ℂ => z - 1) hσ
   simpa using this
 
+/-- At frequency zero, the Gauss sum for a nontrivial multiplicative character vanishes
+[VanDamSeroussi2002]. -/
 theorem gaussSum_nontrivial_zero {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     (e : AddChar K) (hnt : χ.IsNontrivial) : gaussSum χ.toFun e 0 = 0 := by
   rw [gaussSum]
   simp only [zero_mul, e.map_zero', mul_one]
   exact multChar_sum_eq_zero χ hnt
 
+/-- The character amplitude function obtained by dividing each value by `√(card K - 1)`
+[VanDamSeroussi2002]. -/
 def chiState {K : Type*} [Field K] [Fintype K] (χ : MultChar K) : K → ℂ :=
   fun x => χ.toFun x / ((Real.sqrt ((Fintype.card K - 1 : ℕ) : ℝ)) : ℂ)
 
+/-- The normalized additive Fourier sum of `chiState` with kernel `e(βyx)`. -/
 def fourierChi {K : Type*} [Field K] [Fintype K] (χ : MultChar K) (e : AddChar K) (β : K) :
     K → ℂ :=
   fun y => ((Real.sqrt (Fintype.card K : ℝ) : ℂ))⁻¹
     * ∑ x : K, chiState χ x * e.toFun (β * y * x)
 
+/-- For a nontrivial character and nonzero frequency, multiplying the Fourier-character
+amplitudes by `χ(y)²` yields `chiState` scaled by the Gauss sum divided by `√(card K)`
+[VanDamSeroussi2002]. -/
 theorem algorithm1_phase_change {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     (e : AddChar K) (hnt : χ.IsNontrivial) {β : K} (hβ : β ≠ 0) :
     (fun y => (χ.toFun y) ^ 2 * fourierChi χ e β y)

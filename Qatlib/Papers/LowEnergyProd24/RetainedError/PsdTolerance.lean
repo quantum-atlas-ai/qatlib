@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdChain
 import Mathlib.Algebra.Polynomial.Eval.Defs
 import Mathlib.Analysis.SpecialFunctions.Exp
+
+/-!
+# Choosing cutoff gaps for a prescribed tolerance
+
+This module factors `chainRemainder` into a polynomial and an exponential decay term. It proves
+that the remainder tends to zero as the cutoff gap grows, then chooses a positive gap for any
+positive tolerance in the retained-commutator analysis of [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_chainRemainder_decay`: Shows that the explicit chain remainder vanishes at large gaps.
+* `actual_psd_tolerance_cutoffs`: Produces the enlarged-cutoff nested-commutator estimate with a
+  prescribed additive tolerance.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +39,8 @@ open Qatlib.Papers.LowEnergyProd24.ImaginaryLeak
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- A real polynomial multiplied by `exp (-(c * x))` tends to zero as `x` tends to positive
+infinity, provided `c > 0`. -/
 theorem polynomial_exp_decay (P : Polynomial ℝ) (c : ℝ) (hc : 0 < c) :
     Tendsto (fun x : ℝ => P.eval x*Real.exp (-(c*x))) atTop (𝓝 0) := by
   induction P using Polynomial.induction_on' with
@@ -38,11 +59,15 @@ theorem polynomial_exp_decay (P : Polynomial ℝ) (c : ℝ) (hc : 0 < c) :
       field_simp
     · simp only [mul_zero]
 
+/-- The polynomial factor in the cutoff-chain remainder, recursively shifting the cutoff
+polynomial by `Polynomial.X` and adding a `sourceEll` constant. -/
 def chainPolynomial (L k d : ℕ) (J : ℝ) : ℕ → Polynomial ℝ → Polynomial ℝ
   | 0, _ => 0
   | n+1, D => 2*(D+Polynomial.X)*chainPolynomial L k d J n (D+Polynomial.X)+
       Polynomial.C (sourceEll L k d J n)
 
+/-- The cutoff-chain remainder at the polynomial cutoff `D.eval gap` factors as an explicit
+exponential prefactor times `chainPolynomial` evaluated at the gap. -/
 theorem chainRemainder_factor (L k d : ℕ) (J gap : ℝ) (n : ℕ) (D : Polynomial ℝ) :
     chainRemainder L k d J n (D.eval gap) gap =
       (2*Real.exp (-2*(1/(2*J*k*d))*gap)*sourceEll L k d J 0)*
@@ -57,6 +82,8 @@ theorem chainRemainder_factor (L k d : ℕ) (J gap : ℝ) (n : ℕ) (D : Polynom
     rw [hrec]
     ring
 
+/-- For positive `J`, `k`, and `d`, the cutoff-chain remainder tends to zero as the gap tends to
+positive infinity. -/
 theorem actual_chainRemainder_decay (L k d n : ℕ) (J : ℝ) (hJ : 0 < J)
     (hk : 0 < k) (hd : 0 < d) (Δ : ℝ) :
     Tendsto (fun gap : ℝ => chainRemainder L k d J n Δ gap) atTop (𝓝 0) := by
@@ -74,6 +101,9 @@ theorem actual_chainRemainder_decay (L k d n : ℕ) (J : ℝ) (hJ : 0 < J)
     ring
   · simp only [mul_zero]
 
+/-- For positive semidefinite local terms, every positive tolerance possesses a positive gap
+giving the enlarged-cutoff leading bound plus that tolerance for the compressed nested
+commutator. -/
 theorem actual_psd_tolerance_cutoffs (h : Hamiltonian N R M k d J)
     (hp : ∀ i, (h.term i).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (seed : Fin M) (xs : List (Fin M))

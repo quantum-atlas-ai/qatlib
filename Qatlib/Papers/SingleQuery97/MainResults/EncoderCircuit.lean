@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+
+/-!
+# Explicit additive circuits for linear encoders
+
+`additions` compiles a list of known maps into additive gates, and `components` decomposes a
+linear encoder into its individual matrix-entry contributions. The sparse variant omits zero
+entries, yielding the same encoder with a gate count equal to the size of `support`. See
+[TerhalSmolin1998] for the source development.
+
+## Main statements
+
+* `compiled_encoder` and `compiled_inverse`: evaluate the component circuits as the encoder and
+  its additive inverse.
+* `two_pass_resources`: counts `2 * m * n` gates for the dense forward and inverse passes.
+* `sparse_resources` and `run_sparse`: give the support-based count and semantics of the sparse
+  encoder.
+
+## References
+
+* [Terhal and Smolin, 1998][TerhalSmolin1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,23 +42,29 @@ section Additions
 variable {I R : Type} [Fintype I] [DecidableEq I]
   [Fintype R] [DecidableEq R] [AddCommGroup R]
 
+/-- The circuit of known additive gates obtained from a list of maps, with one gate for each
+map. -/
 noncomputable def additions (fs : List (I → R)) : Circuit (I × R) :=
   fs.map (fun f => Step.gate (AddOracle f))
 
 omit [Fintype I] [Fintype R] in
 
+/-- The known-addition circuit uses no queries and has one explicit gate per list entry. -/
 theorem additions_resources (fs : List (I → R)) :
     QueryCount (additions fs) = 0 ∧ GateCount (additions fs) = fs.length := by
   induction fs with
   | nil => exact ⟨rfl, rfl⟩
   | cons f fs ih => simpa [additions] using ih
 
+/-- Every gate in the known-addition circuit is unitary. -/
 theorem additions_unitary (fs : List (I → R)) : IsUnitaryCircuit (additions fs) := by
   induction fs with
   | nil => exact isUnitaryCircuit_nil
   | cons f fs ih =>
     exact (isUnitaryCircuit_gate _ _).2 ⟨addOracle_unitary f, ih⟩
 
+/-- Running the known-addition circuit applies the additive gate for `fs.sum`, independently of
+the supplied hidden oracle. -/
 theorem run_additions (oracle : Matrix (I × R) (I × R) ℂ)
     (fs : List (I → R)) (ψ : QState (I × R)) :
     Run oracle (additions fs) ψ = ApplyGate (AddOracle fs.sum) ψ := by
@@ -52,15 +80,20 @@ end Additions
 
 variable {A m n : ℕ} [NeZero A]
 
+/-- The contribution of matrix entry `g p.1 p.2` to the encoder, supported only at output
+coordinate `p.2`. -/
 def component (g : Fin m → Fin n → ZMod A) (p : Fin m × Fin n)
     (s : Fin m → ZMod A) : Fin n → ZMod A := Pi.single p.2 (s p.1 * g p.1 p.2)
 
+/-- The list of encoder component maps indexed by all pairs of input and output coordinates. -/
 noncomputable def components (g : Fin m → Fin n → ZMod A) :
     List ((Fin m → ZMod A) → (Fin n → ZMod A)) :=
   (Finset.univ : Finset (Fin m × Fin n)).toList.map (component g)
 
 omit [NeZero A] in
 
+/-- The component indexed by `(i, j)` has value `s i * g i j` at output coordinate `j` and zero
+elsewhere. -/
 theorem component_apply (g : Fin m → Fin n → ZMod A) (i : Fin m) (j t : Fin n)
     (s : Fin m → ZMod A) :
     component g (i,j) s t = if t = j then s i * g i j else 0 := by
@@ -68,6 +101,7 @@ theorem component_apply (g : Fin m → Fin n → ZMod A) (i : Fin m) (j t : Fin 
 
 omit [NeZero A] in
 
+/-- The sum of all component maps is the linear encoding map `LinearCodeProgram.encode g`. -/
 theorem components_sum (g : Fin m → Fin n → ZMod A) :
     (components g).sum = LinearCodeProgram.encode g := by
   classical
@@ -78,12 +112,15 @@ theorem components_sum (g : Fin m → Fin n → ZMod A) :
 
 omit [NeZero A] in
 
+/-- The dense encoder circuit uses no queries and exactly `m * n` explicit gates. -/
 theorem encoder_resources (g : Fin m → Fin n → ZMod A) :
     QueryCount (additions (components g)) = 0 ∧
     GateCount (additions (components g)) = m*n := by
   have h := additions_resources (components g)
   simpa [components] using h
 
+/-- Running the dense component circuit is equivalent to applying the additive gate for the
+linear encoder. -/
 theorem compiled_encoder (g : Fin m → Fin n → ZMod A)
     (oracle : Matrix ((Fin m → ZMod A) × (Fin n → ZMod A))
       ((Fin m → ZMod A) × (Fin n → ZMod A)) ℂ)
@@ -92,6 +129,8 @@ theorem compiled_encoder (g : Fin m → Fin n → ZMod A)
       ApplyGate (AddOracle (LinearCodeProgram.encode g)) ψ := by
   rw [run_additions, components_sum]
 
+/-- Running the component circuit with every map negated is equivalent to applying the additive
+gate for the negative linear encoder. -/
 theorem compiled_inverse (g : Fin m → Fin n → ZMod A)
     (oracle : Matrix ((Fin m → ZMod A) × (Fin n → ZMod A))
       ((Fin m → ZMod A) × (Fin n → ZMod A)) ℂ)
@@ -105,6 +144,8 @@ theorem compiled_inverse (g : Fin m → Fin n → ZMod A)
     | cons f fs ih => simp [ih, add_comm]
   rw [run_additions, hs, components_sum]
 
+/-- The dense forward encoder followed by its inverse uses no queries and exactly `2 * m * n`
+explicit gates. -/
 theorem two_pass_resources (g : Fin m → Fin n → ZMod A) :
     QueryCount (additions (components g) ++ additions ((components g).map Neg.neg)) = 0 ∧
     GateCount (additions (components g) ++ additions ((components g).map Neg.neg)) = 2*m*n := by
@@ -118,14 +159,18 @@ theorem two_pass_resources (g : Fin m → Fin n → ZMod A) :
   · trivial
   · ring
 
+/-- The finite set of input-output coordinate pairs where the generator matrix has a nonzero
+entry. -/
 def support (g : Fin m → Fin n → ZMod A) : Finset (Fin m × Fin n) :=
   Finset.univ.filter (fun p => g p.1 p.2 ≠ 0)
 
+/-- The list of encoder component maps indexed only by nonzero entries of the generator matrix. -/
 noncomputable def sparseComponents (g : Fin m → Fin n → ZMod A) :
     List ((Fin m → ZMod A) → (Fin n → ZMod A)) := (support g).toList.map (component g)
 
 omit [NeZero A] in
 
+/-- The sparse component maps sum to the same linear encoder as the full component list. -/
 theorem sparse_sum (g : Fin m → Fin n → ZMod A) :
     (sparseComponents g).sum = LinearCodeProgram.encode g := by
   classical
@@ -139,11 +184,15 @@ theorem sparse_sum (g : Fin m → Fin n → ZMod A) :
 
 omit [NeZero A] in
 
+/-- The sparse encoder circuit uses no queries and has exactly one gate per nonzero generator
+entry. -/
 theorem sparse_resources (g : Fin m → Fin n → ZMod A) :
     QueryCount (additions (sparseComponents g)) = 0 ∧
     GateCount (additions (sparseComponents g)) = (support g).card := by
   simpa [sparseComponents] using additions_resources (sparseComponents g)
 
+/-- Running the sparse component circuit is equivalent to applying the additive gate for the
+linear encoder. -/
 theorem run_sparse (g : Fin m → Fin n → ZMod A)
     (oracle : Matrix ((Fin m → ZMod A) × (Fin n → ZMod A))
       ((Fin m → ZMod A) × (Fin n → ZMod A)) ℂ)
@@ -154,6 +203,8 @@ theorem run_sparse (g : Fin m → Fin n → ZMod A)
 
 omit [NeZero A] in
 
+/-- The generator support size equals the sum, over rows, of the number of nonzero entries in
+each row. -/
 theorem support_card (g : Fin m → Fin n → ZMod A) :
     (support g).card = ∑ i, (Finset.univ.filter (fun j => g i j ≠ 0)).card := by
   simp [support, Finset.card_filter, Fintype.sum_prod_type]

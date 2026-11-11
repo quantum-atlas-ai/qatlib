@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.HspReduction
+
+/-!
+# Counting informative hidden-shift samples
+
+Counts binary vectors and sample tuples compatible with a hidden shift. A union bound over
+nonzero common orthogonal vectors bounds `badTuples`, yielding a lower bound of one half on the
+fraction of informative tuples under the stated sample-count inequality. See [Roetteler2008].
+
+## Main statements
+
+* `card_bad_le`: bad tuples are bounded by a union of hyperplane tuple sets.
+* `theorem7_linear_queries`: at least half of tuples are good under the numerical hypothesis.
+* `theorem7_two_n`: 2n samples satisfy the good-tuple bound for positive n.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,22 +36,26 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.HiddenShift
 
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- The binary dot product is symmetric. -/
 lemma dot_swap {n : ℕ} (x y : BVec n) : dot x y = dot y x := by
   simp only [dot, dotProduct]
   exact Finset.sum_congr rfl (fun i _ => mul_comm _ _)
 
+/-- The sign character is one exactly at the zero binary value. -/
 lemma eps_eq_one_iff (z : ZMod 2) : eps z = 1 ↔ z = 0 := by
   unfold eps
   by_cases h : z = 0
   · simp [h]
   · simp [h]
 
+/-- The sign character is negative one exactly at nonzero binary values. -/
 lemma eps_eq_neg_one_iff (z : ZMod 2) : eps z = -1 ↔ z ≠ 0 := by
   unfold eps
   by_cases h : z = 0
   · simp [h]
   · simp [h]
 
+/-- A nonzero binary vector has exactly `2 ^ (n - 1)` orthogonal binary vectors. -/
 theorem card_orth {n : ℕ} (v : BVec n) (hv : v ≠ 0) :
     (Finset.univ.filter (fun x : BVec n => dot x v = 0)).card = 2 ^ (n - 1) := by
   classical
@@ -88,9 +111,11 @@ theorem card_orth {n : ℕ} (v : BVec n) (hv : v ≠ 0) :
     linarith
   exact_mod_cast hSZ
 
+/-- The finite set of pairs `(x, b)` satisfying the hidden-shift constraint `dot x s + b = 0`. -/
 def compat {n : ℕ} (s : BVec n) : Finset (BVec n × ZMod 2) :=
   Finset.univ.filter (fun a => dot a.1 s + a.2 = 0)
 
+/-- Exactly `2 ^ n` binary vector-bit pairs satisfy the constraint for a fixed shift. -/
 theorem card_compat {n : ℕ} (s : BVec n) : (compat s).card = 2 ^ n := by
   classical
 
@@ -115,26 +140,33 @@ theorem card_compat {n : ℕ} (s : BVec n) : (compat s).card = 2 ^ n := by
   rw [hbij, Finset.card_image_of_injective _ (fun x y h => congrArg Prod.fst h),
     Finset.card_univ, BentCore.card_bvec_nat]
 
+/-- The condition that all vectors in a sample tuple share a nonzero orthogonal vector. -/
 def isBadVec {n k : ℕ} (x : Fin k → BVec n) : Prop :=
   ∃ δ : BVec n, δ ≠ 0 ∧ ∀ i, dot (x i) δ = 0
 
+/-- The finite set of binary vectors orthogonal to `δ`. -/
 def hyper {n : ℕ} (δ : BVec n) : Finset (BVec n) :=
   Finset.univ.filter (fun x => dot x δ = 0)
 
+/-- The hyperplane orthogonal to a nonzero vector has `2 ^ (n - 1)` elements. -/
 lemma hyper_card {n : ℕ} {δ : BVec n} (hδ : δ ≠ 0) : (hyper δ).card = 2 ^ (n - 1) :=
   card_orth δ hδ
 
+/-- The finite set of length-`k` tuples whose entries are all orthogonal to `δ`. -/
 noncomputable def hyperTuples {n k : ℕ} (δ : BVec n) : Finset (Fin k → BVec n) :=
   Finset.univ.filter (fun x => ∀ i, dot (x i) δ = 0)
 
+/-- The finite set of sample tuples possessing a common nonzero orthogonal vector. -/
 noncomputable def badTuples {n k : ℕ} : Finset (Fin k → BVec n) := by
   classical
   exact Finset.univ.filter (fun x => isBadVec x)
 
+/-- The finite set of sample tuples with no common nonzero orthogonal vector. -/
 noncomputable def goodTuples {n k : ℕ} : Finset (Fin k → BVec n) := by
   classical
   exact Finset.univ.filter (fun x => ¬ isBadVec x)
 
+/-- The number of length-`k` tuples in a fixed orthogonal set is its cardinality raised to `k`. -/
 lemma card_hyperTuples {n k : ℕ} (δ : BVec n) :
     (hyperTuples (k := k) δ).card = (hyper δ).card ^ k := by
   classical
@@ -144,6 +176,7 @@ lemma card_hyperTuples {n k : ℕ} (δ : BVec n) :
   rw [hset, Fintype.card_piFinset, Finset.prod_const, Finset.card_univ,
     Fintype.card_fin]
 
+/-- The number of bad length-`k` tuples is at most `(2 ^ n - 1) * (2 ^ (n - 1)) ^ k`. -/
 lemma card_bad_le {n k : ℕ} :
     (badTuples (n := n) (k := k)).card ≤ (2 ^ n - 1) * (2 ^ (n - 1)) ^ k := by
   classical
@@ -175,6 +208,8 @@ lemma card_bad_le {n k : ℕ} :
           (Finset.singleton_subset_iff.mpr (Finset.mem_univ 0)),
           Finset.card_singleton, Finset.card_univ, BentCore.card_bvec_nat]
 
+/-- If `2 ^ n - 1 < 2 ^ (k - 1)`, at least half of all length-`k` binary-vector tuples have no
+common nonzero orthogonal vector. See [Roetteler, Theorem 7][Roetteler2008]. -/
 theorem theorem7_linear_queries {n k : ℕ} (hk : 2 ^ n - 1 < 2 ^ (k - 1)) :
     2 * (goodTuples (n := n) (k := k)).card ≥ 2 ^ (n * k) := by
   classical
@@ -243,6 +278,8 @@ theorem theorem7_linear_queries {n k : ℕ} (hk : 2 ^ n - 1 < 2 ^ (k - 1)) :
       omega
     omega
 
+/-- For positive `n`, at least half of all length-`2 * n` tuples have no common nonzero
+orthogonal vector. See [Roetteler, Theorem 7][Roetteler2008]. -/
 theorem theorem7_two_n {n : ℕ} (hn : 1 ≤ n) :
     2 * (goodTuples (n := n) (k := 2 * n)).card ≥ 2 ^ (n * (2 * n)) := by
   refine theorem7_linear_queries (n := n) (k := 2 * n) ?_

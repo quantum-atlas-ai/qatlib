@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Mathlib.Analysis.Matrix.PosDef
 import Mathlib.Analysis.Matrix.Spectrum
+
+/-!
+# Coercive bounds for Hermitian Sylvester expressions
+
+For matrices `S` and `T` bounded below by a positive scalar `c` times the identity, this module
+proves the operator norm bound `(2 * c) * ‖X‖ ≤ ‖S * X + X * T‖` for Hermitian `X`. It uses
+normalized quadratic forms and matrix positivity, in the framework of [Bhatia1997].
+
+Applying this estimate to `X = S - T` yields `hermitian_square_difference_bound`, which controls
+the distance between two Hermitian matrices by the distance between their squares under the same
+positive lower bound.
+
+## Main statements
+
+* `hermitian_sylvester_opNorm_coercive`: the operator norm coercivity estimate.
+* `hermitian_square_difference_bound`: the resulting bound for differences of squares.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -20,6 +42,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 variable {N : Type*} [Fintype N] [DecidableEq N]
 
+/-- The absolute value of the quadratic form of `D` on a normalized state is bounded by the
+operator norm of `D`. -/
 private theorem sylvester_quadratic_bound (D : Matrix N N ℂ) (v : QState N) (hv : Normalized v) :
     ‖Qatlib.Foundations.PureStateMath.Inner v (D *ᵥ v)‖ ≤ ‖D‖ := by
   have hn := (normalized_iff_norm_toEuclidean_fromVec v).mp hv
@@ -29,6 +53,8 @@ private theorem sylvester_quadratic_bound (D : Matrix N N ℂ) (v : QState N) (h
   rw [← inner_euclidean_fromVec]
   exact (norm_inner_le_norm _ _).trans (by simpa only [hn, one_mul] using hm)
 
+/-- If `A - c • 1` is positive semidefinite, the real part of the quadratic form of `A` on any
+normalized state is at least `c`. -/
 private theorem sylvester_quadratic_lower (A : Matrix N N ℂ) (c : ℝ)
     (hA : (A-c•(1:Matrix N N ℂ)).PosSemidef) (v : QState N) (hv : Normalized v) :
     c ≤ (Qatlib.Foundations.PureStateMath.Inner v (A *ᵥ v)).re := by
@@ -44,6 +70,8 @@ private theorem sylvester_quadratic_lower (A : Matrix N N ℂ) (c : ℝ)
   rw [he, Complex.sub_re, Complex.ofReal_re] at h
   linarith
 
+/-- If `S` and `T` are bounded below by `c • 1` with `c > 0`, then `(2 * c) * ‖X‖ ≤ ‖S * X + X *
+T‖` for every Hermitian `X`. -/
 theorem hermitian_sylvester_opNorm_coercive (S T X : Matrix N N ℂ) (c : ℝ)
     (hc : 0 < c) (hX : X.IsHermitian)
     (hS : (S-c•(1:Matrix N N ℂ)).PosSemidef)
@@ -104,6 +132,8 @@ theorem hermitian_sylvester_opNorm_coercive (S T X : Matrix N N ℂ) (c : ℝ)
   have h := (le_div_iff₀ (by positivity : 0 < 2*c)).mp hb
   nlinarith
 
+/-- For Hermitian `S` and `T` bounded below by `c • 1` with `c > 0`, their operator norm
+distance is at most `‖S * S - T * T‖ / (2 * c)`. -/
 theorem hermitian_square_difference_bound (S T : Matrix N N ℂ) (c : ℝ)
     (hc : 0 < c) (hS : S.IsHermitian) (hT : T.IsHermitian)
     (hs : (S-c•(1:Matrix N N ℂ)).PosSemidef)

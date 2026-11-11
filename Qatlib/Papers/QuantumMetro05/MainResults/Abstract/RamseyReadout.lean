@@ -11,6 +11,25 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Ramsey readout error propagation
+
+This module defines the Ramsey mean `cos θ` and variance `sin θ ^ 2`. Differentiating the scaled
+mean yields an exact error propagation formula wherever the sine response is nonzero. See
+[GiovannettiLloydMaccone2006].
+
+## Main statements
+
+* `deriv_ramseyMean`: The derivative of the scaled Ramsey mean at `φ` equals `-c * sin (c * φ)`.
+* `ramseyError_eq`: At a phase with nonzero sine response, the Ramsey standard deviation divided
+  by `√ν` and the absolute mean derivative equals `1 / (√ν * N * (b - a))`.
+
+## References
+
+* [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,10 +42,13 @@ namespace Qatlib.Papers.QuantumMetro05.MainResults.Abstract
 
 open Qatlib.Papers.QuantumMetro05.MainResults.Source
 
+/-- The Ramsey readout mean `Real.cos θ`. -/
 def ramseyMean (θ : ℝ) : ℝ := Real.cos θ
 
+/-- The Ramsey readout variance `Real.sin θ ^ 2`. -/
 def ramseyVar (θ : ℝ) : ℝ := Real.sin θ ^ 2
 
+/-- The derivative of the scaled Ramsey mean at `φ` equals `-c * sin (c * φ)`. -/
 theorem deriv_ramseyMean (φ c : ℝ) :
     deriv (fun x => ramseyMean (c * x)) φ = -c * Real.sin (c * φ) := by
   have hinner : HasDerivAt (fun x : ℝ => c * x) c φ := by
@@ -38,6 +60,8 @@ theorem deriv_ramseyMean (φ c : ℝ) :
   rw [hfun, hcomp.deriv]
   ring
 
+/-- At a phase with nonzero sine response, the Ramsey standard deviation divided by `√ν` and the
+absolute mean derivative equals `1 / (√ν * N * (b - a))`. See [GiovannettiLloydMaccone2006]. -/
 theorem ramseyError_eq {φ : ℝ} {ν N : ℕ} {a b : ℝ}
     (hν : 0 < ν) (hN : 0 < N) (hab : a < b)
     (hsin : Real.sin ((N : ℝ) * (b - a) * φ) ≠ 0) :

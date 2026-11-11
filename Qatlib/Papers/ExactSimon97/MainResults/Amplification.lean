@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ExactSimon97.MainResults.Defs
+
+/-!
+# Coordinate balance in binary subspaces
+
+The sets `bitZero` and `bitOne` split a binary subspace by a chosen coordinate. Translation by a
+vector whose chosen coordinate is one proves that every nonzero coordinate functional has
+equally sized fibers. These constructions support the results of [BrassardHoyer1997].
+
+## Main statements
+
+* `coordinate_balance`: equates the sizes of the zero and one fibers.
+* `coordinate_dichotomy`: states that a coordinate is identically zero or has balanced fibers.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,12 +34,16 @@ open scoped BigOperators Classical
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The finite set of vectors of `K` whose coordinate `i` is zero. -/
 def bitZero {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) (i : Fin n) : Finset (BoolVec n) :=
   Finset.univ.filter (fun k => k ∈ K ∧ k i = 0)
 
+/-- The finite set of vectors of `K` whose coordinate `i` is one. -/
 def bitOne {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) (i : Fin n) : Finset (BoolVec n) :=
   Finset.univ.filter (fun k => k ∈ K ∧ k i = 1)
 
+/-- If a vector of `K` has coordinate `i` equal to one, the zero and one fibers at that
+coordinate have equal cardinality. See [BrassardHoyer1997]. -/
 theorem coordinate_balance {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     (g0 : BoolVec n) (hg0K : g0 ∈ K) (i : Fin n) (hg0 : g0 i = 1) :
     (bitZero K i).card = (bitOne K i).card := by
@@ -50,6 +72,8 @@ theorem coordinate_balance {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
         _ = b + 0 := by rw [h2]
         _ = b := add_zero b
 
+/-- Each coordinate is either zero on all of `K`, or takes the value one on a vector of `K` and
+has equally sized zero and one fibers. See [BrassardHoyer1997]. -/
 theorem coordinate_dichotomy {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     (i : Fin n) :
     (∀ k ∈ K, k i = 0) ∨

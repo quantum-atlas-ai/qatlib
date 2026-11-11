@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateInterface
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgramAux
+
+/-!
+# Structural compilation of amplitude estimates
+
+This module proves normalization and median error bounds for fresh amplitude-estimation records,
+including records selected from earlier outcomes. It also verifies that compiled estimation
+words implement the counted estimation circuit with the stated legality and weighted time.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `dataRecordGood_mass`: lower bound for the mass of accurate adaptive records.
+* `compiledAEWord_time`: exact compiled estimation time.
+* `compiledAEWord_run`: equivalence with the counted amplitude-estimation circuit.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -41,6 +62,8 @@ open scoped Classical BigOperators
 set_option warningAsError false
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- The median of `2 * r + 1` amplitude estimates exceeds the data-dependent error radius with
+probability at most `(8 / 9) ^ r`. -/
 theorem data_sharp_median_failure (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (A : Matrix (VtSpace C) (VtSpace C) ℂ)
     (hA : A ∈ Matrix.unitaryGroup (VtSpace C) ℂ) (j₀ : VtSpace C) (S : Finset (VtSpace C)) :
@@ -65,6 +88,8 @@ theorem data_sharp_median_failure (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
   exact Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.sorted_median_failure p
       (aeEstimate M) r a (dataEstimateRadius a M) hrad hb
 
+/-- For legal stages and a legal data word, the fresh physical estimation kernel equals the
+corresponding amplitude-estimation outcome probability. -/
 theorem dataFreshKernel_eq_probOf (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history) (word : List DataVtStep)
@@ -75,6 +100,7 @@ theorem dataFreshKernel_eq_probOf (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
   (vt_fresh_ae_born_law M hM _ (dataVtWordMatrix_unitary stages history j₀ hl word hw)
     j₀ (liveSet C) (2*r+1) ω).symm
 
+/-- For legal stages and a legal data word, the fresh estimation kernel sums to one. -/
 theorem dataFreshKernel_sum_one (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history) (word : List DataVtStep)
@@ -83,11 +109,14 @@ theorem dataFreshKernel_sum_one (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
   simp_rw [dataFreshKernel_eq_probOf M hM r stages history j₀ hl word hw]
   exact FinDist.sum_probOf _ _
 
+/-- Every value of the fresh estimation kernel is nonnegative. -/
 theorem dataFreshKernel_nonneg (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (word : List DataVtStep) (ω : Fin (2*r+1) → Fin M) :
     0 ≤ dataFreshKernel M hM r stages history j₀ word ω := measureProb_nonneg _ _
 
+/-- For legal stages and a legal data word, the fresh kernel assigns mass at most `(8 / 9) ^ r`
+to estimates outside the prescribed radius. -/
 theorem dataFreshKernel_bad_mass (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history) (word : List DataVtStep)
@@ -102,6 +131,8 @@ theorem dataFreshKernel_bad_mass (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- The product of normalized finite kernels sums to one when each kernel depends only on
+earlier coordinates. -/
 theorem prefix_kernel_sum_one {X : Type} [Fintype X] [Inhabited X] (n : ℕ)
     (κ : (Fin n → X) → Fin n → X → ℝ)
     (hdep : ∀ i ω ω', (∀ j, j.val < i.val → ω j = ω' j) → κ ω i = κ ω' i)
@@ -145,6 +176,8 @@ theorem prefix_kernel_sum_one {X : Type} [Fintype X] [Inhabited X] (n : ℕ)
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- For nonnegative kernels depending only on earlier coordinates, a uniform lower bound `c` on
+each kernel's total mass gives a lower bound `c ^ n` on the product's total mass. -/
 theorem prefix_kernel_sum_ge {X : Type} [Fintype X] [Inhabited X] (n : ℕ)
     (κ : (Fin n → X) → Fin n → X → ℝ)
     (hdep : ∀ i ω ω', (∀ j, j.val < i.val → ω j = ω' j) → κ ω i = κ ω' i)
@@ -195,6 +228,8 @@ theorem prefix_kernel_sum_ge {X : Type} [Fintype X] [Inhabited X] (n : ℕ)
         (hnorm (Fin.snoc ω default) (Fin.last n))
         (Finset.prod_nonneg (fun i _ => hκ (Fin.snoc ω default) i.castSucc (ω i))))
 
+/-- The record law sums to one when every selected word is legal and depends only on earlier
+outcomes. -/
 theorem dataRecordLaw_sum_one (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
@@ -209,6 +244,7 @@ theorem dataRecordLaw_sum_one (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
   · intro ω i
     exact dataFreshKernel_sum_one M hM r stages history j₀ hl _ (hw ω i)
 
+/-- Every value of the adaptive data record law is nonnegative. -/
 theorem dataRecordLaw_nonneg (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C)
@@ -217,6 +253,8 @@ theorem dataRecordLaw_nonneg (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     0 ≤ dataRecordLaw M hM r n stages history j₀ words ω :=
   Finset.prod_nonneg (fun i _ => dataFreshKernel_nonneg M hM r stages history j₀ (words ω i) (ω i))
 
+/-- For legal words depending only on earlier outcomes, accurate records have total mass at
+least `1 - n * (8 / 9) ^ r`. -/
 theorem dataRecordGood_mass (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
@@ -279,6 +317,8 @@ theorem dataRecordGood_mass (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     simpa only [mul_neg, ← sub_eq_add_neg] using! hbernoulli
   exact hber.trans hmass
 
+/-- Running a word of plain compiled steps applies its data-word matrix while leaving the
+estimation and Boolean registers unchanged. -/
 theorem compiled_plain_word_run (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (word : List DataVtStep)
@@ -296,6 +336,8 @@ theorem compiled_plain_word_run (M : ℕ)
     simp only [compiledVtStepMatrix, tensorGate_mul, Matrix.one_mul]
     rw [show s::word = [s]++word from rfl, dataVtWordMatrix_append, dataVtWordMatrix_singleton]
 
+/-- Running a word of controlled compiled steps applies the amplitude-estimation controlled gate
+of the data-word matrix. -/
 theorem compiled_controlled_word_run (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (word : List DataVtStep)
@@ -316,6 +358,7 @@ theorem compiled_controlled_word_run (M : ℕ)
 
 omit [DecidableEq C] in
 
+/-- Plain and controlled compilation preserve a legal data word's legality and weighted time. -/
 theorem compiled_data_word_legal_time (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (word : List DataVtStep)
     (hw : DataVtWordLegal stages word) :
@@ -333,22 +376,30 @@ theorem compiled_data_word_legal_time (M : ℕ)
   · simp [compiledVtWordTime, List.map_map, Function.comp_def, compiledVtStepTime, dataVtWordTime]
   · simp [compiledVtWordTime, List.map_map, Function.comp_def, compiledVtStepTime, dataVtWordTime]
 
+/-- The workspace step that flips the Boolean control according to the phase-register threshold
+`k`. -/
 def compiledThreshold (M k : ℕ) : CompiledVtStep M := .workspace
   (permMatrix (fun p : Fin M × Bool => (p.1, if k < p.1.val then !p.2 else p.2)))
 
+/-- The compiled threshold block built from a data word, controlled reflections, and inverse
+word operations. -/
 def compiledAEBlock (M k : ℕ) (word : List DataVtStep) : List (CompiledVtStep M) :=
   [compiledThreshold M k, .controlled .liveReflection] ++
     (dataVtWordInverse word).map CompiledVtStep.controlled ++
     [.controlled .sourceReflection] ++ word.map CompiledVtStep.controlled ++ [compiledThreshold M k]
 
+/-- The concatenation of the first `n` compiled amplitude-estimation threshold blocks. -/
 def compiledAELoop (M : ℕ) (word : List DataVtStep) : ℕ → List (CompiledVtStep M)
   | 0 => []
   | n+1 => compiledAELoop M word n ++ compiledAEBlock M n word
 
+/-- The compiled amplitude-estimation word with Fourier workspace steps, data preparation, and
+the threshold loop. -/
 def compiledAEWord (M : ℕ) (word : List DataVtStep) : List (CompiledVtStep M) :=
   word.map CompiledVtStep.plain ++ [.workspace (TensorGate (QFTMatrix M) 1)] ++
     compiledAELoop M word (M-1) ++ [.workspace (TensorGate (QFTMatrix M)ᴴ 1)]
 
+/-- The matrix of a compiled threshold step is the permutation matrix of `phaseThresholdFlip`. -/
 theorem compiledThreshold_matrix (M k : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C) (j₀ : VtSpace C) :
     compiledVtStepMatrix M stages history j₀ (compiledThreshold M k) =
@@ -358,6 +409,8 @@ theorem compiledThreshold_matrix (M k : ℕ)
     Matrix.one_apply, phaseThresholdFlip, Prod.mk.injEq]
   split_ifs <;> simp_all
 
+/-- Compiling a Fourier workspace gate yields its tensor product with the identity on the
+remaining registers. -/
 theorem compiledFourier_matrix (M : ℕ) (U : Matrix (Fin M) (Fin M) ℂ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C) (j₀ : VtSpace C) :
     compiledVtStepMatrix M stages history j₀ (.workspace (TensorGate U 1)) =
@@ -368,6 +421,7 @@ theorem compiledFourier_matrix (M : ℕ) (U : Matrix (Fin M) (Fin M) ℂ)
 
 omit [DecidableEq C] in
 
+/-- Every compiled threshold step is legal. -/
 theorem compiledThreshold_legal (M k : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) :
     CompiledVtStepLegal stages (compiledThreshold M k) := by
@@ -375,10 +429,12 @@ theorem compiledThreshold_legal (M k : ℕ)
   rintro ⟨p, b⟩
   by_cases h : k < p.val <;> simp [h]
 
+/-- The weighted time of concatenated compiled words is the sum of their weighted times. -/
 @[simp] theorem compiledVtWordTime_append {M : ℕ} (u v : List (CompiledVtStep M)) :
     compiledVtWordTime (u++v) = compiledVtWordTime u+compiledVtWordTime v := by
   simp [compiledVtWordTime]
 
+/-- The compiled estimation word costs `(2 * (M - 1) + 1)` times the data word's weighted time. -/
 theorem compiledAEWord_time (M : ℕ) (word : List DataVtStep) :
     compiledVtWordTime (compiledAEWord M word) = (2*(M-1)+1)*dataVtWordTime word := by
   have hc : compiledVtWordTime (word.map (CompiledVtStep.controlled (M := M))) = dataVtWordTime word := by
@@ -402,6 +458,7 @@ theorem compiledAEWord_time (M : ℕ) (word : List DataVtStep) :
 
 omit [DecidableEq C] in
 
+/-- For positive `M`, the compiled estimation word is legal whenever its data word is legal. -/
 theorem compiledAEWord_legal (M : ℕ) (hM : 0 < M)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (word : List DataVtStep)
     (hw : DataVtWordLegal stages word) : CompiledVtWordLegal stages (compiledAEWord M word) := by
@@ -436,6 +493,7 @@ theorem compiledAEWord_legal (M : ℕ) (hM : 0 < M)
   · subst s
     exact tensorGate_unitary (conjTranspose_mem_unitaryGroup (qftMatrix_unitary hM)) (by simp)
 
+/-- Compilation sends concatenation of compiled words to concatenation of circuits. -/
 private theorem compiledVtCircuit_append (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C) (j₀ : VtSpace C)
     (u v : List (CompiledVtStep M)) :
@@ -443,16 +501,20 @@ private theorem compiledVtCircuit_append (M : ℕ)
       compiledVtCircuit M stages history j₀ u ++ compiledVtCircuit M stages history j₀ v := by
   simp only [compiledVtCircuit, List.map_append, Circuit.ofGates]
 
+/-- Compiling the empty word yields the empty circuit. -/
 @[simp] private theorem compiledVtCircuit_nil (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C) (j₀ : VtSpace C) :
     compiledVtCircuit M stages history j₀ [] = [] := rfl
 
+/-- Compiling a word with an initial step prepends that step's matrix gate to the compiled tail. -/
 @[simp] private theorem compiledVtCircuit_cons (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C) (j₀ : VtSpace C)
     (s : CompiledVtStep M) (word : List (CompiledVtStep M)) :
     compiledVtCircuit M stages history j₀ (s::word) =
       .gate (compiledVtStepMatrix M stages history j₀ s)::compiledVtCircuit M stages history j₀ word := rfl
 
+/-- A compiled estimation block has the same action as the expanded threshold block with its
+amplitude-estimation access instructions. -/
 theorem compiledAEBlock_run (M k : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (word : List DataVtStep)
@@ -470,6 +532,8 @@ theorem compiledAEBlock_run (M k : ℕ)
     phaseThresholdBlock, List.flatMap_cons, List.flatMap_nil, expandAEAccess, List.cons_append,
     List.nil_append, List.map_cons, List.map_nil, aeAccessInstruction, Run]
 
+/-- The compiled amplitude-estimation word has the same action as the counted
+amplitude-estimation circuit for its data-word matrix. -/
 theorem compiledAEWord_run (M : ℕ)
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (word : List DataVtStep)
@@ -495,19 +559,26 @@ theorem compiledAEWord_run (M : ℕ)
     List.flatMap_cons, List.flatMap_nil, expandAEAccess, List.map_append, List.map_cons,
     List.map_nil, List.cons_append, List.nil_append, aeAccessInstruction, Run, run_append]
 
+/-- The matrix product representing a list of physical gates in their execution order. -/
 private def physicalGatesMatrix {I : Type} [Fintype I] [DecidableEq I]
     (gs : List (Matrix I I ℂ)) : Matrix I I ℂ := gs.reverse.prod
 
+/-- Prepending a physical gate right-multiplies the matrix of the remaining gate list by that
+gate. -/
 private theorem physicalGatesMatrix_cons {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (gs : List (Matrix I I ℂ)) :
     physicalGatesMatrix (U::gs) = physicalGatesMatrix gs*U := by
   simp [physicalGatesMatrix]
 
+/-- The matrix of concatenated gate lists is the matrix of the second list times the matrix of
+the first. -/
 private theorem physicalGatesMatrix_append {I : Type} [Fintype I] [DecidableEq I]
     (gs hs : List (Matrix I I ℂ)) :
     physicalGatesMatrix (gs++hs) = physicalGatesMatrix hs*physicalGatesMatrix gs := by
   simp [physicalGatesMatrix]
 
+/-- Running a circuit formed from physical gates equals applying their execution-order matrix
+product. -/
 private theorem run_physicalGatesMatrix {I : Type} [Fintype I] [DecidableEq I]
     (gs : List (Matrix I I ℂ)) (ψ : QState I) :
     Run 1 (Circuit.ofGates gs) ψ = ApplyGate (physicalGatesMatrix gs) ψ := by
@@ -517,6 +588,8 @@ private theorem run_physicalGatesMatrix {I : Type} [Fintype I] [DecidableEq I]
     rw [physicalGatesMatrix_cons, applyGate_mul]
     exact ih (ApplyGate U ψ)
 
+/-- Lifting every gate to the left tensor factor lifts the gate list's matrix product to that
+factor. -/
 private theorem physicalGatesMatrix_left {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (gs : List (Matrix I I ℂ)) :
     physicalGatesMatrix (gs.map (fun U => TensorGate U (1 : Matrix J J ℂ))) =
@@ -527,6 +600,8 @@ private theorem physicalGatesMatrix_left {I J : Type} [Fintype I] [DecidableEq I
     rw [List.map_cons, physicalGatesMatrix_cons, physicalGatesMatrix_cons, ih, tensorGate_mul,
       Matrix.one_mul]
 
+/-- Lifting every gate to the right tensor factor lifts the gate list's matrix product to that
+factor. -/
 private theorem physicalGatesMatrix_right {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (gs : List (Matrix J J ℂ)) :
     physicalGatesMatrix (gs.map (fun U => TensorGate (1 : Matrix I I ℂ) U)) =
@@ -537,11 +612,15 @@ private theorem physicalGatesMatrix_right {I J : Type} [Fintype I] [DecidableEq 
     rw [List.map_cons, physicalGatesMatrix_cons, physicalGatesMatrix_cons, ih, tensorGate_mul,
       Matrix.one_mul]
 
+/-- The recursively defined tensor product of `n` copies of a physical matrix, with identity at
+zero copies. -/
 private def freshPhysicalMatrix {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) : (n : ℕ) → Matrix (FreshRegister I n) (FreshRegister I n) ℂ
   | 0 => 1
   | n+1 => TensorGate U (freshPhysicalMatrix U n)
 
+/-- The matrix product of the fresh-register gate construction equals the tensor product of the
+original gate list's matrix products. -/
 private theorem physicalGatesMatrix_fresh {I : Type} [Fintype I] [DecidableEq I]
     (gs : List (Matrix I I ℂ)) (n : ℕ) :
     physicalGatesMatrix (vtFreshGates gs n) = freshPhysicalMatrix (physicalGatesMatrix gs) n := by
@@ -552,6 +631,8 @@ private theorem physicalGatesMatrix_fresh {I : Type} [Fintype I] [DecidableEq I]
       physicalGatesMatrix_right, ih, tensorGate_mul, Matrix.one_mul, Matrix.mul_one]
     rfl
 
+/-- Gate lists with identical action on every state retain identical action after lifting to any
+number of fresh registers. -/
 theorem vtFreshGates_run_congr {I : Type} [Fintype I] [DecidableEq I]
     (gs hs : List (Matrix I I ℂ))
     (h : ∀ ψ, Run 1 (Circuit.ofGates gs) ψ = Run 1 (Circuit.ofGates hs) ψ)

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
+
+/-!
+# Copy-evolution loading and sampling guarantees
+
+This module verifies QRAM loading identities and resource counts for copy-evolution programs,
+together with a trace-norm guarantee for a residual-dependent fresh-copy budget. It identifies
+off-grid phase-estimation branches and proves normalization and marginals of repeated label
+sampling, assembling the loading and self-tomography endpoint specifications.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `normDependentCopyBudget_certified`: a certified fresh-copy simulation error.
+* `walkGoal_endpoint`: loading and execution guarantees.
+* `clause16_endpoint`: off-grid branches, sampling, and self-tomography guarantees.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -27,24 +49,31 @@ open Matrix Qatlib
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- At a valid target position, indexed loading equals the loaded-table bit at the extracted
+load address. -/
 theorem indexedLoad_eq_loadedTable {b a aw t m : ℕ} (ψ : Reg b) (ht : t < b) :
     indexedLoad b a aw t m ψ = loadedTable b m ψ (loadAddress b a aw ψ) := by
   simp [indexedLoad, loadedTable, loadAddress, readBit, qramAction, ht]
 
+/-- A legal QRAM action preserves the load-address register. -/
 theorem loadAddress_preserved {b a aw t m ml : ℕ} (ψ : Reg b)
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     loadAddress b a aw (qramAction b a aw t m ψ) = loadAddress b a aw ψ :=
   legal_qram_preserves_address hg ψ
 
+/-- Applying a legal QRAM action twice returns the original register value. -/
 theorem qramAction_involutive {b a aw t m ml : ℕ} (ψ : Reg b)
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     qramAction b a aw t m (qramAction b a aw t m ψ) = ψ :=
   legal_qram_involutive hg ψ
 
+/-- The copy-evolution loading program has length `n * b`. -/
 theorem copyEvolutionLoadingProgram_length (n b a aw t m ml : ℕ) :
     (copyEvolutionLoadingProgram n b a aw t m ml).length = n * b := by
   simp [copyEvolutionLoadingProgram]
 
+/-- If the generating QRAM code is legal, every instruction in the copy-evolution loading
+program is legal and the whole source word is legal. -/
 theorem copyEvolutionLoadingProgram_legal {n b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     (∀ c ∈ copyEvolutionLoadingProgram n b a aw t m ml, sourceCodeLegal b c = true) ∧
@@ -59,17 +88,23 @@ theorem copyEvolutionLoadingProgram_legal {n b a aw t m ml : ℕ}
     obtain ⟨i, rfl⟩ := hc
     exact hg
 
+/-- The loading basic-gate count is `3 * n * b` and agrees with `copyEvolutionBasicGates`. -/
 theorem copyEvolutionLoadingBasicGates_eq (n b : ℕ) :
     copyEvolutionLoadingBasicGates n b = 3 * n * b ∧
       copyEvolutionLoadingBasicGates n b = copyEvolutionBasicGates n b := by
   simp [copyEvolutionLoadingBasicGates, copyEvolutionBasicGates]
 
+/-- Summing the uniform loading bit cost over the loading program gives `n * b` times the
+per-instruction cost. -/
 theorem copyEvolutionLoadingBitCost_sum (n b a aw t m ml : ℕ) :
     ((copyEvolutionLoadingProgram n b a aw t m ml).map
       (fun _ => copyEvolutionLoadingBitCost a aw t m ml)).sum =
       (n * b) * copyEvolutionLoadingBitCost a aw t m ml := by
   simp [copyEvolutionLoadingProgram, copyEvolutionLoadingBitCost]
 
+/-- A fresh-copy count at least `normDependentCopyBudget t ε R` bounds the reference-assisted
+trace-norm simulation error by `ε` for positive semidefinite input with the stated residual
+bound. See [KimmelEtAl2017]. -/
 theorem normDependentCopyBudget_certified {D r : ℕ} (ρ : Operator D) (t ε R : ℝ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
     (hρ : IsDensityOperator ρ) (hX : X.PosSemidef) (hε : 0 < ε) (hR : 0 ≤ R)
@@ -110,6 +145,8 @@ theorem normDependentCopyBudget_certified {D r : ℕ} (ρ : Operator D) (t ε R 
       rw [show 8 * t ^ 2 / (n : ℝ) * R = (8 * t ^ 2 * R) / (n : ℝ) by ring]
       exact hlast
 
+/-- Establishes the loading, legality, resource-count, unitary-execution, and residual-dependent
+simulation guarantees packaged in `walkGoalEndpointSpec`. -/
 theorem walkGoal_endpoint : walkGoalEndpointSpec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro b a aw t m ψ ht
@@ -130,6 +167,7 @@ theorem walkGoal_endpoint : walkGoalEndpointSpec := by
   · intro D r ρ t ε R X hρ hX hε hR hres n hn
     exact normDependentCopyBudget_certified ρ t ε R X hρ hX hε hR hres hn
 
+/-- Complex conjugation commutes with multiplication by a real scalar. -/
 private theorem starRingEnd_smul_real (c : ℝ) (w : ℂ) :
     starRingEnd ℂ ((c : ℂ) * w) = (c : ℂ) * starRingEnd ℂ w := by
   have h2 : star (c : ℂ) = (c : ℂ) := by
@@ -138,6 +176,8 @@ private theorem starRingEnd_smul_real (c : ℝ) (w : ℂ) :
   rw [star_mul, h2]
   ring
 
+/-- Scaling a state's outer product by a nonnegative real equals the outer product of the state
+scaled by the square root of that real. -/
 private theorem smul_outerProduct (a : ℝ) (ha : 0 ≤ a) {I : Type*} [Fintype I]
     [DecidableEq I] (ψ : I → ℂ) :
     (a : ℂ) • outerProduct ψ = outerProduct ((Real.sqrt a : ℂ) • ψ) := by
@@ -155,6 +195,8 @@ private theorem smul_outerProduct (a : ℝ) (ha : 0 ≤ a) {I : Type*} [Fintype 
     _ = ((Real.sqrt a : ℂ) * ψ j) * starRingEnd ℂ ((Real.sqrt a : ℂ) * ψ j') := by
           rw [starRingEnd_smul_real]
 
+/-- For a unitary spectral decomposition, the false-tagged label block of the ideal copy-QPE
+output equals the corresponding off-grid branch. -/
 theorem offgridBranch_eq_idealBlock {D M : ℕ} (ρ V : Operator D) (eig : Fin D → ℝ)
     (hM : 0 < M) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : ρ = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) (z : Fin M)
@@ -167,6 +209,7 @@ theorem offgridBranch_eq_idealBlock {D M : ℕ} (ρ V : Operator D) (eig : Fin D
   intro i _
   simp
 
+/-- An off-grid branch is positive semidefinite when all spectral weights are nonnegative. -/
 theorem offgridBranch_posSemidef {D M : ℕ} (eig : Fin D → ℝ) (V : Operator D) (z : Fin M)
     (heig : ∀ i, 0 ≤ eig i) : (offgridBranch D M eig V z).PosSemidef := by
   rw [show offgridBranch D M eig V z =
@@ -177,27 +220,34 @@ theorem offgridBranch_posSemidef {D M : ℕ} (eig : Fin D → ℝ) (V : Operator
     exact smul_outerProduct (eig i) (heig i) (fun j => qpeKernel M (-eig i / 2) z * V j i)]
   exact Matrix.posSemidef_sum Finset.univ (fun i _ => outerProduct_posSemidef _)
 
+/-- Every off-grid branch mass is nonnegative when the spectral weights are nonnegative. -/
 theorem offgridBranchMass_nonneg {D M : ℕ} (eig : Fin D → ℝ) (V : Operator D) (z : Fin M)
     (heig : ∀ i, 0 ≤ eig i) : 0 ≤ offgridBranchMass D M eig V z := by
   have hpos : (offgridBranch D M eig V z).PosSemidef :=
     offgridBranch_posSemidef eig V z heig
   exact (RCLike.nonneg_iff.mp (Matrix.PosSemidef.trace_nonneg hpos)).1
 
+/-- The zeroth value of a finite function built by `finCons` is its leading value. -/
 private theorem finCons_zero {n : ℕ} {α : Type*} (a : α) (t : Fin n → α) :
     finCons a t 0 = a := rfl
 
+/-- At a successor index, `finCons` evaluates to the corresponding tail value. -/
 private theorem finCons_succ {n : ℕ} {α : Type*} (a : α) (t : Fin n → α) (i : Fin n) :
     finCons a t i.succ = t i := rfl
 
+/-- The repeated-copy label law factors into the leading label's mass times the law of the
+remaining labels. -/
 private theorem mCopyLaw_split {M m : ℕ} (p : LabelLaw M) (a : Fin M) (t' : Fin m → Fin M) :
     mCopyLaw M (m+1) p (finCons a t') = p.mass a * mCopyLaw M m p t' := by
   simp only [mCopyLaw]
   rw [Fin.prod_univ_succ]
   simp only [finCons_zero, finCons_succ]
 
+/-- The inverse finite-function head-tail equivalence reconstructs the function with `finCons`. -/
 private theorem finSuccEquiv_symm (M m : ℕ) (a : Fin M) (t' : Fin m → Fin M) :
     (finSuccEquiv M m).symm (a, t') = finCons a t' := by rfl
 
+/-- The repeated-copy label law has total mass one. -/
 theorem mCopyLaw_total (M m : ℕ) (p : LabelLaw M) :
     (∑ t : Fin m → Fin M, mCopyLaw M m p t) = 1 := by
   induction m with
@@ -236,6 +286,7 @@ theorem mCopyLaw_total (M m : ℕ) (p : LabelLaw M) :
       _ = (∑ a : Fin M, p.mass a) * 1 := by rw [← Finset.sum_mul]
       _ = 1 := by rw [p.total]; ring
 
+/-- Each coordinate marginal of the repeated-copy label law equals the original label law. -/
 theorem mCopyLaw_marginal (M m : ℕ) (p : LabelLaw M) (j : Fin m) (z : Fin M) :
     (∑ t : Fin m → Fin M, mCopyLaw M m p t * (if t j = z then 1 else 0)) = p.mass z := by
   induction m with
@@ -329,6 +380,8 @@ theorem mCopyLaw_marginal (M m : ℕ) (p : LabelLaw M) (j : Fin m) (z : Fin M) :
         _ = (∑ a : Fin M, p.mass a) * p.mass z := by rw [← Finset.sum_mul]
         _ = p.mass z := by rw [p.total]; ring
 
+/-- Establishes the off-grid branch, repeated-sampling, and self-tomography guarantees packaged
+in `clause16EndpointSpec`; see [LloydMohseniRebentrost2014]. -/
 theorem clause16_endpoint : clause16EndpointSpec := by
   refine ⟨?_, ?_, ?_⟩
   · intro D M ρ V eig hM hρ hV hs heig

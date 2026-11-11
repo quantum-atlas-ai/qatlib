@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+
+/-!
+# Bipartite walk spectra and counted circuits
+
+This module connects the endpoint eigenspaces and complete busy spectrum of `bipartiteWalk` with
+explicit preparation and reflection circuits. The spectral interpretation follows [Szegedy2004];
+the busy subspace is the range of `bipartiteTilde`, and its complement supplies the idle sector.
+
+`bipartiteAccessProgram` records preparations and reflections separately, while
+`compileBipartiteAccess` implements walk powers on spectral frames and discriminant
+eigenvectors.
+
+## Main statements
+
+* `bipartite_busy_idle_multiplicity`: dimensions of the busy endpoint eigenspaces and idle
+  sector.
+* `bipartite_actual_access_program`: compilation and exact preparation and reflection counts.
+* `bipartite_prepared_complete_spectrum_consumer`: a complete busy eigenframe with counted
+  execution semantics.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -35,13 +60,17 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The complex inner product is additive in its second argument. -/
 private theorem bipartite_inner_add_right {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner u (v+w)=Qatlib.Foundations.PureStateMath.Inner u v+Qatlib.Foundations.PureStateMath.Inner u w := by simp [Qatlib.Foundations.PureStateMath.Inner,dotProduct_add]
 
+/-- Reversing the arguments of the complex inner product takes its complex conjugate. -/
 private theorem bipartite_inner_rev {K : Type} [Fintype K] (u v : QState K) :
     Qatlib.Foundations.PureStateMath.Inner v u=(starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Inner u v) := by
   exact star_dotProduct (v:=v) (w:=u)
 
+/-- For isometric frames, characterize the +1 and −1 eigenvectors of the bipartite walk by
+equality, respectively complementary sum, of the two projected vectors. -/
 theorem bipartite_endpoint_projectors {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A) (hB : IsIsometry B)
@@ -78,6 +107,8 @@ theorem bipartite_endpoint_projectors {H I J : Type} [Fintype H] [DecidableEq H]
       module
     rw [hp,hh,Matrix.mulVec_neg,Matrix.mulVec_mulVec,reflectionAbout_mul_self hQ,Matrix.one_mulVec]
 
+/-- A fixed vector of the bipartite walk in the range of `bipartiteTilde` is fixed by both frame
+projectors. -/
 theorem bipartite_busy_fixed_in_both_ranges {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A) (hB : IsIsometry B)
@@ -114,6 +145,8 @@ theorem bipartite_busy_fixed_in_both_ranges {H I J : Type} [Fintype H] [Decidabl
   have hp : (A*Aᴴ)*ᵥw=w := (sub_eq_zero.mp hd).symm
   exact ⟨hp,hpq.symm.trans hp⟩
 
+/-- The busy +1 eigenspace has dimension equal to the sum of the frame widths minus the rank of
+`bipartiteTilde`. -/
 private theorem bipartite_busy_plus_dimension {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A) (hB : IsIsometry B) :
@@ -178,6 +211,8 @@ private theorem bipartite_busy_plus_dimension {H I J : Type} [Fintype H] [Decida
   have hF : Module.finrank ℂ F=Fintype.card I+Fintype.card J-T.rank := by omega
   exact e.finrank_eq.symm.trans hF
 
+/-- The busy −1 eigenspace has dimension equal to the sum of the frame widths minus twice the
+rank of the cross Gram matrix. -/
 private theorem bipartite_busy_minus_dimension {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A) (hB : IsIsometry B) :
@@ -261,6 +296,9 @@ private theorem bipartite_busy_minus_dimension {H I J : Type} [Fintype H] [Decid
   rw [← e.finrank_eq,Module.finrank_prod]
   omega
 
+/-- Compute the dimensions of the busy ±1 eigenspaces and the rank complement defining the idle
+sector for two isometric frames. These are endpoint multiplicity formulas for the spectral
+correspondence in [Szegedy2004]. -/
 theorem bipartite_busy_idle_multiplicity :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
@@ -280,12 +318,16 @@ theorem bipartite_busy_idle_multiplicity :
     Module.finrank ℂ (QState H) at hh
   simpa [Matrix.rank_conjTranspose,Module.finrank_pi,Nat.add_comm] using! hh
 
+/-- The six-gate circuit that unprepares, reflects, and prepares each of the two frames in
+sequence. -/
 noncomputable def bipartitePrepareReflectWord {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (F : Matrix H I ℂ) (G : Matrix H J ℂ) (U V : Matrix H H ℂ) : Circuit H :=
   [.gate Uᴴ,.gate (ReflectionAbout (F*Fᴴ)),.gate U,
     .gate Vᴴ,.gate (ReflectionAbout (G*Gᴴ)),.gate V]
 
+/-- Unitary conjugation transports reflection about a frame projector to reflection about the
+prepared frame projector. -/
 private theorem bipartite_prepared_reflection {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) (U : Matrix H H ℂ)
     (hU : U∈unitaryGroup H ℂ) :
@@ -295,6 +337,8 @@ private theorem bipartite_prepared_reflection {H I : Type} [Fintype H] [Decidabl
     Matrix.mul_sub,Matrix.sub_mul,Matrix.mul_smul,Matrix.smul_mul,Matrix.mul_one,
     hUU,Matrix.mul_assoc]
 
+/-- For isometric frames and unitary preparations, the preparation and reflection circuit is
+unitary, uses six gates and no queries, and implements the prepared bipartite walk. -/
 theorem bipartite_actual_prepare_reflect_word :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (F : Matrix H I ℂ) (G : Matrix H J ℂ)
@@ -328,6 +372,8 @@ theorem bipartite_actual_prepare_reflect_word :
     simp only [Matrix.mul_assoc] at hr
     rw [hr]
 
+/-- Repeating the preparation and reflection circuit `k` times implements the kth walk power
+with `4*k + 2*k` gates and no queries, and yields a unitary circuit. -/
 theorem bipartite_actual_repeated_prepare_reflect_word {H I J : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (F : Matrix H I ℂ) (G : Matrix H J ℂ) (U V : Matrix H H ℂ)
@@ -353,6 +399,8 @@ theorem bipartite_actual_repeated_prepare_reflect_word {H I J : Type}
     | succ k ih =>
         rw [RepeatCircuit,run_append,hc.2.2.2,ih,Matrix.mulVec_mulVec,pow_succ]
 
+/-- The preparation, inverse preparation, and reflection instructions for the left and right
+frames. -/
 inductive BipartiteAccessStep where
   | prepareLeft (inverse : Bool)
   | prepareRight (inverse : Bool)
@@ -360,18 +408,23 @@ inductive BipartiteAccessStep where
   | reflectRight
   deriving DecidableEq
 
+/-- One bipartite walk block, consisting of four preparation instructions and two reflections. -/
 def bipartiteAccessBlock : List BipartiteAccessStep :=
   [.prepareLeft true,.reflectLeft,.prepareLeft false,
     .prepareRight true,.reflectRight,.prepareRight false]
 
+/-- The access program formed from `k` consecutive bipartite walk blocks. -/
 def bipartiteAccessProgram : ℕ→List BipartiteAccessStep
   | 0 => []
   | k+1 => bipartiteAccessBlock++bipartiteAccessProgram k
 
+/-- Test whether an access instruction is a preparation or inverse preparation. -/
 def BipartiteAccessStep.isPrepare : BipartiteAccessStep→Bool
   | .prepareLeft _ | .prepareRight _ => true
   | .reflectLeft | .reflectRight => false
 
+/-- Compile each bipartite access instruction into its corresponding preparation or
+frame-reflection gate. -/
 noncomputable def compileBipartiteAccess {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (F : Matrix H I ℂ) (G : Matrix H J ℂ) (U V : Matrix H H ℂ)
@@ -381,6 +434,8 @@ noncomputable def compileBipartiteAccess {H I J : Type} [Fintype H] [DecidableEq
       | .reflectLeft => ReflectionAbout (F*Fᴴ)
       | .reflectRight => ReflectionAbout (G*Gᴴ))
 
+/-- Compilation of `k` access blocks equals the repeated preparation and reflection circuit,
+with exactly `4*k` preparation instructions and `2*k` reflections. -/
 theorem bipartite_actual_access_program {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (F : Matrix H I ℂ) (G : Matrix H J ℂ) (U V : Matrix H H ℂ) (k : ℕ) :
@@ -403,6 +458,9 @@ theorem bipartite_actual_access_program {H I J : Type} [Fintype H] [DecidableEq 
         norm_num [bipartiteAccessBlock,BipartiteAccessStep.isPrepare,List.countP_cons]
         omega
 
+/-- On an intertwining spectral frame, the compiled access program applies the kth diagonal
+eigenvalue power. It is unitary, uses no queries and `4*k + 2*k` gates, with the stated
+preparation and reflection counts. -/
 theorem bipartite_actual_spectral_access_program {H I J K : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
@@ -438,6 +496,9 @@ theorem bipartite_actual_spectral_access_program {H I J K : Type}
           rw [pow_succ',Matrix.mul_assoc,ih,← Matrix.mul_assoc,hWX,Matrix.mul_assoc,← pow_succ']
     rw [Matrix.mulVec_mulVec,hp,← Matrix.mulVec_mulVec]
 
+/-- Construct an isometric eigenframe spanning the prepared busy subspace, with dimension equal
+to its rank and eigenvalues among ±1 and the interior phase pairs. Every compiled walk power
+acts diagonally in this frame with `4*k` preparations and `2*k` reflections. -/
 theorem bipartite_prepared_complete_spectrum_consumer {H I J : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (F : Matrix H I ℂ) (G : Matrix H J ℂ) (U V : Matrix H H ℂ)
@@ -471,6 +532,9 @@ theorem bipartite_prepared_complete_spectrum_consumer {H I J : Type}
     bipartite_actual_spectral_access_program F G U V X z hF hG hU hV hWX k
   exact ⟨hrun v,hprep,hreflect⟩
 
+/-- A normalized discriminant pair with parameter strictly between zero and one yields a
+normalized `bipartiteTau` state on which the compiled kth walk power acts by the kth power
+of `bipartitePhase`. -/
 theorem bipartite_actual_tau_power_consumer {H I J : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (a : QState I) (b : QState J) (lam : ℝ)
@@ -490,6 +554,8 @@ theorem bipartite_actual_tau_power_consumer {H I J : Type}
   | zero => simp
   | succ k ih => rw [pow_succ',← Matrix.mulVec_mulVec,ih,Matrix.mulVec_smul,ht.2.1,smul_smul,pow_succ]
 
+/-- The tilde image of a −1 discriminant eigenvector vanishes, and every compiled walk power
+fixes a vector annihilated by both frame adjoints. -/
 theorem bipartite_actual_negative_label_and_idle_consumer {H I J : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A) (hB : IsIsometry B)
@@ -513,6 +579,8 @@ theorem bipartite_actual_negative_label_and_idle_consumer {H I J : Type}
   | zero => simp
   | succ k ih => rw [pow_succ',← Matrix.mulVec_mulVec,ih]; exact hw
 
+/-- The compiled kth walk power multiplies the tilde image of a zero discriminant eigenvector by
+`(-1)^k`. -/
 theorem bipartite_actual_zero_discriminant_consumer {H I J : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A) (hB : IsIsometry B)

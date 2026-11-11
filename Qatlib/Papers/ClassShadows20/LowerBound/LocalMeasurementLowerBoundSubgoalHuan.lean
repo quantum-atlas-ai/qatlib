@@ -11,6 +11,19 @@ import Mathlib.Tactic.NormNum
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalHuan
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductRecordInformation
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementDecoder
+
+/-!
+# Local-measurement information bounds for classical shadows
+
+For the specified family of Pauli code states, accurate simultaneous
+prediction permits decoding the hidden label. First and second moments of
+random local measurements bound the information in independent records,
+giving `9 * N * ε² / 3ᵏ ≥ (1 - δ) * log M - 1`. The module also instantiates
+the required moments with a finite ensemble of twenty-four qubit unitaries.
+
+The lower-bound setting is [HuangKuengPreskill2020]. The local contract
+specifies the measurement, moment, and prediction assumptions.
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +41,9 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Accurate prediction on the Pauli code family forces the stated sample
+lower bound via local-record moments and decoding. Compare the local-measurement
+lower bounds of [Huang, Kueng & Preskill][HuangKuengPreskill2020]. -/
 theorem localMeasurementLowerBoundSubgoal : LocalMeasurementLowerBoundSubgoal := by
   classical
   intro n k N M O _ _ J _ _ κ Uf hκU hκ1 hκ2 hk ε δ hε hε1 w hw ψ hψ hwSum Pw hScard _hPinj g hg
@@ -130,6 +146,10 @@ theorem localMeasurementLowerBoundSubgoal : LocalMeasurementLowerBoundSubgoal :=
   convert h using 1
   ring
 
+/-- There exists a finite twenty-four-member qubit ensemble, unitary on its positive-probability
+support, satisfying the stated first and Hermitian second moments. For the specified local
+measurements and successful predictions, it gives `9 * N * ε² / 3^k ≥ (1 - δ) * log M - 1`;
+see [Huang et al., Theorem 6][HuangKuengPreskill2020]. -/
 theorem localMeasurementLowerBound_finite_backend :
     ∃ (κ : FinDist (Fin 24)) (Uf : Fin 24 → Operator 2),
     (∀ j, 0 < κ.prob j → Uf j ∈ Matrix.unitaryGroup (Fin 2) ℂ) ∧

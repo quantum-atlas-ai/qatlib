@@ -8,6 +8,32 @@ import Mathlib.Data.Finset.Card
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
+
+/-!
+# Classical query lower bounds for weighing matrices
+
+This module defines ternary decision trees in `QueryTree` and counts the inputs on which they
+recover a row of a weighing matrix. Bounds using tree depth, binary branches, and column
+sparsity yield the three inequalities in `source_lemma2_classicalLowerBounds` and their Hadamard
+specialization.
+
+This development forms part of the formalization of [VanDam2002].
+
+## Main statements
+
+* `QueryTree`: A ternary query tree with query indices and output labels in `Fin n`.
+* `source_lemma2_classicalLowerBounds`: For `0 < ε < 1` and `0 < k ≤ n`, a tree recovering at
+  least a `1 - ε` fraction of rows satisfies the ternary logarithmic, linear-in-weight, and
+  binary logarithmic lower bounds on its depth.
+* `source_lemma2_hadamardCase`: In the Hadamard case `k = n > 0` with `0 < ε < 1`, recovering at
+  least a `1 - ε` fraction of rows requires depth at least `log n / log 2 + log (1 - ε) / log
+  2`.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +42,7 @@ noncomputable section
 
 namespace Qatlib.Papers.WeighMatrix00.MainResults
 
+/-- A ternary query tree with query indices and output labels in `Fin n`. -/
 inductive QueryTree (n : ℕ) where
 
   | leaf (s : Fin n) : QueryTree n
@@ -26,17 +53,21 @@ namespace QueryTree
 
 variable {n : ℕ}
 
+/-- The maximum number of queries along a path from the root to a leaf. -/
 def depth : QueryTree n → ℕ
   | leaf _ => 0
   | node _ a b c => 1 + max a.depth (max b.depth c.depth)
 
+/-- The number of leaves of a ternary query tree. -/
 def leaves : QueryTree n → ℕ
   | leaf _ => 1
   | node _ a b c => a.leaves + b.leaves + c.leaves
 
+/-- Encode an oracle value of -1, 0, or any other integer by branch 0, 1, or 2, respectively. -/
 def branch (f : Fin n → ℤ) (i : Fin n) : Fin 3 :=
   if f i = -1 then 0 else if f i = 0 then 1 else 2
 
+/-- The middle branch is selected exactly when the queried oracle value is zero. -/
 theorem branch_eq_one_iff (f : Fin n → ℤ) (i : Fin n) :
     branch f i = 1 ↔ f i = 0 := by
   unfold branch
@@ -49,11 +80,13 @@ theorem branch_eq_one_iff (f : Fin n → ℤ) (i : Fin n) :
     · rw [if_neg h1, if_neg h2]
       exact ⟨fun h => absurd h (by decide), fun h => absurd h h2⟩
 
+/-- Evaluate a query tree by following the branches selected by the oracle function. -/
 def eval : QueryTree n → (Fin n → ℤ) → Fin n
   | leaf s, _ => s
   | node i a b c, f =>
       if branch f i = 0 then a.eval f else if branch f i = 1 then b.eval f else c.eval f
 
+/-- A ternary query tree has at most `3 ^ t.depth` leaves. -/
 theorem leaves_le_three_pow (t : QueryTree n) : t.leaves ≤ 3 ^ t.depth := by
   induction t with
   | leaf _ => simp [leaves, depth]
@@ -75,6 +108,8 @@ theorem leaves_le_three_pow (t : QueryTree n) : t.leaves ≤ 3 ^ t.depth := by
     rw [hpow] at hsum
     exact hsum
 
+/-- The number of labels in `S` correctly recovered from the corresponding oracle functions is
+at most the number of leaves. -/
 theorem correct_card_le_leaves (t : QueryTree n) (g : Fin n → Fin n → ℤ)
     (S : Finset (Fin n)) :
     (S.filter (fun s => t.eval (g s) = s)).card ≤ t.leaves := by
@@ -136,14 +171,17 @@ theorem correct_card_le_leaves (t : QueryTree n) (g : Fin n → Fin n → ℤ)
     simp only [leaves]
     omega
 
+/-- The number of leaves remaining when the middle subtree is discarded at every node. -/
 def binLeaves : QueryTree n → ℕ
   | leaf _ => 1
   | node _ a _ c => a.binLeaves + c.binLeaves
 
+/-- The number of internal nodes remaining when the middle subtree is discarded at every node. -/
 def binNodes : QueryTree n → ℕ
   | leaf _ => 0
   | node _ a _ c => 1 + a.binNodes + c.binNodes
 
+/-- The binary subtree has at most `2 ^ t.depth` leaves. -/
 theorem binLeaves_le (t : QueryTree n) : t.binLeaves ≤ 2 ^ t.depth := by
   induction t with
   | leaf _ => simp [binLeaves, depth]
@@ -162,6 +200,7 @@ theorem binLeaves_le (t : QueryTree n) : t.binLeaves ≤ 2 ^ t.depth := by
     rw [hpow] at hsum
     exact hsum
 
+/-- The binary subtree has at most `2 ^ t.depth - 1` internal nodes. -/
 theorem binNodes_le (t : QueryTree n) : t.binNodes ≤ 2 ^ t.depth - 1 := by
   induction t with
   | leaf _ => simp [binNodes, depth]
@@ -192,9 +231,12 @@ namespace WeighingMatrix
 
 variable {n k : ℕ} (M : WeighingMatrix n k)
 
+/-- The set of row indices correctly recovered by `t` from the weighing-matrix oracle. -/
 def correctSet (t : QueryTree n) : Finset (Fin n) :=
   Finset.univ.filter (fun s => t.eval (problemFunction M s) = s)
 
+/-- If `k ≤ n`, the number of correctly recovered rows is at most the binary leaf count plus `n
+- k` times the binary node count. -/
 theorem correct_card_le_bin_nat (t : QueryTree n) (hk : k ≤ n) :
     (M.correctSet t).card ≤ t.binLeaves + t.binNodes * (n - k) := by
   have haux : ∀ (t : QueryTree n) (S : Finset (Fin n)),
@@ -280,6 +322,8 @@ theorem correct_card_le_bin_nat (t : QueryTree n) (hk : k ≤ n) :
   have hmain := haux t Finset.univ
   simpa [correctSet] using hmain
 
+/-- The real-valued form of the correctness bound using binary leaves, binary nodes, and column
+zero counts. -/
 theorem correct_card_le_bin (t : QueryTree n) (hk : k ≤ n) :
     ((M.correctSet t).card : ℝ) ≤
       (t.binLeaves : ℝ) + (t.binNodes : ℝ) * ((n : ℝ) - (k : ℝ)) := by
@@ -291,6 +335,7 @@ theorem correct_card_le_bin (t : QueryTree n) (hk : k ≤ n) :
   rw [Nat.cast_sub hk] at hcast
   exact hcast
 
+/-- For positive weight `k`, at most `t.depth * k + 1` rows are correctly recovered. -/
 theorem correct_card_le_depth_mul_k_nat (t : QueryTree n) (hk : 0 < k) :
     (M.correctSet t).card ≤ t.depth * k + 1 := by
   have haux : ∀ (t : QueryTree n) (S : Finset (Fin n)),
@@ -353,6 +398,7 @@ theorem correct_card_le_depth_mul_k_nat (t : QueryTree n) (hk : 0 < k) :
   have hmain := haux t Finset.univ
   simpa [correctSet] using hmain
 
+/-- The real-valued form of the bound `t.depth * k + 1` on correctly recovered rows. -/
 theorem correct_card_le_depth_mul_k (t : QueryTree n) (hk : 0 < k) :
     ((M.correctSet t).card : ℝ) ≤ (t.depth : ℝ) * (k : ℝ) + 1 := by
   have h := M.correct_card_le_depth_mul_k_nat t hk
@@ -361,6 +407,9 @@ theorem correct_card_le_depth_mul_k (t : QueryTree n) (hk : 0 < k) :
   push_cast at hcast
   exact hcast
 
+/-- For `0 < ε < 1` and `0 < k ≤ n`, a tree recovering at least a `1 - ε` fraction of rows
+satisfies the ternary logarithmic, linear-in-weight, and binary logarithmic lower bounds on
+its depth. See [VanDam2002]. -/
 theorem source_lemma2_classicalLowerBounds {n k : ℕ} (M : WeighingMatrix n k)
     (t : QueryTree n) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
     (hkn : k ≤ n) (hk : 0 < k)
@@ -423,6 +472,8 @@ theorem source_lemma2_classicalLowerBounds {n k : ℕ} (M : WeighingMatrix n k)
     rw [Real.log_pow] at hlog
     linarith
 
+/-- In the Hadamard case `k = n > 0` with `0 < ε < 1`, recovering at least a `1 - ε` fraction of
+rows requires depth at least `log n / log 2 + log (1 - ε) / log 2`. See [VanDam2002]. -/
 theorem source_lemma2_hadamardCase {n k : ℕ} (M : WeighingMatrix n k)
     (t : QueryTree n) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
     (hkn : k = n) (hk : 0 < n)

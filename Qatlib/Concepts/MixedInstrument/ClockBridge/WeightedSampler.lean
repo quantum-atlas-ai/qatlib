@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.WeightedSamplerDefs
+
+/-!
+# Weighted sampling costs and truncation bounds
+
+This module proves exact expected bit and step costs for a native two-weight sampler, together
+with geometric pending tails, outcome partitions, and finite-fuel bias bounds. It accounts
+explicitly for loading the encoded input and for approximation of real target probabilities by
+natural weights.
+
+For bucket trees and state-dependent weights, leaf masses are normalized weights and resource
+costs have nodewise ledgers. Tree truncation budgets control pending probability, leaf bias, and
+additional expected step cost. The broader computation framework is described in
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `expectedBits_eq`: identifies expected bit cost with the product of the weights.
+* `expectedInputSteps_eq`: includes the loader in expected step accounting.
+* `leafMass_eq`: identifies a leaf mass with its normalized weight.
+* `treeTruncationBudget_bound`: bounds pending probability at the chosen tree budget.
+* `clause23_complete`: collects cost and encoding laws.
+* `clause24_complete`: collects pending-event and truncation laws.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -26,18 +54,23 @@ namespace Qatlib.Concepts.MixedInstrument.ClockBridge
 
 open scoped ENNReal
 
+/-- Prepending a loaded configuration and a supplied bit to a native result leaves its pending
+indicator unchanged. -/
 theorem pendingIndicator_prepend (a b : ℕ) (bit : Bool)
     (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     pendingIndicator (NativeTape.Result.prepend (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b, some bit) r) =
       pendingIndicator r := by
   simp [pendingIndicator, NativeTape.Result.prepend]
 
+/-- Prepending a loaded configuration without a bit to a native result leaves its pending
+indicator unchanged. -/
 theorem pendingIndicator_prepend_none (a b : ℕ)
     (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     pendingIndicator (NativeTape.Result.prepend (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b, none) r) =
       pendingIndicator r := by
   simp [pendingIndicator, NativeTape.Result.prepend]
 
+/-- The finite-fuel pending mass of the two-weight sampler is at most one. -/
 theorem pendingMass_le_one (n a b : ℕ) : pendingMass n a b ≤ 1 := by
   unfold pendingMass
   show ∑' r, (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) *
@@ -53,9 +86,12 @@ theorem pendingMass_le_one (n a b : ℕ) : pendingMass n a b ≤ 1 := by
         rw [tsum_congr (fun r => by rw [mul_one])]
         exact (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)).tsum_coe
 
+/-- The finite-fuel pending mass of the two-weight sampler is finite. -/
 theorem pendingMass_ne_top (n a b : ℕ) : pendingMass n a b ≠ ∞ :=
   ne_of_lt (lt_of_le_of_lt (pendingMass_le_one n a b) ENNReal.one_lt_top)
 
+/-- For positive weights, the next pending mass is the equally weighted sum of the pending
+masses after the two possible unit transfers. -/
 theorem pendingMass_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     pendingMass (n+1) a b =
       (1/2 : ℝ≥0∞) * pendingMass n (a-1) (b+1) + (1/2 : ℝ≥0∞) * pendingMass n (a+1) (b-1) := by
@@ -99,6 +135,7 @@ theorem pendingMass_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     advance_right a b ha hb, advance_left a b ha hb]
   exact add_comm _ _
 
+/-- At a zero left weight, the pending mass is zero for every positive fuel budget. -/
 theorem pendingMass_left_endpoint (n b : ℕ) (hn : 0 < n) : pendingMass n 0 b = 0 := by
   unfold pendingMass
   cases b with
@@ -109,17 +146,21 @@ theorem pendingMass_left_endpoint (n b : ℕ) (hn : 0 < n) : pendingMass n 0 b =
       rw [law_left_endpoint n (b + 1) hn (by omega), CostedLaw.expectation_pure]
       simp [pendingIndicator, Qatlib.Concepts.AdversaryBounds.AdvDuality.leftEndpointResult]
 
+/-- At a zero right weight and positive left weight, the pending mass is zero for every positive
+fuel budget. -/
 theorem pendingMass_right_endpoint (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
     pendingMass n a 0 = 0 := by
   unfold pendingMass
   rw [law_right_endpoint n a hn ha, CostedLaw.expectation_pure]
   simp [pendingIndicator, Qatlib.Concepts.AdversaryBounds.AdvDuality.rightEndpointResult]
 
+/-- With both weights zero, the pending mass is zero at every fuel budget. -/
 theorem pendingMass_degenerate (n : ℕ) : pendingMass n 0 0 = 0 := by
   unfold pendingMass
   rw [law_degenerate n, CostedLaw.expectation_pure]
   simp [pendingIndicator, Qatlib.Concepts.AdversaryBounds.AdvDuality.degenerateResult]
 
+/-- With positive total weight and zero fuel, the pending mass is one. -/
 theorem pendingMass_zero_budget (a b : ℕ) (h : 0 < a + b) : pendingMass 0 a b = 1 := by
   unfold pendingMass
   have hlaw : NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program 0 (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) =
@@ -145,6 +186,7 @@ theorem pendingMass_zero_budget (a b : ℕ) (h : 0 < a + b) : pendingMass 0 a b 
   rw [hlaw, CostedLaw.expectation_pure]
   simp [pendingIndicator]
 
+/-- With both weights positive, the pending mass after one unit of fuel is one. -/
 theorem pendingMass_one (a b : ℕ) (ha : 0 < a) (hb : 0 < b) : pendingMass 1 a b = 1 := by
   rw [pendingMass_succ 0 a b ha hb, pendingMass_zero_budget (a - 1) (b + 1) (by omega),
     pendingMass_zero_budget (a + 1) (b - 1) (by omega)]
@@ -153,6 +195,8 @@ theorem pendingMass_one (a b : ℕ) (ha : 0 < a) (hb : 0 < b) : pendingMass 1 a 
   simp only [hone, mul_one]
   exact ENNReal.inv_two_add_inv_two
 
+/-- For positive weights, the next real pending probability is the average of the pending
+probabilities after the two possible unit transfers. -/
 theorem pendingProb_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     pendingProb (n+1) a b =
       (1/2 : ℝ) * pendingProb n (a-1) (b+1) + (1/2 : ℝ) * pendingProb n (a+1) (b-1) := by
@@ -163,10 +207,12 @@ theorem pendingProb_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   rw [ENNReal.toReal_mul, ENNReal.toReal_mul]
   norm_num [ENNReal.toReal_inv]
 
+/-- The decay factor is the same for two pairs of weights with equal total weight. -/
 theorem decayReal_sum (a b c d : ℕ) (h : a + b = c + d) : decayReal a b = decayReal c d := by
   simp only [decayReal]
   rw [h]
 
+/-- The decay factor is positive when the total weight is at least two. -/
 theorem decayReal_pos (a b : ℕ) (hN : 2 ≤ a + b) : 0 < decayReal a b := by
   have hsq : (4 : ℝ) ≤ ((a + b : ℕ) : ℝ) ^ 2 := by
     have h2 : (2 : ℝ) ≤ (a + b : ℕ) := by exact_mod_cast hN
@@ -177,11 +223,13 @@ theorem decayReal_pos (a b : ℕ) (hN : 2 ≤ a + b) : 0 < decayReal a b := by
   simp only [decayReal]
   linarith
 
+/-- The decay factor is strictly smaller than one when the total weight is at least two. -/
 theorem decayReal_lt_one (a b : ℕ) (hN : 2 ≤ a + b) : decayReal a b < 1 := by
   have hpos : (0 : ℝ) < 1 / ((a + b : ℕ) : ℝ) ^ 2 := by positivity
   simp only [decayReal]
   linarith
 
+/-- The product of two natural weights, viewed in ℝ, is at most the square of their sum. -/
 theorem ab_le_sq (a b : ℕ) : ((a : ℝ) * (b : ℝ)) ≤ ((a + b : ℕ) : ℝ) ^ 2 := by
   have h1 : (a : ℝ) ≤ (a + b : ℕ) := by
     exact_mod_cast (show a ≤ a + b by omega)
@@ -189,6 +237,8 @@ theorem ab_le_sq (a b : ℕ) : ((a : ℝ) * (b : ℝ)) ≤ ((a + b : ℕ) : ℝ)
     exact_mod_cast (show b ≤ a + b by omega)
   nlinarith
 
+/-- For total weight at least two, the pending probability after `n + 1` units of fuel is at
+most `a * b * decayReal a b ^ n`. -/
 private theorem tail_bound_aux : ∀ (n a b : ℕ), 2 ≤ a + b →
     pendingProb (n+1) a b ≤ ((a : ℝ) * (b : ℝ)) * decayReal a b ^ n := by
   intro n
@@ -284,10 +334,13 @@ private theorem tail_bound_aux : ∀ (n a b : ℕ), 2 ≤ a + b →
                 rw [pow_succ]
                 nlinarith
 
+/-- For total weight at least two, the pending probability is bounded by the geometric tail `a *
+b * decayReal a b ^ n` at fuel `n + 1`. -/
 theorem tail_bound (n a b : ℕ) (hN : 2 ≤ a + b) :
     pendingProb (n+1) a b ≤ ((a : ℝ) * (b : ℝ)) * decayReal a b ^ n :=
   tail_bound_aux n a b hN
 
+/-- In ℝ≥0∞, averaging `1 + x` and `1 + y` gives one plus the average of `x` and `y`. -/
 theorem ennreal_half_two (x y : ℝ≥0∞) :
     (1 / 2 : ℝ≥0∞) * ((1 + x) + (1 + y)) = 1 + (1 / 2 : ℝ≥0∞) * (x + y) := by
   have hone : (1 / 2 : ℝ≥0∞) = (2 : ℝ≥0∞)⁻¹ := by
@@ -305,6 +358,8 @@ theorem ennreal_half_two (x y : ℝ≥0∞) :
       congr 1
       exact (mul_add (1 / 2 : ℝ≥0∞) x y).symm
 
+/-- For positive weights, expected bit cost is one plus the average expected bit cost after
+either unit transfer. -/
 theorem expectedBits_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     expectedBits a b =
       1 + (1 / 2 : ℝ≥0∞) * (expectedBits (a - 1) (b + 1) + expectedBits (a + 1) (b - 1)) := by
@@ -334,6 +389,8 @@ theorem expectedBits_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   rw [hsplit, hshift, hshift2]
   exact ennreal_half_two _ _
 
+/-- The extended-real pending mass at fuel `n + 1` is bounded by the embedded geometric tail
+with prefactor `a * b`. -/
 theorem tail_bound_ennreal (n a b : ℕ) (hN : 2 ≤ a + b) :
     pendingMass (n + 1) a b ≤
       ENNReal.ofReal ((a : ℝ) * (b : ℝ)) * (ENNReal.ofReal (decayReal a b)) ^ n := by
@@ -351,6 +408,7 @@ theorem tail_bound_ennreal (n a b : ℕ) (hN : 2 ≤ a + b) :
       ENNReal.ofReal_pow (le_of_lt (decayReal_pos a b hN)) n]
   exact hmono.trans_eq heq
 
+/-- The expected bit cost is finite when the total weight is at least two. -/
 theorem expectedBits_ne_top (a b : ℕ) (hN : 2 ≤ a + b) : expectedBits a b ≠ ∞ := by
   have hsum : (∑' n, pendingMass (n + 1) a b) ≤
       ENNReal.ofReal ((a : ℝ) * (b : ℝ)) * (1 - ENNReal.ofReal (decayReal a b))⁻¹ := by
@@ -388,12 +446,14 @@ theorem expectedBits_ne_top (a b : ℕ) (hN : 2 ≤ a + b) : expectedBits a b �
   rw [hmain]
   exact ne_of_lt (lt_of_le_of_lt hsum hlt)
 
+/-- The expected bit cost is zero when the left weight is zero. -/
 theorem expectedBits_zero_left (m : ℕ) : expectedBits 0 m = 0 := by
   unfold expectedBits
   apply ENNReal.tsum_eq_zero.mpr
   intro n
   exact pendingMass_left_endpoint (n + 1) m (by omega)
 
+/-- The expected bit cost is zero when the right weight is zero. -/
 theorem expectedBits_zero_right (m : ℕ) : expectedBits m 0 = 0 := by
   unfold expectedBits
   apply ENNReal.tsum_eq_zero.mpr
@@ -402,6 +462,8 @@ theorem expectedBits_zero_right (m : ℕ) : expectedBits m 0 = 0 := by
   | zero => exact pendingMass_degenerate (n + 1)
   | succ m => exact pendingMass_right_endpoint (n + 1) (m + 1) (by omega) (by omega)
 
+/-- For `i ≤ N` and `N ≥ 2`, the expected bit cost at weights `i` and `N - i` is their product
+in ℝ≥0∞. -/
 private theorem expectedBits_eq_aux (N : ℕ) (hN : 2 ≤ N) (i : ℕ) (hi : i ≤ N) :
     expectedBits i (N - i) = ((i : ℝ≥0∞) * ((N - i : ℕ) : ℝ≥0∞)) := by
   set e : ℕ → ℝ := fun j => (expectedBits j (N - j)).toReal with he
@@ -502,6 +564,8 @@ private theorem expectedBits_eq_aux (N : ℕ) (hN : 2 ≤ N) (i : ℕ) (hi : i �
   rw [ENNReal.ofReal_mul (Nat.cast_nonneg i)]
   simp
 
+/-- The expected bit cost of the two-weight sampler is exactly the product of its weights in
+ℝ≥0∞. -/
 theorem expectedBits_eq (a b : ℕ) : expectedBits a b = ((a : ℝ≥0∞) * b) := by
   by_cases ha : a = 0
   · subst ha
@@ -515,6 +579,7 @@ theorem expectedBits_eq (a b : ℕ) : expectedBits a b = ((a : ℝ≥0∞) * b) 
   rw [show (a + b) - a = b by omega] at h
   exact h
 
+/-- For positive total weight, the expected step count is the product of the weights plus one. -/
 theorem expectedSteps_eq (a b : ℕ) (h : 0 < a + b) :
     expectedSteps a b = ((a : ℝ≥0∞) * b) + 1 := by
   unfold expectedSteps
@@ -526,6 +591,8 @@ theorem expectedSteps_eq (a b : ℕ) (h : 0 < a + b) :
   rw [hE, expectedBits_eq a b]
   ac_rfl
 
+/-- For positive input weights, running the loader for `A + 1` steps with no supplied bits
+reaches the loaded configuration, consumes no bits, and records exactly `A + 1` steps. -/
 theorem loader_run (A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A + 1) [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).cfg =
         Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded A B ∧
@@ -537,6 +604,8 @@ theorem loader_run (A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     show B - 1 + 1 = B by omega] at h1 h2 h3 h4
   exact ⟨h1, h3, h4⟩
 
+/-- For positive input weights, the loader run with budget `A + 1` stops because its fuel is
+exhausted. -/
 theorem loader_run_fuel (A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A + 1) [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).stop = .fuel := by
   have h := load_positive_fuel (A - 1) (B - 1) []
@@ -544,6 +613,8 @@ theorem loader_run_fuel (A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     show B - 1 + 1 = B by omega] at h
   exact h
 
+/-- For positive input weights, removing the loader's `A + 1` steps identifies input pending
+mass with loaded-state pending mass. -/
 theorem pendingInputMass_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     pendingInputMass (A + 1 + n) A B = pendingMass n A B := by
   obtain ⟨hc, hb, hs⟩ := loader_run A B hA hB
@@ -570,8 +641,11 @@ theorem pendingInputMass_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
       (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A + 1) [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).trace r)) =
       pendingIndicator from funext hind]
 
+/-- The truncation failure mass equals the finite-fuel pending mass. -/
 theorem truncationFailure_eq (n a b : ℕ) : truncationFailure n a b = pendingMass n a b := rfl
 
+/-- For total weight at least two and positive `delta`, the prescribed truncation budget plus
+one leaves pending probability at most `delta`. -/
 theorem truncation_bound (a b : ℕ) (hN : 2 ≤ a + b) (delta : ℝ) (hδ : 0 < delta) :
     pendingProb (truncationBudget a b delta + 1) a b ≤ delta := by
   by_cases ha : a = 0
@@ -652,6 +726,8 @@ theorem truncation_bound (a b : ℕ) (hN : 2 ≤ a + b) (delta : ℝ) (hδ : 0 <
       _ = delta := by field_simp [hne]
   exact htail.trans hfin
 
+/-- For positive input weights, every no-bit loader run with budget at most `A + 1` stops
+because its fuel is exhausted. -/
 theorem run_fuel_prefix (A B n : ℕ) (hn : n ≤ A + 1) (hA : 0 < A) (hB : 0 < B) :
     (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).stop = .fuel := by
   have hfinal : (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A + 1) [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).stop = .fuel :=
@@ -669,6 +745,7 @@ theorem run_fuel_prefix (A B n : ℕ) (hn : n ≤ A + 1) (hA : 0 < A) (hB : 0 < 
     rw [hr, hstop] at hfinal
     exact absurd hfinal hs
 
+/-- For positive input weights, input pending mass is one throughout budgets at most `A + 1`. -/
 theorem pendingInputMass_one (n A B : ℕ) (hn : n ≤ A + 1) (hA : 0 < A) (hB : 0 < B) :
     pendingInputMass n A B = 1 := by
   have hstop := run_fuel_prefix A B n hn hA hB
@@ -678,6 +755,8 @@ theorem pendingInputMass_one (n A B : ℕ) (hn : n ≤ A + 1) (hA : 0 < A) (hB :
   rw [CostedLaw.expectation_pure]
   simp [pendingIndicator, hstop]
 
+/-- An extended-real series consisting of `k + 1` initial ones followed by `g` has sum `k + 1`
+plus the sum of `g`. -/
 theorem tsum_prefix_shift (f g : ℕ → ℝ≥0∞) (k : ℕ)
     (h1 : ∀ n, n ≤ k → f n = 1) (h2 : ∀ m, f (k + 1 + m) = g m) :
     (∑' n, f n) = (k + 1) + (∑' m, g m) := by
@@ -719,6 +798,7 @@ theorem tsum_prefix_shift (f g : ℕ → ℝ≥0∞) (k : ℕ)
     exact h2 m
   rw [htail]
 
+/-- For positive input weights, the expected input step count is `A * B + A + 2` in ℝ≥0∞. -/
 theorem expectedInputSteps_eq (A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     expectedInputSteps A B = ((A : ℝ≥0∞) * B) + A + 2 := by
   unfold expectedInputSteps
@@ -733,6 +813,8 @@ theorem expectedInputSteps_eq (A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
   rw [show (2 : ℝ≥0∞) = 1 + 1 by norm_num]
   ac_rfl
 
+/-- After accounting for loading, input pending mass satisfies the same geometric tail bound as
+the loaded sampler. -/
 theorem pendingInputMass_tail (n A B : ℕ) (hN : 2 ≤ A + B) (hA : 0 < A) (hB : 0 < B) :
     pendingInputMass (A + 1 + n + 1) A B ≤
       ENNReal.ofReal ((A : ℝ) * (B : ℝ)) * (ENNReal.ofReal (decayReal A B)) ^ n := by
@@ -740,11 +822,15 @@ theorem pendingInputMass_tail (n A B : ℕ) (hN : 2 ≤ A + B) (hA : 0 < A) (hB 
   rw [pendingInputMass_eq (n + 1) A B hA hB]
   exact tail_bound_ennreal n A B hN
 
+/-- For positive input weights, the real input pending probability at fuel `A + 1 + n` equals
+the loaded pending probability at fuel `n`. -/
 theorem pendingInputProb_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     pendingInputProb (A + 1 + n) A B = pendingProb n A B := by
   unfold pendingInputProb pendingProb
   rw [pendingInputMass_eq n A B hA hB]
 
+/-- For positive input weights and positive tolerance, the input truncation budget plus one
+leaves pending probability at most that tolerance. -/
 theorem pendingInputProb_truncation (A B : ℕ) (hN : 2 ≤ A + B) (hA : 0 < A) (hB : 0 < B)
     (delta : ℝ) (hδ : 0 < delta) :
     pendingInputProb (truncationBudgetInput A B delta + 1) A B ≤ delta := by
@@ -754,6 +840,7 @@ theorem pendingInputProb_truncation (A B : ℕ) (hN : 2 ≤ A + B) (hA : 0 < A) 
   rw [hbud, pendingInputProb_eq (truncationBudget A B delta + 1) A B hA hB]
   exact truncation_bound A B hN delta hδ
 
+/-- A halted walk with positive total weight has an output. -/
 theorem walk_halted_out (n : ℕ) (bs : List Bool) (a b : ℕ) (hN : 0 < a + b) :
     (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.walk n bs a b).stop = .halted → (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.walk n bs a b).out.isSome = true := by
   induction n generalizing bs a b with
@@ -795,6 +882,8 @@ theorem walk_halted_out (n : ℕ) (bs : List Bool) (a b : ℕ) (hN : 0 < a + b) 
                       intro h
                       exact ih bs (a + 2) b (by omega) h
 
+/-- For a halted native race with positive total weight, the left and right outcome indicators
+sum to one and the pending indicator is zero. -/
 theorem race_halted_outcome (n : ℕ) (bs : List Bool) (a b : ℕ) (hN : 0 < a + b)
     (hr : (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n bs (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)).stop = .halted) :
     leftIndicator (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n bs (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)) +
@@ -842,6 +931,8 @@ theorem race_halted_outcome (n : ℕ) (bs : List Bool) (a b : ℕ) (hN : 0 < a +
           simp
         simp [pendingIndicator, hstopne]
 
+/-- For positive total weight, the left-event mass, right-event mass, and pending mass sum to
+one. -/
 theorem law_outcome_partition (n a b : ℕ) (hN : 0 < a + b) :
     leftEvent n a b + rightEvent n a b + pendingMass n a b = 1 := by
   have hpoint : ∀ r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control,
@@ -887,10 +978,12 @@ theorem law_outcome_partition (n a b : ℕ) (hN : 0 < a + b) :
         rw [tsum_congr (fun r => by rw [mul_one])]
         exact (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)).tsum_coe
 
+/-- Embedding a sum of natural numbers into ℝ equals the sum of their embeddings. -/
 theorem natCast_add (a b : ℕ) : ((a + b : ℕ) : ℝ) = (a : ℝ) + (b : ℝ) := by
   push_cast
   ring
 
+/-- For positive total weight, the finite-fuel right-event probability is at most `a / (a + b)`. -/
 theorem rightEventProb_le (n a b : ℕ) (hab : 0 < a + b) :
     rightEventProb n a b ≤ (a : ℝ) / ((a + b : ℕ) : ℝ) := by
   unfold rightEventProb
@@ -905,6 +998,7 @@ theorem rightEventProb_le (n a b : ℕ) (hab : 0 < a + b) :
   rw [natCast_add a b]
   exact hle'
 
+/-- For positive total weight, the finite-fuel left-event probability is at most `b / (a + b)`. -/
 theorem leftEventProb_le (n a b : ℕ) (hab : 0 < a + b) :
     leftEventProb n a b ≤ (b : ℝ) / ((a + b : ℕ) : ℝ) := by
   unfold leftEventProb
@@ -919,6 +1013,8 @@ theorem leftEventProb_le (n a b : ℕ) (hab : 0 < a + b) :
   rw [natCast_add a b]
   exact hle'
 
+/-- For positive total weight, the real left-event, right-event, and pending probabilities sum
+to one. -/
 theorem event_partition_real (n a b : ℕ) (hN : 0 < a + b) :
     leftEventProb n a b + rightEventProb n a b + pendingProb n a b = 1 := by
   have hp := law_outcome_partition n a b hN
@@ -934,6 +1030,8 @@ theorem event_partition_real (n a b : ℕ) (hN : 0 < a + b) :
     rw [ENNReal.toReal_add h1 h2]
   rw [← hsum, hp, ENNReal.toReal_one]
 
+/-- The finite-fuel left-event probability differs from `(1 - pendingProb n a b) * b / (a + b)`
+by at most the pending probability. -/
 theorem truncation_bias_left (n a b : ℕ) (hN : 0 < a + b) :
     |leftEventProb n a b - (1 - pendingProb n a b) * ((b : ℝ) / (a + b : ℝ))|
       ≤ pendingProb n a b := by
@@ -1019,6 +1117,8 @@ theorem truncation_bias_left (n a b : ℕ) (hN : 0 < a + b) :
   rw [abs_le]
   constructor <;> nlinarith
 
+/-- The finite-fuel right-event probability differs from `(1 - pendingProb n a b) * a / (a + b)`
+by at most the pending probability. -/
 theorem truncation_bias_right (n a b : ℕ) (hN : 0 < a + b) :
     |rightEventProb n a b - (1 - pendingProb n a b) * ((a : ℝ) / (a + b : ℝ))|
       ≤ pendingProb n a b := by
@@ -1097,6 +1197,7 @@ theorem truncation_bias_right (n a b : ℕ) (hN : 0 < a + b) :
   rw [abs_le]
   constructor <;> nlinarith
 
+/-- A tree with positive leaf weights has positive total weight. -/
 theorem positiveTree_weight (t : BucketTree) (h : PositiveTree t) : 0 < totalWeight t := by
   induction t with
   | leaf w =>
@@ -1109,6 +1210,7 @@ theorem positiveTree_weight (t : BucketTree) (h : PositiveTree t) : 0 < totalWei
       have h2 := ihr hr
       omega
 
+/-- The weight of a leaf selected by a valid path is at most the total tree weight. -/
 theorem leafWeight_le (t : BucketTree) (p : List Bool) (h : isPath t p) :
     leafWeight t p ≤ totalWeight t := by
   induction t generalizing p with
@@ -1129,6 +1231,8 @@ theorem leafWeight_le (t : BucketTree) (p : List Bool) (h : isPath t p) :
               simp only [leafWeight, totalWeight]
               omega
 
+/-- In a positive tree, the mass of a valid leaf path is its leaf weight divided by the total
+tree weight. -/
 theorem leafMass_eq (t : BucketTree) (p : List Bool) (h : isPath t p)
     (hpos : PositiveTree t) :
     leafMass t p = (leafWeight t p : ℝ) / (totalWeight t : ℝ) := by
@@ -1173,6 +1277,7 @@ theorem leafMass_eq (t : BucketTree) (p : List Bool) (h : isPath t p)
               rw [hm, hcast, hcast2]
               field_simp
 
+/-- The sum of leaf masses in a positive tree is one. -/
 theorem massSum_eq_one (t : BucketTree) (hpos : PositiveTree t) : massSum t = 1 := by
   induction t with
   | leaf w =>
@@ -1192,6 +1297,8 @@ theorem massSum_eq_one (t : BucketTree) (hpos : PositiveTree t) : massSum t = 1 
       rw [hcast]
       field_simp
 
+/-- The nodewise bit-cost ledger at reach weight `reach` equals `reach` times the recursive tree
+bit cost. -/
 theorem treeBitsByNodes_eq (t : BucketTree) (reach : ℝ) :
     treeBitsByNodes t reach = reach * treeBits t := by
   induction t generalizing reach with
@@ -1200,6 +1307,8 @@ theorem treeBitsByNodes_eq (t : BucketTree) (reach : ℝ) :
       rw [treeBitsByNodes, treeBits, ihl, ihr]
       ring
 
+/-- The nodewise step-cost ledger at reach weight `reach` equals `reach` times the recursive
+tree step cost. -/
 theorem treeStepsByNodes_eq (t : BucketTree) (reach : ℝ) :
     treeStepsByNodes t reach = reach * treeSteps t := by
   induction t generalizing reach with
@@ -1208,14 +1317,18 @@ theorem treeStepsByNodes_eq (t : BucketTree) (reach : ℝ) :
       rw [treeStepsByNodes, treeSteps, ihl, ihr]
       ring
 
+/-- The recursive tree bit cost equals the nodewise bit-cost ledger at unit reach. -/
 theorem treeBits_eq_nodes (t : BucketTree) : treeBits t = treeBitsByNodes t 1 := by
   rw [treeBitsByNodes_eq]
   ring
 
+/-- The recursive tree step cost equals the nodewise step-cost ledger at unit reach. -/
 theorem treeSteps_eq_nodes (t : BucketTree) : treeSteps t = treeStepsByNodes t 1 := by
   rw [treeStepsByNodes_eq]
   ring
 
+/-- For positive node weights, expected bits equal `WL * WR` and expected input steps equal `WL
+* WR + WL + 2`. -/
 theorem node_race_cost (WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     expectedBits WL WR = ((WL : ℝ≥0∞) * WR) ∧
       expectedInputSteps WL WR = ((WL : ℝ≥0∞) * WR) + (WL : ℝ≥0∞) + 2 := by
@@ -1223,6 +1336,8 @@ theorem node_race_cost (WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
   · exact expectedBits_eq WL WR
   · exact expectedInputSteps_eq WL WR hWL hWR
 
+/-- A collection of leaf normalization, total-mass, and nodewise bit and step accounting laws
+for bucket trees. -/
 structure MultiBucketLaws where
 
   leaf_mass : ∀ t p, PositiveTree t → isPath t p →
@@ -1234,6 +1349,8 @@ structure MultiBucketLaws where
 
   steps : ∀ t, treeSteps t = treeStepsByNodes t 1
 
+/-- Establishes the leaf mass, normalization, and nodewise resource identities packaged in
+`MultiBucketLaws`. -/
 theorem clause23_multibucket : MultiBucketLaws := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro t p hpos h
@@ -1245,6 +1362,8 @@ theorem clause23_multibucket : MultiBucketLaws := by
   · intro t
     exact treeSteps_eq_nodes t
 
+/-- When pending probability is below one, the left probability conditioned on completion
+differs from `b / (a + b)` by at most `pendingProb / (1 - pendingProb)`. -/
 theorem truncation_bias_relative (n a b : ℕ) (hN : 0 < a + b) (hP : pendingProb n a b < 1) :
     |leftEventProb n a b / (1 - pendingProb n a b) - (b : ℝ) / (a + b : ℝ)|
       ≤ pendingProb n a b / (1 - pendingProb n a b) := by
@@ -1271,6 +1390,8 @@ theorem truncation_bias_relative (n a b : ℕ) (hN : 0 < a + b) (hP : pendingPro
   rw [hcancel]
   exact hbias
 
+/-- For weights `2 ^ m` and one, expected bits are `2 ^ m`, expected steps are `2 ^ m + 1`, and
+the encoded input length is `2 ^ m + 2`. -/
 theorem binaryWeight_cost (m : ℕ) :
     expectedBits (2 ^ m) 1 = ((2 ^ m : ℕ) : ℝ≥0∞) ∧
       expectedSteps (2 ^ m) 1 = ((2 ^ m : ℕ) : ℝ≥0∞) + 1 ∧
@@ -1285,6 +1406,8 @@ theorem binaryWeight_cost (m : ℕ) :
   · rw [Qatlib.Concepts.AdversaryBounds.AdvDuality.encodedInput_length (2 ^ m) 1 hpos (by omega)]
     simp [Qatlib.Concepts.AdversaryBounds.AdvDuality.encodedWeight]
 
+/-- The indicator that `stateLabel state r` equals `some true` is the left indicator when
+`state` is true and the right indicator otherwise. -/
 theorem stateLabel_indicator (state : Bool) (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     (if stateLabel state r = some true then 1 else 0) =
       (if state = true then leftIndicator r else rightIndicator r) := by
@@ -1294,10 +1417,13 @@ theorem stateLabel_indicator (state : Bool) (r : NativeTape.Result Qatlib.Concep
       cases b <;> cases state <;>
         simp [stateLabel, ho, RaceOutcome.of, leftIndicator, rightIndicator]
 
+/-- At a state with positive total weight, the left selection probability is `b s / (a s + b
+s)`. -/
 theorem stateWeighted_leftProb (S : Type) (a b : S → ℕ) (s : S) (h : 0 < a s + b s) :
     leftProb (a s) (b s) = (b s : ℝ) / ((a s : ℝ) + (b s : ℝ)) :=
   leftProb_eq (a s) (b s) h
 
+/-- For positive total weight, the mass of the true state label is `b / (a + b)`. -/
 theorem stateLabelMass_true (a b : ℕ) (hN : 0 < a + b) :
     stateLabelMass a b true = (b : ℝ) / ((a : ℝ) + (b : ℝ)) := by
   have hsum : (∑' r, NativeTape.haltedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r *
@@ -1312,6 +1438,7 @@ theorem stateLabelMass_true (a b : ℕ) (hN : 0 < a + b) :
   have hg := (clause23_complete a b).1 hN
   rw [hg.1, ENNReal.toReal_ofReal (by positivity)]
 
+/-- For positive total weight, the mass of the false state label is `a / (a + b)`. -/
 theorem stateLabelMass_false (a b : ℕ) (hN : 0 < a + b) :
     stateLabelMass a b false = (a : ℝ) / ((a : ℝ) + (b : ℝ)) := by
   have hsum : (∑' r, NativeTape.haltedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r *
@@ -1326,15 +1453,18 @@ theorem stateLabelMass_false (a b : ℕ) (hN : 0 < a + b) :
   have hg := (clause23_complete a b).1 hN
   rw [hg.2, ENNReal.toReal_ofReal (by positivity)]
 
+/-- For nonnegative `x`, the real value of the encoded weight is at most `N * x`. -/
 theorem encWeight_le (N : ℕ) (x : ℝ) (hx : 0 ≤ x) :
     (encWeight N x : ℝ) ≤ N * x := by
   unfold encWeight
   exact Nat.floor_le (mul_nonneg (Nat.cast_nonneg N) hx)
 
+/-- The scaled real value `N * x` is strictly less than the encoded weight plus one. -/
 theorem encWeight_gt (N : ℕ) (x : ℝ) : N * x < (encWeight N x : ℝ) + 1 := by
   unfold encWeight
   exact Nat.lt_floor_add_one (N * x)
 
+/-- For nonnegative `x`, the encoding defect belongs to the half-open interval `[0, 1)`. -/
 theorem encDefect_range (N : ℕ) (x : ℝ) (hx : 0 ≤ x) :
     0 ≤ encDefect N x ∧ encDefect N x < 1 := by
   have h1 := encWeight_le N x hx
@@ -1342,6 +1472,8 @@ theorem encDefect_range (N : ℕ) (x : ℝ) (hx : 0 ≤ x) :
   unfold encDefect
   constructor <;> linarith
 
+/-- For complementary nonnegative targets and encoding defects in `[0, 1)`, the normalized
+encoded weight `B / (A + B)` differs from `v` by at most `1 / (A + B)`. -/
 theorem enc_error_aux (N A B u v α β : ℝ)
     (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1)
     (hα0 : 0 ≤ α) (hα1 : α < 1) (hβ0 : 0 ≤ β) (hβ1 : β < 1)
@@ -1376,6 +1508,8 @@ theorem enc_error_aux (N A B u v α β : ℝ)
   rw [hkey]
   exact div_le_div_of_nonneg_right hnum (le_of_lt hS)
 
+/-- For complementary nonnegative targets and `N ≥ 3`, the encoded left probability differs from
+`v` by at most the reciprocal of the total encoded weight. -/
 theorem encLeftProb_error (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1)
     (hN : 3 ≤ N) :
     |leftProb (encWeight N u) (encWeight N v) - v|
@@ -1410,6 +1544,8 @@ theorem encLeftProb_error (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (h
   rw [← natCast_add (encWeight N u) (encWeight N v)] at h
   exact h
 
+/-- For positive total weight, the deficit of the finite left-event probability from `b / (a +
+b)` is at most the pending probability. -/
 theorem leftEventProb_deficit (n a b : ℕ) (hab : 0 < a + b) :
     (b : ℝ) / ((a + b : ℕ) : ℝ) - leftEventProb n a b ≤ pendingProb n a b := by
   have hpart := event_partition_real n a b hab
@@ -1422,6 +1558,8 @@ theorem leftEventProb_deficit (n a b : ℕ) (hab : 0 < a + b) :
     ring
   linarith
 
+/-- For complementary nonnegative targets, `N ≥ 3`, and `N ≥ 1 / ε + 2` with positive `ε`, the
+encoded left probability differs from `v` by at most `ε`. -/
 theorem encError_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1)
     (hN : 3 ≤ N) (ε : ℝ) (hε : 0 < ε) (hNε : (1 / ε + 2 : ℝ) ≤ N) :
     |leftProb (encWeight N u) (encWeight N v) - v| ≤ ε := by
@@ -1455,11 +1593,14 @@ theorem encError_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u
     simpa using! this
   linarith
 
+/-- The expected bit cost for encoded weights is the product of those encoded weights in ℝ≥0∞. -/
 theorem encExpectedBits (N : ℕ) (u v : ℝ) :
     expectedBits (encWeight N u) (encWeight N v) =
       ((encWeight N u : ℝ≥0∞) * encWeight N v) := by
   rw [expectedBits_eq]
 
+/-- For complementary nonnegative targets, the real expected bit cost of their encoded weights
+is at most `N² / 4`. -/
 theorem encExpectedBits_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1) :
     (expectedBits (encWeight N u) (encWeight N v)).toReal ≤ (N : ℝ) ^ 2 / 4 := by
   have hA := encWeight_le N u hu
@@ -1484,6 +1625,8 @@ theorem encExpectedBits_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (
   rw [encExpectedBits, ENNReal.toReal_mul]
   exact h1.trans (h2.trans (h3 ▸ h4))
 
+/-- For complementary nonnegative targets and `N ≥ 3`, the truncated encoded left probability
+differs from `v` by at most the reciprocal total encoded weight plus pending probability. -/
 theorem encTruncation_error (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1)
     (hN : 3 ≤ N) (n : ℕ) :
     |leftEventProb n (encWeight N u) (encWeight N v) - v|
@@ -1534,6 +1677,7 @@ theorem encTruncation_error (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) 
     _ = 1 / ((encWeight N u + encWeight N v : ℕ) : ℝ) +
           pendingProb n (encWeight N u) (encWeight N v) := by ring
 
+/-- A state-dependent tree with positive leaf weights at `s` has positive total weight at `s`. -/
 theorem stateTotalWeight_pos {S : Type} (t : StateBucketTree S) (s : S)
     (hw : PositiveStateTree t s) : 0 < stateTotalWeight t s := by
   induction t with
@@ -1546,11 +1690,14 @@ theorem stateTotalWeight_pos {S : Type} (t : StateBucketTree S) (s : S)
       have h2 := ihr hw.2
       omega
 
+/-- For positive weights, the fraction `WL / (WL + WR)` equals the race's `rightProb`. -/
 theorem stateBranchMass (WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     (WL : ℝ) / ((WL + WR : ℕ) : ℝ) = rightProb WL WR := by
   rw [rightProb_eq WL WR (by omega)]
   rw [natCast_add]
 
+/-- For a valid path in a state-dependent tree positive at `s`, the leaf mass is its
+state-dependent weight divided by the total state-dependent weight. -/
 theorem stateLeafMass_eq {S : Type} (t : StateBucketTree S) (s : S) (p : List Bool)
     (hpath : stateIsPath t p)
     (hw : PositiveStateTree t s) :
@@ -1584,6 +1731,8 @@ theorem stateLeafMass_eq {S : Type} (t : StateBucketTree S) (s : S) (p : List Bo
               rw [stateLeafMass, hm, stateLeafWeight, stateTotalWeight]
               field_simp
 
+/-- At a fixed state, the nodewise tree bit ledger equals the reach weight times the recursive
+tree bit cost. -/
 theorem stateTreeBitsByNodes_eq {S : Type} (t : StateBucketTree S) (s : S) (reach : ℝ) :
     stateTreeBitsByNodes t s reach = reach * stateTreeBits t s := by
   induction t generalizing reach with
@@ -1593,28 +1742,38 @@ theorem stateTreeBitsByNodes_eq {S : Type} (t : StateBucketTree S) (s : S) (reac
       rw [stateTreeBitsByNodes, stateTreeBits, ihl, ihr]
       ring
 
+/-- At a fixed state, the recursive tree bit cost equals the nodewise bit ledger at unit reach. -/
 theorem stateTreeBits_eq_nodes {S : Type} (t : StateBucketTree S) (s : S) :
     stateTreeBits t s = stateTreeBitsByNodes t s 1 := by
   rw [stateTreeBitsByNodes_eq]
   ring
 
+/-- The expected bit cost at state `s` is the product of the two weights at that state. -/
 theorem stateExpectedBits {S : Type} (a b : S → ℕ) (s : S) :
     expectedBits (a s) (b s) = ((a s : ℝ≥0∞) * b s) := by
   exact expectedBits_eq (a s) (b s)
 
+/-- When both weights at `s` are positive, expected input steps equal their product plus the
+first weight plus two. -/
 theorem stateExpectedInputSteps {S : Type} (a b : S → ℕ) (s : S) (hA : 0 < a s) (hB : 0 < b s) :
     expectedInputSteps (a s) (b s) = ((a s : ℝ≥0∞) * b s) + (a s : ℝ≥0∞) + 2 := by
   exact expectedInputSteps_eq (a s) (b s) hA hB
 
+/-- When total weight at `s` is at least two, pending probability at fuel `n + 1` is bounded by
+the product of the state weights times their decay factor to the power `n`. -/
 theorem stateTail {S : Type} (a b : S → ℕ) (s : S) (n : ℕ) (hN : 2 ≤ a s + b s) :
     pendingProb (n + 1) (a s) (b s) ≤ ((a s : ℝ) * (b s : ℝ)) * decayReal (a s) (b s) ^ n := by
   exact tail_bound n (a s) (b s) hN
 
+/-- At a state with positive total weight, the finite left-event probability differs from the
+completed mass times its ideal left probability by at most pending probability. -/
 theorem stateTruncationBias {S : Type} (a b : S → ℕ) (s : S) (n : ℕ) (hN : 0 < a s + b s) :
     |leftEventProb n (a s) (b s) - (1 - pendingProb n (a s) (b s)) *
         ((b s : ℝ) / ((a s : ℝ) + (b s : ℝ)))| ≤ pendingProb n (a s) (b s) := by
   exact truncation_bias_left n (a s) (b s) hN
 
+/-- A collection of state-dependent selection probabilities, label masses, leaf mass and
+bit-cost identities, and pending-tail bounds. -/
 structure StateSelectionLaws where
 
   weighted : ∀ (S : Type) (a b : S → ℕ) (s : S), 0 < a s + b s →
@@ -1637,6 +1796,8 @@ structure StateSelectionLaws where
   state_tail : ∀ (S : Type) (a b : S → ℕ) (s : S) (n : ℕ), 2 ≤ a s + b s →
     pendingProb (n + 1) (a s) (b s) ≤ ((a s : ℝ) * (b s : ℝ)) * decayReal (a s) (b s) ^ n
 
+/-- Establishes the probability, leaf mass, cost, and tail identities packaged in
+`StateSelectionLaws`. -/
 theorem clause23_state_selection : StateSelectionLaws := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro S a b s h
@@ -1654,6 +1815,8 @@ theorem clause23_state_selection : StateSelectionLaws := by
   · intro S a b s n hN
     exact stateTail a b s n hN
 
+/-- For positive input weights, the left-event mass after `A + 1 + n` steps equals the loaded
+sampler's left-event mass after `n` steps. -/
 theorem inputLeftEvent_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     inputLeftEvent (A + 1 + n) A B = leftEvent n A B := by
   obtain ⟨hc, hb, hs⟩ := loader_run A B hA hB
@@ -1690,6 +1853,8 @@ theorem inputLeftEvent_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
       (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A + 1) [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).trace r)) =
       leftIndicator from funext hind]
 
+/-- For positive input weights, the right-event mass after `A + 1 + n` steps equals the loaded
+sampler's right-event mass after `n` steps. -/
 theorem inputRightEvent_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     inputRightEvent (A + 1 + n) A B = rightEvent n A B := by
   obtain ⟨hc, hb, hs⟩ := loader_run A B hA hB
@@ -1726,18 +1891,24 @@ theorem inputRightEvent_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
       (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A + 1) [] (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).trace r)) =
       rightIndicator from funext hind]
 
+/-- For positive input weights, removing the loader's `A + 1` steps preserves the real
+left-event probability. -/
 theorem inputLeftEventProb_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     inputLeftEventProb (A + 1 + n) A B = leftEventProb n A B := by
   have h := inputLeftEvent_eq n A B hA hB
   unfold inputLeftEventProb leftEventProb
   rw [h]
 
+/-- For positive input weights, removing the loader's `A + 1` steps preserves the real
+right-event probability. -/
 theorem inputRightEventProb_eq (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     inputRightEventProb (A + 1 + n) A B = rightEventProb n A B := by
   have h := inputRightEvent_eq n A B hA hB
   unfold inputRightEventProb rightEventProb
   rw [h]
 
+/-- For positive node weights, `nodeLaw` identifies left routing with the loaded right event,
+right routing with the loaded left event, and pending mass with `pendingProb`. -/
 theorem nodeLaw_eq_loaded (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     (nodeLaw n WL WR).toLeft = rightEventProb n WL WR ∧
     (nodeLaw n WL WR).toRight = leftEventProb n WL WR ∧
@@ -1749,39 +1920,50 @@ theorem nodeLaw_eq_loaded (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
   rw [h1, h2, h3]
   exact ⟨rfl, rfl, rfl⟩
 
+/-- For positive node weights, the truncated left-routing probability is at most `WL / (WL +
+WR)`. -/
 theorem nodeLaw_toLeft_le (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     (nodeLaw n WL WR).toLeft ≤ (WL : ℝ) / ((WL + WR : ℕ) : ℝ) := by
   obtain ⟨h1, _, _⟩ := nodeLaw_eq_loaded n WL WR hWL hWR
   rw [h1]
   exact rightEventProb_le n WL WR (by omega)
 
+/-- For positive node weights, the truncated right-routing probability is at most `WR / (WL +
+WR)`. -/
 theorem nodeLaw_toRight_le (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     (nodeLaw n WL WR).toRight ≤ (WR : ℝ) / ((WL + WR : ℕ) : ℝ) := by
   obtain ⟨_, h2, _⟩ := nodeLaw_eq_loaded n WL WR hWL hWR
   rw [h2]
   exact leftEventProb_le n WL WR (by omega)
 
+/-- The left-routing probability in `nodeLaw` is nonnegative. -/
 theorem nodeLaw_toLeft_nonneg (n WL WR : ℕ) :
     0 ≤ (nodeLaw n WL WR).toLeft := by
   unfold nodeLaw
   exact ENNReal.toReal_nonneg
 
+/-- The right-routing probability in `nodeLaw` is nonnegative. -/
 theorem nodeLaw_toRight_nonneg (n WL WR : ℕ) :
     0 ≤ (nodeLaw n WL WR).toRight := by
   unfold nodeLaw
   exact ENNReal.toReal_nonneg
 
+/-- The pending probability in `nodeLaw` is nonnegative. -/
 theorem nodeLaw_pending_nonneg (n WL WR : ℕ) :
     0 ≤ (nodeLaw n WL WR).pending := by
   unfold nodeLaw
   exact ENNReal.toReal_nonneg
 
+/-- For positive node weights, the left-routing, right-routing, and pending probabilities in
+`nodeLaw` sum to one. -/
 theorem nodeLaw_sum_eq_one (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     (nodeLaw n WL WR).toLeft + (nodeLaw n WL WR).toRight + (nodeLaw n WL WR).pending = 1 := by
   obtain ⟨h1, h2, h3⟩ := nodeLaw_eq_loaded n WL WR hWL hWR
   rw [h1, h2, h3]
   simpa [add_comm] using! event_partition_real n WL WR (by omega)
 
+/-- For positive node weights, the pending probability is one minus the two routing
+probabilities. -/
 theorem nodeLaw_pending_eq (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
     (nodeLaw n WL WR).pending =
       1 - (nodeLaw n WL WR).toLeft - (nodeLaw n WL WR).toRight := by
@@ -1789,6 +1971,7 @@ theorem nodeLaw_pending_eq (n WL WR : ℕ) (hWL : 0 < WL) (hWR : 0 < WR) :
   rw [h1, h2, h3]
   linarith [event_partition_real n WL WR (by omega)]
 
+/-- For two positive subtree weights, their fractions of the combined weight sum to one. -/
 theorem branchMass_sum_eq_one (l r : BucketTree) (hWL : 0 < totalWeight l)
     (hWR : 0 < totalWeight r) :
     (totalWeight l : ℝ) / ((totalWeight l + totalWeight r : ℕ) : ℝ) +
@@ -1801,6 +1984,7 @@ theorem branchMass_sum_eq_one (l r : BucketTree) (hWL : 0 < totalWeight l)
   have hne : (totalWeight l : ℝ) + (totalWeight r : ℝ) ≠ 0 := by positivity
   field_simp
 
+/-- The truncated success probability of a positive tree is at most one. -/
 theorem treeSuccessProb_le_one (n : ℕ) (t : BucketTree) (hpos : PositiveTree t) :
     treeSuccessProb n t ≤ 1 := by
   induction t with
@@ -1849,17 +2033,22 @@ theorem treeSuccessProb_le_one (n : ℕ) (t : BucketTree) (hpos : PositiveTree t
               add_le_add hL hR
         _ = 1 := branchMass_sum_eq_one l r hWL hWR
 
+/-- The truncated pending probability of a positive tree is nonnegative. -/
 theorem treePendingProb_nonneg (n : ℕ) (t : BucketTree) (hpos : PositiveTree t) :
     0 ≤ treePendingProb n t := by
   have h := treeSuccessProb_le_one n t hpos
   unfold treePendingProb
   linarith
 
+/-- At an internal node, truncated success probability is the sum of each routing probability
+times the corresponding subtree success probability. -/
 theorem treeSuccessProb_succ (n : ℕ) (l r : BucketTree) :
     treeSuccessProb n (.node l r) =
       (nodeLaw n (totalWeight l) (totalWeight r)).toLeft * treeSuccessProb n l +
         (nodeLaw n (totalWeight l) (totalWeight r)).toRight * treeSuccessProb n r := rfl
 
+/-- For a positive internal node, tree pending probability is its own pending probability plus
+each routing probability times the corresponding subtree pending probability. -/
 theorem treePendingProb_succ (n : ℕ) (l r : BucketTree) (hpos : PositiveTree (.node l r)) :
     treePendingProb n (.node l r) =
       (nodeLaw n (totalWeight l) (totalWeight r)).pending +
@@ -1873,6 +2062,7 @@ theorem treePendingProb_succ (n : ℕ) (l r : BucketTree) (hpos : PositiveTree (
   rw [hsucc]
   linarith
 
+/-- Every truncated tree leaf mass is nonnegative. -/
 theorem treeLeafMassTrunc_nonneg (n : ℕ) : ∀ (t : BucketTree) (p : List Bool),
     0 ≤ treeLeafMassTrunc n t p := by
   intro t
@@ -1897,6 +2087,7 @@ theorem treeLeafMassTrunc_nonneg (n : ℕ) : ∀ (t : BucketTree) (p : List Bool
               exact mul_nonneg (nodeLaw_toRight_nonneg n (totalWeight l) (totalWeight r))
                 (ihr bs)
 
+/-- Every tree leaf mass is nonnegative. -/
 theorem leafMass_nonneg : ∀ (t : BucketTree) (p : List Bool), 0 ≤ leafMass t p := by
   intro t
   induction t with
@@ -1916,6 +2107,8 @@ theorem leafMass_nonneg : ∀ (t : BucketTree) (p : List Bool), 0 ≤ leafMass t
               rw [leafMass]
               exact mul_nonneg (by positivity) (ihr bs)
 
+/-- For positive subtree weights, the left subtree's fraction of the combined weight is at most
+one. -/
 theorem branchMass_left_le_one (l r : BucketTree) (hWL : 0 < totalWeight l)
     (hWR : 0 < totalWeight r) :
     (totalWeight l : ℝ) / ((totalWeight l + totalWeight r : ℕ) : ℝ) ≤ 1 := by
@@ -1924,6 +2117,8 @@ theorem branchMass_left_le_one (l r : BucketTree) (hWL : 0 < totalWeight l)
     positivity
   linarith
 
+/-- For positive subtree weights, the right subtree's fraction of the combined weight is at most
+one. -/
 theorem branchMass_right_le_one (l r : BucketTree) (hWL : 0 < totalWeight l)
     (hWR : 0 < totalWeight r) :
     (totalWeight r : ℝ) / ((totalWeight l + totalWeight r : ℕ) : ℝ) ≤ 1 := by
@@ -1932,6 +2127,7 @@ theorem branchMass_right_le_one (l r : BucketTree) (hWL : 0 < totalWeight l)
     positivity
   linarith
 
+/-- The mass of a valid leaf path in a positive tree is at most one. -/
 theorem leafMass_le_one (t : BucketTree) (p : List Bool) (hpath : isPath t p)
     (hpos : PositiveTree t) : leafMass t p ≤ 1 := by
   induction t generalizing p with
@@ -1977,6 +2173,7 @@ theorem leafMass_le_one (t : BucketTree) (p : List Bool) (hpath : isPath t p)
                 _ = leafMass r bs := by ring
                 _ ≤ 1 := hm
 
+/-- For a valid path in a positive tree, truncated leaf mass is at most the ideal leaf mass. -/
 theorem treeLeafMassTrunc_le (n : ℕ) (t : BucketTree) (p : List Bool)
     (hpath : isPath t p) (hpos : PositiveTree t) :
     treeLeafMassTrunc n t p ≤ leafMass t p := by
@@ -2015,6 +2212,8 @@ theorem treeLeafMassTrunc_le (n : ℕ) (t : BucketTree) (p : List Bool)
               rw [treeLeafMassTrunc, leafMass]
               exact mul_le_mul hR hm (treeLeafMassTrunc_nonneg n r bs) (by positivity)
 
+/-- Under the stated routing, normalization, and nonnegativity bounds, `R * M - TL * T` is at
+most the pending term plus the two weighted residual bounds. -/
 theorem deficit_step (R L TL TR P pending M T P' : ℝ)
     (hTL : TL ≤ R) (hTR : TR ≤ L) (hfrac : R + L = 1) (hsum : TL + TR + pending = 1)
     (hTL0 : 0 ≤ TL) (hTR0 : 0 ≤ TR) (hP0 : 0 ≤ pending)
@@ -2043,6 +2242,8 @@ theorem deficit_step (R L TL TR P pending M T P' : ℝ)
     _ ≤ TL * P + pending := by exact add_le_add_right h3 _
     _ ≤ pending + TL * P + TR * P' := by linarith
 
+/-- For a valid path in a positive tree, the ideal leaf mass minus its truncated mass is at most
+the tree pending probability. -/
 theorem treeDeficit_le (n : ℕ) (t : BucketTree) (p : List Bool)
     (hpath : isPath t p) (hpos : PositiveTree t) :
     leafMass t p - treeLeafMassTrunc n t p ≤ treePendingProb n t := by
@@ -2107,6 +2308,8 @@ theorem treeDeficit_le (n : ℕ) (t : BucketTree) (p : List Bool)
                     hR0 hL0 hP0 hm hM1
                   (leafMass_nonneg r bs) hP'0)
 
+/-- For a valid path in a positive tree, truncated leaf mass differs from completed mass times
+ideal leaf mass by at most the tree pending probability. -/
 theorem treeTruncationBias (n : ℕ) (t : BucketTree) (p : List Bool)
     (hpath : isPath t p) (hpos : PositiveTree t) :
     |treeLeafMassTrunc n t p - (1 - treePendingProb n t) * leafMass t p|
@@ -2123,6 +2326,8 @@ theorem treeTruncationBias (n : ℕ) (t : BucketTree) (p : List Bool)
   rw [hkey, abs_le]
   constructor <;> nlinarith
 
+/-- The pending probability of a positive tree is at most its nodewise pending ledger at unit
+reach. -/
 theorem treePendingProb_le_nodes (n : ℕ) (t : BucketTree) (hpos : PositiveTree t) :
     treePendingProb n t ≤ treePendingByNodes n t 1 := by
   have key : ∀ (t : BucketTree) (reach : ℝ), PositiveTree t →
@@ -2155,6 +2360,7 @@ theorem treePendingProb_le_nodes (n : ℕ) (t : BucketTree) (hpos : PositiveTree
           _ = treePendingByNodes n (.node l r) reach := rfl
   simpa using! key t 1 hpos
 
+/-- The real pending probability of the two-weight sampler is at most one. -/
 theorem pendingProb_le_one (n a b : ℕ) : pendingProb n a b ≤ 1 := by
   have hle := pendingMass_le_one n a b
   have h1 : pendingMass n a b ≠ ∞ := pendingMass_ne_top n a b
@@ -2162,6 +2368,7 @@ theorem pendingProb_le_one (n a b : ℕ) : pendingProb n a b ≤ 1 := by
     (ENNReal.toReal_le_toReal h1 (by simp)).mpr hle
   simpa using! h'
 
+/-- For positive total weight, increasing fuel by one cannot increase pending probability. -/
 theorem pendingProb_mono_step (n a b : ℕ) (h : 0 < a + b) :
     pendingProb (n + 1) a b ≤ pendingProb n a b := by
   induction n generalizing a b with
@@ -2208,6 +2415,7 @@ theorem pendingProb_mono_step (n a b : ℕ) (h : 0 < a + b) :
       rw [hrec, hrec']
       linarith
 
+/-- For positive total weight, pending probability is non-increasing as fuel grows. -/
 theorem pendingProb_mono {n m a b : ℕ} (h : 0 < a + b) (hnm : n ≤ m) :
     pendingProb m a b ≤ pendingProb n a b := by
   refine Nat.le_induction (m := n)
@@ -2216,6 +2424,7 @@ theorem pendingProb_mono {n m a b : ℕ} (h : 0 < a + b) (hnm : n ≤ m) :
   · intro k _ ih
     exact (pendingProb_mono_step k a b h).trans ih
 
+/-- Increasing a tree budget preserves `BudgetCovers`. -/
 theorem budgetCovers_mono (count : ℕ) (delta : ℝ) (b b' : ℕ) (t : BucketTree)
     (h : b ≤ b') (hc : BudgetCovers count delta b t) : BudgetCovers count delta b' t := by
   induction t with
@@ -2223,6 +2432,8 @@ theorem budgetCovers_mono (count : ℕ) (delta : ℝ) (b b' : ℕ) (t : BucketTr
   | node l r ihl ihr =>
       exact ⟨Nat.le_trans hc.1 h, ihl hc.2.1, ihr hc.2.2⟩
 
+/-- The budget `treeTruncationBudgetWith count t delta` satisfies `BudgetCovers count delta` for
+`t`. -/
 theorem treeTruncationBudgetWith_covers (count : ℕ) (delta : ℝ) (t : BucketTree) :
     BudgetCovers count delta (treeTruncationBudgetWith count t delta) t := by
   induction t with
@@ -2243,6 +2454,8 @@ theorem treeTruncationBudgetWith_covers (count : ℕ) (delta : ℝ) (t : BucketT
               (max (treeTruncationBudgetWith count l delta)
                 (treeTruncationBudgetWith count r delta)))) ihr
 
+/-- For a positive tree, positive tolerance, and positive count, a covering budget bounds each
+node's pending probability by `delta / count`. -/
 theorem nodePendingBound_of_covers (count : ℕ) (delta : ℝ) (hδ : 0 < delta)
     (hcount : 0 < count) (budget : ℕ) (t : BucketTree) (hpos : PositiveTree t)
     (hcov : BudgetCovers count delta budget t) :
@@ -2272,6 +2485,8 @@ theorem nodePendingBound_of_covers (count : ℕ) (delta : ℝ) (hδ : 0 < delta)
         exact hmono.trans htrunc
       refine ⟨hpend, ihl hpos.1 hcov.2.1, ihr hpos.2 hcov.2.2⟩
 
+/-- With node pending probabilities bounded by nonnegative `eps` and nonnegative reach, the
+nodewise pending ledger is at most reach times the internal-node count times `eps`. -/
 theorem treePendingByNodes_le (n : ℕ) (t : BucketTree) (reach eps : ℝ)
     (hpos : PositiveTree t) (hb : NodePendingBound n eps t) (hreach : 0 ≤ reach)
     (heps : 0 ≤ eps) :
@@ -2346,6 +2561,8 @@ theorem treePendingByNodes_le (n : ℕ) (t : BucketTree) (reach eps : ℝ)
           push_cast
           ring
 
+/-- For a positive tree and positive tolerance, the prescribed tree truncation budget leaves
+pending probability at most that tolerance. -/
 theorem treeTruncationBudget_bound (t : BucketTree) (delta : ℝ) (hpos : PositiveTree t)
     (hδ : 0 < delta) :
     treePendingProb (treeTruncationBudget t delta) t ≤ delta := by
@@ -2375,6 +2592,7 @@ theorem treeTruncationBudget_bound (t : BucketTree) (delta : ℝ) (hpos : Positi
             (delta / (treeInternalCount (.node l r) : ℝ)) := hledger
         _ = delta := by field_simp
 
+/-- The cost of every valid tree path is at most `treeWorstSteps`. -/
 theorem treePathCost_le_worst (n : ℕ) (t : BucketTree) (p : List Bool) (hpath : isPath t p) :
     treePathCost n t p ≤ treeWorstSteps n t := by
   induction t generalizing p with
@@ -2416,6 +2634,7 @@ theorem treePathCost_le_worst (n : ℕ) (t : BucketTree) (p : List Bool) (hpath 
                 exact le_max_right _ _
               linarith
 
+/-- There exists a valid tree path whose cost attains `treeWorstSteps`. -/
 theorem treeWorstSteps_attained (n : ℕ) (t : BucketTree) :
     ∃ p, isPath t p ∧ treePathCost n t p = treeWorstSteps n t := by
   induction t with
@@ -2438,6 +2657,8 @@ theorem treeWorstSteps_attained (n : ℕ) (t : BucketTree) :
             (totalWeight l : ℝ) + 1 + n + treeWorstSteps n r := by linarith
         exact max_eq_right hle |>.symm
 
+/-- The worst tree path cost is at most `treeDepth t * (totalWeight t + 1 + n)`, with the
+factors viewed in ℝ. -/
 theorem treeWorstSteps_le (n : ℕ) (t : BucketTree) :
     treeWorstSteps n t ≤ (treeDepth t : ℝ) * ((totalWeight t : ℝ) + 1 + n) := by
   induction t with
@@ -2523,6 +2744,7 @@ theorem treeWorstSteps_le (n : ℕ) (t : BucketTree) :
       · exact hA.trans hmulL
       · exact hB.trans hmulR
 
+/-- For positive input weights, finite-fuel input pending mass is finite. -/
 theorem pendingInputMass_ne_top (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     pendingInputMass n A B ≠ ∞ := by
   by_cases hle : n ≤ A + 1
@@ -2534,6 +2756,8 @@ theorem pendingInputMass_ne_top (n A B : ℕ) (hA : 0 < A) (hB : 0 < B) :
     rw [pendingInputMass_eq m A B hA hB]
     exact pendingMass_ne_top m A B
 
+/-- Truncated input step cost is at most unbounded expected input steps plus the fuel budget
+times the pending mass. -/
 theorem truncatedInputSteps_le (n A B : ℕ) :
     truncatedInputSteps n A B ≤ expectedInputSteps A B + (n : ℝ≥0∞) * pendingInputMass n A B := by
   have hsum : (∑ k ∈ Finset.range n, pendingInputMass k A B) ≤ expectedInputSteps A B :=
@@ -2544,6 +2768,8 @@ theorem truncatedInputSteps_le (n A B : ℕ) :
       add_le_add_left hsum _
     _ = expectedInputSteps A B + (n : ℝ≥0∞) * pendingInputMass n A B := rfl
 
+/-- For positive node weights, truncated node steps are at most `WL * WR + WL + 2` plus `(WL + 1
++ n)` times the node pending probability. -/
 theorem nodeTruncSteps_le (n WL WR : ℕ) (hA : 0 < WL) (hB : 0 < WR) :
     nodeTruncSteps n WL WR ≤
       (WL : ℝ) * (WR : ℝ) + (WL : ℝ) + 2 +
@@ -2629,6 +2855,7 @@ theorem nodeTruncSteps_le (n WL WR : ℕ) (hA : 0 < WL) (hB : 0 < WR) :
       rw [htail]
       linarith
 
+/-- The recursive tree step cost is nonnegative. -/
 theorem treeSteps_nonneg (t : BucketTree) : 0 ≤ treeSteps t := by
   induction t with
   | leaf w =>
@@ -2647,6 +2874,7 @@ theorem treeSteps_nonneg (t : BucketTree) : 0 ≤ treeSteps t := by
       simp only [treeSteps]
       linarith
 
+/-- Scaling the reach parameter scales the tree truncation waste by the same factor. -/
 theorem treeTruncWaste_scale (n : ℕ) (t : BucketTree) (c reach : ℝ) :
     treeTruncWaste n t (c * reach) = c * treeTruncWaste n t reach := by
   induction t generalizing c reach with
@@ -2669,6 +2897,8 @@ theorem treeTruncWaste_scale (n : ℕ) (t : BucketTree) (c reach : ℝ) :
       rw [e1, e2, hL, hR]
       ring
 
+/-- For a positive tree, truncated expected steps are at most the unbounded tree step cost plus
+truncation waste at unit reach. -/
 theorem treeTruncSteps_le (n : ℕ) (t : BucketTree) (hpos : PositiveTree t) :
     treeTruncSteps n t ≤ treeSteps t + treeTruncWaste n t 1 := by
   induction t with
@@ -2717,6 +2947,8 @@ theorem treeTruncSteps_le (n : ℕ) (t : BucketTree) (hpos : PositiveTree t) :
       rw [hscaleL, hscaleR]
       linarith
 
+/-- With total tree weight at most `W` and nonnegative reach, truncation waste is at most `(W +
+1 + n)` times the nodewise pending ledger. -/
 theorem treeTruncWaste_le_ledger (n : ℕ) (t : BucketTree) (reach W : ℝ) (hpos : PositiveTree t)
     (hW : (totalWeight t : ℝ) ≤ W) (hreach : 0 ≤ reach) :
     treeTruncWaste n t reach ≤ (W + 1 + n) * treePendingByNodes n t reach := by
@@ -2757,6 +2989,8 @@ theorem treeTruncWaste_le_ledger (n : ℕ) (t : BucketTree) (reach W : ℝ) (hpo
       simp only [treeTruncWaste, treePendingByNodes]
       linarith
 
+/-- For a positive tree with node pending probabilities bounded by nonnegative `eps`, truncation
+waste at unit reach is at most `(totalWeight + 1 + n) * treeInternalCount * eps`. -/
 theorem treeTruncWaste_le (n : ℕ) (t : BucketTree) (eps : ℝ) (hpos : PositiveTree t)
     (hb : NodePendingBound n eps t) (heps : 0 ≤ eps) :
     treeTruncWaste n t 1 ≤
@@ -2772,6 +3006,9 @@ theorem treeTruncWaste_le (n : ℕ) (t : BucketTree) (eps : ℝ) (hpos : Positiv
         _ = ((totalWeight t : ℝ) + 1 + n) * (treeInternalCount t : ℝ) * eps := by ring
   linarith
 
+/-- For a positive tree with at least one internal node, a per-node pending bound of `delta /
+treeInternalCount` bounds truncated steps by tree steps plus `(totalWeight + 1 + n) *
+delta`. -/
 theorem treeTruncSteps_le_budget (n : ℕ) (t : BucketTree) (delta : ℝ) (hpos : PositiveTree t)
     (hδ : 0 < delta) (hcount : 0 < treeInternalCount t)
     (hb : NodePendingBound n (delta / (treeInternalCount t : ℝ)) t) :
@@ -2785,6 +3022,8 @@ theorem treeTruncSteps_le_budget (n : ℕ) (t : BucketTree) (delta : ℝ) (hpos 
     field_simp
   linarith
 
+/-- At the prescribed budget for a positive tree and positive tolerance, truncated steps are at
+most tree steps plus `(totalWeight + 1 + budget) * delta`. -/
 theorem treeTruncBudget_le (t : BucketTree) (delta : ℝ) (hpos : PositiveTree t)
     (hδ : 0 < delta) :
     treeTruncSteps (treeTruncationBudget t delta) t ≤
@@ -2805,6 +3044,7 @@ theorem treeTruncBudget_le (t : BucketTree) (delta : ℝ) (hpos : PositiveTree t
       exact treeTruncSteps_le_budget (treeTruncationBudget (.node l r) delta) (.node l r) delta
         hpos hδ hcount hbound
 
+/-- The two encoded weights of complementary nonnegative targets sum to at most `N`. -/
 theorem encWeight_sum_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1) :
     encWeight N u + encWeight N v ≤ N := by
   have h1 := encWeight_le N u hu
@@ -2816,6 +3056,8 @@ theorem encWeight_sum_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (hu
     simpa using! hsum
   exact_mod_cast hsum'
 
+/-- When both encoded weights are positive, total encoding steps equal their sum plus their
+product plus the first encoded weight plus two. -/
 theorem encTotalSteps_eq (N : ℕ) (u v : ℝ) (hAu : 0 < encWeight N u) (hAv : 0 < encWeight N v) :
     encTotalSteps N u v = ((encWeight N u + encWeight N v : ℕ) : ℝ) +
       ((encWeight N u : ℝ) * (encWeight N v : ℝ) + (encWeight N u : ℝ) + 2) := by
@@ -2842,6 +3084,8 @@ theorem encTotalSteps_eq (N : ℕ) (u v : ℝ) (hAu : 0 < encWeight N u) (hAv : 
   unfold encTotalSteps encEvalSteps
   rw [h']
 
+/-- For complementary nonnegative targets with positive encoded weights, total encoding steps
+are at most `N² / 4 + 2 * N + 2`. -/
 theorem encTotalSteps_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1)
     (hAu : 0 < encWeight N u) (hAv : 0 < encWeight N v) :
     encTotalSteps N u v ≤ (N : ℝ) ^ 2 / 4 + 2 * (N : ℝ) + 2 := by
@@ -2863,6 +3107,8 @@ theorem encTotalSteps_le (N : ℕ) (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) (hu
   rw [hcast] at h
   linarith
 
+/-- A collection of exact sampler costs, geometric pending tails, encoding error and cost
+bounds, and worst-path tree resource bounds. -/
 structure CostLaws where
 
   expectedBits_eq : ∀ a b : ℕ, expectedBits a b = ((a : ℝ≥0∞) * b)
@@ -2896,6 +3142,8 @@ structure CostLaws where
     0 < encWeight N u → 0 < encWeight N v →
     encTotalSteps N u v ≤ (N : ℝ) ^ 2 / 4 + 2 * (N : ℝ) + 2
 
+/-- Establishes the expected costs, tail bounds, encoding estimates, and tree path bounds
+packaged in `CostLaws`. -/
 theorem clause23_complete : CostLaws := by
   refine ⟨expectedBits_eq, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro a b h
@@ -2917,6 +3165,8 @@ theorem clause23_complete : CostLaws := by
   · intro N u v hu hv huv hAu hAv
     exact encTotalSteps_le N u v hu hv huv hAu hAv
 
+/-- A collection of pending-mass recurrences, outcome partitions, loader identities, and
+truncation error and resource bounds for races and bucket trees. -/
 structure PendingEventLaws where
 
   mass_le_one : ∀ n a b : ℕ, pendingMass n a b ≤ 1
@@ -2980,6 +3230,8 @@ structure PendingEventLaws where
       ≤ 1 / ((encWeight N u + encWeight N v : ℕ) : ℝ) +
         pendingProb n (encWeight N u) (encWeight N v)
 
+/-- Establishes the pending-event, truncation-bias, and resource estimates packaged in
+`PendingEventLaws`. -/
 theorem clause24_complete : PendingEventLaws := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro n a b

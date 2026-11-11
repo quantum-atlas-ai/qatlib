@@ -13,6 +13,29 @@ import Mathlib.Tactic.NormNum.BigOperators
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# A heterogeneous weighted median example
+
+`heterogeneousCoinLaw` gives two distinct Bernoulli laws whose associated values both have mean
+one and have different variances. The module combines these laws with alternating nonuniform
+weights in a concrete median-of-blocks estimator, illustrating the concentration methods used in
+Monte Carlo estimation [Montanaro2015].
+
+Each block contains 64 observations with weights `1 / 96` and `2 / 96`. The resulting median has
+an explicit error-probability bound and an exact observation count.
+
+## Main statements
+
+* `heterogeneous_nonidentical_coin_consumer`: compute the two means and variances.
+* `heterogeneous_counted_nonuniform_median_consumer`: bound the median error and count
+  observations.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -26,6 +49,8 @@ set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The probability mass function of a Boolean coin with true probability one quarter when `b`
+is false and three quarters when `b` is true. -/
 noncomputable def heterogeneousCoinProb (b x : Bool) : ℝ :=
   match b, x with
   | false, true => 1/4
@@ -33,26 +58,33 @@ noncomputable def heterogeneousCoinProb (b x : Bool) : ℝ :=
   | true, true => 3/4
   | true, false => 1/4
 
+/-- Every value of `heterogeneousCoinProb` is nonnegative. -/
 theorem heterogeneousCoinProb_nonneg (b x : Bool) : 0 ≤ heterogeneousCoinProb b x := by
   unfold heterogeneousCoinProb
   split <;> norm_num
 
+/-- For either choice of `b`, the Boolean masses in `heterogeneousCoinProb b` sum to one. -/
 theorem heterogeneousCoinProb_sum_one (b : Bool) :
     ∑ x : Bool, heterogeneousCoinProb b x = 1 := by
   rw [Fintype.sum_bool]
   cases b <;> norm_num [heterogeneousCoinProb]
 
+/-- The finite Boolean distribution with probability mass function `heterogeneousCoinProb b`. -/
 noncomputable def heterogeneousCoinLaw (b : Bool) : FinDist Bool where
   prob := heterogeneousCoinProb b
   nonneg := heterogeneousCoinProb_nonneg b
   sum_one := heterogeneousCoinProb_sum_one b
 
+/-- A coin-dependent value that is zero on false and is four or four thirds on true, according
+to `b`. -/
 noncomputable def heterogeneousCoinValue (b x : Bool) : ℝ :=
   match b, x with
   | false, true => 4
   | true, true => 4/3
   | _, false => 0
 
+/-- The two coin laws have true probabilities one quarter and three quarters, and their
+associated values both have mean one. Their variances are three and one third, respectively. -/
 theorem heterogeneous_nonidentical_coin_consumer :
     (heterogeneousCoinLaw false).prob true = 1/4 ∧
       (heterogeneousCoinLaw true).prob true = 3/4 ∧
@@ -76,6 +108,8 @@ theorem heterogeneous_nonidentical_coin_consumer :
     rw [Fintype.sum_bool]
     norm_num [heterogeneousCoinProb, heterogeneousCoinValue]
 
+/-- A sum over `Fin (2 * m)` alternating between `A` at even indices and `B` at odd indices
+equals `m * (A + B)`. -/
 theorem sum_fin_two_mul_of_parity {A B : ℝ} : ∀ m : ℕ,
     ∑ b : Fin (2*m), (if b.val % 2 = 0 then A else B) = m * (A + B) := by
   intro m
@@ -106,6 +140,9 @@ theorem sum_fin_two_mul_of_parity {A B : ℝ} : ∀ m : ℕ,
       push_cast
       ring
 
+/-- For `2 * r + 1` blocks of 64 alternating coin observations with weights `1 / 96` and `2 /
+96`, the probability that the block median differs from one by more than one half is at most
+`2^(2*r+1) * (1/16)^(r+1)`. The counted estimator reads exactly `(2*r+1)*64` observations. -/
 theorem heterogeneous_counted_nonuniform_median_consumer : ∀ (r : ℕ),
       let p : Fin (2*r+1) → Fin 64 → FinDist Bool :=
           fun _ b => heterogeneousCoinLaw (b.val % 2 == 1)

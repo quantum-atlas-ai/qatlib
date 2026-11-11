@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedOutputReadoutDefs
+
+/-!
+# Observed decision lower-bound contract
+
+`ObservedDecisionLowerBound` specifies a query-depth bound for observed circuits acting on an
+address, a bit, and a nonempty finite workspace. The hypotheses require a normalized initial
+state and the 1/3 versus 2/3 acceptance gap.
+
+For the mathematical background, see [BealsEtAl2001].
+
+## Main statements
+
+* `ObservedDecisionLowerBound`: The proposition that the stated empty-versus-singleton observed
+  decision gap forces n ≤ 144 times the squared observed query depth.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 open Qatlib
 open scoped Classical
 
+/-- The proposition that the stated empty-versus-singleton observed decision gap forces n ≤ 144
+times the squared observed query depth. -/
 def ObservedDecisionLowerBound : Prop :=
   ∀ (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W)),

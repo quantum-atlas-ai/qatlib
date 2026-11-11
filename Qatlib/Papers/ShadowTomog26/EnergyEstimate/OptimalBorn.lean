@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.GraphFraction.CoverLP.PowerAllocation
 import Qatlib.Foundations.FiniteStats.BornEstimator.SecondMoment
 import Qatlib.Foundations.FiniteStats.BornEstimator.IndependentShots
+
+/-!
+# Fractional-cover allocations for Born energy estimators
+
+This module connects the fractional-cover allocation in [XuEtAl2026] with finite joint Born
+measurement schemes whose contexts are the independent sets of a graph. `energyScore` corrects
+each measured sign by its inclusion probability, and the existence theorems choose a
+distribution that controls the variance for every input state.
+
+## Main statements
+
+* `inclusion_eq_coverage` identifies measurement inclusion probabilities with graph coverage.
+* `optimal_born_energy_estimator` gives an unbiased average with the coefficient-power cover
+  bound.
+* `optimal_born_operator_estimator` gives the positive semidefinite second-moment operator, its
+  spectral bound, and the exact variance identity.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +43,9 @@ variable {V Ω d : Type*} [Fintype V] [DecidableEq V] [Nonempty V]
 
 omit [Nonempty V] in
 
+/-- If a joint scheme's context at every independent-set index is that independent set itself,
+then its inclusion weight equals the graph coverage at every vertex. The identity holds for
+arbitrary real context weights. -/
 theorem inclusion_eq_coverage (G : SimpleGraph V) {S : V → HermitianMat d ℂ}
     (M : JointScheme (K:=Context G) (Ω:=Ω) S)
     (hM : ∀ I,M.context I=I.val) (q : Context G → ℝ) (i : V) :
@@ -28,10 +53,17 @@ theorem inclusion_eq_coverage (G : SimpleGraph V) {S : V → HermitianMat d ℂ}
   unfold inclusion coverage incidence
   simp_rw [hM]
 
+/-- The energy score of an outcome is the sum of `c i` times its measured sign, divided by the
+inclusion weight of vertex `i`. This is the inclusion-corrected single-shot score for the
+linear observable with coefficients `c`. -/
 def energyScore (G : SimpleGraph V) {S : V → HermitianMat d ℂ}
     (M : JointScheme (K:=Context G) (Ω:=Ω) S) (q : Context G → ℝ)
     (c : V → ℝ) (ω : Context G×Ω) : ℝ := ∑ i,c i*M.sign ω.1 i ω.2/inclusion M q i
 
+/-- For a joint scheme realizing the graph contexts, nonzero coefficients, and `N > 0`, there is
+a context probability distribution with positive inclusion probabilities giving an unbiased
+averaged energy estimate for every state. With `C = ∑ i, |c i|^(2/3)` and `a i = |c i|^(2/3)
+/ C`, its variance is at most `coverValue G a * C^3 / N`. -/
 theorem optimal_born_energy_estimator (G : SimpleGraph V) {S : V → HermitianMat d ℂ}
     (M : JointScheme (K:=Context G) (Ω:=Ω) S) (hM : ∀ I,M.context I=I.val)
     (c : V → ℝ) (hc : ∀ i,c i≠0) (N : ℕ) (hN : 0<N) :
@@ -62,6 +94,11 @@ theorem optimal_born_energy_estimator (G : SimpleGraph V) {S : V → HermitianMa
     change variance (bornLaw M q ρ) (energyScore G M q c) ≤ _ at hv
     exact hv.trans (by simpa only [inclusion_eq_coverage G M hM] using hamp)
 
+/-- For a joint scheme realizing the graph contexts, nonzero coefficients, and `N > 0`, a
+context distribution gives an unbiased averaged estimator and a positive semidefinite
+second-moment operator `A` with largest eigenvalue at most `coverValue G a * C^3`, using the
+normalized coefficient-power weights. For every state, the variance is `(ρ.exp_val A - (∑ i,
+c i * ρ.exp_val (S i))^2) / N` and is at most the largest eigenvalue of `A` divided by `N`. -/
 theorem optimal_born_operator_estimator [Nonempty d] (G : SimpleGraph V) {S : V → HermitianMat d ℂ}
     (M : JointScheme (K:=Context G) (Ω:=Ω) S) (hM : ∀ I,M.context I=I.val)
     (c : V → ℝ) (hc : ∀ i,c i≠0) (N : ℕ) (hN : 0<N) :

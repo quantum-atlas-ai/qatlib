@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
+
+/-!
+# Good marginal probability contract
+
+Defines `DlogGoodCMarginal`, lower bounds on the measurement probability of any small-residue
+first coordinate. The contract assumes a generator of the nonzero residues and supplies an
+additional bound when `q ≤ 2 * (p - 1)`, in the setting of [Shor1997].
+
+## Main statements
+
+* `DlogGoodCMarginal`: Specifies the first-coordinate marginal lower bounds.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +35,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open Qatlib
 open scoped Classical
 
+/-- The generator-based marginal contract requires mass at least `(p - 1) / (20 * q ^ 2)` for
+each small-residue first coordinate, and at least `1 / (40 * q)` when `q ≤ 2 * (p - 1)`. -/
 def DlogGoodCMarginal : Prop :=
   ∀ (p q r : ℕ) [NeZero p] (g x : ZMod p), Nat.Prime p → 3 ≤ p → x ≠ 0 →
     (p : ℕ) < q → orderOf g = p - 1 → x = g ^ r →

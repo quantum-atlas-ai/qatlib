@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedPayoffMassStat
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDepthCorrectedQuan
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Flag mass of expanded polynomial preparation
+
+This module computes the basis amplitudes of expanded payoff preparation and identifies its
+target-flag mass. The identity connects the compiled corrected rotation word with the
+Born-weighted squared-sine payoff.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `polyFigTwoExpandedPayoffMass`: The expanded preparation's good-flag probability equals the
+  Born-weighted squared-sine polynomial payoff; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +46,8 @@ namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix Polynomial
 open scoped Classical BigOperators
 
+/-- The extended data gate maps an expanded initial ket to the data-matrix column with flag and
+work bits false. -/
 private theorem data_gate_columns (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) :
     figTwoDataGate n A *ᵥ Qatlib.Foundations.PureStateMath.Ket (figTwoStart n j) =
       ∑ x : Reg n, A x j • Qatlib.Foundations.PureStateMath.Ket (figTwoStart n x) := by
@@ -39,6 +61,8 @@ private theorem data_gate_columns (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) (j 
   by_cases hb : b = false <;> by_cases hw : w = (fun _ => false) <;>
     simp [hb, hw, ite_mul, mul_ite, ite_and]
 
+/-- The expanded angle word rotates the flag by the negated doubled payoff angle while restoring
+the work register. -/
 private theorem word_columns (n u : ℕ) (c : ℝ) (fp : Polynomial ℝ) (x : Reg n) :
     reflectionProgramMatrix (figTwoAngleWord n u c fp) *ᵥ Qatlib.Foundations.PureStateMath.Ket (figTwoStart n x) =
       ∑ b : Bool,
@@ -57,6 +81,8 @@ private theorem word_columns (n u : ℕ) (c : ℝ) (fp : Polynomial ℝ) (x : Re
   rw [he] at hs
   simpa only [run_reflectionCompile, ApplyGate, figTwoAngleWord, figTwoStart] using! hs
 
+/-- An expanded preparation amplitude factors into the data amplitude and flag-rotation
+amplitude when the work register is zero, and vanishes otherwise. -/
 private theorem preparation_entry (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ)
     (j : Reg n) (u : ℕ) (c : ℝ) (fp : Polynomial ℝ)
     (x : Reg n) (b : Bool) (w : Reg (n-1)) :
@@ -73,6 +99,8 @@ private theorem preparation_entry (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ)
   by_cases hw : w = (fun _ => false) <;>
     simp [hw, ite_and, ite_mul, mul_ite, Finset.mul_sum]
 
+/-- The expanded preparation's good-flag probability equals the Born-weighted squared-sine
+polynomial payoff; see [WoernerEgger2019]. -/
 theorem polyFigTwoExpandedPayoffMass : PolyFigTwoExpandedPayoffMass := by
   intro n A j u c fp _
   unfold MeasureProb figTwoGoodSet

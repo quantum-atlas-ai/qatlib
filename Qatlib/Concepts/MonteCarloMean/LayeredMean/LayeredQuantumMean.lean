@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+
+/-!
+# Layered quantum estimation of nonnegative means
+
+The dyadic payoffs `layerPayoff` split a nonnegative observable into bounded layers, with a
+residual controlled by its second moment. Explicit choices `layerGrid` and `layerRepetitions`
+define the independent record law `layerLaw` and weighted median readout `layerEstimate`.
+
+For second moment at most one and `k ≥ 1`, the estimator achieves error at most 2^(-k) with
+probability at least 1 - 2^(-k). An exact amplitude-estimation query ledger accompanies this
+finite-dimensional version of the layered construction in [Montanaro2015].
+
+## Main statements
+
+* `layered_payoff_partition_and_second_moment_tail`: dyadic layers are bounded and their tail is
+  controlled by the second moment.
+* `layered_quantum_mean_actual_guarantee`: the explicit layered estimator has dyadic accuracy
+  and confidence.
+* `layered_quantum_mean_actual_query_ledger`: the summed counted-circuit query count is
+  explicit.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,17 +55,24 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The dyadic layer payoff: layer zero keeps values below one, and layer `l + 1` rescales
+values in [2^l, 2^(l + 1)) by 2^(-(l + 1)). -/
 noncomputable def layerPayoff {I : Type} (f : I → ℝ) : ℕ → I → ℝ
   | 0, i => if f i < 1 then f i else 0
   | l+1, i => if (2:ℝ)^l ≤ f i ∧ f i < (2:ℝ)^(l+1) then f i / (2:ℝ)^(l+1) else 0
 
+/-- Layer zero equals the original payoff below one and is zero elsewhere. -/
 theorem layerPayoff_zero (f : I → ℝ) (i : I) :
     layerPayoff f 0 i = if f i < 1 then f i else 0 := rfl
 
+/-- Layer `l + 1` equals the payoff divided by 2^(l + 1) on [2^l, 2^(l + 1)) and is zero
+elsewhere. -/
 theorem layerPayoff_succ (f : I → ℝ) (l : ℕ) (i : I) :
     layerPayoff f (l+1) i =
       if (2:ℝ)^l ≤ f i ∧ f i < (2:ℝ)^(l+1) then f i / (2:ℝ)^(l+1) else 0 := rfl
 
+/-- Every dyadic layer of a nonnegative payoff takes values in the closed interval from zero to
+one. -/
 theorem layerPayoff_mem_Icc (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
     ∀ (l : ℕ) (i : I), layerPayoff f l i ∈ Set.Icc (0:ℝ) 1 := by
   intro l
@@ -60,6 +94,8 @@ theorem layerPayoff_mem_Icc (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
     · rw [layerPayoff_succ, if_neg h]
       norm_num
 
+/-- The weighted sum of layers zero through `L` equals the payoff when it is below 2^L, and is
+zero when it is at least 2^L. -/
 private theorem layer_sum_partition (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
     ∀ (L : ℕ) (i : I), (∑ l ∈ Finset.range (L+1), (2:ℝ)^l * layerPayoff f l i = f i
         ∧ f i < (2:ℝ)^L)
@@ -100,6 +136,8 @@ private theorem layer_sum_partition (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) :
       · exact Or.inr ⟨by rw [hsplit, hsum, layerPayoff_succ,
           if_neg (fun h => hlt2 h.2), mul_zero]; ring, le_of_not_gt hlt2⟩
 
+/-- For nonnegative weights and payoff, the truncated layered mean is at most the full mean,
+with residual at most the weighted second moment divided by 2^L. -/
 private theorem weighted_layer_residual (w : I → ℝ) (hw0 : ∀ i, 0 ≤ w i)
     (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) (L : ℕ) :
     (∑ l ∈ Finset.range (L+1), (2:ℝ)^l * ∑ i, w i * layerPayoff f l i) ≤ ∑ i, w i * f i
@@ -153,6 +191,9 @@ private theorem weighted_layer_residual (w : I → ℝ) (hw0 : ∀ i, 0 ≤ w i)
             Finset.sum_congr rfl fun i _ => (mul_div_assoc _ _ _).symm
       _ = (∑ i, w i * (f i)^2)/(2:ℝ)^L := (Finset.sum_div _ _ _).symm
 
+/-- For a nonnegative payoff under a unitary-prepared Born law, all layers lie in [0, 1] and the
+truncated mean residual is bounded by its second moment divided by 2^L. This is the dyadic
+partition used for [Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem layered_payoff_partition_and_second_moment_tail (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) (L : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) :
     (∀ l i, layerPayoff f l i ∈ Set.Icc (0:ℝ) 1) ∧
@@ -161,23 +202,29 @@ theorem layered_payoff_partition_and_second_moment_tail (A : Matrix I I ℂ) (j 
     (weighted_layer_residual (fun i => BornProb (ApplyGate A (Ket j)) i)
       (fun i => bornProb_nonneg _ _) f hf L).2⟩
 
+/-- The amplitude-estimation grid size 2^(k + 6)(k + 2) used for each dyadic layer. -/
 def layerGrid (k : ℕ) : ℕ := 2^(k+6)*(k+2)
 
+/-- The median repetition parameter 8(k + 2) used in each dyadic layer. -/
 def layerRepetitions (k : ℕ) : ℕ := 8*(k+2)
 
+/-- The grid size chosen for every precision parameter is strictly positive. -/
 theorem layerGrid_pos (k : ℕ) : 0 < layerGrid k := by
   simp only [layerGrid]
   positivity
 
+/-- The chosen layer grid always has at least two points. -/
 theorem layerGrid_ge_two (k : ℕ) : 2 ≤ layerGrid k := by
   simp only [layerGrid]
   calc 2 = (2:ℕ)^1 := rfl
     _ ≤ (2:ℕ)^(k+6) := Nat.pow_le_pow_right (by omega : (0:ℕ) < 2) (by omega : (1:ℕ) ≤ k + 6)
     _ ≤ (2:ℕ)^(k+6)*(k+2) := Nat.le_mul_of_pos_right (m := k+2) _ (by omega : 0 < k + 2)
 
+/-- The real constant π is at most 10/3. -/
 private theorem pi_le_ten_thirds : Real.pi ≤ 10/3 :=
   le_trans (le_of_lt Real.pi_lt_d2) (by norm_num)
 
+/-- The square of π is strictly less than ten. -/
 private theorem pi_sq_lt_ten : Real.pi^2 < 10 := by
   have h1 : (0:ℝ) ≤ Real.pi := Real.pi_pos.le
   have h2 : Real.pi * Real.pi ≤ (3.15) * (3.15) :=
@@ -185,11 +232,13 @@ private theorem pi_sq_lt_ten : Real.pi^2 < 10 := by
   rw [pow_two]
   nlinarith
 
+/-- For a natural `k`, the integer power 2^(-k) equals the natural power (1/2)^k. -/
 theorem neg_pow_half_eq (k : ℕ) : (2:ℝ)^(-((k:ℤ))) = ((1:ℝ)/2)^k := by
   rw [show (2:ℝ)^(-(k:ℤ)) = ((2:ℝ)^((k:ℤ)))⁻¹ from _root_.zpow_neg (2:ℝ) (k:ℤ)]
   rw [show ((2:ℝ)^((k:ℤ))) = (2:ℝ)^(k:ℕ) from by rfl, ← inv_pow]
   norm_num
 
+/-- Every natural number `n` is strictly smaller than 2^n. -/
 private theorem nat_lt_two_pow_self : ∀ n : ℕ, n < 2^n := by
   intro n
   induction n with
@@ -198,6 +247,8 @@ private theorem nat_lt_two_pow_self : ∀ n : ℕ, n < 2^n := by
     rw [Nat.pow_succ]
     omega
 
+/-- The explicit grid and repetition formulas give a grid of size at least two and combined
+layer failure bound at most 2^(-k), as used for [Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem layered_mean_computed_parameters (k : ℕ) :
     layerGrid k=2^(k+6)*(k+2) ∧ layerRepetitions k=8*(k+2) ∧ 2≤layerGrid k ∧
     ((k+2:ℝ)*(2:ℝ)^(2*layerRepetitions k+1)*(1-8/Real.pi^2)^(layerRepetitions k+1)≤(2:ℝ)^(-((k:ℤ)))) := by
@@ -273,6 +324,8 @@ theorem layered_mean_computed_parameters (k : ℕ) :
         refine le_trans (mul_le_mul_of_nonneg_right hcoeff (by positivity)) ?_
         exact le_of_eq (by ring)
 
+/-- A finite sum of a product payoff weighted by product masses factors into the product of the
+corresponding coordinate sums. -/
 private theorem pi_dist_prod {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (q : Fin n → FinDist X) (g : Fin n → X → ℝ) :
     ∑ ω : Fin n → X, (∏ i, (q i).prob (ω i)) * ∏ i, g i (ω i)
@@ -292,6 +345,7 @@ private theorem pi_dist_prod {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
           (t := fun _ : Fin n => (Finset.univ : Finset X))
           (f := fun i x => (q i).prob x * g i x)).symm
 
+/-- The product masses of a finite family of probability distributions sum to one. -/
 private theorem pi_dist_sum {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (q : Fin n → FinDist X) : ∑ ω : Fin n → X, ∏ i, (q i).prob (ω i) = 1 := by
   calc ∑ ω : Fin n → X, ∏ i, (q i).prob (ω i)
@@ -304,6 +358,8 @@ private theorem pi_dist_sum {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     _ = ∏ i, 1 := Finset.prod_congr rfl fun i _ => (q i).sum_one
     _ = 1 := Finset.prod_const_one
 
+/-- The finite law of `2 * layerRepetitions k + 1` independent amplitude-estimation outcomes for
+one bounded dyadic layer. -/
 noncomputable def layerTrialLaw {I : Type} [Fintype I] [DecidableEq I] (k : ℕ)
     (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) (l : Fin (k+2)) :
@@ -316,6 +372,7 @@ noncomputable def layerTrialLaw {I : Type} [Fintype I] [DecidableEq I] (k : ℕ)
   sum_one := Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf (meanLaw (layerGrid k) A j (layerPayoff f (l:ℕ)) hA
     (layerPayoff_mem_Icc f hf _) (layerGrid_ge_two k)) (2*layerRepetitions k+1)
 
+/-- The product law of the repeated amplitude-estimation records over all `k + 2` dyadic layers. -/
 noncomputable def layerLaw {I : Type} [Fintype I] [DecidableEq I] (k : ℕ)
     (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) :
@@ -324,12 +381,15 @@ noncomputable def layerLaw {I : Type} [Fintype I] [DecidableEq I] (k : ℕ)
   nonneg ω := Finset.prod_nonneg fun l _ => (layerTrialLaw k A j f hA hf l).nonneg _
   sum_one := pi_dist_sum (layerTrialLaw k A j f hA hf)
 
+/-- The mass of a full layered record is the product of its individual layer-record masses. -/
 theorem layerLaw_prob (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i)
     (ω : Fin (k+2) → Fin (2*layerRepetitions k+1) → Fin (layerGrid k)) :
     (layerLaw k A j f hA hf).prob ω
       = ∏ l, (layerTrialLaw k A j f hA hf l).prob (ω l) := rfl
 
+/-- A layer trial-record mass equals the independent record probability under its bounded-payoff
+mean-estimation law. -/
 theorem layerTrialLaw_probOf (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) (l : Fin (k+2))
     (u : Fin (2*layerRepetitions k+1) → Fin (layerGrid k)) :
@@ -337,10 +397,13 @@ theorem layerTrialLaw_probOf (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → �
       = (meanLaw (layerGrid k) A j (layerPayoff f (l:ℕ)) hA
           (layerPayoff_mem_Icc f hf _) (layerGrid_ge_two k)).probOf u := rfl
 
+/-- The sum of the layerwise median estimates, with layer `l` multiplied by 2^l. -/
 noncomputable def layerEstimate (k : ℕ)
     (ω : Fin (k+2) → Fin (2*layerRepetitions k+1) → Fin (layerGrid k)) : ℝ :=
   ∑ l : Fin (k+2), (2:ℝ)^(l:ℕ) * meanMedian (layerRepetitions k) (layerGrid k) (ω l)
 
+/-- An event depending on one layer has the same probability under the full product law as under
+that layer's trial law. -/
 private theorem layerLaw_marginal (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i)
     (l₀ : Fin (k+2)) (B : (Fin (2*layerRepetitions k+1) → Fin (layerGrid k)) → Prop)
@@ -419,6 +482,7 @@ private theorem layerLaw_marginal (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I 
     _ = ∑ u ∈ Finset.univ.filter B, (layerTrialLaw k A j f hA hf l₀).prob u := by
         rw [Finset.sum_filter]
 
+/-- The sum of the first `n` nonnegative powers of two is at most 2^n. -/
 private theorem geom_two_sum_le : ∀ n : ℕ, ∑ l ∈ Finset.range n, (2:ℝ)^l ≤ (2:ℝ)^n := by
   intro n
   induction n with
@@ -435,6 +499,8 @@ private theorem geom_two_sum_le : ∀ n : ℕ, ∑ l ∈ Finset.range n, (2:ℝ)
         ≤ (2:ℝ)^n + (2:ℝ)^n := by linarith [ih]
       _ = (2:ℝ)^(n+1) := h2
 
+/-- For a nonnegative payoff and layer index at least one, 2^(2l) times the layer payoff is at
+most twice the squared original payoff. -/
 private theorem layer_bridge (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) (l : ℕ)
     (hl : 1 ≤ l) (i : I) :
     (2:ℝ)^(2*l) * layerPayoff f l i ≤ 2 * (f i)^2 := by
@@ -454,6 +520,8 @@ private theorem layer_bridge (f : I → ℝ) (hf : ∀ i, 0 ≤ f i) (l : ℕ)
   · rw [if_neg h, mul_zero]
     exact mul_nonneg (by norm_num : (0:ℝ) ≤ 2) (sq_nonneg (f i))
 
+/-- Under nonnegative normalized weights and second moment at most one, the rescaled square root
+of each layer mean times its complement is at most two. -/
 private theorem layer_weighted_sqrt_bound (w : I → ℝ) (hw0 : ∀ i, 0 ≤ w i)
     (hwsum : ∑ i, w i = 1) (f : I → ℝ) (hf : ∀ i, 0 ≤ f i)
     (hE : ∑ i, w i * (f i)^2 ≤ 1) (l : ℕ) :
@@ -510,6 +578,8 @@ private theorem layer_weighted_sqrt_bound (w : I → ℝ) (hw0 : ∀ i, 0 ≤ w 
     have hs2 : (Real.sqrt 2)^2 = 2 := Real.sq_sqrt (by norm_num)
     nlinarith [hs2, sq_nonneg (2 - Real.sqrt 2)]
 
+/-- The combined explicit amplitude-estimation and truncation error terms for the chosen grid
+are at most 2^(-k). -/
 private theorem layered_numeric_tail (k : ℕ) :
     4*Real.pi*((k+2:ℕ):ℝ)/(layerGrid k:ℝ)
       + Real.pi^2*(2:ℝ)^(k+2)/(layerGrid k:ℝ)^2
@@ -578,6 +648,9 @@ private theorem layered_numeric_tail (k : ℕ) :
 
 set_option maxHeartbeats 4000000 in
 
+/-- For `k ≥ 1` and a nonnegative payoff with Born second moment at most one, the layered
+readout is within 2^(-k) of its mean with probability at least 1 - 2^(-k). This realizes the
+finite-law guarantee associated with [Montanaro2015, Lemma 4][Montanaro2015]. -/
 theorem layered_quantum_mean_actual_guarantee (k : ℕ) (hk : 1 ≤ k) (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i)
     (hE : (∑ i, BornProb (ApplyGate A (Ket j)) i*(f i)^2) ≤ 1) :
@@ -899,6 +972,9 @@ theorem layered_quantum_mean_actual_guarantee (k : ℕ) (hk : 1 ≤ k) (A : Matr
   exact le_trans hcompl (Finset.sum_le_sum_of_subset_of_nonneg hsub
     fun ω _ _ => (layerLaw k A j f hA hf).nonneg ω)
 
+/-- Summing `QueryCount` over all layer and repetition circuits gives (k +
+2)(2·layerRepetitions(k) + 1)(layerGrid(k) - 1), the explicit ledger for the construction of
+[Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem layered_quantum_mean_actual_query_ledger (k : ℕ) (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) :
     (∑ l : Fin (k+2), ∑ _ : Fin (2*layerRepetitions k+1), QueryCount (countedAECircuit (layerGrid k) (payoffPreparation A (layerPayoff f l.val)) (j,false)))=(k+2)*(2*layerRepetitions k+1)*(layerGrid k-1) := by
@@ -910,6 +986,9 @@ theorem layered_quantum_mean_actual_query_ledger (k : ℕ) (A : Matrix I I ℂ) 
   push_cast
   ring
 
+/-- For the Hadamard-prepared payoff zero or one half, the mean is 1/4 and second moment is 1/8,
+and the layered estimator satisfies the dyadic accuracy guarantee for `k ≥ 1`. This is a
+concrete mean-estimation example in the setting of [Montanaro2015]. -/
 theorem payoff_hadamard_half_and_layered_consumer :
     let A:=Hadamard; let f : Bool → ℝ:=fun i => if i=false then 0 else 1/2;
     (∑ i, BornProb (ApplyGate A (Ket false)) i*f i)=1/4 ∧

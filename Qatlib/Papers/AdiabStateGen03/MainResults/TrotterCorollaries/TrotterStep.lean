@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
 
+/-!
+# Symmetric Trotter steps and exact evolution powers
+
+This module defines the increasing and decreasing ordered products `orderedProd` and
+`reverseProd`, and combines them in `trotterStep`. The identity `timeEvolution_pow_nat`
+identifies repeated exact evolution with evolution for the accumulated time, providing the
+comparison operator for Trotter power estimates. The mathematical context is
+[AharonovTaShma2007].
+
+## Main statements
+
+* `trotterStep`: The symmetric product of the individual Hamiltonian evolutions, first in
+  increasing order and then in decreasing order, with time parameter `δ` for each factor.
+* `timeEvolution_pow_nat`: The `N`th power of evolution for time `t` equals evolution for time
+  `N * t`.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,15 +38,21 @@ namespace Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries
 
 open Qatlib.Papers.AdiabStateGen03.MainResults
 
+/-- The product of operators indexed by `Fin M`, taken in increasing index order. -/
 def orderedProd {n M : ℕ} (f : Fin M → Op n) : Op n :=
   (List.finRange M).foldr (fun m acc => f m * acc) (1 : Op n)
 
+/-- The product of operators indexed by `Fin M`, taken in decreasing index order. -/
 def reverseProd {n M : ℕ} (f : Fin M → Op n) : Op n :=
   (List.finRange M).reverse.foldr (fun m acc => f m * acc) (1 : Op n)
 
+/-- The symmetric product of the individual Hamiltonian evolutions, first in increasing order
+and then in decreasing order, with time parameter `δ` for each factor. -/
 def trotterStep {n M : ℕ} (Hs : Fin M → Ham n) (δ : ℝ) : Op n :=
   orderedProd (fun m => timeEvolution (Hs m) δ) * reverseProd (fun m => timeEvolution (Hs m) δ)
 
+/-- The `N`th power of evolution for time `t` equals evolution for time `N * t`
+[AharonovTaShma2007]. -/
 theorem timeEvolution_pow_nat {n : ℕ} (H : Ham n) (t : ℝ) (N : ℕ) :
     timeEvolution H t ^ N = timeEvolution H ((N : ℝ) * t) := by
 

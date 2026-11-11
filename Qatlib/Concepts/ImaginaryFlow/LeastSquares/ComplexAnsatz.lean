@@ -10,6 +10,29 @@ import Mathlib.Analysis.Calculus.LocalExtr.Basic
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.CStarAlgebra.Matrix
 
+/-!
+# Least squares for normalized complex ansatzes
+
+This module proves positivity of `metricMatrix` and equivalence of coordinate stationarity, the
+Gram normal equation, and global minimization of the squared residual cost. `inverseRate` gives
+the minimizing rate when the Gram matrix is invertible.
+
+For real-parameter complex ansatzes of constant unit norm, differentiability gives real tangent
+orthogonality. This connects the real Gram formulation to complex inner products and to the
+variational imaginary-time setting of [McArdleTew2020].
+
+## Main statements
+
+* `stationary_iff_global_min`: stationarity is equivalent to global least-squares optimality.
+* `stationary_iff_normal_equation`: the normal equation under tangent orthogonality.
+* `complex_ansatz_inverse_minimizer`: the inverse-Gram minimizer for a normalized complex
+  ansatz.
+
+## References
+
+* [McArdle and Tew, 2020][McArdleTew2020]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.ImaginaryFlow.LeastSquares
@@ -20,9 +43,12 @@ open Qatlib.Concepts.ImaginaryFlow.LeastSquares
 section RealLeastSquares
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The real Gram matrix of a finite family of vectors is positive semidefinite. -/
 theorem metric_posSemidef {n : ℕ} (d : Fin n → E) : (metricMatrix d).PosSemidef :=
   Matrix.posSemidef_gram ℝ d
 
+/-- Vanishing of every coordinate derivative of the squared residual cost is equivalent to
+global minimality over all real rates. -/
 theorem stationary_iff_global_min {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n → ℝ) :
     (∀ k, HasDerivAt (fun t : ℝ => mclachlanCost d w (varyRate v k t)) 0 0) ↔
       ∀ x : Fin n → ℝ, mclachlanCost d w v ≤ mclachlanCost d w x := by
@@ -53,6 +79,9 @@ theorem stationary_iff_global_min {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n
     rw [hmin.hasDerivAt_eq_zero hd] at hd
     exact hd
 
+/-- When the tangent vectors are real-orthogonal to `φ`, coordinate stationarity for the
+centered evolution residual is equivalent to the Gram normal equation `metricMatrix d * v =
+-gradientVector d H φ`. -/
 theorem stationary_iff_normal_equation {n : ℕ} (d : Fin n → E)
     (H : E →ₗ[ℝ] E) (φ : E) (hnormal : ∀ i, ⟪d i, φ⟫_ℝ = 0) (v : Fin n → ℝ) :
     (∀ k, HasDerivAt (fun t : ℝ =>
@@ -78,15 +107,19 @@ theorem stationary_iff_normal_equation {n : ℕ} (d : Fin n → E)
     change - gradientVector d H φ k + gradientVector d H φ k = 0
     ring
 
+/-- The negative inverse-Gram matrix applied to the gradient vector. -/
 def inverseRate {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E) : Fin n → ℝ :=
   - (metricMatrix d)⁻¹.mulVec (gradientVector d H φ)
 
+/-- When the Gram matrix is invertible, `inverseRate` satisfies the Gram normal equation. -/
 theorem inverseRate_equation {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E)
     [Invertible (metricMatrix d)] :
     (metricMatrix d).mulVec (inverseRate d H φ) = - gradientVector d H φ := by
   rw [inverseRate, Matrix.mulVec_neg, Matrix.mulVec_mulVec,
     Matrix.mul_inv_of_invertible, Matrix.one_mulVec]
 
+/-- For tangent vectors real-orthogonal to `φ` and an invertible Gram matrix, `inverseRate`
+globally minimizes the centered evolution residual cost. -/
 theorem inverseRate_global_min {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E)
     (hnormal : ∀ i, ⟪d i, φ⟫_ℝ = 0) [Invertible (metricMatrix d)] :
     ∀ x, mclachlanCost d (H φ - ⟪φ, H φ⟫_ℝ • φ) (inverseRate d H φ) ≤
@@ -94,6 +127,8 @@ theorem inverseRate_global_min {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E)
   apply (stationary_iff_global_min _ _ _).mp
   exact (stationary_iff_normal_equation d H φ hnormal _).mpr (inverseRate_equation d H φ)
 
+/-- Under real tangent orthogonality and invertibility of the Gram matrix, every global
+minimizer equals `inverseRate`. -/
 theorem global_min_eq_inverseRate {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E)
     (hnormal : ∀ i, ⟪d i, φ⟫_ℝ = 0) [Invertible (metricMatrix d)] (v : Fin n → ℝ)
     (hm : ∀ x, mclachlanCost d (H φ - ⟪φ, H φ⟫_ℝ • φ) v ≤
@@ -103,6 +138,8 @@ theorem global_min_eq_inverseRate {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ]
   exact (stationary_iff_normal_equation d H φ hnormal v).mp
     ((stationary_iff_global_min _ _ _).mpr hm)
 
+/-- An Euler step along `inverseRate` subtracts the step size times the inverse-Gram matrix
+applied to the gradient vector. -/
 theorem euler_update {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E)
     (θ : Fin n → ℝ) (δ : ℝ) :
     θ + δ • inverseRate d H φ = θ - δ • ((metricMatrix d)⁻¹.mulVec (gradientVector d H φ)) := by
@@ -114,13 +151,18 @@ section ComplexAnsatz
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 local instance : InnerProductSpace ℝ E := InnerProductSpace.rclikeToReal ℂ E
 
+/-- The real Gram matrix entry is the real part of the corresponding complex inner product. -/
 theorem complex_metric_entry {n : ℕ} (d : Fin n → E) (i j : Fin n) :
     metricMatrix d i j = (inner ℂ (d i) (d j)).re := rfl
 
+/-- The gradient entry for a complex-linear operator, viewed as real-linear, is the real part of
+the corresponding complex inner product. -/
 theorem complex_gradient_entry {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℂ] E)
     (φ : E) (i : Fin n) :
     gradientVector d (H.restrictScalars ℝ) φ i = (inner ℂ (d i) (H φ)).re := rfl
 
+/-- Every derivative direction of a real-differentiable complex ansatz of constant unit norm is
+real-orthogonal to its value. -/
 theorem normalized_ansatz_tangent {n : ℕ} (Φ : (Fin n → ℝ) → E)
     (θ : Fin n → ℝ) (D : (Fin n → ℝ) →L[ℝ] E)
     (hD : HasFDerivAt Φ D θ) (hnorm : ∀ x, ‖Φ x‖ = 1) (v : Fin n → ℝ) :
@@ -141,6 +183,8 @@ theorem normalized_ansatz_tangent {n : ℕ} (Φ : (Fin n → ℝ) → E)
     linarith
   exact hreal
 
+/-- The coordinate tangent vectors of a differentiable unit-norm complex ansatz are orthogonal
+to its value in the underlying real inner product. -/
 theorem normalized_coordinate_tangents {n : ℕ} (Φ : (Fin n → ℝ) → E)
     (θ : Fin n → ℝ) (D : (Fin n → ℝ) →L[ℝ] E)
     (hD : HasFDerivAt Φ D θ) (hnorm : ∀ x, ‖Φ x‖ = 1) :
@@ -148,6 +192,9 @@ theorem normalized_coordinate_tangents {n : ℕ} (Φ : (Fin n → ℝ) → E)
   intro i
   exact normalized_ansatz_tangent Φ θ D hD hnorm (Pi.single i 1)
 
+/-- For a differentiable unit-norm complex ansatz with invertible coordinate Gram matrix, that
+Gram matrix is positive semidefinite and the inverse-Gram rate globally minimizes the
+centered evolution residual [McArdleTew2020]. -/
 theorem complex_ansatz_inverse_minimizer {n : ℕ} (Φ : (Fin n → ℝ) → E)
     (θ : Fin n → ℝ) (D : (Fin n → ℝ) →L[ℝ] E)
     (hD : HasFDerivAt Φ D θ) (hnorm : ∀ x, ‖Φ x‖ = 1) (H : E →ₗ[ℂ] E)

@@ -10,11 +10,33 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 
+/-!
+# Binary Bayes accuracy tables
+
+`accTab` sums the larger of the two Boolean label weights at each observation.
+`accTab_lipschitz` bounds the change in this quantity by the L1 difference of the two tables,
+without requiring the entries to be probabilities. For probability tables, this is the classical
+binary decision setting treated in [Helstrom1976].
+
+## Main statements
+
+* `accTab`: The sum over observations of the maximum of the two Boolean label weights in a real
+  table.
+* `accTab_lipschitz`: The absolute difference of binary accuracy table sums is at most the sum
+  of absolute entrywise differences of the two tables.
+
+## References
+
+* [Helstrom, 1976][Helstrom1976]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.BinaryBayesTable
 open scoped BigOperators
 noncomputable section
 
+/-- The absolute difference between two pairwise maxima is at most the sum of the absolute
+differences of the corresponding entries. -/
 theorem abs_max_sub_max_le (a₁ a₂ b₁ b₂ : ℝ) :
     |max a₁ a₂ - max b₁ b₂| ≤ |a₁ - b₁| + |a₂ - b₂| := by
   rcases le_total a₁ a₂ with ha | ha
@@ -55,9 +77,12 @@ theorem abs_max_sub_max_le (a₁ a₂ b₁ b₂ : ℝ) :
 
 variable {X : Type*} [Fintype X]
 
+/-- The sum over observations of the maximum of the two Boolean label weights in a real table. -/
 def accTab (P : X → Bool → ℝ) : ℝ :=
   ∑ x : X, max (P x false) (P x true)
 
+/-- The absolute difference of binary accuracy table sums is at most the sum of absolute
+entrywise differences of the two tables. -/
 theorem accTab_lipschitz (P Q : X → Bool → ℝ) :
     |accTab P - accTab Q| ≤
       ∑ x : X,

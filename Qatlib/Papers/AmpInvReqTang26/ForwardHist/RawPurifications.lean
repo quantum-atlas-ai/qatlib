@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualTensor
 import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.BornDomination
+
+/-!
+# Weighted phase densities and raw purifications
+
+The product weight `phaseWeight` defines `weightedCircuitDensity` as an average of actual
+circuit output outer products. The raw histogram purification has this reduced density, and its
+Gram matrix agrees with that of the transformed purification. This development supports the
+treatment in [TangWright2025].
+
+## Main statements
+
+* `weightedCircuitDensity_posSemidef`: positivity of the averaged density.
+* `weightedCircuitDensity_trace`: trace normalization.
+* `rawHistogramPurification_reduced`: the purification realizes the averaged circuit density.
+* `weightedCircuitDensity_born`: Born masses are weighted output probabilities.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,14 +42,17 @@ open Qatlib.Foundations.MatrixAlgebra.FrameProject.Tensor
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.Purification
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.Domination
 
+/-- The product of the biased finite-root weights over all oracle coordinates. -/
 def phaseWeight {d : ℕ} (eps : ℝ) (q : ℕ) (u : Fin d → Fin q) : ℝ :=
   ∏i,muEpsWeight eps q (u i)
 
+/-- The sum of actual circuit output outer products weighted by `phaseWeight`. -/
 def weightedCircuitDensity {d a : ℕ} (eps : ℝ) (q : ℕ)
     (Alg : ForwardQueryAlgorithm d a) (n : ℕ) : Matrix (Fin d × Fin a) (Fin d × Fin a) ℂ :=
   ∑u : Fin d → Fin q, (phaseWeight eps q u : ℂ) •
     Matrix.vecMulVec (run (phase q) Alg n u) (star (run (phase q) Alg n u))
 
+/-- For positive root order and bias in `[0, 1]`, the product phase weights sum to one. -/
 theorem phaseWeight_sum {d : ℕ} (eps : ℝ) (q : ℕ) (hq : 0<q)
     (he0 : 0≤eps) (he1 : eps≤1) : ∑u : Fin d → Fin q,phaseWeight eps q u=1 := by
   simp only [phaseWeight]
@@ -36,10 +60,12 @@ theorem phaseWeight_sum {d : ℕ} (eps : ℝ) (q : ℕ) (hq : 0<q)
   simp_rw [sum_muEpsWeight q hq eps he0 he1]
   simp
 
+/-- For `q > 1` and bias in `[0, 1]`, every product phase weight is nonnegative. -/
 theorem phaseWeight_nonneg {d : ℕ} (eps : ℝ) (q : ℕ) (hq : 1<q)
     (he0 : 0≤eps) (he1 : eps≤1) (u : Fin d → Fin q) : 0≤phaseWeight eps q u :=
   Finset.prod_nonneg (fun _ _ => muEpsWeight_nonneg q hq eps he0 he1 _)
 
+/-- For `q > 1` and bias in `[0, 1]`, the weighted circuit density is positive semidefinite. -/
 theorem weightedCircuitDensity_posSemidef {d a : ℕ} (eps : ℝ) (q : ℕ) (hq : 1<q)
     (he0 : 0≤eps) (he1 : eps≤1) (Alg : ForwardQueryAlgorithm d a) (n : ℕ) :
     (weightedCircuitDensity eps q Alg n).PosSemidef := by
@@ -49,6 +75,7 @@ theorem weightedCircuitDensity_posSemidef {d a : ℕ} (eps : ℝ) (q : ℕ) (hq 
   · exact Matrix.posSemidef_vecMulVec_self_star _
   · exact Complex.zero_le_real.mpr (phaseWeight_nonneg eps q hq he0 he1 u)
 
+/-- For positive `q` and bias in `[0, 1]`, the weighted circuit density has trace one. -/
 theorem weightedCircuitDensity_trace {d a : ℕ} (eps : ℝ) (q : ℕ) (hq : 0<q)
     (he0 : 0≤eps) (he1 : eps≤1) (Alg : ForwardQueryAlgorithm d a) (n : ℕ) :
     Matrix.trace (weightedCircuitDensity eps q Alg n)=1 := by
@@ -62,10 +89,14 @@ theorem weightedCircuitDensity_trace {d a : ℕ} (eps : ℝ) (q : ℕ) (hq : 0<q
   simp only [weightedCircuitDensity,Matrix.trace_sum,Matrix.trace_smul,htrace,smul_eq_mul,mul_one,
     ← Complex.ofReal_sum,phaseWeight_sum eps q hq he0 he1,Complex.ofReal_one]
 
+/-- The purification formed from the circuit path coefficients and the untransformed weighted
+Fourier vectors. -/
 def rawHistogramPurification {d a : ℕ} (eps : ℝ) (Alg : ForwardQueryAlgorithm d a)
     (n q : ℕ) (hn : n<q) : Matrix (Fin d × Fin a) (Fin d → Fin q) ℂ :=
   pathCoefficient Alg n * columns (fourierUnitVec eps q) (pathHistogram Alg n q hn)
 
+/-- A raw purification entry is the actual circuit amplitude multiplied by the product of the
+square roots of its phase weights. -/
 theorem rawHistogramPurification_entry {d a : ℕ} (eps : ℝ) (Alg : ForwardQueryAlgorithm d a)
     (n q : ℕ) (hn : n<q) (x : Fin d × Fin a) (u : Fin d → Fin q) :
     rawHistogramPurification eps Alg n q hn x u =
@@ -77,6 +108,7 @@ theorem rawHistogramPurification_entry {d a : ℕ} (eps : ℝ) (Alg : ForwardQue
   intro h _
   ring
 
+/-- The transformed and raw biased histogram purifications have the same reduced matrix. -/
 theorem histogramPurification_gram_transport {d a : ℕ} (eps : ℝ) (Alg : ForwardQueryAlgorithm d a)
     (n q : ℕ) (hn : n<q) :
     reduced (histogramPurification1 eps Alg n q hn)=reduced (rawHistogramPurification eps Alg n q hn) := by
@@ -84,6 +116,8 @@ theorem histogramPurification_gram_transport {d a : ℕ} (eps : ℝ) (Alg : Forw
   exact columns_gram_preserved (transformedColumn eps q) (fourierUnitVec eps q)
     (transformedColumn_gram eps q) (pathHistogram Alg n q hn)
 
+/-- For `q > 1`, bias in `[0, 1]`, and `n < q`, the reduced raw histogram purification equals
+the weighted circuit density [TangWright2025]. -/
 theorem rawHistogramPurification_reduced {d a : ℕ} (eps : ℝ) (q : ℕ) (hq : 1<q)
     (he0 : 0≤eps) (he1 : eps≤1) (Alg : ForwardQueryAlgorithm d a) (n : ℕ) (hn : n<q) :
     reduced (rawHistogramPurification eps Alg n q hn)=weightedCircuitDensity eps q Alg n := by
@@ -110,6 +144,8 @@ theorem rawHistogramPurification_reduced {d a : ℕ} (eps : ℝ) (q : ℕ) (hq :
         (run (phase q) Alg n u x * star (run (phase q) Alg n u y)) := by ring
     _ = _ := by rw [ht]
 
+/-- The Born mass of the weighted density is the weighted sum of the corresponding actual
+circuit output probabilities. -/
 theorem weightedCircuitDensity_born {d a : ℕ} (eps : ℝ) (q : ℕ)
     (Alg : ForwardQueryAlgorithm d a) (n : ℕ) (b : Bool) :
     bornMass (weightedCircuitDensity eps q Alg n) Alg.good b =

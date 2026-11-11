@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.NativeMean
+
+/-!
+# Recorded rational median programs and resource accounts
+
+This module implements rational insertion sort with explicit comparison and peak-entry counters,
+then extracts a median from the sorted list. `recordedMedianProgram` realizes numerical
+repetition amplification as used in quantum counting [BrassardHoyerTapp1998Counting], with
+uniform comparison, bit-time, and register-size accounts.
+
+The program is also connected to signed rational mean-estimation trials in the setting of
+[Montanaro2015]. Under the stated variance bound, the resulting theorem combines an
+exponentially decreasing median failure estimate with rational-output size bounds and the
+underlying AE query ledger.
+
+## Main statements
+
+* `recordedMedianProgram_correct`: identify the program output with the rational sample median.
+* `recordedMedianProgram_uniform_accounts`: bound comparisons and bit time and compute peak
+  register accounts.
+* `output1.frontier1`: combine signed mean-estimation accuracy with the recorded median's
+  resource accounts.
+
+## References
+
+* [Brassard, Høyer, and Tapp, 1998][BrassardHoyerTapp1998Counting]
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -30,22 +58,29 @@ open Matrix
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- The binary length of a natural number, with zero assigned length zero. -/
 def natBits (n : ℕ) : ℕ := if n = 0 then 0 else Nat.log2 n + 1
 
+/-- The binary length of an integer's absolute value plus one sign bit. -/
 def intBits (z : ℤ) : ℕ := natBits z.natAbs + 1
 
+/-- The sum of the signed numerator length and denominator length of a rational number. -/
 def ratBits (q : ℚ) : ℕ := intBits q.num + natBits q.den
 
+/-- The maximum rational-output bit length over all finite records of a native signed trial. -/
 def nativeTrialBits {I : Type} [Fintype I] (f : I → ℚ) (σ : ℚ) (k : ℕ) : ℕ :=
   Finset.univ.sup (fun ω : I × (LayerRecord k × LayerRecord k) =>
     ratBits (nativeSignedOutput f σ k ω))
 
+/-- Every native signed trial output has rational bit length at most `nativeTrialBits`. -/
 theorem ratBits_nativeSignedOutput_le {I : Type} [Fintype I]
     (f : I → ℚ) (σ : ℚ) (k : ℕ) (ω : I × (LayerRecord k × LayerRecord k)) :
     ratBits (nativeSignedOutput f σ k ω) ≤ nativeTrialBits f σ k :=
   Finset.le_sup (f := fun ω : I × (LayerRecord k × LayerRecord k) =>
     ratBits (nativeSignedOutput f σ k ω)) (Finset.mem_univ ω)
 
+/-- Insert a rational into a list using ordered comparisons, recording the comparison count and
+peak entry count. -/
 def insertSortedCountedRat (x : ℚ) : List ℚ → List ℚ × ℕ × ℕ
   | [] => ([x], 0, 1)
   | y :: ys =>
@@ -54,6 +89,8 @@ def insertSortedCountedRat (x : ℚ) : List ℚ → List ℚ × ℕ × ℕ
         let p := insertSortedCountedRat x ys
         (y :: p.1, p.2.1 + 1, max (1 + (y :: ys).length) p.2.2)
 
+/-- Sort a rational list by insertion while accumulating comparison counts and the maximum peak
+entry count. -/
 def insertionSortCountedRat : List ℚ → List ℚ × ℕ × ℕ
   | [] => ([], 0, 0)
   | x :: xs =>
@@ -61,6 +98,7 @@ def insertionSortCountedRat : List ℚ → List ℚ × ℕ × ℕ
       let q := insertSortedCountedRat x p.1
       (q.1, p.2.1 + q.2.1, max p.2.2 q.2.2)
 
+/-- Counted insertion increases the output list length by one. -/
 theorem insertSortedCountedRat_length (x : ℚ) (l : List ℚ) :
     (insertSortedCountedRat x l).1.length = l.length + 1 := by
   induction l with
@@ -73,6 +111,7 @@ theorem insertSortedCountedRat_length (x : ℚ) (l : List ℚ) :
         rw [ih]
         simp
 
+/-- Counted insertion uses at most as many comparisons as the input list length. -/
 theorem insertSortedCountedRat_cost_le (x : ℚ) (l : List ℚ) :
     (insertSortedCountedRat x l).2.1 ≤ l.length := by
   induction l with
@@ -85,6 +124,8 @@ theorem insertSortedCountedRat_cost_le (x : ℚ) (l : List ℚ) :
         have hlen : (y :: ys).length = ys.length + 1 := rfl
         omega
 
+/-- The list produced by counted insertion is a permutation of the inserted value followed by
+the input list. -/
 theorem insertSortedCountedRat_perm (x : ℚ) (l : List ℚ) :
     (insertSortedCountedRat x l).1.Perm (x :: l) := by
   induction l with
@@ -95,6 +136,7 @@ theorem insertSortedCountedRat_perm (x : ℚ) (l : List ℚ) :
       · exact List.Perm.refl _
       · exact List.Perm.trans (List.Perm.cons y ih) (List.Perm.swap x y ys)
 
+/-- Counted insertion preserves nondecreasing order when the input list is nondecreasing. -/
 theorem insertSortedCountedRat_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE) :
     (insertSortedCountedRat x l).1.SortedLE := by
   induction l with
@@ -120,6 +162,7 @@ theorem insertSortedCountedRat_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE)
           · exact hyx
           · exact hhead b hbys
 
+/-- The peak entry counter of counted insertion equals one plus the input length. -/
 theorem insertSortedCountedRat_peak (x : ℚ) (l : List ℚ) :
     (insertSortedCountedRat x l).2.2 = 1 + l.length := by
   induction l with
@@ -134,6 +177,7 @@ theorem insertSortedCountedRat_peak (x : ℚ) (l : List ℚ) :
         rw [ih]
         omega
 
+/-- Counted insertion sort preserves the input list length. -/
 theorem insertionSortCountedRat_length (l : List ℚ) :
     (insertionSortCountedRat l).1.length = l.length := by
   induction l with
@@ -144,6 +188,7 @@ theorem insertionSortCountedRat_length (l : List ℚ) :
       rw [insertSortedCountedRat_length, ih]
       simp
 
+/-- Counted insertion sort produces a permutation of its input. -/
 theorem insertionSortCountedRat_perm (l : List ℚ) :
     (insertionSortCountedRat l).1.Perm l := by
   induction l with
@@ -152,6 +197,7 @@ theorem insertionSortCountedRat_perm (l : List ℚ) :
       show ((insertSortedCountedRat x (insertionSortCountedRat xs).1).1).Perm (x :: xs)
       exact List.Perm.trans (insertSortedCountedRat_perm x _) (List.Perm.cons x ih)
 
+/-- Counted insertion sort uses at most the square of the input length in comparisons. -/
 theorem insertionSortCountedRat_cost_le (l : List ℚ) :
     (insertionSortCountedRat l).2.1 ≤ l.length * l.length := by
   induction l with
@@ -169,6 +215,7 @@ theorem insertionSortCountedRat_cost_le (l : List ℚ) :
         omega
       omega
 
+/-- The output of counted insertion sort is nondecreasing. -/
 theorem insertionSortCountedRat_sorted (l : List ℚ) :
     (insertionSortCountedRat l).1.SortedLE := by
   induction l with
@@ -177,6 +224,8 @@ theorem insertionSortCountedRat_sorted (l : List ℚ) :
       show ((insertSortedCountedRat x (insertionSortCountedRat xs).1).1).SortedLE
       exact insertSortedCountedRat_sorted ih
 
+/-- For a nonempty input list, the counted insertion sort peak entry counter equals the input
+length. -/
 theorem insertionSortCountedRat_peak (l : List ℚ) (hl : l ≠ []) :
     (insertionSortCountedRat l).2.2 = l.length := by
   induction l with
@@ -195,6 +244,8 @@ theorem insertionSortCountedRat_peak (l : List ℚ) (hl : l ≠ []) :
         rw [ih hxs]
         omega
 
+/-- Counted insertion sort produces the same rational list as merge sort with the nondecreasing
+comparison. -/
 theorem insertionSortCountedRat_eq_mergeSort (l : List ℚ) :
     (insertionSortCountedRat l).1 = l.mergeSort (fun a b => a ≤ b) := by
   have hp : ((insertionSortCountedRat l).1).Perm (l.mergeSort (fun a b => a ≤ b)) :=
@@ -203,28 +254,41 @@ theorem insertionSortCountedRat_eq_mergeSort (l : List ℚ) :
     (List.sortedLE_iff_pairwise.mp (insertionSortCountedRat_sorted l))
     (List.sortedLE_iff_pairwise.mp List.sortedLE_mergeSort)
 
+/-- Sort a rational list and return its zero-based entry `r`, defaulting to zero if absent,
+together with comparison and peak entry counters. -/
 def recordedMedianProgram (r : ℕ) (l : List ℚ) : ℚ × ℕ × ℕ :=
   let p := insertionSortCountedRat l
   (p.1.getD r 0, p.2.1, p.2.2)
 
+/-- The polynomial comparison bit-cost account `2(B + 2)² + 2B + 3` for rational inputs of bit
+bound `B`. -/
 def ratCompareBitCost (B : ℕ) : ℕ := 2*(B+2)*(B+2) + (2*B+3)
 
+/-- The recorded median comparison count multiplied by the rational comparison bit-cost account. -/
 def recordedMedianBitTime (r B : ℕ) (l : List ℚ) : ℕ :=
   (recordedMedianProgram r l).2.1 * ratCompareBitCost B
 
+/-- The comparison workspace bit account `2(2B + 3)`. -/
 def ratCompareRegisterBits (B : ℕ) : ℕ := 2*(2*B+3)
 
+/-- The bit account for two counters, each of size `natBits n + 1`. -/
 def ratCounterBits (n : ℕ) : ℕ := 2*(natBits n + 1)
 
+/-- The peak bit account consisting of `n` rational entries of bound `B`, comparison workspace,
+and two counters. -/
 def recordedMedianPeakBits (n B : ℕ) : ℕ :=
   n*B + ratCompareRegisterBits B + ratCounterBits n
 
+/-- On `2r + 1` rational samples, the recorded program returns `nativeRationalMedian`,
+implementing numerical median repetition amplification [BrassardHoyerTapp1998Counting]. -/
 theorem recordedMedianProgram_correct (r : ℕ) (v : Fin (2*r+1) → ℚ) :
     (recordedMedianProgram r (List.ofFn v)).1 = nativeRationalMedian r v := by
   show ((insertionSortCountedRat (List.ofFn v)).1).getD r 0 = nativeRationalMedian r v
   rw [insertionSortCountedRat_eq_mergeSort]
   rfl
 
+/-- For `2r + 1` rational samples of bit length at most `B`, bound comparisons and bit time
+quadratically and identify the peak entry and register accounts. -/
 theorem recordedMedianProgram_uniform_accounts (r B : ℕ) :
     ∀ (w : Fin (2*r+1) → ℚ), (∀ z, ratBits (w z) ≤ B) →
       ((recordedMedianProgram r (List.ofFn w)).2.1 ≤ (2*r+1)*(2*r+1) ∧
@@ -255,6 +319,9 @@ theorem recordedMedianProgram_uniform_accounts (r B : ℕ) :
 
 namespace output1
 
+/-- Under unitary preparation, `k ≥ 4`, positive `σ`, and variance at most `σ²`, the recorded
+signed-trial median has error exceeding `9σ / 2^k` with probability at most `(143/144)^r`,
+together with the stated bit-size, median-resource, and AE query accounts [Montanaro2015]. -/
 theorem frontier1 :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ)

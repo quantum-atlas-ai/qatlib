@@ -9,29 +9,56 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Data.Real.Basic
 import Mathlib.Tactic
 
+/-!
+# Sine coefficients and the path correlation bound
+
+The sine coefficients `scoef` satisfy the endpoint and recurrence relations for a finite path.
+An algebraic sum-of-squares identity yields `path_shift_le`, bounding adjacent correlation by
+`cos (theta m)` times the squared norm. The phase-estimation setting is described in
+[VanDamEtAl2007].
+
+## Main statements
+
+* `sos_abstract`: For `m ≥ 2`, nonvanishing interior coefficients satisfying the stated
+  recurrence and endpoint relations express the path quadratic-form difference as the given
+  weighted sum of squares.
+* `path_shift_le`: For positive `m`, the adjacent correlation of any real sequence over `m`
+  coordinates is at most `cos (theta m)` times its squared norm over those coordinates.
+
+## References
+
+* [van Dam et al., 2007][VanDamEtAl2007]
+-/
+
 noncomputable section
 open scoped BigOperators
 
 namespace Qatlib.Papers.PhaseEst07.MainResults.Shared
 
+/-- The angle `π / (m + 1)` associated with a path of length `m`. -/
 def theta (m : ℕ) : ℝ := Real.pi / ((m : ℝ) + 1)
 
+/-- The sine coefficient `sin ((k + 1) * theta m)`. -/
 def scoef (m : ℕ) (k : ℕ) : ℝ := Real.sin (((k : ℝ) + 1) * theta m)
 
+/-- The path angle `theta m` is positive. -/
 lemma theta_pos (m : ℕ) : 0 < theta m := by
   unfold theta
   have h : (0 : ℝ) < (m : ℝ) + 1 := by positivity
   exact div_pos Real.pi_pos h
 
+/-- Multiplying `theta m` by `m + 1` gives `π`. -/
 lemma theta_mul (m : ℕ) : ((m : ℝ) + 1) * theta m = Real.pi := by
   unfold theta
   have h : ((m : ℝ) + 1) ≠ 0 := by positivity
   field_simp
 
+/-- The sine coefficient at index `m` vanishes. -/
 lemma scoef_self (m : ℕ) : scoef m m = 0 := by
   unfold scoef
   rw [theta_mul, Real.sin_pi]
 
+/-- The sine coefficient is nonnegative for indices at most `m`. -/
 lemma scoef_nonneg {m j : ℕ} (h : j ≤ m) : 0 ≤ scoef m j := by
   unfold scoef
   apply Real.sin_nonneg_of_nonneg_of_le_pi
@@ -46,6 +73,7 @@ lemma scoef_nonneg {m j : ℕ} (h : j ≤ m) : 0 ≤ scoef m j := by
           exact mul_le_mul_of_nonneg_right hjm hth.le
       _ = Real.pi := theta_mul m
 
+/-- The sine coefficient is positive for indices strictly less than `m`. -/
 lemma scoef_pos {m k : ℕ} (hk : k < m) : 0 < scoef m k := by
   unfold scoef
   apply Real.sin_pos_of_pos_of_lt_pi
@@ -60,6 +88,8 @@ lemma scoef_pos {m k : ℕ} (hk : k < m) : 0 < scoef m k := by
       mul_lt_mul_of_pos_right hkm hth
     rwa [theta_mul m] at hlt
 
+/-- The sine coefficients satisfy the second-order recurrence with coefficient `2 * cos (theta
+m)`. -/
 lemma scoef_rec (m k : ℕ) :
     scoef m (k + 1 + 1) + scoef m k = 2 * Real.cos (theta m) * scoef m (k + 1) := by
   unfold scoef
@@ -73,6 +103,7 @@ lemma scoef_rec (m k : ℕ) :
   rw [Real.sin_add, Real.sin_sub]
   ring
 
+/-- The coefficient at index one is `2 * cos (theta m)` times the coefficient at index zero. -/
 lemma scoef_one (m : ℕ) : scoef m 1 = 2 * Real.cos (theta m) * scoef m 0 := by
   unfold scoef
   push_cast
@@ -80,6 +111,9 @@ lemma scoef_one (m : ℕ) : scoef m 1 = 2 * Real.cos (theta m) * scoef m 0 := by
   rw [Real.sin_two_mul]
   ring
 
+/-- For `m ≥ 2`, nonvanishing interior coefficients satisfying the stated recurrence and
+endpoint relations express the path quadratic-form difference as the given weighted sum of
+squares. -/
 lemma sos_abstract (m : ℕ) (hm : 2 ≤ m) (c : ℝ) (a : ℕ → ℝ) (p : ℕ → ℝ)
     (ha : ∀ k, k < m → a k ≠ 0)
     (h1 : a 1 = c * a 0)
@@ -171,6 +205,8 @@ lemma sos_abstract (m : ℕ) (hm : 2 ≤ m) (c : ℝ) (a : ℕ → ℝ) (p : ℕ
   rw [hkey]
   ring
 
+/-- For positive `m`, the adjacent correlation of any real sequence over `m` coordinates is at
+most `cos (theta m)` times its squared norm over those coordinates. -/
 theorem path_shift_le (m : ℕ) (hm : 0 < m) (p : ℕ → ℝ) :
     ∑ t ∈ Finset.range (m - 1), p t * p (t + 1)
       ≤ Real.cos (theta m) * ∑ i ∈ Finset.range m, (p i) ^ 2 := by

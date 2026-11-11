@@ -11,7 +11,26 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Real.Basic
 
+/-!
+# Specification of the amplified amplitude identity
+
+`Lemma16Spec.expected` records the trigonometric identity relating the marked and unmarked
+amplitudes after the prescribed Grover iterations. The parameters and identity follow Lemma 16
+of [Cornwell2014].
+
+## Main statements
+
+* `expected`: The proposition (T/√N)(aₖ−bₖ) = tan θ · sin(2kθ) for N = 2ⁿ, T = L+M, θ = arcsin
+  √(T/N), and k = ⌊π/(4θ)⌋ with 0 < T < N.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 namespace Qatlib.Concepts.AmpTransform.ErrorStream.Lemma16Spec
+/-- The proposition (T/√N)(aₖ−bₖ) = tan θ · sin(2kθ) for N = 2ⁿ, T = L+M, θ = arcsin √(T/N), and
+k = ⌊π/(4θ)⌋ with 0 < T < N. -/
 def expected : Prop :=
   (∀ (n L M : ℕ), 0 < L + M → L + M < 2 ^ n →
   let N : ℝ := ((2 ^ n : ℕ) : ℝ);

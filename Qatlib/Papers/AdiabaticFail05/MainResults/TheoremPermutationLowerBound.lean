@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Permutation lower bound for adiabatic evolution
+
+Combines upper and lower bounds on a summed distance quantity to obtain the runtime inequality
+in Theorem 2 of [FarhiGoldstoneGutmannNagaj2008]. The finite counting lemma `counting_good_sets`
+supplies a lower bound on the number of indices whose contribution exceeds half the mean scale.
+
+## Main statements
+
+* `theorem2_permutation_lower_bound`: Eliminates the common summed quantity to bound `T` from
+  below.
+* `counting_good_sets`: Bounds the number of contributions above the threshold `ε * X / 2`.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmannNagaj2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,6 +33,9 @@ namespace Qatlib.Papers.AdiabaticFail05.MainResults
 open scoped BigOperators
 open Finset
 
+/-- Derives `(ε ^ 2 * b / (16 * hstar)) * Real.sqrt (N - 1) - ε * Real.sqrt (ε / 2) / (4 *
+hstar) ≤ T` from the two assumed bounds on `Sum`, giving the algebraic step of Theorem 2 in
+[FarhiGoldstoneGutmannNagaj2008]. -/
 theorem theorem2_permutation_lower_bound
     (N ε b hstar T Fct Sum : ℝ)
     (_hN : 1 < N) (_hε0 : 0 < ε) (_hε1 : ε ≤ 1) (_hb : 0 ≤ b)
@@ -59,6 +80,9 @@ theorem theorem2_permutation_lower_bound
   rw [div_le_iff₀ (mul_pos (by norm_num : (0 : ℝ) < 16) hh)]
   nlinarith [hred]
 
+/-- If nonnegative contributions bounded by `X` sum to `ε * Fc * X`, at least `ε * Fc / 2`
+indices have contribution at least `ε * X / 2`, where `Fc` is the cardinality of the index
+type. See [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem counting_good_sets
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     (g : ι → ℝ) (X ε Fc : ℝ)

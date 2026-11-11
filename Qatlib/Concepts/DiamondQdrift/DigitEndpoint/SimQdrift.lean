@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.SimQdriftDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Synthesis and phase estimation counterexamples
+
+This module identifies a fixed finite gate synthesis obstruction and an explicit phase
+estimation count counterexample. `exponential_synthesis_gap` gives a positive distance from a
+scalar Hamiltonian evolution to every legal one wire word.
+
+`not_clause28` and `not_clause29` refute their displayed conjunctions through the synthesis and
+count components, respectively. They delimit proposed implementation extensions of the qDRIFT
+framework of [Campbell2019].
+
+## Main statements
+
+* `exponential_synthesis_gap`: a norm gap of at least `1 / 32`.
+* `pe_chain_count_counterexample`: the proposed phase estimation count bound fails.
+* `not_clause28`: the conjunction containing universal synthesis is false.
+* `not_clause29`: the conjunction containing the proposed chain count bound is false.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.DiamondQdrift.QuantizerCert
@@ -31,6 +55,7 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Matrix Qatlib.Concepts.DiamondQdrift.QuantizerCert Qatlib.Concepts.DiamondQdrift.SignedBridge
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- The fixed gate word matrix equals the finite code word matrix. -/
 theorem fixedGateWordMatrix_eq_code (n : ℕ) (W : List FiniteGateCode) :
     fixedGateWordMatrix n W = finiteCodeWordMatrix n W := by
   induction W with
@@ -41,6 +66,8 @@ theorem fixedGateWordMatrix_eq_code (n : ℕ) (W : List FiniteGateCode) :
     rw [← ih]
     rfl
 
+/-- Evolution of the identity Hamiltonian at the negative argument of `finiteGaussianScalar`
+equals the corresponding scalar gate. -/
 theorem gaussian_identity_evolution :
     HamiltonianEvolution (1 : Matrix (Reg 1) (Reg 1) ℂ)
       (-Complex.arg finiteGaussianScalar) = finiteGaussianScalarGate := by
@@ -58,12 +85,16 @@ theorem gaussian_identity_evolution :
   rw [show -Complex.I * ((-Complex.arg finiteGaussianScalar : ℝ) : ℂ) =
     (Complex.arg finiteGaussianScalar : ℂ) * Complex.I by push_cast; ring, harg]
 
+/-- Every legal one wire finite gate word has operator norm distance at least `1 / 32` from the
+specified scalar identity Hamiltonian evolution. -/
 theorem exponential_synthesis_gap (W : List FiniteGateCode) (hW : finiteWordLegal 1 W = true) :
     (1 / 32 : ℝ) ≤ ‖fixedGateWordMatrix 1 W -
       HamiltonianEvolution (1 : Matrix (Reg 1) (Reg 1) ℂ) (-Complex.arg finiteGaussianScalar)‖ := by
   rw [gaussian_identity_evolution, fixedGateWordMatrix_eq_code]
   exact (finite_gaussian_scalar_obstruction.2.2 W hW).1
 
+/-- The displayed conjunction of qDRIFT, finite coin, and finite gate synthesis claims is false
+because its universal synthesis component conflicts with `exponential_synthesis_gap`. -/
 theorem not_clause28 : ¬ (
 
   (∀ (L D : ℕ) (d : FinDist (Fin L)) (K : Fin L → Operator D)
@@ -141,6 +172,8 @@ theorem not_clause28 : ¬ (
   have hgap := exponential_synthesis_gap W hW
   linarith
 
+/-- At coefficient mass one, energy precision `1 / 8`, and failure parameter `1 / 2`, the
+proposed phase estimation count upper bound is strictly smaller than `peChainTotalCount`. -/
 theorem pe_chain_count_counterexample :
     peChainRounds (1 / 2) * (peChainBits (1 / 8) + 1) *
       (Nat.ceil (1369 * ((peChainBits (1 / 8) + 1 : ℕ) : ℝ) * (1 : ℝ)^2 /
@@ -161,6 +194,9 @@ theorem pe_chain_count_counterexample :
   rw [ht]
   norm_num [hb, hr]
 
+/-- The displayed conjunction of controlled evolution, postselection, and resource claims is
+false because its phase estimation chain count bound conflicts with the explicit
+counterexample. -/
 theorem not_clause29 : ¬ (
 
   (∀ (D : ℕ) (H : Operator D) (θ : ℝ),

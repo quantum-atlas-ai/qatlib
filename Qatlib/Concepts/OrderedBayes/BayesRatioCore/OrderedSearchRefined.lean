@@ -15,6 +15,32 @@ import Mathlib.Tactic.FieldSimp
 import Mathlib.Analysis.Convex.Jensen
 import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
 import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+
+/-!
+# Oracle semantics and information bounds for ordered search
+
+This module proves refined probability, oracle, and information statements for the adaptive
+ordered search setting of [BenOrHassidim2007]. It verifies a unitary noisy query backend and its
+binary symmetric channel probabilities, distinguishes query costs from pending transition costs,
+and checks posterior and lower bound formulas at boundary cases.
+
+Finite entropy chain rules and Fano inequalities yield comparison lower bounds for binary and
+cyclic report programs. The stopping and recursive constructions control information by the
+expected number of comparisons, culminating in `clause17_rec_total_cost_capacity_bound` for a
+decoder of the combined transcript.
+
+## Main statements
+
+* `clause13_cross_pair_joint_bound`: finite tree ratio threshold bound.
+* `clause16_noisy_query_backend`: unitary backend with the stated noise semantics.
+* `clause17_same_run_comparison_lower_bound`: Fano capacity bound for a fixed query count.
+* `clause17_rec_total_cost_capacity_bound`: capacity bound for total expected recursive cost.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -35,26 +61,36 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch2007
 
+/-- Identifies `CorrectEqualCutPosterior` with the true-answer Bayesian posterior at the cut
+cell. -/
 theorem clause12_correct_equal_cut_posterior {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) :
     CorrectEqualCutPosterior a c p = bayesTruePost a c p c := rfl
 
+/-- For a nonnegative normalized prior with positive mass at the cut and another cell, the
+printed update differs from the posterior when `1 / 2 < p < 1`. -/
 theorem clause12_printed_mismatch_at_equal_cell {n : ℕ} (a : Fin n → ℝ) (c : Fin n)
     (p : ℝ) (hsum : (∑ m, a m) = 1) (hac : 0 < a c) (ha0 : ∀ m, 0 ≤ a m)
     (hother : ∃ m', m' ≠ c ∧ 0 < a m') (hp : 1 / 2 < p) (hp1 : p < 1) :
     PrintedUpdateIsNotThePosterior a c p :=
   printed_updateTrue_ne_bayesTruePost_at_equal a c p hsum hac ha0 hother hp hp1
 
+/-- For a prior concentrated at the cut cell, the printed and Bayesian true-answer updates agree
+there when `1 / 2 < p < 1`. -/
 theorem clause12_degenerate_equal_cut_agrees {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ)
     (hsum : (∑ m, a m) = 1) (hac : a c = 1) (hother : ∀ m, m ≠ c → a m = 0)
     (hp : 1 / 2 < p) (hp1 : p < 1) :
     updateTrue a c p c = bayesTruePost a c p c :=
   printed_updateTrue_eq_bayesTruePost_at_equal_degenerate a c p hsum hac hother hp hp1
 
+/-- For `0 < p < 1` and `R > 0`, the finite tree weight of a terminal likelihood ratio at least
+`R`, starting from the empty record, is at most `1 / R`. -/
 theorem clause13_cross_pair_joint_bound {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u v : Fin n) (R : ℝ)
     (hp : 0 < p) (hp1 : p < 1) (hR : 0 < R) :
     ∀ m : ℕ, treeCross hn p ε u v R m [] ≤ 1 / R :=
   cross_pair_joint_bound hn p ε u v R hp hp1 hR
 
+/-- Establishes `CrossPairCalibration` for positive `δ` and `0 < p < 1`, calibrating the ratio
+threshold to the desired bound. -/
 theorem clause14_r_delta_calibration {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u v : Fin n) (δ : ℝ)
     (hp : 0 < p) (hp1 : p < 1) (hδ : 0 < δ) :
     CrossPairCalibration hn p ε u v δ := by
@@ -62,10 +98,12 @@ theorem clause14_r_delta_calibration {n : ℕ} (hn : 0 < n) (p ε : ℝ) (u v : 
   intro m
   exact r_delta_calibration hn p ε u v δ hp hp1 hδ m
 
+/-- Complex conjugation fixes each entry of the real-valued noise rotation. -/
 lemma clause16_starRingEnd_noiseRotation_entry (p : ℝ) (t : Bool) (i j : Fin 2) :
     starRingEnd ℂ (noiseRotation p t i j) = noiseRotation p t i j := by
   fin_cases i <;> fin_cases j <;> cases t <;> simp [noiseRotation, Complex.conj_ofReal]
 
+/-- The matrix star of a noise rotation has entries given by transposing its indices. -/
 lemma clause16_star_noiseRotation (p : ℝ) (t : Bool) (i j : Fin 2) :
     star (noiseRotation p t) i j = noiseRotation p t j i := by
   have h : star (noiseRotation p t) i j
@@ -75,6 +113,8 @@ lemma clause16_star_noiseRotation (p : ℝ) (t : Bool) (i j : Fin 2) :
   fin_cases i <;> fin_cases j <;> cases t <;>
     simp [noiseRotation, Complex.conj_ofReal] <;> ring
 
+/-- For `0 ≤ p ≤ 1`, the matrix star of a noise rotation multiplied by the rotation is the
+identity. -/
 theorem clause16_noise_rotation_is_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (t : Bool) :
     star (noiseRotation p t) * noiseRotation p t = 1 := by
@@ -87,6 +127,8 @@ theorem clause16_noise_rotation_is_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p �
   all_goals simp [Complex.mul_re, Complex.add_re, Complex.neg_re]
   all_goals nlinarith [Real.sq_sqrt hp0, Real.sq_sqrt (show (0 : ℝ) ≤ 1 - p by linarith)]
 
+/-- Computes the matrix star of the noisy query oracle block by block as transposed noise
+rotations. -/
 lemma clause16_star_noisyQueryOracle {n : ℕ} (rank : Fin n) (p : ℝ) (x y : Fin n × Fin 2) :
     star (noisyQueryOracle rank p) x y =
       if y.1 = x.1 then noiseRotation p (truthBit rank x.1) y.2 x.2 else 0 := by
@@ -103,6 +145,7 @@ lemma clause16_star_noisyQueryOracle {n : ℕ} (rank : Fin n) (p : ℝ) (x y : F
     rw [show noisyQueryOracle rank p y x = 0 by simp only [noisyQueryOracle, if_neg hc]]
     simp
 
+/-- The noisy query oracle belongs to the matrix unitary group when `0 ≤ p ≤ 1`. -/
 theorem clause16_noisy_query_oracle_is_unitary {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) :
     noisyQueryOracle rank p ∈ Matrix.unitaryGroup (Fin n × Fin 2) ℂ := by
@@ -196,14 +239,19 @@ theorem clause16_noisy_query_oracle_is_unitary {n : ℕ} (rank : Fin n) (p : ℝ
       exact h (Prod.ext_iff.mp he).1
     simp [hne]
 
+/-- Converting a Boolean to its answer-register index and back returns the original Boolean. -/
 lemma clause16_boolIndex_answerBit (b : Bool) : answerBit (boolIndex b) = b := by
   cases b <;> simp [boolIndex, answerBit]
 
+/-- The first column of the noise rotation equals the complex embedding of the corresponding
+noise amplitudes. -/
 lemma clause16_noiseRotation_first_column (p : ℝ) (truth : Bool) (answer : Fin 2) :
     noiseRotation p truth answer 0 =
       (noiseAmplitude p truth (answerBit answer) : ℂ) := by
   fin_cases answer <;> cases truth <;> simp [noiseRotation, noiseAmplitude, answerBit]
 
+/-- For `0 ≤ p ≤ 1`, the backend answer probability is `p` for the truth bit and `1 - p` for the
+opposite answer. -/
 theorem clause16_backend_bsc_law (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (truth answer : Bool) :
     noiseAnswerProb p truth answer = if answer = truth then p else 1 - p := by
@@ -211,6 +259,7 @@ theorem clause16_backend_bsc_law (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     simp [noiseAnswerProb, noiseAmplitude, Real.sq_sqrt hp0,
       Real.sq_sqrt (show (0 : ℝ) ≤ 1 - p by linarith)]
 
+/-- The true and false backend answer probabilities sum to one when `0 ≤ p ≤ 1`. -/
 theorem clause16_backend_answer_probability_sum (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (truth : Bool) :
     noiseAnswerProb p truth true + noiseAnswerProb p truth false = 1 := by
@@ -218,6 +267,8 @@ theorem clause16_backend_answer_probability_sum (p : ℝ) (hp0 : 0 ≤ p) (hp1 :
     simp [noiseAnswerProb, noiseAmplitude, Real.sq_sqrt hp0,
       Real.sq_sqrt (show (0 : ℝ) ≤ 1 - p by linarith)]
 
+/-- The noisy oracle entry from a zero answer register equals the noise amplitude for the
+comparison truth bit and observed answer. -/
 theorem clause16_backend_answer_amplitude {n : ℕ} (rank : Fin n) (p : ℝ) (x : Fin n)
     (answer : Bool) :
     noisyQueryOracle rank p (x, boolIndex answer) (x, ⟨0, by decide⟩) =
@@ -228,6 +279,8 @@ theorem clause16_backend_answer_amplitude {n : ℕ} (rank : Fin n) (p : ℝ) (x 
   rw [h, clause16_noiseRotation_first_column]
   simp [clause16_boolIndex_answerBit]
 
+/-- For `1 / 2 < p < 1`, the classical true-answer probability is `p` or `1 - p` according to
+the comparison truth bit. -/
 theorem clause16_backend_matches_classical_bsc {n : ℕ} (rank : Fin n) (p : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (x : Fin n) :
     (truthAnswerProb rank x p : ℝ) =
@@ -237,6 +290,7 @@ theorem clause16_backend_matches_classical_bsc {n : ℕ} (rank : Fin n) (p : ℝ
   · simp [truthBit, h]
   · simp [truthBit, h]
 
+/-- Every entry of a noise rotation lies in the specified noise field. -/
 lemma clause16_noiseRotation_inNoiseField (p : ℝ) (t : Bool) (i j : Fin 2) :
     InNoiseField p (noiseRotation p t i j) := by
   fin_cases i <;> fin_cases j <;> cases t
@@ -249,6 +303,7 @@ lemma clause16_noiseRotation_inNoiseField (p : ℝ) (t : Bool) (i j : Fin 2) :
   · exact ⟨0, 1, 0, 0, by simp [noiseRotation] <;> ring⟩
   · exact ⟨0, 0, -1, 0, by simp [noiseRotation] <;> ring⟩
 
+/-- Every entry of the noisy query oracle satisfies `InNoiseField`. -/
 theorem clause16_backend_entries_are_finite_bit {n : ℕ} (rank : Fin n) (p : ℝ)
     (b a : Fin n × Fin 2) :
     InNoiseField p (noisyQueryOracle rank p b a) := by
@@ -258,6 +313,7 @@ theorem clause16_backend_entries_are_finite_bit {n : ℕ} (rank : Fin n) (p : �
   · rw [noisyQueryOracle, if_neg h]
     exact ⟨0, 0, 0, 0, by simp⟩
 
+/-- Constructs `NoisyQueryBackend` for the given rank and any `0 ≤ p ≤ 1`. -/
 theorem clause16_noisy_query_backend {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) :
     NoisyQueryBackend n rank p := by
@@ -267,6 +323,7 @@ theorem clause16_noisy_query_backend {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 : 0
   · intro b a
     exact clause16_backend_entries_are_finite_bit rank p b a
 
+/-- The printed oracle fails the identity `U† U = 1`. -/
 theorem clause16_printed_oracle_is_not_unitary :
     printedOracle.conjTranspose * printedOracle ≠ 1 := by
   intro h
@@ -275,15 +332,20 @@ theorem clause16_printed_oracle_is_not_unitary :
     Matrix.one_apply, printedOracle] at h01
   norm_num at h01
 
+/-- The proposition `NoisyQuantumOracleContract` is false. -/
 theorem clause16_frozen_noisy_oracle_is_refuted : ¬ NoisyQuantumOracleContract :=
   noisyQuantumOracle_obstruction
 
+/-- A truth-step transition has zero expected query cost when some posterior cell reaches the
+halting threshold. -/
 theorem clause16_truth_step_halt_charges_zero {n : ℕ} (hn : 0 < n) (rank : Fin n)
     (p ε : ℝ) (a : Fin n → ℝ) (hhalts : ∃ i : Fin n, ε ≤ a i) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (truthStepCosted hn rank p ε a) = 0 := by
   rw [truthStepCosted, dif_pos hhalts,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost_ret]
 
+/-- A truth-step transition has expected query cost one when no posterior cell reaches the
+halting threshold. -/
 theorem clause16_truth_step_running_charges_one {n : ℕ} (hn : 0 < n) (rank : Fin n)
     (p ε : ℝ) (a : Fin n → ℝ) (hruns : ¬ ∃ i : Fin n, ε ≤ a i) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (truthStepCosted hn rank p ε a) = 1 := by
@@ -291,6 +353,7 @@ theorem clause16_truth_step_running_charges_one {n : ℕ} (hn : 0 < n) (rank : F
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
+/-- The pending-state tick has expected cost one for every posterior state. -/
 theorem clause16_pending_ledger_charges_the_halt {n : ℕ} (hn : 0 < n) (rank : Fin n)
     (p ε : ℝ) (a : Fin n → ℝ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost
@@ -299,6 +362,8 @@ theorem clause16_pending_ledger_charges_the_halt {n : ℕ} (hn : 0 < n) (rank : 
       Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.tick, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
+/-- At a halting posterior, the truth-step query cost is zero while the pending-state tick cost
+is one. -/
 theorem clause16_query_ledger_differs_from_pending_ledger {n : ℕ} (hn : 0 < n)
     (rank : Fin n) (p ε : ℝ) (a : Fin n → ℝ) (hhalts : ∃ i : Fin n, ε ≤ a i) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (truthStepCosted hn rank p ε a) = 0 ∧
@@ -307,25 +372,30 @@ theorem clause16_query_ledger_differs_from_pending_ledger {n : ℕ} (hn : 0 < n)
   ⟨clause16_truth_step_halt_charges_zero hn rank p ε a hhalts,
     clause16_pending_ledger_charges_the_halt hn rank p ε a⟩
 
+/-- Expresses `binEntropy` as Mathlib's binary entropy divided by `log 2`. -/
 theorem clause17_binEntropy_eq_mathlib (δ : ℝ) :
     binEntropy δ = Real.binEntropy δ / Real.log 2 := by
   rw [binEntropy, Real.binEntropy]
   simp only [Real.log_inv]
   ring
 
+/-- Binary entropy is invariant under replacing `δ` by `1 - δ`. -/
 theorem clause17_binEntropy_symmetry (δ : ℝ) : binEntropy δ = binEntropy (1 - δ) := by
   simp [binEntropy, add_comm, add_left_comm, add_assoc]
 
+/-- The information per query equals one at noiseless parameter `p = 1`. -/
 theorem clause17_queryInfo_one : queryInfo (1 : ℝ) = 1 := by
   rw [queryInfo, clause17_binEntropy_eq_mathlib, Real.binEntropy_one]
   ring
 
+/-- The information per query is positive when `1 / 2 < p < 1`. -/
 theorem clause17_queryInfo_pos {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
     0 < queryInfo p := by
   have hi := zoo_bayes_queryInfo_quadratic_lower hp hp1
   norm_num at hi
   nlinarith
 
+/-- The one-comparison experiment returns the truth with probability `3 / 4`. -/
 theorem clause17_one_comparison_success {truth : Bool} :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (oneComparison truth) (fun x => x.1 = truth) = (3 / 4 : ℝ≥0∞) := by
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event, oneComparison,
@@ -336,6 +406,7 @@ theorem clause17_one_comparison_success {truth : Bool} :
   rw [PMF.bernoulli_apply _ true, PMF.bernoulli_apply _ false]
   norm_num
 
+/-- The one-comparison experiment has expected cost one. -/
 theorem clause17_one_comparison_cost {truth : Bool} :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (oneComparison truth) = 1 := by
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost, oneComparison,
@@ -343,6 +414,7 @@ theorem clause17_one_comparison_cost {truth : Bool} :
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
+/-- Expands Mathlib's binary entropy at `3 / 4` as a weighted sum of `log (4 / 3)` and `log 4`. -/
 lemma clause17_binEntropy_three_quarters :
     Real.binEntropy (3 / 4 : ℝ) = (3 / 4) * Real.log (4 / 3 : ℝ) + (1 / 4) * Real.log 4 := by
   rw [Real.binEntropy]
@@ -355,6 +427,7 @@ lemma clause17_binEntropy_three_quarters :
   simp only [Real.log_one]
   ring
 
+/-- The binary entropy expression is strictly less than one away from `δ = 1 / 2`. -/
 theorem clause17_binEntropy_lt_one {δ : ℝ} (hδ : δ ≠ 1 / 2) : binEntropy δ < 1 := by
   rw [clause17_binEntropy_eq_mathlib]
   have hδ' : δ ≠ (2 : ℝ)⁻¹ := by rwa [show (1 : ℝ) / 2 = (2 : ℝ)⁻¹ by norm_num] at hδ
@@ -363,6 +436,7 @@ theorem clause17_binEntropy_lt_one {δ : ℝ} (hδ : δ ≠ 1 / 2) : binEntropy 
   rw [div_lt_iff₀ hlog2]
   linarith
 
+/-- The corrected two-cell capacity bound at correctness `3 / 4` and error `1 / 4` equals one. -/
 theorem clause17_fano_bound_at_source_counterexample :
     fanoCapacityBound 2 (3 / 4 : ℝ) (1 / 4 : ℝ) = 1 := by
   have hsym : binEntropy (1 / 4 : ℝ) = binEntropy (3 / 4 : ℝ) := by
@@ -380,6 +454,7 @@ theorem clause17_fano_bound_at_source_counterexample :
   norm_num
   ring
 
+/-- For `1 / 2 < p < 1`, `fanoCapacityBound 2 p p` equals one. -/
 theorem clause17_fano_bound_tight_for_two_cells {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
     fanoCapacityBound 2 p p = 1 := by
   have hsym : binEntropy p = binEntropy (1 - p) := clause17_binEntropy_symmetry p
@@ -395,6 +470,8 @@ theorem clause17_fano_bound_tight_for_two_cells {p : ℝ} (hp : 1 / 2 < p) (hp1 
   rw [hsym.symm]
   ring
 
+/-- The printed bound at two cells, correctness `3 / 4`, and error `1 / 4` is strictly greater
+than one. -/
 theorem clause17_printed_bound_is_false_at_source_parameters :
     1 < printedT26Bound 2 (3 / 4 : ℝ) (1 / 4 : ℝ) := by
   have hL2pos : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
@@ -431,6 +508,8 @@ theorem clause17_printed_bound_is_false_at_source_parameters :
     nlinarith
   linarith
 
+/-- The one-comparison experiment has cost one and success `3 / 4`, matching the corrected
+two-cell capacity bound at error `1 / 4`. -/
 theorem clause17_source_counterexample_saturates_the_corrected_bound {truth : Bool} :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (oneComparison truth) = 1 ∧
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (oneComparison truth) (fun x => x.1 = truth) = (3 / 4 : ℝ≥0∞) ∧
@@ -438,6 +517,7 @@ theorem clause17_source_counterexample_saturates_the_corrected_bound {truth : Bo
   exact ⟨clause17_one_comparison_cost, clause17_one_comparison_success,
     clause17_fano_bound_at_source_counterexample⟩
 
+/-- For two cells and `1 / 2 < p ≤ 1`, the capacity bound at error `1 / 2` is zero. -/
 theorem clause17_fano_bound_at_error_boundary_two_cells {p : ℝ} (hp : 1 / 2 < p)
     (hp1 : p ≤ 1) : fanoCapacityBound 2 p (1 / 2 : ℝ) = 0 := by
   have hbin : binEntropy (1 / 2 : ℝ) = 1 := by
@@ -456,6 +536,8 @@ theorem clause17_fano_bound_at_error_boundary_two_cells {p : ℝ} (hp : 1 / 2 < 
   field_simp
   ring
 
+/-- Establishes `FanoCapacityContract` for at least two cells, `1 / 2 < p ≤ 1`, and `0 ≤ δ ≤ 1 -
+1 / n`. -/
 theorem clause17_fano_capacity_contract {n : ℕ} (hn : 2 ≤ n) {p δ : ℝ} (hp : 1 / 2 < p)
     (hp1 : p ≤ 1) (hδ : 0 ≤ δ) (hδ' : δ ≤ 1 - 1 / (n : ℝ)) :
     FanoCapacityContract n p δ := by
@@ -469,19 +551,23 @@ theorem clause17_fano_capacity_contract {n : ℕ} (hn : 2 ≤ n) {p δ : ℝ} (h
   · intro p' hp' hp'1
     exact clause17_fano_bound_tight_for_two_cells hp' hp'1
 
+/-- Pulls a constant left factor out of a sum over a finite type. -/
 theorem sum_const_mul {ι : Type} [Fintype ι] (c : ℝ) (f : ι → ℝ) :
     ∑ i, c * f i = c * ∑ i, f i := by
   rw [Finset.sum_congr rfl (fun i _ => mul_comm c (f i)), ← Finset.sum_mul, mul_comm]
 
+/-- The function `xlog2` vanishes at zero. -/
 theorem xlog2_zero : xlog2 0 = 0 := by
   simp [xlog2]
 
+/-- For positive factors, expands `xlog2 (x * y)` as `y * xlog2 x + x * xlog2 y`. -/
 theorem xlog2_mul (x y : ℝ) (hx : 0 < x) (hy : 0 < y) :
     xlog2 (x * y) = y * xlog2 x + x * xlog2 y := by
   unfold xlog2
   rw [Real.log_mul hx.ne' hy.ne']
   ring
 
+/-- For nonnegative joint weights, a conditional row with nonzero left marginal sums to one. -/
 theorem condW_sum {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) (hm : margL d i ≠ 0) :
     ∑ j, condW d i j = 1 := by
@@ -491,6 +577,8 @@ theorem condW_sum {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ
   rw [← Finset.sum_div]
   exact div_self hpos.ne'
 
+/-- Decomposes `xlog2` of a nonnegative joint weight into its left-marginal and
+conditional-weight contributions. -/
 theorem xlog2_joint_cell {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) (j : β) :
     xlog2 (d (i, j)) = condW d i j * xlog2 (margL d i)
@@ -521,6 +609,8 @@ theorem xlog2_joint_cell {α β : Type} [Fintype α] [Fintype β] (d : α × β 
       field_simp
       ring
 
+/-- Multiplying `xlog2` of a left marginal by the sum of its conditional row leaves it
+unchanged, including zero marginal rows. -/
 theorem xlog2_margL_mul_condW_sum {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) :
     xlog2 (margL d i) * (∑ j, condW d i j) = xlog2 (margL d i) := by
@@ -529,6 +619,8 @@ theorem xlog2_margL_mul_condW_sum {α β : Type} [Fintype α] [Fintype β] (d : 
   · rw [condW_sum d hd i hm]
     ring
 
+/-- Splits the sum of joint `xlog2` terms into left-marginal terms and weighted conditional
+logarithms. -/
 theorem sum_xlog2_joint {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) :
     (∑ i, ∑ j, xlog2 (d (i, j)))
@@ -556,6 +648,8 @@ theorem sum_xlog2_joint {α β : Type} [Fintype α] [Fintype β] (d : α × β �
         + ∑ i, ∑ j, d (i, j) * (Real.log (condW d i j) / Real.log 2) := by
           rw [Finset.sum_congr rfl (fun i _ => xlog2_margL_mul_condW_sum d hd i)]
 
+/-- For nonnegative finite joint weights, joint entropy equals left-marginal entropy plus
+conditional entropy. -/
 theorem entH_chain_rule {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) :
     entH d = entH (margL d) + condEntH d := by
@@ -564,6 +658,8 @@ theorem entH_chain_rule {α β : Type} [Fintype α] [Fintype β] (d : α × β �
   have h := sum_xlog2_joint d hd
   linarith
 
+/-- A nonnegative vector on a nonempty `Fin m` with total weight `m` has nonnegative sum `∑ i, u
+i * log (u i)`. -/
 theorem sum_mul_log_nonneg {m : ℕ} (u : Fin m → ℝ) (hu : ∀ i, 0 ≤ u i)
     (husum : ∑ i, u i = (m : ℝ)) (hm : 0 < m) :
     ∑ i, u i * Real.log (u i) ≥ 0 := by
@@ -601,14 +697,18 @@ theorem sum_mul_log_nonneg {m : ℕ} (u : Fin m → ℝ) (hu : ∀ i, 0 ≤ u i)
   have hmpos : (0 : ℝ) < (m : ℝ) := by exact_mod_cast (Nat.zero_lt_of_lt hm)
   simpa using! (le_div_iff₀ hmpos).mp h2
 
+/-- Pulls a constant left factor out of a sum over a finite set. -/
 theorem finset_sum_const_mul {α : Type} (S : Finset α) (c : ℝ) (f : α → ℝ) :
     ∑ i ∈ S, c * f i = c * ∑ i ∈ S, f i := by
   rw [← Finset.mul_sum]
 
+/-- Pulls a constant right factor out of a sum over a finite set. -/
 theorem finset_sum_mul_const {α : Type} (S : Finset α) (f : α → ℝ) (c : ℝ) :
     ∑ i ∈ S, f i * c = (∑ i ∈ S, f i) * c := by
   rw [← Finset.sum_mul]
 
+/-- Nonnegative weights on a nonempty finite set with total equal to its cardinality have
+nonnegative sum of `u * log u`. -/
 theorem sum_mul_log_nonneg_finset {α : Type} [Fintype α] (S : Finset α) (u : α → ℝ)
     (hu : ∀ i ∈ S, 0 ≤ u i) (husum : ∑ i ∈ S, u i = (S.card : ℝ)) (hcard : 0 < S.card) :
     ∑ i ∈ S, u i * Real.log (u i) ≥ 0 := by
@@ -642,6 +742,8 @@ theorem sum_mul_log_nonneg_finset {α : Type} [Fintype α] (S : Finset α) (u : 
   rw [hmul] at h2
   simpa using! (le_div_iff₀ hcardpos).mp h2
 
+/-- The entropy of nonnegative normalized weights on a nonempty finite type is at most the
+base-two logarithm of its cardinality. -/
 theorem entH_le_log_card {α : Type} [Fintype α] (w : α → ℝ) (hw : ∀ i, 0 ≤ w i)
     (ht : ∑ i, w i = 1) (hm : 0 < Fintype.card α) :
     entH w ≤ Real.log (Fintype.card α : ℝ) / Real.log 2 := by
@@ -696,6 +798,8 @@ theorem entH_le_log_card {α : Type} [Fintype α] (w : α → ℝ) (hw : ∀ i, 
   field_simp [hlog2ne]
   linarith
 
+/-- Bounds the sum of `r * log₂ r` over a nonempty finite set below by its total mass times the
+logarithm of its average mass. -/
 theorem sum_xlog2_sub {α : Type} [Fintype α] (S : Finset α) (r : α → ℝ)
     (hr : ∀ i ∈ S, 0 ≤ r i) (hcard : 0 < S.card) (hq : 0 < ∑ i ∈ S, r i) :
     (∑ i ∈ S, r i * (Real.log (r i) / Real.log 2))
@@ -782,6 +886,8 @@ theorem sum_xlog2_sub {α : Type} [Fintype α] (S : Finset α) (r : α → ℝ)
   rw [Finset.sum_congr rfl (fun i hi => hc i hi), ← Finset.sum_div, hmul]
   exact div_le_div_of_nonneg_right hmain hlog2.le
 
+/-- For nonnegative joint weights, multiplying a conditional weight by its left marginal
+recovers the joint weight. -/
 theorem condW_mul_margL {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) (j : β) :
     margL d i * condW d i j = d (i, j) := by
@@ -796,6 +902,8 @@ theorem condW_mul_margL {α β : Type} [Fintype α] [Fintype β] (d : α × β �
   · simp only [condW, dif_neg hm]
     field_simp
 
+/-- Bounds the entropy of a distribution on at least two cells by the binary entropy of the
+error relative to a chosen guess plus the error times `log₂ (n - 1)`. -/
 theorem fano_pointwise {n : ℕ} (hn : 2 ≤ n) (P : Fin n → ℝ) (hP : ∀ x, 0 ≤ P x)
     (hsum : ∑ x, P x = 1) (gy : Fin n) :
     -(∑ x, P x * (Real.log (P x) / Real.log 2))
@@ -892,10 +1000,12 @@ theorem fano_pointwise {n : ℕ} (hn : 2 ≤ n) (P : Fin n → ℝ) (hP : ∀ x,
     rw [hid]
     exact h1
 
+/-- Distributes a finite-type sum over pointwise subtraction. -/
 theorem fintype_sum_sub {ι : Type} [Fintype ι] (f g : ι → ℝ) :
     (∑ x, (f x - g x)) = (∑ x, f x) - ∑ x, g x := by
   rw [Finset.sum_sub_distrib]
 
+/-- Conditional weights formed from nonnegative joint weights are nonnegative. -/
 theorem condW_nonneg {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) (j : β) : 0 ≤ condW d i j := by
   by_cases hm : margL d i = 0
@@ -903,6 +1013,8 @@ theorem condW_nonneg {α β : Type} [Fintype α] [Fintype β] (d : α × β → 
   · simp only [condW, dif_neg hm]
     exact div_nonneg (hd i j) (Finset.sum_nonneg fun k _ => hd i k)
 
+/-- Bounds conditional entropy by `binEntropy ε + ε * log₂ (n - 1)` for a decoder with error `ε
+≤ 1 / 2` under normalized nonnegative joint weights. -/
 theorem fano_cond_ent {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
     (d : β × Fin n → ℝ) (hd : ∀ y x, 0 ≤ d (y, x))
     (ht : ∑ y, ∑ x, d (y, x) = 1)
@@ -1089,6 +1201,8 @@ theorem fano_cond_ent {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
           rw [hqsum]
           exact add_le_add hjensen (le_refl _)
 
+/-- For a uniform hidden cell and decoding error at most one half, `log₂ n` is bounded by mutual
+information plus the Fano error terms. -/
 theorem fano_capacity_arith {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
     (d : Fin n × β → ℝ) (hd : ∀ x y, 0 ≤ d (x, y))
     (ht : ∑ x, ∑ y, d (x, y) = 1)
@@ -1154,6 +1268,7 @@ theorem fano_capacity_arith {n : ℕ} {β : Type} [Fintype β] (hn : 2 ≤ n)
   rw [hsplit] at hent
   linarith
 
+/-- The answer prefix at an index equals the corresponding transcript restriction. -/
 theorem answerPrefix_eq_tRestrict {k : ℕ} (y : Fin k → Bool) (i : Fin k) :
     answerPrefix y i = tRestrict y i := by
   funext l
@@ -1162,6 +1277,7 @@ theorem answerPrefix_eq_tRestrict {k : ℕ} (y : Fin k → Bool) (i : Fin k) :
   apply Fin.ext
   rfl
 
+/-- Evaluating an extended transcript depends only on the value of its finite index. -/
 theorem tExt_val {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) (i : Fin (m + 1)) :
     tExt pfx b i = tExt pfx b ⟨i.val, by omega⟩ := by
   have hi : i = ⟨i.val, by omega⟩ := by
@@ -1169,6 +1285,7 @@ theorem tExt_val {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) (i : Fin (m
     rfl
   rw [hi]
 
+/-- Extending a transcript preserves its entries at all original indices. -/
 theorem tExt_castSucc {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) (j : Fin m) :
     tExt pfx b (j.castSucc) = pfx j := by
   have hcast : j.castSucc = ⟨j.val, by omega⟩ := by
@@ -1179,16 +1296,19 @@ theorem tExt_castSucc {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) (j : F
     simpa using! Nat.ne_of_lt j.isLt
   simp [tExt, hne]
 
+/-- Taking the prefix of an extended transcript returns the original transcript. -/
 theorem tPre_tExt {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) :
     tPre (tExt pfx b) = pfx := by
   funext j
   simp only [tPre]
   exact tExt_castSucc pfx b j
 
+/-- The last entry of an extended transcript is the appended value. -/
 theorem tLast_tExt {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) :
     tLast (tExt pfx b) = b := by
   simp [tLast, tExt]
 
+/-- A transcript is recovered by appending its last entry to its prefix. -/
 theorem tExt_tPre {m : ℕ} {α : Type} (y : Fin (m + 1) → α) :
     tExt (tPre y) (tLast y) = y := by
   funext i
@@ -1203,6 +1323,8 @@ theorem tExt_tPre {m : ℕ} {α : Type} (y : Fin (m + 1) → α) :
       simp
     simp [tPre, hcast]
 
+/-- Restricting an extended transcript before an original index agrees with restricting the
+original transcript. -/
 theorem tRestrict_tExt_castSucc {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) (j : Fin m) :
     tRestrict (tExt pfx b) (j.castSucc) = tRestrict pfx j := by
   funext l
@@ -1213,6 +1335,7 @@ theorem tRestrict_tExt_castSucc {m : ℕ} {α : Type} (pfx : Fin m → α) (b : 
     simpa using! Nat.ne_of_lt hl
   simp [tExt, hne]
 
+/-- Restricting an extended transcript before its last index returns the original transcript. -/
 theorem tRestrict_tExt_last {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) :
     tRestrict (tExt pfx b) (Fin.last m) = pfx := by
   funext l
@@ -1225,6 +1348,8 @@ theorem tRestrict_tExt_last {m : ℕ} {α : Type} (pfx : Fin m → α) (b : α) 
     simpa using! Nat.ne_of_lt hl
   simp [tExt, hne]
 
+/-- Splits a sum over extended transcripts and their last entries into a sum over prefixes and
+appended values. -/
 theorem Fintype.sum_tSplit {m : ℕ} {α : Type} [Fintype α] {M : Type} [AddCommMonoid M]
     (F : (Fin (m + 1) → α) → α → M) :
     (∑ y : Fin (m + 1) → α, F y (y (Fin.last m)))
@@ -1240,6 +1365,8 @@ theorem Fintype.sum_tSplit {m : ℕ} {α : Type} [Fintype α] {M : Type} [AddCom
   rw [Fintype.sum_prod_type] at h
   exact h
 
+/-- Entropy is preserved when a transcript is reindexed as its prefix and last entry alongside
+the hidden cell. -/
 theorem entH_eq_entH_post {n m : ℕ} {α : Type} [Fintype α]
     (d : Fin n × (Fin (m + 1) → α) → ℝ) :
     entH d = entH (fun p : (Fin n × (Fin m → α)) × α =>
@@ -1259,6 +1386,8 @@ theorem entH_eq_entH_post {n m : ℕ} {α : Type} [Fintype α]
   rw [Fintype.sum_prod_type]
   simpa using! (congrArg Neg.neg h)
 
+/-- Factors an extended binary transcript likelihood into its prefix likelihood and final
+conditional answer weight. -/
 theorem bscLikPre_split {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.val → Bool) → Fin n)
     (p : ℝ) (x : Fin n) (pfx : Fin m → Bool) (b : Bool) :
     bscLikPre cuts p x (tExt pfx b)
@@ -1284,13 +1413,16 @@ theorem bscLikPre_split {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.val → 
     rw [h1, h2]
   rw [hlast]
 
+/-- The false and true binary symmetric channel weights sum to one. -/
 theorem bscProb_sum_one {p : ℝ} (t : Bool) : bscProb p t false + bscProb p t true = 1 := by
   cases t <;> simp [bscProb]
 
+/-- The binary symmetric channel weights sum to one over Boolean answers. -/
 theorem bscProb_sum {p : ℝ} (t : Bool) : (∑ b, bscProb p t b) = 1 := by
   rw [Fintype.sum_bool, add_comm]
   exact bscProb_sum_one (p := p) t
 
+/-- For each hidden cell, the adaptive binary transcript likelihoods sum to one. -/
 theorem bscLikPre_sum_one {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (x : Fin n) :
     (∑ pfx : Fin m → Bool, bscLikPre cuts p x pfx) = 1 := by
@@ -1326,6 +1458,8 @@ theorem bscLikPre_sum_one {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool
       rw [Finset.sum_congr rfl (fun pfx _ => hsum pfx)]
       exact ih (fun j => cuts (j.castSucc))
 
+/-- Splits a sum over transcripts of length `m + 1` into a sum over prefixes of length `m` and
+final values. -/
 theorem Fintype.sum_tSplit_gen {m : ℕ} {α : Type} [Fintype α] {M : Type} [AddCommMonoid M]
     (G : (Fin (m + 1) → α) → M) :
     (∑ y : Fin (m + 1) → α, G y) = ∑ pfx : Fin m → α, ∑ b, G (tExt pfx b) := by
@@ -1339,6 +1473,8 @@ theorem Fintype.sum_tSplit_gen {m : ℕ} {α : Type} [Fintype α] {M : Type} [Ad
   rw [Fintype.sum_prod_type] at h
   exact h
 
+/-- For nonnegative joint weights, mutual information equals right-marginal entropy minus
+conditional entropy. -/
 theorem mutInfo_eq_margR {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) :
     mutInfo d = entH (margR d) - condEntH d := by
@@ -1368,6 +1504,8 @@ theorem mutInfo_eq_margR {α β : Type} [Fintype α] [Fintype β] (d : α × β 
   unfold mutInfo
   linarith
 
+/-- Decomposes transcript mutual information into prefix mutual information and the difference
+of two final-answer conditional entropies. -/
 theorem mutInfo_split {n m : ℕ} {α : Type} [Fintype α]
     (d : Fin n × (Fin (m + 1) → α) → ℝ)
     (dPre : Fin n × (Fin m → α) → ℝ)
@@ -1483,6 +1621,7 @@ theorem mutInfo_split {n m : ℕ} {α : Type} [Fintype α]
   rw [hmargrank]
   linarith
 
+/-- Binary symmetric channel weights are nonnegative when `0 ≤ p ≤ 1`. -/
 theorem bscProb_nonneg {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (t : Bool) (b : Bool) :
     0 ≤ bscProb p t b := by
   unfold bscProb
@@ -1491,11 +1630,14 @@ theorem bscProb_nonneg {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (t : Bool) (b :
   · simp [h]
     linarith
 
+/-- Binary transcript likelihoods are nonnegative when `0 ≤ p ≤ 1`. -/
 theorem bscLik_nonneg {n k : ℕ} (prog : BscProgram n k) (p : ℝ) (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) (x : Fin n) (y : Fin k → Bool) : 0 ≤ bscLik prog p x y := by
   unfold bscLik
   exact Finset.prod_nonneg fun i _ => bscProb_nonneg hp0 hp1 _ _
 
+/-- The binary program joint weights are nonnegative for a nonempty hidden-cell space and `0 ≤ p
+≤ 1`. -/
 theorem bscJoint_nonneg {n k : ℕ} (prog : BscProgram n k) (p : ℝ) (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) (hn : 0 < n) (x : Fin n) (y : Fin k → Bool) :
     0 ≤ bscJoint prog p x y := by
@@ -1503,6 +1645,8 @@ theorem bscJoint_nonneg {n k : ℕ} (prog : BscProgram n k) (p : ℝ) (hp0 : 0 �
   have h1 : (0 : ℝ) ≤ 1 / (n : ℝ) := by positivity
   exact mul_nonneg h1 (bscLik_nonneg prog p hp0 hp1 x y)
 
+/-- The prefix-likelihood construction applied to all program cuts equals the program transcript
+likelihood. -/
 theorem bscLikPre_eq_bscLik {n k : ℕ} (prog : BscProgram n k) (p : ℝ) (x : Fin n)
     (y : Fin k → Bool) : bscLikPre prog.cuts p x y = bscLik prog p x y := by
   unfold bscLikPre bscLik
@@ -1513,6 +1657,8 @@ theorem bscLikPre_eq_bscLik {n k : ℕ} (prog : BscProgram n k) (p : ℝ) (x : F
     rw [← answerPrefix_eq_tRestrict]
   rw [Finset.prod_congr rfl (fun j _ => hc j)]
 
+/-- Conditional entropy is the left-marginal weighted sum of the entropies of conditional rows
+for nonnegative joint weights. -/
 theorem condEntH_eq_sum {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) :
     condEntH d = ∑ i, margL d i * entH (fun j => condW d i j) := by
@@ -1542,16 +1688,20 @@ theorem condEntH_eq_sum {α β : Type} [Fintype α] [Fintype β] (d : α × β �
   rw [← Finset.sum_neg_distrib]
   rw [Finset.sum_congr rfl (fun i _ => key i)]
 
+/-- The entropy of a binary symmetric channel answer row equals `binEntropy p`. -/
 theorem entH_bscProb {p : ℝ} (t : Bool) : entH (bscProb p t) = binEntropy p := by
   cases t <;> simp [entH, xlog2, bscProb] <;>
     unfold binEntropy <;> ring
 
+/-- Adaptive binary prefix likelihoods are nonnegative when `0 ≤ p ≤ 1`. -/
 theorem bscLikPre_nonneg {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (x : Fin n) (pfx : Fin m → Bool) :
     0 ≤ bscLikPre cuts p x pfx := by
   unfold bscLikPre
   exact Finset.prod_nonneg fun j _ => bscProb_nonneg hp0 hp1 _ _
 
+/-- The joint weights defined by adaptive binary cuts are nonnegative for `0 ≤ p ≤ 1` and `n >
+0`. -/
 theorem bscJointCuts_nonneg {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (x : Fin n) (y : Fin m → Bool) :
     0 ≤ bscJointCuts cuts p x y := by
@@ -1559,6 +1709,8 @@ theorem bscJointCuts_nonneg {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bo
   have h1 : (0 : ℝ) ≤ 1 / (n : ℝ) := by positivity
   exact mul_nonneg h1 (bscLikPre_nonneg cuts p hp0 hp1 x y)
 
+/-- Given the hidden cell and transcript prefix, the final binary answer has conditional entropy
+`binEntropy p` for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem condEntH_bscJointPost {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     condEntH (fun z : (Fin n × (Fin m → Bool)) × Bool =>
@@ -1679,6 +1831,8 @@ theorem condEntH_bscJointPost {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.va
   rw [hmass]
   ring
 
+/-- The conditional entropy of a Boolean variable under normalized nonnegative joint weights is
+at most one bit. -/
 theorem condEntH_le_one {α : Type} [Fintype α] (d : α × Bool → ℝ)
     (hd : ∀ i b, 0 ≤ d (i, b)) (htot : ∑ i, ∑ b, d (i, b) = 1) :
     condEntH d ≤ 1 := by
@@ -1716,10 +1870,13 @@ theorem condEntH_le_one {α : Type} [Fintype α] (d : α × Bool → ℝ)
   calc (∑ i, margL d i * entH (fun b => condW d i b)) ≤ ∑ i, margL d i := h1
     _ = 1 := hmass
 
+/-- The likelihood of an empty binary transcript equals one. -/
 theorem bscLikPre_zero {n : ℕ} (cuts : ∀ i : Fin 0, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (x : Fin n) (y : Fin 0 → Bool) : bscLikPre cuts p x y = 1 := by
   simp [bscLikPre]
 
+/-- The joint weights of a uniform hidden cell and an adaptive binary transcript sum to one when
+`n > 0`. -/
 theorem bscJointLaw_total {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hn : 0 < n) :
     (∑ x : Fin n, ∑ y : Fin m → Bool, bscJointLaw cuts p (x, y)) = 1 := by
@@ -1739,6 +1896,7 @@ theorem bscJointLaw_total {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool
   have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hn)
   field_simp
 
+/-- The left marginal of the adaptive binary joint law is the uniform weight `1 / n`. -/
 theorem bscJointLaw_margL {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (x : Fin n) :
     margL (bscJointLaw cuts p) x = 1 / (n : ℝ) := by
@@ -1748,6 +1906,8 @@ theorem bscJointLaw_margL {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool
   rw [sum_const_mul, h1]
   simp
 
+/-- An empty binary transcript has zero mutual information with a uniform hidden cell for `0 ≤ p
+≤ 1` and `n > 0`. -/
 theorem bscMutInfo_zero {n : ℕ} (cuts : ∀ i : Fin 0, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) : bscMutInfo cuts p = 0 := by
   have hd : ∀ x y, 0 ≤ bscJointLaw cuts p (x, y) := by
@@ -1789,6 +1949,7 @@ theorem bscMutInfo_zero {n : ℕ} (cuts : ∀ i : Fin 0, (Fin i.val → Bool) �
   rw [h, hent, hcond]
   simp
 
+/-- Summing the extended binary joint law over the final answer recovers the prefix joint law. -/
 theorem bscJointLaw_prefix_marginal {n m : ℕ}
     (cuts : ∀ i : Fin (m + 1), (Fin i.val → Bool) → Fin n) (p : ℝ) (x : Fin n)
     (pfx : Fin m → Bool) :
@@ -1813,6 +1974,8 @@ theorem bscJointLaw_prefix_marginal {n m : ℕ}
   simp only [bscJointLaw, bscJointCuts]
   rw [sum_const_mul, hsum]
 
+/-- Splits binary transcript mutual information into prefix information plus the final-answer
+conditional entropy gain. -/
 theorem bscMutInfo_step {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     bscMutInfo cuts p
@@ -1843,6 +2006,8 @@ theorem bscMutInfo_step {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.val → 
     (fun x pfx b => rfl)
   exact h
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the mutual information in `m` adaptive binary answers is at
+most `m * queryInfo p`. -/
 theorem bscMutInfo_le {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) → Fin n)
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     bscMutInfo cuts p ≤ (m : ℝ) * queryInfo p := by
@@ -1890,6 +2055,7 @@ theorem bscMutInfo_le {n m : ℕ} (cuts : ∀ i : Fin m, (Fin i.val → Bool) �
             simp only [Nat.cast_succ]
             ring
 
+/-- The binary program error probability is nonnegative for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem bscErrorProb_nonneg {n k : ℕ} (prog : BscProgram n k) {p : ℝ} (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) (hn : 0 < n) : 0 ≤ bscErrorProb prog p := by
   have hkey : ∀ x y, 0 ≤ bscJoint prog p x y * (if bscError prog x y then 1 else 0) := by
@@ -1898,6 +2064,8 @@ theorem bscErrorProb_nonneg {n k : ℕ} (prog : BscProgram n k) {p : ℝ} (hp0 :
   unfold bscErrorProb
   exact Finset.sum_nonneg fun x _ => Finset.sum_nonneg fun y _ => hkey x y
 
+/-- Expresses binary program error as the joint-law weighted indicator that the decoder differs
+from the hidden cell. -/
 theorem bscErrorProb_eq_fano_error {n k : ℕ} (prog : BscProgram n k) (p : ℝ) :
     bscErrorProb prog p
       = ∑ y : Fin k → Bool, ∑ x : Fin n, bscJointLaw prog.cuts p (x, y)
@@ -1930,12 +2098,14 @@ theorem bscErrorProb_eq_fano_error {n k : ℕ} (prog : BscProgram n k) (p : ℝ)
     _ = ∑ y : Fin k → Bool, ∑ x : Fin n, bscJointLaw prog.cuts p (x, y)
           * (if prog.guess y = x then 0 else 1) := rfl
 
+/-- The information per query is positive for `1 / 2 < p ≤ 1`, including the noiseless endpoint. -/
 theorem clause17_queryInfo_pos_of {p : ℝ} (hp : 1 / 2 < p) (hp1 : p ≤ 1) : 0 < queryInfo p := by
   rcases lt_or_eq_of_le hp1 with hlt | heq
   · exact clause17_queryInfo_pos hp hlt
   · rw [heq, clause17_queryInfo_one]
     norm_num
 
+/-- Binary entropy is monotone on the interval `[0, 1 / 2]`. -/
 theorem clause17_binEntropy_mono {a b : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1 / 2)
     (hb0 : 0 ≤ b) (hb1 : b ≤ 1 / 2) (hab : a ≤ b) : binEntropy a ≤ binEntropy b := by
   have hma : a ∈ Set.Icc (0 : ℝ) (2 : ℝ)⁻¹ := by
@@ -1953,6 +2123,9 @@ theorem clause17_binEntropy_mono {a b : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1 / 2)
   rw [clause17_binEntropy_eq_mathlib, clause17_binEntropy_eq_mathlib]
   exact h1
 
+/-- A binary program with at least two hidden cells, `1 / 2 < p ≤ 1`, and actual error at most
+one half uses at least the corresponding Fano capacity bound in comparisons
+[BenOrHassidim2007]. -/
 theorem clause17_same_run_comparison_lower_bound_actual {n k : ℕ} (hn : 2 ≤ n)
     (prog : BscProgram n k) {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hp : 1 / 2 < p)
     (hε1 : bscErrorProb prog p ≤ 1 / 2) :
@@ -1982,6 +2155,8 @@ theorem clause17_same_run_comparison_lower_bound_actual {n k : ℕ} (hn : 2 ≤ 
   rw [div_le_iff₀ hqi]
   exact hnum
 
+/-- A binary program with error at most `δ ≤ 1 / 2` and `1 / 2 < p ≤ 1` uses at least
+`fanoCapacityBound n p δ` comparisons when `n ≥ 2` [BenOrHassidim2007]. -/
 theorem clause17_same_run_comparison_lower_bound {n k : ℕ} (hn : 2 ≤ n)
     (prog : BscProgram n k) {p δ : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hp : 1 / 2 < p)
     (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2) (herr : bscErrorProb prog p ≤ δ) :
@@ -2019,6 +2194,8 @@ theorem clause17_same_run_comparison_lower_bound {n k : ℕ} (hn : 2 ≤ n)
     exact hnum
   exact hfin
 
+/-- Establishes `FanoCapacitySmallN` for at most one hidden cell, `1 / 2 < p ≤ 1`, and `0 ≤ δ ≤
+1`. -/
 theorem clause17_capacity_small_n {n : ℕ} (hn : n ≤ 1) {p δ : ℝ} (hp : 1 / 2 < p)
     (hp1 : p ≤ 1) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1) :
     FanoCapacitySmallN n p δ := by
@@ -2043,12 +2220,14 @@ theorem clause17_capacity_small_n {n : ℕ} (hn : n ≤ 1) {p δ : ℝ} (hp : 1 
   rw [hlog1, hlog0]
   linarith
 
+/-- At `p = 1`, the Fano capacity bound equals its numerator. -/
 theorem clause17_capacity_at_p_one {n : ℕ} (δ : ℝ) :
     fanoCapacityBound n 1 δ = fanoNumerator n δ := by
   unfold fanoCapacityBound
   rw [clause17_queryInfo_one]
   simp
 
+/-- For two hidden cells, the Fano numerator is `1 - binEntropy δ`. -/
 theorem clause17_fanoNumerator_two (δ : ℝ) :
     fanoNumerator 2 δ = 1 - binEntropy δ := by
   unfold fanoNumerator
@@ -2062,6 +2241,8 @@ theorem clause17_fanoNumerator_two (δ : ℝ) :
   rw [hL2, hL1]
   ring
 
+/-- The two-cell capacity expression at correctness `3 / 4` and error parameter `9 / 10` is
+strictly greater than one. -/
 theorem clause17_capacity_at_delta_nine_tenths :
     1 < fanoCapacityBound 2 (3 / 4 : ℝ) (9 / 10 : ℝ) := by
   have hmono : Real.binEntropy (1 / 10 : ℝ) < Real.binEntropy (1 / 4 : ℝ) := by
@@ -2092,6 +2273,7 @@ theorem clause17_capacity_at_delta_nine_tenths :
   rw [hq]
   linarith
 
+/-- Binary entropy is strictly increasing on the interval `[0, 1 / 2]`. -/
 theorem clause17_binEntropy_mono_strict {a b : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1 / 2)
     (hb0 : 0 ≤ b) (hb1 : b ≤ 1 / 2) (hab : a < b) : binEntropy a < binEntropy b := by
   have hma : a ∈ Set.Icc (0 : ℝ) (2 : ℝ)⁻¹ := by
@@ -2107,6 +2289,7 @@ theorem clause17_binEntropy_mono_strict {a b : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤
   rw [clause17_binEntropy_eq_mathlib, clause17_binEntropy_eq_mathlib]
   exact (div_lt_div_iff_of_pos_right hlog2).2 hmono
 
+/-- Binary entropy at `9 / 10` is strictly less than binary entropy at `3 / 4`. -/
 theorem clause17_binEntropy_nine_tenths_lt_three_quarters :
     binEntropy (9 / 10 : ℝ) < binEntropy (3 / 4 : ℝ) := by
   have hsym := clause17_binEntropy_symmetry (9 / 10 : ℝ)
@@ -2120,6 +2303,8 @@ theorem clause17_binEntropy_nine_tenths_lt_three_quarters :
   exact clause17_binEntropy_mono_strict (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (by norm_num)
 
+/-- Binary entropy at `1 / 2` exceeds binary entropy at `9 / 10`, exhibiting failure of
+monotonicity beyond one half. -/
 theorem clause17_delta_form_monotonicity_fails :
     binEntropy (1 / 2 : ℝ) > binEntropy (9 / 10 : ℝ) := by
   have h1 : binEntropy (1 / 4 : ℝ) < binEntropy (1 / 2 : ℝ) :=
@@ -2131,6 +2316,8 @@ theorem clause17_delta_form_monotonicity_fails :
     norm_num
   linarith [h1, h2, clause17_binEntropy_nine_tenths_lt_three_quarters]
 
+/-- The cost-one, success-`3 / 4` experiment contradicts using the two-cell capacity expression
+at error parameter `9 / 10` as its cost lower bound. -/
 theorem clause17_large_delta_form_is_refuted {truth : Bool} :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (oneComparison truth) = 1 ∧
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (oneComparison truth) (fun x => x.1 = truth) = (3 / 4 : ℝ≥0∞) ∧
@@ -2138,6 +2325,7 @@ theorem clause17_large_delta_form_is_refuted {truth : Bool} :
   exact ⟨clause17_one_comparison_cost, clause17_one_comparison_success,
     clause17_capacity_at_delta_nine_tenths⟩
 
+/-- A cyclic shift of normalized report weights remains normalized. -/
 theorem cycProb_sum_one {k : ℕ} (p : Fin (k + 1) → ℝ) (hs : (∑ h, p h) = 1)
     (s : Fin (k + 1)) : (∑ h, cycProb p s h) = 1 := by
   unfold cycProb
@@ -2147,6 +2335,7 @@ theorem cycProb_sum_one {k : ℕ} (p : Fin (k + 1) → ℝ) (hs : (∑ h, p h) =
     exact he
   rw [hshift, hs]
 
+/-- A cyclic shift of report weights preserves entropy. -/
 theorem entH_cycProb {k : ℕ} (p : Fin (k + 1) → ℝ) (s : Fin (k + 1)) :
     entH (fun h => cycProb p s h) = entH p := by
   unfold entH xlog2 cycProb
@@ -2156,11 +2345,14 @@ theorem entH_cycProb {k : ℕ} (p : Fin (k + 1) → ℝ) (s : Fin (k + 1)) :
     (fun h => p h * (Real.log (p h) / Real.log 2)) (fun h => rfl)
   exact he
 
+/-- The cyclic information expression equals `log₂ (k + 1)` minus report entropy. -/
 theorem multiInfo_eq_entH {k : ℕ} (p : Fin (k + 1) → ℝ) :
     multiInfo p = Real.log (k + 1) / Real.log 2 - entH p := by
   unfold multiInfo entH xlog2
   rw [Finset.sum_neg_distrib]
 
+/-- Factors a cyclic transcript likelihood into its prefix likelihood and the final shifted
+report weight. -/
 theorem cycLikCuts_split {n m k : ℕ}
     (sig : ∀ i : Fin (m + 1), (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (x : Fin n) (pfx : Fin m → Fin (k + 1)) (b : Fin (k + 1)) :
@@ -2187,6 +2379,7 @@ theorem cycLikCuts_split {n m k : ℕ}
     rw [h1, h2]
   rw [hlast]
 
+/-- Cyclic transcript likelihoods are nonnegative when the report weights are nonnegative. -/
 theorem cycLikCuts_nonneg {n m k : ℕ}
     (sig : ∀ i : Fin m, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (x : Fin n) (y : Fin m → Fin (k + 1)) :
@@ -2194,6 +2387,8 @@ theorem cycLikCuts_nonneg {n m k : ℕ}
   unfold cycLikCuts cycProb
   exact Finset.prod_nonneg fun i _ => hp _
 
+/-- Cyclic joint weights are nonnegative for nonnegative report weights and a nonempty
+hidden-cell space. -/
 theorem cycJointCuts_nonneg {n m k : ℕ}
     (sig : ∀ i : Fin m, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (hn : 0 < n) (x : Fin n)
@@ -2202,6 +2397,8 @@ theorem cycJointCuts_nonneg {n m k : ℕ}
   have h1 : (0 : ℝ) ≤ 1 / (n : ℝ) := by positivity
   exact mul_nonneg h1 (cycLikCuts_nonneg sig p hp x y)
 
+/-- For normalized report weights, cyclic transcript likelihoods sum to one for every hidden
+cell. -/
 theorem cycLikCuts_sum_one {n m k : ℕ}
     (sig : ∀ i : Fin m, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hs : (∑ h, p h) = 1) (x : Fin n) :
@@ -2238,6 +2435,7 @@ theorem cycLikCuts_sum_one {n m k : ℕ}
       rw [Finset.sum_congr rfl (fun pfx _ => hsum pfx)]
       exact ih (fun j => sig (j.castSucc))
 
+/-- Cyclic joint weights sum to one for normalized report weights and `n > 0`. -/
 theorem cycJointCuts_total {n m k : ℕ}
     (sig : ∀ i : Fin m, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hs : (∑ h, p h) = 1) (hn : 0 < n) :
@@ -2258,6 +2456,8 @@ theorem cycJointCuts_total {n m k : ℕ}
   have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hn)
   field_simp
 
+/-- The left marginal of the cyclic transcript joint law is the uniform weight `1 / n` when the
+report weights sum to one. -/
 theorem cycJointLaw_margL {n m k : ℕ}
     (sig : ∀ i : Fin m, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hs : (∑ h, p h) = 1) (x : Fin n) :
@@ -2268,6 +2468,8 @@ theorem cycJointLaw_margL {n m k : ℕ}
   rw [sum_const_mul, h1]
   simp
 
+/-- Summing a cyclic joint weight over the final report recovers its prefix joint weight for
+normalized report weights. -/
 theorem cycJointCuts_prefix_marginal {n m k : ℕ}
     (sig : ∀ i : Fin (m + 1), (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hs : (∑ h, p h) = 1) (x : Fin n)
@@ -2290,6 +2492,8 @@ theorem cycJointCuts_prefix_marginal {n m k : ℕ}
   simp only [cycJointCuts]
   rw [sum_const_mul, hsum]
 
+/-- Conditional entropy under normalized nonnegative joint weights is at most the base-two
+logarithm of the nonempty right alphabet's cardinality. -/
 theorem condEntH_le_log_card {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i b, 0 ≤ d (i, b)) (htot : ∑ i, ∑ b, d (i, b) = 1)
     (hcard : 0 < Fintype.card β) :
@@ -2330,6 +2534,8 @@ theorem condEntH_le_log_card {α β : Type} [Fintype α] [Fintype β] (d : α ×
         rw [Finset.sum_congr rfl (fun i _ => mul_comm _ _)]
     _ = Real.log (Fintype.card β : ℝ) / Real.log 2 := by rw [hmass]; ring
 
+/-- An empty cyclic transcript has zero mutual information for nonnegative normalized report
+weights and `n > 0`. -/
 theorem cycSigMutInfo_zero {n k : ℕ}
     (sig : ∀ i : Fin 0, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (hs : (∑ h, p h) = 1) (hn : 0 < n) :
@@ -2373,6 +2579,8 @@ theorem cycSigMutInfo_zero {n k : ℕ}
   rw [h, hent, hcond]
   simp
 
+/-- Given the hidden cell and prefix, the final cyclic report has the entropy of the report
+weights when they are nonnegative and normalized and `n > 0`. -/
 theorem condEntH_cycJointPost {n m k : ℕ}
     (sig : ∀ i : Fin (m + 1), (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (hs : (∑ h, p h) = 1) (hn : 0 < n) :
@@ -2495,6 +2703,8 @@ theorem condEntH_cycJointPost {n m k : ℕ}
   rw [hmass]
   ring
 
+/-- For nonnegative normalized report weights and `n > 0`, splits cyclic transcript mutual
+information into prefix information and the final-report conditional entropy gain. -/
 theorem cycSigMutInfo_step {n m k : ℕ}
     (sig : ∀ i : Fin (m + 1), (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (hs : (∑ h, p h) = 1) (hn : 0 < n) :
@@ -2529,6 +2739,8 @@ theorem cycSigMutInfo_step {n m k : ℕ}
     (fun x pfx b => rfl)
   exact h
 
+/-- For nonnegative normalized report weights and `n > 0`, the information in `m` cyclic reports
+is at most `m * multiInfo p`. -/
 theorem cycSigMutInfo_le {n m k : ℕ}
     (sig : ∀ i : Fin m, (Fin i.val → Fin (k + 1)) → Fin n → Fin (k + 1))
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (hs : (∑ h, p h) = 1) (hn : 0 < n) :
@@ -2580,6 +2792,8 @@ theorem cycSigMutInfo_le {n m k : ℕ}
             simp only [Nat.cast_succ]
             ring
 
+/-- The cyclic program error probability is nonnegative for nonnegative report weights and `n >
+0`. -/
 theorem cycErrorProb_nonneg {n m k : ℕ} (prog : CycProgram n m k)
     (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h) (hn : 0 < n) : 0 ≤ cycErrorProb prog p := by
   have hkey : ∀ x y, 0 ≤ cycJointLaw prog.sig p (x, y)
@@ -2589,6 +2803,8 @@ theorem cycErrorProb_nonneg {n m k : ℕ} (prog : CycProgram n m k)
   unfold cycErrorProb
   exact Finset.sum_nonneg fun x _ => Finset.sum_nonneg fun y _ => hkey x y
 
+/-- Expresses cyclic program error as the joint-law weighted indicator that the decoder differs
+from the hidden cell. -/
 theorem cycErrorProb_eq_fano_error {n m k : ℕ} (prog : CycProgram n m k)
     (p : Fin (k + 1) → ℝ) :
     cycErrorProb prog p
@@ -2619,6 +2835,9 @@ theorem cycErrorProb_eq_fano_error {n m k : ℕ} (prog : CycProgram n m k)
     _ = ∑ y : Fin m → Fin (k + 1), ∑ x : Fin n,
         cycJointLaw prog.sig p (x, y) * (if prog.guess y = x then 0 else 1) := rfl
 
+/-- With nonnegative normalized report weights and positive `multiInfo p`, a cyclic program on
+at least two hidden cells with actual error at most one half uses at least the corresponding
+cyclic capacity bound in comparisons. -/
 theorem cyc_same_run_comparison_lower_bound_actual {n m k : ℕ} (hn : 2 ≤ n)
     (prog : CycProgram n m k) (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h)
     (hs : (∑ h, p h) = 1) (hmi : 0 < multiInfo p)
@@ -2647,6 +2866,9 @@ theorem cyc_same_run_comparison_lower_bound_actual {n m k : ℕ} (hn : 2 ≤ n)
   rw [div_le_iff₀ hmi]
   exact hnum
 
+/-- With nonnegative normalized report weights and positive `multiInfo p`, a cyclic program on
+at least two hidden cells with error at most `0 ≤ δ ≤ 1 / 2` uses at least `cycCapacityBound
+n k p δ` comparisons. -/
 theorem cyc_same_run_comparison_lower_bound {n m k : ℕ} (hn : 2 ≤ n)
     (prog : CycProgram n m k) (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h)
     (hs : (∑ h, p h) = 1) (hmi : 0 < multiInfo p)
@@ -2684,12 +2906,14 @@ theorem cyc_same_run_comparison_lower_bound {n m k : ℕ} (hn : 2 ≤ n)
   unfold cycCapacityBound
   exact hfin
 
+/-- The entropy of the two weights `p` and `1 - p` equals `binEntropy p`. -/
 theorem entH_bin_pair (p : ℝ) :
     entH (fun h : Fin 2 => if h.val = 0 then p else 1 - p) = binEntropy p := by
   unfold entH xlog2 binEntropy
   rw [Fin.sum_univ_two]
   simp
 
+/-- The cyclic information expression for the two weights `p` and `1 - p` equals `queryInfo p`. -/
 theorem multiInfo_bin_pair (p : ℝ) :
     multiInfo (fun h : Fin 2 => if h.val = 0 then p else 1 - p) = queryInfo p := by
   have hlog2 : Real.log 2 ≠ 0 := (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne'
@@ -2698,6 +2922,7 @@ theorem multiInfo_bin_pair (p : ℝ) :
   field_simp
   ring_nf
 
+/-- The entropy of uniform weights on `Fin (k + 1)` equals `log₂ (k + 1)`. -/
 theorem entH_uniform {k : ℕ} :
     entH (fun _ : Fin (k + 1) => 1 / ((k + 1 : ℕ) : ℝ)) = Real.log (k + 1) / Real.log 2 := by
   unfold entH xlog2
@@ -2711,11 +2936,14 @@ theorem entH_uniform {k : ℕ} :
   rw [hlog]
   field_simp
 
+/-- Uniform cyclic report weights have zero `multiInfo`. -/
 theorem multiInfo_uniform_zero {k : ℕ} :
     multiInfo (fun _ : Fin (k + 1) => 1 / ((k + 1 : ℕ) : ℝ)) = 0 := by
   rw [multiInfo_eq_entH, entH_uniform]
   ring
 
+/-- For at most one hidden cell, positive cyclic information, and `0 ≤ δ ≤ 1`, the cyclic
+capacity expression is nonpositive. -/
 theorem cyc_capacity_small_n {n k : ℕ} (hn : n ≤ 1) (p : Fin (k + 1) → ℝ) (δ : ℝ)
     (hmi : 0 < multiInfo p) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1) :
     cycCapacityBound n k p δ ≤ 0 := by
@@ -2738,6 +2966,9 @@ theorem cyc_capacity_small_n {n k : ℕ} (hn : n ≤ 1) (p : Fin (k + 1) → ℝ
   rw [hlog1, hlog0]
   linarith
 
+/-- For a cyclic program with nonnegative normalized report weights, positive information, at
+least two hidden cells, and error at most `0 ≤ δ ≤ 1 / 2`, establishes the query-information
+and same-run contracts together with the cyclic capacity lower bound [BenOrHassidim2007]. -/
 theorem clause17_multiway_contract {n m k : ℕ} (hn : 2 ≤ n)
     (prog : CycProgram n m k) (p : Fin (k + 1) → ℝ) (hp : ∀ h, 0 ≤ p h)
     (hs : (∑ h, p h) = 1) (hmi : 0 < multiInfo p) {δ : ℝ} (hδ0 : 0 ≤ δ)
@@ -2752,6 +2983,8 @@ theorem clause17_multiway_contract {n m k : ℕ} (hn : 2 ≤ n)
     exact cyc_same_run_comparison_lower_bound hn prog p hp hs hmi hδ0 hδ1 hderr
   · exact cyc_same_run_comparison_lower_bound hn prog p hp hs hmi hδ0 hδ1 herr
 
+/-- For `0 ≤ p ≤ 1`, the quantum step probability equals the binary symmetric channel
+probability for the comparison truth bit. -/
 theorem clause17_quantum_step_prob {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (x : Fin n) (b : Bool) :
     qStepProb rank p x b = bscProb p (truthBit rank x) b := by
@@ -2771,6 +3004,7 @@ theorem clause17_quantum_step_prob {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 : 0 �
   unfold bscProb
   exact clause16_backend_bsc_law p hp0 hp1 (truthBit rank x) b
 
+/-- Quantum step probabilities sum to one over Boolean answers when `0 ≤ p ≤ 1`. -/
 theorem clause17_quantum_step_prob_sum {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) (x : Fin n) : ∑ b, qStepProb rank p x b = 1 := by
   rw [Fintype.sum_bool]
@@ -2780,6 +3014,8 @@ theorem clause17_quantum_step_prob_sum {n : ℕ} (rank : Fin n) (p : ℝ) (hp0 :
     cases h : truthBit rank x <;> simp [bscProb]
   linarith
 
+/-- For `0 ≤ p ≤ 1`, a `QuantumQueryProgram` has the same transcript likelihood as its
+associated binary program. -/
 theorem clause17_quantum_transcript_law {n q : ℕ} (prog : QuantumQueryProgram n q) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (rank : Fin n) (y : Fin q → Bool) :
     qLik prog p rank y = bscLik (toBscProg prog) p rank y := by
@@ -2789,12 +3025,16 @@ theorem clause17_quantum_transcript_law {n q : ℕ} (prog : QuantumQueryProgram 
   rw [clause17_quantum_step_prob rank p hp0 hp1 (prog.cuts i (answerPrefix y i)) (y i)]
   rfl
 
+/-- For `0 ≤ p ≤ 1`, a `QuantumQueryProgram` has the same joint weights as its associated binary
+program. -/
 theorem clause17_quantum_joint_law {n q : ℕ} (prog : QuantumQueryProgram n q) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (rank : Fin n) (y : Fin q → Bool) :
     qJoint prog p rank y = bscJoint (toBscProg prog) p rank y := by
   unfold qJoint bscJoint
   rw [clause17_quantum_transcript_law prog p hp0 hp1 rank y]
 
+/-- For `0 ≤ p ≤ 1`, a `QuantumQueryProgram` has the same error probability as its associated
+binary program. -/
 theorem clause17_quantum_error_prob {n q : ℕ} (prog : QuantumQueryProgram n q) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     qErrorProb prog p = bscErrorProb (toBscProg prog) p := by
@@ -2806,6 +3046,8 @@ theorem clause17_quantum_error_prob {n q : ℕ} (prog : QuantumQueryProgram n q)
   rw [clause17_quantum_joint_law prog p hp0 hp1 x y]
   rfl
 
+/-- Establishes `QuantumQueryLowerBound` for the specified `QuantumQueryProgram` when `n ≥ 2`,
+`1 / 2 < p ≤ 1`, and its error is at most `0 ≤ δ ≤ 1 / 2` [BenOrHassidim2007]. -/
 theorem clause17_quantum_query_lower_bound {n q : ℕ} (hn : 2 ≤ n)
     (prog : QuantumQueryProgram n q) {p δ : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hp : 1 / 2 < p)
     (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2) (herr : qErrorProb prog p ≤ δ) :
@@ -2816,6 +3058,9 @@ theorem clause17_quantum_query_lower_bound {n q : ℕ} (hn : 2 ≤ n)
   have h := clause17_same_run_comparison_lower_bound hn (toBscProg prog) hp0 hp1 hp hδ0 hδ1 herr'
   exact h
 
+/-- Under the stated backend and error hypotheses, gives the program's query lower bound,
+preserves the backend proposition, and identifies its error with that of its associated
+binary program. -/
 theorem clause17_quantum_scope {n q : ℕ} (hn : 2 ≤ n) {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (hp : 1 / 2 < p) (hbackend : QuantumQueryBackend n p)
     (prog : QuantumQueryProgram n q) {δ : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2)
@@ -2825,6 +3070,7 @@ theorem clause17_quantum_scope {n q : ℕ} (hn : 2 ≤ n) {p : ℝ} (hp0 : 0 ≤
   refine ⟨clause17_quantum_query_lower_bound hn prog hp0 hp1 hp hδ0 hδ1 herr, hbackend, ?_⟩
   exact clause17_quantum_error_prob prog p hp0 hp1
 
+/-- Establishes `QuantumQueryBackend` for every `0 ≤ p ≤ 1`. -/
 theorem clause17_quantum_backend_holds {n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     QuantumQueryBackend n p := by
   refine ⟨hp0, hp1, ?_, ?_, ?_⟩
@@ -2835,6 +3081,8 @@ theorem clause17_quantum_backend_holds {n : ℕ} (p : ℝ) (hp0 : 0 ≤ p) (hp1 
   · intro rank x
     exact clause17_quantum_step_prob_sum rank p hp0 hp1 x
 
+/-- Computes the legal noise rotation at `p = 16 / 25` and false truth bit, with diagonal
+entries `4 / 5` and off-diagonal entries `-3 / 5` and `3 / 5`. -/
 theorem clause17_legal_rotation_at_source_parameters :
     noiseRotation (16 / 25 : ℝ) false 0 0 = (4 / 5 : ℂ) ∧
       noiseRotation (16 / 25 : ℝ) false 0 1 = -(3 / 5 : ℂ) ∧
@@ -2856,6 +3104,7 @@ theorem clause17_legal_rotation_at_source_parameters :
   · simp [noiseRotation, h9']
   · simp [noiseRotation, h16]
 
+/-- Computes the printed oracle entries as `4 / 5` on the diagonal and `3 / 5` off the diagonal. -/
 theorem clause17_printed_oracle_at_source_parameters :
     printedOracle 0 0 = (4 / 5 : ℂ) ∧ printedOracle 0 1 = (3 / 5 : ℂ) ∧
       printedOracle 1 0 = (3 / 5 : ℂ) ∧ printedOracle 1 1 = (4 / 5 : ℂ) := by
@@ -2867,6 +3116,8 @@ theorem clause17_printed_oracle_at_source_parameters :
   · simp [printedOracle]
   · simp [printedOracle]
 
+/-- The first column of the legal rotation at `p = 16 / 25` and false truth bit equals the first
+column of the printed oracle. -/
 theorem clause17_legal_rotation_agrees_with_printed_on_truth_state :
     (noiseRotation (16 / 25 : ℝ) false 0 0, noiseRotation (16 / 25 : ℝ) false 1 0)
       = (printedOracle 0 0, printedOracle 1 0) := by
@@ -2874,6 +3125,8 @@ theorem clause17_legal_rotation_agrees_with_printed_on_truth_state :
   obtain ⟨p00, p01, p10, p11⟩ := clause17_printed_oracle_at_source_parameters
   rw [h00, h10, p00, p10]
 
+/-- Both the squared norm of the printed oracle's upper-left entry and the legal backend's
+correct-answer probability equal `16 / 25`. -/
 theorem clause17_source_reliability_is_preserved :
     Complex.normSq (printedOracle 0 0) = 16 / 25 ∧
       noiseAnswerProb (16 / 25 : ℝ) false false = 16 / 25 := by
@@ -2884,21 +3137,25 @@ theorem clause17_source_reliability_is_preserved :
   · rw [clause16_backend_bsc_law (16 / 25) (by norm_num) (by norm_num) false false]
     simp
 
+/-- The printed oracle fails the unitary identity `U† U = 1`. -/
 theorem clause17_printed_oracle_is_not_a_backend :
     printedOracle.conjTranspose * printedOracle ≠ 1 :=
   clause16_printed_oracle_is_not_unitary
 
+/-- The stopping cost of every transcript is nonnegative. -/
 theorem clause17_stop_cost_nonneg {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool) :
     0 ≤ stopCost prog y := by
   unfold stopCost
   exact Nat.cast_nonneg _
 
+/-- Binary transcript marginal weights are nonnegative for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_transcript_marginal_nonneg {n k : ℕ} (prog : BscProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (y : Fin k → Bool) :
     0 ≤ bscTransMarginal prog p y := by
   unfold bscTransMarginal
   exact Finset.sum_nonneg fun x _ => bscJoint_nonneg prog p hp0 hp1 hn x y
 
+/-- Binary transcript marginal weights sum to one when `n > 0`. -/
 theorem clause17_transcript_marginal_sum_one {n k : ℕ} (prog : BscProgram n k) (p : ℝ)
     (hn : 0 < n) :
     (∑ y, bscTransMarginal prog p y) = 1 := by
@@ -2917,6 +3174,8 @@ theorem clause17_transcript_marginal_sum_one {n k : ℕ} (prog : BscProgram n k)
           rw [Finset.sum_congr rfl (fun x _ => Finset.sum_congr rfl (fun y _ => hkey x y))]
     _ = 1 := bscJointLaw_total prog.cuts p hn
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the expected stopping cost is at most the transcript length
+`k`. -/
 theorem clause17_expected_cost_le_k {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     expectedStopCost prog p ≤ (k : ℝ) := by
@@ -2945,6 +3204,8 @@ theorem clause17_expected_cost_le_k {n k : ℕ} (prog : BscStopProgram n k) (p :
             rw [Finset.mul_sum]
     _ = (k : ℝ) := by rw [hsum]; ring
 
+/-- For `0 ≤ p ≤ 1`, `n > 0`, and `t > 0`, the stopping-cost tail probability is at most the
+expected cost divided by `t`. -/
 theorem clause17_expected_cost_tail_bound {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) {t : ℝ} (ht : 0 < t) :
     stopTailProb prog p t ≤ expectedStopCost prog p / t := by
@@ -2979,6 +3240,8 @@ theorem clause17_expected_cost_tail_bound {n k : ℕ} (prog : BscStopProgram n k
   rw [le_div_iff₀ ht]
   linarith
 
+/-- For positive expected stopping cost and `0 < b < c`, the tail at `(c / b)` times the
+expectation is at most `b / c`, under valid binary channel parameters and `n > 0`. -/
 theorem clause17_cost_tail_probability {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) {b c : ℝ} (hb : 0 < b) (hc : b < c)
     (hE : 0 < expectedStopCost prog p) :
@@ -2991,6 +3254,8 @@ theorem clause17_cost_tail_probability {n k : ℕ} (prog : BscStopProgram n k) (
   rw [hdiv] at hbound
   exact hbound
 
+/-- If a stopping program always guesses the same cell and `n > 0`, its uniform-prior error
+probability is `1 - 1 / n`. -/
 theorem clause17_early_return_error_probability {n k : ℕ} (hn : 0 < n) (prog : BscStopProgram n k)
     (p : ℝ) (g : Fin n) (hguess : ∀ y : Fin k → Bool, prog.guess y = g) :
     stopErrorProb prog p = 1 - 1 / (n : ℝ) := by
@@ -3057,6 +3322,8 @@ theorem clause17_early_return_error_probability {n k : ℕ} (hn : 0 < n) (prog :
     _ = (1 / (n : ℝ)) * ((n : ℝ) - 1) := by rw [hcount]
     _ = 1 - 1 / (n : ℝ) := by field_simp
 
+/-- A noiseless binary program on at least two cells with error at most `0 ≤ δ ≤ 1 / 2` uses at
+least `fanoCapacityBound n 1 δ` comparisons [BenOrHassidim2007]. -/
 theorem clause17_cor27_noiseless_expectation {n k : ℕ} (hn : 2 ≤ n)
     (prog : BscProgram n k) {δ : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2)
     (herr : bscErrorProb prog 1 ≤ δ) :
@@ -3065,6 +3332,8 @@ theorem clause17_cor27_noiseless_expectation {n k : ℕ} (hn : 2 ≤ n)
     (by norm_num) hδ0 hδ1 herr
   exact h
 
+/-- A noiseless binary program that guesses perfectly on at least two cells uses at least `log₂
+n` comparisons [BenOrHassidim2007]. -/
 theorem clause17_cor27_noiseless_perfect_guess {n k : ℕ} (hn : 2 ≤ n)
     (prog : BscProgram n k) (herr : bscErrorProb prog 1 = 0) :
     (k : ℝ) ≥ Real.log (n : ℝ) / Real.log 2 := by
@@ -3082,6 +3351,7 @@ theorem clause17_cor27_noiseless_perfect_guess {n k : ℕ} (hn : 2 ≤ n)
   rw [hqi, hnum] at h
   simpa using! h
 
+/-- The number of indices in `Fin n` strictly below `m` is `min m n`. -/
 theorem clause17_fin_sum_count : ∀ (n m : ℕ), (∑ i : Fin n, (if m > i.val then 1 else 0)) = min m n := by
   intro n
   induction n with
@@ -3122,6 +3392,7 @@ theorem clause17_fin_sum_count : ∀ (n m : ℕ), (∑ i : Fin n, (if m > i.val 
         simp only [Nat.min_def]
         split <;> split <;> omega
 
+/-- If `m ≤ k`, the number of indices in `Fin (k + 1)` strictly below `m` is `m`. -/
 theorem clause17_fin_sum_count_le {k : ℕ} (m : ℕ) (hm : m ≤ k) :
     (∑ i : Fin (k + 1), (if m > i.val then 1 else 0)) = m := by
   have h := clause17_fin_sum_count (k + 1) m
@@ -3129,6 +3400,8 @@ theorem clause17_fin_sum_count_le {k : ℕ} (m : ℕ) (hm : m ≤ k) :
   have hle : m ≤ k + 1 := by omega
   rw [Nat.min_eq_left hle]
 
+/-- A transcript prefix is alive at time `i ≤ k` exactly when the transcript's stopping index is
+greater than `i`. -/
 theorem clause17_stop_alive_of_transcript {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ}
     (hk : i ≤ k) (y : Fin k → Bool) :
     stopAlive prog i (stopPrefix i hk y) ↔ (prog.stop y).val > i := by
@@ -3173,6 +3446,8 @@ theorem clause17_stop_alive_of_transcript {n k : ℕ} (prog : BscStopProgram n k
     · intro _
       omega
 
+/-- Transcripts agreeing before time `i ≤ k` have equivalent alive-prefix predicates at time
+`i`. -/
 theorem clause17_stop_alive_of_prefix {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ}
     (hk : i ≤ k) (y y' : Fin k → Bool)
     (hag : ∀ j : Fin k, j.val < i → y j = y' j) :
@@ -3187,6 +3462,8 @@ theorem clause17_stop_alive_of_prefix {n k : ℕ} (prog : BscStopProgram n k) {i
     exact hag ⟨j.val, lt_of_lt_of_le j.isLt hk⟩ hkey
   rw [hpre]
 
+/-- The expected stopping cost equals the sum of the stopping survival profile over `Fin (k +
+1)`. -/
 theorem clause17_expected_stop_cost_eq_survival {n k : ℕ} (prog : BscStopProgram n k)
     (p : ℝ) :
     expectedStopCost prog p = ∑ i : Fin (k + 1), stopSurvivalProfile prog p i := by
@@ -3228,6 +3505,7 @@ theorem clause17_expected_stop_cost_eq_survival {n k : ℕ} (prog : BscStopProgr
         · have h2 : ¬ ((prog.stop y).val > i.val) := fun hh => h (hiff.mpr hh)
           simp [h, h2]
 
+/-- Each stopping survival-profile value is nonnegative for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_survival_profile_nonneg {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (i : Fin (k + 1)) :
     0 ≤ stopSurvivalProfile prog p i := by
@@ -3238,6 +3516,7 @@ theorem clause17_survival_profile_nonneg {n k : ℕ} (prog : BscStopProgram n k)
   · exact clause17_transcript_marginal_nonneg (stopToBscProg prog) p hp0 hp1 hn y
   · split <;> norm_num
 
+/-- Each stopping survival-profile value is at most one for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_survival_profile_le_one {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (i : Fin (k + 1)) :
     stopSurvivalProfile prog p i ≤ 1 := by
@@ -3256,6 +3535,8 @@ theorem clause17_survival_profile_le_one {n k : ℕ} (prog : BscStopProgram n k)
         · simp [h, hnonneg]
     _ = 1 := by rw [← Finset.sum_mul, hsum]; simp
 
+/-- Summing a weighted equality indicator over its target index evaluates the remaining factor
+at the selected image. -/
 theorem clause17_sum_ite_reindex {α β : Type} [Fintype α] [Fintype β] (f : α → ℝ) (g : α → β)
     (w : α → β → ℝ) :
     (∑ b : β, ∑ a : α, (f a * (if g a = b then 1 else 0)) * w a b) = ∑ a : α, f a * w a (g a) := by
@@ -3285,11 +3566,13 @@ theorem clause17_sum_ite_reindex {α β : Type} [Fintype α] [Fintype β] (f : �
           rw [h2, Fintype.sum_ite_eq]
         rw [h1]
 
+/-- Decoding a padded stopping transcript recovers every answer before its stopping index. -/
 theorem clause17_stop_pad_decode_used {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool)
     (j : Fin k) (hj : j.val < (prog.stop y).val) :
     stopPadDecode (stopPad prog y) j = y j := by
   simp only [stopPadDecode, stopPad, if_pos hj]
 
+/-- Padding, decoding, and padding a stopping transcript again gives the same padded transcript. -/
 theorem clause17_stop_pad_roundtrip {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool) :
     stopPad prog (stopPadDecode (stopPad prog y)) = stopPad prog y := by
   have hstop : prog.stop (stopPadDecode (stopPad prog y)) = prog.stop y := by
@@ -3312,6 +3595,8 @@ theorem clause17_stop_pad_roundtrip {n k : ℕ} (prog : BscStopProgram n k) (y :
     exact clause17_stop_pad_decode_used prog y i hi
   · rw [if_neg hi, if_neg hi]
 
+/-- If the guess depends only on used answers, the used-transcript decoder agrees with the
+original guess on padded transcripts. -/
 theorem clause17_stop_used_guess_eq {n k : ℕ} (prog : BscStopProgram n k)
     (hguess : StopGuessFromUsed prog) (y : Fin k → Bool) :
     stopUsedGuess prog (stopPad prog y) = prog.guess y := by
@@ -3320,6 +3605,8 @@ theorem clause17_stop_used_guess_eq {n k : ℕ} (prog : BscStopProgram n k)
     (clause17_stop_pad_roundtrip prog y).symm
   exact (hguess y (stopPadDecode (stopPad prog y)) hrt).symm
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the joint weights of the hidden cell and padded used transcript
+sum to one. -/
 theorem clause17_stop_used_joint_total {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ x : Fin n, ∑ e : Fin k → (Sum Bool Unit), stopUsedJoint prog p x e) = 1 := by
@@ -3335,6 +3622,8 @@ theorem clause17_stop_used_joint_total {n k : ℕ} (prog : BscStopProgram n k) {
         have h := bscJointLaw_total prog.cuts p hn
         simpa only [bscJointLaw] using! h
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, summing the used-transcript joint weights over transcripts
+gives `1 / n` for each hidden cell. -/
 theorem clause17_stop_used_joint_margL {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (x : Fin n) :
     (∑ e : Fin k → (Sum Bool Unit), stopUsedJoint prog p x e) = 1 / (n : ℝ) := by
@@ -3351,6 +3640,7 @@ theorem clause17_stop_used_joint_margL {n k : ℕ} (prog : BscStopProgram n k) {
         rw [h1]
         simp
 
+/-- Used-transcript joint weights are nonnegative for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_stop_used_joint_nonneg {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (x : Fin n) (e : Fin k → (Sum Bool Unit)) :
     0 ≤ stopUsedJoint prog p x e := by
@@ -3361,6 +3651,8 @@ theorem clause17_stop_used_joint_nonneg {n k : ℕ} (prog : BscStopProgram n k) 
   · exact bscJointCuts_nonneg prog.cuts p hp0 hp1 hn x y
   · split <;> norm_num
 
+/-- When the guess depends only on used answers, the stopping error equals the used-transcript
+joint-law error of `stopUsedGuess`. -/
 theorem clause17_stop_error_eq_used_error {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hguess : StopGuessFromUsed prog) :
     stopErrorProb prog p
@@ -3421,6 +3713,9 @@ theorem clause17_stop_error_eq_used_error {n k : ℕ} (prog : BscStopProgram n k
           by_cases h : prog.guess y = x <;> simp [h]
   exact hRHS.symm
 
+/-- For at least two hidden cells and `0 ≤ p ≤ 1`, a stopping program whose guess uses only
+observed answers and whose error is at most one half has used-transcript information at
+least its actual-error Fano numerator. -/
 theorem clause17_stop_used_fano_actual {n k : ℕ} (hn : 2 ≤ n) (prog : BscStopProgram n k)
     {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hguess : StopGuessFromUsed prog)
     (herr1 : stopErrorProb prog p ≤ 1 / 2) :
@@ -3458,6 +3753,9 @@ theorem clause17_stop_used_fano_actual {n k : ℕ} (hn : 2 ≤ n) (prog : BscSto
   rw [hmi]
   linarith
 
+/-- For at least two hidden cells and `0 ≤ p ≤ 1`, a stopping program with a guess based on used
+answers and error at most `0 ≤ δ ≤ 1 / 2` has used-transcript information at least
+`fanoNumerator n δ`. -/
 theorem clause17_stop_used_fano {n k : ℕ} (hn : 2 ≤ n) (prog : BscStopProgram n k)
     {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hguess : StopGuessFromUsed prog)
     {δ : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2) (herr : stopErrorProb prog p ≤ δ) :
@@ -3489,6 +3787,8 @@ theorem clause17_stop_used_fano {n k : ℕ} (hn : 2 ≤ n) (prog : BscStopProgra
   unfold fanoNumerator at hactual' ⊢
   linarith [hbin, hmul]
 
+/-- The transcript prefix is independent of the proof that its length is bounded by the full
+length. -/
 theorem tPrefix_irrel {k i : ℕ} (h1 h2 : i ≤ k) {α : Type} (y : Fin k → α) :
     tPrefix i h1 y = tPrefix i h2 y := by
   funext j
@@ -3496,6 +3796,7 @@ theorem tPrefix_irrel {k i : ℕ} (h1 h2 : i ≤ k) {α : Type} (y : Fin k → �
   apply Fin.ext
   rfl
 
+/-- The prefix of an adaptive cut family is independent of the proof of the length bound. -/
 theorem cutsPrefix_irrel {n k i : ℕ}
     (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n) (h1 h2 : i ≤ k) :
     cutsPrefix i cuts h1 = cutsPrefix i cuts h2 := by
@@ -3505,6 +3806,7 @@ theorem cutsPrefix_irrel {n k i : ℕ}
       = cuts ⟨j.val, lt_of_lt_of_le j.isLt h2⟩ c
   congr 1
 
+/-- Taking a prefix no longer than the original transcript ignores an appended final value. -/
 theorem tPrefix_tExt_prefix {k i : ℕ} (hk : i ≤ k + 1) (hki : i ≤ k) {α : Type}
     (pfx : Fin k → α) (b : α) :
     tPrefix i hk (tExt pfx b) = tPrefix i hki pfx := by
@@ -3519,6 +3821,8 @@ theorem tPrefix_tExt_prefix {k i : ℕ} (hk : i ≤ k + 1) (hki : i ≤ k) {α :
   rw [hcast]
   simp [tExt, hne]
 
+/-- Taking a cut-family prefix commutes with first removing the last cut, provided the requested
+prefix fits. -/
 theorem cutsPrefix_pre {n k i : ℕ}
     (cuts : ∀ j : Fin (k + 1), (Fin j.val → Bool) → Fin n) (hki : i ≤ k) (hki1 : i ≤ k + 1) :
     cutsPrefix i (cutsPre cuts) hki = cutsPrefix i cuts hki1 := by
@@ -3528,6 +3832,7 @@ theorem cutsPrefix_pre {n k i : ℕ}
       = cuts ⟨j.val, lt_of_lt_of_le j.isLt hki1⟩ c
   congr 1
 
+/-- Taking the full-length prefix of an adaptive cut family returns the original family. -/
 theorem cutsPrefix_full {n k : ℕ}
     (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n) (hk : k ≤ k) :
     cutsPrefix k cuts hk = cuts := by
@@ -3536,6 +3841,8 @@ theorem cutsPrefix_full {n k : ℕ}
   change cuts ⟨j.val, lt_of_lt_of_le j.isLt hk⟩ c = cuts j c
   congr 1
 
+/-- Splits the weight sum over a fixed transcript prefix into shorter transcripts with that
+prefix and their final values. -/
 theorem sumOverPrefix_last_split {k' i : ℕ} {α : Type}
     [Fintype α] [DecidableEq α] (g : (Fin (k' + 1) → α) → ℝ) (w : Fin i → α)
     (hk : i ≤ k' + 1) (hki : i ≤ k') :
@@ -3571,6 +3878,8 @@ theorem sumOverPrefix_last_split {k' i : ℕ} {α : Type}
     rw [Finset.sum_congr rfl (fun b _ => h1 b)]
     simp [hc]
 
+/-- Summing full binary transcript likelihoods over extensions of a fixed prefix gives that
+prefix's likelihood under the restricted cuts. -/
 theorem clause17_bsc_prefix_marginal {n : ℕ} (k : ℕ) :
     ∀ (i : ℕ) (hi : i ≤ k) (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n) (p : ℝ)
       (x : Fin n) (w : Fin i → Bool),
@@ -3653,12 +3962,16 @@ theorem clause17_bsc_prefix_marginal {n : ℕ} (k : ℕ) :
         rw [← h3]
         rfl
 
+/-- The likelihood mass of all binary transcripts extending a given prefix equals the likelihood
+of that prefix. -/
 theorem clause17_bsc_prefix_marginal' {n k i : ℕ}
     (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n) (p : ℝ) (x : Fin n)
     (w : Fin i → Bool) (hi : i ≤ k) :
     sumOverPrefix (bscLikPre cuts p x) w hi = bscLikPre (cutsPrefix i cuts hi) p x w :=
   clause17_bsc_prefix_marginal k i hi cuts p x w
 
+/-- Summing binary joint weights over transcripts with a specified prefix gives the joint weight
+under the prefix cut family. -/
 theorem clause17_bsc_joint_prefix_marginal {n k i : ℕ}
     (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n) (p : ℝ) (x : Fin n)
     (w : Fin i → Bool) (hi : i ≤ k) :
@@ -3685,6 +3998,7 @@ theorem clause17_bsc_joint_prefix_marginal {n k i : ℕ}
           = (1 / (n : ℝ)) * bscLikPre (cutsPrefix i cuts hi) p x w := by rfl
       rw [hd']
 
+/-- Whether the stopping index exceeds `i ≤ k` depends only on the answers before `i`. -/
 theorem clause17_stop_gt_of_prefix {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ} (hk : i ≤ k)
     (y y' : Fin k → Bool) (hag : ∀ j : Fin k, j.val < i → y j = y' j) :
     (prog.stop y).val > i ↔ (prog.stop y').val > i := by
@@ -3697,16 +4011,22 @@ theorem clause17_stop_gt_of_prefix {n k : ℕ} (prog : BscStopProgram n k) {i : 
   · intro hM
     exact h1.mp (h3.mpr (h2.mpr hM))
 
+/-- A padded transcript stores the original Boolean answer at index `j` exactly when `j`
+precedes the stopping index. -/
 theorem clause17_stop_pad_inl_iff {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool)
     (j : Fin k) :
     stopPad prog y j = Sum.inl (y j) ↔ j.val < (prog.stop y).val := by
   simp [stopPad]
 
+/-- A padded transcript stores the stop marker at index `j` exactly when the stopping index is
+at most `j`. -/
 theorem clause17_stop_pad_inr_iff {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool)
     (j : Fin k) :
     stopPad prog y j = Sum.inr () ↔ (prog.stop y).val ≤ j.val := by
   simp [stopPad]
 
+/-- A Boolean-valued entry in a padded transcript lies before the stopping index and equals the
+original answer there. -/
 theorem clause17_stop_pad_inl {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k → Bool) (i : Fin k)
     (h : ∃ b : Bool, stopPad prog y i = Sum.inl b) :
     i.val < (prog.stop y).val ∧ stopPad prog y i = Sum.inl (y i) := by
@@ -3716,9 +4036,12 @@ theorem clause17_stop_pad_inl {n k : ℕ} (prog : BscStopProgram n k) (y : Fin k
     rw [show stopPad prog y i = Sum.inr () by simp [stopPad, hlt]] at hb
     exact absurd hb (by simp)
 
+/-- Evaluates a transcript prefix by embedding its index into the full transcript. -/
 theorem tPrefix_take {k i : ℕ} (hk : i ≤ k) {α : Type} (y : Fin k → α) (j : Fin i) :
     tPrefix i hk y j = y ⟨j.val, by omega⟩ := rfl
 
+/-- A padded prefix of length `j` consists entirely of encoded Boolean answers exactly when `j`
+is at most the stopping index. -/
 theorem clause17_stop_pad_prefix_all_inl {n k : ℕ} (prog : BscStopProgram n k) {j : ℕ}
     (hj : j ≤ k) (y : Fin k → Bool) :
     (∀ i : Fin j, (tPrefix j hj (stopPad prog y)) i
@@ -3753,6 +4076,8 @@ theorem clause17_stop_pad_prefix_all_inl {n k : ℕ} (prog : BscStopProgram n k)
       simp [stopPadDecode, h1]
     rw [h2, h1, h3]
 
+/-- Decoding a padded prefix containing only Boolean answers recovers the corresponding original
+transcript entries. -/
 theorem clause17_stop_pad_prefix_decode {n k : ℕ} (prog : BscStopProgram n k) {j : ℕ}
     (hj : j ≤ k) (y : Fin k → Bool)
     (hall : ∀ i : Fin j, (tPrefix j hj (stopPad prog y)) i
@@ -3773,6 +4098,8 @@ theorem clause17_stop_pad_prefix_decode {n k : ℕ} (prog : BscStopProgram n k) 
   show stopPadDecode (stopPad prog y) ⟨i.val, by omega⟩ = y ⟨i.val, by omega⟩
   simp [stopPadDecode, heq]
 
+/-- Equal padded prefixes of length `j` determine the same truth value of whether the stopping
+index exceeds `j`. -/
 theorem clause17_stop_pad_alive_of_prefix {n k : ℕ} (prog : BscStopProgram n k) {j : ℕ}
     (hj : j ≤ k) (y y' : Fin k → Bool)
     (heq : tPrefix j hj (stopPad prog y) = tPrefix j hj (stopPad prog y')) :
@@ -3827,6 +4154,8 @@ theorem clause17_stop_pad_alive_of_prefix {n k : ℕ} (prog : BscStopProgram n k
       (clause17_stop_pad_inr_iff prog y' ⟨(prog.stop y).val, by omega⟩).mp hinr'
     constructor <;> intro h <;> omega
 
+/-- A padded transcript prefix contains the original answers before the stopping index and stop
+markers thereafter. -/
 theorem clause17_stop_pad_prefix_shape {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ} (hi : i ≤ k)
     (y : Fin k → Bool) :
     tPrefix i hi (stopPad prog y)
@@ -3840,6 +4169,8 @@ theorem clause17_stop_pad_prefix_shape {n k : ℕ} (prog : BscStopProgram n k) {
   rw [h1]
   simp [stopPad]
 
+/-- A prefix of length `i + 1` is obtained by extending the length-`i` prefix with the next
+transcript entry. -/
 theorem clause17_tPrefix_snoc {k i : ℕ} (hk : i ≤ k) (hk1 : i + 1 ≤ k) {α : Type} (e : Fin k → α) :
     tPrefix (i + 1) hk1 e
       = tExt (tPrefix i hk e) (e ⟨i, Nat.lt_of_lt_of_le (Nat.lt_succ_self i) hk1⟩) := by
@@ -3851,6 +4182,7 @@ theorem clause17_tPrefix_snoc {k i : ℕ} (hk : i ≤ k) (hk1 : i + 1 ≤ k) {α
     rw [hj]
   · simp only [tPrefix, tExt, dif_neg hj]
 
+/-- Equal extended transcripts have equal prefixes and equal appended values. -/
 theorem clause17_tExt_inj {m : ℕ} {α : Type} (a c : Fin m → α) (b d : α)
     (h : tExt a b = tExt c d) : a = c ∧ b = d := by
   constructor
@@ -3864,6 +4196,8 @@ theorem clause17_tExt_inj {m : ℕ} {α : Type} (a c : Fin m → α) (b d : α)
     simp only [tExt] at h1
     exact h1
 
+/-- A padded prefix containing only Boolean answers has length at most the stopping index, and
+decoding it gives the original answer prefix. -/
 theorem clause17_stop_allinl_shape {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ} (hi : i ≤ k)
     (pfx : Fin i → (Sum Bool Unit)) (hall : padAllInl pfx) (y : Fin k → Bool)
     (heq : tPrefix i hi (stopPad prog y) = pfx) :
@@ -3901,6 +4235,8 @@ theorem clause17_stop_allinl_shape {n k : ℕ} (prog : BscStopProgram n k) {i : 
   rw [e1]
   exact hj
 
+/-- A padded transcript has a specified all-Boolean prefix exactly when it has not stopped
+before that prefix ends and its original answer prefix equals the decoded prefix. -/
 theorem clause17_stop_allinl_iff {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ} (hi : i ≤ k)
     (pfx : Fin i → (Sum Bool Unit)) (hall : padAllInl pfx) (y : Fin k → Bool) :
     tPrefix i hi (stopPad prog y) = pfx
@@ -3927,6 +4263,8 @@ theorem clause17_stop_allinl_iff {n k : ℕ} (prog : BscStopProgram n k) {i : �
     rw [h2] at hsh
     rw [hsh, hkey j]
 
+/-- Any transcript extending an alive answer prefix has stopping index strictly greater than the
+prefix length. -/
 theorem clause17_stop_gt_of_answer_prefix {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ}
     (hi : i ≤ k) (w : Fin i → Bool) (y : Fin k → Bool) (hy : tPrefix i hi y = w)
     (halive : stopAlive prog i w) : (prog.stop y).val > i := by
@@ -3941,6 +4279,8 @@ theorem clause17_stop_gt_of_answer_prefix {n k : ℕ} (prog : BscStopProgram n k
   rw [h1] at h2
   exact h2.mp halive
 
+/-- Factors an extended binary joint weight into the prefix joint weight and the conditional
+probability of the final answer. -/
 theorem clause17_bsc_joint_split {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i.val → Bool) → Fin n)
     (p : ℝ) (x : Fin n) (w : Fin m → Bool) (b : Bool) :
     bscJointCuts cuts p x (tExt w b)
@@ -3951,6 +4291,8 @@ theorem clause17_bsc_joint_split {n m : ℕ} (cuts : ∀ i : Fin (m + 1), (Fin i
   simp only [bscStepCond]
   rw [mul_assoc]
 
+/-- Removing the final cut from a cut prefix of length `i + 1` gives the cut prefix of length
+`i`. -/
 theorem clause17_cutsPrefix_pre {n k i : ℕ} (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n)
     (hi : i ≤ k) (hk1 : i + 1 ≤ k) :
     (fun j : Fin i => cutsPrefix (i + 1) cuts hk1 (j.castSucc)) = cutsPrefix i cuts hi := by
@@ -3959,6 +4301,7 @@ theorem clause17_cutsPrefix_pre {n k i : ℕ} (cuts : ∀ j : Fin k, (Fin j.val 
   change cuts ⟨j.val, by omega⟩ c = cuts ⟨j.val, by omega⟩ c
   rfl
 
+/-- The last cut of a length-`i + 1` cut prefix equals the original cut at index `i`. -/
 theorem clause17_cutsPrefix_last {n k i : ℕ} (cuts : ∀ j : Fin k, (Fin j.val → Bool) → Fin n)
     (hk1 : i + 1 ≤ k) (hik : i < k) (c : Fin i → Bool) :
     cutsPrefix (i + 1) cuts hk1 (Fin.last i) c = cuts ⟨i, hik⟩ c := by
@@ -3971,6 +4314,8 @@ theorem clause17_cutsPrefix_last {n k i : ℕ} (cuts : ∀ j : Fin k, (Fin j.val
     congr 1
   rw [h2]
 
+/-- For an all-Boolean alive prefix, the used-prefix joint weight equals the binary joint weight
+of its decoded answer prefix. -/
 theorem clause17_stop_used_prefix_mass {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {i : ℕ} (hi : i ≤ k)
     (pfx : Fin i → (Sum Bool Unit)) (hall : padAllInl pfx)
     (halive : stopAlive prog i (stopPadDecode pfx)) (x : Fin n) :
@@ -4001,6 +4346,8 @@ theorem clause17_stop_used_prefix_mass {n k : ℕ} (prog : BscStopProgram n k) (
     _ = bscJointCuts (cutsPrefix i prog.cuts hi) p x (stopPadDecode pfx) :=
           clause17_bsc_joint_prefix_marginal prog.cuts p x (stopPadDecode pfx) hi
 
+/-- After an alive padded prefix, appending a Boolean answer multiplies the used-prefix weight
+by the binary channel probability at the next adaptive cut. -/
 theorem clause17_stop_used_next_slot {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {i : ℕ} (hi : i ≤ k)
     (hk1 : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
     (halive : padAlive prog pfx) (x : Fin n) (b : Bool) :
@@ -4069,6 +4416,8 @@ theorem clause17_stop_used_next_slot {n k : ℕ} (prog : BscStopProgram n k) (p 
         * bscProb p (truthBit x (prog.cuts ⟨i, hik⟩ (stopPadDecode pfx))) b := by
       rw [clause17_stop_used_prefix_mass prog p hi pfx hall halive' x]
 
+/-- After a padded prefix that is not alive, extending it with a Boolean answer has zero
+used-prefix weight. -/
 theorem clause17_stop_used_next_slot_stopped {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {i : ℕ}
     (hi : i ≤ k) (hk1 : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
     (hdead : ¬ padAlive prog pfx) (x : Fin n) (b : Bool) :
@@ -4109,6 +4458,8 @@ theorem clause17_stop_used_next_slot_stopped {n k : ℕ} (prog : BscStopProgram 
     exact absurd ⟨hall, h2'.mpr hlt⟩ hdead
   · simp [h1]
 
+/-- Summing indicators of all one-slot extensions of a prefix gives the indicator of the
+original prefix. -/
 theorem clause17_sum_ext {k i : ℕ} (hk : i ≤ k) (hk1 : i + 1 ≤ k)
     (e : Fin k → (Sum Bool Unit)) (pfx : Fin i → (Sum Bool Unit)) :
     (∑ b : Sum Bool Unit, if tPrefix (i + 1) hk1 e = tExt pfx b then (1 : ℝ) else 0)
@@ -4161,6 +4512,8 @@ theorem clause17_sum_ext {k i : ℕ} (hk : i ≤ k) (hk1 : i + 1 ≤ k)
     rw [hsum]
     simp [h]
 
+/-- Summing the next used-prefix joint weight over Boolean answers and the stop marker recovers
+the current prefix weight. -/
 theorem clause17_stop_used_prefix_marg {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {i : ℕ}
     (hi : i ≤ k) (hk1 : i + 1 ≤ k) (x : Fin n) (pfx : Fin i → (Sum Bool Unit)) :
     stopUsedPrefixLaw prog p i hi (x, pfx)
@@ -4192,6 +4545,7 @@ theorem clause17_stop_used_prefix_marg {n k : ℕ} (prog : BscStopProgram n k) (
           intro b _
           rfl
 
+/-- Taking the full-length transcript prefix returns the original transcript. -/
 theorem clause17_tPrefix_full {k : ℕ} (hk : k ≤ k) {α : Type} (y : Fin k → α) :
     tPrefix k hk y = y := by
   funext j
@@ -4199,6 +4553,8 @@ theorem clause17_tPrefix_full {k : ℕ} (hk : k ≤ k) {α : Type} (y : Fin k �
   apply Fin.ext
   rfl
 
+/-- Expands a sum over `Sum Bool Unit` into its false-answer, true-answer, and stop-marker
+terms. -/
 theorem clause17_sum_sum_bool_unit (f : Sum Bool Unit → ℝ) :
     (∑ b : Sum Bool Unit, f b)
       = f (Sum.inl false) + f (Sum.inl true) + f (Sum.inr ()) := by
@@ -4207,6 +4563,7 @@ theorem clause17_sum_sum_bool_unit (f : Sum Bool Unit → ℝ) :
   simp
   ring
 
+/-- The empty used-prefix joint weight equals the uniform hidden-cell weight `1 / n`. -/
 theorem clause17_stop_used_law_zero {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (x : Fin n) (e : Fin 0 → (Sum Bool Unit)) :
     stopUsedPrefixLaw prog p 0 (Nat.zero_le k) (x, e) = 1 / (n : ℝ) := by
@@ -4226,6 +4583,7 @@ theorem clause17_stop_used_law_zero {n k : ℕ} (prog : BscStopProgram n k) (p :
     _ = 1 / (n : ℝ) := by
         simpa only [bscJointLaw, margL] using! (bscJointLaw_margL prog.cuts p x)
 
+/-- The full-length used-prefix law equals the used-transcript joint law. -/
 theorem clause17_stop_used_law_full {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (x : Fin n) (e : Fin k → (Sum Bool Unit)) :
     stopUsedPrefixLaw prog p k (Nat.le_refl k) (x, e) = stopUsedJointLaw prog p (x, e) := by
@@ -4234,6 +4592,7 @@ theorem clause17_stop_used_law_full {n k : ℕ} (prog : BscStopProgram n k) (p :
   intro y _
   rw [clause17_tPrefix_full (Nat.le_refl k) (stopPad prog y)]
 
+/-- After an alive padded prefix, extending it with a stop marker has zero used-prefix weight. -/
 theorem clause17_stop_used_next_slot_marker {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i ≤ k) (hk1 : i + 1 ≤ k) (hik : i < k)
     (pfx : Fin i → (Sum Bool Unit)) (halive : padAlive prog pfx) (x : Fin n) :
@@ -4267,6 +4626,8 @@ theorem clause17_stop_used_next_slot_marker {n k : ℕ} (prog : BscStopProgram n
     exact Sum.inl_ne_inr hinj.2
   · simp [h1]
 
+/-- After a padded prefix that is not alive, appending a stop marker preserves its used-prefix
+weight. -/
 theorem clause17_stop_used_next_slot_marker_dead {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i ≤ k) (hk1 : i + 1 ≤ k) (hik : i < k)
     (pfx : Fin i → (Sum Bool Unit)) (hdead : ¬ padAlive prog pfx) (x : Fin n) :
@@ -4287,10 +4648,12 @@ theorem clause17_stop_used_next_slot_marker_dead {n k : ℕ} (prog : BscStopProg
           rw [h2, h3]
       _ = stopUsedPrefixLaw prog p i hi (x, pfx) := by ring
 
+/-- Any two functions on `Fin 0` are equal. -/
 theorem clause17_fin_zero_subsingleton {α : Type} (a b : Fin 0 → α) : a = b := by
   funext j
   exact Fin.elim0 j
 
+/-- Summing a constant over functions from `Fin 0` gives that constant. -/
 theorem clause17_sum_fin_zero_const {α : Type} [Fintype α] (c : ℝ) :
     (∑ _e : Fin 0 → α, c) = c := by
   classical
@@ -4299,6 +4662,7 @@ theorem clause17_sum_fin_zero_const {α : Type} [Fintype α] (c : ℝ) :
     (fun hm => absurd (Finset.mem_univ (Fin.elim0 : Fin 0 → α)) hm)
   exact h
 
+/-- Weights taking only the values zero and one have entropy zero. -/
 theorem entH_zero_one {α : Type} [Fintype α] (w : α → ℝ) (h : ∀ i, w i = 0 ∨ w i = 1) :
     entH w = 0 := by
   unfold entH
@@ -4314,6 +4678,7 @@ theorem entH_zero_one {α : Type} [Fintype α] (w : α → ℝ) (h : ∀ i, w i 
   rw [Finset.sum_eq_zero (fun i _ => hx i)]
   simp
 
+/-- The empty used prefix has zero mutual information with the hidden cell when `n > 0`. -/
 theorem clause17_stop_used_law_zero_mutInfo {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hn : 0 < n) :
     mutInfo (stopUsedPrefixLaw prog p 0 (Nat.zero_le k)) = 0 := by
@@ -4370,6 +4735,7 @@ theorem clause17_stop_used_law_zero_mutInfo {n k : ℕ} (prog : BscStopProgram n
   rw [hent, hcond]
   ring
 
+/-- Used-prefix joint weights are nonnegative for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_stop_used_prefix_law_nonneg {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) {i : ℕ} (hi : i ≤ k)
     (x : Fin n) (e : Fin i → (Sum Bool Unit)) :
@@ -4381,6 +4747,8 @@ theorem clause17_stop_used_prefix_law_nonneg {n k : ℕ} (prog : BscStopProgram 
   · exact bscJointCuts_nonneg prog.cuts p hp0 hp1 hn x y
   · split <;> norm_num
 
+/-- Expresses an in-range stopping-slot chain term as marginal conditional entropy minus
+hidden-cell-conditioned entropy. -/
 theorem stopSlotChainTerm_eq {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {i : ℕ}
     (hi : i + 1 ≤ k) :
     stopSlotChainTerm prog p i
@@ -4388,6 +4756,8 @@ theorem stopSlotChainTerm_eq {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) {
   unfold stopSlotChainTerm
   rw [dif_pos hi]
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the mutual information in a used prefix equals the sum of its
+stopping-slot chain terms. -/
 theorem clause17_stop_used_chain {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     ∀ (i : ℕ) (hi : i ≤ k),
@@ -4427,9 +4797,12 @@ theorem clause17_stop_used_chain {n k : ℕ} (prog : BscStopProgram n k) (p : �
         _ = ∑ x ∈ Finset.range (i + 1), stopSlotChainTerm prog p x := by
             rw [Finset.sum_range_succ]
 
+/-- A bound `i + 1 ≤ k` implies `i ≤ k`. -/
 theorem clause17_stop_prefix_le {i k : ℕ} (hi : i + 1 ≤ k) : i ≤ k :=
   Nat.le_trans (Nat.le_succ i) hi
 
+/-- The left marginal of the stopping-slot marginal law is the used-prefix weight summed over
+hidden cells. -/
 theorem clause17_stop_slot_marg_total {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i + 1 ≤ k) (pfx : Fin i → (Sum Bool Unit)) :
     margL (stopSlotMargLaw prog p hi) pfx
@@ -4444,6 +4817,8 @@ theorem clause17_stop_slot_marg_total {n k : ℕ} (prog : BscStopProgram n k) (p
         exact (clause17_stop_used_prefix_marg prog p
           ((clause17_stop_prefix_le hi)) hi x pfx).symm
 
+/-- The left marginal of the stopping-slot post law equals the joint weight of the hidden cell
+and current used prefix. -/
 theorem clause17_stop_slot_post_total {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i + 1 ≤ k) (x : Fin n) (pfx : Fin i → (Sum Bool Unit)) :
     margL (stopSlotPostLaw prog p hi) (x, pfx)
@@ -4452,6 +4827,7 @@ theorem clause17_stop_slot_post_total {n k : ℕ} (prog : BscStopProgram n k) (p
   exact (clause17_stop_used_prefix_marg prog p
     ((clause17_stop_prefix_le hi)) hi x pfx).symm
 
+/-- An alive padded prefix has zero stop-marker weight in the stopping-slot marginal law. -/
 theorem clause17_stop_slot_marg_marker {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
     (halive : padAlive prog pfx) :
@@ -4461,6 +4837,8 @@ theorem clause17_stop_slot_marg_marker {n k : ℕ} (prog : BscStopProgram n k) (
     clause17_stop_used_next_slot_marker prog p ((clause17_stop_prefix_le hi)) hi hik
       pfx halive x
 
+/-- An alive padded prefix has zero stop-marker weight in the stopping-slot post law for every
+hidden cell. -/
 theorem clause17_stop_slot_post_marker {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
     (halive : padAlive prog pfx) (x : Fin n) :
@@ -4468,6 +4846,7 @@ theorem clause17_stop_slot_post_marker {n k : ℕ} (prog : BscStopProgram n k) (
   clause17_stop_used_next_slot_marker prog p ((clause17_stop_prefix_le hi)) hi hik
     pfx halive x
 
+/-- Adding a stop-marker entry of weight zero to Boolean weights preserves their entropy. -/
 theorem entH_padded_eq (w : Sum Bool Unit → ℝ) (f : Bool → ℝ)
     (hz : w (Sum.inr ()) = 0) (hf : ∀ b, w (Sum.inl b) = f b) : entH w = entH f := by
   have hx : xlog2 (w (Sum.inr ())) = 0 := by
@@ -4484,6 +4863,8 @@ theorem entH_padded_eq (w : Sum Bool Unit → ℝ) (f : Bool → ℝ)
   rw [h1 false, h1 true]
   ring
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the conditional next-slot entropy at an alive prefix is at most
+one bit. -/
 theorem clause17_stop_slot_marg_ent_le_one {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
@@ -4533,6 +4914,8 @@ theorem clause17_stop_slot_marg_ent_le_one {n k : ℕ} (prog : BscStopProgram n 
     rw [heq]
     exact h1
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the conditional next-slot entropy at a prefix that is not alive
+is zero. -/
 theorem clause17_stop_slot_marg_ent_zero {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
@@ -4582,6 +4965,8 @@ theorem clause17_stop_slot_marg_ent_zero {n k : ℕ} (prog : BscStopProgram n k)
             simp [div_self hne]
   exact entH_zero_one (fun b => condW (stopSlotMargLaw prog p hi) pfx b) hcw
 
+/-- At an alive prefix, the hidden-cell-conditioned next-slot entropy weighted by its marginal
+equals the used-prefix joint weight times `binEntropy p`, for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_stop_slot_post_ent {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
@@ -4641,6 +5026,8 @@ theorem clause17_stop_slot_post_ent {n k : ℕ} (prog : BscStopProgram n k) (p :
       entH_bscProb (truthBit x (prog.cuts ⟨i, hik⟩ (stopPadDecode pfx)))
     rw [heq, hent, hmass]
 
+/-- At a prefix that is not alive, the marginal-weighted hidden-cell-conditioned next-slot
+entropy is zero for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_stop_slot_post_ent_zero {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) (pfx : Fin i → (Sum Bool Unit))
@@ -4676,6 +5063,8 @@ theorem clause17_stop_slot_post_ent_zero {n k : ℕ} (prog : BscStopProgram n k)
   rw [hent]
   simp
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the stopping-slot marginal conditional entropy is at most the
+live prefix mass. -/
 theorem clause17_stop_slot_marg_ent_le_live {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) :
@@ -4731,6 +5120,8 @@ theorem clause17_stop_slot_marg_ent_le_live {n k : ℕ} (prog : BscStopProgram n
           else 0) := hrepl
     _ = stopLiveMass prog p ((clause17_stop_prefix_le hi)) := rfl
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the stopping-slot post conditional entropy equals `binEntropy
+p` times the live prefix mass. -/
 theorem clause17_stop_slot_post_ent_live {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n)
     {i : ℕ} (hi : i + 1 ≤ k) (hik : i < k) :
@@ -4793,6 +5184,8 @@ theorem clause17_stop_slot_post_ent_live {n k : ℕ} (prog : BscStopProgram n k)
   · rw [if_neg halive, if_neg halive]
     simp
 
+/-- The used-prefix marginal equals the full-transcript marginal mass of transcripts whose
+padded prefix matches the specified prefix. -/
 theorem clause17_stop_used_prefix_marginal {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     {i : ℕ} (hi : i ≤ k) (pfx : Fin i → (Sum Bool Unit)) :
     (∑ x, stopUsedPrefixLaw prog p i hi (x, pfx))
@@ -4814,6 +5207,7 @@ theorem clause17_stop_used_prefix_marginal {n k : ℕ} (prog : BscStopProgram n 
           intro y _
           rfl
 
+/-- If a padded transcript prefix is alive, then its original Boolean answer prefix is alive. -/
 theorem clause17_pad_alive_of_stop_alive {n k : ℕ} (prog : BscStopProgram n k) {i : ℕ} (hi : i ≤ k)
     (y : Fin k → Bool) (halive : padAlive prog (tPrefix i hi (stopPad prog y))) :
     stopAlive prog i (stopPrefix i hi y) := by
@@ -4835,12 +5229,15 @@ theorem clause17_pad_alive_of_stop_alive {n k : ℕ} (prog : BscStopProgram n k)
   rw [← hdec]
   exact halive'
 
+/-- Distributes a fixed-condition indicator across a finite sum. -/
 theorem clause17_ite_sum {α : Type} [Fintype α] (c : Prop) [Decidable c] (g : α → ℝ) :
     (if c then (∑ y, g y) else 0) = ∑ y, (if c then g y else 0) := by
   by_cases h : c
   · simp [h]
   · simp [h]
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the live used-prefix mass is at most the corresponding alive
+probability. -/
 theorem clause17_stop_live_mass_le_alive_prob {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) {i : ℕ} (hi : i ≤ k) :
     stopLiveMass prog p hi ≤ stopAliveProb prog p i hi := by
@@ -4950,6 +5347,7 @@ theorem clause17_stop_live_mass_le_alive_prob {n k : ℕ} (prog : BscStopProgram
           exact mul_le_mul_of_nonneg_left hle (hnonneg y)
     _ = stopAliveProb prog p i hi := rfl
 
+/-- The alive probability at the full transcript length is zero. -/
 theorem clause17_stop_alive_prob_zero {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) :
     stopAliveProb prog p k (Nat.le_refl k) = 0 := by
   have hnot : ∀ y : Fin k → Bool, ¬ stopAlive prog k (stopPrefix k (Nat.le_refl k) y) := by
@@ -4962,6 +5360,7 @@ theorem clause17_stop_alive_prob_zero {n k : ℕ} (prog : BscStopProgram n k) (p
   intro y _
   simp [hnot y]
 
+/-- The sum of alive probabilities over query indices equals the expected stopping cost. -/
 theorem clause17_stop_survival_sum {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) :
     (∑ x : Fin k, stopAliveProb prog p x.val (Nat.le_of_lt x.isLt)) = expectedStopCost prog p := by
   have hz := clause17_stop_alive_prob_zero prog p
@@ -4996,6 +5395,8 @@ theorem clause17_stop_survival_sum {n k : ℕ} (prog : BscStopProgram n k) (p : 
   rw [← hmain]
   exact (clause17_expected_stop_cost_eq_survival prog p).symm
 
+/-- For `1 / 2 < p ≤ 1` and `n > 0`, used-transcript mutual information is at most expected
+stopping cost times `queryInfo p`. -/
 theorem clause17_stop_used_mut_info_le {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ)
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (hn : 0 < n) :
     stopUsedMutInfo prog p ≤ expectedStopCost prog p * queryInfo p := by
@@ -5061,6 +5462,9 @@ theorem clause17_stop_used_mut_info_le {n k : ℕ} (prog : BscStopProgram n k) (
         mul_le_mul_of_nonneg_left hlive hqi
     _ = expectedStopCost prog p * queryInfo p := by ring
 
+/-- A stopping program on at least two hidden cells whose guess depends only on used answers and
+whose error is at most `0 ≤ δ ≤ 1 / 2` has expected cost at least `fanoCapacityBound n p δ`
+when `1 / 2 < p ≤ 1` [BenOrHassidim2007]. -/
 theorem clause17_stop_expected_cost_lower_bound {n k : ℕ} (hn : 2 ≤ n) (prog : BscStopProgram n k)
     {p : ℝ} (hp : 1 / 2 < p) (hp1 : p ≤ 1) (hguess : StopGuessFromUsed prog)
     {δ : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2) (herr : stopErrorProb prog p ≤ δ) :
@@ -5076,6 +5480,8 @@ theorem clause17_stop_expected_cost_lower_bound {n k : ℕ} (hn : 2 ≤ n) (prog
         div_le_div_of_nonneg_right hkey hqi.le
     _ = expectedStopCost prog p := by field_simp
 
+/-- For query weights satisfying `RecQueryProb`, the total weight of true comparisons lies in
+`[0, 1]`. -/
 theorem clause17_rec_true_mass_range {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) (x : Fin n) :
     0 ≤ recTrueMass μ x ∧ recTrueMass μ x ≤ 1 := by
   constructor
@@ -5093,6 +5499,8 @@ theorem clause17_rec_true_mass_range {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQu
       _ = ∑ c, μ c := by simp
       _ = 1 := hμ.2
 
+/-- The mixed recursive query answer weights sum to one when the query weights satisfy
+`RecQueryProb`. -/
 theorem clause17_rec_mix_law_total {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) (p : ℝ)
     (x : Fin n) : (∑ b, recMixProb μ p x b) = 1 := by
   unfold recMixProb
@@ -5110,6 +5518,8 @@ theorem clause17_rec_mix_law_total {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQuer
         rw [← Finset.sum_mul, hμ.2]
         simp
 
+/-- Expresses the true-answer binary channel weight as `1 - p` plus `2 * p - 1` when the
+comparison truth bit is true. -/
 theorem clause17_rec_bsc_prob_eq {n : ℕ} (p : ℝ) (x c : Fin n) :
     bscProb p (truthBit x c) true
       = (1 - p) + (if truthBit x c then 2 * p - 1 else 0) := by
@@ -5118,6 +5528,8 @@ theorem clause17_rec_bsc_prob_eq {n : ℕ} (p : ℝ) (x c : Fin n) :
     ring
   · simp [bscProb, h]
 
+/-- The mixed true-answer weight equals `1 - p` plus the true-comparison mass times `2 * p - 1`
+for query weights satisfying `RecQueryProb`. -/
 theorem clause17_rec_mix_true_eq {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) (p : ℝ) (x : Fin n) :
     recMixTrue μ p x = (1 - p) + recTrueMass μ x * (2 * p - 1) := by
   have hpoint : ∀ c : Fin n,
@@ -5157,6 +5569,8 @@ theorem clause17_rec_mix_true_eq {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryP
         rfl
     _ = (1 - p) + recTrueMass μ x * (2 * p - 1) := by ring
 
+/-- For query weights satisfying `RecQueryProb` and `p ≥ 1 / 2`, the mixed true-answer weight
+lies between `1 - p` and `p`. -/
 theorem clause17_rec_mix_true_range {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) {p : ℝ}
     (hp : 1 / 2 ≤ p) (x : Fin n) :
     1 - p ≤ recMixTrue μ p x ∧ recMixTrue μ p x ≤ p := by
@@ -5170,6 +5584,8 @@ theorem clause17_rec_mix_true_range {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQue
       mul_le_mul_of_nonneg_right htm.2 (by linarith)
     linarith
 
+/-- For query weights satisfying `RecQueryProb` and `1 / 2 < p ≤ 1`, the mixed-query conditional
+entropy is at least `binEntropy p`. -/
 theorem clause17_rec_post_ent_ge {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) {p : ℝ}
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (x : Fin n) :
     recPostEnt μ p x ≥ binEntropy p := by
@@ -5192,6 +5608,8 @@ theorem clause17_rec_post_ent_ge {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryP
       _ ≤ binEntropy (1 - recMixTrue μ p x) := hmono
       _ = binEntropy (recMixTrue μ p x) := (clause17_binEntropy_symmetry (recMixTrue μ p x)).symm
 
+/-- For query weights satisfying `RecQueryProb` and `1 / 2 < p ≤ 1`, the recursive slot
+information is at most `queryInfo p`. -/
 theorem clause17_rec_slot_info_le {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) {p : ℝ}
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (x : Fin n) :
     recSlotInfo μ p x ≤ queryInfo p := by
@@ -5199,6 +5617,7 @@ theorem clause17_rec_slot_info_le {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQuery
   unfold recSlotInfo queryInfo
   linarith
 
+/-- A finite sum selecting one index by equality equals the selected constant. -/
 theorem clause17_sum_ite_eq {α : Type} [Fintype α] [DecidableEq α] (c : α) (X : ℝ) :
     (∑ d : α, if d = c then X else 0) = X := by
   have h1 : (∑ d ∈ (Finset.univ : Finset α).erase c, (if d = c then X else 0)) = 0 := by
@@ -5216,6 +5635,7 @@ theorem clause17_sum_ite_eq {α : Type} [Fintype α] [DecidableEq α] (c : α) (
   rw [if_pos rfl] at h2'
   exact h2'.symm
 
+/-- The point mass at a cut satisfies `RecQueryProb`. -/
 theorem clause17_rec_point_mass_prob {n : ℕ} (c : Fin n) : RecQueryProb (recPointMass c) := by
   constructor
   · intro d
@@ -5228,6 +5648,8 @@ theorem clause17_rec_point_mass_prob {n : ℕ} (c : Fin n) : RecQueryProb (recPo
         _ = 1 := h
     exact h'
 
+/-- A point-mass query has conditional entropy `binEntropy p` and slot information `queryInfo
+p`. -/
 theorem clause17_rec_point_mass_eq {n : ℕ} {p : ℝ} (c x : Fin n) :
     recPostEnt (recPointMass c) p x = binEntropy p ∧
       recSlotInfo (recPointMass c) p x = queryInfo p := by
@@ -5261,6 +5683,9 @@ theorem clause17_rec_point_mass_eq {n : ℕ} {p : ℝ} (c x : Fin n) :
   unfold recSlotInfo queryInfo
   rw [hent]
 
+/-- For query weights satisfying `RecQueryProb`, `1 / 2 < p ≤ 1`, and true-comparison mass
+strictly between zero and one, the conditional entropy exceeds `binEntropy p` and the slot
+information is less than `queryInfo p`. -/
 theorem clause17_rec_nondegenerate_gt {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) {p : ℝ}
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (x : Fin n)
     (h0 : 0 < recTrueMass μ x) (h1 : recTrueMass μ x < 1) :
@@ -5294,6 +5719,7 @@ theorem clause17_rec_nondegenerate_gt {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQ
   unfold recSlotInfo queryInfo
   linarith
 
+/-- Binary entropy at `1 / 2` equals one bit. -/
 theorem clause17_binEntropy_half : binEntropy (1 / 2 : ℝ) = 1 := by
   rw [clause17_binEntropy_eq_mathlib]
   have h1 : (1 / 2 : ℝ) = (2 : ℝ)⁻¹ := by norm_num
@@ -5301,6 +5727,8 @@ theorem clause17_binEntropy_half : binEntropy (1 / 2 : ℝ) = 1 := by
   have hlog2 : Real.log 2 ≠ 0 := (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne'
   field_simp
 
+/-- For query weights satisfying `RecQueryProb` with true-comparison mass `1 / 2`, the
+conditional entropy equals one and the slot information equals zero. -/
 theorem clause17_rec_uniform_query_is_uninformative {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ)
     {p : ℝ} (x : Fin n) (hhalf : recTrueMass μ x = 1 / 2) :
     recPostEnt μ p x = 1 ∧ recSlotInfo μ p x = 0 := by
@@ -5316,6 +5744,9 @@ theorem clause17_rec_uniform_query_is_uninformative {n : ℕ} (μ : Fin n → �
   rw [hent]
   ring
 
+/-- When `1 / 2 < p ≤ 1` and the recursive slot information is positive, the recursive capacity
+expression equals the ordinary Fano capacity expression times `queryInfo p / recSlotInfo μ p
+x`. -/
 theorem clause17_rec_fano_capacity_bound_eq {n : ℕ} (μ : Fin n → ℝ) {p : ℝ}
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (x : Fin n) {δ : ℝ}
     (hrec : 0 < recSlotInfo μ p x) :
@@ -5327,6 +5758,8 @@ theorem clause17_rec_fano_capacity_bound_eq {n : ℕ} (μ : Fin n → ℝ) {p : 
   unfold recFanoCapacityBound fanoCapacityBound
   field_simp
 
+/-- For query weights satisfying `RecQueryProb`, `1 / 2 < p ≤ 1`, and positive recursive slot
+information, the ratio of ordinary query information to slot information is at least one. -/
 theorem clause17_rec_fano_factor_ge_one {n : ℕ} (μ : Fin n → ℝ) (hμ : RecQueryProb μ) {p : ℝ}
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (x : Fin n) (hrec : 0 < recSlotInfo μ p x) :
     1 ≤ queryInfo p / recSlotInfo μ p x := by
@@ -5335,16 +5768,20 @@ theorem clause17_rec_fano_factor_ge_one {n : ℕ} (μ : Fin n → ℝ) (hμ : Re
   have hle : (1 : ℝ) * recSlotInfo μ p x ≤ queryInfo p := by linarith
   exact (le_div_iff₀ hrec).2 hle
 
+/-- Every level of a recursive binary program uses the shared stopping function. -/
 theorem clause17_rec_shared_stop_eq {n k : ℕ} (prog : RecBscProgram n k) (L : ℕ) :
     (prog.levelProg L).stop = recSharedStop prog :=
   prog.sharedStop L 0
 
+/-- The stopping cost at any recursive level equals the value of the shared stopping index on
+that transcript. -/
 theorem clause17_rec_level_cost_eq {n k : ℕ} (prog : RecBscProgram n k) (L : ℕ)
     (y : Fin k → Bool) :
     stopCost (prog.levelProg L) y = (recSharedStop prog y).val := by
   unfold stopCost
   rw [clause17_rec_shared_stop_eq prog L]
 
+/-- Every recursive level has nonnegative expected stopping cost for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_rec_level_cost_nonneg {n k : ℕ} (prog : RecBscProgram n k) (L : ℕ) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     0 ≤ expectedStopCost (prog.levelProg L) p := by
@@ -5355,6 +5792,8 @@ theorem clause17_rec_level_cost_nonneg {n k : ℕ} (prog : RecBscProgram n k) (L
     (clause17_transcript_marginal_nonneg (stopToBscProg (prog.levelProg L)) p hp0 hp1 hn y)
     (clause17_stop_cost_nonneg (prog.levelProg L) y)
 
+/-- For a recursive program with a positive number of levels, `0 ≤ p ≤ 1`, and `n > 0`, the last
+level's expected cost is at most the total expected cost. -/
 theorem clause17_rec_expected_cost_ge_last {n k : ℕ} (prog : RecBscProgram n k)
     (hlev : 0 < prog.levels) {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     expectedStopCost (prog.levelProg (recLastLevel prog)) p ≤ recExpectedCost prog p := by
@@ -5369,6 +5808,9 @@ theorem clause17_rec_expected_cost_ge_last {n k : ℕ} (prog : RecBscProgram n k
     (f := fun L => expectedStopCost (prog.levelProg L) p)
     (fun L _ => clause17_rec_level_cost_nonneg prog L hp0 hp1 hn) hmem
 
+/-- A recursive program with a positive number of levels, at least two hidden cells, and
+last-level error at most `0 ≤ δ ≤ 1 / 2` has total expected cost at least `fanoCapacityBound
+n p δ` for `1 / 2 < p ≤ 1` [BenOrHassidim2007]. -/
 theorem clause17_rec_expected_cost_lower_bound {n k : ℕ} (hn : 2 ≤ n)
     (prog : RecBscProgram n k) (hlev : 0 < prog.levels)
     {p : ℝ} (hp : 1 / 2 < p) (hp1 : p ≤ 1)
@@ -5382,6 +5824,8 @@ theorem clause17_rec_expected_cost_lower_bound {n k : ℕ} (hn : 2 ≤ n)
     hp hp1 (prog.guessFromUsed (recLastLevel prog)) hδ0 hδ1 herr'
   exact le_trans hfb hlast
 
+/-- If every recursive level equals the same stopping program, total expected cost is the number
+of levels times that program's expected cost. -/
 theorem clause17_rec_expected_cost_eq_levels {n k : ℕ} (prog : RecBscProgram n k)
     (base : BscStopProgram n k) (hsame : ∀ L, prog.levelProg L = base) (p : ℝ) :
     recExpectedCost prog p = (prog.levels : ℝ) * expectedStopCost base p := by
@@ -5394,6 +5838,9 @@ theorem clause17_rec_expected_cost_eq_levels {n k : ℕ} (prog : RecBscProgram n
   rw [Finset.sum_const, Finset.card_range]
   simp
 
+/-- For identical recursive levels, a positive level count, at least two hidden cells, `1 / 2 <
+p ≤ 1`, and last-level error at most `0 ≤ δ ≤ 1 / 2`, total expected cost is at least the
+level count times the Fano capacity bound. -/
 theorem clause17_rec_expected_cost_lower_bound_levels {n k : ℕ} (hn : 2 ≤ n)
     (prog : RecBscProgram n k) (hlev : 0 < prog.levels)
     (base : BscStopProgram n k) (hsame : ∀ L, prog.levelProg L = base)
@@ -5420,12 +5867,17 @@ theorem clause17_rec_expected_cost_lower_bound_levels {n k : ℕ} (hn : 2 ≤ n)
   rw [hcost]
   exact hmul
 
+/-- Regroups the difference of two double finite sums as the double sum of pointwise
+differences. -/
 theorem sum_sub_regroup3 {α β : Type} [Fintype α] [Fintype β]
     (f g : α × β → ℝ) :
     (∑ i, ∑ j, f (i, j)) - (∑ i, ∑ j, g (i, j))
       = ∑ i, ∑ j, (f (i, j) - g (i, j)) := by
   simp only [← Finset.sum_sub_distrib]
 
+/-- For normalized nonnegative joint weights, expresses mutual information as the sum of joint
+weights times the base-two log ratio to the product of the marginals, using a difference of
+logarithms. -/
 theorem mutInfo_eq_kl {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (_htot : ∑ i, ∑ j, d (i, j) = 1) :
     mutInfo d = ∑ i, ∑ j, d (i, j) *
@@ -5522,6 +5974,8 @@ theorem mutInfo_eq_kl {α β : Type} [Fintype α] [Fintype β] (d : α × β →
         ((Real.log (d (i, j)) - Real.log (margL d i) - Real.log (margR d j))
           / Real.log 2) := hregroup
 
+/-- For nonnegative joint weights, a cell's natural-log information contribution is at least its
+joint weight minus the product of its marginal weights. -/
 theorem kl_cell_ge {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (i : α) (j : β) :
     d (i, j) * (Real.log (d (i, j)) - Real.log (margL d i) - Real.log (margR d j))
@@ -5562,6 +6016,7 @@ theorem kl_cell_ge {α β : Type} [Fintype α] [Fintype β] (d : α × β → �
     rw [hsimpl] at hmul0
     exact hmul0
 
+/-- Mutual information is nonnegative for normalized nonnegative finite joint weights. -/
 theorem mutInfo_nonneg {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (htot : ∑ i, ∑ j, d (i, j) = 1) :
     0 ≤ mutInfo d := by
@@ -5620,6 +6075,8 @@ theorem mutInfo_nonneg {α β : Type} [Fintype α] [Fintype β] (d : α × β �
   rw [hsum] at hsumle
   linarith
 
+/-- For normalized nonnegative finite joint weights, conditional entropy is at most the entropy
+of the right marginal. -/
 theorem condEntH_le_entH_margR {α β : Type} [Fintype α] [Fintype β] (d : α × β → ℝ)
     (hd : ∀ i j, 0 ≤ d (i, j)) (htot : ∑ i, ∑ j, d (i, j) = 1) :
     condEntH d ≤ entH (margR d) := by
@@ -5627,6 +6084,9 @@ theorem condEntH_le_entH_margR {α β : Type} [Fintype α] [Fintype β] (d : α 
   have hnonneg := mutInfo_nonneg d hd htot
   linarith
 
+/-- Under the stated nonnegativity and marginal identities, splits information about a pair of
+transcript blocks into first-block information plus the difference of two second-block
+conditional entropies. -/
 theorem mutInfo_split_block {n : ℕ} {α β : Type} [Fintype α] [Fintype β]
     (d : Fin n × (α × β) → ℝ)
     (dPre : Fin n × α → ℝ)
@@ -5706,10 +6166,16 @@ theorem mutInfo_split_block {n : ℕ} {α β : Type} [Fintype α] [Fintype β]
   rw [hmargr]
   linarith
 
+/-- The factorization identity `d (x, (a, b)) * margL dX x = dX (x, b) * dPre (x, a)` for all
+cells and block values, expressing conditional independence when the weights form the
+corresponding joint laws. -/
 def CondIndepRight {n : ℕ} {α β : Type} [Fintype α] [Fintype β]
     (d : Fin n × (α × β) → ℝ) (dX : Fin n × β → ℝ) (dPre : Fin n × α → ℝ) : Prop :=
   ∀ x a b, d (x, (a, b)) * margL dX x = dX (x, b) * dPre (x, a)
 
+/-- Under the stated nonnegativity, marginal, and `CondIndepRight` hypotheses, conditioning the
+right block on both the hidden cell and the first block gives the same conditional entropy
+as conditioning on the hidden cell alone. -/
 theorem condEntH_eq_under_cond_indep {n : ℕ} {α β : Type} [Fintype α] [Fintype β]
     (d : Fin n × (α × β) → ℝ) (dX : Fin n × β → ℝ) (dPre : Fin n × α → ℝ)
     (dPost : (Fin n × α) × β → ℝ)
@@ -5786,6 +6252,9 @@ theorem condEntH_eq_under_cond_indep {n : ℕ} {α β : Type} [Fintype α] [Fint
   rw [Fintype.sum_prod_type]
   rw [Finset.sum_congr rfl (fun x _ => hcell x)]
 
+/-- For the stated nonnegative joint and marginal weights with the required normalization and
+conditional independence, information about both blocks is at most the sum of the separate
+block informations. -/
 theorem mutInfo_le_sum_blocks {n : ℕ} {α β : Type} [Fintype α] [Fintype β]
     (d : Fin n × (α × β) → ℝ) (dPre : Fin n × α → ℝ) (dM : α × β → ℝ)
     (dPost : (Fin n × α) × β → ℝ) (dX : Fin n × β → ℝ)
@@ -5827,18 +6296,26 @@ theorem mutInfo_le_sum_blocks {n : ℕ} {α β : Type} [Fintype α] [Fintype β]
     exact hle
   linarith
 
+/-- The joint weights of a uniform hidden cell and two binary transcripts, formed as `1 / n`
+times the product of their conditional likelihoods. -/
 noncomputable def twoLevelJointLaw {n k₁ k₂ : ℕ} (prog₁ : BscProgram n k₁)
     (prog₂ : BscProgram n k₂) (p : ℝ) : Fin n × ((Fin k₁ → Bool) × (Fin k₂ → Bool)) → ℝ :=
   fun z => (1 / (n : ℝ)) * bscLikPre prog₁.cuts p z.1 z.2.1 * bscLikPre prog₂.cuts p z.1 z.2.2
 
+/-- The joint law of the hidden cell and the first binary program's transcript, using the
+uniform prior. -/
 noncomputable def twoLevelMargL {n k₁ k₂ : ℕ} (prog₁ : BscProgram n k₁)
     (_prog₂ : BscProgram n k₂) (p : ℝ) : Fin n × (Fin k₁ → Bool) → ℝ :=
   bscJointLaw prog₁.cuts p
 
+/-- The joint law of the hidden cell and the second binary program's transcript, using the
+uniform prior. -/
 noncomputable def twoLevelMargR {n k₁ k₂ : ℕ} (_prog₁ : BscProgram n k₁)
     (prog₂ : BscProgram n k₂) (p : ℝ) : Fin n × (Fin k₂ → Bool) → ℝ :=
   bscJointLaw prog₂.cuts p
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the two-level transcript joint law satisfies the
+conditional-independence factorization with its two hidden-cell transcript laws. -/
 theorem clause17_two_level_cond_indep {n k₁ k₂ : ℕ} (prog₁ : BscProgram n k₁)
     (prog₂ : BscProgram n k₂) (p : ℝ) (_hp0 : 0 ≤ p) (_hp1 : p ≤ 1) (hn : 0 < n)
     (x : Fin n) (y₁ : Fin k₁ → Bool) (y₂ : Fin k₂ → Bool) :
@@ -5862,6 +6339,8 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch2007
 
+/-- A unit-valued right variable has zero mutual information under normalized nonnegative joint
+weights. -/
 theorem clause17_mutInfo_unit_right {n : ℕ} (d : Fin n × Unit → ℝ) (hd : ∀ x, 0 ≤ d (x, ()))
     (ht : (∑ x, d (x, ())) = 1) :
     mutInfo d = 0 := by
@@ -5892,6 +6371,8 @@ theorem clause17_mutInfo_unit_right {n : ℕ} (d : Fin n × Unit → ℝ) (hd : 
   rw [mutInfo_eq_margR d (fun i _ => hd i), hentR, hcond]
   ring
 
+/-- The used-transcript joint weight factors as the uniform hidden-cell weight `1 / n` times its
+conditional used-transcript weight. -/
 theorem clause17_stop_used_cond_eq {n k : ℕ} (prog : BscStopProgram n k) (p : ℝ) (x : Fin n)
     (e : Fin k → (Sum Bool Unit)) :
     stopUsedJoint prog p x e = (1 / (n : ℝ)) * stopUsedCond prog p x e := by
@@ -5901,6 +6382,8 @@ theorem clause17_stop_used_cond_eq {n k : ℕ} (prog : BscStopProgram n k) (p : 
   intro y _
   ring
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the conditional used-transcript weights sum to one for each
+hidden cell. -/
 theorem clause17_stop_used_cond_sum_one {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (x : Fin n) :
     (∑ e : Fin k → (Sum Bool Unit), stopUsedCond prog p x e) = 1 := by
@@ -5925,6 +6408,8 @@ theorem clause17_stop_used_cond_sum_one {n k : ℕ} (prog : BscStopProgram n k) 
       _ = 1 * (1 / (n : ℝ)) := (one_mul _).symm
   exact (mul_right_cancel₀ hne h3)
 
+/-- The likelihood mass of a used-transcript tower extended by one level factors into its
+previous tower likelihood and the new level's conditional used-transcript weight. -/
 theorem clause17_rec_lik_fibre_succ {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (e : RecTower n k L) (b : Fin k → (Sum Bool Unit)) :
     recLikFibre prog p (L + 1) x (e, b)
@@ -5992,6 +6477,8 @@ theorem clause17_rec_lik_fibre_succ {n k : ℕ} (prog : RecBscProgram n k) (p : 
             bscLikPre (prog.levelProg L).cuts p x y * stopPadEq (prog.levelProg L) y b) := rfl
       rw [e1, e2]
 
+/-- The recursive likelihood fibre equals the product of the conditional used-transcript weights
+across levels. -/
 theorem clause17_rec_lik_fibre_eq_prod {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (e : RecTower n k L) :
     recLikFibre prog p L x e = recUsedTowerProd prog p L x e := by
@@ -6005,6 +6492,7 @@ theorem clause17_rec_lik_fibre_eq_prod {n k : ℕ} (prog : RecBscProgram n k) (p
     rw [clause17_rec_lik_fibre_succ, ih]
     rfl
 
+/-- The recursive used-transcript joint weight equals `1 / n` times its likelihood fibre. -/
 theorem clause17_rec_used_joint_law_eq_fibre {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (e : RecTower n k L) :
     recUsedJointLaw prog p L (x, e) = (1 / (n : ℝ)) * recLikFibre prog p L x e := by
@@ -6014,11 +6502,14 @@ theorem clause17_rec_used_joint_law_eq_fibre {n k : ℕ} (prog : RecBscProgram n
   intro y _
   ring
 
+/-- The recursive used-transcript joint weight equals `1 / n` times the product of its levelwise
+conditional weights. -/
 theorem clause17_rec_used_joint_law_eq_prod {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (e : RecTower n k L) :
     recUsedJointLaw prog p L (x, e) = (1 / (n : ℝ)) * recUsedTowerProd prog p L x e := by
   rw [clause17_rec_used_joint_law_eq_fibre, clause17_rec_lik_fibre_eq_prod]
 
+/-- Conditional used-transcript weights are nonnegative when `0 ≤ p ≤ 1`. -/
 theorem clause17_stop_used_cond_nonneg {n k : ℕ} (prog : BscStopProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (x : Fin n) (e : Fin k → (Sum Bool Unit)) :
     0 ≤ stopUsedCond prog p x e := by
@@ -6030,6 +6521,8 @@ theorem clause17_stop_used_cond_nonneg {n k : ℕ} (prog : BscStopProgram n k) {
   · unfold stopPadEq
     split <;> norm_num
 
+/-- Products of conditional used-transcript weights over recursive levels are nonnegative when
+`0 ≤ p ≤ 1`. -/
 theorem clause17_rec_used_tower_prod_nonneg {n k : ℕ} (prog : RecBscProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     ∀ (L : ℕ) (x : Fin n) (e : RecTower n k L), 0 ≤ recUsedTowerProd prog p L x e := by
@@ -6044,6 +6537,7 @@ theorem clause17_rec_used_tower_prod_nonneg {n k : ℕ} (prog : RecBscProgram n 
     simp only [recUsedTowerProd]
     exact mul_nonneg (ih x e1) (clause17_stop_used_cond_nonneg (prog.levelProg L) hp0 hp1 x e2)
 
+/-- Recursive used-transcript joint weights are nonnegative for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_rec_used_joint_nonneg {n k : ℕ} (prog : RecBscProgram n k) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) (L : ℕ) (x : Fin n) (e : RecTower n k L) :
     0 ≤ recUsedJointLaw prog p L (x, e) := by
@@ -6051,6 +6545,8 @@ theorem clause17_rec_used_joint_nonneg {n k : ℕ} (prog : RecBscProgram n k) {p
   rw [h]
   exact mul_nonneg (by positivity) (clause17_rec_used_tower_prod_nonneg prog hp0 hp1 L x e)
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the products of conditional level weights sum to one over all
+used-transcript towers for each hidden cell. -/
 theorem clause17_rec_used_tower_prod_sum_one {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ e : RecTower n k L, recUsedTowerProd prog p L x e) = 1 := by
@@ -6075,6 +6571,8 @@ theorem clause17_rec_used_tower_prod_sum_one {n k : ℕ} (prog : RecBscProgram n
           rw [ih, clause17_stop_used_cond_sum_one (prog.levelProg L) hp0 hp1 hn x]
           simp
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, summing the recursive joint law over the last level's used
+transcript recovers the previous tower joint law. -/
 theorem clause17_rec_used_marg_last {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (e : RecTower n k L) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ b : Fin k → (Sum Bool Unit), recUsedJointLaw prog p (L + 1) (x, (e, b)))
@@ -6095,6 +6593,8 @@ theorem clause17_rec_used_marg_last {n k : ℕ} (prog : RecBscProgram n k) (p : 
   rw [← h]
   ring
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, summing out all preceding tower levels gives the joint law of
+the hidden cell and the last level's used transcript. -/
 theorem clause17_rec_used_marg_head {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (b : Fin k → (Sum Bool Unit)) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ a : RecTower n k L, recUsedJointLaw prog p (L + 1) (x, (a, b)))
@@ -6115,6 +6615,8 @@ theorem clause17_rec_used_marg_head {n k : ℕ} (prog : RecBscProgram n k) (p : 
   rw [h]
   ring
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the hidden-cell marginal of the recursive used-transcript law
+equals `1 / n`. -/
 theorem clause17_rec_used_margL {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (x : Fin n) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ e : RecTower n k L, recUsedJointLaw prog p L (x, e)) = 1 / (n : ℝ) := by
@@ -6128,6 +6630,7 @@ theorem clause17_rec_used_margL {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ)
   rw [clause17_rec_used_tower_prod_sum_one prog p L x hp0 hp1 hn]
   ring
 
+/-- Recursive used-transcript joint weights sum to one for `0 ≤ p ≤ 1` and `n > 0`. -/
 theorem clause17_rec_used_total {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     (∑ x : Fin n, ∑ e : RecTower n k L, recUsedJointLaw prog p L (x, e)) = 1 := by
@@ -6141,6 +6644,8 @@ theorem clause17_rec_used_total {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ)
         simp
         field_simp
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the previous used-transcript tower and the next level's used
+transcript satisfy `CondIndepRight` given the hidden cell. -/
 theorem clause17_rec_cond_indep {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     @CondIndepRight n (RecTower n k L) (Fin k → (Sum Bool Unit))
@@ -6158,6 +6663,8 @@ theorem clause17_rec_cond_indep {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ)
   rw [h1, h2, h3, h4]
   ring
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, extending a tower by one level increases mutual information by
+at most that level's used-transcript information. -/
 theorem clause17_rec_used_mut_info_step {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     recUsedMutInfo prog p (L + 1)
@@ -6228,6 +6735,8 @@ theorem clause17_rec_used_mut_info_step {n k : ℕ} (prog : RecBscProgram n k) (
     (clause17_rec_cond_indep prog p L hp0 hp1 hn)
   exact h
 
+/-- For `0 ≤ p ≤ 1` and `n > 0`, the recursive used-transcript information is at most the sum of
+the individual levels' used-transcript informations. -/
 theorem clause17_rec_used_mut_info_le_sum_levels {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hn : 0 < n) :
     recUsedMutInfo prog p L ≤ ∑ L' ∈ Finset.range L, stopUsedMutInfo (prog.levelProg L') p := by
@@ -6251,6 +6760,8 @@ theorem clause17_rec_used_mut_info_le_sum_levels {n k : ℕ} (prog : RecBscProgr
       _ = ∑ L' ∈ Finset.range (L + 1), stopUsedMutInfo (prog.levelProg L') p := by
           rw [Finset.sum_range_succ]
 
+/-- For `1 / 2 < p ≤ 1` and `n > 0`, recursive used-transcript information is at most the sum of
+levelwise expected stopping costs times `queryInfo p`. -/
 theorem clause17_rec_used_mut_info_le_total_cost {n k : ℕ} (prog : RecBscProgram n k) (p : ℝ) (L : ℕ)
     (hp : 1 / 2 < p) (hp1 : p ≤ 1) (hn : 0 < n) :
     recUsedMutInfo prog p L
@@ -6272,6 +6783,9 @@ theorem clause17_rec_used_mut_info_le_total_cost {n k : ℕ} (prog : RecBscProgr
     _ = (∑ L' ∈ Finset.range L, expectedStopCost (prog.levelProg L') p) * queryInfo p := by
         rw [Finset.sum_mul]
 
+/-- For at least two hidden cells and `1 / 2 < p ≤ 1`, a decoder of the combined used-transcript
+tower with error at most `0 ≤ δ ≤ 1 / 2` forces the sum of levelwise expected costs to be at
+least `fanoCapacityBound n p δ` [BenOrHassidim2007]. -/
 theorem clause17_rec_capacity_bound {n k : ℕ} (hn : 2 ≤ n) (prog : RecBscProgram n k) (L : ℕ)
     {p : ℝ} (hp : 1 / 2 < p) (hp1 : p ≤ 1)
     (g : RecTower n k L → Fin n) {δ : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2)
@@ -6329,6 +6843,9 @@ theorem clause17_rec_capacity_bound {n k : ℕ} (hn : 2 ≤ n) (prog : RecBscPro
     _ = (∑ L' ∈ Finset.range L, expectedStopCost (prog.levelProg L') p) := by
         field_simp
 
+/-- For a recursive program with positive level count, at least two hidden cells, and `1 / 2 < p
+≤ 1`, any combined-transcript decoder with error at most `0 ≤ δ ≤ 1 / 2` forces total
+expected cost to be at least `fanoCapacityBound n p δ` [BenOrHassidim2007]. -/
 theorem clause17_rec_total_cost_capacity_bound {n k : ℕ} (hn : 2 ≤ n) (prog : RecBscProgram n k)
     (hlev : 0 < prog.levels) {p : ℝ} (hp : 1 / 2 < p) (hp1 : p ≤ 1)
     (g : RecTower n k (recLastLevel prog + 1) → Fin n) {δ : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1 / 2)

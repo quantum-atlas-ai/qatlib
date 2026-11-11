@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.LcuFrame.Normalization
+
+/-!
+# The orthogonal companion in an LCU plane
+
+Proves `phi1_orthonormal`: the residual state `phi1` is normalized and orthogonal to `phi0` when
+constructed from a normalized Hamiltonian eigenstate with `E² < 1`. The block matrices are
+assumed Hermitian and involutory, and the weights have unit squared sum. See [PoulinEtAl2018]
+for related background.
+
+## Main statements
+
+* `phi1_orthonormal`: For normalized weights and a normalized eigenstate with `E² < 1`,
+  Hermitian involutory blocks make `phi1` normalized and give `Inner (phi0 β φ) (phi1 β P φ E) =
+  0`.
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +34,8 @@ noncomputable section
 open Matrix
 variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- For normalized weights and a normalized eigenstate with `E² < 1`, Hermitian involutory
+blocks make `phi1` normalized and give `Inner (phi0 β φ) (phi1 β P φ E) = 0`. -/
 theorem phi1_orthonormal (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (hφ : Normalized φ)
     (hPH : ∀ j, (P j)ᴴ=P j) (hP2 : ∀ j, P j*P j=1)

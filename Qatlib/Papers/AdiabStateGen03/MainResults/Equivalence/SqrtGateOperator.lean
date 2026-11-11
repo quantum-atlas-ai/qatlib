@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Qatlib.Papers.AdiabStateGen03.MainResults.Equivalence.Basic
 import Mathlib.Analysis.InnerProductSpace.PiL2
+
+/-!
+# Projection operators and scalar square-root-gate bounds
+
+Proves a lower bound on the modulus of `a + i b` for nonnegative `a` and `b` summing to one. The
+matrix-to-operator map preserves the self-adjointness and idempotence needed to show that a
+Hermitian projection has operator norm at most one. See [AharonovTaShma2007].
+
+## Main statements
+
+* `sqrtGate_modulus_ge`: Bounds the modulus by `1 / sqrt 2` for the stated convex coefficients.
+* `projection_norm_le_one`: A Hermitian idempotent matrix induces an operator of norm at most
+  one.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,10 +40,13 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- If nonnegative `a` and `b` sum to one, then `a ^ 2 + b ^ 2 ≥ 1 / 2` [AharonovTaShma2007]. -/
 theorem two_sq_sum_ge_half (a b : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b) (h : a + b = 1) :
     1 / 2 ≤ a ^ 2 + b ^ 2 := by
   nlinarith [sq_nonneg (a - b)]
 
+/-- If nonnegative `a` and `b` sum to one, the modulus of `a + i b` is at least `1 / sqrt 2`
+[AharonovTaShma2007]. -/
 theorem sqrtGate_modulus_ge (a b : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b) (h : a + b = 1) :
     1 / Real.sqrt 2 ≤ ‖(a : ℂ) + (b : ℂ) * Complex.I‖ := by
   have hsq : 1 / 2 ≤ a ^ 2 + b ^ 2 := two_sq_sum_ge_half a b ha hb h
@@ -34,12 +56,14 @@ theorem sqrtGate_modulus_ge (a b : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b) (h : a + b
   rw [hsqrt]
   exact Real.sqrt_le_sqrt hsq
 
+/-- A Hermitian matrix induces a continuous linear operator equal to its adjoint. -/
 theorem toOp_adjoint_eq (P : Ham n) (hP : Pᴴ = P) :
     ContinuousLinearMap.adjoint (toOp P) = toOp P := by
   have h : Matrix.toEuclideanCLM (n := Dim n) (𝕜 := ℂ) (star P)
       = star (Matrix.toEuclideanCLM (n := Dim n) (𝕜 := ℂ) P) := map_star _ _
   simpa [toOp, Matrix.star_eq_conjTranspose, hP, ContinuousLinearMap.star_eq_adjoint] using h.symm
 
+/-- An idempotent matrix induces an idempotent continuous linear operator. -/
 theorem toOp_mul_self (P : Ham n) (hidem : P * P = P) :
     toOp P * toOp P = toOp P := by
   have h : Matrix.toEuclideanCLM (n := Dim n) (𝕜 := ℂ) (P * P)
@@ -48,6 +72,8 @@ theorem toOp_mul_self (P : Ham n) (hidem : P * P = P) :
   rw [hidem] at h
   exact h.symm
 
+/-- The operator induced by a Hermitian idempotent matrix has norm at most one
+[AharonovTaShma2007]. -/
 theorem projection_norm_le_one (P : Ham n) (hP : Pᴴ = P) (hidem : P * P = P) :
     ‖toOp P‖ ≤ 1 := by
   refine ContinuousLinearMap.opNorm_le_bound _ (by norm_num) ?_

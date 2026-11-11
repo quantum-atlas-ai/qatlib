@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.LocalModel.Physical
+
+/-!
+# A finite norm budget for physical interactions
+
+The direct bound `directBudget` equips any finite physical interaction family with a uniform
+bound on its original term norms. The resulting model `asBounded` preserves the physical grouped
+and total Hamiltonians, so estimates requiring bounded terms can be applied to those operators.
+See [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `directBudget_term`: Each original interaction term has norm at most half the direct budget.
+* `asBounded_grouped`: Passing to the direct-budget model preserves every grouped Hamiltonian.
+* `asBounded_total`: Passing to the direct-budget model preserves the total Hamiltonian.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,8 +34,10 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOr
 namespace Qatlib.Papers.LowEnergyProd24.LocalModel.PhysicalHamiltonian
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- Twice the sum of the norms of all original physical interaction terms. -/
 def directBudget (h : PhysicalHamiltonian N R M k d J) : ℝ := 2*∑ i, ‖h.term i‖
 
+/-- Each original interaction term has norm at most half the direct budget. -/
 theorem directBudget_term (h : PhysicalHamiltonian N R M k d J) (i : Fin R) :
     ‖h.term i‖ ≤ h.directBudget/2 := by
   have hi : ‖h.term i‖ ≤ ∑ j, ‖h.term j‖ :=
@@ -24,6 +46,8 @@ theorem directBudget_term (h : PhysicalHamiltonian N R M k d J) (i : Fin R) :
   unfold directBudget
   ring
 
+/-- The bounded Hamiltonian model with the original physical terms and strength parameter
+`h.directBudget`. -/
 def asBounded (h : PhysicalHamiltonian N R M k d J) : Hamiltonian N R M k d h.directBudget where
   term := h.term
   support := h.support
@@ -34,8 +58,10 @@ def asBounded (h : PhysicalHamiltonian N R M k d J) : Hamiltonian N R M k d h.di
   degree := h.degree
   strength := h.directBudget_term
 
+/-- Passing to the direct-budget model preserves every grouped Hamiltonian. -/
 theorem asBounded_grouped (h : PhysicalHamiltonian N R M k d J) (m : Fin M) :
     h.asBounded.grouped m=h.grouped m := rfl
 
+/-- Passing to the direct-budget model preserves the total Hamiltonian. -/
 theorem asBounded_total (h : PhysicalHamiltonian N R M k d J) : h.asBounded.total=h.total := rfl
 end Qatlib.Papers.LowEnergyProd24.LocalModel.PhysicalHamiltonian

@@ -9,6 +9,36 @@ import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
+
+/-!
+# Empirical preparation and quantum risk estimates
+
+This module connects empirical loss tables to ideal and numerical quantum preparations. It
+identifies ideal Born probabilities with empirical frequencies, bounds numerical preparation
+bias by `64 * n / 2 ^ bits`, and combines sampling and estimation errors for CDF, VaR, and
+conditional-risk quantities in the framework of [WoernerEgger2019].
+
+The module also defines the sampling-based `empiricalCVaRProgram` and records the forward,
+inverse, and comparison costs of its amplitude-estimation preparation source. Probability bounds
+distinguish empirical sampling error, numerical preparation error, and repeated-estimation
+failure.
+
+## Main statements
+
+* `empirical_actual_preparation_cdf_bias`: unitarity and the numerical CDF bias bound.
+* `empirical_uniform_cdf_sampling_bound`: a simultaneous sampling bound for a finite threshold
+  list.
+* `empirical_same_sample_adaptive_var`: a population-CDF bracket for the same-sample VaR
+  program.
+* `empirical_tail_ratio_stability` and `empiricalCVaR_target_error`: conditional-risk ratio and
+  program error bounds.
+* `empirical_ae_source_ledger`: exact source-gate and table-comparison counts.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -42,12 +72,16 @@ open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 set_option warningAsError false
 
+/-- The rational fraction of the sampled losses at most the threshold `t`. -/
 def empiricalCDF {n N : ℕ} (ω : Fin N→Option (Fin n)) (loss : Option (Fin n)→ℚ) (t : ℚ) : ℚ :=
   (((List.ofFn ω).filter (fun a => loss a≤t)).length:ℚ)/N
 
+/-- The probability, under `p`, that the rational loss is at most `t`. -/
 noncomputable def populationCDF {n : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n)→ℚ) (t : ℚ) : ℝ :=
   ∑ a,p.prob a*(if loss a≤t then 1 else 0)
 
+/-- The count-weighted sum of a predicate's indicator equals the length of the list filtered by
+that predicate. -/
 theorem empirical_indicator_sum {α : Type} [Fintype α] [BEq α] [LawfulBEq α]
     (xs : List α) (P : α → Prop) [DecidablePred P] :
     (∑ a, (xs.count a : ℚ) * (if P a then 1 else 0)) = (xs.filter P).length := by
@@ -58,6 +92,7 @@ theorem empirical_indicator_sum {α : Type} [Fintype α] [BEq α] [LawfulBEq α]
   | cons a xs ih =>
     by_cases h : P a <;> simp [h, ih, add_comm]
 
+/-- The empirical CDF equals the sample average of the threshold-indicator payoff. -/
 theorem empiricalCDF_avg {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (t : ℚ) :
     (empiricalCDF ω loss t : ℝ) = Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (riskCDFPayoff loss t) ω := by
@@ -74,6 +109,8 @@ theorem empiricalCDF_avg {n N : ℕ} (ω : Fin N → Option (Fin n))
   rw [hf, List.map_ofFn, List.sum_ofFn]
   rfl
 
+/-- For a nonempty sample, ideal preparation assigns Born probability equal to each outcome's
+empirical frequency. -/
 theorem empirical_ideal_born {n N : ℕ} (ω : Fin N → Option (Fin n)) (hN : 0 < N)
     (a : Option (Fin n)) :
     BornProb (idealWeightPrepare (empiricalWeight ω) *ᵥ Ket none) a =
@@ -86,6 +123,7 @@ theorem empirical_ideal_born {n N : ℕ} (ω : Fin N → Option (Fin n)) (hN : 0
   rw [Real.sq_sqrt]
   exact_mod_cast div_nonneg (hw a) (Nat.cast_nonneg N : (0 : ℚ) ≤ N)
 
+/-- For a nonempty sample, the risk CDF of ideal empirical preparation equals the empirical CDF. -/
 theorem empirical_ideal_cdf {n N : ℕ} (ω : Fin N → Option (Fin n)) (hN : 0 < N)
     (loss : Option (Fin n) → ℚ) (t : ℚ) :
     riskCDF (idealWeightPrepare (empiricalWeight ω)) none loss t = (empiricalCDF ω loss t : ℝ) := by
@@ -100,6 +138,8 @@ theorem empirical_ideal_cdf {n N : ℕ} (ω : Fin N → Option (Fin n)) (hN : 0 
   intro a _
   by_cases ha : loss a ≤ t <;> simp [ha, empiricalWeight]
 
+/-- For normalized states and a payoff in `[0, 1]`, the difference of Born-weighted expectations
+is at most twice the Euclidean distance between the states. -/
 theorem empirical_payoff_l2_error {I : Type} [Fintype I] [DecidableEq I]
     (ψ φ : QState I) (hψ : Normalized ψ) (hφ : Normalized φ)
     (f : I → ℝ) (hf : ∀ i, 0 ≤ f i ∧ f i ≤ 1) :
@@ -142,6 +182,10 @@ theorem empirical_payoff_l2_error {I : Type} [Fintype I] [DecidableEq I]
       rw [(normalized_iff_norm_toEuclidean_fromVec φ).mp hφ] at h2
       linarith
 
+/-- For a nonempty sample and a payoff in `[0, 1]`, numerical empirical preparation changes its
+expectation from the ideal preparation by at most `64 * n / 2 ^ bits`. This bounds
+preparation bias in the expectation construction of [Woerner and Egger, Section
+II][WoernerEgger2019]. -/
 theorem empirical_prepare_payoff_bias {n N : ℕ} (ω : Fin N → Option (Fin n)) (bits : ℕ)
     (hN : 0 < N) (f : Option (Fin n) → ℝ) (hf : ∀ a, 0 ≤ f a ∧ f a ≤ 1) :
     |(∑ a, BornProb (empiricalPrepare ω bits *ᵥ Ket none) a * f a) -
@@ -180,6 +224,9 @@ theorem empirical_prepare_payoff_bias {n N : ℕ} (ω : Fin N → Option (Fin n)
     _ ≤ 2*(32*(n : ℝ)/2^bits) := mul_le_mul_of_nonneg_left he (by norm_num)
     _ = _ := by ring
 
+/-- For a nonempty sample, empirical preparation is unitary and its risk CDF differs from the
+empirical CDF by at most `64 * n / 2 ^ bits`. This supplies a numerical preparation bound
+for the CDF construction in [WoernerEgger2019]. -/
 theorem empirical_actual_preparation_cdf_bias :
     ∀ (n N bits : ℕ) (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℚ) (t : ℚ),
       0 < N → empiricalPrepare ω bits ∈ Matrix.unitaryGroup (Option (Fin n)) ℂ ∧
@@ -190,6 +237,7 @@ theorem empirical_actual_preparation_cdf_bias :
   rw [← empirical_ideal_cdf ω hN loss t, riskCDF_eq, riskCDF_eq]
   exact empirical_prepare_payoff_bias ω bits hN (riskCDFPayoff loss t) (riskCDFPayoff_bounds loss t)
 
+/-- The variance of the loss-threshold indicator is at most one quarter. -/
 theorem empirical_indicator_variance {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) :
     p.variance (riskCDFPayoff loss t) ≤ 1/4 := by
@@ -212,6 +260,8 @@ theorem empirical_indicator_variance {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [hv]
   nlinarith [sq_nonneg (μ-1/2)]
 
+/-- For positive sample size and tolerance `ν`, the probability of empirical CDF error exceeding
+`ν` is at most `1 / (4 * N * ν ^ 2)`. -/
 theorem empirical_cdf_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent p (fun ω : Fin N → Option (Fin n) =>
@@ -227,6 +277,8 @@ theorem empirical_cdf_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
       div_le_div_of_nonneg_right (empirical_indicator_variance p loss t) hd.le
     _ = _ := by ring
 
+/-- For positive sample size and tolerance, the probability that any threshold in `xs` has CDF
+error exceeding `ν` is at most `xs.length / (4 * N * ν ^ 2)`. -/
 theorem empirical_uniform_cdf_sampling_bound :
     ∀ (n N : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
       (xs : List ℚ) (ν : ℝ), 0 < N → 0 < ν →
@@ -266,6 +318,8 @@ theorem empirical_uniform_cdf_sampling_bound :
       simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
       ring
 
+/-- For a nonempty sample, the ideal prepared expectation of a rational payoff equals its
+empirical count-weighted average. -/
 theorem empirical_ideal_payoff {n N : ℕ} (ω : Fin N → Option (Fin n)) (hN : 0 < N)
     (f : Option (Fin n) → ℚ) :
     (∑ a, BornProb (idealWeightPrepare (empiricalWeight ω) *ᵥ Ket none) a * (f a : ℝ)) =
@@ -277,6 +331,8 @@ theorem empirical_ideal_payoff {n N : ℕ} (ω : Fin N → Option (Fin n)) (hN :
   intro a _
   ring
 
+/-- If numerator and denominator estimates are within `δ` of `μ` and positive `p`, with `2 * δ <
+p` and `0 ≤ a ≤ φ`, their ratio differs from `μ / p` by at most `4 * δ / p`. -/
 theorem empirical_ratio_error (p μ φ a δ : ℝ) (hδ : 0 ≤ δ) (hp : 0 < p)
     (hgap : 2*δ < p) (hφ : |φ-p| ≤ δ) (ha : |a-μ| ≤ δ)
     (ha0 : 0 ≤ a) (haφ : a ≤ φ) : |a/φ-μ/p| ≤ 4*δ/p := by
@@ -295,6 +351,10 @@ theorem empirical_ratio_error (p μ φ a δ : ℝ) (hδ : 0 ≤ δ) (hp : 0 < p)
     _ ≤ 4*δ*φ := by nlinarith
     _ = (4*δ/p)*(φ*p) := by field_simp
 
+/-- For a nonempty sample with losses in `[0, 1]`, empirical CDF and tail-payoff errors at most
+`η` imply tail-mean error at most `4 * (η + 64 * n / 2 ^ bits) / p` when twice the combined
+error is below positive `p`. This controls the conditional-risk ratio used in [Woerner and
+Egger, Section II][WoernerEgger2019]. -/
 theorem empirical_tail_ratio_stability :
     ∀ (n N bits : ℕ) (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℚ)
       (t : ℚ) (p μ η : ℝ), 0 < N → (∀ a, 0 ≤ loss a ∧ loss a ≤ 1) →
@@ -330,6 +390,11 @@ theorem empirical_tail_ratio_stability :
   rw [riskTailMean_eq]
   exact empirical_ratio_error p μ φ a δ hδ hp hgap hφ ha hbounds.1 hbounds.2
 
+/-- For a nonempty sorted threshold list containing the loss support and the stated positive
+parameters and phase-estimation accuracy, the same-sample VaR output brackets the population
+CDF within `E = eps + ν + 64 * n / 2 ^ bits` except with probability at most `xs.length / (4
+* N * ν ^ 2) + (Nat.clog 2 xs.length + 1) * (8 / 9) ^ r`. This quantifies the bisection
+construction in [Woerner and Egger, Section II][WoernerEgger2019]. -/
 theorem empirical_same_sample_adaptive_var : ∀ (n N bits M r : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n)→ℚ)
   (xs : List ℚ) (q eps ν : ℝ), 0 < N → xs≠[] → xs.SortedLE →
   (∀ a,loss a∈xs) → 0 < q → q < 1 → 0 < eps → 0 < ν →
@@ -403,10 +468,13 @@ theorem empirical_same_sample_adaptive_var : ∀ (n N bits M r : ℕ) (p : FinDi
     simpa only [Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass, B] using! hs
   exact add_le_add (ENNReal.ofReal_le_ofReal hs') le_rfl
 
+/-- Numerical empirical preparation is unitary for every sample and bit precision. -/
 theorem empiricalPrepare_unitary {n N : ℕ} (ω : Fin N → Option (Fin n)) (bits : ℕ) :
     empiricalPrepare ω bits ∈ Matrix.unitaryGroup (Option (Fin n)) ℂ :=
   (rational_weight_numerical_word_unitary_and_error n bits _ (empiricalWeight_nonneg ω)).2.1
 
+/-- The joint sampling and conditional-risk program that draws `N` independent outcomes from `p`
+and runs `riskCVaR` using their empirical preparation. -/
 noncomputable def empiricalCVaRProgram {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
     (xs : List ℚ) (q eps : ℝ) (bits payoffBits M r : ℕ) (hM : 2 ≤ M) :
@@ -415,6 +483,8 @@ noncomputable def empiricalCVaRProgram {n N : ℕ} (p : FinDist (Option (Fin n))
     riskCVaR (empiricalPrepare ω bits) none loss xs q eps payoffBits M r
       (empiricalPrepare_unitary ω bits) hloss hM)
 
+/-- Every supported result of `empiricalCVaRProgram` has recorded call count at most `Nat.clog 2
+xs.length + 3`. -/
 theorem empiricalCVaRProgram_calls {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
     (xs : List ℚ) (q eps : ℝ) (bits payoffBits M r : ℕ) (hM : 2 ≤ M) :
@@ -425,6 +495,8 @@ theorem empiricalCVaRProgram_calls {n N : ℕ} (p : FinDist (Option (Fin n)))
   exact riskCVaR_support_calls (empiricalPrepare ω bits) none loss xs q eps payoffBits M r
     (empiricalPrepare_unitary ω bits) hloss hM z hz
 
+/-- For positive `M`, the empirical preparation source ledger has `M * n` forward gates, `(M -
+1) * n` inverse gates, and `2 * n * bits` table comparisons. -/
 theorem empirical_ae_source_ledger {n N : ℕ} (ω : Fin N → Option (Fin n)) (bits M : ℕ)
     (hM : 0 < M) :
     aeForwardAccesses (aeAccessWord (I := Option (Fin n) × Bool) M) *
@@ -437,6 +509,11 @@ theorem empirical_ae_source_ledger {n N : ℕ} (ω : Fin N → Option (Fin n)) (
   simp only [h.1, h.2.1, adjointGateCount_adjointCircuit, hw.2.2.2, hw.2.2.1]
   exact ⟨trivial, trivial, trivial⟩
 
+/-- Under the threshold-separation, accuracy, bounded-loss, and positive-denominator hypotheses,
+the probability of a wrong threshold index or error from `μ / p` exceeding `4 * eps /
+riskCDF + 4 * (η + 64 * n / 2 ^ bits) / p` is at most `(Nat.clog 2 xs.length + 3) * (8 / 9)
+^ r`. This combines preparation and estimation errors for conditional risk as in
+[WoernerEgger2019]. -/
 theorem empiricalCVaR_target_error {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (t : ℚ) (p μ η eps : ℝ) (xs : List ℚ) (q : ℝ)
     (bits payoffBits M r v : ℕ) (hN : 0 < N) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)

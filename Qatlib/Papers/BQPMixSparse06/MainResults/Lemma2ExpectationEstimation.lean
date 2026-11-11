@@ -8,6 +8,27 @@ import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
+/-!
+# Concentration and expectation error budgets
+
+The theorem `hoeffding_two_sided` gives a two-sided deviation bound for sums of independent
+bounded real random variables. The remaining estimates choose a sufficient sample size and
+combine a supplied concentration bound with deterministic bias control for the
+expectation-estimation argument of [JanzingWocjan2006].
+
+## Main statements
+
+* `lemma2_sample_size_e`: a logarithmic sample-size condition makes the exponential tail at most
+  `α`.
+* `lemma2_error_budget`: the specified error allocations imply error at most `ε * (M + K)`.
+* `lemma2_expectation_estimation`: transfers a concentration bound from the mean to the target
+  under the stated bias budget.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +37,9 @@ open scoped NNReal
 
 namespace Qatlib.Papers.BQPMixSparse06.MainResults
 
+/-- For independent almost everywhere measurable random variables valued almost everywhere in
+`[a, b]`, the centered sum has the stated two-sided Hoeffding exponential bound
+[JanzingWocjan2006]. -/
 theorem hoeffding_two_sided {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     [IsProbabilityMeasure μ] {n : ℕ} (X : ℕ → Ω → ℝ)
     (h_indep : iIndepFun X μ) {a b : ℝ} (hmes : ∀ i, AEMeasurable (X i) μ)
@@ -72,6 +96,9 @@ theorem hoeffding_two_sided {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     _ = 2 * Real.exp (-ε ^ 2 / (2 * (n : ℝ) * ((‖b - a‖₊ : ℝ) / 2) ^ 2)) := by
         ring
 
+/-- For `a < b`, positive accuracy `ε`, and `0 < α ≤ 2`, a positive sample size at least `(b -
+a) ^ 2 * log (2 / α) / (2 * ε ^ 2)` makes the stated exponential tail bound at most `α`
+[JanzingWocjan2006]. -/
 theorem lemma2_sample_size_e {a b ε α : ℝ} (hab : a < b) (hε : 0 < ε)
     (hα : 0 < α) (hα2 : α ≤ 2) {n : ℕ} (h1n : 1 ≤ n)
     (hn : (b - a) ^ 2 * Real.log (2 / α) / (2 * ε ^ 2) ≤ n) :
@@ -109,6 +136,8 @@ theorem lemma2_sample_size_e {a b ε α : ℝ} (hab : a < b) (hε : 0 < ε)
     mul_le_mul_of_nonneg_left hexp_le (by norm_num)
   linarith
 
+/-- The allocations `θ = ε / 6`, `η = ε / (6 * π)`, and `D ≤ ε / 3` turn the supplied
+deterministic error bound into `ε * (M + K)`. -/
 theorem lemma2_error_budget (E target M K ε θ η D : ℝ) (hM : 0 ≤ M)
     (hK : 0 ≤ K) (hε : 0 ≤ ε) (hθ : θ = ε / 6)
     (hη : η = ε / (6 * Real.pi)) (hD : D ≤ ε / 3)
@@ -130,6 +159,9 @@ theorem lemma2_error_budget (E target M K ε θ η D : ℝ) (hM : 0 ≤ M)
       2 * θ * M + D * M + 2 * Real.pi * K * η := by ring
   linarith [hideal, hexp, hθ', hη', hD', h1, h2]
 
+/-- A deviation bound of `α` around `mean` transfers to deviation threshold `ε * (M + K)` around
+`target` when the bias and arithmetic budget hypotheses hold [JanzingWocjan2006, Lemma
+2][JanzingWocjan2006]. -/
 theorem lemma2_expectation_estimation {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     [IsProbabilityMeasure μ] (est : Ω → ℝ) (mean target ε ε₁ α M K : ℝ)
     (hM : 0 ≤ M) (hK : 0 ≤ K) (hε : 0 ≤ ε)

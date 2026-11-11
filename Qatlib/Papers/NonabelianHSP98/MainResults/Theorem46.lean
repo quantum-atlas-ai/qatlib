@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+
+/-!
+# When orthogonal complements form subgroups
+
+`IsSubgroupSet` expresses that a set is the carrier of a subgroup. Theorem 4.6 characterizes
+this property for `perpSub U`: it holds exactly when `U` is fixed by `conjSub`. This development
+accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `theorem_4_6_fwd`: swap invariance makes the complement a subgroup carrier.
+* `theorem_4_6_bwd`: subgroup closure of the complement forces swap invariance.
+* `theorem_4_6`: the equivalence of these conditions.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,13 +42,18 @@ attribute [local instance] Classical.propDecidable
 
 variable {n : ℕ}
 
+/-- The predicate that a set is the underlying set of some subgroup of `Wreath n`. -/
 def IsSubgroupSet (S : Set (Wreath n)) : Prop :=
   ∃ H : Subgroup (Wreath n), (H : Set (Wreath n)) = S
 
+/-- If `U` is fixed by `conjSub`, then `perpSub U` is the carrier of a subgroup. This is the
+forward implication of Theorem 4.6 of [RoettelerBeth1998]. -/
 theorem theorem_4_6_fwd (U : Subgroup (Wreath n)) (h : conjSub U = U) :
     IsSubgroupSet (perpSub U) :=
   ⟨perpGroup U (balanced_of_conjSub_eq U h), rfl⟩
 
+/-- If `perpSub U` is a subgroup carrier, then `U` is fixed by `conjSub`. This is the reverse
+implication of Theorem 4.6 of [RoettelerBeth1998]. -/
 theorem theorem_4_6_bwd (U : Subgroup (Wreath n)) (h : IsSubgroupSet (perpSub U)) :
     conjSub U = U := by
   obtain ⟨H, hH⟩ := h
@@ -63,6 +87,8 @@ theorem theorem_4_6_bwd (U : Subgroup (Wreath n)) (h : IsSubgroupSet (perpSub U)
       exact perp_balanced hSbal
     exact conjSub_eq_of_balanced U hUbal
 
+/-- A subgroup is fixed by `conjSub` if and only if its orthogonal-complement set is a subgroup
+carrier. This is Theorem 4.6 of [RoettelerBeth1998]. -/
 theorem theorem_4_6 (U : Subgroup (Wreath n)) :
     conjSub U = U ↔ IsSubgroupSet (perpSub U) :=
   ⟨theorem_4_6_fwd U, theorem_4_6_bwd U⟩

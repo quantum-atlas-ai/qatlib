@@ -9,6 +9,31 @@ import Mathlib.Analysis.Complex.Order
 import Mathlib.Analysis.Matrix.Order
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.Tactic
+
+/-!
+# Perfect discrimination and constant-distance codes
+
+This module proves the query-state and code-distance implications underlying Lemma 4.1 of
+[MeyerPommersheim2009]. The states `queryState` encode a Boolean concept family using two
+response states, and their Gram entries are expressed in terms of `hammingDist`.
+
+Perfect discrimination forces these states to be orthogonal, which gives a common distance at
+least half the input-domain size. With equally many concepts and inputs and an even domain size
+greater than two, the common distance is exactly half the domain size and the learning matrix
+has Hadamard columns.
+
+## Main statements
+
+* `perfect_discrimination_orthogonal`: derives orthogonality from perfect measurement
+  discrimination.
+* `constant_distance_code_half`: identifies the common distance in the square even-size case.
+* `lemma_4_1`: combines the constant-distance and Hadamard conclusions.
+
+## References
+
+* [Meyer and Pommersheim, 2009][MeyerPommersheim2009]
+-/
+
 set_option warningAsError false
 
 set_option maxHeartbeats 1000000
@@ -22,6 +47,8 @@ noncomputable section
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- Normalized states that a positive semidefinite measurement distinguishes perfectly are
+pairwise orthogonal. -/
 lemma perfect_discrimination_orthogonal {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : ι → H → ℂ) (hA : ∀ i, star (A i) ⬝ᵥ A i = 1)
     (P : ι → Matrix H H ℂ) (hP : ∀ i, (P i).PosSemidef)
@@ -81,10 +108,13 @@ section QueryDefs
 
 variable {X C : Type*} [Fintype X]
 
+/-- The query-state amplitude at `(x, b)`, given by `a * u (f c x) b`. -/
 def queryState (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → ℂ) (a : ℂ) (c : C) :
     X × Fin 2 → ℂ :=
   fun p => a * u (f c p.1) p.2
 
+/-- When the squared modulus of `a` is the inverse domain size, the query-state inner product is
+the average of the response-state inner products. -/
 lemma queryState_gram (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → ℂ) (a : ℂ)
     (ha : star a * a = ((Fintype.card X : ℂ))⁻¹) (c c' : C) :
     star (queryState f u a c) ⬝ᵥ queryState f u a c'
@@ -103,6 +133,9 @@ lemma queryState_gram (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → ℂ) (a
   rw [show star (u (f c x) b) * star a * (a * u (f c' x) b)
       = (star a * a) * (star (u (f c x) b) * u (f c' x) b) by ring, ha]
 
+/-- For normalized response states with common real cross inner product `lam`, the query-state
+Gram entry is the domain-size-normalized sum of the agreement count and `lam` times the
+Hamming distance. -/
 lemma queryState_gram_card (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → ℂ) (a : ℂ)
     (ha : star a * a = ((Fintype.card X : ℂ))⁻¹) (lam : ℝ)
     (hu : ∀ y, star (u y) ⬝ᵥ u y = 1)
@@ -155,6 +188,9 @@ lemma queryState_gram_card (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → �
     _ = ((Fintype.card X - hammingDist f c c' : ℕ) : ℂ)
           + (hammingDist f c c' : ℂ) * (lam : ℂ) := by rw [mul_comm]
 
+/-- Perfect discrimination of the specified query states forces all distinct concepts to have a
+common Hamming distance at least half the input-domain size, assuming at least two concepts.
+[MeyerPommersheim2009]. -/
 theorem lemma_4_1_perfect [DecidableEq X] [Fintype C] [DecidableEq C]
     (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → ℂ) (a : ℂ) (lam : ℝ)
     (hN : 0 < Fintype.card X) (hlam : -1 ≤ lam) (hlam1 : lam ≤ 1)
@@ -207,6 +243,9 @@ variable {X C : Type*} [Fintype X] [DecidableEq X] [Fintype C] [DecidableEq C]
 
 omit [DecidableEq X] in
 
+/-- For an even domain size greater than two and equally many Boolean concepts, a common
+pairwise distance at least half the domain size must equal exactly half that size.
+[MeyerPommersheim2009]. -/
 theorem constant_distance_code_half (f : C → X → ZMod 2) (d : ℕ)
     (hN2 : 2 < Fintype.card X) (hcard : Fintype.card C = Fintype.card X)
     (heven : Even (Fintype.card X))
@@ -337,6 +376,9 @@ theorem constant_distance_code_half (f : C → X → ZMod 2) (d : ℕ)
 
 omit [DecidableEq X] in
 
+/-- For an even domain size greater than two and equally many concepts, constant pairwise
+Hamming distance at least half the domain size implies the Hadamard column condition.
+[MeyerPommersheim2009]. -/
 theorem lemma_4_1_hadamard_of_constant_distance (f : C → X → ZMod 2) (d : ℕ)
     (hN2 : 2 < Fintype.card X) (hcard : Fintype.card C = Fintype.card X)
     (heven : Even (Fintype.card X))
@@ -346,6 +388,10 @@ theorem lemma_4_1_hadamard_of_constant_distance (f : C → X → ZMod 2) (d : �
   lemma_4_1_hadamard f d hN2 hcard heven hcode
     (constant_distance_code_half f d hN2 hcard heven hcode hge)
 
+/-- Perfect discrimination of the specified query states forces a common pairwise Hamming
+distance at least half the domain size. If the numbers of inputs and concepts agree and the
+domain size is even and greater than two, the learning matrix has Hadamard columns.
+[MeyerPommersheim2009]. -/
 theorem lemma_4_1 (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → ℂ) (a : ℂ) (lam : ℝ)
     (hN : 0 < Fintype.card X) (hlam : -1 ≤ lam) (hlam1 : lam ≤ 1)
     (ha : star a * a = ((Fintype.card X : ℂ))⁻¹)

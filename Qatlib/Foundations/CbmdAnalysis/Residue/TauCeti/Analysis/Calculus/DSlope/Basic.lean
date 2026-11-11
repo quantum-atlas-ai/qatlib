@@ -7,6 +7,24 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Mathlib.Analysis.Calculus.DSlope
+
+/-!
+# Algebra of extended divided differences
+
+This module proves symmetry and a norm identity for `dslope`, the divided difference extended to
+the diagonal by differentiation. An exact finite expansion by iterated divided differences
+supports the analytic contour constructions used for [WangEtAl2026].
+
+## Main statements
+
+* `dslope_comm`: symmetry of the extended divided difference.
+* `sum_add_pow_sub_smul_iterate_dslope`: an exact expansion with a divided-difference remainder.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,18 +34,23 @@ section
 
 namespace TauCeti
 
+/-- The extended divided difference `dslope` is symmetric in its two base points. -/
 theorem dslope_comm {𝕜 E : Type*} [NontriviallyNormedField 𝕜] [NormedAddCommGroup E]
     [NormedSpace 𝕜 E] (f : 𝕜 → E) (a b : 𝕜) : dslope f a b = dslope f b a := by
   rcases eq_or_ne b a with rfl | h
   · rfl
   · rw [dslope_of_ne f h, dslope_of_ne f h.symm, slope_comm]
 
+/-- The divided difference between distinct points has norm one when the function preserves
+their distance. -/
 lemma norm_dslope_eq_one_of_norm_sub_map_eq {𝕜 E : Type*} [NontriviallyNormedField 𝕜]
     [NormedAddCommGroup E] [NormedSpace 𝕜 E] {g : 𝕜 → E} {x y : 𝕜} (hxy : y ≠ x)
     (hnorm : ‖g y - g x‖ = ‖y - x‖) : ‖dslope g x y‖ = 1 := by
   rw [dslope_of_ne _ hxy, slope_def_module, norm_smul, norm_inv, hnorm,
     inv_mul_cancel₀ (norm_ne_zero_iff.mpr (sub_ne_zero.mpr hxy))]
 
+/-- Expands `f b` as a finite sum of iterated divided differences at `a` plus an exact remainder
+evaluated at `b`. -/
 theorem sum_add_pow_sub_smul_iterate_dslope {𝕜 E : Type*} [NontriviallyNormedField 𝕜]
     [NormedAddCommGroup E] [NormedSpace 𝕜 E] (f : 𝕜 → E) (a b : 𝕜) (n : ℕ) :
     ∑ j ∈ Finset.range n, (b - a) ^ j • (Function.swap dslope a)^[j] f a +

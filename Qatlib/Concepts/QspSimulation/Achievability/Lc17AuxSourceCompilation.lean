@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxEndpointNormalization
+
+/-!
+# Compiling Fourier approximations into source phases
+
+This module turns a polynomial Fourier approximation to `exp (Complex.I * h θ)` into a source
+phase list in the quantum signal processing framework [LowChuang2017]. The input consists of an
+even real polynomial `A`, an odd real polynomial `Qt`, and a uniform error bound on the angle
+interval `[0, 2 * Real.pi]`.
+
+The theorem `lcScaledFourierPair` rescales the pair by `1 / (1 + ε)` to obtain the weighted
+square bound needed for completion, with approximation error at most `2 * ε`. Real completion
+and endpoint normalization then yield `lcSourceCompilation`: for positive even `N`, odd `h`, and
+`0 < ε ≤ 1 / 16`, a list of length `N` whose `lcPlusAmp` error is at most `8 * ε`.
+
+## Main statements
+
+* `lcScaledFourierPair` preserves parity and degree bounds while making the polynomial pair
+  contractive.
+* `lcFourierNormSq` identifies the squared amplitude norm with the weighted polynomial square
+  sum.
+* `lcSourceCompilation` produces source phases with the stated length and uniform approximation
+  bound.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,10 +47,14 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 open Polynomial
 section Helpers
 
+/-- Composing a constant real polynomial with any real polynomial leaves the constant polynomial
+unchanged. -/
 private theorem lcC_comp_real (s : ℝ) (p : Polynomial ℝ) :
     (Polynomial.C s).comp p = Polynomial.C s := by
   simp [Polynomial.comp]
 
+/-- The complex norm of a real number embedded in the complex numbers is its real absolute
+value. -/
 private theorem norm_ofReal' (r : ℝ) : ‖((r : ℝ) : ℂ)‖ = |r| := by
   have h : Complex.normSq ((r : ℝ) : ℂ) = r * r := Complex.normSq_ofReal r
   rw [Complex.normSq_eq_norm_sq] at h
@@ -35,6 +67,7 @@ private theorem norm_ofReal' (r : ℝ) : ‖((r : ℝ) : ℂ)‖ = |r| := by
     have hna : 0 ≤ |r| := abs_nonneg r
     linarith
 
+/-- The complex exponential of `Complex.I` times a real number has norm one. -/
 private theorem norm_exp_I (y : ℝ) : ‖Complex.exp (Complex.I * (y : ℂ))‖ = 1 := by
   have hre : (Complex.I * (y : ℂ)).re = 0 := by
     simp [Complex.mul_re]
@@ -55,6 +88,9 @@ private theorem norm_exp_I (y : ℝ) : ‖Complex.exp (Complex.I * (y : ℂ))‖
 
 end Helpers
 
+/-- Rescaling the input Fourier polynomial pair by `1 / (1 + ε)` preserves its parity and degree
+bounds and makes its weighted square sum at most one on `[-1, 1]`. Its approximation to the
+target exponential at angle `2 * Real.arccos x` has error at most `2 * ε`. -/
 theorem lcScaledFourierPair (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) (ε : ℝ)
     (hAeven : A.comp (-X) = A) (hQtodd : Qt.comp (-X) = -Qt)
     (hAdeg : A.degree ≤ (N : WithBot ℕ)) (hQtdeg : Qt.degree < (N : WithBot ℕ))
@@ -219,6 +255,8 @@ theorem lcScaledFourierPair (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) 
   rw [hA₁val, hQt₁val, hscale]
   exact hb2
 
+/-- On `[-1, 1]`, the squared norm of the Fourier amplitude of `A` and `Qt` equals `A.eval x ^ 2
++ (1 - x * x) * Qt.eval x ^ 2`. -/
 theorem lcFourierNormSq (A Qt : Polynomial ℝ) (x : ℝ)
     (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     ‖realEval A (x : ℂ) + Complex.I * (Real.sqrt (1 - x * x) : ℂ) * realEval Qt (x : ℂ)‖ ^ 2 =
@@ -230,6 +268,9 @@ theorem lcFourierNormSq (A Qt : Polynomial ℝ) (x : ℝ)
     Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im]
   nlinarith [Real.sq_sqrt ht]
 
+/-- For positive even `N`, odd `h`, and `0 < ε ≤ 1 / 16`, the stated polynomial Fourier
+approximation yields a source phase list of length `N`. Its `lcPlusAmp` approximates `exp
+(Complex.I * h θ)` uniformly within `8 * ε` on `[0, 2 * Real.pi]`. -/
 theorem lcSourceCompilation (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) (ε : ℝ)
     (hN : Even N) (hp : 0 < N) (hodd : ∀ θ, h (-θ) = -h θ)
     (hAeven : A.comp (-X) = A) (hQtodd : Qt.comp (-X) = -Qt)

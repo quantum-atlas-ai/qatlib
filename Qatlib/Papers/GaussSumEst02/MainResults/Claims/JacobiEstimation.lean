@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Jacobi
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+
+/-!
+# Jacobi-sum phases from three Gauss sums
+
+The theorem `corollary1_jacobiEstimation` expresses a Jacobi-sum phase as the sum of two
+Gauss-sum phases minus the phase for the product character. It provides stability under three
+phase-factor approximations and a conditional cost bound for estimating the three phases. See
+[VanDamSeroussi2002].
+
+## Main statements
+
+* `corollary1_jacobiEstimation`: When both characters and their product are nontrivial, the
+  Jacobi sum has modulus `√(card K)` and phase factor equal to the product of the first two
+  Gauss phase factors divided by the third; three phase-factor errors below `ε/3` give total
+  error below `ε`. Assuming `PhaseAccessModel` and polylogarithmic per-sample cost, the three
+  phases have protocols with expected absolute angular errors below `ε/3` and the stated
+  combined cost bound.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +41,12 @@ namespace Qatlib.Papers.GaussSumEst02.MainResults.Claims
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- When both characters and their product are nontrivial, the Jacobi sum has modulus `√(card
+K)` and phase factor equal to the product of the first two Gauss phase factors divided by
+the third; three phase-factor errors below `ε/3` give total error below `ε`. Assuming
+`PhaseAccessModel` and polylogarithmic per-sample cost, the three phases have protocols with
+expected absolute angular errors below `ε/3` and the stated combined cost bound
+[VanDamSeroussi2002]. -/
 theorem corollary1_jacobiEstimation {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial)

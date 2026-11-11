@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionModels
+
+/-!
+# Capped rejection laws and norm estimation
+
+`sqCappedRecords` supplies independent proposal-and-coin records for `sqRejectRun`. The module
+derives the exact capped output law and expected cost from the envelope-to-target energy ratio,
+then uses acceptance-bit block medians to estimate the target squared norm and control the
+induced norm error. For background, see [ChiaEtAl2022].
+
+## Main statements
+
+* `sq_rejection_actual_capped_law_and_cost`: proves normalization, geometric timeout, output
+  probabilities, and cost bounds.
+* `sq_rejection_acceptance_norm_estimation`: bounds relative squared-norm estimation error and
+  transfers it through the square root.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -17,20 +38,26 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The finite distribution of `B` independent proposal-and-acceptance pairs. -/
 noncomputable def sqCappedRecords {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) : FinDist (Fin B→I×Bool) :=
   independentSampleLaw (fun _ => sqTrialLaw p coin)
 
+/-- The product masses of all length-`B` proposal-and-coin records sum to one. -/
 theorem sqTrialProduct_sum_one {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) :
     (∑ omega : Fin B→I×Bool,sqTrialProduct p coin omega)=1 :=
   (sqCappedRecords p coin B).sum_one
 
+/-- On a nonempty record, rejection sampling stops at an accepted first proposal with cost four,
+or runs the tail and adds four to its cost. -/
 theorem sqRejectRun_cons {I : Type} {B : ℕ} (z : I×Bool) (omega : Fin B→I×Bool) :
     sqRejectRun (Fin.cons z omega) = if z.2 then (some z.1,4) else
       ((sqRejectRun omega).1,(sqRejectRun omega).2+4) := by
   simp [sqRejectRun,List.ofFn_succ,sqRejectList]
 
+/-- A weighted sum over length-`B + 1` trial records decomposes into a sum over the first trial
+and the independent tail record. -/
 theorem sq_record_sum_cons {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) (f : (Fin (B+1)→I×Bool)→ℝ) :
     (∑ omega : Fin (B+1)→I×Bool,sqTrialProduct p coin omega*f omega) =
@@ -46,10 +73,14 @@ theorem sq_record_sum_cons {I : Type} [Fintype I] [DecidableEq I]
   change (sqTrialMass p coin z*(∏ b,sqTrialMass p coin (omega b)))*f (Fin.cons z omega) = _
   ring
 
+/-- The total trial-record probability that capped rejection sampling returns a specified
+optional output. -/
 noncomputable def sqRejectMass {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) (o : Option I) : ℝ :=
   ∑ omega : Fin B→I×Bool,sqTrialProduct p coin omega*(if (sqRejectRun omega).1=o then 1 else 0)
 
+/-- The output mass equals the sum of product trial masses over records whose run returns that
+output. -/
 theorem sqRejectMass_eq_filter {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) (o : Option I) :
     sqRejectMass p coin B o = ∑ omega ∈ Finset.univ.filter
@@ -59,6 +90,8 @@ theorem sqRejectMass_eq_filter {I : Type} [Fintype I] [DecidableEq I]
   intro omega _
   split_ifs <;> simp
 
+/-- The output mass with one additional trial is the immediate accepted-output mass plus the
+rejection probability times the remaining-run mass. -/
 theorem sqRejectMass_succ {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) (o : Option I) :
     sqRejectMass p coin (B+1) o =
@@ -75,17 +108,22 @@ theorem sqRejectMass_succ {I : Type} [Fintype I] [DecidableEq I]
   rw [Finset.sum_add_distrib,← Finset.sum_mul]
   simp only [sqRejectMass]
 
+/-- With zero trials, capped rejection sampling assigns all output mass to `none`. -/
 theorem sqRejectMass_zero {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (o : Option I) :
     sqRejectMass p coin 0 o = if none=o then 1 else 0 := by
   simp [sqRejectMass,sqTrialProduct,sqRejectRun,sqRejectList]
 
+/-- The total rejection probability is one minus the total acceptance probability. -/
 theorem sqTrial_false_sum {I : Type} [Fintype I] (p : FinDist I) (coin : I→FinDist Bool) :
     (∑ i,sqTrialMass p coin (i,false))=1-(∑ i,sqTrialMass p coin (i,true)) := by
   have h := (sqTrialLaw p coin).sum_one
   simp only [sqTrialLaw,Fintype.sum_prod_type,Fintype.sum_bool,Finset.sum_add_distrib] at h
   linarith
 
+/-- With exact envelope proposals and ratio coins, timeout after `B` trials has probability `(1
+- 1/phi)^B`, where `phi` is the envelope-to-target energy ratio. Each successful output has
+the complementary success probability times its normalized target squared norm. -/
 theorem sqRejectMass_closed {I : Type} [Fintype I] [DecidableEq I]
     (u uh : I→ℂ) (p : FinDist I) (coin : I→FinDist Bool)
     (hen : SQEnvelope u uh)
@@ -116,6 +154,7 @@ theorem sqRejectMass_closed {I : Type} [Fintype I] [DecidableEq I]
       rw [hm i,pow_succ]
       ring
 
+/-- The cost of a capped rejection run on any length-`B` record is at most `4 * B`. -/
 theorem sqRejectRun_cost_le {I : Type} {B : ℕ} (omega : Fin B→I×Bool) : (sqRejectRun omega).2 ≤ 4*B := by
   have h (l : List (I×Bool)) : (sqRejectList l).2 ≤ 4*l.length := by
     induction l with
@@ -127,10 +166,13 @@ theorem sqRejectRun_cost_le {I : Type} {B : ℕ} (omega : Fin B→I×Bool) : (sq
       all_goals omega
   simpa [sqRejectRun] using h (List.ofFn omega)
 
+/-- The expected recorded cost of capped rejection sampling under the product trial law. -/
 noncomputable def sqRejectExpectedCost {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) : ℝ :=
   ∑ omega : Fin B→I×Bool,sqTrialProduct p coin omega*((sqRejectRun omega).2 : ℝ)
 
+/-- Adding one trial incurs cost four plus the total rejection probability times the expected
+cost of the remaining capped run. -/
 theorem sqRejectExpectedCost_succ {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) :
     sqRejectExpectedCost p coin (B+1)=4+
@@ -147,6 +189,8 @@ theorem sqRejectExpectedCost_succ {I : Type} [Fintype I] [DecidableEq I]
   dsimp only [sqRejectExpectedCost]
   nlinarith [htot]
 
+/-- With exact envelope proposals and ratio coins, expected capped rejection cost is at most
+four times the envelope-to-target energy ratio. -/
 theorem sqRejectExpectedCost_le {I : Type} [Fintype I] [DecidableEq I]
     (u uh : I→ℂ) (p : FinDist I) (coin : I→FinDist Bool)
     (hen : SQEnvelope u uh)
@@ -169,6 +213,7 @@ theorem sqRejectExpectedCost_le {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ 4+(∑ i,sqTrialMass p coin (i,false))*(4*phi) := add_le_add (le_refl 4) (mul_le_mul_of_nonneg_left ih hf0)
       _ = 4*phi := by rw [hfalse];field_simp;ring
 
+/-- The total probability of a nonempty rejection-sampling output is one minus the timeout mass. -/
 theorem sqReject_success_complement {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ) :
     (∑ omega ∈ Finset.univ.filter (fun omega : Fin B→I×Bool => (sqRejectRun omega).1≠none),
@@ -182,6 +227,11 @@ theorem sqReject_success_complement {I : Type} [Fintype I] [DecidableEq I]
     by_cases h : (sqRejectRun omega).1=none <;> simp [h]
   linarith
 
+/-- For a positive-energy target with a dominating envelope and exact proposal and coin laws,
+the capped record law is normalized and has geometric timeout and target-proportional
+successful output masses. Pathwise cost is at most `4*B`, expected cost is at most `4*phi`,
+and any timeout bound gives the complementary success guarantee, as in [Chia et al., Lemma
+3.5][ChiaEtAl2022]. -/
 theorem sq_rejection_actual_capped_law_and_cost : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (u uh : I→ℂ) (p : FinDist I) (coin : I→FinDist Bool) (B : ℕ),
     SQEnvelope u uh → (∀ i,p.prob i=Complex.normSq (uh i)/(∑ i,Complex.normSq (uh i))) →
@@ -209,8 +259,11 @@ theorem sq_rejection_actual_capped_law_and_cost : ∀ (I : Type) [Fintype I] [De
     rw [sqReject_success_complement,hmass.1]
     linarith
 
+/-- The real-valued indicator that a proposal-and-coin pair is accepted. -/
 def sqAcceptBit {I : Type} (z : I×Bool) : ℝ := if z.2 then 1 else 0
 
+/-- If `a` is the total acceptance probability, the acceptance bit has expectation `a` and
+centered second moment `a * (1 - a)`. -/
 theorem sqAcceptBit_moments {I : Type} [Fintype I] (p : FinDist I) (coin : I→FinDist Bool) :
     let a := ∑ i,sqTrialMass p coin (i,true);
     (sqTrialLaw p coin).expect sqAcceptBit=a ∧
@@ -225,6 +278,8 @@ theorem sqAcceptBit_moments {I : Type} [Fintype I] (p : FinDist I) (coin : I→F
     rw [sqTrial_false_sum]
     ring
 
+/-- For positive `a` and nonnegative relative tolerance, a relative error bound around `a`
+implies the same relative bound for the real square roots. -/
 theorem sq_relative_sqrt (x a nu : ℝ) (ha : 0 < a) (hnu : 0 ≤ nu)
     (hclose : |x-a| ≤ nu*a) : |Real.sqrt x-Real.sqrt a| ≤ nu*Real.sqrt a := by
   by_cases hx : 0 ≤ x
@@ -243,6 +298,10 @@ theorem sq_relative_sqrt (x a nu : ℝ) (ha : 0 < a) (hnu : 0 ≤ nu)
     rw [Real.sqrt_eq_zero_of_nonpos hneg.le,zero_sub,abs_neg,abs_of_nonneg (Real.sqrt_nonneg a)]
     simpa only [one_mul] using mul_le_mul_of_nonneg_right hn (Real.sqrt_nonneg a)
 
+/-- Under exact envelope sampling and acceptance coins, block size at least `16*phi/nu²` bounds
+the relative squared-norm failure probability by `2^(2*r+1)*(1/16)^(r+1)` for `0 < nu ≤ 1`.
+Every record satisfying that squared-norm bound also satisfies the corresponding relative
+norm bound, giving the acceptance-based estimate of [Chia et al., Lemma 3.5][ChiaEtAl2022]. -/
 theorem sq_rejection_acceptance_norm_estimation : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (u uh : I→ℂ) (p : FinDist I) (coin : I→FinDist Bool) (r B : ℕ) (nu : ℝ),
     SQEnvelope u uh → (∀ i,p.prob i=Complex.normSq (uh i)/(∑ i,Complex.normSq (uh i))) →

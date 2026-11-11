@@ -16,6 +16,31 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
+
+/-!
+# Source conventions for alternating phase words
+
+This module relates the real-angle source word `sourceDefWord` to `phasedAlternating` and its
+polynomial responses. It computes endpoint values, absorbs base phases, and identifies odd and
+even projected corners in the conventions of [GilyenSuLowWiebe2019].
+
+Degree and parity restrictions give optimal phase-list lengths for nonconstant real polynomial
+responses; constant responses have separate minimal lengths.
+
+## Main statements
+
+* `sourceDefWord_eq_phasedAlternating`: Identify the recursive source word.
+* `source_corner_odd_eq`: Compute the odd projected corner.
+* `source_corner_even_eq`: Compute the even projected corner with the adjointed oracle.
+* `source_minimal_degree_existence`: Realize a bounded polynomial at its minimum positive
+  degree.
+* `source_constant_minimal_length`: Determine the minimum length for constant responses.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.BlockEncoding
@@ -45,19 +70,27 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- The real-angle alternating phase word, recursively exchanging projectors and adjointing the
+oracle. -/
 noncomputable def sourceDefWord (U P Q : Matrix H H ℂ) : List ℝ → Matrix H H ℂ
   | [] => 1
   | φ :: Φ => phaseRotation Q (anglePhase φ) * U * sourceDefWord Uᴴ Q P Φ
 
+/-- The candidate minimum phase length for a constant response: zero for one, one for zero, and
+two otherwise. -/
 def sourceConstantMinimalLength (c : ℝ) : ℕ :=
   if c = 1 then 0 else if c = 0 then 1 else 2
 
+/-- The recursive source word agrees with `phasedAlternating` after converting angles to phases
+[GilyenSuLowWiebe2019]. -/
 theorem sourceDefWord_eq_phasedAlternating (U P Q : Matrix H H ℂ) (Φ : List ℝ) :
     sourceDefWord U P Q Φ = phasedAlternating U P Q 1 (Φ.map anglePhase) := by
   induction Φ generalizing U P Q with
   | nil => simp [sourceDefWord, phasedAlternating]
   | cons φ Φ ih => simp only [sourceDefWord, List.map_cons, phasedAlternating, ih]
 
+/-- Both response polynomials depend on the base phase by multiplication by its constant
+polynomial [GilyenSuLowWiebe2019]. -/
 theorem source_response_global_phase (base : ℂ) (zs : List ℂ) :
     responseP base zs = C base*responseP 1 zs ∧ responseQ base zs = C base*responseQ 1 zs := by
   induction zs with
@@ -66,6 +99,8 @@ theorem source_response_global_phase (base : ℂ) (zs : List ℂ) :
     simp only [responseP_cons, responseQ_cons, ih.1, ih.2]
     constructor <;> ring
 
+/-- A list of unit complex phases has a real-angle representative of the same length and the
+same primary response [GilyenSuLowWiebe2019]. -/
 theorem source_phase_real_normal_form (zs : List ℂ) (hz : ∀ z ∈ zs, IsPhase z) :
     ∃ Φ : List ℝ, Φ.length = zs.length ∧ sourcePhaseResponse Φ = responseP 1 zs := by
   have hmap : (zs.map Complex.arg).map anglePhase = zs := by
@@ -78,6 +113,8 @@ theorem source_phase_real_normal_form (zs : List ℂ) (hz : ∀ z ∈ zs, IsPhas
       _ = zs := List.map_id zs
   exact ⟨zs.map Complex.arg, by simp, by rw [sourcePhaseResponse, hmap]⟩
 
+/-- A unit base factor can be absorbed into the first real angle of a nonempty response list
+[GilyenSuLowWiebe2019]. -/
 theorem source_terminal_base_absorption (b : ℂ) (φ : ℝ) (Φ : List ℝ) (hb : IsPhase b) :
     ∃ θ : ℝ, sourcePhaseResponse (θ::Φ) = C b*sourcePhaseResponse (φ::Φ) := by
   have hz : IsPhase (b*anglePhase φ) := by
@@ -93,14 +130,18 @@ theorem source_terminal_base_absorption (b : ℂ) (φ : ℝ) (Φ : List ℝ) (hb
     map_mul]
   ring
 
+/-- The phase associated to a sum of real angles is the product of their phases. -/
 private theorem source_angle_add (a b : ℝ) : anglePhase (a+b) = anglePhase a*anglePhase b := by
   apply Complex.ext <;> simp [anglePhase, Real.cos_add, Real.sin_add, Complex.mul_re,
       Complex.mul_im, add_comm]
 
+/-- Negating a real angle conjugates its phase. -/
 private theorem source_angle_neg (a : ℝ) : anglePhase (-a) = star (anglePhase a) := by
   apply Complex.ext <;> simp [anglePhase]
+/-- The alternating sum of the angles in a list, starting with a positive sign. -/
 private def sourceAltSum (Φ : List ℝ) : ℝ := (Φ.mapIdx (fun i φ => (-1 : ℝ)^i*φ)).sum
 
+/-- The alternating sum of a cons list is its head minus the alternating sum of its tail. -/
 private theorem source_alt_cons (φ : ℝ) (Φ : List ℝ) : sourceAltSum (φ::Φ) = φ-sourceAltSum Φ := by
   unfold sourceAltSum
   rw [List.mapIdx_cons, List.sum_cons]
@@ -120,6 +161,8 @@ private theorem source_alt_cons (φ : ℝ) (Φ : List ℝ) : sourceAltSum (φ::�
   rw [hneg]
   ring
 
+/-- At zero, exactly the response component selected by the list parity is the phase of the
+corresponding signed alternating sum. -/
 private theorem source_response_zero (Φ : List ℝ) :
     (responseP 1 (Φ.map anglePhase)).eval 0 =
       (if Φ.length%2=0 then anglePhase (sourceAltSum Φ) else 0) ∧
@@ -149,6 +192,8 @@ private theorem source_response_zero (Φ : List ℝ) :
       · exact (source_angle_add φ (-sourceAltSum Φ)).symm
       · simp
 
+/-- Compute the primary response at `1`, `-1`, and `0` from the phase product and alternating
+angle sum [GilyenSuLowWiebe2019]. -/
 theorem source_response_endpoint_values (Φ : List ℝ) :
     (sourcePhaseResponse Φ).eval (1 : ℂ) = (Φ.map anglePhase).prod ∧
     (sourcePhaseResponse Φ).eval (-1 : ℂ) = (-1 : ℂ)^Φ.length*(Φ.map anglePhase).prod ∧
@@ -172,6 +217,8 @@ theorem source_response_endpoint_values (Φ : List ℝ) :
   · intro heven
     simpa [sourcePhaseResponse, heven, sourceAltSum] using (source_response_zero Φ).1
 
+/-- For odd phase length, the projected source word is the framed odd singular transform of its
+response [GilyenSuLowWiebe2019]. -/
 theorem source_corner_odd_eq
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
@@ -187,6 +234,8 @@ theorem source_corner_odd_eq
       simp only [rangeProjector, compress, Matrix.mul_assoc]
     _ = _ := by rw [he]; rfl
 
+/-- For even phase length, the projected word with adjointed oracle and exchanged projectors is
+the framed right singular transform [GilyenSuLowWiebe2019]. -/
 theorem source_corner_even_eq
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
@@ -202,6 +251,8 @@ theorem source_corner_even_eq
       simp only [rangeProjector, compress, Matrix.mul_assoc]
     _ = _ := by rw [he]; rfl
 
+/-- If the real part of a complex polynomial equals a real polynomial on the real line, its sum
+with its conjugate is twice the complexified real polynomial. -/
 private theorem source_real_part_polynomial (p : Polynomial ℝ) (P : Polynomial ℂ)
     (hre : ∀ x : ℝ, (P.eval (x : ℂ)).re = p.eval x) :
     P + Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.conjugatePolynomial P = C 2 * p.map Complex.ofRealHom := by
@@ -217,6 +268,8 @@ private theorem source_real_part_polynomial (p : Polynomial ℝ) (P : Polynomial
       Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.conjugatePolynomial_eval_real P x, eval_mul, eval_C, hm]
   apply Complex.ext <;> simp [hre, two_mul]
 
+/-- The degree of a nonzero real response is bounded by the phase-list length, and its parity
+matches that length [GilyenSuLowWiebe2019]. -/
 theorem source_phase_length_minimality (p : Polynomial ℝ) (Φ : List ℝ)
     (hre : ∀ x : ℝ, ((sourcePhaseResponse Φ).eval (x : ℂ)).re = p.eval x) (_hp : p ≠ 0) :
     p.natDegree ≤ Φ.length ∧ HasRealParity Φ.length p := by
@@ -243,6 +296,7 @@ theorem source_phase_length_minimality (p : Polynomial ℝ) (Φ : List ℝ)
     simpa only [eval_comp, eval_neg, eval_X, eval_mul, eval_C, hpow, Complex.mul_re,
       Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero, hre x] using hs
 
+/-- Two parity degrees of the same nonzero real polynomial agree modulo two. -/
 private theorem source_parity_unique (p : Polynomial ℝ) (hp : p ≠ 0) (n d : ℕ)
     (hn : HasRealParity n p) (hd : HasRealParity d p) : n%2=d%2 := by
   have he : C ((-1 : ℝ)^n)*p = C ((-1 : ℝ)^d)*p := hn.symm.trans hd
@@ -256,6 +310,9 @@ private theorem source_parity_unique (p : Polynomial ℝ) (hp : p ≠ 0) (n d : 
   · norm_num [hn1,hd0] at hs
   · omega
 
+/-- A bounded polynomial of positive exact degree and matching parity has a real phase list of
+that degree; every representing list has at least that length and the same parity
+[GilyenSuLowWiebe2019]. -/
 theorem source_minimal_degree_existence (p : Polynomial ℝ) (d : ℕ) (hd : 0 < d)
     (hdeg : p.degree = (d : WithBot ℕ)) (hpar : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
@@ -271,6 +328,8 @@ theorem source_minimal_degree_existence (p : Polynomial ℝ) (d : ℕ) (hd : 0 <
   have h := source_phase_length_minimality p Ψ hΨ hp
   exact ⟨hnat ▸ h.1, source_parity_unique p hp Ψ.length d h.2 hpar⟩
 
+/-- For a constant in `[-1, 1]`, `sourceConstantMinimalLength` is achievable and bounds below
+every real phase-list representation [GilyenSuLowWiebe2019]. -/
 theorem source_constant_minimal_length (c : ℝ) (hc : |c| ≤ 1) :
     (∃ Φ : List ℝ, Φ.length=sourceConstantMinimalLength c ∧
       (∀ x : ℝ, ((sourcePhaseResponse Φ).eval (x : ℂ)).re=c)) ∧

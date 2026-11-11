@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.LieStrang.HermitianEvolutionStability
+
+/-!
+# Commutator bounds for Lie and Strang product formulas
+
+This module defines two-term Lie and Strang steps and labelled finite-family words, then proves
+their operator-norm error bounds using single and nested commutators. The estimates follow the
+commutator-scaling viewpoint of [ChildsEtAl2021Trotter].
+
+`pfInterpret` applies word entries by successive left multiplication. The module also records
+unitarity, exact word lengths, arbitrary label prices, and error accumulation over positive
+segment counts.
+
+## Main statements
+
+* `product_formula_lie_two_term`: the quadratic two-term Lie error bound.
+* `product_formula_strang_nested_commutator`: the cubic Strang bound with constants `1/12` and
+  `1/24`.
+* `product_formula_actual_word_and_tariffs`: unitarity, word length, price, and repetition
+  identities.
+* `product_formula_finite_family_segmented`: the finite-family segmented commutator bound.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+* [Trotter, 1959][Trotter1959]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,29 +45,42 @@ namespace Qatlib.Concepts.TrotterFormula.LieStrang
 open Matrix Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The matrix commutator `A * B - B * A`. -/
 noncomputable def pfComm {I : Type} [Fintype I] (A B : Matrix I I ℂ) : Matrix I I ℂ := A*B-B*A
 
+/-- The two-term Lie step consisting of evolution under `A` followed by evolution under `B`. -/
 noncomputable def pfLie {D : ℕ} (A B : Operator D) (t : ℝ) : Operator D :=
   HamiltonianEvolution B t * HamiltonianEvolution A t
 
+/-- The symmetric Strang step with half-time `A` evolutions surrounding a full-time `B`
+evolution. -/
 noncomputable def pfStrang {D : ℕ} (A B : Operator D) (t : ℝ) : Operator D :=
   HamiltonianEvolution A (t/2) * HamiltonianEvolution B t * HamiltonianEvolution A (t/2)
 
+/-- The labelled finite-family word formed by repeating `r` ordered family segments with time
+step `t / r`. -/
 noncomputable def pfFamilyWord {D m : ℕ} (H : Fin m  →  Operator D) (t : ℝ) (r : ℕ) : List (Operator D × ℕ) :=
   (List.replicate r (List.ofFn (fun j : Fin m => (HamiltonianEvolution (H j) (t/r),j.val)))).flatten
 
+/-- The operator obtained from a labelled word by successive left multiplication, starting from
+identity. -/
 noncomputable def pfInterpret {D : ℕ} (xs : List (Operator D × ℕ)) : Operator D :=
   xs.foldl (fun U x => x.1*U) 1
 
+/-- The operator obtained by interpreting the labelled segmented family word. -/
 noncomputable def pfFamily {D m : ℕ} (H : Fin m  →  Operator D) (t : ℝ) (r : ℕ) : Operator D :=
   pfInterpret (pfFamilyWord H t r)
 
+/-- The sum of pairwise commutator norms over family indices `j < k`. -/
 noncomputable def pfCommutatorSum {D m : ℕ} (H : Fin m  →  Operator D) : ℝ :=
   ∑ j : Fin m, ∑ k : Fin m, if j  <  k then ‖pfComm (H j) (H k)‖ else 0
 
+/-- The real-parameter matrix exponential `exp (s • X)`. -/
 private noncomputable def pfExp {D : ℕ} (X : Operator D) (s : ℝ) : Operator D :=
   NormedSpace.exp (s • X)
 
+/-- The exponential path for `(-i t) • H` at parameter `s` equals Hamiltonian evolution under
+`H` at time `s * t`. -/
 private theorem pfExp_line {D : ℕ} (H : Operator D) (t s : ℝ) :
     pfExp ((-Complex.I * (t : ℂ)) • H) s = HamiltonianEvolution H (s * t) := by
   unfold pfExp HamiltonianEvolution
@@ -49,14 +89,18 @@ private theorem pfExp_line {D : ℕ} (H : Operator D) (t s : ℝ) :
   simp [Matrix.smul_apply, Complex.real_smul]
   ring
 
+/-- The exponential path `pfExp X` has derivative `pfExp X s * X` at `s`. -/
 private theorem pfExp_deriv {D : ℕ} (X : Operator D) (s : ℝ) :
     HasDerivAt (pfExp X) (pfExp X s * X) s := hasDerivAt_exp_smul_const X s
 
+/-- The reversed exponential path has derivative `-(X * pfExp X (-s))` at `s`. -/
 private theorem pfExp_neg_deriv {D : ℕ} (X : Operator D) (s : ℝ) :
     HasDerivAt (fun u => pfExp X (-u)) (-(X * pfExp X (-s))) s := by
   convert! (hasDerivAt_exp_smul_const' (𝕂 := ℝ) X (-s)).scomp s (hasDerivAt_id s).neg using 1
   simp [pfExp]
 
+/-- The derivative of exponential conjugation of `Y` is the exponential conjugation of `pfComm X
+Y`. -/
 private theorem pfConjugate_deriv {D : ℕ} (X Y : Operator D) (s : ℝ) :
     HasDerivAt (fun u => pfExp X u * Y * pfExp X (-u))
       (pfExp X s * pfComm X Y * pfExp X (-s)) s := by
@@ -64,6 +108,9 @@ private theorem pfConjugate_deriv {D : ℕ} (X Y : Operator D) (s : ℝ) :
   simp only [pfComm]
   noncomm_ring
 
+/-- If the exponential path is contractive for all real parameters, its conjugation has
+first-order and second-order remainder bounds controlled by the first and second commutators
+on `[0, 1]`. -/
 private theorem pf_conjugate_bounds {D : ℕ} (X Y : Operator D)
     (hX : ∀ s : ℝ, ‖pfExp X s‖ ≤ 1) :
     ∀ s ∈ Icc (0 : ℝ) 1,
@@ -101,6 +148,8 @@ private theorem pf_conjugate_bounds {D : ℕ} (X Y : Operator D)
       exact hlin (pfComm X Y) u ⟨hu.1, hu.2.le⟩
   exact hbound s hs
 
+/-- Conjugating `B` by the evolution of a Hermitian `A` changes it by operator norm at most `|t|
+* ‖pfComm A B‖`. -/
 theorem product_formula_conjugation_commutator (D : ℕ) (A B : Operator D) (t : ℝ)
     (hA : A.IsHermitian) :
     ‖HamiltonianEvolution A t * B * (HamiltonianEvolution A t)ᴴ - B‖ ≤ |t| * ‖pfComm A B‖ := by
@@ -119,9 +168,11 @@ theorem product_formula_conjugation_commutator (D : ℕ) (A B : Operator D) (t :
   rw [hi, pfExp_line, one_mul, hc] at h
   simpa [norm_smul, norm_mul, Complex.norm_real, Real.norm_eq_abs] using! h
 
+/-- The exponential path `pfExp X` has derivative `X * pfExp X s` at `s`. -/
 private theorem pfExp_left_deriv {D : ℕ} (X : Operator D) (s : ℝ) :
     HasDerivAt (pfExp X) (X * pfExp X s) s := hasDerivAt_exp_smul_const' X s
 
+/-- The path `pfExp X (1 - s)` has derivative `-(pfExp X (1 - s) * X)`. -/
 private theorem pfExp_back_deriv {D : ℕ} (X : Operator D) (s : ℝ) :
     HasDerivAt (fun u => pfExp X (1-u)) (-(pfExp X (1-s) * X)) s := by
   have hi : HasDerivAt (fun u : ℝ => 1-u) (-1) s := by
@@ -129,6 +180,7 @@ private theorem pfExp_back_deriv {D : ℕ} (X : Operator D) (s : ℝ) :
   convert! (pfExp_deriv X (1-s)).scomp s hi using 1
   simp
 
+/-- The exponential at parameter `-s` is a left inverse of the exponential at parameter `s`. -/
 private theorem pfExp_inverse {D : ℕ} (X : Operator D) (s : ℝ) :
     pfExp X (-s) * pfExp X s = 1 := by
   dsimp [pfExp]
@@ -136,11 +188,14 @@ private theorem pfExp_inverse {D : ℕ} (X : Operator D) (s : ℝ) :
   rw [← Matrix.exp_add_of_commute _ _ ((Commute.refl (s • X)).neg_left),
     neg_add_cancel, NormedSpace.exp_zero]
 
+/-- Scaling both entries of a commutator scales the commutator by the product of the scalars. -/
 private theorem pfComm_scaled {D : ℕ} (A B : Operator D) (a b : ℂ) :
     pfComm (a • A) (b • B) = (a*b) • pfComm A B := by
   simp only [pfComm, Matrix.smul_mul, Matrix.mul_smul, smul_sub, smul_smul]
   rw [mul_comm b a]
 
+/-- If the exponential paths of `X`, `Y`, and `X + Y` are contractive for all real parameters,
+the unit-time Lie error is at most half the commutator norm. -/
 private theorem pf_lie_generators {D : ℕ} (X Y : Operator D)
     (hX : ∀ s : ℝ, ‖pfExp X s‖ ≤ 1) (hY : ∀ s : ℝ, ‖pfExp Y s‖ ≤ 1)
     (hZ : ∀ s : ℝ, ‖pfExp (X+Y) s‖ ≤ 1) :
@@ -177,6 +232,8 @@ private theorem pf_lie_generators {D : ℕ} (X Y : Operator D)
     · (try dsimp); ring
   simpa [f, pfExp] using! hbound 1 ⟨zero_le_one, le_rfl⟩
 
+/-- For Hermitian `A` and `B`, the two-term Lie error is at most `t² / 2 * ‖pfComm B A‖`, the
+two-term instance of [Childs et al., Proposition 15][ChildsEtAl2021Trotter]. -/
 theorem product_formula_lie_two_term (D : ℕ) (A B : Operator D) (t : ℝ)
     (hA : A.IsHermitian) (hB : B.IsHermitian) :
     ‖pfLie A B t - HamiltonianEvolution (A+B) t‖ ≤ t^2 / 2 * ‖pfComm B A‖ := by
@@ -194,6 +251,8 @@ theorem product_formula_lie_two_term (D : ℕ) (A B : Operator D) (t : ℝ)
   rw [hz, pfExp_line, pfExp_line, pfExp_line, one_mul, hc] at h
   simpa only [pfLie, mul_div_assoc, div_mul_eq_mul_div] using! h
 
+/-- Under contractivity of the three exponential paths, the symmetric step error is bounded by
+one sixth of the sum of the stated two nested-commutator norms. -/
 private theorem pf_strang_generators {D : ℕ} (T Y : Operator D)
     (hT : ∀ s : ℝ, ‖pfExp T s‖ ≤ 1) (hY : ∀ s : ℝ, ‖pfExp Y s‖ ≤ 1)
     (hZ : ∀ s : ℝ, ‖pfExp (T+T+Y) s‖ ≤ 1) :
@@ -263,6 +322,9 @@ private theorem pf_strang_generators {D : ℕ} (T Y : Operator D)
     · (try dsimp); ring
   simpa [f, pfExp, C] using! hbound 1 ⟨zero_le_one, le_rfl⟩
 
+/-- For Hermitian generators, the Strang error is bounded by `|t|³` times the two
+nested-commutator norms with coefficients `1/12` and `1/24`, as in [Childs et al.,
+Proposition 16][ChildsEtAl2021Trotter]. -/
 theorem product_formula_strang_nested_commutator (D : ℕ) (A B : Operator D) (t : ℝ)
     (hA : A.IsHermitian) (hB : B.IsHermitian) :
     ‖pfStrang A B t - HamiltonianEvolution (A+B) t‖ ≤
@@ -306,6 +368,8 @@ theorem product_formula_strang_nested_commutator (D : ℕ) (A B : Operator D) (t
   rw [hn1, hn2, ht1, hy1, hz1] at h
   exact h.trans_eq (by ring)
 
+/-- Interpreting a word from accumulator `U` equals its interpretation from identity multiplied
+on the right by `U`. -/
 theorem pfInterpret_start {D : ℕ} (xs : List (Operator D × ℕ)) (U : Operator D) :
     xs.foldl (fun V x => x.1 * V) U = pfInterpret xs * U := by
   induction xs generalizing U with
@@ -315,10 +379,12 @@ theorem pfInterpret_start {D : ℕ} (xs : List (Operator D × ℕ)) (U : Operato
     rw [ih (x.1 * U), ih x.1]
     simp [mul_assoc]
 
+/-- Interpreting `xs ++ ys` gives `pfInterpret ys * pfInterpret xs`. -/
 theorem pfInterpret_append {D : ℕ} (xs ys : List (Operator D × ℕ)) :
     pfInterpret (xs ++ ys) = pfInterpret ys * pfInterpret xs := by
   exact (List.foldl_append ..).trans (pfInterpret_start ys _)
 
+/-- Interpreting `q` repetitions of a word gives the `q`th power of its interpretation. -/
 theorem pfInterpret_repeat {D : ℕ} (xs : List (Operator D × ℕ)) (q : ℕ) :
     pfInterpret ((List.replicate q xs).flatten) = (pfInterpret xs)^q := by
   induction q with
@@ -326,6 +392,7 @@ theorem pfInterpret_repeat {D : ℕ} (xs : List (Operator D × ℕ)) (q : ℕ) :
   | succ q ih =>
     rw [List.replicate_succ, List.flatten_cons, pfInterpret_append, ih, pow_succ]
 
+/-- A labelled word of unitary operators has unitary interpretation. -/
 private theorem pfInterpret_unitary {D : ℕ} (xs : List (Operator D × ℕ))
     (h : ∀ x ∈ xs, x.1 ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     pfInterpret xs ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -337,6 +404,8 @@ private theorem pfInterpret_unitary {D : ℕ} (xs : List (Operator D × ℕ))
     exact (Matrix.unitaryGroup _ _).mul_mem (ih (fun y hy => h y (List.mem_cons_of_mem _ hy)))
       (h x List.mem_cons_self)
 
+/-- For Hermitian family terms, the segmented word is unitary, has length `m * r` and price `r`
+times the family price sum, and repeated words interpret as powers. -/
 theorem product_formula_actual_word_and_tariffs
     (D m r : ℕ) (H : Fin m → Operator D) (t : ℝ) (cost : ℕ → ℕ)
     (hH : ∀ j, (H j).IsHermitian) :
@@ -356,14 +425,20 @@ theorem product_formula_actual_word_and_tariffs
   · simp [pfFamilyWord, List.map_flatten, List.map_replicate, List.map_ofFn,
       List.sum_flatten, List.sum_ofFn]
 
+/-- The single finite-family segment obtained by left-multiplying the ordered Hamiltonian
+evolutions. -/
 private noncomputable def pfSegment {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) : Operator D :=
   (List.ofFn (fun j => HamiltonianEvolution (H j) t)).foldl (fun U V => V*U) 1
 
+/-- Word interpretation depends only on the operator entries and equals their successive
+left-multiplication fold. -/
 private theorem pfInterpret_first {D : ℕ} (xs : List (Operator D × ℕ)) :
     pfInterpret xs = (xs.map Prod.fst).foldl (fun U V => V*U) 1 := by
   unfold pfInterpret
   exact (List.foldl_map (f := Prod.fst) (g := fun U V => V*U)).symm
 
+/-- A segment for a nonempty family is the tail-family segment multiplied on the right by the
+first evolution. -/
 private theorem pfSegment_succ {D m : ℕ} (H : Fin (m+1) → Operator D) (t : ℝ) :
     pfSegment H t = pfSegment (fun j : Fin m => H j.succ) t * HamiltonianEvolution (H 0) t := by
   have he : pfSegment H t = pfInterpret (List.ofFn (fun j => (HamiltonianEvolution (H j) t, j.val))) := by
@@ -375,6 +450,7 @@ private theorem pfSegment_succ {D m : ℕ} (H : Fin (m+1) → Operator D) (t : �
   rw [pfInterpret_start, mul_one, pfInterpret_first, List.map_ofFn]
   rfl
 
+/-- A single family segment is unitary when every family term is Hermitian. -/
 private theorem pfSegment_unitary {D m : ℕ} (H : Fin m → Operator D) (t : ℝ)
     (hH : ∀ j, (H j).IsHermitian) : pfSegment H t ∈ Matrix.unitaryGroup (Fin D) ℂ := by
   rw [show pfSegment H t = pfInterpret (List.ofFn (fun j => (HamiltonianEvolution (H j) t, j.val))) from by
@@ -384,11 +460,15 @@ private theorem pfSegment_unitary {D m : ℕ} (H : Fin m → Operator D) (t : �
   obtain ⟨j, rfl⟩ := List.mem_ofFn.mp hx
   exact hamiltonianEvolution_unitary (hH j) _
 
+/-- The family commutator sum splits into pairs involving the first term and the commutator sum
+of the tail family. -/
 private theorem pfCommutatorSum_succ {D m : ℕ} (H : Fin (m+1) → Operator D) :
     pfCommutatorSum H = (∑ j : Fin m, ‖pfComm (H 0) (H j.succ)‖) +
       pfCommutatorSum (fun j : Fin m => H j.succ) := by
   simp [pfCommutatorSum, Fin.sum_univ_succ]
 
+/-- The norm of the commutator of a family sum with `A` is at most the sum of the norms of the
+commutators of `A` with each family term. -/
 private theorem pfComm_sum_bound {D m : ℕ} (H : Fin m → Operator D) (A : Operator D) :
     ‖pfComm (∑ j, H j) A‖ ≤ ∑ j, ‖pfComm A (H j)‖ := by
   have he : pfComm (∑ j, H j) A = -(∑ j, pfComm A (H j)) := by
@@ -396,6 +476,8 @@ private theorem pfComm_sum_bound {D m : ℕ} (H : Fin m → Operator D) (A : Ope
   rw [he, norm_neg]
   exact norm_sum_le _ _
 
+/-- For Hermitian family terms, the one-segment error is at most `t² / 2` times `pfCommutatorSum
+H`. -/
 private theorem pfSegment_error (D m : ℕ) (H : Fin m → Operator D) (t : ℝ)
     (hH : ∀ j, (H j).IsHermitian) :
     ‖pfSegment H t - HamiltonianEvolution (∑ j, H j) t‖ ≤ t^2 / 2 * pfCommutatorSum H := by
@@ -432,12 +514,15 @@ private theorem pfSegment_error (D m : ℕ) (H : Fin m → Operator D) (t : ℝ)
         gcongr
       _ = _ := by rw [pfCommutatorSum_succ]; dsimp [tail]; ring
 
+/-- The distance between the `r`th powers of two unitary matrices is at most `r` times their
+operator-norm distance. -/
 theorem pf_unitary_power_error {I : Type} [Fintype I] [DecidableEq I]
     (U V : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ) (r : ℕ) :
     ‖U^r - V^r‖ ≤ (r : ℝ) * ‖U-V‖ := by
   exact l2_norm_pow_sub_pow_le U V (l2_norm_unitary_le_one hU)
     (l2_norm_unitary_le_one hV) r
 
+/-- The `r`th power of Hamiltonian evolution at time `t` equals evolution at time `r * t`. -/
 theorem pf_evolution_pow {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) : (HamiltonianEvolution H t)^r = HamiltonianEvolution H (r*t) := by
   induction r with
@@ -448,12 +533,16 @@ theorem pf_evolution_pow {I : Type} [Fintype I] [DecidableEq I]
     push_cast
     ring
 
+/-- The segmented family operator is the `r`th power of its segment at time `t / r`. -/
 private theorem pfFamily_power {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) (r : ℕ) :
     pfFamily H t r = (pfSegment H (t/r))^r := by
   unfold pfFamily pfFamilyWord
   rw [pfInterpret_repeat, pfInterpret_first, List.map_ofFn]
   rfl
 
+/-- For Hermitian family terms and positive `r`, the segmented Lie error is at most `t² / (2 *
+r) * pfCommutatorSum H`, a finite first-order bound in the framework of
+[ChildsEtAl2021Trotter]. -/
 theorem product_formula_finite_family_segmented (D m r : ℕ) (H : Fin m → Operator D) (t : ℝ)
     (hr : 0 < r) (hH : ∀ j, (H j).IsHermitian) :
     ‖pfFamily H t r - HamiltonianEvolution (∑ j, H j) t‖ ≤ t^2 / (2*r) * pfCommutatorSum H := by

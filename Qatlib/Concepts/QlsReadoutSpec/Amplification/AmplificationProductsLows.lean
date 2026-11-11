@@ -8,6 +8,30 @@ import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsStat
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Products of nested amplification gains
+
+Proves the stagewise invariant relating the projected state of a nested amplification word to
+the corresponding plain prefix. The scalar multiplier is the product of `lam`, whose factors
+combine the odd amplification counts with their gain losses.
+
+The final theorems give the initial-oracle call product, the weighted cost recurrence, and the
+amplitude-ratio identity used in [LowSu2026].
+
+## Main statements
+
+* `amplification_products_invariant`: relates nested and plain projected states through the
+  product of stage gains.
+* `amplification_products_intended`: proves call, cost, and amplitude-product identities.
+* `Clause9AmplificationProducts_answer`: packages these identities as the amplification product
+  contract.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,11 +52,13 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The extended clock agrees with the original clock projector at every index at most `m`. -/
 private theorem extendClock_eq {H : Type} (m : ℕ) (P : Fin (m+1) → Matrix H H ℂ)
     {k : ℕ} (hk : k ≤ m) : extendClock m P k = P ⟨k, by omega⟩ := by
   unfold extendClock
   exact dif_pos hk
 
+/-- The single-stage word at slot `k` is legal when `k < m + 1`. -/
 private theorem legal_stageWord {H : Type} [Fintype H] [DecidableEq H] (m k : ℕ)
     (hk : k < m+1) : legal (m+1) (stageWord (H := H) k) := by
   unfold legal
@@ -41,6 +67,7 @@ private theorem legal_stageWord {H : Type} [Fintype H] [DecidableEq H] (m k : �
   subst hs
   exact hk
 
+/-- A concatenation of words is legal exactly when each component is legal. -/
 private theorem legal_append_iff {H : Type} [Fintype H] [DecidableEq H] {slots : ℕ}
     (C D : Word H 1) : legal slots (C ++ D) ↔ legal slots C ∧ legal slots D := by
   constructor
@@ -54,39 +81,49 @@ private theorem legal_append_iff {H : Type} [Fintype H] [DecidableEq H] {slots :
     · exact h.1 s hs
     · exact h.2 s hs
 
+/-- A stage word calls its own slot once and every other slot zero times. -/
 private theorem calls_stageWord {H : Type} (k slot : ℕ) :
     calls (stageWord (H := H) k) slot = if k = slot then 1 else 0 := by
   simp [calls, stageWord]
 
+/-- A stage word with nonzero slot index makes no calls to slot zero. -/
 private theorem calls_stageWord_zero {H : Type} (k : ℕ) (hk : k ≠ 0) :
     calls (stageWord (H := H) k) 0 = 0 := by
   rw [calls_stageWord, if_neg hk]
 
+/-- Weighted oracle cost is additive under concatenation. -/
 private theorem weightedCost_append {H : Type} (prices : ℕ → ℕ) (C D : Word H 1) :
     weightedCost prices (C ++ D) = weightedCost prices C + weightedCost prices D := by
   show ((C ++ D).map _).sum = (C.map _).sum + (D.map _).sum
   rw [List.map_append, List.sum_append]
 
+/-- The weighted oracle cost of a stage word is the price of its slot. -/
 private theorem weightedCost_stageWord {H : Type} (prices : ℕ → ℕ) (k : ℕ) :
     weightedCost prices (stageWord (H := H) k) = prices k := by
   simp [weightedCost, stageWord]
 
+/-- The zero-index plain prefix consists of the stage word at slot zero. -/
 private theorem plainPrefix_zero {H : Type} :
     plainPrefix (H := H) 0 = stageWord 0 := by
   show (List.range 1).map _ = _
   simp [stageWord]
 
+/-- The next plain prefix appends the next stage word to the current prefix. -/
 private theorem plainPrefix_succ {H : Type} (j : ℕ) :
     plainPrefix (H := H) (j+1) = plainPrefix j ++ stageWord (j+1) := by
   show (List.range (j+1+1)).map _ = (List.range (j+1)).map _ ++ _
   rw [List.range_succ, List.map_append, List.map_singleton]
   rfl
 
+/-- The clock state is the zero-clock slice of the word matrix acting on the clean seed
+embedding. -/
 private theorem clockState_eq_run {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (C : Word H 1) (ω : QState H) :
     clockState U C ω = fun h => (wordMatrix U C *ᵥ clean 1 (Nat.zero_lt_one) ω) (h, (0 : Fin 1)) :=
   rfl
 
+/-- An operator controlled on the entire singleton clock acts on the zero-clock slice by the
+original operator. -/
 private theorem controlled_univ_mulVec_clock {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (Ψ : QState (Space H 1)) (h : H) :
     (controlled V Finset.univ *ᵥ Ψ) (h, (0 : Fin 1)) = (V *ᵥ (fun h' => Ψ (h', 0))) h := by
@@ -103,11 +140,13 @@ private theorem controlled_univ_mulVec_clock {H : Type} [Fintype H] [DecidableEq
   rw [Finset.sum_congr rfl fun h' _ => hinner h']
   rfl
 
+/-- The matrix of a stage word is its oracle matrix controlled on the full singleton clock. -/
 private theorem wordMatrix_stageWord {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (i : ℕ) :
     wordMatrix U (stageWord (H := H) i) = controlled (U i) Finset.univ := by
   simp [wordMatrix, stageWord]
 
+/-- Appending stage word `i` applies `U i` to the current clock state. -/
 private theorem clockState_append_stageWord {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (C : Word H 1) (i : ℕ) (ω : QState H) :
     clockState U (C ++ stageWord i) ω = U i *ᵥ clockState U C ω := by
@@ -119,11 +158,13 @@ private theorem clockState_append_stageWord {H : Type} [Fintype H] [DecidableEq 
   rw [hrun, ← Matrix.mulVec_mulVec]
   exact controlled_univ_mulVec_clock (U i) (wordMatrix U C *ᵥ clean 1 (Nat.zero_lt_one) ω) h
 
+/-- For any matrix `G`, the vectors `G *ᵥ ψ` and `(1 - G) *ᵥ ψ` sum to `ψ`. -/
 private theorem projector_decomp {H : Type} [Fintype H] [DecidableEq H]
     (G : Matrix H H ℂ) (ψ : QState H) :
     G *ᵥ ψ + (1 - G) *ᵥ ψ = ψ := by
   rw [← Matrix.add_mulVec, add_sub_cancel, Matrix.one_mulVec]
 
+/-- For `x` in the unit interval, `arcsin x` is at most `(π / 2) * x`. -/
 private theorem arcsin_le_pi_div_two_mul {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
     Real.arcsin x ≤ (Real.pi / 2) * x := by
   have hmem : x ∈ Set.Icc (-1 : ℝ) 1 := ⟨by linarith, hx1⟩
@@ -134,12 +175,15 @@ private theorem arcsin_le_pi_div_two_mul {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 
   rw [h]
   exact Real.le_sin_mul hx0 hx1
 
+/-- The complement of `potential Q bad` equals `Q * bad`. -/
 private theorem potential_one_sub {H : Type} [Fintype H] [DecidableEq H]
     (Q : Matrix H H ℂ) (bad : Matrix H H ℂ) :
     1 - potential Q bad = Q * bad := by
   show (1 : Matrix H H ℂ) - (1 - Q * bad) = Q * bad
   abel
 
+/-- Under clock and stage legality, the next potential followed by the next stage annihilates
+the complement of the current potential. -/
 private theorem collapse {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ) (U : ℕ → Matrix H H ℂ)
     (hclock : clockLegal m P bad) (hstage : stageLegal m P U) {j : ℕ} (hj : j < m) :
@@ -174,6 +218,8 @@ private theorem collapse {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
   rw [sub_mul, one_mul, h3]
   abel
 
+/-- The operator collapse identity sends every vector from the complement of the current
+potential to zero after the next stage and potential. -/
 private theorem collapse_apply {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ) (U : ℕ → Matrix H H ℂ)
     (hclock : clockLegal m P bad) (hstage : stageLegal m P U) {j : ℕ} (hj : j < m)
@@ -182,11 +228,15 @@ private theorem collapse_apply {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
       ((1 - potential (extendClock m P j) bad) *ᵥ v) = 0 := by
   rw [Matrix.mulVec_mulVec, collapse m P bad U hclock hstage hj, Matrix.zero_mulVec]
 
+/-- The real amplification multiplier at stage `k + 1`, equal to its odd iteration factor times
+the corresponding `gainLoss`. -/
 def lam {H : Type} [Fintype H] [DecidableEq H]
     (E : ℕ → Matrix H H ℂ) (bad : Matrix H H ℂ) (U : ℕ → Matrix H H ℂ)
     (ω : QState H) (rs : ℕ → ℕ) (k : ℕ) : ℝ :=
   (((2*rs (k+1)+1) : ℕ) : ℝ) * gainLoss (2*rs (k+1)+1) (preAmplitude E bad ω U rs k)
 
+/-- Tunability and thresholds at most one imply the no-overshoot angle bound for every
+amplification stage before `m`. -/
 private theorem noOvershoot {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -242,6 +292,9 @@ private theorem noOvershoot {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
         _ = Real.pi / 2 := by ring
     linarith
 
+/-- For a legal pre-amplification stage word, proves legality of the next nested word, its
+projected amplification law, and its oracle-call and weighted-cost multipliers under the
+clock, stage, and tuning hypotheses. -/
 private theorem clause5_at_stage {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -292,19 +345,25 @@ private theorem clause5_at_stage {H : Type} [Fintype H] [DecidableEq H] (m : ℕ
     rw [hdef]
     exact hG5.2.2.2.2 prices
 
+/-- Multiplying a state by a complex scalar multiplies its vector norm by the scalar norm. -/
 private theorem normVec_smul {H : Type} [Fintype H] (c : ℂ) (v : QState H) :
     normVec (c • v) = ‖c‖ * normVec v := by
   show ‖toEuclidean_fromVec (c • v)‖ = ‖c‖ * ‖toEuclidean_fromVec v‖
   have h : toEuclidean_fromVec (c • v) = c • toEuclidean_fromVec v := rfl
   rw [h, norm_smul]
 
+/-- Multiplying a state by a real scalar multiplies its vector norm by the scalar's absolute
+value. -/
 private theorem normVec_real_smul {H : Type} [Fintype H] (r : ℝ) (v : QState H) :
     normVec (((r : ℝ) : ℂ) • v) = |r| * normVec v := by
   rw [normVec_smul, Complex.norm_real, Real.norm_eq_abs]
 
+/-- Scalar multiplication by a product is successive scalar multiplication. -/
 private theorem smul_mul_split {H : Type} (a b : ℂ) (v : QState H) :
     ((a * b : ℂ)) • v = a • (b • v) := mul_smul a b v
 
+/-- Splits the product of the first `j + 1` odd amplification factors into the product of the
+first `j` factors and the final factor. -/
 private theorem prod_split_rs {j : ℕ} {rs : ℕ → ℕ} :
     (∏ k : Fin (j+1), (2*rs (k.val+1)+1))
       = (∏ k : Fin j, (2*rs (k.val+1)+1)) * (2*rs (j+1)+1) := by
@@ -313,6 +372,8 @@ private theorem prod_split_rs {j : ℕ} {rs : ℕ → ℕ} :
     fun n => Fin.prod_univ_eq_prod_range (fun k => 2*rs (k+1)+1) n
   rw [e (j+1), Finset.prod_range_succ (fun k => 2*rs (k+1)+1) j, ← e j]
 
+/-- Under clock and stage legality, normalized seed, tunability, and thresholds at most one,
+every nested word through stage `m` is legal. -/
 private theorem legal_nested {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -349,6 +410,8 @@ private theorem legal_nested {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
             (potential (extendClock m P (j+1)) bad) (rs (j+1)) from rfl]
     exact hG5.1
 
+/-- Under the amplification hypotheses, appending the next stage to the current nested word
+gives a legal pre-amplification word. -/
 private theorem legal_B {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -360,6 +423,8 @@ private theorem legal_B {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
   exact ⟨legal_nested m P bad U ω α rs hclock hstage hnorm htun habove j (by omega),
     legal_stageWord m (j+1) (by omega)⟩
 
+/-- Under the amplification hypotheses, the slot-zero call count through stage `j ≤ m` is the
+product of the first `j` odd amplification factors. -/
 private theorem calls_nested {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -383,6 +448,8 @@ private theorem calls_nested {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
       ih (by omega), prod_split_rs]
     ring
 
+/-- Under the amplification hypotheses, the next nested weighted cost is the next odd
+amplification factor times the sum of the current cost and the next slot price. -/
 private theorem cost_nested {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -397,6 +464,7 @@ private theorem cost_nested {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
   have hg5 := clause5_at_stage m P bad U ω α rs hclock hstage hnorm htun habove hj hleg
   rw [hg5.2.2.2 prices, weightedCost_append, weightedCost_stageWord]
 
+/-- Tunability and thresholds at most one make every stage gain-loss factor strictly positive. -/
 private theorem gainLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -424,6 +492,8 @@ private theorem gainLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
       Real.sin_pos_of_pos_of_lt_pi hx0 hxπ
     exact div_pos hsin (mul_pos hρ ha0)
 
+/-- Under the tuning hypotheses and thresholds at most one, the total gain loss through all `m`
+stages is strictly positive. -/
 private theorem totalLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -432,6 +502,8 @@ private theorem totalLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
   unfold totalLoss
   exact Finset.prod_pos fun j _ => gainLoss_pos m P bad U ω α rs htun habove j.val j.isLt
 
+/-- Splits the complex product of stage multipliers through `j + 1` into the last multiplier and
+the product through `j`. -/
 private theorem prod_split_lam_coe {H : Type} [Fintype H] [DecidableEq H] (j : ℕ)
     (E : ℕ → Matrix H H ℂ) (bad : Matrix H H ℂ) (U : ℕ → Matrix H H ℂ)
     (ω : QState H) (rs : ℕ → ℕ) :
@@ -444,6 +516,9 @@ private theorem prod_split_lam_coe {H : Type} [Fintype H] [DecidableEq H] (j : �
   rw [e (j+1), Finset.prod_range_succ (fun k => ((lam E bad U ω rs k : ℝ) : ℂ)) j, ← e j,
     mul_comm]
 
+/-- Under the clock, stage, normalization, and tuning hypotheses, each projected nested state is
+the corresponding projected plain-prefix state multiplied by the product of its stage
+multipliers. -/
 theorem amplification_products_invariant {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -541,6 +616,9 @@ theorem amplification_products_invariant {H : Type} [Fintype H] [DecidableEq H] 
         (potential (extendClock m P (j+1)) bad *ᵥ clockState U (plainPrefix (j+1)) ω)]
     rw [← hLHS]
 
+/-- Under the amplification hypotheses and positive final plain amplitude, proves the slot-zero
+call product, weighted cost recurrence, and equality of the odd-factor product with the
+final amplitude ratio. -/
 theorem amplification_products_intended {H : Type} [Fintype H] [DecidableEq H]
     (m : ℕ) (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (ω : QState H) (α : ℕ → ℝ) (rs : ℕ → ℕ)
@@ -597,6 +675,8 @@ theorem amplification_products_intended {H : Type} [Fintype H] [DecidableEq H]
     mul_ne_zero (ne_of_gt hplain) (ne_of_gt hloss)
   field_simp
 
+/-- Proves the nested amplification call-product, weighted-cost, and amplitude-ratio contract
+corresponding to [Low and Su, Lemma 5][LowSu2026]. -/
 theorem Clause9AmplificationProducts_answer : Clause9AmplificationProducts := by
   intro H _ _ m P bad U ω α rs hclock hstage hnorm hplain htun habove
   exact amplification_products_intended m P bad U ω α rs

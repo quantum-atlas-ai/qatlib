@@ -103,6 +103,28 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Progress estimates for quantum adversary lower bounds
+
+This module defines Boolean inputs, phase queries, Gram entries `rhoEntry`, and the
+relation-weighted progress `progress`. Initial-state normalization, output-distinguishability
+bounds, and telescoping estimates provide the ingredients for adversary lower bounds.
+
+The query estimates `progress_step_le` and `progress_step_le_lmax` bound a single progress
+change using uniform mismatch degrees or a bound on their local products. See [Ambainis2002] for
+the paper's setting.
+
+## Main statements
+
+* `Input`: The type of length-`n` Boolean inputs.
+* `progress_step_le_lmax`: Under the stated local mismatch-degree product bound and total-mass
+  bound, the sum of Gram-entry changes from one phase query is at most `sqrt lmax`.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -111,10 +133,14 @@ open Finset
 
 namespace Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
+/-- The type of length-`n` Boolean inputs. -/
 abbrev Input (n : ℕ) := Fin n → Bool
 
+/-- The type of ordered pairs of length-`n` Boolean inputs. -/
 abbrev InputPair (n : ℕ) := Input n × Input n
 
+/-- For error probabilities bounded by `ε ∈ [0, 1/2]`, the sum of the two binary overlap terms
+is at most `2 * sqrt (ε*(1-ε))`. -/
 theorem hellinger_pair_le {ε ε₁ ε₂ : ℝ}
     (hε0 : 0 ≤ ε) (hε : ε ≤ 1 / 2)
     (h10 : 0 ≤ ε₁) (h20 : 0 ≤ ε₂)
@@ -186,6 +212,8 @@ theorem hellinger_pair_le {ε ε₁ ε₂ : ℝ}
         (Real.sqrt_mul hε0 (1 - ε)).symm
       rw [Real.sin_two_mul, hsin_g, hcos_g, mul_assoc, hmul]
 
+/-- For normalized vectors separated by the stated output-error bounds, the weighted
+inner-product norm is at most `2 * sqrt (ε*(1-ε)) * ‖αx‖ * ‖αy‖`. -/
 theorem lemma1_density_entry
     {ZW : Type*} [Fintype ZW] [DecidableEq ZW] {β : Type*} [DecidableEq β]
     (ans : ZW → β) (fx : β) (a b : ZW → ℂ) (αx αy : ℂ) (ε : ℝ)
@@ -275,18 +303,23 @@ theorem lemma1_density_entry
         exact mul_le_mul_of_nonneg_left hcore this
     _ = 2 * Real.sqrt (ε * (1 - ε)) * ‖αx‖ * ‖αy‖ := by ring
 
+/-- The inner product of the workspace columns of `ψ` indexed by `x` and `y`. -/
 def rhoEntry {ι : Type*} [Fintype ι] {α : Type*} (ψ : ι → α → ℂ)
     (x y : α) : ℂ :=
   ∑ iw, star (ψ iw x) * ψ iw y
 
+/-- The phase query that negates amplitudes when input bit `i` is true. -/
 def phaseQuery {ι : Type*} {n : ℕ} (i : Fin n) (ψ : ι → Input n → ℂ) :
     ι → Input n → ℂ :=
   fun iw x => if x i then - ψ iw x else ψ iw x
 
+/-- The sum of the norms of `ρ x y` over pairs in the relation `R`. -/
 def progress {α : Type*} (R : Finset (α × α))
     (ρ : α → α → ℂ) : ℝ :=
   ∑ p ∈ R, ‖ρ p.1 p.2‖
 
+/-- The decrease in relation progress is at most the sum of the norms of the entrywise
+differences. -/
 theorem progress_sub_le {α : Type*} (R : Finset (α × α))
     (ρ σ : α → α → ℂ) :
     progress R ρ - progress R σ ≤
@@ -300,6 +333,7 @@ theorem progress_sub_le {α : Type*} (R : Finset (α × α))
   rw [Finset.sum_add_distrib] at h
   linarith
 
+/-- If each of `T` successive decreases is at most `B`, the total decrease is at most `T*B`. -/
 theorem telescope_lower {S : ℕ → ℝ} {T : ℕ} {B : ℝ}
     (h : ∀ k < T, S k - S (k + 1) ≤ B) : S 0 - S T ≤ (T : ℝ) * B := by
   induction T with
@@ -313,15 +347,20 @@ theorem telescope_lower {S : ℕ → ℝ} {T : ℕ} {B : ℝ}
     rw [he, hcast]
     nlinarith
 
+/-- The real initial amplitude, equal to `1 / sqrt (2*|X|)` on `X`, `1 / sqrt (2*|Y|)` on `Y`
+outside `X`, and zero elsewhere. -/
 noncomputable def initialAmplitude {α : Type*} [DecidableEq α] (X Y : Finset α)
     (x : α) : ℝ :=
   if x ∈ X then (Real.sqrt (2 * (X.card : ℝ)))⁻¹
   else if x ∈ Y then (Real.sqrt (2 * (Y.card : ℝ)))⁻¹ else 0
 
+/-- The complex-valued initial amplitude obtained from `initialAmplitude`. -/
 noncomputable def initialState {α : Type*} [DecidableEq α] (X Y : Finset α)
     (x : α) : ℂ :=
   (initialAmplitude X Y x : ℂ)
 
+/-- For disjoint nonempty `X, Y` and `R ⊆ X × Y`, the initial progress is `|R| / (2 * sqrt |X| *
+sqrt |Y|)`. -/
 theorem progress_initial {α : Type*} [DecidableEq α] (X Y : Finset α) (R : Finset (α × α))
     (hdisj : Disjoint X Y) (hRsub : ∀ p ∈ R, p.1 ∈ X ∧ p.2 ∈ Y)
     (hX : 0 < X.card) (hY : 0 < Y.card) :
@@ -362,6 +401,7 @@ theorem progress_initial {α : Type*} [DecidableEq α] (X Y : Finset α) (R : Fi
       abs_of_pos (inv_pos.mpr hspY), ← mul_inv, hprod]
   rw [Finset.sum_congr rfl hconst, Finset.sum_const, nsmul_eq_mul]
 
+/-- Lower bounds `m, m'` on the two relation degrees imply `sqrt (m*m'*|X|*|Y|) ≤ |R|`. -/
 theorem card_relation_ge {α : Type*} [DecidableEq α] (X Y : Finset α)
     (R : Finset (α × α))
     (m m' : ℕ)
@@ -400,6 +440,8 @@ theorem card_relation_ge {α : Type*} [DecidableEq α] (X Y : Finset α)
   have hs := Real.sqrt_le_sqrt hprod
   rwa [Real.sqrt_mul_self (by positivity : (0 : ℝ) ≤ (R.card : ℝ))] at hs
 
+/-- A uniform pairwise final-overlap bound gives the same factor `2 * sqrt (ε*(1-ε))` as a bound
+on final progress relative to initial progress. -/
 theorem final_progress_le {α : Type*} (R : Finset (α × α)) (ε : ℝ)
     (aT a0 : α → α → ℂ)
     (hpair : ∀ p ∈ R,
@@ -411,6 +453,8 @@ theorem final_progress_le {α : Type*} (R : Finset (α × α)) (ε : ℝ)
     _ = 2 * Real.sqrt (ε * (1 - ε)) * ∑ p ∈ R, ‖a0 p.1 p.2‖ := by
         rw [Finset.mul_sum]
 
+/-- The stated one-step, initial, and final progress bounds imply `(1 - 2*sqrt (ε*(1-ε))) * S0 ≤
+T*B`. -/
 theorem adversary_lower_bound {S : ℕ → ℝ} {T : ℕ} {B S0 ε : ℝ}
     (hε0 : 0 ≤ ε) (hε : ε ≤ 1 / 2)
     (hstep : ∀ k < T, S k - S (k + 1) ≤ B)
@@ -427,6 +471,8 @@ theorem adversary_lower_bound {S : ℕ → ℝ} {T : ℕ} {B S0 ε : ℝ}
     nlinarith [hs, hhalf]
   nlinarith [htel, h0, hT, hc0, hc1]
 
+/-- Factoring each input column by a real input amplitude factors its Gram entry by the product
+of the two amplitudes. -/
 theorem rhoEntry_eq_of_factor {ι : Type*} [Fintype ι] [DecidableEq ι] {αT : Type*}
     {ψ : ι → αT → ℂ} {a : ι → αT → ℂ} {α : αT → ℝ}
     (h : ∀ iw x, ψ iw x = (α x : ℂ) * a iw x) (x y : αT) :
@@ -439,6 +485,8 @@ theorem rhoEntry_eq_of_factor {ι : Type*} [Fintype ι] [DecidableEq ι] {αT : 
   rw [h iw x, h iw y, star_mul, hs]
   ring
 
+/-- For normalized vectors with the stated opposite Boolean output-error bounds, the weighted
+overlap is at most `2 * sqrt (ε*(1-ε))` times the two amplitude norms. -/
 theorem lemma1_pair {ι : Type*} [Fintype ι] [DecidableEq ι]
     (ans : ι → Bool) (fx : Bool) (a b : ι → ℂ) (αx αy : ℝ) (ε : ℝ)
     (hε0 : 0 ≤ ε) (hε : ε ≤ 1 / 2)
@@ -449,9 +497,12 @@ theorem lemma1_pair {ι : Type*} [Fintype ι] [DecidableEq ι]
       2 * Real.sqrt (ε * (1 - ε)) * ‖(αx : ℂ)‖ * ‖(αy : ℂ)‖ :=
   lemma1_density_entry (ZW := ι) ans fx a b (αx : ℂ) (αy : ℂ) ε hε0 hε ha hb h1 h2
 
+/-- The total squared workspace amplitude in the input column indexed by `x`. -/
 def mass {ι : Type*} [Fintype ι] {α : Type*} (ψ : ι → α → ℂ) (x : α) : ℝ :=
   ∑ iw, ‖ψ iw x‖ ^ 2
 
+/-- A phase query preserves a Gram entry when the queried bits agree and negates it when they
+differ. -/
 theorem rhoEntry_phaseQuery {ι : Type*} [Fintype ι] {n : ℕ}
     (i : Fin n) (ψ : ι → Input n → ℂ) (x y : Input n) :
     rhoEntry (phaseQuery i ψ) x y =
@@ -465,6 +516,8 @@ theorem rhoEntry_phaseQuery {ι : Type*} [Fintype ι] {n : ℕ}
     refine Finset.sum_congr rfl (fun iw _ => ?_)
     by_cases hx : x i <;> by_cases hy : y i <;> simp_all
 
+/-- The norm of a Gram entry is at most the product of the square roots of the two column
+masses. -/
 theorem rhoEntry_norm_le {ι : Type*} [Fintype ι] {α : Type*}
     (ψ : ι → α → ℂ) (x y : α) :
     ‖rhoEntry ψ x y‖ ≤
@@ -476,6 +529,8 @@ theorem rhoEntry_norm_le {ι : Type*} [Fintype ι] {α : Type*}
     _ ≤ Real.sqrt (∑ iw, ‖ψ iw x‖ ^ 2) * Real.sqrt (∑ iw, ‖ψ iw y‖ ^ 2) :=
         Real.sum_mul_le_sqrt_mul_sqrt _ _ _
 
+/-- For nonnegative `A, B, α, β` with `α*β = 1`, the weighted arithmetic-geometric mean bound is
+`2*sqrt A*sqrt B ≤ α*A + β*B`. -/
 theorem amgm_two {A B α β : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B)
     (hα : 0 ≤ α) (hβ : 0 ≤ β) (hαβ : α * β = 1) :
     2 * (Real.sqrt A * Real.sqrt B) ≤ α * A + β * B := by
@@ -495,6 +550,7 @@ theorem amgm_two {A B α β : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B)
     nlinarith [hαA, hβB, hcross]
   nlinarith [sq_nonneg (Real.sqrt α * Real.sqrt A - Real.sqrt β * Real.sqrt B), hexpand]
 
+/-- For `a > 0` and `b ≥ 0`, the identity `sqrt (b/a) * a = sqrt (a*b)` holds. -/
 theorem sqrt_div_mul {a b : ℝ} (ha : 0 < a) (hb : 0 ≤ b) :
     Real.sqrt (b / a) * a = Real.sqrt (a * b) := by
   have h : Real.sqrt ((b / a) * a ^ 2) = Real.sqrt (b / a) * Real.sqrt (a ^ 2) :=
@@ -504,6 +560,8 @@ theorem sqrt_div_mul {a b : ℝ} (ha : 0 < a) (hb : 0 ≤ b) :
   congr 1
   field_simp
 
+/-- Under the stated relation-degree bounds and total-mass bound, the sum of Gram-entry changes
+from one phase query is at most `sqrt (l*l')`. -/
 theorem progress_step_le {ι : Type*} [Fintype ι] {n : ℕ}
     (X Y : Finset (Input n)) (R : Finset (InputPair n)) (l l' : ℕ)
     (hl : 0 < l) (hl' : 0 < l') (i : Fin n) (ψ : ι → Input n → ℂ)
@@ -678,6 +736,8 @@ theorem progress_step_le {ι : Type*} [Fintype ι] {n : ℕ}
         refine mul_le_mul_of_nonneg_left hmassA (Real.sqrt_nonneg _)
     _ = Real.sqrt ((l : ℝ) * (l' : ℝ)) := by ring
 
+/-- For positive natural `a, b` with `a*b ≤ L`, the quantity `sqrt (b/a)` is at most `sqrt L /
+a`. -/
 theorem sqrt_div_le {a b L : ℕ} (ha : 0 < a) (hb : 0 < b) (h : a * b ≤ L) :
     Real.sqrt ((b : ℝ) / (a : ℝ)) ≤ Real.sqrt (L : ℝ) / (a : ℝ) := by
   have haR : (0 : ℝ) < a := by exact_mod_cast ha
@@ -687,6 +747,8 @@ theorem sqrt_div_le {a b L : ℕ} (ha : 0 < a) (hb : 0 < b) (h : a * b ≤ L) :
   apply Real.sqrt_le_sqrt
   exact_mod_cast h
 
+/-- Under the stated local mismatch-degree product bound and total-mass bound, the sum of
+Gram-entry changes from one phase query is at most `sqrt lmax`. -/
 theorem progress_step_le_lmax {ι : Type*} [Fintype ι] {n : ℕ}
     (X Y : Finset (Input n)) (R : Finset (InputPair n)) (lmax : ℕ)
     (i : Fin n) (ψ : ι → Input n → ℂ) (lx ly : Input n → ℕ)

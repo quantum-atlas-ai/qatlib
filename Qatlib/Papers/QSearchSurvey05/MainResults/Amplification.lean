@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupQuan
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Amplitude amplification in a Hilbert space
+
+This module formalizes the amplitude amplification bound presented as Theorem 2.2 in
+[Ambainis2005]. Starting from a positive lower bound ε on the good projection probability,
+`theorem22_amplitude_amplification` bounds the two attempt success expression and the total
+iteration count.
+
+## Main statements
+
+* `theorem22_amplitude_amplification`: Gives success at least 2/3 for two attempts within
+  π/(2√ε) iterations.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +35,9 @@ open Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 
 namespace Qatlib.Papers.QSearchSurvey05.MainResults
 
+/-- For initial good probability at least ε > 0 and angle θ ∈ (0, π/2], two attempts using
+⌊π/(4θ)⌋ amplification steps each have combined success expression at least 2/3 and total
+iteration count at most π/(2√ε). See [Ambainis2005]. -/
 theorem theorem22_amplitude_amplification
     (E : Type*) [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E]
     (S : Set ℤ) (hzero : (0 : ℤ) ∈ S)

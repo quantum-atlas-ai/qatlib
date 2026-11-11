@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.WalkSpatial08.MainResults.RunCorrectness
+
+/-!
+# Balanced lattice model budgets
+
+This module combines the controlled-walk step bound with the balanced schedule success estimate.
+It proves an eventual model budget proportional to `sqrt (N * log N)` with a positive constant
+success weight, and derives the corresponding weaker `sqrt N * log N` budget.
+
+The controlled spatial-search setting is described in [Tulsi2008].
+
+## Main statements
+
+* `balanced_model_budget`: eventual `sqrt (N * log N)` model budget.
+* `balanced_model_old_budget`: eventual `sqrt N * log N` model budget.
+
+## References
+
+* [Tulsi, 2008][Tulsi2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -12,6 +32,9 @@ noncomputable section
 
 namespace Qatlib.Papers.WalkSpatial08.MainResults
 
+/-- For all sufficiently large lattice side lengths, a model schedule has a positive constant
+success weight within a constant multiple of `sqrtNLatticeLog` steps. See [Main result:
+O(sqrt(N log N)) two-dimensional spatial search][Tulsi2008]. -/
 theorem balanced_model_budget :
     ∃ C : ℝ, 0 < C ∧ ∃ c : ℝ, 0 < c ∧ ∃ N₀ : ℕ, ∀ n ≥ N₀,
       ModelBudgetWithin n (C * sqrtNLatticeLog n) c := by
@@ -26,6 +49,8 @@ theorem balanced_model_budget :
   rw [hsteps]
   exact hbound n h1
 
+/-- When the logarithm of the lattice size is at least one, the `sqrt (N * log N)` scale is at
+most the `sqrt N * log N` scale. -/
 theorem sqrtNLatticeLog_le_sqrtNLogLattice {n : ℕ} (hlog : 1 ≤ logLattice n) :
     sqrtNLatticeLog n ≤ sqrtNLogLattice n := by
   rw [sqrtNLogLattice_eq_sqrt_log_mul n]
@@ -35,6 +60,8 @@ theorem sqrtNLatticeLog_le_sqrtNLogLattice {n : ℕ} (hlog : 1 ≤ logLattice n)
   have hS : 0 ≤ sqrtNLatticeLog n := Real.sqrt_nonneg _
   simpa [one_mul] using mul_le_mul_of_nonneg_right h1 hS
 
+/-- For all sufficiently large lattice side lengths, a model schedule has a positive constant
+success weight within a constant multiple of `sqrtNLogLattice` steps. -/
 theorem balanced_model_old_budget :
     ∃ C : ℝ, 0 < C ∧ ∃ c : ℝ, 0 < c ∧ ∃ N₀ : ℕ, ∀ n ≥ N₀,
       ModelBudgetWithin n (C * sqrtNLogLattice n) c := by

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.ComputedGrid.Lemma5DysonComputedParametersStat
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+/-!
+# Accuracy of computed Dyson parameters
+
+This module proves `lemma5DysonComputedParameters`: the explicit run parameters give the
+prescribed dyadic operator error for a bounded differentiable Hermitian field with a mean
+derivative bound. The theorem also retains the exact sample and matrix multiplication counts in
+the setting of Lemma 5 of [LowWiebe2018].
+
+## Main statements
+
+* `lemma5DysonComputedParameters`: establish the computed-parameter accuracy and counting
+  contract.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +37,9 @@ namespace Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The computed Dyson run satisfies its grid and operation-count identities and has error at
+most `2⁻ᵏ` under the stated field, derivative, and short-time bounds. This supplies an
+explicit parameter version of the analysis in [Low and Wiebe, Lemma 5][LowWiebe2018]. -/
 theorem lemma5DysonComputedParameters : Lemma5DysonComputedParameters := by
   intro I _ _ H Hd t Λ χ k hH hHd hderiv ht hΛ hχ hbound hlog hmean
   obtain ⟨h1,hK,_hcut,_hlen,hreads,hsame,hproducts⟩ :=

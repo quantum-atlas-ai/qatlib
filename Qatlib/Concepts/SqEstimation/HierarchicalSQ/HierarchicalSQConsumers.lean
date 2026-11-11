@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SqEstimation.HierarchicalSQ.HierarchicalSQAccess
+
+/-!
+# Hierarchical sample-and-query consumers
+
+This module expands the product RᴴUR entrywise through `closureRUR` and bounds its entries by
+`closureRUREnvelopeSq`. It also constructs a two-dimensional matrix-unit example that exhibits
+cancellation and computes the output law and resource counts of the hierarchical sampler. For
+background, see [ChiaEtAl2022].
+
+## Main statements
+
+* `native_sq_rur_exact_operator_and_cancellation`: identifies RᴴUR, computes its envelope norm,
+  and gives a cancellation example.
+* `native_sq_rur_same_record_sampler_and_cost`: computes the finite and unbounded sampling laws
+  and expected costs for four matrix units.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,34 +36,49 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Concepts.SqEstimation.HierarchicalSQ
 
+/-- The entrywise double-sum expansion of the matrix product RᴴUR. -/
 noncomputable def closureRUR {r n : ℕ} (R : Matrix (Fin r) (Fin n) ℂ) (U : Operator r) : Operator n :=
   fun i j => ∑ a, ∑ b, star (R a i)*U a b*R b j
+/-- The entrywise squared envelope obtained by multiplying the sum of squared summands in RᴴUR
+by r². -/
 noncomputable def closureRUREnvelopeSq {r n : ℕ} (R : Matrix (Fin r) (Fin n) ℂ) (U : Operator r) :
     Fin n → Fin n → ℝ :=
   fun i j => (r*r:ℕ)*∑ a, ∑ b, Complex.normSq (star (R a i)*U a b*R b j)
+/-- The finite point-mass distribution at `x`, constructed by a constant pushforward of a native
+coin distribution. -/
 noncomputable def closureDelta {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (x : X) : FinDist X :=
   Classical.choose (Qatlib.Concepts.SketchArith.TransposeAccess.FinDist.exists_pushforward (rand.coin 0) (fun _ => x))
+/-- The two-dimensional matrix unit whose row and column indices are encoded by `t`. -/
 noncomputable def closureBasisOuter (t : Fin 4) : Operator 2 :=
   fun i j => if (i,j)=(finProdFinEquiv.symm t : Fin 2 × Fin 2) then 1 else 0
+/-- The squared row norm of the matrix unit indexed by `t`, equal to one on its selected row and
+zero elsewhere. -/
 noncomputable def closureBasisRowNorm (t : Fin 4) (i : Fin 2) : ℝ :=
   if i=(finProdFinEquiv.symm t : Fin 2 × Fin 2).1 then 1 else 0
+/-- The point-mass row sampler for the matrix unit indexed by `t`. -/
 noncomputable def closureBasisRows (rand : ClosureNativeRandom) (t : Fin 4) : FinDist (Fin 2) :=
   closureDelta rand (finProdFinEquiv.symm t : Fin 2 × Fin 2).1
+/-- The point-mass column sampler for the matrix unit indexed by `t`, independent of the
+supplied row. -/
 noncomputable def closureBasisCols (rand : ClosureNativeRandom) (t : Fin 4) (_i : Fin 2) : FinDist (Fin 2) :=
   closureDelta rand (finProdFinEquiv.symm t : Fin 2 × Fin 2).2
 
+/-- Each squared entry norm of `closureRUR R U` is bounded by `closureRUREnvelopeSq R U`. -/
 private theorem closure_rur_bound (r n : ℕ) (R : Matrix (Fin r) (Fin n) ℂ) (U : Operator r)
     (i j : Fin n) : Complex.normSq (closureRUR R U i j) ≤ closureRUREnvelopeSq R U i j := by
   have h := closure_complex_sum_bound (fun p : Fin r × Fin r => star (R p.1 i)*U p.1 p.2*R p.2 j)
   simpa only [closureRUR, closureRUREnvelopeSq, Fintype.sum_prod_type,
     Fintype.card_prod, Fintype.card_fin] using h
 
+/-- The squared envelope for RᴴUR is nonnegative at every entry. -/
 private theorem closure_rur_envelope_nonneg {r n : ℕ} (R : Matrix (Fin r) (Fin n) ℂ)
     (U : Operator r) (i j : Fin n) : 0 ≤ closureRUREnvelopeSq R U i j := by
   exact mul_nonneg (Nat.cast_nonneg _) (Finset.sum_nonneg fun _ _ =>
     Finset.sum_nonneg fun _ _ => Complex.normSq_nonneg _)
 
+/-- The squared Frobenius norm of the square-root envelope equals r² times the sum of |U a b|²
+weighted by the squared norms of rows `a` and `b` of `R`. -/
 private theorem closure_rur_frob (r n : ℕ) (R : Matrix (Fin r) (Fin n) ℂ) (U : Operator r) :
     closureFrobSq (fun i j => (Real.sqrt (closureRUREnvelopeSq R U i j) : ℂ)) =
       (r*r : ℕ)*∑ a, ∑ b, Complex.normSq (U a b)*closureRowSq R a*closureRowSq R b := by
@@ -78,6 +114,9 @@ private theorem closure_rur_frob (r n : ℕ) (R : Matrix (Fin r) (Fin n) ℂ) (U
           rw [← Finset.sum_mul, ← Finset.sum_mul]
           ring
 
+/-- Identifies `closureRUR` with RᴴUR and proves its entrywise envelope bound and envelope norm
+formula. A two-term example has zero target matrix but total squared envelope eight,
+illustrating cancellation in the closure construction of [ChiaEtAl2022]. -/
 theorem native_sq_rur_exact_operator_and_cancellation (r n : ℕ)
     (R : Matrix (Fin r) (Fin n) ℂ) (U : Operator r) :
     closureRUR R U = Rᴴ*U*R ∧
@@ -95,6 +134,8 @@ theorem native_sq_rur_exact_operator_and_cancellation (r n : ℕ)
     simp [closureMatrixTarget, Fin.sum_univ_two]
   · norm_num [closureMatrixEnvelopeSq, Fin.sum_univ_two]
 
+/-- The point mass `closureDelta rand x` assigns probability one to `x` and zero to every other
+value. -/
 private theorem closureDelta_prob {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (x y : X) : (closureDelta rand x).prob y = if y = x then 1 else 0 := by
   have h :=
@@ -107,6 +148,8 @@ private theorem closureDelta_prob {X : Type} [Fintype X] [DecidableEq X]
     simpa using (rand.coin 0).sum_one
   · simp [hy, Ne.symm hy]
 
+/-- Each of the four matrix units has squared Frobenius norm one, the specified squared row
+norms, and exact row and conditional column sampling laws. -/
 private theorem closure_basis_source (rand : ClosureNativeRandom) :
     ∀ t : Fin 4, (0 : ℝ) < 1 ∧ (1 : ℝ) = closureFrobSq (closureBasisOuter t) ∧
       (∀ i, closureBasisRowNorm t i = closureRowSq (closureBasisOuter t) i) ∧
@@ -130,6 +173,8 @@ private theorem closure_basis_source (rand : ClosureNativeRandom) :
       norm_num [closureBasisCols, closureDelta_prob, closureRowSq, closureBasisOuter, finProdFinEquiv, Fin.divNat, Fin.modNat, Fin.sum_univ_two] at hi <;>
       norm_num [closureBasisCols, closureDelta_prob, closureRowSq, closureBasisOuter, finProdFinEquiv, Fin.divNat, Fin.modNat, Fin.sum_univ_two]
 
+/-- The sum of the four two-dimensional matrix units with unit coefficients is the all-ones
+matrix. -/
 private theorem closure_basis_target :
     closureMatrixTarget (fun _ : Fin 4 => (1 : ℂ)) closureBasisOuter = (fun _ _ => 1) := by
   ext i j
@@ -137,51 +182,67 @@ private theorem closure_basis_target :
     simp only [closureMatrixTarget, Fin.sum_univ_succ, Fin.sum_univ_zero]
   all_goals norm_num [closureBasisOuter, finProdFinEquiv, Fin.divNat, Fin.modNat, Fin.sum_univ_succ]
 
+/-- The squared hierarchical envelope for the four matrix units with unit coefficients is four
+at every entry. -/
 private theorem closure_basis_envelope (i j : Fin 2) :
     closureMatrixEnvelopeSq (fun _ : Fin 4 => (1 : ℂ)) closureBasisOuter i j = 4 := by
   fin_cases i <;> fin_cases j <;>
     simp only [closureMatrixEnvelopeSq, Fin.sum_univ_succ, Fin.sum_univ_zero]
   all_goals norm_num [closureBasisOuter, finProdFinEquiv, Fin.divNat, Fin.modNat, Fin.sum_univ_succ]
 
+/-- The global coefficient weights of the four matrix units with unit coefficients and unit norm
+bounds are all one. -/
 private theorem closure_basis_global_weights : closureWeights (fun _ : Fin 4 => (1 : ℂ)) (fun _ => 1) =
     (fun _ => (1 : ℝ)) := by funext t; norm_num [closureWeights]
 
+/-- The global coefficient-choice acceptance rate for the four equally weighted matrix units is
+one. -/
 private theorem closure_basis_global_rate :
     closureRate (closureWeights (fun _ : Fin 4 => (1 : ℂ)) (fun _ => 1)) = 1 := by
   rw [closure_basis_global_weights]
   norm_num [closureRate, closureSum, closureMax, List.ofFn_succ, List.foldl]
 
+/-- For each row, the sum of the row coefficient weights of the four matrix units is two. -/
 private theorem closure_basis_row_sum (i : Fin 2) :
     closureSum (closureRowWeights (fun _ : Fin 4 => (1 : ℂ)) closureBasisRowNorm i) = 2 := by
   fin_cases i <;>
     simp only [closureSum, Fin.sum_univ_succ, Fin.sum_univ_zero]
   all_goals norm_num [closureRowWeights, closureBasisRowNorm, finProdFinEquiv, Fin.divNat, Fin.modNat, Fin.sum_univ_succ]
 
+/-- For each row, the maximum row coefficient weight of the four matrix units is one. -/
 private theorem closure_basis_row_max (i : Fin 2) :
     closureMax (closureRowWeights (fun _ : Fin 4 => (1 : ℂ)) closureBasisRowNorm i) = 1 := by
   fin_cases i <;>
     norm_num [closureMax, closureRowWeights, closureBasisRowNorm, finProdFinEquiv, Fin.divNat, Fin.modNat, List.ofFn_succ, List.foldl]
 
+/-- For each row, the coefficient-choice acceptance rate for the four matrix units is one half. -/
 private theorem closure_basis_row_rate (i : Fin 2) :
     closureRate (closureRowWeights (fun _ : Fin 4 => (1 : ℂ)) closureBasisRowNorm i) = 1/2 := by
   rw [closureRate, closure_basis_row_sum, closure_basis_row_max]
   norm_num
 
+/-- All global coefficient weights in the four-matrix-unit example are nonnegative. -/
 private theorem closure_basis_global_nonneg : ∀ t,
     0 ≤ closureWeights (fun _ : Fin 4 => (1 : ℂ)) (fun _ => 1) t := by
   intro t
   norm_num [closureWeights]
 
+/-- The sum of the global coefficient weights in the four-matrix-unit example is positive. -/
 private theorem closure_basis_global_pos :
     0 < closureSum (closureWeights (fun _ : Fin 4 => (1 : ℂ)) (fun _ => 1)) := by
   norm_num [closureSum, closureWeights]
 
+/-- All row coefficient weights in the four-matrix-unit example are nonnegative. -/
 private theorem closure_basis_row_nonneg (i : Fin 2) : ∀ t,
     0 ≤ closureRowWeights (fun _ : Fin 4 => (1 : ℂ)) closureBasisRowNorm i t := by
   intro t
   unfold closureRowWeights closureBasisRowNorm
   split_ifs <;> norm_num
 
+/-- Computes the target, envelope, and finite output masses for the four-matrix-unit example;
+the unbounded sampler is uniform on the four entries. Its expected counts are three
+coefficient attempts, six random calls, and two native sampling calls, providing a concrete
+closure example for [ChiaEtAl2022]. -/
 theorem native_sq_rur_same_record_sampler_and_cost (rand : ClosureNativeRandom) :
     closureMatrixTarget (fun _ : Fin 4 => (1 : ℂ)) closureBasisOuter = (fun _ _ => 1) ∧
     (∀ i j, closureMatrixEnvelopeSq (fun _ : Fin 4 => (1 : ℂ)) closureBasisOuter i j = 4) ∧

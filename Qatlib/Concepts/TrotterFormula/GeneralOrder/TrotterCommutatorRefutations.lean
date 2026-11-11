@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Counterexamples to universal error budgets
+
+This module refutes two universal budget formulations for local-observable simulation and
+long-range truncation. These are formal counterexamples to the stated predicates and ledger
+requirements, considered alongside the product-formula error analysis of
+[ChildsEtAl2021Trotter].
+
+`clause54_outputError_budget_impossible` uses an empty interaction family to contradict a
+positive tolerance charged to a zero budget. `clause53_truncationTail_budget_false` uses a
+one-point distance and weight example allowed by the supplied predicates to contradict the
+proposed tail estimate.
+
+## Main statements
+
+* `clause54_outputError_budget_impossible`: refutes the universal observable-output budget.
+* `clause53_truncationTail_budget_false`: refutes the combined truncation-tail and simulation
+  guarantee.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
@@ -27,6 +52,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 variable {S ι : Type} [Fintype S] [Fintype ι]
 
+/-- The stated universal local-observable guarantee is false: an empty interaction family makes
+its requirement that a positive tolerance be bounded by the error budget impossible. -/
 theorem clause54_outputError_budget_impossible :
     ¬(∀ (S : Type) [Fintype S] (dist : S → S → ℝ) (d : ℕ) (C κ α : ℝ) (τ : ℕ),
       0 < C →
@@ -104,6 +131,8 @@ theorem clause54_outputError_budget_impossible :
   rw [hzero] at hLe
   linarith
 
+/-- The stated universal truncation-tail and simulation guarantee is false under the supplied
+growth and weight predicates. -/
 theorem clause53_truncationTail_budget_false :
     ¬(∀ (d : ℕ) (S : Type) [Fintype S] (dist : S → S → ℝ) (C α : ℝ),
       0 < C →

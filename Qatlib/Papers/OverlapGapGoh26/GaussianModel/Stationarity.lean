@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.GaussianLocalization
+
+/-!
+# Stationarity of Gaussian tensor interpolation
+
+`interpolate_preserving` proves that the tensor interpolation preserves the Gaussian law at each
+parameter in `[0,1]`, including its joint law with an independent seed. Stationarity of the
+adaptive AMP energy then reduces a continuum path event to a finite set of stationary marginals
+and a tensor entry tail. This supplies a probabilistic bridge for the analysis associated with
+[GohMuller2026].
+
+## Main statements
+
+* `interpolate_seed_preserving`: For `τ ∈ [0,1]`, interpolating the tensor pair while retaining
+  the independent bounded seed preserves the corresponding single tensor and seed product law.
+* `actual_adaptive_energy_stationary`: For each `τ ∈ [0,1]`, the adaptive AMP energy path has
+  the same upper threshold probabilities as the AMP energy of a single Gaussian tensor with an
+  independent bounded seed.
+* `actual_fixed_instance_grid_reduction`: For `M,R ≥ 0` and `ε > 0`, a finite interpolation grid
+  bounds every continuum energy exceedance at level `c+ε` by the displayed tensor entry tail
+  plus the grid cardinality times the stationary exceedance probability at level `c`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +46,8 @@ open Qatlib.Papers.OverlapGapGoh26.UniformGrid.Localization
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
 
+/-- For `τ ∈ [0,1]`, the weighted sum `√(1-τ) X + √τ Y` of two independent centered Gaussians of
+variance `v` again has that Gaussian law. -/
 theorem scalar_interpolation_map (v : NNReal) (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) :
     ((gaussianReal 0 v).prod (gaussianReal 0 v)).map
       (fun p : ℝ×ℝ => Real.sqrt (1-τ)*p.1+Real.sqrt τ*p.2)=gaussianReal 0 v := by
@@ -51,6 +79,8 @@ theorem scalar_interpolation_map (v : NNReal) (τ : ℝ) (hτ : τ∈Set.Icc (0:
     ring
   simpa only [Pi.add_apply,mul_zero,zero_add,hv] using! he
 
+/-- For `τ ∈ [0,1]`, tensor interpolation preserves the Gaussian tensor law when its two
+arguments are independent samples. -/
 theorem interpolate_preserving (r N : ℕ) (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) :
     MeasurePreserving (fun p : Tensor (r+1) N × Tensor (r+1) N => interpolate p.1 p.2 τ)
       ((gaussianTensorLaw r N).prod (gaussianTensorLaw r N)) (gaussianTensorLaw r N) := by
@@ -68,12 +98,17 @@ theorem interpolate_preserving (r N : ℕ) (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ
     rfl
   exact hm.comp (MeasurePreserving.symm e he)
 
+/-- For `τ ∈ [0,1]`, interpolating the tensor pair while retaining the independent bounded seed
+preserves the corresponding single tensor and seed product law. -/
 theorem interpolate_seed_preserving (M : ℝ) (v : NNReal) (r N : ℕ)
     (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) :
     MeasurePreserving (fun w : Sample r N => (interpolate w.1.1 w.1.2 τ,w.2))
       (jointLaw M v r N) ((gaussianTensorLaw r N).prod (boundedSeedLaw M N v)) :=
   (interpolate_preserving r N τ hτ).prod (MeasurePreserving.id _)
 
+/-- For each `τ ∈ [0,1]`, the adaptive AMP energy path has the same upper threshold
+probabilities as the AMP energy of a single Gaussian tensor with an independent bounded
+seed. -/
 theorem actual_adaptive_energy_stationary {r N : ℕ} (M : ℝ) (v : NNReal)
     (s : ℕ → ℝ) (T : ℕ) (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) (c : ℝ) :
     jointLaw M v r N {w | c≤energyPath M s T w τ}=
@@ -93,6 +128,9 @@ theorem actual_adaptive_energy_stationary {r N : ℕ} (M : ℝ) (v : NNReal)
   exact (interpolate_seed_preserving M v r N τ hτ).measure_preimage
     (measurableSet_le measurable_const hc.measurable).nullMeasurableSet
 
+/-- For `M,R ≥ 0` and `ε > 0`, a finite interpolation grid bounds every continuum energy
+exceedance at level `c+ε` by the displayed tensor entry tail plus the grid cardinality times
+the stationary exceedance probability at level `c`. -/
 theorem actual_fixed_instance_grid_reduction {r N : ℕ} (M : ℝ) (hM : 0≤M) (v : NNReal)
     (R : ℝ) (hR : 0≤R) (s : ℕ → ℝ) (T : ℕ) (ε : ℝ) (hε : 0<ε) :
     ∃ S : Finset ℝ, (∀ σ∈S, σ∈Set.Icc (0:ℝ) 1) ∧ ∀ c : ℝ,

@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
 
+/-!
+# Medians of heterogeneous weighted blocks
+
+The law `blockRecordLaw` samples independent blocks with possibly different component
+distributions, and `weightedBlock` forms their weighted estimators. Exact moment and bad-subset
+product identities yield concentration for `sortedBlockMedian`, while `countedBlockMedian`
+records sample reads and sorting comparisons.
+
+A median outside the target interval requires a majority of bad block estimates. This supplies a
+numerical repetition argument related to [BrassardHoyerTapp1998Counting] and the mean-estimation
+setting of [Montanaro2015].
+
+## Main statements
+
+* `heterogeneous_sorted_median_majority_witness`: median failure forces at least `r + 1` bad
+  inputs.
+* `heterogeneous_weighted_median_concentration`: small block variances give an exponential
+  median tail.
+* `heterogeneous_same_records_many_observables`: a union bound controls several observables on
+  shared records.
+
+## References
+
+* [Brassard, Hoyer and Tapp, 1998][BrassardHoyerTapp1998Counting]
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -17,6 +44,8 @@ set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The product law for `2 * r + 1` independent blocks of `B` observations, with a separate
+finite distribution for each block component. -/
 def blockRecordLaw {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
     (p : Fin (2*r+1) → Fin B → FinDist X) : FinDist (Fin (2*r+1) → Fin B → X) where
   prob ω := ∏ j, ∏ b, (p j b).prob (ω j b)
@@ -24,11 +53,15 @@ def blockRecordLaw {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
   sum_one := by
     exact (independentSampleLaw (fun j => independentSampleLaw (p j))).sum_one
 
+/-- The vector of block estimates, each obtained by summing the weighted component payoffs of
+its observation record. -/
 def weightedBlock {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
     (w : Fin (2*r+1) → Fin B → ℝ) (f : Fin (2*r+1) → Fin B → X → ℝ)
     (ω : Fin (2*r+1) → Fin B → X) : Fin (2*r+1) → ℝ :=
   fun j => ∑ b, w j b * f j b (ω j b)
 
+/-- The block record mass factors over all components, and each block estimator equals its
+defining weighted sum. -/
 theorem heterogeneous_blocks_actual_product_and_estimator {X : Type} [Fintype X] [DecidableEq X]
     (r B : ℕ) (p : Fin (2*r+1) → Fin B → FinDist X)
     (w : Fin (2*r+1) → Fin B → ℝ) (f : Fin (2*r+1) → Fin B → X → ℝ)
@@ -37,12 +70,16 @@ theorem heterogeneous_blocks_actual_product_and_estimator {X : Type} [Fintype X]
       ∀ j, weightedBlock r B w f ω j = ∑ b, w j b * f j b (ω j b) :=
   ⟨rfl, fun _ => rfl⟩
 
+/-- The expectation of a product of blockwise functions factors into the product of their
+expectations under the individual block laws. -/
 theorem blockRecordLaw_expect_prod {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
     (p : Fin (2*r+1) → Fin B → FinDist X) (g : Fin (2*r+1) → (Fin B → X) → ℝ) :
     (blockRecordLaw r B p).expect (fun ω => ∏ j, g j (ω j))
       = ∏ j, (∑ u : Fin B → X, (∏ b, (p j b).prob (u b)) * g j u) := by
   exact independentSampleLaw_expect_prod (fun j => independentSampleLaw (p j)) g
 
+/-- The expectation of a product over a selected finite set of blocks factors into the
+corresponding blockwise expectations. -/
 theorem blockRecordLaw_expect_prod_mem {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
     (p : Fin (2*r+1) → Fin B → FinDist X) (J : Finset (Fin (2*r+1)))
     (g : Fin (2*r+1) → (Fin B → X) → ℝ) :
@@ -70,11 +107,15 @@ theorem blockRecordLaw_expect_prod_mem {X : Type} [Fintype X] [DecidableEq X] (r
     Finset.prod_congr rfl fun j hj => Finset.sum_congr rfl fun u _ => by rw [if_pos hj]
   exact hb.symm.trans ha
 
+/-- A function of one block has the same expectation under the full record law as under that
+block's independent sample law. -/
 theorem blockRecordLaw_marginal {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
     (p : Fin (2*r+1) → Fin B → FinDist X) (j : Fin (2*r+1)) (h : (Fin B → X) → ℝ) :
     (blockRecordLaw r B p).expect (fun ω => h (ω j)) = (independentSampleLaw (p j)).expect h := by
   exact independentSampleLaw_expect_coord (fun k => independentSampleLaw (p k)) j h
 
+/-- The expectation of an event indicator equals the sum of the distribution masses over the
+filtered event. -/
 theorem expect_indicator_eq_filter_sum {Ω : Type} [Fintype Ω] (q : FinDist Ω) (P : Ω → Prop)
     [DecidablePred P] :
     q.expect (fun ω => if P ω then (1:ℝ) else 0) = ∑ ω ∈ Finset.univ.filter P, q.prob ω := by
@@ -83,6 +124,8 @@ theorem expect_indicator_eq_filter_sum {Ω : Type} [Fintype Ω] (q : FinDist Ω)
   exact Finset.sum_congr rfl fun ω _ => by
     by_cases hP : P ω <;> simp [hP]
 
+/-- A block estimate has the weighted sum of component means as its expectation, and centered
+second moment equal to the sum of squared weights times component centered second moments. -/
 theorem heterogeneous_block_exact_centered_moment {X : Type} [Fintype X] [DecidableEq X]
     (r B : ℕ) (p : Fin (2*r+1) → Fin B → FinDist X) (w : Fin (2*r+1) → Fin B → ℝ)
     (f : Fin (2*r+1) → Fin B → X → ℝ) (j : Fin (2*r+1)) :
@@ -122,6 +165,8 @@ theorem heterogeneous_block_exact_centered_moment {X : Type} [Fintype X] [Decida
       _ = ∑ b, (w j b)^2 * (p j b).expect (fun x => (f j b x-(p j b).expect (f j b))^2) :=
           independent_weighted_variance _ _ _
 
+/-- The probability that every block in a selected finite set is bad equals the product of the
+individual bad-block probabilities. -/
 theorem heterogeneous_block_bad_subset_product {X : Type} [Fintype X] [DecidableEq X]
     (r B : ℕ) (p : Fin (2*r+1) → Fin B → FinDist X) (w : Fin (2*r+1) → Fin B → ℝ)
     (f : Fin (2*r+1) → Fin B → X → ℝ) (θ ε : ℝ) (J : Finset (Fin (2*r+1))) :
@@ -177,12 +222,15 @@ theorem heterogeneous_block_bad_subset_product {X : Type} [Fintype X] [Decidable
     _ = ∏ j ∈ J, (∑ ω ∈ Finset.univ.filter (fun ω => ε < |weightedBlock r B w f ω j-θ|),
           (blockRecordLaw r B p).prob ω) := Finset.prod_congr rfl fun j _ => (hR j).symm
 
+/-- Insert a real number by ordered comparisons into a list, returning the resulting list and
+the number of comparisons. -/
 noncomputable def insertSortedCounted (x : ℝ) : List ℝ → List ℝ × ℕ
   | [] => ([x], 0)
   | y :: ys =>
       if x ≤ y then (x :: y :: ys, 1)
       else let s := insertSortedCounted x ys; (y :: s.1, s.2 + 1)
 
+/-- Insertion sort on a real list, paired with its accumulated comparison count. -/
 noncomputable def insertionSortCounted : List ℝ → List ℝ × ℕ
   | [] => ([], 0)
   | x :: xs =>
@@ -190,6 +238,7 @@ noncomputable def insertionSortCounted : List ℝ → List ℝ × ℕ
       let t := insertSortedCounted x s.1
       (t.1, s.2 + t.2)
 
+/-- Counted insertion increases the list length by one. -/
 theorem insertSortedCounted_length (x : ℝ) (l : List ℝ) :
     (insertSortedCounted x l).1.length = l.length + 1 := by
   induction l with
@@ -202,6 +251,7 @@ theorem insertSortedCounted_length (x : ℝ) (l : List ℝ) :
         rw [ih]
         simp
 
+/-- Counted insertion uses at most as many comparisons as there are elements in the input list. -/
 theorem insertSortedCounted_cost_le (x : ℝ) (l : List ℝ) :
     (insertSortedCounted x l).2 ≤ l.length := by
   induction l with
@@ -214,6 +264,8 @@ theorem insertSortedCounted_cost_le (x : ℝ) (l : List ℝ) :
         have hlen : (y :: ys).length = ys.length + 1 := rfl
         omega
 
+/-- Counted insertion produces a permutation of the input list with the inserted element
+prepended. -/
 theorem insertSortedCounted_perm (x : ℝ) (l : List ℝ) :
     (insertSortedCounted x l).1.Perm (x :: l) := by
   induction l with
@@ -224,6 +276,7 @@ theorem insertSortedCounted_perm (x : ℝ) (l : List ℝ) :
       · exact List.Perm.refl _
       · exact List.Perm.trans (List.Perm.cons y ih) (List.Perm.swap x y ys)
 
+/-- Counted insertion into a nondecreasing list preserves nondecreasing order. -/
 theorem insertSortedCounted_sorted {x : ℝ} {l : List ℝ} (hl : l.SortedLE) :
     (insertSortedCounted x l).1.SortedLE := by
   induction l with
@@ -249,6 +302,7 @@ theorem insertSortedCounted_sorted {x : ℝ} {l : List ℝ} (hl : l.SortedLE) :
           · exact hyx
           · exact hhead b hbys
 
+/-- Counted insertion sort preserves the input list length. -/
 theorem insertionSortCounted_length (l : List ℝ) :
     (insertionSortCounted l).1.length = l.length := by
   induction l with
@@ -258,6 +312,7 @@ theorem insertionSortCounted_length (l : List ℝ) :
       rw [insertSortedCounted_length, ih]
       simp
 
+/-- Counted insertion sort produces a permutation of the input list. -/
 theorem insertionSortCounted_perm (l : List ℝ) : (insertionSortCounted l).1.Perm l := by
   induction l with
   | nil => exact List.Perm.refl _
@@ -265,6 +320,7 @@ theorem insertionSortCounted_perm (l : List ℝ) : (insertionSortCounted l).1.Pe
       show ((insertSortedCounted x (insertionSortCounted xs).1).1).Perm (x :: xs)
       exact List.Perm.trans (insertSortedCounted_perm x _) (List.Perm.cons x ih)
 
+/-- The comparison count of insertion sort is at most the square of the input list length. -/
 theorem insertionSortCounted_cost_le (l : List ℝ) :
     (insertionSortCounted l).2 ≤ l.length * l.length := by
   induction l with
@@ -281,6 +337,7 @@ theorem insertionSortCounted_cost_le (l : List ℝ) :
         omega
       omega
 
+/-- The output list of counted insertion sort is nondecreasing. -/
 theorem insertionSortCounted_sorted (l : List ℝ) : (insertionSortCounted l).1.SortedLE := by
   induction l with
   | nil => exact List.sortedLE_iff_pairwise.mpr List.Pairwise.nil
@@ -288,9 +345,14 @@ theorem insertionSortCounted_sorted (l : List ℝ) : (insertionSortCounted l).1.
       show ((insertSortedCounted x (insertionSortCounted xs).1).1).SortedLE
       exact insertSortedCounted_sorted ih
 
+/-- The element at index `r` after sorting `2 * r + 1` real block values using counted insertion
+sort. -/
 noncomputable def sortedBlockMedian (r : ℕ) (v : Fin (2*r+1) → ℝ) : ℝ :=
   (insertionSortCounted (List.ofFn v)).1.getD r 0
 
+/-- If the median is farther than a nonnegative `ε` from `θ`, at least `r + 1` input values are
+farther than `ε` from `θ`. This gives the numerical majority step for repetition
+amplification in [BrassardHoyerTapp1998Counting]. -/
 theorem heterogeneous_sorted_median_majority_witness (r : ℕ) (v : Fin (2*r+1) → ℝ) (θ ε : ℝ)
     (hε : 0 ≤ ε) (hmed : ε < |sortedBlockMedian r v - θ|) :
     r+1 ≤ (Finset.univ.filter (fun j => ε < |v j - θ|)).card := by
@@ -314,6 +376,8 @@ theorem heterogeneous_sorted_median_majority_witness (r : ℕ) (v : Fin (2*r+1) 
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.countP_ofFn_eq_card_filter v (fun x => ε < |x - θ|)
   omega
 
+/-- The sorted median of weighted block estimates, paired with the number of component reads and
+the sorting comparison count. -/
 noncomputable def countedBlockMedian {X : Type} [Fintype X] [DecidableEq X] (r B : ℕ)
     (w : Fin (2*r+1) → Fin B → ℝ) (f : Fin (2*r+1) → Fin B → X → ℝ)
     (ω : Fin (2*r+1) → Fin B → X) : ℝ × ℕ × ℕ :=
@@ -321,6 +385,8 @@ noncomputable def countedBlockMedian {X : Type} [Fintype X] [DecidableEq X] (r B
   let s := insertionSortCounted l
   (s.1.getD r 0, l.length * B, s.2)
 
+/-- The counted estimator returns the sorted block median, reads exactly (2r + 1)B components,
+and uses at most (2r + 1)² comparisons. -/
 theorem heterogeneous_counted_estimator_reads_and_comparisons {X : Type} [Fintype X]
     [DecidableEq X] (r B : ℕ) (w : Fin (2*r+1) → Fin B → ℝ) (f : Fin (2*r+1) → Fin B → X → ℝ)
     (ω : Fin (2*r+1) → Fin B → X) :
@@ -335,6 +401,7 @@ theorem heterogeneous_counted_estimator_reads_and_comparisons {X : Type} [Fintyp
     rw [List.length_ofFn] at h1
     exact h1
 
+/-- Every natural power of a real number in the closed interval from zero to one is at most one. -/
 theorem pow_le_one_of_mem_Icc {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1) : ∀ d : ℕ, a ^ d ≤ 1 := by
   intro d
   induction d with
@@ -343,6 +410,8 @@ theorem pow_le_one_of_mem_Icc {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1) : ∀ d 
       rw [pow_succ]
       exact le_trans (mul_le_of_le_one_right (pow_nonneg ha0 _) ha1) ih
 
+/-- For nonnegative masses on a finite space, the mass of a finite union of events is at most
+the sum of their masses. -/
 theorem fintype_union_bound_mass {ι Ω : Type} [Fintype ι] [Fintype Ω] (mass : Ω → ℝ)
     (hnn : ∀ ω, 0 ≤ mass ω) (A : ι → Ω → Prop) [∀ i, DecidablePred (A i)]
     [DecidablePred fun ω => ∃ i, A i ω] :
@@ -374,6 +443,8 @@ theorem fintype_union_bound_mass {ι Ω : Type} [Fintype ι] [Fintype Ω] (mass 
         exact Finset.sum_congr rfl fun ω _ => by
           by_cases hA : A i ω <;> simp [hA]
 
+/-- Independent block estimates with common mean `θ` and variance at most ε²/16 have median
+failure probability at most 2^(2r + 1)(1/16)^(r + 1) at tolerance `ε > 0`. -/
 theorem heterogeneous_weighted_median_concentration {X : Type} [Fintype X] [DecidableEq X]
     (r B : ℕ) (p : Fin (2*r+1) → Fin B → FinDist X) (w : Fin (2*r+1) → Fin B → ℝ)
     (f : Fin (2*r+1) → Fin B → X → ℝ) (θ ε : ℝ) (hε : 0 < ε)
@@ -475,6 +546,9 @@ theorem heterogeneous_weighted_median_concentration {X : Type} [Fintype X] [Deci
         refine mul_le_mul_of_nonneg_right ?_ (pow_nonneg (by norm_num) _)
         exact_mod_cast hcards
 
+/-- For finitely many observables satisfying the common-mean and variance hypotheses, the
+probability that any shared-record median fails is at most their number times the
+single-observable median bound. -/
 theorem heterogeneous_same_records_many_observables {X : Type} [Fintype X] [DecidableEq X]
     {Z : Type} [Fintype Z] [DecidableEq Z] (r B : ℕ) (p : Fin (2*r+1) → Fin B → FinDist X)
     (w : Z → Fin (2*r+1) → Fin B → ℝ) (f : Z → Fin (2*r+1) → Fin B → X → ℝ)

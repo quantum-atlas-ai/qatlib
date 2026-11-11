@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.DysonExpansion
 import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
+
+/-!
+# Moment cancellation in actual multi-product series
+
+This module defines `actualMPF` as a weighted sum of repeated product formulas and
+`coefficientWeight` as its inverse-even-power moments. Under the odd-coefficient control and
+cancellation hypotheses, the Dyson expansion reduces to a tail beginning at the chosen moment
+order plus `weightedRemainder`, supplying an exact identity for the analysis in
+[AftabAnTrivisa2026].
+
+## Main statements
+
+* `tail_hasSum`: removes the canceled moment coefficients.
+* `actualMPF_series`: expresses the actual approximation as target plus tail and remainder.
+* `chebyshev_series`: specializes this identity to Chebyshev interpolation.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,17 +43,23 @@ set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K]
 
+/-- The finite weighted sum of repeated level-zero recursive Suzuki words for the generators
+-iX. -/
 def actualMPF (xs : List (Matrix I I ℂ)) (q : K → ℕ) (a : K → ℝ) (t : ℝ) : Matrix I I ℂ :=
   ∑ j, a j • (suzukiExponentialWord
     (recursiveSuzukiGenerators (xs.map (fun X => (-Complex.I) • X)) 0) (t / q j)) ^ q j
 
+/-- The weighted inverse-even-power moment ∑ⱼ aⱼ/qⱼ^(2k). -/
 def coefficientWeight (q : K → ℕ) (a : K → ℝ) (k : ℕ) : ℝ :=
   ∑ j, a j / (q j : ℝ) ^ (2 * k)
 
+/-- The coefficient-weighted sum of the depth-p Dyson remainders for the repeated formulas. -/
 def weightedRemainder (xs : List (Matrix I I ℂ)) (q : K → ℕ) (a : K → ℝ) (t : ℝ) (p : ℕ) :
     Matrix I I ℂ := ∑ j, a j • PerturbationDyson.remainder
       (t • ((-Complex.I) • xs.sum)) (perturbation xs (q j) t) p 1
 
+/-- Under odd-coefficient control, weighting the collected coefficient series by the
+inverse-power moments gives the weighted positive-depth Dyson prefix. -/
 theorem weighted_prefix_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : K → ℕ) (hq : ∀ j, 0 < q j)
     (a : K → ℝ) (t : ℝ) (ht : |t| ≤ r) (p : ℕ) :
@@ -50,6 +77,8 @@ theorem weighted_prefix_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs,
   congr 1
   ring
 
+/-- When positive moments below m vanish, the coefficient series starting at index m sums to the
+weighted positive-depth Dyson prefix. -/
 theorem tail_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : K → ℕ) (hq : ∀ j, 0 < q j)
     (a : K → ℝ) (m : ℕ) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -67,6 +96,9 @@ theorem tail_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (f := fun k => coefficientWeight q a k • orderCoefficient xs t p k) m).mpr
   simpa only [hz, add_zero] using! weighted_prefix_hasSum xs hxs r J hc q hq a t ht p
 
+/-- For normalized weights satisfying the cancellation moments, the actual multi-product formula
+equals the target exponential plus its coefficient tail from index m and weighted Dyson
+remainder. -/
 theorem actualMPF_series (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : K → ℕ) (hq : ∀ j, 0 < q j)
     (a : K → ℝ) (ha : ∑ j, a j = 1) (m : ℕ)
@@ -89,6 +121,8 @@ theorem actualMPF_series (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ 
         weightedRemainder]
       rw [htail]
 
+/-- The Chebyshev multi-product formula equals the target exponential plus its moment-weighted
+coefficient tail from index m and depth-m weighted remainder. -/
 theorem chebyshev_series (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (t : ℝ) (ht : |t| ≤ r)
     (m : ℕ) (hm : 0 < m) :

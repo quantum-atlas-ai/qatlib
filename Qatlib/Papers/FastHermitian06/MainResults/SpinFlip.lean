@@ -8,6 +8,27 @@ import Qatlib.Papers.FastHermitian06.MainResults.Defs
 import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Exponential
+
+/-!
+# Two-level spin-flip evolution
+
+`sigmaN` normalizes the centered Hamiltonian `H2`, allowing the matrix exponential `evolution`
+to be evaluated on `ket0`. The resulting state formula gives an explicit spin-flip time and
+parameter choices with fixed positive gap and arbitrarily small positive time expression. See
+[BenderEtAl2007].
+
+## Main statements
+
+* `evolution13`: gives the angle-parameter state formula.
+* `spin_flip_time`: evaluates the state at the specified flip time.
+* `optimal_time_arbitrarily_small`: constructs arbitrarily small positive time expressions at
+  fixed gap.
+
+## References
+
+* [Bender et al., 2007][BenderEtAl2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,33 +42,42 @@ open Qatlib.Papers.FastHermitian06.MainResults.Defs
 
 namespace Qatlib.Papers.FastHermitian06.MainResults.SpinFlip
 
+/-- The normalized traceless two-level matrix with diagonal entries `±I * 2 * r * sin θ / omega`
+and off-diagonal entries `2 * s / omega`. -/
 def sigmaN (r s θ : ℝ) : Mat2 :=
   !![ Complex.I * (((2 * r * Real.sin θ) / omega r s θ : ℝ) : ℂ),
       (((2 * s) / omega r s θ : ℝ) : ℂ);
       (((2 * s) / omega r s θ : ℝ) : ℂ),
       -(Complex.I * (((2 * r * Real.sin θ) / omega r s θ : ℝ) : ℂ)) ]
 
+/-- The matrix exponential of `(-I * t / ħ)` times `H2 r s θ`. -/
 def evolution (r s θ ħ t : ℝ) : Mat2 :=
   NormedSpace.exp ((-(Complex.I * ((t / ħ : ℝ) : ℂ))) • H2 r s θ)
 
+/-- The scalar exponent `-I * t * r * cos θ / ħ`. -/
 def phase (r _s θ ħ t : ℝ) : ℂ :=
   (-(Complex.I * ((t / ħ : ℝ) : ℂ))) * (((r * Real.cos θ : ℝ)) : ℂ)
 
+/-- The half-gap exponent `-I * t * omega r s θ / (2 * ħ)`. -/
 def halfPhase (r s θ ħ t : ℝ) : ℂ :=
   (-(Complex.I * ((t / ħ : ℝ) : ℂ))) * (((omega r s θ / 2 : ℝ)) : ℂ)
 
+/-- Multiplication by `-I` cancels a preceding factor of `I`. -/
 theorem neg_I_mul_I_mul (z : ℂ) : (-Complex.I) * (Complex.I * z) = z := by
   rw [← mul_assoc, neg_mul, Complex.I_mul_I, neg_neg, one_mul]
 
+/-- The square of `I * a` is `-a^2`. -/
 theorem I_mul_sq (a : ℂ) : (Complex.I * a) * (Complex.I * a) = -a ^ 2 := by
   rw [show (Complex.I * a) * (Complex.I * a) = (Complex.I * Complex.I) * (a * a) by ring,
     Complex.I_mul_I]
   ring
 
+/-- The square of `-(I * a)` is `-a^2`. -/
 theorem neg_I_mul_sq (a : ℂ) : (-(Complex.I * a)) * (-(Complex.I * a)) = -a ^ 2 := by
   rw [neg_mul_neg]
   exact I_mul_sq a
 
+/-- In the unbroken region, `sigmaN` squares to the identity. -/
 theorem sigmaN_sq (r s θ : ℝ) (hunb : unbrokenPT r s θ) :
     sigmaN r s θ * sigmaN r s θ = (1 : Mat2) := by
   have hω : omega r s θ ≠ 0 := ne_of_gt (Real.sqrt_pos.mpr hunb)
@@ -74,6 +104,8 @@ theorem sigmaN_sq (r s θ : ℝ) (hunb : unbrokenPT r s θ) :
     rw [show Complex.I ^ 2 = (-1 : ℂ) from Defs.I_sq, ← Complex.ofReal_sin]
     linear_combination hqpC
 
+/-- In the unbroken region, decomposes `H2` into its scalar part and half the gap times
+`sigmaN`. -/
 theorem H2_decomp (r s θ : ℝ) (hunb : unbrokenPT r s θ) :
     H2 r s θ = (((r * Real.cos θ : ℝ) : ℂ)) • (1 : Mat2)
       + (((omega r s θ / 2 : ℝ) : ℂ)) • sigmaN r s θ := by
@@ -83,6 +115,8 @@ theorem H2_decomp (r s θ : ℝ) (hunb : unbrokenPT r s θ) :
     simp [H2, sigmaN, cis_eq, Matrix.smul_apply]
   all_goals field_simp [hω]
 
+/-- The matrix exponential of a scalar multiple of the identity is the scalar exponential times
+the identity. -/
 theorem exp_smul_one (c : ℂ) :
     NormedSpace.exp (c • (1 : Mat2)) = Complex.exp c • (1 : Mat2) := by
   have h : c • (1 : Mat2) = Matrix.diagonal (fun _ : Fin 2 => c) := by
@@ -96,6 +130,8 @@ theorem exp_smul_one (c : ℂ) :
     simp [Matrix.diagonal, Matrix.smul_apply, ← Complex.exp_eq_exp_ℂ]
   · simp [Matrix.diagonal, Matrix.smul_apply, hij]
 
+/-- In the unbroken region, separates the evolution into a scalar phase and a hyperbolic
+combination of the identity and `sigmaN`. -/
 theorem evolution_decomp (r s θ ħ t : ℝ) (hunb : unbrokenPT r s θ) :
     evolution r s θ ħ t
       = Complex.exp (phase r s θ ħ t) •
@@ -113,6 +149,7 @@ theorem evolution_decomp (r s θ ħ t : ℝ) (hunb : unbrokenPT r s θ) :
       (sigmaN r s θ) (sigmaN_sq r s θ hunb) (halfPhase r s θ ħ t)]
   rw [Matrix.smul_mul, Matrix.one_mul]
 
+/-- Evaluates `sigmaN` on `ket0` as its explicit first column. -/
 theorem sigmaN_mulVec_ket0 (r s θ : ℝ) :
     sigmaN r s θ *ᵥ ket0
       = ![ Complex.I * (((2 * r * Real.sin θ) / omega r s θ : ℝ) : ℂ),
@@ -121,6 +158,7 @@ theorem sigmaN_mulVec_ket0 (r s θ : ℝ) :
   fin_cases i <;>
     simp [sigmaN, ket0, Matrix.mulVec]
 
+/-- The hyperbolic cosine of `halfPhase` equals the cosine of the real half-gap time. -/
 theorem cosh_halfPhase (r s θ ħ t : ℝ) :
     Complex.cosh (halfPhase r s θ ħ t)
       = ((Real.cos (omega r s θ * t / (2 * ħ)) : ℝ) : ℂ) := by
@@ -131,6 +169,7 @@ theorem cosh_halfPhase (r s θ ħ t : ℝ) :
     ring
   rw [hz, Complex.cosh_neg, Complex.cosh_mul_I, ← Complex.ofReal_cos]
 
+/-- The hyperbolic sine of `halfPhase` equals `-I` times the sine of the real half-gap time. -/
 theorem sinh_halfPhase (r s θ ħ t : ℝ) :
     Complex.sinh (halfPhase r s θ ħ t)
       = (-Complex.I) * ((Real.sin (omega r s θ * t / (2 * ħ)) : ℝ) : ℂ) := by
@@ -142,6 +181,8 @@ theorem sinh_halfPhase (r s θ ħ t : ℝ) :
   rw [hz, Complex.sinh_neg, Complex.sinh_mul_I, ← Complex.ofReal_sin]
   ring
 
+/-- Evaluates the evolved `ket0` as a scalar exponential times an explicit two-coordinate
+trigonometric vector. -/
 theorem evolvedVector_eq_pq (r s θ ħ t : ℝ) (hunb : unbrokenPT r s θ) :
     evolution r s θ ħ t *ᵥ ket0
       = Complex.exp (phase r s θ ħ t) •
@@ -164,6 +205,7 @@ theorem evolvedVector_eq_pq (r s θ ħ t : ℝ) (hunb : unbrokenPT r s θ) :
           * (((2 * r * Real.sin θ) / omega r s θ : ℝ) : ℂ))) * Complex.I_mul_I
   · ring
 
+/-- For positive `s` in the unbroken region, the square of `(r / s) * sin θ` is less than one. -/
 theorem ratio_sq_lt_one (r s θ : ℝ) (hs : 0 < s) (hunb : unbrokenPT r s θ) :
     ((r / s) * Real.sin θ) ^ 2 < 1 := by
   have hs2 : (0:ℝ) < s ^ 2 := pow_pos hs 2
@@ -176,6 +218,7 @@ theorem ratio_sq_lt_one (r s θ : ℝ) (hs : 0 < s) (hunb : unbrokenPT r s θ) :
   rw [div_lt_one hs2]
   nlinarith [h1]
 
+/-- For positive `s` in the unbroken region, the gap equals `2 * s * cos (alphaAngle r s θ)`. -/
 theorem omega_eq_two_s_cos (r s θ : ℝ) (hs : 0 < s) (hunb : unbrokenPT r s θ) :
     omega r s θ = 2 * s * Real.cos (alphaAngle r s θ) := by
   have hsq : omega r s θ ^ 2 = omegaSq r s θ := omega_sq r s θ hunb
@@ -197,6 +240,7 @@ theorem omega_eq_two_s_cos (r s θ : ℝ) (hs : 0 < s) (hunb : unbrokenPT r s θ
     ring
   rw [omega, ← hsq2, Real.sqrt_sq hnonneg]
 
+/-- For positive `s` in the unbroken region, the sine of `alphaAngle` is `(r / s) * sin θ`. -/
 theorem sin_alphaAngle (r s θ : ℝ) (hs : 0 < s) (hunb : unbrokenPT r s θ) :
     Real.sin (alphaAngle r s θ) = (r / s) * Real.sin θ := by
   unfold alphaAngle
@@ -205,6 +249,8 @@ theorem sin_alphaAngle (r s θ : ℝ) (hs : 0 < s) (hunb : unbrokenPT r s θ) :
   have hhigh : (r / s) * Real.sin θ ≤ 1 := by nlinarith [h2]
   exact Real.sin_arcsin hlow hhigh
 
+/-- For positive `ħ` and `s` in the unbroken region, expresses the evolved state using
+`alphaAngle` as in equation (13) of [BenderEtAl2007]. -/
 theorem evolution13 (r s θ ħ t : ℝ) (_hħ : 0 < ħ) (hs : 0 < s)
     (hunb : unbrokenPT r s θ) :
     evolution r s θ ħ t *ᵥ ket0
@@ -257,6 +303,8 @@ theorem evolution13 (r s θ ħ t : ℝ) (_hħ : 0 < ħ) (hs : 0 < s)
   · push_cast
     field_simp [hcc]
 
+/-- At time `(2 * alphaAngle r s θ + π) * ħ / omega r s θ`, the evolution sends `ket0` to the
+displayed phase multiple of `ket1`. -/
 theorem spin_flip_time (r s θ ħ : ℝ) (hħ : 0 < ħ) (hs : 0 < s)
     (hunb : unbrokenPT r s θ) :
     let τ : ℝ := (2 * alphaAngle r s θ + Real.pi) * ħ / omega r s θ
@@ -285,6 +333,9 @@ theorem spin_flip_time (r s θ ħ : ℝ) (hħ : 0 < ħ) (hs : 0 < s)
       Matrix.cons_val_fin_one, smul_eq_mul, Complex.ofReal_zero, mul_zero]
   all_goals field_simp [hcc]
 
+/-- For any fixed positive `ħ` and gap, parameters and an angle satisfying the stated sine
+relation give a positive time expression below any positive bound. This is the small-time
+parameter construction of [BenderEtAl2007]. -/
 theorem optimal_time_arbitrarily_small (ħ ω₀ : ℝ) (hħ : 0 < ħ) (hω₀ : 0 < ω₀) :
     ∀ ε : ℝ, 0 < ε → ∃ (r s θ α : ℝ),
       unbrokenPT r s θ ∧ omega r s θ = ω₀ ∧

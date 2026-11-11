@@ -7,12 +7,31 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Tactic
 
+/-!
+# A finite pair-sum gap estimate
+
+Proves the elementary real inequality `finite_pair_sum_gap`. A prescribed diagonal `B i i = a *
+q i` and lower bounds on all off-diagonal entries imply a lower bound on the complete double
+sum, with coefficient `a - Fintype.card I + 1`. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `finite_pair_sum_gap`: If `B i i = a * q i` and `-q i - q j ≤ 2 * B i j` for all distinct
+  indices, then `(a - Fintype.card I + 1) * ∑ i, q i ≤ ∑ i, ∑ j, B i j`.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I : Type*} [Fintype I]
 
+/-- If `B i i = a * q i` and `-q i - q j ≤ 2 * B i j` for all distinct indices, then `(a -
+Fintype.card I + 1) * ∑ i, q i ≤ ∑ i, ∑ j, B i j`. -/
 theorem finite_pair_sum_gap (B : I → I → ℝ) (q : I → ℝ) (a : ℝ)
     (hdiag : ∀ i,B i i=a*q i) (hoff : ∀ i j,i ≠ j → -(q i)-(q j) ≤ 2*B i j) :
     (a-(Fintype.card I : ℝ)+1)*(∑ i : I,q i) ≤ ∑ i : I,∑ j : I,B i j := by

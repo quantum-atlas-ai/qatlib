@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionCompletionModelCore
+
+/-!
+# Stage-B QPCA specifications
+
+This module defines the three aggregate stage-B specifications for copy-based QPCA.
+`StageBCopyQpcaClause16` records loading and evolution resources; `StageBCopyQpcaClause17`
+records self-tomography and Gram-state properties; `StageBCopyQpcaClause19` records training-set
+discrimination and two-species readout costs.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `StageBCopyQpcaClause16`: loading and evolution requirements.
+* `StageBCopyQpcaClause17`: tomography and Gram-state requirements.
+* `StageBCopyQpcaClause19`: discrimination and two-species resource requirements.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
@@ -69,6 +91,8 @@ open Qatlib.Concepts.WalkFind.WalkSpectrum
 open Qatlib.Concepts.CopyEvolution.SelfTomography
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
+/-- The stage-B specification for legal QRAM loading, finite-gate unitarity, copy-evolution
+precision and tightness, and exact QPE resource counts. -/
 def StageBCopyQpcaClause16 : Prop :=
 
   (∀ {b a aw t m ml : ℕ} (hg : sourceCodeLegal b (.qram a aw t m ml) = true) (ψ : Reg b),
@@ -107,6 +131,8 @@ def StageBCopyQpcaClause16 : Prop :=
     copyQPEResources D M n = ((M - 1) * n, (M - 1) * n, (M - 1) * n, 0)) ∧
   (∀ (D M : ℕ), 0 < M → copyQPEFixedMacros D M = 2 * (M - 1) + 2)
 
+/-- The stage-B specification for self-tomography, QPE positivity and trace preservation,
+restricted low-rank exponentiation, and the Gram-state partial-trace identity. -/
 def StageBCopyQpcaClause17 : Prop :=
 
   EpsilonCubedSelfTomography ∧
@@ -131,6 +157,8 @@ def StageBCopyQpcaClause17 : Prop :=
     PartialTrace (outerProduct (gramState ψ w)) = gramMatrix ψ w ∧
     IsDensityOperator (gramMatrix ψ w))
 
+/-- The stage-B specification for training-set and finite-copy Helstrom discrimination, the
+two-species sign-error budget, and QPE resource accounting. -/
 def StageBCopyQpcaClause19 : Prop :=
 
   TrainingSetFiniteDiscrimination ∧

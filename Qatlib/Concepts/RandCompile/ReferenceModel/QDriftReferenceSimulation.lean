@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
 import Mathlib.Algebra.Order.Floor.Ring
+
+/-!
+# qDRIFT with finite references
+
+This module formalizes coefficient-weighted qDRIFT simulation with independently sampled
+component evolutions. The estimates follow the random-compiler framework of [Campbell2019] and
+apply to arbitrary complex matrix inputs with an arbitrary finite reference; the proved global
+bound uses the constant `4`.
+
+## Main statements
+
+* `qdrift_signed_coefficient_bridge`: signed coefficients give a probability law and a matching
+  mean Hamiltonian.
+* `qdrift_fresh_reference_global_error`: the `4*lam^2*t^2/n` trace norm error estimate.
+* `qdrift_derived_precision_budget`: an explicit positive step count achieving the requested
+  precision.
+* `qdrift_zero_coefficients_and_empty_index`: zero coefficients produce no component calls and
+  preserve the input.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,37 +48,52 @@ set_option maxHeartbeats 2000000
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical
 
+/-- The Hamiltonian obtained by multiplying the distribution-weighted mean of `K` by the real
+scale `lam`. -/
 noncomputable def qdriftHamiltonian {L D : ℕ} (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam : ℝ) : Operator D :=
   (lam : ℂ) • ∑ j, (d.prob j : ℂ) • K j
 
+/-- The step budget `max 1` of the natural ceiling of `4*lam^2*t^2/ε`. -/
 noncomputable def qdriftSteps (lam t ε : ℝ) : ℕ := max 1 ⌈4 * lam ^ 2 * t ^ 2 / ε⌉₊
 
+/-- The probability distribution with probabilities proportional to the absolute coefficients,
+assuming their sum is positive. -/
 noncomputable def qdriftCoefficientLaw {L : ℕ} (a : Fin L → ℝ)
     (hlam : 0 < ∑ j, |a j|) : FinDist (Fin L) where
   prob j := |a j| / ∑ i, |a i|
   nonneg j := div_nonneg (abs_nonneg _) hlam.le
   sum_one := by rw [← Finset.sum_div, div_self (ne_of_gt hlam)]
 
+/-- The component operators with each negative coefficient sign absorbed into its operator. -/
 noncomputable def qdriftSignedTerms {L D : ℕ} (a : Fin L → ℝ)
     (K : Fin L → Operator D) (j : Fin L) : Operator D :=
   (if a j < 0 then -1 else (1 : ℂ)) • K j
 
+/-- The ordered component-time list for the sampled indices `ω`, using the same time `s` for
+every component. -/
 def qdriftComponentWord {L n : ℕ} (ω : Fin n → Fin L) (s : ℝ) : List (Fin L × ℝ) :=
   List.ofFn (fun i => (ω i, s))
 
+/-- The list of `n` common qDRIFT times for positive coefficient mass, or the empty list when
+the mass is zero. -/
 noncomputable def zeroSafeQdriftTimes {L : ℕ} (a : Fin L → ℝ) (t : ℝ) (n : ℕ) : List ℝ :=
   if 0 < ∑ j, |a j| then List.replicate n (t * (∑ j, |a j|) / (n : ℝ)) else []
 
+/-- The length of the zero-safe component-time list, independent of the requested evolution
+time. -/
 noncomputable def zeroSafeQdriftCalls {L : ℕ} (a : Fin L → ℝ) (n : ℕ) : ℕ :=
   (zeroSafeQdriftTimes a 0 n).length
 
+/-- The zero-safe call count equals the component-time list length for any time `t`. -/
 theorem zeroSafeQdriftCalls_eq_times_length {L : ℕ} (a : Fin L → ℝ) (t : ℝ) (n : ℕ) :
     zeroSafeQdriftCalls a n = (zeroSafeQdriftTimes a t n).length := by
   by_cases h : 0 < ∑ j, |a j|
   · simp [zeroSafeQdriftCalls, zeroSafeQdriftTimes, h]
   · simp [zeroSafeQdriftCalls, zeroSafeQdriftTimes, h]
 
+/-- The iterated signed-component qDRIFT mixture for positive coefficient mass, returning the
+input otherwise. -/
 noncomputable def zeroSafeQdrift {L D : ℕ} (a : Fin L → ℝ) (K : Fin L → Operator D)
     (t : ℝ) (n : ℕ) (ρ : Operator D) : Operator D :=
   if hlam : 0 < ∑ j, |a j| then
@@ -63,11 +102,15 @@ noncomputable def zeroSafeQdrift {L D : ℕ} (a : Fin L → ℝ) (K : Fin L → 
         (t * (∑ j, |a j|) / (n : ℝ))) n ρ
   else ρ
 
+/-- The uniform probability distribution on two component indices. -/
 noncomputable def qdriftTwoLaw : FinDist (Fin 2) where
   prob _ := 1 / 2
   nonneg _ := by norm_num
   sum_one := by norm_num [Fin.sum_univ_two]
 
+/-- Absolute-coefficient sampling and sign absorption reconstruct the coefficient-weighted
+Hamiltonian and preserve Hermitian contraction bounds on the terms. This is the
+signed-coefficient setup for qDRIFT in [Campbell2019]. -/
 theorem qdrift_signed_coefficient_bridge (L D : ℕ) (a : Fin L → ℝ)
     (K : Fin L → Operator D) (hlam : 0 < ∑ j, |a j|) :
     (∀ j, (qdriftCoefficientLaw a hlam).prob j = |a j| / (∑ i, |a i|)) ∧
@@ -96,6 +139,7 @@ theorem qdrift_signed_coefficient_bridge (L D : ℕ) (a : Fin L → ℝ)
       · simpa [qdriftSignedTerms, hj] using (h j).2
     · simpa [qdriftSignedTerms, hj] using h j
 
+/-- A real multiple of a probability-weighted mean of Hermitian components is Hermitian. -/
 theorem qdriftHamiltonian_isHermitian {L D : ℕ} (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam : ℝ) (hK : ∀ j, (K j).IsHermitian) :
     (qdriftHamiltonian d K lam).IsHermitian := by
@@ -103,6 +147,8 @@ theorem qdriftHamiltonian_isHermitian {L D : ℕ} (d : FinDist (Fin L))
   simp [qdriftHamiltonian, Matrix.conjTranspose_smul, Matrix.conjTranspose_sum,
     fun j => (hK j).eq]
 
+/-- If `lam` is nonnegative and every component has operator norm at most one, the mean
+Hamiltonian has norm at most `lam`. -/
 theorem qdriftHamiltonian_norm_le {L D : ℕ} (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam : ℝ) (hlam : 0 ≤ lam) (hK : ∀ j, ‖K j‖ ≤ 1) :
     ‖qdriftHamiltonian d K lam‖ ≤ lam := by
@@ -117,6 +163,7 @@ theorem qdriftHamiltonian_norm_le {L D : ℕ} (d : FinDist (Fin L))
       exact (mul_le_mul_of_nonneg_left (hK j) (d.nonneg j)).trans_eq (mul_one _)
     _ = lam := by rw [d.sum_one, mul_one]
 
+/-- The trace norm of a finite matrix sum is at most the sum of the trace norms. -/
 private theorem qdrift_traceNorm_sum_le {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] (F : J → Matrix I I ℂ) :
     Matrix.traceNorm (∑ j, F j) ≤ ∑ j, Matrix.traceNorm (F j) := by
@@ -129,6 +176,8 @@ private theorem qdrift_traceNorm_sum_le {J I : Type*} [Fintype J] [DecidableEq J
         (add_le_add (le_refl _) ih)
   exact h Finset.univ
 
+/-- The linear map sending a Hamiltonian to its commutator with `ρ` after tensoring with the
+reference identity. -/
 private noncomputable def qdriftReferenceGenerator {D : ℕ} (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     Operator D →ₗ[ℂ] Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ where
@@ -140,6 +189,8 @@ private noncomputable def qdriftReferenceGenerator {D : ℕ} (r : ℕ)
     simp only [TensorGate, Matrix.smul_kronecker, Matrix.smul_mul, Matrix.mul_smul, smul_sub]
     rfl
 
+/-- The probability-weighted first-order component expansions coincide with the first-order
+expansion for the mean Hamiltonian. -/
 private theorem qdrift_first_order_cancellation {L D : ℕ} (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam τ : ℝ) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -156,12 +207,16 @@ private theorem qdrift_first_order_cancellation {L D : ℕ} (d : FinDist (Fin L)
   push_cast
   ring
 
+/-- Conjugation by Hamiltonian evolution on the system tensored with the identity on the finite
+reference. -/
 private noncomputable def qdriftReferenceConjugation {D : ℕ} (H : Operator D) (τ : ℝ)
     (r : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
   TensorGate (HamiltonianEvolution H τ) (1 : Operator r) * ρ *
     (TensorGate (HamiltonianEvolution H τ) (1 : Operator r))ᴴ
 
+/-- For Hermitian `H`, the first-order reference conjugation remainder has trace norm at most
+`2*τ^2*‖H‖^2*Matrix.traceNorm ρ`. -/
 private theorem qdrift_remainder_bound {D : ℕ} (H : Operator D) (τ : ℝ)
     (r : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hH : H.IsHermitian) :
     Matrix.traceNorm (qdriftReferenceConjugation H τ r ρ -
@@ -174,6 +229,8 @@ private theorem qdrift_remainder_bound {D : ℕ} (H : Operator D) (τ : ℝ)
   rw [he]
   exact hamiltonian_reference_first_order_remainder D r H τ ρ hH
 
+/-- For Hermitian contraction components and nonnegative `lam`, the one-step mixture error
+relative to mean-Hamiltonian evolution is at most `4*(τ*lam)^2*Matrix.traceNorm ρ`. -/
 private theorem qdrift_one_step_bound (L D r : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam τ : ℝ) (hlam : 0 ≤ lam)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -241,6 +298,10 @@ private theorem qdrift_one_step_bound (L D r : ℕ) (d : FinDist (Fin L))
   rw [hn]
   exact (add_le_add hrmean hri).trans_eq (by dsimp [s]; ring)
 
+/-- For a positive step count, nonnegative `lam`, and Hermitian contraction components, one
+qDRIFT step differs from mean-Hamiltonian evolution for time `t/n` by at most
+`4*(t*lam/n)^2*Matrix.traceNorm ρ`. This implements the first-order cancellation underlying
+[Campbell2019]. -/
 theorem qdrift_actual_one_step_first_order_cancels (L D r : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam t : ℝ) (n : ℕ) (hlam : 0 ≤ lam) (_hn : 0 < n)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -253,6 +314,7 @@ theorem qdrift_actual_one_step_first_order_cancels (L D r : ℕ) (d : FinDist (F
   simpa only [he, qdriftReferenceConjugation] using
       qdrift_one_step_bound L D r d K lam (t / n) hlam hK ρ
 
+/-- Successive reference conjugations by one Hamiltonian combine by adding the evolution times. -/
 private theorem qdriftReferenceConjugation_add {D : ℕ} (H : Operator D) (s t : ℝ)
     (r : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     qdriftReferenceConjugation H s r (qdriftReferenceConjugation H t r ρ) =
@@ -263,6 +325,9 @@ private theorem qdriftReferenceConjugation_add {D : ℕ} (H : Operator D) (s t :
     rw [tensorGate_mul, Matrix.one_mul, ← hamiltonianEvolution_add]
   simp only [qdriftReferenceConjugation, hm, Matrix.conjTranspose_mul, Matrix.mul_assoc]
 
+/-- For positive `n`, nonnegative `lam`, and Hermitian contraction components, the fresh-sample
+qDRIFT output has reference trace norm error at most `4*lam^2*t^2/n*Matrix.traceNorm ρ`.
+This is the global simulation estimate corresponding to [Campbell2019]. -/
 theorem qdrift_fresh_reference_global_error (L D r : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam t : ℝ) (n : ℕ) (hlam : 0 ≤ lam) (hn : 0 < n)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -315,6 +380,9 @@ theorem qdrift_fresh_reference_global_error (L D r : ℕ) (d : FinDist (Fin L))
   simpa only [U, hstep, H, qdriftReferenceConjugation] using h.trans_eq
     (by dsimp [δ]; field_simp)
 
+/-- For positive `ε`, `qdriftSteps` is positive, is at most `4*lam^2*t^2/ε+1`, and achieves
+reference error at most `ε*Matrix.traceNorm ρ` under the component assumptions. This gives
+an explicit precision budget for [Campbell2019]. -/
 theorem qdrift_derived_precision_budget (L D r : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam t ε : ℝ) (hlam : 0 ≤ lam) (hε : 0 < ε)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :
@@ -343,6 +411,8 @@ theorem qdrift_derived_precision_budget (L D r : ℕ) (d : FinDist (Fin L))
   have he := (div_le_iff₀ hε).mp hlower
   simpa only [mul_comm] using he
 
+/-- Sequentially applying the component evolutions in a word agrees with running the
+corresponding gate circuit. -/
 private theorem run_component_word {L D : ℕ} (K : Fin L → Operator D)
     (word : List (Fin L × ℝ)) (ψ : QState (Fin D)) :
     word.foldl (fun v step => ApplyGate (HamiltonianEvolution (K step.1) step.2) v) ψ =
@@ -351,6 +421,9 @@ private theorem run_component_word {L D : ℕ} (K : Fin L → Operator D)
   | nil => rfl
   | cons step word ih => simpa using ih (ApplyGate (HamiltonianEvolution (K step.1) step.2) ψ)
 
+/-- A sampled component path has length and gate count `n`, total absolute time `n*|s|`, and
+circuit semantics equal to the component fold. Hermitian components make this circuit
+unitary, giving the component-cost interpretation of [Campbell2019]. -/
 theorem qdrift_actual_fresh_path_and_component_cost (L D n : ℕ)
     (K : Fin L → Operator D) (ω : Fin n → Fin L) (s : ℝ) (ψ : QState (Fin D)) :
     (qdriftComponentWord ω s).length = n ∧
@@ -372,6 +445,8 @@ theorem qdrift_actual_fresh_path_and_component_cost (L D n : ℕ)
   · intro hK
     exact hc.2.2.2 (fun j => hamiltonianEvolution_unitary (hK j) s)
 
+/-- For a single available component, the `n`-step reference mixture equals exact evolution for
+total time `n*s`. -/
 theorem qdrift_single_component_reference_exact (D r n : ℕ) (d : FinDist (Fin 1))
     (H : Operator D) (s : ℝ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     referenceMixturePower d (fun _ => HamiltonianEvolution H s) r n ρ =
@@ -395,6 +470,8 @@ theorem qdrift_single_component_reference_exact (D r n : ℕ) (d : FinDist (Fin 
     push_cast
     ring
 
+/-- The iterated reference mixture equals the average conjugation by sampled path operators
+under the independent product law. -/
 theorem qdrift_actual_fresh_reference_output (L D n r : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (s : ℝ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -406,6 +483,8 @@ theorem qdrift_actual_fresh_reference_output (L D n r : ℕ) (d : FinDist (Fin L
             (1 : Operator r))ᴴ) :=
   mixture_fresh_paths_reference_output d (fun j => HamiltonianEvolution (K j) s) n r ρ
 
+/-- For positive `n`, a qDRIFT path uses zero queries and its component times have total
+absolute value `|t*lam|`. -/
 theorem qdrift_actual_path_queries_and_total_time (L D n : ℕ)
     (K : Fin L → Operator D) (ω : Fin n → Fin L) (lam t : ℝ) (hn : 0 < n)
     (ψ : QState (Fin D)) :
@@ -417,6 +496,8 @@ theorem qdrift_actual_path_queries_and_total_time (L D n : ℕ)
   rw [abs_div, abs_of_pos hnR]
   field_simp
 
+/-- Zero coefficient mass gives a zero Hamiltonian, no component calls, and unchanged output.
+Positive mass gives exactly `n` calls and the stated signed-component mixture. -/
 theorem qdrift_zero_coefficients_and_empty_index (L D n : ℕ) (a : Fin L → ℝ)
     (K : Fin L → Operator D) (t : ℝ) :
     ((∑ j, |a j|) = 0 → (∑ j, (a j : ℂ) • K j) = 0 ∧ zeroSafeQdriftCalls a n = 0 ∧

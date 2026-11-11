@@ -8,6 +8,25 @@ import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
 import Mathlib.Analysis.Matrix.PosDef
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+/-!
+# Trace norm bounded by rank and Hilbert–Schmidt norm
+
+Proves `traceNorm_sq_le_rank_hilbertSchmidt` for a finite complex square matrix. Its squared
+trace norm is at most its rank times the real trace of `A.conjTranspose * A`, equivalently its
+rank times its squared Hilbert–Schmidt norm. See [Bhatia1997] for related background.
+
+## Main statements
+
+* `traceNorm_sq_le_rank_hilbertSchmidt`: The squared trace norm of a finite complex matrix is at
+  most its rank times its squared Hilbert–Schmidt norm, expressed as `((A.conjTranspose *
+  A).trace).re`.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.MixedFidelity.TraceNormRankBound
@@ -16,6 +35,8 @@ open scoped BigOperators ComplexOrder
 
 set_option autoImplicit false
 
+/-- The squared trace norm of a finite complex matrix is at most its rank times its squared
+Hilbert–Schmidt norm, expressed as `((A.conjTranspose * A).trace).re`. -/
 theorem traceNorm_sq_le_rank_hilbertSchmidt
     {I : Type*} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) :
     A.traceNorm ^ 2 ≤ (A.rank : ℝ) * ((A.conjTranspose * A).trace).re := by

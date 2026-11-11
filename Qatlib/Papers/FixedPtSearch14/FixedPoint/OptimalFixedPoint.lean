@@ -11,6 +11,33 @@ import Mathlib.Algebra.Polynomial.Eval.Degree
 import Mathlib.Algebra.Polynomial.Degree.Operations
 import Mathlib.RingTheory.RootsOfUnity.Complex
 import Mathlib.Algebra.BigOperators.Intervals
+
+/-!
+# Polynomial response and marked fixed-point search
+
+This module proves the Chebyshev response of the public fixed-point word of
+[YoderLowChuang2014]. Polynomial response factors describe arbitrary phase words; affine matrix
+orbits and continuant recurrences establish the recurrence identity and connect it to the
+executed word.
+
+The `MarkedSearch` development transports the two-level response to an arbitrary orthogonal
+marked projector and a normalized prepared source. `complete_clause1` chooses an iterate count
+from the public lower bound and error parameter and supplies the exact response, uniform success
+bound, and endpoint behavior.
+
+## Main statements
+
+* `phaseWord_realizes`: realization of the polynomial response factors.
+* `ylcRecA_miracle`: the scaled Chebyshev recurrence identity.
+* `publicWord_success_response`: the exact two-level success formula.
+* `markedWord_success_response`: transport to a marked subspace.
+* `complete_clause1`: a uniform choice for unitary-prepared inputs.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -26,6 +53,8 @@ namespace Qatlib.Papers.FixedPtSearch14.FixedPoint
 open Matrix Polynomial
 open Qatlib
 
+/-- The polynomial update for the failure and success response factors under one generalized
+Grover iterate with phases `alpha` and `beta`. -/
 noncomputable def responseStep (alpha beta : ℝ)
     (p : Polynomial ℂ × Polynomial ℂ) : Polynomial ℂ × Polynomial ℂ :=
   let u : Polynomial ℂ := C (Complex.exp (-(Complex.I * (alpha : ℂ))))
@@ -33,19 +62,26 @@ noncomputable def responseStep (alpha beta : ℝ)
   (-(X + (1 - X) * u) * p.1 + (1 - u) * X * v * p.2,
     (1 - u) * (1 - X) * p.1 - (1 - X + X * u) * v * p.2)
 
+/-- The pair of response polynomials recursively obtained from a list of phase pairs, starting
+from the constant pair `(1, 1)`. -/
 noncomputable def responsePolynomials : List (ℝ × ℝ) → Polynomial ℂ × Polynomial ℂ
   | [] => (1, 1)
   | ab :: tail => responseStep ab.1 ab.2 (responsePolynomials tail)
 
+/-- The matrix product of the generalized Grover iterates specified by a list of phase pairs. -/
 noncomputable def phaseWord (phases : List (ℝ × ℝ)) (lam : ℝ) :
     Matrix (Fin 2) (Fin 2) ℂ :=
   (phases.map fun ab => groverIterate lam ab.1 ab.2).prod
 
+/-- The two-component vector formed by evaluating the response polynomials at `lam` and
+multiplying by `√(1 - lam)` and `√lam`, respectively. -/
 noncomputable def polynomialState (lam : ℝ) (p : Polynomial ℂ × Polynomial ℂ) :
     QState (Fin 2) :=
   ![(Real.sqrt (1 - lam) : ℂ) * p.1.eval (lam : ℂ),
     (Real.sqrt lam : ℂ) * p.2.eval (lam : ℂ)]
 
+/-- For `lam ∈ [0, 1]`, applying one generalized Grover iterate to a polynomial state realizes
+`responseStep`. -/
 theorem responseStep_realizes (alpha beta lam : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1)
     (p : Polynomial ℂ × Polynomial ℂ) :
     groverIterate lam alpha beta *ᵥ polynomialState lam p =
@@ -63,6 +99,8 @@ theorem responseStep_realizes (alpha beta lam : ℝ) (hl : 0 ≤ lam) (hu : lam 
       Polynomial.eval_neg] <;>
     ring_nf <;> simp_all [sq] <;> ring
 
+/-- For `lam ∈ [0, 1]`, a phase word applied to `ampState lam` equals the polynomial state of
+its response polynomials. -/
 theorem phaseWord_realizes (phases : List (ℝ × ℝ)) (lam : ℝ)
     (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     phaseWord phases lam *ᵥ ampState lam =
@@ -77,6 +115,8 @@ theorem phaseWord_realizes (phases : List (ℝ × ℝ)) (lam : ℝ)
     rw [← Matrix.mulVec_mulVec, ih]
     exact responseStep_realizes ab.1 ab.2 lam hl hu (responsePolynomials tail)
 
+/-- If both input response polynomials have natural degree at most `n`, both updated polynomials
+have natural degree at most `n + 1`. -/
 theorem responseStep_degree (alpha beta : ℝ) (p : Polynomial ℂ × Polynomial ℂ)
     (n : ℕ) (hp : p.1.natDegree ≤ n) (hq : p.2.natDegree ≤ n) :
     (responseStep alpha beta p).1.natDegree ≤ n + 1 ∧
@@ -112,6 +152,7 @@ theorem responseStep_degree (alpha beta : ℝ) (p : Polynomial ℂ × Polynomial
       (by simpa [Nat.add_comm] using natDegree_mul_le_of_le hc hp)
       (by simpa [Nat.add_comm] using natDegree_mul_le_of_le hd hq))
 
+/-- Both response polynomials have natural degree at most the number of phase pairs. -/
 theorem responsePolynomials_degree (phases : List (ℝ × ℝ)) :
     (responsePolynomials phases).1.natDegree ≤ phases.length ∧
       (responsePolynomials phases).2.natDegree ≤ phases.length := by
@@ -120,25 +161,32 @@ theorem responsePolynomials_degree (phases : List (ℝ × ℝ)) :
   | cons ab tail ih =>
     exact responseStep_degree ab.1 ab.2 (responsePolynomials tail) tail.length ih.1 ih.2
 
+/-- The reversed list of analytic phase pairs used by the public fixed-point word. -/
 noncomputable def publicPhases (l : ℕ) (delta : ℝ) : List (ℝ × ℝ) :=
   ((List.range l).map fun i =>
     (wordPhase (2 * l + 1) (i + 1) (ylcGamma (2 * l + 1) delta),
       -wordPhase (2 * l + 1) (l - i) (ylcGamma (2 * l + 1) delta))).reverse
 
+/-- The public phase-pair list for `l` iterates has length `l`. -/
 theorem publicPhases_length (l : ℕ) (delta : ℝ) : (publicPhases l delta).length = l := by
   simp [publicPhases]
 
+/-- The phase word determined by `publicPhases` equals the public fixed-point word. -/
 theorem phaseWord_publicPhases (l : ℕ) (delta lam : ℝ) :
     phaseWord (publicPhases l delta) lam = publicWord l delta lam := by
   simp only [phaseWord, publicPhases, publicWord, List.map_reverse, List.map_map]
   rfl
 
+/-- For `lam ∈ [0, 1]`, the public word applied to the amplitude state equals the state
+represented by its public response polynomials. -/
 theorem frontier1 (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     publicWord l delta lam *ᵥ ampState lam =
       polynomialState lam (responsePolynomials (publicPhases l delta)) := by
   rw [← phaseWord_publicPhases]
   exact phaseWord_realizes _ lam hl hu
 
+/-- For `lam ∈ [0, 1]`, the public failure probability is `1 - lam` times the squared modulus of
+the first response polynomial evaluated at `lam`. -/
 theorem publicFailureProb_polynomial (l : ℕ) (delta lam : ℝ)
     (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     publicFailureProb l delta lam = (1 - lam) *
@@ -148,6 +196,8 @@ theorem publicFailureProb_polynomial (l : ℕ) (delta lam : ℝ)
   rw [publicFailureProb, publicFailureAmplitude, inner_ylcFailVec, frontier1 l delta lam hl hu]
   simp only [polynomialState, Matrix.cons_val_zero, norm_mul, mul_pow, hs]
 
+/-- For `lam ∈ [0, 1]`, the public success probability is `lam` times the squared modulus of the
+second response polynomial evaluated at `lam`. -/
 theorem publicSuccessProb_polynomial (l : ℕ) (delta lam : ℝ)
     (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     publicSuccessProb l delta lam = lam *
@@ -157,9 +207,13 @@ theorem publicSuccessProb_polynomial (l : ℕ) (delta lam : ℝ)
   rw [publicSuccessProb, publicSuccessAmplitude, inner_ylcTargetVec, frontier1 l delta lam hl hu]
   simp only [polynomialState, Matrix.cons_val_one, Matrix.cons_val_zero, norm_mul, mul_pow, hs]
 
+/-- The product of a complex polynomial with the polynomial obtained by conjugating its
+coefficients. -/
 noncomputable def normSquarePolynomial (p : Polynomial ℂ) : Polynomial ℂ :=
   p.map (starRingEnd ℂ) * p
 
+/-- At a real argument, `normSquarePolynomial p` evaluates to the complex coercion of the
+squared modulus of `p` at that argument. -/
 theorem normSquarePolynomial_eval (p : Polynomial ℂ) (lam : ℝ) :
     (normSquarePolynomial p).eval (lam : ℂ) = (‖p.eval (lam : ℂ)‖ ^ 2 : ℝ) := by
   have he : (p.map (starRingEnd ℂ)).eval (lam : ℂ) =
@@ -168,9 +222,13 @@ theorem normSquarePolynomial_eval (p : Polynomial ℂ) (lam : ℝ) :
   rw [normSquarePolynomial, eval_mul, he, ← Complex.normSq_eq_conj_mul_self,
     Complex.normSq_eq_norm_sq]
 
+/-- The polynomial `X` multiplied by the coefficientwise norm-square polynomial of the public
+success response factor. -/
 noncomputable def publicSuccessPolynomial (l : ℕ) (delta : ℝ) : Polynomial ℂ :=
   X * normSquarePolynomial (responsePolynomials (publicPhases l delta)).2
 
+/-- On `[0, 1]`, the public success polynomial evaluates to the complex coercion of the public
+success probability. -/
 theorem publicSuccessPolynomial_eval (l : ℕ) (delta lam : ℝ)
     (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     (publicSuccessPolynomial l delta).eval (lam : ℂ) = (publicSuccessProb l delta lam : ℂ) := by
@@ -178,6 +236,7 @@ theorem publicSuccessPolynomial_eval (l : ℕ) (delta lam : ℝ)
     publicSuccessProb_polynomial l delta lam hl hu]
   simp only [Complex.ofReal_mul]
 
+/-- The public success polynomial for `l` iterates has natural degree at most `2 * l + 1`. -/
 theorem publicSuccessPolynomial_degree (l : ℕ) (delta : ℝ) :
     (publicSuccessPolynomial l delta).natDegree ≤ 2 * l + 1 := by
   have hp : (responsePolynomials (publicPhases l delta)).2.natDegree ≤ l := by
@@ -187,6 +246,8 @@ theorem publicSuccessPolynomial_degree (l : ℕ) (delta : ℝ) :
     exact natDegree_mul_le_of_le (natDegree_map_le.trans hp) hp
   exact (natDegree_mul_le_of_le (natDegree_X_le (R := ℂ)) hn).trans (by omega)
 
+/-- For `lam ∈ [0, 1]`, the failure and success response polynomials satisfy the weighted
+norm-square conservation identity. -/
 theorem responsePolynomials_conservation (l : ℕ) (delta lam : ℝ)
     (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     (1 - lam) * ‖(responsePolynomials (publicPhases l delta)).1.eval (lam : ℂ)‖ ^ 2 +
@@ -201,6 +262,7 @@ theorem responsePolynomials_conservation (l : ℕ) (delta lam : ℝ)
   simpa [publicFailureProb, publicSuccessProb, publicFailureAmplitude, publicSuccessAmplitude,
     add_comm] using ht.trans hn
 
+/-- The public word has success probability zero at `lam = 0` and one at `lam = 1`. -/
 theorem publicWord_endpoints (l : ℕ) (delta : ℝ) :
     publicSuccessProb l delta 0 = 0 ∧ publicSuccessProb l delta 1 = 1 := by
   constructor
@@ -208,11 +270,15 @@ theorem publicWord_endpoints (l : ℕ) (delta : ℝ) :
   · have h := responsePolynomials_conservation l delta 1 (by norm_num) (by norm_num)
     simpa [publicSuccessProb_polynomial l delta 1 (by norm_num) (by norm_num)] using h
 
+/-- Under `p * q = x ^ 2 - 1`, elimination of the auxiliary component gives the displayed
+second-order continuant identity. -/
 theorem continuant_elimination (x p q w a b : ℂ) (hpq : p * q = x ^ 2 - 1) :
     x * (x * a + p * b) + (w * p) * (q * a + x * b) =
       x * (1 + w) * (x * a + p * b) - w * a := by
   linear_combination w * a * hpq
 
+/-- When `x ^ 2 + s ^ 2 = 1`, the first components of two successive `su2A` steps satisfy the
+displayed second-order recurrence. -/
 theorem su2A_continuant (zeta eta x s : ℝ) (hn : x ^ 2 + s ^ 2 = 1)
     (a : QState (Fin 2)) :
     (su2A eta x s *ᵥ (su2A zeta x s *ᵥ a)) 0 =
@@ -254,6 +320,8 @@ theorem su2A_continuant (zeta eta x s : ℝ) (hn : x ^ 2 + s ^ 2 = 1)
   rw [hp]
   exact continuant_elimination (x : ℂ) p q w (a 0) (a 1) hpq
 
+/-- A complex polynomial of natural degree at most positive `L` that is invariant under scaling
+by a primitive `L`th root has only constant and degree-`L` terms. -/
 theorem root_scaling_support (L : ℕ) (hL : 0 < L) (q : ℂ)
     (hq : IsPrimitiveRoot q L) (p : Polynomial ℂ) (hp : p.natDegree ≤ L)
     (hi : p.comp (C q * X) = p) :
@@ -275,11 +343,15 @@ theorem root_scaling_support (L : ℕ) (hL : 0 < L) (q : ℂ)
     · exact coeff_eq_zero_of_natDegree_lt (by omega)
   simp [coeff_C, hz, h0, hn]
 
+/-- The ordered product of affine matrix factors `B + (q ^ k * u) • D` for successive indices
+starting at zero. -/
 def affineOrbit {R : Type*} [CommRing R] (B D : Matrix (Fin 2) (Fin 2) R)
     (q u : R) : ℕ → Matrix (Fin 2) (Fin 2) R
   | 0 => 1
   | n + 1 => affineOrbit B D q u n * (B + (q ^ n * u) • D)
 
+/-- An affine orbit of length `n + 1` splits into its initial factor and a length-`n` orbit with
+parameter `q * u`. -/
 theorem affineOrbit_shift_head {R : Type*} [CommRing R]
     (B D : Matrix (Fin 2) (Fin 2) R) (q u : R) (n : ℕ) :
     (B + u • D) * affineOrbit B D q (q * u) n = affineOrbit B D q u (n + 1) := by
@@ -290,6 +362,8 @@ theorem affineOrbit_shift_head {R : Type*} [CommRing R]
     rw [show q ^ n * (q * u) = q ^ (n + 1) * u by rw [pow_succ, mul_assoc]]
     rfl
 
+/-- For positive `L` and `q ^ L = 1`, multiplying the affine-orbit parameter by `q` leaves its
+length-`L` trace unchanged. -/
 theorem affineOrbit_trace_scale {R : Type*} [CommRing R]
     (B D : Matrix (Fin 2) (Fin 2) R) (q u : R) (L : ℕ) (hL : 0 < L)
     (hq : q ^ L = 1) :
@@ -301,6 +375,7 @@ theorem affineOrbit_trace_scale {R : Type*} [CommRing R]
     rw [← mul_assoc, ← pow_succ, hq, one_mul]
   rw [he, Matrix.trace_mul_comm, affineOrbit_shift_head]
 
+/-- Applying a ring homomorphism entrywise to an affine orbit commutes with forming the orbit. -/
 theorem affineOrbit_map {R S : Type*} [CommRing R] [CommRing S]
     (f : R →+* S) (B D : Matrix (Fin 2) (Fin 2) R) (q u : R) (n : ℕ) :
     (affineOrbit B D q u n).map f =
@@ -313,10 +388,14 @@ theorem affineOrbit_map {R S : Type*} [CommRing R] [CommRing S]
     ext i j
     simp [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul]
 
+/-- The polynomial trace of the affine orbit with polynomial parameter `X` and constant matrices
+`B` and `D`. -/
 noncomputable def traceOrbitPolynomial (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (L : ℕ) : Polynomial ℂ :=
   Matrix.trace (affineOrbit (B.map Polynomial.C) (D.map Polynomial.C) (C q) X L)
 
+/-- For positive `L` and `q ^ L = 1`, the trace-orbit polynomial is invariant under substituting
+`q * X` for `X`. -/
 theorem traceOrbitPolynomial_scale (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (L : ℕ) (hL : 0 < L) (hq : q ^ L = 1) :
     (traceOrbitPolynomial B D q L).comp (C q * X) = traceOrbitPolynomial B D q L := by
@@ -333,6 +412,8 @@ theorem traceOrbitPolynomial_scale (B D : Matrix (Fin 2) (Fin 2) ℂ)
     affineOrbit_trace_scale (B.map Polynomial.C) (D.map Polynomial.C)
       (C q) (X : Polynomial ℂ) L hL (by simpa using congrArg Polynomial.C hq)
 
+/-- Multiplying two polynomial matrices with entry degrees bounded by `m` and `n` gives entries
+of natural degree at most `m + n`. -/
 private theorem matrixPolynomial_mul_degree (A B : Matrix (Fin 2) (Fin 2) (Polynomial ℂ))
     (m n : ℕ) (hA : ∀ i j, (A i j).natDegree ≤ m) (hB : ∀ i j, (B i j).natDegree ≤ n) :
     ∀ i j, ((A * B) i j).natDegree ≤ m + n := by
@@ -342,6 +423,8 @@ private theorem matrixPolynomial_mul_degree (A B : Matrix (Fin 2) (Fin 2) (Polyn
     (natDegree_mul_le_of_le (hA i 0) (hB 0 j))
     (natDegree_mul_le_of_le (hA i 1) (hB 1 j))
 
+/-- For polynomial matrices with entry degrees bounded by `m` and `n`, the degree-`m + n`
+coefficients multiply as the corresponding coefficient matrices. -/
 private theorem matrixPolynomial_mul_top (A B : Matrix (Fin 2) (Fin 2) (Polynomial ℂ))
     (m n : ℕ) (hA : ∀ i j, (A i j).natDegree ≤ m) (hB : ∀ i j, (B i j).natDegree ≤ n) :
     ∀ i j, ((A * B) i j).coeff (m + n) =
@@ -351,6 +434,7 @@ private theorem matrixPolynomial_mul_top (A B : Matrix (Fin 2) (Fin 2) (Polynomi
     coeff_mul_add_eq_of_natDegree_le (hA i 0) (hB 0 j),
     coeff_mul_add_eq_of_natDegree_le (hA i 1) (hB 1 j)]
 
+/-- Each entry of the displayed affine polynomial matrix has natural degree at most one. -/
 private theorem affineFactor_degree (B D : Matrix (Fin 2) (Fin 2) ℂ) (q : ℂ) :
     ∀ i j, ((B.map Polynomial.C + (C q * X) • D.map Polynomial.C) i j).natDegree ≤ 1 := by
   intro i j
@@ -361,6 +445,8 @@ private theorem affineFactor_degree (B D : Matrix (Fin 2) (Fin 2) ℂ) (q : ℂ)
       (natDegree_mul_le_of_le (show (C q).natDegree ≤ 0 by simp) (natDegree_X_le (R := ℂ)))
       (show (C (D i j)).natDegree ≤ 0 by simp)
 
+/-- Every entry of a length-`n` affine orbit in the polynomial parameter has natural degree at
+most `n`. -/
 theorem affineOrbit_polynomial_degree (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (n : ℕ) :
     ∀ i j, (affineOrbit (B.map Polynomial.C) (D.map Polynomial.C) (C q) X n i j).natDegree ≤ n := by
@@ -372,6 +458,7 @@ theorem affineOrbit_polynomial_degree (B D : Matrix (Fin 2) (Fin 2) ℂ)
     exact matrixPolynomial_mul_degree _ _ n 1 ih
       (by simpa using affineFactor_degree B D (q ^ n))
 
+/-- The length-`L` trace-orbit polynomial has natural degree at most `L`. -/
 theorem traceOrbitPolynomial_degree (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (L : ℕ) : (traceOrbitPolynomial B D q L).natDegree ≤ L := by
   unfold traceOrbitPolynomial Matrix.trace Matrix.diag
@@ -380,6 +467,7 @@ theorem traceOrbitPolynomial_degree (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (affineOrbit_polynomial_degree B D q L 0 0)
     (affineOrbit_polynomial_degree B D q L 1 1)
 
+/-- Setting the affine-orbit parameter to zero gives the matrix power `B ^ n`. -/
 theorem affineOrbit_zero {R : Type*} [CommRing R]
     (B D : Matrix (Fin 2) (Fin 2) R) (q : R) (n : ℕ) :
     affineOrbit B D q 0 n = B ^ n := by
@@ -387,6 +475,7 @@ theorem affineOrbit_zero {R : Type*} [CommRing R]
   | zero => rfl
   | succ n ih => simp [affineOrbit, ih, pow_succ]
 
+/-- The constant coefficient of the trace-orbit polynomial is `Matrix.trace (B ^ L)`. -/
 theorem traceOrbitPolynomial_constant (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (L : ℕ) : (traceOrbitPolynomial B D q L).coeff 0 = Matrix.trace (B ^ L) := by
   have hB : (B.map Polynomial.C).map Polynomial.constantCoeff = B := by
@@ -400,6 +489,8 @@ theorem traceOrbitPolynomial_constant (B D : Matrix (Fin 2) (Fin 2) ℂ)
   rw [AddMonoidHom.map_trace, affineOrbit_map, hB, hD]
   simp [affineOrbit_zero]
 
+/-- The degree-`n` coefficient of each affine-orbit entry is the corresponding entry of `D ^ n`
+multiplied by the product of the powers `q ^ k`. -/
 theorem affineOrbit_polynomial_top (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (n : ℕ) :
     ∀ i j, (affineOrbit (B.map Polynomial.C) (D.map Polynomial.C) (C q) X n i j).coeff n =
@@ -425,6 +516,8 @@ theorem affineOrbit_polynomial_top (B D : Matrix (Fin 2) (Fin 2) ℂ)
     simp only [Finset.prod_range_succ, pow_succ, Matrix.mul_apply, Fin.sum_univ_two]
     ring
 
+/-- The degree-`L` coefficient of the trace-orbit polynomial is `Matrix.trace (D ^ L)`
+multiplied by the product of the powers `q ^ k`. -/
 theorem traceOrbitPolynomial_top (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (L : ℕ) : (traceOrbitPolynomial B D q L).coeff L =
       (∏ k ∈ Finset.range L, q ^ k) * Matrix.trace (D ^ L) := by
@@ -434,6 +527,8 @@ theorem traceOrbitPolynomial_top (B D : Matrix (Fin 2) (Fin 2) ℂ)
   simp only [Fin.sum_univ_two]
   ring
 
+/-- If `q ^ (2 * l + 1) = 1`, the product of `q ^ k` over indices from zero through `2 * l` is
+one. -/
 theorem odd_root_orbit_weight (l : ℕ) (q : ℂ) (hq : q ^ (2 * l + 1) = 1) :
     (∏ k ∈ Finset.range (2 * l + 1), q ^ k) = 1 := by
   rw [Finset.prod_pow_eq_pow_sum]
@@ -443,6 +538,8 @@ theorem odd_root_orbit_weight (l : ℕ) (q : ℂ) (hq : q ^ (2 * l + 1) = 1) :
     nlinarith
   rw [hs, pow_mul, hq, one_pow]
 
+/-- For a primitive root of odd order `2 * l + 1`, the trace-orbit polynomial consists of the
+constant trace of `B` to that power and the corresponding top-degree trace of `D`. -/
 theorem traceOrbitPolynomial_closed (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q : ℂ) (l : ℕ) (hq : IsPrimitiveRoot q (2 * l + 1)) :
     traceOrbitPolynomial B D q (2 * l + 1) =
@@ -455,8 +552,10 @@ theorem traceOrbitPolynomial_closed (B D : Matrix (Fin 2) (Fin 2) ℂ)
   rw [traceOrbitPolynomial_constant, traceOrbitPolynomial_top, odd_root_orbit_weight l q hpow,
     one_mul]
 
+/-- The constant continuant matrix with rows `(2 * x, -a)` and `(b, 0)`. -/
 def continuantConstant (x a b : ℂ) : Matrix (Fin 2) (Fin 2) ℂ := !![2 * x, -a; b, 0]
 
+/-- The continuant matrix satisfies the quadratic identity `C ^ 2 = (2 * x) • C - (a * b) • 1`. -/
 theorem continuantConstant_sq (x a b : ℂ) :
     continuantConstant x a b ^ 2 =
       (2 * x) • continuantConstant x a b - (a * b) • (1 : Matrix (Fin 2) (Fin 2) ℂ) := by
@@ -465,6 +564,8 @@ theorem continuantConstant_sq (x a b : ℂ) :
     simp [continuantConstant, pow_two, Matrix.mul_apply, Fin.sum_univ_two,
       Matrix.smul_apply, smul_eq_mul] <;> ring
 
+/-- Powers of the continuant matrix satisfy the second-order recurrence with coefficients `2 *
+x` and `a * b`. -/
 theorem continuantConstant_power_recurrence (x a b : ℂ) (n : ℕ) :
     continuantConstant x a b ^ (n + 2) =
       (2 * x) • continuantConstant x a b ^ (n + 1) -
@@ -472,6 +573,8 @@ theorem continuantConstant_power_recurrence (x a b : ℂ) (n : ℕ) :
   rw [pow_add, continuantConstant_sq, Matrix.mul_sub, Matrix.mul_smul,
     Matrix.mul_smul, Matrix.mul_one, ← pow_succ]
 
+/-- If `a * b = gamma ^ 2` and `gamma ≠ 0`, the trace of the `n`th continuant power equals `2 *
+gamma ^ n` times the Chebyshev polynomial at `x / gamma`. -/
 theorem continuantConstant_trace_power (x a b gamma : ℂ) (hg : gamma ≠ 0)
     (hab : a * b = gamma ^ 2) (n : ℕ) :
     Matrix.trace (continuantConstant x a b ^ n) =
@@ -496,6 +599,8 @@ theorem continuantConstant_trace_power (x a b gamma : ℂ) (hg : gamma ≠ 0)
     simp only [pow_succ]
     field_simp
 
+/-- Evaluating the trace-orbit polynomial at `u` gives the trace of the affine matrix orbit with
+parameter `u`. -/
 theorem traceOrbitPolynomial_eval (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q u : ℂ) (L : ℕ) :
     (traceOrbitPolynomial B D q L).eval u = Matrix.trace (affineOrbit B D q u L) := by
@@ -509,6 +614,8 @@ theorem traceOrbitPolynomial_eval (B D : Matrix (Fin 2) (Fin 2) ℂ)
   rw [AddMonoidHom.map_trace, affineOrbit_map, hB, hD]
   simp
 
+/-- For a primitive root of odd order, the affine-orbit trace is the trace of the corresponding
+power of `B` plus `u` to that order times the trace of the power of `D`. -/
 theorem affineOrbit_trace_closed (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q u : ℂ) (l : ℕ) (hq : IsPrimitiveRoot q (2 * l + 1)) :
     Matrix.trace (affineOrbit B D q u (2 * l + 1)) =
@@ -517,6 +624,8 @@ theorem affineOrbit_trace_closed (B D : Matrix (Fin 2) (Fin 2) ℂ)
   simp only [traceOrbitPolynomial_eval, eval_add, eval_mul, eval_C, eval_pow, eval_X] at h
   simpa only [mul_comm] using h
 
+/-- Under the stated width and primitive-root hypotheses, the odd-length orbit of the two
+continuant matrices has the displayed Chebyshev trace multiplied by `1 + u ^ (2 * l + 1)`. -/
 theorem quasiChebyshev_orbit_trace (x a b gamma q u : ℂ) (l : ℕ)
     (hg : gamma ≠ 0) (hab : a * b = gamma ^ 2) (hq : IsPrimitiveRoot q (2 * l + 1)) :
     Matrix.trace (affineOrbit (continuantConstant x a b) (continuantConstant x b a)
@@ -529,8 +638,11 @@ theorem quasiChebyshev_orbit_trace (x a b gamma q u : ℂ) (l : ℕ)
     continuantConstant_trace_power x b a gamma hg (by simpa [mul_comm] using hab)]
   ring
 
+/-- The two-component recurrence matrix with rows `(x, -s * w)` and `(s, x * w)`. -/
 def continuantStep (x s w : ℂ) : Matrix (Fin 2) (Fin 2) ℂ := !![x, -s * w; s, x * w]
 
+/-- When `x ^ 2 + s ^ 2 = 1`, the linear combination with coefficients `x` and `s` of the output
+of a continuant step equals the previous first component. -/
 theorem continuantStep_invariant (x s w : ℂ) (hxs : x ^ 2 + s ^ 2 = 1)
     (v : QState (Fin 2)) :
     x * (continuantStep x s w *ᵥ v) 0 + s * (continuantStep x s w *ᵥ v) 1 = v 0 := by
@@ -538,6 +650,7 @@ theorem continuantStep_invariant (x s w : ℂ) (hxs : x ^ 2 + s ^ 2 = 1)
   change x * (x * v 0 + (-s * w) * v 1) + s * (s * v 0 + (x * w) * v 1) = v 0
   linear_combination v 0 * hxs
 
+/-- If `x * v 0 + s * v 1 = a`, the next first component is `x * (1 + w) * v 0 - w * a`. -/
 theorem continuantStep_eliminate (x s w a : ℂ) (v : QState (Fin 2))
     (hv : x * v 0 + s * v 1 = a) :
     (continuantStep x s w *ᵥ v) 0 = x * (1 + w) * v 0 - w * a := by
@@ -545,11 +658,15 @@ theorem continuantStep_eliminate (x s w a : ℂ) (v : QState (Fin 2))
   change x * v 0 + (-s * w) * v 1 = _
   linear_combination -w * hv
 
+/-- The vector recurrence starting from `(1, 0)` and applying continuant steps weighted by
+`ylcRecW`. -/
 noncomputable def recurrenceRun (L : ℕ) (mu x s : ℝ) : ℕ → QState (Fin 2)
   | 0 => ![1, 0]
   | n + 1 => continuantStep (x : ℂ) (s : ℂ) (ylcRecW L mu (n + 1)) *ᵥ
       recurrenceRun L mu x s n
 
+/-- When `x ^ 2 + s ^ 2 = 1`, the first coordinate of `recurrenceRun` equals `ylcRecA` at every
+index. -/
 theorem recurrenceRun_first (L : ℕ) (mu x s : ℝ) (hxs : x ^ 2 + s ^ 2 = 1) (n : ℕ) :
     recurrenceRun L mu x s n 0 = ylcRecA L mu x n := by
   have hc : (x : ℂ) ^ 2 + (s : ℂ) ^ 2 = 1 := by exact_mod_cast hxs
@@ -568,14 +685,18 @@ theorem recurrenceRun_first (L : ℕ) (mu x s : ℝ) (hxs : x ^ 2 + s ^ 2 = 1) (
 
 namespace OrbitReflection
 
+/-- The diagonal matrix with entries one and negative one used to define orbit reflection. -/
 def J : Matrix (Fin 2) (Fin 2) ℂ := !![1, 0; 0, -1]
 
+/-- The transpose reflection `J * Aᵀ * J` of a two-by-two complex matrix. -/
 noncomputable def reflect (A : Matrix (Fin 2) (Fin 2) ℂ) := J * Aᵀ * J
 
+/-- The matrix `J` squares to the identity. -/
 theorem J_sq : J * J = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [J, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- Applying orbit reflection twice returns the original matrix. -/
 theorem reflect_twice (A : Matrix (Fin 2) (Fin 2) ℂ) : reflect (reflect A) = A := by
   have hJ : Jᵀ = J := by ext i j; fin_cases i <;> fin_cases j <;> rfl
   simp only [reflect, Matrix.transpose_mul, hJ, Matrix.transpose_transpose]
@@ -583,6 +704,7 @@ theorem reflect_twice (A : Matrix (Fin 2) (Fin 2) ℂ) : reflect (reflect A) = A
     _ = (J * J) * A * (J * J) := by noncomm_ring
     _ = A := by rw [J_sq]; simp
 
+/-- Orbit reflection reverses the order of matrix multiplication. -/
 theorem reflect_mul (A B : Matrix (Fin 2) (Fin 2) ℂ) :
     reflect (A * B) = reflect B * reflect A := by
   simp only [reflect, Matrix.transpose_mul]
@@ -592,14 +714,18 @@ theorem reflect_mul (A B : Matrix (Fin 2) (Fin 2) ℂ) :
   simp only [Matrix.mul_one]
   noncomm_ring
 
+/-- Reflecting a list product equals the product of the reflected matrices in reverse order. -/
 theorem reflect_prod (xs : List (Matrix (Fin 2) (Fin 2) ℂ)) :
     reflect xs.prod = (xs.reverse.map reflect).prod := by
   induction xs with
   | nil => simpa [reflect] using J_sq
   | cons a xs ih => simp [List.reverse_cons, reflect_mul, ih]
 
+/-- The affine matrix `B + v • reflect B`. -/
 noncomputable def M (B : Matrix (Fin 2) (Fin 2) ℂ) (v : ℂ) := B + v • reflect B
 
+/-- If `a * b = 1`, reflecting the affine matrix at `a` gives `a` times the affine matrix at
+`b`. -/
 theorem reflect_point (B : Matrix (Fin 2) (Fin 2) ℂ) (a b : ℂ) (hab : a * b = 1) :
     reflect (M B a) = a • M B b := by
   have hd : reflect (M B a) = reflect B + a • reflect (reflect B) := by
@@ -607,6 +733,8 @@ theorem reflect_point (B : Matrix (Fin 2) (Fin 2) ℂ) (a b : ℂ) (hab : a * b 
   rw [hd, reflect_twice, M, smul_add, smul_smul, hab, one_smul]
   exact add_comm _ _
 
+/-- A product of scalar multiples of matrices factors into the product of the scalars acting on
+the product of the matrices. -/
 theorem scalar_prod (n : ℕ) (a : ℕ → ℂ) (f : ℕ → Matrix (Fin 2) (Fin 2) ℂ) :
     ((List.range n).map fun i => a i • f i).prod =
       ((List.range n).map a).prod • ((List.range n).map f).prod := by
@@ -617,6 +745,7 @@ theorem scalar_prod (n : ℕ) (a : ℕ → ℂ) (f : ℕ → Matrix (Fin 2) (Fin
       List.prod_cons, List.prod_nil, mul_one]
     rw [ih, smul_mul_smul_comm]
 
+/-- The list of values `f (n - i)` for `i < n` is the reverse of the list of values `f (i + 1)`. -/
 theorem reverse_range_map (f : ℕ → Matrix (Fin 2) (Fin 2) ℂ) (n : ℕ) :
     (List.range n).map (fun i => f (n - i)) =
       ((List.range n).map (fun i => f (i + 1))).reverse := by
@@ -629,6 +758,7 @@ theorem reverse_range_map (f : ℕ → Matrix (Fin 2) (Fin 2) ℂ) (n : ℕ) :
     simp only [List.length_map, List.length_range] at h₁
     omega
 
+/-- The product of the first `n` positive powers of `q` is `q ^ (n * (n + 1) / 2)`. -/
 theorem powers_prod (q : ℂ) (n : ℕ) :
     ((List.range n).map fun i => q ^ (i + 1)).prod = q ^ (n * (n + 1) / 2) := by
   induction n with
@@ -640,6 +770,8 @@ theorem powers_prod (q : ℂ) (n : ℕ) :
     have hh : (n + 1) * (n + 1 + 1) = n * (n + 1) + 2 * (n + 1) := by ring
     omega
 
+/-- If `q` has odd-order power one, the displayed reverse product of affine matrices is fixed by
+transpose reflection. -/
 theorem orbit_reflect (B : Matrix (Fin 2) (Fin 2) ℂ) (q : ℂ) (l : ℕ)
     (hq : q ^ (2 * l + 1) = 1) :
     let P := (((List.range (2 * l)).map fun i => M B (q ^ (i + 1))).reverse).prod
@@ -665,11 +797,14 @@ theorem orbit_reflect (B : Matrix (Fin 2) (Fin 2) ℂ) (q : ℂ) (l : ℕ)
 
 end OrbitReflection
 
+/-- The affine matrix orbit with each successive factor multiplied on the left. -/
 def reverseAffineOrbit {R : Type*} [CommRing R] (B D : Matrix (Fin 2) (Fin 2) R)
     (q u : R) : ℕ → Matrix (Fin 2) (Fin 2) R
   | 0 => 1
   | n + 1 => (B + (q ^ n * u) • D) * reverseAffineOrbit B D q u n
 
+/-- The reverse affine orbit is the transpose of the forward affine orbit of the transposed
+matrices. -/
 theorem reverseAffineOrbit_transpose {R : Type*} [CommRing R]
     (B D : Matrix (Fin 2) (Fin 2) R) (q u : R) (n : ℕ) :
     reverseAffineOrbit B D q u n = (affineOrbit Bᵀ Dᵀ q u n)ᵀ := by
@@ -679,6 +814,8 @@ theorem reverseAffineOrbit_transpose {R : Type*} [CommRing R]
     simp [affineOrbit, reverseAffineOrbit, Matrix.transpose_mul, Matrix.transpose_add,
       Matrix.transpose_smul, ih]
 
+/-- For a primitive root of odd order, the reverse affine orbit has trace `trace (B ^ L) + u ^ L
+* trace (D ^ L)` with `L = 2 * l + 1`. -/
 theorem reverseAffineOrbit_trace_closed (B D : Matrix (Fin 2) (Fin 2) ℂ)
     (q u : ℂ) (l : ℕ) (hq : IsPrimitiveRoot q (2 * l + 1)) :
     Matrix.trace (reverseAffineOrbit B D q u (2 * l + 1)) =
@@ -686,6 +823,7 @@ theorem reverseAffineOrbit_trace_closed (B D : Matrix (Fin 2) (Fin 2) ℂ)
   rw [reverseAffineOrbit_transpose, Matrix.trace_transpose, affineOrbit_trace_closed _ _ q u l hq,
     ← Matrix.transpose_pow, ← Matrix.transpose_pow, Matrix.trace_transpose, Matrix.trace_transpose]
 
+/-- A reverse affine orbit splits into a shifted orbit followed by its initial affine factor. -/
 theorem reverseAffineOrbit_shift_tail {R : Type*} [CommRing R]
     (B D : Matrix (Fin 2) (Fin 2) R) (q u : R) (n : ℕ) :
     reverseAffineOrbit B D q u (n + 1) =
@@ -696,6 +834,8 @@ theorem reverseAffineOrbit_shift_tail {R : Type*} [CommRing R]
     rw [reverseAffineOrbit, ih, ← mul_assoc, reverseAffineOrbit]
     rw [show q ^ n * (q * u) = q ^ (n + 1) * u by rw [pow_succ, mul_assoc]]
 
+/-- The reverse affine orbit equals the product of its affine factors listed in reverse index
+order. -/
 theorem reverseAffineOrbit_eq_list {R : Type*} [CommRing R]
     (B D : Matrix (Fin 2) (Fin 2) R) (q u : R) (n : ℕ) :
     reverseAffineOrbit B D q u n =
@@ -705,6 +845,7 @@ theorem reverseAffineOrbit_eq_list {R : Type*} [CommRing R]
   | succ n ih =>
     simp [reverseAffineOrbit, List.range_succ, List.reverse_append, ih]
 
+/-- Orbit reflection swaps the parameters `a` and `b` of a constant continuant matrix. -/
 theorem continuantConstant_reflect (x a b : ℂ) :
     OrbitReflection.reflect (continuantConstant x a b) = continuantConstant x b a := by
   ext i j
@@ -712,6 +853,8 @@ theorem continuantConstant_reflect (x a b : ℂ) :
   fin_cases i <;> fin_cases j <;>
     simp [OrbitReflection.J, continuantConstant]
 
+/-- If `q ^ (2 * l + 1) = 1`, the off-diagonal entries of the displayed length-`2 * l` reverse
+continuant orbit are negatives of each other. -/
 theorem continuantOrbit_offdiag (x a b q : ℂ) (l : ℕ) (hq : q ^ (2 * l + 1) = 1) :
     let P := reverseAffineOrbit (continuantConstant x a b) (continuantConstant x b a) q q (2 * l)
     P 0 1 = -(P 1 0) := by
@@ -726,18 +869,24 @@ theorem continuantOrbit_offdiag (x a b q : ℂ) (l : ℕ) (hq : q ^ (2 * l + 1) 
   simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.transpose_apply] at hc
   simpa [OrbitReflection.J] using hc
 
+/-- The rational recurrence coefficient `(b * q ^ k + a) / (a * q ^ k + b)`. -/
 noncomputable def algebraicRecW (q a b : ℂ) (k : ℕ) : ℂ :=
   (b * q ^ k + a) / (a * q ^ k + b)
 
+/-- The algebraic second-order recurrence with initial values one and `x`, using the
+coefficients `algebraicRecW`. -/
 noncomputable def algebraicRecA (q x a b : ℂ) : ℕ → ℂ
   | 0 => 1
   | 1 => x
   | n + 2 => x * (1 + algebraicRecW q a b (n + 1)) * algebraicRecA q x a b (n + 1) -
       algebraicRecW q a b (n + 1) * algebraicRecA q x a b n
 
+/-- The product of the factors `a * q ^ (i + 1) + b` over the first `n` indices. -/
 noncomputable def algebraicDenominator (q a b : ℂ) (n : ℕ) : ℂ :=
   ∏ i ∈ Finset.range n, (a * q ^ (i + 1) + b)
 
+/-- If `a + b = 2` and the denominator is nonzero, an affine continuant factor acts as the
+stated scalar multiple of one algebraic recurrence step. -/
 theorem algebraicFactor_step (q x a b : ℂ) (k : ℕ) (hab : a + b = 2)
     (hd : a * q ^ k + b ≠ 0) (v0 v1 : ℂ) :
     (continuantConstant x a b + (q ^ k) • continuantConstant x b a) *ᵥ ![v0, v1] =
@@ -761,6 +910,8 @@ theorem algebraicFactor_step (q x a b : ℂ) (k : ℕ) (hab : a + b = 2)
     change (b + q ^ k * a) * v0 + (0 + q ^ k * 0) * v1 = (a * q ^ k + b) * v0
     ring
 
+/-- Under the stated sum and nonvanishing hypotheses, the reverse continuant orbit applied to
+`(x, 1)` gives the denominator-scaled pair of consecutive algebraic recurrence values. -/
 theorem algebraicRecA_product (q x a b : ℂ) (hab : a + b = 2)
     (hd : ∀ k : ℕ, a * q ^ k + b ≠ 0) (n : ℕ) :
     reverseAffineOrbit (continuantConstant x a b) (continuantConstant x b a) q q n *ᵥ ![x, 1] =
@@ -773,6 +924,8 @@ theorem algebraicRecA_product (q x a b : ℂ) (hab : a + b = 2)
     rw [algebraicFactor_step q x a b (n + 1) hab (hd (n + 1))]
     simp only [smul_smul, algebraicDenominator, Finset.prod_range_succ, algebraicRecA]
 
+/-- Under the stated width, primitive-root, and nonvanishing hypotheses, the final odd
+recurrence value multiplied by its denominator equals the scaled Chebyshev polynomial. -/
 theorem algebraicRecA_chebyshev_unnormalized (q x a b gamma : ℂ) (l : ℕ)
     (hab : a + b = 2) (hprod : a * b = gamma ^ 2) (hg : gamma ≠ 0)
     (hq : IsPrimitiveRoot q (2 * l + 1)) (hd : ∀ k : ℕ, a * q ^ k + b ≠ 0) :
@@ -816,12 +969,15 @@ theorem algebraicRecA_chebyshev_unnormalized (q x a b gamma : ℂ) (l : ℕ)
   rw [hs, htrace, hv] at ht
   linear_combination (1 / 4 : ℂ) * ht
 
+/-- The algebraic recurrence is identically one when its argument `x` is one. -/
 theorem algebraicRecA_one (q a b : ℂ) (n : ℕ) : algebraicRecA q 1 a b n = 1 := by
   induction n using Nat.twoStepInduction with
   | zero => rfl
   | one => rfl
   | more n ih0 ih1 => rw [algebraicRecA, ih0, ih1]; ring
 
+/-- Under the stated width, primitive-root, and denominator hypotheses, the final odd algebraic
+recurrence value is the ratio of the Chebyshev evaluations at `x / gamma` and `1 / gamma`. -/
 theorem algebraicRecA_chebyshev (q x a b gamma : ℂ) (l : ℕ)
     (hab : a + b = 2) (hprod : a * b = gamma ^ 2) (hg : gamma ≠ 0)
     (hq : IsPrimitiveRoot q (2 * l + 1)) (hd : ∀ k : ℕ, a * q ^ k + b ≠ 0) :
@@ -846,6 +1002,7 @@ theorem algebraicRecA_chebyshev (q x a b gamma : ℂ) (l : ℕ)
 
 namespace PhaseCoefficients
 
+/-- For real `u`, the exponential `exp(-2 * i * arctan u)` equals `(1 - i * u) / (1 + i * u)`. -/
 theorem exp_neg_two_I_arctan (u : ℝ) :
     Complex.exp (-(2 * Complex.I * (Real.arctan u : ℂ))) =
       (1 - Complex.I * (u : ℂ)) / (1 + Complex.I * (u : ℂ)) := by
@@ -868,6 +1025,8 @@ theorem exp_neg_two_I_arctan (u : ℝ) :
     field_simp
     nlinarith [hs]
 
+/-- The negative exponential of the displayed cotangent phase equals the rational phase ratio
+`(1 - i * u) / (1 + i * u)`. -/
 theorem neg_exp_I_cot_phase (u : ℝ) :
     -Complex.exp (Complex.I * ((2 * (Real.pi / 2 - Real.arctan u) : ℝ) : ℂ)) =
       (1 - Complex.I * (u : ℂ)) / (1 + Complex.I * (u : ℂ)) := by
@@ -878,6 +1037,7 @@ theorem neg_exp_I_cot_phase (u : ℝ) :
   rw [hz, Complex.exp_add, Complex.exp_pi_mul_I]
   simpa using exp_neg_two_I_arctan u
 
+/-- The cosine of an integer multiple of `π / (2 * l + 1)` is nonzero. -/
 theorem cos_nat_pi_div_odd_ne_zero (l n : ℕ) :
     Real.cos ((n : ℝ) * Real.pi / (2 * l + 1)) ≠ 0 := by
   intro h
@@ -891,6 +1051,8 @@ theorem cos_nat_pi_div_odd_ne_zero (l n : ℕ) :
     linear_combination hi
   omega
 
+/-- When `cos theta ≠ 0`, the rational phase ratio expressed using `tan theta * mu` equals the
+corresponding ratio of cosine and sine expressions. -/
 theorem tan_ratio_eq_cos_ratio (theta mu : ℝ) (hc : Real.cos theta ≠ 0) :
     (1 - Complex.I * ((Real.tan theta * mu : ℝ) : ℂ)) /
       (1 + Complex.I * ((Real.tan theta * mu : ℝ) : ℂ)) =
@@ -910,6 +1072,8 @@ theorem tan_ratio_eq_cos_ratio (theta mu : ℝ) (hc : Real.cos theta ≠ 0) :
   simp only [Complex.ofReal_mul, Complex.ofReal_div]
   field_simp [hc']
 
+/-- The negative exponential of an analytic source phase equals the indicated odd-indexed
+`ylcRecW` coefficient. -/
 theorem neg_exp_alpha_eq_recW (l k : ℕ) (gamma : ℝ) :
     -Complex.exp (Complex.I * (ylcAlpha (2 * l + 1) k gamma : ℂ)) =
       ylcRecW (2 * l + 1) (Real.sqrt (1 - gamma ^ 2)) (2 * k + 1) := by
@@ -922,6 +1086,7 @@ theorem neg_exp_alpha_eq_recW (l k : ℕ) (gamma : ℝ) :
   exact tan_ratio_eq_cos_ratio _ _ (by
     convert! cos_nat_pi_div_odd_ne_zero l (2 * k) using 1; push_cast; ring)
 
+/-- The displayed negated cotangent phase has negative exponential `(1 - i * u) / (1 + i * u)`. -/
 theorem neg_exp_neg_cot_phase (u : ℝ) :
     -Complex.exp (Complex.I * -((2 * (Real.pi / 2 - Real.arctan (-u)) : ℝ) : ℂ)) =
       (1 - Complex.I * (u : ℂ)) / (1 + Complex.I * (u : ℂ)) := by
@@ -933,6 +1098,8 @@ theorem neg_exp_neg_cot_phase (u : ℝ) :
   rw [hz, Complex.exp_add, Complex.exp_neg, Complex.exp_pi_mul_I]
   simpa using exp_neg_two_I_arctan u
 
+/-- For `i < l`, the negative exponential of the scheduled target phase equals the indicated
+even-indexed `ylcRecW` coefficient. -/
 theorem neg_exp_beta_eq_recW (l i : ℕ) (hi : i < l) (gamma : ℝ) :
     -Complex.exp (Complex.I * (-(ylcAlpha (2 * l + 1) (l - i) gamma) : ℂ)) =
       ylcRecW (2 * l + 1) (Real.sqrt (1 - gamma ^ 2)) (2 * i + 2) := by
@@ -948,6 +1115,8 @@ theorem neg_exp_beta_eq_recW (l i : ℕ) (hi : i < l) (gamma : ℝ) :
     tan_ratio_eq_cos_ratio _ _ (by
       convert! cos_nat_pi_div_odd_ne_zero l (2 * i + 1) using 1; push_cast; ring)]
 
+/-- When `cos theta ≠ 0`, the cosine-sine phase ratio equals the displayed fractional expression
+in `exp(2 * i * theta)`. -/
 theorem cos_ratio_eq_exp_ratio (theta mu : ℝ) (hc : Real.cos theta ≠ 0) :
     ((Real.cos theta : ℂ) - Complex.I * (mu : ℂ) * (Real.sin theta : ℂ)) /
       ((Real.cos theta : ℂ) + Complex.I * (mu : ℂ) * (Real.sin theta : ℂ)) =
@@ -983,6 +1152,8 @@ theorem cos_ratio_eq_exp_ratio (theta mu : ℝ) (hc : Real.cos theta ≠ 0) :
   rw [hq, hnum, hden]
   field_simp
 
+/-- When the specified cosine is nonzero, `ylcRecW` equals the displayed rational expression in
+the corresponding complex exponential. -/
 theorem recW_eq_exp_ratio (L n : ℕ) (mu : ℝ)
     (hc : Real.cos ((n : ℝ) * Real.pi / L) ≠ 0) :
     ylcRecW L mu (n + 1) =
@@ -994,6 +1165,8 @@ theorem recW_eq_exp_ratio (L n : ℕ) (mu : ℝ)
   simp only [Nat.add_sub_cancel]
   exact cos_ratio_eq_exp_ratio _ _ hc
 
+/-- The exponential at angle `2 * n * π / L` is the `n`th power of the exponential at angle `2 *
+π / L`. -/
 theorem exponential_root_power (L n : ℕ) :
     Complex.exp (2 * Complex.I * (((n : ℝ) * Real.pi / L : ℝ) : ℂ)) =
       (Complex.exp (2 * Complex.I * ((Real.pi / L : ℝ) : ℂ))) ^ n := by
@@ -1004,9 +1177,11 @@ theorem exponential_root_power (L n : ℕ) :
 
 end PhaseCoefficients
 
+/-- The complex exponential `exp(2 * i * π / L)` used as the recurrence's root parameter. -/
 noncomputable def ylcRoot (L : ℕ) : ℂ :=
   Complex.exp (2 * Complex.I * ((Real.pi / L : ℝ) : ℂ))
 
+/-- For odd positive length `2 * l + 1`, `ylcRoot` is a primitive root of that order. -/
 theorem ylcRoot_primitive (l : ℕ) : IsPrimitiveRoot (ylcRoot (2 * l + 1)) (2 * l + 1) := by
   have h := Complex.isPrimitiveRoot_exp (2 * l + 1) (by omega)
   convert! h using 1
@@ -1015,9 +1190,12 @@ theorem ylcRoot_primitive (l : ℕ) : IsPrimitiveRoot (ylcRoot (2 * l + 1)) (2 *
   push_cast
   ring
 
+/-- The complex number `ylcRoot L` has norm one. -/
 theorem ylcRoot_norm (L : ℕ) : ‖ylcRoot L‖ = 1 := by
   simp [ylcRoot, Complex.norm_exp, Complex.mul_re, Complex.mul_im]
 
+/-- For a unit-modulus `q` and positive `mu`, the denominator `(1 + mu) * q ^ k + (1 - mu)` is
+nonzero. -/
 theorem root_denominator_ne_zero (q : ℂ) (hq : ‖q‖ = 1) (mu : ℝ) (hm : 0 < mu) (k : ℕ) :
     ((1 + mu : ℝ) : ℂ) * q ^ k + ((1 - mu : ℝ) : ℂ) ≠ 0 := by
   intro h
@@ -1030,6 +1208,8 @@ theorem root_denominator_ne_zero (q : ℂ) (hq : ‖q‖ = 1) (mu : ℝ) (hm : 0
   simp only [sq_abs] at hs
   nlinarith
 
+/-- At odd length, the trigonometric recurrence coefficient equals its algebraic form with root
+`ylcRoot` and parameters `1 + mu` and `1 - mu`. -/
 theorem ylcRecW_algebraic (l : ℕ) (mu : ℝ) (n : ℕ) :
     ylcRecW (2 * l + 1) mu (n + 1) =
       algebraicRecW (ylcRoot (2 * l + 1)) (1 + (mu : ℂ)) (1 - (mu : ℂ)) n := by
@@ -1040,6 +1220,8 @@ theorem ylcRecW_algebraic (l : ℕ) (mu : ℝ) (n : ℕ) :
   rw [PhaseCoefficients.exponential_root_power]
   rfl
 
+/-- At odd length, the trigonometric recurrence equals the algebraic recurrence with root
+`ylcRoot` and parameters `1 + mu` and `1 - mu`. -/
 theorem ylcRecA_algebraic (l : ℕ) (mu x : ℝ) (n : ℕ) :
     ylcRecA (2 * l + 1) mu x n =
       algebraicRecA (ylcRoot (2 * l + 1)) (x : ℂ) (1 + (mu : ℂ)) (1 - (mu : ℂ)) n := by
@@ -1049,12 +1231,16 @@ theorem ylcRecA_algebraic (l : ℕ) (mu x : ℝ) (n : ℕ) :
   | more n ih0 ih1 =>
     rw [ylcRecA, algebraicRecA, ih0, ih1, ylcRecW_algebraic l mu (n + 1)]
 
+/-- Coercing a real Chebyshev evaluation to the complex numbers agrees with evaluating the
+complex Chebyshev polynomial. -/
 theorem cheb_complex (n : ℕ) (x : ℝ) :
     (cheb n x : ℂ) = (Polynomial.Chebyshev.T ℂ (n : ℤ)).eval (x : ℂ) := by
   unfold cheb
   rw [← Polynomial.Chebyshev.map_T Complex.ofRealHom (n : ℤ)]
   exact (Polynomial.eval_map_apply Complex.ofRealHom (p := Polynomial.Chebyshev.T ℝ (n : ℤ)) x).symm
 
+/-- For positive `mu`, nonzero `gamma`, and `mu ^ 2 + gamma ^ 2 = 1`, the final odd recurrence
+value is the displayed ratio of real Chebyshev evaluations. -/
 theorem ylcRecA_chebyshev_of_width (l : ℕ) (mu gamma x : ℝ)
     (hm : 0 < mu) (hg : gamma ≠ 0) (hmg : mu ^ 2 + gamma ^ 2 = 1) :
     ylcRecA (2 * l + 1) mu x (2 * l + 1) =
@@ -1073,6 +1259,8 @@ theorem ylcRecA_chebyshev_of_width (l : ℕ) (mu gamma x : ℝ)
     algebraicRecA_chebyshev q (x : ℂ) (1 + (mu : ℂ)) (1 - (mu : ℂ)) (gamma : ℂ) l
       hab hprod (by exact_mod_cast hg) (ylcRoot_primitive l) hd
 
+/-- For `0 < delta < 1`, the final odd recurrence value at the Yoder–Low–Chuang width equals
+`delta` times the corresponding Chebyshev evaluation [YoderLowChuang2014]. -/
 theorem ylcRecA_miracle (l : ℕ) (delta x : ℝ) (hd : 0 < delta) (hu : delta < 1) :
     ylcRecA (2 * l + 1) (Real.sqrt (1 - ylcGamma (2 * l + 1) delta ^ 2)) x (2 * l + 1) =
       ((delta * cheb (2 * l + 1) (x / ylcGamma (2 * l + 1) delta) : ℝ) : ℂ) := by
@@ -1095,6 +1283,8 @@ theorem ylcRecA_miracle (l : ℕ) (delta x : ℝ) (hd : 0 < delta) (hu : delta <
   rw [one_div, div_inv_eq_mul, mul_comm (cheb (2 * l + 1) (x / gamma)) delta] at h
   exact h
 
+/-- Establishes the Chebyshev recurrence identity packaged by `ylcBridgeRec_miracle`
+[YoderLowChuang2014]. -/
 theorem ylcBridgeRec_miracle_proved : ylcBridgeRec_miracle := by
   intro L delta lam hodd _ hd hu _ _
   obtain ⟨l, hl⟩ := hodd
@@ -1104,10 +1294,14 @@ theorem ylcBridgeRec_miracle_proved : ylcBridgeRec_miracle := by
 
 namespace PhysicalTransport
 
+/-- The real symmetric two-level matrix with rows `(√(1 - lam), √lam)` and `(√lam, -√(1 -
+lam))`. -/
 noncomputable def mirrorMatrix (lam : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(Real.sqrt (1 - lam) : ℂ), (Real.sqrt lam : ℂ);
     (Real.sqrt lam : ℂ), -(Real.sqrt (1 - lam) : ℂ)]
 
+/-- For `lam ∈ [0, 1]`, the source reflection factors as a scalar phase times a target
+reflection conjugated by `mirrorMatrix lam`. -/
 theorem stateReflection_factor (lam alpha : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     stateReflection lam alpha = Complex.exp (-(Complex.I * (alpha : ℂ))) •
       (mirrorMatrix lam * targetReflection alpha * mirrorMatrix lam) := by
@@ -1131,12 +1325,16 @@ theorem stateReflection_factor (lam alpha : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 
         Complex.exp (-(Complex.I * (alpha : ℂ))) *
           Complex.exp (Complex.I * (alpha : ℂ)) * hx - (1 - (lam : ℂ)) * he
 
+/-- For `lam ∈ [0, 1]`, a generalized Grover iterate factors into two mirror-phase factors and
+the displayed scalar phase. -/
 theorem groverIterate_factor (lam alpha beta : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     groverIterate lam alpha beta = (-Complex.exp (-(Complex.I * (alpha : ℂ)))) •
       ((mirrorMatrix lam * targetReflection alpha) * (mirrorMatrix lam * targetReflection beta)) := by
   rw [groverIterate, stateReflection_factor lam alpha hl hu, Matrix.smul_mul, ← Matrix.mul_assoc]
   simp only [neg_smul]
 
+/-- If `w = -exp(i * theta)`, the product of the mirror matrix and target reflection is the
+corresponding continuant step. -/
 theorem mirror_phase_eq_step (lam theta : ℝ) (w : ℂ)
     (hw : -Complex.exp (Complex.I * (theta : ℂ)) = w) :
     mirrorMatrix lam * targetReflection theta =
@@ -1146,19 +1344,25 @@ theorem mirror_phase_eq_step (lam theta : ℝ) (w : ℂ)
   simp only [Matrix.mul_apply, Fin.sum_univ_two]
   fin_cases i <;> fin_cases j <;> simp [mirrorMatrix, targetReflection, continuantStep]
 
+/-- The scalar factor `-exp(-i * alpha)` for the source phase of the indexed public iterate. -/
 noncomputable def executionPhase (l : ℕ) (delta : ℝ) (i : ℕ) : ℂ :=
   -Complex.exp (-(Complex.I * (ylcAlpha (2 * l + 1) (i + 1) (ylcGamma (2 * l + 1) delta) : ℂ)))
 
+/-- The product of the scalar execution phases over the first `k` public iterates. -/
 noncomputable def executionScalar (l : ℕ) (delta : ℝ) (k : ℕ) : ℂ :=
   ((List.range k).map (executionPhase l delta)).prod
 
+/-- The reverse-ordered product of the first `k` public iterates. -/
 noncomputable def executionPrefix (l : ℕ) (delta lam : ℝ) (k : ℕ) : Matrix (Fin 2) (Fin 2) ℂ :=
   ((List.range k).map (publicIterate l delta lam)).reverse.prod
 
+/-- The scalar factor for a prefix of length `k + 1` is the length-`k` factor multiplied by the
+next execution phase. -/
 theorem executionScalar_succ (l : ℕ) (delta : ℝ) (k : ℕ) :
     executionScalar l delta (k + 1) = executionScalar l delta k * executionPhase l delta k := by
   simp [executionScalar, List.range_succ]
 
+/-- Every scalar execution-prefix factor has norm one. -/
 theorem executionScalar_norm (l : ℕ) (delta : ℝ) (k : ℕ) : ‖executionScalar l delta k‖ = 1 := by
   induction k with
   | zero => simp [executionScalar]
@@ -1166,11 +1370,15 @@ theorem executionScalar_norm (l : ℕ) (delta : ℝ) (k : ℕ) : ‖executionSca
     rw [executionScalar_succ, norm_mul, ih]
     simp only [executionPhase, norm_neg, norm_exp_neg_I_mul, mul_one]
 
+/-- Extending an execution prefix by one iterate multiplies the prefix matrix on the left by the
+next public iterate. -/
 theorem executionPrefix_succ (l : ℕ) (delta lam : ℝ) (k : ℕ) :
     executionPrefix l delta lam (k + 1) =
       publicIterate l delta lam k * executionPrefix l delta lam k := by
   simp [executionPrefix, List.range_succ, List.reverse_append]
 
+/-- For `i < l` and `lam ∈ [0, 1]`, a public iterate is its execution phase times the displayed
+pair of consecutive continuant steps. -/
 theorem publicIterate_steps (l i : ℕ) (hi : i < l) (delta lam : ℝ)
     (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     publicIterate l delta lam i = executionPhase l delta i •
@@ -1189,6 +1397,8 @@ theorem publicIterate_steps (l i : ℕ) (hi : i < l) (delta lam : ℝ)
   rw [groverIterate_factor lam _ _ hl hu, ha, hb]
   rfl
 
+/-- For a prefix length at most `l` and `lam ∈ [0, 1]`, the executed prefix state equals its
+scalar phase times the corresponding odd-indexed recurrence vector. -/
 theorem executionPrefix_run (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1)
     (k : ℕ) (hk : k ≤ l) :
     executionPrefix l delta lam k *ᵥ ampState lam = executionScalar l delta k •
@@ -1210,6 +1420,8 @@ theorem executionPrefix_run (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hu : l
 
 end PhysicalTransport
 
+/-- Establishes the unit-modulus rearrangement connecting the physical word's failure amplitude
+to `ylcRecA` [YoderLowChuang2014]. -/
 theorem ylcBridgeRec_rearrangement_proved : ylcBridgeRec_rearrangement := by
   intro L delta lam hodd _ _ _ hl hu
   obtain ⟨l, hlodd⟩ := hodd
@@ -1230,6 +1442,8 @@ theorem ylcBridgeRec_rearrangement_proved : ylcBridgeRec_rearrangement := by
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [recurrenceRun_first (2 * l + 1) _ _ _ hxs]
 
+/-- For `0 < delta < 1` and `lam ∈ [0, 1]`, the public word's success probability equals the
+Chebyshev response of degree `2 * l + 1` [YoderLowChuang2014]. -/
 theorem publicWord_success_response (l : ℕ) (delta lam : ℝ)
     (hd : 0 < delta) (hdu : delta < 1) (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     publicSuccessProb l delta lam = responseProb (2 * l + 1) delta lam := by
@@ -1237,6 +1451,9 @@ theorem publicWord_success_response (l : ℕ) (delta lam : ℝ)
     ylcBridgeRec_miracle_proved l delta lam hd hdu hl hu
   simpa only [publicSuccessProb, publicSuccessAmplitude, publicWord_eq, ylcTargetVec] using! h
 
+/-- For `lam0` and `delta` in `(0, 1)`, the iterate count chosen from these parameters gives
+success probability at least `1 - delta ^ 2` for every `lam ∈ [lam0, 1]`
+[YoderLowChuang2014]. -/
 theorem publicWord_uniform_guarantee (lam0 delta : ℝ) (h0 : 0 < lam0) (h0u : lam0 < 1)
     (hd : 0 < delta) (hdu : delta < 1) :
     ∀ lam : ℝ, lam0 ≤ lam → lam ≤ 1 →
@@ -1255,8 +1472,11 @@ namespace MarkedSearch
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The selected projective branch mass of a source vector for the matrix `P`. -/
 noncomputable def goodMass (P : Matrix I I ℂ) (s : QState I) : ℝ := ProjectiveBranchMass P true s
 
+/-- For an orthogonal projector and a normalized source, the selected branch mass lies in `[0,
+1]`. -/
 theorem goodMass_bounds (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) :
     0 ≤ goodMass P s ∧ goodMass P s ≤ 1 := by
@@ -1269,21 +1489,28 @@ theorem goodMass_bounds (P : Matrix I I ℂ) (s : QState I)
 
 omit [DecidableEq I] in
 
+/-- Applying an orthogonal projector twice to a vector gives the same result as applying it
+once. -/
 theorem projector_good (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) : P *ᵥ (P *ᵥ s) = P *ᵥ s := by
   rw [Matrix.mulVec_mulVec, hP.1]
 
 omit [DecidableEq I] in
 
+/-- An orthogonal projector annihilates the residual vector `s - P *ᵥ s`. -/
 theorem projector_bad (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) : P *ᵥ (s - P *ᵥ s) = 0 := by
   rw [Matrix.mulVec_sub, projector_good P s hP, sub_self]
 
+/-- The self-inner-product of the projected source equals the complex coercion of its selected
+branch mass. -/
 theorem good_inner_self (P : Matrix I I ℂ) (s : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (P *ᵥ s) (P *ᵥ s) = (goodMass P s : ℂ) := by
   rw [inner_self, ← Complex.ofReal_sum]
   rfl
 
+/-- For an orthogonal projector, the inner product of the source with its projected component
+equals the selected branch mass. -/
 theorem source_inner_good (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) : Qatlib.Foundations.PureStateMath.Inner s (P *ᵥ s) = (goodMass P s : ℂ) := by
   have hpstar : Pᴴ = P := hP.2
@@ -1292,6 +1519,8 @@ theorem source_inner_good (P : Matrix I I ℂ) (s : QState I)
       rw [inner_mulVec_left_rect, hpstar, projector_good P s hP]
     _ = _ := good_inner_self P s
 
+/-- For an orthogonal projector and normalized source, the source's inner product with its
+residual component is one minus the selected branch mass. -/
 theorem source_inner_bad (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) :
     Qatlib.Foundations.PureStateMath.Inner s (s - P *ᵥ s) = 1 - (goodMass P s : ℂ) := by
@@ -1300,9 +1529,11 @@ theorem source_inner_bad (P : Matrix I I ℂ) (s : QState I)
   change Qatlib.Foundations.PureStateMath.Inner s s - Qatlib.Foundations.PureStateMath.Inner s (P *ᵥ s) = _
   rw [(normalized_iff_inner_self s).mp hs, source_inner_good P s hP]
 
+/-- The phase update `1 - (1 - exp(i * beta)) • P` associated with a marked subspace. -/
 noncomputable def markedPhase (P : Matrix I I ℂ) (beta : ℝ) : Matrix I I ℂ :=
   1 - (1 - Complex.exp (Complex.I * (beta : ℂ))) • P
 
+/-- The marked phase update is unitary when `P` is an orthogonal projector. -/
 theorem markedPhase_unitary (P : Matrix I I ℂ) (hP : IsOrthogonalProjector P) (beta : ℝ) :
     markedPhase P beta ∈ Matrix.unitaryGroup I ℂ := by
   have he : Complex.exp (Complex.I * (beta : ℂ)) *
@@ -1324,6 +1555,8 @@ theorem markedPhase_unitary (P : Matrix I I ℂ) (hP : IsOrthogonalProjector P) 
   simp only [Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul, star_sub, star_one]
   linear_combination (P i j) * he
 
+/-- A source reflection about a state prepared by a unitary `A` equals the reflection about the
+seed conjugated by `A`. -/
 theorem prepared_reflection (A : Matrix I I ℂ) (seed : QState I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (alpha : ℝ) :
     fullStateReflection (A *ᵥ seed) alpha = A * fullStateReflection seed alpha * Aᴴ := by
@@ -1338,6 +1571,8 @@ theorem prepared_reflection (A : Matrix I I ℂ) (seed : QState I)
   simp only [fullStateReflection, mul_sub, mul_one, sub_mul, Matrix.mul_smul,
     Matrix.smul_mul, hAA, hout]
 
+/-- For an orthogonal projector, a marked phase update leaves the residual source component
+unchanged and multiplies its marked component by `exp(i * beta)`. -/
 theorem markedPhase_frame (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (F G : ℂ) (beta : ℝ) :
     markedPhase P beta *ᵥ (F • (s - P *ᵥ s) + G • (P *ᵥ s)) =
@@ -1350,12 +1585,16 @@ theorem markedPhase_frame (P : Matrix I I ℂ) (s : QState I)
 
 omit [DecidableEq I] in
 
+/-- An orthogonal projector selects the marked coefficient from a linear combination of the
+source's residual and marked components. -/
 theorem projector_frame (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (F G : ℂ) :
     P *ᵥ (F • (s - P *ᵥ s) + G • (P *ᵥ s)) = G • (P *ᵥ s) := by
   rw [Matrix.mulVec_add, Matrix.mulVec_smul, Matrix.mulVec_smul,
     projector_bad P s hP, projector_good P s hP, smul_zero, zero_add]
 
+/-- The selected branch mass of the displayed source decomposition is `‖G‖ ^ 2` times the
+source's marked mass. -/
 theorem projector_frame_mass (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (F G : ℂ) :
     ProjectiveBranchMass P true (F • (s - P *ᵥ s) + G • (P *ᵥ s)) = ‖G‖ ^ 2 * goodMass P s := by
@@ -1363,18 +1602,24 @@ theorem projector_frame_mass (P : Matrix I I ℂ) (s : QState I)
   rw [projector_frame P s hP, Qatlib.Foundations.BornMetrics.EventProbability.measureProb_smul]
   rfl
 
+/-- The source decomposition into residual and marked components weighted by response
+polynomials evaluated at the marked mass. -/
 noncomputable def polynomialFrame (P : Matrix I I ℂ) (s : QState I)
     (p : Polynomial ℂ × Polynomial ℂ) : QState I :=
   p.1.eval (goodMass P s : ℂ) • (s - P *ᵥ s) + p.2.eval (goodMass P s : ℂ) • (P *ᵥ s)
 
+/-- The negative product of a full source reflection and a marked-subspace phase update. -/
 noncomputable def markedIterate (P : Matrix I I ℂ) (s : QState I) (alpha beta : ℝ) :
     Matrix I I ℂ := -(fullStateReflection s alpha * markedPhase P beta)
 
 omit [DecidableEq I] in
 
+/-- The state inner product is additive in its second argument. -/
 theorem inner_add_right (s v w : QState I) : Qatlib.Foundations.PureStateMath.Inner s (v + w) = Qatlib.Foundations.PureStateMath.Inner s v + Qatlib.Foundations.PureStateMath.Inner s w := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct_add]
 
+/-- For an orthogonal projector and normalized source, a marked iterate updates the polynomial
+frame by `responseStep`. -/
 theorem markedIterate_frame (P : Matrix I I ℂ) (s : QState I) (hP : IsOrthogonalProjector P)
     (hs : Normalized s) (alpha beta : ℝ) (p : Polynomial ℂ × Polynomial ℂ) :
     markedIterate P s alpha beta *ᵥ polynomialFrame P s p =
@@ -1398,10 +1643,13 @@ theorem markedIterate_frame (P : Matrix I I ℂ) (s : QState I) (hP : IsOrthogon
   dsimp only [F, G, v, lam]
   module
 
+/-- The matrix product of marked iterates specified by a list of phase pairs. -/
 noncomputable def markedPhaseWord (P : Matrix I I ℂ) (s : QState I)
     (phases : List (ℝ × ℝ)) : Matrix I I ℂ :=
   (phases.map fun ab => markedIterate P s ab.1 ab.2).prod
 
+/-- For an orthogonal projector and normalized source, a marked phase word produces the
+polynomial frame of its response polynomials. -/
 theorem markedPhaseWord_frame (P : Matrix I I ℂ) (s : QState I) (hP : IsOrthogonalProjector P)
     (hs : Normalized s) (phases : List (ℝ × ℝ)) :
     markedPhaseWord P s phases *ᵥ s = polynomialFrame P s (responsePolynomials phases) := by
@@ -1413,9 +1661,11 @@ theorem markedPhaseWord_frame (P : Matrix I I ℂ) (s : QState I) (hP : IsOrthog
     rw [← Matrix.mulVec_mulVec, ih]
     exact markedIterate_frame P s hP hs ab.1 ab.2 (responsePolynomials tail)
 
+/-- The marked-subspace phase word using the public fixed-point phase schedule. -/
 noncomputable def markedWordMatrix (P : Matrix I I ℂ) (s : QState I) (l : ℕ) (delta : ℝ) :
     Matrix I I ℂ := markedPhaseWord P s (publicPhases l delta)
 
+/-- For an orthogonal projector and normalized source, the marked fixed-point word is unitary. -/
 theorem markedWord_unitary (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) (l : ℕ) (delta : ℝ) :
     markedWordMatrix P s l delta ∈ Matrix.unitaryGroup I ℂ := by
@@ -1436,6 +1686,8 @@ theorem markedWord_unitary (P : Matrix I I ℂ) (s : QState I)
   obtain ⟨ab, _, rfl⟩ := List.mem_map.mp ha
   exact hstep ab.1 ab.2
 
+/-- For an orthogonal projector and normalized source, the marked word's selected branch mass
+equals the two-level public success probability at the source's marked mass. -/
 theorem markedWord_success_eq_twoLevel (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) (l : ℕ) (delta : ℝ) :
     ProjectiveBranchMass P true (markedWordMatrix P s l delta *ᵥ s) =
@@ -1447,6 +1699,9 @@ theorem markedWord_success_eq_twoLevel (P : Matrix I I ℂ) (s : QState I)
   rw [publicSuccessProb_polynomial l delta (goodMass P s) hb.1 hb.2]
   ring
 
+/-- For an orthogonal projector, normalized source, and `0 < delta < 1`, the marked word's
+selected branch mass is the Chebyshev response at the initial marked mass
+[YoderLowChuang2014]. -/
 theorem markedWord_success_response (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) (l : ℕ) (delta : ℝ)
     (hd : 0 < delta) (hdu : delta < 1) :
@@ -1456,6 +1711,8 @@ theorem markedWord_success_response (P : Matrix I I ℂ) (s : QState I)
   have hb := goodMass_bounds P s hP hs
   exact publicWord_success_response l delta (goodMass P s) hd hdu hb.1 hb.2
 
+/-- For an orthogonal projector and normalized source, initial marked mass zero remains zero and
+initial marked mass one gives selected branch mass one. -/
 theorem markedWord_endpoints (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) (l : ℕ) (delta : ℝ) :
     (goodMass P s = 0 → ProjectiveBranchMass P true (markedWordMatrix P s l delta *ᵥ s) = 0) ∧
@@ -1468,11 +1725,15 @@ theorem markedWord_endpoints (P : Matrix I I ℂ) (s : QState I)
     rw [markedWord_success_eq_twoLevel P s hP hs, h]
     exact (publicWord_endpoints l delta).2
 
+/-- The public length is `2 * publicIterateCount lam0 delta + 1`. -/
 theorem publicLength_as_iterates (lam0 delta : ℝ) :
     2 * publicIterateCount lam0 delta + 1 = publicLength lam0 delta := by
   unfold publicIterateCount publicLength ylcLength
   split_ifs <;> omega
 
+/-- For a normalized source with marked mass at least positive `lam0`, the chosen marked word
+succeeds with probability at least `1 - delta ^ 2` when `0 < delta < 1`
+[YoderLowChuang2014]. -/
 theorem markedWord_uniform_guarantee (P : Matrix I I ℂ) (s : QState I)
     (hP : IsOrthogonalProjector P) (hs : Normalized s) (lam0 delta : ℝ)
     (h0 : 0 < lam0) (hd : 0 < delta) (hdu : delta < 1) (hm : lam0 ≤ goodMass P s) :
@@ -1490,6 +1751,10 @@ theorem markedWord_uniform_guarantee (P : Matrix I I ℂ) (s : QState I)
   · have hlt : lam0 < 1 := lt_of_le_of_ne (hm.trans hb.2) he
     exact publicWord_uniform_guarantee lam0 delta h0 hlt hd hdu (goodMass P s) hm hb.2
 
+/-- For a unitary-prepared normalized seed and an orthogonal marked projector, the chosen word
+has the public length and the exact Chebyshev success response. If its initial marked mass
+is at least positive `lam0` and `0 < delta < 1`, success is at least `1 - delta ^ 2`
+[YoderLowChuang2014]. -/
 theorem prepared_marked_search_complete (A : Matrix I I ℂ) (seed : QState I)
     (P : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hseed : Normalized seed)
     (hP : IsOrthogonalProjector P) (lam0 delta : ℝ) (h0 : 0 < lam0)
@@ -1507,6 +1772,10 @@ theorem prepared_marked_search_complete (A : Matrix I I ℂ) (seed : QState I)
   refine ⟨hn, ?_, markedWord_uniform_guarantee P (A *ᵥ seed) hP hs lam0 delta h0 hd hdu hm⟩
   rw [markedWord_success_response P (A *ᵥ seed) hP hs _ delta hd hdu, hn]
 
+/-- For positive `lam0` and `0 < delta < 1`, a single iterate count works for every finite
+register, unitary preparation, normalized seed, and orthogonal marked projector. The
+resulting mass has the exact Chebyshev response, the uniform success bound above `lam0`, and
+the zero and unit endpoint guarantees [YoderLowChuang2014]. -/
 theorem complete_clause1 (lam0 delta : ℝ) (h0 : 0 < lam0) (hd : 0 < delta) (hdu : delta < 1) :
     ∃ l : ℕ, l = publicIterateCount lam0 delta ∧
       ∀ (J : Type) [Fintype J] [DecidableEq J] (A : Matrix J J ℂ) (seed : QState J)

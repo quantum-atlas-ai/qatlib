@@ -14,10 +14,36 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Foundations.DyadicHorner.HornerError.DyadicHornerDefs
 
+/-!
+# Error and operation bounds for dyadic Horner evaluation
+
+This module bounds the rounding error and operation counts of the integer evaluator `run`
+against `exactValue`. For inputs satisfying `|x| ≤ 2^b`, `g1` gives an error of at most one
+dyadic unit per coefficient, and `g2` adds coefficient quantization error.
+
+The theorem `g3` bounds both the final integer output and the recorded peak magnitude when the
+coefficients have a common magnitude bound. These are finite-precision arithmetic estimates
+within the computational setting of [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `g1`: For `|x| ≤ 2^b`, all three operation counts equal the coefficient count and the
+  normalized rounding error is at most `cs.length / 2^b`.
+* `g2`: With normalized input of absolute value at most one and coefficient errors bounded by
+  nonnegative `δ`, the total normalized evaluation error is at most `cs.length * (2⁻ᵇ + δ)`.
+* `g3`: If `|x| ≤ 2^b` and each coefficient has absolute value at most `C`, the output magnitude
+  is at most `cs.length * C` and the recorded peak is at most `2^b * cs.length * C`.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002]
+-/
+
 namespace Qatlib.Foundations.DyadicHorner.HornerError
 open scoped BigOperators
 set_option autoImplicit false
 
+/-- Integer division by a positive denominator differs from the real quotient by at most one. -/
 private theorem floor_error (n d : ℤ) (hd : 0 < d) :
     |((n / d : ℤ) : ℝ) - (n : ℝ) / (d : ℝ)| ≤ 1 := by
   have hdR : (0 : ℝ) < d := by exact_mod_cast hd
@@ -36,12 +62,14 @@ private theorem floor_error (n d : ℤ) (hd : 0 < d) :
   rw [hv]
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
+/-- If `|x| ≤ 2^b`, the normalized input `x / 2^b` has absolute value at most one. -/
 private theorem input_contraction (b : ℕ) (x : ℤ) (hx : |x| ≤ (2 ^ b : ℤ)) :
     |(x : ℝ) / (2 ^ b : ℝ)| ≤ 1 := by
   have hxR : |(x : ℝ)| ≤ (2 ^ b : ℝ) := by exact_mod_cast hx
   rw [abs_div, abs_of_pos (by positivity : (0 : ℝ) < 2 ^ b)]
   exact (div_le_one (by positivity)).mpr hxR
 
+/-- One dyadic multiplication and integer division incurs normalized error at most `2⁻ᵇ`. -/
 private theorem round_step_error (b : ℕ) (x v : ℤ) :
     |(((x * v / (2 ^ b : ℤ) : ℤ) : ℝ) / (2 ^ b : ℝ)) -
       (x : ℝ) / (2 ^ b : ℝ) * ((v : ℝ) / (2 ^ b : ℝ))| ≤
@@ -55,6 +83,8 @@ private theorem round_step_error (b : ℕ) (x v : ℤ) :
   exact div_le_div_of_nonneg_right (by simpa only [Int.cast_pow, Int.cast_ofNat] using h)
     (by positivity)
 
+/-- The Horner evaluator performs one addition, multiplication, and division for each
+coefficient. -/
 private theorem counters (b : ℕ) (x : ℤ) (cs : List ℤ) :
     (run b x cs).additions = cs.length ∧
     (run b x cs).multiplications = cs.length ∧
@@ -63,6 +93,8 @@ private theorem counters (b : ℕ) (x : ℤ) (cs : List ℤ) :
   | nil => simp [run]
   | cons c cs ih => simp [run, ih.1, ih.2.1, ih.2.2]
 
+/-- For `|x| ≤ 2^b`, the normalized output of `run` differs from `exactValue` by at most
+`cs.length / 2^b`. -/
 private theorem rounding_error (b : ℕ) (x : ℤ) (cs : List ℤ)
     (hx : |x| ≤ (2 ^ b : ℤ)) :
     |((run b x cs).value : ℝ) / (2 ^ b : ℝ) - exactValue b x cs| ≤
@@ -91,6 +123,8 @@ private theorem rounding_error (b : ℕ) (x : ℤ) (cs : List ℤ)
       _ ≤ 1 / (2 ^ b : ℝ) + (cs.length : ℝ) / (2 ^ b : ℝ) := add_le_add hs ht
       _ = ((c :: cs).length : ℝ) / (2 ^ b : ℝ) := by simp only [List.length_cons, Nat.cast_add, Nat.cast_one]; ring
 
+/-- For `|x| ≤ 2^b`, all three operation counts equal the coefficient count and the normalized
+rounding error is at most `cs.length / 2^b`. -/
 theorem g1 :
     ∀ (b : ℕ) (x : ℤ) (cs : List ℤ), |x| ≤ (2^b:ℤ) →
       (run b x cs).additions = cs.length ∧
@@ -102,6 +136,8 @@ theorem g1 :
   exact ⟨(counters b x cs).1, (counters b x cs).2.1,
     (counters b x cs).2.2, rounding_error b x cs hx⟩
 
+/-- If the normalized input has absolute value at most one and corresponding coefficients differ
+by at most nonnegative `δ`, their exact Horner values differ by at most `cs.length * δ`. -/
 private theorem coefficient_error (b : ℕ) (x : ℤ) (δ : ℝ)
     (hx : |x| ≤ (2^b:ℤ)) (_hδ : 0 ≤ δ) (cs : List ℤ) (a : List ℝ)
     (hlen : cs.length = a.length)
@@ -141,6 +177,8 @@ private theorem coefficient_error (b : ℕ) (x : ℤ) (δ : ℝ)
         _ ≤ δ + (cs.length:ℝ)*δ := add_le_add hh hm
         _ = ((c::cs).length:ℝ)*δ := by simp; ring
 
+/-- With normalized input of absolute value at most one and coefficient errors bounded by
+nonnegative `δ`, the total normalized evaluation error is at most `cs.length * (2⁻ᵇ + δ)`. -/
 theorem g2 :
     ∀ (b : ℕ) (x : ℤ) (cs : List ℤ) (a : List ℝ) (δ : ℝ),
       |x| ≤ (2^b:ℤ) → 0 ≤ δ → ∀ (hlen : cs.length = a.length),
@@ -156,6 +194,8 @@ theorem g2 :
       add_le_add (rounding_error b x cs hx) (coefficient_error b x δ hx hδ cs a hlen ha)
     _ = _ := by rw [div_eq_mul_inv]; ring
 
+/-- For `|x| ≤ 2^b`, multiplying an integer by `x` and dividing by `2^b` does not increase its
+absolute value. -/
 private theorem quotient_contracts (b : ℕ) (x v : ℤ) (hx : |x| ≤ (2^b:ℤ)) :
     (x*v/(2^b:ℤ)).natAbs ≤ v.natAbs := by
   have hd : (0:ℤ) < 2^b := by positivity
@@ -170,6 +210,8 @@ private theorem quotient_contracts (b : ℕ) (x v : ℤ) (hx : |x| ≤ (2^b:ℤ)
   rw [← Int.natCast_natAbs] at h
   exact_mod_cast h
 
+/-- If `|x| ≤ 2^b` and each coefficient has absolute value at most `C`, the output magnitude is
+at most `cs.length * C` and the recorded peak is at most `2^b * cs.length * C`. -/
 theorem g3 :
     ∀ (b C : ℕ) (x : ℤ) (cs : List ℤ),
       |x| ≤ (2^b:ℤ) → (∀ c ∈ cs, c.natAbs ≤ C) →

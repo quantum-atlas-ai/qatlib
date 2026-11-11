@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma1Tau
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma2Bijection
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma7ControlledFunction
+
+/-!
+# Compiling reversible computations with clean workspace
+
+`BGate` models reversible gates preserving an input register, and `Computes` specifies their
+output on zero-initialized work registers. The compilation theorems turn such gate lists into
+reversible function evaluation, function-controlled operations, and bijections with restored
+workspace, while recording exact sequence costs and basis membership. The development follows
+[Kitaev1995].
+
+## Main statements
+
+* `lemma1_compiled`: implements XOR evaluation at cost `2 * gs.length + m`.
+* `lemma7_compiled`: implements a function-controlled operation at cost `2 * gs.length + 1`.
+* `lemma2_compiled`: implements a bijection with clean auxiliary registers.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,48 +36,63 @@ namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel
 
 open Qatlib.Foundations.PureStateMath
 
+/-- The three-register memory comprising an `n`-bit input, an `m`-bit output, and a `w`-bit
+workspace. -/
 abbrev CMem (n m w : ℕ) := Reg n × (Reg m × Reg w)
 
+/-- A reversible operation on `CMem` that preserves the input register. -/
 structure BGate (n m w : ℕ) where
 
   op : CMem n m w ≃ CMem n m w
 
   keepsIn : ∀ x, (op x).1 = x.1
 
+/-- Executes a list of input-preserving reversible gates in list order. -/
 def runGates {n m w : ℕ} : List (BGate n m w) → CMem n m w → CMem n m w
   | [], x => x
   | g :: gs, x => runGates gs (g.op x)
 
+/-- The equivalence obtained by composing a list of input-preserving reversible gates in
+execution order. -/
 def runGatesEquiv {n m w : ℕ} : List (BGate n m w) → (CMem n m w ≃ CMem n m w)
   | [] => Equiv.refl _
   | g :: gs => g.op.trans (runGatesEquiv gs)
 
+/-- Execution of a gate list agrees with its composed equivalence. -/
 theorem runGates_eq {n m w : ℕ} (gs : List (BGate n m w)) (x : CMem n m w) :
     runGates gs x = runGatesEquiv gs x := by
   induction gs generalizing x with
   | nil => rfl
   | cons g gs ih => exact ih (g.op x)
 
+/-- Executing an input-preserving gate list leaves the input register unchanged. -/
 theorem runGates_keepsIn {n m w : ℕ} (gs : List (BGate n m w)) (x : CMem n m w) :
     (runGates gs x).1 = x.1 := by
   induction gs generalizing x with
   | nil => rfl
   | cons g gs ih => rw [runGates, ih, g.keepsIn]
 
+/-- The assertion that a gate list writes `F u` in the output register when both output and
+workspace start at zero. -/
 def Computes {n m w : ℕ} (F : Reg n → Reg m) (gs : List (BGate n m w)) : Prop :=
   ∀ u, (runGates gs (u, ZeroStr m, ZeroStr w)).2.1 = F u
 
+/-- A gate list computing `F` also produces `F u` through its composed equivalence on
+zero-initialized output and workspace. -/
 theorem Computes.equiv {n m w : ℕ} {F : Reg n → Reg m} {gs : List (BGate n m w)}
     (h : Computes F gs) (u : Reg n) :
     (runGatesEquiv gs (u, ZeroStr m, ZeroStr w)).2.1 = F u := by
   rw [← runGates_eq]
   exact h u
 
+/-- Lifting a composition of core equivalences agrees with sequential execution of their lifts. -/
 theorem liftCore_trans {n m w : ℕ} (C D : CMem n m w ≃ CMem n m w) (x : Mem n m w) :
     liftCore (C.trans D) x = liftCore D (liftCore C x) := by
   obtain ⟨u, v, y, g⟩ := x
   rfl
 
+/-- Executing the unit-cost lifted core gates equals the lift of their composed gate
+equivalence. -/
 theorem runOps_map_liftCore {n m w : ℕ} (gs : List (BGate n m w)) (x : Mem n m w) :
     runOps (gs.map (fun g => (⟨liftCore g.op, 1⟩ : RevStep (Mem n m w)))) x
       = liftCore (runGatesEquiv gs) x := by
@@ -69,6 +105,7 @@ theorem runOps_map_liftCore {n m w : ℕ} (gs : List (BGate n m w)) (x : Mem n m
       liftCore (g.op.trans (runGatesEquiv gs)) x
     rw [liftCore_trans]
 
+/-- The cost of the list of unit-cost lifted core gates equals the gate-list length. -/
 theorem seqCost_map_liftCore {n m w : ℕ} (gs : List (BGate n m w)) :
     seqCost (gs.map (fun g => (⟨liftCore g.op, 1⟩ : RevStep (Mem n m w)))) = gs.length := by
   induction gs with
@@ -77,6 +114,9 @@ theorem seqCost_map_liftCore {n m w : ℕ} (gs : List (BGate n m w)) :
     rw [List.map_cons, seqCost, ih, List.length_cons]
     exact Nat.add_comm 1 gs.length
 
+/-- Given a gate list computing `F` and the stated basis memberships, there is a sequence of
+cost `2 * gs.length + m` that XORs `F u` into the target and restores the auxiliary
+registers to zero. This is the compiled form of [Kitaev, 1995, Lemma 1][Kitaev1995]. -/
 theorem lemma1_compiled
     {n m w : ℕ} (F : Reg n → Reg m) (gs : List (BGate n m w))
     (hcomp : Computes F gs)
@@ -101,12 +141,16 @@ theorem lemma1_compiled
     obtain ⟨g, hg, rfl⟩ := ht
     exact hB g hg
 
+/-- Lifting a composition of function-computation equivalences agrees with sequential execution
+of their lifts. -/
 theorem liftFunG_trans {k l n w : ℕ} (C D : CMem k l w ≃ CMem k l w)
     (x : FunMem k l n w) :
     liftFunG (C.trans D) x = liftFunG D (liftFunG C x) := by
   obtain ⟨a, ξ, y, g⟩ := x
   rfl
 
+/-- Executing the unit-cost lifted function-computation gates equals the lift of their composed
+equivalence. -/
 theorem runOps_map_liftFunG {k l n w : ℕ} (gs : List (BGate k l w))
     (x : FunMem k l n w) :
     runOps (gs.map (fun g => (⟨liftFunG g.op, 1⟩ : RevStep (FunMem k l n w)))) x
@@ -120,6 +164,7 @@ theorem runOps_map_liftFunG {k l n w : ℕ} (gs : List (BGate k l w))
       liftFunG (g.op.trans (runGatesEquiv gs)) x
     rw [liftFunG_trans]
 
+/-- The cost of the unit-cost lifted function-computation gates equals the gate-list length. -/
 theorem seqCost_map_liftFunG {k l n w : ℕ} (gs : List (BGate k l w)) :
     seqCost (gs.map (fun g => (⟨liftFunG g.op, 1⟩ : RevStep (FunMem k l n w)))) =
       gs.length := by
@@ -129,6 +174,9 @@ theorem seqCost_map_liftFunG {k l n w : ℕ} (gs : List (BGate k l w)) :
     rw [List.map_cons, seqCost, ih, List.length_cons]
     exact Nat.add_comm 1 gs.length
 
+/-- A gate list computing `F`, together with the specified basis memberships, yields a sequence
+of cost `2 * gs.length + 1` applying `U (F a)` to the data and restoring both work registers
+to zero. This is the compiled form of [Kitaev, 1995, Lemma 7][Kitaev1995]. -/
 theorem lemma7_compiled
     {k l n w : ℕ} (F : Reg k → Reg l) (U : Reg l → Reg n ≃ Reg n)
     (gs : List (BGate k l w)) (hcomp : Computes F gs)
@@ -151,40 +199,57 @@ theorem lemma7_compiled
     obtain ⟨g, hg, rfl⟩ := ht
     exact hB g hg
 
+/-- The four-register memory `Mem n n w` used to compile a bijection and its inverse. -/
 abbrev L2Mem (n w : ℕ) := Mem n n w
 
+/-- The equivalence swapping the first two registers of `L2Mem` and preserving its auxiliary
+registers. -/
 def swapXYMem (n w : ℕ) : L2Mem n w ≃ L2Mem n w where
   toFun x := (x.2.1, (x.1, x.2.2))
   invFun x := (x.2.1, (x.1, x.2.2))
   left_inv x := by obtain ⟨a, b, y, g⟩ := x; rfl
   right_inv x := by obtain ⟨a, b, y, g⟩ := x; rfl
 
+/-- The operation XORing the first register into the second while preserving the auxiliary
+registers. -/
 def tauXYMem (n w : ℕ) (x : L2Mem n w) : L2Mem n w :=
   (x.1, (bxor x.2.1 x.1, x.2.2))
 
+/-- XORing the first register into the second twice returns the original memory. -/
 theorem tauXYMem_involutive (n w : ℕ) : Function.Involutive (@tauXYMem n w) := by
   intro x
   obtain ⟨a, b, y, g⟩ := x
   simp only [tauXYMem, bxor_bxor_cancel]
 
+/-- The reversible equivalence induced by XORing the first register into the second. -/
 def tauXYEquiv (n w : ℕ) : L2Mem n w ≃ L2Mem n w := (tauXYMem_involutive n w).toPerm
 
+/-- The equivalence `tauXYEquiv` acts by `tauXYMem`. -/
 theorem tauXYEquiv_apply (n w : ℕ) (x : L2Mem n w) :
     tauXYEquiv n w x = tauXYMem n w x := rfl
 
+/-- The operation XORing the second register into the first while preserving the auxiliary
+registers. -/
 def tauYXMem (n w : ℕ) (x : L2Mem n w) : L2Mem n w :=
   (bxor x.1 x.2.1, (x.2.1, x.2.2))
 
+/-- XORing the second register into the first twice returns the original memory. -/
 theorem tauYXMem_involutive (n w : ℕ) : Function.Involutive (@tauYXMem n w) := by
   intro x
   obtain ⟨a, b, y, g⟩ := x
   simp only [tauYXMem, bxor_bxor_cancel]
 
+/-- The reversible equivalence induced by XORing the second register into the first. -/
 def tauYXEquiv (n w : ℕ) : L2Mem n w ≃ L2Mem n w := (tauYXMem_involutive n w).toPerm
 
+/-- The equivalence `tauYXEquiv` acts by `tauYXMem`. -/
 theorem tauYXEquiv_apply (n w : ℕ) (x : L2Mem n w) :
     tauYXEquiv n w x = tauYXMem n w x := rfl
 
+/-- Given circuits of lengths `L` and `L'` computing a bijection and its inverse, the stated
+basis and relabeling assumptions yield a sequence of cost `2 * L + 2 * L' + 4 * n`
+implementing the bijection with all auxiliary registers restored to zero. This is the
+compiled form of [Kitaev, 1995, Lemma 2][Kitaev1995]. -/
 theorem lemma2_compiled
     {n w : ℕ} (G : Reg n ≃ Reg n) (L L' : ℕ)
     (gsG : List (BGate n n w)) (hG : Computes (fun u => G u) gsG)

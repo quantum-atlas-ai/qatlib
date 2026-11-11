@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+
+/-!
+# Reduced denominators from modular order phases
+
+This module defines `reducedOrderDecode`, a bounded rational decoder with an endpoint adjustment
+for circular phase samples. It recovers the reduced fraction associated with any good order
+phase, without requiring its spectral index to be coprime to the order; this is the rational
+reconstruction step in [Shor1997].
+
+The denominator is `r / gcd(s, r)` for spectral index `s` and order `r`. These denominators can
+subsequently be combined across samples to recover the full order.
+
+## Main statements
+
+* `reducedOrderDecode_count`: a bound on the number of rational candidates tested.
+* `reduced_order_denominator_of_every_good_phase`: recovery of the reduced numerator and
+  denominator from every good phase window.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,21 +37,29 @@ namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
+/-- Replaces the final clock label by zero and preserves every other clock value for rational
+decoding. -/
 def reducedOrderNumerator (M : ℕ) (y : Fin M) : ℕ :=
   if y.val+1=M then 0 else y.val
 
+/-- Runs bounded rational decoding with denominator bound `N` on the endpoint-adjusted clock
+numerator. -/
 def reducedOrderDecode (N M : ℕ) (y : Fin M) : Option (ℕ×ℕ)×ℕ :=
   boundedRationalDecode N M (reducedOrderNumerator M y)
 
+/-- The reduced-order decoder tests at most `N * (N + 1) / 2` rational candidates. -/
 theorem reducedOrderDecode_count (N M : ℕ) (y : Fin M) :
     (reducedOrderDecode N M y).2 ≤ N*(N+1)/2 :=
   boundedRationalDecode_count _ _ _
 
+/-- Every denominator returned by the reduced-order decoder is positive and at most `N`. -/
 theorem reducedOrderDecode_sound (N M : ℕ) (y : Fin M) (p q : ℕ)
     (h : (reducedOrderDecode N M y).1 = some (p,q)) : 0<q ∧ q≤N := by
   have hs := boundedRationalDecode_sound N M (reducedOrderNumerator M y) p q h
   exact ⟨hs.1,hs.2.1⟩
 
+/-- For `M > 2`, a sample within circular distance `1 / M` of phase zero has adjusted numerator
+at most one. -/
 private theorem reduced_zero_window (M : ℕ) (y : Fin M) (hM : 2 < M)
     (hw : phaseDistance 0 ((y.val:ℝ)/M) ≤ 1/(M:ℝ)) :
     reducedOrderNumerator M y ≤ 1 := by
@@ -66,6 +97,8 @@ private theorem reduced_zero_window (M : ℕ) (y : Fin M) (hM : 2 < M)
       omega
     simp [reducedOrderNumerator, hlast]
 
+/-- Under the nontriviality and clock-size hypotheses, a sample within circular distance `1 / M`
+of `s / r` decodes to `(s / gcd(s, r), r / gcd(s, r))`, where `r = orderOf a` [Shor1997]. -/
 theorem reduced_order_denominator_of_every_good_phase :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (s : Fin (orderOf a)) (y : Fin M),
       1<N → 1<orderOf a → 2*N^2<M →

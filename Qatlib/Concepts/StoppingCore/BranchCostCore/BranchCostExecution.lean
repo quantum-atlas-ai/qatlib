@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralCostClock
 import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+
+/-!
+# Branch-dependent cost execution and clocks
+
+`branchCostRun` iterates a joint successor-and-cost PMF while accumulating the costs of the
+sampled branches. `branchClockNext` compiles each sampled receipt into unit-time countdown
+states that retain its successor.
+
+For positive supported receipt costs, the branch run and compiled clock have the same joint
+halting-output and cost law. The module derives conservation, expected-cost, and cutoff
+formulas, and proves that splitting a countdown budget preserves the previously sampled
+successor. For background, see [Montanaro2015].
+
+## Main statements
+
+* `branch_cost_actual_joint_recursion`: gives the joint output-cost recurrence and absorption of
+  halted configurations.
+* `branch_cost_compiled_clock_halt_joint`: identifies branch-cost and compiled-clock joint
+  halting masses.
+* `branch_cost_same_path_expectation_and_cutoff`: relates finite expected clock time to branch
+  costs and pending-mass bounds.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
@@ -21,39 +48,54 @@ open scoped Classical BigOperators ENNReal
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 
+/-- One joint successor-and-cost step, leaving halted outputs fixed with zero additional cost. -/
 noncomputable def branchCostTick {S O : Type} (next : S  →  PMF ((O ⊕ S) × ℕ)) :
     O ⊕ S  →  PMF ((O ⊕ S) × ℕ)
   | .inl o => PMF.pure (.inl o,0)
   | .inr s => next s
 
+/-- Run at most the specified number of branch transitions, accumulating the costs sampled
+jointly with their successor configurations. -/
 noncomputable def branchCostRun {S O : Type} (next : S  →  PMF ((O ⊕ S) × ℕ)) :
     ℕ  →  O ⊕ S  →  PMF ((O ⊕ S) × ℕ)
   | 0,cfg => CostedLaw.ret cfg
   | n+1,cfg => CostedLaw.bind (branchCostTick next cfg) (branchCostRun next n)
 
+/-- The compiled clock state type, consisting of a state ready for a branch draw or a stored
+successor configuration with a remaining delay. -/
 abbrev BranchClock (S O : Type) := S ⊕ ((O ⊕ S) × ℕ)
 
+/-- Embed an original configuration into the compiled clock, preserving a halted output and
+making a running state ready for a branch draw. -/
 def branchClockEmbed {S O : Type} : O ⊕ S  →  O ⊕ BranchClock S O
   | .inl o => .inl o
   | .inr s => .inr (.inl s)
 
+/-- Represent a configuration after a remaining delay of `k` unit steps, embedding it
+immediately when `k` is zero. -/
 def branchClockDelay {S O : Type} (cfg : O ⊕ S) (k : ℕ) : O ⊕ BranchClock S O :=
   if k=0 then branchClockEmbed cfg else .inr (.inr (cfg,k))
 
+/-- A unit-time clock step that either samples a successor and cost once and stores the
+remaining delay, or decrements the delay of an already sampled successor. -/
 noncomputable def branchClockNext {S O : Type} (next : S  →  PMF ((O ⊕ S) × ℕ)) :
     BranchClock S O  →  PMF (O ⊕ BranchClock S O)
   | .inl s => (next s).map (fun z => branchClockDelay z.1 (z.2-1))
   | .inr z => PMF.pure (branchClockDelay z.1 (z.2-1))
 
+/-- The mass of output `o` with accumulated cost `k` in the branch run with transition fuel `k`. -/
 noncomputable def branchHaltJoint {S O : Type} (next : S  →  PMF ((O ⊕ S) × ℕ))
     (cfg : O ⊕ S) (o : O) (k : ℕ) : ℝ≥0∞ :=
   branchCostRun next k cfg (.inl o,k)
 
+/-- A retry transition that halts with output `true` and cost `good` on a true coin outcome, and
+continues with cost `bad` on a false outcome. -/
 noncomputable def branchRetryNext (coin : PMF Bool) (good bad : ℕ) : Unit  →  PMF ((Bool ⊕ Unit) × ℕ) :=
   fun _ => coin.map (fun b => (if b then .inl true else .inr (),if b then good else bad))
 
 variable {S O : Type}
 
+/-- Starting from a halted output, every branch run returns that output with zero cost. -/
 @[simp] theorem branchCostRun_halted (next : S → PMF ((O ⊕ S) × ℕ)) (n : ℕ) (o : O) :
     branchCostRun next n (.inl o) = PMF.pure (.inl o,0) := by
   induction n with
@@ -62,6 +104,9 @@ variable {S O : Type}
     change CostedLaw.bind (CostedLaw.ret (.inl o)) (branchCostRun next n) = _
     rw [CostedLaw.ret_bind, ih]
 
+/-- A joint point mass after one additional transition is the sum over sampled
+successor-and-cost receipts, subtracting the receipt cost from the requested total when
+affordable. -/
 theorem branchCostRun_point (next : S → PMF ((O ⊕ S) × ℕ)) (n k : ℕ) (s : S) (cfg : O ⊕ S) :
     branchCostRun next (n+1) (.inr s) (cfg,k) =
       ∑' z : (O ⊕ S) × ℕ, next s z *
@@ -69,6 +114,8 @@ theorem branchCostRun_point (next : S → PMF ((O ⊕ S) × ℕ)) (n k : ℕ) (s
   rw [branchCostRun, branchCostTick, CostedLaw.bind, PMF.bind_apply]
   simp only [charge_point_mass]
 
+/-- The branch run satisfies the receipt-weighted joint output-cost recurrence, and a halted
+initial configuration remains fixed at zero cost. -/
 theorem branch_cost_actual_joint_recursion :
     ∀ (S O : Type) (next : S → PMF ((O ⊕ S) × ℕ)) (n k : ℕ) (s : S) (cfg : O ⊕ S),
       branchCostRun next (n+1) (.inr s) (cfg,k) =
@@ -78,6 +125,8 @@ theorem branch_cost_actual_joint_recursion :
   intro S O next n k s cfg
   exact ⟨branchCostRun_point next n k s cfg, branchCostRun_halted next n⟩
 
+/-- If every supported receipt costs at least one, the mass of output `o` at total cost `k`
+stabilizes to `branchHaltJoint` once transition fuel is at least `k`. -/
 theorem branchCostRun_stable (next : S → PMF ((O ⊕ S) × ℕ))
     (hp : ∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k)
     (cfg : O ⊕ S) (o : O) (k fuel : ℕ) (h : k ≤ fuel) :
@@ -116,6 +165,8 @@ theorem branchCostRun_stable (next : S → PMF ((O ⊕ S) × ℕ))
               ih (k+1-z.2) (by omega) z.1 k (by omega)]
           · rfl
 
+/-- A prefix of at most `k` steps of a delay `k + 1` deterministically decrements that delay and
+records exactly the elapsed unit cost. -/
 theorem branchClock_prefix (next : S → PMF ((O ⊕ S) × ℕ))
     (cfg : O ⊕ S) (n k : ℕ) (hn : n ≤ k) :
     runFor (branchClockNext next) n (branchClockDelay cfg (k+1)) =
@@ -136,6 +187,9 @@ theorem branchClock_prefix (next : S → PMF ((O ⊕ S) × ℕ))
     · exact congrArg (branchClockDelay cfg) (by omega)
     · omega
 
+/-- Splitting a countdown prefix into budgets `a` and `b` preserves its stored successor and
+gives the same costed law as running their sum, provided `a + b ≤ k` for initial delay `k +
+1`. -/
 theorem branch_cost_budget_resume_keeps_sampled_successor :
     ∀ (S O : Type) (next : S → PMF ((O ⊕ S) × ℕ)) (cfg : O ⊕ S) (k a b : ℕ), a+b ≤ k →
       runFor (branchClockNext next) (a+b) (branchClockDelay cfg (k+1)) =
@@ -147,6 +201,8 @@ theorem branch_cost_budget_resume_keeps_sampled_successor :
   refine ⟨?_, runFor_add _ _ _ _⟩
   simpa only [Nat.sub_sub] using branchClock_prefix next cfg (a+b) k h
 
+/-- Running exactly the stored delay deterministically reaches the embedded successor
+configuration with that delay as the recorded cost. -/
 theorem branchClock_countdown (next : S → PMF ((O ⊕ S) × ℕ)) (cfg : O ⊕ S) (d : ℕ) :
     runFor (branchClockNext next) d (branchClockDelay cfg d) =
       PMF.pure (branchClockEmbed cfg,d) := by
@@ -159,6 +215,8 @@ theorem branchClock_countdown (next : S → PMF ((O ⊕ S) × ℕ)) (cfg : O ⊕
       CostedLaw.charge, PMF.pure_map]
     simp [add_comm]
 
+/-- A delayed configuration has zero halting mass before the delay expires, and afterward its
+joint halting mass is that of the embedded configuration at the shifted time. -/
 theorem branchClock_delay_halt (next : S → PMF ((O ⊕ S) × ℕ))
     (cfg : O ⊕ S) (o : O) (d k : ℕ) :
     haltJoint (branchClockNext next) (branchClockDelay cfg d) o k =
@@ -176,6 +234,8 @@ theorem branchClock_delay_halt (next : S → PMF ((O ⊕ S) × ℕ))
     have hpos : d-1+1-k ≠ 0 := by omega
     simp [branchClockDelay, hpos, PMF.pure_apply]
 
+/-- With positive supported receipt costs, compiled-clock halting mass from a running state
+obeys the joint receipt recurrence with the receipt cost subtracted from the halting time. -/
 theorem branchClock_halt_running (next : S → PMF ((O ⊕ S) × ℕ))
     (hp : ∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k) (s : S) (o : O) (k : ℕ) :
     haltJoint (branchClockNext next) (branchClockEmbed (.inr s)) o k =
@@ -212,6 +272,8 @@ theorem branchClock_halt_running (next : S → PMF ((O ⊕ S) × ℕ))
         rw [hk]; rfl
       · rw [if_neg (fun h => hfit (he.mp h)), if_neg hfit]
 
+/-- With positive supported receipt costs, compiled-clock joint halting mass equals the original
+branch-cost joint halting mass. -/
 theorem branchClock_bridge (next : S → PMF ((O ⊕ S) × ℕ))
     (hp : ∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k)
     (cfg : O ⊕ S) (o : O) (k : ℕ) :
@@ -247,6 +309,8 @@ theorem branchClock_bridge (next : S → PMF ((O ⊕ S) × ℕ))
               branchCostRun_stable next hp z.1 o (k+1-z.2) k (by omega)]
           · rfl
 
+/-- Under positive supported receipt costs and fuel at least the requested total cost, the
+branch run point mass and compiled-clock halting mass both equal `branchHaltJoint`. -/
 theorem branch_cost_compiled_clock_halt_joint :
     ∀ (S O : Type) (next : S → PMF ((O ⊕ S) × ℕ)),
       (∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k) →
@@ -256,6 +320,9 @@ theorem branch_cost_compiled_clock_halt_joint :
   intro S O next hp cfg o k n h
   exact ⟨branchCostRun_stable next hp cfg o k n h, branchClock_bridge next hp cfg o k⟩
 
+/-- With positive supported receipt costs, total branch halting mass plus compiled-clock
+nontermination mass is one. At every finite clock budget, branch halting mass up to that
+cost plus pending mass is also one. -/
 theorem branch_cost_output_pending_never_conservation :
     ∀ (S O : Type) (next : S → PMF ((O ⊕ S) × ℕ)),
       (∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k) → ∀ cfg : O ⊕ S,
@@ -279,6 +346,9 @@ theorem branch_cost_output_pending_never_conservation :
     intro k hk
     rw [if_pos (by have := Finset.mem_range.mp hk; omega), branchClock_bridge next hp]
 
+/-- With positive supported receipt costs and finite expected compiled-clock time,
+nontermination mass is zero and expected time equals the cost-weighted branch halting sum.
+Pending mass after budget `b` is bounded by that expected time divided by `b + 1`. -/
 theorem branch_cost_same_path_expectation_and_cutoff :
     ∀ (S O : Type) (next : S → PMF ((O ⊕ S) × ℕ)),
       (∀ s cfg k, next s (cfg,k) ≠ 0 → 1 ≤ k) → ∀ (cfg : O ⊕ S) (b : ℕ),

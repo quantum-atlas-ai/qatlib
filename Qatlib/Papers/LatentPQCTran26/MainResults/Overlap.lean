@@ -8,6 +8,30 @@ import Mathlib.MeasureTheory.Integral.Bochner.Set
 import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.MeasureTheory.Measure.Map
 
+/-!
+# Gradient-rich sets and pushforward overlap
+
+`gradRichSet` is a real-function superlevel set. Its measure gives an integral lower bound for
+nonnegative integrable functions; the pushforward identity transfers this estimate to latent
+decoders, yielding `lemma11_overlap_lower_bound` for expected squared gradient norms. See
+[TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `integral_ge_mul_measure`: For an integrable nonnegative function under a finite measure, the
+  integral is at least `c` times the real measure of its measurable superlevel set at `c`.
+* `pushforward_integral`: Integrating `F` after an almost everywhere measurable map equals
+  integrating `F` against its pushforward measure, under the stated strong-measurability
+  hypothesis.
+* `lemma11_overlap_lower_bound`: The latent mean squared gradient is at least `c` times the
+  pushforward real measure of parameters with squared gradient at least `c`, under the stated
+  finiteness, measurability, and integrability assumptions.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,9 +39,12 @@ open MeasureTheory
 
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.Overlap
 
+/-- The set of parameters at which the real function `F` is at least the threshold `c`. -/
 def gradRichSet {Θ : Type*} (F : Θ → ℝ) (c : ℝ) : Set Θ :=
   {θ | c ≤ F θ}
 
+/-- For an integrable nonnegative function under a finite measure, the integral is at least `c`
+times the real measure of its measurable superlevel set at `c`. -/
 theorem integral_ge_mul_measure
     {Θ : Type*} [MeasurableSpace Θ] (μ : Measure Θ) [IsFiniteMeasure μ]
     (F : Θ → ℝ) (c : ℝ) (hS : MeasurableSet (gradRichSet F c))
@@ -37,6 +64,8 @@ theorem integral_ge_mul_measure
   rw [← hconst]
   exact le_trans hmono hle
 
+/-- Integrating `F` after an almost everywhere measurable map equals integrating `F` against its
+pushforward measure, under the stated strong-measurability hypothesis. -/
 theorem pushforward_integral
     {Z Θ : Type*} [MeasurableSpace Z] [MeasurableSpace Θ]
     (r : Measure Z) (f : Z → Θ) (hf : AEMeasurable f r)
@@ -44,6 +73,9 @@ theorem pushforward_integral
     ∫ z, F (f z) ∂r = ∫ θ, F θ ∂(Measure.map f r) :=
   (integral_map hf hF).symm
 
+/-- The latent mean squared gradient is at least `c` times the pushforward real measure of
+parameters with squared gradient at least `c`, under the stated finiteness, measurability,
+and integrability assumptions [TranEtAl2026]. -/
 theorem lemma11_overlap_lower_bound
     {Z Θ : Type*} [MeasurableSpace Z] [MeasurableSpace Θ] [NormedAddCommGroup Θ]
     (r : Measure Z) (f : Z → Θ) (hf : AEMeasurable f r)

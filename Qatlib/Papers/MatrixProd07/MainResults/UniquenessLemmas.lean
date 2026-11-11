@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MatrixProd07.MainResults.Defs
+
+/-!
+# Linear recurrence and Kronecker intertwining lemmas
+
+`muSeq` is an affine recurrence with an explicit finite sum formula. `proposition1_linear_maps`
+uses it to construct a nonzero vector satisfying an intertwining relation, and
+`proposition2_kronecker_solutions` characterizes matrix intertwiners for tensor products with
+the identity. For the matrix product state setting, see [PerezGarciaEtAl2007].
+
+## Main statements
+
+* `muSeq_closed`: explicit solution of the scalar recurrence.
+* `proposition1_linear_maps`: construction of a nonzero vector with a scaled intertwining
+  relation.
+* `proposition2_kronecker_solutions`: finite tensor expansion of a Kronecker intertwiner.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,10 +39,14 @@ open Qatlib.Papers.MatrixProd07.MainResults
 open Matrix
 open scoped BigOperators ComplexConjugate
 
+/-- The scalar sequence starting at zero and satisfying `muSeq x lam (k + 1) = x * muSeq x lam k
++ lam k * x`. -/
 def muSeq {K : Type*} [Field K] (x : K) (lam : ℕ → K) : ℕ → K
   | 0 => 0
   | k + 1 => x * muSeq x lam k + lam k * x
 
+/-- The recurrence `muSeq` equals the finite sum of `lam k * x ^ (m - k)` over `k < m`. See
+[PerezGarciaEtAl2007]. -/
 theorem muSeq_closed {K : Type*} [Field K] (x : K) (lam : ℕ → K) :
     ∀ m : ℕ, muSeq x lam m = ∑ k ∈ Finset.range m, lam k * x ^ (m - k)
   | 0 => by simp [muSeq]
@@ -34,6 +59,9 @@ theorem muSeq_closed {K : Type*} [Field K] (x : K) (lam : ℕ → K) :
       ring
     · rw [show m + 1 - m = 1 by omega, pow_one]
 
+/-- Under the step relations, independence, terminal dependence, and scalar polynomial identity,
+the specified `muSeq` combination is nonzero and satisfies `T v = x⁻¹ • S v`. See
+[PerezGarciaEtAl2007]. -/
 theorem proposition1_linear_maps {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
     (T S : V →ₗ[K] V) {n : ℕ} (hn : 2 ≤ n) (Y : ℕ → V) (lam : ℕ → K)
     (hstep : ∀ k, k + 1 < n → T (Y k) = S (Y (k + 1)))
@@ -120,10 +148,13 @@ theorem proposition1_linear_maps {K V : Type*} [Field K] [AddCommGroup V] [Modul
       exact Finset.sum_congr rfl fun k _ => by rw [smul_smul]
     rw [hTY, hSc, hkey]
 
+/-- The Kronecker product of `A` with the identity, indexed by pairs. -/
 def kronOne {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) :
     Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ :=
   fun i j => A i.1 j.1 * (if i.2 = j.2 then 1 else 0)
 
+/-- Computes an entry of `W * kronOne C` as a sum over the first bond index. See
+[PerezGarciaEtAl2007]. -/
 theorem mul_kronOne_apply {n : ℕ} (W : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (C : Matrix (Fin n) (Fin n) ℂ) (a c b d : Fin n) :
     (W * kronOne C) (a, c) (b, d) = ∑ k, W (a, c) (k, d) * C k b := by
@@ -139,6 +170,8 @@ theorem mul_kronOne_apply {n : ℕ} (W : Matrix (Fin n × Fin n) (Fin n × Fin n
   rw [Finset.sum_ite_eq']
   simp
 
+/-- Computes an entry of `kronOne B * W` as a sum over the first bond index. See
+[PerezGarciaEtAl2007]. -/
 theorem kronOne_mul_apply {n : ℕ} (B : Matrix (Fin n) (Fin n) ℂ)
     (W : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (a c b d : Fin n) :
     (kronOne B * W) (a, c) (b, d) = ∑ k, B a k * W (k, c) (b, d) := by
@@ -155,6 +188,8 @@ theorem kronOne_mul_apply {n : ℕ} (B : Matrix (Fin n) (Fin n) ℂ)
   rw [Finset.sum_ite_eq']
   simp
 
+/-- A matrix intertwines `C ⊗ 1` and `B ⊗ 1` exactly when it is a finite sum of tensor terms
+whose first factors intertwine `C` and `B`. See [PerezGarciaEtAl2007]. -/
 theorem proposition2_kronecker_solutions {n : ℕ} (B C : Matrix (Fin n) (Fin n) ℂ)
     (W : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     W * kronOne C = kronOne B * W ↔

@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SemidirectHSP07.MainResults.FactorReduction
 import Mathlib.Algebra.Group.Subgroup.Map
 import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+
+/-!
+# Hidden subgroup reconstruction from coprime factors
+
+The predicate `HiddenFor` expresses that the fibers of a function are exactly the left cosets of
+a subgroup. For a direct product of finite groups of coprime orders, `hides_fst` and `hides_snd`
+show that restricting a hiding function to either factor hides the corresponding projected
+subgroup.
+
+The projected subgroups determine the original subgroup uniquely. `source_hsp_reduction`
+specializes these facts to `Cyc (q ^ s) × SDG p r ψ` for distinct primes, supplying the
+algebraic factor reduction used in [CosmePortugal2007].
+
+## Main statements
+
+- `subgroup_eq_of_map_eq` proves uniqueness from the two projected subgroups.
+- `hides_fst` and `hides_snd` preserve the hiding relation under restriction to the factors.
+- `source_hsp_reduction` combines the restricted hiding relations with subgroup reconstruction.
+
+## References
+
+* [Cosme and Portugal, 2007][CosmePortugal2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,9 +39,13 @@ noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults
 
+/-- The hiding condition that `f x = f y` holds exactly when `x⁻¹ * y ∈ H`. Equivalently, the
+fibers of `f` are exactly the left cosets of `H`. -/
 def HiddenFor {G X : Type*} [Group G] (f : G → X) (H : Subgroup G) : Prop :=
   ∀ x y : G, f x = f y ↔ x⁻¹ * y ∈ H
 
+/-- Two subgroups of a product of finite groups of coprime orders are equal if their images
+under each coordinate projection agree [CosmePortugal2007]. -/
 theorem subgroup_eq_of_map_eq
     {A B : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B))
@@ -28,6 +56,8 @@ theorem subgroup_eq_of_map_eq
   rw [subgroup_eq_prod_of_coprime_card hcop H₁,
     subgroup_eq_prod_of_coprime_card hcop H₂, h1, h2]
 
+/-- For finite groups of coprime orders, restricting a function hiding `H ≤ A × B` to the
+elements `(a, 1)` hides the image of `H` under the first projection [CosmePortugal2007]. -/
 theorem hides_fst
     {A B X : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B))
@@ -48,6 +78,8 @@ theorem hides_fst
     rw [← hx1]
     exact hfst
 
+/-- For finite groups of coprime orders, restricting a function hiding `H ≤ A × B` to the
+elements `(1, b)` hides the image of `H` under the second projection [CosmePortugal2007]. -/
 theorem hides_snd
     {A B X : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B))
@@ -68,6 +100,9 @@ theorem hides_snd
     rw [← hx2]
     exact hsnd
 
+/-- For distinct primes `p` and `q` and positive `s`, a function hiding a subgroup of `Cyc (q ^
+s) × SDG p r ψ` restricts to hiding functions for its two projected subgroups. Those
+projected subgroups uniquely determine the original subgroup [CosmePortugal2007]. -/
 theorem source_hsp_reduction (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime)
     (hs : 0 < s) (hne : p ≠ q)
     (ψ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) {X : Type*}

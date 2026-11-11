@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.DistinctFourierNoise
+
+/-!
+# Conditional noise inclusion laws and Fourier moments
+
+`conditionalNoiseMean` averages over the size-`L` subsets of a finite set `C`. Exact single-site
+and distinct-pair inclusion factors determine the Fourier mean and second moment for this
+sampling without replacement.
+
+For noise restricted to the complement of a signal set,
+`conditional_signal_noise_mixed_second_moment` computes both the noise moment and the full union
+moment, retaining the signal-noise cross term.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `conditional_noise_exact_inclusion`: fixed-cardinality inclusion probabilities.
+* `conditionalNoiseMean_add`: additivity of the conditional mean.
+* `conditional_signal_noise_mixed_second_moment`: exact noise and mixed Fourier moments.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -17,10 +42,14 @@ noncomputable section
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open scoped Classical BigOperators
 
+/-- The uniform real-valued mean over subsets of `C` of cardinality `L`, using the inverse
+cardinality of that family as normalization. -/
 def conditionalNoiseMean {X : Type} [DecidableEq X] (C : Finset X) (L : ℕ)
     (f : Finset X → ℝ) : ℝ :=
   ((C.powersetCard L).card : ℝ)⁻¹ * ∑ S ∈ C.powersetCard L, f S
 
+/-- A size-`L` subset of the complement of `A` is disjoint from `A`, and its union with `A` has
+cardinality `A.card + L`. -/
 theorem conditional_noise_record {X : Type} [Fintype X] [DecidableEq X]
     (A S : Finset X) (L : ℕ) (hS : S ∈ (Finset.univ \ A).powersetCard L) :
     Disjoint A S ∧ (A ∪ S).card = A.card+L := by
@@ -29,17 +58,22 @@ theorem conditional_noise_record {X : Type} [Fintype X] [DecidableEq X]
     (Finset.mem_sdiff.mp (hsub hs)).2 hx
   exact ⟨hdis, by rw [Finset.card_union_of_disjoint hdis, hcard]⟩
 
+/-- The sum of real indicators over a finite set equals the cardinality of the filtered set. -/
 private theorem conditional_sum_indicator {X : Type} [DecidableEq X]
     (T : Finset X) (p : X → Prop) [DecidablePred p] :
     (∑ x ∈ T, if p x then (1 : ℝ) else 0) = ((T.filter p).card : ℝ) := by
   rw [← Finset.sum_filter]
   simp
 
+/-- The binomial coefficient identity `n * choose (n - 1) (l - 1) = choose n l * l` for positive
+`n` and `l`. -/
 private theorem conditional_choose_one (n l : ℕ) (hn : 0 < n) (hl : 0 < l) :
     n * ((n-1).choose (l-1)) = (n.choose l) * l := by
   have h := Nat.add_one_mul_choose_eq (n-1) (l-1)
   simpa only [Nat.sub_add_cancel hn, Nat.sub_add_cancel hl] using! h
 
+/-- The two-element binomial coefficient identity relating `choose (n - 2) (l - 2)` to `choose n
+l * l * (l - 1)` when `n` and `l` are at least two. -/
 private theorem conditional_choose_two (n l : ℕ) (hn : 2 ≤ n) (hl : 2 ≤ l) :
     n*(n-1)*((n-2).choose (l-2)) = (n.choose l)*l*(l-1) := by
   have h1 := conditional_choose_one n l (by omega) (by omega)
@@ -51,6 +85,8 @@ private theorem conditional_choose_two (n l : ℕ) (hn : 2 ≤ n) (hl : 2 ≤ l)
     _ = (n*((n-1).choose (l-1)))*(l-1) := by ring
     _ = _ := by rw [h1]
 
+/-- In the uniform size-`L` subsets of `C`, a specified element of `C` is included with mean
+indicator `L / C.card`. -/
 private theorem conditional_single_inclusion {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (hL : L ≤ C.card) (x : X) (hx : x ∈ C) :
     conditionalNoiseMean C L (fun S => if x ∈ S then 1 else 0) = (L : ℝ)/C.card := by
@@ -73,6 +109,8 @@ private theorem conditional_single_inclusion {X : Type} [DecidableEq X]
     _ = (C.card.choose L : ℝ)⁻¹*((C.card.choose L : ℝ)*(L : ℝ)) := by rw [hh]
     _ = _ := by rw [← mul_assoc, inv_mul_cancel₀ hb, one_mul]
 
+/-- Two distinct specified elements of `C` have joint mean inclusion indicator `L * (L - 1) /
+(C.card * (C.card - 1))` for a feasible size `L`. -/
 private theorem conditional_pair_inclusion {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (hL : L ≤ C.card) (x y : X)
     (hx : x ∈ C) (hy : y ∈ C) (hxy : x ≠ y) :
@@ -114,6 +152,9 @@ private theorem conditional_pair_inclusion {X : Type} [DecidableEq X]
     have hl01 : L = 0 ∨ L = 1 := by omega
     rcases hl01 with rfl | rfl <;> simp
 
+/-- For a feasible fixed-cardinality family, identify its binomial cardinality and the exact
+single-site and distinct-pair inclusion means used in the error-stream moment calculation of
+[Cornwell2014]. -/
 theorem conditional_noise_exact_inclusion :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (C : Finset X) (L : ℕ), L ≤ C.card →
       let T := C.powersetCard L
@@ -127,10 +168,12 @@ theorem conditional_noise_exact_inclusion :
   exact ⟨Finset.card_powersetCard L C, conditional_single_inclusion C L hL,
     fun x hx y hy hxy => conditional_pair_inclusion C L hL x y hx hy hxy⟩
 
+/-- The uniform complex-valued mean over subsets of `C` of cardinality `L`. -/
 private def conditionalComplexMean {X : Type} [DecidableEq X] (C : Finset X) (L : ℕ)
     (f : Finset X → ℂ) : ℂ :=
   ((C.powersetCard L).card : ℂ)⁻¹ * ∑ S ∈ C.powersetCard L, f S
 
+/-- Functions agreeing on all size-`L` subsets of `C` have equal conditional complex means. -/
 private theorem conditionalComplexMean_congr {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (f g : Finset X → ℂ)
     (h : ∀ S ∈ C.powersetCard L, f S = g S) :
@@ -138,6 +181,7 @@ private theorem conditionalComplexMean_congr {X : Type} [DecidableEq X]
   unfold conditionalComplexMean
   rw [Finset.sum_congr rfl h]
 
+/-- Conditional complex averaging commutes with a finite sum. -/
 private theorem conditionalComplexMean_sum {X J : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (D : Finset J) (f : J → Finset X → ℂ) :
     conditionalComplexMean C L (fun S => ∑ x ∈ D, f x S) =
@@ -145,16 +189,20 @@ private theorem conditionalComplexMean_sum {X J : Type} [DecidableEq X]
   unfold conditionalComplexMean
   rw [Finset.sum_comm, Finset.mul_sum]
 
+/-- A constant complex factor can be pulled out of the conditional mean. -/
 private theorem conditionalComplexMean_mul_left {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (c : ℂ) (f : Finset X → ℂ) :
     conditionalComplexMean C L (fun S => c*f S) = c*conditionalComplexMean C L f := by
   simp [conditionalComplexMean, ← Finset.mul_sum, mul_left_comm]
 
+/-- Conditional complex averaging commutes with complex conjugation. -/
 private theorem conditionalComplexMean_star {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (f : Finset X → ℂ) :
     conditionalComplexMean C L (fun S => star (f S)) = star (conditionalComplexMean C L f) := by
   simp [conditionalComplexMean, star_sum, star_mul, mul_comm]
 
+/-- Express the Fourier sum of `S ⊆ C` as a sum over `C` weighted by membership indicators of
+`S`. -/
 private theorem conditional_fourier_expand {N : ℕ} [NeZero N]
     (C S : Finset (ZMod N)) (y : ZMod N) (hS : S ⊆ C) :
     distinctNoiseFourier S y = ∑ x ∈ C, ZMod.stdAddChar (x*y)*(if x ∈ S then 1 else 0) := by
@@ -165,6 +213,8 @@ private theorem conditional_fourier_expand {N : ℕ} [NeZero N]
       exact Finset.sum_congr rfl fun x hx => (if_pos hx).symm
     _ = _ := Finset.sum_subset hS (by intros; simp_all)
 
+/-- For a feasible layer in a set of size at least two, compute the conditional Fourier mean and
+second moment from the one-site and two-site inclusion factors. -/
 private theorem conditional_fourier_moments (N L : ℕ) [NeZero N]
     (C : Finset (ZMod N)) (y : ZMod N) (hC : 2 ≤ C.card) (hL : L ≤ C.card) :
     conditionalComplexMean C L (fun S => distinctNoiseFourier S y) =
@@ -239,6 +289,8 @@ private theorem conditional_fourier_moments (N L : ℕ) [NeZero N]
       _ = (C.card : ℂ)*p+q*(distinctNoiseFourier C y*star (distinctNoiseFourier C y)-C.card) := by ring
       _ = _ := by rw [hnp]
 
+/-- The real part of a conditional complex mean equals the conditional real mean of the real
+parts. -/
 private theorem conditionalComplexMean_re {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (f : Finset X → ℂ) :
     (conditionalComplexMean C L f).re = conditionalNoiseMean C L (fun S => (f S).re) := by
@@ -246,23 +298,30 @@ private theorem conditionalComplexMean_re {X : Type} [DecidableEq X]
   rw [show ((C.powersetCard L).card : ℂ)⁻¹ = (((C.powersetCard L).card : ℝ)⁻¹ : ℂ) by simp]
   simp [Complex.mul_re]
 
+/-- Conditional real averaging is additive. -/
 @[simp] theorem conditionalNoiseMean_add {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (f g : Finset X → ℝ) :
     conditionalNoiseMean C L (fun S => f S+g S) =
       conditionalNoiseMean C L f + conditionalNoiseMean C L g := by
   simp [conditionalNoiseMean, Finset.sum_add_distrib, mul_add]
 
+/-- A constant real factor can be pulled out of the conditional mean. -/
 @[simp] theorem conditionalNoiseMean_mul_left {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (c : ℝ) (f : Finset X → ℝ) :
     conditionalNoiseMean C L (fun S => c*f S) = c*conditionalNoiseMean C L f := by
   simp [conditionalNoiseMean, ← Finset.mul_sum, mul_left_comm]
 
+/-- The conditional mean of a constant equals that constant when the fixed-cardinality layer is
+feasible. -/
 theorem conditionalNoiseMean_const {X : Type} [DecidableEq X]
     (C : Finset X) (L : ℕ) (hL : L ≤ C.card) (c : ℝ) :
     conditionalNoiseMean C L (fun _ => c) = c := by
   have hb : (C.card.choose L : ℝ) ≠ 0 := by exact_mod_cast (Nat.choose_pos hL).ne'
   simp [conditionalNoiseMean, hb]
 
+/-- For fixed-cardinality noise on a signal complement of size at least two, compute the noise
+Fourier second moment and the mixed signal-plus-noise second moment, including their cross
+term; see [Cornwell, Section 3.4.4][Cornwell2014]. -/
 theorem conditional_signal_noise_mixed_second_moment :
     ∀ (N L : ℕ) [NeZero N] (A : Finset (ZMod N)) (y : ZMod N),
       let C := Finset.univ \ A

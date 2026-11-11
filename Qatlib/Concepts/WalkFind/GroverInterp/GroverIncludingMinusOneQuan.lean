@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkFind.GroverInterp.GroverIncludingMinusOneStat
 import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+
+/-!
+# Grover interpolation allowing eigenvalue minus one
+
+This module proves the Grover interpolation contract while allowing the background unitary to
+have eigenvalue minus one. The proof obtains a spectral weight decomposition, a zero of the
+secular scalar in the phase gap, and quantitative normalization estimates for its resolvent
+vector.
+
+The results culminate in `minusOne_groverInterpolation` and its exported form
+`groverIncludingMinusOne_answer`, supplying the version of the quantum-walk interpolation
+statement that includes this spectral endpoint.
+
+For background, see [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `minusOne_grover_small_overlap_root`: a secular root and a nonzero eigenvector in the stated
+  phase interval.
+* `minusOne_grover_small_overlap_normalization_bounds`: quantitative bounds for the imaginary
+  part of the resolvent vector.
+* `groverIncludingMinusOne_answer`: the interpolation contract including eigenvalue minus one.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +44,8 @@ namespace Qatlib.Concepts.WalkFind.GroverInterp
 open Matrix
 open scoped InnerProductSpace
 
+/-- Under the stated positive phase gap on nonzero eigenvectors orthogonal to the normalized
+fixed start vector, every fixed vector is its scalar multiple given by the start overlap. -/
 theorem minusOne_jw_fixed_vector_start_line (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start v : Fin m → ℂ)
     (hstart : U *ᵥ start = start) (hfixed : U *ᵥ v = v)
@@ -41,6 +71,9 @@ theorem minusOne_jw_fixed_vector_start_line (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     exact jw_phase_ne_one θ (hε.trans_le hlo) (by linarith only [hhi, hε]) he.symm
   exact sub_eq_zero.mp hwzero
 
+/-- The unitary and phase-gap hypotheses yield a unitary eigenbasis and nonnegative spectral
+weights splitting the good-state mass into totals `1 - α^2` and `α^2` on the nonfixed and
+fixed eigenspaces. -/
 theorem minusOne_jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -102,6 +135,8 @@ theorem minusOne_jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
   · intro j hj
     simp only [s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0)]
 
+/-- Under the unitary and phase-gap assumptions, every eigenvalue different from one with a
+nonzero eigenvector has real part between minus one and `cos ε`. -/
 theorem minusOne_jw_nonfixed_eigenvalue_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start v : Fin m → ℂ) (μ : ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -122,6 +157,8 @@ theorem minusOne_jw_nonfixed_eigenvalue_real_gap (m : ℕ) (ε : ℝ) (hε : 0 <
       _ ≤ Real.cos ε := Real.cos_le_cos_of_nonneg_of_le_pi hε.le
         (by linarith only [hθ]) (by linarith only [hhi])
 
+/-- In the given unitary eigenbasis, replacing fixed eigenvalues by real value minus one places
+every resulting real spectral value in `[-1, cos ε]`. -/
 theorem minusOne_jw_unitary_basis_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     (U B : Matrix (Fin m) (Fin m) ℂ) (start : Fin m → ℂ) (μ : Fin m → ℂ)
     (hu : star U * U = 1) (hB : star B * B = 1) (hstart : U *ᵥ start = start)
@@ -139,6 +176,8 @@ theorem minusOne_jw_unitary_basis_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     exact minusOne_jw_nonfixed_eigenvalue_real_gap m ε hε U start (fun i => B i j) (μ j)
       hu hstart (heigen j) hj (jw_unitary_basis_column_ne_zero m B hB j) hphase
 
+/-- Under the unitary and phase-gap hypotheses with `0 < ε ≤ 1`, the matrix `U - exp (I * β) •
+1` is invertible whenever `0 < β < ε`. -/
 theorem minusOne_grover_resolvent_isUnit (m : ℕ) (ε β : ℝ) (_hε : 0 < ε) (hε1 : ε ≤ 1)
     (hβ : 0 < β) (hβε : β < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start : Fin m → ℂ)
@@ -170,6 +209,8 @@ theorem minusOne_grover_resolvent_isUnit (m : ℕ) (ε β : ℝ) (_hε : 0 < ε)
     rw [Matrix.mulVec_sub, hxy, sub_self]
   exact sub_eq_zero.mp (hker (x - y) hw)
 
+/-- Under the unitary and phase-gap hypotheses with `0 < ε ≤ 1`, the Grover secular scalar is
+continuous on `(0, ε)`. -/
 theorem minusOne_grover_secular_continuousOn (m : ℕ) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -194,6 +235,8 @@ theorem minusOne_grover_secular_continuousOn (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     fun_prop
   exact (hF.continuousAt.comp hinv).continuousWithinAt
 
+/-- Opposite weak signs at endpoints inside the phase gap yield a secular root between them and
+a nonzero resolvent eigenvector of `U * Uf` with good-state overlap one half. -/
 theorem minusOne_grover_secular_root_of_signs (m : ℕ) (ε a b : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (ha : 0 < a) (hab : a ≤ b) (hb : b < ε)
     (Uf U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
@@ -234,6 +277,9 @@ theorem minusOne_grover_secular_root_of_signs (m : ℕ) (ε a b : ℝ)
   have he := grover_resolvent_search_eigenvector m Uf U good z hgn hgood hfix hi hcomplex
   exact ⟨β, hβ, hroot, hcomplex, he⟩
 
+/-- Under the stated real-unitary, reflection, and phase-gap hypotheses with `0 < α ≤ ε^2 /
+200`, a secular root lies between `ε * α / sqrt (2 * pi)` and `13 * α / 5` and yields a
+nonzero eigenvector with good-state overlap one half. -/
 theorem minusOne_grover_small_overlap_root (m : ℕ) (ε α : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hα : 0 < α) (hsmall : α ≤ ε^2 / 200)
     (Uf U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
@@ -291,6 +337,9 @@ theorem minusOne_grover_small_overlap_root (m : ℕ) (ε α : ℝ)
   exact minusOne_grover_secular_root_of_signs m ε lo hi hε hε1 hlop hab hhieps Uf U start good
     hu hstart hgn hgood hfix hphase hscalarlo hscalarhi
 
+/-- For a secular root in the specified interval under the real-unitary and small-overlap
+assumptions, the coefficient `C` is positive, the squared norm of the imaginary part is at
+most `36 / ε^2`, and its squared distance from `C • start` is at most `(2 * β * C / ε)^2`. -/
 theorem minusOne_grover_small_overlap_normalization_bounds (m : ℕ) (ε α β : ℝ)
     (hε : 0<ε) (hε1 : ε≤1) (hα : 0<α) (hsmall : α≤ε^2/200)
     (hβbounds : β ∈ Set.Icc (ε*α/Real.sqrt (2*Real.pi)) ((13/5:ℝ)*α))
@@ -399,6 +448,8 @@ theorem minusOne_grover_small_overlap_normalization_bounds (m : ℕ) (ε α β :
         apply div_le_div_of_nonneg_right _ hεsq.le
         nlinarith [sq_nonneg β]
 
+/-- Establishes `GroverIncludingMinusOne`, the Grover interpolation contract allowing eigenvalue
+minus one in the background spectrum [Ambainis2007ElementDistinctness]. -/
 theorem minusOne_groverInterpolation : GroverIncludingMinusOne := by
   intro m ε α hε hε1 hα _ Uf U start good huf hu hU hsr hgr hsn hgn hoverlap hgood hfix hstart hphase
   by_cases hlarge : ε^2/200≤α
@@ -509,6 +560,9 @@ theorem minusOne_groverInterpolation : GroverIncludingMinusOne := by
   change ε^3/1000≤‖((W^t) *ᵥ start) ⬝ᵥ star good‖ at htarget
   simpa only [dotProduct_comm] using! htarget
 
+/-- The exported proof of `GroverIncludingMinusOne`, corresponding to the version of the Lemma 3
+interpolation statement that includes eigenvalue minus one
+[Ambainis2007ElementDistinctness]. -/
 theorem groverIncludingMinusOne_answer : GroverIncludingMinusOne :=
   minusOne_groverInterpolation
 

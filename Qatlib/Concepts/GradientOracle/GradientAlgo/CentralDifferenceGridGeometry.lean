@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorStat
 import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundOpti
 import Mathlib.Data.Fin.Rev
+
+/-!
+# Geometry and concentration of centered grids
+
+This module proves boundedness, reversal symmetry, and injectivity of the unit centered grid. It
+transfers a tensor concentration estimate to indexed grid points for use in the
+central-difference analysis of [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_grid_rev`: reversing a grid index negates its coordinate.
+* `centralDiff_grid_tensor_count`: a degree-`k` tensor tail contains at most `M^d / r^(2*k)`
+  grid points.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +34,7 @@ noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- Every centered unit-grid coordinate has absolute value at most `1/2`. -/
 theorem centralDiff_grid_abs (M : ℕ) (z : Fin M) : |gridCenter M 1 z|≤1/2 := by
   have hM : (0 : ℝ)<M := by
     exact_mod_cast (show 0<M from Nat.pos_of_ne_zero (by intro h; subst M; exact Fin.elim0 z))
@@ -31,6 +51,7 @@ theorem centralDiff_grid_abs (M : ℕ) (z : Fin M) : |gridCenter M 1 z|≤1/2 :=
       linarith)
     linarith
 
+/-- Reversing an index in the centered unit grid negates its real coordinate. -/
 theorem centralDiff_grid_rev (M : ℕ) (z : Fin M) : gridCenter M 1 z.rev= -gridCenter M 1 z := by
   have hM : (M : ℝ)≠0 := by exact_mod_cast (show M≠0 by intro h; subst M; exact Fin.elim0 z)
   have hz : (z.rev : ℝ)+(z : ℝ)+1=M := by
@@ -41,6 +62,7 @@ theorem centralDiff_grid_rev (M : ℕ) (z : Fin M) : gridCenter M 1 z.rev= -grid
   field_simp
   nlinarith
 
+/-- The map from finite indices to centered unit-grid coordinates is injective. -/
 theorem centralDiff_grid_injective (M : ℕ) : Function.Injective (gridCenter M 1) := by
   intro z w h
   have hM : (M : ℝ)≠0 := by exact_mod_cast (show M≠0 by intro h; subst M; exact Fin.elim0 z)
@@ -49,6 +71,8 @@ theorem centralDiff_grid_injective (M : ℕ) : Function.Injective (gridCenter M 
   apply Fin.ext
   exact_mod_cast hzw
 
+/-- For positive dimension and degree, bounded tensor coefficients, and `r > 1`, at most
+`M^d/r^(2*k)` grid points reach the stated tensor-polynomial threshold. -/
 theorem centralDiff_grid_tensor_count (d k M : ℕ) (hd : 0<d) (hk : 0<k)
     (r : ℝ) (hr : 1<r) (H : (Fin k → Fin d) → ℝ) (hH : ∀ α,|H α|≤1) :
     ((Finset.univ.filter fun z : Fin d → Fin M =>

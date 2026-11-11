@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SeqEntangle05.MainResults.MPSDefs
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.InnerProductSpace.Orthonormal
+
+/-!
+# Factorization into sequential isometries
+
+This module proves the matrix-factorization step underlying the sequential-generation
+characterization of [SchoenEtAl2005]. `BlockFactorization` expresses a pair of ancillary
+matrices as the blocks of one isometry followed by a common square matrix, and
+`blockFactorization` proves this for every ancillary dimension by extending orthonormal
+families.
+
+`factorList` propagates the remaining square factor through an entire chain. Absorbing the final
+factor into the initial boundary vector gives the equivalence of `IsMPS` and `SeqGenerable` for
+arbitrary boundary-contracted amplitudes.
+
+## Main statements
+
+* `orthonormal_sum_inner_smul_of_mem_span` reconstructs a vector in the span of a finite
+  orthonormal family.
+* `blockFactorization` establishes the single-block factorization in every dimension.
+* `factorList` factors a matrix-product chain while preserving its length and all bit-string
+  products.
+* `isMPS_iff_seqGenerable_uncond` proves the unconditional equivalence of the two amplitude
+  representation predicates.
+
+## References
+
+* [Schoen et al., 2005][SchoenEtAl2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +49,15 @@ namespace Qatlib.Papers.SeqEntangle05.MainResults.SequentialGeneration
 
 open Qatlib.Papers.SeqEntangle05.MainResults.MPSDefs
 
+/-- The property that every pair of `D`-by-`D` blocks factors as the two blocks of one isometry
+followed by a common `D`-by-`D` matrix. -/
 def BlockFactorization (D : ℕ) : Prop :=
   ∀ B : Block D, ∃ (V : IsometryMatrix D) (M : Matrix (Fin D) (Fin D) ℂ),
     IsIsometry V ∧ ∀ i, B i = isoBlock V i * M
 
+/-- A vector in the span of a finite orthonormal family equals the sum of the family vectors
+multiplied by their inner products with that vector. The statement applies over any `RCLike`
+scalar field. -/
 theorem orthonormal_sum_inner_smul_of_mem_span
     {𝕜 : Type*} [RCLike 𝕜] {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
     {ι : Type*} [Fintype ι] {v : ι → E} (hv : Orthonormal 𝕜 v) {x : E}
@@ -60,6 +94,9 @@ theorem orthonormal_sum_inner_smul_of_mem_span
         rw [hstep, iha]
   exact hmain x hx
 
+/-- Every ancillary dimension satisfies `BlockFactorization`: stacking two square blocks yields
+an isometry times a common square factor. The construction extends an orthonormal basis of
+the stacked matrix's column span [SchoenEtAl2005]. -/
 theorem blockFactorization (D : ℕ) : BlockFactorization D := by
   classical
   intro B
@@ -168,6 +205,9 @@ theorem blockFactorization (D : ℕ) : BlockFactorization D := by
     rw [WithLp.ofLp_smul, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- Assuming `BlockFactorization D`, factors `C * prodBlocks pl is` into the product of an
+equally long list of isometry blocks followed by a single square matrix. The factorization
+holds simultaneously for every bit list of the same length as `pl`. -/
 theorem factorList {D : ℕ} (hfactor : BlockFactorization D)
     (C : Matrix (Fin D) (Fin D) ℂ) (pl : List (Block D)) :
     ∃ (Vs : List (IsometryMatrix D)) (M : Matrix (Fin D) (Fin D) ℂ),
@@ -198,6 +238,9 @@ theorem factorList {D : ℕ} (hfactor : BlockFactorization D)
             rw [← Matrix.mul_assoc, hfac i, Matrix.mul_assoc, his is' hlen']
             simp only [isoBlockFamily, Matrix.mul_assoc]
 
+/-- Under `BlockFactorization D`, every bond-dimension-`D` matrix-product amplitude has a
+sequential-isometry representation. The remaining square factor is absorbed into the initial
+boundary vector. -/
 theorem isMPS_seqGenerable {D n : ℕ} (hfactor : BlockFactorization D)
     {ψ : (Fin n → Fin 2) → ℂ} (h : IsMPS D n ψ) : SeqGenerable D n ψ := by
   obtain ⟨A, φI, φF, hψ⟩ := h
@@ -219,14 +262,21 @@ theorem isMPS_seqGenerable {D n : ℕ} (hfactor : BlockFactorization D)
     simp only [mpsAmplitude, blockProd, hmap]
     rw [Matrix.mulVec_mulVec, hkey]
 
+/-- Assuming `BlockFactorization D`, the predicates `IsMPS D n ψ` and `SeqGenerable D n ψ` are
+equivalent for every chain length and amplitude function. -/
 theorem isMPS_iff_seqGenerable {D n : ℕ} (hfactor : BlockFactorization D)
     {ψ : (Fin n → Fin 2) → ℂ} : IsMPS D n ψ ↔ SeqGenerable D n ψ :=
   ⟨isMPS_seqGenerable hfactor, seqGenerable_isMPS⟩
 
+/-- Every matrix-product amplitude has a sequential-isometry representation with the same
+ancillary dimension and chain length, using the proven factorization theorem. -/
 theorem isMPS_seqGenerable_uncond {D n : ℕ} {ψ : (Fin n → Fin 2) → ℂ}
     (h : IsMPS D n ψ) : SeqGenerable D n ψ :=
   isMPS_seqGenerable (blockFactorization D) h
 
+/-- For every ancillary dimension and chain length, matrix-product amplitudes are exactly the
+amplitudes represented by sequential isometries with arbitrary boundary contraction, giving
+the amplitude-level characterization of [SchoenEtAl2005]. -/
 theorem isMPS_iff_seqGenerable_uncond {D n : ℕ} {ψ : (Fin n → Fin 2) → ℂ} :
     IsMPS D n ψ ↔ SeqGenerable D n ψ :=
   isMPS_iff_seqGenerable (blockFactorization D)

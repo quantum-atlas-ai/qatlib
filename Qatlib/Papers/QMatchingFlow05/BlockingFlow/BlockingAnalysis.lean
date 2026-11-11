@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMatchingFlow05.BlockingFlow.NetworkFlow
+
+/-!
+# Cost aggregation for blocking flows
+
+This module proves scalar cost aggregation estimates for blocking-flow analysis in
+[AmbainisSpalek2006]. Nonnegative per-vertex quantities with bounded sums control a sum of three
+square-root search costs.
+
+For the supplied choice `k = min (n ^ (2 / 3)) (√m)`, the final estimate bounds the aggregate
+cost by a positive constant times the minimum of two size expressions, multiplied by `U *
+logFactor n`.
+
+## Main statements
+
+* `theorem9_perBlockingCost`: aggregates the per-vertex square-root costs.
+* `theorem10_arbitraryU`: the aggregate bound for capacity parameter `U ≥ 1`.
+
+## References
+
+* [Ambainis and Špalek, 2006][AmbainisSpalek2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,9 @@ namespace Qatlib.Papers.QMatchingFlow05.BlockingFlow
 
 open Qatlib.Papers.QMatchingFlow05.SearchTools
 
+/-- For nonnegative `c` and `U`, the stated size and sum bounds imply that the aggregate
+per-vertex cost is at most `C * c * (√(U * j * A * m) + √(n * m)) * logFactor n` for some
+positive `C`. See [AmbainisSpalek2006]. -/
 theorem theorem9_perBlockingCost (c U : ℝ) (hc : 0 ≤ c) (hU : 0 ≤ U) :
     ∃ C : ℝ, 0 < C ∧ ∀ (kv n m j A : ℕ) (aV cV dV : Fin kv → ℝ),
       kv ≤ n → n ≤ m →
@@ -137,12 +162,14 @@ namespace Qatlib.Papers.QMatchingFlow05.BlockingFlow
 
 open Qatlib.Papers.QMatchingFlow05.SearchTools
 
+/-- For nonnegative real `x`, the square root of `x ^ a` equals `x ^ (a / 2)`. -/
 theorem sqrt_rpow (x : ℝ) (hx : 0 ≤ x) (a : ℝ) :
     Real.sqrt (x ^ a) = x ^ (a / 2) := by
   rw [Real.sqrt_eq_rpow, ← Real.rpow_mul hx]
   congr 1
   ring
 
+/-- For `x ≥ 1` and `e ≥ 0`, one has `x ≤ x ^ (1 + e)`. -/
 theorem le_rpow_one_add (x : ℝ) (hx : 1 ≤ x) (e : ℝ) (he : 0 ≤ e) :
     x ≤ x ^ (1 + e) := by
   have hx0 : 0 < x := by linarith
@@ -152,6 +179,9 @@ theorem le_rpow_one_add (x : ℝ) (hx : 1 ≤ x) (e : ℝ) (he : 0 ≤ e) :
 
 set_option maxHeartbeats 1600000 in
 
+/-- For nonnegative `c`, the stated hypotheses with `U ≥ 1`, `m ≤ n ^ 2`, and `k = min (n ^ (2 /
+3)) (√m) > 0` bound the aggregate cost by `C * c * min (n ^ (7 / 6) * √m) (√n * m) * U *
+logFactor n`. See [AmbainisSpalek2006]. -/
 theorem theorem10_arbitraryU (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n m : ℕ) (U k : ℝ), 2 ≤ n → 1 ≤ U →
       (m : ℝ) ≤ (n : ℝ) ^ 2 →

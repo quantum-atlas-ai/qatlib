@@ -6,10 +6,31 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 
+/-!
+# Cosine sum identities away from singular angles
+
+`Lemma1Restricted` states finite cosine-sum identities under nonzero sine-denominator
+hypotheses. It includes both the general arithmetic progression and the odd-multiple
+specialization needed for randomized Grover success.
+
+For the mathematical background, see [BoyerEtAl1998].
+
+## Main statements
+
+* `Lemma1Restricted`: The conjunction of the arithmetic-progression and odd-multiple cosine-sum
+  quotient identities for positive m and nonzero sine denominators.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.GroverSuccess
 
 open scoped BigOperators
 
+/-- The conjunction of the arithmetic-progression and odd-multiple cosine-sum quotient
+identities for positive m and nonzero sine denominators. -/
 def Lemma1Restricted : Prop :=
   (∀ (α β : ℝ) (m : ℕ), 0 < m → Real.sin β ≠ 0 →
     (∑ j ∈ Finset.range m, Real.cos (α + 2 * β * j)) =

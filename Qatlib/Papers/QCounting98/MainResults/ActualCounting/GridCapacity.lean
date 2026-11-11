@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QCounting98.MainResults.ActualCounting.ExactCountingCost
+
+/-!
+# Workspace capacity for adaptive counting grids
+
+This module bounds the rough and final phase-grid sizes used by the adaptive exact counter
+associated with [BrassardHoyerTapp1998Counting]. The final-grid estimate is uniform over every
+pair of rough observations.
+
+For a domain of size `2^n`, `exact_counter_common_capacity` places both precisions inside a
+single workspace of size `2^(n+9)`, enabling their common binary-register representation.
+
+## Main statements
+
+* `observedFinalGrid_le_linear`: the final grid has size at most `97 * N`.
+* `roughGrid_le_linear`: the rough grid has size at most `321 * N`.
+* `exact_counter_common_capacity`: both grids fit in a workspace of size `2^(n+9)`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +36,7 @@ namespace Qatlib.Papers.QCounting98.MainResults.ActualCounting
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
 
+/-- For `N > 0`, every rough observation pair selects a final grid of size at most `97 * N`. -/
 theorem observedFinalGrid_le_linear {N : ℕ} (hN : 0 < N)
     (z : Fin (nextCor4RoughGrid N) × Fin (nextCor4RoughGrid N)) : observedFinalGrid z ≤ 97*N := by
   have hn : (1 : ℝ) ≤ N := by exact_mod_cast hN
@@ -32,6 +55,7 @@ theorem observedFinalGrid_le_linear {N : ℕ} (hN : 0 < N)
   have hreal : (observedFinalGrid z : ℝ) ≤ 97*(N : ℝ) := by linarith
   exact_mod_cast hreal
 
+/-- For `N > 0`, the rough counting grid has size at most `321 * N`. -/
 theorem roughGrid_le_linear {N : ℕ} (hN : 0 < N) : nextCor4RoughGrid N ≤ 321*N := by
   have hn : (1 : ℝ) ≤ N := by exact_mod_cast hN
   have hs : Real.sqrt (N : ℝ) ≤ (N : ℝ) := Real.sqrt_le_iff.mpr ⟨by positivity,by nlinarith⟩
@@ -41,6 +65,8 @@ theorem roughGrid_le_linear {N : ℕ} (hN : 0 < N) : nextCor4RoughGrid N ≤ 321
   have hreal : (nextCor4RoughGrid N : ℝ) ≤ 321*(N : ℝ) := by nlinarith
   exact_mod_cast hreal
 
+/-- For a domain of size `2^n`, both the rough grid and every observation-dependent final grid
+have size at most `2^(n+9)`. -/
 theorem exact_counter_common_capacity (n : ℕ)
     (z : Fin (nextCor4RoughGrid (2^n)) × Fin (nextCor4RoughGrid (2^n))) :
     nextCor4RoughGrid (2^n) ≤ 2^(n+9) ∧ observedFinalGrid z ≤ 2^(n+9) := by

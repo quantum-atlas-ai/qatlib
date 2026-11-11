@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarWord
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHPhi
+
+/-!
+# Position tagging and word polarization
+
+`wordCounts` records letter multiplicities, while `tagWords` attaches one polynomial variable to
+each position and relabels its base letter. The linear map `extractCoefficient` extracts a fixed
+multidegree from the polynomial coefficients of `PolarAlg`.
+
+Coefficient extraction after tagging is equivalent to selecting a permutation class and
+relabeling it. Applied to word logarithms, this identifies the multilinear component with
+`BCHPhi.phi`, supporting the polarization development in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `extract_tagWords`: relates multidegree extraction to word selection.
+* `extract_tagged_log_phi`: identifies the fully multilinear tagged logarithm coefficient.
+* `evaluate_selected_log_list`: evaluates a selected logarithm component as phi.
+* `wordCounts_eq_squarefree`: identifies multiplicities with squarefree exponents for distinct
+  letters.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,11 +44,15 @@ open BCHDynkin BCHWordLie BCHMultilinear BCHPolarCoeff
 
 variable {σ α : Type}
 
+/-- The finitely supported letter multiplicity function of a word. -/
 def wordCounts (w : List σ) : σ →₀ ℕ := (w : Multiset σ).toFinsupp
 
+/-- Two words have equal letter multiplicity functions exactly when they are permutations of one
+another. -/
 theorem wordCounts_eq_iff (w v : List σ) : wordCounts w = wordCounts v ↔ w.Perm v := by
   exact Multiset.toFinsupp.injective.eq_iff.trans Multiset.coe_eq_coe
 
+/-- Prepending a letter adds one to its multiplicity function. -/
 theorem wordCounts_cons (j : σ) (w : List σ) :
     wordCounts (j :: w) = Finsupp.single j 1 + wordCounts w := by
   ext i
@@ -32,6 +61,8 @@ theorem wordCounts_cons (j : σ) (w : List σ) :
     simp [wordCounts, add_comm]
   · simp [wordCounts, hi, Ne.symm hi]
 
+/-- The product of the variables indexed by a word is the monomial with its letter
+multiplicities as exponents and coefficient one. -/
 theorem position_product (w : List σ) :
     (w.map (fun j => (MvPolynomial.X j : MvPolynomial σ ℚ))).prod =
       MvPolynomial.monomial (wordCounts w) 1 := by
@@ -42,24 +73,34 @@ theorem position_product (w : List σ) :
     change MvPolynomial.monomial (Finsupp.single j 1) 1 * _ = _
     rw [MvPolynomial.monomial_mul, one_mul]
 
+/-- The coefficient at a target word's multiplicities in a variable product is one when the
+indexing word is a permutation of the target and zero otherwise. -/
 theorem coeff_position_product (xs w : List σ) :
     ((w.map (fun j => (MvPolynomial.X j : MvPolynomial σ ℚ))).prod).coeff (wordCounts xs) =
         if w.Perm xs then 1 else 0 := by
   rw [position_product, MvPolynomial.coeff_monomial]
   simp only [wordCounts_eq_iff, List.perm_comm]
 
+/-- The word monoid algebra with rational multivariate polynomial coefficients. -/
 abbrev PolarAlg (σ α : Type) := MonoidAlgebra (MvPolynomial σ ℚ) (FreeMonoid α)
 
+/-- The word basis element for one letter in the polynomial coefficient word algebra. -/
 def polarLetter (i : α) : PolarAlg σ α := MonoidAlgebra.single (FreeMonoid.of i) 1
 
+/-- The algebra homomorphism relabeling each position by its base letter and multiplying it by
+its own polynomial variable. -/
 def tagWords (base : σ → α) : WordAlg σ →ₐ[ℚ] PolarAlg σ α :=
   evaluateWords (fun j => (MvPolynomial.X j : MvPolynomial σ ℚ) • polarLetter (base j))
 
+/-- The rational linear map extracting a fixed polynomial multidegree from every word
+coefficient. -/
 def extractCoefficient (d : σ →₀ ℕ) : PolarAlg σ α →ₗ[ℚ] WordAlg α :=
   (MonoidAlgebra.coeffLinearEquiv ℚ).symm.toLinearMap ∘ₗ
     Finsupp.mapRange.linearMap (MvPolynomial.lcoeff ℚ d) ∘ₗ
       (MonoidAlgebra.coeffLinearEquiv ℚ).toLinearMap
 
+/-- Extracting a polynomial multidegree from a scaled word basis element extracts that
+coefficient from its scalar polynomial. -/
 theorem extractCoefficient_single (d : σ →₀ ℕ) (w : FreeMonoid α) (c : MvPolynomial σ ℚ) :
     extractCoefficient d (MonoidAlgebra.single w c) =
       MonoidAlgebra.single w (c.coeff d) := by
@@ -68,6 +109,8 @@ theorem extractCoefficient_single (d : σ →₀ ℕ) (w : FreeMonoid α) (c : M
     MonoidAlgebra.ofCoeff (Finsupp.single w (c.coeff d))
   rw [Finsupp.mapRange_single]
 
+/-- Tagging a word relabels its letters by `base` and multiplies its coefficient by the product
+of its position variables. -/
 theorem tagWords_word (base : σ → α) (w : List σ) :
     tagWords base (word w) = MonoidAlgebra.single (FreeMonoid.ofList (w.map base))
       ((w.map (fun j => (MvPolynomial.X j : MvPolynomial σ ℚ))).prod) := by
@@ -78,6 +121,8 @@ theorem tagWords_word (base : σ → α) (w : List σ) :
     simp [tagWords, evaluateWords_letter, polarLetter, List.map_cons, List.prod_cons,
       FreeMonoid.ofList_cons, MonoidAlgebra.smul_single, MonoidAlgebra.single_mul_single]
 
+/-- Extracting a target word's multiplicities from a tagged word gives its relabeled basis word
+if the original word is a permutation of the target, and zero otherwise. -/
 theorem extract_tagWords_word (base : σ → α) (xs w : List σ) :
     extractCoefficient (wordCounts xs) (tagWords base (word w)) =
       if w.Perm xs then word (w.map base) else 0 := by
@@ -86,6 +131,8 @@ theorem extract_tagWords_word (base : σ → α) (xs w : List σ) :
   · rfl
   · exact MonoidAlgebra.single_zero _
 
+/-- Extracting a target multidegree after tagging is equivalent to selecting its permutation
+class and then relabeling the letters. -/
 theorem extract_tagWords (base : σ → α) (xs : List σ) (p : WordAlg σ) :
     extractCoefficient (wordCounts xs) (tagWords base p) =
       evaluateWords (fun j => letter (base j)) (selectWords xs p) := by
@@ -101,6 +148,8 @@ theorem extract_tagWords (base : σ → α) (xs : List σ) (p : WordAlg σ) :
   | add p q hp hq => simp only [map_add, hp, hq]
   | smul c p hp => simp only [map_smul, hp]
 
+/-- The coefficient using each position variable once in the tagged degree `n` logarithm is phi
+on the corresponding base letters. -/
 theorem extract_tagged_log_phi {n : ℕ} (base : Fin n → α) :
     extractCoefficient (wordCounts (List.finRange n))
       (tagWords base (BCHWordLog.logCoefficient
@@ -108,11 +157,14 @@ theorem extract_tagged_log_phi {n : ℕ} (base : Fin n → α) :
           BCHPhi.phi (fun j => letter (base j)) := by
   exact extract_tagWords base (List.finRange n) _
 
+/-- Evaluating letters as their relabeled basis elements relabels a word. -/
 theorem evaluate_relabel_word (f : σ → α) (w : List σ) :
     evaluateWords (fun j => letter (f j)) (word w) = word (w.map f) := by
   rw [evaluateWords_word, word_eq_prod]
   simp only [List.map_map, Function.comp_def]
 
+/-- Word selection commutes with injective relabeling of the target list and the word algebra
+element. -/
 theorem selectWords_relabel (f : σ → α) (hf : Function.Injective f)
     (xs : List σ) (p : WordAlg σ) :
     selectWords (xs.map f) (evaluateWords (fun j => letter (f j)) p) =
@@ -130,6 +182,7 @@ theorem selectWords_relabel (f : σ → α) (hf : Function.Injective f)
   | add p q hp hq => simp only [map_add, hp, hq]
   | smul c p hp => simp only [map_smul, hp]
 
+/-- Evaluation after relabeling equals evaluation using the composed letter assignment. -/
 theorem evaluate_relabel {B : Type} [Ring B] [Algebra ℚ B] (Y : α → B)
     (f : σ → α) (p : WordAlg σ) :
     evaluateWords Y (evaluateWords (fun j => letter (f j)) p) =
@@ -144,6 +197,8 @@ theorem evaluate_relabel {B : Type} [Ring B] [Algebra ℚ B] (Y : α → B)
   | add p q hp hq => simp only [map_add, hp, hq]
   | smul c p hp => simp only [map_smul, hp]
 
+/-- For a list without repetitions, evaluating its selected logarithm component gives phi on the
+inputs indexed by that list. -/
 theorem evaluate_selected_log_list {B : Type} [Ring B] [Algebra ℚ B]
     (Y : σ → B) (xs : List σ) (hx : xs.Nodup) :
     evaluateWords Y (selectWords xs
@@ -170,6 +225,8 @@ theorem evaluate_selected_log_list {B : Type} [Ring B] [Algebra ℚ B]
   rw [evaluate_relabel]
   rfl
 
+/-- For a word without repetitions, its letter multiplicity function is the squarefree exponent
+function of its underlying finite set. -/
 theorem wordCounts_eq_squarefree (xs : List σ) (hx : xs.Nodup) :
     wordCounts xs = squarefree xs.toFinset := by
   ext j

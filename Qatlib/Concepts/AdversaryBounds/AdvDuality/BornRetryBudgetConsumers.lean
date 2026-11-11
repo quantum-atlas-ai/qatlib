@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.RetryBudgetCoupling
 import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.NoisyLeastSquaresConsumer
+
+/-!
+# Born-measurement retries and finite-budget costs
+
+This module constructs `bornRetry` from a two-dimensional unitary preparation followed by a Born
+measurement, with outcome one treated as success. It proves the finite-budget success law and
+the expected cost as a truncated geometric sum.
+
+For Hadamard preparation, `born_retry_hadamard_budget_consumer` gives success mass `1 - (1/2)^B`
+and an expected cost at most two for the larger budget. For background, see [NielsenChuang2010].
+
+## Main statements
+
+* `bornRetry`: The unit-cost retry process that measures `U|0⟩`, returns `some true` on outcome
+  one, and retries on outcome zero.
+* `born_retry_actual_mass_and_cost`: With budget `B` and single-trial Born probability `p`, the
+  true-success event has mass `1 - (1 - p)^B` and the expected cost is the extended-real
+  geometric sum over `k < B`.
+* `born_retry_hadamard_budget_consumer`: For `B ≤ C`, Hadamard-based retries have true-success
+  mass `1 - (1/2)^B` with budget `B` and expected cost at most two with budget `C`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,6 +76,8 @@ universe u v w
 
 variable {State : Type u} {Output : Type v}
 
+/-- The unit-cost retry process that measures `U|0⟩`, returns `some true` on outcome one, and
+retries on outcome zero. -/
 noncomputable def bornRetry (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     PlannedRetry Unit Bool where
   Plan _ := Unit
@@ -68,14 +96,19 @@ instance bornRetry_planUnique (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (
     ∀ s, Unique ((bornRetry U hU).Plan s) :=
   fun _ => inferInstanceAs (Unique Unit)
 
+/-- Label outcome one as `some true` and outcome zero as `none`. -/
 def bornRetryLabel (i : Fin 2) : Option Bool := if i = 1 then some true else none
 
+/-- The retry label of outcome zero is `none`. -/
 @[simp] theorem bornRetryLabel_zero : bornRetryLabel 0 = none := by
   simp [bornRetryLabel]
 
+/-- The retry label of outcome one is `some true`. -/
 @[simp] theorem bornRetryLabel_one : bornRetryLabel 1 = some true := by
   simp [bornRetryLabel]
 
+/-- The single-trial success mass is the nonnegative extended-real embedding of the Born
+probability of outcome one in `U|0⟩`. -/
 theorem bornRetry_perform_true (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     (bornRetry U hU).perform () () (some true)
       = ENNReal.ofReal (MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) := by
@@ -90,6 +123,7 @@ theorem bornRetry_perform_true (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup 
   rw [bornRetryLabel_zero, PMF.pure_apply, if_neg (by simp), mul_zero]
   rw [bornRetryLabel_one, PMF.pure_apply, if_pos rfl, mul_one, h1, zero_add]
 
+/-- A Born retry trial assigns zero mass to `some false`. -/
 theorem bornRetry_perform_false (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     (bornRetry U hU).perform () () (some false) = 0 := by
   let d : PMF (Fin 2) := bornDistribution (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0))
@@ -100,11 +134,14 @@ theorem bornRetry_perform_false (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup
     bornRetryLabel_one, PMF.pure_apply, if_neg (by decide), mul_zero]
   simp
 
+/-- The two Born probabilities of a normalized two-dimensional state sum to one. -/
 theorem bornProb_sum_fin_two (ψ : QState (Fin 2)) (hψ : Normalized ψ) :
     BornProb ψ 0 + BornProb ψ 1 = 1 := by
   have h : ∑ i : Fin 2, BornProb ψ i = 1 := hψ
   simpa using h
 
+/-- The single-trial retry mass is the nonnegative extended-real embedding of one minus the Born
+probability of outcome one. -/
 theorem bornRetry_perform_none (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     (bornRetry U hU).perform () () (none)
       = ENNReal.ofReal (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) := by
@@ -124,6 +161,8 @@ theorem bornRetry_perform_none (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup 
   rw [bornRetryLabel_one, PMF.pure_apply, if_neg (by simp), mul_zero]
   rw [add_zero, h0]
 
+/-- Adding one to `r` times the first `n` powers of `r` gives the sum of the first `n + 1`
+powers. -/
 theorem geom_sum_succ (r : ℝ) : ∀ n : ℕ,
     1 + r * (∑ k ∈ Finset.range n, r ^ k) = ∑ k ∈ Finset.range (n + 1), r ^ k := by
   intro n
@@ -140,6 +179,8 @@ theorem geom_sum_succ (r : ℝ) : ∀ n : ℕ,
       _ = (∑ k ∈ Finset.range (n + 1), r ^ k) + r ^ (n + 1) := by rw [ih]
       _ = ∑ k ∈ Finset.range (n + 2), r ^ k := h2.symm
 
+/-- For natural `r ≤ C`, the extended-real embedding of the real difference `C + 1 - r` is one
+plus the embedding of `C - r`. -/
 theorem ennreal_ofReal_succ_sub {C r : ℕ} (hr : r ≤ C) :
     ENNReal.ofReal (C + 1 - r) = 1 + ENNReal.ofReal (C - r) := by
   have hr' : (r : ℝ) ≤ C := by exact_mod_cast hr
@@ -148,10 +189,14 @@ theorem ennreal_ofReal_succ_sub {C r : ℕ} (hr : r ≤ C) :
     rw [ENNReal.ofReal_add (by norm_num) (by linarith), ENNReal.ofReal_one]
   rw [h, h2]
 
+/-- For nonnegative `a`, multiplying `ENNReal.ofReal a` and `ENNReal.ofReal b` gives
+`ENNReal.ofReal (a * b)`. -/
 theorem ennreal_mul_ofReal {a b : ℝ} (ha : 0 ≤ a) :
     ENNReal.ofReal a * ENNReal.ofReal b = ENNReal.ofReal (a * b) := by
   rw [ENNReal.ofReal_mul ha]
 
+/-- For natural `r ≤ C`, `ENNReal.ofReal ((C : ℝ) + 1 - r)` is one plus the natural-number cast
+of `C - r`. -/
 theorem ennreal_ofReal_succ_sub' {C r : ℕ} (hr : r ≤ C) :
     ENNReal.ofReal ((C : ℝ) + 1 - r) = 1 + ((C - r : ℕ) : ℝ≥0∞) := by
   have hr' : (r : ℝ) ≤ C := by exact_mod_cast hr
@@ -165,10 +210,13 @@ theorem ennreal_ofReal_succ_sub' {C r : ℕ} (hr : r ≤ C) :
       ENNReal.ofReal_one]
   rw [h, h2]
 
+/-- For `0 ≤ p ≤ 1`, the extended-real embeddings of `p` and `1 - p` sum to one. -/
 theorem ennreal_p_add (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
     ENNReal.ofReal p + ENNReal.ofReal (1 - p) = 1 := by
   rw [← (ENNReal.ofReal_add hp (by linarith)), show p + (1 - p) = 1 by ring, ENNReal.ofReal_one]
 
+/-- For `0 ≤ p ≤ 1` and `W ≥ 0`, the extended-real one-step cost expression equals
+`ENNReal.ofReal (1 + (1 - p) * W)`. -/
 theorem ennreal_cost_step (p W : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) (hW : 0 ≤ W) :
     ENNReal.ofReal p + ENNReal.ofReal (1 - p) * (1 + ENNReal.ofReal W)
       = ENNReal.ofReal (1 + (1 - p) * W) := by
@@ -188,6 +236,8 @@ theorem ennreal_cost_step (p W : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) (hW : 0 ≤
 
 set_option maxHeartbeats 400000 in
 
+/-- The retry evaluator with the true-success indicator and zero terminal reward equals `1 - (1
+- p)^B`, where `p` is the single-trial Born success probability. -/
 theorem bornRetry_eval (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) : ∀ B : ℕ,
     (bornRetry U hU).eval B () (fun a _ => if a then 1 else 0) (fun _ => 0)
       = 1 - (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) ^ B := by
@@ -239,6 +289,8 @@ theorem bornRetry_eval (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) 
             * (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) ^ B) := by ring
       _ = 1 - (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) ^ (B + 1) := by rw [h1]
 
+/-- A positive-budget Born retry run is one trial followed by either success with remaining
+budget `B - 1` or a recursive run with that budget. -/
 theorem bornRetry_run_succ (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ)
     (B : ℕ) (hB : 1 ≤ B) :
     (bornRetry U hU).run B ()
@@ -256,6 +308,8 @@ theorem bornRetry_run_succ (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin
 
 set_option maxHeartbeats 400000 in
 
+/-- The expected shifted spending `B + 1 - remaining` equals one plus the expected cost of the
+budget-`B` Born retry run. -/
 theorem bornRetry_spend_shift (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) (B : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation ((bornRetry U hU).run B ())
         (fun x => ((B + 1 - x.2 : ℕ) : ℝ≥0∞))
@@ -287,6 +341,8 @@ theorem bornRetry_spend_shift (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (
 
 set_option maxHeartbeats 400000 in
 
+/-- The expected cost with budget `B` equals the extended-real embedding of the sum of `(1 -
+p)^k` for `k < B`, where `p` is the Born success probability. -/
 theorem bornRetry_cost (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) : ∀ B : ℕ,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost ((bornRetry U hU).costedRun B ())
       = ENNReal.ofReal (∑ k ∈ Finset.range B,
@@ -374,6 +430,8 @@ theorem bornRetry_cost (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) 
           * ∑ k ∈ Finset.range B, (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) ^ k)]
     rw [geom_sum_succ (1 - MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}) B]
 
+/-- With budget `B` and single-trial Born probability `p`, the true-success event has mass `1 -
+(1 - p)^B` and the expected cost is the extended-real geometric sum over `k < B`. -/
 theorem born_retry_actual_mass_and_cost (U : Operator 2) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ)
     (B : ℕ) :
     let p := MeasureProb (ApplyGate U (Qatlib.Foundations.PureStateMath.Ket 0)) {1}
@@ -393,12 +451,16 @@ theorem born_retry_actual_mass_and_cost (U : Operator 2) (hU : U ∈ Matrix.unit
           (normalized_applyGate hU (normalized_ket (0 : Fin 2)))
           ({(1 : Fin 2)} : Finset (Fin 2)))) k)]
 
+/-- Relabeling the Hadamard gate to `Fin 2` evaluates its entries at the inverse images under
+`boolEquivFin2`. -/
 theorem relabelGate_hadamard_apply (i j : Fin 2) :
     relabelGate boolEquivFin2 Hadamard i j
       = Hadamard (boolEquivFin2.symm i) (boolEquivFin2.symm j) := by
   show Matrix.reindex boolEquivFin2 boolEquivFin2 Hadamard i j = _
   rw [Matrix.reindex_apply, Matrix.submatrix_apply]
 
+/-- Applying the relabeled Hadamard gate to the zero basis state gives amplitude `1 / sqrt 2` at
+each coordinate. -/
 theorem relabelGate_hadamard_apply_zero (i : Fin 2) :
     ApplyGate (relabelGate boolEquivFin2 Hadamard) (Qatlib.Foundations.PureStateMath.Ket 0) i = (Real.sqrt 2 : ℂ)⁻¹ := by
   have h : ∀ i : Fin 2,
@@ -411,6 +473,7 @@ theorem relabelGate_hadamard_apply_zero (i : Fin 2) :
     norm_num [Hadamard, Qatlib.Foundations.PureStateMath.Ket, boolEquivFin2]
   exact h i
 
+/-- The Born probability of outcome one after the relabeled Hadamard preparation is one half. -/
 theorem relabelGate_hadamard_measureProb :
     MeasureProb (ApplyGate (relabelGate boolEquivFin2 Hadamard) (Qatlib.Foundations.PureStateMath.Ket 0)) {1} = (1 / 2 : ℝ) := by
   rw [MeasureProb, Finset.sum_singleton, BornProb,
@@ -419,6 +482,7 @@ theorem relabelGate_hadamard_measureProb :
     inv_pow, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   norm_num
 
+/-- The sum of `(1/2)^k` for `k < n + 1` is at most `2 - (1/2)^n`. -/
 theorem geom_half_le (n : ℕ) :
     (∑ k ∈ Finset.range (n + 1), (1 / 2 : ℝ) ^ k) ≤ 2 - (1 / 2 : ℝ) ^ n := by
   induction n with
@@ -438,6 +502,7 @@ theorem geom_half_le (n : ℕ) :
         ≤ 2 - 2 * (1 / 2 : ℝ) ^ (n + 1) := by linarith [hstep]
     linarith [hg, hpow]
 
+/-- Every finite initial sum of powers of one half is at most two. -/
 theorem geom_half_sum_le_two (n : ℕ) :
     (∑ k ∈ Finset.range n, (1 / 2 : ℝ) ^ k) ≤ 2 := by
   cases n with
@@ -449,6 +514,8 @@ theorem geom_half_sum_le_two (n : ℕ) :
 
 set_option linter.unusedVariables false in
 
+/-- For `B ≤ C`, Hadamard-based retries have true-success mass `1 - (1/2)^B` with budget `B` and
+expected cost at most two with budget `C`. -/
 theorem born_retry_hadamard_budget_consumer (B C : ℕ) (hBC : B ≤ C) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
         ((bornRetry (relabelGate boolEquivFin2 Hadamard)

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.GradientAlgo.AlmostAffineGradientStat
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+
+/-!
+# Rescaled almost-affine gradient estimation
+
+This module proves `sourceAlmostAffineGradient`, selecting a dyadic grid from the requested
+error, range, and scale. The proof transfers robust affine readout to the rescaled coordinates
+and median estimator used in the gradient setting of [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `sourceAlmostAffineGradient`: simultaneous gradient accuracy with the prescribed failure
+  probability and explicit query, gate, and comparison counts.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +49,7 @@ open scoped Classical BigOperators
 
 namespace SourceAlmostAffineGradientAux
 
+/-- For positive `t`, rounding `log₂ t` upward gives a power of two at least `t`. -/
 private theorem pow2_ceil_lower (t : ℝ) (ht : 0 < t) :
     t ≤ (2:ℝ)^(⌈Real.logb 2 t⌉ : ℤ) := by
   have h1 : (Real.logb 2 t : ℝ) ≤ ((⌈Real.logb 2 t⌉ : ℤ) : ℝ) := by
@@ -39,6 +58,8 @@ private theorem pow2_ceil_lower (t : ℝ) (ht : 0 < t) :
     _ ≤ (2:ℝ)^(((⌈Real.logb 2 t⌉ : ℤ):ℝ)) := Real.rpow_le_rpow_of_exponent_le (by norm_num) h1
     _ = (2:ℝ)^(⌈Real.logb 2 t⌉ : ℤ) := Real.rpow_intCast (2:ℝ) _
 
+/-- For positive `t`, the power of two obtained by rounding `log₂ t` upward is strictly less
+than `2*t`. -/
 private theorem pow2_ceil_upper (t : ℝ) (ht : 0 < t) :
     (2:ℝ)^(⌈Real.logb 2 t⌉ : ℤ) < 2*t := by
   have h1 : (((⌈Real.logb 2 t⌉ : ℤ):ℝ)) < (Real.logb 2 t : ℝ) + 1 := by
@@ -49,6 +70,8 @@ private theorem pow2_ceil_upper (t : ℝ) (ht : 0 < t) :
     Real.rpow_intCast (2:ℝ) _, Real.rpow_one] at h3
   linarith
 
+/-- If positive `t` and `u` satisfy `8 < t*u`, the sum of their ceiling binary logarithms is at
+least four. -/
 private theorem ceil_add_ge_four (t u : ℝ) (ht : 0 < t) (hu : 0 < u) (h8 : 8 < t*u) :
     (4:ℤ) ≤ ⌈Real.logb 2 t⌉ + ⌈Real.logb 2 u⌉ := by
   by_contra hcon
@@ -67,6 +90,9 @@ end SourceAlmostAffineGradientAux
 
 open Qatlib.Concepts.GradientOracle.GradientAlgo.SourceAlmostAffineGradientAux
 
+/-- Proves simultaneous accuracy of the rescaled coordinate medians with the requested failure
+probability, together with grid-size and query, gate, and comparison bounds, under the
+stated almost-affine hypotheses. See [GilyenArunachalamWiebe2019]. -/
 theorem sourceAlmostAffineGradient : SourceAlmostAffineGradient := by
   intro d c r ε L δ g hr hε hεL hδ hδ1 hg nε nL n _NL f S hbad hgood
   have hL : 0 < L := lt_trans hε hεL

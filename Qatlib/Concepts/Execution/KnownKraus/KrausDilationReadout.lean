@@ -8,6 +8,29 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
 import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
 import Mathlib.Data.List.OfFn
+
+/-!
+# Reading out a Kraus dilation
+
+`krausReadoutProgram` applies a supplied dilation matrix and measures a labeling of its ancilla
+register. Assuming the matrix has the prescribed Kraus action on an initialized ancilla, the
+module computes its pure and reduced mixed branch traces, following the measurement construction
+of [NielsenChuang2010].
+
+`reduceKrausMixedTrace` removes the ancilla while retaining the outcome and resource records.
+Unitarity of the supplied matrix ensures well-formedness and a zero query budget.
+
+## Main statements
+
+* `kraus_readout_pure_traces`: pure branches are the labeled components of the Kraus dilation.
+* `kraus_readout_mixed_traces`: reduced mixed branches are coarse sums of Kraus conjugations.
+* `kraus_readout_valid_budget`: a unitary readout program is well-formed and uses no queries.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
@@ -24,17 +47,22 @@ namespace Qatlib.Concepts.Execution.KnownKraus
 
 open Matrix
 
+/-- The observed circuit that applies `W`, measures the ancilla label, and halts with the
+prescribed acceptance flag. -/
 noncomputable def krausReadoutProgram {d s t : ℕ}
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
     (label : Fin s → Fin t) (accept : Fin t → Bool) :
     ObservedCircuit (Fin d × Fin s) :=
   .step (.gate W) (.measure t (fun x => label x.2) (fun o => .halt (accept o)))
 
+/-- Relabels a joint mixed branch operator to system and ancilla coordinates and traces out the
+ancilla, retaining its classical record and resource counts. -/
 noncomputable def reduceKrausMixedTrace {d s : ℕ}
     (b : MixedBranchTrace (d * s)) : MixedBranchTrace d :=
   ⟨PartialTrace (relabelGate finProdFinEquiv.symm b.state), b.accepted,
     b.queries, b.gates, b.measurements, b.outcomes⟩
 
+/-- Flattening a finite list of singleton lists recovers the list of their entries. -/
 private theorem krausReadout_flatten_singletons {α : Type*} {n : ℕ}
     (f : Fin n → α) :
     (List.ofFn (fun o : Fin n => [f o])).flatten = List.ofFn f := by
@@ -44,6 +72,9 @@ private theorem krausReadout_flatten_singletons {α : Type*} {n : ℕ}
       rw [List.ofFn_succ, List.flatten_cons, List.singleton_append,
         ih (fun i => f i.succ), List.ofFn_succ (f := f)]
 
+/-- If `W` realizes the Kraus action on the initialized ancilla, its readout traces are
+precisely the labeled components of that action. Each branch records zero queries, one gate,
+and one measurement. -/
 theorem kraus_readout_pure_traces {d s t : ℕ}
     (K : Fin s → Operator d) (zero : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -73,10 +104,13 @@ theorem kraus_readout_pure_traces {d s t : ℕ}
     (fun state => (⟨state, accept o, 0, 1, 1, [(t, o.val)]⟩ :
       BranchTrace (Fin d × Fin s))) hstate
 
+/-- Applying a matrix to a basis ket returns the corresponding matrix column. -/
 private theorem krausReadout_apply_ket {I : Type*} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (j i : I) : ApplyGate M (Qatlib.Foundations.PureStateMath.Ket j) i = M i j := by
   simp [ApplyGate, Matrix.mulVec, dotProduct, ket_apply, mul_ite]
 
+/-- The prescribed dilation action on initialized pure inputs determines the corresponding
+columns of `W` to be the Kraus matrix entries. -/
 private theorem krausReadout_column {d s : ℕ}
     (K : Fin s → Operator d) (zero : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -88,12 +122,14 @@ private theorem krausReadout_column {d s : ℕ}
   rw [tensorState_ket_ket] at h
   simpa only [krausReadout_apply_ket] using h
 
+/-- Relabeling matrix indices commutes with conjugate transpose. -/
 private theorem krausReadout_relabel_star {I J : Type*} (e : I ≃ J)
     (M : Matrix I I ℂ) :
     relabelGate e M.conjTranspose = (relabelGate e M).conjTranspose := by
   ext i j
   rfl
 
+/-- Relabeling commutes with matrix conjugation by a gate. -/
 private theorem krausReadout_relabel_sandwich {I J : Type*}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (M X : Matrix I I ℂ) :
@@ -102,6 +138,8 @@ private theorem krausReadout_relabel_sandwich {I J : Type*}
   rw [Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul, Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul,
     krausReadout_relabel_star]
 
+/-- The projector for a transported outcome label is the relabeling of the original outcome
+projector. -/
 private theorem krausReadout_relabel_projector {I J : Type*}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) {t : ℕ} (label : I → Fin t) (o : Fin t) :
@@ -116,6 +154,8 @@ private theorem krausReadout_relabel_projector {I J : Type*}
   · have h' : e.symm i ≠ e.symm j := fun hh => h (e.symm.injective hh)
     simp [h, h']
 
+/-- The ancilla block indexed by `a` and `b` of the dilated input is `K a * rho * (K
+b).conjTranspose`, assuming the prescribed initialized columns. -/
 private theorem krausReadout_joint_block {d s : ℕ}
     (K : Fin s → Operator d) (zero : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -139,6 +179,8 @@ private theorem krausReadout_joint_block {d s : ℕ}
   simp only [Fintype.sum_prod_type, hleft, ite_mul, zero_mul,
     Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true, hcol]
 
+/-- After projection onto a coarse ancilla label and partial trace, the branch operator is the
+sum of the Kraus conjugations with that label. -/
 private theorem krausReadout_reduced_branch {d s t : ℕ}
     (K : Fin s → Operator d) (zero : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -162,6 +204,9 @@ private theorem krausReadout_reduced_branch {d s t : ℕ}
       krausReadout_joint_block K zero W hcol rho i j a a
   · simp [ha]
 
+/-- A matrix with the prescribed initialized Kraus action produces reduced mixed readout traces
+equal to the coarse Kraus sums. Each trace retains the acceptance rule and records zero
+queries, one gate, and one measurement. -/
 theorem kraus_readout_mixed_traces {d s t : ℕ}
     (K : Fin s → Operator d) (zero : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -202,6 +247,7 @@ theorem kraus_readout_mixed_traces {d s t : ℕ}
     (fun state => (⟨state, accept o, 0, 1, 1, [(t, o.val)]⟩ : MixedBranchTrace d))
     (hstate o)
 
+/-- A readout program with unitary `W` is well-formed and has query budget zero. -/
 theorem kraus_readout_valid_budget {d s t : ℕ}
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
     (hW : W ∈ Matrix.unitaryGroup (Fin d × Fin s) ℂ)

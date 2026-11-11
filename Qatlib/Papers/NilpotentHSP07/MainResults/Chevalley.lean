@@ -9,6 +9,29 @@ import Mathlib.Data.ZMod.Basic
 import Mathlib.Algebra.Ring.Parity
 import Mathlib.Tactic
 
+/-!
+# Existence of Phase-Cancellation Coefficients
+
+This module encodes the linear and quadratic equations from [IvanyosSanselmeSantha2007a] as the
+polynomial family `systemPoly`. Degree bounds allow the Chevalley-Warning theorem to establish a
+nonzero common solution when the number of variables exceeds `3 * d`.
+
+The result `exists_solution_paper_n` specializes this existence statement to the paper's number
+of variables, `(d + 1) ^ 2 * (d + 2) / 2`, for positive `d`.
+
+## Main statements
+
+* `totalDegree_system_le` bounds the sum of the polynomial degrees by `3 * d`.
+* `exists_nontrivial_solution` supplies a nonzero solution to both equation families when `3 * d
+  < n`.
+* `three_d_lt_paper_n` and `exists_solution_paper_n` verify the paper's variable count and
+  obtain a solution at that count.
+
+## References
+
+* [Ivanyos et al., 2007][IvanyosSanselmeSantha2007a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,16 +41,21 @@ open MvPolynomial
 
 variable {p d n : ℕ} [Fact p.Prime]
 
+/-- The diagonal quadratic polynomial whose coefficient of `(X i) ^ 2` is `u i k`. -/
 def quadPoly (u : Fin n → Fin d → ZMod p) (k : Fin d) : MvPolynomial (Fin n) (ZMod p) :=
   ∑ i, C (u i k) * (X i) ^ 2
 
+/-- The linear polynomial whose coefficient of `X i` is `u i k`. -/
 def linPoly (u : Fin n → Fin d → ZMod p) (k : Fin d) : MvPolynomial (Fin n) (ZMod p) :=
   ∑ i, C (u i k) * X i
 
+/-- The polynomial family combining the quadratic equations in the left summand with the linear
+equations in the right summand. -/
 def systemPoly (u : Fin n → Fin d → ZMod p) : Fin d ⊕ Fin d → MvPolynomial (Fin n) (ZMod p)
   | Sum.inl k => quadPoly u k
   | Sum.inr k => linPoly u k
 
+/-- Each polynomial `quadPoly u k` has total degree at most two. -/
 theorem totalDegree_quadPoly_le (u : Fin n → Fin d → ZMod p) (k : Fin d) :
     (quadPoly u k).totalDegree ≤ 2 := by
   apply MvPolynomial.totalDegree_finsetSum_le
@@ -38,6 +66,7 @@ theorem totalDegree_quadPoly_le (u : Fin n → Fin d → ZMod p) (k : Fin d) :
           MvPolynomial.totalDegree_mul _ _
     _ = 2 := by simp
 
+/-- Each polynomial `linPoly u k` has total degree at most one. -/
 theorem totalDegree_linPoly_le (u : Fin n → Fin d → ZMod p) (k : Fin d) :
     (linPoly u k).totalDegree ≤ 1 := by
   apply MvPolynomial.totalDegree_finsetSum_le
@@ -48,6 +77,9 @@ theorem totalDegree_linPoly_le (u : Fin n → Fin d → ZMod p) (k : Fin d) :
           MvPolynomial.totalDegree_mul _ _
     _ = 1 := by simp
 
+/-- The sum of the total degrees of all polynomials in `systemPoly u` is at most `3 * d`. This
+provides the degree bound for a Chevalley-Warning existence argument for the system
+considered in [IvanyosSanselmeSantha2007a]. -/
 theorem totalDegree_system_le (u : Fin n → Fin d → ZMod p) :
     (∑ i : Fin d ⊕ Fin d, (systemPoly u i).totalDegree) ≤ 3 * d := by
   rw [Fintype.sum_sum_type]
@@ -61,6 +93,9 @@ theorem totalDegree_system_le (u : Fin n → Fin d → ZMod p) :
         ≤ (∑ _k : Fin d, 2) + (∑ _k : Fin d, 1) := add_le_add h1 h2
     _ = 3 * d := by simp [Finset.sum_const]; ring
 
+/-- If `3 * d < n`, there is a nonzero vector whose weighted coordinatewise quadratic and linear
+sums both vanish. This is an existence result for the equation system considered in
+[IvanyosSanselmeSantha2007a]. -/
 theorem exists_nontrivial_solution (u : Fin n → Fin d → ZMod p) (hn : 3 * d < n) :
     ∃ j : Fin n → ZMod p, j ≠ 0 ∧
       (∀ k : Fin d, ∑ i, u i k * (j i * j i) = 0) ∧
@@ -118,6 +153,8 @@ theorem exists_nontrivial_solution (u : Fin n → Fin d → ZMod p) (hn : 3 * d 
   · obtain ⟨hq, hl⟩ := key y.1 y.2
     exact ⟨y.1, hy0, hq, hl⟩
 
+/-- For positive `d`, the number `(d + 1) ^ 2 * (d + 2) / 2` is strictly greater than `3 * d`.
+This verifies the variable count in [Ivanyos et al., Theorem 5][IvanyosSanselmeSantha2007a]. -/
 theorem three_d_lt_paper_n (d : ℕ) (hd : 1 ≤ d) :
     3 * d < (d + 1) ^ 2 * (d + 2) / 2 := by
   have h6 : 6 * d < (d + 1) ^ 2 * (d + 2) := by nlinarith
@@ -129,6 +166,9 @@ theorem three_d_lt_paper_n (d : ℕ) (hd : 1 ≤ d) :
   obtain ⟨m, hm⟩ := hev
   omega
 
+/-- For positive `d`, the linear and quadratic system has a nonzero solution with `(d + 1) ^ 2 *
+(d + 2) / 2` variables. This gives the existence conclusion at the variable count of
+[Ivanyos et al., Theorem 5][IvanyosSanselmeSantha2007a]. -/
 theorem exists_solution_paper_n (d : ℕ) (hd : 1 ≤ d)
     (u : Fin ((d + 1) ^ 2 * (d + 2) / 2) → Fin d → ZMod p) :
     ∃ j : Fin ((d + 1) ^ 2 * (d + 2) / 2) → ZMod p, j ≠ 0 ∧

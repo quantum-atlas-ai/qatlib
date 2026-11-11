@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
+
+/-!
+# Hadamard transform as a Boolean Fourier matrix
+
+`hadamardN_eq_booleanFourier_submatrix` identifies the register-indexed Hadamard transform with
+the Fourier matrix of the Boolean group after reindexing rows by Boolean characters and columns
+by Boolean vectors. This supplies the matrix bridge between register circuits and character
+sampling. See [NielsenChuang2010] for the mathematical background.
+
+## Main statements
+
+* `hadamardN_eq_booleanFourier_submatrix`: the reindexed Fourier matrix equals `HadamardN`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PauliClifford.ExactRank
@@ -14,6 +32,8 @@ open Qatlib.Concepts.WalshMoment.Forrelation
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
+/-- The `n`-register Hadamard matrix is the Boolean-group Fourier matrix reindexed by Boolean
+characters on rows and encoded registers on columns. -/
 theorem hadamardN_eq_booleanFourier_submatrix (n : ℕ) :
     Qatlib.Foundations.PureStateMath.HadamardN n =
       (fourierMatrix (BooleanVec n)).submatrix

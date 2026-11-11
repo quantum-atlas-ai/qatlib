@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ProjectorQAOA26.StageStability.OpNormBridge
+
+/-!
+# Operator norm of rank-one differences
+
+This module defines `rankOne` and computes the exact operator norm of its difference for
+normalized complex vectors. Bessel's inequality and overlap estimates establish the comparison
+with `phaseDist` needed for learned complementary-projector stability in [ZhouAnLiu2026].
+
+## Main statements
+
+* `bessel_two`: For two orthogonal normalized vectors, the sum of the squared overlap magnitudes
+  with any vector is at most that vector's squared norm.
+* `opNorm_rankOne_sub`: For normalized vectors, the operator norm of their rank-one difference
+  is the square root of one minus the squared overlap magnitude.
+* `mixerGen_diff_le`: The norm distance between the complementary projectors of normalized
+  vectors is at most their phase distance.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,10 +37,12 @@ open scoped BigOperators Matrix Matrix.Norms.L2Operator
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The outer-product matrix with entries `u i * star (u j)`. -/
 noncomputable def rankOne (u : I → ℂ) : Matrix I I ℂ := Matrix.vecMulVec u (star u)
 
 omit [DecidableEq I] in
 
+/-- The rank-one operator sends `x` to `l2inner u x • u`. -/
 theorem rankOne_mulVec (u x : I → ℂ) : rankOne u *ᵥ x = l2inner u x • u := by
   funext i
   show (∑ j, u i * star (u j) * x j) = l2inner u x * u i
@@ -27,6 +51,8 @@ theorem rankOne_mulVec (u x : I → ℂ) : rankOne u *ᵥ x = l2inner u x • u 
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Multiplication of the defining vector by a unit phase leaves its rank-one operator
+unchanged. -/
 theorem rankOne_smul_unit {z : ℂ} (hz : Complex.normSq z = 1) (v : I → ℂ) :
     rankOne (z • v) = rankOne v := by
   funext i j
@@ -39,6 +65,7 @@ theorem rankOne_smul_unit {z : ℂ} (hz : Complex.normSq z = 1) (v : I → ℂ) 
 
 omit [DecidableEq I] in
 
+/-- A normalized vector has inner product one with itself. -/
 theorem l2inner_self_of_norm {u : I → ℂ} (hu : l2norm u = 1) : l2inner u u = 1 := by
   have hc : ∀ i : I, star (u i) * u i = (Complex.normSq (u i) : ℂ) := by
     intro i
@@ -49,17 +76,21 @@ theorem l2inner_self_of_norm {u : I → ℂ} (hu : l2norm u = 1) : l2inner u u =
   rw [l2inner, Finset.sum_congr rfl (fun i _ => hc i), ← Complex.ofReal_sum, hsum,
     Complex.ofReal_one]
 
+/-- The real part of a real scalar times a complex number is the scalar times the real part. -/
 private theorem re_ofReal_mul (x : ℝ) (z : ℂ) : (((x : ℂ)) * z).re = x * z.re := by
   rw [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
 
+/-- Complex conjugation fixes a real number embedded in the complex numbers. -/
 private theorem star_ofReal' (t : ℝ) : star ((t : ℂ)) = (t : ℂ) := by
   rw [Complex.star_def, Complex.conj_ofReal]
 
+/-- The real part of `star a * a` equals the squared complex norm of `a`. -/
 private theorem re_conj_mul_self (a : ℂ) : (star a * a).re = Complex.normSq a := by
   rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.ofReal_re]
 
 omit [DecidableEq I] in
 
+/-- The overlap magnitude of two normalized vectors is at most one. -/
 theorem l2abs_le_one {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v = 1) :
     l2abs u v ≤ 1 := by
   have h := phaseDist_sq u v
@@ -69,6 +100,7 @@ theorem l2abs_le_one {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v = 1) :
 
 omit [DecidableEq I] in
 
+/-- Negating a vector preserves its Euclidean norm. -/
 theorem l2norm_neg (x : I → ℂ) : l2norm (-x) = l2norm x := by
   refine eq_of_sq_eq (l2norm_nonneg _) (l2norm_nonneg _) ?_
   rw [l2norm_sq, l2norm_sq]
@@ -76,6 +108,8 @@ theorem l2norm_neg (x : I → ℂ) : l2norm (-x) = l2norm x := by
 
 omit [DecidableEq I] in
 
+/-- The squared norm of a vector sum is the sum of squared norms plus twice the real part of the
+inner product. -/
 theorem l2norm_add_sq (x y : I → ℂ) :
     l2norm (x + y) ^ 2 = l2norm x ^ 2 + l2norm y ^ 2 + 2 * (l2inner x y).re := by
   have h := l2norm_sub_sq x (-(y : I → ℂ))
@@ -84,6 +118,8 @@ theorem l2norm_add_sq (x y : I → ℂ) :
 
 omit [DecidableEq I] in
 
+/-- For two orthogonal normalized vectors, the sum of the squared overlap magnitudes with any
+vector is at most that vector's squared norm. -/
 theorem bessel_two {u w x : I → ℂ} (hu : l2norm u = 1) (hw : l2norm w = 1)
     (hperp : l2inner u w = 0) :
     Complex.normSq (l2inner u x) + Complex.normSq (l2inner w x) ≤ l2norm x ^ 2 := by
@@ -115,6 +151,8 @@ theorem bessel_two {u w x : I → ℂ} (hu : l2norm u = 1) (hw : l2norm w = 1)
   have hnn : 0 ≤ l2norm (x - (a • u + β • w)) ^ 2 := sq_nonneg _
   linarith
 
+/-- Under `c ^ 2 + t ^ 2 = 1`, the stated quadratic expression in `a` and `β` equals `t ^ 2 *
+(Complex.normSq a + Complex.normSq β)`. -/
 private theorem split_identity (c t : ℝ) (a β : ℂ) (hct : c ^ 2 + t ^ 2 = 1) :
     Complex.normSq a + Complex.normSq (((c : ℂ)) * a + ((t : ℂ)) * β)
       - 2 * c * (star a * (((c : ℂ)) * a + ((t : ℂ)) * β)).re
@@ -149,6 +187,8 @@ private theorem split_identity (c t : ℝ) (a β : ℂ) (hct : c ^ 2 + t ^ 2 = 1
   rw [h1, h2, hconj]
   linear_combination (-(Complex.normSq a) * hct)
 
+/-- For normalized vectors, the operator norm of their rank-one difference is the square root of
+one minus the squared overlap magnitude. -/
 theorem opNorm_rankOne_sub {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v = 1) :
     ‖rankOne u - rankOne v‖ = Real.sqrt (1 - l2abs u v ^ 2) := by
   have hr : rankOne (phaseAlign u v) = rankOne v :=
@@ -251,6 +291,8 @@ theorem opNorm_rankOne_sub {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v 
 
 omit [DecidableEq I] in
 
+/-- For normalized vectors, the square root of one minus the squared overlap magnitude is at
+most their phase distance. -/
 theorem sqrt_le_phaseDist {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v = 1) :
     Real.sqrt (1 - l2abs u v ^ 2) ≤ phaseDist u v := by
   have hc1 := l2abs_le_one hu hv
@@ -258,6 +300,8 @@ theorem sqrt_le_phaseDist {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v =
   rw [phaseDist_sq, hu, hv, Real.sq_sqrt (by nlinarith [l2abs_nonneg u v])]
   nlinarith [sq_nonneg (1 - l2abs u v)]
 
+/-- The norm distance between the complementary projectors of normalized vectors is at most
+their phase distance. -/
 theorem mixerGen_diff_le {u v : I → ℂ} (hu : l2norm u = 1) (hv : l2norm v = 1) :
     ‖(1 - rankOne u) - (1 - rankOne v)‖ ≤ phaseDist u v := by
   have e : (1 - rankOne u) - (1 - rankOne v) = -(rankOne u - rankOne v) := by abel

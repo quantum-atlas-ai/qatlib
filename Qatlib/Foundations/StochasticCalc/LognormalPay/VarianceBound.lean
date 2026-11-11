@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.StochasticCalc.LognormalPay.TerminalMean
+
+/-!
+# A strike-independent call payoff variance bound
+
+This module defines `bsVarianceBound` from the first two lognormal moments and proves that it
+bounds the call payoff variance. The theorem `callPayoff_variance_le` allows nonnegative
+maturity, initial level, and strike and assumes the prescribed centered Gaussian input law.
+
+The mathematical background is discussed in [RebentrostGuptBromley2018].
+
+## Main statements
+
+* `bsVarianceBound`: twice the terminal second moment plus twice the squared terminal mean.
+* `callPayoff_variance_le`: bounds the payoff variance independently of the strike.
+
+## References
+
+* [Rebentrost et al., 2018][RebentrostGuptBromley2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,9 +39,13 @@ open scoped ProbabilityTheory
 
 variable {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
 
+/-- The bound `2 * S0 ^ 2 * exp ((2 * r + σ ^ 2) * T) + 2 * S0 ^ 2 * exp (2 * r * T)` for
+lognormal call payoff variance. -/
 def bsVarianceBound (S0 r σ T : ℝ) : ℝ :=
   2 * (S0 ^ 2 * Real.exp ((2 * r + σ ^ 2) * T)) + 2 * (S0 ^ 2 * Real.exp (2 * r * T))
 
+/-- For nonnegative maturity, initial level, and strike and the stated centered Gaussian input
+law, the call payoff variance is at most `bsVarianceBound S0 r σ T`. -/
 theorem callPayoff_variance_le
     [IsProbabilityMeasure Q] {W : Ω → ℝ} {S0 K r σ T : ℝ}
     (hT : 0 ≤ T) (hS0 : 0 ≤ S0) (hK : 0 ≤ K)

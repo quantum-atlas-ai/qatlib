@@ -9,6 +9,27 @@ import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyDefs
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+/-!
+# An explicit self-tomography specification
+
+This module defines `EpsilonCubedSelfTomography`, the quantitative self-tomography proposition
+for a density operator with a unitary spectral decomposition. It records the grid and repetition
+choices, good-label decoding error, ideal and actual good-event masses, and exact fresh-copy
+resource counts.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `EpsilonCubedSelfTomography`: success at least `8 / π² - ε` and copy count at most `1000 / ε³`
+  for `0 < ε ≤ 1 / 2`.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +46,9 @@ open Matrix
 
 set_option autoImplicit false
 
+/-- The self-tomography specification using `M = ⌈2 / ε⌉` and `n = ⌈8 * M * π² / ε⌉`, with
+decoding error at most `ε`, success mass at least `8 / π² - ε`, and copy count at most `1000
+/ ε³` under the stated spectral assumptions. -/
 def EpsilonCubedSelfTomography : Prop :=
   ∀ (D : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ) (ε : ℝ),
     IsDensityOperator ρ → V ∈ Matrix.unitaryGroup (Fin D) ℂ →

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
+
+/-!
+# Coherent Gram feasibility specification
+
+Defines `CoherentValueFeasibleBoundary`, specifying the feasible-set presentation of
+`stateConversionSDP`. For nonnegative tolerance, the objective is minimized over positive
+semidefinite matrices whose difference from the target has a bounded unfiltered value.
+
+The specification gives the constrained Gram optimization form associated with coherent state
+conversion in [LeeEtAl2011].
+
+## Main statements
+
+* `CoherentValueFeasibleBoundary`: states equality with the infimum over feasible positive
+  semidefinite matrices.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +37,9 @@ namespace Qatlib.Concepts.GramQueryCore.ModelSemantics
 open Matrix
 open scoped ENNReal ComplexOrder
 
+/-- The proposition that, for nonnegative tolerance, `stateConversionSDP` is the infimum of the
+filtered Gram objective over positive semidefinite matrices satisfying the unfiltered
+target-distance bound. -/
 def CoherentValueFeasibleBoundary : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (n : ℕ) (input : X → Fin n → Bool)
     (δ : ℝ) (ρ σ : Matrix X X ℂ), 0 ≤ δ →

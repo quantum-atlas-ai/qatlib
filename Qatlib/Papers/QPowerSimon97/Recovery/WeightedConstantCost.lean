@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+
+/-!
+# Constant charges for randomized retry executions
+
+This module relates constant-charge weighted executions to ordinary randomized executions. It
+supplies the expected-cost scaling identity used to price each verified Simon retry uniformly in
+the analysis of [Simon1997].
+
+## Main statements
+
+* `weightedRunFor_const_charge_expected_cost`: Charging a fixed natural number `C` per execution
+  step multiplies the ordinary expected execution cost by `C`.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
@@ -21,6 +39,8 @@ noncomputable section
 namespace Qatlib.Papers.QPowerSimon97.Recovery
 open scoped Classical ENNReal
 
+/-- A weighted execution with constant charge `C` is the ordinary execution law with its step
+count multiplied by `C`. -/
 private theorem weightedRunFor_const_map
     (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
     (next : S → PMF (O ⊕ S)) (C fuel : ℕ) (cfg : O ⊕ S) :
@@ -44,6 +64,8 @@ private theorem weightedRunFor_const_map
       simp only [Prod.mk.injEq, true_and]
       ring
 
+/-- Charging a fixed natural number `C` per execution step multiplies the ordinary expected
+execution cost by `C`. -/
 theorem weightedRunFor_const_charge_expected_cost :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (C : ℕ) (fuel : ℕ) (cfg : O ⊕ S),

@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticDecodedWord
+
+/-!
+# Amplification in the Decoded Static Frame
+
+This module applies randomized amplitude amplification to `originalStaticDecodedWord`, whose
+block encoding uses the computationally tagged frame `originalStaticDecodedFrame`. The target
+may differ from the weighted sum of static Hermitian evolutions by a supplied analytic
+discrepancy, and its output norm is bounded below by a positive estimate.
+
+`originalA_static_decoded_amplified_target` combines these assumptions with a preparation
+unitary and a computational success projector. It supplies constant heralding probability, exact
+expected query counts, valid counted circuits, and a conditional normalized target approximation
+up to a unit complex phase. See [WangEtAl2026].
+
+## Main statements
+
+* `originalA_static_decoded_amplified_target` gives an original-oracle amplified implementation
+  with success probability at least one eighth.
+* The same theorem bounds the output error by twice the total encoding discrepancy divided by
+  the true target output norm.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,6 +80,11 @@ variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
 local instance cbmdOriginalAStaticDecodedAmplificationInstance1 : DecidableEq (OriginalStaticLabels J) :=
   inferInstanceAs (DecidableEq (J × (Fin 4 × (Bool × (Bool × Bool)))))
 
+/-- Constructs randomized amplification for the static decoded word under the supplied
+decoded-frame preparation, success projector, target discrepancy, and output-norm
+assumptions. It supplies success probability at least one eighth, exact expected query
+counts, valid counted circuits, and a normalized conditional target approximation up to a
+unit complex phase. -/
 theorem originalA_static_decoded_amplified_target
     (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (U : Matrix W W ℂ) (R : Matrix W I ℂ) (α Λ t ε δ : ℝ) (s : J → ℝ)

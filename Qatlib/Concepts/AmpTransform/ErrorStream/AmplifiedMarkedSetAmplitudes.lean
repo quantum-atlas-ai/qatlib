@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+/-!
+# Fourier amplitudes of arbitrary marked sets
+
+This module computes Fourier amplitudes for an arbitrary finite marked set in the amplified
+transform and in phase-oracle and Boolean-output baselines. The formulas express
+nonzero-frequency amplitudes through the marked-set phase sum, in the amplified-transform
+setting of [Cornwell2014].
+
+For the amplified state, the marked cardinality is positive and at most half the ambient
+dimension. The baseline zero-frequency probabilities are computed separately, and
+`aq_marked_three_probabilities` packages the three nonzero-frequency measurement formulas.
+
+## Main statements
+
+* `aq_marked_nonzero_amplitude`: express the amplified amplitude as a scaled phase sum.
+* `aq_marked_phase_zero_amplitude`: compute the phase baseline's zero-frequency probability.
+* `aq_marked_three_probabilities`: compare the amplified, phase, and Boolean-output
+  probabilities.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -27,6 +52,9 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open Matrix
 open scoped Classical BigOperators Kronecker
 
+/-- For a marked set of positive cardinality `T` with `2 * T ≤ N`, the amplified amplitude at
+nonzero frequency is its phase sum multiplied by `tan(aqAngle N T) * sin(2 * aqRounds N T *
+aqAngle N T) / T`. -/
 theorem aq_marked_nonzero_amplitude (N : ℕ) (hN : 0 < N) (T : ℕ)
     (B : Finset (Fin N)) (y : Fin N) (hT : 0 < T) (hcard : B.card=T)
     (h2T : 2*T ≤ N) (hy : y.val ≠ 0) :
@@ -83,6 +111,8 @@ theorem aq_marked_nonzero_amplitude (N : ℕ) (hN : 0 < N) (T : ℕ)
       ring
     _ = _ := congrArg (fun z : ℂ => z*(∑ x ∈ B, aqPhase N x.val y.val)) hcoeffC
 
+/-- At every frequency, the phase-oracle baseline amplitude is the zero-frequency basis
+amplitude minus `2 / N` times the marked-set phase sum. -/
 theorem aq_marked_phase_all (N : ℕ) (hN : 0 < N) (B : Finset (Fin N)) (y : Fin N) :
     aqPhaseBaseline N hN B y=Ket ⟨0,hN⟩ y-
       2*(N : ℂ)⁻¹*∑ x ∈ B, aqPhase N x.val y.val := by
@@ -99,6 +129,8 @@ theorem aq_marked_phase_all (N : ℕ) (hN : 0 < N) (B : Finset (Fin N)) (y : Fin
   rw [aq_inverse_uniform, aq_inverse_selected]
   ring
 
+/-- At a nonzero frequency, the phase-oracle baseline amplitude is `-2 / N` times the marked-set
+phase sum. -/
 theorem aq_marked_phase_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     (y : Fin N) (hy : y.val ≠ 0) :
     aqPhaseBaseline N hN B y=((-2/(N : ℝ) : ℝ) : ℂ)*
@@ -109,6 +141,7 @@ theorem aq_marked_phase_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
   push_cast
   ring
 
+/-- The phase-oracle baseline's Born probability at frequency zero is `(1 - 2 * B.card / N)^2`. -/
 theorem aq_marked_phase_zero_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N)) :
     BornProb (aqPhaseBaseline N hN B) ⟨0,hN⟩=(1-2*(B.card : ℝ)/(N : ℝ))^2 := by
   have he : aqPhaseBaseline N hN B ⟨0,hN⟩=((1-2*(B.card : ℝ)/(N : ℝ) : ℝ) : ℂ) := by
@@ -118,6 +151,8 @@ theorem aq_marked_phase_zero_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N
     ring
   rw [BornProb, he, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- When `f` marks exactly `B`, each Boolean-output slice of the baseline is the inverse Fourier
+transform of the marked component or its complementary component of the prepared state. -/
 theorem aq_marked_qhs_slices (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     (f : Fin N → Bool) (hmark : ∀ x, f x=decide (x ∈ B)) (y : Fin N) (b : Bool) :
     aqQHSBaseline N hN f (y,b)=ApplyGate (QFTMatrix N)ᴴ
@@ -140,6 +175,8 @@ theorem aq_marked_qhs_slices (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
       (TensorState (preparedAAState (QFTMatrix N) ⟨0,hN⟩) (Ket false)) (x,b)) y = _
   rw [hslice]
 
+/-- For nonzero frequency and an oracle marking exactly `B`, the true-output baseline amplitude
+is the marked-set phase sum divided by `N`, and the false-output amplitude is its negative. -/
 theorem aq_marked_qhs_amplitudes (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     (f : Fin N → Bool) (hmark : ∀ x, f x=decide (x ∈ B)) (y : Fin N) (hy : y.val ≠ 0) :
     aqQHSBaseline N hN f (y,true)=(N : ℂ)⁻¹*∑ x ∈ B, aqPhase N x.val y.val ∧
@@ -154,6 +191,8 @@ theorem aq_marked_qhs_amplitudes (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     have hy0 : y ≠ (⟨0,hN⟩ : Fin N) := by intro he; exact hy (congrArg Fin.val he)
     simp [Ket, hy0]
 
+/-- When the oracle marks exactly `B`, the Boolean-output baseline probability of frequency
+zero, summed over both output bits, is `(B.card / N)^2 + (1 - B.card / N)^2`. -/
 theorem aq_marked_qhs_zero_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     (f : Fin N → Bool) (hmark : ∀ x, f x=decide (x ∈ B)) :
     MeasureProb (aqQHSBaseline N hN f) ({⟨0,hN⟩} ×ˢ Finset.univ)=
@@ -173,6 +212,9 @@ theorem aq_marked_qhs_zero_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
   rw [Finset.sum_product, Finset.sum_singleton]
   simp only [Fintype.sum_bool, ht, hf, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- For a marked set of positive cardinality `T ≤ N / 2` and its exact Boolean oracle, the three
+nonzero-frequency probabilities equal the squared marked-set phase sum times their stated
+amplified, phase-oracle, and Boolean-output prefactors. -/
 theorem aq_marked_three_probabilities (N : ℕ) (hN : 0 < N) (T : ℕ)
     (B : Finset (Fin N)) (f : Fin N → Bool) (y : Fin N)
     (hT : 0 < T) (hcard : B.card=T) (h2T : 2*T ≤ N)

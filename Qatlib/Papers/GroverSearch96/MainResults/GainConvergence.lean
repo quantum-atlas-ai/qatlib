@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3CorrectedAfas
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Amplitude gain and convergence of Grover search
+
+The exact marked amplitude increment is expressed by `gain_formula`. Under normalization and the
+stated sign and threshold hypotheses, `theorem3_markedRegister` proves a positive ordinary
+amplitude and a quantitative marked amplitude gain for at least three qubits.
+
+`section4_success_iterations` supplies an iteration count below `sqrt (2 * 2^n)` with success
+probability strictly above one half for registers with at least two qubits. See [Grover1996].
+
+## Main statements
+
+* `theorem3_markedRegister`: For `n ≥ 3`, a normalized state with `0 < k < 1 / sqrt 2` and `l >
+  0` gains more than `1 / (2 * sqrt (2^n))` in marked amplitude and retains a positive ordinary
+  amplitude.
+* `section4_success_iterations`: For `n ≥ 2`, some integer iteration count below `sqrt (2 *
+  2^n)` gives singleton marked success probability strictly greater than `1/2`.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +43,7 @@ open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- The marked amplitude gain in one Grover step equals `-2 * k / 2^n + 2 * (1 - 1 / 2^n) * l`. -/
 theorem gain_formula (n : ℕ) (k l : ℝ) :
     distinguishedAfter (2 ^ n) (-k) l - k =
       -(2 * k / (2 ^ n : ℝ)) + 2 * (1 - 1 / (2 ^ n : ℝ)) * l := by
@@ -28,6 +53,9 @@ theorem gain_formula (n : ℕ) (k l : ℝ) :
   field_simp
   ring
 
+/-- For `n ≥ 3`, a normalized state with `0 < k < 1 / sqrt 2` and `l > 0` gains more than `1 /
+(2 * sqrt (2^n))` in marked amplitude and retains a positive ordinary amplitude. See
+[Grover1996]. -/
 theorem theorem3_markedRegister (n : ℕ) (hn : 3 ≤ n) (w : Reg n) (k l : ℝ)
     (hk0 : 0 < k) (hk : k < 1 / Real.sqrt 2) (hl : 0 < l)
     (hnorm : Normalized (MarkedVector ({w} : Finset (Reg n)) (k : ℂ) (l : ℂ))) :
@@ -45,6 +73,8 @@ theorem theorem3_markedRegister (n : ℕ) (hn : 3 ≤ n) (w : Reg n) (k l : ℝ)
   have h := theorem3Corrected (2 ^ n) h8 k l hk0 hk hl hmass
   simpa [Nat.cast_pow] using h
 
+/-- For `n ≥ 2`, some integer iteration count below `sqrt (2 * 2^n)` gives singleton marked
+success probability strictly greater than `1/2`. See [Grover1996]. -/
 theorem section4_success_iterations (n : ℕ) (hn : 2 ≤ n) (w : Reg n) :
     ∃ j : ℕ, (j : ℝ) < Real.sqrt (2 * (2 : ℝ) ^ n) ∧
       1 / 2 < MeasureProb (GroverState ({w} : Finset (Reg n)) j) {w} := by

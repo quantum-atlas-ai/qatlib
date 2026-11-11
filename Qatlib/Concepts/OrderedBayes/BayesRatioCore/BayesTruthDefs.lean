@@ -19,6 +19,29 @@ import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesLearner
+
+/-!
+# Truth driven Bayesian ratios and finite run bounds
+
+The truth driven learner uses answer probabilities determined by the true ordered index, and
+`crossingAbsorbNext` stops when a specified posterior ratio reaches its threshold. Positivity
+and total mass estimates preserve `truthInv`, while same side and across cut identities control
+the ratio potential, as used in the ordered search analysis of [BenOrHassidim2007]
+
+## Main statements
+
+* `truthAnswerProb`: defines the clamped truth dependent answer probability.
+* `crossingAbsorb_one_step_right` and `crossingAbsorb_one_step_left`: prove expected ratio
+  contraction.
+* `zoo_bayes_truth_window_light_cell`: finds a light cell in a finite window.
+* `ville_event_bound`: bounds finite run event probabilities by the initial potential divided by
+  a threshold.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 
@@ -31,9 +54,14 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- The clamped answer probability equal to the clamp of `p` when `c ≤ j` and of `1 - p`
+otherwise. -/
 noncomputable def truthAnswerProb {n : ℕ} (j c : Fin n) (p : ℝ) : ℝ≥0 :=
   clampProb (if (c : ℕ) ≤ (j : ℕ) then p else 1 - p)
 
+/-- The truth driven transition that halts with the current posterior if an entry reaches `ε`,
+and otherwise selects a posterior update using the truth dependent answer probability at
+`stageTwoCut`. -/
 noncomputable def trueLearnerNext {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ) :
     (Fin n → ℝ) → PMF (Configuration (Fin n → ℝ) (Fin n → ℝ)) :=
   fun a =>
@@ -45,9 +73,12 @@ noncomputable def trueLearnerNext {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ
             (if b then updateTrue a (stageTwoCut hn a ε) p
                   else updateFalse a (stageTwoCut hn a ε) p))
 
+/-- The posterior carried by either a halted or a running configuration. -/
 def configPosterior {n : ℕ} (cfg : Configuration (Fin n → ℝ) (Fin n → ℝ)) :
     Fin n → ℝ := Sum.elim id id cfg
 
+/-- The transition that halts with the current posterior when `R * a v ≤ a u`, and otherwise
+takes a truth driven learner step. -/
 noncomputable def crossingAbsorbNext {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (u v : Fin n) : (Fin n → ℝ) → PMF (Configuration (Fin n → ℝ) (Fin n → ℝ)) :=
   fun a => if R * a v ≤ a u then PMF.pure (Sum.inl a) else trueLearnerNext hn j p ε a
@@ -56,23 +87,29 @@ section TruthSemantics
 
 open scoped Classical
 
+/-- Clamping a real number already in `[0, 1]` preserves its value. -/
 theorem clampProb_eq {x : ℝ} (h1 : 0 ≤ x) (h2 : x ≤ 1) : (clampProb x : ℝ) = x := by
   show (NNReal.toReal (clampProb x)) = x
   simp only [clampProb]
   norm_num [min_eq_left h2, max_eq_right h1]
   rfl
 
+/-- For a real number in `[0, 1]`, `clampProb` equals its nonnegative real conversion. -/
 theorem clampProb_eq_toNNReal {x : ℝ} (h1 : 0 ≤ x) (h2 : x ≤ 1) :
     clampProb x = Real.toNNReal x := by
   apply NNReal.coe_injective
   show ((clampProb x : ℝ≥0) : ℝ) = ((Real.toNNReal x : ℝ≥0) : ℝ)
   rw [clampProb_eq h1 h2, Real.coe_toNNReal x h1]
 
+/-- If some posterior entry is at least `ε`, the truth driven learner halts with the current
+posterior. -/
 theorem zoo_bayes_truth_halt {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ) (a : Fin n → ℝ)
     (ha : ∃ i : Fin n, ε ≤ a i) :
     trueLearnerNext hn j p ε a = PMF.pure (Sum.inl a) := by
   simp only [trueLearnerNext, dif_pos ha]
 
+/-- For `1 / 2 < p < 1` and nonnegative entries of total mass at most one, both update
+denominators lie strictly between zero and one. -/
 theorem zoo_bayes_truth_norms_positive {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (ha0 : ∀ m, 0 ≤ a m) (hsum : (∑ m, a m) ≤ 1) :
     0 < normFalse a c p ∧ normFalse a c p < 1 ∧ 0 < normTrue a c p ∧ normTrue a c p < 1 := by
@@ -97,6 +134,8 @@ theorem zoo_bayes_truth_norms_positive {n : ℕ} (a : Fin n → ℝ) (c : Fin n)
   · have hT : normTrue a c p = 1 - normFalse a c p := rfl
     rw [hT]; linarith
 
+/-- For `1 / 2 < p < 1` and a strictly positive prior of total mass at most one, both posterior
+updates have strictly positive entries. -/
 theorem zoo_bayes_truth_update_positivity {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hpos : ∀ m, 0 < a m) (hsum : (∑ m, a m) ≤ 1) :
     (∀ m, 0 < updateFalse a c p m) ∧ (∀ m, 0 < updateTrue a c p m) := by
@@ -116,6 +155,8 @@ theorem zoo_bayes_truth_update_positivity {n : ℕ} (a : Fin n → ℝ) (c : Fin
     · rw [if_neg hm]
       exact div_pos (mul_pos (show (0:ℝ) < p by linarith) (hpos m)) hT0
 
+/-- When `u` and `v` lie on the same side of the cut, each update preserves their ratio in cross
+multiplied form. -/
 theorem zoo_bayes_update_ratio_same_side {n : ℕ} (a : Fin n → ℝ) (c u v : Fin n) (p : ℝ)
     (hside : ((u : ℕ) ≤ (c : ℕ)) = ((v : ℕ) ≤ (c : ℕ))) :
     updateFalse a c p u * a v = updateFalse a c p v * a u ∧
@@ -146,6 +187,8 @@ theorem zoo_bayes_update_ratio_same_side {n : ℕ} (a : Fin n → ℝ) (c u v : 
       · simp [h]
       · field_simp
 
+/-- When `u ≤ c < v`, the false update satisfies the cross multiplied ratio identity with
+weights `p` and `1 - p`. -/
 theorem zoo_bayes_update_ratio_across_false {n : ℕ} (a : Fin n → ℝ) (c u v : Fin n) (p : ℝ)
     (hu : (u : ℕ) ≤ (c : ℕ)) (hv : (c : ℕ) < (v : ℕ)) :
     p * (updateFalse a c p v * a u) = (1 - p) * (a v * updateFalse a c p u) := by
@@ -155,6 +198,8 @@ theorem zoo_bayes_update_ratio_across_false {n : ℕ} (a : Fin n → ℝ) (c u v
   · simp [h]
   · field_simp
 
+/-- When `u ≤ c < v`, the true update satisfies the cross multiplied ratio identity with weights
+`1 - p` and `p`. -/
 theorem zoo_bayes_update_ratio_across_true {n : ℕ} (a : Fin n → ℝ) (c u v : Fin n) (p : ℝ)
     (hu : (u : ℕ) ≤ (c : ℕ)) (hv : (c : ℕ) < (v : ℕ)) :
     (1 - p) * (updateTrue a c p v * a u) = p * (a v * updateTrue a c p u) := by
@@ -164,6 +209,9 @@ theorem zoo_bayes_update_ratio_across_true {n : ℕ} (a : Fin n → ℝ) (c u v 
   · simp [h]
   · field_simp
 
+/-- For a nonnegative vector summing to one, every length `l` window immediately before `I`,
+with `0 < l ≤ I`, contains an entry at most `1 / l`; see [Ben-Or and Hassidim, Lemma
+2.5][BenOrHassidim2007]. -/
 theorem zoo_bayes_truth_window_light_cell {n : ℕ} (a : Fin n → ℝ) (I : Fin n) (l : ℕ)
     (hl : 0 < l) (hIl : l ≤ (I : ℕ)) (ha0 : ∀ m, 0 ≤ a m) (hsum : (∑ m, a m) = 1) :
     ∃ k : Fin n, ((I : ℕ) - l ≤ (k : ℕ) ∧ (k : ℕ) < (I : ℕ)) ∧ a k ≤ 1 / (l : ℝ) := by
@@ -202,6 +250,7 @@ theorem zoo_bayes_truth_window_light_cell {n : ℕ} (a : Fin n → ℝ) (I : Fin
     exact Finset.filter_subset _ _
   linarith
 
+/-- For `0 ≤ p ≤ 1`, the real answer probability is `p` when `c ≤ j` and `1 - p` otherwise. -/
 theorem zoo_bayes_truth_answer_prob {n : ℕ} (j c : Fin n) (p : ℝ)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     (truthAnswerProb j c p : ℝ) = if (c : ℕ) ≤ (j : ℕ) then p else 1 - p := by
@@ -210,6 +259,7 @@ theorem zoo_bayes_truth_answer_prob {n : ℕ} (j c : Fin n) (p : ℝ)
   · rw [if_pos h]; exact clampProb_eq hp0 hp1
   · rw [if_neg h]; exact clampProb_eq (by linarith) (by linarith)
 
+/-- The unclamped answer probability formula does not hold for all real values of `p`. -/
 theorem zoo_bayes_unrestricted_answer_prob_false :
     ¬ (∀ {n : ℕ} (j c : Fin n) (p : ℝ),
       (truthAnswerProb j c p : ℝ) = if (c : ℕ) ≤ (j : ℕ) then p else 1 - p) := by
@@ -219,6 +269,8 @@ theorem zoo_bayes_unrestricted_answer_prob_false :
   change (1 : ℝ) = 5 at hx
   norm_num at hx
 
+/-- For `1 / 2 < p < 1`, the real truth dependent answer probability is `p` when `c ≤ j` and `1
+- p` otherwise. -/
 theorem truthAnswerProb_eq {n : ℕ} (j c : Fin n) {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
     (truthAnswerProb j c p : ℝ) = if (c : ℕ) ≤ (j : ℕ) then p else 1 - p :=
   zoo_bayes_truth_answer_prob j c p (by linarith) (le_of_lt hp1)
@@ -227,8 +279,12 @@ end TruthSemantics
 
 section Invariant
 
+/-- The posterior invariant requiring every entry to be strictly positive and total mass to be
+at most one. -/
 def truthInv {n : ℕ} (a : Fin n → ℝ) : Prop := (∀ m, 0 < a m) ∧ (∑ m, a m) ≤ 1
 
+/-- A sum with one scaling factor on the prefix and another on its complement splits into the
+corresponding scaled prefix and remaining masses. -/
 theorem sum_scale_split {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (r s : ℝ) :
     (∑ m : Fin n, if (m : ℕ) ≤ (c : ℕ) then r * a m else s * a m)
       = r * prefixMass a c + s * ((∑ m, a m) - prefixMass a c) := by
@@ -252,6 +308,8 @@ theorem sum_scale_split {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (r s : ℝ) :
       = ∑ m : Fin n, if (m : ℕ) ≤ (c : ℕ) then a m else (0 : ℝ) := rfl
   rw [hleft, hrest, hpre]
 
+/-- For `1 / 2 < p < 1`, the false update of a nonnegative vector of total mass at most one also
+has total mass at most one. -/
 theorem updateFalse_sum_le {n : ℕ} (a : Fin n → ℝ) (c : Fin n) {p : ℝ} (hp : 1 / 2 < p)
     (hp1 : p < 1) (ha0 : ∀ m, 0 ≤ a m) (hsum : (∑ m, a m) ≤ 1) :
     (∑ m, updateFalse a c p m) ≤ 1 := by
@@ -267,6 +325,8 @@ theorem updateFalse_sum_le {n : ℕ} (a : Fin n → ℝ) (c : Fin n) {p : ℝ} (
     mul_le_mul_of_nonneg_left (by linarith) (by linarith)
   linarith
 
+/-- For `1 / 2 < p < 1`, the true update of a nonnegative vector of total mass at most one also
+has total mass at most one. -/
 theorem updateTrue_sum_le {n : ℕ} (a : Fin n → ℝ) (c : Fin n) {p : ℝ} (hp : 1 / 2 < p)
     (hp1 : p < 1) (ha0 : ∀ m, 0 ≤ a m) (hsum : (∑ m, a m) ≤ 1) :
     (∑ m, updateTrue a c p m) ≤ 1 := by
@@ -284,6 +344,8 @@ theorem updateTrue_sum_le {n : ℕ} (a : Fin n → ℝ) (c : Fin n) {p : ℝ} (h
     mul_le_mul_of_nonneg_left (by linarith) (by linarith)
   linarith
 
+/-- For `1 / 2 < p < 1`, the crossing absorbing transition preserves `truthInv` throughout its
+support. -/
 theorem crossingAbsorb_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ) (u v : Fin n)
     (hp : 1 / 2 < p) (hp1 : p < 1) (a : Fin n → ℝ) (ha : truthInv a) :
     ∀ cfg ∈ (crossingAbsorbNext hn j p ε R u v a).support, truthInv (configPosterior cfg) := by
@@ -312,16 +374,22 @@ end Invariant
 
 section Ville
 
+/-- The extended nonnegative real conversion of the posterior ratio at indices `u` and `v` in a
+configuration. -/
 noncomputable def ratioPotential {n : ℕ} (u v : Fin n)
     (cfg : Configuration (Fin n → ℝ) (Fin n → ℝ)) : ℝ≥0∞ :=
   ENNReal.ofReal (configPosterior cfg u / configPosterior cfg v)
 
+/-- Charging additional cost to a costed law does not change the expectation of a function
+depending only on the result. -/
 theorem expectation_charge_fst {α : Type} (m : ℕ) (q : CostedLaw α) (g : α → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge m q) (fun y => g y.1) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation q (fun y => g y.1) := by
   rw [show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge m q = PMF.map (fun x => (x.1, m + x.2)) q from rfl,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
 
+/-- A pointwise inequality on the support of a probability mass function implies the
+corresponding inequality of extended nonnegative expectations. -/
 theorem expectation_le_of_forall_mem {α : Type} {p : PMF α} {f g : α → ℝ≥0∞}
     (h : ∀ a ∈ p.support, f a ≤ g a) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p f ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p g := by
   apply ENNReal.tsum_le_tsum
@@ -331,6 +399,8 @@ theorem expectation_le_of_forall_mem {α : Type} {p : PMF α} {f g : α → ℝ�
   · have hpa : p a = 0 := by simpa [PMF.mem_support_iff] using ha
     simp [hpa]
 
+/-- The expectation of a deterministic function of a Bernoulli sample is the sum of its true and
+false branch values weighted by `q` and `1 - q`. -/
 theorem expectation_bernoulli_branches {q : ℝ≥0} (hq : q ≤ 1) {α : Type} (F : Bool → α)
     (g : α → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation ((PMF.bernoulli q hq).bind fun b => PMF.pure (F b)) g =
@@ -342,6 +412,8 @@ theorem expectation_bernoulli_branches {q : ℝ≥0} (hq : q ≤ 1) {α : Type} 
   rw [tsum_fintype, Fintype.sum_bool]
   simp only [PMF.bernoulli_apply, Bool.cond_true, Bool.cond_false]
 
+/-- For nonnegative weights summing to one, the sum of the extended nonnegative conversions of
+their products with `r` is at most `ENNReal.ofReal r`. -/
 theorem ofReal_split_le {u v r : ℝ} (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v = 1) :
     ENNReal.ofReal (u * r) + ENNReal.ofReal (v * r) ≤ ENNReal.ofReal r := by
   by_cases hr : 0 ≤ r
@@ -352,6 +424,8 @@ theorem ofReal_split_le {u v r : ℝ} (hu : 0 ≤ u) (hv : 0 ≤ v) (huv : u + v
     rw [ENNReal.ofReal_eq_zero.mpr h1, ENNReal.ofReal_eq_zero.mpr h2, add_zero,
       ENNReal.ofReal_eq_zero.mpr (by linarith)]
 
+/-- For `1 / 2 < p < 1`, the answer probability and its complement have the extended nonnegative
+values given by the corresponding `p` and `1 - p` branches. -/
 theorem truthAnswerProb_weights {n : ℕ} (j c : Fin n) {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
     (truthAnswerProb j c p : ℝ≥0∞) = ENNReal.ofReal (if (c : ℕ) ≤ (j : ℕ) then p else 1 - p) ∧
       ((1 - truthAnswerProb j c p : ℝ≥0) : ℝ≥0∞)
@@ -384,6 +458,8 @@ theorem truthAnswerProb_weights {n : ℕ} (j c : Fin n) {p : ℝ} (hp : 1 / 2 < 
   exact ⟨ENNReal.ofNNReal_toNNReal _, by
     rw [e2]; exact ENNReal.ofNNReal_toNNReal _⟩
 
+/-- If two indices lie on the same side of the cut, the extended nonnegative ratio potential
+does not increase under either posterior update. -/
 theorem same_side_potential_le {n : ℕ} (a : Fin n → ℝ) (c u v : Fin n) (p : ℝ)
     (hside : ((u : ℕ) ≤ (c : ℕ)) = ((v : ℕ) ≤ (c : ℕ))) :
     ENNReal.ofReal (updateTrue a c p u / updateTrue a c p v) ≤ ENNReal.ofReal (a u / a v) ∧
@@ -403,6 +479,8 @@ theorem same_side_potential_le {n : ℕ} (a : Fin n → ℝ) (c u v : Fin n) (p 
       exact le_of_eq (congrArg ENNReal.ofReal (by
         rw [div_eq_div_iff h0 h1]; linear_combination hFe))
 
+/-- If positive complementary weights satisfy the two cross multiplied update identities, their
+weighted sum of updated ratio potentials is at most the initial ratio potential. -/
 theorem across_one_step_le {n : ℕ} (a : Fin n → ℝ) (c num den : Fin n) {p w w' : ℝ}
     (hw1 : 0 < w) (_hw2 : w < 1) (hw3 : 0 < w') (hww' : w + w' = 1)
     (hT : w * (updateTrue a c p num * a den) = w' * (a num * updateTrue a c p den))
@@ -441,6 +519,8 @@ theorem across_one_step_le {n : ℕ} (a : Fin n → ℝ) (c num den : Fin n) {p 
     _ ≤ ENNReal.ofReal (a num / a den) :=
         ofReal_split_le (le_of_lt hw3) (le_of_lt hw1) (by rw [add_comm]; exact hww')
 
+/-- The extended nonnegative casts of `q` and its nonnegative complement sum to one when `q ≤
+1`. -/
 theorem bernoulli_weights_add {q : ℝ≥0} (hq : q ≤ 1) :
     ((q : ℝ≥0∞) + ((1 - q : ℝ≥0) : ℝ≥0∞)) = 1 := by
   have h : (q + (1 - q : ℝ≥0)) = (1 : ℝ≥0) := by
@@ -449,6 +529,8 @@ theorem bernoulli_weights_add {q : ℝ≥0} (hq : q ≤ 1) :
     ring
   exact_mod_cast h
 
+/-- A Bernoulli weighted average of two extended nonnegative values bounded by `V` is also
+bounded by `V`. -/
 theorem same_side_step_bound {q : ℝ≥0} (hq : q ≤ 1) (VT VF V : ℝ≥0∞) (hT : VT ≤ V)
     (hF : VF ≤ V) :
     (q : ℝ≥0∞) * VT + ((1 - q : ℝ≥0) : ℝ≥0∞) * VF ≤ V := by
@@ -458,6 +540,8 @@ theorem same_side_step_bound {q : ℝ≥0} (hq : q ≤ 1) (VT VF V : ℝ≥0∞)
     _ = ((q : ℝ≥0∞) + ((1 - q : ℝ≥0) : ℝ≥0∞)) * V := (add_mul _ _ _).symm
     _ = V := by rw [bernoulli_weights_add hq, one_mul]
 
+/-- For `j < k < i` and `1 / 2 < p < 1`, a crossing absorbing step does not increase the
+expected ratio potential `i / k`. -/
 theorem crossingAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) {p ε R : ℝ}
     (hp : 1 / 2 < p) (hp1 : p < 1) (hjk : (j : ℕ) < (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
     (a : Fin n → ℝ) :
@@ -505,6 +589,8 @@ theorem crossingAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) {p 
             (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p)) _ _ _
             (same_side_potential_le a _ i k p hside).1 (same_side_potential_le a _ i k p hside).2
 
+/-- For `k < i < j` and `1 / 2 < p < 1`, a crossing absorbing step does not increase the
+expected ratio potential `k / i`. -/
 theorem crossingAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (k i j : Fin n) {p ε R : ℝ}
     (hp : 1 / 2 < p) (hp1 : p < 1) (hki : (k : ℕ) < (i : ℕ)) (hij : (i : ℕ) < (j : ℕ))
     (a : Fin n → ℝ) :
@@ -560,6 +646,9 @@ theorem crossingAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (k i j : Fin n) {p �
             (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p)) _ _ _
             (same_side_potential_le a _ k i p hside).1 (same_side_potential_le a _ k i p hside).2
 
+/-- For a kernel with nonincreasing expected potential and a support preserved invariant, an
+event forcing the potential above a nonzero finite threshold `r` has probability at most the
+initial potential divided by `r` after every finite run. -/
 theorem ville_event_bound {S A : Type} (kn : S → PMF (Configuration S A))
     (V : Configuration S A → ℝ≥0∞) (Q : Configuration S A → Prop)
     (Inv : Configuration S A → Prop) (r : ℝ≥0∞) (hr0 : r ≠ 0) (hrT : r ≠ ⊤)

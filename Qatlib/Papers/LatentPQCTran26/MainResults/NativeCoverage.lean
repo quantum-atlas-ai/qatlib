@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LatentPQCTran26.MainResults.Coverage
 import Qatlib.Papers.LatentPQCTran26.MainResults.LinearMetaGrad
 import Qatlib.Papers.LatentPQCTran26.MainResults.ActualWarmRoute
+
+/-!
+# Coverage by native squared gradients
+
+`squaredGradient_continuous` supplies continuity of the squared native gradient from continuity
+of the derivative. The estimates `reference_coverage` and `routed_coverage` use a derivative
+norm bound and a lower bound on the reference mean to quantify the measure of parameters whose
+squared gradient exceeds half that mean bound. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `reference_coverage`: If the derivative norm is bounded by positive `C` and the reference mean
+  squared gradient is at least nonnegative `mu0` with `mu0 / 2 < C ^ 2`, the set with squared
+  gradient at least `mu0 / 2` has reference real measure at least `mu0 / (2 * C ^ 2)`.
+* `routed_coverage`: Under the stated derivative and reference-mean bounds, the routed mixture
+  assigns real measure at least `lam * mu0 / (2 * C ^ 2)` to the set with squared gradient at
+  least `mu0 / 2`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -18,11 +41,15 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteS
 
 omit [MeasurableSpace E] [BorelSpace E] in
 
+/-- A continuous Fréchet derivative implies continuity of the squared native gradient norm. -/
 theorem squaredGradient_continuous (L : E → ℝ) (hD : Continuous (fderiv ℝ L)) :
     Continuous (fun x => ‖gradient L x‖^2) := by
   simp only [nativeGradient_norm]
   exact hD.norm.pow 2
 
+/-- If the derivative norm is bounded by positive `C` and the reference mean squared gradient is
+at least nonnegative `mu0` with `mu0 / 2 < C ^ 2`, the set with squared gradient at least
+`mu0 / 2` has reference real measure at least `mu0 / (2 * C ^ 2)`. -/
 theorem reference_coverage
     (nu : Measure E) [IsProbabilityMeasure nu] (L : E → ℝ)
     (hD : Continuous (fderiv ℝ L)) (C mu0 : ℝ) (hC0 : 0 < C) (_hmu : 0 ≤ mu0)
@@ -50,6 +77,9 @@ theorem reference_coverage
     nlinarith [sq_nonneg mu0]
   exact hnum.trans hmain
 
+/-- Under the stated derivative and reference-mean bounds, the routed mixture assigns real
+measure at least `lam * mu0 / (2 * C ^ 2)` to the set with squared gradient at least `mu0 /
+2`. -/
 theorem routed_coverage
     (nu train : Measure E) [IsProbabilityMeasure nu] [IsProbabilityMeasure train]
     (lam : NNReal) (L : E → ℝ) (hD : Continuous (fderiv ℝ L))

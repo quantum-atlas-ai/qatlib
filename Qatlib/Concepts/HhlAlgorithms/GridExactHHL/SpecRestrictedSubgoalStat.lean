@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.LinearSystem
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+/-!
+# Restricted spectral HHL specification
+
+`SpecRestrictedSubgoal` states exact phase-estimation readout for eigenvectors with grid-aligned
+eigenphases and existence of a spectral inverse solution. It records the inverse coefficient
+formula and its positive inverse-square lower bound in the setting motivated by
+[HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `SpecRestrictedSubgoal`: the exact readout and spectral-solution contract.
+
+## References
+
+* [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
@@ -17,6 +35,9 @@ open Matrix
 
 namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 
+/-- The exact-grid spectral contract asserting probability-one phase readout for each
+eigenvector and a linear-system solution given by inverse-eigenvalue coefficients, whose
+squared coefficient norm is positive and at least `1 / κ²`. -/
 def SpecRestrictedSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (p : LinearSystemProblem I)
     (M : ℕ), 0 < M →

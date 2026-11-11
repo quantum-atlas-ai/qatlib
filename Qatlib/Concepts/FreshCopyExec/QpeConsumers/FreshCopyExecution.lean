@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecutionDefs
+
+/-!
+# Fresh-Copy Execution and Exact Costs
+
+The interpreter `run` and the compilers from `FreshCopyExecutionDefs` realize fresh copy quantum
+programs while recording resource counts. Sequential and repeated execution are reduced to state
+iteration and the cost operation `seqCost`, in the sample based evolution setting of
+[LloydMohseniRebentrost2014].
+
+The correctness results `g2`, `g3`, `g4`, and `g5` connect direct, local, numerical, and two
+species compilation to their existing QPE program semantics. Their costs include copy use,
+discards, local gates, fixed macros, and peak fresh register and clean qubit workspace.
+
+## Main statements
+
+- `compileBlock_state` and `compileBlock_cost` give generic query-block compilation laws.
+- `g3` charges `36*n+7` local gates per fresh copy step, while `g4` charges `36*n+4`.
+* `g6` connects plain schedules to `freshCopyRun` and gives reference positivity and trace
+  preservation.
+
+## References
+
+- [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -39,25 +64,33 @@ set_option autoImplicit false
 set_option maxHeartbeats 3000000
 noncomputable section
 
+/-- Sequentially combining a cost with `zeroCost` on the right leaves the cost unchanged. -/
 @[simp] theorem seqCost_zero (a : Cost) : seqCost a zeroCost = a := by
   ext <;> simp [seqCost, zeroCost]
 
+/-- Sequentially combining `zeroCost` with a cost on the left leaves the cost unchanged. -/
 @[simp] theorem zero_seqCost (a : Cost) : seqCost zeroCost a = a := by
   ext <;> simp [seqCost, zeroCost]
 
+/-- Sequential cost composition is associative. -/
 theorem seqCost_assoc (a b c : Cost) :
     seqCost (seqCost a b) c = seqCost a (seqCost b c) := by
   ext <;> simp [seqCost, Nat.add_assoc, max_assoc]
 
+/-- The input independent cost of an operation list, obtained by composing its step costs in
+sequence. -/
 def wordCost {n M : ℕ} (p : List (Op n M)) : Cost :=
   (p.map stepCost).foldr seqCost zeroCost
 
+/-- The interpreter's recorded cost equals `wordCost p` for every input state. -/
 @[simp] theorem run_cost {n M : ℕ} (p : List (Op n M)) (X : State n M) :
     (run p X).2 = wordCost p := by
   induction p generalizing X with
   | nil => rfl
   | cons a p ih => simp [run, wordCost, ih]
 
+/-- Running an appended operation list executes the first list and then the second, and combines
+their recorded costs with `seqCost`. -/
 theorem run_append {n M : ℕ} (p q : List (Op n M)) (X : State n M) :
     run (p ++ q) X =
       ((run q (run p X).1).1, seqCost (run p X).2 (run q (run p X).1).2) := by
@@ -68,10 +101,13 @@ theorem run_append {n M : ℕ} (p q : List (Op n M)) (X : State n M) :
     · simp [run]
   | cons a p ih => simp [run, ih, seqCost_assoc]
 
+/-- The cost of an appended operation list is the sequential composition of the two list costs. -/
 theorem wordCost_append {n M : ℕ} (p q : List (Op n M)) :
     wordCost (p ++ q) = seqCost (wordCost p) (wordCost q) := by
   simpa using! congrArg Prod.snd (run_append p q (0 : State n M))
 
+/-- Repeating an operation block executes its state transformation by function iteration. Its
+recorded cost is the sequential fold of the repeated block cost. -/
 theorem run_repeat {n M : ℕ} (k : ℕ) (p : List (Op n M)) (X : State n M) :
     (run ((List.replicate k p).flatten) X).1 = (fun Y => (run p Y).1)^[k] X ∧
     (run ((List.replicate k p).flatten) X).2 =
@@ -85,24 +121,36 @@ theorem run_repeat {n M : ℕ} (k : ℕ) (p : List (Op n M)) (X : State n M) :
     · exact (ih (run p X).1).1
     · simpa only [run_cost] using! congrArg (seqCost (wordCost p)) (ih (run p X).1).2
 
+/-- The cost of `fresh` uniform fresh copy steps and `macros` fixed gates, with `gates` local
+gates per fresh step. Peak workspace is zero when no fresh step occurs and otherwise one
+fresh register and `clean` clean qubits. -/
 def tally (fresh macros gates clean : ℕ) : Cost :=
   ⟨fresh,fresh,fresh*gates,macros,fresh,0,
     if fresh=0 then 0 else 1, if fresh=0 then 0 else clean⟩
 
+/-- A tally with zero fresh steps and zero fixed macros is `zeroCost`, regardless of the per
+step gate and workspace parameters. -/
 @[simp] theorem tally_zero (g c : ℕ) : tally 0 0 g c = zeroCost := by
   ext <;> simp [tally, zeroCost]
 
+/-- Sequential tallies with common per step gate and workspace parameters add their fresh-step
+and fixed macro counts. -/
 theorem tally_add (a b m l g c : ℕ) :
     seqCost (tally a m g c) (tally b l g c) = tally (a+b) (m+l) g c := by
   by_cases ha : a=0 <;> by_cases hb : b=0 <;>
     ext <;> simp [tally, seqCost, ha, hb, Nat.add_mul, Nat.add_eq_zero_iff, max_self]
 
+/-- The cost of one fresh copy step is the tally with one fresh step and zero fixed macros. -/
 @[simp] theorem freshCost_tally (g c : ℕ) : freshCost g c = tally 1 0 g c := by
   ext <;> simp [freshCost, tally]
 
+/-- The cost of one fixed macro is the tally with zero fresh steps and one macro, for any per
+step parameters. -/
 theorem macroCost_tally (g c : ℕ) : macroCost = tally 0 1 g c := by
   ext <;> simp [macroCost, tally]
 
+/-- Repeating a block whose cost is a uniform tally with no fixed macros multiplies its
+fresh-step count by the number of repetitions. -/
 theorem repeat_cost {n M : ℕ} (p : List (Op n M)) (s k g c : ℕ)
     (hp : wordCost p = tally s 0 g c) :
     wordCost ((List.replicate k p).flatten) = tally (k*s) 0 g c := by
@@ -113,11 +161,15 @@ theorem repeat_cost {n M : ℕ} (p : List (Op n M)) (s k g c : ℕ)
       tally_add]
     simp [Nat.add_mul, Nat.add_comm]
 
+/-- The compiler replacing each circuit query with a fixed operation block and retaining each
+known matrix gate as a fixed macro. -/
 def compileBlock {n M : ℕ} (p : List (Op n M)) : Circuit (Register n M) → List (Op n M)
   | [] => []
   | .gate U :: C => .gate U :: compileBlock p C
   | .query :: C => p ++ compileBlock p C
 
+/-- If the replacement block has `s` uniform fresh steps and no fixed macros, compiling a
+circuit charges `QueryCount C*s` fresh steps and `GateCount C` fixed macros. -/
 theorem compileBlock_cost {n M : ℕ} (p : List (Op n M)) (s g c : ℕ)
     (hp : wordCost p = tally s 0 g c) (C : Circuit (Register n M)) :
     wordCost (compileBlock p C) = tally (QueryCount C*s) (GateCount C) g c := by
@@ -133,12 +185,16 @@ theorem compileBlock_cost {n M : ℕ} (p : List (Op n M)) (s g c : ℕ)
       rw [compileBlock, wordCost_append, hp, ih, tally_add]
       simp [QueryCount, GateCount, Nat.add_mul, Nat.add_comm]
 
+/-- The circuit interpreter applying matrix conjugation for known gates and the supplied state
+transformation `Q` for queries. -/
 def execute {n M : ℕ} (Q : State n M → State n M) :
     Circuit (Register n M) → State n M → State n M
   | [], X => X
   | .gate U :: C, X => execute Q C (MatrixMap.conj U X)
   | .query :: C, X => execute Q C (Q X)
 
+/-- If a replacement block implements `Q` on every state, running the compiled circuit agrees
+with the circuit interpreter using `Q` for queries. -/
 theorem compileBlock_state {n M : ℕ} (p : List (Op n M))
     (Q : State n M → State n M) (hp : ∀ X, (run p X).1 = Q X)
     (C : Circuit (Register n M)) (X : State n M) :
@@ -148,6 +204,8 @@ theorem compileBlock_state {n M : ℕ} (p : List (Op n M))
   | cons a C ih =>
     cases a <;> simp [compileBlock, run, execute, run_append, hp, ih, stepMap]
 
+/-- The blockwise lift of a composition equals the successive application of the lifted
+transformations in the same order. -/
 theorem liftMap_comp (n M : ℕ) (T S : Operator (2*(2^n)) → Operator (2*(2^n)))
     (X : State n M) : liftMap n M T (liftMap n M S X) = liftMap n M (T ∘ S) X := by
   unfold liftMap
@@ -159,6 +217,7 @@ theorem liftMap_comp (n M : ℕ) (T S : Operator (2*(2^n)) → Operator (2*(2^n)
   rw [h]
   rfl
 
+/-- Iterating a lifted transformation equals lifting its iterate. -/
 theorem liftMap_iterate (n M k : ℕ) (T : Operator (2*(2^n)) → Operator (2*(2^n)))
     (X : State n M) : (liftMap n M T)^[k] X = liftMap n M (T^[k]) X := by
   induction k with
@@ -170,18 +229,23 @@ theorem liftMap_iterate (n M k : ℕ) (T : Operator (2*(2^n)) → Operator (2*(2
   | succ k ih =>
     rw [Function.iterate_succ_apply', ih, liftMap_comp, Function.iterate_succ']
 
+/-- The recursively defined linear-map power `copyMapPower` agrees with function iteration on
+every operator. -/
 theorem mapPower_iterate {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d) (k : ℕ)
     (X : Operator d) : copyMapPower T k X = T^[k] X := by
   induction k with
   | zero => rfl
   | succ k ih => rw [Function.iterate_succ_apply']; exact congrArg T ih
 
+/-- Running `k` copies of a single operation applies its state transformation `k` times. -/
 theorem replicate_state {n M : ℕ} (op : Op n M) (k : ℕ) (X : State n M) :
     (run (List.replicate k op) X).1 = (stepMap op)^[k] X := by
   induction k generalizing X with
   | zero => rfl
   | succ k ih => simpa [run, Function.iterate_succ_apply] using! ih (stepMap op X)
 
+/-- Repeating an operation with cost `freshCost g c` gives the uniform tally with `k` fresh
+steps and no fixed macros. -/
 theorem replicate_cost {n M : ℕ} (op : Op n M) (k g c : ℕ)
     (h : stepCost op = freshCost g c) : wordCost (List.replicate k op) = tally k 0 g c := by
   induction k with
@@ -191,24 +255,32 @@ theorem replicate_cost {n M : ℕ} (op : Op n M) (k g c : ℕ)
     rw [h, freshCost_tally, ih, tally_add]
     congr 1; omega
 
+/-- The direct compiler is query-block compilation using `s` direct fresh copy steps at angle
+`Real.pi / s`. -/
 private theorem compileDirect_block (n M s : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)) :
     compileDirect n M s ρ C = compileBlock (List.replicate s (.direct ρ (Real.pi/(s:ℝ)))) C := by
   induction C with
   | nil => rfl
   | cons a C ih => cases a <;> simp [compileDirect, compileBlock, ih]
 
+/-- The local compiler is query-block compilation using `s` local fresh copy steps at angle
+`Real.pi / s`. -/
 private theorem compileLocal_block (n M s : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)) :
     compileLocal n M s ρ C = compileBlock (List.replicate s (.localStep ρ (Real.pi/(s:ℝ)))) C := by
   induction C with
   | nil => rfl
   | cons a C ih => cases a <;> simp [compileLocal, compileBlock, ih]
 
+/-- The numerical compiler is query-block compilation using `2^b` numerical fresh copy steps
+with precision parameters `b` and `k`. -/
 private theorem compileNumeric_block (n M b k : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)) :
     compileNumeric n M b k ρ C = compileBlock (List.replicate (2^b) (.numeric ρ b k)) C := by
   induction C with
   | nil => rfl
   | cons a C ih => cases a <;> simp [compileNumeric, compileBlock, ih]
 
+/-- The two species compiler is query-block compilation using `s` pairs of a negative angle `σ`
+step followed by a positive-angle `ρ` step. -/
 private theorem compileTwo_block (n M s : ℕ) (ρ σ : Operator (2^n)) (C : Circuit (Register n M)) :
     compileTwo n M s ρ σ C = compileBlock
       ((List.replicate s [.direct σ (-(Real.pi/(s:ℝ))), .direct ρ (Real.pi/(s:ℝ))]).flatten) C := by
@@ -216,6 +288,8 @@ private theorem compileTwo_block (n M s : ℕ) (ρ σ : Operator (2^n)) (C : Cir
   | nil => rfl
   | cons a C ih => cases a <;> simp [compileTwo, compileBlock, ih]
 
+/-- The operation interpreter obeys sequential composition, its cost is independent of the input
+state, and repeated blocks obey state-iteration and repeated-cost formulas. -/
 theorem g1 :
     (∀ (n M : ℕ) (p q : List (Op n M)) (X : State n M),
       run (p ++ q) X = ((run q (run p X).1).1,
@@ -227,6 +301,7 @@ theorem g1 :
         (List.replicate k (run p X).2).foldr seqCost zeroCost) :=
   ⟨fun _ _ => run_append, fun _ _ p X Y => by simp, fun _ _ => run_repeat⟩
 
+/-- The repeated direct fresh copy block used for one query implements `copyQPEQuery`. -/
 private theorem direct_state (n M s : ℕ) (ρ : Operator (2^n)) (X : State n M) :
     (run (List.replicate s (.direct ρ (Real.pi/(s:ℝ)) : Op n M)) X).1 =
       copyQPEQuery (2^n) M s ρ X := by
@@ -238,6 +313,7 @@ private theorem direct_state (n M s : ℕ) (ρ : Operator (2^n)) (X : State n M)
   ext a b
   exact congrArg (fun Y => Y a.2 b.2) (mapPower_iterate _ s _).symm
 
+/-- The repeated local fresh copy block used for one query implements `localCopyQPEQuery`. -/
 private theorem local_state (n M s : ℕ) (ρ : Operator (2^n)) (X : State n M) :
     (run (List.replicate s (.localStep ρ (Real.pi/(s:ℝ)) : Op n M)) X).1 =
       localCopyQPEQuery n M s ρ X := by
@@ -249,21 +325,28 @@ private theorem local_state (n M s : ℕ) (ρ : Operator (2^n)) (X : State n M) 
   ext a b
   exact congrArg (fun Y => Y a.2 b.2) (mapPower_iterate _ s _).symm
 
+/-- The block of `2^b` numerical fresh copy operations implements `numericCopyQPEQuery`. -/
 private theorem numeric_state (n M b k : ℕ) (ρ : Operator (2^n)) (X : State n M) :
     (run (List.replicate (2^b) (.numeric ρ b k : Op n M)) X).1 =
       numericCopyQPEQuery n M b k ρ X := by
   rw [replicate_state]
   exact liftMap_iterate n M (2^b) (numericCopyFinStep n ρ b k) X
 
+/-- Compiling the standard local controlled partial swap word uses exactly `36*n+7` known gates. -/
 private theorem local_fee (n : ℕ) (θ : ℝ) :
     GateCount (reflectionCompile (localControlledSwapSteps n θ)) = 36*n+7 := by
   rw [gateCount_reflectionCompile, localControlledSwapSteps_length]
 
+/-- Compiling the numerical controlled partial swap word uses exactly `36*n+4` known gates. -/
 private theorem numeric_fee (n b k : ℕ) :
     GateCount (reflectionCompile (numericControlledSwapSteps n b k)) = 36*n+4 := by
   rw [gateCount_reflectionCompile]
   exact (numerical_controlled_swap_clean_and_error n b k).2.1
 
+/-- Direct compilation implements `copyQPEProgram` and records `QueryCount C*s` copies, partial
+swaps, and discards, together with `GateCount C` fixed macros and the matching program
+resource counts. For density-operator copies, unitary circuits, and positive semidefinite
+inputs, the output remains positive semidefinite and has the input trace. -/
 theorem g2 : ∀ (n M s : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)) (X : State n M),
     (run (compileDirect n M s ρ C) X).1 = copyQPEProgram (2^n) M s ρ C X ∧
     (run (compileDirect n M s ρ C) X).2 =
@@ -294,6 +377,10 @@ theorem g2 : ∀ (n M s : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)
     rw [hs]
     exact copyQPEProgram_positive_trace (2^n) M s ρ hρ C hC X hX
 
+/-- Local compilation implements `localCopyQPEProgram` and agrees with its resource formulas,
+charging `36*n+7` local gates for each of the `QueryCount C*s` fresh copy steps. A nonempty
+fresh copy execution peaks at one fresh register and `n+1` clean qubits, and uses zero bit
+queries. -/
 theorem g3 : ∀ (n M s : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)) (X : State n M),
     (run (compileLocal n M s ρ C) X).1 = localCopyQPEProgram n M s ρ C X ∧
     (run (compileLocal n M s ρ C) X).2 =
@@ -323,6 +410,10 @@ theorem g3 : ∀ (n M s : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)
   refine ⟨hs, hc', ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [hc, tally, localCopyQPEProgramResources_eq, local_fee]
 
+/-- Numerical compilation implements `numericCopyQPEProgram` and agrees with its resource
+formulas, charging `36*n+4` local gates for each of the `QueryCount C*2^b` fresh copy steps.
+When the circuit has a query, peak workspace is one fresh register and `n+1` clean qubits,
+with zero bit queries. -/
 theorem g4 : ∀ (n M b k : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n M)) (X : State n M),
     (run (compileNumeric n M b k ρ C) X).1 = numericCopyQPEProgram n M b k ρ C X ∧
     (run (compileNumeric n M b k ρ C) X).2 =
@@ -352,6 +443,8 @@ theorem g4 : ∀ (n M b k : ℕ) (ρ : Operator (2^n)) (C : Circuit (Register n 
   refine ⟨hs, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [hc, tally, numericCopyResources_eq, numeric_fee]
 
+/-- Repeating the pair of a negative angle `σ` step and a positive angle `ρ` step `s` times
+implements the two species QPE query transformation. -/
 private theorem two_state (n M s : ℕ) (ρ σ : Operator (2^n)) (X : State n M) :
     (run ((List.replicate s [.direct σ (-(Real.pi/(s:ℝ))), .direct ρ (Real.pi/(s:ℝ))] : List (List (Op n M))).flatten) X).1 =
       twoSpeciesQPEQuery (2^n) M s ρ σ X := by
@@ -368,6 +461,9 @@ private theorem two_state (n M s : ℕ) (ρ σ : Operator (2^n)) (X : State n M)
   ext a b
   exact congrArg (fun Y => Y a.2 b.2) (mapPower_iterate _ s _).symm
 
+/-- Two-species compilation implements `twoSpeciesQPEProgram` and uses `2*QueryCount C*s`
+copies, partial swaps, and discards, with the stated fixed macro and peak-workspace costs.
+For a positive QPE record dimension, its copy count agrees with `twoSpeciesQPEResources`. -/
 theorem g5 : ∀ (n M s : ℕ) (ρ σ : Operator (2^n)) (C : Circuit (Register n M)) (X : State n M),
     (run (compileTwo n M s ρ σ C) X).1 = twoSpeciesQPEProgram (2^n) M s ρ σ C X ∧
     (run (compileTwo n M s ρ σ C) X).2 =
@@ -398,6 +494,8 @@ theorem g5 : ∀ (n M s : ℕ) (ρ σ : Operator (2^n)) (C : Circuit (Register n
     simp only [tally, twoSpeciesQPEResources, hq]
     ring
 
+/-- The plain fresh copy interpreter executes appended schedules in sequence and combines their
+costs with `seqCost`. -/
 private theorem plain_append {D : ℕ} (p q : List (Operator D × ℝ)) (X : Operator D) :
     runPlain (p++q) X = ((runPlain q (runPlain p X).1).1,
       seqCost (runPlain p X).2 (runPlain q (runPlain p X).1).2) := by
@@ -405,6 +503,8 @@ private theorem plain_append {D : ℕ} (p q : List (Operator D × ℝ)) (X : Ope
   | nil => simp [runPlain]
   | cons a p ih => rcases a with ⟨ρ,θ⟩; simp [runPlain, ih, seqCost_assoc]
 
+/-- The cost of a plain schedule is a tally with one fresh step per list entry and no local
+gates, fixed macros, or clean qubit workspace. -/
 private theorem plain_cost {D : ℕ} (p : List (Operator D × ℝ)) (X : Operator D) :
     (runPlain p X).2 = tally p.length 0 0 0 := by
   induction p generalizing X with
@@ -414,6 +514,8 @@ private theorem plain_cost {D : ℕ} (p : List (Operator D × ℝ)) (X : Operato
     simp only [runPlain, ih, freshCost_tally, tally_add, List.length_cons]
     congr 1; omega
 
+/-- A plain schedule whose copy operators are all density operators preserves positive
+semidefiniteness and trace when applied with an untouched reference. -/
 private theorem plain_reference {D r : ℕ} (p : List (Operator D × ℝ))
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
     (hp : ∀ a ∈ p, IsDensityOperator a.1) :
@@ -427,6 +529,10 @@ private theorem plain_reference {D r : ℕ} (p : List (Operator D × ℝ))
     have hs := (partial_swap_reference_output_formula a.1 ha a.2 r X).2
     exact ⟨fun h => ht.1 (hs.1 h), ht.2.trans hs.2⟩
 
+/-- The plain interpreter realizes `freshCopyRun` with one copy, partial swap, and discard per
+angle, agrees with the established schedule resource counts, and composes sequentially.
+Schedules of density-operator copies preserve positive semidefiniteness and trace with any
+finite reference register. -/
 theorem g6 :
     (∀ (D : ℕ) (ρ X : Operator D) (angles : List ℝ),
       (runPlain (angles.map (fun θ => (ρ,θ))) X).1 = freshCopyRun ρ angles X ∧

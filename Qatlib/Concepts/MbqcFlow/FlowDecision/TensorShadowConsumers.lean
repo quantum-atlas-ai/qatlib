@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+
+/-!
+# Tensor Pauli shadow applications
+
+`tensorShadowBell` supplies an explicit Bell-state example for tensor Pauli shadows, with exact
+correlations and variances for matching Pauli axes. The module also bounds the failure
+probability of a median-of-means estimate for a linear combination of Pauli words of weight at
+most two. See [HuangKuengPreskill2020].
+
+## Main statements
+
+* `tensor_shadow_bell_correlations_consumer`: exact Bell correlations and estimator variances.
+* `tensor_shadow_local_energy_consumer`: concentration for an observable built from Pauli words
+  of weight at most two.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -24,12 +44,15 @@ open scoped ComplexOrder
 
 set_option maxHeartbeats 4000000
 
+/-- The two-qubit Bell vector obtained by relabeling the register representation to `Fin 4`. -/
 noncomputable def tensorShadowBellState : QState (Fin 4) :=
   relabelState (bitVecEquiv 2)
     ((Real.sqrt 2 : ℂ)⁻¹ • (Ket (ZeroStr 2) + Ket (fun _ : Fin 2 => true)))
 
+/-- The outer-product operator of `tensorShadowBellState`. -/
 noncomputable def tensorShadowBell : Operator 4 := outerProduct tensorShadowBellState
 
+/-- Relabeling a computational basis vector sends `Ket x` to `Ket (e x)`. -/
 theorem tensorShadow_relabel_ket {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (e : I ≃ J) (x : I) :
     relabelState e (Ket x) = Ket (e x) := by
@@ -42,6 +65,7 @@ theorem tensorShadow_relabel_ket {I J : Type*} [Fintype I] [Fintype J]
       simp [h]
   simp only [relabelState, Function.comp_apply, Qatlib.Foundations.PureStateMath.Ket, he]
 
+/-- The Bell vector has coordinates `![(Real.sqrt 2 : ℂ)⁻¹, 0, 0, (Real.sqrt 2 : ℂ)⁻¹]`. -/
 theorem tensorShadowBellState_explicit :
     tensorShadowBellState = ![(Real.sqrt 2 : ℂ)⁻¹, 0, 0, (Real.sqrt 2 : ℂ)⁻¹] := by
   have ht : bitVecEquiv 2 (fun _ : Fin 2 => true) = 3 := rfl
@@ -56,6 +80,7 @@ theorem tensorShadowBellState_explicit :
   ext i
   fin_cases i <;> simp [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The Bell outer product is a density operator. -/
 theorem tensorShadowBell_density : IsDensityOperator tensorShadowBell := by
   apply isDensityOperator_outerProduct
   rw [tensorShadowBellState_explicit]
@@ -68,30 +93,37 @@ theorem tensorShadowBell_density : IsDensityOperator tensorShadowBell := by
     norm_num
   norm_num [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two]
 
+/-- The two-bit encoding of index zero is `![false, false]`. -/
 private theorem tensorShadowBits_zero : (bitVecEquiv 2).symm 0 = ![false, false] := by
   apply (bitVecEquiv 2).injective
   rw [Equiv.apply_symm_apply]
   rfl
 
+/-- The two-bit encoding of index one is `![false, true]`. -/
 private theorem tensorShadowBits_one : (bitVecEquiv 2).symm 1 = ![false, true] := by
   apply (bitVecEquiv 2).injective
   rw [Equiv.apply_symm_apply]
   rfl
 
+/-- The two-bit encoding of index two is `![true, false]`. -/
 private theorem tensorShadowBits_two :
     (bitVecEquiv 2).symm ⟨2, by decide⟩ = ![true, false] := by
   apply (bitVecEquiv 2).injective
   rw [Equiv.apply_symm_apply]
   rfl
 
+/-- The two-bit encoding of index three is `![true, true]`. -/
 private theorem tensorShadowBits_three :
     (bitVecEquiv 2).symm ⟨3, by decide⟩ = ![true, true] := by
   apply (bitVecEquiv 2).injective
   rw [Equiv.apply_symm_apply]
   rfl
 
+/-- The Pauli matrix with index two is `pauliZ`. -/
 private theorem tensorShadowPauliTwo : pauliMatrix ⟨2, by decide⟩ = pauliZ := rfl
 
+/-- The two-qubit word using the same Pauli axis on both qubits has the displayed matrix for the
+X, Y, or Z axis. -/
 theorem tensorShadowWordTwo_explicit (a : Fin 3) :
     tensorPauliWord 2 (fun _ => some a) =
       if a = 0 then !![0, 0, 0, 1; 0, 0, 1, 0; 0, 1, 0, 0; 1, 0, 0, 0]
@@ -104,6 +136,8 @@ theorem tensorShadowWordTwo_explicit (a : Fin 3) :
       tensorShadowPauliTwo, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val_two,
       Matrix.cons_val_three]
 
+/-- The Bell-state expectation of a matching-axis two-qubit Pauli word is −1 for Y and 1 for X
+and Z. -/
 theorem tensorShadowBell_word_trace (a : Fin 3) :
     (Matrix.trace (tensorPauliWord 2 (fun _ => some a) * tensorShadowBell)).re =
       if a = 1 then -1 else 1 := by
@@ -118,6 +152,8 @@ theorem tensorShadowBell_word_trace (a : Fin 3) :
   fin_cases a <;> simp [Matrix.cons_val_zero, Matrix.cons_val_one,
     Matrix.cons_val_two, Matrix.cons_val_three, hc] <;> norm_num
 
+/-- The Bell operator is a density operator, and its matching-axis shadow estimators have means
+−1 for Y and 1 otherwise, with variance 8. -/
 theorem tensor_shadow_bell_correlations_consumer :
     IsDensityOperator tensorShadowBell ∧
     (∀ (hBell : IsDensityOperator tensorShadowBell) (a : Fin 3),
@@ -134,6 +170,9 @@ theorem tensor_shadow_bell_correlations_consumer :
   rw [h.2.2.2, hw, tensorShadowBell_word_trace]
   split_ifs <;> norm_num
 
+/-- For Pauli words of weight at most two, the stated block-size budget bounds the
+median-of-means failure probability by `3 ^ (K / 2) / 2 ^ K`. This specializes the
+shadow-estimation setting of [HuangKuengPreskill2020]. -/
 theorem tensor_shadow_local_energy_consumer (n M L K : ℕ)
     (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ)
     (w : Fin M → Fin n → Option (Fin 3)) (c : Fin M → ℝ) (ε : ℝ)

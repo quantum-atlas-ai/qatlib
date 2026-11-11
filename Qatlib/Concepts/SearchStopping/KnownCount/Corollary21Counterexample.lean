@@ -11,8 +11,29 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.NormNum.RealSqrt
 import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedStat
 
+/-!
+# A small-dimensional diffusion positivity counterexample
+
+`corollary2_1Counterexample` gives a normalized two-amplitude example in dimension four with k <
+0 < l and |k/l| < √N. Its updated ordinary amplitude is negative, exhibiting a boundary case for
+diffusion positivity assertions.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `corollary2_1Counterexample`: There exist normalized real two-amplitude data in dimension four
+  satisfying k < 0 < l and |k/l| < √N whose ordinary amplitude after diffusion is negative.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- There exist normalized real two-amplitude data in dimension four satisfying k < 0 < l and
+|k/l| < √N whose ordinary amplitude after diffusion is negative. -/
 theorem corollary2_1Counterexample :
     ∃ (N : ℕ) (k l : ℝ), N = 2 ^ 2 ∧ k < 0 ∧ 0 < l ∧
       twoAmplitudeMass N k l = 1 ∧ |k / l| < Real.sqrt N ∧ ordinaryAfter N k l < 0 := by

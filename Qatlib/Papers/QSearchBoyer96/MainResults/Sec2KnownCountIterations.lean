@@ -9,6 +9,30 @@ import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Tactic
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+
+/-!
+# Known-count Grover iteration bounds
+
+This module states the exact success law for `GroverState` and analyzes the floor iteration
+choice `groverIterations`. Under the stated angle and marked-set hypotheses, it bounds failure
+by the marked density and the iteration count by (π/4)√(N/t).
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `success_probability_after_iterations`: For a nonempty finite search space and the stated
+  angle relation with nonzero sine and cosine, the marked probability after j Grover iterations
+  is sin²((2j + 1)θ).
+* `almost_certain_success_within_budget`: For a nonempty marked set and the stated angle
+  conditions, the floor iteration choice has failure probability at most the marked density and
+  iteration count at most (π/4)√(N/t).
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,12 +46,16 @@ open Qatlib.Foundations.PureStateMath (MeasureProb)
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- For a nonempty finite search space and the stated angle relation with nonzero sine and
+cosine, the marked probability after j Grover iterations is sin²((2j + 1)θ). -/
 theorem success_probability_after_iterations (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (j : ℕ) :
     MeasureProb (GroverState A j) A = (Real.sin ((2 * (j : ℝ) + 1) * θ)) ^ 2 :=
   measureProb_groverState hN A θ hθ hs hc j
 
+/-- For 0 < θ ≤ π/2 with the stated marked-density relation and nonzero sine and cosine, the
+floor iteration choice has failure probability at most the marked density. -/
 theorem failure_after_floor_iterations (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (hθpos : 0 < θ)
@@ -38,6 +66,8 @@ theorem failure_after_floor_iterations (hN : 0 < Fintype.card I) (A : Finset I) 
   have hsucc := groverIterations_success hθpos hθhalf
   linarith [hsucc, hθ]
 
+/-- For positive θ, t, and N with sin θ = √(t/N) > 0, the floor iteration count is at most
+(π/4)√(N/t). -/
 theorem floor_iterations_query_budget {θ t N : ℝ} (hθ : 0 < θ) (hs : 0 < Real.sin θ)
     (ht : 0 < t) (hN : 0 < N) (hsin : Real.sin θ = Real.sqrt (t / N)) :
     (groverIterations θ : ℝ) ≤ Real.pi / 4 * Real.sqrt (N / t) := by
@@ -54,6 +84,9 @@ theorem floor_iterations_query_budget {θ t N : ℝ} (hθ : 0 < θ) (hs : 0 < Re
   rw [hsin'] at hle
   exact hle
 
+/-- For a nonempty marked set and the stated angle conditions, the floor iteration choice has
+failure probability at most the marked density and iteration count at most (π/4)√(N/t)
+[BoyerEtAl1998]. -/
 theorem almost_certain_success_within_budget (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hA : 0 < A.card)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))

@@ -10,6 +10,25 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+
+/-!
+# A square-root upper bound for binary entropy
+
+The auxiliary function `entropyAux` and its derivative establish a square-root upper bound for
+binary entropy on the unit interval. The final bound `binaryEntropy_le_two_sqrt` uses entropy in
+bits and supplies an analytic comparison relevant to Proposition 5 and the distinguishability
+bounds of [FuchsVanDeGraaf1999].
+
+## Main statements
+
+* `binEntropy_le_log_four_mul_sqrt`: the natural-log entropy bound.
+* `binaryEntropy_le_two_sqrt`: binary entropy in bits is at most `2 * √(r * (1 - r))`.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,7 @@ namespace Qatlib.Papers.CryptoDisting99.Equivalence
 open Real
 open scoped BigOperators
 
+/-- For `z ∈ [0, 1]`, the expression `z * log z + (1 - z) * log (1 + z)` is nonpositive. -/
 lemma phi_nonpos {z : ℝ} (hz0 : 0 ≤ z) (hz1 : z ≤ 1) :
     z * Real.log z + (1 - z) * Real.log (1 + z) ≤ 0 := by
   rcases eq_or_lt_of_le hz0 with h | h
@@ -35,9 +55,13 @@ lemma phi_nonpos {z : ℝ} (hz0 : 0 ≤ z) (hz1 : z ≤ 1) :
       mul_le_mul_of_nonneg_left h2 hz1'
     nlinarith
 
+/-- Defines the entropy comparison function `-2 * y * log y + (y + y⁻¹) * log (1 + y ^ 2) - log
+4`. -/
 def entropyAux (y : ℝ) : ℝ :=
   -2 * y * Real.log y + (y + y⁻¹) * Real.log (1 + y^2) - Real.log 4
 
+/-- For positive `y`, computes the derivative of `entropyAux` as `log (1 + y ^ 2) * (1 - 1 / y ^
+2) - 2 * log y`. -/
 lemma entropyAux_hasDerivAt {y : ℝ} (hy : 0 < y) :
     HasDerivAt entropyAux
       (Real.log (1 + y^2) * (1 - 1/y^2) - 2 * Real.log y) y := by
@@ -73,6 +97,7 @@ lemma entropyAux_hasDerivAt {y : ℝ} (hy : 0 < y) :
   field_simp
   ring
 
+/-- For `0 < x ≤ 1`, the displayed derivative expression for `entropyAux` is nonnegative. -/
 lemma entropyAux_deriv_nonneg {x : ℝ} (hx0 : 0 < x) (hx1 : x ≤ 1) :
     0 ≤ Real.log (1 + x^2) * (1 - 1/x^2) - 2 * Real.log x := by
   have hz0 : 0 ≤ x^2 := by positivity
@@ -88,6 +113,7 @@ lemma entropyAux_deriv_nonneg {x : ℝ} (hx0 : 0 < x) (hx1 : x ≤ 1) :
   rw [hstep]
   exact mul_nonneg (by positivity) key
 
+/-- The entropy auxiliary function vanishes at one. -/
 lemma entropyAux_one : entropyAux 1 = 0 := by
   unfold entropyAux
   have h4 : Real.log 4 = 2 * Real.log 2 := by
@@ -95,6 +121,7 @@ lemma entropyAux_one : entropyAux 1 = 0 := by
     push_cast; ring
   rw [h4]; norm_num
 
+/-- The entropy auxiliary function is continuous on the positive real half-line. -/
 lemma entropyAux_continuous : ContinuousOn entropyAux (Set.Ioi 0) := by
   unfold entropyAux
   have hid : ContinuousOn (fun y : ℝ => y) (Set.Ioi 0) := continuousOn_id
@@ -115,6 +142,7 @@ lemma entropyAux_continuous : ContinuousOn entropyAux (Set.Ioi 0) := by
   dsimp
   ring
 
+/-- The entropy auxiliary function is nonpositive for `0 < y ≤ 1`. -/
 lemma entropyAux_nonpos {y : ℝ} (hy0 : 0 < y) (hy1 : y ≤ 1) : entropyAux y ≤ 0 := by
   have hmono : MonotoneOn entropyAux (Set.Ioc 0 1) := by
     apply monotoneOn_of_hasDerivWithinAt_nonneg (convex_Ioc 0 1)
@@ -129,6 +157,8 @@ lemma entropyAux_nonpos {y : ℝ} (hy0 : 0 < y) (hy1 : y ≤ 1) : entropyAux y �
     (Set.mem_Ioc.mpr ⟨by norm_num, le_refl 1⟩) hy1
   rwa [entropyAux_one] at h
 
+/-- For positive `y`, rewrites binary entropy at `y ^ 2 / (1 + y ^ 2)` using `log (1 + y ^ 2)`
+and `log y`. -/
 lemma binEntropy_subst {y : ℝ} (hy0 : 0 < y) :
     Real.binEntropy (y^2/(1+y^2)) =
       Real.log (1+y^2) - 2*(y^2/(1+y^2))*Real.log y := by
@@ -146,6 +176,8 @@ lemma binEntropy_subst {y : ℝ} (hy0 : 0 < y) :
   field_simp
   ring
 
+/-- For positive `y`, the square root of `r * (1 - r)` at `r = y ^ 2 / (1 + y ^ 2)` equals `y /
+(1 + y ^ 2)`. -/
 lemma sqrt_subst {y : ℝ} (hy0 : 0 < y) :
     Real.sqrt ((y^2/(1+y^2)) * (1 - y^2/(1+y^2))) = y/(1+y^2) := by
   have hsq : (y^2/(1+y^2)) * (1 - y^2/(1+y^2)) = (y/(1+y^2))^2 := by
@@ -153,6 +185,8 @@ lemma sqrt_subst {y : ℝ} (hy0 : 0 < y) :
     ring
   rw [hsq, Real.sqrt_sq (by positivity)]
 
+/-- For `0 < y ≤ 1`, bounds natural-log binary entropy at `y ^ 2 / (1 + y ^ 2)` by `log 4` times
+the corresponding square-root expression. -/
 lemma binEntropy_le_of_aux {y : ℝ} (hy0 : 0 < y) (hy1 : y ≤ 1) :
     Real.binEntropy (y^2/(1+y^2)) ≤
       Real.log 4 * Real.sqrt ((y^2/(1+y^2)) * (1 - y^2/(1+y^2))) := by
@@ -177,6 +211,7 @@ lemma binEntropy_le_of_aux {y : ℝ} (hy0 : 0 < y) (hy1 : y ≤ 1) :
     linarith
   exact key
 
+/-- For `r ∈ [0, 1 / 2]`, natural-log binary entropy is at most `log 4 * √(r * (1 - r))`. -/
 lemma binEntropy_le_log_four_mul_sqrt_of_le_half {r : ℝ} (hr0 : 0 ≤ r)
     (hrh : r ≤ 1/2) :
     Real.binEntropy r ≤ Real.log 4 * Real.sqrt (r * (1 - r)) := by
@@ -201,6 +236,7 @@ lemma binEntropy_le_log_four_mul_sqrt_of_le_half {r : ℝ} (hr0 : 0 ≤ r)
     rw [hreq]
     exact binEntropy_le_of_aux hy0 hy1
 
+/-- For `r ∈ [0, 1]`, natural-log binary entropy is at most `log 4 * √(r * (1 - r))`. -/
 theorem binEntropy_le_log_four_mul_sqrt {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
     Real.binEntropy r ≤ Real.log 4 * Real.sqrt (r * (1 - r)) := by
   rcases le_total r (1/2) with h | h
@@ -212,6 +248,7 @@ theorem binEntropy_le_log_four_mul_sqrt {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 1
     rw [harg, Real.binEntropy_one_sub r] at hrec
     exact hrec
 
+/-- For `r ∈ [0, 1]`, binary entropy in bits is at most `2 * √(r * (1 - r))`. -/
 theorem binaryEntropy_le_two_sqrt {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
     binaryEntropy r ≤ 2 * Real.sqrt (r * (1 - r)) := by
   have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)

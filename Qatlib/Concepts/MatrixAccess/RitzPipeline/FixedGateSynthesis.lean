@@ -12,6 +12,39 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.FieldSimp
+
+/-!
+# Partial fixed-gate synthesis and compilation bounds
+
+This module constructs `partialCompiler`, which emits fixed primitives exactly and omits
+controlled phases outside the primitive range. `partialCompiler_accepts_primitive` and
+`partialCompiler_accepts_smallAngle` certify its two supported regimes, with clean ancillas and
+a uniform resource ledger. Circuit and operator-norm conventions are standard
+[NielsenChuang2010]; approximation over a fixed alphabet is the broader synthesis setting
+[DawsonNielsen2006].
+
+`telescoping_program_error` and `telescoping_mixed_error` bound accumulated substitution error.
+The mixed-word lemmas preserve paid oracle calls, while `emit_answerPlan` and
+`partialCompiler_machine_budget` connect answer serialization to a uniform Turing-machine
+emitter.
+
+## Main statements
+
+* `emptyWord_approx_cp` bounds the phase-adjusted error of omitting a sufficiently small
+  controlled phase.
+* `partialCompiler_accepts_primitive`, `partialCompiler_accepts_smallAngle`, and
+  `partialCompiler_uniform` certify the partial compiler.
+* `telescoping_mixed_error`, `compileWord_formCount`, and `compileWord_paidLegal` control error
+  and paid calls under substitution.
+* `partialCompiler_machine_budget` gives polynomial time and space budgets for emitting
+  partial-compiler answers.
+
+## References
+
+- [Nielsen and Chuang, 2010][NielsenChuang2010]
+- [Dawson and Nielsen, 2006][DawsonNielsen2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,6 +80,7 @@ open Matrix
 open scoped Matrix.Norms.L2Operator
 open scoped Classical
 
+/-- The clean embedding at unchanged width is the identity matrix. -/
 theorem cleanEmbed_self (w : ℕ) : cleanEmbed w w = 1 := by
   ext p t
   simp only [cleanEmbed, Matrix.one_apply]
@@ -55,11 +89,14 @@ theorem cleanEmbed_self (w : ℕ) : cleanEmbed w w = 1 := by
     rw [dif_pos i.isLt]
   rw [hkey]
 
+/-- Any two bit registers of width zero are equal. -/
 theorem eq_zero_reg_of_index_zero {m : ℕ} (hm : m = 0) (f g : Reg m) : f = g := by
   subst hm
   funext i
   exact Fin.elim0 i
 
+/-- If the output width equals the data width, every matrix satisfies ancilla restoration at any
+nonnegative tolerance. -/
 theorem ancillaRestored_trivial {w width : ℕ} (h : width = w)
     (M : Matrix (Reg width) (Reg w) ℂ) (tol : ℝ) (htol : 0 ≤ tol) :
     ancillaRestored w M tol := by
@@ -77,6 +114,7 @@ theorem ancillaRestored_trivial {w width : ℕ} (h : width = w)
   rw [hfun, hzero, norm_zero]
   exact htol
 
+/-- Every matrix approximates itself up to phase at any nonnegative tolerance, using phase zero. -/
 theorem approxUpToPhase_refl {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℂ)
     (tol : ℝ) (htol : 0 ≤ tol) : approxUpToPhase A A tol := by
   refine ⟨0, ?_⟩
@@ -85,19 +123,24 @@ theorem approxUpToPhase_refl {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m
   rw [h1, one_smul, sub_self, norm_zero]
   exact htol
 
+/-- The matrix of a singleton gate program is the matrix of its gate. -/
 theorem localProgramMatrix_singleton {w : ℕ} (g : LocalQFTGate w) :
     localProgramMatrix [g] = localGateMatrix g := by
   simp [localProgramMatrix]
 
+/-- The dyadic tolerance `tolerance k` is strictly positive for every precision parameter. -/
 theorem tolerance_pos (k : ℕ) : 0 < tolerance k :=
   pow_pos (inv_pos.mpr (by norm_num : (0:ℝ) < 2)) k
 
+/-- The dyadic tolerance `tolerance k` is nonnegative. -/
 theorem tolerance_nonneg (k : ℕ) : 0 ≤ tolerance k := (tolerance_pos k).le
 
+/-- The operator-norm error between a matrix and itself is zero. -/
 theorem opError_self {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℂ) :
     opError A A = 0 := by
   simp [opError]
 
+/-- The identity matrix on an `n`-qubit register has Euclidean operator norm one. -/
 theorem l2_opNorm_one (n : ℕ) : ‖(1 : Matrix (Reg n) (Reg n) ℂ)‖ = 1 := by
   have hdiag : (1 : Matrix (Reg n) (Reg n) ℂ) = diagonal fun _ => (1:ℂ) := by
     simp
@@ -113,6 +156,7 @@ theorem l2_opNorm_one (n : ℕ) : ‖(1 : Matrix (Reg n) (Reg n) ℂ)‖ = 1 := 
     exact h
   exact le_antisymm hle hge
 
+/-- A unitary matrix on an `n`-qubit register has Euclidean operator norm one. -/
 theorem l2_opNorm_unitary {n : ℕ} {U : Matrix (Reg n) (Reg n) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Reg n) ℂ) : ‖U‖ = 1 := by
   have hstar : (Uᴴ : Matrix (Reg n) (Reg n) ℂ) * U = 1 := by
@@ -124,6 +168,7 @@ theorem l2_opNorm_unitary {n : ℕ} {U : Matrix (Reg n) (Reg n) ℂ}
   have hnn : 0 ≤ ‖U‖ := norm_nonneg U
   nlinarith only [hmul, hnn]
 
+/-- The matrix of every local gate program is unitary. -/
 theorem localProgramMatrix_mem_unitary {n : ℕ} (gs : List (LocalQFTGate n)) :
     localProgramMatrix gs ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   induction gs with
@@ -133,6 +178,7 @@ theorem localProgramMatrix_mem_unitary {n : ℕ} (gs : List (LocalQFTGate n)) :
     exact Submonoid.mul_mem (Matrix.unitaryGroup (Reg n) ℂ) ih
       (localGateMatrix_unitary g)
 
+/-- Taking a local gate's adjoint preserves its Boolean fixed-primitive test. -/
 theorem isFixedPrim_adjoint {w : ℕ} (g : LocalQFTGate w) :
     isFixedPrim (localGateAdjoint g) = isFixedPrim g := by
   cases g with
@@ -140,10 +186,13 @@ theorem isFixedPrim_adjoint {w : ℕ} (g : LocalQFTGate w) :
   | swap a c => rfl
   | cp a c e neg => rfl
 
+/-- A local gate's adjoint is a fixed primitive exactly when the original gate is. -/
 theorem isFixedPrim_adjoint_iff {w : ℕ} (g : LocalQFTGate w) :
     IsFixedPrim (localGateAdjoint g) ↔ IsFixedPrim g := by
   rw [← isFixedPrim_eq_true_iff, ← isFixedPrim_eq_true_iff, isFixedPrim_adjoint]
 
+/-- A singleton adjoint gate program realizes the conjugate transpose of the original gate
+matrix with zero operator-norm error. -/
 theorem adjoint_letter_exact {w : ℕ} (g : LocalQFTGate w) :
     localProgramMatrix [localGateAdjoint g] = (localGateMatrix g)ᴴ ∧
       opError (localProgramMatrix [localGateAdjoint g]) ((localGateMatrix g)ᴴ) = 0 := by
@@ -152,6 +201,8 @@ theorem adjoint_letter_exact {w : ℕ} (g : LocalQFTGate w) :
   · rw [localProgramMatrix_singleton, localGateMatrix_localGateAdjoint]
     exact opError_self _
 
+/-- A fixed primitive is accepted at every precision by its singleton program at the original
+width. -/
 theorem exactAccepts_of_isFixedPrim {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
     (hg : IsFixedPrim g) : Accepts w g k ⟨w, [g]⟩ := by
   show (∃ a : ℕ, w = w + a) ∧
@@ -169,10 +220,13 @@ theorem exactAccepts_of_isFixedPrim {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
     exact approxUpToPhase_refl _ _ (tolerance_nonneg k)
   · exact ancillaRestored_trivial rfl _ _ (tolerance_nonneg k)
 
+/-- The adjoint of a fixed primitive is accepted at every precision by its singleton program at
+the original width. -/
 theorem exactAccepts_adjoint {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
     (hg : IsFixedPrim g) : Accepts w (localGateAdjoint g) k ⟨w, [localGateAdjoint g]⟩ :=
   exactAccepts_of_isFixedPrim (localGateAdjoint g) k ((isFixedPrim_adjoint_iff g).mpr hg)
 
+/-- The absolute value of a signed dyadic phase angle is `2 * Real.pi / 2 ^ e`. -/
 theorem dyadicPhaseAngle_abs (e : ℕ) (neg : Bool) :
     |dyadicPhaseAngle e neg| = 2 * Real.pi / (2 ^ e : ℝ) := by
   cases neg with
@@ -184,14 +238,17 @@ theorem dyadicPhaseAngle_abs (e : ℕ) (neg : Bool) :
     rw [abs_neg, abs_of_nonneg (div_nonneg (mul_nonneg (by norm_num) Real.pi_pos.le)
       (by positivity))]
 
+/-- Half the absolute dyadic phase angle is `Real.pi / 2 ^ e`, independently of its sign. -/
 theorem abs_dyadicPhaseAngle_div_two (e : ℕ) (neg : Bool) :
     |dyadicPhaseAngle e neg| / 2 = Real.pi / (2 ^ e : ℝ) := by
   rw [dyadicPhaseAngle_abs, mul_div_assoc,
     mul_div_cancel_left₀ _ (by norm_num : (2:ℝ) ≠ 0)]
 
+/-- Taking absolute values commutes with division of a real number by two. -/
 theorem abs_div_two (x : ℝ) : |x / 2| = |x| / 2 := by
   rw [abs_div, abs_of_nonneg (by norm_num : (0:ℝ) ≤ 2)]
 
+/-- If `k + 2 ≤ e`, half the absolute dyadic phase angle is at most `tolerance k`. -/
 theorem smallAngle_tol_le (e k : ℕ) (neg : Bool) (he : k + 2 ≤ e) :
     |dyadicPhaseAngle e neg| / 2 ≤ tolerance k := by
   rw [abs_dyadicPhaseAngle_div_two, tolerance]
@@ -209,12 +266,15 @@ theorem smallAngle_tol_le (e k : ℕ) (neg : Bool) (he : k + 2 ≤ e) :
     rw [h4]
   exact le_trans (le_trans hpi hdiv) hfinal
 
+/-- The distance from one to the complex phase `exp (t * I)` is bounded by `|t|`. -/
 theorem one_sub_exp_mul_I_norm (t : ℝ) :
     ‖(1:ℂ) - Complex.exp ((t:ℂ) * Complex.I)‖ ≤ |t| := by
   have h := norm_exp_mul_I_sub_le 0 t
   rw [Complex.ofReal_zero, zero_mul, Complex.exp_zero, zero_sub, abs_neg] at h
   exact h
 
+/-- Multiplying the phase of angle `-θ / 2` by the phase of angle `θ` gives the phase of angle
+`θ / 2`. -/
 theorem exp_half_mul_exp (θ : ℝ) :
     Complex.exp (((-θ / 2 : ℝ) : ℂ) * Complex.I) * Complex.exp ((θ:ℂ) * Complex.I)
       = Complex.exp (((θ / 2 : ℝ) : ℂ) * Complex.I) := by
@@ -223,6 +283,8 @@ theorem exp_half_mul_exp (θ : ℝ) :
   push_cast
   ring
 
+/-- The difference between the identity and a phase-scaled controlled-phase matrix is diagonal,
+with entries determined by the two selected bits. -/
 theorem one_sub_phase_smul_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (φ : ℝ) :
     (1 : Matrix (Reg w) (Reg w) ℂ) - (Complex.exp (φ * Complex.I))
         • localGateMatrix (.cp a c e neg)
@@ -235,6 +297,8 @@ theorem one_sub_phase_smul_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (φ
     simp [Matrix.diagonal_apply_eq, localGateMatrix_cp]
   · simp [localGateMatrix_cp, hxy]
 
+/-- When `k + 2 ≤ e`, the empty program approximates the controlled dyadic phase up to a global
+phase within `tolerance k` at unchanged width. -/
 theorem emptyWord_approx_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : k + 2 ≤ e) :
     approxUpToPhase (localProgramMatrix ([] : List (LocalQFTGate w)) * cleanEmbed w w)
@@ -280,6 +344,8 @@ theorem emptyWord_approx_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : 
   rw [hrew]
   exact hle
 
+/-- Every gate has a rational angle input satisfying `angleInputOK` at any requested bit
+precision. -/
 theorem angleInputOK_exists {w : ℕ} (g : LocalQFTGate w) (bits : ℕ) :
     ∃ q : ℚ, angleInputOK g bits q := by
   cases g with
@@ -313,8 +379,11 @@ theorem angleInputOK_exists {w : ℕ} (g : LocalQFTGate w) (bits : ℕ) :
     push_cast
     exact hround
 
+/-- The partial compiler's ancilla allocation is zero for every request. -/
 def partialAnc : (w : ℕ) → LocalQFTGate w → ℕ → ℕ := fun _ _ _ => 0
 
+/-- Emit the input Hadamard or swap, and emit a controlled phase exactly when its exponent is at
+most three. Larger-exponent controlled phases produce the empty word. -/
 def partialEmit : (w : ℕ) → (g : LocalQFTGate w) → (k : ℕ) →
     List (LocalQFTGate (w + partialAnc w g k)) :=
   fun _ g _ =>
@@ -323,12 +392,16 @@ def partialEmit : (w : ℕ) → (g : LocalQFTGate w) → (k : ℕ) →
     | .cp a c e neg => if e ≤ 3 then [.cp a c e neg] else []
     | .swap a c => [.swap a c]
 
+/-- The compiler combining zero ancilla allocation with singleton emission of fixed primitives
+and omission of other controlled phases. -/
 def partialCompiler : Compiler :=
   ⟨partialAnc, partialEmit⟩
 
+/-- The partial compiler allocates no ancillas for any request. -/
 theorem partialCompiler_anc_eq (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     partialCompiler.anc w g k = 0 := rfl
 
+/-- On a fixed primitive, the partial compiler emits the singleton word containing that gate. -/
 theorem partialCompiler_emit_primitive {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
     (hg : IsFixedPrim g) : partialCompiler.emit w g k = [g] := by
   cases g with
@@ -339,11 +412,14 @@ theorem partialCompiler_emit_primitive {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
     show (if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []) = [LocalQFTGate.cp a c e neg]
     rw [if_pos he]
 
+/-- A controlled phase with exponent greater than three produces the empty word under the
+partial compiler. -/
 theorem partialCompiler_emit_empty {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : 3 < e) : partialCompiler.emit w (.cp a c e neg) k = [] := by
   show (if e ≤ 3 then [LocalQFTGate.cp a c e neg] else []) = []
   rw [if_neg (Nat.not_le.mpr he)]
 
+/-- Every word emitted by the partial compiler has length at most one. -/
 theorem partialCompiler_emit_length {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
     (partialCompiler.emit w g k).length ≤ 1 := by
   cases g with
@@ -358,12 +434,17 @@ theorem partialCompiler_emit_length {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
       show (0:ℕ) ≤ 1
       exact Nat.zero_le 1
 
+/-- The partial compiler answers a Hadamard request with the same-width singleton Hadamard
+program. -/
 theorem partialCompiler_segment_h {w : ℕ} (a : Fin w) (k : ℕ) :
     partialCompiler.Segment w (.h a) k = ⟨w, [LocalQFTGate.h a]⟩ := rfl
 
+/-- The partial compiler answers a swap request with the same-width singleton swap program. -/
 theorem partialCompiler_segment_swap {w : ℕ} (a c : Fin w) (k : ℕ) :
     partialCompiler.Segment w (.swap a c) k = ⟨w, [Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalQFTGate.swap a c]⟩ := rfl
 
+/-- For exponent at most three, the partial compiler answers a controlled-phase request with
+that same-width singleton gate. -/
 theorem partialCompiler_segment_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : e ≤ 3) :
     partialCompiler.Segment w (.cp a c e neg) k = ⟨w, [LocalQFTGate.cp a c e neg]⟩ := by
@@ -372,6 +453,8 @@ theorem partialCompiler_segment_cp {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool
   rw [if_pos he]
   exact rfl
 
+/-- For exponent greater than three, the partial compiler's controlled-phase answer is the empty
+program at the input width. -/
 theorem partialCompiler_segment_cp_empty {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : 3 < e) :
     partialCompiler.Segment w (.cp a c e neg) k = ⟨w, []⟩ := by
@@ -379,6 +462,8 @@ theorem partialCompiler_segment_cp_empty {w : ℕ} (a c : Fin w) (e : ℕ) (neg 
   rw [if_neg (Nat.not_le.mpr he)]
   exact rfl
 
+/-- The partial compiler satisfies the acceptance contract for every fixed primitive at every
+precision. -/
 theorem partialCompiler_accepts_primitive (w : ℕ) (g : LocalQFTGate w) (k : ℕ)
     (hg : IsFixedPrim g) : AcceptsAt partialCompiler w g k := by
   have hemit : partialCompiler.emit w g k = [g] := partialCompiler_emit_primitive g k hg
@@ -386,6 +471,8 @@ theorem partialCompiler_accepts_primitive (w : ℕ) (g : LocalQFTGate w) (k : �
   rw [Compiler.Segment, hemit]
   exact exactAccepts_of_isFixedPrim g k hg
 
+/-- For `1 ≤ k` and `k + 2 ≤ e`, the partial compiler satisfies the acceptance contract for a
+controlled phase of exponent `e`. -/
 theorem partialCompiler_accepts_smallAngle {w : ℕ} (a c : Fin w) (e : ℕ) (neg : Bool)
     (k : ℕ) (_hk : 1 ≤ k) (he : k + 2 ≤ e) :
     AcceptsAt partialCompiler w (.cp a c e neg) k := by
@@ -414,6 +501,7 @@ theorem partialCompiler_accepts_smallAngle {w : ℕ} (a c : Fin w) (e : ℕ) (ne
     · exact emptyWord_approx_cp a c e neg k he
     · exact ancillaRestored_trivial rfl _ _ (tolerance_nonneg k)
 
+/-- Every gate emitted by the partial compiler is a fixed primitive. -/
 theorem partialCompiler_legal (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     ∀ g' ∈ partialCompiler.emit w g k, IsFixedPrim g' := by
   cases g with
@@ -439,13 +527,17 @@ theorem partialCompiler_legal (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
       intro g' hg'
       exact (List.not_mem_nil hg').elim
 
+/-- Every partial-compiler answer has zero synthesis oracle calls. -/
 theorem partialCompiler_zero_oracle (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     answerOracleCalls (partialCompiler.Segment w g k) = 0 := rfl
 
+/-- The width of a partial-compiler answer is the input width plus a natural ancilla count. -/
 theorem partialCompiler_width (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     ∃ a : ℕ, (partialCompiler.Segment w g k).width = w + a :=
   ⟨partialCompiler.anc w g k, rfl⟩
 
+/-- Every partial-compiler answer satisfies clean-ancilla restoration at the requested dyadic
+tolerance. -/
 theorem partialCompiler_clean (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     ancillaRestored w
       (localProgramMatrix (partialCompiler.Segment w g k).word
@@ -453,6 +545,7 @@ theorem partialCompiler_clean (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
   ancillaRestored_trivial (width := (partialCompiler.Segment w g k).width)
     (h := rfl) _ _ (tolerance_nonneg k)
 
+/-- The partial compiler has a uniform polynomial ledger for emitted length and ancilla count. -/
 theorem partialCompiler_uniform : UniformLedger partialCompiler := by
   refine ⟨1, 1, fun w g k => ⟨?_, ?_⟩⟩
   · have hlen := partialCompiler_emit_length (w := w) g k
@@ -463,12 +556,16 @@ theorem partialCompiler_uniform : UniformLedger partialCompiler := by
   · rw [one_mul, Nat.pow_one, partialCompiler_anc_eq]
     exact Nat.zero_le _
 
+/-- Split the difference of two matrix products into the error of the left factor and the error
+of the right factor. -/
 theorem matrix_two_letter_split {n : Type*} [Fintype n]
     (A₀ A₁ B₀ B₁ : Matrix n n ℂ) :
     A₁ * A₀ - B₁ * B₀ = (A₁ - B₁) * A₀ + B₁ * (A₀ - B₀) := by
   rw [sub_mul, mul_sub]
   abel
 
+/-- If `A₀` and `B₁` are unitary, the operator-norm error between `A₁ * A₀` and `B₁ * B₀` is at
+most the sum of the two factor errors. -/
 theorem opError_comp_le {n : ℕ} (A₀ A₁ B₀ B₁ : Matrix (Reg n) (Reg n) ℂ)
     (hA₀ : A₀ ∈ Matrix.unitaryGroup (Reg n) ℂ) (hB₁ : B₁ ∈ Matrix.unitaryGroup (Reg n) ℂ) :
     opError (A₁ * A₀) (B₁ * B₀) ≤ opError A₁ B₁ + opError A₀ B₀ := by
@@ -484,6 +581,8 @@ theorem opError_comp_le {n : ℕ} (A₀ A₁ B₀ B₁ : Matrix (Reg n) (Reg n) 
         add_le_add (Matrix.l2_opNorm_mul _ _) (Matrix.l2_opNorm_mul _ _)
     _ = ‖A₁ - B₁‖ + ‖A₀ - B₀‖ := by rw [hA₀n, hB₁n, mul_one, one_mul]
 
+/-- Replacing each local gate by a same-width program incurs operator-norm error at most the sum
+of the individual replacement errors. -/
 theorem telescoping_program_error {n : ℕ} (f : LocalQFTGate n → List (LocalQFTGate n))
     (gs : List (LocalQFTGate n)) :
     opError (localProgramMatrix (gs.flatMap f)) (localProgramMatrix gs)
@@ -501,13 +600,17 @@ theorem telescoping_program_error {n : ℕ} (f : LocalQFTGate n → List (LocalQ
         (localProgramMatrix_mem_unitary _) (localProgramMatrix_mem_unitary _)) ?_
     linarith
 
+/-- A nonnegative total error allowance gives a nonnegative uniform per-slot budget. -/
 theorem uniformBudget_nonneg {ε : ℝ} (hε : 0 ≤ ε) (count : ℕ) :
     0 ≤ uniformBudget ε count := by
   simpa [uniformBudget] using div_nonneg hε (by positivity : (0:ℝ) ≤ (count:ℝ) + 1)
 
+/-- With count zero, the uniform budget equals the full error allowance. -/
 theorem uniformBudget_zero (ε : ℝ) : uniformBudget ε 0 = ε := by
   simp [uniformBudget]
 
+/-- For a nonnegative allowance, assigning `uniformBudget ε m` to each of `m` slots stays within
+`ε`. -/
 theorem uniformBudget_sum_le {ε : ℝ} (hε : 0 ≤ ε) (m : ℕ) :
     (m : ℝ) * uniformBudget ε m ≤ ε := by
   have hden : (0:ℝ) < (m:ℝ) + 1 := by positivity
@@ -519,6 +622,8 @@ theorem uniformBudget_sum_le {ε : ℝ} (hε : 0 ≤ ε) (m : ℕ) :
   have h3 : ε * ((m:ℝ) / ((m:ℝ) + 1)) ≤ ε * 1 := mul_le_mul_of_nonneg_left h2 hε
   simpa using h3
 
+/-- At most `L + 1` slots, each assigned `uniformBudget ε L`, consume at most the nonnegative
+allowance `ε`. -/
 theorem uniformBudget_slots_le {ε : ℝ} (hε : 0 ≤ ε) (L m : ℕ) (hm : m ≤ L + 1) :
     (m : ℝ) * uniformBudget ε L ≤ ε := by
   have hden : (0:ℝ) < (L:ℝ) + 1 := by positivity
@@ -530,6 +635,7 @@ theorem uniformBudget_slots_le {ε : ℝ} (hε : 0 ≤ ε) (L m : ℕ) (hm : m �
   have h3 : ε * ((m:ℝ) / ((L:ℝ) + 1)) ≤ ε * 1 := mul_le_mul_of_nonneg_left h2 hε
   simpa using h3
 
+/-- The count of a specified call form is additive under concatenation of mixed words. -/
 theorem formCount_append {n : ℕ} {S : Type} (φ : CallForm S) (xs ys : List (PaidStep n S)) :
     formCount φ (xs ++ ys) = formCount φ xs + formCount φ ys := by
   induction xs with
@@ -548,6 +654,7 @@ theorem formCount_append {n : ℕ} {S : Type} (φ : CallForm S) (xs ys : List (P
       · rw [if_neg h]
         omega
 
+/-- The total number of paid calls is additive under concatenation of mixed words. -/
 theorem callCount_append {n : ℕ} {S : Type} (xs ys : List (PaidStep n S)) :
     callCount (xs ++ ys) = callCount xs + callCount ys := by
   induction xs with
@@ -561,6 +668,7 @@ theorem callCount_append {n : ℕ} {S : Type} (xs ys : List (PaidStep n S)) :
       rw [ih]
       omega
 
+/-- A word obtained by marking local gates as known contains no occurrence of any call form. -/
 theorem formCount_map_known {m : ℕ} {S : Type} (φ : CallForm S)
     (gs : List (LocalQFTGate m)) :
     formCount φ (gs.map PaidStep.known) = 0 := by
@@ -568,12 +676,14 @@ theorem formCount_map_known {m : ℕ} {S : Type} (φ : CallForm S)
   | nil => rfl
   | cons g gs ih => simp [formCount, ih]
 
+/-- A word obtained by marking local gates as known has no paid calls. -/
 theorem callCount_map_known {m : ℕ} {S : Type} (gs : List (LocalQFTGate m)) :
     callCount (gs.map (PaidStep.known (S := S))) = 0 := by
   induction gs with
   | nil => rfl
   | cons g gs ih => simp [callCount, ih]
 
+/-- Compiling known gates preserves the multiplicity of each individual call form. -/
 theorem compileWord_formCount {n m : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate m)) (φ : CallForm S) (W : List (PaidStep n S)) :
     formCount φ (compileWord f W) = formCount φ W := by
@@ -587,6 +697,7 @@ theorem compileWord_formCount {n m : ℕ} {S : Type}
         = formCount φ rest + (if ψ = φ then 1 else 0)
       rw [ih]
 
+/-- Compiling known gates preserves the total number of paid calls. -/
 theorem compileWord_callCount {n m : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate m)) (W : List (PaidStep n S)) :
     callCount (compileWord f W) = callCount W := by
@@ -599,6 +710,7 @@ theorem compileWord_callCount {n m : ℕ} {S : Type}
     · show callCount (compileWord f rest) + 1 = callCount rest + 1
       rw [ih]
 
+/-- Compiling known gates preserves legality with respect to the allowed paid call forms. -/
 theorem compileWord_paidLegal {n m : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate m)) (W : List (PaidStep n S))
     (paid : List (CallForm S)) (h : paidLegal W paid) :
@@ -624,6 +736,7 @@ theorem compileWord_paidLegal {n m : ℕ} {S : Type}
       · exact h _ List.mem_cons_self
       · exact ih hrest s hs
 
+/-- A mixed word containing no known gates is unchanged by same-width compilation. -/
 theorem compileWord_id_of_no_known {n : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate n)) (W : List (PaidStep n S))
     (h : knownGates W = []) : compileWord f W = W := by
@@ -636,6 +749,8 @@ theorem compileWord_id_of_no_known {n : ℕ} {S : Type}
       show (PaidStep.call ψ :: compileWord f rest) = PaidStep.call ψ :: rest
       rw [ih h']
 
+/-- Extracting the known gates from a word formed entirely from known gates recovers the
+original list. -/
 theorem knownGates_map_known {n : ℕ} {S : Type} (gs : List (LocalQFTGate n)) :
     knownGates (gs.map (PaidStep.known (S := S))) = gs := by
   induction gs with
@@ -644,6 +759,7 @@ theorem knownGates_map_known {n : ℕ} {S : Type} (gs : List (LocalQFTGate n)) :
 
 set_option linter.unusedSimpArgs false
 
+/-- Extracting known gates commutes with concatenation of mixed words. -/
 theorem knownGates_append {n : ℕ} {S : Type} (xs ys : List (PaidStep n S)) :
     knownGates (xs ++ ys) = knownGates xs ++ knownGates ys := by
   induction xs with
@@ -657,6 +773,8 @@ theorem knownGates_append {n : ℕ} {S : Type} (xs ys : List (PaidStep n S)) :
     · show knownGates (rest ++ ys) = knownGates rest ++ knownGates ys
       exact ih
 
+/-- The known gates of a compiled word are the concatenated replacement programs for its
+original known gates. -/
 theorem knownGates_compileWord {n m : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate m)) (W : List (PaidStep n S)) :
     knownGates (compileWord f W) = (knownGates W).flatMap f := by
@@ -670,6 +788,7 @@ theorem knownGates_compileWord {n m : ℕ} {S : Type}
     · show knownGates (compileWord f rest) = (knownGates rest).flatMap f
       exact ih
 
+/-- The matrix of a mixed word consisting only of known gates equals their local program matrix. -/
 theorem wordMatrix_map_known {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (gs : List (LocalQFTGate n)) :
     wordMatrix O (gs.map (PaidStep.known (S := S))) = localProgramMatrix gs := by
@@ -678,6 +797,8 @@ theorem wordMatrix_map_known {n : ℕ} {S : Type} (O : CallForm S → Matrix (Re
   | cons g gs ih =>
     simp only [List.map_cons, wordMatrix, localProgramMatrix_cons, stepMatrix, ih]
 
+/-- The matrix of `xs ++ ys` is the matrix of `ys` multiplied by the matrix of `xs`, matching
+execution order. -/
 theorem wordMatrix_append {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (xs ys : List (PaidStep n S)) :
     wordMatrix O (xs ++ ys) = wordMatrix O ys * wordMatrix O xs := by
@@ -687,38 +808,51 @@ theorem wordMatrix_append {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n
     rw [List.cons_append, wordMatrix, wordMatrix, ih]
     exact mul_assoc (wordMatrix O ys) (wordMatrix O rest) (stepMatrix O s)
 
+/-- The empty mixed word has identity matrix. -/
 theorem wordMatrix_nil {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ) :
     wordMatrix O ([] : List (PaidStep n S)) = 1 := rfl
 
+/-- The matrix of a nonempty mixed word is the tail matrix multiplied by the first step's
+matrix. -/
 theorem wordMatrix_cons {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (s : PaidStep n S) (rest : List (PaidStep n S)) :
     wordMatrix O (s :: rest) = wordMatrix O rest * stepMatrix O s := rfl
 
+/-- The matrix of a known step is its local gate matrix. -/
 theorem stepMatrix_known {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (g : LocalQFTGate n) : stepMatrix O (PaidStep.known g) = localGateMatrix g := rfl
 
+/-- The matrix of a paid call step is the oracle matrix assigned to its call form. -/
 theorem stepMatrix_call {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (φ : CallForm S) : stepMatrix O (PaidStep.call φ) = O φ := rfl
 
+/-- Extracting known gates retains a leading known gate and then extracts the tail's known
+gates. -/
 theorem knownGates_cons_known {n : ℕ} {S : Type} (g : LocalQFTGate n)
     (rest : List (PaidStep n S)) :
     knownGates (PaidStep.known g :: rest) = g :: knownGates rest := rfl
 
+/-- Extracting known gates discards a leading paid call. -/
 theorem knownGates_cons_call {n : ℕ} {S : Type} (φ : CallForm S)
     (rest : List (PaidStep n S)) :
     knownGates (PaidStep.call φ :: rest) = knownGates rest := rfl
 
+/-- Compilation replaces a leading known gate by its replacement word of known steps before
+compiling the tail. -/
 theorem compileWord_cons_known {n m : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate m)) (g : LocalQFTGate n)
     (rest : List (PaidStep n S)) :
     compileWord f (PaidStep.known g :: rest)
       = (f g).map PaidStep.known ++ compileWord f rest := rfl
 
+/-- Compilation retains a leading paid call with the same form and compiles the tail. -/
 theorem compileWord_cons_call {n m : ℕ} {S : Type}
     (f : LocalQFTGate n → List (LocalQFTGate m)) (φ : CallForm S)
     (rest : List (PaidStep n S)) :
     compileWord f (PaidStep.call φ :: rest) = PaidStep.call φ :: compileWord f rest := rfl
 
+/-- A mixed word has a unitary matrix whenever every oracle matrix assigned to a call form is
+unitary. -/
 theorem wordMatrix_mem_unitary {n : ℕ} {S : Type} (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (hO : ∀ φ, O φ ∈ Matrix.unitaryGroup (Reg n) ℂ) (W : List (PaidStep n S)) :
     wordMatrix O W ∈ Matrix.unitaryGroup (Reg n) ℂ := by
@@ -731,6 +865,8 @@ theorem wordMatrix_mem_unitary {n : ℕ} {S : Type} (O : CallForm S → Matrix (
     · exact localGateMatrix_unitary g
     · exact hO φ
 
+/-- With unitary oracle matrices, same-width compilation of known gates incurs error at most the
+sum of their individual replacement errors. -/
 theorem telescoping_mixed_error {n : ℕ} {S : Type}
     (O : CallForm S → Matrix (Reg n) (Reg n) ℂ)
     (hO : ∀ φ, O φ ∈ Matrix.unitaryGroup (Reg n) ℂ)
@@ -760,6 +896,8 @@ theorem telescoping_mixed_error {n : ℕ} {S : Type}
       rw [key]
       simpa using ih
 
+/-- Executing a field-emission plan concatenates the canonical natural-number encodings of its
+fields, independently of parameters and counters. -/
 theorem emit_fieldsPlan (fs : List ℕ) (params : List (List Bool)) (k : ℕ)
     (counters : List ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.emit params k counters (fieldsPlan fs) = fs.flatMap Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits := by
@@ -770,6 +908,8 @@ theorem emit_fieldsPlan (fs : List ℕ) (params : List (List Bool)) (k : ℕ)
       = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits j ++ fs.flatMap Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits
     rw [ih]
 
+/-- Executing an answer's emission plan with empty counters produces exactly its canonical
+answer bits. -/
 theorem emit_answerPlan (ans : SynthAnswer) (params : List (List Bool)) (k : ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.emit params k [] (answerPlan ans) = answerBits ans := by
   show Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits ans.width
@@ -780,6 +920,8 @@ theorem emit_answerPlan (ans : SynthAnswer) (params : List (List Bool)) (k : ℕ
   rw [emit_fieldsPlan]
   rfl
 
+/-- Mapping a synthesis answer's local gates to opcodes yields a legal canonical word at the
+answer's width. -/
 theorem answerWord_legal (ans : SynthAnswer) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Legal ⟨ans.width, ans.word.map opcodeOf⟩ := by
   intro op hop
@@ -789,6 +931,8 @@ theorem answerWord_legal (ans : SynthAnswer) :
   | cp a c e neg => simp [opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.legalOpcode]
   | swap a c => simp [opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.legalOpcode]
 
+/-- The work of a field-emission plan is one plus the sum of each field's encoded length and two
+units of overhead. -/
 theorem work_fieldsPlan (fs : List ℕ) (params : List (List Bool)) (k : ℕ)
     (counters : List ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work params k counters (fieldsPlan fs)
@@ -802,6 +946,8 @@ theorem work_fieldsPlan (fs : List ℕ) (params : List (List Bool)) (k : ℕ)
     rw [ih]
     omega
 
+/-- Summing encoded field lengths with overhead two equals the concatenated encoding length plus
+twice the field count. -/
 theorem sum_map_natBits_len_add_two (fs : List ℕ) :
     (fs.map (fun j => (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits j).length + 2)).sum
       = (fs.flatMap Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits).length + 2 * fs.length := by
@@ -812,6 +958,8 @@ theorem sum_map_natBits_len_add_two (fs : List ℕ) :
       ih]
     omega
 
+/-- Summing encoded field lengths with overhead thirteen equals the concatenated encoding length
+plus thirteen times the field count. -/
 theorem sum_map_natBits_len_add13 (fs : List ℕ) :
     (fs.map (fun j => (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits j).length + 13)).sum
       = (fs.flatMap Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits).length + 13 * fs.length := by
@@ -822,6 +970,8 @@ theorem sum_map_natBits_len_add13 (fs : List ℕ) :
       ih]
     omega
 
+/-- An answer's encoded length is the sum of the encoded width, encoded gate count, and encoded
+opcode fields. -/
 theorem answerBits_length (ans : SynthAnswer) :
     (answerBits ans).length
       = (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits ans.width).length
@@ -835,6 +985,8 @@ theorem answerBits_length (ans : SynthAnswer) :
   simp only [List.length_append]
   omega
 
+/-- The work of an answer-emission plan is at most three times the answer's bit length plus
+eight. -/
 theorem answerPlan_work_le (ans : SynthAnswer) (params : List (List Bool)) (k : ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work params k [] (answerPlan ans) ≤ 3 * (answerBits ans).length + 8 := by
   set fs := (ans.word.map opcodeOf).flatMap Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields
@@ -864,13 +1016,17 @@ theorem answerPlan_work_le (ans : SynthAnswer) (params : List (List Bool)) (k : 
   rw [hwork, hout, hsum]
   omega
 
+/-- A canonical natural-number encoding has length twice the length of `Nat.bits` plus one. -/
 theorem natBits_len (j : ℕ) : (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits j).length = 2 * j.bits.length + 1 :=
   Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits_length j
 
+/-- Every canonical natural-number encoding contains at least one bit. -/
 theorem natBits_length_pos (j : ℕ) : 1 ≤ (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits j).length := by
   rw [natBits_len]
   omega
 
+/-- The encoded partial-compiler Hadamard answer has the encoded width and opcode fields,
+together with three bits for the singleton gate count. -/
 theorem partialCompiler_answerBits_h (w : ℕ) (a : Fin w) (k : ℕ) :
     (answerBits (partialCompiler.Segment w (.h a) k)).length
       = (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits w).length + 3 + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 0).length
@@ -882,6 +1038,8 @@ theorem partialCompiler_answerBits_h (w : ℕ) (a : Fin w) (k : ℕ) :
   rw [h1]
   omega
 
+/-- The encoded partial-compiler swap answer has the encoded width, swap tag, and two wire
+indices, together with three bits for the singleton gate count. -/
 theorem partialCompiler_answerBits_swap (w : ℕ) (a c : Fin w) (k : ℕ) :
     (answerBits (partialCompiler.Segment w (.swap a c) k)).length
       = (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits w).length + 3 + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 2).length
@@ -893,6 +1051,8 @@ theorem partialCompiler_answerBits_swap (w : ℕ) (a c : Fin w) (k : ℕ) :
   rw [h1]
   omega
 
+/-- For exponent at most three, the encoded partial-compiler phase answer has the encoded width,
+phase tag, wire indices, exponent, and sign, plus three bits for the singleton count. -/
 theorem partialCompiler_answerBits_cp (w : ℕ) (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : e ≤ 3) :
     (answerBits (partialCompiler.Segment w (.cp a c e neg) k)).length
@@ -906,6 +1066,8 @@ theorem partialCompiler_answerBits_cp (w : ℕ) (a c : Fin w) (e : ℕ) (neg : B
   rw [h1]
   omega
 
+/-- For exponent greater than three, the partial compiler's empty answer has the encoded width
+length plus one bit for the zero gate count. -/
 theorem partialCompiler_answerBits_empty (w : ℕ) (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : 3 < e) :
     (answerBits (partialCompiler.Segment w (.cp a c e neg) k)).length
@@ -915,6 +1077,8 @@ theorem partialCompiler_answerBits_empty (w : ℕ) (a c : Fin w) (e : ℕ) (neg 
   simp [answerBits, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.wordBits, opcodeOf, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.fields, List.flatMap_cons,
     List.flatMap_nil, List.length_append, List.length_cons, List.length_nil, List.append_nil, h0]
 
+/-- The bit length of a partial-compiler answer is at most its synthesis input length plus
+three. -/
 theorem partialCompiler_answerBits_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     (answerBits (partialCompiler.Segment w g k)).length ≤ synthInputBits w g k + 3 := by
   have h1 : (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits 1).length = 3 := rfl
@@ -978,6 +1142,8 @@ theorem partialCompiler_answerBits_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
       have h5' := natBits_length_pos (if neg then 1 else 0)
       omega
 
+/-- A field plan's serialized length is two plus the sum of each encoded field length and
+thirteen bits of overhead. -/
 theorem planBits_fieldsPlan_len (fs : List ℕ) :
     (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.planBits (fieldsPlan fs)).length
       = (fs.map (fun j => (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits j).length + 13)).sum + 2 := by
@@ -996,6 +1162,8 @@ theorem planBits_fieldsPlan_len (fs : List ℕ) :
     rw [ih]
     omega
 
+/-- The serialized answer plan has length at most fourteen times the answer's bit length plus
+twenty-eight. -/
 theorem answerPlan_planBits_le (ans : SynthAnswer) :
     (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.planBits (answerPlan ans)).length
       ≤ 14 * (answerBits ans).length + 28 := by
@@ -1030,6 +1198,8 @@ theorem answerPlan_planBits_le (ans : SynthAnswer) :
   rw [hA, planBits_fieldsPlan_len]
   omega
 
+/-- Emitting a partial-compiler answer requires plan work at most twenty-four times the request
+size. -/
 theorem partialCompiler_work_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work [] k [] (answerPlan (partialCompiler.Segment w g k))
       ≤ 24 * requestSize w g k := by
@@ -1038,6 +1208,9 @@ theorem partialCompiler_work_le (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
   dsimp [requestSize] at *
   omega
 
+/-- A single finite-state Turing machine emits every answer from its encoded emission plan, with
+common time and space budgets bounded by a fixed constant times the twelfth power of one
+plus input length, output length, and plan work. -/
 theorem emitter_machine_for_answers :
     ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1))) (C : ℕ), 0 < C ∧
       ∀ (ans : SynthAnswer) (k : ℕ),
@@ -1062,6 +1235,9 @@ theorem emitter_machine_for_answers :
     simpa [hemit] using h2
   exact h1
 
+/-- A single finite-state Turing machine emits every partial-compiler answer from its emitter
+input within time and space `C * requestSize w g k ^ 12`, for a uniform positive constant
+`C`. -/
 theorem partialCompiler_machine_budget :
     ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1))) (C : ℕ), 0 < C ∧
       ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ),

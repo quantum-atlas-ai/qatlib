@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LatentPQCTran26.MainResults.Coverage
 import Qatlib.Papers.LatentPQCTran26.MainResults.Trainability
+
+/-!
+# Warm-start integral bounds from reference coverage
+
+`corollary14` transfers reference coverage of a superlevel set to a weighted mixture with a
+training measure. For a nonnegative integrable function, it yields an explicit integral lower
+bound using the threshold `μ0 / 2` and reference coverage `μ0 / (8 * K)`. See [TranEtAl2026] for
+the paper context.
+
+## Main statements
+
+* `corollary14`: Under the stated finiteness, sign, measurability, and integrability hypotheses,
+  reference superlevel coverage at least `μ0 / (8 * K)` gives mixture integral at least `(μ0 /
+  2) * (lam * μ0 / (8 * K))`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +38,9 @@ namespace Qatlib.Papers.LatentPQCTran26.MainResults.WarmStart
 open Qatlib.Papers.LatentPQCTran26.MainResults.Overlap
 open Qatlib.Papers.LatentPQCTran26.MainResults.Trainability
 
+/-- Under the stated finiteness, sign, measurability, and integrability hypotheses, reference
+superlevel coverage at least `μ0 / (8 * K)` gives mixture integral at least `(μ0 / 2) * (lam
+* μ0 / (8 * K))` [TranEtAl2026]. -/
 theorem corollary14
     {Θ : Type*} [MeasurableSpace Θ]
     (ν pt : Measure Θ) [IsProbabilityMeasure ν] [IsProbabilityMeasure pt]

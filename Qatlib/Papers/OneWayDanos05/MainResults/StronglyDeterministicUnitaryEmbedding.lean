@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+
+/-!
+# Isometric realization of equal complete branches
+
+The predicate `IsUnitaryEmbedding` is the identity Gram condition for a rectangular complex
+matrix. If a finite complete family of branch matrices is constant, the theorem constructs a
+common isometric embedding by multiplying each branch by the square root of the branch count.
+Its conjugation equals the sum of branch conjugations, formalizing the strong-determinism
+implication in [DanosKashefi2006].
+
+## Main statements
+
+* `stronglyDeterministic_realizes_unitaryEmbedding`: A finite family of equal branch matrices
+  whose Gram matrices sum to identity determines an isometric embedding equal to each branch
+  scaled by the square root of the branch count. Conjugation by this embedding equals the sum of
+  branch conjugations for every input matrix.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,9 +40,14 @@ namespace Qatlib.Papers.OneWayDanos05.MainResults
 
 variable {m n : ℕ}
 
+/-- The predicate that a rectangular matrix has identity conjugate-transpose Gram matrix. -/
 def IsUnitaryEmbedding (A : Matrix (Fin m) (Fin n) ℂ) : Prop :=
   A.conjTranspose * A = 1
 
+/-- A finite family of equal branch matrices whose Gram matrices sum to identity determines an
+isometric embedding equal to each branch scaled by the square root of the branch count.
+Conjugation by this embedding equals the sum of branch conjugations for every input matrix
+[DanosKashefi2006]. -/
 theorem stronglyDeterministic_realizes_unitaryEmbedding
     {S : Type*} [Fintype S]
     (A : S → Matrix (Fin m) (Fin n) ℂ)

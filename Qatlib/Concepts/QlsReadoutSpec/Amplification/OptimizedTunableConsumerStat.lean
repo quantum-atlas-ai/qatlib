@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Specification of optimized tunable amplification
+
+`OptimizedTunableOptimizedTunableConsumer` specifies a universal weighted-cost bound for a legal
+nested amplification schedule. For a positive final plain amplitude, it requires thresholds with
+total budget at most one, final post-amplitude at least 1/10, and a cost controlled by initial
+prices and the 2/3 quasinorm of intermediate amplitude-weighted prices.
+
+The specification is motivated by variable-time amplitude amplification [Ambainis2012]. For
+tunable VTAA query bounds, see [LowSu2026].
+
+## Main statements
+
+* `OptimizedTunableOptimizedTunableConsumer`: States the existence of uniformly bounded-cost
+  amplification schedules.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The optimized consumer specification requires a universal constant bounding weighted
+nested-amplification cost by the initial fees and an intermediate 2/3 quasinorm divided by
+final plain amplitude, while achieving post-amplitude at least `1 / 10` with legal words and
+threshold budget at most one. -/
 def OptimizedTunableOptimizedTunableConsumer : Prop :=
   ∃ K : ℝ, 0 < K ∧ ∀ (H : Type) [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)

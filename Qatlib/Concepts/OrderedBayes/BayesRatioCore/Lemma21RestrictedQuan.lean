@@ -11,10 +11,31 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedStat
 
+/-!
+# Prefix mass threshold for finite priors
+
+This module proves the restricted prefix threshold statement used in ordered Bayesian search
+[BenOrHassidim2007]. If a nonnegative normalized prior has every mass below ε, with 0 < ε ≤ 1/2,
+there is a nonempty proper prefix whose mass lies in [1/2 - ε, 1/2). Elementary identities
+describe the empty, singleton, full, and successive prefixes.
+
+## Main statements
+
+* `zoo_bayes_prefix_mass_threshold`: existence of a prefix in the required mass band.
+* `zoo_bayes_prefix_mass_threshold_matches_contract`: the result satisfies
+  `Lemma21RestrictedSpec.expected`.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.1][BenOrHassidim2007]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- For k < n, the sum over indices below k + 1 equals the sum over indices below k plus the
+weight at index k. -/
 lemma zoo_bayes_prefix_mass_step {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (hk : k < n) :
     (∑ i : Fin n, if i.val < k + 1 then a i else 0) =
       (∑ i : Fin n, if i.val < k then a i else 0) + a ⟨k, hk⟩ := by
@@ -42,14 +63,18 @@ lemma zoo_bayes_prefix_mass_step {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (hk : k
         · intro h
           exact absurd (Finset.mem_univ _) h
 
+/-- The prefix sum over indices strictly below zero is zero. -/
 lemma zoo_bayes_prefix_mass_zero {n : ℕ} (a : Fin n → ℝ) :
     (∑ i : Fin n, if i.val < 0 then a i else 0) = 0 := by
   simp
 
+/-- The prefix sum over indices strictly below n includes every element of `Fin n` and equals
+the total weight. -/
 lemma zoo_bayes_prefix_mass_total {n : ℕ} (a : Fin n → ℝ) :
     (∑ i : Fin n, if i.val < n then a i else 0) = ∑ i : Fin n, a i :=
   Finset.sum_congr rfl fun i _ => if_pos i.isLt
 
+/-- For n > 0, the prefix sum over indices strictly below one equals the weight at index zero. -/
 lemma zoo_bayes_prefix_mass_one {n : ℕ} (a : Fin n → ℝ) (hn : 0 < n) :
     (∑ i : Fin n, if i.val < 1 then a i else 0) = a ⟨0, hn⟩ := by
   refine (Finset.sum_eq_single ⟨0, hn⟩ ?_ ?_).trans (by simp)
@@ -61,6 +86,9 @@ lemma zoo_bayes_prefix_mass_one {n : ℕ} (a : Fin n → ℝ) (hn : 0 < n) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- A nonnegative normalized finite prior with all weights below ε, where 0 < ε ≤ 1/2, has a
+nonempty proper prefix of mass in [1/2 - ε, 1/2) [Ben-Or and Hassidim, Lemma
+2.1][BenOrHassidim2007]. -/
 theorem zoo_bayes_prefix_mass_threshold :
     ∀ (n : ℕ) (a : Fin n → ℝ) (ε : ℝ),
       0 < ε → ε ≤ 1 / 2 → (∀ i, 0 ≤ a i) → (∑ i, a i) = 1 → (∀ i, a i < ε) →
@@ -122,6 +150,7 @@ theorem zoo_bayes_prefix_mass_threshold :
     linarith
   exact ⟨k, hk1, hklt, hlower, hkP⟩
 
+/-- The prefix threshold theorem satisfies the proposition `Lemma21RestrictedSpec.expected`. -/
 theorem zoo_bayes_prefix_mass_threshold_matches_contract :
     Lemma21RestrictedSpec.expected :=
   zoo_bayes_prefix_mass_threshold

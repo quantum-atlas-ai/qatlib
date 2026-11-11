@@ -8,41 +8,78 @@ import Qatlib.Foundations.MarkovChains.ReverseKernel.Discriminant
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Tactic
 
+/-!
+# Discriminant difference norms for finite group walks
+
+This module defines row kernels, stationary probabilities, affinities, and an explicit Euclidean
+operator-bound predicate. For a finite-group walk with increments `ν (y * x⁻¹)`, it proves
+uniform stationarity and identifies the norm of the flat discriminant minus the arithmetic
+symmetrization as one minus its uniform mean affinity. The results connect the concrete norm
+formulation to the nonreversible-chain setting of [ClaudonPiquemalMonmarche2025].
+
+## Main statements
+
+* `group_difference_norm`: For a finite-group increment walk with probability law `ν`, the
+  uniform law is stationary and has self-overlap one, and the discriminant difference has
+  operator norm `1 - meanAffinity`.
+* `vectorNorm_eq_euclidean`: The explicit vector norm equals the native Euclidean-space norm of
+  the corresponding vector.
+* `native_group_difference_norm`: For a native row-stochastic group increment matrix, the
+  uniform law is stationary with self-overlap one, and the discriminant difference has operator
+  norm `1 - meanAffinity`.
+
+## References
+
+* [Claudon et al., 2025][ClaudonPiquemalMonmarche2025]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 open Matrix
 namespace Qatlib.Papers.NonrevMarkov25.GroupSpectrum
 
+/-- A finite-state transition matrix with nonnegative entries and every row summing to one. -/
 structure RowKernel (S : Type) [Fintype S] where
   transition : Matrix S S ℝ
   nonnegative : ∀ x y,0≤transition x y
   rows : ∀ x,∑ y,transition x y=1
 
+/-- Construct a row kernel from a matrix satisfying the native row-stochastic predicate. -/
 def ofStochastic {S : Type} [Fintype S] [DecidableEq S] (P : Matrix S S ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ S) : RowKernel S :=
   ⟨P,hP.1,Matrix.sum_row_of_mem_rowStochastic hP⟩
 
+/-- The flat discriminant associated with a row kernel transition matrix. -/
 def flatMatrix {S : Type} [Fintype S] (K : RowKernel S) : Matrix S S ℝ :=
   Qatlib.Foundations.MarkovChains.ReverseKernel.flat K.transition
 
+/-- The quadratic form of the flat discriminant on the vector of square roots of `π`. -/
 def meanAffinity {S : Type} [Fintype S] (K : RowKernel S) (π : S → ℝ) : ℝ :=
   ∑ x,∑ y,Real.sqrt (π x)*flatMatrix K x y*Real.sqrt (π y)
 
+/-- The sum of products of the square roots of the two real-valued weight functions. -/
 def coherentOverlap {S : Type} [Fintype S] (μ π : S → ℝ) : ℝ :=
   ∑ x,Real.sqrt (μ x)*Real.sqrt (π x)
 
+/-- The predicate that `π` is nonnegative, sums to one, and is stationary for the row kernel. -/
 def StationaryProbability {S : Type} [Fintype S] (K : RowKernel S) (π : S → ℝ) : Prop :=
   (∀ x,0≤π x) ∧ (∑ x,π x=1) ∧ (∀ y,∑ x,π x*K.transition x y=π y)
 
+/-- The square root of the sum of squared moduli of a finite complex vector. -/
 def vectorNorm {S : Type} [Fintype S] (v : S → ℂ) : ℝ := Real.sqrt (∑ x,Complex.normSq (v x))
 
+/-- The predicate that multiplication by `A` increases `vectorNorm` by at most the factor `r`. -/
 def OperatorBound {S : Type} [Fintype S] (A : Matrix S S ℂ) (r : ℝ) : Prop :=
   ∀ v : S → ℂ,vectorNorm (A*ᵥv)≤r*vectorNorm v
 
+/-- The predicate that `r` is an operator bound for `A` and is no greater than any other such
+bound. -/
 def OperatorNormEq {S : Type} [Fintype S] (A : Matrix S S ℂ) (r : ℝ) : Prop :=
   OperatorBound A r ∧ ∀ r' : ℝ,OperatorBound A r' → r≤r'
 
+/-- The finite real inner product is at most the product of the square roots of the two sums of
+squares. -/
 lemma sum_mul_le_sqrt_mul_sqrt {S : Type} [Fintype S] (u w : S → ℝ) :
     ∑ x, u x * w x ≤ Real.sqrt (∑ x, u x ^ 2) * Real.sqrt (∑ x, w x ^ 2) := by
   classical
@@ -100,9 +137,11 @@ lemma sum_mul_le_sqrt_mul_sqrt {S : Type} [Fintype S] (u w : S → ℝ) :
   rw [hAdef, hBdef, hCdef] at h4
   exact h4
 
+/-- The explicitly defined finite complex vector norm is nonnegative. -/
 lemma l2norm_nonneg {S : Type} [Fintype S] (v : S → ℂ) : 0 ≤ vectorNorm v :=
   Real.sqrt_nonneg _
 
+/-- The finite complex vector norm satisfies the triangle inequality. -/
 lemma l2norm_add_le {S : Type} [Fintype S] (u w : S → ℂ) :
     vectorNorm (u + w) ≤ vectorNorm u + vectorNorm w := by
   have habs : ∀ x : S, ‖u x + w x‖ ≤ ‖u x‖ + ‖w x‖ := fun x => norm_add_le (u x) (w x)
@@ -161,6 +200,7 @@ lemma l2norm_add_le {S : Type} [Fintype S] (u w : S → ℂ) :
     have h2 := l2norm_nonneg w
     linarith)]
 
+/-- The norm of a finite sum of complex vectors is at most the sum of their norms. -/
 lemma l2norm_sum_le {S T : Type} [Fintype S] [Fintype T] [DecidableEq T]
     (W : T → (S → ℂ)) (s : Finset T) :
     vectorNorm (∑ g ∈ s, W g) ≤ ∑ g ∈ s, vectorNorm (W g) := by
@@ -173,6 +213,7 @@ lemma l2norm_sum_le {S T : Type} [Fintype S] [Fintype T] [DecidableEq T]
         ≤ vectorNorm (W g) + ∑ x ∈ s, vectorNorm (W x) := by linarith
     linarith [h1, h2]
 
+/-- Scaling a finite complex vector multiplies its norm by the modulus of the scalar. -/
 lemma l2norm_smul {S : Type} [Fintype S] (c : ℂ) (v : S → ℂ) :
     vectorNorm (c • v) = ‖c‖ * vectorNorm v := by
   have hc : Complex.normSq c = ‖c‖ * ‖c‖ := by
@@ -185,18 +226,22 @@ lemma l2norm_smul {S : Type} [Fintype S] (c : ℂ) (v : S → ℂ) :
   rw [h, Real.sqrt_mul (show (0:ℝ) ≤ ‖c‖ * ‖c‖ by positivity) _,
     Real.sqrt_mul_self (norm_nonneg c)]
 
+/-- Reindexing a vector by left multiplication with a group element preserves its norm. -/
 lemma l2norm_mul_right {G : Type} [Group G] [Fintype G] (g : G) (v : G → ℂ) :
     vectorNorm (fun x => v (g * x)) = vectorNorm v := by
   show Real.sqrt (∑ x, Complex.normSq (v (g * x))) = Real.sqrt (∑ x, Complex.normSq (v x))
   exact congrArg Real.sqrt (Fintype.sum_bijective (fun x => g * x) (Group.mulLeft_bijective g)
     (fun x => Complex.normSq (v (g * x))) (fun x => Complex.normSq (v x)) (fun _ => rfl))
 
+/-- For a group increment kernel, each flat entry is the square root of the product of the
+forward and reverse increment weights. -/
 lemma group_walk_entry {G : Type} [Group G] [Fintype G]
     (K : RowKernel G) (ν : G → ℝ)
     (hP : ∀ x y, K.transition x y = ν (y * x⁻¹)) (x y : G) :
     flatMatrix K x y = Real.sqrt (ν (y * x⁻¹) * ν (x * y⁻¹)) := by
   rw [flatMatrix, Qatlib.Foundations.MarkovChains.ReverseKernel.flat, hP x y, hP y x]
 
+/-- Right multiplication by the inverse of a fixed group element is a bijection. -/
 lemma mul_inv_right_bijective {G : Type} [Group G] (x : G) :
     Function.Bijective (fun y : G => y * x⁻¹) := by
   constructor
@@ -206,14 +251,20 @@ lemma mul_inv_right_bijective {G : Type} [Group G] (x : G) :
   · intro g
     exact ⟨g * x, mul_inv_cancel_right g x⟩
 
+/-- The constant weight function equal to the reciprocal of the finite group cardinality. -/
 noncomputable def uniformLaw {G : Type} [Fintype G] : G → ℝ :=
   fun _ => (Fintype.card G : ℝ)⁻¹
 
+/-- The complexified flat discriminant minus the complexified arithmetic symmetrization of the
+transition matrix. -/
 noncomputable def groupDiscriminantDiff {S : Type} [Fintype S] (K : RowKernel S) :
     Matrix S S ℂ :=
   (fun x y => (flatMatrix K x y : ℂ)) -
     (fun x y => (((K.transition x y + K.transition y x) / 2 : ℝ) : ℂ))
 
+/-- For a finite-group increment walk with probability law `ν`, the uniform law is stationary
+and has self-overlap one, and the discriminant difference has operator norm `1 -
+meanAffinity`. -/
 theorem group_difference_norm
     {G : Type} [Group G] [Fintype G] [DecidableEq G]
     (K : RowKernel G) (ν : G → ℝ) (hν0 : ∀ g, 0 ≤ ν g)
@@ -392,12 +443,17 @@ theorem group_difference_norm
     linarith [h2, neg_le_abs (∑ g, (f g - hh g)), hS]
   exact ⟨hstat, hoverlap, ⟨hle, hmin⟩⟩
 
+/-- The explicit vector norm equals the native Euclidean-space norm of the corresponding vector
+[ClaudonPiquemalMonmarche2025]. -/
 theorem vectorNorm_eq_euclidean {S : Type} [Fintype S] (v : S → ℂ) :
     vectorNorm v=‖(WithLp.toLp 2 v : EuclideanSpace ℂ S)‖ := by
   rw [EuclideanSpace.norm_eq,vectorNorm]
   congr 1
   exact Finset.sum_congr rfl (fun x _ => Complex.normSq_eq_norm_sq (v x))
 
+/-- For a native row-stochastic group increment matrix, the uniform law is stationary with
+self-overlap one, and the discriminant difference has operator norm `1 - meanAffinity`
+[ClaudonPiquemalMonmarche2025]. -/
 theorem native_group_difference_norm {G : Type} [Group G] [Fintype G] [DecidableEq G]
     (P : Matrix G G ℝ) (hP : P ∈ Matrix.rowStochastic ℝ G) (ν : G → ℝ)
     (hν0 : ∀ g,0≤ν g) (hν1 : ∑ g,ν g=1) (hinc : ∀ x y,P x y=ν (y*x⁻¹)) :

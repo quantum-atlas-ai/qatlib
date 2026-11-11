@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+/-!
+# Hoeffding bounds for distribution hit counts
+
+Independent samples from a finite distribution give a hit count for a chosen subset. The module
+bounds its upper deviation from the expected count by `exp (-2 * M * δ ^ 2)`, both in centered
+form and as a threshold on the count.
+
+This development follows [BravyiHarrowHassidim2011].
+
+## Main statements
+
+* `lemma8_hoeffding_diff`: the centered upper-deviation probability is exponentially small.
+* `lemma8_chernoff_hoeffding`: the equivalent upper-tail count bound.
+
+## References
+
+* [Bravyi et al., 2011][BravyiHarrowHassidim2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,6 +42,9 @@ namespace Qatlib.Papers.DistTesting09.MainResults.Concentration
 
 variable {N : ℕ}
 
+/-- For `M > 0` independent samples and `δ > 0`, the probability that the hit count exceeds its
+mean `M * ∑ x ∈ B, p.prob x` by at least `M * δ` is at most `exp (-(2 * M * δ ^ 2))`. See
+[BravyiHarrowHassidim2011]. -/
 theorem lemma8_hoeffding_diff (p : Dist N) (B : Finset (Fin N))
     (M : ℕ) (hM : 0 < M) (δ : ℝ) (hδ : 0 < δ) :
     p.probEvent (L := M)
@@ -70,6 +93,9 @@ theorem lemma8_hoeffding_diff (p : Dist N) (B : Finset (Fin N))
   rw [show -2 * ((M : ℝ) * δ) ^ 2 / (M : ℝ) = -(2 * (M : ℝ) * δ ^ 2) by
     field_simp [hMne]]
 
+/-- For `M > 0` independent samples and `δ > 0`, the probability that the hit count is at least
+`M * ∑ x ∈ B, p.prob x + M * δ` is at most `exp (-(2 * M * δ ^ 2))`. See
+[BravyiHarrowHassidim2011]. -/
 theorem lemma8_chernoff_hoeffding (p : Dist N) (B : Finset (Fin N))
     (M : ℕ) (hM : 0 < M) (δ : ℝ) (hδ : 0 < δ) :
     p.probEvent (L := M)

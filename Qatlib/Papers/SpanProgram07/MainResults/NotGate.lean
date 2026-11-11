@@ -8,27 +8,55 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# NOT-gate ratios and subcomplexity
+
+This module proves scalar identities for the output ratios and parameters of a NOT gate in the
+span-program analysis of [ReichardtSpalek2008]. The definition `subComplexity` combines inverse
+overlap and size parameters, and the final estimates bound its growth in the two input cases.
+
+## Main statements
+
+* `notGate_subComplexity_le`: Under the overlap and small-parameter hypotheses, the false-input
+  transformed subcomplexity is at most twice the input subcomplexity plus two.
+* `notGate_subComplexity_le_true`: Increasing the size parameter by one increases subcomplexity
+  by at most one.
+
+## References
+
+* [Reichardt and Spalek, 2008][ReichardtSpalek2008]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
 
 namespace Qatlib.Papers.SpanProgram07.MainResults
 
+/-- The maximum of the inverse overlap parameter `σ⁻¹` and the size parameter `s`. -/
 def subComplexity (σ s : ℝ) : ℝ := max σ⁻¹ s
 
+/-- The inverse overlap parameter is bounded above by `subComplexity`. -/
 theorem inv_le_subComplexity (σ s : ℝ) : σ⁻¹ ≤ subComplexity σ s := le_max_left _ _
 
+/-- The size parameter is bounded above by `subComplexity`. -/
 theorem le_subComplexity (σ s : ℝ) : s ≤ subComplexity σ s := le_max_right _ _
 
+/-- The relation `lam * bO = bi + aO`, with nonzero `bO`, gives the output ratio `aO / bO = lam
+- bi / bO`. See [ReichardtSpalek2008]. -/
 theorem notGate_ratio {lam aO bi bO : ℂ} (hbO : bO ≠ 0)
     (h : lam * bO = bi + aO) : aO / bO = lam - bi / bO := by
   have h' : aO = lam * bO - bi := by linear_combination -h
   rw [h']
   field_simp
 
+/-- Rearrange the real ratio relation `lam = ri⁻¹ + rO` as `rO = lam - ri⁻¹`. See
+[ReichardtSpalek2008]. -/
 theorem notGate_ratio_real {lam ri rO : ℝ} (h : lam = ri⁻¹ + rO) : rO = lam - ri⁻¹ := by
   linarith
 
+/-- A positive input parameter and the inverse relation `σO⁻¹ = σi⁻¹ + 1` give `σO = σi / (1 +
+σi)`. See [ReichardtSpalek2008]. -/
 theorem notGate_sigma_false {σi σO : ℝ} (hσ : 0 < σi) (h : σO⁻¹ = σi⁻¹ + 1) :
     σO = σi / (1 + σi) := by
   have hpos : 0 < σO⁻¹ := by rw [h]; positivity
@@ -36,6 +64,8 @@ theorem notGate_sigma_false {σi σO : ℝ} (hσ : 0 < σi) (h : σO⁻¹ = σi�
   field_simp at h ⊢
   linarith
 
+/-- For `0 < σi ≤ 1`, the inverse transformed overlap parameter is at most `2 * σi⁻¹`. See
+[ReichardtSpalek2008]. -/
 theorem notGate_invSigma_false_le {σi : ℝ} (h0 : 0 < σi) (h1 : σi ≤ 1) :
     (σi / (1 + σi))⁻¹ ≤ 2 * σi⁻¹ := by
   have h1' : 0 < 1 + σi := by linarith
@@ -45,6 +75,8 @@ theorem notGate_invSigma_false_le {σi : ℝ} (h0 : 0 < σi) (h1 : σi ≤ 1) :
   have hmul : σi⁻¹ * σi = 1 := inv_mul_cancel₀ hne
   nlinarith [mul_le_mul_of_nonneg_left h1 (le_of_lt h0)]
 
+/-- The stated false-input ratio identities imply `sO = si / (1 - lam² * si)`. See
+[ReichardtSpalek2008]. -/
 theorem notGate_sO_false {lam si rO sO : ℝ} (hlam : 0 < lam) (hsi : si ≠ 0)
     (hRo : rO = lam - (lam * si)⁻¹) (hsO : sO = -(lam * rO)⁻¹) :
     sO = si / (1 - lam ^ 2 * si) := by
@@ -56,6 +88,7 @@ theorem notGate_sO_false {lam si rO sO : ℝ} (hlam : 0 < lam) (hsi : si ≠ 0)
     ring
   rw [← inv_neg, key, inv_div]
 
+/-- The stated true-input ratio identities imply `sO = si + 1`. See [ReichardtSpalek2008]. -/
 theorem notGate_sO_true {lam si rO sO : ℝ} (hlam : 0 < lam)
     (hRo : rO = lam - (-(lam * si)⁻¹)⁻¹) (hsO : sO = rO / lam) : sO = si + 1 := by
   subst hRo; subst hsO
@@ -64,6 +97,8 @@ theorem notGate_sO_true {lam si rO sO : ℝ} (hlam : 0 < lam)
   field_simp
   ring
 
+/-- For nonnegative `si` and `lam² * si ≤ 1/2`, the transformed size lies between `si` and `2 *
+si`. See [ReichardtSpalek2008]. -/
 theorem notGate_sO_false_bounds {lam si : ℝ} (_hlam : 0 < lam) (hs : 0 ≤ si)
     (hls : lam ^ 2 * si ≤ 1 / 2) :
     si ≤ si / (1 - lam ^ 2 * si) ∧ si / (1 - lam ^ 2 * si) ≤ 2 * si := by
@@ -74,6 +109,8 @@ theorem notGate_sO_false_bounds {lam si : ℝ} (_hlam : 0 < lam) (hs : 0 ≤ si)
   · rw [le_div_iff₀ hden]; nlinarith
   · rw [div_le_iff₀ hden]; nlinarith
 
+/-- Under the overlap and small-parameter hypotheses, the false-input transformed subcomplexity
+is at most twice the input subcomplexity plus two. See [ReichardtSpalek2008]. -/
 theorem notGate_subComplexity_le {σi si lam : ℝ} (hσ : 0 < σi) (hσ1 : σi ≤ 1) (hs : 0 ≤ si)
     (hlam : 0 < lam) (hls : lam ^ 2 * si ≤ 1 / 2) :
     subComplexity (σi / (1 + σi)) (si / (1 - lam ^ 2 * si)) ≤
@@ -94,6 +131,8 @@ theorem notGate_subComplexity_le {σi si lam : ℝ} (hσ : 0 < σi) (hσ1 : σi 
       _ ≤ 2 * subComplexity σi si := by linarith
       _ ≤ 2 * subComplexity σi si + 2 := by linarith
 
+/-- Increasing the size parameter by one increases subcomplexity by at most one. See
+[ReichardtSpalek2008]. -/
 theorem notGate_subComplexity_le_true {σi si : ℝ} (_hσ : 0 < σi) (_hs : 0 ≤ si) :
     subComplexity σi (si + 1) ≤ subComplexity σi si + 1 := by
   unfold subComplexity

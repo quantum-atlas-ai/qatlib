@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
+
+/-!
+# Relative factor amplification contract
+
+States the median-amplified relative-error bound for a nonnegative payoff with bounded relative
+variance. This proposition supplies the factor accuracy specification used by the exact-sampling
+version of Theorem 8 in [Montanaro2015].
+
+## Main statements
+
+* `MontanaroTheorem8FactorSubgoal` requires median failure at relative tolerance `ε` to be at
+  most `(143 / 144)^r` under explicit pilot-size and layer-accuracy conditions.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,9 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 
 open Qatlib
 
+/-- The proposition specifying the median-amplified relative factor guarantee used in Theorem 8
+of [Montanaro2015]. It assumes positive mean, variance at most `B * μ²`, `N ≥ 32 * B`, `k ≥
+4`, and `3 * sqrt (B + 1) * 2⁻ᵏ ≤ ε`. -/
 def MontanaroTheorem8FactorSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) (B ε : ℝ) (N k r : ℕ),

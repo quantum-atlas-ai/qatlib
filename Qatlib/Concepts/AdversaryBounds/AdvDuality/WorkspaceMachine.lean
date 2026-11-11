@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceCircuit
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Mathlib.Data.ENNReal.BigOperators
+
+/-!
+# Workspace machines and finite execution prefixes
+
+`WorkspaceMachine` describes a quantum machine with classical control indexed by workspace
+width, unitary gates, oracle queries, and instruments that may change the width. Its finite
+execution traces carry the quantum state, control, outcome record, query count, and halting
+status, using the quantum-operation framework of [Watrous2018].
+
+Finite prefixes unroll to `WorkspaceCircuit` values with matching traces and expected query
+counts. Monotonicity supports supremum definitions for unbounded halting masses and query costs,
+while finite seed mixtures possess common approximation cutoffs; replay reconstructs the
+terminal classical data from a halted trace's outcome record.
+
+## Main statements
+
+* `unrollWorkspaceMachine_traces`: identify machine prefixes with unrolled circuit traces.
+* `workspaceMachineExpectedQueries_monotone`: expected query cost increases with the prefix
+  length.
+* `workspaceMachineSeedHaltMass_finite_approx`: choose a common cutoff for finitely many strict
+  halting-mass thresholds.
+* `workspaceMachineReplay_correct`: recover the classical data of every halted trace.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +49,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Matrix
 open scoped Classical ComplexOrder ENNReal
 
+/-- A workspace-indexed instruction that halts, applies a gate, makes an oracle query, or
+applies a finite-outcome instrument and continues at its output width. -/
 inductive WorkspaceInstruction (d : ℕ) (C : ℕ → Type*) : ℕ → Type _ where
   | halt {k : ℕ} (accepted : Bool) : WorkspaceInstruction d C k
   | gate {k : ℕ} (G : Operator (d*k)) (next : C k) : WorkspaceInstruction d C k
@@ -28,18 +58,25 @@ inductive WorkspaceInstruction (d : ℕ) (C : ℕ → Type*) : ℕ → Type _ wh
   | instrument {k : ℕ} (s l : ℕ) (I : Instrument (Fin s) (d*k) (d*l))
       (next : Fin s → C l) : WorkspaceInstruction d C k
 
+/-- A transition function assigning a workspace instruction to each width-indexed classical
+control state. -/
 abbrev WorkspaceMachine (d : ℕ) (C : ℕ → Type*) :=
   (k : ℕ) → C k → WorkspaceInstruction d C k
 
+/-- The predicate that every gate instruction in the machine uses a unitary operator. -/
 def workspaceMachineWellFormed {d : ℕ} {C : ℕ → Type*} (M : WorkspaceMachine d C) : Prop :=
   ∀ k c, match M k c with
     | .gate G _ => G ∈ Matrix.unitaryGroup (Fin (d*k)) ℂ
     | _ => True
 
+/-- A workspace trace augmented with a classical control state at its final width and a Boolean
+halting flag. -/
 structure WorkspaceMachineTrace (d : ℕ) (C : ℕ → Type*) extends WorkspaceTrace d where
   control : C width
   halted : Bool
 
+/-- Enumerate the machine's branch traces for a finite instruction budget, retaining pending
+traces when the budget is exhausted. -/
 noncomputable def workspaceMachineTraces {d : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) :
     {k : ℕ} → ℕ → C k → Operator (d*k) → List (WorkspaceMachineTrace d C)
@@ -55,6 +92,8 @@ noncomputable def workspaceMachineTraces {d : ℕ} {C : ℕ → Type*}
           (workspaceMachineTraces M U T (next o) (I.branch o rho)).map fun t =>
             {t with outcomes := (s,o.val)::t.outcomes}).flatten
 
+/-- The sum of trace masses of halted branches satisfying the supplied predicate on final width,
+control, acceptance, and outcome record. -/
 noncomputable def workspaceMachineHaltMass {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k))
@@ -63,18 +102,23 @@ noncomputable def workspaceMachineHaltMass {d k : ℕ} {C : ℕ → Type*}
     if t.halted && E t.width t.control t.accepted t.outcomes then workspaceMass t.toWorkspaceTrace
     else 0).sum
 
+/-- The sum of each finite-prefix branch mass times its oracle-query count, including pending
+branches. -/
 noncomputable def workspaceMachineExpectedQueries {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) : ℝ :=
   ((workspaceMachineTraces M U T c rho).map fun t =>
     workspaceMass t.toWorkspaceTrace * t.queries).sum
 
+/-- The sum of the masses of finite-prefix traces that have not halted. -/
 noncomputable def workspaceMachinePendingMass {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) : ℝ :=
   ((workspaceMachineTraces M U T c rho).map fun t =>
     if t.halted then 0 else workspaceMass t.toWorkspaceTrace).sum
 
+/-- Unroll a machine for a finite instruction budget into a workspace circuit, replacing budget
+exhaustion with rejection. -/
 noncomputable def unrollWorkspaceMachine {d : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) : {k : ℕ} → ℕ → C k → WorkspaceCircuit d k
   | _, 0, _ => .halt false
@@ -84,6 +128,8 @@ noncomputable def unrollWorkspaceMachine {d : ℕ} {C : ℕ → Type*}
     | .query next => .query (unrollWorkspaceMachine M T next)
     | .instrument s l I next => .instrument s l I (fun o => unrollWorkspaceMachine M T (next o))
 
+/-- Every finite unrolling of a well-formed workspace machine is a well-formed workspace
+circuit. -/
 theorem unrollWorkspaceMachine_wellFormed {d : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (hM : workspaceMachineWellFormed M) :
     ∀ {k : ℕ} (T : ℕ) (c : C k), workspaceCircuitWellFormed (unrollWorkspaceMachine M T c) := by
@@ -102,6 +148,8 @@ theorem unrollWorkspaceMachine_wellFormed {d : ℕ} {C : ℕ → Type*}
       simpa only [unrollWorkspaceMachine, h, workspaceCircuitWellFormed] using
           (fun o => ih (next o))
 
+/-- Forgetting machine control and halting flags in finite-prefix traces gives exactly the
+traces of the unrolled workspace circuit. -/
 theorem unrollWorkspaceMachine_traces {d : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) :
     ∀ {k : ℕ} (T : ℕ) (c : C k) (rho : Operator (d*k)),
@@ -130,6 +178,8 @@ theorem unrollWorkspaceMachine_traces {d : ℕ} {C : ℕ → Type*}
         {t with outcomes := (s,o.val)::t.outcomes})) (ih (next o) (I.branch o rho))
       simpa only [Function.comp_def, List.map_map] using hh
 
+/-- The expected oracle-query count of the unrolled circuit equals the finite-prefix machine
+expected query count. -/
 theorem unrollWorkspaceMachine_expected {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) :
@@ -139,6 +189,8 @@ theorem unrollWorkspaceMachine_expected {d k : ℕ} {C : ℕ → Type*}
   rw [← unrollWorkspaceMachine_traces M U T c rho, List.map_map]
   rfl
 
+/-- Every branch state in a finite machine execution is positive semidefinite when the initial
+state is positive semidefinite. -/
 theorem workspaceMachineTraces_posSemidef {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) (hrho : rho.PosSemidef)
@@ -148,6 +200,8 @@ theorem workspaceMachineTraces_posSemidef {d k : ℕ} {C : ℕ → Type*}
   rw [← unrollWorkspaceMachine_traces M U T c rho]
   exact List.mem_map.mpr ⟨t,ht,rfl⟩
 
+/-- For a well-formed machine and a unitary oracle, the total mass of all finite-prefix traces
+equals the real trace of the initial operator. -/
 private theorem workspaceMachineTraces_total {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (hM : workspaceMachineWellFormed M)
     (U : Operator d) (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ)
@@ -159,6 +213,8 @@ private theorem workspaceMachineTraces_total {d k : ℕ} {C : ℕ → Type*}
   rw [← unrollWorkspaceMachine_traces M U T c rho, List.map_map] at h
   exact h
 
+/-- A finite-prefix machine expected query count is nonnegative for a positive semidefinite
+initial state. -/
 private theorem workspaceMachineExpectedQueries_nonneg {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) (hrho : rho.PosSemidef) :
@@ -166,6 +222,8 @@ private theorem workspaceMachineExpectedQueries_nonneg {d k : ℕ} {C : ℕ → 
   rw [← unrollWorkspaceMachine_expected]
   exact workspaceCircuitExpectedQueries_nonneg U _ rho hrho
 
+/-- Every finite-prefix halting-event mass is nonnegative for a positive semidefinite initial
+state. -/
 private theorem workspaceMachineHaltMass_nonneg {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) (hrho : rho.PosSemidef)
@@ -180,6 +238,8 @@ private theorem workspaceMachineHaltMass_nonneg {d k : ℕ} {C : ℕ → Type*}
       (workspaceMachineTraces_posSemidef M U T c rho hrho t ht).trace_nonneg).1
   · exact le_rfl
 
+/-- Express the halting-event mass for one additional instruction by cases on the current
+instruction, prefixing the outcome record at instrument steps. -/
 private theorem workspaceMachineHaltMass_succ {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k))
@@ -196,6 +256,8 @@ private theorem workspaceMachineHaltMass_succ {d k : ℕ} {C : ℕ → Type*}
     simp [workspaceMachineHaltMass, workspaceMachineTraces, h, Function.comp_def,
       List.map_flatten, List.sum_flatten, List.map_ofFn, List.sum_ofFn, workspaceMass]
 
+/-- For a positive semidefinite initial state, the halting-event mass is monotone in the finite
+instruction budget. -/
 theorem workspaceMachineHaltMass_monotone {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (c : C k) (rho : Operator (d*k))
     (hrho : rho.PosSemidef)
@@ -218,12 +280,16 @@ theorem workspaceMachineHaltMass_monotone {d k : ℕ} {C : ℕ → Type*}
       exact Finset.sum_le_sum fun o _ => ih (next o) _ ((I.cp o).positive hrho)
         (fun l c b rec => E l c b ((s,o.val)::rec))
 
+/-- The sum of pointwise sums over a list equals the sum of the two separate list sums. -/
 private theorem workspace_sum_map_add {A : Type*} (xs : List A) (f g : A → ℝ) :
     (xs.map (fun x => f x+g x)).sum = (xs.map f).sum+(xs.map g).sum := by
   induction xs with
   | nil => simp
   | cons x xs ih => simp [ih, add_assoc, add_left_comm]
 
+/-- For a well-formed machine and unitary oracle, express the next-prefix expected query count
+by the current instruction. A query adds the real trace of the current operator to the
+continuation cost. -/
 private theorem workspaceMachineExpectedQueries_succ {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (hM : workspaceMachineWellFormed M)
     (U : Operator d) (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ)
@@ -255,6 +321,8 @@ private theorem workspaceMachineExpectedQueries_succ {d k : ℕ} {C : ℕ → Ty
       trace_conjBranch_unitary _ (forwardWorkspaceOracle_unitary _ U hU)]
     exact add_comm _ _
 
+/-- For a well-formed machine, a unitary oracle, and a positive semidefinite initial state, the
+finite-prefix expected query count is monotone in the instruction budget. -/
 theorem workspaceMachineExpectedQueries_monotone {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (hM : workspaceMachineWellFormed M)
     (U : Operator d) (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ)
@@ -277,15 +345,21 @@ theorem workspaceMachineExpectedQueries_monotone {d k : ℕ} {C : ℕ → Type*}
     | instrument s l I next =>
       exact Finset.sum_le_sum fun o _ => ih (next o) _ ((I.cp o).positive hrho)
 
+/-- The supremum over finite instruction budgets of the extended nonnegative conversions of
+halting-event masses. -/
 noncomputable def workspaceMachineInfiniteHaltMass {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (c : C k) (rho : Operator (d*k))
     (E : (l : ℕ) → C l → Bool → List (ℕ×ℕ) → Bool) : ℝ≥0∞ :=
   ⨆ T : ℕ, ENNReal.ofReal (workspaceMachineHaltMass M U T c rho E)
 
+/-- The supremum over finite instruction budgets of the extended nonnegative conversions of
+expected oracle-query counts. -/
 noncomputable def workspaceMachineInfiniteExpectedQueries {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (c : C k) (rho : Operator (d*k)) : ℝ≥0∞ :=
   ⨆ T : ℕ, ENNReal.ofReal (workspaceMachineExpectedQueries M U T c rho)
 
+/-- Every finite-prefix expected query count, converted to an extended nonnegative real, is at
+most `workspaceMachineInfiniteExpectedQueries`. -/
 theorem workspaceMachineExpectedQueries_le_infinite {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) :
@@ -293,6 +367,8 @@ theorem workspaceMachineExpectedQueries_le_infinite {d k : ℕ} {C : ℕ → Typ
       workspaceMachineInfiniteExpectedQueries M U c rho := by
   exact le_iSup (fun S => ENNReal.ofReal (workspaceMachineExpectedQueries M U S c rho)) T
 
+/-- The finite-distribution weighted sum of finite-prefix halting-event masses for a
+seed-indexed family of machines and initial states. -/
 noncomputable def workspaceMachineSeedHaltMass {d r : ℕ} {C : ℕ → Type*}
     (p : FinDist (Fin r)) (M : Fin r → WorkspaceMachine d C) (U : Operator d)
     (T : ℕ) (k : Fin r → ℕ) (c : (j : Fin r) → C (k j))
@@ -300,6 +376,8 @@ noncomputable def workspaceMachineSeedHaltMass {d r : ℕ} {C : ℕ → Type*}
     (E : Fin r → (l : ℕ) → C l → Bool → List (ℕ×ℕ) → Bool) : ℝ :=
   ∑ j, p.prob j * workspaceMachineHaltMass (M j) U T (c j) (rho j) (E j)
 
+/-- The extended nonnegative weighted sum of unbounded halting-event masses for a finite seed
+distribution. -/
 noncomputable def workspaceMachineSeedInfiniteHaltMass {d r : ℕ} {C : ℕ → Type*}
     (p : FinDist (Fin r)) (M : Fin r → WorkspaceMachine d C) (U : Operator d)
     (k : Fin r → ℕ) (c : (j : Fin r) → C (k j))
@@ -307,18 +385,24 @@ noncomputable def workspaceMachineSeedInfiniteHaltMass {d r : ℕ} {C : ℕ → 
     (E : Fin r → (l : ℕ) → C l → Bool → List (ℕ×ℕ) → Bool) : ℝ≥0∞ :=
   ∑ j, ENNReal.ofReal (p.prob j) * workspaceMachineInfiniteHaltMass (M j) U (c j) (rho j) (E j)
 
+/-- The finite-distribution weighted sum of finite-prefix expected oracle-query counts for a
+seed-indexed machine family. -/
 noncomputable def workspaceMachineSeedExpectedQueries {d r : ℕ} {C : ℕ → Type*}
     (p : FinDist (Fin r)) (M : Fin r → WorkspaceMachine d C) (U : Operator d)
     (T : ℕ) (k : Fin r → ℕ) (c : (j : Fin r) → C (k j))
     (rho : (j : Fin r) → Operator (d*k j)) : ℝ :=
   ∑ j, p.prob j * workspaceMachineExpectedQueries (M j) U T (c j) (rho j)
 
+/-- The extended nonnegative weighted sum of unbounded expected oracle-query counts for a finite
+seed distribution. -/
 noncomputable def workspaceMachineSeedInfiniteExpectedQueries {d r : ℕ} {C : ℕ → Type*}
     (p : FinDist (Fin r)) (M : Fin r → WorkspaceMachine d C) (U : Operator d)
     (k : Fin r → ℕ) (c : (j : Fin r) → C (k j))
     (rho : (j : Fin r) → Operator (d*k j)) : ℝ≥0∞ :=
   ∑ j, ENNReal.ofReal (p.prob j) * workspaceMachineInfiniteExpectedQueries (M j) U (c j) (rho j)
 
+/-- For a finite seed distribution and nonnegative monotone prefix quantities, the weighted sum
+of their extended nonnegative suprema equals the supremum of the weighted prefix sums. -/
 private theorem workspace_seed_prefix_iSup {r : ℕ} (p : FinDist (Fin r))
     (f : Fin r → ℕ → ℝ) (hf : ∀ j T, 0 ≤ f j T) (hmono : ∀ j, Monotone (f j)) :
     (∑ j, ENNReal.ofReal (p.prob j) * ⨆ T, ENNReal.ofReal (f j T)) =
@@ -338,6 +422,9 @@ private theorem workspace_seed_prefix_iSup {r : ℕ} (p : FinDist (Fin r))
   · intro j _
     exact mul_nonneg (p.nonneg j) (hf j T)
 
+/-- For finitely many oracles and event predicates, any strict thresholds below the seeded
+unbounded halting masses are simultaneously exceeded at some common finite cutoff, assuming
+positive semidefinite initial states. -/
 theorem workspaceMachineSeedHaltMass_finite_approx {d r : ℕ} {C : ℕ → Type*}
     {J : Type*} [Fintype J] (p : FinDist (Fin r))
     (M : Fin r → WorkspaceMachine d C) (U : J → Operator d)
@@ -368,6 +455,8 @@ theorem workspaceMachineSeedHaltMass_finite_approx {d r : ℕ} {C : ℕ → Type
     (workspaceMachineHaltMass_monotone (M j) (U a) (c j) (rho j) (hrho j) (E a j)
       (Finset.le_sup (f := cutoff) (Finset.mem_univ a))) (p.nonneg j)
 
+/-- For positive semidefinite seed-indexed initial states, the extended nonnegative
+finite-prefix seeded expected query count is bounded by its unbounded counterpart. -/
 theorem workspaceMachineSeedExpectedQueries_le_infinite {d r : ℕ} {C : ℕ → Type*}
     (p : FinDist (Fin r)) (M : Fin r → WorkspaceMachine d C) (U : Operator d)
     (T : ℕ) (k : Fin r → ℕ) (c : (j : Fin r) → C (k j))
@@ -384,6 +473,8 @@ theorem workspaceMachineSeedExpectedQueries_le_infinite {d r : ℕ} {C : ℕ →
     exact mul_nonneg (p.nonneg j)
       (workspaceMachineExpectedQueries_nonneg (M j) U T (c j) (rho j) (hrho j))
 
+/-- Replay a finite outcome record through classical machine control, returning the terminal
+width, control state, and acceptance value only when halting occurs with no unused outcomes. -/
 noncomputable def workspaceMachineReplay {d : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) :
     {k : ℕ} → ℕ → C k → List (ℕ×ℕ) → Option (Σ l : ℕ, C l × Bool)
@@ -398,6 +489,8 @@ noncomputable def workspaceMachineReplay {d : ℕ} {C : ℕ → Type*}
             if ho : o < s then workspaceMachineReplay M T (next ⟨o,ho⟩) tail else none
           else none
 
+/-- Replaying the outcome record of a halted finite-prefix trace returns exactly its final
+width, control state, and acceptance value. -/
 theorem workspaceMachineReplay_correct {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) (t : WorkspaceMachineTrace d C)
@@ -428,6 +521,8 @@ theorem workspaceMachineReplay_correct {d k : ℕ} {C : ℕ → Type*}
       have hr := ih (next o) (I.branch o rho) u hu hh
       simpa [workspaceMachineReplay, h, o.isLt] using hr
 
+/-- Decode the terminal data obtained by replaying an outcome record, returning zero if replay
+fails. -/
 noncomputable def workspaceMachineDecode {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (T : ℕ) (c : C k)
     (decode : (l : ℕ) → C l → Bool → List (ℕ×ℕ) → ℝ) (rec : List (ℕ×ℕ)) : ℝ :=
@@ -435,6 +530,8 @@ noncomputable def workspaceMachineDecode {d k : ℕ} {C : ℕ → Type*}
     | none => 0
     | some ⟨l,e,b⟩ => decode l e b rec
 
+/-- Pointwise inequalities on the elements of a list imply the corresponding inequality between
+mapped sums. -/
 private theorem workspace_sum_map_mono {A : Type*} (xs : List A) (f g : A → ℝ)
     (h : ∀ x ∈ xs, f x ≤ g x) : (xs.map f).sum ≤ (xs.map g).sum := by
   induction xs with
@@ -443,6 +540,9 @@ private theorem workspace_sum_map_mono {A : Type*} (xs : List A) (f g : A → �
     simp only [List.map_cons, List.sum_cons]
     exact add_le_add (h x (by simp)) (ih fun y hy => h y (by simp [hy]))
 
+/-- For a positive semidefinite initial state, the mass of halted machine traces whose decoded
+scalar is within `epsilon` of `a` is bounded by the corresponding scalar-indicator statistic
+of the unrolled circuit. -/
 theorem workspaceMachineHaltMass_le_unroll_scalar {d k : ℕ} {C : ℕ → Type*}
     (M : WorkspaceMachine d C) (U : Operator d) (T : ℕ) (c : C k)
     (rho : Operator (d*k)) (hrho : rho.PosSemidef)

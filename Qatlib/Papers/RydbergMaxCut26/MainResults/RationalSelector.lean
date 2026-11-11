@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.MainResults.PauliReadout
+
+/-!
+# Rational selection from Pauli samples
+
+`chooseQ` compares rational energy estimates, and `meanScoreQ` averages the rational Pauli
+scores over fresh measurement shots. The distribution `shotsLaw` is identified with the Born law
+on fresh tensor copies, and `readout_mean_error` bounds mean absolute estimation error by the
+square root of the single-shot variance divided by the sample count.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `chooseQ_error`: bounds selection error by the two score errors.
+* `shots_actual_born`: realizes independent shots by a tensor-product measurement.
+* `readout_mean_error`: controls the expected sampling error.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -19,8 +41,11 @@ open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Graph
 open Qatlib.Papers.RydbergMaxCut26.MainResults.FiniteHybrid
 open Qatlib.Papers.RydbergMaxCut26.MainResults.PauliReadout
 
+/-- The Boolean comparison that selects the first score precisely when `r ≤ s`. -/
 def chooseQ (r s : ℚ) : Bool := decide (r ≤ s)
 
+/-- Selecting between real values using rational estimates costs at most the sum of the two
+absolute estimation errors above the true minimum. -/
 theorem chooseQ_error (x y : ℝ) (r s : ℚ) :
     (if chooseQ r s then x else y) ≤ min x y+|(r:ℝ)-x|+|(s:ℝ)-y| := by
   by_cases h : r ≤ s
@@ -39,19 +64,24 @@ theorem chooseQ_error (x y : ℝ) (r s : ℚ) :
     · rw [min_eq_right hyx]
       linarith [abs_nonneg ((r:ℝ)-x),abs_nonneg ((s:ℝ)-y)]
 
+/-- The rational average of the `N` Pauli energy scores in `xs`. -/
 def meanScoreQ {n N : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (w : E → ℚ) (xs : Fin N → Fin n → Fin 3×Bool) : ℚ :=
   (∑ k,energyScoreQ ends w (xs k))/(N:ℚ)
 
+/-- The real cast of `meanScoreQ` equals the finite empirical average of the real energy scores. -/
 theorem meanScoreQ_real {n N : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (w : E → ℚ) (xs : Fin N → Fin n → Fin 3×Bool) :
     (meanScoreQ ends w xs:ℝ)=FinDist.avg (fun o => (energyScoreQ ends w o:ℝ)) xs := by
   simp [meanScoreQ,FinDist.avg]
 
+/-- The distribution of `N` independent Pauli readouts of the density matrix `ρ`. -/
 noncomputable def shotsLaw (n N : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ)
     (hρ : ρ.PosSemidef) (htr : ρ.trace=1) : FinDist (Fin N → Fin n → Fin 3×Bool) :=
   independentSampleLaw (fun _ : Fin N => readoutLaw n ρ hρ htr)
 
+/-- The probability of an array of independent Pauli shots equals the real Born trace for the
+corresponding Kraus operators acting on fresh tensor copies of `ρ`. -/
 theorem shots_actual_born (n N : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ)
     (hρ : ρ.PosSemidef) (htr : ρ.trace=1) (xs : Fin N → Fin n → Fin 3×Bool) :
     (Matrix.trace (tensorPauliFreshProduct (fun i => tensorPauliKraus n (xs i))*
@@ -60,9 +90,13 @@ theorem shots_actual_born (n N : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ)
       (shotsLaw n N ρ hρ htr).prob xs :=
   tensorPauliFreshProduct_born (finDensity n ρ) (finDensity_physical n ρ hρ htr) xs
 
+/-- The variance of a real-valued function under a finite probability distribution is
+nonnegative. -/
 theorem variance_nonneg {X : Type} [Fintype X] [DecidableEq X] (q : FinDist X) (f : X → ℝ) :
     0 ≤ q.variance f := Finset.sum_nonneg (fun x _ => mul_nonneg (q.nonneg x) (sq_nonneg _))
 
+/-- The expected absolute value is at most the square root of the second moment under a finite
+probability distribution. -/
 theorem mean_abs_le_sqrt {X : Type} [Fintype X] [DecidableEq X] (q : FinDist X) (f : X → ℝ) :
     q.expect (fun x => |f x|) ≤ Real.sqrt (q.expect (fun x => (f x)^2)) := by
   have hv := variance_nonneg q (fun x => |f x|)
@@ -74,6 +108,8 @@ theorem mean_abs_le_sqrt {X : Type} [Fintype X] [DecidableEq X] (q : FinDist X) 
     Finset.sum_nonneg (fun x _ => mul_nonneg (q.nonneg x) (abs_nonneg _))
   nlinarith [Real.sq_sqrt hm,Real.sqrt_nonneg (q.expect (fun x => (f x)^2))]
 
+/-- For a positive shot count, the expected absolute error of the rational mean energy score is
+at most the square root of the single-shot energy-score variance divided by `N`. -/
 theorem readout_mean_error {n N : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (w : E → ℚ) (ρ : Matrix (Reg n) (Reg n) ℂ)
     (hρ : ρ.PosSemidef) (htr : ρ.trace=1) (hN : 0<N) :

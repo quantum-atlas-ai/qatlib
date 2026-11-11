@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartStationaritySubgoalStat
 import Mathlib.Analysis.SpecificLimits.Normed
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+
+/-!
+# Derivative and stationary points of the restart profile
+
+Computes `restartExpectedIterations_deriv` wherever the sine denominator is nonzero. The
+derivative formula yields `section3RestartStationaritySubgoal`, the tangent equation
+characterizing stationary points. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `restartExpectedIterations_deriv`: When `Real.sin ((2 * j + 1) * θ) ≠ 0`, the derivative of
+  the restart profile is `(sin((2j + 1)θ) - 4θj cos((2j + 1)θ)) / sin³((2j + 1)θ)`.
+* `section3RestartStationaritySubgoal`: Establishes `Section3RestartStationaritySubgoal`,
+  equating a zero restart-profile derivative with the stated tangent equation.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +35,8 @@ namespace Qatlib.Concepts.SearchStopping.RestartLaw
 
 open Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- When `Real.sin ((2 * j + 1) * θ) ≠ 0`, the derivative of the restart profile is `(sin((2j +
+1)θ) - 4θj cos((2j + 1)θ)) / sin³((2j + 1)θ)`. -/
 theorem restartExpectedIterations_deriv (θ j : ℝ)
     (hs : Real.sin ((2 * j + 1) * θ) ≠ 0) :
     deriv (restartExpectedIterations θ) j =
@@ -30,6 +52,8 @@ theorem restartExpectedIterations_deriv (θ j : ℝ)
   field_simp [hs]
   ring
 
+/-- Establishes `Section3RestartStationaritySubgoal`, equating a zero restart-profile derivative
+with the stated tangent equation. -/
 theorem section3RestartStationaritySubgoal : Section3RestartStationaritySubgoal := by
   intro θ hθ hθupper j hs
   have hctheta : 0 < Real.cos θ :=

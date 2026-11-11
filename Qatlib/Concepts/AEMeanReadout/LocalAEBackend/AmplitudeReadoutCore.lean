@@ -8,6 +8,27 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCoreDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Corollary14Quan
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Quan
+
+/-!
+# Rational readout witnesses and effective counting bounds
+
+This module constructs a legal readout witness whose decoder returns the rational payoff mean
+directly, and proves its table, error, and ledger specifications. It also establishes half-up
+rational rounding bounds and transfers the counting guarantees of [BrassardEtAl2002] to
+finite-precision scalar decoding with explicit slack.
+
+## Main statements
+
+* `clause23`: collects the readout witness and scalar and payoff precision specifications.
+* `aeEffCount_error`: bounds the combined decoding and nearest-integer error.
+* `clause90`: collects rounding properties, effective counting success bounds, and budget
+  inequalities.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -31,9 +52,12 @@ open Matrix
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- The rational arithmetic mean of the request payoff values, using rational division also when
+the basis size is zero. -/
 def requestMean (r : ReadoutRequest) : ℚ :=
   (∑ i : Fin r.basisSize, r.payoff i) / r.basisSize
 
+/-- The real coercion of the rational request mean equals the request target. -/
 theorem requestMean_eq_target (r : ReadoutRequest) : (requestMean r : ℝ) = r.target := by
   unfold ReadoutRequest.target
   by_cases h : r.basisSize = 0
@@ -43,18 +67,26 @@ theorem requestMean_eq_target (r : ReadoutRequest) : (requestMean r : ℝ) = r.t
     push_cast
     rfl
 
+/-- The zero-wire readout program with empty gate words, a single payoff-table layer, and
+constant decoder equal to `requestMean`. -/
 def readoutProgram (r : ReadoutRequest) : ReadoutProgram :=
   ⟨0, r.prec, [], [], ⟨1, r.basisSize, fun _ z => r.payoff z⟩, [], [],
     fun _ => requestMean r, 0⟩
 
+/-- The readout ledger with zero bit, arithmetic, space, and gate entries and one forward and
+one inverse access. -/
 def readoutLedger : ReadoutLedger := ⟨0, 0, 0, 0, 0, 1, 1⟩
 
+/-- The constructed readout program satisfies the finite-word legality and inverse-word
+conditions. -/
 theorem readoutProgram_legal (r : ReadoutRequest) : (readoutProgram r).Legal := by
   show
     finiteWordLegal _ ([] ++ [] ++ []) = true ∧
       ([] : List FiniteGateCode) = finiteWordAdjoint []
   simp [finiteWordLegal, finiteWordAdjoint]
 
+/-- For a legal request, the constructed readout table is well formed and faithful to its payoff
+values. -/
 theorem readoutProgram_tableFaithful (r : ReadoutRequest) (hr : r.Legal) :
     (readoutProgram r).TableFaithful r := by
   have hpos : 0 < r.basisSize := hr.1
@@ -73,20 +105,26 @@ theorem readoutProgram_tableFaithful (r : ReadoutRequest) (hr : r.Legal) :
     rw [sub_self, abs_zero]
     exact add_nonneg hpe hph
 
+/-- The error record assigning the request input budget to input approximation and zero to all
+program errors. -/
 def readoutError (r : ReadoutRequest) : JointErrorRecord :=
   ⟨r.inputBudget, 0, 0, 0⟩
 
+/-- For a legal request, the constructed total error is at most its tolerance. -/
 theorem readoutError_total (r : ReadoutRequest) (hr : r.Legal) :
     (readoutError r).total ≤ r.tol := by
   have htol : r.inputBudget < r.tol := hr.2.2.2.2.2.2.1
   show (r.inputBudget + (0 + 0 + 0) : ℝ) ≤ _
   simpa using! htol.le
 
+/-- The constructed readout error has zero program error. -/
 theorem readoutError_programErr (r : ReadoutRequest) :
     (readoutError r).programErr = 0 := by
   show (0 + 0 + 0 : ℝ) = 0
   simp
 
+/-- The constructed program returns the exact request target with probability one at its
+specified program error. -/
 theorem readoutProgram_successProb (r : ReadoutRequest) :
     (readoutProgram r).successProb r ((readoutError r).programErr) = 1 := by
   have hq : (requestMean r : ℝ) = r.target := requestMean_eq_target r
@@ -109,6 +147,7 @@ theorem readoutProgram_successProb (r : ReadoutRequest) :
         Qatlib.Foundations.PureStateMath.Ket (ZeroStr 0) := rfl
   rw [hev, hrun, measureProb_univ (normalized_ket _)]
 
+/-- For a legal request, the constructed program satisfies `ReadoutProgram.SolvesAt`. -/
 theorem readoutProgram_solves (r : ReadoutRequest) (hr : r.Legal) :
     (readoutProgram r).SolvesAt r := by
   refine ⟨readoutError r, rfl, readoutError_total r hr, ?_, readoutProgram_tableFaithful r hr⟩
@@ -119,6 +158,7 @@ theorem readoutProgram_solves (r : ReadoutRequest) (hr : r.Legal) :
   rw [h]
   norm_num
 
+/-- The constructed ledger covers the constructed readout program for every request. -/
 theorem readoutLedger_covers (r : ReadoutRequest) :
     readoutLedger.Covers (readoutProgram r) r := by
   refine ⟨rfl, rfl, rfl, rfl, 1, by norm_num, ?_, ?_, ?_, ?_, ?_⟩
@@ -133,6 +173,8 @@ theorem readoutLedger_covers (r : ReadoutRequest) :
   · show (0 : ℕ) ≤ 1 * readoutGateShape _ _ _
     exact Nat.zero_le _
 
+/-- Collects the error decompositions, existence of legal readout witnesses with covering
+ledgers, resource shape identities, and rational payoff and native scalar precision bounds. -/
 theorem clause23 :
 
   (∀ e : JointErrorRecord,
@@ -179,11 +221,13 @@ theorem clause23 :
   · exact ⟨rational_payoff_unitary_value_and_operator_error,
       native_ae_computed_scalar_precision⟩
 
+/-- Rational numerator-denominator floor division agrees with the real floor. -/
 theorem ratFloor_eq_floor (x : ℚ) : ratFloor x = Int.floor (x : ℝ) := by
   unfold ratFloor
   rw [Int.fdiv_eq_ediv_of_nonneg _ (Int.natCast_nonneg x.den)]
   rw [Rat.floor_cast x, Rat.floor_def']
 
+/-- Effective rational rounding equals the floor after adding one half. -/
 theorem aeEffRound_eq_intFloor (x : ℚ) : aeEffRound x = Int.floor ((x : ℝ) + 1 / 2) := by
   unfold aeEffRound
   rw [ratFloor_eq_floor]
@@ -191,6 +235,7 @@ theorem aeEffRound_eq_intFloor (x : ℚ) : aeEffRound x = Int.floor ((x : ℝ) +
   push_cast
   rfl
 
+/-- Effective rational rounding has absolute error at most one half. -/
 theorem aeEffRound_error (x : ℚ) : |(x : ℝ) - (aeEffRound x : ℝ)| ≤ 1 / 2 := by
   rw [aeEffRound_eq_intFloor]
   have h1 : (Int.floor ((x : ℝ) + 1 / 2) : ℝ) ≤ (x : ℝ) + 1 / 2 := Int.floor_le _
@@ -198,22 +243,26 @@ theorem aeEffRound_error (x : ℚ) : |(x : ℝ) - (aeEffRound x : ℝ)| ≤ 1 / 
   apply abs_le.mpr
   constructor <;> linarith
 
+/-- Effective rational rounding fixes every integer. -/
 theorem aeEffRound_intCast (n : ℤ) : aeEffRound n = n := by
   rw [aeEffRound_eq_intFloor]
   apply Int.floor_eq_iff.mpr
   constructor <;> push_cast <;> linarith
 
+/-- A half-integer is rounded to the larger integer. -/
 theorem aeEffRound_half_up (n : ℤ) : aeEffRound (n + 1 / 2) = n + 1 := by
   rw [aeEffRound_eq_intFloor]
   apply Int.floor_eq_iff.mpr
   constructor <;> push_cast <;> linarith
 
+/-- A rational strictly below `n+1/2` rounds to an integer at most `n`. -/
 theorem aeEffRound_le_of_lt (n : ℤ) (x : ℚ) (h : (x : ℝ) < (n : ℝ) + 1 / 2) :
     aeEffRound x ≤ n := by
   rw [aeEffRound_eq_intFloor]
   apply Int.floor_le_iff.mpr
   linarith
 
+/-- A rational at least `n+1/2` rounds to an integer at least `n+1`. -/
 theorem le_aeEffRound_of_le (n : ℤ) (x : ℚ) (h : (n : ℝ) + 1 / 2 ≤ (x : ℝ)) :
     n + 1 ≤ aeEffRound x := by
   rw [aeEffRound_eq_intFloor]
@@ -221,6 +270,8 @@ theorem le_aeEffRound_of_le (n : ℤ) (x : ℚ) (h : (n : ℝ) + 1 / 2 ≤ (x : 
   push_cast
   linarith
 
+/-- Arbitrarily close to each half-integer, there are rationals rounding to each of its two
+neighboring integers. -/
 theorem aeEffRound_boundary_dense (n : ℤ) (ε : ℝ) (hε : 0 < ε) :
     ∃ x y : ℚ,
       |(x : ℝ) - ((n : ℝ) + 1 / 2)| < ε ∧ aeEffRound x = n ∧
@@ -251,10 +302,13 @@ theorem aeEffRound_boundary_dense (n : ℤ) (ε : ℝ) (hε : 0 < ε) :
     apply Int.floor_eq_iff.mpr
     constructor <;> push_cast <;> linarith
 
+/-- Effective counting rounds the native rational scalar estimate after multiplication by `N`. -/
 theorem aeEffCount_eq (N M k : ℕ) (z : Fin M) :
     aeEffCount N M k z =
       aeEffRound (((N : ℚ) * nativeAEDecode M k z : ℚ)) := rfl
 
+/-- Scaling native scalar decoding by `N` gives error at most `N*2^(-k)` relative to the scaled
+ideal amplitude estimate. -/
 theorem nativeScaled_error (N M k : ℕ) (z : Fin M) :
     |((((N : ℚ) * nativeAEDecode M k z : ℚ)) : ℝ) - (N : ℝ) * aeEstimate M z| ≤
       (N : ℝ) * ((2 : ℝ)⁻¹) ^ k := by
@@ -266,6 +320,8 @@ theorem nativeScaled_error (N M k : ℕ) (z : Fin M) :
   rw [hcast, ← mul_sub, abs_mul, abs_of_nonneg (Nat.cast_nonneg N)]
   exact mul_le_mul_of_nonneg_left h (Nat.cast_nonneg N)
 
+/-- The effective integer count differs from the scaled ideal amplitude estimate by at most
+`N*2^(-k)+1/2`. -/
 theorem aeEffCount_error (N M k : ℕ) (z : Fin M) :
     |(aeEffCount N M k z : ℝ) - (N : ℝ) * aeEstimate M z| ≤
       (N : ℝ) * ((2 : ℝ)⁻¹) ^ k + 1 / 2 := by
@@ -282,6 +338,8 @@ theorem aeEffCount_error (N M k : ℕ) (z : Fin M) :
   rw [hswap] at h1
   linarith
 
+/-- The effective integer count differs from half-up rounding of the ideal scaled estimate by at
+most `effRoundSlack N k`. -/
 theorem aeEffCount_near_floor (N M k : ℕ) (z : Fin M) :
     |(aeEffCount N M k z : ℝ) - ((⌊(N : ℝ) * aeEstimate M z + 1 / 2⌋ : ℤ) : ℝ)| ≤
       effRoundSlack N k := by
@@ -312,6 +370,8 @@ theorem aeEffCount_near_floor (N M k : ℕ) (z : Fin M) :
   apply abs_le.mpr
   constructor <;> linarith
 
+/-- The effective count on the Corollary 14 grid differs from its ideal rounded output by at
+most `effRoundSlack N k`. -/
 theorem aeEffCount_near_cor14Output (N k : ℕ) (z : Fin (approxCountCor14Grid N)) :
     |(aeEffCount N (approxCountCor14Grid N) k z : ℝ) -
         (approxCountCor14Output N z : ℝ)| ≤ effRoundSlack N k := by
@@ -320,6 +380,8 @@ theorem aeEffCount_near_cor14Output (N k : ℕ) (z : Fin (approxCountCor14Grid N
   rw [h]
   exact aeEffCount_near_floor N (approxCountCor14Grid N) k z
 
+/-- The effective basic approximate counting output differs from its ideal rounded output by at
+most `effRoundSlack N k`. -/
 theorem aeEffCount_near_basicOutput (N : ℕ) (ε : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (basicApproxCountFinalM ε (basicApproxCountStop N ω))) (k : ℕ) :
@@ -332,6 +394,8 @@ theorem aeEffCount_near_basicOutput (N : ℕ) (ε : ℝ)
   rw [h1, h2]
   exact aeEffCount_near_floor N (basicApproxCountFinalM ε (basicApproxCountStop N ω)) k y
 
+/-- The effective count differs from the exact counting procedure's ideal rounded output by at
+most `effRoundSlack N k`. -/
 theorem aeEffCount_near_exactOutput (N M k : ℕ) (y : Fin M) :
     |(aeEffCount N M k y : ℝ) - (BHMTTh17.exactCountOutput N y : ℝ)| ≤
       effRoundSlack N k := by
@@ -340,6 +404,9 @@ theorem aeEffCount_near_exactOutput (N M k : ℕ) (y : Fin M) :
   rw [h]
   exact aeEffCount_near_floor N M k y
 
+/-- Collects half-up rounding laws and finite-precision counting guarantees, including Corollary
+14, basic approximate counting, and the exact counting procedure with rounding slack
+[BrassardEtAl2002]. It also records the corresponding cost and budget inequalities. -/
 theorem clause90 :
 
   (∀ x : ℚ, |(x : ℝ) - (aeEffRound x : ℝ)| ≤ 1 / 2) ∧

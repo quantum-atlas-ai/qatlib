@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+/-!
+# Finite-family imaginary-time product formulas
+
+This module constructs labelled first-order imaginary-time words for finite matrix families and
+bounds their error by a sum of pairwise commutator norms. For positive-semidefinite terms and
+nonnegative time, each segment and the complete run are contractions, as in the
+commutator-scaling framework of [ChildsEtAl2021Trotter].
+
+The word ledger records length, occurrences of each label, and arbitrary label prices. Pairwise
+commuting terms give exact evolution for every positive segment count.
+
+## Main statements
+
+* `imaginary_family_psd_lie_segment_error`: the one-segment commutator error estimate.
+* `imaginary_family_actual_word_error_and_tariffs`: contraction, word accounting, and segmented
+  error.
+* `imaginary_family_commuting_exact`: exactness for commuting terms.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,29 +46,38 @@ namespace Qatlib.Concepts.TrotterFormula.ImaginaryTime
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The sum of norms of pairwise commutators over index pairs `j < k`. -/
 noncomputable def imaginaryCommutatorSum {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (H : Fin m → Matrix I I ℂ) : ℝ :=
   ∑ j : Fin m, ∑ k : Fin m, if j < k then ‖pfComm (H j) (H k)‖ else 0
 
+/-- The labelled imaginary-time word obtained by repeating the ordered family of exponentials
+`r` times with step size `t / r`. -/
 noncomputable def imaginaryFamilyWord {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (H : Fin m → Matrix I I ℂ) (t : ℝ) (r : ℕ) : List (Matrix I I ℂ × ℕ) :=
   (List.replicate r (List.ofFn (fun j : Fin m =>
     (NormedSpace.exp (-(t / (r : ℝ)) • H j), j.val)))).flatten
 
+/-- The list-order product of the matrix entries in `imaginaryFamilyWord H t r`. -/
 noncomputable def imaginaryFamilyRun {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (H : Fin m → Matrix I I ℂ) (t : ℝ) (r : ℕ) : Matrix I I ℂ :=
   ((imaginaryFamilyWord H t r).map Prod.fst).prod
 
+/-- The segment count `max 1 ⌈t² * imaginaryCommutatorSum H / (2 * ε)⌉`. -/
 noncomputable def finiteImaginarySegments {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (H : Fin m → Matrix I I ℂ) (t ε : ℝ) : ℕ :=
   max 1 (Nat.ceil (t ^ 2 * imaginaryCommutatorSum H / (2 * ε)))
 
+/-- The commutator sum splits into interactions with the first term and the commutator sum of
+the remaining family. -/
 private theorem imaginary_pair_sum_succ {I : Type} [Fintype I] [DecidableEq I]
     {m : ℕ} (H : Fin (m+1) → Matrix I I ℂ) :
     imaginaryCommutatorSum H = (∑ j : Fin m, ‖pfComm (H 0) (H j.succ)‖) +
       imaginaryCommutatorSum (fun j : Fin m => H j.succ) := by
   simp [imaginaryCommutatorSum, Fin.sum_univ_succ]
 
+/-- The norm of the commutator with a finite sum is bounded by the sum of the individual
+commutator norms. -/
 private theorem imaginary_comm_sum_bound {I : Type} [Fintype I] [DecidableEq I]
     {m : ℕ} (H : Fin m → Matrix I I ℂ) (A : Matrix I I ℂ) :
     ‖pfComm A (∑ j, H j)‖ ≤ ∑ j, ‖pfComm A (H j)‖ := by
@@ -53,6 +86,8 @@ private theorem imaginary_comm_sum_bound {I : Type} [Fintype I] [DecidableEq I]
   rw [he]
   exact norm_sum_le _ _
 
+/-- A product of negative-time exponentials of positive-semidefinite matrices has norm at most
+one when the step size is nonnegative. -/
 private theorem imaginary_segment_contraction {I : Type} [Fintype I] [DecidableEq I]
     {m : ℕ} (H : Fin m → Matrix I I ℂ) (s : ℝ)
     (hH : ∀ j, (H j).PosSemidef) (hs : 0 ≤ s) :
@@ -62,6 +97,9 @@ private theorem imaginary_segment_contraction {I : Type} [Fintype I] [DecidableE
   obtain ⟨j, rfl⟩ := List.mem_ofFn.mp ha
   exact imaginary_exp_psd_contraction (H j) (hH j) s hs
 
+/-- For positive-semidefinite terms and `s ≥ 0`, the one-segment imaginary-time error is at most
+`s² / 2` times `imaginaryCommutatorSum H`; this is a finite first-order instance of the
+framework in [ChildsEtAl2021Trotter]. -/
 theorem imaginary_family_psd_lie_segment_error :
   ∀ {I : Type} [Fintype I] [DecidableEq I] {m : ℕ} (H : Fin m → Matrix I I ℂ) (s : ℝ),
     (∀ j : Fin m, (H j).PosSemidef) → 0 ≤ s →
@@ -109,6 +147,8 @@ theorem imaginary_family_psd_lie_segment_error :
         add_le_add le_rfl (mul_le_mul_of_nonneg_left hC (by positivity))
       _ = _ := by rw [imaginary_pair_sum_succ]; dsimp [tail]; ring
 
+/-- The imaginary-time family run is the `r`th power of its one-segment product at step size `t
+/ r`. -/
 private theorem imaginary_family_run_power {I : Type} [Fintype I] [DecidableEq I]
     {m : ℕ} (H : Fin m → Matrix I I ℂ) (t : ℝ) (r : ℕ) :
     imaginaryFamilyRun H t r =
@@ -116,6 +156,8 @@ private theorem imaginary_family_run_power {I : Type} [Fintype I] [DecidableEq I
   simp [imaginaryFamilyRun, imaginaryFamilyWord, List.map_flatten, List.map_replicate,
     List.map_ofFn, List.prod_flatten, List.prod_replicate, Function.comp_def]
 
+/-- The imaginary-time word has length `m * r`, contains each family label exactly `r` times,
+and has total price `r` times the sum of label prices. -/
 private theorem imaginary_family_word_ledger {I : Type} [Fintype I] [DecidableEq I]
     {m : ℕ} (H : Fin m → Matrix I I ℂ) (t : ℝ) (r : ℕ) (price : ℕ → ℕ) :
     (imaginaryFamilyWord H t r).length = m*r ∧
@@ -139,6 +181,9 @@ private theorem imaginary_family_word_ledger {I : Type} [Fintype I] [DecidableEq
   · simp only [List.map_flatten, List.map_replicate, List.sum_flatten,
       List.sum_replicate, hp, nsmul_eq_mul, Nat.cast_id]
 
+/-- For positive-semidefinite terms, nonnegative time, and positive `r`, the run is contractive,
+satisfies the word ledger, and has error at most `t² * imaginaryCommutatorSum H / (2 * r)`,
+in the setting of [ChildsEtAl2021Trotter]. -/
 theorem imaginary_family_actual_word_error_and_tariffs :
   ∀ {I : Type} [Fintype I] [DecidableEq I] {m : ℕ} (H : Fin m → Matrix I I ℂ)
     (t : ℝ) (r : ℕ) (price : ℕ → ℕ),
@@ -176,6 +221,9 @@ theorem imaginary_family_actual_word_error_and_tariffs :
     dsimp [s]
     field_simp
 
+/-- For pairwise commuting positive-semidefinite terms, nonnegative time, and positive `r`, the
+imaginary-time family run equals the exponential of the negative scaled sum; see
+[ChildsEtAl2021Trotter] for the commutator-scaling setting. -/
 theorem imaginary_family_commuting_exact :
   ∀ {I : Type} [Fintype I] [DecidableEq I] {m : ℕ} (H : Fin m → Matrix I I ℂ)
     (t : ℝ) (r : ℕ),

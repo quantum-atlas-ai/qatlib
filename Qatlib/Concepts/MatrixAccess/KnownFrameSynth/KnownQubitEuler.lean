@@ -17,6 +17,27 @@ import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.QspSimulation.WordModel.SignalProcessing
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+
+/-!
+# Explicit Euler angles for qubit unitaries
+
+This module defines `KnownQubitAngles` and the phase and real rotation matrices used by
+`knownQubitUnitary`. It proves their composition, conjugation, and unitarity identities, and
+reconstructs every qubit unitary from explicit angles with the rotation angle in [0, π].
+
+The elementary gate decomposition follows the setting of [BarencoEtAl1995].
+
+## Main statements
+
+* `knownQubitEuler_primitives_and_algebra`: collects the elementary matrix identities.
+* `knownQubitEuler_explicit_angles_cover_unitaries`: reconstructs any unitary from its computed
+  angles.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +55,8 @@ set_option linter.unusedSectionVars false
 set_option linter.unusedSimpArgs false
 set_option linter.unusedTactic false
 
+/-- Four real parameters specifying a global phase and a phase-rotation-phase decomposition of a
+qubit unitary. -/
 structure KnownQubitAngles where
 
   delta : ℝ
@@ -44,24 +67,36 @@ structure KnownQubitAngles where
 
   beta : ℝ
 
+/-- The diagonal qubit phase matrix with diagonal entries exp(it/2) and exp(-it/2), indexed by
+`Bool`. -/
 noncomputable def qubitEulerPhase (a : ℝ) : Matrix Bool Bool ℂ :=
   relabelGate boolEquivFin2.symm (PhaseRotation (a / 2))
 
+/-- The real qubit rotation matrix with diagonal cos(θ/2) and off-diagonal entries sin(θ/2) and
+-sin(θ/2). -/
 noncomputable def qubitEulerRotation (θ : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.of fun i j =>
     if i = j then (Real.cos (θ / 2) : ℂ)
     else if i then -(Real.sin (θ / 2) : ℂ) else (Real.sin (θ / 2) : ℂ)
 
+/-- The qubit matrix obtained from a global phase and the phase-rotation-phase product specified
+by `KnownQubitAngles`. -/
 noncomputable def knownQubitUnitary (p : KnownQubitAngles) : Matrix Bool Bool ℂ :=
   Complex.exp ((p.delta : ℂ) * Complex.I) •
     (qubitEulerPhase p.alpha * qubitEulerRotation p.theta * qubitEulerPhase p.beta)
 
+/-- The Euler parameters obtained by negating all angles and reversing the two phase angles,
+representing the adjoint matrix. -/
 def knownQubitAngleAdjoint (p : KnownQubitAngles) : KnownQubitAngles :=
   ⟨-p.delta, -p.beta, -p.theta, -p.alpha⟩
 
+/-- Multiplies a qubit matrix by the phase exp(-i arg(det U)/2), removing its determinant phase
+when the matrix is unitary. -/
 noncomputable def knownQubitNormalize (U : Matrix Bool Bool ℂ) : Matrix Bool Bool ℂ :=
   Complex.exp (((-(Complex.arg (Matrix.det U) / 2 : ℝ)) : ℂ) * Complex.I) • U
 
+/-- Extracts Euler parameters from the determinant phase and the first row of the
+phase-normalized qubit matrix. -/
 noncomputable def knownQubitAnglesOfUnitary (U : Matrix Bool Bool ℂ) : KnownQubitAngles :=
   ⟨Complex.arg (Matrix.det U) / 2,
    Complex.arg (knownQubitNormalize U false false)
@@ -70,39 +105,50 @@ noncomputable def knownQubitAnglesOfUnitary (U : Matrix Bool Bool ℂ) : KnownQu
    Complex.arg (knownQubitNormalize U false false)
      - Complex.arg (knownQubitNormalize U false true)⟩
 
+/-- The equivalence `boolEquivFin2` sends `false` to zero. -/
 theorem boolEquivFin2_false : boolEquivFin2 false = 0 := rfl
 
+/-- The equivalence `boolEquivFin2` sends `true` to one. -/
 theorem boolEquivFin2_true : boolEquivFin2 true = 1 := rfl
 
+/-- The inverse of `boolEquivFin2` sends zero to `false`. -/
 theorem boolEquivFin2_symm_zero : boolEquivFin2.symm 0 = false := rfl
 
+/-- The inverse of `boolEquivFin2` sends one to `true`. -/
 theorem boolEquivFin2_symm_one : boolEquivFin2.symm 1 = true := rfl
 
+/-- Evaluates an entry of the Euler rotation matrix using cosine on the diagonal and signed sine
+off the diagonal. -/
 @[simp] theorem qubitEulerRotation_apply (t : ℝ) (i j : Bool) :
     qubitEulerRotation t i j =
       if i = j then (Real.cos (t / 2) : ℂ)
       else if i then -(Real.sin (t / 2) : ℂ) else (Real.sin (t / 2) : ℂ) := rfl
 
+/-- The `false, false` entry of the Euler phase matrix is exp(it/2). -/
 theorem qubitEulerPhase_ff (t : ℝ) :
     qubitEulerPhase t false false = Complex.exp (((t / 2 : ℝ) : ℂ) * Complex.I) := by
   simp [qubitEulerPhase, relabelGate, Matrix.reindex_apply, PhaseRotation,
     boolEquivFin2_false]
 
+/-- The `false, true` entry of the Euler phase matrix is zero. -/
 theorem qubitEulerPhase_ft (t : ℝ) :
     qubitEulerPhase t false true = 0 := by
   simp [qubitEulerPhase, relabelGate, Matrix.reindex_apply, PhaseRotation,
     boolEquivFin2_false, boolEquivFin2_true]
 
+/-- The `true, false` entry of the Euler phase matrix is zero. -/
 theorem qubitEulerPhase_tf (t : ℝ) :
     qubitEulerPhase t true false = 0 := by
   simp [qubitEulerPhase, relabelGate, Matrix.reindex_apply, PhaseRotation,
     boolEquivFin2_false, boolEquivFin2_true]
 
+/-- The `true, true` entry of the Euler phase matrix is exp(-it/2). -/
 theorem qubitEulerPhase_tt (t : ℝ) :
     qubitEulerPhase t true true = Complex.exp (((-(t / 2 : ℝ)) : ℂ) * Complex.I) := by
   simp [qubitEulerPhase, relabelGate, Matrix.reindex_apply, PhaseRotation,
     boolEquivFin2_true]
 
+/-- Evaluates each entry of the diagonal Euler phase matrix. -/
 theorem qubitEulerPhase_apply (t : ℝ) (i j : Bool) :
     qubitEulerPhase t i j =
       if i = j then
@@ -112,28 +158,35 @@ theorem qubitEulerPhase_apply (t : ℝ) (i j : Bool) :
   rcases i <;> rcases j <;>
     simp [qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf, qubitEulerPhase_tt]
 
+/-- The `false, false` entry of the Euler rotation matrix is cos(t/2). -/
 theorem qubitEulerRotation_ff (t : ℝ) :
     qubitEulerRotation t false false = (Real.cos (t / 2) : ℂ) := rfl
 
+/-- The `false, true` entry of the Euler rotation matrix is sin(t/2). -/
 theorem qubitEulerRotation_ft (t : ℝ) :
     qubitEulerRotation t false true = (Real.sin (t / 2) : ℂ) := rfl
 
+/-- The `true, false` entry of the Euler rotation matrix is -sin(t/2). -/
 theorem qubitEulerRotation_tf (t : ℝ) :
     qubitEulerRotation t true false = -(Real.sin (t / 2) : ℂ) := rfl
 
+/-- The `true, true` entry of the Euler rotation matrix is cos(t/2). -/
 theorem qubitEulerRotation_tt (t : ℝ) :
     qubitEulerRotation t true true = (Real.cos (t / 2) : ℂ) := rfl
 
+/-- The Euler rotation at angle zero is the identity matrix. -/
 theorem qubitEulerRotation_zero : qubitEulerRotation 0 = 1 := by
   ext i j
   rcases i <;> rcases j <;>
     simp [qubitEulerRotation_apply, Real.cos_zero]
 
+/-- The Euler phase matrix at angle zero is the identity matrix. -/
 theorem qubitEulerPhase_zero : qubitEulerPhase 0 = 1 := by
   ext i j
   rcases i <;> rcases j <;>
     simp [qubitEulerPhase_apply, zero_div, Complex.exp_zero]
 
+/-- Multiplying two Euler rotation matrices adds their angles. -/
 theorem qubitEulerRotation_mul (s t : ℝ) :
     qubitEulerRotation s * qubitEulerRotation t = qubitEulerRotation (s + t) := by
   ext i j
@@ -142,6 +195,7 @@ theorem qubitEulerRotation_mul (s t : ℝ) :
       show (s + t : ℝ) / 2 = s / 2 + t / 2 from by ring, Real.cos_add, Real.sin_add] <;>
     ring
 
+/-- Multiplying two Euler phase matrices adds their angles. -/
 theorem qubitEulerPhase_mul (s t : ℝ) :
     qubitEulerPhase s * qubitEulerPhase t = qubitEulerPhase (s + t) := by
   ext i j
@@ -149,6 +203,7 @@ theorem qubitEulerPhase_mul (s t : ℝ) :
     simp [Matrix.mul_apply, qubitEulerPhase_apply, ← Complex.exp_add] <;>
     congr 1 <;> ring
 
+/-- Conjugation by `PauliX` negates the Euler rotation angle. -/
 theorem pauliX_mul_qubitEulerRotation (t : ℝ) :
     PauliX * qubitEulerRotation t * PauliX = qubitEulerRotation (-t) := by
   ext i j
@@ -159,6 +214,7 @@ theorem pauliX_mul_qubitEulerRotation (t : ℝ) :
       show ((Real.sin (-t / 2) : ℂ)) = -((Real.sin (t / 2) : ℂ)) from by
         rw [show -t / 2 = -(t / 2) from by ring, Real.sin_neg, Complex.ofReal_neg]]
 
+/-- Conjugation by `PauliX` negates the Euler phase angle. -/
 theorem pauliX_mul_qubitEulerPhase (t : ℝ) :
     PauliX * qubitEulerPhase t * PauliX = qubitEulerPhase (-t) := by
   ext i j
@@ -166,14 +222,19 @@ theorem pauliX_mul_qubitEulerPhase (t : ℝ) :
     simp [Matrix.mul_apply, qubitEulerPhase_apply, PauliX, permMatrix] <;>
     congr 1 <;> ring
 
+/-- Complex conjugation preserves multiplication. -/
 theorem conj_mul₂ (a b : ℂ) :
     (starRingEnd ℂ) (a * b) = (starRingEnd ℂ) a * (starRingEnd ℂ) b := map_mul _ _ _
 
+/-- The complex conjugate of zero is zero. -/
 theorem conj_zero : (starRingEnd ℂ) 0 = 0 := map_zero _
 
+/-- An entry of a qubit matrix's conjugate transpose is the complex conjugate of the transposed
+entry. -/
 theorem conjTranspose_apply' (M : Matrix Bool Bool ℂ) (i j : Bool) :
     Mᴴ i j = (starRingEnd ℂ) (M j i) := rfl
 
+/-- Expresses the complex conjugate of a number using its norm and the negative of its argument. -/
 theorem star_eq_norm_mul_exp (x : ℂ) :
     (starRingEnd ℂ) x = ((‖x‖ : ℂ)) * Complex.exp ((-(Complex.arg x : ℂ)) * Complex.I) := by
   have harg : Complex.exp (((Complex.arg x : ℂ) * (-Complex.I)))
@@ -184,6 +245,7 @@ theorem star_eq_norm_mul_exp (x : ℂ) :
   rw [conj_mul₂, Complex.conj_ofReal, ← Complex.exp_conj, conj_mul₂, Complex.conj_ofReal,
     Complex.conj_I, harg]
 
+/-- Multiplying a finite complex unitary matrix by a scalar of norm one preserves unitarity. -/
 theorem smul_mem_unitaryGroup {I : Type*} [Fintype I] [DecidableEq I] {c : ℂ} (hc : ‖c‖ = 1)
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     c • U ∈ Matrix.unitaryGroup I ℂ := by
@@ -199,6 +261,7 @@ theorem smul_mem_unitaryGroup {I : Type*} [Fintype I] [DecidableEq I] {c : ℂ} 
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, Matrix.conjTranspose_smul,
     smul_mul_smul, h1, hcc, one_smul]
 
+/-- The product of two finite complex unitary matrices is unitary. -/
 theorem mul_mem_unitaryGroup {I : Type*} [Fintype I] [DecidableEq I] {U V : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ) :
     U * V ∈ Matrix.unitaryGroup I ℂ := by
@@ -211,6 +274,7 @@ theorem mul_mem_unitaryGroup {I : Type*} [Fintype I] [DecidableEq I] {U V : Matr
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, Matrix.conjTranspose_mul,
     Matrix.mul_assoc, ← Matrix.mul_assoc Uᴴ U V, h1, Matrix.one_mul, h2]
 
+/-- The conjugate transpose of an Euler rotation is the rotation with negated angle. -/
 theorem qubitEulerRotation_conjTranspose (t : ℝ) :
     (qubitEulerRotation t)ᴴ = qubitEulerRotation (-t) := by
   ext i j
@@ -222,6 +286,7 @@ theorem qubitEulerRotation_conjTranspose (t : ℝ) :
       show ((Real.sin ((-t) / 2) : ℂ)) = -((Real.sin (t / 2) : ℂ)) from by
         rw [show (-t : ℝ) / 2 = -(t / 2) from by ring, Real.sin_neg, Complex.ofReal_neg]]
 
+/-- The conjugate transpose of an Euler phase matrix has the negated angle. -/
 theorem qubitEulerPhase_conjTranspose (t : ℝ) :
     (qubitEulerPhase t)ᴴ = qubitEulerPhase (-t) := by
   ext i j
@@ -231,6 +296,7 @@ theorem qubitEulerPhase_conjTranspose (t : ℝ) :
       map_neg, Complex.conj_ofReal, Complex.conj_I] <;>
     congr 1 <;> push_cast <;> ring
 
+/-- Every Euler rotation matrix is unitary. -/
 theorem qubitEulerRotation_unitary (t : ℝ) :
     qubitEulerRotation t ∈ Matrix.unitaryGroup Bool ℂ := by
   have hmul : qubitEulerRotation (-t) * qubitEulerRotation t = 1 := by
@@ -238,6 +304,7 @@ theorem qubitEulerRotation_unitary (t : ℝ) :
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, qubitEulerRotation_conjTranspose,
     hmul]
 
+/-- Every Euler phase matrix is unitary. -/
 theorem qubitEulerPhase_unitary (t : ℝ) :
     qubitEulerPhase t ∈ Matrix.unitaryGroup Bool ℂ := by
   have hmul : qubitEulerPhase (-t) * qubitEulerPhase t = 1 := by
@@ -245,6 +312,7 @@ theorem qubitEulerPhase_unitary (t : ℝ) :
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, qubitEulerPhase_conjTranspose,
     hmul]
 
+/-- Every matrix specified by `KnownQubitAngles` is unitary. -/
 theorem knownQubitUnitary_unitary (p : KnownQubitAngles) :
     knownQubitUnitary p ∈ Matrix.unitaryGroup Bool ℂ := by
   unfold knownQubitUnitary
@@ -252,6 +320,8 @@ theorem knownQubitUnitary_unitary (p : KnownQubitAngles) :
     (mul_mem_unitaryGroup (mul_mem_unitaryGroup (qubitEulerPhase_unitary p.alpha)
       (qubitEulerRotation_unitary p.theta)) (qubitEulerPhase_unitary p.beta))
 
+/-- The adjoint Euler parameters reconstruct the conjugate transpose of the original qubit
+matrix. -/
 theorem knownQubitUnitary_adjoint (p : KnownQubitAngles) :
     knownQubitUnitary (knownQubitAngleAdjoint p) = (knownQubitUnitary p)ᴴ := by
   have hexp : star (Complex.exp ((p.delta : ℂ) * Complex.I))
@@ -265,6 +335,8 @@ theorem knownQubitUnitary_adjoint (p : KnownQubitAngles) :
     Matrix.conjTranspose_mul, qubitEulerPhase_conjTranspose, qubitEulerRotation_conjTranspose,
     hexp, Matrix.mul_assoc, Complex.ofReal_neg]
 
+/-- Collects the Euler primitive formulas, angle addition and Pauli conjugation identities, and
+the unitarity and adjoint laws for `knownQubitUnitary`. -/
 theorem knownQubitEuler_primitives_and_algebra :
     (∀ (t : ℝ),
       qubitEulerPhase t = relabelGate boolEquivFin2.symm (PhaseRotation (t / 2)) ∧
@@ -287,11 +359,14 @@ theorem knownQubitEuler_primitives_and_algebra :
     fun s t => ⟨qubitEulerRotation_mul s t, qubitEulerPhase_mul s t⟩,
     fun p => ⟨rfl, knownQubitUnitary_unitary p, knownQubitUnitary_adjoint p⟩⟩
 
+/-- Expands the determinant of a `Bool`-indexed matrix as the difference of the diagonal and
+off-diagonal products. -/
 theorem det_apply_bool (W : Matrix Bool Bool ℂ) :
     W.det = W false false * W true true - W false true * W true false := by
   rw [← Matrix.det_reindex_self boolEquivFin2 W, Matrix.det_fin_two]
   simp [Matrix.reindex_apply, boolEquivFin2_symm_zero, boolEquivFin2_symm_one]
 
+/-- The adjugate of a two-by-two matrix indexed by `Bool`. -/
 def boolAdj (W : Matrix Bool Bool ℂ) : Matrix Bool Bool ℂ :=
   Matrix.of fun i j =>
     match i, j with
@@ -300,6 +375,7 @@ def boolAdj (W : Matrix Bool Bool ℂ) : Matrix Bool Bool ℂ :=
     | true, false => -W true false
     | true, true => W false false
 
+/-- A qubit matrix multiplied by its adjugate equals its determinant times the identity. -/
 theorem mul_boolAdj (W : Matrix Bool Bool ℂ) :
     W * boolAdj W = W.det • (1 : Matrix Bool Bool ℂ) := by
   ext i j
@@ -307,6 +383,8 @@ theorem mul_boolAdj (W : Matrix Bool Bool ℂ) :
     simp [Matrix.mul_apply, boolAdj, det_apply_bool, Matrix.smul_apply] <;>
     ring
 
+/-- For a qubit unitary of determinant one, the second row consists of the negative conjugate of
+the upper-right entry and the conjugate of the upper-left entry. -/
 theorem bool_unitary_det_one {W : Matrix Bool Bool ℂ} (hW : W ∈ Matrix.unitaryGroup Bool ℂ)
     (hdet : W.det = 1) :
     W true true = (starRingEnd ℂ) (W false false) ∧
@@ -333,6 +411,7 @@ theorem bool_unitary_det_one {W : Matrix Bool Bool ℂ} (hW : W ∈ Matrix.unita
       simpa [boolAdj, conjTranspose_apply'] using! e
     rw [← e', neg_neg]
 
+/-- Evaluates the `false, false` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_ff (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) false false
       = Complex.exp (((α / 2 : ℝ) : ℂ) * Complex.I) * ((Real.cos (θ / 2) : ℂ))
@@ -341,6 +420,7 @@ theorem eulerPRP_ff (α θ β : ℝ) :
     qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
     qubitEulerRotation_tt]
 
+/-- Evaluates the `false, true` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_ft (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) false true
       = Complex.exp (((α / 2 : ℝ) : ℂ) * Complex.I) * ((Real.sin (θ / 2) : ℂ))
@@ -349,6 +429,7 @@ theorem eulerPRP_ft (α θ β : ℝ) :
     qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
     qubitEulerRotation_tt]
 
+/-- Evaluates the `true, false` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_tf (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) true false
       = Complex.exp (((-(α / 2 : ℝ)) : ℂ) * Complex.I) * (-((Real.sin (θ / 2) : ℂ)))
@@ -357,6 +438,7 @@ theorem eulerPRP_tf (α θ β : ℝ) :
     qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
     qubitEulerRotation_tt]
 
+/-- Evaluates the `true, true` entry of a phase-rotation-phase product. -/
 theorem eulerPRP_tt (α θ β : ℝ) :
     (qubitEulerPhase α * qubitEulerRotation θ * qubitEulerPhase β) true true
       = Complex.exp (((-(α / 2 : ℝ)) : ℂ) * Complex.I) * ((Real.cos (θ / 2) : ℂ))
@@ -365,6 +447,8 @@ theorem eulerPRP_tt (α θ β : ℝ) :
     qubitEulerPhase_tt, qubitEulerRotation_ff, qubitEulerRotation_ft, qubitEulerRotation_tf,
     qubitEulerRotation_tt]
 
+/-- Reconstructs the special unitary matrix with first row (a, b) from argument-based phase
+angles and rotation angle 2 arccos ‖a‖, assuming ‖a‖² + ‖b‖² = 1. -/
 theorem euler_angles_reconstruct (a b : ℂ) (hab : Complex.normSq a + Complex.normSq b = 1) :
     qubitEulerPhase (Complex.arg a + Complex.arg b) * qubitEulerRotation (2 * Real.arccos ‖a‖) *
       qubitEulerPhase (Complex.arg a - Complex.arg b)
@@ -438,6 +522,7 @@ theorem euler_angles_reconstruct (a b : ℂ) (hab : Complex.normSq a + Complex.n
         ring]
     exact hconja
 
+/-- Multiplying a complex number of norm one by exp(-i arg x) gives one. -/
 theorem exp_neg_arg_mul_self (x : ℂ) (hx : ‖x‖ = 1) :
     Complex.exp (-((Complex.arg x : ℂ)) * Complex.I) * x = 1 := by
   have hn := Complex.norm_mul_exp_arg_mul_I x
@@ -454,6 +539,8 @@ theorem exp_neg_arg_mul_self (x : ℂ) (hx : ‖x‖ = 1) :
             from by ring, Complex.exp_zero, mul_one, hx]
         norm_num
 
+/-- Every qubit unitary is reconstructed by its explicit Euler parameters, whose rotation angle
+lies in [0, π]; see [BarencoEtAl1995] for the elementary gate setting. -/
 theorem knownQubitEuler_explicit_angles_cover_unitaries :
     ∀ (U : Matrix Bool Bool ℂ), U ∈ Matrix.unitaryGroup Bool ℂ →
       knownQubitUnitary (knownQubitAnglesOfUnitary U) = U ∧

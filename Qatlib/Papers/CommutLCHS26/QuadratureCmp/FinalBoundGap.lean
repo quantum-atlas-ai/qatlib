@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TruncationGap
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+
+/-!
+# A gap in a finite-grid error estimate
+
+This module examines a one-dimensional oscillatory instance of the quadrature setting in
+[AftabAnTrivisa2026]. It compares the full integral, a short continuous truncation, and a
+resonant three-point grid sum.
+
+The construction `exists_final_bound_failure` gives positive scales for which the displayed mesh
+estimate plus the continuous operator truncation error is strictly smaller than the actual
+finite-grid error.
+
+## Main statements
+
+* `three_point`: the resonant three-point expression.
+* `exists_final_bound_failure`: existence of a strict gap in the proposed combined bound.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,8 @@ open KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp
 open Trapezoid TruncationGap
 
+/-- For the one-dimensional choice `H = 0` and `L = 1`, the full integral norm is bounded by
+`exp (-Tρ)` times the zero-growth strip mass under the stated strip conditions. -/
 theorem full_decay (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {ρ T : ℝ} (hρ₀ : 0 < ρ) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) (hT : 0 ≤ T) :
     ‖∫ x : ℝ, integrand n b c d T (0 : Matrix (Fin 1) (Fin 1) ℂ) 1 (x : ℂ)‖ ≤
@@ -43,6 +67,8 @@ theorem full_decay (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     simp only [neg_mul]
   simpa only [hi, abs_of_nonneg hT] using! he
 
+/-- For nonnegative `T`, the strip mass with growth parameter `T` is at most its zero-growth
+value times `exp (ρT)` under the stated conditions. -/
 theorem mass_growth (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {ρ T : ℝ} (hρ₀ : 0 ≤ ρ) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) (hT : 0 ≤ T) :
     mass n b c d ρ T ≤ mass n b c d ρ 0 * Real.exp (ρ * T) := by
@@ -63,6 +89,7 @@ theorem mass_growth (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
   · exact mul_nonneg (div_nonneg hc.le (Real.sqrt_nonneg _))
       (div_nonneg (pow_nonneg (by linarith) _) (mul_nonneg (by linarith) hden.le))
 
+/-- For positive `b`, the real-axis coefficient norm is at most its value at zero. -/
 theorem coefficient_le_zero (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
     ‖coefficient n b c d (x : ℂ)‖ ≤ ‖coefficient n b c d 0‖ := by
   have he : ‖coefficient n b c d (x : ℂ)‖ = ‖coefficient n b c d ((|x| : ℝ) : ℂ)‖ := by
@@ -72,6 +99,8 @@ theorem coefficient_le_zero (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
   rw [he]
   exact real_norm_antitone n b c d hb (by simp) (abs_nonneg x) (abs_nonneg x)
 
+/-- For the one-dimensional choice `H = 0` and `L = 1`, the integral over `[-R, R]` has norm at
+most `2R` times the coefficient norm at zero when `T` and `R` are nonnegative. -/
 theorem small_interval (n : ℕ) (b c d : ℝ) (hb : 0 < b)
     {T R : ℝ} (hT : 0 ≤ T) (hR : 0 ≤ R) :
     ‖∫ x in Icc (-R) R,
@@ -89,6 +118,8 @@ theorem small_interval (n : ℕ) (b c d : ℝ) (hb : 0 < b)
   rw [hv] at he
   simpa only [mul_comm] using! he
 
+/-- When `T h = π`, the three-point ideal grid sum is `h` times the central coefficient minus
+its two neighboring coefficients, multiplied by the identity. -/
 theorem three_point (n : ℕ) (b c d T h : ℝ) (hphase : T * h = Real.pi) :
     finiteIdeal n b c d T h (0 : Matrix (Fin 1) (Fin 1) ℂ) 1 1 =
       h • ((coefficient n b c d 0 - coefficient n b c d (h : ℂ) -
@@ -108,6 +139,8 @@ theorem three_point (n : ℕ) (b c d T h : ℝ) (hphase : T * h = Real.pi) :
   simp [integrand, propagator_identity, ep, en]
   module
 
+/-- The norm of the central coefficient minus its two samples at `±1 / t` tends to the
+coefficient norm at zero as `t` tends to positive infinity. -/
 theorem resonant_norm_limit (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
     Tendsto (fun t : ℝ => ‖coefficient n b c d 0 -
       coefficient n b c d ((1 / t : ℝ) : ℂ) -
@@ -126,6 +159,8 @@ theorem resonant_norm_limit (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
   simpa only [Function.comp_apply, sub_self, zero_sub, norm_neg] using!
     (((tendsto_const_nhds (x := coefficient n b c d 0)).sub hp).sub hn).norm
 
+/-- Under the stated exponential lower bound, the mesh estimate at `T = πt` and `h = 1 / t`,
+multiplied by `t`, is at most `4 * mass n b c d ρ 0 * t * exp (-πρt)`. -/
 theorem mesh_scaled_bound (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {ρ t : ℝ} (hρ₀ : 0 < ρ) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b)
     (ht : 0 < t) (hexp : 2 ≤ Real.exp (2 * Real.pi * ρ * t)) :
@@ -161,6 +196,9 @@ theorem mesh_scaled_bound (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
       rw [show -(Real.pi * ρ) * t = -(ρ * (Real.pi * t)) by ring, Real.exp_neg]
       ring
 
+/-- There exist positive `T`, `R`, and `h` with `R = h²`, `T h = π`, and cutoff one for which
+the mesh estimate plus the operator truncation error is strictly smaller than the actual
+finite-grid error. -/
 theorem exists_final_bound_failure (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {ρ : ℝ} (hρ₀ : 0 < ρ) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) :
     ∃ T R h : ℝ, 0 < T ∧ 0 < R ∧ 0 < h ∧ h < 1 ∧ R = h ^ 2 ∧

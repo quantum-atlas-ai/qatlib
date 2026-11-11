@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+
+/-!
+# Gram matrices and success mass of sparse overlap encodings
+
+The overlap frames for a matrix with bounded row and column norm sums also describe its scaled
+Gram matrix. `sparse_overlap_same_frame_gram_and_success` identifies both the compressed Gram
+expression and the squared norm of the postselected vector.
+
+The mathematical background is described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sparse_overlap_same_frame_gram_and_success`: Gram compression and output norm formulas.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -19,6 +38,9 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Under positive row and column norm-sum bound `s`, the overlap frames satisfy `Rᴴ * (L * Lᴴ)
+* R = (s²)⁻¹ • (Aᴴ * A)`, and their overlap output has squared norm `‖Aψ‖² / s²`. See
+[GilyenSuLowWiebe2019]. -/
 theorem sparse_overlap_same_frame_gram_and_success :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A : Matrix O I ℂ) (s : ℝ) (ψ : I → ℂ), 0 < s →

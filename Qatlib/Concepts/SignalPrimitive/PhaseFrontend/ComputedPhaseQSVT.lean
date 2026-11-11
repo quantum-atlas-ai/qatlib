@@ -10,6 +10,36 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
 import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
 import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
 import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
+
+/-!
+# Computed Phase Matrix Transforms
+
+`computedPhaseWord` turns finite rational phase synthesis output into an adjoint-query circuit
+for the real-polynomial transformation framework of [GilyenSuLowWiebe2019]. For a bounded
+rational polynomial of degree at most `d` and matching parity, successful synthesis gives an
+actual approximate matrix transform with `d` queries and `d + 1` gates. Odd parity transforms
+between the input and output frames; even parity gives a right singular transform using the
+adjoint oracle.
+
+Rational coefficient-list arithmetic represents `signPolynomial` exactly. Applying synthesized
+phases to this family approximates the polar partial isometry when positive singular values have
+gap `delta`, with block error `signPolynomialError delta k + eps` and query count `3^k`.
+
+## Main statements
+
+* `computed_phase_word_actual_matrix_transform` connects successful synthesis to a matrix block
+  encoding.
+* `realTarget_add`, `realTarget_sub`, and `realTarget_mul` justify rational coefficient
+  arithmetic.
+- `rationalSignCoefficients_semantics` identifies the generated sign polynomial.
+- `computed_phase_word_actual_polar_consumer` gives the gap-dependent polar transform.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019], *Quantum singular value transformation and
+  beyond: exponential improvements for quantum matrix arithmetics*.
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -38,10 +68,14 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Compiles the Gaussian-rational base and phase list in `PhaseData` into a real-part QSVT
+adjoint-query word for projectors `P` and `Q`. -/
 noncomputable def computedPhaseWord {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (data : PhaseData) : List (AdjointStep (Bool × H)) :=
   compileRealPartQSVT P Q (gaussianRatComplex data.base) (data.phases.map gaussianRatComplex)
 
+/-- Unit-norm assumptions on the base and listed Gaussian-rational values imply that all their
+complex interpretations satisfy `IsPhase`. -/
 theorem data_phase_valid (data : PhaseData) (hb : ‖gaussianRatComplex data.base‖ = 1)
     (hz : ∀ z ∈ data.phases,‖gaussianRatComplex z‖ = 1) :
     IsPhase (gaussianRatComplex data.base) ∧ ∀ z ∈ data.phases.map gaussianRatComplex,IsPhase z := by
@@ -51,6 +85,11 @@ theorem data_phase_valid (data : PhaseData) (hb : ‖gaussianRatComplex data.bas
   exact Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.isPhase_iff_normSq.mpr
       (by rw [Complex.normSq_eq_norm_sq,hz a ha]; norm_num)
 
+/-- For a projected unitary encoding, positive rational tolerance `eps`, and a rational
+polynomial bounded by one on `[-1, 1]` with degree at most `d` and matching parity, finite
+phase synthesis succeeds and yields a well-formed circuit with `d` queries and `d + 1`
+gates. Its odd or even singular transform has block error at most `eps`, giving a
+computed-phase realization of real-polynomial QSVT from [GilyenSuLowWiebe2019]. -/
 theorem computed_phase_word_actual_matrix_transform : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (p : List ℚ) (d : ℕ) (eps : ℚ),
@@ -102,26 +141,37 @@ theorem computed_phase_word_actual_matrix_transform : ∀ (H I O : Type) [Fintyp
     simpa only [zero_add,computedPhaseWord,evaluate_compileRealPartQSVT] using
         (Qatlib.Concepts.BlockEncoding.ProjectedUnitaryEncoding.toBlockEncoding hactual).perturb hE he
 
+/-- Adds rational polynomial coefficient lists termwise, retaining the unmatched tail of the
+longer list. -/
 def ratAddList : List ℚ → List ℚ → List ℚ
   | [],ys => ys | xs,[] => xs | x::xs,y::ys => (x+y)::ratAddList xs ys
+/-- Subtracts rational polynomial coefficient lists termwise, negating any unmatched tail of the
+second list. -/
 def ratSubList : List ℚ → List ℚ → List ℚ
   | [],ys => ys.map Neg.neg | xs,[] => xs | x::xs,y::ys => (x-y)::ratSubList xs ys
+/-- Multiplies rational polynomial coefficient lists by recursive convolution in ascending
+coefficient order. -/
 def ratMulList : List ℚ → List ℚ → List ℚ
   | [],_ => []
   | x::xs,ys => ratAddList (ys.map (fun y=>x*y)) (0::ratMulList xs ys)
+/-- Builds rational coefficient lists for the iterated sign polynomial, starting from `[0, 1]`
+and applying the recurrence `(3*p - p^3)/2`. -/
 def rationalSignCoefficients : ℕ → List ℚ
   | 0 => [0,1]
   | k+1 => let a := rationalSignCoefficients k
     (ratSubList (a.map (fun x=>3*x)) (ratMulList (ratMulList a a) a)).map (fun x=>x/2)
 
+/-- The empty rational coefficient list represents the zero real polynomial. -/
 @[simp] theorem realTarget_nil : realTarget [] = 0 := by simp [realTarget]
 
+/-- Prepending coefficient `x` represents the polynomial `C x + X * realTarget xs`. -/
 theorem realTarget_cons (x : ℚ) (xs : List ℚ) : realTarget (x::xs) = C (x:ℝ)+X*realTarget xs := by
   ext i
   cases i with
   | zero => simp [realTarget_coeff]
   | succ i => simp [realTarget_coeff,Polynomial.coeff_X_mul]
 
+/-- Coefficient-list addition represents addition of the corresponding real target polynomials. -/
 theorem realTarget_add (xs ys : List ℚ) : realTarget (ratAddList xs ys) = realTarget xs+realTarget ys := by
   induction xs generalizing ys with
   | nil => simp [ratAddList]
@@ -132,6 +182,8 @@ theorem realTarget_add (xs ys : List ℚ) : realTarget (ratAddList xs ys) = real
       rw [ratAddList,realTarget_cons,realTarget_cons,realTarget_cons,ih,Rat.cast_add,Polynomial.C_add]
       ring
 
+/-- Scaling every rational coefficient by `c` multiplies the represented real polynomial by the
+constant polynomial `C c`. -/
 theorem realTarget_scale (c : ℚ) (xs : List ℚ) : realTarget (xs.map (fun x => c*x)) = C (c:ℝ)*realTarget xs := by
   induction xs with
   | nil => simp
@@ -139,10 +191,14 @@ theorem realTarget_scale (c : ℚ) (xs : List ℚ) : realTarget (xs.map (fun x =
     rw [List.map_cons,realTarget_cons,realTarget_cons,ih,Rat.cast_mul,Polynomial.C_mul]
     ring
 
+/-- Dividing every rational coefficient by `c` multiplies the represented real polynomial by the
+constant polynomial corresponding to the rational reciprocal of `c`. -/
 theorem realTarget_div (c : ℚ) (xs : List ℚ) : realTarget (xs.map (fun x => x/c)) = C ((1/c:ℚ):ℝ)*realTarget xs := by
   have he : xs.map (fun x => x/c) = xs.map (fun x => (1/c)*x) := by congr 1; funext x; ring
   rw [he,realTarget_scale]
 
+/-- Coefficient-list subtraction represents subtraction of the corresponding real target
+polynomials. -/
 theorem realTarget_sub (xs ys : List ℚ) : realTarget (ratSubList xs ys) = realTarget xs-realTarget ys := by
   induction xs generalizing ys with
   | nil =>
@@ -159,6 +215,8 @@ theorem realTarget_sub (xs ys : List ℚ) : realTarget (ratSubList xs ys) = real
       rw [ratSubList,realTarget_cons,realTarget_cons,realTarget_cons,ih,Rat.cast_sub,Polynomial.C_sub]
       ring
 
+/-- Coefficient-list convolution represents multiplication of the corresponding real target
+polynomials. -/
 theorem realTarget_mul (xs ys : List ℚ) : realTarget (ratMulList xs ys) = realTarget xs*realTarget ys := by
   induction xs with
   | nil => simp [ratMulList]
@@ -167,6 +225,7 @@ theorem realTarget_mul (xs ys : List ℚ) : realTarget (ratMulList xs ys) = real
     simp only [Rat.cast_zero,Polynomial.C_0,zero_add]
     ring
 
+/-- The rational coefficient list generated at step `k` represents exactly `signPolynomial k`. -/
 theorem rationalSignCoefficients_semantics (k : ℕ) : realTarget (rationalSignCoefficients k) = signPolynomial k := by
   induction k with
   | zero => simp [rationalSignCoefficients,realTarget_cons]
@@ -175,6 +234,12 @@ theorem rationalSignCoefficients_semantics (k : ℕ) : realTarget (rationalSignC
     norm_num
     ring
 
+/-- For a projected unitary encoding and positive rational tolerance `eps`, if every positive
+singular value is at least `delta` with `0 < delta ≤ 1`, finite synthesis for the rational
+sign polynomial yields a block encoding of the polar partial isometry with error
+`signPolynomialError delta k + eps`. The circuit uses `3^k` queries and `3^k + 1` gates,
+providing an explicit polynomial consumer of the singular-vector transformation framework of
+[GilyenSuLowWiebe2019]. -/
 theorem computed_phase_word_actual_polar_consumer : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (delta : ℝ) (k : ℕ) (eps : ℚ),

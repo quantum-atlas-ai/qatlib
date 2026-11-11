@@ -59,6 +59,29 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite cost bounds for repeated amplification
+
+This module defines the cumulative round cost `roundCost` and bounds products of failure
+probabilities. Once every round succeeds with probability at least one quarter, the failure
+product decays geometrically; `amplification_tail` bounds a finite weighted cost tail under a
+matching geometric cost hypothesis.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `prod_decay`: If each success probability from round j0 onward is at least 1/4, the failure
+  product through j rounds is at most (3/4)^(j − j0) for j ≥ j0.
+* `amplification_tail`: If success probabilities are at least 1/4 from j0 onward and the
+  nonnegative costs satisfy C(j0 + t) ≤ C0(3/4)^t, the finite first-success weighted cost tail
+  is at most (16/7)C0.
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -69,12 +92,15 @@ open Finset
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- The sum of (⌊kⁱ⌋₊ + 3)/2 over the first j amplification rounds [Montanaro2011]. -/
 def roundCost (k : ℝ) (j : ℕ) : ℝ := ∑ i ∈ range j, ((⌊k ^ i⌋₊ : ℝ) + 3) / 2
 
+/-- For k ≠ 1, the sum of kⁱ over i < j equals (kʲ − 1)/(k − 1). -/
 theorem geom_range (k : ℝ) (hk : k ≠ 1) (j : ℕ) :
     ∑ i ∈ range j, k ^ i = (k ^ j - 1) / (k - 1) :=
   geom_sum_eq hk j
 
+/-- A finite product of failure factors 1 − P i is at most one when every P i belongs to [0, 1]. -/
 theorem prod_one_sub_le_one (P : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i) (hP1 : ∀ i, P i ≤ 1)
     (j : ℕ) : ∏ i ∈ range j, (1 - P i) ≤ 1 := by
   refine Finset.prod_le_one₀ ?_ ?_
@@ -83,6 +109,8 @@ theorem prod_one_sub_le_one (P : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i) (hP1 : �
   · intro i _
     linarith [hP0 i]
 
+/-- If each success probability from round j0 onward is at least 1/4, the failure product
+through j rounds is at most (3/4)^(j − j0) for j ≥ j0 [Montanaro2011]. -/
 theorem prod_decay (P : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i) (hP1 : ∀ i, P i ≤ 1)
     (j0 : ℕ) (hquarter : ∀ i, j0 ≤ i → 1 / 4 ≤ P i) :
     ∀ j : ℕ, j0 ≤ j → ∏ i ∈ range j, (1 - P i) ≤ (3 / 4) ^ (j - j0) := by
@@ -100,6 +128,9 @@ theorem prod_decay (P : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i) (hP1 : ∀ i, P i 
         ≤ (3 / 4) ^ (j - j0) * (3 / 4) := mul_le_mul ih hfactor hnonneg hb
       _ = (3 / 4) ^ ((j - j0).succ) := by rw [pow_succ]
 
+/-- If success probabilities are at least 1/4 from j0 onward and the nonnegative costs satisfy
+C(j0 + t) ≤ C0(3/4)^t, the finite first-success weighted cost tail is at most (16/7)C0
+[Montanaro2011]. -/
 theorem amplification_tail (P C : ℕ → ℝ) (hP0 : ∀ i, 0 ≤ P i) (hP1 : ∀ i, P i ≤ 1)
     (j0 : ℕ) (hquarter : ∀ i, j0 ≤ i → 1 / 4 ≤ P i)
     (C0 : ℝ) (hC0 : 0 ≤ C0) (hCnn : ∀ i, 0 ≤ C i)

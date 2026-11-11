@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceSum
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairSlices
+
+/-!
+# Summing inner products of pair slices
+
+Shows that summing pair-slice inner products over all background tuples recovers the original
+injective-tuple inner product multiplied by `Fintype.card L ^ 2`. The complex identity
+`sum_pair_inner` and its real-part version apply to any two distinct coordinates. See
+[MagniezZur2026] for related background.
+
+## Main statements
+
+* `sum_pair_inner`: For distinct coordinates, the sum over all background tuples of the
+  pair-slice inner products equals `Fintype.card L * Fintype.card L` times the original
+  injective-tuple inner product.
+* `sum_pair_inner_re`: For distinct coordinates, the sum of the real parts of pair-slice inner
+  products equals `Fintype.card L * Fintype.card L` times the real part of the original inner
+  product.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +38,9 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- For distinct coordinates, the sum over all background tuples of the pair-slice inner
+products equals `Fintype.card L * Fintype.card L` times the original injective-tuple inner
+product. -/
 theorem sum_pair_inner (u v : InjectiveTuple I L → ℂ) (i j : I) (hij : i ≠ j) :
     (∑ f : I → L,inner ℂ (pairSlice u f i j) (pairSlice v f i j))=
       (Fintype.card L*Fintype.card L) •
@@ -41,6 +67,8 @@ theorem sum_pair_inner (u v : InjectiveTuple I L → ℂ) (i j : I) (hij : i ≠
   rw [RCLike.inner_apply']
   rfl
 
+/-- For distinct coordinates, the sum of the real parts of pair-slice inner products equals
+`Fintype.card L * Fintype.card L` times the real part of the original inner product. -/
 theorem sum_pair_inner_re (u v : InjectiveTuple I L → ℂ) (i j : I) (hij : i ≠ j) :
     (∑ f : I → L,(inner ℂ (pairSlice u f i j) (pairSlice v f i j)).re)=
       (Fintype.card L*Fintype.card L) •

@@ -11,6 +11,28 @@ import Mathlib.Topology.MetricSpace.Bounded
 import Mathlib.Topology.MetricSpace.ProperSpace
 import Mathlib.Topology.UniformSpace.HeineCantor
 
+/-!
+# Transfer of latent decoder approximation
+
+`continuous_decoder_uat_transfer` composes a supplied neural approximation property with a
+continuous decoder on a compact latent domain. Starting from a continuous parameter map with
+error at most half the target tolerance, it obtains a neural parameter map meeting the full
+tolerance; `lemma3_expectation_corollary` integrates a uniform error bound. See [TranEtAl2026]
+for the paper context.
+
+## Main statements
+
+* `continuous_decoder_uat_transfer`: On a compact latent domain, uniform approximation of
+  continuous parameter maps transfers through a continuous decoder, turning a supplied `δ / 2`
+  target approximation into a neural-parameterized approximation of error at most positive `δ`.
+* `lemma3_expectation_corollary`: A uniform norm-error bound by `δ` gives expected norm error at
+  most `δ` under a probability measure, assuming integrability.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +40,9 @@ open MeasureTheory
 
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.LatentUniversal
 
+/-- On a compact latent domain, uniform approximation of continuous parameter maps transfers
+through a continuous decoder, turning a supplied `δ / 2` target approximation into a
+neural-parameterized approximation of error at most positive `δ` [TranEtAl2026]. -/
 theorem continuous_decoder_uat_transfer
     {Z : Type*} [TopologicalSpace Z] [CompactSpace Z]
     {K : ℕ} {Op : Type*} [NormedAddCommGroup Op]
@@ -62,6 +87,8 @@ theorem continuous_decoder_uat_transfer
     le_trans (dist_triangle _ _ _) (by linarith)
   rwa [dist_eq_norm] at h3
 
+/-- A uniform norm-error bound by `δ` gives expected norm error at most `δ` under a probability
+measure, assuming integrability [TranEtAl2026]. -/
 theorem lemma3_expectation_corollary
     {Z Op : Type*} [MeasurableSpace Z] (r : Measure Z) [IsProbabilityMeasure r]
     [NormedAddCommGroup Op]

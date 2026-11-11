@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessRatiosStat
 import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedMarkedSetAmplitudes
+
+/-!
+# Amplified success ratios for noisy marked sets
+
+`errorStreamSuccessRatios` establishes the probability ratios between amplified Fourier sampling
+and the phase and quantum hidden-subgroup baselines on events excluding the zero frequency. The
+result also bounds the common amplification ratio for the noisy-progression setting of
+[Cornwell2014].
+
+## Main statements
+
+* `errorStreamSuccessRatios`: Establishes the exact event-level amplified-to-baseline success
+  ratios and the stated bounds on `aqRatio` for a noisy progression and events excluding zero;
+  see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -19,6 +39,8 @@ set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open scoped Classical BigOperators
 
+/-- Establishes the exact event-level amplified-to-baseline success ratios and the stated bounds
+on `aqRatio` for a noisy progression and events excluding zero; see [Cornwell2014]. -/
 theorem errorStreamSuccessRatios : ErrorStreamSuccessRatios := by
   intro N hN s M L P G h E hM hP hbound h2T hG hdis hmark hzero
   (try dsimp only)

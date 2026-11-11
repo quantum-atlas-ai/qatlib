@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StringRewrite07.MainResults.HamiltonianPower
+
+/-!
+# Sign simulation by two-dimensional block lifts
+
+`blockLift` replaces each entry of a real matrix by a two-dimensional block. A prescribed action
+on `minusVec` makes its tensor sector simulate the original matrix with a factor `sqrt 2`,
+yielding power and overlap identities and `string_rewriting_entry_reduction`; the cell alphabet
+has 224 elements. See [JanzingWocjan2010].
+
+## Main statements
+
+* `blockLift_pow_tensorMinus`: powers simulate the original powers on the minus sector.
+* `sign_sim_entry`: minus-sector overlaps scale by `(sqrt 2) ^ m`.
+* `string_rewriting_entry_reduction`: a difference of lifted overlaps reduces to a signed
+  original overlap.
+* `cellDim_eq_224`: the product cell alphabet contains 224 symbols.
+
+## References
+
+* [Janzing and Wocjan, 2010][JanzingWocjan2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,21 +36,27 @@ namespace Qatlib.Papers.StringRewrite07.MainResults
 
 open Matrix
 
+/-- The real two-dimensional Pauli X matrix, with zero diagonal and unit off-diagonal entries. -/
 def sigmaX : Matrix (Fin 2) (Fin 2) ℝ := fun i j => if i ≠ j then 1 else 0
 
+/-- The real unit vector with coordinates `1 / sqrt 2` and `-1 / sqrt 2`. -/
 def minusVec : Fin 2 → ℝ :=
   fun a => if a = 0 then (Real.sqrt 2)⁻¹ else -(Real.sqrt 2)⁻¹
 
+/-- The real unit vector with both coordinates equal to `1 / sqrt 2`. -/
 def plusVec : Fin 2 → ℝ := fun _ => (Real.sqrt 2)⁻¹
 
+/-- The matrix `sigmaX` sends `minusVec` to its negative. -/
 theorem sigmaX_mulVec_minus : sigmaX *ᵥ minusVec = -minusVec := by
   funext i
   fin_cases i <;>
     simp [sigmaX, minusVec, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
 
+/-- The identity matrix fixes `minusVec`. -/
 theorem one_mulVec_minus : (1 : Matrix (Fin 2) (Fin 2) ℝ) *ᵥ minusVec = minusVec := by
   simp
 
+/-- The dot product of `minusVec` with itself is one. -/
 theorem minusVec_dot_self : minusVec ⬝ᵥ minusVec = 1 := by
   have hs : Real.sqrt 2 ≠ 0 := by positivity
   have h2 : (Real.sqrt 2) ^ 2 = 2 := Real.sq_sqrt (by norm_num)
@@ -36,22 +64,30 @@ theorem minusVec_dot_self : minusVec ⬝ᵥ minusVec = 1 := by
   field_simp
   nlinarith
 
+/-- The vectors `minusVec` and `plusVec` have zero dot product. -/
 theorem minusVec_dot_plusVec : minusVec ⬝ᵥ plusVec = 0 := by
   simp [minusVec, plusVec, dotProduct, Fin.sum_univ_two]
 
+/-- The matrix obtained by replacing each entry `A i j` by the two-dimensional block `M (A i
+j)`. -/
 def blockLift {ι : Type} [Fintype ι] (A : Matrix ι ι ℝ)
     (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ) : Matrix (ι × Fin 2) (ι × Fin 2) ℝ :=
   fun x y => M (A x.1 y.1) x.2 y.2
 
+/-- The tensor embedding with value `w i * minusVec b` at `(i, b)`. -/
 def tensorMinus {ι : Type} (w : ι → ℝ) : ι × Fin 2 → ℝ := fun x => w x.1 * minusVec x.2
 
+/-- The tensor embedding with value `w i * plusVec b` at `(i, b)`. -/
 def tensorPlus {ι : Type} (w : ι → ℝ) : ι × Fin 2 → ℝ := fun x => w x.1 * plusVec x.2
 
+/-- The tensor embedding `tensorMinus` commutes with real scalar multiplication. -/
 theorem tensorMinus_smul {ι : Type} (c : ℝ) (w : ι → ℝ) :
     tensorMinus (c • w) = c • tensorMinus w := by
   funext x
   simp [tensorMinus, Pi.smul_apply, smul_eq_mul, mul_assoc]
 
+/-- The dot product of two minus-sector tensors factors as the original dot product times the
+self-dot product of `minusVec`. -/
 theorem tensorMinus_dot {ι : Type} [Fintype ι] (x z : ι → ℝ) :
     tensorMinus x ⬝ᵥ tensorMinus z = (x ⬝ᵥ z) * (minusVec ⬝ᵥ minusVec) := by
   simp only [dotProduct, tensorMinus, Fintype.sum_prod_type]
@@ -63,10 +99,12 @@ theorem tensorMinus_dot {ι : Type} [Fintype ι] (x z : ι → ℝ) :
   intro b _
   ring
 
+/-- The dot product of `plusVec` with `minusVec` is zero. -/
 theorem plusVec_dot_minusVec : plusVec ⬝ᵥ minusVec = 0 := by
   rw [dotProduct_comm]
   exact minusVec_dot_plusVec
 
+/-- Every plus-sector tensor is orthogonal to every minus-sector tensor. -/
 theorem tensorPlus_dot_tensorMinus {ι : Type} [Fintype ι] (x z : ι → ℝ) :
     tensorPlus x ⬝ᵥ tensorMinus z = 0 := by
   have hfac : tensorPlus x ⬝ᵥ tensorMinus z = (x ⬝ᵥ z) * (plusVec ⬝ᵥ minusVec) := by
@@ -80,6 +118,7 @@ theorem tensorPlus_dot_tensorMinus {ι : Type} [Fintype ι] (x z : ι → ℝ) :
     ring
   rw [hfac, plusVec_dot_minusVec, mul_zero]
 
+/-- If `A` and every block `M mu` are symmetric, then `blockLift A M` is symmetric. -/
 theorem blockLift_isSymm {ι : Type} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ)
     (hA : A.IsSymm) (hMsym : ∀ mu : ℝ, (M mu).IsSymm) :
@@ -92,6 +131,8 @@ theorem blockLift_isSymm {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [hA.apply i j]
   exact ((hMsym (A i j)).apply b a).symm
 
+/-- If each block acts on `minusVec` with eigenvalue `sqrt 2 * mu`, then the block lift acts on
+`tensorMinus w` as `tensorMinus (sqrt 2 • (A *ᵥ w))`. -/
 theorem blockLift_tensorMinus {ι : Type} [Fintype ι]
     (A : Matrix ι ι ℝ) (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ)
     (hM : ∀ mu : ℝ, M mu *ᵥ minusVec = (Real.sqrt 2 * mu) • minusVec)
@@ -131,6 +172,9 @@ theorem blockLift_tensorMinus {ι : Type} [Fintype ι]
         rw [hfac, Matrix.mulVec, dotProduct]
         ring
 
+/-- Under the prescribed minus-vector action of every block, the `m`th lifted power sends
+`tensorMinus w` to the tensor embedding of `(sqrt 2) ^ m • ((A ^ m) *ᵥ w)`. See
+[JanzingWocjan2010]. -/
 theorem blockLift_pow_tensorMinus {ι : Type} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ)
     (hM : ∀ mu : ℝ, M mu *ᵥ minusVec = (Real.sqrt 2 * mu) • minusVec)
@@ -155,6 +199,9 @@ theorem blockLift_pow_tensorMinus {ι : Type} [Fintype ι] [DecidableEq ι]
               rw [h1, smul_smul]
               simp only [pow_succ]
 
+/-- Under the prescribed block action, the overlap between minus-sector tensors through the
+`m`th lifted power is `(sqrt 2) ^ m` times the corresponding overlap through `A ^ m`. See
+[JanzingWocjan2010]. -/
 theorem sign_sim_entry {ι : Type} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ)
     (hM : ∀ mu : ℝ, M mu *ᵥ minusVec = (Real.sqrt 2 * mu) • minusVec)
@@ -165,6 +212,8 @@ theorem sign_sim_entry {ι : Type} [Fintype ι] [DecidableEq ι]
     tensorMinus_dot, minusVec_dot_self, mul_one]
   simp [smul_eq_mul]
 
+/-- Under the prescribed block action, the `m`th lifted power has zero overlap from a
+minus-sector tensor to a plus-sector tensor. -/
 theorem sign_sim_no_plus_transition {ι : Type} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ)
     (hM : ∀ mu : ℝ, M mu *ᵥ minusVec = (Real.sqrt 2 * mu) • minusVec)
@@ -174,6 +223,9 @@ theorem sign_sim_no_plus_transition {ι : Type} [Fintype ι] [DecidableEq ι]
     tensorPlus_dot_tensorMinus]
   simp
 
+/-- Under the stated decompositions of `a0 - a1` and `w0`, vanishing overlap with the plus
+component makes the overlap difference equal to `-(am ⬝ᵥ (B *ᵥ wm))`. See
+[JanzingWocjan2010]. -/
 theorem difference_from_minus_sector {σ : Type} [Fintype σ]
     (B : Matrix σ σ ℝ) (a0 a1 w0 wp wm am : σ → ℝ)
     (ham : a0 - a1 = -(Real.sqrt 2 • am))
@@ -193,6 +245,9 @@ theorem difference_from_minus_sector {σ : Type} [Fintype σ]
   simp only [smul_eq_mul]
   rw [← mul_assoc, hneg, neg_one_mul]
 
+/-- For symmetric `A` and symmetric blocks with the prescribed minus-vector action, the stated
+tensor decompositions make the difference of lifted power overlaps equal to the negative of
+`(sqrt 2) ^ m * (aM ⬝ᵥ ((A ^ m) *ᵥ wM))`. See [JanzingWocjan2010]. -/
 theorem string_rewriting_entry_reduction {ι : Type} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (M : ℝ → Matrix (Fin 2) (Fin 2) ℝ)
     (hA : A.IsSymm) (hMsym : ∀ mu : ℝ, (M mu).IsSymm)
@@ -211,20 +266,27 @@ theorem string_rewriting_entry_reduction {ι : Type} [Fintype ι] [DecidableEq �
     (tensorPlus wM) (tensorMinus wM) (tensorMinus aM) ham hw0 hplus
   rw [h, sign_sim_entry A M hM m aM wM, neg_mul]
 
+/-- The program-symbol alphabet `Fin 14`. -/
 abbrev ProgramSymbol : Type := Fin 14
 
+/-- The data-symbol alphabet `Fin 4`. -/
 abbrev DataSymbol : Type := Fin 4
 
+/-- The auxiliary-symbol alphabet `Fin 2`. -/
 abbrev AuxSymbol : Type := Fin 2
 
+/-- The simulation-symbol alphabet `Fin 2`. -/
 abbrev SimSymbol : Type := Fin 2
 
+/-- The product of the program, data, auxiliary, and simulation symbol alphabets. -/
 abbrev CellSymbol : Type := ProgramSymbol × DataSymbol × AuxSymbol × SimSymbol
 
+/-- The cell-symbol alphabet has 224 elements. See [JanzingWocjan2010]. -/
 theorem cellDim_eq_224 : Fintype.card CellSymbol = 224 := by
   simp [CellSymbol, ProgramSymbol, DataSymbol, AuxSymbol, SimSymbol,
     Fintype.card_prod, Fintype.card_fin]
 
+/-- The cardinality of the cell-symbol alphabet is the product `14 * 4 * 2 * 2`. -/
 theorem cellDim_eq_prod :
     Fintype.card CellSymbol = 14 * 4 * 2 * 2 := by
   rw [cellDim_eq_224]

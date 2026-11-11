@@ -6,12 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Independent weighted finite estimators
+
+The product distribution `independentSampleLaw` supports independent observations with different
+finite laws. The weighted estimator `weightedSampleSum` has explicit expectation and variance
+formulas, leading to a Chebyshev bound. These finite statistical tools support the Monte Carlo
+mean-estimation framework of [Montanaro2015].
+
+## Main statements
+
+* `independent_weighted_expectation`: the estimator mean is the weighted sum of component means.
+* `independent_weighted_variance`: the estimator variance is the sum of squared weights times
+  component variances.
+* `independent_weighted_chebyshev`: the explicit variance gives a finite tail bound.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option linter.unusedSectionVars false
 
+/-- The finite product distribution whose record mass is the product of the coordinate
+distribution masses. -/
 def independentSampleLaw {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) : FinDist (Fin n → X) where
   prob ω := ∏ i, (p i).prob (ω i)
@@ -24,9 +46,12 @@ def independentSampleLaw {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     rw [hswap, ← Finset.prod_univ_sum]
     exact Finset.prod_eq_one fun i _ => (p i).sum_one
 
+/-- The sum of the coordinate payoffs multiplied by their respective real weights. -/
 def weightedSampleSum {n : ℕ} {X : Type} (w : Fin n → ℝ) (f : Fin n → X → ℝ)
     (ω : Fin n → X) : ℝ := ∑ i, w i * f i (ω i)
 
+/-- The expectation of a product of coordinate payoffs factors into the product of their finite
+weighted sums. -/
 theorem independentSampleLaw_expect_prod {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) (f : Fin n → X → ℝ) :
     (independentSampleLaw p).expect (fun ω => ∏ i, f i (ω i))
@@ -48,6 +73,8 @@ theorem independentSampleLaw_expect_prod {n : ℕ} {X : Type} [Fintype X] [Decid
           (t := fun _ : Fin n => (Finset.univ : Finset X))
           (f := fun k x => (p k).prob x * f k x)).symm
 
+/-- The independent record law has product masses and factors expectations of arbitrary products
+of coordinate payoffs. -/
 theorem independent_sample_product_law {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) (ω : Fin n → X) :
     (independentSampleLaw p).prob ω = ∏ i, (p i).prob (ω i) ∧
@@ -55,11 +82,14 @@ theorem independent_sample_product_law {n : ℕ} {X : Type} [Fintype X] [Decidab
         = ∏ i, (p i).expect (f i)) :=
   ⟨rfl, fun f => independentSampleLaw_expect_prod p f⟩
 
+/-- The expectation of a constant under a finite probability distribution equals that constant. -/
 theorem FinDist.expect_const {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X)
     (c : ℝ) : p.expect (fun _ => c) = c := by
   show ∑ x, p.prob x * c = c
   rw [← Finset.sum_mul, p.sum_one, one_mul]
 
+/-- A payoff depending on one observation has expectation equal to its expectation under that
+coordinate's law. -/
 theorem independentSampleLaw_expect_coord {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) (k : Fin n) (h : X → ℝ) :
     (independentSampleLaw p).expect (fun ω => h (ω k)) = (p k).expect h := by
@@ -86,6 +116,8 @@ theorem independentSampleLaw_expect_coord {n : ℕ} {X : Type} [Fintype X] [Deci
         · intro hcon
           exact absurd (Finset.mem_univ k) hcon
 
+/-- The expectation of the weighted sample sum equals the sum of the weights times the component
+expectations. -/
 theorem independent_weighted_expectation {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) (w : Fin n → ℝ) (f : Fin n → X → ℝ) :
     (independentSampleLaw p).expect (weightedSampleSum w f)
@@ -106,6 +138,8 @@ theorem independent_weighted_expectation {n : ℕ} {X : Type} [Fintype X] [Decid
         rw [show (∑ ω : Fin n → X, (independentSampleLaw p).prob ω * f i (ω i))
             = (p i).expect (f i) from independentSampleLaw_expect_coord p i (f i)]
 
+/-- The variance of the independent weighted sample sum equals the sum of squared weights times
+the component variances. -/
 theorem independent_weighted_variance {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) (w : Fin n → ℝ) (f : Fin n → X → ℝ) :
     (independentSampleLaw p).variance (weightedSampleSum w f)
@@ -224,6 +258,8 @@ theorem independent_weighted_variance {n : ℕ} {X : Type} [Fintype X] [Decidabl
   rw [hsumj]
   ring
 
+/-- For positive `ε`, the probability that the weighted sample sum deviates from its mean by
+more than `ε` is at most the summed weighted variances divided by ε². -/
 theorem independent_weighted_chebyshev {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) (w : Fin n → ℝ) (f : Fin n → X → ℝ) (ε : ℝ) (hε : 0 < ε) :
       (∑ ω ∈ Finset.univ.filter (fun ω : Fin n → X => ε < |weightedSampleSum w f ω - ∑ i, w i*(p i).expect (f i)|), (independentSampleLaw p).prob ω) ≤ (∑ i, (w i)^2*(p i).variance (f i))/ε^2 := by

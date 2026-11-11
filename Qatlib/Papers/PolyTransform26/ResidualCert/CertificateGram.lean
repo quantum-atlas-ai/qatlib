@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.PolyTransform26.ResidualCert.CertificateGramData
 import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtraction
+
+/-!
+# Gram identities for residual certificates
+
+This module computes the Gram matrices of the compact successor input and output arrays. Their
+difference is `compactSourceCertificate`; positivity of this certificate and of the residual
+Gram matrix then yields a Gram factor and a contractive response realizing the nonempty-word
+coefficients. The residual-certificate setting follows [ShenEtAl2026].
+
+## Main statements
+
+* `certificate_successor_defect`: If `Kᴴ * K = T`, the difference of the compact successor input
+  and output Gram matrices is `compactSourceCertificate F T a0 Ares d p`.
+* `source_certificate_response`: If `T` and its compact source certificate are positive
+  semidefinite, and the tail coefficients and length-`D` nilpotence conditions hold, there exist
+  a Gram factor of `T` and a contraction for the amplified tuple satisfying the successor,
+  initial-value, recurrence, truncation, and tail-collection identities.
+
+## References
+
+* [Shen et al., 2026][ShenEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +44,8 @@ variable {A B R J M : Type} [Fintype A] [Fintype B] [Fintype R] [Fintype M]
 
 omit [Fintype R] [DecidableEq B] in
 
+/-- The Gram expression of the stacked factor with middle matrix `G` tensored with the identity
+equals the pullback of `Kᴴ * K` along `G`. -/
 theorem certificate_stacked_gram (K : Matrix M (B × R) ℂ) (G : Matrix B B ℂ) :
     (certificateStackedFactor K)ᴴ*(G ⊗ₖ (1 : Matrix M M ℂ))*certificateStackedFactor K = certificateGramPullback (Kᴴ*K) G := by
   ext s t
@@ -45,6 +70,7 @@ theorem certificate_stacked_gram (K : Matrix M (B × R) ℂ) (G : Matrix B B ℂ
 
 omit [Fintype R] in
 
+/-- The Gram matrix of the stacked factor is the pullback of `Kᴴ * K` along the identity matrix. -/
 theorem certificate_stacked_identity (K : Matrix M (B × R) ℂ) :
     (certificateStackedFactor K)ᴴ*certificateStackedFactor K=certificateGramPullback (Kᴴ*K) 1 := by
   simpa only [Matrix.one_kronecker_one,Matrix.mul_one] using
@@ -52,6 +78,8 @@ theorem certificate_stacked_identity (K : Matrix M (B × R) ℂ) :
 
 omit [DecidableEq B] in
 
+/-- The compact successor output Gram matrix is the sum of the residual-column Gram contribution
+weighted by `Qᴴ * Q` and the output-row Gram matrix. -/
 theorem certificate_output_gram {r : ℕ} (Q : Matrix B (Fin r) ℂ)
     (a0 : EuclideanSpace ℂ (Fin r)) (Ares : J → Matrix (Fin r) (Fin r) ℂ)
     (d : ℂ) (p : J → Fin r → ℂ) :
@@ -68,6 +96,8 @@ theorem certificate_output_gram {r : ℕ} (Q : Matrix B (Fin r) ℂ)
 
 omit [DecidableEq B] in
 
+/-- The compact successor input Gram matrix for the amplified tuple is the external-row Gram
+matrix plus `certificateQueryGram F (Kᴴ * K)`. -/
 theorem certificate_input_gram {r : ℕ} (F : J → Matrix A B ℂ)
     (K : Matrix M (B × Fin r) ℂ) :
     (compactSuccessorInput (fun j => F j ⊗ₖ (1 : Matrix M M ℂ)) (certificateStackedFactor K))ᴴ *
@@ -99,6 +129,8 @@ theorem certificate_input_gram {r : ℕ} (F : J → Matrix A B ℂ)
       mul_zero,Finset.sum_const_zero,add_zero,zero_add] at *
     exact he.trans hh
 
+/-- If `Kᴴ * K = T`, the difference of the compact successor input and output Gram matrices is
+`compactSourceCertificate F T a0 Ares d p`. -/
 theorem certificate_successor_defect {r : ℕ} (F : J → Matrix A B ℂ)
     (T : Matrix (B × Fin r) (B × Fin r) ℂ)
     (a0 : EuclideanSpace ℂ (Fin r)) (Ares : J → Matrix (Fin r) (Fin r) ℂ)
@@ -112,6 +144,10 @@ theorem certificate_successor_defect {r : ℕ} (F : J → Matrix A B ℂ)
   unfold compactSourceCertificate
   abel
 
+/-- If `T` and its compact source certificate are positive semidefinite, and the tail
+coefficients and length-`D` nilpotence conditions hold, there exist a Gram factor of `T` and
+a contraction for the amplified tuple satisfying the successor, initial-value, recurrence,
+truncation, and tail-collection identities. -/
 theorem source_certificate_response (A B J : Type) [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] [Fintype J] [DecidableEq J]
     (r D : ℕ) (F : J → Matrix A B ℂ) (T : Matrix (B × Fin r) (B × Fin r) ℂ)

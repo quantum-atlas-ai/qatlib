@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.JointDlog.CompositeDlogConsumers
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+
+/-!
+# Joint discrete logarithm recovery by Bezout folding
+
+`jointDlogFold` combines modular sample pairs using extended Euclidean coefficients while
+counting sample reads and divisions. `jointDlogVerified` checks the resulting candidate by
+counted binary scalar multiplication; the discrete logarithm setting is discussed in
+[ProosZalka2003].
+
+The fold preserves the common-line relation between sample coordinates. The verified decoder has
+explicit logarithmic arithmetic bounds and, for independent samples from a valid cyclic discrete
+logarithm instance, success probability at least `1 - r / 2^m`.
+
+## Main statements
+
+* `joint_dlog_fold_invariant_and_work`: the gcd invariant, line invariant, and work bounds.
+* `joint_dlog_actual_verified_correctness_and_work`: output soundness, the gcd criterion for
+  success on line samples, and counted work.
+* `joint_dlog_fresh_actual_verified_success`: a lower bound for recovery from fresh samples.
+
+## References
+
+* [Proos and Zalka, 2003][ProosZalka2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
@@ -21,6 +46,8 @@ open Qatlib.Concepts.HspRecovery.CyclicRecovery
 
 namespace Qatlib.Concepts.HspRecovery.JointDlog
 
+/-- Folds modular sample pairs by extended Euclidean combination, returning the running gcd and
+combined second coordinate together with sample-read and division counts. -/
 def jointDlogFold {r : ℕ} [NeZero r] (xs : List (ZMod r × ZMod r)) :
     (ℕ × ZMod r) × (ℕ × ℕ) :=
   xs.foldl (fun acc z =>
@@ -28,6 +55,8 @@ def jointDlogFold {r : ℕ} [NeZero r] (xs : List (ZMod r × ZMod r)) :
     ((e.1.1, (e.1.2.1 : ZMod r)*z.2 + (e.1.2.2 : ZMod r)*acc.1.2),
       (acc.2.1+1,acc.2.2+e.2))) ((r,0),(0,0))
 
+/-- Computes a scalar multiple by binary doubling and addition with a prescribed recursion fuel,
+returning the value and the counted group additions. -/
 def binaryAddFuel {C : Type} [AddCommGroup C] : C → ℕ → ℕ → C × ℕ
   | _, 0, _ => (0,0)
   | g, k+1, n =>
@@ -35,9 +64,12 @@ def binaryAddFuel {C : Type} [AddCommGroup C] : C → ℕ → ℕ → C × ℕ
         let v := binaryAddFuel (g+g) k (n/2)
         (if n%2=0 then v.1 else v.1+g, v.2+1+(if n%2=0 then 0 else 1))
 
+/-- Runs counted binary scalar multiplication with `Nat.log 2 n + 1` units of fuel. -/
 def binaryAddCounted {C : Type} [AddCommGroup C] (g : C) (n : ℕ) : C × ℕ :=
   binaryAddFuel g (Nat.log 2 n+1) n
 
+/-- Returns the candidate from `jointDlogFold` only when its gcd is one and counted scalar
+multiplication verifies the target, together with read, division, and addition counts. -/
 def jointDlogVerified {r : ℕ} [NeZero r] {C : Type} [AddCommGroup C]
     [DecidableEq C] (g h : C) (xs : List (ZMod r × ZMod r)) :
     Option (ZMod r) × (ℕ × ℕ × ℕ) :=
@@ -53,6 +85,7 @@ open Qatlib.Concepts.HspRecovery.BackendAudit Qatlib.Concepts.WalkFind.UniformTh
 open Qatlib.Concepts.HspRecovery.Distinguisher
 set_option warningAsError false
 
+/-- If `0 < a < n`, then twice the remainder of `n` modulo `a` is strictly less than `n`. -/
 private theorem joint_euclid_two_step (n a : ℕ) (_hn : 0 < n) (ha : 0 < a) (han : a < n) :
     2*(n%a) < n := by
   have hmod := Nat.mod_lt n ha
@@ -62,6 +95,8 @@ private theorem joint_euclid_two_step (n a : ℕ) (_hn : 0 < n) (ha : 0 < a) (ha
       rw [Nat.mod_eq_sub_mod (by omega : a ≤ n), Nat.mod_eq_of_lt (by omega : n-a < a)]
     omega
 
+/-- The counted Euclidean routine performs at most `2 * k` divisions when its first natural
+argument is less than `2^k`. -/
 private theorem joint_euclid_pow_work (k n m : ℕ) (s t s' t' : ℤ)
     (hn : n < 2^k) : (cyclicDlogEuclid n s t m s' t').2 ≤ 2*k := by
   induction k generalizing n m s t s' t' with
@@ -91,6 +126,8 @@ private theorem joint_euclid_pow_work (k n m : ℕ) (s t s' t' : ℤ)
           (s' - ((m/n : ℕ) : ℤ)*s) (t' - ((m/n : ℕ) : ℤ)*t) hu
         omega
 
+/-- Bounds the division count of `cyclicDlogEuclid` by `2 * (Nat.log 2 r + 1) + 2` when both
+natural inputs are at most the positive bound `r`. -/
 theorem joint_dlog_logarithmic_euclid (r n m : ℕ) (s t s' t' : ℤ)
     (_hr : 0 < r) (hn : n ≤ r) (_hm : m ≤ r) :
     (cyclicDlogEuclid n s t m s' t').2 ≤ 2*(Nat.log 2 r+1)+2 := by
@@ -98,6 +135,8 @@ theorem joint_dlog_logarithmic_euclid (r n m : ℕ) (s t s' t' : ℤ)
   have h := joint_euclid_pow_work (Nat.log 2 r+1) n m s t s' t' (by omega)
   omega
 
+/-- With `n < 2^k`, binary scalar multiplication with fuel `k` returns `n • g` and counts at
+most `2 * k` group additions. -/
 theorem binary_add_value_and_work (C : Type) [AddCommGroup C] (g : C) (n k : ℕ)
     (hn : n < 2^k) : (binaryAddFuel g k n).1 = n • g ∧
       (binaryAddFuel g k n).2 ≤ 2*k := by
@@ -126,6 +165,8 @@ theorem binary_add_value_and_work (C : Type) [AddCommGroup C] (g : C) (n k : ℕ
       · have hwork := hv.2
         split_ifs <;> omega
 
+/-- Updates a joint decoder accumulator using the extended Euclidean coefficients of the new
+first coordinate and current gcd, incrementing read and division counts. -/
 private def jointDlogStep {r : ℕ} [NeZero r]
     (acc : (ℕ × ZMod r) × (ℕ × ℕ)) (z : ZMod r × ZMod r) :
     (ℕ × ZMod r) × (ℕ × ℕ) :=
@@ -133,6 +174,8 @@ private def jointDlogStep {r : ℕ} [NeZero r]
   ((e.1.1, (e.1.2.1 : ZMod r)*z.2 + (e.1.2.2 : ZMod r)*acc.1.2),
     (acc.2.1+1,acc.2.2+e.2))
 
+/-- The extended Euclidean coefficients for `a.val` and `q` satisfy the Bezout identity after
+reduction modulo `r`. -/
 private theorem joint_euclid_bezout (r : ℕ) [NeZero r] (a : ZMod r) (q : ℕ) :
     ((cyclicDlogEuclid a.val 1 0 q 0 1).1.2.1 : ZMod r)*a +
       ((cyclicDlogEuclid a.val 1 0 q 0 1).1.2.2 : ZMod r)*(q : ZMod r) =
@@ -143,6 +186,9 @@ private theorem joint_euclid_bezout (r : ℕ) [NeZero r] (a : ZMod r) (q : ℕ) 
   push_cast at hc
   simpa [mul_comm] using! hc.symm
 
+/-- Starting from `(q, d * q)` with `q ≤ r`, folding samples on the line of slope `d` preserves
+the gcd and line invariants, adds one read per sample, and obeys the logarithmic division
+bound. -/
 private theorem joint_fold_general (r : ℕ) [NeZero r] (d : ZMod r)
     (xs : List (ZMod r × ZMod r)) (q reads divisions : ℕ) (hq : q ≤ r)
     (hon : ∀ z ∈ xs, z.2 = d*z.1) :
@@ -184,6 +230,9 @@ private theorem joint_fold_general (r : ℕ) [NeZero r] (d : ZMod r)
       simp only [List.length_cons]
       nlinarith
 
+/-- For samples on the line of slope `d`, `jointDlogFold` returns the gcd of `r` and the first
+coordinates, with second coordinate `d` times that gcd, one read per sample, and the stated
+division bound. -/
 theorem joint_dlog_fold_invariant_and_work (r : ℕ) [NeZero r] (d : ZMod r)
     (xs : List (ZMod r × ZMod r)) (hon : ∀ z ∈ xs, z.2 = d*z.1) :
     (jointDlogFold xs).1.1 = (xs.map (fun z => z.1.val)).foldl Nat.gcd r ∧
@@ -193,6 +242,9 @@ theorem joint_dlog_fold_invariant_and_work (r : ℕ) [NeZero r] (d : ZMod r)
   simpa [jointDlogFold, jointDlogStep] using!
     joint_fold_general r d xs r 0 0 (le_refl _) hon
 
+/-- For an arbitrary initial second coordinate and `q ≤ r`, the fold computes the gcd of the
+first coordinates with `q`, adds one read per sample, and satisfies the division bound
+including the initial count. -/
 private theorem joint_fold_work_general (r : ℕ) [NeZero r]
     (xs : List (ZMod r × ZMod r)) (q : ℕ) (b : ZMod r) (reads divisions : ℕ)
     (hq : q ≤ r) :
@@ -226,6 +278,9 @@ private theorem joint_fold_work_general (r : ℕ) [NeZero r]
       simp only [List.length_cons]
       nlinarith
 
+/-- For arbitrary samples, `jointDlogFold` computes the gcd of their first coordinates with `r`,
+reads each sample once, and performs at most `xs.length * (2 * (Nat.log 2 r + 1) + 2)`
+divisions. -/
 theorem jointDlogFold_work (r : ℕ) [NeZero r] (xs : List (ZMod r × ZMod r)) :
     (jointDlogFold xs).1.1 = (xs.map (fun z => z.1.val)).foldl Nat.gcd r ∧
     (jointDlogFold xs).2.1 = xs.length ∧
@@ -233,12 +288,17 @@ theorem jointDlogFold_work (r : ℕ) [NeZero r] (xs : List (ZMod r × ZMod r)) :
   simpa [jointDlogFold, jointDlogStep] using!
     joint_fold_work_general r xs r 0 0 0 (le_refl _)
 
+/-- Counted binary scalar multiplication returns `n • g` using at most `2 * (Nat.log 2 n + 1)`
+counted group additions. -/
 theorem binaryAddCounted_value_and_work {C : Type} [AddCommGroup C] (g : C) (n : ℕ) :
     (binaryAddCounted g n).1 = n • g ∧
     (binaryAddCounted g n).2 ≤ 2*(Nat.log 2 n+1) :=
   binary_add_value_and_work C g n (Nat.log 2 n+1)
     (Nat.lt_pow_succ_log_self (by norm_num : 1 < 2) n)
 
+/-- The verified decoder has the stated read, division, and addition bounds, and every returned
+candidate produces `h` from `g`. On samples on the line of a valid secret `d`, it returns
+`d` exactly when the first-coordinate gcd with `r` is one. -/
 theorem joint_dlog_actual_verified_correctness_and_work (r : ℕ) [NeZero r]
     (C : Type) [AddCommGroup C] [DecidableEq C] (g h : C)
     (xs : List (ZMod r × ZMod r)) :
@@ -283,14 +343,19 @@ theorem joint_dlog_actual_verified_correctness_and_work (r : ℕ) [NeZero r]
       simp [← heq, hg]
     · simp [jointDlogVerified, hg, ← heq]
 
+/-- Lifts a record of residues represented in `Fin r` to modular pairs on the line of slope `d`. -/
 private def jointLineRecord (r : ℕ) [NeZero r] (d : ZMod r) (m : ℕ)
     (a : Fin m → Fin r) : Fin m → ZMod r × ZMod r :=
   fun i => ((a i).val, d*((a i).val : ZMod r))
 
+/-- Extracts the canonical `Fin r` representatives of the first coordinates of a modular pair
+record. -/
 private def jointFirstRecord (r : ℕ) [NeZero r] (m : ℕ)
     (ω : Fin m → ZMod r × ZMod r) : Fin m → Fin r :=
   fun i => ⟨(ω i).1.val, ZMod.val_lt _⟩
 
+/-- Extracting first coordinates after forming a line record recovers the original residue
+record. -/
 private theorem joint_record_forward (r : ℕ) [NeZero r] (d : ZMod r) (m : ℕ)
     (a : Fin m → Fin r) : jointFirstRecord r m (jointLineRecord r d m a) = a := by
   funext i
@@ -298,6 +363,8 @@ private theorem joint_record_forward (r : ℕ) [NeZero r] (d : ZMod r) (m : ℕ)
   simp only [jointFirstRecord, jointLineRecord, ZMod.val_natCast,
     Nat.mod_eq_of_lt (a i).isLt]
 
+/-- A record on the line of slope `d` is recovered by extracting its first coordinates and
+forming the associated line record. -/
 private theorem joint_record_backward (r : ℕ) [NeZero r] (d : ZMod r) (m : ℕ)
     (ω : Fin m → ZMod r × ZMod r) (hon : ∀ i, (ω i).2 = d*(ω i).1) :
     jointLineRecord r d m (jointFirstRecord r m ω) = ω := by
@@ -306,6 +373,9 @@ private theorem joint_record_backward (r : ℕ) [NeZero r] (d : ZMod r) (m : ℕ
   · simp [jointLineRecord, jointFirstRecord]
   · simp [jointLineRecord, jointFirstRecord, hon i]
 
+/-- For a valid cyclic discrete logarithm instance, the probability of a record event is the sum
+of uniform masses `(1 / r)^m` over the first-coordinate records whose line lifts satisfy the
+event. -/
 private theorem joint_line_event_mass (r : ℕ) [NeZero r] (C : Type)
     [AddCommGroup C] [Fintype C] [DecidableEq C] (g h : C) (d : ZMod r) (m : ℕ)
     (hr : 2 ≤ r) (hp : r • g = 0)
@@ -351,6 +421,9 @@ private theorem joint_line_event_mass (r : ℕ) [NeZero r] (C : Type)
   · intro ω hω
     rfl
 
+/-- For a valid cyclic discrete logarithm instance with secret `d`, the probability that the
+verified decoder returns `d` equals the uniform mass of first-coordinate records whose gcd
+with `r` is one. -/
 theorem joint_dlog_uniform_success_mass (r : ℕ) [NeZero r] (C : Type)
     [AddCommGroup C] [Fintype C] [DecidableEq C] (g h : C) (d : ZMod r) (m : ℕ)
     (hr : 2 ≤ r) (hp : r • g = 0)
@@ -379,6 +452,8 @@ theorem joint_dlog_uniform_success_mass (r : ℕ) [NeZero r] (C : Type)
       Nat.mod_eq_of_lt (a i).isLt]
   simpa only [hvals] using! h
 
+/-- For a valid cyclic discrete logarithm instance, the verified joint decoder recovers the
+secret from `m` independent samples with probability at least `1 - r / 2^m`. -/
 theorem joint_dlog_fresh_actual_verified_success (r : ℕ) [NeZero r] (C : Type)
     [AddCommGroup C] [Fintype C] [DecidableEq C] (g h : C) (d : ZMod r) (m : ℕ)
     (hr : 2 ≤ r) (hp : r • g = 0)

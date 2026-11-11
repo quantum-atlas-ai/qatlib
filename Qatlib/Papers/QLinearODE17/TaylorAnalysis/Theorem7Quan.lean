@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Stat
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux2
+
+/-!
+# Terminal block mass in the V2 Taylor system
+
+`theorem7V2` proves `Theorem7V2` by comparing history mass with the repeated terminal block.
+Under the accuracy and trajectory-growth assumptions, each terminal block has norm at least the
+full history-state norm divided by `sqrt (p + 77*m*g²)`. See [BerryEtAl2017ODE] for the paper's
+setting.
+
+## Main statements
+
+* `theorem7V2`: Under the hypotheses of `Theorem7V2`, every terminal block has norm at least
+  `‖stateVector x‖ / sqrt (p + 77*m*g²)`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -17,6 +36,8 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped Matrix.Norms.L2Operator BigOperators
 
+/-- Under the hypotheses of `Theorem7V2`, every terminal block has norm at least `‖stateVector
+x‖ / sqrt (p + 77*m*g²)`. See [BerryEtAl2017ODE]. -/
 theorem theorem7V2 : Theorem7V2 := by
   classical
   intro N _ _ m k p A V D h g x_in b x hm hk hp hh hg hd hA hV1 hV2 hre hM hq hacc hdecay hx

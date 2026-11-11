@@ -8,6 +8,26 @@ import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
 import Mathlib.Data.Finset.Max
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Data.Complex.Basic
+
+/-!
+# Equivalence of classical and diagonal quantum witnesses
+
+`basisVec` embeds each Boolean witness as a normalized complex basis vector. Bounds on the
+weighted average `qAccept` show that allowing arbitrary normalized vectors does not change the
+completeness and soundness conditions, yielding `lemma2_MA_eq_MAq`. See
+[BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `qAccept_le_max`: some classical witness bounds the quantum acceptance value from above.
+* `MA_iff_MAq_pointwise`: classical and normalized-vector acceptance conditions are equivalent.
+* `lemma2_MA_eq_MAq`: `InMA` and `InMAq` coincide in the stated verifier model.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,16 +39,22 @@ open Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
 
 namespace Qatlib.Papers.StoquasticHam06.MainResults.Lemma2
 
+/-- The complex coordinate vector equal to one at `z` and zero at every other Boolean string. -/
 def basisVec {n : ℕ} (z : Sigma n) : Sigma n → ℂ :=
   fun z' => if z' = z then 1 else 0
 
+/-- A computational basis vector is normalized. -/
 lemma normalized_basis {n : ℕ} (z : Sigma n) : Normalized (basisVec z) := by
   simp [Normalized, basisVec]
 
+/-- The quantum acceptance average of a computational basis vector is its corresponding
+classical acceptance value. -/
 lemma qAccept_basis {n : ℕ} (a : Sigma n → ℝ) (z : Sigma n) :
     qAccept a (basisVec z) = a z := by
   simp [qAccept, basisVec]
 
+/-- For a normalized complex vector, some basis acceptance value is at least its quantum
+acceptance average. -/
 lemma qAccept_le_max {n : ℕ} (a : Sigma n → ℝ) (ξ : Sigma n → ℂ)
     (hξ : Normalized ξ) : ∃ z, qAccept a ξ ≤ a z := by
   obtain ⟨z, -, hmax⟩ :=
@@ -43,6 +69,8 @@ lemma qAccept_le_max {n : ℕ} (a : Sigma n → ℝ) (ξ : Sigma n → ℂ)
     _ = a z * ∑ z', Complex.normSq (ξ z') := by rw [Finset.mul_sum]
     _ = a z := by rw [hξ]; ring
 
+/-- For a normalized complex vector, some basis acceptance value is at most its quantum
+acceptance average. -/
 lemma qAccept_ge_min {n : ℕ} (a : Sigma n → ℝ) (ξ : Sigma n → ℂ)
     (hξ : Normalized ξ) : ∃ z, a z ≤ qAccept a ξ := by
   obtain ⟨z, -, hmin⟩ :=
@@ -56,6 +84,9 @@ lemma qAccept_ge_min {n : ℕ} (a : Sigma n → ℝ) (ξ : Sigma n → ℂ)
       exact mul_le_mul_of_nonneg_right (hmin z' (Finset.mem_univ z'))
         (Complex.normSq_nonneg _)
 
+/-- The pointwise completeness and soundness conditions using classical witnesses are equivalent
+to those using normalized complex vectors and the diagonal average `qAccept`. See
+[BravyiEtAl2008Stoquastic]. -/
 lemma MA_iff_MAq_pointwise {n : ℕ} (a : Sigma n → ℝ) (py pn : Prop) :
     ((py → ∃ z : Sigma n, (2 : ℝ) / 3 ≤ a z) ∧
       (pn → ∀ z : Sigma n, a z ≤ (1 : ℝ) / 3)) ↔
@@ -86,6 +117,8 @@ lemma MA_iff_MAq_pointwise {n : ℕ} (a : Sigma n → ℝ) (py pn : Prop) :
       have h := hno hn (basisVec z) (normalized_basis z)
       rwa [qAccept_basis] at h
 
+/-- For every encoding and promise problem, membership in `InMA` is equivalent to membership in
+`InMAq`. See [BravyiEtAl2008Stoquastic]. -/
 theorem lemma2_MA_eq_MAq {α : Type*} (E : Encoding α) (L : PromiseProblem α) :
     InMA E L ↔ InMAq E L := by
   constructor

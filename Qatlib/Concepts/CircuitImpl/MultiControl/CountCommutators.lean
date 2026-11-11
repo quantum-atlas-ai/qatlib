@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountBorrowed
+
+/-!
+# Cancellation of signs in dirty-work commutators
+
+`source_signed_dirty_combine` proves an exact conjunction-toggle rule for the commutator of two
+legal gate words. A signed toggle on the spectator and a second toggle controlled by that
+spectator combine with their adjoints to cancel the sign, under explicit invariance and
+wire-avoidance hypotheses. This is an algebraic ingredient for the borrowed-work constructions
+of [BarencoEtAl1995].
+
+## Main statements
+
+* `source_signed_dirty_combine`: Exact target toggle controlled by `A && B` after sign
+  cancellation.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +41,10 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators
 
+/-- For distinct wires `s` and `t`, a commutator of a signed toggle on `s` and an exact toggle
+on `t` controlled by `B` and `s` toggles `t` by `A && B` with no residual sign. This holds
+under legality, avoidance of `t` by the first word, invariance of `B` under updates at `s`
+and `t`, and the condition `z x * z x = 1`. -/
 theorem source_signed_dirty_combine {N : ℕ} (s t : Fin N) (hst : s ≠ t)
     (A B : Reg N → Bool)
     (hb : ∀ (x : Reg N) (v : Bool), B (Function.update x s v) = B x ∧ B (Function.update x t v) = B x)

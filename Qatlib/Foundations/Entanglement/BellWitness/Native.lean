@@ -85,6 +85,32 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+/-!
+# Finite state vectors and rank-one projectors
+
+This module represents finite quantum state vectors by `QState`, defines `Inner`, `TensorState`,
+and `outerProduct`, and relates normalization to the inner product. It proves projector and
+unitary reflection identities for normalized vectors.
+
+The final trace-norm estimate bounds the real quadratic form of a traceless matrix by half its
+trace norm. These finite-dimensional quantum information constructions follow the background of
+[NielsenChuang2010].
+
+## Main statements
+
+* `outerProduct_projector`: The outer product of a normalized vector is idempotent and
+  Hermitian.
+* `outerProduct_reflection_unitary`: The reflection defined by the outer product of a normalized
+  vector is unitary.
+* `abs_quadratic_re_le_half_traceNorm`: For a traceless matrix and a normalized vector, the
+  absolute real part of the quadratic form is at most half the matrix trace norm.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -93,45 +119,59 @@ open Matrix
 open scoped BigOperators
 namespace Qatlib.Foundations.Entanglement.BellWitness
 
+/-- Complex coordinate functions indexed by `I`, representing state vectors. -/
 abbrev QState (I : Type*) := I → ℂ
 
+/-- A vector is normalized when the sum of the squared norms of its coordinates equals one. -/
 def Normalized {I : Type*} [Fintype I] (v : QState I) : Prop := ∑i,‖v i‖^2=1
 
+/-- The tensor product vector on pairs of indices, with coordinates `a i * b j`. -/
 def TensorState {I J : Type*} (a : QState I) (b : QState J) : QState (I × J) := fun p=>a p.1*b p.2
 
+/-- The finite complex inner product, conjugate linear in the first argument. -/
 def Inner {I : Type*} [Fintype I] (a b : QState I) : ℂ := star a ⬝ᵥ b
 variable {I : Type*} [Fintype I]
 
+/-- The inner product is the sum of conjugated coordinates of the first vector times coordinates
+of the second. -/
 theorem inner_apply (ψ φ : QState I) : Inner ψ φ = ∑ i, (starRingEnd ℂ) (ψ i) * φ i := by
   simp only [Inner, dotProduct, Pi.star_apply, RCLike.star_def]
 
+/-- The self-inner product is the complex coercion of the sum of squared coordinate norms. -/
 theorem inner_self (ψ : QState I) : Inner ψ ψ = ∑ i, ((‖ψ i‖ ^ 2 : ℝ) : ℂ) := by
   rw [inner_apply]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+/-- A vector is normalized if and only if its self-inner product equals one. -/
 theorem normalized_iff_inner_self (ψ : QState I) : Normalized ψ ↔ Inner ψ ψ = 1 := by
   rw [inner_self, ← Complex.ofReal_sum]
   unfold Normalized
   exact_mod_cast Iff.rfl
 
+/-- The tensor product of normalized finite vectors is normalized. -/
 theorem normalized_tensorState {J : Type*} [Fintype J] {a : QState I} {b : QState J}
     (ha : Normalized a) (hb : Normalized b) : Normalized (TensorState a b) := by
   unfold Normalized TensorState
   simp only [Fintype.sum_prod_type,norm_mul,mul_pow,← Finset.mul_sum,← Finset.sum_mul]
   rw [ha,hb,one_mul]
 
+/-- Complex conjugation interchanges the arguments of the inner product. -/
 theorem star_inner (a b : QState I) : star (Inner a b)=Inner b a := by
   simp only [Inner,dotProduct,Pi.star_apply,star_sum,star_mul,star_star]
 
+/-- The outer product matrix with entries `ψ i * conj(ψ j)`. -/
 noncomputable def outerProduct (ψ : QState I) : Matrix I I ℂ :=
   Matrix.of fun i j => ψ i * (starRingEnd ℂ) (ψ j)
 
 omit [Fintype I] in
 
+/-- The entry of the outer product is the corresponding coordinate times the conjugate
+coordinate. -/
 theorem outerProduct_apply (ψ : QState I) (i j : I) :
     outerProduct ψ i j = ψ i * (starRingEnd ℂ) (ψ j) := rfl
 
+/-- The outer product of `ψ` acts on `φ` by multiplying `ψ` by their inner product. -/
 theorem outerProduct_mulVec (ψ φ : QState I) :
     outerProduct ψ *ᵥ φ = (Inner ψ φ) • ψ := by
   funext i
@@ -141,10 +181,12 @@ theorem outerProduct_mulVec (ψ φ : QState I) :
     exact Finset.sum_congr rfl fun j _ => by ring
   simpa using! h
 
+/-- The self-inner product of a normalized vector equals one. -/
 theorem inner_self_eq_one {ψ : QState I} (hψ : Normalized ψ) : Inner ψ ψ = 1 := by
   rw [normalized_iff_inner_self] at hψ
   exact hψ
 
+/-- The outer product of a normalized vector is idempotent and Hermitian. -/
 theorem outerProduct_projector {ψ : QState I} (hψ : Normalized ψ) :
     outerProduct ψ*outerProduct ψ=outerProduct ψ ∧ (outerProduct ψ)ᴴ=outerProduct ψ := by
   constructor
@@ -171,8 +213,10 @@ theorem outerProduct_projector {ψ : QState I} (hψ : Normalized ψ) :
 
 variable [DecidableEq I]
 
+/-- The matrix `2P - 1`, which is a reflection when `P` is an orthogonal projector. -/
 def ReflectionAbout (P : Matrix I I ℂ) : Matrix I I ℂ := (2 : ℂ) • P-1
 
+/-- The reflection defined by the outer product of a normalized vector is unitary. -/
 theorem outerProduct_reflection_unitary {ψ : QState I} (hψ : Normalized ψ) :
     ReflectionAbout (outerProduct ψ) ∈ Matrix.unitaryGroup I ℂ := by
   obtain ⟨hid,hstar⟩ := outerProduct_projector hψ
@@ -184,6 +228,7 @@ theorem outerProduct_reflection_unitary {ψ : QState I} (hψ : Normalized ψ) :
   rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose,hs]
   exact hm
 
+/-- The trace of `outerProduct z * X` equals the quadratic form of `X` at `z`. -/
 theorem trace_outerProduct_mul_eq_quadratic
     {I : Type*} [Fintype I] [DecidableEq I] (z : QState I) (X : Matrix I I ℂ) :
     (outerProduct z * X).trace = star z ⬝ᵥ X *ᵥ z := by
@@ -198,6 +243,8 @@ theorem trace_outerProduct_mul_eq_quadratic
   change z i*star (z j)*X j i = star (z j)*(X j i*z i)
   ring
 
+/-- For a traceless matrix and a normalized vector, the absolute real part of the quadratic form
+is at most half the matrix trace norm. -/
 theorem abs_quadratic_re_le_half_traceNorm
     {I : Type*} [Fintype I] [DecidableEq I] (X : Matrix I I ℂ)
     (htrace : X.trace = 0) (z : QState I) (hz : Normalized z) :

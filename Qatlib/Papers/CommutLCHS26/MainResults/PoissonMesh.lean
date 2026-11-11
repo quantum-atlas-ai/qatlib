@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.StripContour
 import Mathlib.Analysis.Fourier.PoissonSummation
 import Mathlib.Analysis.Normed.Module.HahnBanach
+
+/-!
+# Poisson summation and mesh error
+
+This module derives vector-valued Poisson summation and infinite-mesh quadrature estimates.
+Exponential Fourier decay gives geometric error bounds, and strip analyticity supplies the decay
+needed for the quadrature analysis of [AftabAnTrivisa2026].
+
+The final strip estimate replaces normal convergence assumptions with a sufficient real-axis
+power-decay condition.
+
+## Main statements
+
+* `poisson`: Poisson summation for vector-valued functions.
+* `strip_mesh_error_of_rpow_decay`: the strip quadrature estimate corresponding to Lemma 4.13.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +43,8 @@ open scoped Topology FourierTransform BigOperators
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- A continuous complex linear functional commutes with the Fourier transform of an integrable
+function. -/
 theorem fourier_scalarize (f : ℝ → E) (hf : Integrable f) (L : E →L[ℂ] ℂ) (ξ : ℝ) :
     𝓕 (fun x => L (f x)) ξ = L (𝓕 f ξ) := by
   rw [Real.fourier_real_eq_integral_exp_smul, Real.fourier_real_eq_integral_exp_smul]
@@ -33,12 +56,17 @@ theorem fourier_scalarize (f : ℝ → E) (hf : Integrable f) (L : E →L[ℂ] �
 
 omit [NormedSpace ℂ E] in
 
+/-- Normal convergence of integer translates on every compact set implies summability of the
+integer samples. -/
 theorem summable_samples (f : C(ℝ, E))
     (hn : ∀ K : Compacts ℝ,
       Summable (fun n : ℤ => ‖(f.comp (ContinuousMap.addRight n)).restrict K‖)) :
     Summable (fun n : ℤ => f (n : ℝ)) := by
   simpa using (hasSum_apply (summable_of_locally_summable_norm hn).hasSum 0).summable
 
+/-- The Poisson summation identity holds for a continuous integrable vector-valued function
+whose integer translates converge normally on compact sets and whose Fourier samples are
+absolutely summable. -/
 theorem poisson (f : C(ℝ, E)) (hf : Integrable (f : ℝ → E))
     (hn : ∀ K : Compacts ℝ,
       Summable (fun n : ℤ => ‖(f.comp (ContinuousMap.addRight n)).restrict K‖))
@@ -73,6 +101,7 @@ theorem poisson (f : C(ℝ, E)) (hf : Integrable (f : ℝ → E))
   rw [hL] at hz
   exact Complex.ofReal_eq_zero.mp hz
 
+/-- For positive `a`, the geometric half-lattice mass is summable and equals `M / (exp a - 1)`. -/
 theorem geometric_half_mass (a M : ℝ) (ha : 0 < a) :
     Summable (fun n : ℕ => Real.exp (-a) ^ (n + 1) * M) ∧
       (∑' n : ℕ, Real.exp (-a) ^ (n + 1) * M) = M / (Real.exp a - 1) := by
@@ -89,6 +118,8 @@ theorem geometric_half_mass (a M : ℝ) (ha : 0 < a) :
 
 omit [NormedSpace ℂ E] [CompleteSpace E] in
 
+/-- Exponential decay on the integer lattice bounds both positive and negative samples by the
+same geometric sequence. -/
 private theorem half_bounds (F : ℝ → E) (a M : ℝ)
     (hF : ∀ n : ℤ, ‖F (n : ℝ)‖ ≤ Real.exp (-a * |(n : ℝ)|) * M) (n : ℕ) :
     ‖F ((n : ℤ) + 1 : ℤ)‖ ≤ Real.exp (-a) ^ (n + 1) * M ∧
@@ -109,6 +140,7 @@ private theorem half_bounds (F : ℝ → E) (a M : ℝ)
 
 omit [NormedSpace ℂ E] [CompleteSpace E] in
 
+/-- Exponential decay on the integer lattice implies absolute summability of its samples. -/
 theorem summable_fourier_lattice (F : ℝ → E) (a M : ℝ) (ha : 0 < a)
     (hF : ∀ n : ℤ, ‖F (n : ℝ)‖ ≤ Real.exp (-a * |(n : ℝ)|) * M) :
     Summable (fun n : ℤ => ‖F (n : ℝ)‖) := by
@@ -119,6 +151,8 @@ theorem summable_fourier_lattice (F : ℝ → E) (a M : ℝ) (ha : 0 < a)
     (fun n => (half_bounds F a M hF n).2) hs
   exact Summable.of_add_one_of_neg_add_one hp hm
 
+/-- Under Poisson summation hypotheses, exponential decay of Fourier samples bounds the
+unit-mesh quadrature error by `2M / (exp a - 1)`. -/
 theorem unit_mesh_error (f : C(ℝ, E)) (hf : Integrable (f : ℝ → E))
     (hn : ∀ K : Compacts ℝ,
       Summable (fun n : ℤ => ‖(f.comp (ContinuousMap.addRight n)).restrict K‖))
@@ -156,6 +190,8 @@ theorem unit_mesh_error (f : C(ℝ, E)) (hf : Integrable (f : ℝ → E))
 
 omit [CompleteSpace E] in
 
+/-- The Fourier transform of the dilation `x ↦ f (h x)` is the inverse-scaled transform
+evaluated at `ξ / h` for positive `h`. -/
 theorem fourier_dilate (f : ℝ → E) (h ξ : ℝ) (hh : 0 < h) :
     𝓕 (fun x => f (h * x)) ξ = h⁻¹ • 𝓕 f (ξ / h) := by
   rw [Real.fourier_real_eq_integral_exp_smul, Real.fourier_real_eq_integral_exp_smul]
@@ -170,6 +206,8 @@ theorem fourier_dilate (f : ℝ → E) (h ξ : ℝ) (hh : 0 < h) :
   simpa only [abs_of_pos (inv_pos.mpr hh)] using Measure.integral_comp_mul_left
     (fun y : ℝ => Complex.exp (↑(-2 * Real.pi * y * (ξ / h)) * I) • f y) h
 
+/-- Exponential bounds on Fourier samples at frequencies `n / h` give mesh error at most `2M /
+(exp a - 1)` under the stated convergence hypotheses. -/
 theorem mesh_error (f : C(ℝ, E)) (hf : Integrable (f : ℝ → E))
     (h a M : ℝ) (hh : 0 < h) (ha : 0 < a)
     (hn : ∀ K : Compacts ℝ, Summable (fun n : ℤ =>
@@ -200,6 +238,9 @@ theorem mesh_error (f : C(ℝ, E)) (hf : Integrable (f : ℝ → E))
     _ ≤ h * (2 * (M / h) / (Real.exp a - 1)) := mul_le_mul_of_nonneg_left hu hh.le
     _ = _ := by field_simp
 
+/-- A holomorphic function on a strip with uniform decay, bounded horizontal integrals, and
+normal convergence of mesh translates has quadrature error at most `2M / (exp (2πρ / h) -
+1)`. -/
 theorem strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 < h)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
     (hd : StripContour.UniformDecay f (-ρ) ρ)
@@ -229,6 +270,8 @@ theorem strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 <
 
 omit [NormedSpace ℂ E] [CompleteSpace E] in
 
+/-- Decay of order `|x|^(-b)` with `b > 1` implies normal convergence of integer translates on
+every compact set. -/
 theorem normal_convergence_of_rpow_decay (f : C(ℝ, E)) (b : ℝ) (hb : 1 < b)
     (hf : (f : ℝ → E) =O[cocompact ℝ] (fun x : ℝ => |x| ^ (-b))) :
     ∀ K : Compacts ℝ,
@@ -238,6 +281,9 @@ theorem normal_convergence_of_rpow_decay (f : C(ℝ, E)) (b : ℝ) (hb : 1 < b)
     ((isBigO_norm_restrict_cocompact f (zero_lt_one.trans hb) hf K).comp_tendsto
       Int.tendsto_coe_cofinite)
 
+/-- With real-axis decay of order `|x|^(-b)` for `b > 1`, strip analyticity and the stated
+horizontal integral bounds give mesh error at most `2M / (exp (2πρ / h) - 1)`; see [Aftab et
+al., Lemma 4.13][AftabAnTrivisa2026]. -/
 theorem strip_mesh_error_of_rpow_decay (f : ℂ → E) (ρ M h b : ℝ) (hρ : 0 < ρ)
     (hh : 0 < h) (hb : 1 < b)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})

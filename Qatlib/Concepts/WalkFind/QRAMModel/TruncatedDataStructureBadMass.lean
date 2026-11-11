@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Mathlib.Data.Finset.Sort
+
+/-!
+# Runtime and bad-mass estimates for collision data structures
+
+This module proves runtime monotonicity, output-size bounds, and explicit bit-RAM reader and
+writer specifications. It also bounds hash overflow events and trie sizes, tracks value
+multiplicities, and expresses the norm of a slow-operation component through Johnson-walk type
+masses.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `dataHash_bucketOverflow_tail`: bounds the probability that a hash bucket contains at least
+  `d` elements.
+* `dataAddressValueTrie_node_count`: bounds the combined address and value trie size.
+* `dataBad_bound_of_type_masses`: transfers uniform type-mass bounds to normalized
+  superpositions.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,11 +48,13 @@ namespace Qatlib.Concepts.WalkFind.QRAMModel
 open Qatlib.Concepts.WalkFind.UniqueCollision
 open scoped Classical BigOperators
 
+/-- Every bit-RAM step has bit cost at least one. -/
 theorem ramStepBits_positive (A : BitRAMMachine) (q : RAMConfiguration) :
     1 ≤ ramStepBits A q := by
   unfold ramStepBits
   split <;> omega
 
+/-- The accumulated bit cost of `n` RAM steps is at least `n`. -/
 theorem ramRun_clock_ge_steps (A : BitRAMMachine) (q : RAMConfiguration) (n : ℕ) :
     n ≤ (ramRun A q n).2 := by
   induction n generalizing q with
@@ -37,12 +63,14 @@ theorem ramRun_clock_ge_steps (A : BitRAMMachine) (q : RAMConfiguration) (n : �
     simpa only [ramRun, Nat.add_comm] using!
         Nat.add_le_add (ramStepBits_positive A q) (ih (ramStep A q))
 
+/-- A RAM production specification remains valid when its clock bound is increased. -/
 theorem ramProduces_mono (A : BitRAMMachine) (record input expected output : List Bool)
     {clock clock' : ℕ} (h : ramProduces A record input expected output clock)
     (hle : clock ≤ clock') : ramProduces A record input expected output clock' := by
   obtain ⟨steps, hh, hc, hm, ho⟩ := h
   exact ⟨steps, hh, hc.trans hle, hm, ho⟩
 
+/-- The fast-operation predicate is preserved when its clock bound is increased. -/
 theorem dataOperationsFast_mono {N M r : ℕ} (D : CollisionDataStructure N M r)
     (x : Fin N → ZMod M) (S : Finset (Fin N)) (h : Fin (2^D.seedBits))
     {clock clock' : ℕ} (hfast : dataOperationsFast D x S h clock)
@@ -53,6 +81,7 @@ theorem dataOperationsFast_mono {N M r : ℕ} (D : CollisionDataStructure N M r)
     fun hp => ramProduces_mono _ _ _ _ _ (he hp) hle,
     fun hp => ramProduces_mono _ _ _ _ _ (hl hp) hle⟩
 
+/-- One RAM step increases the output length by at most one. -/
 theorem ramStep_output_length (A : BitRAMMachine) (q : RAMConfiguration) :
     (ramStep A q).output.length ≤ q.output.length+1 := by
   unfold ramStep
@@ -61,6 +90,7 @@ theorem ramStep_output_length (A : BitRAMMachine) (q : RAMConfiguration) :
   all_goals try omega
   all_goals split <;> simp only <;> omega
 
+/-- After `n` RAM steps, the output length is at most its initial length plus `n`. -/
 theorem ramRun_output_length (A : BitRAMMachine) (q : RAMConfiguration) (n : ℕ) :
     (ramRun A q n).1.output.length ≤ q.output.length+n := by
   induction n generalizing q with
@@ -71,6 +101,7 @@ theorem ramRun_output_length (A : BitRAMMachine) (q : RAMConfiguration) (n : ℕ
     simpa only [ramRun] using! (show (ramRun A (ramStep A q) n).1.output.length ≤
       q.output.length+(n+1) by omega)
 
+/-- A RAM production specification bounds the output length by the available clock. -/
 theorem ramProduces_output_length_le_clock (A : BitRAMMachine)
     (record input expected output : List Bool) {clock : ℕ}
     (h : ramProduces A record input expected output clock) : output.length ≤ clock := by
@@ -80,6 +111,8 @@ theorem ramProduces_output_length_le_clock (A : BitRAMMachine)
   simp only [ramInitial, List.length_nil, zero_add] at hs
   exact hs.trans ((ramRun_clock_ge_steps A _ steps).trans hc)
 
+/-- The increase of output length times its successor is at most twice the bit cost of one RAM
+step. -/
 theorem ramStep_output_potential (A : BitRAMMachine) (q : RAMConfiguration) :
     (ramStep A q).output.length*((ramStep A q).output.length+1) ≤
       q.output.length*(q.output.length+1)+2*ramStepBits A q := by
@@ -88,6 +121,8 @@ theorem ramStep_output_potential (A : BitRAMMachine) (q : RAMConfiguration) :
   all_goals try nlinarith
   all_goals split <;> nlinarith
 
+/-- The output-length potential after a run is at most its initial value plus twice the
+accumulated bit cost. -/
 theorem ramRun_output_potential (A : BitRAMMachine) (q : RAMConfiguration) (n : ℕ) :
     (ramRun A q n).1.output.length*((ramRun A q n).1.output.length+1) ≤
       q.output.length*(q.output.length+1)+2*(ramRun A q n).2 := by
@@ -99,6 +134,8 @@ theorem ramRun_output_potential (A : BitRAMMachine) (q : RAMConfiguration) (n : 
     simp only [ramRun]
     nlinarith
 
+/-- Producing an output of length `L` requires a clock bound satisfying `L * (L + 1) ≤ 2 *
+clock`. -/
 theorem ramProduces_serialization_cost (A : BitRAMMachine)
     (record input expected output : List Bool) {clock : ℕ}
     (h : ramProduces A record input expected output clock) :
@@ -109,24 +146,31 @@ theorem ramProduces_serialization_cost (A : BitRAMMachine)
   simp only [ramInitial, List.length_nil, zero_mul, zero_add] at hs
   exact hs.trans (Nat.mul_le_mul_left 2 hc)
 
+/-- The RAM machine with an empty program and initial program counter zero. -/
 def haltedRAM : BitRAMMachine := ⟨[],0⟩
 
+/-- Running `haltedRAM` preserves the configuration for every number of steps. -/
 theorem haltedRAM_run (q : RAMConfiguration) (n : ℕ) :
     (ramRun haltedRAM q n).1 = q := by
   induction n with
   | zero => rfl
   | succ n ih => simpa [ramRun, ramStep, haltedRAM] using! ih
 
+/-- Every output produced by `haltedRAM` is empty. -/
 theorem haltedRAM_output {record input expected output : List Bool} {clock : ℕ}
     (h : ramProduces haltedRAM record input expected output clock) : output = [] := by
   obtain ⟨steps, _, _, _, ho⟩ := h
   rw [haltedRAM_run] at ho
   exact ho.symm
 
+/-- The RAM program that consumes address bits and writes the given Boolean value to the
+selected memory cell. -/
 def dataAddressWriter (value : Bool) : BitRAMMachine :=
   ⟨[.readInput 3 1 2, .pushAddress false 0, .pushAddress true 0,
     .writeMemory value 4, .halt], 0⟩
 
+/-- The address writer appends the input bits to the address prefix and updates that memory
+cell, with the stated step count and bit-cost bound. -/
 theorem dataAddressWriter_run (value : Bool) (bits addrPrefix : List Bool)
     (memory : ℕ → Bool) (output : List Bool) :
     let q : RAMConfiguration := ⟨0,addrPrefix,memory,bits,output⟩
@@ -150,10 +194,14 @@ theorem dataAddressWriter_run (value : Bool) (bits addrPrefix : List Bool)
       | simpa only [List.append_assoc, List.singleton_append] using! h.1
       | (have hc := h.2; simp only [List.length_append, List.length_cons, List.length_nil, dataAddressWriter] at hc; nlinarith)
 
+/-- The RAM program that consumes address bits and appends the selected memory bit to the
+output. -/
 def dataAddressReader : BitRAMMachine :=
   ⟨[.readInput 3 1 2, .pushAddress false 0, .pushAddress true 0,
     .readMemory 4 5, .writeOutput false 6, .writeOutput true 6, .halt], 0⟩
 
+/-- The address reader appends the addressed memory bit to the output, with the stated step
+count and bit-cost bound. -/
 theorem dataAddressReader_run (bits addrPrefix : List Bool)
     (memory : ℕ → Bool) (output : List Bool) :
     let q : RAMConfiguration := ⟨0,addrPrefix,memory,bits,output⟩
@@ -178,6 +226,8 @@ theorem dataAddressReader_run (bits addrPrefix : List Bool)
       | simpa only [List.append_assoc, List.singleton_append] using! h.1
       | (have hc := h.2; simp only [List.length_append, List.length_cons, List.length_nil, dataAddressReader] at hc; nlinarith)
 
+/-- The address reader produces the record bit at the binary input address, defaulting to false,
+within the specified clock bound. -/
 theorem dataAddressReader_produces (record bits : List Bool) :
     ramProduces dataAddressReader record bits record
       [record[binaryAddress bits]?.getD false] ((bits.length+1)*(8+bits.length)+4) := by
@@ -196,6 +246,8 @@ theorem dataAddressReader_produces (record bits : List Bool) :
       (2*bits.length+3)).1.output = _
     rw [hq]
 
+/-- For an address within the record, the address writer updates that record position and
+produces empty output within the specified clock bound. -/
 theorem dataAddressWriter_produces (value : Bool) (record bits : List Bool)
     (haddress : binaryAddress bits < record.length) :
     ramProduces (dataAddressWriter value) record bits (record.set (binaryAddress bits) value)
@@ -219,6 +271,8 @@ theorem dataAddressWriter_produces (value : Bool) (record bits : List Bool)
       (2*bits.length+2)).1.output = _
     rw [hq]
 
+/-- A data structure with `haltedRAM` as its lookup machine cannot satisfy the fast-operation
+predicate on a nonempty set. -/
 theorem dataOperationsFast_not_halted_lookup {N M r : ℕ}
     (D : CollisionDataStructure N M r) (he : D.lookup = haltedRAM)
     (x : Fin N → ZMod M) (S : Finset (Fin N)) (h : Fin (2^D.seedBits)) (clock : ℕ)
@@ -231,6 +285,7 @@ theorem dataOperationsFast_not_halted_lookup {N M r : ℕ}
   have hlen := congrArg List.length ho
   simp [natDescription] at hlen
 
+/-- The probability of a finite union of seed events is at most the sum of their probabilities. -/
 theorem dataEventProbability_union_bound {R : ℕ} {J : Type*} [Fintype J]
     (P : J → Fin R → Prop) :
     eventProbability (fun s => ∃ j, P j s) ≤ ∑ j, eventProbability (P j) := by
@@ -255,6 +310,8 @@ theorem dataEventProbability_union_bound {R : ℕ} {J : Type*} [Fintype J]
   ext s
   simp
 
+/-- For a `d`-wise uniform binary hash, the probability that any of `L` injectively indexed
+windows is entirely false is at most `L / 2^d`. -/
 theorem dataHash_zero_windows_bound {N R d L : ℕ}
     (hash : Fin R → Fin N → Bool)
     (hind : ∀ i : Fin d → Fin N, Function.Injective i → ∀ values : Fin d → Bool,
@@ -269,6 +326,8 @@ theorem dataHash_zero_windows_bound {N R d L : ℕ}
       simp_rw [hind _ (hinj _) (fun _ => false)]
       simp [div_eq_mul_inv]
 
+/-- For a `d`-wise uniform hash into `Fin U`, the probability of an injective `d`-tuple with a
+common hash value is at most `U * A^d / U^d`. -/
 theorem dataHash_collisionWitness_tail {A U R d : ℕ} (hU : 0 < U)
     (hash : Fin R → Fin A → Fin U)
     (hind : ∀ i : Fin d → Fin A, Function.Injective i → ∀ values : Fin d → Fin U,
@@ -305,6 +364,8 @@ theorem dataHash_collisionWitness_tail {A U R d : ℕ} (hU : 0 < U)
     _ ≤ ∑ _p : Fin U × (Fin d → Fin A), 1/(U : ℝ)^d := Finset.sum_le_sum (fun p _ => hb p)
     _ = _ := by simp [Fintype.card_prod, div_eq_mul_inv, mul_assoc]
 
+/-- A hash bucket has at least `d` elements exactly when it contains an injectively indexed
+`d`-tuple. -/
 theorem dataHash_bucketOverflow_witness {A U R d : ℕ}
     (hash : Fin R → Fin A → Fin U) (s : Fin R) (v : Fin U) :
     d ≤ (Finset.univ.filter (fun a => hash s a = v)).card ↔
@@ -333,6 +394,8 @@ theorem dataHash_bucketOverflow_witness {A U R d : ℕ}
     simpa only [Finset.card_image_of_injective _ hi, Finset.card_univ, Fintype.card_fin, B] using!
         hc
 
+/-- For a `d`-wise uniform hash, the probability that some bucket has at least `d` elements is
+at most `U * A^d / U^d`. -/
 theorem dataHash_bucketOverflow_tail {A U R d : ℕ} (hU : 0 < U)
     (hash : Fin R → Fin A → Fin U)
     (hind : ∀ i : Fin d → Fin A, Function.Injective i → ∀ values : Fin d → Fin U,
@@ -352,6 +415,8 @@ theorem dataHash_bucketOverflow_tail {A U R d : ℕ} (hU : 0 < U)
   rw [heq]
   exact dataHash_collisionWitness_tail hU hash hind
 
+/-- When `2 * A ≤ U`, the probability that some bucket has at least `d` elements is at most `U /
+2^d` for a `d`-wise uniform hash. -/
 theorem dataHash_bucketOverflow_doubled_tail {A U R d : ℕ} (hU : 0 < U)
     (hAU : 2*A ≤ U) (hash : Fin R → Fin A → Fin U)
     (hind : ∀ i : Fin d → Fin A, Function.Injective i → ∀ values : Fin d → Fin U,
@@ -369,8 +434,12 @@ theorem dataHash_bucketOverflow_doubled_tail {A U R d : ℕ} (hU : 0 < U)
     _ ≤ (U : ℝ)*(1/2 : ℝ)^d := by gcongr
     _ = _ := by rw [div_pow]; simp [div_eq_mul_inv]
 
+/-- The natural-number key `2^(width - level) + n / 2^level` encoding a binary prefix at the
+given level. -/
 def dataPrefixKey (width level n : ℕ) : ℕ := 2^(width-level)+n/2^level
 
+/-- For an in-range value and level, the prefix key lies in `[2^(width - level), 2^(width -
+level + 1))`. -/
 theorem dataPrefixKey_bounds (width level n : ℕ) (hl : level ≤ width) (hn : n < 2^width) :
     2^(width-level) ≤ dataPrefixKey width level n ∧
       dataPrefixKey width level n < 2^(width-level+1) := by
@@ -386,14 +455,18 @@ theorem dataPrefixKey_bounds (width level n : ℕ) (hl : level ≤ width) (hn : 
   · rw [Nat.pow_succ]
     omega
 
+/-- Every prefix key for an in-range value and level is less than `2^(width + 1)`. -/
 theorem dataPrefixKey_lt_keyspace (width level n : ℕ) (hl : level ≤ width) (hn : n < 2^width) :
     dataPrefixKey width level n < 2^(width+1) := by
   exact (dataPrefixKey_bounds width level n hl hn).2.trans_le
     (Nat.pow_le_pow_right (by omega) (by omega))
 
+/-- The finite set of prefix keys obtained from all values and all levels from zero through
+`width`. -/
 def dataPrefixKeys (width : ℕ) (values : Finset ℕ) : Finset ℕ :=
   values.biUnion (fun n => (Finset.range (width+1)).image (fun level => dataPrefixKey width level n))
 
+/-- The number of prefix keys is at most the number of values times `width + 1`. -/
 theorem dataPrefixKeys_card (width : ℕ) (values : Finset ℕ) :
     (dataPrefixKeys width values).card ≤ values.card*(width+1) := by
   unfold dataPrefixKeys
@@ -405,12 +478,14 @@ theorem dataPrefixKeys_card (width : ℕ) (values : Finset ℕ) :
         (Finset.card_image_le (s:=Finset.range (width+1)) (f:=fun level => dataPrefixKey width level n)))
     _ = _ := by simp
 
+/-- Inserting one value adds exactly the union with that value's prefix-key set. -/
 theorem dataPrefixKeys_insert (width n : ℕ) (values : Finset ℕ) :
     dataPrefixKeys width (insert n values) = dataPrefixKeys width values ∪
       (Finset.range (width+1)).image (fun level => dataPrefixKey width level n) := by
   ext key
   simp [dataPrefixKeys, or_comm]
 
+/-- The combined address and value prefix-key counts are at most `S.card * (dataBits N M + 1)`. -/
 theorem dataAddressValueTrie_node_count {N M : ℕ} (S : Finset (Fin N)) (x : Fin N → ZMod M) :
     (dataPrefixKeys (Nat.clog 2 (N+1)) (S.image Fin.val)).card +
       (dataPrefixKeys (Nat.clog 2 (M+1)) (S.image (fun i => (x i).val))).card ≤
@@ -422,9 +497,12 @@ theorem dataAddressValueTrie_node_count {N M : ℕ} (S : Finset (Fin N)) (x : Fi
   unfold dataBits
   nlinarith
 
+/-- The number of indices in `S` whose input value equals `v`. -/
 def dataValueMultiplicity {N M : ℕ} (x : Fin N → ZMod M) (S : Finset (Fin N))
     (v : ZMod M) : ℕ := (S.filter (fun i => x i = v)).card
 
+/-- Inserting a new index increases the multiplicity of its value by one and preserves every
+other multiplicity. -/
 theorem dataValueMultiplicity_insert {N M : ℕ} (x : Fin N → ZMod M)
     (S : Finset (Fin N)) (i : Fin N) (hi : i ∉ S) (v : ZMod M) :
     dataValueMultiplicity x (insert i S) v = dataValueMultiplicity x S v +
@@ -434,6 +512,8 @@ theorem dataValueMultiplicity_insert {N M : ℕ} (x : Fin N → ZMod M)
     simp [dataValueMultiplicity, Finset.filter_insert, hv, hn]
   · simp [dataValueMultiplicity, Finset.filter_insert, hv]
 
+/-- Erasing a present index decreases the multiplicity of its value by one and preserves every
+other multiplicity. -/
 theorem dataValueMultiplicity_erase {N M : ℕ} (x : Fin N → ZMod M)
     (S : Finset (Fin N)) (i : Fin N) (hi : i ∈ S) (v : ZMod M) :
     dataValueMultiplicity x (S.erase i) v = dataValueMultiplicity x S v -
@@ -444,6 +524,8 @@ theorem dataValueMultiplicity_erase {N M : ℕ} (x : Fin N → ZMod M)
   · have hn : i ∉ S.filter (fun j => x j = v) := by simp [hv]
     simp [dataValueMultiplicity, Finset.filter_erase, hv, hn]
 
+/-- A set contains a `k`-collision exactly when some value has multiplicity at least `k` in that
+set. -/
 theorem dataValueMultiplicity_collision_iff {N M : ℕ} (k : ℕ)
     (x : Fin N → ZMod M) (S : Finset (Fin N)) :
     (∃ J ⊆ S, IsCollision k x J) ↔ ∃ v : ZMod M, k ≤ dataValueMultiplicity x S v := by
@@ -460,6 +542,8 @@ theorem dataValueMultiplicity_collision_iff {N M : ℕ} (k : ℕ)
     intro i hi
     exact (Finset.mem_filter.mp (hJS hi)).2
 
+/-- For a single Johnson-walk type with a uniform seed, the slow-operation squared mass equals
+the bad-state count divided by the type count and seed count. -/
 theorem dataBad_type_count_identity {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k : ℕ) (hkr : k ≤ r) (hkNr : k < N-r) (x : Fin N → ZMod M)
     (I : Finset (Fin N)) (i : Fin (2*k+1)) (clock : ℕ) :
@@ -495,6 +579,8 @@ theorem dataBad_type_count_identity {N M r : ℕ} (D : CollisionDataStructure N 
   rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul]
   ring
 
+/-- At each walk state, the squared norm of a type expansion is the sum of the squared
+coefficient norms times the squared type amplitudes. -/
 theorem typeExpansion_normSq_pointwise (k N r : ℕ) (I : Finset (Fin N))
     (a : Fin (2*k+1) → ℂ) (p : JRState N r) :
     ‖∑ i, a i * jwPsiBigAt k N r I i p‖^2 =
@@ -521,6 +607,8 @@ theorem typeExpansion_normSq_pointwise (k N r : ℕ) (I : Finset (Fin N))
       simp [jwPsiBigAt, jwPsiBig, hi]
     simp [hz]
 
+/-- The squared norm of a slow-operation component is the weighted sum of its individual type
+masses, with squared coefficient norms as weights. -/
 theorem dataBad_type_mass_identity {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k : ℕ) (x : Fin N → ZMod M) (I : Finset (Fin N))
     (a : Fin (2*k+1) → ℂ) (clock : ℕ) (scale : ℂ) :
@@ -545,6 +633,8 @@ theorem dataBad_type_mass_identity {N M r : ℕ} (D : CollisionDataStructure N M
     intro i _
     ring
 
+/-- For normalized coefficients, bounds of `ε^2` on every bad type mass imply a bad-state norm
+bound of `ε` when `ε` is nonnegative. -/
 theorem dataBad_bound_of_type_masses {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k : ℕ) (x : Fin N → ZMod M) (I : Finset (Fin N))
     (a : Fin (2*k+1) → ℂ) (ha : Normalized a) (clock : ℕ) (scale : ℂ)

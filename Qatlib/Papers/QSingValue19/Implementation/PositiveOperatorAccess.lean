@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QSingValue19.Implementation.PositiveOperatorAccessDefs
+
+/-!
+# Positive operator access and finite precision preparation
+
+This module proves the spectral and circuit guarantees for positive operator access used in the
+implementation setting of [GilyenSuLowWiebe2019]. The theorem
+`effect_access_bit_control_and_cost` bounds dyadic eigenvalue truncation error and storage; the
+module also verifies unitarity, approximation error, exact ideal action, and resources for
+rational weight state preparation.
+
+## Main statements
+
+* `effectAccess_word_resources`: Certifies legality, zero queries, and the explicit gate bound.
+* `effect_access_bit_control_and_cost`: Bounds spectral truncation error and mantissa storage.
+* `prepareFiniteDigit_error`: Bounds the finite digit preparation error.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -26,6 +47,7 @@ set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option maxHeartbeats 8000000
 
+/-- The canonical positive operator access data give a unitary diagonalization of E. -/
 theorem effectAccess_spectral (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
     (hE : E.PosSemidef) :
     E = (effectAccess n E hE).unitary
@@ -33,11 +55,14 @@ theorem effectAccess_spectral (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
       * (effectAccess n E hE).unitaryᴴ :=
   (effectAccess n E hE).spectral
 
+/-- Every eigenvalue in the canonical positive operator access data is nonnegative. -/
 theorem effectAccess_eigenvalues_nonneg (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
     (hE : E.PosSemidef) (j : Reg n) :
     0 ≤ (effectAccess n E hE).eigenvalues j :=
   (effectAccess n E hE).eigenvalues_nonneg j
 
+/-- The canonical access word is legal, uses zero queries, has gate count equal to its length,
+and has length at most 128(n + 1)²4^n. -/
 theorem effectAccess_word_resources (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
     (hE : E.PosSemidef) :
     reflectionLegal (effectAccess n E hE).word ∧
@@ -48,12 +73,16 @@ theorem effectAccess_word_resources (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
   ⟨(effectAccess n E hE).word_legal, (effectAccess n E hE).word_queries,
     (effectAccess n E hE).word_gates, (effectAccess n E hE).word_length⟩
 
+/-- The compiled canonical access word acts as the spectral unitary on states embedded by
+`knownFrameEmbed`. -/
 theorem effectAccess_word_action (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
     (hE : E.PosSemidef) (ψ : QState (Reg n)) :
     Run 1 (reflectionCompile (effectAccess n E hE).word) (knownFrameEmbed n ψ)
       = knownFrameEmbed n ((effectAccess n E hE).unitary *ᵥ ψ) :=
   (effectAccess n E hE).word_action ψ
 
+/-- For nonnegative x, reconstructing x from its b digit dyadic mantissa has absolute error at
+most 2^(−b). -/
 theorem spectrumMantissa_error (b : ℕ) (x : ℝ) (hx : 0 ≤ x) :
     |x - (spectrumMantissa b x : ℝ) / (2 : ℝ)^b| ≤ ((2 : ℝ)⁻¹) ^ b := by
   have h1 : (spectrumMantissa b x : ℝ) ≤ x * (2 : ℝ)^b := by
@@ -79,6 +108,9 @@ theorem spectrumMantissa_error (b : ℕ) (x : ℝ) (hx : 0 ≤ x) :
       rw [add_div, one_div, inv_pow]
     linarith
 
+/-- For positive operator access data with eigenvalues at most one, constructs the dyadically
+truncated operator with norm error at most 2^(−b), mantissas at most 2^b, and the stated
+spectrum bit count. -/
 theorem effect_access_bit_control_and_cost (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
     (A : EffectAccess n E) (b : ℕ) (hlam1 : ∀ j, A.eigenvalues j ≤ 1) :
     ∃ E' : Matrix (Reg n) (Reg n) ℂ,
@@ -228,6 +260,9 @@ theorem effect_access_bit_control_and_cost (n : ℕ) (E : Matrix (Reg n) (Reg n)
         _ = (2 : ℝ)^b := by ring
     exact_mod_cast hbound
 
+/-- For the canonical positive operator access data with eigenvalues at most one, gives the
+dyadic spectral approximation, norm error at most 2^(−b), mantissa bounds, and spectrum bit
+count. -/
 theorem effectAccess_bit_control_and_cost (n : ℕ) (E : Matrix (Reg n) (Reg n) ℂ)
     (hE : E.PosSemidef) (b : ℕ)
     (hlam1 : ∀ j, (effectAccess n E hE).eigenvalues j ≤ 1) :
@@ -242,6 +277,8 @@ theorem effectAccess_bit_control_and_cost (n : ℕ) (E : Matrix (Reg n) (Reg n) 
       effectSpectrumBits n b = (b+1) * Fintype.card (Reg n) :=
   effect_access_bit_control_and_cost n E (effectAccess n E hE) b hlam1
 
+/-- Nonnegative rational weights produce a well formed adjoint preparation circuit and a unitary
+finite digit preparation matrix. -/
 theorem prepareFiniteDigit_wellFormed_unitary {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ)
     (hw : ∀ a, 0 ≤ w a) :
     WellFormedAdjointCircuit (rationalWeightWord w k) ∧
@@ -250,12 +287,16 @@ theorem prepareFiniteDigit_wellFormed_unitary {n : ℕ} (w : Option (Fin n) → 
   refine ⟨hWF, ?_⟩
   simpa [prepareFiniteDigit] using! hU
 
+/-- For nonnegative rational weights, the finite digit preparation matrix differs from the ideal
+matrix by operator norm at most 32n/2^k. -/
 theorem prepareFiniteDigit_error {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ)
     (hw : ∀ a, 0 ≤ w a) :
     ‖prepareFiniteDigit w k - prepareIdeal w‖ ≤ 32*(n : ℝ)/2^k := by
   obtain ⟨_, _, hErr⟩ := rational_weight_numerical_word_unitary_and_error n k w hw
   simpa [prepareFiniteDigit, prepareIdeal] using! hErr
 
+/-- For nonnegative rational weights of positive total mass, the ideal unitary maps the
+distinguished basis state to the normalized target state. -/
 theorem prepareIdeal_exact {n : ℕ} (w : Option (Fin n) → ℚ) (hw : ∀ a, 0 ≤ w a)
     (hZ : 0 < rationalWeightMass w) :
     prepareIdeal w *ᵥ Ket none = prepareTarget w ∧
@@ -265,6 +306,7 @@ theorem prepareIdeal_exact {n : ℕ} (w : Option (Fin n) → ℚ) (hw : ∀ a, 0
   refine ⟨?_, hN, hU⟩
   simpa [prepareIdeal, prepareTarget] using! hA
 
+/-- The rational weight preparation word uses zero adjoint model queries and exactly n gates. -/
 theorem prepareFiniteDigit_resources {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ) :
     adjointQueryCount (rationalWeightWord w k) = 0 ∧
     adjointGateCount (rationalWeightWord w k) = n := by

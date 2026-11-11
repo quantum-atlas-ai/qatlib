@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalStat
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditionedEncoding
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditioningParameters
+
+/-!
+# Corrected block preconditioning guarantees
+
+This module proves `blockPreconditioningCorrectedSubgoal` by assembling the one-flag encoding
+construction, state-scaling identities, consistency-dependent pseudoinverse formula, and
+preconditioned singular gap. The consistency hypothesis ensures the scaling commutes with the
+range projector, which is needed for the pseudoinverse product identity.
+
+Projected block encodings and pseudoinverse transformations are central to quantum singular
+value transformation [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `blockPreconditioningCorrectedSubgoal`: Establishes the corrected encoding and spectral
+  guarantees.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -25,6 +47,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
+/-- Establishes `BlockPreconditioningCorrectedSubgoal`, combining the preconditioned encoding,
+scaling inverses, consistency-dependent pseudoinverse identities, and the norm and
+singular-gap bounds with parameter `2 * c ^ 2 * κ`. -/
 theorem blockPreconditioningCorrectedSubgoal : BlockPreconditioningCorrectedSubgoal := by
   constructor
   · intro H I O _ _ _ _ _ _ A U L R b s henc hb hs0 hs1

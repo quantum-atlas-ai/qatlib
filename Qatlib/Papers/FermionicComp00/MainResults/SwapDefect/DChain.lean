@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FermionicComp00.MainResults.SwapDefect.TwoLfm
+
+/-!
+# Defect-chain conversion of two-mode operators
+
+The module computes Jordan-Wigner signs and the action of creation and annihilation products on
+basis vectors. These calculations identify parity-preserving fermionic two-mode operators with
+qubit operators conjugated by `swapDefectChain`, and establish the inverse conversion.
+
+These constructions belong to the formalization of [BravyiKitaev2002].
+
+## Main statements
+
+* `lfmUnit2_eq_chain`: converts a parity-compatible fermionic matrix unit.
+* `lfmApply2_eq_qubitApply2_chain`: converts a parity-preserving two-mode matrix.
+* `qubitApply2_eq_chain_lfm`: gives the reverse conversion.
+
+## References
+
+* [Bravyi and Kitaev, 2002][BravyiKitaev2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +38,7 @@ open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 
 namespace Qatlib.Papers.FermionicComp00.MainResults.SwapDefect
 
+/-- The Jordan-Wigner sign is the product of occupation signs over positions preceding `i`. -/
 theorem jwSign_eq_prod {m : ℕ} (i : Fin m) (x : Reg m) :
     jwSign i x = ∏ s : Fin m, (if s.val < i.val then (if x s then (-1 : ℂ) else 1) else 1) := by
   rw [jwSign_eq, ← Finset.prod_pow_eq_pow_sum]
@@ -26,6 +48,7 @@ theorem jwSign_eq_prod {m : ℕ} (i : Fin m) (x : Reg m) :
     by_cases hx : x s <;> simp [hs, hx]
   · rw [if_neg hs]; simp [hs]
 
+/-- Updating the bit at `i` does not change its own Jordan-Wigner sign. -/
 theorem jwSign_update_self {m : ℕ} (i : Fin m) (x : Reg m) (b : Bool) :
     jwSign i (Function.update x i b) = jwSign i x := by
   rw [jwSign_eq_prod, jwSign_eq_prod]
@@ -37,6 +60,8 @@ theorem jwSign_update_self {m : ℕ} (i : Fin m) (x : Reg m) (b : Bool) :
     rw [Function.update_apply, if_neg hsi]
   · rw [if_neg hs, if_neg hs]
 
+/-- Updating a bit preceding `i` makes the product of the new and old Jordan-Wigner signs equal
+to the product of the new and old occupation signs at that bit. -/
 theorem jwSign_update_lt_mul {m : ℕ} {i t : Fin m} (h : t.val < i.val) (x : Reg m) (b : Bool) :
     jwSign i (Function.update x t b) * jwSign i x =
       (if b then (-1 : ℂ) else 1) * (if x t then (-1 : ℂ) else 1) := by
@@ -60,6 +85,8 @@ theorem jwSign_update_lt_mul {m : ℕ} {i t : Fin m} (h : t.val < i.val) (x : Re
   rw [hrest, mul_one]
   simp [h, Function.update_self]
 
+/-- Updating a bit preceding `i` multiplies its Jordan-Wigner sign by the product of the old and
+new occupation signs at that bit. -/
 theorem jwSign_update_lt {m : ℕ} {i t : Fin m} (h : t.val < i.val) (x : Reg m) (b : Bool) :
     jwSign i (Function.update x t b) =
       jwSign i x * ((if b then (-1 : ℂ) else 1) * (if x t then (-1 : ℂ) else 1)) := by
@@ -72,28 +99,39 @@ theorem jwSign_update_lt {m : ℕ} {i t : Fin m} (h : t.val < i.val) (x : Reg m)
           rw [jwSign_update_lt_mul h]
     _ = jwSign i x * ((if b then (-1 : ℂ) else 1) * (if x t then (-1 : ℂ) else 1)) := by ring
 
+/-- Every even natural power of a Jordan-Wigner sign is one. -/
 theorem jwSign_pow_even {m : ℕ} (i : Fin m) (x : Reg m) (k : ℕ) :
     jwSign i x ^ (2 * k) = 1 := by
   rw [pow_mul, pow_two, jwSign_sq, one_pow]
 
+/-- The register obtained by clearing position `i` when `b` is true and leaving the register
+unchanged otherwise. -/
 def clearBit {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) : Reg m :=
   if b then Function.update x i false else x
 
+/-- The register obtained by setting position `i` when `b` is true and leaving the register
+unchanged otherwise. -/
 def setBit {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) : Reg m :=
   if b then Function.update x i true else x
 
+/-- Clearing a bit with control `true` updates that position to `false`. -/
 theorem clearBit_true_eq {m : ℕ} (i : Fin m) (x : Reg m) :
     clearBit i true x = Function.update x i false := by simp [clearBit]
 
+/-- Clearing a bit with control `false` leaves the register unchanged. -/
 theorem clearBit_false_eq {m : ℕ} (i : Fin m) (x : Reg m) : clearBit i false x = x := by
   simp [clearBit]
 
+/-- The Boolean-controlled power of annihilation acts on a basis vector by conditional clearing
+with its Jordan-Wigner sign, or gives zero when the required occupation is absent. -/
 theorem annihilation_pow_mulVec_ket {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     annihilation i ^ bitNat b *ᵥ ket x =
       (if (if b then x i else true) then
         (jwSign i x ^ bitNat b) • ket (clearBit i b x) else 0) := by
   cases b <;> simp [bitNat, clearBit, annihilation_mulVec_ket]
 
+/-- The Boolean-controlled power of creation acts on a basis vector by conditional setting with
+its Jordan-Wigner sign, or gives zero when the required vacancy is absent. -/
 theorem creation_pow_mulVec_ket {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     creation i ^ bitNat b *ᵥ ket x =
       (if (if b then !x i else true) then
@@ -104,6 +142,7 @@ theorem creation_pow_mulVec_ket {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     rw [creation_mulVec_ket]
     cases x i <;> simp [setBit]
 
+/-- Conditional clearing leaves every position different from the selected one unchanged. -/
 theorem clearBit_apply_ne {m : ℕ} {i k : Fin m} (h : k ≠ i) (b : Bool) (x : Reg m) :
     clearBit i b x k = x k := by
   unfold clearBit
@@ -111,6 +150,7 @@ theorem clearBit_apply_ne {m : ℕ} {i k : Fin m} (h : k ≠ i) (b : Bool) (x : 
   · rw [if_pos hb, Function.update_apply, if_neg h]
   · rw [if_neg hb]
 
+/-- Conditional setting leaves every position different from the selected one unchanged. -/
 theorem setBit_apply_ne {m : ℕ} {i k : Fin m} (h : k ≠ i) (b : Bool) (x : Reg m) :
     setBit i b x k = x k := by
   unfold setBit
@@ -118,6 +158,8 @@ theorem setBit_apply_ne {m : ℕ} {i k : Fin m} (h : k ≠ i) (b : Bool) (x : Re
   · rw [if_pos hb, Function.update_apply, if_neg h]
   · rw [if_neg hb]
 
+/-- Clearing an occupied earlier bit, when requested, multiplies the later Jordan-Wigner sign by
+the corresponding power of negative one. -/
 theorem jwSign_clearBit {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 : Bool)
     (x : Reg m) (hj : (if q0 then x j else true) = true) :
     jwSign k (clearBit j q0 x) = jwSign k x * (-1 : ℂ) ^ (bitNat q0) := by
@@ -129,6 +171,8 @@ theorem jwSign_clearBit {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 : Bool
   · rw [if_neg hb]
     simp [bitNat, hb]
 
+/-- Two Boolean-controlled annihilations at ordered positions clear the selected occupations
+with the product of Jordan-Wigner signs and the crossing sign, and otherwise give zero. -/
 theorem down_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 q1 : Bool)
     (x : Reg m) :
     (annihilation k ^ bitNat q1 * annihilation j ^ bitNat q0) *ᵥ ket x =
@@ -151,6 +195,8 @@ theorem down_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 q1 : B
     · rw [hk_eq, if_neg hk, if_neg (fun hc => hk hc.2), smul_zero]
   · rw [if_neg hj, Matrix.mulVec_zero, if_neg (fun hc => hj hc.1)]
 
+/-- When the selected occupations equal `q0` and `q1`, the two controlled annihilations give the
+cleared basis vector with the specified Jordan-Wigner and crossing signs. -/
 theorem down_mulVec_ket_of {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 q1 : Bool)
     (x : Reg m) (hx0 : x j = q0) (hx1 : x k = q1) :
     (annihilation k ^ bitNat q1 * annihilation j ^ bitNat q0) *ᵥ ket x =
@@ -164,6 +210,7 @@ theorem down_mulVec_ket_of {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 q1 
     · rw [hx1]; cases q1 <;> simp
   rw [if_pos hcond]
 
+/-- Conditional setting at `i` leaves the Jordan-Wigner sign at `i` unchanged. -/
 theorem jwSign_setBit_self {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     jwSign i (setBit i b x) = jwSign i x := by
   unfold setBit
@@ -171,6 +218,7 @@ theorem jwSign_setBit_self {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
   · rw [if_pos hb]; exact jwSign_update_self i x true
   · rw [if_neg hb]
 
+/-- Conditional setting at a later position leaves an earlier Jordan-Wigner sign unchanged. -/
 theorem jwSign_setBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) (x : Reg m) :
     jwSign i (setBit k b x) = jwSign i x := by
   rw [jwSign_eq_prod, jwSign_eq_prod]
@@ -181,6 +229,8 @@ theorem jwSign_setBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) 
     rw [setBit_apply_ne hsk]
   · rw [if_neg hs, if_neg hs]
 
+/-- On a register vacant at two ordered positions, controlled creation produces the set register
+with the product of the two Jordan-Wigner sign powers. -/
 theorem up_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p0 p1 : Bool)
     (x : Reg m) (hx : x j = false ∧ x k = false) :
     (creation j ^ bitNat p0 * creation k ^ bitNat p1) *ᵥ ket x =
@@ -201,10 +251,13 @@ theorem up_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p0 p1 : Boo
   have hck : jwSign k (setBit k p1 x) = jwSign k x := jwSign_setBit_self k p1 x
   rw [hcj, hck, mul_comm]
 
+/-- The scalar product of intermediate-mode occupation signs forming the diagonal of
+`swapDefectChain`. -/
 def chainDiag {m : ℕ} (j k : Fin m) (x : Reg m) : ℂ :=
   ∏ s ∈ (Finset.univ.filter (fun s : Fin m => j < s ∧ s < k)),
     ((-1 : ℂ) ^ (if x s ∧ x k then 1 else 0))
 
+/-- A basis vector is an eigenvector of the swap-defect chain with eigenvalue `chainDiag j k x`. -/
 theorem swapDefectChain_mulVec_ket {m : ℕ} (j k : Fin m) (x : Reg m) :
     swapDefectChain j k *ᵥ ket x = chainDiag j k x • ket x := by
   rw [swapDefectChain]
@@ -212,9 +265,13 @@ theorem swapDefectChain_mulVec_ket {m : ℕ} (j k : Fin m) (x : Reg m) :
   rw [Matrix.mulVec_diagonal, Pi.smul_apply, ket_apply]
   by_cases hy : y = x <;> simp [hy, chainDiag]
 
+/-- Converting a Boolean conjunction to a natural number gives the product of the two
+Boolean-to-natural values. -/
 theorem bitNat_and (a b : Bool) : bitNat (a && b) = bitNat a * bitNat b := by
   cases a <;> cases b <;> simp [bitNat]
 
+/-- At ordered endpoints, the later Jordan-Wigner sign splits into the earlier sign, the
+occupation sign at the earlier endpoint, and the intermediate sign product. -/
 theorem jwSign_split {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (x : Reg m) :
     jwSign k x = jwSign j x * ((-1 : ℂ) ^ (bitNat (x j))) * jwSignProd j k x := by
   set g : Fin m → ℂ := fun s => if x s then (-1 : ℂ) else 1 with hg
@@ -258,6 +315,8 @@ theorem jwSign_split {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (x : Reg m) :
     simp [hg, bitNat]
   rw [jwSign_eq_prod, jwSign_eq_prod, jwSignProd, hconv k, hconv j, hsplit, hgj, hgprod]
 
+/-- The chain diagonal is the intermediate Jordan-Wigner sign product raised to the occupation
+bit at `k`. -/
 theorem chainDiag_eq {m : ℕ} (j k : Fin m) (x : Reg m) :
     chainDiag j k x = jwSignProd j k x ^ (bitNat (x k)) := by
   rw [chainDiag, jwSignProd, ← Finset.prod_pow]
@@ -266,6 +325,7 @@ theorem chainDiag_eq {m : ℕ} (j k : Fin m) (x : Reg m) :
   rw [← pow_mul, ← bitNat_and]
   simp [bitNat, Bool.and_eq_true]
 
+/-- Updating either endpoint leaves the intermediate Jordan-Wigner sign product unchanged. -/
 theorem jwSignProd_update {m : ℕ} {j k : Fin m} (a b : Bool) (x : Reg m) :
     jwSignProd j k (Function.update (Function.update x j a) k b) = jwSignProd j k x := by
   rw [jwSignProd, jwSignProd]
@@ -275,14 +335,20 @@ theorem jwSignProd_update {m : ℕ} {j k : Fin m} (a b : Bool) (x : Reg m) :
   have hsk : s ≠ k := by intro h; rw [h] at hs; exact absurd hs.2 (lt_irrefl _)
   rw [Function.update_apply, if_neg hsk, Function.update_apply, if_neg hsj]
 
+/-- The sign coefficient combining endpoint Jordan-Wigner powers and crossing signs for a
+two-mode fermionic matrix unit. -/
 def twoCoef {m : ℕ} (p q : Reg 2) (j k : Fin m) (x : Reg m) : ℂ :=
   jwSign j x ^ (bitNat (p 0) + bitNat (q 0)) *
     jwSign k x ^ (bitNat (p 1) + bitNat (q 1)) *
     (-1 : ℂ) ^ (bitNat (q 0) * (bitNat (q 1) + bitNat (p 1)))
 
+/-- The intermediate Jordan-Wigner sign product raised to the sum of the input and output
+occupation bits at the second selected mode. -/
 def pairCoef {m : ℕ} (p q : Reg 2) (j k : Fin m) (x : Reg m) : ℂ :=
   jwSignProd j k x ^ (bitNat (p 1) + bitNat (q 1))
 
+/-- For ordered modes and even total input-output occupation parity, the fermionic coefficient
+equals the intermediate pair coefficient when the first input occupation matches. -/
 theorem twoCoef_eq_pairCoef {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) (hpar : (bitNat (p 0) + bitNat (p 1) + bitNat (q 0) + bitNat (q 1)) % 2 = 0)
     (hx0 : x j = q 0) :
@@ -297,6 +363,8 @@ theorem twoCoef_eq_pairCoef {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q :
     try ring_nf
     try simp [hsq]
 
+/-- The product of chain diagonals before and after replacing the endpoint occupations equals
+`pairCoef`, when the second input occupation matches. -/
 theorem chainDiag_update {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) (hx1 : x k = q 1) :
     chainDiag j k x * chainDiag j k (Function.update (Function.update x j (p 0)) k (p 1))
@@ -304,6 +372,7 @@ theorem chainDiag_update {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Re
   rw [chainDiag_eq, chainDiag_eq, jwSignProd_update, hx1, Function.update_self, pairCoef,
     ← pow_add, Nat.add_comm (bitNat (q 1)) (bitNat (p 1))]
 
+/-- Conditional clearing at `i` leaves its own Jordan-Wigner sign unchanged. -/
 theorem jwSign_clearBit_self {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     jwSign i (clearBit i b x) = jwSign i x := by
   unfold clearBit
@@ -311,6 +380,7 @@ theorem jwSign_clearBit_self {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
   · rw [if_pos hb]; exact jwSign_update_self i x false
   · rw [if_neg hb]
 
+/-- Updating a later position leaves an earlier Jordan-Wigner sign unchanged. -/
 theorem jwSign_update_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) (x : Reg m) :
     jwSign i (Function.update x k b) = jwSign i x := by
   rw [jwSign_eq_prod, jwSign_eq_prod]
@@ -321,6 +391,7 @@ theorem jwSign_update_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) 
     rw [Function.update_apply, if_neg hsk]
   · rw [if_neg hs, if_neg hs]
 
+/-- Conditional clearing at a later position leaves an earlier Jordan-Wigner sign unchanged. -/
 theorem jwSign_clearBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) (x : Reg m) :
     jwSign i (clearBit k b x) = jwSign i x := by
   unfold clearBit
@@ -328,9 +399,12 @@ theorem jwSign_clearBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool
   · rw [if_pos hb]; exact jwSign_update_gt h false x
   · rw [if_neg hb]
 
+/-- Replacing a true Boolean by false and leaving a false Boolean unchanged always gives false. -/
 theorem ite_false_self (b : Bool) : (if b then false else b) = false := by
   cases b <;> rfl
 
+/-- Replacing both selected occupations agrees with clearing the matching input occupations and
+then setting the output occupations. -/
 theorem update_update_eq_setBit {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) (hx0 : x j = q 0) (hx1 : x k = q 1) :
     Function.update (Function.update x j (p 0)) k (p 1) =
@@ -347,6 +421,7 @@ theorem update_update_eq_setBit {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p
           hq1]
       · simp [setBit, clearBit, Function.update_apply, htj, htk]
 
+/-- Clearing the matching input occupations leaves both selected modes vacant. -/
 theorem clearBit_pair_vac {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q : Reg 2)
     (x : Reg m) (hx0 : x j = q 0) (hx1 : x k = q 1) :
     (clearBit k (q 1) (clearBit j (q 0) x)) j = false ∧
@@ -364,17 +439,22 @@ theorem clearBit_pair_vac {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q : Reg
       exact hq1
     · rw [clearBit_true_eq, Function.update_self]
 
+/-- Clearing both selected modes leaves the Jordan-Wigner sign at the earlier mode unchanged. -/
 theorem jwSign_j_clearBit_pair {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q : Reg 2)
     (x : Reg m) :
     jwSign j (clearBit k (q 1) (clearBit j (q 0) x)) = jwSign j x := by
   rw [jwSign_clearBit_gt hjk, jwSign_clearBit_self]
 
+/-- Clearing both selected modes changes the later Jordan-Wigner sign by the sign of the
+requested earlier annihilation, under its occupation condition. -/
 theorem jwSign_k_clearBit_pair {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q : Reg 2)
     (x : Reg m) (hj : (if q 0 then x j else true) = true) :
     jwSign k (clearBit k (q 1) (clearBit j (q 0) x)) =
       jwSign k x * (-1 : ℂ) ^ (bitNat (q 0)) := by
   rw [jwSign_clearBit_self, jwSign_clearBit hjk (q 0) x hj]
 
+/-- The fermionic matrix unit factors into its creation operators and two-mode vacuum
+projection, followed by its annihilation operators. -/
 theorem lfmUnit2_assoc {m : ℕ} (p q : Reg 2) (j k : Fin m) :
     lfmUnit2 p q j k =
       (creation j ^ bitNat (p 0) * creation k ^ bitNat (p 1) *
@@ -383,6 +463,7 @@ theorem lfmUnit2_assoc {m : ℕ} (p q : Reg 2) (j k : Fin m) :
   rw [lfmUnit2]
   exact mul_assoc _ _ _
 
+/-- The product of the annihilation and creation sign factors is the coefficient `twoCoef`. -/
 theorem coef_mul_eq_twoCoef {m : ℕ} (p q : Reg 2) (j k : Fin m) (x : Reg m) :
     (jwSign j x ^ bitNat (q 0) * jwSign k x ^ bitNat (q 1) *
         (-1 : ℂ) ^ (bitNat (q 0) * bitNat (q 1))) *
@@ -394,6 +475,8 @@ theorem coef_mul_eq_twoCoef {m : ℕ} (p q : Reg 2) (j k : Fin m) (x : Reg m) :
     simp [twoCoef, bitNat, hp0, hp1, hq0, hq1]
     try ring_nf
 
+/-- On a matching input basis configuration, the fermionic matrix unit replaces the two
+occupations and multiplies by `twoCoef`. -/
 theorem lfmUnit2_mulVec_ket_pos {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) (hx0 : x j = q 0) (hx1 : x k = q 1) :
     lfmUnit2 p q j k *ᵥ ket x =
@@ -416,6 +499,8 @@ theorem lfmUnit2_mulVec_ket_pos {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p
   congr 1
   rw [hpj, hpk, coef_mul_eq_twoCoef]
 
+/-- A fermionic two-mode matrix unit annihilates basis configurations whose selected occupations
+do not match its input label. -/
 theorem lfmUnit2_mulVec_ket_neg {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) (hnc : ¬ (x j = q 0 ∧ x k = q 1)) :
     lfmUnit2 p q j k *ᵥ ket x = 0 := by
@@ -456,6 +541,8 @@ theorem lfmUnit2_mulVec_ket_neg {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p
     rw [hvac0, Matrix.mulVec_zero, smul_zero]
   · rw [if_neg hc, Matrix.mulVec_zero]
 
+/-- A fermionic two-mode matrix unit conditionally replaces the selected occupations with
+coefficient `twoCoef`, and is zero on nonmatching inputs. -/
 theorem lfmUnit2_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) :
     lfmUnit2 p q j k *ᵥ ket x =
@@ -466,6 +553,8 @@ theorem lfmUnit2_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q :
   · rw [if_pos hc]; exact lfmUnit2_mulVec_ket_pos hjk p q x hc.1 hc.2
   · rw [if_neg hc]; exact lfmUnit2_mulVec_ket_neg hjk p q x hc
 
+/-- Conjugating a qubit matrix unit by the defect chain conditionally replaces the selected
+occupations with coefficient `pairCoef`. See [BravyiKitaev2002]. -/
 theorem swapDefectChain_conj_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
     (p q : Reg 2) (x : Reg m) :
     (swapDefectChain j k * qubitUnit2 p q j k * swapDefectChain j k) *ᵥ ket x =
@@ -478,6 +567,8 @@ theorem swapDefectChain_conj_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k
       chainDiag_update hjk p q x hc.2]
   · rw [if_neg hc, smul_zero, Matrix.mulVec_zero, if_neg hc]
 
+/-- For ordered modes and even total input-output occupation parity, the fermionic matrix unit
+is the qubit matrix unit conjugated by the defect chain. [BravyiKitaev2002] -/
 theorem lfmUnit2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (hpar : (bitNat (p 0) + bitNat (p 1) + bitNat (q 0) + bitNat (q 1)) % 2 = 0) :
     lfmUnit2 p q j k = swapDefectChain j k * qubitUnit2 p q j k * swapDefectChain j k := by
@@ -489,6 +580,8 @@ theorem lfmUnit2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : R
   · rw [if_pos hc, if_pos hc, twoCoef_eq_pairCoef hjk p q x hpar hc.1]
   · rw [if_neg hc, if_neg hc]
 
+/-- For ordered modes and even total input-output occupation parity, the qubit matrix unit is
+the fermionic matrix unit conjugated by the defect chain. See [BravyiKitaev2002]. -/
 theorem qubitUnit2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
     (hpar : (bitNat (p 0) + bitNat (p 1) + bitNat (q 0) + bitNat (q 1)) % 2 = 0) :
     qubitUnit2 p q j k = swapDefectChain j k * lfmUnit2 p q j k * swapDefectChain j k := by
@@ -496,6 +589,8 @@ theorem qubitUnit2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q :
   rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, swapDefectChain_mul_self, Matrix.one_mul,
     Matrix.mul_assoc, swapDefectChain_mul_self, Matrix.mul_one]
 
+/-- A parity-preserving two-mode matrix has fermionic placement equal to its qubit matrix-unit
+expansion conjugated by the defect chain. -/
 theorem lfmApply2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
     (X : Matrix (Reg 2) (Reg 2) ℂ)
     (hpar : ∀ p q : Reg 2, X p q ≠ 0 →
@@ -511,6 +606,8 @@ theorem lfmApply2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
   · rw [hX, zero_smul, zero_smul]
   · rw [lfmUnit2_eq_chain hjk p q (hpar p q hX)]
 
+/-- The qubit matrix-unit expansion of a parity-preserving matrix equals its fermionic placement
+conjugated by the defect chain. -/
 theorem qubitSum_eq_chain_lfm {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
     (X : Matrix (Reg 2) (Reg 2) ℂ)
     (hpar : ∀ p q : Reg 2, X p q ≠ 0 →
@@ -524,6 +621,8 @@ theorem qubitSum_eq_chain_lfm {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
   · rw [hX, zero_smul, zero_smul]
   · rw [qubitUnit2_eq_chain hjk p q (hpar p q hX)]
 
+/-- At distinct positions, qubit placement is the sum of placed matrix units weighted by the
+matrix entries. See [BravyiKitaev2002]. -/
 theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin m}
     (hjk : j ≠ k) :
     qubitApply2 X j k = ∑ p : Reg 2, ∑ q : Reg 2, X p q • qubitUnit2 p q j k := by
@@ -629,6 +728,8 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
       rw [if_neg hne]
     rw [hprod0, mul_zero]
 
+/-- For ordered modes, fermionic placement of a parity-preserving two-mode matrix equals its
+qubit placement conjugated by the defect chain. [BravyiKitaev2002] -/
 theorem lfmApply2_eq_qubitApply2_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
     (X : Matrix (Reg 2) (Reg 2) ℂ)
     (hpar : ∀ p q : Reg 2, X p q ≠ 0 →
@@ -636,6 +737,8 @@ theorem lfmApply2_eq_qubitApply2_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.
     lfmApply2 X j k = swapDefectChain j k * qubitApply2 X j k * swapDefectChain j k := by
   rw [lfmApply2_eq_chain hjk X hpar, ← qubitApply2_eq_sum X (ne_of_lt hjk)]
 
+/-- For ordered modes, qubit placement of a parity-preserving two-mode matrix equals its
+fermionic placement conjugated by the defect chain. [BravyiKitaev2002] -/
 theorem qubitApply2_eq_chain_lfm {m : ℕ} {j k : Fin m} (hjk : j.val < k.val)
     (X : Matrix (Reg 2) (Reg 2) ℂ)
     (hpar : ∀ p q : Reg 2, X p q ≠ 0 →

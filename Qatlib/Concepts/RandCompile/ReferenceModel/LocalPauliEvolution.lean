@@ -9,6 +9,28 @@ import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Mathlib.Data.List.FinRange
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+/-!
+# Local Pauli evolution circuits
+
+This module constructs Pauli strings and explicit circuits that diagonalize them using local
+basis changes and parity gates. `localPauliExactSteps` realizes Pauli evolution up to a global
+phase, while `localPauliRationalSteps` replaces the central phase by a counted rational Cayley
+approximation. The Pauli circuit construction follows the standard framework of
+[NielsenChuang2010].
+
+## Main statements
+
+* `local_pauli_actual_diagonalization`: correctness and legality of the diagonalizing circuit.
+* `local_pauli_exact_and_finite_phase_gate_tables`: exact semantics and finite circuit costs.
+* `local_pauli_rational_actual_reference_error`: a trace norm error bound with an arbitrary
+  finite reference.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,17 +55,24 @@ namespace Qatlib.Concepts.RandCompile.ReferenceModel
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The single-qubit operator indexed by `0`, `1`, `2`, or `3`, corresponding to the identity,
+Pauli X, Pauli Y, or Pauli Z. -/
 def localPauliMatrix (a : Fin 4) : Operator 2 := ![1,pauliX,pauliY,pauliZ] a
 
+/-- The tensor product of the single-qubit Pauli operators specified by `v`, indexed on a
+register of dimension `2^q`. -/
 noncomputable def pauliStringMatrix (q : ℕ) (v : Fin q → Fin 4) : Operator (2^q) :=
   tensorPauliProduct q (fun i => localPauliMatrix (v i))
 
+/-- The set of wires on which the Pauli label is nonzero. -/
 def pauliStringSupport (q : ℕ) (v : Fin q → Fin 4) : Finset (Fin q) :=
   Finset.univ.filter (fun i => v i ≠ 0)
 
+/-- The least wire in the Pauli string support, or `none` when the support is empty. -/
 def pauliStringTarget (q : ℕ) (v : Fin q → Fin 4) : Option (Fin q) :=
   ((pauliStringSupport q v).sort (· ≤ ·)).head?
 
+/-- Each indexed local Pauli operator equals its conjugate transpose. -/
 private theorem localPauliMatrix_hermitian (a : Fin 4) :
     (localPauliMatrix a)ᴴ = localPauliMatrix a := by
   fin_cases a
@@ -52,6 +81,7 @@ private theorem localPauliMatrix_hermitian (a : Fin 4) :
   · exact pauliMatrix_conjTranspose 1
   · exact pauliMatrix_conjTranspose 2
 
+/-- Each indexed local Pauli operator squares to the identity. -/
 private theorem localPauliMatrix_square (a : Fin 4) :
     localPauliMatrix a * localPauliMatrix a = 1 := by
   fin_cases a
@@ -60,6 +90,8 @@ private theorem localPauliMatrix_square (a : Fin 4) :
   · exact pauliMatrix_mul_self 1
   · exact pauliMatrix_mul_self 2
 
+/-- Every Pauli string is Hermitian and unitary with operator norm one, and its support consists
+exactly of the nonzero labels. -/
 theorem local_pauli_string_contract_and_support :
     ∀ (q : ℕ) (v : Fin q → Fin 4),
       (pauliStringMatrix q v).IsHermitian ∧
@@ -77,17 +109,22 @@ theorem local_pauli_string_contract_and_support :
   refine ⟨hh,hu,?_,fun i => by simp [pauliStringSupport]⟩
   exact CStarRing.norm_of_mem_unitary hu
 
+/-- The local basis-change gates that send the Pauli label on wire `w` to the Z basis, with no
+gates for identity or Z labels. -/
 noncomputable def pauliBasisSteps (q : ℕ) (v : Fin q → Fin 4) (w : Fin q) :
     List (ReflectionGate q) :=
   if v w = 1 then [Sum.inl (w,Hadamard)]
   else if v w = 2 then [Sum.inl (w,Rz (-Real.pi/2)),Sum.inl (w,Hadamard)]
   else []
 
+/-- The ordered CNOT gates from all supported wires other than `target` into `target`. -/
 def pauliParitySteps (q : ℕ) (v : Fin q → Fin 4) (target : Fin q) :
     List (ReflectionGate q) :=
   (((pauliStringSupport q v).sort (· ≤ ·)).filter (fun w => w ≠ target)).map
     (fun w => Sum.inr (w,target))
 
+/-- The circuit consisting of local Pauli basis changes followed by parity accumulation into the
+selected support wire. -/
 noncomputable def pauliDiagonalizeSteps (q : ℕ) (v : Fin q → Fin 4) :
     List (ReflectionGate q) :=
   (List.ofFn id).flatMap (pauliBasisSteps q v) ++
@@ -95,6 +132,8 @@ noncomputable def pauliDiagonalizeSteps (q : ℕ) (v : Fin q → Fin 4) :
     | none => []
     | some w => pauliParitySteps q v w
 
+/-- The diagonalize, exact phase, and inverse-diagonalize circuit for Pauli evolution, with an
+empty circuit for the identity string. -/
 noncomputable def localPauliExactSteps (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) :
     List (ReflectionGate q) :=
   match pauliStringTarget q v with
@@ -102,12 +141,15 @@ noncomputable def localPauliExactSteps (q : ℕ) (v : Fin q → Fin 4) (u : ℚ)
   | some w => pauliDiagonalizeSteps q v ++ [Sum.inl (w,Rz (2*(u:ℝ)))] ++
     reflectionAdjoint (pauliDiagonalizeSteps q v)
 
+/-- The rational Cayley phase approximation at angle `2*u`, together with its four arithmetic
+operation counts. -/
 def localPauliPhaseData (u : ℚ) (k : ℕ) : GaussianRat × ℕ × ℕ × ℕ × ℕ :=
   let init := countedCayleyInit (2*u) k
   let phase := squareLoop init.1 k
   (phase.1, init.2.1, init.2.2.1 + phase.2.1,
     init.2.2.2.1 + phase.2.2, init.2.2.2.2)
 
+/-- The Pauli evolution circuit using the counted rational phase approximation at precision `k`. -/
 noncomputable def localPauliRationalSteps (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k : ℕ) :
     List (ReflectionGate q) :=
   match pauliStringTarget q v with
@@ -117,12 +159,16 @@ noncomputable def localPauliRationalSteps (q : ℕ) (v : Fin q → Fin 4) (u : �
     pauliDiagonalizeSteps q v ++ [Sum.inl (w,rationalPhaseGate phase.1)] ++
       reflectionAdjoint (pauliDiagonalizeSteps q v)
 
+/-- The gate cost `2*cX + 4*cY + 2*(w-1) + 1` for a nonempty support of size `w`, and zero for
+empty support. -/
 def localPauliGateCost (q : ℕ) (v : Fin q → Fin 4) : ℕ :=
   let w := (pauliStringSupport q v).card
   let cX := (Finset.univ.filter (fun i => v i = 1)).card
   let cY := (Finset.univ.filter (fun i => v i = 2)).card
   if w = 0 then 0 else 2*cX + 4*cY + 2*(w-1) + 1
 
+/-- The computed phase equals `countedCayleyPhase (2*u) k`, and its operation counts are `(k,
+4*k+3, 2*k+2, 3)`. -/
 theorem localPauliPhaseData_value_counts (u : ℚ) (k : ℕ) :
     (localPauliPhaseData u k).1 = (countedCayleyPhase (2*u) k).1 ∧
     (localPauliPhaseData u k).2 = (k,4*k+3,2*k+2,3) := by
@@ -135,10 +181,13 @@ theorem localPauliPhaseData_value_counts (u : ℚ) (k : ℕ) :
     simp only [hm,ha]
     simp only [Nat.add_comm]
 
+/-- A wire selected by `pauliStringTarget` belongs to the Pauli string support. -/
 theorem pauliStringTarget_mem (q : ℕ) (v : Fin q → Fin 4) (w : Fin q)
     (h : pauliStringTarget q v = some w) : w ∈ pauliStringSupport q v := by
   exact (Finset.mem_sort (· ≤ ·)).mp (List.mem_of_mem_head? h)
 
+/-- When no target wire is selected, the Pauli string is the identity and its support has
+cardinality zero. -/
 theorem pauliStringTarget_none (q : ℕ) (v : Fin q → Fin 4)
     (h : pauliStringTarget q v = none) :
     pauliStringMatrix q v = 1 ∧ (pauliStringSupport q v).card = 0 := by
@@ -155,6 +204,7 @@ theorem pauliStringTarget_none (q : ℕ) (v : Fin q → Fin 4)
   · simp only [pauliStringMatrix,hv,localPauliMatrix,Matrix.cons_val_zero,tensorPauliProduct_one]
   · simp [hs]
 
+/-- The local Pauli basis-change circuit satisfies `reflectionLegal`. -/
 private theorem pauliBasisSteps_legal (q : ℕ) (v : Fin q → Fin 4) (w : Fin q) :
     reflectionLegal (pauliBasisSteps q v w) := by
   unfold pauliBasisSteps reflectionLegal
@@ -169,6 +219,7 @@ private theorem pauliBasisSteps_legal (q : ℕ) (v : Fin q → Fin 4) (w : Fin q
   · intro g hg
     cases hg
 
+/-- The full Pauli diagonalization circuit satisfies `reflectionLegal`. -/
 theorem pauliDiagonalizeSteps_legal (q : ℕ) (v : Fin q → Fin 4) :
     reflectionLegal (pauliDiagonalizeSteps q v) := by
   intro g hg
@@ -184,6 +235,7 @@ theorem pauliDiagonalizeSteps_legal (q : ℕ) (v : Fin q → Fin 4) :
       change c ≠ w
       exact of_decide_eq_true hc
 
+/-- Both the exact and rational Pauli evolution circuits satisfy `reflectionLegal`. -/
 theorem localPauliSteps_legal (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k : ℕ) :
     reflectionLegal (localPauliExactSteps q v u) ∧
       reflectionLegal (localPauliRationalSteps q v u k) := by
@@ -210,13 +262,16 @@ theorem localPauliSteps_legal (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k : ℕ
         exact (rational_cayley_gate_unitarity_and_target_error (2*u) k).1
       · exact ha g hg
 
+/-- The single-qubit change-of-basis matrix for each of the four Pauli labels. -/
 private noncomputable def localPauliBasis (a : Fin 4) : Operator 2 :=
   ![1,pauliBasisMatrix 0,pauliBasisMatrix 1,1] a
 
+/-- Relabeling the Boolean-indexed Hadamard matrix gives the basis-change matrix for Pauli X. -/
 private theorem hadamard_pauliBasis : relabelGate boolEquivFin2 Hadamard = pauliBasisMatrix 0 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [relabelGate, boolEquivFin2, Hadamard, pauliBasisMatrix]
 
+/-- The phase gate `Rz (-Real.pi/2)` is diagonal with entries `1` and `-Complex.I`. -/
 private theorem rz_neg_half_pi : Rz (-Real.pi/2) =
     Matrix.diagonal (fun b : Bool => if b then -Complex.I else 1) := by
   ext i j
@@ -230,6 +285,7 @@ private theorem rz_neg_half_pi : Rz (-Real.pi/2) =
     rw [Complex.exp_neg, Complex.exp_pi_div_two_mul_I]
     exact Complex.inv_I
 
+/-- Relabeling Hadamard after `Rz (-Real.pi/2)` gives the basis-change matrix for Pauli Y. -/
 private theorem y_pauliBasis :
     relabelGate boolEquivFin2 (Hadamard * Rz (-Real.pi/2)) = pauliBasisMatrix 1 := by
   rw [rz_neg_half_pi]
@@ -237,11 +293,15 @@ private theorem y_pauliBasis :
   fin_cases i <;> fin_cases j <;>
     simp [relabelGate, boolEquivFin2, Hadamard, pauliBasisMatrix, Matrix.mul_diagonal]
 
+/-- A gate on one wire equals the tensor product with its relabeled matrix on that wire and
+identities elsewhere. -/
 private theorem wireGate_density (q : ℕ) (w : Fin q) (U : Matrix Bool Bool ℂ) :
     wireGate q w U = pauliProductDensity (fun i => if i = w then relabelGate boolEquivFin2 U else 1) := by
   ext x y
   simp [wireGate, tensorPauliWireGate, tensorPauliProduct, relabelGate]
 
+/-- The local basis-change program has the tensor product matrix with `localPauliBasis (v w)` on
+wire `w`. -/
 private theorem pauliBasisSteps_matrix (q : ℕ) (v : Fin q → Fin 4) (w : Fin q) :
     reflectionProgramMatrix (pauliBasisSteps q v w) =
       pauliProductDensity (fun i => if i = w then localPauliBasis (v w) else 1) := by
@@ -258,6 +318,8 @@ private theorem pauliBasisSteps_matrix (q : ℕ) (v : Fin q → Fin 4) (w : Fin 
   · simp only [pauliBasisSteps,hv,localPauliBasis]
     simp [reflectionProgramMatrix,pauliProductDensity_one]
 
+/-- Basis changes on a list of distinct wires have the tensor product matrix of the selected
+local bases. -/
 private theorem pauliBasisLayers_matrix (q : ℕ) (v : Fin q → Fin 4) (ws : List (Fin q))
     (hws : ws.Nodup) :
     reflectionProgramMatrix (ws.flatMap (pauliBasisSteps q v)) =
@@ -275,6 +337,8 @@ private theorem pauliBasisLayers_matrix (q : ℕ) (v : Fin q → Fin 4) (ws : Li
       simp [hws.1]
     · simp [hi]
 
+/-- Conjugation by the Pauli basis-change matrix sends the corresponding nonidentity Pauli
+matrix to Pauli Z. -/
 private theorem pauliBasisMatrix_push (a : Fin 3) :
     pauliBasisMatrix a * pauliMatrix a * (pauliBasisMatrix a)ᴴ = pauliZ := by
   have hu : pauliBasisMatrix a * (pauliBasisMatrix a)ᴴ = 1 := by
@@ -285,6 +349,8 @@ private theorem pauliBasisMatrix_push (a : Fin 3) :
       (pauliBasisMatrix a * (pauliBasisMatrix a)ᴴ) := by noncomm_ring
     _ = pauliZ := by rw [hu]; simp
 
+/-- The local basis change sends a nonzero Pauli label to Z by conjugation and leaves the
+identity label equal to the identity. -/
 private theorem localPauliBasis_push (a : Fin 4) :
     localPauliBasis a * localPauliMatrix a * (localPauliBasis a)ᴴ =
       if a = 0 then 1 else pauliZ := by
@@ -294,17 +360,23 @@ private theorem localPauliBasis_push (a : Fin 4) :
   · exact pauliBasisMatrix_push 1
   · simp [localPauliBasis,localPauliMatrix]
 
+/-- Applying all local basis-change programs gives the tensor product of their local basis
+matrices. -/
 private theorem pauliBasisFull_matrix (q : ℕ) (v : Fin q → Fin 4) :
     reflectionProgramMatrix ((List.ofFn id).flatMap (pauliBasisSteps q v)) =
       pauliProductDensity (fun i => localPauliBasis (v i)) := by
   simpa using pauliBasisLayers_matrix q v (List.ofFn id) (List.nodup_ofFn.mpr Function.injective_id)
 
+/-- Relabeling a Pauli string onto Boolean registers gives the product of its local Pauli
+matrices. -/
 private theorem pauliStringMatrix_pull (q : ℕ) (v : Fin q → Fin 4) :
     relabelGate (bitVecEquiv q).symm (pauliStringMatrix q v) =
       pauliProductDensity (fun i => localPauliMatrix (v i)) := by
   ext x y
   simp [pauliStringMatrix,tensorPauliProduct,relabelGate]
 
+/-- Conjugating a Pauli string by all local basis changes yields Z on every supported wire and
+identity elsewhere. -/
 private theorem pauliBasisFull_push (q : ℕ) (v : Fin q → Fin 4) :
     reflectionProgramMatrix ((List.ofFn id).flatMap (pauliBasisSteps q v)) *
       relabelGate (bitVecEquiv q).symm (pauliStringMatrix q v) *
@@ -314,16 +386,22 @@ private theorem pauliBasisFull_push (q : ℕ) (v : Fin q → Fin 4) :
     pauliProductDensity_mul,pauliProductDensity_mul]
   simp only [localPauliBasis_push]
 
+/-- The complex sign `-1` for a true bit and `1` for a false bit. -/
 private def pauliBitSign (b : Bool) : ℂ := if b then -1 else 1
+/-- The product of the bit signs over the specified support. -/
 private def pauliSupportSign {q : ℕ} (s : Finset (Fin q)) (x : Reg q) : ℂ :=
   ∏ i ∈ s, pauliBitSign (x i)
+/-- The diagonal register operator whose entries are the parity signs on the specified support. -/
 private def pauliSupportZ {q : ℕ} (s : Finset (Fin q)) : Matrix (Reg q) (Reg q) ℂ :=
   Matrix.diagonal (pauliSupportSign s)
 
+/-- The sign of the exclusive-or of two bits is the product of their signs. -/
 private theorem pauliBitSign_xor (a b : Bool) :
     pauliBitSign (a ^^ b) = pauliBitSign a * pauliBitSign b := by
   cases a <;> cases b <;> simp [pauliBitSign]
 
+/-- A tensor product of diagonal single-qubit matrices is diagonal with entries given by the
+products of local entries. -/
 private theorem density_diagonal {q : ℕ} (d : Fin q → Fin 2 → ℂ) :
     pauliProductDensity (fun i => Matrix.diagonal (d i)) =
       Matrix.diagonal (fun x => ∏ i, d i (boolEquivFin2 (x i))) := by
@@ -333,6 +411,7 @@ private theorem density_diagonal {q : ℕ} (d : Fin q → Fin 2 → ℂ) :
   have he := congrFun (congrFun hx x) y
   simpa [tensorPauliProduct,relabelGate,Matrix.diagonal_apply] using he
 
+/-- The tensor product of Z on a support and identities elsewhere equals `pauliSupportZ`. -/
 private theorem density_supportZ (q : ℕ) (s : Finset (Fin q)) :
     pauliProductDensity (fun i => if i ∈ s then pauliZ else 1) = pauliSupportZ s := by
   have hf : (fun i => if i ∈ s then pauliZ else (1 : Operator 2)) =
@@ -349,6 +428,7 @@ private theorem density_supportZ (q : ℕ) (s : Finset (Fin q)) :
   funext x
   simp [pauliSupportSign,Finset.prod_ite_mem]
 
+/-- A Z gate on wire `w` equals the support-Z operator for the singleton `{w}`. -/
 private theorem wireGate_pauliZ (q : ℕ) (w : Fin q) :
     wireGate q w PauliZ = pauliSupportZ {w} := by
   rw [wireGate_density]
@@ -358,6 +438,8 @@ private theorem wireGate_pauliZ (q : ℕ) (w : Fin q) :
   rw [hz]
   simpa using density_supportZ q {w}
 
+/-- Conjugating a diagonal matrix by an involutive permutation matrix composes its diagonal
+function with that permutation. -/
 private theorem perm_conj_diagonal {I : Type} [Fintype I] [DecidableEq I]
     (σ : I → I) (hσ : Function.Involutive σ) (d : I → ℂ) :
     permMatrix σ * Matrix.diagonal d * (permMatrix σ)ᴴ =
@@ -376,6 +458,8 @@ private theorem perm_conj_diagonal {I : Type} [Fintype I] [DecidableEq I]
     simp [hz]
   · simp
 
+/-- Updating a supported target bit by an unsupported control bit multiplies the support parity
+by the control sign. -/
 private theorem supportSign_cnot {q : ℕ} (s : Finset (Fin q)) (c t : Fin q)
     (ht : t ∈ s) (hc : c ∉ s) (x : Reg q) :
     pauliSupportSign s (Function.update x t (x t ^^ x c)) =
@@ -392,6 +476,8 @@ private theorem supportSign_cnot {q : ℕ} (s : Finset (Fin q)) (c t : Fin q)
     Finset.prod_insert hc,← Finset.mul_prod_erase _ _ ht]
   ring
 
+/-- Conjugating a support-Z operator by a CNOT adds the unsupported control to the support when
+the target is supported. -/
 private theorem cnot_pull_support {q : ℕ} (s : Finset (Fin q)) (c t : Fin q)
     (ht : t ∈ s) (hc : c ∉ s) :
     (cnotGate q c t)ᴴ * pauliSupportZ s * cnotGate q c t =
@@ -408,6 +494,8 @@ private theorem cnot_pull_support {q : ℕ} (s : Finset (Fin q)) (c t : Fin q)
   funext x
   exact supportSign_cnot s c t ht hc x
 
+/-- Pulling a target Z through CNOTs from distinct other wires gives Z parity on the target
+together with those controls. -/
 private theorem pauliParityList_pull (q : ℕ) (t : Fin q) (ws : List (Fin q))
     (hws : ws.Nodup) (ht : t ∉ ws) :
     (reflectionProgramMatrix (ws.map (fun c => Sum.inr (c,t))))ᴴ * wireGate q t PauliZ *
@@ -433,6 +521,8 @@ private theorem pauliParityList_pull (q : ℕ) (t : Fin q) (ws : List (Fin q))
         cnot_pull_support _ _ _ (Finset.mem_insert_self _ _) hc
       _ = _ := by simp [Finset.insert_comm]
 
+/-- Pulling target Z through the Pauli parity program gives Z parity on the full Pauli string
+support. -/
 private theorem pauliParitySteps_pull (q : ℕ) (v : Fin q → Fin 4) (w : Fin q)
     (hw : w ∈ pauliStringSupport q v) :
     (reflectionProgramMatrix (pauliParitySteps q v w))ᴴ * wireGate q w PauliZ *
@@ -449,6 +539,7 @@ private theorem pauliParitySteps_pull (q : ℕ) (v : Fin q → Fin 4) (w : Fin q
     · simp [hi]
   exact (pauliParityList_pull q w ws hn ht).trans (congrArg pauliSupportZ he)
 
+/-- The Pauli parity accumulation program satisfies `reflectionLegal`. -/
 private theorem pauliParitySteps_legal (q : ℕ) (v : Fin q → Fin 4) (w : Fin q) :
     reflectionLegal (pauliParitySteps q v w) := by
   intro g hg
@@ -457,6 +548,8 @@ private theorem pauliParitySteps_legal (q : ℕ) (v : Fin q → Fin 4) (w : Fin 
   change c ≠ w
   exact of_decide_eq_true hc
 
+/-- The diagonalization program is legal and sends a nonidentity Pauli string to target-wire Z
+by conjugation. When no target exists, the string is the identity with empty support. -/
 theorem local_pauli_actual_diagonalization :
     ∀ (q : ℕ) (v : Fin q → Fin 4),
       reflectionLegal (pauliDiagonalizeSteps q v) ∧
@@ -499,6 +592,7 @@ theorem local_pauli_actual_diagonalization :
       _ = (C * Cᴴ) * wireGate q w PauliZ * (C * Cᴴ) := by noncomm_ring
       _ = wireGate q w PauliZ := by rw [hu]; simp
 
+/-- The full basis-change program uses one gate per X label and two gates per Y label. -/
 private theorem pauliBasisFull_length (q : ℕ) (v : Fin q → Fin 4) :
     ((List.ofFn id).flatMap (pauliBasisSteps q v)).length =
       (Finset.univ.filter (fun i => v i = 1)).card +
@@ -520,6 +614,7 @@ private theorem pauliBasisFull_length (q : ℕ) (v : Fin q → Fin 4) :
   · congr 1
     exact (Finset.card_filter _ _).symm
 
+/-- For a supported target, the parity program length is the support cardinality minus one. -/
 private theorem pauliParitySteps_length (q : ℕ) (v : Fin q → Fin 4) (w : Fin q)
     (hw : w ∈ pauliStringSupport q v) :
     (pauliParitySteps q v w).length = (pauliStringSupport q v).card - 1 := by
@@ -533,6 +628,7 @@ private theorem pauliParitySteps_length (q : ℕ) (v : Fin q → Fin 4) (w : Fin
   change ws.length = _
   rw [← List.toFinset_card_of_nodup hn,he,Finset.card_erase_of_mem hw]
 
+/-- The compiled rational Pauli evolution circuit has exactly `localPauliGateCost q v` gates. -/
 theorem localPauliSteps_gateCount (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k : ℕ) :
     GateCount (reflectionCompile (localPauliRationalSteps q v u k)) = localPauliGateCost q v := by
   rw [gateCount_reflectionCompile]
@@ -548,6 +644,7 @@ theorem localPauliSteps_gateCount (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k :
     rw [if_neg hn]
     omega
 
+/-- The Pauli evolution gate cost is at most `6*q+1`. -/
 private theorem localPauliGateCost_le (q : ℕ) (v : Fin q → Fin 4) :
     localPauliGateCost q v ≤ 6*q+1 := by
   classical
@@ -568,6 +665,8 @@ private theorem localPauliGateCost_le (q : ℕ) (v : Fin q → Fin 4) :
   (try dsimp only)
   split_ifs <;> omega
 
+/-- Embedding a diagonal single-qubit gate on wire `w` gives a diagonal register matrix
+determined by the bit on `w`. -/
 private theorem wireGate_diagonal (q : ℕ) (w : Fin q) (d : Bool → ℂ) :
     wireGate q w (Matrix.diagonal d) = Matrix.diagonal (fun x => d (x w)) := by
   classical
@@ -585,6 +684,8 @@ private theorem wireGate_diagonal (q : ℕ) (w : Fin q) (d : Bool → ℂ) :
       simp [Matrix.diagonal_apply_ne _ hw]
     · simp [ho]
 
+/-- The wire phase gate at angle `2*u` equals evolution under wire Z for time `u`, multiplied by
+`exp (I*u)`. -/
 private theorem wireGate_phase_evolution (q : ℕ) (w : Fin q) (u : ℝ) :
     wireGate q w (Rz (2*u)) =
       Complex.exp (Complex.I*(u:ℂ)) • HamiltonianEvolution (wireGate q w PauliZ) u := by
@@ -601,6 +702,7 @@ private theorem wireGate_phase_evolution (q : ℕ) (w : Fin q) (u : ℝ) :
   congr 1
   ring
 
+/-- Matrix exponentiation commutes with relabeling by an equivalence of finite index types. -/
 private theorem local_relabel_exp {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     NormedSpace.exp (relabelGate e A) = relabelGate e (NormedSpace.exp A) := by
@@ -608,6 +710,7 @@ private theorem local_relabel_exp {I J : Type*} [Fintype I] [DecidableEq I]
   exact (NormedSpace.map_exp (Matrix.reindexAlgEquiv ℂ ℂ e)
     (Matrix.reindexAlgEquiv ℂ ℂ e).toLinearMap.continuous_of_finiteDimensional A).symm
 
+/-- Hamiltonian evolution commutes with conjugation by a unitary change of basis. -/
 private theorem local_evolution_conjugate {I : Type} [Fintype I] [DecidableEq I]
     (D Z : Matrix I I ℂ) (hD : D ∈ Matrix.unitaryGroup I ℂ) (u : ℝ) :
     HamiltonianEvolution (Dᴴ * Z * D) u = Dᴴ * HamiltonianEvolution Z u * D := by
@@ -621,6 +724,8 @@ private theorem local_evolution_conjugate {I : Type} [Fintype I] [DecidableEq I]
       Dᴴ*((-Complex.I*(u:ℂ)) • Z)*D by simp]
   exact Matrix.exp_units_conj' U _
 
+/-- Evolution under the identity Hamiltonian becomes the identity after multiplication by the
+scalar phase `exp (I*u)`. -/
 private theorem local_identity_phase {I : Type} [Fintype I] [DecidableEq I] (u : ℝ) :
     (1 : Matrix I I ℂ) = Complex.exp (Complex.I*(u:ℂ)) • HamiltonianEvolution 1 u := by
   unfold HamiltonianEvolution
@@ -631,6 +736,8 @@ private theorem local_identity_phase {I : Type} [Fintype I] [DecidableEq I] (u :
   rw [Pi.coe_exp,← Complex.exp_eq_exp_ℂ,← Complex.exp_add]
   simp
 
+/-- The relabeled exact Pauli circuit equals evolution under the Pauli string for time `u`,
+multiplied by the global phase `exp (I*u)`. -/
 theorem localPauliExactSteps_evolution (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) :
     relabelGate (bitVecEquiv q) (reflectionProgramMatrix (localPauliExactSteps q v u)) =
       Complex.exp (Complex.I*(u:ℂ)) • HamiltonianEvolution (pauliStringMatrix q v) (u:ℝ) := by
@@ -679,6 +786,9 @@ theorem localPauliExactSteps_evolution (q : ℕ) (v : Fin q → Fin 4) (u : ℚ)
       (NormedSpace.exp ((-Complex.I*((u:ℝ):ℂ)) • P)) = _
     rw [hm]
 
+/-- The exact and rational Pauli circuits are legal, with the stated exact semantics and zero
+queries for the rational circuit. The rational circuit and its adjoint have the same
+explicit gate cost, bounded by `6*q+1`. -/
 theorem local_pauli_exact_and_finite_phase_gate_tables :
     ∀ (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k : ℕ),
       reflectionLegal (localPauliExactSteps q v u) ∧
@@ -697,6 +807,8 @@ theorem local_pauli_exact_and_finite_phase_gate_tables :
        exact localPauliSteps_gateCount q v u k,
     localPauliExactSteps_evolution q v u⟩
 
+/-- Embedding two diagonal single-qubit gates on a wire does not increase the operator norm of
+their difference. -/
 private theorem wireGate_diagonal_error (q : ℕ) (w : Fin q) (d e : Bool → ℂ) :
     ‖wireGate q w (Matrix.diagonal d) - wireGate q w (Matrix.diagonal e)‖ ≤
       ‖Matrix.diagonal d - Matrix.diagonal e‖ := by
@@ -706,6 +818,7 @@ private theorem wireGate_diagonal_error (q : ℕ) (w : Fin q) (d e : Bool → �
   intro x
   exact norm_le_pi_norm (d-e) (x w)
 
+/-- Conjugating a matrix by a unitary does not increase its operator norm. -/
 private theorem local_norm_sandwich {I : Type} [Fintype I] [DecidableEq I]
     (D E : Matrix I I ℂ) (hD : D ∈ Matrix.unitaryGroup I ℂ) :
     ‖Dᴴ * E * D‖ ≤ ‖E‖ := by
@@ -720,6 +833,8 @@ private theorem local_norm_sandwich {I : Type} [Fintype I] [DecidableEq I]
       (by positivity)
     _ = ‖E‖ := by ring
 
+/-- For `|2*u| ≤ 1`, the rational and exact Pauli program matrices differ in operator norm by at
+most `(1/2)^k`. -/
 private theorem localPauliProgram_error (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k : ℕ)
     (h : |(2*u : ℚ)| ≤ 1) :
     ‖reflectionProgramMatrix (localPauliRationalSteps q v u k) -
@@ -750,6 +865,7 @@ private theorem localPauliProgram_error (q : ℕ) (v : Fin q → Fin 4) (u : ℚ
     rw [hs]
     exact (local_norm_sandwich D _ hu).trans he
 
+/-- Relabeling a unitary matrix by an equivalence of finite index types preserves unitarity. -/
 private theorem local_relabel_unitary {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (U : Matrix I I ℂ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) : relabelGate e U ∈ Matrix.unitaryGroup J ℂ := by
@@ -757,6 +873,8 @@ private theorem local_relabel_unitary {I J : Type} [Fintype I] [DecidableEq I]
   simp only [relabelGate,Matrix.reindex_apply,Matrix.conjTranspose_submatrix,
     Matrix.submatrix_mul_equiv,hU,Matrix.submatrix_one_equiv]
 
+/-- A scalar phase satisfying `z * star z = 1` cancels in conjugation after tensoring with an
+identity reference. -/
 private theorem local_phase_reference_cancel {D r : ℕ} (V : Operator D) (z : ℂ)
     (hz : z * star z = 1) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     TensorGate (z • V) (1 : Operator r) * X * (TensorGate (z • V) (1 : Operator r))ᴴ =
@@ -765,6 +883,8 @@ private theorem local_phase_reference_cancel {D r : ℕ} (V : Operator D) (z : �
   simp only [TensorGate,Matrix.smul_kronecker,Matrix.conjTranspose_smul,
     Matrix.smul_mul,Matrix.mul_smul,smul_smul,hzz,one_smul]
 
+/-- For `|2*u| ≤ 1`, rational Pauli circuit conjugation differs from exact Pauli evolution by at
+most `2*(1/2)^k*Matrix.traceNorm X`, for every finite reference and matrix input. -/
 theorem local_pauli_rational_actual_reference_error :
     ∀ (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k r : ℕ)
       (X : Matrix (Fin (2^q) × Fin r) (Fin (2^q) × Fin r) ℂ),

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LinearLearning.MistakeUpdates
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
+/-!
+# Coordinate perceptron updates and stopping
+
+Instantiates the abstract mistake-update process with real Euclidean feature vectors and Boolean
+labels. Coordinate formulas, verified classification after the budget, and a first-stopping-time
+bound express the perceptron convergence argument used in [WiebeKapoorSvore2016].
+
+## Main statements
+
+* `native_verified_output`: Under the unit-norm feature and positive unit-separator margin
+  assumptions, the budgeted output strictly classifies every example and all subsequent iterates
+  equal it [WiebeKapoorSvore2016].
+* `native_first_stop`: Under the unit-norm feature and positive unit-separator margin
+  assumptions, there is a first stopping index `M` with `γ^2 * M ≤ 1`, strict classification, a
+  mistake at every earlier iterate, and constant subsequent iterates [WiebeKapoorSvore2016].
+
+## References
+
+* [Wiebe et al., 2016][WiebeKapoorSvore2016]
+-/
+
 namespace Qatlib.Papers.QPerceptron16.UpdateRun
 set_option autoImplicit false
 noncomputable section
@@ -14,13 +35,18 @@ open scoped BigOperators InnerProductSpace
 open Qatlib.Concepts.LinearLearning.MistakeUpdates
 variable {N d : ℕ}
 
+/-- The real Euclidean feature space of dimension `d`. -/
 abbrev Feature (d : ℕ) := EuclideanSpace ℝ (Fin d)
 
+/-- The real label sign, equal to one for `true` and minus one for `false`. -/
 def labelSign (labels : Fin N → Bool) (i : Fin N) : ℝ := if labels i then 1 else -1
 
+/-- The dataset formed from the supplied feature vectors and Boolean labels. -/
 def trainingData (features : Fin N → Feature d) (labels : Fin N → Bool) : Dataset N (Feature d) :=
   ⟨features,labels⟩
 
+/-- The inner product with a signed training datum equals the label sign times the coordinate
+dot product. -/
 theorem coordinate_score (features : Fin N → Feature d) (labels : Fin N → Bool)
     (w : Feature d) (i : Fin N) :
     ⟪w,signedDatum (trainingData features labels) i⟫_ℝ =
@@ -28,11 +54,14 @@ theorem coordinate_score (features : Fin N → Feature d) (labels : Fin N → Bo
   unfold signedDatum trainingData labelSign
   split_ifs <;> simp [inner_neg_right,PiLp.inner_apply,mul_comm]
 
+/-- An example is a mistake exactly when its signed coordinate score is nonpositive. -/
 theorem native_mistake_predicate (features : Fin N → Feature d) (labels : Fin N → Bool)
     (w : Feature d) (i : Fin N) :
     i∈mistakes (trainingData features labels) w ↔ labelSign labels i*(∑ j,w j*features i j)≤0 := by
   rw [mem_mistakes,coordinate_score]
 
+/-- When mistakes remain, the next iterate adds the signed feature vector of the least mistaken
+index. -/
 theorem native_update (features : Fin N → Feature d) (labels : Fin N → Bool) (n : ℕ)
     (h : (mistakes (trainingData features labels) (run (trainingData features labels) n)).Nonempty) :
     run (trainingData features labels) (n+1)=run (trainingData features labels) n+
@@ -43,9 +72,13 @@ theorem native_update (features : Fin N → Feature d) (labels : Fin N → Bool)
   unfold signedDatum trainingData labelSign
   split_ifs <;> simp
 
+/-- The perceptron iterate at the margin-dependent verification budget. -/
 def output (features : Fin N → Feature d) (labels : Fin N → Bool) (γ : ℝ) : Feature d :=
   run (trainingData features labels) (verificationBudget γ)
 
+/-- Under the unit-norm feature and positive unit-separator margin assumptions, the budgeted
+output strictly classifies every example and all subsequent iterates equal it
+[WiebeKapoorSvore2016]. -/
 theorem native_verified_output (features : Fin N → Feature d) (labels : Fin N → Bool)
     (u : Feature d) (hu : ‖u‖=1) (γ : ℝ) (hγ : 0<γ)
     (hunit : ∀ i,‖features i‖≤1)
@@ -61,6 +94,9 @@ theorem native_verified_output (features : Fin N → Feature d) (labels : Fin N 
   intro i
   simpa only [coordinate_score,output] using hs i
 
+/-- Under the unit-norm feature and positive unit-separator margin assumptions, there is a first
+stopping index `M` with `γ^2 * M ≤ 1`, strict classification, a mistake at every earlier
+iterate, and constant subsequent iterates [WiebeKapoorSvore2016]. -/
 theorem native_first_stop (features : Fin N → Feature d) (labels : Fin N → Bool)
     (u : Feature d) (hu : ‖u‖=1) (γ : ℝ) (hγ : 0<γ)
     (hunit : ∀ i,‖features i‖≤1)

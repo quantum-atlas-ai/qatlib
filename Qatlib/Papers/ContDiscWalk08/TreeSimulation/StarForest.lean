@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ContDiscWalk08.TreeSimulation.StarSpectrum
+
+/-!
+# Depth parity and star decomposition
+
+The structure `RootedTree` records a parent map, a depth function increasing along child edges,
+and a distinguished depth-zero vertex. The module defines the parent adjacency and its
+depth-selected star matrices, then splits adjacency into the even-center and odd-center parts
+used in the tree simulation discussion of [Childs2010].
+
+## Main statements
+
+* `edge_parity`: parent edges join opposite depth parities.
+* `starEdge_iff_of_parent`: the parent determines the star center.
+* `treeAdjacency_eq_forests`: even-center and odd-center matrices sum to the adjacency.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,8 @@ open Matrix
 
 namespace Qatlib.Papers.ContDiscWalk08.TreeSimulation
 
+/-- Records a parent map, a natural-valued depth function, and a distinguished vertex of depth
+zero, with every child one level deeper than its parent. -/
 structure RootedTree (N : ℕ) where
 
   parent : Fin N → Option (Fin N)
@@ -31,9 +53,11 @@ structure RootedTree (N : ℕ) where
 
 variable {N : ℕ} (T : RootedTree N)
 
+/-- Defines adjacency by the condition that either endpoint is the parent of the other. -/
 abbrev IsTreeEdge (T : RootedTree N) (u v : Fin N) : Prop :=
   T.parent u = some v ∨ T.parent v = some u
 
+/-- A vertex cannot be its own parent when depth increases by one along child edges. -/
 theorem parent_ne_self (T : RootedTree N) (v : Fin N) (q : Fin N)
     (h : T.parent v = some q) : q ≠ v := by
   intro hqv
@@ -41,6 +65,7 @@ theorem parent_ne_self (T : RootedTree N) (v : Fin N) (q : Fin N)
   rw [hqv] at hd
   omega
 
+/-- If `v` is the parent of `u`, then `u` is not the parent of `v`. -/
 theorem parent_not_symm (T : RootedTree N) {u v : Fin N}
     (h : T.parent u = some v) : T.parent v ≠ some u := by
   intro h2
@@ -48,6 +73,7 @@ theorem parent_not_symm (T : RootedTree N) {u v : Fin N}
   have h2' := T.parent_depth v u h2
   omega
 
+/-- Natural numbers differing by one have opposite parity. -/
 theorem parity_step {a b : ℕ} (h : a = b + 1) :
     (Even a ∧ Odd b) ∨ (Odd a ∧ Even b) := by
   rcases Nat.even_or_odd b with hb | hb
@@ -62,6 +88,8 @@ theorem parity_step {a b : ℕ} (h : a = b + 1) :
     rw [h]
     omega
 
+/-- Every parent edge joins vertices of opposite depth parity. This gives the parity separation
+used for tree simulation in [Childs2010]. -/
 theorem edge_parity {u v : Fin N} (h : IsTreeEdge T u v) :
     (Even (T.depth u) ∧ Odd (T.depth v)) ∨
       (Odd (T.depth u) ∧ Even (T.depth v)) := by
@@ -72,9 +100,11 @@ theorem edge_parity {u v : Fin N} (h : IsTreeEdge T u v) :
     · right; exact ⟨h'.2, h'.1⟩
     · left; exact ⟨h'.2, h'.1⟩
 
+/-- Defines an edge joining the center `c` to one of its children, in either orientation. -/
 abbrev starEdge (T : RootedTree N) (c u v : Fin N) : Prop :=
   (T.parent u = some c ∧ v = c) ∨ (T.parent v = some c ∧ u = c)
 
+/-- Every edge of a parent-centered star is a parent adjacency edge. -/
 theorem starEdge_isTreeEdge {c u v : Fin N} (h : starEdge T c u v) :
     IsTreeEdge T u v := by
   unfold starEdge at h
@@ -83,6 +113,8 @@ theorem starEdge_isTreeEdge {c u v : Fin N} (h : starEdge T c u v) :
   · left; rw [hvc]; exact hp
   · right; rw [huc]; exact hp
 
+/-- If `v` is the parent of `u`, their edge belongs to the star centered at `c` exactly when `c
+= v`. This identifies the star center in the decomposition of [Childs2010]. -/
 theorem starEdge_iff_of_parent {u v : Fin N} (h : T.parent u = some v) :
     ∀ c : Fin N, starEdge T c u v ↔ c = v := by
   intro c
@@ -97,6 +129,8 @@ theorem starEdge_iff_of_parent {u v : Fin N} (h : T.parent u = some v) :
     subst hc
     exact Or.inl ⟨h, rfl⟩
 
+/-- If `u` is the parent of `v`, their edge belongs to the star centered at `c` exactly when `c
+= u`. -/
 theorem starEdge_iff_of_parent' {u v : Fin N} (h : T.parent v = some u) :
     ∀ c : Fin N, starEdge T c u v ↔ c = u := by
   intro c
@@ -111,13 +145,18 @@ theorem starEdge_iff_of_parent' {u v : Fin N} (h : T.parent v = some u) :
     subst hc
     exact Or.inr ⟨h, rfl⟩
 
+/-- Defines the zero-one adjacency matrix of the parent-edge relation. -/
 def treeAdjacency (T : RootedTree N) : Matrix (Fin N) (Fin N) ℂ :=
   fun u v => if IsTreeEdge T u v then 1 else 0
 
+/-- Defines the zero-one matrix selecting star edges whose center depth satisfies `S`, as used
+in the parity decomposition of [Childs2010]. -/
 def forestMatrix (T : RootedTree N) (S : ℕ → Prop) [DecidablePred S] :
     Matrix (Fin N) (Fin N) ℂ :=
   fun u v => if ∃ c, S (T.depth c) ∧ starEdge T c u v then 1 else 0
 
+/-- Each adjacency entry is the sum of its even-center and odd-center star-matrix entries. This
+is the parity decomposition used in [Childs2010]. -/
 theorem treeAdjacency_eq_forests (u v : Fin N) :
     treeAdjacency T u v =
       forestMatrix T Even u v + forestMatrix T Odd u v := by

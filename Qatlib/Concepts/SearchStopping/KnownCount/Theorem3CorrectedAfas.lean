@@ -7,10 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3CorrectedStat
 import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21CorrectedAfas
 
+/-!
+# Corrected real amplitude growth estimate
+
+`theorem3Corrected` proves a strict increase greater than 1/(2√N) in the distinguished amplitude
+after a marked phase flip and diffusion. The statement requires N ≥ 8, positive normalized real
+amplitudes, and marked amplitude below 1/√2, and also proves positivity of the ordinary update.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `theorem3Corrected`: For N ≥ 8 and positive normalized real amplitudes with k < 1/√2, the
+  update from (−k, l) increases the distinguished amplitude over k by more than 1/(2√N) and
+  leaves the ordinary amplitude positive.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- If 0 < k < 1/√2, then k² < 1/2. -/
 private theorem marked_square_lt_half {k : ℝ} (hk0 : 0 < k)
     (hk : k < 1 / Real.sqrt 2) : k ^ 2 < 1 / 2 := by
   have hs : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.2 (by norm_num)
@@ -21,6 +42,9 @@ private theorem marked_square_lt_half {k : ℝ} (hk0 : 0 < k)
   rw [mul_pow, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)] at hsq
   linarith
 
+/-- For N ≥ 8 and positive normalized real amplitudes with k < 1/√2, the update from (−k, l)
+increases the distinguished amplitude over k by more than 1/(2√N) and leaves the ordinary
+amplitude positive. See [Grover1997]. -/
 theorem theorem3Corrected : Theorem3Corrected := by
   intro N hN k l hk0 hk hl hmass
   have hn : (8 : ℝ) ≤ N := by exact_mod_cast hN

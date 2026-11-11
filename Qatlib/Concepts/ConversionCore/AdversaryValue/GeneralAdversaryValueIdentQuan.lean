@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ConversionCore.AdversaryValue.GeneralAdversaryValueIdentStat
+
+/-!
+# Identifying the general adversary value
+
+`generalAdversaryValueIdentification` identifies the general adversary value with the filtered
+γ₂ value using the evaluation mask. It also compares this value with the version using the
+unmasked query filters, with factor `2 * (1 - 1 / Fintype.card E)`.
+
+The mathematical context is discussed in [LeeEtAl2011].
+
+## Main statements
+
+* `generalAdversaryValueIdentification`: The identification and two comparison inequalities.
+* `generalAdversaryValueIdentification_constant`: The identification and comparisons for a
+  constant function.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -15,6 +36,8 @@ namespace Qatlib.Concepts.ConversionCore.AdversaryValue
 open Qatlib
 open scoped ENNReal
 
+/-- For a constant function, the general adversary value equals the evaluation-masked filtered
+γ₂ value and satisfies both comparison inequalities with the unmasked value. -/
 theorem generalAdversaryValueIdentification_constant {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
     (input : X → Fin n → Bool) (f : X → E) (hf : ∀ x y, f x = f y) :
@@ -31,6 +54,8 @@ theorem generalAdversaryValueIdentification_constant {X E : Type}
     rw [generalAdversaryValue_constant input f hf, hz, filteredGamma2_zero_matrix]
   exact ⟨he, generalAdversaryValueComparison_of_identification input f he⟩
 
+/-- The general adversary value equals the evaluation-masked filtered γ₂ value, and the unmasked
+value lies between it and `2 * (1 - 1 / Fintype.card E)` times it [LeeEtAl2011]. -/
 theorem generalAdversaryValueIdentification : GeneralAdversaryValueIdentification := by
   intro X E _ _ _ _ n input f
   have he : generalAdversaryValue input f = filteredGamma2 (gramFunctionEvaluationMatrix f)

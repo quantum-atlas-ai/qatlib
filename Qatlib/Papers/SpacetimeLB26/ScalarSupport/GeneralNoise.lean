@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Entanglement
+
+/-!
+# Scalar lower bounds for general noise
+
+This module converts an assumed contraction-product inequality into a logarithmic lower bound on
+the sum of layer widths, as used in [BhartiHaugTanggara2026]. It combines this with dimension
+bounds and shows that correctness and existence hypotheses exclude any uniform constant bound on
+cost per layer.
+
+## Main statements
+
+* `one_qubit_product_to_sum`: For nonnegative widths and `0 < κ < 1`, the assumed
+  contraction-product bound implies the stated logarithmic lower bound on the layer-envelope
+  sum.
+* `no_uniform_constant_relative_bound`: If correct nonnegative-width instances exist at every
+  positive length and obey the contraction-product inequality, then for every positive `C` some
+  correct instance has layer-envelope sum greater than `C * T`.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +39,8 @@ namespace Qatlib.Papers.SpacetimeLB26.ScalarSupport.GeneralNoise
 open scoped BigOperators
 open Finset
 
+/-- For nonnegative widths and `0 < κ < 1`, the assumed contraction-product bound implies the
+stated logarithmic lower bound on the layer-envelope sum. See [BhartiHaugTanggara2026]. -/
 theorem one_qubit_product_to_sum
     (S : ℕ) (q : Fin S → ℝ) (κ δ : ℝ)
     (hS : 0 < S) (hκ0 : 0 < κ) (hκ1 : κ < 1) (hδ0 : 0 ≤ δ) (hδ : δ < 1 / 2)
@@ -105,6 +130,9 @@ theorem one_qubit_product_to_sum
     div_le_iff₀ (by linarith : (0 : ℝ) < 2 * Real.log (1 / κ))]
   exact key
 
+/-- Package the contraction-product inequality, its logarithmic cost consequence for `κ < 1` at
+sufficiently large `S`, and the zero-product identity at `κ = 1`. See
+[BhartiHaugTanggara2026]. -/
 theorem one_qubit_lower_bound
     (S : ℕ) (q : Fin S → ℝ) (κ δ : ℝ)
     (hS : 0 < S) (hκ0 : 0 < κ) (_hκ1 : κ ≤ 1) (hδ0 : 0 ≤ δ) (hδ : δ < 1 / 2)
@@ -128,6 +156,8 @@ theorem one_qubit_lower_bound
     rw [hzero]
     ring
 
+/-- Integer-valued layer widths with a common overlap greater than `1/2` bounded above at each
+layer by `2^(q s - K)`. -/
 structure InfoDimensionData (S K : ℕ) where
   q : Fin S → ℝ
   q_int : ∀ s, ∃ n : ℕ, q s = (n : ℝ)
@@ -135,6 +165,8 @@ structure InfoDimensionData (S K : ℕ) where
   overlap_upper : ∀ s, overlap ≤ (2 : ℝ) ^ (q s - (K : ℝ))
   overlap_lower : 1 / 2 < overlap
 
+/-- The overlap constraints force every layer width to be at least `K` and the layer-envelope
+sum to be at least `K * S`. See [BhartiHaugTanggara2026]. -/
 theorem information_dimension_lower_bound {S K : ℕ} (_hK : 1 ≤ K)
     (d : InfoDimensionData S K) :
     (∀ s, (K : ℝ) ≤ d.q s) ∧ (K : ℝ) * (S : ℝ) ≤ layerEnvelopeSum d.q := by
@@ -164,6 +196,8 @@ theorem information_dimension_lower_bound {S K : ℕ} (_hK : 1 ≤ K)
     _ ≤ ∑ s : Fin S, d.q s := Finset.sum_le_sum (fun s _ => hqK s)
     _ = layerEnvelopeSum d.q := rfl
 
+/-- The assumed dimension and logarithmic lower bounds imply that the layer-envelope sum is at
+least their maximum. See [BhartiHaugTanggara2026]. -/
 theorem layerwise_circuit_size_bound
     (K S : ℕ) (q : Fin S → ℝ) (κ δ : ℝ)
     (_hK : 1 ≤ K) (_hS : 0 < S) (_hκ0 : 0 < κ) (_hκ1 : κ < 1)
@@ -176,6 +210,9 @@ theorem layerwise_circuit_size_bound
         (2 * Real.log (1 / κ))) := by
   exact max_le hKS hlog
 
+/-- If correct nonnegative-width instances exist at every positive length and obey the
+contraction-product inequality, then for every positive `C` some correct instance has
+layer-envelope sum greater than `C * T`. See [BhartiHaugTanggara2026]. -/
 theorem no_uniform_constant_relative_bound
     (κ δ : ℝ) (hκ0 : 0 < κ) (hκ1 : κ < 1) (hδ0 : 0 ≤ δ) (hδ : δ < 1 / 2)
     (Correct : ∀ T : ℕ, (Fin T → ℝ) → Prop)

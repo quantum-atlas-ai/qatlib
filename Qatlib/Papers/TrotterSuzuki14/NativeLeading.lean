@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixAlgebra.NestedComm
 
+/-!
+# Matrix properties of the leading Suzuki error
+
+This module forms the leading Suzuki error directly as a finite sum of matrix nested commutators
+over the ordering conditions in `triples`. It proves that the expression is traceless, is
+Hermitian for Hermitian inputs, and satisfies an operator-norm bound from the triple products.
+See [BabbushEtAl2015].
+
+## Main statements
+
+* `leading_trace`: The leading matrix error has zero trace.
+* `leading_hermitian`: Hermitian inputs give a Hermitian leading error.
+* `leading_opNorm_le`: Operator-norm estimate by a sum over triples.
+
+## References
+
+* [Babbush et al., 2015][BabbushEtAl2015]
+-/
+
 set_option autoImplicit false
 open scoped BigOperators Matrix
 namespace Qatlib.Papers.TrotterSuzuki14.NativeLeading
@@ -14,23 +33,32 @@ open NestedComm
 noncomputable section
 variable {D : Type*} [Fintype D]
 
+/-- The finite set of index triples `(a, b, c)` satisfying `a ≤ b` and `c < b`. -/
 def triples (m : ℕ) : Finset (Fin m × Fin m × Fin m) :=
   Finset.univ.filter (fun t => t.1 ≤ t.2.1 ∧ t.2.2 < t.2.1)
 
+/-- The coefficient one half for equal first and second indices, and one for unequal indices. -/
 def weight {m : ℕ} (a b : Fin m) : ℝ := if a = b then 1 / 2 else 1
 
+/-- The matrix sum of weighted nested commutators over `triples m`, with prefactor `-(dt² /
+12)`. -/
 def leading {m : ℕ} (H : Fin m → Matrix D D ℂ) (dt : ℝ) : Matrix D D ℂ :=
   ∑ t ∈ triples m, (-(dt ^ 2 / 12) * weight t.1 t.2.1) • nested (H t.1) (H t.2.1) (H t.2.2)
 
+/-- A real scalar multiplying a nested matrix commutator can be moved into its outer left
+argument. See [BabbushEtAl2015]. -/
 theorem weighted_nested (w : ℝ) (X Y Z : Matrix D D ℂ) :
     w • nested X Y Z = NestedComm.comm (w • X) (NestedComm.comm Y Z) := by
   simp only [nested, NestedComm.comm, Matrix.smul_mul, Matrix.mul_smul, smul_sub]
 
+/-- The leading Suzuki error matrix has trace zero. See [BabbushEtAl2015]. -/
 theorem leading_trace {m : ℕ} (H : Fin m → Matrix D D ℂ) (dt : ℝ) :
     (leading H dt).trace = 0 := by
   simp only [leading, Matrix.trace_sum, Matrix.trace_smul, trace_nested, smul_zero,
       Finset.sum_const_zero]
 
+/-- When every input matrix is Hermitian, the leading Suzuki error matrix is Hermitian. See
+[BabbushEtAl2015]. -/
 theorem leading_hermitian {m : ℕ} (H : Fin m → Matrix D D ℂ)
     (hH : ∀ a, (H a).IsHermitian) (dt : ℝ) : (leading H dt).IsHermitian := by
   unfold leading
@@ -41,6 +69,8 @@ theorem leading_hermitian {m : ℕ} (H : Fin m → Matrix D D ℂ)
 
 variable [DecidableEq D]
 
+/-- The operator norm of the leading error is bounded by `(dt² / 12) * 4` times the sum of the
+products of the three factor norms over `triples m`. See [BabbushEtAl2015]. -/
 theorem leading_opNorm_le {m : ℕ} (H : Fin m → Matrix D D ℂ) (dt : ℝ) :
     opNorm (leading H dt) ≤ (dt ^ 2 / 12) * 4 *
       ∑ t ∈ triples m, opNorm (H t.1) * opNorm (H t.2.1) * opNorm (H t.2.2) := by

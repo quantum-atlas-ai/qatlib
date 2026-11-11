@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.Amplification.ParallelCopies
+
+/-!
+# Majority voting on tensor copies
+
+This module defines `MajorityCount` and `MajorityBit` and bounds majority failure for identical
+tensor copies. If each copy has failure probability at most 1/3, the probability that at most
+`r` of 2r + 1 copies succeed is at most (8/9)ʳ, providing the estimate used in the amplification
+argument of [BennettEtAl1997].
+
+## Main statements
+
+* `majorityBit_eq_true_iff`: characterize a true majority for an odd number of bits.
+* `majority_copies_fail_mass`: bound the probability of a failed majority of independent copies.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -14,23 +33,32 @@ namespace Qatlib.Concepts.QueryComplexity.Amplification
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The number of true bits in a finite Boolean word. -/
 def MajorityCount {k : ℕ} (w : Fin k → Bool) : ℕ :=
   (Finset.univ.filter fun j => w j = true).card
 
+/-- The Boolean value that is true exactly when more than half of the word's bits are true. -/
 def MajorityBit {k : ℕ} (w : Fin k → Bool) : Bool :=
   decide (k / 2 < MajorityCount w)
 
+/-- For a word of length 2r + 1, the majority bit is true exactly when more than `r` bits are
+true. -/
 theorem majorityBit_eq_true_iff (r : ℕ) (w : Fin (2 * r + 1) → Bool) :
     MajorityBit w = true ↔ r < MajorityCount w := by
   have hdiv : (2 * r + 1) / 2 = r := by omega
   simp only [MajorityBit, decide_eq_true_eq, hdiv]
 
+/-- For a word of length 2r + 1, the majority bit is false exactly when at most `r` bits are
+true. -/
 theorem majorityBit_eq_false_iff (r : ℕ) (w : Fin (2 * r + 1) → Bool) :
     MajorityBit w = false ↔ MajorityCount w ≤ r := by
   have hdiv : (2 * r + 1) / 2 = r := by omega
   simp only [MajorityBit, decide_eq_false_iff_not, hdiv]
   exact Nat.not_lt
 
+/-- For 2r + 1 identical tensor copies of a normalized state with failure probability at most
+1/3, the probability of at most `r` successful copies is at most (8/9)ʳ. This gives the
+majority estimate used for [Bennett et al., Theorem 4.13][BennettEtAl1997]. -/
 theorem majority_copies_fail_mass {I : Type*} [Fintype I] [DecidableEq I] (r : ℕ)
     (φ : QState I) (hφ : Normalized φ) (S : Finset I)
     (hq : MeasureProb φ Sᶜ ≤ 1 / 3) :

@@ -12,6 +12,34 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.ContDif
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Continuity
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.AbsolutelyContinuous.Basic
+
+/-!
+# Local constancy of winding numbers
+
+Uses continuity and integer-valuedness to prove that winding numbers are locally constant off
+the curve and constant on connected components of its complement. Specializations cover closed
+curves differentiable outside countable sets and closed piecewise C1 curves.
+
+The neighborhood result `exists_ball_windingNumber_zero` supports contour arguments of the kind
+used in [WangEtAl2026].
+
+## Main statements
+
+* `isLocallyConstant_windingNumber_of_closed`: The winding number of a closed continuous curve
+  is locally constant off its image when the curve is differentiable away from a countable set
+  and has interval-integrable derivative.
+* `windingNumber_eq_of_mem_connectedComponentIn`: The winding number agrees on each connected
+  component of the complement for a closed continuous curve differentiable away from a countable
+  set with interval-integrable derivative.
+* `exists_ball_windingNumber_zero`: An avoided point with zero winding number has a ball of
+  avoided points with zero winding number, under the stated continuity, differentiability, and
+  integrability hypotheses.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -26,12 +54,15 @@ namespace TauCeti.Contour
 
 attribute [local irreducible] windingNumber
 
+/-- Two integers whose complex casts have distance less than one are equal. -/
 theorem eq_of_dist_intCast_lt_one {m n : ℤ} (h : dist (m : ℂ) (n : ℂ) < 1) : m = n := by
   by_contra hne
   have : (1 : ℝ) ≤ dist (m : ℂ) (n : ℂ) := by
     rw [Complex.isometry_intCast.dist_eq]; exact Int.pairwise_one_le_dist hne
   linarith
 
+/-- For a continuous curve with interval-integrable derivative and integer winding numbers off
+its image, the winding number is locally constant on the complement of the image. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.isLocallyConstant_windingNumber_of_integer {γ : ℝ → ℂ} {a b : ℝ}
     (hγ_cont : ContinuousOn γ (uIcc a b))
     (hderiv_int : IntervalIntegrable (deriv γ) volume a b)
@@ -53,6 +84,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.isLocallyCon
   simpa only [Function.comp_def, ← hn] using
     ((IsLocallyConstant.iff_continuous n).mpr hncont).comp (fun k : ℤ ↦ (k : ℂ))
 
+/-- The winding number of a closed continuous curve is locally constant off its image when the
+curve is differentiable away from a countable set and has interval-integrable derivative. -/
 theorem isLocallyConstant_windingNumber_of_closed {γ : ℝ → ℂ} {a b : ℝ} {P : Set ℝ}
     (hclosed : γ a = γ b) (hP : P.Countable) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγ_diff : ∀ t ∈ Ioo (min a b) (max a b) \ P, DifferentiableAt ℝ γ t)
@@ -67,6 +100,8 @@ theorem isLocallyConstant_windingNumber_of_closed {γ : ℝ → ℂ} {a b : ℝ}
   exact h.comp_continuous (g := fun z : {z : ℂ // z ∉ γ '' uIcc a b} ↦ windingNumber γ a b z.1) (continuous_subtype_val.subtype_mk
     (fun z ↦ by simpa only [mem_image, not_exists, not_and] using z.2))
 
+/-- Under continuity, derivative integrability, and integer-valued winding numbers, the winding
+number agrees at points in the same connected component of the image complement. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumber_eq_of_mem_connectedComponentIn_of_integer
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : ContinuousOn γ (uIcc a b))
     (hderiv : IntervalIntegrable (deriv γ) volume a b)
@@ -83,6 +118,9 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumbe
     (f := fun w : {w : ℂ // w ∈ (γ '' uIcc a b)ᶜ} ↦ windingNumber γ a b w.1)
     isPreconnected_connectedComponent hw mem_connectedComponent
 
+/-- The winding number agrees on each connected component of the complement for a closed
+continuous curve differentiable away from a countable set with interval-integrable
+derivative. -/
 theorem windingNumber_eq_of_mem_connectedComponentIn {γ : ℝ → ℂ} {a b : ℝ} {P : Set ℝ}
     (hclosed : γ a = γ b) (hP : P.Countable) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγ_diff : ∀ t ∈ Ioo (min a b) (max a b) \ P, DifferentiableAt ℝ γ t)
@@ -94,6 +132,8 @@ theorem windingNumber_eq_of_mem_connectedComponentIn {γ : ℝ → ℂ} {a b : �
   exact ContinuousOn.windingNumber_eq_of_mem_connectedComponentIn_of_integer hγ_cont hderiv_int
     (fun _ hz ↦ AbsolutelyContinuousOnInterval.exists_int_windingNumber (γ := γ) (a := a) (b := b) hac hclosed hz) hw₁
 
+/-- The winding number of a closed piecewise C1 curve agrees at points in the same connected
+component of its image complement. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.windingNumber_eq_of_mem_connectedComponentIn
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : IsPiecewiseC1On γ a b) (hclosed : γ a = γ b)
     {w₀ w₁ : ℂ} (hw₁ : w₁ ∈ connectedComponentIn ((γ '' uIcc a b)ᶜ) w₀) :
@@ -102,6 +142,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.w
   exact TauCeti.Contour.windingNumber_eq_of_mem_connectedComponentIn hclosed hP
     hγ.continuousOn hγ_diff hγ.intervalIntegrable_deriv hw₁
 
+/-- An avoided point with zero winding number has a ball of avoided points with zero winding
+number, under the stated continuity, differentiability, and integrability hypotheses. -/
 theorem exists_ball_windingNumber_zero {γ : ℝ → ℂ} {w : ℂ} {a b : ℝ} {P : Set ℝ}
     (hclosed : γ a = γ b) (hP : P.Countable) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγ_diff : ∀ t ∈ Ioo (min a b) (max a b) \ P, DifferentiableAt ℝ γ t)

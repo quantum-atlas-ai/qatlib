@@ -6,12 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TrotterSuzuki14.MainResults.CisdPreparation.Defs
 import Mathlib.Tactic
+
+/-!
+# CISD preparation resource bounds
+
+This module bounds the rounded precision exponent `cisdExponent` and the resource ledger
+`cisdReductionTCount`. Under the stated dimension and precision hypotheses, the ledger is
+bounded by a universal positive constant times `D log₂(D / δ) + N D`. See [BabbushEtAl2015].
+
+## Main statements
+
+* `cisdExponent_le`: Explicit logarithmic upper bound on the rounded exponent.
+* `cisd_ledger_bound`: Uniform bound on the CISD reduction T-count ledger.
+
+## References
+
+* [Babbush et al., 2015][BabbushEtAl2015]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TrotterSuzuki14.MainResults
 
+/-- For `D ≥ 1` and `0 < δ ≤ 1`, the rounded CISD exponent is at most `11/4 + (1/2) log₂(D /
+δ)`. See [BabbushEtAl2015]. -/
 theorem cisdExponent_le (D : ℕ) (δ : ℝ) (hD : 1 ≤ D) (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     (cisdExponent D δ : ℝ) ≤ 11 / 4 + (1 / 2) * Real.logb 2 ((D : ℝ) / δ) := by
   have hD1 : (1 : ℝ) ≤ (D : ℝ) := by exact_mod_cast hD
@@ -118,6 +138,8 @@ theorem cisdExponent_le (D : ℕ) (δ : ℝ) (hD : 1 ≤ D) (hδ : 0 < δ) (hδ1
   unfold cisdExponent
   linarith
 
+/-- There is a universal positive constant bounding `cisdReductionTCount` by that constant times
+`D log₂(D / δ) + N D` whenever `D ≥ 1`, `N ≥ 5`, and `0 < δ ≤ 1`. See [BabbushEtAl2015]. -/
 theorem cisd_ledger_bound :
     ∃ C : ℝ, 0 < C ∧
       ∀ (D N : ℕ) (δ : ℝ),

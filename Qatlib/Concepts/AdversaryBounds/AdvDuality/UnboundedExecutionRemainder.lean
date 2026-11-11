@@ -8,6 +8,40 @@ import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainderDefs
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
 import Mathlib.Topology.Order.MonotoneConvergence
+
+/-!
+# Limits and terminal laws for capped executions
+
+This module proves timeout and coin-read formulas for `CappedFeedback`, including vanishing
+timeout mass and convergence to a finite geometric-series read cost under positive sampling
+weights within capacity. The example `rejectingFeedback` has limiting read cost `4/3` and a
+recovered branch with nonzero off-diagonal matrix entry. Quantum instruments provide the
+framework for these branch calculations; see [Watrous2018].
+
+For `NativeTape`, explicit runs are related to the bounded random execution law through trace
+validity, coin accounting, resumption, and truncation. Monotonicity and normalization then
+construct `NativeTape.terminalLaw`, assigning each halted result its limiting mass and assigning
+residual nontermination mass to `none`. Classical probabilistic computation is discussed in
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `CappedFeedback.expectedReadCost_iSup`: the supremum of capped read costs is the limiting read
+  cost.
+* `NativeTape.law_add` and `NativeTape.law_truncate`: continuation and truncation of bounded
+  execution laws.
+* `NativeTape.terminalMass_sum`: normalization of the terminal masses.
+* `NativeTape.terminalLaw_first_stop`: exact first-halting behavior of supported terminal
+  results.
+* `NativeTape.terminalLaw_halted_expectation`: terminal expectations as suprema of bounded
+  halted expectations.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -37,9 +71,12 @@ namespace CappedFeedback
 open Classical
 variable {D N : ℕ}
 
+/-- Compiling a legal capped feedback scheme produces legal fair feedback for every cap. -/
 theorem compile_legal (M : CappedFeedback D N) (cap : ℕ) (hM : M.Legal) :
     (M.compile cap).Legal := hM
 
+/-- Under the sampling capacity bound, the compiled timeout mass before conversion to extended
+nonnegative reals is the initial-leaf-weighted sum of rejection masses raised to `cap`. -/
 theorem timeout (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hb : ∀ i, weightTotal (M.weights i) ≤ 2 ^ M.width i) :
@@ -65,6 +102,9 @@ theorem timeout (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
       weightedSampler_timeout _ _ _ (hb i)]
     rfl
 
+/-- With positive total weights within capacity, the mass returning sample `j` is the
+initial-leaf-weighted sum of its normalized weight times one minus the capped rejection
+probability. -/
 theorem return_mass (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -92,6 +132,8 @@ theorem return_mass (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
       weightedSampler_return _ _ _ (hW i) (hb i)]
     rfl
 
+/-- With positive total weights within capacity, the instrument-weighted coin-read count is the
+leaf-weighted sum of each width times its truncated geometric rejection sum. -/
 theorem expected_reads (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -116,6 +158,7 @@ theorem expected_reads (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
   change (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (weightedSampler (M.weights i) (M.width i) cap).law).toReal = _
   rw [(weightedSampler_expectations _ _ _ (hW i) (hb i)).1]
 
+/-- Every compiled outcome uses at most its initial leaf's sampling width times `cap` coin bits. -/
 theorem path_read_bound (M : CappedFeedback D N) (cap : ℕ)
     (z : (M.compile cap).Outcome) :
     ((M.compile cap).codeWord z).length ≤ M.width z.1 * cap := by
@@ -131,6 +174,8 @@ theorem path_read_bound (M : CappedFeedback D N) (cap : ℕ)
 
 open scoped ComplexOrder
 
+/-- For a positive semidefinite input and valid positive sampling weights, the extended expected
+read cost equals the leaf-weighted sum of widths times truncated geometric rejection sums. -/
 theorem expectedReadCost_eq (M : CappedFeedback D N) (cap : ℕ) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hρ : ρ.PosSemidef) (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -156,6 +201,8 @@ theorem expectedReadCost_eq (M : CappedFeedback D N) (cap : ℕ) (O : Operator D
   rw [(weightedSampler_expectations _ _ _ (hW i) (hb i)).1]
   rfl
 
+/-- For positive total sampling weights within capacity, the timeout mass tends to zero as the
+cap tends to infinity. -/
 theorem timeout_tendsto_zero (M : CappedFeedback D N) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -179,6 +226,8 @@ theorem timeout_tendsto_zero (M : CappedFeedback D N) (O : Operator D)
   have h := ENNReal.continuous_ofReal.continuousAt.tendsto.comp hzero
   simpa only [timeoutMass, M.timeout _ O hO hM ρ hb, ENNReal.ofReal_zero] using! h
 
+/-- For positive total sampling weights within capacity, the infimum of capped timeout masses is
+zero. -/
 theorem neverMass_eq_zero (M : CappedFeedback D N) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -188,6 +237,8 @@ theorem neverMass_eq_zero (M : CappedFeedback D N) (O : Operator D)
   exact ge_of_tendsto (M.timeout_tendsto_zero O hO hM ρ hW hb)
     (Filter.Eventually.of_forall fun cap => iInf_le _ cap)
 
+/-- For a positive semidefinite input and valid positive sampling weights, capped expected read
+costs converge to the finite value `limitingReadCost`. -/
 theorem expectedReadCost_limit (M : CappedFeedback D N) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hρ : ρ.PosSemidef) (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -210,6 +261,8 @@ theorem expectedReadCost_limit (M : CappedFeedback D N) (O : Operator D)
   · unfold limitingReadCost
     exact ENNReal.sum_lt_top.mpr (fun i _ => ENNReal.mul_lt_top ENNReal.ofReal_lt_top (hi i).2)
 
+/-- For a positive semidefinite input and valid positive sampling weights, expected read cost is
+monotone in the cap. -/
 theorem expectedReadCost_mono (M : CappedFeedback D N) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hρ : ρ.PosSemidef) (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -223,6 +276,8 @@ theorem expectedReadCost_mono (M : CappedFeedback D N) (O : Operator D)
   intro i _
   gcongr
 
+/-- For a positive semidefinite input and valid positive sampling weights, the supremum of
+capped expected read costs equals `limitingReadCost`. -/
 theorem expectedReadCost_iSup (M : CappedFeedback D N) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hρ : ρ.PosSemidef) (hW : ∀ i, 0 < weightTotal (M.weights i))
@@ -234,6 +289,7 @@ theorem expectedReadCost_iSup (M : CappedFeedback D N) (O : Operator D)
 
 end CappedFeedback
 
+/-- The rejecting feedback example has well-formed initial and continuation circuits. -/
 theorem rejectingFeedback_legal : rejectingFeedback.Legal := by
   constructor
   · exact measuredFeedback_legal.1
@@ -243,18 +299,23 @@ theorem rejectingFeedback_legal : rejectingFeedback.Legal := by
     | inr s => trivial
     | inl x => exact measuredFeedback_legal.2 i (some x.1, 0)
 
+/-- Every initial leaf of the rejecting feedback example has positive total sampling weight. -/
 theorem rejectingFeedback_weights_positive :
     ∀ i, 0 < weightTotal (rejectingFeedback.weights i) := by
   intro i
   change Fin 2 at i
   fin_cases i <;> decide +kernel
 
+/-- Every initial leaf of the rejecting feedback example has total sampling weight at most its
+bit-width capacity. -/
 theorem rejectingFeedback_capacity :
     ∀ i, weightTotal (rejectingFeedback.weights i) ≤ 2 ^ rejectingFeedback.width i := by
   intro i
   change Fin 2 at i
   fin_cases i <;> decide +kernel
 
+/-- The rejecting feedback example has rejection mass zero on leaf `0` and `1/4` on the other
+leaf. -/
 theorem rejectingFeedback_rejectMass (i : Fin 2) :
     rationalRejectMass (rejectingFeedback.weights i) (rejectingFeedback.width i) =
       if i = 0 then 0 else 1 / 4 := by
@@ -263,9 +324,13 @@ theorem rejectingFeedback_rejectMass (i : Fin 2) :
     (if i.val = 0 then 0 else 2) = _
   fin_cases i <;> norm_num [rationalRejectMass, coinRejectMass, weightTotal, Fin.sum_univ_two]
 
+/-- The instrument of the rejecting feedback example at the given cap, using the specified
+unitary oracle. -/
 noncomputable def rejectingInstrument (cap : ℕ) := rejectingFeedback.instrument cap
   measuredFeedbackFlip measuredFeedbackFlip_unitary rejectingFeedback_legal
 
+/-- At cap `cap + 1`, the rejecting feedback example has timeout mass `(1/2) * (1/4) ^ (cap +
+1)` on the specified input. -/
 theorem rejectingFeedback_timeout (cap : ℕ) :
     rejectingFeedback.timeoutMass (cap + 1) measuredFeedbackFlip measuredFeedbackFlip_unitary
       rejectingFeedback_legal measuredFeedbackInput = (1 / 2 : ℝ≥0∞) * (1 / 4 : ℝ≥0∞) ^ (cap + 1) := by
@@ -279,6 +344,8 @@ theorem rejectingFeedback_timeout (cap : ℕ) :
     rejectingFeedback_rejectMass, Fin.sum_univ_two]
   norm_num [ENNReal.ofReal_div_of_pos]
 
+/-- The limiting expected read cost of the rejecting feedback example on the specified input is
+`4/3`. -/
 theorem rejectingFeedback_limitingReadCost :
     rejectingFeedback.limitingReadCost measuredFeedbackFlip measuredFeedbackFlip_unitary
       rejectingFeedback_legal measuredFeedbackInput = 4 / 3 := by
@@ -306,28 +373,37 @@ theorem rejectingFeedback_limitingReadCost :
     ENNReal.inv_div (Or.inl (by norm_num)) (Or.inl (by norm_num)),
     ← mul_assoc, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_mul]
 
+/-- The rejecting feedback example has zero never-terminating sampler mass on the specified
+input. -/
 theorem rejectingFeedback_never_zero :
     rejectingFeedback.neverMass measuredFeedbackFlip measuredFeedbackFlip_unitary
       rejectingFeedback_legal measuredFeedbackInput = 0 :=
   rejectingFeedback.neverMass_eq_zero _ _ _ _
     rejectingFeedback_weights_positive rejectingFeedback_capacity
 
+/-- The supremum of capped expected read costs in the rejecting feedback example is `4/3`. -/
 theorem rejectingFeedback_expectedReadCost_iSup :
     (⨆ cap, rejectingFeedback.expectedReadCost cap measuredFeedbackFlip measuredFeedbackFlip_unitary
       rejectingFeedback_legal measuredFeedbackInput) = 4 / 3 := by
   rw [CappedFeedback.expectedReadCost_iSup _ _ _ _ _ measuredFeedbackInput_density.1.1
     rejectingFeedback_weights_positive rejectingFeedback_capacity, rejectingFeedback_limitingReadCost]
 
+/-- The specified one-round pending outcome has the displayed sampler record, coin word `[true,
+true]`, and execution counters. -/
 theorem rejectingPending_record :
     (rejectingFeedback.compile 1).record measuredFeedbackFlip rejectingPending =
       ⟨(.inr (2, 2), 1), true, false, [true, true], 0, 0, 1, [(2, 1)], []⟩ := rfl
 
+/-- The specified two-round recovered outcome has the displayed returned sampler record, coin
+word `[true, true, false, false]`, and execution counters. -/
 theorem rejectingRecovered_record :
     (rejectingFeedback.compile 2).record measuredFeedbackFlip rejectingRecovered =
       ⟨(.inl (0, 4, 3), 2), true, true, [true, true, false, false], 0, 1, 1, [(2, 1)], []⟩ := rfl
 
 open scoped ComplexOrder
 
+/-- The pending branch of the one-round rejecting instrument sends the specified input to `1/8`
+times the projector onto basis index `1`. -/
 theorem rejectingPending_state :
     (rejectingInstrument 1).branch rejectingPending measuredFeedbackInput =
       ((1 / 8 : ℝ) : ℂ) • Projector (Finset.univ.filter fun i : Fin 2 => i = 1) := by
@@ -346,6 +422,8 @@ theorem rejectingPending_state :
     Fin.sum_univ_two, Matrix.conjTranspose_apply, measuredFeedbackInput, Projector,
     Matrix.smul_apply, Matrix.one_apply]
 
+/-- The recovered branch of the two-round rejecting instrument has matrix entry `(0, 1)` equal
+to `-1/64` on the specified input. -/
 theorem rejectingRecovered_coherence :
     ((rejectingInstrument 2).branch rejectingRecovered measuredFeedbackInput) 0 1 = -1 / 64 := by
   have hp : ((rejectingFeedback.compile 2).prefixLeaf measuredFeedbackFlip rejectingRecovered.1).operator =
@@ -372,6 +450,8 @@ namespace NativeTape
 
 variable {Γ Λ : Type} [Inhabited Γ]
 
+/-- Every explicit native tape run produces a valid path from its initial configuration to its
+final configuration with the recorded trace. -/
 theorem run_path [Inhabited Λ] (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     Path M cfg (run M n bs cfg).trace (run M n bs cfg).cfg := by
   induction n generalizing bs cfg with
@@ -395,6 +475,8 @@ theorem run_path [Inhabited Λ] (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (
         · simp [h]
         · rw [TM0_step_apply]; simp [table, h, advance]
 
+/-- The supplied coin list splits into the bits consumed by the run followed by its unread
+suffix. -/
 theorem run_account (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     bs = (run M n bs cfg).bits ++ (run M n bs cfg).unread := by
   induction n generalizing bs cfg with
@@ -407,6 +489,7 @@ theorem run_account (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing
       | nil => simp [run, h, Result.bits]
       | cons b bs => simpa [run, h, Result.bits, Result.prepend] using! congrArg (List.cons b) (ih bs (advance cfg (k b)))
 
+/-- A native tape run executes at most its supplied fuel budget in transitions. -/
 theorem run_steps_le (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     (run M n bs cfg).steps ≤ n := by
   induction n generalizing bs cfg with
@@ -419,6 +502,8 @@ theorem run_steps_le (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turin
       | nil => simp [run, h, Result.steps]
       | cons b bs => simpa [run, h, Result.steps, Result.prepend] using! Nat.succ_le_succ (ih bs (advance cfg (k b)))
 
+/-- A native tape run stopped by fuel exhaustion executes exactly its supplied fuel budget in
+transitions. -/
 theorem run_fuel_steps (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : (run M n bs cfg).stop = .fuel) : (run M n bs cfg).steps = n := by
   induction n generalizing bs cfg with
@@ -431,10 +516,13 @@ theorem run_fuel_steps (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Tur
       | nil => simp [run, hc] at h
       | cons b bs => simpa [run, hc, Result.steps, Result.prepend] using! congrArg Nat.succ (ih bs (advance cfg (k b)) (by simpa [run, hc, Result.prepend] using! h))
 
+/-- Resuming a result commutes with prepending a trace entry. -/
 theorem resume_prepend (M : Program Γ Λ) (n : ℕ) (r : Result Γ Λ) (e : Tick Γ Λ) :
     resume M n (r.prepend e) = (resume M n r).prepend e := by
   by_cases h : r.stop = .fuel <;> simp [resume, Result.prepend, h]
 
+/-- Running with fuel `n + m` equals running with fuel `n` and then resuming with `m` extra
+fuel. -/
 theorem run_add (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     run M (n+m) bs cfg = resume M m (run M n bs cfg) := by
   induction n generalizing bs cfg with
@@ -448,6 +536,7 @@ theorem run_add (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (cfg : Turing.T
       | nil => simp [run, h, resume]
       | cons b bs => simp only [run, h, resume_prepend]; rw [ih]
 
+/-- A run reported as halted has no transition in the interpreted table for coin bit `false`. -/
 theorem run_halted [Inhabited Λ] (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : (run M n bs cfg).stop = .halted) :
     Turing.TM0.step (table M false) (run M n bs cfg).cfg = none := by
@@ -463,6 +552,8 @@ theorem run_halted [Inhabited Λ] (M : Program Γ Λ) (n : ℕ) (bs : List Bool)
       | nil => simp [run, hc] at h
       | cons b bs => simpa [run, hc, Result.prepend] using! ih bs (advance cfg (k b)) (by simpa [run, hc, Result.prepend] using! h)
 
+/-- A run stopped for insufficient bits is at a coin instruction with no unread bits and has
+used strictly less than its fuel budget. -/
 theorem run_needBits (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : (run M n bs cfg).stop = .needBits) :
     (∃ k, M (run M n bs cfg).cfg.q (run M n bs cfg).cfg.Tape.head = .coin k) ∧
@@ -484,11 +575,15 @@ theorem run_needBits (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turin
         simpa only [run, hc, Result.prepend, Result.steps, List.length_cons] using!
             ⟨hk, hu, Nat.succ_lt_succ ht⟩
 
+/-- Supplying bits to a result with a prepended trace entry commutes with prepending that entry
+when the total budget is increased by one. -/
 theorem supply_prepend (M : Program Γ Λ) (n : ℕ) (more : List Bool) (r : Result Γ Λ) (e : Tick Γ Λ) :
     supply M (n+1) more (r.prepend e) = (supply M n more r).prepend e := by
   by_cases h : r.stop = .needBits <;>
     simp [supply, Result.prepend, Result.steps, h, Nat.succ_sub_succ_eq_sub]
 
+/-- Running on a coin list extended by `more` equals supplying `more` to the original run within
+the same fuel budget. -/
 theorem run_append (M : Program Γ Λ) (n : ℕ) (bs more : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     run M n (bs++more) cfg = supply M n more (run M n bs cfg) := by
   induction n generalizing bs cfg with
@@ -501,6 +596,8 @@ theorem run_append (M : Program Γ Λ) (n : ℕ) (bs more : List Bool) (cfg : Tu
       | nil => cases more <;> simp [run, h, supply, Result.steps]
       | cons b bs => simp only [List.cons_append, run, h, supply_prepend]; rw [ih]
 
+/-- The spinning program exhausts every fuel budget, executes exactly that many transitions, and
+leaves all supplied bits unread. -/
 theorem run_spin (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Unit) :
     (run spin n bs cfg).stop = .fuel ∧ (run spin n bs cfg).steps = n ∧
     (run spin n bs cfg).bits = [] ∧ (run spin n bs cfg).unread = bs := by
@@ -508,6 +605,8 @@ theorem run_spin (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Unit) :
   | zero => simp [run, spin, Result.steps, Result.bits]
   | succ n ih => simpa [run, spin, Result.prepend, Result.steps, Result.bits] using! ih (advance cfg ((), .move .right))
 
+/-- A native tape run is reported as halted exactly when its final configuration selects a halt
+instruction. -/
 theorem run_halt_iff (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     (run M n bs cfg).stop = .halted ↔
       M (run M n bs cfg).cfg.q (run M n bs cfg).cfg.Tape.head = .halt := by
@@ -521,6 +620,8 @@ theorem run_halt_iff (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turin
       | nil => simp [run, h]
       | cons b bs => simpa [run, h, Result.prepend] using! ih bs (advance cfg (k b))
 
+/-- If every recorded tick costs at least one, the number of executed transitions is bounded by
+the sum of the tick prices. -/
 theorem steps_le_paid (r : Result Γ Λ) (price : Tick Γ Λ → ℕ)
     (h : ∀ e ∈ r.trace, 1 ≤ price e) : r.steps ≤ (r.trace.map price).sum := by
   have hl (es : List (Tick Γ Λ)) : (∀ e ∈ es, 1 ≤ price e) → es.length ≤ (es.map price).sum := by
@@ -534,6 +635,8 @@ theorem steps_le_paid (r : Result Γ Λ) (price : Tick Γ Λ → ℕ)
       omega
   exact hl r.trace h
 
+/-- A run exhausts its fuel exactly when it has executed the entire budget and its final
+instruction does not halt. -/
 theorem run_fuel_iff (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     (run M n bs cfg).stop = .fuel ↔ (run M n bs cfg).steps = n ∧
       M (run M n bs cfg).cfg.q (run M n bs cfg).cfg.Tape.head ≠ .halt := by
@@ -550,11 +653,14 @@ theorem run_fuel_iff (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turin
     | fuel => rfl
     | needBits => have hn := (run_needBits M n bs cfg ht).2.2; omega
 
+/-- Increasing the fuel budget after a halted run leaves the entire result unchanged. -/
 theorem run_halted_add (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : (run M n bs cfg).stop = .halted) : run M (n+m) bs cfg = run M n bs cfg := by
   rw [run_add]
   simp [resume, h]
 
+/-- After fuel exhaustion, a run with additional fuel concatenates the original trace with the
+trace of execution from its saved configuration and unread bits. -/
 theorem run_fuel_add (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : (run M n bs cfg).stop = .fuel) :
     let r := run M n bs cfg
@@ -563,6 +669,8 @@ theorem run_fuel_add (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (cfg : Tur
   rw [run_add]
   simp [resume, h]
 
+/-- After fuel exhaustion, additional execution concatenates consumed-bit lists and adds
+transition counts, with final fields supplied by the continuation. -/
 theorem run_fuel_add_observe (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : (run M n bs cfg).stop = .fuel) :
     let r := run M n bs cfg
@@ -572,11 +680,15 @@ theorem run_fuel_add_observe (M : Program Γ Λ) (n m : ℕ) (bs : List Bool) (c
   rw [run_fuel_add M n m bs cfg h]
   simp [Result.observe, Result.bits, Result.steps, List.filterMap_append]
 
+/-- Equality of an observed result with a specified tuple is equivalent to equality of its
+configuration, stopping reason, unread bits, consumed bits, and step count. -/
 theorem Result.observe_eq_iff (r : Result Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (s : Stop)
     (raw bits : List Bool) (n : ℕ) :
     r.observe = (cfg,s,raw,bits,n) ↔ r.cfg = cfg ∧ r.stop = s ∧ r.unread = raw ∧ r.bits = bits ∧ r.steps = n := by
   simp [Result.observe]
 
+/-- If a run uses all `N` transitions, every strictly smaller fuel budget ends by fuel
+exhaustion. -/
 theorem fuel_before (M : Program Γ Λ) (N n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (hs : (run M N bs cfg).steps = N) (hn : n < N) : (run M n bs cfg).stop = .fuel := by
   by_contra hh
@@ -588,6 +700,8 @@ theorem fuel_before (M : Program Γ Λ) (N n : ℕ) (bs : List Bool) (cfg : Turi
   have hl := run_steps_le M n bs cfg
   omega
 
+/-- The mass of a point is at most the mass of its image under a mapped probability mass
+function. -/
 theorem mass_le_map {α β : Type} (p : PMF α) (f : α → β) (a : α) :
     p a ≤ p.map f (f a) := by
   classical
@@ -595,6 +709,8 @@ theorem mass_le_map {α β : Type} (p : PMF α) (f : α → β) (a : α) :
   exact (by simpa using (ENNReal.le_tsum (f := fun x => if f a = f x then p x else 0) a :
     (if f a = f a then p a else 0) ≤ ∑' x, if f a = f x then p x else 0))
 
+/-- A run that consumes all supplied bits without requesting more has probability at least
+`(1/2) ^ bs.length` under the native execution law. -/
 theorem law_run_lower (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (hs : (run M n bs cfg).stop ≠ .needBits) (hu : (run M n bs cfg).unread = []) :
     (1 / 2 : ℝ≥0∞)^bs.length ≤ law M n cfg (run M n bs cfg) := by
@@ -623,6 +739,8 @@ theorem law_run_lower (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turi
         convert! ENNReal.le_tsum b using 1
         simp only [PMF.uniformOfFintype'_apply,Fintype.card_bool,Nat.cast_ofNat,one_div]
 
+/-- Two probability mass functions are equal if the mass of the first is pointwise bounded by
+the second. -/
 theorem pmf_eq_of_apply_le {α : Type} (p q : PMF α) (h : ∀ a, p a ≤ q a) : p = q := by
   apply PMF.ext
   intro a
@@ -631,6 +749,8 @@ theorem pmf_eq_of_apply_le {α : Type} (p q : PMF α) (h : ∀ a, p a ≤ q a) :
   have ht := ENNReal.tsum_lt_tsum (by rw [p.tsum_coe]; exact ENNReal.one_ne_top) h (lt_of_not_ge hn)
   simp only [p.tsum_coe,q.tsum_coe,lt_self_iff_false] at ht
 
+/-- An injective map transports one probability mass function to another when each source point
+mass is bounded by its target image mass. -/
 theorem map_eq_of_mass_le {α β : Type} (p : PMF α) (q : PMF β) (f : α → β)
     (hf : Function.Injective f) (h : ∀ a, p a ≤ q (f a)) : p.map f = q := by
   classical
@@ -647,6 +767,8 @@ theorem map_eq_of_mass_le {α β : Type} (p : PMF α) (q : PMF β) (f : α → �
   · have he : ∀ a, b ≠ f a := fun a he => hb ⟨a,he.symm⟩
     simp only [if_neg (he _),tsum_zero,zero_le]
 
+/-- A result in the support of the native execution law is reproduced by its recorded bits, has
+no unread bits, and never stops for insufficient bits. -/
 theorem law_support_run (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r : Result Γ Λ) (hr : r ∈ (law M n cfg).support) :
     run M n r.bits cfg = r ∧ r.unread = [] ∧ r.stop ≠ .needBits := by
@@ -677,6 +799,8 @@ theorem law_support_run (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ �
         (show (run M n t.bits (advance cfg (k b))).prepend (cfg,some b) = t.prepend (cfg,some b) ∧
           t.unread = [] ∧ t.stop ≠ .needBits from ⟨congrArg (Result.prepend (cfg,some b)) he,hu,hs⟩)
 
+/-- A coin code whose paths are fully consumed without bit starvation induces the native
+execution law by mapping its path law to explicit runs. -/
 theorem law_eq_pathLaw {α : Type} (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (p : CoinCode α)
     (hc : ∀ z ∈ p.paths, (run M n z.2 cfg).unread = [] ∧ (run M n z.2 cfg).stop ≠ .needBits) :
@@ -694,6 +818,8 @@ theorem law_eq_pathLaw {α : Type} (M : Program Γ Λ) (n : ℕ) (cfg : Turing.T
     exact law_run_lower M n (p.paths.get i).2 cfg
       (hc _ (List.get_mem _ _)).2 (hc _ (List.get_mem _ _)).1
 
+/-- A result belongs to the native execution law's support exactly when its recorded bits
+reproduce it, its unread list is empty, and it is not bit-starved. -/
 theorem mem_support_law_iff (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r : Result Γ Λ) : r ∈ (law M n cfg).support ↔
       run M n r.bits cfg = r ∧ r.unread = [] ∧ r.stop ≠ .needBits := by
@@ -705,6 +831,8 @@ theorem mem_support_law_iff (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg 
     rw [PMF.mem_support_iff]
     exact ne_of_gt (lt_of_lt_of_le (ENNReal.pow_pos (by norm_num : (0 : ℝ≥0∞) < 1/2) _) hl)
 
+/-- If execution with no bits never requests a bit within the budget, the native execution law
+is concentrated on that deterministic run. -/
 theorem law_eq_pure_of_run_nil (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (hs : (run M n [] cfg).stop ≠ .needBits) : law M n cfg = PMF.pure (run M n [] cfg) := by
   have hu : (run M n [] cfg).unread = [] := by
@@ -720,32 +848,42 @@ theorem law_eq_pure_of_run_nil (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.C
     simpa using! hl
   · simp [PMF.pure_apply,he]
 
+/-- Every result in the native execution law's support has a valid recorded path from the
+initial configuration. -/
 theorem law_support_path [Inhabited Λ] (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r : Result Γ Λ) (hr : r ∈ (law M n cfg).support) : Path M cfg r.trace r.cfg := by
   have he := (law_support_run M n cfg r hr).1
   have hp := run_path M n r.bits cfg
   rwa [he] at hp
 
+/-- Every result in the native execution law's support executes at most the specified fuel
+budget. -/
 theorem law_support_steps (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r : Result Γ Λ) (hr : r ∈ (law M n cfg).support) : r.steps ≤ n := by
   have he := (law_support_run M n cfg r hr).1
   have hp := run_steps_le M n r.bits cfg
   rwa [he] at hp
 
+/-- The execution law of the spinning program is concentrated on its run with an empty coin
+list. -/
 theorem law_spin (n : ℕ) (cfg : Turing.TM0.Cfg Γ Unit) :
     law spin n cfg = PMF.pure (run spin n [] cfg) := by
   apply law_eq_pure_of_run_nil
   have h := (run_spin n [] cfg).1
   simp [h]
 
+/-- Prepending an empty trace is the identity function on execution results. -/
 @[simp] theorem Result.appendTrace_nil : (Result.appendTrace [] : Result Γ Λ → Result Γ Λ) = _root_.id := rfl
 
+/-- Continuing a random execution commutes with prepending a trace entry. -/
 theorem continueLaw_prepend (M : Program Γ Λ) (m : ℕ) (r : Result Γ Λ) (e : Tick Γ Λ) :
     continueLaw M m (r.prepend e) = (continueLaw M m r).map (Result.prepend e) := by
   by_cases h : r.stop = .fuel <;>
     simp only [continueLaw,Result.prepend,h,↓reduceIte,PMF.map_comp,PMF.pure_map]
   all_goals rfl
 
+/-- The native execution law with fuel `n + m` is the law with fuel `n` bound to continuation
+with `m` extra fuel. -/
 theorem law_add (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
     law M (n+m) cfg = (law M n cfg).bind (continueLaw M m) := by
   induction n generalizing cfg with
@@ -759,6 +897,8 @@ theorem law_add (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
     | det q s => simp only [law,hc,ih,PMF.map_bind,PMF.bind_map,Function.comp_def,continueLaw_prepend]
     | coin k => simp only [law,hc,ih,PMF.map_bind,PMF.bind_map,PMF.bind_bind,Function.comp_def,continueLaw_prepend]
 
+/-- Truncating a supported continuation to the original fuel budget recovers the supported
+original result. -/
 theorem truncate_continue (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r s : Result Γ Λ) (hr : r ∈ (law M n cfg).support) (hs : s ∈ (continueLaw M m r).support) :
     truncate M n cfg s = r := by
@@ -779,6 +919,8 @@ theorem truncate_continue (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg 
     simp only [truncate,he]
     rw [← hu]
 
+/-- Functions ordered on the support of a probability mass function have ordered extended
+nonnegative expectations. -/
 theorem expectation_le_on_support {α : Type} (p : PMF α) (f g : α → ℝ≥0∞)
     (h : ∀ a ∈ p.support, f a ≤ g a) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p f ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p g := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
@@ -788,6 +930,8 @@ theorem expectation_le_on_support {α : Type} (p : PMF α) (f g : α → ℝ≥0
   · simp [ha]
   · exact mul_le_mul_right (h a (by rwa [PMF.mem_support_iff])) (p a)
 
+/-- Every supported continuation has at least as many executed transitions as its original
+result. -/
 theorem continueLaw_steps_le (M : Program Γ Λ) (m : ℕ) (r s : Result Γ Λ)
     (hs : s ∈ (continueLaw M m r).support) : r.steps ≤ s.steps := by
   by_cases hf : r.stop = .fuel
@@ -796,6 +940,7 @@ theorem continueLaw_steps_le (M : Program Γ Λ) (m : ℕ) (r s : Result Γ Λ)
   · have he : s = r := by simpa [continueLaw,hf] using! hs
     simp [he]
 
+/-- Every supported continuation has consumed at least as many coin bits as its original result. -/
 theorem continueLaw_reads_le (M : Program Γ Λ) (m : ℕ) (r s : Result Γ Λ)
     (hs : s ∈ (continueLaw M m r).support) : r.bits.length ≤ s.bits.length := by
   by_cases hf : r.stop = .fuel
@@ -804,6 +949,8 @@ theorem continueLaw_reads_le (M : Program Γ Λ) (m : ℕ) (r s : Result Γ Λ)
   · have he : s = r := by simpa [continueLaw,hf] using! hs
     simp [he]
 
+/-- Probability-kernel binding depends only on the kernel's values on the source distribution's
+support. -/
 theorem bind_congr_support {α β : Type} (p : PMF α) (f g : α → PMF β)
     (h : ∀ a ∈ p.support, f a = g a) : p.bind f = p.bind g := by
   apply PMF.ext
@@ -815,12 +962,16 @@ theorem bind_congr_support {α β : Type} (p : PMF α) (f g : α → PMF β)
   · simp [ha]
   · rw [h a (by rwa [PMF.mem_support_iff])]
 
+/-- A function constant on the support of a probability mass function has the corresponding pure
+pushforward law. -/
 theorem map_eq_pure_on_support {α β : Type} (p : PMF α) (f : α → β) (b : β)
     (h : ∀ a ∈ p.support, f a = b) : p.map f = PMF.pure b := by
   calc
     _ = p.bind (fun _ => PMF.pure b) := bind_congr_support p _ _ (fun a ha => by simp [h a ha])
     _ = _ := PMF.bind_const p _
 
+/-- Truncating the native execution law with fuel `n + m` to fuel `n` gives the native execution
+law with fuel `n`. -/
 theorem law_truncate (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (law M (n+m) cfg).map (truncate M n cfg) = law M n cfg := by
   rw [law_add,PMF.map_bind]
@@ -829,6 +980,8 @@ theorem law_truncate (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg Γ Λ
       map_eq_pure_on_support _ _ _ (fun s hs => truncate_continue M n m cfg r s hr hs))
     _ = _ := PMF.bind_pure _
 
+/-- The expected value of an extended nonnegative observable cannot decrease with extra fuel if
+the observable cannot decrease along supported continuations. -/
 theorem law_expectation_le_add (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (F : Result Γ Λ → ℝ≥0∞)
     (h : ∀ r ∈ (law M n cfg).support, ∀ s ∈ (continueLaw M m r).support, F r ≤ F s) :
@@ -839,6 +992,7 @@ theorem law_expectation_le_add (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0
   have he := expectation_le_on_support (continueLaw M m r) (fun _ => F r) F (h r hr)
   rwa [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const] at he
 
+/-- The expected number of native tape transitions is monotone in the fuel budget. -/
 theorem law_steps_mean_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     Monotone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (law M n cfg) (fun r => (r.steps : ℝ≥0∞))) := by
   intro n N hN
@@ -847,6 +1001,7 @@ theorem law_steps_mean_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
   intro r _ s hs
   exact_mod_cast continueLaw_steps_le M m r s hs
 
+/-- The expected number of coin reads is monotone in the fuel budget. -/
 theorem law_reads_mean_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     Monotone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (law M n cfg) (fun r => (r.bits.length : ℝ≥0∞))) := by
   intro n N hN
@@ -855,6 +1010,7 @@ theorem law_reads_mean_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
   intro r _ s hs
   exact_mod_cast continueLaw_reads_le M m r s hs
 
+/-- The probability of fuel exhaustion is antitone in the fuel budget. -/
 theorem law_fuel_antitone (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     Antitone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .fuel)) := by
   classical
@@ -869,6 +1025,7 @@ theorem law_fuel_antitone (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _
   · simp [continueLaw,hf]
 
+/-- The probability of halting in a configuration satisfying `P` is monotone in the fuel budget. -/
 theorem law_halted_event_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (P : Turing.TM0.Cfg Γ Λ → Prop) :
     Monotone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .halted ∧ P r.cfg)) := by
@@ -886,12 +1043,16 @@ theorem law_halted_event_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     exact le_rfl
   · simp [hp]
 
+/-- Functions equal on the support of a probability mass function have equal extended
+nonnegative expectations. -/
 theorem expectation_congr_support {α : Type} (p : PMF α) (f g : α → ℝ≥0∞)
     (h : ∀ a ∈ p.support, f a = g a) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p f = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p g := by
   apply le_antisymm
   · exact expectation_le_on_support p f g (fun a ha => (h a ha).le)
   · exact expectation_le_on_support p g f (fun a ha => (h a ha).ge)
 
+/-- A monotone sequence of extended nonnegative reals has the same supremum when restricted to
+indices divisible by a positive natural number. -/
 theorem iSup_mul_budget (f : ℕ → ℝ≥0∞) (hf : Monotone f) (c : ℕ) (hc : 0 < c) :
     (⨆ n, f n) = ⨆ n, f (c*n) := by
   apply le_antisymm
@@ -901,6 +1062,8 @@ theorem iSup_mul_budget (f : ℕ → ℝ≥0∞) (hf : Monotone f) (c : ℕ) (hc
     exact (hf hn).trans (le_iSup (fun n => f (c*n)) n)
   · exact iSup_le (fun n => le_iSup f (c*n))
 
+/-- An antitone sequence of extended nonnegative reals has the same infimum when restricted to
+indices divisible by a positive natural number. -/
 theorem iInf_mul_budget (f : ℕ → ℝ≥0∞) (hf : Antitone f) (c : ℕ) (hc : 0 < c) :
     (⨅ n, f n) = ⨅ n, f (c*n) := by
   apply le_antisymm
@@ -910,6 +1073,7 @@ theorem iInf_mul_budget (f : ℕ → ℝ≥0∞) (hf : Antitone f) (c : ℕ) (hc
     have hn : n ≤ c*n := by simpa using! Nat.mul_le_mul_right n (show 1 ≤ c from hc)
     exact (iInf_le (fun n => f (c*n)) n).trans (hf hn)
 
+/-- The finished mass of a specified native tape result is monotone in the fuel budget. -/
 theorem finishedMass_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (r : Result Γ Λ) :
     Monotone (fun n => finishedMass M n cfg r) := by
   intro n N hN
@@ -922,6 +1086,8 @@ theorem finishedMass_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (r : 
       law M n cfg r * continueLaw M m r r ≤ ∑' a, law M n cfg a * continueLaw M m a r)
   · simp [finishedMass,hr]
 
+/-- An infinite sum of extended nonnegative terms commutes with the supremum of a pointwise
+monotone natural-number-indexed family. -/
 theorem tsum_iSup_nat_mono {α : Type} (f : ℕ → α → ℝ≥0∞) (h : ∀ a, Monotone (fun n => f n a)) :
     (∑' a, ⨆ n, f n a) = ⨆ n, ∑' a, f n a := by
   have hs (s : Finset α) : (∑ a ∈ s, ⨆ n, f n a) = ⨆ n, ∑ a ∈ s, f n a := by
@@ -935,6 +1101,8 @@ theorem tsum_iSup_nat_mono {α : Type} (f : ℕ → α → ℝ≥0∞) (h : ∀ 
   rw [iSup_comm]
   simp only [← ENNReal.tsum_eq_iSup_sum]
 
+/-- Summing the finished masses of all results gives the bounded execution law's halting
+probability. -/
 theorem finishedMass_sum (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (∑' r, finishedMass M n cfg r) = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .halted) := by
   classical
@@ -944,17 +1112,21 @@ theorem finishedMass_sum (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ 
   intro r
   by_cases hr : r.stop = .halted <;> simp [finishedMass,hr]
 
+/-- The total mass of halted results is the supremum of the bounded halting probabilities. -/
 theorem haltedMass_sum (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (∑' r, haltedMass M cfg r) = ⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .halted) := by
   unfold haltedMass
   rw [tsum_iSup_nat_mono _ (finishedMass_mono M cfg)]
   simp only [finishedMass_sum]
 
+/-- The total mass of halted native tape results is at most one. -/
 theorem haltedMass_sum_le_one (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (∑' r, haltedMass M cfg r) ≤ 1 := by
   rw [haltedMass_sum]
   exact iSup_le (fun n => Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _)
 
+/-- Under the native execution law, halting probability plus fuel-exhaustion probability equals
+one. -/
 theorem law_halt_add_fuel (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .halted) +
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .fuel) = 1 := by
@@ -968,6 +1140,8 @@ theorem law_halt_add_fuel (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ
       cases hs : r.stop <;> simp_all
     _ = _ := Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const _ _
 
+/-- The residual nontermination mass equals the infimum of the finite-budget fuel-exhaustion
+probabilities. -/
 theorem neverMass_eq_iInf_fuel (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     neverMass M cfg = ⨅ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (law M n cfg) (fun r => r.stop = .fuel) := by
   unfold neverMass
@@ -978,6 +1152,7 @@ theorem neverMass_eq_iInf_fuel (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) 
     (ne_top_of_le_ne_top ENNReal.one_ne_top (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _))
     (add_comm _ _ |>.trans (law_halt_add_fuel M n cfg))).symm
 
+/-- The terminal masses of all optional native tape results sum to one. -/
 theorem terminalMass_sum (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (∑' z, terminalMass M cfg z) = 1 := by
   rw [← (Equiv.optionEquivSumPUnit.{0,0} (Result Γ Λ)).symm.tsum_eq (terminalMass M cfg)]
@@ -988,15 +1163,21 @@ theorem terminalMass_sum (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
   rw [neverMass,add_comm]
   exact tsub_add_cancel_of_le (haltedMass_sum_le_one M cfg)
 
+/-- The normalized terminal law assigning halted masses to results and residual nontermination
+mass to `none`. -/
 noncomputable def terminalLaw (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) : PMF (Option (Result Γ Λ)) :=
   ⟨terminalMass M cfg,ENNReal.summable.hasSum_iff.mpr (terminalMass_sum M cfg)⟩
 
+/-- The terminal law's mass at `some r` is the halted mass of `r`. -/
 @[simp] theorem terminalLaw_some (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (r : Result Γ Λ) :
     terminalLaw M cfg (some r) = haltedMass M cfg r := rfl
 
+/-- The terminal law's mass at `none` is the residual nontermination mass. -/
 @[simp] theorem terminalLaw_none (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     terminalLaw M cfg none = neverMass M cfg := rfl
 
+/-- A halted run is already reproduced with fuel equal to its actual number of executed
+transitions. -/
 theorem run_halted_at_steps (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (hs : (run M n bs cfg).stop = .halted) :
     run M (run M n bs cfg).steps bs cfg = run M n bs cfg := by
@@ -1016,6 +1197,8 @@ theorem run_halted_at_steps (M : Program Γ Λ) (n : ℕ) (bs : List Bool) (cfg 
         simpa only [run,hc,Result.prepend,Result.steps,List.length_cons] using!
           congrArg (Result.prepend (cfg,some b)) hh
 
+/-- A result has nonzero halted mass exactly when it is halted and belongs to the support of
+some finite-budget execution law. -/
 theorem haltedMass_ne_zero_iff (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (r : Result Γ Λ) :
     haltedMass M cfg r ≠ 0 ↔ r.stop = .halted ∧ ∃ n, r ∈ (law M n cfg).support := by
   classical
@@ -1033,10 +1216,15 @@ theorem haltedMass_ne_zero_iff (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) 
       exact hn (le_zero_iff.mp hl)
   · simp [haltedMass,finishedMass,hr]
 
+/-- A returned result lies in the terminal law's support exactly when it is halted and lies in
+some finite-budget law's support. -/
 theorem terminalLaw_support_some (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (r : Result Γ Λ) :
     some r ∈ (terminalLaw M cfg).support ↔ r.stop = .halted ∧ ∃ n, r ∈ (law M n cfg).support := by
   rw [PMF.mem_support_iff,terminalLaw_some,haltedMass_ne_zero_iff]
 
+/-- Every supported returned terminal result is reproduced at its exact step count by its
+recorded bits, has a valid path and no unread bits, and exhausts fuel at every smaller
+budget. -/
 theorem terminalLaw_first_stop [Inhabited Λ] (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r : Result Γ Λ) (hr : some r ∈ (terminalLaw M cfg).support) :
     run M r.steps r.bits cfg = r ∧ r.unread = [] ∧ r.stop = .halted ∧
@@ -1049,6 +1237,8 @@ theorem terminalLaw_first_stop [Inhabited Λ] (M : Program Γ Λ) (cfg : Turing.
   intro k hk
   exact fuel_before M r.steps k r.bits cfg (by rw [hc]) hk
 
+/-- The terminal expectation of an observable that vanishes at `none` is the sum of its values
+weighted by halted-result masses. -/
 theorem terminalLaw_expectation_some (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (F : Result Γ Λ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (terminalLaw M cfg) (fun z => match z with | none => 0 | some r => F r) =
@@ -1059,6 +1249,8 @@ theorem terminalLaw_expectation_some (M : Program Γ Λ) (cfg : Turing.TM0.Cfg �
   simp only [Equiv.optionEquivSumPUnit_symm_inl,Equiv.optionEquivSumPUnit_symm_inr,
     terminalLaw_some,mul_zero,tsum_zero,add_zero]
 
+/-- The terminal expectation of an observable that vanishes at `none` equals the supremum of its
+finite-budget expectations restricted to halted results. -/
 theorem terminalLaw_halted_expectation (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (F : Result Γ Λ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (terminalLaw M cfg) (fun z => match z with | none => 0 | some r => F r) =
@@ -1075,6 +1267,8 @@ theorem terminalLaw_halted_expectation (M : Program Γ Λ) (cfg : Turing.TM0.Cfg
   intro r
   by_cases hr : r.stop = .halted <;> simp [finishedMass,hr]
 
+/-- The terminal probability of returning a result satisfying `P` equals the supremum of the
+corresponding finite-budget halting probabilities. -/
 theorem terminalLaw_event_some (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (P : Result Γ Λ → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (terminalLaw M cfg) (fun z => match z with | none => False | some r => P r) =
@@ -1093,6 +1287,8 @@ theorem terminalLaw_event_some (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     intro r
     by_cases hr : r.stop = .halted <;> by_cases hp : P r <;> simp [hr,hp]
 
+/-- If every supported result at a finite fuel budget is halted, the finite execution law mapped
+by `some` equals the terminal law. -/
 theorem law_complete_terminal (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : ∀ r ∈ (law M n cfg).support, r.stop = .halted) :
     (law M n cfg).map some = terminalLaw M cfg := by
@@ -1104,6 +1300,8 @@ theorem law_complete_terminal (M : Program Γ Λ) (n : ℕ) (cfg : Turing.TM0.Cf
   · have hs := h r (by rwa [PMF.mem_support_iff])
     exact le_iSup_of_le n (by simp [finishedMass,hs])
 
+/-- A probability mass function assigning mass at least one to a point is the pure law at that
+point. -/
 theorem pmf_eq_pure_of_one {α : Type} (p : PMF α) (a : α) (h : 1 ≤ p a) : p = PMF.pure a := by
   classical
   symm
@@ -1114,12 +1312,15 @@ theorem pmf_eq_pure_of_one {α : Type} (p : PMF α) (a : α) (h : 1 ≤ p a) : p
     simpa using! h
   · simp [PMF.pure_apply,he]
 
+/-- The terminal law of the spinning program is concentrated on nontermination. -/
 theorem terminalLaw_spin (cfg : Turing.TM0.Cfg Γ Unit) : terminalLaw spin cfg = PMF.pure none := by
   apply pmf_eq_pure_of_one
   rw [terminalLaw_none,neverMass_eq_iInf_fuel]
   simp only [law_spin,Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq,Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,(run_spin _ [] _).1,↓reduceIte,iInf_const]
   exact le_rfl
 
+/-- The finite-budget expected value of any extended nonnegative observable restricted to halted
+results is monotone in the fuel budget. -/
 theorem law_halted_expectation_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (F : Result Γ Λ → ℝ≥0∞) :
     Monotone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (law M n cfg) (fun r => if r.stop = .halted then F r else 0)) := by

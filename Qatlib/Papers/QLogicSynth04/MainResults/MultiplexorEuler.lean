@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+
+/-!
+# Euler decomposition of unitary multiplexors
+
+`theorem6_zyz_multiplexor` applies a Z-Y-Z Euler decomposition separately to each unitary qubit
+block. The resulting multiplexor is a product of three rotation multiplexors and a blockwise
+scalar phase. See [ShendeBullockMarkov2006] for the paper's setting.
+
+## Main statements
+
+* `theorem6_zyz_multiplexor`: Every finite family of unitary qubit matrices has a blockwise
+  Z-Y-Z Euler factorization, followed by a blockwise scalar phase.
+
+## References
+
+* [Shende et al., 2006][ShendeBullockMarkov2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,8 @@ noncomputable section
 
 namespace Qatlib.Papers.QLogicSynth04.MainResults
 
+/-- Every finite family of unitary qubit matrices has a blockwise Z-Y-Z Euler factorization,
+followed by a blockwise scalar phase. See [ShendeBullockMarkov2006]. -/
 theorem theorem6_zyz_multiplexor {N : Type*} [Fintype N] [DecidableEq N]
     (U : N → Matrix Bool Bool ℂ) (hU : ∀ j, U j ∈ Matrix.unitaryGroup Bool ℂ) :
     ∃ (α θ β δ : N → ℝ),

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+
+/-!
+# Cayley approximation of Hermitian evolution
+
+This module defines `cayleyShift` and the rational evolution step `cayleyStep`. For Hermitian
+matrices it proves invertibility of the shift, unitarity of the step, and compatibility with
+unitary conjugation.
+
+Scalar phase estimates and diagonalization give a cubic operator norm error bound for Hermitian
+contractions. The spectral matrix analysis background is treated in [Bhatia1997].
+
+## Main statements
+
+* `cayleyStep_unitary`: the Cayley step of a Hermitian matrix is unitary.
+* `cayleyStep_evolution_error`: the error is at most `|w| ^ 3 / 12` under the stated bounds.
+* `cayleyShift_inv_norm_le`: the inverse shift has operator norm at most one.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,14 +43,18 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The shifted matrix `1 + (i w / 2) M` used in the Cayley approximation. -/
 noncomputable def cayleyShift (M : Matrix I I ℂ) (w : ℝ) : Matrix I I ℂ :=
   1 + (Complex.I * ((w / 2 : ℝ) : ℂ)) • M
 
+/-- The rational evolution approximation `(1 - (i w / 2) M) * (1 + (i w / 2) M)⁻¹`. -/
 noncomputable def cayleyStep (M : Matrix I I ℂ) (w : ℝ) : Matrix I I ℂ :=
   (2 • (1 : Matrix I I ℂ) - cayleyShift M w) * (cayleyShift M w)⁻¹
 
 omit [Fintype I] in
 
+/-- For Hermitian `M`, the adjoint of its Cayley shift equals twice the identity minus the
+shift. -/
 theorem cayleyShift_adjoint (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
     (cayleyShift M w)ᴴ = 2 • (1 : Matrix I I ℂ) - cayleyShift M w := by
   simp only [cayleyShift, Matrix.conjTranspose_add, Matrix.conjTranspose_one,
@@ -37,6 +63,8 @@ theorem cayleyShift_adjoint (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) 
   simp only [two_smul]
   module
 
+/-- The adjoint of the Cayley shift times the shift equals `1 + (w / 2)² • (Mᴴ * M)` for
+Hermitian `M`. -/
 theorem cayleyShift_adjoint_mul (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
     (cayleyShift M w)ᴴ * cayleyShift M w =
       1 + ((w / 2) ^ 2 : ℝ) • (Mᴴ * M) := by
@@ -50,6 +78,7 @@ theorem cayleyShift_adjoint_mul (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : �
   simp only [Complex.I_sq]
   ring
 
+/-- The Cayley shift of a Hermitian matrix is invertible for every real step size. -/
 theorem cayleyShift_isUnit (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
     IsUnit (cayleyShift M w) := by
   have hp : ((cayleyShift M w)ᴴ * cayleyShift M w).PosDef := by
@@ -60,6 +89,7 @@ theorem cayleyShift_isUnit (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
   rw [Matrix.det_mul] at hd
   exact (Matrix.isUnit_iff_isUnit_det _).mpr (isUnit_of_mul_isUnit_right hd)
 
+/-- The Cayley step of a Hermitian matrix is unitary for every real step size. -/
 theorem cayleyStep_unitary (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
     cayleyStep M w ∈ Matrix.unitaryGroup I ℂ := by
   let S := cayleyShift M w
@@ -81,6 +111,7 @@ theorem cayleyStep_unitary (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
     _ = ((S⁻¹)ᴴ * Sᴴ) * (S * S⁻¹) := by noncomm_ring
     _ = 1 := by rw [hl, hr, one_mul]
 
+/-- Unitary conjugation does not increase the operator norm of a matrix. -/
 theorem cayley_conjugate_norm_le (U X : Matrix I I ℂ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) : ‖U * X * Uᴴ‖ ≤ ‖X‖ := by
   have hn : ‖U‖ ≤ 1 := l2_norm_unitary_le_one hU
@@ -91,6 +122,7 @@ theorem cayley_conjugate_norm_le (U X : Matrix I I ℂ)
     _ ≤ 1 * ‖X‖ * 1 := by gcongr
     _ = _ := by ring
 
+/-- Matrix inversion commutes with conjugation by a unitary matrix. -/
 theorem cayley_conjugate_inv (U X : Matrix I I ℂ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     (U * X * Uᴴ)⁻¹ = U * X⁻¹ * Uᴴ := by
@@ -111,6 +143,8 @@ theorem cayley_conjugate_inv (U X : Matrix I I ℂ)
   rw [Matrix.mul_inv_rev, Matrix.mul_inv_rev, hu, hv]
   noncomm_ring
 
+/-- The scalar Cayley quotient `(1 - i x) / (1 + i x)` equals the phase exponential with angle
+`-2 arctan x`. -/
 theorem cayley_scalar_phase (x : ℝ) :
     ((1 : ℂ) - Complex.I * (x : ℂ)) / (1 + Complex.I * (x : ℂ)) =
       Complex.exp (((-2 * Real.arctan x : ℝ) : ℂ) * Complex.I) := by
@@ -139,6 +173,8 @@ theorem cayley_scalar_phase (x : ℝ) :
   rw [hphase]
   exact (div_eq_div_iff hden (Complex.exp_ne_zero _)).2 hcross
 
+/-- The scalar Cayley quotient with half-step `x / 2` differs from `exp(-i x)` by at most `|x|³
+/ 12`. -/
 theorem cayley_scalar_error (x : ℝ) :
     ‖((1 : ℂ) - Complex.I * (x / 2 : ℝ)) / (1 + Complex.I * (x / 2 : ℝ)) -
       Complex.exp (((-x : ℝ) : ℂ) * Complex.I)‖ ≤ |x| ^ 3 / 12 := by
@@ -154,6 +190,7 @@ theorem cayley_scalar_error (x : ℝ) :
     _ ≤ 2 * (|x / 2| ^ 3 / 3) := mul_le_mul_of_nonneg_left hr (by norm_num)
     _ = _ := by rw [abs_div]; norm_num; ring
 
+/-- The Cayley step commutes with conjugation by a unitary matrix. -/
 theorem cayleyStep_conjugate (U : Matrix.unitaryGroup I ℂ) (M : Matrix I I ℂ) (w : ℝ) :
     cayleyStep ((U : Matrix I I ℂ) * M * (U : Matrix I I ℂ)ᴴ) w =
       (U : Matrix I I ℂ) * cayleyStep M w * (U : Matrix I I ℂ)ᴴ := by
@@ -165,6 +202,7 @@ theorem cayleyStep_conjugate (U : Matrix.unitaryGroup I ℂ) (M : Matrix I I ℂ
   congr 1
   exact cayley_conjugate_inv _ _ U.property
 
+/-- Hamiltonian evolution commutes with conjugation by a unitary matrix. -/
 theorem cayley_evolution_conjugate (U : Matrix.unitaryGroup I ℂ)
     (M : Matrix I I ℂ) (w : ℝ) :
     HamiltonianEvolution ((U : Matrix I I ℂ) * M * (U : Matrix I I ℂ)ᴴ) w =
@@ -181,6 +219,8 @@ theorem cayley_evolution_conjugate (U : Matrix.unitaryGroup I ℂ)
   rw [← smul_mul_assoc, ← mul_smul_comm, ← hu]
   exact Matrix.exp_conj _ _ (Unitary.isUnit_coe (U := U))
 
+/-- The inverse of a diagonal matrix with nonzero entries is the diagonal matrix of entrywise
+inverses. -/
 theorem cayley_diagonal_inv (d : I → ℂ) (hd : ∀ i, d i ≠ 0) :
     (Matrix.diagonal d)⁻¹ = Matrix.diagonal (fun i => (d i)⁻¹) := by
   have hr : Matrix.diagonal d * Matrix.diagonal (fun i => (d i)⁻¹) = 1 := by
@@ -192,6 +232,8 @@ theorem cayley_diagonal_inv (d : I → ℂ) (hd : ∀ i, d i ≠ 0) :
     _ = _ := by rw [← mul_assoc, Matrix.nonsing_inv_mul _
       (Matrix.isUnit_det_of_right_inverse hr), one_mul]
 
+/-- The Cayley step of a real diagonal matrix is diagonal with the scalar Cayley quotients as
+entries. -/
 theorem cayleyStep_diagonal (d : I → ℝ) (w : ℝ) :
     cayleyStep (Matrix.diagonal (fun i => (d i : ℂ))) w =
       Matrix.diagonal (fun i => (1 - Complex.I * ((w * d i / 2 : ℝ) : ℂ)) /
@@ -218,6 +260,7 @@ theorem cayleyStep_diagonal (d : I → ℝ) (w : ℝ) :
   rw [ht, Matrix.diagonal_mul_diagonal]
   rfl
 
+/-- Evolution under a real diagonal Hamiltonian is diagonal with entries `exp(-i w d i)`. -/
 theorem cayley_evolution_diagonal (d : I → ℝ) (w : ℝ) :
     HamiltonianEvolution (Matrix.diagonal (fun i => (d i : ℂ))) w =
       Matrix.diagonal (fun i => Complex.exp (((-(w * d i) : ℝ) : ℂ) * Complex.I)) := by
@@ -231,6 +274,7 @@ theorem cayley_evolution_diagonal (d : I → ℝ) (w : ℝ) :
   push_cast
   ring
 
+/-- Every eigenvalue of a Hermitian contraction has absolute value at most one. -/
 theorem cayley_eigenvalue_le (M : Matrix I I ℂ) (hM : M.IsHermitian)
     (hnorm : ‖M‖ ≤ 1) (i : I) : |hM.eigenvalues i| ≤ 1 := by
   have he := hM.conjStarAlgAut_star_eigenvectorUnitary
@@ -243,6 +287,8 @@ theorem cayley_eigenvalue_le (M : Matrix I I ℂ) (hM : M.IsHermitian)
   simpa only [Function.comp_apply, RCLike.ofReal_eq_complex_ofReal,
     Complex.norm_real, Real.norm_eq_abs] using! hp
 
+/-- For a Hermitian contraction and `|w| ≤ 1`, the Cayley evolution error is at most `|w|³ / 12`
+in operator norm. -/
 theorem cayleyStep_evolution_error (M : Matrix I I ℂ) (hM : M.IsHermitian) (hnorm : ‖M‖ ≤ 1)
     {w : ℝ} (_hw : |w| ≤ 1) :
     ‖cayleyStep M w - HamiltonianEvolution M w‖ ≤ |w| ^ 3 / 12 := by
@@ -264,6 +310,8 @@ theorem cayleyStep_evolution_error (M : Matrix I I ℂ) (hM : M.IsHermitian) (hn
     _ ≤ |w * d i| ^ 3 / 12 := cayley_scalar_error (w * d i)
     _ ≤ |w| ^ 3 / 12 := by rw [abs_mul]; gcongr; nlinarith [abs_nonneg w]
 
+/-- The inverse Cayley shift of a Hermitian matrix has operator norm at most one for every real
+step size. -/
 theorem cayleyShift_inv_norm_le (M : Matrix I I ℂ) (hM : M.IsHermitian) (w : ℝ) :
     ‖(cayleyShift M w)⁻¹‖ ≤ 1 := by
   let U := hM.eigenvectorUnitary

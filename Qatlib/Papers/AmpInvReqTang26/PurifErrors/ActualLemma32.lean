@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.PurificationErrors
+
+/-!
+# Trace distance under orthogonal purification errors
+
+The theorem `actual_lemma32` treats purifications represented by arbitrary output coefficient
+matrices. Orthonormal purification rows, orthogonal error rows, normalization, and lower bounds
+on the surviving coefficients give a trace distance bound for the reduced states. This
+development supports the treatment in [TangWright2025].
+
+## Main statements
+
+* `actual_lemma32`: half the trace norm of the reduced-state difference is at most `delta`.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +32,9 @@ open Matrix
 namespace Qatlib.Papers.AmpInvReqTang26.PurifErrors
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.Purification
 
+/-- For two normalized matrix purifications with orthonormal reference rows, orthogonal error
+rows, and surviving squared coefficients at least `1 - delta`, the trace distance between
+their reduced matrices is at most `delta` [Tang and Wright, Lemma 3.2][TangWright2025]. -/
 theorem actual_lemma32 {I O P : Type*} [Fintype I] [Fintype O] [Fintype P]
     [DecidableEq I] (V : Matrix O I ℂ) (Phi E : Matrix I P ℂ) (alpha : I → ℂ)
     (delta : ℝ) (hd : 0 ≤ delta)

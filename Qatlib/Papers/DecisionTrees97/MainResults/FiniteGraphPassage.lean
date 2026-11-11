@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.StaticLchs.FinitePassage
 import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.ComplexLaplacian
+
+/-!
+# Finite graph passage from classical to quantum evolution
+
+This module identifies the classical graph kernel with static nonunitary evolution of the graph
+Laplacian. It transfers a positive classical endpoint signal into a bounded-time unitary
+evolution with a lower bound on the endpoint measurement probability.
+
+These constructions accompany the results of [FarhiGutmann1998].
+
+## Main statements
+
+* `source_heat_eq_cauchy_target`: identifies the heat kernel with the nonunitary evolution
+  target.
+* `finite_unique_endpoint_transfer`: produces a quantum endpoint witness from a classical
+  signal.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,9 +46,12 @@ namespace Qatlib.Papers.DecisionTrees97.MainResults
 variable {V : Type} [Fintype V] [DecidableEq V]
 variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
+/-- The matrix exponential of minus time times the complex graph Laplacian. -/
 def sourceClassicalKernel (t : ℝ) : Matrix V V ℂ :=
   NormedSpace.exp ((-t : ℝ) • G.lapMatrix ℂ)
 
+/-- The complex graph Laplacian has degrees on the diagonal, minus one at adjacent off-diagonal
+entries, and zero elsewhere. See [FarhiGutmann1998]. -/
 theorem source_generator_entries (i j : V) :
     G.lapMatrix ℂ i j =
       if i = j then (G.degree i : ℂ) else if G.Adj i j then -1 else 0 := by
@@ -37,10 +62,15 @@ theorem source_generator_entries (i j : V) :
     simp
   · by_cases he : G.Adj i j <;> simp [h, he]
 
+/-- The classical graph kernel equals static nonunitary evolution with the graph Laplacian and
+zero auxiliary Hamiltonian. -/
 theorem source_heat_eq_cauchy_target (t : ℝ) :
     sourceClassicalKernel G t = staticNonunitaryEvolution (G.lapMatrix ℂ) 0 t := by
   simp [sourceClassicalKernel, staticNonunitaryEvolution]
 
+/-- A classical endpoint signal at least `p` at nonnegative time `T`, with `0 < p ≤ 1`, yields a
+unitary evolution at some time in `[0, 33 * T / p]` whose normalized state has endpoint
+measurement probability at least `p ^ 2 / 16`. See [FarhiGutmann1998]. -/
 theorem finite_unique_endpoint_transfer (T p : ℝ) (hT : 0 ≤ T)
     (hp : 0 < p) (hp1 : p ≤ 1) (target start : V)
     (hsignal : p ≤ (sourceClassicalKernel G T target start).re) :

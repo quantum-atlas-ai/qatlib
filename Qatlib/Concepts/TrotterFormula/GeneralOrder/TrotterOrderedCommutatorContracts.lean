@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
+
+/-!
+# Legacy ordered-commutator statement
+
+This module defines `TrotterOrderedCommutatorLegacy`, combining an ordered conjugation
+coefficient expansion with skew-Hermitian and general truncation bounds based on
+`pfCommAlphaOrdered`. It records the legacy formulation for comparison with the corrected
+statement in the commutator-expansion setting of [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `TrotterOrderedCommutatorLegacy`: specifies the legacy coefficient and remainder contract.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,8 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The legacy proposition combining the ordered coefficient expansion with remainder bounds
+based on `pfCommAlphaOrdered`. -/
 def TrotterOrderedCommutatorLegacy : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ),

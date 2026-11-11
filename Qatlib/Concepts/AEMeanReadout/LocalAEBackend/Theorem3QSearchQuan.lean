@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
 import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+
+/-!
+# Finite-horizon bounds for quantum search
+
+This module proves support correctness and uniform expected-cost bounds for the finite-horizon
+search loop with unknown initial marked mass in [BrassardEtAl2002]. Geometric window estimates
+and per-round failure bounds yield costs at most `400 / sqrt a` whenever the initial marked mass
+`a` is positive.
+
+## Main statements
+
+* `BHMTQSearch.bhmt_theorem3_qsearch`: marked-output correctness and expected bounds for both
+  cost counters.
+* `BHMTQSearch.bhmt_theorem3_qsearch_contract`: the packaged finite-horizon search contract.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +49,7 @@ open Qatlib.Concepts.WalkSearch.QuantumAccess
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTQSearch
 
+/-- Every natural power of the real number `6/5` is at least one. -/
 private theorem geopow_ge_one (k : ℕ) : (1:ℝ) ≤ ((6/5:ℝ)^k) := by
   induction k with
   | zero => norm_num
@@ -37,6 +58,7 @@ private theorem geopow_ge_one (k : ℕ) : (1:ℝ) ≤ ((6/5:ℝ)^k) := by
         _ ≤ ((6/5:ℝ)^k) * (6/5) := mul_le_mul ih (by norm_num) (by norm_num) (by norm_num)
         _ = (6/5:ℝ)^(k+1) := (pow_succ _ _).symm
 
+/-- Natural powers of the real number `6/5` are monotone in the exponent. -/
 private theorem geopow_mono {a b : ℕ} (h : a ≤ b) : ((6/5:ℝ)^a) ≤ ((6/5:ℝ)^b) := by
   obtain ⟨d, hd⟩ := Nat.exists_eq_add_of_le h
   rw [hd, pow_add]
@@ -44,17 +66,21 @@ private theorem geopow_mono {a b : ℕ} (h : a ≤ b) : ((6/5:ℝ)^a) ≤ ((6/5:
     _ ≤ ((6/5:ℝ)^a) * ((6/5:ℝ)^d) := mul_le_mul_of_nonneg_left (geopow_ge_one d)
       (by positivity)
 
+/-- The integer ceiling expression for the search window, multiplied by `5^k`, is at least
+`6^k`. -/
 private theorem window_raw_mul (k : ℕ) : (6:ℕ)^k ≤ 5^k * ((6^k + 5^k - 1) / 5^k) := by
   have h5 : (0:ℕ) < 5^k := Nat.pow_pos (by norm_num)
   have hd := Nat.div_add_mod (6^k + 5^k - 1) (5^k)
   have hmod : (6^k + 5^k - 1) % 5^k ≤ 5^k - 1 := Nat.le_pred_of_lt (Nat.mod_lt _ h5)
   omega
 
+/-- Expresses the real power `(6/5)^k` as the quotient of the corresponding natural powers. -/
 private theorem window_pow (k : ℕ) : ((6/5:ℝ)^k) = ((6^k:ℕ):ℝ)/((5^k:ℕ):ℝ) := by
   rw [div_pow]
   push_cast
   rfl
 
+/-- The lower bound of one in `qSearchWindow` is redundant. -/
 private theorem window_eq (l : ℕ) : qSearchWindow l = (6^l + 5^l - 1) / 5^l := by
   show max 1 ((6^l + 5^l - 1) / 5^l) = _
   have h5 : (0:ℕ) < 5^l := Nat.pow_pos (by norm_num)
@@ -64,6 +90,7 @@ private theorem window_eq (l : ℕ) : qSearchWindow l = (6^l + 5^l - 1) / 5^l :=
     omega
   omega
 
+/-- The search window is at least the real geometric scale `(6/5)^l`. -/
 private theorem window_ge (l : ℕ) : ((6/5:ℝ)^l) ≤ (qSearchWindow l : ℝ) := by
   have h5 : (0:ℕ) < 5^l := Nat.pow_pos (by norm_num)
   have h5R : (0:ℝ) < ((5^l:ℕ):ℝ) := by exact_mod_cast h5
@@ -76,6 +103,7 @@ private theorem window_ge (l : ℕ) : ((6/5:ℝ)^l) ≤ (qSearchWindow l : ℝ) 
   rw [window_eq, window_pow]
   exact hceil
 
+/-- The search window is at most twice the real geometric scale `(6/5)^l`. -/
 private theorem window_le (l : ℕ) : (qSearchWindow l : ℝ) ≤ 2 * ((6/5:ℝ)^l) := by
   have h5R : (0:ℝ) < ((5^l:ℕ):ℝ) := by
     have : (0:ℕ) < 5^l := Nat.pow_pos (by norm_num)
@@ -96,6 +124,7 @@ private theorem window_le (l : ℕ) : (qSearchWindow l : ℝ) ≤ 2 * ((6/5:ℝ)
   have hge := geopow_ge_one l
   linarith
 
+/-- For every positive scale `s`, some positive exponent makes `(6/5)^k * s` at least one. -/
 private theorem exists_geometric_cross {s : ℝ} (hs : 0 < s) :
     ∃ k : ℕ, 1 ≤ k ∧ 1 ≤ ((6/5:ℝ)^k)*s := by
   have hgrowth : ∀ k : ℕ, 1 + (k:ℝ)/5 ≤ ((6/5:ℝ)^k) := by
@@ -134,8 +163,10 @@ private theorem exists_geometric_cross {s : ℝ} (hs : 0 < s) :
     _ ≤ ((6/5:ℝ)^(max 1 (Nat.ceil (5/s)))) * s :=
         mul_le_mul_of_nonneg_right hkey (le_of_lt hs)
 
+/-- The geometric weight `(6/5)^l` viewed as an extended nonnegative real. -/
 private noncomputable def W (l : ℕ) : ℝ≥0∞ := ((6/5:ℝ≥0∞))^l
 
+/-- The extended nonnegative real number `6/5` is at least one. -/
 private theorem one_le_65 : (1:ℝ≥0∞) ≤ (6/5:ℝ≥0∞) := by
   rw [show ((6/5:ℝ≥0∞)) = ENNReal.ofReal ((6/5:ℝ)) from by
       rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 5)]
@@ -143,8 +174,10 @@ private theorem one_le_65 : (1:ℝ≥0∞) ≤ (6/5:ℝ≥0∞) := by
     ← ENNReal.ofReal_one]
   exact ENNReal.ofReal_le_ofReal (by norm_num)
 
+/-- The geometric weight at `l + 1` equals the weight at `l` multiplied by `6/5`. -/
 private theorem W_succ (l : ℕ) : W (l+1) = W l * (6/5:ℝ≥0∞) := pow_succ _ _
 
+/-- Every geometric weight `W l` is at least one. -/
 private theorem W_pos (l : ℕ) : (1:ℝ≥0∞) ≤ W l := by
   induction l with
   | zero => simp [W]
@@ -153,6 +186,7 @@ private theorem W_pos (l : ℕ) : (1:ℝ≥0∞) ≤ W l := by
         _ ≤ W l * (6/5:ℝ≥0∞) := mul_le_mul' ih one_le_65
         _ = W (l+1) := (W_succ l).symm
 
+/-- The extended nonnegative geometric weights are monotone in their exponent. -/
 private theorem W_mono {a b : ℕ} (h : a ≤ b) : W a ≤ W b := by
   obtain ⟨d, hd⟩ := Nat.exists_eq_add_of_le h
   rw [hd]
@@ -165,6 +199,8 @@ private theorem W_mono {a b : ℕ} (h : a ≤ b) : W a ≤ W b := by
             rw [W_succ]
             simpa using mul_le_mul' (le_refl (W (a + d))) one_le_65
 
+/-- Multiplying `W l` by `ENNReal.ofReal c` agrees with embedding the corresponding real product
+for nonnegative `c`. -/
 private theorem W_mul_real {c : ℝ} (hc : 0 ≤ c) (l : ℕ) :
     (ENNReal.ofReal c) * W l = ENNReal.ofReal (c * ((6/5:ℝ)^l)) := by
   have h65 : ((6/5:ℝ≥0∞)) = ENNReal.ofReal ((6/5:ℝ)) := by
@@ -173,6 +209,7 @@ private theorem W_mul_real {c : ℝ} (hc : 0 ≤ c) (l : ℕ) :
   show ENNReal.ofReal c * ((6/5:ℝ≥0∞))^l = _
   rw [h65, ← ENNReal.ofReal_pow (by norm_num : (0:ℝ) ≤ 6/5), ← ENNReal.ofReal_mul hc]
 
+/-- The search-window size, embedded in extended nonnegative reals, is at most `4 * W l`. -/
 private theorem window_coe_le (l : ℕ) :
     ((qSearchWindow l : ℕ) : ℝ≥0∞) ≤ (4:ℝ≥0∞) * W l := by
   have h1 : ((qSearchWindow l : ℕ) : ℝ≥0∞) = ENNReal.ofReal ((qSearchWindow l : ℕ):ℝ) :=
@@ -187,6 +224,8 @@ private theorem window_coe_le (l : ℕ) :
 section Closed
 variable {E : ℕ → ℕ → ℝ≥0∞} {Ec F : ℕ → ℝ≥0∞}
 
+/-- A cost recurrence with failure at most `1/4` and geometrically bounded round costs has total
+cost at most six times the initial geometric scale. -/
 private theorem closed_quarter (hrec : ∀ T off : ℕ,
     E (T+1) off = Ec (off+1) + F (off+1) * E T (off+1))
     (hzero : ∀ off : ℕ, E 0 off = 0)
@@ -224,6 +263,8 @@ private theorem closed_quarter (hrec : ∀ T off : ℕ,
             have hx : (0:ℝ) ≤ (6/5:ℝ)^(off+1) := by positivity
             nlinarith [hx, mul_nonneg hx (by norm_num : (0:ℝ) ≤ 4 + 9/5)]
 
+/-- After the maturity threshold, a cost recurrence with failure at most `3/4` has total cost at
+most forty times the initial geometric scale. -/
 private theorem closed_mature (ls : ℕ) (hrec : ∀ T off : ℕ,
     E (T+1) off = Ec (off+1) + F (off+1) * E T (off+1))
     (hzero : ∀ off : ℕ, E 0 off = 0)
@@ -260,6 +301,8 @@ private theorem closed_mature (ls : ℕ) (hrec : ∀ T off : ℕ,
             ring
         _ = ENNReal.ofReal (40 * ((6/5:ℝ)^(off+1))) := by congr 1; norm_num
 
+/-- Before the maturity threshold, the cost recurrence plus a geometric reserve is at most
+sixty-four times the threshold scale. -/
 private theorem closed_immature (ls : ℕ) (hrec : ∀ T off : ℕ,
     E (T+1) off = Ec (off+1) + F (off+1) * E T (off+1))
     (hzero : ∀ off : ℕ, E 0 off = 0)
@@ -355,6 +398,7 @@ private theorem closed_immature (ls : ℕ) (hrec : ∀ T off : ℕ,
 
 end Closed
 
+/-- The expectation of a constant times an event indicator is the constant times the event mass. -/
 private theorem expectation_indicator_mul' {α : Type} (p : PMF α) (P : α → Prop)
     [DecidablePred P] (c : ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun a => if P a then c else 0) = c * Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P := by
@@ -363,6 +407,8 @@ private theorem expectation_indicator_mul' {α : Type} (p : PMF α) (P : α → 
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr
       (fun a => by by_cases hP : P a <;> simp [hP])
 
+/-- An event of zero probability contains no point in the support of a probability mass
+function. -/
 private theorem event_zero_nosup {α : Type} (p : PMF α) (P : α → Prop)
     (h : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P = 0) : ∀ x ∈ p.support, ¬ P x := by
   intro x hx hPx
@@ -374,6 +420,8 @@ private theorem event_zero_nosup {α : Type} (p : PMF α) (P : α → Prop)
   rw [PMF.mem_support_iff] at hx
   exact absurd (le_antisymm hsingle (by simp)) hx
 
+/-- The uniform distribution on all elements of `Fin m` assigns each element mass `m⁻¹` for
+positive `m`. -/
 private theorem uniform_apply_univ {m : ℕ} (hm : 0 < m)
     (hs : (Finset.univ : Finset (Fin m)).Nonempty) (j : Fin m) :
     PMF.uniformOfFinset (Finset.univ : Finset (Fin m)) hs j = ((m : ℕ) : ℝ≥0∞)⁻¹ := by
@@ -383,10 +431,13 @@ private theorem uniform_apply_univ {m : ℕ} (hm : 0 < m)
 section Round
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The search-window size is positive. -/
 private theorem window_pos (l : ℕ) : 0 < qSearchWindow l := by
   show 0 < max 1 _
   omega
 
+/-- Unfolds `qSearchRound` into the initial trial and the randomized amplification trial on
+initial failure. -/
 private theorem qSearchRound_eq (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     qSearchRound A hA j₀ S l =
@@ -403,6 +454,8 @@ private theorem qSearchRound_eq (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
               PMF.pure (if st2.1.1 ∈ S then some st2.1.1 else none,
                 2 + 2*j.val, 2 + j.val) := rfl
 
+/-- Every supported successful round output is marked, and both recorded costs are at most twice
+the search-window size. -/
 private theorem round_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) (out : Option I × ℕ × ℕ)
     (hout : out ∈ (qSearchRound A hA j₀ S l).support) :
@@ -436,6 +489,7 @@ private theorem round_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
     · show (2 + 2*j.val : ℕ) ≤ 2*qSearchWindow l; omega
     · show (2 + j.val : ℕ) ≤ 2*qSearchWindow l; omega
 
+/-- The success mass of the zero-depth trial equals the marked mass of the prepared state. -/
 private theorem trial_zero_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAATrial A hA j₀ S (⟨0, Nat.zero_lt_one⟩ : Fin 1))
@@ -445,6 +499,7 @@ private theorem trial_zero_mass (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
     show ((⟨0, Nat.zero_lt_one⟩ : Fin 1) : ℕ) = 0 from rfl,
     (prepared_aa_actual_circuit A j₀ S 0 hA).2.2.2, pow_zero, applyGate_one]
 
+/-- The failure mass of the zero-depth trial is one minus the marked mass of the prepared state. -/
 private theorem trial_zero_compl (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAATrial A hA j₀ S (⟨0, Nat.zero_lt_one⟩ : Fin 1))
@@ -456,6 +511,8 @@ private theorem trial_zero_compl (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
   rw [add_comm] at hpair
   exact ENNReal.eq_sub_of_add_eq ENNReal.ofReal_ne_top hpair
 
+/-- A uniformly averaged trial-success event equals the arithmetic mean of the amplified marked
+masses. -/
 private theorem uniform_trial_event (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) {m : ℕ} (hm : 0 < m)
     {hs : (Finset.univ : Finset (Fin m)).Nonempty} :
@@ -472,6 +529,8 @@ private theorem uniform_trial_event (A : Matrix I I ℂ) (hA : A ∈ Matrix.unit
     ← Finset.mul_sum, Finset.sum_congr rfl (fun j _ =>
       (prepared_aa_trial_actual_metadata A j₀ S hA j).2.2)]
 
+/-- Splits round success into initial prepared-state success and randomized amplification
+success conditional on initial failure. -/
 private theorem round_succ_split (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (qSearchRound A hA j₀ S l) (fun out => ∃ y, out.1 = some y)
@@ -556,6 +615,8 @@ private theorem round_succ_split (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
     trial_zero_mass, trial_zero_compl]
   ring
 
+/-- When the amplification window satisfies the stated maturity condition, the average amplified
+success mass is at least `1/4`. -/
 private theorem round_avg_ge_quarter (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (θ : ℝ) (l : ℕ)
     (hθ0 : 0 < θ) (hθ1 : θ < Real.pi/2)
@@ -598,6 +659,7 @@ private theorem round_avg_ge_quarter (A : Matrix I I ℂ) (hA : A ∈ Matrix.uni
           (MeasureProb (Run (preparedMark S) (preparedAACircuit A j₀ (j : ℕ)) (Ket j₀)) S) := by
         ring
 
+/-- The round failure probability is at most one minus the initial marked mass. -/
 private theorem round_fail (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (qSearchRound A hA j₀ S l) (fun out => out.1 = none)
@@ -628,6 +690,7 @@ private theorem round_fail (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup 
           add_le_add hge (le_refl _)
     _ = 1 := hpart
 
+/-- A round satisfying the maturity condition has failure probability at most `3/4`. -/
 private theorem round_fail_mature (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (θ : ℝ) (l : ℕ)
     (hθ0 : 0 < θ) (hθ1 : θ < Real.pi/2)
@@ -694,6 +757,7 @@ private theorem round_fail_mature (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
           add_le_add hge (le_refl _)
     _ = 1 := hpart
 
+/-- If the prepared state has zero marked mass, every supported round output is `none`. -/
 private theorem round_none_of_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ)
     (ha : MeasureProb (preparedAAState A j₀) S = 0) :
@@ -715,6 +779,7 @@ private theorem round_none_of_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unita
     simpa [PMF.mem_support_pure_iff] using hout
   rw [hout', if_neg hst2S]
 
+/-- The expected first cost counter of a round is at most `4 * (6/5)^l`. -/
 private theorem round_cost1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchRound A hA j₀ S l) (fun out => (out.2.1 : ℝ≥0∞))
@@ -736,6 +801,7 @@ private theorem round_cost1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup
     rw [hsplit]
     nlinarith
 
+/-- The expected second cost counter of a round is at most `4 * (6/5)^l`. -/
 private theorem round_cost2 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchRound A hA j₀ S l) (fun out => (out.2.2 : ℝ≥0∞))
@@ -762,10 +828,13 @@ end Round
 section Loop
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- A search loop with zero remaining rounds returns `none` and two zero costs. -/
 private theorem qSearchLoop_zero_eq (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (off : ℕ) :
     qSearchLoop A hA j₀ S 0 off = PMF.pure (none, 0, 0) := by simp [qSearchLoop]
 
+/-- The continuation law that preserves a successful round output and otherwise executes the
+remaining loop while adding round costs. -/
 private noncomputable def loopCont {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (T off : ℕ) (out : Option I × ℕ × ℕ) : PMF (Option I × ℕ × ℕ) :=
@@ -774,6 +843,7 @@ private noncomputable def loopCont {I : Type} [Fintype I] [DecidableEq I]
   | none => PMF.map (fun r => (r.1, r.2.1 + out.2.1, r.2.2 + out.2.2))
       (qSearchLoop A hA j₀ S T (off+1))
 
+/-- A loop with one additional round is the bind of that round with `loopCont`. -/
 private theorem qSearchLoop_succ_eq (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (T off : ℕ) :
     qSearchLoop A hA j₀ S (T+1) off =
@@ -781,18 +851,22 @@ private theorem qSearchLoop_succ_eq (A : Matrix I I ℂ) (hA : A ∈ Matrix.unit
   rw [qSearchLoop]
   congr 1
 
+/-- The first cost counter has zero expectation for a zero-round loop. -/
 private theorem loop_expect_zero1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (off : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchLoop A hA j₀ S 0 off) (fun out => (out.2.1 : ℝ≥0∞)) = 0 := by
   rw [qSearchLoop_zero_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   norm_num
 
+/-- The second cost counter has zero expectation for a zero-round loop. -/
 private theorem loop_expect_zero2 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (off : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchLoop A hA j₀ S 0 off) (fun out => (out.2.2 : ℝ≥0∞)) = 0 := by
   rw [qSearchLoop_zero_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   norm_num
 
+/-- The expected first loop cost is the first-round expectation plus its failure probability
+times the remaining-loop expectation. -/
 private theorem loop_expect_succ1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (T off : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchLoop A hA j₀ S (T+1) off) (fun out => (out.2.1 : ℝ≥0∞))
@@ -842,6 +916,8 @@ private theorem loop_expect_succ1 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
     expectation_indicator_mul']
   ring
 
+/-- The expected second loop cost is the first-round expectation plus its failure probability
+times the remaining-loop expectation. -/
 private theorem loop_expect_succ2 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (T off : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (qSearchLoop A hA j₀ S (T+1) off) (fun out => (out.2.2 : ℝ≥0∞))
@@ -891,6 +967,7 @@ private theorem loop_expect_succ2 (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
     expectation_indicator_mul']
   ring
 
+/-- Every successful output in the support of a finite search loop belongs to the marked set. -/
 private theorem loop_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) :
     ∀ (T off : ℕ) (out : Option I × ℕ × ℕ), out ∈ (qSearchLoop A hA j₀ S T off).support →
@@ -922,6 +999,7 @@ private theorem loop_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup 
           subst hout2'
           exact (round_shape A hA j₀ S (off+1) _ hout1).1 y hy
 
+/-- If the initial marked mass is zero, every supported finite-loop output is `none`. -/
 private theorem loop_none_of_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (ha : MeasureProb (preparedAAState A j₀) S = 0) :
     ∀ (T off : ℕ) (out : Option I × ℕ × ℕ), out ∈ (qSearchLoop A hA j₀ S T off).support →
@@ -948,6 +1026,8 @@ private theorem loop_none_of_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitar
 
 end Loop
 
+/-- For `s ∈ (0, 1]`, there is a positive crossing index with geometric scale at most `6/5` at
+the crossing and at least one thereafter. -/
 private theorem exists_crossing {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) :
     ∃ ls : ℕ, 1 ≤ ls ∧ ((6/5:ℝ)^ls)*s ≤ 6/5 ∧ ∀ l : ℕ, ls ≤ l → 1 ≤ ((6/5:ℝ)^l)*s := by
   have hex : ∃ k : ℕ, 1 ≤ k ∧ 1 ≤ ((6/5:ℝ)^k)*s := exists_geometric_cross hs0
@@ -979,6 +1059,8 @@ private theorem exists_crossing {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) :
     calc (1:ℝ) ≤ ((6/5:ℝ)^(Nat.find hex))*s := (Nat.find_spec hex).2
       _ ≤ ((6/5:ℝ)^l)*s := mul_le_mul_of_nonneg_right hmono (le_of_lt hs0)
 
+/-- A cost ledger satisfying the round-cost recurrence and bounds has finite-loop expectation at
+most `400 / sqrt a` for positive initial marked mass `a`. -/
 private theorem ledger_bound {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (L : Option I × ℕ × ℕ → ℕ)
@@ -1113,6 +1195,9 @@ private theorem ledger_bound {I : Type} [Fintype I] [DecidableEq I]
     rw [hp]
     linarith
 
+/-- For every finite horizon, successful outputs are marked, zero initial marked mass forces
+failure, and both expected cost counters are at most `400 / sqrt a` when `a > 0` [Brassard
+et al., Theorem 3][BrassardEtAl2002]. -/
 theorem bhmt_theorem3_qsearch : ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (T : ℕ),
     let a : ℝ := MeasureProb (preparedAAState A j₀) S
@@ -1137,6 +1222,8 @@ theorem bhmt_theorem3_qsearch : ∀ (I : Type) [Fintype I] [DecidableEq I] (A : 
       (loop_expect_succ2 A hA j₀ S) (loop_expect_zero2 A hA j₀ S)
       (round_cost2 A hA j₀ S) ha0 ha1 T ha⟩⟩
 
+/-- Packages the finite-horizon search correctness and expected-cost bounds as
+`Theorem3QSearchSpec.expected`. -/
 theorem bhmt_theorem3_qsearch_contract :
     Theorem3QSearchSpec.expected :=
   bhmt_theorem3_qsearch

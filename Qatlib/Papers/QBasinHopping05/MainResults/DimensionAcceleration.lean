@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.C2GradientAlg.NumericalGradientAlgorithmFast
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
+
+/-!
+# Dimension dependence of gradient-query effort
+
+This module compares `2 * p` central-difference evaluations with a single quantum gradient query
+inside the scalar effort model `basinHopperEffort`. It proves the exact dimension-factor
+identity and a strict comparison for positive basin and iteration counts, in the setting of
+[Bulger2005].
+
+The theorem `quantum_gradient_single_query` records the query count of the imported
+gradient-value program under the displayed smoothness and parameter hypotheses.
+
+## Main statements
+
+* `dimension_factor_acceleration`: the exact `2 * p` ratio in the effort model.
+* `quantum_effort_lt_classical`: strict improvement for positive counts.
+* `quantum_gradient_single_query`: the gradient program has one query.
+
+## References
+
+* [Bulger, 2005][Bulger2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,18 +43,26 @@ open Qatlib.Concepts.GradientOracle.C2GradientAlg
 open Qatlib.Concepts.GradientOracle.ReadoutWindow
 open Qatlib.Foundations.QueryWordCore.Circuit
 
+/-- The central-difference evaluation count `2 * p` for `p` coordinates. -/
 def classicalCentralDifferenceEvaluations (p : ℕ) : ℕ := 2 * p
 
+/-- The constant one-query gradient evaluation count, independent of the dimension parameter. -/
 def quantumGradientEvaluations (_p : ℕ) : ℕ := 1
 
+/-- The scalar effort model given by the square root of the basin count times the iteration
+count and the gradient evaluation count. -/
 def basinHopperEffort (basins iterations gradientEvaluations : ℕ) : ℝ :=
   Real.sqrt (basins : ℝ) * (iterations : ℝ) * (gradientEvaluations : ℝ)
 
+/-- For at least one coordinate, the one-query gradient evaluation count is strictly smaller
+than the central-difference count [Bulger2005]. -/
 theorem quantum_beats_classical (p : ℕ) (hp : 1 ≤ p) :
     quantumGradientEvaluations p < classicalCentralDifferenceEvaluations p := by
   unfold quantumGradientEvaluations classicalCentralDifferenceEvaluations
   omega
 
+/-- In the stated effort model, classical central differences cost exactly `2 * p` times the
+quantum-gradient effort [Bulger2005]. -/
 theorem dimension_factor_acceleration (basins iterations p : ℕ) :
     basinHopperEffort basins iterations (classicalCentralDifferenceEvaluations p)
       = (2 * p : ℕ) * basinHopperEffort basins iterations (quantumGradientEvaluations p) := by
@@ -39,6 +70,8 @@ theorem dimension_factor_acceleration (basins iterations p : ℕ) :
   push_cast
   ring
 
+/-- For positive basin and iteration counts and dimension at least one, the modeled
+quantum-gradient effort is strictly below the classical effort [Bulger2005]. -/
 theorem quantum_effort_lt_classical (basins iterations p : ℕ)
     (hb : 0 < basins) (hi : 0 < iterations) (hp : 1 ≤ p) :
     basinHopperEffort basins iterations (quantumGradientEvaluations p)
@@ -56,6 +89,8 @@ theorem quantum_effort_lt_classical (basins iterations p : ℕ)
 
   simpa [mul_comm, mul_assoc, mul_left_comm] using! h
 
+/-- Under the displayed discretization, smoothness, derivative, and window hypotheses,
+`gradientValueProgram d M Q` has query count one [Bulger2005]. -/
 theorem quantum_gradient_single_query :
     ∀ (d M Q n_o : ℕ) (hM : 0 < M) [NeZero Q], 2 ≤ M → Q = 2 ^ n_o → 0 < n_o →
       ∀ (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d))

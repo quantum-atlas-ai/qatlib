@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Near-grid perturbation bounds for HHL output
+
+`continuousHHLMatrix` and `continuousHHLOracle` construct a matrix and its phase oracle from
+real spectral data. The module bounds their differences from grid-aligned counterparts using
+unitary diagonalization and reciprocal estimates, connecting matrix perturbation methods
+[Bhatia1997] to the HHL program [HarrowHassidimLloyd2009].
+
+The resulting consumer bounds the actual clean branch's mass, residual, and normalized solution
+error, and specializes them to an explicit two-eigenvalue example.
+
+## Main statements
+
+* `continuous_neargrid_oracle_and_inverse_perturbation`: oracle and pseudoinverse perturbation
+  bounds.
+* `neargrid_hhl_same_program_solution_and_success`: success mass, residual, and normalized
+  solution estimates.
+* `neargrid_hhl_two_eigenvalue_actual_consumer`: a concrete six-query, eighteen-gate instance.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,14 +66,18 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- The matrix `V * diagonal eig * Vᴴ` associated with the real spectral data. -/
 noncomputable def continuousHHLMatrix {D : ℕ} (eig : Fin D → ℝ) (V : Operator D) :
     Operator D :=
   V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ
 
+/-- The matrix `V * diagonal (exp (2 * π * I * eig)) * Vᴴ` associated with the spectral phases. -/
 noncomputable def continuousHHLOracle {D : ℕ} (eig : Fin D → ℝ) (V : Operator D) :
     Operator D :=
   V * Matrix.diagonal (fun i => Complex.exp (2 * Real.pi * Complex.I * (eig i : ℂ))) * Vᴴ
 
+/-- Unitary conjugation of a diagonal matrix has operator norm at most the supremum norm of its
+diagonal. -/
 theorem norm_conj_diagonal_le {D : ℕ} (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (w : Fin D → ℂ) :
     ‖V * Matrix.diagonal w * Vᴴ‖ ≤ ‖w‖ := by
@@ -69,6 +99,8 @@ theorem norm_conj_diagonal_le {D : ℕ} (V : Operator D)
       ≤ ‖w‖ * ‖toEuclidean_fromVec (Vᴴ *ᵥ ψ)‖ := hdiag
     _ = ‖w‖ * ‖toEuclidean_fromVec ψ‖ := by rw [hVnorm]
 
+/-- The difference of two diagonal matrices conjugated by the same matrix is the conjugate of
+their pointwise diagonal difference. -/
 theorem conj_diagonal_sub {D : ℕ} (V : Operator D) (w w' : Fin D → ℂ) :
     V * Matrix.diagonal w * Vᴴ - V * Matrix.diagonal w' * Vᴴ
       = V * Matrix.diagonal (w - w') * Vᴴ := by
@@ -77,6 +109,8 @@ theorem conj_diagonal_sub {D : ℕ} (V : Operator D) (w w' : Fin D → ℂ) :
   rw [h1, ← Matrix.mul_sub, Matrix.diagonal_sub]
   rfl
 
+/-- For unitary `V` and nonzero diagonal entries, conjugating their pointwise reciprocals gives
+a two-sided inverse. -/
 theorem conj_diagonal_mul_inv {D : ℕ} (w : Fin D → ℂ) (hw : ∀ i, w i ≠ 0)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     (V * Matrix.diagonal w * Vᴴ) * (V * Matrix.diagonal (fun i => (w i)⁻¹) * Vᴴ) = 1 ∧
@@ -117,6 +151,8 @@ theorem conj_diagonal_mul_inv {D : ℕ} (w : Fin D → ℂ) (hw : ∀ i, w i ≠
       noncomm_ring
     rw [hassoc, hVU, Matrix.one_mul, hdd', Matrix.mul_one, hUV]
 
+/-- For unitary `V` and nonzero diagonal entries, the matrix pseudoinverse is obtained by
+conjugating the pointwise reciprocal diagonal. -/
 theorem pseudoinverse_conj_diagonal {D : ℕ} (w : Fin D → ℂ) (hw : ∀ i, w i ≠ 0)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     matrixPseudoinverse (V * Matrix.diagonal w * Vᴴ)
@@ -131,6 +167,7 @@ theorem pseudoinverse_conj_diagonal {D : ℕ} (w : Fin D → ℂ) (hw : ∀ i, w
   · rw [hBA]
     simp
 
+/-- The map `t ↦ exp (2 * π * I * t)` is `2 * π`-Lipschitz on the reals. -/
 theorem norm_exp_two_pi_sub (a t : ℝ) :
     ‖Complex.exp (2 * Real.pi * Complex.I * (a : ℂ))
         - Complex.exp (2 * Real.pi * Complex.I * (t : ℂ))‖ ≤ 2 * Real.pi * |a - t| := by
@@ -159,6 +196,8 @@ theorem norm_exp_two_pi_sub (a t : ℝ) :
   rw [hsplit, norm_mul, hunit, one_mul]
   exact hkey
 
+/-- If `a` and `b` are at least `d > 0` and differ by at most `Δ`, their reciprocals differ by
+at most `Δ / d^2`. -/
 theorem inv_sub_inv_abs_le {a b d Δ : ℝ} (hd : 0 < d) (ha : d ≤ a) (hb : d ≤ b)
     (hΔ : |a - b| ≤ Δ) : |a⁻¹ - b⁻¹| ≤ Δ / d ^ 2 := by
   have hpa : 0 < a := lt_of_lt_of_le hd ha
@@ -173,6 +212,8 @@ theorem inv_sub_inv_abs_le {a b d Δ : ℝ} (hd : 0 < d) (ha : d ≤ a) (hb : d 
   have hmle := mul_le_mul hΔ' h2 (sq_nonneg d) hΔ0
   rwa [← div_le_div_iff₀ hpos (by positivity : (0 : ℝ) < d ^ 2)] at hmle
 
+/-- The conjugate transpose of the diagonal spectral-phase matrix multiplied by that matrix is
+the identity. -/
 theorem continuousHHLOracleDiagonal_adjoint_mul {D : ℕ} (eig : Fin D → ℝ) :
     (Matrix.diagonal (fun i => Complex.exp (2 * Real.pi * Complex.I * (eig i : ℂ))))ᴴ
       * Matrix.diagonal (fun i => Complex.exp (2 * Real.pi * Complex.I * (eig i : ℂ))) = 1 := by
@@ -189,6 +230,7 @@ theorem continuousHHLOracleDiagonal_adjoint_mul {D : ℕ} (eig : Fin D → ℝ) 
     simpa using! h2
   · simp [hij]
 
+/-- The continuous spectral-phase oracle is unitary when its eigenbasis matrix is unitary. -/
 theorem continuous_hhl_oracle_unitary {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     continuousHHLOracle eig V ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -213,6 +255,9 @@ theorem continuous_hhl_oracle_unitary {D : ℕ} (eig : Fin D → ℝ) (V : Opera
         from (Matrix.mul_assoc _ _ _).symm,
     h, Matrix.one_mul, hUV]
 
+/-- If positive spectral values and their grid labels differ by at most `Δ` and are bounded
+below by `d`, their oracles differ by at most `2 * π * Δ` and their matrix pseudoinverses by
+at most `Δ / d^2`. The continuous oracle is unitary. -/
 theorem continuous_neargrid_oracle_and_inverse_perturbation :
     ∀ (D M : ℕ) (label : Fin D → Fin M) (eig : Fin D → ℝ) (V : Operator D) (d Δ : ℝ),
       2 ≤ M → V ∈ Matrix.unitaryGroup (Fin D) ℂ → 0 < d → 0 ≤ Δ →
@@ -301,6 +346,9 @@ theorem continuous_neargrid_oracle_and_inverse_perturbation :
   refine le_trans (norm_conj_diagonal_le V hV _) ?_
   exact (pi_norm_le_iff_of_nonneg (by positivity)).2 hinv
 
+/-- For the near-grid spectral promise and combined error `η < c`, the actual clean HHL branch
+is nonzero, has mass at least `(c - η)^2`, and has residual at most `η`. Its normalized
+state is within `2 * η / c` of the normalized pseudoinverse solution. -/
 theorem neargrid_hhl_same_program_solution_and_success :
     ∀ (D M : ℕ) (label : Fin D → Fin M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
       (d Δ c : ℝ), 2 ≤ M → V ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -534,6 +582,9 @@ theorem neargrid_hhl_same_program_solution_and_success :
       mul_nonneg (add_nonneg (by positivity) (div_nonneg hc0.le (sq_nonneg d))) hΔ
     exact div_le_div_of_nonneg_left (mul_nonneg zero_le_two hηpos) hc0 hxge
 
+/-- For the specified two-eigenvalue perturbation with `k ≥ 10`, the clean branch is nonzero and
+satisfies the stated success-mass lower bound. The actual word uses six queries and eighteen
+fixed gates. -/
 theorem neargrid_hhl_two_eigenvalue_actual_consumer :
     ∀ (k : ℕ), 10 ≤ k →
       let eig : Fin 2 → ℝ := fun i => if i = 0 then 1/4 + (2:ℝ)^(-((k:ℤ))) else 1/2

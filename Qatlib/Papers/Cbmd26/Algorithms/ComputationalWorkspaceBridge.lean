@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+
+/-!
+# Computational success frames and input preparation
+
+The `computationalWorkspaceFrame` construction transports an ancilla-tagged system frame across
+an equivalence between a workspace and a product basis. Its range projector is the computational
+event `computationalWorkspaceEvent`, and `computationalWorkspaceInput` lifts system input
+preparation to that workspace. These results support the contour-based algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `computationalWorkspaceFrame_rangeProjector`: identifies the success projector.
+* `computationalWorkspaceInput_prepare`: transports prepared input states into the success
+  frame.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,21 +74,27 @@ open scoped Matrix.Norms.L2Operator
 variable {W Aux I : Type} [Fintype W] [DecidableEq W] [Fintype Aux] [DecidableEq Aux]
   [Fintype I] [DecidableEq I]
 
+/-- Transports the system frame with fixed ancilla tag `a₀` to the workspace basis through `e`. -/
 def computationalWorkspaceFrame (e : W ≃ Aux × I) (a₀ : Aux) : Matrix W I ℂ :=
   reindexFrame e (tagFrame a₀ (1 : Matrix I I ℂ))
 
+/-- Defines the workspace basis event whose ancilla component under `e` equals `a₀`. -/
 def computationalWorkspaceEvent (e : W ≃ Aux × I) (a₀ : Aux) : Finset W :=
   Finset.univ.filter fun w => (e w).1 = a₀
 
+/-- Lifts a system matrix to every ancilla sector and reindexes it to the workspace. -/
 def computationalWorkspaceInput (e : W ≃ Aux × I) (B : Matrix I I ℂ) : Matrix W W ℂ :=
   (parallelOracle (J := Aux) B).submatrix e e
 
 omit [DecidableEq W] in
 
+/-- The computational workspace frame is an isometry. -/
 theorem computationalWorkspaceFrame_isIsometry (e : W ≃ Aux × I) (a₀ : Aux) :
     IsIsometry (computationalWorkspaceFrame e a₀) :=
   reindexFrame_isIsometry e _ (tagFrame_isIsometry a₀ _ (by simp [IsIsometry]))
 
+/-- The range projector of the computational workspace frame equals the projector of its
+computational success event. -/
 theorem computationalWorkspaceFrame_rangeProjector (e : W ≃ Aux × I) (a₀ : Aux) :
     rangeProjector (computationalWorkspaceFrame e a₀) =
       Projector (computationalWorkspaceEvent e a₀) := by
@@ -78,11 +105,14 @@ theorem computationalWorkspaceFrame_rangeProjector (e : W ≃ Aux × I) (a₀ : 
   ext p q
   simp [Projector, Matrix.diagonal_apply, computationalTagEvent, computationalWorkspaceEvent]
 
+/-- Lifting a unitary system matrix gives a unitary workspace input matrix. -/
 theorem computationalWorkspaceInput_unitary (e : W ≃ Aux × I) (B : Matrix I I ℂ)
     (hB : B ∈ Matrix.unitaryGroup I ℂ) :
     computationalWorkspaceInput e B ∈ Matrix.unitaryGroup W ℂ :=
   relabelGate_mem_unitary (parallelOracle_unitary hB) e.symm
 
+/-- A system preparation from `i₀` lifts to preparation of the framed state from the workspace
+basis state corresponding to `(a₀, i₀)`. -/
 theorem computationalWorkspaceInput_prepare (e : W ≃ Aux × I) (B : Matrix I I ℂ)
     (a₀ : Aux) (i₀ : I) (ψ : QState I) (hB : ApplyGate B (Ket i₀) = ψ) :
     ApplyGate (computationalWorkspaceInput e B) (Ket (e.symm (a₀,i₀))) =

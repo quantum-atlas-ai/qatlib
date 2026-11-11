@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.EnergySpec09.MainResults.MCSCFPhaseEstimation
+
+/-!
+# Success weights from initial-state overlaps
+
+This module proves the squared-overlap readout formula used in the MCSCF phase-estimation scheme
+of [WangEtAl2008]. The helpers `tensorState_sum` and `inner_eq_coeff` relate finite state
+expansions to tensor products and orthonormal expansion coefficients.
+
+For orthonormal eigenstates with distinct phase labels on the exact phase grid,
+`qpe_success_prob_eq_coeff_sq` identifies a label's readout weight with the squared norm of its
+coefficient. The theorem `qpe_success_prob_eq_overlap_sq` rewrites that coefficient as an
+overlap. The final comparison is conditional on the supplied ordering of overlap norms.
+
+## Main statements
+
+* `qpe_success_prob_eq_coeff_sq`: the selected phase-label weight is `‖c n‖ ^ 2`.
+* `qpe_success_prob_eq_overlap_sq`: the same weight is the squared target overlap.
+* `success_prob_mono_overlap`: increasing the overlap norm increases its square.
+
+## References
+
+* [Wang et al., 2008][WangEtAl2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +46,8 @@ variable {I : Type*} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Tensoring a fixed state with a finite linear combination distributes over the sum and
+preserves its coefficients. -/
 theorem tensorState_sum {J : Type*} [Fintype J] [DecidableEq J]
     {Idx : Type*} [Fintype Idx] (ψ : QState J) (c : Idx → ℂ) (φ : Idx → QState I) :
     TensorState ψ (∑ i, c i • φ i) = ∑ i, c i • TensorState ψ (φ i) := by
@@ -30,6 +56,8 @@ theorem tensorState_sum {J : Type*} [Fintype J] [DecidableEq J]
   simp only [TensorState, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   exact Finset.sum_congr rfl fun i _ => by ring
 
+/-- The overlap with an element of an orthonormal family extracts its coefficient from a finite
+expansion in that family. -/
 theorem inner_eq_coeff {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
     (c : Idx → ℂ) (φ : Idx → QState I)
     (hOr : ∀ i j, Inner (φ i) (φ j) = if i = j then 1 else 0) (n : Idx) :
@@ -58,6 +86,9 @@ theorem inner_eq_coeff {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
   · intro hnot
     exact absurd (Finset.mem_univ n) hnot
 
+/-- For orthonormal eigenstates with distinct exact phase labels, the phase-estimation weight of
+label `k n` is `‖c n‖ ^ 2`. This is the coefficient form of the initial-guess success
+relation in [WangEtAl2008]. -/
 theorem qpe_success_prob_eq_coeff_sq {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
     {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
     (c : Idx → ℂ) (φ : Idx → QState I) (k : Idx → Fin M)
@@ -104,6 +135,9 @@ theorem qpe_success_prob_eq_coeff_sq {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
     _ = ‖c n‖ ^ 2 := by
       rw [hnorm, mul_one]
 
+/-- For an orthonormal eigenstate expansion with distinct exact phase labels, the weight of the
+selected readout label equals the squared overlap with its eigenstate. This formalizes the
+initial-guess success relation used in [WangEtAl2008]. -/
 theorem qpe_success_prob_eq_overlap_sq {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
     {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
     (c : Idx → ℂ) (φ : Idx → QState I) (k : Idx → Fin M)
@@ -118,6 +152,9 @@ theorem qpe_success_prob_eq_overlap_sq {M : ℕ} (hM : 0 < M) (U : Matrix I I �
 
 omit [DecidableEq I] in
 
+/-- If the MCSCF overlap norm is at least the Hartree-Fock overlap norm, the same ordering holds
+for their squares. This conditional comparison supports the success-probability discussion
+in [WangEtAl2008]. -/
 theorem success_prob_mono_overlap {ψtarget ψMCSCF ψHF : QState I}
     (h : ‖Inner ψtarget ψHF‖ ≤ ‖Inner ψtarget ψMCSCF‖) :
     ‖Inner ψtarget ψHF‖ ^ 2 ≤ ‖Inner ψtarget ψMCSCF‖ ^ 2 :=

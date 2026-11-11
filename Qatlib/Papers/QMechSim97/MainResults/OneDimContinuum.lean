@@ -9,6 +9,28 @@ import Mathlib.Analysis.Asymptotics.Defs
 import Mathlib.Order.Filter.Basic
 import Mathlib.Topology.Basic
 import Mathlib.Tactic
+
+/-!
+# One-dimensional mass and collision identities
+
+Establishes algebraic ingredients for the one-dimensional lattice model of
+[BoghosianTaylor1998]. The effective mass `particleMass1D` is real under the collision
+orthogonality condition, and `collision2` is unitary under the normalization and orthogonality
+conditions; the Schrödinger coefficient agrees with `dispersionCoeff`.
+
+## Main statements
+
+* `normSq_exp_pure_imaginary`: The complex exponential of `θ * I` has squared modulus one for
+  real `θ`.
+* `mass_and_collision_fragments`: For a nonzero unitary collision pair, the effective mass is
+  real, `collision2` is unitary, and the mass coefficient equals the dispersion coefficient
+  [BoghosianTaylor1998].
+
+## References
+
+* [Boghosian and Taylor, 1998][BoghosianTaylor1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +43,7 @@ namespace Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
 open Qatlib.Papers.QMechSim97.MainResults.Defs
 open Complex
 
+/-- The effective mass `particleMass1D a b` is real when `a * conj b + conj a * b = 0`. -/
 theorem mass_is_real (a b : ℂ)
     (hunit : a * (starRingEnd ℂ) b + (starRingEnd ℂ) a * b = 0) :
     ∃ r : ℝ, particleMass1D a b = (r : ℂ) := by
@@ -43,6 +66,8 @@ theorem mass_is_real (a b : ℂ)
       rw [h2]; exact hre
     rw [div_sub_div_same, key, zero_div]
 
+/-- The matrix `collision2 a b` has conjugate transpose times itself equal to the identity under
+the normalization and orthogonality conditions. -/
 theorem collision2_unitary (a b : ℂ)
     (hn : Complex.normSq a + Complex.normSq b = 1)
     (hab : a * (starRingEnd ℂ) b + (starRingEnd ℂ) a * b = 0) :
@@ -66,11 +91,15 @@ theorem collision2_unitary (a b : ℂ)
     simp [collision2, Matrix.mul_apply, Fin.sum_univ_two,
       hbb, haa, hnorm_ab, hnorm_ba, hab', hab'']
 
+/-- For nonzero `a` and `b`, the Schrödinger coefficient of `particleMass1D a b` equals
+`dispersionCoeff a b`. -/
 theorem schrodingerCoeff_mass (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) :
     schrodingerCoeff (particleMass1D a b) = dispersionCoeff a b := by
   unfold schrodingerCoeff particleMass1D dispersionCoeff
   field_simp
 
+/-- A finite diagonal matrix whose diagonal entries have squared modulus one has conjugate
+transpose times itself equal to the identity. -/
 theorem diagonal_phase_unitary {J : Type*} [Fintype J] [DecidableEq J] (phase : J → ℂ)
     (h : ∀ i, Complex.normSq (phase i) = 1) :
     Matrix.conjTranspose (Matrix.diagonal phase) * Matrix.diagonal phase = 1 := by
@@ -84,11 +113,14 @@ theorem diagonal_phase_unitary {J : Type*} [Fintype J] [DecidableEq J] (phase : 
     simp [h i]
   rw [hfun, Matrix.diagonal_one]
 
+/-- The complex exponential of `θ * I` has squared modulus one for real `θ`. -/
 theorem normSq_exp_pure_imaginary (θ : ℝ) :
     Complex.normSq (Complex.exp (θ * I)) = 1 := by
   rw [Complex.normSq_eq_norm_sq, Complex.norm_exp_ofReal_mul_I]
   norm_num
 
+/-- For a nonzero unitary collision pair, the effective mass is real, `collision2` is unitary,
+and the mass coefficient equals the dispersion coefficient [BoghosianTaylor1998]. -/
 theorem mass_and_collision_fragments (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
     (hp : IsUnitaryPair a b) :
     (∃ r : ℝ, particleMass1D a b = (r : ℂ)) ∧

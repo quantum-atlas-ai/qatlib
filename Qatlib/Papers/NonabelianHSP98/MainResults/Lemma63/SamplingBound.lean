@@ -87,6 +87,27 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.NonabelianHSP98.MainResults.Lemma63.Basic
 import Qatlib.Papers.NonabelianHSP98.MainResults.WreathGroup
+
+/-!
+# Generation bounds from maximal subgroups
+
+This module counts tuples contained in maximal proper subgroups to bound the failure probability
+of random generation. The estimate `genProb_ge_one_sub_maxSubs` depends explicitly on the number
+of maximal subgroups. Its corrected corollaries give a bound for `4 * j` samples under the
+hypotheses `card (maxSubs G) ≤ 2 ^ d` and `3 * d ≤ j`. This development accompanies
+[RoettelerBeth1998].
+
+## Main statements
+
+* `card_fail_le`: a union bound for nongenerating tuples.
+* `genProb_ge_one_sub_maxSubs`: a generation probability lower bound.
+* `genProb_ge_corrected`: a corrected sample bound with explicit maximal-subgroup assumptions.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -100,18 +121,23 @@ open scoped BigOperators
 
 variable {G : Type} [Fintype G] [Group G]
 
+/-- The finite set of maximal proper subgroups of `G`. -/
 noncomputable def maxSubs (G : Type) [Fintype G] [Group G] : Finset (Subgroup G) := by
   classical
   exact Finset.univ.filter (fun K : Subgroup G => IsCoatom K)
 
+/-- The finite set of ordered `i`-tuples that generate `G`. -/
 noncomputable def genSet (G : Type) [Fintype G] [Group G] (i : ℕ) : Finset (Fin i → G) := by
   classical
   exact Finset.univ.filter (fun S : Fin i → G => Subgroup.closure (Set.range S) = ⊤)
 
+/-- The finite set of ordered `i`-tuples that fail to generate `G`. -/
 noncomputable def failSet (G : Type) [Fintype G] [Group G] (i : ℕ) : Finset (Fin i → G) := by
   classical
   exact Finset.univ.filter (fun S : Fin i → G => Subgroup.closure (Set.range S) ≠ ⊤)
 
+/-- A subgroup is a coatom in the subgroup lattice if and only if it is maximal among proper
+subgroups. -/
 theorem isCoatom_iff_maximal_lt_top (K : Subgroup G) :
     IsCoatom K ↔ Maximal (fun H : Subgroup G => H < ⊤) K := by
   constructor
@@ -129,6 +155,7 @@ theorem isCoatom_iff_maximal_lt_top (K : Subgroup G) :
     have hblt : b < ⊤ := lt_top_iff_ne_top.mpr hb
     exact (not_lt_of_ge (hmax hblt hKb.le)) hKb
 
+/-- Every proper subgroup of a finite group is contained in a maximal proper subgroup. -/
 theorem exists_coatom_of_lt_top {U : Subgroup G} (hU : U < ⊤) :
     ∃ K : Subgroup G, IsCoatom K ∧ U ≤ K := by
   classical
@@ -139,6 +166,8 @@ theorem exists_coatom_of_lt_top {U : Subgroup G} (hU : U < ⊤) :
     simpa [s] using hKmax
   exact ⟨K, (isCoatom_iff_maximal_lt_top K).mpr hmax, hUK⟩
 
+/-- A tuple fails to generate `G` exactly when all its entries lie in some maximal proper
+subgroup. -/
 theorem closure_ne_top_iff_exists_coatom (i : ℕ) (S : Fin i → G) :
     Subgroup.closure (Set.range S) ≠ ⊤ ↔ ∃ K ∈ maxSubs G, ∀ j, S j ∈ K := by
   classical
@@ -159,10 +188,13 @@ theorem closure_ne_top_iff_exists_coatom (i : ℕ) (S : Fin i → G) :
     have htopK : (⊤ : Subgroup G) ≤ K := htop ▸ hle
     exact hKcoat.ne_top (top_le_iff.mp htopK)
 
+/-- The finite set of ordered `i`-tuples with every entry in `K`. -/
 noncomputable def box (K : Subgroup G) (i : ℕ) : Finset (Fin i → G) := by
   classical
   exact Finset.univ.filter (fun S : Fin i → G => ∀ j, S j ∈ K)
 
+/-- The equivalence between tuples in `G` whose entries lie in `K` and tuples valued in the
+subgroup `K`. -/
 def memFunEquiv (K : Subgroup G) (i : ℕ) :
     {S : Fin i → G // ∀ j, S j ∈ K} ≃ (Fin i → K) where
   toFun S j := ⟨S.1 j, S.2 j⟩
@@ -175,6 +207,7 @@ def memFunEquiv (K : Subgroup G) (i : ℕ) :
     funext j
     rfl
 
+/-- The number of length-`i` tuples contained in `K` is `Nat.card K ^ i`. -/
 theorem card_box (K : Subgroup G) (i : ℕ) :
     (box K i).card = (Nat.card K) ^ i := by
   classical
@@ -185,6 +218,7 @@ theorem card_box (K : Subgroup G) (i : ℕ) :
   rw [Fintype.card_fun]
   simp [Nat.card_eq_fintype_card]
 
+/-- Twice the cardinality of a proper subgroup is at most the cardinality of the finite group. -/
 theorem two_mul_card_le_of_lt_top (K : Subgroup G) (hK : K < ⊤) :
     2 * Nat.card K ≤ Nat.card G := by
   classical
@@ -197,6 +231,8 @@ theorem two_mul_card_le_of_lt_top (K : Subgroup G) (hK : K < ⊤) :
     _ = Nat.card K * K.index := Nat.mul_comm _ _
     _ = Nat.card G := hcard
 
+/-- The number of nongenerating `i`-tuples is at most the number of maximal proper subgroups
+times `(card G / 2) ^ i`, with the bound taken in the reals. -/
 theorem card_fail_le (i : ℕ) :
     ((failSet G i).card : ℝ)
       ≤ ((maxSubs G).card : ℝ) * (((Fintype.card G : ℝ) / 2) ^ i) := by
@@ -233,16 +269,20 @@ theorem card_fail_le (i : ℕ) :
     _ = ((maxSubs G).card : ℝ) * (((Fintype.card G : ℝ) / 2) ^ i) := by
         simp [Finset.sum_const, nsmul_eq_mul]
 
+/-- The number of length-`i` tuples in `G` is `Fintype.card G ^ i`. -/
 theorem card_univ_fun (i : ℕ) : Fintype.card (Fin i → G) = (Fintype.card G) ^ i := by
   rw [Fintype.card_fun]
   simp
 
+/-- The generation probability is the cardinality of `genSet G i` divided by the total tuple
+count. -/
 theorem genProb_eq_card_genSet (i : ℕ) :
     genProb G i = ((genSet G i).card : ℝ) / (Fintype.card G : ℝ) ^ i := by
   classical
   unfold genProb genSet
   rfl
 
+/-- The counts of generating and nongenerating tuples add to the total tuple count. -/
 theorem genSet_card_add_failSet_card (i : ℕ) :
     (genSet G i).card + (failSet G i).card = (Fintype.card G) ^ i := by
   classical
@@ -251,6 +291,7 @@ theorem genSet_card_add_failSet_card (i : ℕ) :
     (p := fun S : Fin i → G => Subgroup.closure (Set.range S) = ⊤)
   simpa [genSet, failSet, card_univ_fun] using h
 
+/-- The generation probability is one minus the fraction of nongenerating tuples. -/
 theorem genProb_eq_one_sub_fail (i : ℕ) :
     genProb G i
       = 1 - ((failSet G i).card : ℝ)
@@ -269,6 +310,8 @@ theorem genProb_eq_one_sub_fail (i : ℕ) :
   rw [Nat.cast_sub hsub, Nat.cast_pow]
   rw [sub_div, div_self hden]
 
+/-- The generation probability for `i` samples is at least one minus `card (maxSubs G) * (1 / 2)
+^ i`. See [RoettelerBeth1998]. -/
 theorem genProb_ge_one_sub_maxSubs (i : ℕ) :
     1 - ((maxSubs G).card : ℝ) * ((1 / 2 : ℝ) ^ i) ≤ genProb G i := by
   classical
@@ -292,6 +335,9 @@ theorem genProb_ge_one_sub_maxSubs (i : ℕ) :
   rw [genProb_eq_one_sub_fail i]
   linarith
 
+/-- If `G` has at most `2 ^ d` maximal proper subgroups and `3 * d ≤ j`, then `4 * j` uniform
+independent samples generate `G` with probability at least `1 - (1 / 2) ^ j`. This gives a
+conditional sampling bound in the setting of Lemma 6.3 of [RoettelerBeth1998]. -/
 theorem genProb_ge_corrected (d j : ℕ)
     (hM : (maxSubs G).card ≤ 2 ^ d) (hj : 3 * d ≤ j) :
     1 - (1 / 2 : ℝ) ^ j ≤ genProb G (4 * j) := by
@@ -316,11 +362,15 @@ theorem genProb_ge_corrected (d j : ℕ)
       _ = (1 / 2 : ℝ) ^ j := harith
   linarith
 
+/-- The corrected generation probability bound applies to a finite subgroup `U` when its number
+of maximal proper subgroups is at most `2 ^ d` and `3 * d ≤ j`. See [RoettelerBeth1998]. -/
 theorem subgroup_genProb_ge_corrected (U : Subgroup G) [Fintype U] (d j : ℕ)
     (hM : (maxSubs U).card ≤ 2 ^ d) (hj : 3 * d ≤ j) :
     1 - (1 / 2 : ℝ) ^ j ≤ genProb U (4 * j) :=
   genProb_ge_corrected d j hM hj
 
+/-- The corrected generation probability bound applies to `Wreath n` when its number of maximal
+proper subgroups is at most `2 ^ d` and `3 * d ≤ j`. See [RoettelerBeth1998]. -/
 theorem wreath_genProb_ge_corrected (n d j : ℕ)
     (hM : (maxSubs (Wreath n)).card ≤ 2 ^ d) (hj : 3 * d ≤ j) :
     1 - (1 / 2 : ℝ) ^ j ≤ genProb (Wreath n) (4 * j) :=

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalStat
+
+/-!
+# Clifford basis shadow norm specification
+
+`CliffordBasisShadowNormSubgoal` states the second-moment estimate for basis shadow
+reconstruction of a traceless Hermitian observable. It assumes a specified third-moment identity
+with backward-conjugated pure states and bounds the actual Born-weighted square by three times
+the observable's square trace. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `CliffordBasisShadowNormSubgoal`: the conditional second-moment bound.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,9 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition that a unitary ensemble satisfying the displayed backward-conjugation
+third-moment identity bounds the Born-weighted reconstruction second moment of every
+traceless Hermitian observable by three times its square trace. -/
 def CliffordBasisShadowNormSubgoal : Prop :=
   ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
 import Mathlib.Analysis.Calculus.ContDiff.Deriv
+
+/-!
+# Uniqueness for almost-everywhere matrix evolution
+
+`orderedEvolutionUnit` packages continuous matrix evolution as a unit whose inverse reverses the
+time endpoints. Differentiation in the starting time and closure of absolute continuity under
+multiplication lead to uniqueness for matrix differential equations satisfied almost everywhere.
+
+`ordered_matrix_ode_unique_ae` identifies absolutely continuous solutions with the same initial
+value on an unordered compact interval. This supports the evolution constructions used in
+[WangEtAl2026].
+
+## Main statements
+
+* `orderedEvolution_hasDerivAt_start`: differentiates the starting time.
+* `ordered_matrix_ode_unique_ae`: proves uniqueness of absolutely continuous solutions.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -17,6 +39,8 @@ namespace CBMD
 open Set Filter MeasureTheory
 open scoped Topology BigOperators Matrix.Norms.L2Operator
 
+/-- The unit given by continuous ordered matrix evolution, with inverse obtained by reversing
+the start and end times. -/
 noncomputable def orderedEvolutionUnit {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) : (Matrix I I ℂ)ˣ where
   val := orderedEvolution A s t
@@ -24,11 +48,15 @@ noncomputable def orderedEvolutionUnit {I : Type} [Fintype I] [DecidableEq I]
   val_inv := by simpa using orderedEvolution_cocycle A hA t s t
   inv_val := by simpa using orderedEvolution_cocycle A hA s t s
 
+/-- For a continuous matrix field, the ring inverse of ordered evolution is the evolution with
+its endpoints reversed. -/
 theorem orderedEvolution_ringInverse {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     Ring.inverse (orderedEvolution A s t) = orderedEvolution A t s :=
   Ring.inverse_unit (orderedEvolutionUnit A hA s t)
 
+/-- For a continuous field, differentiating the starting time of evolution to a fixed endpoint
+gives right multiplication by the field. -/
 theorem orderedEvolution_hasDerivAt_start {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     HasDerivAt (fun u => orderedEvolution A u s) (orderedEvolution A t s * A t) t := by
@@ -46,6 +74,8 @@ theorem orderedEvolution_hasDerivAt_start {I : Type} [Fintype I] [DecidableEq I]
   simp only [mul_neg, neg_mul, neg_neg]
   simp only [mul_assoc, hi, mul_one]
 
+/-- The pointwise product of two absolutely continuous functions into a normed ring is
+absolutely continuous on the same interval. -/
 theorem absolutelyContinuous_mul {R : Type*} [NormedRing R]
     {f g : ℝ → R} {a b : ℝ}
     (hf : AbsolutelyContinuousOnInterval f a b)
@@ -75,6 +105,8 @@ theorem absolutelyContinuous_mul {R : Type*} [NormedRing R]
         exact (norm_mul_le _ _).trans (by
           simpa only [mul_comm] using mul_le_mul_of_nonneg_left (hD _ hJb) (norm_nonneg _))
 
+/-- For a continuous matrix field and fixed starting time, ordered evolution is continuously
+differentiable in the final time. -/
 theorem orderedEvolution_contDiff_one {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) :
     ContDiff ℝ 1 (orderedEvolution A s) := by
@@ -88,6 +120,8 @@ theorem orderedEvolution_contDiff_one {I : Type} [Fintype I] [DecidableEq I]
   rw [he]
   exact (hA.mul hc).neg
 
+/-- For a continuous matrix field and fixed final time, ordered evolution is continuously
+differentiable in the starting time. -/
 theorem orderedEvolution_start_contDiff_one {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) :
     ContDiff ℝ 1 (fun t => orderedEvolution A t s) := by
@@ -101,6 +135,8 @@ theorem orderedEvolution_start_contDiff_one {I : Type} [Fintype I] [DecidableEq 
   rw [he]
   exact hc.mul hA
 
+/-- Two absolutely continuous solutions of `U' = -A U` that satisfy the equation almost
+everywhere and share their value at `a` agree on `uIcc a b`, provided `A` is continuous. -/
 theorem ordered_matrix_ode_unique_ae {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (f g : ℝ → Matrix I I ℂ) (a b : ℝ)

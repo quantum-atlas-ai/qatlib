@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.DyadicOverlap.ArithLedger.TensorNetworkDefs
+
+/-!
+# Integer tensor-network contractions and sampling laws
+
+This module relates integer tensor-network contractions to their dyadic complex decodings and
+proves exact matrix product state contraction and inner-product formulas. It also bounds the
+arithmetic ledgers and their associated bit-time expressions. The tensor-network and MPS
+background is described in [Schollwock2011] and [PerezGarciaEtAl2007].
+
+Further results identify normalized sampling probabilities, local-observable expressions, and
+prefix-conditioned weights. They quantify the effect of relative error in a normalization
+denominator and retain the multiplicity factor arising from prefix-fixed physical
+configurations.
+
+## Main statements
+
+* `netContract_decode`: integer contraction agrees with dyadic decoding up to the global scale.
+* `bitMpsContract_eq_bondSum`: explicit bond-sum contraction for nonempty chains.
+* `bitInner_eq_math`: transfer contraction equals the amplitude inner product.
+* `bitSampleProb_sum`: probabilities sum to one for nonzero norm.
+* `bitSampleProbApprox_error`: normalization error controls probability error.
+* `bitCondWeight_eq`: conditional weights equal scaled tail masses.
+* `clause3_endpoint`: the combined guarantees in `clause2StatementNext`.
+
+## References
+
+* [Schollwock, 2011][Schollwock2011]
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer
@@ -18,6 +48,8 @@ open Matrix
 open scoped BigOperators
 open Qatlib.Concepts.DyadicOverlap.ArithLedger
 
+/-- The absolute value of an integer equals its natural absolute value cast back to the
+integers. -/
 theorem abs_eq_natAbs (z : ℤ) : |z| = (z.natAbs : ℤ) := by
   rcases Int.natAbs_eq z with h | h
   · calc |z| = |(z.natAbs : ℤ)| := congrArg abs h
@@ -26,15 +58,18 @@ theorem abs_eq_natAbs (z : ℤ) : |z| = (z.natAbs : ℤ) := by
         _ = (z.natAbs : ℤ) :=
           by rw [abs_neg, abs_of_nonneg (Int.natCast_nonneg z.natAbs)]
 
+/-- The real norm of an integer cast to the reals is its natural absolute value. -/
 theorem norm_intCast_real (z : ℤ) : ‖((z : ℤ) : ℝ)‖ = (z.natAbs : ℝ) := by
   rw [Real.norm_eq_abs, ← Int.cast_abs, abs_eq_natAbs, Int.cast_natCast]
 
+/-- The complex norm of an integer cast to the complexes is its natural absolute value. -/
 theorem norm_intCast_complex (z : ℤ) : ‖((z : ℤ) : ℂ)‖ = (z.natAbs : ℝ) := by
   calc ‖((z : ℤ) : ℂ)‖ = ‖((z : ℤ) : ℝ)‖ := by
         have h : ((z : ℤ) : ℂ) = (((z : ℤ) : ℝ) : ℂ) := rfl
         rw [h, Complex.norm_real]
     _ = (z.natAbs : ℝ) := norm_intCast_real z
 
+/-- Decoding dyadic tensor entries preserves the network's port-index assignment. -/
 theorem decodeNet_portValue (N : TensorNet) (T : BitTensorNet N)
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val))
     (e : ∀ i : InternalEdge N, Fin (N.dims i.val)) (j : Fin N.nh) :
@@ -53,13 +88,17 @@ theorem decodeNet_portValue (N : TensorNet) (T : BitTensorNet N)
       rw [portValue_of_partner_eq_rev ext e j k hj hkj
         (N.involution j k hj) (N.dims_match k j (N.involution j k hj))]
 
+/-- A decoded tensor entry is its integer numerator divided by `2 ^ T.precision`. -/
 theorem decodeNet_tensor (N : TensorNet) (T : BitTensorNet N) (v : Fin N.nv)
     (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
     (decodeNet N T).tensor v a = (T.num v a : ℂ) / (2 : ℂ) ^ T.precision := rfl
 
+/-- Decoding tensor entries leaves the type of internal edges unchanged. -/
 theorem decodeNet_index (N : TensorNet) (T : BitTensorNet N) :
     InternalEdge (decodeNet N T) = InternalEdge N := rfl
 
+/-- The decoded network contraction is the integer contraction scaled by `2 ^ (T.precision *
+N.nv)` in the denominator. -/
 theorem netContract_decode (N : TensorNet) (T : BitTensorNet N)
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val)) :
     netContract (decodeNet N T) ext
@@ -149,6 +188,7 @@ theorem netContract_decode (N : TensorNet) (T : BitTensorNet N)
       _ = ((2 : ℂ) ^ (T.precision * N.nv))⁻¹ * (netContractInt N T ext : ℂ) := by
           rw [← hsum]
 
+/-- The sum norm of a decoded site tensor is its integer sum norm divided by `2 ^ T.precision`. -/
 theorem tensorSumNorm_decodeNet (N : TensorNet) (T : BitTensorNet N) (v : Fin N.nv) :
     tensorSumNorm (decodeNet N T) v
       = ((2 : ℝ) ^ T.precision)⁻¹ * bitTensorSumNorm N T v := by
@@ -183,6 +223,8 @@ theorem tensorSumNorm_decodeNet (N : TensorNet) (T : BitTensorNet N) (v : Fin N.
         rw [← Finset.sum_mul, mul_comm]
     _ = ((2 : ℝ) ^ T.precision)⁻¹ * bitTensorSumNorm N T v := rfl
 
+/-- The decoded contraction norm is bounded by the product of integer site sum norms divided by
+`2 ^ (T.precision * N.nv)`. -/
 theorem netContract_decode_norm (N : TensorNet) (T : BitTensorNet N)
     (ext : ∀ o : OpenLeg N, Fin (N.dims o.val)) :
     ‖netContract (decodeNet N T) ext‖
@@ -203,6 +245,8 @@ theorem netContract_decode_norm (N : TensorNet) (T : BitTensorNet N)
         * ∏ v : Fin N.nv, bitTensorSumNorm N T v := by
         simp only [inv_pow, pow_mul]
 
+/-- A network with an internal edge of dimension zero has integer contraction zero for every
+external assignment. -/
 theorem netContractInt_zeroDim (N : TensorNet) (T : BitTensorNet N)
     (hd : ∃ i : InternalEdge N, N.dims i.val = 0) :
     ∀ ext : ∀ o : OpenLeg N, Fin (N.dims o.val), netContractInt N T ext = 0 := by
@@ -219,6 +263,7 @@ theorem netContractInt_zeroDim (N : TensorNet) (T : BitTensorNet N)
   rw [huv]
   exact Finset.sum_empty
 
+/-- A network with no vertices and no half-edges has integer contraction one. -/
 theorem netContractInt_empty (N : TensorNet) (T : BitTensorNet N)
     (hnv : N.nv = 0) (hnh : N.nh = 0) :
     ∀ ext : ∀ o : OpenLeg N, Fin (N.dims o.val), netContractInt N T ext = 1 := by
@@ -244,6 +289,7 @@ theorem netContractInt_empty (N : TensorNet) (T : BitTensorNet N)
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_unique]
         simp
 
+/-- The amplitude of a length-zero integer matrix product state is one. -/
 theorem bitMpsAmplitude_zero_length {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (x : Fin n → Fin d) (hn : n = 0) : bitMpsAmplitude A x = 1 := by
   subst hn
@@ -260,6 +306,8 @@ theorem bitMpsAmplitude_zero_length {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- A bond-dimension-one matrix product state's amplitude is the product of its scalar site
+entries. -/
 theorem bitMpsAmplitude_product {n d : ℕ} (g : Fin n → Fin d → ℤ) (x : Fin n → Fin d) :
     @bitMpsAmplitude n d 1 inferInstance
         ((fun (i : Fin n) (y : Fin d) => Matrix.of (fun _ _ => g i y))
@@ -276,6 +324,8 @@ theorem bitMpsAmplitude_product {n d : ℕ} (g : Fin n → Fin d → ℤ) (x : F
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The designated three-site binary example has the stated amplitude formula in terms of its
+three physical indices. -/
 theorem bitMpsAmplitude_short_chain (x : Fin 3 → Fin 2) :
     bitMpsAmplitude bitShortChainTensors x
       = if (x 1 : ℕ) = 0 then
@@ -302,6 +352,8 @@ theorem bitMpsAmplitude_short_chain (x : Fin 3 → Fin 2) :
   rcases hx0 with v0 | v0 <;> rcases hx1 with v1 | v1 <;> rcases hx2 with v2 | v2 <;>
     simp [v0, v1, v2, Matrix.of_apply, bitShortChainTensors]
 
+/-- The absolute value of each integer tensor entry is at most the network-wide maximum absolute
+entry. -/
 theorem num_le_bitTensorMaxAbs (N : TensorNet) (T : BitTensorNet N) (v : Fin N.nv)
     (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
     (T.num v a).natAbs ≤ bitTensorMaxAbs N T := by
@@ -320,6 +372,8 @@ theorem num_le_bitTensorMaxAbs (N : TensorNet) (T : BitTensorNet N) (v : Fin N.n
         Fin (N.dims h.val)) => (T.num v a).natAbs)) (Finset.mem_univ v)
   exact h1.trans h2
 
+/-- If every integer tensor entry has absolute value at most `2 ^ w`, each site sum norm is
+bounded by its number of entries times `2 ^ w`. -/
 theorem bitTensorSumNorm_le (N : TensorNet) (T : BitTensorNet N) (w : ℕ)
     (hw : ∀ (v : Fin N.nv) (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)),
       (T.num v a).natAbs ≤ 2 ^ w)
@@ -342,6 +396,8 @@ theorem bitTensorSumNorm_le (N : TensorNet) (T : BitTensorNet N) (w : ℕ)
   rw [Finset.sum_const, Finset.card_univ] at hsum
   simpa [nsmul_eq_mul] using! hsum
 
+/-- The tensor-network decoding, contraction bounds, degenerate cases, and explicit MPS examples
+collected in `clause1StatementNext` hold. -/
 theorem clause1_endpoint : clause1StatementNext := by
   refine ⟨Qatlib.Concepts.MpsAdaptation.MpsTransfer.g1, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact fun N T ext => netContract_decode N T ext
@@ -356,6 +412,8 @@ theorem clause1_endpoint : clause1StatementNext := by
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- A finite sum over length-`m + 1` configurations splits into a sum over the head and a sum
+over the remaining coordinates. -/
 theorem sum_split_head {m : ℕ} {X : Type*} [Fintype X] {M : Type*} [AddCommMonoid M]
     (g : X → (Fin m → X) → M) :
     (∑ β : Fin (m + 1) → X, g (β 0) (fun j => β ⟨(j : ℕ) + 1, by omega⟩))
@@ -368,12 +426,14 @@ theorem sum_split_head {m : ℕ} {X : Type*} [Fintype X] {M : Type*} [AddCommMon
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The first key of a chain assignment is its specified left boundary. -/
 theorem chainKeys_left {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin (k - 1) → Fin D) :
     chainKeys k b c γ 0 = b := by
   simp [chainKeys]
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- For a positive-length chain, the final key is its specified right boundary. -/
 theorem chainKeys_right {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin (k - 1) → Fin D)
     (h : (0 : ℕ) < k) : chainKeys k b c γ ⟨k, by omega⟩ = c := by
   have hk0 : (k : ℕ) ≠ 0 := by omega
@@ -386,6 +446,7 @@ theorem chainKeys_right {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin (k - 1) → 
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- An interior chain key is the corresponding entry of the internal assignment. -/
 theorem chainKeys_inner {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin (k - 1) → Fin D)
     {j : Fin (k + 1)} (h0 : (j : ℕ) ≠ 0) (hk : (j : ℕ) ≠ k) :
     chainKeys k b c γ j = γ ⟨(j : ℕ) - 1, by omega⟩ := by
@@ -393,6 +454,8 @@ theorem chainKeys_inner {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin (k - 1) → 
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- Removing the initial key of a chain gives the shorter chain with left boundary equal to the
+first internal key. -/
 theorem chainKeys_tail {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin k → Fin D)
     (hk : (1 : ℕ) ≤ k) :
     ∀ (j : Fin (k + 1)),
@@ -424,6 +487,8 @@ theorem chainKeys_tail {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin k → Fin D)
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The weight of a nonempty matrix chain factors into its first matrix entry and the weight of
+the remaining chain. -/
 theorem chainSum_cons {D : ℕ} (M : Fin D → Fin D → ℤ) (rest : BitSiteList D)
     (β : Fin (rest.length + 2) → Fin D) :
     chainSum (M :: rest) β
@@ -440,6 +505,7 @@ theorem chainSum_cons {D : ℕ} (M : Fin D → Fin D → ℤ) (rest : BitSiteLis
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The total chain contraction equals the value obtained by the backward-vector recurrence. -/
 theorem chainTotal_eq_chainBackVec {D : ℕ} :
     ∀ (Ms : BitSiteList D) (b c : Fin D), chainTotal Ms b c = chainBackVec Ms c b := by
   intro Ms
@@ -530,6 +596,7 @@ theorem chainTotal_eq_chainBackVec {D : ℕ} :
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The chain key at a site equals the matrix product state's left bond index. -/
 theorem chainKeys_mpsLeft {D : ℕ} {n : ℕ} [NeZero D] (γ : Fin (n - 1) → Fin D) (p : Fin n) :
     chainKeys n 0 0 γ ⟨(p : ℕ), by omega⟩ = mpsLeftIdx γ p := by
   by_cases hp0 : (p : ℕ) = 0
@@ -543,6 +610,7 @@ theorem chainKeys_mpsLeft {D : ℕ} {n : ℕ} [NeZero D] (γ : Fin (n - 1) → F
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The chain key following a site equals the matrix product state's right bond index. -/
 theorem chainKeys_mpsRight {D : ℕ} {n : ℕ} [NeZero D] (γ : Fin (n - 1) → Fin D) (p : Fin n) :
     chainKeys n 0 0 γ ⟨(p : ℕ) + 1, by omega⟩ = mpsRightIdx γ p := by
   have hne0 : ((p : ℕ) + 1 : ℕ) ≠ 0 := by omega
@@ -557,6 +625,8 @@ theorem chainKeys_mpsRight {D : ℕ} {n : ℕ} [NeZero D] (γ : Fin (n - 1) → 
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- For a nonempty chain with zero boundary indices, the total contraction is the sum over
+internal bonds of the products of site entries. -/
 theorem chainTotal_zero_eq_bondSum {D : ℕ} [NeZero D] (Ms : BitSiteList D) (hne : Ms ≠ []) :
     chainTotal Ms 0 0
       = ∑ γ : Fin (Ms.length - 1) → Fin D,
@@ -577,6 +647,8 @@ theorem chainTotal_zero_eq_bondSum {D : ℕ} [NeZero D] (Ms : BitSiteList D) (hn
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The vector component of the counted backward contraction equals the uncounted backward
+vector. -/
 theorem chainBackCount_vec {D : ℕ} (Ms : BitSiteList D) (c : Fin D) :
     (chainBackCount Ms c).vec = chainBackVec Ms c := by
   induction Ms with
@@ -587,6 +659,8 @@ theorem chainBackCount_vec {D : ℕ} (Ms : BitSiteList D) (c : Fin D) :
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
+/-- The integer MPS contraction equals the total contraction of its selected site matrices with
+zero boundary indices. -/
 theorem bitMpsContract_eq_chainTotal {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (x : Fin n → Fin d) :
     bitMpsContract A x = chainTotal (bitMpsSiteList A x) 0 0 := by
@@ -599,6 +673,8 @@ theorem bitMpsContract_eq_chainTotal {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   show (chainBackCount (bitMpsSiteList A x) 0).vec 0 = chainTotal (bitMpsSiteList A x) 0 0
   rw [hvec, hback]
 
+/-- For a nonempty MPS, its integer contraction is the explicit sum over internal bond
+assignments of products of site entries. -/
 theorem bitMpsContract_eq_bondSum {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (x : Fin n → Fin d) (hn : n ≠ 0) :
     bitMpsContract A x
@@ -620,6 +696,8 @@ theorem bitMpsContract_eq_bondSum {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   show (chainBackCount (bitMpsSiteList A x) 0).vec 0 = _
   rw [hvec, hback, hbridge]
 
+/-- The backward-chain ledger uses at most `Ms.length * (D * D)` multiplications and additions
+and no subtractions. -/
 theorem chainBackCount_ledger {D : ℕ} (Ms : BitSiteList D) (c : Fin D) :
     (chainBackCount Ms c).ledger.muls ≤ Ms.length * (D * D)
     ∧ (chainBackCount Ms c).ledger.adds ≤ Ms.length * (D * D)
@@ -638,6 +716,8 @@ theorem chainBackCount_ledger {D : ℕ} (Ms : BitSiteList D) (c : Fin D) :
         _ = (Ms.length + 1) * (D * D) := by rw [Nat.succ_mul]
     · exact hs
 
+/-- The MPS contraction ledger bounds multiplications and additions by `bitContractOpBound n D`
+and records no subtractions. -/
 theorem bitMpsContractWithCount_ledger {n d D : ℕ} [NeZero D]
     (A : BitMps n d D) (x : Fin n → Fin d) :
     (bitMpsContractWithCount A x).2.muls ≤ bitContractOpBound n D
@@ -647,6 +727,8 @@ theorem bitMpsContractWithCount_ledger {n d D : ℕ} [NeZero D]
     (List.ofFn fun i : Fin n => fun l r => A i (x i) l r) 0
   simpa [bitMpsContractWithCount, bitContractOpBound] using! h
 
+/-- The ledger-based bit-time expression for MPS contraction is bounded by twice the operation
+bound times the ring-operation bit cost at the specified width. -/
 theorem bitMpsContract_bitTime {n d D w : ℕ} [NeZero D]
     (A : BitMps n d D) (x : Fin n → Fin d) :
     bitTimeOf (bitContractWidthBound n d D w) (bitMpsContractWithCount A x).2
@@ -660,9 +742,11 @@ theorem bitMpsContract_bitTime {n d D w : ℕ} [NeZero D]
       ≤ 2 * bitContractOpBound n D := by omega
   exact Nat.mul_le_mul hsum (Nat.le_refl _)
 
+/-- The designated MPS contraction workspace size is exactly the bond dimension `D`. -/
 theorem bitMpsContract_workspace (D : ℕ) :
     bitContractSpace D = D := rfl
 
+/-- Scaled integer floor rounding has nonnegative error strictly below `2 ^ p`. -/
 theorem bitRoundScaled_error (p : ℕ) (z : ℤ) :
     0 ≤ z - bitRoundScaled p z ∧ z - bitRoundScaled p z < (2 : ℤ) ^ p := by
   have hpos : 0 < (2 : ℤ) ^ p := by positivity
@@ -681,6 +765,8 @@ theorem bitRoundScaled_error (p : ℕ) (z : ℤ) :
   · rw [bitRoundScaled, bitRoundInt, hkey]
     exact hmod'
 
+/-- For positive `D`, the specified PEPS treewidth cost is at most `bitPepsTreewidthBound a b
+D`. -/
 theorem bitPepsTreewidthCost_le (a b D : ℕ) (_hD : 0 < D) :
     bitPepsTreewidthCost a b D ≤ bitPepsTreewidthBound a b D := by
   have h1 : D ≤ 2 ^ Nat.clog 2 D := Nat.le_pow_clog (by decide : 1 < 2) D
@@ -701,6 +787,7 @@ theorem bitPepsTreewidthCost_le (a b D : ℕ) (_hD : 0 < D) :
         calc b * (a + 2) = (a + 2) * b := Nat.mul_comm _ _
           _ ≤ (a + 2) * b + 1 := Nat.le_add_right _ _
 
+/-- Left MPS bond indices are preserved by the stated casts between equal chain lengths. -/
 theorem mpsLeftIdx_cast {m m' D : ℕ} [NeZero D] (hc : m' - 1 = m - 1) (hs : m' = m)
     (α : Fin (m - 1) → Fin D) (p : Fin m') :
     mpsLeftIdx (fun j => α (Fin.cast hc j)) p
@@ -712,6 +799,7 @@ theorem mpsLeftIdx_cast {m m' D : ℕ} [NeZero D] (hc : m' - 1 = m - 1) (hs : m'
     have hlt2 : (p : ℕ) - 1 < m - 1 := by omega
     simp [mpsLeftIdx, hlt, hlt2, Fin.cast]
 
+/-- Right MPS bond indices are preserved by the stated casts between equal chain lengths. -/
 theorem mpsRightIdx_cast {m m' D : ℕ} [NeZero D] (hc : m' - 1 = m - 1) (hs : m' = m)
     (α : Fin (m - 1) → Fin D) (p : Fin m') :
     mpsRightIdx (fun j => α (Fin.cast hc j)) p
@@ -722,6 +810,7 @@ theorem mpsRightIdx_cast {m m' D : ℕ} [NeZero D] (hc : m' - 1 = m - 1) (hs : m
   · have hlt2 : ¬ (p : ℕ) < m - 1 := by omega
     simp [mpsRightIdx, hlt, hlt2, Fin.cast]
 
+/-- Left mixed-bond indices are preserved by the stated casts between equal chain lengths. -/
 theorem mixedLeftIdx_cast {m m' DA DB : ℕ} [NeZero DA] [NeZero DB]
     (hc : m' - 1 = m - 1) (hs : m' = m)
     (γ : Fin (m - 1) → MixedKey DA DB) (p : Fin m') :
@@ -731,6 +820,7 @@ theorem mixedLeftIdx_cast {m m' DA DB : ℕ} [NeZero DA] [NeZero DB]
   exact Prod.ext (mpsLeftIdx_cast hc hs (fun j => (γ j).1) p)
     (mpsLeftIdx_cast hc hs (fun j => (γ j).2) p)
 
+/-- Right mixed-bond indices are preserved by the stated casts between equal chain lengths. -/
 theorem mixedRightIdx_cast {m m' DA DB : ℕ} [NeZero DA] [NeZero DB]
     (hc : m' - 1 = m - 1) (hs : m' = m)
     (γ : Fin (m - 1) → MixedKey DA DB) (p : Fin m') :
@@ -740,23 +830,28 @@ theorem mixedRightIdx_cast {m m' DA DB : ℕ} [NeZero DA] [NeZero DB]
   exact Prod.ext (mpsRightIdx_cast hc hs (fun j => (γ j).1) p)
     (mpsRightIdx_cast hc hs (fun j => (γ j).2) p)
 
+/-- Decoding an encoded mixed bond key returns the original pair. -/
 theorem mixedKeyEnc_dec {DA DB : ℕ} (x : MixedKey DA DB) :
     mixedKeyDec DA DB (mixedKeyEnc DA DB x) = x :=
   (mixedKeyEnc DA DB).left_inv x
 
+/-- Encoding a decoded mixed bond index returns the original index. -/
 theorem mixedKeyDec_enc {DA DB : ℕ} (x : Fin (DA * DB)) :
     mixedKeyEnc DA DB (mixedKeyDec DA DB x) = x :=
   (mixedKeyEnc DA DB).right_inv x
 
+/-- Encoding the pair of zero bond indices gives zero. -/
 theorem mixedKeyEnc_zero {DA DB : ℕ} [NeZero DA] [NeZero DB] :
     mixedKeyEnc DA DB (0, 0) = 0 := by
   show finProdFinEquiv (0, 0) = 0
   simp [finProdFinEquiv]
 
+/-- Decoding zero gives the pair of zero bond indices. -/
 theorem mixedKeyDec_zero {DA DB : ℕ} [NeZero DA] [NeZero DB] :
     mixedKeyDec DA DB 0 = (0, 0) := by
   rw [← mixedKeyEnc_zero, mixedKeyEnc_dec]
 
+/-- Decoding an MPS left bond index gives the left mixed-bond index of the decoded assignment. -/
 theorem dec_mpsLeftIdx {m DA DB : ℕ} [NeZero DA] [NeZero DB]
     (γ : Fin (m - 1) → Fin (DA * DB)) (p : Fin m) :
     mixedKeyDec DA DB (mpsLeftIdx γ p)
@@ -768,6 +863,7 @@ theorem dec_mpsLeftIdx {m DA DB : ℕ} [NeZero DA] [NeZero DB]
   · have hlt : (p : ℕ) - 1 < m - 1 := by omega
     simp [mpsLeftIdx, mixedLeftIdx, hp0, hlt]
 
+/-- Decoding an MPS right bond index gives the right mixed-bond index of the decoded assignment. -/
 theorem dec_mpsRightIdx {m DA DB : ℕ} [NeZero DA] [NeZero DB]
     (γ : Fin (m - 1) → Fin (DA * DB)) (p : Fin m) :
     mixedKeyDec DA DB (mpsRightIdx γ p)
@@ -776,10 +872,13 @@ theorem dec_mpsRightIdx {m DA DB : ℕ} [NeZero DA] [NeZero DB]
   · simp [mpsRightIdx, mixedRightIdx, hlt]
   · simp [mpsRightIdx, mixedRightIdx, hlt, mixedKeyDec_zero]
 
+/-- The transfer-matrix list used for an MPS inner product has length `n`. -/
 theorem bitInnerList_length {n d DA DB : ℕ} (A : BitMps n d DA) (B : BitMps n d DB) :
     (bitInnerList A B).length = n := by
   simp [bitInnerList, List.length_ofFn]
 
+/-- Each entry of the inner-product transfer list equals the corresponding site transfer entry
+with decoded mixed-bond indices. -/
 theorem bitInnerList_get {n d DA DB : ℕ} (A : BitMps n d DA) (B : BitMps n d DB)
     (i : Fin (bitInnerList A B).length) (p q : Fin (DA * DB)) :
     (bitInnerList A B).get i p q
@@ -789,12 +888,15 @@ theorem bitInnerList_get {n d DA DB : ℕ} (A : BitMps n d DA) (B : BitMps n d D
   rw [List.get_ofFn]
   congr 1
 
+/-- The equivalence transporting finite indices along the equality `n = m`. -/
 def finCastEquiv {n m : ℕ} (hs : n = m) : Fin m ≃ Fin n where
   toFun i := Fin.cast hs.symm i
   invFun j := Fin.cast hs j
   left_inv := by intro i; apply Fin.ext; rfl
   right_inv := by intro j; apply Fin.ext; rfl
 
+/-- The equivalence between flattened mixed-bond assignments and pair-valued assignments,
+transporting the internal-chain length along `hc`. -/
 def mixedChainEquiv {n L : ℕ} (hc : n - 1 = L - 1) {DA DB : ℕ} :
     (Fin (L - 1) → Fin (DA * DB)) ≃ (Fin (n - 1) → MixedKey DA DB) where
   toFun γ j := mixedKeyDec DA DB (γ (Fin.cast hc j))
@@ -818,6 +920,7 @@ def mixedChainEquiv {n L : ℕ} (hc : n - 1 = L - 1) {DA DB : ℕ} :
       rfl
     rw [hj]
 
+/-- For a nonempty chain, the computed MPS inner product equals its mixed-chain sum. -/
 theorem bitInner_eq_chain {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) (hn : n ≠ 0) :
     bitInner A B = bitInnerChainSum A B := by
@@ -876,6 +979,7 @@ theorem bitInner_eq_chain {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
       bitInnerSite A B i (mixedLeftIdx γm i) (mixedRightIdx γm i))
     hitem
 
+/-- The equivalence between a function into a product and a pair of component functions. -/
 def piProdEquiv {m : ℕ} {X Y : Type} :
     (Fin m → X × Y) ≃ ((Fin m → X) × (Fin m → Y)) where
   toFun f := (fun j => (f j).1, fun j => (f j).2)
@@ -888,6 +992,8 @@ def piProdEquiv {m : ℕ} {X Y : Type} :
     intro p
     apply Prod.ext <;> funext j <;> rfl
 
+/-- The mixed-chain sum equals the sum over physical configurations of the products of the two
+MPS amplitudes. -/
 theorem bitInnerChainSum_eq_math {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) :
     bitInnerChainSum A B = ∑ x : Fin n → Fin d, (bitMpsAmplitude A x) * (bitMpsAmplitude B x) := by
@@ -990,6 +1096,7 @@ theorem bitInnerChainSum_eq_math {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
   rw [hmix]
   rfl
 
+/-- The inner-product transfer list is empty when the chain length is zero. -/
 theorem bitInnerList_nil {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) (hn : n = 0) : bitInnerList A B = [] := by
   subst hn
@@ -997,6 +1104,7 @@ theorem bitInnerList_nil {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     simp [bitInnerList]
   exact List.eq_nil_of_length_eq_zero hlen
 
+/-- The computed MPS inner product is one when the chain length is zero. -/
 theorem bitInner_nil {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) (hn : n = 0) : bitInner A B = 1 := by
   subst hn
@@ -1005,6 +1113,8 @@ theorem bitInner_nil {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
   rw [hlist]
   rfl
 
+/-- The computed inner product agrees with the mathematical amplitude pairing in the length-zero
+case. -/
 theorem bitInner_eq_math_zero {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) (hn : n = 0) :
     bitInner A B = bitInnerMath A B := by
@@ -1025,6 +1135,8 @@ theorem bitInner_eq_math_zero {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
       _ = 1 := sum_fin_zero_pi (1 : ℤ)
   rw [h1, hsum]
 
+/-- The MPS inner-product ledger bounds multiplications and additions by `bitInnerOpBound n d DA
+DB` and records no subtractions. -/
 theorem bitInnerWithCount_ledger {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) :
     (bitInnerWithCount A B).2.muls ≤ bitInnerOpBound n d DA DB
@@ -1055,6 +1167,8 @@ theorem bitInnerWithCount_ledger {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
   · rw [hs]
     exact hfold.2.2
 
+/-- The ledger-based inner-product bit-time expression is bounded by twice the operation bound
+times the ring-operation bit cost at the specified width. -/
 theorem bitInner_bitTime {n d DA DB w : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) :
     bitTimeOf (bitInnerWidthBound n d DA DB w) (bitInnerWithCount A B).2
@@ -1072,8 +1186,10 @@ theorem bitInner_bitTime {n d DA DB w : ℕ} [NeZero DA] [NeZero DB]
     omega
   exact Nat.mul_le_mul hsum (Nat.le_refl _)
 
+/-- The designated MPS inner-product workspace size is the product of the two bond dimensions. -/
 theorem bitInner_workspace (DA DB : ℕ) : bitInnerSpace DA DB = DA * DB := rfl
 
+/-- The computed integer MPS inner product equals its mathematical amplitude pairing. -/
 theorem bitInner_eq_math {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
     (A : BitMps n d DA) (B : BitMps n d DB) :
     bitInner A B = bitInnerMath A B := by
@@ -1082,6 +1198,7 @@ theorem bitInner_eq_math {n d DA DB : ℕ} [NeZero DA] [NeZero DB]
   · rw [bitInner_eq_chain A B hn, bitInnerChainSum_eq_math A B]
     rfl
 
+/-- The computed squared norm equals the total sampling mass. -/
 theorem bitNormSq_eq_mass {n d D : ℕ} [NeZero D] (A : BitMps n d D) :
     bitNormSq A = bitSampleMass A := by
   have h := bitInner_eq_math A A
@@ -1090,6 +1207,7 @@ theorem bitNormSq_eq_mass {n d D : ℕ} [NeZero D] (A : BitMps n d D) :
   refine Finset.sum_congr rfl (fun x _ => ?_)
   exact (pow_two (bitMpsAmplitude A x)).symm
 
+/-- The computed sampling probability equals the normalized squared-amplitude law. -/
 theorem bitSampleProb_eq_law {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (x : Fin n → Fin d) : bitSampleProb A x = bitSampleLaw A x := by
   have hden : (bitNormSq A : ℚ) = ∑ y : Fin n → Fin d, (bitMpsAmplitude A y) ^ 2 := by
@@ -1098,6 +1216,7 @@ theorem bitSampleProb_eq_law {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   unfold bitSampleProb bitSampleLaw
   rw [hden]
 
+/-- If the computed squared norm is nonzero, the sampling probabilities sum to one. -/
 theorem bitSampleProb_sum {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (hA : bitNormSq A ≠ 0) : (∑ x : Fin n → Fin d, bitSampleProb A x) = 1 := by
   have hsum : (∑ x : Fin n → Fin d, (bitMpsAmplitude A x : ℚ) ^ 2) = (bitNormSq A : ℚ) := by
@@ -1110,6 +1229,7 @@ theorem bitSampleProb_sum {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   rw [hsum]
   exact div_self hN
 
+/-- If the computed squared norm is nonzero, every sampling probability is nonnegative. -/
 theorem bitSampleProb_nonneg {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (hA : bitNormSq A ≠ 0) (x : Fin n → Fin d) : 0 ≤ bitSampleProb A x := by
   have hN : (0 : ℚ) < (bitNormSq A : ℚ) := by
@@ -1126,16 +1246,21 @@ theorem bitSampleProb_nonneg {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   have hsq : (0 : ℚ) ≤ (bitMpsAmplitude A x : ℚ) ^ 2 := by positivity
   exact div_nonneg hsq hN.le
 
+/-- At the selected site, the observable-modified MPS tensor is the physical-index contraction
+of `O` with the original tensor. -/
 theorem bitObsMps_site_z {n d D : ℕ} (A : BitMps n d D) (z : Fin n) (O : BitLocalObs d)
     (s : Fin d) (a b : Fin D) :
     (bitObsMps A z O) z s a b = ∑ y : Fin d, O s y * A z y a b := by
   simp [bitObsMps]
 
+/-- The observable-modified MPS agrees with the original tensors at every other site. -/
 theorem bitObsMps_site_ne {n d D : ℕ} (A : BitMps n d D) (z : Fin n) (O : BitLocalObs d)
     (i : Fin n) (h : i ≠ z) (s : Fin d) (a b : Fin D) :
     (bitObsMps A z O) i s a b = A i s a b := by
   simp [bitObsMps, h]
 
+/-- The amplitude after applying a local observable is the sum of original amplitudes with the
+selected physical coordinate replaced, weighted by the observable entries. -/
 theorem bitObsMps_amplitude {n d D : ℕ} [NeZero D] (A : BitMps n d D) (z : Fin n)
     (O : BitLocalObs d) (x : Fin n → Fin d) :
     bitMpsAmplitude (bitObsMps A z O) x
@@ -1258,6 +1383,7 @@ theorem bitObsMps_amplitude {n d D : ℕ} [NeZero D] (A : BitMps n d D) (z : Fin
       ∏ i : Fin n, (bitObsMps A z O) i (x i) (mpsLeftIdx α i) (mpsRightIdx α i)) = _
   exact hmain
 
+/-- The computed local-observable quantity equals its mathematical amplitude expression. -/
 theorem bitLocalObs_eq_math {n d D : ℕ} [NeZero D] (A : BitMps n d D) (z : Fin n)
     (O : BitLocalObs d) : bitLocalObs A z O = bitLocalObsMath A z O := by
   have hinter : bitInner A (bitObsMps A z O) = bitInnerMath A (bitObsMps A z O) :=
@@ -1274,6 +1400,8 @@ theorem bitLocalObs_eq_math {n d D : ℕ} [NeZero D] (A : BitMps n d D) (z : Fin
   refine Finset.sum_congr rfl (fun x _ => ?_)
   rw [hamp x]
 
+/-- The ledger-based bit-time expression for the local-observable inner product obeys the stated
+inner-product operation and width bound. -/
 theorem bitLocalObs_bitTime {n d D w : ℕ} [NeZero D] (A : BitMps n d D) (z : Fin n)
     (O : BitLocalObs d) :
     bitTimeOf (bitInnerWidthBound n d D D w) (bitInnerWithCount A (bitObsMps A z O)).2
@@ -1281,6 +1409,8 @@ theorem bitLocalObs_bitTime {n d D w : ℕ} [NeZero D] (A : BitMps n d D) (z : F
         * Qatlib.Concepts.MpsAdaptation.MpsTransfer.ringOpBitCost (bitInnerWidthBound n d D D w) :=
   bitInner_bitTime A (bitObsMps A z O)
 
+/-- If `0 ≤ M ≤ N` and the positive denominator `N'` approximates `N` with relative error at
+most `eps < 1`, the ratio error is at most `2 * eps / (1 - eps)`. -/
 theorem rat_norm_error {M N N' eps : ℚ}
     (hM0 : 0 ≤ M) (hMN : M ≤ N) (hN : 0 < N) (hN' : 0 < N')
     (heps0 : 0 ≤ eps) (heps1 : eps < 1)
@@ -1330,6 +1460,8 @@ theorem rat_norm_error {M N N' eps : ℚ}
     _ = eps / (1 - eps) := h4
     _ ≤ 2 * eps / (1 - eps) := h5
 
+/-- A positive approximate squared norm with the stated relative error changes each sampling
+probability by at most `bitSampleProbError eps`. -/
 theorem bitSampleProbApprox_error {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (x : Fin n → Fin d) (N' eps : ℚ)
     (hN : (0 : ℚ) < (bitNormSq A : ℚ)) (hN' : (0 : ℚ) < N')
@@ -1349,6 +1481,8 @@ theorem bitSampleProbApprox_error {n d D : ℕ} [NeZero D] (A : BitMps n d D)
       - (bitMpsAmplitude A x) ^ 2 / (bitNormSq A : ℚ)| ≤ bitSampleProbError eps
   simpa [bitSampleProbApprox, bitSampleProb, bitSampleProbError] using! h
 
+/-- The amplitude of the prefix-fixed MPS equals the original amplitude at the configuration
+with that prefix and next symbol fixed. -/
 theorem bitMpsAmplitude_prefixFixed {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (k : ℕ) (hk : k < n) (lo : Fin k → Fin d) (s : Fin d) (t : Fin n → Fin d) :
     bitMpsAmplitude (bitPrefixFixedMps A k lo s) t
@@ -1369,6 +1503,8 @@ theorem bitMpsAmplitude_prefixFixed {n d D : ℕ} [NeZero D] (A : BitMps n d D)
       ∏ j : Fin n, A j ((prefixFixedConfig lo s t) j) (mpsLeftIdx α j) (mpsRightIdx α j)
   exact Finset.sum_congr rfl (fun α _ => hAmp α)
 
+/-- Fixing the prefix of a split configuration replaces its first block by `prefixSnoc lo s` and
+preserves the remaining block. -/
 theorem prefixFixedConfig_split {n d k : ℕ} (hk : k < n) (lo : Fin k → Fin d) (s : Fin d)
     (lo' : Fin (k + 1) → Fin d) (hi' : Fin (n - k - 1) → Fin d) :
     prefixFixedConfig lo s (splitInv (n := n) (d := d) (k := k + 1) (by omega) (lo', hi'))
@@ -1384,6 +1520,8 @@ theorem prefixFixedConfig_split {n d k : ℕ} (hk : k < n) (lo : Fin k → Fin d
     · have hj' : ¬ j.val < k + 1 := by omega
       simp only [prefixFixedConfig, dif_neg hj, dif_neg hj2, splitInv, dif_neg hj']
 
+/-- The self-inner-product of the prefix-fixed MPS equals `d ^ (k + 1)` times the corresponding
+tail mass. -/
 theorem bitInner_prefixFixed {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     (k : ℕ) (hk : k < n) (lo : Fin k → Fin d) (s : Fin d) :
     bitInner (bitPrefixFixedMps A k lo s) (bitPrefixFixedMps A k lo s)
@@ -1456,21 +1594,26 @@ theorem bitInner_prefixFixed {n d D : ℕ} [NeZero D] (A : BitMps n d D)
   rw [h6, h4]
   simp [Fintype.card_fin]
 
+/-- The conditional weight equals `d ^ (k + 1)` times the corresponding tail mass. -/
 theorem bitCondWeight_eq {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ) (hk : k < n)
     (lo : Fin k → Fin d) (s : Fin d) :
     bitCondWeight A k lo s = d ^ (k + 1) * bitTailMass A k hk lo s :=
   bitInner_prefixFixed A k hk lo s
 
+/-- Every tail mass at a valid prefix position is nonnegative. -/
 theorem bitTailMass_nonneg {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ) (hk : k < n)
     (lo : Fin k → Fin d) (s : Fin d) : 0 ≤ bitTailMass A k hk lo s := by
   unfold bitTailMass
   exact Finset.sum_nonneg fun hi _ => sq_nonneg _
 
+/-- Every conditional weight at a valid prefix position is nonnegative. -/
 theorem bitCondWeight_nonneg {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ) (hk : k < n)
     (lo : Fin k → Fin d) (s : Fin d) : 0 ≤ bitCondWeight A k lo s := by
   rw [bitCondWeight_eq A k hk lo s]
   exact mul_nonneg (pow_nonneg (by omega) _) (bitTailMass_nonneg A k hk lo s)
 
+/-- Conditional weights and tail masses satisfy the stated cross-multiplied normalization
+identity. -/
 theorem bitCondProb_eq {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ) (hk : k < n)
     (lo : Fin k → Fin d) (s : Fin d) :
     bitCondWeight A k lo s * (∑ s' : Fin d, bitTailMass A k hk lo s')
@@ -1480,6 +1623,8 @@ theorem bitCondProb_eq {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ) (hk
   rw [← Finset.mul_sum]
   ring
 
+/-- The prefix-fixed self-inner-product ledger obeys the inner-product multiplication and
+addition bounds and uses no subtractions. -/
 theorem bitCondWeight_cost {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ)
     (lo : Fin k → Fin d) (s : Fin d) :
     (bitInnerWithCount (bitPrefixFixedMps A k lo s) (bitPrefixFixedMps A k lo s)).2.muls
@@ -1490,6 +1635,8 @@ theorem bitCondWeight_cost {n d D : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ)
         = 0 :=
   bitInnerWithCount_ledger _ _
 
+/-- The ledger-based conditional-weight bit-time expression obeys the specified inner-product
+operation and width bound. -/
 theorem bitCondWeight_bitTime {n d D w : ℕ} [NeZero D] (A : BitMps n d D) (k : ℕ)
     (lo : Fin k → Fin d) (s : Fin d) :
     bitTimeOf (bitInnerWidthBound n d D D w)
@@ -1498,6 +1645,8 @@ theorem bitCondWeight_bitTime {n d D w : ℕ} [NeZero D] (A : BitMps n d D) (k :
         * Qatlib.Concepts.MpsAdaptation.MpsTransfer.ringOpBitCost (bitInnerWidthBound n d D D w) :=
   bitInner_bitTime _ _
 
+/-- The contraction, operation-count, sampling, local-observable, and conditional-weight
+guarantees collected in `clause2StatementNext` hold. -/
 theorem clause3_endpoint : clause2StatementNext := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact fun n d D _ A x => bitMpsContract_eq_chainTotal A x

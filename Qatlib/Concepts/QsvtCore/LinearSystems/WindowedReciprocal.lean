@@ -8,6 +8,28 @@ import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
 import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Windowed reciprocal approximation with explicit bounds
+
+`windowed_reciprocal_exists` constructs a bounded odd polynomial approximating `(δ/2)/x` on `[δ,
+1]` for `0 < ε ≤ δ ≤ 1/2`. It records the degree bound and bounds on the reciprocal and window
+truncation parameters.
+
+`window_error_small` supplies the window residual estimate used in this construction, which
+supports the pseudoinverse application of QSVT [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `window_error_small`: bounds the repeated window residual by the approximation budget.
+* `windowed_reciprocal_exists`: constructs the bounded polynomial with explicit parameter
+  bounds.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +51,8 @@ open scoped Classical
 
 set_option maxHeartbeats 2000000
 
+/-- Under 0 < ε ≤ δ ≤ 1/2 and the stated logarithmic choices of L and k, bounds the window
+residual `(1 - (3 * δ * δ / 8) ^ 2) ^ (2 ^ k)` by twice the minimum of 1/(8J) and ε/(32J). -/
 private theorem window_error_small {ε δ : ℝ} (hε : 0 < ε) (hεδ : ε ≤ δ) (hδ : δ ≤ 1/2)
     {J : ℕ} (hJ2 : 2 ≤ J) (hbudget : (2*J+1 : ℝ) ≤ 32*(2/δ)*Real.log (16/(δ*ε)))
     {L : ℝ} (hLdef : L = Real.log (64/(δ*ε))) {k : ℕ}
@@ -165,6 +189,9 @@ private theorem window_error_small {ε δ : ℝ} (hε : 0 < ε) (hεδ : ε ≤ 
     _ = 2*(ε/(32*(J:ℝ))) :=
         Real.exp_log (mul_pos (by norm_num) (div_pos hε (by nlinarith [hJpos])))
 
+/-- For 0 < ε ≤ δ ≤ 1/2, constructs a real polynomial bounded by one on [-1, 1], vanishing at
+zero, and approximating (δ/2)/x within ε on [δ, 1]. It has odd parity and degree at most `2
+* J + 1 + 2 * 3 ^ k`, with explicit bounds on J and 3^k [GilyenSuLowWiebe2019]. -/
 theorem windowed_reciprocal_exists :
   ∀ (ε δ : ℝ), 0 < ε → ε ≤ δ → δ ≤ 1/2 →
     ∃ (Pw : Polynomial ℝ) (J k : ℕ),

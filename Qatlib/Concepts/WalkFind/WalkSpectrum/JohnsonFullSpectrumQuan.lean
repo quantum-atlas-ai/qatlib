@@ -13,6 +13,34 @@ import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonSpectrumPhase
+
+/-!
+# The full spectrum of the reduced Johnson walk
+
+This module computes the reduced Johnson-walk spectrum through a birth-death Laplacian and a
+product of two reflections. Falling factorials triangularize the birth-death matrix, giving the
+characteristic values `j*(N+1-j)`. A diagonal change of basis identifies the associated Jacobi
+matrix with a scaled complement of the frame-overlap Gram product.
+
+The principal-pair construction transfers these values to walk eigenvectors, proves the phase
+bounds and ordering, and assembles a unitary eigenbasis. The theorem
+`johnsonFullSpectrum_answer` establishes the full-spectrum contract used in collision search
+[Ambainis2007ElementDistinctness], using the reflection-product spectral mechanism of
+[Szegedy2004].
+
+## Main statements
+
+* `johnsonBirthDeath_charpoly`: the explicit birth-death characteristic polynomial.
+* `johnsonOverlapMatrix_compression`: the Jacobi matrix as a scaled overlap complement.
+* `johnsonWalk_principalPair`: the walk as a product of frame reflections.
+* `johnsonFullSpectrum_answer`: the full distinct spectrum and unitary eigenbasis.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,27 +61,37 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open Matrix Polynomial Qatlib.Concepts.WalkFind.UniqueCollision
 open scoped Classical BigOperators
 
+/-- The falling factorial of degree `n` evaluated at the complex number `x`. -/
 def johnsonFalling (n : ℕ) (x : ℂ) : ℂ := (descPochhammer ℂ n).eval x
 
+/-- The falling factorial of degree `n+1` is the degree-`n` falling factorial times `x-n`. -/
 theorem johnsonFalling_succ (n : ℕ) (x : ℂ) :
     johnsonFalling (n+1) x = johnsonFalling n x*(x-n) :=
   descPochhammer_succ_eval n x
 
+/-- The degree-`n+1` falling factorial at `x` equals `x` times the degree-`n` falling factorial
+at `x-1`. -/
 theorem johnsonFalling_shift (n : ℕ) (x : ℂ) :
     johnsonFalling (n+1) x = x*johnsonFalling n (x-1) := by
   simp [johnsonFalling, descPochhammer_succ_left, Polynomial.eval_comp]
 
+/-- The backward difference of the degree-`n+1` falling factorial is `(n+1)` times the
+degree-`n` falling factorial at `x-1`. -/
 theorem johnsonFalling_backward (n : ℕ) (x : ℂ) :
     johnsonFalling (n+1) (x-1) = johnsonFalling (n+1) x-(n+1)*johnsonFalling n (x-1) := by
   have h := congrArg (Polynomial.eval x) (descPochhammer_succ_comp_X_sub_one ℂ n)
   simpa [johnsonFalling, Polynomial.eval_comp, smul_eq_mul] using! h
 
+/-- The forward difference of the degree-`n+1` falling factorial is `(n+1)` times the degree-`n`
+falling factorial. -/
 theorem johnsonFalling_forward (n : ℕ) (x : ℂ) :
     johnsonFalling (n+1) (x+1)-johnsonFalling (n+1) x = (n+1)*johnsonFalling n x := by
   have h := johnsonFalling_backward n (x+1)
   simp only [add_sub_cancel_right] at h
   linear_combination -h
 
+/-- The Johnson birth-death difference expression on a degree-`n+1` falling factorial is the
+displayed combination of falling factorials of degrees `n+1` and `n`. -/
 theorem johnsonFalling_birthDeath (n : ℕ) (x N k r : ℂ) :
     (k-x)*(r-x)*(johnsonFalling (n+1) x-johnsonFalling (n+1) (x+1))+
       x*(N-k-r+x)*(johnsonFalling (n+1) x-johnsonFalling (n+1) (x-1)) =
@@ -66,22 +104,33 @@ theorem johnsonFalling_birthDeath (n : ℕ) (x N k r : ℂ) :
   linear_combination -(k-x)*(r-x)*hf-x*(N-k-r+x)*hb-
     (n+1)*(N-k-r+x)*hs+(n+1)*(x+n-k-r)*hr
 
+/-- The complex birth rate `(k-i)*(r-i)` at intersection size `i`. -/
 def johnsonBirthRate (k r i : ℕ) : ℂ := ((k : ℂ)-i)*((r : ℂ)-i)
+/-- The complex death rate `i*(N-k-r+i)` at intersection size `i`. -/
 def johnsonDeathRate (k N r i : ℕ) : ℂ := (i : ℂ)*((N : ℂ)-k-r+i)
+/-- The complex Johnson Laplacian value `j*(N+1-j)`. -/
 def johnsonLaplacianValue (j N : ℕ) : ℂ := (j : ℂ)*((N : ℂ)+1-j)
 
+/-- The tridiagonal birth-death Laplacian with diagonal birth-plus-death rates and negative
+neighboring transition rates. -/
 def johnsonBirthDeath (k N r : ℕ) : Matrix (Fin (k+1)) (Fin (k+1)) ℂ :=
   fun i j => (if i = j then johnsonBirthRate k r i.val+johnsonDeathRate k N r i.val else 0)-
     (if j.val = i.val+1 then johnsonBirthRate k r i.val else 0)-
     (if j.val+1 = i.val then johnsonDeathRate k N r i.val else 0)
 
+/-- The matrix whose column `j` evaluates the degree-`j` falling factorial at the integer row
+indices. -/
 def johnsonFallingMatrix (k : ℕ) : Matrix (Fin (k+1)) (Fin (k+1)) ℂ :=
   fun i j => johnsonFalling j.val i.val
 
+/-- The upper bidiagonal matrix with Johnson Laplacian values on its diagonal and the
+falling-factorial recurrence coefficients above it. -/
 def johnsonFallingTriangular (k N r : ℕ) : Matrix (Fin (k+1)) (Fin (k+1)) ℂ :=
   fun i j => (if i = j then johnsonLaplacianValue j.val N else 0)-
     (if i.val+1 = j.val then (j.val : ℂ)*((k : ℂ)+1-j.val)*((r : ℂ)+1-j.val) else 0)
 
+/-- Applying the birth-death matrix to sampled values of `f` gives the birth and death rates
+times the corresponding forward and backward differences. -/
 theorem johnsonBirthDeath_mulVec (k N r : ℕ) (f : ℂ → ℂ) (i : Fin (k+1)) :
     (johnsonBirthDeath k N r *ᵥ (fun j => f j.val)) i =
       johnsonBirthRate k r i.val*(f i.val-f ((i.val : ℂ)+1))+
@@ -106,6 +155,8 @@ theorem johnsonBirthDeath_mulVec (k N r : ℕ) (f : ℂ → ℂ) (i : Fin (k+1))
   rw [hup, hdown]
   ring
 
+/-- The birth-death matrix acts on sampled falling factorials by the Johnson Laplacian value and
+a single lower-degree correction. -/
 theorem johnsonBirthDeath_falling (k N r n : ℕ) (i : Fin (k+1)) :
     (johnsonBirthDeath k N r *ᵥ (fun j => johnsonFalling n j.val)) i =
       johnsonLaplacianValue n N*johnsonFalling n i.val-
@@ -117,6 +168,8 @@ theorem johnsonBirthDeath_falling (k N r n : ℕ) (i : Fin (k+1)) :
     have h := johnsonFalling_birthDeath n (i.val : ℂ) (N : ℂ) (k : ℂ) (r : ℂ)
     simpa [johnsonBirthRate, johnsonDeathRate, johnsonLaplacianValue] using! h
 
+/-- The falling-factorial evaluation matrix intertwines the birth-death Laplacian with its upper
+bidiagonal form. -/
 theorem johnsonBirthDeath_falling_similarity (k N r : ℕ) :
     johnsonBirthDeath k N r*johnsonFallingMatrix k =
       johnsonFallingMatrix k*johnsonFallingTriangular k N r := by
@@ -148,6 +201,7 @@ theorem johnsonBirthDeath_falling_similarity (k N r : ℕ) :
   dsimp [A]
   ring
 
+/-- The falling-factorial evaluation matrix has nonzero determinant. -/
 theorem johnsonFallingMatrix_det_ne_zero (k : ℕ) : (johnsonFallingMatrix k).det ≠ 0 := by
   have htri : (johnsonFallingMatrix k).BlockTriangular OrderDual.toDual := by
     intro i j hij
@@ -160,6 +214,7 @@ theorem johnsonFallingMatrix_det_ne_zero (k : ℕ) : (johnsonFallingMatrix k).de
   simp [johnsonFallingMatrix, johnsonFalling, descPochhammer_eval_eq_descFactorial,
     Nat.descFactorial_self, Nat.factorial_ne_zero]
 
+/-- The birth-death characteristic polynomial is the product of `X-j*(N+1-j)` over `j = 0,…,k`. -/
 theorem johnsonBirthDeath_charpoly (k N r : ℕ) :
     (johnsonBirthDeath k N r).charpoly =
       ∏ j : Fin (k+1), (Polynomial.X-Polynomial.C (johnsonLaplacianValue j.val N)) := by
@@ -184,11 +239,15 @@ theorem johnsonBirthDeath_charpoly (k N r : ℕ) :
   intro j _
   simp [johnsonFallingTriangular]
 
+/-- The rectangular frame whose columns place square-root diffusion weights in consecutive
+coordinate pairs, with a final singleton coordinate. -/
 def johnsonPlusFrame (k : ℕ) (d : ℝ) : Matrix (Fin (2*k+1)) (Fin (k+1)) ℂ :=
   fun i j => if i.val/2 = j.val then
     if i.val%2 = 0 then (Real.sqrt (1-((k : ℝ)-j.val)/d) : ℂ)
     else (Real.sqrt (((k : ℝ)-j.val)/d) : ℂ) else 0
 
+/-- A paired row of the plus frame is supported on its matching column and has the corresponding
+square-root diffusion weight. -/
 private theorem johnsonPlusFrame_pair (k : ℕ) (d : ℝ) (a : Bool) (j : Fin k) (p : Fin (k+1)) :
     johnsonPlusFrame k d (jwPairIndex k a j) p =
       if j.val = p.val then
@@ -199,12 +258,14 @@ private theorem johnsonPlusFrame_pair (k : ℕ) (d : ℝ) (a : Bool) (j : Fin k)
     have he : (2*j.val+1)/2 = j.val := by omega
     simp [johnsonPlusFrame, jwPairIndex, he]
 
+/-- The final row of the plus frame is the indicator of the final column. -/
 private theorem johnsonPlusFrame_last (k : ℕ) (d : ℝ) (p : Fin (k+1)) :
     johnsonPlusFrame k d (Fin.last (2*k)) p = if p.val = k then 1 else 0 := by
   by_cases hp : p.val = k
   · simp [johnsonPlusFrame, hp]
   · simp [johnsonPlusFrame, hp, Ne.symm hp]
 
+/-- If `k < d`, the plus frame has identity column Gram matrix. -/
 theorem johnsonPlusFrame_isometry (k : ℕ) (d : ℝ) (hd : (k : ℝ) < d) :
     (johnsonPlusFrame k d)ᴴ * johnsonPlusFrame k d = 1 := by
   have hd0 : 0 < d := lt_of_le_of_lt (by positivity) hd
@@ -252,6 +313,8 @@ theorem johnsonPlusFrame_isometry (k : ℕ) (d : ℝ) (hd : (k : ℝ) < d) :
     · simp [johnsonPlusFrame, hip, hvpq]
     · simp [johnsonPlusFrame, hip]
 
+/-- The plus frame times its conjugate transpose has the displayed pairwise square-root entries
+and vanishes between different coordinate pairs. -/
 theorem johnsonPlusFrame_projection_entry (k : ℕ) (d : ℝ) (i j : Fin (2*k+1)) :
     (johnsonPlusFrame k d*(johnsonPlusFrame k d)ᴴ) i j =
       if i.val/2 = j.val/2 then
@@ -273,10 +336,14 @@ theorem johnsonPlusFrame_projection_entry (k : ℕ) (d : ℝ) (i j : Fin (2*k+1)
     simp [johnsonPlusFrame, hv']
   · simp
 
+/-- The matrix formed by placing the diffusion block `jwD2 ((k-j)/d)` on each consecutive
+coordinate pair. -/
 def johnsonPairedReflection (k : ℕ) (d : ℝ) : Matrix (Fin (2*k+1)) (Fin (2*k+1)) ℂ :=
   fun i j => if i.val/2 = j.val/2 then
     jwD2 (((k : ℝ)-(j.val/2 : ℕ))/d) (decide (i.val%2 = 1)) (decide (j.val%2 = 1)) else 0
 
+/-- For `k < d`, the paired diffusion matrix is reflection about the projection generated by the
+plus frame. -/
 theorem johnsonPairedReflection_frame (k : ℕ) (d : ℝ) (hd : (k : ℝ) < d) :
     johnsonPairedReflection k d = ReflectionAbout (johnsonPlusFrame k d*(johnsonPlusFrame k d)ᴴ) := by
   ext i j
@@ -333,6 +400,7 @@ theorem johnsonPairedReflection_frame (k : ℕ) (d : ℝ) (hd : (k : ℝ) < d) :
   · have hne : i ≠ j := fun h => hij (by rw [h])
     simp [johnsonPairedReflection, hij, hne]
 
+/-- The first reduced diffusion step is the paired reflection with parameter `d = N-r`. -/
 theorem johnsonStep1_paired (k N r : ℕ) : jwStep1 k N r = johnsonPairedReflection k ((N : ℝ)-r) := by
   ext i j
   have hi := Nat.mod_lt i.val (by decide : 0 < 2)
@@ -351,6 +419,8 @@ theorem johnsonStep1_paired (k N r : ℕ) : jwStep1 k N r = johnsonPairedReflect
     have hdiv : (i.val+1)/2 = i.val/2+1 := by omega
     simp [jwStep1, jwPhiCoord, jwPsiCoord, johnsonPairedReflection, hi1, hj1, hdiv]
 
+/-- The second reduced diffusion step is the paired reflection with parameter `d = r+1`,
+reindexed by coordinate reversal. -/
 theorem johnsonStep2_paired (k r : ℕ) :
     jwStep2 k r = (johnsonPairedReflection k ((r : ℝ)+1)).submatrix Fin.rev Fin.rev := by
   ext i j
@@ -383,9 +453,11 @@ theorem johnsonStep2_paired (k r : ℕ) :
     have hdi : (i.val+1)/2 = i.val/2+1 := by omega
     simp [jwStep2, jwPhiCoord, jwPsiCoord, hi1, hj1, hdi]
 
+/-- The plus frame with both its row and column indices reversed. -/
 def johnsonReverseFrame (k : ℕ) (d : ℝ) : Matrix (Fin (2*k+1)) (Fin (k+1)) ℂ :=
   (johnsonPlusFrame k d).submatrix Fin.rev Fin.rev
 
+/-- If `k < d`, the reversed frame has identity column Gram matrix. -/
 theorem johnsonReverseFrame_isometry (k : ℕ) (d : ℝ) (hkd : (k : ℝ) < d) :
     (johnsonReverseFrame k d)ᴴ * johnsonReverseFrame k d = 1 := by
   unfold johnsonReverseFrame
@@ -395,6 +467,8 @@ theorem johnsonReverseFrame_isometry (k : ℕ) (d : ℝ) (hkd : (k : ℝ) < d) :
   rw [Matrix.submatrix_mul_equiv, johnsonPlusFrame_isometry k d hkd,
     Matrix.submatrix_one_equiv]
 
+/-- Under `k ≤ r` and `k < N-r`, both reduced diffusion steps are reflections about the
+projections generated by their respective frames. -/
 theorem johnsonHalfSteps_frames (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     jwStep1 k N r = ReflectionAbout (johnsonPlusFrame k ((N : ℝ)-r) *
       (johnsonPlusFrame k ((N : ℝ)-r))ᴴ) ∧
@@ -414,6 +488,8 @@ theorem johnsonHalfSteps_frames (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
   ext i j
   simp [Matrix.submatrix_apply, Matrix.one_apply, Fin.rev_inj]
 
+/-- Under the physical size assumptions and `1 ≤ j ≤ k`, the cosine expression defining the
+Johnson phase lies strictly between `-1` and `1`. -/
 theorem johnsonPhase_cosine_bounds (k N r j : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkN : k < N-r) (hj : 1 ≤ j) (hjk : j ≤ k) :
     -1 < 1-2*(j : ℝ)*(N+1-j)/((r+1)*(N-r)) ∧
@@ -441,12 +517,16 @@ theorem johnsonPhase_cosine_bounds (k N r j : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r
   · have hh : 0 < 2*(j : ℝ)*(N+1-j) := by nlinarith
     exact sub_lt_self _ (div_pos hh hden)
 
+/-- Under the physical size assumptions and `1 ≤ j ≤ k`, the Johnson phase lies strictly between
+zero and `π`. -/
 theorem johnsonPhase_strict_bounds (k N r j : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkN : k < N-r) (hj : 1 ≤ j) (hjk : j ≤ k) :
     0 < johnsonPhase j N r ∧ johnsonPhase j N r < Real.pi := by
   obtain ⟨hlo,hhi⟩ := johnsonPhase_cosine_bounds k N r j hk hkr hkN hj hjk
   exact ⟨Real.arccos_pos.mpr hhi, Real.arccos_lt_pi.mpr hlo⟩
 
+/-- Under `k ≤ r` and `k < N-r`, the positive Johnson phases indexed by `j = 1,…,k` are strictly
+increasing. -/
 theorem johnsonPhase_strictMono (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     StrictMono (fun j : Fin k => johnsonPhase (j.val+1) N r) := by
   intro i j hij
@@ -468,6 +548,8 @@ theorem johnsonPhase_strictMono (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
   push_cast
   nlinarith
 
+/-- A paired row of the reversed frame is supported on column `j` or `j+1` with the displayed
+complementary square-root weight. -/
 private theorem johnsonReverseFrame_pair (k : ℕ) (d : ℝ) (a : Bool) (j : Fin k) (p : Fin (k+1)) :
     johnsonReverseFrame k d (jwPairIndex k a j) p =
       if a then (if j.val+1 = p.val then (Real.sqrt ((p : ℝ)/d) : ℂ) else 0)
@@ -493,6 +575,8 @@ private theorem johnsonReverseFrame_pair (k : ℕ) (d : ℝ) (a : Bool) (j : Fin
     have hd : (2*(k-(j.val+1))+1)/2 = k-(j.val+1) := by omega
     simp [hd,heq,hsub]
 
+/-- The final row of the reversed frame is supported on the final column with weight `sqrt
+(1-k/d)`. -/
 private theorem johnsonReverseFrame_last (k : ℕ) (d : ℝ) (p : Fin (k+1)) :
     johnsonReverseFrame k d (Fin.last (2*k)) p =
       if p.val = k then (Real.sqrt (1-(k : ℝ)/d) : ℂ) else 0 := by
@@ -507,6 +591,8 @@ private theorem johnsonReverseFrame_last (k : ℕ) (d : ℝ) (p : Fin (k+1)) :
   · simp only [johnsonReverseFrame,Matrix.submatrix_apply,johnsonPlusFrame,hr,hpr]
     simp [heq,hp']
 
+/-- The overlap of the plus and reversed frames has only diagonal and upper-diagonal entries,
+given by the displayed products of square-root weights. -/
 theorem johnsonOverlap_bidiagonal (k : ℕ) (d e : ℝ) (i j : Fin (k+1)) :
     ((johnsonPlusFrame k d)ᴴ*johnsonReverseFrame k e) i j =
       (if i = j then (Real.sqrt (1-((k : ℝ)-i.val)/d) : ℂ)*
@@ -541,11 +627,15 @@ theorem johnsonOverlap_bidiagonal (k : ℕ) (d e : ℝ) (i j : Fin (k+1)) :
     simp only [hne,if_false,zero_mul,Finset.sum_const_zero]
     simp [hik,heqij]
 
+/-- The diagonal overlap coefficient `sqrt (1-(k-i)/d) * sqrt (1-i/e)`. -/
 def johnsonOverlapDiagonal (k i : ℕ) (d e : ℝ) : ℂ :=
   (Real.sqrt (1-((k : ℝ)-i)/d) : ℂ)*(Real.sqrt (1-(i : ℝ)/e) : ℂ)
+/-- The upper-diagonal overlap coefficient `sqrt ((k-i)/d) * sqrt ((i+1)/e)`. -/
 def johnsonOverlapUpper (k i : ℕ) (d e : ℝ) : ℂ :=
   (Real.sqrt (((k : ℝ)-i)/d) : ℂ)*(Real.sqrt (((i : ℝ)+1)/e) : ℂ)
 
+/-- For `i ≤ k` and `k < d,e`, the squares of the diagonal and upper overlap coefficients are
+the displayed rational population expressions. -/
 theorem johnsonOverlap_squares (k i : ℕ) (d e : ℝ) (hi : i ≤ k)
     (hd : (k : ℝ) < d) (he : (k : ℝ) < e) :
     johnsonOverlapDiagonal k i d e ^ 2 =
@@ -573,6 +663,8 @@ theorem johnsonOverlap_squares (k i : ℕ) (d e : ℝ) (hi : i ≤ k)
     congr 1
     field_simp
 
+/-- The scaled diagonal complement of the squared overlap coefficients equals the sum of the
+Johnson birth and death rates. -/
 theorem johnsonOverlap_laplacian_diagonal (k N r i : ℕ) (hi : i ≤ k)
     (hkr : k ≤ r) (hkN : k < N-r) :
     (((N : ℝ)-r)*((r : ℝ)+1) : ℂ)*
@@ -593,6 +685,8 @@ theorem johnsonOverlap_laplacian_diagonal (k N r i : ℕ) (hi : i ≤ k)
   field_simp
   ring
 
+/-- The squared scaled product of neighboring overlap coefficients equals the birth rate at `i`
+times the death rate at `i+1`. -/
 theorem johnsonOverlap_laplacian_offsquare (k N r i : ℕ) (hi : i < k)
     (hkr : k ≤ r) (hkN : k < N-r) :
     (((N : ℝ)-r)*((r : ℝ)+1) : ℂ)^2*
@@ -615,22 +709,30 @@ theorem johnsonOverlap_laplacian_offsquare (k N r i : ℕ) (hi : i < k)
   field_simp
   ring
 
+/-- The off-diagonal Jacobi coefficient obtained by scaling the product of neighboring overlap
+coefficients by `(N-r)*(r+1)`. -/
 def johnsonOffRate (k N r i : ℕ) : ℂ :=
   (((N : ℝ)-r)*((r : ℝ)+1) : ℂ)*johnsonOverlapUpper k i ((N : ℝ)-r) ((r : ℝ)+1)*
     johnsonOverlapDiagonal k (i+1) ((N : ℝ)-r) ((r : ℝ)+1)
 
+/-- The symmetric tridiagonal matrix with birth-plus-death diagonal and negative
+`johnsonOffRate` on both neighboring diagonals. -/
 def johnsonJacobi (k N r : ℕ) : Matrix (Fin (k+1)) (Fin (k+1)) ℂ :=
   fun i j => (if i = j then johnsonBirthRate k r i.val+johnsonDeathRate k N r i.val else 0)-
     (if j.val = i.val+1 then johnsonOffRate k N r i.val else 0)-
     (if j.val+1 = i.val then johnsonOffRate k N r j.val else 0)
 
+/-- The product, for `j < i`, of the Jacobi off-diagonal coefficient divided by the birth rate. -/
 def johnsonScale (k N r i : ℕ) : ℂ :=
   ∏ j ∈ Finset.range i, johnsonOffRate k N r j/johnsonBirthRate k r j
 
+/-- The scale at `i+1` is the scale at `i` times `johnsonOffRate k N r i / johnsonBirthRate k r
+i`. -/
 theorem johnsonScale_succ (k N r i : ℕ) :
     johnsonScale k N r (i+1) = johnsonScale k N r i*(johnsonOffRate k N r i/johnsonBirthRate k r i) :=
   Finset.prod_range_succ _ i
 
+/-- If `i < k ≤ r`, the Johnson birth rate at `i` is nonzero. -/
 theorem johnsonBirthRate_ne_zero (k r i : ℕ) (hkr : k ≤ r) (hi : i < k) :
     johnsonBirthRate k r i ≠ 0 := by
   have hik : (i : ℝ) < k := by exact_mod_cast hi
@@ -639,6 +741,7 @@ theorem johnsonBirthRate_ne_zero (k r i : ℕ) (hkr : k ≤ r) (hi : i < k) :
   unfold johnsonBirthRate
   exact_mod_cast h
 
+/-- If `k < N-r`, the Johnson death rate at every positive index `i+1` is nonzero. -/
 theorem johnsonDeathRate_succ_ne_zero (k N r i : ℕ) (hkN : k < N-r) :
     johnsonDeathRate k N r (i+1) ≠ 0 := by
   have hN : (k : ℝ)+(r : ℝ) < N := by exact_mod_cast (show k+r < N by omega)
@@ -647,11 +750,15 @@ theorem johnsonDeathRate_succ_ne_zero (k N r i : ℕ) (hkN : k < N-r) :
   simpa [johnsonDeathRate] using!
       (show ((i+1 : ℕ) : ℂ)*((N : ℂ)-k-r+(i+1 : ℕ)) ≠ 0 by exact_mod_cast h)
 
+/-- Under the physical size assumptions and `i < k`, the squared Jacobi off-diagonal coefficient
+equals the neighboring birth-death product. -/
 theorem johnsonOffRate_sq (k N r i : ℕ) (hi : i < k) (hkr : k ≤ r) (hkN : k < N-r) :
     johnsonOffRate k N r i^2 = johnsonBirthRate k r i*johnsonDeathRate k N r (i+1) := by
   simpa only [johnsonOffRate,mul_pow,mul_assoc] using!
     johnsonOverlap_laplacian_offsquare k N r i hi hkr hkN
 
+/-- Under the physical size assumptions, every Jacobi off-diagonal coefficient with index below
+`k` is nonzero. -/
 theorem johnsonOffRate_ne_zero (k N r i : ℕ) (hi : i < k) (hkr : k ≤ r) (hkN : k < N-r) :
     johnsonOffRate k N r i ≠ 0 := by
   intro hz
@@ -660,6 +767,7 @@ theorem johnsonOffRate_ne_zero (k N r i : ℕ) (hi : i < k) (hkr : k ≤ r) (hkN
   exact (mul_ne_zero (johnsonBirthRate_ne_zero k r i hkr hi)
     (johnsonDeathRate_succ_ne_zero k N r i hkN)) hs.symm
 
+/-- Under the physical size assumptions, the scale factors at indices `i ≤ k` are nonzero. -/
 theorem johnsonScale_ne_zero (k N r i : ℕ) (hi : i ≤ k) (hkr : k ≤ r) (hkN : k < N-r) :
     johnsonScale k N r i ≠ 0 := by
   apply Finset.prod_ne_zero_iff.mpr
@@ -668,6 +776,8 @@ theorem johnsonScale_ne_zero (k N r i : ℕ) (hi : i ≤ k) (hkr : k ≤ r) (hkN
   exact div_ne_zero (johnsonOffRate_ne_zero k N r j hjk hkr hkN)
     (johnsonBirthRate_ne_zero k r j hkr hjk)
 
+/-- The diagonal matrix of scale factors intertwines the birth-death Laplacian with the Jacobi
+matrix. -/
 theorem johnsonBirthDeath_Jacobi_similarity (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     johnsonBirthDeath k N r * Matrix.diagonal (fun i : Fin (k+1) => johnsonScale k N r i.val) =
       Matrix.diagonal (fun i : Fin (k+1) => johnsonScale k N r i.val)*johnsonJacobi k N r := by
@@ -693,6 +803,8 @@ theorem johnsonBirthDeath_Jacobi_similarity (k N r : ℕ) (hkr : k ≤ r) (hkN :
         linear_combination johnsonScale k N r j.val*hs
       · simp [johnsonBirthDeath,johnsonJacobi,hij,hup,hdown]
 
+/-- Under the physical size assumptions, the Jacobi characteristic polynomial is the product of
+`X-j*(N+1-j)` over `j = 0,…,k`. -/
 theorem johnsonJacobi_charpoly (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     (johnsonJacobi k N r).charpoly =
       ∏ j : Fin (k+1), (Polynomial.X-Polynomial.C (johnsonLaplacianValue j.val N)) := by
@@ -711,9 +823,12 @@ theorem johnsonJacobi_charpoly (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
   rw [← Matrix.mul_assoc,Matrix.mul_nonsing_inv S hs,Matrix.one_mul]
   exact johnsonBirthDeath_charpoly k N r
 
+/-- The matrix supported on the first upper diagonal, with entries supplied by `B`. -/
 def johnsonUpperStep (k : ℕ) (B : Fin (k+1) → ℂ) : Matrix (Fin (k+1)) (Fin (k+1)) ℂ :=
   fun i j => if j.val = i.val+1 then B i else 0
 
+/-- If the final entry of `B` vanishes, the upper-step matrix times its conjugate transpose is
+diagonal with entries `B i * star (B i)`. -/
 theorem johnsonUpperStep_gram (k : ℕ) (B : Fin (k+1) → ℂ) (hB : B (Fin.last k) = 0) :
     johnsonUpperStep k B*(johnsonUpperStep k B)ᴴ = Matrix.diagonal (fun i => B i*star (B i)) := by
   ext i j
@@ -735,6 +850,8 @@ theorem johnsonUpperStep_gram (k : ℕ) (B : Fin (k+1) → ℂ) (hB : B (Fin.las
     have hz : B i = 0 := hik ▸ hB
     simp [johnsonUpperStep,hz,Matrix.diagonal_apply]
 
+/-- The Gram product of a diagonal-plus-upper-step matrix has the displayed diagonal and
+neighboring entries when the final upper coefficient vanishes. -/
 theorem johnsonBidiagonal_gram (k : ℕ) (A B : Fin (k+1) → ℂ) (hB : B (Fin.last k) = 0)
     (i j : Fin (k+1)) :
     ((Matrix.diagonal A+johnsonUpperStep k B)*(Matrix.diagonal A+johnsonUpperStep k B)ᴴ) i j =
@@ -752,9 +869,11 @@ theorem johnsonBidiagonal_gram (k : ℕ) (A B : Fin (k+1) → ℂ) (hB : B (Fin.
     split_ifs <;> simp only [star_zero,mul_zero,zero_mul,add_zero,zero_add]
     all_goals ring
 
+/-- The column-overlap matrix of the plus frame and the reversed frame. -/
 def johnsonOverlapMatrix (k : ℕ) (d e : ℝ) : Matrix (Fin (k+1)) (Fin (k+1)) ℂ :=
   (johnsonPlusFrame k d)ᴴ*johnsonReverseFrame k e
 
+/-- The frame-overlap matrix is the sum of its explicit diagonal matrix and upper-step matrix. -/
 theorem johnsonOverlapMatrix_bidiagonal (k : ℕ) (d e : ℝ) :
     johnsonOverlapMatrix k d e =
       Matrix.diagonal (fun i => johnsonOverlapDiagonal k i.val d e)+
@@ -763,6 +882,8 @@ theorem johnsonOverlapMatrix_bidiagonal (k : ℕ) (d e : ℝ) :
   rw [johnsonOverlapMatrix,johnsonOverlap_bidiagonal]
   simp only [Matrix.add_apply,Matrix.diagonal_apply,johnsonUpperStep,johnsonOverlapDiagonal,johnsonOverlapUpper]
 
+/-- Under the physical size assumptions, scaling the identity minus the overlap Gram product by
+`(N-r)*(r+1)` gives the Jacobi matrix. -/
 theorem johnsonOverlapMatrix_compression (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     ((((N : ℝ)-r)*((r : ℝ)+1) : ℂ) •
       (1-johnsonOverlapMatrix k ((N : ℝ)-r) ((r : ℝ)+1)*
@@ -803,6 +924,8 @@ theorem johnsonOverlapMatrix_compression (k N r : ℕ) (hkr : k ≤ r) (hkN : k 
       · have hdown' : ¬j.val+1 = i.val := fun h => hdown h.symm
         simp [johnsonJacobi,hij,hup,hdown,hdown']
 
+/-- The scaled complement of the overlap Gram product has characteristic roots `j*(N+1-j)` for
+`j = 0,…,k`, under the stated size assumptions. -/
 theorem johnsonOverlapMatrix_compression_charpoly (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     (((((N : ℝ)-r)*((r : ℝ)+1) : ℂ) •
       (1-johnsonOverlapMatrix k ((N : ℝ)-r) ((r : ℝ)+1)*
@@ -811,9 +934,13 @@ theorem johnsonOverlapMatrix_compression_charpoly (k N r : ℕ) (hkr : k ≤ r) 
   rw [johnsonOverlapMatrix_compression k N r hkr hkN]
   exact johnsonJacobi_charpoly k N r hkr hkN
 
+/-- The matrix `2*(P*Pᴴ)-1`, representing reflection about the column range when `P` has
+orthonormal columns. -/
 def principalPairReflection {n m : ℕ} (P : Matrix (Fin n) (Fin m) ℂ) : Matrix (Fin n) (Fin n) ℂ :=
   (2 : ℂ) • (P*Pᴴ)-1
 
+/-- For a frame with identity column Gram matrix, the associated reflection squares to the
+identity. -/
 theorem principalPairReflection_sq {n m : ℕ} (P : Matrix (Fin n) (Fin m) ℂ)
     (hP : Pᴴ*P = 1) : principalPairReflection P * principalPairReflection P = 1 := by
   have hE : (P*Pᴴ)*(P*Pᴴ) = P*Pᴴ := by
@@ -828,6 +955,7 @@ theorem principalPairReflection_sq {n m : ℕ} (P : Matrix (Fin n) (Fin m) ℂ)
   simp only [Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul, Matrix.one_apply]
   ring
 
+/-- The reflection associated with an isometric frame fixes every vector in its column range. -/
 theorem principalPairReflection_fix {n m : ℕ} (P : Matrix (Fin n) (Fin m) ℂ)
     (hP : Pᴴ*P = 1) (v : Fin m → ℂ) :
     principalPairReflection P *ᵥ (P *ᵥ v) = P *ᵥ v := by
@@ -838,6 +966,8 @@ theorem principalPairReflection_fix {n m : ℕ} (P : Matrix (Fin n) (Fin m) ℂ)
   simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- An overlap Gram eigenvector with eigenvalue `σ` gives compressed reflected action `(2*σ-1)`
+after lifting by `P` and compressing by `Pᴴ`. -/
 theorem principalPair_compressed {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
     (hP : Pᴴ*P = 1) (σ : ℂ) (v : Fin m → ℂ)
     (hv : ((Pᴴ*Q)*(Pᴴ*Q)ᴴ) *ᵥ v = σ • v) :
@@ -853,6 +983,8 @@ theorem principalPair_compressed {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
   simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- For isometric frames and an overlap Gram eigenvector, the product of reflections acts on the
+lifted vector and its reflection by the displayed two-term recurrence. -/
 theorem principalPair_recurrence {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
     (hP : Pᴴ*P = 1) (hQ : Qᴴ*Q = 1) (σ : ℂ) (v : Fin m → ℂ)
     (hv : ((Pᴴ*Q)*(Pᴴ*Q)ᴴ) *ᵥ v = σ • v) :
@@ -874,6 +1006,8 @@ theorem principalPair_recurrence {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
       rw [Matrix.mulVec_mulVec, principalPairReflection_sq Q hQ, Matrix.one_mulVec]
     rw [hR2]
 
+/-- For isometric frames, a nonzero overlap Gram eigenvector produces the stated nonzero
+eigenvector of the reflection product when `μ²-2*(2*σ-1)*μ+1 = 0` and `μ² ≠ 1`. -/
 theorem principalPair_eigenvector {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
     (hP : Pᴴ*P = 1) (hQ : Qᴴ*Q = 1) (σ μ : ℂ) (v : Fin m → ℂ)
     (hv0 : v ≠ 0) (hv : ((Pᴴ*Q)*(Pᴴ*Q)ᴴ) *ᵥ v = σ • v)
@@ -915,6 +1049,7 @@ theorem principalPair_eigenvector {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
     simp only [Pi.sub_apply,Pi.smul_apply,smul_eq_mul] at h ⊢
     linear_combination h
 
+/-- Every eigenvalue possessing a nonzero eigenvector also possesses a normalized eigenvector. -/
 theorem principalPair_normalize {n : ℕ} (W : Matrix (Fin n) (Fin n) ℂ) (μ : ℂ)
     (z : Fin n → ℂ) (hz0 : z ≠ 0) (hz : W *ᵥ z = μ • z) :
     ∃ u : Fin n → ℂ, Normalized u ∧ W *ᵥ u = μ • u := by
@@ -934,6 +1069,9 @@ theorem principalPair_normalize {n : ℕ} (W : Matrix (Fin n) (Fin n) ℂ) (μ :
   · dsimp only [u]
     rw [Matrix.mulVec_smul,hz,smul_comm]
 
+/-- For isometric frames and a nonzero overlap Gram eigenvector, a root `μ` of the stated
+quadratic with `μ² ≠ 1` is an eigenvalue of the reflection product with a normalized
+eigenvector. -/
 theorem principalPair_normalized_eigenvector {n m : ℕ} (P Q : Matrix (Fin n) (Fin m) ℂ)
     (hP : Pᴴ*P = 1) (hQ : Qᴴ*Q = 1) (σ μ : ℂ) (v : Fin m → ℂ)
     (hv0 : v ≠ 0) (hv : ((Pᴴ*Q)*(Pᴴ*Q)ᴴ) *ᵥ v = σ • v)
@@ -943,14 +1081,18 @@ theorem principalPair_normalized_eigenvector {n m : ℕ} (P Q : Matrix (Fin n) (
   obtain ⟨hz0,hz⟩ := principalPair_eigenvector P Q hP hQ σ μ v hv0 hv hμ hμsq
   exact principalPair_normalize _ μ _ hz0 hz
 
+/-- The complex denominator `(N-r)*(r+1)` in the Johnson overlap and phase formulas. -/
 def johnsonDen (N r : ℕ) : ℂ := ((N : ℂ)-r)*((r : ℂ)+1)
 
+/-- If `k < N-r`, the Johnson denominator is nonzero. -/
 theorem johnsonDen_ne_zero (k N r : ℕ) (hkN : k < N-r) : johnsonDen N r ≠ 0 := by
   have hN : (r : ℝ) < N := by exact_mod_cast (show r < N by omega)
   have hh : ((N : ℝ)-r)*((r : ℝ)+1) ≠ 0 := (mul_pos (by linarith) (by positivity)).ne'
   unfold johnsonDen
   exact_mod_cast hh
 
+/-- Under the stated physical and index assumptions, the cosine of the Johnson phase equals
+`1-2*johnsonLaplacianValue j N/johnsonDen N r`. -/
 theorem johnsonPhase_cos_exact (k N r j : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkN : k < N-r) (hj : 1 ≤ j) (hjk : j ≤ k) :
     (Real.cos (johnsonPhase j N r) : ℂ) = 1-2*johnsonLaplacianValue j N/johnsonDen N r := by
@@ -961,6 +1103,8 @@ theorem johnsonPhase_cos_exact (k N r j : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
   push_cast
   ring
 
+/-- A Jacobi eigenvector of eigenvalue `lam` is an overlap Gram eigenvector of eigenvalue
+`1-lam/johnsonDen N r`. -/
 theorem johnsonJacobi_eigenvector_gram (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r)
     (lam : ℂ) (v : Fin (k+1) → ℂ) (hv : johnsonJacobi k N r *ᵥ v = lam • v) :
     (johnsonOverlapMatrix k ((N : ℝ)-r) ((r : ℝ)+1)*
@@ -979,6 +1123,8 @@ theorem johnsonJacobi_eigenvector_gram (k N r : ℕ) (hkr : k ≤ r) (hkN : k < 
   field_simp
   linear_combination -h
 
+/-- Under the physical size assumptions, the reduced Johnson walk is the product of the
+reversed-frame reflection and the plus-frame reflection. -/
 theorem johnsonWalk_principalPair (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) :
     jwWalk k N r = principalPairReflection (johnsonReverseFrame k ((r : ℝ)+1))*
       principalPairReflection (johnsonPlusFrame k ((N : ℝ)-r)) := by
@@ -986,6 +1132,7 @@ theorem johnsonWalk_principalPair (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) 
   rw [jwWalk,h1,h2]
   rfl
 
+/-- A complex root of a finite matrix's characteristic polynomial has a nonzero eigenvector. -/
 theorem principalPair_charpoly_eigenvector (m : ℕ) (A : Matrix (Fin m) (Fin m) ℂ)
     (lam : ℂ) (hroot : A.charpoly.eval lam = 0) :
     ∃ v : Fin m → ℂ, v ≠ 0 ∧ A *ᵥ v = lam • v := by
@@ -999,6 +1146,7 @@ theorem principalPair_charpoly_eigenvector (m : ℕ) (A : Matrix (Fin m) (Fin m)
   rw [hscalar] at he
   exact (sub_eq_zero.mp he).symm
 
+/-- The eigenvalue of a unitary matrix on a normalized eigenvector satisfies `star e * e = 1`. -/
 theorem principalPair_unit_eigenvalue (n : ℕ) (U : Matrix (Fin n) (Fin n) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin n) ℂ) (e : ℂ) (v : Fin n → ℂ)
     (hnorm : Normalized v) (heig : U *ᵥ v = e • v) : star e * e = 1 := by
@@ -1012,6 +1160,8 @@ theorem principalPair_unit_eigenvalue (n : ℕ) (U : Matrix (Fin n) (Fin n) ℂ)
   rw [hself] at hs
   simpa only [mul_one,one_mul,mul_comm] using! hs
 
+/-- A unitary matrix with a full injective list of eigenvalues and normalized eigenvectors has a
+unitary eigenbasis matrix in that order. -/
 theorem principalPair_ordered_eigenframe (n : ℕ) (U : Matrix (Fin n) (Fin n) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin n) ℂ) (e : Fin n → ℂ)
     (hinj : Function.Injective e)
@@ -1047,6 +1197,8 @@ namespace JohnsonSpectrumPhase
 
 end JohnsonSpectrumPhase
 
+/-- Under the physical size assumptions, every Johnson Laplacian value `j*(N+1-j)` for `j =
+0,…,k` has a nonzero Jacobi eigenvector. -/
 theorem johnsonJacobi_eigenvalue (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) (j : Fin (k+1)) :
     ∃ v : Fin (k+1) → ℂ, v ≠ 0 ∧ johnsonJacobi k N r *ᵥ v = johnsonLaplacianValue j.val N • v := by
   apply principalPair_charpoly_eigenvector
@@ -1054,6 +1206,9 @@ theorem johnsonJacobi_eigenvalue (k N r : ℕ) (hkr : k ≤ r) (hkN : k < N-r) (
   apply Finset.prod_eq_zero (Finset.mem_univ j)
   simp
 
+/-- The reduced Johnson walk satisfies `JohnsonFullSpectrumContract`, with a unitary eigenbasis
+and distinct eigenvalues consisting of `1` and the conjugate phase pairs
+[Ambainis2007ElementDistinctness]. -/
 theorem johnsonFullSpectrum_answer : JohnsonFullSpectrumContract := by
   intro k N r hk hkr hkN
   let θ : Fin k → ℝ := fun j => johnsonPhase (j.val+1) N r

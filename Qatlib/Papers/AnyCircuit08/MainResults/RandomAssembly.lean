@@ -64,12 +64,34 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite Markov bounds for bad circuits
+
+Finite forms of Markov's inequality bound the fraction of samples where a nonnegative quantity
+exceeds a threshold. Specializations control large fourth-moment quantities and convert bounds
+for each bad row into a bound on the fraction of circuits with many bad rows
+[HallgrenHarrow2008].
+
+## Main statements
+
+* `finite_markov_fraction`: bounds a threshold-event fraction by the mean divided by the
+  threshold.
+* `markov_qt_bad_fraction`: specializes the estimate to a fourth-moment scale.
+* `bad_circuit_fraction`: bounds the fraction of samples with a large bad-row fraction.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
 
 open scoped BigOperators
 
+/-- For a nonnegative function on a finite type and positive threshold `t`, the number of values
+at least `t` is at most the sum of all values divided by `t` [HallgrenHarrow2008]. -/
 theorem finite_markov_indicator {Ω : Type*} [Fintype Ω] (X : Ω → ℝ) (hX : ∀ ω, 0 ≤ X ω)
     {t : ℝ} (ht : 0 < t) :
     (∑ ω, if t ≤ X ω then (1:ℝ) else 0) ≤ (∑ ω, X ω) / t := by
@@ -84,6 +106,8 @@ theorem finite_markov_indicator {Ω : Type*} [Fintype Ω] (X : Ω → ℝ) (hX :
   rw [le_div_iff₀ ht, mul_comm]
   exact h1
 
+/-- On a nonempty finite type, the fraction of values of a nonnegative function at least
+positive `t` is at most its uniform mean divided by `t` [HallgrenHarrow2008]. -/
 theorem finite_markov_fraction {Ω : Type*} [Fintype Ω] (X : Ω → ℝ) (hX : ∀ ω, 0 ≤ X ω)
     {t : ℝ} (ht : 0 < t) (hΩ : 0 < Fintype.card Ω) :
     (∑ ω, if t ≤ X ω then (1:ℝ) else 0) / (Fintype.card Ω : ℝ)
@@ -95,6 +119,9 @@ theorem finite_markov_fraction {Ω : Type*} [Fintype Ω] (X : Ω → ℝ) (hX : 
     _ = (∑ ω, X ω) / ((Fintype.card Ω : ℝ) * t) := by
         field_simp
 
+/-- If a nonnegative quantity has uniform mean at most `2 * 2 ^ (-n)` and `β ≠ 0`, the fraction
+of samples where it is at least `2 ^ (-n) / β ^ 2` is at most `2 * β ^ 2`
+[HallgrenHarrow2008]. -/
 theorem markov_qt_bad_fraction {Ω : Type*} [Fintype Ω] (Q : Ω → ℝ) (hQ : ∀ ω, 0 ≤ Q ω)
     {n : ℕ} {β : ℝ} (hβ : β ≠ 0) (hΩ : 0 < Fintype.card Ω)
     (hmean : (∑ ω, Q ω) / (Fintype.card Ω : ℝ) ≤ 2 * (2:ℝ) ^ (-(n:ℝ))) :
@@ -122,6 +149,8 @@ theorem markov_qt_bad_fraction {Ω : Type*} [Fintype Ω] (Q : Ω → ℝ) (hQ : 
     _ = (∑ ω, Q ω) / (Fintype.card Ω : ℝ) / ((2:ℝ) ^ (-(n:ℝ)) / β ^ 2) := hmono
     _ ≤ 2 * β ^ 2 := hstep
 
+/-- If each row is marked bad on at most a fraction `p` of samples, then the fraction of samples
+with at least a positive fraction `s` of bad rows is at most `p / s` [HallgrenHarrow2008]. -/
 theorem bad_circuit_fraction {Ω A : Type*} [Fintype Ω] [Fintype A]
     (bad : Ω → A → Bool) {p s : ℝ}
     (hp : ∀ a, (∑ ω, if bad ω a then (1:ℝ) else 0) / (Fintype.card Ω : ℝ) ≤ p)

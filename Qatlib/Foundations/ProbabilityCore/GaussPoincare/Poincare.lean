@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.ProbabilityCore.GaussPoincare.AngleIntegral
+
+/-!
+# A Gaussian Poincare estimate from pair rotations
+
+For C¹ functions on a finite-dimensional real inner product space, this module derives a
+Gaussian Poincare bound with constant π²/8. The proof relates independent-pair increments to
+variance and integrates squared directional derivatives along Gaussian-preserving rotations, an
+interpolation method relevant to [GohMuller2026].
+
+## Main statements
+
+* `pair_increment_square_memLp`: The squared increment between independent Gaussian inputs has
+  mean twice the variance.
+* `rotated_gradient_square`: Rotated directional energy equals the Gaussian squared-derivative
+  integral.
+* `c1_gaussian_poincare_gradient`: Variance is bounded by π²/8 times the squared-derivative
+  integral.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -16,6 +39,8 @@ namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
   [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
 
+/-- For a Gaussian square-integrable function, the integral of its squared increment between two
+independent standard Gaussian inputs is twice its variance. -/
 theorem pair_increment_square_memLp (f : E→ℝ) (hm : MemLp f 2 (stdGaussian E)) :
     (∫ z:E×E,(f z.2-f z.1)^2 ∂((stdGaussian E).prod (stdGaussian E))) =
       2*variance f (stdGaussian E) := by
@@ -33,6 +58,8 @@ theorem pair_increment_square_memLp (f : E→ℝ) (hm : MemLp f 2 (stdGaussian E
   rw [hmean,zero_pow (by norm_num : (2:ℕ)≠0),sub_zero] at h
   exact h.symm.trans hv
 
+/-- If a C¹ function has integrable squared derivative norm, its squared derivative evaluated on
+an independent Gaussian direction is integrable under the Gaussian product measure. -/
 theorem gradient_pair_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) :
     Integrable (fun z:E×E=>((fderiv ℝ f z.1) z.2)^2)
@@ -49,6 +76,8 @@ theorem gradient_pair_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   · simpa only
       [Real.norm_eq_abs,abs_pow,sq_abs,Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional.dual_square_integral] using! hgrad
 
+/-- For a C¹ function with integrable squared derivative norm, the rotated squared directional
+derivative is jointly integrable over angles in (0, π/2] and the Gaussian pair. -/
 theorem angle_gradient_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) :
     Integrable (fun p:ℝ×(E×E)=>
@@ -77,6 +106,8 @@ theorem angle_gradient_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     rw [hh]
     exact integrable_const _
 
+/-- For a C¹ function with integrable squared derivative norm, the Gaussian integral of the
+rotated squared directional derivative equals the integral of the squared derivative norm. -/
 theorem rotated_gradient_square (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) (θ : ℝ) :
     (∫ z:E×E,((fderiv ℝ f (ContinuousLinearMap.rotation θ z).1)
@@ -88,6 +119,8 @@ theorem rotated_gradient_square (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   exact integral_congr_ae
       (Filter.Eventually.of_forall fun x=>Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional.dual_square_integral (fderiv ℝ f x))
 
+/-- A C¹ Gaussian square-integrable function with integrable squared derivative norm has
+variance at most π²/8 times the Gaussian integral of that squared norm. -/
 theorem c1_gaussian_poincare_gradient (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hm : MemLp f 2 (stdGaussian E))
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) :

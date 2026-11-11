@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+
+/-!
+# Clean phase estimation circuit expansion
+
+This module expands phase estimation around an adjoint-query circuit body, including its
+controlled implementation, input state, lifted frame, and event mass. The construction follows
+the phase estimation framework described in [NielsenChuang2010].
+
+The expansion theorem identifies the resulting action with the counted phase estimation circuit
+and records the gate and query costs of both the word and its adjoint.
+
+## Main statements
+
+* `controlled_clean_body_actual_semantics_and_cost`: controlled compilation preserves
+  well-formedness and both instruction counts.
+* `clean_qpe_actual_expansion_semantics_and_paid_inverse`: the expanded word has the required
+  semantics and explicit forward and inverse costs.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -31,10 +54,13 @@ open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Kronecker
 
+/-- The controlled compilation of an adjoint-query circuit body. -/
 noncomputable def controlledCleanBody {H : Type} [Fintype H] [DecidableEq H]
     (body : List (AdjointStep H)) : List (AdjointStep (Bool × H)) :=
   compileControlled body
 
+/-- The phase estimation instruction word obtained by substituting the lifted controlled body
+into the compiled counted phase circuit. -/
 noncomputable def cleanQPEWord {H : Type} [Fintype H] [DecidableEq H]
     (M : ℕ) (body : List (AdjointStep H)) :
     List (AdjointStep (Fin M × (Bool × H))) :=
@@ -42,19 +68,26 @@ noncomputable def cleanQPEWord {H : Type} [Fintype H] [DecidableEq H]
     (phaseLiftWord (TensorGate (1 : Operator M)) (controlledCleanBody body))
     (phaseCompileCircuit (countedPhaseCircuit M))
 
+/-- The phase estimation input with the phase register at zero, the control qubit false, and
+system state `ξ`. -/
 noncomputable def cleanQPEInput {H : Type} (M : ℕ) (hM : 0 < M) (ξ : QState H) :
     QState (Fin M × (Bool × H)) :=
   TensorState (Ket (⟨0, hM⟩ : Fin M)) (TensorState (Ket false) ξ)
 
+/-- The frame `R` tensored with identities on the phase register and control qubit. -/
 noncomputable def cleanQPEFrame {H I : Type} [DecidableEq H] [DecidableEq I]
     (M : ℕ) (R : Matrix H I ℂ) :
     Matrix (Fin M × (Bool × H)) (Fin M × (Bool × I)) ℂ :=
   (1 : Operator M) ⊗ₖ ((1 : Matrix Bool Bool ℂ) ⊗ₖ R)
 
+/-- The sum of squared output amplitudes over all coordinates whose phase register belongs to
+`E`. -/
 noncomputable def cleanQPEEventMass {H : Type} [Fintype H]
     (M : ℕ) (out : QState (Fin M × (Bool × H))) (E : Finset (Fin M)) : ℝ :=
   ∑ p ∈ Finset.univ.filter (fun p => p.1 ∈ E), ‖out p‖ ^ 2
 
+/-- Controlled compilation preserves well-formedness, evaluates to the controlled body operator,
+and preserves both query and gate counts. -/
 theorem controlled_clean_body_actual_semantics_and_cost
     (H : Type) [Fintype H] [DecidableEq H] (O : Matrix H H ℂ)
     (body : List (AdjointStep H)) (hbody : WellFormedAdjointCircuit body) :
@@ -66,6 +99,10 @@ theorem controlled_clean_body_actual_semantics_and_cost
   ⟨compileControlled_wellFormed hbody, evaluate_compileControlled O body,
     queryCount_compileControlled body, gateCount_compileControlled body⟩
 
+/-- For positive `M`, the expanded phase estimation word is well formed, uses `(M - 1)` times
+the body query count, and has gate count `2 * (M - 1) + 2 + (M - 1) * adjointGateCount
+body`. Its adjoint has the same counts, and its action equals that of the counted phase
+circuit with the evaluated controlled body. -/
 theorem clean_qpe_actual_expansion_semantics_and_paid_inverse
     (H : Type) [Fintype H] [DecidableEq H] (M : ℕ) (O : Matrix H H ℂ)
     (body : List (AdjointStep H)) (hM : 0 < M)

@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoalStat
+
+/-!
+# Spectral identities for two-species discrimination
+
+This module proves `TwoSpeciesDiscriminationSubgoal`, assembling finite-copy QPE event accuracy
+and resource accounting with spectral identities for two uniform training mixtures. The pure
+input is expanded in a unitary eigenbasis, and its diagonal weights are squared column overlaps.
+
+The selected positive-eigenvalue columns define a Hermitian idempotent whose Born weight is the
+sum of those squared overlaps. The combined result also includes spectral magnitude bounds and
+endpoint orthogonality, supplying algebraic ingredients for the discrimination application of
+[LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `discrimination_projector`: selected unitary columns define a Hermitian idempotent.
+* `discrimination_born`: the projector's probability equals its summed overlap weights.
+* `twoSpeciesDiscriminationSubgoal`: the combined finite-copy and spectral guarantees.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +46,8 @@ open Matrix
 open scoped Classical ComplexOrder
 set_option warningAsError false
 
+/-- The outer product of `χ` is reconstructed from its overlap coefficients in the columns of a
+unitary `V`. -/
 private theorem discrimination_basis (d : ℕ) (V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (χ : QState (Fin d)) :
     outerProduct χ=V*Matrix.of (fun j k => Inner (fun a => V a j) χ*star (Inner (fun a => V a k) χ))*Vᴴ := by
@@ -36,12 +62,16 @@ private theorem discrimination_basis (d : ℕ) (V : Operator d)
     _ = (V*Vᴴ)*outerProduct χ*(V*Vᴴ) := by noncomm_ring
     _ = _ := by rw [hVV]; simp
 
+/-- A diagonal coordinate weight of `outerProduct χ` equals the squared norm of the overlap of
+`χ` with the corresponding column. -/
 private theorem discrimination_weight (d : ℕ) (V : Operator d) (χ : QState (Fin d)) (j : Fin d) :
     ((Vᴴ*outerProduct χ*V) j j).re=‖Inner (fun a => V a j) χ‖^2 := by
   rw [twoSpecies_outer_basis]
   rw [mul_comm,RCLike.star_def,← Complex.normSq_eq_conj_mul_self]
   simp only [Complex.ofReal_re,Complex.normSq_eq_norm_sq]
 
+/-- The sum of outer products of selected columns is `V` times the corresponding diagonal
+indicator times `Vᴴ`. -/
 private theorem discrimination_projector_form (d : ℕ) (V : Operator d) (S : Finset (Fin d)) :
     (∑ j ∈ S, outerProduct (fun a => V a j))=
       V*Matrix.diagonal (fun j => if j ∈ S then (1 : ℂ) else 0)*Vᴴ := by
@@ -50,6 +80,8 @@ private theorem discrimination_projector_form (d : ℕ) (V : Operator d) (S : Fi
     Matrix.diagonal_apply,mul_ite,mul_one]
   simp [Finset.sum_ite_mem,Finset.univ_inter]
 
+/-- The sum of outer products of selected columns of a unitary matrix is idempotent and
+Hermitian. -/
 private theorem discrimination_projector (d : ℕ) (V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (S : Finset (Fin d)) :
     (∑ j ∈ S, outerProduct (fun a => V a j))*(∑ j ∈ S, outerProduct (fun a => V a j))=
@@ -81,6 +113,8 @@ private theorem discrimination_projector (d : ℕ) (V : Operator d)
       _ = _ := by rw [hA]
   · rw [Matrix.conjTranspose_mul,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,hAH,Matrix.mul_assoc]
 
+/-- The real trace of the selected-column outer-product sum against `outerProduct χ` equals the
+sum of squared column overlaps. -/
 private theorem discrimination_born (d : ℕ) (V : Operator d)
     (S : Finset (Fin d)) (χ : QState (Fin d)) :
     (Matrix.trace ((∑ j ∈ S, outerProduct (fun a => V a j))*outerProduct χ)).re=
@@ -103,6 +137,9 @@ private theorem discrimination_born (d : ℕ) (V : Operator d)
     split_ifs <;> simp [discrimination_weight]
   simp only [hh,Finset.sum_ite_mem,Finset.univ_inter]
 
+/-- The two-species discrimination specification holds, combining finite-copy spectral event
+bounds and resources with basis reconstruction, projector probabilities, eigenvalue bounds,
+and endpoint orthogonality. -/
 theorem twoSpeciesDiscriminationSubgoal : TwoSpeciesDiscriminationSubgoal := by
   intro d m M n φ ψ hφ hψ hm hM hn V hV x hs χ hχ E
   have hρ := pureStateMixture_density d m φ hφ hm

@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedStatistics
+
+/-!
+# Zero ancilla fibers of corrected LCU levels
+
+This module isolates a selected ancilla bit and relates a corrected LCU level to the Figure 3
+circuit of [ChildsWiebe2012]. `splitLCUBranch` restricts each branch to a fixed value of that
+bit, and `lcuLevelGateCorrected_fig3` identifies the full circuit after relabeling the register.
+
+The resulting zero ancilla amplitude is a sum over the two branch fibers. For nonnegative `κ`,
+the source rotation contributes weights `κ / (κ + 1)` and `1 / (κ + 1)`;
+`lcuLevelGateCorrected_zero_corner` combines these when the second branch is invariant under the
+simultaneous control-bit flip.
+
+## Main statements
+
+* `ctrlGateCorrected_split` and `lcuLevelGateCorrected_fig3` give the relabeled controlled and
+  Figure 3 descriptions.
+- `splitLCU_zero_input` expresses the all-zero input in the split register.
+- `vKappaSource_zero_coeff` and `vKappaSource_one_coeff` compute the two success weights.
+* `lcuLevelGateCorrected_zero_corner` gives the weighted sum of branch amplitudes on the
+  all-zero fiber.
+
+## References
+
+- [Childs and Wiebe, 2012][ChildsWiebe2012], Lemma 2 and Figure 3.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +50,8 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Restricts `Cx` to the control-zero block and `Cy` to the control-one block after splitting
+off ancilla bit `i`. -/
 def splitLCUBranch {k : ℕ} (i : Fin k)
     (Cx Cy : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ) (b : Fin 2) :
     Matrix (({j : Fin k //j≠i}→Bool)×I) (({j : Fin k //j≠i}→Bool)×I) ℂ :=
@@ -32,6 +61,8 @@ def splitLCUBranch {k : ℕ} (i : Fin k)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The corrected controlled gate is the relabeling of `Select` applied to the two restricted
+branches obtained by splitting off its control bit. -/
 theorem ctrlGateCorrected_split {k : ℕ} (i : Fin k)
     (Cx Cy : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ) :
     ctrlGateCorrected k i Cx Cy=relabelGate (splitLCUBit (I := I) i).symm
@@ -53,6 +84,8 @@ theorem ctrlGateCorrected_split {k : ℕ} (i : Fin k)
     cases hb : p.1 i <;> simp [boolEquivFin2]
   · rw [if_neg h,if_neg (fun hh=>h (he.mp hh))]
 
+/-- A corrected LCU level equals the relabeled Figure 3 circuit with the restricted branches,
+preparation matrix `V`, and final matrix `Vᴴ`, in the notation of [ChildsWiebe2012]. -/
 theorem lcuLevelGateCorrected_fig3 {k : ℕ} (i : Fin k) (V : Matrix (Fin 2) (Fin 2) ℂ)
     (Cx Cy : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ) :
     lcuLevelGateCorrected k i V Cx Cy = relabelGate (splitLCUBit (I := I) i).symm
@@ -62,6 +95,8 @@ theorem lcuLevelGateCorrected_fig3 {k : ℕ} (i : Fin k) (V : Matrix (Fin 2) (Fi
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Splitting off any ancilla bit rewrites the all-zero ancilla input as a zero control qubit
+tensored with the remaining zero ancillas and `ψ`. -/
 theorem splitLCU_zero_input {k : ℕ} (i : Fin k) (ψ : QState I) :
     TensorState (Ket (fun _ : Fin k=>false)) ψ = relabelState (splitLCUBit (I := I) i).symm
       (TensorState (Ket (0 : Fin 2)) (TensorState (Ket (fun _ : {j : Fin k //j≠i}=>false)) ψ)) := by
@@ -82,6 +117,8 @@ theorem splitLCU_zero_input {k : ℕ} (i : Fin k) (ψ : QState I) :
     simp [he,hb,hr,boolEquivFin2]
 omit [Fintype I] [DecidableEq I] in
 
+/-- Rejoining a zero control bit with the remaining all-zero ancillas gives the full all-zero
+ancilla string and the same system index. -/
 theorem splitLCUBit_zero_inv {k : ℕ} (i : Fin k) (x : I) :
     (splitLCUBit (I := I) i).symm (0,((fun _ : {j : Fin k //j≠i}=>false),x))=
       ((fun _ : Fin k=>false),x) := by
@@ -91,6 +128,8 @@ theorem splitLCUBit_zero_inv {k : ℕ} (i : Fin k) (x : I) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Rejoining a one control bit with the remaining all-zero ancillas gives the string obtained
+by flipping only that bit in the full zero string. -/
 theorem splitLCUBit_one_inv {k : ℕ} (i : Fin k) (x : I) :
     (splitLCUBit (I := I) i).symm (1,((fun _ : {j : Fin k //j≠i}=>false),x))=
       flipLCUBit i ((fun _ : Fin k=>false),x) := by
@@ -107,6 +146,8 @@ theorem splitLCUBit_one_inv {k : ℕ} (i : Fin k) (x : I) :
 
 omit [DecidableEq I] in
 
+/-- For an all-zero ancilla input, the output amplitude on the all-zero fiber is the
+system-index sum of the corresponding zero-to-zero matrix entries times `ψ`. -/
 theorem mask_zero_corner {k : ℕ}
     (A : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ) (ψ : QState I) (x : I) :
     (A*ᵥTensorState (Ket (fun _ : Fin k=>false)) ψ) (fun _=>false,x)=
@@ -115,6 +156,8 @@ theorem mask_zero_corner {k : ℕ}
 
 omit [DecidableEq I] in
 
+/-- Evaluates a restricted branch on the remaining all-zero ancillas by summing the original
+branch entries with the selected control value reinserted. -/
 theorem splitLCUBranch_corner {k : ℕ} (i : Fin k)
     (Cx Cy : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ)
     (b : Fin 2) (ψ : QState I) (x : I) :
@@ -125,6 +168,8 @@ theorem splitLCUBranch_corner {k : ℕ} (i : Fin k)
           ((splitLCUBit (I := I) i).symm (b,((fun _=>false),y)))*ψ y := by
   simp [Matrix.mulVec,dotProduct,Fintype.sum_prod_type,TensorState,Ket,splitLCUBranch]
 
+/-- The zero ancilla amplitude of a corrected LCU level is the sum of the two restricted branch
+amplitudes, weighted by `(vKappaSource κ)ᴴ 0 b * vKappaSource κ b 0`. -/
 theorem lcuLevelGateCorrected_zero_branches {k : ℕ} (i : Fin k) (κ : ℝ)
     (Cx Cy : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ) (ψ : QState I) (x : I) :
     (lcuLevelGateCorrected k i (vKappaSource κ) Cx Cy*ᵥ
@@ -137,6 +182,8 @@ theorem lcuLevelGateCorrected_zero_branches {k : ℕ} (i : Fin k) (κ : ℝ)
   rw [lcuLevelGateCorrected_fig3,splitLCU_zero_input,applyGate_relabelGate]
   exact fig3Fiber _ _ _ _ _ _ _
 
+/-- For nonnegative `κ`, the control-zero contribution of the source rotation and its adjoint is
+`κ / (κ + 1)`. -/
 theorem vKappaSource_zero_coeff (κ : ℝ) (hκ : 0≤κ) :
     (vKappaSource κ)ᴴ 0 0*vKappaSource κ 0 0=(κ:ℂ)/(κ+1) := by
   have hp : 0<κ+1 := by linarith
@@ -145,6 +192,8 @@ theorem vKappaSource_zero_coeff (κ : ℝ) (hκ : 0≤κ) :
   simp [vKappaSource,Matrix.conjTranspose_apply]
   linear_combination hh
 
+/-- For nonnegative `κ`, the control-one contribution of the source rotation and its adjoint is
+`1 / (κ + 1)`. -/
 theorem vKappaSource_one_coeff (κ : ℝ) (hκ : 0≤κ) :
     (vKappaSource κ)ᴴ 0 1*vKappaSource κ 1 0=(1:ℂ)/(κ+1) := by
   have hp : 0<κ+1 := by linarith
@@ -155,6 +204,10 @@ theorem vKappaSource_one_coeff (κ : ℝ) (hκ : 0≤κ) :
   simp [vKappaSource,Matrix.conjTranspose_apply]
   linear_combination hc
 
+/-- For nonnegative `κ` and a second branch invariant under simultaneous control-bit flips, the
+corrected level's zero ancilla amplitude is `κ / (κ + 1)` times the first branch amplitude
+plus `1 / (κ + 1)` times the second branch amplitude. This is the weighted success-fiber
+identity behind the two-term LCU construction of [ChildsWiebe2012]. -/
 theorem lcuLevelGateCorrected_zero_corner {k : ℕ} (i : Fin k) (κ : ℝ) (hκ : 0≤κ)
     (Cx Cy : Matrix ((Fin k→Bool)×I) ((Fin k→Bool)×I) ℂ)
     (hy : IndependentLCUBit i Cy) (ψ : QState I) (x : I) :

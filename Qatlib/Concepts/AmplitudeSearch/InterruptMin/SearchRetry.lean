@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+
+/-!
+# Retry reach masses and geometric search tails
+
+This module defines reach, first-success, and output masses for a sequence of checked search
+attempts. It proves finite-prefix normalization and geometric tail bounds once the attempt sizes
+pass the angle-dependent search threshold.
+
+For a nonempty proper marked set, the exponential schedule gives first-success masses summing to
+one, as required for randomized search [BoyerEtAl1998].
+
+## Main statements
+
+* `search_weighted_retry_tail`: After every attempt size exceeds `1 / sin (2θ)`, the retry reach
+  mass after `k` further stages is at most the starting reach mass times `(3 / 4)^k`.
+* `search_all_density_termination`: For a nonempty proper marked set, first-success masses under
+  the exponential schedule sum to one.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.SearchStopping.UnknownCount
@@ -16,19 +39,25 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open scoped BigOperators
 open Filter
 
+/-- The product of checked failure probabilities over stages before `n`. -/
 noncomputable def RetryReach {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (n : ℕ) : ℝ :=
   ∏ k ∈ Finset.range n, CheckedFailure A (sizes k)
 
+/-- The mass of reaching stage `n` and succeeding at that stage. -/
 noncomputable def RetryFirstSuccess {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (n : ℕ) : ℝ :=
   RetryReach A sizes n * CheckedSuccess A (sizes n)
 
+/-- The mass of reaching stage `s` and returning index `i`, averaging over that stage's
+iteration counts. -/
 noncomputable def RetryOutputMass {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (s : ℕ) (i : I) : ℝ :=
   RetryReach A sizes s *
     ((∑ j ∈ Finset.range (sizes s), CheckedOutputMass A j i) / (sizes s : ℝ))
 
+/-- Reach mass lies in `[0, 1]`, first-success mass is nonnegative, and earlier first-success
+masses plus the surviving mass sum to one. -/
 theorem search_retry_prefix {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (n : ℕ) :
@@ -58,6 +87,7 @@ theorem search_retry_prefix {I : Type*} [Fintype I] [DecidableEq I]
       nlinarith [ih.2.2.1]
     · exact mul_nonneg hnonneg hpnext.2.2.1.1
 
+/-- The retry reach mass cannot increase with the stage. -/
 theorem search_retry_reach_mono {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (n m : ℕ) (hnm : n ≤ m) :
@@ -70,6 +100,8 @@ theorem search_retry_reach_mono {I : Type*} [Fintype I] [DecidableEq I]
     exact mul_le_of_le_one_right (search_retry_prefix hN A sizes hsizes k).1 hf
   exact antitone_nat_of_succ_le step hnm
 
+/-- After every attempt size exceeds `1 / sin (2θ)`, the retry reach mass after `k` further
+stages is at most the starting reach mass times `(3 / 4)^k`. -/
 theorem search_weighted_retry_tail {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I)
     (θ : ℝ) (hθ0 : 0 < θ) (hθp : θ < Real.pi / 2)
@@ -99,6 +131,8 @@ theorem search_weighted_retry_tail {I : Type*} [Fintype I] [DecidableEq I]
         mul_le_mul_of_nonneg_right ih (by norm_num)
       _ = _ := by ring
 
+/-- Beyond the angle-dependent size threshold, reach mass is at most `(3 / 4)^k` and accumulated
+first-success mass is at least `1 - (3 / 4)^k`. -/
 theorem search_retry_tail {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I)
     (θ : ℝ) (hθ0 : 0 < θ) (hθp : θ < Real.pi / 2)
@@ -114,6 +148,8 @@ theorem search_retry_tail {I : Type*} [Fintype I] [DecidableEq I]
       (search_retry_prefix hN A sizes hsizes K).2.1)
   exact ⟨hb, by linarith [(search_retry_prefix hN A sizes hsizes (K+k)).2.2.1]⟩
 
+/-- For a nonempty proper marked set, first-success masses under the exponential schedule sum to
+one. -/
 theorem search_all_density_termination {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     HasSum (RetryFirstSuccess A (ExponentialSizes (Fintype.card I))) 1 := by

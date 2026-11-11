@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefinedDefs
+
+/-!
+# Refined probability phases and gradient readout bounds
+
+This module proves composed Fourier gradient guarantees with explicit value phase, probability
+access, and real record errors. It includes the nonpositive bound boundaries, positive success
+criteria, and exact circuit ledgers. The gradient estimation context is [Jordan2005Gradient].
+
+It also compresses the probability phase program to its input frame, bounds the extracted
+diagonal coefficients, and normalizes them. The resulting diagonal operator is unitary at
+precision at least one, with operator distance and Born event bounds for its readout.
+
+## Main statements
+
+* `realRecord_error`: rounding error is at most `2^(-(k + 1))`.
+* `probability_access_readout_transport`: probability function error `ε` gives event error at
+  most `2 * ε`.
+* `probability_normalized_phase_operator_unitary`: unitarity of the normalized extracted
+  operator.
+* `probability_normalized_readout_composed_guarantee`: composed success with finite program
+  approximation loss.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -37,6 +64,8 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 set_option warningAsError false
 
+/-- Composing a value phase approximation with an affine phase residual bound gives joint
+success at least `1 - 16 * d / (M * w) - 4 * π * B - 4 * π * δ` under the stated hypotheses. -/
 theorem composed_value_to_gradient_success :
     ∀ (d M Q : ℕ) [NeZero Q] (hM : 0 < M) (hM2 : 2 ≤ M)
       (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ)
@@ -64,6 +93,8 @@ theorem composed_value_to_gradient_success :
         exact sub_le_sub_right h1 _
     _ = 1 - 16 * (d : ℝ) / ((M : ℝ) * w) - 4 * Real.pi * B - 4 * Real.pi * δ := by ring
 
+/-- When the window and residual losses sum to at least one, the stated readout probability
+lower bound is nonpositive. -/
 theorem readout_guarantee_vacuous_boundary :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
       (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -77,6 +108,8 @@ theorem readout_guarantee_vacuous_boundary :
   have hle := sub_le_sub_left hsum 1
   simpa only [sub_self] using! hle
 
+/-- When the window, residual, and value phase losses sum to at least one, the composed
+probability lower bound is nonpositive. -/
 theorem composed_guarantee_vacuous_boundary :
     ∀ (d M Q : ℕ) [NeZero Q] (hM : 0 < M) (hM2 : 2 ≤ M)
       (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ)
@@ -92,6 +125,8 @@ theorem composed_guarantee_vacuous_boundary :
   have hle := sub_le_sub_left hsum 1
   simpa only [sub_self] using! hle
 
+/-- Under the stated approximation hypotheses, the composed readout has positive good window
+probability when the total loss is strictly less than one. -/
 theorem composed_guarantee_positive :
     ∀ (d M Q : ℕ) [NeZero Q] (hM : 0 < M) (hM2 : 2 ≤ M)
       (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ)
@@ -112,6 +147,8 @@ theorem composed_guarantee_positive :
     _ ≤ MeasureProb (gradientReadout d M hM (gradientValuePhase Q v))
         (composedGoodWindow d M g w) := hmain
 
+/-- The value kickback and gradient words have the stated separate query and gate counts,
+together with the integer and space bit budgets. -/
 theorem composed_gradient_ledger (d M Q K k : ℕ) [NeZero Q] (hM : 0 < M) :
     adjointQueryCount (valueComputeKickbackUncomputeWord d M Q) = 2 ∧
       adjointGateCount (valueComputeKickbackUncomputeWord d M Q) = 1 ∧
@@ -124,19 +161,24 @@ theorem composed_gradient_ledger (d M Q K k : ℕ) [NeZero Q] (hM : 0 < M) :
     Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle.readout_backend_ledger d M K k hM
   exact ⟨hq, hg, hq'', hg'', hbits, hspace⟩
 
+/-- States that the scaled real value is within one half of an integer at precision `k`. -/
 def ApproxRealRecord (k : ℕ) (θ : ℝ) : Prop :=
   ∃ n : ℤ, |θ * (2 : ℝ) ^ k - (n : ℝ)| ≤ 1 / 2
 
+/-- The nearest integer to the real value scaled by `2^k`. -/
 noncomputable def realRecordIndex (k : ℕ) (θ : ℝ) : ℤ := round (θ * (2 : ℝ) ^ k)
 
+/-- The dyadic real value obtained by dividing `realRecordIndex k θ` by `2^k`. -/
 noncomputable def realRecord (k : ℕ) (θ : ℝ) : ℝ :=
   (realRecordIndex k θ : ℝ) / (2 : ℝ) ^ k
 
+/-- Every real value has an approximate real record at every natural precision. -/
 theorem realRecord_satisfies :
     ∀ (k : ℕ) (θ : ℝ), ApproxRealRecord k θ := by
   intro k θ
   exact ⟨realRecordIndex k θ, abs_sub_round _⟩
 
+/-- Rounding at precision `k` changes a real value by at most `2^(-(k + 1))`. -/
 theorem realRecord_error :
     ∀ (k : ℕ) (θ : ℝ), |θ - realRecord k θ| ≤ (1 : ℝ) / (2 : ℝ) ^ (k + 1) := by
   intro k θ
@@ -154,6 +196,7 @@ theorem realRecord_error :
       have hp : (2 : ℝ) ^ (k + 1) = (2 : ℝ) ^ k * 2 := by rw [pow_succ]
       rw [hp, div_div, mul_comm]
 
+/-- Recording preserves every exact integer multiple of `2^(-k)`. -/
 theorem realRecord_eq_of_exact :
     ∀ (k : ℕ) (θ : ℝ) (n : ℤ), θ = (n : ℝ) / (2 : ℝ) ^ k → realRecord k θ = θ := by
   intro k θ n hθ
@@ -166,11 +209,15 @@ theorem realRecord_eq_of_exact :
   simp only [realRecord, hround]
   rw [hθ]
 
+/-- The value `1 / 3` has an approximate record at every precision but no exact record at
+precision zero. -/
 theorem realRecord_non_dyadic :
     ∀ (k : ℕ), ApproxRealRecord k (1 / 3) ∧ ¬ GeneralRealRecord 0 (1 / 3) := by
   intro k
   exact ⟨realRecord_satisfies k (1 / 3), non_dyadic_one_third.1⟩
 
+/-- A uniform real phase error at most `ε` changes every Fourier readout event probability by at
+most `4 * π * ε`. -/
 theorem general_real_readout_event_error :
     ∀ (d M : ℕ) (hM : 0 < M) (φ θ : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
       (herror : ∀ x, |φ x - θ x| ≤ ε) (S : Finset (GradientGrid d M)),
@@ -179,6 +226,8 @@ theorem general_real_readout_event_error :
   fun d M hM φ θ ε hε herror S =>
     gradient_actual_phase_event_error d M hM φ θ ε hε herror S
 
+/-- Recording an approximately affine real phase gives a good window probability bound with
+additional loss `4 * π / 2^(k + 1)`. -/
 theorem general_real_record_readout_guarantee :
     ∀ (d M k : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ)
       (θ : GradientGrid d M → ℝ) (hw : 0 < w) (hB : 0 ≤ B)
@@ -225,17 +274,23 @@ theorem general_real_record_readout_guarantee :
 
 section ProbabilityAccess
 
+/-- The probability access phase operator equals the gradient phase operator for the rescaled
+readout phase. -/
 theorem probability_access_is_readout_phase_operator :
     ∀ (d M : ℕ) (p : GradientGrid d M → ℝ),
       probabilityPhaseOperator p = gradientPhase d M (probabilityReadoutPhase p) :=
   fun d M p => probability_phase_operator_eq_gradient_phase d M p
 
+/-- The rotation associated with a probability oracle equals the gradient phase operator for its
+readout phase. -/
 theorem probability_oracle_rotation_is_readout_phase_operator :
     ∀ {d M : ℕ} (o : ProbabilityOracle d M),
       probabilityOracleRotation o = gradientPhase d M (probabilityOraclePhase o) := by
   intro d M o
   exact probability_access_is_readout_phase_operator d M o.prob
 
+/-- A uniform probability function error at most `ε` bounds the norm of the difference of the
+probability phase operators by `ε`. -/
 theorem probability_rotation_operator_error :
     ∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
       (herror : ∀ x, |p x - q x| ≤ ε),
@@ -250,6 +305,8 @@ theorem probability_rotation_operator_error :
     _ ≤ |p z - q z| := norm_exp_mul_I_sub_le _ _
     _ ≤ ε := herror z
 
+/-- A uniform probability function error at most `ε` changes the rescaled readout phase by at
+most `ε / (2 * π)` pointwise. -/
 theorem probability_access_phase_error :
     ∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
       (herror : ∀ x, |p x - q x| ≤ ε) (x : X),
@@ -263,6 +320,8 @@ theorem probability_access_phase_error :
     div_le_div_of_nonneg_right (herror x) (by positivity)
   simpa only [abs_of_pos h2pi] using! h1
 
+/-- A uniform probability function error at most `ε` changes every associated readout event
+probability by at most `2 * ε`. -/
 theorem probability_access_readout_transport :
     ∀ (d M : ℕ) (hM : 0 < M) (p q : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
       (herror : ∀ x, |p x - q x| ≤ ε) (S : Finset (GradientGrid d M)),
@@ -285,6 +344,8 @@ theorem probability_access_readout_transport :
   rw [he] at h
   exact h
 
+/-- Probability access error at most `ε` adds loss `2 * ε` to the affine phase good window
+probability bound. -/
 theorem probability_access_composed_guarantee :
     ∀ (d M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ) (hw : 0 < w)
       (hB : 0 ≤ B) (p q : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
@@ -316,6 +377,8 @@ theorem probability_access_composed_guarantee :
         exact sub_le_sub_right h1 _
     _ = 1 - 16 * (d : ℝ) / ((M : ℝ) * w) - 4 * Real.pi * B - 2 * ε := by ring
 
+/-- When the window, affine residual, and probability access losses sum to at least one, the
+stated lower bound is nonpositive. -/
 theorem probability_access_guarantee_vacuous_boundary :
     ∀ (d M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ) (hw : 0 < w)
       (hB : 0 ≤ B) (p q : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
@@ -330,6 +393,8 @@ theorem probability_access_guarantee_vacuous_boundary :
   have hle := sub_le_sub_left hsum 1
   simpa only [sub_self] using! hle
 
+/-- The approximate probability access readout has positive good window probability when the
+stated total loss is strictly less than one. -/
 theorem probability_access_guarantee_positive :
     ∀ (d M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ) (hw : 0 < w)
       (hB : 0 ≤ B) (p q : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
@@ -349,6 +414,8 @@ theorem probability_access_guarantee_positive :
     _ ≤ MeasureProb (gradientReadout d M hM (probabilityReadoutPhase q))
         (composedGoodWindow d M g w) := hmain
 
+/-- The probability phase word has `6912 * k + 110646` queries and `6912 * k + 110861` gates;
+the gradient word has one query and `2 * d` gates. -/
 theorem probability_access_ledger :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -365,6 +432,8 @@ theorem probability_access_ledger :
     Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation.clause3_readout_word_ledger d M hM
   exact ⟨hq, hg, hq2, hg2⟩
 
+/-- Replacing the gradient word's phase query by the probability phase word yields the stated
+combined query and gate ledger formulas. -/
 theorem probability_pipeline_ledger :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -381,6 +450,8 @@ theorem probability_pipeline_ledger :
   · rw [hq, hq2]
   · rw [hg, hg2]
 
+/-- The ideal readout for the primitive's probability mass equals the gradient word run with its
+probability phase operator. -/
 theorem probability_access_readout_is_program_phase :
     ∀ (d M : ℕ) (hM : 0 < M) (A : Type) [Fintype A] [DecidableEq A]
       (U : Matrix (GradientGrid d M × A) (GradientGrid d M × A) ℂ)
@@ -394,6 +465,8 @@ theorem probability_access_readout_is_program_phase :
     Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle.probability_phase_readout_coincides
       d M hM (probabilityMass U a₀ good)
 
+/-- The evaluated probability phase program approximates the ideal probability phase action in
+the specified frame with relative error at most `2^(-k)`. -/
 theorem probability_access_program_approximation :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -413,6 +486,7 @@ theorem probability_access_program_approximation :
 
 end ProbabilityAccess
 
+/-- The probability program frame has Gram matrix equal to the identity. -/
 theorem probability_program_frame_gram :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A] (a₀ : A),
       (probabilityProgramFrame (X := X) a₀)ᴴ * probabilityProgramFrame (X := X) a₀ = 1 := by
@@ -427,6 +501,7 @@ theorem probability_program_frame_gram :
     exact scaleEightFrame_isometry _ h2
   exact h3
 
+/-- A basis ket is the function supported at its label with value one. -/
 theorem probability_ket_eq_single {X : Type} [DecidableEq X] (x : X) :
     Qatlib.Foundations.PureStateMath.Ket x = Pi.single x 1 := by
   funext j
@@ -435,11 +510,14 @@ theorem probability_ket_eq_single {X : Type} [DecidableEq X] (x : X) :
     simp [Qatlib.Foundations.PureStateMath.Ket]
   · simp [Qatlib.Foundations.PureStateMath.Ket, Pi.single_apply, h]
 
+/-- Multiplying a matrix by a basis ket selects the corresponding column. -/
 theorem probability_mulVec_ket {X Y : Type} [Fintype X] [Fintype Y] [DecidableEq X]
     (F : Matrix Y X ℂ) (x : X) : F *ᵥ Qatlib.Foundations.PureStateMath.Ket x = fun i => F i x := by
   rw [probability_ket_eq_single, Matrix.mulVec_single_one]
   rfl
 
+/-- The diagonal entry of `Fᴴ * M` is the inner product of the corresponding columns, expressed
+through basis kets. -/
 theorem probability_frame_diag_eq_inner {X Y : Type} [Fintype X] [Fintype Y]
     [DecidableEq X] [DecidableEq Y] (F : Matrix Y X ℂ) (M : Matrix Y X ℂ) (x : X) :
     (Fᴴ * M) x x = Qatlib.Foundations.PureStateMath.Inner (F *ᵥ Qatlib.Foundations.PureStateMath.Ket x) (M *ᵥ Qatlib.Foundations.PureStateMath.Ket x) := by
@@ -448,6 +526,8 @@ theorem probability_frame_diag_eq_inner {X Y : Type} [Fintype X] [Fintype Y]
   rw [inner_apply, probability_mulVec_ket, probability_mulVec_ket]
   simp only [starRingEnd_apply]
 
+/-- A relative norm bound `δ` for `D` bounds every diagonal entry of `Fᴴ * D` by `δ` when `Fᴴ *
+F = 1`. -/
 theorem probability_frame_diag_error_le {X Y : Type} [Fintype X] [Fintype Y]
     [DecidableEq X] [DecidableEq Y] {F : Matrix Y X ℂ} (hF : Fᴴ * F = 1)
     (D : Matrix Y X ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
@@ -479,6 +559,7 @@ theorem probability_frame_diag_error_le {X Y : Type} [Fintype X] [Fintype Y]
     _ ≤ 1 * δ := mul_le_mul_of_nonneg_left hDcol (by norm_num)
     _ = δ := by ring
 
+/-- For an isometric frame, compressing `A * F - F * B` gives `Fᴴ * A * F - B`. -/
 theorem probability_frame_error_identity {X Y : Type} [Fintype X] [Fintype Y]
     [DecidableEq X] [DecidableEq Y] {F : Matrix Y X ℂ} (hF : Fᴴ * F = 1)
     (A : Matrix Y Y ℂ) (B : Matrix X X ℂ) :
@@ -489,6 +570,8 @@ theorem probability_frame_error_identity {X Y : Type} [Fintype X] [Fintype Y]
     _ = (Fᴴ * A) * F - (Fᴴ * F) * B := by rw [← Matrix.mul_assoc]
     _ = (Fᴴ * A) * F - B := by rw [hF, Matrix.one_mul]
 
+/-- Each realized phase coefficient differs from the ideal probability phase coefficient by at
+most `2^(-k)` under the primitive oracle hypotheses. -/
 theorem probability_realized_phase_pointwise :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -563,12 +646,14 @@ theorem probability_realized_phase_pointwise :
   rw [probabilityRealizedPhase, probabilityProgramFrameOperator, ← hBxx, hstep]
   exact hdiag
 
+/-- The complex exponential of a purely imaginary real argument has unit norm. -/
 theorem probability_phase_coefficient_norm (t : ℝ) :
     ‖Complex.exp (Complex.I * (t : ℂ))‖ = 1 := by
   rw [Complex.norm_exp]
   have hre : (Complex.I * (t : ℂ)).re = 0 := by simp
   rw [hre, Real.exp_zero]
 
+/-- The complex norm of a real scalar is its absolute value. -/
 theorem probability_real_norm (r : ℝ) : ‖(r : ℂ)‖ = |r| := by
   have hsq : ‖(r : ℂ)‖ ^ 2 = r ^ 2 := by
     have h := Complex.conj_mul' (r : ℂ)
@@ -581,6 +666,8 @@ theorem probability_real_norm (r : ℝ) : ‖(r : ℂ)‖ = |r| := by
     _ = Real.sqrt (r ^ 2) := by rw [hsq]
     _ = |r| := Real.sqrt_sq_eq_abs r
 
+/-- At precision `k ≥ 1`, each realized phase coefficient has norm at least one half under the
+primitive oracle hypotheses. -/
 theorem probability_realized_phase_nonzero :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -638,6 +725,8 @@ theorem probability_realized_phase_nonzero :
   rw [hE] at htri
   linarith
 
+/-- The realized diagonal phase operator differs from the ideal probability phase operator in
+norm by at most `2^(-k)`. -/
 theorem probability_realized_phase_operator_dist :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -655,6 +744,7 @@ theorem probability_realized_phase_operator_dist :
   have h := probability_realized_phase_pointwise X A U hU a₀ good hlabel k x
   simpa only [probabilityRealizedPhase, probabilityProgramFrameOperator] using! h
 
+/-- The norm of each realized phase coefficient differs from one by at most `2^(-k)`. -/
 private theorem probability_realized_modulus_defect :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -674,6 +764,8 @@ private theorem probability_realized_modulus_defect :
   rw [hE] at h
   exact h.trans hpoint
 
+/-- For nonzero complex `z`, its distance from its unit modulus normalization is the absolute
+difference between its norm and one. -/
 private theorem norm_normalized_sub_self (z : ℂ) (hz : z ≠ 0) :
     ‖z / (‖z‖ : ℂ) - z‖ = |‖z‖ - 1| := by
   have hrz : (0 : ℝ) < ‖z‖ := norm_pos_iff.mpr hz
@@ -693,6 +785,8 @@ private theorem norm_normalized_sub_self (z : ℂ) (hz : z ≠ 0) :
     _ = |1 - ‖z‖| := by rw [div_eq_iff hrz.ne']
     _ = |‖z‖ - 1| := abs_sub_comm _ _
 
+/-- At precision `k ≥ 1`, the realized phase modulus is at least one half under the primitive
+oracle hypotheses. -/
 theorem probability_realized_phase_modulus_lower :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -717,6 +811,7 @@ theorem probability_realized_phase_modulus_lower :
   rw [hmod]
   linarith
 
+/-- At precision `k ≥ 1`, every normalized realized phase coefficient has norm one. -/
 theorem probability_normalized_realized_phase_norm :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -755,6 +850,7 @@ theorem probability_normalized_realized_phase_norm :
   rw [hmod]
   exact div_self (by rw [← hmod]; exact hposD.ne')
 
+/-- A diagonal matrix whose coefficients all have norm one is unitary. -/
 private theorem diagonal_unitary_of_unit_modulus {X : Type} [Fintype X] [DecidableEq X]
     (v : X → ℂ) (hv : ∀ x, ‖v x‖ = 1) :
     Matrix.diagonal v ∈ Matrix.unitaryGroup X ℂ := by
@@ -767,6 +863,8 @@ private theorem diagonal_unitary_of_unit_modulus {X : Type} [Fintype X] [Decidab
   rw [hv z]
   norm_num
 
+/-- At precision `k ≥ 1`, the normalized realized phase operator is unitary under the primitive
+oracle hypotheses. -/
 theorem probability_normalized_phase_operator_unitary :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -782,6 +880,8 @@ theorem probability_normalized_phase_operator_unitary :
       (evaluate (probabilityPrimitiveOracle U) (probabilityPhaseWord (X := X) a₀ good k)) x)
     (fun x => probability_normalized_realized_phase_norm X A U hU a₀ good hlabel k hk x)
 
+/-- At precision `k ≥ 1`, each normalized realized coefficient differs from its ideal
+probability phase by at most `2 * 2^(-k)`. -/
 theorem probability_normalized_realized_phase_deviation :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -847,6 +947,8 @@ theorem probability_normalized_realized_phase_deviation :
     _ ≤ (1/2 : ℝ)^k + (1/2 : ℝ)^k := add_le_add hsub hpoint
     _ = 2 * (1/2 : ℝ)^k := by ring
 
+/-- At precision `k ≥ 1`, the normalized realized phase operator differs from the ideal operator
+in norm by at most `2 * 2^(-k)`. -/
 theorem probability_normalized_phase_operator_dist :
     ∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
       (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
@@ -865,6 +967,8 @@ theorem probability_normalized_phase_operator_dist :
   simpa only [probabilityNormalizedRealizedPhase, probabilityPhaseOperator,
     Matrix.diagonal_apply_eq] using! h
 
+/-- The gradient word run with the normalized realized phase operator produces a normalized
+state under the stated oracle and precision hypotheses. -/
 theorem probability_normalized_readout_normalized :
     ∀ (d M : ℕ) (hM : 0 < M) (A : Type) [Fintype A] [DecidableEq A]
       (U : Matrix (GradientGrid d M × A) (GradientGrid d M × A) ℂ)
@@ -882,6 +986,8 @@ theorem probability_normalized_readout_normalized :
     (probability_normalized_phase_operator_unitary (GradientGrid d M) A U hU a₀ good hlabel k hk)
     (normalized_ket _)
 
+/-- The normalized realized readout differs from the ideal probability readout on every event by
+at most `4 * 2^(-k)`. -/
 theorem probability_normalized_born_transport :
     ∀ (d M : ℕ) (hM : 0 < M) (A : Type) [Fintype A] [DecidableEq A]
       (U : Matrix (GradientGrid d M × A) (GradientGrid d M × A) ℂ)
@@ -919,6 +1025,8 @@ theorem probability_normalized_born_transport :
 
   exact le_trans h (by rw [hbound])
 
+/-- The normalized realized readout has good window probability at least `1 - 16 * d / (M * w) -
+4 * π * B - 4 * 2^(-k)` under the stated affine phase and oracle hypotheses. -/
 theorem probability_normalized_readout_composed_guarantee :
     ∀ (d M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ) (hw : 0 < w)
       (hB : 0 ≤ B) (A : Type) [Fintype A] [DecidableEq A]
@@ -949,6 +1057,8 @@ theorem probability_normalized_readout_composed_guarantee :
   have h := abs_le.mp htransport
   linarith
 
+/-- Establishes the refined probability access specification for operator and phase errors,
+event transport, joint success, and explicit circuit counts. -/
 theorem clause2_next_endpoint : stageB_gradient_oracle_clause2_next_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro X _ _ p q ε hε herror
@@ -962,11 +1072,14 @@ theorem clause2_next_endpoint : stageB_gradient_oracle_clause2_next_spec := by
   · intro X A _ _ _ _ U hU a₀ good hlabel k d M hM
     exact probability_access_ledger X A U hU a₀ good hlabel k d M hM
 
+/-- Combines the base oracle specification with the refined probability access specification. -/
 theorem clause2_endpoint :
     Qatlib.Concepts.FourierRecovery.ModularFourier.stageB_gradient_oracle_clause2_spec ∧
     stageB_gradient_oracle_clause2_next_spec :=
   ⟨Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle.clause2_endpoint, clause2_next_endpoint⟩
 
+/-- Establishes the base readout specification for Fourier word semantics, decoder accuracy,
+joint success, dyadic outputs, and resource ledgers. -/
 theorem clause8_endpoint :
     Qatlib.Concepts.FourierRecovery.ModularFourier.stageB_gradient_oracle_clause8_spec :=
   Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle.clause8_endpoint

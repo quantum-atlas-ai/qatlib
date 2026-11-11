@@ -7,6 +7,29 @@ Authors: Zayn Blore, Qatlib Contributors
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTWords
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.SolovayKitaevStep
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CommutatorDecomposition
+
+/-!
+# Solovay–Kitaev error and word-length bounds
+
+This module quantifies the Solovay–Kitaev recursion with error update `33 * ε ^ (3 / 2)` and
+exponent `skExponent = log 5 / log (3 / 2)`. It controls recursion depth, unitarity and
+determinants of Clifford–T words, and derives the polylogarithmic approximation bound in the
+framework of [DawsonNielsen2006].
+
+## Main statements
+
+* `exists_mem_skWords_norm_sub_le`: recursive word sets approximate every element of `su2Set`
+  with error `skErr e n`.
+* `exists_word_approx_polylog`: sufficiently small positive errors are achieved by words of
+  length at most `K * (log ε⁻¹) ^ skExponent`.
+* `three_lt_skExponent` and `skExponent_lt_four`: the exponent lies strictly between three and
+  four.
+
+## References
+
+* [Dawson and Nielsen, 2006][DawsonNielsen2006]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.CSD.SolovayKitaev
@@ -22,13 +45,17 @@ namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo.SU2
 
 open CliffordT
 
+/-- The real exponent `log 5 / log (3 / 2)` governing the Solovay–Kitaev word-length bound. -/
 noncomputable def skExponent : ℝ := Real.log 5 / Real.log (3 / 2)
 
+/-- The real logarithm of `3 / 2` is strictly positive. -/
 theorem log_three_halves_pos : 0 < Real.log (3 / 2 : ℝ) := Real.log_pos (by norm_num)
 
+/-- The Solovay–Kitaev exponent is strictly positive. -/
 theorem skExponent_pos : 0 < skExponent :=
   div_pos (Real.log_pos (by norm_num)) log_three_halves_pos
 
+/-- The Solovay–Kitaev exponent is strictly less than four. -/
 theorem skExponent_lt_four : skExponent < 4 := by
   rw [skExponent, div_lt_iff₀ log_three_halves_pos]
   have h : Real.log 5 < Real.log ((3 / 2 : ℝ) ^ (4 : ℕ)) := by
@@ -37,6 +64,7 @@ theorem skExponent_lt_four : skExponent < 4 := by
   rw [Real.log_pow, show ((4 : ℕ) : ℝ) = 4 from by norm_num] at h
   linarith
 
+/-- The Solovay–Kitaev exponent is strictly greater than three. -/
 theorem three_lt_skExponent : 3 < skExponent := by
   rw [skExponent, lt_div_iff₀ log_three_halves_pos]
   have h : Real.log ((3 / 2 : ℝ) ^ (3 : ℕ)) < Real.log 5 := by
@@ -45,6 +73,7 @@ theorem three_lt_skExponent : 3 < skExponent := by
   rw [Real.log_pow, show ((3 : ℕ) : ℝ) = 3 from by norm_num] at h
   linarith
 
+/-- The natural ceiling of `log (log ε / log b) / log (3 / 2)`, selecting a recursion depth. -/
 noncomputable def skLevel (b ε : ℝ) : ℕ := ⌈Real.log (Real.log ε / Real.log b) / Real.log (3 / 2)⌉₊
 
 section Level
@@ -53,15 +82,18 @@ variable {b ε : ℝ} (hb : 0 < b) (hb1 : b < 1) (hε : 0 < ε) (hεb : ε ≤ b
 
 include hb hb1 hε hεb
 
+/-- For `0 < ε ≤ b < 1`, the ratio `log ε / log b` is at least one. -/
 theorem one_le_log_ratio : 1 ≤ Real.log ε / Real.log b := by
   have hlb : Real.log b < 0 := Real.log_neg hb hb1
   have hmono : Real.log ε ≤ Real.log b := Real.log_le_log hε hεb
   rw [le_div_iff_of_neg hlb]
   linarith
 
+/-- For `0 < ε ≤ b < 1`, the ratio `log ε / log b` is strictly positive. -/
 theorem log_ratio_pos : 0 < Real.log ε / Real.log b :=
   lt_of_lt_of_le zero_lt_one (one_le_log_ratio hb hb1 hε hεb)
 
+/-- For `0 < ε ≤ b < 1`, the logarithm ratio is at most `(3 / 2) ^ skLevel b ε`. -/
 theorem log_ratio_le_three_halves_pow :
     Real.log ε / Real.log b ≤ (3 / 2 : ℝ) ^ skLevel b ε := by
   have hR : 0 < Real.log ε / Real.log b := log_ratio_pos hb hb1 hε hεb
@@ -79,6 +111,7 @@ theorem log_ratio_le_three_halves_pow :
       = (3 / 2 : ℝ) ^ skLevel b ε from by
         rw [← Real.log_pow, Real.exp_log (by positivity)]] at hexp
 
+/-- For `0 < ε ≤ b < 1`, raising `b` to `(3 / 2) ^ skLevel b ε` gives a value at most `ε`. -/
 theorem skLevel_rpow_le : b ^ ((3 / 2 : ℝ) ^ skLevel b ε) ≤ ε := by
   have hR : 0 < Real.log ε / Real.log b := log_ratio_pos hb hb1 hε hεb
   have hbR : b ^ (Real.log ε / Real.log b) = ε := by
@@ -89,6 +122,8 @@ theorem skLevel_rpow_le : b ^ ((3 / 2 : ℝ) ^ skLevel b ε) ≤ ε := by
         Real.rpow_le_rpow_of_exponent_ge hb hb1.le (log_ratio_le_three_halves_pow hb hb1 hε hεb)
     _ = ε := hbR
 
+/-- For `0 < ε ≤ b < 1`, the recursion growth `5 ^ skLevel b ε` is at most `5 * (log ε / log b)
+^ skExponent`. -/
 theorem five_pow_skLevel_le :
     (5 : ℝ) ^ skLevel b ε ≤ 5 * (Real.log ε / Real.log b) ^ skExponent := by
   have hR : 0 < Real.log ε / Real.log b := log_ratio_pos hb hb1 hε hεb
@@ -116,35 +151,42 @@ theorem five_pow_skLevel_le :
 
 end Level
 
+/-- The Hadamard matrix `hGateM` equals its adjoint. -/
 theorem star_hGateM : star hGateM = hGateM := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [hGateM, Matrix.star_apply, Complex.conj_ofReal]
 
+/-- The Hadamard matrix `hGateM` is unitary. -/
 theorem hGateM_mem_unitary : hGateM ∈ unitary (Matrix (Fin 2) (Fin 2) ℂ) := by
   refine Unitary.mem_iff.2 ⟨?_, ?_⟩ <;> rw [star_hGateM] <;> exact hGateM_mul_self
 
+/-- Complex conjugation sends `tPhase` to `tPhaseInv`. -/
 theorem conj_tPhase : (starRingEnd ℂ) tPhase = tPhaseInv := by
   rw [tPhase, tPhaseInv, ← Complex.exp_conj, map_mul, Complex.conj_ofReal, Complex.conj_I,
     Complex.ofReal_neg]
   congr 1
   ring
 
+/-- The adjoint of `tGateM` is the diagonal matrix with entries one and `tPhaseInv`. -/
 theorem star_tGateM : star tGateM = !![1, 0; 0, tPhaseInv] := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [tGateM, Matrix.star_apply, conj_tPhase]
 
+/-- The T-gate matrix `tGateM` is unitary. -/
 theorem tGateM_mem_unitary : tGateM ∈ unitary (Matrix (Fin 2) (Fin 2) ℂ) := by
   refine Unitary.mem_iff.2 ⟨?_, ?_⟩ <;> rw [star_tGateM] <;> ext i j <;> fin_cases i <;>
     fin_cases j <;>
     simp [tGateM, Matrix.mul_apply, Fin.sum_univ_two, tPhaseInv_mul, tPhase_mul_inv]
 
+/-- Every generator `ctGen i` is unitary. -/
 theorem ctGen_mem_unitary (i : Fin 3) : ctGen i ∈ unitary (Matrix (Fin 2) (Fin 2) ℂ) := by
   fin_cases i
   · simpa [ctGen] using hGateM_mem_unitary
   · simpa [ctGen] using tGateM_mem_unitary
   · simpa [ctGen] using pow_mem tGateM_mem_unitary 7
 
+/-- The matrix evaluation of every Clifford–T word is unitary. -/
 theorem ctEval_mem_unitary (w : List (Fin 3)) :
     ctEval w ∈ unitary (Matrix (Fin 2) (Fin 2) ℂ) := by
   induction w with
@@ -153,6 +195,7 @@ theorem ctEval_mem_unitary (w : List (Fin 3)) :
       rw [ctEval_cons]
       exact mul_mem (ctGen_mem_unitary x) ih
 
+/-- The adjoint of a word evaluation equals the evaluation of its inverse word. -/
 theorem star_ctEval (w : List (Fin 3)) : star (ctEval w) = ctEval (ctInvWord w) := by
   have hu := ctEval_mem_unitary w
   have h := ctEval_ctInvWord w
@@ -162,6 +205,7 @@ theorem star_ctEval (w : List (Fin 3)) : star (ctEval w) = ctEval (ctInvWord w) 
     _ = ctEval (ctInvWord w) * ctEval w * star (ctEval w) := by noncomm_ring
     _ = star (ctEval w) := by rw [h, one_mul]
 
+/-- The determinant of each Clifford–T generator has eighth power one. -/
 theorem det_ctGen_pow_eight (i : Fin 3) : (ctGen i).det ^ 8 = 1 := by
   have hT : tGateM.det ^ 8 = 1 := by
     rw [← Matrix.det_pow, tGateM_pow_eight, Matrix.det_one]
@@ -179,12 +223,14 @@ theorem det_ctGen_pow_eight (i : Fin 3) : (ctGen i).det ^ 8 = 1 := by
   · simpa [ctGen] using hT
   · simpa [ctGen] using hT7
 
+/-- The determinant of every evaluated Clifford–T word has eighth power one. -/
 theorem det_ctEval_pow_eight (w : List (Fin 3)) : (ctEval w).det ^ 8 = 1 := by
   induction w with
   | nil => simp
   | cons x xs ih =>
       rw [ctEval_cons, Matrix.det_mul, mul_pow, det_ctGen_pow_eight, ih, one_mul]
 
+/-- An eighth root of unity at distance at most `1 / 8` from one must equal one. -/
 theorem eq_one_of_pow_eight_eq_one {z : ℂ} (h8 : z ^ 8 = 1) (hz : ‖z - 1‖ ≤ 1 / 8) : z = 1 := by
   have hn8 : ‖z‖ ^ 8 = 1 := by rw [← norm_pow, h8, norm_one]
   have hnz : ‖z‖ = 1 := by
@@ -225,6 +271,8 @@ theorem eq_one_of_pow_eight_eq_one {z : ℂ} (h8 : z ^ 8 = 1) (hz : ‖z - 1‖ 
   rw [show ‖(8 : ℂ)‖ = (8 : ℝ) from by norm_num] at hle
   linarith
 
+/-- There is a positive matrix-norm radius about the identity within which determinants have
+distance at most `1 / 8` from one. -/
 theorem exists_det_radius : ∃ r : ℝ, 0 < r ∧ ∀ A : Matrix (Fin 2) (Fin 2) ℂ,
     ‖A - 1‖ < r → ‖A.det - 1‖ ≤ 1 / 8 := by
   have hcont : ContinuousAt Matrix.det (1 : Matrix (Fin 2) (Fin 2) ℂ) :=
@@ -236,20 +284,26 @@ theorem exists_det_radius : ∃ r : ℝ, 0 < r ∧ ∀ A : Matrix (Fin 2) (Fin 2
   rw [Matrix.det_one, dist_eq_norm] at this
   exact this.le
 
+/-- The error sequence starting at `e` and recursively replacing each error by `33` times its `3
+/ 2` power. -/
 noncomputable def skErr (e : ℝ) : ℕ → ℝ
   | 0 => e
   | n + 1 => 33 * skErr e n ^ ((3 : ℝ) / 2)
 
+/-- The initial value of `skErr e` is `e`. -/
 @[simp] theorem skErr_zero (e : ℝ) : skErr e 0 = e := rfl
 
+/-- Each successor error is `33` times the previous error to the power `3 / 2`. -/
 theorem skErr_succ (e : ℝ) (n : ℕ) : skErr e (n + 1) = 33 * skErr e n ^ ((3 : ℝ) / 2) := rfl
 
+/-- For nonnegative real `x`, its `3 / 2` power equals the cube of its square root. -/
 theorem rpow_three_halves {x : ℝ} (hx : 0 ≤ x) : x ^ ((3 : ℝ) / 2) = Real.sqrt x ^ 3 := by
   obtain ⟨t, ht0, htsq, hteq⟩ : ∃ t : ℝ, 0 ≤ t ∧ t ^ 2 = x ∧ Real.sqrt x = t :=
     ⟨Real.sqrt x, Real.sqrt_nonneg x, Real.sq_sqrt hx, rfl⟩
   rw [hteq, ← htsq, ← Real.rpow_natCast t 2, ← Real.rpow_mul ht0,
     show ((2 : ℕ) : ℝ) * ((3 : ℝ) / 2) = ((3 : ℕ) : ℝ) from by norm_num, Real.rpow_natCast]
 
+/-- A nonnegative initial error gives a nonnegative value at every level of `skErr`. -/
 theorem skErr_nonneg {e : ℝ} (he : 0 ≤ e) (n : ℕ) : 0 ≤ skErr e n := by
   induction n with
   | zero => simpa using he
@@ -257,6 +311,7 @@ theorem skErr_nonneg {e : ℝ} (he : 0 ≤ e) (n : ℕ) : 0 ≤ skErr e n := by
       rw [skErr_succ]
       positivity
 
+/-- If `e ≥ 0` and `√e ≤ 1 / 33`, every recursive error `skErr e n` is at most `e`. -/
 theorem skErr_le_base {e : ℝ} (he : 0 ≤ e) (hs : Real.sqrt e ≤ 1 / 33) (n : ℕ) :
     skErr e n ≤ e := by
   induction n with
@@ -272,6 +327,8 @@ theorem skErr_le_base {e : ℝ} (he : 0 ≤ e) (hs : Real.sqrt e ≤ 1 / 33) (n 
         _ = skErr e n := by ring
         _ ≤ e := ih
 
+/-- For `0 ≤ t ≤ 1 / 2`, the commutator-step polynomial `4 * (√2 * t + t ^ 2) * t ^ 2 * (1 + (√2
+* t + t ^ 2))` is at most `33 * t ^ 3`. -/
 theorem step_arith {t : ℝ} (ht0 : 0 ≤ t) (ht : t ≤ 1 / 2) :
     4 * (Real.sqrt 2 * t + t ^ 2) * t ^ 2 * (1 + (Real.sqrt 2 * t + t ^ 2)) ≤ 33 * t ^ 3 := by
   have h2 : Real.sqrt 2 ≤ 3 / 2 := by
@@ -292,6 +349,8 @@ theorem step_arith {t : ℝ} (ht0 : 0 ≤ t) (ht : t ≤ 1 / 2) :
     _ ≤ t ^ 3 * 33 := by gcongr
     _ = 33 * t ^ 3 := by ring
 
+/-- For `ε ≥ 0` with `√ε ≤ 1 / 2`, the commutator-step expression `4 * (√2 * √ε + ε) * ε * (1 +
+(√2 * √ε + ε))` is at most `33 * ε ^ (3 / 2)`. -/
 theorem step_bound {ε : ℝ} (hε : 0 ≤ ε) (hs : Real.sqrt ε ≤ 1 / 2) :
     4 * (Real.sqrt 2 * Real.sqrt ε + ε) * ε * (1 + (Real.sqrt 2 * Real.sqrt ε + ε))
       ≤ 33 * ε ^ ((3 : ℝ) / 2) := by
@@ -301,6 +360,9 @@ theorem step_bound {ε : ℝ} (hε : 0 ≤ ε) (hs : Real.sqrt ε ≤ 1 / 2) :
   rw [hteq] at hs
   exact step_arith ht0 hs
 
+/-- Given a finite `e`-net of `su2Set`, nonnegative `e` with `√e ≤ 1 / 33`, and a
+determinant-control radius greater than `e`, every element of `su2Set` is approximated by a
+word in `skWords F n` with error at most `skErr e n`. -/
 theorem exists_mem_skWords_norm_sub_le {F : Finset (List (Fin 3))} {e r : ℝ}
     (he : 0 ≤ e) (hsmall : Real.sqrt e ≤ 1 / 33) (hr : e < r)
     (hdet : ∀ A : Matrix (Fin 2) (Fin 2) ℂ, ‖A - 1‖ < r → ‖A.det - 1‖ ≤ 1 / 8)
@@ -391,6 +453,9 @@ theorem exists_mem_skWords_norm_sub_le {F : Finset (List (Fin 3))} {e r : ℝ}
         linarith
       exact step_bound hε0 hs2
 
+/-- There are positive constants `K` and `e` such that every `U ∈ su2Set` and `0 < ε ≤ e`
+possess a Clifford–T word with error at most `ε` and length at most `K * (log ε⁻¹) ^
+skExponent`, as in [DawsonNielsen2006]. -/
 theorem exists_word_approx_polylog :
     ∃ K e : ℝ, 0 < K ∧ 0 < e ∧ ∀ ε : ℝ, 0 < ε → ε ≤ e →
       ∀ U ∈ su2Set, ∃ u : List (Fin 3),

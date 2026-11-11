@@ -9,6 +9,24 @@ import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+/-!
+# Finite rational value-at-risk specification
+
+`NativeVaRFiniteRestricted` specifies approximate quantile bracketing for a median of rationally
+decoded amplitude estimates. Its assumptions budget both amplitude-estimation error and decoding
+error; its conclusions bound the failure probability and the number of bisection calls. The
+estimator follows the risk-analysis construction of [WoernerEgger2019].
+
+## Main statements
+
+* `NativeVaRFiniteRestricted`: the finite precision bracket and support call-count contract.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,6 +60,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The specification of approximate quantile bracketing using median rational CDF readout with
+amplitude-estimation and decoding errors within the tolerance. It bounds the bracket failure
+probability and every supported call counter by the prescribed depth-dependent quantities. -/
 def NativeVaRFiniteRestricted : Prop :=
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
       (loss : I → ℚ) (xs : List ℚ) (q ε : ℚ) (bits M r : ℕ)

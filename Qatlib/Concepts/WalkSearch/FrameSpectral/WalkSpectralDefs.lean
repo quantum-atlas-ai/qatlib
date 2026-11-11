@@ -10,6 +10,30 @@ import Qatlib.Concepts.WalkSearch.ProjectorCS
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
+
+/-!
+# Frame norm and detector endpoint specifications
+
+This module defines the graph access, empty marked set, and frame norm propositions used by the
+spectral endpoint theorems. `SzegedyTheorem5Unified` combines the interior correspondence with
+the normalized intersection case.
+
+The detector definitions describe marker and flag shear permutations and the common slice
+operators required by `RowPreservingAccess`. `WalkSpectral3Clause39FullEndpoint` collects their
+involutivity, branch action, cancellation, and repeated walk parity requirements. These results
+concern the quantum walk framework of [Szegedy2004].
+
+## Main statements
+
+* `SzegedyTheorem5Unified`: The interior and normalized intersection norm requirements.
+* `RowPreservingAccess`: Common forward and backward row slice operators.
+* `WalkSpectral3Clause39FullEndpoint`: The combined spectral and detector branch specification.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +59,8 @@ open Qatlib
 open Qatlib
 open Qatlib.Concepts.WalkSearch.Th4Expander
 
+/-- The conjunction of graph setup and reachable dynamics for transition matrices, the countable
+exact gate cover obstruction, and finite graph bit access. -/
 def Clause1Spec : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (S : Finset I),
@@ -46,6 +72,8 @@ def Clause1Spec : Prop :=
   (∀ (n d : ℕ) (hdn : d ≤ n) (adj : Fin n → Fin n → Bool) (M : Fin n → Bool),
     HasGraphBitAccess n d hdn adj M)
 
+/-- The conjunction of the two empty marked set search impossibility statements and zero success
+probability for the corresponding Szegedy walk search. -/
 def Clause2Spec : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (Sc Uc Cc bound : ℝ),
@@ -58,6 +86,9 @@ def Clause2Spec : Prop :=
     walkFindSuccessProb (SzegedyWalk P) (detectionInitial P)
       (edgeMarkedSet (∅ : Finset I)) Mq k t = 0)
 
+/-- The requirement that a common image of two isometric frames is fixed by their bipartite walk
+and has self inner product one when the first source is normalized [Szegedy, Theorem
+5][Szegedy2004]. -/
 def SzegedyTheorem5IntersectionNorm : Prop :=
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
@@ -67,23 +98,32 @@ def SzegedyTheorem5IntersectionNorm : Prop :=
       bipartiteWalk A B *ᵥ (A *ᵥ a) = A *ᵥ a ∧
       Qatlib.Foundations.PureStateMath.Inner (A *ᵥ a) (A *ᵥ a) = ((1 : ℝ) : ℂ)
 
+/-- The conjunction of the interior norm correspondence and the normalized intersection
+fixed-state statement [Szegedy, Theorem 5][Szegedy2004]. -/
 def SzegedyTheorem5Unified : Prop :=
   SzegedyTheorem5InteriorNorm ∧ SzegedyTheorem5IntersectionNorm
 
+/-- The conjunction of the unified frame norm statement and vanishing of the tau map at the +1
+source endpoint. -/
 def Clause3Spec : Prop :=
   SzegedyTheorem5Unified ∧
   BipartiteTauEndpointVanishes
 
+/-- The permutation toggling the detector flag when the first vertex is marked, while preserving
+the outer control and vertex registers. -/
 noncomputable def printedMarkerOnUncontrolled {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (v : DetectionSpace I) : DetectionSpace I :=
   if decide (v.2.2.1 ∈ S) then (v.1, !v.2.1, v.2.2) else v
 
+/-- The permutation fixing the false control branch and toggling the flag on the true branch
+exactly when the two vertices have different marked membership. -/
 noncomputable def printedFlagShear {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (v : DetectionSpace I) : DetectionSpace I :=
   if v.1 = false then v
   else if decide (v.2.2.1 ∈ S) != decide (v.2.2.2 ∈ S) then (v.1, !v.2.1, v.2.2)
   else v
 
+/-- Applying the printed flag shear twice returns the original detector index. -/
 theorem printedFlagShear_involutive {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) : Function.Involutive (printedFlagShear S) := by
   intro v
@@ -95,6 +135,7 @@ theorem printedFlagShear_involutive {I : Type} [Fintype I] [DecidableEq I]
     · simp [printedFlagShear, hb, h]
     · simp [printedFlagShear, hb, h]
 
+/-- Applying the printed marker permutation twice returns the original detector index. -/
 theorem printedMarkerOnUncontrolled_involutive {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) : Function.Involutive (printedMarkerOnUncontrolled S) := by
   intro v
@@ -104,6 +145,8 @@ theorem printedMarkerOnUncontrolled_involutive {I : Type} [Fintype I] [Decidable
   · simp [printedMarkerOnUncontrolled, h]
   · simp [printedMarkerOnUncontrolled, h]
 
+/-- The condition that `U` and its adjoint act on every row slice through common matrices `V`
+and `W`, respectively, with `V * W = 1`. -/
 def RowPreservingAccess {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) : Prop :=
   ∃ V W : Matrix I I ℂ,
@@ -111,6 +154,9 @@ def RowPreservingAccess {I : Type} [Fintype I] [DecidableEq I]
     (∀ (f : I × I → ℂ) (x y : I), (Uᴴ *ᵥ f) (x, y) = (W *ᵥ (fun e ↦ f (x, e))) y) ∧
     V * W = 1
 
+/-- The conjunction of the unified norm and tau endpoint statements with printed and corrected
+detector branch laws, unitary row access cancellation, and row preserving flag shear and
+parity formulas. -/
 def WalkSpectral3Clause39FullEndpoint : Prop :=
   SzegedyTheorem5Unified ∧
   BipartiteTauEndpointVanishes ∧

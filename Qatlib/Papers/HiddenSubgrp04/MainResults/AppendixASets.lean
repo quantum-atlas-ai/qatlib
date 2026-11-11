@@ -66,6 +66,30 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
+
+/-!
+# Rounded cells and modular-distance estimates
+
+This module proves nearest-integer estimates for `nearInt` and a Lipschitz estimate for
+`distMod`. It defines the cell and coordinate-map propositions `lemma_A4Statement` and
+`lemma_A5Statement`, and proves the modular-distance lower bound `lemma_A6` outside a cell.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `abs_distMod_sub_le`: For positive modulus M, the absolute difference of the modular distances
+  of `x` and `y` is at most |x − y|.
+* `lemma_A4Statement`: The proposition that the two specified distinct cells have equal
+  cardinality and are disjoint, under N > 2, M ≥ 2N, and valid index hypotheses.
+* `lemma_A6`: If `k` is outside the i-th cell and the size and index hypotheses hold, its
+  modular distance from Mi/N is at least M/(2N) − 1.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -76,6 +100,7 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- The integer `nearInt x` is at distance at most one half from `x`. -/
 theorem abs_nearInt_sub_le (x : ℝ) : |(nearInt x : ℝ) - x| ≤ 1 / 2 := by
   have h1 : (nearInt x : ℝ) ≤ x + 1 / 2 := by
     unfold nearInt
@@ -86,6 +111,7 @@ theorem abs_nearInt_sub_le (x : ℝ) : |(nearInt x : ℝ) - x| ≤ 1 / 2 := by
   rw [abs_sub_le_iff]
   constructor <;> linarith
 
+/-- The integer `nearInt x` is at least as close to `x` as any other integer. -/
 theorem abs_nearInt_sub_le_any (x : ℝ) (n : ℤ) :
     |(nearInt x : ℝ) - x| ≤ |(n : ℝ) - x| := by
   set f : ℤ := nearInt x with hf
@@ -108,6 +134,8 @@ theorem abs_nearInt_sub_le_any (x : ℝ) (n : ℤ) :
     rw [abs_of_pos hnx]
     linarith [abs_nonneg ((f : ℝ) - x)]
 
+/-- For positive modulus M, the absolute difference of the modular distances of `x` and `y` is
+at most |x − y|. -/
 theorem abs_distMod_sub_le {M : ℝ} (hM : 0 < M) (x y : ℝ) :
     |distMod M x - distMod M y| ≤ |x - y| := by
   have hmin : ∀ a b : ℝ,
@@ -138,11 +166,15 @@ theorem abs_distMod_sub_le {M : ℝ} (hM : 0 < M) (x y : ℝ) :
   rw [abs_sub_le_iff]
   constructor <;> linarith [key x y, key y x]
 
+/-- The proposition that the two specified distinct cells have equal cardinality and are
+disjoint, under N > 2, M ≥ 2N, and valid index hypotheses. -/
 def lemma_A4Statement (M N : ℕ) (hN : 2 < N) (hM : 2 * N ≤ M)
     (i1 i2 : ℕ) (h1 : i1 < N) (h2 : i2 < N) (hne : i1 ≠ i2) : Prop :=
     (cell M N i1).card = (cell M N i2).card ∧
       Disjoint (cell M N i1) (cell M N i2)
 
+/-- The proposition asserting injectivity of `deltaMap` on `Fin M`, the equality `alpha = beta +
+1`, and the stated inner and outer interval inclusions for each coordinate fiber `Cs`. -/
 def lemma_A5Statement (M N : ℕ) : Prop :=
     Function.Injective (fun k : Fin M => deltaMap M N k.val) ∧
       alpha M N = beta M N + 1 ∧
@@ -150,6 +182,8 @@ def lemma_A5Statement (M N : ℕ) : Prop :=
         Set.Icc (-(beta M N)) (beta M N) ⊆ Cs M N s ∧
           Cs M N s ⊆ Set.Icc (-(alpha M N)) (alpha M N))
 
+/-- If `k` is outside the i-th cell and the size and index hypotheses hold, its modular distance
+from Mi/N is at least M/(2N) − 1 ([Lemma A.6][Lomont2004]). -/
 theorem lemma_A6 (M N i k : ℕ) (hN : 2 < N) (hM : 2 * N ≤ M)
     (hi : i < N) (hk : k < M) (hnot : k ∉ cell M N i) :
     (M : ℝ) / (2 * (N : ℝ)) - 1 ≤

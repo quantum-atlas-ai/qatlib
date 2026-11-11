@@ -9,6 +9,24 @@ import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+/-!
+# Rational quantile routing specification
+
+`NativeRiskRoutingSubgoal` states that a fuel-limited bisection using rational samples agrees
+with real-valued `riskBisect` after coercion. It also requires every supported output to record
+at most the supplied fuel in calls. This transport specification supports finite precision
+implementations of the search in [WoernerEgger2019].
+
+## Main statements
+
+* `NativeRiskRoutingSubgoal`: equality of routing laws and the support call-count guarantee.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +52,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The specification that rational-sample bisection equals `riskBisect` after coercion to the
+reals and that all supported call counters are bounded by the fuel. -/
 def NativeRiskRoutingSubgoal : Prop :=
     let bisect := fun (sampler : ℚ → PMF ℚ) (xs : List ℚ) (q : ℚ)
           (fuel lo hi : ℕ) =>

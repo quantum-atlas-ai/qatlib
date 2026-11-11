@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+
+/-!
+# Specification of the dense zero-frequency boundary
+
+`DenseZeroModeBoundary` records the zero-mode bound under the half-density hypothesis and a
+concrete violation at marked density 3/4. It isolates a boundary condition in the gain analysis
+associated with [Cornwell2014].
+
+## Main statements
+
+* `DenseZeroModeBoundary`: The contract 0 ≤ cos²(2kθ) ≤ sin²(2θ) for positive density at most
+  one half, together with its failure at N=4 and T=3.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +32,8 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 
+/-- The contract 0 ≤ cos²(2kθ) ≤ sin²(2θ) for positive density at most one half, together with
+its failure at N=4 and T=3. -/
 def DenseZeroModeBoundary : Prop :=
   (∀ (N : ℕ) (_hN : 0 < N) (T : ℕ), 2 * T ≤ N → 0 < T →
     let θ := aqAngle N T

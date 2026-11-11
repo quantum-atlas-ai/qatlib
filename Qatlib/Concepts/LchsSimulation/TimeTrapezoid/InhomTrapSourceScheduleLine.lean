@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomTrapSourceScheduleStat
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+
+/-!
+# A computed trapezoidal source schedule
+
+`inhomogeneousTrapezoidSourceSchedule` establishes the computed source quadrature schedule. The
+schedule chooses the Cauchy cutoff and node count together with a positive time subdivision
+count to control the source approximation and weighted source mass.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneousTrapezoidSourceSchedule`: proves the source schedule error and mass bounds.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -24,6 +43,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The computed trapezoidal source schedule has positive time subdivision count, grid width at
+most `1 / 2`, source error at most `ε / 2`, and the specified source-mass bound for the
+Duhamel representation [AnLiuLin2023]. -/
 theorem inhomogeneousTrapezoidSourceSchedule : InhomogeneousTrapezoidSourceSchedule := by
   intro I _ _ L L' H H' b b' b'' s t ε Λ β β₂ lamL lamH lamLd lamHd bmax
     hL hH hb hPSD hHerm hst hε hbmax0 hdL hdH hnLd hnHd hd hd' hβ hβ₂ hbmax hlL hlH hΛ

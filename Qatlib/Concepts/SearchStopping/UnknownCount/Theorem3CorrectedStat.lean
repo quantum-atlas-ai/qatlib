@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+
+/-!
+# Statement of corrected unknown-count search guarantees
+
+Defines `Theorem3Corrected`, collecting termination, uniform marked output, and expected costs
+for the factor `6 / 5` schedule. It includes finite-budget correctness and a uniform timeout
+bound, with separate constants for Grover iterations, Boolean queries, and lookup cost. For the
+quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `Theorem3Corrected`: The proposition collecting the factor `6 / 5` search guarantees:
+  normalized terminal traces and uniform marked output, expected iteration, Boolean-query, and
+  lookup costs bounded by `9 / 2`, `29 / 2`, and `19` times `√(N / t)`, finite-budget
+  correctness, and uniform geometric timeout bounds.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +36,10 @@ namespace Qatlib.Concepts.SearchStopping.UnknownCount
 open scoped BigOperators
 universe u
 
+/-- The proposition collecting the factor `6 / 5` search guarantees: normalized terminal traces
+and uniform marked output, expected iteration, Boolean-query, and lookup costs bounded by `9
+/ 2`, `29 / 2`, and `19` times `√(N / t)`, finite-budget correctness, and uniform geometric
+timeout bounds. -/
 def Theorem3Corrected : Prop :=
   ∀ {I : Type u} [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     let sizes := ExponentialSizes (Fintype.card I)

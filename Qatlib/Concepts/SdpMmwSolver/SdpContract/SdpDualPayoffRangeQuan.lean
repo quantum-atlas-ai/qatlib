@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualPayoffRangeStat
+
+/-!
+# Operator interval for normalized dual payoffs
+
+`sdpDualPayoffRange` proves that each normalized dual payoff is Hermitian and lies between zero
+and the identity. The hypotheses include α ≥ 1, norm bounds on the input matrices, and
+nonnegative responses of weighted cost at most α.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpDualPayoffRange`: For norm-bounded Hermitian inputs and nonnegative responses of cost at
+  most α with α ≥ 1, every normalized dual payoff is Hermitian and lies in the operator interval
+  from zero to the identity. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -18,6 +39,9 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 set_option warningAsError false
 
+/-- For norm-bounded Hermitian inputs and nonnegative responses of cost at most α with α ≥ 1,
+every normalized dual payoff is Hermitian and lies in the operator interval from zero to the
+identity. See [BrandaoSvore2017]. -/
 theorem sdpDualPayoffRange : SdpDualPayoffRange := by
   intro D m A Cv b y alpha hD ha ha1 hA hCv hb hy s
   let Z : Operator D := (∑ i, y s i • A i) - Cv

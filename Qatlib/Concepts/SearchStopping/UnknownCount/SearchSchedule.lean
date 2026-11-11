@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
+
+/-!
+# Capped exponential schedules for unknown-count search
+
+Defines the search widths with growth factor `6 / 5`, capped at the square root of the
+search-space size, and obtains integer ranges by taking ceilings. The schedule laws and
+`search_critical_stage` show that a suitable stage reaches the randomized Grover success
+threshold. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `search_exponential_schedule`: For positive `N`, the widths equal `min ((6 / 5) ^ k)
+  (Real.sqrt N)`, the ceiling sizes are positive and at most twice the exponential scale, and
+  sampled indices are exactly the naturals below the real width.
+* `search_critical_stage`: For a nonempty proper marked set, there are a density angle and a
+  positive stage after which every integer search range reaches `1 / Real.sin (2 * θ)`, with the
+  stated bound on the stage's exponential scale.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 
@@ -13,13 +36,19 @@ namespace Qatlib.Concepts.SearchStopping.UnknownCount
 
 open scoped BigOperators
 
+/-- The recursively defined search width, starting at one and multiplying by `6 / 5` at each
+stage subject to the cap `Real.sqrt N`. -/
 noncomputable def ExponentialWidth (N : ℕ) : ℕ → ℝ
   | 0 => 1
   | k + 1 => min ((6/5 : ℝ) * ExponentialWidth N k) (Real.sqrt N)
 
+/-- The natural-number ceiling of the stage width `ExponentialWidth N k`. -/
 noncomputable def ExponentialSizes (N : ℕ) (k : ℕ) : ℕ :=
   Nat.ceil (ExponentialWidth N k)
 
+/-- For positive `N`, the widths equal `min ((6 / 5) ^ k) (Real.sqrt N)`, the ceiling sizes are
+positive and at most twice the exponential scale, and sampled indices are exactly the
+naturals below the real width. -/
 theorem search_exponential_schedule (N : ℕ) (hN : 0 < N) :
     (∀ k, ExponentialWidth N k = min ((6/5 : ℝ)^k) (Real.sqrt N)) ∧
     (∀ k, 0 < ExponentialSizes N k) ∧
@@ -57,6 +86,8 @@ theorem search_exponential_schedule (N : ℕ) (hN : 0 < N) :
   · intro k j
     exact Nat.lt_ceil
 
+/-- Every real threshold `m0 ≥ 1` is crossed by a power of `6 / 5` that is at most `6 / 5` times
+the threshold. -/
 theorem search_first_scale_crossing (m0 : ℝ) (hm0 : 1 ≤ m0) :
     ∃ K : ℕ, m0 ≤ (6/5 : ℝ)^K ∧ (6/5 : ℝ)^K ≤ (6/5) * m0 := by
   classical
@@ -88,6 +119,8 @@ theorem search_first_scale_crossing (m0 : ℝ) (hm0 : 1 ≤ m0) :
     rw [hk, pow_succ]
     nlinarith
 
+/-- For a nontrivial marked count and an angle in `(0, π/2)` with the prescribed density, `1 /
+Real.sin (2 * θ)` lies between one and `Real.sqrt N`. -/
 theorem search_integer_cap (N t : ℕ) (ht : 0 < t) (htN : t < N)
     (θ : ℝ) (hθ0 : 0 < θ) (hθp : θ < Real.pi / 2)
     (hdensity : (Real.sin θ)^2 = (t : ℝ) / N) :
@@ -119,6 +152,9 @@ theorem search_integer_cap (N t : ℕ) (ht : 0 < t) (htN : t < N)
     simpa using Real.sin_le_one (2*θ)
   · exact (div_le_iff₀ h2).2 (by nlinarith)
 
+/-- For a nonempty proper marked set, there are a density angle and a positive stage after which
+every integer search range reaches `1 / Real.sin (2 * θ)`, with the stated bound on the
+stage's exponential scale. -/
 theorem search_critical_stage {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ θ : ℝ, 0 < θ ∧ θ < Real.pi / 2 ∧

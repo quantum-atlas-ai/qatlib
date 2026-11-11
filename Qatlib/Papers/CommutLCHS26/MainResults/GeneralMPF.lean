@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+
+/-!
+# Integer-node multi-product formulas
+
+This module realizes interpolation nodes as the positive integers 1 through k together with N >
+k, and transfers their cancellation moments to repeated Strang formulas. Coefficient matching
+and uniform generator-mass bounds yield explicit local errors for the multi-product setting of
+[AftabAnTrivisa2026].
+
+## Main statements
+
+* `integer_moments`: proves inverse-even-power cancellation.
+* `integer_coefficients`: matches exponential coefficients through degree 2(k + 1).
+* `uniform_local_error_from_moments`: bounds any positive-node Strang family with the required
+  moments.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,24 +43,30 @@ open Qatlib.Papers.HamLCUSim12.Multiproduct
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The integer node j + 1 for j < k, with final node N. -/
 def integerNode (k N : ℕ) (j : Fin (k + 1)) : ℕ :=
   if j.val < k then j.val + 1 else N
 
+/-- Casting an integer interpolation node to the reals gives the corresponding real node. -/
 theorem integerNode_cast (k N : ℕ) (j : Fin (k + 1)) :
     (integerNode k N j : ℝ) = mNode k (N : ℝ) j := by
   unfold integerNode mNode
   split_ifs <;> simp
 
+/-- All integer interpolation nodes are positive when N > k. -/
 theorem integerNode_pos (k N : ℕ) (hN : k < N) (j : Fin (k + 1)) :
     0 < integerNode k N j := by
   unfold integerNode
   split_ifs <;> omega
 
+/-- The integer-node interpolation family has distinct nodes when N > k. -/
 theorem integerNodes_distinct (k N : ℕ) (hN : k < N) : NodesDistinct k (N : ℝ) := by
   intro j hj he
   have h : N = j.val + 1 := by exact_mod_cast he
   omega
 
+/-- For N > k, the interpolation weights satisfy inverse-even-power moments equal to 0^r for r <
+k + 1. -/
 theorem integer_moments (k N : ℕ) (hN : k < N) (r : ℕ) (hr : r < k + 1) :
     (∑ j : Fin (k + 1), mCoeff k (N : ℝ) j / (integerNode k N j : ℝ) ^ (2 * r)) = (0 : ℝ) ^ r := by
   have hNpos : 0 < (N : ℝ) := by exact_mod_cast (show 0 < N by omega)
@@ -49,6 +76,8 @@ theorem integer_moments (k N : ℕ) (hN : k < N) (r : ℕ) (hr : r < k + 1) :
     (multiproduct_squared_nodes_injective k (N : ℝ) hNpos (integerNodes_distinct k N hN))
     r (by omega)
 
+/-- The integer-node multi-product coefficients agree with the target exponential through degree
+2(k + 1). -/
 theorem integer_coefficients (X Y : Matrix I I ℂ) (k N : ℕ) (hN : k < N)
     (n : ℕ) (hn : n < 2 * (k + 1) + 1) :
     coefficient (fun j => strangRepeats X Y (integerNode k N j)) (mCoeff k (N : ℝ)) n =
@@ -56,6 +85,8 @@ theorem integer_coefficients (X Y : Matrix I I ℂ) (k N : ℕ) (hN : k < N)
   coefficients_from_scalar_moments X Y (integerNode k N) (mCoeff k (N : ℝ)) (k + 1)
     (by omega) (integerNode_pos k N hN) (integer_moments k N hN) n hn
 
+/-- The integer-node multi-product error is bounded by the sum of its weighted word Taylor tails
+and the target exponential Taylor tail. -/
 theorem integer_local_error (X Y : Matrix I I ℂ) (k N : ℕ) (hN : k < N) (t : ℝ) :
     ‖multiProduct (fun j => strangRepeats X Y (integerNode k N j)) (mCoeff k (N : ℝ)) t -
       NormedSpace.exp (t • (X + Y))‖ ≤
@@ -70,10 +101,12 @@ theorem integer_local_error (X Y : Matrix I I ℂ) (k N : ℕ) (hN : k < N) (t :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- A word of q repeated Strang steps has length 3q. -/
 theorem strangRepeats_length (X Y : Matrix I I ℂ) (q : ℕ) :
     (strangRepeats X Y q).length = 3 * q := by
   simp [strangRepeats, List.length_flatten, mul_comm]
 
+/-- For positive q, the generator norm mass of q repeated Strang steps is ‖X‖ + ‖Y‖. -/
 theorem strangRepeats_mass (X Y : Matrix I I ℂ) (q : ℕ) (hq : 0 < q) :
     suzukiMass (strangRepeats X Y q) = ‖X‖ + ‖Y‖ := by
   have hqpos : 0 < (q : ℝ) := by exact_mod_cast hq
@@ -85,6 +118,9 @@ theorem strangRepeats_mass (X Y : Matrix I I ℂ) (q : ℕ) (hq : 0 < q) :
   field_simp
   ring
 
+/-- Positive repetition counts with cancellation moments through order m - 1 give a local error
+bounded by the absolute coefficient mass plus 1 times the exponential Taylor tail of order
+2m + 1. -/
 theorem uniform_local_error_from_moments {J : Type} [Fintype J]
     (X Y : Matrix I I ℂ) (q : J → ℕ) (a : J → ℝ) (m : ℕ) (hm : 0 < m)
     (hq : ∀ l, 0 < q l)
@@ -115,6 +151,8 @@ theorem uniform_local_error_from_moments {J : Type} [Fintype J]
           ((2 * m + 1).factorial : ℝ) := _root_.add_le_add le_rfl ht
     _ = _ := by rw [← Finset.sum_mul]; ring
 
+/-- For N > k, the integer-node multi-product error obeys the uniform exponential Taylor-tail
+bound of order 2(k + 1) + 1. -/
 theorem integer_uniform_local_error (X Y : Matrix I I ℂ) (k N : ℕ) (hN : k < N) (t : ℝ) :
     ‖multiProduct (fun j => strangRepeats X Y (integerNode k N j)) (mCoeff k (N : ℝ)) t -
       NormedSpace.exp (t • (X + Y))‖ ≤

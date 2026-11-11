@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationStat
 import Qatlib.Concepts.WalshMoment.Forrelation.SpectralForrelationBasicsSepa
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+
+/-!
+# A two-query verifier for spectral forrelation witness mass
+
+This module constructs a circuit using one query to each Boolean oracle. Register swaps, an
+`n`-qubit Hadamard transform, and the two oracle queries produce an accepting component equal to
+the restricted Hadamard transform applied to the witness. Summing its squared amplitudes gives
+exactly `forrWitnessMass`.
+
+The circuit and probability calculations use the finite-dimensional quantum state framework
+described in [Watrous2018].
+
+## Key declarations
+
+* `swapXW`, `swapXY`, and `permGate` describe the register permutations.
+* `verifierDataH` applies the Hadamard transform to the first data register.
+* `verifierCircuit` and `verifier_accept_amplitude` specify the circuit and its accepting
+  amplitudes.
+* `qmaVerifierSpectralForrelation` proves the verifier specification, including its two exact
+  oracle counts.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +57,8 @@ section G2
 
 variable {n : ℕ}
 
+/-- The matrix with entry one exactly when `e p = q` acts on amplitudes by precomposition with
+the equivalence `e`. -/
 private theorem applyGate_perm {I : Type} [Fintype I] [DecidableEq I]
     (e : I ≃ I) (φ : QState I) (p : I) :
     ApplyGate (Matrix.of fun p q => if e p = q then (1 : ℂ) else 0) φ p = φ (e p) := by
@@ -46,6 +74,8 @@ private theorem applyGate_perm {I : Type} [Fintype I] [DecidableEq I]
   · intro hc
     exact absurd (Finset.mem_univ (e p)) hc
 
+/-- The matrix with entry one exactly when `e p = q`, for an equivalence of a finite index type,
+is unitary. -/
 private theorem perm_unitary {I : Type} [Fintype I] [DecidableEq I] (e : I ≃ I) :
     (Matrix.of fun p q => if e p = q then (1 : ℂ) else 0) ∈ Matrix.unitaryGroup I ℂ := by
   classical
@@ -72,18 +102,24 @@ private theorem perm_unitary {I : Type} [Fintype I] [DecidableEq I] (e : I ≃ I
       by_cases hr : e r = p <;> simp [hr]
   exact hconv.trans (hsum p q)
 
+/-- The involutive basis permutation exchanging the first data register with the witness data
+register while preserving the other registers and all Boolean flags. -/
 private def swapXW (n : ℕ) : ForrSpace n (Reg n × Bool) ≃ ForrSpace n (Reg n × Bool) where
   toFun p := ((p.2.2.1, p.1.2), (p.2.1.1, p.2.1.2), (p.1.1, p.2.2.2))
   invFun p := ((p.2.2.1, p.1.2), (p.2.1.1, p.2.1.2), (p.1.1, p.2.2.2))
   left_inv p := rfl
   right_inv p := rfl
 
+/-- The involutive basis permutation exchanging the first and second data registers while
+preserving their Boolean flags and the workspace. -/
 private def swapXY (n : ℕ) : ForrSpace n (Reg n × Bool) ≃ ForrSpace n (Reg n × Bool) where
   toFun p := ((p.2.1.1, p.1.2), (p.1.1, p.2.1.2), p.2.2)
   invFun p := ((p.2.1.1, p.1.2), (p.1.1, p.2.1.2), p.2.2)
   left_inv p := rfl
   right_inv p := rfl
 
+/-- The involutive basis permutation toggling the final Boolean bit by the conjunction of the
+two oracle-answer bits. -/
 private def toffoliE (n : ℕ) : ForrSpace n (Reg n × Bool) ≃ ForrSpace n (Reg n × Bool) where
   toFun p := (p.1, p.2.1, (p.2.2.1, p.2.2.2 ^^ (p.1.2 && p.2.1.2)))
   invFun p := (p.1, p.2.1, (p.2.2.1, p.2.2.2 ^^ (p.1.2 && p.2.1.2)))
@@ -92,19 +128,27 @@ private def toffoliE (n : ℕ) : ForrSpace n (Reg n × Bool) ≃ ForrSpace n (Re
   right_inv p := by
     ext <;> simp
 
+/-- The matrix associated with an equivalence `e`, with entry one when `e p = q` and zero
+otherwise. -/
 private def permGate {I : Type} [DecidableEq I] (e : I ≃ I) : Matrix I I ℂ :=
   Matrix.of fun p q => if e p = q then (1 : ℂ) else 0
 
+/-- Applying `permGate e` to a state evaluates its original amplitude at `e p` for each output
+index `p`. -/
 private theorem applyGate_permGate {I : Type} [Fintype I] [DecidableEq I]
     (e : I ≃ I) (φ : QState I) (p : I) :
     ApplyGate (permGate e) φ p = φ (e p) := applyGate_perm e φ p
 
+/-- The gate applying `HadamardN n` to the register when its Boolean control is true and the
+identity when the control is false, preserving that control. -/
 private noncomputable def ctrlHGate (n : ℕ) : Matrix (Reg n × Bool) (Reg n × Bool) ℂ :=
   Matrix.of fun p q =>
     if p.2 = q.2 then
       (if p.2 then HadamardN n p.1 q.1 else if p.1 = q.1 then (1 : ℂ) else 0)
     else 0
 
+/-- The `S` bit oracle acts on amplitudes by toggling the first answer bit with `S` evaluated on
+the first data register. -/
 private theorem applyGate_forrBitOracleS (n : ℕ) (S : Reg n → Bool) (W : Type)
     [Fintype W] [DecidableEq W] (φ : QState (ForrSpace n W)) (p : ForrSpace n W) :
     ApplyGate (forrBitOracleS n S W) φ p
@@ -116,6 +160,8 @@ private theorem applyGate_forrBitOracleS (n : ℕ) (S : Reg n → Bool) (W : Typ
     applyGate_bitOracleOn]
   rfl
 
+/-- Applying `I ⊗ G` to a product-indexed vector applies `G` to each slice with the first
+coordinate fixed. -/
 private theorem tensorGate_left_one_mulVec {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y]
     (G : Matrix Y Y ℂ) (φ : QState (X × Y)) (x : X) (y : Y) :
@@ -136,6 +182,8 @@ private theorem tensorGate_left_one_mulVec {X Y : Type} [Fintype X] [DecidableEq
     Fintype.sum_prod_type]
   rw [Finset.sum_comm, Finset.sum_congr rfl (fun y' _ => key y')]
 
+/-- The `U` bit oracle acts on amplitudes by toggling the second answer bit with `U` evaluated
+on the second data register. -/
 private theorem applyGate_forrBitOracleU (n : ℕ) (U : Reg n → Bool) (W : Type)
     [Fintype W] [DecidableEq W] (φ : QState (ForrSpace n W)) (p : ForrSpace n W) :
     ApplyGate (forrBitOracleU n U W) φ p
@@ -156,15 +204,20 @@ private theorem applyGate_forrBitOracleU (n : ℕ) (U : Reg n → Bool) (W : Typ
     rfl
   rw [hinner]
 
+/-- The tensor-product gate applying `HadamardN n` to the first data register and the identity
+to all remaining registers. -/
 private noncomputable def verifierDataH (n : ℕ) :
     Matrix (ForrSpace n (Reg n × Bool)) (ForrSpace n (Reg n × Bool)) ℂ :=
   TensorGate (TensorGate (HadamardN n) (1 : Matrix Bool Bool ℂ)) 1
 
+/-- The verifier's data Hadamard gate is unitary. -/
 private theorem verifierDataH_unitary (n : ℕ) :
     verifierDataH n ∈ Matrix.unitaryGroup (ForrSpace n (Reg n × Bool)) ℂ :=
   tensorGate_unitary (tensorGate_unitary (hadamardN_unitary n) (Submonoid.one_mem _))
     (Submonoid.one_mem _)
 
+/-- The amplitude after applying `verifierDataH n` is the Hadamard-weighted sum over the first
+data coordinate, with all other coordinates fixed. -/
 private theorem applyGate_verifierDataH (n : ℕ)
     (φ : QState (ForrSpace n (Reg n × Bool))) (p : ForrSpace n (Reg n × Bool)) :
     ApplyGate (verifierDataH n) φ p =
@@ -175,10 +228,13 @@ private theorem applyGate_verifierDataH (n : ℕ)
   simp only [TensorGate,Fintype.sum_prod_type]
   cases hb : p.1.2 <;> simp [hb,Matrix.one_apply]
 
+/-- The circuit that swaps the first and witness data registers, queries `S`, applies the data
+Hadamard transform, swaps the first two data registers, and queries `U`. -/
 private noncomputable def verifierCircuit (n : ℕ) : TOCircuit (ForrSpace n (Reg n × Bool)) :=
   [.gate (permGate (swapXW n)),.queryS,.gate (verifierDataH n),
     .gate (permGate (swapXY n)),.queryU]
 
+/-- Every explicit gate in `verifierCircuit n` is unitary, so it satisfies `IsUnitaryTOCircuit`. -/
 private theorem verifierCircuit_unitary (n : ℕ) : IsUnitaryTOCircuit (verifierCircuit n) := by
   intro G hG
   have h : G = permGate (swapXW n) ∨ G = verifierDataH n ∨ G = permGate (swapXY n) := by
@@ -188,6 +244,10 @@ private theorem verifierCircuit_unitary (n : ℕ) : IsUnitaryTOCircuit (verifier
   · exact verifierDataH_unitary n
   · exact perm_unitary _
 
+/-- When both answer bits are true, the verifier amplitude is the corresponding coordinate of
+`charProjector n U * HadamardN n * charProjector n S` applied to the witness, provided both
+unused data registers are zero and the final bit is false. It is zero for all other
+coordinates with both answer bits true. -/
 private theorem verifier_accept_amplitude (n : ℕ) (S U : Reg n → Bool)
     (ψ : QState (Reg n)) (x y w : Reg n) (o : Bool) :
     TORun (forrBitOracleS n S (Reg n × Bool)) (forrBitOracleU n U (Reg n × Bool))
@@ -208,6 +268,9 @@ private theorem verifier_accept_amplitude (n : ℕ) (S U : Reg n → Bool)
   by_cases hx : x = ZeroStr n <;> by_cases hw : w = ZeroStr n <;>
     cases o <;> cases hu : U y <;> simp_all
 
+/-- For every register size and pair of Boolean oracles, there is a unitary circuit with exactly
+one query to each oracle whose accepting measurement weight equals `forrWitnessMass` for
+every embedded witness vector. -/
 theorem qmaVerifierSpectralForrelation : QmaVerifierSpectralForrelation := by
   classical
   intro n S U

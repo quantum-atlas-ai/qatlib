@@ -8,6 +8,30 @@ import Qatlib.Papers.QIntegration00.MainResults.Defs
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
 import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+/-!
+# Randomized quantum mean estimation bounds
+
+This module combines finite-distribution sampling bounds with an assumed approximation to the
+sample mean. It proves a success probability of at least 3/4 and converts the stated cost model
+into an `ε⁻¹ * log(ε⁻¹)` bound using explicit logarithmic estimates. See [Novak2001] for the
+paper context.
+
+## Main statements
+
+* `section4_accuracy`: Under the sample-size condition, an approximation within `ε/3` of the
+  sample mean with probability at least 7/8 is within `ε` of the expectation with probability at
+  least 3/4.
+* `section4_complexity_bound`: The assumed mean-estimation cost and logarithmic estimates give
+  the randomized quantum complexity bound with constant `3 * C * (K + 1)`.
+* `sec4_auto`: The stated mean-estimation cost model implies `IsRandomQuantumUpper` with the
+  explicit constant obtained from `log_ceil_bound` and `log_log_bound`.
+
+## References
+
+* [Novak, 2001][Novak2001]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -26,9 +50,12 @@ open Qatlib.Concepts.HspRecovery.BackendAudit
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The bound `comp ε ≤ C * ε⁻¹ * log(ε⁻¹)` for every `0 < ε ≤ 1/2`. -/
 def IsRandomQuantumUpper (C : ℝ) (comp : ℝ → ℝ) : Prop :=
   ∀ ε ∈ Set.Ioc (0 : ℝ) (1 / 2), comp ε ≤ C * ε⁻¹ * Real.log ε⁻¹
 
+/-- A real function bounded in absolute value by one has variance at most one under a finite
+distribution. -/
 theorem variance_le_one (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |f x| ≤ 1) :
     p.variance f ≤ 1 := by
   rw [FinDist.variance_eq_expect_sq_sub]
@@ -44,6 +71,8 @@ theorem variance_le_one (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |f x| ≤ 1
   have hμ : 0 ≤ (p.expect f) ^ 2 := sq_nonneg _
   linarith
 
+/-- If `n > 0` and `n * ε² ≥ 72`, a bounded function's sample mean deviates from its expectation
+by more than `ε/3` with probability at most 1/8. -/
 theorem chebyshev_tail {n : ℕ} (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |f x| ≤ 1)
     (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) (hn72 : 72 ≤ (n : ℝ) * ε ^ 2) :
     FinDist.probEvent (L := n) p
@@ -61,6 +90,8 @@ theorem chebyshev_tail {n : ℕ} (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |f
     linarith
   exact hcheb.trans hstep
 
+/-- Under the sample-size condition `n * ε² ≥ 72`, the sample mean of a function bounded by one
+is within `ε/3` of its expectation with probability at least 7/8. -/
 theorem good_event_mass {n : ℕ} (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |f x| ≤ 1)
     (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) (hn72 : 72 ≤ (n : ℝ) * ε ^ 2) :
     7 / 8 ≤ FinDist.probEvent (L := n) p
@@ -76,6 +107,7 @@ theorem good_event_mass {n : ℕ} (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |
   rw [hcongr] at hcompl
   linarith
 
+/-- Two successive absolute errors bounded by `ε/3` give a total absolute error at most `2ε/3`. -/
 theorem triangle_three {I Q A : ℝ} {ε : ℝ}
     (h1 : |I - Q| ≤ ε / 3) (h2 : |Q - A| ≤ ε / 3) :
     |I - A| ≤ 2 * ε / 3 := by
@@ -84,6 +116,7 @@ theorem triangle_three {I Q A : ℝ} {ε : ℝ}
     _ ≤ ε / 3 + ε / 3 := add_le_add h1 h2
     _ = 2 * ε / 3 := by ring
 
+/-- Two events each of probability at least 7/8 have intersection probability at least 3/4. -/
 theorem two_good_event_mass {n : ℕ} (p : FinDist X)
     {E F : (Fin n → X) → Prop} [DecidablePred E] [DecidablePred F]
     (hE : 7 / 8 ≤ FinDist.probEvent (L := n) p E)
@@ -102,6 +135,9 @@ theorem two_good_event_mass {n : ℕ} (p : FinDist X)
   rw [hG] at hcomplG
   linarith
 
+/-- Under the sample-size condition, an approximation within `ε/3` of the sample mean with
+probability at least 7/8 is within `ε` of the expectation with probability at least 3/4. See
+[Novak2001]. -/
 theorem section4_accuracy {n : ℕ} (p : FinDist X) (f : X → ℝ) (hf : ∀ x, |f x| ≤ 1)
     (hn : 0 < n) {ε : ℝ} (hε : 0 < ε) (hn72 : 72 ≤ (n : ℝ) * ε ^ 2)
     {A : (Fin n → X) → ℝ}
@@ -133,6 +169,8 @@ theorem section4_accuracy {n : ℕ} (p : FinDist X) (f : X → ℝ) (hf : ∀ x,
       _ ≤ ε := by linarith
   linarith
 
+/-- The stated sample-size cost estimate and logarithmic bounds imply `IsRandomQuantumUpper`
+with constant `3 * C * (K + 1)`. -/
 theorem mean_cost_bound {C K : ℝ} (hC : 0 < C)
     {cost : ℝ → ℝ}
     (hcost : ∀ ε ∈ Set.Ioc (0 : ℝ) (1 / 2),
@@ -162,6 +200,8 @@ theorem mean_cost_bound {C K : ℝ} (hC : 0 < C)
           mul_le_mul_of_nonneg_left hsum hC3
     _ = C * 3 * (K + 1) * ε⁻¹ * Real.log ε⁻¹ := by ring
 
+/-- The assumed mean-estimation cost and logarithmic estimates give the randomized quantum
+complexity bound with constant `3 * C * (K + 1)`. See [Novak2001]. -/
 theorem section4_complexity_bound {C K : ℝ} (hC : 0 < C)
     {cost : ℝ → ℝ}
     (hcost : ∀ ε ∈ Set.Ioc (0 : ℝ) (1 / 2),
@@ -174,6 +214,8 @@ theorem section4_complexity_bound {C K : ℝ} (hC : 0 < C)
     IsRandomQuantumUpper (C * 3 * (K + 1)) cost :=
   mean_cost_bound hC hcost hlogn hloglog
 
+/-- For `0 < ε ≤ 1/2`, the iterated logarithm `log(log(ε⁻¹))` is at most `log(ε⁻¹)`. See
+[Novak2001]. -/
 theorem log_log_bound {ε : ℝ} (hε0 : 0 < ε) (hε : ε ≤ 1 / 2) :
     Real.log (Real.log ε⁻¹) ≤ Real.log ε⁻¹ := by
   have h2 : (2:ℝ) ≤ ε⁻¹ := by
@@ -185,6 +227,8 @@ theorem log_log_bound {ε : ℝ} (hε0 : 0 < ε) (hε : ε ≤ 1 / 2) :
   have := Real.log_le_sub_one_of_pos hy
   linarith
 
+/-- For `0 < ε ≤ 1/2`, the logarithm of `ceil(72/ε²)` is at most `(2 + log(289/4)/log 2) *
+log(ε⁻¹)`. See [Novak2001]. -/
 theorem log_ceil_bound {ε : ℝ} (hε0 : 0 < ε) (hε : ε ≤ 1 / 2) :
     Real.log ((Nat.ceil (72 / ε ^ 2) : ℕ) : ℝ) ≤
       (2 + Real.log (289/4) / Real.log 2) * Real.log ε⁻¹ := by
@@ -227,6 +271,8 @@ theorem log_ceil_bound {ε : ℝ} (hε0 : 0 < ε) (hε : ε ≤ 1 / 2) :
     _ ≤ (Real.log (289/4) / Real.log 2) * Real.log ε⁻¹ + 2 * Real.log ε⁻¹ := by linarith
     _ = (2 + Real.log (289/4) / Real.log 2) * Real.log ε⁻¹ := by ring
 
+/-- The stated mean-estimation cost model implies `IsRandomQuantumUpper` with the explicit
+constant obtained from `log_ceil_bound` and `log_log_bound`. See [Novak2001]. -/
 theorem sec4_auto {C : ℝ} (hC : 0 < C) {cost : ℝ → ℝ}
     (hcost : ∀ ε ∈ Set.Ioc (0 : ℝ) (1 / 2),
       cost ε ≤ C * (ε / 3)⁻¹ *

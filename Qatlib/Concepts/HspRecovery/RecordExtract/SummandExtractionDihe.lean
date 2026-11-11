@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HspRecovery.RecordExtract.SummandExtractionStat
 import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
 import Mathlib.Tactic.SimpRw
+
+/-!
+# Unitary regular summand extraction
+
+This module proves `SourceSummandExtraction` using the permutation matrix of the regular
+difference map. Its intertwining identity transports diagonal left invariance to left invariance
+on the right factor while preserving positivity and trace. See [Kuperberg2005] for the
+mathematical background.
+
+## Main statements
+
+* `sourceSummandExtraction`: construct the unitary intertwiner and transport density matrices.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.HspRecovery.RecordExtract
@@ -17,6 +35,8 @@ open scoped ComplexOrder
 namespace Qatlib.Concepts.HspRecovery.RecordExtract
 open Matrix
 
+/-- Multiplication of the finite map matrices `permMatrix σ` and `permMatrix τ` agrees with
+composition `σ ∘ τ`. -/
 private theorem source_permMatrix_mul {I : Type*} [Fintype I] [DecidableEq I]
     (σ τ : I → I) : permMatrix σ * permMatrix τ = permMatrix (σ ∘ τ) := by
   ext i j
@@ -27,6 +47,9 @@ private theorem source_permMatrix_mul {I : Type*} [Fintype I] [DecidableEq I]
     simp [hk]
   · simp
 
+/-- The regular difference gate is unitary, intertwines the two regular actions, and transports
+invariant positive trace-one matrices as specified by `SourceSummandExtraction`
+[Kuperberg2005]. -/
 theorem sourceSummandExtraction : SourceSummandExtraction := by
   intro G _ _ H
   classical

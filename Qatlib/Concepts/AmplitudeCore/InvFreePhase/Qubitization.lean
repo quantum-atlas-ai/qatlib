@@ -8,6 +8,30 @@ import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+/-!
+# Qubitization walks and invariant planes
+
+`QubitizationWalk` is a product of a fiber reflection and its unitary conjugate. For a Hermitian
+block encoding, `qubitization_invariant_subspace` constructs an orthonormal invariant plane from
+an interior eigenvalue, and `qubitization_amplifies_fiber` computes the projected walk action.
+See [LowChuang2019] for background.
+
+## Main statements
+
+* `qubitization_invariant_subspace`: A normalized eigenvector of the Hermitian encoded matrix
+  with `|x| < 1` yields an orthonormal invariant plane on which the walk has diagonal
+  coefficient `2 * x^2 - 1` and off-diagonal coefficients `±2 * x * y`, where `y > 0` and `x^2 +
+  y^2 = 1`. See [LowChuang2019].
+* `qubitization_amplifies_fiber`: For an eigenvector of the Hermitian encoded matrix with
+  eigenvalue `x`, projecting one walk step from its distinguished fiber multiplies the embedded
+  vector by `2 * x^2 - 1`.
+
+## References
+
+* [Low and Chuang, 2019][LowChuang2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -23,8 +47,10 @@ open Matrix
 
 variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- Complex conjugation fixes a real scalar embedded in `ℂ`. -/
 theorem starRingEnd_ofReal (r : ℝ) : (starRingEnd ℂ) ((r : ℂ)) = ((r : ℂ)) := by simp
 
+/-- Scaling the first argument of `Inner` conjugates the scalar. -/
 theorem inner_smul_left (c : ℂ) (ψ φ : QState I) :
     Inner (c • ψ) φ = (starRingEnd ℂ) c * Inner ψ φ := by
   rw [inner_apply, inner_apply]
@@ -32,6 +58,7 @@ theorem inner_smul_left (c : ℂ) (ψ φ : QState I) :
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- Scaling the second argument of `Inner` multiplies the inner product by that scalar. -/
 theorem inner_smul_right (c : ℂ) (ψ φ : QState I) :
     Inner ψ (c • φ) = c * Inner ψ φ := by
   rw [inner_apply, inner_apply]
@@ -39,6 +66,7 @@ theorem inner_smul_right (c : ℂ) (ψ φ : QState I) :
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- The state inner product distributes over subtraction in its first argument. -/
 theorem inner_sub_left (ψ φ χ : QState I) :
     Inner (ψ - φ) χ = Inner ψ χ - Inner φ χ := by
   rw [inner_apply, inner_apply, inner_apply]
@@ -46,6 +74,7 @@ theorem inner_sub_left (ψ φ χ : QState I) :
   rw [← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- The state inner product distributes over subtraction in its second argument. -/
 theorem inner_sub_right (ψ φ χ : QState I) :
     Inner ψ (φ - χ) = Inner ψ φ - Inner ψ χ := by
   rw [inner_apply, inner_apply, inner_apply]
@@ -53,6 +82,8 @@ theorem inner_sub_right (ψ φ χ : QState I) :
   rw [← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- Moving a matrix action from the first argument of the state inner product to the second
+replaces it by its conjugate transpose. -/
 theorem inner_mulVec_left (M : Matrix I I ℂ) (ψ φ : QState I) :
     Inner (M *ᵥ ψ) φ = Inner ψ (Mᴴ *ᵥ φ) := by
   have hL : ∀ i, (starRingEnd ℂ) ((M *ᵥ ψ) i) * φ i
@@ -73,14 +104,17 @@ theorem inner_mulVec_left (M : Matrix I I ℂ) (ψ φ : QState I) :
   refine Finset.sum_congr rfl fun j _ => ?_
   exact (Finset.sum_congr rfl fun i _ => by ring).trans (hR j).symm
 
+/-- The fiber projector can be moved between the two arguments of the state inner product. -/
 theorem inner_fiberProjector_left (j₀ : J) (χ φ : QState (J × I)) :
     Inner (FiberProjector j₀ *ᵥ χ) φ = Inner χ (FiberProjector j₀ *ᵥ φ) := by
   rw [inner_mulVec_left, fiberProjector_hermitian]
 
+/-- The walk matrix `FiberReflection j₀ * V * FiberReflection j₀ * Vᴴ`. -/
 noncomputable def QubitizationWalk (V : Matrix (J × I) (J × I) ℂ) (j₀ : J) :
     Matrix (J × I) (J × I) ℂ :=
   FiberReflection j₀ * V * FiberReflection j₀ * Vᴴ
 
+/-- The qubitization walk is unitary whenever `V` is unitary. -/
 theorem qubitizationWalk_unitary {V : Matrix (J × I) (J × I) ℂ}
     (hV : V ∈ Matrix.unitaryGroup (J × I) ℂ) (j₀ : J) :
     QubitizationWalk V j₀ ∈ Matrix.unitaryGroup (J × I) ℂ := by
@@ -94,12 +128,18 @@ theorem qubitizationWalk_unitary {V : Matrix (J × I) (J × I) ℂ}
     (Submonoid.mul_mem _ (Submonoid.mul_mem _ (fiberReflection_unitary j₀) hV)
       (fiberReflection_unitary j₀)) hVct
 
+/-- The action of the qubitization walk expands into the four successive matrix actions defining
+it. -/
 theorem qubitizationWalk_mulVec (V : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (χ : QState (J × I)) :
     QubitizationWalk V j₀ *ᵥ χ
       = FiberReflection j₀ *ᵥ (V *ᵥ (FiberReflection j₀ *ᵥ (Vᴴ *ᵥ χ))) := by
   rw [QubitizationWalk, Matrix.mulVec_mulVec, Matrix.mulVec_mulVec, Matrix.mulVec_mulVec]
 
+/-- A normalized eigenvector of the Hermitian encoded matrix with `|x| < 1` yields an
+orthonormal invariant plane on which the walk has diagonal coefficient `2 * x^2 - 1` and
+off-diagonal coefficients `±2 * x * y`, where `y > 0` and `x^2 + y^2 = 1`. See
+[LowChuang2019]. -/
 theorem qubitization_invariant_subspace
     (V : Matrix (J × I) (J × I) ℂ) (j₀ : J) (A : Matrix I I ℂ)
     (hV : IsBlockEncoding V j₀ A 1) (hA : Aᴴ = A)
@@ -266,6 +306,8 @@ theorem qubitization_invariant_subspace
 
   exact ⟨ψ₀, ψ₁, y, hψ₀, hψ₁norm, horth, walk0, walk1, hy, by rw [hy2]; ring⟩
 
+/-- For an eigenvector of the Hermitian encoded matrix with eigenvalue `x`, projecting one walk
+step from its distinguished fiber multiplies the embedded vector by `2 * x^2 - 1`. -/
 theorem qubitization_amplifies_fiber
     {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (V : Matrix (J × I) (J × I) ℂ) (j₀ : J) (A : Matrix I I ℂ)

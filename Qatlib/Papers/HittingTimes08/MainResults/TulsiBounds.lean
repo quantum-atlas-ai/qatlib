@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.HittingTimes08.MainResults.Rotate
 import Qatlib.Papers.HittingTimes08.MainResults.Tulsi
 import Qatlib.Papers.HittingTimes08.MainResults.TulsiSpectrum
+
+/-!
+# Norm and overlap bounds for the Tulsi construction
+
+This module proves scalar norm estimates and stability of real inner-product overlaps under
+vector perturbations. With the specified spectral comparisons, it derives the constant overlap
+bound used in the Tulsi analysis of [MagniezEtAl2008].
+
+## Main statements
+
+* `lemma_4_8_norm_le`: bounds the modified spectral norm expression by `3 * cos θ` times the
+  original expression.
+* `theorem_4_9_constant_overlap`: proves the spectral overlap lower bound `(1 - ε) / 90`.
+* `corollary_4_10_constant_overlap`: transfers the constant overlap through a controlled
+  rotation error.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,8 @@ namespace Qatlib.Papers.HittingTimes08.MainResults
 
 open scoped BigOperators InnerProductSpace
 
+/-- For `0 < x ≤ a < c ≤ π / 2`, the squared ratio `sin x / (cos x - cos c)` is at most the
+corresponding squared ratio at `a`. -/
 theorem sin_div_cos_sub_cos_sq_le {x a c : ℝ}
     (hx : 0 < x) (hxa : x ≤ a) (hac : a < c) (hc : c ≤ Real.pi / 2) :
     (Real.sin x / (Real.cos x - Real.cos c)) ^ 2 ≤
@@ -82,11 +105,16 @@ theorem sin_div_cos_sub_cos_sq_le {x a c : ℝ}
     linarith
   exact pow_le_pow_left₀ hgx hratio 2
 
+/-- If `A ≤ 2 * B`, multiplying by `4 * cos θ ^ 2` gives `4 * cos θ ^ 2 * A ≤ 8 * cos θ ^ 2 *
+B`. -/
 theorem lemma_4_8_norm_bound (A B : ℝ) (θ : ℝ) (h : A ≤ 2 * B) :
     4 * (Real.cos θ) ^ 2 * A ≤ 8 * (Real.cos θ) ^ 2 * B := by
   have hc2 : 0 ≤ (Real.cos θ) ^ 2 := sq_nonneg _
   nlinarith [hc2, h]
 
+/-- For a target of norm at most one, replacing `urot` by a vector within distance `δ` decreases
+its overlap with the target by at most `δ`. This is the perturbation estimate used for
+Theorem 4.9 of [MagniezEtAl2008]. -/
 theorem theorem_4_9_overlap {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     (target urot u : E) (c δ : ℝ) (ht : ‖target‖ ≤ 1)
     (hrot : c ≤ ⟪target, urot⟫_ℝ) (hδ : ‖urot - u‖ ≤ δ) :
@@ -104,6 +132,9 @@ theorem theorem_4_9_overlap {E : Type*} [NormedAddCommGroup E] [InnerProductSpac
       _ = δ := by ring
   linarith
 
+/-- If the ideal overlap is at least `c` and the perturbation is at most `sqrt (8 * ε) < c`,
+then the actual overlap is positive and at least `c - sqrt (8 * ε)`, as in Corollary 4.10 of
+[MagniezEtAl2008]. -/
 theorem corollary_4_10_overlap {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     (target urot u : E) (c ε : ℝ) (ht : ‖target‖ ≤ 1)
     (hrot : c ≤ ⟪target, urot⟫_ℝ) (hδ : ‖urot - u‖ ≤ Real.sqrt (8 * ε))
@@ -114,6 +145,10 @@ theorem corollary_4_10_overlap {E : Type*} [NormedAddCommGroup E] [InnerProductS
   · exact h
   · linarith
 
+/-- Under the stated phase, cotangent, tangent, and spectral-sum comparisons, the modified
+square-root norm expression is at most `3 * cos θ` times the original square-root
+expression. This is the norm comparison associated with [Magniez et al., Lemma
+4.8][MagniezEtAl2008]. -/
 theorem lemma_4_8_norm_le {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θ x α : ℝ) (θj : J → ℝ) (hcos : 0 ≤ Real.cos θ)
     (hx : 0 < x) (hxπ : x < Real.pi) (hα : 0 < α) (hα4 : α ≤ Real.pi / 4)
@@ -220,12 +255,16 @@ theorem lemma_4_8_norm_le {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
         have hb : 0 ≤ Real.sqrt B := Real.sqrt_nonneg B
         nlinarith [hcos, hb]
 
+/-- Every summand in a finite sum of nonnegative real numbers is at most the whole sum. -/
 theorem single_le_sum_of_nonneg {P : Type*} [Fintype P] (f : P → ℝ) (p0 : P)
     (h : ∀ p, 0 ≤ f p) : f p0 ≤ ∑ p, f p := by
   have hmem := Finset.single_le_sum (s := Finset.univ) (f := f) (fun p _ => h p)
     (Finset.mem_univ p0)
   simpa using hmem
 
+/-- Under the stated positive weights, angle choice, projection bound, and spectral comparisons,
+`2 * a0 * cos θ * ∑ p, cot (alphaT p / 2) / Wt p` is at least `(1 - ε) / 90`. This is the
+constant-overlap estimate associated with [Magniez et al., Theorem 4.9][MagniezEtAl2008]. -/
 theorem theorem_4_9_constant_overlap {P : Type*} [Fintype P]
     (W Wt alphaT : P → ℝ) (p0 : P) (a0 α θ ε : ℝ)
     (ha0 : 0 < a0) (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
@@ -309,6 +348,9 @@ theorem theorem_4_9_constant_overlap {P : Type*} [Fintype P]
     exact hrot
   linarith [hrot', hsum_ge]
 
+/-- If the ideal overlap is at least `(1 - ε) / 90` and the rotation error is bounded by `sqrt
+(8 * εrot) < (1 - ε) / 90`, the actual overlap is positive and at least their difference, as
+in Corollary 4.10 of [MagniezEtAl2008]. -/
 theorem corollary_4_10_constant_overlap {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℝ E] (target urot u : E) (ε εrot : ℝ)
     (ht : ‖target‖ ≤ 1)

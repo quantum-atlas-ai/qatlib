@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Data.Real.Archimedean
+
+/-!
+# Corrected precision budget for phase estimation
+
+The bit budgets `phasePrecisionBits` and `phasePrecisionBitsSucc` record two precision choices
+for phase estimation. The theorem `amplified_precision_corrected` proves a window-mass guarantee
+using the latter budget, supplying a corrected precision estimate for the Appendix C discussion
+in [CleveEtAl1998].
+
+## Main statements
+
+* `amplified_precision_corrected`: probability at least `1 - ε` in a radius `2 ^ (-(n + 1))`
+  window.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,12 +37,16 @@ open Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
 namespace Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation
 
+/-- The bit budget `n + ceil (log₂ (1 / (2ε) + 1 / 2))`. -/
 def phasePrecisionBits (n : ℕ) (ε : ℝ) : ℕ :=
   n + Nat.ceil (Real.logb 2 (1 / (2 * ε) + 1 / 2))
 
+/-- The bit budget `n + 1 + ceil (log₂ (1 / ε))` used in the corrected precision bound. -/
 def phasePrecisionBitsSucc (n : ℕ) (ε : ℝ) : ℕ :=
   n + 1 + Nat.ceil (Real.logb 2 (1 / ε))
 
+/-- For `0 < ε < 1`, using `phasePrecisionBitsSucc n ε` bits gives phase-window mass at least `1
+- ε` within radius `1 / 2 ^ (n + 1)`, for every real phase [CleveEtAl1998]. -/
 theorem amplified_precision_corrected (n : ℕ) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
     (ω : ℝ) :
     1 - ε ≤

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchPrimitive.FirstResult
+
+/-!
+# Optional-result marginals of native search
+
+`acceptedResult` discards resource receipts and rejects candidates failing validation, yielding
+the native single-stage optional law `nativeResult`. The result marginal of the full scheduled
+search is exactly the first-success combination of these stage laws.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `nativeResult`: The optional-result law obtained by validating a native sampled trial with
+  window `m` and three finite-coin attempts.
+* `native_result_marginal`: The result marginal of scheduled search equals `firstResult` applied
+  to its native stage laws.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,14 +41,19 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchPrimitive
 
+/-- Extracts a sampled candidate when it passes validation, and returns `none` otherwise. -/
 def acceptedResult {I : Type} (valid : I→Bool) (out : Option (I×ℕ)×ℕ×ℕ) : Option I :=
   out.1.bind fun y=>if valid y.1 then some y.1 else none
 
+/-- The optional-result law obtained by validating a native sampled trial with window `m` and
+three finite-coin attempts. -/
 def nativeResult {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (valid : I→Bool) (m : ℕ) : PMF (Option I) :=
   (preparedAASampled U hU seed S (Nat.clog 2 m) m 3).map (acceptedResult valid)
 
+/-- The result marginal of scheduled search equals `firstResult` applied to its native stage
+laws. -/
 theorem native_result_marginal {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (valid : I→Bool) (ms : List ℕ) :

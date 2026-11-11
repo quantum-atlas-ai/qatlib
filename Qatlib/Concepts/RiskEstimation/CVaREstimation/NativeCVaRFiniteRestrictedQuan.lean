@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedStat
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedQuan
+
+/-!
+# Native conditional risk readout and access counts
+
+This module transfers the finite CVaR guarantee to native rational decoding. It bounds the
+number of sampling calls on every supported output and records the resulting forward, backward,
+query, and gate counts.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `riskNativeCVaRFinite`: The native CVaR procedure satisfies its error guarantee and
+  supportwise sampling-call bound under the stated quantile margin conditions; see
+  [WoernerEgger2019].
+* `risk_native_cvar_access_ledger`: For every supported native CVaR output, the forward and
+  backward access counts and counted-circuit query and gate counts have the displayed exact
+  formulas, and the number of calls is at most `Nat.clog 2 xs.length + 3`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,6 +56,8 @@ namespace Qatlib.Concepts.RiskEstimation.CVaREstimation
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The native median tail-numerator estimate has failure probability at most `(8 / 9) ^ r`
+outside the combined amplitude, rotation, and decoding error window. -/
 theorem risk_native_numerator_tail {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (t : ℚ) (k bits M r : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hloss : ∀ i, 0 ≤ loss i ∧ loss i ≤ 1) (hM : 2 ≤ M) :
@@ -57,6 +83,8 @@ theorem risk_native_numerator_tail {I : Type} [Fintype I] [DecidableEq I]
       (∑ i, BornProb (A *ᵥ Ket j) i*(riskTailPayoff loss t i : ℝ))
     linarith
 
+/-- Every supported native CVaR output records at most `Nat.clog 2 xs.length + 3` sampling
+calls. -/
 theorem risk_native_cvar_support_calls {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q eps : ℚ)
     (k bits M r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -73,6 +101,8 @@ theorem risk_native_cvar_support_calls {I : Type} [Fintype I] [DecidableEq I]
   (try dsimp only)
   omega
 
+/-- The native CVaR procedure satisfies its error guarantee and supportwise sampling-call bound
+under the stated quantile margin conditions; see [WoernerEgger2019]. -/
 theorem riskNativeCVaRFinite : NativeCVaRFiniteRestricted := by
   intro I _ _ A j loss xs q eps k bits M r v hA hM hloss hxs hs hsupport hq0 hq1 heps hv hwindow habove hbelow hp
   change Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
@@ -140,6 +170,9 @@ theorem riskNativeCVaRFinite : NativeCVaRFiniteRestricted := by
       congr 1
       ring
 
+/-- For every supported native CVaR output, the forward and backward access counts and
+counted-circuit query and gate counts have the displayed exact formulas, and the number of
+calls is at most `Nat.clog 2 xs.length + 3`. -/
 theorem risk_native_cvar_access_ledger {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q eps t : ℚ)
     (k bits M r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)

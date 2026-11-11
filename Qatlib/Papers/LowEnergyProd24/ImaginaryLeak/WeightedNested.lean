@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.LocalConjugation
 import Qatlib.Papers.LowEnergyProd24.LocalModel.Expansion
 import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdNested
+
+/-!
+# Weighted bounds for local and grouped commutators
+
+Imaginary-time weighting commutes with finite sums, allowing local commutator estimates to pass
+to grouped commutators. At weight `1 / (2 * J * k * d)`, `actual_weighted_nested` combines the
+connected-word count with the seed-group size to obtain an explicit factorial majorant. See
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_weighted_local_nested`: For positive `J`, `k`, and `d`, the weighted norm of a local
+  nested commutator of order `w.length` is at most `(2 * J)^(w.length + 1)`.
+* `actual_weighted_group_nested`: For positive `J`, `k`, and `d`, the weighted norm of grouped
+  commutators around one local seed is at most `(k * d)^xs.length * xs.length! * (2 *
+  J)^(xs.length + 1)`.
+* `actual_weighted_nested`: For positive `J`, `k`, and `d` and at most `L` seed labels, the
+  weighted grouped nested commutator norm is at most `L * (k * d)^xs.length * xs.length! * (2 *
+  J)^(xs.length + 1)`.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +44,7 @@ open Qatlib.Papers.LowEnergyProd24.LocalModel
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- Weighting the sum of a finite matrix list equals the sum of the weighted matrices. -/
 theorem weighted_list_sum {α : Type*} (h : Hamiltonian N R M k d J) (lam : ℝ)
     (l : List α) (A : α → Matrix (Register N) (Register N) ℂ) :
     weighted h.total (l.map A).sum lam = (l.map (fun a => weighted h.total (A a) lam)).sum := by
@@ -28,6 +54,8 @@ theorem weighted_list_sum {α : Type*} (h : Hamiltonian N R M k d J) (lam : ℝ)
     simp only [List.map_cons, List.sum_cons, weighted, mul_add, add_mul] at *
     rw [ih]
 
+/-- For positive `J`, `k`, and `d`, the weighted norm of a local nested commutator of order
+`w.length` is at most `(2 * J)^(w.length + 1)`. -/
 theorem actual_weighted_local_nested (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (seed : Fin R) (w : List (Fin R)) :
     ‖weighted h.total (h.nested seed w) (1/(2*J*k*d))‖ ≤ (2*J)^(w.length+1) := by
@@ -40,6 +68,8 @@ theorem actual_weighted_local_nested (h : Hamiltonian N R M k d J)
       exact h.nested_norm hJ.le seed w
     _ = _ := (mul_pow _ _ _).symm
 
+/-- For positive `J`, `k`, and `d`, the weighted norm of grouped commutators around one local
+seed is at most `(k * d)^xs.length * xs.length! * (2 * J)^(xs.length + 1)`. -/
 theorem actual_weighted_group_nested (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (seed : Fin R) (xs : List (Fin M)) :
     ‖weighted h.total (h.groupNested seed xs) (1/(2*J*k*d))‖ ≤
@@ -64,6 +94,8 @@ theorem actual_weighted_group_nested (h : Hamiltonian N R M k d J)
       gcongr
       exact h.words_count seed xs
 
+/-- A nested commutator around a grouped seed is the sum of the grouped nested commutators
+around its individual local labels. -/
 theorem actual_nested_seed_sum (h : Hamiltonian N R M k d J) (seed : Fin M) (xs : List (Fin M)) :
     RetainedError.nested h seed xs = ∑ i ∈ h.labels seed, h.groupNested i xs := by
   induction xs with
@@ -72,6 +104,8 @@ theorem actual_nested_seed_sum (h : Hamiltonian N R M k d J) (seed : Fin M) (xs 
     simp only [RetainedError.nested, ih, Finset.mul_sum, Finset.sum_mul,
       ← Finset.sum_sub_distrib, Hamiltonian.groupNested]
 
+/-- For positive `J`, `k`, and `d` and at most `L` seed labels, the weighted grouped nested
+commutator norm is at most `L * (k * d)^xs.length * xs.length! * (2 * J)^(xs.length + 1)`. -/
 theorem actual_weighted_nested (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ) (seed : Fin M)
     (hL : (h.labels seed).card ≤ L) (xs : List (Fin M)) :

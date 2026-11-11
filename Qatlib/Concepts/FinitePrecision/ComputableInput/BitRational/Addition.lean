@@ -5,24 +5,55 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Product
+
+/-!
+# Correctness and costs of rational addition
+
+This module verifies signed-magnitude addition and uses the bit-level arithmetic routines to
+establish rational addition and subtraction specifications. The results track the bit size of
+rational height and an explicit gate-count cap, providing arithmetic components for the
+computational setting of [KitaevShenVyalyi2002].
+
+The height parameter `H` combines the two input height bit sizes with one additional bit. Both
+`binomialRatAddBits` and `binomialRatSubBits` return the exact rational result with output
+height bit size at most `H` and cost bounded by `binomialRatAddGateCap H`.
+
+## Main statements
+
+* `binomial_signed_add_bits`: signed-magnitude addition is correct with a linear width-based
+  cost bound.
+* `binomial_rat_add_bits`: exact rational addition satisfies the height and gate-count bounds.
+* `binomial_rat_sub_bits`: exact rational subtraction satisfies the same bounds.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- The absolute natural value of a signed magnitude is its magnitude. -/
 private theorem magnitude_abs (s : Bool) (n : ℕ) :
     (binomialSignedMagnitude s n).natAbs = n := by
   cases s <;> simp [binomialSignedMagnitude]
 
+/-- Signed-magnitude encoding with a fixed sign preserves addition of natural magnitudes. -/
 private theorem same_sum (s : Bool) (a b : ℕ) :
     binomialSignedMagnitude s (a+b) = binomialSignedMagnitude s a+binomialSignedMagnitude s b := by
   cases s <;> simp [binomialSignedMagnitude,add_comm]
 
+/-- For opposite signs and `a ≤ b`, encoding `b - a` with the second sign equals the sum of the
+two signed magnitudes. -/
 private theorem opposite_sub (s t : Bool) (a b : ℕ) (hs : s ≠ t) (hab : a ≤ b) :
     binomialSignedMagnitude t (b-a) = binomialSignedMagnitude s a+binomialSignedMagnitude t b := by
   cases s <;> cases t <;> simp_all [binomialSignedMagnitude] <;> omega
 
+/-- Signed bit-list addition returns the sum of the encoded integers, bounds its absolute value
+by the sum of magnitudes, and uses at most `1 + 11 * max xs.length ys.length` gates. -/
 theorem binomial_signed_add_bits (s t : Bool) (xs ys : List Bool) :
     let r := binomialSignedAddBits s t xs ys
     r.1 = binomialSignedMagnitude s (binomialBitValue xs)+
@@ -84,12 +115,14 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- The bit size of a natural-number product is at most the sum of the operand bit sizes. -/
 private theorem size_product (a b : ℕ) : (a*b).size ≤ a.size+b.size := by
   apply Nat.size_le.mpr
   rw [pow_add]
   exact (Nat.mul_le_mul_left a (Nat.lt_size_self b).le).trans_lt
     (mul_lt_mul_of_pos_right (Nat.lt_size_self a) (by positivity))
 
+/-- The bit size of a natural-number sum is at most one plus the maximum operand bit size. -/
 private theorem size_sum (a b : ℕ) : (a+b).size ≤ 1+max a.size b.size := by
   have ha := Nat.size_le.mp (le_max_left a.size b.size)
   have hb := Nat.size_le.mp (le_max_right a.size b.size)
@@ -98,10 +131,14 @@ private theorem size_sum (a b : ℕ) : (a+b).size ≤ 1+max a.size b.size := by
   norm_num only [pow_one]
   omega
 
+/-- The bit sizes of a rational number's absolute numerator and denominator are both bounded by
+the bit size of its rational height. -/
 private theorem widths (a : ℚ) : a.num.natAbs.size ≤ (binomialRatHeight a).size ∧
     a.den.size ≤ (binomialRatHeight a).size :=
   ⟨Nat.size_le_size (le_max_left _ _),Nat.size_le_size (le_max_right _ _)⟩
 
+/-- Encoding an integer's absolute value with the Boolean test for negativity recovers the
+integer. -/
 private theorem signed_abs (a : ℤ) : binomialSignedMagnitude (decide (a < 0)) a.natAbs = a := by
   by_cases ha : a < 0
   · have h := Int.natAbs_of_nonneg (by omega : 0 ≤ -a)
@@ -110,10 +147,14 @@ private theorem signed_abs (a : ℤ) : binomialSignedMagnitude (decide (a < 0)) 
     omega
   · simp [binomialSignedMagnitude,ha,Int.natAbs_of_nonneg (by omega : 0 ≤ a)]
 
+/-- Signed-magnitude encoding of a natural product equals the signed first factor multiplied by
+the second factor. -/
 private theorem signed_scale (s : Bool) (a b : ℕ) :
     binomialSignedMagnitude s (a*b) = binomialSignedMagnitude s a*(b : ℤ) := by
   cases s <;> simp [binomialSignedMagnitude]
 
+/-- If both natural operands have bit size at most `W`, bit-list multiplication costs at most
+`11 * W ^ 2`. -/
 private theorem mul_cost (a b W : ℕ) (ha : a.size ≤ W) (hb : b.size ≤ W) :
     (binomialBitMul a.bits b.bits).2 ≤ 11*W^2 := by
   have h := (binomial_bit_mul a.bits b.bits).2.2
@@ -122,6 +163,9 @@ private theorem mul_cost (a b W : ℕ) (ha : a.size ≤ W) (hb : b.size ≤ W) :
   have hp := Nat.mul_le_mul ha hb
   nlinarith
 
+/-- Bit-level rational addition returns `a + b`, with height bit size at most `H` and gate count
+at most `binomialRatAddGateCap H`, where `H` is one plus the sum of the input height bit
+sizes. -/
 theorem binomial_rat_add_bits (a b : ℚ) :
     let H := 1+(binomialRatHeight a).size+(binomialRatHeight b).size
     let r := binomialRatAddBits a b
@@ -190,6 +234,8 @@ theorem binomial_rat_add_bits (a b : ℚ) :
     unfold binomialRatAddGateCap
     omega
 
+/-- Bit-level rational subtraction returns `a - b`, with height bit size at most `H` and the
+rational-addition gate cap, where `H` is one plus the sum of the input height bit sizes. -/
 theorem binomial_rat_sub_bits (a b : ℚ) :
     let H := 1+(binomialRatHeight a).size+(binomialRatHeight b).size
     let r := binomialRatSubBits a b

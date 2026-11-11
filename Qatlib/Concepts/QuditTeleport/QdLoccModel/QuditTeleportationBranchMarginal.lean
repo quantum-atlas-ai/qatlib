@@ -19,6 +19,36 @@ import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationCommBound
+
+/-!
+# Qudit branch marginals and outcome counts
+
+The lemmas establish linearity and positivity of `qdBranchMarginal`, and expand pure-resource
+branches into row Kraus operators `qdRowKraus`. Perfect recovery with unitary corrections forces
+each corrected row Kraus operator to be scalar.
+
+These identities yield `qdCard_le_of_perfect`, bounding the number of outcomes below by `n²`,
+together with communication bounds for single and composite qudit systems. These results develop
+resource and communication properties of teleportation [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `qdBranchMarginal_outerProduct_kraus`: For a pure resource, the branch marginal is the sum of
+  conjugation branches associated with all row Kraus operators.
+* `qdRowKraus_scalar`: In nonzero dimension, perfect teleportation of a pure resource with
+  unitary corrections makes every corrected row Kraus operator a scalar multiple of the
+  identity.
+* `qdCard_le_of_perfect`: In nonzero dimension, perfect teleportation with a pure resource and
+  unitary corrections requires at least `n²` outcomes [BennettEtAl1993Teleportation].
+* `clause4_clause2`: Perfect teleportation with a normalized pure resource and unitary
+  corrections gives outcome and bit-count bounds, and message consistency forces equal
+  conjugation maps for equal messages [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -42,12 +72,15 @@ namespace Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Matrix
 open scoped BigOperators ComplexOrder
 
+/-- The inverse Bob-first register equivalence sends `(i, finProdFinEquiv x)` to `(x, i)`. -/
 private theorem qdBobFirst_symm_apply {n : ℕ} (i : Fin n) (x : Fin n × Fin n) :
     (qdBobFirstEquiv n).symm (i, finProdFinEquiv x) = (x, i) := by
   have h : qdBobFirstEquiv n (x, i) = (i, finProdFinEquiv x) := rfl
   rw [← h]
   exact (qdBobFirstEquiv n).symm_apply_apply _
 
+/-- The Bob-first partial trace has entry `(i, j)` equal to the sum of `X (x, i) (x, j)` over
+Alice's register pair. -/
 private theorem qdBobFirst_sum {n : ℕ}
     (X : Matrix ((Fin n × Fin n) × Fin n) ((Fin n × Fin n) × Fin n) ℂ) (i j : Fin n) :
     PartialTrace (relabelGate (qdBobFirstEquiv n) X) i j
@@ -56,10 +89,13 @@ private theorem qdBobFirst_sum {n : ℕ}
   rw [← (finProdFinEquiv (m := n) (n := n)).sum_comp]
   simp only [qdBobFirst_symm_apply]
 
+/-- Complex conjugation distributes through a conditional expression. -/
 private theorem star_ite' {c : Prop} [Decidable c] (a b : ℂ) :
     star (if c then a else b) = if c then star a else star b := by
   by_cases hc : c <;> simp [hc]
 
+/-- An entry of `qdBranchMarginal` expands as the finite sum of the measurement, input,
+resource, and conjugate-measurement entries. -/
 theorem qdBranchMarginal_apply {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (ρ : Operator n) (i j : Fin n) :
     qdBranchMarginal K ω ρ i j =
@@ -80,6 +116,7 @@ theorem qdBranchMarginal_apply {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × 
   simp only [mul_ite, mul_one, mul_zero, star_ite', star_zero, ite_mul, zero_mul]
   simp only [Finset.sum_ite_eq, Finset.mem_univ, if_true]
 
+/-- The branch marginal is additive in its input operator. -/
 theorem qdBranchMarginal_add {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (A B : Operator n) :
     qdBranchMarginal K ω (A + B)
@@ -88,6 +125,7 @@ theorem qdBranchMarginal_add {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fi
     Matrix.reindex_apply, Matrix.submatrix_add, Pi.add_apply,
     Matrix.mul_add, Matrix.add_mul, partialTrace_add]
 
+/-- The branch marginal commutes with complex scalar multiplication of its input operator. -/
 theorem qdBranchMarginal_smul {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (c : ℂ) (A : Operator n) :
     qdBranchMarginal K ω (c • A) = c • qdBranchMarginal K ω A := by
@@ -95,6 +133,8 @@ theorem qdBranchMarginal_smul {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × F
     Matrix.reindex_apply, Matrix.submatrix_smul, Pi.smul_apply,
     Matrix.mul_smul, Matrix.smul_mul, partialTrace_smul]
 
+/-- A positive semidefinite resource and positive semidefinite input produce a positive
+semidefinite branch marginal. -/
 theorem qdBranchMarginal_positive {n : ℕ}
     (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -107,6 +147,7 @@ theorem qdBranchMarginal_positive {n : ℕ}
   simpa only [Matrix.conjTranspose_conjTranspose] using
     hj.conjTranspose_mul_mul_same (TensorGate K (1 : Operator n))ᴴ
 
+/-- Conjugating a branch marginal by `U` preserves additivity in the input operator. -/
 theorem qdCorrectedBranch_add {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (U : Operator n) (A B : Operator n) :
     U * qdBranchMarginal K ω (A + B) * U.conjTranspose
@@ -114,12 +155,16 @@ theorem qdCorrectedBranch_add {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × F
         + U * qdBranchMarginal K ω B * U.conjTranspose := by
   rw [qdBranchMarginal_add, Matrix.mul_add, Matrix.add_mul]
 
+/-- Conjugating a branch marginal by `U` preserves compatibility with complex scalar
+multiplication of the input. -/
 theorem qdCorrectedBranch_smul {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (U : Operator n) (c : ℂ) (A : Operator n) :
     U * qdBranchMarginal K ω (c • A) * U.conjTranspose
       = c • (U * qdBranchMarginal K ω A * U.conjTranspose) := by
   rw [qdBranchMarginal_smul, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- Conjugating the branch marginal of a positive semidefinite resource and input by any matrix
+`U` preserves positive semidefiniteness. -/
 theorem qdCorrectedBranch_positive {n : ℕ}
     (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -128,6 +173,7 @@ theorem qdCorrectedBranch_positive {n : ℕ}
   have h := (qdBranchMarginal_positive K ω hω ρ hρ).conjTranspose_mul_mul_same U.conjTranspose
   simpa only [Matrix.conjTranspose_conjTranspose] using h
 
+/-- Multiplication by `outerProduct φ` sends `v` to `(star φ ⬝ᵥ v) • φ`. -/
 private theorem outerProduct_mulVec {I : Type} [Fintype I] [DecidableEq I] (φ : QState I)
     (v : I → ℂ) : outerProduct φ *ᵥ v = (star φ ⬝ᵥ v) • φ := by
   ext i
@@ -135,6 +181,8 @@ private theorem outerProduct_mulVec {I : Type} [Fintype I] [DecidableEq I] (φ :
   simp only [mul_assoc, ← Finset.mul_sum]
   exact mul_comm _ _
 
+/-- If both `A` and `outerProduct φ - A` are positive semidefinite, then `A` is a complex scalar
+multiple of `outerProduct φ`. -/
 theorem psd_le_outerProduct {I : Type} [Fintype I] [DecidableEq I] (φ : QState I)
     (A : Matrix I I ℂ) (hA : A.PosSemidef) (hB : (outerProduct φ - A).PosSemidef) :
     ∃ c : ℂ, A = c • outerProduct φ := by
@@ -220,6 +268,8 @@ theorem psd_le_outerProduct {I : Type} [Fintype I] [DecidableEq I] (φ : QState 
     simp only [Matrix.smul_apply, smul_eq_mul, outerProduct_apply]
     exact mul_assoc _ _ _
 
+/-- In a perfect protocol with unitary corrections and a positive semidefinite resource, each
+corrected branch on a pure input is a scalar multiple of that input's outer product. -/
 theorem qdBranch_parallel {n : ℕ} {κ : Type} [Fintype κ] (P : QdLoccTeleport n κ)
     (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
@@ -254,17 +304,23 @@ open Matrix
 open scoped BigOperators ComplexOrder
 open scoped BigOperators
 
+/-- The coefficient matrix of a bipartite vector, with entry `(i, a)` equal to `v (a, i)`. -/
 noncomputable def qdMatW {n : ℕ} (v : Fin n × Fin n → ℂ) : Matrix (Fin n) (Fin n) ℂ :=
   fun i a => v (a, i)
 
+/-- The matrix obtained from row `u` of `K`, with entry `(a, c)` equal to `K u (c, a)`. -/
 noncomputable def qdMatA {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (u : Fin n × Fin n) :
     Matrix (Fin n) (Fin n) ℂ :=
   fun a c => K u (c, a)
 
+/-- The row Kraus operator `qdMatW Ψ * qdMatA K u` associated with resource vector `Ψ` and
+measurement row `u`. -/
 noncomputable def qdRowKraus {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (Ψ : QState (Fin n × Fin n)) (u : Fin n × Fin n) : Operator n :=
   qdMatW Ψ * qdMatA K u
 
+/-- Reordering the complex factors in a pure-resource branch summand puts the resource
+amplitudes next to the corresponding measurement entries. -/
 private theorem qd_ac1 {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (Ψ : QState (Fin n × Fin n)) (ρ : Operator n) (i j x x1 x2 x3 x4 x5 : Fin n) :
     K (x, x1) (x4, x5) * (ρ x4 x2 * (Ψ (x5, i) * (starRingEnd ℂ) (Ψ (x3, j))))
@@ -275,12 +331,16 @@ private theorem qd_ac1 {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) �
   rw [h]
   ac_rfl
 
+/-- The six-index complex sum expressing entry `(i, j)` of a pure-resource branch marginal in
+row Kraus form. -/
 private noncomputable def qdMaster {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (Ψ : QState (Fin n × Fin n)) (ρ : Operator n) (i j : Fin n) : ℂ :=
   ∑ x : Fin n, ∑ x1 : Fin n, ∑ x2 : Fin n, ∑ x3 : Fin n, ∑ x4 : Fin n, ∑ x5 : Fin n,
     Ψ (x5, i) * K (x, x1) (x4, x5) * ρ x4 x2
       * (star (K (x, x1) (x2, x3)) * star (Ψ (x3, j)))
 
+/-- For a pure resource, the branch marginal is the sum of conjugation branches associated with
+all row Kraus operators. -/
 theorem qdBranchMarginal_outerProduct_kraus {n : ℕ}
     (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (Ψ : QState (Fin n × Fin n))
     (ρ : Operator n) :
@@ -313,6 +373,8 @@ theorem qdBranchMarginal_outerProduct_kraus {n : ℕ}
   ext i j
   exact hpt i j
 
+/-- In nonzero dimension, perfect teleportation of a pure resource with unitary corrections
+makes every corrected row Kraus operator a scalar multiple of the identity. -/
 theorem qdRowKraus_scalar {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (Ψ : QState (Fin n × Fin n))
@@ -355,6 +417,8 @@ theorem qdRowKraus_scalar {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   obtain ⟨z, hz⟩ := hsc (k, u)
   exact ⟨z, hz⟩
 
+/-- If a unitary correction sends a row Kraus operator to `z • 1`, the row Kraus operator equals
+`z` times the correction's adjoint. -/
 theorem qdRowKraus_eq {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (Ψ : QState (Fin n × Fin n)) (k : κ) (u : Fin n × Fin n) (z : ℂ)
@@ -372,6 +436,8 @@ theorem qdRowKraus_eq {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     _ = (U k)ᴴ * (z • (1 : Operator n)) := congrArg _ h
     _ = z • (U k)ᴴ := hR
 
+/-- In nonzero dimension, perfect teleportation with a pure resource and unitary corrections
+requires at least `n²` outcomes [BennettEtAl1993Teleportation]. -/
 theorem qdCard_le_of_perfect {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (Ψ : QState (Fin n × Fin n))
@@ -498,6 +564,7 @@ theorem qdCard_le_of_perfect {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     _ = V.rank := h2
     _ ≤ Fintype.card κ := h3
 
+/-- No vector indexed by an empty finite type is normalized. -/
 private theorem qdNormalized_false_empty {I : Type} [Fintype I] [DecidableEq I] [IsEmpty I]
     (Ψ : QState I) : ¬ Normalized Ψ := by
   intro h
@@ -507,6 +574,9 @@ private theorem qdNormalized_false_empty {I : Type} [Fintype I] [DecidableEq I] 
   rw [hz] at h1
   exact zero_ne_one h1
 
+/-- Perfect teleportation with a normalized pure resource and unitary corrections gives outcome
+and bit-count bounds, and message consistency forces equal conjugation maps for equal
+messages [BennettEtAl1993Teleportation]. -/
 theorem clause4_clause2 : ∀ (n : ℕ) (κ : Type) (_hκ : Fintype κ) (P : QdLoccTeleport n κ)
     (U : κ → Operator n) (Ψ : QState (Fin n × Fin n)),
     Normalized Ψ → QdLoccUnitaryCorr P U → QdLoccPerfect P (outerProduct Ψ) →
@@ -525,6 +595,9 @@ theorem clause4_clause2 : ∀ (n : ℕ) (κ : Type) (_hκ : Fintype κ) (P : QdL
       clause4_clause2_counting_reduce n κ hcard,
       qdCommCost_of_card P hcard⟩
 
+/-- For dimension `n ^ k` with `k ≥ 1`, perfect teleportation with a normalized pure resource
+and unitary corrections gives the corresponding squared-dimension outcome and bit-count
+bounds [BennettEtAl1993Teleportation]. -/
 theorem clause4_clause5 : ∀ (n k : ℕ) (_hk : 1 ≤ k) (κc : Type) (_hc : Fintype κc)
     (P : QdLoccTeleport (n ^ k) κc) (U : κc → Operator (n ^ k))
     (Ψ : QState (Fin (n ^ k) × Fin (n ^ k))),

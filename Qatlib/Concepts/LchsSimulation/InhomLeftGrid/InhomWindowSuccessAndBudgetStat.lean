@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionStat
+
+/-!
+# Statement of inhomogeneous LCHS window guarantees
+
+`InhomogeneousWindowSuccessAndBudget` specifies the iteration distribution, marked success, and
+word budgets for a compiled inhomogeneous LCHS approximation. It assumes a positive
+solution-norm lower bound τ, approximation error ε at most τ/2, and the stated unitary
+preparation and generator conditions. This gives a concrete finite-grid preparation estimate
+related to [AnLiuLin2023].
+
+## Main statements
+
+* `InhomogeneousWindowSuccessAndBudget`: normalized iteration weights, success at least 1/8, and
+  explicit finite word bounds.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -28,6 +48,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that the inhomogeneous LCHS window has normalized iteration weights, length
+at most `2*α/τ + 1`, average marked success at least 1/8, and separate input and selection
+word-count bounds of `2*m + 1` under the stated approximation hypotheses. -/
 def InhomogeneousWindowSuccessAndBudget : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s t ε τ : ℝ) (K N Mt : ℕ) (B : Matrix I I ℂ) (P : Fin Mt → Matrix I I ℂ)

@@ -10,8 +10,27 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma1Stat
 
+/-!
+# Amplitude amplification on good and bad components
+
+`bhmt_amplitude_amplification_lemma1` computes the Grover iterate on the good and bad components
+of a prepared unit vector. The conjugation identity transports the reflection about the initial
+basis vector through the preparation isometry. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `bhmt_amplitude_amplification_lemma1`: The Grover iterate acts on the good and bad components
+  by the two coefficient formulas of [Brassard et al., Lemma 1][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore
 
+/-- Conjugating the rank one reflection expression about `ket0` by `A` gives the corresponding
+expression about `A ket0`. See [BrassardHoyerTapp1998Counting]. -/
 theorem bhmt_amplitude_amplification_lemma1_conjugation
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (A : H ≃ₗᵢ[ℂ] H) (ket0 v : H) :
@@ -19,6 +38,8 @@ theorem bhmt_amplitude_amplification_lemma1_conjugation
       = v - (2 * inner ℂ (A ket0) v) • (A ket0) := by
   rw [map_sub, map_smul, LinearIsometryEquiv.apply_symm_apply, ← A.inner_map_eq_flip]
 
+/-- The Grover iterate acts on the good and bad components by the two coefficient formulas of
+[Brassard et al., Lemma 1][BrassardEtAl2002]. -/
 theorem bhmt_amplitude_amplification_lemma1 :
     ∀ (X : Set ℤ) (hzero : (0 : ℤ) ∈ X)
     (H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]

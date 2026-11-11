@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NoncommHSP98.MainResults.Lemma4Born
+
+/-!
+# Dihedral subgroup reduction and query accounting
+
+This module equips `DihPt` with its group structure and studies the rotation subgroup `Rot`.
+Generators of the rotational part, together with one reflection when present, generate the
+hidden subgroup. For a divisor `M` of `N`, `redD` reduces the rotation coordinate modulo `M`;
+the coset promise descends when the hidden subgroup contains its kernel.
+
+The final results combine reflection recovery with rotational generators and give explicit
+real-valued probability and logarithmic query estimates for the reduction. This development
+accompanies [EttingerHoyer1999].
+
+## Main statements
+
+* `closure_union_generates`: rotational generators and a reflection generate the subgroup.
+* `quotient_promise`: the hiding promise descends through `redD`.
+* `recovery_from_order_two`: combines quotient-image equality and subgroup generation.
+* `query_accounting`: bounds the product of the repetition factor and per-run query estimate.
+
+## References
+
+* [Ettinger and Hoyer, 1999][EttingerHoyer1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -17,9 +42,12 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.NoncommHSP98.MainResults
 
+/-- The dihedral inverse, negating the rotation coordinate exactly when the binary coordinate is
+zero. -/
 def dihInv (N : ℕ) (x : DihPt N) : DihPt N :=
   (if x.2 = 0 then -x.1 else x.1, x.2)
 
+/-- Dihedral coordinate multiplication is associative. -/
 lemma dihMul_assoc (N : ℕ) (x y z : DihPt N) :
     dihMul N (dihMul N x y) z = dihMul N x (dihMul N y z) := by
   obtain ⟨a1, b1⟩ := x; obtain ⟨a2, b2⟩ := y; obtain ⟨a3, b3⟩ := z
@@ -30,9 +58,11 @@ lemma dihMul_assoc (N : ℕ) (x y z : DihPt N) :
     ext <;> simp
   all_goals ring
 
+/-- Adding the residue of two to a binary residue leaves it unchanged. -/
 lemma zmod2_two_add (b : ZMod 2) : (2 : ZMod 2) + b = b := by
   rcases zmod2_cases b with h | h <;> subst h <;> decide
 
+/-- The dihedral inverse multiplied on the left cancels to `(0, 0)`. -/
 lemma dihInv_mul_cancel (N : ℕ) (x : DihPt N) : dihMul N (dihInv N x) x = (0, 0) := by
   obtain ⟨a, b⟩ := x
   rcases zmod2_cases b with h | h <;> subst h <;>
@@ -50,9 +80,11 @@ instance dihGroup (N : ℕ) : Group (DihPt N) where
   mul_one := dihMul_zero_right N
   inv_mul_cancel := dihInv_mul_cancel N
 
+/-- Every binary residue adds to itself to give zero. -/
 lemma zmod2_add_self (b : ZMod 2) : b + b = 0 := by
   rcases zmod2_cases b with h | h <;> subst h <;> simp
 
+/-- The dihedral rotation subgroup consisting of points with binary coordinate zero. -/
 def Rot (N : ℕ) : Subgroup (DihPt N) where
   carrier := {x | x.2 = 0}
   one_mem' := rfl
@@ -67,6 +99,7 @@ def Rot (N : ℕ) : Subgroup (DihPt N) where
     change x.2 = 0
     exact hx
 
+/-- A dihedral point belongs to `Rot N` exactly when its binary coordinate is zero. -/
 @[simp] lemma mem_Rot {N : ℕ} {x : DihPt N} : x ∈ Rot N ↔ x.2 = 0 := Iff.rfl
 
 instance rotNormal (N : ℕ) : (Rot N).Normal where
@@ -76,6 +109,7 @@ instance rotNormal (N : ℕ) : (Rot N).Normal where
     have hn' : n.2 = 0 := hn
     rw [hn', add_zero, zmod2_add_self]
 
+/-- Multiplying `x` on the right by the inverse of `y` and then by `y` recovers `x`. -/
 lemma dihMul_inv_right (N : ℕ) (x y : DihPt N) :
     dihMul N (dihMul N x (dihInv N y)) y = x := by
   obtain ⟨a, b⟩ := x; obtain ⟨c, d⟩ := y
@@ -84,11 +118,13 @@ lemma dihMul_inv_right (N : ℕ) (x y : DihPt N) :
     simp only [dihMul, dihInv, zmod2_one_add_one, zero_add, add_zero] <;>
     ext <;> simp
 
+/-- A dihedral point multiplied by its inverse is `(0, 0)`. -/
 lemma dihMul_inv_right_cancel (N : ℕ) (x : DihPt N) :
     dihMul N x (dihInv N x) = (0, 0) := by
   obtain ⟨a, b⟩ := x
   rcases zmod2_cases b with hb | hb <;> subst hb <;> simp [dihMul, dihInv]
 
+/-- The product of one reflection in `H` with the inverse of another belongs to `H ⊓ Rot N`. -/
 theorem mul_inv_mem_inter_rot {N : ℕ} {H : Subgroup (DihPt N)} {h k : DihPt N}
     (hh : h ∈ H) (hk : k ∈ H) (hb : h.2 = 1) (kb : k.2 = 1) :
     dihMul N h (dihInv N k) ∈ H ⊓ Rot N := by
@@ -97,6 +133,8 @@ theorem mul_inv_mem_inter_rot {N : ℕ} {H : Subgroup (DihPt N)} {h k : DihPt N}
   · show (dihMul N h (dihInv N k)).2 = 0
     simp [dihMul, dihInv, hb, kb]
 
+/-- If `X1` generates the rotational part of `H`, adjoining any reflection in `H` generates all
+of `H`. -/
 theorem closure_union_generates {N : ℕ} {H : Subgroup (DihPt N)}
     (X1 : Set (DihPt N)) (hX1 : X1 ⊆ H ⊓ Rot N)
     (hgen : Subgroup.closure X1 = H ⊓ Rot N)
@@ -127,12 +165,15 @@ theorem closure_union_generates {N : ℕ} {H : Subgroup (DihPt N)}
         (Subgroup.closure_mono (Set.subset_union_left) hmem)
         (Subgroup.subset_closure (Or.inr rfl))
 
+/-- If `H` equals its rotational part, any set generating that part already generates `H`. -/
 theorem closure_generates_of_rot_eq {N : ℕ} {H : Subgroup (DihPt N)}
     (X1 : Set (DihPt N)) (hgen : Subgroup.closure X1 = H ⊓ Rot N)
     (htriv : H = H ⊓ Rot N) :
     Subgroup.closure X1 = H := by
   rw [hgen, htriv, inf_assoc, inf_idem]
 
+/-- The hidden-subgroup promise restricts to the rotation subgroup with hidden subgroup `H ⊓ Rot
+N`. This is a reduction step for Theorem 2 of [EttingerHoyer1999]. -/
 theorem restrict_promise {N : ℕ} {H : Subgroup (DihPt N)} {R : Type*}
     {γ : DihPt N → R} (hγ : FulfillsPromise H γ) :
     (∀ x y, x ∈ Rot N → y ∈ Rot N →
@@ -153,30 +194,38 @@ theorem restrict_promise {N : ℕ} {H : Subgroup (DihPt N)} {R : Type*}
     rw [hx0, zero_add, hy0] at hsnd
     exact hsnd.symm
 
+/-- The reduction of a dihedral point from modulus `N` to a divisor `M`, preserving its binary
+coordinate. -/
 def redD (N M : ℕ) (_hM : M ∣ N) (x : DihPt N) : DihPt M :=
   ((ZMod.cast x.1 : ZMod M), x.2)
 
+/-- The first coordinate of `redD N M hM x` is the cast of `x.1` to `ZMod M`. -/
 @[simp] lemma redD_fst {N M : ℕ} (hM : M ∣ N) (x : DihPt N) :
     (redD N M hM x).1 = (ZMod.cast x.1 : ZMod M) := rfl
 
+/-- The map `redD` preserves the binary coordinate. -/
 @[simp] lemma redD_snd {N M : ℕ} (hM : M ∣ N) (x : DihPt N) :
     (redD N M hM x).2 = x.2 := rfl
 
+/-- The reduction map sends `(0, 0)` to `(0, 0)`. -/
 lemma redD_zero {N M : ℕ} (hM : M ∣ N) : redD N M hM (0, 0) = (0, 0) := by
   ext <;> simp [redD]
 
+/-- The map `redD` preserves dihedral multiplication. -/
 lemma redD_dihMul {N M : ℕ} (hM : M ∣ N) (x y : DihPt N) :
     redD N M hM (dihMul N x y) = dihMul M (redD N M hM x) (redD N M hM y) := by
   obtain ⟨a, b⟩ := x; obtain ⟨c, d⟩ := y
   rcases zmod2_cases b with hb | hb <;> subst hb <;>
     simp [redD, dihMul, ZMod.cast_add hM, ZMod.cast_neg hM]
 
+/-- The map `redD` commutes with dihedral inversion. -/
 lemma redD_dihInv {N M : ℕ} (hM : M ∣ N) (x : DihPt N) :
     redD N M hM (dihInv N x) = dihInv M (redD N M hM x) := by
   obtain ⟨a, b⟩ := x
   rcases zmod2_cases b with hb | hb <;> subst hb <;>
     simp [redD, dihInv, ZMod.cast_neg hM]
 
+/-- The reduction map `redD` is surjective. -/
 lemma redD_surjective {N M : ℕ} (hM : M ∣ N) :
     Function.Surjective (redD N M hM) := by
   intro y
@@ -188,6 +237,8 @@ lemma redD_surjective {N M : ℕ} (hM : M ∣ N) :
     exact ha
   · rfl
 
+/-- Two points have the same reduction exactly when their binary coordinates agree and their
+rotation-coordinate difference casts to zero modulo `M`. -/
 lemma redD_eq_iff {N M : ℕ} (hM : M ∣ N) {x y : DihPt N} :
     redD N M hM x = redD N M hM y ↔
       ZMod.castHom hM (ZMod M) (x.1 - y.1) = 0 ∧ x.2 = y.2 := by
@@ -205,6 +256,8 @@ lemma redD_eq_iff {N M : ℕ} (hM : M ∣ N) {x y : DihPt N} :
       exact sub_eq_zero.mp hsub
     · exact h2
 
+/-- If the kernel of `redD` is contained in `H`, an oracle fulfilling the promise for `H` is
+constant on every fiber of `redD`. -/
 theorem redD_fiber_const {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     (hker : ∀ x, redD N M hM x = (0, 0) → x ∈ H)
     {R : Type*} {γ : DihPt N → R} (hγ : FulfillsPromise H γ)
@@ -217,6 +270,8 @@ theorem redD_fiber_const {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
   show dihMul N x (dihMul N (dihInv N x) y) = y
   rw [← dihMul_assoc, dihMul_inv_right_cancel, dihMul_zero_left]
 
+/-- If the kernel of `redD` is contained in `H`, an oracle fulfilling the promise for `H`
+factors through a function on `DihPt M`. -/
 theorem exists_quotient_function {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     (hker : ∀ x, redD N M hM x = (0, 0) → x ∈ H)
     {R : Type*} {γ : DihPt N → R} (hγ : FulfillsPromise H γ) :
@@ -227,6 +282,7 @@ theorem exists_quotient_function {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt
   exact (redD_fiber_const hM hker hγ
     (Classical.choose_spec (redD_surjective hM (redD N M hM x))))
 
+/-- The image subgroup of `H` under reduction from modulus `N` to `M`. -/
 def imageSub (N M : ℕ) (hM : M ∣ N) (H : Subgroup (DihPt N)) :
     Subgroup (DihPt M) where
   carrier := redD N M hM '' (H : Set (DihPt N))
@@ -238,10 +294,14 @@ def imageSub (N M : ℕ) (hM : M ∣ N) (H : Subgroup (DihPt N)) :
     rintro _ ⟨x, hx, rfl⟩
     exact ⟨dihInv N x, H.inv_mem hx, redD_dihInv hM x⟩
 
+/-- Membership in `imageSub N M hM H` is equivalent to being the reduction of an element of `H`. -/
 @[simp] lemma mem_imageSub {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     {y : DihPt M} :
     y ∈ imageSub N M hM H ↔ ∃ x ∈ H, redD N M hM x = y := Iff.rfl
 
+/-- If the kernel of `redD` is contained in `H`, an oracle hiding `H` descends to a function
+hiding a subgroup of `DihPt M`. This is the quotient reduction used for Theorem 2 of
+[EttingerHoyer1999]. -/
 theorem quotient_promise {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     (hker : ∀ x, redD N M hM x = (0, 0) → x ∈ H)
     {R : Type*} {γ : DihPt N → R} (hγ : FulfillsPromise H γ) :
@@ -273,6 +333,8 @@ theorem quotient_promise {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     rw [← redD_dihMul]
     exact congrArg (redD N M hM) hhxy
 
+/-- If every rotation in `H` reduces to the identity, all reflections in `H` have the same
+reduced image. -/
 theorem image_second_one_unique {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     (hH1ker : ∀ x ∈ H, x.2 = 0 → redD N M hM x = (0, 0))
     {x y : DihPt N} (hx : x ∈ H) (hy : y ∈ H) (hx1 : x.2 = 1) (hy1 : y.2 = 1) :
@@ -285,6 +347,9 @@ theorem image_second_one_unique {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt 
   have hcongr := congrArg (fun z : DihPt M => dihMul M z (redD N M hM y)) hz
   simpa [dihMul_inv_right] using! hcongr
 
+/-- If rotational generators are known and all rotations in `H` reduce to the identity, any two
+reflections in `H` have the same reduced image, and adjoining one to the rotational
+generators generates `H`. See Theorem 2 of [EttingerHoyer1999]. -/
 theorem recovery_from_order_two {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt N)}
     (X1 : Set (DihPt N)) (hX1 : X1 ⊆ H ⊓ Rot N)
     (hgen : Subgroup.closure X1 = H ⊓ Rot N)
@@ -294,6 +359,8 @@ theorem recovery_from_order_two {N M : ℕ} (hM : M ∣ N) {H : Subgroup (DihPt 
   ⟨image_second_one_unique hM hH1ker hx hy hx1 hy1,
    closure_union_generates X1 hX1 hgen hx hx1⟩
 
+/-- For `N ≥ 2`, the product `(1 - 1 / N) * (1 - 1 / (2 * N))` is strictly greater than `1 - 2 /
+N`. See [EttingerHoyer1999]. -/
 theorem success_prob_gt {N : ℕ} (hN : 2 ≤ N) :
     1 - 2 / (N : ℝ) < (1 - 1 / (N : ℝ)) * (1 - 1 / (2 * (N : ℝ))) := by
   have hN0 : (0 : ℝ) < (N : ℝ) := by exact_mod_cast (by omega : 0 < N)
@@ -304,12 +371,16 @@ theorem success_prob_gt {N : ℕ} (hN : 2 ≤ N) :
   have hpos : 0 < 1 / (2 * (N : ℝ)) + 1 / (2 * (N : ℝ) ^ 2) := by positivity
   linarith
 
+/-- The real-valued repetition factor `log (2 * N) / log (2 * M)`. -/
 noncomputable def repCount (N M : ℕ) : ℝ :=
   Real.log (2 * (N : ℝ)) / Real.log (2 * (M : ℝ))
 
+/-- The per-run real query estimate `89 * log M / log 2 + 7`. -/
 noncomputable def perRun (M : ℕ) : ℝ :=
   89 * Real.log (M : ℝ) / Real.log 2 + 7
 
+/-- For `N ≥ 2` and `1 ≤ M ≤ N`, the repetition factor times the per-run estimate is at most `95
+* log (2 * N) / log 2`. -/
 theorem query_accounting {N M : ℕ} (hN : 2 ≤ N) (hM1 : 1 ≤ M) (_hMN : M ≤ N) :
     repCount N M * perRun M ≤ 95 * (Real.log (2 * (N : ℝ)) / Real.log 2) := by
   have h2 : 0 < Real.log 2 := Real.log_pos (by norm_num)

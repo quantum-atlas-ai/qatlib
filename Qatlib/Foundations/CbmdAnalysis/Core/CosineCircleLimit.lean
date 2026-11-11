@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineFiniteCircle
 import Mathlib.Order.Filter.AtTopBot.Field
 import Mathlib.Order.Filter.AtTopBot.Ring
+
+/-!
+# Vanishing cosine contour integrals
+
+This module proves that the cosine contour radii diverge and that the regulator is nonzero on
+each corresponding sphere. If a numerator is eventually bounded there by a fixed multiple of the
+regulator norm, the normalized contour integrals tend to zero. This supplies the limiting step
+for the cosine sampling representation in [WangEtAl2026].
+
+## Main statements
+
+* `cosineCircleRadius_tendsto`: the radii tend to infinity for positive parameters.
+* `cosineContourIntegrand_circle_le`: a rational bound for the integrand on a circle of radius
+  greater than one.
+* `cosineContour_circle_tendsto_zero`: the normalized integrals vanish under the eventual
+  comparison hypothesis.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -18,12 +40,15 @@ namespace CBMD
 open Complex Metric Set Filter
 open scoped Topology BigOperators
 
+/-- For positive `γ` and `τ`, the cosine contour radii tend to infinity. -/
 theorem cosineCircleRadius_tendsto {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) :
     Tendsto (cosineCircleRadius γ τ) atTop atTop := by
   exact ((tendsto_pow_atTop (by decide : (2 : ℕ) ≠ 0)).comp
     ((tendsto_natCast_atTop_atTop (R := ℝ)).atTop_mul_const Real.pi_pos)).atTop_div_const
       (mul_pos hγ (sq_pos_of_pos hτ))
 
+/-- For positive `γ` and `τ`, the cosine regulator is nonzero on every sphere with radius
+`cosineCircleRadius γ τ n`. -/
 theorem cosineRegulator_sphere_ne_zero {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (n : ℕ) (z : ℂ) (hz : z ∈ sphere 0 (cosineCircleRadius γ τ n)) :
     cosineRegulator γ τ z ≠ 0 := by
@@ -39,6 +64,9 @@ theorem cosineRegulator_sphere_ne_zero {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < �
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- If `‖U z‖ ≤ C * ‖cosineRegulator γ τ z‖` on a cosine circle of radius greater than one with
+positive parameters and `C ≥ 0`, the integrand norm is at most `‖cosineRegulator γ τ 1‖ * C
+/ (R * (R - 1))` there. -/
 theorem cosineContourIntegrand_circle_le {γ τ C : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (hC : 0 ≤ C) (U : ℂ → E) (n : ℕ) (hR : 1 < cosineCircleRadius γ τ n)
     (hU : ∀ z ∈ sphere 0 (cosineCircleRadius γ τ n),
@@ -71,6 +99,9 @@ theorem cosineContourIntegrand_circle_le {γ τ C : ℝ} (hγ : 0 < γ) (hτ : 0
       exact mul_le_mul_of_nonneg_left hd (by linarith)
     _ = _ := by ring
 
+/-- For positive parameters, an eventual bound of the numerator norm by a fixed nonnegative
+multiple of the regulator norm on cosine circles implies that the normalized contour
+integrals tend to zero. -/
 theorem cosineContour_circle_tendsto_zero {γ τ C : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (hC : 0 ≤ C) (U : ℂ → E)
     (hU : ∀ᶠ n : ℕ in atTop, ∀ z ∈ sphere 0 (cosineCircleRadius γ τ n),

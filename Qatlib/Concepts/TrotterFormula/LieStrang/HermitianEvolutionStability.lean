@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+
+/-!
+# Stability of Hermitian Hamiltonian evolution
+
+This module proves Lipschitz continuity of finite-dimensional Hamiltonian evolution with respect
+to the Hermitian generator, without requiring the two generators to commute. It also transfers
+the operator bound to trace-norm conjugation error with a finite reference system, using matrix
+and trace-norm techniques as in [Bhatia1997].
+
+## Main statements
+
+* `hermitian_evolution_noncommuting_stability_fintype`: the bound `|t| * ‖H - G‖` for arbitrary
+  finite matrix indices.
+* `hermitian_evolution_noncommuting_stability`: the operator-indexed version.
+* `hermitian_evolution_reference_stability`: the reference-system trace-norm bound.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +42,8 @@ set_option linter.unusedSimpArgs false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- For Hermitian matrices on any finite index type, the evolutions at time `t` differ in
+operator norm by at most `|t| * ‖H - G‖`. -/
 theorem hermitian_evolution_noncommuting_stability_fintype
     {I : Type*} [Fintype I] [DecidableEq I]
     (H G : Matrix I I ℂ) (t : ℝ) (hH : H.IsHermitian) (hG : G.IsHermitian) :
@@ -68,11 +92,15 @@ theorem hermitian_evolution_noncommuting_stability_fintype
   rw [hn] at hb
   simpa [f, U, V, A, B, HamiltonianEvolution] using! hb
 
+/-- For Hermitian operators `H` and `G`, their evolutions at time `t` differ by at most `|t| *
+‖H - G‖` in operator norm. -/
 theorem hermitian_evolution_noncommuting_stability
     (D : ℕ) (H G : Operator D) (t : ℝ) (hH : H.IsHermitian) (hG : G.IsHermitian) :
     ‖HamiltonianEvolution H t - HamiltonianEvolution G t‖ ≤ |t| * ‖H-G‖ :=
   hermitian_evolution_noncommuting_stability_fintype H G t hH hG
 
+/-- Conjugating any matrix `X` by the two Hermitian evolutions tensored with a reference
+identity gives trace-norm difference at most `2 * |t| * ‖H - G‖ * Matrix.traceNorm X`. -/
 theorem hermitian_evolution_reference_stability
     (D r : ℕ) (H G : Operator D) (t : ℝ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)

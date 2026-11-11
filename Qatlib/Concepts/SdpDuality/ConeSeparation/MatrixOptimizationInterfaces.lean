@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MatrixWeights.WeightsCore
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfacesDefs
 import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+/-!
+# Payoff and recorded-history interfaces for matrix optimization
+
+This module connects `payoffObservable` to measurement expectations and matrix multiplicative
+weights. It bounds changes in trace payoffs by trace norm, propagates state and recording errors
+through `recorded_history_regret`, and proves that a POVM with payoffs in `[0, 1]` defines a
+positive semidefinite contraction.
+
+These interfaces support the measurement and regret analysis used in quantum SDP algorithms
+[BrandaoSvore2017]. The feedforward results identify conditional payoff means on
+positive-probability instrument branches and show that zero-probability branches contribute zero
+weighted payoff.
+
+## Main statements
+
+* `payoff_error`: A matrix of operator norm at most one changes its real trace payoff by at most
+  the trace norm of the state difference.
+* `recorded_history_regret`: The matrix multiplicative weights regret bound gains the sum of
+  state trace-norm and recording errors.
+* `povm_payoff_mean` and `payoffObservable_psd_unit`: Relate the finite measurement mean to its
+  observable and prove positivity and norm bounds for unit-interval payoffs.
+* `feedforward_payoff_conditional_mean` and `feedforward_payoff_zero`: Evaluate payoff sums on
+  positive- and zero-probability branches.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -26,6 +56,8 @@ set_option warningAsError false
 noncomputable local instance optimizationMatrixCStar {J : Type} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- For a matrix `M` of operator norm at most one, the absolute difference of its real trace
+payoffs on `ρ` and `σ` is bounded by the trace norm of `ρ - σ`. -/
 theorem payoff_error {D : ℕ} (M ρ σ : Operator D) (hM : ‖M‖ ≤ 1) :
     |(Matrix.trace (M * ρ)).re - (Matrix.trace (M * σ)).re| ≤
       (ρ - σ).traceNorm := by
@@ -39,6 +71,10 @@ theorem payoff_error {D : ℕ} (M ρ σ : Operator D) (hM : ‖M‖ ≤ 1) :
       mul_le_mul_of_nonneg_right hM (Matrix.traceNorm_nonneg _)
     _ = _ := one_mul _
 
+/-- For Hermitian contraction payoffs and a density comparator, the recorded cumulative regret
+is at most `η * T + Real.log D / η + ∑ t < T, (ξ t + ζ t)`. The hypotheses bound each
+approximate state's trace-norm error from the matrix multiplicative weights state by `ξ t`
+and each recording error by `ζ t`. -/
 theorem recorded_history_regret
     (D T : ℕ) (M ρ : ℕ → Operator D) (z ξ ζ : ℕ → ℝ)
     (η : ℝ) (σ : Operator D)
@@ -66,6 +102,8 @@ theorem recorded_history_regret
   apply (mul_le_mul_iff_right₀ hη).mp
   nlinarith
 
+/-- The expectation of a real payoff under the POVM outcome law of a density operator equals the
+real trace pairing of `payoffObservable Λ f` with that operator. -/
 theorem povm_payoff_mean {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (f : O → ℝ) :
     (Qatlib.Concepts.SdpDuality.ConeSeparation.povmLaw Λ ρ hρ).expect f =
@@ -78,6 +116,7 @@ theorem povm_payoff_mean {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
   intro o _
   exact mul_comm _ _
 
+/-- The observable associated with a finite POVM and any real payoff function is Hermitian. -/
 theorem payoffObservable_hermitian {O : Type*} [Fintype O] {D : ℕ}
     (Λ : POVM O (Fin D)) (f : O → ℝ) : (payoffObservable Λ f).IsHermitian := by
   rw [Matrix.IsHermitian, payoffObservable, Matrix.conjTranspose_sum]
@@ -89,6 +128,8 @@ theorem payoffObservable_hermitian {O : Type*} [Fintype O] {D : ℕ}
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- If every outcome payoff lies in `[0, 1]`, the associated POVM payoff observable is positive
+semidefinite and has operator norm at most one. -/
 theorem payoffObservable_psd_unit {O : Type*} [Fintype O] {D : ℕ}
     (Λ : POVM O (Fin D)) (f : O → ℝ) (hf : ∀ o, 0 ≤ f o ∧ f o ≤ 1) :
     (payoffObservable Λ f).PosSemidef ∧ ‖payoffObservable Λ f‖ ≤ 1 := by
@@ -111,6 +152,9 @@ theorem payoffObservable_psd_unit {O : Type*} [Fintype O] {D : ℕ}
     exact hpositive _ (fun o => sub_nonneg.mpr (hf o).2)
   exact ⟨hX, (CStarAlgebra.norm_le_one_iff_of_nonneg _ hX.nonneg).mpr hY⟩
 
+/-- On a positive-probability instrument branch, the payoff mean computed from normalized joint
+probabilities of the subsequent POVM equals its observable's real trace payoff on the
+conditional state. -/
 theorem feedforward_payoff_conditional_mean {H O : Type*} [Fintype H] [Fintype O]
     [DecidableEq O] {D E : ℕ} (I : Instrument H D E) (Λ : H → POVM O (Fin E))
     (ρ : Operator D) (hρ : IsDensityOperator ρ) (f : H → O → ℝ) (h : H)
@@ -131,6 +175,8 @@ theorem feedforward_payoff_conditional_mean {H O : Type*} [Fintype H] [Fintype O
   simpa only [FinDist.expect, Qatlib.Concepts.SdpDuality.ConeSeparation.povmLaw_prob,
       instrumentProb_ofPOVM] using! hm
 
+/-- For a positive semidefinite input, a zero-probability instrument branch contributes zero to
+the unnormalized weighted payoff of any subsequent branch-dependent POVM. -/
 theorem feedforward_payoff_zero {H O : Type*} [Fintype H] [Fintype O]
     [DecidableEq O] {D E : ℕ} (I : Instrument H D E) (Λ : H → POVM O (Fin E))
     (ρ : Operator D) (hρ : ρ.PosSemidef) (f : H → O → ℝ) (h : H)

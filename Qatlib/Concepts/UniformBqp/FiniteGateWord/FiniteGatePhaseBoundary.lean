@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Foundations.BornMetrics.EventProbability
+
+/-!
+# Determinant constraints and global phase for finite gate words
+
+This module proves that legal finite gate words are unitary and have determinants whose eighth
+powers are one. It uses this constraint to separate every legal one-qubit word from the scalar
+gate `finiteGaussianScalarGate` by at least `1 / 32` in operator norm and on some basis input.
+
+The empty word nevertheless has the same Born probabilities as this scalar gate on every
+normalized input, expressing the distinction between matrix approximation and measurement
+probabilities discussed in quantum circuit theory [NielsenChuang2010].
+
+## Main statements
+
+* `finite_code_word_determinant_invariant`: packages unitarity, determinant, semantics, and
+  exact gate and query counts.
+* `finite_gaussian_scalar_obstruction`: gives the uniform approximation gap.
+* `finite_scalar_uncontrolled_born_equivalence`: proves equality of Born event probabilities for
+  the empty word and the scalar gate.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -22,28 +47,36 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 namespace Qatlib.Concepts.UniformBqp.FiniteGateWord
 open Matrix
 
+/-- The matrix of a finite gate word, obtained by successively multiplying each gate matrix on
+the left, starting at the identity. -/
 def finiteCodeWordMatrix (n : ℕ) (gs : List FiniteGateCode) : Matrix (Reg n) (Reg n) ℂ :=
   gs.foldl (fun A g => finiteCodeMatrix n g*A) 1
 
+/-- The complex unit-modulus scalar `(3 + 4i) / 5`. -/
 def finiteGaussianScalar : ℂ := (3+4*Complex.I)/5
 
+/-- The scalar matrix `finiteGaussianScalar • 1` acting on one qubit. -/
 def finiteGaussianScalarGate : Matrix (Reg 1) (Reg 1) ℂ :=
   finiteGaussianScalar • 1
 
 open scoped Classical Matrix.Norms.L2Operator BigOperators
 set_option maxHeartbeats 800000
 
+/-- Powers of a one-wire gate equal the corresponding powers of its single-qubit matrix embedded
+on that wire. -/
 theorem finite_phase_wire_pow (n : ℕ) (w : Fin n) (U : Matrix Bool Bool ℂ) (k : ℕ) :
     (wireGate n w U)^k=wireGate n w (U^k) := by
   induction k with
   | zero => simp only [pow_zero,wireGate_one]
   | succ k ih => rw [pow_succ,ih,wireGate_mul,← pow_succ]
 
+/-- A square matrix satisfying `U * U = 1` has eighth power equal to the identity. -/
 theorem finite_phase_involution_eighth {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (hU : U*U=1) : U^8=1 := by
   have h2 : U^2=1 := by simpa only [pow_two] using hU
   rw [show (8:ℕ)=2*4 by decide,pow_mul,h2,one_pow]
 
+/-- If `exp (8 * θ * i) = 1`, the eighth power of `Rz θ` is the identity. -/
 theorem finite_phase_rz_eighth (θ : ℝ)
     (he : Complex.exp ((8:ℂ)*((θ:ℂ)*Complex.I))=1) : (Rz θ)^8=1 := by
   unfold Rz
@@ -56,6 +89,7 @@ theorem finite_phase_rz_eighth (θ : ℝ)
     rw [← Complex.exp_nat_mul]
     exact he
 
+/-- Both the T gate and its adjoint have eighth power equal to the identity. -/
 theorem finite_phase_t_eighth : tGate^8=1 ∧ tGateAdj^8=1 := by
   constructor
   · apply finite_phase_rz_eighth
@@ -65,6 +99,7 @@ theorem finite_phase_t_eighth : tGate^8=1 ∧ tGateAdj^8=1 := by
     rw [show (8:ℂ)*(((-(Real.pi/4):ℝ):ℂ)*Complex.I)=-(2*Real.pi*Complex.I) by push_cast;ring,
       Complex.exp_neg,Complex.exp_two_pi_mul_I,inv_one]
 
+/-- The matrix of any legal finite gate code has eighth power equal to the identity. -/
 theorem finite_phase_generator_eighth (n : ℕ) (g : FiniteGateCode) (hg : finiteCodeLegal n g=true) :
     (finiteCodeMatrix n g)^8=1 := by
   cases g with
@@ -92,10 +127,13 @@ theorem finite_phase_generator_eighth (n : ℕ) (g : FiniteGateCode) (hg : finit
     apply finite_phase_involution_eighth
     exact permMatrix_mul_self (cnotUpdate_involutive n _ _ hct)
 
+/-- The determinant of a legal finite gate matrix has eighth power one. -/
 theorem finite_phase_generator_det (n : ℕ) (g : FiniteGateCode) (hg : finiteCodeLegal n g=true) :
     (Matrix.det (finiteCodeMatrix n g))^8=1 := by
   rw [← Matrix.det_pow,finite_phase_generator_eighth n g hg,Matrix.det_one]
 
+/-- Folding gate matrices by left multiplication from accumulator `A` yields
+`finiteCodeWordMatrix n gs * A`. -/
 theorem finite_phase_fold_acc (n : ℕ) (gs : List FiniteGateCode) (A : Matrix (Reg n) (Reg n) ℂ) :
     gs.foldl (fun M g => finiteCodeMatrix n g*M) A=finiteCodeWordMatrix n gs*A := by
   induction gs generalizing A with
@@ -106,12 +144,15 @@ theorem finite_phase_fold_acc (n : ℕ) (gs : List FiniteGateCode) (A : Matrix (
     change _=(gs.foldl (fun M g => finiteCodeMatrix n g*M) (finiteCodeMatrix n g*1))*A
     rw [ih,Matrix.mul_one,Matrix.mul_assoc]
 
+/-- The matrix of `g :: gs` is the matrix of `gs` multiplied on the right by the matrix of `g`. -/
 theorem finite_phase_word_cons (n : ℕ) (g : FiniteGateCode) (gs : List FiniteGateCode) :
     finiteCodeWordMatrix n (g::gs)=finiteCodeWordMatrix n gs*finiteCodeMatrix n g := by
   unfold finiteCodeWordMatrix
   rw [List.foldl_cons,Matrix.mul_one,finite_phase_fold_acc]
   rfl
 
+/-- Running a finite gate circuit equals applying its matrix `finiteCodeWordMatrix` to the input
+state. -/
 theorem finite_phase_word_run (n : ℕ) (gs : List FiniteGateCode) (ψ : QState (Reg n)) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n gs) ψ=
       ApplyGate (finiteCodeWordMatrix n gs) ψ := by
@@ -122,6 +163,9 @@ theorem finite_phase_word_run (n : ℕ) (gs : List FiniteGateCode) (ψ : QState 
     rw [show gs.map (fun g => Step.gate (finiteCodeMatrix n g))=finiteCodeCircuit n gs from rfl,
       ih,finite_phase_word_cons,applyGate_mul]
 
+/-- A legal finite gate word has a unitary matrix with determinant of eighth power one, zero
+queries, and gate count equal to its length. Its circuit run equals application of that
+matrix. -/
 theorem finite_code_word_determinant_invariant :
     ∀ (n : ℕ) (gs : List FiniteGateCode), finiteWordLegal n gs=true →
       finiteCodeWordMatrix n gs ∈ Matrix.unitaryGroup (Reg n) ℂ ∧
@@ -144,11 +188,13 @@ theorem finite_code_word_determinant_invariant :
   exact ⟨hu.1,hu.2,(finiteCodeCircuit_counts n gs).1,(finiteCodeCircuit_counts n gs).2,
     finite_phase_word_run n gs⟩
 
+/-- The scalar `finiteGaussianScalar` has complex norm one. -/
 theorem finite_phase_gaussian_norm : ‖finiteGaussianScalar‖=1 := by
   have h25 : Real.sqrt 25 = 5 := by
     rw [show (25 : ℝ) = 5 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
   norm_num [finiteGaussianScalar,Complex.norm_def,Complex.normSq_apply,h25]
 
+/-- The one-qubit scalar matrix `finiteGaussianScalarGate` is unitary. -/
 theorem finite_phase_gaussian_unitary : finiteGaussianScalarGate ∈ Matrix.unitaryGroup (Reg 1) ℂ := by
   have hc : star finiteGaussianScalar*finiteGaussianScalar=1 := by
     rw [RCLike.star_def,← Complex.normSq_eq_conj_mul_self,Complex.normSq_eq_norm_sq,
@@ -158,16 +204,20 @@ theorem finite_phase_gaussian_unitary : finiteGaussianScalarGate ∈ Matrix.unit
     Matrix.conjTranspose_smul,Matrix.conjTranspose_one,smul_mul_assoc,mul_smul_comm,
     Matrix.one_mul,smul_smul,hc,one_smul]
 
+/-- The real part of `finiteGaussianScalar ^ 16` is `-98248054847 / 152587890625`. -/
 theorem finite_phase_gaussian_sixteen :
     (finiteGaussianScalar^16).re= -98248054847/152587890625 := by
   norm_num [finiteGaussianScalar,pow_succ,Complex.mul_re,Complex.mul_im,Complex.div_re,Complex.div_im]
 
+/-- The distance from `finiteGaussianScalar ^ 16` to one is at least one. -/
 theorem finite_phase_gaussian_power_gap : 1 ≤ ‖(1:ℂ)-finiteGaussianScalar^16‖ := by
   have hr : (finiteGaussianScalar^16).re ≤ 0 := by rw [finite_phase_gaussian_sixteen];norm_num
   have he : 1 ≤ ((1:ℂ)-finiteGaussianScalar^16).re := by
     simp only [Complex.sub_re,Complex.one_re];linarith
   exact he.trans (Complex.re_le_norm _)
 
+/-- For complex `a` and `b` of norm one, the distance between their `k`th powers is at most `k`
+times the distance between them. -/
 theorem finite_phase_power_difference (a b : ℂ) (ha : ‖a‖=1) (hb : ‖b‖=1) (k : ℕ) :
     ‖a^k-b^k‖ ≤ (k:ℝ)*‖a-b‖ := by
   induction k with
@@ -181,6 +231,8 @@ theorem finite_phase_power_difference (a b : ℂ) (ha : ‖a‖=1) (hb : ‖b‖
     rw [hcast]
     nlinarith
 
+/-- The determinant of a matrix indexed by `Reg 1` is the product of its diagonal entries minus
+the product of its off-diagonal entries in the `bitVecEquiv 1` ordering. -/
 theorem finite_phase_det_one_qubit (V : Matrix (Reg 1) (Reg 1) ℂ) :
     Matrix.det V=
       V ((bitVecEquiv 1).symm 0) ((bitVecEquiv 1).symm 0)*
@@ -190,6 +242,7 @@ theorem finite_phase_det_one_qubit (V : Matrix (Reg 1) (Reg 1) ℂ) :
   rw [← Matrix.det_submatrix_equiv_self (bitVecEquiv 1).symm V,Matrix.det_fin_two]
   rfl
 
+/-- The determinant of `finiteGaussianScalarGate` equals `finiteGaussianScalar ^ 2`. -/
 theorem finite_phase_gaussian_det : Matrix.det finiteGaussianScalarGate=finiteGaussianScalar^2 := by
   have hn : (bitVecEquiv 1).symm 0≠(bitVecEquiv 1).symm 1 := by
     intro h
@@ -198,6 +251,8 @@ theorem finite_phase_gaussian_det : Matrix.det finiteGaussianScalarGate=finiteGa
   rw [finite_phase_det_one_qubit]
   simp [finiteGaussianScalarGate,Matrix.smul_apply,hn,Ne.symm hn,pow_two]
 
+/-- If a one-qubit unitary differs entrywise from `finiteGaussianScalarGate` by at most
+nonnegative `δ`, its determinant differs from `finiteGaussianScalar ^ 2` by at most `3 * δ`. -/
 theorem finite_phase_det_entry_bound (V : Matrix (Reg 1) (Reg 1) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Reg 1) ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     (he : ∀ i j : Reg 1, ‖(V-finiteGaussianScalarGate) i j‖ ≤ δ) :
@@ -239,6 +294,8 @@ theorem finite_phase_det_entry_bound (V : Matrix (Reg 1) (Reg 1) ℂ)
       · exact (mul_le_mul hva hba (norm_nonneg _) zero_le_one).trans_eq (one_mul δ)
     _ = _ := by ring
 
+/-- Every legal one-qubit finite gate word has an entry differing from the corresponding entry
+of `finiteGaussianScalarGate` by at least `1 / 32`. -/
 theorem finite_phase_word_entry_gap (gs : List FiniteGateCode) (hg : finiteWordLegal 1 gs=true) :
     ∃ i j : Reg 1, (1/32:ℝ) ≤ ‖(finiteCodeWordMatrix 1 gs-finiteGaussianScalarGate) i j‖ := by
   obtain ⟨hu,hd,_,_,_⟩ := finite_code_word_determinant_invariant 1 gs hg
@@ -257,10 +314,14 @@ theorem finite_phase_word_entry_gap (gs : List FiniteGateCode) (hg : finiteWordL
   norm_num at hp hb
   linarith
 
+/-- Applying a matrix to basis vector `Ket j` and evaluating at `i` extracts matrix entry `(i,
+j)`. -/
 theorem finite_phase_ket_entry {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix H H ℂ) (i j : H) : ApplyGate M (Qatlib.Foundations.PureStateMath.Ket j) i=M i j := by
   simp [ApplyGate,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The norm of a matrix entry is at most the Euclidean norm of its column, represented by
+applying the matrix to a basis state. -/
 theorem finite_phase_entry_le_column {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix H H ℂ) (i j : H) :
     ‖M i j‖ ≤ ‖toEuclidean_fromVec (ApplyGate M (Qatlib.Foundations.PureStateMath.Ket j))‖ := by
@@ -271,6 +332,7 @@ theorem finite_phase_entry_le_column {H : Type} [Fintype H] [DecidableEq H]
   rw [finite_phase_ket_entry] at he
   exact he
 
+/-- The Euclidean norm of a matrix column is at most the matrix operator norm. -/
 theorem finite_phase_column_le_operator {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix H H ℂ) (j : H) :
     ‖toEuclidean_fromVec (ApplyGate M (Qatlib.Foundations.PureStateMath.Ket j))‖ ≤ ‖M‖ := by
@@ -281,6 +343,9 @@ theorem finite_phase_column_le_operator {H : Type} [Fintype H] [DecidableEq H]
     (normalized_iff_norm_toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)).mp (normalized_ket j),mul_one] at he
   exact he
 
+/-- The scalar `finiteGaussianScalar` has norm one and its scalar gate is unitary, yet every
+legal one-qubit finite word differs from that gate by at least `1 / 32` in operator norm and
+by at least `1 / 32` on some normalized basis input. -/
 theorem finite_gaussian_scalar_obstruction :
     ‖finiteGaussianScalar‖=1 ∧ finiteGaussianScalarGate ∈ Matrix.unitaryGroup (Reg 1) ℂ ∧
     ∀ gs : List FiniteGateCode, finiteWordLegal 1 gs=true →
@@ -301,6 +366,9 @@ theorem finite_gaussian_scalar_obstruction :
   rw [← ha]
   exact he.trans hc
 
+/-- The empty one-qubit word is legal with zero queries and gates, and on every normalized input
+it has the same Born event probabilities as `finiteGaussianScalarGate`. Applying the scalar
+gate also preserves normalization. -/
 theorem finite_scalar_uncontrolled_born_equivalence :
     finiteWordLegal 1 []=true ∧ QueryCount (finiteCodeCircuit 1 [])=0 ∧
       GateCount (finiteCodeCircuit 1 [])=0 ∧

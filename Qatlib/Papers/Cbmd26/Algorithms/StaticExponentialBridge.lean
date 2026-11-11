@@ -8,6 +8,26 @@ import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
 import Qatlib.Papers.Cbmd26.Algorithms.PropagatorSpectralBridge
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+/-!
+# Polynomial QSVT approximations of static exponentials
+
+Cauchy-series truncation on the disk of radius two gives uniform polynomial approximations on
+the real interval `[-1, 1]`. Applied to the oscillatory exponential, this yields shared QSVT
+phases and a block encoding of Hermitian time evolution for the static samples in
+[WangEtAl2026].
+
+## Main statements
+
+* `complexCauchyTruncation_error`: bounds the truncation error by a geometric tail.
+* `static_exponential_qsvt_exists`: gives phases, branch query bounds, and an exponential block
+  encoding with normalization four.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,15 +64,20 @@ namespace CBMD
 open Matrix Polynomial Complex Metric Set
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The polynomial formed from the first `N` Cauchy coefficients of `f` at zero with contour
+radius two. -/
 def complexCauchyTruncation (f : ℂ → ℂ) (N : ℕ) : Polynomial ℂ :=
   ∑ n ∈ Finset.range N, C (cauchyCoefficient f 0 2 n) * X ^ n
 
+/-- The natural degree of the `N`-term Cauchy truncation is at most `N`. -/
 theorem complexCauchyTruncation_degree (f : ℂ → ℂ) (N : ℕ) :
     (complexCauchyTruncation f N).natDegree ≤ N := by
   apply natDegree_sum_le_of_forall_le
   intro n hn
   exact (natDegree_C_mul_X_pow_le _ _).trans (Nat.le_of_lt (Finset.mem_range.mp hn))
 
+/-- For `f` differentiable on the closed disk of radius two and bounded there on the boundary by
+`M`, the Cauchy truncation error at any real `|x| ≤ 1` is at most `2 * M * (1 / 2) ^ N`. -/
 theorem complexCauchyTruncation_error (f : ℂ → ℂ) (M : ℝ)
     (hf : DifferentiableOn ℂ f (closedBall 0 2))
     (hb : ∀ z ∈ sphere (0 : ℂ) 2, ‖f z‖ ≤ M)
@@ -73,6 +98,9 @@ theorem complexCauchyTruncation_error (f : ℂ → ℂ) (M : ℝ)
   simpa only [complexCauchyTruncation, eval_finsetSum, eval_mul, eval_C, eval_pow, eval_X]
     using he.trans_eq (by norm_num; ring)
 
+/-- A function differentiable on the closed disk of radius two, bounded by positive `M` on its
+boundary and by one on `[-1, 1]`, has a polynomial approximation with error `ε > 0`, modulus
+at most `1 + ε`, and degree at most `dyadicOrder (ε / (2 * M))` on that interval. -/
 theorem full_interval_holomorphic_polynomial_exists (f : ℂ → ℂ) (M ε : ℝ)
     (hM : 0 < M) (hε : 0 < ε)
     (hf : DifferentiableOn ℂ f (closedBall 0 2))
@@ -97,8 +125,11 @@ theorem full_interval_holomorphic_polynomial_exists (f : ℂ → ℂ) (M ε : �
     _ ≤ ε + 1 := add_le_add (herr x hx) (hr x hx)
     _ = 1 + ε := add_comm _ _
 
+/-- The scalar oscillatory exponential `exp (-i * τ * z)` for real frequency `τ`. -/
 def oscillatoryExponential (τ : ℝ) (z : ℂ) : ℂ := Complex.exp (-Complex.I * (τ : ℂ) * z)
 
+/-- The oscillatory exponential is differentiable on the closed disk of radius two, bounded on
+its boundary by `exp (2 * |τ|)`, and has unit modulus at real arguments. -/
 theorem oscillatoryExponential_properties (τ : ℝ) :
     DifferentiableOn ℂ (oscillatoryExponential τ) (closedBall 0 2) ∧
     (∀ z ∈ sphere (0 : ℂ) 2, ‖oscillatoryExponential τ z‖ ≤ Real.exp (2 * |τ|)) ∧
@@ -116,6 +147,8 @@ theorem oscillatoryExponential_properties (τ : ℝ) :
   · intro x
     simp [oscillatoryExponential, Complex.norm_exp, Complex.mul_re, Complex.mul_im]
 
+/-- Applying the oscillatory exponential through the Hermitian functional calculus equals the
+matrix exponential `exp ((-i * τ) • A)`. -/
 theorem oscillatory_hermitian_function_eq_exp (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (τ : ℝ) :
     hermitianFunction A hA (fun x => oscillatoryExponential τ (x : ℂ)) =
@@ -131,6 +164,9 @@ theorem oscillatory_hermitian_function_eq_exp (I : Type) [Fintype I] [DecidableE
   rw [← congrFun (NormedSpace.exp_eq_tsum ℂ) ((-Complex.I * (τ : ℂ)) • A)] at h
   exact h
 
+/-- For `ε > 0`, there exist polynomial and unit-modulus phase data with explicit degree and
+branch query bounds, uniformly over Hermitian projected encodings. The resulting four-branch
+LCU block-encodes the oscillatory matrix exponential with normalization four and error `ε`. -/
 theorem static_exponential_qsvt_exists (τ ε : ℝ) (hε : 0 < ε) :
     ∃ (P : Polynomial ℂ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),
       P.natDegree ≤ dyadicOrder ((ε / 2) / (2 * Real.exp (2 * |τ|))) ∧

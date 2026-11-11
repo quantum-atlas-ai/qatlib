@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+
+/-!
+# Near-optimal rational filtered witnesses
+
+This module converts rational factorizations into complex filtered Gram certificates and
+constructs rational witnesses with budgets close to a finite filtered γ₂ value. It controls
+witness dimension and packages the existential runtime ledger in `clause90`.
+
+The certificate framework is that of quantum state conversion [LeeEtAl2011].
+
+## Main statements
+
+* `exists_rational_factorization`: constructs valid rational witnesses with near-optimal budget
+  and bounded dimension.
+* `clause90`: bundles the witness specification with dimension and runtime bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +49,7 @@ open Qatlib.Concepts.GramQueryCore.GammaDuality
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessCompiler
 variable {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
 
+/-- The absolute value of the real part of a complex number is bounded by its norm. -/
 private theorem abs_re_le_norm' (z : ℂ) : |z.re| ≤ ‖z‖ := by
   have h2 : z.re * z.re ≤ Complex.normSq z := by
     rw [Complex.normSq_apply]
@@ -37,6 +60,7 @@ private theorem abs_re_le_norm' (z : ℂ) : |z.re| ≤ ‖z‖ := by
     exact h2
   exact (abs_le_of_sq_le_sq' h3 (norm_nonneg z)).2
 
+/-- The absolute value of the imaginary part of a complex number is bounded by its norm. -/
 private theorem abs_im_le_norm' (z : ℂ) : |z.im| ≤ ‖z‖ := by
   have h2 : z.im * z.im ≤ Complex.normSq z := by
     rw [Complex.normSq_apply]
@@ -47,20 +71,27 @@ private theorem abs_im_le_norm' (z : ℂ) : |z.im| ≤ ‖z‖ := by
     exact h2
   exact (abs_le_of_sq_le_sq' h3 (norm_nonneg z)).2
 
+/-- The real part of `star z * w` is the sum of the products of corresponding real and imaginary
+parts. -/
 private theorem star_mul_re (z w : ℂ) : (star z * w).re = z.re * w.re + z.im * w.im := by
   have h1 : (star z).re = z.re := by simp
   have h2 : (star z).im = -z.im := by simp
   rw [Complex.mul_re, h1, h2]
   ring
 
+/-- Complex conjugation fixes a rational number embedded into the complex numbers. -/
 private theorem star_ratCast (t : ℚ) : star ((t : ℂ)) = (t : ℂ) := by
   rw [RCLike.star_def, Complex.ext_iff]
   simp
 
+/-- The Boolean-indexed realification of a complex number, selecting its real part at false and
+imaginary part at true. -/
 private def gammaRealPart (z : ℂ) : Bool → ℝ
   | false => z.re
   | true => z.im
 
+/-- The real inner product of realified complex vectors equals the real part of their complex
+inner product. -/
 private theorem gammaReal_inner {Q : Type} [Fintype Q] (u v : Q → ℂ) :
     (∑ q, ∑ b, gammaRealPart (u q) b * gammaRealPart (v q) b) = (star u ⬝ᵥ v).re := by
   simp only [dotProduct, Pi.star_apply]
@@ -71,6 +102,8 @@ private theorem gammaReal_inner {Q : Type} [Fintype Q] (u v : Q → ℂ) :
   simp only [gammaRealPart]
   ring
 
+/-- The squared coordinate mass of a realified complex vector equals the sum of its complex
+squared norms. -/
 private theorem gammaReal_mass {Q : Type} [Fintype Q] (u : Q → ℂ) :
     ∑ q, ∑ b, gammaRealPart (u q) b ^ 2 = ∑ q, Complex.normSq (u q) := by
   refine Finset.sum_congr rfl fun q _ => ?_
@@ -78,6 +111,8 @@ private theorem gammaReal_mass {Q : Type} [Fintype Q] (u : Q → ℂ) :
   simp only [gammaRealPart, Complex.normSq_apply]
   ring
 
+/-- A norm bound on a complex number also bounds the absolute value of each realified
+coordinate. -/
 private theorem gammaRealPart_abs {B : ℝ} {z : ℂ} (hz : ‖z‖ ≤ B) :
     ∀ b, |gammaRealPart z b| ≤ B := by
   intro b
@@ -85,9 +120,12 @@ private theorem gammaRealPart_abs {B : ℝ} {z : ℂ} (hz : ‖z‖ ≤ B) :
   · exact le_trans (abs_re_le_norm' z) hz
   · exact le_trans (abs_im_le_norm' z) hz
 
+/-- The complex squared norm of a rational cast equals the real cast of the rational square. -/
 private theorem ratCast_normSq (t : ℚ) : Complex.normSq ((t : ℂ)) = ((t * t : ℚ) : ℝ) := by
   simp [Complex.normSq_apply]
 
+/-- Rational witness mass bounds and an exact filtered factorization yield a complex filtered
+Gram certificate with the same budget. -/
 private theorem gramFilteredCert_of_rationalValid (inst : RationalGamma2Instance X n)
     {Q : Type} [Fintype Q] (u : Fin n → X → Q → ℚ) (v : Fin n → X → Q → ℚ) (B : ℚ)
     (h1 : ∀ x : X, ∑ j, ∑ q, ((u j x q * u j x q : ℚ) : ℝ) ≤ (B : ℝ))
@@ -122,6 +160,8 @@ private theorem gramFilteredCert_of_rationalValid (inst : RationalGamma2Instance
     simp only [hdot]
     exact h3 x y
 
+/-- For nonnegative `t` and positive `δ`, there is a positive rational whose square lies between
+`t` and `2 * t + 2 * δ`. -/
 private theorem exists_rat_sq_near {t δ : ℝ} (ht : 0 ≤ t) (hδ : 0 < δ) :
     ∃ a : ℚ, 0 < a ∧ t ≤ (a : ℝ) ^ 2 ∧ (a : ℝ) ^ 2 ≤ 2 * t + 2 * δ := by
   have hδ2 : 0 < 2 * t + δ := by positivity
@@ -180,6 +220,8 @@ private theorem exists_rat_sq_near {t δ : ℝ} (ht : 0 ≤ t) (hδ : 0 < δ) :
 variable {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
 set_option maxHeartbeats 8000000 in
 
+/-- A finite filtered γ₂ value and `0 < ε ≤ 1` give a valid rational factorization with
+near-optimal budget, two value comparisons, and polynomially bounded witness dimension. -/
 private theorem exists_rational_factorization (inst : RationalGamma2Instance X n)
     {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hval : filteredGamma2 (rationalGamma2ComplexA inst) (rationalGamma2ComplexZ inst) < ⊤) :
@@ -1070,6 +1112,9 @@ private theorem exists_rational_factorization (inst : RationalGamma2Instance X n
       exact ENNReal.ofReal_le_ofReal (by linarith)
     · exact hcard
 
+/-- Establishes `Gamma2WitnessCompilerSpec` and additional polynomial witness-dimension and
+existential runtime bounds for rational filtered γ₂ instances. The filtered factorization
+setting is that of [LeeEtAl2011]. -/
 theorem clause90 :
   Gamma2WitnessCompilerSpec ∧
   (∀ (X : Type) [Fintype X] [DecidableEq X] (n : ℕ) (inst : RationalGamma2Instance X n)

@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Foundations.PureStateMath.MixedState
+
+/-!
+# Diagonal Gibbs distributions and Metropolis kernels
+
+`diagonalGibbsDist` normalizes the finite Boltzmann weights and `thermalKernel` combines uniform
+proposals with Metropolis acceptance. The resulting kernel is a transition matrix, reversible
+and stationary for the Gibbs distribution.
+
+For nonnegative inverse temperature and energies in `[0, R]`,
+`diagonal_metropolis_derived_minorization` supplies an explicit Gibbs minorization factor `exp
+(-β * R)`. See [TemmeEtAl2011] for background.
+
+## Main statements
+
+* `diagonal_metropolis_transition_reversible`: The uniform-proposal Metropolis kernel is
+  stochastic, reversible, and stationary for the Gibbs distribution, with the stated
+  off-diagonal entries.
+* `diagonal_metropolis_derived_minorization`: For `β ≥ 0` and energies in `[0, R]`, the positive
+  factor `exp (-β * R)` is at most one and minorizes every kernel row by the Gibbs distribution.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -21,14 +46,17 @@ open scoped ComplexOrder
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The finite partition function obtained by summing the Boltzmann weights `exp (-β * E j)`. -/
 noncomputable def diagonalGibbsPartition (D : ℕ) (E : Fin D → ℝ) (β : ℝ) : ℝ :=
   ∑ j : Fin D, Real.exp (-β*E j)
 
+/-- The finite Gibbs partition function is strictly positive when the state space is nonempty. -/
 theorem diagonalGibbsPartition_pos (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     0 < diagonalGibbsPartition D E β :=
   Finset.sum_pos' (fun _ _ => Real.exp_nonneg _)
     ⟨⟨0, hD⟩, Finset.mem_univ _, Real.exp_pos _⟩
 
+/-- The finite probability distribution proportional to the Boltzmann weights `exp (-β * E i)`. -/
 noncomputable def diagonalGibbsDist (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     FinDist (Fin D) where
   prob i := Real.exp (-β*E i) / diagonalGibbsPartition D E β
@@ -37,37 +65,49 @@ noncomputable def diagonalGibbsDist (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (
     rw [← Finset.sum_div]
     exact div_self (diagonalGibbsPartition_pos D hD E β).ne'
 
+/-- The diagonal operator whose diagonal entries are the finite Gibbs probabilities. -/
 noncomputable def diagonalGibbsDensity (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     Operator D :=
   Matrix.diagonal fun i => ((diagonalGibbsDist D hD E β).prob i : ℂ)
 
+/-- The Metropolis acceptance factor `min 1 (exp (-β * (E j - E i)))`. -/
 noncomputable def thermalAcceptance {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) : ℝ :=
   min 1 (Real.exp (-β*(E j - E i)))
 
+/-- Every Metropolis acceptance factor is strictly positive. -/
 theorem thermalAcceptance_pos {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     0 < thermalAcceptance E β i j :=
   lt_min_iff.mpr ⟨zero_lt_one, Real.exp_pos _⟩
 
+/-- Every Metropolis acceptance factor is at most one. -/
 theorem thermalAcceptance_le_one {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     thermalAcceptance E β i j ≤ 1 :=
   min_le_left _ _
 
+/-- The uniform-proposal Metropolis kernel, with its diagonal chosen to make each row sum to
+one. -/
 noncomputable def thermalKernel (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) : ℝ :=
   if i = j then 1 - ∑ j' ∈ Finset.univ.erase i, thermalAcceptance E β i j' / (D : ℝ)
   else thermalAcceptance E β i j / (D : ℝ)
 
+/-- For distinct states, the Metropolis kernel entry is the acceptance factor divided by the
+state-space size. -/
 theorem thermalKernel_offdiag (D : ℕ) (E : Fin D → ℝ) (β : ℝ) {i j : Fin D} (hij : i ≠ j) :
     thermalKernel D E β i j = thermalAcceptance E β i j / (D : ℝ) :=
   if_neg hij
 
+/-- The Gibbs probability of a state is its Boltzmann weight divided by the partition function. -/
 theorem diagonalGibbsDist_prob (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
     (diagonalGibbsDist D hD E β).prob i
       = Real.exp (-β*E i)/diagonalGibbsPartition D E β := rfl
 
+/-- The Gibbs density is the diagonal matrix of the Gibbs distribution's probabilities. -/
 theorem diagonalGibbsDensity_eq (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     diagonalGibbsDensity D hD E β
       = Matrix.diagonal (fun i => ((diagonalGibbsDist D hD E β).prob i : ℂ)) := rfl
 
+/-- Multiplying an exponential weight by a capped exponential ratio gives the minimum of the two
+exponential weights. -/
 private theorem exp_mul_min_comm (x y : ℝ) :
     Real.exp x * min 1 (Real.exp (y - x)) = min (Real.exp x) (Real.exp y) := by
   rcases le_or_gt (Real.exp (y - x)) 1 with h | h
@@ -83,6 +123,8 @@ private theorem exp_mul_min_comm (x y : ℝ) :
       linarith
     rw [min_eq_left h.le, mul_one, min_eq_left (Real.exp_le_exp.mpr hxy)]
 
+/-- The Metropolis acceptance factors satisfy detailed balance with the unnormalized Boltzmann
+weights. -/
 theorem thermalAcceptance_detailed {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     Real.exp (-β*E i) * thermalAcceptance E β i j
       = Real.exp (-β*E j) * thermalAcceptance E β j i := by
@@ -91,6 +133,8 @@ theorem thermalAcceptance_detailed {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (i j
   rw [thermalAcceptance, thermalAcceptance, ← hxy, ← hyx]
   rw [exp_mul_min_comm (-β*E i) (-β*E j), exp_mul_min_comm (-β*E j) (-β*E i), min_comm]
 
+/-- Finite nonempty Gibbs weights are strictly positive and normalize to a diagonal density
+operator. -/
 theorem diagonal_gibbs_weight_density (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     (∀ i : Fin D, (diagonalGibbsDist D hD E β).prob i =
       Real.exp (-β*E i)/(∑ j : Fin D, Real.exp (-β*E j)) ∧
@@ -105,6 +149,8 @@ theorem diagonal_gibbs_weight_density (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
   · rw [diagonalGibbsDensity, Matrix.trace_diagonal]
     exact_mod_cast (diagonalGibbsDist D hD E β).sum_one
 
+/-- Each diagonal Metropolis kernel entry is at least the reciprocal of the nonzero state-space
+size. -/
 private theorem thermalKernel_diag_ge (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i : Fin D) : 1/(D : ℝ) ≤ thermalKernel D E β i i := by
   have hDpos : (0:ℝ) < (D : ℝ) := by exact_mod_cast hD
@@ -131,6 +177,7 @@ private theorem thermalKernel_diag_ge (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
   rw [thermalKernel, if_pos rfl]
   linarith
 
+/-- Every entry of the nonempty finite Metropolis kernel is nonnegative. -/
 private theorem thermalKernel_nonneg (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i j : Fin D) : 0 ≤ thermalKernel D E β i j := by
   by_cases hij : i = j
@@ -140,6 +187,7 @@ private theorem thermalKernel_nonneg (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) 
   · rw [thermalKernel_offdiag D E β hij]
     exact div_nonneg (thermalAcceptance_pos E β i j).le (by exact_mod_cast hD.le)
 
+/-- Every row of the nonempty finite Metropolis kernel sums to one. -/
 private theorem thermalKernel_row_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i : Fin D) : ∑ j : Fin D, thermalKernel D E β i j = 1 := by
   have hins : (Finset.univ : Finset (Fin D)) = insert i (Finset.univ.erase i) :=
@@ -155,6 +203,7 @@ private theorem thermalKernel_row_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
   rw [hdiag, Finset.sum_congr rfl hoff]
   linarith
 
+/-- The finite Gibbs distribution and Metropolis kernel satisfy detailed balance. -/
 private theorem thermal_kernel_detailed_balance (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β : ℝ) (i j : Fin D) :
     (diagonalGibbsDist D hD E β).prob i * thermalKernel D E β i j
@@ -178,6 +227,8 @@ private theorem thermal_kernel_detailed_balance (D : ℕ) (hD : 0 < D) (E : Fin 
   rw [hL, hR, div_eq_div_iff (mul_ne_zero hZ hD') (mul_ne_zero hZ hD'),
     thermalAcceptance_detailed E β i j]
 
+/-- The uniform-proposal Metropolis kernel is stochastic, reversible, and stationary for the
+Gibbs distribution, with the stated off-diagonal entries. -/
 theorem diagonal_metropolis_transition_reversible (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β : ℝ) :
     IsTransitionMatrix (thermalKernel D E β) ∧
@@ -193,6 +244,8 @@ theorem diagonal_metropolis_transition_reversible (D : ℕ) (hD : 0 < D) (E : Fi
     ⟨(diagonalGibbsDist D hD E β).nonneg, (diagonalGibbsDist D hD E β).sum_one⟩
     fun i j => thermal_kernel_detailed_balance D hD E β i j
 
+/-- For `β ≥ 0` and energies in `[0, R]`, the positive factor `exp (-β * R)` is at most one and
+minorizes every kernel row by the Gibbs distribution. -/
 theorem diagonal_metropolis_derived_minorization (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β R : ℝ) (hβ : 0 ≤ β) (hR : 0 ≤ R) (hE : ∀ i, 0 ≤ E i ∧ E i ≤ R) :
     0 < Real.exp (-β*R) ∧ Real.exp (-β*R) ≤ 1 ∧

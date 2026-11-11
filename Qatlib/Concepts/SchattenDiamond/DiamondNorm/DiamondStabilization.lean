@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
 import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+/-!
+# Input-dimension stabilization of the diamond norm
+
+This module defines `diamondAtInput`, restricting the reference dimension to the input
+dimension, and proves that it equals `finiteDiamondNorm` for every complex-linear map between
+finite matrix spaces. The proof compresses rank-one matrices using separate isometric reference
+frames and extends their bounds to arbitrary matrices by a singular-value decomposition. The
+stabilization setting is treated in [Watrous2018].
+
+The theorem `diamond_finite_attained_maximum` also proves finiteness and attainment on the
+trace-norm unit ball with reference dimension equal to the input dimension.
+
+## Main statements
+
+* `diamond_rank_one_two_frame_compression`: compresses both rank-one vectors while preserving
+  the amplified output trace norm.
+* `diamond_uniform_bound_of_input_bound`: extends a bound at the input reference dimension to
+  every finite reference.
+* `diamond_input_dimension_stabilization`: identifies `finiteDiamondNorm` with `diamondAtInput`.
+* `diamond_finite_attained_maximum`: realizes the finite norm at a matrix in the
+  fixed-dimensional unit ball.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Concepts.RandCompile.ChannelBudget
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -29,10 +57,13 @@ open scoped Classical BigOperators ENNReal ComplexOrder
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The supremum of amplified output trace norms over the trace-norm unit ball with reference
+dimension fixed to the input dimension, valued in the extended nonnegative reals. -/
 noncomputable def diamondAtInput {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) : ℝ≥0∞ :=
   ⨆ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
     if Matrix.traceNorm X ≤ 1 then ENNReal.ofReal (Matrix.traceNorm (tensorLeft T X)) else 0
 
+/-- Tensoring an isometric reference frame `L` with the identity on `Fin D` yields an isometry. -/
 theorem diamond_kronecker_frame_isometry {D r s : ℕ}
     {L : Matrix (Fin r) (Fin s) ℂ} (hL : IsIsometry L) :
     IsIsometry (Matrix.kronecker (1 : Operator D) L) := by
@@ -42,6 +73,8 @@ theorem diamond_kronecker_frame_isometry {D r s : ℕ}
   rw [Matrix.conjTranspose_kronecker, ← Matrix.mul_kronecker_mul]
   simp [hL]
 
+/-- If `D <= r`, every `r`-by-`D` matrix has an isometric `r`-by-`D` frame whose range
+projection fixes that matrix. -/
 theorem diamond_exists_column_frame {D r : ℕ} (A : Matrix (Fin r) (Fin D) ℂ)
     (hdr : D ≤ r) :
     ∃ L : Matrix (Fin r) (Fin D) ℂ, IsIsometry L ∧ L * Lᴴ * A = A := by
@@ -78,6 +111,8 @@ theorem diamond_exists_column_frame {D r : ℕ} (A : Matrix (Fin r) (Fin D) ℂ)
         ⟨i.val, lt_of_lt_of_le hiRank (by simpa using! Submodule.finrank_le A.toEuclideanLin.range)⟩ hiRank
     rw [Matrix.mul_vecMulVec, ← hb, hfix]
 
+/-- The `(i, j)` component of applying the identity tensored with `L` to `u` is the sum of `L j
+k * u (i, k)` over reference indices `k`. -/
 theorem diamond_reference_frame_mulVec {D r s : ℕ}
     (L : Matrix (Fin r) (Fin s) ℂ) (u : QState (Fin D × Fin s)) (i : Fin D) (j : Fin r) :
     (Matrix.kronecker (1 : Operator D) L *ᵥ u) (i,j) =
@@ -85,6 +120,9 @@ theorem diamond_reference_frame_mulVec {D r s : ℕ}
   simp [Matrix.mulVec, dotProduct, Matrix.kronecker, Matrix.kroneckerMap_apply,
     Fintype.sum_prod_type, Matrix.one_apply, ite_mul]
 
+/-- If `D <= r`, every vector on `Fin D` times `Fin r` is the image of a vector on `Fin D` times
+`Fin D` under an isometric reference frame. The compressed vector has the same Euclidean
+norm. -/
 theorem diamond_exists_vector_frame {D r : ℕ} (u : QState (Fin D × Fin r))
     (hdr : D ≤ r) :
     ∃ (L : Matrix (Fin r) (Fin D) ℂ) (u' : QState (Fin D × Fin D)),
@@ -103,6 +141,9 @@ theorem diamond_exists_vector_frame {D r : ℕ} (u : QState (Fin D × Fin r))
   rw [hu]
   exact (isometry_mulVec_norm (diamond_kronecker_frame_isometry hL) u').symm
 
+/-- Amplifying `T` commutes with multiplying the reference factor by a left frame `L` and the
+conjugate transpose of a right frame `R`. The system identities in the frame matrices change
+from input dimension `D` to output dimension `E`. -/
 theorem diamond_tensorLeft_frames {D E r s : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (L R : Matrix (Fin r) (Fin s) ℂ)
     (X : Matrix (Fin D × Fin s) (Fin D × Fin s) ℂ) :
@@ -136,6 +177,9 @@ theorem diamond_tensorLeft_frames {D E r s : ℕ} (T : Operator D →ₗ[ℂ] Op
   change (∑ k, ∑ l, (L a.2 k * star (R b.2 l)) * T (B k l) a.1 b.1) = _
   exact (hentry (tensorLeft T X) a b).symm
 
+/-- For `D <= r`, the vectors defining any rank-one input can be compressed to reference
+dimension `D` using separate isometric frames, preserving their Euclidean norms. The
+amplified rank-one output has the same trace norm after this compression. -/
 theorem diamond_rank_one_two_frame_compression : ∀ (D E r : ℕ)
     (T : Operator D →ₗ[ℂ] Operator E) (u v : QState (Fin D × Fin r)), D ≤ r →
     ∃ (L R : Matrix (Fin r) (Fin D) ℂ) (u' v' : QState (Fin D × Fin D)),
@@ -172,6 +216,8 @@ theorem diamond_rank_one_two_frame_compression : ∀ (D E r : ℕ)
         by_cases hab : a = b <;>
           simpa [Matrix.one_apply, hab] using! congrFun (congrFun h a) b)]
 
+/-- Multiplication by independent isometric reference frames on the left and right preserves the
+trace norm of a matrix. -/
 theorem diamond_traceNorm_frames {D r s : ℕ} (L R : Matrix (Fin r) (Fin s) ℂ)
     (hL : IsIsometry L) (hR : IsIsometry R)
     (X : Matrix (Fin D × Fin s) (Fin D × Fin s) ℂ) :
@@ -186,6 +232,8 @@ theorem diamond_traceNorm_frames {D r s : ℕ} (L R : Matrix (Fin r) (Fin s) ℂ
     ext a b
     by_cases hab : a = b <;> simpa [Matrix.one_apply, hab] using! congrFun (congrFun h a) b)]
 
+/-- At reference dimension `D`, the extended nonnegative trace norm of `tensorLeft T X` is at
+most `diamondAtInput T` times the extended nonnegative trace norm of `X`. -/
 theorem diamondAtInput_apply {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :
     ENNReal.ofReal (Matrix.traceNorm (tensorLeft T X)) ≤
@@ -221,6 +269,9 @@ theorem diamondAtInput_apply {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
       _ ≤ ENNReal.ofReal q * diamondAtInput T := mul_le_mul_right hbound _
       _ = _ := mul_comm _ _
 
+/-- For nonnegative real `delta`, `diamondAtInput T <= ofReal delta` is equivalent to the
+uniform bound `traceNorm (tensorLeft T X) <= delta * traceNorm X` at reference dimension
+`D`. -/
 theorem diamondAtInput_le_iff_uniform {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (δ : ℝ) (hδ : 0 ≤ δ) :
     diamondAtInput T ≤ ENNReal.ofReal δ ↔
@@ -241,6 +292,8 @@ theorem diamondAtInput_le_iff_uniform {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
         ((mul_le_mul_of_nonneg_left hx hδ).trans_eq (mul_one δ)))
     · exact bot_le
 
+/-- A uniform trace-norm amplification bound at reference dimension `D` also holds for every
+rank-one input with reference dimension `r >= D`. -/
 theorem diamond_rank_one_bound_of_input_bound {D E r : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E) (δ : ℝ)
     (h : ∀ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
@@ -262,6 +315,8 @@ theorem diamond_rank_one_bound_of_input_bound {D E r : ℕ}
   rw [he, ho, diamond_traceNorm_frames L R hL hR]
   exact h X
 
+/-- A uniform trace-norm amplification bound at reference dimension `D` also holds for every
+matrix with reference dimension `r <= D`. -/
 theorem diamond_small_reference_bound_of_input_bound {D E r : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E) (δ : ℝ)
     (h : ∀ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
@@ -283,6 +338,7 @@ theorem diamond_small_reference_bound_of_input_bound {D E r : ℕ}
     diamond_traceNorm_frames L L hL hL] at hx
   exact hx
 
+/-- The outer product of two vectors each having squared Euclidean norm one has trace norm one. -/
 theorem diamond_unit_rank_one_traceNorm {I : Type} [Fintype I] [DecidableEq I]
     (u v : I → ℂ) (hu : ∑ i, star (u i) * u i = 1)
     (hv : ∑ i, star (v i) * v i = 1) :
@@ -305,6 +361,9 @@ theorem diamond_unit_rank_one_traceNorm {I : Type} [Fintype I] [DecidableEq I]
   have hh := (Matrix.PosSemidef.one : (1 : Operator 1).PosSemidef).traceNorm_eq_trace
   simpa [Matrix.trace] using! congrArg Complex.re hh
 
+/-- Every finite square complex matrix is a sum of rank-one outer products of unit vectors with
+nonnegative real coefficients. Each outer product has trace norm one, and the sum of the
+coefficients equals the matrix trace norm. -/
 theorem diamond_svd_trace_decomposition {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) :
     ∃ (s : I → ℝ) (u v : I → I → ℂ),
@@ -361,6 +420,8 @@ theorem diamond_svd_trace_decomposition {I : Type} [Fintype I] [DecidableEq I]
     · simpa [v, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply] using!
         congrFun (congrFun hW i) i
 
+/-- Packages `tensorLeft T` at reference dimension `r` as a complex-linear map between the
+corresponding matrix spaces. -/
 noncomputable def diamondAmplification {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) (r : ℕ) :
     Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ →ₗ[ℂ]
       Matrix (Fin E × Fin r) (Fin E × Fin r) ℂ where
@@ -371,6 +432,7 @@ noncomputable def diamondAmplification {D E : ℕ} (T : Operator D →ₗ[ℂ] O
       (fun i j => X (i,a.2) (j,b.2)) (fun i j => Y (i,a.2) (j,b.2))) a.1) b.1
   map_smul' c X := diamond_tensorLeft_input_smul T c X
 
+/-- The trace norm of a finite sum of matrices is at most the sum of their trace norms. -/
 theorem diamond_traceNorm_sum_le {I J : Type} [Fintype I] [DecidableEq I]
     (s : Finset J) (A : J → Matrix I I ℂ) :
     Matrix.traceNorm (∑ i ∈ s, A i) ≤ ∑ i ∈ s, Matrix.traceNorm (A i) := by
@@ -381,6 +443,8 @@ theorem diamond_traceNorm_sum_le {I J : Type} [Fintype I] [DecidableEq I]
     rw [Finset.sum_insert hi, Finset.sum_insert hi]
     exact (Matrix.traceNorm_add_le _ _).trans (add_le_add le_rfl ih)
 
+/-- A uniform trace-norm amplification bound at reference dimension `D` extends to every finite
+reference dimension and every input matrix. -/
 theorem diamond_uniform_bound_of_input_bound {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E) (δ : ℝ)
     (h : ∀ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
@@ -415,6 +479,8 @@ theorem diamond_uniform_bound_of_input_bound {D E : ℕ}
         mul_le_mul_of_nonneg_left (hP i) (hs i)
       _ = δ * Matrix.traceNorm X := by rw [htrace]; simp [Finset.mul_sum, mul_comm]
 
+/-- For every complex-linear map between finite matrix spaces, the supremum over all finite
+reference systems equals the supremum at reference dimension equal to the input dimension. -/
 theorem diamond_input_dimension_stabilization : ∀ (D E : ℕ)
     (T : Operator D →ₗ[ℂ] Operator E), finiteDiamondNorm T = diamondAtInput T := by
   intro D E T
@@ -434,6 +500,8 @@ theorem diamond_input_dimension_stabilization : ∀ (D E : ℕ)
     unfold finiteDiamondNorm
     exact le_iSup_of_le D (le_iSup_of_le X le_rfl)
 
+/-- The finite diamond norm is below infinity and is attained at an input of trace norm at most
+one with reference dimension equal to the input dimension. -/
 theorem diamond_finite_attained_maximum : ∀ (D E : ℕ)
     (T : Operator D →ₗ[ℂ] Operator E), finiteDiamondNorm T < ⊤ ∧
     ∃ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,

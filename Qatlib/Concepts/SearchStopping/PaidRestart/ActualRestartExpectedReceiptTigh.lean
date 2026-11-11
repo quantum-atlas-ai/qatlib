@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceiptStat
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartFirstSuccessTigh
 import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoalTigh
+
+/-!
+# Expected receipts for verified Grover restarts
+
+Proves `actualRestartExpectedReceipt` using the first-success law and geometric-series
+expectations. The supporting lemmas bound Grover success probabilities, sum the marked Born
+masses, and evaluate a fixed-price retry expectation. For the quantum-search analysis, see
+[BoyerEtAl1998].
+
+## Main statements
+
+* `bbhtGeometric_ennreal_expectation`: For `0 < p ≤ 1` and `0 ≤ c`, the extended nonnegative sum
+  of `(r + 1) * c` weighted by the geometric first-success law is `ENNReal.ofReal (c / p)`.
+* `actualRestartExpectedReceipt`: Establishes the nontermination dichotomy and expected
+  paid-time and iteration formulas in `ActualRestartExpectedReceipt`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -26,6 +47,8 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- On a nonempty finite search space, the probability of measuring a marked address in a Grover
+state lies between zero and one. -/
 theorem bbhtGroverSuccess_bounds {I : Type} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (j : ℕ) :
     0 ≤ MeasureProb (GroverState A j) A ∧ MeasureProb (GroverState A j) A ≤ 1 := by
@@ -33,6 +56,8 @@ theorem bbhtGroverSuccess_bounds {I : Type} [Fintype I] [DecidableEq I]
   exact measureProb_le_one ((isUnitaryCircuit_groverCircuit hN j).normalized_run
     (setOracle_unitary A) (normalized_uniform hN)) A
 
+/-- The sum of the extended nonnegative Born masses over marked addresses equals the extended
+nonnegative marked-set measurement probability. -/
 theorem bbhtMarkedBorn_mass_sum {I : Type} [Fintype I] [DecidableEq I]
     (A : Finset I) (j : ℕ) :
     (∑ i : I, if i ∈ A then ENNReal.ofReal (BornProb (GroverState A j) i) else 0) =
@@ -41,6 +66,8 @@ theorem bbhtMarkedBorn_mass_sum {I : Type} [Fintype I] [DecidableEq I]
   simp only [Finset.filter_mem_eq_inter, Finset.univ_inter]
   exact (ENNReal.ofReal_sum_of_nonneg (fun i _ => bornProb_nonneg _ i)).symm
 
+/-- For `0 < p ≤ 1` and `0 ≤ c`, the extended nonnegative sum of `(r + 1) * c` weighted by the
+geometric first-success law is `ENNReal.ofReal (c / p)`. -/
 theorem bbhtGeometric_ennreal_expectation (p c : ℝ) (hp : 0 < p) (hp1 : p ≤ 1)
     (hc : 0 ≤ c) :
     (∑' r : ℕ, ENNReal.ofReal ((((r+1 : ℕ) : ℝ)*c*((1-p)^r*p)))) =
@@ -58,6 +85,8 @@ theorem bbhtGeometric_ennreal_expectation (p c : ℝ) (hp : 0 < p) (hp1 : p ≤ 
   rw [← ENNReal.ofReal_tsum_of_nonneg (fun r => by positivity) hs]
   rw [geometric_restart_expectation p c hp hp1]
 
+/-- For a Boolean distribution with positive success mass, the one-step price plus the
+failure-to-success correction equals the price divided by the success mass. -/
 theorem bbhtFixedPrice_expectation_formula (coin : PMF Bool) (price : ℕ)
     (hp : 0 < coin true) :
     (price : ℝ≥0∞)+(price : ℝ≥0∞)*coin false/coin true =
@@ -70,6 +99,8 @@ theorem bbhtFixedPrice_expectation_formula (coin : PMF Bool) (price : ℕ)
     _ = (price : ℝ≥0∞)*((coin true+coin false)/coin true) := by rw [ENNReal.add_div,hself]
     _ = _ := by rw [ht,one_div]; rfl
 
+/-- Establishes the nontermination dichotomy and expected paid-time and iteration formulas in
+`ActualRestartExpectedReceipt`. See [BoyerEtAl1998]. -/
 theorem actualRestartExpectedReceipt : ActualRestartExpectedReceipt := by
   intro I _ _ hN T' v hT hv hprep A j hC price hprice
   (try dsimp only)

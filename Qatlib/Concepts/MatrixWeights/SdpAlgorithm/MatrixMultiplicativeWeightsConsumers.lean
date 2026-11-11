@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixWeights.WeightsCore
 
+/-!
+# Averaged matrix multiplicative weights for SDP feasibility
+
+`mmwAverage_isDensityOperator` and `mmw_trace_average` expose the normalization and linearity of
+the average of Gibbs iterates. `matrix_mw_same_history_sdp_average_consumer` combines these
+identities with noncommuting regret, using the same selected constraint history for the states
+and the comparison estimate.
+
+The resulting constraint residual bound is an analytic ingredient in matrix multiplicative
+weights SDP methods [BrandaoSvore2017].
+
+## Main statements
+
+* `mmwAverage_isDensityOperator` proves density normalization for a positive number of
+  Hermitian-loss iterates in positive dimension.
+* `mmw_trace_average` expresses a trace pairing with the average as an average of trace
+  pairings.
+* `matrix_mw_same_history_sdp_average_consumer` bounds every averaged constraint by its
+  threshold plus `eta + log D / (eta*T)` under exact selection and a feasible density
+  comparator.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017], *Quantum Speed-Ups for Solving Semidefinite
+  Programs*.
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -17,6 +44,8 @@ namespace Qatlib.Concepts.MatrixWeights.SdpAlgorithm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The average of a positive number of Gibbs iterates is a density operator when the dimension
+is positive and all losses are Hermitian. -/
 theorem mmwAverage_isDensityOperator (D T : ℕ) (M : ℕ → Operator D) (η : ℝ)
     (hD : 0 < D) (hT : 0 < T) (hM : ∀ s, (M s).IsHermitian) :
     IsDensityOperator (mmwAverage D T M η) := by
@@ -37,6 +66,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- A real trace pairing with `mmwAverage` equals the sum of the corresponding pairings with
+individual Gibbs iterates divided by the number of rounds. -/
 theorem mmw_trace_average (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) (C : Operator D) :
     (Matrix.trace (C*mmwAverage D T M η)).re =
       (∑ t∈Finset.range T, (Matrix.trace (C*mmwState D M η t)).re)/(T:ℝ) := by
@@ -45,6 +76,10 @@ theorem mmw_trace_average (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) (C : O
     Complex.mul_re, Complex.re_sum, Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
   ring
 
+/-- For bounded Hermitian constraints, exact residual selection and a feasible density
+comparator imply that the average is a density operator with every constraint bounded by its
+threshold plus `eta + log D / (eta*T)`. This is a same-history feasibility estimate for
+matrix multiplicative weights SDP methods [BrandaoSvore2017]. -/
 theorem matrix_mw_same_history_sdp_average_consumer
     (D T m : ℕ) (C : Fin m → Operator D) (b : Fin m → ℝ)
     (a : ℕ → Fin m) (η : ℝ) (σ : Operator D)

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+/-!
+# Exact finite Toffoli words
+
+`thermalToffoliWord` expresses a Toffoli gate as fifteen finite gate codes. Its compilation
+agrees with the local reflection-gate decomposition, and its basis action extends to arbitrary
+superpositions without an extra phase. The background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `thermalToffoliWord_exact`: exact basis action with fifteen gates and no queries.
+* `thermalToffoliWord_coherent`: coherent action on arbitrary register states.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -16,10 +34,14 @@ namespace Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits
 open Qatlib Matrix
 open scoped BigOperators
 
+/-- The fifteen-gate Hadamard, CNOT, and T-phase word for a Toffoli gate with controls `a`, `b`
+and target `t`. -/
 def thermalToffoliWord (a b t : ℕ) : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode :=
   [.h t, .cx b t, .tdg t, .cx a t, .t t, .cx b t, .tdg t,
    .cx a t, .t b, .t t, .h t, .cx a b, .t a, .tdg b, .cx a b]
 
+/-- On three distinct wires, compiling `thermalToffoliWord` gives the compiled local Toffoli
+decomposition. -/
 theorem thermalToffoliWord_compile (n : ℕ) (a b t : Fin n)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n (thermalToffoliWord a.val b.val t.val) =
@@ -31,6 +53,8 @@ theorem thermalToffoliWord_compile (n : ℕ) (a b t : Fin n)
     a.isLt, b.isLt, t.isLt, hab', hat', hbt', Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionCompile,
     Qatlib.Concepts.GateVocabulary.LocalReflectionGates.toffoliLocalSteps, Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateMatrix]
 
+/-- On three distinct wires, the word performs the Toffoli update exactly on every basis state,
+using fifteen gates and zero queries. -/
 theorem thermalToffoliWord_exact (n : ℕ) (a b t : Fin n)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun n (thermalToffoliWord a.val b.val t.val) (Qatlib.Foundations.PureStateMath.Ket x) =
@@ -50,6 +74,8 @@ theorem thermalToffoliWord_exact (n : ℕ) (a b t : Fin n)
   · simpa [thermalToffoliWord] using (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit_counts n
       (thermalToffoliWord a.val b.val t.val)).2
 
+/-- On three distinct wires, the compiled word acts on an arbitrary state by coherently applying
+the Toffoli basis permutation. -/
 theorem thermalToffoliWord_coherent (n : ℕ) (a b t : Fin n)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (psi : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n)) :
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ)

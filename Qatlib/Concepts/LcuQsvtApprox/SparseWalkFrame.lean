@@ -22,6 +22,33 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+
+/-!
+# Polynomial synthesis and spectral walk frames
+
+This module assembles completed-pair phase synthesis, repository-convention amplitude
+approximation, and explicit walk frames for scaled Hermitian contractions.
+`walk_frame_of_spectral` uses the defect square root `√(1 - T^2)` to build an involutory unitary
+dilation, and sparsity bounds make this available for `LqSparseOracle`.
+
+The sparse-walk consumers provide eigenvector decompositions and eigenvectorwise simulation
+estimates with corrected truncation lengths. The constructions connect the signal-processing and
+qubitization frameworks of [LowChuang2017] and [LowChuang2019]; the frame-existence statements
+specify matrices without oracle implementation costs.
+
+## Main statements
+
+* `clause9_clause1b`: synthesize completed polynomial pairs with an operation bound.
+* `clause9_clause2`: obtain amplitude, success-mass, and first-column error bounds.
+* `walk_frame_of_spectral`: construct a walk frame for a scaled Hermitian contraction.
+* `clause9_clause3` and `g9`: collect sparse-frame, eigenphase, and approximation results.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+* [Low and Chuang, 2019][LowChuang2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -75,10 +102,13 @@ open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared in
 open Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame Qatlib.Concepts.QspSimulation.SparseWalk in
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel Qatlib.Concepts.SignalPrimitive.SparseSim in
 
+/-- The repository amplitude definitions `lcRepoAmp` and `lqRepoAmpWord` coincide. -/
 private theorem lcRepoAmp_eq_lqRepoAmpWord (γ₀ γ₁ : ℝ) (qs : List ℝ) (x : ℝ) :
     lcRepoAmp γ₀ γ₁ qs x = lqRepoAmpWord γ₀ γ₁ qs x :=
   rfl
 
+/-- A polynomial pair has a length-`n` unit-phase response realization exactly when it satisfies
+`Th3Pair n`. -/
 theorem clause9_clause1a :
     (∀ (n : ℕ) (P Q : Polynomial ℂ),
       (∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧
@@ -87,6 +117,8 @@ theorem clause9_clause1a :
   intro n P Q
   exact (Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.completedPair_iff_response).symm
 
+/-- Completed polynomial pairs are synthesized with the stated operation bound, phase validity,
+list length, and exact response identities. -/
 theorem clause9_clause1b :
     (∀ (n : ℕ) (P Q : Polynomial ℂ), Th3Pair n P Q →
       (lqSynthWithCount n P Q).1 = synthesizePair n P Q ∧
@@ -103,6 +135,8 @@ theorem clause9_clause1b :
   exact ⟨rfl, lqSynthCount_le_of_completed n P Q h',
     Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.synthesizePair_length n P Q, hb, hzs, hp, hq⟩
 
+/-- Under the even-degree, parity, boundedness, and endpoint hypotheses, constructs a repository
+word whose amplitude equals `A(x) + i * √(1 - x^2) * Qt(x)`. -/
 theorem clause9_clause1c :
     (∀ (d : ℕ) (A Qt : Polynomial ℝ), Even d → 0 < d →
       A.comp (-X) = A → Qt.comp (-X) = -Qt →
@@ -124,11 +158,13 @@ theorem clause9_clause1c :
   rw [← lcRepoAmp_eq_lqRepoAmpWord]
   exact hamp x hx
 
+/-- The normalized Hadamard matrix is Hermitian. -/
 private theorem lqHad_conjTranspose : lqHad.conjTranspose = lqHad := by
   ext i j
   simp only [lqHad, Matrix.conjTranspose_apply, Matrix.smul_apply]
   fin_cases i <;> fin_cases j <;> simp [Complex.conj_ofReal]
 
+/-- The normalized Hadamard matrix squares to the identity. -/
 private theorem lqHad_sq : lqHad * lqHad = 1 := by
   have hM : !![(1 : ℂ), 1; 1, -(1 : ℂ)] * !![(1 : ℂ), 1; 1, -(1 : ℂ)]
       = (2 : ℂ) • (1 : Matrix (Fin 2) (Fin 2) ℂ) := by
@@ -142,10 +178,12 @@ private theorem lqHad_sq : lqHad * lqHad = 1 := by
   fin_cases i <;> fin_cases j <;>
     simp [h2, Complex.ofReal_inv, Complex.ofReal_ofNat]
 
+/-- The normalized Hadamard matrix is unitary. -/
 private theorem lqHad_unitary : lqHad ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, lqHad_conjTranspose]
   exact lqHad_sq
 
+/-- A product fold of unitary matrices with a unitary initial accumulator remains unitary. -/
 private theorem foldl_unitary : ∀ (l : List (Matrix (Fin 2) (Fin 2) ℂ))
     (a : Matrix (Fin 2) (Fin 2) ℂ), a ∈ Matrix.unitaryGroup (Fin 2) ℂ →
     (∀ M ∈ l, M ∈ Matrix.unitaryGroup (Fin 2) ℂ) →
@@ -160,6 +198,7 @@ private theorem foldl_unitary : ∀ (l : List (Matrix (Fin 2) (Fin 2) ℂ))
       fun M' h' => hl M' (List.mem_cons_of_mem M h')
     exact ih (a * M) (Submonoid.mul_mem _ ha hM) hrest
 
+/-- The repository-convention word is unitary when `x` lies in `[-1, 1]`. -/
 private theorem lqRepoWord_unitary (γ₀ γ₁ : ℝ) (qs : List ℝ) {x : ℝ}
     (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     lqRepoWord γ₀ γ₁ qs x ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
@@ -195,6 +234,7 @@ private theorem lqRepoWord_unitary (γ₀ γ₁ : ℝ) (qs : List ℝ) {x : ℝ}
     Submonoid.mul_mem _ u2 (phaseRotation_unitary γ₁)
   exact Submonoid.mul_mem _ u3 lqHad_unitary
 
+/-- The squared norms of the two entries in a unitary matrix's first column sum to one. -/
 private theorem unitary_col_normSq (U : Matrix (Fin 2) (Fin 2) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     Complex.normSq (U 0 0) + Complex.normSq (U 1 0) = 1 := by
@@ -211,6 +251,9 @@ private theorem unitary_col_normSq (U : Matrix (Fin 2) (Fin 2) ℂ)
   rw [← e0, ← e1] at h1
   exact_mod_cast h1
 
+/-- Under the stated polynomial approximation hypotheses, constructs a length-`N` repository
+word with amplitude error at most `8 * ε`, success-mass lower bounds, and a first-column
+error bound. -/
 theorem clause9_clause2 :
     (∀ (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) (ε : ℝ),
       Even N → 0 < N →
@@ -300,6 +343,7 @@ theorem clause9_clause2 :
     mul_nonneg (by positivity) (Real.sqrt_nonneg ε)
   linarith
 
+/-- Every row of the sparse oracle matrix has at most `d` nonzero entries. -/
 private theorem lqSparse_row_card {n d : ℕ} {b : ℝ} (O : LqSparseOracle n d b) :
     ∀ o : Fin (2 ^ n), (Finset.univ.filter (fun i : Fin (2 ^ n) => O.H o i ≠ 0)).card ≤ d := by
   intro o
@@ -316,6 +360,7 @@ private theorem lqSparse_row_card {n d : ℕ} {b : ℝ} (O : LqSparseOracle n d 
   rw [List.length_map]
   exact O.row_bound o
 
+/-- Every column of the Hermitian sparse oracle matrix has at most `d` nonzero entries. -/
 private theorem lqSparse_col_card {n d : ℕ} {b : ℝ} (O : LqSparseOracle n d b) :
     ∀ i : Fin (2 ^ n), (Finset.univ.filter (fun o : Fin (2 ^ n) => O.H o i ≠ 0)).card ≤ d := by
   intro i
@@ -344,6 +389,8 @@ private theorem lqSparse_col_card {n d : ℕ} {b : ℝ} (O : LqSparseOracle n d 
   rw [List.length_map]
   exact O.row_bound i
 
+/-- For positive sparsity and entry bounds, scaling the sparse oracle matrix by `1 / (d * b)`
+gives operator norm at most one. -/
 private theorem lqSparse_scaled_opNorm_le_one {n d : ℕ} {b : ℝ}
     (O : LqSparseOracle n d b) (hd : 0 < d) (hb : 0 < b) :
     ‖((((d : ℝ) * b)⁻¹ : ℝ) : ℂ) • O.H‖ ≤ 1 := by
@@ -359,6 +406,8 @@ private theorem lqSparse_scaled_opNorm_le_one {n d : ℕ} {b : ℝ}
   rw [← div_eq_inv_mul]
   exact (div_le_one hdb).mpr hnorm
 
+/-- Bounds the corrected truncation degree and twice its predecessor in terms of scaled time,
+error tolerance, and logarithmic expressions. -/
 theorem clause9_clause4 :
     (∀ (d : ℕ) (b t ε : ℝ), 0 < d → 0 < b → 0 ≤ t → 0 < ε → ε ≤ 1 / 2 →
       3 * (t * (d : ℝ) * b) ≤ (lcCorrectedQ (t * (d : ℝ) * b) (ε / 8) : ℝ) ∧
@@ -393,6 +442,9 @@ theorem clause9_clause4 :
       (2 : ℝ) * ((lcCorrectedQ (t * (d : ℝ) * b) (ε / 8) : ℝ) - 1)
         ≤ 2 * (3 * (t * (d : ℝ) * b) + 3 * L + 8))
 
+/-- A supplied scaled sparse walk frame yields normalized walk eigenvectors with the stated
+eigenphases and an eigenvectorwise simulation word with error at most `ε` and success mass
+at least `1 - 2 * ε`. -/
 theorem clause9_clause3_from_frame :
     ∀ (n d : ℕ) (b : ℝ), 0 < d → 0 < b → ∀ (O : LqSparseOracle n d b),
       ∀ (L R : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -440,13 +492,16 @@ theorem clause9_clause3_from_frame :
 
 open scoped ComplexOrder MatrixOrder
 
+/-- The left walk frame embedding into the zero sector of a two-dimensional label register. -/
 def lqWalkL {m : ℕ} : Matrix (Fin 2 × Fin m) (Fin m) ℂ :=
   Matrix.of fun w i => if w.1 = 0 ∧ w.2 = i then (1 : ℂ) else 0
 
+/-- The right walk frame formed by stacking the matrices `T` and `N`. -/
 def lqWalkR {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     Matrix (Fin 2 × Fin m) (Fin m) ℂ :=
   Matrix.of fun w i => if w.1 = 0 then T w.2 i else N w.2 i
 
+/-- The block matrix with blocks `T`, `N`, `N`, and `-T`. -/
 def lqWalkS {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     Matrix (Fin 2 × Fin m) (Fin 2 × Fin m) ℂ :=
   Matrix.of fun w w' =>
@@ -455,6 +510,7 @@ def lqWalkS {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     else if w.1 = 1 ∧ w'.1 = 0 then N w.2 w'.2
     else -(T w.2 w'.2)
 
+/-- The zero-sector left walk frame is an isometry. -/
 theorem lqWalkL_isometry {m : ℕ} : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (lqWalkL (m := m)) := by
   unfold Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry
   ext i j
@@ -466,6 +522,8 @@ theorem lqWalkL_isometry {m : ℕ} : Qatlib.Concepts.Execution.WorkspaceCP.IsIso
   · have hji : j ≠ i := Ne.symm hij
     simp [hij, hji]
 
+/-- For Hermitian `T` and `N` satisfying `N^2 = 1 - T^2`, the stacked right walk frame is an
+isometry. -/
 theorem lqWalkR_isometry {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (hN : N.conjTranspose = N)
     (hNN : N * N = 1 - T * T) :
@@ -493,6 +551,7 @@ theorem lqWalkR_isometry {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
     rw [add_comm, sub_add_cancel]
   rw [← Matrix.add_apply, hadd, Matrix.one_apply]
 
+/-- The overlap of the left and right walk frames equals `T`. -/
 theorem lqWalkL_dot_R {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     (lqWalkL (m := m)).conjTranspose * lqWalkR T N = T := by
   ext i j
@@ -526,18 +585,23 @@ theorem lqWalkL_dot_R {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     rw [hcong, Finset.sum_ite_eq, if_pos (Finset.mem_univ i)]
   rw [e2, hsum, hfinal]
 
+/-- The zero-zero block of `lqWalkS T N` is `T`. -/
 theorem lqWalkS_apply_00 {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) (p q : Fin m) :
     lqWalkS T N (0, p) (0, q) = T p q := by simp [lqWalkS, Matrix.of_apply]
 
+/-- The zero-one block of `lqWalkS T N` is `N`. -/
 theorem lqWalkS_apply_01 {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) (p q : Fin m) :
     lqWalkS T N (0, p) (1, q) = N p q := by simp [lqWalkS, Matrix.of_apply]
 
+/-- The one-zero block of `lqWalkS T N` is `N`. -/
 theorem lqWalkS_apply_10 {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) (p q : Fin m) :
     lqWalkS T N (1, p) (0, q) = N p q := by simp [lqWalkS, Matrix.of_apply]
 
+/-- The one-one block of `lqWalkS T N` is `-T`. -/
 theorem lqWalkS_apply_11 {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) (p q : Fin m) :
     lqWalkS T N (1, p) (1, q) = -(T p q) := by simp [lqWalkS, Matrix.of_apply]
 
+/-- The block walk matrix is Hermitian when `T` and `N` are Hermitian. -/
 theorem lqWalkS_conjTranspose {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (hN : N.conjTranspose = N) :
     (lqWalkS T N).conjTranspose = lqWalkS T N := by
@@ -559,6 +623,8 @@ theorem lqWalkS_conjTranspose {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
   · have hs : star (T q p) = T p q := by rw [← Matrix.conjTranspose_apply, hT]
     simp [hs]
 
+/-- The block walk matrix squares to the identity when `N^2 = 1 - T^2` and `T` commutes with
+`N`. -/
 theorem lqWalkS_sq {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
     (_hT : T.conjTranspose = T) (_hN : N.conjTranspose = N)
     (hNN : N * N = 1 - T * T) (hTN : Commute T N) :
@@ -648,12 +714,15 @@ theorem lqWalkS_sq {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
     rw [sub_add_cancel, Matrix.one_apply]
     by_cases hpq : p = q <;> simp [hpq]
 
+/-- The zero sector of the right walk frame is `T`. -/
 theorem lqWalkR_apply_0 {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) (p j : Fin m) :
     lqWalkR T N (0, p) j = T p j := by simp [lqWalkR, Matrix.of_apply]
 
+/-- The one sector of the right walk frame is `N`. -/
 theorem lqWalkR_apply_1 {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) (p j : Fin m) :
     lqWalkR T N (1, p) j = N p j := by simp [lqWalkR, Matrix.of_apply]
 
+/-- The block walk matrix sends the left walk frame to the right walk frame. -/
 theorem lqWalkS_mul_L {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
     lqWalkS T N * lqWalkL = lqWalkR T N := by
   ext w j
@@ -714,6 +783,8 @@ theorem lqWalkS_mul_L {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ) :
       simp [lqWalkS, lqWalkL, Matrix.of_apply]
     rw [e1, e2, add_zero]
 
+/-- The block walk matrix is unitary for commuting Hermitian `T` and `N` satisfying `N^2 = 1 -
+T^2`. -/
 theorem lqWalkS_unitary {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (hN : N.conjTranspose = N)
     (hNN : N * N = 1 - T * T) (hTN : Commute T N) :
@@ -722,6 +793,8 @@ theorem lqWalkS_unitary {m : ℕ} (T N : Matrix (Fin m) (Fin m) ℂ)
   rw [Matrix.star_eq_conjTranspose, lqWalkS_conjTranspose T N hT hN]
   exact lqWalkS_sq T N hT hN hNN hTN
 
+/-- A Hermitian matrix may be moved between the two arguments of the conjugate-linear
+dot-product pairing. -/
 theorem walkT_adjoint_dotProduct {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (x y : Fin m → ℂ) :
     star x ⬝ᵥ (T *ᵥ y) = star (T *ᵥ x) ⬝ᵥ y := by
@@ -741,6 +814,7 @@ theorem walkT_adjoint_dotProduct {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
   rw [hij]
   ring
 
+/-- The conjugate self-dot-product is the complex cast of the sum of squared component norms. -/
 theorem walkDotProduct_star_self {m : ℕ} (v : Fin m → ℂ) :
     star v ⬝ᵥ v = ((∑ i, ‖v i‖ ^ 2 : ℝ) : ℂ) := by
   show (∑ i, star (v i) * v i) = ((∑ i, ‖v i‖ ^ 2 : ℝ) : ℂ)
@@ -748,6 +822,8 @@ theorem walkDotProduct_star_self {m : ℕ} (v : Fin m → ℂ) :
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+/-- The Euclidean norm of a matrix-vector product is bounded by the operator norm times the
+vector norm. -/
 theorem walkOpNorm_mulVec {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ) (x : Fin m → ℂ) :
     ‖toEuclidean_fromVec (T *ᵥ x)‖ ≤ ‖T‖ * ‖toEuclidean_fromVec x‖ := by
   have h := ContinuousLinearMap.le_opNorm
@@ -767,6 +843,7 @@ theorem walkOpNorm_mulVec {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ) (x : Fin m 
   rw [hnorm] at h
   exact h
 
+/-- For a Hermitian contraction `T`, the defect matrix `1 - T^2` is positive semidefinite. -/
 theorem walkP_posSemidef {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (hnorm : ‖T‖ ≤ 1) :
     Matrix.PosSemidef (1 - T * T) := by
@@ -802,12 +879,15 @@ theorem walkP_posSemidef {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
     rw [hdp, hadj, hx, hTx, ← Complex.ofReal_sub, Complex.zero_le_real]
     exact sub_nonneg.mpr hsum
 
+/-- For a Hermitian contraction, the functional-calculus square root of `1 - T^2` squares to `1
+- T^2`. -/
 theorem walkN_mul_self {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (hnorm : ‖T‖ ≤ 1) :
     CFC.sqrt (1 - T * T) * CFC.sqrt (1 - T * T) = 1 - T * T := by
   have hP : Matrix.PosSemidef (1 - T * T) := walkP_posSemidef T hT hnorm
   exact CFC.sqrt_mul_sqrt_self _ hP.nonneg
 
+/-- The functional-calculus square root of `1 - T^2` is Hermitian. -/
 theorem walkN_conjTranspose {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ) :
     (CFC.sqrt (1 - T * T)).conjTranspose = CFC.sqrt (1 - T * T) := by
   have h : IsSelfAdjoint (CFC.sqrt (1 - T * T : Matrix (Fin m) (Fin m) ℂ)) :=
@@ -815,6 +895,8 @@ theorem walkN_conjTranspose {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ) :
   rw [← Matrix.star_eq_conjTranspose]
   exact h
 
+/-- A Hermitian contraction commutes with the functional-calculus square root of its defect
+matrix. -/
 theorem walkN_commute {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
     (hT : T.conjTranspose = T) (hnorm : ‖T‖ ≤ 1) :
     Commute T (CFC.sqrt (1 - T * T)) := by
@@ -828,6 +910,8 @@ theorem walkN_commute {m : ℕ} (T : Matrix (Fin m) (Fin m) ℂ)
     rwa [← CFC.sqrt_eq_real_sqrt _ hP0] at h
   exact h2.symm
 
+/-- Every real-scaled Hermitian contraction possesses a doubled-space walk frame with overlap
+equal to the scaled matrix. -/
 theorem walk_frame_of_spectral {m : ℕ} (c : ℝ) (H : Matrix (Fin m) (Fin m) ℂ)
     (hH : H.conjTranspose = H) (hnorm : ‖((c : ℝ) : ℂ) • H‖ ≤ 1) :
     ∃ (L R : Matrix (Fin 2 × Fin m) (Fin m) ℂ)
@@ -854,6 +938,9 @@ theorem walk_frame_of_spectral {m : ℕ} (c : ℝ) (H : Matrix (Fin m) (Fin m) �
   · exact lqWalkS_sq T N hT hNherm hNN hTN
   · exact lqWalkS_mul_L T N
 
+/-- For positive sparse-oracle bounds, constructs a scaled walk frame with the stated walk
+eigenphases, eigenvector decomposition, and eigenvectorwise simulation guarantees
+[LowChuang2017]. -/
 theorem clause9_clause3 :
     (∀ (n d : ℕ) (b : ℝ), 0 < d → 0 < b → ∀ O : LqSparseOracle n d b,
       ∃ (L R : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -890,6 +977,9 @@ theorem clause9_clause3 :
   obtain ⟨h6, h7⟩ := clause9_clause3_from_frame n d b hd hb O L R S hframe
   exact ⟨L, R, S, hframe, h6, h7⟩
 
+/-- Collects completed-pair characterization and synthesis, repository-word approximation,
+sparse spectral walk-frame existence and eigenvectorwise simulation, and corrected
+truncation-length bounds [LowChuang2017]. -/
 theorem g9 :
     (∀ (n : ℕ) (P Q : Polynomial ℂ),
       (∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧

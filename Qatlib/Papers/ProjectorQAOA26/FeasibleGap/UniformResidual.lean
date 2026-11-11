@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
 import Qatlib.Papers.ProjectorQAOA26.StageStability.EC3FeasibleGap
+
+/-!
+# Regular secular terms and crossing roots
+
+This module separates the zero-cost pole from `uniformCurve` using `regularSecond` and defines
+`crossingResidual`. Continuity and moment bounds locate residual roots on either side of zero
+for the secular analysis in [ZhouAnLiu2026].
+
+## Main statements
+
+* `uniformCurve_regular`: Away from the stated poles, the uniform secular curve splits into the
+  zero-cost pole, `ec3A1`, and `z * regularSecond E zero z`. This is the regular decomposition
+  used in [ZhouAnLiu2026].
+* `crossingRoot_secular`: A nonzero root of the crossing residual away from the cost poles
+  satisfies the secular equation with coupling `(ec3A1 zero E)⁻¹`.
+* `moment_crossing_roots`: If `0 < b ≤ 1 / 2` and `b ^ 2 * ec3A2 zero E = 4 / L`, the crossing
+  residual has roots in `[-b, 0)` and `(0, b]`.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,12 +40,17 @@ open Qatlib.Papers.ProjectorQAOA26.StageStability
 open Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The cardinality-normalized sum of `1 / (E i * (E i - z))` over indices other than the
+distinguished zero-cost index. -/
 def regularSecond (E : I → ℝ) (zero : I) (z : ℝ) : ℝ :=
   (Fintype.card I:ℝ)⁻¹ * ∑ i ∈ Finset.univ.erase zero, (E i*(E i-z))⁻¹
 
+/-- The crossing residual `z ^ 2 * regularSecond E zero z - 1 / L`, where `L` is the index
+cardinality. -/
 def crossingResidual (E : I → ℝ) (zero : I) (z : ℝ) : ℝ :=
   z^2*regularSecond E zero z-(Fintype.card I:ℝ)⁻¹
 
+/-- If all other costs are at least one, `regularSecond` is continuous on `[-1 / 2, 1 / 2]`. -/
 theorem regularSecond_continuous (E : I → ℝ) (zero : I)
     (hE : ∀ i,i≠zero → 1≤E i) : ContinuousOn (regularSecond E zero) (Set.Icc (-(1/2):ℝ) (1/2)) := by
   unfold regularSecond
@@ -34,11 +62,16 @@ theorem regularSecond_continuous (E : I → ℝ) (zero : I)
   intro z hz
   exact mul_ne_zero (by linarith) (by dsimp; linarith [hz.2])
 
+/-- If all other costs are at least one, the crossing residual is continuous on `[-1 / 2, 1 /
+2]`. -/
 theorem crossingResidual_continuous (E : I → ℝ) (zero : I)
     (hE : ∀ i,i≠zero → 1≤E i) :
     ContinuousOn (crossingResidual E zero) (Set.Icc (-(1/2):ℝ) (1/2)) :=
   (continuousOn_id.pow 2 |>.mul (regularSecond_continuous E zero hE)).sub continuousOn_const
 
+/-- Away from the stated poles, the uniform secular curve splits into the zero-cost pole,
+`ec3A1`, and `z * regularSecond E zero z`. This is the regular decomposition used in
+[ZhouAnLiu2026]. -/
 theorem uniformCurve_regular (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → E i≠0) (z : ℝ) (_hz : z≠0)
     (hpole : ∀ i,i≠zero → E i≠z) :
@@ -59,6 +92,8 @@ theorem uniformCurve_regular (E : I → ℝ) (zero : I) (hzero : E zero=0)
   simp only [one_div]
   ring
 
+/-- A nonzero root of the crossing residual away from the cost poles satisfies the secular
+equation with coupling `(ec3A1 zero E)⁻¹`. -/
 theorem crossingRoot_secular (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → E i≠0) (z : ℝ) (hz : z≠0)
     (hpole : ∀ i,i≠zero → E i≠z) (hA : ec3A1 zero E≠0)
@@ -72,6 +107,8 @@ theorem crossingRoot_secular (E : I → ℝ) (zero : I) (hzero : E zero=0)
   field_simp
   ring
 
+/-- If the crossing residual is positive at both endpoints `-b` and `b`, with `0 < b ≤ 1 / 2`,
+it has roots in `[-b, 0)` and `(0, b]`. -/
 theorem crossing_roots (E : I → ℝ) (zero : I) (hE : ∀ i,i≠zero → 1≤E i)
     (b : ℝ) (hb : 0<b) (hbhalf : b≤1/2)
     (hneg : 0<crossingResidual E zero (-b)) (hpos : 0<crossingResidual E zero b) :
@@ -94,6 +131,8 @@ theorem crossing_roots (E : I → ℝ) (zero : I) (hE : ∀ i,i≠zero → 1≤E
   · have hne : hi≠0 := by intro h;subst hi;linarith
     exact lt_of_le_of_ne hhi.1 (Ne.symm hne)
 
+/-- On `|z| ≤ 1 / 2`, costs at least one away from the distinguished index imply `regularSecond
+E zero z ≥ ec3A2 zero E / 2`. -/
 theorem regularSecond_lower (E : I → ℝ) (zero : I)
     (hE : ∀ i,i≠zero → 1≤E i) (z : ℝ) (hz : |z|≤1/2) :
     ec3A2 zero E/2≤regularSecond E zero z := by
@@ -112,6 +151,8 @@ theorem regularSecond_lower (E : I → ℝ) (zero : I)
   have hh:=one_div_le_one_div_of_le hden hcomp
   convert! hh using 1 <;> field_simp
 
+/-- If `0 < b ≤ 1 / 2` and `b ^ 2 * ec3A2 zero E = 4 / L`, the crossing residual has roots in
+`[-b, 0)` and `(0, b]`. -/
 theorem moment_crossing_roots (E : I → ℝ) (zero : I)
     (hE : ∀ i,i≠zero → 1≤E i) (b : ℝ) (hb : 0<b) (hbhalf : b≤1/2)
     (hscale : b^2*ec3A2 zero E=4/(Fintype.card I:ℝ)) :

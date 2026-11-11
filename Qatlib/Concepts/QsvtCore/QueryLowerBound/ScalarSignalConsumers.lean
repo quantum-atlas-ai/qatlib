@@ -11,6 +11,30 @@ import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Scalar signal circuits and lower-bound examples
+
+This module constructs explicit Chebyshev query words, their tensor lifts, and controlled
+Hadamard readouts. It relates these circuits to scalar response lower bounds in the setting of
+[GilyenSuLowWiebe2019].
+
+The examples include a linear query lower bound for opposite responses and a constant-response
+circuit illustrating the need for correctly oriented leakage estimates.
+
+## Main statements
+
+* `scalar_signal_chebyshev_actual_word`: Chebyshev response and exact query and gate counts.
+* `scalar_signal_chebyshev_phase_readout_and_matching_lower_consumer`: Perfect phase readout and
+  a matching linear lower estimate.
+* `scalar_signal_printed_leakage_counterexample`: A zero-query constant-response example with a
+  positive printed leakage expression.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -35,31 +59,40 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The word obtained by repeating a forward scalar-signal query followed by `PauliZ` exactly
+`n` times. -/
 noncomputable def signalChebyshevWord (n : ℕ) : List (AdjointStep Bool) :=
   repeatAdjointWord [.forward,.gate PauliZ] n
 
+/-- The tensor lift of `signalChebyshevWord` to a trivial auxiliary register. -/
 noncomputable def signalChebyshevUnitWord (n : ℕ) : List (AdjointStep (Bool×Unit)) :=
   (signalChebyshevWord n).map (fun c => match c with
     | .gate V => .gate (TensorGate V (1:Matrix Unit Unit ℂ))
     | .forward => .forward
     | .backward => .backward)
 
+/-- The controlled Chebyshev word with Hadamard gates on the control before and after
+evaluation. -/
 noncomputable def signalChebyshevHadamardWord (n : ℕ) : List (AdjointStep (Bool×Bool)) :=
   [.gate (TensorGate Hadamard (1:Matrix Bool Bool ℂ))] ++
     compileControlled (signalChebyshevWord n) ++
     [.gate (TensorGate Hadamard (1:Matrix Bool Bool ℂ))]
 
+/-- A single fixed gate given by the scalar signal at one half, with no oracle queries. -/
 noncomputable def constantHalfSignalWord : List (AdjointStep (Bool×Unit)) :=
   [.gate (scalarSignalLift Unit (1/2))]
 
+/-- The real planar rotation through angle `θ`, viewed as a complex matrix indexed by `Bool`. -/
 private noncomputable def scalarRotation (θ : ℝ) : Matrix Bool Bool ℂ :=
   fun a b=>if a=b then (Real.cos θ : ℂ) else if a then (Real.sin θ : ℂ) else -(Real.sin θ : ℂ)
 
+/-- Multiplication of scalar rotation matrices adds their angles. -/
 private theorem scalarRotation_add (θ φ : ℝ) : scalarRotation θ*scalarRotation φ=scalarRotation (θ+φ) := by
   ext a b
   cases a <;> cases b <;> apply Complex.ext <;>
     simp [scalarRotation,Matrix.mul_apply,Real.cos_add,Real.sin_add,Complex.mul_re,Complex.mul_im] <;> ring
 
+/-- The `n`th power of a scalar rotation is the rotation through `n * θ`. -/
 private theorem scalarRotation_pow (θ : ℝ) (n : ℕ) : scalarRotation θ^n=scalarRotation ((n : ℝ)*θ) := by
   induction n with
   | zero => ext a b; cases a <;> cases b <;> simp [scalarRotation]
@@ -69,6 +102,8 @@ private theorem scalarRotation_pow (θ : ℝ) (n : ℕ) : scalarRotation θ^n=sc
     push_cast
     ring
 
+/-- For `x` in `[-1, 1]`, multiplying its scalar signal reflection by `PauliZ` gives rotation
+through `arccos x`. -/
 private theorem scalarSignal_times_z (x : ℝ) (hx : x∈Set.Icc (-1) 1) :
     scalarSignalReflection x*PauliZ=scalarRotation (Real.arccos x) := by
   ext a b
@@ -76,6 +111,7 @@ private theorem scalarSignal_times_z (x : ℝ) (hx : x∈Set.Icc (-1) 1) :
     simp [scalarSignalReflection,PauliZ,Matrix.mul_apply,scalarRotation,
       Real.cos_arccos hx.1 hx.2,Real.sin_arccos]
 
+/-- Evaluation commutes with tensoring every fixed gate of a word with the identity on `Unit`. -/
 private theorem scalar_unit_lift_word (x : ℝ) (word : List (AdjointStep Bool)) :
     evaluate (scalarSignalLift Unit x) (word.map (fun c=>match c with
       | .gate V=>.gate (TensorGate V (1 : Matrix Unit Unit ℂ))
@@ -88,6 +124,9 @@ private theorem scalar_unit_lift_word (x : ℝ) (word : List (AdjointStep Bool))
     cases c <;>
       simp [evaluate,instructionMatrix,ih,scalarSignalLift,tensorGate_mul,tensorGate_conjTranspose]
 
+/-- The repeated signal word is well formed, uses `n` queries and `n` gates, and has top-left
+entry `Tₙ(x)` for `x` in `[-1, 1]`. Its evaluation is the corresponding matrix power and
+commutes with the trivial tensor lift. -/
 theorem scalar_signal_chebyshev_actual_word : ∀ (n : ℕ) (x : ℝ), x ∈ Set.Icc (-1) 1 →
   WellFormedAdjointCircuit (signalChebyshevWord n) ∧
   adjointQueryCount (signalChebyshevWord n)=n ∧ adjointGateCount (signalChebyshevWord n)=n ∧
@@ -114,6 +153,8 @@ theorem scalar_signal_chebyshev_actual_word : ∀ (n : ℕ) (x : ℝ), x ∈ Set
           Polynomial.Chebyshev.T_real_cos (Real.arccos x) (n : ℤ)
     simp only [scalarRotation,if_true,hT]
 
+/-- For `θ` in `[0, π]`, evaluating the Chebyshev word at `cos θ` gives rotation through `n *
+θ`. -/
 private theorem scalar_chebyshev_angle (n : ℕ) (θ : ℝ) (hθ0 : 0≤θ) (hθπ : θ≤Real.pi) :
     evaluate (scalarSignalReflection (Real.cos θ)) (signalChebyshevWord n)=scalarRotation ((n : ℝ)*θ) := by
   have he :=
@@ -125,6 +166,8 @@ private theorem scalar_chebyshev_angle (n : ℕ) (θ : ℝ) (hθ0 : 0≤θ) (hθ
         ← Real.sin_eq_sqrt_one_sub_cos_sq hθ0 hθπ]
   rw [he,hb,scalarRotation_pow]
 
+/-- Evaluation of the controlled Chebyshev readout equals the controlled word evaluation
+conjugated by Hadamard on the control. -/
 private theorem scalar_hadamard_word_matrix (n : ℕ) (U : Matrix Bool Bool ℂ) :
     evaluate (controlOracle U) (signalChebyshevHadamardWord n)=
       TensorGate Hadamard (1 : Matrix Bool Bool ℂ)*controlOracle (evaluate U (signalChebyshevWord n))*
@@ -132,16 +175,20 @@ private theorem scalar_hadamard_word_matrix (n : ℕ) (U : Matrix Bool Bool ℂ)
   simp only [signalChebyshevHadamardWord,evaluate_append,evaluate,instructionMatrix,
     Matrix.mul_one,evaluate_compileControlled]
 
+/-- Controlling negative identity gives `PauliZ` on the control tensor the identity on the
+target. -/
 private theorem scalar_control_neg_one : controlOracle (-(1 : Matrix Bool Bool ℂ))=
     TensorGate PauliZ (1 : Matrix Bool Bool ℂ) := by
   ext ⟨a,i⟩ ⟨b,j⟩
   cases a <;> cases b <;> by_cases hij : i=j <;> simp [controlOracle,select,TensorGate,PauliZ,hij]
 
+/-- Conjugation of `PauliZ` by `Hadamard` gives `PauliX`. -/
 private theorem scalar_hadamard_z_hadamard : Hadamard*PauliZ*Hadamard=PauliX := by
   ext i j
   cases i <;> cases j <;> simp
       [Hadamard,PauliZ,PauliX,permMatrix,Matrix.mul_apply] <;> ring_nf <;> norm_num [sqrt2_sq]
 
+/-- The scalar signal distance between `1` and `cos θ` is `2 * sin (θ / 2)` for `θ` in `[0, π]`. -/
 private theorem scalar_one_chord (θ : ℝ) (hθ0 : 0≤θ) (hθπ : θ≤Real.pi) :
     scalarSignalDistance 1 (Real.cos θ)=2*Real.sin (θ/2) := by
   have hs : (Real.sqrt (1-(Real.cos θ)^2))^2=1-(Real.cos θ)^2 :=
@@ -156,6 +203,10 @@ private theorem scalar_one_chord (θ : ℝ) (hθ0 : 0≤θ) (hθπ : θ≤Real.p
       Real.sin_nonneg_of_nonneg_of_le_pi (by linarith) (by linarith [Real.pi_pos])
   nlinarith only [hd,hs,hc,hsin,scalarSignalDistance_nonneg 1 (Real.cos θ)]
 
+/-- For positive `n`, the Chebyshev readout perfectly distinguishes signals `1` and `cos (π /
+n)` using `n` queries and `n + 2` gates. Any fixed well-formed word approximating the
+opposite scalar responses at error `eps < 1` requires at least `2 * (1 - eps) * n / π`
+queries. -/
 theorem scalar_signal_chebyshev_phase_readout_and_matching_lower_consumer : ∀ (n : ℕ), 0<n →
   let x := Real.cos (Real.pi/(n:ℝ));
   evaluate (scalarSignalReflection 1) (signalChebyshevWord n)=1 ∧
@@ -252,6 +303,9 @@ theorem scalar_signal_chebyshev_phase_readout_and_matching_lower_consumer : ∀ 
     apply (div_le_iff₀ Real.pi_pos).mpr
     simpa only [mul_assoc] using hmul
 
+/-- A well-formed zero-query word encodes the constant response one half within error one tenth,
+while the displayed difference of leakage square roots is positive. This tests the leakage
+expression associated with [Gilyén et al., Theorem 73][GilyenSuLowWiebe2019]. -/
 theorem scalar_signal_printed_leakage_counterexample :
   WellFormedAdjointCircuit constantHalfSignalWord ∧ adjointQueryCount constantHalfSignalWord=0 ∧
   adjointGateCount constantHalfSignalWord=1 ∧

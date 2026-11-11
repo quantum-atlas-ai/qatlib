@@ -8,6 +8,25 @@ import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBound
 import Mathlib.Analysis.SpecialFunctions.Stirling
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Constants for central-difference grid errors
+
+This module combines signed stencil moments, exponential decay, and factorial estimates into a
+geometric bound for each high-degree term. The constants support the analytic gradient
+approximation considered in [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_signed_moment_bound`: an exponentially decaying bound for signed stencil moments.
+* `centralDiff_grid_degree_constant`: the combined degree factor is bounded by `(8*R*c*m*sqrt
+  d)^k`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
@@ -16,6 +35,8 @@ set_option maxHeartbeats 2200000
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- For positive stencil order `m` and degree `k ≥ 2*m+1`, the absolute signed stencil moment is
+at most `6*exp (-(7/6)*m)*m^k*sqrt m`. -/
 theorem centralDiff_signed_moment_bound (m k : ℕ) (hm : 0<m) (hk : 2*m+1≤k) :
     |∑ l∈Finset.Ico (-(m : ℤ)) ((m : ℤ)+1),centralDiffCoeff m l*(l : ℝ)^k|
       ≤6*Real.exp (-(7/6 : ℝ)*m)*(m : ℝ)^k*Real.sqrt m := by
@@ -29,6 +50,7 @@ theorem centralDiff_signed_moment_bound (m k : ℕ) (hm : 0<m) (hk : 2*m+1≤k) 
   rw [hn,he,Real.rpow_add hmr,Real.rpow_natCast,← Real.sqrt_eq_rpow] at h
   exact (Finset.abs_sum_le_sum_abs _ _).trans (by simpa only [mul_assoc] using h)
 
+/-- For positive natural `m`, the exponential prefactor `exp (-(7/6)*m)` is at most `1/3`. -/
 private theorem centralDiff_exp_prefactor (m : ℕ) (hm : 0<m) :
     Real.exp (-(7/6 : ℝ)*m)≤1/3 := by
   have hmr : (1 : ℝ)≤m := by exact_mod_cast hm
@@ -49,6 +71,8 @@ private theorem centralDiff_exp_prefactor (m : ℕ) (hm : 0<m) :
       apply (div_le_iff₀ (Real.exp_pos _)).mpr
       linarith
 
+/-- For positive `m` and `k ≥ 2*m+1`, bounds the stencil prefactor `6*sqrt 2*exp (-(7/6)*m)*sqrt
+m` by `sqrt (2*π*k)`. -/
 theorem centralDiff_grid_prefactor (m k : ℕ) (hm : 0<m) (hk : 2*m+1≤k) :
     6*Real.sqrt 2*Real.exp (-(7/6 : ℝ)*m)*Real.sqrt m≤Real.sqrt (2*Real.pi*k) := by
   have he := centralDiff_exp_prefactor m hm
@@ -65,6 +89,7 @@ theorem centralDiff_grid_prefactor (m k : ℕ) (hm : 0<m) (hk : 2*m+1≤k) :
     simpa only [Real.sqrt_sq (by positivity : (0 : ℝ)≤2*Real.sqrt 2*Real.sqrt m)] using h
   apply (show 6*Real.sqrt 2*Real.exp (-(7/6 : ℝ)*m)*Real.sqrt m≤2*Real.sqrt 2*Real.sqrt m by nlinarith).trans hroot
 
+/-- The numerical constant `2*sqrt 2*exp 1` is at most eight. -/
 theorem centralDiff_grid_base : 2*Real.sqrt 2*Real.exp 1≤8 := by
   have hs : Real.sqrt 2≤16/11 := by
     have h := Real.sq_sqrt (by norm_num : (0 : ℝ)≤2)
@@ -74,6 +99,8 @@ theorem centralDiff_grid_base : 2*Real.sqrt 2*Real.exp 1≤8 := by
   have h := mul_le_mul_of_nonneg_left he (by positivity : (0 : ℝ)≤2*Real.sqrt 2)
   nlinarith
 
+/-- Under the positive parameter and degree assumptions, the product of the tensor, derivative,
+radius, stencil-moment, and inverse-factorial factors is at most `(8*R*c*m*sqrt d)^k`. -/
 theorem centralDiff_grid_degree_constant (d m k : ℕ) (hd : 0<d) (hm : 0<m)
     (hk : 2*m+1≤k) (R c : ℝ) (hR : 0<R) (hc : 0<c) :
     Real.sqrt 2*(4*Real.sqrt ((d : ℝ)*k/2))^k*

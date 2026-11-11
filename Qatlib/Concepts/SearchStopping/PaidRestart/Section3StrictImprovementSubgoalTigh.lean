@@ -19,6 +19,28 @@ import Mathlib.Tactic.NormNum.BigOperators
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# A certified strict improvement from Grover restarts
+
+Proves `section3StrictImprovementSubgoal` using rational bounds for the search angle and
+alternating Taylor bounds for sine. The numerical window for the 596-iteration success
+probability yields a strict improvement over the 804-iteration benchmark. For the quantum-search
+analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `improvementSin_window`: The squared sine at angle `1193 * Real.arcsin (1 / 1024)` lies
+  strictly between 0.8441 and 0.8443.
+* `section3StrictImprovementSubgoal`: Establishes `Section3StrictImprovementSubgoal`, the
+  certified strict improvement of a 596-iteration restart strategy over the 804-iteration
+  benchmark.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
@@ -28,6 +50,7 @@ namespace Qatlib.Concepts.SearchStopping.PaidRestart
 
 open Qatlib.Concepts.SearchStopping.KnownCount Finset Filter
 
+/-- For `0 ≤ x ≤ 5 / 4`, the sequence `x ^ (2 * n + d) / (2 * n + d)!` is antitone. -/
 private theorem improvementTerms_antitone (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (d : ℕ) :
     Antitone (fun n : ℕ => x ^ (2 * n + d) / ((2 * n + d).factorial : ℝ)) := by
   apply antitone_nat_of_succ_le
@@ -54,6 +77,8 @@ private theorem improvementTerms_antitone (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5
       exact hsq.trans hm
     _ = x ^ m * ((m + 2).factorial : ℝ) := by rw [hf]; ring
 
+/-- For `0 ≤ x ≤ 5 / 4`, the sine Taylor sums with `2 * k` and `2 * k + 1` terms bound `Real.sin
+x` from below and above, respectively. -/
 private theorem improvementSin_bounds (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (k : ℕ) :
     (∑ i ∈ range (2 * k), (-1 : ℝ) ^ i * x ^ (2 * i + 1) / ((2 * i + 1).factorial : ℝ))
       ≤ Real.sin x ∧ Real.sin x ≤
@@ -64,6 +89,8 @@ private theorem improvementSin_bounds (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4
     And.intro (ha.alternating_series_le_tendsto (by simpa only [mul_div_assoc] using ht) k)
       (ha.tendsto_le_alternating_series (by simpa only [mul_div_assoc] using ht) k)
 
+/-- The angle `Real.arcsin (1 / 1024)` lies strictly between `1 / 1024` and `1 / 1024 + 1 /
+536870912`. -/
 private theorem improvementAngle_bounds :
     (1 / 1024 : ℝ) < Real.arcsin (1 / 1024) ∧
       Real.arcsin (1 / 1024) < 1 / 1024 + 1 / 536870912 := by
@@ -79,6 +106,8 @@ private theorem improvementAngle_bounds :
     exact (Real.strictMonoOn_sin.lt_iff_lt (Real.arcsin_mem_Icc (1 / 1024))
       (by constructor <;> linarith [Real.pi_gt_d2])).mp hst
 
+/-- The squared sine at angle `1193 * Real.arcsin (1 / 1024)` lies strictly between 0.8441 and
+0.8443. -/
 private theorem improvementSin_window :
     (8441 / 10000 : ℝ) < Real.sin (1193 * Real.arcsin (1 / 1024)) ^ 2 ∧
       Real.sin (1193 * Real.arcsin (1 / 1024)) ^ 2 < 8443 / 10000 := by
@@ -112,6 +141,8 @@ private theorem improvementSin_window :
   · nlinarith [mul_pos (sub_pos.mpr hsu)
       (by linarith : 0 < (91881 / 100000 : ℝ) + Real.sin (1193 * Real.arcsin (1 / 1024 : ℝ)))]
 
+/-- Establishes `Section3StrictImprovementSubgoal`, the certified strict improvement of a
+596-iteration restart strategy over the 804-iteration benchmark. -/
 theorem section3StrictImprovementSubgoal : Section3StrictImprovementSubgoal := by
   intro I _ _ hN A hA
   have ht := improvementAngle_bounds

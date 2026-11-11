@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryNegativeWeightComp
 import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+
+/-!
+# Negative-Weight Composition Lower Bounds
+
+This module supplies lower bounds for weighted adversary composition in the setting of
+[HoyerLeeSpalek2007]. With strictly positive coordinate costs, nonconstant outer and inner
+functions, and `OutputObservable` inner instances, `theorem13_pm_composition` bounds the
+composed `advAlphaPmENN` below by the outer value evaluated at `blockCostsPm`.
+
+Monotonicity permits smaller prescribed outer costs. A separate `advPlus` formulation uses
+realized inner bounds, nonnegative costs, and positive block lengths.
+
+## Main statements
+
+- `theorem13_pm_composition` proves the negative-weight composition lower bound.
+- `advAlphaPmENN_mono` establishes monotonicity in coordinate costs.
+- `lemma17_pm_composition_lower` allows outer costs bounded by the effective inner costs.
+- `lemma17_realized_composition_lower` gives the corresponding realized `advPlus` estimate.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007], Negative weights make adversaries
+  stronger, composition results and Lemma 17.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +45,10 @@ open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
 
 noncomputable section
 
+/-- For strictly positive costs, nonconstant functions, and output-observable inner instances,
+the composed negative-weight adversary value is at least the outer value with effective
+inner costs `blockCostsPm`. This is the composition lower bound associated with Lemma 17 of
+[HoyerLeeSpalek2007]. -/
 theorem theorem13_pm_composition
     {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (Y i)] [∀ i, DecidableEq (Y i)]
@@ -33,6 +62,8 @@ theorem theorem13_pm_composition
         (fun c => ENNReal.ofReal (α c)) :=
   source_negative_adversary_composition_lower gin g f α hα hfn hgn hobs
 
+/-- Increasing coordinate costs pointwise can only increase the extended negative-weight
+adversary value `advAlphaPmENN`. -/
 theorem advAlphaPmENN_mono
     {X κ : Type} [Fintype X] [DecidableEq X] [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (β β' : κ → ℝ≥0∞)
@@ -45,6 +76,10 @@ theorem advAlphaPmENN_mono
   gcongr
   exact h i
 
+/-- Any outer cost vector bounded by `blockCostsPm` gives a lower bound on the composed
+negative-weight adversary value under the positive-cost, nonconstancy, and
+output-observability hypotheses. This follows the composition estimate of
+[HoyerLeeSpalek2007]. -/
 theorem lemma17_pm_composition_lower
     {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (Y i)] [∀ i, DecidableEq (Y i)]
@@ -62,6 +97,9 @@ theorem lemma17_pm_composition_lower
     (blockCostsPm gin g α) hβ).trans
     (theorem13_pm_composition gin g f α hα hfn hgn hobs)
 
+/-- For positive block lengths, nonconstant inner functions, and nonnegative coordinate costs,
+realized inner `advPlus` lower bounds yield the corresponding `advPlus` lower bound for the
+composition, as in [HoyerLeeSpalek2007]. -/
 theorem lemma17_realized_composition_lower
     {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]

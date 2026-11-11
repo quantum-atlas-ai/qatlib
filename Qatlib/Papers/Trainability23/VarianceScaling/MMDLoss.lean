@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
 import Mathlib.MeasureTheory.Integral.Prod
 import Mathlib.MeasureTheory.Integral.Pi
+
+/-!
+# Haar variance formulas for product kernel losses
+
+This module defines single-qubit Born weights and a two-outcome Gaussian kernel, then computes
+the Haar moments of the self-term `sOne` and cross-term `xOne`. Product Haar integration gives
+exact first moments, second moments, and variance formulas for `sN` and the full product loss
+`mmdN`. See [RudolphEtAl2024].
+
+## Main statements
+
+* `mmdOne_variance_eq_BC`: a single-qubit variance decomposition into a target-independent term
+  and a squared target-bias term.
+* `sN_variance_eq`: the variance of the product self-term is a difference of powers.
+* `mmdN_variance_eq`: the full product-loss variance combines self-term variance, covariance,
+  and cross-term variance.
+
+## References
+
+* [Rudolph et al., 2024][RudolphEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,26 +50,37 @@ local instance instBorelSpaceMatrix₂ (m n : Type*) [Fintype m] [Fintype n] :
     BorelSpace (Matrix m n ℂ) :=
   inferInstanceAs (BorelSpace (m → n → ℂ))
 
+/-- The single-qubit off-diagonal kernel factor `Real.exp (-(1 / (2 * σ)))`. -/
 def kernOne (σ : ℝ) : ℝ := Real.exp (-(1 / (2 * σ)))
 
+/-- The two-outcome kernel with value one on equal outcomes and `kernOne σ` on distinct
+outcomes. -/
 def gaussKernelOne (σ : ℝ) (x y : Fin 2) : ℝ := if x = y then 1 else kernOne σ
 
+/-- The squared norm of entry `(x, 0)` of a single-qubit unitary, giving its Born probability
+from the zero input state. -/
 def bornProbOne (V : Matrix.unitaryGroup (Fin 2) ℂ) (x : Fin 2) : ℝ :=
   ‖(V : Matrix (Fin 2) (Fin 2) ℂ) x 0‖ ^ 2
 
+/-- The two real outcome weights `t` at zero and `1 - t` at one. -/
 def pTildeOne (t : ℝ) (x : Fin 2) : ℝ := if x = 0 then t else 1 - t
 
+/-- The single-qubit quadratic kernel loss comparing the Born probabilities of `V` with the
+weights `pTildeOne t`. -/
 def mmdOne (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) : ℝ :=
   ∑ x, ∑ y, bornProbOne V x * bornProbOne V y * gaussKernelOne σ x y
     - 2 * ∑ x, ∑ y, bornProbOne V x * pTildeOne t y * gaussKernelOne σ x y
     + ∑ x, ∑ y, pTildeOne t x * pTildeOne t y * gaussKernelOne σ x y
 
+/-- The two Born probabilities `bornProbOne V 0` and `bornProbOne V 1` sum to one. -/
 theorem unitary_col_norm_sq' (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     bornProbOne V 0 + bornProbOne V 1 = 1 := by
   have h := unitary_col_norm_sq V
   unfold bornProbOne at h ⊢
   linarith
 
+/-- Expands the single-qubit kernel loss as a quadratic polynomial in `bornProbOne V 0` with
+coefficients determined by `σ` and `t`. -/
 theorem mmdOne_eq (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     mmdOne σ t V
       = 2 * (1 - kernOne σ) * (bornProbOne V 0)^2
@@ -61,12 +94,15 @@ theorem mmdOne_eq (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
   rw [hcol]
   ring
 
+/-- Every natural power of the zero-outcome Born probability is Haar integrable. -/
 theorem integrable_bornPow (k : ℕ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => (bornProbOne V 0)^k)
       (haarUnitaryGroup (Fin 2)) := by
   refine (integrable_symMoment k 0).congr (Filter.Eventually.of_forall fun V => ?_)
   simp only [bornProbOne, ← pow_mul, show (2:ℕ) * 0 = 0 from rfl, pow_zero, mul_one]
 
+/-- The Haar integral of the `k`th power of the zero-outcome Born probability is `symMoment k
+0`. -/
 theorem integral_bornPow (k : ℕ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (bornProbOne V 0)^k ∂haarUnitaryGroup (Fin 2)
       = symMoment k 0 := by
@@ -74,6 +110,8 @@ theorem integral_bornPow (k : ℕ) :
   refine MeasureTheory.integral_congr_ae (Filter.Eventually.of_forall fun V => ?_)
   simp only [bornProbOne, ← pow_mul, show (2:ℕ) * 0 = 0 from rfl, pow_zero, mul_one]
 
+/-- Integrates a quadratic polynomial in the zero-outcome Born probability using its first two
+Haar moments. -/
 theorem integral_poly (a2 a1 a0 : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ,
         (a2 * (bornProbOne V 0)^2 + (a1 * bornProbOne V 0 + a0)) ∂haarUnitaryGroup (Fin 2)
@@ -122,6 +160,8 @@ theorem integral_poly (a2 a1 a0 : ℝ) :
             ∂haarUnitaryGroup (Fin 2)) + X) (integral_add i1 i0)
     _ = a2 * symMoment 2 0 + (a1 * symMoment 1 0 + a0) := by rw [e2, e1, e0]
 
+/-- Integrates a quartic polynomial in the zero-outcome Born probability using its first four
+Haar moments. -/
 theorem integral_poly4 (a4 a3 a2 a1 a0 : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ,
         (a4 * (bornProbOne V 0)^4 + (a3 * (bornProbOne V 0)^3 + (a2 * (bornProbOne V 0)^2
@@ -167,6 +207,8 @@ theorem integral_poly4 (a4 a3 a2 a1 a0 : ℝ) :
   rw [key 4 a4, key 3 a3, key 2 a2, key1 a1, haarUnitaryGroup_real_univ]
   ring
 
+/-- For positive `σ`, the Haar variance expression for `mmdOne σ t` is `(1 - kernOne σ)^2 * (1 /
+45 + (2 * t - 1)^2 / 3)`. -/
 theorem mmdOne_variance_eq (σ : ℝ) (hσ : 0 < σ) (t : ℝ) :
     (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (mmdOne σ t V)^2 ∂haarUnitaryGroup (Fin 2))
       - (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, mmdOne σ t V ∂haarUnitaryGroup (Fin 2))^2
@@ -213,8 +255,11 @@ theorem mmdOne_variance_eq (σ : ℝ) (hσ : 0 < σ) (t : ℝ) :
   rw [hE1, hE2, symMoment_one.1, symMoment_two.1, symMoment_three.1, symMoment_four.1]
   ring
 
+/-- Half of the single-qubit kernel gap, defined as `(1 - kernOne σ) / 2`. -/
 def pSigmaOne (σ : ℝ) : ℝ := (1 - kernOne σ) / 2
 
+/-- For positive bandwidth, the single-qubit loss variance is `(1 - kernOne σ)^2 / 45 + 4 *
+(pSigmaOne σ)^2 * (2 * t - 1)^2 / 3`. See [RudolphEtAl2024]. -/
 theorem mmdOne_variance_eq_BC (σ : ℝ) (hσ : 0 < σ) (t : ℝ) :
     (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (mmdOne σ t V)^2 ∂haarUnitaryGroup (Fin 2))
       - (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, mmdOne σ t V ∂haarUnitaryGroup (Fin 2))^2
@@ -223,9 +268,12 @@ theorem mmdOne_variance_eq_BC (σ : ℝ) (hσ : 0 < σ) (t : ℝ) :
   unfold pSigmaOne
   ring
 
+/-- The single-qubit model self-term obtained by averaging `gaussKernelOne` against two copies
+of the Born probabilities. -/
 def sOne (σ : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) : ℝ :=
   ∑ x, ∑ y, bornProbOne V x * bornProbOne V y * gaussKernelOne σ x y
 
+/-- The self-term `sOne` is a quadratic polynomial in the zero-outcome Born probability. -/
 theorem sOne_eq (σ : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     sOne σ V = 2 * (1 - kernOne σ) * (bornProbOne V 0)^2
       + ((2 * kernOne σ - 2) * bornProbOne V 0 + 1) := by
@@ -236,6 +284,7 @@ theorem sOne_eq (σ : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
   rw [hcol]
   ring
 
+/-- The Haar mean of `sOne σ` is `(2 + kernOne σ) / 3`. -/
 theorem sOne_integral (σ : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, sOne σ V ∂haarUnitaryGroup (Fin 2)
       = (2 + kernOne σ) / 3 := by
@@ -244,6 +293,7 @@ theorem sOne_integral (σ : ℝ) :
   rw [symMoment_two.1, symMoment_one.1]
   ring
 
+/-- Every quartic polynomial in the zero-outcome Born probability is Haar integrable. -/
 theorem integrable_quartic (a4 a3 a2 a1 a0 : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ =>
       a4 * (bornProbOne V 0)^4 + (a3 * (bornProbOne V 0)^3 + (a2 * (bornProbOne V 0)^2
@@ -267,6 +317,7 @@ theorem integrable_quartic (a4 a3 a2 a1 a0 : ℝ) :
       (if i = 0 then a4 else if i = 1 then a3 else if i = 2 then a2
         else if i = 3 then a1 else a0))
 
+/-- The Haar second moment of `sOne σ` is `(7 + 6 * kernOne σ + 2 * (kernOne σ)^2) / 15`. -/
 theorem sOne_sq_integral (σ : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (sOne σ V)^2 ∂haarUnitaryGroup (Fin 2)
       = (7 + 6 * kernOne σ + 2 * (kernOne σ)^2) / 15 := by
@@ -283,6 +334,7 @@ theorem sOne_sq_integral (σ : ℝ) :
   rw [symMoment_four.1, symMoment_three.1, symMoment_two.1, symMoment_one.1]
   ring
 
+/-- The single-qubit model self-term is Haar integrable. -/
 theorem integrable_sOne (σ : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => sOne σ V)
       (haarUnitaryGroup (Fin 2)) := by
@@ -301,6 +353,7 @@ theorem integrable_sOne (σ : ℝ) :
   exact (h2.add (h1.add h0)).congr
     (Filter.Eventually.of_forall fun V => (sOne_eq σ V).symm)
 
+/-- The square of the single-qubit model self-term is Haar integrable. -/
 theorem integrable_sOne_sq (σ : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => (sOne σ V)^2)
       (haarUnitaryGroup (Fin 2)) := by
@@ -315,21 +368,27 @@ theorem integrable_sOne_sq (σ : ℝ) :
   exact (integrable_quartic _ _ _ _ _).congr
     (Filter.Eventually.of_forall fun V => (hL2 V).symm)
 
+/-- The two-qubit product Born probability formed from the two single-qubit Born probabilities. -/
 def bornProbTwo (V₁ V₂ : Matrix.unitaryGroup (Fin 2) ℂ) (x : Fin 2 × Fin 2) : ℝ :=
   bornProbOne V₁ x.1 * bornProbOne V₂ x.2
 
+/-- The product of the two single-qubit kernel factors on paired outcomes. -/
 def gaussKernelTwo (σ : ℝ) (x y : Fin 2 × Fin 2) : ℝ :=
   gaussKernelOne σ x.1 y.1 * gaussKernelOne σ x.2 y.2
 
+/-- The two-qubit product-model self-term obtained by summing the two-copy kernel against
+product Born probabilities. -/
 def sTwo (σ : ℝ) (V₁ V₂ : Matrix.unitaryGroup (Fin 2) ℂ) : ℝ :=
   ∑ x : Fin 2 × Fin 2, ∑ y : Fin 2 × Fin 2,
     bornProbTwo V₁ V₂ x * bornProbTwo V₁ V₂ y * gaussKernelTwo σ x y
 
+/-- The two-qubit self-term factors into the product of its two single-qubit self-terms. -/
 theorem sTwo_eq (σ : ℝ) (V₁ V₂ : Matrix.unitaryGroup (Fin 2) ℂ) :
     sTwo σ V₁ V₂ = sOne σ V₁ * sOne σ V₂ := by
   simp [sTwo, sOne, bornProbTwo, gaussKernelTwo, Fintype.sum_prod_type, Fin.sum_univ_two]
   ring
 
+/-- The product-Haar mean of `sTwo σ` is `((2 + kernOne σ) / 3)^2`. -/
 theorem sTwo_integral (σ : ℝ) :
     ∫ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
         sTwo σ p.1 p.2 ∂((haarUnitaryGroup (Fin 2)).prod (haarUnitaryGroup (Fin 2)))
@@ -346,6 +405,8 @@ theorem sTwo_integral (σ : ℝ) :
     sOne_integral]
   ring
 
+/-- The product-Haar second moment of `sTwo σ` is the square of `(7 + 6 * kernOne σ + 2 *
+(kernOne σ)^2) / 15`. -/
 theorem sTwo_sq_integral (σ : ℝ) :
     ∫ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
         (sTwo σ p.1 p.2)^2 ∂((haarUnitaryGroup (Fin 2)).prod (haarUnitaryGroup (Fin 2)))
@@ -364,6 +425,9 @@ theorem sTwo_sq_integral (σ : ℝ) :
     sOne_sq_integral]
   ring
 
+/-- The product-Haar variance expression for `sTwo σ` is the square of its single-qubit
+second-moment base minus the square of its single-qubit squared-mean base. See
+[RudolphEtAl2024]. -/
 theorem sTwo_variance_eq (σ : ℝ) :
     (∫ p : Matrix.unitaryGroup (Fin 2) ℂ × Matrix.unitaryGroup (Fin 2) ℂ,
         (sTwo σ p.1 p.2)^2 ∂((haarUnitaryGroup (Fin 2)).prod (haarUnitaryGroup (Fin 2))))
@@ -374,9 +438,11 @@ theorem sTwo_variance_eq (σ : ℝ) :
   rw [sTwo_sq_integral, sTwo_integral]
   ring
 
+/-- The product of `n` single-qubit model self-terms. -/
 def sN (σ : ℝ) (n : ℕ) (V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ) : ℝ :=
   ∏ i, sOne σ (V i)
 
+/-- The mean of `sN σ n` under independent Haar unitaries is `((2 + kernOne σ) / 3)^n`. -/
 theorem sN_integral (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, sN σ n V
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -390,6 +456,8 @@ theorem sN_integral (σ : ℝ) (n : ℕ) :
   simp only [sN]
   exact h
 
+/-- The second moment of `sN σ n` under independent Haar unitaries is the `n`th power of `(7 + 6
+* kernOne σ + 2 * (kernOne σ)^2) / 15`. -/
 theorem sN_sq_integral (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (sN σ n V)^2
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -408,6 +476,8 @@ theorem sN_sq_integral (σ : ℝ) (n : ℕ) :
   rw [Fintype.card_fin, sOne_sq_integral] at h
   exact h
 
+/-- The product-Haar variance of `sN σ n` is the difference of the `n`th powers of the
+single-qubit second moment and squared mean. See [RudolphEtAl2024]. -/
 theorem sN_variance_eq (σ : ℝ) (n : ℕ) :
     (∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (sN σ n V)^2
         ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)))
@@ -424,6 +494,7 @@ theorem sN_variance_eq (σ : ℝ) (n : ℕ) :
   have hsq : ((2 + kernOne σ) / 3)^2 = (4 + 4 * kernOne σ + (kernOne σ)^2) / 9 := by ring
   rw [hpow ((2 + kernOne σ) / 3), hsq]
 
+/-- The product self-term with zero qubits has zero Haar variance expression. -/
 theorem sN_variance_zero (σ : ℝ) :
     (∫ V : Fin 0 → Matrix.unitaryGroup (Fin 2) ℂ, (sN σ 0 V)^2
         ∂(Measure.pi fun _ : Fin 0 => haarUnitaryGroup (Fin 2)))
@@ -433,12 +504,17 @@ theorem sN_variance_zero (σ : ℝ) :
   rw [sN_variance_eq σ 0]
   norm_num
 
+/-- The single-qubit kernel cross-term between the Born probabilities and the target weights
+`pTildeOne t`. -/
 def xOne (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) : ℝ :=
   ∑ x, ∑ y, bornProbOne V x * pTildeOne t y * gaussKernelOne σ x y
 
+/-- The single-qubit target self-term formed from two copies of the weights `pTildeOne t`. -/
 def gOne (σ t : ℝ) : ℝ :=
   ∑ x, ∑ y, pTildeOne t x * pTildeOne t y * gaussKernelOne σ x y
 
+/-- The cross-term `xOne σ t` is affine in the zero-outcome Born probability, with slope `(2 * t
+- 1) * (1 - kernOne σ)`. -/
 theorem xOne_eq (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     xOne σ t V
       = (1 - t + t * kernOne σ) + ((2*t - 1) * (1 - kernOne σ)) * bornProbOne V 0 := by
@@ -449,11 +525,13 @@ theorem xOne_eq (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
   rw [hcol]
   ring
 
+/-- The target self-term is `t^2 + (1 - t)^2 + 2 * t * (1 - t) * kernOne σ`. -/
 theorem gOne_eq (σ t : ℝ) :
     gOne σ t = t^2 + ((1 - t)^2 + 2 * t * (1 - t) * kernOne σ) := by
   simp [gOne, Fin.sum_univ_two, gaussKernelOne, pTildeOne]
   ring
 
+/-- The Haar mean of `xOne σ t` is `(1 + kernOne σ) / 2`, independently of `t`. -/
 theorem xOne_integral (σ t : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, xOne σ t V ∂haarUnitaryGroup (Fin 2)
       = (1 + kernOne σ) / 2 := by
@@ -469,6 +547,8 @@ theorem xOne_integral (σ t : ℝ) :
   rw [symMoment_two.1, symMoment_one.1]
   ring
 
+/-- For the affine expression of `xOne`, its Haar second moment is the squared slope divided by
+three plus the intercept-slope product and the squared intercept. -/
 theorem xOne_sq_integral (σ t : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (xOne σ t V)^2 ∂haarUnitaryGroup (Fin 2)
       = ((2*t - 1) * (1 - kernOne σ))^2 / 3
@@ -486,6 +566,8 @@ theorem xOne_sq_integral (σ t : ℝ) :
   rw [symMoment_two.1, symMoment_one.1]
   ring
 
+/-- Expands the product of the single-qubit self-term and cross-term as a cubic polynomial in
+the zero-outcome Born probability. -/
 theorem sOne_mul_xOne_eq (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     sOne σ V * xOne σ t V
       = (2 * (1 - kernOne σ) * ((2*t - 1) * (1 - kernOne σ))) * (bornProbOne V 0)^3
@@ -497,6 +579,8 @@ theorem sOne_mul_xOne_eq (σ t : ℝ) (V : Matrix.unitaryGroup (Fin 2) ℂ) :
   rw [sOne_eq σ V, xOne_eq σ t V]
   ring
 
+/-- Evaluates the mixed Haar moment of `sOne σ` and `xOne σ t` by weighting their cubic
+expansion with moments `1 / 4`, `1 / 3`, `1 / 2`, and one. -/
 theorem sOne_xOne_integral (σ t : ℝ) :
     ∫ V : Matrix.unitaryGroup (Fin 2) ℂ, sOne σ V * xOne σ t V ∂haarUnitaryGroup (Fin 2)
       = (2 * (1 - kernOne σ) * ((2*t - 1) * (1 - kernOne σ))) / 4
@@ -521,6 +605,7 @@ theorem sOne_xOne_integral (σ t : ℝ) :
   rw [symMoment_four.1, symMoment_three.1, symMoment_two.1, symMoment_one.1]
   ring
 
+/-- The single-qubit cross-term `xOne σ t` is Haar integrable. -/
 theorem integrable_xOne (σ t : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => xOne σ t V)
       (haarUnitaryGroup (Fin 2)) := by
@@ -541,6 +626,7 @@ theorem integrable_xOne (σ t : ℝ) :
   exact (h2.add h0).congr
     (Filter.Eventually.of_forall fun V => (hL2 V).symm)
 
+/-- The square of the single-qubit cross-term is Haar integrable. -/
 theorem integrable_xOne_sq (σ t : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => (xOne σ t V)^2)
       (haarUnitaryGroup (Fin 2)) := by
@@ -556,6 +642,7 @@ theorem integrable_xOne_sq (σ t : ℝ) :
   exact (integrable_quartic 0 0 _ _ _).congr
     (Filter.Eventually.of_forall fun V => (hL2 V).symm)
 
+/-- The product of the single-qubit self-term and cross-term is Haar integrable. -/
 theorem integrable_sOne_mul_xOne (σ t : ℝ) :
     Integrable (fun V : Matrix.unitaryGroup (Fin 2) ℂ => sOne σ V * xOne σ t V)
       (haarUnitaryGroup (Fin 2)) := by
@@ -573,6 +660,8 @@ theorem integrable_sOne_mul_xOne (σ t : ℝ) :
   exact (integrable_quartic 0 _ _ _ _).congr
     (Filter.Eventually.of_forall fun V => (hL2 V).symm)
 
+/-- The integral of the product of `n` self-terms under product Haar measure is `((2 + kernOne
+σ) / 3)^n`. -/
 theorem int_prodS (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, sOne σ (V i))
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -585,6 +674,8 @@ theorem int_prodS (σ : ℝ) (n : ℕ) :
   rw [Fintype.card_fin, sOne_integral] at h
   exact h
 
+/-- The second moment of the product of `n` self-terms is the `n`th power of the single-qubit
+self-term second moment. -/
 theorem int_prodS2 (σ : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, sOne σ (V i))^2
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -601,6 +692,8 @@ theorem int_prodS2 (σ : ℝ) (n : ℕ) :
   rw [Fintype.card_fin, sOne_sq_integral] at h
   exact h
 
+/-- The integral of the product of `n` cross-terms under product Haar measure is `((1 + kernOne
+σ) / 2)^n`. -/
 theorem int_prodX (σ t : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, xOne σ t (V i))
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -613,6 +706,8 @@ theorem int_prodX (σ t : ℝ) (n : ℕ) :
   rw [Fintype.card_fin, xOne_integral] at h
   exact h
 
+/-- The second moment of the product of `n` cross-terms is the `n`th power of the single-qubit
+cross-term second moment. -/
 theorem int_prodX2 (σ t : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (∏ i, xOne σ t (V i))^2
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -631,6 +726,8 @@ theorem int_prodX2 (σ t : ℝ) (n : ℕ) :
   rw [Fintype.card_fin, xOne_sq_integral] at h
   exact h
 
+/-- The product-Haar integral of the product self-term times the product cross-term is the `n`th
+power of their single-qubit mixed moment. -/
 theorem int_prodSX (σ t : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ,
         (∏ i, sOne σ (V i)) * (∏ i, xOne σ t (V i))
@@ -654,6 +751,7 @@ theorem int_prodSX (σ t : ℝ) (n : ℕ) :
   rw [Fintype.card_fin, sOne_xOne_integral] at h
   exact h
 
+/-- The product of `n` single-qubit self-terms is integrable under product Haar measure. -/
 theorem integrable_prodS (σ : ℝ) (n : ℕ) :
     Integrable (fun V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ => ∏ i, sOne σ (V i))
       (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) := by
@@ -666,6 +764,7 @@ theorem integrable_prodS (σ : ℝ) (n : ℕ) :
     (inferInstance : MeasurableSpace (Matrix.unitaryGroup (Fin 2) ℂ))
     (fun _ : Fin n => haarUnitaryGroup (Fin 2)) hSig (fun _ => integrable_sOne σ)
 
+/-- The product of `n` single-qubit cross-terms is integrable under product Haar measure. -/
 theorem integrable_prodX (σ t : ℝ) (n : ℕ) :
     Integrable (fun V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ => ∏ i, xOne σ t (V i))
       (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) := by
@@ -678,9 +777,13 @@ theorem integrable_prodX (σ t : ℝ) (n : ℕ) :
     (inferInstance : MeasurableSpace (Matrix.unitaryGroup (Fin 2) ℂ))
     (fun _ : Fin n => haarUnitaryGroup (Fin 2)) hSig (fun _ => integrable_xOne σ t)
 
+/-- The product kernel loss given by the product self-term minus twice the product cross-term
+plus the `n`th power of the target self-term. -/
 def mmdN (σ t : ℝ) (n : ℕ) (V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ) : ℝ :=
   (∏ i, sOne σ (V i)) - 2 * (∏ i, xOne σ t (V i)) + (gOne σ t)^n
 
+/-- The explicit scalar expression for the mixed Haar moment of the single-qubit self-term and
+cross-term. -/
 def sXVal (σ t : ℝ) : ℝ :=
   (2 * (1 - kernOne σ) * ((2*t - 1) * (1 - kernOne σ))) / 4
     + ((2 * (1 - kernOne σ) * (1 - t + t * kernOne σ)
@@ -689,11 +792,13 @@ def sXVal (σ t : ℝ) : ℝ :=
           + ((2*t - 1) * (1 - kernOne σ))) / 2
         + (1 - t + t * kernOne σ)))
 
+/-- The explicit scalar expression for the Haar second moment of the single-qubit cross-term. -/
 def x2Val (σ t : ℝ) : ℝ :=
   ((2*t - 1) * (1 - kernOne σ))^2 / 3
     + ((1 - t + t * kernOne σ) * ((2*t - 1) * (1 - kernOne σ))
       + (1 - t + t * kernOne σ)^2)
 
+/-- The finite product of normalized single-qubit Haar measures is a probability measure. -/
 theorem piHaar_isProbability (n : ℕ) :
     MeasureTheory.IsProbabilityMeasure
       (Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)) := by
@@ -705,6 +810,8 @@ theorem piHaar_isProbability (n : ℕ) :
     (fun _ : Fin n => (inferInstance : MeasurableSpace (Matrix.unitaryGroup (Fin 2) ℂ)))
     (fun _ : Fin n => haarUnitaryGroup (Fin 2)) hProbI
 
+/-- The product-Haar mean of `mmdN` is `((2 + kernOne σ) / 3)^n - 2 * ((1 + kernOne σ) / 2)^n +
+(gOne σ t)^n`. -/
 theorem mmdN_integral (σ t : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, mmdN σ t n V
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -736,6 +843,8 @@ theorem mmdN_integral (σ t : ℝ) (n : ℕ) :
   rw [MeasureTheory.integral_const, MeasureTheory.measureReal_def,
     MeasureTheory.measure_univ, ENNReal.toReal_one, one_smul]
 
+/-- The second moment of the full product loss expands into powers of the self-term second
+moment, `sXVal`, `x2Val`, the target self-term, and the self-term and cross-term means. -/
 theorem mmdN_sq_integral (σ t : ℝ) (n : ℕ) :
     ∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (mmdN σ t n V)^2
       ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2))
@@ -854,6 +963,9 @@ theorem mmdN_sq_integral (σ t : ℝ) (n : ℕ) :
     MeasureTheory.measure_univ, ENNReal.toReal_one, one_smul]
   simp only [sXVal, x2Val]
 
+/-- The product-Haar variance of the full kernel loss equals the self-term variance minus four
+times the self-term/cross-term covariance plus four times the cross-term variance, with all
+three expressed by powers of the single-qubit moments. See [RudolphEtAl2024]. -/
 theorem mmdN_variance_eq (σ t : ℝ) (n : ℕ) :
     (∫ V : Fin n → Matrix.unitaryGroup (Fin 2) ℂ, (mmdN σ t n V)^2
         ∂(Measure.pi fun _ : Fin n => haarUnitaryGroup (Fin 2)))

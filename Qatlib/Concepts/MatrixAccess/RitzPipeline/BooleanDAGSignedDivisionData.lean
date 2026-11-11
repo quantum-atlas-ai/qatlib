@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDividerData
+
+/-!
+# Boolean DAG constructions for signed division
+
+`booleanWordSignedValue` decodes a magnitude word and a negative flag as an integer.
+`booleanWordSignedDivProgram` extends unsigned division with a remainder test and a conditional
+increment for a negative numerator.
+
+The input has two width `w` magnitudes and a numerator sign bit. The selected output has `w+2`
+magnitude bits and the original sign bit. The circuit background is described in
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `booleanWordSignedValue`: sign-magnitude interpretation.
+* `booleanWordSignedDivProgram`: unsigned quotient with a guarded rounding correction.
+* `booleanWordSignedDivMagnitude`, `booleanWordSignedDivSign`, `booleanWordSignedDivValue`:
+  output interpretation.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -13,18 +37,24 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.MatrixAccess.RitzPipeline
 set_option autoImplicit false
 
+/-- Decode an unsigned magnitude word as its integer value, negated when `negative` is true. -/
 def booleanWordSignedValue (w : ℕ) (a : Reg w) (negative : Bool) : ℤ :=
   if negative then -(booleanWordLSBValue w a : ℤ) else booleanWordLSBValue w a
 
+/-- Pack numerator and denominator magnitude words followed by the numerator's negative flag. -/
 def booleanWordSignedDivInput (w : ℕ) (a b : Reg w) (negative : Bool) : Reg (2*w+1) :=
   Fin.snoc (booleanWordAdderInput w a b) negative
 
+/-- Extract the numerator magnitude word from a packed signed-division input. -/
 def booleanWordSignedDivLeft (w : ℕ) (x : Reg (2*w+1)) : Reg w :=
   booleanWordAdderLeft w (fun j => x j.castSucc)
 
+/-- Extract the unsigned denominator word from a packed signed-division input. -/
 def booleanWordSignedDivRight (w : ℕ) (x : Reg (2*w+1)) : Reg w :=
   booleanWordAdderRight w (fun j => x j.castSucc)
 
+/-- Build a signed divider by computing unsigned quotient and remainder, testing the remainder,
+and conditionally incrementing the quotient magnitude for a negative numerator. -/
 def booleanWordSignedDivProgram (w : ℕ) : BooleanDAGWord (2*w+1) (w+3) :=
   let p := booleanWordDivProgram w
   let n₀ := 0+(p.nodes+w)
@@ -57,16 +87,21 @@ def booleanWordSignedDivProgram (w : ℕ) : BooleanDAGWord (2*w+1) (w+3) :=
     (fun j => if hj : j.val < w+2 then out ⟨j.val,hj⟩ else ⟨2*w,by omega⟩),
     Fin.castLE (by omega) z⟩
 
+/-- Evaluate the signed-divider output, consisting of `w+2` magnitude bits followed by the input
+sign bit. -/
 def booleanWordSignedDivResult (w : ℕ) (a b : Reg w) (negative : Bool) : Reg (w+3) :=
   fun j => booleanDAGValue (booleanWordSignedDivProgram w).graph
     (booleanWordSignedDivInput w a b negative) ((booleanWordSignedDivProgram w).output j)
 
+/-- Extract the width `w+2` magnitude word from the signed-divider output. -/
 def booleanWordSignedDivMagnitude (w : ℕ) (a b : Reg w) (negative : Bool) : Reg (w+2) :=
   fun j => booleanWordSignedDivResult w a b negative j.castSucc
 
+/-- Extract the final sign bit from the signed-divider output. -/
 def booleanWordSignedDivSign (w : ℕ) (a b : Reg w) (negative : Bool) : Bool :=
   booleanWordSignedDivResult w a b negative (Fin.last (w+2))
 
+/-- Decode the signed-divider output magnitude and sign as an integer. -/
 def booleanWordSignedDivValue (w : ℕ) (a b : Reg w) (negative : Bool) : ℤ :=
   booleanWordSignedValue (w+2) (booleanWordSignedDivMagnitude w a b negative)
     (booleanWordSignedDivSign w a b negative)

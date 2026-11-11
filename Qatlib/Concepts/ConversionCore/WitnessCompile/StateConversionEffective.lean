@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionEffectiveDefs
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+
+/-!
+# Rational certificates and native tag-flip identities
+
+This module proves certificate validity and near-optimal value bounds for diagonal and
+partial-monomial rational instances. It also establishes legality, resource counts, and overlap
+identities for the native programs defined by `rationalToNativeProgram`.
+
+The native program flips a branch tag while preserving the encoded state; its overlap formulas
+retain the original start-target overlap. The relevant background is filtered state conversion
+[LeeEtAl2011] and elementary circuit synthesis [NielsenChuang2010].
+
+## Main statements
+
+* `clause90_diagonal_near_optimal`: bounds diagonal filtered values by a rational witness
+  budget.
+* `clause90_monomial_near_optimal`: gives the analogous bounds for an injective partial
+  permutation.
+* `rationalToNativeProgram_frame`: identifies the native program action on clean frames.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -38,20 +64,28 @@ open Qatlib.Concepts.NumericalWord.MixedWordError
 open Qatlib.Concepts.NumericalWord.MixedWordError
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The complex squared norm of a rational number equals the real cast of its rational square. -/
 theorem ratCast_normSq (t : ℚ) : Complex.normSq ((t : ℚ) : ℂ) = ((t * t : ℚ) : ℝ) := by
   simp [Complex.normSq_apply]
 
+/-- The square of the complex norm of a rational number equals the real cast of its rational
+square. -/
 theorem ratCast_normSq' (t : ℚ) : ‖((t : ℚ) : ℂ)‖ ^ 2 = ((t * t : ℚ) : ℝ) := by
   rw [← Complex.normSq_eq_norm_sq, ratCast_normSq]
 
+/-- The conjugate product of two rational complex casts equals the complex cast of their
+rational product. -/
 theorem star_mul_rat_complex (a b : ℚ) :
     star ((a : ℚ) : ℂ) * ((b : ℚ) : ℂ) = ((a * b : ℚ) : ℂ) := by
   rw [star_ratCast, ← Rat.cast_mul]
 
+/-- A finite sum of rational numbers commutes with casting into the real numbers. -/
 theorem cast_sum_real {ι : Type} [Fintype ι] (f : ι → ℚ) :
     (∑ i, (f i : ℝ)) = (((∑ i, f i) : ℚ) : ℝ) := by
   exact_mod_cast rfl
 
+/-- A valid rational rectangular factorization yields a complex source rectangular certificate
+with the same budget. -/
 theorem rectFactorization_sourceCert {R S : Type} [Fintype R] [DecidableEq R]
     [Fintype S] [DecidableEq S] {n m : ℕ} {A : Matrix R S ℚ} {Z : Fin n → Matrix R S ℚ}
     (F : RationalRectFactorization n m A Z) (h : F.certValid) :
@@ -86,6 +120,8 @@ theorem rectFactorization_sourceCert {R S : Type} [Fintype R] [DecidableEq R]
       _ ≤ (F.budget : ℝ) := by
         exact hmass
 
+/-- The diagonal rational factorization is valid when `t` is positive and its square bounds
+every diagonal magnitude. -/
 theorem diagonalRectFactorization_certValid {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (t : ℚ) (ht : 0 < t) (hbound : ∀ r, |(a r : ℝ)| ≤ (t : ℝ)^2) :
     (diagonalRectFactorization a t).certValid := by
@@ -131,15 +167,18 @@ theorem diagonalRectFactorization_certValid {X : Type} [Fintype X] [DecidableEq 
       simp [diagonalRectInstance, Matrix.diagonal, diagonalRectFactorization, hcancel]
     · simp [diagonalRectInstance, Matrix.diagonal, diagonalRectFactorization, h]
 
+/-- Each real magnitude of a rational diagonal entry is bounded by `diagonalScaleReal`. -/
 theorem abs_entry_le_diagonalScaleReal {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (r : X) : |(a r : ℝ)| ≤ diagonalScaleReal a := by
   have h1 : ‖(fun r => ((a r : ℚ) : ℂ)) r‖ ≤ ‖(fun r => ((a r : ℚ) : ℂ))‖ :=
     norm_le_pi_norm (fun r : X => ((a r : ℚ) : ℂ)) r
   simpa [diagonalScaleReal] using! h1
 
+/-- The complex identity matrix used as the diagonal dual witness. -/
 def diagonalDualMatrix {X : Type} [Fintype X] [DecidableEq X] : Matrix X X ℂ :=
   Matrix.diagonal (fun _ => (1 : ℂ))
 
+/-- The diagonal dual matrix satisfies the unit operator-norm filter constraints. -/
 theorem diagonalDual_feasible {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) :
     (∀ j : Fin 1, ‖(rectComplexZ (diagonalRectInstance a).Z j).hadamard
@@ -162,6 +201,8 @@ theorem diagonalDual_feasible {X : Type} [Fintype X] [DecidableEq X]
     simp
   omega
 
+/-- The diagonal scale is a lower bound for the extended source rectangular value of the
+diagonal instance. -/
 theorem diagonal_value_lower_bound {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) :
     ENNReal.ofReal (diagonalScaleReal a) ≤
@@ -192,6 +233,8 @@ theorem diagonal_value_lower_bound {X : Type} [Fintype X] [DecidableEq X]
     ENNReal.ofReal_le_ofReal hnorm.symm.le
   exact le_iSup_of_le ⟨diagonalDualMatrix, diagonalDual_feasible a⟩ hle
 
+/-- A positive rational `t` whose square bounds all diagonal entries gives source rectangular
+value at most `t²`. -/
 theorem diagonal_value_upper_bound {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (t : ℚ) (ht : 0 < t) (hbound : ∀ r, |(a r : ℝ)| ≤ (t : ℝ)^2) :
     sourceRectValue (rectComplex (diagonalRectInstance a).A)
@@ -211,6 +254,8 @@ theorem diagonal_value_upper_bound {X : Type} [Fintype X] [DecidableEq X]
   exact (sourceRectValue_budget_boundary (rectComplex (diagonalRectInstance a).A)
     (rectComplexZ (diagonalRectInstance a).Z) ((t : ℝ)^2) hw).mpr hcert
 
+/-- For any positive tolerance, constructs a valid diagonal rational witness whose squared scale
+is within that tolerance of the diagonal scale, with matching value bounds. -/
 theorem clause90_diagonal_near_optimal {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (ε : ℝ) (hε : 0 < ε) :
     ∃ (t : ℚ) (F : RationalRectFactorization 1 1 (diagonalRectInstance a).A
@@ -269,6 +314,7 @@ theorem clause90_diagonal_near_optimal {X : Type} [Fintype X] [DecidableEq X]
   · exact diagonal_value_lower_bound a
   · exact diagonal_value_upper_bound a t (by exact_mod_cast ht0) hbound
 
+/-- The complex norm of a rational cast equals the absolute value of its real cast. -/
 theorem norm_ratCast_complex (a : ℚ) : ‖((a : ℚ) : ℂ)‖ = |(a : ℝ)| := by
   have h1 : ‖((a : ℚ) : ℂ)‖ ^ 2 = ((a * a : ℚ) : ℝ) := ratCast_normSq' a
   have h2 : |(a : ℝ)| ^ 2 = ((a * a : ℚ) : ℝ) := by
@@ -280,6 +326,8 @@ theorem norm_ratCast_complex (a : ℚ) : ‖((a : ℚ) : ℂ)‖ = |(a : ℝ)| :
   have hnonneg2 : 0 ≤ |(a : ℝ)| := abs_nonneg _
   nlinarith
 
+/-- A partial-permutation matrix selects the indicated vector coordinate on supported rows and
+returns zero elsewhere. -/
 theorem partialPerm_mulVec {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (v : QState S) (r : R) :
     (P.complexMatrix *ᵥ v) r = (if r ∈ P.support then v (P.col r) else 0) := by
@@ -301,6 +349,8 @@ theorem partialPerm_mulVec {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     intro s _
     simp [hr]
 
+/-- A partial-permutation matrix with injective selected columns on its support has L2 operator
+norm at most one. -/
 theorem partialPerm_l2_opNorm_le {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S)
     (hinj : ∀ r1 ∈ P.support, ∀ r2 ∈ P.support, P.col r1 = P.col r2 → r1 = r2) :
@@ -346,6 +396,8 @@ theorem partialPerm_l2_opNorm_le {R S : Type} [Fintype R] [DecidableEq R] [Finty
     nlinarith
   simpa only [one_mul] using! hle
 
+/-- A partial-monomial matrix selects and scales a vector coordinate on supported rows and
+returns zero elsewhere. -/
 theorem partialMonomial_mulVec {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℂ) (v : QState S) (r : R) :
     (P.complexMonomial amp *ᵥ v) r
@@ -367,6 +419,8 @@ theorem partialMonomial_mulVec {R S : Type} [Fintype R] [DecidableEq R] [Fintype
     intro s _
     simp [hr]
 
+/-- Under support injectivity, the operator norm of a partial-monomial matrix bounds each
+supported amplitude magnitude. -/
 theorem partialMonomial_l2_opNorm_ge {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℂ)
     (hinj : ∀ r1 ∈ P.support, ∀ r2 ∈ P.support, P.col r1 = P.col r2 → r1 = r2)
@@ -427,6 +481,8 @@ theorem partialMonomial_l2_opNorm_ge {R S : Type} [Fintype R] [DecidableEq R] [F
   rw [hnormv, hmulnorm, mul_one] at hle
   exact hle
 
+/-- The monomial rational factorization is valid when a positive `t` has square bounding every
+supported amplitude magnitude. -/
 theorem monomialRectFactorization_certValid {R S : Type} [Fintype R] [DecidableEq R]
     [Fintype S] [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ) (t : ℚ)
     (ht : 0 < t) (hbound : ∀ r ∈ P.support, |(amp r : ℝ)| ≤ (t : ℝ)^2) :
@@ -482,9 +538,12 @@ theorem monomialRectFactorization_certValid {R S : Type} [Fintype R] [DecidableE
     · simp [monomialRectInstance, PartialPermutation.monomial, PartialPermutation.matrix,
         monomialRectFactorization, hr]
 
+/-- The complex support matrix used as the partial-monomial dual witness. -/
 def monomialDualMatrix {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (P : PartialPermutation R S) : Matrix R S ℂ := P.complexMatrix
 
+/-- Under support injectivity, the monomial dual matrix satisfies the unit operator-norm filter
+constraints. -/
 theorem monomialDual_feasible {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ)
     (hinj : ∀ r1 ∈ P.support, ∀ r2 ∈ P.support, P.col r1 = P.col r2 → r1 = r2) :
@@ -507,6 +566,8 @@ theorem monomialDual_feasible {R S : Type} [Fintype R] [DecidableEq R] [Fintype 
   rw [hhad]
   exact partialPerm_l2_opNorm_le P hinj
 
+/-- Under support injectivity, the supported amplitude scale bounds the monomial instance's
+source rectangular value from below. -/
 theorem monomial_value_lower_bound {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ)
     (hinj : ∀ r1 ∈ P.support, ∀ r2 ∈ P.support, P.col r1 = P.col r2 → r1 = r2) :
@@ -556,6 +617,8 @@ theorem monomial_value_lower_bound {R S : Type} [Fintype R] [DecidableEq R] [Fin
     exact ENNReal.ofReal_le_ofReal hscale_le
   exact le_iSup_of_le ⟨monomialDualMatrix P, monomialDual_feasible P amp hinj⟩ hle
 
+/-- A positive rational `t` whose square bounds supported amplitudes gives source rectangular
+value at most `t²`. -/
 theorem monomial_value_upper_bound {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ) (t : ℚ) (ht : 0 < t)
     (hbound : ∀ r ∈ P.support, |(amp r : ℝ)| ≤ (t : ℝ)^2) :
@@ -576,6 +639,9 @@ theorem monomial_value_upper_bound {R S : Type} [Fintype R] [DecidableEq R] [Fin
   exact (sourceRectValue_budget_boundary (rectComplex (monomialRectInstance P amp).A)
     (rectComplexZ (monomialRectInstance P amp).Z) ((t : ℝ)^2) hw).mpr hcert
 
+/-- Under support injectivity, constructs a valid rational monomial witness with squared scale
+within any positive tolerance of the supported amplitude scale and corresponding value
+bounds. -/
 theorem clause90_monomial_near_optimal {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ)
     (hinj : ∀ r1 ∈ P.support, ∀ r2 ∈ P.support, P.col r1 = P.col r2 → r1 = r2)
@@ -644,6 +710,7 @@ theorem clause90_monomial_near_optimal {R S : Type} [Fintype R] [DecidableEq R] 
   · exact monomial_value_lower_bound P amp hinj
   · exact monomial_value_upper_bound P amp t (by exact_mod_cast ht0) hbound
 
+/-- A legal synthesis word yields a legal native program for any rational problem. -/
 theorem synthWordNativeProgram_legal (d : SourceRationalProblem) (p : SynthWord)
     (h : synthWordLegal p) : sourceNativeLegal d (synthWordNativeProgram p) := by
   intro s hs
@@ -655,29 +722,37 @@ theorem synthWordNativeProgram_legal (d : SourceRationalProblem) (p : SynthWord)
   rw [isFixedPrimitive_iff_sourceFixedGate] at hg'
   exact hg'
 
+/-- A native program obtained from a synthesis word has zero oracle calls. -/
 theorem synthWordNativeProgram_calls (p : SynthWord) :
     sourceNativeCalls (synthWordNativeProgram p) = 0 := by
   simp [synthWordNativeProgram, sourceNativeCalls]
 
+/-- Converting a synthesis word to a native program preserves its gate count. -/
 theorem synthWordNativeProgram_gates (p : SynthWord) :
     sourceNativeGates (synthWordNativeProgram p) = synthWordGates p := by
   simp [synthWordNativeProgram, sourceNativeGates, synthWordGates]
 
+/-- The known matrix of the native synthesis program equals the local program matrix of the
+original letters. -/
 theorem synthWordNativeProgram_knownMatrix (p : SynthWord) :
     sourceNativeKnownMatrix (synthWordNativeProgram p) = localProgramMatrix p.letters := by
   simp [synthWordNativeProgram, sourceNativeKnownMatrix]
 
+/-- The dyadic precision index of a controlled phase gate, with value zero for Hadamard and swap
+gates. -/
 def gatePrecision {w : ℕ} : LocalQFTGate w → ℕ
   | .h _ => 0
   | .swap _ _ => 0
   | .cp _ _ k _ => k
 
+/-- Extracting the phase precision from a native local step agrees with `gatePrecision`. -/
 theorem gatePrecision_nativeStep {w : ℕ} (g : LocalQFTGate w) :
     (match SourceNativeStep.local g with
       | .local (.cp _ _ k _) => k
       | _ => 0) = gatePrecision g := by
   cases g <;> rfl
 
+/-- Every fixed primitive has gate precision at most three. -/
 theorem fixedPrimitive_precision_le {w : ℕ} (g : LocalQFTGate w) (hg : IsFixedPrimitive g) :
     gatePrecision g ≤ 3 := by
   cases g with
@@ -687,6 +762,7 @@ theorem fixedPrimitive_precision_le {w : ℕ} (g : LocalQFTGate w) (hg : IsFixed
       rw [gatePrecision]
       exact hg
 
+/-- A list of natural numbers bounded by three has its maximum fold from zero bounded by three. -/
 theorem foldl_max_le_three (l : List ℕ) (h : ∀ x ∈ l, x ≤ 3) : l.foldl max 0 ≤ 3 := by
   have aux : ∀ (l : List ℕ) (init : ℕ), (∀ x ∈ l, x ≤ 3) → init ≤ 3 → l.foldl max init ≤ 3 := by
     intro l
@@ -704,19 +780,25 @@ theorem foldl_max_le_three (l : List ℕ) (h : ∀ x ∈ l, x ≤ 3) : l.foldl m
         exact ih (max init a) hl' hmax
   exact aux l 0 h (by norm_num)
 
+/-- A singleton local gate has zero intertwining error with the same-width clean padding map. -/
 theorem clause94_fixed_primitive_padded_error {w : ℕ} (g : LocalQFTGate w) :
     localProgramMatrix [g] * padClean w w - padClean w w * localGateMatrix g = 0 := by
   rw [localProgramMatrix_singleton, padClean_self, Matrix.mul_one, Matrix.one_mul, sub_self]
 
+/-- The partial compiler emits a fixed primitive as the singleton word containing that
+primitive. -/
 theorem clause94_engine_emit {w : ℕ} (g : LocalQFTGate w) (k : ℕ) (hg : IsFixedPrimitive g) :
     partialCompiler.emit w g k = [g] := partialCompiler_emit_primitive g k hg
 
+/-- The partial compiler's emitted length and ancillary width possess uniform polynomial bounds
+in input encoding size and requested precision. -/
 theorem clause94_uniform_ledger :
     ∃ C D : ℕ, ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ),
       (partialCompiler.emit w g k).length ≤ C * (1 + synthInputBits w g k + k) ^ D ∧
       partialCompiler.anc w g k ≤ C * (1 + synthInputBits w g k + k) ^ D :=
   partialCompiler_uniform
 
+/-- Every gate in the native three-gate flip word is a source fixed gate. -/
 theorem nativeFlipWord_fixed {w a : ℕ} (ha : a < w) :
     ∀ g ∈ nativeFlipWord w a ha, sourceFixedGate g := by
   intro g hg
@@ -728,17 +810,20 @@ theorem nativeFlipWord_fixed {w a : ℕ} (ha : a < w) :
   · simp [sourceFixedGate]
   · simp at hnil
 
+/-- The native tag wire lies within every register of width `nativeFrameWidth d + k`. -/
 theorem nativeTagWire_lt (d : SourceRationalProblem) (k : ℕ) :
     nativeTagWire d < nativeFrameWidth d + k := by
   simp [nativeTagWire, nativeFrameWidth]
   omega
 
+/-- The rational native program's steps are the local-step images of the tag-wire flip word. -/
 theorem rationalToNativeProgram_steps (d : SourceRationalProblem) (k : ℕ) :
     (rationalToNativeProgram d k).steps
       = (nativeFlipWord (nativeFrameWidth d + k) (nativeTagWire d)
           (nativeTagWire_lt d k)).map
           (fun g => SourceNativeStep.local g) := rfl
 
+/-- The rational native tag-flip program is legal for its source problem. -/
 theorem rationalToNativeProgram_legal (d : SourceRationalProblem) (k : ℕ) :
     sourceNativeLegal d (rationalToNativeProgram d k) := by
   intro s hs
@@ -753,35 +838,47 @@ theorem rationalToNativeProgram_legal (d : SourceRationalProblem) (k : ℕ) :
   obtain ⟨g, hg, rfl⟩ := hs'
   exact nativeFlipWord_fixed (nativeTagWire_lt d k) g hg
 
+/-- The rational native tag-flip program makes no oracle calls. -/
 theorem rationalToNativeProgram_calls (d : SourceRationalProblem) (k : ℕ) :
     sourceNativeCalls (rationalToNativeProgram d k) = 0 := by
   simp [rationalToNativeProgram, nativeFlipWord, sourceNativeCalls]
 
+/-- The rational native tag-flip program contains exactly three gates. -/
 theorem rationalToNativeProgram_gates (d : SourceRationalProblem) (k : ℕ) :
     sourceNativeGates (rationalToNativeProgram d k) = 3 := by
   simp [rationalToNativeProgram, nativeFlipWord, sourceNativeGates]
 
+/-- The rational native program has width `nativeFrameWidth d + k`. -/
 theorem rationalToNativeProgram_width (d : SourceRationalProblem) (k : ℕ) :
     (rationalToNativeProgram d k).width = nativeFrameWidth d + k := rfl
 
+/-- The known matrix of the rational native program is the local program matrix of its local
+steps. -/
 theorem rationalToNativeProgram_knownMatrix (d : SourceRationalProblem) (k : ℕ) :
     sourceNativeKnownMatrix (rationalToNativeProgram d k)
       = localProgramMatrix ((rationalToNativeProgram d k).steps.filterMap
           (fun s => match s with | .local g => some g | _ => none)) := rfl
 
+/-- The real native program uses the steps of the native program for its rational approximation
+at the same precision. -/
 theorem realToNativeProgram_steps (d : SourceRealProblem) (hacc : sourceRealAccess d) (k : ℕ) :
     (realToNativeProgram d hacc k).steps
       = (rationalToNativeProgram (rationalizeReal d hacc k) k).steps := rfl
 
+/-- Rationalizing a real problem preserves its oracle input function. -/
 theorem rationalizeReal_input (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     (rationalizeReal d hacc R).input = d.input := rfl
 
+/-- Rationalizing a real problem preserves its number of inputs. -/
 theorem rationalizeReal_count (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     (rationalizeReal d hacc R).count = d.count := rfl
 
+/-- Rationalizing a real problem preserves its alphabet parameter. -/
 theorem rationalizeReal_alphabet (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     (rationalizeReal d hacc R).alphabet = d.alphabet := rfl
 
+/-- Every requested start or target coordinate possesses rational real and imaginary
+approximations within `2⁻ᴿ` under the real-access hypothesis. -/
 theorem rationalizeReal_error (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ)
     (x : Fin d.count) (h : Fin d.dimension) (target : Bool) :
     ∃ a b : ℚ,
@@ -789,11 +886,14 @@ theorem rationalizeReal_error (d : SourceRealProblem) (hacc : sourceRealAccess d
         ≤ (1 / 2 : ℝ) ^ R :=
   sourceCoordinateAfter_pair (Classical.choose_spec (hacc x h target R))
 
+/-- The rational Gram instance has target `rationalGram` and a single identity filter. -/
 theorem clause96_gram_instance (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     (rationalGramInstance d hacc R).A = rationalGram d hacc R ∧
       (rationalGramInstance d hacc R).Z = (fun _ => 1) :=
   ⟨rfl, rfl⟩
 
+/-- A positive rational bound on the diagonal Gram entries supplies a valid diagonal certificate
+and lower and upper bounds on its source rectangular value. -/
 theorem clause96_gram_generator {d : SourceRealProblem} {hacc : sourceRealAccess d} {R : ℕ}
     (t : ℚ) (ht : 0 < t)
     (hbound : ∀ x, |((rationalGram d hacc R) x x : ℝ)| ≤ (t : ℝ) ^ 2) :
@@ -812,6 +912,8 @@ theorem clause96_gram_generator {d : SourceRealProblem} {hacc : sourceRealAccess
     diagonal_value_lower_bound _,
     diagonal_value_upper_bound _ t ht hbound⟩
 
+/-- A completed real-coordinate computation supplies a rational complex approximation within the
+requested dyadic error. -/
 theorem realCoordinateAfter_error {d : SourceRealProblem} {x : Fin d.count}
     {h : Fin d.dimension} {target : Bool} {r : ℕ} {t : ℕ}
     (hc : sourceCoordinateAfter d x h target r t) :
@@ -820,9 +922,12 @@ theorem realCoordinateAfter_error {d : SourceRealProblem} {x : Fin d.count}
         ≤ (1 / 2 : ℝ)^r :=
   sourceCoordinateAfter_pair hc
 
+/-- The native tag-wire index equals the frame tag-wire index. -/
 theorem nativeTagWire_eq_tagWire (d : SourceRationalProblem) :
     nativeTagWire d = tagWire d := rfl
 
+/-- The rational native program evaluates to the Hadamard-phase-Hadamard product on the tag wire
+for every input. -/
 theorem rationalToNativeProgram_matrix (d : SourceRationalProblem) (k : ℕ) (x : Fin d.count) :
     sourceNativeMatrix d x (rationalToNativeProgram d k)
       = localGateMatrix (.h ⟨tagWire d, nativeTagWire_lt d k⟩) *
@@ -836,6 +941,8 @@ theorem rationalToNativeProgram_matrix (d : SourceRationalProblem) (k : ℕ) (x 
     sourceNativeStepMatrix, Matrix.mul_one]
   rfl
 
+/-- The rational native program changes a clean state's branch tag from false to true while
+preserving its encoded state. -/
 theorem rationalToNativeProgram_frame (d : SourceRationalProblem) (k : ℕ)
     (x : Fin d.count) (ψ : QState (Fin d.dimension)) :
     sourceNativeMatrix d x (rationalToNativeProgram d k) *ᵥ
@@ -847,6 +954,8 @@ theorem rationalToNativeProgram_frame (d : SourceRationalProblem) (k : ℕ)
     exact nativeTagWire_lt d k
   exact nativeTagFlip_frame d (rationalToNativeProgram d k).width hw ψ
 
+/-- The real overlap of the native output with the true-tag target equals the overlap obtained
+by embedding the original start state with a true tag. -/
 theorem rationalToNative_coherent_overlap (d : SourceRationalProblem) (k : ℕ)
     (x : Fin d.count) :
     (∑ q, star ((sourceNativeMatrix d x (rationalToNativeProgram d k) *ᵥ
@@ -860,6 +969,8 @@ theorem rationalToNative_coherent_overlap (d : SourceRationalProblem) (k : ℕ)
           (sourceRationalState (d.target x))) q).re := by
   rw [rationalToNativeProgram_frame d k x (sourceRationalState (d.start x))]
 
+/-- The native output's overlap magnitude with a garbage target equals that of the true-tag
+embedded original start state. -/
 theorem rationalToNative_noncoherent_overlap (d : SourceRationalProblem) (k : ℕ)
     (x : Fin d.count) (ξ : QState (Bool × Fin d.dimension)) :
     ‖∑ q, star ((sourceNativeMatrix d x (rationalToNativeProgram d k) *ᵥ
@@ -873,6 +984,8 @@ theorem rationalToNative_noncoherent_overlap (d : SourceRationalProblem) (k : �
           (sourceRationalState (d.target x)) ξ) q‖ := by
   rw [rationalToNativeProgram_frame d k x (sourceRationalState (d.start x))]
 
+/-- The complex overlap of the native output with the clean target equals the original rational
+start-target inner product. -/
 theorem rationalToNative_coherent_overlap_numeric (d : SourceRationalProblem) (k : ℕ)
     (x : Fin d.count) :
     (∑ q, star ((sourceNativeMatrix d x (rationalToNativeProgram d k) *ᵥ
@@ -884,6 +997,8 @@ theorem rationalToNative_coherent_overlap_numeric (d : SourceRationalProblem) (k
   rw [rationalToNativeProgram_frame d k x (sourceRationalState (d.start x))]
   exact clean_overlap_same (frameFaithful_native d k) _ _
 
+/-- The false-tag start embedding is orthogonal to the true-tag target embedding at the native
+program width. -/
 theorem rationalToNative_branch_orthogonal (d : SourceRationalProblem) (k : ℕ)
     (x : Fin d.count) :
     (∑ q, star (sourceNativeClean d (rationalToNativeProgram d k).width false
@@ -892,6 +1007,8 @@ theorem rationalToNative_branch_orthogonal (d : SourceRationalProblem) (k : ℕ)
           (sourceRationalState (d.target x)) q)) = 0 :=
   clean_overlap_diff (frameFaithful_native d k) _ _
 
+/-- The real part of the native output-target overlap equals the real part of the original
+rational start-target inner product. -/
 theorem rationalToNative_coherent_re_eq (d : SourceRationalProblem) (k : ℕ) (x : Fin d.count) :
     (∑ q, star ((sourceNativeMatrix d x (rationalToNativeProgram d k) *ᵥ
         sourceNativeClean d (rationalToNativeProgram d k).width false

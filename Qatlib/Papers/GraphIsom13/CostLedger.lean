@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GraphIsom13.GiCost
 import Mathlib.Data.Nat.Log
+
+/-!
+# Resource counts for the graph-isomorphism cost
+
+This module records the register size and counts the three families of terms in the
+graph-isomorphism cost construction of [GaitanClark2014]. It bounds the total term count, and
+then the combined register and term count, quadratically in `numQubits` for graphs with at least
+two vertices.
+
+## Main statements
+
+* `termCount_quadratic`: a quadratic upper bound on the number of cost terms.
+* `cost_component_budget`: a combined register and cost-term budget.
+
+## References
+
+* [Gaitan and Clark, 2014][GaitanClark2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,16 +37,22 @@ namespace Qatlib.Papers.GraphIsom13.CostLedger
 
 open Qatlib.Papers.GraphIsom13.GiCost
 
+/-- The number `N * encBits N` of bits in the graph-isomorphism encoding. -/
 def numQubits (N : ℕ) : ℕ := N * encBits N
 
+/-- The count `N * (encSize N - N)` of out-of-range penalty terms. -/
 def termCount1 (N : ℕ) : ℕ := N * (encSize N - N)
 
+/-- The count `N * (N - 1) / 2` of unordered-pair collision penalty terms. -/
 def termCount2 (N : ℕ) : ℕ := N * (N - 1) / 2
 
+/-- The count `N^2` of adjacency-comparison terms. -/
 def termCount3 (N : ℕ) : ℕ := N ^ 2
 
+/-- The sum of the out-of-range, collision, and adjacency-comparison term counts. -/
 def termCount (N : ℕ) : ℕ := termCount1 N + termCount2 N + termCount3 N
 
+/-- For `N ≥ 2`, the power-of-two encoding range has size strictly less than `2 * N`. -/
 theorem encSize_lt_two_mul {N : ℕ} (hN : 2 ≤ N) : encSize N < 2 * N := by
   have hN1 : 1 < N := by omega
   have hU : 0 < encBits N := Nat.clog_pos (by norm_num) hN1
@@ -40,6 +65,7 @@ theorem encSize_lt_two_mul {N : ℕ} (hN : 2 ≤ N) : encSize N < 2 * N := by
   rw [h2]
   exact Nat.mul_lt_mul_of_pos_left hpow (by norm_num)
 
+/-- For `N ≥ 2`, the out-of-range penalty term count is less than `2 * N^2`. -/
 theorem termCount1_lt {N : ℕ} (hN : 2 ≤ N) : termCount1 N < 2 * N ^ 2 := by
   have hlt := encSize_lt_two_mul hN
   unfold termCount1
@@ -47,12 +73,15 @@ theorem termCount1_lt {N : ℕ} (hN : 2 ≤ N) : termCount1 N < 2 * N ^ 2 := by
     _ < N * (2 * N) := Nat.mul_lt_mul_of_pos_left hlt (by omega)
     _ = 2 * N ^ 2 := by ring
 
+/-- The collision penalty term count is at most `N^2`. -/
 theorem termCount2_le (N : ℕ) : termCount2 N ≤ N ^ 2 := by
   unfold termCount2
   calc N * (N - 1) / 2 ≤ N * (N - 1) := Nat.div_le_self _ _
     _ ≤ N * N := Nat.mul_le_mul_left N (Nat.sub_le _ _)
     _ = N ^ 2 := by ring
 
+/-- For `N ≥ 2`, the total cost-term count is at most four times the square of the register
+size. -/
 theorem termCount_quadratic {N : ℕ} (hN : 2 ≤ N) :
     termCount N ≤ 4 * numQubits N ^ 2 := by
   have hN1 : 1 < N := by omega
@@ -71,6 +100,8 @@ theorem termCount_quadratic {N : ℕ} (hN : 2 ≤ N) :
     _ = 4 * N ^ 2 := by ring
     _ ≤ 4 * numQubits N ^ 2 := Nat.mul_le_mul_left 4 hsq
 
+/-- For `N ≥ 2`, the sum of the register size and cost-term count is at most five times the
+square of the register size [GaitanClark2014]. -/
 theorem cost_component_budget {N : ℕ} (hN : 2 ≤ N) :
     numQubits N + termCount N ≤ 5 * numQubits N ^ 2 := by
   have hN1 : 1 < N := by omega

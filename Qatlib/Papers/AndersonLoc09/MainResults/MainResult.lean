@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AndersonLoc09.MainResults.MinimalGap
+
+/-!
+# Eventual gap and inverse-square bounds
+
+For positive scale `N0` and density `v`, the expression `gapFormula (v * N) N N0` is eventually
+bounded above by `exp (-N)`. The module converts this estimate into a lower bound of `exp N` for
+the reciprocal squared gap expression, giving an algebraic consequence of the localization gap
+model [AltshulerKroviRoland2010].
+
+## Main statements
+
+* `gap_ultra_small`: establishes the eventual gap upper bound.
+* `aqo_minimal_gap_super_exponential`: combines the gap estimate with the reciprocal-square
+  lower bound.
+
+## References
+
+* [Altshuler et al., 2010][AltshulerKroviRoland2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +34,8 @@ namespace Qatlib.Papers.AndersonLoc09.MainResults
 
 open Real
 
+/-- For positive `N0` and `v`, the gap formula with `n = v * N` is at most `exp (-N)` for all
+sufficiently large real `N` [AltshulerKroviRoland2010]. -/
 theorem gap_ultra_small (N0 v : ℝ) (hN0 : 0 < N0) (hv : 0 < v) :
     ∃ N1 : ℝ, 0 < N1 ∧ ∀ N : ℝ, N1 ≤ N →
       gapFormula (v * N) N N0 ≤ Real.exp (-N) := by
@@ -36,6 +58,8 @@ theorem gap_ultra_small (N0 v : ℝ) (hN0 : 0 < N0) (hv : 0 < v) :
   rw [hsimp] at hmul
   linarith
 
+/-- For positive `N0`, `v`, and `N`, a gap-formula bound by `exp (-N)` implies that its
+reciprocal square is at least `exp N`. -/
 theorem aqo_runtime_exceeds_exp (N0 v N : ℝ) (hN0 : 0 < N0) (hv : 0 < v) (hN : 0 < N)
     (hgap : gapFormula (v * N) N N0 ≤ Real.exp (-N)) :
     Real.exp N ≤ 1 / (gapFormula (v * N) N N0) ^ 2 := by
@@ -59,6 +83,8 @@ theorem aqo_runtime_exceeds_exp (N0 v N : ℝ) (hN0 : 0 < N0) (hv : 0 < v) (hN :
     _ = 1 / Real.exp (-2 * N) := hx.symm
     _ ≤ 1 / (gapFormula (v * N) N N0) ^ 2 := hinv
 
+/-- For positive `N0` and `v`, sufficiently large real `N` simultaneously satisfy the gap upper
+bound `exp (-N)` and the reciprocal-square lower bound `exp N` [AltshulerKroviRoland2010]. -/
 theorem aqo_minimal_gap_super_exponential (N0 v : ℝ) (hN0 : 0 < N0) (hv : 0 < v) :
     ∃ N1 : ℝ, 0 < N1 ∧ ∀ N : ℝ, N1 ≤ N →
       gapFormula (v * N) N N0 ≤ Real.exp (-N) ∧

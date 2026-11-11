@@ -8,6 +8,24 @@ import Qatlib.Papers.UnitaryDigraph.MainResults.Complete
 import Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph.Theorem2
 import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 import Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
+
+/-!
+# Eulerian digraphs and unitary line digraphs
+
+This module characterizes when the line digraph of a finite digraph is the support of a unitary
+matrix, as in Theorem 3 of [Severini2003]. Incoming and outgoing arcs decompose its adjacency
+relation into blocks, and their cardinalities connect these blocks to the Eulerian condition.
+
+## Main statements
+
+* `theorem3`: The line digraph is unitary exactly when the original digraph is Eulerian.
+* `theorem3_eulerianComponents`: The equivalent formulation allowing Eulerian components.
+
+## References
+
+* [Severini, 2003][Severini2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,10 +37,14 @@ namespace Qatlib.Papers.UnitaryDigraph.MainResults.Eulerian
 
 open Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 
+/-- Two arcs are adjacent in the line digraph exactly when the target of the first is the source
+of the second. -/
 theorem lineDigraph_adj_iff {V : Type} (D : Defs.Digraph V) (a b : Arc D) :
     (lineDigraph D).Adj a b ↔ a.1.2 = b.1.1 :=
   Iff.rfl
 
+/-- Line-digraph adjacency is equivalent to the existence of a vertex joining the target of the
+first arc to the source of the second [Severini2003]. -/
 theorem lineDigraph_adj_decomp {V : Type} (D : Defs.Digraph V) (a b : Arc D) :
     (lineDigraph D).Adj a b ↔ ∃ v : V, a.1.2 = v ∧ b.1.1 = v := by
   rw [lineDigraph_adj_iff]
@@ -30,6 +52,8 @@ theorem lineDigraph_adj_decomp {V : Type} (D : Defs.Digraph V) (a b : Arc D) :
   · intro h; exact ⟨b.1.1, h, rfl⟩
   · rintro ⟨v, h1, h2⟩; exact h1.trans h2.symm
 
+/-- Line-digraph adjacency decomposes into pairs of an incoming arc and an outgoing arc at a
+common vertex [Severini2003]. -/
 theorem lineDigraph_adj_blocks {V : Type} (D : Defs.Digraph V) (a b : Arc D) :
     (lineDigraph D).Adj a b ↔
       ∃ v : V, a ∈ {x : Arc D | x.1.2 = v} ∧ b ∈ {x : Arc D | x.1.1 = v} := by
@@ -43,10 +67,13 @@ open Qatlib.Papers.UnitaryDigraph.MainResults.Complete
 open Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 open Qatlib.Papers.UnitaryDigraph.MainResults.Defs.Digraph
 
+/-- The set of arcs of `D` whose source is `v`. -/
 def outArcs {V : Type} (D : Defs.Digraph V) (v : V) : Set (Arc D) := {b | b.1.1 = v}
 
+/-- The set of arcs of `D` whose target is `v`. -/
 def inArcs {V : Type} (D : Defs.Digraph V) (v : V) : Set (Arc D) := {a | a.1.2 = v}
 
+/-- The number of incoming arcs at `v` equals the number of its incoming neighbors. -/
 theorem ncard_inArcs {V : Type} [Fintype V] {D : Defs.Digraph V} [Fintype (Arc D)] (v : V) :
     (inArcs D v).ncard = (D.inNbrs v).ncard := by
   classical
@@ -67,6 +94,7 @@ theorem ncard_inArcs {V : Type} [Fintype V] {D : Defs.Digraph V} [Fintype (Arc D
       refine ⟨⟨⟨(u, v), mem_inNbrs.mp hu⟩, rfl⟩, ?_⟩
       rfl
 
+/-- The number of outgoing arcs at `v` equals the number of its outgoing neighbors. -/
 theorem ncard_outArcs {V : Type} [Fintype V] {D : Defs.Digraph V} [Fintype (Arc D)] (v : V) :
     (outArcs D v).ncard = (D.outNbrs v).ncard := by
   classical
@@ -87,16 +115,21 @@ theorem ncard_outArcs {V : Type} [Fintype V] {D : Defs.Digraph V} [Fintype (Arc 
       refine ⟨⟨⟨(v, u), mem_outNbrs.mp hu⟩, rfl⟩, ?_⟩
       rfl
 
+/-- The cardinality of the subtype of arcs ending at `v` equals the number of incoming neighbors
+of `v`. -/
 theorem card_inArcs {V : Type} [Fintype V] {D : Defs.Digraph V} [Fintype (Arc D)] (v : V) :
     Nat.card {a : Arc D // a.1.2 = v} = (D.inNbrs v).ncard := by
   classical
   exact (Nat.card_coe_set_eq (inArcs D v)).trans (ncard_inArcs (D := D) v)
 
+/-- The cardinality of the subtype of arcs starting at `v` equals the number of outgoing
+neighbors of `v`. -/
 theorem card_outArcs {V : Type} [Fintype V] {D : Defs.Digraph V} [Fintype (Arc D)] (v : V) :
     Nat.card {b : Arc D // b.1.1 = v} = (D.outNbrs v).ncard := by
   classical
   exact (Nat.card_coe_set_eq (outArcs D v)).trans (ncard_outArcs (D := D) v)
 
+/-- A set with at least two elements contains an element distinct from any specified member. -/
 theorem exists_mem_ne_of_two_le_ncard {W : Type*} {S : Set W} (h2 : 2 ≤ S.ncard) {i : W}
     (_hi : i ∈ S) : ∃ j ∈ S, j ≠ i := by
   by_contra h
@@ -108,6 +141,7 @@ theorem exists_mem_ne_of_two_le_ncard {W : Type*} {S : Set W} (h2 : 2 ≤ S.ncar
   rw [Set.ncard_singleton] at hle
   omega
 
+/-- A finite digraph whose line digraph is unitary is Eulerian [Severini2003]. -/
 theorem eulerian_of_unitary_lineDigraph {V : Type} [Fintype V] [DecidableEq V]
     (D : Defs.Digraph V) [Fintype (Arc D)] [DecidableEq (Arc D)]
     (hU : IsUnitaryDigraph (lineDigraph D)) : Eulerian D := by
@@ -216,6 +250,7 @@ theorem eulerian_of_unitary_lineDigraph {V : Type} [Fintype V] [DecidableEq V]
         rfl
       rw [hIi, hIj, Set.inter_self]
 
+/-- The line digraph of a finite Eulerian digraph is unitary [Severini2003]. -/
 theorem isUnitaryDigraph_lineDigraph_of_eulerian {V : Type} [Fintype V] [DecidableEq V]
     (D : Defs.Digraph V) [Fintype (Arc D)] [DecidableEq (Arc D)] (hE : Eulerian D) :
     IsUnitaryDigraph (lineDigraph D) := by
@@ -239,11 +274,15 @@ theorem isUnitaryDigraph_lineDigraph_of_eulerian {V : Type} [Fintype V] [Decidab
       exact card_outArcs (D := D) k
     rw [hfr, hfc, hE k]
 
+/-- The line digraph of a finite digraph is unitary if and only if the digraph is Eulerian
+[Severini2003]. -/
 theorem theorem3 {V : Type} [Fintype V] [DecidableEq V]
     (D : Defs.Digraph V) [Fintype (Arc D)] [DecidableEq (Arc D)] :
     IsUnitaryDigraph (lineDigraph D) ↔ Eulerian D :=
   ⟨eulerian_of_unitary_lineDigraph D, isUnitaryDigraph_lineDigraph_of_eulerian D⟩
 
+/-- The line digraph is unitary if and only if the digraph is Eulerian or has Eulerian
+components [Severini2003]. -/
 theorem theorem3_eulerianComponents {V : Type} [Fintype V] [DecidableEq V]
     (D : Defs.Digraph V) [Fintype (Arc D)] [DecidableEq (Arc D)] :
     IsUnitaryDigraph (lineDigraph D) ↔ Eulerian D ∨ EulerianComponents D := by

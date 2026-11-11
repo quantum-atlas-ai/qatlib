@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+
+/-!
+# Orthonormal families and maximally mixed marginals
+
+This module supplies matrix identities for orthonormal families and the normalization factors
+used in maximally entangled qudit vectors. `quditFamilyColumns` turns a family into a square
+matrix, allowing Gram and completeness identities to control partial traces.
+
+`qudit_maxEnt_first_marginal` and `qudit_scaled_rows_orthonormal` provide the two directions
+needed for the resource characterization in [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `quditFamily_complete`: resolution of the identity by an orthonormal family.
+* `qudit_maxEnt_first_marginal`: the first reduced operator of the maximally entangled form.
+* `qudit_scaled_rows_orthonormal`: extracts an orthonormal family from a maximally mixed
+  marginal.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,15 +40,19 @@ open Matrix
 open scoped Classical BigOperators
 set_option linter.unusedSimpArgs false
 
+/-- The square matrix whose columns are the vectors of the indexed family `u`. -/
 noncomputable def quditFamilyColumns {n : ℕ} (u : Fin n → QState (Fin n)) : Operator n :=
   fun i j => u j i
 
+/-- The column matrix of an orthonormal family has Gram matrix equal to the identity. -/
 theorem quditFamily_gram {n : ℕ} {u : Fin n → QState (Fin n)}
     (hu : QuditOrthonormalFamily n u) :
     (quditFamilyColumns u)ᴴ * quditFamilyColumns u = 1 := by
   ext i j
   exact hu i j
 
+/-- A full orthonormal family resolves the identity through the sum of its outer product
+entries. -/
 theorem quditFamily_complete {n : ℕ} {u : Fin n → QState (Fin n)}
     (hu : QuditOrthonormalFamily n u) (i j : Fin n) :
     ∑ a, u a i * star (u a j) = (1 : Operator n) i j := by
@@ -36,9 +63,11 @@ theorem quditFamily_complete {n : ℕ} {u : Fin n → QState (Fin n)}
   rw [Matrix.star_eq_conjTranspose] at h
   exact congrArg (fun A : Operator n => A i j) h
 
+/-- The square of the complex embedding of `Real.sqrt n` is the complex embedding of `n`. -/
 theorem qudit_sqrt_sq (n : ℕ) : (Real.sqrt (n : ℝ) : ℂ)^2 = (n : ℂ) := by
   exact_mod_cast Real.sq_sqrt (Nat.cast_nonneg n : (0 : ℝ) ≤ n)
 
+/-- The complex embedding of `Real.sqrt n` is nonzero when `n` is nonzero. -/
 theorem qudit_sqrt_ne_zero (n : ℕ) [NeZero n] : (Real.sqrt (n : ℝ) : ℂ) ≠ 0 := by
   have hn : (n : ℂ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne n)
   intro hz
@@ -46,10 +75,14 @@ theorem qudit_sqrt_ne_zero (n : ℕ) [NeZero n] : (Real.sqrt (n : ℝ) : ℂ) �
   rw [hz, zero_pow (by decide : 2 ≠ 0)] at h
   exact hn h.symm
 
+/-- The product of two inverse square root dimension factors equals `1 / n` in the complex
+numbers. -/
 theorem qudit_sqrt_inv_sq (n : ℕ) :
     (Real.sqrt (n : ℝ) : ℂ)⁻¹ * (Real.sqrt (n : ℝ) : ℂ)⁻¹ = 1 / (n : ℂ) := by
   rw [← mul_inv, ← pow_two, qudit_sqrt_sq, one_div]
 
+/-- The first marginal of a maximally entangled resource formed from two orthonormal families is
+`1 / n` times the identity. -/
 theorem qudit_maxEnt_first_marginal {n : ℕ}
     {u v : Fin n → QState (Fin n)}
     (hu : QuditOrthonormalFamily n u) (hv : QuditOrthonormalFamily n v) :
@@ -88,6 +121,8 @@ theorem qudit_maxEnt_first_marginal {n : ℕ}
       change ((Real.sqrt (n : ℝ) : ℂ)⁻¹ * (Real.sqrt (n : ℝ) : ℂ)⁻¹) * _ = _
       rw [qudit_sqrt_inv_sq]; rfl
 
+/-- If a pure vector has maximally mixed first marginal in nonzero dimension, its rows scaled by
+`√n` form an orthonormal family. -/
 theorem qudit_scaled_rows_orthonormal {n : ℕ} [NeZero n]
     (Ψ : QState (Fin n × Fin n))
     (h : PartialTrace (outerProduct Ψ) = (1 / (n : ℂ)) • (1 : Operator n)) :

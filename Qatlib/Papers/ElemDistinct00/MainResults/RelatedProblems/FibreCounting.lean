@@ -13,6 +13,33 @@ import Mathlib.Data.Finset.Disjoint
 import Mathlib.Data.Int.Basic
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Tactic
+
+/-!
+# Fibre counts and collision-sum updates
+
+The finite set `fibre f z` consists of inputs mapping to `z`, and `collSum f` sums `choose 2`
+over all fibre sizes. The condition `FibresLeTwo` restricts every fibre to at most two elements;
+under this promise, the collision sum is exactly the number of double fibres.
+
+The update lemmas describe the effect of changing one function value, culminating in
+`collSum_update_delta`. These identities supply the counting calculations for the related
+collision problems in Theorem 8 of [BuhrmanEtAl2005].
+
+## Main statements
+
+* `sum_fibre_card`: the fibre sizes sum to `N`.
+* `card_fibre_update`: an update adds one to the new fibre and subtracts one from the old fibre.
+* `collSum_update_delta`: an update to a different value changes the collision sum by the new
+  fibre size minus the old fibre size plus one.
+* `collSum_eq_card_doubles` and `card_singletons_add`: under `FibresLeTwo`, double fibres count
+  collisions and singleton-plus-twice-double fibre counts equal `N`.
+
+## References
+
+* [Buhrman et al., 2005][BuhrmanEtAl2005], *Quantum Algorithms for Element Distinctness*,
+  arXiv:quant-ph/0007016 (2000 preprint).
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,24 +52,32 @@ open Qatlib.Papers.ElemDistinct00.MainResults.Defs
 
 variable {N : ℕ}
 
+/-- The finite set of inputs of `f` whose image is the specified value `z`. -/
 def fibre (f : Fin N → Fin N) (z : Fin N) : Finset (Fin N) :=
   Finset.univ.filter fun x => f x = z
 
+/-- Membership in the fibre of `z` is equivalent to having image `z`. -/
 @[simp] theorem mem_fibre {f : Fin N → Fin N} {z x : Fin N} :
     x ∈ fibre f z ↔ f x = z := by
   simp [fibre]
 
+/-- Require every fibre of `f` to contain at most two inputs. -/
 def FibresLeTwo (f : Fin N → Fin N) : Prop := ∀ z, (fibre f z).card ≤ 2
 
+/-- The fibre containing any given input is nonempty and therefore has positive cardinality. -/
 theorem fibre_card_pos (f : Fin N → Fin N) (x : Fin N) : 0 < (fibre f (f x)).card :=
   Finset.card_pos.mpr ⟨x, by simp⟩
 
+/-- The cardinalities of all fibres of `f : Fin N → Fin N` sum to `N`. This partition identity
+supports the collision-counting arguments in [BuhrmanEtAl2005]. -/
 theorem sum_fibre_card (f : Fin N → Fin N) : ∑ z, (fibre f z).card = N := by
   have h := Finset.card_eq_sum_card_fiberwise
     (s := (Finset.univ : Finset (Fin N))) (t := (Finset.univ : Finset (Fin N)))
     (f := f) (fun x _ => Finset.mem_univ (f x))
   simpa [fibre] using h.symm
 
+/-- After updating `f x` to `w`, the fibre of `z` is obtained by removing `x` and then inserting
+it exactly when `z = w`. -/
 theorem fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
     fibre (Function.update f x w) z
       = (fibre f z).erase x ∪ (if z = w then {x} else ∅) := by
@@ -58,6 +93,8 @@ theorem fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
     · simp [fibre, Function.update_apply, hy, hz]
     · simp [fibre, Function.update_apply, hy, hz]
 
+/-- Updating `f x` to `w` changes the size of the fibre of `z` by adding its new-value indicator
+and subtracting its old-value indicator, using natural subtraction. -/
 theorem card_fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
     (fibre (Function.update f x w) z).card
       = (fibre f z).card + (if z = w then 1 else 0) - (if z = f x then 1 else 0) := by
@@ -94,8 +131,12 @@ theorem card_fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
     rw [hifcard, hzfx]
     simp
 
+/-- Sum `choose 2` over all fibre cardinalities, counting unordered pairs of distinct inputs
+with equal image. -/
 def collSum (f : Fin N → Fin N) : ℕ := ∑ z, (fibre f z).card.choose 2
 
+/-- If two integer-valued functions on a finite type agree outside two distinct points, the
+difference of their total sums is the sum of the differences at those points. -/
 theorem sum_sub_eq_two_points {α : Type*} [Fintype α] [DecidableEq α]
     (F G : α → ℤ) (a b : α) (hab : a ≠ b)
     (h : ∀ z, z ≠ a → z ≠ b → G z = F z) :
@@ -109,6 +150,9 @@ theorem sum_sub_eq_two_points {α : Type*} [Fintype α] [DecidableEq α]
     simp [h z hza hzb]
   rw [← hsub, Finset.sum_pair hab]
 
+/-- When `w ≠ f x`, updating the value at `x` to `w` changes `collSum`, as an integer, by the
+destination fibre size minus the original fibre size plus one. This is the update identity
+used in the collision-relation estimates of [BuhrmanEtAl2005]. -/
 theorem collSum_update_delta (f : Fin N → Fin N) (x w : Fin N) (hw : w ≠ f x) :
     ((collSum (Function.update f x w) : ℤ) - (collSum f : ℤ))
       = ((fibre f w).card : ℤ) - (((fibre f (f x)).card : ℤ) - 1) := by
@@ -178,6 +222,9 @@ theorem collSum_update_delta (f : Fin N → Fin N) (x w : Fin N) (hw : w ≠ f x
   rw [hsucc', hpred']
   ring
 
+/-- If every fibre has size at most two, the collision sum equals the number of fibres of size
+two. This identifies the collision statistic used in the related-problem analysis of
+[BuhrmanEtAl2005]. -/
 theorem collSum_eq_card_doubles (f : Fin N → Fin N) (h2 : FibresLeTwo f) :
     collSum f = (Finset.univ.filter fun z => (fibre f z).card = 2).card := by
   unfold collSum
@@ -194,6 +241,9 @@ theorem collSum_eq_card_doubles (f : Fin N → Fin N) (h2 : FibresLeTwo f) :
     _ = (Finset.univ.filter fun z => (fibre f z).card = 2).card := by
         simp
 
+/-- If every fibre has size at most two, the singleton-fibre count plus twice the double-fibre
+count equals `N`. This is the input-count identity used in the related-problem analysis of
+[BuhrmanEtAl2005]. -/
 theorem card_singletons_add (f : Fin N → Fin N) (h2 : FibresLeTwo f) :
     (Finset.univ.filter fun z => (fibre f z).card = 1).card
       + 2 * (Finset.univ.filter fun z => (fibre f z).card = 2).card = N := by

@@ -14,6 +14,33 @@ import Mathlib.Tactic.Ring
 import Mathlib.Analysis.Complex.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.BigOperators
 import Mathlib.Tactic.Linarith
+
+/-!
+# Laurent polynomials from Gram matrices
+
+The Lean declarations define generalized matrix traces, matrix Laurent evaluation, symmetric
+real Laurent evaluation, and Fejer coefficients. They connect positive semidefinite matrices
+with circle nonnegativity, express matching on twisted roots through coefficient identities, and
+compute outer Gram evaluations. This supplies matrix tools for the ordered search formulation in
+[ChildsLandahlParrilo2007], using positivity concepts from [Bhatia1997].
+
+## Main statements
+
+* `matrixLaurent_real_nonneg_of_posSemidef`: positive semidefinite matrices give real
+  nonnegative circle evaluations.
+* `fejer_eq_abs_dirichlet_sq`: the Fejer Laurent evaluation is a normalized squared modulus of a
+  finite power sum.
+* `matrixLaurent_root_matching_iff`: matching at twisted roots is equivalent to trace and
+  generalized trace identities.
+* `matrixLaurent_outer_eq_abs_sq`: an outer Gram matrix evaluates to a polynomial squared
+  modulus on the circle.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,21 +54,29 @@ open Matrix
 
 variable {n : ℕ}
 
+/-- The sum of matrix entries whose column index minus row index is the integer offset `j`. -/
 def genTrace (A : Matrix (Fin n) (Fin n) ℂ) (j : ℤ) : ℂ :=
   ∑ i : Fin n, ∑ i' : Fin n,
     if ((i' : ℕ) : ℤ) - ((i : ℕ) : ℤ) = j then A i i' else 0
 
+/-- The Laurent evaluation with coefficients given by the generalized traces of `A` over offsets
+from `-n + 1` to `n - 1`. -/
 noncomputable def matrixLaurent (A : Matrix (Fin n) (Fin n) ℂ) (z : ℂ) : ℂ :=
   ∑ j ∈ Finset.Icc (-(n : ℤ) + 1) ((n : ℤ) - 1), genTrace A j * z ^ j
 
+/-- The symmetric Laurent evaluation with constant coefficient `c 0` and paired terms `c j * (z
+^ j + z ^ (-j))` for positive indices. -/
 noncomputable def laurentEval (c : Fin n → ℝ) (z : ℂ) : ℂ :=
   ∑ j : Fin n, if (j : ℕ) = 0 then (c j : ℂ)
     else c j * (z ^ ((j : ℕ) : ℤ) + z ^ (-((j : ℕ) : ℤ)))
 
+/-- The real Fejer coefficients given by `(n - j) / n` for `j : Fin n`. -/
 noncomputable def fejerCoeffs (n : ℕ) : Fin n → ℝ := fun j => (n - (j : ℕ)) / n
 
 open scoped ComplexOrder
 
+/-- At nonzero `z`, the matrix Laurent evaluation is the double sum of `z ^ (-i) * A i i' * z ^
+i'` over matrix indices. -/
 theorem matrixLaurent_eq_quadratic (A : Matrix (Fin n) (Fin n) ℂ) {z : ℂ}
     (hz : z ≠ 0) :
     matrixLaurent A z = ∑ i : Fin n, ∑ i' : Fin n,
@@ -64,6 +99,8 @@ theorem matrixLaurent_eq_quadratic (A : Matrix (Fin n) (Fin n) ℂ) {z : ℂ}
   simp only [_root_.zpow_neg]
   ring
 
+/-- The Laurent evaluation of a positive semidefinite matrix has zero imaginary part and
+nonnegative real part on the unit circle. -/
 theorem matrixLaurent_real_nonneg_of_posSemidef (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.PosSemidef) {z : ℂ} (hz : ‖z‖ = 1) :
     (matrixLaurent A z).im = 0 ∧ 0 ≤ (matrixLaurent A z).re := by
@@ -84,10 +121,12 @@ theorem matrixLaurent_real_nonneg_of_posSemidef (A : Matrix (Fin n) (Fin n) ℂ)
   have h := Complex.nonneg_iff.mp hp
   exact ⟨h.2.symm, h.1⟩
 
+/-- The generalized trace at offset zero equals the ordinary matrix trace. -/
 theorem genTrace_zero (A : Matrix (Fin n) (Fin n) ℂ) : genTrace A 0 = A.trace := by
   classical
   simp [genTrace, Int.sub_eq_zero, Fin.val_inj, Matrix.trace]
 
+/-- Transposing a matrix negates the offset in its generalized trace. -/
 theorem genTrace_transpose (A : Matrix (Fin n) (Fin n) ℂ) (j : ℤ) :
     genTrace A.transpose j = genTrace A (-j) := by
   classical
@@ -101,6 +140,8 @@ theorem genTrace_transpose (A : Matrix (Fin n) (Fin n) ℂ) (j : ℤ) :
       ((i' : ℕ) : ℤ) - ((i : ℕ) : ℤ) = -j := by omega
   simp only [Matrix.transpose_apply, he]
 
+/-- For a constant matrix and a natural offset `j`, the generalized trace is `(n - j)` times the
+constant entry, with subtraction in the natural numbers. -/
 theorem genTrace_const_nat (a : ℂ) (j : ℕ) :
     genTrace (Matrix.of fun _ _ : Fin n => a) (j : ℤ) = (n - j : ℕ) * a := by
   classical
@@ -128,6 +169,8 @@ theorem genTrace_const_nat (a : ℂ) (j : ℕ) :
   rw [← Finset.sum_filter]
   simp only [Finset.sum_const, nsmul_eq_mul, hc]
 
+/-- For a constant matrix, the generalized trace at integer offset `j` is `(n - j.natAbs)` times
+the constant entry, with subtraction in the natural numbers. -/
 theorem genTrace_const (a : ℂ) (j : ℤ) :
     genTrace (Matrix.of fun _ _ : Fin n => a) j = (n - j.natAbs : ℕ) * a := by
   cases j with
@@ -143,6 +186,8 @@ theorem genTrace_const (a : ℂ) (j : ℤ) :
     rw [he]
     exact h.symm
 
+/-- The generalized trace of the all ones matrix divided by `n` is `(n - |j|) / n` when `|j| <
+n`, and zero otherwise. -/
 theorem genTrace_onesDiv (j : ℤ) :
     genTrace ((n : ℂ)⁻¹ • Matrix.of fun _ _ : Fin n => (1 : ℂ)) j =
       ((if |j| < (n : ℤ) then ((n : ℝ) - (|j| : ℤ)) / n else 0 : ℝ) : ℂ) := by
@@ -162,6 +207,8 @@ theorem genTrace_onesDiv (j : ℤ) :
   · have hle : n ≤ j.natAbs := by omega
     simp [if_neg h, Nat.sub_eq_zero_of_le hle]
 
+/-- A sum over integer offsets from `-n + 1` to `n - 1` equals the sum over `Fin n` that keeps
+the zero term once and pairs opposite nonzero offsets. -/
 theorem sum_laurent_window (f : ℤ → ℂ) :
     (∑ j ∈ Finset.Icc (-(n : ℤ) + 1) ((n : ℤ) - 1), f j) =
       ∑ i : Fin n, if (i : ℕ) = 0 then f 0 else f ((i : ℕ) : ℤ) + f (-((i : ℕ) : ℤ)) := by
@@ -207,6 +254,8 @@ theorem sum_laurent_window (f : ℤ → ℂ) :
     dsimp at he
     exact Fin.ext (by omega)
 
+/-- The Laurent evaluation of the all ones matrix divided by `n` equals the symmetric Laurent
+evaluation of the Fejer coefficients. -/
 theorem matrixLaurent_onesDiv (z : ℂ) :
     matrixLaurent ((n : ℂ)⁻¹ • Matrix.of fun _ _ : Fin n => (1 : ℂ)) z =
       laurentEval (fejerCoeffs n) z := by
@@ -225,6 +274,8 @@ theorem matrixLaurent_onesDiv (z : ℂ) :
   · simp [hi, abs_neg, fejerCoeffs, mul_add,
       abs_of_nonneg (Int.natCast_nonneg (i : ℕ))]
 
+/-- On the unit circle, the Fejer Laurent evaluation equals the squared norm of the finite sum
+of powers of `z`, divided by `n`. -/
 theorem fejer_eq_abs_dirichlet_sq {z : ℂ} (hz : ‖z‖ = 1) :
     laurentEval (fejerCoeffs n) z = ((‖∑ j : Fin n, z ^ (j : ℕ)‖ ^ 2 / n : ℝ) : ℂ) := by
   have hn : z ≠ 0 := by intro he; simp [he] at hz
@@ -248,9 +299,11 @@ theorem fejer_eq_abs_dirichlet_sq {z : ℂ} (hz : ‖z‖ = 1) :
   push_cast
   ring
 
+/-- The index reflection that fixes zero and sends each positive index `i` to `n - i`. -/
 def mirrorIndex (i : Fin n) : Fin n :=
   if hi : (i : ℕ) = 0 then i else ⟨n - (i : ℕ), by omega⟩
 
+/-- Applying `mirrorIndex` twice returns the original index. -/
 theorem mirrorIndex_involutive : Function.Involutive (mirrorIndex (n := n)) := by
   intro i
   by_cases hi : (i : ℕ) = 0
@@ -260,10 +313,14 @@ theorem mirrorIndex_involutive : Function.Involutive (mirrorIndex (n := n)) := b
     apply Fin.ext
     simp [hm, Nat.sub_sub_self (Nat.le_of_lt i.isLt)]
 
+/-- Reindexing a finite complex sum by `mirrorIndex` preserves the sum. -/
 theorem sum_mirrorIndex (f : Fin n → ℂ) :
     (∑ i : Fin n, f (mirrorIndex i)) = ∑ i : Fin n, f i :=
   Fintype.sum_bijective _ mirrorIndex_involutive.bijective _ _ (fun _ => rfl)
 
+/-- For positive `n` and `z ^ n = (-1) ^ t`, a symmetric Laurent evaluation becomes a sum of
+nonnegative powers. Each nonconstant coefficient combines `d i` with `(-1) ^ t` times its
+mirrored coefficient. -/
 theorem laurentEval_at_root (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ)
     (z : ℂ) (hr : z ^ n = (-1 : ℂ) ^ t) :
     laurentEval d z = ∑ i : Fin n,
@@ -303,6 +360,8 @@ theorem laurentEval_at_root (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ)
     simp only [p, m, hi, hm0, if_false, hp]
     ring
 
+/-- For positive `n`, if a polynomial with coefficients indexed by `Fin n` vanishes at every
+root of `z ^ n = (-1) ^ t`, then every coefficient is zero. -/
 theorem coeff_zero_of_twisted_root_evaluations (hn : 0 < n) (t : ℕ) (c : Fin n → ℂ)
     (hc : ∀ z : ℂ, z ^ n = (-1 : ℂ) ^ t → ∑ i : Fin n, c i * z ^ (i : ℕ) = 0) :
     ∀ i : Fin n, c i = 0 := by
@@ -333,6 +392,9 @@ theorem coeff_zero_of_twisted_root_evaluations (hn : 0 < n) (t : ℕ) (c : Fin n
   have he := congrArg (fun q : Polynomial ℂ => q.coeff (i : ℕ)) hp0
   simpa [p, Polynomial.coeff_sum, Polynomial.coeff_monomial, Fin.val_inj] using he
 
+/-- For positive `n`, a symmetric Laurent evaluation vanishes at all roots of `z ^ n = (-1) ^ t`
+exactly when its constant coefficient is zero and mirrored positive coefficients are
+negatives for even `t` and equal for odd `t`. -/
 theorem symLaurent_root_vanishing_iff (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ) :
     (∀ z : ℂ, z ^ n = (-1 : ℂ) ^ t → laurentEval d z = 0) ↔
       (d ⟨0, hn⟩ = 0 ∧ ∀ j : ℕ, (hj : 0 < j) → (hjn : j < n) →
@@ -381,6 +443,9 @@ theorem symLaurent_root_vanishing_iff (hn : 0 < n) (t : ℕ) (d : Fin n → ℝ)
     simp_rw [hc, zero_mul]
     simp
 
+/-- For positive `n` and `z ^ n = (-1) ^ t`, a Laurent window sum can be rewritten using
+nonnegative powers. The coefficient at a positive index `i` becomes `g i + (-1) ^ t * g (i -
+n)`. -/
 theorem sum_laurent_window_at_root (hn : 0 < n) (t : ℕ) (g : ℤ → ℂ)
     (z : ℂ) (hr : z ^ n = (-1 : ℂ) ^ t) :
     (∑ j ∈ Finset.Icc (-(n : ℤ) + 1) ((n : ℤ) - 1), g j * z ^ j) =
@@ -417,6 +482,8 @@ theorem sum_laurent_window_at_root (hn : 0 < n) (t : ℕ) (g : ℤ → ℂ)
     simp only [p, m, hi, hm0, if_false, he, hp]
     ring
 
+/-- For positive `n`, two matrix Laurent evaluations agree at every root of `z ^ n = (-1) ^ t`
+exactly when their traces and the corresponding twisted pairs of generalized traces agree. -/
 theorem matrixLaurent_root_matching_iff (hn : 0 < n) (t : ℕ)
     (A B : Matrix (Fin n) (Fin n) ℂ) :
     (∀ z : ℂ, z ^ n = (-1 : ℂ) ^ t → matrixLaurent A z = matrixLaurent B z) ↔
@@ -457,9 +524,11 @@ theorem matrixLaurent_root_matching_iff (hn : 0 < n) (t : ℕ)
     rw [he z hz]
     simp [hc]
 
+/-- The outer Gram matrix with entry `star (v i) * v i'`. -/
 def gramOuter (v : Fin n → ℂ) : Matrix (Fin n) (Fin n) ℂ :=
   Matrix.of fun i i' => star (v i) * v i'
 
+/-- Every outer Gram matrix is positive semidefinite. -/
 theorem gramOuter_posSemidef (v : Fin n → ℂ) : (gramOuter v).PosSemidef := by
   let C : Matrix Unit (Fin n) ℂ := fun _ i => v i
   have he : C.conjTranspose * C = gramOuter v := by
@@ -468,11 +537,15 @@ theorem gramOuter_posSemidef (v : Fin n → ℂ) : (gramOuter v).PosSemidef := b
   rw [← he]
   exact Matrix.posSemidef_conjTranspose_mul_self C
 
+/-- The trace of an outer Gram matrix is the sum of the squared norms of its vector entries,
+embedded in the complex numbers. -/
 theorem gramOuter_trace (v : Fin n → ℂ) :
     (gramOuter v).trace = ((∑ i : Fin n, Complex.normSq (v i) : ℝ) : ℂ) := by
   simp only [Matrix.trace, Matrix.diag_apply, gramOuter, Matrix.of_apply, Complex.star_def,
     ← Complex.normSq_eq_conj_mul_self, Complex.ofReal_sum]
 
+/-- On the unit circle, the Laurent evaluation of `gramOuter v` is the squared norm of the
+polynomial sum with coefficient vector `v`. -/
 theorem matrixLaurent_outer_eq_abs_sq (v : Fin n → ℂ) {z : ℂ} (hz : ‖z‖ = 1) :
     matrixLaurent (gramOuter v) z = ((‖∑ i : Fin n, v i * z ^ (i : ℕ)‖ ^ 2 : ℝ) : ℂ) := by
   have hn : z ≠ 0 := by intro he; simp [he] at hz
@@ -493,6 +566,7 @@ theorem matrixLaurent_outer_eq_abs_sq (v : Fin n → ℂ) {z : ℂ} (hz : ‖z�
   rw [he, Complex.star_def, Complex.conj_mul']
   norm_cast
 
+/-- For positive `n`, every solution of `z ^ n = (-1) ^ t` lies on the unit circle. -/
 theorem norm_eq_one_of_twisted_root (hn : 0 < n) (t : ℕ) {z : ℂ}
     (hz : z ^ n = (-1 : ℂ) ^ t) : ‖z‖ = 1 := by
   have hp : z ^ (n * 2) = 1 := by
@@ -500,6 +574,8 @@ theorem norm_eq_one_of_twisted_root (hn : 0 < n) (t : ℕ) {z : ℂ}
     norm_num
   exact Complex.norm_eq_one_of_pow_eq_one hp (by omega)
 
+/-- For a Hermitian matrix, the generalized trace at the negative offset is the complex
+conjugate of the generalized trace at the positive offset. -/
 theorem genTrace_neg_of_isHermitian (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.IsHermitian) (j : ℤ) : genTrace A (-j) = star (genTrace A j) := by
   classical
@@ -515,6 +591,9 @@ theorem genTrace_neg_of_isHermitian (A : Matrix (Fin n) (Fin n) ℂ)
   simp only [he]
   split_ifs <;> first | exact (hA.apply i' i).symm | rfl
 
+/-- On the unit circle, the symmetric Laurent evaluation of the real parts of a Hermitian
+matrix's nonnegative generalized traces equals the average of its matrix Laurent evaluations
+at `z` and its conjugate. -/
 theorem laurentEval_real_genTrace (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.IsHermitian)
     {z : ℂ} (hz : ‖z‖ = 1) :
     laurentEval (fun i : Fin n => (genTrace A ((i : ℕ) : ℤ)).re) z =
@@ -536,6 +615,8 @@ theorem laurentEval_real_genTrace (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.IsHer
     rw [Complex.re_eq_add_conj, ← Complex.star_def]
     ring
 
+/-- For a positive semidefinite matrix, the symmetric Laurent evaluation formed from the real
+parts of its nonnegative generalized traces has nonnegative real part on the unit circle. -/
 theorem laurentEval_real_genTrace_nonneg (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef)
     {z : ℂ} (hz : ‖z‖ = 1) :
     0 ≤ (laurentEval (fun i : Fin n => (genTrace A ((i : ℕ) : ℤ)).re) z).re := by
@@ -546,6 +627,8 @@ theorem laurentEval_real_genTrace_nonneg (A : Matrix (Fin n) (Fin n) ℂ) (hA : 
   simp only [Complex.div_ofNat_re, Complex.add_re]
   linarith
 
+/-- A zero diagonal entry of a positive semidefinite matrix forces every entry in the
+corresponding column to be zero. -/
 theorem posSemidef_column_zero_of_diag_zero (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.PosSemidef) (j : Fin n) (hj : A j j = 0) : ∀ i, A i j = 0 := by
   classical
@@ -557,6 +640,8 @@ theorem posSemidef_column_zero_of_diag_zero (A : Matrix (Fin n) (Fin n) ℂ)
   have hh := congrFun hx i
   simpa [x, Matrix.mulVec, dotProduct, Pi.single_apply, mul_ite] using hh
 
+/-- A diagonal matrix has generalized trace equal to the sum of its diagonal entries at offset
+zero, and zero at every other offset. -/
 theorem genTrace_diagonal (a : Fin n → ℂ) (j : ℤ) :
     genTrace (Matrix.diagonal a) j = if j = 0 then ∑ i : Fin n, a i else 0 := by
   classical
@@ -574,6 +659,9 @@ theorem genTrace_diagonal (a : Fin n → ℂ) (j : ℤ) :
       simp [hj, eq_comm]
     · simp [hi]
 
+/-- A nonzero positive semidefinite diagonal matrix of positive size has a positive semidefinite
+rank one representative with the same generalized traces and a first diagonal entry at least
+as large. -/
 theorem exists_rank_one_gram_of_diagonal [NeZero n] (a : Fin n → ℂ)
     (hA : (Matrix.diagonal a).PosSemidef) (hA0 : Matrix.diagonal a ≠ 0) :
     ∃ B : Matrix (Fin n) (Fin n) ℂ, B.PosSemidef ∧ B.rank = 1 ∧

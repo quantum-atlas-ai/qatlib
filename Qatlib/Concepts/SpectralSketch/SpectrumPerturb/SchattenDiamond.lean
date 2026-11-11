@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamondDefs
+
+/-!
+# Schatten trace norms and diamond norm bounds
+
+This module relates `schattenPower` at exponent one to the matrix trace norm and proves its
+triangle, unitary invariance, adjoint, and dual characterizations. It also exposes finite
+dimensional diamond norm stabilization, norm bounds, and attainment, with quantum information
+background in [Watrous2018].
+
+## Main statements
+
+* `schattenPower_one`: identifies exponent one with the trace norm.
+* `schattenPower_one_dual`: characterizes the trace norm by unitary trace pairings.
+* `diamondNorm_attained`: gives a finite maximizing amplification.
+* `channel_discrimination_diamond_bound`: bounds amplified output trace norms using the diamond
+  norm of a map difference.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -26,13 +48,17 @@ set_option maxHeartbeats 2000000
 
 variable {m k : Type} [Fintype m] [Fintype k]
 
+/-- The submonoid of complex square matrices obtained from the unitary group. -/
 noncomputable def unitarySubmonoid (k : Type) [Fintype k] : Submonoid (Matrix k k ℂ) :=
   @Matrix.unitaryGroup k (Classical.decEq k) (inferInstance : Fintype k) ℂ
     Complex.commRing Complex.instStarRing
 
+/-- The Gram matrix `Aᴴ * A` is Hermitian. -/
 theorem gram_isHermitian (A : Matrix m k ℂ) : (Aᴴ * A).IsHermitian :=
   Matrix.isHermitian_conjTranspose_mul_self A
 
+/-- The trace norm of a rectangular matrix is the sum of the square roots of the eigenvalues of
+its Gram matrix. -/
 theorem traceNorm_eq_sum_sqrt_gram (A : Matrix m k ℂ) :
     Matrix.traceNorm A =
       ∑ i : k, Real.sqrt ((gram_isHermitian A).eigenvalues i) := by
@@ -43,17 +69,22 @@ theorem traceNorm_eq_sum_sqrt_gram (A : Matrix m k ℂ) :
     cfcₙ_eq_cfc, Matrix.IsHermitian.cfc_eq hH, Matrix.IsHermitian.cfc]
   simp [Matrix.trace_mul_comm, Matrix.mul_assoc]
 
+/-- The unified Schatten value at the top exponent equals the imported operator norm endpoint
+`schattenTop`. -/
 theorem schattenUnified_top (A : Matrix m k ℂ) :
     schattenUnified (⊤ : SchattenExponent) A = Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.schattenTop A := rfl
 
+/-- The unified Schatten value at a finite real exponent `p` equals `schattenPower p`. -/
 theorem schattenUnified_some (p : ℝ) (A : Matrix m k ℂ) :
     schattenUnified (WithTop.some p) A = schattenPower p A := rfl
 
+/-- The Schatten power expression is nonnegative for every real exponent. -/
 theorem schattenPower_nonneg (p : ℝ) (A : Matrix m k ℂ) : 0 ≤ schattenPower p A := by
   rw [schattenPower]
   refine Real.rpow_nonneg ?_ _
   exact Finset.sum_nonneg fun i _ => Real.rpow_nonneg (Real.sqrt_nonneg _) _
 
+/-- For square matrices, `schattenPower` agrees with the imported Schatten expression. -/
 theorem schattenPower_eq_frozen_schatten (p : ℝ) (A : Matrix k k ℂ) :
     schattenPower p A = Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.schatten p A := by
   have hH : (Aᴴ * A).IsHermitian := gram_isHermitian A
@@ -69,25 +100,31 @@ theorem schattenPower_eq_frozen_schatten (p : ℝ) (A : Matrix k k ℂ) :
   intro i hi
   rw [singularValues, heq]
 
+/-- The Schatten power expression at exponent one equals the matrix trace norm. -/
 theorem schattenPower_one (A : Matrix m k ℂ) : schattenPower 1 A = Matrix.traceNorm A := by
   rw [schattenPower]
   simp only [inv_one, Real.rpow_one]
   exact (traceNorm_eq_sum_sqrt_gram A).symm
 
+/-- The unified Schatten value at exponent one equals the matrix trace norm. -/
 theorem schattenUnified_one (A : Matrix m k ℂ) :
     schattenUnified (WithTop.some 1) A = Matrix.traceNorm A := by
   simp only [schattenUnified]
   exact schattenPower_one A
 
+/-- The Schatten power expression at exponent one agrees with the imported exponent-one Schatten
+expression. -/
 theorem schattenPower_one_eq_frozen (A : Matrix k k ℂ) :
     schattenPower 1 A = Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.schatten 1 A :=
   schattenPower_eq_frozen_schatten 1 A
 
+/-- The exponent-one Schatten value satisfies the triangle inequality for square matrices. -/
 theorem schattenPower_one_add_le [DecidableEq k] (A B : Matrix k k ℂ) :
     schattenPower 1 (A + B) ≤ schattenPower 1 A + schattenPower 1 B := by
   rw [schattenPower_one, schattenPower_one, schattenPower_one]
   exact Matrix.traceNorm_add_le A B
 
+/-- The top-exponent unified Schatten value satisfies the triangle inequality. -/
 theorem schattenUnified_top_add_le (A B : Matrix m k ℂ) :
     schattenUnified (⊤ : SchattenExponent) (A + B)
       ≤ schattenUnified (⊤ : SchattenExponent) A
@@ -96,12 +133,14 @@ theorem schattenUnified_top_add_le (A B : Matrix m k ℂ) :
   unfold Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.schattenTop
   exact norm_add_le _ _
 
+/-- Unitary conjugation preserves the exponent-one Schatten value. -/
 theorem schattenPower_one_unitary_conj (U : Matrix k k ℂ) (A : Matrix k k ℂ)
     (hU : U ∈ Matrix.unitaryGroup k ℂ) :
     schattenPower 1 (U * A * Uᴴ) = schattenPower 1 A := by
   rw [schattenPower_one, schattenPower_one]
   exact Matrix.traceNorm_unitary_conj (A := A) (U := ⟨U, hU⟩)
 
+/-- Left and right multiplication by unitary matrices preserves the exponent-one Schatten value. -/
 theorem schattenPower_one_unitary_two_sided (U V : Matrix k k ℂ) (A : Matrix k k ℂ)
     (hU : U ∈ Matrix.unitaryGroup k ℂ) (hV : V ∈ Matrix.unitaryGroup k ℂ) :
     schattenPower 1 (U * A * Vᴴ) = schattenPower 1 A := by
@@ -111,17 +150,21 @@ theorem schattenPower_one_unitary_two_sided (U V : Matrix k k ℂ) (A : Matrix k
     (Matrix.traceNorm_isometry_right
     ((Matrix.mem_unitaryGroup_iff_isometry V).mp hV).1)
 
+/-- Conjugate transposition preserves the exponent-one Schatten value of a square matrix. -/
 theorem schattenPower_one_conjTranspose (A : Matrix k k ℂ) :
     schattenPower 1 Aᴴ = schattenPower 1 A := by
   rw [schattenPower_one, schattenPower_one]
   exact Matrix.traceNorm_conjTranspose A
 
+/-- The exponent-one Schatten value is the greatest real trace pairing `Complex.re ((U.val *
+A).trace)` over unitary matrices `U`. -/
 theorem schattenPower_one_dual (A : Matrix k k ℂ) :
     IsGreatest {x : ℝ | ∃ U : Matrix.unitaryGroup k ℂ, Complex.re ((U.val * A).trace) = x}
       (schattenPower 1 A) := by
   rw [schattenPower_one]
   exact Matrix.traceNorm_eq_max_re_tr_U A
 
+/-- The Schatten power expression is zero for an empty input index type when `1 ≤ p`. -/
 theorem schattenPower_zero_dim (p : ℝ) (A : Matrix m k ℂ) (hp : 1 ≤ p) (h : IsEmpty k) :
     schattenPower p A = 0 := by
   rw [schattenPower]
@@ -132,28 +175,35 @@ theorem schattenPower_zero_dim (p : ℝ) (A : Matrix m k ℂ) (hp : 1 ≤ p) (h 
   have hp' : 0 < p⁻¹ := inv_pos.mpr (by positivity)
   rw [Real.zero_rpow (ne_of_gt hp')]
 
+/-- Expand the Schatten power expression as the reciprocal-exponent power of the sum of powers
+of square roots of Gram eigenvalues. -/
 theorem schattenPower_eq_sum_sqrt_gram (p : ℝ) (A : Matrix m k ℂ) :
     schattenPower p A =
       ((∑ i : k, (Real.sqrt ((gram_isHermitian A).eigenvalues i)) ^ p)) ^ (p⁻¹) := rfl
 
 variable {D E F : ℕ}
 
+/-- The diamond norm equals the amplified induced trace norm at the input dimension. -/
 theorem diamondNorm_stabilizes (T : Operator D →ₗ[ℂ] Operator E) :
     diamondNorm T = Qatlib.Concepts.SchattenDiamond.DiamondNorm.diamondAtInput T :=
   diamond_input_dimension_stabilization D E T
 
+/-- The diamond norm of a composition is at most the product of the diamond norms. -/
 theorem diamondNorm_comp_le (T : Operator D →ₗ[ℂ] Operator E)
     (R : Operator E →ₗ[ℂ] Operator F) :
     diamondNorm (R.comp T) ≤ diamondNorm R * diamondNorm T :=
   (finiteDiamondNorm_algebra D E F T 0 R).2.1
 
+/-- The diamond norm satisfies the triangle inequality. -/
 theorem diamondNorm_add_le (T S : Operator D →ₗ[ℂ] Operator E) :
     diamondNorm (T + S) ≤ diamondNorm T + diamondNorm S :=
   (finiteDiamondNorm_algebra D E D T S 0).1
 
+/-- The diamond error between two maps is one half of the diamond norm of their difference. -/
 theorem diamondError_half_factor (T S : Operator D →ₗ[ℂ] Operator E) :
     diamondError T S = (1/2 : ℝ≥0∞) * diamondNorm (T - S) := rfl
 
+/-- The diamond norm restricted to Hermitian inputs is at most the unrestricted diamond norm. -/
 theorem diamondHermitianNorm_le_diamondNorm (T : Operator D →ₗ[ℂ] Operator E) :
     diamondHermitianNorm T ≤ diamondNorm T := by
   unfold diamondHermitianNorm diamondNorm
@@ -168,6 +218,8 @@ theorem diamondHermitianNorm_le_diamondNorm (T : Operator D →ₗ[ℂ] Operator
   · rw [if_neg hX]
     exact bot_le
 
+/-- The diamond norm can be expressed using all finite reference dimensions with the reference
+factor placed on the left. -/
 theorem diamondNorm_left_reference (T : Operator D →ₗ[ℂ] Operator E) :
     diamondNorm T =
       ⨆ r : ℕ, ⨆ X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ,
@@ -176,6 +228,8 @@ theorem diamondNorm_left_reference (T : Operator D →ₗ[ℂ] Operator E) :
   unfold diamondNorm
   exact Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm_left_reference D E T
 
+/-- Swapping the input and reference indices intertwines the two conventions for channel
+amplification. -/
 theorem diamondNorm_amplification_swap (T : Operator D →ₗ[ℂ] Operator E) (r : ℕ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     ChannelAmplification T r
@@ -183,6 +237,8 @@ theorem diamondNorm_amplification_swap (T : Operator D →ₗ[ℂ] Operator E) (
       Matrix.reindex (Equiv.prodComm _ _) (Equiv.prodComm _ _) (tensorLeft T X) :=
   diamond_amplification_swap T X
 
+/-- The diamond norm is finite and is attained on a trace norm unit ball at reference dimension
+equal to the input dimension. -/
 theorem diamondNorm_attained (T : Operator D →ₗ[ℂ] Operator E) :
     diamondNorm T < ⊤ ∧
       ∃ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
@@ -192,6 +248,8 @@ theorem diamondNorm_attained (T : Operator D →ₗ[ℂ] Operator E) :
   refine ⟨hlt, X, hX, ?_⟩
   exact hmax
 
+/-- The amplified output trace norm of `T` is at most that of `S` plus the diamond norm of `T -
+S` times the input trace norm. -/
 theorem channel_discrimination_diamond_bound (T S : Operator D →ₗ[ℂ] Operator E)
     (r : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     ENNReal.ofReal (Matrix.traceNorm (tensorLeft T X))

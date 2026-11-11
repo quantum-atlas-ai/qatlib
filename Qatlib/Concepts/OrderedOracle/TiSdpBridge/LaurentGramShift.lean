@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramCompact
+
+/-!
+# Shifting positive Gram matrices
+
+This module studies cyclic reindexing of Hermitian matrices whose initial rows vanish. Such
+shifts preserve `genTrace`, and they show that a nonzero positive semidefinite matrix maximizing
+the first diagonal entry among matrices with the same generalized traces has a strictly positive
+first diagonal entry. These finite matrix arguments use the positivity framework of
+[Bhatia1997].
+
+## Main statements
+
+* `genTrace_zero_prefix_shift`: preserves generalized traces under the specified shift.
+* `exists_first_positive_gram_diagonal`: finds the first positive diagonal entry and proves all
+  preceding rows vanish.
+* `maximal_gram_first_pos`: proves strict positivity of the first entry for a maximizer.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +39,8 @@ variable {n : ℕ} [NeZero n]
 
 omit [NeZero n] in
 
+/-- If the value of the cyclic sum `i + r` is at least the value of `r`, then its value is the
+ordinary natural-number sum of the values of `i` and `r`. -/
 theorem gramShift_active_value (r i : Fin n) (h : r.val≤(i+r).val) :
     (i+r).val=i.val+r.val := by
   rw [Fin.val_add] at h ⊢
@@ -26,6 +50,8 @@ theorem gramShift_active_value (r i : Fin n) (h : r.val≤(i+r).val) :
     rw [Nat.mod_eq_sub_mod (by omega),Nat.mod_eq_of_lt hh] at h
     omega
 
+/-- Cyclically shifting both indices of a Hermitian matrix preserves every generalized trace
+when all rows before the shift index vanish. -/
 theorem genTrace_zero_prefix_shift (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.IsHermitian) (r : Fin n)
     (hzero : ∀ i : Fin n,i.val<r.val → ∀ j : Fin n,A i j=0) (k : ℤ) :
@@ -66,6 +92,8 @@ theorem genTrace_zero_prefix_shift (A : Matrix (Fin n) (Fin n) ℂ)
 
 omit [NeZero n] in
 
+/-- A nonzero positive semidefinite matrix has a diagonal entry with strictly positive real part
+such that all preceding rows vanish. -/
 theorem exists_first_positive_gram_diagonal (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.PosSemidef) (hA0 : A≠0) :
     ∃ r : Fin n,0<(A r r).re ∧ ∀ i : Fin n,i.val<r.val → ∀ j : Fin n,A i j=0 := by
@@ -99,6 +127,9 @@ theorem exists_first_positive_gram_diagonal (A : Matrix (Fin n) (Fin n) ℂ)
     simpa only [Matrix.conjTranspose_apply] using congrFun (congrFun hA.isHermitian i) j
   rw [← hherm,hcol,star_zero]
 
+/-- A nonzero positive semidefinite matrix maximizing the first diagonal entry among positive
+semidefinite matrices with the same generalized traces has a strictly positive real first
+diagonal entry. -/
 theorem maximal_gram_first_pos (B : Matrix (Fin n) (Fin n) ℂ) (hB : B.PosSemidef) (hB0 : B≠0)
     (hmax : ∀ C : Matrix (Fin n) (Fin n) ℂ,C.PosSemidef →
       (∀ k : ℤ,genTrace C k=genTrace B k) → C 0 0≤B 0 0) : 0<(B 0 0).re := by

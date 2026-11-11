@@ -8,6 +8,30 @@ import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
 import Qatlib.Concepts.BlockEncoding.LCU
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Preparation of rationally weighted states
+
+This module defines rational weight ratios, two-level rotation words, and their ideal
+square-root counterparts. For nonnegative weights of positive total mass, `idealWeightPrepare`
+prepares `rationalWeightTarget` exactly, while `rationalWeightPrepare` has an explicit operator
+norm error and finite comparison count. These preparations supply the weighted superpositions
+used in the LCU framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `rational_weight_data_ranges_and_actual_comparisons`: bounds the ratios and counts `2*n*k`
+  rational comparisons.
+* `rational_weight_numerical_word_unitary_and_error`: proves unitarity and error at most
+  `32*n/2^k`.
+* `rational_weight_ideal_preparation_exact`: identifies the ideal output and proves its
+  normalization.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -31,48 +55,69 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- The sum of all rational weights on `Option (Fin n)`. -/
 def rationalWeightMass {n : ℕ} (w : Option (Fin n) → ℚ) : ℚ := ∑ a, w a
+/-- The weight at `none` plus the weights at indices greater than or equal to `j`. -/
 def rationalWeightTail {n : ℕ} (w : Option (Fin n) → ℚ) (j : Fin n) : ℚ :=
   w none + ∑ i, if j.val ≤ i.val then w (some i) else 0
+/-- The ratio of the weight at `some j` to its remaining tail mass. -/
 def rationalWeightRatio {n : ℕ} (w : Option (Fin n) → ℚ) (j : Fin n) : ℚ :=
   w (some j) / rationalWeightTail w j
+/-- The list of rational rotation coefficient pairs computed from the weight ratios at precision
+`k`. -/
 def rationalWeightData {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ) :
     List (ℚ × ℚ) := List.ofFn (fun j => rationalPayoffCS (rationalWeightRatio w j) k)
+/-- The total comparison count of the square-root bracket computations for all weight ratios and
+their complements. -/
 def rationalWeightComparisons {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ) : ℕ :=
   (List.ofFn (fun j : Fin n =>
     (rationalSqrtBracket (rationalWeightRatio w j) k).2.2 +
     (rationalSqrtBracket (1-rationalWeightRatio w j) k).2.2)).sum
 
+/-- The matrix with block `[[c, -s], [s, c]]` on the coordinates `none` and `some j`, acting as
+the identity elsewhere. -/
 noncomputable def weightTwoLevel {n : ℕ} (j : Fin n) (c s : ℂ) :
     Matrix (Option (Fin n)) (Option (Fin n)) ℂ := fun a b =>
   if a = none ∧ b = none then c else
   if a = some j ∧ b = some j then c else
   if a = none ∧ b = some j then -s else
   if a = some j ∧ b = none then s else if a = b then 1 else 0
+/-- The two-level gate formed from the rational payoff rotation coefficients for the weight
+ratio at `j`. -/
 noncomputable def rationalWeightGate {n : ℕ} (w : Option (Fin n) → ℚ)
     (k : ℕ) (j : Fin n) :=
   weightTwoLevel j (rationalPayoffCS (rationalWeightRatio w j) k).1
     (rationalPayoffCS (rationalWeightRatio w j) k).2
+/-- The two-level gate whose coefficients are the real square roots of one minus the weight
+ratio and of the weight ratio. -/
 noncomputable def idealWeightGate {n : ℕ} (w : Option (Fin n) → ℚ) (j : Fin n) :=
   weightTwoLevel j (Real.sqrt (1-(rationalWeightRatio w j : ℝ)))
     (Real.sqrt (rationalWeightRatio w j : ℝ))
+/-- The reversed list of rational two-level weight gates, as an adjoint circuit word. -/
 noncomputable def rationalWeightWord {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ) :
     List (AdjointStep (Option (Fin n))) :=
   (List.ofFn (fun j => AdjointStep.gate (rationalWeightGate w k j))).reverse
+/-- The reversed list of ideal square-root weight gates, as an adjoint circuit word. -/
 noncomputable def idealWeightWord {n : ℕ} (w : Option (Fin n) → ℚ) :
     List (AdjointStep (Option (Fin n))) :=
   (List.ofFn (fun j => AdjointStep.gate (idealWeightGate w j))).reverse
+/-- The matrix obtained by evaluating the rational weight preparation word with identity oracle. -/
 noncomputable def rationalWeightPrepare {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ) :=
   evaluate 1 (rationalWeightWord w k)
+/-- The matrix obtained by evaluating the ideal weight preparation word with identity oracle. -/
 noncomputable def idealWeightPrepare {n : ℕ} (w : Option (Fin n) → ℚ) :=
   evaluate 1 (idealWeightWord w)
+/-- The state whose amplitudes are the square roots of the rational weights divided by their
+total mass. -/
 noncomputable def rationalWeightTarget {n : ℕ} (w : Option (Fin n) → ℚ) :
     QState (Option (Fin n)) := fun a => Real.sqrt ((w a / rationalWeightMass w : ℚ) : ℝ)
+/-- The rational weight preparation word tensored with the identity on the data register `I`. -/
 noncomputable def rationalWeightLiftWord {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
     (w : Option (Fin n) → ℚ) (k : ℕ) : List (AdjointStep (Option (Fin n) × I)) :=
   (List.ofFn (fun j => AdjointStep.gate
     (TensorGate (rationalWeightGate w k j) (1 : Matrix I I ℂ)))).reverse
 
+/-- For nonnegative weights, the tail at `j` is at least the weight at `some j`. -/
 theorem rationalWeightTail_ge {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (j : Fin n) : w (some j) ≤ rationalWeightTail w j := by
   have hsum : w (some j) ≤ ∑ i : Fin n, if j.val ≤ i.val then w (some i) else 0 := by
@@ -82,6 +127,7 @@ theorem rationalWeightTail_ge {n : ℕ} (w : Option (Fin n) → ℚ)
   unfold rationalWeightTail
   linarith [hw none]
 
+/-- Every weight ratio lies in `[0, 1]` when all weights are nonnegative. -/
 theorem rationalWeightRatio_range {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (j : Fin n) :
     0 ≤ rationalWeightRatio w j ∧ rationalWeightRatio w j ≤ 1 := by
@@ -93,6 +139,8 @@ theorem rationalWeightRatio_range {n : ℕ} (w : Option (Fin n) → ℚ)
   · simp [hz]
   · exact (div_le_one (lt_of_le_of_ne ht (Ne.symm hz))).mpr hle
 
+/-- For nonnegative weights, all ratios lie in `[0, 1]`, the coefficient list has length `n`,
+and the comparison count is exactly `2*n*k`. -/
 theorem rational_weight_data_ranges_and_actual_comparisons : ∀ (n k : ℕ)
     (w : Option (Fin n) → ℚ), (∀ a, 0 ≤ w a) →
     (∀ j, 0 ≤ rationalWeightRatio w j ∧ rationalWeightRatio w j ≤ 1) ∧
@@ -112,6 +160,8 @@ theorem rational_weight_data_ranges_and_actual_comparisons : ∀ (n k : ℕ)
   simp only [rationalWeightComparisons, hc]
   simp [List.ofFn_const, mul_comm, mul_left_comm, mul_assoc]
 
+/-- The two-level matrix mixes the `none` and `some j` components with coefficients `c` and `s`
+and fixes every other component. -/
 theorem weightTwoLevel_mulVec {n : ℕ} (j : Fin n) (c s : ℂ)
     (v : Option (Fin n) → ℂ) (a : Option (Fin n)) :
     (weightTwoLevel j c s *ᵥ v) a =
@@ -137,6 +187,7 @@ theorem weightTwoLevel_mulVec {n : ℕ} (j : Fin n) (c s : ℂ)
       · simp [weightTwoLevel, hi, Ne.symm hli]
     · simp
 
+/-- A two-level matrix with real coefficients satisfying `c²+s²=1` is unitary. -/
 theorem weightTwoLevel_unitary {n : ℕ} (j : Fin n) (c s : ℝ)
     (hcs : c^2+s^2=1) :
     weightTwoLevel j c s ∈ Matrix.unitaryGroup (Option (Fin n)) ℂ := by
@@ -170,6 +221,7 @@ theorem weightTwoLevel_unitary {n : ℕ} (j : Fin n) (c s : ℝ)
         · subst l; simp [weightTwoLevel, hi, Ne.symm hi, Matrix.one_apply]
         · simp [weightTwoLevel, hi, hl, Ne.symm hi, Ne.symm hl, hil, Ne.symm hil, Matrix.one_apply]
 
+/-- Every rational weight gate is unitary. -/
 theorem rationalWeightGate_unitary {n : ℕ} (w : Option (Fin n) → ℚ)
     (k : ℕ) (j : Fin n) : rationalWeightGate w k j ∈ Matrix.unitaryGroup _ ℂ := by
   have hc : ((rationalPayoffCS (rationalWeightRatio w j) k).1 : ℝ)^2 +
@@ -177,6 +229,7 @@ theorem rationalWeightGate_unitary {n : ℕ} (w : Option (Fin n) → ℚ)
     exact_mod_cast rationalPayoffCS_circle (rationalWeightRatio w j) k
   simpa only [rationalWeightGate, Complex.ofReal_ratCast] using! weightTwoLevel_unitary j _ _ hc
 
+/-- Every ideal weight gate is unitary when the weights are nonnegative. -/
 theorem idealWeightGate_unitary {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (j : Fin n) : idealWeightGate w j ∈ Matrix.unitaryGroup _ ℂ := by
   obtain ⟨h0, h1⟩ := rationalWeightRatio_range w hw j
@@ -186,6 +239,7 @@ theorem idealWeightGate_unitary {n : ℕ} (w : Option (Fin n) → ℚ)
   rw [Real.sq_sqrt (by linarith), Real.sq_sqrt h0r]
   ring
 
+/-- The rational weight preparation word is a well-formed adjoint circuit. -/
 theorem rationalWeightWord_wellFormed {n : ℕ} (w : Option (Fin n) → ℚ) (k : ℕ) :
     WellFormedAdjointCircuit (rationalWeightWord w k) := by
   intro V hV
@@ -194,6 +248,7 @@ theorem rationalWeightWord_wellFormed {n : ℕ} (w : Option (Fin n) → ℚ) (k 
   cases hj
   exact rationalWeightGate_unitary w k j
 
+/-- The ideal weight preparation word is well formed for nonnegative weights. -/
 theorem idealWeightWord_wellFormed {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) : WellFormedAdjointCircuit (idealWeightWord w) := by
   intro V hV
@@ -202,6 +257,7 @@ theorem idealWeightWord_wellFormed {n : ℕ} (w : Option (Fin n) → ℚ)
   cases hj
   exact idealWeightGate_unitary w hw j
 
+/-- A reversed word of `n` fixed gates has zero oracle queries and exactly `n` fixed gates. -/
 theorem weight_fixed_word_counts {n : ℕ} (g : Fin n → Matrix (Option (Fin n)) (Option (Fin n)) ℂ) :
     adjointQueryCount (List.ofFn (fun j => AdjointStep.gate (g j))).reverse = 0 ∧
     adjointGateCount (List.ofFn (fun j => AdjointStep.gate (g j))).reverse = n := by
@@ -220,6 +276,9 @@ theorem weight_fixed_word_counts {n : ℕ} (g : Fin n → Matrix (Option (Fin n)
     obtain ⟨j, rfl⟩ := hx
     exact ⟨g j, rfl⟩)
 
+/-- Repeating a rational preparation word followed by its adjoint `r` times evaluates to the
+identity. The resulting word is well formed, uses no oracle queries, and has `2*r*n` fixed
+gates. -/
 theorem rational_weight_paid_inverse_reuse : ∀ (n k r : ℕ) (w : Option (Fin n) → ℚ),
     (∀ a, 0 ≤ w a) →
     let word := rationalWeightWord w k ++ adjointCircuit (rationalWeightWord w k);
@@ -242,6 +301,8 @@ theorem rational_weight_paid_inverse_reuse : ∀ (n k r : ℕ) (w : Option (Fin 
   refine ⟨by simpa [hE] using! hrE, by simpa [hQ, hc.1] using! hrQ,
     by simpa [hG, hc.2, mul_left_comm, mul_assoc] using! hrG, hrWF hWF⟩
 
+/-- The operator norm difference of two two-level matrices is at most the sum of the absolute
+differences of their real coefficients. -/
 theorem weightTwoLevel_error {n : ℕ} (j : Fin n) (c s c' s' : ℝ) :
     ‖weightTwoLevel j c s - weightTwoLevel j c' s'‖ ≤ |c-c'| + |s-s'| := by
   classical
@@ -280,6 +341,8 @@ theorem weightTwoLevel_error {n : ℕ} (j : Fin n) (c s c' s' : ℝ) :
       ((norm_mul_le _ _).trans (mul_le_mul hS hX (norm_nonneg _) (abs_nonneg _)))
     _ = _ := by ring
 
+/-- For nonnegative weights, each rational weight gate differs from its ideal counterpart by at
+most `32/2^k` in operator norm. -/
 theorem rationalWeightGate_error {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (k : ℕ) (j : Fin n) :
     ‖rationalWeightGate w k j - idealWeightGate w j‖ ≤ 32/(2 : ℝ)^k := by
@@ -293,6 +356,8 @@ theorem rationalWeightGate_error {n : ℕ} (w : Option (Fin n) → ℚ)
   simp only [Complex.ofReal_ratCast] at h
   exact h.trans ((add_le_add hc hs).trans_eq (by ring))
 
+/-- Products of corresponding unitary gates with individual error at most `δ` differ by at most
+the list length times `δ` in operator norm. -/
 theorem weight_gate_product_error {H J : Type} [Fintype H] [DecidableEq H]
     (g h : J → Matrix H H ℂ) (l : List J) (δ : ℝ) (hδ : 0 ≤ δ)
     (hg : ∀ j, g j ∈ Matrix.unitaryGroup H ℂ)
@@ -326,6 +391,8 @@ theorem weight_gate_product_error {H J : Type} [Fintype H] [DecidableEq H]
         ((norm_mul_le _ _).trans (mul_le_mul hC (he j) (norm_nonneg _) (by norm_num)))
       _ = _ := by ring
 
+/-- For nonnegative weights, the rational preparation word is well formed and its evaluation is
+unitary. Its operator norm distance from the ideal preparation is at most `32*n/2^k`. -/
 theorem rational_weight_numerical_word_unitary_and_error : ∀ (n k : ℕ)
     (w : Option (Fin n) → ℚ), (∀ a, 0 ≤ w a) →
     WellFormedAdjointCircuit (rationalWeightWord w k) ∧
@@ -342,14 +409,18 @@ theorem rational_weight_numerical_word_unitary_and_error : ∀ (n k : ℕ)
     idealWeightPrepare, rationalWeightWord, idealWeightWord,
     show (n : ℝ)*(32/2^k)=32*n/2^k by ring] using h
 
+/-- The weight at `none` plus the weights at indices at least `t`. -/
 def weightResidual {n : ℕ} (w : Option (Fin n) → ℚ) (t : ℕ) : ℚ :=
   w none + ∑ i, if t ≤ i.val then w (some i) else 0
 
+/-- The partial preparation state with completed square-root amplitudes below `t` and the
+residual square-root amplitude at `none`. -/
 noncomputable def weightPrefixState {n : ℕ} (w : Option (Fin n) → ℚ) (t : ℕ) :
     QState (Option (Fin n))
   | none => Real.sqrt ((weightResidual w t / rationalWeightMass w : ℚ) : ℝ)
   | some i => if i.val < t then Real.sqrt ((w (some i) / rationalWeightMass w : ℚ) : ℝ) else 0
 
+/-- The residual at `j` splits into the weight at `some j` and the residual after `j`. -/
 theorem weightResidual_step {n : ℕ} (w : Option (Fin n) → ℚ) (j : Fin n) :
     weightResidual w j.val = w (some j) + weightResidual w (j.val+1) := by
   have hs : (∑ i : Fin n, if j.val ≤ i.val then w (some i) else 0) =
@@ -370,6 +441,7 @@ theorem weightResidual_step {n : ℕ} (w : Option (Fin n) → ℚ) (j : Fin n) :
   rw [hs]
   ring
 
+/-- Every residual mass is nonnegative when all weights are nonnegative. -/
 theorem weightResidual_nonneg {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (t : ℕ) : 0 ≤ weightResidual w t := by
   apply add_nonneg (hw none)
@@ -379,6 +451,8 @@ theorem weightResidual_nonneg {n : ℕ} (w : Option (Fin n) → ℚ)
   · exact hw _
   · exact le_rfl
 
+/-- For `0 ≤ b ≤ a` and positive `Z`, the product of the square roots of `b/a` and `a/Z` equals
+the square root of `b/Z`. -/
 theorem weight_sqrt_transport (a b Z : ℚ) (ha : 0 ≤ a) (hb : 0 ≤ b)
     (hba : b ≤ a) (hZ : 0 < Z) :
     Real.sqrt ((b/a : ℚ) : ℝ) * Real.sqrt ((a/Z : ℚ) : ℝ) =
@@ -392,6 +466,8 @@ theorem weight_sqrt_transport (a b Z : ℚ) (ha : 0 ≤ a) (hb : 0 ≤ b)
     have har : (a : ℝ) ≠ 0 := by exact_mod_cast hz
     field_simp
 
+/-- For nonnegative weights of positive mass, the ideal gate at `j` advances the prefix state
+from `j` to `j+1`. -/
 theorem weightPrefixState_step {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (hZ : 0 < rationalWeightMass w) (j : Fin n) :
     idealWeightGate w j *ᵥ weightPrefixState w j.val = weightPrefixState w (j.val+1) := by
@@ -432,6 +508,7 @@ theorem weightPrefixState_step {n : ℕ} (w : Option (Fin n) → ℚ)
       have he : (i.val < j.val+1) = (i.val < j.val) := propext (by omega)
       simp [weightPrefixState, hij, he]
 
+/-- When the total weight is positive, the initial prefix state is `Ket none`. -/
 theorem weightPrefixState_zero {n : ℕ} (w : Option (Fin n) → ℚ)
     (hZ : 0 < rationalWeightMass w) : weightPrefixState w 0 = Ket none := by
   have hr : weightResidual w 0 = rationalWeightMass w := by
@@ -439,6 +516,7 @@ theorem weightPrefixState_zero {n : ℕ} (w : Option (Fin n) → ℚ)
   ext a
   cases a <;> simp [weightPrefixState, hr, ne_of_gt hZ, Ket]
 
+/-- After all `n` coordinates, the prefix state equals the target weighted state. -/
 theorem weightPrefixState_final {n : ℕ} (w : Option (Fin n) → ℚ) :
     weightPrefixState w n = rationalWeightTarget w := by
   have hr : weightResidual w n = w none := by
@@ -448,6 +526,8 @@ theorem weightPrefixState_final {n : ℕ} (w : Option (Fin n) → ℚ) :
   | none => simp [weightPrefixState, rationalWeightTarget, hr]
   | some i => simp [weightPrefixState, rationalWeightTarget, i.isLt]
 
+/-- For nonnegative weights of positive mass, the first `t ≤ n` ideal gates prepare the
+corresponding prefix state from `Ket none`. -/
 theorem weight_prefix_exact {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (hZ : 0 < rationalWeightMass w)
     (t : ℕ) (ht : t ≤ n) :
@@ -465,6 +545,8 @@ theorem weight_prefix_exact {n : ℕ} (w : Option (Fin n) → ℚ)
     rw [← Matrix.mulVec_mulVec, ih (by omega)]
     exact weightPrefixState_step w hw hZ ⟨t, hn⟩
 
+/-- For nonnegative weights of positive mass, the ideal preparation is unitary and maps `Ket
+none` to the normalized target state. -/
 theorem rational_weight_ideal_preparation_exact : ∀ (n : ℕ) (w : Option (Fin n) → ℚ),
     (∀ a, 0 ≤ w a) → 0 < rationalWeightMass w →
     idealWeightPrepare w ∈ Matrix.unitaryGroup (Option (Fin n)) ℂ ∧

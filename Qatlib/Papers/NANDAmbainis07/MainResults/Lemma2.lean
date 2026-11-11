@@ -5,12 +5,37 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NANDAmbainis07.MainResults.CertificateAmplitude
+
+/-!
+# Certificate amplitudes in the Hamiltonian kernel
+
+This module defines the weighted neighbor operation `Hmul` on Boolean paths and identifies it
+with the certificate expression `row`. It proves the pathwise kernel identity for the
+recursively constructed amplitudes `W.amp`, corresponding to the certificate-state assertion of
+Lemma 2 in [Ambainis2007].
+
+## Main statements
+
+* `row_eq_Hmul` identifies the certificate row with `Hmul` applied to its amplitudes.
+* `hEdge_cancel` supplies the coefficient identity for local cancellation.
+* `row_scale` transfers a row identity along a selected two-edge branch.
+* `lemma2_row_zero` and `lemma2_Hmul_eq_zero` prove vanishing at every path that locates a
+  subtree of the formula.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.NANDAmbainis07.MainResults
 
+/-- The weighted parent-and-children operation on a real function of Boolean paths, with no
+parent term at the root. Its coefficients use `hEdge`, path parity, and the leaf counts
+returned through `subOr`. -/
 def Hmul (e : NNode) (f : Vtx → ℝ) (p : Vtx) : ℝ :=
   (match p with
    | [] => 0
@@ -21,15 +46,20 @@ def Hmul (e : NNode) (f : Vtx → ℝ) (p : Vtx) : ℝ :=
   + hEdge (decide (p.length % 2 = 0)) (subOr e p).leaves (subOr e (p ++ [true])).leaves
       * f (p ++ [true])
 
+/-- The certificate row is `Hmul` applied to the witness amplitude function. -/
 lemma row_eq_Hmul (x : ℕ → Bool) {e : NNode} (w : W x e) (p : Vtx) :
     row x w p = Hmul e (W.amp w) p := by
   cases p <;> rfl
 
+/-- The even-parent edge coefficient factors into an odd-parent edge coefficient and `cval` when
+the intermediate and selected leaf counts are positive. -/
 lemma hEdge_cancel {mroot mz my : ℕ} (hz : 0 < mz) (hy : 0 < my) :
     hEdge true mroot mz = hEdge false mz my * cval mroot my := by
   simp only [hEdge, if_true, cval]
   exact kernel_coef_id (by positivity) (by exact_mod_cast hz) (by exact_mod_cast hy)
 
+/-- Transfers a constant amplitude scaling along a two-entry prefix to the same scaling of rows
+at nonempty suffixes, provided subtree lookups also agree along that prefix. -/
 lemma row_scale {x : ℕ → Bool} {R Y : NNode} (w : W x R) (ws : W x Y) (d0 d1 : Bool)
     (mR mY : ℕ)
     (hamp : ∀ q : Vtx, W.amp w (d0 :: d1 :: q) = -(cval mR mY) * W.amp ws q)
@@ -44,6 +74,8 @@ lemma row_scale {x : ℕ → Bool} {R Y : NNode} (w : W x R) (ws : W x Y) (d0 d1
       dropLast_cons_cons d0 d1 hne]
     ring
 
+/-- A row at a two-entry prefix with a nonempty suffix vanishes when the amplitudes at its
+parent and both children vanish. -/
 lemma row_zero_gen {x : ℕ → Bool} {R : NNode} (w : W x R) {d0 d1 : Bool} {q : Vtx}
     (hq : q ≠ [])
     (hp0 : W.amp w (d0 :: d1 :: q.dropLast) = 0)
@@ -54,6 +86,7 @@ lemma row_zero_gen {x : ℕ → Bool} {R : NNode} (w : W x R) {d0 d1 : Bool} {q 
     dropLast_cons_cons d0 d1 hq
   simp only [row, hqd, List.cons_append, hp0, h1, h2, mul_zero, add_zero]
 
+/-- The row of a `W.nodeLR` witness vanishes at the one-step left path. -/
 lemma row_LR_f (x : ℕ → Bool) {a b c d : NNode} (w1 : W x a) (w4 : W x d) :
     row x (W.nodeLR (b := b) (c := c) w1 w4) ([false] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeLR (b := b) (c := c) w1 w4) ([false, false] : Vtx)
@@ -72,6 +105,7 @@ lemma row_LR_f (x : ℕ → Bool) {a b c d : NNode} (w1 : W x a) (w4 : W x d) :
         (NNode.leaves_pos a)]
   ring
 
+/-- The row of a `W.nodeRL` witness vanishes at the one-step right path. -/
 lemma row_RL_t (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w3 : W x c) :
     row x (W.nodeRL (a := a) (d := d) w2 w3) ([true] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeRL (a := a) (d := d) w2 w3) ([true, false] : Vtx)
@@ -90,6 +124,7 @@ lemma row_RL_t (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w3 : W x c) :
         (NNode.leaves_pos c)]
   ring
 
+/-- The row of a `W.nodeLL` witness vanishes at the one-step right path. -/
 lemma row_LL_t (x : ℕ → Bool) {a b c d : NNode} (w1 : W x a) (w3 : W x c) :
     row x (W.nodeLL (b := b) (d := d) w1 w3) ([true] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeLL (b := b) (d := d) w1 w3) ([true, false] : Vtx)
@@ -108,6 +143,7 @@ lemma row_LL_t (x : ℕ → Bool) {a b c d : NNode} (w1 : W x a) (w3 : W x c) :
         (NNode.leaves_pos c)]
   ring
 
+/-- The row of a `W.nodeLR` witness vanishes at the one-step right path. -/
 lemma row_LR_t (x : ℕ → Bool) {a b c d : NNode} (w1 : W x a) (w4 : W x d) :
     row x (W.nodeLR (b := b) (c := c) w1 w4) ([true] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeLR (b := b) (c := c) w1 w4) ([true, true] : Vtx)
@@ -126,6 +162,7 @@ lemma row_LR_t (x : ℕ → Bool) {a b c d : NNode} (w1 : W x a) (w4 : W x d) :
         (NNode.leaves_pos d)]
   ring
 
+/-- The row of a `W.nodeRL` witness vanishes at the one-step left path. -/
 lemma row_RL_f (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w3 : W x c) :
     row x (W.nodeRL (a := a) (d := d) w2 w3) ([false] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeRL (a := a) (d := d) w2 w3) ([false, true] : Vtx)
@@ -144,6 +181,7 @@ lemma row_RL_f (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w3 : W x c) :
         (NNode.leaves_pos b)]
   ring
 
+/-- The row of a `W.nodeRR` witness vanishes at the one-step left path. -/
 lemma row_RR_f (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w4 : W x d) :
     row x (W.nodeRR (a := a) (c := c) w2 w4) ([false] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeRR (a := a) (c := c) w2 w4) ([false, true] : Vtx)
@@ -162,6 +200,7 @@ lemma row_RR_f (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w4 : W x d) :
         (NNode.leaves_pos b)]
   ring
 
+/-- The row of a `W.nodeRR` witness vanishes at the one-step right path. -/
 lemma row_RR_t (x : ℕ → Bool) {a b c d : NNode} (w2 : W x b) (w4 : W x d) :
     row x (W.nodeRR (a := a) (c := c) w2 w4) ([true] : Vtx) = 0 := by
   have h2 : W.amp (W.nodeRR (a := a) (c := c) w2 w4) ([true, true] : Vtx)
@@ -184,6 +223,8 @@ end Qatlib.Papers.NANDAmbainis07.MainResults
 
 namespace Qatlib.Papers.NANDAmbainis07.MainResults
 
+/-- Every witness row vanishes at each Boolean path that locates a subtree of the formula. This
+is a pathwise certificate identity corresponding to [Ambainis, Lemma 2][Ambainis2007]. -/
 theorem lemma2_row_zero (x : ℕ → Bool) : {e : NNode} → (w : W x e) →
     ∀ p : Vtx, (e.sub p).isSome → row x w p = 0
   | _, W.leaf i, p, hp => by
@@ -382,6 +423,9 @@ theorem lemma2_row_zero (x : ℕ → Bool) : {e : NNode} → (w : W x e) →
             rw [lemma2_row_zero x w4 q hp]
             ring
 
+/-- Applying `Hmul` to a witness's amplitude function gives zero at every path that locates a
+subtree of the formula. This is the pathwise kernel statement corresponding to [Ambainis,
+Lemma 2][Ambainis2007]. -/
 theorem lemma2_Hmul_eq_zero (x : ℕ → Bool) {e : NNode} (w : W x e) :
     ∀ p : Vtx, (e.sub p).isSome → Hmul e (W.amp w) p = 0 := by
   intro p hp

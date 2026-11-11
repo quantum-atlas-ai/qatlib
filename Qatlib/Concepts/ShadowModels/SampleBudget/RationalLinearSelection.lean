@@ -5,30 +5,67 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+/-!
+# Counted rational order selection
+
+This module implements rational insertion sort, grouping into blocks of at most five, three-way
+partitioning, and a selection algorithm with a recursion budget. `QRank` describes order
+statistics in the presence of repeated values, and the correctness lemmas identify selection
+with sorted indexing.
+
+With a recursion budget at least the input length, the comparison count is bounded by 10000
+times that length. The final theorem connects odd-list rational selection to the real
+`sortedBlockMedian`, providing a counted backend for classical-shadow median estimators. See
+[HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `rational_selection_fuel_rank_and_duplicates`: exact order-statistic semantics for every
+  recursion budget.
+* `rational_selection_sufficient_fuel_linear_comparisons`: a linear comparison bound with
+  sufficient recursion budget.
+* `rational_selection_median_exact_real_sorted_semantics`: agreement with the real median.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.ShadowModels.SampleBudget
 
+/-- Insert a rational into a list using ordered comparisons and return the resulting list
+together with the number of comparisons. -/
 def qInsertCounted (x : ℚ) : List ℚ → List ℚ × ℕ
   | [] => ([x],0)
   | y::ys => if x ≤ y then (x::y::ys,1) else
       let t := qInsertCounted x ys
       (y::t.1,t.2+1)
+/-- Insertion sort on rational lists, returning the sorted list and its accumulated comparison
+count. -/
 def qSortCounted : List ℚ → List ℚ × ℕ
   | [] => ([],0)
   | x::xs => let t := qSortCounted xs
              let u := qInsertCounted x t.1
              (u.1,t.2+u.2)
+/-- Split a rational list into successive chunks of at most five elements, stopping when the
+supplied recursion budget is exhausted. -/
 def qChunks5 : ℕ → List ℚ → List (List ℚ)
   | 0,_ => []
   | _+1,[] => []
   | f+1,x::xs => (x::xs).take 5 :: qChunks5 f ((x::xs).drop 5)
+/-- Partition a rational list into entries below, equal to, and above the pivot, recording the
+number of comparisons. -/
 def qPartition (p : ℚ) (xs : List ℚ) : List ℚ × List ℚ × List ℚ × ℕ :=
   xs.foldl (fun z x => if x < p then (x::z.1,z.2.1,z.2.2.1,z.2.2.2+1) else
     if p < x then (z.1,z.2.1,x::z.2.2.1,z.2.2.2+2) else
       (z.1,x::z.2.1,z.2.2.1,z.2.2.2+2)) ([],[],[],0)
+/-- Select a rational order statistic with a supplied recursion budget and comparison counter,
+using groups of five and falling back to insertion sort for small lists or exhausted budget. -/
 def qSelectFuel : ℕ → List ℚ → ℕ → ℚ × ℕ
   | 0,xs,k => let z := qSortCounted xs; (z.1.getD k 0,z.2)
   | f+1,xs,k =>
@@ -42,8 +79,11 @@ def qSelectFuel : ℕ → List ℚ → ℕ → ℚ × ℕ
         if k < q.1.length+q.2.1.length then (p.1,initial) else
           let z := qSelectFuel f q.2.2.1 (k-q.1.length-q.2.1.length)
           (z.1,initial+z.2)
+/-- Run the counted rational selection algorithm with recursion budget equal to the input
+length. -/
 def qSelect (xs : List ℚ) (k : ℕ) : ℚ × ℕ := qSelectFuel xs.length xs k
 
+/-- Counted insertion increases the list length by one. -/
 theorem qInsertCounted_length (x : ℚ) (l : List ℚ) :
     (qInsertCounted x l).1.length = l.length + 1 := by
   induction l with
@@ -56,6 +96,7 @@ theorem qInsertCounted_length (x : ℚ) (l : List ℚ) :
         rw [ih]
         simp
 
+/-- Counted insertion performs at most as many comparisons as the input list has elements. -/
 theorem qInsertCounted_cost_le (x : ℚ) (l : List ℚ) :
     (qInsertCounted x l).2 ≤ l.length := by
   induction l with
@@ -68,6 +109,8 @@ theorem qInsertCounted_cost_le (x : ℚ) (l : List ℚ) :
         have hlen : (y :: ys).length = ys.length + 1 := rfl
         omega
 
+/-- The output of counted insertion is a permutation of the inserted element followed by the
+original list. -/
 theorem qInsertCounted_perm (x : ℚ) (l : List ℚ) :
     (qInsertCounted x l).1.Perm (x :: l) := by
   induction l with
@@ -78,6 +121,7 @@ theorem qInsertCounted_perm (x : ℚ) (l : List ℚ) :
       · exact List.Perm.refl _
       · exact List.Perm.trans (List.Perm.cons y ih) (List.Perm.swap x y ys)
 
+/-- Counted insertion preserves nondecreasing order. -/
 theorem qInsertCounted_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE) :
     (qInsertCounted x l).1.SortedLE := by
   induction l with
@@ -103,6 +147,7 @@ theorem qInsertCounted_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE) :
           · exact hyx
           · exact hhead b hbys
 
+/-- Counted insertion sort preserves list length. -/
 theorem qSortCounted_length (l : List ℚ) :
     (qSortCounted l).1.length = l.length := by
   induction l with
@@ -112,6 +157,7 @@ theorem qSortCounted_length (l : List ℚ) :
       rw [qInsertCounted_length, ih]
       simp
 
+/-- The output of counted insertion sort is a permutation of its input. -/
 theorem qSortCounted_perm (l : List ℚ) : (qSortCounted l).1.Perm l := by
   induction l with
   | nil => exact List.Perm.refl _
@@ -119,6 +165,7 @@ theorem qSortCounted_perm (l : List ℚ) : (qSortCounted l).1.Perm l := by
       show ((qInsertCounted x (qSortCounted xs).1).1).Perm (x :: xs)
       exact List.Perm.trans (qInsertCounted_perm x _) (List.Perm.cons x ih)
 
+/-- The comparison count of insertion sort is at most the square of the input length. -/
 theorem qSortCounted_cost_le (l : List ℚ) :
     (qSortCounted l).2 ≤ l.length * l.length := by
   induction l with
@@ -135,6 +182,7 @@ theorem qSortCounted_cost_le (l : List ℚ) :
         omega
       omega
 
+/-- The list returned by counted insertion sort is nondecreasing. -/
 theorem qSortCounted_sorted (l : List ℚ) : (qSortCounted l).1.SortedLE := by
   induction l with
   | nil => exact List.sortedLE_iff_pairwise.mpr List.Pairwise.nil
@@ -142,6 +190,8 @@ theorem qSortCounted_sorted (l : List ℚ) : (qSortCounted l).1.SortedLE := by
       show ((qInsertCounted x (qSortCounted xs).1).1).SortedLE
       exact qInsertCounted_sorted ih
 
+/-- With recursion budget at least the input length, the chunks flatten to the original list,
+number `(xs.length + 4) / 5`, and each have length between one and five. -/
 theorem qChunks5_spec (f : ℕ) (xs : List ℚ) (hf : xs.length≤f) :
     (qChunks5 f xs).flatten=xs ∧
     (qChunks5 f xs).length=(xs.length+4)/5 ∧
@@ -172,13 +222,17 @@ theorem qChunks5_spec (f : ℕ) (xs : List ℚ) (hf : xs.length≤f) :
           omega
         · exact hgroups g hg
 
+/-- The three rational lists and comparison counter accumulated by three-way partitioning. -/
 abbrev QPartitionState := List ℚ × List ℚ × List ℚ × ℕ
 
+/-- Place one rational in the appropriate pivot bucket and increase the comparison counter by
+one or two. -/
 def qPartitionStep (p : ℚ) (z : QPartitionState) (x : ℚ) : QPartitionState :=
   if x<p then (x::z.1,z.2.1,z.2.2.1,z.2.2.2+1) else
   if p<x then (z.1,z.2.1,x::z.2.2.1,z.2.2.2+2) else
     (z.1,x::z.2.1,z.2.2.1,z.2.2.2+2)
 
+/-- One partition step preserves the multiset of bucket entries after adding the new element. -/
 theorem qPartitionStep_perm (p x : ℚ) (z : QPartitionState) :
     ((qPartitionStep p z x).1++(qPartitionStep p z x).2.1++
       (qPartitionStep p z x).2.2.1).Perm (x::(z.1++z.2.1++z.2.2.1)) := by
@@ -190,6 +244,8 @@ theorem qPartitionStep_perm (p x : ℚ) (z : QPartitionState) :
   · simpa only [List.append_assoc,List.cons_append] using
       (List.perm_middle : (z.1++x::(z.2.1++z.2.2.1)).Perm (x::(z.1++(z.2.1++z.2.2.1))))
 
+/-- Folding partition steps preserves the accumulated entries up to permutation, maintains the
+three pivot inequalities, and adds at most twice the input length to the comparison count. -/
 theorem qPartition_fold_spec (p : ℚ) (xs : List ℚ) (z : QPartitionState)
     (hl : ∀ x ∈ z.1,x<p) (he : ∀ x ∈ z.2.1,x=p) (hr : ∀ x ∈ z.2.2.1,p<x) :
     let t := xs.foldl (qPartitionStep p) z
@@ -239,6 +295,8 @@ theorem qPartition_fold_spec (p : ℚ) (xs : List ℚ) (z : QPartitionState)
     · simp only [List.length_cons]
       omega
 
+/-- The counted sort, five-element chunks, and three-way partition satisfy their permutation,
+ordering, size, and comparison-count specifications. -/
 theorem rational_selection_actual_sort_chunks_and_partition : ∀ (xs : List ℚ) (p : ℚ),
     (qSortCounted xs).1.Perm xs ∧ (qSortCounted xs).1.SortedLE ∧
     (qSortCounted xs).1.length=xs.length ∧ (qSortCounted xs).2≤xs.length^2 ∧
@@ -259,10 +317,14 @@ theorem rational_selection_actual_sort_chunks_and_partition : ∀ (xs : List ℚ
     hp.2.1,hp.2.2.1,hp.2.2.2.1,hp.2.2.2.2⟩
   exact hp.1.trans (List.reverse_perm xs)
 
+/-- The condition that `p` occurs in `xs`, at most `k` entries are strictly smaller than `p`,
+and more than `k` entries are at most `p`. -/
 def QRank (xs : List ℚ) (k : ℕ) (p : ℚ) : Prop :=
   p ∈ xs ∧ (xs.filter (fun x => x<p)).length≤k ∧
     k<(xs.filter (fun x => x≤p)).length
 
+/-- Implication between predicates on list members gives the corresponding inequality between
+filtered lengths. -/
 theorem qFilterLength_mono (xs : List ℚ) (P Q : ℚ → Prop)
     [DecidablePred P] [DecidablePred Q] (h : ∀ x ∈ xs,P x → Q x) :
     (xs.filter (fun x => decide (P x))).length≤(xs.filter (fun x => decide (Q x))).length := by
@@ -270,6 +332,7 @@ theorem qFilterLength_mono (xs : List ℚ) (P Q : ℚ → Prop)
   exact List.countP_mono_left (fun x hx hp => decide_eq_true_eq.mpr
     (h x hx (decide_eq_true_eq.mp hp)))
 
+/-- Two rational values satisfying `QRank` for the same list and index are equal. -/
 theorem qRank_unique {xs : List ℚ} {k : ℕ} {p q : ℚ}
     (hp : QRank xs k p) (hq : QRank xs k q) : p=q := by
   rcases lt_trichotomy p q with hl | he | hr
@@ -287,6 +350,7 @@ theorem qRank_unique {xs : List ℚ} {k : ℕ} {p q : ℚ}
     try dsimp only at hc
     omega
 
+/-- The order-statistic predicate `QRank` is invariant under permutation of the input list. -/
 theorem qRank_perm {xs ys : List ℚ} {k : ℕ} {p : ℚ}
     (hperm : xs.Perm ys) (hp : QRank xs k p) : QRank ys k p := by
   refine ⟨hperm.mem_iff.mp hp.1,?_,?_⟩
@@ -295,6 +359,7 @@ theorem qRank_perm {xs ys : List ℚ} {k : ℕ} {p : ℚ}
   · rw [← (hperm.filter (fun x => x≤p)).length_eq]
     exact hp.2.2
 
+/-- The entry at any valid index of a nondecreasing list satisfies `QRank` at that index. -/
 theorem qRank_sorted {s : List ℚ} (hs : s.SortedLE) (k : ℕ) (hk : k<s.length) :
     QRank s k (s.getD k 0) := by
   rw [List.getD_eq_getElem s 0 hk]
@@ -335,23 +400,29 @@ theorem qRank_sorted {s : List ℚ} (hs : s.SortedLE) (k : ℕ) (hk : k<s.length
     rw [List.countP_eq_length_filter,List.countP_eq_length_filter,hf,List.length_take] at hc
     omega
 
+/-- The entry at any valid index of the counted sorted list satisfies `QRank` for the original
+list. -/
 theorem qRank_sort (xs : List ℚ) (k : ℕ) (hk : k<xs.length) :
     QRank xs k ((qSortCounted xs).1.getD k 0) :=
   qRank_perm (qSortCounted_perm xs)
     (qRank_sorted (qSortCounted_sorted xs) k (by rwa [qSortCounted_length]))
 
+/-- Filtering a list by a predicate false on every member gives the empty list. -/
 theorem qFilter_false (xs : List ℚ) (P : ℚ → Prop) [DecidablePred P]
     (h : ∀ x ∈ xs,¬P x) : xs.filter (fun x => decide (P x))=[] := by
   apply List.filter_eq_nil_iff.mpr
   intro x hx
   simp [h x hx]
 
+/-- Filtering a list by a predicate true on every member leaves the list unchanged. -/
 theorem qFilter_true (xs : List ℚ) (P : ℚ → Prop) [DecidablePred P]
     (h : ∀ x ∈ xs,P x) : xs.filter (fun x => decide (P x))=xs := by
   apply List.filter_eq_self.mpr
   intro x hx
   exact decide_eq_true_eq.mpr (h x hx)
 
+/-- An order statistic in the below-pivot bucket has the same rank in the concatenation of all
+three correctly separated buckets. -/
 theorem qRank_partition_left (lo eq hi : List ℚ) (p : ℚ)
     (hl : ∀ x ∈ lo,x<p) (he : ∀ x ∈ eq,x=p) (hh : ∀ x ∈ hi,p<x)
     (k : ℕ) (v : ℚ) (hr : QRank lo k v) : QRank (lo++eq++hi) k v := by
@@ -365,6 +436,7 @@ theorem qRank_partition_left (lo eq hi : List ℚ) (p : ℚ)
   · simpa only [List.filter_append,hel,hhl,List.append_nil] using hr.2.1
   · simpa only [List.filter_append,hew,hhw,List.append_nil] using hr.2.2
 
+/-- The pivot has every rank lying within the equal-pivot bucket of the concatenated partition. -/
 theorem qRank_partition_middle (lo eq hi : List ℚ) (p : ℚ)
     (hl : ∀ x ∈ lo,x<p) (he : ∀ x ∈ eq,x=p) (hh : ∀ x ∈ hi,p<x)
     (k : ℕ) (hklo : lo.length≤k) (hkeq : k<lo.length+eq.length) :
@@ -381,6 +453,8 @@ theorem qRank_partition_middle (lo eq hi : List ℚ) (p : ℚ)
   · simpa only [List.filter_append,hll,hel,hhl,List.append_nil] using hklo
   · simpa only [List.filter_append,hlw,hew,hhw,List.append_nil,List.length_append] using hkeq
 
+/-- An order statistic in the above-pivot bucket has global rank shifted by the combined lengths
+of the below-pivot and equal-pivot buckets. -/
 theorem qRank_partition_right (lo eq hi : List ℚ) (p : ℚ)
     (hl : ∀ x ∈ lo,x<p) (he : ∀ x ∈ eq,x=p) (hh : ∀ x ∈ hi,p<x)
     (k : ℕ) (v : ℚ) (hr : QRank hi k v) : QRank (lo++eq++hi) (lo.length+eq.length+k) v := by
@@ -395,10 +469,14 @@ theorem qRank_partition_right (lo eq hi : List ℚ) (p : ℚ)
   · simp only [List.filter_append,hlw,hew,List.length_append]
     exact Nat.add_lt_add_left hr.2.2 _
 
+/-- The first projection of a conditional rational-and-counter pair is the conditional of the
+first projections. -/
 theorem qResult_fst_ite (P : Prop) [Decidable P] (a b : ℚ × ℕ) :
     (if P then a else b).1=if P then a.1 else b.1 := by
   split_ifs <;> rfl
 
+/-- At every valid input index, counted selection returns a value satisfying `QRank`, for any
+recursion budget. -/
 theorem qSelectFuel_rank (f k : ℕ) (xs : List ℚ) (hk : k<xs.length) :
     QRank xs k (qSelectFuel f xs k).1 := by
   induction f generalizing xs k with
@@ -436,6 +514,8 @@ theorem qSelectFuel_rank (f k : ℕ) (xs : List ℚ) (hk : k<xs.length) :
           rw [hsum] at hr
           exact qRank_perm hperm hr
 
+/-- For a valid index and any recursion budget, selection equals sorted indexing, belongs to the
+input, and satisfies the two rank inequalities even when values repeat. -/
 theorem rational_selection_fuel_rank_and_duplicates : ∀ (f k : ℕ) (xs : List ℚ),
     k<xs.length → (qSelectFuel f xs k).1=(qSortCounted xs).1.getD k 0 ∧
     (qSelectFuel f xs k).1∈xs ∧
@@ -445,8 +525,11 @@ theorem rational_selection_fuel_rank_and_duplicates : ∀ (f k : ℕ) (xs : List
   have hr := qSelectFuel_rank f k xs hk
   exact ⟨qRank_unique hr (qRank_sort xs k hk),hr⟩
 
+/-- Chunking the empty rational list gives no chunks for every recursion budget. -/
 @[simp] theorem qChunks5_nil (f : ℕ) : qChunks5 f []=[] := by cases f <;> rfl
 
+/-- With recursion budget at least the input length, at most one chunk has fewer than five
+elements. -/
 theorem qChunks5_short_count (f : ℕ) (xs : List ℚ) (hf : xs.length≤f) :
     (qChunks5 f xs).countP (fun g => g.length<5)≤1 := by
   induction f generalizing xs with
@@ -467,8 +550,10 @@ theorem qChunks5_short_count (f : ℕ) (xs : List ℚ) (hf : xs.length≤f) :
         simpa only [qChunks5,List.countP_cons,ht,lt_self_iff_false,decide_false,
           Bool.false_eq_true,if_false,Nat.zero_add] using! ih ((x::xs).drop 5) hr
 
+/-- The middle entry of the counted sorted group, using zero as the default for an empty group. -/
 def qGroupMedian (g : List ℚ) : ℚ := (qSortCounted g).1.getD ((qSortCounted g).1.length/2) 0
 
+/-- The numbers of list entries below a pivot and at least that pivot sum to the list length. -/
 theorem qFilter_complement (xs : List ℚ) (p : ℚ) :
     (xs.filter (fun x => x<p)).length+(xs.filter (fun x => p≤x)).length=xs.length := by
   induction xs with
@@ -480,6 +565,8 @@ theorem qFilter_complement (xs : List ℚ) (p : ℚ) :
     · simp [hx,le_of_not_gt hx]
       omega
 
+/-- For a five-element group, a median at most `p` gives at least three entries at most `p`, and
+a median at least `p` gives at least three entries at least `p`. -/
 theorem qFullGroup_lower_sets (g : List ℚ) (hg : g.length=5) (p : ℚ) :
     (qGroupMedian g≤p → 3≤(g.filter (fun x => x≤p)).length) ∧
     (p≤qGroupMedian g → 3≤(g.filter (fun x => p≤x)).length) := by
@@ -502,6 +589,9 @@ theorem qFullGroup_lower_sets (g : List ℚ) (hg : g.length=5) (p : ℚ) :
     try dsimp only at hm
     omega
 
+/-- If each qualifying full group contributes at least three entries satisfying `P`, three times
+the qualifying-group count is bounded by the total satisfying-entry count plus three times
+the short-group count. -/
 theorem qGroups_count_lower (gs : List (List ℚ)) (P : ℚ → Prop) [DecidablePred P]
     (good : List ℚ → Bool) (hsize : ∀ g ∈ gs,g.length≤5)
     (hgood : ∀ g ∈ gs,g.length=5 → good g=true → 3≤(g.filter (fun x => decide (P x))).length) :
@@ -526,6 +616,8 @@ theorem qGroups_count_lower (gs : List (List ℚ)) (P : ℚ → Prop) [Decidable
       simp only [hb,hs,decide_true,decide_false,if_true,if_false,Bool.false_eq_true]
         at hlocal ⊢ <;> omega
 
+/-- The below-pivot bucket and the entries at least the pivot exhaust the input length; the
+above-pivot bucket and entries at most the pivot do likewise. -/
 theorem qPartition_complement_lengths (xs : List ℚ) (p : ℚ) :
     (qPartition p xs).1.length+(xs.filter (fun x => p≤x)).length=xs.length ∧
     (qPartition p xs).2.2.1.length+(xs.filter (fun x => x≤p)).length=xs.length := by
@@ -545,6 +637,8 @@ theorem qPartition_complement_lengths (xs : List ℚ) (p : ℚ) :
   simp only [List.filter_append,hl1,he2,hh0,List.append_nil,List.length_append] at hle
   omega
 
+/-- Summing the numbers of entries satisfying a predicate within each group equals the filtered
+length of the flattened groups. -/
 theorem qGroups_filter_length (gs : List (List ℚ)) (P : ℚ → Prop) [DecidablePred P] :
     (gs.map (fun g => (g.filter (fun x => decide (P x))).length)).sum=
       (gs.flatten.filter (fun x => decide (P x))).length := by
@@ -552,6 +646,9 @@ theorem qGroups_filter_length (gs : List (List ℚ)) (P : ℚ → Prop) [Decidab
   | nil => rfl
   | cons g gs ih => simp [List.filter_append,ih]
 
+/-- For lists longer than 1000, the median-of-group-medians list and both strict partition
+buckets are shorter than the input and satisfy the displayed inequalities with coefficients
+7 and 10000. -/
 theorem qMedian5_partition_bounds (f : ℕ) (xs : List ℚ) (hx : 1000<xs.length) :
     let gs := qChunks5 xs.length xs
     let pivots := gs.map qGroupMedian
@@ -593,6 +690,8 @@ theorem qMedian5_partition_bounds (f : ℕ) (xs : List ℚ) (hx : 1000<xs.length
   change gs.countP (fun g => g.length<5)≤1 at hshort
   omega
 
+/-- Sorting groups of size at most five uses at most five times their total length in
+comparisons. -/
 theorem qGroups_sort_cost (gs : List (List ℚ)) (hsize : ∀ g ∈ gs,g.length≤5) :
     (gs.map (fun g => (qSortCounted g).2)).sum≤5*(gs.map List.length).sum := by
   induction gs with
@@ -604,6 +703,7 @@ theorem qGroups_sort_cost (gs : List (List ℚ)) (hsize : ∀ g ∈ gs,g.length�
     simp only [List.map_cons,List.sum_cons]
     omega
 
+/-- Sorting all five-element chunks uses at most five times the input length in comparisons. -/
 theorem qChunks_sort_cost (xs : List ℚ) :
     (((qChunks5 xs.length xs).map qSortCounted).map Prod.snd).sum≤5*xs.length := by
   obtain ⟨hflat,_,hsize⟩ := qChunks5_spec xs.length xs le_rfl
@@ -611,9 +711,13 @@ theorem qChunks_sort_cost (xs : List ℚ) :
   rw [← List.length_flatten,hflat] at h
   simpa only [List.map_map,Function.comp_def] using h
 
+/-- The second projection of a conditional rational-and-counter pair is the conditional of the
+counters. -/
 theorem qResult_snd_ite (P : Prop) [Decidable P] (a b : ℚ × ℕ) :
     (if P then a else b).2=if P then a.2 else b.2 := by split_ifs <;> rfl
 
+/-- With recursion budget at least the input length, counted selection uses at most 10000 times
+the input length in comparisons for every index. -/
 theorem rational_selection_sufficient_fuel_linear_comparisons :
     ∀ (f k : ℕ) (xs : List ℚ), xs.length≤f → (qSelectFuel f xs k).2≤10000*xs.length := by
   intro f
@@ -661,6 +765,8 @@ theorem rational_selection_sufficient_fuel_linear_comparisons :
                 (qSelectFuel f q.2.2.1 (k-q.1.length-q.2.1.length)).2)≤10000*xs.length
         split_ifs <;> omega
 
+/-- Casting the rational sorted output to the reals equals the output of counted real insertion
+sort on the cast input. -/
 theorem qSortCounted_cast (xs : List ℚ) :
     (qSortCounted xs).1.map (fun x : ℚ => (x : ℝ))=
       (insertionSortCounted (xs.map (fun x : ℚ => (x : ℝ)))).1 := by
@@ -673,6 +779,8 @@ theorem qSortCounted_cast (xs : List ℚ) :
   exact hp.eq_of_pairwise' (List.sortedLE_iff_pairwise.mp hq)
     (List.sortedLE_iff_pairwise.mp (insertionSortCounted_sorted _))
 
+/-- Selecting index `r` from `2*r+1` rational values agrees after casting with
+`sortedBlockMedian` and uses at most `10000 * (2*r+1)` comparisons. -/
 theorem rational_selection_median_exact_real_sorted_semantics :
     ∀ (r : ℕ) (v : Fin (2*r+1) → ℚ),
     ((qSelect (List.ofFn v) r).1 : ℝ)=sortedBlockMedian r (fun j => (v j : ℝ)) ∧

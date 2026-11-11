@@ -9,6 +9,29 @@ import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.Convex.Basic
+
+/-!
+# Finite heat kernels and decay estimates
+
+The finite spectral sum `heatKernel` is nonnegative for nonnegative weights and obeys decay
+bounds controlled by its spectral support. The module derives residual and threshold estimates
+for the corrected decay rates used in the mixing reductions of [JanzingWocjan2006].
+
+The normalized exponential `heatTest` is bounded by one on the relevant half-line and has
+Lipschitz bound `C * T`, providing quantitative control of spectral estimation errors.
+
+## Main statements
+
+* `heatKernel_le_of_supp`: a probability distribution supported above `mu` decays at most as
+  `exp (-mu * t)`.
+* `heat_T_threshold`: computes the exponential residual at the logarithmic threshold time.
+* `heatTest_lipschitz`: bounds the sensitivity of the normalized heat test.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,13 +41,18 @@ namespace Qatlib.Papers.BQPMixSparse06.MainResults
 
 open Finset
 
+/-- The finite weighted exponential sum `∑ l, p l * exp (-(lam l * t))`. -/
 def heatKernel {ι : Type*} [Fintype ι] (p lam : ι → ℝ) (t : ℝ) : ℝ :=
   ∑ l, p l * Real.exp (-(lam l * t))
 
+/-- The finite heat kernel is nonnegative when all its weights are nonnegative
+[JanzingWocjan2006]. -/
 theorem heatKernel_nonneg {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (t : ℝ) : 0 ≤ heatKernel p lam t :=
   Finset.sum_nonneg fun l _ => mul_nonneg (hp l) (Real.exp_pos _).le
 
+/-- Each weighted exponential term is bounded above by the heat kernel when all weights are
+nonnegative. -/
 theorem heatKernel_single_le {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (j : ι) (t : ℝ) :
     p j * Real.exp (-(lam j * t)) ≤ heatKernel p lam t := by
@@ -33,6 +61,8 @@ theorem heatKernel_single_le {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (f := fun l : ι => p l * Real.exp (-(lam l * t)))
     (fun l _ => mul_nonneg (hp l) (Real.exp_pos _).le) (Finset.mem_univ j)
 
+/-- At nonnegative time, probability weights supported on eigenvalues at least `mu` give a heat
+kernel at most `exp (-(mu * t))` [JanzingWocjan2006]. -/
 theorem heatKernel_le_of_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (hmass : ∑ l, p l = 1) (mu : ℝ)
     (hsupp : ∀ l, 0 < p l → mu ≤ lam l) (t : ℝ) (ht : 0 ≤ t) :
@@ -51,6 +81,8 @@ theorem heatKernel_le_of_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     _ = (∑ l, p l) * Real.exp (-(mu * t)) := by rw [Finset.sum_mul]
     _ = Real.exp (-(mu * t)) := by rw [hmass, one_mul]
 
+/-- A heat-kernel upper bound gives the corresponding upper bound on any exponential term whose
+weight is positive, after division by that weight [JanzingWocjan2006]. -/
 theorem heat_decay_forces_lower {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (mu C t : ℝ) (j : ι) (hj : 0 < p j)
     (hdecay : heatKernel p lam t ≤ C * Real.exp (-(mu * t))) :
@@ -63,6 +95,8 @@ theorem heat_decay_forces_lower {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
   rw [div_mul_eq_mul_div, le_div_iff₀ hj]
   exact hle'
 
+/-- Two-sided bounds around `w * exp (-(mu * t))` give an absolute residual at most `exp (-(nu *
+t))` [JanzingWocjan2006]. -/
 theorem residual_of_two_sided {c w mu nu t : ℝ}
     (hlow : w * Real.exp (-(mu * t)) ≤ c)
     (hup : c ≤ w * Real.exp (-(mu * t)) + Real.exp (-(nu * t))) :
@@ -71,12 +105,15 @@ theorem residual_of_two_sided {c w mu nu t : ℝ}
   rw [abs_le]
   constructor <;> linarith
 
+/-- The corrected slow decay rate `4 - 2 * √2` is positive [JanzingWocjan2006]. -/
 theorem mu_corrected_pos : 0 < (4 : ℝ) - 2 * Real.sqrt 2 := by
   have h2 : Real.sqrt 2 < 2 := by
     rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 2)]
     norm_num
   linarith
 
+/-- For a clock length at least three, `4 - 2 * √2 * cos (π / M)` is strictly larger than `4 - 2
+* √2` [JanzingWocjan2006]. -/
 theorem nu_gt_mu_corrected {M : ℕ} (hM : 3 ≤ M) :
     (4 : ℝ) - 2 * Real.sqrt 2 <
       4 - 2 * Real.sqrt 2 * Real.cos (Real.pi / M) := by
@@ -85,6 +122,8 @@ theorem nu_gt_mu_corrected {M : ℕ} (hM : 3 ≤ M) :
   have hs : 0 < Real.sqrt 2 := Real.sqrt_pos.2 (by norm_num : (0 : ℝ) < 2)
   nlinarith
 
+/-- For positive `M` and `eta` and rates `mu < nu`, the exponential residual at time `log (M /
+eta) / (nu - mu)` equals `eta / M` [JanzingWocjan2006]. -/
 theorem heat_T_threshold {M eta mu nu : ℝ} (hM : 0 < M) (heta : 0 < eta)
     (hnu : mu < nu) :
     Real.exp (-((nu - mu) * (Real.log (M / eta) / (nu - mu)))) = eta / M := by
@@ -93,8 +132,11 @@ theorem heat_T_threshold {M eta mu nu : ℝ} (hM : 0 < M) (heta : 0 < eta)
   rw [mul_div_cancel₀ _ hne, Real.exp_neg, Real.exp_log hratio]
   field_simp
 
+/-- The shifted and rescaled exponential test `exp (-(C * x - mu) * T)`. -/
 def heatTest (C mu T x : ℝ) : ℝ := Real.exp (-(C * x - mu) * T)
 
+/-- For positive `C` and nonnegative `T`, the heat test is at most one whenever `x ≥ mu / C`
+[JanzingWocjan2006]. -/
 theorem heatTest_le_one {C mu T x : ℝ} (hC : 0 < C) (hT : 0 ≤ T)
     (hx : mu / C ≤ x) : heatTest C mu T x ≤ 1 := by
   unfold heatTest
@@ -104,6 +146,8 @@ theorem heatTest_le_one {C mu T x : ℝ} (hC : 0 < C) (hT : 0 ≤ T)
     linarith
   nlinarith
 
+/-- The function `u ↦ exp (-u)` is Lipschitz with constant one on the nonnegative half-line
+[JanzingWocjan2006]. -/
 theorem expNeg_lipschitz :
     LipschitzOnWith 1 (fun u : ℝ => Real.exp (-u)) (Set.Ici (0 : ℝ)) := by
   apply Convex.lipschitzOnWith_of_nnnorm_deriv_le (𝕜 := ℝ)
@@ -120,11 +164,15 @@ theorem expNeg_lipschitz :
     exact_mod_cast hle
   · exact convex_Ici (0 : ℝ)
 
+/-- For nonnegative `u` and `v`, the difference of their negative exponentials is at most `|u -
+v|` in absolute value. -/
 theorem abs_expNeg_sub_le {u v : ℝ} (hu : 0 ≤ u) (hv : 0 ≤ v) :
     |Real.exp (-u) - Real.exp (-v)| ≤ |u - v| := by
   have h := expNeg_lipschitz.dist_le_mul u hu v hv
   simpa [Real.dist_eq] using h
 
+/-- For positive `C` and nonnegative `T`, the heat test has Lipschitz bound `C * T` on the
+half-line starting at `mu / C` [JanzingWocjan2006]. -/
 theorem heatTest_lipschitz {C mu T : ℝ} (hC : 0 < C) (hT : 0 ≤ T)
     {x y : ℝ} (hx : mu / C ≤ x) (hy : mu / C ≤ y) :
     |heatTest C mu T x - heatTest C mu T y| ≤ C * T * |x - y| := by

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierBasis
+
+/-!
+# Specification of the orbit Fourier basis identities
+
+`OrbitFourierBasisSubgoal` collects three identities for the regular representation of a finite
+abelian group: character vector orthonormality, the translation eigenvalue `χ (-g₀)`, and the
+equal amplitude expansion of `Ket 0`. These identities specify the Fourier decomposition used in
+stabilizer phase sampling. [Kitaev1995]
+
+## Main statements
+
+* `OrbitFourierBasisSubgoal`: the proposition collecting the three Fourier vector identities.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open scoped Classical
@@ -13,6 +31,8 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 
+/-- The proposition that normalized character vectors are orthonormal, translation by `g₀` acts
+on the vector for `χ` with eigenvalue `χ (-g₀)`, and their equal amplitude sum is `Ket 0`. -/
 def OrbitFourierBasisSubgoal : Prop :=
   ∀ (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E],
     (∀ χ η : AddChar E ℂ,

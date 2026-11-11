@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+
+/-!
+# Positivity and no signalling for qudit branches
+
+This module establishes linearity and positivity of `quditBobBranchMarginal` and rewrites local
+operations in a register order with Bob first. These identities support the resource converse
+for the teleportation protocol of [BennettEtAl1993Teleportation].
+
+The no signalling identity shows that a complete local operation by Alice leaves Bob's
+unconditioned resource marginal unchanged, apart from the input trace factor.
+
+## Main statements
+
+* `quditBobBranchMarginal_positive`: branch marginals preserve positive semidefiniteness.
+* `quditBobBranchMarginal_no_signalling`: the sum of uncorrected branches depends only on the
+  resource marginal and input trace.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +42,8 @@ variable {n : ℕ}
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Moving Bob's register first turns an operator acting on Alice's two registers into an
+identity on Bob tensored with Alice's flattened operator. -/
 theorem quditBobFirst_local_gate (A : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     relabelGate (quditBobFirstEquiv n) (TensorGate A (1 : Operator n)) =
       TensorGate (1 : Operator n) (relabelGate finProdFinEquiv A) := by
@@ -29,6 +53,8 @@ theorem quditBobFirst_local_gate (A : Matrix (Fin n × Fin n) (Fin n × Fin n) �
     (1 : Operator n) x.1 y.1 * A (finProdFinEquiv.symm x.2) (finProdFinEquiv.symm y.2)
   exact mul_comm _ _
 
+/-- For a positive semidefinite resource and input, each uncorrected Bob branch marginal is
+positive semidefinite. -/
 theorem quditBobBranchMarginal_positive
     (K : Fin n × Fin n → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -41,6 +67,7 @@ theorem quditBobBranchMarginal_positive
   simpa only [Matrix.conjTranspose_conjTranspose] using
     hj.conjTranspose_mul_mul_same (TensorGate (K s) (1 : Operator n))ᴴ
 
+/-- An uncorrected Bob branch marginal preserves addition of input operators. -/
 theorem quditBobBranchMarginal_add
     (K : Fin n × Fin n → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (s : Fin n × Fin n) (A B : Operator n) :
@@ -49,6 +76,7 @@ theorem quditBobBranchMarginal_add
     Matrix.reindex_apply, Matrix.submatrix_add, Pi.add_apply,
     Matrix.mul_add, Matrix.add_mul, partialTrace_add]
 
+/-- An uncorrected Bob branch marginal preserves complex scalar multiplication of the input. -/
 theorem quditBobBranchMarginal_smul
     (K : Fin n × Fin n → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (s : Fin n × Fin n) (c : ℂ) (A : Operator n) :
@@ -57,6 +85,8 @@ theorem quditBobBranchMarginal_smul
     Matrix.reindex_apply, Matrix.submatrix_smul, Pi.smul_apply,
     Matrix.mul_smul, Matrix.smul_mul, partialTrace_smul]
 
+/-- Expresses Bob's branch marginal as a partial trace with Bob first and Alice's branch
+operator acting only on the discarded register. -/
 theorem quditBobBranchMarginal_bobFirst
     (K : Fin n × Fin n → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (s : Fin n × Fin n) (ρ : Operator n) :
@@ -69,6 +99,8 @@ theorem quditBobBranchMarginal_bobFirst
   rw [converse_relabel_mul, converse_relabel_mul, converse_relabel_adjoint,
     quditBobFirst_local_gate]
 
+/-- For a complete family of Alice's branch operators, summing Bob's uncorrected branch
+marginals gives the resource's Bob marginal scaled by the trace of the input. -/
 theorem quditBobBranchMarginal_no_signalling
     (K : Fin n × Fin n → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)

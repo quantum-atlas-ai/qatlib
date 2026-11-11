@@ -9,6 +9,31 @@ import Mathlib.Data.List.Permutation
 import Mathlib.Data.List.NodupEquivFin
 import Mathlib.Data.List.FinRange
 import Mathlib.Data.Fintype.Perm
+
+/-!
+# Multilinear components of word logarithms
+
+`permutationWords` and the linear projection `selectWords` isolate a fixed letter multiplicity
+class. The support predicate `SupportedOn` tracks these classes through products and right
+nested brackets.
+
+Word selection commutes with the Dynkin map, yielding bracket expansions of selected logarithm
+components. For strictly increasing input lists, Eulerian descent weights give the phi formulas
+used in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `selectWords_dynkin`: commutes word selection with the Dynkin map.
+* `selected_log_bracket_sum`: expands a positive degree selected logarithm component into
+  brackets.
+* `selected_log_phi`: gives its descent weighted expansion for increasing lists.
+* `sum_permutationWords`: reindexes finite range permutation words by permutations.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,13 +46,17 @@ open scoped BigOperators MonoidAlgebra Classical
 open BCHDynkin BCHWordLie BCHWordCuts BCHCutCounts BCHEulerian
 variable {α : Type}
 
+/-- The finite set of distinct permutations of a list. -/
 def permutationWords (xs : List α) : Finset (List α) := by
   classical
   exact xs.permutations.toFinset
 
+/-- A word belongs to `permutationWords xs` exactly when it is a permutation of `xs`. -/
 theorem mem_permutationWords (w xs : List α) : w ∈ permutationWords xs ↔ w.Perm xs := by
   simp only [permutationWords, List.mem_toFinset, List.mem_permutations]
 
+/-- For a list without repetitions, summing over its permutation finite set equals summing over
+its permutation list. -/
 theorem sum_permutationWords_list {M : Type} [AddCommMonoid M] (xs : List α)
     (hxs : xs.Nodup) (f : List α → M) :
     (∑ w ∈ permutationWords xs, f w) = (xs.permutations.map f).sum := by
@@ -35,6 +64,8 @@ theorem sum_permutationWords_list {M : Type} [AddCommMonoid M] (xs : List α)
   change xs.permutations.toFinset.sum f = _
   exact List.sum_toFinset f (List.nodup_permutations xs hxs)
 
+/-- The rational linear projection retaining exactly the words that are permutations of the
+specified list. -/
 def selectWords (xs : List α) : WordAlg α →ₗ[ℚ] WordAlg α := by
   classical
   exact
@@ -60,11 +91,14 @@ def selectWords (xs : List α) : WordAlg α →ₗ[ℚ] WordAlg α := by
         · simp only [if_neg h, mul_zero]
         }
 
+/-- Word selection preserves a coefficient when its word is a permutation of the target list and
+sets it to zero otherwise. -/
 theorem selectWords_coeff (xs : List α) (p : WordAlg α) (w : FreeMonoid α) :
     (selectWords xs p).coeff w = if w.toList.Perm xs then p.coeff w else 0 := by
   classical
   rfl
 
+/-- A word basis element has coefficient one on that word and zero on every other word. -/
 theorem word_coeff (u : List α) (v : FreeMonoid α) :
     (word u).coeff v = if u = v.toList then 1 else 0 := by
   classical
@@ -78,8 +112,10 @@ theorem word_coeff (u : List α) (v : FreeMonoid α) :
       exact h (by simpa only [FreeMonoid.toList_ofList] using congrArg FreeMonoid.toList he)
     rw [if_neg h, if_neg he]
 
+/-- Every word in the support of an element is a permutation of the given list. -/
 def SupportedOn (p : WordAlg α) (xs : List α) : Prop := ∀ w ∈ p.support, w.toList.Perm xs
 
+/-- A word basis element is supported on permutations of its defining list. -/
 theorem supportedOn_word (xs : List α) : SupportedOn (word xs) xs := by
   intro v hv
   have hn : (word xs).coeff v ≠ 0 := by simpa using! hv
@@ -87,6 +123,8 @@ theorem supportedOn_word (xs : List α) : SupportedOn (word xs) xs := by
   have he : xs = v.toList := by split_ifs at hn with h; exact h; contradiction
   simpa only [he] using List.Perm.refl xs
 
+/-- The difference of two elements supported on permutations of the same list has the same
+support restriction. -/
 theorem SupportedOn.sub {p q : WordAlg α} {xs : List α}
     (hp : SupportedOn p xs) (hq : SupportedOn q xs) : SupportedOn (p - q) xs := by
   intro v hv
@@ -100,6 +138,8 @@ theorem SupportedOn.sub {p q : WordAlg α} {xs : List α}
     simpa using! hq'
   · exact hp v (by simpa using! h)
 
+/-- The product of elements supported on permutations of two lists is supported on permutations
+of their concatenation. -/
 theorem SupportedOn.mul {p q : WordAlg α} {xs ys : List α}
     (hp : SupportedOn p xs) (hq : SupportedOn q ys) : SupportedOn (p * q) (xs ++ ys) := by
   classical
@@ -113,6 +153,7 @@ theorem SupportedOn.mul {p q : WordAlg α} {xs ys : List α}
   have hr := hq (FreeMonoid.ofList (v.toList.drop i)) (by simpa using! hright)
   simpa only [FreeMonoid.toList_ofList, List.take_append_drop] using hl.append hr
 
+/-- The right nested commutator of a letter list is supported on permutations of that list. -/
 theorem supportedOn_rightBracket (xs : List α) : SupportedOn (rightBracket (xs.map letter)) xs := by
   induction xs with
   | nil =>
@@ -132,6 +173,7 @@ theorem supportedOn_rightBracket (xs : List α) : SupportedOn (rightBracket (xs.
         have he := (ih.mul (supportedOn_word [a])) v (by simpa only [ha] using! hv)
         exact he.trans List.perm_append_comm
 
+/-- Word selection fixes an element supported on permutations of the selected list. -/
 theorem selectWords_eq_self {xs : List α} (p : WordAlg α) (hp : SupportedOn p xs) :
     selectWords xs p = p := by
   classical
@@ -146,6 +188,7 @@ theorem selectWords_eq_self {xs : List α} (p : WordAlg α) (hp : SupportedOn p 
     by_contra he
     exact h (hp v (by simpa using! he))
 
+/-- Word selection vanishes on an element supported on a different permutation class. -/
 theorem selectWords_eq_zero {xs ys : List α} (p : WordAlg α) (hp : SupportedOn p ys)
     (hxy : ¬ ys.Perm xs) : selectWords xs p = 0 := by
   classical
@@ -161,6 +204,8 @@ theorem selectWords_eq_zero {xs ys : List α} (p : WordAlg α) (hp : SupportedOn
   · rw [if_neg h]
     rfl
 
+/-- Selecting a right nested letter bracket keeps it if its list is a permutation of the target
+list and gives zero otherwise. -/
 theorem selectWords_rightBracket (xs w : List α) :
     selectWords xs (rightBracket (w.map letter)) =
       if w.Perm xs then rightBracket (w.map letter) else 0 := by
@@ -173,6 +218,8 @@ theorem selectWords_rightBracket (xs w : List α) :
   · rw [if_neg h]
     exact selectWords_eq_zero _ (supportedOn_rightBracket w) h
 
+/-- Selecting a word basis element keeps it if its list is a permutation of the target list and
+gives zero otherwise. -/
 theorem selectWords_word (xs w : List α) :
     selectWords xs (word w) = if w.Perm xs then word w else 0 := by
   by_cases h : w.Perm xs
@@ -183,10 +230,12 @@ theorem selectWords_word (xs w : List α) :
   · rw [if_neg h]
     exact selectWords_eq_zero _ (supportedOn_word w) h
 
+/-- The Dynkin map sends a word basis element to its right nested letter bracket. -/
 theorem dynkin_word (w : List α) : dynkin (word w) = rightBracket (w.map letter) := by
   rw [word, dynkin_single]
   simp only [one_smul, FreeMonoid.toList_ofList]
 
+/-- Word selection commutes with the Dynkin map. -/
 theorem selectWords_dynkin (xs : List α) (p : WordAlg α) :
     selectWords xs (dynkin p) = dynkin (selectWords xs p) := by
   have hw (w : List α) : selectWords xs (dynkin (word w)) = dynkin (selectWords xs (word w)) := by
@@ -197,6 +246,8 @@ theorem selectWords_dynkin (xs : List α) (p : WordAlg α) :
   | add p q hp hq => simp only [map_add, hp, hq]
   | smul c p hp => simp only [map_smul, hp]
 
+/-- The selected part of an element is the sum of its coefficients times the word basis elements
+over the target permutation class. -/
 theorem selectWords_sum (xs : List α) (p : WordAlg α) :
     selectWords xs p = ∑ w ∈ permutationWords xs,
       p.coeff (FreeMonoid.ofList w) • word w := by
@@ -209,12 +260,15 @@ theorem selectWords_sum (xs : List α) (p : WordAlg α) :
     Finsupp.smul_apply, word_coeff, smul_eq_mul, mul_ite, mul_one, mul_zero,
     Finset.sum_ite_eq', List.mem_toFinset, List.mem_permutations, FreeMonoid.ofList_toList]
 
+/-- The Dynkin map multiplies the nth logarithm coefficient of a letter word series by `n`. -/
 theorem word_log_dynkin (xs : List α) (n : ℕ) :
     dynkin (BCHWordLog.logCoefficient (wordSeries (xs.map letter)) n) =
       n • BCHWordLog.logCoefficient (wordSeries (xs.map letter)) n := by
   simpa only [letterWord, List.map_map, Function.comp_def, one_smul] using
     letterWord_log_dynkin (xs.map (fun a => ((1 : ℚ), a))) n
 
+/-- At positive degree, the selected logarithm component is a sum of right nested brackets
+weighted by word coefficients divided by the degree. -/
 theorem selected_log_bracket_sum (xs : List α) (n : ℕ) (hn : 0 < n) :
     selectWords xs (BCHWordLog.logCoefficient (wordSeries (xs.map letter)) n) =
       ∑ w ∈ permutationWords xs,
@@ -232,6 +286,8 @@ theorem selected_log_bracket_sum (xs : List α) (n : ℕ) (hn : 0 < n) :
 section Ordered
 variable [LinearOrder α]
 
+/-- For a nonempty strictly increasing letter list, the multilinear logarithm component is the
+permutation sum of right nested brackets with descent dependent phi weights. -/
 theorem selected_log_phi (xs : List α) (hxs : xs.Pairwise (· < ·)) (hn : 0 < xs.length) :
     selectWords xs (BCHWordLog.logCoefficient (wordSeries (xs.map letter)) xs.length) =
       ∑ w ∈ permutationWords xs, phiWeight xs.length (descents w) •
@@ -250,6 +306,8 @@ theorem selected_log_phi (xs : List α) (hxs : xs.Pairwise (· < ·)) (hn : 0 < 
       simpa only [hp.length_eq, descentWeight] using word_log_eulerian xs hxs a w hwd hsub
     rw [hc, descentWeight_div_degree]
 
+/-- Evaluating the multilinear logarithm component of a nonempty increasing letter list gives
+the permutation sum of evaluated right nested brackets with phi weights. -/
 theorem evaluate_selected_log_phi {B : Type} [Ring B] [Algebra ℚ B]
     (X : α → B) (xs : List α) (hxs : xs.Pairwise (· < ·)) (hn : 0 < xs.length) :
     evaluateWords X (selectWords xs (BCHWordLog.logCoefficient (wordSeries (xs.map letter)) xs.length)) =
@@ -261,11 +319,14 @@ theorem evaluate_selected_log_phi {B : Type} [Ring B] [Algebra ℚ B]
 
 end Ordered
 
+/-- The list of values of a permutation of `Fin n` is a permutation word of `List.finRange n`. -/
 theorem ofFn_mem_permutationWords {n : ℕ} (σ : Equiv.Perm (Fin n)) :
     List.ofFn σ ∈ permutationWords (List.finRange n) := by
   apply (mem_permutationWords _ _).mpr
   simpa only [List.ofFn_eq_map] using σ.map_finRange_perm
 
+/-- Every permutation word of `List.finRange n` is the list of values of some permutation of
+`Fin n`. -/
 theorem permutation_of_word {n : ℕ} (w : List (Fin n))
     (hw : w ∈ permutationWords (List.finRange n)) : ∃ σ : Equiv.Perm (Fin n), List.ofFn σ = w := by
   have hp := (mem_permutationWords w _).mp hw
@@ -280,6 +341,8 @@ theorem permutation_of_word {n : ℕ} (w : List (Fin n))
   simp only [List.getElem_ofFn]
   rfl
 
+/-- Summing over permutation words of `List.finRange n` equals summing over permutations of `Fin
+n`. -/
 theorem sum_permutationWords {n : ℕ} {M : Type} [AddCommMonoid M] (f : List (Fin n) → M) :
     (∑ w ∈ permutationWords (List.finRange n), f w) = ∑ σ : Equiv.Perm (Fin n), f (List.ofFn σ) := by
   symm

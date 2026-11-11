@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
+
+/-!
+# Adaptive Kraus circuits with variable outcome counts
+
+`VariableKrausCircuit` describes finite adaptive circuits whose Kraus nodes may have different
+numbers of outcomes. It provides mixed branch traces, event masses, expected query counts, and
+structural bounds on query use and outcome counts, within the finite quantum operation framework
+of [Kraus1983].
+
+`padVariableKraus` extends every Kraus family to a common outcome count by adding zero
+operators. The module proves that a sufficient width bound preserves completeness and the
+worst-case query budget.
+
+## Main statements
+
+* `variableKraus_fits_of_width_le`: a structural width bound controls every outcome count.
+* `padVariableKraus_wellFormed`: padding preserves well-formedness when the width fits.
+* `padVariableKraus_budget`: padding preserves the query budget when the width fits.
+
+## References
+
+* [Kraus, 1983][Kraus1983]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -17,12 +41,16 @@ namespace Qatlib.Concepts.Execution.CircuitCompile
 
 open Matrix
 
+/-- A finite adaptive circuit with gate or query steps, Boolean halting outcomes, and Kraus
+nodes whose outcome counts may vary. -/
 inductive VariableKrausCircuit (d : ℕ) where
   | halt (accepted : Bool)
   | step (action : Step (Fin d)) (next : VariableKrausCircuit d)
   | instrument (s : ℕ) (K : Fin s → Operator d)
       (next : Fin s → VariableKrausCircuit d)
 
+/-- Requires known gates to be unitary, each Kraus family to satisfy completeness, and every
+continuation to be well-formed. -/
 def variableKrausWellFormed {d : ℕ} : VariableKrausCircuit d → Prop
   | .halt _ => True
   | .step (.gate G) P => G ∈ Matrix.unitaryGroup (Fin d) ℂ ∧ variableKrausWellFormed P
@@ -30,17 +58,21 @@ def variableKrausWellFormed {d : ℕ} : VariableKrausCircuit d → Prop
   | .instrument _ K next => (∑ a, (K a).conjTranspose * K a = 1) ∧
       ∀ a, variableKrausWellFormed (next a)
 
+/-- The largest number of Kraus outcomes at any node of the circuit, with value zero for a
+circuit without Kraus nodes. -/
 def variableKrausWidth {d : ℕ} : VariableKrausCircuit d → ℕ
   | .halt _ => 0
   | .step _ P => variableKrausWidth P
   | .instrument s _ next =>
       max s (Finset.univ.sup fun a => variableKrausWidth (next a))
 
+/-- Requires every Kraus node in the circuit to have at most `S` outcomes. -/
 def variableKrausFits {d : ℕ} (S : ℕ) : VariableKrausCircuit d → Prop
   | .halt _ => True
   | .step _ P => variableKrausFits S P
   | .instrument s _ next => s ≤ S ∧ ∀ a, variableKrausFits S (next a)
 
+/-- The largest number of query steps along a circuit branch. -/
 def variableKrausBudget {d : ℕ} : VariableKrausCircuit d → ℕ
   | .halt _ => 0
   | .step (.gate _) P => variableKrausBudget P
@@ -48,6 +80,8 @@ def variableKrausBudget {d : ℕ} : VariableKrausCircuit d → ℕ
   | .instrument _ _ next =>
       Finset.univ.sup fun a => variableKrausBudget (next a)
 
+/-- Enumerates terminal mixed branch traces with unnormalized operators, outcomes, and resource
+counts. Each Kraus node contributes two gates and one measurement. -/
 noncomputable def variableKrausMixedTraces {d : ℕ} (O : Operator d) :
     VariableKrausCircuit d → Operator d → List (MixedBranchTrace d)
   | .halt b, rho => [⟨rho, b, 0, 0, 0, []⟩]
@@ -62,16 +96,20 @@ noncomputable def variableKrausMixedTraces {d : ℕ} (O : Operator d) :
         (variableKrausMixedTraces O (next a) (conjBranch (K a) rho)).map fun t =>
           {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s, a.val) :: t.outcomes}).flatten
 
+/-- The sum of mixed branch masses selected by an event on acceptance flags and outcome records. -/
 noncomputable def variableKrausEventMass {d : ℕ} (O : Operator d)
     (P : VariableKrausCircuit d) (rho : Operator d)
     (event : Bool → List (ℕ × ℕ) → Bool) : ℝ :=
   ((variableKrausMixedTraces O P rho).map fun t =>
     if event t.accepted t.outcomes then mixedMass t else 0).sum
 
+/-- The sum of terminal query counts weighted by their mixed branch masses. -/
 noncomputable def variableKrausExpectedQueries {d : ℕ} (O : Operator d)
     (P : VariableKrausCircuit d) (rho : Operator d) : ℝ :=
   ((variableKrausMixedTraces O P rho).map fun t => mixedMass t * t.queries).sum
 
+/-- Restores each outcome count in a record to the count of the corresponding variable Kraus
+node. -/
 def restoreVariableKrausRecord {d : ℕ} : VariableKrausCircuit d →
     List (ℕ × ℕ) → List (ℕ × ℕ)
   | .halt _, record => record
@@ -82,6 +120,8 @@ def restoreVariableKrausRecord {d : ℕ} : VariableKrausCircuit d →
         (s, a) :: restoreVariableKrausRecord (next ⟨a, h⟩) rest
       else []
 
+/-- Pads each Kraus node to `S` outcomes using zero operators and rejecting halts for added
+outcomes. -/
 def padVariableKraus {d : ℕ} (S : ℕ) :
     VariableKrausCircuit d → KrausCircuit d S
   | .halt b => .halt b
@@ -93,6 +133,7 @@ def padVariableKraus {d : ℕ} (S : ℕ) :
           if h : a.val < s then padVariableKraus S (next ⟨a.val, h⟩)
           else .halt false)
 
+/-- Extending a finite sum by zero terms to any larger finite index set preserves its value. -/
 theorem sum_fin_zero_padding {M : Type*} [AddCommMonoid M]
     {s S : ℕ} (h : s ≤ S) (f : Fin s → M) :
     (∑ a : Fin S, if ha : a.val < s then f ⟨a.val, ha⟩ else 0) =
@@ -111,6 +152,7 @@ theorem sum_fin_zero_padding {M : Type*} [AddCommMonoid M]
         rw [Fin.sum_univ_castSucc]
         simpa [Fin.val_castSucc, Fin.val_last, Nat.not_lt_of_ge hs] using ih hs f
 
+/-- The width of any child circuit is bounded by the supremum of all child widths. -/
 private theorem variableKrausWidth_child_le {d s : ℕ}
     (next : Fin s → VariableKrausCircuit d) (a : Fin s) :
     variableKrausWidth (next a) ≤ Finset.univ.sup
@@ -118,6 +160,7 @@ private theorem variableKrausWidth_child_le {d s : ℕ}
   Finset.le_sup (f := fun b : Fin s => variableKrausWidth (next b))
     (Finset.mem_univ a)
 
+/-- A circuit whose structural width is at most `S` satisfies the bound `variableKrausFits S`. -/
 theorem variableKraus_fits_of_width_le {d : ℕ}
     (P : VariableKrausCircuit d) (S : ℕ)
     (h : variableKrausWidth P ≤ S) : variableKrausFits S P := by
@@ -132,6 +175,7 @@ theorem variableKraus_fits_of_width_le {d : ℕ}
         exact le_trans (variableKrausWidth_child_le next a)
           (le_trans (Nat.le_max_right _ _) h)
 
+/-- Extending a finite family of natural numbers by zeros preserves its supremum. -/
 private theorem nat_fin_sup_zero_padding {s S : ℕ}
     (h : s ≤ S) (f : Fin s → ℕ) :
     Finset.univ.sup
@@ -156,6 +200,8 @@ private theorem nat_fin_sup_zero_padding {s S : ℕ}
         Finset.le_sup (f := fun x : Fin S =>
           if hx : x.val < s then f ⟨x.val, hx⟩ else 0) (Finset.mem_univ b)
 
+/-- Padding a well-formed variable Kraus circuit preserves well-formedness when every outcome
+count is at most the padding width. -/
 theorem padVariableKraus_wellFormed {d : ℕ}
     (P : VariableKrausCircuit d) (S : ℕ)
     (hfit : variableKrausFits S P) (hP : variableKrausWellFormed P) :
@@ -190,6 +236,7 @@ theorem padVariableKraus_wellFormed {d : ℕ}
             (ih ⟨a.val, ha⟩ (hfitNext ⟨a.val, ha⟩) (hnext ⟨a.val, ha⟩))
         · simp [padVariableKraus, ha, krausCircuitWellFormed]
 
+/-- Padding to a width that fits the circuit preserves its worst-case query budget. -/
 theorem padVariableKraus_budget {d : ℕ}
     (P : VariableKrausCircuit d) (S : ℕ)
     (hfit : variableKrausFits S P) :

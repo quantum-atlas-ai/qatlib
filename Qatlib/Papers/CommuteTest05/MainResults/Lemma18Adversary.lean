@@ -9,6 +9,22 @@ import Mathlib.Algebra.Order.Ring.Unbundled.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# A one-query adversary increment estimate
+
+This module proves the finite-sum inequality controlling a one-query adversary increment in
+Lemma 18 of [Itakura2005]. Bounds on the squared amplitudes over a finite relation imply a bound
+on their paired products through the positive parameters `m` and `m'`.
+
+## Main statements
+
+* `lemma18_increment_bound`: Bounds the weighted relation sum by `2 * card R / sqrt(m * m')`.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +32,9 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.CommuteTest05.MainResults.Lemma18Adversary
 
+/-- For a finite relation with nonnegative selected amplitudes and the stated squared-mass
+bounds, `2 * ∑ p ∈ R, a p.1 (d p) * b p.2 (d p)` is at most `2 * R.card / sqrt(m * m')`.
+This is the scalar increment estimate of [Itakura, Lemma 18][Itakura2005]. -/
 theorem lemma18_increment_bound
     {ι X Y : Type*} (R : Finset (X × Y)) (d : X × Y → ι)
     (a : X → ι → ℝ) (b : Y → ι → ℝ) {m m' : ℝ}

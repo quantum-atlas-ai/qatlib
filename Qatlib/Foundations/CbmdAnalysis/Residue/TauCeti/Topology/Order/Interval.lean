@@ -8,6 +8,31 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Topology.Order.Compact
+
+/-!
+# Neighborhood intervals and monotone images
+
+Proves interval neighborhood and compact-containment lemmas in ordered topological spaces. It
+also classifies closed unbounded order-connected sets and determines the image of a continuous
+increasing function on an upper ray with a finite limit.
+
+These ordered-topology tools support contour parameter arguments associated with [WangEtAl2026].
+
+## Main statements
+
+* `exists_Icc_subset_uIcc_disjoint`: An interior point outside a closed set has a smaller closed
+  interval inside the original unordered interval whose interior avoids that set.
+* `IsCompact.exists_Icc_between`: A nonempty compact subset of an open interval lies in a
+  smaller open interval whose closed interval still lies in the original open interval.
+* `ContinuousOn.image_Ici_of_strictMonoOn_of_tendsto`: A continuous strictly increasing function
+  on a closed upper ray that tends to `D` has image equal to the half-open interval from its
+  initial value to `D`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +44,8 @@ open Filter Set Topology
 
 namespace TauCeti
 
+/-- The unordered closed interval is a neighborhood of any of its points distinct from both
+endpoints. -/
 theorem uIcc_mem_nhds_of_ne {α : Type*} [TopologicalSpace α] [LinearOrder α]
     [OrderClosedTopology α] {a b t : α} (ht : t ∈ uIcc a b) (ha : t ≠ a) (hb : t ≠ b) :
     uIcc a b ∈ 𝓝 t := by
@@ -28,6 +55,8 @@ theorem uIcc_mem_nhds_of_ne {α : Type*} [TopologicalSpace α] [LinearOrder α]
   · rw [uIcc_of_ge hab] at ht ⊢
     exact Icc_mem_nhds (lt_of_le_of_ne ht.1 hb.symm) (lt_of_le_of_ne ht.2 ha)
 
+/-- An interior point outside a closed set has a smaller closed interval inside the original
+unordered interval whose interior avoids that set. -/
 theorem exists_Icc_subset_uIcc_disjoint {α : Type*} [LinearOrder α] [TopologicalSpace α]
     [OrderTopology α] [DenselyOrdered α] {a b t : α} {s : Set α}
     (hs : IsClosed s) (ht : t ∈ Ioo (min a b) (max a b)) (hts : t ∉ s) :
@@ -42,6 +71,8 @@ theorem exists_Icc_subset_uIcc_disjoint {α : Type*} [LinearOrder α] [Topologic
   refine ⟨c, d, ⟨hct, htd⟩, fun x hx => Icc_min_max.subset (Ioo_subset_Icc_self (hcd hx).1),
     disjoint_right.mpr fun x hx => (hcd (Ioo_subset_Icc_self hx)).2⟩
 
+/-- A nonempty compact subset of an open interval lies in a smaller open interval whose closed
+interval still lies in the original open interval. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsCompact.exists_Icc_between {α : Type*} [LinearOrder α] [TopologicalSpace α]
     [OrderClosedTopology α] [DenselyOrdered α] {K : Set α} {a b : α} (hK : IsCompact K)
     (hne : K.Nonempty) (hKs : K ⊆ Ioo a b) :
@@ -53,6 +84,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsCompact.exists_Icc_betw
   exact ⟨c, d, fun x hx ↦ ⟨hcm.trans_le (hm hx), (hM hx).trans_lt hMd⟩,
     fun x hx ↦ ⟨hac.trans_le hx.1, hx.2.trans_lt hdb⟩⟩
 
+/-- A nonempty closed order-connected set that is not bounded both above and below is a closed
+upper ray, a closed lower ray, or the whole space. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Set.OrdConnected.eq_Ici_or_eq_Iic_or_eq_univ
     {α : Type*} [ConditionallyCompleteLinearOrder α] [TopologicalSpace α] [OrderTopology α]
     {s : Set α} (hs : s.OrdConnected) (hne : s.Nonempty) (hclosed : IsClosed s)
@@ -84,6 +117,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Set.OrdConnected.eq_Ici_o
       obtain ⟨z, hz, hxz⟩ := exists_gt x habove
       exact hs.out hy hz ⟨hyx.le, hxz.le⟩
 
+/-- A continuous strictly increasing function on a closed upper ray that tends to `D` has image
+equal to the half-open interval from its initial value to `D`. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.image_Ici_of_strictMonoOn_of_tendsto
     {α β : Type*} [ConditionallyCompleteLinearOrder α] [TopologicalSpace α] [OrderTopology α]
     [DenselyOrdered α] [NoMaxOrder α]

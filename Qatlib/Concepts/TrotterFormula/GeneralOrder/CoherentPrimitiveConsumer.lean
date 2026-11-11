@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
+
+/-!
+# A counted coherent phase-oracle example
+
+The explicit auxiliary rotation and input frame define `coherentPhaseOracle ζ`, whose compressed
+block is one half of a phase-scaled Pauli matrix. `coherent_phase_oracle_counted_consumer` gives
+exact repeated amplified-circuit semantics, counts its queries and gates, and bounds the
+accumulated phase error. For background, see [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `coherent_phase_oracle_data`: projected unitary encoding for the explicit oracle.
+* `coherent_phase_oracle_counted_consumer`: repeated circuit action, query counts, and vector
+  errors.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,25 +58,31 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
 
+/-- A unitary matrix preserves the Euclidean norm of a state vector. -/
 private theorem norm_toEuclidean_mulVec_of_unitary {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     ‖toEuclidean_fromVec (U *ᵥ ψ)‖ = ‖toEuclidean_fromVec ψ‖ :=
   norm_applyGate_of_mem_unitaryGroup hU ψ
 
+/-- An isometric matrix preserves the Euclidean norm of a state vector. -/
 private theorem norm_toEuclidean_mulVec_of_isometry {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] {V : Matrix H I ℂ} (hV : IsIsometry V) (ψ : QState I) :
     ‖toEuclidean_fromVec (V *ᵥ ψ)‖ = ‖toEuclidean_fromVec ψ‖ :=
   Qatlib.Concepts.BlockEncoding.Postselection.Encoding.IsIsometry.stateVector_norm hV ψ
 
+/-- Real scalar multiplication of a complex matrix equals multiplication by the same scalar
+coerced to `ℂ`. -/
 private theorem real_smul_matrix_eq {H I : Type} [Fintype H] [Fintype I] (r : ℝ)
     (M : Matrix H I ℂ) : (r • M) = ((r : ℂ)) • M := by
   ext i j
   simp only [Matrix.smul_apply, Complex.real_smul, smul_eq_mul]
 
+/-- A complex number of norm one satisfies `IsPhase`. -/
 private theorem isPhase_of_complex_norm_eq_one {ζ : ℂ} (hζ : ‖ζ‖ = 1) : IsPhase ζ := by
   rw [IsPhase, Complex.star_def, mul_comm, Complex.mul_conj, Complex.normSq_eq_norm_sq,
     hζ, one_pow, Complex.ofReal_one]
 
+/-- For a unit-modulus complex number, `‖ζ ^ n - 1‖` is at most `n * ‖ζ - 1‖`. -/
 private theorem complex_norm_pow_sub_one_le (ζ : ℂ) (hζ : ‖ζ‖ = 1) (n : ℕ) :
     ‖ζ ^ n - 1‖ ≤ (n : ℝ) * ‖ζ - 1‖ := by
   induction n with
@@ -69,15 +95,21 @@ private theorem complex_norm_pow_sub_one_le (ζ : ℂ) (hζ : ‖ζ‖ = 1) (n :
     exact (norm_add_le _ _).trans
       (add_le_add (by rw [norm_mul, hζ, one_mul]; exact ih) le_rfl)
 
+/-- The real planar rotation matrix with diagonal entries `1 / 2` and off-diagonal entries `-√3
+/ 2` and `√3 / 2`. -/
 noncomputable def coherentAuxRotation : Operator 2 :=
   !![1 / 2, -Real.sqrt 3 / 2; Real.sqrt 3 / 2, 1 / 2]
 
+/-- The basis embedding of a qubit into the joint register with auxiliary label zero. -/
 noncomputable def coherentInputFrame : Matrix (Fin 2 × Fin 2) (Fin 2) ℂ :=
   Matrix.of fun p j => if p = (0, j) then 1 else 0
 
+/-- The tensor product of `coherentAuxRotation` with the phase-scaled matrix `ζ • pauliXChoice
+true`. -/
 noncomputable def coherentPhaseOracle (ζ : ℂ) : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
   TensorGate coherentAuxRotation (ζ • pauliXChoice true)
 
+/-- The explicit auxiliary rotation is unitary. -/
 private theorem coherentAuxRotation_unitary :
     coherentAuxRotation ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -92,6 +124,7 @@ private theorem coherentAuxRotation_unitary :
         Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 3)]; norm_num)
     | ring
 
+/-- The input frame embedding into auxiliary label zero is isometric. -/
 private theorem coherentInputFrame_isometry : IsIsometry coherentInputFrame := by
   show coherentInputFrameᴴ * coherentInputFrame = 1
   ext j j'
@@ -102,6 +135,8 @@ private theorem coherentInputFrame_isometry : IsIsometry coherentInputFrame := b
     simp [coherentInputFrame, hp]
   · simp
 
+/-- Compression through `coherentInputFrame` selects the auxiliary-zero block of the joint
+matrix. -/
 private theorem compress_coherentInputFrame (M : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     compress coherentInputFrame M coherentInputFrame =
       Matrix.of fun j j' => M (0, j) (0, j') := by
@@ -117,6 +152,8 @@ private theorem compress_coherentInputFrame (M : Matrix (Fin 2 × Fin 2) (Fin 2 
     simp [coherentInputFrame, hq]
   · simp
 
+/-- For unit-modulus `ζ`, the auxiliary rotation is unitary, the input frame is isometric, and
+the oracle encodes `(1/2) • (ζ • pauliXChoice true)`. -/
 theorem coherent_phase_oracle_data (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
     coherentAuxRotation ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧ IsIsometry coherentInputFrame ∧
       ProjectedUnitaryEncoding ((1/2:ℂ)•(ζ•pauliXChoice true)) (coherentPhaseOracle ζ)
@@ -134,6 +171,10 @@ theorem coherent_phase_oracle_data (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
     rw [show coherentAuxRotation (0 : Fin 2) (0 : Fin 2) = 1 / 2 by
       norm_num [coherentAuxRotation]]
 
+/-- A unit-modulus phase within `δ` of one gives a scale-two block encoding; `n` amplified
+repetitions use `3 * n` queries and `4 * n` gates and implement the embedded Pauli power
+with phase `ζ ^ n`. The vector error satisfies both stated linear-in-`n` bounds
+[BerryEtAl2015Taylor]. -/
 theorem coherent_phase_oracle_counted_consumer (ζ : ℂ) (δ : ℝ) (hζ : ‖ζ‖ = 1)
     (hδ : ‖ζ - 1‖ ≤ δ) :
     BlockEncoding (pauliXChoice true) (coherentPhaseOracle ζ) coherentInputFrame

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.WalkSpectralResolutionStat
+
+/-!
+# Spectral resolution of qubitized walks
+
+This module proves the orthogonal support decomposition and spectral resolution of a reflected
+walk associated with a Hermitian unitary compression. It identifies the residual basis, support
+and kernel, and normalized walk eigenvectors with phases given by signed arccosines of the
+compressed eigenvalues. Related mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `Clause12WalkSpectralResolution_answer`: The support and walk spectral identities of
+  Proposition 18 and Corollary 19.
+
+## References
+
+* [Low and Su, 2026, Proposition 18 and Corollary 19][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,13 +52,18 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
   Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
+/-- The pure-state density matrix equals the outer-product matrix. -/
 private theorem pureDensity_eq_outerProduct {I : Type} (ψ : QState I) :
     pureDensity ψ = outerProduct ψ := rfl
 
+/-- Applying a pure density matrix to a vector gives the defining state scaled by its inner
+product with that vector. -/
 private theorem pureDensity_mulVec {I : Type} [Fintype I] (ψ φ : QState I) :
     pureDensity ψ *ᵥ φ = (Qatlib.Foundations.PureStateMath.Inner ψ φ) • ψ := by
   rw [pureDensity_eq_outerProduct, outerProduct_mulVec]
 
+/-- The entry of a product of two pure density matrices is their defining states' inner product
+times the corresponding cross outer-product entry. -/
 private theorem pureDensity_mul_apply {I : Type} [Fintype I] (ψ φ : QState I) (a b : I) :
     (pureDensity ψ * pureDensity φ) a b = Qatlib.Foundations.PureStateMath.Inner ψ φ * (ψ a * star (φ b)) := by
   simp only [Matrix.mul_apply, pureDensity]
@@ -54,23 +78,28 @@ private theorem pureDensity_mul_apply {I : Type} [Fintype I] (ψ φ : QState I) 
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.star_apply]
   ring
 
+/-- The pure density matrix of a state with self-inner-product one is idempotent. -/
 private theorem pureDensity_mul_self {I : Type} [Fintype I] (ψ : QState I)
     (h : Qatlib.Foundations.PureStateMath.Inner ψ ψ = 1) : pureDensity ψ * pureDensity ψ = pureDensity ψ := by
   ext a b
   rw [pureDensity_mul_apply, h, one_mul]
   rfl
 
+/-- The pure density matrix is fixed by the matrix star operation. -/
 private theorem pureDensity_star {I : Type} (ψ : QState I) :
     star (pureDensity ψ) = pureDensity ψ := by
   ext a b
   simp only [pureDensity, Matrix.star_apply]
   rw [star_mul, star_star]
 
+/-- Evaluating a finite sum of matrices at an entry gives the sum of the corresponding entries. -/
 private theorem sum_smul_apply {ι H : Type} [Fintype ι] [Fintype H]
     (f : ι → Matrix H H ℂ) (a b : H) :
     (∑ i, f i) a b = ∑ i, f i a b := by
   rw [Matrix.sum_apply]
 
+/-- Multiplication of a pure density matrix on the left by `M` replaces the first outer-product
+factor by `M *ᵥ x`. -/
 private theorem mul_pureDensity_apply {H : Type} [Fintype H]
     (M : Matrix H H ℂ) (x : QState H) (a b : H) :
     (M * pureDensity x) a b = (M *ᵥ x) a * star (x b) := by
@@ -83,15 +112,18 @@ private theorem mul_pureDensity_apply {H : Type} [Fintype H]
       _ = (∑ k, M a k * x k) * star (x b) := (Finset.sum_mul _ _ _).symm
   rw [h]
 
+/-- Two matrices are equal if they have the same action on every vector. -/
 private theorem eq_of_mulVec_eq {H : Type} [Fintype H] [DecidableEq H] {A B : Matrix H H ℂ}
     (h : ∀ x : H → ℂ, A *ᵥ x = B *ᵥ x) : A = B :=
   Matrix.ext_of_mulVec_single (fun i => h (Pi.single i 1))
 
+/-- The squared vector norm is the sum of squared coordinate norms. -/
 private theorem normVec_sq {H : Type} [Fintype H] (v : H → ℂ) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   show ‖toEuclidean_fromVec v‖ ^ 2 = _
   exact norm_toEuclidean_fromVec_sq v
 
+/-- A normalized state has vector norm one. -/
 private theorem normVec_eq_one_of_normalized {I : Type} [Fintype I]
     {φ : QState I} (hφ : Normalized φ) : normVec φ = 1 := by
   have h2 : normVec φ ^ 2 = 1 := by
@@ -99,6 +131,7 @@ private theorem normVec_eq_one_of_normalized {I : Type} [Fintype I]
   have hn : 0 ≤ normVec φ := norm_nonneg _
   nlinarith
 
+/-- An isometric matrix preserves the vector norm. -/
 private theorem normVec_isometry {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I]
     {L : Matrix H I ℂ} (hL : IsIsometry L) (v : QState I) :
@@ -106,6 +139,7 @@ private theorem normVec_isometry {H I : Type} [Fintype H] [DecidableEq H] [Finty
   show ‖toEuclidean_fromVec (L *ᵥ v)‖ = ‖toEuclidean_fromVec v‖
   exact isometry_mulVec_norm hL v
 
+/-- A unitary matrix preserves the vector norm. -/
 private theorem normVec_unitary {H : Type} [Fintype H] [DecidableEq H]
     {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) (v : QState H) :
     normVec (U *ᵥ v) = normVec v := by
@@ -114,12 +148,15 @@ private theorem normVec_unitary {H : Type} [Fintype H] [DecidableEq H]
     rwa [Matrix.star_eq_conjTranspose] at h
   exact normVec_isometry (show IsIsometry U from hUHU) v
 
+/-- The vector norm of a complex scalar multiple is the scalar norm times the vector norm. -/
 private theorem normVec_smul {H : Type} [Fintype H] (c : ℂ) (v : QState H) :
     normVec (c • v) = ‖c‖ * normVec v := by
   show ‖toEuclidean_fromVec (c • v)‖ = ‖c‖ * ‖toEuclidean_fromVec v‖
   have h : toEuclidean_fromVec (c • v) = c • toEuclidean_fromVec v := rfl
   rw [h, norm_smul]
 
+/-- The pure-state inner product is complex-linear in its second argument under scalar
+multiplication. -/
 private theorem inner_smul_r {I : Type} [Fintype I] (c : ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (c • φ) = c * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   rw [inner_apply, inner_apply]
@@ -129,6 +166,8 @@ private theorem inner_smul_r {I : Type} [Fintype I] (c : ℂ) (ψ φ : QState I)
   show (starRingEnd ℂ) (ψ i) * (c * φ i) = c * ((starRingEnd ℂ) (ψ i) * φ i)
   ring
 
+/-- The pure-state inner product is conjugate-linear in its first argument under scalar
+multiplication. -/
 private theorem inner_smul_l {I : Type} [Fintype I] (c : ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (c • ψ) φ = star c * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   rw [inner_apply, inner_apply]
@@ -139,6 +178,7 @@ private theorem inner_smul_l {I : Type} [Fintype I] (c : ℂ) (ψ φ : QState I)
   rw [map_mul]
   ring
 
+/-- The pure-state inner product distributes over subtraction in its second argument. -/
 private theorem inner_sub_r {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (φ - χ) = Qatlib.Foundations.PureStateMath.Inner ψ φ - Qatlib.Foundations.PureStateMath.Inner ψ χ := by
   rw [inner_apply, inner_apply, inner_apply]
@@ -146,6 +186,7 @@ private theorem inner_sub_r {I : Type} [Fintype I] (ψ φ χ : QState I) :
   rw [← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- The pure-state inner product distributes over subtraction in its first argument. -/
 private theorem inner_sub_l {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (ψ - φ) χ = Qatlib.Foundations.PureStateMath.Inner ψ χ - Qatlib.Foundations.PureStateMath.Inner φ χ := by
   rw [inner_apply, inner_apply, inner_apply]
@@ -153,30 +194,38 @@ private theorem inner_sub_l {I : Type} [Fintype I] (ψ φ χ : QState I) :
   rw [← Finset.sum_sub_distrib]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- Reversing the arguments of the pure-state inner product conjugates its value. -/
 private theorem inner_rev' {I : Type} [Fintype I] (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner φ ψ = star (Qatlib.Foundations.PureStateMath.Inner ψ φ) :=
   (inner_conj_symm φ ψ)
 
+/-- The norm of the pure-state inner product is at most the product of the two vector norms. -/
 private theorem abs_inner_le {I : Type} [Fintype I] (ψ φ : QState I) :
     ‖Qatlib.Foundations.PureStateMath.Inner ψ φ‖ ≤ normVec ψ * normVec φ := by
   have h := norm_inner_le_norm (𝕜 := ℂ) (toEuclidean_fromVec ψ) (toEuclidean_fromVec φ)
   rwa [inner_euclidean_fromVec] at h
 
+/-- Pure density matrices of orthogonal states multiply to zero. -/
 private theorem pureDensity_mul_zero {I : Type} [Fintype I] (ψ φ : QState I)
     (h : Qatlib.Foundations.PureStateMath.Inner ψ φ = 0) : pureDensity ψ * pureDensity φ = 0 := by
   ext a b
   rw [pureDensity_mul_apply, h, zero_mul, Matrix.zero_apply]
 
+/-- An entry of a scalar multiple of a pure density matrix is the scalar times the corresponding
+outer-product entry. -/
 private theorem smul_pureDensity_apply {I : Type} (c : ℂ) (x : QState I) (a b : I) :
     (c • pureDensity x) a b = c * (x a * star (x b)) := by
   simp [pureDensity, smul_eq_mul]
 
+/-- Moving a matrix from the first argument of the pure-state inner product to the second
+replaces it by its conjugate transpose. -/
 private theorem inner_mulVec_adj {I O : Type} [Fintype I] [Fintype O]
     (A : Matrix O I ℂ) (u : QState I) (v : QState O) :
     Qatlib.Foundations.PureStateMath.Inner (A *ᵥ u) v = Qatlib.Foundations.PureStateMath.Inner u (Aᴴ *ᵥ v) := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, Matrix.star_mulVec,
       Matrix.dotProduct_mulVec]
 
+/-- Applying the same unitary matrix to both states preserves their pure-state inner product. -/
 private theorem inner_applyGate' {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (U *ᵥ ψ) (U *ᵥ φ) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
@@ -186,6 +235,8 @@ private theorem inner_applyGate' {I : Type} [Fintype I] [DecidableEq I]
   simp only [Qatlib.Foundations.PureStateMath.Inner, Matrix.star_mulVec, Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul,
     hUU, Matrix.vecMul_one]
 
+/-- The bilinear expression for a two-dimensional rotation block decomposes into the two complex
+terms with factors `m + i * c` and `m - i * c`. -/
 private theorem spectral_block (m c A B C D : ℂ) :
     (m * A - c * B) * C + (c * A + m * B) * D
       = (m + Complex.I * c) * ((1 : ℂ) / 2) * (A + Complex.I * B) * (C - Complex.I * D)
@@ -196,6 +247,7 @@ private theorem spectral_block (m c A B C D : ℂ) :
   rw [hI]
   ring
 
+/-- The self-inner-product of `u + v` expands into its four pairwise inner products. -/
 private theorem Inner_add_add' {I : Type} [Fintype I] (u v : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (u + v) (u + v) = Qatlib.Foundations.PureStateMath.Inner u u + Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner v u + Qatlib.Foundations.PureStateMath.Inner v v := by
   rw [inner_apply, inner_apply, inner_apply, inner_apply, inner_apply]
@@ -203,6 +255,7 @@ private theorem Inner_add_add' {I : Type} [Fintype I] (u v : QState I) :
   rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_add_distrib]
   module
 
+/-- The pure-state inner product distributes over addition in its second argument. -/
 private theorem inner_add_r {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (φ + χ) = Qatlib.Foundations.PureStateMath.Inner ψ φ + Qatlib.Foundations.PureStateMath.Inner ψ χ := by
   rw [inner_apply, inner_apply, inner_apply]
@@ -212,9 +265,11 @@ private theorem inner_add_r {I : Type} [Fintype I] (ψ φ χ : QState I) :
     rw [mul_add])]
   rw [Finset.sum_add_distrib]
 
+/-- Complex conjugation fixes the complex cast of a real number. -/
 private theorem star_ofReal_cast (r : ℝ) : star ((r : ℝ) : ℂ) = ((r : ℝ) : ℂ) := by
   rw [RCLike.star_def, Complex.conj_ofReal]
 
+/-- A state with zero self-inner-product is the zero state. -/
 private theorem inner_self_eq_zero {I : Type} [Fintype I] {ψ : QState I}
     (h : Qatlib.Foundations.PureStateMath.Inner ψ ψ = 0) : ψ = 0 := by
   have hs : (∑ i, (‖ψ i‖ ^ 2 : ℝ)) = 0 := by
@@ -227,16 +282,19 @@ private theorem inner_self_eq_zero {I : Type} [Fintype I] {ψ : QState I}
   have h3 : ‖ψ i‖ = 0 := sq_eq_zero_iff.mp (h2 i)
   exact norm_eq_zero.mp h3
 
+/-- The pure-state inner product distributes over addition in its first argument. -/
 private theorem inner_add_l {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (φ + χ) ψ = Qatlib.Foundations.PureStateMath.Inner φ ψ + Qatlib.Foundations.PureStateMath.Inner χ ψ := by
   rw [inner_rev', inner_add_r, star_add, ← inner_rev', ← inner_rev']
 
+/-- The sum of the pure densities of the columns of `S` is `S * Sᴴ`. -/
 private theorem sum_pureDensity_S_cols {I : Type} [Fintype I] (S : Matrix I I ℂ) :
     ∑ i, pureDensity (fun j => S j i) = S * Sᴴ := by
   ext a b
   rw [sum_smul_apply, Matrix.mul_apply]
   simp only [pureDensity, Matrix.conjTranspose_apply]
 
+/-- The pure density of `G *ᵥ w` is `G * pureDensity w * Gᴴ`. -/
 private theorem pureDensity_mulVec_eq {H I : Type} [Fintype H] [Fintype I]
     (G : Matrix H I ℂ) (w : QState I) :
     pureDensity (G *ᵥ w) = G * pureDensity w * Gᴴ := by
@@ -264,6 +322,8 @@ private theorem pureDensity_mulVec_eq {H I : Type} [Fintype H] [Fintype I]
   refine Finset.sum_congr rfl fun k _ => ?_
   refine Finset.sum_congr rfl fun l _ => by ring
 
+/-- If `S * Sᴴ = 1`, the matrix `G * Gᴴ` is the sum of the pure densities of `G` applied to the
+columns of `S`. -/
 private theorem gg_eq_sum_pureDensity {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I]
     (G : Matrix H I ℂ) (S : Matrix I I ℂ) (hSS : S * Sᴴ = 1) :
@@ -278,6 +338,9 @@ private theorem gg_eq_sum_pureDensity {H I : Type} [Fintype H] [DecidableEq H] [
       rw [Matrix.sum_mul]
     _ = ∑ i, pureDensity (G *ᵥ (fun j => S j i)) := Finset.sum_congr rfl fun i _ => (h1 i).symm
 
+/-- The qubitized walk satisfies the stated orthogonality, support-projector, residual-basis,
+and spectral-resolution identities, with eigenphases given by signed arccosines of the
+compressed eigenvalues. See [Low and Su, Proposition 18 and Corollary 19][LowSu2026]. -/
 theorem Clause12WalkSpectralResolution_answer : Clause12WalkSpectralResolution := by
   intro H I _fH _dH _fI _dI U G S lam hU hGiso hS hU2 hUG v e T
   have hUU : U * Uᴴ = 1 := by

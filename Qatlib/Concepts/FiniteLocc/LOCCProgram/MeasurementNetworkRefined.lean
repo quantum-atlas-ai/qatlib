@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementNetworkDefs
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementNetwork
+
+/-!
+# Corrected instruments and bounded message codes
+
+This module proves trace, positivity, and reference-marginal properties of record-conditioned
+corrected instruments, and verifies injective pair-slot ledgers. The instrument and
+communication setting is described in [Wilde2017].
+
+For message codes, `PrefixFreeCode` yields a finite alphabet bound, which is applied to a
+message-guessing protocol. Fixed-width teleportation codes are injective and prefix-free under
+the width condition; redundant fixed-width codes preserve these properties for positive
+redundancy, while `frozenRedundantWords` supplies a variable-length counterexample.
+
+## Main statements
+
+* `clause6_forgetting_transport`: forgetting corrected outcomes preserves the reference
+  marginal.
+* `clause6_shared_accounting`: the canonical ledger costs `2 * pairs + records`.
+* `clause7_general_letter_count`: a prefix-free code of maximum length `C` has at most `2 ^ C`
+  messages.
+* `clause7_protocol_letter_count_bound`: the code bound controls uniform-prior guessing success.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -27,6 +54,8 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option linter.unusedVariables false
 
+/-- A complete record-conditioned Kraus family defines completely positive instrument branches
+whose sum preserves trace. -/
 theorem clause6_record_instrument {D s : ℕ} (K : RecordConditionedFamily D s)
     (hK : K.complete) :
     (∀ k, CompletelyPositive ((K.instrument hK).branch k)) ∧
@@ -35,6 +64,8 @@ theorem clause6_record_instrument {D s : ℕ} (K : RecordConditionedFamily D s)
   simp only [RecordConditionedFamily.instrument, Instrument.ofBranches]
   exact completelyPositive_conjBranch (K.kraus k)
 
+/-- Expands a corrected branch both as successive Kraus and correction conjugations and as
+conjugation by their product. -/
 theorem clause6_corrected_branch {D s : ℕ} (K : RecordConditionedFamily D s)
     (hK : K.complete) (hU : K.correct_unitary) (ρ : Operator D) (k : Fin s) :
     (K.corrected hK hU).branch k ρ
@@ -44,6 +75,7 @@ theorem clause6_corrected_branch {D s : ℕ} (K : RecordConditionedFamily D s)
   ⟨RecordConditionedFamily.corrected_branch K hK hU ρ k,
    RecordConditionedFamily.localBranch_eq K hK hU ρ k⟩
 
+/-- Summing all corrected local branches leaves the reference marginal unchanged. -/
 theorem clause6_forgetting_transport {D R s : ℕ} (K : RecordConditionedFamily D s)
     (hK : K.complete) (hU : K.correct_unitary) (ρ : LocalJoint D R) :
     partialTraceFirst (K.forget hK hU ρ) = partialTraceFirst ρ := by
@@ -52,6 +84,8 @@ theorem clause6_forgetting_transport {D R s : ℕ} (K : RecordConditionedFamily 
       = partialTraceFirst ρ
   exact conditionalUnitaryInstrument_reference (K.instrument hK) K.correct hU R ρ
 
+/-- On a positive semidefinite joint input, the real trace of each corrected branch is at most
+the real trace of the input. -/
 theorem clause6_trace_nonincrease {D R s : ℕ} (K : RecordConditionedFamily D s)
     (hK : K.complete) (hU : K.correct_unitary) {ρ : LocalJoint D R}
     (hρ : ρ.PosSemidef) (k : Fin s) :
@@ -61,12 +95,16 @@ theorem clause6_trace_nonincrease {D R s : ℕ} (K : RecordConditionedFamily D s
       ≤ (Matrix.trace ρ).re
   exact conditionalUnitaryInstrument_tni (K.instrument hK) K.correct hU R hρ k
 
+/-- A corrected branch of a positive semidefinite input is zero whenever its instrument
+probability is zero. -/
 theorem clause6_zero_mass {D s : ℕ} (K : RecordConditionedFamily D s) (hK : K.complete)
     (hU : K.correct_unitary) (ρ : Operator D) (k : Fin s) (hρ : ρ.PosSemidef)
     (hz : instrumentProb (K.corrected hK hU) ρ k = 0) :
     (K.corrected hK hU).branch k ρ = 0 :=
   conditionalUnitaryInstrument_zero (K.instrument hK) K.correct hU ρ k hρ hz
 
+/-- The canonical ledger has total price `2 * pairs + records`, factory charge equal to the EPR
+factory gate-list length, and correction charge `records`. -/
 theorem clause6_shared_accounting {records pairs : ℕ} (h : records ≤ pairs) :
     (canonicalLedger records pairs h).price = 2 * pairs + records ∧
     (canonicalLedger records pairs h).factoryGates = (eprFactoryGates pairs).length ∧
@@ -75,16 +113,20 @@ theorem clause6_shared_accounting {records pairs : ℕ} (h : records ≤ pairs) 
   · simp [CorrectedNetworkLedger.price, canonicalLedger]
   · simp [canonicalLedger, eprFactoryGates_length]
 
+/-- Injectivity of a corrected-network ledger's slot assignment implies `records ≤ pairs`. -/
 theorem clause6_ledger_feasible {records pairs : ℕ}
     (L : CorrectedNetworkLedger records pairs) : records ≤ pairs := by
   have h := Fintype.card_le_of_injective L.slot L.slot_injective
   simpa using h
 
+/-- The canonical ledger with `n ^ 2` records and pairs has price `3 * n ^ 2`. -/
 theorem clause6_qudit_ledger (n : ℕ) :
     (canonicalLedger (n ^ 2) (n ^ 2) (by omega)).price = 3 * n ^ 2 := by
   simp [CorrectedNetworkLedger.price, canonicalLedger]
   ring
 
+/-- If a list has length `n` and agrees entrywise with a list of length at least `n`, it equals
+the latter's first `n` entries. -/
 private theorem take_eq_of_agree {α : Type} {l₁ l₂ : List α} {n : ℕ}
     (hlen : l₁.length = n) (hle : n ≤ l₂.length)
     (hag : ∀ (i : ℕ) (h₁ : i < l₁.length) (h₂ : i < l₂.length), l₁[i] = l₂[i]) :
@@ -107,6 +149,8 @@ private theorem take_eq_of_agree {α : Type} {l₁ l₂ : List α} {n : ℕ}
     exact hag i (by omega) (by omega)
   exact heq
 
+/-- For a prefix-free code with lengths bounded by `C`, equality of its false-padded extensions
+to `Fin C` implies equality of messages. -/
 private theorem codeExtension_injective {M : Type} (w : M → List Bool) {C : ℕ}
     (hle : ∀ m, (w m).length ≤ C) (hp : PrefixFree w) {m₁ m₂ : M}
     (h : codeExtension w C m₁ = codeExtension w C m₂) : m₁ = m₂ := by
@@ -134,6 +178,7 @@ private theorem codeExtension_injective {M : Type} (w : M → List Bool) {C : �
         (fun i h₁ h₂ => (hag i h₂ h₁).symm)
     exact hp m₂ m₁ (Ne.symm hne) hpref
 
+/-- An injective code whose words all have the same length is prefix-free. -/
 private theorem prefixFree_of_injective_fixed {M : Type} (w : M → List Bool) {C : ℕ}
     (hlen : ∀ m, (w m).length = C) (hinj : Function.Injective w) : PrefixFree w := by
   intro a b hab h
@@ -145,6 +190,8 @@ private theorem prefixFree_of_injective_fixed {M : Type} (w : M → List Bool) {
   rw [htake] at ht
   exact hne ht
 
+/-- A finite message alphabet with a prefix-free binary code of maximum length `C` has
+cardinality at most `2 ^ C`. -/
 theorem clause7_general_letter_count {M : Type} [Fintype M] {C : ℕ}
     (K : PrefixFreeCode M C) : Fintype.card M ≤ 2 ^ C := by
   have hinj : Function.Injective (codeExtension K.word C) :=
@@ -153,6 +200,7 @@ theorem clause7_general_letter_count {M : Type} [Fintype M] {C : ℕ}
         Fintype.card_le_of_injective (codeExtension K.word C) hinj
     _ = 2 ^ C := by rw [Fintype.card_pi_const, Fintype.card_bool]
 
+/-- When `n ≤ 2 ^ k`, equal teleportation codewords imply equal pairs of measurement outcomes. -/
 theorem clause7_real_message_injective {n k : ℕ} (hw : n ≤ 2 ^ k) {o₁ o₂ : Fin n × Fin n}
     (h : teleportTypeCode n k o₁ = teleportTypeCode n k o₂) : o₁ = o₂ := by
   have h1 := quditMessage_decode n k hw o₁
@@ -161,10 +209,12 @@ theorem clause7_real_message_injective {n k : ℕ} (hw : n ≤ 2 ^ k) {o₁ o₂
   rw [← h'] at h2
   exact Option.some.inj (h1.2.symm.trans h2.2)
 
+/-- When `n ≤ 2 ^ k`, each teleportation outcome codeword has length `2 * k`. -/
 theorem clause7_real_message_length {n k : ℕ} (hw : n ≤ 2 ^ k) (o : Fin n × Fin n) :
     (teleportTypeCode n k o).length = 2 * k := by
   exact (quditMessage_decode n k hw o).1
 
+/-- When `n ≤ 2 ^ k`, the teleportation outcome code is prefix-free. -/
 theorem clause7_real_message_prefix_free {n k : ℕ} (hw : n ≤ 2 ^ k) :
     PrefixFree (teleportTypeCode n k) := by
   refine prefixFree_of_injective_fixed (C := 2 * k) _ ?_
@@ -172,9 +222,11 @@ theorem clause7_real_message_prefix_free {n k : ℕ} (hw : n ≤ 2 ^ k) :
   intro o
   exact clause7_real_message_length hw o
 
+/-- The alphabet of pairs of outcomes in `Fin n` has cardinality `n ^ 2`. -/
 theorem clause7_real_record_count (n : ℕ) : Fintype.card (Fin n × Fin n) = n ^ 2 := by
   rw [Fintype.card_prod, Fintype.card_fin, pow_two]
 
+/-- When `n ≤ 2 ^ k`, the teleportation outcome alphabet has at most `2 ^ (2 * k)` elements. -/
 theorem clause7_real_letter_count {n k : ℕ} (hw : n ≤ 2 ^ k) :
     Fintype.card (Fin n × Fin n) ≤ 2 ^ (2 * k) := by
   have K : PrefixFreeCode (Fin n × Fin n) (2 * k) :=
@@ -185,10 +237,13 @@ theorem clause7_real_letter_count {n k : ℕ} (hw : n ≤ 2 ^ k) :
       prefix_free := clause7_real_message_prefix_free hw }
   exact clause7_general_letter_count K
 
+/-- Encoding a `w`-bit message with redundancy parameter `r` produces a word of length `r * w`. -/
 theorem clause7_redundant_code_length {r w : ℕ} (m : Fin (2 ^ w)) :
     (redundantFixedWidth r w m).length = r * w := by
   simp [redundantFixedWidth, quditEncode, List.length_ofFn]
 
+/-- For positive redundancy, equality of redundant fixed-width codewords implies equality of
+messages. -/
 theorem clause7_redundant_code_injective {r w : ℕ} (hr : 0 < r) {m₁ m₂ : Fin (2 ^ w)}
     (h : redundantFixedWidth r w m₁ = redundantFixedWidth r w m₂) : m₁ = m₂ := by
   have hdecode : ∀ m : Fin (2 ^ w),
@@ -205,6 +260,7 @@ theorem clause7_redundant_code_injective {r w : ℕ} (hr : 0 < r) {m₁ m₂ : F
   rw [hdecode m₁, hdecode m₂] at h''
   exact Fin.ext h''
 
+/-- Redundant fixed-width encoding is prefix-free whenever the redundancy parameter is positive. -/
 theorem clause7_redundant_code_prefix_free {r w : ℕ} (hr : 0 < r) :
     PrefixFree (redundantFixedWidth r w) := by
   refine prefixFree_of_injective_fixed (C := r * w) _ ?_
@@ -212,15 +268,20 @@ theorem clause7_redundant_code_prefix_free {r w : ℕ} (hr : 0 < r) :
   intro m
   exact clause7_redundant_code_length m
 
+/-- Defines two words by redundantly encoding the one-bit and two-bit all-false words with
+redundancy two. -/
 def frozenRedundantWords : Fin 2 → List Bool
   | 0 => redundantEncode 2 [false]
   | 1 => redundantEncode 2 [false, false]
 
+/-- The two words in `frozenRedundantWords` do not form a prefix-free code. -/
 theorem clause7_frozen_redundant_not_prefix_free :
     ¬ PrefixFree frozenRedundantWords := by
   intro h
   exact (h 0 1 (by decide)) (by simp [frozenRedundantWords, redundantEncode])
 
+/-- Positive redundancy can only increase the real-valued bound `2 ^ C * (1 / N)` when `C` is
+replaced by `r * C`. -/
 theorem clause7_redundant_bound_degrades {N C r : ℕ} (hr : 0 < r) :
     (2 : ℝ) ^ C * (1 / (N : ℝ)) ≤ (2 : ℝ) ^ (r * C) * (1 / (N : ℝ)) := by
   have h1 : (1 / (N : ℝ)) ≥ 0 := by positivity
@@ -231,6 +292,9 @@ theorem clause7_redundant_bound_degrades {N C r : ℕ} (hr : 0 < r) :
     exact_mod_cast hn
   exact mul_le_mul_of_nonneg_right h2 h1
 
+/-- For a normalized positive shared state and a prefix-free code of maximum length `C`,
+uniform-prior message-guessing success is at most `2 ^ C` divided by the input alphabet
+size. -/
 theorem clause7_protocol_letter_count_bound {X : Type} [Fintype X] [Nonempty X]
     {M : Type} [Fintype M] {A E B F : ℕ} (P : MessageGuessProtocol X M A E B F)
     (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (hσ : σ.PosSemidef)
@@ -246,6 +310,8 @@ theorem clause7_protocol_letter_count_bound {X : Type} [Fintype X] [Nonempty X]
     _ ≤ (2 : ℝ) ^ C * (1 / (Fintype.card X : ℝ)) :=
         mul_le_mul_of_nonneg_right h2 h3
 
+/-- Collects total-trace preservation, corrected-branch semantics, reference-marginal
+preservation, branch trace and zero-probability properties, and canonical-ledger prices. -/
 theorem clause6_endpoint :
     (∀ {D s : ℕ} (K : RecordConditionedFamily D s) (hK : K.complete),
         (∀ A : Operator D, Matrix.trace (∑ k, (K.instrument hK).branch k A) = Matrix.trace A)) ∧
@@ -285,6 +351,8 @@ theorem clause6_endpoint :
   · intro n
     exact clause6_qudit_ledger n
 
+/-- Collects prefix-free alphabet bounds, teleportation-code injectivity, redundant fixed-width
+code properties, the frozen-word counterexample, and monotonicity of the redundancy bound. -/
 theorem clause7_endpoint :
     (∀ {M : Type} [Fintype M] {C : ℕ} (K : PrefixFreeCode M C),
         Fintype.card M ≤ 2 ^ C) ∧

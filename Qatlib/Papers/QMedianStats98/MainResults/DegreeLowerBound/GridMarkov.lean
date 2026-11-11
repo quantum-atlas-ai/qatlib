@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Basic
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Topology.Order.Compact
+
+/-!
+# Markov bounds on the rescaled weight grid
+
+This module develops the evenly spaced grid `sourceGrid n k = 2*k/n - 1` used in the proof of
+Lemma 2.1 of [NayakWu1998]. It records interval membership, proximity to arbitrary points, and
+the exact distance between two weight nodes.
+
+A sharp Markov derivative bound gives a Lipschitz estimate on `[-1, 1]`. Combining it with grid
+boundedness and a value gap yields the squared first-term lower bound on degree.
+
+## Main statements
+
+- `sourceGrid_near`: finds a grid point within `2/n` of every point of `[-1, 1]`.
+- `source_markov_lipschitz`: bounds polynomial variation by `d² * C` times distance.
+- `source_grid_first_term_sq`: converts grid separation into a lower bound on `d²`.
+
+## References
+
+[Nayak and Wu, 1998][NayakWu1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,8 +36,10 @@ noncomputable section
 namespace Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- The affine image `2*k/n - 1` of the integer weight `k` on the normalized weight grid. -/
 def sourceGrid (n k : ℕ) : ℝ := 2 * (k : ℝ) / (n : ℝ) - 1
 
+/-- For `n > 0` and `k ≤ n`, the normalized weight node `sourceGrid n k` lies in `[-1, 1]`. -/
 theorem sourceGrid_mem {n k : ℕ} (hn : 0 < n) (hk : k ≤ n) :
     sourceGrid n k ∈ Set.Icc (-1 : ℝ) 1 := by
   have hnR : (0 : ℝ) < n := by exact_mod_cast hn
@@ -24,6 +48,8 @@ theorem sourceGrid_mem {n k : ℕ} (hn : 0 < n) (hk : k ≤ n) :
   have ht : 2 * (k : ℝ) / n ≤ 2 := (div_le_iff₀ hnR).mpr (by linarith)
   constructor <;> dsimp [sourceGrid] <;> linarith
 
+/-- For `n > 0`, every point of `[-1, 1]` is within `2/n` of a node `sourceGrid n k` with `k ≤
+n`. -/
 theorem sourceGrid_near {n : ℕ} (hn : 0 < n) {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     ∃ k : ℕ, k ≤ n ∧ |x - sourceGrid n k| ≤ 2 / (n : ℝ) := by
   have hnR : (0 : ℝ) < n := by exact_mod_cast hn
@@ -48,6 +74,8 @@ theorem sourceGrid_near {n : ℕ} (hn : 0 < n) {x : ℝ} (hx : x ∈ Set.Icc (-1
   rw [abs_of_nonneg (sub_nonneg.mpr hl),he]
   exact (div_le_div_iff_of_pos_right hnR).mpr (by linarith)
 
+/-- A polynomial of degree at most `d` bounded in absolute value by `C ≥ 0` on `[-1, 1]`
+satisfies `|q(x) - q(y)| ≤ d² * C * |x - y|` for any two points of the interval. -/
 theorem source_markov_lipschitz (d : ℕ) (q : Polynomial ℝ) (C : ℝ)
     (hd : q.natDegree ≤ d) (hC : 0 ≤ C)
     (hb : ∀ z ∈ Set.Icc (-1 : ℝ) 1, |q.eval z| ≤ C)
@@ -62,6 +90,8 @@ theorem source_markov_lipschitz (d : ℕ) (q : Polynomial ℝ) (C : ℝ)
     (convex_Icc (-1 : ℝ) 1) hy hx
   simpa only [Real.norm_eq_abs] using h
 
+/-- Casting the natural-number distance between `lo` and `hi` to the reals gives `|(lo : ℝ) -
+(hi : ℝ)|`. -/
 theorem source_weight_gap_cast (lo hi : ℕ) :
     (Nat.dist lo hi : ℝ) = |(lo : ℝ)-(hi : ℝ)| := by
   rcases le_total lo hi with h | h
@@ -71,6 +101,8 @@ theorem source_weight_gap_cast (lo hi : ℕ) :
   · have hr : (hi : ℝ) ≤ lo := by exact_mod_cast h
     rw [Nat.dist_eq_sub_of_le_right h, Nat.cast_sub h, abs_of_nonneg (sub_nonneg.mpr hr)]
 
+/-- For `n > 0`, the distance between normalized weight nodes `lo` and `hi` is `2 * dist(lo, hi)
+/ n`. -/
 theorem sourceGrid_distance {n : ℕ} (hn : 0 < n) (lo hi : ℕ) :
     |sourceGrid n lo-sourceGrid n hi| = 2*(Nat.dist lo hi : ℝ)/(n : ℝ) := by
   have hnR : (0 : ℝ) < n := by exact_mod_cast hn
@@ -80,6 +112,9 @@ theorem sourceGrid_distance {n : ℕ} (hn : 0 < n) (lo hi : ℕ) :
   rw [he,abs_mul,abs_of_pos (div_pos (by norm_num) hnR),← source_weight_gap_cast]
   ring
 
+/-- If a polynomial of degree at most `d` is bounded by `3/2` on the normalized weight grid and
+has value separation at least `gap ≤ 1` at distinct valid weights, then `gap * n / (8 *
+dist(lo, hi)) ≤ d²`. This is the grid estimate for the first degree term in [NayakWu1998]. -/
 theorem source_grid_first_term_sq {n lo hi : ℕ} (hn : 0 < n)
     (hl : lo ≤ n) (hh : hi ≤ n) (hne : lo ≠ hi)
     (d : ℕ) (q : Polynomial ℝ) (hd : q.natDegree ≤ d)

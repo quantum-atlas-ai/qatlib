@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.ForwardProgram
 import Mathlib.Tactic.NormNum.RealSqrt
+
+/-!
+# A one-stage growing-stop example
+
+This module gives a concrete growing-stop pipeline whose only stage swaps the running and good
+flags. The example has unit success probability and satisfies the endpoint hypotheses, yielding
+an explicit instance of the finite program-family guarantee associated with [Ambainis2012].
+
+## Main statements
+
+* `fresh_stop_has_success`: unit success and reached-stop mass.
+* `fresh_stop_endpoint_premises`: the endpoint hypotheses for the example.
+* `fresh_stop_endpoint_witness`: a finite family of legal bounded-time programs.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,22 +41,28 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Matrix
 open scoped Classical
 
+/-- The stop history on a unit payload, empty initially and full after the first stage. -/
 def freshStopHistory : ℕ → Finset Unit
   | 0=>∅
   | _+1=>Finset.univ
 
+/-- The permutation swapping the good and running flags while preserving the unit payload. -/
 def freshStopPerm : VtSpace Unit≃VtSpace Unit :=
     Equiv.prodCongr (Equiv.swap vtGoodFlag vtRunningFlag) (Equiv.refl Unit)
+/-- The permutation matrix of `freshStopPerm`. -/
 def freshStopGate : Matrix (VtSpace Unit) (VtSpace Unit) ℂ := permMatrix freshStopPerm
 
+/-- The good-running flag swap is an involution. -/
 theorem freshStopPerm_involutive : Function.Involutive freshStopPerm := by
   intro ⟨f,c⟩
   change (Equiv.swap vtGoodFlag vtRunningFlag (Equiv.swap vtGoodFlag vtRunningFlag f),c)=(f,c)
   simp
 
+/-- The fresh-stop permutation gate is unitary. -/
 theorem freshStopGate_unitary : freshStopGate∈Matrix.unitaryGroup (VtSpace Unit) ℂ :=
     permMatrix_unitary freshStopPerm_involutive
 
+/-- The single-gate pipeline is legal for the specified growing stop history. -/
 theorem fresh_stop_pipeline_legal : GrowingVtLegal [freshStopGate] freshStopHistory := by
   refine ⟨rfl,?_,by simp [freshStopHistory],?_⟩
   · intro k
@@ -49,6 +74,7 @@ theorem fresh_stop_pipeline_legal : GrowingVtLegal [freshStopGate] freshStopHist
     intro p hp
     simp [reachedStoppedSet,freshStopHistory] at hp
 
+/-- The single stage maps the running basis state to the good basis state. -/
 theorem fresh_stop_state : vtState [freshStopGate] 1 (Ket (vtRunningFlag,()))=Ket (vtGoodFlag,()) := by
   have hs : ApplyGate freshStopGate (Ket (vtRunningFlag,()))=Ket (vtGoodFlag,()) := by
     change ApplyGate (permMatrix freshStopPerm) (Ket (vtRunningFlag,()))=Ket (vtGoodFlag,())
@@ -56,6 +82,7 @@ theorem fresh_stop_state : vtState [freshStopGate] 1 (Ket (vtRunningFlag,()))=Ke
     simp [freshStopPerm,vtRunningFlag,vtGoodFlag]
   simpa [vtState,vtRunMatrix,ApplyGate] using hs
 
+/-- The example has success probability one and reached-stop mass one at its first stage. -/
 theorem fresh_stop_has_success :
     psucc [freshStopGate] (vtRunningFlag,())=1 ∧
       reachedPstop [freshStopGate] freshStopHistory (Ket (vtRunningFlag,())) 0=1 := by
@@ -68,6 +95,8 @@ theorem fresh_stop_has_success :
     rw [hstate]
     simp [vtState,vtRunMatrix,reachedStoppedSet,freshStopHistory,MeasureProb,bornProb_ket,vtGoodFlag,vtRunningFlag]
 
+/-- The example satisfies the growing-stop support condition from its running initial basis
+state. -/
 theorem fresh_stop_supported : GrowingVtSupported [freshStopGate] freshStopHistory (vtRunningFlag,()) := by
   intro k hk p hn
   have hk1 : k ≤ 1 := by simpa using hk
@@ -90,6 +119,8 @@ theorem fresh_stop_supported : GrowingVtSupported [freshStopGate] freshStopHisto
     subst p
     simp [freshStopHistory,vtGoodFlag,vtRunningFlag]
 
+/-- The example satisfies growing-stop legality and support, has no final running mass, and
+meets the stated success-probability lower bound. -/
 theorem fresh_stop_endpoint_premises :
     GrowingVtLegal [freshStopGate] freshStopHistory ∧
     GrowingVtSupported [freshStopGate] freshStopHistory (vtRunningFlag,()) ∧
@@ -103,6 +134,9 @@ theorem fresh_stop_endpoint_premises :
   · rw [fresh_stop_has_success.1]
     norm_num
 
+/-- The one-stage example possesses a finite probability law on legal programs satisfying the
+stated uniform time bound, with good-record mass at least `9 / 10`, success at least `2 /
+5`, running mass at most `3 / 5`, and the prescribed good-output direction. -/
 theorem fresh_stop_endpoint_witness :
     ∃ (Ω : Type) (_ : Fintype Ω) (law : Ω → ℝ) (good : Finset Ω)
       (W : Type) (_ : Fintype W) (_ : DecidableEq W) (w₀ : W)

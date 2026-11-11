@@ -11,6 +11,31 @@ import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialTransitionKernelTran
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiInvariantProgramCharacterizationTran
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialActualAlgorithmTran
+
+/-!
+# Semidefinite and invariant-algorithm formulations
+
+Defines the real symmetric paper semidefinite program and related polynomial and invariant-query
+formulations for ordered search in [ChildsLandahlParrilo2007]. Counteridentity conjugation
+supplies the reversal symmetry of the paper constraints.
+
+The algorithm equivalence is stated for `PaperLaurentProgram`, and the semidefinite equivalence
+uses the bridge predicate `tiSDPFeasible N k 0`.
+
+## Main statements
+
+* `lemma3_counteridentity_invariance`: preserves the paper constraints under reversal
+  conjugation.
+* `theorem1_algorithm_iff_laurentProgram`: equates invariant algorithms with the exact Laurent
+  program.
+* `theorem3_laurentProgram_iff_sdp`: equates the Laurent program with zero-error bridge
+  feasibility.
+
+## References
+
+* [Childs et al., 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,23 +55,28 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
+/-- The reversal equivalence on `Fin N`, sending index `i` to `N − 1 − i`. -/
 def revFin (N : ℕ) : Fin N ≃ Fin N where
   toFun i := ⟨N - 1 - i.val, by have := i.isLt; omega⟩
   invFun i := ⟨N - 1 - i.val, by have := i.isLt; omega⟩
   left_inv i := by ext; simp only []; omega
   right_inv i := by ext; simp only []; omega
 
+/-- The value of the reversed index is `N − 1 − i.val`. -/
 @[simp] theorem revFin_val (N : ℕ) (i : Fin N) : ((revFin N i : Fin N) : ℕ) = N - 1 - i.val := rfl
 
+/-- Applying the finite-index reversal twice returns the original index. -/
 theorem revFin_involutive (N : ℕ) (i : Fin N) : revFin N (revFin N i) = i := by
   apply Fin.ext
   simp only [revFin_val]
   have hi := i.isLt
   omega
 
+/-- The matrix with ones on the reversed diagonal and zeros elsewhere. -/
 def counteridentity (N : ℕ) : Matrix (Fin N) (Fin N) ℂ :=
   Matrix.of fun i j => if j = revFin N i then 1 else 0
 
+/-- The counteridentity matrix equals its transpose. -/
 theorem counteridentity_transpose (N : ℕ) : (counteridentity N)ᵀ = counteridentity N := by
   ext i j
   rw [Matrix.transpose_apply]
@@ -61,6 +91,7 @@ theorem counteridentity_transpose (N : ℕ) : (counteridentity N)ᵀ = counterid
       exact hh'.symm
     rw [if_neg h, if_neg h']
 
+/-- The counteridentity matrix equals its conjugate transpose. -/
 theorem counteridentity_conjTranspose (N : ℕ) : (counteridentity N)ᴴ = counteridentity N := by
   ext i j
   rw [Matrix.conjTranspose_apply]
@@ -77,6 +108,7 @@ theorem counteridentity_conjTranspose (N : ℕ) : (counteridentity N)ᴴ = count
     rw [if_neg h', if_neg h]
     simp
 
+/-- The square of the counteridentity matrix is the identity [ChildsLandahlParrilo2007]. -/
 theorem counteridentity_mul_self (N : ℕ) :
     counteridentity N * counteridentity N = 1 := by
   ext i j
@@ -92,12 +124,14 @@ theorem counteridentity_mul_self (N : ℕ) :
   · intro hmem
     simp at hmem
 
+/-- The counteridentity matrix is real symmetric [ChildsLandahlParrilo2007]. -/
 theorem counteridentity_isRealSymmetric (N : ℕ) : IsRealSymmetric (counteridentity N) := by
   refine ⟨counteridentity_transpose N, ?_⟩
   intro i j
   simp only [counteridentity, Matrix.of_apply]
   split_ifs <;> simp
 
+/-- Conjugation by the counteridentity reverses both matrix indices. -/
 theorem counteridentity_mul_apply (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ) (i j : Fin N) :
     (counteridentity N * X * counteridentity N) i j = X (revFin N i) (revFin N j) := by
   classical
@@ -124,6 +158,7 @@ theorem counteridentity_mul_apply (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ) (i 
   · intro hmem
     simp at hmem
 
+/-- Counteridentity conjugation preserves real symmetry. -/
 theorem counteridentity_conj_isRealSymmetric (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ)
     (hX : IsRealSymmetric X) : IsRealSymmetric (counteridentity N * X * counteridentity N) := by
   refine ⟨?_, ?_⟩
@@ -134,11 +169,14 @@ theorem counteridentity_conj_isRealSymmetric (N : ℕ) (X : Matrix (Fin N) (Fin 
     rw [counteridentity_mul_apply]
     exact hX.2 _ _
 
+/-- Counteridentity conjugation preserves the matrix trace. -/
 theorem counteridentity_conj_trace (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ) :
     (counteridentity N * X * counteridentity N).trace = X.trace := by
   simp only [Matrix.trace, Matrix.diag_apply, counteridentity_mul_apply]
   exact (revFin N).sum_comp (fun i => X i i)
 
+/-- Counteridentity conjugation negates the offset of the generalized trace
+[ChildsLandahlParrilo2007]. -/
 theorem counteridentity_conj_genTrace (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ) (j : ℤ) :
     genTrace (counteridentity N * X * counteridentity N) j = genTrace X (-j) := by
   classical
@@ -165,10 +203,14 @@ theorem counteridentity_conj_genTrace (N : ℕ) (X : Matrix (Fin N) (Fin N) ℂ)
   · intro h
     omega
 
+/-- For a symmetric matrix, generalized traces at opposite offsets are equal. -/
 theorem genTrace_neg_eq_of_transpose_eq {N : ℕ} (Q : Matrix (Fin N) (Fin N) ℂ)
     (h : Qᵀ = Q) (j : ℤ) : genTrace Q (-j) = genTrace Q j := by
   rw [← genTrace_transpose, h]
 
+/-- The paper semidefinite constraints: positive semidefinite real symmetric matrices,
+prescribed initial and final matrices, unit traces through stage `k`, and alternating
+generalized-trace matching. -/
 def SolvesPaperSDP (N k : ℕ) (Q : ℕ → Matrix (Fin N) (Fin N) ℂ) : Prop :=
   (∀ t, (Q t).PosSemidef) ∧
   (∀ t, IsRealSymmetric (Q t)) ∧
@@ -179,8 +221,11 @@ def SolvesPaperSDP (N k : ℕ) (Q : ℕ → Matrix (Fin N) (Fin N) ℂ) : Prop :
     genTrace (Q t) i + (-1 : ℂ) ^ t * genTrace (Q t) (i - (N : ℤ))
       = genTrace (Q (t - 1)) i + (-1 : ℂ) ^ t * genTrace (Q (t - 1)) (i - (N : ℤ)))
 
+/-- Existence of a matrix sequence satisfying `SolvesPaperSDP N k`. -/
 def PaperSDP (N k : ℕ) : Prop := ∃ Q : ℕ → Matrix (Fin N) (Fin N) ℂ, SolvesPaperSDP N k Q
 
+/-- Existence of unit-circle nonnegative symmetric Laurent sequences with the Hermite initial
+value, constant final value, alternating-root matching, and constant coefficient one. -/
 def PaperPolynomialProgram (N k : ℕ) : Prop :=
   ∃ Q : ℕ → ℤ → ℂ,
     (∀ t ∈ Finset.Icc 0 k, PaperNonnegative N (Q t)) ∧
@@ -191,6 +236,8 @@ def PaperPolynomialProgram (N k : ℕ) : Prop :=
     (∀ z : ℂ, paperLaurent N (Q k) z = 1) ∧
     (∀ t ∈ Finset.Icc 0 k, Q t 0 = 1)
 
+/-- Conjugating every matrix of a paper semidefinite solution by the counteridentity gives
+another solution [ChildsLandahlParrilo2007]. -/
 theorem lemma3_counteridentity_invariance (N k : ℕ)
     (Q : ℕ → Matrix (Fin N) (Fin N) ℂ) (h : SolvesPaperSDP N k Q) :
     SolvesPaperSDP N k (fun t => counteridentity N * Q t * counteridentity N) := by
@@ -226,8 +273,11 @@ theorem lemma3_counteridentity_invariance (N k : ℕ)
     rw [h1, h2, h3, h4]
     exact hstep t ht i hi
 
+/-- The exact translation-invariant Laurent program `exactTIProgram N k`. -/
 abbrev PaperLaurentProgram (N k : ℕ) [NeZero N] : Prop := exactTIProgram N k
 
+/-- Existence of translation-commuting unitary updates through stage `k` whose query word has
+squared readout overlap at least one for every doubled-space oracle index. -/
 def PaperInvariantAlgorithm (N k : ℕ) [NeZero N] : Prop :=
   ∃ U : ℕ → Matrix (Fin (2 * N)) (Fin (2 * N)) ℂ,
     (∀ t ∈ Finset.Icc 1 k, U t ∈ Matrix.unitaryGroup (Fin (2 * N)) ℂ ∧
@@ -236,10 +286,13 @@ def PaperInvariantAlgorithm (N k : ℕ) [NeZero N] : Prop :=
       1 ≤ Complex.normSq (Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector N k (ospFun N j))
         (Run (PhaseOracle (ospBit N j)) (tiInvariantQueryWord N k U) (Uniform (Fin (2 * N)))))
 
+/-- The transition family constructed from consecutive coefficient vectors by
+`tiPolynomialTransition`. -/
 def paperTransitionFamily (N : ℕ) (p : ℕ → Fin N → ℂ) :
     ℕ → Matrix (Fin (2 * N)) (Fin (2 * N)) ℂ :=
   fun t => tiPolynomialTransition N t (p (t - 1)) (p t)
 
+/-- The invariant query word for `paperTransitionFamily` equals the polynomial query word. -/
 theorem invariantWord_eq_queryWord (N k : ℕ) (p : ℕ → Fin N → ℂ) :
     tiInvariantQueryWord N k (paperTransitionFamily N p) = tiPolynomialQueryWord N k p := by
   simp only [tiInvariantQueryWord, tiPolynomialQueryWord, paperTransitionFamily]
@@ -247,6 +300,8 @@ theorem invariantWord_eq_queryWord (N k : ℕ) (p : ℕ → Fin N → ℂ) :
   funext r
   rw [show r + 1 - 1 = r from by omega]
 
+/-- An invariant algorithm satisfying `PaperInvariantAlgorithm` yields the exact Laurent program
+[ChildsLandahlParrilo2007]. -/
 theorem algorithm_implies_program (N k : ℕ) [NeZero N]
     (h : PaperInvariantAlgorithm N k) : PaperLaurentProgram N k := by
   obtain ⟨U, hU, hsucc⟩ := h
@@ -256,6 +311,8 @@ theorem algorithm_implies_program (N k : ℕ) [NeZero N]
   have hsdp : tiSDPFeasible N k 0 := hch.2.2.2.2.2
   exact (exactLaurentProgramIffSDP N k).mpr hsdp
 
+/-- The exact Laurent program yields an invariant algorithm satisfying `PaperInvariantAlgorithm`
+[ChildsLandahlParrilo2007]. -/
 theorem program_implies_algorithm (N k : ℕ) [NeZero N]
     (h : PaperLaurentProgram N k) : PaperInvariantAlgorithm N k := by
   obtain ⟨p, hp0, hnorm1, hnorm0, hpk0, hmatch⟩ :=
@@ -282,10 +339,14 @@ theorem program_implies_algorithm (N k : ℕ) [NeZero N]
     rw [hF]
     simpa using hpk0
 
+/-- For nonzero `N`, the invariant-algorithm condition is equivalent to the exact Laurent
+program [ChildsLandahlParrilo2007]. -/
 theorem theorem1_algorithm_iff_laurentProgram (N k : ℕ) [NeZero N] :
     PaperInvariantAlgorithm N k ↔ PaperLaurentProgram N k :=
   ⟨algorithm_implies_program N k, program_implies_algorithm N k⟩
 
+/-- For nonzero `N`, the exact Laurent program is equivalent to `tiSDPFeasible N k 0`
+[ChildsLandahlParrilo2007]. -/
 theorem theorem3_laurentProgram_iff_sdp (N k : ℕ) [NeZero N] :
     PaperLaurentProgram N k ↔ tiSDPFeasible N k 0 :=
   exactLaurentProgramIffSDP N k

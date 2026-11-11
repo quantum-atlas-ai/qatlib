@@ -8,6 +8,23 @@ import Mathlib.Analysis.Calculus.Taylor
 import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
+/-!
+# Error bounds for centered finite differences
+
+This module expands low-order Taylor polynomials and bounds the error of a centered difference
+with perturbed endpoint values. It separates third-derivative truncation error from value
+precision, supporting the classical comparison in [Jordan2005Gradient].
+
+## Main statements
+
+* `centered_truncation`: a global third-derivative bound gives error at most `D3*l^2/24`.
+* `centered_total_error`: endpoint error at most `E` adds at most `2*E/l`.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,12 +33,16 @@ open Set
 
 namespace Qatlib.Concepts.GradientOracle.StepSizes
 
+/-- The first-order Taylor evaluation within a set equals the function value plus the first
+within-derivative times the displacement. -/
 lemma taylor_one_eval (f : ℝ → ℝ) (s : Set ℝ) (x y : ℝ) :
     taylorWithinEval f 1 s x y = f x + iteratedDerivWithin 1 f s x * (y - x) := by
   rw [taylorWithinEval_succ, taylor_within_zero_eval]
   simp
   ring
 
+/-- The second-order Taylor evaluation within a set equals the value, linear term, and one-half
+the second within-derivative times the squared displacement. -/
 lemma taylor_two_eval (f : ℝ → ℝ) (s : Set ℝ) (x y : ℝ) :
     taylorWithinEval f 2 s x y
       = f x + iteratedDerivWithin 1 f s x * (y - x)
@@ -31,6 +52,9 @@ lemma taylor_two_eval (f : ℝ → ℝ) (s : Set ℝ) (x y : ℝ) :
   norm_num
   ring
 
+/-- For distinct interval endpoints and a function `n` times continuously differentiable at `x`,
+its `n`th derivative within the unoriented closed interval at `x` equals the unrestricted
+derivative. -/
 lemma within_deriv_eq (f : ℝ → ℝ) (n : ℕ) (x y : ℝ) (hxy : x ≠ y)
     (hf : ContDiffAt ℝ n f x) :
     iteratedDerivWithin n f (uIcc x y) x = iteratedDeriv n f x := by
@@ -43,6 +67,8 @@ lemma within_deriv_eq (f : ℝ → ℝ) (n : ℕ) (x y : ℝ) (hxy : x ≠ y)
   · exact hf
   · exact left_mem_uIcc
 
+/-- For a globally `C³` function with third derivative bounded by `D3`, the centered difference
+at separation `l > 0` has derivative error at most `D3*l^2/24`. See [Jordan2005Gradient]. -/
 theorem centered_truncation (f : ℝ → ℝ) (x l D3 : ℝ) (hl : 0 < l)
     (hC : ContDiff ℝ 3 f) (hD3 : ∀ t, |iteratedDeriv 3 f t| ≤ D3) :
     |(f (x + l / 2) - f (x - l / 2)) / l - iteratedDeriv 1 f x| ≤ D3 * l ^ 2 / 24 := by
@@ -104,6 +130,8 @@ theorem centered_truncation (f : ℝ → ℝ) (x l D3 : ℝ) (hl : 0 < l)
     _ = D3 * l ^ 2 / 24 := by
         field_simp
 
+/-- If both endpoint values are approximated within `E` and `l > 0`, the resulting
+centered-difference value changes by at most `2*E/l`. See [Jordan2005Gradient]. -/
 theorem centered_value_error (f : ℝ → ℝ) (x l E gp gm : ℝ) (hl : 0 < l)
     (hp : |f (x + l / 2) - gp| ≤ E) (hm : |f (x - l / 2) - gm| ≤ E) :
     |(gp - gm) / l - (f (x + l / 2) - f (x - l / 2)) / l| ≤ 2 * E / l := by
@@ -132,6 +160,9 @@ theorem centered_value_error (f : ℝ → ℝ) (x l E gp gm : ℝ) (hl : 0 < l)
   rw [div_le_div_iff₀ hl hl]
   exact mul_le_mul_of_nonneg_right hnum hl.le
 
+/-- For a globally `C³` function with third derivative bounded by `D3` and endpoint errors at
+most `E`, the centered-difference derivative error is at most `D3*l^2/24 + 2*E/l`. See
+[Jordan2005Gradient]. -/
 theorem centered_total_error (f : ℝ → ℝ) (x l D3 E gp gm : ℝ) (hl : 0 < l)
     (hC : ContDiff ℝ 3 f) (hD3 : ∀ t, |iteratedDeriv 3 f t| ≤ D3)
     (hp : |f (x + l / 2) - gp| ≤ E) (hm : |f (x - l / 2) - gm| ≤ E) :

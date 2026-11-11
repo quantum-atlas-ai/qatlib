@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimalThresholdAllocationStat
+
+/-!
+# Optimal threshold allocation
+
+Proves that allocating thresholds proportionally to the two-thirds powers of nonnegative weights
+minimizes the sum of each weight divided by the square root of its threshold.
+`ThresholdOptimalThresholdAllocation_answer` also gives normalization, bounds, the objective
+value `quasinorm23`, and uniqueness when all weights are positive.
+
+The proof uses scalar tangent inequalities with explicit equality conditions, supplying the
+threshold optimization used in the variable-time amplification analysis of [LowSu2026].
+
+## Main statements
+
+* `term_tangent_bound`: gives the scalar tangent inequality for the objective.
+* `term_tangent_bound_eq_iff`: characterizes equality for positive arguments.
+* `ThresholdOptimalThresholdAllocation_answer`: proves the minimizing allocation and its
+  uniqueness for positive weights.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
@@ -17,6 +41,7 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators
 
+/-- For nonnegative `u` and `v`, `2 * u ^ 3 + v ^ 3` is at least `3 * u ^ 2 * v`. -/
 private theorem two_cube_add_cube_ge (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) :
     2 * u ^ 3 + v ^ 3 ≥ 3 * u ^ 2 * v := by
   have hfac : 2 * u ^ 3 + v ^ 3 - 3 * u ^ 2 * v = (u - v) ^ 2 * (2 * u + v) := by
@@ -25,6 +50,8 @@ private theorem two_cube_add_cube_ge (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) :
     mul_nonneg (sq_nonneg _) (by nlinarith [hu, hv])
   linarith [hfac, hnonneg]
 
+/-- For nonnegative `u` and `v`, equality in `2 * u ^ 3 + v ^ 3 ≥ 3 * u ^ 2 * v` holds exactly
+when `u = v`. -/
 private theorem two_cube_add_cube_ge_eq_iff (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) :
     2 * u ^ 3 + v ^ 3 = 3 * u ^ 2 * v ↔ u = v := by
   constructor
@@ -42,6 +69,8 @@ private theorem two_cube_add_cube_ge_eq_iff (u v : ℝ) (hu : 0 ≤ u) (hv : 0 �
     subst h
     ring
 
+/-- For nonnegative `a` and positive `b` and `c`, `a ^ 3 / b + c ^ 3 * b ^ 2 / 2` is at least `3
+* c * a ^ 2 / 2`. -/
 private theorem poly_tangent_bound (a b c : ℝ) (ha : 0 ≤ a) (hb : 0 < b) (hc : 0 < c) :
     a ^ 3 / b + (1 / 2 : ℝ) * c ^ 3 * b ^ 2 ≥ (3 / 2) * c * a ^ 2 := by
   have hkey0 := two_cube_add_cube_ge a (c * b) ha (mul_nonneg (le_of_lt hc) (le_of_lt hb))
@@ -57,6 +86,8 @@ private theorem poly_tangent_bound (a b c : ℝ) (ha : 0 ≤ a) (hb : 0 < b) (hc
   rw [hcalc]
   nlinarith [hkey]
 
+/-- For positive `a`, `b`, and `c`, equality in the polynomial tangent inequality holds exactly
+when `a ^ 2 = c ^ 2 * b ^ 2`. -/
 private theorem poly_tangent_bound_eq_iff (a b c : ℝ) (ha : 0 < a) (hb : 0 < b) (hc : 0 < c) :
     a ^ 3 / b + (1 / 2 : ℝ) * c ^ 3 * b ^ 2 = (3 / 2) * c * a ^ 2 ↔ a ^ 2 = c ^ 2 * b ^ 2 := by
   constructor
@@ -87,6 +118,7 @@ private theorem poly_tangent_bound_eq_iff (a b c : ℝ) (ha : 0 < a) (hb : 0 < b
       ring
     exact h
 
+/-- For nonnegative `x`, the cube of `Real.sqrt x` equals `x.rpow (3 / 2)`. -/
 private theorem cube_sqrt (x : ℝ) (hx : 0 ≤ x) : (Real.sqrt x) ^ 3 = x.rpow (3 / 2) := by
   rw [Real.sqrt_eq_rpow]
   have h := Real.rpow_mul_natCast hx (1 / 2 : ℝ) 3
@@ -94,6 +126,7 @@ private theorem cube_sqrt (x : ℝ) (hx : 0 ≤ x) : (Real.sqrt x) ^ 3 = x.rpow 
   norm_num at h
   exact h.symm
 
+/-- For nonnegative `x`, the square of `Real.sqrt x` equals `x`. -/
 private theorem sq_sqrt (x : ℝ) (hx : 0 ≤ x) : (Real.sqrt x) ^ 2 = x := by
   rw [Real.sqrt_eq_rpow]
   have h := Real.rpow_mul_natCast hx (1 / 2 : ℝ) 2
@@ -101,12 +134,15 @@ private theorem sq_sqrt (x : ℝ) (hx : 0 ≤ x) : (Real.sqrt x) ^ 2 = x := by
   norm_num at h
   exact h.symm
 
+/-- For nonnegative `w`, raising `w.rpow (2 / 3)` to the power `3 / 2` recovers `w`. -/
 private theorem rpow_two_thirds_three_halves (w : ℝ) (hw : 0 ≤ w) :
     (w.rpow (2 / 3)).rpow (3 / 2) = w := by
   have h := Real.rpow_mul hw (2 / 3 : ℝ) (3 / 2)
   rw [show ((2 / 3 : ℝ) * (3 / 2)) = 1 by norm_num, Real.rpow_one] at h
   exact h.symm
 
+/-- For nonnegative `x` and positive `s`, `x / sqrt (x.rpow (2 / 3) / s)` equals `x.rpow (2 / 3)
+* sqrt s`. -/
 private theorem div_sqrt_alpha_eq (x s : ℝ) (hx : 0 ≤ x) (hs : 0 < s) :
     x / Real.sqrt (x.rpow (2 / 3) / s) = x.rpow (2 / 3) * Real.sqrt s := by
   by_cases hx0 : x = 0
@@ -137,6 +173,8 @@ private theorem div_sqrt_alpha_eq (x s : ℝ) (hx : 0 ≤ x) (hs : 0 < s) :
           key _ _ (Real.sqrt_nonneg _) (Real.sqrt_pos.mpr hs)
       _ = x.rpow (2 / 3) * Real.sqrt s := hrhs
 
+/-- For nonnegative `x` and positive `t` and `s`, `x.rpow (3 / 2) / sqrt t + s.rpow (3 / 2) * t
+/ 2` is at least `3 * sqrt s * x / 2`. -/
 private theorem term_tangent_bound (x t s : ℝ) (hx : 0 ≤ x) (ht : 0 < t) (hs : 0 < s) :
     x.rpow (3 / 2) / Real.sqrt t + (1 / 2) * s.rpow (3 / 2) * t
       ≥ (3 / 2) * Real.sqrt s * x := by
@@ -155,6 +193,8 @@ private theorem term_tangent_bound (x t s : ℝ) (hx : 0 ≤ x) (ht : 0 < t) (hs
             (Real.sqrt_pos.mpr hs)
     _ = (3 / 2) * Real.sqrt s * x := by rw [h2x]
 
+/-- For positive `x`, `t`, and `s`, equality in the threshold tangent inequality holds exactly
+when `x = s * t`. -/
 private theorem term_tangent_bound_eq_iff (x t s : ℝ) (hx : 0 < x) (ht : 0 < t) (hs : 0 < s) :
     x.rpow (3 / 2) / Real.sqrt t + (1 / 2) * s.rpow (3 / 2) * t
       = (3 / 2) * Real.sqrt s * x ↔ x = s * t := by
@@ -176,6 +216,9 @@ private theorem term_tangent_bound_eq_iff (x t s : ℝ) (hx : 0 < x) (ht : 0 < t
   exact poly_tangent_bound_eq_iff (Real.sqrt x) (Real.sqrt t) (Real.sqrt s)
     (Real.sqrt_pos.mpr hx) (Real.sqrt_pos.mpr ht) (Real.sqrt_pos.mpr hs)
 
+/-- Proves that thresholds proportional to the two-thirds powers of the weights attain
+`quasinorm23` and minimize the weighted inverse-square-root objective, uniquely for strictly
+positive weights; see [Low and Su, Proposition 6][LowSu2026]. -/
 theorem ThresholdOptimalThresholdAllocation_answer : ThresholdOptimalThresholdAllocation := by
   intro n w hw hsum α
 

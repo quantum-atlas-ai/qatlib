@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Minimum norm solution states from pseudoinverses
+
+This module defines `IsMinimumNormSolutionState` and proves that applying the matrix
+pseudoinverse to a consistent right hand side gives a minimum norm solution. A sufficiently
+accurate scaled pseudoinverse encoding yields a normalized postselection output with an explicit
+probability bound and solution state error. The mathematical background is developed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `matrixPseudoinverse_mulVec_minimumNorm`: the minimum norm property of the pseudoinverse
+  response.
+* `scaledPseudoinverse_postselection`: success and normalized solution estimates.
+* `qsvt_pseudoinverse_counted_output`: the corresponding counted QSVT output theorem.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,6 +54,8 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
+/-- The assertion that `φ` is normalized and within distance `η` of the normalization of a
+nonzero minimum norm solution of `A *ᵥ x = b`. -/
 def IsMinimumNormSolutionState (A : Matrix O I ℂ) (b : QState O)
     (φ : QState I) (η : ℝ) : Prop :=
   ∃ x : QState I,
@@ -42,6 +66,8 @@ def IsMinimumNormSolutionState (A : Matrix O I ℂ) (b : QState O)
 
 omit [DecidableEq O] in
 
+/-- For a right hand side in the range of `A`, applying the matrix pseudoinverse gives a
+solution of the system. -/
 theorem matrixPseudoinverse_mulVec_solves (A : Matrix O I ℂ) (b : QState O)
     (hb : ∃ z : QState I, A *ᵥ z = b) : A *ᵥ (matrixPseudoinverse A *ᵥ b) = b := by
   obtain ⟨z, rfl⟩ := hb
@@ -53,6 +79,7 @@ theorem matrixPseudoinverse_mulVec_solves (A : Matrix O I ℂ) (b : QState O)
 
 omit [DecidableEq O] in
 
+/-- The pseudoinverse response has norm at most that of every solution of `A *ᵥ y = b`. -/
 theorem matrixPseudoinverse_mulVec_minimumNorm (A : Matrix O I ℂ) (b : QState O)
     {y : QState I} (hy : A *ᵥ y = b) :
     ‖stateVector (matrixPseudoinverse A *ᵥ b)‖ ≤ ‖stateVector y‖ := by
@@ -66,6 +93,8 @@ theorem matrixPseudoinverse_mulVec_minimumNorm (A : Matrix O I ℂ) (b : QState 
       (norm_nonneg _)
     _ = ‖stateVector y‖ := one_mul _
 
+/-- For a contraction and a normalized right hand side in its range, the pseudoinverse response
+has norm at least one. -/
 theorem one_le_pseudoinverse_mulVec_norm {A : Matrix O I ℂ} (hA : ‖A‖ ≤ 1)
     {b : QState O} (hb : Normalized b) (hrange : ∃ z : QState I, A *ᵥ z = b) :
     1 ≤ ‖stateVector (matrixPseudoinverse A *ᵥ b)‖ := by
@@ -80,6 +109,9 @@ theorem one_le_pseudoinverse_mulVec_norm {A : Matrix O I ℂ} (hA : ‖A‖ ≤ 
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- A scaled pseudoinverse block encoding with error `ε < c` yields positive success probability
+at least `(c - ε) ^ 2` and a minimum norm solution state within `2 * ε / c` for normalized
+consistent inputs. -/
 theorem scaledPseudoinverse_postselection
     {A : Matrix O I ℂ} {U W : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {c ε : ℝ}
@@ -131,6 +163,9 @@ theorem scaledPseudoinverse_postselection
       _ ≤ 2 * ε / c := div_le_div_of_nonneg_left
         (mul_nonneg (by norm_num) hW.error_nonneg) hc htarget
 
+/-- An odd unit phase response approximating `c / x` on positive singular values with error `ε <
+c` gives a circuit with one query per phase and one additional gate, success probability at
+least `(c - ε) ^ 2`, and solution state error at most `2 * ε / c`. -/
 theorem qsvt_pseudoinverse_counted_output
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hbase : IsPhase base)

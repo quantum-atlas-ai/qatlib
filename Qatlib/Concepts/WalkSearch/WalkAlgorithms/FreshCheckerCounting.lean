@@ -5,14 +5,41 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+
+/-!
+# Finite seed-tape counting for fresh extraction
+
+This module develops exact counting identities for finite random tapes. `tapeUnsplit`
+concatenates separate prefix and suffix tapes, with reconstruction, injectivity, surjectivity,
+and a cardinality identity transferring predicates across this decomposition. `bad_box_card`
+counts tapes constrained at an injective set of coordinates.
+
+The extraction lemmas characterize failure as failure of every scheduled solver call and sum the
+corresponding cost bounds. They support amplified graph checking in the quantum-walk search
+setting [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `bad_box_card`: an exact count for coordinate constraints.
+* `card_tape_split`: preservation of predicate counts under tape splitting.
+* `triCheckAmpExtract_none_iff`: the amplified extraction failure criterion.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- Reassociate `2 * (n * c₀)` as `2 * n * c₀`. -/
 theorem tape_two_mul (n c₀ : ℕ) : 2 * (n * c₀) = 2 * n * c₀ := by ring
 
+/-- Count a predicate on a finite product by summing the cardinalities of its fibers over the
+first coordinate. -/
 theorem filter_product_card_sum_fst {α β : Type*} [Fintype α] [Fintype β] (p : α × β → Prop)
     [DecidablePred p] :
     (Finset.univ.filter p).card =
@@ -41,6 +68,8 @@ theorem filter_product_card_sum_fst {α β : Type*} [Fintype α] [Fintype β] (p
     rw [Finset.mem_coe, Finset.mem_filter]
     exact ⟨Finset.mem_univ _, hb2.2⟩
 
+/-- Count a predicate on a finite product by summing the cardinalities of its fibers over the
+second coordinate. -/
 theorem filter_product_card_sum_snd {α β : Type*} [Fintype α] [Fintype β] (p : α × β → Prop)
     [DecidablePred p] :
     (Finset.univ.filter p).card =
@@ -69,6 +98,8 @@ theorem filter_product_card_sum_snd {α β : Type*} [Fintype α] [Fintype β] (p
     rw [Finset.mem_coe, Finset.mem_filter]
     exact ⟨Finset.mem_univ _, hb2.2⟩
 
+/-- For an injective choice of `c` coordinates, the number of length-`N` tapes taking values in
+`B` at those coordinates is `B.card^c * card S^(N - c)`. -/
 theorem bad_box_card {S : Type*} [Fintype S] [DecidableEq S] {N c : ℕ} (B : Finset S)
     (idx : Fin c → Fin N) (hinj : Function.Injective idx) :
     (Finset.univ.filter fun σ : Fin N → S => ∀ i, σ (idx i) ∈ B).card =
@@ -123,6 +154,8 @@ theorem bad_box_card {S : Type*} [Fintype S] [DecidableEq S] {N c : ℕ} (B : Fi
     rw [hA, hB]
   rw [hsplit2, Finset.prod_const, Finset.prod_const, himgcard, hcomplcard, Finset.card_univ]
 
+/-- Concatenate a prefix tape of length `n * c₀` and a suffix tape of length `n * c₀ + 1` into a
+tape of length `2 * n * c₀ + 1`. -/
 def tapeUnsplit {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S) (σ : Fin (n * c₀ + 1) → S) :
     Fin (2 * n * c₀ + 1) → S :=
   fun k =>
@@ -132,12 +165,15 @@ def tapeUnsplit {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S) (σ : Fin
       have h1 := k.isLt
       omega⟩
 
+/-- Embed a prefix index into the combined seed-tape index type. -/
 def prefixCoord {n c₀ : ℕ} (j : Fin (n * c₀)) : Fin (2 * n * c₀ + 1) :=
   ⟨j.val, by have := tape_two_mul n c₀; have := j.isLt; omega⟩
 
+/-- Embed a suffix index into the combined seed tape by adding the prefix length. -/
 def suffixCoord {n c₀ : ℕ} (j : Fin (n * c₀ + 1)) : Fin (2 * n * c₀ + 1) :=
   ⟨n * c₀ + j.val, by have := tape_two_mul n c₀; have := j.isLt; omega⟩
 
+/-- Reading a concatenated tape at an embedded prefix coordinate returns the prefix entry. -/
 theorem tapeUnsplit_prefix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S)
     (σ : Fin (n * c₀ + 1) → S) (j : Fin (n * c₀)) :
     tapeUnsplit π σ (prefixCoord j) = π j := by
@@ -146,6 +182,7 @@ theorem tapeUnsplit_prefix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) 
       else σ ⟨j.val - n * c₀, _⟩) = π j
   rw [dif_pos hd]
 
+/-- Reading a concatenated tape at an embedded suffix coordinate returns the suffix entry. -/
 theorem tapeUnsplit_suffix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S)
     (σ : Fin (n * c₀ + 1) → S) (j : Fin (n * c₀ + 1)) :
     tapeUnsplit π σ (suffixCoord j) = σ j := by
@@ -157,18 +194,23 @@ theorem tapeUnsplit_suffix_read {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) 
   show n * c₀ + j.val - n * c₀ = j.val
   omega
 
+/-- The natural-index extension of a concatenated tape agrees with the prefix within the prefix
+range. -/
 theorem extSeed_tapeUnsplit_prefix {S : Type} [Nonempty S] {n c₀ : ℕ}
     (π : Fin (n * c₀) → S) (σ : Fin (n * c₀ + 1) → S) (k : ℕ) (hk : k < n * c₀) :
     @extSeed (2 * n * c₀ + 1) S _ (tapeUnsplit π σ) k = π ⟨k, hk⟩ := by
   rw [extSeed, dif_pos (by have := tape_two_mul n c₀; omega)]
   exact tapeUnsplit_prefix_read π σ ⟨k, hk⟩
 
+/-- The natural-index extension of a concatenated tape agrees with the suffix at indices offset
+by the prefix length. -/
 theorem extSeed_tapeUnsplit_suffix {S : Type} [Nonempty S] {n c₀ : ℕ}
     (π : Fin (n * c₀) → S) (σ : Fin (n * c₀ + 1) → S) (k : ℕ) (hk : k < n * c₀ + 1) :
     @extSeed (2 * n * c₀ + 1) S _ (tapeUnsplit π σ) (n * c₀ + k) = σ ⟨k, hk⟩ := by
   rw [extSeed, dif_pos (by have := tape_two_mul n c₀; omega)]
   exact tapeUnsplit_suffix_read π σ ⟨k, hk⟩
 
+/-- Equality of concatenated tapes implies equality of both their prefixes and their suffixes. -/
 theorem tapeUnsplit_inj {S : Type*} {n c₀ : ℕ} {π π' : Fin (n * c₀) → S}
     {σ σ' : Fin (n * c₀ + 1) → S} (h : tapeUnsplit π σ = tapeUnsplit π' σ') :
     π = π' ∧ σ = σ' := by
@@ -182,6 +224,7 @@ theorem tapeUnsplit_inj {S : Type*} {n c₀ : ℕ} {π π' : Fin (n * c₀) → 
     rw [tapeUnsplit_suffix_read, tapeUnsplit_suffix_read] at h1
     exact h1
 
+/-- Concatenating the prefix and suffix extracted from a combined tape reconstructs that tape. -/
 theorem tapeUnsplit_canonical {S : Type*} {n c₀ : ℕ} (τ : Fin (2 * n * c₀ + 1) → S) :
     tapeUnsplit (fun j => τ (prefixCoord j)) (fun j => τ (suffixCoord j)) = τ := by
   funext k
@@ -201,22 +244,27 @@ theorem tapeUnsplit_canonical {S : Type*} {n c₀ : ℕ} (τ : Fin (2 * n * c₀
     rw [hke]
     exact tapeUnsplit_suffix_read _ _ _
 
+/-- Extracting the prefix from a concatenated tape recovers the original prefix function. -/
 theorem tapePrefix_unsplit {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S)
     (σ : Fin (n * c₀ + 1) → S) :
     (fun j => tapeUnsplit π σ (prefixCoord j)) = π := by
   funext j
   exact tapeUnsplit_prefix_read π σ j
 
+/-- Extracting the suffix from a concatenated tape recovers the original suffix function. -/
 theorem tapeSuffix_unsplit {S : Type*} {n c₀ : ℕ} (π : Fin (n * c₀) → S)
     (σ : Fin (n * c₀ + 1) → S) :
     (fun j => tapeUnsplit π σ (suffixCoord j)) = σ := by
   funext j
   exact tapeUnsplit_suffix_read π σ j
 
+/-- Every combined seed tape can be expressed as a concatenation of a prefix and a suffix. -/
 theorem tapeUnsplit_surj {S : Type*} {n c₀ : ℕ} (τ : Fin (2 * n * c₀ + 1) → S) :
     ∃ π σ, tapeUnsplit π σ = τ :=
   ⟨_, _, tapeUnsplit_canonical τ⟩
 
+/-- Counting combined tapes satisfying a predicate equals counting prefix-suffix pairs whose
+concatenation satisfies it. -/
 theorem card_tape_split {S : Type*} [Fintype S] {n c₀ : ℕ}
     (q : (Fin (2 * n * c₀ + 1) → S) → Prop) [DecidablePred q] :
     ((Finset.univ : Finset (Fin (2 * n * c₀ + 1) → S)).filter q).card =
@@ -242,6 +290,8 @@ theorem card_tape_split {S : Type*} [Fintype S] {n c₀ : ℕ}
     · rw [Prod.mk.injEq]
       exact ⟨tapePrefix_unsplit p.1 p.2, tapeSuffix_unsplit p.1 p.2⟩
 
+/-- If every relation witness passes the two adjacency checks, amplified extraction returns
+`none` exactly when every scheduled collision-solver run returns `none`. -/
 theorem triCheckAmpExtract_none_iff {n m : ℕ} (adj : Fin n → Fin n → Bool) (e : Fin m → Fin n)
     (kcs : KCollisionSolver) (r' : ℕ) (subR : (Fin 2 → Fin m) → Bool) (v : Fin n) (c₀ : ℕ)
     (stape : ℕ → kcs.seed)
@@ -326,6 +376,8 @@ theorem triCheckAmpExtract_none_iff {n m : ℕ} (adj : Fin n → Fin n → Bool)
   refine (key (List.range c₀) (none, 0)).trans ?_
   exact ⟨fun h => h.2, fun h => ⟨rfl, h⟩⟩
 
+/-- If each scheduled collision-solver run costs at most `W`, amplified extraction costs at most
+`c₀ * W`. -/
 theorem triCheckAmpExtract_cost_le {n m : ℕ} (adj : Fin n → Fin n → Bool) (e : Fin m → Fin n)
     (kcs : KCollisionSolver) (r' : ℕ) (subR : (Fin 2 → Fin m) → Bool) (v : Fin n) (c₀ : ℕ)
     (stape : ℕ → kcs.seed) (W : ℕ)

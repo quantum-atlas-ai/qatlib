@@ -10,6 +10,27 @@ import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamilyTigh
 import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccess
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Mathlib.Tactic
+
+/-!
+# Compiling table-membership phase queries
+
+This module implements a table-membership phase oracle using two additive-oracle queries and a
+diagonal gate. It compiles phase-oracle circuits to adjoint words while returning a zero value
+register to zero, and records the source-family search bound used in the collision construction
+associated with [BrassardHoyerTapp1998Collision].
+
+## Main statements
+
+* `tablePhaseWord_cost` and `tablePhaseWord_clean`: exact query cost and action on a zero value
+  register.
+* `compile_queries`: two actual queries per abstract phase query.
+* `compile_run`: simulation of the phase circuit by the compiled word.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -26,16 +47,22 @@ namespace Qatlib.Papers.CollisionProb97.MainResults.PhaseCompile
 variable {X R:Type} [Fintype X] [DecidableEq X]
  [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- The complex sign that is negative exactly when `x` lies outside `K` and `z` belongs to the
+table-value set `T`. -/
 def tableSign (K:Finset X) (T:Finset R) (x:X) (z:R):ℂ :=
  if x∉K ∧ z∈T then -1 else 1
 
+/-- The diagonal gate applying `tableSign` to each input-value basis pair. -/
 def tablePhase (K:Finset X) (T:Finset R):Matrix (X×R) (X×R) ℂ :=
  Matrix.diagonal (fun p=>tableSign K T p.1 p.2)
 
+/-- The three-step adjoint word consisting of a backward query, the table phase gate, and a
+forward query. -/
 def tablePhaseWord (K:Finset X) (T:Finset R):List (AdjointStep (X×R)) :=
  [.backward,.gate (tablePhase K T),.forward]
 omit [AddCommGroup R] in
 
+/-- The diagonal table phase gate is unitary. -/
 theorem tablePhase_unitary (K:Finset X) (T:Finset R):
  tablePhase K T∈Matrix.unitaryGroup (X×R) ℂ := by
  rw [tablePhase,Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose]
@@ -47,10 +74,13 @@ theorem tablePhase_unitary (K:Finset X) (T:Finset R):
  · simp [hpq]
 omit [Fintype X] [AddCommGroup R] [Fintype R] in
 
+/-- The table phase word contains exactly two adjoint-counted queries and one gate. -/
 theorem tablePhaseWord_cost (K:Finset X) (T:Finset R):
  adjointQueryCount (tablePhaseWord K T)=2 ∧ adjointGateCount (tablePhaseWord K T)=1 := by
  exact ⟨rfl,rfl⟩
 
+/-- On an arbitrary input-value state, the evaluated table phase word multiplies the amplitude
+at `(x,z)` by `tableSign K T x (z+F x)`. -/
 theorem tablePhaseWord_full_state (F:X→R) (K:Finset X) (T:Finset R)
  (ψ:QState (X×R)) (x:X) (z:R):
  ApplyGate (evaluate (AddOracle F) (tablePhaseWord K T)) ψ (x,z)=
@@ -64,6 +94,8 @@ theorem tablePhaseWord_full_state (F:X→R) (K:Finset X) (T:Finset R)
  rw [applyGate_addOracle]
  simp
 
+/-- On a state with a zero value register, the table phase word applies the sign determined by
+`F x` and returns the value register to zero. -/
 theorem tablePhaseWord_clean (F:X→R) (K:Finset X) (T:Finset R) (ψ:QState X):
  ApplyGate (evaluate (AddOracle F) (tablePhaseWord K T)) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket 0))=
  TensorState (fun x=>tableSign K T x (F x)*ψ x) (Qatlib.Foundations.PureStateMath.Ket 0) := by
@@ -75,6 +107,8 @@ theorem tablePhaseWord_clean (F:X→R) (K:Finset X) (T:Finset R) (ψ:QState X):
    simp [TensorState,Qatlib.Foundations.PureStateMath.Ket]
  · simp [TensorState,Qatlib.Foundations.PureStateMath.Ket,hz]
 
+/-- For `1 < l < 4/3` and a nonempty marked set, the terminal-mass-weighted source lookup clock
+has a nonnegative sum bounded by `(1+4*SourcePhaseConstant l)*sqrt (|I|/|A|)`. -/
 theorem actual_source_search_fetch_bound {I:Type}[Fintype I][DecidableEq I]
  (l:ℝ) (hl:1<l) (hl4:l<4/3) (A:Finset I) (hA:0<A.card):
  ∃q:ℝ,HasSum (fun x:TerminalTrace I (SourceSizes (Fintype.card I) l)=>
@@ -85,6 +119,8 @@ theorem actual_source_search_fetch_bound {I:Type}[Fintype I][DecidableEq I]
 
 omit [AddCommGroup R] in
 
+/-- Evaluating an appended adjoint word gives the product of the two evaluated word matrices in
+the stated order. -/
 theorem eval_append (O : Matrix (X × R) (X × R) ℂ)
     (P Q : List (AdjointStep (X × R))) : evaluate O (P ++ Q) = evaluate O P * evaluate O Q := by
   induction P with
@@ -93,12 +129,15 @@ theorem eval_append (O : Matrix (X × R) (X × R) ℂ)
 
 omit [Fintype X] [DecidableEq X] [AddCommGroup R] [Fintype R] [DecidableEq R] in
 
+/-- The adjoint query count is additive under list append. -/
 theorem query_append (P Q : List (AdjointStep (X × R))) :
     adjointQueryCount (P ++ Q) = adjointQueryCount P + adjointQueryCount Q := by
   induction P with
   | nil => simp [adjointQueryCount]
   | cons g P ih => cases g <;> simp [adjointQueryCount, ih, Nat.add_comm, Nat.add_left_comm]
 
+/-- Compiles a phase-oracle circuit into an adjoint word on input-value registers, lifting gates
+by the identity and replacing queries by `tablePhaseWord`. -/
 def compile (K : Finset X) (T : Finset R) : Circuit X → List (AdjointStep (X × R))
   | [] => []
   | .gate U :: P => compile K T P ++ [.gate (TensorGate U (1 : Matrix R R ℂ))]
@@ -106,6 +145,7 @@ def compile (K : Finset X) (T : Finset R) : Circuit X → List (AdjointStep (X �
 
 omit [Fintype X] [AddCommGroup R] [Fintype R] in
 
+/-- The compiled circuit has exactly twice the query count of the original phase-oracle circuit. -/
 theorem compile_queries (K : Finset X) (T : Finset R) (P : Circuit X) :
     adjointQueryCount (compile K T P) = 2 * QueryCount P := by
   induction P with
@@ -115,6 +155,8 @@ theorem compile_queries (K : Finset X) (T : Finset R) (P : Circuit X) :
       QueryCount, tablePhaseWord_cost]
     all_goals omega
 
+/-- On a zero value register, the compiled adjoint word simulates the phase-oracle circuit with
+table-membership signs and returns the value register to zero. -/
 theorem compile_run (F : X → R) (K : Finset X) (T : Finset R)
     (P : Circuit X) (ψ : QState X) :
     ApplyGate (evaluate (AddOracle F) (compile K T P)) (TensorState ψ (Ket 0)) =

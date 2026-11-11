@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LocalCircuits.LocalGateCosts.LocalGateDefs
 import Qatlib.Foundations.BornMetrics.FiniteStats.Defs
 import Mathlib.Data.ENat.Lattice
+
+/-!
+# Exact local gate costs
+
+The set `repBy` consists of products of a prescribed number of gates acting on at most a fixed
+number of qubits. Following the local circuit complexity viewpoint of [Knill1995], `bComplexity`
+assigns an extended natural cost to mapping one indexed family of vectors to another, and `bMax`
+takes the worst cost over orthonormal target frames.
+
+The module proves composition, padding, and unitarity properties, exhibits an unreachable
+zero-width task, and defines the uniform phase-gate cost `bIstar`.
+
+## Main statements
+
+* `repBy_mul`: compose gate representations by adding their lengths.
+* `bComplexity_eq_top`: unreachable frame transformations have infinite cost.
+* `zero_width_flip_infinite`: zero-width gates cannot flip the one-qubit basis state.
+
+## References
+
+* [Knill, 1995][Knill1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +40,8 @@ open Qatlib.Foundations.BornMetrics.FiniteStats
 open scoped BigOperators Matrix.Norms.L2Operator NNReal
 namespace Qatlib.Concepts.LocalCircuits.LocalGateCosts
 
+/-- Taking a prefix of a binary-encoded register agrees with restricting the register to its
+first `l` coordinates. -/
 theorem prefixMap_bitVec (n l : ℕ) (hl : l ≤ n) (x : Reg n) :
     prefixMap n l hl (bitVecEquiv n x) =
       bitVecEquiv l (fun j => x (Fin.castLE hl j)) := by
@@ -55,10 +80,13 @@ theorem prefixMap_bitVec (n l : ℕ) (hl : l ≤ n) (x : Reg n) :
       rw [hf] at he
       exact he
 
+/-- The matrices represented by products of exactly `b` gates from `gateSet g n`. -/
 def repBy (g n b : ℕ) : Set (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ) :=
   {U | ∃ word : List (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ),
     word.length = b ∧ (∀ G ∈ word, G ∈ gateSet g n) ∧ word.prod = U}
 
+/-- Multiplying matrices represented by `b` and `c` local gates yields a representation with `b
++ c` gates. -/
 theorem repBy_mul {g n b c : ℕ}
     {U V : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ}
     (hU : U ∈ repBy g n b) (hV : V ∈ repBy g n c) : U * V ∈ repBy g n (b + c) := by
@@ -71,6 +99,7 @@ theorem repBy_mul {g n b c : ℕ}
     · exact hlv G hG
   · rw [List.prod_append, heu, hev]
 
+/-- A representation can be padded with identity gates to any greater gate count. -/
 theorem repBy_mono {g n b c : ℕ} (hbc : b ≤ c) : repBy g n b ⊆ repBy g n c := by
   rintro U ⟨word, hlen, hlegal, he⟩
   refine ⟨word ++ List.replicate (c - b) 1, ?_, ?_, ?_⟩
@@ -83,6 +112,7 @@ theorem repBy_mono {g n b c : ℕ} (hbc : b ≤ c) : repBy g n b ⊆ repBy g n c
       exact one_mem_gateSet g n
   · simp [List.prod_append, he]
 
+/-- Every matrix represented by a word of local unitary gates is unitary. -/
 theorem repBy_unitary {g n b : ℕ}
     {U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ} (hU : U ∈ repBy g n b) :
     U ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ := by
@@ -95,29 +125,38 @@ theorem repBy_unitary {g n b : ℕ}
     exact Submonoid.mul_mem _ (gateSet_unitary (hlegal G (by simp)))
       (ih (fun H hH => hlegal H (by simp [hH])))
 
+/-- A matrix represented using only zero-width gates has zero off-diagonal entries. -/
 theorem repBy_zero_width_offdiagonal {n b : ℕ}
     {U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ} (hU : U ∈ repBy 0 n b)
     (i j : Fin (2 ^ n)) (hij : i ≠ j) : U i j = 0 := by
   obtain ⟨word, _, hlegal, rfl⟩ := hU
   exact zero_width_product_offdiagonal word hlegal i j hij
 
+/-- The indexed computational basis vectors, with a zero vector when the index lies beyond the
+ambient dimension. -/
 def basisFrame (n k : ℕ) : Fin k → Fin (2 ^ n) → ℂ :=
   fun i a => if a.val = i.val then 1 else 0
 
+/-- The infimum in the extended natural numbers of local gate counts mapping every vector of `u`
+to the corresponding vector of `v`. -/
 def bComplexity (g n k : ℕ) (u v : Fin k → Fin (2 ^ n) → ℂ) : ℕ∞ :=
   sInf ((fun b : ℕ => (b : ℕ∞)) ''
     {b : ℕ | ∃ U ∈ repBy g n b, ∀ i, U *ᵥ u i = v i})
 
+/-- The supremum of the costs of mapping `basisFrame n k` to orthonormal target families of `k`
+vectors. -/
 def bMax (g n k : ℕ) : ℕ∞ :=
   sSup {b : ℕ∞ | ∃ v : Fin k → Fin (2 ^ n) → ℂ,
     Orthonormal (2 ^ n) k v ∧ b = bComplexity g n k (basisFrame n k) v}
 
+/-- Any `b`-gate matrix mapping `u` to `v` bounds their local gate complexity by `b`. -/
 theorem bComplexity_le_program (g n k b : ℕ) (u v : Fin k → Fin (2 ^ n) → ℂ)
     (U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (hU : U ∈ repBy g n b) (huv : ∀ i, U *ᵥ u i = v i) :
     bComplexity g n k u v ≤ (b : ℕ∞) := by
   exact sInf_le ⟨b, ⟨U, hU, huv⟩, rfl⟩
 
+/-- The local gate complexity is infinite if no finite gate word maps `u` to `v`. -/
 theorem bComplexity_eq_top (g n k : ℕ) (u v : Fin k → Fin (2 ^ n) → ℂ)
     (h : ∀ b : ℕ, ¬ ∃ U ∈ repBy g n b, ∀ i, U *ᵥ u i = v i) :
     bComplexity g n k u v = ⊤ := by
@@ -127,6 +166,8 @@ theorem bComplexity_eq_top (g n k : ℕ) (u v : Fin k → Fin (2 ^ n) → ℂ)
     exact h b
   simp only [bComplexity, hempty, Set.image_empty, sInf_empty]
 
+/-- Mapping the one-qubit zero basis state to the one basis state has infinite cost when only
+zero-width gates are allowed. -/
 theorem zero_width_flip_infinite :
     bComplexity 0 1 1 (basisFrame 1 1) (fun _ => ket (1 : Fin 2)) = ⊤ := by
   apply bComplexity_eq_top
@@ -136,9 +177,13 @@ theorem zero_width_flip_infinite :
   have hz := repBy_zero_width_offdiagonal hU (1 : Fin 2) (0 : Fin 2) (by decide)
   simp [Matrix.mulVec, dotProduct, basisFrame, ket, hz] at h
 
+/-- The diagonal matrix multiplying the zero basis vector by `exp (I * w)` and fixing all other
+basis vectors. -/
 def phaseGate (n : ℕ) (w : ℝ) : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ :=
   Matrix.diagonal (fun b => if b = 0 then Complex.exp (Complex.I * (w : ℂ)) else 1)
 
+/-- The least extended natural gate count sufficient to represent `phaseGate n w` for every real
+phase `w`. -/
 def bIstar (g n : ℕ) : ℕ∞ :=
   sInf ((fun b : ℕ => (b : ℕ∞)) '' {b : ℕ | ∀ w : ℝ, phaseGate n w ∈ repBy g n b})
 

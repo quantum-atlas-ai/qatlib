@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerExt
+
+/-!
+# Tableau simulation of stabilizer programs
+
+This module defines finite adaptive stabilizer programs in `Program` and their tableau execution
+in `execute`. The physical semantics `physicalExecute` relates Clifford updates and Pauli
+measurement branches to normalized states in tableau code spaces, with exact probabilities
+determined by the consumed fair bits. These constructions use the stabilizer simulation
+framework of [Gottesman1997] and [AaronsonGottesman2004].
+
+Explicit Boolean expressions and instruction blocks compile the tableau updates to `rawRun`. The
+cell and live execution relations realize the generated traces and provide time and space
+estimates, keeping the abstract machine counters separate from the elementary event counts.
+
+## Main statements
+
+* `frontier1`: physical correctness, exact branch mass, and abstract resource bounds for valid
+  programs.
+* `measuredTableauCode_correct`: correctness of the compiled measurement update on encoded
+  tableau bits.
+* `rawPhysicalTime`: matching raw and physical executions with tape conservation and a trace
+  length bound.
+* `rawFrontier`: live execution of the raw trace and a space bound for every executable prefix.
+
+## References
+
+* [Gottesman, 1997][Gottesman1997]
+* [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PauliClifford.PauliAlgebra
@@ -25,6 +55,8 @@ namespace Qatlib.Concepts.CliffordTheory.TableauSim
 open Qatlib
 open Matrix
 
+/-- Finite adaptive stabilizer programs with Clifford gates, random Pauli measurements,
+deterministic outcomes, and termination. -/
 inductive Program (n m : ℕ) where
   | halt
   | gate (g : CliffordGate n) (next : Program n m)
@@ -34,24 +66,29 @@ inductive Program (n m : ℕ) where
 
 namespace Program
 
+/-- The maximum number of gate and measurement steps along a branch of a program. -/
 def maxSteps {n m : ℕ} : Program n m → ℕ
   | .halt => 0
   | .gate _ next => 1 + next.maxSteps
   | .random _ _ onFalse onTrue => 1 + max onFalse.maxSteps onTrue.maxSteps
   | .deterministic _ _ next => 1 + next.maxSteps
 
+/-- The maximum number of random measurement bits consumed along a branch of a program. -/
 def maxFairBits {n m : ℕ} : Program n m → ℕ
   | .halt => 0
   | .gate _ next => next.maxFairBits
   | .random _ _ onFalse onTrue => 1 + max onFalse.maxFairBits onTrue.maxFairBits
   | .deterministic _ _ next => next.maxFairBits
 
+/-- The maximum number of random and deterministic measurements along a branch of a program. -/
 def maxMeasurements {n m : ℕ} : Program n m → ℕ
   | .halt => 0
   | .gate _ next => next.maxMeasurements
   | .random _ _ onFalse onTrue => 1 + max onFalse.maxMeasurements onTrue.maxMeasurements
   | .deterministic _ _ next => 1 + next.maxMeasurements
 
+/-- Validity of a program relative to a tableau, requiring legal gates and the stabilizer
+conditions for each measurement branch. -/
 def Valid {n m : ℕ} (t : Tableau n m) : Program n m → Prop
   | .halt => True
   | .gate g next => legalGate g ∧ Valid (update g t) next
@@ -65,20 +102,30 @@ def Valid {n m : ℕ} (t : Tableau n m) : Program n m → Prop
 
 end Program
 
+/-- The number `2 * n + 2` of bits used to encode an `n`-qubit tableau row. -/
 def rowWidth (n : ℕ) : ℕ := 2 * n + 2
 
+/-- The abstract gate cost `m * rowWidth n` for a tableau with `m` rows. -/
 def gateClock (n m : ℕ) : ℕ := m * rowWidth n
 
+/-- The abstract random measurement cost `(2 * m + 1) * rowWidth n`. -/
 def randomClock (n m : ℕ) : ℕ := (2 * m + 1) * rowWidth n
 
+/-- The abstract deterministic measurement cost `rowWidth n`. -/
 def deterministicClock (n : ℕ) : ℕ := rowWidth n
 
+/-- The uniform quadratic step bound `6 * (n + 1) ^ 2`. -/
 def stepPolynomial (n : ℕ) : ℕ := 6 * (n + 1) ^ 2
 
+/-- The abstract live space `(m + 2) * rowWidth n + recordCount`, including stored measurement
+outcomes. -/
 def liveSpace (n m recordCount : ℕ) : ℕ := (m + 2) * rowWidth n + recordCount
 
+/-- The quadratic tableau space bound `4 * (n + 1) ^ 2`. -/
 def spacePolynomial (n : ℕ) : ℕ := 4 * (n + 1) ^ 2
 
+/-- A tableau simulation state with a random bit tape, measurement outcomes, and counters for
+consumed bits, elapsed cost, and peak space. -/
 structure Machine (n m : ℕ) where
   tableau : Tableau n m
   tape : List Bool
@@ -87,6 +134,8 @@ structure Machine (n m : ℕ) where
   elapsed : ℕ
   peakSpace : ℕ
 
+/-- Initialize the simulator with a tableau and random tape, empty outcomes, zero time and bit
+counters, and the initial live space. -/
 def initial {n m : ℕ} (tableau : Tableau n m) (tape : List Bool) : Machine n m where
   tableau := tableau
   tape := tape
@@ -95,8 +144,10 @@ def initial {n m : ℕ} (tableau : Tableau n m) (tape : List Bool) : Machine n m
   elapsed := 0
   peakSpace := liveSpace n m 0
 
+/-- Return the stored measurement outcomes in chronological order. -/
 def records {n m : ℕ} (s : Machine n m) : List Bool := s.outcomes.reverse
 
+/-- Apply a Clifford gate to the tableau and update the abstract elapsed cost and peak space. -/
 def gateStep {n m : ℕ} (s : Machine n m) (g : CliffordGate n) : Machine n m where
   tableau := update g s.tableau
   tape := s.tape
@@ -105,16 +156,21 @@ def gateStep {n m : ℕ} (s : Machine n m) (g : CliffordGate n) : Machine n m wh
   elapsed := s.elapsed + gateClock n m
   peakSpace := max s.peakSpace (liveSpace n m s.outcomes.length)
 
+/-- Update one tableau row for a Pauli measurement, replacing the pivot by the signed observable
+and multiplying anticommuting nonpivot rows by the pivot. -/
 def measureRow {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n) (b : Bool)
     (i : Fin m) : Row n :=
   if i = a₀ then Qatlib.Concepts.PauliClifford.PauliAlgebra.encode (signedMeasuredPauli p b)
   else if symplecticForm (symplecticVec (t i).decode.word) (symplecticVec p.word) = 0 then t i
   else (t i).mul (t a₀)
 
+/-- The tableau obtained by applying `measureRow` to every row for a specified measurement
+outcome. -/
 def measureTableau {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n) (b : Bool) :
     Tableau n m :=
   fun i => measureRow t a₀ p b i
 
+/-- The explicit rowwise measurement update agrees with `measuredTableau`. -/
 theorem measureTableau_eq {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) : measureTableau t a₀ p b = measuredTableau t a₀ p b := by
   funext i
@@ -126,6 +182,8 @@ theorem measureTableau_eq {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : Paul
     · simp [measureTableau, measureRow, measuredTableau, measuredRow, hi,
         pauliCommute, symplecticVec]
 
+/-- Perform a random measurement update with a specified outcome and remaining tape, recording
+one consumed fair bit and updating the resource counters. -/
 def randomStep {n m : ℕ} (s : Machine n m) (a : Fin m) (p : PauliElem n)
     (b : Bool) (rest : List Bool) : Machine n m where
   tableau := measureTableau s.tableau a p b
@@ -135,6 +193,7 @@ def randomStep {n m : ℕ} (s : Machine n m) (a : Fin m) (p : PauliElem n)
   elapsed := s.elapsed + randomClock n m
   peakSpace := max s.peakSpace (liveSpace n m (b :: s.outcomes).length)
 
+/-- Record a deterministic outcome while updating the abstract elapsed cost and peak space. -/
 def deterministicStep {n m : ℕ} (s : Machine n m) (b : Bool) : Machine n m where
   tableau := s.tableau
   tape := s.tape
@@ -143,6 +202,8 @@ def deterministicStep {n m : ℕ} (s : Machine n m) (b : Bool) : Machine n m whe
   elapsed := s.elapsed + deterministicClock n
   peakSpace := max s.peakSpace (liveSpace n m (b :: s.outcomes).length)
 
+/-- Execute a finite tableau program using the supplied random tape, returning `none` when a
+random measurement exhausts the tape. -/
 def execute {n m : ℕ} : Program n m → Machine n m → Option (Machine n m)
   | .halt, s => some s
   | .gate g next, s => execute next (gateStep s g)
@@ -155,6 +216,7 @@ def execute {n m : ℕ} : Program n m → Machine n m → Option (Machine n m)
           | true => execute onTrue (randomStep s a p true rest)
   | .deterministic _ b next, s => execute next (deterministicStep s b)
 
+/-- When `m ≤ n`, each abstract gate or measurement clock is bounded by `stepPolynomial n`. -/
 theorem clocks_le_stepPolynomial {n m : ℕ} (hm : m ≤ n) :
     gateClock n m ≤ stepPolynomial n ∧
       randomClock n m ≤ stepPolynomial n ∧ deterministicClock n ≤ stepPolynomial n := by
@@ -171,6 +233,8 @@ theorem clocks_le_stepPolynomial {n m : ℕ} (hm : m ≤ n) :
   · rw [deterministicClock, hrow, stepPolynomial]
     nlinarith
 
+/-- When `m ≤ n`, live space is bounded by `spacePolynomial n` plus the number of stored
+outcomes. This is a tableau space estimate in the setting of [AaronsonGottesman2004]. -/
 theorem liveSpace_le {n m recordCount : ℕ} (hm : m ≤ n) :
     liveSpace n m recordCount ≤ spacePolynomial n + recordCount := by
   have hrow : rowWidth n = 2 * (n + 1) := by simp [rowWidth, Nat.mul_add]
@@ -181,45 +245,58 @@ theorem liveSpace_le {n m recordCount : ℕ} (hm : m ≤ n) :
   rw [hrow] at hmul ⊢
   nlinarith
 
+/-- The tableau component of `gateStep` is the result of running the singleton gate word. -/
 @[simp] theorem gateStep_tableau {n m : ℕ} (s : Machine n m) (g : CliffordGate n) :
     (gateStep s g).tableau = run [g] s.tableau := rfl
 
+/-- A gate step increases elapsed cost by `gateClock n m`. -/
 @[simp] theorem gateStep_elapsed {n m : ℕ} (s : Machine n m) (g : CliffordGate n) :
     (gateStep s g).elapsed = s.elapsed + gateClock n m := rfl
 
+/-- A gate step preserves the consumed fair bit counter. -/
 @[simp] theorem gateStep_fairBits {n m : ℕ} (s : Machine n m) (g : CliffordGate n) :
     (gateStep s g).fairBits = s.fairBits := rfl
 
+/-- The tableau component of `randomStep` is the corresponding measured tableau. -/
 @[simp] theorem randomStep_tableau {n m : ℕ} (s : Machine n m) (a : Fin m)
     (p : PauliElem n) (b : Bool) (rest : List Bool) :
     (randomStep s a p b rest).tableau = measuredTableau s.tableau a p b := by
   change measureTableau s.tableau a p b = measuredTableau s.tableau a p b
   exact measureTableau_eq s.tableau a p b
 
+/-- A random step sets the random tape to the specified remaining tape. -/
 @[simp] theorem randomStep_tape {n m : ℕ} (s : Machine n m) (a : Fin m)
     (p : PauliElem n) (b : Bool) (rest : List Bool) :
     (randomStep s a p b rest).tape = rest := rfl
 
+/-- A random step increases the consumed fair bit counter by one. -/
 @[simp] theorem randomStep_fairBits {n m : ℕ} (s : Machine n m) (a : Fin m)
     (p : PauliElem n) (b : Bool) (rest : List Bool) :
     (randomStep s a p b rest).fairBits = s.fairBits + 1 := rfl
 
+/-- A random step increases elapsed cost by `randomClock n m`. -/
 @[simp] theorem randomStep_elapsed {n m : ℕ} (s : Machine n m) (a : Fin m)
     (p : PauliElem n) (b : Bool) (rest : List Bool) :
     (randomStep s a p b rest).elapsed = s.elapsed + randomClock n m := rfl
 
+/-- A deterministic measurement step preserves the tableau. -/
 @[simp] theorem deterministicStep_tableau {n m : ℕ} (s : Machine n m) (b : Bool) :
     (deterministicStep s b).tableau = s.tableau := rfl
 
+/-- A deterministic measurement step preserves the random tape. -/
 @[simp] theorem deterministicStep_tape {n m : ℕ} (s : Machine n m) (b : Bool) :
     (deterministicStep s b).tape = s.tape := rfl
 
+/-- A deterministic measurement step preserves the consumed fair bit counter. -/
 @[simp] theorem deterministicStep_fairBits {n m : ℕ} (s : Machine n m) (b : Bool) :
     (deterministicStep s b).fairBits = s.fairBits := rfl
 
+/-- A deterministic measurement step increases elapsed cost by `deterministicClock n`. -/
 @[simp] theorem deterministicStep_elapsed {n m : ℕ} (s : Machine n m) (b : Bool) :
     (deterministicStep s b).elapsed = s.elapsed + deterministicClock n := rfl
 
+/-- Execution succeeds whenever the tape contains at least the program's maximum required number
+of fair bits. -/
 theorem execute_some {n m : ℕ} (program : Program n m) :
     ∀ (s : Machine n m), program.maxFairBits ≤ s.tape.length →
       ∃ result, execute program s = some result := by
@@ -254,6 +331,8 @@ theorem execute_some {n m : ℕ} (program : Program n m) :
       intro s h
       simpa [execute] using! ih (deterministicStep s b) h
 
+/-- For `m ≤ n`, successful execution adds at most `program.maxSteps * stepPolynomial n` to
+elapsed cost. -/
 theorem execute_elapsed_le {n m : ℕ} (program : Program n m) (hm : m ≤ n) :
     ∀ {s result : Machine n m}, execute program s = some result →
       result.elapsed ≤ s.elapsed + program.maxSteps * stepPolynomial n := by
@@ -305,6 +384,7 @@ theorem execute_elapsed_le {n m : ℕ} (program : Program n m) (hm : m ≤ n) :
       simp only [Program.maxSteps]
       nlinarith
 
+/-- Successful execution consumes at most `program.maxFairBits` additional fair bits. -/
 theorem execute_fairBits_le {n m : ℕ} (program : Program n m) :
     ∀ {s result : Machine n m}, execute program s = some result →
       result.fairBits ≤ s.fairBits + program.maxFairBits := by
@@ -346,6 +426,7 @@ theorem execute_fairBits_le {n m : ℕ} (program : Program n m) :
       have hrec := ih h
       simpa [Program.maxFairBits] using! hrec
 
+/-- Successful execution appends at most `program.maxMeasurements` measurement outcomes. -/
 theorem execute_outcomes_length_le {n m : ℕ} (program : Program n m) :
     ∀ {s result : Machine n m}, execute program s = some result →
       result.outcomes.length ≤ s.outcomes.length + program.maxMeasurements := by
@@ -389,6 +470,8 @@ theorem execute_outcomes_length_le {n m : ℕ} (program : Program n m) :
       simp only [Program.maxMeasurements]
       omega
 
+/-- For `m ≤ n`, an initial peak space bound extends through successful execution with an
+additional allowance of `program.maxMeasurements`. -/
 theorem execute_peakSpace_le {n m : ℕ} (program : Program n m) (hm : m ≤ n) :
     ∀ {s result : Machine n m}, execute program s = some result →
       s.peakSpace ≤ spacePolynomial n + s.outcomes.length →
@@ -455,12 +538,15 @@ theorem execute_peakSpace_le {n m : ℕ} (program : Program n m) (hm : m ≤ n) 
       simp only [deterministicStep, List.length_cons, Program.maxMeasurements] at hrec ⊢
       omega
 
+/-- For `m ≤ n`, the initial peak space is bounded by `spacePolynomial n` plus the initial
+outcome count. -/
 theorem initial_peakSpace_le {n m : ℕ} (tableau : Tableau n m) (tape : List Bool)
     (hm : m ≤ n) :
     (initial (n := n) (m := m) tableau tape).peakSpace ≤
       spacePolynomial n + (initial (n := n) (m := m) tableau tape).outcomes.length := by
   exact liveSpace_le hm
 
+/-- Anticommuting Pauli elements have operator products related by a minus sign. -/
 theorem op_anticommute_of_pauliAnticommutes {n : ℕ} {p q : PauliElem n}
     (hanti : pauliAnticommutes p q) : op p * op q = -(op q * op p) := by
   have hs := pauliWordOp_symplectic n p.word q.word
@@ -473,6 +559,8 @@ theorem op_anticommute_of_pauliAnticommutes {n : ℕ} {p q : PauliElem n}
   simp only [op, Matrix.smul_mul, Matrix.mul_smul, hs, smul_smul]
   module
 
+/-- The projective branch of the positive Pauli projector is the projector associated with the
+selected Boolean outcome. -/
 theorem projectiveBranch_pauli {n : ℕ} (p : PauliElem n) (b : Bool) (ψ : QState (Reg n)) :
     ProjectiveBranch (pauliBranchProjector p true) b ψ = pauliBranchProjector p b *ᵥ ψ := by
   have hcompl : 1 - pauliBranchProjector p true = pauliBranchProjector p false := by
@@ -484,22 +572,26 @@ theorem projectiveBranch_pauli {n : ℕ} (p : PauliElem n) (b : Bool) (ψ : QSta
       rw [hcompl]
   | true => rfl
 
+/-- The post-measurement state obtained by normalizing the selected Pauli projector branch. -/
 noncomputable def branchState {n : ℕ} (p : PauliElem n) (b : Bool) (ψ : QState (Reg n)) :
     QState (Reg n) :=
   PostMeasure (pauliBranchProjector p b *ᵥ ψ) Finset.univ
 
+/-- The total squared mass of a projected Pauli branch equals its projective branch mass. -/
 theorem measureProb_pauliBranch {n : ℕ} (p : PauliElem n) (b : Bool) (ψ : QState (Reg n)) :
     MeasureProb (pauliBranchProjector p b *ᵥ ψ) Finset.univ =
       ProjectiveBranchMass (pauliBranchProjector p true) b ψ := by
   rw [← projectiveBranch_pauli]
   rfl
 
+/-- A Pauli branch state is normalized whenever its branch mass is positive. -/
 theorem normalized_branchState {n : ℕ} (p : PauliElem n) (b : Bool) (ψ : QState (Reg n))
     (hmass : 0 < ProjectiveBranchMass (pauliBranchProjector p true) b ψ) :
     Normalized (branchState p b ψ) := by
   apply normalized_postMeasure
   rwa [measureProb_pauliBranch]
 
+/-- Normalizing a projected Pauli branch preserves membership in a tableau code space. -/
 theorem branchState_mem {n m : ℕ} (p : PauliElem n) (b : Bool) (ψ : QState (Reg n))
     (t : Tableau n m) (hmem : pauliBranchProjector p b *ᵥ ψ ∈ codeSpace t) :
     branchState p b ψ ∈ codeSpace t := by
@@ -511,6 +603,8 @@ theorem branchState_mem {n m : ℕ} (p : PauliElem n) (b : Bool) (ψ : QState (R
   rw [hcollapse]
   exact (codeSpace t).smul_mem _ hmem
 
+/-- A legal Clifford gate maps a normalized code-space state to a normalized state in the
+updated tableau code space. -/
 theorem gateStep_state {n m : ℕ} (s : Machine n m) (g : CliffordGate n)
     (hg : legalGate g) (ψ : QState (Reg n)) (hn : Normalized ψ)
     (hψ : ψ ∈ codeSpace s.tableau) :
@@ -521,6 +615,8 @@ theorem gateStep_state {n m : ℕ} (s : Machine n m) (g : CliffordGate n)
   refine ⟨normalized_applyGate (Uword_unitary [g] hg') hn, ?_⟩
   simpa using! hmem
 
+/-- For a consistent tableau and an anticommuting pivot, each Pauli measurement branch has
+fair-bit probability and lies in the updated code space. -/
 theorem randomStep_born {n m : ℕ} (s : Machine n m) (a : Fin m) (p : PauliElem n)
     (hp : IsHermitianPauli p) (hanti : pauliAnticommutes (s.tableau a).decode p)
     (b : Bool) (rest : List Bool) (ψ : QState (Reg n)) (hn : Normalized ψ)
@@ -538,6 +634,8 @@ theorem randomStep_born {n m : ℕ} (s : Machine n m) (a : Fin m) (p : PauliElem
     | false => exact hprob.2
     | true => exact hprob.1
 
+/-- For a consistent tableau and an anticommuting pivot, the normalized Pauli branch lies in the
+randomly updated tableau code space. -/
 theorem randomStep_branchState {n m : ℕ} (s : Machine n m) (a : Fin m) (p : PauliElem n)
     (hp : IsHermitianPauli p) (hanti : pauliAnticommutes (s.tableau a).decode p)
     (b : Bool) (rest : List Bool) (ψ : QState (Reg n)) (hn : Normalized ψ)
@@ -550,6 +648,8 @@ theorem randomStep_branchState {n m : ℕ} (s : Machine n m) (a : Fin m) (p : Pa
     cases b <;> norm_num [fairBitLaw]
   exact ⟨normalized_branchState p b ψ hpos, branchState_mem p b ψ _ hb.1⟩
 
+/-- A signed measured Pauli in the generated stabilizer subgroup fixes every vector in the
+tableau code space. -/
 theorem op_signedMeasuredPauli_fixes {n m : ℕ} (t : Tableau n m) (p : PauliElem n)
     (b : Bool) (hgen : signedMeasuredPauli p b ∈ generatedSubgroup (tableauGenerators t))
     (ψ : QState (Reg n)) (hψ : ψ ∈ codeSpace t) :
@@ -558,6 +658,8 @@ theorem op_signedMeasuredPauli_fixes {n m : ℕ} (t : Tableau n m) (p : PauliEle
   rw [← hprod]
   exact op_maskProduct_fixes_codeSpace t ψ hψ mask hmask
 
+/-- If the signed measured Pauli belongs to the generated stabilizer subgroup, its selected
+branch projector fixes code-space vectors. -/
 theorem deterministic_branch {n m : ℕ} (t : Tableau n m) (p : PauliElem n)
     (b : Bool) (hgen : signedMeasuredPauli p b ∈ generatedSubgroup (tableauGenerators t))
     (ψ : QState (Reg n)) (hψ : ψ ∈ codeSpace t) :
@@ -594,6 +696,8 @@ theorem deterministic_branch {n m : ℕ} (t : Tableau n m) (p : PauliElem n)
         _ = ((2 : ℂ)⁻¹ * 2) * ψ x := by ring
         _ = ψ x := by rw [half_mul_two]; ring
 
+/-- For a normalized code-space state, a stabilizer-determined Hermitian Pauli outcome has mass
+one and the opposite outcome has mass zero. -/
 theorem deterministic_born {n m : ℕ} (t : Tableau n m) (p : PauliElem n)
     (hp : IsHermitianPauli p) (b : Bool)
     (hgen : signedMeasuredPauli p b ∈ generatedSubgroup (tableauGenerators t))
@@ -616,6 +720,8 @@ theorem deterministic_born {n m : ℕ} (t : Tableau n m) (p : PauliElem n)
         linarith
       exact ⟨hsel, by simpa [otherOutcome] using! hz⟩
 
+/-- A deterministic measurement branch remains in the unchanged tableau code space, with mass
+one for the selected outcome and zero for the opposite outcome. -/
 theorem deterministicStep_born {n m : ℕ} (s : Machine n m) (p : PauliElem n)
     (hp : IsHermitianPauli p) (b : Bool)
     (hgen : signedMeasuredPauli p b ∈ generatedSubgroup (tableauGenerators s.tableau))
@@ -629,6 +735,8 @@ theorem deterministicStep_born {n m : ℕ} (s : Machine n m) (p : PauliElem n)
   rw [deterministicStep_tableau, hid]
   exact hψ
 
+/-- A stabilizer-determined Hermitian Pauli branch is normalized and remains in the code space
+after a deterministic step. -/
 theorem deterministicStep_branchState {n m : ℕ} (s : Machine n m) (p : PauliElem n)
     (hp : IsHermitianPauli p) (b : Bool)
     (hgen : signedMeasuredPauli p b ∈ generatedSubgroup (tableauGenerators s.tableau))
@@ -643,6 +751,8 @@ theorem deterministicStep_branchState {n m : ℕ} (s : Machine n m) (p : PauliEl
 
 namespace Program
 
+/-- Count the random bits consumed along the branch selected by a tape, stopping the count when
+the tape is exhausted. -/
 def consumedFairBits {n m : ℕ} : Program n m → List Bool → ℕ
   | .halt, _ => 0
   | .gate _ next, tape => consumedFairBits next tape
@@ -655,6 +765,8 @@ def consumedFairBits {n m : ℕ} : Program n m → List Bool → ℕ
 
 end Program
 
+/-- Successful execution increases the fair bit counter by exactly `Program.consumedFairBits
+program s.tape`. -/
 theorem execute_fairBits_eq {n m : ℕ} (program : Program n m) :
     ∀ {s result : Machine n m}, execute program s = some result →
       result.fairBits = s.fairBits + Program.consumedFairBits program s.tape := by
@@ -694,6 +806,7 @@ theorem execute_fairBits_eq {n m : ℕ} (program : Program n m) :
       have hrec := ih h'
       simpa [Program.consumedFairBits, deterministicStep] using! hrec
 
+/-- Successful execution of a valid program preserves consistency of the tableau. -/
 theorem execute_consistent {n m : ℕ} (program : Program n m) :
     ∀ {s result : Machine n m}, execute program s = some result →
       Program.Valid s.tableau program → ConsistentTableau s.tableau →
@@ -744,6 +857,8 @@ theorem execute_consistent {n m : ℕ} (program : Program n m) :
       have h' : execute next (deterministicStep s b) = some result := by simpa [execute] using! h
       exact ih h' hv.2.2 ht
 
+/-- A simulation result containing the classical machine, a quantum state, and the joint mass of
+the selected measurement branch. -/
 structure PhysicalResult (n m : ℕ) where
   machine : Machine n m
   state : QState (Reg n)
@@ -751,6 +866,7 @@ structure PhysicalResult (n m : ℕ) where
 
 namespace PhysicalResult
 
+/-- Multiply the joint mass of a physical result by a real factor. -/
 noncomputable def scale {n m : ℕ} (mass : ℝ) (r : PhysicalResult n m) : PhysicalResult n m where
   machine := r.machine
   state := r.state
@@ -758,6 +874,8 @@ noncomputable def scale {n m : ℕ} (mass : ℝ) (r : PhysicalResult n m) : Phys
 
 end PhysicalResult
 
+/-- Execute a tableau program together with quantum gate evolution, normalized measurement
+branches, and their joint probability mass. -/
 noncomputable def physicalExecute {n m : ℕ} :
     Program n m → Machine n m → QState (Reg n) → Option (PhysicalResult n m)
   | .halt, s, ψ => some ⟨s, ψ, 1⟩
@@ -780,6 +898,8 @@ noncomputable def physicalExecute {n m : ℕ} :
       | none => none
       | some r => some (r.scale (ProjectiveBranchMass (pauliBranchProjector p true) b ψ))
 
+/-- Physical execution succeeds when the random tape meets the program's maximum fair bit
+requirement. -/
 theorem physicalExecute_some {n m : ℕ} (program : Program n m) :
     ∀ (s : Machine n m) (ψ : QState (Reg n)), program.maxFairBits ≤ s.tape.length →
       ∃ result, physicalExecute program s ψ = some result := by
@@ -818,6 +938,8 @@ theorem physicalExecute_some {n m : ℕ} (program : Program n m) :
       exact ⟨r.scale (ProjectiveBranchMass (pauliBranchProjector p true) b ψ),
         by simp [physicalExecute, hr]⟩
 
+/-- The machine component of a successful physical execution agrees with ordinary tableau
+execution. -/
 theorem physicalExecute_machine {n m : ℕ} (program : Program n m) :
     ∀ {s : Machine n m} {ψ : QState (Reg n)} {result : PhysicalResult n m},
       physicalExecute program s ψ = some result → execute program s = some result.machine := by
@@ -863,6 +985,9 @@ theorem physicalExecute_machine {n m : ℕ} (program : Program n m) :
           cases h
           simpa [execute, PhysicalResult.scale] using! hrec
 
+/-- Valid physical execution from a normalized state in a consistent tableau code space
+preserves normalization and code-space membership. Its joint mass is one half raised to the
+number of consumed fair bits. -/
 theorem physicalExecute_correct {n m : ℕ} (program : Program n m) :
     ∀ {s : Machine n m} {ψ : QState (Reg n)} {result : PhysicalResult n m},
       physicalExecute program s ψ = some result →
@@ -952,6 +1077,9 @@ theorem physicalExecute_correct {n m : ℕ} (program : Program n m) :
             rw [hrec.2, hprob.2.1]
             simp [Program.consumedFairBits]
 
+/-- A valid program with a sufficient tape and `m ≤ n` has a physical execution preserving
+normalization, code-space membership, and tableau consistency. The result has the stated
+exact branch mass and fair bit count, with quadratic abstract time and space bounds. -/
 theorem frontier1 {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : List Bool)
     (ψ : QState (Reg n)) (hm : m ≤ n) (hv : Program.Valid t program)
     (ht : ConsistentTableau t) (hn : Normalized ψ) (hψ : ψ ∈ codeSpace t)
@@ -975,10 +1103,12 @@ theorem frontier1 {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : 
   · simpa [initial] using! htime
   · simpa [initial] using! hspace
 
+/-- The bit encoding of a row has length `rowWidth n`. -/
 theorem rowWidth_eq_bits_length {n : ℕ} (r : Row n) : rowWidth n = r.bits.length := by
   rw [row_bits_length]
   rfl
 
+/-- The bit encoding of an `m`-row machine tableau has length `m * rowWidth n`. -/
 theorem machine_tableauBits_length {n m : ℕ} (s : Machine n m) :
     (tableauBits s.tableau).length = m * rowWidth n := by
   rw [tableau_bits_length]
@@ -988,20 +1118,27 @@ end Qatlib.Concepts.CliffordTheory.TableauSim
 
 namespace Qatlib.Concepts.CliffordTheory.TableauSim.BitExecution
 
+/-- An array of Boolean registers with exactly `R` entries. -/
 abbrev BitBank (R : ℕ) := { a : Array Bool // a.size = R }
 
+/-- Read a Boolean register at a bounded index. -/
 def bankRead {R : ℕ} (a : BitBank R) (i : Fin R) : Bool :=
   a.val[i.val]'(by rw [a.property]; exact i.isLt)
 
+/-- Write a Boolean register at a bounded index. -/
 def bankWrite {R : ℕ} (a : BitBank R) (i : Fin R) (b : Bool) : BitBank R :=
   ⟨a.val.setIfInBounds i.val b, Array.size_setIfInBounds.trans a.property⟩
 
+/-- Reading after a register write returns the new bit at the written index and the original bit
+elsewhere. -/
 @[simp] theorem bankRead_write {R : ℕ} (a : BitBank R) (i k : Fin R) (b : Bool) :
     bankRead (bankWrite a i b) k = if k = i then b else bankRead a k := by
   have hk : k.val < a.val.size := by rw [a.property]; exact k.isLt
   have h := Array.getElem_setIfInBounds (xs := a.val) (i := i.val) (a := b) hk
   simpa only [bankRead, bankWrite, Fin.ext_iff, eq_comm] using! h
 
+/-- Elementary bit-machine events for input scanning, Boolean evaluation, register access, and
+output writing. -/
 inductive BitAction (R : ℕ) where
   | right | left | readInput (b : Bool) | literal (b : Bool)
   | readRegister (i : Fin R) (b : Bool)
@@ -1009,36 +1146,46 @@ inductive BitAction (R : ℕ) where
   | writeRegister (i : Fin R) (b : Bool) | outputLeft | writeOutput (b : Bool)
   deriving DecidableEq, Repr
 
+/-- Read a bit by recursively scanning from the head of a list, using `false` beyond its end. -/
 def scanBit (bits : List Bool) : ℕ → Bool
   | 0 => bits.headD false
   | k + 1 => scanBit bits.tail k
 
+/-- The input-scan trace that moves to an address, reads its bit, and returns to the starting
+position. -/
 def scanTrace {R : ℕ} (bits : List Bool) : ℕ → List (BitAction R)
   | 0 => [.readInput (bits.headD false)]
   | k + 1 => .right :: scanTrace bits.tail k ++ [.left]
 
+/-- The execution relation for a bit scan, recording its input list, address, trace, and
+returned bit. -/
 inductive ScanExec (R : ℕ) : List Bool → ℕ → List (BitAction R) → Bool → Prop where
   | here (bits) : ScanExec R bits 0 [.readInput (bits.headD false)] (bits.headD false)
   | next (bits k trace b) : ScanExec R bits.tail k trace b →
       ScanExec R bits (k + 1) (.right :: trace ++ [.left]) b
 
+/-- The trace produced by `scanTrace` executes a scan returning `scanBit bits k`. -/
 theorem scanTrace_exec {R : ℕ} (bits : List Bool) (k : ℕ) :
     ScanExec R bits k (scanTrace bits k) (scanBit bits k) := by
   induction k generalizing bits with
   | zero => exact .here bits
   | succ k ih => exact .next bits k _ _ (ih bits.tail)
 
+/-- Recursive bit scanning agrees with list lookup using `false` as the default. -/
 theorem scanBit_getD (bits : List Bool) (k : ℕ) : scanBit bits k = bits.getD k false := by
   induction k generalizing bits with
   | zero => cases bits <;> rfl
   | succ k ih => cases bits <;> simp [scanBit, List.getD, ih]
 
+/-- Scanning address `k` and returning to the origin takes exactly `2 * k + 1` events. -/
 theorem scanTrace_length {R : ℕ} (bits : List Bool) (k : ℕ) :
     (scanTrace (R := R) bits k).length = 2 * k + 1 := by
   induction k generalizing bits with
   | zero => rfl
   | succ k ih => simp [scanTrace, ih]; omega
 
+/-- Boolean expressions built from literals, input addresses, registers, negation, conjunction,
+and exclusive disjunction. -/
 inductive BitExpr (R : ℕ) where
   | literal (b : Bool) | input (address : ℕ) | reg (i : Fin R)
   | bnot (a : BitExpr R) | band (a b : BitExpr R) | bxor (a b : BitExpr R)
@@ -1046,6 +1193,7 @@ inductive BitExpr (R : ℕ) where
 
 namespace BitExpr
 
+/-- Evaluate a Boolean expression against an input bit list and a register bank. -/
 def eval {R : ℕ} (bits : List Bool) (regs : BitBank R) : BitExpr R → Bool
   | .literal b => b
   | .input k => scanBit bits k
@@ -1054,17 +1202,21 @@ def eval {R : ℕ} (bits : List Bool) (regs : BitBank R) : BitExpr R → Bool
   | .band a b => eval bits regs a && eval bits regs b
   | .bxor a b => xor (eval bits regs a) (eval bits regs b)
 
+/-- Count the syntax-tree nodes of a Boolean expression. -/
 def nodes {R : ℕ} : BitExpr R → ℕ
   | .literal _ | .input _ | .reg _ => 1
   | .bnot a => a.nodes + 1
   | .band a b | .bxor a b => a.nodes + b.nodes + 1
 
+/-- The largest input address read by an expression, with value zero for literals and register
+reads. -/
 def maxRead {R : ℕ} : BitExpr R → ℕ
   | .literal _ | .reg _ => 0
   | .input k => k
   | .bnot a => a.maxRead
   | .band a b | .bxor a b => max a.maxRead b.maxRead
 
+/-- Generate the elementary event trace for evaluating a Boolean expression. -/
 def eventTrace {R : ℕ} (bits : List Bool) (regs : BitBank R) : BitExpr R → List (BitAction R)
   | .literal b => [.literal b]
   | .input k => scanTrace bits k
@@ -1077,6 +1229,8 @@ def eventTrace {R : ℕ} (bits : List Bool) (regs : BitBank R) : BitExpr R → L
 
 end BitExpr
 
+/-- The execution relation connecting a Boolean expression, its elementary event trace, and its
+value. -/
 inductive ExprExec {R : ℕ} (bits : List Bool) (regs : BitBank R) :
     BitExpr R → List (BitAction R) → Bool → Prop where
   | literal (b) : ExprExec bits regs (.literal b) [.literal b] b
@@ -1089,6 +1243,7 @@ inductive ExprExec {R : ℕ} (bits : List Bool) (regs : BitBank R) :
   | bxor {a b ta tb va vb} : ExprExec bits regs a ta va → ExprExec bits regs b tb vb →
       ExprExec bits regs (.bxor a b) (ta ++ tb ++ [.bxor va vb]) (xor va vb)
 
+/-- The generated expression trace executes with the value returned by `BitExpr.eval`. -/
 theorem exprTrace_exec {R : ℕ} (bits : List Bool) (regs : BitBank R) (e : BitExpr R) :
     ExprExec bits regs e (e.eventTrace bits regs) (e.eval bits regs) := by
   induction e with
@@ -1099,6 +1254,7 @@ theorem exprTrace_exec {R : ℕ} (bits : List Bool) (regs : BitBank R) (e : BitE
   | band a b ha hb => exact .band ha hb
   | bxor a b ha hb => exact .bxor ha hb
 
+/-- An expression trace has length at most `(2 * e.maxRead + 3) * e.nodes`. -/
 theorem exprTrace_bound {R : ℕ} (bits : List Bool) (regs : BitBank R) (e : BitExpr R) :
     (e.eventTrace bits regs).length ≤ (2 * e.maxRead + 3) * e.nodes := by
   induction e with
@@ -1120,29 +1276,37 @@ theorem exprTrace_bound {R : ℕ} (bits : List Bool) (regs : BitBank R) (e : Bit
       List.length_cons, List.length_nil, Nat.mul_add, Nat.mul_one]
     omega
 
+/-- An instruction frame consisting of input bits, a fixed-size register bank, and an output bit
+list. -/
 structure BitFrame (R : ℕ) where
   input : List Bool
   regs : BitBank R
   output : List Bool
 
+/-- Bit instructions that either assign an expression to a register or emit its value. -/
 inductive BitInstr (R : ℕ) where
   | assign (i : Fin R) (e : BitExpr R)
   | emit (e : BitExpr R)
   deriving DecidableEq, Repr
 
+/-- The Boolean expression evaluated by an assignment or emission instruction. -/
 def BitInstr.expr {R : ℕ} : BitInstr R → BitExpr R
   | .assign _ e | .emit e => e
 
+/-- Execute one instruction by updating a register or prepending an evaluated bit to the output. -/
 def bitStep {R : ℕ} (i : BitInstr R) (f : BitFrame R) : BitFrame R :=
   match i with
   | .assign k e => { f with regs := bankWrite f.regs k (e.eval f.input f.regs) }
   | .emit e => { f with output := e.eval f.input f.regs :: f.output }
 
+/-- Generate the expression-evaluation and write events for a single bit instruction. -/
 def bitStepTrace {R : ℕ} (i : BitInstr R) (f : BitFrame R) : List (BitAction R) :=
   match i with
   | .assign k e => e.eventTrace f.input f.regs ++ [.writeRegister k (e.eval f.input f.regs)]
   | .emit e => e.eventTrace f.input f.regs ++ [.outputLeft, .writeOutput (e.eval f.input f.regs)]
 
+/-- The execution relation for a bit instruction, including expression evaluation and its
+register or output update. -/
 inductive StepExec {R : ℕ} : BitInstr R → BitFrame R → List (BitAction R) → BitFrame R → Prop where
   | assign {f k e trace b} : ExprExec f.input f.regs e trace b →
       StepExec (.assign k e) f (trace ++ [.writeRegister k b])
@@ -1150,36 +1314,44 @@ inductive StepExec {R : ℕ} : BitInstr R → BitFrame R → List (BitAction R) 
   | emit {f e trace b} : ExprExec f.input f.regs e trace b →
       StepExec (.emit e) f (trace ++ [.outputLeft, .writeOutput b]) { f with output := b :: f.output }
 
+/-- The generated instruction trace executes to the frame computed by `bitStep`. -/
 theorem bitStep_exec {R : ℕ} (i : BitInstr R) (f : BitFrame R) :
     StepExec i f (bitStepTrace i f) (bitStep i f) := by
   cases i with
   | assign k e => exact .assign (exprTrace_exec f.input f.regs e)
   | emit e => exact .emit (exprTrace_exec f.input f.regs e)
 
+/-- Execute a list of bit instructions from left to right. -/
 def bitRun {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) : BitFrame R :=
   code.foldl (fun f i => bitStep i f) f
 
+/-- Generate the concatenated event trace for executing a block of bit instructions. -/
 def bitRunTrace {R : ℕ} : List (BitInstr R) → BitFrame R → List (BitAction R)
   | [], _ => []
   | i :: code, f => bitStepTrace i f ++ bitRunTrace code (bitStep i f)
 
+/-- The execution relation for a block of bit instructions and its concatenated event trace. -/
 inductive BlockExec {R : ℕ} : List (BitInstr R) → BitFrame R → List (BitAction R) → BitFrame R → Prop where
   | nil (f) : BlockExec [] f [] f
   | cons {i code f g h t u} : StepExec i f t g → BlockExec code g u h →
       BlockExec (i :: code) f (t ++ u) h
 
+/-- The generated block trace executes to the frame computed by `bitRun`. -/
 theorem bitRun_exec {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) :
     BlockExec code f (bitRunTrace code f) (bitRun code f) := by
   induction code generalizing f with
   | nil => exact .nil f
   | cons i code ih => exact .cons (bitStep_exec i f) (ih _)
 
+/-- An instruction trace is bounded by its expression evaluation bound plus two write events. -/
 theorem bitStep_bound {R : ℕ} (i : BitInstr R) (f : BitFrame R) :
     (bitStepTrace i f).length ≤ (2 * i.expr.maxRead + 3) * i.expr.nodes + 2 := by
   have he := exprTrace_bound f.input f.regs i.expr
   cases i <;> simp only [bitStepTrace, BitInstr.expr, List.length_append, List.length_cons,
     List.length_nil] at * <;> omega
 
+/-- A block with expression size at most `S` and read addresses at most `A` has trace length at
+most `code.length * ((2 * A + 3) * S + 2)`. -/
 theorem bitRun_bound {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (S A : ℕ)
     (hn : ∀ i ∈ code, i.expr.nodes ≤ S) (ha : ∀ i ∈ code, i.expr.maxRead ≤ A) :
     (bitRunTrace code f).length ≤ code.length * ((2 * A + 3) * S + 2) := by
@@ -1199,10 +1371,12 @@ theorem bitRun_bound {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (S A 
     rw [Nat.succ_mul code.length ((2 * A + 3) * S + 2)]
     omega
 
+/-- Test whether a bit instruction emits an output bit. -/
 def BitInstr.isEmit {R : ℕ} : BitInstr R → Bool
   | .emit _ => true
   | .assign _ _ => false
 
+/-- Executing a block of bit instructions preserves its input list. -/
 theorem bitRun_input {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) :
     (bitRun code f).input = f.input := by
   induction code generalizing f with
@@ -1212,6 +1386,7 @@ theorem bitRun_input {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) :
     rw [ih]
     cases i <;> rfl
 
+/-- A block increases output length by exactly its number of emission instructions. -/
 theorem bitRun_output_length {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) :
     (bitRun code f).output.length = f.output.length + (code.filter BitInstr.isEmit).length := by
   induction code generalizing f with
@@ -1221,6 +1396,8 @@ theorem bitRun_output_length {R : ℕ} (code : List (BitInstr R)) (f : BitFrame 
     rw [ih]
     cases i <;> simp [bitStep, BitInstr.isEmit, Nat.add_assoc, Nat.add_comm]
 
+/-- Code for adding two two-bit phases modulo four, placing the result in registers zero and
+one. -/
 def phaseAddCode : List (BitInstr 8) :=
   [.assign 4 (.bxor (.reg 0) (.reg 2)),
     .assign 5 (.bxor (.bxor (.reg 1) (.reg 3)) (.band (.reg 0) (.reg 2))),
@@ -1228,6 +1405,8 @@ def phaseAddCode : List (BitInstr 8) :=
 
 set_option maxHeartbeats 2000000 in
 
+/-- Given the two-bit encodings of phases in registers zero through three, `phaseAddCode` stores
+the bits of their sum in registers zero and one. -/
 theorem phaseAdd_correct (f : BitFrame 8) (p q : ZMod 4)
     (h0 : bankRead f.regs 0 = p.val.testBit 0) (h1 : bankRead f.regs 1 = p.val.testBit 1)
     (h2 : bankRead f.regs 2 = q.val.testBit 0) (h3 : bankRead f.regs 3 = q.val.testBit 1) :
@@ -1237,39 +1416,48 @@ theorem phaseAdd_correct (f : BitFrame 8) (p q : ZMod 4)
     simp only [phaseAddCode, bitRun, List.foldl_cons, List.foldl_nil, bitStep,
       BitExpr.eval, bankRead_write, Fin.reduceEq, if_true, if_false, h0, h1, h2, h3] <;> decide
 
+/-- The phase addition code generates exactly sixteen elementary events. -/
 theorem phaseAdd_trace_length (f : BitFrame 8) :
     (bitRunTrace phaseAddCode f).length = 16 := by
   simp [phaseAddCode, bitRunTrace, bitStepTrace, BitExpr.eventTrace]
 
+/-- Input addresses for the X bits, Z bits, and two phase bits of a tableau row. -/
 structure RowLayout (n : ℕ) where
   x : Fin n → ℕ
   z : Fin n → ℕ
   low : ℕ
   high : ℕ
 
+/-- The standard contiguous row layout starting at a specified bit offset. -/
 def rowLayout (n offset : ℕ) : RowLayout n where
   x i := offset + i.val
   z i := offset + n + i.val
   low := offset + 2 * n
   high := offset + 2 * n + 1
 
+/-- The input bits at a row layout agree with the row's X coordinates, Z coordinates, and two
+phase bits. -/
 def RepresentsRow {n : ℕ} (bits : List Bool) (a : RowLayout n) (r : Row n) : Prop :=
   (∀ i, scanBit bits (a.x i) = r.x i) ∧
   (∀ i, scanBit bits (a.z i) = r.z i) ∧
   scanBit bits a.low = r.phase.val.testBit 0 ∧
   scanBit bits a.high = r.phase.val.testBit 1
 
+/-- Adding two conditionally to a phase preserves its low bit and toggles its high bit by the
+condition. -/
 theorem phase_toggle_bits (p : ZMod 4) (b : Bool) :
     (p + if b then 2 else 0).val.testBit 0 = p.val.testBit 0 ∧
     (p + if b then 2 else 0).val.testBit 1 = xor (p.val.testBit 1) b := by
   fin_cases p <;> cases b <;> decide
 
+/-- The expression computing an updated X coordinate under a Clifford gate. -/
 def gateXExpr {n : ℕ} (a : RowLayout n) : CliffordGate n → Fin n → BitExpr 8
   | .H i, k => if k = i then .input (a.z i) else .input (a.x k)
   | .S _, k => .input (a.x k)
   | .CNOT i j, k => if k = j then .bxor (.input (a.x j)) (.input (a.x i))
       else .input (a.x k)
 
+/-- The expression computing an updated Z coordinate under a Clifford gate. -/
 def gateZExpr {n : ℕ} (a : RowLayout n) : CliffordGate n → Fin n → BitExpr 8
   | .H i, k => if k = i then .input (a.x i) else .input (a.z k)
   | .S i, k => if k = i then .bxor (.input (a.z i)) (.input (a.x i))
@@ -1277,22 +1465,30 @@ def gateZExpr {n : ℕ} (a : RowLayout n) : CliffordGate n → Fin n → BitExpr
   | .CNOT i j, k => if k = i then .bxor (.input (a.z i)) (.input (a.z j))
       else .input (a.z k)
 
+/-- The expression computing the phase-toggle condition for a Clifford row update. -/
 def gateFlipExpr {n : ℕ} (a : RowLayout n) : CliffordGate n → BitExpr 8
   | .H i | .S i => .band (.input (a.x i)) (.input (a.z i))
   | .CNOT i j => .band (.band (.input (a.x i)) (.input (a.z j)))
       (.bnot (.bxor (.input (a.x j)) (.input (a.z i))))
 
+/-- The expressions for all encoded bits of a row after a Clifford gate update. -/
 def gateRowExprs {n : ℕ} (a : RowLayout n) (g : CliffordGate n) : List (BitExpr 8) :=
   List.ofFn (gateXExpr a g) ++ List.ofFn (gateZExpr a g) ++
     [.input a.low, .bxor (.input a.high) (gateFlipExpr a g)]
 
+/-- Compile a list of expressions into emissions in reverse order so that their values appear in
+the original order in the output. -/
 def emitCode {R : ℕ} (es : List (BitExpr R)) : List (BitInstr R) :=
   es.reverse.map .emit
 
+/-- Executing concatenated instruction blocks agrees with executing the first block and then the
+second. -/
 theorem bitRun_append {R : ℕ} (xs ys : List (BitInstr R)) (f : BitFrame R) :
     bitRun (xs ++ ys) f = bitRun ys (bitRun xs f) := by
   simp [bitRun, List.foldl_append]
 
+/-- Emission code prepends the expression values in their original order and preserves the input
+and registers. -/
 theorem emitCode_correct {R : ℕ} (es : List (BitExpr R)) (f : BitFrame R) :
     (bitRun (emitCode es) f).input = f.input ∧
     (bitRun (emitCode es) f).regs = f.regs ∧
@@ -1309,10 +1505,12 @@ theorem emitCode_correct {R : ℕ} (es : List (BitExpr R)) (f : BitFrame R) :
         (bitRun (emitCode es) f).output = _
     exact ⟨h.1, h.2.1, by rw [h.1, h.2.1, h.2.2]; rfl⟩
 
+/-- The Boolean condition determining whether a Clifford gate adds two to a row phase. -/
 def gateControl {n : ℕ} (r : Row n) : CliffordGate n → Bool
   | .H i | .S i => r.x i && r.z i
   | .CNOT i j => r.x i && r.z j && !(xor (r.x j) (r.z i))
 
+/-- On a represented row, `gateXExpr` evaluates to the updated X coordinate. -/
 theorem gateXExpr_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (f : BitFrame 8) (r : Row n) (hr : RepresentsRow f.input a r) (k : Fin n) :
     (gateXExpr a g k).eval f.input f.regs = (r.update g).x k := by
@@ -1321,6 +1519,7 @@ theorem gateXExpr_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
   | S i => exact hr.1 k
   | CNOT i j => by_cases h : k = j <;> simp [gateXExpr, BitExpr.eval, Row.update, h, hr.1]
 
+/-- On a represented row, `gateZExpr` evaluates to the updated Z coordinate. -/
 theorem gateZExpr_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (f : BitFrame 8) (r : Row n) (hr : RepresentsRow f.input a r) (k : Fin n) :
     (gateZExpr a g k).eval f.input f.regs = (r.update g).z k := by
@@ -1329,15 +1528,18 @@ theorem gateZExpr_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
   | S i => by_cases h : k = i <;> simp [gateZExpr, BitExpr.eval, Row.update, h, hr.1, hr.2.1]
   | CNOT i j => by_cases h : k = i <;> simp [gateZExpr, BitExpr.eval, Row.update, h, hr.2.1]
 
+/-- On a represented row, the phase-toggle expression evaluates to `gateControl`. -/
 theorem gateFlipExpr_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (f : BitFrame 8) (r : Row n) (hr : RepresentsRow f.input a r) :
     (gateFlipExpr a g).eval f.input f.regs = gateControl r g := by
   cases g <;> simp only [gateFlipExpr, BitExpr.eval, hr.1, hr.2.1, gateControl]
 
+/-- A Clifford row update adds two to the phase exactly when `gateControl` is true. -/
 theorem gate_phase_eq {n : ℕ} (r : Row n) (g : CliffordGate n) :
     (r.update g).phase = r.phase + if gateControl r g then 2 else 0 := by
   cases g <;> rfl
 
+/-- Evaluating the gate row expressions yields the bit encoding of the updated row. -/
 theorem gateRowExprs_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (f : BitFrame 8) (r : Row n) (hr : RepresentsRow f.input a r) :
     (gateRowExprs a g).map (BitExpr.eval f.input f.regs) = (r.update g).bits := by
@@ -1347,14 +1549,17 @@ theorem gateRowExprs_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     BitExpr.eval, hr.2.2.1, hr.2.2.2, gateFlipExpr_correct a g f r hr,
     Row.bits, gate_phase_eq, hp.1, hp.2]
 
+/-- The compiled gate row emissions prepend the updated row encoding to the output. -/
 theorem gateRowCode_correct {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (f : BitFrame 8) (r : Row n) (hr : RepresentsRow f.input a r) :
     (bitRun (emitCode (gateRowExprs a g)) f).output = (r.update g).bits ++ f.output := by
   rw [(emitCode_correct _ _).2.2, gateRowExprs_correct a g f r hr]
 
+/-- Every address in a row layout is at most the specified bound. -/
 def RowLayout.Bounded {n : ℕ} (a : RowLayout n) (A : ℕ) : Prop :=
   (∀ i, a.x i ≤ A) ∧ (∀ i, a.z i ≤ A) ∧ a.low ≤ A ∧ a.high ≤ A
 
+/-- An updated X expression has at most three nodes and respects the layout's address bound. -/
 theorem gateXExpr_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n) (k : Fin n)
     (A : ℕ) (ha : a.Bounded A) :
     (gateXExpr a g k).nodes ≤ 3 ∧ (gateXExpr a g k).maxRead ≤ A := by
@@ -1364,6 +1569,7 @@ theorem gateXExpr_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n) (k : F
   | CNOT i j => by_cases h : k = j <;>
       simp [gateXExpr, h, BitExpr.nodes, BitExpr.maxRead, ha.1]
 
+/-- An updated Z expression has at most three nodes and respects the layout's address bound. -/
 theorem gateZExpr_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n) (k : Fin n)
     (A : ℕ) (ha : a.Bounded A) :
     (gateZExpr a g k).nodes ≤ 3 ∧ (gateZExpr a g k).maxRead ≤ A := by
@@ -1374,14 +1580,17 @@ theorem gateZExpr_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n) (k : F
   | CNOT i j => by_cases h : k = i <;>
       simp [gateZExpr, h, BitExpr.nodes, BitExpr.maxRead, ha.2.1]
 
+/-- The phase-toggle expression has at most eight nodes and respects the layout's address bound. -/
 theorem gateFlipExpr_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (A : ℕ) (ha : a.Bounded A) :
     (gateFlipExpr a g).nodes ≤ 8 ∧ (gateFlipExpr a g).maxRead ≤ A := by
   cases g <;> simp [gateFlipExpr, BitExpr.nodes, BitExpr.maxRead, ha.1, ha.2.1]
 
+/-- The list of gate row expressions has length `rowWidth n`. -/
 theorem gateRowExprs_length {n : ℕ} (a : RowLayout n) (g : CliffordGate n) :
     (gateRowExprs a g).length = rowWidth n := by simp [gateRowExprs, rowWidth]; omega
 
+/-- Every gate row expression has at most ten nodes and respects the layout's address bound. -/
 theorem gateRowExprs_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (A : ℕ) (ha : a.Bounded A) :
     ∀ e ∈ gateRowExprs a g, e.nodes ≤ 10 ∧ e.maxRead ≤ A := by
@@ -1400,6 +1609,8 @@ theorem gateRowExprs_bounds {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
       simp only [BitExpr.nodes, BitExpr.maxRead]
       exact ⟨by omega, max_le ha.2.2.2 h.2⟩
 
+/-- Gate row emission has trace length at most `rowWidth n * ((2 * A + 3) * 10 + 2)` for a
+layout bounded by `A`. -/
 theorem gateRowCode_time {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (f : BitFrame 8) (A : ℕ) (ha : a.Bounded A) :
     (bitRunTrace (emitCode (gateRowExprs a g)) f).length ≤
@@ -1414,21 +1625,27 @@ theorem gateRowCode_time {n : ℕ} (a : RowLayout n) (g : CliffordGate n)
     (fun i hi => (hmem i hi).1) (fun i hi => (hmem i hi).2)
   simpa only [emitCode, List.length_map, List.length_reverse, gateRowExprs_length] using! h
 
+/-- Scanning an address within the left list of a concatenation gives the same bit as scanning
+that list alone. -/
 theorem scanBit_append_left (xs ys : List Bool) (k : ℕ) (hk : k < xs.length) :
     scanBit (xs ++ ys) k = scanBit xs k := by
   simp only [scanBit_getD]
   exact List.getD_append xs ys false k hk
 
+/-- Scanning beyond the left list by an offset agrees with scanning the right list at that
+offset. -/
 theorem scanBit_append_right (xs ys : List Bool) (k : ℕ) :
     scanBit (xs ++ ys) (xs.length + k) = scanBit ys k := by
   simp only [scanBit_getD]
   rw [List.getD_append_right xs ys false (xs.length + k) (by omega), Nat.add_sub_cancel_left]
 
+/-- Scanning the list generated by a finite Boolean function returns the function's value. -/
 theorem scanBit_ofFn {n : ℕ} (f : Fin n → Bool) (i : Fin n) :
     scanBit (List.ofFn f) i.val = f i := by
   rw [scanBit_getD, List.getD_eq_getElem _ _ (by simp)]
   simp
 
+/-- A row's own encoding represents it at offset zero. -/
 theorem representsRow_self {n : ℕ} (r : Row n) : RepresentsRow r.bits (rowLayout n 0) r := by
   unfold RepresentsRow rowLayout
   dsimp
@@ -1452,30 +1669,38 @@ theorem representsRow_self {n : ℕ} (r : Row n) : RepresentsRow r.bits (rowLayo
     rw [h, scanBit_append_right, scanBit_append_right]
     rfl
 
+/-- A Boolean expression for the low bit of the single-site Pauli multiplication phase. -/
 def cocycleLow {R : ℕ} (x z y w : BitExpr R) : BitExpr R :=
   .bxor (.band x w) (.band z y)
 
+/-- A Boolean expression for the high bit of the single-site Pauli multiplication phase. -/
 def cocycleHigh {R : ℕ} (x z y w : BitExpr R) : BitExpr R :=
   .bxor (.bxor
     (.band (.band x (.bnot z)) (.band (.bnot y) w))
     (.band (.band x z) (.band y (.bnot w))))
     (.band (.band (.bnot x) z) (.band y w))
 
+/-- The two bits of a single-site Pauli multiplication phase are given by the stated Boolean
+formulas. -/
 theorem cocycle_bits (x z y w : Bool) :
     (pauliMulPhase (letter x z) (letter y w)).val.testBit 0 = xor (x && w) (z && y) ∧
     (pauliMulPhase (letter x z) (letter y w)).val.testBit 1 =
       xor (xor ((x && !z) && (!y && w)) ((x && z) && (y && !w))) ((!x && z) && (y && w)) := by
   cases x <;> cases z <;> cases y <;> cases w <;> decide
 
+/-- The low-bit Pauli cocycle expression at a site of two represented rows. -/
 def cocycleLowExpr {n : ℕ} (a c : RowLayout n) (k : Fin n) : BitExpr 8 :=
   cocycleLow (.input (a.x k)) (.input (a.z k)) (.input (c.x k)) (.input (c.z k))
 
+/-- The high-bit Pauli cocycle expression at a site of two represented rows. -/
 def cocycleHighExpr {n : ℕ} (a c : RowLayout n) (k : Fin n) : BitExpr 8 :=
   cocycleHigh (.input (a.x k)) (.input (a.z k)) (.input (c.x k)) (.input (c.z k))
 
+/-- The phase modulo four contributed by multiplying the two single-site Pauli letters. -/
 def rowCocycle {n : ℕ} (r s : Row n) (k : Fin n) : ZMod 4 :=
   pauliMulPhase (letter (r.x k) (r.z k)) (letter (s.x k) (s.z k))
 
+/-- For represented rows, the cocycle expressions evaluate to the two bits of `rowCocycle`. -/
 theorem cocycleExpr_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s) (k : Fin n) :
     (cocycleLowExpr a c k).eval f.input f.regs = (rowCocycle r s k).val.testBit 0 ∧
@@ -1484,16 +1709,20 @@ theorem cocycleExpr_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     hr.1, hr.2.1, hs.1, hs.2.1, rowCocycle]
   exact ⟨(cocycle_bits _ _ _ _).1.symm, (cocycle_bits _ _ _ _).2.symm⟩
 
+/-- Load and add the two input row phases into accumulator registers zero and one. -/
 def phaseInitCode {n : ℕ} (a c : RowLayout n) : List (BitInstr 8) :=
   [.assign 0 (.input a.low), .assign 1 (.input a.high),
     .assign 2 (.input c.low), .assign 3 (.input c.high)] ++ phaseAddCode
 
+/-- Add one site's Pauli multiplication phase to the two-bit phase accumulator. -/
 def phaseSiteCode {n : ℕ} (a c : RowLayout n) (k : Fin n) : List (BitInstr 8) :=
   [.assign 2 (cocycleLowExpr a c k), .assign 3 (cocycleHighExpr a c k)] ++ phaseAddCode
 
+/-- Concatenate the phase-accumulation code for a list of sites. -/
 def phaseSitesCode {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) : List (BitInstr 8) :=
   ks.flatMap (phaseSiteCode a c)
 
+/-- Executing code with no emission instructions preserves the output list. -/
 theorem bitRun_noEmit_output {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R)
     (h : ∀ i ∈ code, i.isEmit = false) : (bitRun code f).output = f.output := by
   induction code generalizing f with
@@ -1507,6 +1736,7 @@ theorem bitRun_noEmit_output {R : ℕ} (code : List (BitInstr R)) (f : BitFrame 
     | assign k e => rfl
     | emit e => simp [BitInstr.isEmit] at h0
 
+/-- Phase initialization preserves both the input and output lists. -/
 theorem phaseInit_input_output {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) :
     (bitRun (phaseInitCode a c) f).input = f.input ∧
     (bitRun (phaseInitCode a c) f).output = f.output := by
@@ -1516,6 +1746,7 @@ theorem phaseInit_input_output {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) :
     List.not_mem_nil, or_false] at hi
   rcases hi with (rfl | rfl | rfl | rfl) | (rfl | rfl | rfl | rfl) <;> rfl
 
+/-- Accumulating a single site's phase preserves the input and output lists. -/
 theorem phaseSite_input_output {n : ℕ} (a c : RowLayout n) (k : Fin n) (f : BitFrame 8) :
     (bitRun (phaseSiteCode a c k) f).input = f.input ∧
     (bitRun (phaseSiteCode a c k) f).output = f.output := by
@@ -1525,6 +1756,7 @@ theorem phaseSite_input_output {n : ℕ} (a c : RowLayout n) (k : Fin n) (f : Bi
     List.not_mem_nil, or_false] at hi
   rcases hi with (rfl | rfl) | (rfl | rfl | rfl | rfl) <;> rfl
 
+/-- Accumulating phases over a list of sites preserves the input and output lists. -/
 theorem phaseSites_input_output {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) (f : BitFrame 8) :
     (bitRun (phaseSitesCode a c ks) f).input = f.input ∧
     (bitRun (phaseSitesCode a c ks) f).output = f.output := by
@@ -1538,6 +1770,7 @@ theorem phaseSites_input_output {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)
 
 set_option maxHeartbeats 2000000 in
 
+/-- For represented rows, phase initialization stores the bits of the sum of their phases. -/
 theorem phaseInit_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s) :
     bankRead (bitRun (phaseInitCode a c) f).regs 0 = (r.phase + s.phase).val.testBit 0 ∧
@@ -1548,6 +1781,8 @@ theorem phaseInit_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
 
 set_option maxHeartbeats 2000000 in
 
+/-- For represented rows and an accumulator encoding `p`, one phase site step stores the bits of
+`p + rowCocycle r s k`. -/
 theorem phaseSite_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s)
     (p : ZMod 4) (h0 : bankRead f.regs 0 = p.val.testBit 0)
@@ -1565,6 +1800,8 @@ theorem phaseSite_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
       Fin.reduceEq, if_true, if_false]
     exact (cocycleExpr_correct a c _ r s hr hs k).2
 
+/-- Phase accumulation over `ks` adds the sum of their cocycle contributions to the encoded
+accumulator phase. -/
 theorem phaseSites_correct {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s)
     (p : ZMod 4) (h0 : bankRead f.regs 0 = p.val.testBit 0)
@@ -1585,9 +1822,12 @@ theorem phaseSites_correct {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) (f 
     simpa only [phaseSitesCode, List.flatMap_cons, bitRun_append, List.map_cons,
       List.sum_cons, add_assoc] using! ht
 
+/-- Code for computing the product-row phase from the two row phases and all single-site
+cocycles. -/
 def mulPhaseCode {n : ℕ} (a c : RowLayout n) : List (BitInstr 8) :=
   phaseInitCode a c ++ phaseSitesCode a c (List.ofFn id)
 
+/-- For represented rows, `mulPhaseCode` stores the two bits of the product row's phase. -/
 theorem mulPhaseCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s) :
     bankRead (bitRun (mulPhaseCode a c) f).regs 0 = (r.mul s).phase.val.testBit 0 ∧
@@ -1602,13 +1842,17 @@ theorem mulPhaseCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
   simpa only [mulPhaseCode, bitRun_append, List.map_ofFn, Function.comp_id,
     List.sum_ofFn, Row.mul, rowCocycle] using! h
 
+/-- Expressions for the X and Z coordinates of a product row, followed by the accumulated phase
+bits. -/
 def mulRowExprs {n : ℕ} (a c : RowLayout n) : List (BitExpr 8) :=
   List.ofFn (fun k => .bxor (.input (a.x k)) (.input (c.x k))) ++
   List.ofFn (fun k => .bxor (.input (a.z k)) (.input (c.z k))) ++ [.reg 0, .reg 1]
 
+/-- Compute a product row's phase and emit its full bit encoding. -/
 def mulRowCode {n : ℕ} (a c : RowLayout n) : List (BitInstr 8) :=
   mulPhaseCode a c ++ emitCode (mulRowExprs a c)
 
+/-- Product-phase computation preserves the input and output lists. -/
 theorem mulPhase_input_output {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) :
     (bitRun (mulPhaseCode a c) f).input = f.input ∧
     (bitRun (mulPhaseCode a c) f).output = f.output := by
@@ -1617,6 +1861,8 @@ theorem mulPhase_input_output {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) :
   exact ⟨h.1.trans (phaseInit_input_output a c f).1,
     h.2.trans (phaseInit_input_output a c f).2⟩
 
+/-- For represented rows, row multiplication code prepends the bit encoding of their product to
+the output. -/
 theorem mulRowCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s) :
     (bitRun (mulRowCode a c) f).output = (r.mul s).bits ++ f.output := by
@@ -1627,6 +1873,8 @@ theorem mulRowCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
   simp only [mulRowExprs, List.map_append, List.map_ofFn, Function.comp_def, List.map_cons,
     List.map_nil, BitExpr.eval, hio.1, hr.1, hr.2.1, hs.1, hs.2.1, hp.1, hp.2, Row.bits, Row.mul]
 
+/-- Scanning a valid address in flattened row encodings returns the corresponding bit of the
+selected row. -/
 theorem scanBit_flatRows {n : ℕ} (rs : List (Row n)) (suffix : List Bool)
     (j k : ℕ) (hj : j < rs.length) (hk : k < rowWidth n) :
     scanBit (rs.flatMap Row.bits ++ suffix) (j * rowWidth n + k) = scanBit rs[j].bits k := by
@@ -1645,6 +1893,8 @@ theorem scanBit_flatRows {n : ℕ} (rs : List (Row n)) (suffix : List Bool)
         rw [← rowWidth_eq_bits_length r, Nat.add_mul, Nat.one_mul]; omega, scanBit_append_right]
       exact ih j hj'
 
+/-- Each row of a tableau is represented at its standard offset in the tableau encoding, even
+with an appended suffix. -/
 theorem representsRow_tableau {n m : ℕ} (t : Tableau n m) (suffix : List Bool) (j : Fin m) :
     RepresentsRow (tableauBits t ++ suffix) (rowLayout n (j.val * rowWidth n)) (t j) := by
   have hscan (k : ℕ) (hk : k < rowWidth n) :
@@ -1665,12 +1915,16 @@ theorem representsRow_tableau {n m : ℕ} (t : Tableau n m) (suffix : List Bool)
   · rw [Nat.add_assoc, hscan (2 * n + 1) (by unfold rowWidth; omega)]
     exact hself.2.2.2
 
+/-- The concatenated expressions for a Clifford gate update of every tableau row. -/
 def gateTableauExprs {n m : ℕ} (g : CliffordGate n) : List (BitExpr 8) :=
   (List.ofFn (fun j : Fin m => gateRowExprs (rowLayout n (j.val * rowWidth n)) g)).flatten
 
+/-- Code emitting the tableau bits after a Clifford gate update. -/
 def gateTableauCode {n m : ℕ} (g : CliffordGate n) : List (BitInstr 8) :=
   emitCode (gateTableauExprs (m := m) g)
 
+/-- Given a tableau encoding as input, gate tableau code prepends the encoding of the updated
+tableau to the output. -/
 theorem gateTableauCode_correct {n m : ℕ} (g : CliffordGate n) (t : Tableau n m)
     (f : BitFrame 8) (hf : f.input = tableauBits t) :
     (bitRun (gateTableauCode (m := m) g) f).output = tableauBits (update g t) ++ f.output := by
@@ -1685,16 +1939,21 @@ theorem gateTableauCode_correct {n m : ℕ} (g : CliffordGate n) (t : Tableau n 
   rw [hf]
   simpa only [List.append_nil] using! representsRow_tableau t [] j
 
+/-- The Boolean symplectic pairing contribution of two rows at one qubit. -/
 def rowParityAt {n : ℕ} (r s : Row n) (k : Fin n) : Bool :=
   xor (r.x k && s.z k) (r.z k && s.x k)
 
+/-- The exclusive-disjunction sum of the single-site symplectic pairing contributions. -/
 def rowParity {n : ℕ} (r s : Row n) : Bool :=
   (List.ofFn (rowParityAt r s)).foldl xor false
 
+/-- The Boolean-to-`ZMod 2` equivalence maps exclusive disjunction to addition. -/
 theorem boolZMod_xor (x y : Bool) :
     boolZModEquiv (xor x y) = boolZModEquiv x + boolZModEquiv y := by
   cases x <;> cases y <;> decide
 
+/-- Mapping an exclusive-disjunction fold to `ZMod 2` gives the initial value plus the sum of
+the mapped bits. -/
 theorem xorFold_sum (bs : List Bool) (b : Bool) :
     boolZModEquiv (bs.foldl xor b) = boolZModEquiv b + (bs.map boolZModEquiv).sum := by
   induction bs generalizing b with
@@ -1702,6 +1961,7 @@ theorem xorFold_sum (bs : List Bool) (b : Bool) :
   | cons c bs ih => simp only [List.foldl_cons, ih, boolZMod_xor, List.map_cons,
       List.sum_cons, add_assoc]
 
+/-- The Boolean row parity represents the symplectic pairing of the decoded Pauli words. -/
 theorem rowParity_symplectic {n : ℕ} (r s : Row n) :
     boolZModEquiv (rowParity r s) =
       symplecticForm (symplecticVec r.decode.word) (symplecticVec s.decode.word) := by
@@ -1718,6 +1978,7 @@ theorem rowParity_symplectic {n : ℕ} (r s : Row n) :
     symplecticForm_eq_sum_site]
   exact Finset.sum_congr rfl (fun k _ => hsite k)
 
+/-- Row parity is false exactly when the decoded Pauli words have zero symplectic pairing. -/
 theorem rowParity_false_iff {n : ℕ} (r s : Row n) :
     rowParity r s = false ↔
       symplecticForm (symplecticVec r.decode.word) (symplecticVec s.decode.word) = 0 := by
@@ -1725,12 +1986,16 @@ theorem rowParity_false_iff {n : ℕ} (r s : Row n) :
   change rowParity r s = false ↔ boolZModEquiv (rowParity r s) = boolZModEquiv false
   exact boolZModEquiv.injective.eq_iff.symm
 
+/-- Code accumulating the symplectic parity contributions of selected sites in register six. -/
 def paritySitesCode {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) : List (BitInstr 8) :=
   ks.map (fun k => .assign 6 (.bxor (.reg 6) (cocycleLowExpr a c k)))
 
+/-- Initialize register six to false and accumulate the full row symplectic parity. -/
 def parityCode {n : ℕ} (a c : RowLayout n) : List (BitInstr 8) :=
   [.assign 6 (.literal false)] ++ paritySitesCode a c (List.ofFn id)
 
+/-- For represented rows, parity site code folds the selected single-site parities into the
+initial value of register six. -/
 theorem paritySites_correct {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s) :
     bankRead (bitRun (paritySitesCode a c ks) f).regs 6 =
@@ -1749,6 +2014,7 @@ theorem paritySites_correct {n : ℕ} (a c : RowLayout n) (ks : List (Fin n)) (f
     simp only [step, bitStep, bankRead_write, if_true, BitExpr.eval, cocycleLowExpr,
       cocycleLow, hr.1, hr.2.1, hs.1, hs.2.1, rowParityAt]
 
+/-- For represented rows, parity code stores their row parity in register six. -/
 theorem parityCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s) :
     bankRead (bitRun (parityCode a c) f).regs 6 = rowParity r s := by
@@ -1761,6 +2027,7 @@ theorem parityCode_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
   simp only [bitRun, List.foldl_cons, List.foldl_nil, bitStep, BitExpr.eval,
     bankRead_write, if_true, List.map_ofFn, Function.comp_id, rowParity]
 
+/-- Executing code that never assigns a particular register preserves that register. -/
 theorem bitRun_register {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (k : Fin R)
     (h : ∀ i ∈ code, match i with | .assign j _ => j ≠ k | .emit _ => True) :
     bankRead (bitRun code f).regs k = bankRead f.regs k := by
@@ -1777,6 +2044,7 @@ theorem bitRun_register {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (k
       simp only [bitStep, bankRead_write, if_neg (Ne.symm h0)]
     | emit e => rfl
 
+/-- Product-phase code preserves every register other than zero through five. -/
 theorem mulPhase_register {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) (k : Fin 8)
     (h0 : (0 : Fin 8) ≠ k) (h1 : (1 : Fin 8) ≠ k) (h2 : (2 : Fin 8) ≠ k)
     (h3 : (3 : Fin 8) ≠ k) (h4 : (4 : Fin 8) ≠ k) (h5 : (5 : Fin 8) ≠ k) :
@@ -1794,23 +2062,33 @@ theorem mulPhase_register {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) (k : Fi
     rcases hi with (rfl | rfl) | (rfl | rfl | rfl | rfl)
     all_goals first | exact h0 | exact h1 | exact h2 | exact h3 | exact h4 | exact h5
 
+/-- A Boolean multiplexer expression selecting `yes` or `no` according to the condition
+expression. -/
 def muxExpr {R : ℕ} (c yes no : BitExpr R) : BitExpr R :=
   .bxor (.band c yes) (.band (.bnot c) no)
 
+/-- The multiplexer expression evaluates to the selected branch value. -/
 theorem muxExpr_eval {R : ℕ} (c yes no : BitExpr R) (f : BitFrame R) :
     (muxExpr c yes no).eval f.input f.regs =
       if c.eval f.input f.regs then yes.eval f.input f.regs else no.eval f.input f.regs := by
   simp only [muxExpr, BitExpr.eval]
   cases c.eval f.input f.regs <;> simp
 
+/-- Expressions selecting the original row or its product with another row according to parity
+register six. -/
 def nonpivotExprs {n : ℕ} (a c : RowLayout n) : List (BitExpr 8) :=
   List.ofFn (fun k => muxExpr (.reg 6) (.bxor (.input (a.x k)) (.input (c.x k))) (.input (a.x k))) ++
   List.ofFn (fun k => muxExpr (.reg 6) (.bxor (.input (a.z k)) (.input (c.z k))) (.input (a.z k))) ++
     [muxExpr (.reg 6) (.reg 0) (.input a.low), muxExpr (.reg 6) (.reg 1) (.input a.high)]
 
+/-- Code for a nonpivot measurement row, computing its measurement parity and conditionally
+multiplying by the pivot. -/
 def nonpivotRowCode {n : ℕ} (a pivot measured : RowLayout n) : List (BitInstr 8) :=
   parityCode a measured ++ mulPhaseCode a pivot ++ emitCode (nonpivotExprs a pivot)
 
+/-- With the product phase and measurement parity in the designated registers, nonpivot
+expressions encode the unchanged row for zero symplectic pairing and the product row
+otherwise. -/
 theorem nonpivotExprs_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
     (r s p : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input c s)
     (h0 : bankRead f.regs 0 = (r.mul s).phase.val.testBit 0)
@@ -1833,6 +2111,8 @@ theorem nonpivotExprs_correct {n : ℕ} (a c : RowLayout n) (f : BitFrame 8)
       List.map_cons, List.map_nil, muxExpr_eval, BitExpr.eval, hb, if_true,
       hr.1, hr.2.1, hs.1, hs.2.1, h0, h1, if_neg hc, Row.bits, Row.mul]
 
+/-- For represented row, pivot, and observable inputs, nonpivot code emits the original row if
+it commutes with the observable and its product with the pivot otherwise. -/
 theorem nonpivotRowCode_correct {n : ℕ} (a pivot measured : RowLayout n) (f : BitFrame 8)
     (r s p : Row n) (hr : RepresentsRow f.input a r) (hs : RepresentsRow f.input pivot s)
     (hp : RepresentsRow f.input measured p) :
@@ -1862,10 +2142,13 @@ theorem nonpivotRowCode_correct {n : ℕ} (a pivot measured : RowLayout n) (f : 
   rw [nonpivotRowCode, bitRun_append, bitRun_append, (emitCode_correct _ _).2.2]
   rw [hexpr, hio.2, hout]
 
+/-- Expressions for the signed measured Pauli row, using register seven as the measurement
+outcome. -/
 def pivotRowExprs {n : ℕ} (p : RowLayout n) : List (BitExpr 8) :=
   List.ofFn (fun k => .input (p.x k)) ++ List.ofFn (fun k => .input (p.z k)) ++
     [.input p.low, .bxor (.input p.high) (.bnot (.reg 7))]
 
+/-- The signed measured Pauli has the original phase plus two when the Boolean outcome is false. -/
 theorem signedMeasured_phase {n : ℕ} (p : PauliElem n) (b : Bool) :
     (signedMeasuredPauli p b).phase = p.phase + if !b then 2 else 0 := by
   cases b with
@@ -1875,6 +2158,8 @@ theorem signedMeasured_phase {n : ℕ} (p : PauliElem n) (b : Bool) :
       intro k; cases p.word k <;> rfl
     simp [signedMeasuredPauli, PauliElem.mul, hzero]
 
+/-- Given a represented Pauli and its outcome in register seven, pivot expressions evaluate to
+the encoding of the signed measured Pauli. -/
 theorem pivotRowExprs_correct {n : ℕ} (a : RowLayout n) (f : BitFrame 8)
     (p : PauliElem n) (b : Bool) (hp : RepresentsRow f.input a (encode p))
     (hb : bankRead f.regs 7 = b) :
@@ -1884,6 +2169,7 @@ theorem pivotRowExprs_correct {n : ℕ} (a : RowLayout n) (f : BitFrame 8)
     List.map_nil, BitExpr.eval, hp.1, hp.2.1, hp.2.2.1, hp.2.2.2, hb, Row.bits, encode,
     word_signedMeasuredPauli, signedMeasured_phase, ht.1, ht.2]
 
+/-- Parity code preserves every register except register six. -/
 theorem parityCode_register {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) (k : Fin 8)
     (hk : (6 : Fin 8) ≠ k) :
     bankRead (bitRun (parityCode a c) f).regs k = bankRead f.regs k := by
@@ -1893,12 +2179,15 @@ theorem parityCode_register {n : ℕ} (a c : RowLayout n) (f : BitFrame 8) (k : 
     List.not_mem_nil, or_false, List.mem_map] at hi
   rcases hi with rfl | ⟨j, _, rfl⟩ <;> exact hk
 
+/-- Nonpivot row code preserves the measurement outcome in register seven. -/
 theorem nonpivotRowCode_register7 {n : ℕ} (a pivot measured : RowLayout n) (f : BitFrame 8) :
     bankRead (bitRun (nonpivotRowCode a pivot measured) f).regs 7 = bankRead f.regs 7 := by
   rw [nonpivotRowCode, bitRun_append, bitRun_append, (emitCode_correct _ _).2.1]
   rw [mulPhase_register _ _ _ 7 (by decide) (by decide) (by decide) (by decide) (by decide) (by decide),
     parityCode_register _ _ _ 7 (by decide)]
 
+/-- A row encoding appended to arbitrary front bits represents the row at the offset given by
+the front length. -/
 theorem representsRow_prefixed {n : ℕ} (frontBits : List Bool) (r : Row n) :
     RepresentsRow (frontBits ++ r.bits) (rowLayout n frontBits.length) r := by
   have h := representsRow_self r
@@ -1909,11 +2198,15 @@ theorem representsRow_prefixed {n : ℕ} (frontBits : List Bool) (r : Row n) :
   · rw [scanBit_append_right]; exact h.2.2.1
   · rw [Nat.add_assoc, scanBit_append_right]; exact h.2.2.2
 
+/-- Compile the update of a selected tableau row, using signed observable emission for the pivot
+and conditional multiplication otherwise. -/
 def measuredRowCode {n m : ℕ} (a i : Fin m) : List (BitInstr 8) :=
   if i = a then emitCode (pivotRowExprs (rowLayout n (m * rowWidth n)))
   else nonpivotRowCode (rowLayout n (i.val * rowWidth n)) (rowLayout n (a.val * rowWidth n))
     (rowLayout n (m * rowWidth n))
 
+/-- With the encoded tableau and observable as input and the outcome in register seven, measured
+row code emits the bit encoding of `measureRow`. -/
 theorem measuredRowCode_correct {n m : ℕ} (a i : Fin m) (t : Tableau n m)
     (p : PauliElem n) (b : Bool) (f : BitFrame 8)
     (hf : f.input = tableauBits t ++ (encode p).bits) (hb : bankRead f.regs 7 = b) :
@@ -1932,15 +2225,18 @@ theorem measuredRowCode_correct {n m : ℕ} (a i : Fin m) (t : Tableau n m)
   · rw [measuredRowCode, if_neg hi, nonpivotRowCode_correct _ _ _ f (t i) (t a) (encode p) hr hs hp]
     simp only [measureRow, if_neg hi, decode_encode]
 
+/-- Measured row code preserves register seven. -/
 theorem measuredRowCode_register7 {n m : ℕ} (a i : Fin m) (f : BitFrame 8) :
     bankRead (bitRun (measuredRowCode (n := n) a i) f).regs 7 = bankRead f.regs 7 := by
   by_cases hi : i = a
   · rw [measuredRowCode, if_pos hi, (emitCode_correct _ _).2.1]
   · rw [measuredRowCode, if_neg hi, nonpivotRowCode_register7]
 
+/-- Concatenate indexed row blocks in reverse index-list order to support output prepending. -/
 def rowBlocksCode {α : Type} (ks : List α) (code : α → List (BitInstr 8)) : List (BitInstr 8) :=
   ks.reverse.flatMap code
 
+/-- Row block concatenation preserves register seven when every constituent block preserves it. -/
 theorem rowBlocks_register7 {α : Type} (ks : List α) (code : α → List (BitInstr 8))
     (hreg : ∀ k ∈ ks, ∀ f, bankRead (bitRun (code k) f).regs 7 = bankRead f.regs 7)
     (f : BitFrame 8) :
@@ -1953,6 +2249,8 @@ theorem rowBlocks_register7 {α : Type} (ks : List α) (code : α → List (BitI
     rw [hcode, bitRun_append, hreg k (by simp)]
     exact ih (fun j hj => hreg j (by simp [hj])) f
 
+/-- If each row block emits its specified bits and preserves register seven, the combined code
+prepends the concatenated row encodings in index-list order. -/
 theorem rowBlocks_output {α : Type} (ks : List α) (code : α → List (BitInstr 8))
     (bytes : α → List Bool) (input : List Bool) (b : Bool)
     (hreg : ∀ k ∈ ks, ∀ f, bankRead (bitRun (code k) f).regs 7 = bankRead f.regs 7)
@@ -1970,9 +2268,12 @@ theorem rowBlocks_output {α : Type} (ks : List α) (code : α → List (BitInst
     rw [hcode, bitRun_append, hrow k (by simp) _ ((bitRun_input _ _).trans hf) (hr.trans hb), ht]
     simp only [List.flatMap_cons, List.append_assoc]
 
+/-- Compile the measurement update of every tableau row for a specified pivot. -/
 def measuredTableauCode {n m : ℕ} (a : Fin m) : List (BitInstr 8) :=
   rowBlocksCode (List.ofFn id) (measuredRowCode (n := n) a)
 
+/-- With the tableau and observable encodings as input and the outcome in register seven,
+measured tableau code emits the encoding of the measured tableau. -/
 theorem measuredTableauCode_correct {n m : ℕ} (a : Fin m) (t : Tableau n m)
     (p : PauliElem n) (b : Bool) (f : BitFrame 8)
     (hf : f.input = tableauBits t ++ (encode p).bits) (hb : bankRead f.regs 7 = b) :
@@ -1984,9 +2285,12 @@ theorem measuredTableauCode_correct {n m : ℕ} (a : Fin m) (t : Tableau n m)
   simpa only [measuredTableauCode, tableauBits, List.flatMap_def, List.map_ofFn,
     Function.comp_def, measureTableau] using! h
 
+/-- Every instruction expression in a code block has at most forty nodes and reads input
+addresses at most `A`. -/
 def CodeBound (code : List (BitInstr 8)) (A : ℕ) : Prop :=
   ∀ i ∈ code, i.expr.nodes ≤ 40 ∧ i.expr.maxRead ≤ A
 
+/-- Concatenating two blocks satisfying `CodeBound` preserves the common bound. -/
 theorem codeBound_append (xs ys : List (BitInstr 8)) (A : ℕ)
     (hx : CodeBound xs A) (hy : CodeBound ys A) : CodeBound (xs ++ ys) A := by
   intro i hi
@@ -1994,6 +2298,8 @@ theorem codeBound_append (xs ys : List (BitInstr 8)) (A : ℕ)
   · exact hx i hi
   · exact hy i hi
 
+/-- Emission code satisfies `CodeBound` when each source expression has at most forty nodes and
+respects the address bound. -/
 theorem emitCode_bound (es : List (BitExpr 8)) (A : ℕ)
     (he : ∀ e ∈ es, e.nodes ≤ 40 ∧ e.maxRead ≤ A) : CodeBound (emitCode es) A := by
   intro i hi
@@ -2001,12 +2307,15 @@ theorem emitCode_bound (es : List (BitExpr 8)) (A : ℕ)
   obtain ⟨e, he', rfl⟩ := hi
   exact he e he'
 
+/-- Phase addition code satisfies `CodeBound` for every input address bound. -/
 theorem phaseAddCode_bound (A : ℕ) : CodeBound phaseAddCode A := by
   intro i hi
   simp only [phaseAddCode, List.mem_cons, List.not_mem_nil, or_false] at hi
   rcases hi with rfl | rfl | rfl | rfl <;>
     simp [BitInstr.expr, BitExpr.nodes, BitExpr.maxRead]
 
+/-- Phase initialization code satisfies `CodeBound` when both row layouts respect the address
+bound. -/
 theorem phaseInitCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hc : c.Bounded A) : CodeBound (phaseInitCode a c) A := by
   apply codeBound_append _ _ A ?_ (phaseAddCode_bound A)
@@ -2018,6 +2327,8 @@ theorem phaseInitCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
   · exact ⟨by simp [BitInstr.expr, BitExpr.nodes], hc.2.2.1⟩
   · exact ⟨by simp [BitInstr.expr, BitExpr.nodes], hc.2.2.2⟩
 
+/-- The low and high cocycle expressions each have at most forty nodes and respect the common
+row-layout address bound. -/
 theorem cocycleExpr_bounds {n : ℕ} (a c : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hc : c.Bounded A) (k : Fin n) :
     ((cocycleLowExpr a c k).nodes ≤ 40 ∧ (cocycleLowExpr a c k).maxRead ≤ A) ∧
@@ -2025,6 +2336,7 @@ theorem cocycleExpr_bounds {n : ℕ} (a c : RowLayout n) (A : ℕ)
   simp [cocycleLowExpr, cocycleHighExpr, cocycleLow, cocycleHigh, BitExpr.nodes,
     BitExpr.maxRead, ha.1, ha.2.1, hc.1, hc.2.1]
 
+/-- A phase site block satisfies `CodeBound` when both row layouts respect the address bound. -/
 theorem phaseSiteCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hc : c.Bounded A) (k : Fin n) : CodeBound (phaseSiteCode a c k) A := by
   apply codeBound_append _ _ A ?_ (phaseAddCode_bound A)
@@ -2034,6 +2346,7 @@ theorem phaseSiteCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
   · exact (cocycleExpr_bounds a c A ha hc k).1
   · exact (cocycleExpr_bounds a c A ha hc k).2
 
+/-- Product-phase code satisfies `CodeBound` when both row layouts respect the address bound. -/
 theorem mulPhaseCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hc : c.Bounded A) : CodeBound (mulPhaseCode a c) A := by
   apply codeBound_append _ _ A (phaseInitCode_bound a c A ha hc)
@@ -2042,6 +2355,7 @@ theorem mulPhaseCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
   obtain ⟨k, _, hi⟩ := hi
   exact phaseSiteCode_bound a c A ha hc k i hi
 
+/-- Parity code satisfies `CodeBound` when both row layouts respect the address bound. -/
 theorem parityCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hc : c.Bounded A) : CodeBound (parityCode a c) A := by
   intro i hi
@@ -2052,6 +2366,8 @@ theorem parityCode_bound {n : ℕ} (a c : RowLayout n) (A : ℕ)
   · simp [BitInstr.expr, cocycleLowExpr, cocycleLow, BitExpr.nodes, BitExpr.maxRead,
       ha.1, ha.2.1, hc.1, hc.2.1]
 
+/-- Each nonpivot expression has at most forty nodes and respects the common row-layout address
+bound. -/
 theorem nonpivotExprs_bounds {n : ℕ} (a c : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hc : c.Bounded A) :
     ∀ e ∈ nonpivotExprs a c, e.nodes ≤ 40 ∧ e.maxRead ≤ A := by
@@ -2066,6 +2382,8 @@ theorem nonpivotExprs_bounds {n : ℕ} (a c : RowLayout n) (A : ℕ)
     · simp [muxExpr, BitExpr.nodes, BitExpr.maxRead, ha.2.2.1]
     · simp [muxExpr, BitExpr.nodes, BitExpr.maxRead, ha.2.2.2]
 
+/-- Nonpivot row code satisfies `CodeBound` when the row, pivot, and measured layouts respect
+the address bound. -/
 theorem nonpivotRowCode_bound {n : ℕ} (a pivot measured : RowLayout n) (A : ℕ)
     (ha : a.Bounded A) (hp : pivot.Bounded A) (hm : measured.Bounded A) :
     CodeBound (nonpivotRowCode a pivot measured) A := by
@@ -2074,6 +2392,7 @@ theorem nonpivotRowCode_bound {n : ℕ} (a pivot measured : RowLayout n) (A : �
   exact codeBound_append _ _ A (mulPhaseCode_bound a pivot A ha hp)
     (emitCode_bound _ A (nonpivotExprs_bounds a pivot A ha hp))
 
+/-- Each pivot row expression has at most forty nodes and respects the row-layout address bound. -/
 theorem pivotRowExprs_bounds {n : ℕ} (a : RowLayout n) (A : ℕ) (ha : a.Bounded A) :
     ∀ e ∈ pivotRowExprs a, e.nodes ≤ 40 ∧ e.maxRead ≤ A := by
   intro e he
@@ -2087,6 +2406,8 @@ theorem pivotRowExprs_bounds {n : ℕ} (a : RowLayout n) (A : ℕ) (ha : a.Bound
     · exact ⟨by simp [BitExpr.nodes], ha.2.2.1⟩
     · simp [BitExpr.nodes, BitExpr.maxRead, ha.2.2.2]
 
+/-- A standard row layout at offset `j * rowWidth n`, with `j ≤ m`, is bounded by `(m + 1) *
+rowWidth n`. -/
 theorem rowLayout_bound {n m j : ℕ} (hj : j ≤ m) :
     (rowLayout n (j * rowWidth n)).Bounded ((m + 1) * rowWidth n) := by
   have hm := Nat.mul_le_mul_right (rowWidth n) hj
@@ -2098,6 +2419,7 @@ theorem rowLayout_bound {n m j : ℕ} (hj : j ≤ m) :
   · unfold rowWidth at *; omega
   · unfold rowWidth at *; omega
 
+/-- Measured row code satisfies `CodeBound` with address bound `(m + 1) * rowWidth n`. -/
 theorem measuredRowCode_bound {n m : ℕ} (a i : Fin m) :
     CodeBound (measuredRowCode (n := n) a i) ((m + 1) * rowWidth n) := by
   by_cases hi : i = a
@@ -2107,6 +2429,7 @@ theorem measuredRowCode_bound {n m : ℕ} (a i : Fin m) :
     exact nonpivotRowCode_bound _ _ _ _ (rowLayout_bound (Nat.le_of_lt i.isLt))
       (rowLayout_bound (Nat.le_of_lt a.isLt)) (rowLayout_bound (Nat.le_refl m))
 
+/-- Measured tableau code satisfies `CodeBound` with address bound `(m + 1) * rowWidth n`. -/
 theorem measuredTableauCode_bound {n m : ℕ} (a : Fin m) :
     CodeBound (measuredTableauCode (n := n) a) ((m + 1) * rowWidth n) := by
   intro i hi
@@ -2114,12 +2437,14 @@ theorem measuredTableauCode_bound {n m : ℕ} (a : Fin m) :
   obtain ⟨j, _, hi⟩ := hi
   exact measuredRowCode_bound a j i hi
 
+/-- Product-phase code has exactly `8 + 6 * n` instructions. -/
 theorem mulPhaseCode_length {n : ℕ} (a c : RowLayout n) :
     (mulPhaseCode a c).length = 8 + 6 * n := by
   simp [mulPhaseCode, phaseInitCode, phaseSitesCode, phaseSiteCode, phaseAddCode,
     List.length_flatMap, List.map_ofFn]
   omega
 
+/-- Nonpivot row code has exactly `9 * n + 11` instructions. -/
 theorem nonpivotRowCode_length {n : ℕ} (a pivot measured : RowLayout n) :
     (nonpivotRowCode a pivot measured).length = 9 * n + 11 := by
   simp only [nonpivotRowCode, List.length_append, mulPhaseCode_length, parityCode,
@@ -2127,6 +2452,7 @@ theorem nonpivotRowCode_length {n : ℕ} (a pivot measured : RowLayout n) :
     nonpivotExprs, List.length_cons, List.length_nil]
   omega
 
+/-- Measured row code has at most `9 * n + 11` instructions. -/
 theorem measuredRowCode_length {n m : ℕ} (a i : Fin m) :
     (measuredRowCode (n := n) a i).length ≤ 9 * n + 11 := by
   by_cases hi : i = a
@@ -2135,6 +2461,8 @@ theorem measuredRowCode_length {n m : ℕ} (a i : Fin m) :
     omega
   · rw [measuredRowCode, if_neg hi, nonpivotRowCode_length]
 
+/-- If every indexed row block has at most `B` instructions, their concatenation has at most
+`ks.length * B` instructions. -/
 theorem rowBlocksCode_length {α : Type} (ks : List α) (code : α → List (BitInstr 8)) (B : ℕ)
     (hc : ∀ k ∈ ks, (code k).length ≤ B) :
     (rowBlocksCode ks code).length ≤ ks.length * B := by
@@ -2148,12 +2476,15 @@ theorem rowBlocksCode_length {α : Type} (ks : List α) (code : α → List (Bit
     rw [hcode, List.length_append, List.length_cons, Nat.succ_mul]
     omega
 
+/-- Measured tableau code has at most `m * (9 * n + 11)` instructions. -/
 theorem measuredTableauCode_length {n m : ℕ} (a : Fin m) :
     (measuredTableauCode (n := n) a).length ≤ m * (9 * n + 11) := by
   have h := rowBlocksCode_length (List.ofFn id) (measuredRowCode (n := n) a) (9 * n + 11)
     (fun i _ => measuredRowCode_length a i)
   simpa only [measuredTableauCode, List.length_ofFn] using! h
 
+/-- The trace length of measured tableau code is bounded by its instruction count bound times
+the uniform expression-evaluation bound. -/
 theorem measuredTableauCode_time {n m : ℕ} (a : Fin m) (f : BitFrame 8) :
     (bitRunTrace (measuredTableauCode (n := n) a) f).length ≤
       m * (9 * n + 11) * ((2 * ((m + 1) * rowWidth n) + 3) * 40 + 2) := by
@@ -2162,9 +2493,11 @@ theorem measuredTableauCode_time {n m : ℕ} (a : Fin m) (f : BitFrame 8) :
     (fun i hi => (hb i hi).1) (fun i hi => (hb i hi).2)
   exact ht.trans (Nat.mul_le_mul_right _ (measuredTableauCode_length a))
 
+/-- Code copying the first `size` input bits to the front of the output. -/
 def copyCode (size : ℕ) : List (BitInstr 8) :=
   emitCode (List.ofFn (fun i : Fin size => .input i.val))
 
+/-- Copying the full input prepends it to the original output list. -/
 theorem copyCode_correct (f : BitFrame 8) :
     (bitRun (copyCode f.input.length) f).output = f.input ++ f.output := by
   rw [copyCode, (emitCode_correct _ _).2.2]
@@ -2175,6 +2508,7 @@ theorem copyCode_correct (f : BitFrame 8) :
     rw [scanBit_getD, List.getD_eq_getElem _ _ i.isLt]
   rw [h, List.ofFn_getElem]
 
+/-- Copying the full input has trace length at most `f.input.length * (2 * f.input.length + 5)`. -/
 theorem copyCode_time (f : BitFrame 8) :
     (bitRunTrace (copyCode f.input.length) f).length ≤ f.input.length * (2 * f.input.length + 5) := by
   have hb : ∀ i ∈ copyCode f.input.length,
@@ -2188,23 +2522,30 @@ theorem copyCode_time (f : BitFrame 8) :
   simpa only [copyCode, emitCode, List.length_map, List.length_reverse, List.length_ofFn,
     Nat.mul_one, Nat.add_assoc] using! h
 
+/-- Preparation events selecting the operand or tableau input, together with elementary
+bit-machine events. -/
 inductive PrepareAction where
   | selectOperand | selectTableau | bit (event : BitAction 8)
   deriving DecidableEq, Repr
 
+/-- A frame for copying an operand with the given registers and an empty output. -/
 def operandCopyFrame (operand : List Bool) (regs : BitBank 8) : BitFrame 8 :=
   ⟨operand, regs, []⟩
 
+/-- A frame for copying the tableau with the copied operand already present in the output. -/
 def tableauCopyFrame (table operand : List Bool) (regs : BitBank 8) : BitFrame 8 :=
   ⟨table, regs, (bitRun (copyCode operand.length) (operandCopyFrame operand regs)).output⟩
 
+/-- Prepare the measurement input by copying the operand and then prepending the tableau. -/
 def prepareInput (table operand : List Bool) (regs : BitBank 8) : List Bool :=
   (bitRun (copyCode table.length) (tableauCopyFrame table operand regs)).output
 
+/-- Generate the input-selection and bit-copy trace for preparing a measurement input. -/
 def prepareTrace (table operand : List Bool) (regs : BitBank 8) : List PrepareAction :=
   .selectOperand :: ((bitRunTrace (copyCode operand.length) (operandCopyFrame operand regs)).map .bit ++
     .selectTableau :: (bitRunTrace (copyCode table.length) (tableauCopyFrame table operand regs)).map .bit)
 
+/-- Input preparation produces the tableau bits followed by the operand bits. -/
 theorem prepareInput_correct (table operand : List Bool) (regs : BitBank 8) :
     prepareInput table operand regs = table ++ operand := by
   have htable := copyCode_correct (tableauCopyFrame table operand regs)
@@ -2215,6 +2556,8 @@ theorem prepareInput_correct (table operand : List Bool) (regs : BitBank 8) :
       [] at hop
   exact htable.trans (by rw [hop, List.append_nil])
 
+/-- The preparation trace is bounded by the sum of the two full-input copy bounds plus two
+input-selection events. -/
 theorem prepareTrace_time (table operand : List Bool) (regs : BitBank 8) :
     (prepareTrace table operand regs).length ≤
       operand.length * (2 * operand.length + 5) + table.length * (2 * table.length + 5) + 2 := by
@@ -2227,12 +2570,16 @@ theorem prepareTrace_time (table operand : List Bool) (regs : BitBank 8) :
   simp only [prepareTrace, List.length_cons, List.length_append, List.length_map]
   omega
 
+/-- Finite simulator programs whose random measurement operands are raw bit lists and whose
+deterministic steps retain only the outcome. -/
 inductive RawProgram (n m : ℕ) where
   | halt
   | gate (g : CliffordGate n) (next : RawProgram n m)
   | random (a : Fin m) (operand : List Bool) (onFalse onTrue : RawProgram n m)
   | deterministic (b : Bool) (next : RawProgram n m)
 
+/-- Encode a tableau program as a raw program by replacing Pauli measurement operands with their
+row bit encodings. -/
 def encodeProgram {n m : ℕ} : Program n m → RawProgram n m
   | .halt => .halt
   | .gate g next => .gate g (encodeProgram next)
@@ -2240,12 +2587,16 @@ def encodeProgram {n m : ℕ} : Program n m → RawProgram n m
       .random a (encode p).bits (encodeProgram onFalse) (encodeProgram onTrue)
   | .deterministic _ b next => .deterministic b (encodeProgram next)
 
+/-- A raw simulator state containing encoded tableau bits, the remaining random tape, stored
+outcomes, and eight Boolean registers. -/
 structure RawState where
   bits : List Bool
   tape : List Bool
   outcomes : List Bool
   regs : BitBank 8
 
+/-- Events of the raw simulator, covering bit execution, input preparation, control flow, random
+reads, and outcome recording. -/
 inductive RunAction where
   | bit (event : BitAction 8)
   | prepare (event : PrepareAction)
@@ -2255,32 +2606,45 @@ inductive RunAction where
   | recordLeft | recordWrite (b : Bool) | branch (b : Bool) | halt
   deriving DecidableEq, Repr
 
+/-- The final raw simulator state paired with its event trace. -/
 structure RawResult where
   state : RawState
   trace : List RunAction
 
+/-- Prepend events to a raw result's trace. -/
 def RawResult.prepend (events : List RunAction) (r : RawResult) : RawResult :=
   ⟨r.state, events ++ r.trace⟩
 
+/-- The bit-instruction frame for applying a gate to a raw state's tableau encoding. -/
 def rawGateFrame (s : RawState) : BitFrame 8 := ⟨s.bits, s.regs, []⟩
 
+/-- Execute compiled gate tableau code and replace the raw tableau bits and registers by its
+results. -/
 def rawGateStep {n m : ℕ} (s : RawState) (g : CliffordGate n) : RawState :=
   let f := bitRun (gateTableauCode (m := m) g) (rawGateFrame s)
   { s with bits := f.output, regs := f.regs }
 
+/-- The raw event trace for entering a gate, selecting the tableau, executing its bit code, and
+installing the output. -/
 def rawGateTrace {n m : ℕ} (s : RawState) (g : CliffordGate n) : List RunAction :=
   [.enterGate, .selectTableau] ++
     (bitRunTrace (gateTableauCode (m := m) g) (rawGateFrame s)).map .bit ++ [.swapOutput]
 
+/-- Prepare a measurement frame by storing the outcome in register seven and concatenating the
+tableau and operand encodings. -/
 def rawMeasureFrame (s : RawState) (operand : List Bool) (b : Bool) : BitFrame 8 :=
   let regs := bankWrite s.regs 7 b
   ⟨prepareInput s.bits operand regs, regs, []⟩
 
+/-- Execute compiled measured tableau code, replace the random tape, and prepend the outcome to
+the stored record. -/
 def rawRandomStep {n m : ℕ} (s : RawState) (a : Fin m) (operand : List Bool)
     (b : Bool) (rest : List Bool) : RawState :=
   let f := bitRun (measuredTableauCode (n := n) a) (rawMeasureFrame s operand b)
   ⟨f.output, rest, b :: s.outcomes, f.regs⟩
 
+/-- The raw event trace for a random measurement, including one fair read, operand preparation,
+tableau update, outcome recording, and branch selection. -/
 def rawRandomTrace {n m : ℕ} (s : RawState) (a : Fin m) (operand : List Bool)
     (b : Bool) : List RunAction :=
   [.enterRandom, .readFair b, .storeOutcome b] ++
@@ -2289,12 +2653,16 @@ def rawRandomTrace {n m : ℕ} (s : RawState) (a : Fin m) (operand : List Bool)
     (bitRunTrace (measuredTableauCode (n := n) a) (rawMeasureFrame s operand b)).map .bit ++
     [.recordLeft, .recordWrite b, .branch b, .swapOutput]
 
+/-- Prepend a deterministic outcome to the raw state's stored record. -/
 def rawDeterministicStep (s : RawState) (b : Bool) : RawState :=
   { s with outcomes := b :: s.outcomes }
 
+/-- The four-event trace for entering a deterministic step and recording its fixed outcome. -/
 def rawDeterministicTrace (b : Bool) : List RunAction :=
   [.enterDeterministic, .literalOutcome b, .recordLeft, .recordWrite b]
 
+/-- Execute a finite raw program and accumulate its event trace, returning `none` if a random
+step encounters an empty tape. -/
 def rawRun {n m : ℕ} : RawProgram n m → RawState → Option RawResult
   | .halt, s => some ⟨s, [.halt]⟩
   | .gate g next, s =>
@@ -2311,15 +2679,21 @@ def rawRun {n m : ℕ} : RawProgram n m → RawState → Option RawResult
   | .deterministic b next, s =>
       (rawRun next (rawDeterministicStep s b)).map (RawResult.prepend (rawDeterministicTrace b))
 
+/-- Initialize a raw state with specified tableau bits and random tape, empty outcomes, and
+eight false registers. -/
 def rawInitial (bits tape : List Bool) : RawState :=
   ⟨bits, tape, [], ⟨Array.replicate 8 false, by simp⟩⟩
 
+/-- A raw state represents a tableau machine when its tableau encoding, random tape, and stored
+outcomes agree. -/
 def RepresentsMachine {n m : ℕ} (r : RawState) (s : Machine n m) : Prop :=
   r.bits = tableauBits s.tableau ∧ r.tape = s.tape ∧ r.outcomes = s.outcomes
 
+/-- The initial raw state represents the initial tableau machine. -/
 theorem rawInitial_represents {n m : ℕ} (t : Tableau n m) (tape : List Bool) :
     RepresentsMachine (rawInitial (tableauBits t) tape) (initial t tape) := ⟨rfl, rfl, rfl⟩
 
+/-- A compiled raw gate step preserves representation of the corresponding tableau gate step. -/
 theorem rawGateStep_represents {n m : ℕ} (r : RawState) (s : Machine n m)
     (h : RepresentsMachine r s) (g : CliffordGate n) :
     RepresentsMachine (rawGateStep (m := m) r g) (gateStep s g) := by
@@ -2327,6 +2701,8 @@ theorem rawGateStep_represents {n m : ℕ} (r : RawState) (s : Machine n m)
   have hg := gateTableauCode_correct g s.tableau (rawGateFrame r) h.1
   simpa only [rawGateStep, rawGateFrame, gateStep, List.append_nil] using! hg
 
+/-- A compiled raw random step with an encoded Pauli operand represents the corresponding
+tableau random step. -/
 theorem rawRandomStep_represents {n m : ℕ} (r : RawState) (s : Machine n m)
     (h : RepresentsMachine r s) (a : Fin m) (p : PauliElem n) (b : Bool) (rest : List Bool) :
     RepresentsMachine (rawRandomStep (n := n) r a (encode p).bits b rest) (randomStep s a p b rest) := by
@@ -2343,31 +2719,41 @@ theorem rawRandomStep_represents {n m : ℕ} (r : RawState) (s : Machine n m)
   · change b :: r.outcomes = b :: s.outcomes
     rw [h.2.2]
 
+/-- A raw deterministic step preserves representation of the corresponding tableau deterministic
+step. -/
 theorem rawDeterministicStep_represents {n m : ℕ} (r : RawState) (s : Machine n m)
     (h : RepresentsMachine r s) (b : Bool) :
     RepresentsMachine (rawDeterministicStep r b) (deterministicStep s b) := by
   exact ⟨h.1, h.2.1, congrArg (List.cons b) h.2.2⟩
 
+/-- Test whether a raw event reads a fair random bit. -/
 def RunAction.isFairRead : RunAction → Bool
   | .readFair _ => true
   | _ => false
 
+/-- Count the fair random bit read events in a raw trace. -/
 def fairReads (events : List RunAction) : ℕ := events.countP RunAction.isFairRead
 
+/-- The number of fair reads is additive under trace concatenation. -/
 theorem fairReads_append (xs ys : List RunAction) : fairReads (xs ++ ys) = fairReads xs + fairReads ys := by
   simp [fairReads]
 
+/-- A raw gate trace contains no fair reads. -/
 theorem fairReads_gate {n m : ℕ} (s : RawState) (g : CliffordGate n) :
     fairReads (rawGateTrace (m := m) s g) = 0 := by
   simp [fairReads, rawGateTrace, RunAction.isFairRead, List.countP_map]
 
+/-- A raw random measurement trace contains exactly one fair read. -/
 theorem fairReads_random {n m : ℕ} (s : RawState) (a : Fin m) (operand : List Bool) (b : Bool) :
     fairReads (rawRandomTrace (n := n) s a operand b) = 1 := by
   simp [fairReads, rawRandomTrace, RunAction.isFairRead, List.countP_map]
 
+/-- A raw deterministic measurement trace contains no fair reads. -/
 theorem fairReads_deterministic (b : Bool) : fairReads (rawDeterministicTrace b) = 0 := by
   rfl
 
+/-- A successful tableau execution has a corresponding encoded raw execution whose final state
+represents the result and whose fair reads equal the consumed fair bits. -/
 theorem rawRun_simulates {n m : ℕ} (program : Program n m) :
     ∀ (r : RawState) (s result : Machine n m), RepresentsMachine r s →
       execute program s = some result →
@@ -2421,6 +2807,9 @@ theorem rawRun_simulates {n m : ℕ} (program : Program n m) :
     · simpa only [RawResult.prepend, fairReads_append, fairReads_deterministic, Nat.zero_add,
         Program.consumedFairBits, deterministicStep] using! hfair
 
+/-- A valid program with sufficient random tape has matching raw and physical executions from a
+normalized code-space state. The physical result remains normalized in the represented code
+space and has joint mass one half raised to the raw fair-read count. -/
 theorem raw_physical {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : List Bool)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n))
     (hv : Program.Valid t program) (ht : Qatlib.Concepts.PauliClifford.PauliAlgebra.ConsistentTableau t)
@@ -2438,6 +2827,7 @@ theorem raw_physical {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape
   rw [hfair]
   exact hc.2
 
+/-- Gate tableau code satisfies `CodeBound` with address bound `(m + 1) * rowWidth n`. -/
 theorem gateTableauCode_bound {n m : ℕ} (g : CliffordGate n) :
     CodeBound (gateTableauCode (m := m) g) ((m + 1) * rowWidth n) := by
   apply emitCode_bound
@@ -2448,22 +2838,32 @@ theorem gateTableauCode_bound {n m : ℕ} (g : CliffordGate n) :
     (rowLayout_bound (Nat.le_of_lt j.isLt)) e he
   exact ⟨by omega, h.2⟩
 
+/-- Gate tableau code has exactly `m * rowWidth n` instructions. -/
 theorem gateTableauCode_length {n m : ℕ} (g : CliffordGate n) :
     (gateTableauCode (m := m) g).length = m * rowWidth n := by
   simp [gateTableauCode, emitCode, gateTableauExprs, List.length_flatten, List.map_ofFn,
     Function.comp_def, gateRowExprs_length]
 
+/-- The uniform per-instruction event bound for expressions with at most forty nodes and input
+addresses at most `(m + 1) * rowWidth n`. -/
 def instructionFactor (n m : ℕ) : ℕ := (2 * ((m + 1) * rowWidth n) + 3) * 40 + 2
 
+/-- The gate tableau trace budget obtained from its instruction count and `instructionFactor`. -/
 def gateBudget (n m : ℕ) : ℕ := m * rowWidth n * instructionFactor n m
 
+/-- The measured tableau trace budget obtained from its instruction count bound and
+`instructionFactor`. -/
 def measureBudget (n m : ℕ) : ℕ := m * (9 * n + 11) * instructionFactor n m
 
+/-- The input-preparation budget for copying an encoded Pauli operand and an encoded tableau. -/
 def prepareBudget (n m : ℕ) : ℕ := rowWidth n * (2 * rowWidth n + 5) +
   (m * rowWidth n) * (2 * (m * rowWidth n) + 5) + 2
 
+/-- A common raw step budget combining gate, measurement, preparation, and fixed control-event
+allowances. -/
 def rawStepBound (n m : ℕ) : ℕ := gateBudget n m + measureBudget n m + prepareBudget n m + 16
 
+/-- The compiled gate tableau trace has length at most `gateBudget n m`. -/
 theorem gateTableauCode_time {n m : ℕ} (g : CliffordGate n) (f : BitFrame 8) :
     (bitRunTrace (gateTableauCode (m := m) g) f).length ≤ gateBudget n m := by
   have hb := gateTableauCode_bound (m := m) g
@@ -2471,6 +2871,7 @@ theorem gateTableauCode_time {n m : ℕ} (g : CliffordGate n) (f : BitFrame 8) :
     (fun i hi => (hb i hi).1) (fun i hi => (hb i hi).2)
   simpa only [gateTableauCode_length, gateBudget, instructionFactor] using! ht
 
+/-- The raw gate trace has length at most `rawStepBound n m`. -/
 theorem rawGateTrace_time {n m : ℕ} (r : RawState) (g : CliffordGate n) :
     (rawGateTrace (m := m) r g).length ≤ rawStepBound n m := by
   have h := gateTableauCode_time (m := m) g (rawGateFrame r)
@@ -2478,6 +2879,8 @@ theorem rawGateTrace_time {n m : ℕ} (r : RawState) (g : CliffordGate n) :
   unfold rawStepBound
   omega
 
+/-- For a raw tableau encoding of the expected length and an encoded Pauli operand, the random
+step trace has length at most `rawStepBound n m`. -/
 theorem rawRandomTrace_time {n m : ℕ} (r : RawState) (a : Fin m) (p : PauliElem n) (b : Bool)
     (hlen : r.bits.length = m * rowWidth n) :
     (rawRandomTrace (n := n) r a (encode p).bits b).length ≤ rawStepBound n m := by
@@ -2491,16 +2894,20 @@ theorem rawRandomTrace_time {n m : ℕ} (r : RawState) (a : Fin m) (p : PauliEle
   unfold rawStepBound
   omega
 
+/-- A deterministic step trace has length at most `rawStepBound n m`. -/
 theorem rawDeterministicTrace_time (n m : ℕ) (b : Bool) :
     (rawDeterministicTrace b).length ≤ rawStepBound n m := by
   simp only [rawDeterministicTrace, List.length_cons, List.length_nil]
   unfold rawStepBound
   omega
 
+/-- If `m ≤ n`, the raw step budget for `m` rows is at most the budget for `n` rows. -/
 theorem rawStepBound_mono {n m : ℕ} (hm : m ≤ n) : rawStepBound n m ≤ rawStepBound n n := by
   unfold rawStepBound gateBudget measureBudget prepareBudget instructionFactor
   gcongr
 
+/-- Matching successful raw and tableau executions have raw trace length at most `1 +
+program.maxSteps * rawStepBound n m`. -/
 theorem rawRun_time {n m : ℕ} (program : Program n m) :
     ∀ (r : RawState) (s result : Machine n m) (rr : RawResult), RepresentsMachine r s →
       execute program s = some result → rawRun (encodeProgram program) r = some rr →
@@ -2571,6 +2978,8 @@ theorem rawRun_time {n m : ℕ} (program : Program n m) :
     simp only [RawResult.prepend, List.length_append, Program.maxSteps, Nat.add_mul, Nat.one_mul]
     omega
 
+/-- In a successful raw execution, the number of fair reads plus the remaining tape length
+equals the initial tape length. -/
 theorem rawRun_tape_conservation {n m : ℕ} (program : RawProgram n m) :
     ∀ (s : RawState) (rr : RawResult), rawRun program s = some rr →
       fairReads rr.trace + rr.state.tape.length = s.tape.length := by
@@ -2624,6 +3033,9 @@ theorem rawRun_tape_conservation {n m : ℕ} (program : RawProgram n m) :
     simpa only [RawResult.prepend, fairReads_append, fairReads_deterministic,
       Nat.zero_add, rawDeterministicStep] using! hrec
 
+/-- For a valid program with sufficient tape and `m ≤ n`, matching raw and physical executions
+preserve the state conditions and have the stated branch mass, tape conservation, and trace
+length bound. -/
 theorem rawPhysicalTime {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : List Bool)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n)) (hm : m ≤ n)
     (hv : Program.Valid t program) (ht : Qatlib.Concepts.PauliClifford.PauliAlgebra.ConsistentTableau t)
@@ -2643,6 +3055,8 @@ theorem rawPhysicalTime {n m : ℕ} (program : Program n m) (t : Tableau n m) (t
   exact ⟨rr, pr, hr, hp, hrep, hnorm, hcode, hmass,
     rawRun_tape_conservation _ _ _ hr, htime.trans (by omega)⟩
 
+/-- A cell-machine configuration with input, registers, output, an input head position, and an
+evaluation stack. -/
 structure CellConfig (R : ℕ) where
   input : List Bool
   regs : BitBank R
@@ -2650,6 +3064,8 @@ structure CellConfig (R : ℕ) where
   head : ℕ
   stack : List Bool
 
+/-- The single-event cell-machine transition relation for head motion, Boolean stack operations,
+register access, and output writing. -/
 inductive CellStep {R : ℕ} : CellConfig R → BitAction R → CellConfig R → Prop where
   | right (f : CellConfig R) : CellStep f .right { f with head := f.head + 1 }
   | left (f : CellConfig R) : CellStep f .left { f with head := f.head - 1 }
@@ -2670,25 +3086,32 @@ inductive CellStep {R : ℕ} : CellConfig R → BitAction R → CellConfig R →
       CellStep { f with stack := b :: bs, output := old :: out } (.writeOutput b)
         { f with stack := bs, output := b :: out }
 
+/-- The finite-trace execution relation generated by cell-machine steps. -/
 inductive CellExec {R : ℕ} : CellConfig R → List (BitAction R) → CellConfig R → Prop where
   | nil (f) : CellExec f [] f
   | cons {f g h e es} : CellStep f e g → CellExec g es h → CellExec f (e :: es) h
 
+/-- A cell-machine step gives an execution of its singleton event trace. -/
 theorem CellExec.single {R : ℕ} {f g : CellConfig R} {e : BitAction R} (h : CellStep f e g) :
     CellExec f [e] g := .cons h (.nil _)
 
+/-- Cell-machine executions compose by concatenating their traces. -/
 theorem CellExec.trans {R : ℕ} {f g h : CellConfig R} {xs ys : List (BitAction R)}
     (hx : CellExec f xs g) (hy : CellExec g ys h) : CellExec f (xs ++ ys) h := by
   induction hx with
   | nil => exact hy
   | cons he _ ih => exact .cons he (ih hy)
 
+/-- The cell-space measure counting registers, output bits, stack bits, and the input head
+position. -/
 def cellSpace {R : ℕ} (f : CellConfig R) : ℕ := R + f.output.length + f.stack.length + f.head
 
+/-- One cell-machine event increases `cellSpace` by at most one. -/
 theorem cellStep_space {R : ℕ} {f g : CellConfig R} {e : BitAction R} (h : CellStep f e g) :
     cellSpace g ≤ cellSpace f + 1 := by
   cases h <;> simp only [cellSpace, List.length_cons] <;> omega
 
+/-- A cell-machine execution increases `cellSpace` by at most its trace length. -/
 theorem cellExec_space {R : ℕ} {f g : CellConfig R} {es : List (BitAction R)} (h : CellExec f es g) :
     cellSpace g ≤ cellSpace f + es.length := by
   induction h with
@@ -2698,6 +3121,8 @@ theorem cellExec_space {R : ℕ} {f g : CellConfig R} {es : List (BitAction R)} 
     simp only [List.length_cons]
     omega
 
+/-- The cell space reached after any executable trace prefix is bounded by the initial space
+plus the full trace length. -/
 theorem cellExec_prefix_space {R : ℕ} (f : CellConfig R) (es : List (BitAction R))
     (prefixEvents suffixEvents : List (BitAction R)) (htrace : es = prefixEvents ++ suffixEvents)
     (g : CellConfig R) (hg : CellExec f prefixEvents g) :
@@ -2706,12 +3131,15 @@ theorem cellExec_prefix_space {R : ℕ} (f : CellConfig R) (es : List (BitAction
   have hlen : prefixEvents.length ≤ es.length := by rw [htrace, List.length_append]; omega
   omega
 
+/-- The default head of a dropped list equals lookup at the drop offset with the same default. -/
 theorem headD_drop_getD (bits : List Bool) (c : ℕ) :
     (bits.drop c).headD false = bits.getD c false := by
   induction c generalizing bits with
   | zero => cases bits <;> rfl
   | succ c _ => cases bits <;> simp [List.drop, List.getD]
 
+/-- A scan trace starting at head position `c` returns to `c` and pushes the bit at offset `k`
+of the remaining input onto the stack. -/
 theorem scanTrace_cellExec {R : ℕ} (f : CellConfig R) (k c : ℕ) :
     CellExec { f with head := c } (scanTrace (R := R) (f.input.drop c) k)
       { f with head := c, stack := scanBit (f.input.drop c) k :: f.stack } := by
@@ -2730,6 +3158,8 @@ theorem scanTrace_cellExec {R : ℕ} (f : CellConfig R) (k c : ℕ) :
     have hall := CellExec.trans (CellExec.cons hstart hmid) (CellExec.single hend)
     simpa only [scanTrace, scanBit, List.tail_drop, List.cons_append] using! hall
 
+/-- An expression trace starting at head position zero returns there and pushes the evaluated
+Boolean value onto the stack. -/
 theorem exprTrace_cellExec {R : ℕ} (e : BitExpr R) (f : CellConfig R) :
     CellExec { f with head := 0 } (e.eventTrace f.input f.regs)
       { f with head := 0, stack := e.eval f.input f.regs :: f.stack } := by
@@ -2766,9 +3196,13 @@ theorem exprTrace_cellExec {R : ℕ} (e : BitExpr R) (f : CellConfig R) :
     simpa only [BitExpr.eventTrace, BitExpr.eval, List.append_assoc] using!
       ha.trans (hb.trans (CellExec.single hop))
 
+/-- Embed a bit-instruction frame into a cell configuration with head position zero and a
+specified evaluation stack. -/
 def cellOfFrame {R : ℕ} (f : BitFrame R) (stack : List Bool) : CellConfig R :=
   ⟨f.input, f.regs, f.output, 0, stack⟩
 
+/-- The trace of one bit instruction executes between its embedded initial and final frames
+while preserving the supplied stack. -/
 theorem bitStepTrace_cellExec {R : ℕ} (i : BitInstr R) (f : BitFrame R) (stack : List Bool) :
     CellExec (cellOfFrame f stack) (bitStepTrace i f) (cellOfFrame (bitStep i f) stack) := by
   cases i with
@@ -2787,6 +3221,8 @@ theorem bitStepTrace_cellExec {R : ℕ} (i : BitInstr R) (f : BitFrame R) (stack
         (e.eval f.input f.regs) false stack f.output))
     exact he.trans hs
 
+/-- The trace of a bit code block executes between its embedded initial and final frames while
+preserving the supplied stack. -/
 theorem bitRunTrace_cellExec {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (stack : List Bool) :
     CellExec (cellOfFrame f stack) (bitRunTrace code f) (cellOfFrame (bitRun code f) stack) := by
   induction code generalizing f with
@@ -2796,6 +3232,8 @@ theorem bitRunTrace_cellExec {R : ℕ} (code : List (BitInstr R)) (f : BitFrame 
       (cellOfFrame (bitRun code (bitStep i f)) stack)
     exact (bitStepTrace_cellExec i f stack).trans (ih (bitStep i f))
 
+/-- Every executable prefix of a bit block trace has cell space bounded by the register count,
+initial output and stack lengths, and the full trace length. -/
 theorem bitRun_all_prefix_space {R : ℕ} (code : List (BitInstr R)) (f : BitFrame R) (stack : List Bool)
     (prefixEvents suffixEvents : List (BitAction R))
     (htrace : bitRunTrace code f = prefixEvents ++ suffixEvents) (g : CellConfig R)
@@ -2805,6 +3243,8 @@ theorem bitRun_all_prefix_space {R : ℕ} (code : List (BitInstr R)) (f : BitFra
     prefixEvents suffixEvents htrace g hg
   simpa only [cellSpace, cellOfFrame, Nat.add_zero] using! h
 
+/-- Every executable prefix of measured tableau code has cell space bounded by eight registers,
+the initial output and stack lengths, and `measureBudget n m`. -/
 theorem measuredTableauCode_prefix_space {n m : ℕ} (a : Fin m) (f : BitFrame 8) (stack : List Bool)
     (prefixEvents suffixEvents : List (BitAction 8))
     (htrace : bitRunTrace (measuredTableauCode (n := n) a) f = prefixEvents ++ suffixEvents)
@@ -2815,9 +3255,12 @@ theorem measuredTableauCode_prefix_space {n m : ℕ} (a : Fin m) (f : BitFrame 8
   change _ ≤ measureBudget n m at ht
   omega
 
+/-- The selectable input sources of the live simulator: tableau, operand, and work bits. -/
 inductive InputPort where
   | table | operand | work
 
+/-- A live simulator configuration with program control, pending branches, input buffers, random
+tape, outcome record, and cell-machine state. -/
 structure LiveConfig (n m : ℕ) where
   control : RawProgram n m
   branches : Option (RawProgram n m × RawProgram n m)
@@ -2832,21 +3275,29 @@ structure LiveConfig (n m : ℕ) where
   stack : List Bool
   port : InputPort
 
+/-- Select the live input bit list according to the configuration's active input port. -/
 def liveInput {n m : ℕ} (f : LiveConfig n m) : List Bool :=
   match f.port with
   | .table => f.table
   | .operand => f.operand
   | .work => f.work
 
+/-- Extract the cell-machine configuration from the selected live input and mutable cell state. -/
 def liveCell {n m : ℕ} (f : LiveConfig n m) : CellConfig 8 :=
   ⟨liveInput f, f.regs, f.output, f.head, f.stack⟩
 
+/-- Restore registers, output, head position, and stack from a cell configuration into a live
+configuration. -/
 def liveRestore {n m : ℕ} (f : LiveConfig n m) (c : CellConfig 8) : LiveConfig n m :=
   { f with regs := c.regs, output := c.output, head := c.head, stack := c.stack }
 
+/-- Embed a raw state into a live configuration with specified program and operand, empty work
+buffers, and the tableau input selected. -/
 def liveOfRaw {n m : ℕ} (program : RawProgram n m) (s : RawState) (operand : List Bool) : LiveConfig n m :=
   ⟨program, none, operand, s.bits, [], [], s.tape, s.outcomes, s.regs, 0, [], .table⟩
 
+/-- The single-event live simulator transition relation implementing raw control events and
+embedded cell-machine steps. -/
 inductive LiveStep {n m : ℕ} : LiveConfig n m → RunAction → LiveConfig n m → Prop where
   | bit (f : LiveConfig n m) (c e) : CellStep (liveCell f) e c →
       LiveStep f (.bit e) (liveRestore f c)
@@ -2889,22 +3340,28 @@ inductive LiveStep {n m : ℕ} : LiveConfig n m → RunAction → LiveConfig n m
         { f with control := if b then onTrue else onFalse, branches := none }
   | halt (f : LiveConfig n m) : LiveStep { f with control := .halt } .halt { f with control := .halt }
 
+/-- The finite-trace execution relation generated by live simulator steps. -/
 inductive LiveExec {n m : ℕ} : LiveConfig n m → List RunAction → LiveConfig n m → Prop where
   | nil (f) : LiveExec f [] f
   | cons {f g h e es} : LiveStep f e g → LiveExec g es h → LiveExec f (e :: es) h
 
+/-- A live simulator step gives an execution of its singleton event trace. -/
 theorem LiveExec.single {n m : ℕ} {f g : LiveConfig n m} {e : RunAction} (h : LiveStep f e g) :
     LiveExec f [e] g := .cons h (.nil _)
 
+/-- Live simulator executions compose by concatenating their traces. -/
 theorem LiveExec.trans {n m : ℕ} {f g h : LiveConfig n m} {xs ys : List RunAction}
     (hx : LiveExec f xs g) (hy : LiveExec g ys h) : LiveExec f (xs ++ ys) h := by
   induction hx with
   | nil => exact hy
   | cons he _ ih => exact .cons he (ih hy)
 
+/-- The live bit-space measure summing tableau, work, and outcome lengths with the embedded
+cell-space measure. -/
 def liveBitSpace {n m : ℕ} (f : LiveConfig n m) : ℕ :=
   f.table.length + f.work.length + f.outcomes.length + cellSpace (liveCell f)
 
+/-- One live simulator event increases `liveBitSpace` by at most one. -/
 theorem liveStep_space {n m : ℕ} {f g : LiveConfig n m} {e : RunAction} (h : LiveStep f e g) :
     liveBitSpace g ≤ liveBitSpace f + 1 := by
   cases h with
@@ -2915,6 +3372,7 @@ theorem liveStep_space {n m : ℕ} {f g : LiveConfig n m} {e : RunAction} (h : L
     omega
   | _ => simp only [liveBitSpace, liveCell, cellSpace, List.length_cons, List.length_nil]; omega
 
+/-- A live simulator execution increases `liveBitSpace` by at most its trace length. -/
 theorem liveExec_space {n m : ℕ} {f g : LiveConfig n m} {es : List RunAction} (h : LiveExec f es g) :
     liveBitSpace g ≤ liveBitSpace f + es.length := by
   induction h with
@@ -2924,6 +3382,8 @@ theorem liveExec_space {n m : ℕ} {f g : LiveConfig n m} {es : List RunAction} 
     simp only [List.length_cons]
     omega
 
+/-- The live bit space reached after any executable trace prefix is bounded by the initial space
+plus the full trace length. -/
 theorem liveExec_prefix_space {n m : ℕ} (f : LiveConfig n m) (es pre suf : List RunAction)
     (htrace : es = pre ++ suf) (g : LiveConfig n m) (hg : LiveExec f pre g) :
     liveBitSpace g ≤ liveBitSpace f + es.length := by
@@ -2931,13 +3391,17 @@ theorem liveExec_prefix_space {n m : ℕ} (f : LiveConfig n m) (es pre suf : Lis
   have hlen : pre.length ≤ es.length := by rw [htrace, List.length_append]; omega
   omega
 
+/-- A cell-machine step preserves its input list. -/
 theorem cellStep_input {R : ℕ} {f g : CellConfig R} {e : BitAction R} (h : CellStep f e g) :
     g.input = f.input := by cases h <;> rfl
 
+/-- Restoring the cell configuration extracted from a live configuration leaves it unchanged. -/
 theorem liveRestore_cell {n m : ℕ} (f : LiveConfig n m) : liveRestore f (liveCell f) = f := by
   cases f
   rfl
 
+/-- Extracting a restored cell configuration recovers it when its input agrees with the selected
+live input. -/
 theorem liveCell_restore {n m : ℕ} (f : LiveConfig n m) (c : CellConfig 8)
     (hi : c.input = liveInput f) : liveCell (liveRestore f c) = c := by
   cases c with
@@ -2947,9 +3411,12 @@ theorem liveCell_restore {n m : ℕ} (f : LiveConfig n m) (c : CellConfig 8)
         (liveInput f) regs output head stack = CellConfig.mk input regs output head stack
     rw [hi]
 
+/-- Successive cell restorations retain only the mutable cell state from the final restoration. -/
 theorem liveRestore_twice {n m : ℕ} (f : LiveConfig n m) (c d : CellConfig 8) :
     liveRestore (liveRestore f c) d = liveRestore f d := rfl
 
+/-- A wrapper that lifts individual cell steps also lifts an entire cell execution to a live
+execution of the mapped trace. -/
 theorem liveLift {n m : ℕ} (wrap : BitAction 8 → RunAction)
     (hw : ∀ (f : LiveConfig n m) (c : CellConfig 8) (e : BitAction 8),
       CellStep (liveCell f) e c → LiveStep f (wrap e) (liveRestore f c))
@@ -2967,6 +3434,8 @@ theorem liveLift {n m : ℕ} (wrap : BitAction 8 → RunAction)
     have htail := ih (liveRestore f g) (liveCell_restore f g hi)
     simpa only [List.map_cons, liveRestore_twice] using! LiveExec.cons (hw f g e hs') htail
 
+/-- Under a compatible event wrapper, a bit block trace lifts to a live execution that restores
+the computed frame and preserves the supplied stack. -/
 theorem liveBlock {n m : ℕ} (wrap : BitAction 8 → RunAction)
     (hw : ∀ (f : LiveConfig n m) (c : CellConfig 8) (e : BitAction 8),
       CellStep (liveCell f) e c → LiveStep f (wrap e) (liveRestore f c))
@@ -2975,6 +3444,8 @@ theorem liveBlock {n m : ℕ} (wrap : BitAction 8 → RunAction)
     LiveExec f ((bitRunTrace code frame).map wrap) (liveRestore f (cellOfFrame (bitRun code frame) stack)) :=
   liveLift wrap hw (bitRunTrace_cellExec code frame stack) f hf
 
+/-- A raw gate trace executes in the live simulator from the gate control state to the embedded
+raw gate result. -/
 theorem rawGateTrace_liveExec {n m : ℕ} (r : RawState) (g : CliffordGate n)
     (next : RawProgram n m) (operand : List Bool) :
     LiveExec (liveOfRaw (.gate g next) r operand) (rawGateTrace (m := m) r g)
@@ -2992,6 +3463,8 @@ theorem rawGateTrace_liveExec {n m : ℕ} (r : RawState) (g : CliffordGate n)
     .cons h1 (.cons h2 (.nil _))
   simpa only [rawGateTrace, List.append_assoc] using! hprefix.trans (hb.trans hend)
 
+/-- A raw deterministic trace executes in the live simulator, recording its outcome and
+advancing to the continuation. -/
 theorem rawDeterministicTrace_liveExec {n m : ℕ} (r : RawState) (b : Bool)
     (next : RawProgram n m) (operand : List Bool) :
     LiveExec (liveOfRaw (.deterministic b next) r operand) (rawDeterministicTrace b)
@@ -3001,14 +3474,18 @@ theorem rawDeterministicTrace_liveExec {n m : ℕ} (r : RawState) (b : Bool)
     (.cons (.recordLeft { f with stack := [b] })
       (.cons (.recordWrite f b false [] r.outcomes) (.nil _))))
 
+/-- Input-copying code preserves the register bank. -/
 theorem copyCode_regs (size : ℕ) (f : BitFrame 8) : (bitRun (copyCode size) f).regs = f.regs :=
   (emitCode_correct _ _).2.1
 
+/-- Measured tableau code preserves the outcome register seven. -/
 theorem measuredTableauCode_register7 {n m : ℕ} (a : Fin m) (f : BitFrame 8) :
     bankRead (bitRun (measuredTableauCode (n := n) a) f).regs 7 = bankRead f.regs 7 :=
   rowBlocks_register7 (List.ofFn id) (measuredRowCode (n := n) a)
     (fun i _ g => measuredRowCode_register7 a i g) f
 
+/-- With the specified fair bit at the head of the tape, a raw random trace executes in the live
+simulator and advances to the corresponding branch with the updated raw state. -/
 theorem rawRandomTrace_liveExec {n m : ℕ} (r : RawState) (a : Fin m) (operand : List Bool)
     (b : Bool) (rest : List Bool) (hrt : r.tape = b :: rest)
     (onFalse onTrue : RawProgram n m) (oldOperand : List Bool) :
@@ -3074,6 +3551,8 @@ theorem rawRandomTrace_liveExec {n m : ℕ} (r : RawState) (a : Fin m) (operand 
   simpa only [rawRandomTrace, prepareTrace, List.map_cons, List.map_append, List.map_map,
     Function.comp_def, List.append_assoc, List.cons_append, List.nil_append] using! hall
 
+/-- Every successful raw execution has a live execution of the same trace ending in the embedded
+final raw state with halted control. -/
 theorem rawRun_liveExec {n m : ℕ} (program : RawProgram n m) :
     ∀ (r : RawState) (rr : RawResult) (oldOperand : List Bool), rawRun program r = some rr →
       ∃ operand, LiveExec (liveOfRaw program r oldOperand) rr.trace (liveOfRaw .halt rr.state operand) := by
@@ -3123,10 +3602,15 @@ theorem rawRun_liveExec {n m : ℕ} (program : RawProgram n m) :
     obtain ⟨operand, hrec⟩ := ih _ rr' oldOperand hn
     exact ⟨operand, (rawDeterministicTrace_liveExec r b next oldOperand).trans hrec⟩
 
+/-- The live bit space of an embedded raw state is its tableau bit length plus its outcome count
+and eight registers. -/
 theorem liveOfRaw_space {n m : ℕ} (p : RawProgram n m) (r : RawState) (operand : List Bool) :
     liveBitSpace (liveOfRaw p r operand) = r.bits.length + r.outcomes.length + 8 := by
   simp [liveBitSpace, liveOfRaw, liveCell, cellSpace]
 
+/-- A valid program with sufficient tape and `m ≤ n` has matching raw, physical, and live
+executions satisfying the stated state, probability, tape, and trace guarantees. Every
+executable prefix of the live trace also satisfies the explicit bit-space bound. -/
 theorem rawFrontier {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : List Bool)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n)) (hm : m ≤ n)
     (hv : Program.Valid t program) (ht : Qatlib.Concepts.PauliClifford.PauliAlgebra.ConsistentTableau t)

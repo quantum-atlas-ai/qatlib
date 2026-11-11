@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockProjectorReadout
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorPhysicalBudget
+
+/-!
+# Accuracy budget for the physical projector history
+
+`actualProbability` selects the zero-projector-ancilla event in the binary clock simulation at
+the clock size and precision chosen by `ProjectorPhysicalBudget`. The resulting probability,
+scaled by `T`, approximates the integrated projector expectation.
+
+These bounds provide a bias allowance and a mass cap for subsequent amplitude estimation in the
+sense of [BrassardEtAl2002].
+
+## Main statements
+
+* `actual_integral_bias`: the scaled actual probability differs from the physical integral by at
+  most `eps/4`.
+* `actual_mass_le_cap`: an upper bound on the integral yields the scheduled mass cap.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -63,6 +85,8 @@ open scoped Classical BigOperators Interval Matrix.Norms.L2Operator
 
 variable {I E : Type} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 
+/-- The zero-projector-ancilla probability of the actual history state at the scheduled clock
+size and simulation precision. -/
 noncomputable def actualProbability (α T eps : ℚ) (a m : ℕ)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (ψ : QState (E × I)) : ℝ :=
@@ -71,6 +95,9 @@ noncomputable def actualProbability (α T eps : ℚ) (a m : ℕ)
       a m α T (ProjectorPhysicalBudget.precisionBits α T eps) U_H UPi ψ)
     {x | x.2.2.1 = ZeroStr m}
 
+/-- For a normalized purification and the stated Hamiltonian and projector encodings, the
+physical integral differs from `T` times the scheduled actual probability by at most
+`eps/4`. -/
 theorem actual_integral_bias (α T eps : ℚ) (hα : 0 < α) (hT : 0 < T)
     (heps : 0 < eps) (a m : ℕ) (H Pi : Matrix I I ℂ) (hH : H.IsHermitian)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)
@@ -118,6 +145,8 @@ theorem actual_integral_bias (α T eps : ℚ) (hα : 0 < α) (hT : 0 < T)
           (1/2 : ℝ)^(ProjectorPhysicalBudget.precisionBits α T eps)) at h
   linarith
 
+/-- If the physical projector integral is at most `Jbar`, its scheduled actual probability
+scaled by `T` is at most `massCap Jbar eps`. -/
 theorem actual_mass_le_cap (α T eps Jbar : ℚ) (hα : 0 < α) (hT : 0 < T)
     (heps : 0 < eps) (a m : ℕ) (H Pi : Matrix I I ℂ) (hH : H.IsHermitian)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)

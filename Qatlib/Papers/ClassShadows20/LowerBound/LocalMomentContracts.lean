@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
+
+/-!
+# Legacy local moment contracts
+
+This module records `LocalShotPauliMomentSubgoalLegacy` and
+`LocalMeasurementLowerBoundSubgoalLegacy` as propositions. Their second-moment premise
+quantifies over all complex operators without a Hermitian restriction. The first specifies
+code-state shot moments, and the second specifies a sample lower bound for predictors depending
+only on outcome records.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `LocalShotPauliMomentSubgoalLegacy`: states the legacy first- and second-moment implication.
+* `LocalMeasurementLowerBoundSubgoalLegacy`: states the legacy prediction-to-sample-bound
+  implication.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +41,9 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators
 
+/-- The legacy proposition asserting local code-state shot mean `w` and second moment at most
+`w² * (1 + 9ε² / 3^k)` under the stated ensemble premises. Its second-moment premise ranges
+over arbitrary complex operators. -/
 def LocalShotPauliMomentSubgoalLegacy : Prop :=
   ∀ (n k : ℕ) (J : Type) [Fintype J] [DecidableEq J]
     (κ : FinDist J) (Uf : J → Operator 2)
@@ -41,6 +67,9 @@ def LocalShotPauliMomentSubgoalLegacy : Prop :=
         (localShotValue Uf w ψ uw (theorem6CodeState n ε a)) ^ 2 ≤
       w ^ 2 * (1 + 9 * ε ^ 2 / (3 ^ k : ℝ)))
 
+/-- The legacy proposition asserting `9Nε² / 3^k ≥ (1 - δ) log M - 1` for uniformly successful
+outcome-record predictors under the stated measurement and ensemble premises, including an
+unrestricted complex second-moment identity. -/
 def LocalMeasurementLowerBoundSubgoalLegacy : Prop :=
   ∀ (n k N M : ℕ) (O : Type) [Fintype O] [DecidableEq O]
     (J : Type) [Fintype J] [DecidableEq J]

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import Mathlib.Topology.MetricSpace.Lipschitz
 import Mathlib.MeasureTheory.Function.LpSpace.Basic
+
+/-!
+# Gaussian moments of Lipschitz functions and extensions
+
+`lipschitz_gaussian_memLp` places real Lipschitz functions in every finite `Lᵖ` space of the
+standard Gaussian measure. `same_constant_gaussian_extension` extends a real function from a
+subset while preserving its Lipschitz constant and obtains the same Gaussian moment bounds,
+supplying tools for the Gaussian analysis associated with [GohMuller2026].
+
+## Main statements
+
+* `lipschitz_gaussian_memLp`: A real Lipschitz function on `E` belongs to every finite `Lᵖ`
+  space of the standard Gaussian measure.
+* `same_constant_gaussian_extension`: A real function that is `K` Lipschitz on `S` has a global
+  `K` Lipschitz extension agreeing with it on `S` and belonging to every finite Gaussian `Lᵖ`
+  space.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
@@ -17,6 +39,8 @@ section GenericGaussian
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
   [MeasurableSpace E] [BorelSpace E]
 
+/-- A real Lipschitz function on `E` belongs to every finite `Lᵖ` space of the standard Gaussian
+measure. -/
 theorem lipschitz_gaussian_memLp (K : ℝ≥0) (f : E→ℝ) (hf : LipschitzWith K f)
     (p : ℝ≥0∞) (hp : p≠∞) : MemLp f p (stdGaussian E) := by
   have hg : LipschitzWith K (fun x => f x-f 0) := by
@@ -29,6 +53,8 @@ theorem lipschitz_gaussian_memLp (K : ℝ≥0) (f : E→ℝ) (hf : LipschitzWith
   funext x
   simp
 
+/-- A real function that is `K` Lipschitz on `S` has a global `K` Lipschitz extension agreeing
+with it on `S` and belonging to every finite Gaussian `Lᵖ` space. -/
 theorem same_constant_gaussian_extension (K : ℝ≥0) (f : E→ℝ) (S : Set E)
     (hf : LipschitzOnWith K f S) :
     ∃ g : E→ℝ,LipschitzWith K g ∧ Set.EqOn f g S ∧

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GraphConnect03.MainResults.Defs
 import Qatlib.Papers.GraphConnect03.MainResults.UpperBounds.DFSSpanningTree
+
+/-!
+# Bounds for DFS connectivity cost expressions
+
+This module bounds `dfsMatrixCost` and `dfsListCost` using the search-count estimate. For graph
+sizes at least two, the resulting expressions have the `n^(3/2) * log n` and `n * √k * log n`
+bounds recorded by the corresponding `IsBigOFrom` statements. See [DurrMhallaLei2003].
+
+## Main statements
+
+* `dfsMatrixCost_le`: For `n ≥ 2`, the matrix DFS cost of any visited subset is at most `2 *
+  n^(3/2) * log n`.
+* `dfsListCost_le`: For `n ≥ 2`, the list DFS cost of any visited subset is at most `2 * n * √k
+  * log n`.
+* `dfsMatrixCost_bigO`: The matrix DFS cost for the full visited set is bounded by a constant
+  times `n^(3/2) * log n` for every `n ≥ 2`.
+
+## References
+
+* [Durr et al., 2003][DurrMhallaLei2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,12 +38,14 @@ namespace Qatlib.Papers.GraphConnect03.MainResults.UpperBounds
 
 open Qatlib.Papers.GraphConnect03.MainResults.Defs
 
+/-- For `n ≥ 1`, the real power `n^(3/2)` equals `n * √n`. -/
 theorem rpow_three_halves (n : ℕ) (hn : 1 ≤ n) :
     (n : ℝ) ^ (3 / 2 : ℝ) = (n : ℝ) * Real.sqrt (n : ℝ) := by
   have hnpos : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hn
   have h3 : (3 / 2 : ℝ) = 1 + 1 / 2 := by norm_num
   rw [h3, Real.rpow_add hnpos, Real.rpow_one, ← Real.sqrt_eq_rpow]
 
+/-- For `n ≥ 2`, the matrix DFS cost of any visited subset is at most `2 * n^(3/2) * log n`. -/
 theorem dfsMatrixCost_le (n : ℕ) (visited : Finset (Vertex n)) (hn : 2 ≤ n) :
     dfsMatrixCost visited ≤ 2 * ((n : ℝ) ^ (3 / 2 : ℝ) * Real.log (n : ℝ)) := by
   unfold dfsMatrixCost matrixGroverCharge
@@ -39,6 +63,7 @@ theorem dfsMatrixCost_le (n : ℕ) (visited : Finset (Vertex n)) (hn : 2 ≤ n) 
     _ = 2 * ((n : ℝ) ^ (3 / 2 : ℝ) * Real.log (n : ℝ)) := by
         rw [rpow_three_halves n (by omega)]
 
+/-- For `n ≥ 2`, the list DFS cost of any visited subset is at most `2 * n * √k * log n`. -/
 theorem dfsListCost_le (n k : ℕ) (visited : Finset (Vertex n)) (hn : 2 ≤ n) :
     dfsListCost n k visited ≤ 2 * ((n : ℝ) * Real.sqrt (k : ℝ) * Real.log (n : ℝ)) := by
   unfold dfsListCost listGroverCharge
@@ -54,11 +79,15 @@ theorem dfsListCost_le (n k : ℕ) (visited : Finset (Vertex n)) (hn : 2 ≤ n) 
         mul_le_mul_of_nonneg_right hcount hcharge
     _ = 2 * ((n : ℝ) * Real.sqrt (k : ℝ) * Real.log (n : ℝ)) := by ring
 
+/-- The matrix DFS cost for the full visited set is bounded by a constant times `n^(3/2) * log
+n` for every `n ≥ 2` [DurrMhallaLei2003]. -/
 theorem dfsMatrixCost_bigO :
     IsBigOFrom (fun n : ℕ => dfsMatrixCost (Finset.univ : Finset (Vertex n)))
       (fun n : ℕ => (n : ℝ) ^ (3 / 2 : ℝ) * Real.log (n : ℝ)) 2 :=
   ⟨2, by norm_num, fun n hn => dfsMatrixCost_le n Finset.univ hn⟩
 
+/-- For fixed `k`, the list DFS cost for the full visited set is bounded by a constant times `n
+* √k * log n` for every `n ≥ 2` [DurrMhallaLei2003]. -/
 theorem dfsListCost_bigO (k : ℕ) :
     IsBigOFrom (fun n : ℕ => dfsListCost n k (Finset.univ : Finset (Vertex n)))
       (fun n : ℕ => (n : ℝ) * Real.sqrt (k : ℝ) * Real.log (n : ℝ)) 2 :=

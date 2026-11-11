@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidBinaryMultiplication
+
+/-!
+# Canonical natural-number multiplication
+
+`program` reads two consecutive canonical natural-number fields, calls the binary multiplier,
+normalizes the result, and emits a canonical product field. The stack embeddings and call lemmas
+describe the intermediate states and their costs.
+
+`source_exec` bounds the stack execution by a cubic polynomial in the encoded input length.
+`raw_multiplier` transfers this computation to a finite-state tape machine with cubic bounds on
+both resources recorded by `Runs`.
+
+## Main statements
+
+* `product_bits_length`: a bound on the binary length of a natural-number product.
+* `source_exec`: correctness and a cubic stack-clock bound.
+* `raw_multiplier`: a tape machine computing the canonical product encoding.
+
+For background on classical computation and resource bounds, see [KitaevShenVyalyi2002].
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,47 +40,74 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.CanonicalNatMultiplication
 
+/-- The nine Boolean-stack slots used for input, parsing, multiplication, normalization, and
+output. -/
 inductive Slot where
   | raw | reader | markers | payload | first | second | result | temp | output
   deriving DecidableEq, Fintype
+/-- Control labels for the parsing, multiplication, normalization, emission, and cleanup phases. -/
 inductive Label where
   | start (l : Fin 1) | read (which : Bool) (l : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Label)
   | clear (l : Fin 1) | multiply (l : PaidBinaryMultiplication.Label) | normalize (l : Fin 1)
   | reverse (l : Fin 1) | emit (l : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatEmit.Label) | drain (l : Fin 1) | done
   deriving DecidableEq, Fintype
 instance : Inhabited Label := ⟨.start 0⟩
+/-- The combined local states of the natural-number reader and binary multiplier. -/
 abbrev Local :=
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Local × PaidBinaryMultiplication.Local
+/-- Configurations of the canonical natural-number multiplication stack machine. -/
 abbrev Config := TM2.Cfg (fun _ : Slot => Bool) Label Local
 
+/-- Construct a stack state by assigning a bit word to each of the nine named slots. -/
 def state (raw reader markers payload first second result temp output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | .raw => raw | .reader => reader | .markers => markers | .payload => payload
   | .first => first | .second => second | .result => result | .temp => temp | .output => output
 
+/-- Extract the natural-number reader component of the local state. -/
 def getRead (v : Local) := v.1
+/-- Replace the natural-number reader component of the local state while preserving its other
+component. -/
 def putRead (v : Local)
     (x : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Local) : Local := (x, v.2)
+/-- Extract the binary multiplier component of the local state. -/
 def getMultiply (v : Local) := v.2
+/-- Replace the binary multiplier component while preserving the reader component. -/
 def putMultiply (v : Local) (x : PaidBinaryMultiplication.Local) : Local := (v.1, x)
+/-- Extract the optional Boolean symbol used by the input and output subroutines. -/
 def getIO (v : Local) := v.2.2
+/-- Replace the optional Boolean symbol used by the input and output subroutines while
+preserving the remaining local data. -/
 def putIO (v : Local) (x : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol) : Local :=
     (v.1, v.2.1, x)
 
+/-- Embed the input-transfer stacks as the raw-input and reader slots. -/
 def startCode : Fin 2 → Slot | 0 => .raw | _ => .reader
+/-- Embed the reader stacks, directing the decoded value to the first or second operand
+according to `which`. -/
 def readCode (which : Bool) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload
   | .value => if which then .second else .first | .temporary => .temp | .output => .output
+/-- Select the output slot for clearing the temporary encoding produced during parsing. -/
 def clearCode (_ : Fin 1) : Slot := .output
+/-- Embed the binary multiplier stacks into the operand, workspace, and result slots. -/
 def multiplyCode : PaidBinaryMultiplication.Slot → Slot
   | .left => .first | .right => .second | .acc => .payload | .temp => .temp
   | .copy => .raw | .arg => .markers | .sum => .reader | .output => .result
+/-- Select the result slot for binary normalization. -/
 def normalizeCode (_ : Fin 1) : Slot := .result
+/-- Embed the transfer from the result slot to the first-operand slot. -/
 def reverseCode : Fin 2 → Slot | 0 => .result | _ => .first
+/-- Embed the natural-number emitter using the first-operand, temporary, and output slots. -/
 def emitCode : Fin 3 → Slot | 0 => .first | 1 => .temp | _ => .output
+/-- Select the first-operand slot for final cleanup. -/
 def drainCode (_ : Fin 1) : Slot := .first
 
+/-- Continue with the second operand after the first read, or with output cleanup after the
+second read. -/
 def afterRead (which : Bool) : Label := if which then .clear 0 else .read true (.read .unary)
 
+/-- The stack-machine program that parses two natural numbers, multiplies their bit words, and
+emits their normalized canonical product. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt startCode Label.start (.read false (.read .unary)) getIO putIO (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.transferProgram l)
   | .read which l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt (readCode which) (Label.read which) (afterRead which) getRead putRead (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.program l)
@@ -67,6 +119,8 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt drainCode Label.drain .done getIO putIO (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.drainProgram l)
   | .done => .load (fun _ => default) .halt
 
+/-- A stack frame equals a target state when they agree on every embedded slot and the target
+preserves every slot outside the embedding. -/
 private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot) (hinj : Function.Injective code)
     (S T : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (data : K → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (hi : ∀ k, T (code k) = data k)
     (ho : ∀ j, (∀ k, code k ≠ j) → T j = S j) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.frame code S data = T := by
@@ -79,6 +133,9 @@ private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot) (hinj : 
   · rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator.frame_outside code S data j (by simpa using! hj)]
     exact (ho j (by simpa using! hj)).symm
 
+/-- Lift a terminating subroutine execution to the enclosing program with the same cost bound,
+using an injective stack embedding and compatible local-state accessors. Slots outside the
+embedding retain their contents. -/
 private theorem lift {K Λ σ : Type} [DecidableEq K]
     (code : K → Slot) (hinj : Function.Injective code) (labels : Λ → Label) (ret : Label)
     (get : Local → σ) (put : Local → σ → Local)
@@ -106,43 +163,58 @@ private theorem lift {K Λ σ : Type} [DecidableEq K]
   · simpa only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.cfg,
       Option.map_some, Option.getD_some, hs, hi] using! hnc.trans_le hc
 
+/-- `startCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem startCode_inj : Function.Injective (startCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [startCode]
 
+/-- `readCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem readCode_inj (which : Bool) : Function.Injective (readCode which) := by
   cases which <;> intro x y h <;> cases x <;> cases y <;> simp_all [readCode]
 
+/-- `clearCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem clearCode_inj : Function.Injective (clearCode) := by
   intro x y _
   exact Subsingleton.elim x y
 
+/-- `multiplyCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem multiplyCode_inj : Function.Injective multiplyCode := by
   intro x y h
   cases x <;> cases y <;> simp_all [multiplyCode]
 
+/-- `normalizeCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem normalizeCode_inj : Function.Injective (normalizeCode) := by
   intro x y _
   exact Subsingleton.elim x y
 
+/-- `reverseCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem reverseCode_inj : Function.Injective (reverseCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [reverseCode]
 
+/-- `emitCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem emitCode_inj : Function.Injective (emitCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [emitCode]
 
+/-- `drainCode` is injective, so distinct subroutine stacks occupy distinct machine slots. -/
 private theorem drainCode_inj : Function.Injective (drainCode) := by
   intro x y _
   exact Subsingleton.elim x y
 
+/-- The final local state of the natural-number reader after reading the canonical encoding of
+`n`. -/
 def readLast (n : ℕ) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Local :=
     ((true, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat.lastField n.bits none),
     none)
+/-- Construct a parsing state with the selected operand slot containing `value` and the other
+operand slot containing `other`. -/
 def operandState (which : Bool) (reader value other out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   state [] reader [] [] (if which then other else value) (if which then value else other) [] [] out
 
+/-- Read a canonical field for `n` into the selected operand slot, preserve the unread tail and
+the other operand, and prepend the reversed field to the output stack. The execution
+satisfies the displayed quadratic cost bound. -/
 theorem read_call (which : Bool) (n : ℕ) (tail other out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       ⟨some (.read which (.read .unary)), v, operandState which (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ tail) [] other out⟩
@@ -166,6 +238,8 @@ theorem read_call (which : Bool) (n : ℕ) (tail other out : Qatlib.Concepts.Bit
     | exact (hj .temporary rfl).elim
     | exact (hj .output rfl).elim
 
+/-- Transfer the reversed raw input to the reader stack and enter the first parsing phase within
+`input.length * (2 * input.length + 5) + 3` cost. -/
 theorem start_call (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.start 0), v, state (input.reverse) [] [] [] [] [] [] [] []⟩
       ⟨some (.read false (.read .unary)), putIO v none, state [] (input) [] [] [] [] [] [] []⟩
@@ -189,6 +263,8 @@ theorem start_call (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     | exact (hj 0 rfl).elim
     | exact (hj 1 rfl).elim
 
+/-- Clear the parsing output while preserving both operands, then enter the multiplication loop
+with the stated quadratic cost bound. -/
 theorem clear_call (a b out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.clear 0), v, state [] [] [] [] (a) (b) [] [] (out)⟩
       ⟨some (.multiply .loop), putIO v none, state [] [] [] [] (a) (b) [] [] []⟩
@@ -207,6 +283,9 @@ theorem clear_call (a b out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
     | rfl
     | exact (hj 0 rfl).elim
 
+/-- With the multiplier local state initialized, compute a word representing the product within
+`4000 * (a.length + b.length + 1) ^ 3` cost. Its length is at most `a.length + 2 *
+b.length`. -/
 theorem multiply_call (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) (h : getMultiply v = default) : ∃ result,
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       ⟨some (.multiply .loop), v, state [] [] [] [] a b [] [] []⟩
@@ -238,6 +317,8 @@ theorem multiply_call (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
     | exact (hj .sum rfl).elim
     | exact (hj .output rfl).elim
 
+/-- Transfer the reversed canonical binary digits of `n` to the first-operand slot and enter
+emission with the stated cost bound. -/
 theorem reverse_call (n : ℕ) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.reverse 0), v, state [] [] [] [] [] [] (n.bits.reverse) [] []⟩
       ⟨some (.emit .count), putIO v none, state [] [] [] [] (n.bits) [] [] [] []⟩
@@ -261,6 +342,8 @@ theorem reverse_call (n : ℕ) (v : Local) :
     | exact (hj 0 rfl).elim
     | exact (hj 1 rfl).elim
 
+/-- Emit the reversed canonical natural-number encoding of `n` into the empty output slot within
+`100 * (1 + n.bits.length) ^ 2` cost. -/
 theorem emit_call (n : ℕ) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.emit .count), v, state [] [] [] [] (n.bits) [] [] [] []⟩
       ⟨some (.drain 0), putIO v none, state [] [] [] [] (n.bits) [] [] [] ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n).reverse)⟩
@@ -281,6 +364,8 @@ theorem emit_call (n : ℕ) (v : Local) :
     | exact (hj 1 rfl).elim
     | exact (hj 2 rfl).elim
 
+/-- Clear the binary digits retained in the first-operand slot, preserving the encoded output
+and reaching the final control label within the stated cost bound. -/
 theorem drain_call (n : ℕ) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.drain 0), v, state [] [] [] [] (n.bits) [] [] [] ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n).reverse)⟩
       ⟨some (.done), putIO v none, state [] [] [] [] [] [] [] [] ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n).reverse)⟩
@@ -300,6 +385,8 @@ theorem drain_call (n : ℕ) (v : Local) :
     | rfl
     | exact (hj 0 rfl).elim
 
+/-- Normalize the reversed result word to the reversed canonical binary digits of its value
+within `20 * (1 + bits.length) ^ 2` cost. -/
 theorem normalize_call (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) : ∃ last,
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       ⟨some (.normalize 0), v, state [] [] [] [] [] [] bits [] []⟩
@@ -319,6 +406,8 @@ theorem normalize_call (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
     | rfl
     | exact (hj 0 rfl).elim
 
+/-- Bound the sum of the parsing, multiplication, normalization, emission, and cleanup budgets
+by `20000 * (1 + L) ^ 3` under the stated length bounds. -/
 private theorem budget_le (L S R N : ℕ) (hs : S ≤ 1 + L) (hr : R ≤ 1 + L) (hn : N ≤ 1 + L) :
     L * (2 * L + 5) + 3 + 500 * (1 + L) ^ 2 + 500 * (1 + L) ^ 2 +
       (L ^ 2 + 3 * L + 3) + 4000 * S ^ 3 + 20 * (1 + R) ^ 2 +
@@ -331,6 +420,7 @@ private theorem budget_le (L S R N : ℕ) (hs : S ≤ 1 + L) (hr : R ≤ 1 + L) 
   have h3 : 0 < (1 + L) ^ 3 := by positivity
   nlinarith only [hs3, hr, hr2, hn, hn2, h23, h3]
 
+/-- The binary digit length of `a * b` is at most `a.bits.length + 2 * b.bits.length`. -/
 theorem product_bits_length (a b : ℕ) : (a * b).bits.length ≤ a.bits.length + 2 * b.bits.length := by
   obtain ⟨result, _, _, _, hv, hl⟩ := PaidBinaryMultiplication.source_multiplier a.bits b.bits
   have hc :=
@@ -339,6 +429,9 @@ theorem product_bits_length (a b : ℕ) : (a * b).bits.length ≤ a.bits.length 
   rw [hv] at hc
   exact hc.trans hl
 
+/-- Starting from two consecutive canonical natural-number fields, the stack program halts with
+only the reversed canonical product encoding remaining. Its cost is at most `20000 * (1 +
+(natBits a ++ natBits b).length) ^ 3`. -/
 theorem source_exec (a b : ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       (TM2.init Slot.raw (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits a ++ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits b).reverse)
@@ -412,6 +505,9 @@ theorem source_exec (a b : ℕ) :
   exact budget_le input.length (a.bits.length + b.bits.length + 1) r.length
       (a * b).bits.length hsum hr hn
 
+/-- There is a finite-state tape machine mapping two consecutive canonical natural-number fields
+to the canonical product field, with a uniform positive cubic bound for both resources in
+`Runs`. -/
 theorem raw_multiplier :
     ∃ (q c : ℕ) (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))), 0 < c ∧ ∀ a b : ℕ,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs M (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits a ++ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits b) (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits (a * b))

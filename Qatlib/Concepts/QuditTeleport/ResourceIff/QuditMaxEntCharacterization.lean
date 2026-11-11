@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntTools
+
+/-!
+# Maximally entangled qudit resource characterization
+
+`quditMaxEntCharacterization` relates the orthonormal family form of a pure qudit resource to
+its reduced operators. The forward direction gives maximally mixed marginals on both subsystems,
+and the converse constructs such families from a normalized vector with maximally mixed first
+marginal.
+
+This is the finite dimensional resource characterization underlying the teleportation discussion
+in [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `quditMaxEntCharacterization`: proves the bundled marginal and orthonormal family
+  characterization.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +41,10 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators
 
+/-- Maximally entangled vectors formed from orthonormal families have maximally mixed marginals,
+and a normalized pure vector with maximally mixed first marginal has this form. This is the
+qudit version of the resource form in [Bennett et al., Eq.
+(9)][BennettEtAl1993Teleportation]. -/
 theorem quditMaxEntCharacterization : QuditMaxEntCharacterization := by
   constructor
   · intro n _ u v hu hv

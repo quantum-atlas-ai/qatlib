@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Bridge
+
+/-!
+# An identity case of basis movement
+
+This module treats a restricted basis-movement case in the bridge setting. When the
+distinguished entries of the two supplied vector families are already equal, an approximable map
+sends one to the other and fixes all remaining entries of the first family. See
+[AharonovArad2011].
+
+## Main statements
+
+* `lemma62_basis_move_id`: realizes the required action when the distinguished vectors coincide.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +33,9 @@ open Model
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
 
+/-- If the distinguished entries of the supplied vector families are equal, an approximable map
+sends the first to the second and fixes every other entry of the first family, under the
+stated dimension assumptions. See [Aharonov and Arad, Lemma 6.2][AharonovArad2011]. -/
 theorem lemma62_basis_move_id {A B : Submodule ℂ E} (hAB : Module.finrank ℂ A < Module.finrank ℂ B)
     (hApos : 0 < Module.finrank ℂ A) (W : E ≃ₗᵢ[ℂ] E)
     (u : Fin (Module.finrank ℂ A) → E) (v : Fin (Module.finrank ℂ B) → E)

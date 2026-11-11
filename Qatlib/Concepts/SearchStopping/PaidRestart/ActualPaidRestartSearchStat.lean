@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.RestartSearchDefs
+
+/-!
+# Paid restart search guarantees
+
+`ActualPaidRestartSearch` states the existence of a source-prepared restart search with a
+bounded iteration count, zero nontermination mass, and explicit expected clock-cost bounds. It
+includes charged execution with prices j + 2 and 2, together with zero joint halt mass at every
+unmarked address.
+
+For the mathematical background, see [BoyerEtAl1998].
+
+## Main statements
+
+* `ActualPaidRestartSearch`: The proposition asserting a common valid restart circuit with j ≤
+  π/(8θ) + 1, zero nontermination mass, expected clock costs bounded by π/(4θ) + 4, π/(4θ) + 6,
+  and 4 for the specified price models, and no halting output outside the marked set.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -18,6 +40,9 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- The proposition asserting a common valid restart circuit with j ≤ π/(8θ) + 1, zero
+nontermination mass, expected clock costs bounded by π/(4θ) + 4, π/(4θ) + 6, and 4 for the
+specified price models, and no halting output outside the marked set. -/
 def ActualPaidRestartSearch : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     ∀ (T' : Matrix I I ℂ) (seed : I), T' ∈ Matrix.unitaryGroup I ℂ →

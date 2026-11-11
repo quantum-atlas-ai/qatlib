@@ -13,6 +13,32 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Matrix.Mul
 import Mathlib.Tactic
+
+/-!
+# Two-level eigenvectors for subset finding
+
+This module analyzes the explicit two-dimensional matrix `twoLevelUP` associated with the
+overlap scale `twoLevelOverlap` in [ChildsEisenberg2003]. It gives exact eigenvectors and
+eigenvalues, expresses the eigenvalues through `twoLevelPhase`, and bounds the residuals of the
+paper's comparison vectors.
+
+The estimates are quantitative for `0 ≤ c ≤ 1 / 2`: the phase differs from `2c` by at most
+`2c³`, and each comparison-vector residual coordinate has norm at most `4c²`.
+
+## Main statements
+
+* `twoLevelUP_eigenvector_plus` and `twoLevelUP_eigenvector_minus`: exact eigenvector
+  identities.
+* `twoLevelPhase_approx`: the cubic phase-error bound.
+* `paper_vector_residual_plus` and `paper_vector_residual_minus`: coordinatewise residual
+  bounds.
+* `lemma3_two_level`: collects the two-level identities and estimates.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,56 +50,75 @@ namespace Qatlib.Papers.SubsetFinding03.MainResults.ProjectorEigenvectors
 open Complex
 open scoped Matrix
 
+/-- The real overlap scale `(M / N) ^ (L / 2)`. -/
 def twoLevelOverlap (M N L : ℕ) : ℝ := ((M : ℝ) / (N : ℝ)) ^ ((L : ℝ) / 2)
 
+/-- The quantity `√(1 - c ^ 2)` used in the two-level rotation. -/
 def twoLevelSin (c : ℝ) : ℝ := Real.sqrt (1 - c ^ 2)
 
+/-- The diagonal coefficient `1 - 2 * c ^ 2` of the two-level matrix. -/
 def twoLevelDiag (c : ℝ) : ℝ := 1 - 2 * c ^ 2
 
+/-- The off-diagonal magnitude `2 * c * √(1 - c ^ 2)` of the two-level matrix. -/
 def twoLevelOffDiag (c : ℝ) : ℝ := 2 * c * twoLevelSin c
 
+/-- The phase `2 * arcsin c` associated with the two-level matrix. -/
 def twoLevelPhase (c : ℝ) : ℝ := 2 * Real.arcsin c
 
+/-- The complex two-by-two matrix with diagonal `twoLevelDiag c` and signed off-diagonal entries
+`twoLevelOffDiag c`. -/
 def twoLevelUP (c : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(twoLevelDiag c : ℂ), -(twoLevelOffDiag c : ℂ);
      (twoLevelOffDiag c : ℂ), (twoLevelDiag c : ℂ)]
 
+/-- The candidate eigenvalue `twoLevelDiag c + i * twoLevelOffDiag c`. -/
 def twoLevelEigPlus (c : ℝ) : ℂ :=
   (twoLevelDiag c : ℂ) + (twoLevelOffDiag c : ℂ) * Complex.I
 
+/-- The candidate eigenvalue `twoLevelDiag c - i * twoLevelOffDiag c`. -/
 def twoLevelEigMinus (c : ℝ) : ℂ :=
   (twoLevelDiag c : ℂ) - (twoLevelOffDiag c : ℂ) * Complex.I
 
+/-- The normalized vector `(i, 1) / √2`. -/
 def twoLevelKetPlus : Fin 2 → ℂ :=
   ![Complex.I / (Real.sqrt 2 : ℂ), 1 / (Real.sqrt 2 : ℂ)]
 
+/-- The normalized vector `(-i, 1) / √2`. -/
 def twoLevelKetMinus : Fin 2 → ℂ :=
   ![-Complex.I / (Real.sqrt 2 : ℂ), 1 / (Real.sqrt 2 : ℂ)]
 
+/-- The unscaled comparison vector `(c + i, √(1 - c ^ 2))`. -/
 def paperThetaPlusRaw (c : ℝ) : Fin 2 → ℂ :=
   ![((c : ℂ) + Complex.I), (twoLevelSin c : ℂ)]
 
+/-- The unscaled comparison vector `(c - i, √(1 - c ^ 2))`. -/
 def paperThetaMinusRaw (c : ℝ) : Fin 2 → ℂ :=
   ![((c : ℂ) - Complex.I), (twoLevelSin c : ℂ)]
 
+/-- The vector `paperThetaPlusRaw c` scaled by `1 / √2`. -/
 def paperThetaPlus (c : ℝ) : Fin 2 → ℂ :=
   (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • paperThetaPlusRaw c
 
+/-- The vector `paperThetaMinusRaw c` scaled by `1 / √2`. -/
 def paperThetaMinus (c : ℝ) : Fin 2 → ℂ :=
   (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • paperThetaMinusRaw c
 
+/-- The square-root coefficient `twoLevelSin c` is nonnegative. -/
 lemma twoLevelSin_nonneg (c : ℝ) : 0 ≤ twoLevelSin c := Real.sqrt_nonneg _
 
+/-- When `c ^ 2 ≤ 1`, the square of `twoLevelSin c` equals `1 - c ^ 2`. -/
 lemma twoLevelSin_sq (c : ℝ) (hc : c ^ 2 ≤ 1) : twoLevelSin c ^ 2 = 1 - c ^ 2 := by
   unfold twoLevelSin
   rw [Real.sq_sqrt]
   linarith
 
+/-- The square-root coefficient `twoLevelSin c` is at most one. -/
 lemma twoLevelSin_le_one (c : ℝ) : twoLevelSin c ≤ 1 := by
   unfold twoLevelSin
   rw [Real.sqrt_le_one]
   nlinarith [sq_nonneg c]
 
+/-- For `0 ≤ c ≤ 1`, the deficit `1 - twoLevelSin c` is at most `c ^ 2`. -/
 lemma one_sub_twoLevelSin_le_sq (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     1 - twoLevelSin c ≤ c ^ 2 := by
   have hs2 : twoLevelSin c ^ 2 = 1 - c ^ 2 := twoLevelSin_sq c (by nlinarith)
@@ -85,10 +130,12 @@ lemma one_sub_twoLevelSin_le_sq (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     mul_le_mul_of_nonneg_left (by linarith) (by linarith)
   linarith
 
+/-- The off-diagonal coefficient is nonnegative when `c` is nonnegative. -/
 lemma twoLevelOffDiag_nonneg (c : ℝ) (hc0 : 0 ≤ c) : 0 ≤ twoLevelOffDiag c := by
   unfold twoLevelOffDiag
   exact mul_nonneg (mul_nonneg (by norm_num) hc0) (twoLevelSin_nonneg c)
 
+/-- For nonnegative `c`, the off-diagonal coefficient is at most `2 * c`. -/
 lemma twoLevelOffDiag_le_two_mul (c : ℝ) (hc0 : 0 ≤ c) :
     twoLevelOffDiag c ≤ 2 * c := by
   unfold twoLevelOffDiag
@@ -96,6 +143,7 @@ lemma twoLevelOffDiag_le_two_mul (c : ℝ) (hc0 : 0 ≤ c) :
   have h := mul_le_mul_of_nonneg_left hs (by linarith : (0 : ℝ) ≤ 2 * c)
   simpa using h
 
+/-- For `0 ≤ c ≤ 1`, the cosine of `twoLevelPhase c` equals `twoLevelDiag c`. -/
 lemma twoLevelPhase_cos (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     Real.cos (twoLevelPhase c) = twoLevelDiag c := by
   unfold twoLevelPhase twoLevelDiag
@@ -108,6 +156,7 @@ lemma twoLevelPhase_cos (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     _ = 2 * (1 - c ^ 2) - 1 := by rw [hsq]
     _ = 1 - 2 * c ^ 2 := by ring
 
+/-- For `0 ≤ c ≤ 1`, the sine of `twoLevelPhase c` equals `twoLevelOffDiag c`. -/
 lemma twoLevelPhase_sin (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     Real.sin (twoLevelPhase c) = twoLevelOffDiag c := by
   unfold twoLevelPhase twoLevelOffDiag twoLevelSin
@@ -117,6 +166,7 @@ lemma twoLevelPhase_sin (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
       = 2 * Real.sin (Real.arcsin c) * Real.cos (Real.arcsin c) := Real.sin_two_mul _
     _ = 2 * c * Real.sqrt (1 - c ^ 2) := by rw [hsin, hcos]
 
+/-- For `0 ≤ c ≤ 1`, the plus eigenvalue equals `exp (i * twoLevelPhase c)`. -/
 lemma twoLevelEigPlus_eq_exp (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     twoLevelEigPlus c = Complex.exp ((twoLevelPhase c : ℂ) * Complex.I) := by
   apply Complex.ext
@@ -127,6 +177,7 @@ lemma twoLevelEigPlus_eq_exp (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     simp [twoLevelEigPlus, Complex.add_im, Complex.mul_im]
     rw [twoLevelPhase_sin c hc0 hc1]
 
+/-- For `0 ≤ c ≤ 1`, the minus eigenvalue equals `exp (-i * twoLevelPhase c)`. -/
 lemma twoLevelEigMinus_eq_exp (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     twoLevelEigMinus c = Complex.exp (-((twoLevelPhase c : ℂ)) * Complex.I) := by
   have h : -((twoLevelPhase c : ℂ)) * Complex.I =
@@ -141,6 +192,8 @@ lemma twoLevelEigMinus_eq_exp (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     simp [twoLevelEigMinus, Complex.sub_im, Complex.mul_im, Real.sin_neg]
     rw [twoLevelPhase_sin c hc0 hc1]
 
+/-- The vector `(i, 1)` is an eigenvector of the matrix with rows `(d, -b)` and `(b, d)`, with
+eigenvalue `d + bi`. -/
 lemma twoByTwo_mulVec_ketPlus (d b : ℝ) :
     (!![(d : ℂ), -(b : ℂ); (b : ℂ), (d : ℂ)]) *ᵥ (![Complex.I, 1] : Fin 2 → ℂ) =
       ((d : ℂ) + (b : ℂ) * Complex.I) • (![Complex.I, 1] : Fin 2 → ℂ) := by
@@ -151,6 +204,8 @@ lemma twoByTwo_mulVec_ketPlus (d b : ℝ) :
   · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- The vector `(-i, 1)` is an eigenvector of the matrix with rows `(d, -b)` and `(b, d)`, with
+eigenvalue `d - bi`. -/
 lemma twoByTwo_mulVec_ketMinus (d b : ℝ) :
     (!![(d : ℂ), -(b : ℂ); (b : ℂ), (d : ℂ)]) *ᵥ (![-Complex.I, 1] : Fin 2 → ℂ) =
       ((d : ℂ) - (b : ℂ) * Complex.I) • (![-Complex.I, 1] : Fin 2 → ℂ) := by
@@ -161,30 +216,36 @@ lemma twoByTwo_mulVec_ketMinus (d b : ℝ) :
   · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- Expresses `twoLevelKetPlus` as `(i, 1)` scaled by `1 / √2`. -/
 lemma twoLevelKetPlus_eq_smul :
     twoLevelKetPlus = (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • (![Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i <;>
     (simp [twoLevelKetPlus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv] <;> ring)
 
+/-- Expresses `twoLevelKetMinus` as `(-i, 1)` scaled by `1 / √2`. -/
 lemma twoLevelKetMinus_eq_smul :
     twoLevelKetMinus = (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • (![-Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i <;>
     (simp [twoLevelKetMinus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv] <;> ring)
 
+/-- The unscaled vector `(i, 1)` satisfies the plus eigenvector equation for `twoLevelUP c`. -/
 lemma twoLevelUP_mulVec_ketPlus (c : ℝ) :
     twoLevelUP c *ᵥ (![Complex.I, 1] : Fin 2 → ℂ) =
       twoLevelEigPlus c • (![Complex.I, 1] : Fin 2 → ℂ) := by
   simpa [twoLevelUP, twoLevelEigPlus] using
     twoByTwo_mulVec_ketPlus (twoLevelDiag c) (twoLevelOffDiag c)
 
+/-- The unscaled vector `(-i, 1)` satisfies the minus eigenvector equation for `twoLevelUP c`. -/
 lemma twoLevelUP_mulVec_ketMinus (c : ℝ) :
     twoLevelUP c *ᵥ (![-Complex.I, 1] : Fin 2 → ℂ) =
       twoLevelEigMinus c • (![-Complex.I, 1] : Fin 2 → ℂ) := by
   simpa [twoLevelUP, twoLevelEigMinus] using
     twoByTwo_mulVec_ketMinus (twoLevelDiag c) (twoLevelOffDiag c)
 
+/-- The normalized vector `twoLevelKetPlus` satisfies the eigenvector equation with eigenvalue
+`twoLevelEigPlus c`. -/
 lemma twoLevelUP_eigenvector_plus (c : ℝ) :
     twoLevelUP c *ᵥ twoLevelKetPlus = twoLevelEigPlus c • twoLevelKetPlus := by
   rw [twoLevelKetPlus_eq_smul, Matrix.mulVec_smul, twoLevelUP_mulVec_ketPlus]
@@ -192,6 +253,8 @@ lemma twoLevelUP_eigenvector_plus (c : ℝ) :
   congr 1
   ring
 
+/-- The normalized vector `twoLevelKetMinus` satisfies the eigenvector equation with eigenvalue
+`twoLevelEigMinus c`. -/
 lemma twoLevelUP_eigenvector_minus (c : ℝ) :
     twoLevelUP c *ᵥ twoLevelKetMinus = twoLevelEigMinus c • twoLevelKetMinus := by
   rw [twoLevelKetMinus_eq_smul, Matrix.mulVec_smul, twoLevelUP_mulVec_ketMinus]
@@ -199,6 +262,8 @@ lemma twoLevelUP_eigenvector_minus (c : ℝ) :
   congr 1
   ring
 
+/-- Computes the first coordinate of the plus unscaled residual as `b * (1 - s) - b * c * i`,
+where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_raw_plus_zero (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaPlusRaw c - twoLevelEigPlus c • paperThetaPlusRaw c) 0 =
       ((twoLevelOffDiag c * (1 - twoLevelSin c) : ℝ) : ℂ)
@@ -207,6 +272,8 @@ lemma residual_raw_plus_zero (c : ℝ) :
     smul_eq_mul]
   linear_combination (-(twoLevelOffDiag c : ℂ)) * Complex.I_sq
 
+/-- Computes the second coordinate of the plus unscaled residual as `b * c + b * (1 - s) * i`,
+where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_raw_plus_one (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaPlusRaw c - twoLevelEigPlus c • paperThetaPlusRaw c) 1 =
       ((twoLevelOffDiag c * c : ℝ) : ℂ)
@@ -215,6 +282,8 @@ lemma residual_raw_plus_one (c : ℝ) :
     smul_eq_mul]
   ring
 
+/-- Computes the first coordinate of the minus unscaled residual as `b * (1 - s) + b * c * i`,
+where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_raw_minus_zero (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaMinusRaw c - twoLevelEigMinus c • paperThetaMinusRaw c) 0 =
       ((twoLevelOffDiag c * (1 - twoLevelSin c) : ℝ) : ℂ)
@@ -223,6 +292,8 @@ lemma residual_raw_minus_zero (c : ℝ) :
     smul_eq_mul]
   linear_combination (-(twoLevelOffDiag c : ℂ)) * Complex.I_sq
 
+/-- Computes the second coordinate of the minus unscaled residual as `b * c - b * (1 - s) * i`,
+where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_raw_minus_one (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaMinusRaw c - twoLevelEigMinus c • paperThetaMinusRaw c) 1 =
       ((twoLevelOffDiag c * c : ℝ) : ℂ)
@@ -231,6 +302,7 @@ lemma residual_raw_minus_one (c : ℝ) :
     smul_eq_mul]
   ring
 
+/-- Scaling a vector by `1 / √2` scales its residual for `twoLevelEigPlus c` by the same factor. -/
 lemma residual_smul_inv_plus (c : ℝ) (v : Fin 2 → ℂ) :
     twoLevelUP c *ᵥ ((((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • v) -
         twoLevelEigPlus c • ((((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • v)
@@ -240,6 +312,8 @@ lemma residual_smul_inv_plus (c : ℝ) (v : Fin 2 → ℂ) :
   congr 1
   ring
 
+/-- Scaling a vector by `1 / √2` scales its residual for `twoLevelEigMinus c` by the same
+factor. -/
 lemma residual_smul_inv_minus (c : ℝ) (v : Fin 2 → ℂ) :
     twoLevelUP c *ᵥ ((((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • v) -
         twoLevelEigMinus c • ((((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • v)
@@ -249,6 +323,8 @@ lemma residual_smul_inv_minus (c : ℝ) (v : Fin 2 → ℂ) :
   congr 1
   ring
 
+/-- The first coordinate of the plus comparison-vector residual equals `1 / √2` times `b * (1 -
+s) - b * c * i`, where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_plus_zero (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaPlus c - twoLevelEigPlus c • paperThetaPlus c) 0 =
       (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ *
@@ -259,6 +335,8 @@ lemma residual_plus_zero (c : ℝ) :
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [residual_raw_plus_zero c]
 
+/-- The second coordinate of the plus comparison-vector residual equals `1 / √2` times `b * c +
+b * (1 - s) * i`, where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_plus_one (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaPlus c - twoLevelEigPlus c • paperThetaPlus c) 1 =
       (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ *
@@ -269,6 +347,8 @@ lemma residual_plus_one (c : ℝ) :
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [residual_raw_plus_one c]
 
+/-- The first coordinate of the minus comparison-vector residual equals `1 / √2` times `b * (1 -
+s) + b * c * i`, where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_minus_zero (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaMinus c - twoLevelEigMinus c • paperThetaMinus c) 0 =
       (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ *
@@ -279,6 +359,8 @@ lemma residual_minus_zero (c : ℝ) :
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [residual_raw_minus_zero c]
 
+/-- The second coordinate of the minus comparison-vector residual equals `1 / √2` times `b * c -
+b * (1 - s) * i`, where `b = twoLevelOffDiag c` and `s = twoLevelSin c`. -/
 lemma residual_minus_one (c : ℝ) :
     (twoLevelUP c *ᵥ paperThetaMinus c - twoLevelEigMinus c • paperThetaMinus c) 1 =
       (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ *
@@ -289,6 +371,7 @@ lemma residual_minus_one (c : ℝ) :
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [residual_raw_minus_one c]
 
+/-- For nonnegative `x` and `y`, the norm of `x + yi` is at most `x + y`. -/
 lemma norm_ofReal_add_mul_I_le (x y : ℝ) (hx : 0 ≤ x) (hy : 0 ≤ y) :
     ‖((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * Complex.I‖ ≤ x + y := by
   calc ‖((x : ℝ) : ℂ) + ((y : ℝ) : ℂ) * Complex.I‖
@@ -297,6 +380,7 @@ lemma norm_ofReal_add_mul_I_le (x y : ℝ) (hx : 0 ≤ x) (hy : 0 ≤ y) :
         rw [Complex.norm_of_nonneg hx, Complex.norm_mul, Complex.norm_I, mul_one,
           Complex.norm_of_nonneg hy]
 
+/-- For nonnegative `x` and `y`, the norm of `x - yi` is at most `x + y`. -/
 lemma norm_ofReal_sub_mul_I_le (x y : ℝ) (hx : 0 ≤ x) (hy : 0 ≤ y) :
     ‖((x : ℝ) : ℂ) - ((y : ℝ) : ℂ) * Complex.I‖ ≤ x + y := by
   calc ‖((x : ℝ) : ℂ) - ((y : ℝ) : ℂ) * Complex.I‖
@@ -305,6 +389,7 @@ lemma norm_ofReal_sub_mul_I_le (x y : ℝ) (hx : 0 ≤ x) (hy : 0 ≤ y) :
         rw [Complex.norm_of_nonneg hx, Complex.norm_mul, Complex.norm_I, mul_one,
           Complex.norm_of_nonneg hy]
 
+/-- The complex norm of `1 / √2` is at most one. -/
 lemma norm_inv_sqrt_two_le_one :
     ‖(((Real.sqrt 2 : ℝ) : ℂ))⁻¹‖ ≤ 1 := by
   rw [norm_inv, Complex.norm_of_nonneg (Real.sqrt_nonneg 2)]
@@ -313,6 +398,7 @@ lemma norm_inv_sqrt_two_le_one :
     norm_num
   exact inv_le_one_of_one_le₀ h2
 
+/-- Multiplication by `1 / √2` preserves an upper bound `B ≥ 0` on a complex norm. -/
 lemma norm_smul_inv_sqrt_two_le {z : ℂ} {B : ℝ} (hz : ‖z‖ ≤ B) (hB0 : 0 ≤ B) :
     ‖(((Real.sqrt 2 : ℝ) : ℂ))⁻¹ * z‖ ≤ B := by
   rw [norm_mul]
@@ -320,6 +406,8 @@ lemma norm_smul_inv_sqrt_two_le {z : ℂ} {B : ℝ} (hz : ‖z‖ ≤ B) (hB0 : 
         mul_le_mul norm_inv_sqrt_two_le_one hz (norm_nonneg _) (by norm_num)
     _ = B := by ring
 
+/-- For `0 ≤ c ≤ 1 / 2`, the sum `twoLevelOffDiag c * (1 - twoLevelSin c) + twoLevelOffDiag c *
+c` is at most `4 * c ^ 2`. -/
 lemma offDiag_terms_le (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     twoLevelOffDiag c * (1 - twoLevelSin c) + twoLevelOffDiag c * c ≤ 4 * c ^ 2 := by
   have hb := twoLevelOffDiag_le_two_mul c hc0
@@ -337,6 +425,8 @@ lemma offDiag_terms_le (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     mul_le_mul hb le_rfl hc0 (by linarith : (0 : ℝ) ≤ 2 * c)
   nlinarith [hp1, hp2, hc3, hc0]
 
+/-- For `0 ≤ c ≤ 1 / 2`, every coordinate of the plus comparison-vector residual has norm at
+most `4 * c ^ 2`. -/
 lemma paper_vector_residual_plus (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     ∀ i : Fin 2,
       ‖(twoLevelUP c *ᵥ paperThetaPlus c - twoLevelEigPlus c • paperThetaPlus c) i‖
@@ -367,6 +457,8 @@ lemma paper_vector_residual_plus (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
         ≤ 4 * c ^ 2 := by linarith
     exact le_trans (norm_smul_inv_sqrt_two_le hz (by positivity)) hterms'
 
+/-- For `0 ≤ c ≤ 1 / 2`, every coordinate of the minus comparison-vector residual has norm at
+most `4 * c ^ 2`. -/
 lemma paper_vector_residual_minus (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     ∀ i : Fin 2,
       ‖(twoLevelUP c *ᵥ paperThetaMinus c - twoLevelEigMinus c • paperThetaMinus c) i‖
@@ -397,6 +489,8 @@ lemma paper_vector_residual_minus (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) 
         ≤ 4 * c ^ 2 := by linarith
     exact le_trans (norm_smul_inv_sqrt_two_le hz (by positivity)) hterms'
 
+/-- For `0 ≤ x ≤ 1 / 2`, the difference between `arcsin x` and `x` has absolute value at most `x
+^ 3`. -/
 lemma abs_arcsin_sub_self_le_cube {x : ℝ} (hx0 : 0 ≤ x) (hx : x ≤ 1 / 2) :
     |Real.arcsin x - x| ≤ x ^ 3 := by
   have hx1 : x ≤ 1 := by linarith
@@ -440,6 +534,8 @@ lemma abs_arcsin_sub_self_le_cube {x : ℝ} (hx0 : 0 ≤ x) (hx : x ≤ 1 / 2) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- For `0 ≤ c ≤ 1 / 2`, the phase `twoLevelPhase c` differs from `2 * c` by at most `2 * c ^ 3`
+[ChildsEisenberg2003]. -/
 lemma twoLevelPhase_approx (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     |twoLevelPhase c - 2 * c| ≤ 2 * c ^ 3 := by
   unfold twoLevelPhase
@@ -447,6 +543,9 @@ lemma twoLevelPhase_approx (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 2)]
   exact mul_le_mul_of_nonneg_left (abs_arcsin_sub_self_le_cube hc0 hc1) (by norm_num)
 
+/-- For `0 ≤ c ≤ 1 / 2`, collects the exact eigenvector and eigenvalue identities, the cubic
+phase estimate, and the quadratic coordinatewise residual bounds for the two-level model
+[ChildsEisenberg2003]. -/
 theorem lemma3_two_level (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
     (twoLevelUP c *ᵥ twoLevelKetPlus = twoLevelEigPlus c • twoLevelKetPlus) ∧
     (twoLevelUP c *ᵥ twoLevelKetMinus = twoLevelEigMinus c • twoLevelKetMinus) ∧
@@ -465,6 +564,8 @@ theorem lemma3_two_level (c : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1 / 2) :
    paper_vector_residual_plus c hc0 hc1,
    paper_vector_residual_minus c hc0 hc1⟩
 
+/-- The real overlap scale is nonnegative under the stated nonnegativity assumptions on `M` and
+`N`. -/
 lemma twoLevelOverlap_nonneg (M N L : ℕ) (hM : 0 ≤ (M : ℝ)) (hN : 0 ≤ (N : ℝ)) :
     0 ≤ twoLevelOverlap M N L :=
   Real.rpow_nonneg (div_nonneg hM hN) _

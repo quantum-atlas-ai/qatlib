@@ -8,6 +8,29 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Tactic
 import Qatlib.Papers.WeighMatrix00.MainResults.SLSLegendre
+
+/-!
+# Classical lower bounds for shifted Legendre sequences
+
+The decision trees `SLSTree` branch on nonzero quadratic-character values and return the shift
+immediately on a zero response. Counting terminal outputs bounds the number of correctly
+recovered shifts and gives the logarithmic depth estimates in `source_lemma3_slsLowerBound`.
+
+This development forms part of the formalization of [VanDam2002].
+
+## Main statements
+
+* `SLSTree`: A shifted Legendre sequence query tree with output leaves and two subtrees for the
+  nonzero responses.
+* `source_lemma3_slsLowerBound`: Over a finite field of characteristic different from two and
+  for `0 < ε < 1`, recovering at least a `1 - ε` fraction of shifts gives the two stated
+  base-two logarithmic lower bounds on tree depth.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +41,8 @@ namespace Qatlib.Papers.WeighMatrix00.MainResults
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
+/-- A shifted Legendre sequence query tree with output leaves and two subtrees for the nonzero
+responses. -/
 inductive SLSTree (F : Type*) where
 
   | leaf (s : F) : SLSTree F
@@ -26,37 +51,45 @@ inductive SLSTree (F : Type*) where
 
 namespace SLSTree
 
+/-- The maximum number of query nodes along a path in a shifted Legendre sequence tree. -/
 def depth : SLSTree F → ℕ
   | leaf _ => 0
   | node _ m p => 1 + max m.depth p.depth
 
+/-- Count terminal outputs, including the immediate zero-response output at each query node. -/
 def leaves : SLSTree F → ℕ
   | leaf _ => 1
   | node _ m p => 1 + m.leaves + p.leaves
 
+/-- Evaluate the shifted quadratic-character oracle, returning `-i` on a zero response and
+following the appropriate subtree otherwise. -/
 def eval : SLSTree F → F → F
   | leaf s0, _ => s0
   | node i m p, s =>
       if quadraticChar F (i + s) = 0 then -i
       else if quadraticChar F (i + s) = 1 then p.eval s else m.eval s
 
+/-- A zero quadratic-character response at index `i` makes the node return `-i`. -/
 theorem eval_node_zero (i : F) (m p : SLSTree F) (s : F)
     (h : quadraticChar F (i + s) = 0) : (node i m p).eval s = -i := by
   simp only [eval]
   rw [if_pos h]
 
+/-- A nonzero quadratic-character response equal to one selects the plus subtree. -/
 theorem eval_node_plus (i : F) (m p : SLSTree F) (s : F)
     (h0 : quadraticChar F (i + s) ≠ 0) (h1 : quadraticChar F (i + s) = 1) :
     (node i m p).eval s = p.eval s := by
   simp only [eval]
   rw [if_neg h0, if_pos h1]
 
+/-- A quadratic-character response unequal to zero and one selects the minus subtree. -/
 theorem eval_node_minus (i : F) (m p : SLSTree F) (s : F)
     (h0 : quadraticChar F (i + s) ≠ 0) (h1 : quadraticChar F (i + s) ≠ 1) :
     (node i m p).eval s = m.eval s := by
   simp only [eval]
   rw [if_neg h0, if_neg h1]
 
+/-- The number of terminal outputs is at most `2 ^ (t.depth + 1) - 1`. -/
 theorem leaves_le (t : SLSTree F) : t.leaves ≤ 2 ^ (t.depth + 1) - 1 := by
   induction t with
   | leaf _ => simp [leaves, depth]
@@ -84,9 +117,11 @@ theorem leaves_le (t : SLSTree F) : t.leaves ≤ 2 ^ (t.depth + 1) - 1 := by
     rw [hgoal] at hle
     exact hle
 
+/-- The finite set of shifts recovered correctly by the tree. -/
 def correctSet (t : SLSTree F) : Finset F :=
   Finset.univ.filter (fun s => t.eval s = s)
 
+/-- At most `t.leaves` elements of any candidate set are recovered correctly. -/
 theorem correct_card_le_leaves_aux (t : SLSTree F) (S : Finset F) :
     (S.filter (fun s => t.eval s = s)).card ≤ t.leaves := by
   induction t generalizing S with
@@ -152,6 +187,8 @@ theorem correct_card_le_leaves_aux (t : SLSTree F) (S : Finset F) :
     simp only [leaves]
     omega
 
+/-- The cardinality of the set of correctly recovered shifts is bounded by the terminal-output
+count. -/
 theorem correct_card_le_leaves (t : SLSTree F) : t.correctSet.card ≤ t.leaves := by
   have h := correct_card_le_leaves_aux t Finset.univ
   simpa [correctSet] using h
@@ -160,6 +197,9 @@ end SLSTree
 
 open SLSTree
 
+/-- Over a finite field of characteristic different from two and for `0 < ε < 1`, recovering at
+least a `1 - ε` fraction of shifts gives the two stated base-two logarithmic lower bounds on
+tree depth. See [VanDam2002]. -/
 theorem source_lemma3_slsLowerBound (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F)
     (t : SLSTree F) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
     (hcorrect : (1 - ε) * (Fintype.card F : ℝ) ≤ (t.correctSet.card : ℝ)) :

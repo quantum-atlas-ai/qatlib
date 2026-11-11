@@ -9,6 +9,27 @@ import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
 import Mathlib.Tactic.Linarith
 
+/-!
+# Trace distance bounds for commuting Gibbs operators
+
+`sdpGibbsNormalizationBound` bounds the trace distance between normalized positive matrix
+exponentials by their unnormalized difference and trace mismatch.
+`sdpGibbsPerturbationCommuting` specializes to commuting Hermitian exponents and gives the bound
+2(exp(‖H − H'‖) − 1).
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpGibbsPerturbationCommuting`: For commuting Hermitian exponents with positive traces and
+  positive semidefinite exponentials, the normalized Gibbs trace distance is at most 2(exp(‖H −
+  H'‖) − 1). See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -20,6 +41,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.OracleError
 open scoped Matrix.Norms.L2Operator ComplexOrder CStarAlgebra
 set_option warningAsError false
 
+/-- Bounds the trace distance between normalized positive exponentials by the sum of their
+trace-norm difference and absolute trace difference, divided by the larger positive trace. -/
 theorem sdpGibbsNormalizationBound (D : ℕ) (H H' : Operator D)
     (hX : (NormedSpace.exp H).PosSemidef) (hY : (NormedSpace.exp H').PosSemidef)
     (hp : 0 < (Matrix.trace (NormedSpace.exp H)).re)
@@ -34,6 +57,8 @@ theorem sdpGibbsNormalizationBound (D : ℕ) (H H' : Operator D)
     normalized_positive_branch_distance (Fin D) (NormedSpace.exp H) (NormedSpace.exp H')
       hX hY hp hq
 
+/-- For a Hermitian operator on a positive-dimensional space, the operator norm of exp(E) − 1 is
+at most exp(‖E‖) − 1. -/
 theorem sdpHermitianExpSubOneNorm (D : ℕ) (E : Operator D) (hD : 0 < D) (hE : E.IsHermitian) :
     ‖NormedSpace.exp E - 1‖ ≤ Real.exp ‖E‖ - 1 := by
   letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
@@ -54,6 +79,9 @@ theorem sdpHermitianExpSubOneNorm (D : ℕ) (E : Operator D) (hD : 0 < D) (hE : 
   · have hhi : Real.exp x ≤ Real.exp ‖E‖ := Real.exp_le_exp.mpr (abs_le.mp hb).2
     linarith
 
+/-- For commuting Hermitian exponents with positive traces and positive semidefinite
+exponentials, the normalized Gibbs trace distance is at most 2(exp(‖H − H'‖) − 1). See
+[BrandaoSvore2017]. -/
 theorem sdpGibbsPerturbationCommuting (D : ℕ) (H H' : Operator D)
     (hD : 0 < D) (hH : H.IsHermitian) (hH' : H'.IsHermitian) (hc : Commute H H')
     (hX : (NormedSpace.exp H).PosSemidef) (hY : (NormedSpace.exp H').PosSemidef)

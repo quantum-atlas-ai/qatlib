@@ -60,6 +60,29 @@ import Mathlib.Order.Defs.PartialOrder
 import Mathlib.Tactic
 import Mathlib.Tactic.FieldSimp.Lemmas
 
+/-!
+# Finite-group averaging and symmetry reduction
+
+This module defines `groupAverage` for a finite group acting linearly on a real vector space.
+Averaging produces a fixed point, preserves an invariant convex feasible set, and preserves an
+invariant linear success functional; `symmetryReduction_successProbabilitySet` identifies the
+attainable values with those attained on fixed points. See [Mochon2007] for the Hamiltonian
+oracle formulation.
+
+## Main statements
+
+* `groupAverage_fixed`: The group average of x is fixed by every element of the acting group.
+* `groupAverage_mem`: The average of a point in a convex set preserved by the group action
+  remains in that set.
+* `symmetryReduction_successProbabilitySet`: For a convex invariant feasible set and an
+  invariant linear functional, the image of the feasible set equals the image of its group-fixed
+  points.
+
+## References
+
+* [Mochon, 2007][Mochon2007]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -68,14 +91,17 @@ namespace Qatlib.Papers.HamOracle06.MainResults
 
 variable {V : Type*} [AddCommGroup V] [Module ℝ V]
 
+/-- The cardinality of a finite group, regarded as a real number, is nonzero. -/
 lemma card_cast_ne_zero (G : Type*) [Fintype G] [Group G] :
     (Fintype.card G : ℝ) ≠ 0 := by
   exact_mod_cast Fintype.card_ne_zero
 
+/-- The normalized sum of the orbit of x under the finite-group linear action ρ. -/
 def groupAverage (G : Type*) [Fintype G] [Group G]
     (ρ : G →* V ≃ₗ[ℝ] V) (x : V) : V :=
   (Fintype.card G : ℝ)⁻¹ • ∑ g : G, ρ g x
 
+/-- The group average of x is fixed by every element of the acting group. -/
 theorem groupAverage_fixed (G : Type*) [Fintype G] [Group G]
     (ρ : G →* V ≃ₗ[ℝ] V) (x : V) :
     ∀ g : G, ρ g (groupAverage G ρ x) = groupAverage G ρ x := by
@@ -92,6 +118,7 @@ theorem groupAverage_fixed (G : Type*) [Fintype G] [Group G]
       exact Fintype.sum_equiv (Equiv.mulLeft g) (fun h : G => ρ (g * h) x)
         (fun h : G => ρ h x) (fun h => rfl)
 
+/-- The average of a point in a convex set preserved by the group action remains in that set. -/
 theorem groupAverage_mem (G : Type*) [Fintype G] [Group G]
     (ρ : G →* V ≃ₗ[ℝ] V) (S : Set V) (hconv : Convex ℝ S)
     (hS : ∀ g : G, Set.MapsTo (ρ g) S S) {x : V} (hx : x ∈ S) :
@@ -109,6 +136,8 @@ theorem groupAverage_mem (G : Type*) [Fintype G] [Group G]
   have h := hconv.sum_mem hw0 hw1 hz
   simpa [groupAverage, Finset.smul_sum] using h
 
+/-- A linear functional invariant under the group action takes the same value on x and its group
+average. -/
 theorem groupAverage_successProbability (G : Type*) [Fintype G] [Group G]
     (ρ : G →* V ≃ₗ[ℝ] V) (f : V →ₗ[ℝ] ℝ)
     (hf : ∀ (g : G) (x : V), f (ρ g x) = f x) (x : V) :
@@ -119,6 +148,8 @@ theorem groupAverage_successProbability (G : Type*) [Fintype G] [Group G]
   simp only [hf, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   field_simp
 
+/-- For a convex invariant feasible set and an invariant linear functional, the image of the
+feasible set equals the image of its group-fixed points. See [Mochon2007]. -/
 theorem symmetryReduction_successProbabilitySet
     (G : Type*) [Fintype G] [Group G]
     (ρ : G →* V ≃ₗ[ℝ] V)

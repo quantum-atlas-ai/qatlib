@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
+
+/-!
+# Actual moments of sinh quadrature rules
+
+This module defines `moment` using the actual Jacobian-weighted coefficients and physical nodes
+of the finite sinh rule in [AftabAnTrivisa2026]. The coefficient norm at zero gives a lower
+bound for the zeroth moment through its central sample.
+
+## Main statements
+
+* `norm_coefficient_zero`: the exact central coefficient norm.
+* `central_le_moment`: the central contribution is a lower bound for the zeroth moment.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,12 +40,15 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The finite sinh quadrature moment formed from the norms of the Jacobian-weighted
+coefficients and the absolute physical node values to the power `ν`. -/
 def moment (n : ℕ) (b c d ν η h : ℝ) (N : ℕ) : ℝ :=
   ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
     ‖((h * η * Real.cosh (h * (q : ℝ)) : ℝ) : ℂ) *
       coefficient n b c d ((η * Real.sinh (h * (q : ℝ)) : ℝ) : ℂ)‖ *
         |η * Real.sinh (h * (q : ℝ))| ^ ν
 
+/-- For positive `b`, the coefficient norm at zero is `kernelScale / bⁿ`. -/
 theorem norm_coefficient_zero (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
     ‖coefficient n b c d 0‖ =
       Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments.kernelScale n b c d / b ^ n := by
@@ -35,6 +56,8 @@ theorem norm_coefficient_zero (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
   simp [Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments.kernelScale,
     Real.norm_of_nonneg hb.le, neg_div, sub_eq_add_neg]
 
+/-- For nonnegative sinh scale and mesh step, the zeroth sinh moment is at least its central
+contribution `h * η * kernelScale / bⁿ`. -/
 theorem central_le_moment (n : ℕ) (b c d η h : ℝ) (hb : 0 < b) (hη : 0 ≤ η)
     (hh : 0 ≤ h) (N : ℕ) :
     h * η * (Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments.kernelScale n b c d / b ^ n) ≤

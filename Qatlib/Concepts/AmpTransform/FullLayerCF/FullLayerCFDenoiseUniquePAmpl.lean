@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePStat
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryAmpl
+
+/-!
+# Candidate recovery without a uniqueness guarantee
+
+`fullLayerCFDenoiseUniqueP_answer` proves successful-window mass, continued-fraction recovery,
+repeated candidate-record success, and verification and query bounds. The module also refutes
+`FullLayerCFDenoiseUniquePOriginal` and exhibits two planted periods for the same oracle,
+distinguishing the candidate guarantee from an unsupported uniqueness claim in the setting of
+[Cornwell2014].
+
+## Main statements
+
+* `aqCandidateRecord_actual_hit`: Under the noisy-progression assumptions, R samples record the
+  planted period with probability at least 1−(1−`aqErrorSuccessLower N M L P`)ᴿ and use at most
+  R(k+3) queries.
+* `same_oracle_two_planted_periods`: The marked set in `Fin 128` formed from the length-four
+  progression of step 2 and noise {8,12} also arises from step 4 and noise {2,6}; both
+  candidates pass verification.
+* `fullLayerCFDenoiseUniqueP_answer`: Proves the corrected candidate-record contract: positive
+  window mass, continued-fraction recovery, repeated inclusion of the planted period,
+  verification of all recorded candidates, and the stated query cap; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +50,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.FullLayerCF
 
+/-- The original proposed recovery contract, requiring a repeated first-output success bound, a
+wrong-period triple-correlation bound, and a query cap under the stated noisy-progression
+assumptions. -/
 def FullLayerCFDenoiseUniquePOriginal : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (s M L P B R v : ℕ) (G : Finset (Fin N)) (h : Fin N → Bool),
     2 ≤ M → 2 ≤ P → s + (M - 1) * P < N → M * P ≤ N → P ≤ B → 2 * B ^ 2 < N →
@@ -45,6 +75,7 @@ def FullLayerCFDenoiseUniquePOriginal : Prop :=
         (C.card : ℝ) / 2) ∧
     (∀ ω : Fin R → Fin N, (aqRetry h s M B k (List.ofFn ω)).2 ≤ R * (k + 3 * v))
 
+/-- The original contract `FullLayerCFDenoiseUniquePOriginal` is false. -/
 theorem fullLayerCFDenoiseUniqueP_false : ¬ FullLayerCFDenoiseUniquePOriginal := by
   intro h
   let A := aqProgressionSet 16 0 2 2
@@ -68,6 +99,8 @@ theorem fullLayerCFDenoiseUniqueP_false : ¬ FullLayerCFDenoiseUniquePOriginal :
   rw [hfilter, Finset.union_empty, hcard] at hb
   norm_num at hb
 
+/-- A repetition procedure that records only hits of z succeeds exactly when some element of the
+input list maps to `some z`. -/
 private theorem repeat_hit_iff {I Z : Type} [DecidableEq Z]
     (a : I → Option Z) (z : Z) (xs : List I) :
     (aqRepeat (fun x => (if a x = some z then some () else none, 0)) 0 xs).1 =
@@ -79,6 +112,8 @@ private theorem repeat_hit_iff {I Z : Type} [DecidableEq Z]
     · simp [aqRepeat, hx]
     · simp [aqRepeat, hx, ih]
 
+/-- For normalized nonnegative sampling weights with single-sample hit mass at least q > 0, the
+probability of at least one hit in R product samples is at least 1−(1−q)ᴿ. -/
 theorem fresh_candidate_hit_lower {I Z : Type} [Fintype I] [DecidableEq I]
     [DecidableEq Z] (w : I → ℝ) (a : I → Option Z) (z : Z) (q : ℝ)
     (hw0 : ∀ x, 0 ≤ w x) (hw : ∑ x, w x = 1) (hq : 0 < q)
@@ -108,11 +143,14 @@ theorem fresh_candidate_hit_lower {I Z : Type} [Fintype I] [DecidableEq I]
       exact ⟨ω r, List.mem_ofFn.mpr ⟨r, rfl⟩, ha⟩
   simp only [he]
 
+/-- A period belongs to `aqCandidateRecord` exactly when some input sample makes `aqAttempt`
+return that period. -/
 theorem aqCandidateRecord_mem {N : ℕ} (h : Fin N → Bool) (s M B P : ℕ)
     (xs : List (Fin N)) :
     P ∈ aqCandidateRecord h s M B xs ↔ ∃ y ∈ xs, (aqAttempt h s M B y).1 = some P := by
   exact List.mem_filterMap
 
+/-- Every period in `aqCandidateRecord` passes `aqVerify`. -/
 theorem aqCandidateRecord_verified {N : ℕ} (h : Fin N → Bool) (s M B : ℕ)
     (xs : List (Fin N)) (p : ℕ) (hp : p ∈ aqCandidateRecord h s M B xs) :
     (aqVerify h s M p).1 = true := by
@@ -128,6 +166,7 @@ theorem aqCandidateRecord_verified {N : ℕ} (h : Fin N → Bool) (s M B : ℕ)
       exact hv
     · simp at hy
 
+/-- The query cost of recording candidates from a list is at most its length times k+3. -/
 theorem aqCandidateRecordQueries_cap {N : ℕ} (h : Fin N → Bool) (s M B k : ℕ)
     (xs : List (Fin N)) : aqCandidateRecordQueries h s M B k xs ≤ xs.length * (k + 3) := by
   have hc (y : Fin N) : (aqAttempt h s M B y).2.1 ≤ 3 := by
@@ -144,6 +183,8 @@ theorem aqCandidateRecordQueries_cap {N : ℕ} (h : Fin N → Bool) (s M B k : �
     unfold aqCandidateRecordQueries at ih
     nlinarith
 
+/-- Under the noisy-progression assumptions, R samples record the planted period with
+probability at least 1−(1−`aqErrorSuccessLower N M L P`)ᴿ and use at most R(k+3) queries. -/
 theorem aqCandidateRecord_actual_hit (N : ℕ) (hN : 0 < N) (s M L P B R : ℕ)
     (G : Finset (Fin N)) (h : Fin N → Bool)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N) (hMP : M * P ≤ N)
@@ -189,6 +230,8 @@ theorem aqCandidateRecord_actual_hit (N : ℕ) (hN : 0 < N) (s M L P B R : ℕ)
   · intro ω
     simpa using! aqCandidateRecordQueries_cap h s M B (aqRounds N (M + L)) (List.ofFn ω)
 
+/-- The original unique-period contract fails even using a counterexample with a positive
+candidate displacement. -/
 theorem fullLayerCFDenoiseUniqueP_positive_displacement_false :
     ¬ FullLayerCFDenoiseUniquePOriginal := by
   intro h
@@ -212,6 +255,8 @@ theorem fullLayerCFDenoiseUniqueP_positive_displacement_false :
   rw [hcard, htriples] at hb
   norm_num at hb
 
+/-- The marked set in `Fin 128` formed from the length-four progression of step 2 and noise
+{8,12} also arises from step 4 and noise {2,6}; both candidates pass verification. -/
 theorem same_oracle_two_planted_periods :
     let G2 : Finset (Fin 128) := {8, 12}
     let G4 : Finset (Fin 128) := {2, 6}
@@ -228,6 +273,8 @@ theorem same_oracle_two_planted_periods :
   apply (lt_div_iff₀ Real.pi_pos).mpr
   nlinarith [Real.pi_lt_four]
 
+/-- A sample in `aqSourceSuccessfulWindow N P`, with P ≥ 2, yields a reduced fraction a/P among
+the continued-fraction convergents, with denominator P. -/
 theorem aqSourceSuccessfulWindow_cf (N P : ℕ) (hP : 2 ≤ P)
     (y : Fin N) (hy : y ∈ aqSourceSuccessfulWindow N P) :
     ∃ a n : ℕ, a < P ∧ Nat.Coprime a P ∧
@@ -251,6 +298,7 @@ theorem aqSourceSuccessfulWindow_cf (N P : ℕ) (hP : 2 ≤ P)
   obtain ⟨n, hn⟩ := legendre_nonstrict_den_ge_two _ q (by rw [hden]; exact hP) hwR
   exact ⟨a, n, ha, hcop, hn, hn ▸ hden⟩
 
+/-- When P > 0 and P² ≤ N, `aqGoodWindow N P` is contained in `aqSourceSuccessfulWindow N P`. -/
 theorem aqGoodWindow_subset_source (N P : ℕ) (_hN : 0 < N) (hP : 0 < P)
     (hsize : P ^ 2 ≤ N) : aqGoodWindow N P ⊆ aqSourceSuccessfulWindow N P := by
   intro y hy
@@ -260,6 +308,8 @@ theorem aqGoodWindow_subset_source (N P : ℕ) (_hN : 0 < N) (hP : 0 < P)
   have hh : (P : ℚ) ^ 2 ≤ N := by exact_mod_cast hsize
   linarith
 
+/-- Under the noisy-progression and size assumptions, `aqSourceSuccessfulWindow N P` has mass at
+least the strictly positive `aqErrorSuccessLower N M L P`. -/
 theorem aqSourceSuccessfulWindow_actual_mass (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
     (G : Finset (Fin N)) (h : Fin N → Bool)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N) (hMP : M * P ≤ N)
@@ -278,6 +328,9 @@ theorem aqSourceSuccessfulWindow_actual_mass (N : ℕ) (hN : 0 < N) (s M L P : �
     (aqGoodWindow_subset_source N P hN (by omega) hsize)
     (fun y _ _ => bornProb_nonneg _ y)
 
+/-- Proves the corrected candidate-record contract: positive window mass, continued-fraction
+recovery, repeated inclusion of the planted period, verification of all recorded candidates,
+and the stated query cap; see [Cornwell2014]. -/
 theorem fullLayerCFDenoiseUniqueP_answer : FullLayerCFDenoiseUniqueP := by
   intro N hN s M L P B R v G h hM hP hb hMP hPB hsepB hG hdis hhalf hsep _hR hv hmark
   (try dsimp only)

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.ComputationalWorkspaceBridge
 import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
 import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+
+/-!
+# Amplification on computational workspace events
+
+The predicate `ComputationalAmplificationResult` packages randomized amplitude amplification for
+block encodings whose success frame is a computational ancilla event. It includes a heralded
+success bound, expected and per-choice query bounds, circuit semantics, and normalized output
+accuracy up to phase. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `ComputationalAmplificationResult`: records the heralding, cost, and output guarantees.
+* `computational_amplification`: derives these guarantees from a block encoding and an
+  output-norm lower bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,6 +72,9 @@ open scoped Matrix.Norms.L2Operator ENNReal
 variable {W Aux I : Type} [Fintype W] [DecidableEq W] [Fintype Aux] [DecidableEq Aux]
   [Fintype I] [DecidableEq I]
 
+/-- Records computational-event amplification with success probability at least `1/8`, expected
+and per-choice input and data query bounds, valid circuit semantics, and successful
+normalized output accuracy up to phase. -/
 def ComputationalAmplificationResult (e : W ≃ Aux × I) (a₀ : Aux)
     (O : Matrix W W ℂ) (cs : List (AdjointStep W)) (B : Matrix I I ℂ)
     (i₀ : I) (ψ : QState I) (target : Matrix I I ℂ) (ε η : ℝ) : Prop :=
@@ -88,6 +111,8 @@ def ComputationalAmplificationResult (e : W ≃ Aux × I) (a₀ : Aux)
           Run (preparedMark S) (preparedAACircuit A zero (aaRounds choice)) (Ket zero)) = some y ∧
         ‖z‖ = 1 ∧ Normalized y ∧ IsNormalizedApplication target ψ ((star z) • y) ε)
 
+/-- The stated block-encoding, preparation, normalization, error, and output-norm bounds yield
+`ComputationalAmplificationResult` [WangEtAl2026]. -/
 theorem computational_amplification (e : W ≃ Aux × I) (a₀ : Aux)
     (O : Matrix W W ℂ) (cs : List (AdjointStep W)) (B : Matrix I I ℂ)
     (hO : O ∈ Matrix.unitaryGroup W ℂ) (hcs : WellFormedAdjointCircuit cs)

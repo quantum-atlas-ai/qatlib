@@ -10,6 +10,30 @@ import Mathlib.LinearAlgebra.Eigenspace.Charpoly
 import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
 import Mathlib.Algebra.Polynomial.RingDivision
 import Mathlib.Algebra.Polynomial.Roots
+
+/-!
+# Explicit Jones generator matrices and spectra
+
+This module defines explicit two-, five-, and eight-dimensional matrices used in the Jones
+representation calculations of [FreedmanLarsenWang2000]. For the two-dimensional pair it
+computes trace, determinant, characteristic polynomial, eigenvalues, and the braid relation
+under the stated parameter equations.
+
+The higher-dimensional examples are diagonal matrices with spectrum `{-1, q}`; the
+eight-dimensional example has characteristic-polynomial multiplicities three and five when `q^5
+= 1`.
+
+## Main statements
+
+* `braid_21`: Verify the braid relation for the explicit two-dimensional pair.
+* `spectrum_sig2_21`: Compute the spectrum of the second two-dimensional generator.
+* `multiplicity_sig1_42`: Compute the two root multiplicities in the eight-dimensional example.
+
+## References
+
+* [Freedman et al., 2000][FreedmanLarsenWang2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,20 +45,24 @@ open Matrix Polynomial
 
 variable {q : ℂ}
 
+/-- A complex fifth root of unity is nonzero. -/
 lemma fiveRoot_ne_zero (hq5 : q ^ 5 = 1) : q ≠ 0 := by
   intro h
   rw [h] at hq5
   norm_num at hq5
 
+/-- A complex fifth root of unity is different from minus one. -/
 lemma fiveRoot_ne_neg_one (hq5 : q ^ 5 = 1) : q ≠ -1 := by
   intro h
   rw [h] at hq5
   norm_num at hq5
 
+/-- If `q^5 = 1`, then `q + 1` is nonzero. -/
 lemma fiveRoot_add_one_ne_zero (hq5 : q ^ 5 = 1) : q + 1 ≠ 0 := by
   intro h
   exact fiveRoot_ne_neg_one hq5 (eq_neg_of_add_eq_zero_left h)
 
+/-- For a nontrivial fifth root of unity `q`, the ratio `q / (-1)` is neither one nor minus one. -/
 theorem fiveRoot_ratio_ne_pm_one (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1) :
     q / (-1) ≠ 1 ∧ q / (-1) ≠ -1 := by
   constructor
@@ -51,6 +79,7 @@ theorem fiveRoot_ratio_ne_pm_one (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1) :
       linear_combination -h
     exact hq1 h'
 
+/-- If negation preserves `{-1, q}`, then `q = 1`. -/
 theorem negation_closed_two_element_forces_one
     (h : ∀ μ ∈ ({(-1 : ℂ), q} : Set ℂ), -μ ∈ ({(-1 : ℂ), q} : Set ℂ)) : q = 1 := by
   have h1 : -(-1 : ℂ) ∈ ({(-1 : ℂ), q} : Set ℂ) := h (-1) (by simp)
@@ -59,6 +88,7 @@ theorem negation_closed_two_element_forces_one
   · exact absurd h1 (by norm_num)
   · exact h1.symm
 
+/-- A nontrivial fifth root of unity cannot multiply `{-1, q}` into itself. -/
 theorem not_mul_closed_two_element_fifth_root (ω : ℂ) (hω5 : ω ^ 5 = 1) (hω1 : ω ≠ 1) :
     ¬ ∀ μ ∈ ({(-1 : ℂ), q} : Set ℂ), ω * μ ∈ ({(-1 : ℂ), q} : Set ℂ) := by
   intro h
@@ -84,15 +114,21 @@ theorem not_mul_closed_two_element_fifth_root (ω : ℂ) (hω5 : ω ^ 5 = 1) (h�
       · exact absurd h3 hω0
       · exact hω1 (sub_eq_zero.mp h3)
 
+/-- The diagonal `2 × 2` matrix with entries `-1` and `q` for the `(2, 1)` example. -/
 def sig1_21 : CM 2 := !![(-1 : ℂ), 0; 0, q]
 
+/-- The explicit symmetric `2 × 2` matrix with entries determined by `q` and `s` for the second
+`(2, 1)` generator. -/
 def sig2_21 (s : ℂ) : CM 2 :=
   !![q ^ 2 / (q + 1), -(q * s) / (q + 1); -(q * s) / (q + 1), -(1 : ℂ) / (q + 1)]
 
+/-- The first diagonal entry of `sig1_21` is minus one. -/
 @[simp] lemma sig1_21_zero_zero : sig1_21 (q := q) 0 0 = -1 := rfl
 
+/-- The second diagonal entry of `sig1_21` is `q`. -/
 @[simp] lemma sig1_21_one_one : sig1_21 (q := q) 1 1 = q := rfl
 
+/-- If `q^5 = 1`, the trace of `sig2_21 s` is `q - 1`. -/
 lemma trace_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) : (sig2_21 (q := q) s).trace = q - 1 := by
   have hq1 : q + 1 ≠ 0 := fiveRoot_add_one_ne_zero hq5
   rw [Matrix.trace_fin_two]
@@ -101,6 +137,7 @@ lemma trace_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) : (sig2_21 (q := q) s).trace = q
   field_simp
   ring
 
+/-- Under the fifth-root and parameter equations, the determinant of `sig2_21 s` is `-q`. -/
 lemma det_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     (sig2_21 (q := q) s).det = -q := by
   have hq0 : q ≠ 0 := fiveRoot_ne_zero hq5
@@ -111,6 +148,8 @@ lemma det_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q + 1) :
   field_simp
   linear_combination -hs
 
+/-- Under the stated parameter equations, the characteristic polynomial of `sig2_21 s` is `(X +
+1) * (X - C q)`. -/
 theorem charpoly_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     (sig2_21 (q := q) s).charpoly = (X - C (-1)) * (X - C q) := by
   rw [Matrix.charpoly_fin_two, trace_sig2_21 s hq5, det_sig2_21 s hq5 hs]
@@ -120,6 +159,8 @@ theorem charpoly_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q
   rw [h1, h2, h3]
   ring
 
+/-- Under the stated nontrivial fifth-root and parameter hypotheses, the spectrum of `sig2_21 s`
+is `{-1, q}`. -/
 theorem spectrum_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
     (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     spectrum ℂ (sig2_21 (q := q) s) = {(-1 : ℂ), q} := by
@@ -128,6 +169,8 @@ theorem spectrum_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
   simp only [IsRoot, eval_mul, eval_sub, eval_X, eval_C, mul_eq_zero, sub_eq_zero,
     Set.mem_insert_iff, Set.mem_singleton_iff]
 
+/-- Under the stated parameter hypotheses, `μ` is an eigenvalue of `sig2_21 s` exactly when `μ =
+-1` or `μ = q`. -/
 theorem hasEigenvalue_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
     (hs : s ^ 2 * q = q ^ 2 + q + 1) (μ : ℂ) :
     Module.End.HasEigenvalue (Matrix.toLin' (sig2_21 (q := q) s)) μ ↔ μ = -1 ∨ μ = q := by
@@ -135,6 +178,8 @@ theorem hasEigenvalue_sig2_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
     spectrum_sig2_21 s hq5 hq1 hs]
   simp
 
+/-- Under the fifth-root and parameter equations, `sig1_21` and `sig2_21 s` satisfy the
+three-factor braid relation. -/
 theorem braid_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     sig1_21 (q := q) * sig2_21 (q := q) s * sig1_21 (q := q) =
       sig2_21 (q := q) s * sig1_21 (q := q) * sig2_21 (q := q) s := by
@@ -150,10 +195,13 @@ theorem braid_21 (s : ℂ) (hq5 : q ^ 5 = 1) (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     | linear_combination q * hs
     | ring
 
+/-- A diagonal `5 × 5` matrix with two entries equal to `-1` and three equal to `q`. -/
 def sig1_33 : CM 5 := Matrix.diagonal ![(-1 : ℂ), q, (-1), q, q]
 
+/-- A diagonal `8 × 8` matrix with three entries equal to `-1` and five equal to `q`. -/
 def sig1_42 : CM 8 := Matrix.diagonal ![(-1 : ℂ), q, (-1), q, (-1), q, q, q]
 
+/-- The spectrum of the diagonal matrix `sig1_33` is `{-1, q}`. -/
 theorem spectrum_sig1_33 : spectrum ℂ (sig1_33 (q := q)) = {(-1 : ℂ), q} := by
   rw [sig1_33, spectrum_diagonal]
   ext μ
@@ -165,6 +213,7 @@ theorem spectrum_sig1_33 : spectrum ℂ (sig1_33 (q := q)) = {(-1 : ℂ), q} := 
     · exact ⟨0, rfl⟩
     · exact ⟨1, rfl⟩
 
+/-- The spectrum of the diagonal matrix `sig1_42` is `{-1, q}`. -/
 theorem spectrum_sig1_42 : spectrum ℂ (sig1_42 (q := q)) = {(-1 : ℂ), q} := by
   rw [sig1_42, spectrum_diagonal]
   ext μ
@@ -176,12 +225,15 @@ theorem spectrum_sig1_42 : spectrum ℂ (sig1_42 (q := q)) = {(-1 : ℂ), q} := 
     · exact ⟨0, rfl⟩
     · exact ⟨1, rfl⟩
 
+/-- The characteristic polynomial of `sig1_42` is `(X + 1)^3 * (X - C q)^5`. -/
 theorem charpoly_sig1_42 :
     (sig1_42 (q := q)).charpoly = (X - C (-1)) ^ 3 * (X - C q) ^ 5 := by
   rw [sig1_42, Matrix.charpoly_diagonal]
   simp [Fin.prod_univ_eight]
   ring
 
+/-- If `q^5 = 1`, the characteristic polynomial of `sig1_42` has root multiplicities three at
+`-1` and five at `q`. -/
 theorem multiplicity_sig1_42 (hq5 : q ^ 5 = 1) :
     rootMultiplicity (-1) (sig1_42 (q := q)).charpoly = 3 ∧
       rootMultiplicity q (sig1_42 (q := q)).charpoly = 5 := by

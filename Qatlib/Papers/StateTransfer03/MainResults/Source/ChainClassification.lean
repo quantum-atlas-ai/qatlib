@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.StateTransfer03.MainResults.Defs
 import Mathlib.NumberTheory.Niven
+
+/-!
+# Obstruction to perfect transfer on longer chains
+
+Trigonometric identities normalize the endpoint spectral weights of a path. Equality in the
+triangle inequality forces the spectral summands onto a common ray; the resulting phase
+constraints and eigenvalue recurrences yield `chain_no_perfect_transfer_four` for paths with at
+least four vertices. See [ChristandlEtAl2004].
+
+## Main statements
+
+* `pathWeight_norm_sum`: the absolute spectral weights sum to one.
+* `sin_zero_of_sameRay`: alignment of weighted phases forces a sine to vanish.
+* `chain_no_perfect_transfer_four`: the path spectral data have no perfect transfer when `4 ≤
+  N`.
+
+## References
+
+* [Christandl et al., 2004][ChristandlEtAl2004]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
@@ -19,6 +40,7 @@ set_option linter.unusedVariables false
 
 noncomputable section
 
+/-- The sum of `cos (2πj / (N + 1))` over `1 ≤ j ≤ N` is `-1` when `N` is positive. -/
 theorem cos_sum_range (N : ℕ) (hN : 0 < N) :
     (∑ i ∈ Finset.range N, Real.cos (2 * Real.pi * ((i : ℝ) + 1) / ((N : ℝ) + 1))) = -1 := by
   set a : ℝ := 2 * Real.pi / ((N : ℝ) + 1) with ha
@@ -81,6 +103,7 @@ theorem cos_sum_range (N : ℕ) (hN : 0 < N) :
         field_simp
         ring
 
+/-- The sum of `sin² (jπ / (N + 1))` over `1 ≤ j ≤ N` is `(N + 1) / 2` when `N` is positive. -/
 theorem sin_sq_sum_range (N : ℕ) (hN : 0 < N) :
     (∑ i : Fin N, (Real.sin (((i.val : ℝ) + 1) * Real.pi / ((N : ℝ) + 1))) ^ 2)
       = ((N : ℝ) + 1) / 2 := by
@@ -118,6 +141,8 @@ theorem sin_sq_sum_range (N : ℕ) (hN : 0 < N) :
   rw [hcos'']
   ring
 
+/-- The absolute value of the path weight at index `k` is `2 / (N + 1)` times `sin² ((k + 1)π /
+(N + 1))` for positive `N`. See [ChristandlEtAl2004]. -/
 theorem pathWeight_abs (N : ℕ) (hN : 0 < N) (k : Fin N) :
     |pathWeight N k| =
       (2 / ((N : ℝ) + 1)) *
@@ -159,6 +184,7 @@ theorem pathWeight_abs (N : ℕ) (hN : 0 < N) (k : Fin N) :
   rw [h2]
   ring
 
+/-- Every endpoint spectral weight of a nonempty path is nonzero. -/
 theorem pathWeight_ne_zero (N : ℕ) (hN : 0 < N) (k : Fin N) :
     pathWeight N k ≠ 0 := by
   intro hp
@@ -182,6 +208,8 @@ theorem pathWeight_ne_zero (N : ℕ) (hN : 0 < N) (k : Fin N) :
       nlinarith [Real.pi_pos]
   linarith
 
+/-- The norms of the complex endpoint spectral weights of a nonempty path sum to one. See
+[ChristandlEtAl2004]. -/
 theorem pathWeight_norm_sum (N : ℕ) (hN : 0 < N) :
     (∑ k : Fin N, ‖(pathWeight N k : ℂ)‖) = 1 := by
   have hterm : ∀ k : Fin N, ‖(pathWeight N k : ℂ)‖ = |pathWeight N k| := by
@@ -192,6 +220,8 @@ theorem pathWeight_norm_sum (N : ℕ) (hN : 0 < N) :
   rw [sin_sq_sum_range N hN]
   field_simp
 
+/-- If a finite family of nonzero complex numbers attains equality in the triangle inequality,
+every summand lies on the same real ray as the sum. -/
 theorem sameRay_sum_of_norm_eq {ι : Type*} [DecidableEq ι] (s : Finset ι) (w : ι → ℂ)
     (hw : ∀ i ∈ s, w i ≠ 0)
     (h : ‖∑ i ∈ s, w i‖ = ∑ i ∈ s, ‖w i‖) :
@@ -234,6 +264,9 @@ theorem sameRay_sum_of_norm_eq {ι : Type*} [DecidableEq ι] (s : Finset ι) (w 
         rw [Finset.sum_insert hb]
         exact SameRay.add_right hbi hwi
 
+/-- If a finite family of nonzero complex numbers attains equality in the triangle inequality
+and has nonzero sum, every pair of summands lies on the same real ray. See
+[ChristandlEtAl2004]. -/
 theorem sameRay_pairwise {ι : Type*} [DecidableEq ι] (s : Finset ι) (w : ι → ℂ)
     (hw : ∀ i ∈ s, w i ≠ 0)
     (h : ‖∑ i ∈ s, w i‖ = ∑ i ∈ s, ‖w i‖)
@@ -243,15 +276,18 @@ theorem sameRay_pairwise {ι : Type*} [DecidableEq ι] (s : Finset ι) (w : ι �
   exact SameRay.trans (sameRay_sum_of_norm_eq s w hw h i hi)
     (SameRay.symm (sameRay_sum_of_norm_eq s w hw h j hj)) (fun h0 => absurd h0 hT)
 
+/-- Euler's formula expresses `exp (ix)` as `cos x + i sin x` for real `x`. -/
 theorem expI_real (x : ℝ) :
     Complex.exp (Complex.I * (x : ℂ)) = (Real.cos x : ℂ) + (Real.sin x : ℂ) * Complex.I := by
   rw [mul_comm Complex.I (x : ℂ)]
   simpa [Complex.ofReal_cos, Complex.ofReal_sin] using Complex.exp_mul_I (x : ℂ)
 
+/-- The complex phase `phase E t` is nonzero for every real energy and time. -/
 theorem phase_ne_zero' (E t : ℝ) : phase E t ≠ 0 := by
   unfold phase
   exact Complex.exp_ne_zero _
 
+/-- Multiplying the phase at energy `E` by `exp (itF)` gives `exp (i(F - E)t)`. -/
 theorem phase_mul_exp (E F t : ℝ) :
     phase E t * Complex.exp (Complex.I * ((t : ℂ) * (F : ℂ))) =
       Complex.exp (Complex.I * (((F - E) * t : ℝ) : ℂ)) := by
@@ -261,11 +297,14 @@ theorem phase_mul_exp (E F t : ℝ) :
   push_cast
   ring
 
+/-- The imaginary part of `a exp (ix)` is `a sin x` for real `a` and `x`. -/
 theorem im_real_mul_expI (a x : ℝ) :
     (↑a * Complex.exp (Complex.I * (x : ℂ)) : ℂ).im = a * Real.sin x := by
   rw [expI_real]
   simp [Complex.mul_im, Complex.mul_re, Complex.sin_ofReal_re, Complex.cos_ofReal_re]
 
+/-- If two phases with nonzero real weights lie on the same real ray, then `sin ((F - E) * t) =
+0`. See [ChristandlEtAl2004]. -/
 theorem sin_zero_of_sameRay {u v E F t : ℝ} (hu : u ≠ 0) (hv : v ≠ 0)
     (h : SameRay ℝ ((u : ℂ) * phase E t) ((v : ℂ) * phase F t)) :
     Real.sin ((F - E) * t) = 0 := by
@@ -319,6 +358,7 @@ theorem sin_zero_of_sameRay {u v E F t : ℝ} (hu : u ≠ 0) (hv : v ≠ 0)
   · exact absurd h1 hcoef
   · exact h1
 
+/-- The complex phase `phase E t` has norm one. -/
 theorem phase_norm (E t : ℝ) : ‖phase E t‖ = 1 := by
   unfold phase
   have h : -(Complex.I * (t : ℂ) * (E : ℂ)) = ((-(t * E) : ℝ) : ℂ) * Complex.I := by
@@ -326,6 +366,8 @@ theorem phase_norm (E t : ℝ) : ‖phase E t‖ = 1 := by
     ring
   rw [h, Complex.norm_exp_ofReal_mul_I]
 
+/-- For a path with at least four vertices, eigenvalues at indices zero through two satisfy the
+first cosine recurrence. See [ChristandlEtAl2004]. -/
 theorem pathEigenvalue_rec0 (N : ℕ) (hN : 4 ≤ N) :
     pathEigenvalue N ⟨2, by omega⟩ + pathEigenvalue N ⟨0, by omega⟩ =
       (2 * Real.cos (Real.pi / ((N : ℝ) + 1))) * pathEigenvalue N ⟨1, by omega⟩ := by
@@ -342,6 +384,8 @@ theorem pathEigenvalue_rec0 (N : ℕ) (hN : 4 ≤ N) :
     exact h
   linear_combination 2 * hc
 
+/-- For a path with at least four vertices, eigenvalues at indices one through three satisfy the
+second cosine recurrence. See [ChristandlEtAl2004]. -/
 theorem pathEigenvalue_rec1 (N : ℕ) (hN : 4 ≤ N) :
     pathEigenvalue N ⟨3, by omega⟩ + pathEigenvalue N ⟨1, by omega⟩ =
       (2 * Real.cos (Real.pi / ((N : ℝ) + 1))) * pathEigenvalue N ⟨2, by omega⟩ := by
@@ -358,6 +402,8 @@ theorem pathEigenvalue_rec1 (N : ℕ) (hN : 4 ≤ N) :
     exact h
   linear_combination 2 * hc
 
+/-- For a path with at least four vertices, the eigenvalue at index two is strictly smaller than
+the eigenvalue at index one. See [ChristandlEtAl2004]. -/
 theorem pathEigenvalue_two_lt_one (N : ℕ) (hN : 4 ≤ N) :
     pathEigenvalue N ⟨2, by omega⟩ < pathEigenvalue N ⟨1, by omega⟩ := by
   set a : ℝ := Real.pi / ((N : ℝ) + 1) with ha
@@ -379,6 +425,8 @@ theorem pathEigenvalue_two_lt_one (N : ℕ) (hN : 4 ≤ N) :
     (by positivity) (by linarith) (by linarith)
   linarith
 
+/-- The endpoint spectral data of a path with at least four vertices do not possess perfect
+transfer. See [ChristandlEtAl2004]. -/
 theorem chain_no_perfect_transfer_four (N : ℕ) (hN : 4 ≤ N) :
     ¬ SpectralPerfectTransfer (pathEigenvalue N) (fun k => (pathWeight N k : ℂ)) := by
   rintro ⟨t, ht, hF⟩

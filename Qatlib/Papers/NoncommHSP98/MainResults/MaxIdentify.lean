@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.NoncommHSP98.MainResults.Basic
 import Mathlib.Order.Interval.Finset.Nat
 import Mathlib.Data.Finset.CastCard
+
+/-!
+# Identification by maximal sampled statistics
+
+This module derives exponential tail estimates for bounded statistics and combines them with
+finite union bounds. If one canonical candidate has expectation at least one half and every
+other candidate has expectation zero, `max_identifies` shows that sufficiently many independent
+samples make it the unique maximizing candidate. `theorem5_holds` specializes this result to the
+dihedral cosine statistics. This development accompanies [EttingerHoyer1999].
+
+## Main statements
+
+* `tail_lower` and `tail_upper`: exponential bounds at the threshold `m / 4`.
+* `max_identifies`: unique maximization with probability at least `1 - 1 / (2 * N)`.
+* `theorem5_holds`: the dihedral cosine identification statement.
+
+## References
+
+* [Ettinger and Hoyer, 1999][EttingerHoyer1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,15 +44,21 @@ open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 
 namespace Qatlib.Papers.NoncommHSP98.MainResults
 
+/-- The mass of an event under a finite distribution, using classical decidability for the event
+predicate. -/
 noncomputable def evMass {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop) : ℝ :=
   @eventMass X _ p E (Classical.decPred E)
 
+/-- The probability of a tuple event is independent of the chosen decision procedure for its
+predicate. -/
 theorem probEvent_inst_eq {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     {m : ℕ} (E : (Fin m → X) → Prop) (i1 i2 : DecidablePred E) :
     @probEvent X _ m p E i1 = @probEvent X _ m p E i2 := by
   have hi : i1 = i2 := funext fun x => Subsingleton.elim _ _
   exact congrArg (fun i => @probEvent X _ m p E i) hi
 
+/-- Inclusion of events implies monotonicity of `eventMass` with the supplied decision
+procedures. -/
 theorem em_mono {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
     (hE : DecidablePred E) (hF : DecidablePred F) (h : ∀ x, E x → F x) :
     @eventMass X _ p E hE ≤ @eventMass X _ p F hF := by
@@ -43,6 +70,7 @@ theorem em_mono {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
     exact h x hx
   exact Finset.sum_le_sum_of_subset_of_nonneg hsub (fun x _ _ => p.nonneg x)
 
+/-- The mass of the union of two events is at most the sum of their masses. -/
 theorem em_or_le {X : Type*} [Fintype X] (p : FinDist X) (E F : X → Prop)
     (hE : DecidablePred E) (hF : DecidablePred F) (hEF : DecidablePred (fun x => E x ∨ F x)) :
     @eventMass X _ p (fun x => E x ∨ F x) hEF ≤ @eventMass X _ p E hE + @eventMass X _ p F hF := by
@@ -54,6 +82,7 @@ theorem em_or_le {X : Type*} [Fintype X] (p : FinDist X) (E F : X → Prop)
   by_cases he : E x <;> by_cases hf : F x <;> simp [he, hf]
   linarith [p.nonneg x]
 
+/-- The mass of the complement of an event is one minus its mass. -/
 theorem em_compl {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop)
     (hE : DecidablePred E) (hNE : DecidablePred (fun x => ¬ E x)) :
     @eventMass X _ p (fun x => ¬ E x) hNE = 1 - @eventMass X _ p E hE := by
@@ -64,22 +93,26 @@ theorem em_compl {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop)
   rw [p.sum_one] at hsplit
   linarith
 
+/-- The classical event mass of a complement is one minus the original event mass. -/
 theorem evMass_compl {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop) :
     evMass p (fun x => ¬ E x) = 1 - evMass p E := by
   unfold evMass
   exact em_compl p E (Classical.decPred E) (Classical.decPred (fun x => ¬ E x))
 
+/-- Classical event mass is monotone under event inclusion. -/
 theorem evMass_mono {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
     (h : ∀ x, E x → F x) : evMass p E ≤ evMass p F := by
   unfold evMass
   exact em_mono p (Classical.decPred E) (Classical.decPred F) h
 
+/-- The classical mass of a union of two events is at most the sum of their masses. -/
 theorem evMass_or_le {X : Type*} [Fintype X] (p : FinDist X) (E F : X → Prop) :
     evMass p (fun x => E x ∨ F x) ≤ evMass p E + evMass p F := by
   unfold evMass
   exact em_or_le p E F (Classical.decPred E) (Classical.decPred F)
     (Classical.decPred (fun x => E x ∨ F x))
 
+/-- The mass of a union indexed by a finite set is at most the sum of its event masses. -/
 theorem evMass_exists_le_sum_finset {X : Type*} [Fintype X] (p : FinDist X)
     {ι : Type*} (K : Finset ι) (E : ι → X → Prop) :
     evMass p (fun x => ∃ i ∈ K, E i x) ≤ ∑ i ∈ K, evMass p (E i) := by
@@ -110,6 +143,8 @@ theorem evMass_exists_le_sum_finset {X : Type*} [Fintype X] (p : FinDist X)
         (Classical.decPred (fun x => E a x ∨ ∃ i ∈ K, E i x))) ?_
       exact add_le_add_right ih _
 
+/-- For positive `m`, independent samples of a statistic in `[-1, 1]` with mean at least one
+half have sum at most `m / 4` with probability at most `exp (-m / 32)`. -/
 theorem tail_lower {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (hf : ∀ x, f x ∈ Set.Icc (-1 : ℝ) 1)
     {m : ℕ} (hm : 0 < m) (hmean : (1 : ℝ) / 2 ≤ p.expect f) :
@@ -159,6 +194,8 @@ theorem tail_lower {X : Type*} [Fintype X] [DecidableEq X]
   field_simp
   ring
 
+/-- For positive `m`, independent samples of a statistic in `[-1, 1]` with mean zero have sum at
+least `m / 4` with probability at most `exp (-m / 32)`. -/
 theorem tail_upper {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (hf : ∀ x, f x ∈ Set.Icc (-1 : ℝ) 1)
     {m : ℕ} (hm : 0 < m) (hmean : p.expect f = 0) :
@@ -207,6 +244,7 @@ theorem tail_upper {X : Type*} [Fintype X] [DecidableEq X]
   field_simp
   ring
 
+/-- The canonical signed representative of `k0` is either `k0` or `-k0`. -/
 theorem kRep_eq_or (N : ℕ) [NeZero N] (k0 : ZMod N) :
     kRep N k0 = k0 ∨ kRep N k0 = -k0 := by
   unfold kRep
@@ -214,12 +252,14 @@ theorem kRep_eq_or (N : ℕ) [NeZero N] (k0 : ZMod N) :
   · exact Or.inl rfl
   · exact Or.inr rfl
 
+/-- The canonical signed representative of a nonzero residue is nonzero. -/
 theorem kRep_ne_zero {N : ℕ} [NeZero N] {k0 : ZMod N} (hk0 : k0 ≠ 0) :
     kRep N k0 ≠ 0 := by
   rcases kRep_eq_or N k0 with h | h
   · rw [h]; exact hk0
   · rw [h]; exact neg_ne_zero.mpr hk0
 
+/-- The canonical signed representative of a nonzero residue belongs to `Candidates N`. -/
 theorem kRep_mem_Candidates {N : ℕ} [NeZero N] {k0 : ZMod N} (hk0 : k0 ≠ 0) :
     kRep N k0 ∈ Candidates N := by
   classical
@@ -239,6 +279,7 @@ theorem kRep_mem_Candidates {N : ℕ} [NeZero N] {k0 : ZMod N} (hk0 : k0 ≠ 0) 
       · omega
       · omega
 
+/-- Every candidate residue is nonzero. -/
 theorem candidate_ne_zero {N : ℕ} [NeZero N] {k : ZMod N}
     (hk : k ∈ Candidates N) : k ≠ 0 := by
   classical
@@ -248,6 +289,7 @@ theorem candidate_ne_zero {N : ℕ} [NeZero N] {k : ZMod N}
   have hv : k.val = 0 := by rw [h]; exact ZMod.val_zero
   omega
 
+/-- A candidate different from `kRep N k0` is also different from `k0`. -/
 theorem candidate_ne_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (_hk0 : k0 ≠ 0)
     (hk : k ∈ Candidates N) (hne : k ≠ kRep N k0) :
     k ≠ k0 := by
@@ -261,6 +303,8 @@ theorem candidate_ne_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (_hk0 : k0 ≠ 0)
   rw [if_pos hkval] at hne
   exact hne h
 
+/-- A candidate different from `kRep N k0` is also different from `-k0`, provided `k0` is
+nonzero. -/
 theorem candidate_ne_neg_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (hk0 : k0 ≠ 0)
     (hk : k ∈ Candidates N) (hne : k ≠ kRep N k0) :
     k ≠ -k0 := by
@@ -287,6 +331,7 @@ theorem candidate_ne_neg_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (hk0 : k0 ≠
   · have hr : kRep N k0 = -k0 := by unfold kRep; rw [if_neg hle]
     exact hne (by rw [h, hr])
 
+/-- There are at most `N / 2` candidate residues. -/
 theorem Candidates_card_le (N : ℕ) [NeZero N] :
     (Candidates N).card ≤ N / 2 := by
   classical
@@ -305,6 +350,10 @@ theorem Candidates_card_le (N : ℕ) [NeZero N] :
         rw [Nat.card_Icc]
         omega
 
+/-- For `N ≥ 2`, nonzero `k0`, and positive `m ≥ 64 * log N`, bounded candidate statistics with
+mean at least one half at `kRep N k0` and mean zero elsewhere have a unique sample-sum
+maximum there with probability at least `1 - 1 / (2 * N)`. This is the probabilistic
+identification step for Theorem 5 of [EttingerHoyer1999]. -/
 theorem max_identifies {X : Type*} [Fintype X] [DecidableEq X]
     (N : ℕ) [NeZero N] (k0 : ZMod N) (hk0 : k0 ≠ 0)
     (p : FinDist X) (stat : ZMod N → X → ℝ)
@@ -443,6 +492,9 @@ theorem max_identifies {X : Type*} [Fintype X] [DecidableEq X]
     linarith [hfailbound]
   exact hgoal
 
+/-- The cosine statistic at `kRep N k0` strictly exceeds every other candidate statistic with
+the probability and sample bound encoded by `Theorem5Statement`. See Theorem 5 of
+[EttingerHoyer1999]. -/
 theorem theorem5_holds : Theorem5Statement := by
   intro N _ h2N k0 hk0 m hm64
   have hmpos : 0 < m := by

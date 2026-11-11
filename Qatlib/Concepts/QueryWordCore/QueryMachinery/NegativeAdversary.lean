@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Analysis.Matrix.Spectrum
+
+/-!
+# Negative-weight adversary bounds for query circuits
+
+This module defines a weighted Gram-matrix progress function for circuits with Boolean workspace
+oracles. It proves invariance under common unitary gates, bounds the change caused by one query,
+and controls final progress from bounded-error output probabilities. These estimates yield a
+negative-weight adversary lower bound on the actual circuit query count.
+
+The mathematical background is described in [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `negative_adversary_actual_workspace_bit_query_step`: one-query progress bound.
+* `advProgress_run_bound`: accumulated circuit progress.
+* `negative_adversary_actual_bounded_error_circuit_lower_bound`: bounded-error query lower
+  bound.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,18 +47,24 @@ namespace Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- Restricts an adversary matrix to pairs of inputs differing at a specified query coordinate. -/
 noncomputable def advFilter {X : Type} {n : ℕ} (input : X  → Fin n  → Bool)
     (Gamma : Matrix X X ℂ) (i : Fin n) : Matrix X X ℂ :=
   fun x y => if input x i ≠ input y i then Gamma x y else 0
 
+/-- The maximum of zero and the operator norms of all coordinate-filtered adversary matrices. -/
 noncomputable def advFilterBound {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (input : X  → Fin n  → Bool) (Gamma : Matrix X X ℂ) : ℝ :=
   (List.ofFn (fun i : Fin n => ‖advFilter input Gamma i‖)).foldl max 0
 
+/-- The real part of the adversary-weighted sum of pairwise state inner products, weighted by an
+input state. -/
 noncomputable def advProgress {X H : Type} [Fintype X] [Fintype H]
     (Gamma : Matrix X X ℂ) (weight : QState X) (states : X  → QState H) : ℝ :=
   (∑ x : X,∑ y : X,star (weight x)*Gamma x y*weight y*Qatlib.Foundations.PureStateMath.Inner (states x) (states y)).re
 
+/-- For a common normalized initial state, adversary progress is the real quadratic form of the
+adversary matrix at the weight state. -/
 theorem advProgress_start {X H : Type} [Fintype X] [Fintype H]
     (Gamma : Matrix X X ℂ) (weight : QState X) (psi : QState H)
     (hpsi : Normalized psi) :
@@ -46,6 +75,9 @@ theorem advProgress_start {X H : Type} [Fintype X] [Fintype H]
       Finset.mul_sum, mul_one]
   exact Finset.sum_congr rfl fun x _ => Finset.sum_congr rfl fun y _ => by ring
 
+/-- A Hermitian adversary matrix on a nonempty finite input set has a normalized eigenvector
+with eigenvalue of magnitude equal to its norm, giving that eigenvalue as initial progress.
+See [HoyerLeeSpalek2007]. -/
 theorem negative_adversary_extreme_eigenvector_and_start
     (X H : Type) [Fintype X] [DecidableEq X] [Nonempty X] [Fintype H]
     (Gamma : Matrix X X ℂ) (psi : QState H) (hG : Gamma.IsHermitian)
@@ -81,6 +113,8 @@ theorem negative_adversary_extreme_eigenvector_and_start
   change ((hG.eigenvalues i : ℂ) * Qatlib.Foundations.PureStateMath.Inner weight weight).re = _
   rw [(normalized_iff_inner_self _).mp hw, mul_one, Complex.ofReal_re]
 
+/-- Applying the same unitary gate to every input-dependent state preserves adversary progress;
+see [HoyerLeeSpalek2007]. -/
 theorem negative_adversary_same_gate_progress_invariant
     (X H : Type) [Fintype X] [Fintype H] [DecidableEq H]
     (Gamma : Matrix X X ℂ) (weight : QState X) (states : X → QState H)
@@ -91,9 +125,13 @@ theorem negative_adversary_same_gate_progress_invariant
   simp only [show ∀ x y, Qatlib.Foundations.PureStateMath.Inner (U *ᵥ states x) (U *ᵥ states y) =
     Qatlib.Foundations.PureStateMath.Inner (states x) (states y) from fun x y => inner_applyGate hU _ _]
 
+/-- Stacks an input-indexed family of states, multiplying each input slice by its weight
+amplitude. -/
 noncomputable def advStack {X H : Type} (weight : QState X) (states : X → QState H) :
     QState (X × H) := fun p => weight p.1 * states p.1 p.2
 
+/-- Tensoring a matrix with the identity acts on a stacked vector by summing over its input
+coordinate. -/
 theorem advTensor_mulVec {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (Gamma : Matrix X X ℂ) (v : QState (X × H))
     (x : X) (h : H) :
@@ -108,6 +146,8 @@ theorem advTensor_mulVec {X H : Type} [Fintype X] [DecidableEq X]
     simp [Ne.symm hj]
   · simp
 
+/-- Adversary progress is the real quadratic form of the adversary matrix tensored with the
+identity at the stacked state. -/
 theorem advProgress_stack {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (Gamma : Matrix X X ℂ) (weight : QState X)
     (states : X → QState H) :
@@ -123,6 +163,8 @@ theorem advProgress_stack {X H : Type} [Fintype X] [DecidableEq X]
   refine Finset.sum_congr rfl fun y _ => ?_
   exact Finset.sum_congr rfl fun h _ => by simp only [RCLike.star_def]; ring
 
+/-- The stacked state is normalized when its weight state and every component state are
+normalized. -/
 theorem advStack_normalized {X H : Type} [Fintype X] [Fintype H]
     (weight : QState X) (states : X → QState H) (hw : Normalized weight)
     (hs : ∀ x, Normalized (states x)) : Normalized (advStack weight states) := by
@@ -130,6 +172,8 @@ theorem advStack_normalized {X H : Type} [Fintype X] [Fintype H]
   simp only [advStack, Fintype.sum_prod_type, norm_mul, mul_pow,
     ← Finset.mul_sum, hs, mul_one, hw]
 
+/-- Bounds the norm of a matrix inner product by the operator norm times the Euclidean norms of
+its two vectors. -/
 theorem adv_inner_matrix_bound {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix I J ℂ) (u : QState I) (v : QState J) :
     ‖Qatlib.Foundations.PureStateMath.Inner u (A *ᵥ v)‖ ≤ ‖A‖ * ‖toEuclidean_fromVec u‖ * ‖toEuclidean_fromVec v‖ := by
@@ -140,14 +184,19 @@ theorem adv_inner_matrix_bound {I J : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left (l2_norm_mulVec_fromVec_le A v) (norm_nonneg _)
     _ = _ := by ring
 
+/-- Keeps the components of a stacked vector whose measurement outcome agrees with the Boolean
+output label. -/
 noncomputable def advCorrect {X H : Type} [Fintype H] [DecidableEq H] (f : X → Bool)
     (E : Finset H) (v : QState (X × H)) : QState (X × H) :=
   fun p => if p.2 ∈ (if f p.1 then E else Eᶜ) then v p else 0
 
+/-- Keeps the components of a stacked vector whose measurement outcome disagrees with the
+Boolean output label. -/
 noncomputable def advError {X H : Type} [Fintype H] [DecidableEq H] (f : X → Bool)
     (E : Finset H) (v : QState (X × H)) : QState (X × H) :=
   fun p => if p.2 ∈ (if f p.1 then E else Eᶜ) then 0 else v p
 
+/-- The correct-output and error-output components sum to the original stacked vector. -/
 private theorem adv_correct_add_error {X H : Type} [Fintype H] [DecidableEq H]
     (f : X → Bool) (E : Finset H) (v : QState (X × H)) :
     advCorrect f E v + advError f E v = v := by
@@ -155,6 +204,8 @@ private theorem adv_correct_add_error {X H : Type} [Fintype H] [DecidableEq H]
   simp only [Pi.add_apply, advCorrect, advError]
   by_cases hp : p.2 ∈ (if f p.1 then E else Eᶜ) <;> simp [hp]
 
+/-- If the adversary matrix vanishes on equal-output input pairs, its quadratic forms on the
+correct and error components both vanish. -/
 private theorem adv_output_diagonal_zero {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (Gamma : Matrix X X ℂ) (f : X → Bool)
     (E : Finset H) (v : QState (X × H))
@@ -175,6 +226,8 @@ private theorem adv_output_diagonal_zero {X H : Type} [Fintype X] [DecidableEq X
     · cases hx : f x <;> cases hy : f y <;> try { exact (hf (hx.trans hy.symm)).elim }
       all_goals by_cases hh : h ∈ E <;> simp [advError, hx, hy, hh]
 
+/-- The squared Euclidean norms of the correct and error components sum to the squared norm of
+the original vector. -/
 private theorem adv_output_energy {X H : Type} [Fintype X] [Fintype H]
     [DecidableEq H] (f : X → Bool) (E : Finset H) (v : QState (X × H)) :
     ‖toEuclidean_fromVec (advCorrect f E v)‖ ^ 2 +
@@ -185,6 +238,8 @@ private theorem adv_output_energy {X H : Type} [Fintype X] [Fintype H]
   simp only [advCorrect, advError]
   by_cases hp : p.2 ∈ (if f p.1 then E else Eᶜ) <;> simp [hp]
 
+/-- The squared norm of the correct part of a stacked state equals the weight-averaged
+probability of correct measurement outcomes. -/
 private theorem adv_correct_mass {X H : Type} [Fintype X] [Fintype H]
     [DecidableEq H] (f : X → Bool) (E : Finset H) (weight : QState X)
     (states : X → QState H) :
@@ -200,6 +255,9 @@ private theorem adv_correct_mass {X H : Type} [Fintype X] [Fintype H]
   intro h hh
   simp only [norm_mul, mul_pow]
 
+/-- For normalized states computing a Boolean function with error at most `eps ≤ 1 / 2`, final
+progress has magnitude at most `2 * sqrt (eps * (1 - eps)) * ‖Gamma‖`. See
+[HoyerLeeSpalek2007]. -/
 theorem negative_adversary_boolean_actual_output_progress
     (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     (Gamma : Matrix X X ℂ) (weight : QState X) (states : X → QState H)
@@ -257,6 +315,8 @@ theorem negative_adversary_boolean_actual_output_progress
       mul_le_mul (mul_le_mul_of_nonneg_left hprod (by norm_num)) hA
         (norm_nonneg _) (by positivity)
 
+/-- Expands the quadratic form of an adversary matrix tensored with the identity as a sum of
+inner products between input slices. -/
 private theorem adv_form_expand {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (Gamma : Matrix X X ℂ) (v : QState (X × H)) :
     Qatlib.Foundations.PureStateMath.Inner v (TensorGate Gamma (1 : Matrix H H ℂ) *ᵥ v) =
@@ -269,10 +329,13 @@ private theorem adv_form_expand {X H : Type} [Fintype X] [DecidableEq X]
   intro y _
   exact Finset.sum_congr rfl fun h _ => by ring
 
+/-- Relabels the answer bit in each input slice according to a Boolean function of that input. -/
 private noncomputable def advFlip {X W : Type} (f : X → Bool)
     (v : QState (X × (Bool × W))) : QState (X × (Bool × W)) :=
   fun p => v (p.1, (p.2.1 ^^ f p.1, p.2.2))
 
+/-- Answer-bit relabeling preserves the inner product of two input slices when their Boolean
+flip values agree. -/
 private theorem advFlip_inner {X W : Type} [Fintype W] (f : X → Bool)
     (v : QState (X × (Bool × W))) (x y : X) (hxy : f x = f y) :
     Qatlib.Foundations.PureStateMath.Inner (fun h => advFlip f v (x, h)) (fun h => advFlip f v (y, h)) =
@@ -281,6 +344,7 @@ private theorem advFlip_inner {X W : Type} [Fintype W] (f : X → Bool)
   cases f y <;> simp only [Bool.xor_false, Bool.xor_true, Bool.not_false, Bool.not_true]
   all_goals first | rfl | exact add_comm _ _
 
+/-- Input-dependent answer-bit relabeling preserves the Euclidean norm of the stacked vector. -/
 private theorem advFlip_norm {X W : Type} [Fintype X] [Fintype W]
     (f : X → Bool) (v : QState (X × (Bool × W))) :
     ‖toEuclidean_fromVec (advFlip f v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -291,6 +355,8 @@ private theorem advFlip_norm {X W : Type} [Fintype X] [Fintype W]
   cases f x <;> simp only [Bool.xor_false, Bool.xor_true, Bool.not_false, Bool.not_true]
   all_goals first | rfl | exact add_comm _ _
 
+/-- The quadratic-form change under answer-bit relabeling depends only on adversary entries
+between inputs with different flip values. -/
 private theorem advFlip_filter_difference {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] (f : X → Bool) (Gamma : Matrix X X ℂ)
     (v : QState (X × (Bool × W))) :
@@ -307,6 +373,8 @@ private theorem advFlip_filter_difference {X W : Type} [Fintype X] [DecidableEq 
       advFlip_inner f v x y hf, sub_self]
   · simp [hf]
 
+/-- Bounds the real quadratic-form change under answer-bit relabeling by twice the filtered
+matrix norm times the squared vector norm. -/
 private theorem advFlip_progress_bound {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] (f : X → Bool) (Gamma : Matrix X X ℂ)
     (v : QState (X × (Bool × W))) :
@@ -330,10 +398,13 @@ private theorem advFlip_progress_bound {X W : Type} [Fintype X] [DecidableEq X]
     _ = 2 * ‖A‖ * ‖toEuclidean_fromVec v‖ ^ 2 := by rw [advFlip_norm]; ring
     _ ≤ _ := mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hA (by norm_num)) (sq_nonneg _)
 
+/-- The weighted slice of an input-indexed workspace-state family at a fixed query index. -/
 noncomputable def advSlice {X W : Type} {n : ℕ} (weight : QState X)
     (states : X → QState ((Fin n × Bool) × W)) (i : Fin n) : QState (X × (Bool × W)) :=
   fun p => weight p.1 * states p.1 ((i, p.2.1), p.2.2)
 
+/-- Expresses adversary progress as the real part of the sum of quadratic forms over query-index
+slices. -/
 private theorem advProgress_slices {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n : ℕ} (Gamma : Matrix X X ℂ) (weight : QState X)
     (states : X → QState ((Fin n × Bool) × W)) :
@@ -356,6 +427,8 @@ private theorem advProgress_slices {X W : Type} [Fintype X] [DecidableEq X]
   intro b _
   exact Finset.sum_congr rfl fun w _ => by simp only [RCLike.star_def]; ring
 
+/-- A workspace bit query acts on each query-index slice by the corresponding input-dependent
+answer-bit flip. -/
 private theorem advSlice_query {X W : Type} [Fintype W] [DecidableEq W]
     {n : ℕ} (input : X → Fin n → Bool) (weight : QState X)
     (states : X → QState ((Fin n × Bool) × W)) (i : Fin n) :
@@ -367,6 +440,8 @@ private theorem advSlice_query {X W : Type} [Fintype W] [DecidableEq W]
     states p.1 ((i, p.2.1 ^^ input p.1 i), p.2.2) from
       applyGate_workspaceBitOracle_mk _ _ _ _ _]
 
+/-- For normalized weights and component states, the sum of squared norms of all query-index
+slices is one. -/
 private theorem advSlice_energy {X W : Type} [Fintype X] [Fintype W] {n : ℕ}
     (weight : QState X) (states : X → QState ((Fin n × Bool) × W))
     (hw : Normalized weight) (hs : ∀ x, Normalized (states x)) :
@@ -381,6 +456,7 @@ private theorem advSlice_energy {X W : Type} [Fintype X] [Fintype W] {n : ℕ}
   simp only [hsn, mul_one]
   exact hw
 
+/-- Each coordinate-filtered adversary matrix has operator norm at most `advFilterBound`. -/
 private theorem advFilter_le_bound {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (i : Fin n) :
     ‖advFilter input Gamma i‖ ≤ advFilterBound input Gamma := by
@@ -403,6 +479,8 @@ private theorem advFilter_le_bound {X : Type} [Fintype X] [DecidableEq X] {n : �
       · exact ih a (max z b) ha
   exact helper _ _ _ hmem
 
+/-- A single workspace bit-oracle query changes adversary progress by at most twice
+`advFilterBound`; see [HoyerLeeSpalek2007]. -/
 theorem negative_adversary_actual_workspace_bit_query_step
     (X W : Type) [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W] (n : ℕ)
     (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -423,6 +501,8 @@ theorem negative_adversary_actual_workspace_bit_query_step
         (mul_le_mul_of_nonneg_left (advFilter_le_bound input Gamma i) (by norm_num)) (sq_nonneg _)
     _ = _ := by rw [← Finset.mul_sum, advSlice_energy weight states hw hs, mul_one]
 
+/-- A unitary query circuit changes adversary progress by at most twice its query count times
+`advFilterBound`. -/
 theorem advProgress_run_bound
     (X W : Type) [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W] (n : ℕ)
     (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -453,6 +533,9 @@ theorem advProgress_run_bound
       dsimp [next] at *
       linarith
 
+/-- A unitary circuit computing the Boolean output with error `eps ≤ 1 / 2` satisfies `(1 - 2 *
+sqrt (eps * (1 - eps))) * ‖Gamma‖ ≤ 2 * QueryCount C * advFilterBound input Gamma`. See
+[HoyerLeeSpalek2007]. -/
 theorem negative_adversary_actual_bounded_error_circuit_lower_bound
     (X W : Type) [Fintype X] [DecidableEq X] [Nonempty X] [Fintype W] [DecidableEq W]
     (n : ℕ) (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (f : X → Bool)

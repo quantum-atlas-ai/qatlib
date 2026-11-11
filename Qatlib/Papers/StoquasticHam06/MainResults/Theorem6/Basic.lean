@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Trace separation from a logarithmic spectral gap
+
+The trace of a power is bounded below by a largest eigenvalue power for a nonnegative spectrum
+and above by the dimension times a uniform spectral bound. `log_gap_trace_ratio` turns a
+reciprocal logarithmic gap into a comparison of threshold powers with an explicit exponential
+factor. See [BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `trace_separation_yes`: a leading eigenvalue power bounds the trace from below.
+* `trace_separation_no`: a uniform absolute eigenvalue bound bounds the trace from above.
+* `log_gap_trace_ratio`: the threshold powers differ by at least a factor `2 ^ (2 * n)`.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +39,8 @@ namespace Qatlib.Papers.StoquasticHam06.MainResults.Theorem6
 
 open Matrix
 
+/-- For a real Hermitian matrix with nonnegative spectrum, the `L`th power of a specified
+largest eigenvalue is at most the trace of `G ^ L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem trace_separation_yes {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (L : ℕ) (mu : ℝ)
     (hmu : ∃ i, hG.eigenvalues i = mu) (hmax : ∀ i, hG.eigenvalues i ≤ mu)
@@ -26,12 +48,16 @@ theorem trace_separation_yes {ι : Type*} [Fintype ι] [DecidableEq ι]
     mu ^ L ≤ (G ^ L).trace :=
   trace_pow_lower_bound G hG L mu hmu hmax hnonneg
 
+/-- If the absolute values of all eigenvalues are at most nonnegative `mu`, then the trace of `G
+^ L` is at most the matrix dimension times `mu ^ L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem trace_separation_no {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (L : ℕ) (mu : ℝ)
     (hmu : 0 ≤ mu) (hbound : ∀ i, |hG.eigenvalues i| ≤ mu) :
     (G ^ L).trace ≤ (Fintype.card ι : ℝ) * mu ^ L :=
   trace_pow_upper_bound G hG L mu hmu hbound
 
+/-- For positive thresholds and positive `p`, a logarithmic gap at least `1 / p` implies `2 ^ (2
+* n) * muM ^ (2 * n * p) ≤ muP ^ (2 * n * p)`. See [BravyiEtAl2008Stoquastic]. -/
 theorem log_gap_trace_ratio (muP muM : ℝ) (n p : ℕ) (hp : 0 < p)
     (hM : 0 < muM) (hP : 0 < muP)
     (hgap : 1 / (p : ℝ) ≤ Real.log muP - Real.log muM) :

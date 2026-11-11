@@ -8,6 +8,30 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionMachine
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionMachine
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionRejection
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionValue
+
+/-!
+# Exact rational division with polynomial machine bounds
+
+This module combines the uniform division machine with the rational interpretation of its
+output. A single finite-state binary Turing machine computes the specified quotient encoding for
+every pair of word rationals with nonzero divisor numerator, within quartic time and quadratic
+space in the combined word size.
+
+Finite descriptions and polynomial resource bounds have general background in
+[KitaevShenVyalyi2002]; the quotient encoding and the explicit machine guarantee are particular
+to this development.
+
+## Main statements
+
+* `frontier1` supplies a fixed machine and positive constant `C`, proves `Runs` with bounds `C *
+  size^4` and `C * size^2`, and identifies the output's rational value with the exact quotient.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002] provides general background on
+  classical and quantum computation.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +46,10 @@ open Turing
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec (Runs)
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs (input output)
 
+/-- There is one finite-state binary Turing machine and positive constant `C` satisfying `Runs`
+for the quotient encoding of every pair of word rationals whose divisor numerator has
+positive binary value. The bounds are `C * size^4` for time and `C * size^2` for space, and
+the output represents the exact rational quotient. -/
 theorem frontier1 :
     ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (a b : WordRat) (hb : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue b.numerator),

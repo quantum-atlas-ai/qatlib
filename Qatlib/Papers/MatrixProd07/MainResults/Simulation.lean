@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MatrixProd07.MainResults.Defs
+
+/-!
+# Polynomial matrix product evaluation costs
+
+`evalOpCount_poly` transports a polynomial bond dimension bound to the matrix product evaluation
+cost. `PolyMpsCost` combines representations with a polynomial cost bound, and the two
+simulation theorems package this bound with optional polynomial circuit length. These
+constructions are associated with [PerezGarciaEtAl2007].
+
+## Main statements
+
+* `theorem18_mbqc_simulation`: polynomial evaluation cost for a polynomial bond bound.
+* `theorem19_circuit_simulation`: polynomial aggregate cost with a polynomial step count.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,8 +37,12 @@ open Qatlib.Papers.MatrixProd07.MainResults
 open Matrix
 open scoped BigOperators ComplexConjugate
 
+/-- The space of complex amplitude functions on configurations of `N` sites of local dimension
+`d`. -/
 abbrev Ket (N d : ℕ) := (Fin N → Fin d) → ℂ
 
+/-- A polynomial bound on bond dimensions gives a polynomial bound on `mpsEvalOpCount N (D N)`.
+See [PerezGarciaEtAl2007]. -/
 theorem evalOpCount_poly (D : ℕ → ℕ) (hD : PolyBudget D) :
     PolyBudget (fun N => mpsEvalOpCount N (D N)) := by
   obtain ⟨C, k, hC⟩ := hD
@@ -50,11 +73,15 @@ theorem evalOpCount_poly (D : ℕ → ℕ) (hD : PolyBudget D) :
         Nat.add_le_add hmain1 (hDN.trans (Nat.mul_le_mul_left C h2))
     _ = (2 * C * C + C) * (N + 1) ^ (2 * k + 1) := by ring
 
+/-- The predicate that a family has matrix product representations with dimensions `D N` and
+polynomially bounded evaluation operation counts. -/
 def PolyMpsCost {d : ℕ} (D : ℕ → ℕ) (ψ : (N : ℕ) → Ket N d) : Prop :=
   ∃ (hD : ∀ N, NeZero (D N)) (A : (N : ℕ) → Fin N → Fin d → BM (D N)),
     (∀ N, @IsMpsRepresentation N d (D N) (hD N) (A N) (ψ N)) ∧
     PolyBudget (fun N => mpsEvalOpCount N (D N))
 
+/-- If each state has a matrix product representation with polynomially bounded bond dimension
+`D`, then the family satisfies `PolyMpsCost D ψ`. See [PerezGarciaEtAl2007]. -/
 theorem theorem18_mbqc_simulation {d : ℕ} (D : ℕ → ℕ) (ψ : (N : ℕ) → Ket N d)
     (hMPS : ∀ N, ∃ (hD : NeZero (D N)) (A : Fin N → Fin d → BM (D N)),
       @IsMpsRepresentation N d (D N) hD A (ψ N))
@@ -66,6 +93,9 @@ theorem theorem18_mbqc_simulation {d : ℕ} (D : ℕ → ℕ) (ψ : (N : ℕ) �
   intro N
   exact (hMPS N).choose_spec.choose_spec
 
+/-- If both the circuit step count `T` and the representing bond dimension `D` have polynomial
+bounds, then `T N * (mpsEvalOpCount N (D N) + 1)` has a polynomial bound and the state
+family satisfies `PolyMpsCost`. See [PerezGarciaEtAl2007]. -/
 theorem theorem19_circuit_simulation {d : ℕ} (T D : ℕ → ℕ) (ψ : (N : ℕ) → Ket N d)
     (hT : PolyBudget T)
     (hMPS : ∀ N, ∃ (hD : NeZero (D N)) (A : Fin N → Fin d → BM (D N)),

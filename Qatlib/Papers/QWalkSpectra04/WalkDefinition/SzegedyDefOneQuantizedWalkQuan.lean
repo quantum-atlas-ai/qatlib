@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkStat
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+/-!
+# Verification of the quantized walk definition
+
+The theorem `szegedyDefOneQuantizedWalk` establishes the bundled operator identities for
+Definition 1 of [Szegedy2004]. It identifies the paper expression with the bipartite reflection
+product and verifies its chain specialization through the swap relation between the two
+diffusion matrices.
+
+## Main statements
+
+* `szegedyDefOneQuantizedWalk`: proves the bundled quantized-walk and chain-specialization
+  identities.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.WalkSearch.Spectral
@@ -19,6 +38,9 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.QWalkSpectra04.WalkDefinition
 
+/-- Establishes `SzegedyDefOneQuantizedWalk`, identifying the paper operator with its reflection
+product and its chain specialization with `SzegedyWalk`. See [Szegedy, Definition
+1][Szegedy2004]. -/
 theorem szegedyDefOneQuantizedWalk : SzegedyDefOneQuantizedWalk := by
   intro I J _ _ _ _ c r
   refine ⟨rfl, ?_⟩

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.SeparateSecondOrderWord
 import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
+
+/-!
+# Uniform second-order encodings from separate oracles
+
+This module combines polynomial approximation with separate matrix access to encode finite
+linear combinations of second-order propagators. The phase choices depend on scalar parameters
+and sample data, uniformly over matrix instances satisfying the spectral and encoding hypotheses
+of [WangEtAl2026].
+
+## Main statements
+
+* `secondOrder_normalized_sample_error`: lifts a scalar approximation to a matrix error bound of
+  `2 * η`.
+* `secondOrder_separate_uniform`: constructs valid phases and a counted block encoding with
+  normalization `4 * coefficientMass c`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,6 +71,9 @@ open Matrix Polynomial
 
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- On a Hermitian normalized sample with spectrum in `[g, 1]`, scalar polynomial error at most
+`η` gives matrix error at most `2 * η` after applying `normalizedApproximation`, under the
+stated positivity and time hypotheses. -/
 theorem secondOrder_normalized_sample_error
     (I : Type) [Fintype I] [DecidableEq I] (kind : SecondOrderFamily)
     (X : Matrix I I ℂ) (b g t η : ℝ) (hb : 0 < b) (hg : 0 < g)
@@ -81,6 +105,11 @@ theorem secondOrder_normalized_sample_error
     simpa only [normalizedApproximation, Polynomial.eval_smul] using! hh
   exact herr.trans (div_le_self (by positivity) (by linarith))
 
+/-- There exist uniform phase lists producing a valid encoding of the weighted second-order
+sample propagators for every matrix instance satisfying the separate encoding and spectral
+hypotheses. With the prescribed degree `D`, the normalization is `4 * coefficientMass c`,
+the error is `2 * η * coefficientMass c`, and the circuit uses `8 * D + 2` queries per
+oracle and `80 * D + 33` fixed gates. -/
 theorem secondOrder_separate_uniform
     {J : Type} [Fintype J] [DecidableEq J]
     (kind : SecondOrderFamily) (t βL βH μL μH bmax η : ℝ)

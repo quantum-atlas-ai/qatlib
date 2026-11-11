@@ -40,6 +40,34 @@ import Mathlib.Analysis.Fourier.ZMod
 import Mathlib.Analysis.Fourier.AddCircle
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Algebra.BigOperators.Fin
+
+/-!
+# Canonical polynomial complements and Fourier approximation
+
+This module constructs a polynomial complement with positive real value at zero and no zeros in
+the closed unit disk for a polynomial strictly bounded by one on the unit circle. It proves
+Schwarz-integral and Fourier-series representations, coefficient decay, sampling alias
+identities, and a discrete reconstruction error bound. Polynomial complementation is a component
+of quantum signal processing [LowChuang2017].
+
+`radixTwoFourier` supplies an explicit radix-two transform with its Fourier semantics and two
+operation counters. The remaining estimates control logarithmic projection, exponentiation, and
+recovery of the complementary polynomial coefficients.
+
+## Main statements
+
+* `canonical_complement_outer_exists`: existence of a normalized zero-free complement.
+* `canonical_complement_schwarz_representation`: the exponential Schwarz-integral
+  representation.
+* `canonical_complement_discrete_fourier_accuracy`: coefficient accuracy under an explicit
+  sampling threshold.
+* `radix_two_fourier_actual_recursion_and_cost`: transform semantics and recorded costs.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,6 +81,8 @@ namespace Qatlib.Concepts.LaurentPolys.CanonicalComplementFFT
 open Polynomial
 open scoped Classical BigOperators ComplexOrder
 
+/-- The recursive radix-two discrete Fourier transform on `2^m` samples, returned with two
+accumulated arithmetic-operation counters. -/
 def radixTwoFourier : (m : ℕ) → (Fin (2^m) → ℂ) →
     ((Fin (2^m) → ℂ) × ℕ × ℕ)
   | 0, f => (f, 0, 0)
@@ -67,9 +97,13 @@ def radixTwoFourier : (m : ℕ) → (Fin (2^m) → ℂ) →
                 else -(ω^j'.val*o.1 j')),
       e.2.1+o.2.1+2^m, e.2.2+o.2.2+2^(m+1))
 
+/-- At transform size one, `radixTwoFourier` returns the input with both operation counters
+zero. -/
 @[simp] theorem radixTwoFourier_zero (f : Fin (2^0) → ℂ) :
     radixTwoFourier 0 f = (f, 0, 0) := rfl
 
+/-- The two counters returned by `radixTwoFourier m f` equal `m * 2^m / 2` and `m * 2^m`,
+respectively. -/
 theorem radixTwoFourier_cost (m : ℕ) (f : Fin (2^m) → ℂ) :
     (radixTwoFourier m f).2.1 = m*2^m/2 ∧
       (radixTwoFourier m f).2.2 = m*2^m := by
@@ -90,6 +124,7 @@ theorem radixTwoFourier_cost (m : ℕ) (f : Fin (2^m) → ℂ) :
   · rw [← hm]; omega
   · exact ha
 
+/-- Splits a sum over `Fin (n * 2)` into its even-indexed and odd-indexed terms. -/
 private theorem sum_even_odd (n : ℕ) (f : Fin (n*2) → ℂ) :
     ∑ l, f l =
       (∑ l : Fin n, f ⟨2*l.val, by have := l.isLt; omega⟩) +
@@ -100,6 +135,8 @@ private theorem sum_even_odd (n : ℕ) (f : Fin (n*2) → ℂ) :
   simp only [Finset.sum_add_distrib]
   congr 1 <;> apply Finset.sum_congr rfl <;> intro l _ <;> congr 1 <;> apply Fin.ext <;> simp [add_comm]
 
+/-- When `w^n = -1` and `j < 2*n`, rewrites the even-index Fourier power using `w^2` and `j %
+n`. -/
 private theorem fourier_even_power (n j k : ℕ) (_hn : 0 < n) (hj : j < n*2)
     (w : ℂ) (hw : w^n = -1) :
     w^(j*(2*k)) = (w^2)^((j%n)*k) := by
@@ -117,6 +154,8 @@ private theorem fourier_even_power (n j k : ℕ) (_hn : 0 < n) (hj : j < n*2)
     congr 2
     rw [Nat.add_mod_right, Nat.mod_mod]
 
+/-- When `w^n = -1` and `j < 2*n`, splits the odd-index Fourier power into a reduced-index power
+and a sign determined by the half containing `j`. -/
 private theorem fourier_odd_power (n j k : ℕ) (hn : 0 < n) (hj : j < n*2)
     (w : ℂ) (hw : w^n = -1) :
     w^(j*(2*k+1)) =
@@ -134,6 +173,8 @@ private theorem fourier_odd_power (n j k : ℕ) (hn : 0 < n) (hj : j < n*2)
       w^j = w^(n+j%n) := by rw [← hsplit]
       _ = -(w^(j%n)) := by rw [pow_add, hw]; ring
 
+/-- Decomposes a length-`2*n` Fourier sum into even and odd length-`n` sums with the
+corresponding twiddle factor and sign. -/
 private theorem fourier_sum_butterfly (n : ℕ) (hn : 0 < n)
     (f : Fin (n*2) → ℂ) (j : Fin (n*2)) (w : ℂ) (hw : w^n = -1) :
     (∑ l, f l*w^(j.val*l.val)) =
@@ -151,9 +192,11 @@ private theorem fourier_sum_butterfly (n : ℕ) (hn : 0 < n)
   split_ifs <;> simp only [Finset.mul_sum, ← Finset.sum_neg_distrib] <;>
     congr 1 <;> apply Finset.sum_congr rfl <;> intro l _ <;> ring
 
+/-- The complex Fourier root `exp (-2πi / N)`. -/
 private def fourierRoot (N : ℕ) : ℂ :=
   Complex.exp ((-2*Real.pi/(N : ℝ) : ℝ)*Complex.I)
 
+/-- Expresses a natural power of `fourierRoot N` as the corresponding complex exponential. -/
 private theorem fourierRoot_power (N j l : ℕ) :
     fourierRoot N^(j*l) =
       Complex.exp ((-2*Real.pi*j*l/(N : ℕ) : ℝ)*Complex.I) := by
@@ -162,6 +205,8 @@ private theorem fourierRoot_power (N j l : ℕ) :
   push_cast
   ring
 
+/-- For positive `n`, squaring the Fourier root for size `2*n` gives the Fourier root for size
+`n`. -/
 private theorem fourierRoot_square (n : ℕ) (hn : 0 < n) :
     fourierRoot (n*2)^2 = fourierRoot n := by
   have hnc : (n : ℂ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hn)
@@ -171,6 +216,7 @@ private theorem fourierRoot_square (n : ℕ) (hn : 0 < n) :
   push_cast
   field_simp
 
+/-- For positive `n`, the `n`th power of the Fourier root for size `2*n` equals minus one. -/
 private theorem fourierRoot_half (n : ℕ) (hn : 0 < n) :
     fourierRoot (n*2)^n = -1 := by
   have hnc : (n : ℂ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hn)
@@ -183,6 +229,8 @@ private theorem fourierRoot_half (n : ℕ) (hn : 0 < n) :
   rw [ha, Complex.exp_neg, Complex.exp_pi_mul_I]
   norm_num
 
+/-- The value returned by the radix-two recursion is the Fourier sum expressed through powers of
+`fourierRoot (2^m)`. -/
 private theorem radixTwoFourier_power_semantics (m : ℕ) (f : Fin (2^m) → ℂ)
     (j : Fin (2^m)) :
     (radixTwoFourier m f).1 j = ∑ l, f l*fourierRoot (2^m)^(j.val*l.val) := by
@@ -216,12 +264,16 @@ private theorem radixTwoFourier_power_semantics (m : ℕ) (f : Fin (2^m) → ℂ
     rw [hsum] at hs
     simpa only [e, o, g, jb, j', Fin.val_cast, Fin.cast_mk, ← pow_succ] using! hs.symm
 
+/-- The radix-two recursion computes the unnormalized discrete Fourier transform with negative
+exponential phase. -/
 theorem radixTwoFourier_semantics (m : ℕ) (f : Fin (2^m) → ℂ)
     (j : Fin (2^m)) :
     (radixTwoFourier m f).1 j = ∑ l : Fin (2^m),
       f l*Complex.exp ((-2*Real.pi*j.val*l.val/(2^m : ℕ) : ℝ)*Complex.I) := by
   simpa only [fourierRoot_power] using! radixTwoFourier_power_semantics m f j
 
+/-- There exists a radix-two transform satisfying the stated butterfly recursion, exact discrete
+Fourier semantics, and counter formulas `m * 2^m / 2` and `m * 2^m`. -/
 theorem radix_two_fourier_actual_recursion_and_cost :
     ∃ F : (m : ℕ) → (Fin (2^m) → ℂ) →
         ((Fin (2^m) → ℂ) × ℕ × ℕ),
@@ -242,6 +294,8 @@ theorem radix_two_fourier_actual_recursion_and_cost :
   intro m f
   exact ⟨radixTwoFourier_semantics m f, radixTwoFourier_cost m f⟩
 
+/-- On the unit circle, reflecting the linear factor associated with `r` preserves its norm: `‖1
+- star r * z‖ = ‖z - r‖`. -/
 private theorem reflected_factor_circle_norm (r z : ℂ) (hz : ‖z‖ = 1) :
     ‖1-star r*z‖ = ‖z-r‖ := by
   have hzz : z*star z = 1 := by
@@ -253,6 +307,7 @@ private theorem reflected_factor_circle_norm (r z : ℂ) (hz : ‖z‖ = 1) :
       ring
     _ = ‖z-r‖ := by rw [norm_mul, hz, norm_star, one_mul]
 
+/-- If `‖r‖ < 1` and `‖z‖ ≤ 1`, the reflected factor `1 - star r * z` is nonzero. -/
 private theorem reflected_factor_ne_zero (r z : ℂ) (hr : ‖r‖ < 1) (hz : ‖z‖ ≤ 1) :
     1-star r*z ≠ 0 := by
   intro he
@@ -261,6 +316,8 @@ private theorem reflected_factor_ne_zero (r z : ℂ) (hr : ‖r‖ < 1) (hz : �
   have hle : ‖r‖*‖z‖ ≤ ‖r‖ := by nlinarith [norm_nonneg r]
   linarith
 
+/-- A polynomial nonvanishing on the unit circle has a polynomial of no greater degree that is
+zero-free on the closed disk and has the same boundary norm. -/
 theorem polynomial_outer_circle_factor (A : Polynomial ℂ)
     (ha : ∀ z : ℂ, ‖z‖ = 1 → A.eval z ≠ 0) :
     ∃ B : Polynomial ℂ, B.natDegree ≤ A.natDegree ∧
@@ -325,6 +382,9 @@ theorem polynomial_outer_circle_factor (A : Polynomial ℂ)
         simp only [eval_mul, norm_mul]
         rw [hBc z hz, hAg, eval_mul, norm_mul]
 
+/-- A polynomial of degree at most `d` bounded by `1 - δ` on the unit circle, with `0 < δ < 1`,
+has a degree-at-most-`d` complement that is zero-free on the closed disk and positive real
+at zero. -/
 theorem canonical_complement_outer_exists (P : Polynomial ℂ) (d : ℕ) (δ : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ 1-δ) :
@@ -360,6 +420,8 @@ theorem canonical_complement_outer_exists (P : Polynomial ℂ) (d : ℕ) (δ : �
   · intro z hz
     simpa only [eval_mul, eval_C, norm_mul, hcn, one_mul, hBc z hz] using! hAc z hz
 
+/-- A polynomial with no zeros on the closed unit disk possesses a holomorphic logarithm on the
+open disk that is continuous on the closed disk. -/
 private theorem polynomial_disk_log_exists (A : Polynomial ℂ)
     (ha : ∀ z : ℂ, ‖z‖ ≤ 1 → A.eval z ≠ 0) :
     ∃ H : ℂ → ℂ, DiffContOnCl ℂ H (Metric.ball 0 1) ∧
@@ -410,6 +472,8 @@ private theorem polynomial_disk_log_exists (A : Polynomial ℂ)
 
 set_option maxHeartbeats 800000 in
 
+/-- Recovers a holomorphic function from the Schwarz-kernel circle average of its real part when
+its value at zero has zero imaginary part. -/
 private theorem schwarz_circle_average (H : ℂ → ℂ)
     (hH : DiffContOnCl ℂ H (Metric.ball 0 1)) (hH0 : (H 0).im = 0)
     (z : ℂ) (hz : ‖z‖ < 1) :
@@ -505,6 +569,9 @@ private theorem schwarz_circle_average (H : ℂ → ℂ)
         smul_eq_mul]
       ring
 
+/-- A strictly contractive polynomial on the unit circle has a normalized zero-free polynomial
+complement represented inside the disk by the exponential of the stated Schwarz integral of
+the logarithmic residual. -/
 theorem canonical_complement_schwarz_representation :
     ∀ (P : Polynomial ℂ) (d : ℕ) (δ : ℝ), P.natDegree ≤ d → 0 < δ → δ < 1 →
       (∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ 1-δ) →
@@ -566,6 +633,7 @@ theorem canonical_complement_schwarz_representation :
       field_simp
       ring
 
+/-- For `0 < δ` and `‖z‖ ≤ 1 - δ`, bounds `‖Complex.log (1 - z)‖` by `Real.log (1 / δ)`. -/
 theorem canonicalComplement_log_bound (z : ℂ) (δ : ℝ)
     (hδ : 0 < δ) (hz : ‖z‖ ≤ 1-δ) :
     ‖Complex.log (1-z)‖ ≤ Real.log (1/δ) := by
@@ -587,6 +655,8 @@ theorem canonicalComplement_log_bound (z : ℂ) (δ : ℝ)
   rw [one_div, Real.log_inv]
   exact hh.trans (neg_le_neg (Real.log_le_log hδ (by linarith)))
 
+/-- A uniform norm bound for a polynomial on the unit circle also holds throughout the closed
+unit disk. -/
 theorem canonicalComplement_polynomial_disk_bound (P : Polynomial ℂ) (c : ℝ)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ c)
     (z : ℂ) (hz : ‖z‖ ≤ 1) : ‖P.eval z‖ ≤ c := by
@@ -599,6 +669,8 @@ theorem canonicalComplement_polynomial_disk_bound (P : Polynomial ℂ) (c : ℝ)
   · rw [closure_ball 0 (by norm_num : (1 : ℝ) ≠ 0)]
     simpa [Metric.mem_closedBall, dist_eq_norm] using! hz
 
+/-- Outside the unit disk, a polynomial of degree at most `d` with boundary norm at most `c` is
+bounded by `‖z‖^d * c`. -/
 theorem canonicalComplement_polynomial_exterior_bound (P : Polynomial ℂ) (d : ℕ)
     (c : ℝ) (hp : P.natDegree ≤ d)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ c)
@@ -624,6 +696,8 @@ theorem canonicalComplement_polynomial_exterior_bound (P : Polynomial ℂ) (d : 
   rw [norm_inv]
   exact inv_le_one_of_one_le₀ hz
 
+/-- Under the stated degree, margin, and radius conditions, bounds `‖P(z) * star (P((star
+z)⁻¹))‖` by `1 - δ` on the annulus `1/r ≤ ‖z‖ ≤ r`. -/
 theorem canonicalComplement_annulus_residual_bound (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hr : 1 ≤ r) (hrc : r^d*(1-δ) ≤ 1)
@@ -654,6 +728,8 @@ theorem canonicalComplement_annulus_residual_bound (P : Polynomial ℂ) (d : ℕ
       (canonicalComplement_polynomial_disk_bound P (1-δ) hP z hz')
       (houter _ hw hir) (norm_nonneg _) (by linarith : 0 ≤ 1-δ)
 
+/-- Under the stated degree, margin, and radius conditions, bounds the logarithmic residual norm
+by `log (1 / δ)` on the annulus `1/r ≤ ‖z‖ ≤ r`. -/
 theorem canonicalComplement_annulus_log_bound (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hr : 1 ≤ r) (hrc : r^d*(1-δ) ≤ 1)
@@ -663,6 +739,7 @@ theorem canonicalComplement_annulus_log_bound (P : Polynomial ℂ) (d : ℕ) (δ
   exact canonicalComplement_log_bound _ δ hδ
     (canonicalComplement_annulus_residual_bound P d δ r hp hδ hδ1 hr hrc hP z hzl hzu)
 
+/-- Bounds the distance from `Complex.exp z` to one by `Real.exp ‖z‖ - 1`. -/
 theorem canonicalComplement_exp_majorant (z : ℂ) :
     ‖Complex.exp z-1‖ ≤ Real.exp ‖z‖-1 := by
   have hc : HasSum (fun n : ℕ => z^n/(n.factorial : ℂ)) (Complex.exp z) := by
@@ -677,6 +754,7 @@ theorem canonicalComplement_exp_majorant (z : ℂ) :
     simpa using! hr
   exact hc'.norm_le_of_bounded hr' (fun n => by simp)
 
+/-- For `0 < ε < 1`, the exponential error majorant `exp (2*ε/3) - 1` is strictly less than ε. -/
 theorem canonicalComplement_exp_two_thirds_lt (ε : ℝ) (hε : 0 < ε) (hε1 : ε < 1) :
     Real.exp (2*ε/3)-1 < ε := by
   have hl := strictConcaveOn_log_Ioi.2 (by norm_num : (1 : ℝ) ∈ Set.Ioi 0)
@@ -690,6 +768,7 @@ theorem canonicalComplement_exp_two_thirds_lt (ε : ℝ) (hε : 0 < ε) (hε1 : 
   rw [Real.exp_log (by linarith : 0 < 1+ε)] at he2
   linarith
 
+/-- If `‖exp x‖ ≤ 1` and `‖y - x‖ ≤ 2*ε/3` with `0 < ε < 1`, then `‖exp y - exp x‖ < ε`. -/
 theorem canonicalComplement_exp_perturbation (x y : ℂ) (ε : ℝ)
     (hε : 0 < ε) (hε1 : ε < 1) (hx : ‖Complex.exp x‖ ≤ 1)
     (hxy : ‖y-x‖ ≤ 2*ε/3) : ‖Complex.exp y-Complex.exp x‖ < ε := by
@@ -706,6 +785,7 @@ theorem canonicalComplement_exp_perturbation (x y : ℂ) (ε : ℝ)
       exact sub_le_sub_right (Real.exp_le_exp.mpr hxy) 1
     _ < ε := canonicalComplement_exp_two_thirds_lt ε hε hε1
 
+/-- For `r > 1` and `A > 0`, the stated ceiling threshold on `2*K` implies `A ≤ r^K`. -/
 theorem canonicalComplement_threshold_power (r A : ℝ) (K : ℕ)
     (hr : 1 < r) (hA : 0 < A)
     (hN : (Nat.ceil (2/Real.log r*Real.log A) : ℕ) ≤ 2*K) : A ≤ r^K := by
@@ -721,6 +801,8 @@ theorem canonicalComplement_threshold_power (r A : ℝ) (K : ℕ)
     _ ≤ Real.exp (Real.log r*(K : ℝ)) := Real.exp_le_exp.mpr hh'
     _ = r^K := by rw [← Real.rpow_def_of_pos hr0, Real.rpow_natCast]
 
+/-- For a primitive `N`th root and indices below positive `N`, the Fourier character sum is `N`
+when the indices agree and zero otherwise. -/
 private theorem canonicalComplement_root_orthogonality (N k n : ℕ) (ω : ℂ) (hN : 0 < N)
     (hω : IsPrimitiveRoot ω N) (hk : k < N) (hn : n < N) :
     (∑ j : Fin N, ω^(k*j.val)*ω^(-(n*j.val : ℤ))) =
@@ -745,6 +827,8 @@ private theorem canonicalComplement_root_orthogonality (N k n : ℕ) (ω : ℂ) 
       rw [zpow_sub₀ hω0, zpow_natCast, zpow_natCast] at he
       exact hkn (hω.pow_inj hk hn (eq_of_div_eq_one he))
 
+/-- A normalized discrete Fourier sum of a polynomial's values at primitive `N`th roots recovers
+each coefficient below `N` when its degree is less than `N`. -/
 theorem canonicalComplement_polynomial_dft_exact (Q : Polynomial ℂ) (N : ℕ) (hN : 0 < N) (hQ : Q.natDegree < N)
     (ω : ℂ) (hω : IsPrimitiveRoot ω N) (n : ℕ) (hn : n < N) :
     (N : ℂ)⁻¹*∑ j : Fin N, Q.eval (ω^j.val)*ω^(-(n*j.val : ℤ)) = Q.coeff n := by
@@ -777,15 +861,20 @@ theorem canonicalComplement_polynomial_dft_exact (Q : Polynomial ℂ) (N : ℕ) 
       have hNc : (N : ℂ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hN
       field_simp
 
+/-- The principal complex logarithm of one minus the product of `P(z)` and the
+conjugate-coefficient polynomial evaluated at `z⁻¹`. -/
 def canonicalComplementLogResidual (P : Polynomial ℂ) (z : ℂ) : ℂ :=
   Complex.log (1-P.eval z*(P.map (starRingEnd ℂ)).eval z⁻¹)
 
+/-- Expresses `canonicalComplementLogResidual` using the conjugate value of `P` at `(star z)⁻¹`. -/
 theorem canonicalComplementLogResidual_eq (P : Polynomial ℂ) (z : ℂ) :
     canonicalComplementLogResidual P z = Complex.log (1-P.eval z*star (P.eval ((star z)⁻¹))) := by
   have he := Polynomial.eval_map_apply (p := P) (starRingEnd ℂ) ((star z)⁻¹)
   simp only [map_inv₀, starRingEnd_apply, star_star] at he
   rw [canonicalComplementLogResidual, he]
 
+/-- The logarithmic residual is complex differentiable at every point of the stated annulus
+under the degree, margin, and radius conditions. -/
 theorem canonicalComplementLogResidual_differentiable (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hr : 1 ≤ r) (hrc : r^d*(1-δ) ≤ 1)
@@ -808,10 +897,14 @@ theorem canonicalComplementLogResidual_differentiable (P : Polynomial ℂ) (d : 
     fun_prop (disch := exact hz0)
   exact hd.clog hs
 
+/-- The contour-integral coefficient of the logarithmic residual at the nonnegative frequency
+`n` on the unit circle. -/
 def canonicalComplementLogCoefficient (P : Polynomial ℂ) (n : ℕ) : ℂ :=
   (2*Real.pi*Complex.I : ℂ)⁻¹ •
     ∮ z : ℂ in C(0,1), z^(-((n+1 : ℕ) : ℤ))*canonicalComplementLogResidual P z
 
+/-- Under the stated degree, margin, and radius conditions, the `n`th logarithmic coefficient
+has norm at most `log (1 / δ) / r^n`. -/
 theorem canonicalComplementLogCoefficient_bound (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hr : 1 ≤ r) (hrc : r^d*(1-δ) ≤ 1)
@@ -862,6 +955,8 @@ theorem canonicalComplementLogCoefficient_bound (P : Polynomial ℂ) (d : ℕ) (
 
 local instance canonicalComplementPeriodPos : Fact (0 < 2*Real.pi) := ⟨Real.two_pi_pos⟩
 
+/-- Identifies a nonnegative Fourier coefficient of a circle-parametrized function with its
+circle average weighted by the corresponding inverse power. -/
 theorem canonicalComplement_fourierCoeff_eq_circleAverage (f : ℂ → ℂ) (n : ℕ) :
     fourierCoeff (T := 2*Real.pi) (fun θ => f (θ.toCircle : ℂ)) (n : ℤ) =
       Real.circleAverage (fun z => z^(-(n : ℤ))*f z) 0 1 := by
@@ -884,6 +979,8 @@ theorem canonicalComplement_fourierCoeff_eq_circleAverage (f : ℂ → ℂ) (n :
   push_cast
   field_simp
 
+/-- Expresses the logarithmic contour coefficient as the unit-circle average of the logarithmic
+residual times the inverse `n`th power. -/
 theorem canonicalComplementLogCoefficient_eq_circleAverage (P : Polynomial ℂ) (n : ℕ) : canonicalComplementLogCoefficient P n =
     Real.circleAverage (fun z => z^(-(n : ℤ))*canonicalComplementLogResidual P z) 0 1 := by
   rw [Real.circleAverage_eq_circleIntegral (by norm_num : (1 : ℝ) ≠ 0)]
@@ -897,6 +994,8 @@ theorem canonicalComplementLogCoefficient_eq_circleAverage (P : Polynomial ℂ) 
   rw [← zpow_neg_one, ← mul_assoc, ← zpow_add₀ hz0]
   rw [show -((n+1 : ℕ) : ℤ) = (-1 : ℤ)+(-(n : ℤ)) by omega]
 
+/-- The `n`th logarithmic contour coefficient equals the nonnegative Fourier coefficient of the
+residual pulled back to `AddCircle (2*π)`. -/
 theorem canonicalComplementLogCoefficient_eq_fourierCoeff (P : Polynomial ℂ) (n : ℕ) :
     canonicalComplementLogCoefficient P n =
       fourierCoeff (T := 2*Real.pi)
@@ -904,6 +1003,8 @@ theorem canonicalComplementLogCoefficient_eq_fourierCoeff (P : Polynomial ℂ) (
   rw [canonicalComplementLogCoefficient_eq_circleAverage,
     canonicalComplement_fourierCoeff_eq_circleAverage]
 
+/-- Bounds the norm of the nonnegative `n`th Fourier coefficient of the logarithmic residual by
+`log (1 / δ) / r^n` under the stated hypotheses. -/
 theorem canonicalComplement_fourierCoeff_bound (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hr : 1 ≤ r) (hrc : r^d*(1-δ) ≤ 1)
@@ -914,6 +1015,8 @@ theorem canonicalComplement_fourierCoeff_bound (P : Polynomial ℂ) (d : ℕ) (�
   rw [← canonicalComplementLogCoefficient_eq_fourierCoeff]
   exact canonicalComplementLogCoefficient_bound P d δ r hp hδ hδ1 hr hrc hP n
 
+/-- On the unit circle, the logarithmic residual equals the real logarithm of `1 - ‖P.eval
+z‖^2`, embedded in the complex numbers. -/
 theorem canonicalComplementLogResidual_circle (P : Polynomial ℂ) (δ : ℝ)
     (hδ : 0 < δ) (hδ1 : δ < 1)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ 1-δ)
@@ -929,6 +1032,8 @@ theorem canonicalComplementLogResidual_circle (P : Polynomial ℂ) (δ : ℝ)
   rw [Complex.star_def, Complex.mul_conj, Complex.normSq_eq_norm_sq]
   simpa only [Complex.ofReal_sub, Complex.ofReal_one] using! (Complex.ofReal_log hpos).symm
 
+/-- For a real-valued complex function on the circle, the Fourier coefficient at `-k` is the
+conjugate of the coefficient at `k`. -/
 private theorem canonicalComplement_fourierCoeff_neg_of_real
     (f : AddCircle (2*Real.pi) → ℂ) (hf : ∀ x, star (f x) = f x) (k : ℤ) :
     fourierCoeff f (-k) = star (fourierCoeff f k) := by
@@ -939,6 +1044,8 @@ private theorem canonicalComplement_fourierCoeff_neg_of_real
     simp only [smul_eq_mul, map_mul, ← fourier_neg, neg_neg]
     rw [← Complex.star_def, hf])
 
+/-- Bounds the norm of every integer Fourier coefficient of the logarithmic residual by `log (1
+/ δ) / r^|k|` under the stated hypotheses. -/
 theorem canonicalComplement_fourierCoeff_int_bound
     (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
@@ -964,6 +1071,8 @@ theorem canonicalComplement_fourierCoeff_int_bound
     rw [hs, norm_star]
     exact hb
 
+/-- For an admissible annulus radius `r > 1`, the integer Fourier coefficients of the
+logarithmic residual are summable. -/
 theorem canonicalComplement_fourierCoeff_summable
     (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
@@ -983,6 +1092,8 @@ theorem canonicalComplement_fourierCoeff_summable
   exact hint.of_norm_bounded
     (canonicalComplement_fourierCoeff_int_bound P d δ r hp hδ hδ1 hr.le hrc hP)
 
+/-- Under the stated strict-margin and annulus hypotheses, the Fourier series of the logarithmic
+residual sums to its value at every circle point. -/
 theorem canonicalComplement_fourier_reconstruction
     (P : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
@@ -1007,6 +1118,9 @@ theorem canonicalComplement_fourier_reconstruction
     canonicalComplement_fourierCoeff_summable P d δ r hp hδ hδ1 hr hrc hP
   simpa only [smul_eq_mul] using! has_pointwise_sum_fourier_series_of_summable hs θ
 
+/-- A polynomial zero-free on the closed disk and positive real at zero possesses a holomorphic
+logarithm continuous on the closed disk whose value at zero is the real logarithm of that
+positive value. -/
 private theorem canonicalComplement_normalized_log (Q : Polynomial ℂ)
     (hQr : 0 < (Q.eval 0).re) (hQi : (Q.eval 0).im = 0)
     (hQn : ∀ z : ℂ, ‖z‖ ≤ 1 → Q.eval z ≠ 0) :
@@ -1027,6 +1141,8 @@ private theorem canonicalComplement_normalized_log (Q : Polynomial ℂ)
     exact mul_div_cancel_right₀ _ hQ0
   · simp [L, c]
 
+/-- For a primitive root of positive order `N`, the integer-frequency character sum is `N`
+exactly when `N` divides the frequency, and zero otherwise. -/
 private theorem canonicalComplement_root_orthogonality_int (N : ℕ) (k : ℤ)
     (ω : ℂ) (hN : 0 < N) (hω : IsPrimitiveRoot ω N) :
     (∑ j : Fin N, ω^(k*j.val)) = if (N : ℤ) ∣ k then (N : ℂ) else 0 := by
@@ -1045,6 +1161,8 @@ private theorem canonicalComplement_root_orthogonality_int (N : ℕ) (k : ℤ)
       rw [he, sub_self, zero_div]
     · exact fun he => hk ((hω.zpow_eq_one_iff_dvd k).mp he)
 
+/-- For a circle-integrable logarithmic residual, its nonnegative coefficient series at an
+interior disk point sums to the stated Cauchy-kernel circle average. -/
 private theorem canonicalComplement_positive_series_cauchy
     (P : Polynomial ℂ) (hi : CircleIntegrable (canonicalComplementLogResidual P) 0 1)
     (z : ℂ) (hz : ‖z‖ < 1) :
@@ -1082,10 +1200,15 @@ private theorem canonicalComplement_positive_series_cauchy
   rw [hvalue]
   simpa only [← hterm] using! hs
 
+/-- The nonnegative logarithmic coefficient series with half of its constant coefficient
+subtracted. -/
 def canonicalComplementLogSeries (P : Polynomial ℂ) (z : ℂ) : ℂ :=
   (∑' n : ℕ, canonicalComplementLogCoefficient P n * z^n) -
     canonicalComplementLogCoefficient P 0 / 2
 
+/-- For a normalized zero-free complement and the stated strict-margin and annulus conditions,
+exponentiating `canonicalComplementLogSeries P` recovers the complement on the closed unit
+disk. -/
 theorem canonicalComplementLogSeries_exp (P Q : Polynomial ℂ) (d : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hr : 1 < r) (hrc : r^d*(1-δ) ≤ 1)
@@ -1191,6 +1314,8 @@ theorem canonicalComplementLogSeries_exp (P Q : Polynomial ℂ) (d : ℕ) (δ r 
     Metric.ball_subset_closedBall (by rw [closure_ball 0 (by norm_num : (1 : ℝ) ≠ 0)])
   exact hclosed (by simpa using! hz)
 
+/-- A normalized Fourier sum of samples of a summable integer-frequency series equals the sum of
+coefficients in the selected residue class modulo `N`. -/
 theorem canonicalComplement_sample_alias (N : ℕ) (n : ℤ) (ω : ℂ)
     (hN : 0 < N) (hω : IsPrimitiveRoot ω N) (hωnorm : ‖ω‖ = 1)
     (a : ℤ → ℂ) (ha : Summable a) (samples : Fin N → ℂ)
@@ -1227,6 +1352,8 @@ theorem canonicalComplement_sample_alias (N : ℕ) (n : ℤ) (ω : ℂ)
     field_simp
   · simp [hk]
 
+/-- The discrete Fourier coefficient of sampled real logarithmic residual values equals the sum
+of the continuous Fourier coefficients congruent to that frequency modulo `N`. -/
 theorem canonicalComplement_actual_sample_alias
     (P : Polynomial ℂ) (d N : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
@@ -1270,14 +1397,22 @@ theorem canonicalComplement_actual_sample_alias
   rw [canonicalComplementLogResidual_circle P δ hδ hδ1 hP _ (by simp [norm_pow, hωnorm])] at hs
   exact hs
 
+/-- The periodic frequency weight selecting residues from zero through `K` modulo `2*K`, with
+weight one half at residue zero. -/
 private def canonicalComplementProjectionWeight (K : ℕ) (k : ℤ) : ℝ :=
   if k % (2*K : ℕ) = 0 then 1/2 else if k % (2*K : ℕ) ≤ K then 1 else 0
+/-- The frequency weight equal to one half at zero, one at positive frequencies, and zero at
+negative frequencies. -/
 private def canonicalComplementOuterWeight (k : ℤ) : ℝ := if k=0 then 1/2 else if 0<k then 1 else 0
 
+/-- The pointwise difference between the periodic projection weight and the outer-series weight
+has absolute value at most one. -/
 private theorem canonicalComplementProjectionWeight_bound (K : ℕ) (k : ℤ) : |canonicalComplementProjectionWeight K k-canonicalComplementOuterWeight k| ≤ 1 := by
   unfold canonicalComplementProjectionWeight canonicalComplementOuterWeight
   split_ifs <;> norm_num
 
+/-- For positive `K` and frequencies of absolute value less than `K`, the periodic projection
+weight equals the outer-series weight. -/
 private theorem canonicalComplementProjectionWeight_low (K : ℕ) (hK : 0 < K) (k : ℤ) (hk : k.natAbs < K) : canonicalComplementProjectionWeight K k = canonicalComplementOuterWeight k := by
   cases k with
   | ofNat n =>
@@ -1301,6 +1436,8 @@ private theorem canonicalComplementProjectionWeight_low (K : ℕ) (hK : 0 < K) (
     rw [he]
     split_ifs <;> first | rfl | omega
 
+/-- For positive `K`, summing the half-weighted zero mode and unit-weighted modes through `K` in
+the selected residue class gives the periodic projection weight. -/
 private theorem canonicalComplementProjectionWeight_filtered (K : ℕ) (hK : 0 < K) (k : ℤ) :
     (∑ l ∈ Finset.range (K+1), if ((2*K : ℕ) : ℤ) ∣ k-l then
       (if l=0 then (1/2 : ℝ) else 1) else 0) = canonicalComplementProjectionWeight K k := by
@@ -1326,6 +1463,7 @@ private theorem canonicalComplementProjectionWeight_filtered (K : ℕ) (hK : 0 <
       simp only [Finset.sum_ite_eq, Finset.mem_range, Nat.cast_eq_zero, Nat.cast_le]
       split_ifs <;> first | rfl | omega
 
+/-- For `M ≥ 0` and `r > 1`, the geometric tail from `K` equals `M * r / (r - 1) / r^K`. -/
 private theorem canonicalComplement_nat_tail (M r : ℝ) (hM : 0 ≤ M) (hr : 1 < r) (K : ℕ) :
     (∑' n : ℕ, if K ≤ n then M/r^n else 0) = M*r/(r-1)/r^K := by
   have hr0 : 0 < r := by linarith
@@ -1359,6 +1497,8 @@ private theorem canonicalComplement_nat_tail (M r : ℝ) (hM : 0 ≤ M) (hr : 1 
       rw [tsum_geometric_of_lt_one (inv_nonneg.mpr hr0.le) ((inv_lt_one₀ hr0).mpr hr)]
       field_simp
 
+/-- For positive `K`, `M ≥ 0`, and `r > 1`, the two-sided geometric tail at frequencies of
+absolute value at least `K` equals `2 * M * r / (r - 1) / r^K`. -/
 private theorem canonicalComplement_int_tail (M r : ℝ) (hM : 0 ≤ M) (hr : 1 < r) (K : ℕ) (hK : 0 < K) :
     (∑' k : ℤ, if K ≤ k.natAbs then M/r^k.natAbs else 0) = 2*M*r/(r-1)/r^K := by
   have hr0 : 0 < r := by linarith
@@ -1393,6 +1533,8 @@ private theorem canonicalComplement_int_tail (M r : ℝ) (hM : 0 ≤ M) (hr : 1 
   rw [htail]
   ring
 
+/-- For coefficients bounded by `M / r^|k|` with `1 < r ≤ 2`, bounds the difference between the
+periodic projection and outer-series sums by `4*M / ((r - 1)*r^K)`. -/
 private theorem canonicalComplement_half_projection_tail_bound (a : ℤ → ℂ) (ha : Summable a)
     (M r : ℝ) (hM : 0 ≤ M) (hr : 1 < r) (hr2 : r ≤ 2)
     (hcoeff : ∀ k : ℤ, ‖a k‖ ≤ M/r^k.natAbs)
@@ -1465,6 +1607,8 @@ private theorem canonicalComplement_half_projection_tail_bound (a : ℤ → ℂ)
       apply (div_le_div_iff_of_pos_right (by positivity : 0 < (r-1)*r^K)).mpr
       nlinarith
 
+/-- Identifies the finite half-weighted projection of aliased coefficient sums with the infinite
+series weighted by the periodic projection weight. -/
 private theorem canonicalComplement_project_alias_series
     (K : ℕ) (hK : 0 < K) (ω : ℂ) (hω : IsPrimitiveRoot ω (2*K))
     (a : ℤ → ℂ) (ha : Summable a) (j : ℕ) :
@@ -1519,6 +1663,8 @@ private theorem canonicalComplement_project_alias_series
       · simp only [if_neg hkl, mul_zero, zero_mul]
     _ = _ := by rw [hw]
 
+/-- Expresses the outer-weighted integer series as its nonnegative-frequency series minus half
+the zero-frequency coefficient. -/
 private theorem canonicalComplement_outer_series
     (a : ℤ → ℂ) (ha : Summable a) (ω : ℂ) (hω : ‖ω‖ = 1) (j : ℕ) :
     (∑' k : ℤ, (canonicalComplementOuterWeight k : ℂ)*a k*ω^(k*j)) =
@@ -1569,6 +1715,9 @@ private theorem canonicalComplement_outer_series
     Complex.ofReal_one, Complex.ofReal_ofNat, zero_mul, zpow_zero, mul_one, pow_zero]
   ring
 
+/-- Under the stated degree, margin, and annulus conditions, the logarithmic projection from
+`2*K` samples differs from the canonical logarithmic series by at most `4*log (1/δ) / ((r -
+1)*r^K)` at grid powers. -/
 theorem canonicalComplement_discrete_log_error
     (P : Polynomial ℂ) (d K : ℕ) (δ r : ℝ)
     (hp : P.natDegree ≤ d) (hδ : 0 < δ) (hδ1 : δ < 1)
@@ -1641,6 +1790,8 @@ theorem canonicalComplement_discrete_log_error
   exact canonicalComplement_half_projection_tail_bound a ha (Real.log (1/δ)) r hM hr hr2
     (canonicalComplement_fourierCoeff_int_bound P d δ r hp hδ hδ1 hr.le hrc hP) K hK ω hωnorm j
 
+/-- If all root-of-unity samples approximate a polynomial of degree below `N` within ε, their
+normalized Fourier sums approximate each coefficient below `N` within ε. -/
 private theorem canonicalComplement_dft_sample_error
     (Q : Polynomial ℂ) (N : ℕ) (hN : 0 < N) (hQ : Q.natDegree < N)
     (ω : ℂ) (hω : IsPrimitiveRoot ω N) (samples : Fin N → ℂ)
@@ -1675,6 +1826,9 @@ private theorem canonicalComplement_dft_sample_error
     _ < (N : ℝ)⁻¹*((N : ℝ)*ε) := mul_lt_mul_of_pos_left hsum (inv_pos.mpr hpos)
     _ = ε := by field_simp
 
+/-- Under the stated strict-margin hypotheses and explicit power-of-two sample threshold, the
+logarithm-projection, exponentiation, and discrete Fourier reconstruction approximate every
+complement coefficient through degree `d` within ε. -/
 theorem canonical_complement_discrete_fourier_accuracy :
 ∀ (P Q : Polynomial ℂ) (d m : ℕ) (δ ε : ℝ),
       0 < d → P.natDegree ≤ d → Q.natDegree ≤ d → 0 < δ → δ < 1 → 0 < ε → ε < 1 →

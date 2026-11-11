@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarGeneralWNStat
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarLocalDecisionAmpl
+
+/-!
+# General Haar pair readout and orientation preservation
+
+This module proves that unitary transformations acting separately on the two orientation sectors
+preserve their measurement probabilities. `haarGeneralWN_answer` combines this invariance with
+dyadic state preparation, amplified pair readout, and the empty-marked-set case in the
+Haar-transform setting of [Cornwell2014].
+
+## Main statements
+
+* `haar_full_tail_decision`: After the prescribed amplification rounds, a common marked-pair
+  orientation is observed with probability at least 1−M/|I|, even after sector-preserving
+  unitary processing; this is at least 2/3 when 3M ≤ |I|.
+* `haarGeneralWN_answer`: Proves `HaarGeneralWN`, including dyadic preparation, exact circuit
+  counts, amplified orientation guarantees, the empty-set readout, and invariance under
+  sector-preserving unitaries; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 
@@ -16,6 +39,8 @@ open Qatlib.Concepts.PhaseGeometry.Phase Matrix
 open scoped Classical
 namespace Qatlib.Concepts.AmpTransform.HaarPairTest
 
+/-- A block-diagonal unitary acting separately on the two Boolean sectors preserves the
+probability of each sector. -/
 theorem haar_orientation_half_preserved {I : Type} [Fintype I] [DecidableEq I]
     (U : Bool → Matrix I I ℂ) (hU : ∀ b, U b ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState (I × Bool)) (b : Bool) :
@@ -36,6 +61,8 @@ theorem haar_orientation_half_preserved {I : Type} [Fintype I] [DecidableEq I]
   simp only [ha]
   exact sum_normSq_mulVec_of_mem_unitaryGroup (hU b) (fun j => ψ (j, b))
 
+/-- For M > 0, the event that `haarSourceReadout` returns b is exactly the Boolean sector b, so
+their measurement probabilities agree. -/
 theorem haarSourceReadout_nonempty {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 0 < M) (ψ : QState (I × Bool)) (b : Bool) :
     MeasureProb ψ (Finset.univ.filter (fun z => haarSourceReadout M z = some b)) =
@@ -44,6 +71,9 @@ theorem haarSourceReadout_nonempty {I : Type} [Fintype I] [DecidableEq I]
   ext z
   simp [haarSourceReadout, Nat.ne_of_gt hM]
 
+/-- After the prescribed amplification rounds, a common marked-pair orientation is observed with
+probability at least 1−M/|I|, even after sector-preserving unitary processing; this is at
+least 2/3 when 3M ≤ |I|. -/
 theorem haar_full_tail_decision {I : Type} [Fintype I] [DecidableEq I]
     (hI : 0 < Fintype.card I) (T' : Matrix (I × Bool) (I × Bool) ℂ)
     (seed : I × Bool) (hT : T' ∈ Matrix.unitaryGroup (I × Bool) ℂ)
@@ -68,6 +98,7 @@ theorem haar_full_tail_decision {I : Type} [Fintype I] [DecidableEq I]
     E hE S b horient
   exact hs.2
 
+/-- The dyadic preparation matrix is unitary and maps `haarDyadicSeed n` to the uniform state. -/
 theorem haarDyadicPreparation_spec (n : ℕ) :
     haarDyadicPreparation n ∈ Matrix.unitaryGroup (Reg (n-1) × Bool) ℂ ∧
     haarDyadicPreparation n *ᵥ Ket (haarDyadicSeed n) = Uniform (Reg (n-1) × Bool) := by
@@ -85,6 +116,9 @@ theorem haarDyadicPreparation_spec (n : ℕ) :
   rw [he, Real.sqrt_mul (by positivity), Complex.ofReal_mul, _root_.mul_inv_rev]
   exact mul_comm _ _
 
+/-- Proves `HaarGeneralWN`, including dyadic preparation, exact circuit counts, amplified
+orientation guarantees, the empty-set readout, and invariance under sector-preserving
+unitaries; see [Cornwell2014]. -/
 theorem haarGeneralWN_answer : HaarGeneralWN := by
   refine ⟨?_, ?_, ?_⟩
   · intro n _hn

@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptStat
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptionCounterexampleContracts
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
+
+/-!
+# Observed traces of interrupted search attempts
+
+This module identifies phase-observation traces and acceptance probabilities after a search
+circuit or query prefix. The theorem `interruptedSearchAttempt` assembles the corrected
+interruption contract, while `interruptedSearchAttempt_counterexample` refutes the legacy
+truncation contract.
+
+The observation formulas provide the search-call semantics used in minimum finding
+[DurrHoyer1996].
+
+## Main statements
+
+* `phaseCall_acceptance`: The acceptance probability of a circuit followed by search phase
+  observation equals the measurement probability of the marked-index subspace.
+* `interruptedSearchAttempt`: Establishes the query-prefix observation, query-count,
+  normalization, success-comparison, and reconstruction guarantees in `InterruptedSearchAttempt`
+  for the minimum-search setting [DurrHoyer1996].
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 
@@ -30,6 +56,7 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open Qatlib.Concepts.SearchStopping.GroverSuccess
 open scoped Classical BigOperators
 
+/-- The legacy interrupted-search-attempt contract is false. -/
 theorem interruptedSearchAttempt_counterexample : ¬ InterruptedSearchAttemptLegacy := by
   intro h
   have hN : 0 < Fintype.card (Fin 1) := by norm_num
@@ -52,6 +79,8 @@ theorem interruptedSearchAttempt_counterexample : ¬ InterruptedSearchAttemptLeg
   rw [hcut, hprefix, show Run O [] ψ = ψ from rfl, hmass] at he
   simp [observedAcceptance, observedTraces] at he
 
+/-- The branch trace obtained by measuring index outcome `o`, recording one measurement, the
+supplied query and gate counts, and acceptance precisely for a marked index. -/
 private noncomputable def phaseTrace {I : Type} [Fintype I] [DecidableEq I]
     (A : Finset I) (ψ : QState (I × Bool)) (q g : ℕ) (o : Fin (Fintype.card I)) :
     BranchTrace (I × Bool) :=
@@ -62,6 +91,8 @@ private noncomputable def phaseTrace {I : Type} [Fintype I] [DecidableEq I]
     measurements := 1
     outcomes := [(Fintype.card I, o.val)] }
 
+/-- A circuit followed by the search phase observation has the list of index-measurement traces
+given by `phaseTrace`. -/
 theorem phaseCall_traces {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix (I × Bool) (I × Bool) ℂ) (C : Circuit (I × Bool))
     (A : Finset I) (ψ : QState (I × Bool)) :
@@ -86,6 +117,8 @@ theorem phaseCall_traces {I : Type} [Fintype I] [DecidableEq I]
       simp only [observedOfCircuit, observedTraces, ih, List.map_ofFn]
       congr 1
 
+/-- The sum of masses of accepted traces equals the sum over all traces with rejected masses
+replaced by zero. -/
 private theorem acceptance_sum_if {I : Type} [Fintype I] [DecidableEq I]
     (ts : List (BranchTrace I)) :
     ((ts.filter (fun t => t.accepted)).map (fun t => branchMass t.state)).sum =
@@ -94,6 +127,8 @@ private theorem acceptance_sum_if {I : Type} [Fintype I] [DecidableEq I]
   | nil => rfl
   | cons t ts ih => cases h : t.accepted <;> simp [h, ih]
 
+/-- The acceptance probability of a circuit followed by search phase observation equals the
+measurement probability of the marked-index subspace. -/
 theorem phaseCall_acceptance {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix (I × Bool) (I × Bool) ℂ) (C : Circuit (I × Bool))
     (A : Finset I) (ψ : QState (I × Bool)) :
@@ -140,6 +175,9 @@ theorem phaseCall_acceptance {I : Type} [Fintype I] [DecidableEq I]
       · simp [he]
     simpa only [hx, if_false] using hsum
 
+/-- Establishes the query-prefix observation, query-count, normalization, success-comparison,
+and reconstruction guarantees in `InterruptedSearchAttempt` for the minimum-search setting
+[DurrHoyer1996]. -/
 theorem interruptedSearchAttempt : InterruptedSearchAttempt := by
   intro I _ _ hN A j r
   let O := BitOracleOn (fun x => decide (x ∈ A))

@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceSchedule
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+
+/-!
+# Expected costs and output laws for search schedules
+
+Analyzes the capped exponential schedule for every growth factor `1 < l < 4 / 3`. The results
+establish almost-sure termination and uniform marked output, then bound expected iteration,
+attempt, Boolean-query, and lookup costs using `SourcePhaseConstant`.
+
+The same analysis gives uniform geometric timeout bounds and evaluates the constants for the
+factor `6 / 5` schedule. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `search_source_terminal_output_nonempty`: For `1 < l < 4 / 3` and any nonempty marked set, the
+  terminal output law is uniform on that set.
+* `search_source_terminal_boolean_cost`: For `1 < l < 4 / 3` and any nonempty marked set, the
+  expected terminal Boolean-query cost exists and is at most `(1 + 3 * SourcePhaseConstant l) *
+  √(N / t)`.
+* `search_source_terminal_lookup_cost`: For `1 < l < 4 / 3` and any nonempty marked set, the
+  expected source-lookup clock exists and is at most `(1 + 4 * SourcePhaseConstant l) * √(N /
+  t)`.
+* `search_source_uniform_timeout`: For `1 < l < 4 / 3` on a nonempty search space, a common
+  stage offset `K ≤ l / (l - 1) * √N` gives worst-prefix cost at most `(l / (l - 1) + k) * √N`
+  and reach probability at most `(3 / 4) ^ k` for every nonempty marked set.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +51,8 @@ set_option linter.unusedSectionVars false
 open scoped BigOperators
 open Filter
 
+/-- The real-valued coefficient `(l / 4) * (1 / (l - 1) + 4 / (4 - 3 * l))` used in expected
+Grover-iteration bounds. -/
 noncomputable def SourcePhaseConstant (l : ℝ) : ℝ :=
   (l / 4) * (1 / (l - 1) + 4 / (4 - 3 * l))
 
@@ -29,12 +61,15 @@ section Family
 variable (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3)
 include hl hl4
 
+/-- For `1 < l < 4 / 3`, the coefficient `SourcePhaseConstant l` is nonnegative. -/
 theorem search_source_constant_nonneg : 0 ≤ SourcePhaseConstant l := by
   have ha : 0 < l - 1 := by linarith
   have hb : 0 < 4 - 3 * l := by linarith
   unfold SourcePhaseConstant
   positivity
 
+/-- For `1 < l < 4 / 3`, finite sums of `l ^ k` and `(3 * l / 4) ^ k` satisfy the bounds `l ^ n
+/ (l - 1)` and `4 / (4 - 3 * l)`, respectively. -/
 theorem search_source_geometric_sums (n : ℕ) :
     (∑ k ∈ Finset.range n, l ^ k) ≤ l ^ n / (l - 1) ∧
     (∑ k ∈ Finset.range n, (3 * l / 4) ^ k) ≤ 4 / (4 - 3 * l) := by
@@ -61,6 +96,9 @@ theorem search_source_geometric_sums (n : ℕ) :
     have hp : 0 ≤ (3 * l / 4) ^ n := pow_nonneg (by linarith) _
     nlinarith only [htail n, hp]
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, there are a density angle and a
+positive stage after which every search range reaches `1 / Real.sin (2 * θ)`, with the
+stated bound on `l ^ L`. -/
 theorem search_source_critical_stage {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ θ : ℝ, 0 < θ ∧ θ < Real.pi / 2 ∧
@@ -83,6 +121,9 @@ theorem search_source_critical_stage {I : Type*} [Fintype I] [DecidableEq I]
   rw [(search_source_schedule_laws _ hN l hl.le).1]
   exact le_min (hlo.trans hp) hscale.2
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the initial range has size one, zero
+mean Grover iterations, one checked mean query, and failure probability `1 - A.card /
+Fintype.card I`. -/
 theorem search_source_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     SourceSizes (Fintype.card I) l 0 = 1 ∧ MeanQueries I 1 = 0 ∧
@@ -104,6 +145,8 @@ theorem search_source_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     simpa using hdensity
   rw [hP]
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the mean Grover-iteration cost at
+stage `s` is nonnegative and at most `l ^ s / 2`. -/
 theorem search_source_phase_mean_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (s : ℕ) :
     0 ≤ MeanQueries I (SourceSizes (Fintype.card I) l s) ∧
@@ -123,6 +166,8 @@ theorem search_source_phase_mean_bound {I : Type*} [Fintype I] [DecidableEq I]
   change (Nat.ceil (SourceWidths (Fintype.card I) l s) : ℝ) < _ at hceil
   constructor <;> dsimp [SourceSizes] at * <;> linarith
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the first-success masses of the
+parameterized retry schedule sum to one. -/
 theorem search_source_all_density_termination {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     HasSum (RetryFirstSuccess A (SourceSizes (Fintype.card I) l)) 1 := by
@@ -149,6 +194,9 @@ theorem search_source_all_density_termination {I : Type*} [Fintype I] [Decidable
   rw [heq]
   simpa only [sub_zero] using (tendsto_const_nhds.sub hreach)
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, every expected phase-cost prefix is at
+most `SourcePhaseConstant l * √(N / t)`, where `N` is the search-space size and `t` the
+marked count. -/
 theorem search_source_phase_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (n : ℕ) :
     RetryPhasePrefixCost A (SourceSizes (Fintype.card I) l) n ≤
@@ -252,6 +300,8 @@ theorem search_source_phase_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left hscale (by positivity)
     _ = _ := by dsimp [SourcePhaseConstant, D]; ring
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the reach-weighted mean iteration
+costs have a nonnegative sum bounded by `SourcePhaseConstant l * √(N / t)`. -/
 theorem search_source_expected_grover_iterations {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (fun s => RetryReach A (SourceSizes (Fintype.card I) l) s *
@@ -268,6 +318,9 @@ theorem search_source_expected_grover_iterations {I : Type*} [Fintype I] [Decida
   have hsummable := summable_of_sum_range_le hnonneg hbound
   exact ⟨_, hsummable.hasSum, tsum_nonneg hnonneg, hsummable.tsum_le_of_sum_range_le hbound⟩
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the terminal iteration-cost series has
+a nonnegative sum bounded by the reach-weighted mean series and by `SourcePhaseConstant l *
+√(N / t)`. -/
 theorem search_source_terminal_iteration_mean {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (TerminalIterationCost A (SourceSizes (Fintype.card I) l)) q ∧
@@ -304,6 +357,8 @@ theorem search_source_terminal_iteration_mean {I : Type*} [Fintype I] [Decidable
   rw [hq0.tsum_eq]
   exact hqle
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, terminal trace masses are nonnegative,
+sum to one, and vanish on traces with unmarked outputs. -/
 theorem search_source_terminal_law {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     HasSum (TerminalMass A (SourceSizes (Fintype.card I) l)) 1 ∧
@@ -323,6 +378,8 @@ theorem search_source_terminal_law {I : Type*} [Fintype I] [DecidableEq I]
   simp_rw [(search_terminal_stage_law hN A _ hsizes _).2]
   exact search_source_all_density_termination l hl hl4 A hA hproper
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, summing the stagewise output mass
+gives `1 / A.card` at each marked address and zero elsewhere. -/
 theorem search_source_final_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (i : I) :
     HasSum (fun s => RetryOutputMass A (SourceSizes (Fintype.card I) l) s i)
@@ -335,6 +392,8 @@ theorem search_source_final_output_uniform {I : Type*} [Fintype I] [DecidableEq 
   · simp only [if_neg hi]
     exact hasSum_zero
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the terminal trace law induces the
+uniform distribution on marked addresses. -/
 theorem search_source_terminal_output {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (i : I) :
     HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -360,6 +419,9 @@ theorem search_source_terminal_output {I : Type*} [Fintype I] [DecidableEq I]
     simp_rw [hrow]
     exact search_source_final_output_uniform l hl hl4 A hA hproper i
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the trace-weighted total iteration
+cost has a nonnegative sum bounded by the reach-weighted mean series and by
+`SourcePhaseConstant l * √(N / t)`. -/
 theorem search_source_terminal_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -375,6 +437,8 @@ theorem search_source_terminal_cost {I : Type*} [Fintype I] [DecidableEq I]
     exact mul_nonneg ((search_source_terminal_law l hl hl4 A hA hproper).2 x).1 (Nat.cast_nonneg _)
   · exact hq
 
+/-- For `1 < l < 4 / 3` on a nonempty search space, the initial-stage output mass is `1 /
+Fintype.card I` at marked addresses and zero elsewhere. -/
 theorem search_source_initial_output {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (i : I) :
     RetryOutputMass A (SourceSizes (Fintype.card I) l) 0 i =
@@ -388,6 +452,8 @@ theorem search_source_initial_output {I : Type*} [Fintype I] [DecidableEq I]
   have hz : SearchState A 0 = Uniform I := rfl
   rw [hz, search_uniform_born]
 
+/-- For `1 < l < 4 / 3` on a nonempty search space with every address marked, each terminal
+trace has zero mass-weighted Grover iteration cost. -/
 theorem search_source_univ_weighted_cost {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (x : TerminalTrace I (SourceSizes (Fintype.card I) l)) :
     TerminalMass (Finset.univ : Finset I) (SourceSizes (Fintype.card I) l) x *
@@ -404,6 +470,8 @@ theorem search_source_univ_weighted_cost {I : Type*} [Fintype I] [DecidableEq I]
   · rw [search_univ_terminal_later hN _ (search_source_schedule_laws _ hN l hl.le).2.1 x hx,
       zero_mul]
 
+/-- For `1 < l < 4 / 3`, the first-success masses sum to one for every nonempty marked set,
+including the full search space. -/
 theorem search_source_termination_nonempty {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     HasSum (RetryFirstSuccess A (SourceSizes (Fintype.card I) l)) 1 := by
@@ -419,6 +487,8 @@ theorem search_source_termination_nonempty {I : Type*} [Fintype I] [DecidableEq 
     simp_rw [search_univ_first_success hN _ hsizes]
     exact hasSum_ite_eq 0 1
 
+/-- For `1 < l < 4 / 3` and any nonempty marked set, terminal trace masses form a normalized
+nonnegative law supported on marked outputs. -/
 theorem search_source_terminal_law_nonempty {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     HasSum (TerminalMass A (SourceSizes (Fintype.card I) l)) 1 ∧
@@ -438,6 +508,8 @@ theorem search_source_terminal_law_nonempty {I : Type*} [Fintype I] [DecidableEq
   simp_rw [(search_terminal_stage_law hN A _ hsizes _).2]
   exact search_source_termination_nonempty l hl hl4 A hA
 
+/-- For `1 < l < 4 / 3` and any nonempty marked set, the expected terminal Grover-iteration cost
+exists, is nonnegative, and is at most `SourcePhaseConstant l * √(N / t)`. -/
 theorem search_source_terminal_cost_nonempty {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -456,6 +528,8 @@ theorem search_source_terminal_cost_nonempty {I : Type*} [Fintype I] [DecidableE
     simp_rw [search_source_univ_weighted_cost l hl hl4 hN]
     exact hasSum_zero
 
+/-- For `1 < l < 4 / 3` on a nonempty space with every address marked, output mass is uniform at
+stage zero and is zero at all later stages. -/
 theorem search_source_univ_retry_output {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (n : ℕ) (i : I) :
     RetryOutputMass (Finset.univ : Finset I) (SourceSizes (Fintype.card I) l) n i =
@@ -468,6 +542,8 @@ theorem search_source_univ_retry_output {I : Type*} [Fintype I] [DecidableEq I]
     rw [RetryFirstSuccess, (search_univ_failure hN _ (hsizes n)).1, mul_one, if_neg hn] at hr
     rw [RetryOutputMass, hr, zero_mul, if_neg hn]
 
+/-- For `1 < l < 4 / 3` and any nonempty marked set, the terminal output law is uniform on that
+set. See [NayakWu1998]. -/
 theorem search_source_terminal_output_nonempty {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (i : I) :
     HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -501,6 +577,8 @@ theorem search_source_terminal_output_nonempty {I : Type*} [Fintype I] [Decidabl
           Finset.card_univ]
       exact hasSum_ite_eq 0 _
 
+/-- For `1 < l < 4 / 3`, search spaces of size at least two have parameterized stage ranges of
+size at least two at every positive stage. -/
 theorem search_source_later_size_ge_two (N k : ℕ) (hN : 2 ≤ N) (hk : 0 < k) :
     2 ≤ SourceSizes N l k := by
   have hNr : (1 : ℝ) < N := by exact_mod_cast (by omega : 1 < N)
@@ -513,6 +591,8 @@ theorem search_source_later_size_ge_two (N k : ℕ) (hN : 2 ≤ N) (hk : 0 < k) 
   have h : 1 < Nat.ceil (SourceWidths N l k) := Nat.lt_ceil.mpr (by simpa using hw)
   exact h
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the sum of stage reach probabilities
+before stage `n` is at most one plus twice the expected phase-cost prefix. -/
 theorem search_source_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hp : A.card < Fintype.card I) (n : ℕ) :
     (∑ s ∈ Finset.range n, RetryReach A (SourceSizes (Fintype.card I) l) s) ≤
@@ -546,6 +626,8 @@ theorem search_source_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq 
       simp only [Finset.sum_ite_eq', Finset.mem_range]
       split_ifs <;> linarith
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the expected number of terminal
+attempts exists and is at most `1 + 2 * SourcePhaseConstant l * √(N / t)`. -/
 theorem search_source_terminal_attempts {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hp : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -577,6 +659,9 @@ theorem search_source_terminal_attempts {I : Type*} [Fintype I] [DecidableEq I]
         Nat.cast_one]
     exact hsum.hasSum
 
+/-- For `1 < l < 4 / 3` and a nonempty proper marked set, the expected cost `c * TerminalCost +
+attempts` is nonnegative and at most `(1 + 2 * SourcePhaseConstant l + c *
+SourcePhaseConstant l) * √(N / t)`. -/
 theorem search_source_terminal_linear_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hp : A.card < Fintype.card I) (c : ℕ) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -601,6 +686,9 @@ theorem search_source_terminal_linear_cost {I : Type*} [Fintype I] [DecidableEq 
   · have hmul := mul_le_mul_of_nonneg_left hib (Nat.cast_nonneg c)
     nlinarith
 
+/-- For `1 < l < 4 / 3` and any nonempty marked set, the expected cost `c * TerminalCost +
+attempts` is nonnegative and satisfies the coefficient bound `(1 + 2 * SourcePhaseConstant l
++ c * SourcePhaseConstant l) * √(N / t)`. -/
 theorem search_source_terminal_linear_cost_nonempty {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (c : ℕ) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -634,6 +722,8 @@ theorem search_source_terminal_linear_cost_nonempty {I : Type*} [Fintype I] [Dec
       have hc : 0 ≤ (c : ℝ) := Nat.cast_nonneg c
       nlinarith [mul_nonneg hc hC]
 
+/-- For `1 < l < 4 / 3` and any nonempty marked set, the expected terminal Boolean-query cost
+exists and is at most `(1 + 3 * SourcePhaseConstant l) * √(N / t)`. See [NayakWu1998]. -/
 theorem search_source_terminal_boolean_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -646,6 +736,8 @@ theorem search_source_terminal_boolean_cost {I : Type*} [Fintype I] [DecidableEq
     show 1 + 2 * SourcePhaseConstant l + SourcePhaseConstant l =
       1 + 3 * SourcePhaseConstant l by ring] using h
 
+/-- For `1 < l < 4 / 3` and any nonempty marked set, the expected source-lookup clock exists and
+is at most `(1 + 4 * SourcePhaseConstant l) * √(N / t)`. -/
 theorem search_source_terminal_lookup_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (SourceSizes (Fintype.card I) l) =>
@@ -658,6 +750,8 @@ theorem search_source_terminal_lookup_cost {I : Type*} [Fintype I] [DecidableEq 
     show 1 + 2 * SourcePhaseConstant l + 2 * SourcePhaseConstant l =
       1 + 4 * SourcePhaseConstant l by ring] using h
 
+/-- For `1 < l < 4 / 3` and positive `N`, the largest sampled iteration count is at most the
+parameterized real width. -/
 theorem search_source_largest_sample_le_width (N s : ℕ) (hN : 0 < N) :
     ((SourceSizes N l s - 1 : ℕ) : ℝ) ≤ SourceWidths N l s := by
   have hs := (search_source_schedule_laws N hN l hl.le).2.1 s
@@ -669,6 +763,8 @@ theorem search_source_largest_sample_le_width (N s : ℕ) (hN : 0 < N) :
   change (Nat.ceil (SourceWidths N l s) : ℝ) - 1 ≤ _
   linarith
 
+/-- For `1 < l < 4 / 3` and positive `N`, if `l ^ K ≤ l * Real.sqrt N`, the worst iteration
+prefix through `K + k` stages is at most `(l / (l - 1) + k) * Real.sqrt N`. -/
 theorem search_source_worst_prefix_cap (N K k : ℕ) (hN : 0 < N)
     (hK : l ^ K ≤ l * Real.sqrt N) :
     (WorstPrefixIterations (SourceSizes N l) (K + k) : ℝ) ≤
@@ -704,6 +800,9 @@ theorem search_source_worst_prefix_cap (N K k : ℕ) (hN : 0 < N)
   push_cast
   nlinarith only [hbefore', hafter]
 
+/-- For `1 < l < 4 / 3` on a nonempty search space, a common stage offset `K ≤ l / (l - 1) * √N`
+gives worst-prefix cost at most `(l / (l - 1) + k) * √N` and reach probability at most `(3 /
+4) ^ k` for every nonempty marked set. -/
 theorem search_source_uniform_timeout {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) :
     ∃ K : ℕ, (K : ℝ) ≤ l / (l - 1) * Real.sqrt (Fintype.card I) ∧ ∀ k : ℕ,
@@ -759,6 +858,8 @@ theorem search_source_uniform_timeout {I : Type*} [Fintype I] [DecidableEq I]
 
 end Family
 
+/-- At `l = 6 / 5`, the phase, Boolean-query, lookup, and timeout coefficients evaluate to `9 /
+2`, `29 / 2`, `19`, and `6`, respectively. -/
 theorem search_source_constants_instance :
     SourcePhaseConstant (6 / 5) = 9 / 2 ∧
       1 + 3 * SourcePhaseConstant (6 / 5) = 29 / 2 ∧

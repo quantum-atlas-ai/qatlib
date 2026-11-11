@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.Execution.KnownKraus.KrausUnitaryDilation
 import Qatlib.Concepts.Execution.KnownKraus.KrausDilationReadout
+
+/-!
+# Realization of known Kraus measurements
+
+`known_kraus_measurement_realization` implements a finite complete family of square Kraus
+operators by a unitary dilation followed by an ancilla measurement. This is a finite-dimensional
+measurement construction as described in [NielsenChuang2010].
+
+The unitary is chosen before the outcome labeling, acceptance rule, oracle, and input operator.
+After tracing out the ancilla, each recorded branch is the corresponding coarse Kraus sum and
+records zero queries, one known gate, and one measurement.
+
+## Main statements
+
+* `known_kraus_measurement_realization`: a single unitary realizes all coarse labelings of a
+  complete Kraus family with query budget zero.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -18,6 +40,10 @@ namespace Qatlib.Concepts.Execution.KnownKraus
 open Matrix
 open scoped Classical
 
+/-- Every finite complete square Kraus family has a unitary realization that implements all
+coarse outcome labelings with query budget zero. The reduced mixed traces are the
+corresponding coarse Kraus sums, each recording zero queries, one gate, and one measurement
+[NielsenChuang2010]. -/
 theorem known_kraus_measurement_realization {d s : ℕ} (K : Fin s → Operator d)
     (hK : ∑ a, (K a).conjTranspose * K a = 1) (zero : Fin s) :
     ∃ W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ,

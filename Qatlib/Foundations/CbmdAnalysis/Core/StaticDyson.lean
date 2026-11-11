@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonPropagator
 import Mathlib.Analysis.SpecialFunctions.Exponential
+
+/-!
+# Constant-field Dyson evolutions
+
+For a constant matrix field, `orderedEvolution_const` identifies time-ordered evolution with the
+ordinary matrix exponential. The Dyson specialization gives the exponential of `-i (t - s) (H +
+z L)`.
+
+These identities connect the general evolution construction with the static matrix families used
+in contour-based matrix decomposition [WangEtAl2026].
+
+## Main statements
+
+* `orderedEvolution_const`: reduces constant-field evolution to an exponential.
+* `dysonPropagator_const_eq_exp`: computes the constant-field Dyson propagator.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +38,8 @@ noncomputable section
 namespace CBMD
 open scoped Matrix.Norms.L2Operator
 
+/-- For a constant matrix field `A`, ordered evolution from `s` to `t` equals `exp ((t - s) •
+(-A))`. -/
 theorem orderedEvolution_const {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (s t : ℝ) :
     orderedEvolution (fun _ => A) s t = NormedSpace.exp ((t - s) • (-A)) := by
@@ -33,6 +56,8 @@ theorem orderedEvolution_const {I : Type} [Fintype I] [DecidableEq I]
     simp
   simpa only [neg_mul] using! hd
 
+/-- For constant matrices `H` and `L`, the Dyson propagator equals `exp ((-i * (t - s)) • (H + z
+• L))`. -/
 theorem dysonPropagator_const_eq_exp {I : Type} [Fintype I] [DecidableEq I]
     (H L : Matrix I I ℂ) (s t : ℝ) (z : ℂ) :
     dysonPropagator (fun _ => H) (fun _ => L) s t z =

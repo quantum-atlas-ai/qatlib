@@ -81,6 +81,31 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Swap-test readout of register overlap
+
+This module constructs the Hadamard-controlled-swap-Hadamard matrix `circuit` and proves its
+unitarity and output amplitudes. The difference between its two control outcome weights equals
+the squared modulus of the input registers' Hermitian inner product, without requiring
+normalized input vectors.
+
+The scaled identities account for a common input amplitude, and `flagLift` extends an operator
+while preserving an additional flag register.
+
+The mathematical background is discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `circuit_output`: computes the symmetric and antisymmetric output amplitudes.
+* `actual_born_overlap`: identifies the control weight difference with squared overlap.
+* `actual_scaled_born_overlap`: gives the corresponding scaled identity.
+* `flagLift_unitary`: preserves unitarity when adding an untouched flag register.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section
@@ -88,10 +113,13 @@ open Matrix
 open scoped BigOperators Kronecker
 namespace Qatlib.Foundations.TensorRegisters.SwapReadout
 
+/-- The complex scalar `1 / sqrt 2` used to normalize the Hadamard matrix. -/
 def r : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
 
+/-- The Hadamard normalization scalar is fixed by complex conjugation. -/
 theorem star_r : star r = r := by simp [r]
 
+/-- The square of the Hadamard normalization scalar is one half. -/
 theorem r_mul_r : r * r = (1/2 : ℂ) := by
   have h : ((Real.sqrt 2 : ℝ) : ℂ) * (Real.sqrt 2 : ℝ) = 2 := by
     rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num : (0:ℝ)≤2)]
@@ -100,8 +128,11 @@ theorem r_mul_r : r * r = (1/2 : ℂ) := by
   rw [← mul_inv, h]
   norm_num
 
+/-- The Boolean-indexed Hadamard matrix with entry `-r` only when both indices are true and
+entry `r` otherwise. -/
 def had : Matrix Bool Bool ℂ := fun a b => if a && b then -r else r
 
+/-- The Boolean-indexed Hadamard matrix is unitary. -/
 theorem had_unitary : had ∈ Matrix.unitaryGroup Bool ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
   change hadᴴ * had = 1
@@ -110,23 +141,31 @@ theorem had_unitary : had ∈ Matrix.unitaryGroup Bool ℂ := by
   have hr : (starRingEnd ℂ) r = r := star_r
   cases a <;> cases b <;> norm_num [had, hr, r_mul_r]
 
+/-- Apply the Hadamard matrix to the Boolean control while leaving the two data registers
+unchanged. -/
 def hadFirst {I : Type*} [DecidableEq I] :
     Matrix (Bool × (I × I)) (Bool × (I × I)) ℂ :=
   had ⊗ₖ (1 : Matrix (I × I) (I × I) ℂ)
 
+/-- The permutation that exchanges the two data registers exactly when the Boolean control is
+true. -/
 def swapPerm (I : Type*) : Equiv.Perm (Bool × (I × I)) where
   toFun z := if z.1 then (true, (z.2.2,z.2.1)) else (false,z.2)
   invFun z := if z.1 then (true, (z.2.2,z.2.1)) else (false,z.2)
   left_inv z := by rcases z with ⟨b,i,j⟩; cases b <;> rfl
   right_inv z := by rcases z with ⟨b,i,j⟩; cases b <;> rfl
 
+/-- The permutation matrix implementing the controlled exchange of the two data registers. -/
 def controlledSwap {I : Type*} [Fintype I] [DecidableEq I] :
     Matrix (Bool × (I × I)) (Bool × (I × I)) ℂ :=
   Equiv.Perm.permMatrix ℂ (swapPerm I)
 
+/-- The swap-test matrix obtained by a Hadamard on the control, a controlled swap, and a second
+Hadamard on the control. -/
 def circuit {I : Type*} [Fintype I] [DecidableEq I] :
     Matrix (Bool × (I × I)) (Bool × (I × I)) ℂ := hadFirst * controlledSwap * hadFirst
 
+/-- The Hadamard acting on the control register is unitary on the full register. -/
 theorem hadFirst_unitary {I : Type*} [Fintype I] [DecidableEq I] :
     hadFirst (I:=I) ∈ Matrix.unitaryGroup (Bool × (I × I)) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
@@ -137,6 +176,7 @@ theorem hadFirst_unitary {I : Type*} [Fintype I] [DecidableEq I] :
   rw [hh]
   simp
 
+/-- The controlled-swap matrix is unitary. -/
 theorem controlledSwap_unitary {I : Type*} [Fintype I] [DecidableEq I] :
     controlledSwap (I:=I) ∈ Matrix.unitaryGroup (Bool × (I × I)) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
@@ -144,11 +184,14 @@ theorem controlledSwap_unitary {I : Type*} [Fintype I] [DecidableEq I] :
   rw [Matrix.conjTranspose_permMatrix, ← Matrix.permMatrix_mul]
   simp
 
+/-- The swap-test circuit matrix is unitary. -/
 theorem circuit_unitary {I : Type*} [Fintype I] [DecidableEq I] :
     circuit (I:=I) ∈ Matrix.unitaryGroup (Bool × (I × I)) ℂ :=
   (Matrix.unitaryGroup _ ℂ).mul_mem
     ((Matrix.unitaryGroup _ ℂ).mul_mem hadFirst_unitary controlledSwap_unitary) hadFirst_unitary
 
+/-- Evaluate the Hadamard action on the control as the normalized sum or difference of the two
+control amplitudes. -/
 theorem hadFirst_apply {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : Bool × (I × I) → ℂ) (b : Bool) (i j : I) :
     (hadFirst *ᵥ ψ) (b,(i,j)) =
@@ -158,6 +201,8 @@ theorem hadFirst_apply {I : Type*} [Fintype I] [DecidableEq I]
     Fintype.sum_bool]
   cases b <;> simp [had, ite_and] <;> ring
 
+/-- A controlled swap exchanges the two data indices on the true control branch and preserves
+them on the false branch. -/
 theorem controlledSwap_apply {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : Bool × (I × I) → ℂ) (b : Bool) (i j : I) :
     (controlledSwap *ᵥ ψ) (b,(i,j)) =
@@ -165,9 +210,13 @@ theorem controlledSwap_apply {I : Type*} [Fintype I] [DecidableEq I]
   rw [controlledSwap, Matrix.permMatrix_mulVec]
   cases b <;> rfl
 
+/-- The tensor amplitude `u i * v j` on the false control branch, with zero amplitude on the
+true branch. -/
 def input {I : Type*} (u v : I → ℂ) (z : Bool × (I × I)) : ℂ :=
   if z.1 then 0 else u z.2.1 * v z.2.2
 
+/-- The swap-test output amplitude is half the symmetric tensor sum for false control and half
+the antisymmetric tensor difference for true control. -/
 theorem circuit_output {I : Type*} [Fintype I] [DecidableEq I]
     (u v : I → ℂ) (b : Bool) (i j : I) :
     (circuit *ᵥ input u v) (b,(i,j)) =
@@ -180,13 +229,18 @@ theorem circuit_output {I : Type*} [Fintype I] [DecidableEq I]
   · linear_combination r_mul_r * (u i * v j + u j * v i)
   · linear_combination r_mul_r * (u i * v j - u j * v i)
 
+/-- The sum of squared output amplitudes over the data registers at the specified Boolean
+control outcome. -/
 def outcomeWeight {I : Type*} [Fintype I] [DecidableEq I] (u v : I → ℂ) (b : Bool) : ℝ :=
   ∑ i, ∑ j, Complex.normSq ((circuit *ᵥ input u v) (b,(i,j)))
 
+/-- Each control outcome weight is nonnegative. -/
 theorem outcomeWeight_nonneg {I : Type*} [Fintype I] [DecidableEq I] (u v : I → ℂ) (b : Bool) :
     0 ≤ outcomeWeight u v b := by
   exact Finset.sum_nonneg fun i _ => Finset.sum_nonneg fun j _ => Complex.normSq_nonneg _
 
+/-- The difference of the squared moduli of the half-sum and half-difference equals half the sum
+of the two conjugate cross terms. -/
 theorem norm_difference (a b : ℂ) :
     (Complex.normSq ((1/2:ℂ)*(a+b)) : ℂ) - (Complex.normSq ((1/2:ℂ)*(a+ -b)) : ℂ) =
       (star a*b+star b*a)/2 := by
@@ -194,6 +248,8 @@ theorem norm_difference (a b : ℂ) :
   simp only [Complex.star_def, map_mul, map_div₀, map_add, map_neg, map_ofNat, map_one]
   ring
 
+/-- The sum of tensor cross terms under exchange of the two registers equals the squared modulus
+of their Hermitian inner product. -/
 theorem swap_sum_overlap {I : Type*} [Fintype I] (u v : I → ℂ) :
     (∑ i, ∑ j, star (u i*v j)*(u j*v i)) = (Complex.normSq (star u ⬝ᵥ v):ℂ) := by
   simp only [star_mul, Complex.normSq_eq_conj_mul_self, dotProduct, map_sum,
@@ -204,6 +260,8 @@ theorem swap_sum_overlap {I : Type*} [Fintype I] (u v : I → ℂ) :
   intro j _
   ring
 
+/-- The false control outcome weight minus the true control outcome weight equals the squared
+modulus of the input inner product. -/
 theorem actual_born_overlap {I : Type*} [Fintype I] [DecidableEq I] (u v : I → ℂ) :
     outcomeWeight u v false - outcomeWeight u v true = Complex.normSq (star u ⬝ᵥ v) := by
   apply Complex.ofReal_injective
@@ -217,30 +275,38 @@ theorem actual_born_overlap {I : Type*} [Fintype I] [DecidableEq I] (u v : I →
   rw [hswap, swap_sum_overlap]
   ring
 
+/-- The control outcome weight after multiplying the swap-test input by a common complex scalar
+`a`. -/
 def scaledWeight {I : Type*} [Fintype I] [DecidableEq I] (a : ℂ) (u v : I → ℂ) (b : Bool) : ℝ :=
   ∑ i, ∑ j, Complex.normSq ((circuit *ᵥ (a • input u v)) (b,(i,j)))
 
+/-- Scaling the input by `a` multiplies each outcome weight by `Complex.normSq a`. -/
 theorem scaledWeight_eq {I : Type*} [Fintype I] [DecidableEq I]
     (a : ℂ) (u v : I → ℂ) (b : Bool) :
     scaledWeight a u v b = Complex.normSq a * outcomeWeight u v b := by
   simp only [scaledWeight, outcomeWeight, Matrix.mulVec_smul, Pi.smul_apply,
     smul_eq_mul, map_mul, Finset.mul_sum]
 
+/-- For input scaled by `a`, the control weight difference is `Complex.normSq a` times the
+squared modulus of the input inner product. -/
 theorem actual_scaled_born_overlap {I : Type*} [Fintype I] [DecidableEq I]
     (a : ℂ) (u v : I → ℂ) :
     scaledWeight a u v false - scaledWeight a u v true =
       Complex.normSq a * Complex.normSq (star u ⬝ᵥ v) := by
   rw [scaledWeight_eq, scaledWeight_eq, ← mul_sub, actual_born_overlap]
 
+/-- Extend an operator by the identity on an additional flag register using a Kronecker product. -/
 def flagLift {F J : Type*} [DecidableEq F] (A : Matrix J J ℂ) : Matrix (F×J) (F×J) ℂ :=
   (1 : Matrix F F ℂ) ⊗ₖ A
 
+/-- The lifted operator acts independently on the amplitude slice at each fixed flag value. -/
 theorem flagLift_apply {F J : Type*} [Fintype F] [Fintype J] [DecidableEq F]
     (A : Matrix J J ℂ) (ψ : F×J→ℂ) (f : F) (j : J) :
     (flagLift A *ᵥ ψ) (f,j) = (A *ᵥ (fun x => ψ (f,x))) j := by
   simp [flagLift, Matrix.mulVec, dotProduct,
     Matrix.one_apply, Fintype.sum_prod_type, ite_mul]
 
+/-- Extending a unitary operator by the identity on a finite flag register preserves unitarity. -/
 theorem flagLift_unitary {F J : Type*} [Fintype F] [Fintype J] [DecidableEq F] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A∈Matrix.unitaryGroup J ℂ) :
     flagLift (F:=F) A ∈ Matrix.unitaryGroup (F×J) ℂ := by
@@ -252,6 +318,8 @@ theorem flagLift_unitary {F J : Type*} [Fintype F] [Fintype J] [DecidableEq F] [
   rw [h]
   simp
 
+/-- The squared modulus of the Hermitian inner product is unchanged when the two inputs are
+exchanged. -/
 theorem overlap_symm {I : Type*} [Fintype I] (u v : I → ℂ) :
     Complex.normSq (star u ⬝ᵥ v) = Complex.normSq (star v ⬝ᵥ u) := by
   have h : star (star u ⬝ᵥ v) = star v ⬝ᵥ u := by

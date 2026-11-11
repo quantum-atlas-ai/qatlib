@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
 import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+
+/-!
+# From density operator bounds to arbitrary matrix bounds
+
+This module extends a uniform trace norm bound on density operators first to positive
+semidefinite inputs and then to Hermitian inputs. Decomposing an arbitrary matrix into Hermitian
+real and imaginary parts gives a factor-two estimate with every finite reference, using the
+trace norm framework of [Watrous2018].
+
+## Main statements
+
+* `density_bound_positive`: extension by positive scaling.
+* `density_bound_hermitian`: extension using positive and negative parts.
+* `finite_reference_density_error_to_raw`: a density bound `δ` gives an arbitrary-input bound
+  `2*δ*Matrix.traceNorm X`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -21,6 +42,8 @@ open Matrix
 open scoped BigOperators ComplexOrder
 set_option maxHeartbeats 2000000
 
+/-- For nonnegative `δ`, a linear map bounded by `δ` on density operators is bounded by
+`δ*X.traceNorm` on every positive semidefinite input. -/
 private theorem density_bound_positive {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (T : Matrix A A ℂ →ₗ[ℂ] Matrix B B ℂ)
     (δ : ℝ) (_hδ : 0 ≤ δ)
@@ -54,6 +77,8 @@ private theorem density_bound_positive {A B : Type} [Fintype A] [DecidableEq A]
       _ ≤ q * δ := mul_le_mul_of_nonneg_left hb hq
       _ = δ * X.traceNorm := mul_comm _ _
 
+/-- For nonnegative `δ`, a linear map bounded by `δ` on density operators is bounded by
+`δ*X.traceNorm` on every Hermitian input. -/
 private theorem density_bound_hermitian {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (T : Matrix A A ℂ →ₗ[ℂ] Matrix B B ℂ)
     (δ : ℝ) (hδ : 0 ≤ δ)
@@ -87,6 +112,8 @@ private theorem density_bound_hermitian {A B : Type} [Fintype A] [DecidableEq A]
     _ = δ * X.traceNorm := by
       rw [← mul_add, ← HermitianSplit.traceNorm_sub_posPart_negPart hX]
 
+/-- A nonnegative trace norm bound `δ` on all finite-reference density inputs implies the bound
+`2*δ*Matrix.traceNorm X` on every finite-reference complex matrix input. -/
 theorem finite_reference_density_error_to_raw :
   ∀ (D E : ℕ) (T : Operator D →ₗ[ℂ] Operator E) (δ : ℝ), 0 ≤ δ →
     (∀ (r : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ),

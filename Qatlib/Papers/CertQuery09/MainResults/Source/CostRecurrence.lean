@@ -50,11 +50,31 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Expected certification cost recurrences
+
+`QueryCostModel` records the two expected-cost sequences, their depth-one values, and the
+recursive bounds used for NAND certification in [AmbainisEtAl2009]. This module derives explicit
+bounds from those recurrence hypotheses.
+
+## Main statements
+
+* `lemma2_expected_query_cost`: bounds both sequences by a common positive constant times `k *
+  (1 + k * log d / sqrt d)` and the corresponding square-root power of `d`.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.CertQuery09.MainResults.Source
 
+/-- A pair of real-valued expected-cost sequences with depth-one values `E0 1 = d` and `E1 1 =
+c₁ * sqrt d`, the stated recursive upper bound for `E1`, and `E0 k = d * E1 (k - 1)` for `k
+≥ 2`. -/
 structure QueryCostModel (d : ℕ) (a b c₁ : ℝ) where
 
   E0 : ℕ → ℝ
@@ -70,11 +90,14 @@ structure QueryCostModel (d : ℕ) (a b c₁ : ℝ) where
 
   step0 : ∀ k : ℕ, 2 ≤ k → E0 k = (d : ℝ) * E1 (k - 1)
 
+/-- The product `sqrt (d ^ k) * sqrt d` equals `sqrt (d ^ (k + 1))` for natural `d` and `k`,
+interpreted in the reals. -/
 private lemma sqrt_pow_mul_sqrt (d k : ℕ) :
     Real.sqrt ((d : ℝ) ^ k) * Real.sqrt (d : ℝ) = Real.sqrt ((d : ℝ) ^ (k + 1)) := by
   rw [← Real.sqrt_mul (show (0 : ℝ) ≤ (d : ℝ) ^ k by positivity)]
   congr 1
 
+/-- For `k ≥ 1`, `sqrt d * sqrt (d ^ (k - 1))` equals `sqrt (d ^ k)`. -/
 private lemma sqrt_mul_sqrt_pow_pred (d k : ℕ) (hk : 1 ≤ k) :
     Real.sqrt (d : ℝ) * Real.sqrt ((d : ℝ) ^ (k - 1)) = Real.sqrt ((d : ℝ) ^ k) := by
   rw [← Real.sqrt_mul (show (0 : ℝ) ≤ (d : ℝ) by positivity)]
@@ -82,6 +105,8 @@ private lemma sqrt_mul_sqrt_pow_pred (d k : ℕ) (hk : 1 ≤ k) :
   conv_rhs => rw [← Nat.sub_add_cancel hk, pow_succ]
   ring
 
+/-- For positive natural `d` and `k ≥ 1`, `log d * sqrt (d ^ (k - 1))` equals `(log d / sqrt d)
+* sqrt (d ^ k)`. -/
 private lemma log_mul_sqrt_pred (d k : ℕ) (hd : 0 < d) (hk : 1 ≤ k) :
     Real.log (d : ℝ) * Real.sqrt ((d : ℝ) ^ (k - 1)) =
       (Real.log (d : ℝ) / Real.sqrt (d : ℝ)) * Real.sqrt ((d : ℝ) ^ k) := by
@@ -97,6 +122,10 @@ private lemma log_mul_sqrt_pred (d k : ℕ) (hd : 0 < d) (hk : 1 ≤ k) :
           (Real.sqrt (d : ℝ) * Real.sqrt ((d : ℝ) ^ (k - 1))) := by ring
     _ = (Real.log (d : ℝ) / Real.sqrt (d : ℝ)) * Real.sqrt ((d : ℝ) ^ k) := by rw [hs]
 
+/-- For `d ≥ 2`, the recurrence model satisfies the explicit bounds `E0 k ≤ C * k * (1 + k * L)
+* sqrt (d ^ (k + 1))` and `E1 k ≤ C * k * (1 + k * L) * sqrt (d ^ k)` for `k ≥ 1`, with the
+displayed positive `C` and `L = log d / sqrt d`. This is the recurrence estimate
+corresponding to [Ambainis et al., Lemma 2][AmbainisEtAl2009]. -/
 theorem lemma2_expected_query_cost (d : ℕ) (hd : 2 ≤ d)
     (a b c₁ : ℝ) (M : QueryCostModel d a b c₁) :
     let C := max (max a b) (max c₁ 1)

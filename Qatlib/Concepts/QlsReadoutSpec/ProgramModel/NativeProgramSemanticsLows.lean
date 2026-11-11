@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.NativeProgramSemanticsStat
+
+/-!
+# Semantics of native quantum programs
+
+This module proves unitarity and register identities for native programs with two unitary
+oracles. It verifies zero-padding, instruction accounting, and the positivity and unit trace of
+the conditional output density when the success mass is positive. Related mathematical
+background is given in [Watrous2018].
+
+## Main statements
+
+* `nativeMatrix_unitary`: Unitarity of program evaluation.
+* `nativeCounts_eq_length`: Exact decomposition of instruction counts.
+* `Clause36NativeProgramSemantics_answer`: Combined native-program semantics theorem.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +47,8 @@ open Matrix Qatlib.Concepts.BitWordCompiler.WordComposition
 open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Extracting the data register from joined data and auxiliary registers recovers the data
+register. -/
 theorem dataRegister_joinRegisters {h a : ℕ} (x : Reg h) (u : Reg a) :
     dataRegister (joinRegisters x u) = x := by
   funext i
@@ -34,6 +56,8 @@ theorem dataRegister_joinRegisters {h a : ℕ} (x : Reg h) (u : Reg a) :
   unfold joinRegisters
   rw [dif_pos i.isLt]
 
+/-- Extracting the auxiliary register from joined data and auxiliary registers recovers the
+auxiliary register. -/
 theorem auxRegister_joinRegisters {h a : ℕ} (x : Reg h) (u : Reg a) :
     auxRegister (joinRegisters x u) = u := by
   funext i
@@ -46,6 +70,7 @@ theorem auxRegister_joinRegisters {h a : ℕ} (x : Reg h) (u : Reg a) :
   show ((h + i.val) - h : ℕ) = i.val
   omega
 
+/-- Joining the data and auxiliary parts of a register recovers that register. -/
 theorem joinRegisters_dataRegister {h a : ℕ} (w : Reg (h+a)) :
     joinRegisters (dataRegister w) (auxRegister w) = w := by
   funext i
@@ -61,6 +86,8 @@ theorem joinRegisters_dataRegister {h a : ℕ} (w : Reg (h+a)) :
     show ((h + (i.val - h)) : ℕ) = i.val
     omega
 
+/-- The equivalence between a pair of data and auxiliary registers and their concatenated
+register. -/
 def joinEquiv (h a : ℕ) : Reg h × Reg a ≃ Reg (h+a) where
   toFun p := joinRegisters p.1 p.2
   invFun w := (dataRegister w, auxRegister w)
@@ -70,6 +97,8 @@ def joinEquiv (h a : ℕ) : Reg h × Reg a ≃ Reg (h+a) where
     rw [dataRegister_joinRegisters, auxRegister_joinRegisters]
   right_inv w := joinRegisters_dataRegister w
 
+/-- A sum over concatenated registers equals the iterated sum over their data and auxiliary
+parts. -/
 theorem sum_joinRegisters {h a : ℕ} {β : Type} [AddCommMonoid β] (f : Reg (h+a) → β) :
     ∑ w : Reg (h+a), f w = ∑ x : Reg h, ∑ u : Reg a, f (joinRegisters x u) := by
   have h1 : ∑ w : Reg (h+a), f w = ∑ p : Reg h × Reg a, f (joinEquiv h a p) :=
@@ -77,6 +106,8 @@ theorem sum_joinRegisters {h a : ℕ} {β : Type} [AddCommMonoid β] (f : Reg (h
   rw [h1, Fintype.sum_prod_type]
   rfl
 
+/-- Summing a data-register function over all registers with a fixed auxiliary part equals its
+sum over the data register. -/
 theorem sum_auxRegister_eq {h a : ℕ} {β : Type} [AddCommMonoid β] (u₀ : Reg a)
     (g : Reg h → β) :
     ∑ w : Reg (h+a), (if auxRegister w = u₀ then g (dataRegister w) else 0) = ∑ x : Reg h, g x := by
@@ -94,9 +125,12 @@ theorem sum_auxRegister_eq {h a : ℕ} {β : Type} [AddCommMonoid β] (u₀ : Re
       exact absurd (Finset.mem_univ _) hmem
   exact Finset.sum_congr rfl fun x _ => h1 x
 
+/-- The padding matrix entry is one precisely when the output is the input data register joined
+with a zero auxiliary register, and is zero otherwise. -/
 theorem nativePadding_apply {h a : ℕ} (w : Reg (h+a)) (x : Reg h) :
     nativePadding h a w x = if w = joinRegisters x (ZeroStr a) then 1 else 0 := rfl
 
+/-- Joining a fixed auxiliary register to a data register is injective in the data register. -/
 theorem joinRegisters_injective {h a : ℕ} (u : Reg a) :
     Function.Injective (fun x : Reg h => joinRegisters x u) := by
   intro x x' he
@@ -105,6 +139,7 @@ theorem joinRegisters_injective {h a : ℕ} (u : Reg a) :
   rw [← h1, ← h2]
   exact congrArg dataRegister he
 
+/-- The native zero-padding matrix is an isometry. -/
 theorem nativePadding_isometry (h a : ℕ) :
     (nativePadding h a)ᴴ * nativePadding h a = 1 := by
   ext x x'
@@ -158,6 +193,7 @@ theorem nativePadding_isometry (h a : ℕ) :
       simp
   exact hsum
 
+/-- Native zero-padding preserves normalization of a state. -/
 theorem nativePadding_mulVec_normalized {h a : ℕ} (ψ : QState (Reg h)) (hψ : Normalized ψ) :
     Normalized (nativePadding h a *ᵥ ψ) := by
   show ∑ w : Reg (h+a), ‖(nativePadding h a *ᵥ ψ) w‖ ^ 2 = 1
@@ -228,11 +264,15 @@ theorem nativePadding_mulVec_normalized {h a : ℕ} (ψ : QState (Reg h)) (hψ :
     exact Finset.sum_congr rfl fun x _ => h1 x
   rw [hsplit, hψ]
 
+/-- With identity output map, the native branch at `u` is the restriction to basis registers
+whose auxiliary part is `u`. -/
 theorem nativeBranch_one {h a : ℕ} (ψ : QState (Reg (h+a))) (u : Reg a) :
     nativeBranch (1 : Matrix (Reg h) (Reg h) ℂ) ψ u = fun z => ψ (joinRegisters z u) := by
   show (1 : Matrix (Reg h) (Reg h) ℂ)ᴴ *ᵥ (fun z => ψ (joinRegisters z u)) = _
   rw [Matrix.conjTranspose_one, Matrix.one_mulVec]
 
+/-- The squared norm of an identity-output native branch is the sum of squared amplitudes in its
+auxiliary-register fiber. -/
 theorem normVec_sq_nativeBranch_one {h a : ℕ} (ψ : QState (Reg (h+a))) (u : Reg a) :
     normVec (nativeBranch (1 : Matrix (Reg h) (Reg h) ℂ) ψ u) ^ 2
       = ∑ z : Reg h, ‖ψ (joinRegisters z u)‖ ^ 2 := by
@@ -241,6 +281,8 @@ theorem normVec_sq_nativeBranch_one {h a : ℕ} (ψ : QState (Reg (h+a))) (u : R
   unfold normVec
   exact norm_toEuclidean_fromVec_sq _
 
+/-- The data-register block for an optionally controlled oracle call, using the oracle or its
+adjoint when active and the identity otherwise. -/
 private def callBlock {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool) (u : Reg a) :
     Matrix (Reg h) (Reg h) ℂ :=
@@ -250,6 +292,7 @@ private def callBlock {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) �
       (if adj then (oracles j)ᴴ else oracles j) z z'
     else if z = z' then 1 else 0
 
+/-- The data-register call block is unitary whenever the selected oracle is unitary. -/
 theorem callBlock_unitary {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool) (u : Reg a)
     (hO : oracles j ∈ Matrix.unitaryGroup (Reg h) ℂ) :
@@ -279,6 +322,8 @@ theorem callBlock_unitary {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h
       rw [h1]
       exact (Matrix.unitaryGroup (Reg h) ℂ).one_mem
 
+/-- A native call matrix is block diagonal in the auxiliary register, with each diagonal block
+given by `callBlock`. -/
 theorem nativeStepMatrix_call_aux {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool) (p q : Reg (h+a)) :
     nativeStepMatrix oracles (.call j c value adj) p q
@@ -286,6 +331,7 @@ theorem nativeStepMatrix_call_aux {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h
           callBlock oracles j c value adj (auxRegister p) (dataRegister p) (dataRegister q)
         else 0 := rfl
 
+/-- A unitary-oracle call block multiplied by its conjugate transpose is the identity. -/
 theorem callBlock_mul_conjTranspose {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool) (u : Reg a)
     (hO : oracles j ∈ Matrix.unitaryGroup (Reg h) ℂ) :
@@ -293,6 +339,8 @@ theorem callBlock_mul_conjTranspose {h a : ℕ} (oracles : Fin 2 → Matrix (Reg
   have h := callBlock_unitary oracles j c value adj u hO
   rwa [Matrix.mem_unitaryGroup_iff] at h
 
+/-- The native call matrix multiplied by its conjugate transpose is the identity when the
+selected oracle is unitary. -/
 theorem nativeCallMatrix_mul_conjTranspose {h a : ℕ}
     (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool)
@@ -378,6 +426,7 @@ theorem nativeCallMatrix_mul_conjTranspose {h a : ℕ}
     · exact absurd hp (fun e => hau (congrArg auxRegister e))
     · simp [hp]
 
+/-- The native call matrix is unitary when the selected oracle is unitary. -/
 theorem nativeCallMatrix_unitary {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool)
     (hO : oracles j ∈ Matrix.unitaryGroup (Reg h) ℂ) :
@@ -386,6 +435,7 @@ theorem nativeCallMatrix_unitary {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h)
   rw [Matrix.mem_unitaryGroup_iff]
   exact nativeCallMatrix_mul_conjTranspose oracles j c value adj hO
 
+/-- Every native step matrix is unitary when both oracle matrices are unitary. -/
 theorem nativeStepMatrix_unitary {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (s : NativeStep h a) (hO : ∀ j : Fin 2, oracles j ∈ Matrix.unitaryGroup (Reg h) ℂ) :
     nativeStepMatrix oracles s ∈ Matrix.unitaryGroup (Reg (h+a)) ℂ := by
@@ -393,6 +443,7 @@ theorem nativeStepMatrix_unitary {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h)
   · exact localGateMatrix_unitary g
   · exact nativeCallMatrix_unitary oracles j c value adj (hO j)
 
+/-- The native program matrix is unitary when both oracle matrices are unitary. -/
 theorem nativeMatrix_unitary {h : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (p : NativeProgram h) (hO : ∀ j : Fin 2, oracles j ∈ Matrix.unitaryGroup (Reg h) ℂ) :
     nativeMatrix oracles p ∈ Matrix.unitaryGroup (Reg (h+p.ancilla)) ℂ := by
@@ -405,6 +456,8 @@ theorem nativeMatrix_unitary {h : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg 
   obtain ⟨s, hs, rfl⟩ := hex
   exact nativeStepMatrix_unitary oracles s hO
 
+/-- The two oracle-call counts and the known-gate count sum to the number of native program
+steps. -/
 theorem nativeCounts_eq_length {h : ℕ} (p : NativeProgram h) :
     nativeCalls p 0 + nativeCalls p 1 + nativeGates p = p.steps.length := by
   unfold nativeCalls nativeGates
@@ -416,6 +469,8 @@ theorem nativeCounts_eq_length {h : ℕ} (p : NativeProgram h) :
     · simp; omega
     · fin_cases j <;> simp <;> omega
 
+/-- For a normalized output state, the native success mass with identity output map is at most
+one. -/
 theorem nativeMass_one_le_one {h : ℕ} (p : NativeProgram h)
     (out : QState (Reg (h+p.ancilla))) (hout : Normalized out) :
     nativeMass (1 : Matrix (Reg h) (Reg h) ℂ) p out ≤ 1 := by
@@ -445,6 +500,8 @@ theorem nativeMass_one_le_one {h : ℕ} (p : NativeProgram h)
         linarith
     _ = 1 := hfull
 
+/-- The native success mass with identity output map is the sum of squared amplitudes over the
+distinct successful auxiliary registers. -/
 theorem nativeMass_one_eq_sum {h : ℕ} (p : NativeProgram h)
     (out : QState (Reg (h+p.ancilla))) :
     nativeMass (1 : Matrix (Reg h) (Reg h) ℂ) p out
@@ -452,9 +509,12 @@ theorem nativeMass_one_eq_sum {h : ℕ} (p : NativeProgram h)
   show ∑ u ∈ p.success.toFinset, normVec (nativeBranch 1 out u) ^ 2 = _
   exact Finset.sum_congr rfl fun u _ => normVec_sq_nativeBranch_one out u
 
+/-- The pure-state density matrix equals the outer-product matrix. -/
 theorem pureDensity_eq_outerProduct' {I : Type} (ψ : QState I) :
     pureDensity ψ = outerProduct ψ := rfl
 
+/-- The native conditional output density with identity output map is positive semidefinite when
+its success mass is positive. -/
 theorem nativeDensity_posSemidef {h : ℕ} (p : NativeProgram h)
     (out : QState (Reg (h+p.ancilla))) (hm : 0 < nativeMass (1 : Matrix (Reg h) (Reg h) ℂ) p out) :
     (nativeDensity (1 : Matrix (Reg h) (Reg h) ℂ) p out).PosSemidef := by
@@ -471,6 +531,8 @@ theorem nativeDensity_posSemidef {h : ℕ} (p : NativeProgram h)
     exact_mod_cast inv_nonneg.mpr (le_of_lt hm)
   exact Matrix.PosSemidef.smul hsum hcle
 
+/-- The native conditional output density with identity output map has trace one when its
+success mass is positive. -/
 theorem nativeDensity_trace {h : ℕ} (p : NativeProgram h)
     (out : QState (Reg (h+p.ancilla))) (hm : 0 < nativeMass (1 : Matrix (Reg h) (Reg h) ℂ) p out) :
     Matrix.trace (nativeDensity (1 : Matrix (Reg h) (Reg h) ℂ) p out) = 1 := by
@@ -490,6 +552,8 @@ theorem nativeDensity_trace {h : ℕ} (p : NativeProgram h)
   rw [hsum]
   exact inv_mul_cancel₀ hmass_coe
 
+/-- Legal native programs with two unitary oracles satisfy the stated unitarity, instruction
+accounting, padding, normalization, success-mass, and conditional-density guarantees. -/
 theorem Clause36NativeProgramSemantics_answer : Clause36NativeProgramSemantics := by
   intro h p UA UB hlegal hUA hUB
   set U := nativeMatrix (fun j => if j = 0 then UA else UB) p

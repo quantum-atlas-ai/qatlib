@@ -14,6 +14,34 @@ import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Robust coherent implementation by cubic amplification
+
+This module compiles the cubic oblivious amplitude amplification word for a shared input and
+output frame. From a scale-two block encoding of a unitary, it bounds the amplified compressed
+error, the full framed-state error, and leakage outside the frame.
+
+The analysis makes the circuit and resource costs explicit, including substituted subroutines
+and repeated applications. It develops the amplitude amplification construction of
+[BrassardEtAl2002] with the error budget `coherentOAAError`.
+
+## Main statements
+
+* `coherent_oaa_word_correct`: the word is well formed, uses three queries and four fixed gates,
+  and has the cubic compression.
+* `coherent_oaa_clean_workspace_error`: compressed accuracy controls the full framed-state
+  error.
+* `coherent_oaa_leakage_and_success`: the amplified circuit has explicit leakage and success
+  bounds.
+* `coherent_oaa_expanded_repeat_error_and_cost`: expanded repetitions have explicit counts and a
+  linear accumulated state-error bound.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError
 set_option warningAsError false
@@ -47,50 +75,66 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
 
+/-- A unitary matrix preserves the Euclidean norm of a state vector. -/
 private theorem norm_toEuclidean_mulVec_of_unitary {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     ‖toEuclidean_fromVec (U *ᵥ ψ)‖ = ‖toEuclidean_fromVec ψ‖ :=
   norm_applyGate_of_mem_unitaryGroup hU ψ
 
+/-- The Euclidean norm of a matrix-vector product is at most the operator norm times the
+vector's Euclidean norm. -/
 private theorem norm_toEuclidean_mulVec_le {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (ψ : QState I) :
     ‖toEuclidean_fromVec (U *ᵥ ψ)‖ ≤ ‖U‖ * ‖toEuclidean_fromVec ψ‖ :=
   norm_applyGate_le U ψ
 
+/-- An isometry preserves the Euclidean norm of a state vector. -/
 private theorem norm_toEuclidean_mulVec_of_isometry {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] {V : Matrix H I ℂ} (hV : IsIsometry V) (ψ : QState I) :
     ‖toEuclidean_fromVec (V *ᵥ ψ)‖ = ‖toEuclidean_fromVec ψ‖ :=
   Qatlib.Concepts.BlockEncoding.Postselection.Encoding.IsIsometry.stateVector_norm hV ψ
 
+/-- Real scalar multiplication of a complex matrix agrees with multiplication by the
+corresponding complex scalar. -/
 private theorem real_smul_matrix_eq {H I : Type} [Fintype H] [Fintype I] (r : ℝ)
     (M : Matrix H I ℂ) : (r • M) = ((r : ℂ)) • M := by
   ext i j
   simp only [Matrix.smul_apply, Complex.real_smul, smul_eq_mul]
 
+/-- Conversion from a state vector to Euclidean space preserves addition. -/
 private theorem toEuclidean_fromVec_add {I : Type} [Fintype I] (ψ φ : QState I) :
     toEuclidean_fromVec (ψ + φ) = toEuclidean_fromVec ψ + toEuclidean_fromVec φ :=
   rfl
 
+/-- Conversion from a state vector to Euclidean space preserves subtraction. -/
 private theorem toEuclidean_fromVec_sub {I : Type} [Fintype I] (ψ φ : QState I) :
     toEuclidean_fromVec (ψ - φ) = toEuclidean_fromVec ψ - toEuclidean_fromVec φ :=
   rfl
 
+/-- The total measurement mass of a state vector equals its squared Euclidean norm. -/
 private theorem measureProb_univ_eq_norm_sq {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) :
     MeasureProb φ Finset.univ = ‖toEuclidean_fromVec φ‖ ^ 2 := by
   rw [norm_toEuclidean_fromVec_sq]
   rfl
 
+/-- The compiled cubic amplification word with both signal projectors equal to the range
+projector of `R`. -/
 noncomputable def coherentOAAWord {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (R : Matrix H I ℂ) : List (AdjointStep H) :=
   compileQSVT (rangeProjector R) (rangeProjector R) (-Complex.I) cubicPhases
 
+/-- The matrix evaluation of the shared-frame cubic amplification word with oracle `U`. -/
 noncomputable def coherentOAAOperator {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (U : Matrix H H ℂ) (R : Matrix H I ℂ) : Matrix H H ℂ :=
   evaluate U (coherentOAAWord R)
 
+/-- The amplified compression error budget `(3 + (3 / 2) * ε + (1 / 2) * ε ^ 2) * ε`. -/
 noncomputable def coherentOAAError (ε : ℝ) : ℝ := (3 + (3 / 2) * ε + (1 / 2) * ε ^ 2) * ε
 
+/-- For an isometric frame and unitary oracle, the amplification word is well formed, has three
+queries and four fixed gates, and evaluates to a unitary. Its compression is the cubic
+expression `3 • A - 4 • (A * Aᴴ * A)` in the original compressed block. -/
 theorem coherent_oaa_word_correct {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (U : Matrix H H ℂ) (R : Matrix H I ℂ) (hR : IsIsometry R)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) :
@@ -117,6 +161,8 @@ theorem coherent_oaa_word_correct {H I : Type} [Fintype H] [DecidableEq H] [Fint
     rw [hev]
     exact hcubic.encoded
 
+/-- For a scale-two block encoding of a unitary, `coherentOAAError ε` is nonnegative and bounds
+the amplified compression error. -/
 theorem coherent_oaa_compressed_error {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ) (ε : ℝ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (h : BlockEncoding V U R R 2 ε) :
@@ -166,6 +212,8 @@ theorem coherent_oaa_compressed_error {H I : Type} [Fintype H] [DecidableEq H] [
         rw [ha, hb2, hab, add_zero, coherentOAAError]
         ring
 
+/-- For a scale-two block encoding of a unitary, the amplified output differs from the ideal
+framed output by at most `sqrt (2 * coherentOAAError ε)` times the input norm. -/
 theorem coherent_oaa_clean_workspace_error {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ) (ε : ℝ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (h : BlockEncoding V U R R 2 ε) :
@@ -184,6 +232,9 @@ theorem coherent_oaa_clean_workspace_error {H I : Type} [Fintype H] [DecidableEq
     (l2_norm_mulVec_fromVec_le (coherentOAAOperator U R * R - R * V) ψ).trans
       (mul_le_mul_of_nonneg_right hb (norm_nonneg _))
 
+/-- The unsuccessful branch norm is at most `sqrt (2 * coherentOAAError ε)` times the input
+norm. If the error budget is below one, every normalized input has successful branch mass at
+least `(1 - coherentOAAError ε) ^ 2`. -/
 theorem coherent_oaa_leakage_and_success {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ) (ε : ℝ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (h : BlockEncoding V U R R 2 ε) :
@@ -267,6 +318,8 @@ theorem coherent_oaa_leakage_and_success {H I : Type} [Fintype H] [DecidableEq H
         pow_le_pow_left₀ hnn hlb 2
       _ = ProjectiveBranchMass (rangeProjector R) true (W *ᵥ (R *ᵥ ψ)) := hmass.symm
 
+/-- After `n` amplified applications, the full framed-state error is at most `n * sqrt (2 *
+coherentOAAError ε)` times the input norm. -/
 theorem coherent_oaa_repeated_workspace_error {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ)
     (ε : ℝ) (hV : V ∈ Matrix.unitaryGroup I ℂ) (h : BlockEncoding V U R R 2 ε) :
@@ -314,6 +367,9 @@ theorem coherent_oaa_repeated_workspace_error {H I : Type} [Fintype H] [Decidabl
         push_cast
         ring
 
+/-- Substituting a well-formed body into the amplification word realizes its amplification
+operator and preserves well-formedness. The expanded word has three times the body query
+count and `4 + 3 * adjointGateCount body` fixed gates. -/
 theorem coherent_oaa_expanded_subroutine {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (O : Matrix H H ℂ) (body : List (AdjointStep H)) (R : Matrix H I ℂ)
     (hbody : WellFormedAdjointCircuit body) (hR : IsIsometry R) :
@@ -341,6 +397,9 @@ theorem coherent_oaa_expanded_subroutine {H I : Type} [Fintype H] [DecidableEq H
   · rw [hg, hqc, hgc]
   · exact hw hbody hwf
 
+/-- Repeating the expanded amplification body `n` times uses `3 * n * adjointQueryCount body`
+queries and `n * (4 + 3 * adjointGateCount body)` fixed gates. Its full framed-state error
+is at most `n * sqrt (2 * coherentOAAError ε)` times the input norm. -/
 theorem coherent_oaa_expanded_repeat_error_and_cost {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (body : List (AdjointStep H))
     (V : Matrix I I ℂ) (R : Matrix H I ℂ) (ε : ℝ)

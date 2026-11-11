@@ -10,6 +10,24 @@ import Mathlib.Analysis.Normed.Operator.NormedSpace
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Hadamard-test probabilities and sampling bounds
+
+This module models the zero branch of a Hadamard test and its two-outcome probability law for a
+normalized vector and a norm-preserving complex operator. It derives the readout expectation,
+variance, and sample-average bound used for matrix-element estimation in [Jordan2008a].
+
+## Main statements
+
+* `hadamard_mean`: the real matrix element as a readout expectation.
+* `hadamard_variance_le_one`: the readout variance bound.
+* `hadamard_sample_bound`: a `1 / (L * ε^2)` deviation bound.
+
+## References
+
+* [Jordan, 2008][Jordan2008a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -21,10 +39,14 @@ namespace Qatlib.Papers.GroupReps08.MainResults.Common
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- The zero-outcome branch vector `(ψ + U ψ) / 2` of the Hadamard test. -/
 def zeroBranch (U : E →L[ℂ] E) (ψ : E) : E := (1 / 2 : ℂ) • (ψ + U ψ)
 
+/-- The squared norm of the zero-outcome branch vector. -/
 def zeroProb (U : E →L[ℂ] E) (ψ : E) : ℝ := ‖zeroBranch U ψ‖ ^ 2
 
+/-- For normalized `ψ` and norm-preserving `U`, the zero-outcome probability equals `(1 + Re ⟪ψ,
+U ψ⟫) / 2`. -/
 theorem zeroProb_eq (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) :
     zeroProb U ψ = (1 + (⟪ψ, U ψ⟫_ℂ).re) / 2 := by
@@ -38,10 +60,12 @@ theorem zeroProb_eq (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
   rw [mul_pow, hnorm]
   ring
 
+/-- The squared norm defining the zero-outcome probability is nonnegative. -/
 theorem zeroProb_nonneg (U : E →L[ℂ] E) (ψ : E) : 0 ≤ zeroProb U ψ := by
   unfold zeroProb
   exact sq_nonneg _
 
+/-- For normalized `ψ` and norm-preserving `U`, the zero-outcome probability is at most one. -/
 theorem zeroProb_le_one (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) : zeroProb U ψ ≤ 1 := by
   rw [zeroProb_eq U ψ hψ hU]
@@ -54,6 +78,8 @@ theorem zeroProb_le_one (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     linarith [hner]
   linarith [abs_le.mp habs]
 
+/-- The two-outcome law assigning `zeroProb U ψ` to outcome zero and its complement to outcome
+one. -/
 def hadamardLaw (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) : FinDist (Fin 2) where
   prob i := if i = 0 then zeroProb U ψ else 1 - zeroProb U ψ
@@ -66,8 +92,11 @@ def hadamardLaw (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     rw [Fin.sum_univ_two]
     simp
 
+/-- The real readout assigning `1` to outcome zero and `-1` to outcome one. -/
 def readout : Fin 2 → ℝ := fun i => if i = 0 then 1 else -1
 
+/-- For normalized `ψ` and norm-preserving `U`, the Hadamard readout expectation is the real
+part of `⟪ψ, U ψ⟫` [Jordan2008a]. -/
 theorem hadamard_mean (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) :
     (hadamardLaw U ψ hψ hU).expect readout = (⟪ψ, U ψ⟫_ℂ).re := by
@@ -83,6 +112,7 @@ theorem hadamard_mean (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
   rw [zeroProb_eq U ψ hψ hU]
   ring
 
+/-- The variance of the Hadamard readout equals `4 * zeroProb U ψ * (1 - zeroProb U ψ)`. -/
 theorem hadamard_variance (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) :
     (hadamardLaw U ψ hψ hU).variance readout
@@ -103,6 +133,7 @@ theorem hadamard_variance (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
   rw [hμ]
   ring
 
+/-- The Hadamard readout variance is at most one. -/
 theorem hadamard_variance_le_one (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) :
     (hadamardLaw U ψ hψ hU).variance readout ≤ 1 := by
@@ -110,6 +141,9 @@ theorem hadamard_variance_le_one (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 
   set p := zeroProb U ψ with hp
   nlinarith [sq_nonneg (2 * p - 1)]
 
+/-- For normalized `ψ`, norm-preserving `U`, and positive `L` and `ε`, the probability that the
+sample mean misses the real matrix element by more than `ε` is at most `1 / (L * ε^2)`
+[Jordan2008a]. -/
 theorem hadamard_sample_bound (U : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (hU : ∀ x, ‖U x‖ = ‖x‖) (L : ℕ) (hL : 0 < L) (ε : ℝ) (hε : 0 < ε) :
     FinDist.probEvent (L := L) (hadamardLaw U ψ hψ hU)

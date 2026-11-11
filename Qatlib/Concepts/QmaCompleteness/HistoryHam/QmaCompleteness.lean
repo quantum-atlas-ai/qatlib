@@ -6,6 +6,20 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+
+/-!
+# QMA completeness interface
+
+This module imports the local Hamiltonian completeness definitions and spectral-forrelation
+development for the history-Hamiltonian namespace. It provides an import interface without
+introducing additional declarations. Related mathematical background is given in
+[KempeKitaevRegev2006].
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 

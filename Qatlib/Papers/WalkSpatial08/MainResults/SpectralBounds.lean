@@ -129,6 +129,27 @@ import Qatlib.Papers.WalkSpatial08.MainResults.ControlledWalkDefs
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Algebra.Order.Floor.Ring
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Lattice spectral sums and balanced control bounds
+
+This module defines lattice phase and gap quantities and compares their inverse-gap sums with
+harmonic sums. It proves logarithmic upper and lower growth bounds and then evaluates the
+balanced control parameter to bound the model phase increment and controlled-walk step count.
+
+The controlled spatial-search setting is described in [Tulsi2008].
+
+## Main statements
+
+* `akr_sum_inv_gap`: two-sided logarithmic bounds for the weighted inverse-gap sum.
+* `alphaDeltaStar_lower`: lower bound for the balanced model phase increment.
+* `controlledWalkTimeSteps_bound`: eventual step bound proportional to `sqrt (N * log N)`.
+
+## References
+
+* [Tulsi, 2008][Tulsi2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -137,19 +158,25 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.WalkSpatial08.MainResults
 
+/-- The real logarithm of the number of lattice sites. -/
 def logLattice (n : ℕ) : ℝ := Real.log (latticeSize n : ℝ)
 
+/-- The arccosine of the average of the two lattice Fourier cosines at indices `p` and `q`. -/
 def theta (n p q : ℕ) : ℝ :=
   Real.arccos
     ((Real.cos (2 * Real.pi * (p : ℝ) / (n : ℝ)) +
         Real.cos (2 * Real.pi * (q : ℝ) / (n : ℝ))) / 2)
 
+/-- The coefficient `1 / sqrt (2 * latticeSize n)`. -/
 def aPQ (n : ℕ) : ℝ := 1 / Real.sqrt (2 * (latticeSize n : ℝ))
 
+/-- The coefficient `1 / sqrt (latticeSize n)`. -/
 def aZero (n : ℕ) : ℝ := 1 / Real.sqrt (latticeSize n : ℝ)
 
+/-- The folded index `min p (n - p)`, measuring distance to zero around a cycle when `p < n`. -/
 def dist (n p : ℕ) : ℕ := min p (n - p)
 
+/-- For an index below `n`, its folded distance is at most `n / 2`. -/
 theorem dist_le_half (n p : ℕ) (hp : p < n) : dist n p ≤ n / 2 := by
   unfold dist
   by_cases h : p ≤ n - p
@@ -158,12 +185,14 @@ theorem dist_le_half (n p : ℕ) (hp : p < n) : dist n p ≤ n / 2 := by
   · rw [Nat.min_eq_right (by omega)]
     omega
 
+/-- A valid cyclic index has folded distance in the range from zero through `n / 2`. -/
 theorem dist_mem_range (n p : ℕ) (hp : p < n) :
     dist n p ∈ Finset.range (n / 2 + 1) := by
   rw [Finset.mem_range]
   have := dist_le_half n p hp
   omega
 
+/-- At most two indices in the range below `n` have any prescribed folded distance. -/
 theorem fiber_dist_card (n d : ℕ) :
     ((Finset.range n).filter (fun p => dist n p = d)).card ≤ 2 := by
   unfold dist
@@ -184,6 +213,8 @@ theorem fiber_dist_card (n d : ℕ) :
       ≤ ({d, n - d} : Finset ℕ).card := Finset.card_le_card hsub
     _ ≤ 2 := Finset.card_le_two
 
+/-- For a nonnegative function, summing over folded cyclic indices is at most twice the sum over
+distances through `n / 2`. -/
 theorem sum_dist_le (n : ℕ) (φ : ℕ → ℝ) (hφ : ∀ d, 0 ≤ φ d) :
     (∑ p ∈ Finset.range n, φ (dist n p)) ≤
       2 * ∑ d ∈ Finset.range (n / 2 + 1), φ d := by
@@ -218,11 +249,14 @@ theorem sum_dist_le (n : ℕ) (φ : ℕ → ℝ) (hφ : ∀ d, 0 ≤ φ d) :
         exact Finset.sum_le_sum_of_subset_of_nonneg himage
           (fun d _ _ => hφ d)
 
+/-- For natural-number intervals, `Ioc a b` equals `Ico (a + 1) (b + 1)`. -/
 theorem Ioc_eq_Ico_succ (a b : ℕ) : Finset.Ioc a b = Finset.Ico (a + 1) (b + 1) := by
   ext x
   simp only [Finset.mem_Ioc, Finset.mem_Ico]
   omega
 
+/-- A finite reciprocal-square tail starting at a natural number `m ≥ 2` is at most `1 / (m -
+1)`. -/
 theorem sum_range_inv_sq_ge_two (m K : ℕ) (hm : 2 ≤ m) :
     (∑ e ∈ Finset.range K, 1 / (((m + e : ℕ) : ℝ)) ^ 2) ≤ 1 / (((m : ℕ) : ℝ) - 1) := by
   have hconv : (∑ e ∈ Finset.range K, 1 / (((m + e : ℕ) : ℝ)) ^ 2)
@@ -249,6 +283,7 @@ theorem sum_range_inv_sq_ge_two (m K : ℕ) (hm : 2 ≤ m) :
   rw [one_div]
   linarith
 
+/-- A finite reciprocal-square sum starting at one is at most two. -/
 theorem sum_range_inv_sq_one (K : ℕ) :
     (∑ e ∈ Finset.range K, 1 / (((1 + e : ℕ) : ℝ)) ^ 2) ≤ 2 := by
   rcases Nat.eq_zero_or_pos K with hK | hK
@@ -273,6 +308,8 @@ theorem sum_range_inv_sq_one (K : ℕ) :
       norm_num
     linarith
 
+/-- The reciprocal of `d² + e²` is at most `2 / (d + e)²` for natural `d` and `e`, using
+totalized real division. -/
 theorem inv_add_sq_le (d e : ℕ) :
     1 / ((d : ℝ) ^ 2 + (e : ℝ) ^ 2) ≤ 2 / (((d : ℝ) + (e : ℝ)) ^ 2) := by
   have hsq : ((d : ℝ) + (e : ℝ)) ^ 2 ≤ 2 * ((d : ℝ) ^ 2 + (e : ℝ) ^ 2) := by
@@ -302,6 +339,8 @@ theorem inv_add_sq_le (d e : ℕ) :
     rw [div_le_div_iff₀ hpos hT]
     simpa using hsq
 
+/-- The reciprocal-square sum from zero through `K` is at most two, with the zero term
+interpreted by real division. -/
 theorem sum_range_inv_sq_zero (K : ℕ) :
     (∑ e ∈ Finset.range (K + 1), 1 / (((e : ℕ) : ℝ)) ^ 2) ≤ 2 := by
   rw [Finset.sum_range_succ']
@@ -314,6 +353,7 @@ theorem sum_range_inv_sq_zero (K : ℕ) :
   have : ((1 + d : ℕ) : ℝ) = ((d + 1 : ℕ) : ℝ) := by push_cast; ring
   rw [this]
 
+/-- The finite reciprocal-square sum starting at natural `d` is at most `4 / (d + 1)`. -/
 theorem inner_sq_le (d K : ℕ) :
     (∑ e ∈ Finset.range (K + 1), 1 / (((d + e : ℕ) : ℝ)) ^ 2) ≤ 4 / ((d : ℝ) + 1) := by
   rcases Nat.eq_zero_or_pos d with hd | hd
@@ -339,6 +379,8 @@ theorem inner_sq_le (d K : ℕ) :
       have hdr : (2 : ℝ) ≤ (d : ℝ) := by exact_mod_cast hd2
       nlinarith
 
+/-- The sum of reciprocals from one through `K` equals the `K`th harmonic number cast to the
+reals. -/
 theorem sum_range_inv_succ_eq_harmonic (K : ℕ) :
     (∑ d ∈ Finset.range K, 1 / ((d : ℝ) + 1)) = (harmonic K : ℝ) := by
   have h1 : (harmonic K : ℝ) = ∑ i ∈ Finset.Icc 1 K, ((i : ℝ))⁻¹ := by
@@ -354,6 +396,8 @@ theorem sum_range_inv_succ_eq_harmonic (K : ℕ) :
   push_cast
   ring
 
+/-- The double reciprocal sum over `d² + e²` for indices zero through `K` is at most eight times
+the harmonic number at `K + 1`. -/
 theorem sum_inv_add_sq_le (K : ℕ) :
     (∑ d ∈ Finset.range (K + 1), ∑ e ∈ Finset.range (K + 1),
         1 / ((d : ℝ) ^ 2 + (e : ℝ) ^ 2)) ≤ 8 * (harmonic (K + 1) : ℝ) := by
@@ -403,13 +447,16 @@ theorem sum_inv_add_sq_le (K : ℕ) :
         apply mul_le_mul_of_nonneg_left hb (by norm_num)
     _ = 8 * (harmonic (K + 1) : ℝ) := by ring
 
+/-- The sum of the squared lattice sines at indices `p` and `q`. -/
 def gap (n p q : ℕ) : ℝ :=
   Real.sin (Real.pi * (p : ℝ) / (n : ℝ)) ^ 2 +
     Real.sin (Real.pi * (q : ℝ) / (n : ℝ)) ^ 2
 
+/-- The real cast of the lattice size equals the product of the real side length with itself. -/
 theorem latticeSize_real (n : ℕ) : ((latticeSize n : ℕ) : ℝ) = (n : ℝ) * (n : ℝ) := by
   simp [latticeSize, Nat.cast_mul]
 
+/-- For positive side length, the lattice logarithm is twice the logarithm of the side length. -/
 theorem logLattice_eq_two_log {n : ℕ} (hn : 0 < n) :
     logLattice n = 2 * Real.log (n : ℝ) := by
   unfold logLattice
@@ -417,6 +464,8 @@ theorem logLattice_eq_two_log {n : ℕ} (hn : 0 < n) :
   push_cast
   ring
 
+/-- For positive side length, the squared coefficient `aPQ n` equals `1 / (2 * n * n)` over the
+reals. -/
 theorem aPQ_sq {n : ℕ} (hn : 0 < n) :
     (aPQ n) ^ 2 = 1 / (2 * ((n : ℝ) * (n : ℝ))) := by
   unfold aPQ
@@ -425,6 +474,7 @@ theorem aPQ_sq {n : ℕ} (hn : 0 < n) :
     positivity
   rw [div_pow, one_pow, latticeSize_real, Real.sq_sqrt hpos.le]
 
+/-- For a valid cyclic index, folding its distance preserves the sine of `π * p / n`. -/
 theorem sin_dist (n p : ℕ) (hn : 0 < n) (hp : p < n) :
     Real.sin (Real.pi * ((dist n p : ℕ) : ℝ) / (n : ℝ)) =
       Real.sin (Real.pi * (p : ℝ) / (n : ℝ)) := by
@@ -440,6 +490,8 @@ theorem sin_dist (n p : ℕ) (hn : 0 < n) (hp : p < n) :
       field_simp
     rw [hcast, harg, Real.sin_pi_sub]
 
+/-- On indices through `n / 2` with positive `n`, the squared lattice sine is at least `4 * p² /
+n²`. -/
 theorem sin_sq_ge (n p : ℕ) (hn : 0 < n) (hp : p ≤ n / 2) :
     4 * (p : ℝ) ^ 2 / (n : ℝ) ^ 2 ≤ Real.sin (Real.pi * (p : ℝ) / (n : ℝ)) ^ 2 := by
   have h2p : 2 * p ≤ n := by omega
@@ -461,6 +513,8 @@ theorem sin_sq_ge (n p : ℕ) (hn : 0 < n) (hp : p ≤ n / 2) :
   rw [heq2] at hsq
   exact hsq
 
+/-- For valid indices and positive side length, the gap is at least four times the sum of
+squared folded distances divided by `n²`. -/
 theorem gap_ge (n p q : ℕ) (hn : 0 < n) (hp : p < n) (hq : q < n) :
     4 * ((((dist n p : ℕ) : ℝ) ^ 2 + ((dist n q : ℕ) : ℝ) ^ 2)) / (n : ℝ) ^ 2 ≤
       gap n p q := by
@@ -474,6 +528,8 @@ theorem gap_ge (n p q : ℕ) (hn : 0 < n) (hp : p < n) (hq : q < n) :
     field_simp
   linarith [h1, h2]
 
+/-- For valid indices and positive side length, the inverse gap is bounded by `n²` divided by
+four times the sum of squared folded distances. -/
 theorem inv_gap_le (n p q : ℕ) (hn : 0 < n) (hp : p < n) (hq : q < n) :
     1 / gap n p q ≤
       (n : ℝ) ^ 2 / (4 * ((((dist n p : ℕ) : ℝ) ^ 2 + ((dist n q : ℕ) : ℝ) ^ 2))) := by
@@ -525,6 +581,7 @@ theorem inv_gap_le (n p q : ℕ) (hn : 0 < n) (hp : p < n) (hq : q < n) :
     rw [heq] at h1
     exact h1
 
+/-- For positive indices strictly below a positive side length, the lattice gap is positive. -/
 theorem gap_pos (n p q : ℕ) (hn : 0 < n) (hp1 : 1 ≤ p) (hpn : p < n)
     (hq1 : 1 ≤ q) (hqn : q < n) : 0 < gap n p q := by
   unfold gap
@@ -545,6 +602,7 @@ theorem gap_pos (n p q : ℕ) (hn : 0 < n) (hp1 : 1 ≤ p) (hpn : p < n)
   have hsq := Real.sin_pos_of_pos_of_lt_pi hqq hqlt
   nlinarith [sq_pos_of_ne_zero hsp.ne', sq_pos_of_ne_zero hsq.ne']
 
+/-- For valid indices and positive side length, the gap is at most `π² * (p² + q²) / n²`. -/
 theorem gap_le_pi_sq (n p q : ℕ) (hn : 0 < n) (hp : p < n) (hq : q < n) :
     gap n p q ≤ Real.pi ^ 2 * ((p : ℝ) ^ 2 + (q : ℝ) ^ 2) / (n : ℝ) ^ 2 := by
   have hnR : 0 < (n : ℝ) := by exact_mod_cast hn
@@ -568,15 +626,20 @@ theorem gap_le_pi_sq (n p q : ℕ) (hn : 0 < n) (hp : p < n) (hq : q < n) :
     field_simp
   linarith [h2p, h2q]
 
+/-- The double sum over lattice Fourier indices of `aPQ n` squared divided by the gap, using
+totalized division at zero gaps. -/
 def sumInvGap (n : ℕ) : ℝ :=
   ∑ p ∈ Finset.range n, ∑ q ∈ Finset.range n, (aPQ n) ^ 2 / gap n p q
 
+/-- The real cast of a harmonic number equals the reciprocal sum over the closed interval from
+one to its index. -/
 theorem harmonic_real_eq_sum (K : ℕ) :
     (harmonic K : ℝ) = ∑ q ∈ Finset.Icc 1 K, ((q : ℝ))⁻¹ := by
   rw [harmonic_eq_sum_Icc]
   push_cast
   ring
 
+/-- The reciprocal sum from one through `K` is at least `log (K + 1)`. -/
 theorem sum_Icc_inv_ge_log (K : ℕ) :
     Real.log ((K : ℝ) + 1) ≤ ∑ q ∈ Finset.Icc 1 K, ((q : ℝ))⁻¹ := by
   have htel : (∑ q ∈ Finset.Icc 1 K, Real.log (((q : ℝ) + 1) / (q : ℝ))) =
@@ -606,6 +669,8 @@ theorem sum_Icc_inv_ge_log (K : ℕ) :
         field_simp
         ring
 
+/-- The double sum of `1 / (p² + q²)` over positive indices through `K` is at least half the
+`K`th harmonic number. -/
 theorem sum_Icc_inv_add_sq_ge (K : ℕ) :
     (1 / 2) * (harmonic K : ℝ) ≤
       ∑ p ∈ Finset.Icc 1 K, ∑ q ∈ Finset.Icc 1 K, 1 / ((p : ℝ) ^ 2 + (q : ℝ) ^ 2) := by
@@ -663,6 +728,8 @@ theorem sum_Icc_inv_add_sq_ge (K : ℕ) :
     _ = ∑ p ∈ Finset.Icc 1 K, ∑ q ∈ Finset.Icc 1 K, 1 / ((p : ℝ) ^ 2 + (q : ℝ) ^ 2) := by
         rw [Finset.sum_comm]
 
+/-- The double reciprocal sum over folded cyclic distances is at most four times the
+corresponding sum over distances through `n / 2`. -/
 theorem sum_inv_dist_sum_le (n : ℕ) :
     (∑ p ∈ Finset.range n, ∑ q ∈ Finset.range n,
         1 / (((dist n p : ℕ) : ℝ) ^ 2 + ((dist n q : ℕ) : ℝ) ^ 2)) ≤
@@ -697,14 +764,18 @@ theorem sum_inv_dist_sum_le (n : ℕ) :
     _ = 4 * ∑ d ∈ Finset.range (n / 2 + 1), ∑ e ∈ Finset.range (n / 2 + 1),
           1 / ((d : ℝ) ^ 2 + (e : ℝ) ^ 2) := by ring
 
+/-- Every lattice gap is nonnegative. -/
 theorem gap_nonneg (n p q : ℕ) : 0 ≤ gap n p q := by
   unfold gap
   positivity
 
+/-- Every weighted inverse-gap summand `(aPQ n)² / gap n p q` is nonnegative. -/
 theorem term_nonneg (n p q : ℕ) : 0 ≤ (aPQ n) ^ 2 / gap n p q := by
   rw [div_eq_mul_inv]
   exact mul_nonneg (sq_nonneg _) (inv_nonneg.mpr (gap_nonneg n p q))
 
+/-- For positive side length, the weighted inverse-gap sum is at most four times the harmonic
+number at `n / 2 + 1`. -/
 theorem sumInvGap_le (n : ℕ) (hn : 0 < n) :
     sumInvGap n ≤ 4 * (harmonic (n / 2 + 1) : ℝ) := by
   unfold sumInvGap
@@ -759,6 +830,8 @@ theorem sumInvGap_le (n : ℕ) (hn : 0 < n) :
         exact sum_inv_add_sq_le (n / 2)
     _ = 4 * (harmonic (n / 2 + 1) : ℝ) := by ring
 
+/-- For positive side length, the weighted inverse-gap sum is at least `log (n / 2 + 1) / (4 *
+π²)`. -/
 theorem sumInvGap_ge (n : ℕ) (hn : 0 < n) :
     (1 / (4 * Real.pi ^ 2)) * Real.log (((n / 2 : ℕ) : ℝ) + 1) ≤ sumInvGap n := by
   have hK : n / 2 < n := by omega
@@ -859,6 +932,9 @@ theorem sumInvGap_ge (n : ℕ) (hn : 0 < n) :
     linarith [e1, e2, e3, e4, e5]
   exact hchain
 
+/-- For all sufficiently large side lengths, the weighted inverse-gap sum lies between positive
+constant multiples of the lattice logarithm. See [Main result: O(sqrt(N log N))
+two-dimensional spatial search][Tulsi2008]. -/
 theorem akr_sum_inv_gap :
     ∃ c1 c2 : ℝ, 0 < c1 ∧ 0 < c2 ∧ ∃ N₀ : ℕ, ∀ n ≥ N₀,
       c1 * logLattice n ≤ sumInvGap n ∧ sumInvGap n ≤ c2 * logLattice n := by
@@ -913,16 +989,20 @@ theorem akr_sum_inv_gap :
       nlinarith [hH, hlogn]
     linarith [h, this]
 
+/-- The balanced control angle `arccos (1 / sqrt (logLattice n))`. -/
 def deltaStar (n : ℕ) : ℝ :=
   Real.arccos (1 / Real.sqrt (logLattice n))
 
+/-- The model phase increment `1 / (sqrt (latticeSize n) * sqrt (logLattice n + tan δ² / 4))`. -/
 def alphaDelta (n : ℕ) (δ : ℝ) : ℝ :=
   1 / (Real.sqrt (latticeSize n : ℝ) *
     Real.sqrt (logLattice n + (Real.tan δ) ^ 2 / 4))
 
+/-- A lattice logarithm at least one is positive. -/
 theorem logLattice_pos {n : ℕ} (hlog : 1 ≤ logLattice n) : 0 < logLattice n :=
   lt_of_lt_of_le zero_lt_one hlog
 
+/-- When the lattice logarithm is at least one, its inverse square root is at most one. -/
 theorem one_div_sqrt_log_le_one {n : ℕ} (hlog : 1 ≤ logLattice n) :
     1 / Real.sqrt (logLattice n) ≤ 1 := by
   have hsqrt1 : 1 ≤ Real.sqrt (logLattice n) := by
@@ -932,27 +1012,37 @@ theorem one_div_sqrt_log_le_one {n : ℕ} (hlog : 1 ≤ logLattice n) :
   rw [div_le_one hpos]
   exact hsqrt1
 
+/-- When the lattice logarithm is at least one, its inverse square root is at least negative
+one. -/
 theorem neg_one_le_one_div_sqrt_log {n : ℕ} (hlog : 1 ≤ logLattice n) :
     -1 ≤ 1 / Real.sqrt (logLattice n) := by
   have hpos : 0 ≤ 1 / Real.sqrt (logLattice n) := by positivity
   linarith
 
+/-- When the lattice logarithm is at least one, the cosine of the balanced angle is its inverse
+square root. -/
 theorem cos_deltaStar {n : ℕ} (hlog : 1 ≤ logLattice n) :
     Real.cos (deltaStar n) = 1 / Real.sqrt (logLattice n) := by
   unfold deltaStar
   exact Real.cos_arccos (neg_one_le_one_div_sqrt_log hlog) (one_div_sqrt_log_le_one hlog)
 
+/-- When the lattice logarithm is at least one, the squared cosine of the balanced angle equals
+its reciprocal. -/
 theorem sq_cos_deltaStar {n : ℕ} (hlog : 1 ≤ logLattice n) :
     (Real.cos (deltaStar n)) ^ 2 = 1 / logLattice n := by
   rw [cos_deltaStar hlog, div_pow, one_pow,
     Real.sq_sqrt (logLattice_pos hlog).le]
 
+/-- When the lattice logarithm is at least one, the squared sine of the balanced angle equals
+one minus its reciprocal. -/
 theorem sin_sq_deltaStar {n : ℕ} (hlog : 1 ≤ logLattice n) :
     (Real.sin (deltaStar n)) ^ 2 = 1 - 1 / logLattice n := by
   have h := Real.sin_sq_add_cos_sq (deltaStar n)
   have hc := sq_cos_deltaStar hlog
   linarith
 
+/-- When the lattice logarithm is at least one, the squared tangent of the balanced angle equals
+the lattice logarithm minus one. -/
 theorem tan_sq_deltaStar {n : ℕ} (hlog : 1 ≤ logLattice n) :
     (Real.tan (deltaStar n)) ^ 2 = logLattice n - 1 := by
   have hL := logLattice_pos hlog
@@ -963,6 +1053,8 @@ theorem tan_sq_deltaStar {n : ℕ} (hlog : 1 ≤ logLattice n) :
   field_simp
   try ring
 
+/-- For lattice logarithm at least one, `sqrt (5 * logLattice n - 1)` lies between twice and
+three times `sqrt (logLattice n)`. -/
 theorem sqrt_five_log_sub_one_bounds {n : ℕ} (hlog : 1 ≤ logLattice n) :
     2 * Real.sqrt (logLattice n) ≤ Real.sqrt (5 * logLattice n - 1) ∧
       Real.sqrt (5 * logLattice n - 1) ≤ 3 * Real.sqrt (logLattice n) := by
@@ -984,6 +1076,8 @@ theorem sqrt_five_log_sub_one_bounds {n : ℕ} (hlog : 1 ≤ logLattice n) :
       _ = 3 * Real.sqrt (logLattice n) := by
         rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 9), h9]
 
+/-- For positive side length and lattice logarithm at least one, the balanced phase increment
+equals `2 / (sqrt (latticeSize n) * sqrt (5 * logLattice n - 1))`. -/
 theorem alphaDeltaStar_eq {n : ℕ} (hn : 0 < n) (hlog : 1 ≤ logLattice n) :
     alphaDelta n (deltaStar n) =
       2 / (Real.sqrt (latticeSize n : ℝ) * Real.sqrt (5 * logLattice n - 1)) := by
@@ -1006,6 +1100,9 @@ theorem alphaDeltaStar_eq {n : ℕ} (hn : 0 < n) (hlog : 1 ≤ logLattice n) :
   field_simp
   try ring
 
+/-- For positive side length and lattice logarithm at least one, the balanced phase increment is
+at least two thirds of the inverse square root of `latticeSize n * logLattice n`. See [Main
+result: O(sqrt(N log N)) two-dimensional spatial search][Tulsi2008]. -/
 theorem alphaDeltaStar_lower {n : ℕ} (hn : 0 < n) (hlog : 1 ≤ logLattice n) :
     (2 / 3) * (1 / Real.sqrt ((latticeSize n : ℝ) * logLattice n)) ≤
       alphaDelta n (deltaStar n) := by
@@ -1035,6 +1132,9 @@ theorem alphaDeltaStar_lower {n : ℕ} (hn : 0 < n) (hlog : 1 ≤ logLattice n) 
     mul_le_mul_of_nonneg_left hkey hsqrtN.le
   linarith
 
+/-- When the lattice logarithm is at least one, the reciprocal of `cos (deltaStar n) * sqrt
+(logLattice n)` equals one. See [Main result: O(sqrt(N log N)) two-dimensional spatial
+search][Tulsi2008]. -/
 theorem controlled_walk_target_overlap
     (n : ℕ) (hlog : 1 ≤ logLattice n) :
     1 / (Real.cos (deltaStar n) * Real.sqrt (logLattice n)) = 1 := by
@@ -1043,10 +1143,13 @@ theorem controlled_walk_target_overlap
   rw [hcos]
   field_simp
 
+/-- Twice the rounded balanced iteration count plus the rounded square root of the lattice size
+for setup. -/
 def controlledWalkTimeSteps (n : ℕ) : ℕ :=
   2 * Nat.ceil (Real.pi / (4 * alphaDelta n (deltaStar n))) +
     Nat.ceil (Real.sqrt (latticeSize n : ℝ))
 
+/-- A lattice side length at least sixteen has lattice logarithm at least one. -/
 theorem logLattice_ge_one_of_ge_16 {n : ℕ} (hn : 16 ≤ n) : 1 ≤ logLattice n := by
   have h256 : (0 : ℝ) < (latticeSize 16 : ℝ) := by norm_num [latticeSize]
   have hexp : Real.exp 1 ≤ (latticeSize 16 : ℝ) := by
@@ -1063,6 +1166,9 @@ theorem logLattice_ge_one_of_ge_16 {n : ℕ} (hn : 16 ≤ n) : 1 ≤ logLattice 
   have h256le : (latticeSize 16 : ℝ) ≤ (latticeSize n : ℝ) := by exact_mod_cast hmul
   exact le_trans h16 (Real.log_le_log h256 h256le)
 
+/-- For all sufficiently large side lengths, the controlled-walk step count is at most a
+positive constant times `sqrtNLatticeLog n`. See [Main result: O(sqrt(N log N))
+two-dimensional spatial search][Tulsi2008]. -/
 theorem controlledWalkTimeSteps_bound :
     ∃ C : ℝ, 0 < C ∧ ∃ N₀ : ℕ, ∀ n ≥ N₀,
       (controlledWalkTimeSteps n : ℝ) ≤ C * sqrtNLatticeLog n := by
@@ -1139,6 +1245,7 @@ theorem controlledWalkTimeSteps_bound :
     nlinarith [Real.pi_lt_four]
   nlinarith [hA, hceil2, hpi, hg1]
 
+/-- The scale `sqrtNLogLattice n` equals `sqrt (logLattice n)` times `sqrtNLatticeLog n`. -/
 theorem sqrtNLogLattice_eq_sqrt_log_mul (n : ℕ) :
     sqrtNLogLattice n = Real.sqrt (logLattice n) * sqrtNLatticeLog n := by
   unfold sqrtNLogLattice sqrtNLatticeLog logLattice

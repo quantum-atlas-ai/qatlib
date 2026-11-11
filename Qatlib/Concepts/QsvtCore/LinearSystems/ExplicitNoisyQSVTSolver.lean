@@ -8,6 +8,29 @@ import Qatlib.Concepts.QsvtCore.LinearSystems.ConstructivePseudoinverse
 import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
+
+/-!
+# Explicit inverse circuits with noisy oracle access
+
+This module chooses reciprocal response phases and compiles `explicitInverseCircuit` at the
+integer cutoff `explicitInverseCutoff`. It proves exact circuit counts and a scaled
+pseudoinverse encoding, then bounds the effect of replacing the unitary oracle by a nearby
+unitary on the same circuit. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `explicit_inverse_constructed_encoding`: the explicit reciprocal approximation as a block
+  encoding.
+* `explicit_inverse_noisy_access_encoding`: an encoding error bound linear in query count and
+  oracle error.
+* `explicit_inverse_noisy_same_path_solution`: a solution state and probability bound under a
+  noise threshold.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,16 +69,22 @@ set_option linter.unusedSectionVars false
 
 section PhaseWord
 
+/-- A chosen base unit phase for the reciprocal response at positive index, with value one at
+index zero. -/
 noncomputable def inversePhaseBase : ℕ → ℂ
   | 0 => 1
   | (m + 1) => Classical.choose (exists_inverse_phases (n := m + 1) (Nat.succ_pos m))
 
+/-- A chosen reciprocal response phase list at positive index, with the empty list at index
+zero. -/
 noncomputable def inversePhaseList : ℕ → List ℂ
   | 0 => []
   | (m + 1) =>
       Classical.choose (Classical.choose_spec
         (exists_inverse_phases (n := m + 1) (Nat.succ_pos m)))
 
+/-- For positive `n`, the chosen phases are unit phases of length `2 * n - 1` and their response
+real part is the scaled reciprocal polynomial. -/
 theorem inversePhaseWord_spec {n : ℕ} (hn : 0 < n) :
     IsPhase (inversePhaseBase n) ∧ (∀ z ∈ inversePhaseList n, IsPhase z) ∧
       (inversePhaseList n).length = 2 * n - 1 ∧
@@ -69,6 +98,8 @@ theorem inversePhaseWord_spec {n : ℕ} (hn : 0 < n) :
 
 end PhaseWord
 
+/-- The adjoint compiled real part QSVT circuit using the chosen reciprocal phases at cutoff
+`explicitInverseCutoff κ k`. -/
 noncomputable def explicitInverseCircuit {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (_A : Matrix O I ℂ) (_U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -76,6 +107,8 @@ noncomputable def explicitInverseCircuit {H I O : Type} [Fintype H] [DecidableEq
   adjointCircuit (compileRealPartQSVT (rangeProjector R) (rangeProjector L)
     (inversePhaseBase (explicitInverseCutoff κ k)) (inversePhaseList (explicitInverseCutoff κ k)))
 
+/-- For positive `κ`, the explicit inverse circuit has `2 * n - 1` queries and `2 * n` gates,
+where `n = explicitInverseCutoff κ k`. -/
 theorem explicit_inverse_actual_circuit_counts {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (κ k : ℕ)
@@ -93,6 +126,8 @@ theorem explicit_inverse_actual_circuit_counts {H I O : Type} [Fintype H] [Decid
   · rw [hc, adjointGateCount_adjointCircuit, (counts_compileRealPartQSVT _ _ _ _).2, hlen]
     omega
 
+/-- Under the singular value gap `κ⁻¹`, the explicit circuit block encodes the pseudoinverse
+scaled by `inverseScale n` with error `inverseScale n * 2⁻ᵏ`. -/
 theorem explicit_inverse_constructed_encoding {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (κ k : ℕ)
@@ -142,19 +177,23 @@ section NoisyAccess
 variable {J H : Type} [Fintype J] [DecidableEq J] [Nonempty J]
   [Fintype H] [DecidableEq H]
 
+/-- Parallel oracle lifting preserves the matrix operator norm. -/
 theorem parallelOracle_norm (W : Matrix H H ℂ) :
     ‖parallelOracle (J := J) W‖ = ‖W‖ := by
   rw [parallelOracle_eq_kronecker, l2_norm_kronecker, l2_norm_one_eq, one_mul]
 
+/-- Parallel oracle lifting preserves subtraction of matrices. -/
 theorem parallelOracle_sub (U V : Matrix H H ℂ) :
     parallelOracle (J := J) (V - U) = parallelOracle (J := J) V - parallelOracle (J := J) U := by
   rw [parallelOracle_eq_kronecker V, parallelOracle_eq_kronecker U,
     parallelOracle_eq_kronecker (V - U), kronecker_sub_right]
 
+/-- Parallel oracle lifting preserves the operator norm distance between matrices. -/
 theorem parallelOracle_dist (U V : Matrix H H ℂ) :
     ‖parallelOracle (J := J) U - parallelOracle (J := J) V‖ = ‖U - V‖ := by
   rw [← parallelOracle_sub, parallelOracle_norm]
 
+/-- A well formed adjoint circuit evaluated with a unitary parallel oracle has norm at most one. -/
 theorem evaluate_parallelOracle_norm_le {U : Matrix H H ℂ}
     (hU : U ∈ Matrix.unitaryGroup H ℂ) {cs : List (AdjointStep (J × H))}
     (hcs : WellFormedAdjointCircuit cs) :
@@ -185,6 +224,8 @@ theorem evaluate_parallelOracle_norm_le {U : Matrix H H ℂ}
         ((Matrix.unitaryGroup (J × H) ℂ).mul_mem (adjoint_unitary (parallelOracle_unitary hU))
           (hcs.evaluate_unitary (parallelOracle_unitary hU)))
 
+/-- Changing the unitary oracle in a well formed adjoint circuit changes its evaluation by at
+most the query count times the oracle distance. -/
 theorem evaluate_parallelOracle_oracle_error {U V : Matrix H H ℂ}
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (cs : List (AdjointStep (J × H))) (hcs : WellFormedAdjointCircuit cs) :
@@ -264,6 +305,8 @@ section Solver
 variable {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   [Fintype O] [DecidableEq O]
 
+/-- An explicit inverse circuit built from a projected unitary encoding and positive `κ` is well
+formed. -/
 theorem explicitInverseCircuit_wellFormed {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ} (h : ProjectedUnitaryEncoding A U L R)
     (κ k : ℕ) (hκ : 0 < κ) :
@@ -274,6 +317,8 @@ theorem explicitInverseCircuit_wellFormed {A : Matrix O I ℂ} {U : Matrix H H �
     (rangeProjector_isOrthogonalProjector h.right_isometry)
     (rangeProjector_isOrthogonalProjector h.left_isometry) hb _ hzs
 
+/-- Replacing the oracle by a unitary within `δ` adds at most `(2 * n - 1) * δ` to the explicit
+inverse encoding error under the stated singular value gap. -/
 theorem explicit_inverse_noisy_access_encoding (A : Matrix O I ℂ) (U V : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (κ k : ℕ) (δ : ℝ)
     (h : ProjectedUnitaryEncoding A U L R) (hV : V ∈ Matrix.unitaryGroup H ℂ) (hκ : 0 < κ)
@@ -339,6 +384,8 @@ theorem explicit_inverse_noisy_access_encoding (A : Matrix O I ℂ) (U V : Matri
         compress_sub_norm_le hclean.left_isometry hclean.right_isometry _ _
     _ ≤ ((2*n-1 : ℕ):ℝ) * δ := hdist
 
+/-- For `k ≥ 2` and the stated oracle noise threshold, the explicit circuit yields a minimum
+norm solution state within `3 * 2⁻ᵏ` with postselection probability at least `1 / (16 * n)`. -/
 theorem explicit_inverse_noisy_same_path_solution (A : Matrix O I ℂ) (U V : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (κ k : ℕ) (b : QState O)
     (h : ProjectedUnitaryEncoding A U L R) (hV : V ∈ Matrix.unitaryGroup H ℂ)

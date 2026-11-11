@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
 import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualMeanPayoff
 import Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
+
+/-!
+# Finite nested Monte Carlo targets and error bounds
+
+`finiteTarget`, `finiteMean`, and `finiteLaw` specialize nested amplitude estimation to the
+PRN-based finite term oracle associated with [KanekoEtAl2020]. `finiteBudget` records the
+average inner payoff bias bound for a differentiable payoff with Lipschitz derivative.
+
+The error theorems combine this bias with the outer estimation window. `source_sum_target`
+identifies the target with the sample average of the payoff of the decoded term sum.
+
+## Main statements
+
+* `finite_inner_payoff_error`: bounds the payoff bias for one sample.
+* `finite_inner_bias`: bounds the average inner bias.
+* `finite_nested_total_error`: gives success probability at least `8 / π²` for the combined
+  window.
+* `source_sum_target`: rewrites the target at dimension scale `2 ^ d`.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,21 +48,28 @@ open Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
 
 namespace Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
 
+/-- The set of body-register configurations whose output flag is true. -/
 def bodyGood (n s d p : ℕ) : Finset (BodyReg n s d p) := Finset.univ.filter (fun v => v.2=true)
 
+/-- The uniform sample average of `g` applied to `D` times the finite decoded term mean. -/
 def finiteTarget {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (D : ℝ) (g : ℝ → ℝ) : ℝ :=
   (1/(2:ℝ)^s)*∑ j : Reg s,g (D*termMean a c seed termCode j)
 
+/-- The uniform sample average of the derivative and curvature bounds on the inner payoff bias,
+divided by `M`. -/
 def finiteBudget {n s d p : ℕ} (M : ℕ) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (D : ℝ) (gp : ℝ → ℝ) (K : NNReal) : ℝ :=
   (1/(2:ℝ)^s)*∑ j : Reg s,(|gp (D*termMean a c seed termCode j)| *|D|+(K:ℝ)*D^2)/(M:ℝ)
 
+/-- The nested payoff mean for the actual PRN-based inner preparation and its true-flag event. -/
 def finiteMean {n s d p : ℕ} (M : ℕ) (hM : 2 ≤ M) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (D : ℝ) (g : ℝ → ℝ) : ℝ :=
   nestedMean (I:=BodyReg n s d p) s M hM (innerBody a c seed termCode) (bodySeed n s d p seed)
     (fun _ => bodyGood n s d p) (innerBody_unitary a c seed termCode) D g
 
+/-- The outer amplitude-estimation output distribution for the finite nested preparation,
+assuming the sampled payoff values lie in `[0, 1]`. -/
 def finiteLaw {n s d p : ℕ} (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (D : ℝ) (g : ℝ → ℝ)
@@ -46,6 +77,9 @@ def finiteLaw {n s d p : ℕ} (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
   nestedLaw (I:=BodyReg n s d p) s M N hM hN (innerBody a c seed termCode) (bodySeed n s d p seed)
     (fun _ => bodyGood n s d p) (innerBody_unitary a c seed termCode) D g hrange
 
+/-- For positive coordinate width and even `M ≥ 2`, the single-sample inner payoff bias is at
+most `(|gp (D * termMean a c seed termCode j)| * |D| + K * D ^ 2) / M` when `gp` is the
+`K`-Lipschitz derivative of `g`. -/
 theorem finite_inner_payoff_error {n s d p : ℕ} (hd : 0 < d)
     (M : ℕ) (hM : 2 ≤ M) (hEven : 2 ∣ M) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s)
@@ -61,6 +95,8 @@ theorem finite_inner_payoff_error {n s d p : ℕ} (hd : 0 < d)
   rw [preparedAAState,bodyGood,innerBody_flag_born hd] at h
   exact h
 
+/-- For positive coordinate width and even `M ≥ 2`, the difference between `finiteMean` and
+`finiteTarget` is bounded by `finiteBudget` when `g` has the stated Lipschitz derivative. -/
 theorem finite_inner_bias {n s d p : ℕ} (hd : 0 < d)
     (M : ℕ) (hM : 2 ≤ M) (hEven : 2 ∣ M) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1))
@@ -76,6 +112,9 @@ theorem finite_inner_bias {n s d p : ℕ} (hd : 0 < d)
   intro j _
   exact finite_inner_payoff_error hd M hM hEven a c seed termCode j D g gp K hg hgp
 
+/-- Under the stated smoothness and payoff-range hypotheses, with positive coordinate width,
+even `M ≥ 2`, and `N ≥ 2`, the outer estimate lies within `outerWindow` plus `finiteBudget`
+of `finiteTarget` with probability at least `8 / π²`. -/
 theorem finite_nested_total_error {n s d p : ℕ} (hd : 0 < d)
     (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N) (hEven : 2 ∣ M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
@@ -105,6 +144,8 @@ theorem finite_nested_total_error {n s d p : ℕ} (hd : 0 < d)
   · intro z _ _
     exact (finiteLaw M N hM hN a c seed termCode D g hrange).nonneg z
 
+/-- At `D = 2 ^ d`, the finite target is the uniform sample average of the payoff of the sum of
+decoded PRN-based term codes [KanekoEtAl2020]. -/
 theorem source_sum_target {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ) :
     finiteTarget a c seed termCode ((2:ℝ)^d) g=

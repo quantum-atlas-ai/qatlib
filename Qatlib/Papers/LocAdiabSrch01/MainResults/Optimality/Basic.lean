@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
+/-!
+# An integrated lower bound for adiabatic search
+
+This module proves the scalar estimates used in the optimality argument of [RolandCerf2002]. A
+finite Cauchy–Schwarz bound controls a sum by its squared mass, and
+`source_optimality_lower_bound` turns the stated derivative and final-distance assumptions into
+a lower bound on the runtime.
+
+## Main statements
+
+* `sum_le_sqrt_mul_of_sum_sq`: Bounds a nonnegative sum from its sum of squares.
+* `source_optimality_lower_bound`: Derives `T ≥ ε * (N - 1) / (4 * sqrt N)`.
+
+## References
+
+* [Roland and Cerf, 2002][RolandCerf2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +34,8 @@ open scoped Interval
 
 namespace Qatlib.Papers.LocAdiabSrch01.MainResults.Optimality
 
+/-- If nonnegative entries have sum of squares `s^2` with `s ≥ 0`, their sum is at most `sqrt N
+* s` [RolandCerf2002]. -/
 theorem sum_le_sqrt_mul_of_sum_sq {N : ℕ} {s : ℝ} (u : Fin N → ℝ)
     (hu : ∀ m, 0 ≤ u m) (hs : 0 ≤ s)
     (h : ∑ m, (u m) ^ 2 = s ^ 2) :
@@ -31,6 +51,9 @@ theorem sum_le_sqrt_mul_of_sum_sq {N : ℕ} {s : ℝ} (u : Fin N → ℝ)
     exact hcs
   exact (sq_le_sq₀ hsum_nonneg hright_nonneg).mp hsq
 
+/-- For `N ≥ 2`, the stated derivative bound, schedule upper bound, and final-distance lower
+bound imply `T ≥ ε * (N - 1) / (4 * sqrt N)`, as in the optimality argument of
+[RolandCerf2002]. -/
 theorem source_optimality_lower_bound
     (N : ℕ) (ε T : ℝ) (s f A : ℝ → ℝ)
     (hN : 2 ≤ N) (hε : 0 < ε) (hT : 0 ≤ T)

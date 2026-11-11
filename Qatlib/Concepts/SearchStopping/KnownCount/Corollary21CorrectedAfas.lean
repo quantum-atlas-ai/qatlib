@@ -6,8 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21CorrectedStat
 
+/-!
+# Positivity after diffusion in dimension at least eight
+
+`corollary2_1Corrected` proves positivity of both updated real amplitudes for dimension N ≥ 8
+under the sign and ratio hypotheses. `sqrt_le_half_dimension_sub_two` supplies the dimension
+estimate used in the proof.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `corollary2_1Corrected`: For N ≥ 8, k < 0 < l and |k/l| < √N imply that both
+  `distinguishedAfter N k l` and `ordinaryAfter N k l` are positive.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- For N ≥ 8, the square root of N is at most (N − 2)/2. -/
 theorem sqrt_le_half_dimension_sub_two (N : ℕ) (hN : 8 ≤ N) :
     Real.sqrt N ≤ ((N : ℝ) - 2) / 2 := by
   have hn : (8 : ℝ) ≤ N := by exact_mod_cast hN
@@ -18,6 +38,8 @@ theorem sqrt_le_half_dimension_sub_two (N : ℕ) (hN : 8 ≤ N) :
   apply (sq_le_sq₀ hs0 (show 0 ≤ ((N : ℝ) - 2) / 2 by linarith)).mp
   nlinarith
 
+/-- For N ≥ 8, k < 0 < l and |k/l| < √N imply that both `distinguishedAfter N k l` and
+`ordinaryAfter N k l` are positive. See [Grover1997]. -/
 theorem corollary2_1Corrected : Corollary2_1Corrected := by
   intro N hN k l hk hl hratio
   have hn : (8 : ℝ) ≤ N := by exact_mod_cast hN

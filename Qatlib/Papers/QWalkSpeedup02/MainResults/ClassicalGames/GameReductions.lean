@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
 import Mathlib.Tactic
+
+/-!
+# Probability identities for classical game reductions
+
+This module gives finite probability versions of the game comparisons in Lemmas 4–7 of
+[ChildsEtAl2003]. `lemma4_game1_le_game2` controls disagreement outside a bad event, while the
+remaining results express invariance under an auxiliary coloring, monotonicity of winning
+events, and transfer to a tree-valued pushforward distribution.
+
+## Main statements
+
+* `lemma4_game1_le_game2`: the comparison bound from an assumed bad-event estimate.
+* `lemma5_coloring_average`: averaging an event independent of the coloring.
+* `lemma7_tree_pushforward`: equality of winning probabilities under the tree pushforward.
+
+## References
+
+* [Childs et al., 2003][ChildsEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +39,8 @@ namespace Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.GameReductions
 
 open Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
 
+/-- For natural `t` and `n`, bounds `t * (2^(n+2) - 2) / 2^(2*n)` by `4*t / 2^n`. See [Childs et
+al., Lemma 4][ChildsEtAl2003]. -/
 lemma forgery_arithmetic (t n : ℕ) :
     (t : ℝ) * ((2 : ℝ) ^ (n + 2) - 2) / (2 : ℝ) ^ (2 * n) ≤
       4 * (t : ℝ) / (2 : ℝ) ^ n := by
@@ -33,6 +55,9 @@ lemma forgery_arithmetic (t n : ℕ) :
   rw [div_le_div_iff₀ h2n2 h2n, h4, hpow]
   nlinarith [h2n, ht, mul_pos h2n h2n]
 
+/-- If the two winning events agree outside a bad event satisfying the stated estimate, the
+first winning probability is at most the second plus `4*t / 2^n`. See [Childs et al., Lemma
+4][ChildsEtAl2003]. -/
 theorem lemma4_game1_le_game2 {Ω : Type*} [Fintype Ω] (P : FinProb Ω) (t n : ℕ)
     (win1 win2 bad : Ω → Prop) [DecidablePred win1] [DecidablePred win2]
     [DecidablePred bad]
@@ -52,6 +77,9 @@ theorem lemma4_game1_le_game2 {Ω : Type*} [Fintype Ω] (P : FinProb Ω) (t n : 
     hbad.trans (forgery_arithmetic t n)
   linarith
 
+/-- If every coloring gives the same winning event as `win3`, averaging its probability against
+the distribution `Q` equals the probability of `win3`. See [Childs et al., Lemma
+5][ChildsEtAl2003]. -/
 theorem lemma5_coloring_average {Ω Γ : Type*} [Fintype Ω] [Fintype Γ]
     (P : FinProb Ω) (Q : FinProb Γ) (win2 : Γ → Ω → Prop) [DecidableRel win2]
     (win3 : Ω → Prop) [DecidablePred win3]
@@ -62,12 +90,17 @@ theorem lemma5_coloring_average {Ω Γ : Type*} [Fintype Ω] [Fintype Γ]
   simp only [h]
   rw [← Finset.sum_mul, Q.sum_one, one_mul]
 
+/-- Pointwise implication from `win3` to `win4` gives the corresponding inequality between their
+winning probabilities. See [Childs et al., Lemma 6][ChildsEtAl2003]. -/
 theorem lemma6_game3_le_game4 {Ω : Type*} [Fintype Ω] (P : FinProb Ω)
     (win3 win4 : Ω → Prop) [DecidablePred win3] [DecidablePred win4]
     (hwin : ∀ ω, win3 ω → win4 ω) :
     P.eventMass win3 ≤ P.eventMass win4 :=
   P.eventMass_mono hwin
 
+/-- If `win4` is equivalent to `win5` of the sampled tree, its probability equals the
+probability of `win5` under the tree pushforward distribution. See [Childs et al., Lemma
+7][ChildsEtAl2003]. -/
 theorem lemma7_tree_pushforward {Ω T : Type*} [Fintype Ω] [Fintype T] [DecidableEq T]
     (P : FinProb Ω) (tree : Ω → T) (win4 : Ω → Prop) [DecidablePred win4]
     (win5 : T → Prop) [DecidablePred win5]

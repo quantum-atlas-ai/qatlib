@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QIntegration00.MainResults.Defs
+
+/-!
+# Quantum bit complexity upper bounds for integration
+
+This module converts assumed cost and error estimates at a balancing parameter into bounds for
+`complexityOf`. It derives the factor `ε^(-1/(1+γ)) * log(ε⁻¹)^(1/(1+γ))`, with both a global
+selection hypothesis and an explicit small-error range. See [Novak2001] for the paper context.
+
+## Main statements
+
+* `bit_upper_bound`: The assumed cost and error estimates and `BitSelection` imply
+  `IsQuantumBitUpper` with the displayed constant.
+* `bit_upper_bound_small`: The assumed cost and error estimates imply the stated bit complexity
+  bound for positive `ε` at most the minimum of `1/2`, `1/c`, and `c * exp(-(1+γ))`.
+
+## References
+
+* [Novak, 2001][Novak2001]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -15,6 +35,9 @@ namespace Qatlib.Papers.QIntegration00.MainResults.BitModelUpper
 
 open Defs
 
+/-- At a parameter balancing the stated bit-model error estimate with `ε`, the complexity is
+bounded by the explicit constant times `ε^(-1/(1+γ)) * log(ε⁻¹)^(1/(1+γ))`, under the given
+positivity and small-error conditions. -/
 theorem bit_upper_bound_at {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     {t ε : ℝ} (ht0 : 0 < t) (hL1 : 1 ≤ Real.log t⁻¹)
@@ -155,6 +178,8 @@ theorem bit_upper_bound_at {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < 
           rw [Real.mul_rpow (by positivity) (le_of_lt hlogε_pos)]
           ring
 
+/-- The assumed cost and error estimates and `BitSelection` imply `IsQuantumBitUpper` with the
+displayed constant. -/
 theorem bit_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     (hcost : ∀ t ∈ Set.Ioc (0 : ℝ) 1, cost t ≤ C * t⁻¹ * Real.log t⁻¹)
@@ -171,6 +196,8 @@ theorem bit_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
   simpa [IsQuantumBitUpper, bitExponent, bitLogExponent] using
     (bit_upper_bound_at hγ hC hc hcost_nn ht0 hL1 hcostt herrt hbal hε hεc hε2)
 
+/-- The assumed cost and error estimates imply the stated bit complexity bound for positive `ε`
+at most the minimum of `1/2`, `1/c`, and `c * exp(-(1+γ))`. See [Novak2001]. -/
 theorem bit_upper_bound_small {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     (hcost : ∀ t ∈ Set.Ioc (0 : ℝ) 1, cost t ≤ C * t⁻¹ * Real.log t⁻¹)

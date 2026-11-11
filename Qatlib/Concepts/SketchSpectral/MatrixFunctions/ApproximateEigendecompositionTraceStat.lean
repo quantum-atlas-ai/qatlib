@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SpectralSketch.NearIsometry
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+/-!
+# Statement of the approximate eigendecomposition trace bound
+
+`ApproximateEigendecompositionTrace` states a partition-function approximation bound from a
+diagonal real spectrum and an approximately isometric reconstruction. The estimate adds the
+missing-dimension contribution to `Re (trace (exp D))` and controls its error relative to `Re
+(trace (exp H))`, following [ChiaEtAl2022].
+
+## Main statements
+
+* `ApproximateEigendecompositionTrace`: The proposition that the stated reconstruction error,
+  near-isometry error, and smallness bounds give relative exponential-trace error at most `2 *
+  (exp 1 - 1) * ε` for the dimension-corrected diagonal estimate.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +35,9 @@ namespace Qatlib.Concepts.SketchSpectral.MatrixFunctions
 open Matrix NormedSpace
 open scoped Matrix.Norms.L2Operator
 
+/-- The proposition that the stated reconstruction error, near-isometry error, and smallness
+bounds give relative exponential-trace error at most `2 * (exp 1 - 1) * ε` for the
+dimension-corrected diagonal estimate. -/
 def ApproximateEigendecompositionTrace : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hH : H.IsHermitian) (r : ℕ) (d : Fin r → ℝ)

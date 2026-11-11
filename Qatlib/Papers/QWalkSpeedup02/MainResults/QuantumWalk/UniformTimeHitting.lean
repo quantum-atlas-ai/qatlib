@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.SpectralHitting
 import Mathlib.Tactic
+
+/-!
+# Uniform-time hitting from an energy gap
+
+This module specializes the spectral hitting estimate to the averaging time in Theorem 3 of
+[ChildsEtAl2003]. Given at most `2*n` spectral terms and an assumed energy gap of `8/n^3`,
+`theorem3_uniform_time_hitting` bounds the average exit probability over the interval from zero
+to `n^4/(2*ε)` below by `(1 - ε)/(2*n)`.
+
+## Main statements
+
+* `theorem3_uniform_time_hitting`: the time-averaged hitting bound under the explicit spectral
+  gap assumption.
+
+## References
+
+* [Childs et al., 2003][ChildsEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,9 @@ namespace Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.UniformTimeHittin
 
 open Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.SpectralHitting
 
+/-- For `n ≥ 1`, `ε > 0`, and at most `2*n` spectral indices, energy separation at least `8/n^3`
+gives average exit probability at least `(1-ε)/(2*n)` over the interval from zero to
+`n^4/(2*ε)`. See [Childs et al., Theorem 3][ChildsEtAl2003]. -/
 theorem theorem3_uniform_time_hitting {n N : ℕ} (S : SpectralWalk n N)
     (hN : N ≤ 2 * n) {ε : ℝ} (hε : 0 < ε) (hn : 1 ≤ n)
     (hgap : ∀ i j : Fin N, i ≠ j → 8 / (n : ℝ) ^ 3 ≤ |S.energy i - S.energy j|) :

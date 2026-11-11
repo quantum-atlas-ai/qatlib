@@ -69,17 +69,42 @@ import Mathlib.Topology.Defs.Filter
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Monotonicity of the uniform secular curve
+
+`uniformCurve` is the average of the reciprocal functions `(d i - z)⁻¹` over a finite index set.
+The module proves continuity away from poles and strict monotonicity between points for which
+each pair of denominators has positive product.
+
+The negative half-line and the interval between a distinguished zero pole and a positive lower
+bound on the remaining poles give useful special cases of secular-curve monotonicity
+[Bhatia1997].
+
+## Main statements
+
+* `uniformCurve_continuousOn`: continuity on sets avoiding every pole.
+* `uniformCurve_strictMono_negative`: strict monotonicity below zero for nonnegative poles.
+* `uniformCurve_strictMono_positive`: strict monotonicity between a zero pole and a positive
+  lower bound for the others.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 open scoped Classical BigOperators
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- The average of `(d i - z)⁻¹` over the finite index type. -/
 def uniformCurve (d : I → ℝ) (z : ℝ) : ℝ :=
   (1/(Fintype.card I:ℝ))*∑ i,(d i-z)⁻¹
 
 omit [DecidableEq I] [Nonempty I] in
 
+/-- The uniform secular curve is continuous on any set avoiding all diagonal poles. -/
 theorem uniformCurve_continuousOn (d : I → ℝ) (S : Set ℝ)
     (hpole : ∀ i z,z∈S → d i≠z) : ContinuousOn (uniformCurve d) S := by
   unfold uniformCurve
@@ -88,6 +113,8 @@ theorem uniformCurve_continuousOn (d : I → ℝ) (S : Set ℝ)
   intro i _
   exact (continuousOn_const.sub continuousOn_id).inv₀ (fun z hz => sub_ne_zero.mpr (hpole i z hz))
 
+/-- For `x < y`, the reciprocal `(d - z)⁻¹` increases from `x` to `y` whenever the two
+denominators have positive product. -/
 theorem reciprocal_increasing (d x y : ℝ) (hxy : x<y) (hprod : 0<(d-y)*(d-x)) :
     (d-x)⁻¹<(d-y)⁻¹ := by
   have hne : (d-y)*(d-x)≠0 := ne_of_gt hprod
@@ -100,6 +127,8 @@ theorem reciprocal_increasing (d x y : ℝ) (hxy : x<y) (hprod : 0<(d-y)*(d-x)) 
 
 omit [DecidableEq I] in
 
+/-- On a nonempty finite index set, the uniform curve strictly increases between `x < y` if
+every corresponding denominator pair has positive product. -/
 theorem uniformCurve_increasing (d : I → ℝ) (x y : ℝ) (hxy : x<y)
     (hp : ∀ i,0<(d i-y)*(d i-x)) : uniformCurve d x<uniformCurve d y := by
   unfold uniformCurve
@@ -112,6 +141,8 @@ theorem uniformCurve_increasing (d : I → ℝ) (x y : ℝ) (hxy : x<y)
 
 omit [DecidableEq I] in
 
+/-- If all diagonal poles are nonnegative, the uniform secular curve is strictly increasing on
+the negative half-line. -/
 theorem uniformCurve_strictMono_negative (d : I → ℝ) (hd : ∀ i,0≤d i) :
     StrictMonoOn (uniformCurve d) (Set.Iio (0:ℝ)) := by
   intro x hx y hy hxy
@@ -121,6 +152,8 @@ theorem uniformCurve_strictMono_negative (d : I → ℝ) (hd : ∀ i,0≤d i) :
   intro i
   exact mul_pos (by linarith [hd i]) (by linarith [hd i])
 
+/-- With one pole at zero and every other pole at least a positive `emin`, the uniform curve is
+strictly increasing on `(0, emin)`. -/
 theorem uniformCurve_strictMono_positive (d : I → ℝ) (zero : I) (hz : d zero=0)
     (emin : ℝ) (_hemin : 0<emin) (hlow : ∀ i,i≠zero → emin≤d i) :
     StrictMonoOn (uniformCurve d) (Set.Ioo (0:ℝ) emin) := by

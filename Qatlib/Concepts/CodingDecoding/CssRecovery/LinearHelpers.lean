@@ -8,6 +8,31 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.Algebra.BigOperators.Field
 import Mathlib.Tactic
 
+/-!
+# Linear hashes for syndrome correction
+
+The map `finiteLinearMatrixHash` pairs a vector with each column of a finite matrix over a
+commutative ring. It is multiplication by the transpose matrix and preserves subtraction and
+finite linear combinations.
+
+The correction lemmas remove prescribed hash contributions or add combinations from the hash
+kernel without changing the target. They provide algebraic tools for linear syndrome
+calculations in quantum error correction; see [Wilde2017] for background.
+
+## Main statements
+
+* `hash_eq_transpose_mulVec`: identifies the hash with transpose matrix multiplication.
+* `finite_linear_matrix_hash_scaled_correction`: removes a specified linear combination of hash
+  contributions.
+* `finite_linear_matrix_hash_scaled_grid_correction`: handles corrections with scaled coordinate
+  hashes.
+* `finite_linear_matrix_hash_kernel_shift`: preserves the hash under kernel shifts.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+-/
+
 set_option autoImplicit false
 
 open Matrix
@@ -15,12 +40,16 @@ namespace Qatlib.Concepts.CodingDecoding.CssRecovery.LinearSyndrome
 
 open scoped BigOperators
 
+/-- The finite linear hash that pairs the input vector with each column of `A` over a
+commutative ring. -/
 def finiteLinearMatrixHash {K I J : Type} [CommRing K] [Fintype I]
     (A : Matrix I J K) (v : I → K) : J → K := fun j => ∑ i, A i j * v i
 
+/-- The finite linear matrix hash is multiplication by the transpose of its matrix. -/
 theorem hash_eq_transpose_mulVec {K I J : Type} [CommRing K] [Fintype I]
     (A : Matrix I J K) (v : I → K) : finiteLinearMatrixHash A v = A.transpose *ᵥ v := rfl
 
+/-- The finite linear matrix hash preserves subtraction. -/
 theorem finite_linear_matrix_hash_sub
     {K I J : Type} [CommRing K] [Fintype I]
     (A : Matrix I J K) (v w : I → K) :
@@ -38,6 +67,8 @@ theorem finite_linear_matrix_hash_sub
     _ = (∑ i : I, A i j * v i) - ∑ i : I, A i j * w i :=
       by rw [Finset.sum_sub_distrib]
 
+/-- The hash of a finite linear combination is the corresponding linear combination of the
+hashes. -/
 theorem finite_linear_matrix_hash_smul_sum
     {K I J P : Type} [CommRing K] [Fintype I] [Fintype P]
     (A : Matrix I J K) (g : P → I → K) (digits : P → K) :
@@ -63,6 +94,8 @@ theorem finite_linear_matrix_hash_smul_sum
       intro i hi
       ring
 
+/-- Subtracting a linear combination of correction vectors removes the matching hash
+contribution and leaves the target hash. -/
 theorem finite_linear_matrix_hash_scaled_correction
     {K I J P : Type} [CommRing K] [Fintype I] [Fintype P]
     (A : Matrix I J K) (c₀ : I → K) (g : P → I → K)
@@ -84,6 +117,8 @@ theorem finite_linear_matrix_hash_scaled_correction
   simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- Correction vectors whose hashes form a scaled coordinate grid remove the prescribed
+coordinate offsets from the hash. -/
 theorem finite_linear_matrix_hash_scaled_grid_correction
     {K I J : Type} [CommRing K] [Fintype I] [Fintype J] [DecidableEq J]
     (A : Matrix I J K) (c₀ : I → K) (g : J → I → K)
@@ -111,6 +146,7 @@ theorem finite_linear_matrix_hash_scaled_grid_correction
   rw [hsum]
   exact hbase
 
+/-- Adding a linear combination of vectors in the hash kernel leaves the target hash unchanged. -/
 theorem finite_linear_matrix_hash_kernel_shift
     {K I J P : Type} [CommRing K] [Fintype I] [Fintype P]
     (A : Matrix I J K) (c : I → K) (g : P → I → K)
@@ -142,6 +178,7 @@ theorem finite_linear_matrix_hash_kernel_shift
     simp [hkernel]
   rw [hw, hadd, hbase, hzero, add_zero]
 
+/-- A linear combination of vectors in the hash kernel also lies in the kernel. -/
 theorem finite_linear_matrix_hash_kernel_combination
     {K I J P : Type} [CommRing K] [Fintype I] [Fintype P]
     (A : Matrix I J K) (g : P → I → K) (digits : P → K)
@@ -151,6 +188,7 @@ theorem finite_linear_matrix_hash_kernel_combination
   rw [finite_linear_matrix_hash_smul_sum]
   simpa [hkernel]
 
+/-- Two vectors have the same hash when their difference lies in the hash kernel. -/
 theorem finite_linear_matrix_hash_eq_of_sub_kernel
     {K I J : Type} [CommRing K] [Fintype I]
     (A : Matrix I J K) (c d : I → K)

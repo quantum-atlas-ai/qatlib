@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTail
+
+/-!
+# Gaussian source tensors and binary ground energies
+
+Identifies the source-tensor image of independent standard Gaussian coordinates and records
+attainment of the minimum binary energy. Squared transport estimates control changes in this
+minimum, including a normalized bound with coefficient `1 / N`, in the Gaussian model of
+[GohMuller2026].
+
+## Main statements
+
+* `binaryGround_attained`: attains the minimum on a binary spin configuration.
+* `normalized_binary_ground_transport_sq`: bounds normalized ground-energy changes by the
+  squared input distance divided by `N`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +41,8 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTail
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
 
+/-- The pushforward of independent standard Gaussian tensor coordinates under `sourceTensor` is
+`gaussianTensorLaw r N`. -/
 theorem sourceTensor_map_standard (r N : ℕ) :
     (Measure.pi (fun _ : Fin (r+1) → Fin N => gaussianReal 0 1)).map sourceTensor=
       gaussianTensorLaw r N := by
@@ -37,16 +59,20 @@ theorem sourceTensor_map_standard (r N : ℕ) :
   simp only [NNReal.coe_mk, NNReal.coe_inv, NNReal.coe_pow, NNReal.coe_natCast]
   exact Real.sq_sqrt (by positivity)
 
+/-- The binary ground energy is attained by some binary spin configuration. -/
 theorem binaryGround_attained {q N : ℕ} (A : Tensor q N) :
     ∃ z : Fin N → Bool, tensorEnergy A (binarySpin z)=binaryGround A := by
   obtain ⟨z,_hz,he⟩ := Finset.exists_mem_eq_inf' (s:=Finset.univ) Finset.univ_nonempty
     (fun z : Fin N → Bool => tensorEnergy A (binarySpin z))
   exact ⟨z,he.symm⟩
 
+/-- The binary ground energy is at most the energy of every binary spin configuration. -/
 theorem binaryGround_le_energy {q N : ℕ} (A : Tensor q N) (z : Fin N → Bool) :
     binaryGround A≤tensorEnergy A (binarySpin z) :=
   Finset.inf'_le _ (Finset.mem_univ z)
 
+/-- The squared difference of binary ground energies is at most the sum of squared tensor-entry
+differences times `N ^ q`. -/
 theorem binary_ground_transport_sq {q N : ℕ} (A B : Tensor q N) :
     (binaryGround A-binaryGround B)^2≤(∑ k, (A k-B k)^2)*(N:ℝ)^q := by
   let C := (∑ k,(A k-B k)^2)*(N:ℝ)^q
@@ -73,6 +99,8 @@ theorem binary_ground_transport_sq {q N : ℕ} (A B : Tensor q N) :
   have hs := Real.sq_sqrt hC
   nlinarith
 
+/-- For positive `N`, the squared difference of source-tensor binary ground energies normalized
+by `N` is at most the sum of squared source-input differences divided by `N`. -/
 theorem normalized_binary_ground_transport_sq {r N : ℕ} (hN : 0<N)
     (G D : Tensor (r+1) N) :
     (binaryGround (sourceTensor G)/(N:ℝ)-binaryGround (sourceTensor D)/(N:ℝ))^2≤

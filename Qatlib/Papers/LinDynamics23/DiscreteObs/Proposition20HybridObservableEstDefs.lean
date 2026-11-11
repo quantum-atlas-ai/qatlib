@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasStat
+
+/-!
+# Sampling definitions for hybrid observables
+
+`hybridObservableSampleDist` samples pairs of reconstruction indices in proportion to the
+product of their coefficient norms. The corresponding real sample value
+`hybridObservableSampleValue` removes these norm factors from the pairwise observable
+expression, using zero at vanishing coefficients; `hybridObservableGroupDist` forms independent
+finite sample groups. See [AnChildsLin2026] for the paper context.
+
+## Main statements
+
+* `hybridObservableSampleDist`: The finite distribution on index pairs with probability `‖c l‖ *
+  ‖c j‖ / (∑ i, ‖c i‖) ^ 2`, defined when the coefficient-norm sum is positive.
+* `hybridObservableSampleValue`: The real part of the coefficient-weighted pairwise observable
+  matrix element divided by the product of coefficient norms, with value zero when that product
+  vanishes.
+* `hybridObservableGroupDist`: The product distribution of `L` independent samples from the
+  finite distribution `p`.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +53,8 @@ variable {N : ℕ}
 
 namespace Qatlib.Papers.LinDynamics23.DiscreteObs
 
+/-- The finite distribution on index pairs with probability `‖c l‖ * ‖c j‖ / (∑ i, ‖c i‖) ^ 2`,
+defined when the coefficient-norm sum is positive. -/
 noncomputable def hybridObservableSampleDist (c : Fin N → ℂ) (hγ : 0 < ∑ j, ‖c j‖) :
     FinDist (Fin N × Fin N) where
   prob x := ‖c x.1‖ * ‖c x.2‖ / (∑ j, ‖c j‖) ^ 2
@@ -40,6 +67,8 @@ noncomputable def hybridObservableSampleDist (c : Fin N → ℂ) (hγ : 0 < ∑ 
     rw [← Finset.sum_div, hprod, div_eq_one_iff_eq (ne_of_gt (pow_pos hγ 2))]
     ring
 
+/-- The real part of the coefficient-weighted pairwise observable matrix element divided by the
+product of coefficient norms, with value zero when that product vanishes. -/
 noncomputable def hybridObservableSampleValue {I : Type} [Fintype I] [DecidableEq I]
     (c : Fin N → ℂ) (W : Fin N → Matrix I I ℂ) (O : Matrix I I ℂ)
     (x₀ : QState I) (x : Fin N × Fin N) : ℝ :=
@@ -47,6 +76,7 @@ noncomputable def hybridObservableSampleValue {I : Type} [Fintype I] [DecidableE
   else Complex.re (star (c x.1) * c x.2 *
       Inner (W x.1 *ᵥ x₀) (O.mulVec (W x.2 *ᵥ x₀))) / (‖c x.1‖ * ‖c x.2‖)
 
+/-- The product distribution of `L` independent samples from the finite distribution `p`. -/
 def hybridObservableGroupDist {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (L : ℕ) : FinDist (Fin L → X) :=
   ⟨p.probOf, fun _ => Finset.prod_nonneg fun _ _ => p.nonneg _, p.sum_probOf L⟩

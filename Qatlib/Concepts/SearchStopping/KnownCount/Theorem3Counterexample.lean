@@ -6,8 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedStat
 
+/-!
+# Boundary examples for amplitude growth
+
+`theorem3Counterexample` records explicit two-amplitude calculations in dimensions two, sixteen,
+and four. They exhibit failure of the proposed growth or strict positivity conclusions when the
+dimension or normalization requirements are relaxed.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `theorem3Counterexample`: The stated examples give a normalized dimension-two failure of
+  growth and positivity, an unnormalized dimension-sixteen failure of growth, and a normalized
+  dimension-four case with zero ordinary update.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- The stated examples give a normalized dimension-two failure of growth and positivity, an
+unnormalized dimension-sixteen failure of growth, and a normalized dimension-four case with
+zero ordinary update. -/
 theorem theorem3Counterexample :
     (let k : ℝ := 3 / 5
      let l : ℝ := 4 / 5

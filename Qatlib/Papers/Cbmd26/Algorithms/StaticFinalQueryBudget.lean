@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
 import Qatlib.Papers.Cbmd26.Algorithms.StaticQueryBudget
+
+/-!
+# Final logarithmic query bounds for static CBMD
+
+This module bounds the chosen static circuit degree and amplification costs by an explicit
+constant times `((1 + α * t) / η) * Real.log (2 / (ε * η))`. The constants absorb the mass and
+kernel-tail estimates in the static analysis of [WangEtAl2026].
+
+## Main statements
+
+* `staticChosen_source_query_bound`: bounds the unamplified source circuit.
+* `staticChosen_amplified_query_bound`: proves the final amplified query envelope.
+* `staticPaperQueryConstant_pos`: proves positivity of the universal constant.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,17 +51,25 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- A positive logarithmic scale combining the static kernel-tail constant, coefficient-mass
+budget, and `exp 1`. -/
 def staticQueryLogConstant : ℝ :=
   1 + 16 * _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelTailConstant + 32 * staticMassBudget + Real.exp 1
 
+/-- The source-query comparison constant `224 / Real.log 2 + 24`. -/
 def staticSourceQueryConstant : ℝ := 224 / Real.log 2 + 24
 
+/-- The logarithm comparison factor `1 + |Real.log (staticQueryLogConstant / 2)| / Real.log 2`. -/
 def staticPaperLogFactor : ℝ :=
   1 + |Real.log (staticQueryLogConstant / 2)| / Real.log 2
 
+/-- The final static query constant combining the amplification mass factor, source-query
+constant, and logarithm comparison factor. -/
 def staticPaperQueryConstant : ℝ :=
   (4 * staticMassBudget + 1) * staticSourceQueryConstant * staticPaperLogFactor
 
+/-- The static logarithmic scale is positive and bounds `16 * kernelTailConstant`, `32 *
+staticMassBudget`, and `exp 1` from above. -/
 private theorem staticQueryLogConstant_bounds :
     0 < staticQueryLogConstant ∧
     16 * _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelTailConstant ≤ staticQueryLogConstant ∧
@@ -58,6 +85,8 @@ private theorem staticQueryLogConstant_bounds :
   · linarith
   constructor <;> linarith
 
+/-- For `ε, η ∈ (0, 1]`, the chosen logarithm is at least one, bounds one plus the kernel
+frequency cutoff up to a factor seven, and bounds the sample-error logarithm. -/
 theorem staticChosen_log_bound (ε η : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) :
     let ℓ := Real.log (staticQueryLogConstant / (ε * η))
@@ -90,6 +119,8 @@ theorem staticChosen_log_bound (ε η : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     exact Real.log_le_log (by have := staticMassBudget_ge_one; positivity)
       (div_le_div_of_nonneg_right hCM hp.le)
 
+/-- For nonnegative `α` and `t` and `ε, η ∈ (0, 1]`, the dyadic source-query count is bounded by
+`staticSourceQueryConstant * (1 + α * t) * Real.log (staticQueryLogConstant / (ε * η))`. -/
 theorem staticChosen_source_query_bound (α t ε η : ℝ) (hα : 0 ≤ α) (ht : 0 ≤ t)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hη1 : η ≤ 1) :
     let δ := staticAnalyticBudget ε η
@@ -134,6 +165,8 @@ theorem staticChosen_source_query_bound (α t ε η : ℝ) (hα : 0 ≤ α) (ht 
         _ ≤ 224 * (1 + α * t) * ℓ / Real.log 2 + 24 * ((1 + α * t) * ℓ) := by linarith
         _ = _ := by ring
 
+/-- For `ε, η ∈ (0, 1]`, the chosen static logarithm is at most `staticPaperLogFactor * Real.log
+(2 / (ε * η))`. -/
 theorem staticChosen_log_paper_bound (ε η : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) :
     Real.log (staticQueryLogConstant / (ε * η)) ≤
@@ -159,6 +192,9 @@ theorem staticChosen_log_paper_bound (ε η : ℝ) (hε : 0 < ε) (hε1 : ε ≤
   unfold staticPaperLogFactor
   nlinarith [le_abs_self (Real.log (staticQueryLogConstant / 2))]
 
+/-- Under the nonnegative scale and time and unit-interval error hypotheses, the source-query
+budget multiplied by `(4 * staticMassBudget + 1) / η` satisfies the final static logarithmic
+query envelope. -/
 theorem staticChosen_query_envelope_bound (α t ε η : ℝ) (hα : 0 ≤ α) (ht : 0 ≤ t)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hη1 : η ≤ 1) :
     let δ := staticAnalyticBudget ε η
@@ -193,6 +229,9 @@ theorem staticChosen_query_envelope_bound (α t ε η : ℝ) (hα : 0 ≤ α) (h
       mul_le_mul_of_nonneg_left hl hprod
     _ = _ := by unfold staticPaperQueryConstant; ring
 
+/-- Under the stated parameter bounds, the source-query budget multiplied by half the
+amplification window plus one-half is at most `staticPaperQueryConstant * ((1 + α * t) / η)
+* Real.log (2 / (ε * η))`. -/
 theorem staticChosen_amplified_query_bound (α t ε η : ℝ) (hα : 0 ≤ α) (ht : 0 ≤ t)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hη1 : η ≤ 1) :
     let δ := staticAnalyticBudget ε η
@@ -205,6 +244,7 @@ theorem staticChosen_amplified_query_bound (α t ε η : ℝ) (hα : 0 ≤ α) (
   exact (mul_le_mul_of_nonneg_right (static_chosen_window η hη hη1).2.2
     (by positivity)).trans (staticChosen_query_envelope_bound α t ε η hα ht hε hε1 hη hη1)
 
+/-- The final static paper query constant is strictly positive. -/
 theorem staticPaperQueryConstant_pos : 0 < staticPaperQueryConstant := by
   have hd : 0 < Real.log 2 := Real.log_pos (by norm_num)
   have hC := staticMassBudget_ge_one

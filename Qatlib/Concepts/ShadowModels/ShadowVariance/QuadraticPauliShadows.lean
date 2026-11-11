@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
 import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+/-!
+# Purity kernels from tensor Pauli shadows
+
+This module defines an exact rational product kernel for purity estimation from two tensor Pauli
+records. It identifies the kernel with the snapshot trace pairing, proves its mean and variance
+bounds, and counts local product operations for the quadratic shadow construction
+[HuangKuengPreskill2020].
+
+## Main statements
+
+* `tensor_purity_actual_pair_kernel_and_mean`: explicit kernel and purity expectation.
+* `tensor_purity_derived_moment_and_variance_bounds`: moment and U-statistic error bounds.
+* `tensorPurityKernelCounted_spec`: exact value and local multiplication count.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,18 +46,24 @@ open Matrix
 open scoped BigOperators ComplexOrder
 set_option autoImplicit false
 
+/-- The rational one-qubit purity kernel, equal to one half of one plus nine times the sign
+product when the axes match. -/
 def tensorPurityLocalRational (a b : Fin 3 × Bool) : ℚ :=
   (1 + if a.1 = b.1 then
     9 * (if a.2 then 1 else -1) * (if b.2 then 1 else -1) else 0) / 2
 
+/-- The product of the rational local purity kernels over all qubits. -/
 def tensorPurityKernelRational (n : ℕ) (a b : Fin n → Fin 3 × Bool) : ℚ :=
   ∏ i, tensorPurityLocalRational (a i) (b i)
 
+/-- The real embedding of the rational tensor purity kernel. -/
 def tensorPurityKernel (n : ℕ) (a b : Fin n → Fin 3 × Bool) : ℝ :=
   tensorPurityKernelRational n a b
 
 set_option maxHeartbeats 800000 in
 
+/-- The trace of the product of two single-qubit Pauli shadows equals the complex embedding of
+the rational local purity kernel. -/
 private theorem tensorPurityLocal_trace (a b : Fin 3 × Bool) :
     Matrix.trace (PauliShadow a.2 a.1 * PauliShadow b.2 b.1) =
       (tensorPurityLocalRational a b : ℂ) := by
@@ -48,6 +74,7 @@ private theorem tensorPurityLocal_trace (a b : Fin 3 × Bool) :
       pauliX, pauliY, pauliZ, Matrix.trace, Matrix.mul_apply, Fin.sum_univ_two,
       Matrix.smul_apply, Matrix.ofNat_apply, Complex.ext_iff, Complex.mul_re, Complex.mul_im]
 
+/-- The tensor purity kernel is the real trace of the product of the two tensor Pauli snapshots. -/
 theorem tensorPurityKernel_trace (n : ℕ) (a b : Fin n → Fin 3 × Bool) :
     tensorPurityKernel n a b = (Matrix.trace (tensorPauliSnapshot n a * tensorPauliSnapshot n b)).re := by
   rw [tensorPauliSnapshot, tensorPauliSnapshot, tensorPauliProduct_mul, tensorPauliProduct_trace]
@@ -55,6 +82,9 @@ theorem tensorPurityKernel_trace (n : ℕ) (a b : Fin n → Fin 3 × Bool) :
   rw [← Rat.cast_prod, Complex.ratCast_re]
   rfl
 
+/-- The purity kernel equals both the snapshot trace pairing and the explicit rational product
+formula, and its mean under independent Pauli records is the state's purity. See
+[HuangKuengPreskill2020]. -/
 theorem tensor_purity_actual_pair_kernel_and_mean (n : ℕ)
     (a b : Fin n → Fin 3 × Bool) :
     tensorPurityKernel n a b = (Matrix.trace (tensorPauliSnapshot n a * tensorPauliSnapshot n b)).re ∧
@@ -79,20 +109,24 @@ theorem tensor_purity_actual_pair_kernel_and_mean (n : ℕ)
     rw [Matrix.trace_mul_comm (tensorPauliSnapshot n x) (tensorPauliSnapshot n y)]
     simp [Complex.mul_re, mul_comm]
 
+/-- The pair U-statistic of the tensor purity kernel, evaluated by `pairUCounted`. -/
 noncomputable def tensorPurityU (n : ℕ) {m : ℕ}
     (ω : Fin m → Fin n → Fin 3 × Bool) : ℝ := (pairUCounted (tensorPurityKernel n) ω).1
 
+/-- The local purity kernel of a record with itself is five. -/
 private theorem tensorPurityLocal_self (a : Fin 3 × Bool) :
     tensorPurityLocalRational a a = 5 := by
   rcases a with ⟨a, b⟩
   cases b <;> norm_num [tensorPurityLocalRational]
 
+/-- The tensor purity kernel of a record with itself is `5 ^ n`. -/
 private theorem tensorPurityKernel_self (n : ℕ) (a : Fin n → Fin 3 × Bool) :
     tensorPurityKernel n a a = (5 : ℝ) ^ n := by
   simp [tensorPurityKernel, tensorPurityKernelRational, tensorPurityLocal_self]
 
 set_option maxHeartbeats 800000 in
 
+/-- Every tensor Pauli snapshot is Hermitian. -/
 private theorem tensorPuritySnapshot_hermitian (n : ℕ) (a : Fin n → Fin 3 × Bool) :
     (tensorPauliSnapshot n a).IsHermitian := by
   have hl (b : Fin 3 × Bool) : (PauliShadow b.2 b.1).IsHermitian := by
@@ -107,6 +141,8 @@ private theorem tensorPuritySnapshot_hermitian (n : ℕ) (a : Fin n → Fin 3 ×
   funext i
   exact hl (a i)
 
+/-- The squared real trace pairing of two Hermitian matrices is bounded by the product of the
+real traces of their squares. -/
 private theorem hermitian_trace_pairing_sq {D : ℕ} (A B : Operator D)
     (hA : A.IsHermitian) (hB : B.IsHermitian) :
     (Matrix.trace (A * B)).re ^ 2 ≤ (Matrix.trace (A * A)).re * (Matrix.trace (B * B)).re := by
@@ -116,6 +152,7 @@ private theorem hermitian_trace_pairing_sq {D : ℕ} (A B : Operator D)
   rw [sq_abs, mul_pow, ← real_inner_self_eq_norm_sq, ← real_inner_self_eq_norm_sq] at hc
   simpa only [HermitianMat.inner_eq_re_trace] using! hc
 
+/-- The real trace of the square of a density operator is at most one. -/
 private theorem density_purity_le_one {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ) :
     (Matrix.trace (ρ * ρ)).re ≤ 1 := by
   let r := Qatlib.Foundations.PureStateMath.BornBridge.densityMatrixEquivMState (Fin D) ⟨ρ, hρ⟩
@@ -123,6 +160,8 @@ private theorem density_purity_le_one {D : ℕ} (ρ : Operator D) (hρ : IsDensi
     simpa using HermitianMat.inner_le_mul_trace r.nonneg r.nonneg
   simpa only [HermitianMat.inner_eq_re_trace] using! hr
 
+/-- Averaging the second purity record replaces its snapshot by the input density operator in
+the trace pairing. -/
 private theorem tensorPurityConditional (n : ℕ) (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) (a : Fin n → Fin 3 × Bool) :
     (∑ b, (tensorPauliLaw n ρ hρ).prob b * tensorPurityKernel n a b) =
@@ -134,6 +173,9 @@ private theorem tensorPurityConditional (n : ℕ) (ρ : Operator (2 ^ n))
   intro b _
   simp [Complex.mul_re]
 
+/-- The purity kernel has conditional variance at most `5 ^ n` and kernel variance at most `25 ^
+n`; for `m ≥ 2`, the U-statistic mean squared error satisfies the displayed bound with
+coefficients `4 / m` and `2 / (m * (m - 1))`. See [HuangKuengPreskill2020]. -/
 theorem tensor_purity_derived_moment_and_variance_bounds (n m : ℕ)
     (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ) (hm : 2 ≤ m) :
     let p := tensorPauliLaw n ρ hρ
@@ -209,10 +251,14 @@ theorem tensor_purity_derived_moment_and_variance_bounds (n m : ℕ)
       gcongr
     _ = _ := by ring
 
+/-- The rational purity kernel computed by a fold, together with the number of local factors
+multiplied. -/
 def tensorPurityKernelCounted (n : ℕ) (a b : Fin n → Fin 3 × Bool) : ℚ × ℕ :=
   (List.ofFn (fun i => tensorPurityLocalRational (a i) (b i))).foldl
     (fun acc c => (acc.1 * c, acc.2 + 1)) (1, 0)
 
+/-- Folding counted multiplication over rational factors multiplies the initial value by their
+product and increases the count by the list length. -/
 private theorem tensorPurity_product_fold (cs : List ℚ) (acc : ℚ × ℕ) :
     cs.foldl (fun acc c => (acc.1 * c, acc.2 + 1)) acc =
       (acc.1 * cs.prod, acc.2 + cs.length) := by
@@ -220,6 +266,8 @@ private theorem tensorPurity_product_fold (cs : List ℚ) (acc : ℚ × ℕ) :
   | nil => simp
   | cons c cs ih => simp [ih, mul_assoc, add_assoc, Nat.add_comm]
 
+/-- The counted purity kernel returns `tensorPurityKernelRational` and performs exactly `n`
+local multiplications. -/
 theorem tensorPurityKernelCounted_spec (n : ℕ) (a b : Fin n → Fin 3 × Bool) :
     (tensorPurityKernelCounted n a b).1 = tensorPurityKernelRational n a b ∧
       (tensorPurityKernelCounted n a b).2 = n := by

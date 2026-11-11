@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma7EigenSymmetryStat
+
+/-!
+# Opposite eigenvalues of the bipartite discriminant
+
+The theorem `szegedyLemma7EigenSymmetry` proves that the source sign flip exchanges the
+discriminant eigenvalue `lam` with `-lam`. The statement uses only the off-diagonal block form
+and does not require frame isometry. The quantum walk spectral framework is developed in
+[Szegedy2004].
+
+## Main statements
+
+* `szegedyLemma7EigenSymmetry`: Source sign flip maps an eigenvector to the opposite eigenvalue.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -18,6 +36,8 @@ open Qatlib.Concepts.SpectralFilter.BusySpectrum
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- If a source state is a discriminant eigenvector with real eigenvalue `lam`, its source sign
+flip is an eigenvector with eigenvalue `-lam` [Szegedy, Lemma 7][Szegedy2004]. -/
 theorem szegedyLemma7EigenSymmetry : SzegedyLemma7EigenSymmetry := by
   intro H I J _ _ _ _ _ _ A B v lam h
   have hd : bipartiteDiscriminant A B *ᵥ v =

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Hybrid error bounds for query circuits
+
+Gate application and circuit execution satisfy Euclidean norm bounds. For unitary oracles and
+unitary circuits, replacing the oracle changes the output by at most the query count times the
+operator norm difference times the input norm. `norm_repeatRun_sub_repeatRun_le` specializes
+this bound to repeated circuits.
+
+The mathematical background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `norm_run_sub_run_le_queryCount`: bounds output error by oracle error and query count.
+* `norm_repeatRun_sub_repeatRun_le`: gives the corresponding repeated-circuit estimate.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath.Reflection
 set_option warningAsError false
 
@@ -21,12 +42,15 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The Euclidean norm after applying a matrix is at most its operator norm times the input
+Euclidean norm. -/
 theorem norm_applyGate_le (U : Matrix I I ℂ) (ψ : QState I) :
     ‖toEuclidean_fromVec (ApplyGate U ψ)‖ ≤ ‖U‖ * ‖toEuclidean_fromVec ψ‖ := by
   have h := Matrix.l2_opNorm_mulVec U (toEuclidean_fromVec ψ)
   rwa [show (EuclideanSpace.equiv I ℂ).symm (U *ᵥ toEuclidean_fromVec ψ)
       = toEuclidean_fromVec (ApplyGate U ψ) from rfl] at h
 
+/-- Applying a unitary matrix preserves the Euclidean norm of a state. -/
 theorem norm_applyGate_of_mem_unitaryGroup {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     ‖toEuclidean_fromVec (ApplyGate U ψ)‖ = ‖toEuclidean_fromVec ψ‖ := by
@@ -36,6 +60,7 @@ theorem norm_applyGate_of_mem_unitaryGroup {U : Matrix I I ℂ}
 
 omit [DecidableEq I] in
 
+/-- Circuit execution preserves subtraction of input states. -/
 theorem run_sub (oracle : Matrix I I ℂ) : ∀ (C : Circuit I) (ψ φ : QState I),
     Run oracle C (ψ - φ) = Run oracle C ψ - Run oracle C φ := by
   intro C
@@ -56,6 +81,7 @@ theorem run_sub (oracle : Matrix I I ℂ) : ∀ (C : Circuit I) (ψ φ : QState 
       simp only [ApplyGate, Matrix.mulVec_sub]
       exact ih (ApplyGate oracle ψ) (ApplyGate oracle φ)
 
+/-- Execution with a unitary oracle and a unitary circuit does not increase the Euclidean norm. -/
 theorem norm_run_le (oracle : Matrix I I ℂ) (horacle : oracle ∈ Matrix.unitaryGroup I ℂ)
     {C : Circuit I} (hC : IsUnitaryCircuit C) (ψ : QState I) :
     ‖toEuclidean_fromVec (Run oracle C ψ)‖ ≤ ‖toEuclidean_fromVec ψ‖ := by
@@ -73,6 +99,8 @@ theorem norm_run_le (oracle : Matrix I I ℂ) (horacle : oracle ∈ Matrix.unita
       have h := ih (ψ := ApplyGate oracle ψ) (hC := hC')
       simpa only [Run, norm_applyGate_of_mem_unitaryGroup horacle] using h
 
+/-- Replacing one unitary oracle by another in a unitary circuit changes the output by at most
+the query count times the oracle operator norm difference times the input norm. -/
 theorem norm_run_sub_run_le_queryCount (O P : Matrix I I ℂ) (C : Circuit I) (ψ : QState I)
     (hO : O ∈ Matrix.unitaryGroup I ℂ) (hP : P ∈ Matrix.unitaryGroup I ℂ)
     (hC : IsUnitaryCircuit C) :
@@ -142,6 +170,8 @@ theorem norm_run_sub_run_le_queryCount (O P : Matrix I I ℂ) (C : Circuit I) (�
               simp only [queryCount_query, Nat.cast_add, Nat.cast_one]
               ring
 
+/-- For `k` repetitions of a unitary circuit, the output difference under two unitary oracles is
+bounded by `k * QueryCount C` times their operator norm difference times the input norm. -/
 theorem norm_repeatRun_sub_repeatRun_le (O P : Matrix I I ℂ) (C : Circuit I) (ψ : QState I)
     (k : ℕ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (hP : P ∈ Matrix.unitaryGroup I ℂ)
     (hC : IsUnitaryCircuit C) :

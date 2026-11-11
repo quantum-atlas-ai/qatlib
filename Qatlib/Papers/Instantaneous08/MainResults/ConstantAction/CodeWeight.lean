@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Bias
+
+/-!
+# Code weights and constant-action biases
+
+This module expresses the bias of a constant-action X-program in terms of the rows selected by a
+direction `s`. The signed action sum `actSum`, the selected-row count `nSub`, and the induced
+`codeWeight` give the cosine and cosine-squared formulas of Theorem 1 in [ShepherdBremner2009].
+
+## Main statements
+
+* `actSum_shift`: computes the change of the signed action under translation.
+* `bias_eq_codeWeight`: expresses the bias as a uniform average of squared cosines.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,8 +36,10 @@ open Qatlib.Papers.Instantaneous08.MainResults.XProgram
 
 attribute [local instance] Classical.propDecidable
 
+/-- The real sign associated with a Boolean value, equal to `1` for true and `-1` for false. -/
 def rSign (b : Bool) : ℝ := if b then 1 else -1
 
+/-- An element of `ZMod 2` is nonzero if and only if it equals `1`. -/
 theorem zmod2_ne_zero_iff_eq_one (z : ZMod 2) : z ≠ 0 ↔ z = 1 := by
   constructor
   · intro h
@@ -28,12 +48,16 @@ theorem zmod2_ne_zero_iff_eq_one (z : ZMod 2) : z ≠ 0 ↔ z = 1 := by
     · exact h1
   · intro h h0; rw [h] at h0; exact absurd h0 (by norm_num)
 
+/-- The complex sign `signBit b` is the complex coercion of the real sign `rSign b`. -/
 theorem signBit_eq_rSign (b : Bool) : signBit b = (rSign b : ℂ) := by
   cases b <;> simp [signBit, rSign]
 
+/-- The sum of the real signs of the row dot products with `a`, with sign `1` for zero dot
+product. -/
 def actSum {n k : ℕ} (p : Fin k → F2Vec n) (a : F2Vec n) : ℝ :=
   ∑ i, rSign (dot (p i) a = 0)
 
+/-- Expresses the constant-action phase as the exponential of `I * θ * actSum p a`. -/
 theorem expAction_eq_exp_actSum {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ)
     (a : F2Vec n) :
     expAction p θ a = Complex.exp (Complex.I * (θ : ℂ) * (actSum p a : ℂ)) := by
@@ -43,15 +67,20 @@ theorem expAction_eq_exp_actSum {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ)
       ∑ i : Fin k, ((rSign (dot (p i) a = 0) : ℂ)) from
     Finset.sum_congr rfl (fun i _ => signBit_eq_rSign _)]
 
+/-- The indices of rows of `p` whose dot product with `s` equals `1`. -/
 def subRowSet {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n) : Finset (Fin k) :=
   Finset.univ.filter (fun i => dot (p i) s = 1)
 
+/-- The number of rows selected by `subRowSet p s`. -/
 def nSub {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n) : ℕ :=
   (subRowSet p s).card
 
+/-- The number of selected rows whose dot product with `a` equals `1`. -/
 def codeWeight {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n) (a : F2Vec n) : ℕ :=
   ((subRowSet p s).filter (fun i => dot (p i) a = 1)).card
 
+/-- Translating `a` by `s` reverses the row sign exactly when the row has dot product `1` with
+`s`. -/
 theorem rSign_shift {n : ℕ} (q a s : F2Vec n) :
     rSign (dot q (a + s) = 0) =
       rSign (dot q a = 0) -
@@ -73,6 +102,7 @@ theorem rSign_shift {n : ℕ} (q a s : F2Vec n) :
   rw [hsplit]
   exact hcases _ _
 
+/-- The sum of signs over the selected rows equals their number minus twice `codeWeight p s a`. -/
 theorem sum_sign_subRow {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) :
     (∑ i ∈ subRowSet p s, rSign (dot (p i) a = 0)) =
       (nSub p s : ℝ) - 2 * (codeWeight p s a : ℝ) := by
@@ -89,6 +119,8 @@ theorem sum_sign_subRow {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) :
   rw [codeWeight, nSub]
   simp only [nsmul_eq_mul, mul_one]
 
+/-- Expresses the change in `actSum` under translation by `s` through the selected-row count and
+code weight. -/
 theorem actSum_shift {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) :
     actSum p (a + s) = actSum p a -
       2 * ((nSub p s : ℝ) - 2 * (codeWeight p s a : ℝ)) := by
@@ -111,6 +143,8 @@ theorem actSum_shift {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) :
     rw [subRowSet, Finset.sum_filter]
   rw [hfilter, sum_sign_subRow]
 
+/-- The real part of the conjugated phase product is the cosine of the difference of signed
+actions multiplied by `θ`. -/
 theorem kernel_re {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (a s : F2Vec n) :
     ((starRingEnd ℂ) (expAction p θ a) * expAction p θ (a + s)).re =
       Real.cos (θ * (actSum p (a + s) - actSum p a)) := by
@@ -140,6 +174,8 @@ theorem kernel_re {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (a s : F2Vec n)
     rw [mul_comm]]
   rw [Complex.exp_ofReal_mul_I_re]
 
+/-- Expresses the bias in direction `s` as one half times one plus a uniform cosine average, as
+in [Shepherd and Bremner, Theorem 1][ShepherdBremner2009]. -/
 theorem bias_eq_cos {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (s : F2Vec n) :
     (∑ x : F2Vec n, (if dot x s = 0 then prob p (fun _ => θ) x else 0)) =
       (1 / 2) * (1 + ((Fintype.card (F2Vec n) : ℝ))⁻¹ *
@@ -190,6 +226,8 @@ theorem bias_eq_cos {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (s : F2Vec n)
     rw [hsum]
   exact hR
 
+/-- Expresses the bias in direction `s` as the uniform average of `cos (θ * (nSub p s - 2 *
+codeWeight p s a)) ^ 2`, as in [Shepherd and Bremner, Theorem 1][ShepherdBremner2009]. -/
 theorem bias_eq_codeWeight {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (s : F2Vec n) :
     (∑ x : F2Vec n, (if dot x s = 0 then prob p (fun _ => θ) x else 0)) =
       ((Fintype.card (F2Vec n) : ℝ))⁻¹ *

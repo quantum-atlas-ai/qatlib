@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensionsRefinedDefs
+
+/-!
+# Query transport and hybrid bounds
+
+This module proves transport results for clean ancillary registers, observed-circuit
+adversary bounds, and phase-versus-value access. It also establishes a unitary hybrid
+distance estimate in the query model of [BennettEtAl1997].
+
+The endpoint theorems collect the hypotheses needed for these transports, exhibit a failure
+of unrestricted adversary transport, and combine truncation and stopping-time laws.
+
+## Main statements
+
+* `cleanSpaceScope_transport`: obtain clean-run transport from the scope condition.
+* `unitaryHybridDistance_fixed`: output distance is bounded by query count times oracle
+  distance.
+* `unrestrictedAdversaryTransport_not_universal`: unrestricted transport fails in general.
+* `clause3_endpoint`: collect hybrid, adversary, and stopping-time conclusions.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -36,6 +61,8 @@ open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 
+/-- For a normalized state, the measurement weight of the complement of `S` equals one minus the
+weight of `S`. -/
 private theorem measureProb_compl {I : Type} [Fintype I] [DecidableEq I]
     {ψ : QState I} (hψ : Normalized ψ) (S : Finset I) :
     MeasureProb ψ Sᶜ = 1 - MeasureProb ψ S := by
@@ -44,6 +71,8 @@ private theorem measureProb_compl {I : Type} [Fintype I] [DecidableEq I]
       measureProb_univ hψ]
   linarith
 
+/-- Embedding a normalized input into the deferred-observation register space preserves
+normalization. -/
 private theorem normalized_deferredObservedInput {n R : ℕ} {W : Type} [Fintype W]
     [DecidableEq W] {ψ : QState ((Fin n × Bool) × W)} (hψ : Normalized ψ) :
     Normalized (deferredObservedInput (R := R) ψ) := by
@@ -54,6 +83,7 @@ private theorem normalized_deferredObservedInput {n R : ℕ} {W : Type} [Fintype
     rw [h2, measureProb_univ hψ]
   exact h1
 
+/-- Scaling a gate matrix scales its action on every state by the same complex scalar. -/
 private theorem applyGate_smul_matrix {I : Type} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (c : ℂ) (ψ : QState I) :
     ApplyGate (c • M) ψ = c • ApplyGate M ψ := by
@@ -65,6 +95,8 @@ private theorem applyGate_smul_matrix {I : Type} [Fintype I] [DecidableEq I]
   intro j _
   ring
 
+/-- An angle-defined phase oracle multiplies each state amplitude by its corresponding complex
+exponential. -/
 private theorem applyGate_phaseOracleOfAngle {I : Type} [Fintype I] [DecidableEq I]
     (θ : I → ℝ) (ψ : QState I) :
     ApplyGate (phaseOracleOfAngle θ) ψ
@@ -72,6 +104,8 @@ private theorem applyGate_phaseOracleOfAngle {I : Type} [Fintype I] [DecidableEq
   funext i
   simp only [ApplyGate, phaseOracleOfAngle, Matrix.mulVec_diagonal]
 
+/-- If one oracle acts as a scalar multiple of another, its circuit run differs by that scalar
+raised to the query count. -/
 private theorem run_smul_oracle_of_action {I : Type} [Fintype I] [DecidableEq I]
     (O O' : Matrix I I ℂ) (c : ℂ)
     (hact : ∀ ψ : QState I, ApplyGate O' ψ = c • ApplyGate O ψ) :
@@ -98,6 +132,7 @@ private theorem run_smul_oracle_of_action {I : Type} [Fintype I] [DecidableEq I]
       show Run O' C (ApplyGate O' ψ) = c ^ (QueryCount C + 1) • Run O C (ApplyGate O ψ)
       rw [h1, hR, smul_smul, ← pow_succ]
 
+/-- For a unitary source circuit, the clean-space scope condition implies clean-run transport. -/
 theorem cleanSpaceScope_transport {I J F : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J]
     (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J)
@@ -116,6 +151,8 @@ theorem cleanSpaceScope_transport {I J F : Type} [Fintype I] [DecidableEq I]
     rw [run_liftCircuitTo_liftedOracle J (O f) C ψ₀ (Ket j₀)]
     exact measureProb_tensorState_left (normalized_ket j₀) (Run (O f) C ψ₀) (Acc f)
 
+/-- Lifting a circuit and adjoining the basis state `Ket j₀` satisfies the clean-space scope
+condition. -/
 theorem cleanSpaceScope_exists {I J F : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J]
     (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J)
@@ -130,6 +167,8 @@ theorem cleanSpaceScope_exists {I J F : Type} [Fintype I] [DecidableEq I]
   · exact gateCount_liftCircuitTo J C
   · exact size_liftCircuitTo J C
 
+/-- The corrected observed-circuit bridge adversary transport condition holds for the specified
+input family, target, matrix, error, and initial state. -/
 theorem correctedBridgeAdversaryTransport_fixed {X : Type} [Fintype X] [DecidableEq X]
     [Nonempty X] {n : ℕ} {W : Type} [Fintype W] [DecidableEq W] [Nonempty W]
     (input : X → Fin n → Bool) (f : X → Bool) (Γ : Matrix X X ℂ) (ε : ℝ)
@@ -188,11 +227,15 @@ theorem correctedBridgeAdversaryTransport_fixed {X : Type} [Fintype X] [Decidabl
   · rw [hcount] at hbound
     exact hbound
 
+/-- The specified `geInput`, `geF`, `geΓ`, and `geP` instance violates unrestricted adversary
+transport at zero error. -/
 theorem unrestrictedAdversaryTransport_false :
     ¬ (unrestrictedAdversaryTransport geInput geF geΓ 0 geP) := by
   intro h
   exact bridgeAdversaryTransport_geP_false h
 
+/-- Unrestricted adversary transport does not hold for every finite input family and observed
+circuit. -/
 theorem unrestrictedAdversaryTransport_not_universal :
     ¬ (∀ {X : Type} [Fintype X] [DecidableEq X] [Nonempty X] {n : ℕ} {W : Type}
         [Fintype W] [DecidableEq W] [Nonempty W]
@@ -202,6 +245,8 @@ theorem unrestrictedAdversaryTransport_not_universal :
   intro h
   exact unrestrictedAdversaryTransport_false (h geInput geF geΓ 0 geP)
 
+/-- The normalized-tree adversary bound condition holds for the specified observed circuit and
+initial state. -/
 theorem normalizedTreeAdversaryBound_fixed {X : Type} [Fintype X] [DecidableEq X]
     [Nonempty X] {n : ℕ} {W : Type} [Fintype W] [DecidableEq W] [Nonempty W]
     (input : X → Fin n → Bool) (f : X → Bool) (Γ : Matrix X X ℂ) (ε : ℝ)
@@ -212,6 +257,8 @@ theorem normalizedTreeAdversaryBound_fixed {X : Type} [Fintype X] [DecidableEq X
     input f Γ ε P ψ hn hP hε0 hε1 hψ htree hΓ
   exact hineq
 
+/-- The general phase-offset obstruction to phase-to-bit recovery without a baseline holds for
+every angle function and real offset. -/
 theorem generalNoBaselinePhaseToBit_fixed {I : Type} [Fintype I] [DecidableEq I]
     (θ : I → ℝ) (c : ℝ) : generalNoBaselinePhaseToBit θ c := by
   intro C ψ S
@@ -245,6 +292,8 @@ theorem generalNoBaselinePhaseToBit_fixed {I : Type} [Fintype I] [DecidableEq I]
   rw [hnorm]
   ring
 
+/-- The general value-oracle readout law holds for a finite additive response group, input
+state, and response value. -/
 theorem generalValueReadoutLaw_fixed {X R : Type} [Fintype X] [DecidableEq X]
     [AddCommGroup R] [Fintype R] [DecidableEq R] (v : X → R) (ψ : QState X) (z : R) :
     generalValueReadoutLaw v ψ z := by
@@ -255,6 +304,7 @@ theorem generalValueReadoutLaw_fixed {X R : Type} [Fintype X] [DecidableEq X]
   rw [Finset.sum_filter]
   rfl
 
+/-- The identity matrix belongs to the unitary group. -/
 private theorem one_mem_unitaryGroup {K : Type} [Fintype K] [DecidableEq K] :
     (1 : Matrix K K ℂ) ∈ Matrix.unitaryGroup K ℂ := by
   have h1 : (1 : Matrix K K ℂ) * star (1 : Matrix K K ℂ) = 1 := by
@@ -266,22 +316,28 @@ private theorem one_mem_unitaryGroup {K : Type} [Fintype K] [DecidableEq K] :
     · simp [hij]
   exact Matrix.mem_unitaryGroup_iff.mpr h1
 
+/-- Conversion of coordinate vectors to Euclidean space preserves addition. -/
 private theorem toEuclidean_fromVec_add {K : Type} [Fintype K] (u v : QState K) :
     toEuclidean_fromVec (u + v) = toEuclidean_fromVec u + toEuclidean_fromVec v := by
   ext i
   simp [toEuclidean_fromVec_apply]
 
+/-- The Euclidean norm of a matrix-applied state is bounded by the matrix norm times the state's
+Euclidean norm. -/
 private theorem norm_applyGate_le {K : Type} [Fintype K] [DecidableEq K]
     (A : Matrix K K ℂ) (σ : QState K) :
     ‖toEuclidean_fromVec (ApplyGate A σ)‖ ≤ ‖A‖ * ‖toEuclidean_fromVec σ‖ := by
   simpa [ApplyGate] using! l2_norm_mulVec_fromVec_le A σ
 
+/-- The difference of two matrix actions on the same vector equals the action of their matrix
+difference. -/
 private theorem mulVec_sub_matrix {K : Type} [Fintype K] [DecidableEq K]
     (A B : Matrix K K ℂ) (v : QState K) :
     A *ᵥ v - B *ᵥ v = (A - B) *ᵥ v := by
   symm
   exact Matrix.sub_mulVec A B v
 
+/-- Applying the same unitary matrix to two states does not increase their Euclidean distance. -/
 private theorem norm_applyGate_unitary_sub_le {K : Type} [Fintype K] [DecidableEq K]
     [Nonempty K] (U : Matrix K K ℂ) (hU : U ∈ Matrix.unitaryGroup K ℂ) (φ φ' : QState K) :
     ‖toEuclidean_fromVec (ApplyGate U φ) - toEuclidean_fromVec (ApplyGate U φ')‖
@@ -297,6 +353,8 @@ private theorem norm_applyGate_unitary_sub_le {K : Type} [Fintype K] [DecidableE
   rw [hnormU] at h
   simpa using! h
 
+/-- The distance between two matrix-applied states is bounded by the propagated input difference
+plus the matrix difference acting on the second input. -/
 private theorem norm_applyGate_oracle_sub_le {K : Type} [Fintype K] [DecidableEq K]
     (A B : Matrix K K ℂ) (φ φ' : QState K) :
     ‖toEuclidean_fromVec (ApplyGate A φ) - toEuclidean_fromVec (ApplyGate B φ')‖
@@ -316,6 +374,7 @@ private theorem norm_applyGate_oracle_sub_le {K : Type} [Fintype K] [DecidableEq
         + ‖A - B‖ * ‖toEuclidean_fromVec φ'‖ :=
         add_le_add (norm_applyGate_le A (φ - φ')) (norm_applyGate_le (A - B) φ')
 
+/-- A unitary matrix sends a normalized state to a normalized state. -/
 private theorem normalized_applyGate_unitary {K : Type} [Fintype K] [DecidableEq K]
     (U : Matrix K K ℂ) (hU : U ∈ Matrix.unitaryGroup K ℂ) (σ : QState K)
     (hσ : Normalized σ) : Normalized (ApplyGate U σ) := by
@@ -325,6 +384,8 @@ private theorem normalized_applyGate_unitary {K : Type} [Fintype K] [DecidableEq
   have h2 := h1.normalized_run one_mem_unitaryGroup hσ
   simpa [Run] using! h2
 
+/-- Running the same unitary circuit with two unitary oracles increases an initial distance
+bound by at most the query count times the oracle norm difference. -/
 private theorem hybrid_aux {K : Type} [Fintype K] [DecidableEq K] [Nonempty K]
     (O O' : Matrix K K ℂ) (hO : O ∈ Matrix.unitaryGroup K ℂ)
     (hO' : O' ∈ Matrix.unitaryGroup K ℂ) :
@@ -393,6 +454,8 @@ private theorem hybrid_aux {K : Type} [Fintype K] [DecidableEq K] [Nonempty K]
             simp [QueryCount]
             ring
 
+/-- For a normalized input and unitary circuit and oracles, output Euclidean distance is at most
+`Q * oracleDistance O O'` when the circuit uses at most `Q` queries. -/
 theorem unitaryHybridDistance_fixed {K : Type} [Fintype K] [DecidableEq K]
     [Nonempty K] (O O' : Matrix K K ℂ) (C : Circuit K) (ψ : QState K) (Q : ℕ)
     (hO : O ∈ Matrix.unitaryGroup K ℂ) (hO' : O' ∈ Matrix.unitaryGroup K ℂ)
@@ -408,12 +471,15 @@ theorem unitaryHybridDistance_fixed {K : Type} [Fintype K] [DecidableEq K]
       mul_le_mul_of_nonneg_right (by exact_mod_cast hQ) (norm_nonneg _)
     _ = (Q : ℝ) * oracleDistance O O' := by rfl
 
+/-- The truncated-tail law holds for every observed circuit, oracle matrix, and input state. -/
 theorem truncatedTailLaw_fixed {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) :
     truncatedTailLaw O P ψ := by
   intro K
   exact stopJointLaw_fixed O P ψ K
 
+/-- Clean upper-bound transport and the lifted clean-run construction hold, as does corrected
+bridge adversary transport, while the specified unrestricted transport instance fails. -/
 theorem clause1_endpoint :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (J : Type) [Fintype J] [DecidableEq J]
       (F : Type) (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J) (Q : ℕ) (p : ℝ),
@@ -439,6 +505,8 @@ theorem clause1_endpoint :
     exact correctedBridgeAdversaryTransport_fixed input f Γ ε P ψ
   · exact unrestrictedAdversaryTransport_false
 
+/-- Collect the bit/value action and readout identities, ledgered phase conversions,
+phase-offset obstructions, baseline extraction, and charged-capability law. -/
 theorem clause2_endpoint :
     ∀ (I : Type) [Fintype I] [DecidableEq I],
       (∀ f : I → Bool, bitValueActionsUnify f ∧ valueBitReadoutUnify f) ∧
@@ -470,6 +538,9 @@ theorem clause2_endpoint :
   · intro U L
     exact chargedCapabilityLaw_fixed U L
 
+/-- Collect unitary hybrid and normalized-tree adversary bounds, truncation and stopping laws,
+the positive-charge termination consequence, and the stated polynomial-representation and
+zero-charge conclusions. -/
 theorem clause3_endpoint :
     (∀ (K : Type) [Fintype K] [DecidableEq K] [Nonempty K]
         (O O' : Matrix K K ℂ) (C : Circuit K) (ψ : QState K) (Q : ℕ),

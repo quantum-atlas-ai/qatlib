@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ScaledSqrt.SqrtBounds.ScaledRationalSqrtDefs
+
+/-!
+# Scaled rational square-root enclosure bounds
+
+This module proves the guarantees of `bracket` and `uncertain` by scaling the certified
+unit-interval rational square-root routine. For `0 <= q <= S^2` with positive rational `S`, `g1`
+gives rational endpoints enclosing the square root, exact width `S / 2^k`, and exactly `k`
+comparisons. Such certified numerical preprocessing is relevant to payoff-based quantum mean
+estimation as in [Montanaro2015].
+
+For a real input known only to lie between rational endpoints `a` and `b`, `g2` encloses its
+square root with width at most `2 * S / 2^k + sqrt(b - a)`.
+
+## Main statements
+
+* `g1`: proves scaled endpoint, square, width, and comparison-count guarantees.
+* `sqrt_gap`: bounds the change in square root by the square root of the input change.
+* `g2`: combines two scaled brackets into an enclosure for an uncertain real input.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase Qatlib.Concepts.MonteCarloMean.PayoffRotation
@@ -12,6 +36,9 @@ open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase Qatlib.Concepts.MonteCarl
 namespace Qatlib.Concepts.ScaledSqrt.SqrtBounds
 set_option autoImplicit false
 
+/-- For positive rational `S` and `0 <= q <= S^2`, `bracket q S k` has ordered endpoints in `[0,
+S]` whose squares enclose `q` and whose real casts enclose its square root. Its width is
+exactly `S / 2^k` and its comparison counter is exactly `k`. -/
 theorem g1 :
     ∀ (q S : ℚ) (k : ℕ), 0<S → 0≤q → q≤S*S →
       let b := bracket q S k
@@ -50,6 +77,7 @@ theorem g1 :
   · nlinarith [Real.sqrt_nonneg (q:ℝ)]
   · nlinarith [Real.sqrt_nonneg (q:ℝ)]
 
+/-- For real `0 <= a <= b`, the difference `sqrt b - sqrt a` is at most `sqrt (b - a)`. -/
 private theorem sqrt_gap (a b : ℝ) (ha : 0 ≤ a) (hab : a ≤ b) :
     Real.sqrt b - Real.sqrt a ≤ Real.sqrt (b-a) := by
   have hb : 0 ≤ b := ha.trans hab
@@ -62,6 +90,9 @@ private theorem sqrt_gap (a b : ℝ) (ha : 0 ≤ a) (hab : a ≤ b) :
   have hqd := Real.sq_sqrt hd
   nlinarith [mul_nonneg hsa hsd]
 
+/-- If `0 <= a <= b <= S^2`, `S > 0`, and the real input `x` lies in `[a, b]`, the endpoints of
+`uncertain a b S k` enclose `sqrt x`. Their real width is at most `2 * S / 2^k + sqrt (b -
+a)`. -/
 theorem g2 :
     ∀ (a b S : ℚ) (x : ℝ) (k : ℕ), 0<S → 0≤a → a≤b → b≤S*S →
       (a:ℝ)≤x → x≤(b:ℝ) →

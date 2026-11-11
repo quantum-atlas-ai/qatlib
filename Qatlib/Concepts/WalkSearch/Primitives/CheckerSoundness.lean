@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
+
+/-!
+# Soundness of the triangle checker
+
+Proves that every pair returned by `triCheck` consists of distinct vertices in the chosen
+subset, with a witness adjacent to both and an edge between the pair. This supplies the explicit
+adjacency conditions used by the graph-search checker; see [Ambainis2005] for search background.
+
+## Main statements
+
+* `triCheck_sound`: Whenever `triCheck` returns `(u₁, u₂)`, these are distinct members of `U`
+  and there exists a vertex `v` with `adj v u₁ = true`, `adj v u₂ = true`, and `adj u₁ u₂ =
+  true`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
@@ -15,6 +34,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical
 
+/-- Whenever `triCheck` returns `(u₁, u₂)`, these are distinct members of `U` and there exists a
+vertex `v` with `adj v u₁ = true`, `adj v u₂ = true`, and `adj u₁ u₂ = true`. -/
 theorem triCheck_sound {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (ntape : ncs.seed) :

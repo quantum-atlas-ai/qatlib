@@ -9,6 +9,31 @@ import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Probability.ProbabilityMassFunction.Integrals
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Bounded differences for finite product laws
+
+This module proves centered exponential-moment estimates and bounded-differences tail
+inequalities for finite independent samples. `finite_iid_bounded_average_tail` specializes these
+estimates to averages of bounded observations, providing the concentration tools used in the
+sketch analysis of [ChiaEtAl2022].
+
+## Main statements
+
+* `finite_product_bounded_differences_mgf`: Bounds the centered exponential moment under an
+  independent product law by `exp (t² * ∑ i, (c i)² / 8)` when coordinate changes are bounded by
+  `c`.
+* `finite_product_bounded_differences_tail`: Establishes upper and two-sided deviation bounds
+  under a finite independent product law with positive total squared coordinate bound. See
+  [ChiaEtAl2022].
+* `finite_iid_bounded_average_tail`: For positive sample size and observations in `[0, B]`, the
+  probability of absolute average error at least `√(B² * log (2 / δ) / (2 * r))` is at most `δ`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false
@@ -17,6 +42,8 @@ namespace Qatlib.Concepts.SketchArith.SketchBuild
 open MeasureTheory ProbabilityTheory
 open scoped Classical BigOperators
 
+/-- Hoeffding's exponential-moment bound for a centered finite random variable with values in
+`[a, b]`. See [ChiaEtAl2022]. -/
 theorem finite_hoeffding_centered_mgf : ∀ (X : Type) [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X→ℝ) (a b t : ℝ), a≤b → (∀ x,f x∈Set.Icc a b) →
   p.expect (fun x => Real.exp (t*(f x-p.expect f))) ≤ Real.exp (t^2*(b-a)^2/8) := by
@@ -36,6 +63,8 @@ theorem finite_hoeffding_centered_mgf : ∀ (X : Type) [Fintype X] [DecidableEq 
     Real.norm_eq_abs,abs_of_nonneg (sub_nonneg.mpr hab)]
   ring
 
+/-- Decomposes expectation under a finite product law into expectation over the final
+coordinates and then the first coordinate. -/
 private theorem finite_product_expect_cons {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (p : Fin (n+1)→FinDist X) (f : (Fin (n+1)→X)→ℝ) :
     (independentSampleLaw p).expect f =
@@ -53,6 +82,7 @@ private theorem finite_product_expect_cons {X : Type} [Fintype X] [DecidableEq X
   dsimp [Fin.consEquiv]
   ring
 
+/-- A uniform bound on `|f x - g x|` bounds the absolute difference of their expectations. -/
 private theorem finite_expect_abs_sub {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f g : X→ℝ) (c : ℝ) (h : ∀ x, |f x-g x|≤c) :
     |p.expect f-p.expect g|≤c := by
@@ -63,6 +93,8 @@ private theorem finite_expect_abs_sub {X : Type} [Fintype X] [DecidableEq X]
     _ ≤ ∑ x,p.prob x*c := Finset.sum_le_sum fun x _ => mul_le_mul_of_nonneg_left (h x) (p.nonneg x)
     _ = c := by rw [← Finset.sum_mul,p.sum_one,one_mul]
 
+/-- A real function with range diameter at most `c` has centered exponential moment at most `exp
+(t² * c² / 8)`. -/
 private theorem finite_diameter_mgf {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X→ℝ) (c t : ℝ) (hc : 0≤c)
     (hd : ∀ x y,|f x-f y|≤c) :
@@ -82,6 +114,8 @@ private theorem finite_diameter_mgf {X : Type} [Fintype X] [DecidableEq X]
   simpa only [add_sub_cancel_left] using
     finite_hoeffding_centered_mgf X p f (f x0) (f x0+c) t (by linarith) hb
 
+/-- Bounds the centered exponential moment under an independent product law by `exp (t² * ∑ i,
+(c i)² / 8)` when coordinate changes are bounded by `c`. -/
 theorem finite_product_bounded_differences_mgf {X : Type} [Fintype X] [DecidableEq X]
     (n : ℕ) (p : Fin n→FinDist X) (f : (Fin n→X)→ℝ) (c : Fin n→ℝ) (t : ℝ)
     (hc : ∀ i,0≤c i)
@@ -148,6 +182,8 @@ theorem finite_product_bounded_differences_mgf {X : Type} [Fintype X] [Decidable
         mul_le_mul_of_nonneg_left hih (Real.exp_pos _).le
       _ = _ := by rw [← Real.exp_add,Fin.sum_univ_succ]; congr 1; ring
 
+/-- The exponential Markov inequality bounds the probability of `μ + u ≤ f` using the
+exponential moment centered at `μ`. -/
 private theorem finite_exp_markov {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X→ℝ) (μ u t : ℝ) (ht : 0≤t) :
     (∑ x ∈ Finset.univ.filter (fun x=>μ+u≤f x),p.prob x) ≤
@@ -171,6 +207,8 @@ private theorem finite_exp_markov {X : Type} [Fintype X] [DecidableEq X]
     rw [← Real.exp_add,show -t*u+t*u=0 by ring,Real.exp_zero]
   simpa only [← mul_assoc,he,one_mul] using hc
 
+/-- Bounds the upper tail of a function with bounded coordinate differences by `exp (-2 * u² / ∑
+i, (c i)²)`. -/
 private theorem finite_product_upper_tail {X : Type} [Fintype X] [DecidableEq X]
     (r : ℕ) (p : Fin r→FinDist X) (f : (Fin r→X)→ℝ) (c : Fin r→ℝ) (u : ℝ)
     (hc : ∀ i,0≤c i) (hS : 0<∑ i,(c i)^2) (hu : 0<u)
@@ -194,6 +232,8 @@ private theorem finite_product_upper_tail {X : Type} [Fintype X] [DecidableEq X]
       field_simp [hS.ne']
       ring
 
+/-- Establishes upper and two-sided deviation bounds under a finite independent product law with
+positive total squared coordinate bound. See [ChiaEtAl2022]. -/
 theorem finite_product_bounded_differences_tail : ∀ (X : Type) [Fintype X] [DecidableEq X]
     (r : ℕ) (p : Fin r→FinDist X) (f : (Fin r→X)→ℝ) (c : Fin r→ℝ) (u : ℝ),
   (∀ i,0≤c i) → 0<∑ i,(c i)^2 → 0<u →
@@ -231,6 +271,7 @@ theorem finite_product_bounded_differences_tail : ∀ (X : Type) [Fintype X] [De
     linarith
   linarith
 
+/-- Changing only coordinate `i` changes the sample average by `(f (ω i) - f (τ i)) / r`. -/
 theorem finite_avg_coordinate_difference {X : Type} (r : ℕ) (f : X→ℝ)
     (ω τ : Fin r→X) (i : Fin r) (h : ∀ j,j≠i→ω j=τ j) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg f ω-Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg f τ=(f (ω i)-f (τ i))/(r : ℝ) := by
@@ -241,6 +282,8 @@ theorem finite_avg_coordinate_difference {X : Type} (r : ℕ) (f : X→ℝ)
   · intro j _ hj; rw [h j hj,sub_self]
   · intro hi; exact (hi (Finset.mem_univ i)).elim
 
+/-- For positive sample size and observations in `[0, B]`, the probability of absolute average
+error at least `√(B² * log (2 / δ) / (2 * r))` is at most `δ`. -/
 theorem finite_iid_bounded_average_tail {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X→ℝ) (r : ℕ) (B δ : ℝ)
     (hr : 0<r) (hB : 0<B) (hδ : 0<δ) (hδ1 : δ<1) (hf : ∀ x,f x∈Set.Icc 0 B) :

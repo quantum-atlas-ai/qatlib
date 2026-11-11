@@ -10,6 +10,32 @@ import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.MetricSpace.Pseudo.Basic
 import Mathlib.Data.Real.Sqrt
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Reciprocal polynomial error estimates
+
+This module defines `reciprocalError` and proves geometric error bounds and uniform convergence
+of reciprocal polynomials on intervals separated from zero. It also bounds their magnitude on
+`[-1, 1]`, supplies normalized bounded responses, and records the unit magnitude constraint for
+phase responses at one.
+
+The matrix approximation `reciprocalMatrixApprox` is an adjoint odd singular transform. Under an
+upper singular value bound of one and a positive gap, its operator norm distance from the matrix
+pseudoinverse is bounded by the same scalar error. The mathematical background is developed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `reciprocalPolynomial_tendstoUniformlyOn`: uniform convergence to inversion on `[δ, 1]`.
+* `normalizedReciprocalPolynomial_norm_le_one`: unit interval boundedness after square root
+  normalization.
+* `reciprocalMatrixApprox_error_le`: the gapped matrix pseudoinverse approximation bound.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,9 +53,11 @@ namespace Qatlib.Concepts.QsvtCore.LinearSystems
 open Polynomial Matrix Filter
 open scoped BigOperators Topology Matrix.Norms.L2Operator
 
+/-- The geometric reciprocal error bound `(1 - δ ^ 2) ^ n / δ`. -/
 noncomputable def reciprocalError (δ : ℝ) (n : ℕ) : ℝ :=
   (1 - δ ^ 2) ^ n / δ
 
+/-- For `0 < x ≤ 1`, the reciprocal polynomial error is exactly `(1 - x ^ 2) ^ n / x`. -/
 theorem reciprocalPolynomial_error_eq (n : ℕ) {x : ℝ}
     (hx0 : 0 < x) (hx1 : x ≤ 1) :
     |(reciprocalPolynomial n).eval x - x⁻¹| = (1 - x ^ 2) ^ n / x := by
@@ -37,6 +65,8 @@ theorem reciprocalPolynomial_error_eq (n : ℕ) {x : ℝ}
   rw [abs_sub_comm, inv_sub_reciprocalPolynomial_eval n (ne_of_gt hx0),
     abs_of_nonneg (div_nonneg (pow_nonneg hq n) hx0.le)]
 
+/-- On `[δ, 1]` with positive `δ`, the reciprocal polynomial error is at most `reciprocalError δ
+n`. -/
 theorem reciprocalPolynomial_error_le (n : ℕ) {δ x : ℝ}
     (hδ : 0 < δ) (hx : x ∈ Set.Icc δ 1) :
     |(reciprocalPolynomial n).eval x - x⁻¹| ≤ reciprocalError δ n := by
@@ -49,10 +79,13 @@ theorem reciprocalPolynomial_error_le (n : ℕ) {δ x : ℝ}
   rw [reciprocalPolynomial_error_eq n hx0 hx.2, reciprocalError]
   exact div_le_div₀ (pow_nonneg hqδ n) (pow_le_pow_left₀ hq hle n) hδ hx.1
 
+/-- The reciprocal error bound is nonnegative when `0 < δ ≤ 1`. -/
 theorem reciprocalError_nonneg {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (n : ℕ) : 0 ≤ reciprocalError δ n := by
   exact div_nonneg (pow_nonneg (by nlinarith : 0 ≤ 1 - δ ^ 2) n) hδ.le
 
+/-- At real inputs in `[δ, 1]` with positive `δ`, the complex reciprocal polynomial error is at
+most `reciprocalError δ n`. -/
 theorem complexReciprocalPolynomial_error_le (n : ℕ) {δ x : ℝ}
     (hδ : 0 < δ) (hx : x ∈ Set.Icc δ 1) :
     ‖(complexReciprocalPolynomial n).eval (x : ℂ) - (x : ℂ)⁻¹‖ ≤
@@ -61,6 +94,8 @@ theorem complexReciprocalPolynomial_error_le (n : ℕ) {δ x : ℝ}
     ← Complex.ofReal_sub, Complex.norm_real, Real.norm_eq_abs]
   exact reciprocalPolynomial_error_le n hδ hx
 
+/-- Multiplying the complex reciprocal polynomial by a real constant `c` gives error at most
+`|c| * reciprocalError δ n` from `c / x` on `[δ, 1]`. -/
 theorem scaledReciprocalPolynomial_error_le (n : ℕ) (c : ℝ) {δ x : ℝ}
     (hδ : 0 < δ) (hx : x ∈ Set.Icc δ 1) :
     ‖(C (c : ℂ) * complexReciprocalPolynomial n).eval (x : ℂ) -
@@ -70,6 +105,8 @@ theorem scaledReciprocalPolynomial_error_le (n : ℕ) (c : ℝ) {δ x : ℝ}
   exact mul_le_mul_of_nonneg_left (complexReciprocalPolynomial_error_le n hδ hx)
     (abs_nonneg c)
 
+/-- For `0 < δ ≤ 1`, the reciprocal error bound tends to zero as the truncation index tends to
+infinity. -/
 theorem tendsto_reciprocalError {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     Tendsto (fun n : ℕ => reciprocalError δ n) atTop (𝓝 0) := by
   have hq0 : 0 ≤ 1 - δ ^ 2 := by nlinarith
@@ -77,6 +114,8 @@ theorem tendsto_reciprocalError {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
   have h := (tendsto_pow_atTop_nhds_zero_of_lt_one hq0 hq1).div_const δ
   simpa [reciprocalError] using h
 
+/-- For `0 < δ ≤ 1` and every positive tolerance, all sufficiently large reciprocal polynomial
+indices have error below that tolerance uniformly on `[δ, 1]`. -/
 theorem reciprocalPolynomial_eventually_error_lt {δ ε : ℝ}
     (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) :
     ∃ N : ℕ, ∀ n ≥ N, ∀ x ∈ Set.Icc δ 1,
@@ -86,6 +125,7 @@ theorem reciprocalPolynomial_eventually_error_lt {δ ε : ℝ}
   obtain ⟨N, hN⟩ := Filter.eventually_atTop.mp he
   exact ⟨N, fun n hn x hx => (reciprocalPolynomial_error_le n hδ hx).trans_lt (hN n hn)⟩
 
+/-- For `0 < δ ≤ 1`, the reciprocal polynomials converge uniformly to inversion on `[δ, 1]`. -/
 theorem reciprocalPolynomial_tendstoUniformlyOn {δ : ℝ}
     (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     TendstoUniformlyOn (fun n x => (reciprocalPolynomial n).eval x)
@@ -97,6 +137,8 @@ theorem reciprocalPolynomial_tendstoUniformlyOn {δ : ℝ}
   refine ⟨N, fun n hn x hx => ?_⟩
   simpa only [Real.dist_eq, abs_sub_comm] using hN n hn x hx
 
+/-- On `[-1, 1]`, the square of the reciprocal polynomial value is at most its truncation index
+`n`. -/
 theorem reciprocalPolynomial_eval_sq_le (n : ℕ) {x : ℝ}
     (hx : x ∈ Set.Icc (-1) 1) :
     ((reciprocalPolynomial n).eval x) ^ 2 ≤ (n : ℝ) := by
@@ -126,12 +168,15 @@ theorem reciprocalPolynomial_eval_sq_le (n : ℕ) {x : ℝ}
     (x ^ 2 * S) * S ≤ 1 * S := mul_le_mul_of_nonneg_right hxs hS0
     _ ≤ (n : ℝ) := by simpa using hSle
 
+/-- On `[-1, 1]`, the reciprocal polynomial has absolute value at most `√n`. -/
 theorem reciprocalPolynomial_abs_le_sqrt (n : ℕ) {x : ℝ}
     (hx : x ∈ Set.Icc (-1) 1) :
     |(reciprocalPolynomial n).eval x| ≤ Real.sqrt (n : ℝ) := by
   have h := Real.sqrt_le_sqrt (reciprocalPolynomial_eval_sq_le n hx)
   simpa only [Real.sqrt_sq_eq_abs] using h
 
+/-- If `|c| * √n ≤ 1`, the complex reciprocal polynomial scaled by `c` has norm at most one at
+every real input in `[-1, 1]`. -/
 theorem scaledReciprocalPolynomial_norm_le_one (n : ℕ) (c : ℝ)
     (hc : |c| * Real.sqrt (n : ℝ) ≤ 1) {x : ℝ}
     (hx : x ∈ Set.Icc (-1) 1) :
@@ -141,6 +186,8 @@ theorem scaledReciprocalPolynomial_norm_le_one (n : ℕ) (c : ℝ)
   exact (mul_le_mul_of_nonneg_left (reciprocalPolynomial_abs_le_sqrt n hx)
     (abs_nonneg c)).trans hc
 
+/-- For positive `n`, multiplying the complex reciprocal polynomial by `√n` inverse bounds its
+norm by one on the real interval `[-1, 1]`. -/
 theorem normalizedReciprocalPolynomial_norm_le_one {n : ℕ} (hn : 0 < n) {x : ℝ}
     (hx : x ∈ Set.Icc (-1) 1) :
     ‖(C (((Real.sqrt (n : ℝ))⁻¹ : ℝ) : ℂ) *
@@ -149,6 +196,7 @@ theorem normalizedReciprocalPolynomial_norm_le_one {n : ℕ} (hn : 0 < n) {x : �
   apply scaledReciprocalPolynomial_norm_le_one n (Real.sqrt (n : ℝ))⁻¹ _ hx
   rw [abs_of_pos (inv_pos.mpr hs), inv_mul_cancel₀ (ne_of_gt hs)]
 
+/-- A response with unit base and unit listed phases has norm one at the endpoint one. -/
 theorem reciprocal_response_norm_at_one {base : ℂ} (hb : IsPhase base)
     (zs : List ℂ) (hzs : ∀ z ∈ zs, IsPhase z) :
     ‖(responseP base zs).eval (1 : ℂ)‖ = 1 := by
@@ -156,6 +204,8 @@ theorem reciprocal_response_norm_at_one {base : ℂ} (hb : IsPhase base)
     simpa using response_normalization hb zs hzs 1
   rw [Complex.norm_def, h, Real.sqrt_one]
 
+/-- At the endpoint one, the distance of a unit phase response from a real constant `c` is at
+least `|1 - |c||`. -/
 theorem reciprocal_response_endpoint_error {base : ℂ} (hb : IsPhase base)
     (zs : List ℂ) (hzs : ∀ z ∈ zs, IsPhase z) (c : ℝ) :
     abs (1 - |c|) ≤ ‖(responseP base zs).eval (1 : ℂ) - (c : ℂ)‖ := by
@@ -166,14 +216,20 @@ theorem reciprocal_response_endpoint_error {base : ℂ} (hb : IsPhase base)
 section Pseudoinverse
 variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
+/-- The adjoint of `A` times the reciprocal factor polynomial evaluated on the right Gram matrix
+`Aᴴ * A`. -/
 noncomputable def reciprocalMatrixApprox (A : Matrix O I ℂ) (n : ℕ) : Matrix I O ℂ :=
   (A * aeval (Aᴴ * A) ((reciprocalFactor n).map Complex.ofRealHom))ᴴ
 
+/-- The complex reciprocal polynomial is the odd singular polynomial associated to the complex
+cast of `reciprocalFactor n`. -/
 theorem complexReciprocalPolynomial_eq_oddSingularPolynomial (n : ℕ) :
     complexReciprocalPolynomial n =
       oddSingularPolynomial ((reciprocalFactor n).map Complex.ofRealHom) := by
   exact complexReciprocalPolynomial_eq_factor n
 
+/-- The reciprocal matrix approximation equals the adjoint odd singular transform with response
+given by the complex reciprocal polynomial. -/
 theorem reciprocalMatrixApprox_eq_oddSingularTransform (A : Matrix O I ℂ) (n : ℕ) :
     reciprocalMatrixApprox A n =
       (oddSingularTransform A (fun x => (complexReciprocalPolynomial n).eval (x : ℂ)))ᴴ := by
@@ -183,6 +239,9 @@ theorem reciprocalMatrixApprox_eq_oddSingularTransform (A : Matrix O I ℂ) (n :
   funext x
   simp [complexReciprocalPolynomial_eq_factor]
 
+/-- If all singular values are at most one and each positive singular value is at least `δ`,
+with `0 < δ ≤ 1`, the reciprocal matrix approximation differs from the pseudoinverse in
+operator norm by at most `reciprocalError δ n`. -/
 theorem reciprocalMatrixApprox_error_le (A : Matrix O I ℂ) {δ : ℝ}
     (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (hupper : ∀ i : Fin (Fintype.card I), matrixSingularValues A i ≤ 1)

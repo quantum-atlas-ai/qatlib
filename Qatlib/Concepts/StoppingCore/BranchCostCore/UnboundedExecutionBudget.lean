@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Expected time and cutoffs for unbounded execution
+
+This module expresses `unboundedTime` as a tail sum of pending masses and as the cost-weighted
+halting mass with a nontermination contribution. It proves online cutoff bounds and geometric
+runtime estimates for finite-state randomized transition kernels.
+
+The expected-cost viewpoint provides background for randomized quantum algorithms such as those
+in [Montanaro2015]; the statements here concern the abstract execution kernel.
+
+## Main statements
+
+* `unbounded_expected_time_tail_sum`: tail-sum and halting-mass formulas for expected time
+* `unbounded_online_cutoff_markov`: expected-time control of the pending mass at a cutoff
+* `unbounded_geometric_kernel_runtime`: geometric survival and runtime bounds
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -26,6 +48,7 @@ section SumHelpers
 
 variable {α : Type}
 
+/-- The sum of `m` copies of an extended nonnegative real `c` is `m * c`. -/
 theorem sum_range_const_ennreal (m : ℕ) (c : ℝ≥0∞) :
     ∑ _i ∈ Finset.range m, c = (m : ℝ≥0∞) * c := by
   induction m with
@@ -34,6 +57,7 @@ theorem sum_range_const_ennreal (m : ℕ) (c : ℝ≥0∞) :
       rw [Finset.sum_range_succ, ih, Nat.cast_succ]
       ring
 
+/-- A finite sum commutes with a countable sum of extended nonnegative real terms. -/
 theorem sum_tsum_swap_ennreal (s : Finset α) (g : α → ℕ → ℝ≥0∞) :
     ∑ i ∈ s, ∑' j, g i j = ∑' j, ∑ i ∈ s, g i j := by
   classical
@@ -47,6 +71,8 @@ end SumHelpers
 
 section GeomHelpers
 
+/-- For `q ≤ 1`, the first `N` terms of the geometric stopping distribution plus the remaining
+mass `q ^ N` sum to one. -/
 theorem geom_partial_ennreal (q : ℝ≥0∞) (hq : q ≤ 1) :
     ∀ N : ℕ, (∑ i ∈ Finset.range N, q ^ i * (1 - q)) + q ^ N = 1 := by
   intro N
@@ -63,6 +89,7 @@ theorem geom_partial_ennreal (q : ℝ≥0∞) (hq : q ≤ 1) :
               rw [add_assoc, hstep]
         _ = 1 := ih
 
+/-- Every natural power of an extended nonnegative real bounded by one is bounded by one. -/
 theorem pow_le_one_ennreal (q : ℝ≥0∞) (hq : q ≤ 1) (N : ℕ) : q ^ N ≤ 1 := by
   induction N with
   | zero => simp
@@ -71,6 +98,7 @@ theorem pow_le_one_ennreal (q : ℝ≥0∞) (hq : q ≤ 1) (N : ℕ) : q ^ N ≤
         _ ≤ 1 * 1 := mul_le_mul' ih hq
         _ = 1 := by simp
 
+/-- For `q < 1`, the infimum of the natural powers of `q` is zero. -/
 theorem iInf_pow_eq_zero_ennreal (q : ℝ≥0∞) (hq : q < 1) : ⨅ n : ℕ, q ^ n = 0 := by
   have hq1 : q ≤ 1 := hq.le
   by_contra hcon
@@ -118,6 +146,7 @@ theorem iInf_pow_eq_zero_ennreal (q : ℝ≥0∞) (hq : q < 1) : ⨅ n : ℕ, q 
       _ < ↑n * ((⨅ n : ℕ, q ^ n) * (1 - q)) := ENNReal.mul_lt_mul_left hdne hdn1 hn
   exact absurd (hbound n) (not_le_of_gt hn)
 
+/-- For `q < 1`, the geometric series in extended nonnegative reals sums to `(1 - q)⁻¹`. -/
 theorem geom_tsum_ennreal (q : ℝ≥0∞) (hq : q < 1) : ∑' n : ℕ, q ^ n = (1 - q)⁻¹ := by
   have hq1 : q ≤ 1 := hq.le
   have hq0 : (0 : ℝ≥0∞) < 1 - q := by
@@ -185,6 +214,8 @@ end GeomHelpers
 
 section TailBridge
 
+/-- The total mass of halting with output `o` splits into costs at most `n` and costs greater
+than `n`. -/
 theorem haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (o : O) (n : ℕ) :
     (∑' k : ℕ, haltJoint next cfg o k)
@@ -212,6 +243,7 @@ theorem haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg : Confi
           (fun k hk => if_neg (Finset.mem_range.not.mp hk))).trans
           (Finset.sum_congr rfl fun k hk => if_pos (Finset.mem_range.mp hk))
 
+/-- The pending mass at time `n` equals the mass of halting later plus the nontermination mass. -/
 theorem pendingMass_eq_tail_add_nontermination (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (n : ℕ) :
     pendingMass next cfg n
@@ -264,6 +296,8 @@ theorem pendingMass_eq_tail_add_nontermination (next : S → PMF (Configuration 
 
 end TailBridge
 
+/-- Summing the indicator of `n < k` over natural numbers gives `k` in extended nonnegative
+reals. -/
 theorem tsum_indicator_lt_ennreal (k : ℕ) :
     ∑' n : ℕ, (if n < k then (1 : ℝ≥0∞) else 0) = (k : ℝ≥0∞) := by
   refine (tsum_eq_sum (L := SummationFilter.unconditional ℕ) (s := Finset.range k)
@@ -273,10 +307,12 @@ theorem tsum_indicator_lt_ennreal (k : ℕ) :
       ∀ n ∈ Finset.range k, (if n < k then (1 : ℝ≥0∞) else 0) = 1),
     Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
 
+/-- The countable sum of a constant extended nonnegative real `c` equals `⊤ * c`. -/
 theorem tsum_const_nat_ennreal (c : ℝ≥0∞) : ∑' _n : ℕ, c = ⊤ * c := by
   rw [ENNReal.tsum_const]
   simp
 
+/-- Summing all halting tails equals the halting joint mass weighted by its stopping cost. -/
 theorem tsum_tail_eq_cost_weighted_haltJoint (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
     ∑' n : ℕ, ∑' o : O, ∑' k : ℕ,
@@ -297,10 +333,14 @@ theorem tsum_tail_eq_cost_weighted_haltJoint (next : S → PMF (Configuration S 
     _ = ∑' o : O, ∑' k : ℕ, (k : ℝ≥0∞) * haltJoint next cfg o k :=
         tsum_congr fun o => tsum_congr fun k => mul_comm _ _
 
+/-- The extended expected running time, defined as the sum of the pending masses over all finite
+times. -/
 noncomputable def unboundedTime (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) : ℝ≥0∞ :=
   ∑' n : ℕ, pendingMass next cfg n
 
+/-- The expected running time equals both its tail sum and the cost-weighted halting mass plus
+`⊤` times the nontermination mass. Finite expected time forces zero nontermination mass. -/
 theorem unbounded_expected_time_tail_sum (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :
     unboundedTime next cfg = ∑' n : ℕ, pendingMass next cfg n ∧
@@ -327,6 +367,8 @@ theorem unbounded_expected_time_tail_sum (next : S → PMF (Configuration S O))
   rw [h2, ENNReal.top_mul hN, add_top] at hlt
   exact absurd hlt (lt_irrefl _)
 
+/-- The pending mass after `fuel` steps is bounded by the expected time divided by `fuel + 1`,
+with the equivalent multiplicative bound. -/
 theorem unbounded_online_cutoff_markov (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
     (fuel+1 : ℝ≥0∞) * pendingMass next cfg fuel ≤ unboundedTime next cfg ∧
@@ -351,6 +393,8 @@ theorem unbounded_online_cutoff_markov (next : S → PMF (Configuration S O))
   rw [ENNReal.le_div_iff_mul_le (Or.inl hne) (Or.inl htop), mul_comm]
   exact h1
 
+/-- For a finite output event, its mass through `fuel` steps is at most its total halting mass,
+and the gap is bounded by the pending mass. -/
 theorem unbounded_output_event_cutoff_gap (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) (E : Finset O) :
     (∑ o ∈ E, ∑ k ∈ Finset.range (fuel+1), haltJoint next cfg o k) ≤
@@ -382,6 +426,8 @@ theorem unbounded_output_event_cutoff_gap (next : S → PMF (Configuration S O))
                 exact le_self_add
         exact add_le_add (le_refl _) htail
 
+/-- A uniform continuation probability bound `q < 1` gives geometric pending-mass decay, zero
+nontermination mass, and expected time at most `(1 - q)⁻¹`. -/
 theorem unbounded_geometric_kernel_runtime (next : S → PMF (Configuration S O))
     (s : S) (q : ℝ≥0∞) (hq : q < 1)
     (hstep : ∀ x : S, ∑ y : S, next x (Sum.inr y) ≤ q) :

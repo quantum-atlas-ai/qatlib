@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitSourceContinuationDefs
+
+/-!
+# Resource bounds for data-fitting continuation
+
+This module packages the elementary resource estimates from `DataFitSourceContinuationDefs` into
+endpoint theorems. It records the cost of obtaining fresh copies, monotonicity of data-loading
+and tomography counts, selection-miss bounds, and the query ledger used in the data-fitting
+context of [WiebeBraunLloyd2012].
+
+## Main statements
+
+* `clause8_endpoint`: fresh-copy and preparation-cost lower bounds.
+* `clause9_endpoint`: loading, selection, and tomography estimates.
+* `clause5_endpoint`: monotonicity and a lower bound for the query ledger.
+* `clause4_endpoint`: monotonicity of tomography measurements.
+
+## References
+
+* [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +34,8 @@ set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.LinearLearning.ConcisePipeline
 
+/-- Bundles the lower bounds for expected fresh copies and their preparation cost when `0 < p ≤
+1`, together with the single-copy identity `expectedFreshCopies 1 p = 1 / p`. -/
 theorem clause8_endpoint :
     (∀ (k : ℕ) {p : ℝ}, 0 < p → p ≤ 1 →
       (k : ℝ) ≤ expectedFreshCopies k p) ∧
@@ -27,6 +50,8 @@ theorem clause8_endpoint :
   · intro p
     exact expectedFreshCopies_one p
 
+/-- Bundles monotonicity of data-loading and tomography counts with nonnegativity and
+monotonicity in the selection-size parameter of the selection-miss bound. -/
 theorem clause9_endpoint :
     (∀ s s' b b' : ℕ, s ≤ s' → b ≤ b' →
       dataLoadingGates s b ≤ dataLoadingGates s' b') ∧
@@ -45,6 +70,8 @@ theorem clause9_endpoint :
   · intro r r' f f' hr hf
     exact tomographyMeasurements_mono r r' f f' hr hf
 
+/-- The data-fitting query ledger is monotone in all three natural-number parameters and is at
+least `M * r`. -/
 theorem clause5_endpoint :
     (∀ M M' r r' k k' : ℕ, M ≤ M' → r ≤ r' → k ≤ k' →
       dataFitQueryLedger M r k ≤ dataFitQueryLedger M' r' k') ∧
@@ -55,6 +82,7 @@ theorem clause5_endpoint :
   · intro M r k
     exact dataFitQueryLedger_ge M r k
 
+/-- The tomography measurement count is monotone in both its natural-number parameters. -/
 theorem clause4_endpoint :
     (∀ r r' f f' : ℕ, r ≤ r' → f ≤ f' →
       tomographyMeasurements r f ≤ tomographyMeasurements r' f') := by

@@ -67,6 +67,21 @@ import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2Finite
+
+/-!
+# Quantum signal processing interfaces
+
+This module gathers the signal-processing, phase-synthesis, singular-value transformation, and
+robustness interfaces used by the word model. Its imports expose constructions such as
+`QSPWord`, `cppAdjointWord`, and the finite-phase consumers together with polynomial response
+and convention-bridge results. Background and related constructions are discussed in
+[GilyenSuLowWiebe2019].
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false

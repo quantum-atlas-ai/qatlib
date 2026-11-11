@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ShadowModels.SampleBudget.QuadraticShadowSourceParametersStat
 import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalHuan
 import Mathlib.Data.Finset.Fold
+
+/-!
+# Explicit quadratic shadow sample budgets
+
+This module derives simultaneous error guarantees for quadratic shadow medians using explicit
+block and repetition counts. `quadraticShadowSourceParameters_computed_variance` uses
+conditional and kernel variances, while `quadraticShadowSourceParametersSubgoal` substitutes
+support and operator norm bounds for Pauli pair observables. See [HuangKuengPreskill2020] for
+background.
+
+## Main statements
+
+* `quadraticShadowSourceParameters_computed_variance`: a failure bound from computed variance
+  parameters.
+* `quadraticShadowSourceParametersSubgoal`: the support-based Pauli pair budget guarantee.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +46,7 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- The median tail factor `2^(2*r+1) * (1/16)^(r+1)` equals `1 / (8 * 4^r)`. -/
 private theorem source_median_constant (r : ℕ) :
     (2 : ℝ)^(2*r+1)*(1/16 : ℝ)^(r+1) = 1/(8*(4 : ℝ)^r) := by
   induction r with
@@ -37,6 +59,8 @@ private theorem source_median_constant (r : ℕ) :
       _ = ((2 : ℝ)^(2*r+1)*(1/16 : ℝ)^(r+1))/4 := by ring
       _ = _ := by rw [ih]; ring
 
+/-- Choosing `r = Nat.log 4 (8*D*Nat.ceil (1/δ)) + 1` makes `D` times the median tail factor at
+most any positive `δ`. -/
 private theorem source_group_tail (D : ℕ) (δ : ℝ) (hδ : 0 < δ) :
     let r := Nat.log 4 (8*D*Nat.ceil (1/δ))+1
     (D : ℝ)*(2 : ℝ)^(2*r+1)*(1/16 : ℝ)^(r+1) ≤ δ := by
@@ -55,6 +79,9 @@ private theorem source_group_tail (D : ℕ) (δ : ℝ) (hδ : 0 < δ) :
   rw [mul_one_div, div_le_iff₀ (mul_pos (by norm_num) hp)]
   nlinarith
 
+/-- For a nonempty finite family of Hermitian quadratic observables and `0 < ε ≤ 1`, the
+displayed variance-based block size and logarithmic repetition count bound the probability
+of any estimation error exceeding `ε` by `δ > 0`. -/
 theorem quadraticShadowSourceParameters_computed_variance
     (n D : ℕ)
     (O : Fin D → Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -119,6 +146,9 @@ theorem quadraticShadowSourceParameters_computed_variance
   · intro ω _
     rfl
 
+/-- The explicit support and operator norm sample budgets in
+`QuadraticShadowSourceParametersSubgoal` give the stated simultaneous quadratic shadow error
+guarantee. -/
 theorem quadraticShadowSourceParametersSubgoal : QuadraticShadowSourceParametersSubgoal := by
   intro n D q ww c S₁ S₂ ρ hρ ε δ hs hn hε hε1 hδ _hδ1 hD
   let O := fun z : Fin D => pauliPairObservable n q (ww z) (c z)

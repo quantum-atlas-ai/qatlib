@@ -13,6 +13,24 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Abel
 import Mathlib.Tactic.FieldSimp
 
+/-!
+# Quaternionic braid relations
+
+This module studies the conjugation expression `phi g P = g * P * star g` and the scalar pairing
+`qdot` on real quaternions. Identities for pure unit quaternions yield `braid_relation_iff`,
+including the two signs of the imaginary coefficient, and the dot-product criterion
+`braid_condition_dot` [KauffmanLomonaco2006].
+
+## Main statements
+
+* `braid_relation_iff`: characterizes the braid relation for normalized quaternion pairs.
+* `braid_condition_dot`: rewrites the conjugation condition as a scalar pairing identity.
+
+## References
+
+* [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -21,17 +39,22 @@ open Quaternion
 
 namespace Qatlib.Papers.AnyonicSpin06.MainResults.QuaternionBraid
 
+/-- The quaternionic conjugation expression `g * P * star g`. -/
 def phi (g P : ℍ[ℝ]) : ℍ[ℝ] := g * P * star g
 
+/-- The scalar pairing `-(u * v).re`, which is the Euclidean dot product on pure quaternions. -/
 def qdot (u v : ℍ[ℝ]) : ℝ := -(u * v).re
 
+/-- The conjugate of a quaternion with zero real part equals its negative. -/
 lemma star_eq_neg_of_re_zero {u : ℍ[ℝ]} (hu : u.re = 0) : star u = -u := by
   ext <;> simp [hu]
 
+/-- The real part of a quaternion product is unchanged by reversing the two factors. -/
 lemma re_mul_comm (x y : ℍ[ℝ]) : (x * y).re = (y * x).re := by
   simp only [re_mul]
   ring
 
+/-- For a pure unit quaternion `u`, the squared norm of `a + b * u` equals `a ^ 2 + b ^ 2`. -/
 lemma normSq_add_mul {a b : ℝ} {u : ℍ[ℝ]} (hu : u.re = 0) (hn : normSq u = 1) :
     normSq ((a:ℍ[ℝ]) + (b:ℍ[ℝ])*u) = a^2 + b^2 := by
   rw [normSq_add]
@@ -49,16 +72,19 @@ lemma normSq_add_mul {a b : ℝ} {u : ℍ[ℝ]} (hu : u.re = 0) (hn : normSq u =
   rw [Quaternion.normSq_coe, hmul, hcross]
   ring
 
+/-- The squared norm of `phi g P` equals `normSq g * normSq P * normSq g`. -/
 lemma phi_normSq (g P : ℍ[ℝ]) : normSq (phi g P) = normSq g * normSq P * normSq g := by
   unfold phi
   rw [map_mul, map_mul, normSq_star]
 
+/-- The expression `phi g` sends the negative of a quaternion to the negative of its image. -/
 lemma phi_neg (g P : ℍ[ℝ]) : phi g (-P) = -phi g P := by
   unfold phi
   calc g * -P * star g = (g * -P) * star g := rfl
     _ = (-(g * P)) * star g := by rw [mul_neg g P]
     _ = -((g * P) * star g) := neg_mul (g * P) (star g)
 
+/-- Conjugation by a unit quaternion preserves zero real part. -/
 lemma phi_re_zero {g P : ℍ[ℝ]} (hg : normSq g = 1) (hP : P.re = 0) : (phi g P).re = 0 := by
   unfold phi
   rw [re_mul_comm (g * P) (star g)]
@@ -67,15 +93,19 @@ lemma phi_re_zero {g P : ℍ[ℝ]} (hg : normSq g = 1) (hP : P.re = 0) : (phi g 
   simp only [re_coe, imI_coe, imJ_coe, imK_coe, hg, hP]
   ring
 
+/-- The square of a pure unit quaternion equals minus one. -/
 lemma sq_eq_neg_one {u : ℍ[ℝ]} (hu : u.re = 0) (hn : normSq u = 1) :
     u * u = ((-1 : ℝ) : ℍ[ℝ]) := by
   ext <;> simp [re_mul, imI_mul, imJ_mul, imK_mul, hu, normSq_def'] at * <;> nlinarith
 
+/-- For pure quaternions `u` and `v`, the sum `u * v + v * u` is the real scalar `-2 * qdot u
+v`. -/
 lemma uv_add_vu {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0) :
     u * v + v * u = ((-2 * qdot u v : ℝ) : ℍ[ℝ]) := by
   ext <;> simp only [re_add, imI_add, imJ_add, imK_add, re_mul, imI_mul, imJ_mul, imK_mul,
     re_coe, imI_coe, imJ_coe, imK_coe, qdot, hu, hv] <;> ring
 
+/-- For pure `u` and `v` with `u` of squared norm one, `u * v * u = v - (2 * qdot u v) • u`. -/
 lemma uvu_eq {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0) (hn : normSq u = 1) :
     u * v * u = v - (2 * qdot u v) • u := by
   have hsq : u * u = ((-1 : ℝ) : ℍ[ℝ]) := sq_eq_neg_one hu hn
@@ -99,6 +129,7 @@ lemma uvu_eq {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0) (hn : normSq u = 1
     _ = v + (-((2 * qdot u v) • u)) := by rw [hX]; abel
     _ = v - (2 * qdot u v) • u := by rw [sub_eq_add_neg]
 
+/-- For pure `u` and `v` with `v` of squared norm one, `v * u * v = u - (2 * qdot u v) • v`. -/
 lemma vuv_eq {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0) (hn : normSq v = 1) :
     v * u * v = u - (2 * qdot u v) • v := by
   have hsq : v * v = ((-1 : ℝ) : ℍ[ℝ]) := sq_eq_neg_one hv hn
@@ -122,11 +153,14 @@ lemma vuv_eq {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0) (hn : normSq v = 1
     _ = u + (-((2 * qdot u v) • v)) := by rw [hX]; abel
     _ = u - (2 * qdot u v) • v := by rw [sub_eq_add_neg]
 
+/-- For pure `u` and real `a`, `b`, the conjugate of `a + b * u` equals `a - b * u`. -/
 lemma star_add_mul_of_re_zero {a b : ℝ} {u : ℍ[ℝ]} (hu : u.re = 0) :
     star ((a:ℍ[ℝ]) + (b:ℍ[ℝ])*u) = (a:ℍ[ℝ]) - (b:ℍ[ℝ])*u := by
   rw [star_add, star_mul, star_coe, star_coe, star_eq_neg_of_re_zero hu]
   rw [neg_mul, ← Quaternion.coe_commutes b u, sub_eq_add_neg]
 
+/-- For pure `u`, conjugation by `a + b * u` expands as `a ^ 2 * v + a * b * (u * v - v * u) - b
+^ 2 * (u * v * u)`. -/
 lemma phi_expand {a b : ℝ} {u v : ℍ[ℝ]} (hu : u.re = 0) :
     phi ((a:ℍ[ℝ]) + (b:ℍ[ℝ])*u) v
       = ((a:ℍ[ℝ])^2) * v + ((a:ℍ[ℝ])*(b:ℍ[ℝ])) * (u*v - v*u) - ((b:ℍ[ℝ])^2) * (u*v*u) := by
@@ -136,6 +170,8 @@ lemma phi_expand {a b : ℝ} {u v : ℍ[ℝ]} (hu : u.re = 0) :
     re_sub, imI_sub, imJ_sub, imK_sub, re_coe, imI_coe, imJ_coe,
     imK_coe, pow_two] <;> ring
 
+/-- For pure unit `u` and `v`, the difference between `phi (a + b * u) v` and `phi (star (a + b
+* v)) u` equals the real scalar `(a ^ 2 - b ^ 2) - 2 * qdot u v * b ^ 2` times `v - u`. -/
 lemma phi_diff {a b : ℝ} {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0)
     (hnu : normSq u = 1) (hnv : normSq v = 1) :
     phi ((a:ℍ[ℝ]) + (b:ℍ[ℝ])*u) v - phi (star ((a:ℍ[ℝ]) + (b:ℍ[ℝ])*v)) u
@@ -156,10 +192,14 @@ lemma phi_diff {a b : ℝ} {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0)
   ext <;> simp [re_mul, imI_mul, imJ_mul, imK_mul, re_add, imI_add, imJ_add, imK_add,
     re_sub, imI_sub, imJ_sub, imK_sub, qdot, pow_two, smul_eq_mul] <;> ring
 
+/-- A nonzero real number remains nonzero when embedded in the real quaternions. -/
 lemma coe_real_ne_zero {b : ℝ} (hb : b ≠ 0) : ((b:ℝ):ℍ[ℝ]) ≠ 0 := by
   intro h
   exact hb (Quaternion.coe_inj.mp (by simpa using h))
 
+/-- For pure unit axes `u`, `v`, normalized `g = a + b * u` and `h = c + d * v`, and `b ≠ 0`,
+the braid relation holds exactly when `c = a` and either `d = b` with `phi g v = phi (star
+h) u`, or `d = -b` with `phi g v = -phi (star h) u` [KauffmanLomonaco2006]. -/
 theorem braid_relation_iff
     (a b c d : ℝ) (u v g h : ℍ[ℝ])
     (hu : u.re = 0) (hv : v.re = 0)
@@ -303,6 +343,9 @@ theorem braid_relation_iff
       _ = (H*(G*H*star G))*G := by rw [k1]
       _ = H*G*H := k2
 
+/-- For distinct pure unit axes `u`, `v` and nonzero `b`, the equality `phi (a + b * u) v = phi
+(star (a + b * v)) u` is equivalent to `qdot u v = (a ^ 2 - b ^ 2) / (2 * b ^ 2)`
+[KauffmanLomonaco2006]. -/
 theorem braid_condition_dot
     (a b : ℝ) (u v : ℍ[ℝ])
     (hu : u.re = 0) (hv : v.re = 0)

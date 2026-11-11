@@ -70,6 +70,26 @@ import Mathlib.Tactic.NormNum.Basic
 import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# The MacWilliams identity for finite linear codes
+
+The module defines Hamming weight, homogeneous weight enumerators, and the dot-product dual of a
+linear code over `ZMod q`. Additive-character orthogonality and coordinatewise summation
+establish the MacWilliams transformation, with normalization expressed either by code
+cardinality or by dimension [GeraciLidar2008].
+
+## Main statements
+
+* `macWilliams_weightEnum`: The dual weight enumerator is obtained by the MacWilliams
+  substitution and division by the code size.
+* `macWilliams_finrank`: For prime q, the normalization is q raised to the code dimension.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -88,18 +108,26 @@ noncomputable instance codeFintype (C : Submodule (ZMod q) (ι → ZMod q)) : Fi
   classical
   exact Fintype.subtype (univ.filter (fun v => v ∈ C)) (by simp)
 
+/-- The Hamming weight of a word, counted as the number of its nonzero coordinates. -/
 def hammingWeight (v : ι → ZMod q) : ℕ := (univ.filter (fun i => v i ≠ 0)).card
 
+/-- The coordinate factor equal to `x` at zero and `y` at every nonzero symbol. -/
 def coordFactor (x y : ℂ) (a : ZMod q) : ℂ := if a = 0 then x else y
 
+/-- The homogeneous weight enumerator obtained by summing `x^(length - weight) * y^weight` over
+codewords. -/
 def weightEnum (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) : ℂ := by
   classical
   exact ∑ c : C, x ^ (Fintype.card ι - hammingWeight c.val) * y ^ hammingWeight c.val
 
+/-- The weight enumerator expressed as a sum of coordinate products over ambient words belonging
+to the code. -/
 def weightEnumProd (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) : ℂ := by
   classical
   exact ∑ v : ι → ZMod q, if v ∈ C then ∏ i, coordFactor x y (v i) else 0
 
+/-- The ambient-word expression for the weight enumerator equals the sum of coordinate products
+over the code subtype. -/
 lemma weightEnumProd_eq_subtype (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     weightEnumProd C x y = ∑ c : C, ∏ i, coordFactor x y (c.val i) := by
   classical
@@ -107,6 +135,8 @@ lemma weightEnumProd_eq_subtype (C : Submodule (ZMod q) (ι → ZMod q)) (x y : 
   exact Finset.sum_subtype (Finset.univ.filter (fun v => v ∈ C)) (by intro x; simp)
     (fun u => ∏ i, coordFactor x y (u i))
 
+/-- A product of coordinate factors splits into powers of `x` and `y` counting zero and nonzero
+coordinates in `s`. -/
 lemma prod_coordFactor (s : Finset ι) (v : ι → ZMod q) (x y : ℂ) :
     s.prod (fun i => coordFactor x y (v i)) =
       x ^ (s.filter (fun i => v i = 0)).card * y ^ (s.filter (fun i => v i ≠ 0)).card := by
@@ -140,6 +170,7 @@ lemma prod_coordFactor (s : Finset ι) (v : ι → ZMod q) (x y : ℂ) :
         rw [hca, pow_succ]
         ring
 
+/-- The number of zero coordinates equals the word length minus its Hamming weight. -/
 lemma card_zero_eq (v : ι → ZMod q) :
     (univ.filter (fun i => v i = 0)).card = Fintype.card ι - hammingWeight v := by
   have h := (univ : Finset ι).card_filter_add_card_filter_not (fun i => v i ≠ 0)
@@ -151,6 +182,7 @@ lemma card_zero_eq (v : ι → ZMod q) :
   unfold hammingWeight
   omega
 
+/-- The homogeneous and coordinate-product definitions of the weight enumerator coincide. -/
 lemma weightEnum_eq_prod (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     weightEnum C x y = weightEnumProd C x y := by
   classical
@@ -160,8 +192,10 @@ lemma weightEnum_eq_prod (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
   rw [prod_coordFactor, card_zero_eq]
   rfl
 
+/-- The finite-coordinate bilinear dot product of two words over `ZMod q`. -/
 def dot (u v : ι → ZMod q) : ZMod q := ∑ i, u i * v i
 
+/-- The dual code consisting of words orthogonal to every word of `C` under `dot`. -/
 def dualCode (C : Submodule (ZMod q) (ι → ZMod q)) : Submodule (ZMod q) (ι → ZMod q) where
   carrier := {u | ∀ c ∈ C, dot c u = 0}
   zero_mem' := by
@@ -184,10 +218,14 @@ def dualCode (C : Submodule (ZMod q) (ι → ZMod q)) : Submodule (ZMod q) (ι �
       ring
     rw [h, hu c hc, mul_zero]
 
+/-- Membership in the dual code means that the dot product with every member of the original
+code vanishes. -/
 @[simp]
 lemma mem_dualCode {C : Submodule (ZMod q) (ι → ZMod q)} {u : ι → ZMod q} :
     u ∈ dualCode C ↔ ∀ c ∈ C, dot c u = 0 := Iff.rfl
 
+/-- Dual-code membership is equivalent to vanishing dot product with every element of the code
+subtype. -/
 lemma mem_dualCode_iff {C : Submodule (ZMod q) (ι → ZMod q)} {u : ι → ZMod q} :
     u ∈ dualCode C ↔ ∀ c : C, dot c.val u = 0 := by
   rw [mem_dualCode]
@@ -197,6 +235,7 @@ lemma mem_dualCode_iff {C : Submodule (ZMod q) (ι → ZMod q)} {u : ι → ZMod
   · intro h c hc
     exact h ⟨c, hc⟩
 
+/-- An additive character sends a finite sum to the product of its values. -/
 lemma addChar_map_sum {A : Type*} [AddCommMonoid A] {M : Type*} [CommMonoid M]
     (ψ : AddChar A M) {κ : Type*} (s : Finset κ) (a : κ → A) :
     ψ (s.sum (fun i => a i)) = s.prod (fun i => ψ (a i)) := by
@@ -206,6 +245,8 @@ lemma addChar_map_sum {A : Type*} [AddCommMonoid A] {M : Type*} [CommMonoid M]
   | insert i s hi ih =>
       rw [Finset.sum_insert hi, Finset.prod_insert hi, AddChar.map_add_eq_mul, ih]
 
+/-- The additive character on `C` obtained by applying the standard character to the dot product
+with `u`. -/
 def codeChar (C : Submodule (ZMod q) (ι → ZMod q)) (u : ι → ZMod q) : AddChar C ℂ where
   toFun c := ZMod.stdAddChar (dot c.val u)
   map_zero_eq_one' := by
@@ -225,6 +266,8 @@ def codeChar (C : Submodule (ZMod q) (ι → ZMod q)) (u : ι → ZMod q) : AddC
       simp only [Submodule.coe_add, Pi.add_apply, add_mul]
     rw [hdot, AddChar.map_add_eq_mul]
 
+/-- The character sum over a code equals its cardinality when every pairing vanishes, and equals
+zero otherwise. -/
 lemma sum_codeChar (C : Submodule (ZMod q) (ι → ZMod q)) (u : ι → ZMod q) :
     (∑ c : C, ZMod.stdAddChar (dot c.val u)) =
       if (∀ c : C, dot c.val u = 0) then (Fintype.card C : ℂ) else 0 := by
@@ -248,6 +291,7 @@ lemma sum_codeChar (C : Submodule (ZMod q) (ι → ZMod q)) (u : ι → ZMod q) 
     have := AddChar.sum_eq_zero_of_ne_one (R' := ℂ) hne
     simpa [codeChar] using this
 
+/-- Summing the coordinate factor over `ZMod q` gives `x + (q - 1) * y`. -/
 lemma sum_coordFactor (x y : ℂ) :
     (∑ a : ZMod q, coordFactor x y a) = x + ((q : ℂ) - 1) * y := by
   have hsplit : ∀ a : ZMod q,
@@ -266,6 +310,7 @@ lemma sum_coordFactor (x y : ℂ) :
   rw [h1, h2, add_comm]
   ring
 
+/-- The coordinate character sum at zero frequency is `x + (q - 1) * y`. -/
 lemma coordSum_zero (x y : ℂ) :
     (∑ a : ZMod q, ZMod.stdAddChar ((0 : ZMod q) * a) * coordFactor x y a) =
       x + ((q : ℂ) - 1) * y := by
@@ -275,6 +320,7 @@ lemma coordSum_zero (x y : ℂ) :
   simp_rw [h0, one_mul]
   exact sum_coordFactor x y
 
+/-- The coordinate character sum at a nonzero frequency is `x - y`. -/
 lemma coordSum_ne_zero {b : ZMod q} (hb : b ≠ 0) (x y : ℂ) :
     (∑ a : ZMod q, ZMod.stdAddChar (b * a) * coordFactor x y a) = x - y := by
   have hsplit : ∀ a : ZMod q,
@@ -309,6 +355,8 @@ lemma coordSum_ne_zero {b : ZMod q} (hb : b ≠ 0) (x y : ℂ) :
     simp
   rw [hfirst, hsecond, zero_add]
 
+/-- The character-weighted sum over ambient words factors into coordinate terms with the
+MacWilliams substitution. -/
 lemma sum_char_weight (c : ι → ZMod q) (x y : ℂ) :
     (∑ u : ι → ZMod q, ZMod.stdAddChar (dot c u) * ∏ i, coordFactor x y (u i)) =
       ∏ i, coordFactor (x + ((q : ℂ) - 1) * y) (x - y) (c i) := by
@@ -333,6 +381,8 @@ lemma sum_char_weight (c : ι → ZMod q) (x y : ℂ) :
   · rw [coordSum_ne_zero hi]
     simp [coordFactor, hi]
 
+/-- The coordinate-product enumerator of the dual equals the transformed enumerator of `C`
+divided by its cardinality. -/
 theorem macWilliams (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     weightEnumProd (dualCode C) x y =
       (Fintype.card C : ℂ)⁻¹ *
@@ -393,12 +443,16 @@ theorem macWilliams (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     hother.trans hcommon
   rw [hexp, ← mul_assoc, inv_mul_cancel₀ hcard, one_mul]
 
+/-- The homogeneous weight enumerator of the dual equals the transformed enumerator of `C`
+divided by its cardinality [GeraciLidar2008]. -/
 theorem macWilliams_weightEnum (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     weightEnum (dualCode C) x y =
       (Fintype.card C : ℂ)⁻¹ *
         weightEnum C (x + ((q : ℂ) - 1) * y) (x - y) := by
   rw [weightEnum_eq_prod, weightEnum_eq_prod, macWilliams]
 
+/-- For prime `q`, the dual coordinate-product enumerator is the transformed enumerator of `C`
+divided by `q` to its dimension [GeraciLidar2008]. -/
 theorem macWilliams_finrank [Fact q.Prime] (C : Submodule (ZMod q) (ι → ZMod q)) (x y : ℂ) :
     weightEnumProd (dualCode C) x y =
       ((q : ℂ) ^ Module.finrank (ZMod q) C)⁻¹ *

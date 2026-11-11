@@ -59,6 +59,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Möbius expansion of clause violation counts
+
+Defines the subset-lattice transform `mobius` and proves its inversion formula. A function
+depending on at most three variables has vanishing transform on subsets of size at least four.
+
+Boolean literals and clause satisfaction define `unsatCount`. For clauses of size at most three,
+`theorem2` reconstructs the violation count from its constant term and its Möbius coefficients
+on subsets of sizes one, two, and three. See [VanDamMoscaVazirani2001].
+
+## Main statements
+
+* `mobius_inversion`: Recovers a set function by summing its subset coefficients.
+* `mobius_eq_zero_of_local`: Local dependence on at most three variables forces higher
+  coefficients to vanish.
+* `theorem2`: Gives the degree-at-most-three expansion of a clause violation count.
+
+## References
+
+* [van Dam et al., 2001][VanDamMoscaVazirani2001]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 
@@ -71,16 +93,20 @@ namespace Theorem2
 
 variable {n : ℕ}
 
+/-- The subset-lattice Möbius coefficient, the alternating sum of `F T` over subsets `T` of `S`. -/
 def mobius (F : Finset (Fin n) → ℤ) (S : Finset (Fin n)) : ℤ :=
   ∑ T ∈ S.powerset, (-1 : ℤ) ^ (S.card - T.card) * F T
 
+/-- The Möbius coefficient at the empty set equals the original function value there. -/
 @[simp] lemma mobius_empty (F : Finset (Fin n) → ℤ) : mobius F ∅ = F ∅ := by
   simp [mobius]
 
+/-- The Möbius transform preserves pointwise addition. -/
 lemma mobius_add (F G : Finset (Fin n) → ℤ) (S : Finset (Fin n)) :
     mobius (fun I => F I + G I) S = mobius F S + mobius G S := by
   simp only [mobius, mul_add, Finset.sum_add_distrib]
 
+/-- The Möbius transform commutes with finite sums of set functions. -/
 lemma mobius_sum {ι : Type*} (s : Finset ι) (g : ι → Finset (Fin n) → ℤ)
     (S : Finset (Fin n)) :
     mobius (fun I => ∑ j ∈ s, g j I) S = ∑ j ∈ s, mobius (g j) S := by
@@ -89,6 +115,7 @@ lemma mobius_sum {ι : Type*} (s : Finset ι) (g : ι → Finset (Fin n) → ℤ
   refine Finset.sum_congr rfl fun T _ => ?_
   rw [Finset.mul_sum]
 
+/-- A nested sum over `R ⊆ S ⊆ J` can be reordered by first summing over `R`. -/
 lemma sum_powerset_iterate_swap (J : Finset (Fin n))
     (h : Finset (Fin n) → Finset (Fin n) → ℤ) :
     (∑ S ∈ J.powerset, ∑ R ∈ S.powerset, h R S)
@@ -113,6 +140,8 @@ lemma sum_powerset_iterate_swap (J : Finset (Fin n))
         refine Finset.sum_congr rfl fun R _ => ?_
         rw [Finset.sum_filter]
 
+/-- For `R ⊆ J`, the alternating sum over supersets of `R` within `J` is one if `R = J` and zero
+otherwise. -/
 lemma sum_supersets_neg_one_pow (J R : Finset (Fin n)) (hR : R ⊆ J) :
     (∑ S ∈ J.powerset.filter (fun S => R ⊆ S), (-1 : ℤ) ^ (S.card - R.card))
       = if R = J then 1 else 0 := by
@@ -183,6 +212,8 @@ lemma sum_supersets_neg_one_pow (J R : Finset (Fin n)) (hR : R ⊆ J) :
       exact h (Finset.Subset.antisymm hR h0)
     simp [h, hne]
 
+/-- Every integer-valued set function equals the sum of its Möbius coefficients over subsets of
+the input set. -/
 theorem mobius_inversion (F : Finset (Fin n) → ℤ) (I : Finset (Fin n)) :
     F I = ∑ S ∈ I.powerset, mobius F S := by
   simp only [mobius]
@@ -203,6 +234,8 @@ theorem mobius_inversion (F : Finset (Fin n) → ℤ) (I : Finset (Fin n)) :
     rw [Finset.mul_sum]
     exact Finset.sum_congr rfl fun S _ => by ring
 
+/-- The subsets of cardinality between one and three form the union of the subsets of
+cardinalities one, two, and three. -/
 lemma powerset_low_card_split (I : Finset (Fin n)) :
     I.powerset.filter (fun S => 1 ≤ S.card ∧ S.card ≤ 3)
       = (I.powersetCard 1 ∪ I.powersetCard 2) ∪ I.powersetCard 3 := by
@@ -220,6 +253,8 @@ lemma powerset_low_card_split (I : Finset (Fin n)) :
     · exact ⟨hSI, by omega, by omega⟩
     · exact ⟨hSI, by omega, by omega⟩
 
+/-- If all Möbius coefficients on sets of size at least four vanish, the function is its
+empty-set value plus its coefficient sums at sizes one, two, and three. -/
 theorem mobius_truncation_card (F : Finset (Fin n) → ℤ)
     (hF : ∀ S, 4 ≤ S.card → mobius F S = 0) (I : Finset (Fin n)) :
     F I = F ∅
@@ -276,19 +311,26 @@ theorem mobius_truncation_card (F : Finset (Fin n) → ℤ)
   rw [hdrop, hsplit, hunion]
   ring
 
+/-- A Boolean literal represented by a variable index and a polarity bit. -/
 abbrev Literal (n : ℕ) := Fin n × Bool
 
+/-- The truth value of a literal when the set `I` records the variables assigned true. -/
 def literalTrue (l : Literal n) (I : Finset (Fin n)) : Bool :=
   if l.2 then decide (l.1 ∈ I) else decide (l.1 ∉ I)
 
+/-- The Boolean condition that at least one literal of a clause evaluates to true. -/
 def clauseSat (c : Finset (Literal n)) (I : Finset (Fin n)) : Bool :=
   decide (∃ l ∈ c, literalTrue l I = true)
 
+/-- The integer number of clauses in `Φ` that are unsatisfied by the assignment `I`. -/
 def unsatCount (Φ : Finset (Finset (Literal n))) (I : Finset (Fin n)) : ℤ :=
   ∑ c ∈ Φ, (if clauseSat c I then (0 : ℤ) else 1)
 
+/-- The finite set of variable indices occurring in a clause. -/
 def clauseVars (c : Finset (Literal n)) : Finset (Fin n) := c.image Prod.fst
 
+/-- The truth value of a literal in a clause is unchanged by restricting the assignment to that
+clause's variables. -/
 lemma literalTrue_inter_vars (c : Finset (Literal n)) (l : Literal n)
     (I : Finset (Fin n)) (hl : l ∈ c) :
     literalTrue l I = literalTrue l (I ∩ clauseVars c) := by
@@ -300,6 +342,7 @@ lemma literalTrue_inter_vars (c : Finset (Literal n)) (l : Literal n)
   · rw [if_pos hp, if_pos hp, decide_eq_decide]; exact hiff
   · rw [if_neg hp, if_neg hp, decide_eq_decide]; exact not_congr hiff
 
+/-- Clause satisfaction is unchanged by restricting the assignment to the clause's variables. -/
 lemma clauseSat_inter_vars (c : Finset (Literal n)) (I : Finset (Fin n)) :
     clauseSat c I = clauseSat c (I ∩ clauseVars c) := by
   unfold clauseSat
@@ -310,6 +353,8 @@ lemma clauseSat_inter_vars (c : Finset (Literal n)) (I : Finset (Fin n)) :
   · rintro ⟨l, hl, ht⟩
     exact ⟨l, hl, by rw [literalTrue_inter_vars c l I hl]; exact ht⟩
 
+/-- Clause satisfaction is unchanged by restricting the assignment to any set containing all
+variables of the clause. -/
 lemma clauseSat_inter_of_subset (c : Finset (Literal n)) (T : Finset (Fin n))
     (hT : clauseVars c ⊆ T) (I : Finset (Fin n)) :
     clauseSat c I = clauseSat c (I ∩ T) := by
@@ -322,11 +367,15 @@ lemma clauseSat_inter_of_subset (c : Finset (Literal n)) (T : Finset (Fin n))
     · rintro ⟨⟨hxI, _⟩, hxv⟩; exact ⟨hxI, hxv⟩
   rw [h]
 
+/-- The clause-unsatisfaction indicator depends only on the assignment restricted to the
+clause's variables. -/
 lemma clauseUnsat_local (c : Finset (Literal n)) :
     ∀ I, (if clauseSat c I then (0 : ℤ) else 1)
         = (if clauseSat c (I ∩ clauseVars c) then (0 : ℤ) else 1) := by
   intro I; rw [clauseSat_inter_vars]
 
+/-- If a set function depends only on intersection with a set of at most three variables, its
+Möbius coefficient vanishes on every set of size at least four. -/
 lemma mobius_eq_zero_of_local (g : Finset (Fin n) → ℤ) (T : Finset (Fin n))
     (hT : T.card ≤ 3) (hg : ∀ I, g I = g (I ∩ T))
     (S : Finset (Fin n)) (hS : 4 ≤ S.card) : mobius g S = 0 := by
@@ -377,12 +426,16 @@ lemma mobius_eq_zero_of_local (g : Finset (Fin n) → ℤ) (T : Finset (Fin n))
   rw [hfirst, hsecond]
   ring
 
+/-- The Möbius coefficient of the violation count is the sum of the coefficients of the
+individual clause-unsatisfaction indicators. -/
 lemma mobius_unsatCount (Φ : Finset (Finset (Literal n))) (S : Finset (Fin n)) :
     mobius (unsatCount Φ) S
       = ∑ c ∈ Φ, mobius (fun I => (if clauseSat c I then (0 : ℤ) else 1)) S := by
   unfold unsatCount
   exact mobius_sum Φ (fun c I => if clauseSat c I then (0 : ℤ) else 1) S
 
+/-- For clauses of size at most three, every Möbius coefficient of the violation count on a set
+of size at least four vanishes. -/
 lemma mobius_unsatCount_eq_zero (Φ : Finset (Finset (Literal n)))
     (hΦ : ∀ c ∈ Φ, c.card ≤ 3) (S : Finset (Fin n)) (hS : 4 ≤ S.card) :
     mobius (unsatCount Φ) S = 0 := by
@@ -394,6 +447,9 @@ lemma mobius_unsatCount_eq_zero (Φ : Finset (Finset (Literal n)))
   calc (clauseVars c).card ≤ c.card := Finset.card_image_le
     _ ≤ 3 := hΦ c hc
 
+/-- For a formula with clauses of size at most three, its violation count equals its
+empty-assignment value plus its Möbius coefficient sums over subsets of sizes one, two, and
+three [VanDamMoscaVazirani2001]. -/
 theorem theorem2 (Φ : Finset (Finset (Literal n)))
     (hΦ : ∀ c ∈ Φ, c.card ≤ 3) (I : Finset (Fin n)) :
     unsatCount Φ I = unsatCount Φ ∅

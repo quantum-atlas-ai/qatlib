@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.ShadowPurityConsumers
 import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+
+/-!
+# Quadratic observables from Pauli shadows
+
+This module constructs the symmetrized pair kernel and U-statistic for a two-register
+observable. It proves unbiasedness, an exact variance decomposition, median concentration for
+many observables sharing the same Born records, and quantum and classical resource counts in the
+setting of [HuangKuengPreskill2020].
+
+## Main statements
+
+* `quadratic_shadow_actual_u_unbiased`: unbiased estimation of the quadratic trace functional.
+* `quadratic_shadow_exact_covariance_from_same_records`: exact pair U-statistic variance.
+* `quadratic_same_born_records_many_observables`: simultaneous median concentration.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,38 +43,46 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder Kronecker
 set_option autoImplicit false
 
+/-- The average of a two-register observable and its conjugate by the register-swap matrix. -/
 noncomputable def quadraticSymmetric {D : ℕ}
     (O : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :=
   (1 / 2 : ℂ) • (O + swapRegisterMatrix D * O * swapRegisterMatrix D)
 
+/-- The real trace pairing of the symmetrized observable with the tensor product of two Pauli
+snapshots. -/
 noncomputable def quadraticShadowKernel (n : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (a b : Fin n → Fin 3 × Bool) : ℝ :=
   (Matrix.trace (quadraticSymmetric O *
     TensorGate (tensorPauliSnapshot n a) (tensorPauliSnapshot n b))).re
 
+/-- The pair U-statistic of the quadratic shadow kernel on a finite record. -/
 noncomputable def quadraticShadowU (n m : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (ω : Fin m → Fin n → Fin 3 × Bool) : ℝ :=
   pairUStatistic (quadraticShadowKernel n O) ω
 
+/-- The second moment of the trace pairing with one Pauli snapshot and one copy of the state. -/
 noncomputable def quadraticShadowFirstMoment (n : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ) : ℝ :=
   ∑ a, (tensorPauliLaw n ρ hρ).prob a *
     (Matrix.trace (quadraticSymmetric O * TensorGate (tensorPauliSnapshot n a) ρ)).re ^ 2
 
+/-- The second moment of the quadratic shadow kernel on two independent Pauli records. -/
 noncomputable def quadraticShadowPairMoment (n : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ) : ℝ :=
   ∑ a, ∑ b, (tensorPauliLaw n ρ hρ).prob a *
     (tensorPauliLaw n ρ hρ).prob b * quadraticShadowKernel n O a b ^ 2
 
+/-- The sorted median of `2 * r + 1` blockwise quadratic shadow U-statistics. -/
 noncomputable def quadraticShadowMedian (n m r : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (ω : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) : ℝ :=
   sortedBlockMedian r (fun b => quadraticShadowU n m O (ω b))
 
+/-- Conjugation by the register-swap matrix exchanges the factors of a tensor product. -/
 theorem quadratic_swap_tensor {D : ℕ} (A B : Operator D) :
     swapRegisterMatrix D * TensorGate A B * swapRegisterMatrix D = TensorGate B A := by
   classical
@@ -73,6 +101,8 @@ theorem quadratic_swap_tensor {D : ℕ} (A B : Operator D) :
   simp only [swapRegisterMatrix_apply, ite_true, mul_one]
   exact mul_comm _ _
 
+/-- Moving register-swap conjugation from the observable to a tensor product exchanges its
+factors in the trace pairing. -/
 private theorem quadratic_swap_trace {D : ℕ}
     (O : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) (A B : Operator D) :
     Matrix.trace ((swapRegisterMatrix D * O * swapRegisterMatrix D) * TensorGate A B) =
@@ -86,6 +116,8 @@ private theorem quadratic_swap_trace {D : ℕ}
       simp only [Matrix.mul_assoc]
     _ = _ := by rw [quadratic_swap_tensor]
 
+/-- Pairing a symmetrized observable with a tensor product averages the trace pairings in the
+two factor orders. -/
 theorem quadratic_symmetric_trace {D : ℕ}
     (O : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) (A B : Operator D) :
     Matrix.trace (quadraticSymmetric O * TensorGate A B) =
@@ -94,6 +126,8 @@ theorem quadratic_symmetric_trace {D : ℕ}
     Matrix.trace_add, quadratic_swap_trace]
   rfl
 
+/-- Symmetrization preserves Hermiticity, makes the shadow kernel symmetric, and preserves its
+trace pairing with two identical input operators. See [HuangKuengPreskill2020]. -/
 theorem quadratic_actual_symmetrization_and_kernel (n : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (ρ : Operator (2^n)) (hO : O.IsHermitian) :
@@ -111,18 +145,22 @@ theorem quadratic_actual_symmetrization_and_kernel (n : ℕ)
   · rw [quadratic_symmetric_trace]
     ring
 
+/-- Tensoring with a fixed left factor distributes over a finite sum in the right factor. -/
 private theorem quadratic_tensor_sum_right {D : ℕ} {X : Type} [Fintype X]
     (A : Operator D) (B : X → Operator D) :
     TensorGate A (∑ x, B x) = ∑ x, TensorGate A (B x) := by
   ext ⟨i,j⟩ ⟨k,l⟩
   simp [TensorGate, Matrix.sum_apply, Finset.mul_sum]
 
+/-- Tensoring with a fixed right factor distributes over a finite sum in the left factor. -/
 private theorem quadratic_tensor_sum_left {D : ℕ} {X : Type} [Fintype X]
     (A : X → Operator D) (B : Operator D) :
     TensorGate (∑ x, A x) B = ∑ x, TensorGate (A x) B := by
   ext ⟨i,j⟩ ⟨k,l⟩
   simp [TensorGate, Matrix.sum_apply, Finset.sum_mul]
 
+/-- Averaging the second record of the quadratic shadow kernel replaces its snapshot by the
+input density operator. -/
 theorem quadraticShadowKernel_conditional (n : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -137,6 +175,8 @@ theorem quadraticShadowKernel_conditional (n : ℕ) (ρ : Operator (2^n))
   intro b _
   simp [quadraticShadowKernel, TensorGate, Complex.mul_re]
 
+/-- The mean quadratic shadow kernel equals the real trace pairing of the observable with two
+copies of the state. -/
 theorem quadraticShadowKernel_mean (n : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ) :
@@ -155,6 +195,9 @@ theorem quadraticShadowKernel_mean (n : ℕ) (ρ : Operator (2^n))
   intro a _
   simp [Complex.mul_re]
 
+/-- With at least two records, the quadratic shadow U-statistic is unbiased for the real trace
+pairing of a Hermitian observable with two copies of the state. See
+[HuangKuengPreskill2020]. -/
 theorem quadratic_shadow_actual_u_unbiased (n m : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -166,6 +209,9 @@ theorem quadratic_shadow_actual_u_unbiased (n m : ℕ) (ρ : Operator (2^n))
   rw [finite_pair_u_statistic_unbiased _ _ _ _ hm,
     quadraticShadowKernel_mean]
 
+/-- For a symmetric quadratic shadow kernel and `m ≥ 2`, the mean squared error equals the
+conditional variance weighted by `4 * (m - 2) / (m * (m - 1))` plus the kernel variance
+weighted by `2 / (m * (m - 1))`. See [HuangKuengPreskill2020]. -/
 theorem quadratic_shadow_exact_covariance_from_same_records (n m : ℕ)
     (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -181,6 +227,9 @@ theorem quadratic_shadow_exact_covariance_from_same_records (n m : ℕ)
   exact finite_pair_u_statistic_exact_variance _ _ m _ hm
     (quadratic_actual_symmetrization_and_kernel n O ρ hO).2.1
 
+/-- The quadratic shadow mean squared error is at most `4 / m` times
+`quadraticShadowFirstMoment` plus `4 / m ^ 2` times `quadraticShadowPairMoment`. See
+[HuangKuengPreskill2020]. -/
 theorem quadratic_shadow_computed_moments_and_variance (n m : ℕ)
     (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -239,6 +288,8 @@ theorem quadratic_shadow_computed_moments_and_variance (n m : ℕ)
     _ ≤ _ := add_le_add (mul_le_mul_of_nonneg_right hcoeff1 hc0)
       (mul_le_mul_of_nonneg_right hcoeff2 hp0)
 
+/-- Grouped quadratic shadow estimation has the displayed fresh-record resource counts and uses
+`(2 * r + 1) * m.choose 2` pair-kernel evaluations. See [HuangKuengPreskill2020]. -/
 theorem quadratic_shadow_actual_quantum_and_pair_ledger (n m r : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (ω : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) :
@@ -250,6 +301,9 @@ theorem quadratic_shadow_actual_quantum_and_pair_ledger (n m r : ℕ)
   · simp only [(finite_pair_u_statistic_actual_value_and_count _ m _ _).2,
       Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, Nat.cast_id]
 
+/-- Under the stated moment budgets, the probability that any observable's median estimate
+exceeds error `ε` is at most the number of observables times `2 ^ (2 * r + 1) * (1 / 16) ^
+(r + 1)`. See [HuangKuengPreskill2020]. -/
 theorem quadratic_same_born_records_many_observables (n m r : ℕ)
     (Z : Type) [Fintype Z] (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)
     (O : Z → Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -305,6 +359,8 @@ theorem quadratic_same_born_records_many_observables (n m r : ℕ)
   simp_rw [hblock, hprob] at hc
   simpa only [quadraticShadowMedian, θ, p, mul_assoc] using! hc
 
+/-- The quadratic shadow median computed by counted insertion sort, together with its number of
+block values and comparisons. -/
 noncomputable def quadraticShadowMedianCounted (n m r : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (ω : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) : ℝ × ℕ × ℕ :=
@@ -312,6 +368,8 @@ noncomputable def quadraticShadowMedianCounted (n m r : ℕ)
   let result := insertionSortCounted values
   (result.1.getD r 0, values.length, result.2)
 
+/-- The counted median equals `quadraticShadowMedian`, uses `2 * r + 1` block values, and
+performs at most `(2 * r + 1) ^ 2` comparisons. -/
 theorem quadraticShadowMedianCounted_spec (n m r : ℕ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
     (ω : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) :

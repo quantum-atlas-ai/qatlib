@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPowerSimon97.StandardModel.SimonRetryDefs
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAssembly
+
+/-!
+# Local gate ledgers and two-sided Simon separation
+
+This module verifies exact local-program lengths and sample-conversion costs for Simon's
+repeated experiments [Simon1997]. It proves two-sided amplification bounds and compares the
+paper's linear schedule with a quadratic schedule whose two error expressions decay faster than
+every fixed exponential rate.
+
+The endpoints `clause18_endpoint` and `clause19_endpoint` assemble the local-gate ledger, error
+estimates, and scheduled classical-versus-quantum separation bounds.
+
+## Main statements
+
+* `simonExactLedger_eq`: The repeated local-program length agrees with the exact ledger, whose
+  query, measurement, and record-conversion entries have the stated product formulas.
+* `simonAmplifiedError_spec`: With at least two samples per block, injective functions satisfy
+  the false-rejection bound and functions sufficiently close to a nonzero period satisfy the
+  false-acceptance bound in `simonAmplifiedError`.
+* `clause18_endpoint`: Establishes `Clause18LocalGateBridge`, collecting exact local gate
+  counts, the experiment matrix, record-conversion cost, and ledger identities.
+* `clause19_endpoint`: Establishes `Clause19TwoSidedSeparation`, including amplification
+  estimates, exact ledger entries, schedule comparisons, and the scheduled numerical separation.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -29,15 +58,18 @@ open Qatlib
 open Qatlib.Papers.QPowerSimon97.StandardDefs
 open scoped Classical BigOperators ENNReal
 
+/-- The local gate word for one Simon experiment has length `2 * n`. -/
 theorem simonLocalExperiment_length (n : ℕ) :
     (simonLocalExperiment n).length = 2 * n := by
   simp [simonLocalExperiment, localHadamard_length]
   omega
 
+/-- The matrix of the local Simon experiment word is `HadamardN n * HadamardN n`. -/
 theorem simonLocalExperiment_matrix (n : ℕ) :
     localProgramMatrix (simonLocalExperiment n) = HadamardN n * HadamardN n := by
   rw [simonLocalExperiment, localProgramMatrix_append, localProgramMatrix_localHadamard]
 
+/-- The local gate word for `m` experiments has length `2 * n * m`. -/
 theorem simonLocalBlock_length (n m : ℕ) :
     (simonLocalBlock n m).length = 2 * n * m := by
   induction m with
@@ -50,6 +82,7 @@ theorem simonLocalBlock_length (n m : ℕ) :
       rw [h, List.length_append, ih, simonLocalExperiment_length]
       ring
 
+/-- The local gate word for `r` blocks of `m` experiments has length `2 * n * m * r`. -/
 theorem simonLocalDecision_length (n m r : ℕ) :
     (simonLocalDecision n m r).length = 2 * n * m * r := by
   induction r with
@@ -62,10 +95,13 @@ theorem simonLocalDecision_length (n m r : ℕ) :
       rw [h, List.length_append, ih, simonLocalBlock_length]
       ring
 
+/-- Converting `m` records of width `n` costs exactly `m * n` serialization steps. -/
 theorem simonRecordConversionCost_eq {n m : ℕ} (rows : Fin m → Reg n) :
     simonRecordConversionCost rows = m * n := by
   simp [simonRecordConversionCost, simonSerializeSteps]
 
+/-- The repeated local-program length agrees with the exact ledger, whose query, measurement,
+and record-conversion entries have the stated product formulas. -/
 theorem simonExactLedger_eq (n k r : ℕ) :
     (simonLocalDecision n (n + k) r).length = (simonExactLedger n k r).localGates ∧
     (simonExactLedger n k r).oracleQueries = (n + k) * r ∧
@@ -73,6 +109,9 @@ theorem simonExactLedger_eq (n k r : ℕ) :
     (simonExactLedger n k r).recordConversion = (n + k) * n * r :=
   ⟨simonLocalDecision_length n (n + k) r, rfl, rfl, rfl⟩
 
+/-- With at least two samples per block, injective functions satisfy the false-rejection bound
+and functions sufficiently close to a nonzero period satisfy the false-acceptance bound in
+`simonAmplifiedError`. -/
 theorem simonAmplifiedError_spec (n k r : ℕ) {R : Type} [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (h2 : 2 ≤ n + k) :
     (Function.Injective f →
@@ -85,6 +124,7 @@ theorem simonAmplifiedError_spec (n k r : ℕ) {R : Type} [AddCommGroup R] [Fint
   · simpa [simonAmplifiedError] using! h.1 hf
   · simpa [simonAmplifiedError] using! h.2.1 s hs hcard
 
+/-- Every natural number `n` is at most `2 ^ n`. -/
 private theorem nat_le_two_pow (n : ℕ) : n ≤ 2 ^ n := by
   induction n with
   | zero =>
@@ -99,6 +139,7 @@ private theorem nat_le_two_pow (n : ℕ) : n ≤ 2 ^ n := by
       rw [pow_succ]
       omega
 
+/-- The square of a natural number, viewed as a real number, is at most `2 ^ (4 * n)`. -/
 private theorem sq_le_two_pow_four (n : ℕ) : (n : ℝ)^2 ≤ (2 : ℝ)^(4 * n) := by
   have h1 : n ^ 2 ≤ 2 ^ n * 2 ^ n := by
     simpa [Nat.pow_two] using! Nat.mul_le_mul (nat_le_two_pow n) (nat_le_two_pow n)
@@ -112,6 +153,8 @@ private theorem sq_le_two_pow_four (n : ℕ) : (n : ℝ)^2 ≤ (2 : ℝ)^(4 * n)
     exact_mod_cast (pow_le_pow_right' (by norm_num) (by omega))
   linarith
 
+/-- For a positive real base and `k ≤ m`, the power at `m - k` equals the quotient of the powers
+at `m` and `k`. -/
 private theorem pow_sub_real {a : ℝ} (ha : 0 < a) {m k : ℕ} (h : k ≤ m) :
     a ^ (m - k) = a ^ m / a ^ k := by
   have hp : a ^ (m - k) * a ^ k = a ^ m := by
@@ -120,6 +163,7 @@ private theorem pow_sub_real {a : ℝ} (ha : 0 < a) {m k : ℕ} (h : k ≤ m) :
   rw [eq_div_iff hne]
   exact hp
 
+/-- The quadratic-schedule false-rejection expression satisfies `simonNegligible`. -/
 theorem simonCompletingFalseReject_negligible :
     simonNegligible simonCompletingFalseReject := by
   intro c hc
@@ -156,6 +200,7 @@ theorem simonCompletingFalseReject_negligible :
   rw [h8]
   exact hmain
 
+/-- The quadratic-schedule false-acceptance expression satisfies `simonNegligible`. -/
 theorem simonCompletingFalseAccept_negligible :
     simonNegligible simonCompletingFalseAccept := by
   intro c hc
@@ -181,6 +226,7 @@ theorem simonCompletingFalseAccept_negligible :
   rw [h8]
   exact hmain
 
+/-- For positive `n`, the paper-schedule false-rejection expression is at most `(1 / 2) ^ n`. -/
 theorem simonPaperFalseReject_le (n : ℕ) (hn : 1 ≤ n) :
     simonPaperFalseReject n ≤ (1 / 2 : ℝ)^n := by
   have h1 : (n : ℝ) ≤ (2 : ℝ)^n := by
@@ -210,6 +256,8 @@ theorem simonPaperFalseReject_le (n : ℕ) (hn : 1 ≤ n) :
   rw [h4]
   exact hmain
 
+/-- For positive `n`, the paper-schedule false-acceptance expression is strictly greater than
+`(1 / 2) ^ n`. -/
 theorem simonPaperFalseAccept_gt (n : ℕ) (hn : 1 ≤ n) :
     (1 / 2 : ℝ)^n < simonPaperFalseAccept n := by
   have h1 : (1 / 2 : ℝ)^(n - 1) ≤ (3 / 4 : ℝ)^(n - 1) :=
@@ -238,6 +286,8 @@ theorem simonPaperFalseAccept_gt (n : ℕ) (hn : 1 ≤ n) :
   rw [h5]
   exact h6
 
+/-- Casting the natural power `2 ^ n` to extended nonnegative reals agrees with taking the power
+there. -/
 private theorem simonTwoPowCoe (n : ℕ) :
     ((2 ^ n : ℕ) : ENNReal) = (2 ^ n : ENNReal) := by
   have hnat : ((2 ^ n : ℕ) : ENNReal) = ENNReal.ofReal ((2 ^ n : ℕ) : ℝ) :=
@@ -250,6 +300,7 @@ private theorem simonTwoPowCoe (n : ℕ) :
     rw [← Nat.cast_ofNat (R := ℝ), ENNReal.ofReal_natCast, ← Nat.cast_ofNat (R := ENNReal)]
   rw [hnat, hreal, hpow, hnum]
 
+/-- The image of the real number `1 / 2` in extended nonnegative reals equals `1 / 2`. -/
 private theorem simonOfRealHalf : ENNReal.ofReal (1 / 2 : ℝ) = (1 / 2 : ENNReal) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num)]
   have h1 : ENNReal.ofReal 1 = (1 : ENNReal) := ENNReal.ofReal_one
@@ -257,6 +308,7 @@ private theorem simonOfRealHalf : ENNReal.ofReal (1 / 2 : ℝ) = (1 / 2 : ENNRea
     rw [← Nat.cast_ofNat (R := ℝ), ENNReal.ofReal_natCast, ← Nat.cast_ofNat (R := ENNReal)]
   rw [h1, h2]
 
+/-- If `8 * q * q ≤ 2 ^ n`, the extended-nonnegative-real birthday term is at most `1 / 8`. -/
 private theorem simonBirthdayTerm_le (n q : ℕ) (h : 8 * q * q ≤ 2 ^ n) :
     ((q * q : ℕ) : ENNReal) * (2 ^ n : ENNReal)⁻¹ ≤ ENNReal.ofReal (1 / 8) := by
   rw [ENNReal.mul_inv_le_iff (by simp) (by simp)]
@@ -284,6 +336,7 @@ private theorem simonBirthdayTerm_le (n q : ℕ) (h : 8 * q * q ≤ 2 ^ n) :
   rw [h5, h6, h7]
   exact h9
 
+/-- If `8 * q * q ≤ 2 ^ n`, one half plus the birthday term is at most `5 / 8`. -/
 private theorem simonClassicalBound_le (n q : ℕ) (h : 8 * q * q ≤ 2 ^ n) :
     (1 / 2 : ENNReal) + ((q * q : ℕ) : ENNReal) * (2 ^ n : ENNReal)⁻¹
       ≤ ENNReal.ofReal (5 / 8) := by
@@ -296,6 +349,8 @@ private theorem simonClassicalBound_le (n q : ℕ) (h : 8 * q * q ≤ 2 ^ n) :
       congr 1
       norm_num
 
+/-- For a function satisfying the stated near-period bound, the amplified true-output mass plus
+`(3 / 4) ^ r` is at least one. -/
 private theorem simonQuantumBound (n k r : ℕ) {R : Type} [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (h2 : 2 ≤ n + k)
     (s : BooleanVec n) (hs : s ≠ 0)
@@ -322,6 +377,9 @@ private theorem simonQuantumBound (n k r : ℕ) {R : Type} [AddCommGroup R] [Fin
             + (simonAmplifiedReject f (n + k) r) false := add_le_add_right hnot _
     _ = 1 := htot
 
+/-- For positive width and query budget and at least two samples, establishes the classical
+birthday bound and the periodic-oracle quantum bound, with a strict numerical gap under the
+additional error-budget inequalities. -/
 theorem clause19_separation (n q k r : ℕ) (hn : 1 ≤ n) (hq : 1 ≤ q) (h2 : 2 ≤ n + k) :
     1 ≤ n ∧ 1 ≤ q ∧ 2 ≤ n + k ∧
     (∀ P : PMF (SimonQueryTree n), SimonQueryTree.bounded P q →
@@ -380,6 +438,7 @@ theorem clause19_separation (n q k r : ℕ) (hn : 1 ≤ n) (hq : 1 ≤ q) (h2 : 
             exact add_le_add_left hsum _
       _ < 1 := hlast
 
+/-- For every `m ≥ 16`, the quantity `3 * (4 * m)²` is at most `2 ^ m`. -/
 theorem simonBudgetFit : ∀ m : ℕ, 16 ≤ m → 3 * (4 * m) ^ 2 ≤ 2 ^ m := by
   intro m hm
   refine Nat.le_induction (m := 16) (n := m) ?base ?succ hm
@@ -396,6 +455,8 @@ theorem simonBudgetFit : ∀ m : ℕ, 16 ≤ m → 3 * (4 * m) ^ 2 ≤ 2 ^ m := 
       _ ≤ 2 * 2 ^ m := Nat.mul_le_mul_left 2 ih
       _ = 2 ^ (m + 1) := by rw [pow_succ]; ring
 
+/-- For `n ≥ 64` divisible by four, the paper-schedule sample work fits within `2 ^ (n / 4)` and
+that query budget satisfies the stated birthday inequality. -/
 theorem simonBudgetSeparation (n : ℕ) (hn : 64 ≤ n) (h4 : 4 ∣ n) :
     n * (n + 2 * n) ≤ 2 ^ (n / 4) ∧
     8 * (2 ^ (n / 4)) * (2 ^ (n / 4)) ≤ 2 ^ n := by
@@ -419,6 +480,8 @@ theorem simonBudgetSeparation (n : ℕ) (hn : 64 ≤ n) (h4 : 4 ∣ n) :
   · rw [hdiv]
     simpa [Nat.mul_pow] using! h3
 
+/-- Establishes `Clause18LocalGateBridge`, collecting exact local gate counts, the experiment
+matrix, record-conversion cost, and ledger identities. -/
 theorem clause18_endpoint : Clause18LocalGateBridge := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro n
@@ -432,6 +495,8 @@ theorem clause18_endpoint : Clause18LocalGateBridge := by
   · intro n k r
     exact simonExactLedger_eq n k r
 
+/-- For `n ≥ 64` divisible by four, establishes `Clause19Separation` at the paper schedule
+together with the sample-budget and birthday inequalities. -/
 theorem clause19_separation_at_schedule (n : ℕ) (hn : 64 ≤ n) (h4 : 4 ∣ n) :
     Clause19Separation n (2 ^ (n / 4)) (2 * n) n ∧
       n * (n + 2 * n) ≤ 2 ^ (n / 4) ∧
@@ -443,6 +508,8 @@ theorem clause19_separation_at_schedule (n : ℕ) (hn : 64 ≤ n) (h4 : 4 ∣ n)
     simpa using! h1
   refine ⟨clause19_separation n (2 ^ (n / 4)) (2 * n) n (by omega) hq (by omega), hbud.1, hbud.2⟩
 
+/-- Establishes `Clause19TwoSidedSeparation`, including amplification estimates, exact ledger
+entries, schedule comparisons, and the scheduled numerical separation. -/
 theorem clause19_endpoint : Clause19TwoSidedSeparation := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro n k r R _ _ _ f h2 hf

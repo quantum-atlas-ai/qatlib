@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Mathlib.Tactic.NormNum
+
+/-!
+# Obstruction to the candidate noisy quantum oracle
+
+This module proves `noisyQuantumOracle_obstruction` for the candidate oracle contract in the
+ordered search setting of [BenOrHassidim2007]. With one input index, the constant-false
+function, and p = 16/25, the two columns of `noisyOracle` have a nonzero inner product,
+contradicting the required unitarity.
+
+## Main statements
+
+* `noisyQuantumOracle_obstruction`: `NoisyQuantumOracleContract` is false for the specified
+  matrix construction.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +32,9 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch200
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- The proposition `NoisyQuantumOracleContract` for the matrix construction associated with
+[BenOrHassidim2007] is false: at one input index and p = 16/25, its unitarity requirement
+fails. -/
 theorem noisyQuantumOracle_obstruction : ¬ NoisyQuantumOracleContract := by
   intro h
   have hU := h.1 1 (fun _ => false) (16 / 25) (by norm_num) (by norm_num)

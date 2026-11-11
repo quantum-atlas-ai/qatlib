@@ -8,6 +8,30 @@ import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+/-!
+# Search attempts with oracle verification
+
+This module follows a lifted Grover search with a fresh bit oracle verification of the sampled
+address. It defines the accepted output masses and rejection mass, proves they are nonnegative
+and sum to one, and counts the extra verification query.
+
+Uniformly randomizing the iteration count over `0, …, m - 1` preserves the search success
+probability and gives mean query cost `(m + 1) / 2`. This formalizes verified randomized search
+attempts in the setting of [BoyerEtAl1998].
+
+## Main statements
+
+* `search_checked_attempt`: output probabilities, normalization, and query cost for a verified
+  attempt.
+* `search_checked_random_attempt`: success, failure, and mean cost for randomized verified
+  attempts.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -18,25 +42,35 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open scoped BigOperators Matrix
 open Qatlib
 
+/-- The state obtained by running the lifted `j` iteration search circuit with the membership
+bit oracle on a uniform address state and a minus ancilla. -/
 noncomputable def CheckedSearchState {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (j : ℕ) : QState (I × Bool) :=
   Run (BitOracleOn (fun i => decide (i ∈ A))) (LiftCircuit (SearchCircuit I j))
     (WithMinus (Uniform I))
 
+/-- The state obtained by one bit oracle query on the basis state with address `i` and answer
+bit false. -/
 noncomputable def VerifyState {I : Type*} [Fintype I] [DecidableEq I]
     (f : I → Bool) (i : I) : QState (I × Bool) :=
   Run (BitOracleOn f) [Step.query] (Ket (i,false))
 
+/-- The mass of outputting address `i` in a search attempt and passing a fresh membership
+verification query. -/
 noncomputable def CheckedOutputMass {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (j : ℕ) (i : I) : ℝ :=
   (∑ b : Bool, BornProb (CheckedSearchState A j) (i,b)) *
     BornProb (VerifyState (fun x => decide (x ∈ A)) i) (i,true)
 
+/-- The total mass of search outputs rejected by a fresh membership verification query. -/
 noncomputable def CheckedRejectMass {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (j : ℕ) : ℝ :=
   ∑ i, (∑ b : Bool, BornProb (CheckedSearchState A j) (i,b)) *
     BornProb (VerifyState (fun x => decide (x ∈ A)) i) (i,false)
 
+/-- A verified `j` iteration search attempt costs `j + 1` queries, outputs only marked addresses
+with their search probabilities, and rejects with the complementary marked set probability.
+Its output and rejection masses are nonnegative and sum to one. -/
 theorem search_checked_attempt {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (j : ℕ) :
     QueryCount (LiftCircuit (SearchCircuit I j)) +
@@ -107,20 +141,29 @@ theorem search_checked_attempt {I : Type*} [Fintype I] [DecidableEq I]
     · exact le_rfl
     · exact bornProb_nonneg _ _
 
+/-- The success mass averaged uniformly over search iteration counts from zero to `m - 1`, with
+verification. -/
 noncomputable def CheckedSuccess {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (m : ℕ) : ℝ :=
   (∑ j ∈ Finset.range m, ∑ i, CheckedOutputMass A j i) / (m : ℝ)
 
+/-- The rejection mass averaged uniformly over search iteration counts from zero to `m - 1`,
+with verification. -/
 noncomputable def CheckedFailure {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (m : ℕ) : ℝ :=
   (∑ j ∈ Finset.range m, CheckedRejectMass A j) / (m : ℝ)
 
+/-- The mean number of search and verification queries for a uniform iteration count from zero
+to `m - 1`. -/
 noncomputable def CheckedMeanQueries (I : Type*) [Fintype I] [DecidableEq I]
     (m : ℕ) : ℝ :=
   (∑ j ∈ Finset.range m,
     ((QueryCount (LiftCircuit (SearchCircuit I j)) +
       QueryCount ([Step.query] : Circuit (I × Bool)) : ℕ) : ℝ)) / (m : ℝ)
 
+/-- For positive dimension and positive `m`, a randomized verified attempt has the original
+randomized search success probability, complementary nonnegative failure probability, and
+mean query cost `(m + 1) / 2`. -/
 theorem search_checked_random_attempt {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (m : ℕ) (hm : 0 < m) :
     CheckedSuccess A m = RandomizedSuccess A m ∧

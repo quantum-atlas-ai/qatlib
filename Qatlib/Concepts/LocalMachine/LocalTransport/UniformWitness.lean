@@ -5,6 +5,41 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+
+/-!
+# Encoding, initialization, and padding of uniform witness families
+
+This module proves that `encodeWitnessProgram` is decoded exactly by
+`decodeWitnessVerifierProgram`. Public parser models expose the unary fields and instruction
+parsing used in the proof. It also establishes width identities, clean density initialization,
+Born-rule acceptance, and probability bounds for `UniformWitnessFamily`, with
+`cnotWitnessFamily` providing a concrete legal example.
+
+Further results show linearity of witness initialization and acceptance, validate classical
+witness densities, and control witness padding and resource ledgers. `padUniformFamily`
+preserves polynomial size bounds after adding unused witness bits, while
+`transportUniformGenerator` packages a valid source generator with a shared classical oracle.
+Density-matrix conventions follow [NielsenChuang2010]; quantum proof systems are discussed by
+[MarriottWatrous2005].
+
+## Main statements
+
+- `decode_encodeWitnessProgram` proves the program encoding round trip.
+* `uniformCleanInitialization`, `uniformAcceptProb_born`, and `uniformAcceptProb_bounds`
+  establish the initialization and acceptance properties.
+- `acceptProb_convex` gives the affine acceptance identity for any real weight.
+- `padProgram_legal`, `padProgram_oracleFree`, and `padUniformFamily` control padding.
+* `oracleAccessLedger_transport` and `transportUniformGenerator` describe transport from uniform
+  verifier programs.
+* `clause1_complete`, `clause2_complete`, and `clause3_complete` collect the encoding, density,
+  padding, and oracle-ledger results.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +65,8 @@ open scoped ComplexOrder
 
 set_option autoImplicit false
 
+/-- Parses a false-terminated unary natural number, returning its value and the unconsumed
+suffix or `none`. -/
 def modelParseUnaryField : List Bool → Option (ℕ × List Bool) := by
   run_tac do
     let moduleName :=
@@ -40,6 +77,8 @@ def modelParseUnaryField : List Bool → Option (ℕ × List Bool) := by
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Parses the specified number of consecutive unary natural-number fields, returning their
+values and the remaining bits. -/
 def modelParseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool) := by
   run_tac do
     let moduleName :=
@@ -50,6 +89,8 @@ def modelParseManyNatFields : ℕ → List Bool → Option (List ℕ × List Boo
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Parses the fields selected by an instruction tag, returning the instruction and remaining
+bits or `none` for invalid data. -/
 def modelParseInstructionFields : ℕ → List Bool → Option (WitnessInstruction × List Bool) := by
   run_tac do
     let moduleName :=
@@ -60,6 +101,8 @@ def modelParseInstructionFields : ℕ → List Bool → Option (WitnessInstructi
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Parses an entire encoded instruction list with the given instruction fuel, failing on
+malformed data or insufficient fuel. -/
 def modelParseInstructionListFuel : ℕ → List Bool → Option (List WitnessInstruction) := by
   run_tac do
     let moduleName :=
@@ -70,18 +113,26 @@ def modelParseInstructionListFuel : ℕ → List Bool → Option (List WitnessIn
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Parsing a unary field from the empty list fails. -/
 theorem modelParseUnaryField_nil : modelParseUnaryField [] = none := rfl
 
+/-- A leading `false` terminates a unary field with value zero and leaves the suffix unchanged. -/
 theorem modelParseUnaryField_false (rest : List Bool) :
     modelParseUnaryField (false :: rest) = some (0, rest) := rfl
 
+/-- A leading `true` increments the value parsed from the remaining bits while preserving the
+unconsumed suffix. -/
 theorem modelParseUnaryField_true (rest : List Bool) :
     modelParseUnaryField (true :: rest) =
       (modelParseUnaryField rest).map (fun (k, tail) => (k + 1, tail)) := rfl
 
+/-- Parsing zero natural-number fields returns an empty value list and leaves all input bits
+unconsumed. -/
 theorem modelParseManyNatFields_zero (bits : List Bool) :
     modelParseManyNatFields 0 bits = some ([], bits) := rfl
 
+/-- Parsing one additional natural-number field first parses its head and then parses the
+remaining fields from the resulting suffix. -/
 theorem modelParseManyNatFields_succ (count : ℕ) (bits : List Bool) :
     modelParseManyNatFields (count + 1) bits =
       (modelParseUnaryField bits).bind fun (head, rest) =>
@@ -105,6 +156,7 @@ open scoped ComplexOrder
 
 set_option autoImplicit false
 
+/-- Parsing `unaryNat k` followed by any suffix returns `k` and exactly that suffix. -/
 theorem modelParseUnaryField_unaryNat (k : ℕ) (rest : List Bool) :
     modelParseUnaryField (unaryNat k ++ rest) = some (k, rest) := by
   induction k with
@@ -119,6 +171,8 @@ theorem modelParseUnaryField_unaryNat (k : ℕ) (rest : List Bool) :
       rw [hword, modelParseUnaryField_true, ih]
       rfl
 
+/-- Parsing the concatenated unary encodings of a natural-number list recovers that list and
+preserves the appended suffix. -/
 theorem modelParseManyNatFields_concat (addrs : List ℕ) (rest : List Bool) :
     modelParseManyNatFields addrs.length ((addrs.map unaryNat).flatten ++ rest)
       = some (addrs, rest) := by
@@ -137,26 +191,32 @@ theorem modelParseManyNatFields_concat (addrs : List ℕ) (rest : List Bool) :
       rw [ih]
       rfl
 
+/-- Tag zero parses one unary wire index and constructs a Hadamard instruction. -/
 theorem modelParseInstructionFields_h (bits : List Bool) :
     modelParseInstructionFields 0 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (.fixed (.h w), rest) := by
   rfl
 
+/-- Tag one parses one unary wire index and constructs an X instruction. -/
 theorem modelParseInstructionFields_x (bits : List Bool) :
     modelParseInstructionFields 1 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (.fixed (.x w), rest) := by
   rfl
 
+/-- Tag two parses one unary wire index and constructs a T instruction. -/
 theorem modelParseInstructionFields_t (bits : List Bool) :
     modelParseInstructionFields 2 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (.fixed (.t w), rest) := by
   rfl
 
+/-- Tag three parses one unary wire index and constructs a T-adjoint instruction. -/
 theorem modelParseInstructionFields_tdg (bits : List Bool) :
     modelParseInstructionFields 3 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (.fixed (.tdg w), rest) := by
   rfl
 
+/-- Tag four parses unary control and target indices and constructs a controlled-NOT
+instruction. -/
 theorem modelParseInstructionFields_cx (bits : List Bool) :
     modelParseInstructionFields 4 bits =
       (modelParseUnaryField bits).bind fun (c, rest) =>
@@ -164,6 +224,8 @@ theorem modelParseInstructionFields_cx (bits : List Bool) :
           some (.fixed (.cx c t), tail) := by
   rfl
 
+/-- Tag five parses the address count, address indices, and target index to construct an oracle
+instruction. -/
 theorem modelParseInstructionFields_oracle (bits : List Bool) :
     modelParseInstructionFields 5 bits =
       (modelParseUnaryField bits).bind fun (count, rest) =>
@@ -172,12 +234,15 @@ theorem modelParseInstructionFields_oracle (bits : List Bool) :
             some (.oracle addresses target, tail) := by
   rfl
 
+/-- An empty bit list parses as an empty instruction list for every fuel value. -/
 theorem modelParseInstructionListFuel_nil (fuel : ℕ) :
     modelParseInstructionListFuel fuel [] = some [] := by
   cases fuel with
   | zero => rfl
   | succ k => rfl
 
+/-- With positive fuel and nonempty input, instruction-list parsing reads a tag and its fields
+before recursively parsing the tail with one less fuel unit. -/
 theorem modelParseInstructionListFuel_cons (fuel : ℕ) (b : Bool) (bits : List Bool) :
     modelParseInstructionListFuel (fuel + 1) (b :: bits) =
       (modelParseUnaryField (b :: bits)).bind fun (tag, rest) =>
@@ -186,6 +251,8 @@ theorem modelParseInstructionListFuel_cons (fuel : ℕ) (b : Bool) (bits : List 
             some (instr :: instructions) := by
   rfl
 
+/-- Parsing an instruction's encoded fields with its tag recovers the instruction and preserves
+any appended suffix. -/
 theorem modelParseInstructionFields_encode (i : WitnessInstruction) (rest : List Bool) :
     modelParseInstructionFields (witnessInstructionTag i) (encodeWitnessFields i ++ rest)
       = some (i, rest) := by
@@ -223,6 +290,8 @@ theorem modelParseInstructionFields_encode (i : WitnessInstruction) (rest : List
       rw [modelParseUnaryField_unaryNat]
       simp only [Option.bind_some]
 
+/-- An encoded instruction list parses back to the original list whenever the fuel is at least
+its encoded bit length. -/
 theorem modelParseInstructionListFuel_ge (instrs : List WitnessInstruction) :
     ∀ (fuel : ℕ), fuel ≥ (instrs.map encodeWitnessInstruction).flatten.length →
       modelParseInstructionListFuel fuel ((instrs.map encodeWitnessInstruction).flatten)
@@ -292,11 +361,13 @@ theorem modelParseInstructionListFuel_ge (instrs : List WitnessInstruction) :
       rw [ih (fuel - 1) hlt]
       rfl
 
+/-- Using the encoded bit length as fuel suffices to recover an encoded instruction list. -/
 theorem modelParseInstructionListFuel_word (instrs : List WitnessInstruction) :
     modelParseInstructionListFuel ((instrs.map encodeWitnessInstruction).flatten).length
       ((instrs.map encodeWitnessInstruction).flatten) = some instrs :=
   modelParseInstructionListFuel_ge instrs _ (Nat.le_refl _)
 
+/-- A witness program encoding contains a `false` bit, so its bits are not all `true`. -/
 theorem encodeWitnessProgram_notAllTrue (p : WitnessVerifierProgram) :
     ¬ (encodeWitnessProgram p).all id := by
   have hfalse : false ∈ encodeWitnessProgram p := by
@@ -305,6 +376,7 @@ theorem encodeWitnessProgram_notAllTrue (p : WitnessVerifierProgram) :
   have hall := List.all_eq_true.mp h false hfalse
   simp at hall
 
+/-- Decoding the encoding of any witness verifier program returns that program exactly. -/
 theorem decode_encodeWitnessProgram (p : WitnessVerifierProgram) :
     decodeWitnessVerifierProgram (encodeWitnessProgram p) = some p := by
   have hnotall := encodeWitnessProgram_notAllTrue p
@@ -329,14 +401,18 @@ theorem decode_encodeWitnessProgram (p : WitnessVerifierProgram) :
   rw [modelParseInstructionListFuel_word]
   rfl
 
+/-- The generated program's witness width equals the family's witness width at the input length. -/
 theorem uniformGeneratorWitnessWidth (f : UniformWitnessFamily) (x : List Bool) :
     (f.generator x).witnessBits = f.witnessWidth x.length :=
   (f.generatorWidths x).1
 
+/-- The generated program's input width equals the length of the input bit list. -/
 theorem uniformGeneratorInputWidth (f : UniformWitnessFamily) (x : List Bool) :
     (f.generator x).inputBits = x.length :=
   (f.generatorWidths x).2
 
+/-- Initializing a generated verifier with a Hermitian positive semidefinite witness matrix
+preserves those properties and its trace. -/
 theorem uniformCleanInitialization (f : UniformWitnessFamily) (x : List Bool)
     (σ : Matrix (Reg (f.generator x).witnessBits) (Reg (f.generator x).witnessBits) ℂ)
     (hherm : σ.IsHermitian) (hpsd : σ.PosSemidef) :
@@ -346,6 +422,8 @@ theorem uniformCleanInitialization (f : UniformWitnessFamily) (x : List Bool)
         = Matrix.trace σ :=
   cleanInitialization (f.generator x) (listToInput (f.generator x) x) σ hherm hpsd
 
+/-- For a pure witness, the generated verifier's acceptance probability equals the Born
+probability of its output event after execution. -/
 theorem uniformAcceptProb_born (f : UniformWitnessFamily) (A : ClassicalOracle)
     (x : List Bool) (w : QState (Reg (f.generator x).witnessBits)) :
     acceptProb A (f.generator x) (listToInput (f.generator x) x) (pureWitnessDensity w)
@@ -355,6 +433,8 @@ theorem uniformAcceptProb_born (f : UniformWitnessFamily) (A : ClassicalOracle)
           (programOutputEvent (f.generator x)) :=
   acceptProb_born A (f.generator x) (listToInput (f.generator x) x) w
 
+/-- A valid witness density gives a generated verifier an acceptance probability between zero
+and one. -/
 theorem uniformAcceptProb_bounds (f : UniformWitnessFamily) (A : ClassicalOracle)
     (x : List Bool)
     (σ : Matrix (Reg (f.generator x).witnessBits) (Reg (f.generator x).witnessBits) ℂ)
@@ -364,12 +444,16 @@ theorem uniformAcceptProb_bounds (f : UniformWitnessFamily) (A : ClassicalOracle
   ⟨acceptProb_nonneg A (f.generator x) (listToInput (f.generator x) x) σ hd,
     acceptProb_le_one A (f.generator x) (listToInput (f.generator x) x) σ hd⟩
 
+/-- The concrete controlled-NOT family has one instruction, one witness bit, and as many input
+bits as the input length. -/
 theorem cnotWitnessFamily_nonDegenerate (x : List Bool) :
     (cnotWitnessFamily.generator x).instructions.length = 1 ∧
       (cnotWitnessFamily.generator x).witnessBits = 1 ∧
         (cnotWitnessFamily.generator x).inputBits = x.length := by
   refine ⟨rfl, rfl, rfl⟩
 
+/-- The concrete family generates a legal oracle-free program consisting of a controlled-NOT
+from wire zero to wire `x.length + 1`. -/
 theorem cnotWitnessFamily_program (x : List Bool) :
     witnessProgramLegal (cnotWitnessFamily.generator x) ∧
       oracleFree (cnotWitnessFamily.generator x) ∧
@@ -377,6 +461,8 @@ theorem cnotWitnessFamily_program (x : List Bool) :
           [.fixed (.cx 0 (x.length + 1))] := by
   refine ⟨cnotWitnessFamily.generatorLegal x, cnotWitnessFamily_oracleFree x, rfl⟩
 
+/-- The concrete controlled-NOT family satisfies its stated polynomial bounds on instruction
+count, qubits, and the bit ledger. -/
 theorem cnotWitnessFamily_ledgers (x : List Bool) :
     (cnotWitnessFamily.generator x).instructions.length
         ≤ witnessPolynomialBound cnotWitnessFamily.gateCoefficient
@@ -390,12 +476,16 @@ theorem cnotWitnessFamily_ledgers (x : List Bool) :
   ⟨cnotWitnessFamily.generatorGateBound x, cnotWitnessFamily.generatorSpaceBound x,
     cnotWitnessFamily.generatorBitBound x⟩
 
+/-- Encoding and then decoding a program generated by the controlled-NOT family recovers that
+program. -/
 theorem cnotWitnessFamily_decoding (x : List Bool) :
     decodeWitnessVerifierProgram
         (encodeWitnessProgram (cnotWitnessFamily.generator x))
       = some (cnotWitnessFamily.generator x) :=
   decode_encodeWitnessProgram (cnotWitnessFamily.generator x)
 
+/-- Verifier input initialization is additive in the witness matrix for a fixed program and
+classical input. -/
 theorem verifierInputDensity_add (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ₁ σ₂ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     verifierInputDensity p x (σ₁ + σ₂)
@@ -409,6 +499,8 @@ theorem verifierInputDensity_add (p : WitnessVerifierProgram) (x : Reg p.inputBi
   · rw [if_neg h, if_neg h, if_neg h]
     simp
 
+/-- Verifier input initialization commutes with multiplication of the witness matrix by any
+complex scalar. -/
 theorem verifierInputDensity_smul (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (c : ℂ) (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     verifierInputDensity p x (c • σ) = c • verifierInputDensity p x σ := by
@@ -421,6 +513,7 @@ theorem verifierInputDensity_smul (p : WitnessVerifierProgram) (x : Reg p.inputB
   · rw [if_neg h, if_neg h]
     norm_num
 
+/-- Acceptance is additive in the witness matrix for a fixed oracle, program, and input. -/
 theorem acceptProb_add (A : ClassicalOracle) (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (σ₁ σ₂ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     acceptProb A p x (σ₁ + σ₂) = acceptProb A p x σ₁ + acceptProb A p x σ₂ := by
@@ -435,6 +528,7 @@ theorem acceptProb_add (A : ClassicalOracle) (p : WitnessVerifierProgram) (x : R
   simp_rw [Matrix.add_apply, Complex.add_re]
   exact Finset.sum_add_distrib
 
+/-- Scaling a witness matrix by a real scalar scales its acceptance value by that scalar. -/
 theorem acceptProb_smul (A : ClassicalOracle) (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (c : ℝ) (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     acceptProb A p x ((c : ℂ) • σ) = c * acceptProb A p x σ := by
@@ -450,6 +544,8 @@ theorem acceptProb_smul (A : ClassicalOracle) (p : WitnessVerifierProgram) (x : 
     (fun z => ((programMatrix A p * verifierInputDensity p x σ * (programMatrix A p)ᴴ) z z).re)
     c).symm
 
+/-- Acceptance respects the affine combination of two pure witness densities with weights `t`
+and `1 - t` for every real `t`. -/
 theorem acceptProb_convex (A : ClassicalOracle) (p : WitnessVerifierProgram) (x : Reg p.inputBits)
     (ψ₁ ψ₂ : QState (Reg p.witnessBits)) (t : ℝ) :
     acceptProb A p x
@@ -458,6 +554,7 @@ theorem acceptProb_convex (A : ClassicalOracle) (p : WitnessVerifierProgram) (x 
         + (1 - t) * acceptProb A p x (pureWitnessDensity ψ₂) := by
   rw [acceptProb_add, acceptProb_smul, acceptProb_smul]
 
+/-- The density matrix of any classical basis witness satisfies `IsWitnessDensity`. -/
 theorem classicalWitnessDensity_isWitnessDensity {m : ℕ} (w : Reg m) :
     IsWitnessDensity (classicalWitnessDensity w) := by
   refine ⟨?_, ?_, ?_⟩
@@ -484,6 +581,7 @@ theorem classicalWitnessDensity_isWitnessDensity {m : ℕ} (w : Reg m) :
       simp
     exact h.le
 
+/-- Summing a constant natural number over a list gives the list length times that constant. -/
 theorem list_sum_map_const {α : Type*} (c : ℕ) (l : List α) :
     (l.map fun _ => c).sum = l.length * c := by
   induction l with
@@ -493,22 +591,29 @@ theorem list_sum_map_const {α : Type*} (c : ℕ) (l : List α) :
       rw [ih]
       ring
 
+/-- The program bit ledger equals its instruction count times `4 + 2 * programQubits p`. -/
 theorem programBitLedger_eq (p : WitnessVerifierProgram) :
     programBitLedger p = p.instructions.length * (4 + 2 * programQubits p) := by
   simp only [programBitLedger]
   exact list_sum_map_const _ _
 
+/-- The identity matrix on the zero-bit register equals the density matrix of its unique
+classical witness. -/
 theorem uniformBQP_witness_isQCMA (f : UniformWitnessFamily) (x : List Bool)
     (hw : f.witnessWidth x.length = 0) :
     (1 : Matrix (Reg 0) (Reg 0) ℂ) = classicalWitnessDensity (fun _ => false) := by
   rw [matrix_one_eq_pure_zero]
   rfl
 
+/-- Every classical witness at the family's prescribed width determines a valid quantum witness
+density. -/
 theorem uniformQCMA_witness_isQMA (f : UniformWitnessFamily) (x : List Bool)
     (w : Reg (f.witnessWidth x.length)) :
     IsWitnessDensity (uniformClassicalDensity f x w) :=
   classicalWitnessDensity_isWitnessDensity w
 
+/-- Records the reflexive acceptance equality for a classical witness density transported to the
+generated program's witness width. -/
 theorem uniformQCMA_acceptProb_eq (f : UniformWitnessFamily) (A : ClassicalOracle)
     (x : List Bool) (w : Reg (f.witnessWidth x.length)) :
     acceptProb A (f.generator x) (listToInput (f.generator x) x)
@@ -516,6 +621,8 @@ theorem uniformQCMA_acceptProb_eq (f : UniformWitnessFamily) (A : ClassicalOracl
     = acceptProb A (f.generator x) (listToInput (f.generator x) x)
       (uniformDensity f x (uniformClassicalDensity f x w)) := rfl
 
+/-- For an extended register whose added bits are all false, its original bits equal `w` exactly
+when it equals `padClassicalWitness w k`. -/
 theorem padClassicalWitness_ext {m k : ℕ} (w : Reg m) (u : Reg (m + k))
     (hu : (∀ j : Fin k, u (Fin.natAdd m j) = false)) :
     (fun i => u (Fin.castAdd k i)) = w ↔ u = padClassicalWitness w k := by
@@ -542,6 +649,8 @@ theorem padClassicalWitness_ext {m k : ℕ} (w : Reg m) (u : Reg (m + k))
     have hcongr := congrFun h (Fin.castAdd k i)
     simpa [padClassicalWitness] using! hcongr
 
+/-- Padding a classical witness sets every added bit to false and preserves all original witness
+bits. -/
 theorem padClassicalWitness_isClean {m k : ℕ} (w : Reg m) :
     (∀ j : Fin k, padClassicalWitness w k (Fin.natAdd m j) = false) ∧
       (fun i => padClassicalWitness w k (Fin.castAdd k i)) = w := by
@@ -551,6 +660,7 @@ theorem padClassicalWitness_isClean {m k : ℕ} (w : Reg m) :
   · funext i
     simp [padClassicalWitness]
 
+/-- A register with a nonzero added bit cannot equal the clean padding of a classical witness. -/
 theorem padClassicalWitness_ne_of_dirty {m k : ℕ} (w : Reg m) (u : Reg (m + k))
     (hu : ¬(∀ j : Fin k, u (Fin.natAdd m j) = false)) :
     u ≠ padClassicalWitness w k := by
@@ -560,6 +670,8 @@ theorem padClassicalWitness_ne_of_dirty {m k : ℕ} (w : Reg m) (u : Reg (m + k)
   rw [← hcon] at hclean
   exact hu hclean
 
+/-- A wire within the original witness, input, and ancilla range remains within the enlarged
+range after padding. -/
 theorem padWire_lt {m k n a w : ℕ} (hw : w < m + n + a) :
     padWire m k w < m + k + n + a := by
   unfold padWire
@@ -569,6 +681,7 @@ theorem padWire_lt {m k n a w : ℕ} (hw : w < m + n + a) :
   · simp [h]
     omega
 
+/-- Padding preserves inequality of wire indices. -/
 theorem padWire_ne {m k w w' : ℕ} (hne : w ≠ w') :
     padWire m k w ≠ padWire m k w' := by
   unfold padWire
@@ -584,6 +697,7 @@ theorem padWire_ne {m k w w' : ℕ} (hne : w ≠ w') :
     · simp [h1, h2]
       exact hne
 
+/-- Adding witness padding and shifting the affected wire indices preserves program legality. -/
 theorem padProgram_legal (p : WitnessVerifierProgram) (k : ℕ)
     (h : witnessProgramLegal p) : witnessProgramLegal (padProgram p k) := by
   have hout := h.1
@@ -687,6 +801,7 @@ theorem padProgram_legal (p : WitnessVerifierProgram) (k : ℕ)
             · exact hleg'.2.2.2
           exact hnodup
 
+/-- Padding an oracle-free witness verifier program preserves oracle freedom. -/
 theorem padProgram_oracleFree (p : WitnessVerifierProgram) (k : ℕ)
     (h : oracleFree p) : oracleFree (padProgram p k) := by
   show (padProgram p k).instructions.all (fun
@@ -701,6 +816,7 @@ theorem padProgram_oracleFree (p : WitnessVerifierProgram) (k : ℕ)
   | fixed gate => simp
   | oracle addresses target => simp at hh
 
+/-- Padding preserves the instruction count and increases the total qubit count by exactly `k`. -/
 theorem padProgram_width (p : WitnessVerifierProgram) (k : ℕ) :
     (padProgram p k).instructions.length = p.instructions.length ∧
       programQubits (padProgram p k) = programQubits p + k := by
@@ -709,6 +825,8 @@ theorem padProgram_width (p : WitnessVerifierProgram) (k : ℕ) :
   · simp only [programQubits, padProgram]
     omega
 
+/-- The padded program's bit ledger is the original instruction count times `4 + 2 *
+(programQubits p + k)`. -/
 theorem programBitLedger_pad (p : WitnessVerifierProgram) (k : ℕ) :
     programBitLedger (padProgram p k)
       = p.instructions.length * (4 + 2 * (programQubits p + k)) := by
@@ -722,6 +840,8 @@ theorem programBitLedger_pad (p : WitnessVerifierProgram) (k : ℕ) :
     list_sum_map_const _ _
   rw [hsum, hlen]
 
+/-- Adds `k` unused witness bits to each generated program, preserving the gate bound and
+updating polynomial space and bit bounds. -/
 def padUniformFamily (f : UniformWitnessFamily) (k : ℕ) : UniformWitnessFamily where
   witnessWidth := fun n => f.witnessWidth n + k
   generator := fun x => padProgram (f.generator x) k
@@ -826,9 +946,12 @@ def padUniformFamily (f : UniformWitnessFamily) (k : ℕ) : UniformWitnessFamily
       _ = (f.bitCoefficient + 2 * k * f.gateCoefficient)
             * (x.length + 1) ^ max f.bitDegree f.gateDegree := by ring
 
+/-- The sum of the oracle access lengths equals the program's address-bit ledger. -/
 theorem oracleAccessLedger_eq (p : WitnessVerifierProgram) :
     (oracleAccessLedger p).sum = addressBitLedger p := rfl
 
+/-- Transporting a uniform verifier program preserves the sequence of address lengths from its S
+and U oracle queries. -/
 theorem oracleAccessLedger_transport (p : UniformVerifierProgram) :
     oracleAccessLedger (fromUniformVerifierProgram p) =
       (p.instructions.filterMap fun
@@ -850,9 +973,12 @@ theorem oracleAccessLedger_transport (p : UniformVerifierProgram) :
     cases i <;> rfl
   rw [key]
 
+/-- The controlled access length is the number of address wires plus one. -/
 theorem controlledAccessLength_eq (addresses : List ℕ) :
     controlledAccessLength addresses = addresses.length + 1 := rfl
 
+/-- Transports a valid uniform verifier generator into a family using the shared classical
+oracle `A`, with legal programs and an oracle-call count bound. -/
 def transportUniformGenerator (g : UniformVerifierGenerator) (A : ClassicalOracle)
     (hg : uniformGeneratorValid g) : SharedOracleUniformFamily where
   witnessWidth := fun n =>
@@ -878,6 +1004,8 @@ def transportUniformGenerator (g : UniformVerifierGenerator) (A : ClassicalOracl
           ((uniformGeneratedProgramAt g x.length).getD defaultUniformVerifierProgram)).instructions.length
     exact List.length_filterMap_le _ _
 
+/-- Collects program encoding round trips, the concrete legal controlled-NOT family, and
+positivity and acceptance bounds for initialized valid witness densities. -/
 theorem clause1_complete :
     (∀ p : WitnessVerifierProgram,
         decodeWitnessVerifierProgram (encodeWitnessProgram p) = some p) ∧
@@ -908,6 +1036,8 @@ theorem clause1_complete :
     have hbounds := uniformAcceptProb_bounds f (fun _ _ => false) x σ hσ
     exact ⟨hclean.1, hclean.2.1, hbounds.1, hbounds.2⟩
 
+/-- Collects affine acceptance for pure witness combinations, validity of classical witness
+densities, and preservation of legality and oracle freedom under padding. -/
 theorem clause2_complete :
     (∀ A : ClassicalOracle, ∀ p : WitnessVerifierProgram, ∀ x : Reg p.inputBits,
       ∀ ψ₁ ψ₂ : QState (Reg p.witnessBits), ∀ t : ℝ,
@@ -927,6 +1057,8 @@ theorem clause2_complete :
   · intro p k h hfree
     exact ⟨padProgram_legal p k h, padProgram_oracleFree p k hfree⟩
 
+/-- Collects the oracle-ledger sum identity, preservation of query address lengths under
+transport, and legality of transported valid generators. -/
 theorem clause3_complete :
     (∀ p : WitnessVerifierProgram,
         (oracleAccessLedger p).sum = addressBitLedger p) ∧

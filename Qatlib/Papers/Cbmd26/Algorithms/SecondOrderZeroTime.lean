@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
 import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleAmplification
+
+/-!
+# Second-order preparation at zero time
+
+All three second-order propagators equal the identity at time zero. This module implements that
+case of the preparation problem in [WangEtAl2026] by a single call to the state preparation
+oracle.
+
+## Main statements
+
+* `secondOrderPropagator_zero`: the propagator at zero is the identity matrix.
+* `secondOrder_zero_time_program`: a valid unitary program prepares the exact normalized output
+  with no matrix-oracle queries.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,10 +70,14 @@ namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Every second-order family has identity propagator at time zero. -/
 @[simp] theorem secondOrderPropagator_zero {I : Type} [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (A : Matrix I I ℂ) : secondOrderPropagator kind A 0 = 1 := by
   cases kind <;> simp [secondOrderPropagator]
 
+/-- At time zero, the single state-oracle instruction is valid and unitary, uses no matrix
+queries and one state query, and prepares the exact normalized propagator output. This
+supplies the zero-time case for the second-order preparation results of [WangEtAl2026]. -/
 theorem secondOrder_zero_time_program {I : Type} [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (A O1 O2 B : Matrix I I ℂ)
     (hunitary : B ∈ Matrix.unitaryGroup I ℂ) (i₀ : I)

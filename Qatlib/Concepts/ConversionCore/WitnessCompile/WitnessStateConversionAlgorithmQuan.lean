@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessStateConversionAlgorithmStat
 import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessConversionPhysicalProgram
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ResidualEntry
+
+/-!
+# Counted state conversion from filtered witnesses
+
+`witnessStateConversionAlgorithm` proves the explicit circuit-existence specification from a
+filtered Gram certificate. Its query and gate bounds depend on the ceiling of the witness budget
+and `conversionPrecisionPrice`, and its output guarantee is Euclidean state-vector error.
+
+`witnessStateConversionZeroCorner` supplies exact conversion with zero queries when the budget
+or input length vanishes. The witness method comes from [LeeEtAl2011].
+
+## Main statements
+
+* `witnessStateConversionZeroCorner`: handles the zero-budget and zero-input cases.
+* `witnessStateConversionAlgorithm`: proves the full counted conversion specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +49,8 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators
 
+/-- A filtered Gram certificate with zero budget or zero input length yields an exact clean
+conversion circuit with zero queries and the stated gate and error bounds. -/
 theorem witnessStateConversionZeroCorner
     (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     (n : ℕ) (input : X → Fin n → Bool) (ρ σ : X → QState H) (W ε : ℝ)
@@ -56,6 +80,9 @@ theorem witnessStateConversionZeroCorner
     rw [hOut x, sub_self]
     simpa [toEuclidean_fromVec] using! hε
 
+/-- Proves the clean-state conversion specification from a filtered Gram witness, with explicit
+query and gate bounds and exact zero-query behavior in the degenerate cases. This realizes
+the witness conversion principle of [Lee et al., Theorem 4.1][LeeEtAl2011]. -/
 theorem witnessStateConversionAlgorithm : WitnessStateConversionAlgorithm := by
   intro X H _ _ _ _ _ n input ρ σ W ε hnorm hW hcert hε hεmax
   by_cases hz : W = 0 ∨ n = 0

@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+
+/-!
+# Finite PSD cone geometry and SDP duality
+
+`finitePsdCone` is the real proper cone of finite Hermitian positive semidefinite matrices.
+`finitePsdGeometry` packages its closedness, convexity, self-duality, real trace inner product,
+and adjoint separation characterizations for closed linear images. Matrix positivity and trace
+pairings are treated in [Bhatia1997].
+
+`g1` combines this geometry over the real and complex scalars with a weakly infeasible corner
+example. `g2` collects Slater strong duality, optimizer attainment, and compactness results,
+together with a boundary example whose primal optimum is attained while its dual infimum is not;
+see [Watrous2018] for SDP background.
+
+## Main statements
+
+* `finitePsdGeometry`: finite PSD cone geometry in every dimension.
+* `g1`: geometric and corner-system conclusions.
+* `g2`: duality, attainment, and boundary conclusions.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.DyadicFloor.FloorRounding
@@ -16,9 +42,12 @@ namespace Qatlib.Concepts.SdpDuality.StrongDuality
 open Matrix
 open scoped InnerProductSpace ComplexOrder
 
+/-- The proper cone of positive semidefinite Hermitian `D × D` matrices, viewed as a real cone. -/
 def finitePsdCone (𝕜 : Type*) [RCLike 𝕜] (D : ℕ) :
     ProperCone ℝ (HermitianMat (Fin D) 𝕜) := ProperCone.positive ℝ _
 
+/-- Packages closedness, convexity, self-duality, and the real trace inner product of finite PSD
+cones, together with adjoint certificates for membership in their closed linear images. -/
 def FinitePsdGeometry (𝕜 : Type*) [RCLike 𝕜] : Prop := ∀ D : ℕ,
   IsClosed (finitePsdCone 𝕜 D : Set (HermitianMat (Fin D) 𝕜)) ∧
   Convex ℝ (finitePsdCone 𝕜 D : Set (HermitianMat (Fin D) 𝕜)) ∧
@@ -32,6 +61,8 @@ def FinitePsdGeometry (𝕜 : Type*) [RCLike 𝕜] : Prop := ∀ D : ℕ,
     (b ∉ (finitePsdCone 𝕜 D).map A ↔
       ∃ y, 0 ≤ A.adjoint y ∧ ⟪b,y⟫_ℝ < 0))
 
+/-- Finite PSD cones satisfy `FinitePsdGeometry`, including their trace inner product and
+adjoint separation characterizations. -/
 theorem finitePsdGeometry (𝕜 : Type*) [RCLike 𝕜] : FinitePsdGeometry 𝕜 := by
   intro D
   refine ⟨(finitePsdCone 𝕜 D).isClosed, (finitePsdCone 𝕜 D).convex, ?_, ?_, ?_⟩
@@ -63,6 +94,9 @@ theorem finitePsdGeometry (𝕜 : Type*) [RCLike 𝕜] : FinitePsdGeometry 𝕜 
     push Not
     rfl
 
+/-- Combines real and complex PSD cone geometry with a two-dimensional corner system that is
+infeasible, has positive perturbations, and satisfies the stated nonnegative-functional
+coefficient condition. -/
 theorem g1 : FinitePsdGeometry ℝ ∧ FinitePsdGeometry ℂ ∧
     (¬ ∃ X : HermitianMat (Fin 2) ℂ,
       0 ≤ X ∧ (X.mat 0 0).re = 0 ∧ (X.mat 0 1).re = 1) ∧
@@ -73,6 +107,9 @@ theorem g1 : FinitePsdGeometry ℝ ∧ FinitePsdGeometry ℂ ∧
   ⟨finitePsdGeometry ℝ, finitePsdGeometry ℂ, weak_corner_infeasible,
    weak_corner_approximate, weak_corner_no_strict_separator⟩
 
+/-- Combines Slater strong duality and optimizer attainment, bounded feasible value sets, and
+compact primal superlevels with a boundary example having an attained primal value zero and
+an unattained dual infimum zero. -/
 theorem g2 :
     (∀ (D m : ℕ) (P : Program (Fin D) (EuclideanSpace ℝ (Fin m))),
       P.PrimalSlater → (∃ y, P.DualFeasible y) →

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
 import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+
+/-!
+# Tensor Pauli shadow statistics
+
+This module defines tensor Pauli words, snapshots, and scalar estimators through
+`tensorPauliWord`, `tensorPauliSnapshot`, and `tensorPauliValue`. It proves reconstruction for
+arbitrary density operators, exact Pauli-word moments, simultaneous concentration, and resource
+counts for fresh measurement records in the classical-shadow framework [HuangKuengPreskill2020].
+
+## Main statements
+
+* `tensor_pauli_word_exact_moments`: exact mean, second moment, and variance.
+* `tensor_pauli_many_words_same_record_concentration`: simultaneous median-of-means
+  concentration.
+* `tensorPauliFreshResourceCounts_spec`: exact leaf, gate, measurement, and query counts.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,26 +48,35 @@ open scoped ComplexOrder Kronecker
 
 set_option maxHeartbeats 4000000
 
+/-- The identity factor for `none`, or the Pauli matrix indexed by `some a`. -/
 noncomputable def tensorPauliWordFactor : Option (Fin 3) → Operator 2
   | none => 1
   | some a => pauliMatrix a
 
+/-- The tensor product of the identity and Pauli factors specified by `w`. -/
 noncomputable def tensorPauliWord (n : ℕ) (w : Fin n → Option (Fin 3)) :
     Operator (2 ^ n) := tensorPauliProduct n (fun i => tensorPauliWordFactor (w i))
 
+/-- The number of nonidentity factors in a tensor Pauli word. -/
 def tensorPauliWeight {n : ℕ} (w : Fin n → Option (Fin 3)) : ℕ :=
   ∑ i, if (w i).isSome then 1 else 0
 
+/-- The tensor product of the single-qubit Pauli shadows specified by a measurement record. -/
 noncomputable def tensorPauliSnapshot (n : ℕ) (o : Fin n → Fin 3 × Bool) :
     Operator (2 ^ n) := tensorPauliProduct n (fun i => PauliShadow (o i).2 (o i).1)
 
+/-- The local Pauli estimator: one for the identity, three times the recorded sign for a
+matching axis, and zero otherwise. -/
 def tensorPauliLocalValue : Option (Fin 3) → (Fin 3 × Bool) → ℝ
   | none, _ => 1
   | some a, o => if o.1 = a then 3 * (if o.2 then 1 else -1) else 0
 
+/-- The product of the local Pauli estimators over all qubits. -/
 def tensorPauliValue {n : ℕ} (w : Fin n → Option (Fin 3))
     (o : Fin n → Fin 3 × Bool) : ℝ := ∏ i, tensorPauliLocalValue (w i) (o i)
 
+/-- The trace pairing of a Pauli factor with a local shadow equals the complex embedding of its
+scalar estimator. -/
 theorem tensorPauliLocalValue_trace (w : Option (Fin 3)) (o : Fin 3 × Bool) :
     Matrix.trace (tensorPauliWordFactor w * PauliShadow o.2 o.1) =
       (tensorPauliLocalValue w o : ℂ) := by
@@ -71,6 +101,8 @@ theorem tensorPauliLocalValue_trace (w : Option (Fin 3)) (o : Fin 3 × Bool) :
     · have h' : a ≠ o.1 := Ne.symm h
       simp [h', tensorPauliLocalValue, h]
 
+/-- The trace pairing of a tensor Pauli word with a snapshot equals the complex embedding of
+`tensorPauliValue`. -/
 theorem tensorPauliValue_trace (n : ℕ) (w : Fin n → Option (Fin 3))
     (o : Fin n → Fin 3 × Bool) :
     Matrix.trace (tensorPauliWord n w * tensorPauliSnapshot n o) =
@@ -79,6 +111,8 @@ theorem tensorPauliValue_trace (n : ℕ) (w : Fin n → Option (Fin 3))
     tensorPauliProduct_trace]
   simp only [tensorPauliLocalValue_trace, tensorPauliValue, Complex.ofReal_prod]
 
+/-- The squared local estimator is one for the identity and otherwise nine on a matching axis
+and zero on other axes. -/
 theorem tensorPauliLocalValue_sq (w : Option (Fin 3)) (o : Fin 3 × Bool) :
     (tensorPauliLocalValue w o) ^ 2 =
       match w with
@@ -89,6 +123,8 @@ theorem tensorPauliLocalValue_sq (w : Option (Fin 3)) (o : Fin 3 × Bool) :
   · rcases o with ⟨b, s⟩
     by_cases h : b = a <;> cases s <;> norm_num [tensorPauliLocalValue, h]
 
+/-- The sum of the local measurement effects weighted by squared estimator values is the
+identity scaled by one or three according to the word factor. -/
 theorem tensorPauliLocalSecondMomentEffect (w : Option (Fin 3)) :
     (∑ o : Fin 3 × Bool,
       (((tensorPauliLocalValue w o) ^ 2 : ℝ) : ℂ) •
@@ -120,12 +156,16 @@ theorem tensorPauliLocalSecondMomentEffect (w : Option (Fin 3)) :
     rw [Finset.sum_congr rfl (fun b _ => hh b)]
     simp
 
+/-- The local Pauli measurement and reconstruction kernels compose to the identity kernel on
+matrix entries. -/
 theorem tensorPauliLocalReconstructionKernel (x y u v : Fin 2) :
     (∑ o : Fin 3 × Bool,
       ((1 / 3 : ℂ) * PauliProjector o.1 o.2 y x) * PauliShadow o.2 o.1 u v) =
       (if u = x then 1 else 0) * (if v = y then 1 else 0) := by
   exact Qatlib.Concepts.GateVocabulary.GateVocab.pauli_shadow_reconstruction_kernel x y u v
 
+/-- A product of coordinatewise equality indicators equals the indicator that the two functions
+are equal. -/
 theorem tensorPauliDeltaProduct {n : ℕ} {α : Type*} [DecidableEq α]
     (x y : Fin n → α) :
     (∏ i, (if x i = y i then (1 : ℂ) else 0)) = if x = y then 1 else 0 := by
@@ -136,6 +176,8 @@ theorem tensorPauliDeltaProduct {n : ℕ} {α : Type*} [DecidableEq α]
     rw [if_neg h]
     exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
 
+/-- The tensor Pauli measurement and reconstruction formula recovers any matrix on the qubit
+register. -/
 theorem tensorPauliReconstruction_algebraic {n : ℕ} (σ : Matrix (Reg n) (Reg n) ℂ) :
     (∑ o : Fin n → Fin 3 × Bool,
       Matrix.trace (pauliProductDensity
@@ -188,6 +230,8 @@ theorem tensorPauliReconstruction_algebraic {n : ℕ} (σ : Matrix (Reg n) (Reg 
   simp_rw [hk]
   simp
 
+/-- The expectation of the tensor Pauli snapshot equals the input density operator, including
+entangled inputs. See [HuangKuengPreskill2020]. -/
 theorem tensor_pauli_snapshot_reconstructs_entangled_input (n : ℕ)
     (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ) :
     (∑ o : Fin n → Fin 3 × Bool,
@@ -202,6 +246,8 @@ theorem tensor_pauli_snapshot_reconstructs_entangled_input (n : ℕ)
     tensorPauliProduct, relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply,
     Equiv.apply_symm_apply] using he
 
+/-- The Pauli-word estimator has mean equal to the real part of the word's trace pairing with
+the input state. -/
 theorem tensorPauliValue_mean (n : ℕ) (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) (w : Fin n → Option (Fin 3)) :
     (tensorPauliLaw n ρ hρ).expect (tensorPauliValue w) =
@@ -214,6 +260,8 @@ theorem tensorPauliValue_mean (n : ℕ) (ρ : Operator (2 ^ n))
     mul_zero, sub_zero] at h
   exact h
 
+/-- Summing the tensor measurement effects weighted by squared Pauli-word estimates gives the
+identity scaled by three to the word's weight. -/
 theorem tensorPauliValue_second_effect (n : ℕ) (w : Fin n → Option (Fin 3)) :
     (∑ o : Fin n → Fin 3 × Bool,
       (((tensorPauliValue w o) ^ 2 : ℝ) : ℂ) •
@@ -241,6 +289,7 @@ theorem tensorPauliValue_second_effect (n : ℕ) (w : Fin n → Option (Fin 3)) 
     Finset.prod_pow_eq_pow_sum]
   rfl
 
+/-- The second moment of the Pauli-word estimator is three to the number of nonidentity factors. -/
 theorem tensorPauliValue_second_moment (n : ℕ) (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) (w : Fin n → Option (Fin 3)) :
     (tensorPauliLaw n ρ hρ).expect (fun o => (tensorPauliValue w o) ^ 2) =
@@ -260,6 +309,9 @@ theorem tensorPauliValue_second_moment (n : ℕ) (ρ : Operator (2 ^ n))
     Matrix.trace_smul, hρ.2, smul_eq_mul, mul_one]
   norm_cast
 
+/-- The Pauli-word estimator agrees with the snapshot trace pairing, is unbiased, and has second
+moment `3 ^ tensorPauliWeight w` and variance equal to that second moment minus the squared
+mean. See [HuangKuengPreskill2020]. -/
 theorem tensor_pauli_word_exact_moments (n : ℕ) (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) (w : Fin n → Option (Fin 3)) :
     (∀ o, tensorPauliValue w o =
@@ -276,6 +328,9 @@ theorem tensor_pauli_word_exact_moments (n : ℕ) (ρ : Operator (2 ^ n))
   · rw [FinDist.variance_eq_expect_sq_sub, tensorPauliValue_second_moment,
       tensorPauliValue_mean]
 
+/-- Under the stated block-size budgets, the probability that any of the `M` median-of-means
+estimates errs by more than `ε` is at most `M * 3 ^ (K / 2) / 2 ^ K`. See
+[HuangKuengPreskill2020]. -/
 theorem tensor_pauli_many_words_same_record_concentration
     (n L K M : ℕ) (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ)
     (w : Fin M → Fin n → Option (Fin 3)) (ε : ℝ)
@@ -314,6 +369,9 @@ theorem tensor_pauli_many_words_same_record_concentration
     _ ≤ ∑ _j : Fin M, 3 ^ (K / 2) / 2 ^ K := Finset.sum_le_sum fun j _ => hper j
     _ = (M : ℝ) * 3 ^ (K / 2) / 2 ^ K := by simp [mul_div_assoc]
 
+/-- A real linear combination of Pauli-word estimators is unbiased for the corresponding
+observable and has variance at most `M` times the sum of squared coefficients weighted by
+the individual second moments. See [HuangKuengPreskill2020]. -/
 theorem tensor_pauli_linear_observable_variance (n M : ℕ)
     (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ)
     (w : Fin M → Fin n → Option (Fin 3)) (c : Fin M → ℝ) :
@@ -367,10 +425,13 @@ theorem tensor_pauli_linear_observable_variance (n M : ℕ)
     rw [FinDist.variance_eq_expect_sq_sub]
     exact (sub_le_self _ (sq_nonneg _)).trans hm
 
+/-- The tensor product of a finite family of operators, indexed by functions selecting one basis
+coordinate per factor. -/
 noncomputable def tensorPauliFreshProduct {t n : ℕ} (A : Fin t → Operator (2 ^ n)) :
     Matrix (Fin t → Fin (2 ^ n)) (Fin t → Fin (2 ^ n)) ℂ :=
   Matrix.of (fun x y => ∏ i, A i (x i) (y i))
 
+/-- Tensor products of operator families preserve componentwise multiplication. -/
 theorem tensorPauliFreshProduct_mul {t n : ℕ} (A B : Fin t → Operator (2 ^ n)) :
     tensorPauliFreshProduct A * tensorPauliFreshProduct B =
       tensorPauliFreshProduct (fun i => A i * B i) := by
@@ -379,16 +440,20 @@ theorem tensorPauliFreshProduct_mul {t n : ℕ} (A B : Fin t → Operator (2 ^ n
   simp_rw [← Finset.prod_mul_distrib]
   rw [← Fintype.prod_sum (fun i z => A i (x i) z * B i z (y i))]
 
+/-- Conjugate transpose of a tensor product is the tensor product of the conjugate transposes. -/
 theorem tensorPauliFreshProduct_conjTranspose {t n : ℕ} (A : Fin t → Operator (2 ^ n)) :
     (tensorPauliFreshProduct A)ᴴ = tensorPauliFreshProduct (fun i => (A i)ᴴ) := by
   ext x y
   simp [tensorPauliFreshProduct, Matrix.conjTranspose_apply]
 
+/-- The trace of a tensor product of operators is the product of their traces. -/
 theorem tensorPauliFreshProduct_trace {t n : ℕ} (A : Fin t → Operator (2 ^ n)) :
     Matrix.trace (tensorPauliFreshProduct A) = ∏ i, Matrix.trace (A i) := by
   change (∑ x : Fin t → Fin (2 ^ n), ∏ i, A i (x i) (x i)) = _
   exact (Fintype.prod_sum (fun i z => A i z z)).symm
 
+/-- A tensor product with one additional factor is the reindexed Kronecker product of the
+preceding factors and the last factor. -/
 theorem tensorPauliFreshProduct_succ {t n : ℕ} (A : Fin (t + 1) → Operator (2 ^ n)) :
     tensorPauliFreshProduct A =
       ((tensorPauliFreshProduct (fun i => A (Fin.castAdd 1 i))) ⊗ₖ
@@ -400,6 +465,8 @@ theorem tensorPauliFreshProduct_succ {t n : ℕ} (A : Fin (t + 1) → Operator (
   rw [Fin.prod_univ_add, Fin.prod_univ_one]
   rfl
 
+/-- The tensor product of copies of a density operator is positive semidefinite and has trace
+one. -/
 theorem tensorPauliFreshProduct_density {t n : ℕ} (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) :
     (tensorPauliFreshProduct (fun _ : Fin t => ρ)).PosSemidef ∧
@@ -419,6 +486,8 @@ theorem tensorPauliFreshProduct_density {t n : ℕ} (ρ : Operator (2 ^ n))
   · rw [tensorPauliFreshProduct_trace]
     simp [hρ.2]
 
+/-- The Born probability for tensor-product Kraus operators acting on fresh copies of the state
+factors into the individual record probabilities. -/
 theorem tensorPauliFreshProduct_born {t n : ℕ} (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) (o : Fin t → Fin n → Fin 3 × Bool) :
     (Matrix.trace (tensorPauliFreshProduct (fun i => tensorPauliKraus n (o i)) *
@@ -435,6 +504,9 @@ theorem tensorPauliFreshProduct_born {t n : ℕ} (ρ : Operator (2 ^ n))
   simp_rw [ht]
   rw [← Complex.ofReal_prod, Complex.ofReal_re]
 
+/-- The product of the fresh-record Born probabilities equals the grouped record law, while the
+total gate and measurement counts are `2 * n * (K * L)` and `n * (K * L)`. See
+[HuangKuengPreskill2020]. -/
 theorem tensor_pauli_fresh_born_and_cost (n L K : ℕ) (ρ : Operator (2 ^ n))
     (hρ : IsDensityOperator ρ) (ω : Fin K → Fin L → (Fin n → Fin 3 × Bool)) :
     (∏ k : Fin K, ∏ l : Fin L,
@@ -456,6 +528,8 @@ theorem tensor_pauli_fresh_born_and_cost (n L K : ℕ) (ρ : Operator (2 ^ n))
     simp
     ring
 
+/-- The numbers of observed leaves, gates, measurements, and queries used by a grouped tensor
+Pauli record. -/
 noncomputable def tensorPauliFreshResourceCounts (n L K : ℕ)
     (ω : Fin K → Fin L → (Fin n → Fin 3 × Bool)) : ℕ × ℕ × ℕ × ℕ :=
   let leaves := List.ofFn (fun t : Fin (K * L) =>
@@ -466,6 +540,8 @@ noncomputable def tensorPauliFreshResourceCounts (n L K : ℕ)
     (leaves.map ObservedKrausLeaf.measurements).sum,
     (leaves.map ObservedKrausLeaf.queries).sum)
 
+/-- A grouped tensor Pauli record uses `K * L` leaves, `2 * n * (K * L)` gates, `n * (K * L)`
+measurements, and zero queries. -/
 theorem tensorPauliFreshResourceCounts_spec (n L K : ℕ)
     (ω : Fin K → Fin L → (Fin n → Fin 3 × Bool)) :
     tensorPauliFreshResourceCounts n L K ω = (K * L, 2 * n * (K * L), n * (K * L), 0) := by

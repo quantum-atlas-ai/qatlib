@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+
+/-!
+# Constant row restrictions on anchored access
+
+This module proves a necessary restriction on anchored row preserving access: all square-root
+transition rows must coincide. With the transition matrix hypothesis,
+`anchoredRowPreserving_constantRows` converts this into equality of the transition rows
+themselves. These results concern the quantum walk framework of [Szegedy2004].
+
+## Main statements
+
+* `anchoredRowPreserving_constantSqrtProfile`: A common square-root row profile forced by
+  anchored access.
+* `anchoredRowPreserving_constantRows`: A common transition row profile.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -31,6 +51,8 @@ open Qatlib.Concepts.WalkSearch.CountedWalk
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- If row preserving access maps each anchored basis input to its Szegedy row state, then the
+square-root transition profile is independent of the row index. -/
 theorem anchoredRowPreserving_constantSqrtProfile {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ)
     (hanchor : ∀ i : I, U *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket i) (Qatlib.Foundations.PureStateMath.Ket j) = SzegedyIsometry P *ᵥ Qatlib.Foundations.PureStateMath.Ket i)
@@ -71,6 +93,8 @@ theorem anchoredRowPreserving_constantSqrtProfile {I : Type} [Fintype I] [Decida
     intro i y
     exact (not_nonempty_iff.mp hne).elim i
 
+/-- For a transition matrix, anchored row preserving access forces all transition rows to be
+equal. -/
 theorem anchoredRowPreserving_constantRows {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ)
     (hanchor : ∀ i : I, U *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket i) (Qatlib.Foundations.PureStateMath.Ket j) = SzegedyIsometry P *ᵥ Qatlib.Foundations.PureStateMath.Ket i)

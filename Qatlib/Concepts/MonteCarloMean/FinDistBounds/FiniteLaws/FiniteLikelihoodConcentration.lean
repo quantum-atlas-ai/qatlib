@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihood
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 
+/-!
+# Concentration for finite likelihood comparisons
+
+This module bounds upper deviations of bounded sample averages and applies the bound to log
+likelihood ratios. `log_likelihood_bound` gives an exponential comparison error bound from a
+positive mean gap and a bounded log ratio, while `repeated_success` computes the probability of
+at least one success exactly. The finite sampling context is that of Monte Carlo estimation
+[Montanaro2015].
+
+## Main statements
+
+* `average_upper`: For `n > 0`, `u > 0`, and `f` valued in `[a, b]` with `a < b`, the upper
+  sample mean tail is at most `exp (-2 * n * u ^ 2 / (b - a) ^ 2)`.
+* `log_likelihood_bound`: For strictly positive laws, a log likelihood ratio in `[a, b]` with
+  mean `-d < 0` bounds the probability that `q` likelihood exceeds or equals `p` likelihood by
+  `exp (-2 * n * d ^ 2 / (b - a) ^ 2)` for `n > 0`.
+* `repeated_success`: The probability that `A` occurs in at least one of `n` independent samples
+  is one minus the `n`th power of its failure probability.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLikelihoodConcentration
 open scoped Classical BigOperators
@@ -15,6 +39,7 @@ variable {X : Type} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
 
+/-- Inclusion of decidable sample record events implies monotonicity of their probabilities. -/
 private theorem event_mono (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) {n : ℕ}
     (E F : (Fin n → X) → Prop) [DecidablePred E] [DecidablePred F]
     (h : ∀ w, E w → F w) : p.probEvent E ≤ p.probEvent F := by
@@ -24,6 +49,8 @@ private theorem event_mono (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fin
   · intro w _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- For `n > 0`, `u > 0`, and `f` valued in `[a, b]` with `a < b`, the upper sample mean tail is
+at most `exp (-2 * n * u ^ 2 / (b - a) ^ 2)`. -/
 theorem average_upper (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (f : X → ℝ) (n : ℕ)
     (a b u : ℝ) (hn : 0 < n) (hab : a < b) (hu : 0 < u)
     (hf : ∀ x, f x ∈ Set.Icc a b) :
@@ -52,6 +79,9 @@ theorem average_upper (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist 
   rw [he] at ht
   exact ht
 
+/-- For strictly positive laws, a log likelihood ratio in `[a, b]` with mean `-d < 0` bounds the
+probability that `q` likelihood exceeds or equals `p` likelihood by `exp (-2 * n * d ^ 2 /
+(b - a) ^ 2)` for `n > 0`. -/
 theorem log_likelihood_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (a b d : ℝ)
     (hp : ∀ x, 0 < p.prob x) (hq : ∀ x, 0 < q.prob x)
     (hn : 0 < n) (hab : a < b) (hd : 0 < d)
@@ -78,6 +108,8 @@ theorem log_likelihood_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds
   simp only [neg_add_cancel]
   exact div_nonneg hsum (Nat.cast_nonneg n)
 
+/-- The probability that `A` occurs in at least one of `n` independent samples is one minus the
+`n`th power of its failure probability. -/
 theorem repeated_success (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (A : X → Prop) [DecidablePred A] :
     p.probEvent (fun w : Fin n → X => ∃ i, A (w i)) =
       1 - (1 - ∑ x with A x, p.prob x)^n := by

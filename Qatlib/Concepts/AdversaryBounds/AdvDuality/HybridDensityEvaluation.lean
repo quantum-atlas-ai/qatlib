@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
+
+/-!
+# Density Operator Evaluation of Hybrid Programs
+
+This module evaluates hybrid programs by propagating unnormalized density operators through
+gates, oracle calls, and measurement branches, and averaging fair coin choices. The construction
+follows the operator description of quantum operations in [Kraus1971] and [Watrous2018].
+`HybridProgram.evalDensity` evaluates terminal functionals, while
+`HybridProgram.evalDensityCounts` also carries operation counts.
+
+Leaf expansions connect these recursive evaluators to the instrument associated with a legal
+program. The pure-state compatibility result identifies density evaluation on an outer product
+with the existing pure-state evaluator.
+
+## Main statements
+
+* `evalDensity_bind` and `evalDensityCounts_bind` describe evaluation under sequential
+  composition.
+* `evalDensity_leaves` and `evalDensityCounts_leaves` expand evaluation as weighted sums over
+  leaves.
+* `evalDensity_instrument` and `evalDensityCounts_instrument` identify trace-weighted evaluation
+  with instrument expectations.
+* `evalDensity_pure` establishes compatibility with pure-state evaluation.
+
+## References
+
+* [Kraus, 1971][Kraus1971], General state changes in quantum theory.
+* [Watrous, 2018][Watrous2018], The Theory of Quantum Information.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,12 +56,16 @@ open Qatlib
 open scoped Classical ENNReal ComplexOrder
 variable {D : ℕ} {A B : Type}
 
+/-- Conjugation by a product of operators is the composition of their conjugation maps in the
+same order. -/
 theorem density_conj_mul (M N : Operator D) (ρ : Operator D) :
     conjBranch (M*N) ρ = conjBranch M (conjBranch N ρ) := by
   simp only [conjBranch_apply,Matrix.conjTranspose_mul,Matrix.mul_assoc]
 
 namespace HybridProgram
 
+/-- Evaluates a terminal functional by propagating unnormalized density operators through a
+hybrid program, averaging fair coin choices and summing measurement branches. -/
 def evalDensity (O : Operator D) : HybridProgram D A → Operator D →
     (A → Operator D → ℝ) → ℝ
   | .ret a,ρ,F => F a ρ
@@ -42,6 +76,8 @@ def evalDensity (O : Operator D) : HybridProgram D A → Operator D →
       (k i).evalDensity O (conjBranch (Projector (Finset.univ.filter fun x => label x=i)) ρ) F
   | .project P p q,ρ,F => p.evalDensity O (conjBranch (1-P) ρ) F + q.evalDensity O (conjBranch P ρ) F
 
+/-- Evaluates a hybrid program on a density operator while accumulating query, gate,
+measurement, and coin counts for the terminal functional. -/
 def evalDensityCounts (O : Operator D) : HybridProgram D A → Operator D → HybridCounts →
     (A → Operator D → HybridCounts → ℝ) → ℝ
   | .ret a,ρ,c,F => F a ρ c
@@ -57,6 +93,8 @@ def evalDensityCounts (O : Operator D) : HybridProgram D A → Operator D → Hy
 
 end HybridProgram
 
+/-- Density evaluation of a sequential composition equals evaluation of the first program with
+the continuation evaluator as its terminal functional. -/
 theorem evalDensity_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridProgram D B)
     (ρ : Operator D) (F : B → Operator D → ℝ) :
     (p.bind k).evalDensity O ρ F = p.evalDensity O ρ (fun a σ => (k a).evalDensity O σ F) := by
@@ -67,6 +105,8 @@ theorem evalDensity_bind (O : Operator D) (p : HybridProgram D A) (k : A → Hyb
   | measure n label k ih => simp only [Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridProgram.bind,evalDensity,ih]
   | project P p q hp hq => simp only [Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridProgram.bind,evalDensity,hp,hq]
 
+/-- Expands density evaluation as the sum of terminal functionals on leaf-conjugated states,
+weighted by the corresponding coin-word weights. -/
 theorem evalDensity_leaves (O : Operator D) (p : HybridProgram D A) (ρ : Operator D)
     (F : A → Operator D → ℝ) :
     p.evalDensity O ρ F = ((p.leaves O).map (fun t => CoinCode.wordWeight t.coins *
@@ -86,6 +126,8 @@ theorem evalDensity_leaves (O : Operator D) (p : HybridProgram D A) (ρ : Operat
       simp only [evalDensity,leaves,hp,hq,List.map_append,List.sum_append,List.map_map,
         Function.comp_def,HybridLeaf.quantum,density_conj_mul]
 
+/-- For a legal hybrid program and a unitary oracle, the instrument-weighted sum of a function
+of the returned value equals density evaluation of its trace-weighted terminal functional. -/
 theorem evalDensity_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ρ : Operator D) (f : A → ℝ) :
     (∑ i : Fin p.leafCount, instrumentProb (p.instrument O hO hp) ρ i * f (p.leaf O i).value) =
@@ -96,12 +138,16 @@ theorem evalDensity_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup 
   rw [p.probability_law]
   exact mul_assoc _ _ _
 
+/-- Density evaluation on the outer product of a pure state agrees with pure-state evaluation
+after applying the outer product to each terminal state. -/
 theorem evalDensity_pure (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F : A → Operator D → ℝ) :
     p.evalDensity O (outerProduct ψ) F = p.eval O ψ (fun a φ => F a (outerProduct φ)) := by
   rw [evalDensity_leaves,eval_leaves]
   simp only [conjBranch_outerProduct,ApplyGate]
 
+/-- Density evaluation of a program selected by `CoinCode` is the sum of the continuation
+evaluations over coin paths, weighted by their word weights. -/
 theorem evalDensity_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridProgram D A)
     (ρ : Operator D) (F : A → Operator D → ℝ) :
     (ofCoins p k).evalDensity O ρ F =
@@ -113,6 +159,8 @@ theorem evalDensity_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridP
         Function.comp_def,Qatlib.Concepts.AdversaryBounds.AdvDuality.wordWeight_cons,mul_assoc]
       rw [mul_add,List.sum_map_mul_left,List.sum_map_mul_left,hp,hq]
 
+/-- Counted density evaluation respects sequential composition by passing the intermediate
+value, density operator, and accumulated counts to the continuation. -/
 theorem evalDensityCounts_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridProgram D B)
     (ρ : Operator D) (c : HybridCounts) (F : B → Operator D → HybridCounts → ℝ) :
     (p.bind k).evalDensityCounts O ρ c F =
@@ -124,6 +172,8 @@ theorem evalDensityCounts_bind (O : Operator D) (p : HybridProgram D A) (k : A �
   | measure n label k ih => simp only [Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridProgram.bind,evalDensityCounts,ih]
   | project P p q hp hq => simp only [Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridProgram.bind,evalDensityCounts,hp,hq]
 
+/-- Expands counted density evaluation into a coin-weighted sum over leaves, adding each leaf's
+operation counts to the initial counts. -/
 theorem evalDensityCounts_leaves (O : Operator D) (p : HybridProgram D A) (ρ : Operator D)
     (c : HybridCounts) (F : A → Operator D → HybridCounts → ℝ) :
     p.evalDensityCounts O ρ c F = ((p.leaves O).map (fun t => CoinCode.wordWeight t.coins *
@@ -149,6 +199,8 @@ theorem evalDensityCounts_leaves (O : Operator D) (p : HybridProgram D A) (ρ : 
         Function.comp_def,HybridLeaf.counts_quantum,HybridCounts.plus_shuffle,
         HybridLeaf.quantum_value,HybridLeaf.quantum_coins,HybridLeaf.quantum_operator,density_conj_mul]
 
+/-- The instrument-weighted sum of a function of returned values and leaf counts equals counted
+density evaluation from zero counts with a trace-weighted terminal functional. -/
 theorem evalDensityCounts_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ρ : Operator D) (f : A → HybridCounts → ℝ) :
     (∑ i : Fin p.leafCount, instrumentProb (p.instrument O hO hp) ρ i *
@@ -161,6 +213,8 @@ theorem evalDensityCounts_instrument (O : Operator D) (hO : O ∈ Matrix.unitary
   rw [p.probability_law]
   exact mul_assoc _ _ _
 
+/-- Counted density evaluation of `ofCoins` is a weighted sum over coin paths, with each path
+length added to the accumulated coin count. -/
 theorem evalDensityCounts_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridProgram D A)
     (ρ : Operator D) (c : HybridCounts) (F : A → Operator D → HybridCounts → ℝ) :
     (ofCoins p k).evalDensityCounts O ρ c F =
@@ -173,6 +227,8 @@ theorem evalDensityCounts_ofCoins (O : Operator D) (p : CoinCode B) (k : B → H
         List.map_map,Function.comp_def,Qatlib.Concepts.AdversaryBounds.AdvDuality.wordWeight_cons,HybridCounts.read_cons,mul_assoc]
       rw [mul_add,List.sum_map_mul_left,List.sum_map_mul_left]
 
+/-- A legal hybrid program with a unitary oracle has nonnegative trace-weighted density
+evaluation on a positive semidefinite input and a nonnegative terminal function. -/
 theorem evalDensity_trace_nonneg (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ρ : Operator D) (hρ : ρ.PosSemidef)
     (f : A → ℝ) (hf : ∀ a, 0 ≤ f a) :

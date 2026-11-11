@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.MatrixODE
+
+/-!
+# Wave and Bessel propagator equations
+
+This module defines `wavePropagator` and `besselPropagator` by entire power series in a complete
+complex normed algebra. It differentiates their time series to establish the wave and order-zero
+Bessel equations and the initial conditions used in the matrix dynamics of [WangEtAl2026].
+
+## Main statements
+
+* `wavePropagator_ode`: the complex wave equation.
+* `besselPropagator_real_ode`: the real Bessel equation away from zero.
+* `matrix_bessel_initial_value_problem`: matrix initial conditions and regularity.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -19,14 +38,18 @@ open scoped Topology
 section VectorSeries
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- The formal multilinear series associated with a sequence of vector coefficients. -/
 private def vectorSeries (c : ℕ → E) : FormalMultilinearSeries ℂ ℂ E :=
   fun n => ContinuousMultilinearMap.mkPiRing ℂ (Fin n) (c n)
 
 omit [CompleteSpace E] in
+/-- The coefficient of `vectorSeries c` at degree `n` is `c n`. -/
 private theorem vectorSeries_coeff (c : ℕ → E) (n : ℕ) :
     (vectorSeries c).coeff n = c n := by
   simp [vectorSeries, FormalMultilinearSeries.coeff]
 
+/-- A vector power series summable at every complex argument represents its sum on the ball of
+infinite radius about zero. -/
 private theorem vectorSeries_entire (c : ℕ → E)
     (hc : ∀ z : ℂ, Summable (fun n => z ^ n • c n)) :
     HasFPowerSeriesOnBall (fun z : ℂ => ∑' n, z ^ n • c n)
@@ -44,21 +67,26 @@ private theorem vectorSeries_entire (c : ℕ → E)
   ext z
   simp [FormalMultilinearSeries.sum, vectorSeries_coeff]
 
+/-- The formal series obtained by differentiating a one-variable multilinear power series. -/
 private def univDerivSeries (p : FormalMultilinearSeries ℂ ℂ E) :
     FormalMultilinearSeries ℂ ℂ E :=
   (ContinuousLinearMap.apply ℂ E (1 : ℂ)).compFormalMultilinearSeries p.derivSeries
 
 omit [CompleteSpace E] in
+/-- The degree `n` coefficient of the derivative series is `(n + 1) • p.coeff (n + 1)`. -/
 private theorem univDerivSeries_coeff (p : FormalMultilinearSeries ℂ ℂ E) (n : ℕ) :
     (univDerivSeries p).coeff n = (n + 1) • p.coeff (n + 1) := by
   change p.derivSeries.coeff n 1 = _
   exact p.derivSeries_coeff_one n
 
+/-- Differentiating an entire power series yields the entire power series `univDerivSeries p`. -/
 private theorem hasPowerSeries_deriv {f : ℂ → E} {p : FormalMultilinearSeries ℂ ℂ E}
     (h : HasFPowerSeriesOnBall f p 0 ⊤) :
     HasFPowerSeriesOnBall (deriv f) (univDerivSeries p) 0 ⊤ := by
   exact (ContinuousLinearMap.apply ℂ E (1 : ℂ)).comp_hasFPowerSeriesOnBall h.fderiv
 
+/-- The twice differentiated vector power series sums to the second derivative, with coefficient
+`(n + 1) • ((n + 2) • c (n + 2))`. -/
 private theorem vectorSeries_hasSum_second_deriv (c : ℕ → E)
     (hc : ∀ z : ℂ, Summable (fun n => z ^ n • c n)) (z : ℂ) :
     HasSum (fun n => z ^ n • ((n + 1) • ((n + 2) • c (n + 2))))
@@ -69,6 +97,8 @@ private theorem vectorSeries_hasSum_second_deriv (c : ℕ → E)
     univDerivSeries_coeff, vectorSeries_coeff, Nat.add_assoc] using hs
 
 omit [CompleteSpace E] in
+/-- A complex derivative at a real point also gives the derivative of the restriction to real
+arguments. -/
 theorem vector_hasDerivAt_comp_ofReal [NormedSpace ℝ E] {f : ℂ → E} {f' : E} {t : ℝ}
     (h : HasDerivAt f f' (t : ℂ)) :
     HasDerivAt (fun x : ℝ => f (x : ℂ)) f' t := by
@@ -80,20 +110,25 @@ end VectorSeries
 section Wave
 variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
 
+/-- The wave propagator defined by the entire series with terms `((2 * n)! : ℂ)⁻¹ • (-(t²) •
+A)^n`. -/
 def wavePropagator (A : E) (t : ℂ) : E :=
   ∑' n : ℕ, (((2 * n).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ n
 
+/-- The coefficient of the wave propagator's time series, with vanishing odd coefficients. -/
 private def waveTimeCoefficient (A : E) (n : ℕ) : E :=
   if n % 2 = 0 then (n.factorial : ℂ)⁻¹ • (-A) ^ (n / 2) else 0
 
 omit [CompleteSpace E] in
 
+/-- The even wave coefficient is the reciprocal factorial multiple of `(-A)^n`. -/
 private theorem waveTimeCoefficient_mul (A : E) (n : ℕ) :
     waveTimeCoefficient A (2 * n) = (((2 * n).factorial : ℂ)⁻¹) • (-A) ^ n := by
   simp [waveTimeCoefficient]
 
 omit [CompleteSpace E] in
 
+/-- Rewrites an even time-series term as the corresponding term in the defining wave series. -/
 private theorem wave_time_term (A : E) (t : ℂ) (n : ℕ) :
     t ^ (2 * n) • waveTimeCoefficient A (2 * n) =
       (((2 * n).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ n := by
@@ -101,6 +136,8 @@ private theorem wave_time_term (A : E) (t : ℂ) (n : ℕ) :
     show -(t ^ 2) • A = t ^ 2 • (-A) by simp,
     smul_pow, ← pow_mul, smul_comm]
 
+/-- The time power series with coefficients `waveTimeCoefficient A` sums to `wavePropagator A
+t`. -/
 private theorem wave_time_hasSum (A : E) (t : ℂ) :
     HasSum (fun n => t ^ n • waveTimeCoefficient A n) (wavePropagator A t) := by
   have hi : Function.Injective (fun n : ℕ => 2 * n) := by
@@ -117,6 +154,7 @@ private theorem wave_time_hasSum (A : E) (t : ℂ) :
       exact ⟨n / 2, by change 2 * (n / 2) = n; omega⟩
     simp [waveTimeCoefficient, hm]
 
+/-- The wave propagator is the sum of its time power series. -/
 private theorem wavePropagator_timeSeries (A : E) :
     wavePropagator A = fun t => ∑' n, t ^ n • waveTimeCoefficient A n := by
   funext t
@@ -124,6 +162,8 @@ private theorem wavePropagator_timeSeries (A : E) :
 
 omit [CompleteSpace E] in
 
+/-- The wave time coefficients satisfy the recurrence corresponding to the equation `G'' + A * G
+= 0`. -/
 private theorem waveTimeCoefficient_step (A : E) (n : ℕ) :
     (n + 1) • ((n + 2) • waveTimeCoefficient A (n + 2)) =
       -A * waveTimeCoefficient A n := by
@@ -141,6 +181,7 @@ private theorem waveTimeCoefficient_step (A : E) (n : ℕ) :
     field_simp
   · simp [waveTimeCoefficient, hm]
 
+/-- The wave propagator is analytic at every complex time. -/
 theorem wavePropagator_analytic (A : E) (t : ℂ) : AnalyticAt ℂ (wavePropagator A) t := by
   rw [wavePropagator_timeSeries]
   exact (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_entire (waveTimeCoefficient A)
@@ -148,18 +189,22 @@ theorem wavePropagator_analytic (A : E) (t : ℂ) : AnalyticAt ℂ (wavePropagat
 
 omit [CompleteSpace E] in
 
+/-- The wave propagator at time zero is the multiplicative identity. -/
 @[simp] theorem wavePropagator_zero (A : E) : wavePropagator A 0 = 1 := by
   simp [wavePropagator, ← FormalMultilinearSeries.ofScalars_sum_eq]
 
+/-- The wave propagator has derivative zero at time zero. -/
 theorem wavePropagator_hasDerivAt_zero (A : E) : HasDerivAt (wavePropagator A) 0 0 := by
   rw [wavePropagator_timeSeries]
   have h := (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_entire (waveTimeCoefficient A)
     (fun z => (wave_time_hasSum A z).summable)).hasFPowerSeriesAt.hasDerivAt
   simpa [Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_coeff, waveTimeCoefficient] using h
 
+/-- The derivative of the wave propagator vanishes at zero. -/
 @[simp] theorem wavePropagator_deriv_zero (A : E) : deriv (wavePropagator A) 0 = 0 :=
   (wavePropagator_hasDerivAt_zero A).deriv
 
+/-- The wave propagator satisfies the complex differential equation `G'' + A * G = 0`. -/
 theorem wavePropagator_ode (A : E) (t : ℂ) :
     deriv (deriv (wavePropagator A)) t + A * wavePropagator A t = 0 := by
   have hs := Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_hasSum_second_deriv (waveTimeCoefficient A)
@@ -174,6 +219,7 @@ theorem wavePropagator_ode (A : E) (t : ℂ) :
   rw [hs.unique ht]
   simp
 
+/-- The derivative of the wave propagator has derivative `-(A * wavePropagator A t)`. -/
 theorem wavePropagator_hasDerivAt_deriv (A : E) (t : ℂ) :
     HasDerivAt (deriv (wavePropagator A)) (-(A * wavePropagator A t)) t := by
   have h := (wavePropagator_analytic A t).deriv.differentiableAt.hasDerivAt
@@ -183,17 +229,22 @@ theorem wavePropagator_hasDerivAt_deriv (A : E) (t : ℂ) :
 section RealTime
 variable [NormedSpace ℝ E]
 
+/-- The derivative of the wave propagator restricted to real times equals its complex
+derivative. -/
 theorem wavePropagator_real_deriv_eq (A : E) (t : ℝ) :
     deriv (fun x : ℝ => wavePropagator A (x : ℂ)) t =
       deriv (wavePropagator A) (t : ℂ) :=
   (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
     (wavePropagator_analytic A (t : ℂ)).differentiableAt.hasDerivAt).deriv
 
+/-- The wave propagator restricted to real times has derivative zero at zero. -/
 theorem wavePropagator_real_hasDerivAt_zero (A : E) :
     HasDerivAt (fun x : ℝ => wavePropagator A (x : ℂ)) 0 0 := by
   exact Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
       (by simpa using wavePropagator_hasDerivAt_zero A)
 
+/-- The real-time derivative of the wave propagator has derivative `-(A * wavePropagator A (t :
+ℂ))`. -/
 theorem wavePropagator_real_hasDerivAt_deriv (A : E) (t : ℝ) :
     HasDerivAt (deriv (fun x : ℝ => wavePropagator A (x : ℂ)))
       (-(A * wavePropagator A (t : ℂ))) t := by
@@ -204,6 +255,7 @@ theorem wavePropagator_real_hasDerivAt_deriv (A : E) (t : ℝ) :
   exact Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
       (wavePropagator_hasDerivAt_deriv A (t : ℂ))
 
+/-- The real-time wave propagator satisfies `G'' + A * G = 0`. -/
 theorem wavePropagator_real_ode (A : E) (t : ℝ) :
     deriv (deriv (fun x : ℝ => wavePropagator A (x : ℂ))) t +
       A * wavePropagator A (t : ℂ) = 0 := by
@@ -215,15 +267,19 @@ end Wave
 section Bessel
 variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
 
+/-- The Bessel propagator defined by the entire series with terms `(n! : ℂ)⁻² • ((-(t²) / 4) •
+A)^n`. -/
 def besselPropagator (A : E) (t : ℂ) : E :=
   ∑' n : ℕ, ((n.factorial : ℂ)⁻¹) ^ 2 • ((-(t ^ 2) / 4) • A) ^ n
 
+/-- The coefficient of the Bessel propagator's time series, with vanishing odd coefficients. -/
 private def besselTimeCoefficient (A : E) (n : ℕ) : E :=
   if n % 2 = 0 then ((((n / 2).factorial : ℂ)⁻¹) ^ 2) •
     ((-1 / 4 : ℂ) • A) ^ (n / 2) else 0
 
 omit [CompleteSpace E] in
 
+/-- The even Bessel coefficient is `(n! : ℂ)⁻² • ((-1 / 4 : ℂ) • A)^n`. -/
 private theorem besselTimeCoefficient_mul (A : E) (n : ℕ) :
     besselTimeCoefficient A (2 * n) = ((n.factorial : ℂ)⁻¹) ^ 2 •
       ((-1 / 4 : ℂ) • A) ^ n := by
@@ -231,6 +287,7 @@ private theorem besselTimeCoefficient_mul (A : E) (n : ℕ) :
 
 omit [CompleteSpace E] in
 
+/-- Rewrites an even time-series term as the corresponding term in the defining Bessel series. -/
 private theorem bessel_time_term (A : E) (t : ℂ) (n : ℕ) :
     t ^ (2 * n) • besselTimeCoefficient A (2 * n) =
       ((n.factorial : ℂ)⁻¹) ^ 2 • ((-(t ^ 2) / 4) • A) ^ n := by
@@ -239,6 +296,8 @@ private theorem bessel_time_term (A : E) (t : ℂ) (n : ℕ) :
       rw [smul_smul]; congr 1; ring,
     smul_pow (t ^ 2) ((-1 / 4 : ℂ) • A) n, ← pow_mul, smul_comm]
 
+/-- The time power series with coefficients `besselTimeCoefficient A` sums to `besselPropagator
+A t`. -/
 private theorem bessel_time_hasSum (A : E) (t : ℂ) :
     HasSum (fun n => t ^ n • besselTimeCoefficient A n) (besselPropagator A t) := by
   have hi : Function.Injective (fun n : ℕ => 2 * n) := by
@@ -255,6 +314,7 @@ private theorem bessel_time_hasSum (A : E) (t : ℂ) :
       exact ⟨n / 2, by change 2 * (n / 2) = n; omega⟩
     simp [besselTimeCoefficient, hm]
 
+/-- The Bessel propagator is the sum of its time power series. -/
 private theorem besselPropagator_timeSeries (A : E) :
     besselPropagator A = fun t => ∑' n, t ^ n • besselTimeCoefficient A n := by
   funext t
@@ -262,6 +322,8 @@ private theorem besselPropagator_timeSeries (A : E) :
 
 omit [CompleteSpace E] in
 
+/-- The Bessel time coefficients satisfy the recurrence corresponding to the order-zero Bessel
+equation. -/
 private theorem besselTimeCoefficient_step (A : E) (n : ℕ) :
     (n + 2) • ((n + 2) • besselTimeCoefficient A (n + 2)) =
       -A * besselTimeCoefficient A n := by
@@ -281,6 +343,7 @@ private theorem besselTimeCoefficient_step (A : E) (n : ℕ) :
     ring
   · simp [besselTimeCoefficient, hm]
 
+/-- The Bessel propagator is analytic at every complex time. -/
 theorem besselPropagator_analytic (A : E) (t : ℂ) : AnalyticAt ℂ (besselPropagator A) t := by
   rw [besselPropagator_timeSeries]
   exact (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_entire (besselTimeCoefficient A)
@@ -288,9 +351,11 @@ theorem besselPropagator_analytic (A : E) (t : ℂ) : AnalyticAt ℂ (besselProp
 
 omit [CompleteSpace E] in
 
+/-- The Bessel propagator at time zero is the multiplicative identity. -/
 @[simp] theorem besselPropagator_zero (A : E) : besselPropagator A 0 = 1 := by
   simp [besselPropagator, ← FormalMultilinearSeries.ofScalars_sum_eq]
 
+/-- The Bessel propagator has derivative zero at time zero. -/
 theorem besselPropagator_hasDerivAt_zero (A : E) : HasDerivAt (besselPropagator A) 0 0 := by
   rw [besselPropagator_timeSeries]
   have h := (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_entire (besselTimeCoefficient A)
@@ -298,9 +363,11 @@ theorem besselPropagator_hasDerivAt_zero (A : E) : HasDerivAt (besselPropagator 
   simpa [Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_coeff, besselTimeCoefficient] using
       h
 
+/-- The derivative of the Bessel propagator vanishes at zero. -/
 @[simp] theorem besselPropagator_deriv_zero (A : E) : deriv (besselPropagator A) 0 = 0 :=
   (besselPropagator_hasDerivAt_zero A).deriv
 
+/-- The differentiated Bessel time series sums to the derivative of the Bessel propagator. -/
 private theorem bessel_deriv_hasSum (A : E) (t : ℂ) :
     HasSum (fun n => t ^ n • ((n + 1) • besselTimeCoefficient A (n + 1)))
       (deriv (besselPropagator A) t) := by
@@ -311,6 +378,7 @@ private theorem bessel_deriv_hasSum (A : E) (t : ℂ) :
   simpa only [zero_add, FormalMultilinearSeries.apply_eq_pow_smul_coeff,
     Qatlib.Foundations.CbmdAnalysis.Core.CBMD.univDerivSeries_coeff, Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vectorSeries_coeff] using hs
 
+/-- At nonzero complex time, the Bessel propagator satisfies `G'' + t⁻¹ • G' + A * G = 0`. -/
 theorem besselPropagator_ode (A : E) (t : ℂ) (ht : t ≠ 0) :
     deriv (deriv (besselPropagator A)) t + t⁻¹ • deriv (besselPropagator A) t +
       A * besselPropagator A t = 0 := by
@@ -340,6 +408,8 @@ theorem besselPropagator_ode (A : E) (t : ℂ) (ht : t ≠ 0) :
   rw [hsum.unique ((bessel_time_hasSum A t).mul_left (-A))]
   simp
 
+/-- At nonzero complex time, the derivative of the Bessel propagator has derivative `-(t⁻¹ • G'
++ A * G)`. -/
 theorem besselPropagator_hasDerivAt_deriv (A : E) (t : ℂ) (ht : t ≠ 0) :
     HasDerivAt (deriv (besselPropagator A))
       (-(t⁻¹ • deriv (besselPropagator A) t + A * besselPropagator A t)) t := by
@@ -352,17 +422,21 @@ theorem besselPropagator_hasDerivAt_deriv (A : E) (t : ℂ) (ht : t ≠ 0) :
 section RealTime
 variable [NormedSpace ℝ E]
 
+/-- The derivative of the Bessel propagator restricted to real times equals its complex
+derivative. -/
 theorem besselPropagator_real_deriv_eq (A : E) (t : ℝ) :
     deriv (fun x : ℝ => besselPropagator A (x : ℂ)) t =
       deriv (besselPropagator A) (t : ℂ) :=
   (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
     (besselPropagator_analytic A (t : ℂ)).differentiableAt.hasDerivAt).deriv
 
+/-- The Bessel propagator restricted to real times has derivative zero at zero. -/
 theorem besselPropagator_real_hasDerivAt_zero (A : E) :
     HasDerivAt (fun x : ℝ => besselPropagator A (x : ℂ)) 0 0 := by
   exact Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
       (by simpa using besselPropagator_hasDerivAt_zero A)
 
+/-- The real-time Bessel propagator and its first derivative are differentiable everywhere. -/
 theorem besselPropagator_real_twice_differentiable (A : E) :
     Differentiable ℝ (fun x : ℝ => besselPropagator A (x : ℂ)) ∧
       Differentiable ℝ (deriv (fun x : ℝ => besselPropagator A (x : ℂ))) := by
@@ -378,6 +452,8 @@ theorem besselPropagator_real_twice_differentiable (A : E) :
     exact (Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
       (besselPropagator_analytic A (t : ℂ)).deriv.differentiableAt.hasDerivAt).differentiableAt
 
+/-- At nonzero real time, the derivative of the Bessel propagator has derivative `-(t⁻¹ • G' + A
+* G)`. -/
 theorem besselPropagator_real_hasDerivAt_deriv (A : E) (t : ℝ) (ht : t ≠ 0) :
     HasDerivAt (deriv (fun x : ℝ => besselPropagator A (x : ℂ)))
       (-(t⁻¹ • deriv (fun x : ℝ => besselPropagator A (x : ℂ)) t +
@@ -389,6 +465,7 @@ theorem besselPropagator_real_hasDerivAt_deriv (A : E) (t : ℝ) (ht : t ≠ 0) 
   simpa [← Complex.ofReal_inv] using Qatlib.Foundations.CbmdAnalysis.Core.CBMD.vector_hasDerivAt_comp_ofReal
     (besselPropagator_hasDerivAt_deriv A (t : ℂ) (Complex.ofReal_ne_zero.mpr ht))
 
+/-- At nonzero real time, the Bessel propagator satisfies `G'' + t⁻¹ • G' + A * G = 0`. -/
 theorem besselPropagator_real_ode (A : E) (t : ℝ) (ht : t ≠ 0) :
     deriv (deriv (fun x : ℝ => besselPropagator A (x : ℂ))) t +
       t⁻¹ • deriv (fun x : ℝ => besselPropagator A (x : ℂ)) t +
@@ -403,6 +480,8 @@ section Matrices
 open scoped Matrix.Norms.L2Operator
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- The matrix wave propagator has initial value `1`, initial derivative zero, and satisfies the
+wave equation at every real time. -/
 theorem matrix_wave_initial_value_problem (A : Matrix n n ℂ) :
     let G : ℝ → Matrix n n ℂ := fun t => wavePropagator A (t : ℂ)
     G 0 = 1 ∧ HasDerivAt G 0 0 ∧
@@ -411,6 +490,8 @@ theorem matrix_wave_initial_value_problem (A : Matrix n n ℂ) :
     wavePropagator_real_hasDerivAt_deriv A⟩
   simp
 
+/-- The matrix Bessel propagator has initial value `1` and initial derivative zero, is twice
+differentiable on the real line, and satisfies the Bessel equation at positive times. -/
 theorem matrix_bessel_initial_value_problem (A : Matrix n n ℂ) :
     let G : ℝ → Matrix n n ℂ := fun t => besselPropagator A (t : ℂ)
     G 0 = 1 ∧ HasDerivAt G 0 0 ∧ Differentiable ℝ G ∧ Differentiable ℝ (deriv G) ∧

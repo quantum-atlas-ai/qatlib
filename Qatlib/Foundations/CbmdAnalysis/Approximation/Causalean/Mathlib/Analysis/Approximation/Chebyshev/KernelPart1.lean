@@ -9,6 +9,26 @@ import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.Complex.Polynomial.Basic
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Tactic.NormNum.Parity
+
+/-!
+# Raw Jackson kernel and cosine expansions
+
+This module defines the raw Jackson kernel, its mass, and the normalized kernel, representing
+the raw kernel through a fourth power of a Chebyshev polynomial. Polynomial parity, cosine
+expansions, and orthogonality integrals establish continuity and prepare exact mass calculations
+for the approximation infrastructure associated with [WangEtAl2026].
+
+## Main statements
+
+* `jraw_eq_chebyshev`: Identify the raw kernel with a Chebyshev fourth power.
+* `cheb_U_sq_eval`: Expand a squared Chebyshev value in cosine harmonics.
+* `continuous_jraw`: Prove continuity of the extended raw kernel.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,23 +41,31 @@ namespace Causalean.Mathlib.Analysis.JacksonApproximation
 open MeasureTheory Real
 open scoped BigOperators
 
+/-- The fourth power of the sine quotient `sin (K * t / 2) / sin (t / 2)`, extended by `K ^ 4`
+where the denominator vanishes. -/
 noncomputable def jraw (K : ℕ) (t : ℝ) : ℝ :=
   if Real.sin (t / 2) = 0 then (K : ℝ) ^ 4
   else (Real.sin ((K : ℝ) * t / 2) / Real.sin (t / 2)) ^ 4
 
+/-- The integral of the unnormalized Jackson kernel over `[-π, π]`. -/
 noncomputable def jrawMass (K : ℕ) : ℝ :=
   ∫ t in Set.Icc (-Real.pi) Real.pi, jraw K t
 
+/-- The unnormalized Jackson kernel divided by its integral over `[-π, π]`. -/
 noncomputable def jackson (K : ℕ) (t : ℝ) : ℝ := jraw K t / jrawMass K
 
+/-- Where `sin (t / 2)` is nonzero, the raw kernel is the fourth power of the sine quotient. -/
 theorem jraw_eq_of_sin_ne_zero (K : ℕ) {t : ℝ} (ht : Real.sin (t / 2) ≠ 0) :
     jraw K t = (Real.sin ((K : ℝ) * t / 2) / Real.sin (t / 2)) ^ 4 := by
   simp [jraw, ht]
 
+/-- Where `sin (t / 2)` vanishes, the raw kernel equals `K ^ 4`. -/
 theorem jraw_eq_of_sin_eq_zero (K : ℕ) {t : ℝ} (ht : Real.sin (t / 2) = 0) :
     jraw K t = (K : ℝ) ^ 4 := by
   simp [jraw, ht]
 
+/-- For positive `K`, the raw kernel is the fourth power of the Chebyshev polynomial `U` of
+degree `K - 1` evaluated at `cos (t / 2)`. -/
 lemma jraw_eq_chebyshev (K : ℕ) (hK : 0 < K) (t : ℝ) :
     jraw K t =
       ((Polynomial.Chebyshev.U ℝ ((K - 1 : ℕ) : ℤ)).eval (Real.cos (t / 2))) ^ 4 := by
@@ -69,6 +97,8 @@ lemma jraw_eq_chebyshev (K : ℕ) (hK : 0 < K) (t : ℝ) :
       ring
     exact (congrArg Real.sin harg).symm.trans hu.symm
 
+/-- Composing a real polynomial with `-X` multiplies its coefficient of degree `k` by `(-1) ^
+k`. -/
 private lemma coeff_comp_neg_X (p : Polynomial ℝ) (k : ℕ) :
     (p.comp (-Polynomial.X)).coeff k = (-1 : ℝ) ^ k * p.coeff k := by
   rw [p.as_sum_range_C_mul_X_pow]
@@ -98,6 +128,8 @@ private lemma coeff_comp_neg_X (p : Polynomial ℝ) (k : ℕ) :
       rw [← Polynomial.C_pow, Polynomial.coeff_C_mul, Polynomial.coeff_X_pow]
       simp [hbk.symm]
 
+/-- A real polynomial with even evaluation factors through `X ^ 2`, with the factor's degree at
+most half the original degree. -/
 lemma exists_comp_sq_of_eval_neg_eq (p : Polynomial ℝ)
     (hp : ∀ x : ℝ, p.eval (-x) = p.eval x) :
     ∃ q : Polynomial ℝ, q.natDegree ≤ p.natDegree / 2 ∧
@@ -133,6 +165,8 @@ lemma exists_comp_sq_of_eval_neg_eq (p : Polynomial ℝ)
     congr 1
     exact (Nat.two_mul_div_two_of_even (heven i hi)).symm
 
+/-- The difference of the squared complex sines at `a + b` and `a` equals `sin (2 * a + b) * sin
+b`. -/
 private lemma complex_sin_sq_step (a b : ℂ) :
     Complex.sin (a + b) ^ 2 - Complex.sin a ^ 2 =
       Complex.sin (2 * a + b) * Complex.sin b := by
@@ -142,6 +176,7 @@ private lemma complex_sin_sq_step (a b : ℂ) :
   rw [Complex.cos_sq' a, Complex.cos_sq' b]
   ring
 
+/-- Over the complex numbers, the difference `U (n + 1) ^ 2 - U n ^ 2` equals `U (2 * n + 2)`. -/
 private lemma cheb_U_sq_sub (n : ℕ) :
     Polynomial.Chebyshev.U ℂ ((n + 1 : ℕ) : ℤ) ^ 2 -
         Polynomial.Chebyshev.U ℂ (n : ℤ) ^ 2 =
@@ -179,6 +214,7 @@ private lemma cheb_U_sq_sub (n : ℕ) :
     push_cast at htrig ⊢
     convert! htrig using 1 <;> ring
 
+/-- Over the reals, the difference `U (n + 1) ^ 2 - U n ^ 2` equals `U (2 * n + 2)`. -/
 private lemma cheb_U_sq_sub_real (n : ℕ) :
     Polynomial.Chebyshev.U ℝ ((n + 1 : ℕ) : ℤ) ^ 2 -
         Polynomial.Chebyshev.U ℝ (n : ℤ) ^ 2 =
@@ -186,6 +222,8 @@ private lemma cheb_U_sq_sub_real (n : ℕ) :
   apply Polynomial.map_injective Complex.ofRealHom Complex.ofReal_injective
   simpa using cheb_U_sq_sub n
 
+/-- The even-index Chebyshev polynomial `U (2 * r)` at `cos (t / 2)` equals one plus twice the
+sum of the first `r` cosine harmonics. -/
 private lemma cheb_U_even_eval (r : ℕ) (t : ℝ) :
     (Polynomial.Chebyshev.U ℝ ((2 * r : ℕ) : ℤ)).eval (Real.cos (t / 2)) =
       1 + 2 * ∑ j ∈ Finset.range r, Real.cos (((j + 1 : ℕ) : ℝ) * t) := by
@@ -210,6 +248,8 @@ private lemma cheb_U_even_eval (r : ℕ) (t : ℝ) :
       rw [harg]
       ring
 
+/-- The square of `U n` at `cos (t / 2)` has cosine expansion with constant term `n + 1` and
+harmonic weights `2 * (n - j)`. -/
 lemma cheb_U_sq_eval (n : ℕ) (t : ℝ) :
     (Polynomial.Chebyshev.U ℝ (n : ℤ)).eval (Real.cos (t / 2)) ^ 2 =
       (n + 1 : ℝ) + 2 * ∑ j ∈ Finset.range n,
@@ -252,6 +292,7 @@ lemma cheb_U_sq_eval (n : ℕ) (t : ℝ) :
             ring
           linear_combination 2 * hsum
 
+/-- The integral of a positive integer cosine harmonic over `[-π, π]` is zero. -/
 lemma integral_cos_nat (n : ℕ) (hn : 0 < n) :
     (∫ t in Set.Icc (-Real.pi) Real.pi, Real.cos ((n : ℝ) * t)) = 0 := by
   rw [MeasureTheory.integral_Icc_eq_integral_Ioc,
@@ -261,6 +302,7 @@ lemma integral_cos_nat (n : ℕ) (hn : 0 < n) :
   rw [intervalIntegral.integral_comp_mul_left Real.cos hn0, integral_cos]
   simp
 
+/-- The integral of a nonzero integer cosine harmonic over `[-π, π]` is zero. -/
 private lemma integral_cos_int (k : ℤ) (hk : k ≠ 0) :
     (∫ t in Set.Icc (-Real.pi) Real.pi, Real.cos ((k : ℝ) * t)) = 0 := by
   rw [MeasureTheory.integral_Icc_eq_integral_Ioc,
@@ -270,6 +312,7 @@ private lemma integral_cos_int (k : ℤ) (hk : k ≠ 0) :
   rw [intervalIntegral.integral_comp_mul_left Real.cos hk0, integral_cos]
   simp
 
+/-- The integral of the constant `c` over `[-π, π]` is `2 * π * c`. -/
 lemma integral_const_Icc (c : ℝ) :
     (∫ _t in Set.Icc (-Real.pi) Real.pi, c) = 2 * Real.pi * c := by
   rw [MeasureTheory.integral_Icc_eq_integral_Ioc,
@@ -280,6 +323,8 @@ lemma integral_const_Icc (c : ℝ) :
   ring
   exact hc
 
+/-- Positive integer cosine harmonics have product integral `π` when their frequencies agree and
+zero otherwise. -/
 private lemma integral_cos_mul_cos (m n : ℕ) (hm : 0 < m) (hn : 0 < n) :
     (∫ t in Set.Icc (-Real.pi) Real.pi,
       Real.cos ((m : ℝ) * t) * Real.cos ((n : ℝ) * t)) =
@@ -322,6 +367,8 @@ private lemma integral_cos_mul_cos (m n : ℕ) (hm : 0 < m) (hn : 0 < n) :
     rw [integral_cos_int _ hsub0, integral_cos_int _ hadd0]
     norm_num
 
+/-- The integral of a squared finite cosine sum over `[-π, π]` is `2 * π` times the squared
+constant coefficient plus `π` times the sum of squared harmonic coefficients. -/
 lemma integral_sq_cos_sum (N : ℕ) (c : ℝ) (a : ℕ → ℝ) :
     (∫ t in Set.Icc (-Real.pi) Real.pi,
       (c + ∑ j ∈ Finset.range N,
@@ -445,6 +492,8 @@ lemma integral_sq_cos_sum (N : ℕ) (c : ℝ) (a : ℕ → ℝ) :
       rw [MeasureTheory.integral_const_mul, hzero, hsq, hconst]
       ring
 
+/-- The sum of `(n - j) ^ 2` for `j < n`, interpreted over the reals, is `n * (n + 1) * (2 * n +
+1) / 6`. -/
 lemma sum_range_sub_sq (n : ℕ) :
     ∑ j ∈ Finset.range n, ((n : ℝ) - (j : ℝ)) ^ 2 =
       (n : ℝ) * (n + 1) * (2 * n + 1) / 6 := by
@@ -468,6 +517,7 @@ lemma sum_range_sub_sq (n : ℕ) :
           push_cast
           ring
 
+/-- The unnormalized Jackson kernel is continuous. -/
 @[fun_prop]
 theorem continuous_jraw (K : ℕ) : Continuous (jraw K) := by
   by_cases hK : K = 0
@@ -482,17 +532,21 @@ theorem continuous_jraw (K : ℕ) : Continuous (jraw K) := by
       exact jraw_eq_chebyshev K hKpos t]
     fun_prop
 
+/-- The unnormalized Jackson kernel is measurable. -/
 @[fun_prop]
 theorem measurable_jraw (K : ℕ) : Measurable (jraw K) := by
   exact (continuous_jraw K).measurable
 
+/-- The unnormalized Jackson kernel is integrable on `[-π, π]`. -/
 theorem integrableOn_jraw (K : ℕ) : IntegrableOn (jraw K) (Set.Icc (-Real.pi) Real.pi) := by
   exact (continuous_jraw K).continuousOn.integrableOn_compact isCompact_Icc
 
+/-- The unnormalized Jackson kernel is pointwise nonnegative. -/
 theorem jraw_nonneg (K : ℕ) (t : ℝ) : 0 ≤ jraw K t := by
   unfold jraw
   split_ifs <;> positivity
 
+/-- The unnormalized Jackson kernel is an even function. -/
 theorem jraw_even (K : ℕ) : Function.Even (jraw K) := by
   intro t
   by_cases ht : Real.sin (t / 2) = 0

@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationStat
 import Qatlib.Concepts.QsvtCore.PolyApprox.EvenIntervalSOS
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+
+/-!
+# Real parts of completed signal-processing pairs
+
+`theorem5RealCharacterization` proves that two real polynomials satisfying the degree, parity,
+and weighted interval inequality are the real parts of a complex completed pair, and conversely.
+Auxiliary results transfer degree and parity through complex completion and extraction of real
+parts. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `theorem5RealCharacterization`: characterize the real parts of a completed pair.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -21,6 +39,7 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- Complex completion of two real polynomials with parity `k` has response parity `k`. -/
 private theorem completion_parity {k : ℕ} {p b : Polynomial ℝ}
     (hp : HasRealParity k p) (hb : HasRealParity k b) :
     HasResponseParity k (completionP p b) := by
@@ -30,6 +49,8 @@ private theorem completion_parity {k : ℕ} {p b : Polynomial ℝ}
   simp only [completionP, add_comp, mul_comp, C_comp, hp', hb']
   ring
 
+/-- The degree of a complex completion is at most the maximum of the degrees of its two real
+components. -/
 private theorem completion_degree (p b : Polynomial ℝ) :
     (completionP p b).degree ≤ max p.degree b.degree := by
   unfold completionP
@@ -38,6 +59,8 @@ private theorem completion_degree (p b : Polynomial ℝ) :
   · rw [degree_C_mul (by norm_num : (Complex.I : ℂ) ≠ 0)]
     exact degree_map_le.trans (le_max_right _ _)
 
+/-- If `p` has degree at most `k` and `q` has degree less than `k`, the residual `1 - p^2 - (1 -
+X^2) * q^2` has degree at most `2 * k`. -/
 private theorem residual_degree {k : ℕ} {p q : Polynomial ℝ}
     (hp : p.degree ≤ (k : WithBot ℕ)) (hq : q.degree < (k : WithBot ℕ)) :
     (1 - p ^ 2 - (1 - X ^ 2) * q ^ 2).degree ≤ ((2 * k : ℕ) : WithBot ℕ) := by
@@ -71,6 +94,8 @@ private theorem residual_degree {k : ℕ} {p q : Polynomial ℝ}
   have h3 := natDegree_sub_le (1 - p ^ 2) ((1 - X ^ 2) * q ^ 2)
   omega
 
+/-- The polynomial identity expressing `p` as the real part of `P` implies equality of their
+real evaluations at every real argument. -/
 private theorem real_part_eval {P : Polynomial ℂ} {p : Polynomial ℝ}
     (h : P + conjugatePolynomial P = C (2 : ℂ) * p.map Complex.ofRealHom)
     (x : ℝ) : (P.eval (x : ℂ)).re = p.eval x := by
@@ -80,6 +105,8 @@ private theorem real_part_eval {P : Polynomial ℂ} {p : Polynomial ℝ}
   simp [conjugatePolynomial_eval_real, hm, Complex.mul_re] at he
   linarith
 
+/-- A real polynomial extracted from the real part of a complex polynomial inherits its
+prescribed parity. -/
 private theorem real_part_parity {P : Polynomial ℂ} {p : Polynomial ℝ} {k : ℕ}
     (hp : HasResponseParity k P)
     (hr : P + conjugatePolynomial P = C (2 : ℂ) * p.map Complex.ofRealHom) :
@@ -94,6 +121,8 @@ private theorem real_part_parity {P : Polynomial ℂ} {p : Polynomial ℝ} {k : 
     real_part_eval hr (-x), real_part_eval hr x] at he
   simpa only [eval_comp, eval_neg, eval_X, eval_mul, eval_C] using he
 
+/-- The degree of a real polynomial extracted from the real part of `P` is at most the degree of
+`P`. -/
 private theorem real_part_degree {P : Polynomial ℂ} {p : Polynomial ℝ}
     (hr : P + conjugatePolynomial P = C (2 : ℂ) * p.map Complex.ofRealHom) :
     p.degree ≤ P.degree := by
@@ -102,6 +131,9 @@ private theorem real_part_degree {P : Polynomial ℂ} {p : Polynomial ℝ}
     degree_map_eq_of_injective Complex.ofRealHom.injective] at hd
   exact hd.trans (max_le le_rfl degree_map_le)
 
+/-- Real polynomial pairs satisfying the prescribed degree and parity constraints and weighted
+squared bound on `[-1, 1]` are exactly the real parts of complex completed pairs, as in
+[Gilyén et al., Theorem 5][GilyenSuLowWiebe2019]. -/
 theorem theorem5RealCharacterization : Theorem5RealCharacterization := by
   intro k Pt Qt
   constructor

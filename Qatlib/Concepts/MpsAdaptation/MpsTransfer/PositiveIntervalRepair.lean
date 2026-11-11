@@ -10,6 +10,28 @@ import Mathlib.Tactic.Abel
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 
+/-!
+# Repair into a positive matrix interval
+
+This module proves that `positiveIntervalRepair` lies between zero and `q` times the identity
+whenever `q ≥ 0` and the repair radius is positive. A Hermitian approximation within radius `r`
+of a matrix in that interval satisfies the repair guard.
+
+The repaired matrix is within `2 * r * q / (q + 2 * r)` of the target, and hence within `2 * r`.
+The order and operator-norm estimates use the matrix-analysis framework of [Bhatia1997].
+
+## Main statements
+
+* `positive_interval_repair_mem`: The repaired matrix lies in the specified positive interval.
+* `positive_interval_repair_guard_of_error`: A sufficiently accurate Hermitian approximation
+  satisfies the guard.
+* `positive_interval_repair_error`: The repair has the stated quantitative approximation bounds.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
@@ -21,6 +43,8 @@ variable {N : Type*} [Fintype N] [DecidableEq N]
 
 noncomputable local instance repairMatrixCStar : CStarAlgebra (Matrix N N ℂ) where
 
+/-- For `q ≥ 0` and `r > 0`, the repair weight lies in `[0, 1)` and satisfies the two scalar
+identities relating it to `q` and `r`. -/
 private theorem repair_weight_properties (q r : ℝ) (hq : 0 ≤ q) (hr : 0 < r) :
     0 ≤ positiveIntervalRepairWeight q r ∧
     positiveIntervalRepairWeight q r < 1 ∧
@@ -34,12 +58,16 @@ private theorem repair_weight_properties (q r : ℝ) (hq : 0 ≤ q) (hr : 0 < r)
     change (1-q/(q+2*r))*q = 2*(q/(q+2*r))*r
     nlinarith [hm]⟩
 
+/-- Multiplying the identity matrix by ordered real scalars preserves their order in the
+positive semidefinite matrix order. -/
 private theorem repair_smul_one_mono {a b : ℝ} (hab : a ≤ b) :
     a • (1 : Matrix N N ℂ) ≤ b • (1 : Matrix N N ℂ) := by
   rw [Matrix.le_iff]
   simpa only [sub_smul] using
     (Matrix.PosSemidef.one (n := N) (R := ℂ)).smul (sub_nonneg.mpr hab)
 
+/-- A Hermitian matrix of operator norm at most `r` lies between `-r • 1` and `r • 1` in the
+positive semidefinite order. -/
 private theorem repair_norm_order_bounds (H : Matrix N N ℂ) (r : ℝ)
     (hH : H.IsHermitian) (hn : ‖H‖ ≤ r) :
     (H + r • (1 : Matrix N N ℂ)).PosSemidef ∧
@@ -56,6 +84,8 @@ private theorem repair_norm_order_bounds (H : Matrix N N ℂ) (r : ℝ)
   · simpa only [Matrix.le_iff, sub_neg_eq_add] using (neg_le_neg hs).trans hl
   · exact hu.trans hs
 
+/-- A Hermitian matrix lying between `-c • 1` and `c • 1` for nonnegative `c` has operator norm
+at most `c`. -/
 private theorem repair_norm_le_of_order_bounds (H : Matrix N N ℂ) (c : ℝ)
     (hc : 0 ≤ c) (hH : H.IsHermitian)
     (hl : (H + c • (1 : Matrix N N ℂ)).PosSemidef)
@@ -75,6 +105,8 @@ private theorem repair_norm_le_of_order_bounds (H : Matrix N N ℂ) (c : ℝ)
     exact abs_le.mpr ⟨hls x hx, hus x hx⟩
   simpa only [cfc_id ℝ H hH.isSelfAdjoint] using hn
 
+/-- For nonnegative `q` and positive `r`, the repaired matrix is positive semidefinite and
+bounded above by `q • 1`. -/
 theorem positive_interval_repair_mem (M : Matrix N N ℂ) (q r : ℝ)
     (hq : 0 ≤ q) (hr : 0 < r) :
     (positiveIntervalRepair M q r).PosSemidef ∧
@@ -96,10 +128,13 @@ theorem positive_interval_repair_mem (M : Matrix N N ℂ) (q r : ℝ)
   · simp only [positiveIntervalRepair, if_neg hg, sub_zero]
     exact ⟨Matrix.PosSemidef.zero, Matrix.PosSemidef.one.smul hq⟩
 
+/-- Repair with upper endpoint zero returns the zero matrix for every input and radius. -/
 theorem positive_interval_repair_zero (M : Matrix N N ℂ) (r : ℝ) :
     positiveIntervalRepair M 0 r = 0 := by
   simp [positiveIntervalRepair, positiveIntervalRepairWeight]
 
+/-- A Hermitian matrix within operator-norm distance `r` of a positive matrix bounded above by
+`q • 1` satisfies the repair guard when `q ≥ 0` and `r > 0`. -/
 theorem positive_interval_repair_guard_of_error (M E : Matrix N N ℂ) (q r : ℝ)
     (hq : 0 ≤ q) (hr : 0 < r) (hM : M.IsHermitian) (hE : E.PosSemidef)
     (hcap : (q • (1 : Matrix N N ℂ) - E).PosSemidef) (herr : ‖M-E‖ ≤ r) :
@@ -111,6 +146,8 @@ theorem positive_interval_repair_guard_of_error (M E : Matrix N N ℂ) (q r : �
     rw [add_smul]
     abel
 
+/-- Repairing a Hermitian approximation within distance `r` of a matrix in `[0, q • 1]` gives
+error at most `2 * r * q / (q + 2 * r)` and at most `2 * r`, for `q ≥ 0` and `r > 0`. -/
 theorem positive_interval_repair_error (M E : Matrix N N ℂ) (q r : ℝ)
     (hq : 0 ≤ q) (hr : 0 < r) (hM : M.IsHermitian) (hE : E.PosSemidef)
     (hcap : (q • (1 : Matrix N N ℂ) - E).PosSemidef) (herr : ‖M-E‖ ≤ r) :

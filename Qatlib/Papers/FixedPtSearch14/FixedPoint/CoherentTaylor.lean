@@ -10,6 +10,32 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Data.Int.Order.Lemmas
 import Mathlib.Data.Nat.Size
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Coherent Taylor arithmetic and circuit resources
+
+The module supplies bounded-scale amplification budgets and workspace error estimates, dyadic
+quantization bounds, and binary arithmetic with explicit Boolean-operation counts. It groups
+grid-time matrix products by sorted words with multiplicities and transports this grouping
+through a truncated Taylor sum. Three-CNOT swaps and phase words provide explicit finite-gate
+implementations of register exchanges and phases on a clean wire.
+
+These constructions belong to the formalization of [YoderLowChuang2014].
+
+## Main statements
+
+* `boundedScale_workspace_error_and_cost`: amplified workspace accuracy and exact circuit
+  counts.
+* `binaryFactorial_correct`: factorial computation with size and operation bounds.
+* `taylor_gridCube_transport`: regrouping of the finite Taylor expression.
+* `exchangeWord_correct`: register-prefix exchange in `3 * k` gates.
+* `boundedCleanPhaseWord_resources`: a phase word with at most nine gates and no queries.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -31,14 +57,18 @@ namespace Qatlib.Papers.FixedPtSearch14.FixedPoint
 open Qatlib Matrix Encoding SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The base-three ceiling logarithm of `2 * bound + 1`, used as the amplification level count. -/
 def boundedScaleLevels (bound : ℕ) : ℕ := Nat.clog 3 (2 * bound + 1)
 
+/-- Twice the real-valued bound is at most three raised to the selected amplification level
+count. -/
 private theorem twice_bound_le_three_pow (bound : ℕ) :
     2 * (bound : ℝ) ≤ (3 : ℝ) ^ boundedScaleLevels bound := by
   have hp := Nat.le_pow_clog (by norm_num : 1 < (3 : ℕ)) (2 * bound + 1)
   exact_mod_cast (show 2 * bound ≤ 3 ^ boundedScaleLevels bound from
     (Nat.le_succ _).trans hp)
 
+/-- Three raised to the selected amplification level count is at most `6 * bound + 3`. -/
 theorem boundedScale_degree_le (bound : ℕ) :
     3 ^ boundedScaleLevels bound ≤ 6 * bound + 3 := by
   by_cases hb : bound = 0
@@ -57,6 +87,7 @@ theorem boundedScale_degree_le (bound : ℕ) :
     change 3 ^ (boundedScaleLevels bound).pred < 2 * bound + 1 at hp
     nlinarith
 
+/-- The selected level count is admissible for every nonnegative scale `s` bounded by `bound`. -/
 theorem boundedScaleLevels_admissible (s : ℝ) (bound : ℕ)
     (hs : 0 ≤ s) (hbound : s ≤ bound) :
     generalScaleAdmissible s (boundedScaleLevels bound) := by
@@ -75,9 +106,12 @@ theorem boundedScaleLevels_admissible (s : ℝ) (bound : ℕ)
       rw [← mul_div_assoc, div_le_iff₀ hd]
       nlinarith
 
+/-- The block-encoding error budget `δ ^ 2 / (2 * 15 ^ boundedScaleLevels bound)`. -/
 noncomputable def boundedScaleBlockBudget (bound : ℕ) (δ : ℝ) : ℝ :=
   δ ^ 2 / (2 * (15 : ℝ) ^ boundedScaleLevels bound)
 
+/-- For nonnegative `δ`, the workspace error expression obtained from the selected block budget
+simplifies to `δ`. -/
 theorem boundedScaleBlockBudget_sqrt (bound : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) :
     Real.sqrt (2 * ((15 : ℝ) ^ boundedScaleLevels bound *
       boundedScaleBlockBudget bound δ)) = δ := by
@@ -88,6 +122,9 @@ theorem boundedScaleBlockBudget_sqrt (bound : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) :
     field_simp
   rw [he, Real.sqrt_sq hδ]
 
+/-- Under the unitary, circuit, scale, and block-encoding hypotheses, the amplified word is well
+formed, has the stated exact query and gate counts for itself and its adjoint, and has
+workspace error at most `δ` times the input norm. -/
 theorem boundedScale_workspace_error_and_cost
     {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (O : Matrix H H ℂ) (R : Matrix H I ℂ) (cs : List (AdjointStep H))
@@ -118,6 +155,8 @@ theorem boundedScale_workspace_error_and_cost
     hO hcs hV ha henc ψ
   simpa only [boundedScaleBlockBudget_sqrt bound δ hδ] using! he
 
+/-- Dyadic quantization to `bits` fractional bits has absolute error strictly less than `(1 / 2)
+^ bits`. -/
 theorem quantizedReal_error (θ : ℝ) (bits : ℕ) :
     |θ - quantizedReal θ bits| < (1 / 2 : ℝ) ^ bits := by
   have hp : (0 : ℝ) < 2 ^ bits := by positivity
@@ -135,12 +174,16 @@ theorem quantizedReal_error (θ : ℝ) (bits : ℕ) :
     nlinarith
   simpa only [_root_.one_div_pow] using! he
 
+/-- Replacing an angle by its dyadic quantization changes both its sine and cosine by strictly
+less than `(1 / 2) ^ bits`. -/
 theorem quantizedReal_trig_error (θ : ℝ) (bits : ℕ) :
     |Real.sin θ - Real.sin (quantizedReal θ bits)| < (1 / 2 : ℝ) ^ bits ∧
       |Real.cos θ - Real.cos (quantizedReal θ bits)| < (1 / 2 : ℝ) ^ bits := by
   exact ⟨(Real.abs_sin_sub_sin_le _ _).trans_lt (quantizedReal_error θ bits),
     (Real.abs_cos_sub_cos_le _ _).trans_lt (quantizedReal_error θ bits)⟩
 
+/-- For nonnegative `a` and `b`, the real cast of the maximum of their natural ceilings plus one
+and four is at most `max (a + 2) (max 4 (b + 2))`. -/
 theorem max_natCeil_degree_upper (a b : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b) :
     ((max (⌈a⌉₊ + 1) (max 4 (⌈b⌉₊ + 1)) : ℕ) : ℝ) ≤
       max (a + 2) (max 4 (b + 2)) := by
@@ -150,25 +193,36 @@ theorem max_natCeil_degree_upper (a b : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b) :
   · apply max_le_max le_rfl
     linarith [Nat.ceil_lt_add_one hb]
 
+/-- The natural number represented by a list of Boolean bits in least-significant-bit-first
+order. -/
 def binaryValue : List Bool → ℕ
   | [] => 0
   | b :: bs => b.toNat + 2 * binaryValue bs
 
+/-- A binary computation result consisting of its output bits and a recorded Boolean-operation
+count. -/
 structure BinaryRun where
   bits : List Bool
   booleanOps : ℕ
   deriving Repr, DecidableEq
 
+/-- The sum bit of a full adder, given by the exclusive-or of the two input bits and carry bit. -/
 def fullAdderSum (a b carry : Bool) : Bool := xor (xor a b) carry
 
+/-- The carry bit of a full adder, true exactly when at least two of the three input bits are
+true. -/
 def fullAdderCarry (a b carry : Bool) : Bool :=
   (a && b) || (a && carry) || (b && carry)
 
+/-- The full-adder sum bit plus twice the carry bit equals the sum of the three input bits as
+natural numbers. -/
 theorem fullAdder_value (a b carry : Bool) :
     (fullAdderSum a b carry).toNat + 2 * (fullAdderCarry a b carry).toNat =
       a.toNat + b.toNat + carry.toNat := by
   cases a <;> cases b <;> cases carry <;> decide
 
+/-- Recursive binary addition with an input carry, returning the output bit list and charging
+seven Boolean operations per processed position. -/
 def binaryAdd : List Bool → List Bool → Bool → BinaryRun
   | [], [], carry => ⟨[carry], 0⟩
   | a :: as, [], carry =>
@@ -182,6 +236,8 @@ def binaryAdd : List Bool → List Bool → Bool → BinaryRun
       ⟨fullAdderSum a b carry :: rest.bits, rest.booleanOps + 7⟩
 termination_by as bs _ => as.length + bs.length
 
+/-- Binary addition represents the input sum plus carry, has output length `max as.length
+bs.length + 1`, and records `7 * max as.length bs.length` Boolean operations. -/
 theorem binaryAdd_correct (as bs : List Bool) (carry : Bool) :
     binaryValue (binaryAdd as bs carry).bits =
       binaryValue as + binaryValue bs + carry.toNat ∧
@@ -212,6 +268,8 @@ theorem binaryAdd_correct (as bs : List Bool) (carry : Bool) :
           omega
 termination_by as.length + bs.length
 
+/-- Recursive shift-and-add multiplication of two least-significant-bit-first bit lists,
+recording the operation counts of its additions. -/
 def binaryMultiply : List Bool → List Bool → BinaryRun
   | [], _ => ⟨[], 0⟩
   | a :: as, bs =>
@@ -221,6 +279,9 @@ def binaryMultiply : List Bool → List Bool → BinaryRun
         ⟨added.bits, rest.booleanOps + added.booleanOps⟩
       else ⟨false :: rest.bits, rest.booleanOps⟩
 
+/-- Binary multiplication represents the product, uses at most `2 * as.length + bs.length`
+output bits, and records at most `7 * as.length * (2 * as.length + bs.length + 1)` Boolean
+operations. -/
 theorem binaryMultiply_correct (as bs : List Bool) :
     binaryValue (binaryMultiply as bs).bits = binaryValue as * binaryValue bs ∧
     (binaryMultiply as bs).bits.length ≤ 2 * as.length + bs.length ∧
@@ -240,6 +301,7 @@ theorem binaryMultiply_correct (as bs : List Bool) :
             2 * as.length + bs.length + 1 := by omega
         nlinarith [ih.2.2, ha.2.2]
 
+/-- The binary value of the canonical bit list of a natural number is that number. -/
 theorem binaryValue_bits (n : ℕ) : binaryValue n.bits = n := by
   induction n using Nat.binaryRec' with
   | zero => simp [Nat.zero_bits, binaryValue]
@@ -248,6 +310,8 @@ theorem binaryValue_bits (n : ℕ) : binaryValue n.bits = n := by
       simp only [binaryValue, ih, Nat.bit_val]
       omega
 
+/-- Recursive factorial computation using binary multiplication and accumulating the recorded
+Boolean-operation counts. -/
 def binaryFactorial : ℕ → BinaryRun
   | 0 => ⟨[true], 0⟩
   | n + 1 =>
@@ -255,6 +319,8 @@ def binaryFactorial : ℕ → BinaryRun
       let product := binaryMultiply (n + 1).bits rest.bits
       ⟨product.bits, rest.booleanOps + product.booleanOps⟩
 
+/-- Binary factorial represents `n.factorial`, uses at most `n * (n + 1) + 1` output bits, and
+records at most `28 * n * (n + 1) ^ 3` Boolean operations. -/
 theorem binaryFactorial_correct (n : ℕ) :
     binaryValue (binaryFactorial n).bits = n.factorial ∧
       (binaryFactorial n).bits.length ≤ n * (n + 1) + 1 ∧
@@ -277,24 +343,31 @@ theorem binaryFactorial_correct (n : ℕ) :
           exact ih.2.1
         nlinarith [ih.2.2]
 
+/-- The list of grid indices obtained by sorting the values of `times` in increasing order. -/
 def orderedGridTimes {l M : ℕ} (times : Fin l → Fin M) : List (Fin M) :=
   (List.ofFn times).mergeSort (fun a b => a ≤ b)
 
+/-- Sorting the grid times gives a permutation of their original list. -/
 theorem orderedGridTimes_perm {l M : ℕ} (times : Fin l → Fin M) :
     (orderedGridTimes times).Perm (List.ofFn times) :=
   List.mergeSort_perm _ _
 
+/-- Sorting the grid times preserves the number of occurrences of each grid index. -/
 theorem orderedGridTimes_count {l M : ℕ} (times : Fin l → Fin M) (j : Fin M) :
     (orderedGridTimes times).count j = (List.ofFn times).count j :=
   (orderedGridTimes_perm times).count_eq j
 
+/-- The sum over all grid-time assignments of the matrix products in reverse sorted time order. -/
 noncomputable def gridCube {I : Type} [Fintype I] [DecidableEq I]
     {M : ℕ} (H : Fin M → Matrix I I ℂ) (l : ℕ) : Matrix I I ℂ :=
   ∑ times : Fin l → Fin M, ((orderedGridTimes times).map H).reverse.prod
 
+/-- The number of grid-time assignments whose sorted index list equals `word`. -/
 def gridWordMultiplicity (l M : ℕ) (word : List (Fin M)) : ℕ :=
   (Finset.univ.filter (fun times : Fin l → Fin M => orderedGridTimes times = word)).card
 
+/-- Summing multiplicities over all attainable sorted words gives the total number `M ^ l` of
+grid-time assignments. -/
 theorem gridWordMultiplicity_total (l M : ℕ) :
     (∑ word ∈ Finset.univ.image (fun times : Fin l → Fin M => orderedGridTimes times),
       gridWordMultiplicity l M word) = M ^ l := by
@@ -305,11 +378,15 @@ theorem gridWordMultiplicity_total (l M : ℕ) :
     (fun _ ht => Finset.mem_image_of_mem _ ht)]
   simp
 
+/-- The sum over attainable sorted grid words of their reverse-ordered matrix products weighted
+by their multiplicities. -/
 noncomputable def canonicalGridCube {I : Type} [Fintype I] [DecidableEq I]
     {M : ℕ} (H : Fin M → Matrix I I ℂ) (l : ℕ) : Matrix I I ℂ :=
   ∑ word ∈ Finset.univ.image (fun times : Fin l → Fin M => orderedGridTimes times),
     gridWordMultiplicity l M word • (word.map H).reverse.prod
 
+/-- Grouping grid-time assignments by their sorted words gives the canonical
+multiplicity-weighted matrix sum. -/
 theorem gridCube_eq_canonicalGridCube
     {I : Type} [Fintype I] [DecidableEq I] {M : ℕ}
     (H : Fin M → Matrix I I ℂ) (l : ℕ) :
@@ -334,6 +411,8 @@ theorem gridCube_eq_canonicalGridCube
       rw [(Finset.mem_filter.mp ht).2]
     _ = _ := by rw [Finset.sum_const]
 
+/-- Every truncated Taylor sum built from `gridCube` equals the corresponding sum built from
+`canonicalGridCube` with the same coefficients. -/
 theorem taylor_gridCube_transport
     {I : Type} [Fintype I] [DecidableEq I] {M : ℕ}
     (H : Fin M → Matrix I I ℂ) (τ : ℝ) (K : ℕ) :
@@ -346,11 +425,15 @@ theorem taylor_gridCube_transport
   intro l _
   rw [gridCube_eq_canonicalGridCube]
 
+/-- The three-CNOT gate word with control-target pairs `(c, t)`, `(t, c)`, and `(c, t)`. -/
 def swapWireWord (c t : ℕ) : List FiniteGateCode := [.cx c t, .cx t c, .cx c t]
 
+/-- The register obtained by exchanging the values at positions `c` and `t`. -/
 def swappedRecord {n : ℕ} (c t : Fin n) (x : Reg n) : Reg n :=
   Function.update (Function.update x c (x t)) t (x c)
 
+/-- Three alternating exclusive-or updates at distinct positions exchange their original
+register values. -/
 theorem three_xors_swap {n : ℕ} (c t : Fin n) (hct : c ≠ t) (x : Reg n) :
     (let x₁ := Function.update x t (x t ^^ x c)
      let x₂ := Function.update x₁ c (x₁ c ^^ x₁ t)
@@ -366,11 +449,15 @@ theorem three_xors_swap {n : ℕ} (c t : Fin n) (hct : c ≠ t) (x : Reg n) :
         simp [swappedRecord, Function.update, hct, Ne.symm hct, hxc]
     · simp [swappedRecord, Function.update, hjc, hjt]
 
+/-- The three-CNOT swap word is legal when its two wire indices are distinct and within the
+register. -/
 theorem swapWireWord_legal (n : ℕ) (c t : Fin n) (hct : c ≠ t) :
     finiteWordLegal n (swapWireWord c.val t.val) = true := by
   have hne : c.val ≠ t.val := fun h => hct (Fin.ext h)
   simp [finiteWordLegal, swapWireWord, finiteCodeLegal, c.isLt, t.isLt, hne, Ne.symm hne]
 
+/-- Running the three-CNOT swap word on a basis vector gives the basis vector with the selected
+register bits exchanged. -/
 theorem swapWireWord_run (n : ℕ) (c t : Fin n) (hct : c ≠ t) (x : Reg n) :
     finiteWordRun n (swapWireWord c.val t.val) (Ket x) =
       some (Ket (swappedRecord c t x)) := by
@@ -384,20 +471,27 @@ theorem swapWireWord_run (n : ℕ) (c t : Fin n) (hct : c ≠ t) (x : Reg n) :
     applyGate_cnotGate_ket n t c (Ne.symm hct), applyGate_cnotGate_ket n c t hct]
   rw [three_xors_swap c t hct]
 
+/-- The register obtained by exchanging corresponding positions below `k` between two blocks of
+length `n`. -/
 def exchangePrefix (n k : ℕ) (x : Reg (n + n)) : Reg (n + n) := fun i =>
   if hi : i.val < n then
     if i.val < k then x ⟨n + i.val, by omega⟩ else x i
   else
     if i.val - n < k then x ⟨i.val - n, by omega⟩ else x i
 
+/-- The concatenation of three-CNOT swaps exchanging the first `k` corresponding wire pairs
+between two length-`n` blocks. -/
 def exchangeWord (n : ℕ) : ℕ → List FiniteGateCode
   | 0 => []
   | k + 1 => exchangeWord n k ++ swapWireWord k (n + k)
 
+/-- Exchanging a prefix of length zero leaves the register unchanged. -/
 theorem exchangePrefix_zero (n : ℕ) (x : Reg (n + n)) : exchangePrefix n 0 x = x := by
   funext i
   simp [exchangePrefix]
 
+/-- Swapping the next corresponding wire pair extends the exchanged prefix from length `k` to
+length `k + 1` when `k < n`. -/
 theorem exchangePrefix_step (n k : ℕ) (hk : k < n) (x : Reg (n + n)) :
     swappedRecord ⟨k, by omega⟩ ⟨n + k, by omega⟩ (exchangePrefix n k x) =
       exchangePrefix n (k + 1) x := by
@@ -424,6 +518,8 @@ theorem exchangePrefix_step (n k : ℕ) (hk : k < n) (x : Reg (n + n)) :
         have he : (i.val - n < k) = (i.val - n < k + 1) := propext (by omega)
         simp only [he]
 
+/-- Running a concatenation of finite gate words is sequential execution composed through
+`Option.bind`. -/
 theorem finiteWordRun_append (n : ℕ) (gs hs : List FiniteGateCode) (ψ : QState (Reg n)) :
     finiteWordRun n (gs ++ hs) ψ =
       (finiteWordRun n gs ψ).bind (finiteWordRun n hs) := by
@@ -434,6 +530,8 @@ theorem finiteWordRun_append (n : ℕ) (gs hs : List FiniteGateCode) (ψ : QStat
     by_cases hh : finiteWordLegal n hs = true <;>
     simp [finiteWordRun, happ, hg, hh, finiteCodeCircuit, List.map_append, run_append]
 
+/-- For `k ≤ n`, the exchange word is legal, has length `3 * k`, and maps each basis vector to
+the basis vector with the corresponding block prefixes exchanged. -/
 theorem exchangeWord_correct (n k : ℕ) (hk : k ≤ n) :
     finiteWordLegal (n + n) (exchangeWord n k) = true ∧
       (exchangeWord n k).length = 3 * k ∧
@@ -459,17 +557,22 @@ theorem exchangeWord_correct (n k : ℕ) (hk : k ≤ n) :
         congr 2
         exact exchangePrefix_step n k hkn x
 
+/-- A finite gate word is legal on a register with zero wires exactly when it is empty. -/
 theorem zeroWire_legal_iff (gs : List FiniteGateCode) :
     finiteWordLegal 0 gs = true ↔ gs = [] := by
   cases gs with
   | nil => simp [finiteWordLegal]
   | cons g gs => cases g <;> simp [finiteWordLegal, finiteCodeLegal]
 
+/-- The T-gate phase `exp (i * π / 4)`. -/
 noncomputable def fixedTPhase : ℂ := Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I)
 
+/-- The gate word applying X, then `k` T gates, then X again on the selected wire. -/
 def cleanPhaseWord (wire k : ℕ) : List FiniteGateCode :=
   [.x wire] ++ List.replicate k (.t wire) ++ [.x wire]
 
+/-- The matrix of a concatenated gate word is the matrix of its second word multiplied by the
+matrix of its first word. -/
 theorem finiteCodeWordMatrix_append (n : ℕ) (gs hs : List FiniteGateCode) :
     finiteCodeWordMatrix n (gs ++ hs) =
       finiteCodeWordMatrix n hs * finiteCodeWordMatrix n gs := by
@@ -478,6 +581,8 @@ theorem finiteCodeWordMatrix_append (n : ℕ) (gs hs : List FiniteGateCode) :
   | cons g gs ih =>
       simp only [List.cons_append, finite_phase_word_cons, ih, Matrix.mul_assoc]
 
+/-- Placing a diagonal one-qubit gate at a wire gives the register-diagonal matrix whose entry
+depends on that wire's bit. -/
 theorem wireGate_diagonal (n : ℕ) (w : Fin n) (f : Bool → ℂ) :
     wireGate n w (Matrix.diagonal f) = Matrix.diagonal (fun x : Reg n => f (x w)) := by
   ext x y
@@ -497,6 +602,8 @@ theorem wireGate_diagonal (n : ℕ) (w : Fin n) (f : Bool → ℂ) :
       simp [Matrix.diagonal_apply_ne _ hw]
     · simp [hs]
 
+/-- The `k`th power of the T gate is diagonal with entry one at false and `fixedTPhase ^ k` at
+true. -/
 theorem tGate_pow_diagonal (k : ℕ) :
     tGate ^ k = Matrix.diagonal (fun b : Bool => if b then fixedTPhase ^ k else 1) := by
   rw [tGate, Rz, Matrix.diagonal_pow]
@@ -504,6 +611,8 @@ theorem tGate_pow_diagonal (k : ℕ) :
   funext b
   cases b <;> simp [fixedTPhase]
 
+/-- Conjugating the `k`th T-gate power by Pauli X gives the diagonal phase `fixedTPhase ^ k` at
+false and one at true. -/
 theorem x_tGate_pow_x (k : ℕ) :
     PauliX * tGate ^ k * PauliX =
       Matrix.diagonal (fun b : Bool => if b then 1 else fixedTPhase ^ k) := by
@@ -511,6 +620,8 @@ theorem x_tGate_pow_x (k : ℕ) :
   ext a b
   cases a <;> cases b <;> simp [Matrix.mul_apply, PauliX, permMatrix]
 
+/-- A word of `k` T gates on one wire has the matrix of the `k`th T-gate power placed on that
+wire. -/
 theorem tWord_matrix (n : ℕ) (w : Fin n) (k : ℕ) :
     finiteCodeWordMatrix n (List.replicate k (.t w.val)) = wireGate n w (tGate ^ k) := by
   induction k with
@@ -521,6 +632,8 @@ theorem tWord_matrix (n : ℕ) (w : Fin n) (k : ℕ) :
       change wireGate n w (tGate ^ k) * wireGate n w tGate = _
       rw [wireGate_mul, ← pow_succ]
 
+/-- The clean phase word is diagonal, applying `fixedTPhase ^ k` when the selected bit is false
+and one when it is true. -/
 theorem cleanPhaseWord_matrix (n : ℕ) (w : Fin n) (k : ℕ) :
     finiteCodeWordMatrix n (cleanPhaseWord w.val k) =
       Matrix.diagonal (fun x : Reg n => if x w then 1 else fixedTPhase ^ k) := by
@@ -532,6 +645,8 @@ theorem cleanPhaseWord_matrix (n : ℕ) (w : Fin n) (k : ℕ) :
     tWord_matrix, hx, ← Matrix.mul_assoc, wireGate_mul, wireGate_mul,
     x_tGate_pow_x, wireGate_diagonal]
 
+/-- The clean phase word on a valid wire is legal, makes zero queries, and has gate count `k +
+2`. -/
 theorem cleanPhaseWord_legal_counts (n : ℕ) (w : Fin n) (k : ℕ) :
     finiteWordLegal n (cleanPhaseWord w.val k) = true ∧
       QueryCount (finiteCodeCircuit n (cleanPhaseWord w.val k)) = 0 ∧
@@ -541,6 +656,8 @@ theorem cleanPhaseWord_legal_counts (n : ℕ) (w : Fin n) (k : ℕ) :
   · simp [cleanPhaseWord, finiteWordLegal, finiteCodeLegal, w.isLt]
   · simpa [cleanPhaseWord] using! hcounts.2
 
+/-- On a state supported where the selected wire is false, the clean phase word multiplies the
+whole state by `fixedTPhase ^ k`. -/
 theorem cleanPhaseWord_run_support (n : ℕ) (w : Fin n) (k : ℕ)
     (ψ : QState (Reg n)) (hclean : ∀ x : Reg n, x w = true → ψ x = 0) :
     finiteWordRun n (cleanPhaseWord w.val k) ψ = some (fixedTPhase ^ k • ψ) := by
@@ -552,6 +669,7 @@ theorem cleanPhaseWord_run_support (n : ℕ) (w : Fin n) (k : ℕ)
   rw [Matrix.mulVec_diagonal]
   cases hx : x w <;> simp [hx, hclean x, Pi.smul_apply, smul_eq_mul]
 
+/-- The fourth power of the T-gate phase is negative one. -/
 theorem fixedTPhase_four : fixedTPhase ^ 4 = -1 := by
   rw [fixedTPhase, ← Complex.exp_nat_mul]
   convert! Complex.exp_pi_mul_I using 1
@@ -559,24 +677,31 @@ theorem fixedTPhase_four : fixedTPhase ^ 4 = -1 := by
   push_cast
   ring
 
+/-- The eighth power of the T-gate phase is one. -/
 theorem fixedTPhase_eighth : fixedTPhase ^ 8 = 1 := by
   rw [show (8 : ℕ) = 4 * 2 by decide, pow_mul, fixedTPhase_four]
   norm_num
 
+/-- Powers of the T-gate phase depend only on their exponent modulo eight. -/
 theorem fixedTPhase_pow_mod (k : ℕ) : fixedTPhase ^ k = fixedTPhase ^ (k % 8) := by
   calc
     fixedTPhase ^ k = fixedTPhase ^ (k % 8 + 8 * (k / 8)) := by rw [Nat.mod_add_div]
     _ = fixedTPhase ^ (k % 8) := by rw [pow_add, pow_mul, fixedTPhase_eighth, one_pow, mul_one]
 
+/-- The clean phase word with its T-gate repetition count reduced modulo eight. -/
 def boundedCleanPhaseWord (wire k : ℕ) : List FiniteGateCode :=
   cleanPhaseWord wire (k % 8)
 
+/-- On a state supported where the selected wire is false, reducing the phase-word repetition
+count modulo eight still applies the scalar `fixedTPhase ^ k`. -/
 theorem boundedCleanPhaseWord_run (n : ℕ) (w : Fin n) (k : ℕ)
     (ψ : QState (Reg n)) (hclean : ∀ x : Reg n, x w = true → ψ x = 0) :
     finiteWordRun n (boundedCleanPhaseWord w.val k) ψ = some (fixedTPhase ^ k • ψ) := by
   rw [fixedTPhase_pow_mod k]
   exact cleanPhaseWord_run_support n w (k % 8) ψ hclean
 
+/-- The bounded clean phase word on a valid wire is legal, makes zero queries, and uses exactly
+`k % 8 + 2` gates, hence at most nine. -/
 theorem boundedCleanPhaseWord_resources (n : ℕ) (w : Fin n) (k : ℕ) :
     finiteWordLegal n (boundedCleanPhaseWord w.val k) = true ∧
       QueryCount (finiteCodeCircuit n (boundedCleanPhaseWord w.val k)) = 0 ∧
@@ -589,6 +714,8 @@ theorem boundedCleanPhaseWord_resources (n : ℕ) (w : Fin n) (k : ℕ) :
   have hm := Nat.mod_lt k (by decide : 0 < 8)
   omega
 
+/-- Running `k` T gates on a valid wire multiplies each amplitude by `fixedTPhase ^ k` exactly
+when that wire's bit is true. -/
 theorem tWord_run (n : ℕ) (w : Fin n) (k : ℕ) (ψ : QState (Reg n)) :
     finiteWordRun n (List.replicate k (.t w.val)) ψ =
       some (fun x => (if x w then fixedTPhase ^ k else 1) * ψ x) := by

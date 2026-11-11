@@ -18,6 +18,26 @@ import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+/-!
+# Iteration choice for known-count Grover search
+
+`groverIterations` rounds π/(4θ) down to a natural number, and `knownCountAngle` represents a
+marked fraction by arcsin(√p). The phase and success estimates establish
+`knownCount_searchClaim`, with a common circuit for all marked sets of the specified size.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `knownCount_searchClaim`: For a positive marked count at most half the search-space size,
+  `KnownCountSearchClaim` holds. See [Ambainis2005].
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
@@ -29,8 +49,11 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 
 open Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- The natural floor of π/(4θ), used as the known-count Grover iteration count. -/
 noncomputable def groverIterations (θ : ℝ) : ℕ := ⌊Real.pi / (4 * θ)⌋₊
 
+/-- For θ > 0, the final angle after `groverIterations θ` iterations differs from π/2 by at most
+θ. -/
 theorem groverIterations_phase_error {θ : ℝ} (hθ : 0 < θ) :
     |(2 * (groverIterations θ : ℝ) + 1) * θ - Real.pi / 2| ≤ θ := by
   have hd : 0 < 4 * θ := by positivity
@@ -43,6 +66,8 @@ theorem groverIterations_phase_error {θ : ℝ} (hθ : 0 < θ) :
   apply abs_le.mpr
   constructor <;> nlinarith
 
+/-- For 0 < θ ≤ π/2, the prescribed iteration count yields sine-square success at least 1 −
+sin²(θ). -/
 theorem groverIterations_success {θ : ℝ} (hθ : 0 < θ) (hθπ : θ ≤ Real.pi / 2) :
     1 - (Real.sin θ) ^ 2 ≤
       (Real.sin ((2 * (groverIterations θ : ℝ) + 1) * θ)) ^ 2 := by
@@ -64,6 +89,7 @@ theorem groverIterations_success {θ : ℝ} (hθ : 0 < θ) (hθπ : θ ≤ Real.
   rw [hid] at hsq
   nlinarith [Real.sin_sq_add_cos_sq θ]
 
+/-- For θ > 0 and sin(θ) > 0, the iteration count is at most π/(4 sin(θ)). -/
 theorem groverIterations_le {θ : ℝ} (hθ : 0 < θ) (hs : 0 < Real.sin θ) :
     (groverIterations θ : ℝ) ≤ Real.pi / (4 * Real.sin θ) := by
   calc
@@ -73,8 +99,11 @@ theorem groverIterations_le {θ : ℝ} (hθ : 0 < θ) (hs : 0 < Real.sin θ) :
       div_le_div_of_nonneg_left Real.pi_pos.le (by positivity)
         (by nlinarith [Real.sin_le hθ.le])
 
+/-- The Grover angle arcsin(√p) associated with marked fraction p. -/
 noncomputable def knownCountAngle (p : ℝ) : ℝ := Real.arcsin (Real.sqrt p)
 
+/-- For 0 < p < 1, `knownCountAngle p` lies strictly between zero and π/2, has sine √p and sine
+square p, and has nonzero cosine. -/
 theorem knownCountAngle_spec {p : ℝ} (hp : 0 < p) (hp1 : p < 1) :
     0 < knownCountAngle p ∧ knownCountAngle p < Real.pi / 2 ∧
       Real.sin (knownCountAngle p) = Real.sqrt p ∧
@@ -92,6 +121,8 @@ theorem knownCountAngle_spec {p : ℝ} (hp : 0 < p) (hp1 : p < 1) :
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- For marked count 0 < m < N, Grover search at the prescribed angle and iteration count
+succeeds with probability at least 1 − m/N. -/
 theorem knownCount_success (hN : 0 < Fintype.card I) (A : Finset I)
     {m : ℕ} (hA : A.card = m) (hm : 0 < m) (hmN : m < Fintype.card I) :
     1 - (m : ℝ) / Fintype.card I ≤
@@ -111,6 +142,8 @@ theorem knownCount_success (hN : 0 < Fintype.card I) (A : Finset I)
 
 set_option maxHeartbeats 800000 in
 
+/-- For 0 < m and 2m ≤ N, the prescribed iteration count gives a fixed-space query upper bound
+for all m-element marked sets with success at least 1/2. See [BihamEtAl1999]. -/
 theorem knownCount_query_upper {m : ℕ} (hm : 0 < m) (hmN : 2 * m ≤ Fintype.card I) :
     FixedSpaceQueryUpperBound
       (fun A : KnownMarkedSets I m => SetOracle A.val) (fun A => A.val) (1 / 2)
@@ -141,6 +174,7 @@ theorem knownCount_query_upper {m : ℕ} (hm : 0 < m) (hmN : 2 * m ≤ Fintype.c
 
 omit [DecidableEq I] in
 
+/-- For 0 < m < N, the prescribed known-count iteration count is at most π/(4√(m/N)). -/
 theorem knownCount_query_budget {m : ℕ} (hm : 0 < m) (hmN : m < Fintype.card I) :
     (groverIterations (knownCountAngle ((m : ℝ) / Fintype.card I)) : ℝ) ≤
       Real.pi / (4 * Real.sqrt ((m : ℝ) / Fintype.card I)) := by
@@ -154,12 +188,16 @@ theorem knownCount_query_budget {m : ℕ} (hm : 0 < m) (hmN : m < Fintype.card I
     (show 0 < Real.sin (knownCountAngle ((m : ℝ) / Fintype.card I)) by
       rw [hsin]; exact Real.sqrt_pos_of_pos hp)
 
+/-- For a positive marked count at most half the search-space size, `KnownCountSearchClaim`
+holds. See [Ambainis2005]. -/
 theorem knownCount_searchClaim {m : ℕ} (hm : 0 < m) (hmN : 2 * m ≤ Fintype.card I) :
     KnownCountSearchClaim I m := by
   refine ⟨groverIterations (knownCountAngle ((m : ℝ) / Fintype.card I)),
     knownCount_query_upper hm hmN, knownCount_query_budget hm ?_⟩
   omega
 
+/-- Establishes the universal known-count search upper-bound proposition
+`Section3KnownCountSubgoal`. -/
 theorem section3KnownCountSubgoal : Section3KnownCountSubgoal := by
   intro I _ _ m hm hmN
   exact knownCount_searchClaim hm hmN

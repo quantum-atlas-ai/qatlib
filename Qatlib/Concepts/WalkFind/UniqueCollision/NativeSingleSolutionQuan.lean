@@ -10,6 +10,30 @@ import Mathlib.Tactic.Ring
 import Qatlib.Foundations.InstrumentCore.Measurement.Basic
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Mathlib.Tactic.Linarith
+
+/-!
+# Native collision search with a unique solution
+
+This module proves the semantics and query count of the native repeated Johnson-walk search.
+Loading preserves inner products, and a supported unit vector bounds the probability of
+measuring a stored collision from below.
+
+`nativeSingleSolution_answer` establishes the native unique-collision contract associated with
+the search analysis in [Ambainis2007ElementDistinctness]. Under its size assumptions, one
+iteration count works for every collision set of the prescribed size, with an explicit success
+bound; inputs with no collision have zero marked measurement probability.
+
+## Main statements
+
+* `nativeAlgorithm2_queries`: the exact query count `r + 2*t*jwT2 k r`.
+* `nativeUniformClock`: a single bounded iteration count with a uniform marked-amplitude bound.
+* `nativeSingleSolution_answer`: correctness of the native unique-solution search.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +55,7 @@ namespace Qatlib.Concepts.WalkFind.UniqueCollision
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 open scoped Classical BigOperators
 
+/-- Repeating a circuit that implements `K` on loaded states implements `K^n` on those states. -/
 theorem nativeLoadedRepeat_semantics {N M r : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (C : Circuit (LoadedSpace N M r))
     (K : Matrix (JRState N r) (JRState N r) ℂ)
@@ -43,6 +68,8 @@ theorem nativeLoadedRepeat_semantics {N M r : ℕ} [NeZero M]
   | succ n ih =>
     rw [RepeatCircuit, run_append, hC, ih, Matrix.mulVec_mulVec, ← pow_succ]
 
+/-- The native search circuit prepares the loaded state obtained by `t` repetitions of the input
+flip followed by `jwT2 k r` full walk steps. -/
 theorem nativeAlgorithm2_semantics {N M r k : ℕ} [NeZero M]
     (A : NativeJohnsonWitness N M r k) (t : ℕ) (x : Fin N → ZMod M) :
     Run (alphabetOracle x) (nativeAlgorithm2 A t) (Qatlib.Foundations.PureStateMath.Ket A.init) =
@@ -56,6 +83,7 @@ theorem nativeAlgorithm2_semantics {N M r k : ℕ} [NeZero M]
   rw [nativeAlgorithm2, run_append, A.setupSemantics]
   exact nativeLoadedRepeat_semantics x _ _ hblock t _
 
+/-- The native search circuit uses exactly `r + 2*t*jwT2 k r` oracle queries. -/
 theorem nativeAlgorithm2_queries {N M r k : ℕ} [NeZero M]
     (A : NativeJohnsonWitness N M r k) (t : ℕ) :
     QueryCount (nativeAlgorithm2 A t) = r+2*t*jwT2 k r := by
@@ -63,6 +91,8 @@ theorem nativeAlgorithm2_queries {N M r k : ℕ} [NeZero M]
     A.setupQueries, A.flipQueries, A.walkQueries]
   ring
 
+/-- If the input has no collision of size `k`, every loaded state has zero measurement
+probability on stored collision labels. -/
 theorem loadedState_no_collision_measure {N M r k : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) (hx : ¬HasCollision k x) :
     MeasureProb (loadedState x ψ) (Finset.univ.filter (storedCollision k)) = 0 := by
@@ -77,6 +107,8 @@ theorem loadedState_no_collision_measure {N M r k : ℕ} [NeZero M]
     exact hx ⟨S, hS⟩
   simp [BornProb, loadedState, hn]
 
+/-- On an input without a collision of size `k`, the native search circuit has zero probability
+of measuring a stored collision. -/
 theorem nativeAlgorithm2_no_collision {N M r k : ℕ} [NeZero M]
     (A : NativeJohnsonWitness N M r k) (t : ℕ) (x : Fin N → ZMod M)
     (hx : ¬HasCollision k x) :
@@ -85,6 +117,7 @@ theorem nativeAlgorithm2_no_collision {N M r k : ℕ} [NeZero M]
   rw [nativeAlgorithm2_semantics]
   exact loadedState_no_collision_measure x _ hx
 
+/-- Loading a fixed input preserves the inner product of any two Johnson states. -/
 theorem loadedState_inner {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M)
     (ψ φ : QState (JRState N r)) : Qatlib.Foundations.PureStateMath.Inner (loadedState x ψ) (loadedState x φ) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   let E : Matrix (LoadedSpace N M r) (JRState N r) ℂ :=
@@ -97,6 +130,8 @@ theorem loadedState_inner {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M)
       Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul]
   rw [show Eᴴ*E = 1 from loadedBasis_isometry x, Matrix.vecMul_one]
 
+/-- The squared overlap with a normalized vector supported on `S` is at most the measurement
+probability of `S`. -/
 private theorem unit_supported_overlap_le {H : Type} [Fintype H] [DecidableEq H]
     (good ψ : QState H) (S : Finset H) (hgood : Normalized good)
     (hsupport : ∀ i ∉ S, good i = 0) : ‖Qatlib.Foundations.PureStateMath.Inner good ψ‖^2 ≤ MeasureProb ψ S := by
@@ -115,6 +150,9 @@ private theorem unit_supported_overlap_le {H : Type} [Fintype H] [DecidableEq H]
   rw [norm_toEuclidean_fromVec_sq, sum_normSq_collapse, ← hi] at hsq
   exact hsq
 
+/-- Under the stated size conditions, one iteration count bounded by `8/(jwEpsArc k r*jwAlpha k
+N r)` gives marked amplitude at least `jwEpsArc k r^3/1000` for every `k`-element collision
+set. -/
 theorem nativeUniformClock (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r) (hr : 2*k ≤ r+1)
     (hsize : (8*Real.pi^2*(k^3)*(r+1)*(2^(k+4))*(k+1)*k : ℝ) ≤ N-r) :
     ∃ t : ℕ, (t : ℝ) ≤ 8/(jwEpsArc k r*jwAlpha k N r) ∧
@@ -148,6 +186,8 @@ theorem nativeUniformClock (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r) (hr : 2*
   rw [jwMarkedAmplitude_eq_reduced k N r hkr hkNr I hI t (jwT2 k r)]
   exact hamp
 
+/-- When `I` is the unique collision set of size `k`, the input collision flip equals the full
+phase flip for subsets containing `I`. -/
 private theorem nativeFlip_unique {N M r k : ℕ} [NeZero M] (x : Fin N → ZMod M)
     (I : Finset (Fin N)) (hI : IsCollision k x I) (hunique : ∀ J, IsCollision k x J → J = I) :
     inputFlip (r:=r) k x = jwFlipBig k N r I := by
@@ -157,6 +197,8 @@ private theorem nativeFlip_unique {N M r k : ℕ} [NeZero M] (x : Fin N → ZMod
     · intro h; exact ⟨I, h, hI⟩
   simp only [inputFlip, jwFlipBig, hmark]
 
+/-- The loaded good vector for a collision set vanishes outside the labels satisfying
+`storedCollision k`. -/
 private theorem nativeGood_supported {N M r k : ℕ} [NeZero M] (x : Fin N → ZMod M)
     (I : Finset (Fin N)) (hI : IsCollision k x I) (q : LoadedSpace N M r)
     (hq : q ∉ Finset.univ.filter (storedCollision k)) :
@@ -171,6 +213,9 @@ private theorem nativeGood_supported {N M r k : ℕ} [NeZero M] (x : Fin N → Z
   · have hn : ∀ p, q ≠ loadedBasis x p := fun p hp => hex ⟨p,hp⟩
     simp [loadedState, hn]
 
+/-- The native Johnson-walk search satisfies `NativeSingleSolution`, including the
+unique-collision success bound and zero acceptance on collision-free inputs
+[Ambainis2007ElementDistinctness]. -/
 theorem nativeSingleSolution_answer : NativeSingleSolution := by
   intro k N M r _ hM hk hkr hr hsize
   have hkNr := jwWalk_size_physical k N r hk hsize

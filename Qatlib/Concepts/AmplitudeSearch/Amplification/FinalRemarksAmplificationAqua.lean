@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationStat
+
+/-!
+# Success amplification for minimum finding
+
+The module proves two success improvements for charged minimum finding. Combining `c`
+independent charged runs gives failure at most `2⁻ᶜ`, while increasing one run's budget by a
+positive factor `c` gives success at least `1 - 1 / (2 * c)`.
+
+`finalRemarksAmplification` packages these guarantees in `FinalRemarksAmplification`, following
+the amplification discussion of [DurrHoyer1996].
+
+## Main statements
+
+* `charged_initial_success_amplified`: gives the extended-budget success bound.
+* `amplifiedMinimumPMF_failure`: bounds repeated-run failure geometrically.
+* `finalRemarksAmplification`: establishes the combined specification.
+
+## References
+
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +43,8 @@ namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 open Qatlib
 open scoped ENNReal BigOperators Classical
 
+/-- A normalized nonnegative clock law with mean `q` assigns mass at least `1 - q / t` to clocks
+at most positive `t`. -/
 theorem amplification_clock_mass {Ω : Type*} (mass clock : Ω → ℝ)
     (hmass : HasSum mass 1) (hmnn : ∀ x, 0 ≤ mass x) (hcnn : ∀ x, 0 ≤ clock x)
     (q t : ℝ) (hq : HasSum (fun x => mass x * clock x) q) (ht : 0 < t) :
@@ -57,6 +81,8 @@ theorem amplification_clock_mass {Ω : Type*} (mass clock : Ω → ℝ)
   · have hbn : 0 ≤ (∑' x, bad x) := tsum_nonneg (fun x => (hbad x).1)
     linarith
 
+/-- For positive `c`, extending the charged budget by a factor of `c` gives initial success at
+least `1 - 1 / (2 * c)`. -/
 theorem charged_initial_success_amplified {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) (hc : 0 < c) :
     (1-1/((2*c : ℕ) : ℝ)) ≤ chargedInitialSuccess T (c*chargedBudget N) := by
@@ -93,6 +119,7 @@ theorem charged_initial_success_amplified {N : ℕ} {α : Type*} [LinearOrder α
   rw [ranked.indexOfRank.sum_comp] at hd
   exact hgood'.trans hd
 
+/-- The better of two candidates is a minimum exactly when at least one candidate is a minimum. -/
 theorem amplifiedCombine_minimum_iff {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (a b : Fin N) :
     (∀ j, T (amplifiedCombine T a b) ≤ T j) ↔
@@ -114,6 +141,7 @@ theorem amplifiedCombine_minimum_iff {N : ℕ} {α : Type*} [LinearOrder α]
       · intro j
         exact (le_of_not_gt h).trans (hb j)
 
+/-- The probabilities of an event and its complement sum to one. -/
 private theorem amplification_event_total {β : Type*} (p : PMF β) (E : β → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E+Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => ¬E x)=1 := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
@@ -125,12 +153,15 @@ private theorem amplification_event_total {β : Type*} (p : PMF β) (E : β → 
       by_cases hx : E x <;> simp [hx]
     _ = 1 := Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const p 1
 
+/-- The probability of any event is at most one. -/
 private theorem amplification_event_le_one {β : Type*} (p : PMF β) (E : β → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E ≤ 1 := by
   calc
     _ ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E+Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => ¬E x) := le_self_add
     _ = 1 := amplification_event_total p E
 
+/-- One independent amplification step multiplies the previous failure probability by the
+failure probability of a fresh charged run. -/
 theorem amplifiedStep_failure {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (prev : PMF (Fin N × ℕ)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (amplifiedStep T hN prev) (fun x => ¬∀ j, T x.1 ≤ T j) =
@@ -155,6 +186,7 @@ theorem amplifiedStep_failure {N : ℕ} {α : Type*} [LinearOrder α]
   funext p
   by_cases hp : ∀ j, T p.1 ≤ T j <;> simp [hp]
 
+/-- The failure probability after combining `c` charged runs is at most `(1 / 2)^c`. -/
 theorem amplifiedMinimumPMF_failure {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (amplifiedMinimumPMF T hN c) (fun x => ¬∀ j, T x.1 ≤ T j) ≤
@@ -183,6 +215,7 @@ theorem amplifiedMinimumPMF_failure {N : ℕ} {α : Type*} [LinearOrder α]
     rw [amplifiedMinimumPMF, amplifiedStep_failure, pow_succ]
     exact mul_le_mul' ih hf
 
+/-- The success probability after combining `c` charged runs is at least `1 - (1 / 2)^c`. -/
 theorem amplifiedMinimumPMF_success {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) :
     ENNReal.ofReal (1-(1/2 : ℝ)^c) ≤
@@ -205,6 +238,8 @@ theorem amplifiedMinimumPMF_success {N : ℕ} {α : Type*} [LinearOrder α]
   have h := ENNReal.ofReal_le_ofReal hs
   rwa [ENNReal.ofReal_toReal hsne] at h
 
+/-- The final minimum-finding amplification statement holds, combining repeated-run success with
+the extended-budget bound [DurrHoyer1996]. -/
 theorem finalRemarksAmplification : FinalRemarksAmplification := by
   intro N hN α inst T c hc
   exact ⟨amplifiedMinimumPMF_success T hN c, charged_initial_success_amplified T hN c hc⟩

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.MixedState
+
+/-!
+# Two projector decomposition specification
+
+`JordanTwoProjectors` specifies an orthogonal decomposition for a pair of Hermitian idempotents.
+It records the action of both projectors, the coupling coefficients `sqrt (d * (1 - d))`, and a
+residual projector commuting with the second projector. Companion vectors vanish at endpoint
+eigenvalues, as appropriate for the one dimensional blocks in the Jordan framework
+[NagajWocjanZhang2009].
+
+## Main statements
+
+* `JordanTwoProjectors`: The proposition specifying a two projector decomposition with
+  orthonormal range vectors, companion vectors normalized for `0 < d < 1` and zero otherwise,
+  and a commuting residual projector.
+
+## References
+
+* [Nagaj, Wocjan, and Zhang, 2009][NagajWocjanZhang2009]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
@@ -13,6 +34,9 @@ namespace Qatlib.Concepts.MixedInstrument.RewindAlgebra
 
 open Matrix
 
+/-- The proposition specifying a two projector decomposition with orthonormal range vectors,
+companion vectors normalized for `0 < d < 1` and zero otherwise, and a commuting residual
+projector. -/
 def JordanTwoProjectors : Prop :=
   ∀ (D : ℕ) (P Q : Operator D), P.IsHermitian → P * P = P → Q.IsHermitian → Q * Q = Q →
     ∃ (k : ℕ) (u v : Fin k → QState (Fin D)) (d : Fin k → ℝ) (W : Operator D),

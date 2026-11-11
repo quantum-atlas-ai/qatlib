@@ -8,11 +8,35 @@ import Qatlib.Foundations.CostRecurrences.UniformCosts
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 
+/-!
+# Auxiliary estimates for primality-test complexity
+
+This module supplies elementary analytic and probabilistic inequalities used in the complexity
+analysis of [ChauLo1995]. `trialDivision_bracket` bounds the trial-division expression,
+`repeat_success_ge` compares repeated success with the half-success baseline, and
+`average_success_ge` converts a lower bound on a good subset into a lower bound on the uniform
+average.
+
+## Main statements
+
+* `trialDivision_bracket`: If `L > 1`, `B = log L`, and `B ≥ 1`, then `L² / B + L² * B / log (L²
+  / B) ≤ 2 * L²`.
+* `repeat_success_ge`: For a success probability `p` between one half and one, the expression `1
+  - (1 - p) ^ k` is at least `1 - (1 / 2) ^ k`.
+* `average_success_ge`: A nonnegative finite family bounded below by `c` on a good subset has
+  uniform average at least `c` times the fraction of good indices.
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.QPrimality95.MainResults
 
+/-- If `L > 1`, `B = log L`, and `B ≥ 1`, then `L² / B + L² * B / log (L² / B) ≤ 2 * L²`. -/
 theorem trialDivision_bracket (L B : ℝ) (hL : 1 < L) (hB : B = Real.log L)
     (hB1 : 1 ≤ B) :
     L ^ 2 / B + L ^ 2 * B / Real.log (L ^ 2 / B) ≤ 2 * L ^ 2 := by
@@ -38,6 +62,8 @@ theorem trialDivision_bracket (L B : ℝ) (hL : 1 < L) (hB : B = Real.log L)
     linarith
   linarith
 
+/-- For a success probability `p` between one half and one, the expression `1 - (1 - p) ^ k` is
+at least `1 - (1 / 2) ^ k`. -/
 theorem repeat_success_ge (p : ℝ) (hp : 1 / 2 ≤ p) (hp1 : p ≤ 1) (k : ℕ) :
     1 - (1 / 2 : ℝ) ^ k ≤ 1 - (1 - p) ^ k := by
   have h0 : 0 ≤ 1 - p := by linarith
@@ -45,6 +71,8 @@ theorem repeat_success_ge (p : ℝ) (hp : 1 / 2 ≤ p) (hp1 : p ≤ 1) (k : ℕ)
   have hk := pow_le_pow_left₀ h0 h k
   linarith
 
+/-- A nonnegative finite family bounded below by `c` on a good subset has uniform average at
+least `c` times the fraction of good indices. -/
 theorem average_success_ge {ι : Type*} [Fintype ι] (s : ι → ℝ) (good : Finset ι)
     (c : ℝ) (_hc : 0 ≤ c) (hs : ∀ i, 0 ≤ s i) (hgood : ∀ i ∈ good, c ≤ s i) :
     c * (good.card : ℝ) / (Fintype.card ι : ℝ) ≤ (∑ i, s i) / (Fintype.card ι : ℝ) := by

@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Wire
+
+/-!
+# Finite register calculations for cluster patterns
+
+This module provides explicit Boolean-register coordinates and finite-sum identities for small
+cluster-pattern calculations. Fixed-coordinate hypotheses reduce sums over complete registers to
+sums over the remaining Boolean coordinates, while bit-vector identities relate register
+coordinates to finite matrix indices.
+
+The scalar lemmas describe Boolean signs, square-root normalization constants, and the real
+exponential coordinates of `mpSVector`. They support the explicit wire and controlled-NOT
+calculations associated with measurement-only cluster computation [RaussendorfBriegel2000].
+
+## Main statements
+
+* `pin5`, `pin6`, and `cnotAux_pin4` assemble registers from individual Boolean coordinates.
+* `sum_reg5_pin`, `sum_reg6_fixed`, and `cnotAux_sum_reclause4_fix` reduce finite register sums
+  to Boolean sums.
+* `sv_eq_ofReal` and `star_sv` express the measurement-vector coordinates as real complex
+  numbers.
+* `cnotAux_bitPhase_inj` and `cnotAux_bv2_bits` provide sign and matrix-index calculations.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
@@ -31,44 +58,63 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 open scoped BigOperators Classical
 
+/-- Constructs a five-bit register with coordinates `a0`, `a1`, `a2`, `a3`, and `a4`, in that
+order. -/
 def pin5 (a0 a1 a2 a3 a4 : Bool) : Reg 5 := fun t =>
   if (t : ℕ) = 0 then a0 else if (t : ℕ) = 1 then a1 else if (t : ℕ) = 2 then a2
   else if (t : ℕ) = 3 then a3 else a4
 
+/-- Coordinate zero of `pin5 a0 a1 a2 a3 a4` is `a0`. -/
 @[simp] theorem pin5_0 (a0 a1 a2 a3 a4 : Bool) : pin5 a0 a1 a2 a3 a4 0 = a0 := rfl
 
+/-- Coordinate one of `pin5 a0 a1 a2 a3 a4` is `a1`. -/
 @[simp] theorem pin5_1 (a0 a1 a2 a3 a4 : Bool) : pin5 a0 a1 a2 a3 a4 1 = a1 := rfl
 
+/-- Coordinate two of `pin5 a0 a1 a2 a3 a4` is `a2`. -/
 @[simp] theorem pin5_2 (a0 a1 a2 a3 a4 : Bool) : pin5 a0 a1 a2 a3 a4 2 = a2 := rfl
 
+/-- Coordinate three of `pin5 a0 a1 a2 a3 a4` is `a3`. -/
 @[simp] theorem pin5_3 (a0 a1 a2 a3 a4 : Bool) : pin5 a0 a1 a2 a3 a4 3 = a3 := rfl
 
+/-- Coordinate four of `pin5 a0 a1 a2 a3 a4` is `a4`. -/
 @[simp] theorem pin5_4 (a0 a1 a2 a3 a4 : Bool) : pin5 a0 a1 a2 a3 a4 4 = a4 := rfl
 
+/-- Every five-bit register equals the register assembled by `pin5` from its five coordinates. -/
 theorem reg5_eq_pin5 (x : Reg 5) : x = pin5 (x 0) (x 1) (x 2) (x 3) (x 4) := by
   funext t
   fin_cases t <;> rfl
 
+/-- Constructs a six-bit register with coordinates `a0`, `a1`, `a2`, `a3`, `a4`, and `a5`, in
+that order. -/
 def pin6 (a0 a1 a2 a3 a4 a5 : Bool) : Reg 6 := fun t =>
   if (t : ℕ) = 0 then a0 else if (t : ℕ) = 1 then a1 else if (t : ℕ) = 2 then a2
   else if (t : ℕ) = 3 then a3 else if (t : ℕ) = 4 then a4 else a5
 
+/-- Coordinate zero of `pin6 a0 a1 a2 a3 a4 a5` is `a0`. -/
 @[simp] theorem pin6_0 (a0 a1 a2 a3 a4 a5 : Bool) : pin6 a0 a1 a2 a3 a4 a5 0 = a0 := rfl
 
+/-- Coordinate one of `pin6 a0 a1 a2 a3 a4 a5` is `a1`. -/
 @[simp] theorem pin6_1 (a0 a1 a2 a3 a4 a5 : Bool) : pin6 a0 a1 a2 a3 a4 a5 1 = a1 := rfl
 
+/-- Coordinate two of `pin6 a0 a1 a2 a3 a4 a5` is `a2`. -/
 @[simp] theorem pin6_2 (a0 a1 a2 a3 a4 a5 : Bool) : pin6 a0 a1 a2 a3 a4 a5 2 = a2 := rfl
 
+/-- Coordinate three of `pin6 a0 a1 a2 a3 a4 a5` is `a3`. -/
 @[simp] theorem pin6_3 (a0 a1 a2 a3 a4 a5 : Bool) : pin6 a0 a1 a2 a3 a4 a5 3 = a3 := rfl
 
+/-- Coordinate four of `pin6 a0 a1 a2 a3 a4 a5` is `a4`. -/
 @[simp] theorem pin6_4 (a0 a1 a2 a3 a4 a5 : Bool) : pin6 a0 a1 a2 a3 a4 a5 4 = a4 := rfl
 
+/-- Coordinate five of `pin6 a0 a1 a2 a3 a4 a5` is `a5`. -/
 @[simp] theorem pin6_5 (a0 a1 a2 a3 a4 a5 : Bool) : pin6 a0 a1 a2 a3 a4 a5 5 = a5 := rfl
 
+/-- Every six-bit register equals the register assembled by `pin6` from its six coordinates. -/
 theorem reg6_eq_pin6 (x : Reg 6) : x = pin6 (x 0) (x 1) (x 2) (x 3) (x 4) (x 5) := by
   funext t
   fin_cases t <;> rfl
 
+/-- A sum over quadruples of Boolean values equals four nested sums over their individual
+coordinates. -/
 theorem sum_prod4_bool (g : Bool × Bool × Bool × Bool → ℂ) :
     ∑ p : Bool × Bool × Bool × Bool, g p = ∑ a, ∑ b, ∑ c, ∑ d, g (a, b, c, d) := by
   have h1 : (∑ p : Bool × Bool × Bool × Bool, g p)
@@ -84,6 +130,8 @@ theorem sum_prod4_bool (g : Bool × Bool × Bool × Bool → ℂ) :
   simp only [h2]
   simp only [h3]
 
+/-- A sum over quintuples of Boolean values equals five nested sums over their individual
+coordinates. -/
 theorem sum_prod5_bool (g : Bool × Bool × Bool × Bool × Bool → ℂ) :
     ∑ p : Bool × Bool × Bool × Bool × Bool, g p =
       ∑ a, ∑ b, ∑ c, ∑ d, ∑ e, g (a, b, c, d, e) := by
@@ -104,6 +152,8 @@ theorem sum_prod5_bool (g : Bool × Bool × Bool × Bool × Bool → ℂ) :
   simp only [h3]
   simp only [h4]
 
+/-- Reindexes a sum over five-bit registers as a sum over Boolean quintuples assembled by
+`pin5`. -/
 theorem sum_reg5_pin_prod (f : Reg 5 → ℂ) :
     ∑ z : Reg 5, f z
       = ∑ p : Bool × Bool × Bool × Bool × Bool,
@@ -125,12 +175,15 @@ theorem sum_reg5_pin_prod (f : Reg 5 → ℂ) :
   · intro z _
     conv_lhs => rw [reg5_eq_pin5 z]
 
+/-- A sum over five-bit registers equals five nested Boolean sums evaluated on `pin5`. -/
 theorem sum_reg5_pin (f : Reg 5 → ℂ) :
     ∑ z : Reg 5, f z =
       ∑ b0, ∑ b1, ∑ b2, ∑ b3, ∑ b4, f (pin5 b0 b1 b2 b3 b4) := by
   rw [sum_reg5_pin_prod]
   exact sum_prod5_bool _
 
+/-- If a function vanishes unless coordinates zero and five equal `a0` and `a5`, its register
+sum reduces to four Boolean sums over the remaining coordinates. -/
 theorem sum_reg6_fixed (f : Reg 6 → ℂ) (a0 a5 : Bool)
     (hvan : ∀ c : Reg 6, (c 0 ≠ a0 ∨ c 5 ≠ a5) → f c = 0) :
     ∑ c : Reg 6, f c =
@@ -185,14 +238,18 @@ theorem sum_reg6_fixed (f : Reg 6 → ℂ) (a0 a5 : Bool)
   rw [hfilter, hprod]
   exact sum_prod4_bool _
 
+/-- A sum over `Bool` equals the value at `true` plus the value at `false`. -/
 theorem sum_bool_eq {α : Type*} [AddCommMonoid α] (f : Bool → α) :
     ∑ b : Bool, f b = f true + f false :=
   Fintype.sum_bool f
 
+/-- Summing the function supported at a single Boolean value `b` returns `g b`. -/
 theorem sum_ite_bool {α : Type*} [AddCommMonoid α] (b : Bool) (g : Bool → α) :
     ∑ a : Bool, (if a = b then g a else 0) = g b := by
   cases b <;> simp [sum_bool_eq]
 
+/-- Expresses each `mpSVector` coordinate as the complex embedding of a real number involving
+`Real.exp` and `Real.sqrt 2`. -/
 theorem sv_eq_ofReal (α : ℝ) (o b : Bool) :
     mpSVector α o b
       = (((if b then (if o then -Real.exp α else Real.exp α) else 1) / Real.sqrt 2 : ℝ) : ℂ) := by
@@ -202,6 +259,7 @@ theorem sv_eq_ofReal (α : ℝ) (o b : Bool) :
   rcases b with rfl | rfl <;> rcases o with rfl | rfl <;>
     simp [Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_neg]
 
+/-- Every coordinate of `mpSVector` is unchanged by complex conjugation. -/
 theorem star_sv (α : ℝ) (o b : Bool) : star (mpSVector α o b) = mpSVector α o b := by
   rw [sv_eq_ofReal]
   exact Complex.conj_ofReal _
@@ -225,21 +283,30 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire1a
 
+/-- Constructs a four-bit register with coordinates `a0`, `a1`, `a2`, and `a3`, in that order. -/
 def cnotAux_pin4 (a0 a1 a2 a3 : Bool) : Reg 4 := fun t =>
   if (t : ℕ) = 0 then a0 else if (t : ℕ) = 1 then a1 else if (t : ℕ) = 2 then a2 else a3
 
+/-- Coordinate zero of `cnotAux_pin4 a0 a1 a2 a3` is `a0`. -/
 @[simp] theorem cnotAux_pin4_0 (a0 a1 a2 a3 : Bool) : cnotAux_pin4 a0 a1 a2 a3 0 = a0 := rfl
 
+/-- Coordinate one of `cnotAux_pin4 a0 a1 a2 a3` is `a1`. -/
 @[simp] theorem cnotAux_pin4_1 (a0 a1 a2 a3 : Bool) : cnotAux_pin4 a0 a1 a2 a3 1 = a1 := rfl
 
+/-- Coordinate two of `cnotAux_pin4 a0 a1 a2 a3` is `a2`. -/
 @[simp] theorem cnotAux_pin4_2 (a0 a1 a2 a3 : Bool) : cnotAux_pin4 a0 a1 a2 a3 2 = a2 := rfl
 
+/-- Coordinate three of `cnotAux_pin4 a0 a1 a2 a3` is `a3`. -/
 @[simp] theorem cnotAux_pin4_3 (a0 a1 a2 a3 : Bool) : cnotAux_pin4 a0 a1 a2 a3 3 = a3 := rfl
 
+/-- Every four-bit register equals the register assembled by `cnotAux_pin4` from its four
+coordinates. -/
 theorem cnotAux_reclause4_eq_pin4 (x : Reg 4) : x = cnotAux_pin4 (x 0) (x 1) (x 2) (x 3) := by
   funext t
   fin_cases t <;> rfl
 
+/-- If a function vanishes outside the prescribed values of coordinates zero, two, and three,
+its register sum reduces to a Boolean sum over coordinate one. -/
 theorem cnotAux_sum_reclause4_fix (f : Reg 4 → ℂ) (a0 a2 a3 : Bool)
     (hvan : ∀ c : Reg 4, (c 0 ≠ a0 ∨ c 2 ≠ a2 ∨ c 3 ≠ a3) → f c = 0) :
     ∑ c : Reg 4, f c = ∑ b1 : Bool, f (cnotAux_pin4 a0 b1 a2 a3) := by
@@ -282,20 +349,24 @@ theorem cnotAux_sum_reclause4_fix (f : Reg 4 → ℂ) (a0 a2 a3 : Bool)
       conv_lhs => rw [cnotAux_reclause4_eq_pin4 c, h10, h12, h13]
   rw [hfilter, hprod]
 
+/-- The complex Boolean sign `bitPhase b` is unchanged by conjugation. -/
 theorem cnotAux_star_bitPhase (b : Bool) :
     star (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b) = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b := by
   rcases Bool.eq_false_or_eq_true b with h | h <;> rw [h] <;>
     simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- The product of a Boolean sign and its complex conjugate is one. -/
 theorem cnotAux_bitPhase_mul_star (b : Bool) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b * star (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b) = 1 := by
   rw [cnotAux_star_bitPhase, Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase_sq]
 
+/-- The sign selected by the conjunction `a && b` equals `bitPhase (a && b)`. -/
 theorem cnotAux_bitPhase_and (a b : Bool) :
     (if a && b then (-1 : ℂ) else 1) = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (a && b) := by
   rcases Bool.eq_false_or_eq_true (a && b) with h | h <;> rw [h] <;>
     simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- Equality of two complex Boolean signs implies equality of their Boolean arguments. -/
 theorem cnotAux_bitPhase_inj {a b : Bool}
     (h : Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase a = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b) : a = b := by
   cases a <;> cases b
@@ -304,15 +375,18 @@ theorem cnotAux_bitPhase_inj {a b : Bool}
   · exact absurd h (by norm_num [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase])
   · rfl
 
+/-- Adding one to `bitPhase e` gives zero when `e` is true and two when it is false. -/
 theorem cnotAux_one_add_bitPhase (e : Bool) :
     (1 : ℂ) + Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase e = if e then 0 else 2 := by
   rcases Bool.eq_false_or_eq_true e with h | h <;> rw [h] <;>
     simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase] <;> norm_num
 
+/-- The product of two complex embeddings of `Real.sqrt 2` is two. -/
 theorem cnotAux_sqrt2_sq : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = 2 := by
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (show (0 : ℝ) ≤ 2 by norm_num),
     Complex.ofReal_ofNat]
 
+/-- The real square root of eight equals twice the real square root of two. -/
 theorem cnotAux_sqrt8_eq : (Real.sqrt 8 : ℝ) = 2 * Real.sqrt 2 := by
   rw [Real.sqrt_eq_iff_mul_self_eq (by norm_num) (by positivity)]
   have hs : (Real.sqrt 2 : ℝ) * Real.sqrt 2 = 2 := Real.mul_self_sqrt (by norm_num)
@@ -320,14 +394,19 @@ theorem cnotAux_sqrt8_eq : (Real.sqrt 8 : ℝ) = 2 * Real.sqrt 2 := by
       = 2 * 2 * (Real.sqrt 2 * Real.sqrt 2) by ring, hs]
   norm_num
 
+/-- The inverse of the complex embedding of `Real.sqrt 8` equals half the inverse of the complex
+embedding of `Real.sqrt 2`. -/
 theorem cnotAux_inv_sqrt8 : ((Real.sqrt 8 : ℝ) : ℂ)⁻¹ = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ / 2 := by
   rw [cnotAux_sqrt8_eq, Complex.ofReal_mul, mul_inv, Complex.ofReal_ofNat]
   ring
 
+/-- The product of two inverse complex square roots of two is the inverse of two. -/
 theorem cnotAux_inv_sqrt2_mul_self :
     ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ = (2 : ℂ)⁻¹ :=
   Clause18Wire1a.hcinv
 
+/-- The inverse of the cube of the complex square root of two equals its inverse multiplied by
+the inverse of two. -/
 theorem cnotAux_inv_sqrt2_cube :
     (((Real.sqrt 2 : ℝ) : ℂ) ^ 3)⁻¹ = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ * (2 : ℂ)⁻¹ := by
   have h2 : ((Real.sqrt 2 : ℝ) : ℂ) ^ 2 = 2 := by
@@ -335,24 +414,31 @@ theorem cnotAux_inv_sqrt2_cube :
   rw [show (3 : ℕ) = 2 + 1 by norm_num, pow_succ, h2, mul_inv]
   ring
 
+/-- The cube of the inverse complex square root of two equals its inverse multiplied by the
+inverse of two. -/
 theorem cnotAux_inv_sqrt2_cube' :
     ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ ^ 3 = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ * (2 : ℂ)⁻¹ := by
   rw [inv_pow, cnotAux_inv_sqrt2_cube]
 
+/-- A scalar multiplying the left matrix factor can be pulled outside a matrix product. -/
 theorem cnotAux_smul_mul {l m n : ℕ} (a : ℂ) (A : Matrix (Fin l) (Fin m) ℂ)
     (B : Matrix (Fin m) (Fin n) ℂ) : (a • A) * B = a • (A * B) := by
   ext i j
   simp [Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul, mul_assoc, Finset.mul_sum]
 
+/-- The product of two scalar multiples of matrices is their matrix product scaled by the
+product of the scalars. -/
 theorem cnotAux_smul_mul_smul {l m n : ℕ} (a b : ℂ) (A : Matrix (Fin l) (Fin m) ℂ)
     (B : Matrix (Fin m) (Fin n) ℂ) : (a • A) * (b • B) = (a * b) • (A * B) := by
   ext i j
   simp [Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul, mul_assoc, mul_left_comm, mul_comm,
     Finset.mul_sum]
 
+/-- The single bit decoded from a finite basis index is true exactly when that index is one. -/
 theorem cnotAux_bv1 (y : Fin 2) : ((bitVecEquiv 1).symm y) 0 = decide (y = 1) := by
   fin_cases y <;> decide
 
+/-- Encoding a one-bit register gives index one when its bit is true and index zero otherwise. -/
 theorem cnotAux_bitVec1 (y : Reg 1) : (bitVecEquiv 1) y = if y 0 then 1 else 0 := by
   cases h : y 0
   · have hy : y = fun _ => false := by
@@ -368,10 +454,13 @@ theorem cnotAux_bitVec1 (y : Reg 1) : (bitVecEquiv 1) y = if y 0 then 1 else 0 :
     subst hy
     decide
 
+/-- The inverse of the complex embedding of `Real.sqrt 2` is unchanged by conjugation. -/
 theorem cnotAux_star_inv_sqrt2 : star (((Real.sqrt 2 : ℝ) : ℂ)⁻¹) = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ := by
   rw [star_inv₀]
   exact congrArg (fun x : ℂ => x⁻¹) (Complex.conj_ofReal _)
 
+/-- A zero-angle measurement-vector coordinate is its Boolean sign multiplied by the inverse
+complex square root of two. -/
 theorem cnotAux_sv0 (o b : Bool) :
     mpSVector 0 o b
       = (if b then (if o then (-1 : ℂ) else 1) else 1) * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ := by
@@ -380,29 +469,41 @@ theorem cnotAux_sv0 (o b : Bool) :
     simp [Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_neg, Complex.ofReal_ofNat,
       div_eq_mul_inv]
 
+/-- The conjugate of a zero-angle measurement-vector coordinate is its Boolean sign multiplied
+by the inverse complex square root of two. -/
 theorem cnotAux_star_sv0 (o b : Bool) :
     star (mpSVector 0 o b)
       = (if b then (if o then (-1 : ℂ) else 1) else 1) * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ := by
   rw [star_sv, cnotAux_sv0]
 
+/-- The first decoded bit is true exactly when the two-bit basis index is at least two, and the
+second is true exactly when the index is odd. -/
 theorem cnotAux_bv2_bits (xp : Fin 4) :
     ((bitVecEquiv 2).symm xp) 0 = decide (2 ≤ (xp : ℕ))
       ∧ ((bitVecEquiv 2).symm xp) 1 = decide ((xp : ℕ) % 2 = 1) := by
   fin_cases xp <;> decide
 
+/-- The first bit decoded from two-bit basis index zero is false. -/
 @[simp] theorem cnotAux_bv2_00 : ((bitVecEquiv 2).symm 0) 0 = false := by decide
 
+/-- The second bit decoded from two-bit basis index zero is false. -/
 @[simp] theorem cnotAux_bv2_01 : ((bitVecEquiv 2).symm 0) 1 = false := by decide
 
+/-- The first bit decoded from two-bit basis index one is false. -/
 @[simp] theorem cnotAux_bv2_10 : ((bitVecEquiv 2).symm 1) 0 = false := by decide
 
+/-- The second bit decoded from two-bit basis index one is true. -/
 @[simp] theorem cnotAux_bv2_11 : ((bitVecEquiv 2).symm 1) 1 = true := by decide
 
+/-- The first bit decoded from two-bit basis index two is true. -/
 @[simp] theorem cnotAux_bv2_20 : ((bitVecEquiv 2).symm 2) 0 = true := by decide
 
+/-- The second bit decoded from two-bit basis index two is false. -/
 @[simp] theorem cnotAux_bv2_21 : ((bitVecEquiv 2).symm 2) 1 = false := by decide
 
+/-- The first bit decoded from two-bit basis index three is true. -/
 @[simp] theorem cnotAux_bv2_30 : ((bitVecEquiv 2).symm 3) 0 = true := by decide
 
+/-- The second bit decoded from two-bit basis index three is true. -/
 @[simp] theorem cnotAux_bv2_31 : ((bitVecEquiv 2).symm 3) 1 = true := by decide
 end Qatlib.Concepts.ClusterPatterns.CnotPatterns

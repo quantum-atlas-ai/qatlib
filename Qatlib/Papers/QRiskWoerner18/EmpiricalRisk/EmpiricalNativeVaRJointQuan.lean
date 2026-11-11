@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeVaRJointStat
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedQuan
+
+/-!
+# Joint empirical value-at-risk guarantee
+
+This module proves `empiricalNativeVaRJoint`, combining independent population samples and
+native value-at-risk readout on a finite sorted loss grid. The result bounds failure of the
+population CDF quantile brackets with an explicit sum of sampling and repeated-readout error
+probabilities.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `empiricalNativeVaRJoint`: Establishes `EmpiricalNativeVaRJoint`, bounding the probability of
+  an invalid returned index or violated population CDF quantile brackets under the stated
+  sampling and precision conditions.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
@@ -27,6 +49,9 @@ namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 
+/-- Establishes `EmpiricalNativeVaRJoint`, bounding the probability of an invalid returned index
+or violated population CDF quantile brackets under the stated sampling and precision
+conditions [WoernerEgger2019]. -/
 theorem empiricalNativeVaRJoint : EmpiricalNativeVaRJoint := by
   intro n N ebits bits M r p loss xs q ε ν hN hxs hsorted hsupport hq0 hq1 heps hν hM hwindow
   let B : (Fin N → Option (Fin n)) → Prop := fun ω =>

@@ -6,19 +6,40 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Basic
 
+/-!
+# Error accumulation in products of isometries
+
+This module defines the uniform relative error relation `FunDistLE` and evaluates words in
+families of maps. Words in linear isometries preserve norms, and replacing each generator within
+error `η` changes a word by at most its length times `η`. The final estimate gives the error
+allocation used for circuit-to-braid approximation. See [AharonovArad2011].
+
+## Main statements
+
+* `evalWord_approx`: generator errors accumulate at most linearly in word length.
+* `claim31_error_accumulation`: per-generator error `ε / L` gives total relative error `ε`.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.BQPJonesPoly06.MainResults.Model
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- The functions `f` and `g` differ at each `x` by norm at most `ε * ‖x‖`. -/
 def FunDistLE (f g : E → E) (ε : ℝ) : Prop := ∀ x, ‖f x - g x‖ ≤ ε * ‖x‖
 
+/-- A uniform relative error bound remains valid when its tolerance increases. -/
 theorem FunDistLE.mono {f g : E → E} {ε ε' : ℝ} (h : FunDistLE f g ε) (hle : ε ≤ ε') :
     FunDistLE f g ε' := by
   intro x
   exact (h x).trans (mul_le_mul_of_nonneg_right hle (norm_nonneg x))
 
+/-- Uniform relative error bounds add along an intermediate function. -/
 theorem FunDistLE.add {f g h : E → E} {ε₁ ε₂ : ℝ}
     (h₁ : FunDistLE f g ε₁) (h₂ : FunDistLE g h ε₂) : FunDistLE f h (ε₁ + ε₂) := by
   intro x
@@ -28,17 +49,21 @@ theorem FunDistLE.add {f g h : E → E} {ε₁ ε₂ : ℝ}
     _ ≤ ε₁ * ‖x‖ + ε₂ * ‖x‖ := add_le_add (h₁ x) (h₂ x)
     _ = (ε₁ + ε₂) * ‖x‖ := by ring
 
+/-- Evaluate a word by composing its generators, with the head acting after the evaluated tail. -/
 def evalWord {ι : Type*} (ρ : ι → E → E) (w : List ι) (x : E) : E :=
   w.foldr (fun i acc => ρ i acc) x
 
+/-- The empty word acts as the identity. -/
 @[simp]
 theorem evalWord_nil {ι : Type*} (ρ : ι → E → E) (x : E) :
     evalWord ρ ([] : List ι) x = x := rfl
 
+/-- Evaluation of a nonempty word applies its head generator to the evaluation of its tail. -/
 @[simp]
 theorem evalWord_cons {ι : Type*} (ρ : ι → E → E) (i : ι) (w : List ι) (x : E) :
     evalWord ρ (i :: w) x = ρ i (evalWord ρ w x) := rfl
 
+/-- A word in complex linear isometric equivalences preserves the norm of every vector. -/
 theorem norm_evalWord {ι : Type*} (ρ : ι → E ≃ₗᵢ[ℂ] E) (w : List ι) (x : E) :
     ‖evalWord (fun i => (ρ i : E → E)) w x‖ = ‖x‖ := by
   induction w with
@@ -47,6 +72,9 @@ theorem norm_evalWord {ι : Type*} (ρ : ι → E ≃ₗᵢ[ℂ] E) (w : List ι
     simp only [evalWord_cons]
     rw [(ρ i).norm_map, ih]
 
+/-- If corresponding isometric generators differ within nonnegative relative error `η`, the word
+evaluations differ within relative error `w.length * η`. See [Aharonov and Arad, Lemma
+5.1][AharonovArad2011]. -/
 theorem evalWord_approx {ι : Type*} (ρ ρ' : ι → E ≃ₗᵢ[ℂ] E) (η : ℝ) (hη : 0 ≤ η)
     (h : ∀ i, FunDistLE (ρ i) (ρ' i) η) (w : List ι) :
     FunDistLE (evalWord (fun i => (ρ i : E → E)) w)
@@ -94,6 +122,8 @@ theorem evalWord_approx {ι : Type*} (ρ ρ' : ι → E ≃ₗᵢ[ℂ] E) (η : 
       _ = (w.length + 1) * η * ‖x‖ := by ring
       _ = ((i :: w).length : ℝ) * η * ‖x‖ := by simp [List.length_cons]
 
+/-- For a word of positive length `L`, generator error at most `ε / L` yields total error at
+most `ε * ‖x‖` on each vector. See [Aharonov and Arad, Claim 3.1][AharonovArad2011]. -/
 theorem claim31_error_accumulation {ι : Type*} (ρ ρ' : ι → E ≃ₗᵢ[ℂ] E) (ε : ℝ)
     (hε : 0 < ε) (L : ℕ) (hL : 0 < L)
     (h : ∀ i, FunDistLE (ρ i) (ρ' i) (ε / L)) (w : List ι) (hw : w.length = L) (x : E) :

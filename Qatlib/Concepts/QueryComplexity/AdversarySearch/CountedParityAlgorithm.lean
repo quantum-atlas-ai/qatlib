@@ -10,6 +10,26 @@ import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+/-!
+# Counted parity query algorithm
+
+This module constructs `countedParityCircuit`, which records the XOR of each adjacent pair using
+one query and handles an unpaired final bit separately. For positive input length, the circuit
+computes parity exactly with ⌈N/2⌉ queries and at most 12N + 12 gates, and the polynomial lower
+bound proves optimality even for error at most 1/3, as in [BealsEtAl2001].
+
+## Main statements
+
+* `countedParity_measureProb`: the circuit accepts exactly the inputs of odd Hamming weight.
+* `parity_query_complexity_tight`: the explicit parity circuit attains the bounded error query
+  lower bound.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -29,39 +49,49 @@ section Helpers
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Applying a gate commutes with scalar multiplication of a state. -/
 theorem parity_applyGate_smul (U : Matrix I I ℂ) (c : ℂ) (ψ : QState I) :
     ApplyGate U (c • ψ) = c • ApplyGate U ψ := by
   unfold ApplyGate
   rw [Matrix.mulVec_smul]
 
+/-- Scaling the left factor of a tensor state scales the tensor state by the same complex
+scalar. -/
 theorem parity_tensorState_smul_left {J : Type} [Fintype J] [DecidableEq J] (c : ℂ)
     (ψ : QState I) (φ : QState J) : TensorState (c • ψ) φ = c • TensorState ψ φ := by
   funext p
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- Scaling the right factor of a tensor state scales the tensor state by the same complex
+scalar. -/
 theorem parity_tensorState_smul_right {J : Type} [Fintype J] [DecidableEq J] (c : ℂ)
     (ψ : QState I) (φ : QState J) : TensorState ψ (c • φ) = c • TensorState ψ φ := by
   funext p
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- The Boolean phase, equal to −1 for `true` and 1 for `false`. -/
 def phaseOf (b : Bool) : ℂ := if b then (-1 : ℂ) else 1
 
+/-- Every Boolean phase has complex norm one. -/
 @[simp] theorem phaseOf_norm (b : Bool) : ‖phaseOf b‖ = 1 := by
   cases b <;> simp [phaseOf]
 
+/-- The phase oracle multiplies the basis state at `x` by `phaseOf (f x)`. -/
 theorem applyGate_phaseOracle_ket (f : I → Bool) (x : I) :
     ApplyGate (PhaseOracle f) (Ket x) = phaseOf (f x) • Ket x := by
   funext y
   rw [applyGate_phaseOracle]
   by_cases h : y = x <;> simp [Ket, phaseOf, h]
 
+/-- Updating a function at an argument with its existing value leaves the function unchanged. -/
 private theorem update_self_eq {α : Type} {β : Type} [DecidableEq α] (f : α → β) (a : α) :
     Function.update f a (f a) = f := by
   funext x
   by_cases h : x = a <;> simp [Function.update, h]
 
+/-- Two successive updates at the same argument reduce to the last update. -/
 private theorem update_update_eq {α : Type} {β : Type} [DecidableEq α] (f : α → β) (a : α)
     (b c : β) : Function.update (Function.update f a b) a c = Function.update f a c := by
   funext x
@@ -71,16 +101,21 @@ end Helpers
 
 section PairMixer
 
+/-- The lower index 2j of a complete adjacent pair in `Fin N`. -/
 def pairLo (N : ℕ) (j : ℕ) (hj : 2 * j + 1 < N) : Fin N := ⟨2 * j, by omega⟩
 
+/-- The upper index 2j + 1 of a complete adjacent pair in `Fin N`. -/
 def pairHi (N : ℕ) (j : ℕ) (hj : 2 * j + 1 < N) : Fin N := ⟨2 * j + 1, by omega⟩
 
+/-- The underlying natural number of `pairLo N j hj` is 2j. -/
 @[simp] theorem pairLo_val {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     (pairLo N j hj).val = 2 * j := rfl
 
+/-- The underlying natural number of `pairHi N j hj` is 2j + 1. -/
 @[simp] theorem pairHi_val {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     (pairHi N j hj).val = 2 * j + 1 := rfl
 
+/-- The two indices of a complete adjacent pair are distinct. -/
 theorem pairLo_ne_pairHi {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     pairLo N j hj ≠ pairHi N j hj := by
   intro h
@@ -88,6 +123,8 @@ theorem pairLo_ne_pairHi {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
   simp only [pairLo_val, pairHi_val] at hval
   omega
 
+/-- The Hadamard matrix on the two indices of pair `j`, extended by the identity on all other
+indices. -/
 noncomputable def pairHadamardIdx (N : ℕ) (j : ℕ) (hj : 2 * j + 1 < N) :
     Matrix (Fin N) (Fin N) ℂ :=
   Matrix.of fun x y =>
@@ -96,36 +133,46 @@ noncomputable def pairHadamardIdx (N : ℕ) (j : ℕ) (hj : 2 * j + 1 < N) :
       then (Real.sqrt 2 : ℂ)⁻¹
     else if x = y then 1 else 0
 
+/-- Twice the square of the complex inverse of √2 equals one. -/
 theorem two_mul_invSqrt2_sq : 2 * ((Real.sqrt 2 : ℂ)⁻¹) ^ 2 = 1 := by
   have h : ((Real.sqrt 2 : ℂ)⁻¹) ^ 2 = (2 : ℂ)⁻¹ := by
     rw [inv_pow, sqrt2_sq]
   rw [h, mul_inv_cancel₀ (by norm_num : (2 : ℂ) ≠ 0)]
 
+/-- The product of two complex inverse square roots of two equals the inverse of two. -/
 theorem invSqrt2_mul_self : ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = (2 : ℂ)⁻¹ := by
   linear_combination two_mul_invSqrt2_sq / 2
 
+/-- A finite sum supported on two distinct indices equals the sum of the two corresponding
+values. -/
 private theorem sum_pair_univ {N : ℕ} (a b : Fin N) (hne : a ≠ b) (g : Fin N → ℂ)
     (h : ∀ z, z ≠ a → z ≠ b → g z = 0) : ∑ z, g z = g a + g b := by
   rw [← Finset.sum_subset (Finset.subset_univ ({a, b} : Finset (Fin N)))
       (fun z _ hz => h z (fun e => hz (by simp [e])) (fun e => hz (by simp [e]))),
     Finset.sum_pair hne]
 
+/-- The lower diagonal entry of the pair Hadamard matrix is 1/√2. -/
 @[simp] theorem pairHadamardIdx_lo_lo {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairHadamardIdx N j hj (pairLo N j hj) (pairLo N j hj) = (Real.sqrt 2 : ℂ)⁻¹ := by
   simp [pairHadamardIdx, pairLo_ne_pairHi hj]
 
+/-- The lower row, upper column entry of the pair Hadamard matrix is 1/√2. -/
 @[simp] theorem pairHadamardIdx_lo_hi {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairHadamardIdx N j hj (pairLo N j hj) (pairHi N j hj) = (Real.sqrt 2 : ℂ)⁻¹ := by
   simp [pairHadamardIdx, pairLo_ne_pairHi hj]
 
+/-- The upper row, lower column entry of the pair Hadamard matrix is 1/√2. -/
 @[simp] theorem pairHadamardIdx_hi_lo {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairHadamardIdx N j hj (pairHi N j hj) (pairLo N j hj) = (Real.sqrt 2 : ℂ)⁻¹ := by
   simp [pairHadamardIdx, pairLo_ne_pairHi hj]
 
+/-- The upper diagonal entry of the pair Hadamard matrix is −1/√2. -/
 @[simp] theorem pairHadamardIdx_hi_hi {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairHadamardIdx N j hj (pairHi N j hj) (pairHi N j hj) = -(Real.sqrt 2 : ℂ)⁻¹ := by
   simp [pairHadamardIdx]
 
+/-- A pair Hadamard entry vanishes when its row belongs to the pair and its column lies outside
+the pair. -/
 theorem pairHadamardIdx_apply_left_mem {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} {x y : Fin N}
     (hx : x = pairLo N j hj ∨ x = pairHi N j hj) (hy : y ≠ pairLo N j hj)
     (hy' : y ≠ pairHi N j hj) : pairHadamardIdx N j hj x y = 0 := by
@@ -134,17 +181,21 @@ theorem pairHadamardIdx_apply_left_mem {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} 
   rcases hx with hx | hx <;>
     simp [pairHadamardIdx, hx, hy, hy', h1, h2, pairLo_ne_pairHi hj]
 
+/-- A pair Hadamard entry vanishes when its column belongs to the pair and its row lies outside
+the pair. -/
 theorem pairHadamardIdx_apply_right_mem {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} {x y : Fin N}
     (hy : y = pairLo N j hj ∨ y = pairHi N j hj) (hx : x ≠ pairLo N j hj)
     (hx' : x ≠ pairHi N j hj) : pairHadamardIdx N j hj x y = 0 := by
   rcases hy with hy | hy <;>
     simp [pairHadamardIdx, hy, hx, hx', pairLo_ne_pairHi hj]
 
+/-- Outside the selected pair, the pair Hadamard matrix has the entries of the identity matrix. -/
 theorem pairHadamardIdx_apply_off {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} {x y : Fin N}
     (hx : x ≠ pairLo N j hj) (hx' : x ≠ pairHi N j hj) (hy : y ≠ pairLo N j hj)
     (hy' : y ≠ pairHi N j hj) : pairHadamardIdx N j hj x y = if x = y then 1 else 0 := by
   simp [pairHadamardIdx, hx, hx', hy, hy']
 
+/-- The square of the pair Hadamard matrix is the identity. -/
 theorem pairHadamardIdx_mul_self {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     pairHadamardIdx N j hj * pairHadamardIdx N j hj = 1 := by
   ext x y
@@ -223,6 +274,7 @@ theorem pairHadamardIdx_mul_self {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
       · intro hcon
         exact absurd (Finset.mem_univ x) hcon
 
+/-- The pair Hadamard matrix equals its conjugate transpose. -/
 theorem pairHadamardIdx_conjTranspose {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     (pairHadamardIdx N j hj)ᴴ = pairHadamardIdx N j hj := by
   ext x y
@@ -262,40 +314,50 @@ theorem pairHadamardIdx_conjTranspose {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
       · rw [pairHadamardIdx_apply_off hyl hyh hxl hxh, if_neg (fun e => hxy e.symm),
           pairHadamardIdx_apply_off hxl hxh hyl hyh, if_neg hxy, map_zero]
 
+/-- The pair Hadamard matrix is unitary. -/
 theorem pairHadamardIdx_unitary {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     pairHadamardIdx N j hj ∈ Matrix.unitaryGroup (Fin N) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
     pairHadamardIdx_conjTranspose hj]
   exact pairHadamardIdx_mul_self hj
 
+/-- The equal superposition of the two basis states indexed by pair `j`, with amplitudes 1/√2. -/
 noncomputable def pairSup (N : ℕ) (j : ℕ) (hj : 2 * j + 1 < N) : QState (Fin N) :=
   fun x => if x = pairLo N j hj ∨ x = pairHi N j hj then (Real.sqrt 2 : ℂ)⁻¹ else 0
 
+/-- The superposition on pair `j` with lower amplitude 1/√2 and upper amplitude −1/√2. -/
 noncomputable def pairSupMinus (N : ℕ) (j : ℕ) (hj : 2 * j + 1 < N) : QState (Fin N) :=
   fun x => if x = pairLo N j hj then (Real.sqrt 2 : ℂ)⁻¹
     else if x = pairHi N j hj then -(Real.sqrt 2 : ℂ)⁻¹ else 0
 
+/-- The lower amplitude of `pairSup` is 1/√2. -/
 @[simp] theorem pairSup_lo {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairSup N j hj (pairLo N j hj) = (Real.sqrt 2 : ℂ)⁻¹ := by simp [pairSup]
 
+/-- The upper amplitude of `pairSup` is 1/√2. -/
 @[simp] theorem pairSup_hi {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairSup N j hj (pairHi N j hj) = (Real.sqrt 2 : ℂ)⁻¹ := by simp [pairSup]
 
+/-- The state `pairSup` vanishes outside its selected pair. -/
 theorem pairSup_off {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} {x : Fin N}
     (h1 : x ≠ pairLo N j hj) (h2 : x ≠ pairHi N j hj) : pairSup N j hj x = 0 := by
   simp [pairSup, h1, h2]
 
+/-- The lower amplitude of `pairSupMinus` is 1/√2. -/
 @[simp] theorem pairSupMinus_lo {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairSupMinus N j hj (pairLo N j hj) = (Real.sqrt 2 : ℂ)⁻¹ := by simp [pairSupMinus]
 
+/-- The upper amplitude of `pairSupMinus` is −1/√2. -/
 @[simp] theorem pairSupMinus_hi {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     pairSupMinus N j hj (pairHi N j hj) = -(Real.sqrt 2 : ℂ)⁻¹ := by
   simp [pairSupMinus, Ne.symm (pairLo_ne_pairHi hj)]
 
+/-- The state `pairSupMinus` vanishes outside its selected pair. -/
 theorem pairSupMinus_off {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} {x : Fin N}
     (h1 : x ≠ pairLo N j hj) (h2 : x ≠ pairHi N j hj) : pairSupMinus N j hj x = 0 := by
   simp [pairSupMinus, h1, h2]
 
+/-- The pair Hadamard sends the lower basis state to the equal pair superposition. -/
 theorem applyGate_pairHadamardIdx_ket_lo {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     ApplyGate (pairHadamardIdx N j hj) (Ket (pairLo N j hj)) = pairSup N j hj := by
   funext x
@@ -315,6 +377,7 @@ theorem applyGate_pairHadamardIdx_ket_lo {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N
       (fun e => hx (Or.inr e)),
     pairSup_off (fun e => hx (Or.inl e)) (fun e => hx (Or.inr e))]
 
+/-- The pair Hadamard sends the equal pair superposition to the lower basis state. -/
 theorem applyGate_pairHadamardIdx_pairSup {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     ApplyGate (pairHadamardIdx N j hj) (pairSup N j hj) = Ket (pairLo N j hj) := by
   funext x
@@ -350,6 +413,7 @@ theorem applyGate_pairHadamardIdx_pairSup {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < 
       ring
     · rw [pairSup_off (fun e => hz (Or.inl e)) (fun e => hz (Or.inr e)), mul_zero]
 
+/-- The pair Hadamard sends the pair superposition with opposite signs to the upper basis state. -/
 theorem applyGate_pairHadamardIdx_pairSupMinus {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     ApplyGate (pairHadamardIdx N j hj) (pairSupMinus N j hj) = Ket (pairHi N j hj) := by
   funext x
@@ -385,6 +449,8 @@ theorem applyGate_pairHadamardIdx_pairSupMinus {N : ℕ} {j : ℕ} (hj : 2 * j +
       ring
     · rw [pairSupMinus_off (fun e => hz (Or.inl e)) (fun e => hz (Or.inr e)), mul_zero]
 
+/-- A phase query changes the equal pair superposition according to the XOR of the two input
+bits, with global phase given by the lower bit. -/
 theorem applyGate_phaseOracle_pairSup {N : ℕ} (f : Fin N → Bool) {j : ℕ}
     (hj : 2 * j + 1 < N) :
     ApplyGate (PhaseOracle f) (pairSup N j hj)
@@ -404,6 +470,8 @@ theorem applyGate_phaseOracle_pairSup {N : ℕ} (f : Fin N → Bool) {j : ℕ}
     · by_cases hP : f (pairLo N j hj) ^^ f (pairHi N j hj) <;>
         simp [phaseOf, pairSup, pairSupMinus, hx, hx', hP]
 
+/-- The pair Hadamard decodes the pair XOR into the upper basis state when it is true and the
+lower basis state otherwise. -/
 theorem applyGate_pairHadamardIdx_pairSup_ite {N : ℕ} (f : Fin N → Bool) {j : ℕ}
     (hj : 2 * j + 1 < N) :
     ApplyGate (pairHadamardIdx N j hj)
@@ -419,8 +487,12 @@ end PairMixer
 
 section Workspace
 
+/-- The parity workspace consisting of an index, an oracle target bit, a Boolean record
+register, and an answer bit. -/
 abbrev ParityWS (N : ℕ) := PolynomialWorkspace (Fin N) (Reg N × Bool)
 
+/-- A parity workspace basis state factors as the tensor product of its four component basis
+states. -/
 theorem ket_workspace_eq (N : ℕ) (i : Fin N) (t : Bool) (r : Reg N) (a : Bool) :
     Ket ((i, t), (r, a)) =
       TensorState (TensorState (Ket i) (Ket t)) (TensorState (Ket r) (Ket a)) := by
@@ -430,61 +502,80 @@ theorem ket_workspace_eq (N : ℕ) (i : Fin N) (t : Bool) (r : Reg N) (a : Bool)
   by_cases h1 : i' = i <;> by_cases h2 : t' = t <;> by_cases h3 : r' = r <;>
     by_cases h4 : a' = a <;> simp [h1, h2, h3, h4]
 
+/-- Extend an index gate to the parity workspace by tensoring with identity matrices on the
+other registers. -/
 noncomputable def onIdx (N : ℕ) (U : Matrix (Fin N) (Fin N) ℂ) :
     Matrix (ParityWS N) (ParityWS N) ℂ :=
   TensorGate (TensorGate U (1 : Matrix Bool Bool ℂ)) (1 : Matrix (Reg N × Bool) (Reg N × Bool) ℂ)
 
+/-- Extend a target bit gate to the parity workspace by tensoring with identity matrices on the
+other registers. -/
 noncomputable def onTgt (N : ℕ) (V : Matrix Bool Bool ℂ) :
     Matrix (ParityWS N) (ParityWS N) ℂ :=
   TensorGate (TensorGate (1 : Matrix (Fin N) (Fin N) ℂ) V)
     (1 : Matrix (Reg N × Bool) (Reg N × Bool) ℂ)
 
+/-- Extending a unitary index gate with `onIdx` gives a unitary workspace gate. -/
 theorem onIdx_unitary {N : ℕ} {U : Matrix (Fin N) (Fin N) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin N) ℂ) :
     onIdx N U ∈ Matrix.unitaryGroup (ParityWS N) ℂ :=
   tensorGate_unitary (tensorGate_unitary hU (Submonoid.one_mem _)) (Submonoid.one_mem _)
 
+/-- Extending a unitary target bit gate with `onTgt` gives a unitary workspace gate. -/
 theorem onTgt_unitary {N : ℕ} {V : Matrix Bool Bool ℂ}
     (hV : V ∈ Matrix.unitaryGroup Bool ℂ) :
     onTgt N V ∈ Matrix.unitaryGroup (ParityWS N) ℂ :=
   tensorGate_unitary (tensorGate_unitary (Submonoid.one_mem _) hV) (Submonoid.one_mem _)
 
+/-- On a tensor state, `onIdx` applies its gate to the index factor. -/
 theorem applyGate_onIdx {N : ℕ} (U : Matrix (Fin N) (Fin N) ℂ) (φ : QState (Fin N))
     (τ : QState Bool) (χ : QState (Reg N × Bool)) :
     ApplyGate (onIdx N U) (TensorState (TensorState φ τ) χ) =
       TensorState (TensorState (ApplyGate U φ) τ) χ := by
   rw [onIdx, applyGate_tensorGate, applyGate_tensorGate, applyGate_one, applyGate_one]
 
+/-- On a tensor state, `onTgt` applies its gate to the target bit factor. -/
 theorem applyGate_onTgt {N : ℕ} (V : Matrix Bool Bool ℂ) (φ : QState (Fin N))
     (τ : QState Bool) (χ : QState (Reg N × Bool)) :
     ApplyGate (onTgt N V) (TensorState (TensorState φ τ) χ) =
       TensorState (TensorState φ (ApplyGate V τ)) χ := by
   rw [onTgt, applyGate_tensorGate, applyGate_tensorGate, applyGate_one, applyGate_one]
 
+/-- Exchange two specified indices and fix every other index. -/
 def swapFin {N : ℕ} (a b i : Fin N) : Fin N := if i = a then b else if i = b then a else i
 
+/-- Exchanging two indices twice returns the original index. -/
 theorem swapFin_involutive {N : ℕ} (a b : Fin N) : Function.Involutive (swapFin a b) := by
   intro i
   unfold swapFin
   by_cases h1 : i = a <;> by_cases h2 : i = b <;> simp [h1, h2]
 
+/-- The index after processing `m` pairs: 2m when available, with a fallback to the last
+processed lower index at the even endpoint. -/
 def idxAt {N : ℕ} (hN : 0 < N) (m : ℕ) (hm : m ≤ N / 2) : Fin N :=
   if h : 2 * m < N then ⟨2 * m, h⟩
   else if hm0 : 0 < m then ⟨2 * m - 2, by omega⟩ else ⟨0, hN⟩
 
+/-- Before processing any pairs, `idxAt` is the zero index. -/
 @[simp] theorem idxAt_zero {N : ℕ} (hN : 0 < N) : idxAt hN 0 (by omega) = ⟨0, hN⟩ := by
   simp only [idxAt, dif_pos (by omega : (2 : ℕ) * 0 < N), Nat.mul_zero]
 
+/-- The XOR of the input bits in adjacent pair `j`, or `false` when that pair is incomplete. -/
 def pairParityBit {N : ℕ} (f : Fin N → Bool) (j : ℕ) : Bool :=
   if h : 2 * j + 1 < N then f ⟨2 * j, by omega⟩ ^^ f ⟨2 * j + 1, by omega⟩ else false
 
+/-- For a complete pair, `pairParityBit` equals the XOR of the lower and upper input bits. -/
 theorem pairParityBit_eq {N : ℕ} {f : Fin N → Bool} {j : ℕ} (hj : 2 * j + 1 < N) :
     pairParityBit f j = (f (pairLo N j hj) ^^ f (pairHi N j hj)) := by
   exact dif_pos hj
 
+/-- The record register containing the first `m` pair XOR values and `false` in the remaining
+positions. -/
 def pairRecAfter {N : ℕ} (f : Fin N → Bool) (m : ℕ) : Reg N :=
   fun k => if (k : ℕ) < m then pairParityBit f (k : ℕ) else false
 
+/-- Processing one further complete pair updates exactly its record position with that pair's
+XOR. -/
 theorem pairRecAfter_succ {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m < N / 2) :
     pairRecAfter f (m + 1) = Function.update (pairRecAfter f m) ⟨m, by omega⟩
       (pairParityBit f m) := by
@@ -506,11 +597,14 @@ theorem pairRecAfter_succ {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m < N /
         = (if (k : ℕ) < m then pairParityBit f (k : ℕ) else false)
       rw [if_neg hlt, if_neg (by omega)]
 
+/-- The record register index assigned to pair `j`. -/
 def pairRecBit {N : ℕ} (j : ℕ) (hj : 2 * j + 1 < N) : Fin N := ⟨j, by omega⟩
 
+/-- The natural number underlying the record index for pair `j` is `j`. -/
 @[simp] theorem pairRecBit_val {N : ℕ} {j : ℕ} {hj : 2 * j + 1 < N} :
     (pairRecBit j hj).val = j := rfl
 
+/-- Flip the record bit for pair `j` when the index register is at that pair's upper index. -/
 def parityCopyFlip {N : ℕ} (j : ℕ) (hj : 2 * j + 1 < N) :
     ParityWS N → ParityWS N :=
   fun p =>
@@ -519,6 +613,7 @@ def parityCopyFlip {N : ℕ} (j : ℕ) (hj : 2 * j + 1 < N) :
       (Function.update p.2.1 (pairRecBit j hj) (! p.2.1 (pairRecBit j hj)), p.2.2))
     else p
 
+/-- The controlled record bit flip `parityCopyFlip` is an involution. -/
 theorem parityCopyFlip_involutive {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     Function.Involutive (parityCopyFlip j hj) := by
   intro p
@@ -530,56 +625,73 @@ theorem parityCopyFlip_involutive {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
       update_self_eq]
   · simp only [parityCopyFlip, if_neg hp]
 
+/-- Swap the index selected by the recorded pair XOR with the index for the next processing
+stage. -/
 def parityResetFlip {N : ℕ} (j : ℕ) (hj : 2 * j + 1 < N) :
     ParityWS N → ParityWS N :=
   fun p =>
     ((swapFin (if p.2.1 (pairRecBit j hj) then pairHi N j hj else pairLo N j hj)
       (idxAt (by omega) (j + 1) (by omega)) p.1.1, p.1.2), p.2)
 
+/-- The record controlled index reset `parityResetFlip` is an involution. -/
 theorem parityResetFlip_involutive {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     Function.Involutive (parityResetFlip j hj) := by
   intro p
   simp only [parityResetFlip]
   exact congrArg (fun i => ((i, p.1.2), p.2)) (swapFin_involutive _ _ p.1.1)
 
+/-- The Boolean value indicating whether a register has odd Hamming weight. -/
 def regParity {N : ℕ} (r : Reg N) : Bool := decide ((boolWeight r) % 2 = 1)
 
+/-- XOR the parity of the record register into the answer bit. -/
 def parityAcceptFlip {N : ℕ} : ParityWS N → ParityWS N :=
   fun p => ((p.1.1, p.1.2), (p.2.1, p.2.2 ^^ regParity p.2.1))
 
+/-- XOR the oracle target bit into the answer bit. -/
 def parityTargetFlip {N : ℕ} : ParityWS N → ParityWS N :=
   fun p => ((p.1.1, p.1.2), (p.2.1, p.2.2 ^^ p.1.2))
 
+/-- XORing the record parity into the answer bit is an involution. -/
 theorem parityAcceptFlip_involutive (N : ℕ) : Function.Involutive (parityAcceptFlip (N := N)) := by
   intro p
   simp only [parityAcceptFlip, Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
 
+/-- XORing the target bit into the answer bit is an involution. -/
 theorem parityTargetFlip_involutive (N : ℕ) : Function.Involutive (parityTargetFlip (N := N)) := by
   intro p
   simp only [parityTargetFlip, Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
 
+/-- The permutation matrix for `parityAcceptFlip` is unitary. -/
 theorem parityAcceptFlip_unitary (N : ℕ) :
     permMatrix (parityAcceptFlip (N := N)) ∈ Matrix.unitaryGroup (ParityWS N) ℂ :=
   permMatrix_unitary (parityAcceptFlip_involutive N)
 
+/-- The permutation matrix for `parityTargetFlip` is unitary. -/
 theorem parityTargetFlip_unitary (N : ℕ) :
     permMatrix (parityTargetFlip (N := N)) ∈ Matrix.unitaryGroup (ParityWS N) ℂ :=
   permMatrix_unitary (parityTargetFlip_involutive N)
 
+/-- The target preparation matrix `Hadamard * PauliX`, which sends the zero basis state to
+`Minus`. -/
 noncomputable def targetMinusMatrix : Matrix Bool Bool ℂ := Hadamard * PauliX
 
+/-- The matrix `PauliX * Hadamard`, used to return `Minus` to the zero basis state. -/
 noncomputable def targetZeroMatrix : Matrix Bool Bool ℂ := PauliX * Hadamard
 
+/-- The target preparation matrix `targetMinusMatrix` is unitary. -/
 theorem targetMinusMatrix_unitary : targetMinusMatrix ∈ Matrix.unitaryGroup Bool ℂ :=
   (Matrix.unitaryGroup Bool ℂ).mul_mem hadamard_unitary pauliX_unitary
 
+/-- The target reset matrix `targetZeroMatrix` is unitary. -/
 theorem targetZeroMatrix_unitary : targetZeroMatrix ∈ Matrix.unitaryGroup Bool ℂ :=
   (Matrix.unitaryGroup Bool ℂ).mul_mem pauliX_unitary hadamard_unitary
 
+/-- The target preparation matrix sends the zero basis state to `Minus`. -/
 theorem applyGate_targetMinusMatrix : ApplyGate targetMinusMatrix (Ket false) = Minus := by
   rw [targetMinusMatrix, applyGate_mul, applyGate_pauliX_ket]
   exact applyGate_hadamard_ket_true
 
+/-- The target reset matrix sends `Minus` to the zero basis state. -/
 theorem applyGate_targetZeroMatrix : ApplyGate targetZeroMatrix Minus = Ket false := by
   rw [targetZeroMatrix, applyGate_mul]
   have hHM : ApplyGate Hadamard Minus = Ket true := by
@@ -591,22 +703,28 @@ end Workspace
 
 section Circuit
 
+/-- The Boolean bit oracle extended by the identity on the record and answer registers. -/
 noncomputable def parityOracle (N : ℕ) (f : Fin N → Bool) :
     Matrix (ParityWS N) (ParityWS N) ℂ :=
   TensorGate (BitOracleOn f) (1 : Matrix (Reg N × Bool) (Reg N × Bool) ℂ)
 
+/-- The circuit that uses one oracle query to record the XOR of pair `j` and prepare the index
+for the next stage. -/
 noncomputable def pairBlock {N : ℕ} (j : ℕ) (hj : 2 * j + 1 < N) : Circuit (ParityWS N) :=
   [Step.gate (onTgt N targetMinusMatrix), Step.gate (onIdx N (pairHadamardIdx N j hj)),
     Step.query, Step.gate (onIdx N (pairHadamardIdx N j hj)),
     Step.gate (onTgt N targetZeroMatrix), Step.gate (permMatrix (parityCopyFlip j hj)),
     Step.gate (permMatrix (parityResetFlip j hj))]
 
+/-- A pair processing block contains exactly one oracle query. -/
 theorem queryCount_pairBlock {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     QueryCount (pairBlock j hj) = 1 := rfl
 
+/-- A pair processing block contains exactly six gates. -/
 theorem gateCount_pairBlock {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     GateCount (pairBlock j hj) = 6 := rfl
 
+/-- Every gate in a pair processing block is unitary. -/
 theorem isUnitaryCircuit_pairBlock {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
     IsUnitaryCircuit (pairBlock j hj) := by
   refine (isUnitaryCircuit_gate _ _).mpr ⟨onTgt_unitary targetMinusMatrix_unitary, ?_⟩
@@ -619,12 +737,14 @@ theorem isUnitaryCircuit_pairBlock {N : ℕ} {j : ℕ} (hj : 2 * j + 1 < N) :
   exact (isUnitaryCircuit_gate _ _).mpr
     ⟨permMatrix_unitary (parityResetFlip_involutive hj), isUnitaryCircuit_nil⟩
 
+/-- Concatenate the processing blocks for the first `m` complete adjacent pairs. -/
 noncomputable def pairsPart {N : ℕ} :
     (m : ℕ) → (∀ j < m, 2 * j + 1 < N) → Circuit (ParityWS N)
   | 0, _ => []
   | m + 1, hm =>
     pairsPart m (fun j hj => hm j (Nat.lt_succ_of_lt hj)) ++ pairBlock m (hm m (Nat.lt_succ_self m))
 
+/-- Processing `m` complete pairs uses exactly `m` oracle queries. -/
 theorem queryCount_pairsPart {N : ℕ} : ∀ (m : ℕ) (hm : ∀ j < m, 2 * j + 1 < N),
     QueryCount (pairsPart m hm) = m := by
   intro m
@@ -637,6 +757,7 @@ theorem queryCount_pairsPart {N : ℕ} : ∀ (m : ℕ) (hm : ∀ j < m, 2 * j + 
           ++ pairBlock m (hm m (Nat.lt_succ_self m)) := rfl
     rw [heq, queryCount_append, ih, queryCount_pairBlock]
 
+/-- Processing `m` complete pairs uses exactly 6m gates. -/
 theorem gateCount_pairsPart {N : ℕ} : ∀ (m : ℕ) (hm : ∀ j < m, 2 * j + 1 < N),
     GateCount (pairsPart m hm) = 6 * m := by
   intro m
@@ -650,6 +771,7 @@ theorem gateCount_pairsPart {N : ℕ} : ∀ (m : ℕ) (hm : ∀ j < m, 2 * j + 1
     rw [heq, gateCount_append, ih, gateCount_pairBlock]
     ring
 
+/-- The circuit processing any initial collection of complete pairs is unitary. -/
 theorem isUnitaryCircuit_pairsPart {N : ℕ} : ∀ (m : ℕ) (hm : ∀ j < m, 2 * j + 1 < N),
     IsUnitaryCircuit (pairsPart m hm) := by
   intro m
@@ -663,6 +785,8 @@ theorem isUnitaryCircuit_pairsPart {N : ℕ} : ∀ (m : ℕ) (hm : ∀ j < m, 2 
     rw [heq, isUnitaryCircuit_append]
     exact ⟨ih _, isUnitaryCircuit_pairBlock _⟩
 
+/-- When the designated record bit is initially false, a pair block records the pair XOR and
+advances the index, acquiring the phase of the lower input bit. -/
 theorem run_pairBlock {N : ℕ} (f : Fin N → Bool) {j : ℕ} (hj : 2 * j + 1 < N)
     (c : ℂ) (rec : Reg N) (hrecj : rec (pairRecBit j hj) = false) (a : Bool) :
     Run (parityOracle N f) (pairBlock j hj)
@@ -756,6 +880,8 @@ theorem run_pairBlock {N : ℕ} (f : Fin N → Bool) {j : ℕ} (hj : 2 * j + 1 <
   simp only [pairBlock, run_gate, run_query, run_nil]
   rw [hk, h1, h2, h3, h4, h5, h6, h7]
 
+/-- Starting from the empty record, the first `m` pair blocks produce `pairRecAfter f m` and the
+stage index `idxAt`, up to a scalar of norm one. -/
 theorem run_pairsPart {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
     ∀ (m : ℕ) (hm : m ≤ N / 2) (hm' : ∀ j < m, 2 * j + 1 < N) (a : Bool),
       ∃ c : ℂ, ‖c‖ = 1 ∧
@@ -793,25 +919,32 @@ end Circuit
 
 section Arithmetic
 
+/-- Convert a Boolean value to the natural number 0 or 1. -/
 private def b2n (b : Bool) : ℕ := if b then 1 else 0
 
+/-- The integer value of XOR plus twice the product of the two bit values equals their sum. -/
 private theorem b2n_xor_add (x y : Bool) :
     b2n (x ^^ y) + 2 * (b2n x * b2n y) = b2n x + b2n y := by
   cases x <;> cases y <;> rfl
 
+/-- The integer value of XOR equals the sum of the bit values modulo two. -/
 private theorem b2n_xor_mod (x y : Bool) : b2n (x ^^ y) = (b2n x + b2n y) % 2 := by
   cases x <;> cases y <;> rfl
 
+/-- The Hamming weight of a Boolean register equals the sum of its bit values. -/
 theorem boolWeight_eq_sum {N : ℕ} (r : Reg N) : boolWeight r = ∑ k, b2n (r k) := by
   simp only [boolWeight, boolSupp, b2n]
   rw [Finset.card_filter]
 
+/-- A sum indexed by `Fin N` equals the sum over natural numbers below `N`, using the
+corresponding bounded indices. -/
 private theorem sum_fin_eq_range {N : ℕ} (F : Fin N → ℕ) :
     ∑ k, F k = ∑ k ∈ Finset.range N, (if h : k < N then F ⟨k, h⟩ else 0) := by
   rw [← Fin.sum_univ_eq_sum_range (fun k => if h : k < N then F ⟨k, h⟩ else 0) N]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [dif_pos i.isLt]
 
+/-- A finite sum splits into sums over adjacent pairs and a final term when the length is odd. -/
 private theorem sum_range_split (g : ℕ → ℕ) : ∀ N : ℕ,
     ∑ k ∈ Finset.range N, g k
         = (∑ j ∈ Finset.range (N / 2), (g (2 * j) + g (2 * j + 1)))
@@ -845,15 +978,20 @@ private theorem sum_range_split (g : ℕ → ℕ) : ∀ N : ℕ,
     simp only [if_pos he1, hd2, show 2 * m + 1 - 1 = 2 * m from rfl]
     exact (key m).2
 
+/-- The natural number value of input bit `k`, extended by zero beyond the input length. -/
 private def bitAt {N : ℕ} (f : Fin N → Bool) (k : ℕ) : ℕ :=
   if h : k < N then b2n (f ⟨k, h⟩) else 0
 
+/-- The last input bit when the input length is odd, and `false` when it is even. -/
 def oddTailBit {N : ℕ} (f : Fin N → Bool) : Bool :=
   if h : N % 2 = 1 then f ⟨N - 1, by omega⟩ else false
 
+/-- The XOR of the parity of the completed pair record with the unpaired final input bit. -/
 def countedParityBit {N : ℕ} (f : Fin N → Bool) : Bool :=
   regParity (pairRecAfter f (N / 2)) ^^ oddTailBit f
 
+/-- For a nonempty input, the Hamming weight splits into the sum of the complete pair weights
+and the value of `oddTailBit`. -/
 theorem boolWeight_eq_pairSum {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
     boolWeight f = ((∑ j ∈ Finset.range (N / 2),
         (bitAt f (2 * j) + bitAt f (2 * j + 1)))) + b2n (oddTailBit f) := by
@@ -869,6 +1007,8 @@ theorem boolWeight_eq_pairSum {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
       rfl
   rw [h1, h2, hodd]
 
+/-- The Hamming weight of the record after `m` pairs is the sum of the first `m` pair XOR
+values. -/
 theorem boolWeight_pairRecAfter {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m ≤ N / 2) :
     boolWeight (pairRecAfter f m) = ∑ j ∈ Finset.range m, b2n (pairParityBit f j) := by
   have hzero : ∀ k ∈ Finset.range N, m ≤ k →
@@ -896,6 +1036,8 @@ theorem boolWeight_pairRecAfter {N : ℕ} (f : Fin N → Bool) (m : ℕ) (hm : m
   show b2n (if j < m then pairParityBit f j else false) = b2n (pairParityBit f j)
   rw [if_pos hjm]
 
+/-- For a nonempty input, `countedParityBit` is true exactly when the input has odd Hamming
+weight. -/
 theorem countedParityBit_eq {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
     countedParityBit f = decide ((boolWeight f) % 2 = 1) := by
   have hper : ∀ j ∈ Finset.range (N / 2),
@@ -949,26 +1091,33 @@ end Arithmetic
 
 section Main
 
+/-- Every pair indexed below `N / 2` is a complete pair of input indices. -/
 theorem lt_half_pairs (N : ℕ) : ∀ j < N / 2, 2 * j + 1 < N := by
   intro j hj
   omega
 
+/-- The parity circuit consisting of all complete pair blocks, an extra query for an odd tail,
+and a final answer gate. -/
 noncomputable def countedParityCircuit (N : ℕ) :
     Circuit (PolynomialWorkspace (Fin N) (Reg N × Bool)) :=
   pairsPart (N / 2) (lt_half_pairs N) ++
     (if N % 2 = 1 then [Step.query, Step.gate (permMatrix (parityTargetFlip (N := N)))] else []) ++
     [Step.gate (permMatrix (parityAcceptFlip (N := N)))]
 
+/-- The basis state with index zero and all target, record, and answer bits false. -/
 def countedParityInitial (N : ℕ) (hN : 0 < N) :
     QState (PolynomialWorkspace (Fin N) (Reg N × Bool)) :=
   Ket ((⟨0, hN⟩, false), (ZeroStr N, false))
 
+/-- The initial state of the counted parity circuit is normalized. -/
 theorem normalized_countedParityInitial (N : ℕ) (hN : 0 < N) :
     Normalized (countedParityInitial N hN) := normalized_ket _
 
+/-- The set of parity workspace basis states whose answer bit is true. -/
 def countedParityAccept (N : ℕ) : Finset (PolynomialWorkspace (Fin N) (Reg N × Bool)) :=
   Finset.univ.filter fun p => p.2.2 = true
 
+/-- The counted parity circuit uses exactly ⌈N/2⌉ oracle queries, expressed as `(N + 1) / 2`. -/
 theorem queryCount_countedParityCircuit (N : ℕ) :
     QueryCount (countedParityCircuit N) = (N + 1) / 2 := by
   have h1 : QueryCount (countedParityCircuit N)
@@ -986,6 +1135,7 @@ theorem queryCount_countedParityCircuit (N : ℕ) :
     show N / 2 + 0 + 0 = (N + 1) / 2
     omega
 
+/-- The counted parity circuit uses at most 12N + 12 gates. -/
 theorem gateCount_countedParityCircuit (N : ℕ) :
     GateCount (countedParityCircuit N) ≤ 12 * N + 12 := by
   have h1 : GateCount (countedParityCircuit N)
@@ -1003,6 +1153,7 @@ theorem gateCount_countedParityCircuit (N : ℕ) :
     show 6 * (N / 2) + 0 + 1 ≤ 12 * N + 12
     omega
 
+/-- The counted parity circuit is unitary. -/
 theorem isUnitaryCircuit_countedParityCircuit (N : ℕ) :
     IsUnitaryCircuit (countedParityCircuit N) := by
   have h1 : countedParityCircuit N
@@ -1020,6 +1171,8 @@ theorem isUnitaryCircuit_countedParityCircuit (N : ℕ) :
   · rw [if_neg hodd, List.nil_append]
     exact (isUnitaryCircuit_gate _ _).mpr ⟨parityAcceptFlip_unitary N, isUnitaryCircuit_nil⟩
 
+/-- Querying a basis state with a false target and then applying `parityTargetFlip` stores the
+queried input bit in the target and XORs it into the answer. -/
 theorem run_oddTail {N : ℕ} (f : Fin N → Bool) (c : ℂ) (i : Fin N) (rec : Reg N)
     (a : Bool) :
     Run (parityOracle N f) [Step.query, Step.gate (permMatrix (parityTargetFlip (N := N)))]
@@ -1033,6 +1186,8 @@ theorem run_oddTail {N : ℕ} (f : Fin N → Bool) (c : ℂ) (i : Fin N) (rec : 
     Bool.false_xor]
   rfl
 
+/-- On a nonempty input, the counted parity circuit produces the completed pair record, odd tail
+bit, and parity answer, up to a scalar of norm one. -/
 theorem countedParityCircuit_run (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) :
     ∃ c : ℂ, ‖c‖ = 1 ∧
     Run (parityOracle N f) (countedParityCircuit N) (countedParityInitial N hN) =
@@ -1085,6 +1240,8 @@ theorem countedParityCircuit_run (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) :
       simp
     simp only [parityAcceptFlip, hoddT, hcb, Bool.false_xor]
 
+/-- On a nonempty input, the counted parity circuit accepts with probability one for odd Hamming
+weight and zero for even Hamming weight. -/
 theorem countedParity_measureProb {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
     MeasureProb (Run (TensorGate (BitOracleOn f) (1 : Matrix (Reg N × Bool) (Reg N × Bool) ℂ))
         (countedParityCircuit N) (countedParityInitial N hN)) (countedParityAccept N) =
@@ -1116,6 +1273,9 @@ theorem countedParity_measureProb {N : ℕ} (hN : 0 < N) (f : Fin N → Bool) :
       simpa using h3
     rw [if_neg h2]
 
+/-- For positive `N`, the counted parity circuit is unitary, starts in a normalized state,
+computes parity exactly, uses ⌈N/2⌉ queries, and uses at most 12N + 12 gates. This realizes
+the parity upper bound associated with [Beals et al., Proposition 6.4][BealsEtAl2001]. -/
 theorem parity_actual_pairwise_query_upper_consumer (N : ℕ) (hN : 0 < N) :
     IsUnitaryCircuit (countedParityCircuit N) ∧ Normalized (countedParityInitial N hN) ∧
       QueryCount (countedParityCircuit N) = (N + 1) / 2 ∧
@@ -1128,6 +1288,10 @@ theorem parity_actual_pairwise_query_upper_consumer (N : ℕ) (hN : 0 < N) :
     queryCount_countedParityCircuit N, gateCount_countedParityCircuit N,
     fun f => countedParity_measureProb hN f⟩
 
+/-- For positive `N`, the counted circuit computes parity exactly with ⌈N/2⌉ queries and at most
+12N + 12 gates, while every normalized unitary circuit on the same workspace approximating
+parity within 1/3 needs at least ⌈N/2⌉ queries. See [Beals et al., Proposition
+6.4][BealsEtAl2001]. -/
 theorem parity_query_complexity_tight (N : ℕ) (hN : 0 < N) :
     (∀ f : Fin N → Bool,
       MeasureProb (Run (TensorGate (BitOracleOn f) (1 : Matrix (Reg N × Bool) (Reg N × Bool) ℂ))

@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonSparseHam09.MainResults.Prop2Arboricity
+
+/-!
+# Assembling norm bounds from star decompositions
+
+Proves spectral-norm estimates for sums and complex entrywise absolute-value matrices. The
+theorem `prop2_of_star_decomposition` establishes `prop2Statement` from a supplied
+absolute-value decomposition, exact component norm identities, and a bound on their total
+maximum-column norm. See [ChildsKothari2010] for the surrounding analysis.
+
+## Main statements
+
+* `specNorm_le_specNorm_absComplex`: The spectral norm of a complex matrix is at most that of
+  its complex entrywise absolute-value matrix.
+* `specNorm_sum_le`: The spectral norm of a finite sum of matrices is at most the sum of their
+  spectral norms.
+* `prop2_of_star_decomposition`: Given the stated absolute-value decomposition, component norm
+  identities, and bound `∑ l, mcnNorm (S l) ≤ 2 * k * mcnNorm H`, the three inequalities in
+  `prop2Statement H hH hk` hold.
+
+## References
+
+* [Childs and Kothari, 2010][ChildsKothari2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +42,8 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 
+/-- The spectral norm of a complex matrix is at most that of its complex entrywise
+absolute-value matrix [ChildsKothari2010]. -/
 lemma specNorm_le_specNorm_absComplex (H : Matrix ι ι ℂ) :
     specNorm H ≤ specNorm ((absMatrix H).map Complex.ofReal) := by
   set A : Matrix ι ι ℂ := (absMatrix H).map Complex.ofReal with hAdef
@@ -66,12 +92,16 @@ lemma specNorm_le_specNorm_absComplex (H : Matrix ι ι ℂ) :
     simp [hw, Complex.norm_real]
   exact hdom.trans (hstep.trans_eq (by rw [hveq]))
 
+/-- The spectral norm of a finite sum of matrices is at most the sum of their spectral norms
+[ChildsKothari2010]. -/
 lemma specNorm_sum_le {m : ℕ} (S : Fin m → Matrix ι ι ℂ) :
     specNorm (∑ l, S l) ≤ ∑ l, specNorm (S l) := by
   rw [specNorm_eq_l2]
   calc ‖∑ l, S l‖ ≤ ∑ l, ‖S l‖ := norm_sum_le _ _
     _ = ∑ l, specNorm (S l) := by simp [specNorm_eq_l2]
 
+/-- An entrywise additive decomposition of absolute-value matrices remains additive after
+mapping the real entries into the complex numbers [ChildsKothari2010]. -/
 lemma absMatrix_map_sum {m : ℕ} (H : Matrix ι ι ℂ) (S : Fin m → Matrix ι ι ℂ)
     (h : ∀ i j, absMatrix H i j = ∑ l, absMatrix (S l) i j) :
     (absMatrix H).map Complex.ofReal
@@ -81,6 +111,9 @@ lemma absMatrix_map_sum {m : ℕ} (H : Matrix ι ι ℂ) (S : Fin m → Matrix �
   push_cast
   rfl
 
+/-- Given the stated absolute-value decomposition, component norm identities, and bound `∑ l,
+mcnNorm (S l) ≤ 2 * k * mcnNorm H`, the three inequalities in `prop2Statement H hH hk` hold
+[ChildsKothari2010]. -/
 theorem prop2_of_star_decomposition
     (H : Matrix ι ι ℂ) (hH : H.IsHermitian) {k m : ℕ}
     (hk : GraphArboricityLE (matrixGraph H) k)

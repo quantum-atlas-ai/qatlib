@@ -5,6 +5,20 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+
+/-!
+# Reweighting success and limits of lower-bound consumers
+
+`reweighting_exact_word_success` certifies exact resampling and its access ledger.
+`sourceQueryLowerBound_instance_constants` supplies an instance-dependent offset that makes its
+lower bound zero, while `gext3_filtered_consumer_of_zero_query_word` rules out a positive
+filtered lower-bound consumer whenever a successful word uses no source queries. A
+one-dimensional example gives an explicit refutation.
+
+Quantum rejection sampling [OzolsRoettelerRoland2013] provides context for these access
+contracts; see [Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -51,10 +65,18 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity
 variable {m : ℕ} (π σ : Fin m → ℝ)
 variable {m : ℕ} (π σ : Fin m → ℚ)
 
+/-- The constant-one rational source table on a single coordinate, used for the zero-query
+counterexample. -/
 private def gext3CounterPi : Fin 1 → ℚ := fun _ => 1
 
+/-- The constant-one rational target table on a single coordinate, used for the zero-query
+counterexample. -/
 private def gext3CounterSig : Fin 1 → ℚ := fun _ => 1
 
+/-- Certifies `ReweightingSuccess` for the exact resampling word with fidelity `levelDot^2 /
+levelMass` under normalization, nonnegativity, and positive mass. Its ledger has `2 * rounds
++ 1` source calls, `4 * rounds + 2` known macros, and zero data queries, with the stated
+inverse-square-root mass bound. -/
 theorem reweighting_exact_word_success {m D : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     (h : ∀ i, 0 ≤ π i ∧ 0 ≤ σ i) (hγ : 0 ≤ γ)
     (hπ : (∑ i, (π i : ℝ) ^ 2) = 1) (hσ : (∑ i, (σ i : ℝ) ^ 2) = 1)
@@ -100,6 +122,8 @@ theorem reweighting_exact_word_success {m D : ℕ} (π σ : Fin m → ℚ) (γ :
   refine ⟨hsuccess, hledger, ?_⟩
   simpa only [β] using! hsched.2.2.2.2.2.2.1
 
+/-- Establishes `SourceQueryLowerBound` with `c = 1` and offset `C = 1 / sqrt(levelMass)`. These
+instance-dependent constants cancel the displayed lower-bound expression to zero. -/
 theorem sourceQueryLowerBound_instance_constants {m D : ℕ} (π σ : Fin m → ℚ) (γ p : ℝ)
     (_hmass : 0 < levelMass π σ γ) :
     SourceQueryLowerBound (D := D) π σ γ p 1 (1 / Real.sqrt (levelMass π σ γ)) := by
@@ -110,6 +134,9 @@ theorem sourceQueryLowerBound_instance_constants {m D : ℕ} (π σ : Fin m → 
   rw [hcancel]
   exact Nat.cast_nonneg _
 
+/-- A successful reweighting word with zero source queries rules out
+`FilteredGamma2LowerConsumer` at the same instance and parameters, provided the level mass
+is positive. -/
 theorem gext3_filtered_consumer_of_zero_query_word {m D : ℕ} (π σ : Fin m → ℚ) (γ p c cδ δ : ℝ)
     (hmass : 0 < levelMass π σ γ)
     {j₀ : Fin m × Fin D} {W : List (PreparedStep ((Fin m × Fin D) × Bool))}
@@ -134,6 +161,8 @@ theorem gext3_filtered_consumer_of_zero_query_word {m D : ℕ} (π σ : Fin m �
     ENNReal.ofReal_pos.mpr hpos
   exact absurd (lt_of_lt_of_le hpos' hle) (lt_irrefl _)
 
+/-- Refutes the filtered lower-bound consumer for the one-coordinate constant-one source and
+target with ancillary dimension one, level and fidelity one, zero error, and unit constants. -/
 theorem gext3_filtered_consumer_refutable :
     ¬ FilteredGamma2LowerConsumer (D := 1) gext3CounterPi gext3CounterSig (1:ℝ) 1
         (0:ℝ) 1 1 := by

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ProjectorBalance
+
+/-!
+# Parity balance for event acceptance
+
+The event acceptance function `parityAcceptance` has zero correlation with parity when twice the
+circuit's query count is less than the number of input bits. The resulting equality of the even-
+and odd-parity acceptance sums is stated by `parity_acceptance_sum_balance`. These results
+support the parity analysis of [FarhiEtAl1998].
+
+## Main statements
+
+* `parity_signed_acceptance_sum_eq_zero`: If `2 * QueryCount C < n`, the sum of event acceptance
+  weighted by the parity sign vanishes.
+* `parity_acceptance_sum_balance`: If `2 * QueryCount C < n`, the event acceptance sums over
+  even- and odd-parity inputs are equal.
+
+## References
+
+* [Farhi et al., 1998][FarhiEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +35,8 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
+/-- If `2 * QueryCount C < n`, the sum of event acceptance weighted by the parity sign vanishes.
+See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem parity_signed_acceptance_sum_eq_zero {n : ℕ} {W : Type}
     [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
@@ -23,6 +46,8 @@ theorem parity_signed_acceptance_sum_eq_zero {n : ℕ} {W : Type}
   exact cube_degree_signed_sum _
     (Qatlib.Concepts.ProbabilityCore.Concentration.circuit_cube_degree n W C ψ E) h2k
 
+/-- If `2 * QueryCount C < n`, the event acceptance sums over even- and odd-parity inputs are
+equal. -/
 theorem parity_acceptance_sum_balance {n : ℕ} {W : Type}
     [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))

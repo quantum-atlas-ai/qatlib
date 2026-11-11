@@ -14,6 +14,25 @@ import Mathlib.Algebra.Order.Field.Pi
 import Mathlib.Data.List.Sort
 import Mathlib.Order.Interval.Set.UnorderedInterval
 import Mathlib.Topology.MetricSpace.Infsep
+
+/-!
+# Separated windows around finitely many crossings
+
+This module constructs common radii for separated crossing windows and proves uniqueness and
+distance bounds inside and outside them. A gluing induction over sorted crossings combines local
+window statements into interval statements for the contour calculus supporting [WangEtAl2026].
+
+## Main statements
+
+* `exists_common_window_radius`: windows avoiding endpoints and exceptional parameters.
+* `exists_complement_windows_dist_lower_bound`: uniform avoidance outside crossing windows.
+* `sorted_crossing_gluing_induction`: assembly of local interval properties.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +46,8 @@ namespace TauCeti.Contour
 
 open Set
 
+/-- A finite set containing at least two real points has a positive uniform lower bound on
+distances between distinct points. -/
 private theorem min_pairwise_distance_pos {crossings : Finset ℝ} (h_card : 2 ≤ crossings.card) :
     ∃ d > 0, ∀ t₁ ∈ crossings, ∀ t₂ ∈ crossings, t₁ ≠ t₂ → d ≤ |t₁ - t₂| := by
   have h_nt : (↑crossings : Set ℝ).Nontrivial := by
@@ -39,6 +60,8 @@ private theorem min_pairwise_distance_pos {crossings : Finset ℝ} (h_card : 2 �
     (Finset.mem_coe.mpr ht₁) (Finset.mem_coe.mpr ht₂) ht_ne
   rwa [Real.dist_eq] at h
 
+/-- A nonempty finite set inside an open interval stays a positive uniform distance from both
+endpoints. -/
 private theorem crossings_bounded_from_endpoints {a b : ℝ} {crossings : Finset ℝ}
     (h_nonempty : crossings.Nonempty) (h_Ioo : ∀ t ∈ crossings, t ∈ Ioo a b) :
     ∃ c > 0, ∀ t ∈ crossings, a + c ≤ t ∧ t ≤ b - c := by
@@ -51,6 +74,8 @@ private theorem crossings_bounded_from_endpoints {a b : ℝ} {crossings : Finset
   exact ⟨by linarith [h_ge.trans (min_le_left (t - a) (b - t))],
     by linarith [h_ge.trans (min_le_right (t - a) (b - t))]⟩
 
+/-- A nonempty finite crossing set disjoint from a finite exceptional set stays a positive
+uniform distance from that set. -/
 private theorem crossings_bounded_from_exceptional {crossings P : Finset ℝ}
     (h_nonempty : crossings.Nonempty) (h_off : ∀ t ∈ crossings, t ∉ P) :
     ∃ c > 0, ∀ t ∈ crossings, ∀ p ∈ P, c ≤ |t - p| := by
@@ -66,6 +91,8 @@ private theorem crossings_bounded_from_exceptional {crossings P : Finset ℝ}
       h_off m.1 hm_mem.1 (sub_eq_zero.mp h_eq ▸ hm_mem.2), ?_⟩
     exact fun t ht p hp => hm (t, p) (Finset.mem_product.mpr ⟨ht, hp⟩)
 
+/-- Constructs a positive common window radius keeping finitely many interior crossings
+separated from each other, the interval endpoints, and a finite exceptional set. -/
 theorem exists_common_window_radius {a b : ℝ} {crossings P : Finset ℝ}
     (h_nonempty : crossings.Nonempty) (h_Ioo : ∀ t ∈ crossings, t ∈ Ioo a b)
     (h_off : ∀ t ∈ crossings, t ∉ P) :
@@ -100,6 +127,8 @@ theorem exists_common_window_radius {a b : ℝ} {crossings P : Finset ℝ}
     · linarith [h_exc t ht p hp,
         (min_le_right c (min (e / 2) (d / 4))).trans (min_le_left (e / 2) (d / 4))]
 
+/-- Constructs a positive common window radius with strict endpoint margins and disjoint
+crossing windows, bounded above by prescribed positive radii. -/
 theorem exists_common_window_radius_le {a b : ℝ} {crossings : Finset ℝ}
     (h_Ioo : ∀ t ∈ crossings, t ∈ Ioo a b) (R : ℝ → ℝ) (hR_pos : ∀ t ∈ crossings, 0 < R t) :
     ∃ r > 0,
@@ -125,6 +154,8 @@ theorem exists_common_window_radius_le {a b : ℝ} {crossings : Finset ℝ}
     fun t ht t' ht' hne => by linarith [h_pair t ht t' ht' hne],
     fun t ht => le_of_lt (by simpa using hr_all (some ⟨t, ht⟩))⟩
 
+/-- A complete crossing set and an isolated window center force every crossing in that closed
+window to equal its center. -/
 theorem eq_of_mem_window_of_eq_of_le_of_lt {α : Type*} {γ : ℝ → α} {s : α} {a b : ℝ}
     {crossings : Finset ℝ} {r t_i : ℝ} (h_endpts : a + r ≤ t_i ∧ t_i ≤ b - r)
     (h_pairwise : ∀ t' ∈ crossings, t' ≠ t_i → r < |t_i - t'|)
@@ -141,6 +172,8 @@ theorem eq_of_mem_window_of_eq_of_le_of_lt {α : Type*} {γ : ℝ → α} {s : �
     exact ⟨by linarith [ht.1], by linarith [ht.2]⟩
   linarith [abs_nonneg (t_i - t)]
 
+/-- Every crossing within one of the separated closed windows equals that window's crossing
+center. -/
 theorem eq_of_mem_window_of_eq {α : Type*} {γ : ℝ → α} {s : α} {a b : ℝ}
     {crossings : Finset ℝ} {r : ℝ} (h_endpts : ∀ t ∈ crossings, a + r ≤ t ∧ t ≤ b - r)
     (h_pairwise : ∀ t ∈ crossings, ∀ t' ∈ crossings, t' ≠ t → r < |t - t'|)
@@ -149,6 +182,8 @@ theorem eq_of_mem_window_of_eq {α : Type*} {γ : ℝ → α} {s : α} {a b : �
     t = t_i :=
   eq_of_mem_window_of_eq_of_le_of_lt (h_endpts t_i ht_i) (h_pairwise t_i ht_i) h_complete ht h_eq
 
+/-- Strict endpoint margins and separation by more than twice the radius ensure uniqueness of
+the crossing within a closed window. -/
 theorem eq_of_mem_window_of_eq_of_lt_of_two_mul_lt {α : Type*} {γ : ℝ → α} {s : α} {a b : ℝ}
     {crossings : Finset ℝ} {r t_i : ℝ} (h_endpts : a + r < t_i ∧ t_i < b - r)
     (h_pairwise : ∀ t' ∈ crossings, t' ≠ t_i → 2 * r < |t_i - t'|)
@@ -159,6 +194,8 @@ theorem eq_of_mem_window_of_eq_of_lt_of_two_mul_lt {α : Type*} {γ : ℝ → α
   exact eq_of_mem_window_of_eq_of_le_of_lt ⟨h_endpts.1.le, h_endpts.2.le⟩
     (fun t' ht' hne => by linarith [h_pairwise t' ht' hne]) h_complete ht h_eq
 
+/-- A continuous curve with a unique crossing in a window stays a positive distance from the
+crossing value on both outer closed portions. -/
 theorem exists_window_dist_lower_bound {γ : ℝ → ℂ} {s : ℂ} {t_i r : ℝ}
     (hγ_cont : ContinuousOn γ (Icc (t_i - r) (t_i + r)))
     (h_unique : ∀ t ∈ Icc (t_i - r) (t_i + r), γ t = s → t = t_i)
@@ -186,6 +223,8 @@ theorem exists_window_dist_lower_bound {γ : ℝ → ℂ} {s : ℂ} {t_i r : ℝ
   · exact (min_le_left _ _).trans (hml t (by rwa [uIcc_of_le (by linarith)]))
   · exact (min_le_right _ _).trans (hmr t (by rwa [uIcc_of_le (by linarith)]))
 
+/-- Outside open windows around a complete finite set of crossings, a continuous curve stays a
+positive distance from the crossing value. -/
 theorem exists_complement_windows_dist_lower_bound {γ : ℝ → ℂ} {s : ℂ} {a b : ℝ}
     {crossings : Finset ℝ} (hγ_cont : ContinuousOn γ (Icc a b))
     (h_complete : ∀ t ∈ Icc a b, γ t = s → t ∈ crossings)
@@ -216,6 +255,8 @@ theorem exists_complement_windows_dist_lower_bound {γ : ℝ → ℂ} {s : ℂ} 
     exact ht_min_mem.2 t_min h_cross
       ⟨by linarith [hr_pos t_min h_cross], by linarith [hr_pos t_min h_cross]⟩
 
+/-- Propagates an interval property across a sorted list of separated crossing windows by gluing
+the window cases to the intervening pieces with a distance lower bound. -/
 theorem sorted_crossing_gluing_induction {E : Type*} [NormedAddCommGroup E] {γ : ℝ → E} {s : E}
     {Q : ℝ → ℝ → Prop} {A b r m : ℝ}
     (h_piece : ∀ l u : ℝ, A ≤ l → l ≤ u → u ≤ b → (∀ t ∈ Icc l u, m ≤ ‖γ t - s‖) → Q l u)

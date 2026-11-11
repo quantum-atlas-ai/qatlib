@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.TimeLchs
+
+/-!
+# General analytic-kernel LCHS specification
+
+`GeneralAnalyticKernelLchs` states the integral representation for a Cauchy-weighted kernel that
+is complex differentiable on the closed lower half-plane, normalized on the real axis, and
+decays with positive power order. Its conclusion includes entrywise integrability of the
+weighted unitary family. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `GeneralAnalyticKernelLchs`: The general LCHS representation specification for a normalized
+  analytic kernel with positive-order power decay and forward evolution with continuous positive
+  semidefinite `L` and Hermitian `H`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +37,9 @@ namespace Qatlib.Concepts.LchsSimulation.LchsRep
 open MeasureTheory
 open scoped ComplexOrder Matrix.Norms.L2Operator
 
+/-- The general LCHS representation specification for a normalized analytic kernel with
+positive-order power decay and forward evolution with continuous positive semidefinite `L`
+and Hermitian `H`. -/
 def GeneralAnalyticKernelLchs : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (f : ℂ → ℂ) (L H : ℝ → Matrix I I ℂ)
     (s t : ℝ),

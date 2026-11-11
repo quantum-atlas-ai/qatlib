@@ -9,6 +9,30 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Analysis.Meromorphic.TrailingCoefficient
 import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+
+/-!
+# Local residues of meromorphic functions
+
+Defines `residue` through normalized derivatives of local analytic factors at poles. The module
+proves locality, linearity on meromorphic functions, and formulas for analytic numerators and
+finite Laurent principal parts.
+
+These local residue calculations supply ingredients for the contour analysis of [WangEtAl2026].
+
+## Main statements
+
+* `residue_eq_of_eventuallyEq_zpow_smul`: Computes the residue of a punctured-neighborhood
+  product of `(z - z₀)^n` and an analytic function for `n ≤ -1`.
+* `residue_add`: The residue is additive for functions meromorphic at the point.
+* `residue_of_laurent_expansion`: For a finite Laurent principal part plus an analytic
+  remainder, the residue is the coefficient of `(z - z₀)⁻¹`, or zero if the principal part is
+  empty.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +46,8 @@ open Filter Topology
 
 namespace TauCeti.Contour
 
+/-- The residue at `z₀`, computed from the analytic factor at a pole and set to zero when the
+function is not meromorphic there or has nonnegative meromorphic order. -/
 noncomputable def residue (f : ℂ → ℂ) (z₀ : ℂ) : ℂ :=
   haveI : Decidable (MeromorphicAt f z₀ ∧ meromorphicOrderAt f z₀ < 0) := Classical.propDecidable _
   if h : MeromorphicAt f z₀ ∧ meromorphicOrderAt f z₀ < 0 then
@@ -30,6 +56,8 @@ noncomputable def residue (f : ℂ → ℂ) (z₀ : ℂ) : ℂ :=
       ((-1 - (meromorphicOrderAt f z₀).untop₀).toNat.factorial : ℂ)
   else 0
 
+/-- Computes the residue from a punctured-neighborhood factorization with a negative integer
+power and a nonvanishing analytic factor. -/
 theorem residue_eq_of_order_lt_zero {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
     (hlt : n < 0) (hg : AnalyticAt ℂ g z₀) (hg_ne : g z₀ ≠ 0)
     (hfg : f =ᶠ[𝓝[≠] z₀] fun z ↦ (z - z₀) ^ n • g z) :
@@ -58,6 +86,7 @@ theorem residue_eq_of_order_lt_zero {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
     (hg₀_an.continuousAt.eventuallyEq_nhds_iff_eventuallyEq_nhdsNE hg.continuousAt).1 hne
   exact congrArg (· / ((-1 - n).toNat.factorial : ℂ)) (hnhds.iteratedDeriv_eq (-1 - n).toNat)
 
+/-- The residue is zero at a point where the function is not meromorphic. -/
 @[simp]
 theorem residue_of_not_meromorphicAt {f : ℂ → ℂ} {z₀ : ℂ} (h : ¬ MeromorphicAt f z₀) :
     residue f z₀ = 0 := by
@@ -65,6 +94,7 @@ theorem residue_of_not_meromorphicAt {f : ℂ → ℂ} {z₀ : ℂ} (h : ¬ Mero
   rintro ⟨h1, -⟩
   exact h h1
 
+/-- The residue vanishes when the meromorphic order is nonnegative. -/
 @[simp]
 theorem residue_eq_zero_of_meromorphicOrderAt_nonneg {f : ℂ → ℂ} {z₀ : ℂ}
     (h : 0 ≤ meromorphicOrderAt f z₀) : residue f z₀ = 0 := by
@@ -72,11 +102,13 @@ theorem residue_eq_zero_of_meromorphicOrderAt_nonneg {f : ℂ → ℂ} {z₀ : �
   rintro ⟨-, h2⟩
   exact absurd h2 (not_lt.mpr h)
 
+/-- The residue of a function analytic at `z₀` is zero. -/
 @[simp]
 theorem residue_eq_zero_of_analyticAt {f : ℂ → ℂ} {z₀ : ℂ} (hf : AnalyticAt ℂ f z₀) :
     residue f z₀ = 0 :=
   residue_eq_zero_of_meromorphicOrderAt_nonneg hf.meromorphicOrderAt_nonneg
 
+/-- Functions equal on a punctured neighborhood of `z₀` have the same residue there. -/
 theorem residue_congr_nhdsNE {f g : ℂ → ℂ} {z₀ : ℂ} (h : f =ᶠ[𝓝[≠] z₀] g) :
     residue f z₀ = residue g z₀ := by
   have hord : meromorphicOrderAt f z₀ = meromorphicOrderAt g z₀ := meromorphicOrderAt_congr h
@@ -94,6 +126,7 @@ theorem residue_congr_nhdsNE {f g : ℂ → ℂ} {z₀ : ℂ} (h : f =ᶠ[𝓝[�
   · rw [residue_eq_zero_of_meromorphicOrderAt_nonneg (f := f) (by rw [hord]; exact hge),
       residue_eq_zero_of_meromorphicOrderAt_nonneg (f := g) hge]
 
+/-- At meromorphic order `-1`, the residue equals the meromorphic trailing coefficient. -/
 @[simp]
 theorem residue_eq_meromorphicTrailingCoeffAt_of_order_eq_neg_one {f : ℂ → ℂ} {z₀ : ℂ}
     (hord : meromorphicOrderAt f z₀ = -1) :
@@ -110,6 +143,7 @@ theorem residue_eq_meromorphicTrailingCoeffAt_of_order_eq_neg_one {f : ℂ → �
   rw [residue_eq_of_order_lt_zero (by decide) hg_an hg_ne hg_eq, htc]
   norm_num [iteratedDeriv_zero]
 
+/-- Multiplication by `(z - z₀)^p` shifts normalized derivatives of an analytic function by `p`. -/
 private lemma iteratedDeriv_pow_sub_mul_div_factorial {z₀ : ℂ} (p i : ℕ) {h : ℂ → ℂ}
     (hh : AnalyticAt ℂ h z₀) :
     iteratedDeriv (p + i) (fun z ↦ (z - z₀) ^ p * h z) z₀ / ((p + i).factorial : ℂ)
@@ -145,6 +179,8 @@ private lemma iteratedDeriv_pow_sub_mul_div_factorial {z₀ : ℂ} (p i : ℕ) {
   rw [hleib, div_eq_div_iff hfac_pi hfac_i]
   linear_combination iteratedDeriv i h z₀ * hid
 
+/-- Computes the residue from an analytic factor and an integer power when the resulting
+meromorphic order is negative and satisfies the stated order identity. -/
 private theorem residue_eq_of_eventuallyEq_zpow_smul_of_order_lt_zero {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
     (hg : AnalyticAt ℂ g z₀) (hfg : f =ᶠ[𝓝[≠] z₀] fun z ↦ (z - z₀) ^ n • g z)
     (hf : MeromorphicAt f z₀)
@@ -187,6 +223,8 @@ private theorem residue_eq_of_eventuallyEq_zpow_smul_of_order_lt_zero {f g : ℂ
   simp only [smul_eq_mul]
   rw [← hsum, iteratedDeriv_pow_sub_mul_div_factorial (a - n).toNat (-1 - a).toNat hg₀_an]
 
+/-- For `n ≤ -1`, the normalized derivative formula equals the residue when the stated order
+identity gives nonnegative meromorphic order. -/
 private theorem residue_eq_of_eventuallyEq_zpow_smul_of_order_nonneg {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
     (hn : n ≤ -1) (hg : AnalyticAt ℂ g z₀)
     (hord_eq : meromorphicOrderAt f z₀ = (n : WithTop ℤ) + meromorphicOrderAt g z₀)
@@ -210,6 +248,8 @@ private theorem residue_eq_of_eventuallyEq_zpow_smul_of_order_nonneg {f g : ℂ 
       omega
   rw [hvanish, zero_div]
 
+/-- Computes the residue of a punctured-neighborhood product of `(z - z₀)^n` and an analytic
+function for `n ≤ -1`. -/
 theorem residue_eq_of_eventuallyEq_zpow_smul {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
     (hn : n ≤ -1) (hg : AnalyticAt ℂ g z₀) (hfg : f =ᶠ[𝓝[≠] z₀] fun z ↦ (z - z₀) ^ n • g z) :
     residue f z₀ = iteratedDeriv (-1 - n).toNat g z₀ / ((-1 - n).toNat.factorial : ℂ) := by
@@ -225,6 +265,8 @@ theorem residue_eq_of_eventuallyEq_zpow_smul {f g : ℂ → ℂ} {z₀ : ℂ} {n
   · exact residue_eq_of_eventuallyEq_zpow_smul_of_order_lt_zero hg hfg hf hord_eq ha
   · exact residue_eq_of_eventuallyEq_zpow_smul_of_order_nonneg hn hg hord_eq ha
 
+/-- A meromorphic function can be factored locally on a punctured neighborhood by any integer
+power no greater than its meromorphic order, with an analytic remaining factor. -/
 lemma exists_analyticAt_eventuallyEq_zpow_smul {f : ℂ → ℂ} {z₀ : ℂ} {m : ℤ}
     (hf : MeromorphicAt f z₀) (hm : (m : WithTop ℤ) ≤ meromorphicOrderAt f z₀) :
     ∃ φ : ℂ → ℂ, AnalyticAt ℂ φ z₀ ∧ f =ᶠ[𝓝[≠] z₀] fun z ↦ (z - z₀) ^ m • φ z := by
@@ -246,6 +288,7 @@ lemma exists_analyticAt_eventuallyEq_zpow_smul {f : ℂ → ℂ} {z₀ : ℂ} {m
       rw [hz1, smul_eq_mul, smul_eq_mul, smul_eq_mul, ← mul_assoc,
         ← zpow_natCast (z - z₀) (a - m).toNat, ← zpow_add₀ hzne, hexp]
 
+/-- The residue is additive for functions meromorphic at the point. -/
 @[simp]
 theorem residue_add {f g : ℂ → ℂ} {z₀ : ℂ} (hf : MeromorphicAt f z₀) (hg : MeromorphicAt g z₀) :
     residue (f + g) z₀ = residue f z₀ + residue g z₀ := by
@@ -273,6 +316,7 @@ theorem residue_add {f g : ℂ → ℂ} {z₀ : ℂ} (hf : MeromorphicAt f z₀)
     residue_eq_of_eventuallyEq_zpow_smul hm1 (hφf_an.add hφg_an) hφfg_eq,
     iteratedDeriv_add hφf_an.contDiffAt hφg_an.contDiffAt, add_div]
 
+/-- Multiplication by a complex constant commutes with taking residues. -/
 @[simp]
 theorem residue_const_mul {f : ℂ → ℂ} {z₀ : ℂ} (c : ℂ) :
     residue (fun z ↦ c * f z) z₀ = c * residue f z₀ := by
@@ -301,12 +345,14 @@ theorem residue_const_mul {f : ℂ → ℂ} {z₀ : ℂ} (c : ℂ) :
     residue_eq_of_eventuallyEq_zpow_smul hm1 hcφ_an hcf_eq,
     iteratedDeriv_const_mul_field c φ, mul_div_assoc]
 
+/-- Complex scalar multiplication commutes with taking residues. -/
 @[simp]
 theorem residue_const_smul {f : ℂ → ℂ} {z₀ : ℂ} (c : ℂ) :
     residue (c • f) z₀ = c • residue f z₀ :=
 
   residue_const_mul c
 
+/-- The residue of a difference of meromorphic functions is the difference of their residues. -/
 @[simp]
 theorem residue_sub {f g : ℂ → ℂ} {z₀ : ℂ} (hf : MeromorphicAt f z₀) (hg : MeromorphicAt g z₀) :
     residue (f - g) z₀ = residue f z₀ - residue g z₀ := by
@@ -319,6 +365,7 @@ theorem residue_sub {f g : ℂ → ℂ} {z₀ : ℂ} (hf : MeromorphicAt f z₀)
   rw [heq, residue_add hf hng, residue_const_mul (-1)]
   ring
 
+/-- Taking residues commutes with finite sums of functions meromorphic at the point. -/
 @[simp]
 theorem residue_sum {ι : Type*} (s : Finset ι) {f : ι → ℂ → ℂ} {z₀ : ℂ}
     (hf : ∀ i ∈ s, MeromorphicAt (f i) z₀) :
@@ -334,6 +381,7 @@ theorem residue_sum {ι : Type*} (s : Finset ι) {f : ι → ℂ → ℂ} {z₀ 
         (MeromorphicAt.sum fun i hi ↦ hf i (Finset.mem_insert_of_mem hi)),
       ih fun i hi ↦ hf i (Finset.mem_insert_of_mem hi)]
 
+/-- The residue of `a / (z - z₀)^(k + 1)` equals `a` for `k = 0` and zero otherwise. -/
 @[simp]
 theorem residue_const_div_sub_pow (a z₀ : ℂ) (k : ℕ) :
     residue (fun z ↦ a / (z - z₀) ^ (k + 1)) z₀ = if k = 0 then a else 0 := by
@@ -350,6 +398,8 @@ theorem residue_const_div_sub_pow (a z₀ : ℂ) (k : ℕ) :
   · simp
   · simp [hk.ne']
 
+/-- The residue of an analytic numerator divided by `(z - z₀)^(k + 1)` is its `k`th derivative
+at `z₀` divided by `k!`. -/
 @[simp]
 theorem residue_div_sub_pow_of_analyticAt {g : ℂ → ℂ} {z₀ : ℂ} (hg : AnalyticAt ℂ g z₀) (k : ℕ) :
     residue (fun z ↦ g z / (z - z₀) ^ (k + 1)) z₀
@@ -363,6 +413,8 @@ theorem residue_div_sub_pow_of_analyticAt {g : ℂ → ℂ} {z₀ : ℂ} (hg : A
   have htoNat : (-1 - (-(k + 1 : ℕ) : ℤ)).toNat = k := by omega
   rw [residue_eq_of_eventuallyEq_zpow_smul (by omega) hg hfg, htoNat]
 
+/-- For a finite Laurent principal part plus an analytic remainder, the residue is the
+coefficient of `(z - z₀)⁻¹`, or zero if the principal part is empty. -/
 theorem residue_of_laurent_expansion {f g : ℂ → ℂ} {z₀ : ℂ} {N : ℕ} {a : Fin N → ℂ}
     (hg : AnalyticAt ℂ g z₀)
     (hf_eq : ∀ᶠ z in 𝓝[≠] z₀, f z = g z + ∑ k : Fin N, a k / (z - z₀) ^ (k.val + 1)) :

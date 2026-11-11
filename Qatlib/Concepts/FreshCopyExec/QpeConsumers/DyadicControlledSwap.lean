@@ -11,6 +11,31 @@ import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyCleanFrame
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+
+/-!
+# Dyadic Controlled Partial Swaps
+
+The four gate phase gadget `fastCopyPhaseSteps` yields the optimized clean partial swap word
+`fastControlledSwapSteps`. This construction supplies local controlled interactions for the
+fresh copy evolution framework of [LloydMohseniRebentrost2014].
+
+The rational phase data in `copyPhaseData` define exactly unitary numerical gates, and
+`numericControlledSwapSteps` implements a clean partial swap at their effective angle. The
+numerical word has an operator norm error bound relative to the target angle `Real.pi / 2^b`.
+
+## Main statements
+
+* `direct_parity_controlled_swap_clean_word` gives legality, clean frame semantics, adjoint
+  semantics, and length `36*n+4`.
+- `numericControlledSwap_error` bounds the numerical word error by `(2⁻¹)^k`.
+* `numerical_controlled_swap_clean_and_error` also records that every gate acts on at most two
+  wires.
+
+## References
+
+- [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -48,20 +73,32 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The four gate parity phase gadget using two opposite parity wire rotations and two CNOT
+gates from the control wire. -/
 noncomputable def fastCopyPhaseSteps (n : ℕ) (theta : ℝ) : List (ReflectionGate (3*n+2)) :=
   [.inl (localCopyParityWire n,Rz theta),
    .inr (localCopyControlWire n,localCopyParityWire n),
    .inl (localCopyParityWire n,Rz (-theta)),
    .inr (localCopyControlWire n,localCopyParityWire n)]
+/-- The optimized controlled partial swap word obtained by conjugating the parity phase gadget
+with Bell basis and parity computation words. -/
 noncomputable def fastControlledSwapSteps (n : ℕ) (theta : ℝ) : List (ReflectionGate (3*n+2)) :=
   reflectionAdjoint (localCopyBellSteps n) ++ localCopyComputeAndParity n ++
     fastCopyPhaseSteps n theta ++ reflectionAdjoint (localCopyComputeAndParity n) ++ localCopyBellSteps n
 
+/-- Gaussian rational phase data approximating the unit complex number at angle `Real.pi / 2^b`,
+with precision parameter `k`. -/
 def copyPhaseData (b k : ℕ) : GaussianRat := numericalDyadicPhase (b+1) false k
+/-- Gaussian rational data obtained by conjugating `copyPhaseData b k`. -/
 def copyPhaseAdjData (b k : ℕ) : GaussianRat := ((copyPhaseData b k).1,-(copyPhaseData b k).2)
+/-- The real angle whose complex exponential equals the rational phase represented by
+`copyPhaseData b k`. -/
 noncomputable def copyPhaseEffectiveAngle (b k : ℕ) : ℝ :=
   8*rationalCayleyAngle (((numericalPhaseRat (b+1) false k / 8):ℚ):ℝ) (k+4)
 
+/-- The rational phase has unit norm, its adjoint data represent its complex conjugate, and its
+effective angle represents it exactly. Its distance from the target phase at angle `Real.pi
+/ 2^b` is at most `(2⁻¹)^k`. -/
 theorem copy_dyadic_actual_phase_data : ∀ b k : ℕ,
   gaussianRatComplex (copyPhaseAdjData b k) = star (gaussianRatComplex (copyPhaseData b k)) ∧
   ‖gaussianRatComplex (copyPhaseData b k)‖ = 1 ∧
@@ -86,15 +123,21 @@ theorem copy_dyadic_actual_phase_data : ∀ b k : ℕ,
       ring
     simpa only [copyPhaseData,ht] using! h.2
 
+/-- The four gate parity phase gadget using the rational phase data and their conjugates in
+place of real angle rotations. -/
 noncomputable def numericCopyPhaseSteps (n b k : ℕ) : List (ReflectionGate (3*n+2)) :=
   [.inl (localCopyParityWire n,rationalPhaseGate (copyPhaseData b k)),
    .inr (localCopyControlWire n,localCopyParityWire n),
    .inl (localCopyParityWire n,rationalPhaseGate (copyPhaseAdjData b k)),
    .inr (localCopyControlWire n,localCopyParityWire n)]
+/-- The numerical controlled partial swap word built from Bell basis changes, parity
+computation, the rational phase gadget, and uncomputation. -/
 noncomputable def numericControlledSwapSteps (n b k : ℕ) : List (ReflectionGate (3*n+2)) :=
   reflectionAdjoint (localCopyBellSteps n) ++ localCopyComputeAndParity n ++ numericCopyPhaseSteps n b k ++
     reflectionAdjoint (localCopyComputeAndParity n) ++ localCopyBellSteps n
 
+/-- The two-CNOT phase gadget equals a controlled rotation by twice the angle followed by the
+opposite rotation on the control qubit. -/
 theorem fastCopyPhase_two_wire (theta : ℝ) :
     CNOT * (TensorGate (1:Matrix Bool Bool ℂ) (Rz (-theta))) * CNOT *
       TensorGate (1:Matrix Bool Bool ℂ) (Rz theta) =
@@ -111,6 +154,8 @@ theorem fastCopyPhase_two_wire (theta : ℝ) :
     simp [Matrix.mul_apply,Fintype.sum_prod_type,TensorGate,Matrix.kroneckerMap_apply,
       CNOT,permMatrix,cnotFlip,Rz,Matrix.diagonal_apply,ControlledGate,BlockDiag,Complex.ofReal_neg,hp,Complex.exp_neg]
 
+/-- The parity computation matrix commutes with every diagonal matrix depending only on the
+control wire. -/
 theorem copyCompute_control_commute (n : ℕ) (a : Bool → ℂ) :
     reflectionProgramMatrix (localCopyComputeAndParity n)*localCopyControlDiagonal n a =
       localCopyControlDiagonal n a*reflectionProgramMatrix (localCopyComputeAndParity n) := by
@@ -124,6 +169,8 @@ theorem copyCompute_control_commute (n : ℕ) (a : Bool → ℂ) :
       applyGate_diagonal_ket,localCopyComputeAndParity_control]
   simpa only [ApplyGate,mulVec_ket_apply] using! congrFun he x
 
+/-- The adjoint parity computation matrix commutes with every diagonal matrix depending only on
+the control wire. -/
 theorem copyCompute_adjoint_control_commute (n : ℕ) (a : Bool → ℂ) :
     (reflectionProgramMatrix (localCopyComputeAndParity n))ᴴ*localCopyControlDiagonal n a =
       localCopyControlDiagonal n a*(reflectionProgramMatrix (localCopyComputeAndParity n))ᴴ := by
@@ -136,6 +183,8 @@ theorem copyCompute_adjoint_control_commute (n : ℕ) (a : Bool → ℂ) :
   have he := congrArg Matrix.conjTranspose (copyCompute_control_commute n (fun b => star (a b)))
   simpa only [Matrix.conjTranspose_mul,hd] using! he.symm
 
+/-- The optimized phase gadget equals the standard controlled-phase word followed by a control
+wire rotation through the negative angle. -/
 theorem fastCopyPhase_matrix (n : ℕ) (theta : ℝ) :
     reflectionProgramMatrix (fastCopyPhaseSteps n theta) =
       wireGate (3*n+2) (localCopyControlWire n) (Rz (-theta))*
@@ -148,6 +197,7 @@ theorem fastCopyPhase_matrix (n : ℕ) (theta : ℝ) :
   simp only [localCopyPhaseLift_mul]
   rw [fastCopyPhase_two_wire,localCopyControlledPhaseSteps_matrix,hc,localCopyPhaseLift_mul]
 
+/-- The optimized and standard local controlled partial swap words have the same matrix. -/
 theorem fastControlledSwap_matrix (n : ℕ) (theta : ℝ) :
     reflectionProgramMatrix (fastControlledSwapSteps n theta) =
       reflectionProgramMatrix (localControlledSwapSteps n theta) := by
@@ -168,6 +218,8 @@ theorem fastControlledSwap_matrix (n : ℕ) (theta : ℝ) :
   simp only [Matrix.mul_assoc]
   rfl
 
+/-- Every gate in the optimized controlled partial swap word satisfies the reflection-gate
+legality conditions. -/
 theorem fastControlledSwap_legal (n : ℕ) (theta : ℝ) : reflectionLegal (fastControlledSwapSteps n theta) := by
   have hd : localCopyControlWire n ≠ localCopyParityWire n := by
     intro he; have hv := congrArg Fin.val he; dsimp [localCopyControlWire,localCopyParityWire] at hv; omega
@@ -188,6 +240,9 @@ theorem fastControlledSwap_legal (n : ℕ) (theta : ℝ) : reflectionLegal (fast
   · exact reflectionAdjoint_legal _ (localCopyComputeAndParity_legal n) g h
   · exact localCopyBellSteps_legal n g h
 
+/-- The optimized controlled partial swap word is legal, has length `36*n+4`, and implements the
+logical controlled partial swap through the clean frame. Its syntactic adjoint denotes the
+conjugate transpose of its matrix. -/
 theorem direct_parity_controlled_swap_clean_word : ∀ (n : ℕ) (theta : ℝ),
   reflectionLegal (fastControlledSwapSteps n theta) ∧
   (fastControlledSwapSteps n theta).length = 36*n+4 ∧
@@ -203,6 +258,7 @@ theorem direct_parity_controlled_swap_clean_word : ∀ (n : ℕ) (theta : ℝ),
   · rw [fastControlledSwap_matrix]
     exact local_controlled_partial_swap_clean_intertwining n theta
 
+/-- Complex conjugation of a real angle phase exponential negates its angle. -/
 theorem copy_phase_conj (t : ℝ) : star (Complex.exp ((t:ℂ)*Complex.I)) =
     Complex.exp (((-t:ℝ):ℂ)*Complex.I) := by
   change (starRingEnd ℂ) _ = _
@@ -210,6 +266,8 @@ theorem copy_phase_conj (t : ℝ) : star (Complex.exp ((t:ℂ)*Complex.I)) =
   congr 1
   simp
 
+/-- The optimized phase gadget is diagonal, with phase one when the control is false and
+conjugate phase choices determined by the parity wire when the control is true. -/
 theorem fastCopyPhase_diagonal (n : ℕ) (theta : ℝ) :
     reflectionProgramMatrix (fastCopyPhaseSteps n theta) = Matrix.diagonal (fun x =>
       if x (localCopyControlWire n) then
@@ -228,6 +286,8 @@ theorem fastCopyPhase_diagonal (n : ℕ) (theta : ℝ) :
   cases hc : x (localCopyControlWire n) <;> cases hh : x (localCopyParityWire n) <;>
     simp [copy_phase_conj,Complex.ofReal_neg,Complex.ofReal_mul,hp,Complex.exp_neg]
 
+/-- The rational phase gate and its conjugate are exactly the rotations at the effective angle
+and its negative. -/
 theorem numericCopyPhase_effective (b k : ℕ) :
     rationalPhaseGate (copyPhaseData b k) = Rz (copyPhaseEffectiveAngle b k) ∧
     rationalPhaseGate (copyPhaseAdjData b k) = Rz (-copyPhaseEffectiveAngle b k) := by
@@ -245,11 +305,15 @@ theorem numericCopyPhase_effective (b k : ℕ) :
     funext a
     cases a <;> simp [hn]
 
+/-- The numerical controlled partial swap word is exactly the optimized word evaluated at the
+rational phase's effective angle. -/
 theorem numericControlledSwap_effective (n b k : ℕ) :
     numericControlledSwapSteps n b k = fastControlledSwapSteps n (copyPhaseEffectiveAngle b k) := by
   simp only [numericControlledSwapSteps,fastControlledSwapSteps,numericCopyPhaseSteps,fastCopyPhaseSteps,
     (numericCopyPhase_effective b k).1,(numericCopyPhase_effective b k).2]
 
+/-- A nonnegative bound on the distance between two phase exponentials also bounds the operator
+norm distance between their optimized parity phase gadgets. -/
 theorem fastCopyPhase_error (n : ℕ) (a t : ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
     (he : ‖Complex.exp ((a:ℂ)*Complex.I)-Complex.exp ((t:ℂ)*Complex.I)‖ ≤ δ) :
     ‖reflectionProgramMatrix (fastCopyPhaseSteps n a)-reflectionProgramMatrix (fastCopyPhaseSteps n t)‖ ≤ δ := by
@@ -263,6 +327,8 @@ theorem fastCopyPhase_error (n : ℕ) (a t : ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
   · simpa only [← star_sub,norm_star] using! he
   · exact he
 
+/-- Multiplying two matrices on the left and right by fixed unitary matrices does not increase
+their operator norm distance. -/
 theorem copy_middle_error {H : Type} [Fintype H] [DecidableEq H]
     (L R A B : Matrix H H ℂ) (hL : L ∈ Matrix.unitaryGroup H ℂ) (hR : R ∈ Matrix.unitaryGroup H ℂ) :
     ‖L*A*R-L*B*R‖ ≤ ‖A-B‖ := by
@@ -273,6 +339,8 @@ theorem copy_middle_error {H : Type} [Fintype H] [DecidableEq H]
     _ ≤ (1*‖A-B‖)*1 := by gcongr <;> exact l2_norm_unitary_le_one (by assumption)
     _ = _ := by ring
 
+/-- The numerical controlled partial swap matrix differs from the optimized matrix at target
+angle `Real.pi / 2^b` by at most `(2⁻¹)^k` in operator norm. -/
 theorem numericControlledSwap_error (n b k : ℕ) :
     ‖reflectionProgramMatrix (numericControlledSwapSteps n b k)-
       reflectionProgramMatrix (fastControlledSwapSteps n (Real.pi/(2^b:ℕ)))‖ ≤ ((2:ℝ)⁻¹)^k := by
@@ -297,6 +365,9 @@ theorem numericControlledSwap_error (n b k : ℕ) :
   rw [numericControlledSwap_effective,hfac,hfac]
   exact (copy_middle_error _ _ _ _ hl hr).trans hm
 
+/-- The numerical word is legal, has length `36*n+4`, uses gates on at most two wires, and
+implements a clean controlled partial swap at its effective angle. Its operator norm error
+relative to the target angle optimized word is at most `2*(2⁻¹)^k`. -/
 theorem numerical_controlled_swap_clean_and_error : ∀ n b k : ℕ,
   reflectionLegal (numericControlledSwapSteps n b k) ∧
   (numericControlledSwapSteps n b k).length = 36*n+4 ∧

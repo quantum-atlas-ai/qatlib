@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
 import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+/-!
+# Uniform HHL for signed off-grid spectra
+
+This module proves correctness of the uniform phase-estimation HHL circuit for real eigenphases
+of either sign, separated from zero and bounded in absolute value by `1/4`. The spectral filter
+realizes a scaled reciprocal, connecting the circuit to the pseudoinverse solution of
+[HarrowHassidimLloyd2009].
+
+The results include full-workspace error, positive Born success probability, normalized solution
+accuracy, oracle perturbation bounds, and explicit finite-resolution parameters.
+
+## Main statements
+
+* `uniform_offgrid_signed_hhl_full_workspace_error`: error at most `η` with the stated grid
+  budget.
+* `uniform_offgrid_signed_hhl_born_and_solution`: success mass and normalized pseudoinverse
+  direction.
+* `uniform_offgrid_hhl_actual_unitary_access_noise`: stability under unitary oracle
+  perturbations.
+* `uniform_hhl_computed_finite_precision_parameters`: explicit accuracy, grid, and resource
+  parameters.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,6 +69,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The output of the counted uniform HHL word on a basis input with phase, scratch, and success
+registers initialized to zero. -/
 noncomputable def uniformHHLRun {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (O : Operator D) (d : ℝ) (B : Operator D) (j : Fin D) :
     QState (Fin M × (Bool × (Bool × Fin D))) :=
@@ -48,6 +78,8 @@ noncomputable def uniformHHLRun {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     TensorState (Ket (⟨0, by omega⟩ : Fin M))
       (TensorState (Ket false) (TensorState (Ket false) (Ket j)))
 
+/-- For a unitary oracle, the counted HHL run equals the embedded execution of forward phase
+estimation, the flag gate, and inverse phase estimation. -/
 theorem uniformHHLRun_eq {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (U : Operator D) (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (d : ℝ) (B : Operator D) (j : Fin D) :
@@ -77,6 +109,8 @@ theorem uniformHHLRun_eq {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     countedQPEWord_apply_adjoint D M hMpos U hU _]
   rw [run_append, run_append, run_gate, run_nil]
 
+/-- The uniform HHL output has Euclidean norm one for positive `d` and unitary oracle and
+preparation matrices. -/
 theorem uniformHHLRun_norm {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (U B : Operator D) (j : Fin D) (d : ℝ)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -90,6 +124,8 @@ theorem uniformHHLRun_norm {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     norm_applyGate_of_mem_unitaryGroup hunit]
   exact norm_countedHHLBranchInput D M (by omega) j
 
+/-- Replacing unitary oracle `U` by unitary `W` changes the output by at most `2*(M-1)*‖W-U‖`
+for positive `d` and unitary input preparation. -/
 theorem uniformHHLRun_oracle_noise {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (U W B : Operator D) (j : Fin D) (d : ℝ)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -112,6 +148,8 @@ theorem uniformHHLRun_oracle_noise {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     push_cast
     exact mul_le_mul_of_nonneg_left hdist (by positivity))
 
+/-- Forward phase estimation on a clean phase register gives `qpeOutput`, with the supplied
+Boolean flag state carried through the workspace. -/
 theorem uniformHHLForwardReadout {D M : ℕ} (hM : 0 < M)
     (U : Operator D) (b : QState (Fin D)) (g : QState Bool) :
     Run 1 (gridHHLQPEBlock (M := M) U)
@@ -130,6 +168,8 @@ theorem uniformHHLForwardReadout {D M : ℕ} (hM : 0 < M)
   rw [qpeOutput, gridHHLPhaseOnly_eq_tensorGate]
   rfl
 
+/-- The columns of a unitary spectral basis are eigenvectors of the continuous HHL oracle with
+their specified exponential eigenvalues. -/
 theorem continuousHHLOracle_mulVec_column {D : ℕ} (eig : Fin D → ℝ)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D) :
     continuousHHLOracle eig V *ᵥ (V *ᵥ Ket i) =
@@ -149,6 +189,8 @@ theorem continuousHHLOracle_mulVec_column {D : ℕ} (eig : Fin D → ℝ)
     · simp [Ket, hk]
   rw [hd, Matrix.mulVec_smul]
 
+/-- The phase-estimation output expands in the unitary eigenbasis with spectral input
+coefficients and the corresponding phase kernels. -/
 theorem uniformHHL_spectral_readout {D M : ℕ} (eig : Fin D → ℝ)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (b : QState (Fin D)) :
@@ -160,12 +202,15 @@ theorem uniformHHL_spectral_readout {D M : ℕ} (eig : Fin D → ℝ)
   intro i _
   rw [qpeOutput_eigen M _ _ _ (continuousHHLOracle_mulVec_column eig V hV i)]
 
+/-- The phase-flag embedding preserves Euclidean norm. -/
 theorem uniformHHL_scratch_embed_norm {D M : ℕ}
     (v : QState (Fin M × (Bool × Fin D))) :
     ‖toEuclidean_fromVec (phaseFlagEmbed M v)‖ = ‖toEuclidean_fromVec v‖ := by
   rw [phaseFlagEmbed_eq_sector, norm_toEuclidean_relabelState,
     tensorState_l2_norm, norm_toEuclidean_fromVec_ket, one_mul]
 
+/-- On a tensor-product input, the flag gate applies the decoded-label rotation to the Boolean
+flag and leaves the data factor unchanged. -/
 theorem uniformHHLFlag_product {D M : ℕ} (d : ℝ)
     (a : QState (Fin M)) (g : QState Bool) (v : QState (Fin D)) :
     ApplyGate (uniformHHLFlag (D := D) (M := M) d)
@@ -195,6 +240,8 @@ theorem uniformHHLFlag_product {D M : ℕ} (d : ℝ)
     simp [Ne.symm hz]
   · simp
 
+/-- A unitary spectral change of basis preserves the sum of squared amplitudes in every phase
+and flag sector. -/
 theorem uniformHHL_spectral_workspace_norm_sq {D M : ℕ}
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (a : Fin M → Bool → QState (Fin D)) :
@@ -210,6 +257,8 @@ theorem uniformHHL_spectral_workspace_norm_sq {D M : ℕ}
   simpa only [Complex.normSq_eq_norm_sq] using!
     sum_normSq_mulVec_of_mem_unitaryGroup hV (a y f)
 
+/-- For normalized spectral coefficients and the stated gap and grid budget, the workspace error
+from decoded flag rotations is at most `η`. -/
 theorem uniformHHL_spectral_error_bound {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (β : QState (Fin D)) (d η : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -266,11 +315,14 @@ theorem uniformHHL_spectral_error_bound {D M : ℕ} (hM : 2 ≤ M)
   nlinarith [norm_nonneg (toEuclidean_fromVec (fun p : Fin M × (Bool × Fin D) =>
     (V *ᵥ (fun i => β i * qpeKernel M (eig i) p.1 * δ p.1 i p.2.1)) p.2.2))]
 
+/-- Embed a data state with phase zero, scratch flag false, and success flag true. -/
 noncomputable def uniformHHLSuccessEmbed {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (v : QState (Fin D)) : QState (Fin M × (Bool × (Bool × Fin D))) :=
   TensorState (Ket (⟨0, by omega⟩ : Fin M))
     (TensorState (Ket false) (TensorState (Ket true) v))
 
+/-- The ideal signed reciprocal-filter state with clean phase and scratch registers, using exact
+spectral flag amplitudes. -/
 noncomputable def uniformHHLIdeal {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (d : ℝ) (B : Operator D) (j : Fin D) :
     QState (Fin M × (Bool × (Bool × Fin D))) :=
@@ -280,6 +332,8 @@ noncomputable def uniformHHLIdeal {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
         else (Real.sqrt (1 - uniformHHLGamma d (eig i) ^ 2) : ℂ)) * Vᴴ) *ᵥ
         (B *ᵥ Ket j)) p.2))
 
+/-- The ideal output equals a spectral sum of exact-eigenphase flag rotations with the phase
+register reset. -/
 theorem uniformHHLIdeal_spectral {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (d : ℝ) (j : Fin D) :
     uniformHHLIdeal M hM eig V d B j = phaseFlagEmbed M
@@ -305,6 +359,8 @@ theorem uniformHHLIdeal_spectral {D M : ℕ} (hM : 2 ≤ M)
       ring
   · simp [uniformHHLIdeal, phaseFlagEmbed, TensorState, Ket]
 
+/-- Forward phase estimation acts termwise on a spectral sum with eigenvalue-dependent Boolean
+flag states. -/
 theorem uniformHHL_forward_spectral_flags {D M : ℕ} (hM : 0 < M)
     (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -321,27 +377,34 @@ theorem uniformHHL_forward_spectral_flags {D M : ℕ} (hM : 0 < M)
   rw [← run_qpeBlock_eq, uniformHHLForwardReadout hM,
     qpeOutput_eigen M _ _ _ (continuousHHLOracle_mulVec_column eig V hV i)]
 
+/-- The success embedding of the normalized pseudoinverse applied to the prepared input. -/
 noncomputable def uniformHHLSolutionTarget {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) :
     QState (Fin M × (Bool × (Bool × Fin D))) :=
   let v := matrixPseudoinverse (continuousHHLMatrix eig V) *ᵥ (B *ᵥ Ket j)
   uniformHHLSuccessEmbed M hM ((‖toEuclidean_fromVec v‖ : ℂ)⁻¹ • v)
 
+/-- The accuracy parameter `min (d/2) (2^(-k))`. -/
 noncomputable def uniformHHLAccuracy (d : ℝ) (k : ℕ) : ℝ :=
   min (d / 2) ((1 / 2 : ℝ) ^ k)
 
+/-- The grid size obtained by rounding the required budget `4096/(d^2*η^4)` upward and taking
+its maximum with two. -/
 noncomputable def uniformHHLGrid (d : ℝ) (k : ℕ) : ℕ :=
   max 2 ⌈4096 / (d ^ 2 * uniformHHLAccuracy d k ^ 4)⌉₊
 
+/-- The computed uniform HHL grid has at least two labels. -/
 theorem uniformHHLGrid_ge_two (d : ℝ) (k : ℕ) : 2 ≤ uniformHHLGrid d k :=
   le_max_left _ _
 
+/-- The computed grid meets the budget `4096/(d^2*η^4)`, where `η = uniformHHLAccuracy d k`. -/
 theorem uniformHHLGrid_budget (d : ℝ) (k : ℕ) :
     4096 / (d ^ 2 * uniformHHLAccuracy d k ^ 4) ≤ (uniformHHLGrid d k : ℝ) := by
   have hn : ⌈4096 / (d ^ 2 * uniformHHLAccuracy d k ^ 4)⌉₊ ≤ uniformHHLGrid d k :=
     le_max_right _ _
   exact (Nat.le_ceil _).trans (by exact_mod_cast hn)
 
+/-- The uniform HHL success embedding preserves Euclidean norm. -/
 theorem uniformHHLSuccessEmbed_norm {D M : ℕ} (hM : 2 ≤ M)
     (v : QState (Fin D)) :
     ‖toEuclidean_fromVec (uniformHHLSuccessEmbed M hM v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -351,6 +414,8 @@ theorem uniformHHLSuccessEmbed_norm {D M : ℕ} (hM : 2 ≤ M)
     norm_toEuclidean_fromVec_ket]
   simp
 
+/-- Collapsing the ideal output to the success event gives the embedded pseudoinverse solution
+scaled by `d/4` when eigenphases have magnitude at least `d`. -/
 theorem uniformHHLIdeal_collapse {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -389,6 +454,8 @@ theorem uniformHHLIdeal_collapse {D M : ℕ} (hM : 2 ≤ M)
     simp only [Pi.smul_apply, smul_eq_mul, Ket, if_true]
     ring
 
+/-- For a normalized prepared input and eigenphase magnitudes in `[d, 1/4]`, the ideal success
+branch has Euclidean norm at least `d`. -/
 theorem uniformHHLIdeal_success_norm_lower {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -433,6 +500,8 @@ theorem uniformHHLIdeal_success_norm_lower {D M : ℕ} (hM : 2 ≤ M)
   rw [norm_smul, hc, Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by positivity : 0 < d / 4)]
   nlinarith
 
+/-- Postselecting the ideal success event gives `uniformHHLSolutionTarget` under the stated
+spectral-gap and positivity hypotheses. -/
 theorem uniformHHLIdeal_postMeasure {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -476,6 +545,8 @@ theorem uniformHHLIdeal_postMeasure {D M : ℕ} (hM : 2 ≤ M)
   have heq := he.trans htarget.symm
   exact (WithLp.equiv 2 _).symm.injective heq
 
+/-- For eigenphase magnitudes in `[d, 1/4]` and grid size at least `4096/(d^2*η^4)`, the actual
+full workspace output is within distance `η` of the ideal output. -/
 theorem uniform_offgrid_signed_hhl_full_workspace_error :
     ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
       (j : Fin D) (d η : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -576,6 +647,9 @@ theorem uniform_offgrid_signed_hhl_full_workspace_error :
     norm_applyGate_of_mem_unitaryGroup (mem_unitaryGroup_adjoint hF), hdiff]
   exact hnorm
 
+/-- Under the stated gap and grid hypotheses with `η ≤ d/2`, success probability is positive and
+at least `d^2/4`, and the normalized output is within `2*η/d` of the pseudoinverse solution
+target. -/
 theorem uniform_offgrid_signed_hhl_born_and_solution :
     ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
       (j : Fin D) (d η : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -622,6 +696,8 @@ theorem uniform_offgrid_signed_hhl_born_and_solution :
   exact hpost.2.trans (div_le_div_of_nonneg_left (by positivity) hd
     (by rwa [← norm_toEuclidean_collapse_eq_sqrt_measureProb]))
 
+/-- Under the spectral and grid hypotheses, a unitary approximate oracle `W` gives total
+workspace error at most `η + 2*(M-1)*‖W-continuousHHLOracle eig V‖`. -/
 theorem uniform_offgrid_hhl_actual_unitary_access_noise :
     ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B W : Operator D)
       (j : Fin D) (d η : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -648,6 +724,8 @@ theorem uniform_offgrid_hhl_actual_unitary_access_noise :
       uniformHHLIdeal M hM eig V d B j)‖ at ht
   exact ht.trans (by linarith)
 
+/-- For positive `d`, the computed accuracy and grid meet the positivity and resolution
+requirements, and the one-dimensional word has `2*(M-1)` queries and `4*(M-1)+6` gates. -/
 theorem uniform_hhl_computed_finite_precision_parameters :
     ∀ (d : ℝ) (k : ℕ), 0 < d →
       let η := min (d / 2) ((1 / 2 : ℝ) ^ k)

@@ -8,6 +8,30 @@ import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificat
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
 import Mathlib.Algebra.BigOperators.Pi
 import Mathlib.Data.List.GetD
+
+/-!
+# Register constructions for adaptive purification
+
+Explicit register permutations and basis frames extend source gates and alphabet oracles to a
+purification space containing a branch record and a spare address register. The constructions
+preserve unitarity and intertwine the original operators with their embedded versions.
+
+`sourcePurify_swapLayer` and `sourcePurifyFlip_conj` provide the oracle identities used to
+synchronize adaptive branches. These are finite register implementations in the circuit
+framework of [NielsenChuang2010].
+
+## Main statements
+
+* `sourcePurifyIn` and `sourcePurifyOut`: initialization and output embeddings.
+* `sourcePurifyGate_unitary`: unitarity of lifted known gates.
+* `sourcePurify_swapLayer`: the spare-address identity for a clean state.
+* `sourcePurifyFlip_conj`: conjugation implementing the adjoint oracle.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +48,7 @@ open Qatlib.Concepts.HspRecovery.RecordExtract
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 noncomputable section
 
+/-- Multiplying the matrices of two finite-register maps gives the matrix of their composition. -/
 theorem sourcePermMatrix_mul {T : Type} [Fintype T] [DecidableEq T]
     (f g : T → T) :
     permMatrix f * permMatrix g=permMatrix (f ∘ g) := by
@@ -37,6 +62,8 @@ theorem sourcePermMatrix_mul {T : Type} [Fintype T] [DecidableEq T]
 end
 noncomputable section
 
+/-- The conjugate transpose of an equivalence permutation matrix is the permutation matrix of
+its inverse. -/
 theorem sourcePermMatrix_conjTranspose {T : Type} [Fintype T] [DecidableEq T]
     (e : T ≃ T) : (permMatrix ⇑e)ᴴ=permMatrix ⇑e.symm := by
   ext i j
@@ -50,6 +77,7 @@ theorem sourcePermMatrix_conjTranspose {T : Type} [Fintype T] [DecidableEq T]
 end
 noncomputable section
 
+/-- A permutation matrix acts on a state by precomposition with the inverse equivalence. -/
 theorem sourcePermMatrix_equiv_mulVec {T : Type} [Fintype T] [DecidableEq T]
     (e : T ≃ T) (φ : QState T) : permMatrix ⇑e *ᵥ φ=fun i => φ (e.symm i) := by
   ext i
@@ -64,6 +92,7 @@ theorem sourcePermMatrix_equiv_mulVec {T : Type} [Fintype T] [DecidableEq T]
 end
 noncomputable section
 
+/-- The source-register equivalence that adds the padded input symbol to the value register. -/
 def sourceSmallShift {X H : Type} {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X) {r : ℕ} :
     SourceSpace n q H r ≃ SourceSpace n q H r where
   toFun s := ((s.1.1,s.1.2+sourcePaddedSymbol input x s.1.1),s.2)
@@ -73,6 +102,7 @@ def sourceSmallShift {X H : Type} {n q : ℕ} (input : X → Fin n → Fin (q+1)
 end
 noncomputable section
 
+/-- The source alphabet oracle is the permutation matrix of `sourceSmallShift`. -/
 theorem sourceAlphabetOracle_eq_permMatrix {X H : Type} [DecidableEq H] {n q r : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     sourceAlphabetOracle (W:=(Bool × H) × Fin r) input x=
@@ -84,6 +114,7 @@ theorem sourceAlphabetOracle_eq_permMatrix {X H : Type} [DecidableEq H] {n q r :
 end
 noncomputable section
 
+/-- The involutive source-register equivalence that negates the value register. -/
 def sourceSmallFlip {H : Type} {n q r : ℕ} :
     SourceSpace n q H r ≃ SourceSpace n q H r where
   toFun s := ((s.1.1,-s.1.2),s.2)
@@ -93,6 +124,7 @@ def sourceSmallFlip {H : Type} {n q r : ℕ} :
 end
 noncomputable section
 
+/-- Conjugating the source shift by value negation gives its inverse. -/
 theorem sourceSmallFlip_conj_shift {X H : Type} {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) {r : ℕ} :
     (sourceSmallShift (H:=H) (r:=r) input x).symm=
@@ -111,6 +143,8 @@ theorem sourceSmallFlip_conj_shift {X H : Type} {n q : ℕ}
 end
 noncomputable section
 
+/-- The lift of a source-register equivalence that preserves the branch record and spare address
+register. -/
 def sourcePurifyLift {H : Type} {n q r L : ℕ}
     (e : SourceSpace n q H r ≃ SourceSpace n q H r) :
     Fin L × SourceSpace n q H r × Fin (n+1) ≃ Fin L × SourceSpace n q H r × Fin (n+1) where
@@ -121,6 +155,7 @@ def sourcePurifyLift {H : Type} {n q r L : ℕ}
 end
 noncomputable section
 
+/-- The involution that swaps the source address with the spare address register. -/
 def sourcePurifySwap {H : Type} {n q r L : ℕ} :
     Fin L × SourceSpace n q H r × Fin (n+1) ≃ Fin L × SourceSpace n q H r × Fin (n+1) where
   toFun y := (y.1,((y.2.2,y.2.1.1.2),y.2.1.2),y.2.1.1.1)
@@ -130,6 +165,7 @@ def sourcePurifySwap {H : Type} {n q r L : ℕ} :
 end
 noncomputable section
 
+/-- The permutation matrix that negates the source value register in the purification space. -/
 def sourcePurifyFlipGate {H : Type} [DecidableEq H] {n q r L : ℕ} :
     Matrix (Fin L × SourceSpace n q H r × Fin (n+1))
       (Fin L × SourceSpace n q H r × Fin (n+1)) ℂ :=
@@ -137,6 +173,7 @@ def sourcePurifyFlipGate {H : Type} [DecidableEq H] {n q r L : ℕ} :
 end
 noncomputable section
 
+/-- The permutation matrix that swaps the source and spare address registers. -/
 def sourcePurifySwapGate {H : Type} [DecidableEq H] {n q r L : ℕ} :
     Matrix (Fin L × SourceSpace n q H r × Fin (n+1))
       (Fin L × SourceSpace n q H r × Fin (n+1)) ℂ :=
@@ -144,6 +181,8 @@ def sourcePurifySwapGate {H : Type} [DecidableEq H] {n q r L : ℕ} :
 end
 noncomputable section
 
+/-- The source alphabet oracle lifted to the purification space while preserving record and
+spare address. -/
 def sourcePurifyOracle {X H : Type} [DecidableEq H] {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     {r L : ℕ} : Matrix (Fin L × SourceSpace n q H r × Fin (n+1))
       (Fin L × SourceSpace n q H r × Fin (n+1)) ℂ :=
@@ -151,6 +190,7 @@ def sourcePurifyOracle {X H : Type} [DecidableEq H] {n q : ℕ} (input : X → F
 end
 noncomputable section
 
+/-- The lifted purification oracle is unitary. -/
 theorem sourcePurifyOracle_unitary {X H : Type} [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) {r L : ℕ} :
     sourcePurifyOracle (n:=n) (q:=q) input x (r:=r) (L:=L) ∈
@@ -159,6 +199,8 @@ theorem sourcePurifyOracle_unitary {X H : Type} [Fintype H] [DecidableEq H] {n q
 end
 noncomputable section
 
+/-- On states supported at the padded spare address `n`, the swap-adjoint-oracle-swap-oracle
+layer acts as the lifted oracle. -/
 theorem sourcePurify_swapLayer {X H : Type} [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     {n q r L : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (st : QState (Fin L × SourceSpace n q H r × Fin (n+1)))
@@ -214,6 +256,8 @@ theorem sourcePurify_swapLayer {X H : Type} [Fintype X] [DecidableEq X] [Fintype
 end
 noncomputable section
 
+/-- Summing over the purification space with record and spare address fixed reduces to a sum
+over source states. -/
 theorem sourcePurifyGate_sum {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (f : Fin L → SourceSpace n q H r → Fin (n+1) → ℂ)
     (l : Fin L) (w : Fin (n+1)) :
@@ -241,6 +285,7 @@ theorem sourcePurifyGate_sum {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
 end
 noncomputable section
 
+/-- The lifted source matrix acting identically on the record and spare address registers. -/
 def sourcePurifyGate {H : Type} [DecidableEq H] {n q r L : ℕ}
     (U : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ) :
     Matrix (Fin L × SourceSpace n q H r × Fin (n+1))
@@ -249,6 +294,7 @@ def sourcePurifyGate {H : Type} [DecidableEq H] {n q r L : ℕ}
 end
 noncomputable section
 
+/-- Lifting source matrices to purification gates preserves multiplication. -/
 theorem sourcePurifyGate_mul {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (U V : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ) :
     sourcePurifyGate (n:=n) (q:=q) (r:=r) (L:=L) (U*V)=
@@ -283,6 +329,7 @@ theorem sourcePurifyGate_mul {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
 end
 noncomputable section
 
+/-- Lifting the identity source matrix gives the identity purification gate. -/
 theorem sourcePurifyGate_one {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ} :
     sourcePurifyGate (n:=n) (q:=q) (r:=r) (L:=L)
       (1 : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ)=1 := by
@@ -296,6 +343,7 @@ theorem sourcePurifyGate_one {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
 end
 noncomputable section
 
+/-- Lifting a source matrix commutes with conjugate transpose. -/
 theorem sourcePurifyGate_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (U : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ) :
     (sourcePurifyGate (n:=n) (q:=q) (r:=r) (L:=L) U)ᴴ=
@@ -309,6 +357,7 @@ theorem sourcePurifyGate_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {n
 end
 noncomputable section
 
+/-- Lifting a unitary source matrix gives a unitary purification gate. -/
 theorem sourcePurifyGate_unitary {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (U : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ)
     (hU : U ∈ Matrix.unitaryGroup _ ℂ) :
@@ -319,18 +368,21 @@ theorem sourcePurifyGate_unitary {H : Type} [Fintype H] [DecidableEq H] {n q r L
 end
 noncomputable section
 
+/-- The basis embedding initializing record zero and spare address `n`. -/
 def sourcePurifyIn {H : Type} [DecidableEq H] {n q r L : ℕ} (hL : 0 < L) :
     Matrix (Fin L × SourceSpace n q H r × Fin (n+1)) (SourceSpace n q H r) ℂ :=
   sourceBasisFrame (fun t : SourceSpace n q H r => (⟨0,hL⟩,t,⟨n,Nat.lt_succ_self n⟩))
 end
 noncomputable section
 
+/-- The basis embedding adjoining spare address `n` to an already recorded source state. -/
 def sourcePurifyOut {H : Type} [DecidableEq H] {n q r L : ℕ} :
     Matrix (Fin L × SourceSpace n q H r × Fin (n+1)) (Fin L × SourceSpace n q H r) ℂ :=
   sourceBasisFrame (fun p : Fin L × SourceSpace n q H r => (p.1,p.2,⟨n,Nat.lt_succ_self n⟩))
 end
 noncomputable section
 
+/-- The purification input embedding is an isometry. -/
 theorem sourcePurifyIn_isometry {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (hL : 0 < L) : (sourcePurifyIn (H := H) (n:=n) (q:=q) (r:=r) (L:=L) hL)ᴴ*
       sourcePurifyIn (H := H) (n:=n) (q:=q) (r:=r) (L:=L) hL=1 := by
@@ -341,6 +393,7 @@ theorem sourcePurifyIn_isometry {H : Type} [Fintype H] [DecidableEq H] {n q r L 
 end
 noncomputable section
 
+/-- The purification output embedding is an isometry. -/
 theorem sourcePurifyOut_isometry {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ} :
     (sourcePurifyOut (H := H) (n:=n) (q:=q) (r:=r) (L:=L))ᴴ*
       sourcePurifyOut (H := H) (n:=n) (q:=q) (r:=r) (L:=L)=1 := by
@@ -352,6 +405,8 @@ theorem sourcePurifyOut_isometry {H : Type} [Fintype H] [DecidableEq H] {n q r L
 end
 noncomputable section
 
+/-- The purification input embedding places the original amplitudes at record zero and spare
+address `n`, with zero amplitudes elsewhere. -/
 theorem sourcePurifyIn_apply {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ} (hL : 0 < L)
     (ψ : QState (SourceSpace n q H r)) :
     sourcePurifyIn (n:=n) (q:=q) (r:=r) (L:=L) hL *ᵥ ψ=
@@ -378,6 +433,8 @@ theorem sourcePurifyIn_apply {H : Type} [Fintype H] [DecidableEq H] {n q r L : �
 end
 noncomputable section
 
+/-- The purification output embedding preserves recorded amplitudes at spare address `n` and
+vanishes elsewhere. -/
 theorem sourcePurifyOut_apply {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (φ : QState (Fin L × SourceSpace n q H r)) :
     sourcePurifyOut (n:=n) (q:=q) (r:=r) (L:=L) *ᵥ φ=
@@ -405,6 +462,8 @@ theorem sourcePurifyOut_apply {H : Type} [Fintype H] [DecidableEq H] {n q r L : 
 end
 noncomputable section
 
+/-- A matrix intertwines a basis frame with another matrix if its entries agree on the encoded
+image and its encoded columns vanish outside that image. -/
 theorem sourceBasisFrame_commute_mul {S T : Type} [Fintype S] [DecidableEq S] [Fintype T]
     [DecidableEq T]
     (c : T → S) (hc : Function.Injective c) (A : Matrix S S ℂ) (B : Matrix T T ℂ)
@@ -435,6 +494,8 @@ theorem sourceBasisFrame_commute_mul {S T : Type} [Fintype S] [DecidableEq S] [F
 end
 noncomputable section
 
+/-- The lifted oracle intertwines the purification input embedding with the original alphabet
+oracle. -/
 theorem sourcePurifyOracle_mul_in {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) (hL : 0 < L) :
@@ -454,6 +515,8 @@ theorem sourcePurifyOracle_mul_in {X H : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- A matrix intertwining identity yields the corresponding equality after applying both sides
+to a state. -/
 theorem sourcePurify_narrow {H S T : Type} [Fintype H] [DecidableEq H] [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T]
     (A : Matrix S S ℂ) (B : Matrix H H ℂ) (F : Matrix S H ℂ) (ψ : QState H)
@@ -462,6 +525,8 @@ theorem sourcePurify_narrow {H S T : Type} [Fintype H] [DecidableEq H] [Fintype 
 end
 noncomputable section
 
+/-- The lifted known gate intertwines the purification input embedding with the original known
+gate. -/
 theorem sourcePurifyGate_mul_in {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (U : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ) (hL : 0 < L) :
     sourcePurifyGate (n:=n) (q:=q) (r:=r) (L:=L) U*sourcePurifyIn (n:=n) (q:=q) (r:=r) (L:=L) hL=
@@ -484,6 +549,8 @@ theorem sourcePurifyGate_mul_in {H : Type} [Fintype H] [DecidableEq H] {n q r L 
 end
 noncomputable section
 
+/-- Conjugating the lifted oracle by the purification value-negation gate gives the adjoint
+lifted oracle. -/
 theorem sourcePurifyFlip_conj {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :

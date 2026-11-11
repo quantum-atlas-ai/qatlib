@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
+
+/-!
+# Rational signed mean estimation
+
+This module defines the rational signed estimator `nativeSignedOutput`, its median over repeated
+trials, and the associated amplitude-estimation program lists and query budget. It transfers
+error bounds from the real signed estimator to rational readouts and combines pilot-selected
+scale and precision with median amplification, following the quantum mean-estimation setting of
+[Montanaro2015].
+
+## Main statements
+
+* `native_signed_rational_trial_and_median`: a trial succeeds within 9σ·2⁻ᵏ with probability at
+  least 13/24, with median failure at most (143/144)ʳ and an exact trial query count.
+* `native_pilot_joint_rational_output`: a joint pilot-and-estimation failure bound at error
+  threshold 2ε.
+* `native_pilot_rational_worst_path_queries`: exact median query counts and a uniform upper
+  bound over pilot outcomes.
+
+## References
+
+* [Montanaro, 2015, Theorem 5][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -25,14 +49,18 @@ namespace Qatlib.Concepts.AmplitudeSearch.NativeMean
 open Matrix
 open scoped BigOperators
 
+/-- The rational signed mean estimate obtained by adding to the sampled payoff 4σ times the
+difference of the positive and negative native layered outputs. -/
 def nativeSignedOutput {I : Type} (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (ω : I × (LayerRecord k × LayerRecord k)) : ℚ :=
   f ω.1+4*σ*(nativeLayerOutput k ω.2.1-nativeLayerOutput k ω.2.2)
 
+/-- The rational median of the signed outputs from 2r + 1 trial records. -/
 def nativeSignedOutputMedian {I : Type} (f : I → ℚ) (σ : ℚ) (k r : ℕ)
     (ω : Fin (2*r+1) → I × (LayerRecord k × LayerRecord k)) : ℚ :=
   nativeRationalMedian r (fun z => nativeSignedOutput f σ k (ω z))
 
+/-- The signed-trial query budget 2(k + 2)(2·`layerRepetitions` k + 1)(`layerGrid` k − 1). -/
 def nativeSignedQueryBudget (k : ℕ) : ℕ :=
   2*(k+2)*(2*layerRepetitions k+1)*(layerGrid k-1)
 
@@ -41,6 +69,8 @@ open scoped Classical
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
 set_option warningAsError false
 
+/-- For nonnegative σ, every rational signed output differs from the corresponding real
+`signedMeanEstimate` by at most σ·2⁻ᵏ. -/
 private theorem native_signed_output_uniform_error {I : Type}
     (f : I → ℚ) (σ : ℚ) (k : ℕ) (hσ : 0 ≤ σ)
     (ω : I × (LayerRecord k × LayerRecord k)) :
@@ -69,6 +99,11 @@ private theorem native_signed_output_uniform_error {I : Type}
       have hh : (0 : ℝ) ≤ (σ : ℝ)*(1/2 : ℝ)^k := by positivity
       nlinarith
 
+/-- For k ≥ 4, positive σ, and payoff variance at most σ² under the prepared Born law, the
+rational signed trial has error at most 9σ·2⁻ᵏ with probability at least 13/24, and its
+median over 2r + 1 trials exceeds that error with probability at most (143/144)ʳ. The
+theorem also gives the exact query count for each trial program list, in the mean-estimation
+setting of [Montanaro, Theorem 5][Montanaro2015]. -/
 theorem native_signed_rational_trial_and_median :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ),
@@ -127,6 +162,8 @@ theorem native_signed_rational_trial_and_median :
     nativeRationalMedian_cast r (fun z => trial (ω z))
   simpa only [hcast] using! hm
 
+/-- The probability of any event under n independent samples from a finite distribution is at
+most one. -/
 private theorem native_probEvent_le_one {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (n : ℕ) (E : (Fin n → X) → Prop) : p.probEvent E ≤ 1 := by
   unfold Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent
@@ -134,6 +171,10 @@ private theorem native_probEvent_le_one {X : Type} [Fintype X] [DecidableEq X]
   exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
     (fun ω _ _ => Finset.prod_nonneg fun i _ => p.nonneg (ω i))
 
+/-- For payoffs bounded in absolute value by one and the stated positive pilot parameters, the
+joint probability that the pilot-selected rational median has error greater than 2ε is at
+most 2/(Nν²) + (143/144)ʳ. This combines pilot scale selection with the mean-estimation
+guarantee associated with [Montanaro2015]. -/
 theorem native_pilot_joint_rational_output :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (f : I → ℚ) (N h r : ℕ) (ν ε : ℚ) (hA : A ∈ Matrix.unitaryGroup I ℂ),
@@ -204,16 +245,22 @@ theorem native_pilot_joint_rational_output :
       simp only [mul_ite, mul_one, mul_zero, Finset.sum_filter]
     _ ≤ _ := by linarith
 
+/-- Concatenates the signed amplitude-estimation program lists associated with the sampled
+centers of all 2r + 1 median trials. -/
 noncomputable def nativeSignedMedianAEPrograms {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ)
     (ξ : Fin (2*r+1) → I × (LayerRecord k × LayerRecord k)) :=
   (List.ofFn (fun z => nativeSignedAEPrograms A j f σ k (ξ z).1)).flatten
 
+/-- The signed-trial query budget is monotone in the precision parameter k. -/
 private theorem nativeSignedQueryBudget_mono (k K : ℕ) (hk : k ≤ K) :
     nativeSignedQueryBudget k ≤ nativeSignedQueryBudget K := by
   unfold nativeSignedQueryBudget layerRepetitions layerGrid
   gcongr
 
+/-- Under the pilot hypotheses, the selected precision k lies between 4 and the explicit ceiling
+K, and every median record uses exactly (2r + 1)·`nativeSignedQueryBudget` k queries. This
+count is at most (2r + 1)·`nativeSignedQueryBudget` K, uniformly over pilot outcomes. -/
 theorem native_pilot_rational_worst_path_queries (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) (N h r : ℕ) (ν ε : ℚ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1)

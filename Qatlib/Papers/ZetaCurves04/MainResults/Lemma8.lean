@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+
+/-!
+# Near-uniform samplers from finite families
+
+Uniformly choosing a finite-family index and then an element of its nonempty member set gives a
+normalized distribution. Equal incidence counts and bounded member sizes control its uniformity
+factor; numerical success estimates and repetition bounds yield `lemma8_oracle_of_family`.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `sampling_uniformity`: A family of nonempty sets of size at most `K`, with constant incidence
+  count, defines a normalized two-stage sampling distribution whose point masses differ by at
+  most a factor `K`.
+* `lemma8_oracle_of_family`: Under the stated family and numerical hypotheses, there exists a
+  sampler with uniformity factor at most `1 + (2 * g - 2 + d) / e` and success value at least `3
+  / 4`.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +41,8 @@ namespace Qatlib.Papers.ZetaCurves04.MainResults.Lemma8
 
 open Qatlib.Papers.ZetaCurves04.MainResults.Model
 
+/-- Dividing the stated positive-degree inequality by `e` gives the uniformity-factor bound `j *
+d / e ≤ 1 + (2 * g - 2 + d) / e`. See [Kedlaya2006]. -/
 theorem lemma8_ratio_bound {j d e g : ℕ} (he : 0 < e)
     (hx : (j : ℝ) * (d : ℝ) ≤ 2 * (g : ℝ) - 2 + (e : ℝ) + (d : ℝ)) :
     ((j : ℝ) * (d : ℝ)) / (e : ℝ) ≤ 1 + (2 * (g : ℝ) - 2 + (d : ℝ)) / (e : ℝ) := by
@@ -36,11 +62,16 @@ theorem lemma8_ratio_bound {j d e g : ℕ} (he : 0 < e)
   rw [h2] at h1
   exact h1
 
+/-- For positive `d`, the stated natural quotient multiplied by `d` is bounded by `2 * g - 2 + e
++ d`. -/
 theorem lemma8_ceiling_mul_le {g e d : ℕ} (hd : 0 < d) :
     ((2 * g - 1 + e + d - 1) / d) * d ≤ 2 * g - 2 + e + d := by
   have h := Nat.div_mul_le_self (2 * g - 1 + e + d - 1) d
   omega
 
+/-- A family of nonempty sets of size at most `K`, with constant incidence count, defines a
+normalized two-stage sampling distribution whose point masses differ by at most a factor
+`K`. See [Kedlaya2006]. -/
 theorem sampling_uniformity
     {V F : Type*} [Fintype V] [Fintype F] [DecidableEq V]
     (S : F → Finset V) (K A : ℕ)
@@ -137,6 +168,8 @@ theorem sampling_uniformity
               ∑ f : F, (if y ∈ S f then ((S f).card : ℝ)⁻¹ else 0)) := by
           exact mul_le_mul_of_nonneg_left hpy (le_of_lt hKpos)
 
+/-- If `16 * g < halfPower q e`, the normalized prime-divisor lower-bound expression is strictly
+greater than `1 / (8 * e)`. See [Kedlaya2006]. -/
 theorem lemma8_success_fraction (q e g : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e)
     (hbig : 16 * (g : ℝ) < halfPower q e) :
     (1 / (e : ℝ)) *
@@ -179,6 +212,8 @@ theorem lemma8_success_fraction (q e g : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e)
   rw [heq] at hmul
   exact hmul
 
+/-- A success value between `1 / (8 * e)` and one gives repeated-success expression at least `3
+/ 4` after `1024 * e ^ 2` repetitions. See [Kedlaya2006]. -/
 theorem lemma8_boost (e : ℕ) (he : 1 ≤ e) (s : ℝ)
     (_hs0 : 0 ≤ s) (hs1 : s ≤ 1) (hs : 1 / (8 * (e : ℝ)) ≤ s) :
     1 - (1 - s) ^ (1024 * e ^ 2) ≥ 3 / 4 := by
@@ -226,6 +261,8 @@ theorem lemma8_boost (e : ℕ) (he : 1 ≤ e) (s : ℝ)
     le_trans (le_trans hexp1 hexp2) hexp3
   linarith [hchain]
 
+/-- Under the field-size, positive-degree, and genus-size hypotheses, the normalized
+prime-divisor lower-bound expression is nonnegative. -/
 theorem lemma8_success_nonneg (q e g : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e)
     (hbig : 16 * (g : ℝ) < halfPower q e) :
     0 ≤ (1 / (e : ℝ)) *
@@ -258,6 +295,8 @@ theorem lemma8_success_nonneg (q e g : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e)
     div_pos hmain hQe
   exact mul_nonneg (le_of_lt (one_div_pos.mpr hepos)) (le_of_lt hdiv)
 
+/-- For `q ≥ 2` and positive `e`, the normalized prime-divisor lower-bound expression is at most
+one. -/
 theorem lemma8_success_le_one (q e g : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e) :
     (1 / (e : ℝ)) *
         (((q : ℝ) ^ e * (1 - ((q : ℝ))⁻¹) - 4 * (g : ℝ) * halfPower q e) /
@@ -293,6 +332,9 @@ theorem lemma8_success_le_one (q e g : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e) :
   rw [hone] at hmul
   linarith
 
+/-- Under the stated family and numerical hypotheses, there exists a sampler with uniformity
+factor at most `1 + (2 * g - 2 + d) / e` and success value at least `3 / 4`. See
+[Kedlaya2006]. -/
 theorem lemma8_oracle_of_family
     {V F : Type} [Fintype V] [Fintype F] [DecidableEq V]
     (S : F → Finset V) (K A q e g d : ℕ)

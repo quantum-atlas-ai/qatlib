@@ -77,6 +77,24 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite spectral hitting laws
+
+The structure `HittingLaw` records positive spectral values and nonnegative masses without
+imposing normalization. This module defines its tail, mean, quantile, and cosine survival sum
+and proves tail and quantile estimates used for Theorem 2.3 of [MagniezEtAl2008].
+
+## Main statements
+
+* `tail_quantile_le`: shows the quantile attains the required tail bound for nonnegative error.
+* `tail_le_mean_div`: proves the weighted Markov bound.
+* `theorem_2_3_first`: transfers a mean comparison to a quantile bound.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -84,6 +102,8 @@ namespace Qatlib.Papers.HittingTimes08.MainResults
 
 open scoped BigOperators
 
+/-- A finite family of positive real values with nonnegative real masses, without requiring the
+masses to sum to one. -/
 structure HittingLaw (J : Type*) [Fintype J] where
   val : J → ℝ
   mass : J → ℝ
@@ -95,26 +115,35 @@ namespace HittingLaw
 
 variable {J : Type*} [Fintype J]
 
+/-- The reciprocal square root of the spectral value `L.val j`. -/
 def theta (L : HittingLaw J) (j : J) : ℝ := 1 / Real.sqrt (L.val j)
 
+/-- The sum of the masses of values strictly greater than `y`. -/
 def tail (L : HittingLaw J) (y : ℝ) : ℝ :=
   ∑ j ∈ Finset.univ.filter (fun j => y < L.val j), L.mass j
 
+/-- The mass-weighted sum of the spectral values. -/
 def mean (L : HittingLaw J) : ℝ := ∑ j, L.mass j * L.val j
 
+/-- The sum of all spectral masses. -/
 def totalMass (L : HittingLaw J) : ℝ := ∑ j, L.mass j
 
+/-- The unweighted sum of all positive spectral values. -/
 def valueSum (L : HittingLaw J) : ℝ := ∑ j, L.val j
 
+/-- The infimum of nonnegative thresholds whose strict upper tail has mass at most `ε`. -/
 def quantile (L : HittingLaw J) (ε : ℝ) : ℝ :=
   sInf {y : ℝ | 0 ≤ y ∧ L.tail y ≤ ε}
 
+/-- The weighted cosine-power sum `∑ j, L.mass j * cos (L.theta j) ^ k`. -/
 def survival (L : HittingLaw J) (k : ℕ) : ℝ :=
   ∑ j, L.mass j * Real.cos (L.theta j) ^ k
 
+/-- The tail mass at every real threshold is nonnegative. -/
 theorem tail_nonneg (L : HittingLaw J) (y : ℝ) : 0 ≤ L.tail y :=
   Finset.sum_nonneg fun j _ => L.mass_nonneg j
 
+/-- Tail mass is nonincreasing as the threshold increases. -/
 theorem tail_antitone (L : HittingLaw J) {y y' : ℝ} (h : y ≤ y') :
     L.tail y' ≤ L.tail y := by
   refine Finset.sum_le_sum_of_subset_of_nonneg ?_ ?_
@@ -123,10 +152,12 @@ theorem tail_antitone (L : HittingLaw J) {y y' : ℝ} (h : y ≤ y') :
     exact lt_of_le_of_lt h hj
   · intro j _ _; exact L.mass_nonneg j
 
+/-- A tail bound at `y` also holds at every larger threshold `y'`. -/
 theorem tail_le_of_le (L : HittingLaw J) {y y' ε : ℝ} (h : y ≤ y')
     (hy : L.tail y ≤ ε) : L.tail y' ≤ ε :=
   (L.tail_antitone h).trans hy
 
+/-- The tail vanishes at the threshold `L.valueSum + 1`. -/
 theorem tail_valueSum_add_one (L : HittingLaw J) :
     L.tail (L.valueSum + 1) = 0 := by
   unfold tail
@@ -138,14 +169,17 @@ theorem tail_valueSum_add_one (L : HittingLaw J) :
   rw [Finset.mem_filter] at hj
   linarith [hj.2]
 
+/-- For `ε ≥ 0`, the threshold `L.valueSum + 1` satisfies the tail bound `ε`. -/
 theorem feasible_nonempty (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
     (L.tail (L.valueSum + 1) ≤ ε) := by
   rw [L.tail_valueSum_add_one]; exact hε
 
+/-- Every spectral quantile is nonnegative. -/
 theorem quantile_nonneg (L : HittingLaw J) (ε : ℝ) : 0 ≤ L.quantile ε := by
   unfold quantile
   exact Real.sInf_nonneg fun y hy => hy.1
 
+/-- For `ε ≥ 0`, the tail at the `ε`-quantile is at most `ε`. -/
 theorem tail_quantile_le (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
     L.tail (L.quantile ε) ≤ ε := by
   have hSne : ( {y : ℝ | 0 ≤ y ∧ L.tail y ≤ ε} ).Nonempty := by
@@ -201,6 +235,7 @@ theorem tail_quantile_le (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
       exact absurd ⟨j, hj.2⟩ hemp
     rw [hzero]; exact hε
 
+/-- For a positive threshold `y`, the product of its tail mass with `y` is at most the mean. -/
 theorem tail_mul_le_mean (L : HittingLaw J) {y : ℝ} (hy : 0 < y) :
     L.tail y * y ≤ L.mean := by
   unfold tail mean
@@ -214,10 +249,13 @@ theorem tail_mul_le_mean (L : HittingLaw J) {y : ℝ} (hy : 0 < y) :
         refine Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _) ?_
         intro i _ _; exact mul_nonneg (L.mass_nonneg i) (L.val_pos i).le
 
+/-- For `y > 0`, the tail mass is at most `L.mean / y`. -/
 theorem tail_le_mean_div (L : HittingLaw J) {y : ℝ} (hy : 0 < y) :
     L.tail y ≤ L.mean / y :=
   (le_div_iff₀ hy).mpr (L.tail_mul_le_mean hy)
 
+/-- If `0 < ε < 1`, `HT > 0`, and `2 * L.mean ≤ HT`, then `L.quantile ε ≤ HT / (2 * ε)`, as in
+the first comparison of Theorem 2.3 in [MagniezEtAl2008]. -/
 theorem theorem_2_3_first (L : HittingLaw J) (HT ε : ℝ)
     (hε0 : 0 < ε) (hε1 : ε < 1) (hHT0 : 0 < HT) (hbridge : 2 * L.mean ≤ HT) :
     L.quantile ε ≤ HT / (2 * ε) := by
@@ -232,6 +270,9 @@ theorem theorem_2_3_first (L : HittingLaw J) (HT ε : ℝ)
   unfold quantile
   refine csInf_le ⟨0, fun y hy => hy.1⟩ ⟨hy.le, htail⟩
 
+/-- If `HT ≤ 4 * L.mean`, total mass is at most one, and a maximal positive value carries mass
+at least one half, then `HT ≤ 4 * L.quantile ε` for `0 < ε < 1 / 2`. This is the second
+comparison associated with Theorem 2.3 in [MagniezEtAl2008]. -/
 theorem theorem_2_3_second (L : HittingLaw J) (HT v1 : ℝ) (j0 : J)
     (hHT : HT ≤ 4 * L.mean)
     (hv1 : 0 < v1) (hval : L.val j0 = v1)

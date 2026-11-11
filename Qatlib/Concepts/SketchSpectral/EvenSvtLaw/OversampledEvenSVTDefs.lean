@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
 import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+
+/-!
+# Oversampled even SVT run data
+
+`OversampledEvenSVTRun` stores row and column records, their access counters, both sketch
+matrices, and the final matrix-function output. `oversampledEvenSVTRun` constructs these values
+from actual compact builders and forms `Rᴴ * fbar(Cc * Ccᴴ) * R + f(0) I`, following the
+two-sketch construction in [ChiaEtAl2022].
+
+## Main statements
+
+* `OversampledEvenSVTRun`: The row and column records, indexed data, sampling counters, sketch
+  matrices, and output matrix of an oversampled even-SVT run.
+* `oversampledEvenSVTRun`: Constructs an even-SVT run from row and conditional-column samples,
+  retrieving its indexed data from the built records and forming `Rᴴ * fbar(Cc * Ccᴴ) * R + f(0)
+  I`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +42,8 @@ open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 namespace Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 noncomputable section
 
+/-- The row and column records, indexed data, sampling counters, sketch matrices, and output
+matrix of an oversampled even-SVT run. -/
 structure OversampledEvenSVTRun (K C : Type) (r c : ℕ) where
   rowRecords : List (K × ℝ)
   columnRecords : List (C × ℝ)
@@ -35,6 +59,8 @@ structure OversampledEvenSVTRun (K C : Type) (r c : ℕ) where
 end
 noncomputable section
 
+/-- Constructs an even-SVT run from row and conditional-column samples, retrieving its indexed
+data from the built records and forming `Rᴴ * fbar(Cc * Ccᴴ) * R + f(0) I`. -/
 def oversampledEvenSVTRun {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (A : Matrix K C ℂ) (r c : ℕ)
     (f fbar : ℝ → ℂ) (qs : FinDist K)

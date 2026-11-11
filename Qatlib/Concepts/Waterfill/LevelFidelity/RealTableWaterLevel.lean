@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+
+/-!
+# Real water-fill identities and monotonicity
+
+This module connects rational water-fill computations with their real-valued counterparts and
+proves coordinate, mass, support, and increment estimates. The cross-multiplied inequalities
+`realFidelity_anti` and `realFidelity_anti_lt` describe decreasing fidelity without dividing by
+the mass, supporting the rejection-sampling water-fill analysis of [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `realFidelity_anti`: Prove the weak cross-multiplied fidelity inequality.
+* `realFidelity_anti_lt`: Prove strictness when saturated and unsaturated coordinates coexist.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -44,6 +63,8 @@ open Qatlib.Concepts.Waterfill.LevelSearch
 
 namespace Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
 
+/-- Casting rational source, target, and level to the reals commutes with each coordinate of the
+water fill. -/
 theorem realFill_cast_fill {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) (i : Fin m) :
     realFill (fun j => (π j : ℝ)) (fun j => (σ j : ℝ)) (γ : ℝ) i
       = (waterFill π σ γ i : ℝ) := by
@@ -62,6 +83,7 @@ theorem realFill_cast_fill {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) (i : Fin
       rw [show waterFill π σ γ i = γ * σ i from min_eq_right (le_of_not_ge h)]
     rw [L, R, Rat.cast_mul]
 
+/-- Casting the rational computed mass to the reals gives `realMass` of the cast data. -/
 theorem realMass_cast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     realMass (fun j => (π j : ℝ)) (fun j => (σ j : ℝ)) (γ : ℝ)
       = (computedMass π σ γ : ℝ) := by
@@ -72,6 +94,7 @@ theorem realMass_cast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
   push_cast
   rfl
 
+/-- Casting the rational computed overlap to the reals gives `realDot` of the cast data. -/
 theorem realDot_cast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     realDot (fun j => (π j : ℝ)) (fun j => (σ j : ℝ)) (γ : ℝ)
       = (computedDot π σ γ : ℝ) := by
@@ -84,17 +107,21 @@ theorem realDot_cast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
   rfl
 variable {m : ℕ} (π σ : Fin m → ℝ)
 
+/-- Each filled coordinate is nonnegative for nonnegative source, target, and level. -/
 theorem realFill_nonneg (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {γ : ℝ} (hγ : 0 ≤ γ) (i : Fin m) : 0 ≤ realFill π σ γ i :=
   le_min (hπ i) (mul_nonneg hγ (hσ i))
 
+/-- For a nonnegative target, each filled coordinate is monotone in the level. -/
 theorem realFill_mono (hσ : ∀ i, 0 ≤ σ i) {a b : ℝ} (hab : a ≤ b) (i : Fin m) :
     realFill π σ a i ≤ realFill π σ b i :=
   min_le_min (le_refl _) (mul_le_mul_of_nonneg_right hab (hσ i))
 
+/-- The mass of a real water fill is nonnegative at every level. -/
 theorem realMass_nonneg (γ : ℝ) : 0 ≤ realMass π σ γ :=
   Finset.sum_nonneg fun _ _ => sq_nonneg _
 
+/-- For nonnegative source and target, the fill mass is monotone between nonnegative levels. -/
 theorem realMass_mono (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {a b : ℝ} (hγ : 0 ≤ a) (hab : a ≤ b) :
     realMass π σ a ≤ realMass π σ b := by
@@ -105,6 +132,8 @@ theorem realMass_mono (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     nlinarith [h1, h2]
   exact Finset.sum_le_sum fun i _ => per i
 
+/-- At a nonnegative level, each filled coordinate lies between zero and its source coordinate,
+and its ratio lies in `[0, 1]` and reconstructs the fill. -/
 theorem realFill_support_range (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {γ : ℝ} (hγ : 0 ≤ γ) (i : Fin m) :
     0 ≤ realFill π σ γ i ∧ realFill π σ γ i ≤ π i ∧
@@ -128,21 +157,27 @@ theorem realFill_support_range (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ 
       rw [this, hi, min_eq_left (mul_nonneg hγ (hσ i))]
     · field_simp
 
+/-- A zero source coordinate gives a zero filled coordinate when the target and level are
+nonnegative. -/
 theorem realFill_source_zero (hσ : ∀ i, 0 ≤ σ i)
     {γ : ℝ} (hγ : 0 ≤ γ) {i : Fin m} (hi : π i = 0) :
     realFill π σ γ i = 0 := by
   have : realFill π σ γ i = min (π i) (γ * σ i) := rfl
   rw [this, hi, min_eq_left (mul_nonneg hγ (hσ i))]
 
+/-- For a nonnegative source, the fill at level zero vanishes coordinatewise. -/
 theorem realFill_zero (hπ : ∀ i, 0 ≤ π i) (i : Fin m) : realFill π σ 0 i = 0 := by
   show min (π i) ((0 : ℝ) * σ i) = 0
   rw [zero_mul, min_eq_right (hπ i)]
 
+/-- For a nonnegative source, both mass and overlap vanish at level zero. -/
 theorem realMass_realDot_zero (hπ : ∀ i, 0 ≤ π i) :
     realMass π σ 0 = 0 ∧ realDot π σ 0 = 0 := by
   refine ⟨Finset.sum_eq_zero fun i _ => by rw [realFill_zero π σ hπ i]; ring,
     Finset.sum_eq_zero fun i _ => by rw [realFill_zero π σ hπ i]; ring⟩
 
+/-- For nonnegative data and level, mass and overlap are nonnegative and the mass is at most the
+level times the overlap. -/
 theorem realMass_le_level_dot (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {γ : ℝ} (hγ : 0 ≤ γ) :
     0 ≤ realMass π σ γ ∧ 0 ≤ realDot π σ γ ∧ realMass π σ γ ≤ γ * realDot π σ γ := by
@@ -162,6 +197,8 @@ theorem realMass_le_level_dot (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i
         Finset.sum_le_sum fun i _ => per i
     _ = γ * realDot π σ γ := by rw [realDot, Finset.mul_sum]
 
+/-- The finite real Cauchy–Schwarz inequality bounds the square of a dot product by the product
+of the squared norms. -/
 private theorem sum_mul_sq_le (f g : Fin m → ℝ) :
     (∑ i, f i * g i) ^ 2 ≤ (∑ i, f i ^ 2) * (∑ i, g i ^ 2) := by
   have h1 : |∑ i, f i * g i| ≤
@@ -186,6 +223,8 @@ private theorem sum_mul_sq_le (f g : Fin m → ℝ) :
     ‖(WithLp.toLp 2 g : EuclideanSpace ℝ (Fin m))‖ by positivity)]
   exact h1
 
+/-- Multiplying a fill increment by the earlier filled coordinate is the same as multiplying it
+by the earlier level times the target coordinate. -/
 private theorem realFill_increment_mul (hσ : ∀ i, 0 ≤ σ i)
     {a b : ℝ} (hab : a ≤ b) (i : Fin m) :
     realFill π σ a i * (realFill π σ b i - realFill π σ a i) =
@@ -198,6 +237,8 @@ private theorem realFill_increment_mul (hσ : ∀ i, 0 ≤ σ i)
     ring
   · rw [show realFill π σ a i = a * σ i from min_eq_right (le_of_not_ge hs)]
 
+/-- The mass increment is twice the earlier level times the overlap increment plus the squared
+norm of the fill increment. -/
 private theorem realMass_increment (hσ : ∀ i, 0 ≤ σ i)
     {a b : ℝ} (_ha : 0 ≤ a) (hab : a ≤ b) :
     realMass π σ b = realMass π σ a + 2 * a * (realDot π σ b - realDot π σ a) +
@@ -225,6 +266,8 @@ private theorem realMass_increment (hσ : ∀ i, 0 ≤ σ i)
   unfold realMass realDot
   linarith [hsum]
 
+/-- For positive earlier level `a`, the squared overlap increment times `a` is bounded by the
+earlier overlap times the squared norm of the fill increment. -/
 private theorem realDot_increment_bound (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     a * (realDot π σ b - realDot π σ a) ^ 2 ≤
@@ -258,6 +301,8 @@ private theorem realDot_increment_bound (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 
     nlinarith [c1, c2]
   nlinarith [c3, ha]
 
+/-- For nonnegative data and ordered nonnegative levels, the squared overlaps and masses satisfy
+the cross-multiplied inequality expressing decreasing fidelity. -/
 theorem realFidelity_anti (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) :
     realDot π σ b ^ 2 * realMass π σ a ≤ realDot π σ a ^ 2 * realMass π σ b := by
@@ -319,6 +364,9 @@ theorem realFidelity_anti (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     ring
   linarith [diff, term1, term2]
 
+/-- The cross-multiplied fidelity inequality is strict between increasing positive levels when
+the earlier level has both a positive strictly saturated coordinate and a positive-target
+unsaturated coordinate. -/
 theorem realFidelity_anti_lt (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 ≤ σ i)
     {a b : ℝ} (ha : 0 < a) (hab : a < b)
     (hlo : ∃ j, 0 < π j ∧ π j < a * σ j)

@@ -11,6 +11,28 @@ import Mathlib.Tactic.FieldSimp
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalHuan
 import Mathlib.Data.Finset.Max
 import Mathlib.Tactic.Linarith
+
+/-!
+# Decoding local measurement predictions
+
+Uniformly accurate predictions of a single elevated coordinate determine that coordinate by
+maximization. The remaining lemmas bound local Pauli overlaps, prove nonnegativity of the
+code-state shot values, and establish trace and measurement normalization identities used in
+local measurement lower bounds.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `local_good_prediction_decodes`: recovers the distinguished coordinate from an accurate
+  maximizing prediction.
+* `local_shot_sum`: normalizes shot values from measurement completeness and unit trace.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +49,8 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Predictions within `ε` of a vector with value `3 * ε` at `x` and zero elsewhere have a
+strict maximum at `x` when `ε > 0`. -/
 lemma local_good_prediction_unique_max {M : ℕ} (ε : ℝ) (hε : 0 < ε)
     (v : Fin M → ℝ) (x : Fin M)
     (hv : ∀ i, |v i - 3 * ε * (if i = x then (1 : ℝ) else 0)| ≤ ε) :
@@ -38,6 +62,8 @@ lemma local_good_prediction_unique_max {M : ℕ} (ε : ℝ) (hε : 0 < ε)
   simp only [if_neg hi, mul_zero, sub_zero] at hii
   linarith
 
+/-- A maximizing coordinate of predictions within `ε` of the distinguished-coordinate signal
+must equal its index `x` when `ε > 0`. -/
 lemma local_good_prediction_decodes {M : ℕ} (ε : ℝ) (hε : 0 < ε)
     (v : Fin M → ℝ) (x d : Fin M)
     (hmax : ∀ i, v i ≤ v d)
@@ -45,6 +71,8 @@ lemma local_good_prediction_decodes {M : ℕ} (ε : ℝ) (hε : 0 < ε)
   by_contra h
   exact (not_le_of_gt (local_good_prediction_unique_max ε hε v x hv d h)) (hmax x)
 
+/-- The local Pauli overlap has absolute value at most one for a pure density operator and a
+unitary conjugation. -/
 lemma local_wire_overlap_abs {J : Type} (Uf : J → Operator 2) (P : Operator 2)
     (hP : IsPureDensityOperator P) (a : Option (Fin 3)) (u : J)
     (hU : Uf u ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
@@ -78,6 +106,8 @@ lemma local_wire_overlap_abs {J : Type} (Uf : J → Operator 2) (P : Operator 2)
     rw [abs_le]
     constructor <;> linarith
 
+/-- A code-state local shot value is nonnegative for nonnegative weight, pure local factors,
+unitary rotations, and `0 < 3 * ε ≤ 1`. -/
 lemma local_shot_nonneg {n : ℕ} {J : Type} (Uf : J → Operator 2)
     (w : ℝ) (hw : 0 ≤ w) (ψ : Fin n → Operator 2) (hψ : ∀ j, IsPureDensityOperator (ψ j))
     (uw : Fin n → J) (hU : ∀ j, Uf (uw j) ∈ Matrix.unitaryGroup (Fin 2) ℂ)
@@ -95,6 +125,7 @@ lemma local_shot_nonneg {n : ℕ} {J : Type} (Uf : J → Operator 2)
   have hmul := mul_le_mul_of_nonneg_left hlo (show 0 ≤ 3*ε by positivity)
   linarith
 
+/-- The code operator has trace one when its Pauli word has positive weight `k`. -/
 lemma local_code_trace {n k : ℕ} (ε : ℝ) (a : Fin n → Option (Fin 3))
     (hk : 1 ≤ k) (hS : tensorPauliWeight a = k) :
     Matrix.trace (theorem6CodeState n ε a) = 1 := by
@@ -118,6 +149,8 @@ lemma local_code_trace {n k : ℕ} (ε : ℝ) (a : Fin n → Option (Fin 3))
   norm_cast
   field_simp
 
+/-- If the weighted tensor measurement operators sum to the identity, local shot values for a
+trace-one input sum to one under unitary local rotations. -/
 lemma local_shot_sum {n : ℕ} {J O : Type} [Fintype O]
     (Uf : J → Operator 2) (uw : Fin n → J)
     (hU : ∀ j, Uf (uw j) ∈ Matrix.unitaryGroup (Fin 2) ℂ)

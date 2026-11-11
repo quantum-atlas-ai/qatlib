@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
 import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+
+/-!
+# Statement of actual-record SVT Frobenius accuracy
+
+`EvenSVTFrobeniusActualRecords` specifies the joint distribution of exact row records and
+conditional column records. Positive sample sizes, spectral-band regularity, and explicit Gram
+error budgets imply that the two-sketch approximation to `f(Aᴴ * A)` exceeds Frobenius error `ε`
+with probability at most `δ`, in the setting of [ChiaEtAl2022].
+
+## Main statements
+
+* `EvenSVTFrobeniusActualRecords`: The proposition that exact squared-norm sampling with
+  positive sample sizes and the stated spectral regularity and error budgets yields a joint
+  record law with even-SVT Frobenius failure probability at most `δ`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SketchArith.SketchBuild
@@ -15,6 +35,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The proposition that exact squared-norm sampling with positive sample sizes and the stated
+spectral regularity and error budgets yields a joint record law with even-SVT Frobenius
+failure probability at most `δ`. -/
 def EvenSVTFrobeniusActualRecords : Prop :=
   ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (r c : ℕ) (f fbar : ℝ → ℂ) (L Lbar d ε δ η₁ η₂ : ℝ)

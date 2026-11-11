@@ -8,6 +8,33 @@ import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
 import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Fourier deconvolution for hidden shifts
+
+This module defines support fractions and the Fourier deconvolution amplitude
+`deconvolutionAmplitude`. It computes the amplitude at the negative shift and its squared norm
+after Fourier-support normalization, collecting these identities with the shifted support
+fraction in `source_theorem4`.
+
+The development follows [VanDamHallgrenIp2006].
+
+## Main statements
+
+* `deconvolution_amplitude`: The deconvolution amplitude equals the scaled sum of `ψ x * ψ s`
+  over the nonzero Fourier coefficients of `g`.
+* `deconvolution_probability`: For positive group and Fourier-support cardinalities, the squared
+  deconvolution amplitude at −s, divided by the Fourier-support cardinality, equals
+  `nonzeroCoefficientFraction g`.
+* `source_theorem4`: Collects the shifted support fraction and the normalized deconvolution
+  squared-amplitude identity, together with the reflexive equality for their product, under
+  positive group and Fourier-support cardinality assumptions.
+
+## References
+
+* [van Dam et al., 2006][VanDamHallgrenIp2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,21 +47,28 @@ namespace Qatlib.Papers.HiddenShift02.MainResults.HiddenCosetAlgorithm
 
 variable {G : Type*} [AddCommGroup G] [Fintype G]
 
+/-- The fraction of elements of `G` on which `g` is nonzero. -/
 noncomputable def supportFraction (g : G → ℂ) : ℝ :=
   ((Finset.univ.filter (fun x => g x ≠ 0)).card : ℝ) / (Fintype.card G : ℝ)
 
+/-- The fraction of additive characters at which the Fourier transform of `g` is nonzero. -/
 noncomputable def nonzeroCoefficientFraction (g : G → ℂ) : ℝ :=
   ((Finset.univ.filter (fun ψ : AddChar G ℂ => fourier g ψ ≠ 0)).card : ℝ) /
     (Fintype.card (AddChar G ℂ) : ℝ)
 
+/-- The scaled character sum obtained by dividing the Fourier coefficients of the shifted
+function by those of `g`, with division by zero interpreted in the field. -/
 noncomputable def deconvolutionAmplitude (g : G → ℂ) (s x : G) : ℂ :=
   fourierScale G * ∑ ψ : AddChar G ℂ,
     ψ x * ((fourier g ψ)⁻¹ * fourier (fun z => g (z + s)) ψ)
 
+/-- A Fourier coefficient of norm one has reciprocal equal to its complex conjugate. -/
 theorem phase_of_constant_magnitude (g : G → ℂ) {ψ : AddChar G ℂ}
     (h : ‖fourier g ψ‖ = 1) : (fourier g ψ)⁻¹ = conj (fourier g ψ) :=
   Complex.inv_eq_conj h
 
+/-- The deconvolution amplitude equals the scaled sum of `ψ x * ψ s` over the nonzero Fourier
+coefficients of `g` ([Theorem 4][VanDamHallgrenIp2006]). -/
 theorem deconvolution_amplitude (g : G → ℂ) (s x : G) :
     deconvolutionAmplitude g s x =
       fourierScale G * ∑ ψ : AddChar G ℂ,
@@ -52,6 +86,8 @@ theorem deconvolution_amplitude (g : G → ℂ) (s x : G) :
     simp only [h, if_false]
     rw [hcancel]
 
+/-- At the negative shift, the deconvolution amplitude equals `fourierScale G` times the number
+of nonzero Fourier coefficients. -/
 theorem deconvolution_amplitude_neg (g : G → ℂ) (s : G) :
     deconvolutionAmplitude g s (-s) = fourierScale G *
       (((Finset.univ.filter (fun ψ : AddChar G ℂ => fourier g ψ ≠ 0)).card : ℂ)) := by
@@ -70,6 +106,9 @@ theorem deconvolution_amplitude_neg (g : G → ℂ) (s : G) :
   rw [Finset.sum_congr rfl (fun ψ _ => hone ψ), ← Finset.sum_filter, Finset.sum_const,
     nsmul_eq_mul, mul_one]
 
+/-- For positive group and Fourier-support cardinalities, the squared deconvolution amplitude at
+−s, divided by the Fourier-support cardinality, equals `nonzeroCoefficientFraction g`
+([Theorem 4][VanDamHallgrenIp2006]). -/
 theorem deconvolution_probability (g : G → ℂ) (s : G) (hG : 0 < Fintype.card G)
     (hA : 0 < (Finset.univ.filter (fun ψ : AddChar G ℂ => fourier g ψ ≠ 0)).card) :
     ‖(((Real.sqrt (((Finset.univ.filter
@@ -100,6 +139,8 @@ theorem deconvolution_probability (g : G → ℂ) (s : G) (hG : 0 < Fintype.card
   rw [hchar]
   field_simp
 
+/-- Translation by `s` preserves the support fraction of `g` ([Theorem
+4][VanDamHallgrenIp2006]). -/
 theorem prep_probability (g : G → ℂ) (s : G) :
     ((Finset.univ.filter (fun x => g (x + s) ≠ 0)).card : ℝ) / (Fintype.card G : ℝ)
       = supportFraction g := by
@@ -120,6 +161,9 @@ theorem prep_probability (g : G → ℂ) (s : G) :
       · abel
   rw [hcard]
 
+/-- Collects the shifted support fraction and the normalized deconvolution squared-amplitude
+identity, together with the reflexive equality for their product, under positive group and
+Fourier-support cardinality assumptions ([Theorem 4][VanDamHallgrenIp2006]). -/
 theorem source_theorem4 (g : G → ℂ) (s : G) (hG : 0 < Fintype.card G)
     (hA : 0 < (Finset.univ.filter (fun ψ : AddChar G ℂ => fourier g ψ ≠ 0)).card) :
     ((Finset.univ.filter (fun x => g (x + s) ≠ 0)).card : ℝ) / (Fintype.card G : ℝ)

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecoding
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+
+/-!
+# Syndrome complete greedy decoding
+
+This module proves that a candidate list containing a preimage of every unit syndrome lets
+`greedyDecode` clear any syndrome within its initial Hamming weight in fuel. It combines this
+fact with the CSS distance criterion and explicit candidate test bounds. These results provide
+finite decoding tools for the fault tolerance setting of [BhartiHaugTanggara2026].
+
+## Main statements
+
+* `greedyDecode_flip_budget`: a joint syndrome weight and flip count bound.
+* `greedyDecode_syndromeComplete`: zero residual syndrome under unit syndrome coverage.
+* `greedyDecode_css_correct`: CSS correction under coverage, weight, and distance assumptions.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 open Qatlib.Concepts.CodingDecoding.CssTesters
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 
@@ -16,6 +36,8 @@ namespace Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy
 
 open Matrix
 
+/-- The residual syndrome weight plus the number of successful flips is at most the initial
+syndrome weight, and the flip count is at most the fuel. -/
 theorem greedyDecode_flip_budget :
     ∀ {ι κ : Type} [Fintype ι] [Fintype κ],
     ∀ (H : Matrix κ ι (ZMod 2)) (moves : List (ι → ZMod 2))
@@ -36,6 +58,7 @@ theorem greedyDecode_flip_budget :
       dsimp only at hweight hflips ⊢
       constructor <;> omega
 
+/-- If the search returns `none`, no candidate strictly reduces the syndrome weight. -/
 private theorem chooseReducingFlip_none {ι κ : Type*} [Fintype ι] [Fintype κ]
     (H : Matrix κ ι (ZMod 2)) (s : κ → ZMod 2) (moves : List (ι → ZMod 2))
     (hnone : (chooseReducingFlip H s moves).1 = none) :
@@ -52,6 +75,7 @@ private theorem chooseReducingFlip_none {ι κ : Type*} [Fintype ι] [Fintype κ
       · subst f; exact hg
       · exact ih hnone f hf
 
+/-- Flipping a nonzero coordinate of a binary vector strictly reduces its Hamming weight. -/
 private theorem bitWeight_add_single_lt {κ : Type*} [Fintype κ] [DecidableEq κ]
     (s : κ → ZMod 2) (j : κ) (hj : s j ≠ 0) :
     bitWeight (s + Pi.single j 1) < bitWeight s := by
@@ -71,6 +95,8 @@ private theorem bitWeight_add_single_lt {κ : Type*} [Fintype κ] [DecidableEq �
   rw [hs]
   exact Finset.card_erase_lt_of_mem (by simp [hj])
 
+/-- Unit syndrome coverage ensures zero final syndrome and a correction with syndrome `s`, using
+at most `bitWeight s * moves.length` candidate tests. -/
 theorem greedyDecode_syndromeComplete :
     ∀ {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq κ],
     ∀ (H : Matrix κ ι (ZMod 2)) (moves : List (ι → ZMod 2)),
@@ -102,6 +128,9 @@ theorem greedyDecode_syndromeComplete :
   change s i + 0 = s i + (s i + (H *ᵥ r.correction) i) at heq
   simpa only [add_zero, ← add_assoc, CharTwo.add_self_eq_zero, zero_add] using heq.symm
 
+/-- Under unit syndrome coverage, a returned correction no heavier than the error leaves a Z
+stabilizer residual below half the CSS distance, with zero syndrome and the stated candidate
+test bound. -/
 theorem greedyDecode_css_correct :
     ∀ {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
       [DecidableEq ι] [DecidableEq κX],

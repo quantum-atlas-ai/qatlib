@@ -11,10 +11,32 @@ import Mathlib.SetTheory.Cardinal.Finite
 import Mathlib.Algebra.Group.Subgroup.Map
 import Mathlib.Tactic
 
+/-!
+# Iteration and trial costs for finite-ring ideals
+
+Strictly increasing chains of finite additive subgroups double cardinality at every step,
+yielding a logarithmic bound on their length. The module combines this with a linear
+generator-count bound and Cartesian-product trial counts to obtain a cubic bound in the binary
+logarithm of the ambient cardinality.
+
+These constructions belong to the formalization of [WocjanEtAl2009].
+
+## Main statements
+
+* `iterations_le_log_card`: bounds strict subgroup-chain length.
+* `total_trial_cost_polynomial_in_log`: bounds total trials by a cubic logarithmic expression.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.FiniteRing09.MainResults.IterationCost
 
+/-- Strict inclusion of finite additive subgroups increases cardinality by at least a factor of
+two. See [WocjanEtAl2009]. -/
 theorem strict_chain_doubling
     {A : Type*} [AddCommGroup A] [Finite A]
     {B C : AddSubgroup A} (hBC : B < C) :
@@ -46,6 +68,8 @@ theorem strict_chain_doubling
     _ = Nat.card K * K.index := by rw [hcardK]
     _ = Nat.card C := hcard
 
+/-- After `n` strict subgroup inclusions, the final cardinality is at least `2 ^ n` times the
+initial cardinality. See [WocjanEtAl2009]. -/
 theorem chain_length_bound
     {A : Type*} [AddCommGroup A] [Finite A]
     (B : ℕ → AddSubgroup A) (n : ℕ)
@@ -70,6 +94,8 @@ theorem chain_length_bound
         _ ≤ 2 * Nat.card (B n) := Nat.mul_le_mul_left 2 hchain
         _ ≤ Nat.card (B (n + 1)) := hstep
 
+/-- A strictly increasing chain of additive subgroups of a finite group has at most the binary
+logarithm of the ambient cardinality many steps. See [WocjanEtAl2009]. -/
 theorem iterations_le_log_card
     {A : Type*} [AddCommGroup A] [Finite A]
     (B : ℕ → AddSubgroup A) (n : ℕ)
@@ -88,11 +114,15 @@ theorem iterations_le_log_card
   have hA : Nat.card A ≠ 0 := Nat.card_pos.ne'
   exact (Nat.le_log_iff_pow_le (by norm_num) hA).mpr (le_trans h2 h3)
 
+/-- The number of pairs in the trial product is the product of the two finite-set cardinalities.
+See [WocjanEtAl2009]. -/
 theorem trials_per_step
     {R : Type*} [DecidableEq R] (Rs Bt : Finset R) :
     (Rs.product Bt).card = Rs.card * Bt.card :=
   Finset.card_product Rs Bt
 
+/-- A sequence of finite sets starting at cardinality `m` and growing by at most one per step
+has cardinality at most `m + n` at step `n`. See [WocjanEtAl2009]. -/
 theorem generator_set_card_bound
     {R : Type*} [DecidableEq R] (Bt : ℕ → Finset R) (m : ℕ)
     (hInit : (Bt 0).card = m) (hstep : ∀ k, (Bt (k + 1)).card ≤ (Bt k).card + 1)
@@ -103,6 +133,9 @@ theorem generator_set_card_bound
     have := hstep n
     omega
 
+/-- With at most the binary logarithm of the ambient cardinality many steps, the summed trial
+expression is bounded by the stated product of logarithmic and generator-count factors. See
+[WocjanEtAl2009]. -/
 theorem total_trial_cost_polynomial
     {R : Type*} [Fintype R] [DecidableEq R]
     (Rs : Finset R) (m n : ℕ)
@@ -128,6 +161,8 @@ theorem total_trial_cost_polynomial
         Nat.mul_le_mul_right _ (Nat.le_succ_of_le hn)
     _ = (L + 1) * Rs.card * (m + L) := by ring
 
+/-- If the step count and both initial size bounds are at most the binary logarithm `L` of the
+ambient cardinality, total trials are at most `2 * (L + 1) ^ 3`. [WocjanEtAl2009] -/
 theorem total_trial_cost_polynomial_in_log
     {R : Type*} [Fintype R] [DecidableEq R]
     (Rs : Finset R) (m n : ℕ)

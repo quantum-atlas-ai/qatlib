@@ -10,6 +10,28 @@ import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
 import Mathlib.Analysis.Normed.Lp.WithLp
 import Mathlib.LinearAlgebra.Lagrange
+
+/-!
+# Rational Chebyshev rectangle approximations
+
+`rectPoly` builds even rectangle approximants from a quantitative `SignFamily`. The module
+controls degree and approximation bands, then rounds coefficients of an even Chebyshev expansion
+to obtain rational coefficients with a bit-width bound.
+
+`clause38_of_sign` packages the construction under a sign-family constant at most 32 and the
+expansion hypothesis `EvenChebExpansionBound`. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `rect_of_sign`: construct rectangle bands from a sign family.
+* `evenChebSeries_rounded_dist`: bound evaluation error from dyadic coefficient rounding.
+* `clause38_of_sign`: produce rational Chebyshev coefficients within the degree and bit budgets.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -21,12 +43,19 @@ set_option linter.unnecessarySimpa false
 open scoped BigOperators
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
+/-- The ceiling binary logarithm of the sum of the absolute numerator and positive denominator
+of a rational number. -/
 def ratBitWidth (q : ℚ) : ℕ := Nat.clog 2 (q.num.natAbs + q.den)
+/-- The finite Chebyshev series with coefficients `c k` on the even-indexed polynomials `T (2 *
+k)` for `k < l`. -/
 noncomputable def evenChebSeries (c : ℕ → ℝ) (l : ℕ) : Polynomial ℝ :=
   ∑ k ∈ Finset.range l, Polynomial.C (c k) *
     (Polynomial.Chebyshev.T ℝ ((2 * k : ℕ) : ℤ))
+/-- The rectangle degree budget `64 * ceil (1 / δ') * (ceil (log₂ (1 / ε')) + 1)`. -/
 noncomputable def rectangleDegreeBudget (δ' ε' : ℝ) : ℕ :=
   64 * Nat.ceil (1 / δ') * (Nat.ceil (Real.logb 2 (1 / ε')) + 1)
+/-- The coefficient bit budget obtained from the binary logarithms of `2 / ε` and `d + 2`, with
+four additional bits. -/
 noncomputable def familyCoeffBits (d : ℕ) (ε : ℝ) : ℕ :=
   Nat.ceil (Real.logb 2 (2 / ε)) + Nat.ceil (Real.logb 2 ((d : ℝ) + 2)) + 4
 end Qatlib.Concepts.QsvtCore.PhaseExistence
@@ -45,6 +74,8 @@ set_option autoImplicit false
 open Polynomial Real
 noncomputable section
 
+/-- The existence, for positive gap and error parameters with error at most one half, of odd
+sign approximants bounded on `[-2, 2]` with the prescribed logarithmic degree bound. -/
 def SignFamily (Cs : ℕ) : Prop :=
   ∀ (μ θ : ℝ), 0 < μ → 0 < θ → θ ≤ 1 / 2 →
     ∃ S : Polynomial ℝ,
@@ -55,11 +86,15 @@ def SignFamily (Cs : ℕ) : Prop :=
 end
 noncomputable section
 
+/-- The polynomial `(1 - ε') / 2 * (S(X + t) + S(t - X)) + ε' / 2` used for rectangle
+approximation. -/
 def rectPoly (S : Polynomial ℝ) (t ε' : ℝ) : Polynomial ℝ :=
   C ((1 - ε') / 2) * (S.comp (X + C t) + S.comp (C t - X)) + C (ε' / 2)
 end
 noncomputable section
 
+/-- Evaluation of `rectPoly` is the scaled sum of the two shifted evaluations of `S`, plus the
+offset. -/
 theorem rectPoly_eval {S : Polynomial ℝ} {t ε' x : ℝ} :
     (rectPoly S t ε').eval x =
       (1 - ε') / 2 * (S.eval (x + t) + S.eval (t - x)) + ε' / 2 := by
@@ -67,6 +102,7 @@ theorem rectPoly_eval {S : Polynomial ℝ} {t ε' x : ℝ} :
 end
 noncomputable section
 
+/-- The polynomial `rectPoly S t ε'` is even as a function on the real line. -/
 theorem rectPoly_eval_neg {S : Polynomial ℝ} {t ε' x : ℝ} :
     (rectPoly S t ε').eval (-x) = (rectPoly S t ε').eval x := by
   rw [rectPoly_eval, rectPoly_eval]
@@ -77,6 +113,7 @@ theorem rectPoly_eval_neg {S : Polynomial ℝ} {t ε' x : ℝ} :
 end
 noncomputable section
 
+/-- The natural degree of `rectPoly S t ε'` is at most the natural degree of `S`. -/
 theorem rectPoly_natDegree_le {S : Polynomial ℝ} {t ε' : ℝ} :
     (rectPoly S t ε').natDegree ≤ S.natDegree := by
   have hcomp : (S.comp (X + C t) + S.comp (C t - X)).natDegree ≤ S.natDegree := by
@@ -100,6 +137,8 @@ theorem rectPoly_natDegree_le {S : Polynomial ℝ} {t ε' : ℝ} :
 end
 noncomputable section
 
+/-- The rectangle polynomial has absolute value at most one on `[-1, 1]` under the given bound
+on `S` and parameter constraints. -/
 theorem rectPoly_abs_le_one {S : Polynomial ℝ} {t ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (ht : |t| ≤ 1) (hx : x ∈ Set.Icc (-1 : ℝ) 1) (hε'0 : 0 ≤ ε') (hε' : ε' ≤ 1 / 2) :
@@ -125,6 +164,8 @@ theorem rectPoly_abs_le_one {S : Polynomial ℝ} {t ε' x : ℝ}
 end
 noncomputable section
 
+/-- On the inner band `|x| ≤ t - δ'`, the rectangle polynomial lies between `1 - ε'` and one
+under the stated sign approximation hypotheses. -/
 theorem rectPoly_inner {S : Polynomial ℝ} {t δ' ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (hsign : ∀ y ∈ Set.Icc (-2 : ℝ) 2, δ' ≤ |y| → |S.eval y - Real.sign y| ≤ ε' / 4)
@@ -170,6 +211,8 @@ theorem rectPoly_inner {S : Polynomial ℝ} {t δ' ε' x : ℝ}
 end
 noncomputable section
 
+/-- On the outer bands `t + δ' ≤ |x|`, the rectangle polynomial lies between zero and `ε'` under
+the stated sign approximation hypotheses. -/
 theorem rectPoly_outer {S : Polynomial ℝ} {t δ' ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (hsign : ∀ y ∈ Set.Icc (-2 : ℝ) 2, δ' ≤ |y| → |S.eval y - Real.sign y| ≤ ε' / 4)
@@ -244,6 +287,8 @@ theorem rectPoly_outer {S : Polynomial ℝ} {t δ' ε' x : ℝ}
 end
 noncomputable section
 
+/-- Evenness, a uniform bound on `[-1, 1]`, and the specified inner and outer rectangle
+approximation bounds. -/
 def RectBands (P : Polynomial ℝ) (δ' ε' t : ℝ) : Prop :=
   (∀ x : ℝ, P.eval (-x) = P.eval x) ∧
     (∀ x ∈ Set.Icc (-1 : ℝ) 1, |P.eval x| ≤ 1) ∧
@@ -254,6 +299,8 @@ def RectBands (P : Polynomial ℝ) (δ' ε' t : ℝ) : Prop :=
 end
 noncomputable section
 
+/-- The zero polynomial satisfies `RectBands` when the inner band is empty and the error
+parameter is nonnegative. -/
 theorem rectBands_zero {δ' ε' t : ℝ} (h : t < δ') (hε' : 0 ≤ ε') :
     RectBands 0 δ' ε' t := by
   refine ⟨?_, ?_, ?_, ?_⟩
@@ -269,6 +316,8 @@ theorem rectBands_zero {δ' ε' t : ℝ} (h : t < δ') (hε' : 0 ≤ ε') :
 end
 noncomputable section
 
+/-- A quantitative sign family supplies a rectangle polynomial satisfying `RectBands` with the
+stated degree bound for the given gap, error, and threshold. -/
 theorem rect_of_sign {Cs : ℕ} (hs : SignFamily Cs)
     (δ' ε' t : ℝ) (hδ' : 0 < δ') (hδ'2 : δ' ≤ 1 / 2) (hε' : 0 < ε') (hε'2 : ε' ≤ 1 / 2)
     (ht : |t| ≤ 1) :
@@ -318,6 +367,8 @@ open Polynomial Real
 open scoped BigOperators
 noncomputable section
 
+/-- The evaluations of Chebyshev polynomials satisfy the three-term recurrence at natural
+indices. -/
 theorem chebyshev_T_eval_two_add (k : ℕ) (y : ℝ) :
     (Polynomial.Chebyshev.T ℝ ((k + 2 : ℕ) : ℤ)).eval y
       = 2 * y * (Polynomial.Chebyshev.T ℝ ((k + 1 : ℕ) : ℤ)).eval y
@@ -331,6 +382,8 @@ theorem chebyshev_T_eval_two_add (k : ℕ) (y : ℝ) :
 end
 noncomputable section
 
+/-- Evaluation of the degree-`n` Chebyshev polynomial at `-x` equals its evaluation at `x`
+multiplied by `(-1)^n`. -/
 theorem chebyshev_T_eval_neg (n : ℕ) (x : ℝ) :
     (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval (-x)
       = (-1 : ℝ) ^ n * (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval x := by
@@ -371,6 +424,7 @@ theorem chebyshev_T_eval_neg (n : ℕ) (x : ℝ) :
 end
 noncomputable section
 
+/-- Every Chebyshev polynomial of even natural index has equal evaluations at `x` and `-x`. -/
 theorem chebyshev_T_eval_neg_even (k : ℕ) (x : ℝ) :
     (Polynomial.Chebyshev.T ℝ ((2 * k : ℕ) : ℤ)).eval (-x)
       = (Polynomial.Chebyshev.T ℝ ((2 * k : ℕ) : ℤ)).eval x := by
@@ -382,6 +436,7 @@ theorem chebyshev_T_eval_neg_even (k : ℕ) (x : ℝ) :
 end
 noncomputable section
 
+/-- A Chebyshev polynomial of any integer index has absolute value at most one on `[-1, 1]`. -/
 theorem abs_chebyshev_T_eval_le_one {n : ℤ} {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(Polynomial.Chebyshev.T ℝ n).eval x| ≤ 1 := by
   have hcos : x = Real.cos (Real.arccos x) :=
@@ -391,6 +446,8 @@ theorem abs_chebyshev_T_eval_le_one {n : ℤ} {x : ℝ} (hx : x ∈ Set.Icc (-1 
 end
 noncomputable section
 
+/-- Evaluation of an even Chebyshev series equals the finite sum of its coefficients times the
+corresponding Chebyshev evaluations. -/
 theorem evenChebSeries_eval (c : ℕ → ℝ) (l : ℕ) (x : ℝ) :
     (Qatlib.Concepts.QsvtCore.PhaseExistence.evenChebSeries c l).eval x
       = ∑ k ∈ Finset.range l, c k * (Polynomial.Chebyshev.T ℝ ((2 * k : ℕ) : ℤ)).eval x := by
@@ -402,6 +459,7 @@ theorem evenChebSeries_eval (c : ℕ → ℝ) (l : ℕ) (x : ℝ) :
 end
 noncomputable section
 
+/-- An even Chebyshev series has equal evaluations at `x` and `-x`. -/
 theorem evenChebSeries_eval_neg (c : ℕ → ℝ) (l : ℕ) (x : ℝ) :
     (Qatlib.Concepts.QsvtCore.PhaseExistence.evenChebSeries c l).eval (-x)
       = (Qatlib.Concepts.QsvtCore.PhaseExistence.evenChebSeries c l).eval x := by
@@ -412,6 +470,7 @@ theorem evenChebSeries_eval_neg (c : ℕ → ℝ) (l : ℕ) (x : ℝ) :
 end
 noncomputable section
 
+/-- An even Chebyshev series with `l` terms has natural degree at most `2 * (l - 1)`. -/
 theorem evenChebSeries_natDegree_le (c : ℕ → ℝ) (l : ℕ) :
     (Qatlib.Concepts.QsvtCore.PhaseExistence.evenChebSeries c l).natDegree ≤ 2 * (l - 1) := by
   unfold Qatlib.Concepts.QsvtCore.PhaseExistence.evenChebSeries
@@ -432,6 +491,8 @@ theorem evenChebSeries_natDegree_le (c : ℕ → ℝ) (l : ℕ) :
 end
 noncomputable section
 
+/-- The rectangle polynomial has absolute value at most `1 - ε' / 2` on `[-1, 1]` under the
+given bounds. -/
 theorem rectPoly_abs_le_one_half {S : Polynomial ℝ} {t ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (ht : |t| ≤ 1) (hx : x ∈ Set.Icc (-1 : ℝ) 1) (hε' : 0 ≤ ε') (hε'2 : ε' ≤ 1 / 2) :
@@ -459,6 +520,8 @@ theorem rectPoly_abs_le_one_half {S : Polynomial ℝ} {t ε' x : ℝ}
 end
 noncomputable section
 
+/-- The inner-band value lies between `(1 - ε') * (1 - ε' / 4) + ε' / 2` and `(1 - ε') * (1 + ε'
+/ 4) + ε' / 2` under the stated sign approximation conditions. -/
 theorem rectPoly_inner_sharp {S : Polynomial ℝ} {t δ' ε' x : ℝ}
     (hsign : ∀ y ∈ Set.Icc (-2 : ℝ) 2, δ' ≤ |y| → |S.eval y - Real.sign y| ≤ ε' / 4)
     (hδ' : 0 < δ') (ht : |t| ≤ 1) (hband : |x| ≤ t - δ') (hε'2 : ε' ≤ 1 / 2) :
@@ -502,6 +565,8 @@ theorem rectPoly_inner_sharp {S : Polynomial ℝ} {t δ' ε' x : ℝ}
 end
 noncomputable section
 
+/-- The outer-band value differs from `ε' / 2` by at most `(1 - ε') * (ε' / 4)` under the stated
+sign approximation conditions. -/
 theorem rectPoly_outer_sharp {S : Polynomial ℝ} {t δ' ε' x : ℝ}
     (hsign : ∀ y ∈ Set.Icc (-2 : ℝ) 2, δ' ≤ |y| → |S.eval y - Real.sign y| ≤ ε' / 4)
     (hδ' : 0 < δ') (hδt : δ' ≤ t) (ht : |t| ≤ 1) (hx : x ∈ Set.Icc (-1 : ℝ) 1)
@@ -579,11 +644,13 @@ theorem rectPoly_outer_sharp {S : Polynomial ℝ} {t δ' ε' x : ℝ}
 end
 noncomputable section
 
+/-- Round a real number to a rational multiple of `2⁻ᴺ` using `floor (x * 2^N + 1 / 2)`. -/
 private noncomputable def rectDyadicRound (x : ℝ) (N : ℕ) : ℚ :=
   ((Int.floor (x * (2 : ℝ) ^ N + 1 / 2) : ℤ) : ℚ) / (((2 : ℤ) ^ N : ℤ) : ℚ)
 end
 noncomputable section
 
+/-- Dyadic rounding changes a real number by at most `1 / (2 * 2^N)`. -/
 private theorem rectDyadicRound_near (x : ℝ) (N : ℕ) :
     |(rectDyadicRound x N : ℝ) - x| ≤ (1 / 2) / (2 : ℝ) ^ N := by
   have hzle := Int.floor_le (x * (2 : ℝ) ^ N + 1 / 2)
@@ -609,6 +676,8 @@ private theorem rectDyadicRound_near (x : ℝ) (N : ℕ) :
 end
 noncomputable section
 
+/-- For `|x| ≤ 2`, dyadic rounding has absolute numerator at most `2^(N + 1)` and denominator at
+most `2^N`. -/
 private theorem rectDyadicRound_num_den (x : ℝ) (N : ℕ) (hx : |x| ≤ 2) :
     (rectDyadicRound x N).num.natAbs ≤ 2 ^ (N + 1) ∧ (rectDyadicRound x N).den ≤ 2 ^ N := by
   set z : ℤ := Int.floor (x * (2 : ℝ) ^ N + 1 / 2) with hz
@@ -683,6 +752,7 @@ private theorem rectDyadicRound_num_den (x : ℝ) (N : ℕ) (hx : |x| ≤ 2) :
 end
 noncomputable section
 
+/-- For `|x| ≤ 2`, the rational bit width of the dyadic rounding is at most `N + 2`. -/
 private theorem rectDyadicRound_bits (x : ℝ) (N : ℕ) (hx : |x| ≤ 2) :
     Qatlib.Concepts.QsvtCore.PhaseExistence.ratBitWidth (rectDyadicRound x N) ≤ N + 2 := by
   have hnd := rectDyadicRound_num_den x N hx
@@ -697,6 +767,8 @@ private theorem rectDyadicRound_bits (x : ℝ) (N : ℕ) (hx : |x| ≤ 2) :
 end
 noncomputable section
 
+/-- Rounding `m` even Chebyshev coefficients at precision `N` changes evaluations on `[-1, 1]`
+by at most `m / (2 * 2^N)`. -/
 theorem evenChebSeries_rounded_dist (a : ℕ → ℝ) (m N : ℕ) (x : ℝ)
     (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(Qatlib.Concepts.QsvtCore.PhaseExistence.evenChebSeries
@@ -775,6 +847,8 @@ open Qatlib
 set_option warningAsError false
 noncomputable section
 
+/-- The assertion that every even polynomial bounded by one on `[-1, 1]` has an even Chebyshev
+expansion of the specified length with coefficients bounded by two. -/
 def EvenChebExpansionBound : Prop :=
   ∀ (Q : Polynomial ℝ), (∀ x : ℝ, Q.eval (-x) = Q.eval x) →
     (∀ x ∈ Set.Icc (-1 : ℝ) 1, |Q.eval x| ≤ 1) →
@@ -784,6 +858,7 @@ def EvenChebExpansionBound : Prop :=
 end
 noncomputable section
 
+/-- For positive `ε'`, `log₂ (4 / ε')` equals `log₂ (1 / ε') + 2`. -/
 theorem logb_two_four_div (ε' : ℝ) (hε' : 0 < ε') :
     Real.logb 2 (4 / ε') = Real.logb 2 (1 / ε') + 2 := by
   have he : ε' ≠ 0 := ne_of_gt hε'
@@ -804,6 +879,7 @@ theorem logb_two_four_div (ε' : ℝ) (hε' : 0 < ε') :
 end
 noncomputable section
 
+/-- For `0 < ε' ≤ 1 / 2`, the natural ceiling of `log₂ (1 / ε')` is at least one. -/
 theorem ceil_logb_one_div_eps_ge_one (ε' : ℝ) (hε' : 0 < ε') (hε'2 : ε' ≤ 1 / 2) :
     1 ≤ Nat.ceil (Real.logb 2 (1 / ε')) := by
   by_contra hcon
@@ -825,6 +901,8 @@ theorem ceil_logb_one_div_eps_ge_one (ε' : ℝ) (hε' : 0 < ε') (hε'2 : ε' �
 end
 noncomputable section
 
+/-- When `Cs ≤ 32`, the sign-derived rectangle degree bound is at most `rectangleDegreeBudget δ'
+ε'` for the stated error range. -/
 theorem rectDegree_budget_le {Cs : ℕ} (hCs : Cs ≤ 32) (δ' ε' : ℝ)
     (hε' : 0 < ε') (hε'2 : ε' ≤ 1 / 2) :
     Cs * Nat.ceil (1 / δ') * (Nat.ceil (Real.logb 2 (4 / ε')) + 1)
@@ -866,6 +944,8 @@ theorem rectDegree_budget_le {Cs : ℕ} (hCs : Cs ≤ 32) (δ' ε' : ℝ)
 end
 noncomputable section
 
+/-- The stated bounds on the number of terms and dyadic precision ensure that the accumulated
+coefficient rounding error is at most `ε' / 4`. -/
 theorem rounding_error_budget (D m N : ℕ) (ε' : ℝ) (hε' : 0 < ε')
     (hm : m ≤ (D + 2) / 2)
     (hpow : 8 * (((D : ℝ) + 2)) / ε' ≤ (2 : ℝ) ^ (N + 1)) :
@@ -913,6 +993,7 @@ theorem rounding_error_budget (D m N : ℕ) (ε' : ℝ) (hε' : 0 < ε')
 end
 noncomputable section
 
+/-- An even Chebyshev series with all coefficients zero is the zero polynomial. -/
 theorem evenChebSeries_zero (l : ℕ) :
     evenChebSeries (fun _ => (0:ℝ)) l = 0 := by
   unfold evenChebSeries
@@ -920,6 +1001,8 @@ theorem evenChebSeries_zero (l : ℕ) :
 end
 noncomputable section
 
+/-- When `t < δ'`, rational even Chebyshev coefficients exist satisfying the degree, coefficient
+bit, and rectangle band budgets. -/
 theorem clause38_case_inner_empty (δ' ε' t : ℝ) (hε' : 0 < ε') (hlt : t < δ') :
     ∃ (cE : ℕ → ℚ) (l d : ℕ),
       let P : Polynomial ℝ := evenChebSeries (fun k => (cE k : ℝ)) l
@@ -970,6 +1053,8 @@ theorem clause38_case_inner_empty (δ' ε' t : ℝ) (hε' : 0 < ε') (hlt : t < 
 end
 noncomputable section
 
+/-- A sign family with constant at most 32 and bounded even Chebyshev expansions yields rational
+rectangle approximants with the prescribed degree, coefficient bit, and band bounds. -/
 theorem clause38_of_sign {Cs : ℕ} (hs : SignFamily Cs) (hCs : Cs ≤ 32)
     (hexp : EvenChebExpansionBound) :
     ∀ (δ' ε' t : ℝ), 0 < δ' → δ' ≤ 1 / 2 → 0 < ε' → ε' ≤ 1 / 2 →

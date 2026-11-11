@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliScoreEquality
 import Mathlib.Analysis.Convex.StdSimplex
+
+/-!
+# Pauli-orbit measurement and state-score equality
+
+This module proves the measurement-to-state optimization identity used in Lemma 2 of
+[XuEtAl2026]. `Admissible` requires each nonzero normalized POVM effect to belong to a
+prescribed state set, and `actualMeasurementValue` optimizes the score over Pauli-word-indexed
+POVMs satisfying this condition.
+
+For a nonempty state set closed under Pauli conjugation, the orbit POVM of any state is
+admissible and has the same quadratic score. The resulting equality of suprema also identifies
+the infima over simplex weights.
+
+## Main statements
+
+* `orbit_normalized_state` and `orbit_admissible` establish the orbit construction.
+* `actual_measurement_state_value` equates the admissible measurement and state suprema.
+* `actual_global_measurement_state_value` specializes to all states.
+* `actual_lemma2_delta` transfers the equality to simplex infima.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,13 +44,19 @@ open Qatlib.Concepts.PauliClifford.PauliAlgebra
 open Qatlib.Foundations.PureStateMath
 variable {V : Type*} [Fintype V]
 
+/-- A Pauli-word-indexed POVM is admissible for `K` when every nonzero effect, normalized by its
+trace to a density state, belongs to `K`. -/
 def Admissible (n : ℕ) (K : Set (MState (Reg n))) (P : POVM (PauliWord n) (Reg n)) : Prop :=
   ∀ q (hne : P.mats q≠0),normalizedEffect (P.mats q) (P.nonneg q) hne∈K
 
+/-- The supremum of the weighted Pauli measurement score over Pauli-word-indexed POVMs whose
+nonzero normalized effects belong to `K`. -/
 def actualMeasurementValue (n : ℕ) (words : V → PauliWord n) (w : V → ℝ) (K : Set (MState (Reg n))) : ℝ :=
   sSup (Set.range (fun P : {P : POVM (PauliWord n) (Reg n) // Admissible n K P} =>
     measurementScore (fun i => pauliObservable n (words i)) w P.val))
 
+/-- Normalizing a nonzero effect of the Pauli-orbit POVM of `ρ` yields the Pauli-conjugated
+state `pauliConjugateState n q ρ`. -/
 theorem orbit_normalized_state (n : ℕ) (ρ : MState (Reg n)) (q : PauliWord n)
     (hne : (pauliOrbitPOVM n ρ).mats q≠0) :
     normalizedEffect ((pauliOrbitPOVM n ρ).mats q) ((pauliOrbitPOVM n ρ).nonneg q) hne=
@@ -39,6 +70,8 @@ theorem orbit_normalized_state (n : ℕ) (ρ : MState (Reg n)) (q : PauliWord n)
     rw [inv_inv,smul_smul,mul_inv_cancel₀ (qubitDimension_pos n).ne',one_smul]
   exact congrArg HermitianMat.mat hm
 
+/-- If `K` is closed under Pauli conjugation and contains `ρ`, then the Pauli-orbit POVM of `ρ`
+is admissible for `K`. -/
 theorem orbit_admissible (n : ℕ) (K : Set (MState (Reg n)))
     (hK : ∀ q ρ,ρ∈K → pauliConjugateState n q ρ∈K) (ρ : MState (Reg n)) (hρ : ρ∈K) :
     Admissible n K (pauliOrbitPOVM n ρ) := by
@@ -46,6 +79,9 @@ theorem orbit_admissible (n : ℕ) (K : Set (MState (Reg n)))
   rw [orbit_normalized_state]
   exact hK q ρ hρ
 
+/-- For nonnegative weights and a nonempty state set closed under Pauli conjugation, the
+supremum of admissible Pauli-word-indexed measurement scores equals the supremum of the
+weighted squared Pauli expectations over that state set. -/
 theorem actual_measurement_state_value (n : ℕ) (words : V → PauliWord n) (w : V → ℝ)
     (hw : ∀ i,0 ≤ w i) (K : Set (MState (Reg n))) (hKne : K.Nonempty)
     (hK : ∀ q ρ,ρ∈K → pauliConjugateState n q ρ∈K) :
@@ -70,12 +106,16 @@ theorem actual_measurement_state_value (n : ℕ) (words : V → PauliWord n) (w 
     rw [pauliOrbit_measurementScore] at h
     exact h
 
+/-- For nonnegative weights, the supremum of Pauli-word-indexed POVM scores equals the supremum
+of weighted squared Pauli expectations over all density states. -/
 theorem actual_global_measurement_state_value (n : ℕ) (words : V → PauliWord n) (w : V → ℝ)
     (hw : ∀ i,0 ≤ w i) :
     actualMeasurementValue n words w Set.univ=stateScoreValue (fun i => pauliObservable n (words i)) w Set.univ :=
   actual_measurement_state_value n words w hw Set.univ ⟨MState.uniform,Set.mem_univ _⟩
     (fun _ _ _ => Set.mem_univ _)
 
+/-- For a nonempty state set closed under Pauli conjugation, the simplex infimum of admissible
+measurement values equals the simplex infimum of the corresponding state-score values. -/
 theorem actual_lemma2_delta (n : ℕ) (words : V → PauliWord n)
     (K : Set (MState (Reg n))) (hKne : K.Nonempty)
     (hK : ∀ q ρ,ρ∈K → pauliConjugateState n q ρ∈K) :

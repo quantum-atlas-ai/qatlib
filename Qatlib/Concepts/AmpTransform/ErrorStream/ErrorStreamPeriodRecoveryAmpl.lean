@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamPeriodRecoveryStat
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
+
+/-!
+# Retry bounds for error-stream period recovery
+
+This module proves `ErrorStreamPeriodRecovery` using the amplified progression recovery window
+and the finite retry routine. For independent labels drawn from the actual amplified-state Born
+distribution, it identifies the exact timeout mass and bounds the mass of returning the planted
+period under the stated noise and size assumptions.
+
+The proof also records a worst-case query bound and an expected query bound obtained from the
+one-attempt success lower bound. A successful first attempt supplies the planted-period mass
+bound for the retry routine.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `errorStreamPeriodRecovery`: normalization, timeout and recovery masses, and query bounds.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +50,8 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
 open scoped Classical BigOperators
 
+/-- If every attempt including its overhead costs at most `C`, repeating over a list costs at
+most `xs.length * C`. -/
 private theorem aqRepeat_cost_cap {I Z : Type} (a : I → Option Z × ℕ) (k C : ℕ)
     (hc : ∀ x, k+(a x).2 ≤ C) (xs : List I) :
     (aqRepeat a k xs).2 ≤ xs.length*C := by
@@ -50,17 +76,22 @@ private theorem aqRepeat_cost_cap {I Z : Type} (a : I → Option Z × ℕ) (k C 
         simpa using! hm
       exact hh.trans h2
 
+/-- A finite product-record mass is nonnegative when every one-trial weight is nonnegative. -/
 private theorem aqProductMass_nonneg {I : Type} [Fintype I] (w : I → ℝ)
     (hw0 : ∀ x, 0 ≤ w x) {R : ℕ} (ω : Fin R → I) : 0 ≤ aqProductMass w ω := by
   unfold aqProductMass
   exact Finset.prod_nonneg fun r _ => hw0 (ω r)
 
+/-- If the first recovery attempt returns `some P`, retrying on the whole nonempty label list
+also returns `some P`. -/
 private theorem aqRetry_first_some {N : ℕ} (f : Fin N → Bool) (s M B k P : ℕ)
     (x : Fin N) (xs : List (Fin N)) (hx : (aqAttempt f s M B x).1 = some P) :
     (aqRetry f s M B k (x :: xs)).1 = some P := by
   rw [aqRetry_as_repeat f s M B k (x :: xs)]
   simp [aqRepeat, hx]
 
+/-- For a nonempty indexed label record, a first attempt returning `some P` forces the retry
+output on `List.ofFn ω` to be `some P`. -/
 private theorem aq_error_retry_first_record {N : ℕ} (f : Fin N → Bool) (s M B k P R : ℕ)
     [NeZero R] (hR : 0 < R) (ω : Fin R → Fin N)
     (hx : (aqAttempt f s M B (ω 0)).1 = some P) :
@@ -77,6 +108,9 @@ private theorem aq_error_retry_first_record {N : ℕ} (f : Fin N → Bool) (s M 
   rw [hsplit]
   exact aqRetry_first_some f s M B k P (ω 0) (List.ofFn (fun i : Fin R' => ω i.succ)) hx
 
+/-- Establish normalization, the exact retry timeout mass, a lower bound on planted-period
+recovery mass, and worst-case and expected query bounds under `ErrorStreamPeriodRecovery`'s
+assumptions; see [Cornwell, Section 3.1][Cornwell2014]. -/
 theorem errorStreamPeriodRecovery : ErrorStreamPeriodRecovery := by
   intro N hN s M L P B R G h hM hP hb hMP hPB hsepB hG hdis h2T hsepR hRpos hmark
   (try dsimp only)

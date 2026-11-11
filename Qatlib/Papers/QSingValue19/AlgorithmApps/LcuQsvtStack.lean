@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvtStackDefs
+
+/-!
+# LCU approximation and compilation
+
+This module develops Bernstein approximation estimates and connects polynomial responses to
+singular transforms in the setting of [GilyenSuLowWiebe2019]. The results `lcu_cor10_solver` and
+`lcu_machine_ledger` complement the approximation bounds with phase synthesis and machine
+accounting; the module also verifies phase table recovery, source recurrence parity, degree zero
+behavior, and the resource counts of a concrete dynamic machine word.
+
+## Main statements
+
+* `lcu_bernstein_error_le`: Bounds the approximation error using a modulus of continuity.
+* `lcu_application_chain`: Constructs an approximate block encoding with exact query and gate
+  counts.
+* `lcu_cor10_solver`: Produces phases and a real table with a synthesis cost bound.
+* `lcu_machine_ledger`: Computes the dynamic machine word resource counters.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.ResourceBounds.AsymBounds
@@ -31,6 +54,7 @@ open Qatlib SignalProcessing Encoding
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Splits a weighted binomial sum of order n + 1 into two order n sums by Pascal's identity. -/
 private theorem lcu_pascal (w : ℝ → ℝ) (u v : ℝ) (n : ℕ) :
     (∑ i ∈ Finset.range (n + 2), ((n + 1).choose i : ℝ) * (w i * u ^ i * v ^ (n + 1 - i)))
       = (∑ i ∈ Finset.range (n + 1), (n.choose i : ℝ) * (w i * u ^ i * v ^ (n - i))) * v
@@ -74,6 +98,7 @@ private theorem lcu_pascal (w : ℝ → ℝ) (u v : ℝ) (n : ℕ) :
             (g := fun i => u * ((n.choose i : ℝ) * (w (i + 1 : ℕ) * u ^ i * v ^ (n - i)))) rfl key2]
           rw [Finset.mul_sum]
 
+/-- The binomial sum with parameters u and v equals (u + v)^n. -/
 theorem lcu_binomial_sum (u v : ℝ) :
     ∀ n : ℕ,
       (∑ k ∈ Finset.range (n + 1), (n.choose k : ℝ) * (u ^ k * v ^ (n - k))) = (u + v) ^ n := by
@@ -94,12 +119,14 @@ theorem lcu_binomial_sum (u v : ℝ) :
         ring
       simpa only [one_mul] using! hmain
 
+/-- If u + v = 1, the binomial sum of order n is one. -/
 theorem lcu_binomial_sum_one (u v : ℝ) (huv : u + v = 1) (n : ℕ) :
     ∑ k ∈ Finset.range (n + 1), (n.choose k : ℝ) * (u ^ k * v ^ (n - k)) = 1 := by
   have h := lcu_binomial_sum u v n
   rw [huv, one_pow] at h
   exact h
 
+/-- If u + v = 1 and n ≥ 1, the first weighted binomial moment equals nu. -/
 theorem lcu_binomial_moment1_one (u v : ℝ) (huv : u + v = 1) :
     ∀ n : ℕ, 1 ≤ n →
       (∑ k ∈ Finset.range (n + 1), (n.choose k : ℝ) * ((k : ℝ) * u ^ k * v ^ (n - k))) = n * u := by
@@ -155,6 +182,7 @@ theorem lcu_binomial_moment1_one (u v : ℝ) (huv : u + v = 1) :
             simp only [Nat.cast_add, Nat.cast_one]
             ring
 
+/-- If u + v = 1 and n ≥ 1, the second weighted binomial moment equals nu + n(n − 1)u². -/
 theorem lcu_binomial_moment2_one (u v : ℝ) (huv : u + v = 1) :
     ∀ n : ℕ, 1 ≤ n →
       (∑ k ∈ Finset.range (n + 1),
@@ -228,6 +256,7 @@ theorem lcu_binomial_moment2_one (u v : ℝ) (huv : u + v = 1) :
             simp only [Nat.cast_add, Nat.cast_one]
             ring
 
+/-- The Bernstein weights at indices zero through n sum to one. -/
 theorem lcu_weight_sum (n : ℕ) (x : ℝ) :
     ∑ k ∈ Finset.range (n + 1), lcuBernsteinWeight n x k = 1 := by
   have huv : (x + 1) / 2 + (1 - x) / 2 = 1 := by ring
@@ -243,6 +272,7 @@ theorem lcu_weight_sum (n : ℕ) (x : ℝ) :
           rfl
     _ = 1 := h
 
+/-- Every Bernstein weight is nonnegative for x ∈ [−1, 1]. -/
 theorem lcu_weight_nonneg (n : ℕ) (x : ℝ) (k : ℕ) (hx : -1 ≤ x) (hx1 : x ≤ 1) :
     0 ≤ lcuBernsteinWeight n x k := by
   unfold lcuBernsteinWeight
@@ -251,6 +281,7 @@ theorem lcu_weight_nonneg (n : ℕ) (x : ℝ) (k : ℕ) (hx : -1 ≤ x) (hx1 : x
   have hv : (0 : ℝ) ≤ (1 - x) / 2 := by linarith
   exact mul_nonneg hc (mul_nonneg (pow_nonneg hu _) (pow_nonneg hv _))
 
+/-- For positive n, the Bernstein weighted squared distance of the nodes from x is (1 − x²)/n. -/
 theorem lcu_weight_sq_moment (n : ℕ) (x : ℝ) (hn : 0 < n) :
     ∑ k ∈ Finset.range (n + 1), lcuBernsteinWeight n x k * (lcuBernsteinNode n k - x) ^ 2
       = (1 - x ^ 2) / n := by
@@ -346,6 +377,8 @@ theorem lcu_weight_sq_moment (n : ℕ) (x : ℝ) (hn : 0 < n) :
   field_simp
   ring
 
+/-- Evaluating the Bernstein polynomial gives the weighted sum of the target function values at
+its nodes. -/
 theorem lcu_bernstein_eval (n : ℕ) (f : ℝ → ℂ) (x : ℝ) :
     (lcuBernsteinPoly n f).eval (x : ℂ)
       = ∑ k ∈ Finset.range (n + 1), (lcuBernsteinWeight n x k : ℂ) * f (lcuBernsteinNode n k) := by
@@ -370,9 +403,12 @@ theorem lcu_bernstein_eval (n : ℕ) (f : ℝ → ℂ) (x : ℝ) :
   intro k hk
   exact hkey k hk
 
+/-- The Bernstein grid contains n + 1 entries. -/
 theorem lcuBernsteinGrid_length (n : ℕ) : (lcuBernsteinGrid n).length = n + 1 := by
   simp [lcuBernsteinGrid]
 
+/-- For positive degree n and scale s, the Bernstein approximation error on [−1, 1] is at most
+ω(s) + ω(2)/(ns²) when ω is a modulus of continuity. -/
 theorem lcu_bernstein_error_le {f : ℝ → ℂ} {ω : ℝ → ℝ}
     (hmod : ModulusOfContinuity f ω) (n : ℕ) (hn : 0 < n) (s : ℝ) (hs : 0 < s)
     (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
@@ -551,6 +587,8 @@ theorem lcu_bernstein_error_le {f : ℝ → ℂ} {ω : ℝ → ℝ}
             lcuBernsteinWeight n x k * ‖f (lcuBernsteinNode n k) - f x‖ := hnorm
     _ ≤ ω s + ω 2 / (n * s ^ 2) := hsum
 
+/-- Packages the Bernstein error estimate into a positive degree plan with n + 1 evaluation
+reads and two modulus reads. -/
 theorem lcu_bernstein_plan {f : ℝ → ℂ} {ω : ℝ → ℝ}
     (hmod : ModulusOfContinuity f ω) (n : ℕ) (hn : 0 < n) (s : ℝ) (hs : 0 < s)
     (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
@@ -565,6 +603,8 @@ theorem lcu_bernstein_plan {f : ℝ → ℂ} {ω : ℝ → ℝ}
     rfl, rfl, rfl, rfl, ?_⟩
   exact lcu_bernstein_error_le hmod n hn s hs x hx
 
+/-- An odd positive length phase response approximating f on [0, 1] yields an ε approximate
+block encoding of the odd singular transform, with n adjoint model queries and n + 1 gates. -/
 theorem lcu_application_chain {I O H : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] [Fintype H] [DecidableEq H]
     (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -596,6 +636,8 @@ theorem lcu_application_chain {I O H : Type} [Fintype I] [DecidableEq I] [Fintyp
   · rw [hq, List.length_map, hΦ]
   · rw [hg, List.length_map, hΦ]
 
+/-- Compiling the source real phase family produces the source resource quadruple at its phase
+list length. -/
 theorem lcu_cpp_quadruple (Φ : List ℝ) :
     cppCounts (cppCompile (sourceRealFamily Φ)) = sourceCppQuadruple Φ.length := by
   rw [cppCompile_counts]
@@ -603,6 +645,8 @@ theorem lcu_cpp_quadruple (Φ : List ℝ) :
   rw [hlen]
   rfl
 
+/-- For a unit modulus constant c other than one, a two angle word realizes the constant
+response, and every realizing word has even length at least two. -/
 theorem lcu_degreeZero_range (c : ℂ) (hc : Complex.normSq c = 1) :
     (c = 1 ∨ sourcePhaseResponse [Complex.arg c, 0] = Polynomial.C c) ∧
     (c ≠ 1 →
@@ -620,6 +664,8 @@ theorem lcu_degreeZero_range (c : ℂ) (hc : Complex.normSq c = 1) :
     · intro Ψ hΨ
       exact length_even_of_sourcePhaseResponse_const hΨ hc
 
+/-- An admissible degree zero polynomial is a unit modulus constant whose right singular
+transform is the same scalar identity for all input matrices, giving zero perturbation. -/
 theorem lcu_degreeZero_transform_sharp {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (P : Polynomial ℂ)
     (hdeg : P.natDegree = 0) (hadm : Cor8Admissible P 0) :
@@ -641,6 +687,8 @@ theorem lcu_degreeZero_transform_sharp {I O : Type} [Fintype I] [DecidableEq I]
   · rw [hconst]
     simp [rightSingularTransform_const]
 
+/-- Both response polynomials depend on the initial base by multiplication by the corresponding
+constant polynomial. -/
 private theorem lcu_response_base_linear (base : ℂ) (zs : List ℂ) :
     responseP base zs = Polynomial.C base * responseP 1 zs ∧
     responseQ base zs = Polynomial.C base * responseQ 1 zs := by
@@ -650,6 +698,8 @@ private theorem lcu_response_base_linear (base : ℂ) (zs : List ℂ) :
     simp only [responseP_cons, responseQ_cons, ih.1, ih.2]
     constructor <;> ring
 
+/-- For a unit modulus base, multiplying the response pair by its conjugate recovers the
+response pair with base one. -/
 private theorem lcu_response_one_of_phase {z0 : ℂ} (hz0 : IsPhase z0) (zs : List ℂ) :
     responseP 1 zs = Polynomial.C (star z0) * responseP z0 zs ∧
     responseQ 1 zs = Polynomial.C (star z0) * responseQ z0 zs := by
@@ -666,6 +716,8 @@ private theorem lcu_response_one_of_phase {z0 : ℂ} (hz0 : IsPhase z0) (zs : Li
       _ = Polynomial.C (star z0) * (Polynomial.C z0 * responseQ 1 zs) := by
         rw [Polynomial.C_mul]; ring
 
+/-- Taking arguments of unit modulus phase entries and applying `anglePhase` recovers the
+original phase list. -/
 theorem lcu_source_table_recovery {zs : List ℂ} (hzs : ∀ z ∈ zs, IsPhase z) :
     (zs.map Complex.arg).map anglePhase = zs := by
   induction zs with
@@ -675,6 +727,8 @@ theorem lcu_source_table_recovery {zs : List ℂ} (hzs : ∀ z ∈ zs, IsPhase z
     rw [List.map_cons, List.map_cons, ih hzs']
     simp [anglePhase_arg_of_isPhase (hzs z (List.mem_cons_self))]
 
+/-- A completed polynomial pair has synthesis count bounded by `lqSynthOpCount` at its degree
+parameter. -/
 private theorem lcu_synth_count_le : ∀ (n : ℕ) (P Q : Polynomial ℂ),
     CompletedPair n P Q → lqSynthCount n P Q ≤ lqSynthOpCount n := by
   intro n
@@ -716,6 +770,9 @@ private theorem lcu_synth_count_le : ∀ (n : ℕ) (P Q : Polynomial ℂ),
         omega
       exact hA.trans hB
 
+/-- An admissible Theorem 3 pair possesses a phase list and real angle table of length n with
+exact responses, the stated base normalization, and synthesis cost at most `lqSynthOpCount`
+n. -/
 theorem lcu_cor10_solver {n : ℕ} {P Q : Polynomial ℂ} (h : Th3Pair n P Q) :
     ∃ s : LcuSynthesizedPair,
       s.phases.length = n ∧
@@ -743,6 +800,8 @@ theorem lcu_cor10_solver {n : ℕ} {P Q : Polynomial ℂ} (h : Th3Pair n P Q) :
   · rw [sourcePhaseResponse, htab, hconv.1, hP]
   · rw [htab, hconv.2, hQ]
 
+/-- The Equation 3 recurrence step agrees with the response recurrence after negating its second
+input polynomial. -/
 theorem lcu_eq3_step_eq (z : ℂ) (pq : Polynomial ℂ × Polynomial ℂ) :
     lcuEq3Step z pq = lcuResponseStep z (pq.1, -pq.2) := by
   show (Polynomial.C z * (Polynomial.X * pq.1 - (1 - Polynomial.X ^ 2) * pq.2),
@@ -753,6 +812,8 @@ theorem lcu_eq3_step_eq (z : ℂ) (pq : Polynomial ℂ × Polynomial ℂ) :
   · ring
   · ring
 
+/-- One Equation 3 recurrence step increases the parity exponent of the first polynomial by one
+while preserving the opposite parity of the second. -/
 private theorem lcu_eq3Step_sign (z : ℂ) (pq : Polynomial ℂ × Polynomial ℂ) (x : ℂ) (k : ℕ)
     (h : pq.1.eval (-x) = (-1 : ℂ) ^ k * pq.1.eval x ∧
       pq.2.eval (-x) = -((-1 : ℂ) ^ k) * pq.2.eval x) :
@@ -766,6 +827,8 @@ private theorem lcu_eq3Step_sign (z : ℂ) (pq : Polynomial ℂ × Polynomial �
       Polynomial.eval_C, Polynomial.eval_X, Polynomial.eval_one, Polynomial.eval_pow] <;>
     rw [h.1, h.2, hz] <;> ring
 
+/-- The two Equation 3 response polynomials have opposite parities determined by the phase list
+length. -/
 theorem lcu_eq3_parity (z0 : ℂ) (zs : List ℂ) (x : ℂ) :
     (lqEq3Pair z0 zs).1.eval (-x) = (-1 : ℂ) ^ zs.length * (lqEq3Pair z0 zs).1.eval x ∧
     (lqEq3Pair z0 zs).2.eval (-x) =
@@ -801,6 +864,8 @@ theorem lcu_eq3_parity (z0 : ℂ) (zs : List ℂ) (x : ℂ) :
     rfl]
   simpa using! h
 
+/-- A nonempty real phase list splits into a head phase and tail phase list with the stated
+length and Equation 3 pair identities. -/
 theorem lcu_eq3_word_parameters {Φ : List ℝ} (hΦ : Φ ≠ []) :
     ∃ z0 : ℂ, ∃ zs : List ℂ,
       z0 = anglePhase Φ.headI ∧
@@ -820,9 +885,11 @@ theorem lcu_eq3_word_parameters {Φ : List ℝ} (hΦ : Φ ≠ []) :
       simp only [List.length_cons, List.tail_cons]
       simp [List.length_map]
 
+/-- Sequential addition of two resource accounts is commutative. -/
 private theorem account_seq_comm (a b : Account) : Account.seq a b = Account.seq b a := by
   ext <;> simp only [Account.seq] <;> omega
 
+/-- The counters of k repetitions of a dynamic step equal k repetitions of its step account. -/
 private theorem counters_replicate (s : DynStep) (k : ℕ) :
     counters (List.replicate k s) = Account.repeat s.stepAccount k := by
   induction k with
@@ -833,12 +900,17 @@ private theorem counters_replicate (s : DynStep) (k : ℕ) :
     rw [hrep, counters_cons, ih]
     exact (repeat_succ s.stepAccount k).symm
 
+/-- The dynamic instruction list with one allocation, n adjoint oracle calls, n + 1 phase
+macros, the specified evolution steps, and final reset, release, and classical work. -/
 noncomputable def lcuMachineWord (n pauli ticks bits : ℕ) : List DynStep :=
   DynStep.alloc 1 :: (List.replicate n (DynStep.oracle true [1]) ++
     List.replicate (n + 1) (DynStep.macro (.t 1)) ++
     List.replicate pauli (DynStep.evolve ticks) ++
     [DynStep.reset 1, DynStep.releaseDirty 1, DynStep.classical bits])
 
+/-- Computes the machine word counters: zero forward queries, n adjoint queries, the specified
+evolution counts and ticks, n + 1 macro and basic gates, depth 2n + pauli + 5, and bits + 8
+classical bits. -/
 theorem lcu_machine_ledger (n pauli ticks bits : ℕ) :
     let a :=
         Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs.account 1

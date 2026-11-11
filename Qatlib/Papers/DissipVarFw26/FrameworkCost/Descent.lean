@@ -10,6 +10,29 @@ import Mathlib.Analysis.Calculus.Deriv.Comp
 import Mathlib.Analysis.Calculus.Deriv.Pow
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.InnerProductSpace.Dual
+
+/-!
+# Smooth-gradient Taylor and descent bounds
+
+`BetaSmooth` expresses the gradient Lipschitz inequality, and `SmoothGrad` adds existence of the
+specified gradient at every point. Differentiation along affine lines yields two-sided quadratic
+Taylor bounds and the lower and upper per-step descent estimates for a positive step size at
+most `1 / β`.
+
+This development follows [YaoEtAl2026].
+
+## Main statements
+
+* `quadratic_upper_bound` and `quadratic_lower_bound`: Taylor bounds with remainder magnitude at
+  most `β / 2 * ‖d‖ ^ 2`.
+* `lemma1_descent_lower`: descent is at least `η / 2` times the squared gradient norm.
+* `lemma2_descent_upper`: descent is at most `3 * η / 2` times the squared gradient norm.
+
+## References
+
+* [Yao et al., 2026][YaoEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,20 +45,25 @@ namespace Qatlib.Papers.DissipVarFw26.FrameworkCost.Descent
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 
+/-- The condition `‖∇ f x - ∇ f y‖ ≤ β * ‖x - y‖` for every pair of points. -/
 def BetaSmooth (f : E → ℝ) (β : ℝ) : Prop :=
   ∀ x y, ‖∇ f x - ∇ f y‖ ≤ β * ‖x - y‖
 
+/-- The condition that `f` has gradient `∇ f x` at every point and satisfies `BetaSmooth f β`. -/
 def SmoothGrad (f : E → ℝ) (β : ℝ) : Prop :=
   (∀ x, HasGradientAt f (∇ f x) x) ∧ BetaSmooth f β
 
 omit [CompleteSpace E] in
 
+/-- The affine line `τ ↦ x + τ • d` has derivative `d` at every real parameter. -/
 lemma hasDerivAt_line (x d : E) (t : ℝ) :
     HasDerivAt (fun τ : ℝ => x + τ • d) d t := by
   have h1 : HasDerivAt (fun τ : ℝ => τ • d) d t := by
     simpa only [one_smul, id] using (hasDerivAt_id t).smul_const d
   exact h1.const_add x
 
+/-- If `f` has the specified gradient at `x + t • d`, its restriction to the affine line has
+derivative `⟪∇ f (x + t • d), d⟫_ℝ` at `t`. -/
 lemma hasDerivAt_comp_line (f : E → ℝ) (x d : E) (t : ℝ)
     (hgrad : HasGradientAt f (∇ f (x + t • d)) (x + t • d)) :
     HasDerivAt (fun τ : ℝ => f (x + τ • d)) ⟪∇ f (x + t • d), d⟫_ℝ t := by
@@ -48,6 +76,7 @@ lemma hasDerivAt_comp_line (f : E → ℝ) (x d : E) (t : ℝ)
 
 omit [CompleteSpace E] in
 
+/-- The derivative of `τ ↦ ⟪g, τ • d⟫_ℝ` is `⟪g, d⟫_ℝ`. -/
 lemma hasDerivAt_inner_smul (g d : E) (t : ℝ) :
     HasDerivAt (fun τ : ℝ => ⟪g, τ • d⟫_ℝ) ⟪g, d⟫_ℝ t := by
   have hcl : HasDerivAt (fun τ : ℝ => τ * ⟪g, d⟫_ℝ) ⟪g, d⟫_ℝ t := by
@@ -58,6 +87,7 @@ lemma hasDerivAt_inner_smul (g d : E) (t : ℝ) :
 
 omit [InnerProductSpace ℝ E] [CompleteSpace E] in
 
+/-- The derivative of `τ ↦ β / 2 * τ ^ 2 * ‖d‖ ^ 2` at `t` is `β * t * ‖d‖ ^ 2`. -/
 lemma hasDerivAt_quad (β : ℝ) (d : E) (t : ℝ) :
     HasDerivAt (fun τ : ℝ => β / 2 * τ ^ 2 * ‖d‖ ^ 2) (β * t * ‖d‖ ^ 2) t := by
   have hp : HasDerivAt (fun τ : ℝ => τ ^ 2) (2 * t) t := by
@@ -67,6 +97,8 @@ lemma hasDerivAt_quad (β : ℝ) (d : E) (t : ℝ) :
   · funext τ; ring
   · ring
 
+/-- For nonnegative `β` and `SmoothGrad f β`, the value at `x + d` is at most `f x + ⟪∇ f x,
+d⟫_ℝ + β / 2 * ‖d‖ ^ 2`. -/
 theorem quadratic_upper_bound (f : E → ℝ) (β : ℝ) (_hβ : 0 ≤ β)
     (hsmooth : SmoothGrad f β) (x d : E) :
     f (x + d) ≤ f x + ⟪∇ f x, d⟫_ℝ + β / 2 * ‖d‖ ^ 2 := by
@@ -113,6 +145,8 @@ theorem quadratic_upper_bound (f : E → ℝ) (β : ℝ) (_hβ : 0 ≤ β)
     mul_one] at h10
   linarith
 
+/-- For nonnegative `β` and `SmoothGrad f β`, the value at `x + d` is at least `f x + ⟪∇ f x,
+d⟫_ℝ - β / 2 * ‖d‖ ^ 2`. -/
 theorem quadratic_lower_bound (f : E → ℝ) (β : ℝ) (_hβ : 0 ≤ β)
     (hsmooth : SmoothGrad f β) (x d : E) :
     f (x + d) ≥ f x + ⟪∇ f x, d⟫_ℝ - β / 2 * ‖d‖ ^ 2 := by
@@ -161,6 +195,8 @@ theorem quadratic_lower_bound (f : E → ℝ) (β : ℝ) (_hβ : 0 ≤ β)
     mul_one] at h10
   linarith
 
+/-- For positive `β`, `SmoothGrad f β`, and `0 < η ≤ 1 / β`, one gradient step decreases `f` by
+at least `(η / 2) * ‖∇ f x‖ ^ 2`. See [YaoEtAl2026]. -/
 theorem lemma1_descent_lower (f : E → ℝ) (β η : ℝ) (hβ : 0 < β)
     (hsmooth : SmoothGrad f β) (hη0 : 0 < η) (hη : η ≤ 1 / β) (x : E) :
     f x - f (x - η • ∇ f x) ≥ (η / 2) * ‖∇ f x‖ ^ 2 := by
@@ -187,6 +223,8 @@ theorem lemma1_descent_lower (f : E → ℝ) (β η : ℝ) (hβ : 0 < β)
   rw [hx]
   nlinarith [hq, hprod]
 
+/-- For positive `β`, `SmoothGrad f β`, and `0 < η ≤ 1 / β`, one gradient step decreases `f` by
+at most `(3 * η / 2) * ‖∇ f x‖ ^ 2`. See [YaoEtAl2026]. -/
 theorem lemma2_descent_upper (f : E → ℝ) (β η : ℝ) (hβ : 0 < β)
     (hsmooth : SmoothGrad f β) (hη0 : 0 < η) (hη : η ≤ 1 / β) (x : E) :
     f x - f (x - η • ∇ f x) ≤ (3 * η / 2) * ‖∇ f x‖ ^ 2 := by

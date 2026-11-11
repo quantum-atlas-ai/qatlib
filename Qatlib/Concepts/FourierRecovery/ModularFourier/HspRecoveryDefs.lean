@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FourierRecovery.ModularFourier.AbelianStabilizer
 import Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderDefs
+
+/-!
+# Stabilizer recovery costs and endpoint specifications
+
+This module defines the bisection and localisation budgets, compact record widths and indices,
+and an independent product record law for the Abelian stabilizer setting [Kitaev1995].
+`aspBisectionPrecision` records the dyadic interval width, while `aspLocalisationCost` sums the
+powers of two used by localisation.
+
+Four proposition definitions specify mixture and bisection guarantees, controlled powers and
+costs, independent record probabilities, and compact indexing properties for the companion
+proofs.
+
+## Main statements
+
+* `aspCompactIndex`: finite elements indexed by their cardinality.
+* `aqNextProductRecordLaw`: the law of independent records from a finite distribution.
+* `clause14_endpoint` and `walkGoal_endpoint`: measurement bookkeeping and localisation
+  contracts.
+* `clause16_endpoint` and `clause17_endpoint`: product record and compact indexing contracts.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -26,26 +52,35 @@ namespace Qatlib.Concepts.FourierRecovery.ModularFourier.HspRecoveryDefs
 open Qatlib
 open scoped Classical BigOperators ENNReal
 
+/-- The bisection query and level budget `l + 2`. -/
 def aspBisectionCost (l : ℕ) : ℕ := l + 2
 
+/-- The bisection interval width `1 / 2^(l + 2)`. -/
 def aspBisectionPrecision (l : ℕ) : ℝ := 1 / 2 ^ (l + 2)
 
+/-- The localisation gate cost `2^j` for level `j`. -/
 def aspLocalisationGateCost (j : ℕ) : ℕ := 2 ^ j
 
+/-- The sum of the localisation gate costs over levels below `l`. -/
 def aspLocalisationCost (l : ℕ) : ℕ :=
   (Finset.range l).sum aspLocalisationGateCost
 
+/-- The compact binary width `Nat.log 2 m + 1`. -/
 def aspCompactWidth (m : ℕ) : ℕ := Nat.log 2 m + 1
 
+/-- A bijective index map from a finite type to `Fin` of its cardinality. -/
 def aspCompactIndex {X : Type} [Fintype X] : X → Fin (Fintype.card X) :=
   Fintype.equivFin X
 
+/-- The finite law of `l` independent records sampled from `μ`. -/
 noncomputable def aqNextProductRecordLaw {G : Type*} [Fintype G] [DecidableEq G]
     (μ : FinDist G) (l : ℕ) : FinDist (Fin l → G) where
   prob ω := μ.probOf ω
   nonneg ω := Finset.prod_nonneg fun i _ => μ.nonneg (ω i)
   sum_one := FinDist.sum_probOf μ l
 
+/-- The specification combining normalized record mixtures, uniform character branches,
+controlled powers, and bisection costs and containment under a correct oracle. -/
 def clause14_endpoint : Prop :=
   (∀ (Ω G : Type*) [Fintype Ω] [DecidableEq Ω] [Fintype G]
       (k : AspRecordKernel Ω G),
@@ -64,6 +99,8 @@ def clause14_endpoint : Prop :=
         (aspBisectionRun l o).lower ≤ φ ∧ φ < (aspBisectionRun l o).lower
           + (aspBisectionRun l o).width)
 
+/-- The specification for controlled powers, localisation exponent ranges, and the total
+localisation cost. -/
 def walkGoal_endpoint : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (l : ℕ),
       ControlledPowers U (2 ^ l) = BlockDiag (fun x : Fin (2 ^ l) => U ^ (x.val : ℕ)))
@@ -72,6 +109,8 @@ def walkGoal_endpoint : Prop :=
   ∧ (∀ l : ℕ, aspLocalisationCost l = 2 ^ l - 1)
   ∧ (∀ l : ℕ, aspLocalisationCost l ≤ 2 ^ l)
 
+/-- The specification for independent product record laws, their event probabilities, and a
+sufficient compact binary width. -/
 def clause16_endpoint : Prop :=
   (∀ (G : Type*) [Fintype G] [DecidableEq G] (μ : FinDist G) (l : ℕ),
       (∑ ω : Fin l → G, (aspProductRecordLaw μ l).prob ω) = 1)
@@ -88,6 +127,8 @@ def clause16_endpoint : Prop :=
       (∑ ω ∈ Finset.univ.filter E, (aqNextProductRecordLaw μ l).prob ω)
         = FinDist.probEvent (L := l) μ E)
 
+/-- The specification asserting injective and surjective compact indexing, a sufficient binary
+width, and preservation of range cardinality. -/
 def clause17_endpoint : Prop :=
   (∀ (X : Type) [Fintype X] (a₁ a₂ : X),
       aspCompactIndex (X := X) a₁ = aspCompactIndex (X := X) a₂ → a₁ = a₂)

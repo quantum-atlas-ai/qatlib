@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpConvexCombinationSamplingStat
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Positivity
+
+/-!
+# Convex sampling of a dual certificate
+
+`sdpConvexCombinationSampling` decomposes the normalized dual certificate into a convex mixture
+of the distinguished-coordinate correction and round contributions. It also proves positivity of
+the scale and normalization of the resulting distribution.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpConvexCombinationSampling`: For positive parameters and nonnegative responses of positive
+  round mass, the normalized dual certificate is a probability distribution with the stated
+  convex mixture weights and exact scale factorization. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,9 @@ open Qatlib.Concepts.SdpDuality.ConeSeparation
 namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open scoped Classical BigOperators
 
+/-- For positive parameters and nonnegative responses of positive round mass, the normalized
+dual certificate is a probability distribution with the stated convex mixture weights and
+exact scale factorization. See [BrandaoSvore2017]. -/
 theorem sdpConvexCombinationSampling : SdpConvexCombinationSampling := by
   intro m T y j₀ α R δ hT hα hR hδ hy _hround
   (try dsimp only)

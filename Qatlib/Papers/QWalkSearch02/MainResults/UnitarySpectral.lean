@@ -11,6 +11,29 @@ import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
 import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
 import Mathlib.Data.Complex.Basic
 
+/-!
+# Unitary spectral tools for the hypercube search analysis
+
+Finite-dimensional complex linear isometries possess orthonormal eigenvector bases with
+unit-modulus eigenvalues. This module proves weighted spectral formulas and overlap bounds,
+including a bound of two on the number of eigenvalues above a real-part threshold when the
+common orthogonal complement of two trial vectors satisfies the corresponding expectation bound.
+
+These tools support the spectral analysis of the search walk in [ShenviKempeWhaley2003].
+
+## Main statements
+
+* `exists_orthonormalBasis_eigenvector`: constructs an orthonormal eigenbasis.
+* `spectral_support_lower`: extracts a distinguished spectral overlap from an expectation lower
+  bound.
+* `card_large_eigen_le_two`: bounds the number of eigenbasis entries above a real-part
+  threshold.
+
+## References
+
+* [Shenvi et al., 2003][ShenviKempeWhaley2003]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,6 +43,8 @@ open scoped ComplexConjugate InnerProductSpace
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
 
+/-- A linear isometry equivalence of a positive-dimensional complex inner product space has a
+unit eigenvector with a unit-modulus eigenvalue. -/
 theorem exists_unit_eigenvector (U : E ≃ₗᵢ[ℂ] E) (h : 0 < Module.finrank ℂ E) :
     ∃ (v : E) (μ : ℂ), ‖v‖ = 1 ∧ U v = μ • v ∧ ‖μ‖ = 1 := by
   haveI : Nontrivial E := Module.nontrivial_of_finrank_pos h
@@ -47,6 +72,8 @@ theorem exists_unit_eigenvector (U : E ≃ₗᵢ[ℂ] E) (h : 0 < Module.finrank
 
 omit [FiniteDimensional ℂ E] in
 
+/-- A linear isometry equivalence preserves the orthogonal complement of an eigenvector whose
+eigenvalue has modulus one. -/
 lemma maps_orthogonal_eigenvector (U : E ≃ₗᵢ[ℂ] E) {v : E} {μ : ℂ} (hμ : ‖μ‖ = 1)
     (hv : U v = μ • v) {w : E} (hw : ⟪v, w⟫_ℂ = 0) : ⟪v, U w⟫_ℂ = 0 := by
   have hμ0 : μ ≠ 0 := by
@@ -60,6 +87,9 @@ lemma maps_orthogonal_eigenvector (U : E ≃ₗᵢ[ℂ] E) {v : E} {μ : ℂ} (h
       inv_mul_cancel₀ hμ0, one_smul]
   rw [hinner, hsymm, inner_smul_left, hw, mul_zero]
 
+/-- A linear isometry equivalence on a complex inner product space of dimension `n` has an
+orthonormal eigenbasis indexed by `Fin n`, with unit-modulus eigenvalues. See
+[ShenviKempeWhaley2003]. -/
 theorem exists_orthonormalBasis_eigenvector (n : ℕ) :
     ∀ (E : Type*) [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
       (U : E ≃ₗᵢ[ℂ] E), Module.finrank ℂ E = n →
@@ -134,6 +164,8 @@ theorem exists_orthonormalBasis_eigenvector (n : ℕ) :
 
 omit [FiniteDimensional ℂ E] in
 
+/-- In an orthonormal eigenbasis, the real part of `⟪ψ, U ψ⟫` is the sum of eigenvalue real
+parts weighted by squared overlaps with `ψ`. See [ShenviKempeWhaley2003]. -/
 theorem re_inner_apply_eq_sum {n : ℕ} (U : E ≃ₗᵢ[ℂ] E) (b : OrthonormalBasis (Fin n) ℂ E)
     (μ : Fin n → ℂ) (hb : ∀ i, U (b i) = μ i • b i) (hμ : ∀ i, ‖μ i‖ = 1) (ψ : E) :
     (⟪ψ, U ψ⟫_ℂ).re = ∑ i, (μ i).re * ‖⟪b i, ψ⟫_ℂ‖ ^ 2 := by
@@ -169,6 +201,8 @@ theorem re_inner_apply_eq_sum {n : ℕ} (U : E ≃ₗᵢ[ℂ] E) (b : Orthonorma
 
 omit [FiniteDimensional ℂ E] in
 
+/-- If every eigenvalue real part is at most `c`, then the real part of `⟪ψ, U ψ⟫` is at most `c
+* ‖ψ‖²`. See [ShenviKempeWhaley2003]. -/
 theorem re_inner_apply_le_of_re_le {n : ℕ} (U : E ≃ₗᵢ[ℂ] E) (b : OrthonormalBasis (Fin n) ℂ E)
     (μ : Fin n → ℂ) (hb : ∀ i, U (b i) = μ i • b i) (hμ : ∀ i, ‖μ i‖ = 1) (ψ : E) {c : ℝ}
     (hc : ∀ i, (μ i).re ≤ c) :
@@ -182,6 +216,9 @@ theorem re_inner_apply_le_of_re_le {n : ℕ} (U : E ≃ₗᵢ[ℂ] E) (b : Ortho
 
 omit [FiniteDimensional ℂ E] in
 
+/-- For a unit vector, if the distinguished eigenvalue has real part at most one and all others
+have real part at most `t`, then the real expectation is at most `t + (1 - t) * ‖⟪b j0,
+ψ⟫‖²`. See [ShenviKempeWhaley2003]. -/
 theorem re_inner_apply_le_of_support {n : ℕ} (U : E ≃ₗᵢ[ℂ] E)
     (b : OrthonormalBasis (Fin n) ℂ E) (μ : Fin n → ℂ) (hb : ∀ i, U (b i) = μ i • b i)
     (hμ : ∀ i, ‖μ i‖ = 1) (ψ : E) (hψ : ‖ψ‖ = 1) (j0 : Fin n) {t : ℝ}
@@ -220,6 +257,9 @@ theorem re_inner_apply_le_of_support {n : ℕ} (U : E ≃ₗᵢ[ℂ] E)
 
 omit [FiniteDimensional ℂ E] in
 
+/-- If `t < 1`, all nondistinguished eigenvalues have real part at most `t`, the distinguished
+one has real part at most one, and the unit-vector expectation is at least `R`, then its
+distinguished squared overlap is at least `(R - t) / (1 - t)`. See [ShenviKempeWhaley2003]. -/
 theorem spectral_support_lower {n : ℕ} (U : E ≃ₗᵢ[ℂ] E)
     (b : OrthonormalBasis (Fin n) ℂ E) (μ : Fin n → ℂ) (hb : ∀ i, U (b i) = μ i • b i)
     (hμ : ∀ i, ‖μ i‖ = 1) (ψ : E) (hψ : ‖ψ‖ = 1) (j0 : Fin n) {t R : ℝ}
@@ -233,6 +273,8 @@ theorem spectral_support_lower {n : ℕ} (U : E ≃ₗᵢ[ℂ] E)
 
 omit [FiniteDimensional ℂ E] in
 
+/-- The squared overlaps of a unit vector with two orthogonal unit vectors sum to at most one.
+See [ShenviKempeWhaley2003]. -/
 theorem overlap_sq_sum_le_one {ψ0 ψ1 ω : E} (h0 : ‖ψ0‖ = 1) (h1 : ‖ψ1‖ = 1)
     (h01 : ⟪ψ0, ψ1⟫_ℂ = 0) (hω : ‖ω‖ = 1) :
     ‖⟪ψ0, ω⟫_ℂ‖ ^ 2 + ‖⟪ψ1, ω⟫_ℂ‖ ^ 2 ≤ 1 := by
@@ -249,6 +291,9 @@ theorem overlap_sq_sum_le_one {ψ0 ψ1 ω : E} (h0 : ‖ψ0‖ = 1) (h1 : ‖ψ1
 
 omit [FiniteDimensional ℂ E] in
 
+/-- If every unit vector orthogonal to both trial vectors has real expectation at most `t`, then
+any basis eigenvector whose eigenvalue has real part greater than `t` overlaps at least one
+trial vector. See [ShenviKempeWhaley2003]. -/
 theorem eigenvector_overlaps_trial_of_re_gt {m : ℕ} (U : E ≃ₗᵢ[ℂ] E)
     (b : OrthonormalBasis (Fin m) ℂ E) (μ : Fin m → ℂ) (hb : ∀ i, U (b i) = μ i • b i)
     (hμ : ∀ i, ‖μ i‖ = 1) {ψ0 ψ1 : E} {t : ℝ}
@@ -272,6 +317,9 @@ theorem eigenvector_overlaps_trial_of_re_gt {m : ℕ} (U : E ≃ₗᵢ[ℂ] E)
   rw [hsum] at hexp
   linarith
 
+/-- If the real expectation on unit vectors orthogonal to two trial vectors is at most `t`, then
+at most two entries of an orthonormal eigenbasis have eigenvalue real part greater than `t`.
+See [ShenviKempeWhaley2003]. -/
 theorem card_large_eigen_le_two {m : ℕ} (U : E ≃ₗᵢ[ℂ] E) (b : OrthonormalBasis (Fin m) ℂ E)
     (μ : Fin m → ℂ) (hb : ∀ i, U (b i) = μ i • b i) (hμ : ∀ i, ‖μ i‖ = 1)
     {ψ0 ψ1 : E} {t : ℝ}

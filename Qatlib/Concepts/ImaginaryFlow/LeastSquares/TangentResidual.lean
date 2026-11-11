@@ -72,6 +72,28 @@ import Mathlib.Topology.MetricSpace.Algebra
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Tangent residuals and McLachlan normal equations
+
+This module defines the real Gram matrix `metricMatrix`, the operator overlap vector
+`gradientVector`, and the squared tangent-residual cost `mclachlanCost`. Coordinate variations
+compute the cost derivatives directly.
+
+Residual orthogonality characterizes coordinate stationarity. When tangent vectors are
+orthogonal to the current state, stationarity of the centered evolution residual yields the Gram
+parameter-update equations used in variational imaginary-time methods [McArdleTew2020].
+
+## Main statements
+
+* `hasDerivAt_mclachlanCost_direction`: the coordinate derivative of the residual cost.
+* `mclachlan_stationary_iff`: stationarity as tangent-residual orthogonality.
+* `mclachlan_parameter_update_rule`: the componentwise Gram normal equations.
+
+## References
+
+* [McArdle and Tew, 2020][McArdleTew2020]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.ImaginaryFlow.LeastSquares
@@ -81,18 +103,24 @@ open Finset
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The real Gram matrix of the tangent family `d`. -/
 def metricMatrix {n : ℕ} (d : Fin n → E) : Matrix (Fin n) (Fin n) ℝ :=
   fun i j => ⟪d i, d j⟫
 
+/-- The vector of real inner products between the tangent vectors `d i` and `H φ`. -/
 def gradientVector {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E) : Fin n → ℝ :=
   fun i => ⟪d i, H φ⟫
 
+/-- The squared norm of the residual formed by the real tangent combination `∑ i, v i • d i`
+plus `w`. -/
 def mclachlanCost {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n → ℝ) : ℝ :=
   ‖(∑ i, v i • d i) + w‖ ^ 2
 
+/-- The rate vector obtained by adding `t` only to coordinate `k`. -/
 def varyRate {n : ℕ} (v : Fin n → ℝ) (k : Fin n) (t : ℝ) : Fin n → ℝ :=
   fun i => v i + if i = k then t else 0
 
+/-- Varying one rate coordinate adds `t • d k` to the residual before taking its squared norm. -/
 lemma mclachlanCost_vary {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n → ℝ)
     (k : Fin n) (t : ℝ) :
     mclachlanCost d w (varyRate v k t) =
@@ -120,6 +148,8 @@ lemma mclachlanCost_vary {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n → ℝ)
       _ = (∑ i : Fin n, v i • d i) + t • d k := by rw [hsingle]
   rw [hsum, add_right_comm]
 
+/-- The derivative at zero of the cost along coordinate `k` is twice the real inner product of
+`d k` with the residual. -/
 lemma hasDerivAt_mclachlanCost_direction {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n → ℝ)
     (k : Fin n) :
     HasDerivAt (fun t : ℝ => mclachlanCost d w (varyRate v k t))
@@ -150,6 +180,8 @@ lemma hasDerivAt_mclachlanCost_direction {n : ℕ} (d : Fin n → E) (w : E) (v 
   exact hnorm.congr_of_eventuallyEq
     (Filter.Eventually.of_forall fun t => (mclachlanCost_vary d w v k t))
 
+/-- Vanishing of all coordinate cost derivatives is equivalent to orthogonality of the residual
+to every tangent vector. -/
 theorem mclachlan_stationary_iff {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n → ℝ) :
     (∀ k, HasDerivAt (fun t : ℝ => mclachlanCost d w (varyRate v k t)) 0 0) ↔
       ∀ k, ⟪d k, (∑ i, v i • d i) + w⟫ = 0 := by
@@ -163,6 +195,8 @@ theorem mclachlan_stationary_iff {n : ℕ} (d : Fin n → E) (w : E) (v : Fin n 
       rw [h k]; ring
     simpa [hzero] using hd
 
+/-- Stationarity of the centered evolution residual and tangent orthogonality to `φ` imply the
+componentwise Gram normal equations for `θdot`. -/
 theorem mclachlan_parameter_update_rule {n : ℕ} (d : Fin n → E) (H : E →ₗ[ℝ] E) (φ : E)
     (θdot : Fin n → ℝ)
     (hnormal : ∀ i, ⟪d i, φ⟫ = 0)

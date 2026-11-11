@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.BudgetCoupling
 import Mathlib.Analysis.Asymptotics.Defs
+
+/-!
+# Minimum search with a square-root query budget
+
+This module defines `minimumQueryBudget` as the ceiling of `58 * Real.sqrt N` and averages
+budgeted success over the initial index in `minimumInitialSuccess`. The first-moment completion
+bound yields success probability at least one half for every nonempty finite table, in the
+minimum-finding setting of [DurrHoyer1996].
+
+## Main statements
+
+* `minimum_initial_success_half`: proves the one-half success bound at the chosen query budget.
+* `minimumQueryBudget_le`: bounds the integer query budget by `59 * Real.sqrt N`.
+* `minimumQueryBudget_isBigO_sqrt`: expresses the asymptotic square-root query bound.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,12 +39,15 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The integer query budget obtained by rounding `58 * Real.sqrt N` upward. -/
 noncomputable def minimumQueryBudget (N : ℕ) : ℕ := Nat.ceil ((58 : ℝ) * Real.sqrt N)
 
+/-- The average of `minimumBudgetSuccess` over a uniformly chosen initial table index. -/
 noncomputable def minimumInitialSuccess {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (budget : ℕ) : ℝ :=
   (∑ current : Fin N, minimumBudgetSuccess T budget current) / (N : ℝ)
 
+/-- For a nonempty table, the average budgeted success probability lies between zero and one. -/
 theorem minimumInitialSuccess_bounds {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) :
     0 ≤ minimumInitialSuccess T budget ∧ minimumInitialSuccess T budget ≤ 1 := by
@@ -38,6 +61,8 @@ theorem minimumInitialSuccess_bounds {N : ℕ} {α : Type*} [LinearOrder α]
     simpa only [minimumInitialSuccess, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
       nsmul_eq_mul, mul_one, div_self hn] using! h
 
+/-- For `N > 0`, the initial masses of runs fitting the query budget sum to the average
+completion mass over initial ranks. -/
 theorem initial_queryCompletion_hasSum {N : ℕ} (e : Fin N ≃ Fin N) (skip : RankSkip N)
     (hN : 0 < N) (budget : ℕ) :
     HasSum (fun x : Fin N × List (SearchTrace N) => if runQueries x.2 ≤ budget then
@@ -63,6 +88,9 @@ theorem initial_queryCompletion_hasSum {N : ℕ} (e : Fin N ≃ Fin N) (skip : R
   · exact ((queryBBHTLaw e).initialMass_normalized skip hN).2 (i, xs)
   · exact le_rfl
 
+/-- For every nonempty finite table, budgeted minimum search succeeds with probability at least
+one half at `minimumQueryBudget N`. This supplies a square-root query guarantee in the
+setting of [DurrHoyer1996]. -/
 theorem minimum_initial_success_half {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) :
     (1 / 2 : ℝ) ≤ minimumInitialSuccess T (minimumQueryBudget N) := by
@@ -93,6 +121,7 @@ theorem minimum_initial_success_half {N : ℕ} {α : Type*} [LinearOrder α]
   rw [ranked.indexOfRank.sum_comp] at hd
   exact hhalf.trans hd
 
+/-- For `N > 0`, the rounded query budget is at most `59 * Real.sqrt N`. -/
 theorem minimumQueryBudget_le (N : ℕ) (hN : 0 < N) :
     (minimumQueryBudget N : ℝ) ≤ 59 * Real.sqrt N := by
   have hc := Nat.ceil_lt_add_one (by positivity : (0 : ℝ) ≤ 58 * Real.sqrt N)
@@ -102,6 +131,7 @@ theorem minimumQueryBudget_le (N : ℕ) (hN : 0 < N) :
   unfold minimumQueryBudget
   linarith
 
+/-- The minimum-search query budget grows as `O(√N)` as `N` tends to infinity. -/
 theorem minimumQueryBudget_isBigO_sqrt :
     Asymptotics.IsBigO Filter.atTop (fun N : ℕ => (minimumQueryBudget N : ℝ))
       (fun N : ℕ => Real.sqrt (N : ℝ)) := by

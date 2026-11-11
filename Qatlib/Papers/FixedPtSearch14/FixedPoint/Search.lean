@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchDefs
+
+/-!
+# Search and amplitude-estimation resource bounds
+
+This module proves circuit expansions, interruption accounting, and relative
+amplitude-estimation bounds used alongside the fixed-point-search development
+[YoderLowChuang2014]. It also records exact endpoint behavior, truncation estimates for finite
+distributions, and compatibility of oracle-access models.
+
+The final lemmas establish strict-order properties of `BitRowLt` and the resource ledger for
+`linearScanMinimum`.
+
+## Main statements
+
+* `ae_receipt_transport`: Prefix execution, residual code, and conserved query counts.
+* `relative_ae_same_record_native`: Relative error for finite-precision decoding of the same
+  measured record.
+* `variance_truncation_tail`: A probability bound for truncation error.
+* `linear_scan_ledger`: Exact loads, comparisons, and bit cost of the scan ledger.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.StoppingCore.InterruptBridge
@@ -33,12 +58,15 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] in
 
+/-- Expanding one phase-threshold block yields `aeRoundSteps M k`. -/
 theorem expand_phaseThresholdBlock (M k : ℕ) :
     (phaseThresholdBlock (I := I) M k).flatMap expandAEAccess = aeRoundSteps M k := by
   simp [phaseThresholdBlock, expandAEAccess, aeRoundSteps]
 
 omit [Fintype I] in
 
+/-- Expanding an `n`-round phase-threshold loop yields the concatenation of its indexed round
+steps. -/
 theorem phaseThresholdLoop_rounds (M n : ℕ) :
     (phaseThresholdLoop (I := I) M n).flatMap expandAEAccess
       = (List.range n).flatMap (aeRoundSteps M) := by
@@ -52,6 +80,8 @@ theorem phaseThresholdLoop_rounds (M n : ℕ) :
 
 omit [Fintype I] in
 
+/-- The amplitude-estimation access word consists of initialization, a Fourier gate, `M - 1`
+rounds, and the inverse Fourier gate. -/
 theorem aeAccessWord_rounds (M : ℕ) :
     aeAccessWord (I := I) M =
       .initialize ::
@@ -60,6 +90,7 @@ theorem aeAccessWord_rounds (M : ℕ) :
           [.fixed (TensorGate (QFTMatrix M)ᴴ (1 : Matrix (Bool × I) (Bool × I) ℂ))]) := by
   rw [aeAccessWord_split, aeFlagAccessWord, phaseThresholdLoop_rounds]
 
+/-- Mapping over a concatenated list equals concatenating the mapped component lists. -/
 theorem map_flatMap_comm {α β γ : Type} (f : β → γ) (g : α → List β) (l : List α) :
     (l.flatMap g).map f = l.flatMap (fun x => (g x).map f) := by
   induction l with
@@ -68,6 +99,8 @@ theorem map_flatMap_comm {α β γ : Type} (f : β → γ) (g : α → List β) 
 
 omit [Fintype I] in
 
+/-- The counted amplitude-estimation circuit expands into initialization, Fourier gates, and the
+indexed compiled rounds. -/
 theorem countedAECircuit_rounds (M : ℕ) (A : Matrix I I ℂ) (j : I) :
     countedAECircuit M A j =
       (aeAccessInstruction M A j) .initialize ::
@@ -83,6 +116,8 @@ theorem countedAECircuit_rounds (M : ℕ) (A : Matrix I I ℂ) (j : I) :
 
 omit [Fintype I] in
 
+/-- A compiled round consists of two threshold flips surrounding one query and the controlled
+backward preparation, source reflection, and forward preparation. -/
 theorem compiledRound_eq (M : ℕ) (A : Matrix I I ℂ) (j : I) (k : ℕ) :
     compiledRound M A j k =
       [.gate (permMatrix (phaseThresholdFlip M k)), .query,
@@ -94,6 +129,7 @@ theorem compiledRound_eq (M : ℕ) (A : Matrix I I ℂ) (j : I) (k : ℕ) :
 
 omit [Fintype I] in
 
+/-- Each compiled round contains exactly one query and has length `aeRoundLength`. -/
 theorem compiledRound_single_query (M : ℕ) (A : Matrix I I ℂ) (j : I) (k : ℕ) :
     QueryCount (compiledRound M A j k) = 1 ∧
     (compiledRound M A j k).length = aeRoundLength := by
@@ -102,6 +138,8 @@ theorem compiledRound_single_query (M : ℕ) (A : Matrix I I ℂ) (j : I) (k : �
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The query counts of a circuit prefix and its complementary suffix add to the total query
+count. -/
 theorem queryCount_take_add_drop (C : Circuit I) (k : ℕ) :
     QueryCount (C.take k) + QueryCount (C.drop k) = QueryCount C := by
   induction C generalizing k with
@@ -122,6 +160,8 @@ theorem queryCount_take_add_drop (C : Circuit I) (k : ℕ) :
         have h := ih k
         omega
 
+/-- After `k` microsteps of the counted circuit, the residual word is its dropped suffix, memory
+is the executed-prefix state, and the two query counts sum to `M - 1`. -/
 theorem ae_receipt_transport (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (O : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ)
     (cfg : InterruptConfig (Fin M × (Bool × I)) ℕ)
@@ -137,6 +177,8 @@ theorem ae_receipt_transport (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : 
   · rw [hm, hcfg]
   · rw [queryCount_take_add_drop, hledger]
 
+/-- Subtracting the executed-prefix query count from `M - 1` gives the query count of the
+remaining suffix. -/
 theorem ae_receipt_remaining_calls (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (C : Circuit (Fin M × (Bool × I))) (k : ℕ) (hC : C = countedAECircuit M A j) :
     (M - 1) - QueryCount (C.take k) = QueryCount (C.drop k) := by
@@ -145,6 +187,8 @@ theorem ae_receipt_remaining_calls (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     rw [hC, queryCount_take_add_drop, hledger]
   omega
 
+/-- No fixed finite circuit can have event probability at least `2/3` at zero rotation and at
+most `1/3` at every rotation in `(0, 1]`. -/
 theorem unknown_amplitude_zero_decision_impossible
     (C : Circuit (Fin 2)) (ψ : QState (Fin 2)) (S : Finset (Fin 2))
     (hzero : 2/3 ≤ MeasureProb (Run (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.smallRotation 0) C ψ) S)
@@ -152,6 +196,8 @@ theorem unknown_amplitude_zero_decision_impossible
       MeasureProb (Run (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.smallRotation θ) C ψ) S ≤ 1/3) : False :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.fixed_budget_zero_test_impossible C ψ S hzero hpositive
 
+/-- For any fixed positive grid parameter, the relative sampling-error expression exceeds any
+positive bound at some promise in `(0, 1]`. -/
 theorem relative_ae_budget_diverges (M : ℝ) (hM : 0 < M) (R : ℝ) (hR : 0 < R) :
     ∃ a₀ : ℝ, 0 < a₀ ∧ a₀ ≤ 1 ∧ R < relativeAESamplingError M a₀ := by
   have hden : 0 < 2 * R * M ^ 2 := by positivity
@@ -180,6 +226,8 @@ theorem relative_ae_budget_diverges (M : ℝ) (hM : 0 < M) (R : ℝ) (hR : 0 < R
   unfold relativeAESamplingError
   linarith
 
+/-- Under a positive lower bound `a₀ ≤ a` and positive grid parameter, the BHMT absolute-error
+window is bounded by `a` times the relative sampling-error expression. -/
 theorem bhmt_window_le_relative (a a₀ M : ℝ) (ha0 : 0 < a₀)
     (ha : a₀ ≤ a) (hM : 0 < M) :
     2 * Real.pi * Real.sqrt (a * (1 - a)) / M + Real.pi ^ 2 / M ^ 2
@@ -220,6 +268,8 @@ theorem bhmt_window_le_relative (a a₀ M : ℝ) (ha0 : 0 < a₀)
   unfold relativeAESamplingError
   linarith [hC, hD]
 
+/-- The relative sampling-error expression is nonnegative for a positive grid parameter and a
+promise in `(0, 1]`. -/
 theorem relativeAESamplingError_nonneg (M a₀ : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hM : 0 < M) : 0 ≤ relativeAESamplingError M a₀ := by
   have hfrac : 0 ≤ (1 - a₀) / a₀ := div_nonneg (sub_nonneg.mpr ha₀1) (le_of_lt ha₀)
@@ -229,6 +279,8 @@ theorem relativeAESamplingError_nonneg (M a₀ : ℝ) (ha₀ : 0 < a₀) (ha₀1
   unfold relativeAESamplingError
   linarith
 
+/-- The relative error including finite decoding precision is nonnegative for a positive grid
+parameter and a promise in `(0, 1]`. -/
 theorem relativeAEError_nonneg (M : ℝ) (k : ℕ) (a₀ : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hM : 0 < M) : 0 ≤ relativeAEError M k a₀ := by
   have hs := relativeAESamplingError_nonneg M a₀ ha₀ ha₀1 hM
@@ -236,6 +288,9 @@ theorem relativeAEError_nonneg (M : ℝ) (k : ℕ) (a₀ : ℝ) (ha₀ : 0 < a�
   unfold relativeAEError
   linarith
 
+/-- If the marked mass is at least `a₀ > 0`, the ideal estimate has relative error at most
+`relativeAESamplingError M a₀` with probability at least `8 / π²`; this error bound is
+nonnegative. -/
 theorem relative_ae_relative_error (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (a₀ : ℝ) (ha₀ : 0 < a₀)
     (ha₀1 : a₀ ≤ 1) :
@@ -269,6 +324,9 @@ theorem relative_ae_relative_error (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (by exact_mod_cast (show (0 : ℕ) < M by omega)), ?_⟩
   exact (prepared_ae_bhmt_error_and_endpoints M hM A j S hA).1.trans hmass
 
+/-- If the marked mass is at least `a₀ > 0`, native decoding has relative error at most
+`relativeAEError M k a₀` with probability at least `8 / π²`; this error bound is
+nonnegative. -/
 theorem relative_ae_same_record_native (M k : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (a₀ : ℝ) (ha₀ : 0 < a₀)
     (ha₀1 : a₀ ≤ 1) :
@@ -317,6 +375,7 @@ theorem relative_ae_same_record_native (M k : ℕ) (hM : 2 ≤ M) (A : Matrix I 
     (by exact_mod_cast (show (0 : ℕ) < M by omega)), ?_⟩
   exact (native_ae_same_record_bhmt_success I M k hM A j S hA).trans hmass
 
+/-- At zero marked mass, the zero record has probability one and decodes ideally to zero. -/
 theorem relative_ae_zero_endpoint (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : unknownAmplitude A j S = 0) :
@@ -326,6 +385,8 @@ theorem relative_ae_zero_endpoint (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) 
   refine ⟨h, ?_⟩
   simp [aeEstimate]
 
+/-- At unit marked mass and even grid size, the total probability of records whose ideal
+estimate is one equals one. -/
 theorem relative_ae_unit_endpoint (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : unknownAmplitude A j S = 1) (hdiv : 2 ∣ M) :
@@ -333,6 +394,7 @@ theorem relative_ae_unit_endpoint (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) 
       (aeLaw M A j S hA hM).prob z = 1 :=
   (prepared_ae_bhmt_error_and_endpoints M hM A j S hA).2.2 ha hdiv
 
+/-- Every ideal amplitude estimate lies in the unit interval. -/
 theorem relative_ae_finite_budget_output (M : ℕ) (z : Fin M) :
     0 ≤ aeEstimate M z ∧ aeEstimate M z ≤ 1 := by
   rw [aeEstimate]
@@ -346,16 +408,20 @@ theorem relative_ae_finite_budget_output (M : ℕ) (z : Fin M) :
   · exact hsq
   · nlinarith [hprod]
 
+/-- For `M ≥ 2`, the counted amplitude-estimation circuit uses exactly `M - 1` queries. -/
 theorem relative_ae_query_cost (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) :
     QueryCount (countedAECircuit M A j) = M - 1 :=
   (prepared_ae_access_ledger M (by omega) A j).1
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The phase-mark and bit-kickback access models do not match. -/
 theorem relative_ae_lower_bound_model :
     matchedModel AccessModel.phaseMark AccessModel.bitKickback = False := by
   rfl
 
+/-- A bound `V` on the second moment about `c` bounds the absolute truncation bias by `(V +
+(p.expect f - c)^2) / (4 * τ)` for `τ > 0`. -/
 theorem variance_truncation_bias (p : FinDist I) (f : I → ℝ) (c τ : ℝ)
     (hτ : 0 < τ) (V : ℝ) (hV : (∑ i, p.prob i * (f i - c)^2) ≤ V) :
     |p.expect f - p.expect (fun i => c + Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip τ (f i - c))|
@@ -409,6 +475,7 @@ theorem variance_truncation_bias (p : FinDist I) (f : I → ℝ) (c τ : ℝ)
             linarith [hV, hshift, sq_nonneg (p.expect f - c)]
           exact div_le_div_of_nonneg_right hnum (by positivity)
 
+/-- For positive `τ`, the payoff clipped about `c` lies between `c - τ` and `c + τ`. -/
 theorem truncated_payoff_bounded (f : I → ℝ) (c τ : ℝ) (hτ : 0 < τ) (i : I) :
     c - τ ≤ c + Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip τ (f i - c) ∧
     c + Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip τ (f i - c) ≤ c + τ := by
@@ -418,6 +485,8 @@ theorem truncated_payoff_bounded (f : I → ℝ) (c τ : ℝ) (hτ : 0 < τ) (i 
   · linarith
   · linarith
 
+/-- For a nonnegative function on a finite distribution and `t > 0`, the mass where the function
+exceeds `t` is at most its expectation divided by `t`. -/
 theorem finDist_markov (p : FinDist I) (g : I → ℝ) (hg : ∀ i, 0 ≤ g i)
     (t : ℝ) (ht : 0 < t) :
     (∑ i with t < g i, p.prob i) ≤ (∑ i, p.prob i * g i) / t := by
@@ -443,6 +512,8 @@ theorem finDist_markov (p : FinDist I) (g : I → ℝ) (hg : ∀ i, 0 ≤ g i)
   rw [le_div_iff₀ ht]
   linarith
 
+/-- A second-moment bound `V` about `c` bounds the mass of truncation errors exceeding `ε > 0`
+by `V / (4 * τ * ε)`. -/
 theorem variance_truncation_tail (p : FinDist I) (f : I → ℝ) (c τ ε : ℝ)
     (hτ : 0 < τ) (hε : 0 < ε) (V : ℝ) (hV : (∑ i, p.prob i * (f i - c)^2) ≤ V) :
     (∑ i with ε < |f i - (c + Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip τ (f i - c))|, p.prob i)
@@ -477,6 +548,8 @@ theorem variance_truncation_tail (p : FinDist I) (f : I → ℝ) (c τ ε : ℝ)
     _ ≤ V / (4 * τ * ε) := by
           exact div_le_div_of_nonneg_right hV (by positivity)
 
+/-- The signed-mean joint probability function factors into its source probability and the
+positive and negative layer probabilities conditioned on that source. -/
 theorem variance_only_layer_records (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (σ : ℝ) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (signedMeanLaw k A j f σ hA).prob
@@ -488,6 +561,8 @@ theorem variance_only_layer_records (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : 
   funext ω
   rfl
 
+/-- A payoff identically equal to `-1` is everywhere negative while its squared deviation from
+zero is one. -/
 theorem variance_only_separates_nonnegativity (f : I → ℝ) (hf : ∀ i, f i = -1) :
     (∀ i, ¬ (0 ≤ f i)) ∧ (∀ i, (f i - 0)^2 = 1) := by
   refine ⟨?_, ?_⟩
@@ -496,6 +571,8 @@ theorem variance_only_separates_nonnegativity (f : I → ℝ) (hf : ∀ i, f i =
   · intro i
     simp [hf]
 
+/-- For the two-point payoff with positive scale `t`, the mean is `t`, the variance is `t²`, and
+the relative-variance contract with parameter one holds. -/
 theorem relative_variance_gives_no_absolute_bound (B t : ℝ) (hB : 1 ≤ B)
     (ht : 0 < t) :
     let p : FinDist (Fin 2) := twoPointSource
@@ -523,6 +600,8 @@ theorem relative_variance_gives_no_absolute_bound (B t : ℝ) (hB : 1 ≤ B)
   · intro V hV
     exact hV
 
+/-- For `M ≥ 2`, the counted circuit has `M - 1` queries and `5 * (M - 1) + 3` gates, and its
+amplitude-estimation law has total mass one. -/
 theorem ae_program_oblivious (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     QueryCount (countedAECircuit M A j) = M - 1 ∧
@@ -531,39 +610,49 @@ theorem ae_program_oblivious (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : 
   have hledger := prepared_ae_access_ledger M (by omega) A j
   exact ⟨hledger.1, hledger.2.1, (aeLaw M A j S hA hM).sum_one⟩
 
+/-- For positive `M`, the access word has `M` forward preparation accesses and `M - 1` backward
+accesses. -/
 theorem ae_direction_ledger (M : ℕ) (hM : 0 < M) :
     aeForwardAccesses (aeAccessWord (I := I) M) = M ∧
     aeBackwardAccesses (aeAccessWord (I := I) M) = M - 1 := by
   have hsep := prepared_ae_separate_access_counts (I := I) M hM
   exact ⟨hsep.1, hsep.2.1⟩
 
+/-- For positive `M`, the access word contains `M - 1` source reflections. -/
 theorem ae_source_reflection_ledger (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     aeSourceReflections (aeAccessWord (I := I) M) = M - 1 :=
   (prepared_ae_access_ledger M hM A j).2.2.2
 
+/-- The phase-mark model matches itself and does not match the bit-kickback model. -/
 theorem ae_access_model_is_phase :
     matchedModel AccessModel.phaseMark AccessModel.phaseMark ∧
     matchedModel AccessModel.phaseMark AccessModel.bitKickback = False := by
   refine ⟨?_, rfl⟩
   trivial
 
+/-- The amplitude-estimation workspace has dimension `M * (2 * Fintype.card I)`. -/
 theorem ae_workspace_dimension (M : ℕ) :
     Fintype.card (Fin M × (Bool × I)) = M * (2 * Fintype.card I) := by
   simp [Fintype.card_prod]
 
+/-- The unified relative error is the sampling error plus the decoding term `2⁻ᵏ / a₀`. -/
 theorem ae_unified_error_budget (M : ℝ) (k : ℕ) (a₀ : ℝ) :
     relativeAEError M k a₀ = relativeAESamplingError M a₀ + ((2 : ℝ)⁻¹) ^ k / a₀ := by
   rfl
 
+/-- The list of readouts from `L` layers has length `L`. -/
 theorem multi_layer_readout_length (M k L : ℕ) (ω : Fin L → Fin M) :
     (multiLayerReadout M k L ω).length = L := by
   simp [multiLayerReadout]
 
+/-- The `L`-layer readout has length `L` and an assigned total of `L * (M - 1)` oracle calls. -/
 theorem multi_layer_readout_cost (M k L : ℕ) (ω : Fin L → Fin M) :
     multiLayerOracleCalls L M = L * (M - 1) ∧
     (multiLayerReadout M k L ω).length = L := by
   exact ⟨rfl, multi_layer_readout_length M k L ω⟩
 
+/-- Each access model matches itself, while phase marking, bit kickback, and adaptive feedback
+are pairwise incompatible. -/
 theorem access_model_matching_facts :
     matchedModel AccessModel.phaseMark AccessModel.phaseMark ∧
     matchedModel AccessModel.bitKickback AccessModel.bitKickback ∧
@@ -573,6 +662,8 @@ theorem access_model_matching_facts :
     matchedModel AccessModel.bitKickback AccessModel.adaptiveFeedback = False := by
   refine ⟨trivial, trivial, trivial, rfl, rfl, rfl⟩
 
+/-- For at least two data bits, the workspace Grover circuit uses at most `π * √N / 4` queries,
+where `N` is the data-register cardinality, within the bit-kickback model. -/
 theorem frozen_search_bounds_are_in_the_bit_model
     {W : Type} [Fintype W] [DecidableEq W] (n : ℕ) (w : W) (x : Reg n) (hn : 2 ≤ n) :
     (QueryCount (workspaceGroverCircuit (W := W) n (singletonSearchIterations n)) : ℝ)
@@ -581,12 +672,14 @@ theorem frozen_search_bounds_are_in_the_bit_model
   have h := (workspace_singleton_search_actual_upper (W := W) n w x hn).2.1
   exact ⟨h, trivial⟩
 
+/-- The strict lexicographic relation `BitRowLt` is irreflexive. -/
 theorem BitRowLt_irrefl (a : List Bool) : ¬ BitRowLt a a := by
   induction a with
   | nil => simp [BitRowLt]
   | cons x xs ih =>
     cases x <;> simp [BitRowLt, ih]
 
+/-- If `BitRowLt a b`, then `BitRowLt b a` does not hold. -/
 theorem BitRowLt_asymm (a b : List Bool) (h : BitRowLt a b) : ¬ BitRowLt b a := by
   induction a generalizing b with
   | nil =>
@@ -603,6 +696,7 @@ theorem BitRowLt_asymm (a b : List Bool) (h : BitRowLt a b) : ¬ BitRowLt b a :=
       | true, false => simp_all [BitRowLt]
       | false, true => simp [BitRowLt]
 
+/-- The strict lexicographic relation `BitRowLt` is transitive. -/
 theorem BitRowLt_trans (a b c : List Bool) (h₁ : BitRowLt a b) (h₂ : BitRowLt b c) :
     BitRowLt a c := by
   induction a generalizing b c with
@@ -627,6 +721,8 @@ theorem BitRowLt_trans (a b c : List Bool) (h₁ : BitRowLt a b) (h₂ : BitRowL
         | true, false, false => simp_all [BitRowLt]
         | false, true, false => simp_all [BitRowLt]
 
+/-- The scan ledger records one load per row, `rows - 1` comparisons, and bit cost `(2 * rows -
+1) * width`. -/
 theorem linear_scan_ledger (t : DatabaseTable) :
     (linearScanMinimum t).2.loads = t.rows ∧
     (linearScanMinimum t).2.comparisons = t.rows - 1 ∧

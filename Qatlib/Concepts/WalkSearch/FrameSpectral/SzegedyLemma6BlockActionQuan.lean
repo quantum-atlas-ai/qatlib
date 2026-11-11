@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma6BlockActionStat
+
+/-!
+# Off-diagonal action of the bipartite discriminant
+
+The theorem `szegedyLemma6BlockAction` separates the two off-diagonal components of the
+bipartite discriminant. If it sends `(a, b)` to `(a', b')`, then its action on each source
+summand is obtained by retaining the opposite output component. The quantum walk spectral
+framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `szegedyLemma6BlockAction`: The two component identities for a discriminant image.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -20,6 +38,8 @@ open Qatlib.Concepts.SpectralFilter.BusySpectrum
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- If the bipartite discriminant sends `(a, b)` to `(a', b')`, it sends `(a, 0)` to `(0, b')`
+and `(0, b)` to `(a', 0)` [Szegedy, Lemma 6][Szegedy2004]. -/
 theorem szegedyLemma6BlockAction : SzegedyLemma6BlockAction := by
   intro H I J _ _ _ _ _ _ A B a a' b b' h
   have hd : bipartiteDiscriminant A B *ᵥ Sum.elim a b =

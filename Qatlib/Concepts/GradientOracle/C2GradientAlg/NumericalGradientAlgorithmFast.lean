@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.C2GradientAlg.NumericalGradientAlgorithmStat
+
+/-!
+# A single-query numerical gradient algorithm
+
+`numericalGradientAlgorithm` proves the numerical-gradient contract for a twice continuously
+differentiable function with a uniform Hessian norm bound. The value-oracle program uses one
+query and `2 * d + 1` gates, and its coordinatewise success probability includes finite-grid,
+Taylor, and value-rounding errors. See [Jordan2005Gradient] for background.
+
+## Main statements
+
+* `numericalGradientAlgorithm`: The rounded finite-grid value-oracle program satisfies
+  `NumericalGradientAlgorithm`, including its success-probability estimate, one oracle query,
+  and `2 * d + 1` gates. [Jordan2005Gradient]
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +41,9 @@ namespace Qatlib.Concepts.GradientOracle.C2GradientAlg
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The rounded finite-grid value-oracle program satisfies `NumericalGradientAlgorithm`,
+including its success-probability estimate, one oracle query, and `2 * d + 1` gates.
+[Jordan2005Gradient] -/
 theorem numericalGradientAlgorithm : NumericalGradientAlgorithm := by
   intro d M Q n_o hM _ hM2 _hQ _hn_o f x H h w hf hH hessian hh hw0 hw hg
   (try dsimp only)

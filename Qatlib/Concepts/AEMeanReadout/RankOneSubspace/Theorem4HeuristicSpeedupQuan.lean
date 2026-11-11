@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem4HeuristicSpeedupStat
+
+/-!
+# Average search cost for a finite heuristic model
+
+`theorem4HeuristicSpeedup` proves the finite-distribution heuristic search specification. Each
+instance has a nonempty marked set of size at most half the search space, and the conclusion
+bounds the average expected phase-query count. For background, see
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `theorem4HeuristicSpeedup`: For a finite distribution of nonempty marked sets occupying at
+  most half a positive search space, sound geometric search schedules achieve every positive
+  failure tolerance with average expected phase-query count at most `50 * sqrt 2` times the
+  square root of the average inverse marked fraction. See [BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +43,10 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib
 open scoped ENNReal
 
+/-- For a finite distribution of nonempty marked sets occupying at most half a positive search
+space, sound geometric search schedules achieve every positive failure tolerance with
+average expected phase-query count at most `50 * sqrt 2` times the square root of the
+average inverse marked fraction. See [BrassardHoyerTapp1998Counting]. -/
 theorem theorem4HeuristicSpeedup : Theorem4HeuristicSpeedup := by
   intro ℱ _ _ P n good marked hn hpos hsparse ε hε
   choose Mof Tof hfail hcost hsup using

@@ -8,6 +8,28 @@ import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
 import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
 import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4MarkedMassQuan
 import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleQuan
+
+/-!
+# Expander walk detection bounds
+
+This module assembles the regular-graph transition kernel, the marked-fraction lower bound, and
+a unitary realization of Szegedy frame preparation. `source_theorem_four_expander_chain` also
+records that a lifted vertex basis state is supported on its incident directed edges.
+
+With an explicit symmetric-chain gap and a nonempty marked set, `source_theorem_four_grover`
+gives a constant average detection probability and quantitative program-count bounds at a search
+length proportional to `sqrt (n / δ)`, in the walk-search framework of [Szegedy2004].
+
+## Main statements
+
+* `source_theorem_four_walk_oracle`: existence of unitary frame preparation.
+* `source_theorem_four_grover`: detection probability and search-length bounds.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +46,9 @@ open Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 namespace Qatlib.Concepts.WalkSearch.Th4Expander.Basic
 
+/-- A nonempty undirected graph with positive constant degree defines a symmetric transition
+matrix, and each lifted basis state is supported only on adjacent pairs with the prescribed
+first vertex [Szegedy2004]. -/
 theorem source_theorem_four_expander_chain
     (n d : ℕ) (adj : Fin n → Fin n → Bool)
     (hn : 0 < n) (hd : 0 < d)
@@ -36,12 +61,15 @@ theorem source_theorem_four_expander_chain
         p.1 = i ∧ adj i p.2) :=
   szegedyTheorem4ExpanderChain n d adj hn hd hsym hreg
 
+/-- A nonempty marked set on `Fin n`, with positive `n`, has marked fraction at least `1 / n`. -/
 theorem source_theorem_four_marked_mass
     (n : ℕ) (f : Fin n → Bool)
     (hn : 0 < n) (hmarked : ∃ i, f i = true) :
     (1 / (n : ℝ)) ≤ markedFraction (Finset.univ.filter (fun i => f i = true)) :=
   szegedyTheorem4MarkedMass n f hn hmarked
 
+/-- For a transition matrix and a fixed ancillary basis state, there is a unitary sending every
+input vertex basis state to its Szegedy frame image. -/
 theorem source_theorem_four_walk_oracle
     (I : Type) [Fintype I] [DecidableEq I] (P : I → I → ℝ) (j : I)
     (hP : IsTransitionMatrix P) :
@@ -50,6 +78,10 @@ theorem source_theorem_four_walk_oracle
       ∀ i, U *ᵥ TensorState (Ket i) (Ket j) = SzegedyIsometry P *ᵥ Ket i :=
   szegedyTheorem4WalkOracle I P j hP
 
+/-- Under the chain-gap, nonempty-marked-set, and unitary-preparation hypotheses, the average
+detection probability is at least `1 / 32`. The three program counts are bounded by the
+stated linear expressions in a search length at most `1000 * sqrt (n / δ) + 1`
+[Szegedy2004]. -/
 theorem source_theorem_four_grover
     (n d : ℕ) (adj : Fin n → Fin n → Bool) (f : Fin n → Bool) (δ : ℝ)
     (j : Fin n) (U : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)

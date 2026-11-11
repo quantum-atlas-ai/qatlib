@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+/-!
+# Native probabilistic risk estimation programs
+
+This module defines rational output sampling and bisection programs for finite risk readout.
+`riskNativeSample` takes the median of repeated decoded amplitude estimation outcomes, and
+`riskNativeVaR` uses it to guide threshold bisection. `riskNativeCVaR` adds probability and
+truncated moment readouts with a regularized ratio in the setting of [WoernerEgger2019].
+
+## Main definitions and statements
+
+* `riskNativeBisect`: fuelled probabilistic bisection with a call counter.
+* `riskNativeCVaR`: quantile index, ratio estimate, and call count output.
+* `risk_native_median_cast`: compatibility of rational and real median readout.
+* `risk_native_readout_charges`: exact repeated readout resource counts.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +47,8 @@ noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 open scoped Classical BigOperators ENNReal
 
+/-- The law of the rational median of `2 * r + 1` independently sampled and decoded amplitude
+estimation outcomes. -/
 def riskNativeSample {M : ℕ} (bits r : ℕ) (p : FinDist (Fin M)) : PMF ℚ :=
   (closurePMF ({
     prob := p.probOf
@@ -33,6 +57,8 @@ def riskNativeSample {M : ℕ} (bits r : ℕ) (p : FinDist (Fin M)) : PMF ℚ :=
       (fun ω => (((List.ofFn (fun z => nativeAEDecode M bits (ω z))).mergeSort
         (fun a b => a ≤ b)).getD r 0))
 
+/-- A fuelled probabilistic bisection over rational thresholds, returning a selected index and
+the number of sampler calls. -/
 def riskNativeBisect (sampler : ℚ → PMF ℚ) (xs : List ℚ) (q : ℚ)
     (fuel lo hi : ℕ) : PMF (ℕ × ℕ) :=
   Nat.rec (motive := fun _ => ℕ → ℕ → PMF (ℕ × ℕ))
@@ -43,12 +69,16 @@ def riskNativeBisect (sampler : ℚ → PMF ℚ) (xs : List ℚ) (q : ℚ)
         (if q ≤ z then rec lo mid else rec (mid+1) hi).map
           (fun out => (out.1,out.2+1)))) fuel lo hi
 
+/-- Runs native median based CDF bisection on the supplied rational threshold list, returning an
+index and call count. -/
 def riskNativeVaR {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q : ℚ)
     (bits M r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) : PMF (ℕ × ℕ) :=
   riskNativeBisect (fun t => riskNativeSample bits r (riskCDFLaw A j loss t M hA hM)) xs q
     (Nat.clog 2 xs.length+1) 0 (xs.length-1)
 
+/-- After native quantile bisection, samples a probability and truncated numerator and returns
+the index, the ratio `μhat / max ε phat`, and the updated call count. -/
 def riskNativeCVaR {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q ε : ℚ)
     (rotationBits bits M r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -59,6 +89,8 @@ def riskNativeCVaR {I : Type} [Fintype I] [DecidableEq I]
         (riskNumeratorLaw A j loss (xs.getD z.1 0) rotationBits M hA hloss hM)).map
           (fun μhat => (z.1,μhat/max ε phat,z.2+2))))
 
+/-- Casting the sorted rational middle value to the reals agrees with `sortedBlockMedian` of the
+cast values. -/
 theorem risk_native_median_cast (r : ℕ) (v : Fin (2*r+1) → ℚ) :
     (((List.ofFn v).mergeSort (fun a b => a ≤ b)).getD r 0 : ℝ) =
       sortedBlockMedian r (fun z => (v z : ℝ)) := by
@@ -74,6 +106,8 @@ theorem risk_native_median_cast (r : ℕ) (v : Fin (2*r+1) → ℚ) :
   simp only [List.getD, List.getElem?_map]
   cases ((List.ofFn v).mergeSort (fun a b => a ≤ b))[r]? <;> simp
 
+/-- For `M ≥ 2`, repeated median readout has the stated exact forward, backward, query, and gate
+counts. -/
 theorem risk_native_readout_charges {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) (j : I) (M r calls : ℕ) (hM : 2 ≤ M) :
     calls*(2*r+1)*aeForwardAccesses (aeAccessWord (I := I) M) = calls*(2*r+1)*M ∧

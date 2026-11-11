@@ -5,12 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
+
+/-!
+# Recursive amplification search specification
+
+`Theorem3` specifies recursive amplitude amplification using approximate reflections on an
+invariant subspace. Its hypotheses control reflection errors and costs, and its conclusions give
+marked-mass guarantees and an explicit inverse-square-root search-cost bound in the framework of
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `Theorem3`: the approximate-reflection search and cost contract.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open Qatlib.Concepts.WalkSearch.MnrsAmplify
 
 open scoped Real
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
+/-- Specifies recursive amplification with controlled reflection errors: zero marked mass gives
+zero success, nonzero marked mass gives success at least `1/24`, and the accumulated costs
+satisfy the stated geometric and inverse-square-root bounds. -/
 def Theorem3 : Prop :=
   ∀ (W : Type*) [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
     (Mr : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W),

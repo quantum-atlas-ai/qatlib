@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMatchingFlow05.SearchTools.Defs
+
+/-!
+# Network flow resource bounds from blocking costs
+
+This module develops the scalar blocking-flow resource bounds for Theorem 6 of
+[AmbainisSpalek2006]. It proves power identities, a depth estimate, and a summation estimate
+controlling the square-root phase terms.
+
+The main inequalities use the specified positive cutoff `k` and the hypothesis `k * U ≤ n` to
+derive list-model and adjacency-model budgets. The latter includes the capacity restriction `U ≤
+n ^ (1 / 4)`.
+
+## Main statements
+
+* `flowDepthBound`: a capacity-dependent cutoff obeys the depth budget.
+* `theorem6_blockSum`: bounds a sum of square-root phase terms.
+* `theorem6_list`: the list-model aggregate resource inequality.
+* `theorem6_adjacency`: the adjacency-model aggregate resource inequality.
+
+## References
+
+* [Ambainis and Špalek, 2006][AmbainisSpalek2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,19 +40,24 @@ namespace Qatlib.Papers.QMatchingFlow05.BlockingFlow
 
 open Qatlib.Papers.QMatchingFlow05.SearchTools
 
+/-- For positive `k`, one has `k ^ (3 / 2) = k * √k`. -/
 theorem rpow_three_halves_eq (k : ℝ) (hk : 0 < k) :
     k ^ ((3 : ℝ) / 2) = k * Real.sqrt k := by
   rw [show ((3 : ℝ) / 2) = 1 + 1 / 2 by norm_num, Real.rpow_add hk, Real.rpow_one,
     Real.sqrt_eq_rpow]
 
+/-- For positive `n`, one has `n ^ (2 / 3) * √n = n ^ (7 / 6)`. -/
 theorem rpow_seven_sixths (n : ℝ) (hn : 0 < n) :
     n ^ ((2 : ℝ) / 3) * Real.sqrt n = n ^ ((7 : ℝ) / 6) := by
   rw [Real.sqrt_eq_rpow, ← Real.rpow_add hn, show ((2 : ℝ) / 3 + 1 / 2) = 7 / 6 by norm_num]
 
+/-- For positive `n`, one has `n ^ (2 / 3) * n ^ (3 / 2) = n ^ (13 / 6)`. -/
 theorem rpow_thirteen_sixths (n : ℝ) (hn : 0 < n) :
     n ^ ((2 : ℝ) / 3) * n ^ ((3 : ℝ) / 2) = n ^ ((13 : ℝ) / 6) := by
   rw [← Real.rpow_add hn, show ((2 : ℝ) / 3 + 3 / 2) = 13 / 6 by norm_num]
 
+/-- For positive `n` and `U` with `U ≤ n ^ (1 / 4)`, the cutoff `min (n ^ (2 / 3) * U ^ (1 / 3))
+(√(m * U))`, multiplied by `U`, is at most `n`. See [AmbainisSpalek2006]. -/
 theorem flowDepthBound (n U m : ℝ) (hn : 0 < n) (hU : 0 < U)
     (hUq : U ≤ n ^ ((1 : ℝ) / 4)) :
     min (n ^ ((2 : ℝ) / 3) * U ^ ((1 : ℝ) / 3)) (Real.sqrt (m * U)) * U ≤ n := by
@@ -56,6 +85,8 @@ theorem flowDepthBound (n U m : ℝ) (hn : 0 < n) (hU : 0 < U)
         mul_le_mul_of_nonneg_right (min_le_left _ _) hU.le
     _ ≤ n := hbranch
 
+/-- If `k > 0`, `m ≥ 0`, `U > 0`, `n ≥ 0`, and `k * U ≤ n`, then `k ^ (3 / 2) * √(m * U) ≤ k *
+√(n * m)`. See [AmbainisSpalek2006]. -/
 theorem blockingFlow_le_singlePath (n m U k : ℝ) (hk : 0 < k) (hm : 0 ≤ m)
     (_hU : 0 < U) (hkU : k * U ≤ n) (hn : 0 ≤ n) :
     k ^ ((3 : ℝ) / 2) * Real.sqrt (m * U) ≤ k * Real.sqrt (n * m) := by
@@ -69,6 +100,8 @@ theorem blockingFlow_le_singlePath (n m U k : ℝ) (hk : 0 < k) (hm : 0 ≤ m)
     _ ≤ (k * Real.sqrt m) * Real.sqrt n := mul_le_mul_of_nonneg_left hkU' hkm
     _ = k * (Real.sqrt n * Real.sqrt m) := by ring
 
+/-- For nonnegative `c`, nonnegative terms with sum at most `c * k` satisfy `∑ j ∈ Icc 1 k, √(j
+* A j) ≤ C * (c + 1) * k * √k` for some positive `C`. See [AmbainisSpalek2006]. -/
 theorem theorem6_blockSum (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (k : ℕ) (A : ℕ → ℝ), (∀ j, 0 ≤ A j) →
       (∑ j ∈ Finset.Icc 1 k, A j) ≤ c * (k : ℝ) →
@@ -115,6 +148,9 @@ theorem theorem6_blockSum (c : ℝ) (hc : 0 ≤ c) :
         exact mul_le_mul_of_nonneg_left this hk0
     _ = 1 * (c + 1) * ((k : ℝ) * Real.sqrt (k : ℝ)) := by ring
 
+/-- Under the specified positive cutoff and depth hypotheses, the aggregate blocking cost is at
+most `C * min (n ^ (7 / 6) * √m * U ^ (1 / 3)) (√(n * U) * m) * logFactor n` for some
+positive `C`. See [AmbainisSpalek2006]. -/
 theorem theorem6_list (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n m : ℕ) (U k : ℝ), 2 ≤ n → 0 < U →
       k = min ((n : ℝ) ^ ((2 : ℝ) / 3) * U ^ ((1 : ℝ) / 3)) (Real.sqrt ((m : ℝ) * U)) →
@@ -203,6 +239,9 @@ theorem theorem6_list (c : ℝ) (hc : 0 ≤ c) :
     nlinarith [hmin0, hmul, hc0]
   exact le_trans hstep1 (le_trans hstep2 hstep3)
 
+/-- With the stated cutoff, depth, and capacity hypotheses, the adjacency-model aggregate cost
+is at most `C * n ^ (13 / 6) * U ^ (1 / 3) * logFactor n` for some positive `C`. See
+[AmbainisSpalek2006]. -/
 theorem theorem6_adjacency (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n : ℕ) (U k : ℝ), 2 ≤ n → 0 < U → U ≤ (n : ℝ) ^ ((1 : ℝ) / 4) →
       k = min ((n : ℝ) ^ ((2 : ℝ) / 3) * U ^ ((1 : ℝ) / 3))

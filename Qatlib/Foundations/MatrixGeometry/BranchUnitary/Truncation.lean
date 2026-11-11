@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.BranchUnitary.Defs
+
+/-!
+# Overlap bounds for truncated coherent branches
+
+The module computes inner products of coherent branch states and defines the discarded control
+probability `tailMass`. Replacing branches above a query cutoff by the identity lowers the real
+output overlap by at most twice this mass, while both outputs remain normalized.
+
+`meanQueries` and `tailMass_le_mean` bound the discarded mass by the weighted mean query count
+divided by a positive cutoff. These finite branch estimates support the truncation analysis
+associated with [JefferyKothariMagniez2013].
+
+## Main statements
+
+* `truncation_real_overlap`: real output overlap is at least `1 - 2 * tailMass`.
+* `truncation_hilbert_overlap`: normalized Hilbert outputs satisfy the corresponding absolute
+  overlap bound.
+* `tailMass_le_mean`: a positive cutoff gives the weighted Markov bound.
+
+## References
+
+* [Jeffery et al., 2013][JefferyKothariMagniez2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +43,8 @@ variable {C S : Type*} [Fintype C] [DecidableEq C] [Fintype S] [DecidableEq S]
 
 omit [DecidableEq C] [DecidableEq S] in
 
+/-- The inner product of coherent states with the same control amplitudes is the sum of branch
+inner products weighted by squared control amplitudes. -/
 theorem coherent_inner (α : C → ℂ) (φ ψ : C → State S) :
     Inner (coherent α φ) (coherent α ψ) =
       ∑ c, ((‖α c‖ ^ 2 : ℝ) : ℂ) * Inner (φ c) (ψ c) := by
@@ -36,6 +62,8 @@ theorem coherent_inner (α : C → ℂ) (φ ψ : C → State S) :
         ((starRingEnd ℂ) (φ c s) * ψ c s) := by ring
     _ = _ := by rw [hn]
 
+/-- For a normalized state and a unitary branch, the real part of the overlap between the
+transformed and original states is at least minus one. -/
 theorem branch_real_overlap (U : Matrix S S ℂ) (hU : U ∈ Matrix.unitaryGroup S ℂ)
     (φ : State S) (hφ : Normalized φ) : -1 ≤ (Inner (U *ᵥ φ) φ).re := by
   have hn : ‖Inner (U *ᵥ φ) φ‖ ≤ 1 := by
@@ -49,9 +77,12 @@ theorem branch_real_overlap (U : Matrix S S ℂ) (hU : U ∈ Matrix.unitaryGroup
   have hr := (abs_le.mp (Complex.abs_re_le_norm (Inner (U *ᵥ φ) φ))).1
   linarith
 
+/-- The sum of squared control amplitudes over branches whose query count exceeds the cutoff. -/
 def tailMass (α : C → ℂ) (q : C → ℕ) (cutoff : ℕ) : ℝ :=
   ∑ c, if cutoff < q c then ‖α c‖ ^ 2 else 0
 
+/-- For unitary branches and normalized control and conditional states, the real overlap of the
+full and truncated outputs is at least `1 - 2 * tailMass α q cutoff`. -/
 theorem truncation_real_overlap (U : C → Matrix S S ℂ)
     (hU : ∀ c, U c ∈ Matrix.unitaryGroup S ℂ) (α : C → ℂ) (φ : C → State S)
     (hα : ∑ c, ‖α c‖ ^ 2 = 1) (hφ : ∀ c, Normalized (φ c))
@@ -76,6 +107,9 @@ theorem truncation_real_overlap (U : C → Matrix S S ℂ)
   have hs := Finset.sum_le_sum (fun c (_ : c ∈ Finset.univ) => hb c)
   simpa only [Finset.sum_sub_distrib, ← Finset.mul_sum, hα, tailMass] using hs
 
+/-- The full and truncated controlled outputs are unit Hilbert vectors whose inner-product
+modulus is at least `1 - 2 * tailMass α q cutoff`, under the branch and input normalization
+assumptions. -/
 theorem truncation_hilbert_overlap (U : C → Matrix S S ℂ)
     (hU : ∀ c, U c ∈ Matrix.unitaryGroup S ℂ) (α : C → ℂ) (φ : C → State S)
     (hα : ∑ c, ‖α c‖ ^ 2 = 1) (hφ : ∀ c, Normalized (φ c))
@@ -92,10 +126,14 @@ theorem truncation_hilbert_overlap (U : C → Matrix S S ℂ)
   rw [inner_toHilbert]
   exact (truncation_real_overlap U hU α φ hα hφ q cutoff).trans (Complex.re_le_norm _)
 
+/-- The query counts weighted by the squared control amplitudes and summed over branches. -/
 def meanQueries (α : C → ℂ) (q : C → ℕ) : ℝ := ∑ c, ‖α c‖ ^ 2 * (q c : ℝ)
 
 omit [DecidableEq C] in
 
+/-- For a positive cutoff, the discarded control mass is at most the weighted mean query count
+divided by that cutoff. This is the finite amplitude-tail bound used in
+[JefferyKothariMagniez2013]. -/
 theorem tailMass_le_mean (α : C → ℂ) (q : C → ℕ) (cutoff : ℕ) (hcut : 0 < cutoff) :
     tailMass α q cutoff ≤ meanQueries α q / cutoff := by
   have hc : (0 : ℝ) < cutoff := by exact_mod_cast hcut

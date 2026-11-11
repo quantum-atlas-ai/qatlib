@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+
+/-!
+# First moments of ranked search runs
+
+The clock `RankedCallLaw.runClock` adds the durations of calls in a completed run. Given a bound
+on each call moment and a potential satisfying the threshold recurrence, this module bounds the
+total clock moment and its average over initial ranks, as required for the minimum-finding
+runtime analysis [DurrHoyer1996].
+
+## Main statements
+
+* `RankedCallLaw.runClock_nonneg`: proves that every accumulated run clock is nonnegative.
+* `RankedCallLaw.runClock_moment`: bounds the moment from a fixed threshold by a potential.
+* `RankedCallLaw.initialClock_moment`: bounds the moment with uniform initialization.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,15 +37,19 @@ namespace RankedCallLaw
 
 variable {N : ℕ} {Ω : Type}
 
+/-- The sum of the durations assigned by the ranked call law to the outcomes in a run. -/
 noncomputable def runClock (law : RankedCallLaw N Ω) : List Ω → ℝ
   | [] => 0
   | x :: xs => law.duration x + runClock law xs
 
+/-- The accumulated clock of every run is nonnegative. -/
 theorem runClock_nonneg (law : RankedCallLaw N Ω) (xs : List Ω) : 0 ≤ law.runClock xs := by
   induction xs with
   | nil => exact le_rfl
   | cons x xs ih => exact add_nonneg (law.duration_nonneg x) ih
 
+/-- If call moments are bounded by `D` and `V` satisfies the stated threshold recurrence with `V
+0 = 0`, the total run-clock moment from `t < N` exists and lies between zero and `V t`. -/
 theorem runClock_moment (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (D V : ℕ → ℝ) (hV0 : V 0 = 0)
     (hcall : ∀ t, 0 < t → t < N → ∃ q,
@@ -122,6 +146,9 @@ theorem runClock_moment (law : RankedCallLaw N Ω) (skip : RankSkip N)
         push_cast at hp
         linarith
 
+/-- Under the call-moment and potential-recurrence hypotheses, the initial run-clock moment for
+`N > 0` exists and lies between zero and the average of `V (skip.next i)` over initial
+ranks. -/
 theorem initialClock_moment (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (D V : ℕ → ℝ) (hV0 : V 0 = 0)
     (hcall : ∀ t, 0 < t → t < N → ∃ q,

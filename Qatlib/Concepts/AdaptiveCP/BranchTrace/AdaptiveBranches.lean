@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.AdaptiveHistoryDefs
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+
+/-!
+# Complete positivity and trace sums of adaptive branches
+
+This module proves that a history-dependent policy of instruments yields completely positive
+branch maps. Summing all branches of any fixed length preserves the input trace; `g1` packages
+these two facts. For background, see [Watrous2018].
+
+## Main statements
+
+* `branch_cp`: Every finite outcome branch of a history-dependent instrument policy is
+  completely positive.
+* `branch_trace`: The sum of all length-`n` branch outputs of an adaptive instrument policy has
+  the same trace as the input operator.
+* `g1`: Every length-`n` adaptive branch is completely positive, and the sum over all such
+  branches preserves the trace of every input operator.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -19,6 +41,7 @@ open scoped BigOperators
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 
+/-- The identity map on operators is completely positive. -/
 lemma completelyPositive_id :
     CompletelyPositive (LinearMap.id : Operator D →ₗ[ℂ] Operator D) := by
   intro r A hA
@@ -26,6 +49,7 @@ lemma completelyPositive_id :
 
 omit [DecidableEq O] in
 
+/-- Every finite outcome branch of a history-dependent instrument policy is completely positive. -/
 lemma branch_cp (policy : List O → Instrument O D D) (h : List O) :
     ∀ n, ∀ xs : Fin n → O, CompletelyPositive (branch policy h (List.ofFn xs)) := by
   intro n
@@ -44,6 +68,8 @@ lemma branch_cp (policy : List O → Instrument O D D) (h : List O) :
 
 omit [DecidableEq O] in
 
+/-- The sum of all length-`n` branch outputs of an adaptive instrument policy has the same trace
+as the input operator. -/
 lemma branch_trace (policy : List O → Instrument O D D) (h : List O) :
     ∀ n (ρ : Operator D),
       Matrix.trace (∑ xs : Fin n → O, branch policy h (List.ofFn xs) ρ) = Matrix.trace ρ := by
@@ -77,6 +103,8 @@ lemma branch_trace (policy : List O → Instrument O D D) (h : List O) :
     simp_rw [hinner, ← Matrix.trace_sum]
     exact (policy h).total ρ
 
+/-- Every length-`n` adaptive branch is completely positive, and the sum over all such branches
+preserves the trace of every input operator. -/
 theorem g1 :
     ∀ (O : Type) [Fintype O] [DecidableEq O] (D n : ℕ)
       (policy : List O → Instrument O D D) (h : List O),

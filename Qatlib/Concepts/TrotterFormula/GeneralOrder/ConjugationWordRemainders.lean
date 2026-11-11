@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorCoefficients
+
+/-!
+# Remainders of exponential conjugation words
+
+The recursive conjugation `pfConjWord` is identified with conjugation by
+`suzukiExponentialWord`. Its Taylor remainder is bounded by the ordered nested commutator budget
+`pfCommAlphaInner`; `pfWordInflation` supplies the general exponential factor and specializes to
+one when all generators are skew-Hermitian. For background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `pfConjWord_eq_word_conjugation`: interpretation as conjugation by an exponential product.
+* `pfConjWord_remainder_norm_mode`: uniform commutator remainder bound in both generator modes.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -18,10 +37,14 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Successive exponential conjugation along a matrix list, with the head conjugation applied
+outside the tail conjugation. -/
 def pfConjWord : List (Matrix I I ℂ)→Matrix I I ℂ→ℝ→Matrix I I ℂ
   | [],B,_ => B
   | X::xs,B,t => pfConjExp X (pfConjWord xs B t) t
 
+/-- A conjugation word equals `suzukiExponentialWord xs t * B * Ring.inverse
+(suzukiExponentialWord xs t)`. -/
 theorem pfConjWord_eq_word_conjugation (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (t : ℝ) :
     pfConjWord xs B t=suzukiExponentialWord xs t*B*Ring.inverse (suzukiExponentialWord xs t) := by
   letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
@@ -33,6 +56,7 @@ theorem pfConjWord_eq_word_conjugation (xs : List (Matrix I I ℂ)) (B : Matrix 
     rw [Ring.inverse_mul (Or.inl (NormedSpace.isUnit_exp (t • X))),Ring.inverse_exp]
     simp only [pfConjExp,neg_smul,mul_assoc]
 
+/-- The conjugation word has norm at most `‖B‖ * exp (2 * |t| * suzukiMass xs)`. -/
 theorem pfConjWord_norm_general (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (t : ℝ) :
     ‖pfConjWord xs B t‖≤‖B‖*Real.exp (2*|t| *suzukiMass xs) := by
   induction xs with
@@ -45,6 +69,7 @@ theorem pfConjWord_norm_general (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ
            rw [show 2*|t| *suzukiMass (X::xs)=2*|t| *suzukiMass xs+2*|t| *‖X‖ by simp only [suzukiMass,List.map_cons,List.sum_cons];ring,Real.exp_add]
            ring
 
+/-- If every generator is skew-Hermitian, the conjugation word has norm at most `‖B‖`. -/
 theorem pfConjWord_norm_skew (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (t : ℝ)
     (hxs : ∀ X∈xs,Xᴴ=-X) : ‖pfConjWord xs B t‖≤‖B‖ := by
   induction xs with
@@ -53,6 +78,7 @@ theorem pfConjWord_norm_skew (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (
     exact (pfConjExp_norm_skew X _ t (hxs X List.mem_cons_self)).trans
       (ih (fun Y hY=>hxs Y (List.mem_cons_of_mem X hY)))
 
+/-- A finite conjugation word is infinitely differentiable in time. -/
 theorem pfConjWord_contDiff (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) : ContDiff ℝ ∞ (pfConjWord xs B) := by
   induction xs with
   | nil => exact contDiff_const
@@ -61,6 +87,8 @@ theorem pfConjWord_contDiff (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) : 
     simpa only [pfConjWord,pfConjExp,Function.comp_def] using!
         ((trotter_exp_contDiff X).mul ih).mul hn
 
+/-- The remainder for `X :: xs` splits into the conjugated tail remainder and the sum of Taylor
+remainders for the tail coefficients. -/
 theorem pfConjWord_remainder_cons (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ) (t : ℝ) :
     pfConjWord (X::xs) B t-pfConjTrunc (X::xs) B p t=
       pfConjExp X (pfConjWord xs B t-pfConjTrunc xs B p t) t+
@@ -77,18 +105,24 @@ theorem pfConjWord_remainder_cons (X B : Matrix I I ℂ) (xs : List (Matrix I I 
   simp only [map_sub,map_sum,map_smul,smul_sub,Finset.sum_sub_distrib]
   abel
 
+/-- The conjugation growth factor, equal to one in skew mode and `exp (2 * |t| * suzukiMass xs)`
+otherwise. -/
 def pfWordInflation (skew : Bool) (xs : List (Matrix I I ℂ)) (t : ℝ) : ℝ :=
   if skew then 1 else Real.exp (2*|t| *suzukiMass xs)
 
+/-- In general mode, the word inflation factor is `exp (2 * |t| * suzukiMass xs)`. -/
 @[simp] theorem pfWordInflation_false (xs : List (Matrix I I ℂ)) (t : ℝ) :
     pfWordInflation false xs t=Real.exp (2*|t| *suzukiMass xs) := by simp [pfWordInflation]
 
+/-- In skew mode, the word inflation factor is one. -/
 @[simp] theorem pfWordInflation_true (xs : List (Matrix I I ℂ)) (t : ℝ) :
     pfWordInflation true xs t=1 := by simp [pfWordInflation]
 
+/-- The word inflation factor is nonnegative in either mode. -/
 theorem pfWordInflation_nonneg (skew : Bool) (xs : List (Matrix I I ℂ)) (t : ℝ) :
     0≤pfWordInflation skew xs t := by cases skew <;> simp only [pfWordInflation_false,pfWordInflation_true] <;> positivity
 
+/-- The word inflation factor is at least one in either mode. -/
 theorem pfWordInflation_one_le (skew : Bool) (xs : List (Matrix I I ℂ)) (t : ℝ) :
     1≤pfWordInflation skew xs t := by
   cases skew
@@ -96,6 +130,7 @@ theorem pfWordInflation_one_le (skew : Bool) (xs : List (Matrix I I ℂ)) (t : �
     exact Real.one_le_exp (by have hm:=general_trotter_mass_nonneg xs;positivity)
   · rw [pfWordInflation_true]
 
+/-- The inflation factor for `X :: xs` is the product of the head factor and the tail factor. -/
 theorem pfWordInflation_cons (skew : Bool) (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (t : ℝ) :
     pfWordInflation skew (X::xs) t=pfWordInflation skew [X] t*pfWordInflation skew xs t := by
   cases skew
@@ -106,12 +141,15 @@ theorem pfWordInflation_cons (skew : Bool) (X : Matrix I I ℂ) (xs : List (Matr
     ring
   · simp only [pfWordInflation_true,mul_one]
 
+/-- The inflation factor for a single head is at most the factor for the full nonempty word. -/
 theorem pfWordInflation_head_le (skew : Bool) (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (t : ℝ) :
     pfWordInflation skew [X] t≤pfWordInflation skew (X::xs) t := by
   rw [pfWordInflation_cons skew X xs t]
   exact le_mul_of_one_le_right (pfWordInflation_nonneg skew [X] t)
       (pfWordInflation_one_le skew xs t)
 
+/-- Exponential conjugation is bounded by `‖B‖` times the selected inflation factor, assuming
+skew-Hermitianity when skew mode is selected. -/
 theorem pfConjExp_norm_mode (skew : Bool) (X B : Matrix I I ℂ) (t : ℝ)
     (hX : skew=true→Xᴴ=-X) : ‖pfConjExp X B t‖≤‖B‖*pfWordInflation skew [X] t := by
   cases skew
@@ -119,6 +157,8 @@ theorem pfConjExp_norm_mode (skew : Bool) (X B : Matrix I I ℂ) (t : ℝ)
       [pfWordInflation_false,suzukiMass,List.map_cons,List.map_nil,List.sum_cons,List.sum_nil,add_zero] using! pfConjExp_norm_general X B t
   · simpa only [pfWordInflation_true,mul_one] using! pfConjExp_norm_skew X B t (hX rfl)
 
+/-- The single-conjugation Taylor remainder is bounded by the factorial-weighted iterated
+commutator norm times the selected inflation factor. -/
 theorem pfConjExp_remainder_mode (skew : Bool) (X B : Matrix I I ℂ) (p : ℕ) (t : ℝ)
     (hX : skew=true→Xᴴ=-X) :
     ‖pfConjExp X B t-pfTaylorBefore (pfConjExp X B) p t‖≤
@@ -128,6 +168,8 @@ theorem pfConjExp_remainder_mode (skew : Bool) (X B : Matrix I I ℂ) (p : ℕ) 
       [pfWordInflation_false,suzukiMass,List.map_cons,List.map_nil,List.sum_cons,List.sum_nil,add_zero] using! pf_conjugation_single_general X B p t
   · simpa only [pfWordInflation_true,mul_one] using! pf_conjugation_single_skew X B p t (hX rfl)
 
+/-- A time-scaled coefficient conjugation remainder is bounded by `pfInnerAdSum X B xs k.val (p
+- k.val) * |t| ^ p` times the head inflation factor. -/
 theorem pfConjCoeff_remainder_scaled_le (skew : Bool) (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (p : ℕ) (t : ℝ) (k : Fin p) (hX : skew=true→Xᴴ=-X) :
     ‖t^k.val • (pfConjExp X (pfConjCoeff xs B k.val) t-
@@ -151,6 +193,8 @@ theorem pfConjCoeff_remainder_scaled_le (skew : Bool) (X B : Matrix I I ℂ) (xs
        _=pfInnerAdSum X B xs k.val (p-k.val)*|t| ^p*pfWordInflation skew [X] t := by
          rw [← pow_add,Nat.add_sub_of_le k.isLt.le]
 
+/-- The conjugation word remainder below degree `p` is bounded by `pfCommAlphaInner xs B p * |t|
+^ p` times the word inflation factor. -/
 theorem pfConjWord_remainder_norm_mode (skew : Bool) (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (t : ℝ) (hxs : skew=true→∀ X∈xs,Xᴴ=-X) :
     ‖pfConjWord xs B t-pfConjTrunc xs B p t‖≤

@@ -67,6 +67,23 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Topology.Basic
+
+/-!
+# An eventual lower bound for the totient ratio
+
+The theorem `totient_ratio_gt_inv_three_loglog` gives a strict reciprocal log-log lower bound on
+φ(M) / M for all sufficiently large natural numbers M. This numerical estimate supports the
+success-probability analysis of order-based primality trials [DonisVelaGarciaEscartin2017].
+
+## Main statements
+
+* `totient_ratio_gt_inv_three_loglog`: The totient ratio eventually exceeds 1 / (3 log log M).
+
+## References
+
+* [Donis-Vela and Garcia-Escartin, 2017][DonisVelaGarciaEscartin2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -75,6 +92,8 @@ open Filter
 open scoped Topology
 namespace Qatlib.Papers.PrimalityOrd17.TotientBound
 
+/-- For all sufficiently large natural numbers `M`, the ratio `totient M / M` is greater than `1
+/ (3 * log (log M))` [DonisVelaGarciaEscartin2017]. -/
 theorem totient_ratio_gt_inv_three_loglog :
     ∃ M₀ : ℕ, ∀ M : ℕ, M₀ ≤ M →
       (1 : ℝ) / (3 * Real.log (Real.log (M : ℝ))) < (Nat.totient M : ℝ) / (M : ℝ) := by

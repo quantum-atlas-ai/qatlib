@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedStat
 import Qatlib.Concepts.AbelianDecoders.FourierSupport.SparseFourierSupport
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundOriginalContracts
+
+/-!
+# Proofs of restricted teleportation communication bounds
+
+The results prove `CommBoundRestricted` by showing that distinct teleportation outcomes cannot
+share a correction in an exact protocol with unitary corrections. Scalar Kraus decompositions
+and projective distinctions between Weyl operators provide the qudit argument.
+
+Explicit two-label recovery examples disprove the legacy injectivity contracts for unrestricted
+correction matrices. The contracts address the classical communication requirement of
+teleportation [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `comm_kraus_scalar_of_identity`: If a finite sum of Kraus conjugations is a scalar multiple of
+  the identity map, each Kraus operator is a scalar multiple of the identity matrix.
+* `commBoundMessageInjectiveQudit`: Exact qudit recovery with unitary corrections forces an
+  injective message assignment and at least `n²` message labels.
+* `commBoundRestricted`: The qudit and Bell merged-branch impossibility and unitary
+  message-injectivity contracts hold. These formalize restricted communication bounds for
+  teleportation [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +48,8 @@ namespace Qatlib.Concepts.QuditTeleport.CommLowerBound
 
 open Matrix
 
+/-- There exist a noninjective two-label message map and correction matrices whose summed Bell
+branches recover every input operator. -/
 theorem comm_bound_bell_two_label_recovery :
     ∃ (m : Bool × Bool → Bool) (Cm : Bool → Operator 2),
       (∀ ρ : Operator 2, (∑ o : Bool × Bool,
@@ -43,11 +72,14 @@ theorem comm_bound_bell_two_label_recovery :
     have := congrArg Prod.fst he
     contradiction
 
+/-- The legacy Bell message-injectivity contract fails for unrestricted correction matrices. -/
 theorem not_commBoundMessageInjectiveBell : ¬CommBoundMessageInjectiveBellLegacy := by
   intro h
   obtain ⟨m, Cm, hr, hm⟩ := comm_bound_bell_two_label_recovery
   exact hm (h Bool m Cm hr).1
 
+/-- For dimension two, there exist a noninjective two-label map and correction matrices whose
+summed qudit branches recover every input operator. -/
 theorem comm_bound_qudit_two_label_recovery :
     ∃ (m : Fin 2 × Fin 2 → Bool) (Cm : Bool → Operator 2),
       (∀ ρ : Operator 2, (∑ o : Fin 2 × Fin 2,
@@ -70,15 +102,20 @@ theorem comm_bound_qudit_two_label_recovery :
     have := congrArg Prod.fst he
     norm_num at this
 
+/-- The legacy qudit message-injectivity contract fails for unrestricted correction matrices. -/
 theorem not_commBoundMessageInjectiveQudit : ¬CommBoundMessageInjectiveQuditLegacy := by
   intro h
   obtain ⟨m, Cm, hr, hm⟩ := comm_bound_qudit_two_label_recovery
   exact hm (h 2 Bool m Cm hr).1
 
+/-- The two-dimensional matrix with zero diagonal and unit off-diagonal entries. -/
 private def commBellX : Operator 2 := fun i j => if i = j then 0 else 1
 
+/-- The two-dimensional diagonal matrix with diagonal entries `1` and `-1`. -/
 private def commBellZ : Operator 2 := fun i j => if i = j then (if i = 0 then 1 else -1) else 0
 
+/-- A Bell branch sends `commBellX` to one quarter of itself, with sign determined by the first
+outcome bit. -/
 private theorem comm_bell_conj_x (o : Bool × Bool) :
     conjBranch (teleportBranchKraus o) commBellX =
       (if o.1 then (-1 / 4 : ℂ) else 1 / 4) • commBellX := by
@@ -91,6 +128,8 @@ private theorem comm_bell_conj_x (o : Bool × Bool) :
       Matrix.conjTranspose_apply, Matrix.smul_apply, PauliX, PauliZ, permMatrix,
       Matrix.one_apply, Matrix.diagonal_apply, boolEquivFin2, RCLike.star_def]
 
+/-- A Bell branch sends `commBellZ` to one quarter of itself, with sign determined by the second
+outcome bit. -/
 private theorem comm_bell_conj_z (o : Bool × Bool) :
     conjBranch (teleportBranchKraus o) commBellZ =
       (if o.2 then (-1 / 4 : ℂ) else 1 / 4) • commBellZ := by
@@ -103,6 +142,8 @@ private theorem comm_bell_conj_z (o : Bool × Bool) :
       Matrix.conjTranspose_apply, Matrix.smul_apply, PauliX, PauliZ, permMatrix,
       Matrix.one_apply, Matrix.diagonal_apply, boolEquivFin2, RCLike.star_def]
 
+/-- If two uncorrected Bell branches cancel on `P`, their sum still vanishes after applying any
+common correction `C`. -/
 private theorem comm_merged_bell_zero (o o' : Bool × Bool) (C : Operator 2) (P : Operator 2)
     (hP : conjBranch (teleportBranchKraus o) P + conjBranch (teleportBranchKraus o') P = 0) :
     mergedBellBranch o o' C P = 0 := by
@@ -112,6 +153,8 @@ private theorem comm_merged_bell_zero (o o' : Bool × Bool) (C : Operator 2) (P 
       Matrix.conjTranspose_mul, Matrix.mul_add, Matrix.add_mul, Matrix.mul_assoc]
   rw [he, hP, Matrix.mul_zero, Matrix.zero_mul]
 
+/-- Distinct Bell outcomes cannot be merged under one correction to obtain half the identity map
+on every finite extension. -/
 theorem commBoundMergeNoGoBell : CommBoundMergeNoGoBell := by
   intro o o' hoo C
   by_cases ha : o.1 = o'.1
@@ -150,14 +193,19 @@ theorem commBoundMergeNoGoBell : CommBoundMergeNoGoBell := by
     have he := congrArg (fun M => M (0, 0) (1, 0)) h
     norm_num [X, commBellX, Matrix.smul_apply] at he
 
+/-- The matrix unit with its only nonzero entry equal to one at row `p` and column `q`. -/
 private def commMatrixUnit {n : ℕ} (p q : Fin n) : Operator n :=
   fun a b => if a = p ∧ b = q then 1 else 0
 
+/-- Conjugation of the matrix unit at `(p, q)` by `A` has entry `A a p * star (A b q)` at `(a,
+b)`. -/
 private theorem comm_conj_matrix_unit {n : ℕ} (A : Operator n) (p q a b : Fin n) :
     conjBranch A (commMatrixUnit p q) a b = A a p * star (A b q) := by
   simp [commMatrixUnit, Matrix.mul_apply, Matrix.conjTranspose_apply,
     ite_and, mul_ite, ite_mul]
 
+/-- If a finite sum of Kraus conjugations is a scalar multiple of the identity map, each Kraus
+operator is a scalar multiple of the identity matrix. -/
 theorem comm_kraus_scalar_of_identity {n : ℕ} [NeZero n] {ι : Type} [Fintype ι]
     (A : ι → Operator n) (c : ℂ)
     (h : ∀ ρ : Operator n, (∑ w, conjBranch (A w) ρ) = c • ρ) :
@@ -197,13 +245,18 @@ theorem comm_kraus_scalar_of_identity {n : ℕ} [NeZero n] {ι : Type} [Fintype 
     simpa using hequal p 0 w
   · simp [hpq, hoff p q hpq w]
 
+/-- The Weyl operator with shift given by the second outcome coordinate and negative phase given
+by the first. -/
 private noncomputable def commWeyl (n : ℕ) [NeZero n] (o : Fin n × Fin n) : Operator n :=
   quditX n ((ZMod.finEquiv n) o.2) * quditZ n (-((ZMod.finEquiv n) o.1))
 
+/-- Every operator `commWeyl n o` is unitary. -/
 private theorem commWeyl_unitary (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
     commWeyl n o ∈ Matrix.unitaryGroup (Fin n) ℂ :=
   (Matrix.unitaryGroup (Fin n) ℂ).mul_mem (quditX_unitary _ _) (quditZ_unitary _ _)
 
+/-- If a nonzero scalar multiple of one outcome Weyl operator equals a scalar multiple of
+another, the outcomes coincide. -/
 private theorem comm_weyl_projective (n : ℕ) [NeZero n] (o o' : Fin n × Fin n)
     (z z' : ℂ) (hz : z ≠ 0) (he : z • commWeyl n o = z' • commWeyl n o') : o = o' := by
   have hsupport : o.2 = o'.2 := by
@@ -232,6 +285,8 @@ private theorem comm_weyl_projective (n : ℕ) [NeZero n] (o o' : Fin n × Fin n
     (neg_inj.mp (stdAddChar_injective hchar))
   exact Prod.ext hfirst hsupport
 
+/-- If `C * quditBranchKraus n o = z • 1`, then `(1 / n) • C` equals `z` times the adjoint
+outcome Weyl operator. -/
 private theorem comm_corrected_weyl_scalar (n : ℕ) [NeZero n] (o : Fin n × Fin n)
     (C : Operator n) (z : ℂ) (hz : C * quditBranchKraus n o = z • (1 : Operator n)) :
     (1 / (n : ℂ)) • C = z • (commWeyl n o)ᴴ := by
@@ -244,6 +299,8 @@ private theorem comm_corrected_weyl_scalar (n : ℕ) [NeZero n] (o : Fin n × Fi
     Matrix.mul_one, Matrix.smul_mul, Matrix.one_mul] at he
   exact he
 
+/-- Distinct qudit outcomes cannot be merged under one correction to obtain `2 / n²` times the
+identity map on every finite extension. -/
 theorem commBoundMergeNoGoQudit : CommBoundMergeNoGoQudit := by
   classical
   intro n _ o o' hoo C
@@ -283,6 +340,7 @@ theorem commBoundMergeNoGoQudit : CommBoundMergeNoGoQudit := by
   · exact hoo (comm_weyl_projective n o o' (star z) (star z') (star_ne_zero.mpr hn) hrep')
   · exact hoo (comm_weyl_projective n o' o (star z') (star z) (star_ne_zero.mpr hn) hrep'.symm).symm
 
+/-- A unitary operator in nonzero dimension is nonzero. -/
 private theorem comm_unitary_ne_zero (n : ℕ) [NeZero n] (C : Operator n)
     (hC : C∈Matrix.unitaryGroup (Fin n) ℂ) : C≠0 := by
   intro hc
@@ -291,6 +349,8 @@ private theorem comm_unitary_ne_zero (n : ℕ) [NeZero n] (C : Operator n)
   have he := congrArg (fun M : Operator n => M 0 0) h
   norm_num at he
 
+/-- Exact qudit recovery with unitary corrections forces an injective message assignment and at
+least `n²` message labels. -/
 theorem commBoundMessageInjectiveQudit : CommBoundMessageInjectiveQudit := by
   classical
   intro n _ κ _ m Cm hCm hrec
@@ -320,9 +380,12 @@ theorem commBoundMessageInjectiveQudit : CommBoundMessageInjectiveQudit := by
   refine ⟨hinj,?_⟩
   simpa only [Fintype.card_prod,Fintype.card_fin] using Fintype.card_le_of_injective m hinj
 
+/-- The Bell outcome operator obtained by relabeling the corresponding product of Pauli `X` and
+Pauli `Z`. -/
 private noncomputable def commBellW (o : Bool × Bool) : Operator 2 :=
   relabelGate boolEquivFin2 ((if o.2 then PauliX else 1)*(if o.1 then PauliZ else 1))
 
+/-- Every Bell outcome operator `commBellW o` is unitary. -/
 private theorem commBellW_unitary (o : Bool × Bool) : commBellW o∈Matrix.unitaryGroup (Fin 2) ℂ := by
   apply teleportRelabelGate_mem_unitaryGroup
   apply (Matrix.unitaryGroup Bool ℂ).mul_mem
@@ -333,6 +396,8 @@ private theorem commBellW_unitary (o : Bool × Bool) : commBellW o∈Matrix.unit
     · exact Submonoid.one_mem _
     · exact pauliZ_unitary
 
+/-- If a nonzero scalar multiple of one Bell outcome operator equals a scalar multiple of
+another, the outcomes coincide. -/
 private theorem comm_bell_projective (o o' : Bool × Bool) (z z' : ℂ) (hz : z≠0)
     (he : z • commBellW o=z' • commBellW o') : o=o' := by
   rcases o with ⟨a,b⟩
@@ -358,6 +423,8 @@ private theorem comm_bell_projective (o o' : Bool × Bool) (z z' : ℂ) (hz : z�
     | linear_combination (1/2 : ℂ)*h01+(1/2 : ℂ)*h10
     | linear_combination (1/2 : ℂ)*h10-(1/2 : ℂ)*h01
 
+/-- Exact Bell recovery with unitary corrections forces an injective message assignment and at
+least four message labels. -/
 theorem commBoundMessageInjectiveBell : CommBoundMessageInjectiveBell := by
   classical
   intro κ _ m Cm hCm hrec
@@ -395,6 +462,9 @@ theorem commBoundMessageInjectiveBell : CommBoundMessageInjectiveBell := by
     exact comm_bell_projective o o' (star z) (star z') (star_ne_zero.mpr hn) he
   exact ⟨hinj,Fintype.card_le_of_injective m hinj⟩
 
+/-- The qudit and Bell merged-branch impossibility and unitary message-injectivity contracts
+hold. These formalize restricted communication bounds for teleportation
+[BennettEtAl1993Teleportation]. -/
 theorem commBoundRestricted : CommBoundRestricted :=
   ⟨commBoundMergeNoGoQudit,commBoundMessageInjectiveQudit,
     commBoundMergeNoGoBell,commBoundMessageInjectiveBell⟩

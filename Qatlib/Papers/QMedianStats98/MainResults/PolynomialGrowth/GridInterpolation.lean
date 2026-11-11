@@ -16,6 +16,28 @@ import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Data.Nat.Factorial.BigOperators
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# Polynomial growth between integer-grid nodes
+
+This module proves Fact A.2 of [NayakWu1998] by explicit Lagrange interpolation on consecutive
+integer nodes. A real polynomial of degree at most `d ≤ n`, bounded by `c` at the integers from
+zero to `n`, is bounded by `2^d * c` throughout `[0, n]`.
+
+The proof constructs cardinal polynomials for blocks of `d + 1` nodes, establishes factorial
+bounds for their products, and sums the resulting binomial estimates. A suitable block contains
+each point of the full interval.
+
+## Main statements
+
+- `lagrangeCardinal_eval_node` and `interpolation_eq`: establish the interpolation formula.
+- `block_bound`: bounds values within a block of consecutive nodes.
+- `source_fact_A2` and `source_fact_A2_exact`: provide the integer-grid growth estimate.
+
+## References
+
+[Nayak and Wu, 1998][NayakWu1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -24,6 +46,7 @@ namespace Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth
 open Polynomial Finset
 open scoped BigOperators
 
+/-- For natural numbers `k < d`, the product `(k + 1)! * (d - k)!` is at most `d!`. -/
 theorem factorial_mul_factorial_le (d k : ℕ) (hk : k < d) :
     (k + 1).factorial * (d - k).factorial ≤ d.factorial := by
   induction d generalizing k with
@@ -41,6 +64,8 @@ theorem factorial_mul_factorial_le (d k : ℕ) (hk : k < d) :
     · rw [h, show n + 1 - n = 1 by omega]
       simp
 
+/-- For `i ≤ d`, the product of `i - j` over integer nodes `0 ≤ j ≤ d` other than `i` equals `i!
+* (-1)^(d-i) * (d-i)!` over the reals. -/
 theorem prod_node_sub (d i : ℕ) (hi : i ≤ d) :
     ∏ j ∈ (Finset.range (d + 1)).erase i, ((i : ℝ) - (j : ℝ))
       = (i.factorial : ℝ) * (-1 : ℝ) ^ (d - i) * ((d - i).factorial : ℝ) := by
@@ -83,11 +108,15 @@ theorem prod_node_sub (d i : ℕ) (hi : i ≤ d) :
     · rw [← Nat.cast_prod, Finset.prod_range_add_one_eq_factorial]
   rw [mul_assoc, hleft, hright]
 
+/-- The normalized Lagrange cardinal polynomial for the node `m + i` among the consecutive nodes
+`m, ..., m + d`. -/
 def lagrangeCardinal (m d i : ℕ) : Polynomial ℝ :=
   Polynomial.C ((((i.factorial * (d - i).factorial : ℕ) : ℝ))⁻¹ * (-1 : ℝ) ^ (d - i)) *
     ∏ j ∈ (Finset.range (d + 1)).erase i,
       (Polynomial.X - Polynomial.C (((m + j : ℕ) : ℝ)))
 
+/-- For node indices `i, k ≤ d`, the cardinal polynomial for `m + i` evaluates to one at `m + k`
+when `i = k` and to zero otherwise. -/
 theorem lagrangeCardinal_eval_node (m d i k : ℕ) (hi : i ≤ d) (hk : k ≤ d) :
     (lagrangeCardinal m d i).eval (((m + k : ℕ) : ℝ))
       = if i = k then 1 else 0 := by
@@ -132,6 +161,8 @@ theorem lagrangeCardinal_eval_node (m d i k : ℕ) (hi : i ≤ d) (hk : k ≤ d)
       simp
     rw [hz, mul_zero]
 
+/-- For `i ≤ d`, the cardinal polynomial on the `d + 1` consecutive nodes has natural degree at
+most `d`. -/
 theorem natDegree_lagrangeCardinal (m d i : ℕ) (hi : i ≤ d) :
     (lagrangeCardinal m d i).natDegree ≤ d := by
   have hprod : (∏ j ∈ (Finset.range (d + 1)).erase i,
@@ -160,6 +191,8 @@ theorem natDegree_lagrangeCardinal (m d i : ℕ) (hi : i ≤ d) :
     Polynomial.natDegree_C _
   omega
 
+/-- For `0 ≤ y ≤ d` and `i ≤ d`, the product of `|y - j|` over all integer nodes from zero to
+`d` except `i` is at most `d!`. -/
 theorem prod_abs_sub_le_factorial (d i : ℕ) (hi : i ≤ d) {y : ℝ}
     (hy0 : 0 ≤ y) (hyd : y ≤ (d : ℝ)) :
     ∏ j ∈ (Finset.range (d + 1)).erase i, |y - (j : ℝ)| ≤ (d.factorial : ℝ) := by
@@ -275,6 +308,8 @@ theorem prod_abs_sub_le_factorial (d i : ℕ) (hi : i ≤ d) {y : ℝ}
     _ ≤ (d.factorial : ℝ) := by
         exact_mod_cast factorial_mul_factorial_le d k (by omega)
 
+/-- Every real polynomial of degree at most `d` equals the sum of its values at `m, ..., m + d`
+multiplied by the corresponding Lagrange cardinal polynomials. -/
 theorem interpolation_eq (m d : ℕ) {p : Polynomial ℝ} (hdeg : p.natDegree ≤ d) :
     p = ∑ i ∈ Finset.range (d + 1),
         Polynomial.C (p.eval (((m + i : ℕ) : ℝ))) * lagrangeCardinal m d i := by
@@ -325,6 +360,8 @@ theorem interpolation_eq (m d : ℕ) {p : Polynomial ℝ} (hdeg : p.natDegree �
     omega
   exact Polynomial.eq_of_natDegree_lt_card_of_eval_eq' p I _ heval hcard
 
+/-- If a polynomial of degree at most `d` is bounded in absolute value by `c ≥ 0` at `m, ..., m
++ d`, then it is bounded by `2^d * c` throughout `[m, m + d]`. -/
 theorem block_bound (m d : ℕ) {p : Polynomial ℝ} {c x : ℝ}
     (hdeg : p.natDegree ≤ d) (hc : 0 ≤ c)
     (hgrid : ∀ i : ℕ, i ≤ d → |p.eval (((m + i : ℕ) : ℝ))| ≤ c)
@@ -395,6 +432,9 @@ theorem block_bound (m d : ℕ) {p : Polynomial ℝ} {c x : ℝ}
   rw [h3]
   exact le_of_eq (mul_comm _ _)
 
+/-- If `d ≤ n` and a real polynomial of degree at most `d` has absolute value at most `c ≥ 0` at
+every integer node from zero to `n`, then its absolute value is at most `2^d * c` throughout
+`[0, n]`. This is Fact A.2 of [NayakWu1998]. -/
 theorem source_fact_A2 {d n : ℕ} (hdn : d ≤ n)
     {p : Polynomial ℝ} {c x : ℝ} (hdeg : p.natDegree ≤ d) (hc : 0 ≤ c)
     (hgrid : ∀ i : ℕ, i ≤ n → |p.eval ((i : ℕ) : ℝ)| ≤ c)
@@ -436,6 +476,9 @@ theorem source_fact_A2 {d n : ℕ} (hdn : d ≤ n)
       rwa [Nat.sub_add_cancel hdn] at hle
     exact block_bound m d hdeg hc hgrid' hxm0 hxm1
 
+/-- A real polynomial of degree at most `d ≤ n`, bounded in absolute value by `c` at every
+integer node from zero to `n`, is bounded by `2^d * c` on `[0, n]`. This form of Fact A.2 in
+[NayakWu1998] infers the nonnegativity of `c` from the grid bound. -/
 theorem source_fact_A2_exact {d n : ℕ} (hdn : d ≤ n) {p : Polynomial ℝ} {c x : ℝ}
     (hdeg : p.natDegree ≤ d)
     (hgrid : ∀ i : ℕ, i ≤ n → |p.eval ((i : ℕ) : ℝ)| ≤ c)

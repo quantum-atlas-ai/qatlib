@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.Normed.Ring.Basic
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
 import Qatlib.Concepts.NumericalWord.MixedWordError.HeterogeneousNumericalWord
+
+/-!
+# Composition and measurement error bounds
+
+The product estimates express additive accumulation of operator errors, while
+`lemma4_measurement_distance` bounds measurement probability differences by trace norm. The
+mixed-word bridges apply these estimates to the precision budget, and `lemma5_error_budget`
+records the corresponding total-variation triangle bound. The development follows [Kitaev1995].
+
+## Main statements
+
+* `lemma3_unitary_operator_error`: bounds the error of an ordered product of unitary matrices by
+  the sum of step errors.
+* `lemma4_measurement_distance`: bounds outcome probability differences by trace norm.
+* `lemma5_bridge_mixedWord`: bounds event-probability error by twice the word budget.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +41,7 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.NumericalWord.MixedWordError
 
+/-- A finite list of norm-one elements in a normed ring has product norm at most one. -/
 theorem list_prod_norm_le_one {R : Type} [NormedRing R] [NormOneClass R] (l : List R)
     (h : ∀ x ∈ l, ‖x‖ = 1) : ‖l.prod‖ ≤ 1 := by
   induction l with
@@ -30,6 +52,9 @@ theorem list_prod_norm_le_one {R : Type} [NormedRing R] [NormOneClass R] (l : Li
       _ = ‖xs.prod‖ := by rw [h x (by simp), one_mul]
       _ ≤ 1 := ih (fun y hy => h y (by simp [hy]))
 
+/-- For paired lists of norm-one factors with nonnegative step-error bounds, the norm of the
+product difference is at most the sum of the bounds. This is the product estimate of
+[Kitaev, 1995, Lemma 3][Kitaev1995]. -/
 theorem lemma3_operator_error {R : Type} [NormedRing R] [NormOneClass R]
     (l : List (R × R × ℝ))
     (hU : ∀ p ∈ l, ‖p.1‖ = 1)
@@ -77,6 +102,8 @@ theorem lemma3_operator_error {R : Type} [NormedRing R] [NormOneClass R]
     rw [key]
     linarith
 
+/-- The difference between reverse-ordered products of paired unitary matrices has norm at most
+the sum of the given step-error bounds, as in [Kitaev, 1995, Lemma 3][Kitaev1995]. -/
 theorem lemma3_unitary_operator_error {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ × Matrix I I ℂ × ℝ))
     (hU : ∀ p ∈ l, p.1 ∈ Matrix.unitaryGroup I ℂ)
@@ -103,6 +130,9 @@ theorem lemma3_unitary_operator_error {I : Type} [Fintype I] [DecidableEq I]
       (fun p hp => herr p (List.mem_reverse.mp hp))
     simpa only [List.map_reverse, List.sum_reverse] using h
 
+/-- For a finite POVM and two density operators, the sum of absolute outcome probability
+differences is at most the trace norm of their difference. This is the measurement-distance
+estimate of [Kitaev, 1995, Lemma 4][Kitaev1995]. -/
 theorem lemma4_measurement_distance {O : Type} [Fintype O] [DecidableEq O] {d : ℕ}
     (E : FinitePOVM O d) (A B : Operator d)
     (hA : IsDensityOperator A) (hB : IsDensityOperator B) :
@@ -114,6 +144,7 @@ theorem lemma4_measurement_distance {O : Type} [Fintype O] [DecidableEq O] {d : 
   simp only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteInformationDivergence.tv] at h
   linarith
 
+/-- Total variation distance on finite distributions satisfies the triangle inequality. -/
 theorem tv_triangle {X : Type} [Fintype X] [DecidableEq X]
     (p q r : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteInformationDivergence.tv p r ≤
@@ -130,6 +161,8 @@ theorem tv_triangle {X : Type} [Fintype X] [DecidableEq X]
   rw [Finset.sum_add_distrib] at hsum
   linarith
 
+/-- If successive total variation distances are bounded by `eps` and `2 * L * δ`, their endpoint
+distance is at most `eps + 2 * L * δ`, as used in [Kitaev, 1995, Lemma 5][Kitaev1995]. -/
 theorem lemma5_error_budget {X : Type} [Fintype X] [DecidableEq X]
     (p q r : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (eps δ : ℝ) (L : ℕ)
@@ -140,6 +173,8 @@ theorem lemma5_error_budget {X : Type} [Fintype X] [DecidableEq X]
       eps + 2 * (L : ℝ) * δ :=
   (tv_triangle p q r).trans (add_le_add h1 h2)
 
+/-- For valid controls and unitary oracles, the operator norm difference between a mixed word
+and its implemented matrix is at most `budget W`. -/
 theorem lemma3_bridge_mixedWord {n w : ℕ} (hw : w ≤ n) (S : Type)
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S))
     (hv : ValidControls W) (hO : ∀ s, O s ∈ Matrix.unitaryGroup (Reg w) ℂ) :
@@ -147,6 +182,8 @@ theorem lemma3_bridge_mixedWord {n w : ℕ} (hw : w ≤ n) (S : Type)
   (Qatlib.Concepts.NumericalWord.MixedWordError.g2
     n w hw S O W hv hO).1
 
+/-- For a legal mixed word with valid controls and unitary oracles, every event probability on a
+normalized input changes by at most `2 * budget W`, as used in [Kitaev1995]. -/
 theorem lemma5_bridge_mixedWord {n w : ℕ} (hw : w ≤ n) (S : Type) [DecidableEq S]
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S))
     (paid : List (AccessForm S)) (hv : ValidControls W) (hp : mixedWordLegal W paid)

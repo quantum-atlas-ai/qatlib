@@ -60,19 +60,47 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# Rates and coefficients for the telegraph limit
+
+This module defines the discriminant `discr`, slow and fast decay rates, and the mixing
+coefficient `coeff` for scalar telegraph modes. For positive `δ`, nonnegative `a`, and `4 * δ *
+a ≤ 3/4`, it proves bounds on these quantities, their characteristic equations, and the identity
+imposing zero initial derivative.
+
+The mathematical background is discussed in [JinLiu2024].
+
+## Main statements
+
+* `discr_bounds`: bounds the square-root discriminant between one half and one.
+* `rate_bounds`: compares the two rates and bounds their corrections.
+* `characteristic` and `zero_initial_flux`: the algebraic identities for the telegraph solution.
+
+## References
+
+* [Jin and Liu, 2024][JinLiu2024]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
 namespace Qatlib.Foundations.TimeEvolution.TelegraphLimit
 
+/-- The square-root discriminant `sqrt (1 - 4 * δ * a)`. -/
 def discr (δ a : ℝ) : ℝ := Real.sqrt (1-4*δ*a)
 
+/-- The rationalized slow decay rate `2 * a / (1 + discr δ a)`. -/
 def slow (δ a : ℝ) : ℝ := 2*a/(1+discr δ a)
 
+/-- The fast decay rate `(1 + discr δ a) / (2 * δ)`. -/
 def fast (δ a : ℝ) : ℝ := (1+discr δ a)/(2*δ)
 
+/-- The mixing coefficient `(1 - discr δ a) / (2 * discr δ a)`. -/
 def coeff (δ a : ℝ) : ℝ := (1-discr δ a)/(2*discr δ a)
 
+/-- For positive `δ`, nonnegative `a`, and `4 * δ * a ≤ 3/4`, the discriminant lies between one
+half and one and its square is `1 - 4 * δ * a`. -/
 theorem discr_bounds {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) :
     1/2 ≤ discr δ a ∧ discr δ a ≤ 1 ∧ (discr δ a)^2=1-4*δ*a := by
   have h0 : 0 ≤ 1-4*δ*a := by linarith
@@ -86,6 +114,8 @@ theorem discr_bounds {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3
   · nlinarith
   · exact hs
 
+/-- Under the stated rate restrictions, the slow-rate correction is `4 * δ * a ^ 2 / (1 + discr
+δ a) ^ 2`. -/
 theorem slow_gap {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) :
     slow δ a-a=4*δ*a^2/(1+discr δ a)^2 := by
   obtain ⟨hd,_,hs⟩ := discr_bounds hδ ha hm
@@ -94,6 +124,8 @@ theorem slow_gap {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) 
   field_simp
   nlinarith [hs]
 
+/-- Under the stated rate restrictions, the mixing coefficient equals `2 * δ * a / (discr δ a *
+(1 + discr δ a))`. -/
 theorem coeff_eq {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) :
     coeff δ a=2*δ*a/(discr δ a*(1+discr δ a)) := by
   obtain ⟨hd,_,hs⟩ := discr_bounds hδ ha hm
@@ -103,6 +135,8 @@ theorem coeff_eq {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) 
   field_simp
   nlinarith [hs]
 
+/-- Under the stated restrictions, `a ≤ slow δ a ≤ fast δ a`, the coefficient lies in `[0, 4 * δ
+* a]`, and the slow-rate correction is at most `4 * δ * a ^ 2`. -/
 theorem rate_bounds {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) :
     a  ≤  slow δ a ∧ slow δ a  ≤  fast δ a ∧
     0 ≤ coeff δ a ∧ coeff δ a ≤ 4*δ*a ∧ slow δ a-a ≤ 4*δ*a^2 := by
@@ -127,6 +161,8 @@ theorem rate_bounds {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/
     have hh : 1 ≤ (1+discr δ a)^2 := by nlinarith
     nlinarith [mul_nonneg (by positivity : 0 ≤ 4*δ*a^2) (show 0 ≤ (1+discr δ a)^2-1 by linarith)]
 
+/-- Under the stated restrictions, both decay rates satisfy the quadratic equation `δ * rate ^ 2
+- rate + a = 0`. -/
 theorem characteristic {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) :
     δ*(slow δ a)^2-slow δ a+a=0 ∧ δ*(fast δ a)^2-fast δ a+a=0 := by
   obtain ⟨hd,_,hs⟩ := discr_bounds hδ ha hm
@@ -140,6 +176,8 @@ theorem characteristic {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤
     field_simp
     nlinarith [hs]
 
+/-- Under the stated rate restrictions, `(1 + coeff δ a) * slow δ a = coeff δ a * fast δ a`, so
+the two derivative contributions cancel initially. -/
 theorem zero_initial_flux {δ a : ℝ} (hδ : 0<δ) (ha : 0 ≤ a) (hm : 4*δ*a ≤ 3/4) :
     (1+coeff δ a)*slow δ a=coeff δ a*fast δ a := by
   obtain ⟨hd,_,hs⟩ := discr_bounds hδ ha hm

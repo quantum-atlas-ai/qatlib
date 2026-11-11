@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerExactScaleStat
 import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
 import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+
+/-!
+# Effective quantization with exact qDRIFT time scaling
+
+This module implements ceiling quantization from a finite list of rational oracle reads and
+proves its agreement with `effectiveCeilQuantizer`. It then proves
+`effectiveQuantizerExactScaleSubgoal`, combining probability-law perturbation, sign handling,
+and exact time rescaling in the qDRIFT framework of [Campbell2019].
+
+The final result supplies a quantizer certificate, a normalized-weight error bound, a finite
+diamond simulation guarantee, and per-path quantum and classical resource bounds.
+
+## Main statements
+
+* `effectiveCeilQuantizerReadRun_reads`: counts one oracle read per coefficient.
+* `effective_budgets`: bounds analytic, quantization, and capped-sampling errors.
+* `effectiveQuantizerExactScaleSubgoal`: proves the exact-scale simulation specification.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -35,19 +58,25 @@ namespace Qatlib.Concepts.RandCompile.EffectiveInput
 open Matrix
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- Converts a list of `L` rational digits into weights by taking the natural ceiling of each
+digit scaled by `M` over the total digit mass, then adding one. -/
 def effectiveCeilQuantizerRat {L : ℕ} (digits : List ℚ)
     (hlen : digits.length = L) (M : ℕ) : Fin L → ℕ :=
   let mass := digits.sum
   fun j => Nat.ceil ((M : ℚ) * digits[j.val]'(by rw [hlen]; exact j.isLt) / mass) + 1
 
+/-- Loads each oracle value at precision `k`, computes ceiling-quantizer weights, and returns
+the weights together with the number of loaded digits. -/
 def effectiveCeilQuantizerReadRun {L : ℕ} (q : Fin L → ℕ → ℚ) (k M : ℕ) :
     (Fin L → ℕ) × ℕ :=
   let digits := List.ofFn (fun j => q j k)
   (effectiveCeilQuantizerRat digits List.length_ofFn M, digits.length)
 
+/-- Taking the natural ceiling of a rational number is unchanged by casting it to the reals. -/
 private theorem natCeilRatCast (x : ℚ) : Nat.ceil (x : ℝ) = Nat.ceil x := by
   rw [← Int.ceil_toNat, ← Int.ceil_toNat, Rat.ceil_cast]
 
+/-- The finite rational read run produces exactly the weights of `effectiveCeilQuantizer`. -/
 theorem effectiveCeilQuantizerReadRun_weights {L : ℕ} (q : Fin L → ℕ → ℚ) (k M : ℕ) :
     (effectiveCeilQuantizerReadRun q k M).1 = effectiveCeilQuantizer q k M := by
   funext j
@@ -57,10 +86,12 @@ theorem effectiveCeilQuantizerReadRun_weights {L : ℕ} (q : Fin L → ℕ → �
       (M : ℝ) * (q j k : ℝ) / (∑ i, (q i k : ℝ)) := by push_cast; rfl
   rw [← natCeilRatCast, hcast]
 
+/-- The ceiling-quantizer read run loads exactly `L` digits. -/
 theorem effectiveCeilQuantizerReadRun_reads {L : ℕ} (q : Fin L → ℕ → ℚ) (k M : ℕ) :
     (effectiveCeilQuantizerReadRun q k M).2 = L := by
   simp [effectiveCeilQuantizerReadRun]
 
+/-- Every real `x` is at most twice `2` raised to `Nat.log2 (Nat.ceil x + 1)`. -/
 private theorem log2_ceil_half_bound (x : ℝ) :
     x ≤ 2*((2 ^ Nat.log2 (Nat.ceil x+1) : ℕ) : ℝ) := by
   have hl := Nat.lt_pow_succ_log_self (by decide : 1 < 2) (Nat.ceil x+1)
@@ -71,6 +102,8 @@ private theorem log2_ceil_half_bound (x : ℝ) :
     linarith only [hr]
   exact (Nat.le_ceil x).trans hc
 
+/-- Mixing a finite probability law with a point mass with nonnegative coefficient `α` changes
+its probabilities by at most `2 * α` in summed absolute difference. -/
 private theorem cap_law_l1 {J : Type} [Fintype J] [DecidableEq J]
     (d e : FinDist J) (j0 : J) (α : ℝ) (hα : 0 ≤ α)
     (he : ∀ j, e.prob j = (1-α)*d.prob j+α*(if j=j0 then 1 else 0)) :
@@ -88,6 +121,7 @@ private theorem cap_law_l1 {J : Type} [Fintype J] [DecidableEq J]
   simp
   ring
 
+/-- The prescribed rejection fuel bounds `2 * n * (1/2)^R` by `(1/2)^s / 2`. -/
 private theorem fair_fuel_inverse_budget (n s : ℕ) :
     2*(n : ℝ)*((2 : ℝ)⁻¹)^(fairQdriftFuel n s) ≤ ((2 : ℝ)⁻¹)^s/2 := by
   let c := Nat.clog 2 (max 1 n)
@@ -99,6 +133,9 @@ private theorem fair_fuel_inverse_budget (n s : ℕ) :
     _ ≤ 2*(2 : ℝ)^c*(((2 : ℝ)⁻¹)^s*((2 : ℝ)⁻¹)^c*((2 : ℝ)⁻¹)^2) := by gcongr
     _ = _ := by simp only [inv_pow]; field_simp
 
+/-- For positive tolerance, the chosen step count and quantizer scale are positive, and the
+analytic, accumulated quantization, and capped-sampling error expressions are bounded by `ε
+/ 3`, `2 * ε / 3`, and `ε / 6`, respectively. -/
 private theorem effective_budgets (L : ℕ) (lam t ε : ℝ) (hε : 0 < ε) :
     let n := realCoefQdriftSteps lam t ε
     let M : ℕ := 2^(effectiveQdriftBits L n ε)
@@ -139,6 +176,8 @@ private theorem effective_budgets (L : ℕ) (lam t ε : ℝ) (hε : 0 < ε) :
   refine ⟨hn, hM, hanalytic, hquant, ?_⟩
   exact (fair_fuel_inverse_budget n s).trans (by linarith only [hsbudget])
 
+/-- Under the sign promise, multiplying an absolute coefficient by its sign flag recovers the
+original real coefficient as a complex scalar. -/
 private theorem signed_flag_scalar {L : ℕ} (a : Fin L → ℝ) (sgn : Fin L → Bool)
     (hpromise : ∀ j, (if sgn j then -(a j) else a j) = |a j|) (j : Fin L) :
     (((|a j| : ℝ) : ℂ))*(if sgn j then (-1 : ℂ) else 1) = ((a j : ℝ) : ℂ) := by
@@ -149,6 +188,8 @@ private theorem signed_flag_scalar {L : ℕ} (a : Fin L → ℝ) (sgn : Fin L �
   · rw [if_neg hb] at hp
     rw [if_neg hb, mul_one, ← hp]
 
+/-- Multiplication by the scalar sign specified by a Boolean flag preserves Hermiticity and the
+contraction bound. -/
 private theorem signed_flag_contract {L D : ℕ} (K : Fin L → Operator D)
     (sgn : Fin L → Bool) (Ks : Fin L → Operator D)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -161,6 +202,8 @@ private theorem signed_flag_contract {L D : ℕ} (K : Fin L → Operator D)
   · rw [if_neg hb]
     simpa using! hK j
 
+/-- Under positive absolute coefficient mass and the sign promise, the importance-law
+Hamiltonian formed from signed terms equals the original signed coefficient sum. -/
 private theorem signed_flag_hamiltonian {L D : ℕ} (a : Fin L → ℝ)
     (K : Fin L → Operator D) (sgn : Fin L → Bool) (hlam : 0 < ∑ j, |a j|)
     (Ks : Fin L → Operator D)
@@ -180,6 +223,10 @@ private theorem signed_flag_hamiltonian {L D : ℕ} (a : Fin L → ℝ)
   rw [← mul_assoc, Complex.ofReal_div, mul_div_cancel₀ _ hneC]
   exact signed_flag_scalar a sgn hpromise j
 
+/-- Valid lower oracles and sign flags satisfy the exact-scale quantizer specification for
+Hermitian contraction terms and positive mass and tolerance. This includes certification,
+normalized-weight accuracy, finite diamond error at most `ε`, and the stated circuit and
+sampling ledgers. -/
 theorem effectiveQuantizerExactScaleSubgoal : EffectiveQuantizerExactScaleSubgoal := by
   intro L D a K t ε j0 q sgn hlam hK hε horacle hpromise
   (try dsimp only)

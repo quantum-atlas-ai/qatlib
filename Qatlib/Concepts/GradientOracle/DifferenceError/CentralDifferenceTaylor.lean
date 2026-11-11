@@ -8,6 +8,31 @@ import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBound
 import Mathlib.Analysis.SpecialFunctions.Stirling
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Taylor jets for central-difference remainders
+
+`centralDiffTaylorJet` is the Taylor polynomial at zero written with iterated derivatives. The
+module identifies it with the interval Taylor polynomial, proves exact central-difference action
+on its degree-`2 * m` truncation, and bounds its remainder.
+
+`centralDiff_remainder_prefactor` absorbs the coefficient power-sum factor and the Taylor
+factorial into the exponential factor `exp (-(1 / 2) * m)`. See [GilyenArunachalamWiebe2019] for
+background.
+
+## Main statements
+
+* `centralDiff_taylor_jet_action`: The order-`m` central-difference rule applied to the
+  degree-`2 * m` Taylor jet equals `deriv f 0 * δ` for positive `m`.
+* `centralDiff_taylor_remainder`: A bound `B` on the `(n + 1)`st derivative over the unoriented
+  interval from zero to nonzero `x` bounds the Taylor-jet error by `B * |x| ^ (n + 1) / (n +
+  1)!`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
@@ -18,9 +43,13 @@ namespace Qatlib.Concepts.GradientOracle.DifferenceError
 open scoped Classical BigOperators
 open Set
 
+/-- The Taylor polynomial at zero through degree `n`, evaluated at `x` using iterated
+derivatives. -/
 def centralDiffTaylorJet (f : ℝ → ℝ) (n : ℕ) (x : ℝ) : ℝ :=
   ∑ j∈Finset.range (n+1),iteratedDeriv j f 0/(Nat.factorial j : ℝ)*x^j
 
+/-- The order-`m` central-difference rule applied to the degree-`2 * m` Taylor jet equals `deriv
+f 0 * δ` for positive `m`. -/
 theorem centralDiff_taylor_jet_action (m : ℕ) (hm : 0<m) (f : ℝ → ℝ) (δ : ℝ) :
     (∑ l∈Finset.Ico (-(m : ℤ)) ((m : ℤ)+1),centralDiffCoeff m l*centralDiffTaylorJet f (2*m) ((l : ℝ)*δ))=
       deriv f 0*δ := by
@@ -45,6 +74,8 @@ theorem centralDiff_taylor_jet_action (m : ℕ) (hm : 0<m) (f : ℝ → ℝ) (δ
   have hmem : 1∈Finset.range (2*m+1) := Finset.mem_range.mpr (by omega)
   simp [hmem]
 
+/-- For a sufficiently smooth function and a nonzero interval endpoint, the Taylor polynomial
+within the unoriented interval equals the iterated-derivative Taylor jet. -/
 theorem centralDiff_taylorWithin_eq (f : ℝ → ℝ) (n : ℕ) (hf : ContDiff ℝ (n+1) f)
     (x : ℝ) (hx : x≠0) (y : ℝ) :
     taylorWithinEval f n (uIcc 0 x) 0 y=centralDiffTaylorJet f n y := by
@@ -58,6 +89,8 @@ theorem centralDiff_taylorWithin_eq (f : ℝ → ℝ) (n : ℕ) (hf : ContDiff �
   rw [iteratedDerivWithin_eq_iteratedDeriv hu hcont (by simp),sub_zero,smul_eq_mul]
   ring
 
+/-- A bound `B` on the `(n + 1)`st derivative over the unoriented interval from zero to nonzero
+`x` bounds the Taylor-jet error by `B * |x| ^ (n + 1) / (n + 1)!`. -/
 theorem centralDiff_taylor_remainder (f : ℝ → ℝ) (n : ℕ) (hf : ContDiff ℝ (n+1) f)
     (x B : ℝ) (hx : x≠0) (hB : ∀ u∈uIcc 0 x,|iteratedDeriv (n+1) f u|≤B) :
     |f x-centralDiffTaylorJet f n x|≤B*|x|^(n+1)/(Nat.factorial (n+1) : ℝ) := by
@@ -68,6 +101,8 @@ theorem centralDiff_taylor_remainder (f : ℝ → ℝ) (n : ℕ) (hf : ContDiff 
   apply div_le_div_of_nonneg_right _ (Nat.cast_nonneg _)
   exact mul_le_mul_of_nonneg_right (hB u (Ioo_subset_Icc_self hu)) (by positivity)
 
+/-- For positive `m`, dividing the central-difference power-sum prefactor by `(2 * m + 1)!`
+bounds it by `exp (-(1 / 2) * m)`. -/
 theorem centralDiff_remainder_prefactor (m : ℕ) (hm : 0<m) :
     6*Real.exp (-(7/6 : ℝ)*(m : ℝ))*(m : ℝ)^((2*m : ℕ)+3/2 : ℝ)/
       (Nat.factorial (2*m+1) : ℝ)≤Real.exp (-(1/2 : ℝ)*(m : ℝ)) := by

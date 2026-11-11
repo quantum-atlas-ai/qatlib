@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.PhaseDetectionQuan
+
+/-!
+# Phase-detection query words
+
+This module supplies a legal query word that fixes the phase-zero subspace of a unitary and
+approximates a sign change on vectors annihilated by its small-phase projector. It provides
+explicit query and ancilla bounds in terms of the phase threshold and error tolerance,
+supporting the state-conversion construction of [LeeEtAl2011].
+
+## Main statements
+
+* `source_phase_detection`: positive threshold and tolerance yield a uniformly valid
+  phase-detection word with the stated resource and error bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -34,6 +53,9 @@ open Qatlib.Concepts.GramQueryCore.LowerBoundTools
 
 namespace Qatlib.Papers.StateConvLee10.PhaseDetect
 
+/-- For positive threshold `Θ` and tolerance `δ`, there is a legal word with the displayed query
+and ancilla bounds that fixes embedded invariant vectors and approximates their negation
+within error `δ` outside the small-phase subspace [LeeEtAl2011]. -/
 theorem source_phase_detection :
   ∃ c : ℕ, 0<c ∧ ∀ (H : Type) [Fintype H] [DecidableEq H]
     (Θ δ : ℝ), 0<Θ → 0<δ →

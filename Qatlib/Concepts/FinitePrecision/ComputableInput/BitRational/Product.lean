@@ -5,12 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.RationalData
+
+/-!
+# Correctness and bounds for rational products
+
+This module verifies signed rational construction and the counted rational multiplication and
+division procedures. The results identify their rational values, bound the output height width
+by the sum of input widths, and establish the gate cap `binomialRatOpGateCap`.
+
+For background on classical computation and its resource models, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `binomial_signed_rat`: correctness, width, and gate bounds for signed reduction.
+* `binomial_rat_mul_bits`: correctness and bounds for rational multiplication.
+* `binomial_rat_div_bits`: correctness and bounds for rational division.
+
+## References
+
+* [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- Recover an integer from its sign test and natural absolute value using
+`binomialSignedMagnitude`. -/
 private theorem signed_abs (a : ℤ) :
     binomialSignedMagnitude (decide (a < 0)) a.natAbs = a := by
   by_cases ha : a < 0
@@ -20,13 +43,17 @@ private theorem signed_abs (a : ℤ) :
     omega
   · simp [binomialSignedMagnitude,ha,Int.natAbs_of_nonneg (by omega : 0 ≤ a)]
 
+/-- The natural absolute value of a signed magnitude is its original magnitude. -/
 private theorem magnitude_abs (s : Bool) (n : ℕ) :
     (binomialSignedMagnitude s n).natAbs = n := by
   cases s <;> simp [binomialSignedMagnitude]
 
+/-- Negation preserves the rational height `binomialRatHeight`. -/
 private theorem height_neg (q : ℚ) : binomialRatHeight (-q) = binomialRatHeight q := by
   simp [binomialRatHeight]
 
+/-- Signed rational reduction returns `mkRat a d`, with height width at most `max 1 w` and gate
+count at most `w * (44 * w ^ 2 + 2 * w) + 44 * w ^ 2`, where `w` is the larger input size. -/
 theorem binomial_signed_rat (a : ℤ) (d : ℕ) :
     let w := max a.natAbs.size d.size
     let r := binomialSignedRat a d
@@ -67,22 +94,29 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- The binary size of a natural product is at most the sum of the factor sizes. -/
 private theorem size_product (a b : ℕ) : (a*b).size ≤ a.size+b.size := by
   apply Nat.size_le.mpr
   rw [pow_add]
   exact (Nat.mul_le_mul_left a (Nat.lt_size_self b).le).trans_lt
     (mul_lt_mul_of_pos_right (Nat.lt_size_self a) (by positivity))
 
+/-- The height width of a rational is at least one. -/
 private theorem width_pos (a : ℚ) : 1 ≤ (binomialRatHeight a).size := by
   have h : 1 ≤ binomialRatHeight a := a.den_pos.trans_le (le_max_right _ _)
   simpa using Nat.size_le_size h
 
+/-- The binary size of the absolute numerator is at most the rational height width. -/
 private theorem width_num (a : ℚ) : a.num.natAbs.size ≤ (binomialRatHeight a).size :=
   Nat.size_le_size (le_max_left _ _)
 
+/-- The binary size of the denominator is at most the rational height width. -/
 private theorem width_den (a : ℚ) : a.den.size ≤ (binomialRatHeight a).size :=
   Nat.size_le_size (le_max_right _ _)
 
+/-- Computing two natural products and reducing their signed ratio gives the expected rational,
+with height width at most `H` and total gates at most `binomialRatOpGateCap H`, under the
+stated size bounds. -/
 private theorem product_pair (s : Bool) (a b c d H : ℕ)
     (h1 : a.size+b.size ≤ H) (h2 : c.size+d.size ≤ H) (hp : 1 ≤ H) :
     let n := binomialBitMul a.bits b.bits
@@ -128,12 +162,16 @@ private theorem product_pair (s : Bool) (a b c d H : ℕ)
   change n.2+m.2+1+(binomialSignedRat (binomialSignedMagnitude s (a*b)) (c*d)).2 ≤ _
   omega
 
+/-- Multiplying two signed natural ratios multiplies their magnitudes and combines their sign
+bits by Boolean exclusive-or. -/
 private theorem signed_ratio_mul (s t : Bool) (a b c d : ℕ) :
     (binomialSignedMagnitude (Bool.xor s t) (a*c) : ℚ)/(b*d : ℕ) =
       ((binomialSignedMagnitude s a : ℚ)/(b : ℚ))*
         ((binomialSignedMagnitude t c : ℚ)/(d : ℚ)) := by
   cases s <;> cases t <;> simp [binomialSignedMagnitude,div_eq_mul_inv] <;> ring
 
+/-- Dividing two signed natural ratios forms the cross products and combines their sign bits by
+Boolean exclusive-or. -/
 private theorem signed_ratio_div (s t : Bool) (a b c d : ℕ) :
     (binomialSignedMagnitude (Bool.xor s t) (a*d) : ℚ)/(b*c : ℕ) =
       ((binomialSignedMagnitude s a : ℚ)/(b : ℚ))/
@@ -144,6 +182,8 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- Counted rational multiplication returns `a * b`, with height width at most the sum of input
+height widths and gate count bounded by `binomialRatOpGateCap` at that sum. -/
 theorem binomial_rat_mul_bits (a b : ℚ) :
     let H := (binomialRatHeight a).size+(binomialRatHeight b).size
     let r := binomialRatMulBits a b
@@ -159,6 +199,8 @@ theorem binomial_rat_mul_bits (a b : ℚ) :
     _ = a*b := by
       rw [Rat.mkRat_eq_div,signed_ratio_mul,signed_abs,signed_abs,a.num_div_den,b.num_div_den]
 
+/-- Counted rational division returns `a / b`, with height width at most the sum of input height
+widths and gate count bounded by `binomialRatOpGateCap` at that sum. -/
 theorem binomial_rat_div_bits (a b : ℚ) :
     let H := (binomialRatHeight a).size+(binomialRatHeight b).size
     let r := binomialRatDivBits a b

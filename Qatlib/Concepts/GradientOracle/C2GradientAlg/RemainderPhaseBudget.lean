@@ -9,6 +9,31 @@ import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
+
+/-!
+# Taylor remainders and gradient phase budgets
+
+`phase_error_bound` combines a nonlinear remainder and value error into a scaled phase bound.
+Taylor estimates in one dimension and on a finite-dimensional cube control the remainder through
+a second-derivative or Hessian norm bound.
+
+`cube_taylor_remainder` gives the explicit `B * d * l ^ 2 / 8` cube estimate used in the
+numerical-gradient probability analysis. See [Jordan2005Gradient] for background.
+
+## Main statements
+
+* `phase_error_bound`: Remainder and value-error bounds `R` and `E` give scaled phase error at
+  most `2 * Real.pi * N * (R + E) / (m * l)` under the stated sign assumptions.
+  [Jordan2005Gradient]
+* `cube_taylor_remainder`: A twice continuously differentiable function with Hessian norm
+  bounded by `B ≥ 0` has first-order remainder at most `B * d * l ^ 2 / 8` for cube
+  displacements. [Jordan2005Gradient]
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,12 +45,17 @@ open Set
 
 namespace Qatlib.Concepts.GradientOracle.C2GradientAlg
 
+/-- The degree-one Taylor polynomial within a set is the function value plus the first
+within-derivative term. -/
 lemma taylor_one_eval (f : ℝ → ℝ) (s : Set ℝ) (x y : ℝ) :
     taylorWithinEval f 1 s x y = f x + iteratedDerivWithin 1 f s x * (y - x) := by
   rw [taylorWithinEval_succ, taylor_within_zero_eval]
   simp
   ring
 
+/-- For distinct endpoints and the stated smoothness at the first endpoint, the iterated
+derivative within their unoriented closed interval equals the unrestricted iterated
+derivative there. -/
 lemma within_deriv_eq (f : ℝ → ℝ) (n : ℕ) (x y : ℝ) (hxy : x ≠ y)
     (hf : ContDiffAt ℝ n f x) :
     iteratedDerivWithin n f (uIcc x y) x = iteratedDeriv n f x := by
@@ -38,6 +68,8 @@ lemma within_deriv_eq (f : ℝ → ℝ) (n : ℕ) (x y : ℝ) (hxy : x ≠ y)
   · exact hf
   · exact left_mem_uIcc
 
+/-- Remainder and value-error bounds `R` and `E` give scaled phase error at most `2 * Real.pi *
+N * (R + E) / (m * l)` under the stated sign assumptions. [Jordan2005Gradient] -/
 theorem phase_error_bound (N m l R E r e : ℝ) (hN : 0 ≤ N) (hm : 0 < m) (hl : 0 < l)
     (hR : 0 ≤ R) (hE : 0 ≤ E) (hr : |r| ≤ R) (he : |e| ≤ E) :
     |(2 * Real.pi * N / (m * l)) * (r + e)| ≤ 2 * Real.pi * N * (R + E) / (m * l) := by
@@ -55,6 +87,8 @@ theorem phase_error_bound (N m l R E r e : ℝ) (hN : 0 ≤ N) (hm : 0 < m) (hl 
         mul_le_mul_of_nonneg_left hre hcoef
     _ = 2 * Real.pi * N * (R + E) / (m * l) := by ring
 
+/-- A global bound `B` on the second derivative bounds the first-order Taylor remainder at
+nonzero displacement `h` by `B * h ^ 2 / 2`. [Jordan2005Gradient] -/
 theorem quadratic_remainder_bound (f : ℝ → ℝ) (x h B : ℝ)
     (hC : ContDiff ℝ 2 f) (hB : ∀ t, |iteratedDeriv 2 f t| ≤ B) (hh : h ≠ 0) :
     |f (x + h) - f x - iteratedDeriv 1 f x * h| ≤ B * h ^ 2 / 2 := by
@@ -80,6 +114,8 @@ theorem quadratic_remainder_bound (f : ℝ → ℝ) (x h B : ℝ)
         have hle : |iteratedDeriv 2 f ξ| ≤ B := hB ξ
         nlinarith [hsq]
 
+/-- For a vector in the cube of side length `l ≥ 0`, the sum of squared coordinates is at most
+`d * l ^ 2 / 4`. [Jordan2005Gradient] -/
 theorem cube_sum_sq_le {d : ℕ} (h : Fin d → ℝ) (l : ℝ) (hl : 0 ≤ l)
     (hb : ∀ i, |h i| ≤ l / 2) :
     ∑ i, (h i) ^ 2 ≤ d * l ^ 2 / 4 := by
@@ -96,6 +132,8 @@ theorem cube_sum_sq_le {d : ℕ} (h : Fin d → ℝ) (l : ℝ) (hl : 0 ≤ l)
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
     _ = d * l ^ 2 / 4 := by ring
 
+/-- A remainder bounded by `B / 2` times the squared coordinate norm is at most `B * d * l ^ 2 /
+8` on the stated cube. [Jordan2005Gradient] -/
 theorem cube_remainder_bound {d : ℕ} (r B l : ℝ) (h : Fin d → ℝ)
     (hl : 0 ≤ l) (hB : 0 ≤ B) (hb : ∀ i, |h i| ≤ l / 2)
     (hrem : |r| ≤ B / 2 * ∑ i, (h i) ^ 2) :
@@ -106,6 +144,9 @@ theorem cube_remainder_bound {d : ℕ} (r B l : ℝ) (h : Fin d → ℝ)
         mul_le_mul_of_nonneg_left hsum (by positivity)
     _ = B * d * l ^ 2 / 8 := by ring
 
+/-- A twice continuously differentiable function with Hessian norm bounded by `B ≥ 0` has
+first-order remainder at most `B * d * l ^ 2 / 8` for cube displacements.
+[Jordan2005Gradient] -/
 theorem cube_taylor_remainder {d : ℕ} (f : EuclideanSpace ℝ (Fin d) → ℝ)
     (x : EuclideanSpace ℝ (Fin d)) (B l : ℝ) (h : Fin d → ℝ)
     (hf : ContDiff ℝ 2 f) (hB : 0 ≤ B)

@@ -10,6 +10,33 @@ import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
 import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
 import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapQuan
 import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+
+/-!
+# Johnson-walk element-distinctness guarantees
+
+This module proves the reduced Johnson-walk search guarantee `ElementDistinctnessAlgorithm` by
+applying Grover interpolation to the normalized start vector, marked reflection, and powered
+walk. The construction is motivated by the element-distinctness quantum walk of
+[Ambainis2007ElementDistinctness].
+
+The auxiliary results establish the real normalized good state, the marked flip's reflection
+properties, and normalization, reality, stationarity, and unitarity of the search inputs. The
+final result provides an iteration count with the specified marked-amplitude lower bound and
+query upper bound.
+
+## Main statements
+
+* `jwReducedFlip_search_inputs`: the reduced marked flip has the required reflection properties.
+* `jwNormalizedSearch_inputs`: normalized start and powered-walk hypotheses for interpolation.
+* `jwElementDistinctnessAlgorithm_from_interpolation`: interpolation implies the search
+  specification.
+* `elementDistinctnessAlgorithm_answer`: the resulting marked-amplitude and query guarantee.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.GroverInterp
 open Qatlib.Concepts.WalkFind.WalkSpectrum
@@ -20,6 +47,7 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.WalkFind.UniqueCollision
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- The reduced good-state vector is the computational basis vector at `Fin.last (2 * k)`. -/
 theorem jwGoodTilde_eq_last (k : ℕ) :
     jwGoodTilde k = fun i => if i = Fin.last (2 * k) then 1 else 0 := by
   funext i
@@ -28,6 +56,8 @@ theorem jwGoodTilde_eq_last (k : ℕ) :
     exact ⟨fun h => jwPsiCoord_injective k (h.trans hl.symm), fun h => h ▸ hl⟩
   simp [jwGoodTilde, hc]
 
+/-- The reduced marked flip is unitary, negates the real normalized good-state vector, and fixes
+every vector orthogonal to that vector. -/
 theorem jwReducedFlip_search_inputs (k : ℕ) :
     star (jwFlipTilde k) * jwFlipTilde k = 1 ∧
       (∑ i, ‖jwGoodTilde k i‖ ^ 2) = 1 ∧
@@ -64,6 +94,7 @@ theorem jwReducedFlip_search_inputs (k : ℕ) :
     · simp [hi, hvlast]
     · simp [hi]
 
+/-- Every natural power of a matrix satisfying `star U * U = 1` satisfies the same identity. -/
 theorem jwSearch_unitary_pow {m : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     (hu : star U * U = 1) (t : ℕ) : star (U ^ t) * U ^ t = 1 := by
   induction t with
@@ -75,6 +106,7 @@ theorem jwSearch_unitary_pow {m : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
           star (U ^ t) * (star U * U) * U ^ t := by simp only [mul_assoc]
       _ = 1 := by rw [hu, mul_one, ih]
 
+/-- Every natural power of a complex matrix with real entries again has real entries. -/
 theorem jwSearch_real_pow {m : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     (hU : ∀ i j, (U i j).im = 0) (t : ℕ) : ∀ i j, ((U ^ t) i j).im = 0 := by
   induction t with
@@ -84,6 +116,9 @@ theorem jwSearch_real_pow {m : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     rw [pow_succ']
     simp [Matrix.mul_apply, Complex.mul_im, hU, ih]
 
+/-- Under the stated size hypotheses, the normalized Johnson-walk start vector is real, has
+squared norm one and good-state overlap `jwAlpha`, and is fixed by every walk power. The
+corresponding walk power is unitary and has real entries. -/
 theorem jwNormalizedSearch_inputs (k N r t : ℕ) (hk : 1 ≤ k)
     (hkr : k ≤ r) (hkNr : k < N - r) :
     let start := fun i => jwStart k N r i / (Real.sqrt (jwStartNormSq k N r) : ℂ)
@@ -121,6 +156,8 @@ theorem jwNormalizedSearch_inputs (k N r t : ℕ) (hk : 1 ≤ k)
   · exact jwSearch_unitary_pow _ ((walkUnitary k N r hkNr.le (by omega)).2.2.1) t
   · exact jwSearch_real_pow _ (jwWalk_real k N r) t
 
+/-- The Grover interpolation guarantee implies the Johnson-walk marked-amplitude and query
+bounds specified by `ElementDistinctnessAlgorithm`. -/
 theorem jwElementDistinctnessAlgorithm_from_interpolation
     (hGrover : GroverInterpolation) : ElementDistinctnessAlgorithm := by
   intro k N r hk hkr hr hsize I hI
@@ -160,9 +197,13 @@ theorem jwElementDistinctnessAlgorithm_from_interpolation
         add_le_add (le_refl (r : ℝ)) h
       _ = _ := by ring
 
+/-- Establishes the Johnson-walk element-distinctness marked-amplitude and query bounds using
+Grover interpolation; see [Ambainis2007ElementDistinctness]. -/
 theorem elementDistinctnessAlgorithm : ElementDistinctnessAlgorithm :=
   jwElementDistinctnessAlgorithm_from_interpolation groverInterpolation
 
+/-- The element-distinctness endpoint proving `ElementDistinctnessAlgorithm`, the formal
+marked-amplitude and query guarantee associated with [Ambainis2007ElementDistinctness]. -/
 theorem elementDistinctnessAlgorithm_answer : ElementDistinctnessAlgorithm :=
   elementDistinctnessAlgorithm
 

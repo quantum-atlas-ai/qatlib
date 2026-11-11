@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurementDefs
 import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
+
+/-!
+# Encoded projective measurements and qudit teleportation
+
+This module relates encoded event instruments to pure and mixed projective branches, including
+their probabilities and conditional states. It also identifies the retained qudit branch after
+coarse measurement and proves that outcome-dependent correction recovers the input density
+matrix. For background, see [NielsenChuang2010].
+
+## Main statements
+
+* `encoded_event_born`: encoded event probabilities agree with the Born rule.
+* `qudit_coarse_conditional_corrected`: corrected conditional teleportation output equals the
+  input density matrix.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -27,6 +47,8 @@ namespace Qatlib.Concepts.TensorRegisters.RegisterModel
 open Matrix Qatlib.Concepts.InstrumentCore.PovmBridge
 open scoped BigOperators ComplexOrder
 
+/-- Relabeling the basis projector for `S` gives the projector for the image of `S` under the
+equivalence. -/
 theorem relabel_projector {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (S : Finset I) :
     relabelGate e (Projector S) = Projector (S.map e.toEmbedding) := by
@@ -34,6 +56,8 @@ theorem relabel_projector {I J : Type*} [Fintype I] [DecidableEq I]
   simp [relabelGate, Projector, Matrix.diagonal_apply, e.symm.injective.eq_iff,
     Finset.mem_map_equiv]
 
+/-- Relabeling a state commutes with taking either branch of the correspondingly relabeled
+projective measurement. -/
 theorem relabel_projective_branch {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (S : Finset I) (o : Bool) (ψ : QState I) :
     ProjectiveBranch (Projector (S.map e.toEmbedding)) o (relabelState e ψ) =
@@ -50,15 +74,19 @@ theorem relabel_projective_branch {I J : Type*} [Fintype I] [DecidableEq I]
   unfold ProjectiveBranch
   rw [he, applyGate_relabelGate]
 
+/-- Relabeling a pure-state outer product equals the outer product of the relabeled state. -/
 theorem relabel_outerProduct {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (ψ : QState I) :
     relabelGate e (outerProduct ψ) = outerProduct (relabelState e ψ) := rfl
 
+/-- Relabeling preserves the total computational-basis measurement probability. -/
 theorem measureProb_relabel_univ {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (ψ : QState I) :
     MeasureProb (relabelState e ψ) Finset.univ = MeasureProb ψ Finset.univ := by
   simpa only [Finset.map_univ_equiv] using measureProb_relabelState e ψ Finset.univ
 
+/-- An event-instrument branch on a pure input is the outer product of the projective branch
+after applying `U`. -/
 theorem basis_event_pure_branch {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (S : Finset (Fin D))
     (ψ : QState (Fin D)) (o : Bool) :
@@ -69,6 +97,8 @@ theorem basis_event_pure_branch {D : ℕ} (U : Operator D)
     (binaryProjectivePOVM_projection (eventProjector S) (projector_mul_self S) o)]
   cases o <;> rfl
 
+/-- An event-instrument branch on a matrix is unitary conjugation followed by conjugation with
+the selected event projector or its complement. -/
 theorem basis_event_mixed_branch {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (S : Finset (Fin D))
     (ρ : Operator D) (o : Bool) :
@@ -86,6 +116,8 @@ theorem basis_event_mixed_branch {D : ℕ} (U : Operator D)
   cases o <;> simp only [Bool.false_eq_true, if_false, if_true,
     Matrix.conjTranspose_sub, Matrix.conjTranspose_one, projector_conjTranspose]
 
+/-- The encoded event branch of a relabeled pure state is the relabeled outer product of its
+projective branch after `U`. -/
 theorem encoded_event_pure_branch {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (S : Finset I) (ψ : QState I) (o : Bool) :
@@ -94,6 +126,8 @@ theorem encoded_event_pure_branch {I : Type*} [Fintype I] [DecidableEq I] {D : �
   rw [relabel_outerProduct, encodedEventInstrument, basis_event_pure_branch,
     applyGate_relabelGate, relabel_projective_branch, ← relabel_outerProduct]
 
+/-- The encoded instrument probability equals the mass of the corresponding projective branch
+after applying `U`. -/
 theorem encoded_event_mass {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (S : Finset I) (ψ : QState I) (o : Bool) :
@@ -104,6 +138,8 @@ theorem encoded_event_mass {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
   change MeasureProb (relabelState e _) Finset.univ = _
   exact measureProb_relabel_univ e _
 
+/-- A positive-probability encoded event has a pure conditional state obtained by relabeling the
+outer product of the projective conditional vector. -/
 theorem encoded_event_conditional {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (S : Finset I) (ψ : QState I) (o : Bool)
@@ -121,6 +157,8 @@ theorem encoded_event_conditional {I : Type*} [Fintype I] [DecidableEq I] {D : �
       outerProduct_postMeasure_univ _ hpos, hm]
     rfl
 
+/-- A zero-mass projective branch has no conditional vector, and the corresponding encoded
+instrument branch is zero. -/
 theorem encoded_event_zero {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (S : Finset I) (ψ : QState I) (o : Bool)
@@ -138,6 +176,7 @@ theorem encoded_event_zero {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     · rw [relabel_outerProduct]
       exact outerProduct_posSemidef _
 
+/-- Relabeling a positive semidefinite matrix of trace one yields a density operator. -/
 theorem relabel_density {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (ρ : Matrix I I ℂ) (hρ : ρ.PosSemidef ∧ Matrix.trace ρ = 1) :
     IsDensityOperator (relabelGate e ρ) := by
@@ -145,6 +184,8 @@ theorem relabel_density {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
   change Matrix.trace (ρ.submatrix e.symm e.symm) = 1
   rw [Matrix.trace_submatrix, hρ.2]
 
+/-- Relabeling transports either the event projector or its complement to the corresponding
+effect on the image event. -/
 theorem relabel_event_effect {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (S : Finset I) (o : Bool) :
     (if o then Projector (S.map e.toEmbedding) else 1 - Projector (S.map e.toEmbedding)) =
@@ -156,10 +197,13 @@ theorem relabel_event_effect {I J : Type*} [Fintype I] [DecidableEq I]
     simp [relabelGate, Matrix.one_apply, e.symm.injective.eq_iff]
   · simp only [if_true, relabel_projector]
 
+/-- Relabeling a matrix commutes with taking its conjugate transpose. -/
 theorem relabel_adjoint {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     (relabelGate e A)ᴴ = relabelGate e Aᴴ := rfl
 
+/-- An encoded mixed-state branch equals the relabeling of the unitary-evolved matrix projected
+onto the selected event or its complement. -/
 theorem encoded_event_mixed_branch {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (S : Finset I) (ρ : Matrix I I ℂ) (o : Bool) :
@@ -170,6 +214,8 @@ theorem encoded_event_mixed_branch {I : Type*} [Fintype I] [DecidableEq I] {D : 
     relabel_adjoint, relabel_adjoint]
   simp only [← Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul]
 
+/-- The true-outcome probability of an encoded event on a pure state equals the Born probability
+of `S` after applying `U`. -/
 theorem encoded_event_born {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
     (e : I ≃ Fin D) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (S : Finset I) (ψ : QState I) :
@@ -178,11 +224,15 @@ theorem encoded_event_born {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
   rw [encoded_event_mass]
   exact sum_normSq_collapse (ApplyGate U ψ) S
 
+/-- A decoded qudit amplitude at registers `(o, k)` equals the `k`th amplitude of the branch
+Kraus vector for `o`. -/
 theorem qudit_decoded_row (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (o : Fin n × Fin n) (k : Fin n) :
     quditDecodedState n ψ ((quditRegisterEquiv n) (o,k)) =
       (quditBranchKraus n o *ᵥ ψ) k := rfl
 
+/-- Collapsing the decoded state to outcome `o` retains its branch Kraus amplitudes and sets all
+other outcome blocks to zero. -/
 theorem qudit_collapsed_row (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (o a : Fin n × Fin n) (k : Fin n) :
     Collapse (quditDecodedState n ψ) (quditOutcomeEvent n o)
@@ -193,6 +243,8 @@ theorem qudit_collapsed_row (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     simp [collapse_apply, quditOutcomeEvent, qudit_decoded_row]
   · simp [collapse_apply, quditOutcomeEvent, ha]
 
+/-- The true branch of the coarse qudit instrument is the outer product of the decoded state
+collapsed to the chosen outcome event. -/
 theorem qudit_coarse_branch (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (o : Fin n × Fin n) :
     (quditCoarseInstrument n o).branch true (outerProduct (quditDecodedState n ψ)) =
@@ -201,6 +253,8 @@ theorem qudit_coarse_branch (n : ℕ) [NeZero n] (ψ : QState (Fin n))
   simp only [ProjectiveBranch, if_true, ApplyGate, Matrix.one_mulVec]
   rfl
 
+/-- Tracing out the measured registers from a coarse qudit branch yields the outer product of
+the branch Kraus vector. -/
 theorem qudit_coarse_bob (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (o : Fin n × Fin n) :
     Matrix.traceLeft (Matrix.reindex (quditRegisterEquiv n).symm (quditRegisterEquiv n).symm
@@ -214,6 +268,8 @@ theorem qudit_coarse_bob (n : ℕ) [NeZero n] (ψ : QState (Fin n))
         ((quditRegisterEquiv n) (a,l)))) = _
   simp [qudit_collapsed_row, outerProduct_apply]
 
+/-- The coarse outcome probability equals the total computational-basis probability of its
+branch Kraus vector. -/
 theorem qudit_coarse_mass (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (o : Fin n × Fin n) :
     instrumentProb (quditCoarseInstrument n o) (outerProduct (quditDecodedState n ψ)) true =
@@ -224,11 +280,14 @@ theorem qudit_coarse_mass (n : ℕ) [NeZero n] (ψ : QState (Fin n))
       trace_outerProduct] at ht
   exact ht
 
+/-- Applying the outcome correction to a qudit branch Kraus vector gives the input vector scaled
+by `1 / n`. -/
 theorem qudit_corrected_vector (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (o : Fin n × Fin n) :
     quditCorrection n o *ᵥ (quditBranchKraus n o *ᵥ ψ) = (1 / (n : ℂ)) • ψ := by
   rw [Matrix.mulVec_mulVec, quditCorrection_cancel, Matrix.smul_mulVec, Matrix.one_mulVec]
 
+/-- For a normalized input, every qudit branch Kraus vector has total probability `1 / n ^ 2`. -/
 theorem qudit_kraus_mass (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (hψ : Normalized ψ) (o : Fin n × Fin n) :
     MeasureProb (quditBranchKraus n o *ᵥ ψ) Finset.univ = 1 / (n : ℝ)^2 := by
@@ -239,6 +298,7 @@ theorem qudit_kraus_mass (n : ℕ) [NeZero n] (ψ : QState (Fin n))
   rw [quditBranchKraus_formula, Matrix.smul_mulVec, measureProb_smul, hm, mul_one]
   simp
 
+/-- Decoding the prepared qudit teleportation state preserves normalization of the input. -/
 theorem qudit_decoded_normalized (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (hψ : Normalized ψ) : Normalized (quditDecodedState n ψ) := by
   unfold Normalized
@@ -255,6 +315,8 @@ theorem qudit_decoded_normalized (n : ℕ) [NeZero n] (ψ : QState (Fin n))
       simp [Fintype.card_prod, Fintype.card_fin]
       field_simp
 
+/-- For a normalized input and positive outcome probability, tracing out the measured registers
+and correcting the conditional output recovers `outerProduct ψ`. -/
 theorem qudit_coarse_conditional_corrected (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (hψ : Normalized ψ) (o : Fin n × Fin n)
     (hp : 0 < instrumentProb (quditCoarseInstrument n o) (outerProduct (quditDecodedState n ψ)) true) :

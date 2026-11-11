@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem6AmplitudeEstimationStat
+
+/-!
+# Amplitude-estimation error bound
+
+`theorem6AmplitudeEstimation` establishes the probability bound for the numerical output
+`aeEstimate` under `aeLaw` for a unitary prepared state. The stated error depends on the square
+root of the initial marked probability and on the precision parameter. For background, see
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `theorem6AmplitudeEstimation`: For unitary preparation and `P ≥ 4`, the law `aeLaw` gives mass
+  at least `8 / π²` to estimates with error strictly below `2π * sqrt a / P + π² / P²`, where
+  `a` is the prepared marked probability. See [BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,10 +40,14 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- The success constant `8 / π²` is at most one. -/
 private theorem estimation_success_constant : 8/Real.pi^2 ≤ (1 : ℝ) := by
   apply (div_le_one (sq_pos_of_pos Real.pi_pos)).2
   nlinarith [Real.pi_gt_three]
 
+/-- For unitary preparation and `P ≥ 4`, the law `aeLaw` gives mass at least `8 / π²` to
+estimates with error strictly below `2π * sqrt a / P + π² / P²`, where `a` is the prepared
+marked probability. See [BrassardHoyerTapp1998Counting]. -/
 theorem theorem6AmplitudeEstimation : Theorem6AmplitudeEstimation := by
   intro I _ _ P A j S hA hP
   have hP2 : 2 ≤ P := by omega

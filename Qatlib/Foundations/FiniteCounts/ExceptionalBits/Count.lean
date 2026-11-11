@@ -9,6 +9,34 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Finset.Interval
 import Mathlib.Order.Interval.Finset.Nat
 import Mathlib.Tactic
+
+/-!
+# Counting exceptional binary doubling events
+
+This module defines binary prefix values and the finite set `ExceptionalDoublingScalars` of bit
+strings with a selected bit whose offset prefix is congruent to the corresponding power of two.
+Prefix reconstruction and congruence counts give `exceptionalDoubling_count_le`.
+
+When the modulus has the prescribed binary width, the tail contribution simplifies to an
+additive constant eight in `exceptionalDoubling_card_le_eight`. The motivating scalar-arithmetic
+setting is quantum resource estimation for elliptic-curve discrete logarithms
+[RoettelerEtAl2017].
+
+## Main statements
+
+* `ExceptionalDoublingScalars`: The bit strings having a true bit at some position `i` with `a +
+  prefixValue k i` congruent to `2^i` modulo `r`.
+* `exceptionalDoubling_count_le`: For positive `n` and `1 ≤ a < r`, the exceptional count is at
+  most `2^(n - Nat.clog 2 a)` plus the sum of `((2^i - a) / r) * 2^(n-i)` from `Nat.clog 2 r` to
+  `n`.
+* `exceptionalDoubling_card_le_eight`: If `n ≥ 1`, `1 ≤ a < r`, and `r ≥ 2^(n-1)`, there are at
+  most `2^(n - Nat.clog 2 a) + 8` exceptional strings.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,31 +46,39 @@ namespace Qatlib.Foundations.FiniteCounts.ExceptionalBits
 
 open Finset
 
+/-- The natural-number value of bit `j`, extended by zero beyond the bit string. -/
 def bitAt {n : ℕ} (k : Fin (n + 1) → Bool) (j : ℕ) : ℕ :=
   if h : j < n + 1 then (if k ⟨j, h⟩ then 1 else 0) else 0
 
+/-- The integer represented by the first `i` bits, with bit `j` weighted by `2^j`. -/
 def prefixValue {n : ℕ} (k : Fin (n + 1) → Bool) (i : ℕ) : ℕ :=
   ∑ j ∈ Finset.range i, bitAt k j * 2 ^ j
 
+/-- The bit strings having a true bit at some position `i` with `a + prefixValue k i` congruent
+to `2^i` modulo `r`. -/
 noncomputable def ExceptionalDoublingScalars (n a r : ℕ) : Finset (Fin (n + 1) → Bool) :=
   Finset.univ.filter (fun k : Fin (n + 1) → Bool =>
     ∃ i : Fin (n + 1),
       k i = true ∧ (a + prefixValue k (i : ℕ)) % r = (2 ^ (i : ℕ)) % r)
 
+/-- At an in-range index, `bitAt` is one for a true bit and zero for a false bit. -/
 private theorem bitAt_eq_if {n : ℕ} (k : Fin (n + 1) → Bool) {j : ℕ} (hj : j < n + 1) :
     bitAt k j = if k ⟨j, hj⟩ then 1 else 0 := by
   rw [bitAt]
   exact dif_pos hj
 
+/-- Every value of `bitAt` is at most one. -/
 private theorem bitAt_le_one {n : ℕ} (k : Fin (n + 1) → Bool) (j : ℕ) : bitAt k j ≤ 1 := by
   rw [bitAt]
   split_ifs <;> omega
 
+/-- At an in-range index, `bitAt` equals one exactly when the corresponding Boolean bit is true. -/
 private theorem bitAt_eq_one_iff {n : ℕ} (k : Fin (n + 1) → Bool) {j : ℕ} (hj : j < n + 1) :
     bitAt k j = 1 ↔ k ⟨j, hj⟩ = true := by
   rw [bitAt_eq_if k hj]
   cases k ⟨j, hj⟩ <;> simp
 
+/-- The sum of the first `i` powers of two equals `2^i - 1`. -/
 private theorem sum_range_pow_two (i : ℕ) : ∑ j ∈ Finset.range i, 2 ^ j = 2 ^ i - 1 := by
   induction i with
   | zero => simp
@@ -51,6 +87,7 @@ private theorem sum_range_pow_two (i : ℕ) : ∑ j ∈ Finset.range i, 2 ^ j = 
     have hpos : 0 < 2 ^ i := pow_pos (by norm_num) i
     omega
 
+/-- The value of an `i`-bit prefix is strictly smaller than `2^i`. -/
 private theorem prefixValue_lt {n : ℕ} (k : Fin (n + 1) → Bool) (i : ℕ) :
     prefixValue k i < 2 ^ i := by
   have hle : prefixValue k i ≤ ∑ j ∈ Finset.range i, 2 ^ j := by
@@ -63,11 +100,13 @@ private theorem prefixValue_lt {n : ℕ} (k : Fin (n + 1) → Bool) (i : ℕ) :
   have hpos : 0 < 2 ^ i := pow_pos (by norm_num) i
   omega
 
+/-- Extending a prefix by one bit adds that bit times its power of two. -/
 private theorem prefixValue_succ {n : ℕ} (k : Fin (n + 1) → Bool) (i : ℕ) :
     prefixValue k (i + 1) = prefixValue k i + bitAt k i * 2 ^ i := by
   unfold prefixValue
   rw [Finset.sum_range_succ]
 
+/-- A prefix of length `j + t` splits into its first `j` bits and a shifted block of `t` bits. -/
 private theorem prefixValue_add_mul {n : ℕ} (k : Fin (n + 1) → Bool) (j t : ℕ) :
     prefixValue k (j + t) = prefixValue k j +
       (∑ u ∈ Finset.range t, bitAt k (j + u) * 2 ^ u) * 2 ^ j := by
@@ -81,12 +120,14 @@ private theorem prefixValue_add_mul {n : ℕ} (k : Fin (n + 1) → Bool) (j t : 
   rw [pow_add]
   ring
 
+/-- Reducing an `i`-bit prefix modulo `2^j` recovers the `j`-bit prefix when `j ≤ i`. -/
 private theorem prefixValue_mod {n : ℕ} (k : Fin (n + 1) → Bool) {j i : ℕ} (h : j ≤ i) :
     prefixValue k i % 2 ^ j = prefixValue k j := by
   rw [show i = j + (i - j) by omega]
   rw [prefixValue_add_mul k j (i - j), Nat.add_mul_mod_self_right,
     Nat.mod_eq_of_lt (prefixValue_lt k j)]
 
+/-- Dividing an `i`-bit prefix by `2^j` and reducing modulo two extracts bit `j` when `j < i`. -/
 private theorem prefixValue_div {n : ℕ} (k : Fin (n + 1) → Bool) {j i : ℕ} (h : j < i) :
     prefixValue k i / 2 ^ j % 2 = bitAt k j := by
   have hi : i = (j + 1) + (i - (j + 1)) := by omega
@@ -111,6 +152,8 @@ private theorem prefixValue_div {n : ℕ} (k : Fin (n + 1) → Bool) {j i : ℕ}
   have := bitAt_le_one k j
   omega
 
+/-- For positive `a` and `m > Nat.clog 2 a`, reducing `2^m - a` modulo `2^(Nat.clog 2 a)` gives
+`2^(Nat.clog 2 a) - a`. -/
 private theorem pow_sub_clog_mod (a m : ℕ) (ha : 1 ≤ a) (hm : Nat.clog 2 a < m) :
     (2 ^ m - a) % 2 ^ Nat.clog 2 a = 2 ^ Nat.clog 2 a - a := by
   have ha_le : a ≤ 2 ^ Nat.clog 2 a := Nat.le_pow_clog (by norm_num) a
@@ -129,6 +172,8 @@ private theorem pow_sub_clog_mod (a m : ℕ) (ha : 1 ≤ a) (hm : Nat.clog 2 a <
   have hpos : 0 < 2 ^ Nat.clog 2 a := pow_pos (by norm_num) _
   omega
 
+/-- If a prefix equals `2^m - a` with positive `a` and `m > Nat.clog 2 a`, its bit at `Nat.clog
+2 a` is one and its shorter prefix equals `2^(Nat.clog 2 a) - a`. -/
 private theorem prefixValue_clog_eq {n a : ℕ} (k : Fin (n + 1) → Bool) {m : ℕ}
     (ha : 1 ≤ a) (hm : Nat.clog 2 a < m) (hpre : prefixValue k m = 2 ^ m - a) :
     bitAt k (Nat.clog 2 a) = 1 ∧ prefixValue k (Nat.clog 2 a) = 2 ^ Nat.clog 2 a - a := by
@@ -167,19 +212,27 @@ private theorem prefixValue_clog_eq {n a : ℕ} (k : Fin (n + 1) → Bool) {m : 
   rw [hodd, Nat.add_comm, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt]
   omega
 
+/-- The exceptional event at position `m`: the bit is one and the offset prefix is congruent to
+`2^m` modulo `r`. -/
 @[reducible] private def eventAt (n a r m : ℕ) (k : Fin (n + 1) → Bool) : Prop :=
   bitAt k m = 1 ∧ (a + prefixValue k m) % r = (2 ^ m) % r
 
+/-- The finite set of bit strings satisfying the exceptional event at position `m`. -/
 private def eventScalars (n a r m : ℕ) : Finset (Fin (n + 1) → Bool) :=
   Finset.univ.filter (eventAt n a r m)
 
+/-- The finite set of bit strings whose length-`m` prefix equals `2^m - a`. -/
 private def extremalScalars (n a _r m : ℕ) : Finset (Fin (n + 1) → Bool) :=
   Finset.univ.filter (fun k => prefixValue k m = 2 ^ m - a)
 
+/-- The finite set of bit strings with bit one at `Nat.clog 2 a` and prefix `2^(Nat.clog 2 a) -
+a` at that position. -/
 private def clogScalars (n a : ℕ) : Finset (Fin (n + 1) → Bool) :=
   Finset.univ.filter (fun k =>
     bitAt k (Nat.clog 2 a) = 1 ∧ prefixValue k (Nat.clog 2 a) = 2 ^ Nat.clog 2 a - a)
 
+/-- A bit string is exceptional exactly when it satisfies an exceptional event at some in-range
+position. -/
 private theorem mem_exceptional_iff (n a r : ℕ) (k : Fin (n + 1) → Bool) :
     k ∈ ExceptionalDoublingScalars n a r ↔
       ∃ i : Fin (n + 1), eventAt n a r i.val k := by
@@ -191,6 +244,8 @@ private theorem mem_exceptional_iff (n a r : ℕ) (k : Fin (n + 1) → Bool) :
   · rintro ⟨i, hbit, hcong⟩
     exact ⟨i, (bitAt_eq_one_iff k i.isLt).mp hbit, hcong⟩
 
+/-- If `1 ≤ a < r` and the position is below `Nat.clog 2 r`, the prefix congruence forces the
+exact equality `a + prefixValue k i = 2^i`. -/
 private theorem event_lt_clog_eq (n a r : ℕ) (k : Fin (n + 1) → Bool) {i : ℕ}
     (ha : 1 ≤ a) (har : a < r) (hi : i < Nat.clog 2 r)
     (hcong : (a + prefixValue k i) % r = (2 ^ i) % r) :
@@ -213,6 +268,7 @@ private theorem event_lt_clog_eq (n a r : ℕ) (k : Fin (n + 1) → Bool) {i : �
   rw [hdiv0, Nat.mul_zero, Nat.zero_add] at hkey
   exact hkey.symm
 
+/-- If `1 ≤ a < r`, any position satisfying the prefix congruence is at least `Nat.clog 2 a`. -/
 private theorem event_clog_le (n a r : ℕ) (k : Fin (n + 1) → Bool) {j : ℕ}
     (_ha : 1 ≤ a) (har : a < r)
     (hcong : (a + prefixValue k j) % r = (2 ^ j) % r) :
@@ -231,9 +287,11 @@ private theorem event_clog_le (n a r : ℕ) (k : Fin (n + 1) → Bool) {j : ℕ}
     Nat.le_of_dvd hsub_pos (Nat.dvd_of_mod_eq_zero hmod0)
   omega
 
+/-- The prefix values below `2^m` whose sum with `a` is congruent to `2^m` modulo `r`. -/
 private def prefixSolutions (a r m : ℕ) : Finset ℕ :=
   (Finset.range (2 ^ m)).filter (fun p => (a + p) % r = (2 ^ m) % r)
 
+/-- For `1 ≤ a < r`, every prefix solution is at most `2^m - a`. -/
 private theorem mem_prefixSolutions_le (a r m : ℕ) (_ha : 1 ≤ a) (har : a < r)
     {p : ℕ} (hp : p ∈ prefixSolutions a r m) : p ≤ 2 ^ m - a := by
   unfold prefixSolutions at hp
@@ -249,6 +307,7 @@ private theorem mem_prefixSolutions_le (a r m : ℕ) (_ha : 1 ≤ a) (har : a < 
     omega
   omega
 
+/-- For `1 ≤ a < r`, each prefix solution is congruent to `2^m - a` modulo `r`. -/
 private theorem mem_prefixSolutions_mod (a r m : ℕ) (_ha : 1 ≤ a) (har : a < r)
     {p : ℕ} (hp : p ∈ prefixSolutions a r m) : p % r = (2 ^ m - a) % r := by
   unfold prefixSolutions at hp
@@ -267,6 +326,7 @@ private theorem mem_prefixSolutions_mod (a r m : ℕ) (_ha : 1 ≤ a) (har : a <
   have hsub := Nat.ModEq.sub' (show a ≤ a + p ↔ a ≤ 2 ^ m by omega) hmodeq (Nat.ModEq.refl a)
   simpa [Nat.add_sub_cancel_left] using! hsub
 
+/-- For `1 ≤ a < r`, there are at most `(2^m - a) / r + 1` prefix solutions. -/
 private theorem prefixSolutions_card_le (a r m : ℕ) (ha : 1 ≤ a) (har : a < r) :
     (prefixSolutions a r m).card ≤ (2 ^ m - a) / r + 1 := by
   have hmaps : Set.MapsTo (fun p : ℕ => p / r) ↑(prefixSolutions a r m)
@@ -287,6 +347,7 @@ private theorem prefixSolutions_card_le (a r m : ℕ) (ha : 1 ≤ a) (har : a < 
   have h := Finset.card_le_card_of_injOn (fun p : ℕ => p / r) hmaps hinj
   rwa [Finset.card_range] at h
 
+/-- For `1 ≤ a < r`, removing `2^m - a` leaves at most `(2^m - a) / r` prefix solutions. -/
 private theorem prefixSolutions_erase_card_le (a r m : ℕ) (ha : 1 ≤ a) (har : a < r) :
     ((prefixSolutions a r m).erase (2 ^ m - a)).card ≤ (2 ^ m - a) / r := by
   have hrpos : 0 < r := lt_of_lt_of_le ha (le_of_lt har)
@@ -318,9 +379,11 @@ private theorem prefixSolutions_erase_card_le (a r m : ℕ) (ha : 1 ≤ a) (har 
   have h := Finset.card_le_card_of_injOn (fun p : ℕ => p / r) hmaps hinj
   rwa [Finset.card_range] at h
 
+/-- The suffix of a bit string strictly after position `m`. -/
 private def tailFun {n : ℕ} (m : ℕ) (k : Fin (n + 1) → Bool) : Fin (n - m) → Bool :=
   fun t => k ⟨m + 1 + t.val, by have := t.isLt; omega⟩
 
+/-- Equality of in-range natural bit values implies equality of the corresponding Boolean bits. -/
 private theorem bool_eq_of_bitAt_eq {n : ℕ} (k k' : Fin (n + 1) → Bool) {j : ℕ}
     (hj : j < n + 1) (h : bitAt k j = bitAt k' j) : k ⟨j, hj⟩ = k' ⟨j, hj⟩ := by
   cases hk : k ⟨j, hj⟩ <;> cases hk' : k' ⟨j, hj⟩
@@ -335,6 +398,8 @@ private theorem bool_eq_of_bitAt_eq {n : ℕ} (k k' : Fin (n + 1) → Bool) {j :
     omega
   · rfl
 
+/-- A bit string is determined by its length-`m` prefix, its bit at `m`, and its suffix after
+`m`, provided `m ≤ n`. -/
 private theorem eq_of_prefixValue_tail {n : ℕ} (m : ℕ) (k k' : Fin (n + 1) → Bool)
     (hm : m ≤ n) (hp : prefixValue k m = prefixValue k' m)
     (hb : bitAt k m = bitAt k' m)
@@ -359,6 +424,8 @@ private theorem eq_of_prefixValue_tail {n : ℕ} (m : ℕ) (k k' : Fin (n + 1) �
     rw [hk, hk']
     exact ht ⟨u.val - m - 1, htlt⟩
 
+/-- For `m ≤ n` and `1 ≤ a < r`, the event set at `m` has cardinality at most `((2^m - a) / r +
+1) * 2^(n-m)`. -/
 private theorem eventScalars_card_le (n a r m : ℕ) (hm : m ≤ n) (ha : 1 ≤ a) (har : a < r) :
     (eventScalars n a r m).card ≤ ((2 ^ m - a) / r + 1) * 2 ^ (n - m) := by
   have hmaps : Set.MapsTo (fun k : Fin (n + 1) → Bool => (prefixValue k m, tailFun m k))
@@ -395,6 +462,8 @@ private theorem eventScalars_card_le (n a r m : ℕ) (hm : m ≤ n) (ha : 1 ≤ 
     _ ≤ ((2 ^ m - a) / r + 1) * 2 ^ (n - m) :=
         Nat.mul_le_mul_right _ (prefixSolutions_card_le a r m ha har)
 
+/-- For `m ≤ n` and `1 ≤ a < r`, removing the extremal-prefix strings bounds the event-set
+cardinality by `((2^m - a) / r) * 2^(n-m)`. -/
 private theorem eventScalars_diff_card_le (n a r m : ℕ) (hm : m ≤ n) (ha : 1 ≤ a) (har : a < r) :
     ((eventScalars n a r m) \ (extremalScalars n a r m)).card ≤
       ((2 ^ m - a) / r) * 2 ^ (n - m) := by
@@ -444,6 +513,8 @@ private theorem eventScalars_diff_card_le (n a r m : ℕ) (hm : m ≤ n) (ha : 1
     _ ≤ ((2 ^ m - a) / r) * 2 ^ (n - m) :=
         Nat.mul_le_mul_right _ (prefixSolutions_erase_card_le a r m ha har)
 
+/-- If `Nat.clog 2 a ≤ n`, the logarithmic-position set has cardinality at most `2^(n - Nat.clog
+2 a)`. -/
 private theorem clogScalars_card_le (n a : ℕ) (hm : Nat.clog 2 a ≤ n) :
     (clogScalars n a).card ≤ 2 ^ (n - Nat.clog 2 a) := by
   have hmaps : Set.MapsTo (tailFun (n := n) (Nat.clog 2 a)) ↑(clogScalars n a)
@@ -465,19 +536,24 @@ private theorem clogScalars_card_le (n a : ℕ) (hm : Nat.clog 2 a ≤ n) :
   simp only [Finset.card_univ, Fintype.card_fun, Fintype.card_fin, Fintype.card_bool] at hcard
   exact hcard
 
+/-- The exceptional strings possessing an exceptional event below `Nat.clog 2 r`. -/
 private noncomputable def smallScalars (n a r : ℕ) : Finset (Fin (n + 1) → Bool) :=
   (ExceptionalDoublingScalars n a r).filter
     (fun k => ∃ j : Fin (n + 1), j.val < Nat.clog 2 r ∧ eventAt n a r j.val k)
 
+/-- The exceptional strings with no exceptional event below `Nat.clog 2 r`. -/
 private noncomputable def largeScalars (n a r : ℕ) : Finset (Fin (n + 1) → Bool) :=
   (ExceptionalDoublingScalars n a r).filter
     (fun k => ¬ ∃ j : Fin (n + 1), j.val < Nat.clog 2 r ∧ eventAt n a r j.val k)
 
+/-- The exceptional set is the union of its small-position and remaining parts. -/
 private theorem exceptional_eq_small_union_large (n a r : ℕ) :
     ExceptionalDoublingScalars n a r = smallScalars n a r ∪ largeScalars n a r := by
   unfold smallScalars largeScalars
   exact (Finset.filter_union_filter_not_eq _ _).symm
 
+/-- For `1 ≤ a < r`, every small-position exceptional string belongs to the logarithmic-position
+set. -/
 private theorem smallScalars_subset_clogScalars (n a r : ℕ) (ha : 1 ≤ a) (har : a < r) :
     smallScalars n a r ⊆ clogScalars n a := by
   intro k hk
@@ -497,6 +573,8 @@ private theorem smallScalars_subset_clogScalars (n a r : ℕ) (ha : 1 ≤ a) (ha
   · rw [← heq] at hjbit hpre
     exact ⟨hjbit, hpre⟩
 
+/-- If `1 ≤ a < r` and `Nat.clog 2 a < Nat.clog 2 r`, every remaining exceptional string has a
+nonextremal event at a position from `Nat.clog 2 r` through `n`. -/
 private theorem largeScalars_subset_biUnion_lt (n a r : ℕ) (ha : 1 ≤ a) (_har : a < r)
     (hlt : Nat.clog 2 a < Nat.clog 2 r) :
     largeScalars n a r ⊆
@@ -533,6 +611,8 @@ private theorem largeScalars_subset_biUnion_lt (n a r : ℕ) (ha : 1 ≤ a) (_ha
     exact hkno hwit
   exact Finset.mem_sdiff.mpr ⟨hkE, hkNotP0⟩
 
+/-- If `1 ≤ a < r` and `Nat.clog 2 r ≤ Nat.clog 2 a`, the small-position exceptional set is
+empty. -/
 private theorem smallScalars_eq_empty_of_le (n a r : ℕ) (ha : 1 ≤ a) (har : a < r)
     (hle : Nat.clog 2 r ≤ Nat.clog 2 a) : smallScalars n a r = ∅ := by
   rw [← Finset.not_nonempty_iff_eq_empty]
@@ -543,6 +623,9 @@ private theorem smallScalars_eq_empty_of_le (n a r : ℕ) (ha : 1 ≤ a) (har : 
   have := event_clog_le n a r k ha har hjevent.2
   omega
 
+/-- When `1 ≤ a < r` and the logarithmic thresholds are reversed, the remaining exceptional
+strings lie in the event set at `Nat.clog 2 a` or in a nonextremal event set at another
+position between `Nat.clog 2 r` and `n`, assuming `Nat.clog 2 a ≤ n`. -/
 private theorem largeScalars_subset_union_le (n a r : ℕ) (ha : 1 ≤ a) (har : a < r)
     (hle : Nat.clog 2 r ≤ Nat.clog 2 a) (_hi0n : Nat.clog 2 a ≤ n) :
     largeScalars n a r ⊆ eventScalars n a r (Nat.clog 2 a) ∪
@@ -584,6 +667,8 @@ private theorem largeScalars_subset_union_le (n a r : ℕ) (ha : 1 ≤ a) (har :
     rw [heq]
     exact ⟨Finset.mem_univ _, hjevent⟩
 
+/-- For positive `n` and `1 ≤ a < r`, the exceptional count is at most `2^(n - Nat.clog 2 a)`
+plus the sum of `((2^i - a) / r) * 2^(n-i)` from `Nat.clog 2 r` to `n`. -/
 theorem exceptionalDoubling_count_le (n a r : ℕ)
     (_hn : 1 ≤ n) (ha : 1 ≤ a) (har : a < r) :
     (ExceptionalDoublingScalars n a r).card ≤
@@ -668,6 +753,7 @@ theorem exceptionalDoubling_count_le (n a r : ℕ)
               rw [Nat.add_mul, one_mul]
               omega
 
+/-- If `n ≥ 1` and `r ≥ 2^(n-1)`, then `Nat.clog 2 r ≥ n - 1`. -/
 theorem orderWidth_clog_ge (n r : ℕ) (hn : 1 ≤ n) (hr : 2 ^ (n - 1) ≤ r) :
     n - 1 ≤ Nat.clog 2 r := by
   rcases (show n = 1 ∨ 2 ≤ n by omega) with hn1 | hn2
@@ -678,6 +764,8 @@ theorem orderWidth_clog_ge (n r : ℕ) (hn : 1 ≤ n) (hr : 2 ^ (n - 1) ≤ r) :
     have h := (Nat.lt_clog_iff_pow_lt (by norm_num)).mpr hlt
     omega
 
+/-- If `n ≥ 1` and `c ≥ n - 1`, the weighted tail sum from `c` to `n` is at most twice `(2^(n-1)
+- a) / r` plus `(2^n - a) / r`. -/
 theorem tail_sum_le_two_terms (n a r c : ℕ) (hn : 1 ≤ n) (hc : n - 1 ≤ c) :
     (∑ i ∈ Finset.Icc c n, ((2 ^ i - a) / r) * 2 ^ (n - i))
       ≤ 2 * ((2 ^ (n - 1) - a) / r) + ((2 ^ n - a) / r) := by
@@ -704,6 +792,7 @@ theorem tail_sum_le_two_terms (n a r c : ℕ) (hn : 1 ≤ n) (hc : n - 1 ≤ c) 
           rw [h1, h2, pow_one, pow_zero, mul_one]
           ring
 
+/-- If `n ≥ 1`, `a ≥ 1`, and `r ≥ 2^(n-1)`, the two-term quotient bound is at most eight. -/
 theorem orderWidth_tail_le_eight (n a r : ℕ) (hn : 1 ≤ n) (ha : 1 ≤ a)
     (hr : 2 ^ (n - 1) ≤ r) :
     2 * ((2 ^ (n - 1) - a) / r) + ((2 ^ n - a) / r) ≤ 8 := by
@@ -724,6 +813,8 @@ theorem orderWidth_tail_le_eight (n a r : ℕ) (hn : 1 ≤ n) (ha : 1 ≤ a)
   rw [hfirst]
   omega
 
+/-- If `n ≥ 1`, `1 ≤ a < r`, and `r ≥ 2^(n-1)`, the exceptional count is bounded by the
+logarithmic-prefix term plus the two final quotient contributions. -/
 theorem exceptionalDoubling_card_le_two_terms (n a r : ℕ)
     (hn : 1 ≤ n) (ha : 1 ≤ a) (har : a < r) (hr : 2 ^ (n - 1) ≤ r) :
     (ExceptionalDoublingScalars n a r).card ≤
@@ -742,6 +833,8 @@ theorem exceptionalDoubling_card_le_two_terms (n a r : ℕ)
     _ = 2 ^ (n - Nat.clog 2 a) + 2 * ((2 ^ (n - 1) - a) / r) + ((2 ^ n - a) / r) := by
           ring
 
+/-- If `n ≥ 1`, `1 ≤ a < r`, and `r ≥ 2^(n-1)`, there are at most `2^(n - Nat.clog 2 a) + 8`
+exceptional strings. -/
 theorem exceptionalDoubling_card_le_eight (n a r : ℕ)
     (hn : 1 ≤ n) (ha : 1 ≤ a) (har : a < r) (hr : 2 ^ (n - 1) ≤ r) :
     (ExceptionalDoublingScalars n a r).card ≤ 2 ^ (n - Nat.clog 2 a) + 8 := by

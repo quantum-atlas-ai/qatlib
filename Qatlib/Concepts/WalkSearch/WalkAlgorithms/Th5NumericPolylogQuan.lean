@@ -10,6 +10,28 @@ import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
+
+/-!
+# Numerical bound for subgraph candidate search
+
+This module proves `Th5NumericPolylog` for the abstract candidate-search algorithm `hAlg`. The
+estimate `least_power_numeric_charge` controls the natural-number charge at the least positive
+integer whose kth power reaches n^(k - 1), giving a bound proportional to n^(2 - 2/k) when the
+checking charge is uniformly bounded.
+
+The result supplies the numerical cost estimate associated with quantum subgraph search
+discussed in [Ambainis2005].
+
+## Main statements
+
+* `least_power_numeric_charge`: an explicit bound on the charge before logarithmic factors.
+* `th5NumericPolylog_answer`: a uniform cost bound with a cubic logarithmic factor.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,9 @@ noncomputable section
 
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- For the least positive integer `r` with `n ^ (k - 1) ≤ r ^ k`, the natural-number search
+charge is at most `(Q + 8) * n^(2 - 2/k)` after casting to the reals, provided `k ≥ 4` and
+`qH ≤ Q`. -/
 theorem least_power_numeric_charge (n k r qH Q : ℕ) (hn : 0 < n) (hk : 4 ≤ k)
     (hr : 1 ≤ r) (hl : n ^ (k - 1) ≤ r ^ k)
     (hu : (r - 1) ^ k < n ^ (k - 1)) (hq : qH ≤ Q) :
@@ -115,6 +140,8 @@ theorem least_power_numeric_charge (n k r qH Q : ℕ) (hn : 0 < n) (hk : 4 ≤ k
   rw [← ha2]
   nlinarith
 
+/-- Establishes `Th5NumericPolylog`, giving a uniform n^(2 - 2/k) cost bound with a cubic
+logarithmic factor for `hAlg` when the checking charge is bounded; see [Ambainis2005]. -/
 theorem th5NumericPolylog_answer : Th5NumericPolylog := by
   intro k hk kcs hκ Q
   refine ⟨2 * (kcs.κ : ℝ) * (4 + (Q : ℝ) + 4), by positivity, ?_⟩

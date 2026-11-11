@@ -75,6 +75,30 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
 import Qatlib.Papers.HiddenSubgrp04.MainResults.AppendixASets
+
+/-!
+# Injectivity and range bounds for rounded coordinates
+
+This module proves monotonicity and elementary bounds for `nearInt`, then applies them to the
+coordinate map `deltaMap`. The results `lemma_A5_injective` and `lemma_A5_image_subset`
+establish injectivity on the input register and an outer interval bound for its
+second-coordinate fibers.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `kappa_bounds`: For positive N, N ≤ M, and k < M, the rounded value Nk/M lies between zero and
+  N, inclusive.
+* `lemma_A5_injective`: For positive N and N ≤ M, `deltaMap M N` is injective on `Fin M`.
+* `lemma_A5_image_subset`: For positive N and N ≤ M, every second-coordinate fiber `Cs M N s`
+  lies in the integer interval from −alpha to alpha.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -85,28 +109,35 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- Nearest-integer rounding is monotone on the real numbers. -/
 theorem nearInt_mono {x y : ℝ} (h : x ≤ y) : nearInt x ≤ nearInt y := by
   unfold nearInt
   exact Int.floor_mono (by linarith)
 
+/-- Subtracting one half from the rounded integer gives a lower bound on the original real
+number. -/
 theorem nearInt_sub_half_le (x : ℝ) : (nearInt x : ℝ) - 1 / 2 ≤ x := by
   have h := (abs_le.mp (abs_nearInt_sub_le x)).2
   linarith
 
+/-- Adding one half to the rounded integer gives an upper bound on the original real number. -/
 theorem le_nearInt_add_half (x : ℝ) : x ≤ (nearInt x : ℝ) + 1 / 2 := by
   have h := (abs_le.mp (abs_nearInt_sub_le x)).1
   linarith
 
+/-- Nearest-integer rounding sends zero to zero. -/
 theorem nearInt_zero : nearInt (0 : ℝ) = 0 := by
   unfold nearInt
   norm_num
 
+/-- Nearest-integer rounding fixes every integer cast to the reals. -/
 theorem nearInt_intCast (z : ℤ) : nearInt (z : ℝ) = z := by
   unfold nearInt
   rw [show (z : ℝ) + 1 / 2 = (1 / 2 : ℝ) + (z : ℝ) by ring,
     Int.floor_add_intCast]
   norm_num
 
+/-- For positive N, N ≤ M, and k < M, the rounded value Nk/M lies between zero and N, inclusive. -/
 theorem kappa_bounds (M N k : ℕ) (hN : 0 < N) (_hM : N ≤ M) (hk : k < M) :
     0 ≤ nearInt ((N : ℝ) / (M : ℝ) * (k : ℝ)) ∧
       nearInt ((N : ℝ) / (M : ℝ) * (k : ℝ)) ≤ (N : ℤ) := by
@@ -131,6 +162,7 @@ theorem kappa_bounds (M N k : ℕ) (hN : 0 < N) (_hM : N ≤ M) (hk : k < M) :
     have h3 : k' < (N : ℤ) + 1 := by exact_mod_cast h2
     omega
 
+/-- For positive N and N ≤ M, `deltaMap M N` is injective on `Fin M` ([Lemma A.5][Lomont2004]). -/
 theorem lemma_A5_injective (M N : ℕ) (hN : 0 < N) (hM : N ≤ M) :
     Function.Injective (fun k : Fin M => deltaMap M N k.val) := by
   intro k1 k2 h
@@ -211,6 +243,8 @@ theorem lemma_A5_injective (M N : ℕ) (hN : 0 < N) (hM : N ≤ M) :
     have : (k2.val : ℤ) = (k1.val : ℤ) + (M : ℤ) := by linarith
     omega
 
+/-- For positive N and N ≤ M, every second-coordinate fiber `Cs M N s` lies in the integer
+interval from −alpha to alpha ([Lemma A.5][Lomont2004]). -/
 theorem lemma_A5_image_subset (M N : ℕ) (hN : 0 < N) (_hM : N ≤ M) :
     ∀ s : ℤ, Cs M N s ⊆ Set.Icc (-(alpha M N)) (alpha M N) := by
   intro s t ht

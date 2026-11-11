@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialLoop
 import Qatlib.Papers.MonteCarloInt20.MainResults.CoherentBody
 import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
+
+/-!
+# Sequential finite Monte Carlo preparation
+
+This module selects the sequential term-store loop coherently by the sample register and
+constructs `previousCircuit`. The circuit prepares uniform samples, stores all coordinate term
+codes, rotates a payoff flag using their decoded sum, and reverses the loop.
+
+`previous_flag_born` identifies the resulting flag probability with `finiteTarget` at scale `2 ^
+d`, giving the exact finite-sum preparation used to compare the sequential and nested schemes of
+[KanekoEtAl2020].
+
+## Main statements
+
+* `sampleLoop_eval`: identifies the coherent loop with the selected sample-specific loops.
+* `previousCircuit_counts`: counts the full sequential preparation.
+* `previous_flag_born`: identifies its flag probability with the finite target.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -41,17 +64,23 @@ noncomputable local instance sampleDecision (n s d p : ℕ) : DecidableEq (Reg s
 noncomputable local instance fullDecision (n s d p : ℕ) :
     DecidableEq ((Reg s × Work n s d p) × Bool) := instDecidableEqProd
 
+/-- The sequential term-query oracle selected coherently by the sample register. -/
 def sampleOracle {n s d p : ℕ} (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) :
     Matrix (Reg s × Work n s d p) (Reg s × Work n s d p) ℂ := select (oracle termCode)
 
+/-- The sample-controlled store step that prepares an address, queries and copies its term code,
+and reverses the query and address preparation. -/
 def sampleStep {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (i : Reg d) : Circuit (Reg s × Work n s d p) :=
   [.gate (select (fun j : Reg s => TensorGate (prepareAddress (p:=p) a c seed j i) (1:Matrix (Codes d p) (Codes d p) ℂ))),
     .query,.gate (TensorGate 1 (copyGate n s d p)),.query,
     .gate (select (fun j : Reg s => TensorGate (prepareAddress (p:=p) a c seed j i).conjTranspose (1:Matrix (Codes d p) (Codes d p) ℂ)))]
 
+/-- Concatenate sample-controlled store steps over a coordinate list. -/
 def sampleLoop {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (is : List (Reg d)) : Circuit (Reg s × Work n s d p) :=
   is.flatMap (sampleStep (s:=s) (p:=p) a c seed)
 
+/-- The sample-controlled store step evaluates to the selected family of sample-specific
+store-circuit matrices. -/
 theorem sampleStep_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (i : Reg d) :
     runMatrix (sampleOracle termCode) (sampleStep (s:=s) (p:=p) a c seed i)=
@@ -62,6 +91,8 @@ theorem sampleStep_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n
   funext j
   simp only [storeCircuit,runMatrix,Matrix.one_mul]
 
+/-- The sample-controlled loop evaluates to the selected family of sample-specific
+sequential-loop matrices. -/
 theorem sampleLoop_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (is : List (Reg d)) :
     runMatrix (sampleOracle termCode) (sampleLoop (s:=s) (p:=p) a c seed is)=
@@ -77,6 +108,8 @@ theorem sampleLoop_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n
     funext j
     exact (runMatrix_append (oracle termCode j) (storeCircuit (p:=p) a c seed j i) (loopCircuit (p:=p) a c seed j is)).symm
 
+/-- The sample-controlled store loop uses two queries and three known gates per listed
+coordinate. -/
 theorem sampleLoop_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (is : List (Reg d)) :
     QueryCount (sampleLoop (s:=s) (p:=p) a c seed is)=2*is.length ∧ GateCount (sampleLoop (s:=s) (p:=p) a c seed is)=3*is.length := by
   induction is with
@@ -88,9 +121,12 @@ theorem sampleLoop_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2
     rw [ih.1,ih.2,List.length_cons]
     constructor <;> omega
 
+/-- Apply `g` to the sum of decoded words in the stored coordinate-code family. -/
 def payoff {n s d p : ℕ} (g : ℝ → ℝ) (v : Reg s × Work n s d p) : ℝ :=
   g (∑ i : Reg d,decodeCode p (v.2.2 i))
 
+/-- The sequential sample preparation with uniform sample Hadamards, the complete term-store
+loop, payoff rotation, and the reversed store loop. -/
 def previousCircuit {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (g : ℝ → ℝ) :
     Circuit ((Reg s × Work n s d p) × Bool) :=
   [.gate (TensorGate (TensorGate (HadamardN s) (1:Matrix (Work n s d p) (Work n s d p) ℂ)) 1)]++
@@ -98,10 +134,14 @@ def previousCircuit {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (
     [.gate (payoffRotation (payoff (n:=n) (s:=s) (d:=d) (p:=p) g))]++
     ReverseCircuit (oracleLift (I:=Reg s × Work n s d p) (J:=(Reg s × Work n s d p) × Bool) rightSpectatorHom (sampleLoop (s:=s) (p:=p) a c seed (allTerms d)))
 
+/-- The sample-selected sequential term-query oracle extended by the identity on the payoff
+flag. -/
 def previousOracle {n s d p : ℕ} (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) :
     Matrix ((Reg s × Work n s d p) × Bool) ((Reg s × Work n s d p) × Bool) ℂ :=
   TensorGate (sampleOracle termCode) 1
 
+/-- The sequential preparation circuit evaluates to the clean flag preparation formed from the
+full sample-specific term-store loops. -/
 theorem previousCircuit_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ) :
     runMatrix (I:=(Reg s × Work n s d p) × Bool) (previousOracle termCode) (previousCircuit (s:=s) (d:=d) (p:=p) a c seed g)=
@@ -144,6 +184,7 @@ theorem previousCircuit_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod
   unfold cleanFlagPreparation payoffPreparation computePreparation
   simp only [H,R,tensorGate_mul,Matrix.one_mul]
 
+/-- The sequential preparation uses `4 * 2 ^ d` term queries and `6 * 2 ^ d + 2` known gates. -/
 theorem previousCircuit_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (g : ℝ → ℝ) :
     QueryCount (previousCircuit (s:=s) (d:=d) (p:=p) a c seed g)=4*2^d ∧
     GateCount (previousCircuit (s:=s) (d:=d) (p:=p) a c seed g)=6*2^d+2 := by
@@ -155,9 +196,14 @@ theorem previousCircuit_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZM
     queryCount_gate,gateCount_gate,queryCount_nil,gateCount_nil,hL.1,hL.2,hC.1,hC.2,hlen]
   constructor <;> omega
 
+/-- The initial sequential preparation configuration with zero sample and coordinate words, the
+data seed, zero stored codes, and a false flag. -/
 def previousSeed (n s d p : ℕ) (seed : ZMod (2^n)) : ((Reg s × Work n s d p) × Bool) :=
   ((ZeroStr s,((ZeroStr d,dataSeed n s d p seed),fun _ => ZeroStr (p+1))),false)
 
+/-- For positive coordinate width and payoff values in `[0, 1]` on every decoded code sum, the
+sequential preparation's true-flag probability equals the finite target at scale `2 ^ d`
+[KanekoEtAl2020]. -/
 theorem previous_flag_born {n s d p : ℕ} (hd : 0 < d) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ)
     (hg : ∀ v : Codes d p,g (∑ i : Reg d,decodeCode p (v i)) ∈ Set.Icc (0:ℝ) 1) :

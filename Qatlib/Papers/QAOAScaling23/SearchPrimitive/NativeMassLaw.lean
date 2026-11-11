@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchPrimitive.NativeEndpoint
+
+/-!
+# Native result factorization for positive marked mass
+
+`mass_angle` represents an intermediate marked mass by a first-quadrant angle. Combining the
+angle-based factorization with the mass-one endpoint yields `native_positive_mass_biased_law`
+for every positive marked mass at most one and a schedule beginning with a plain trial.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `mass_angle`: Every real `Q` with `0 < Q < 1` is `sin θ` squared for some angle `0 < θ < π/2`.
+* `native_positive_mass_biased_law`: With exact validation and marked mass `0 < Q ≤ 1`, a
+  schedule beginning with window one returns any marked `i` with probability equal to total
+  success probability times its prepared Born probability divided by `Q`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -19,6 +41,7 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchPrimitive
 
+/-- Every real `Q` with `0 < Q < 1` is `sin θ` squared for some angle `0 < θ < π/2`. -/
 theorem mass_angle (Q : ℝ) (hQ0 : 0<Q) (hQ1 : Q<1) :
     ∃θ : ℝ,0<θ ∧θ<Real.pi/2 ∧Q=(Real.sin θ)^2 := by
   have hs0 : 0<Real.sqrt Q := Real.sqrt_pos.mpr hQ0
@@ -27,6 +50,9 @@ theorem mass_angle (Q : ℝ) (hQ0 : 0<Q) (hQ1 : Q<1) :
     Real.arcsin_lt_pi_div_two.mpr hs1,?_⟩
   rw [Real.sin_arcsin (by linarith) hs1.le,Real.sq_sqrt hQ0.le]
 
+/-- With exact validation and marked mass `0 < Q ≤ 1`, a schedule beginning with window one
+returns any marked `i` with probability equal to total success probability times its
+prepared Born probability divided by `Q`. See [ShaydulinEtAl2024]. -/
 theorem native_positive_mass_biased_law {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (valid : I→Bool) (hvalid : ∀y,valid y=true↔y∈S)

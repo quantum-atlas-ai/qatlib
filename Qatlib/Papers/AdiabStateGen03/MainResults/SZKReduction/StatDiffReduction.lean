@@ -8,6 +8,28 @@ import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Qatlib.Papers.AdiabStateGen03.MainResults.StatDistance
 import Qatlib.Papers.AdiabStateGen03.MainResults.SZKReduction.Basic
 import Mathlib.Analysis.InnerProductSpace.PiL2
+
+/-!
+# From statistical distance to amplitude tests
+
+This module defines `SDReduction` using close and far pairs of probability distributions and
+defines `AmplitudeTestable` through distances between their square-root states. The theorem
+`amplitudeTestable_of_sd` converts these statistical-distance thresholds to amplitude-distance
+thresholds, using `amplitude_close_of_tv` and `amplitude_far_of_tv`. The mathematical context is
+[AharonovTaShma2007].
+
+## Main statements
+
+* `amplitude_close_of_tv`: Probability distributions at total variation distance at most `1 / 3`
+  have square-root states at norm distance at most `Real.sqrt (2 / 3)`.
+* `amplitudeTestable_of_sd`: A statistical-distance reduction supplies an amplitude test with
+  the specified close and far thresholds.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,9 +45,13 @@ open WithLp
 
 variable {m : ℕ}
 
+/-- The square-root distribution state is the Euclidean vector of real square roots, embedded in
+the complex numbers. -/
 lemma ketOfDist_eq_toLp (π : Dim m → ℝ) :
     ketOfDist π = toLp 2 (fun i => (Real.sqrt (π i) : ℂ)) := rfl
 
+/-- The squared norm of the difference of two square-root states equals the sum of squared
+differences of their real amplitudes [AharonovTaShma2007]. -/
 theorem norm_ketOfDist_sub_sq (p q : Dim m → ℝ) :
     ‖ketOfDist p - ketOfDist q‖ ^ 2
       = ∑ i, (Real.sqrt (p i) - Real.sqrt (q i)) ^ 2 := by
@@ -36,6 +62,8 @@ theorem norm_ketOfDist_sub_sq (p q : Dim m → ℝ) :
   rw [PiLp.toLp_apply, Pi.sub_apply, ← Complex.ofReal_sub, Complex.norm_real,
     Real.norm_eq_abs, sq_abs]
 
+/-- Probability distributions at total variation distance at most `1 / 3` have square-root
+states at norm distance at most `Real.sqrt (2 / 3)` [AharonovTaShma2007]. -/
 theorem amplitude_close_of_tv (p q : Dim m → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1)
@@ -47,6 +75,8 @@ theorem amplitude_close_of_tv (p q : Dim m → ℝ)
   rw [Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2 / 3)]
   linarith
 
+/-- Probability distributions at total variation distance at least `2 / 3` have square-root
+states at norm distance at least `2 / 3` [AharonovTaShma2007]. -/
 theorem amplitude_far_of_tv (p q : Dim m → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1)
@@ -63,6 +93,8 @@ theorem amplitude_far_of_tv (p q : Dim m → ℝ)
   rw [norm_ketOfDist_sub_sq]
   exact hsq
 
+/-- A pair of probability-distribution families separating the Boolean outcomes of a promise
+problem by total variation thresholds `1 / 3` and `2 / 3`. -/
 structure SDReduction (L : PromiseProblem) where
 
   bits : ℕ
@@ -81,11 +113,15 @@ structure SDReduction (L : PromiseProblem) where
   far_no : ∀ x, L.decide x = false →
     2 / 3 ≤ (1 / 2) * ∑ i, |p x i - q x i|
 
+/-- The existence of weight families whose square-root states have distance at most `Real.sqrt
+(2 / 3)` on true inputs and at least `2 / 3` on false inputs. -/
 def AmplitudeTestable (L : PromiseProblem) : Prop :=
   ∃ (bits : ℕ) (p q : List Bool → Dim bits → ℝ),
     (∀ x, L.decide x = true → ‖ketOfDist (p x) - ketOfDist (q x)‖ ≤ Real.sqrt (2 / 3)) ∧
     (∀ x, L.decide x = false → 2 / 3 ≤ ‖ketOfDist (p x) - ketOfDist (q x)‖)
 
+/-- A statistical-distance reduction supplies an amplitude test with the specified close and far
+thresholds. -/
 theorem amplitudeTestable_of_sd {L : PromiseProblem} (R : SDReduction L) :
     AmplitudeTestable L := by
   refine ⟨R.bits, R.p, R.q, ?_, ?_⟩

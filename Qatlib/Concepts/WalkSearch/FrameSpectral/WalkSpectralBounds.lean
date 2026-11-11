@@ -10,6 +10,31 @@ import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
 import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
 import Qatlib.Concepts.WalkSearch.FrameSpectral.PrintedPlusIDetectorWalkAuxiliary
+
+/-!
+# Frame spectral endpoints and detector branch laws
+
+This module proves the intersection case of the bipartite walk norm correspondence and combines
+it with the interior result in `szegedyTheorem5Unified`. It also proves that the tau map
+vanishes on the +1 source eigenspace.
+
+The endpoint bundles include graph setup and access facts, empty marked set obstructions, and
+the branch behavior of the printed plus-I detector. Under row preserving access, the full
+endpoint records the flag shear action and the parity dependence of repeated printed walk words.
+These results concern the quantum walk framework of [Szegedy2004].
+
+## Main statements
+
+* `szegedyTheorem5Unified`: The interior and intersection norm statements.
+* `bipartiteTauEndpointVanishes_proof`: Vanishing of the tau map at the +1 source endpoint.
+* `walk_spectral3_clause39_full_endpoint_v2`: The full spectral and detector branch endpoint
+  bundle.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -37,6 +62,7 @@ open Qatlib
 open Qatlib.Concepts.WalkSearch.Th4Expander
 open scoped Kronecker
 
+/-- A finite complex state whose inner product with itself is zero is the zero state. -/
 private theorem local_inner_self_zero {K : Type} [Fintype K] (w : QState K)
     (h : Qatlib.Foundations.PureStateMath.Inner w w = 0) : w = 0 := by
   let v : EuclideanSpace ℂ K := WithLp.toLp 2 w
@@ -51,6 +77,8 @@ private theorem local_inner_self_zero {K : Type} [Fintype K] (w : QState K)
   have he := congrArg (fun u : EuclideanSpace ℂ K => WithLp.ofLp u x) hz
   simpa only [v, WithLp.ofLp_toLp, Pi.zero_apply] using! he
 
+/-- For two isometric frames, the tau map at source eigenvalue +1 vanishes on every +1 source
+eigenvector, for either Boolean phase branch. -/
 theorem bipartiteTauEndpointVanishes_proof : BipartiteTauEndpointVanishes := by
   intro H I J _ _ _ _ _ _ A B hA hB u hu s
   let a : QState I := fun i => u (.inl i)
@@ -87,6 +115,9 @@ theorem bipartiteTauEndpointVanishes_proof : BipartiteTauEndpointVanishes := by
     simp [Qatlib.Foundations.PureStateMath.Inner, dotProduct_zero]
   exact local_inner_self_zero w hinner
 
+/-- A common image of two isometric frames is fixed by their bipartite walk, and its self inner
+product is one when the source in the first frame is normalized [Szegedy, Theorem
+5][Szegedy2004]. -/
 theorem szegedyTheorem5IntersectionNorm : SzegedyTheorem5IntersectionNorm := by
   intro H I J _ _ _ _ _ _ A B hA hB a b hnorm hab
   have hAi : Aᴴ * A = 1 := show Aᴴ * A = 1 from hA
@@ -97,19 +128,27 @@ theorem szegedyTheorem5IntersectionNorm : SzegedyTheorem5IntersectionNorm := by
     rw [inner_mulVec_left_rect, Matrix.mulVec_mulVec, hAi, Matrix.one_mulVec]
   exact ⟨hfix, by rw [hinner]; exact_mod_cast (normalized_iff_inner_self a).mp hnorm⟩
 
+/-- Combines the interior norm correspondence with the normalized intersection fixed-state
+result [Szegedy, Theorem 5][Szegedy2004]. -/
 theorem szegedyTheorem5Unified : SzegedyTheorem5Unified :=
   ⟨szegedyTheorem5InteriorNorm, szegedyTheorem5IntersectionNorm⟩
 
+/-- Establishes `Clause1Spec`, combining graph setup and reachable dynamics with the countable
+exact gate cover obstruction and graph bit access. -/
 theorem walk_spectral3_clause37 : Clause1Spec := by
   refine ⟨fun I _ _ _ P S hP => ⟨graph_setup P S hP, reachable_span_invariant P hP, reachable_two_plane P hP⟩,
           no_exact_gate_cover,
           graph_bit_access_zero_workspace⟩
 
+/-- Establishes `Clause2Spec`, expressing impossibility of finding an element of an empty marked
+set and the corresponding zero walk search success probability. -/
 theorem walk_spectral3_clause38 : Clause2Spec := by
   refine ⟨fun I _ _ _ P Sc Uc Cc bound => not_empty_find P Sc Uc Cc bound,
           fun I _ _ P Sc Uc Cc bound => not_empty_walk_find P Sc Uc Cc bound,
           fun I _ _ P Mq k t => by simp [walkFindSuccessProb, edgeMarkedSet, MeasureProb]⟩
 
+/-- Establishes `Clause3Spec`, combining the unified norm correspondence with tau vanishing at
+the +1 source endpoint. -/
 theorem walk_spectral3_clause39 : Clause3Spec :=
   ⟨szegedyTheorem5Unified, bipartiteTauEndpointVanishes_proof⟩
 
@@ -117,12 +156,16 @@ open Matrix
 open Qatlib
 open scoped Kronecker
 
+/-- Applying the detection marking gate twice restores every coordinate of the original state. -/
 private theorem marker_twice {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (w : QState (DetectionSpace I)) (p : DetectionSpace I) :
     (detectionMarkGate S *ᵥ (detectionMarkGate S *ᵥ w)) p = w p := by
   rw [marker_apply S (detectionMarkGate S *ᵥ w) p, marker_apply S w _]
   simp only [detectionMarkPermutation_involutive S p]
 
+/-- Establishes `WalkSpectral3Clause39FullEndpoint`, collecting norm and tau endpoint results,
+detector branch identities, row access cancellation, and the row preserving flag shear and
+parity laws. -/
 theorem walk_spectral3_clause39_full_endpoint_v2 : WalkSpectral3Clause39FullEndpoint := by
   refine ⟨szegedyTheorem5Unified, bipartiteTauEndpointVanishes_proof, ?_, ?_, ?_, ?_, ?_, ?_,
     ?_, ?_⟩

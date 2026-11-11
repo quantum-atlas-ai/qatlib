@@ -20,6 +20,33 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+
+/-!
+# Rational Cayley approximations to phase gates
+
+`GaussianRat` stores rational real and imaginary parts. `cayleyRat` constructs an exact
+unit-modulus rational point, and `countedCayleyPhase` repeatedly squares a scaled Cayley point
+to approximate a complex exponential. The counters record the arithmetic operations explicitly
+used by the construction.
+
+The module derives an arctangent remainder bound, an explicit approximation error, and exact
+preservation of unit modulus. `rationalPhaseGate` turns the resulting finite data into a
+diagonal phase gate in the circuit setting of [NielsenChuang2010].
+
+## Main statements
+
+* `rational_cayley_unit_phase_and_angle`: the Cayley point has unit modulus and a known angle.
+* `rational_cayley_actual_squaring_counts`: repeated squaring uses `4 * k` multiplications and
+  `2 * k` additions or subtractions.
+* `rational_cayley_explicit_precision`: the phase error satisfies cubic and geometric bounds.
+* `rational_cayley_gate_unitarity_and_target_error`: the resulting gate is unitary and
+  approximates `Rz`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -31,33 +58,44 @@ open scoped Matrix.Norms.L2Operator
 
 set_option linter.unusedSectionVars false
 
+/-- A pair of rational numbers representing the real and imaginary parts of a complex number. -/
 abbrev GaussianRat := ℚ × ℚ
 
+/-- Interprets a rational pair as the complex number `z.1 + z.2 * I`. -/
 def gaussianRatComplex (z : GaussianRat) : ℂ := (z.1 : ℂ) + (z.2 : ℂ) * Complex.I
 
+/-- The rational pair `((1 - x²) / (1 + x²), 2 * x / (1 + x²))` parametrizing a point on the
+unit circle. -/
 def cayleyRat (x : ℚ) : GaussianRat := ((1 - x ^ 2) / (1 + x ^ 2), 2 * x / (1 + x ^ 2))
 
+/-- Squares a complex number represented by rational real and imaginary parts. -/
 def squareGaussianRat (z : GaussianRat) : GaussianRat :=
   (z.1 * z.1 - z.2 * z.2, z.1 * z.2 + z.1 * z.2)
 
+/-- Repeatedly squares a rational complex pair, recording four rational multiplications and two
+additions or subtractions per iteration. -/
 def squareLoop (z : GaussianRat) : ℕ → GaussianRat × ℕ × ℕ
   | 0 => (z, 0, 0)
   | k + 1 =>
     let previous := squareLoop z k
     (squareGaussianRat previous.1, previous.2.1 + 4, previous.2.2 + 2)
 
+/-- Computes a power of two by repeated doubling and records the number of doubling steps. -/
 def countedCayleyPowerTwo : ℕ → ℕ × ℕ
   | 0 => (1, 0)
   | k + 1 =>
     let previous := countedCayleyPowerTwo k
     (previous.1 * 2, previous.2 + 1)
 
+/-- The repeated-doubling computation returns `2 ^ k` with counter `k`. -/
 theorem countedCayleyPowerTwo_value_and_cost (k : ℕ) :
     countedCayleyPowerTwo k = (2 ^ k, k) := by
   induction k with
   | zero => rfl
   | succ k ih => simp [countedCayleyPowerTwo, ih, pow_succ]
 
+/-- Initializes the Cayley point at `x / (2 * 2 ^ k)` and records the doubling count together
+with the fixed arithmetic counters. -/
 def countedCayleyInit (x : ℚ) (k : ℕ) : GaussianRat × ℕ × ℕ × ℕ × ℕ :=
   let power := countedCayleyPowerTwo k
   let t := x / (2 * (power.1 : ℚ))
@@ -65,10 +103,13 @@ def countedCayleyInit (x : ℚ) (k : ℕ) : GaussianRat × ℕ × ℕ × ℕ × 
   let denominator := 1 + square
   (((1 - square) / denominator, (2 * t) / denominator), power.2, 3, 2, 3)
 
+/-- The Cayley initializer returns `cayleyRat (x / (2 * 2 ^ k))` and the counter tuple `(k, 3,
+2, 3)`. -/
 theorem countedCayleyInit_value_and_cost (x : ℚ) (k : ℕ) :
     countedCayleyInit x k = (cayleyRat (x / (2 * (2 : ℚ) ^ k)), k, 3, 2, 3) := by
   simp [countedCayleyInit, countedCayleyPowerTwo_value_and_cost, cayleyRat, pow_two]
 
+/-- Both denominators used by the scaled Cayley initialization are strictly positive. -/
 theorem countedCayleyInit_denominators (x : ℚ) (k : ℕ) :
     (0 : ℚ) < 2 * (2 : ℚ) ^ k ∧
       (0 : ℚ) < 1 + (x / (2 * (2 : ℚ) ^ k)) ^ 2 := by
@@ -76,9 +117,12 @@ theorem countedCayleyInit_denominators (x : ℚ) (k : ℕ) :
   · positivity
   · linarith [sq_nonneg (x / (2 * (2 : ℚ) ^ k))]
 
+/-- Approximates the phase at `x` by squaring the scaled Cayley initializer `k` times, retaining
+the squaring-operation counters. -/
 def countedCayleyPhase (x : ℚ) (k : ℕ) : GaussianRat × ℕ × ℕ :=
   squareLoop (countedCayleyInit x k).1 k
 
+/-- The norm of `1 + x * I` is `sqrt (1 + x²)` for real `x`. -/
 private theorem norm_one_add_mul_I (x : ℝ) : ‖(1:ℂ) + x * Complex.I‖ = Real.sqrt (1 + x ^ 2) := by
   rw [Complex.norm_eq_sqrt_sq_add_sq]
   have hre : ((1:ℂ) + x * Complex.I).re = 1 := by
@@ -90,6 +134,7 @@ private theorem norm_one_add_mul_I (x : ℝ) : ‖(1:ℂ) + x * Complex.I‖ = R
   rw [hre, him]
   norm_num
 
+/-- For rational `x`, the Cayley denominator `1 - x * I` is nonzero. -/
 private theorem one_sub_mul_I_ne_zero (x : ℚ) : (1:ℂ) - (x:ℂ) * Complex.I ≠ 0 := by
   have hcast : (x:ℂ) = ((x:ℝ) : ℂ) := (Complex.ofReal_ratCast x).symm
   have hnorm : ‖(1:ℂ) - ((x:ℝ) : ℂ) * Complex.I‖ ≠ 0 := by
@@ -104,6 +149,7 @@ private theorem one_sub_mul_I_ne_zero (x : ℚ) : (1:ℂ) - (x:ℂ) * Complex.I 
   rw [hcast] at h
   exact hnorm (by rw [h]; simp)
 
+/-- The complex interpretation of the rational Cayley pair equals `(1 + x * I) / (1 - x * I)`. -/
 theorem gaussianRatComplex_cayleyRat (x : ℚ) :
     gaussianRatComplex (cayleyRat x) = (1 + (x:ℂ) * Complex.I) / (1 - (x:ℂ) * Complex.I) := by
   have hq : ((1 + x ^ 2 : ℚ) : ℂ) ≠ 0 := by
@@ -121,6 +167,8 @@ theorem gaussianRatComplex_cayleyRat (x : ℚ) :
   rw [eq_div_iff (one_sub_mul_I_ne_zero x)]
   exact hmul
 
+/-- The rational Cayley point has norm one and equals the complex exponential with angle `2 *
+arctan x`. -/
 theorem rational_cayley_unit_phase_and_angle (x : ℚ) :
     ‖gaussianRatComplex (cayleyRat x)‖ = 1 ∧
       gaussianRatComplex (cayleyRat x) = Complex.exp ((2 * Real.arctan (x:ℝ) : ℂ) * Complex.I) := by
@@ -183,6 +231,7 @@ theorem rational_cayley_unit_phase_and_angle (x : ℚ) :
   rw [gaussianRatComplex_cayleyRat, hexpquad,
     div_eq_div_iff (one_sub_mul_I_ne_zero x) hexpne, hcross2]
 
+/-- The distance between complex unit phases at real angles `a` and `b` is at most `|a - b|`. -/
 theorem norm_exp_mul_I_sub_le (a b : ℝ) :
     ‖Complex.exp ((a:ℂ) * Complex.I) - Complex.exp ((b:ℂ) * Complex.I)‖ ≤ |a - b| := by
   have hsplit : Complex.exp ((a:ℂ) * Complex.I) - Complex.exp ((b:ℂ) * Complex.I)
@@ -208,12 +257,15 @@ theorem norm_exp_mul_I_sub_le (a b : ℝ) :
         linarith
     _ = |a - b| := by rw [Real.norm_eq_abs, one_mul]
 
+/-- The rational-pair interpretation, explicit Cayley coordinates, and complex Cayley quotient
+agree. -/
 theorem rational_cayley_actual_finite_data :
     (∀ z : GaussianRat, gaussianRatComplex z = (z.1:ℂ) + (z.2:ℂ) * Complex.I) ∧
       (∀ x : ℚ, cayleyRat x = ((1 - x ^ 2) / (1 + x ^ 2), 2 * x / (1 + x ^ 2))) ∧
       (∀ x : ℚ, gaussianRatComplex (cayleyRat x) = (1 + (x:ℂ) * Complex.I) / (1 - (x:ℂ) * Complex.I)) :=
   ⟨fun _ => rfl, fun _ => rfl, gaussianRatComplex_cayleyRat⟩
 
+/-- The function `t - arctan t` is monotone on the nonnegative real numbers. -/
 private theorem monotoneOn_sub_arctan :
     MonotoneOn (fun t : ℝ => t - Real.arctan t) (Set.Ici 0) := by
   have hdiff : Differentiable ℝ (fun t : ℝ => t - Real.arctan t) := by
@@ -230,6 +282,7 @@ private theorem monotoneOn_sub_arctan :
   exact (div_le_one (by linarith [sq_nonneg u] : (0:ℝ) < 1 + u ^ 2)).mpr
     (by linarith [sq_nonneg u])
 
+/-- The function `t³ / 3 - (t - arctan t)` is monotone on the nonnegative real numbers. -/
 private theorem monotoneOn_cubic_arctan :
     MonotoneOn (fun t : ℝ => t ^ 3 / 3 - (t - Real.arctan t)) (Set.Ici 0) := by
   have hdiff : Differentiable ℝ (fun t : ℝ => t ^ 3 / 3 - (t - Real.arctan t)) := by
@@ -252,6 +305,7 @@ private theorem monotoneOn_cubic_arctan :
   rw [hform]
   exact div_nonneg (by positivity) (by positivity)
 
+/-- For every real `x`, the arctangent approximation error is bounded by `|x|³ / 3`. -/
 theorem rational_cayley_derived_arctan_remainder (x : ℝ) :
     |Real.arctan x - x| ≤ |x| ^ 3 / 3 := by
   rcases le_or_gt 0 x with hx | hx
@@ -276,6 +330,8 @@ theorem rational_cayley_derived_arctan_remainder (x : ℝ) :
     rw [abs_sub_comm, habseq, show |x| = -x from abs_of_neg hx]
     exact h2
 
+/-- Interpreting a squared rational pair in the complex numbers gives the square of its
+interpretation. -/
 theorem gaussianRatComplex_squareGaussianRat (z : GaussianRat) :
     gaussianRatComplex (squareGaussianRat z) = gaussianRatComplex z ^ 2 := by
   simp only [squareGaussianRat, gaussianRatComplex, pow_two]
@@ -284,6 +340,8 @@ theorem gaussianRatComplex_squareGaussianRat (z : GaussianRat) :
   simp only [pow_two, Complex.I_mul_I]
   ring
 
+/-- After `k` squarings, the interpreted value is the original value to the power `2 ^ k`, with
+counters `4 * k` and `2 * k`. -/
 theorem squareLoop_value_and_counts (z : GaussianRat) : ∀ k : ℕ,
     gaussianRatComplex (squareLoop z k).1 = gaussianRatComplex z ^ (2 ^ k) ∧
     (squareLoop z k).2.1 = 4 * k ∧ (squareLoop z k).2.2 = 2 * k := by
@@ -305,6 +363,8 @@ theorem squareLoop_value_and_counts (z : GaussianRat) : ∀ k : ℕ,
       rw [ha]
       omega
 
+/-- The counted Cayley phase is the scaled Cayley point raised to `2 ^ k`, using counters `4 *
+k` and `2 * k` for the squaring loop. -/
 theorem rational_cayley_actual_squaring_counts (x : ℚ) (k : ℕ) :
     gaussianRatComplex (countedCayleyPhase x k).1 =
       (gaussianRatComplex (cayleyRat (x / (2 * (2:ℚ) ^ k)))) ^ (2 ^ k) ∧
@@ -313,9 +373,12 @@ theorem rational_cayley_actual_squaring_counts (x : ℚ) (k : ℕ) :
   rw [countedCayleyInit_value_and_cost]
   exact squareLoop_value_and_counts (cayleyRat (x / (2 * (2:ℚ) ^ k))) k
 
+/-- The real angle `2 * 2 ^ k * arctan (x / (2 * 2 ^ k))` of the repeated-squaring Cayley
+construction. -/
 noncomputable def rationalCayleyAngle (x : ℝ) (k : ℕ) : ℝ :=
   2 * (2 ^ k : ℝ) * Real.arctan (x / (2 * (2 ^ k : ℝ)))
 
+/-- The counted rational Cayley phase equals the complex exponential at `rationalCayleyAngle`. -/
 theorem gaussianRatComplex_countedCayleyPhase_eq_exp (x : ℚ) (k : ℕ) :
     gaussianRatComplex (countedCayleyPhase x k).1
       = Complex.exp ((rationalCayleyAngle (x:ℝ) k : ℂ) * Complex.I) := by
@@ -333,6 +396,8 @@ theorem gaussianRatComplex_countedCayleyPhase_eq_exp (x : ℚ) (k : ℕ) :
     ring
   rw [hscal, ← mul_assoc]
 
+/-- For rational `x` with `|x| ≤ 1`, the phase error is at most `|x|³ / (12 * (2 ^ k)²)` and at
+most `(1 / 2) ^ k`. -/
 theorem rational_cayley_explicit_precision (x : ℚ) (k : ℕ) (hx : |(x:ℝ)| ≤ 1) :
     ‖gaussianRatComplex (countedCayleyPhase x k).1 - Complex.exp ((x:ℂ) * Complex.I)‖ ≤
       |(x:ℝ)| ^ 3 / (12 * ((2 ^ k : ℕ) : ℝ) ^ 2) ∧
@@ -405,14 +470,19 @@ theorem rational_cayley_explicit_precision (x : ℚ) (k : ℕ) (hx : |(x:ℝ)| �
             nlinarith [hN1, sq_nonneg ((2 ^ k : ℕ) : ℝ)])
     _ = ((2:ℝ) ⁻¹) ^ k := hinv.symm
 
+/-- The counted rational Cayley phase has complex norm exactly one for every input and iteration
+count. -/
 theorem gaussianRatComplex_countedCayleyPhase_norm (x : ℚ) (k : ℕ) :
     ‖gaussianRatComplex (countedCayleyPhase x k).1‖ = 1 := by
   rw [(rational_cayley_actual_squaring_counts x k).1, norm_pow,
     (rational_cayley_unit_phase_and_angle _).1, one_pow]
 
+/-- The diagonal Boolean-register gate with entries one and the complex interpretation of the
+rational phase pair. -/
 def rationalPhaseGate (z : GaussianRat) : Matrix Bool Bool ℂ :=
   Matrix.diagonal fun a => if a then gaussianRatComplex z else 1
 
+/-- A rational phase pair of complex norm one determines a unitary diagonal phase gate. -/
 theorem rationalPhaseGate_mem_unitaryGroup {z : GaussianRat}
     (hz : ‖gaussianRatComplex z‖ = 1) : rationalPhaseGate z ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -427,6 +497,8 @@ theorem rationalPhaseGate_mem_unitaryGroup {z : GaussianRat}
     norm_num
   · simp
 
+/-- The counted rational phase gate is unitary; when `|x| ≤ 1`, its matrix-norm distance from
+`Rz x` is at most `(1 / 2) ^ k`. -/
 theorem rational_cayley_gate_unitarity_and_target_error (x : ℚ) (k : ℕ) :
     rationalPhaseGate (countedCayleyPhase x k).1 ∈ Matrix.unitaryGroup Bool ℂ ∧
       (|(x:ℝ)| ≤ 1 → ‖rationalPhaseGate (countedCayleyPhase x k).1 - Rz (x:ℝ)‖

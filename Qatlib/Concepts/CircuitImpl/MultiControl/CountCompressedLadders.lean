@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountLadders
+
+/-!
+# Compressed relative-Toffoli prefix ladders
+
+`sourcePrefixCompressed` removes repeated rotation frames from the raw relative-Toffoli prefix
+ladder while preserving its program matrix for valid dirty-prefix layouts. This realizes
+elementary-gate compression within the multi-control synthesis framework of [BarencoEtAl1995].
+
+The module proves exact lengths, legality, signed basis semantics, and identities for the
+resulting matrices. It also records avoidance and commutation properties for wires outside the
+ladder.
+
+## Main statements
+
+* `sourcePrefixCompressed_length`: The exact length `12 * r - 5` for `r ≥ 1`.
+* `sourcePrefixCompressed_matrix`: Equality of compressed and raw program matrices.
+* `sourcePrefixCompressed_square`: The compressed program matrix squares to the identity.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,10 +46,13 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl.CountCompressedLadders
 open Matrix
 open scoped Classical BigOperators
 
+/-- The five-gate middle word of the relative Toffoli decomposition, consisting of three CNOTs
+and two qubit rotations. -/
 def sourceRelativeMiddle {N : ℕ} (a b t : Fin N) : List (ReflectionGate N) :=
   let R := qubitEulerRotation (-Real.pi/4);
   [.inr (b,t), .inl (t,R), .inr (a,t), .inl (t,Rᴴ), .inr (b,t)]
 
+/-- The relative Toffoli middle word is legal when both controls differ from the target. -/
 theorem sourceRelativeMiddle_legal {N : ℕ} (a b t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) : reflectionLegal (sourceRelativeMiddle a b t) := by
   intro g hg
@@ -38,6 +64,8 @@ theorem sourceRelativeMiddle_legal {N : ℕ} (a b t : Fin N)
   · rw [qubitEulerRotation_conjTranspose]; exact qubitEulerRotation_unitary _
   · exact hbt
 
+/-- Every gate of the relative Toffoli word avoids any wire distinct from its two controls and
+target. -/
 theorem sourceRelativeToffoliSteps_avoids {N : ℕ} (a b t z : Fin N)
     (hza : z ≠ a) (hzb : z ≠ b) (hzt : z ≠ t) :
     ∀ g ∈ sourceRelativeToffoliSteps a b t, z ∉ reflectionGateWires g := by
@@ -46,6 +74,7 @@ theorem sourceRelativeToffoliSteps_avoids {N : ℕ} (a b t z : Fin N)
   rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     simp [reflectionGateWires, hza, hzb, hzt]
 
+/-- Every gate of the raw prefix ladder avoids a wire outside its prefix control and work wires. -/
 theorem sourcePrefixRaw_avoids {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) (z : Fin N)
     (hc : ∀ i < r+1, z ≠ c i) (hw : ∀ j < r, z ≠ w j) :
     ∀ g ∈ sourcePrefixRaw c w r, z ∉ reflectionGateWires g := by
@@ -64,6 +93,8 @@ theorem sourcePrefixRaw_avoids {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) (z : Fi
     · exact sourceRelativeToffoliSteps_avoids _ _ _ _ (hc _ (by omega)) (hw _ (by omega))
         (hw _ (by omega)) g hg
 
+/-- The recursive prefix ladder with adjacent rotation frames compressed around relative Toffoli
+middle words. -/
 def sourcePrefixCompressed {N : ℕ} (c w : ℕ → Fin N) : ℕ → List (ReflectionGate N)
   | 0 => []
   | 1 => sourceRelativeToffoliSteps (c 0) (c 1) (w 0)
@@ -73,6 +104,7 @@ def sourcePrefixCompressed {N : ℕ} (c w : ℕ → Fin N) : ℕ → List (Refle
         sourcePrefixCompressed c w (r+1) ++ sourceRelativeMiddle (c (r+2)) (w r) (w (r+1)) ++
         [.inl (w (r+1),Rᴴ)]
 
+/-- A compressed prefix ladder with `r ≥ 1` has exactly `12 * r - 5` elementary gates. -/
 theorem sourcePrefixCompressed_length {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (hr : 1 ≤ r) : (sourcePrefixCompressed c w r).length = 12*r-5 := by
   induction r using Nat.twoStepInduction with
@@ -84,9 +116,12 @@ theorem sourcePrefixCompressed_length {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     rw [hm, ih (by omega)]
     omega
 
+/-- The program matrix of a singleton gate word is the matrix of its gate. -/
 private theorem singleton_matrix {N : ℕ} (g : ReflectionGate N) :
     reflectionProgramMatrix [g] = reflectionGateMatrix g := by simp [reflectionProgramMatrix]
 
+/-- For a valid dirty-prefix layout, the compressed and raw prefix ladders have the same program
+matrix. -/
 theorem sourcePrefixCompressed_matrix {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) :
     reflectionProgramMatrix (sourcePrefixCompressed c w r) =
@@ -150,6 +185,7 @@ theorem sourcePrefixCompressed_matrix {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     simp only [Matrix.mul_assoc, hRF]
     rfl
 
+/-- The compressed prefix ladder is legal for a valid dirty-prefix layout. -/
 theorem sourcePrefixCompressed_legal {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) : reflectionLegal (sourcePrefixCompressed c w r) := by
   induction r using Nat.twoStepInduction with
@@ -170,6 +206,8 @@ theorem sourcePrefixCompressed_legal {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     simp only [sourcePrefixCompressed, reflectionLegal_append]
     exact ⟨⟨⟨⟨hR, hm⟩, hF⟩, hm⟩, hS⟩
 
+/-- On a basis state, the compressed prefix ladder implements `noWorkDirtyPrefixTransform` with
+scalar factor `sourcePrefixSign`. -/
 theorem sourcePrefixCompressed_ket {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (sourcePrefixCompressed c w r))
@@ -177,6 +215,7 @@ theorem sourcePrefixCompressed_ket {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
   rw [run_reflectionCompile, sourcePrefixCompressed_matrix c w r h, ← run_reflectionCompile]
   exact sourcePrefixRaw_ket c w r h x
 
+/-- The raw prefix ladder has a Hermitian program matrix for a valid dirty-prefix layout. -/
 theorem sourcePrefixRaw_hermitian {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) :
     (reflectionProgramMatrix (sourcePrefixRaw c w r))ᴴ = reflectionProgramMatrix (sourcePrefixRaw c w r) := by
@@ -205,6 +244,8 @@ theorem sourcePrefixRaw_hermitian {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     rw [heq, Matrix.conjTranspose_mul, Matrix.conjTranspose_mul, hG, ih hsub]
     simp only [Matrix.mul_assoc]
 
+/-- For a valid dirty-prefix layout, the square of the compressed prefix program matrix is the
+identity. -/
 theorem sourcePrefixCompressed_square {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) :
     reflectionProgramMatrix (sourcePrefixCompressed c w r) *
@@ -216,6 +257,8 @@ theorem sourcePrefixCompressed_square {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
       Matrix.mem_unitaryGroup_iff'.mp (reflectionProgramMatrix_unitary _ (sourcePrefixRaw_legal c w r h))
   rwa [sourcePrefixRaw_hermitian c w r h] at hu
 
+/-- The compressed prefix program matrix commutes with a single-wire matrix on any wire outside
+its control and work wires. -/
 theorem sourcePrefixCompressed_wire_commute {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (z : Fin N) (U : Matrix Bool Bool ℂ)
     (hc : ∀ i < r+1, z ≠ c i) (hw : ∀ j < r, z ≠ w j) :
@@ -225,6 +268,7 @@ theorem sourcePrefixCompressed_wire_commute {N : ℕ} (c w : ℕ → Fin N) (r :
   exact source_wireGate_commute_table z U _ (sourcePrefixRaw_legal c w r h)
     (sourcePrefixRaw_avoids c w r z hc hw)
 
+/-- Every gate of the relative middle word avoids a wire distinct from its controls and target. -/
 theorem sourceRelativeMiddle_avoids {N : ℕ} (a b t z : Fin N)
     (hza : z ≠ a) (hzb : z ≠ b) (hzt : z ≠ t) :
     ∀ g ∈ sourceRelativeMiddle a b t, z ∉ reflectionGateWires g := by
@@ -233,6 +277,8 @@ theorem sourceRelativeMiddle_avoids {N : ℕ} (a b t z : Fin N)
   rcases hg with rfl | rfl | rfl | rfl | rfl <;>
     simp [reflectionGateWires, hza, hzb, hzt]
 
+/-- Every gate of the compressed prefix ladder avoids a wire outside its prefix control and work
+wires. -/
 theorem sourcePrefixCompressed_avoids {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) (z : Fin N)
     (hc : ∀ i < r+1, z ≠ c i) (hw : ∀ j < r, z ≠ w j) :
     ∀ g ∈ sourcePrefixCompressed c w r, z ∉ reflectionGateWires g := by
@@ -253,6 +299,8 @@ theorem sourcePrefixCompressed_avoids {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) 
         (hw _ (by omega)) g hg
     · simpa [reflectionGateWires] using! hw (r+1) (by omega)
 
+/-- The prefix sign on a register multiplied by the prefix sign on its dirty-prefix transform is
+one for a valid layout. -/
 theorem sourcePrefixSign_return {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (x : Reg N) :
     sourcePrefixSign c w r x * sourcePrefixSign c w r (noWorkDirtyPrefixTransform c w r x) = 1 := by

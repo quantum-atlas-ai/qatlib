@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualRun
 import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+/-!
+# Charged nearest-centroid estimation
+
+Defines `sourceCentroidRun`, which reads the normalization quantity and runs the median
+estimator with explicit access and selection costs. Following the classical nearest-centroid
+construction of [Tang2021], the module bounds the additive-error failure mass and derives a
+uniform work bound proportional to `T * Z ^ 2 / eps ^ 2 * log (1 / delta)` under the stated
+parameter restrictions.
+
+## Main statements
+
+* `sourceCentroidWork_source`: Under the stated error, confidence, and access-cost bounds, every
+  source run has work at most `(112910 / log 2) * T * Z ^ 2 / eps ^ 2 * log (1 / delta)`, where
+  `Z = averageNormSq u V`.
+* `source_nearest_centroid_charged`: The charged nearest-centroid estimator has additive-error
+  failure mass at most `delta` and satisfies the stated uniform work bound [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,20 +38,27 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QPCAAssume18.ClassCentroid
 
+/-- The Frobenius energy of the matrix together with a ledger containing one matrix-energy
+access. -/
 def matrixEnergyRead {n d : ℕ} (V : Matrix (Fin n) (Fin d) ℂ) :
     ℝ × List (CentroidCall n d) := (frobeniusEnergy V, [.matrixEnergy])
 
+/-- The normalization quantity obtained from the vector energy and the average matrix energy,
+together with the concatenated access ledger. -/
 def centroidZRead {n d : ℕ} (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ) :
     ℝ × List (CentroidCall n d) :=
   let a := energyRead u V 0
   let b := matrixEnergyRead V
   (a.1 + (1 / (n : ℝ)) * b.1, a.2 ++ b.2)
 
+/-- The normalization read returns `averageNormSq u V` and records exactly two accesses. -/
 theorem centroidZRead_spec {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) :
     (centroidZRead u V).1 = averageNormSq u V ∧ (centroidZRead u V).2.length = 2 := by
   constructor <;> rfl
 
+/-- The nearest-centroid estimator using the coordinate anchor and the prescribed sample and
+round counts, returning its estimate, access ledger, and selection-comparison count. -/
 def sourceCentroidRun {n d : ℕ} (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ)
     (hd : 0 < d) (eps delta : ℝ)
     (omega : Fin (2 * centroidRounds delta + 1) →
@@ -39,6 +69,8 @@ def sourceCentroidRun {n d : ℕ} (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d
     (centroidRounds delta) omega
   (run.1, z.2 ++ run.2.1, run.2.2)
 
+/-- The probability mass of random tapes for which the real part of `sourceCentroidRun` differs
+from the squared centroid distance by more than `eps`. -/
 def sourceCentroidFailureMass {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n) (hd : 0 < d) (eps delta : ℝ) : ℝ :=
   ∑ omega ∈ Finset.univ.filter (fun omega : Fin (2 * centroidRounds delta + 1) →
@@ -49,12 +81,16 @@ def sourceCentroidFailureMass {n d : ℕ} (u : Fin d → ℂ)
     ∏ b, (centroidTensorInput (coordinateAnchor hd) u V hn (coordinateAnchor_energy hd)).samples.probOf
       (omega b)
 
+/-- The failure mass of the source-parameterized run equals `centroidFailureMass` with the
+coordinate anchor and the prescribed sample and round counts. -/
 theorem sourceCentroidFailureMass_eq {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n) (hd : 0 < d) (eps delta : ℝ) :
     sourceCentroidFailureMass u V hn hd eps delta =
       centroidFailureMass (coordinateAnchor hd) u V hn (coordinateAnchor_energy hd)
         (centroidSamples (averageNormSq u V) eps) (centroidRounds delta) eps := rfl
 
+/-- For positive error and failure parameters, the nearest-centroid estimator has additive-error
+failure mass at most `delta` [Tang2021]. -/
 theorem sourceCentroid_correct {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n) (hd : 0 < d)
     (eps delta : ℝ) (heps : 0 < eps) (hdelta : 0 < delta) :
@@ -62,6 +98,8 @@ theorem sourceCentroid_correct {n d : ℕ} (u : Fin d → ℂ)
   rw [sourceCentroidFailureMass_eq]
   exact source_nearest_centroid_actual u V hn hd eps delta heps hdelta
 
+/-- The charged work of `sourceCentroidRun`, counting each ledger access at cost `T` and adding
+its selection-comparison count. -/
 def sourceCentroidWork {n d : ℕ} (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ)
     (hd : 0 < d) (eps delta T : ℝ)
     (omega : Fin (2 * centroidRounds delta + 1) →
@@ -69,6 +107,8 @@ def sourceCentroidWork {n d : ℕ} (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin 
   T * (sourceCentroidRun u V hd eps delta omega).2.1.length +
     (sourceCentroidRun u V hd eps delta omega).2.2
 
+/-- The charged source run costs `2 * T` for normalization reads plus the work of the underlying
+centroid run. -/
 theorem sourceCentroidWork_eq {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hd : 0 < d) (eps delta T : ℝ)
     (omega : Fin (2 * centroidRounds delta + 1) →
@@ -81,6 +121,8 @@ theorem sourceCentroidWork_eq {n d : ℕ} (u : Fin d → ℂ)
     List.length_cons, List.length_nil, Nat.cast_add, centroidRunWork]
   ring
 
+/-- For nonnegative access cost, every source run satisfies the explicit finite work bound in
+terms of the normalization quantity, error, and round count. -/
 theorem sourceCentroidWork_finite {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hd : 0 < d) (eps delta T : ℝ) (hT : 0 ≤ T)
     (omega : Fin (2 * centroidRounds delta + 1) →
@@ -97,6 +139,7 @@ theorem sourceCentroidWork_finite {n d : ℕ} (u : Fin d → ℂ)
     (by positivity : (0 : ℝ) ≤ 2 * (centroidRounds delta : ℝ) + 1)
   linarith
 
+/-- For `0 < delta ≤ 1`, the round count is less than `logb 4 (2 / delta) + 1`. -/
 theorem centroidRounds_log_upper (delta : ℝ) (hdelta : 0 < delta) (hdelta1 : delta ≤ 1) :
     (centroidRounds delta : ℝ) < Real.logb 4 (2 / delta) + 1 := by
   have hinv : 1 ≤ 1 / delta := (one_le_div hdelta).mpr hdelta1
@@ -116,6 +159,8 @@ theorem centroidRounds_log_upper (delta : ℝ) (hdelta : 0 < delta) (hdelta1 : d
     (by linarith : (0 : ℝ) < (⌈1 / delta⌉₊ : ℝ)) (by positivity : 0 < 2 / delta)).mpr hN2
   exact hround.trans_le (by linarith)
 
+/-- For `0 < delta ≤ 1 / 2`, the number of median blocks is at most `5 * log (1 / delta) / log
+2`. -/
 theorem centroidRounds_source_log (delta : ℝ) (hdelta : 0 < delta)
     (hhalf : delta ≤ 1 / 2) :
     2 * (centroidRounds delta : ℝ) + 1 ≤ 5 * Real.log (1 / delta) / Real.log 2 := by
@@ -141,6 +186,9 @@ theorem centroidRounds_source_log (delta : ℝ) (hdelta : 0 < delta)
   rw [hidentity] at hprod
   linarith
 
+/-- Under the stated error, confidence, and access-cost bounds, every source run has work at
+most `(112910 / log 2) * T * Z ^ 2 / eps ^ 2 * log (1 / delta)`, where `Z = averageNormSq u
+V`. -/
 theorem sourceCentroidWork_source {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hd : 0 < d) (eps delta T : ℝ)
     (heps : 0 < eps) (hepsZ : eps ≤ averageNormSq u V)
@@ -195,6 +243,8 @@ theorem sourceCentroidWork_source {n d : ℕ} (u : Fin d → ℂ)
     _ ≤ 22582 * T * R * (5 * Real.log (1 / delta) / Real.log 2) := hsecond
     _ = _ := by dsimp [R, Z]; ring
 
+/-- The charged nearest-centroid estimator has additive-error failure mass at most `delta` and
+satisfies the stated uniform work bound [Tang2021]. -/
 theorem source_nearest_centroid_charged {n d : ℕ} (u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n) (hd : 0 < d)
     (eps delta T : ℝ) (heps : 0 < eps) (hepsZ : eps ≤ averageNormSq u V)

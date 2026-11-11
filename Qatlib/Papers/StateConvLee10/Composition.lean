@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.WitnessCompile.QueryDirectSumConsumerQuan
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
+
+/-!
+# Composition and direct sums of query problems
+
+This module states adversary bounds for composing function-evaluation problems and relates the
+cost of evaluating independent copies to the sum of their individual costs. The direct-sum
+theorem also produces a legal query word with success probability at least two thirds, following
+[LeeEtAl2011].
+
+## Main statements
+
+* `source_function_composition`: composition has the stated upper bound and a
+  Boolean-inner-function lower bound.
+* `source_query_direct_sum`: independent evaluations have comparable aggregate cost and a
+  witnessing word.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -31,6 +52,9 @@ open Qatlib.Concepts.ConversionCore.WitnessCompile
 
 namespace Qatlib.Papers.StateConvLee10.Composition
 
+/-- The adversary of a compatible composed problem satisfies the displayed product upper bound
+under the finiteness or nonzero-norm condition, and Boolean inner functions give the
+displayed product lower bound [LeeEtAl2011]. -/
 theorem source_function_composition :
   (∀ (X Y E : Type) [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
       [Fintype E] [DecidableEq E] (n m q a : ℕ)
@@ -53,6 +77,9 @@ theorem source_function_composition :
           sourceAdversary (sourceAlphabetDelta inner) g) := by
   exact Qatlib.Concepts.GramQueryCore.GammaDuality.functionCompositionBounds
 
+/-- A universal positive constant compares the query cost of `m` independent evaluations with
+`m` times the individual cost; a finite individual bound also yields a legal word with the
+stated query count and success probability at least two thirds [LeeEtAl2011]. -/
 theorem source_query_direct_sum :
   ∃ c : ℕ, 0<c ∧ ∀ (X E : Type) [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (n m q : ℕ)

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpDuality.ConeSeparation.SdpRunMacros
+
+/-!
+# Dual sample output contract
+
+`SdpDualSampleOutput` specifies how the dual certificate is encoded by a positive scale and a
+probability distribution after `sdpDualCertRounds` rounds. It also states the exact formula for
+the scale.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `SdpDualSampleOutput`: The contract asserting positivity and normalization of the dual
+  sampling output, exact certificate factorization, and the correction-plus-average formula for
+  its scale.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +36,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The contract asserting positivity and normalization of the dual sampling output, exact
+certificate factorization, and the correction-plus-average formula for its scale. -/
 def SdpDualSampleOutput : Prop :=
   ∀ (D m : ℕ) (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ η : ℝ),
     0 < α → 0 < R → 0 < δ → (∀ t i, 0 ≤ y t i) →

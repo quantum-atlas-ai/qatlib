@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabularyDefs
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+/-!
+# Gate identities and tensor coherence
+
+This module proves Pauli multiplication with its scalar phases, Hadamard conjugation identities,
+and phase-gate laws on both `Bool` and `Fin 2`. It also identifies SWAP and the fifteen-gate
+Toffoli word, and proves that relabeling respects matrix and tensor operations.
+
+`part1_clause1`, `part1_clause2`, and `part1_clause3` collect the gate, coherence, and tensor
+identities. The Pauli expansion and shadow reconstruction kernel use the gate conventions of
+[NielsenChuang2010] and the measurement reconstruction setting of [HuangKuengPreskill2020].
+
+## Main statements
+
+* `pauli_multiplication`: gives the Pauli product index and scalar phase.
+* `toffoli_fifteen_whole_state`: identifies the compiled Toffoli word on every state.
+* `part1_clause2`: collects relabeling and tensor coherence, execution, and readout laws.
+* `part1_clause3`: collects tensor algebra and Pauli reconstruction identities.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
@@ -36,6 +61,8 @@ namespace Qatlib.Concepts.GateVocabulary.GateVocab
 
 open Matrix
 
+/-- The product of two Boolean-indexed Pauli matrices is the Pauli matrix at
+`pauliProductIndex`, multiplied by `pauliProductPhase`. -/
 theorem pauli_multiplication (a b : Fin 4) :
     pauliBool a * pauliBool b =
       pauliProductPhase a b • pauliBool (pauliProductIndex a b) := by
@@ -44,29 +71,35 @@ theorem pauli_multiplication (a b : Fin 4) :
       PauliX, PauliZ, permMatrix, Matrix.mul_apply, Fintype.sum_bool,
       Matrix.diagonal_apply, Matrix.smul_apply, Matrix.one_apply]
 
+/-- Every Boolean-indexed Pauli matrix is self-adjoint. -/
 theorem pauli_adjoint (a : Fin 4) : (pauliBool a)ᴴ = pauliBool a := by
   fin_cases a <;> ext i j <;> cases i <;> cases j <;>
     simp [pauliBool, pauliYBool, PauliX, PauliZ, permMatrix,
       Matrix.conjTranspose_apply]
 
+/-- Every Boolean-indexed Pauli matrix squares to the identity. -/
 theorem pauli_involution (a : Fin 4) : pauliBool a * pauliBool a = 1 := by
   rw [pauli_multiplication]
   fin_cases a <;> norm_num [pauliProductPhase, pauliProductIndex, pauliBool]
 
+/-- Every Boolean-indexed Pauli matrix is unitary. -/
 theorem pauli_unitary (a : Fin 4) : pauliBool a ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, pauli_adjoint]
   exact pauli_involution a
 
+/-- The square of the phase gate S is Pauli Z. -/
 theorem phaseS_square : phaseS * phaseS = PauliZ := by
   ext i j
   cases i <;> cases j <;>
     norm_num [phaseS, PauliZ, Matrix.mul_apply, Fintype.sum_bool, Matrix.diagonal_apply]
 
+/-- The fourth power of the phase gate S is the identity. -/
 theorem phaseS_fourth : phaseS ^ 4 = 1 := by
   calc
     phaseS ^ 4 = (phaseS * phaseS) * (phaseS * phaseS) := by noncomm_ring
     _ = 1 := by rw [phaseS_square, pauliZ_mul_self]
 
+/-- The phase gate S is unitary. -/
 theorem phaseS_unitary : phaseS ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   ext i j
@@ -74,31 +107,38 @@ theorem phaseS_unitary : phaseS ∈ Matrix.unitaryGroup Bool ℂ := by
     norm_num [phaseS, Matrix.mul_apply, Fintype.sum_bool, Matrix.diagonal_apply,
       Matrix.conjTranspose_apply, Matrix.one_apply]
 
+/-- The conjugate transpose of the phase gate S equals its inverse. -/
 theorem phaseS_adjoint_inverse : phaseSᴴ = phaseS⁻¹ := by
   apply (Matrix.inv_eq_left_inv ?_).symm
   simpa only [Matrix.star_eq_conjTranspose] using
     Matrix.mem_unitaryGroup_iff'.mp phaseS_unitary
 
+/-- Hadamard intertwines Pauli X with Pauli Z. -/
 theorem hadamard_x_intertwines : Hadamard * PauliX = PauliZ * Hadamard := by
   ext i j
   cases i <;> cases j <;>
     simp [Hadamard, PauliX, PauliZ, permMatrix, Matrix.mul_apply,
       Matrix.diagonal_apply]
 
+/-- Conjugating Pauli X by Hadamard gives Pauli Z. -/
 theorem hadamard_x_conjugation : Hadamard * PauliX * Hadamard = PauliZ := by
   rw [hadamard_x_intertwines, Matrix.mul_assoc, hadamard_mul_self, Matrix.mul_one]
 
+/-- Conjugating Pauli Z by Hadamard gives Pauli X. -/
 theorem hadamard_z_conjugation : Hadamard * PauliZ * Hadamard = PauliX := by
   rw [← hadamard_x_conjugation]
   simp only [← Matrix.mul_assoc, hadamard_mul_self, Matrix.one_mul]
   rw [Matrix.mul_assoc, hadamard_mul_self, Matrix.mul_one]
 
+/-- The Boolean-to-finite gate equivalence preserves conjugate transpose. -/
 theorem toFinGate_adjoint (U : Matrix Bool Bool ℂ) :
     toFinGate Uᴴ = (toFinGate U)ᴴ := rfl
 
+/-- The Boolean-to-finite gate equivalence is relabeling along `boolEquivFin2`. -/
 theorem toFinGate_eq_relabel (U : Matrix Bool Bool ℂ) :
     toFinGate U = relabelGate boolEquivFin2 U := rfl
 
+/-- The Boolean-to-finite gate equivalence sends unitary matrices to unitary matrices. -/
 theorem toFinGate_unitary {U : Matrix Bool Bool ℂ} (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     toFinGate U ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
@@ -106,34 +146,46 @@ theorem toFinGate_unitary {U : Matrix Bool Bool ℂ} (hU : U ∈ Matrix.unitaryG
   have h := Matrix.mem_unitaryGroup_iff'.mp hU
   simpa only [Matrix.star_eq_conjTranspose, map_one] using congrArg toFinGate h
 
+/-- Every `Fin 2`-indexed Pauli matrix is unitary. -/
 theorem pauliFin_unitary (a : Fin 4) : pauliFin a ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   toFinGate_unitary (pauli_unitary a)
 
+/-- The `Fin 2`-indexed Hadamard matrix is unitary. -/
 theorem hadamardFin_unitary : hadamardFin ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   toFinGate_unitary hadamard_unitary
 
+/-- The `Fin 2`-indexed phase gate S is unitary. -/
 theorem phaseSFin_unitary : phaseSFin ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   toFinGate_unitary phaseS_unitary
 
+/-- The fourth power of the `Fin 2`-indexed phase gate S is the identity. -/
 theorem phaseSFin_fourth : phaseSFin ^ 4 = 1 := by
   simpa only [phaseSFin, map_pow, map_one] using congrArg toFinGate phaseS_fourth
 
+/-- Every `Fin 2`-indexed Pauli matrix is self-adjoint. -/
 theorem pauliFin_adjoint (a : Fin 4) : (pauliFin a)ᴴ = pauliFin a := by
   rw [pauliFin, ← toFinGate_adjoint, pauli_adjoint]
 
+/-- Every `Fin 2`-indexed Pauli matrix squares to the identity. -/
 theorem pauliFin_involution (a : Fin 4) : pauliFin a * pauliFin a = 1 := by
   simpa only [pauliFin, map_mul, map_one] using congrArg toFinGate (pauli_involution a)
 
+/-- The `Fin 2`-indexed Hadamard matrix is self-adjoint. -/
 theorem hadamardFin_adjoint : hadamardFinᴴ = hadamardFin := by
   rw [hadamardFin, ← toFinGate_adjoint, hadamard_conjTranspose]
 
+/-- The `Fin 2`-indexed Hadamard matrix squares to the identity. -/
 theorem hadamardFin_involution : hadamardFin * hadamardFin = 1 := by
   simpa only [hadamardFin, map_mul, map_one] using congrArg toFinGate hadamard_mul_self
 
+/-- The finite-index Pauli product uses the same scalar phase and product index as the
+Boolean-indexed product. -/
 theorem pauliFin_multiplication (a b : Fin 4) :
     pauliFin a * pauliFin b = pauliProductPhase a b • pauliFin (pauliProductIndex a b) := by
   simpa only [pauliFin, map_mul, map_smul] using congrArg toFinGate (pauli_multiplication a b)
 
+/-- The finite-index Pauli matrices with labels 1, 2, and 3 agree with the existing X, Y, and Z
+matrices. -/
 theorem pauliFin_legacy : pauliFin 1 = pauliX ∧ pauliFin 2 = pauliY ∧ pauliFin 3 = pauliZ := by
   constructor
   · gate_matrix <;>
@@ -148,15 +200,18 @@ theorem pauliFin_legacy : pauliFin 1 = pauliX ∧ pauliFin 2 = pauliY ∧ pauliF
       norm_num [pauliFin, toFinGate, pauliBool, PauliZ, pauliZ,
         Matrix.diagonal_apply, Matrix.reindexAlgEquiv_apply, Matrix.reindex_apply, boolEquivFin2]
 
+/-- The axis-indexed Pauli matrix agrees with the existing `pauliMatrix` convention. -/
 theorem pauliAxis_legacy (a : Fin 3) : pauliAxis a = pauliMatrix a := by
   fin_cases a
   · exact pauliFin_legacy.1
   · exact pauliFin_legacy.2.1
   · exact pauliFin_legacy.2.2
 
+/-- Every axis-indexed Pauli matrix is unitary. -/
 theorem pauliAxis_unitary (a : Fin 3) : pauliAxis a ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   pauliFin_unitary _
 
+/-- The tensor product of a family of unitary two-by-two matrices is unitary. -/
 theorem tensor_product_unitary (n : ℕ) (A : Fin n → Matrix (Fin 2) (Fin 2) ℂ)
     (hA : ∀ i, A i ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     tensorPauliProduct n A ∈ Matrix.unitaryGroup (Fin (2^n)) ℂ := by
@@ -166,6 +221,8 @@ theorem tensor_product_unitary (n : ℕ) (A : Fin n → Matrix (Fin 2) (Fin 2) �
   funext i
   simpa only [Matrix.star_eq_conjTranspose] using Matrix.mem_unitaryGroup_iff'.mp (hA i)
 
+/-- Every two-by-two matrix expands in the identity and three Pauli axes, with coefficients
+given by half the corresponding traces. -/
 theorem pauli_axis_expansion (B : Matrix (Fin 2) (Fin 2) ℂ) :
     B = (1/2 : ℂ) • (Matrix.trace B • (1 : Matrix (Fin 2) (Fin 2) ℂ) +
       ∑ a : Fin 3, Matrix.trace (pauliAxis a * B) • pauliAxis a) := by
@@ -187,6 +244,8 @@ theorem pauli_axis_expansion (B : Matrix (Fin 2) (Fin 2) ℂ) :
   ext i j
   fin_cases i <;> fin_cases j <;> simp [pauliX, pauliZ] <;> ring
 
+/-- The identity and Pauli-axis entries satisfy the matrix-entry resolution of the identity
+superoperator. -/
 theorem pauli_entry_resolution (x y u v : Fin 2) :
     (1/2 : ℂ) * ((1 : Matrix (Fin 2) (Fin 2) ℂ) y x *
         (1 : Matrix (Fin 2) (Fin 2) ℂ) u v +
@@ -214,6 +273,8 @@ theorem pauli_entry_resolution (x y u v : Fin 2) :
   simp only [Matrix.smul_apply, smul_eq_mul, Matrix.add_apply, Matrix.sum_apply, ht, hc, he] at h
   exact h.symm
 
+/-- The uniformly weighted sum of Pauli-projector and Pauli-shadow entries is the identity
+reconstruction kernel. -/
 theorem pauli_shadow_reconstruction_kernel (x y u v : Fin 2) :
     (∑ o : Fin 3 × Bool,
       ((1/3 : ℂ) * PauliProjector o.1 o.2 y x) * PauliShadow o.2 o.1 u v) =
@@ -238,19 +299,23 @@ theorem pauli_shadow_reconstruction_kernel (x y u v : Fin 2) :
           ∑ a : Fin 3, pauliAxis a y x * pauliAxis a u v) := by ring
     _ = _ := pauli_entry_resolution x y u v
 
+/-- Relabeling sends the identity matrix to the identity matrix. -/
 theorem relabel_one {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) :
     relabelGate e (1 : Matrix I I ℂ) = 1 := Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_one e
 
+/-- Relabeling preserves matrix multiplication. -/
 theorem relabel_mul {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A B : Matrix I I ℂ) :
     relabelGate e (A * B) = relabelGate e A * relabelGate e B :=
   Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul e A B
 
+/-- Relabeling preserves conjugate transpose. -/
 theorem relabel_adjoint {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     relabelGate e Aᴴ = (relabelGate e A)ᴴ := rfl
 
+/-- Relabeling by a product equivalence commutes with taking tensor products of matrices. -/
 theorem relabel_tensor {I J I' J' : Type*}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     [Fintype I'] [DecidableEq I'] [Fintype J'] [DecidableEq J']
@@ -258,6 +323,8 @@ theorem relabel_tensor {I J I' J' : Type*}
     relabelGate (Equiv.prodCongr e f) (TensorGate A B) =
       TensorGate (relabelGate e A) (relabelGate f B) := relabelGate_prodCongr e f A B
 
+/-- The one-qubit-register equivalence followed by `boolEquivFin2` equals the canonical
+bit-vector equivalence. -/
 theorem regOneBool_path : regOneBool.trans boolEquivFin2 = bitVecEquiv 1 := by
   ext x
   have hx : x = fun _ => x 0 := by
@@ -268,6 +335,7 @@ theorem regOneBool_path : regOneBool.trans boolEquivFin2 = bitVecEquiv 1 := by
   generalize x 0 = b
   cases b <;> rfl
 
+/-- Two matrices are equal if their actions agree on every computational-basis ket. -/
 theorem matrix_ext_on_kets {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A B : Matrix J I ℂ)
     (h : ∀ x, A *ᵥ Qatlib.Foundations.PureStateMath.Ket x = B *ᵥ Qatlib.Foundations.PureStateMath.Ket x) : A = B := by
@@ -275,9 +343,11 @@ theorem matrix_ext_on_kets {I J : Type*} [Fintype I] [DecidableEq I]
   have he := congrFun (h j) i
   simpa [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket] using he
 
+/-- The two-bit swap matrix is unitary. -/
 theorem swapGate_unitary : swapGate ∈ Matrix.unitaryGroup (Bool × Bool) ℂ :=
   permMatrix_unitary (fun _ => rfl)
 
+/-- The Toffoli basis update is involutive when both control wires differ from the target. -/
 theorem toffoliUpdate_involutive {n : ℕ} (a b t : Fin n) (hat : a ≠ t) (hbt : b ≠ t) :
     Function.Involutive (toffoliUpdate a b t) := by
   intro x
@@ -287,10 +357,13 @@ theorem toffoliUpdate_involutive {n : ℕ} (a b t : Fin n) (hat : a ≠ t) (hbt 
     simp [toffoliUpdate, hat, hbt]
   · simp [toffoliUpdate, hi]
 
+/-- The Toffoli matrix is unitary when both control wires differ from the target. -/
 theorem toffoliGate_unitary {n : ℕ} (a b t : Fin n) (hat : a ≠ t) (hbt : b ≠ t) :
     toffoliGate a b t ∈ Matrix.unitaryGroup (Reg n) ℂ :=
   permMatrix_unitary (toffoliUpdate_involutive a b t hat hbt)
 
+/-- For pairwise distinct control and target wires, the Toffoli word has length fifteen, is
+legal, and acts as `toffoliGate` on every basis ket. -/
 theorem toffoli_fifteen_basis {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t)
     (hbt : b ≠ t) :
     (toffoliLocalSteps a b t).length = 15 ∧ reflectionLegal (toffoliLocalSteps a b t) ∧
@@ -301,6 +374,8 @@ theorem toffoli_fifteen_basis {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a
   rw [hrun, toffoliGate, applyGate_permMatrix_ket (toffoliUpdate_involutive a b t hat hbt)]
   rfl
 
+/-- For pairwise distinct control and target wires, the matrix of the fifteen-gate Toffoli word
+equals `toffoliGate`. -/
 theorem toffoli_fifteen_matrix {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t)
     (hbt : b ≠ t) : reflectionProgramMatrix (toffoliLocalSteps a b t) = toffoliGate a b t := by
   apply matrix_ext_on_kets
@@ -308,38 +383,51 @@ theorem toffoli_fifteen_matrix {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : 
   have h := (toffoli_fifteen_basis a b t hab hat hbt).2.2 x
   rwa [run_reflectionCompile] at h
 
+/-- For pairwise distinct control and target wires, the compiled fifteen-gate Toffoli word acts
+as `toffoliGate` on every state. -/
 theorem toffoli_fifteen_whole_state {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t)
     (hbt : b ≠ t) (ψ : QState (Reg n)) :
     Run 1 (reflectionCompile (toffoliLocalSteps a b t)) ψ = ApplyGate (toffoliGate a b t) ψ := by
   rw [run_reflectionCompile, toffoli_fifteen_matrix a b t hab hat hbt]
 
+/-- The conjugate transpose of the finite-index phase gate S equals its inverse. -/
 theorem phaseSFin_adjoint_inverse : phaseSFinᴴ = phaseSFin⁻¹ := by
   apply (Matrix.inv_eq_left_inv ?_).symm
   simpa only [Matrix.star_eq_conjTranspose] using
     Matrix.mem_unitaryGroup_iff'.mp phaseSFin_unitary
 
+/-- Conjugating finite-index Pauli X by the finite-index Hadamard gives Pauli Z. -/
 theorem hadamardFin_x_conjugation :
     hadamardFin * pauliFin 1 * hadamardFin = pauliFin 3 := by
   change toFinGate Hadamard * toFinGate PauliX * toFinGate Hadamard = toFinGate PauliZ
   rw [← map_mul, ← map_mul, hadamard_x_conjugation]
 
+/-- Conjugating finite-index Pauli Z by the finite-index Hadamard gives Pauli X. -/
 theorem hadamardFin_z_conjugation :
     hadamardFin * pauliFin 3 * hadamardFin = pauliFin 1 := by
   change toFinGate Hadamard * toFinGate PauliZ * toFinGate Hadamard = toFinGate PauliX
   rw [← map_mul, ← map_mul, hadamard_z_conjugation]
 
+/-- Tensoring a matrix on the right with the one-dimensional identity and relabeling by the
+right-unit equivalence recovers the matrix. -/
 theorem relabel_tensor_right_unit (I : Type*) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) :
     relabelGate (Equiv.prodPUnit I) (TensorGate A (1 : Matrix PUnit.{1} PUnit.{1} ℂ)) = A := by
   ext i j
   simp [relabelGate, Matrix.reindex_apply, TensorGate]
 
+/-- Tensoring a matrix on the left with the one-dimensional identity and relabeling by the
+left-unit equivalence recovers the matrix. -/
 theorem relabel_tensor_left_unit (I : Type*) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) :
     relabelGate (Equiv.punitProd I) (TensorGate (1 : Matrix PUnit.{1} PUnit.{1} ℂ) A) = A := by
   ext i j
   simp [relabelGate, Matrix.reindex_apply, TensorGate]
 
+/-- Collects the Boolean and finite-index Pauli, Hadamard, and S-gate identities, including
+multiplication phases and compatibility of the two index conventions. It also records SWAP
+action and the legal fifteen-gate Toffoli implementation with exact counts and whole-state
+semantics. -/
 theorem part1_clause1 :
   (∀ a : Fin 4, pauliBool a ∈ Matrix.unitaryGroup Bool ℂ ∧
     (pauliBool a)ᴴ = pauliBool a ∧ pauliBool a * pauliBool a = 1) ∧
@@ -395,6 +483,9 @@ theorem part1_clause1 :
     · exact queryCount_reflectionCompile _
     · rw [gateCount_reflectionCompile, toffoliLocalSteps_length]
 
+/-- Collects relabeling compatibility with identity, multiplication, adjoints, tensor products,
+and the canonical one-qubit equivalence. It also records tensor associativity, symmetry, and
+unit coherence together with transported circuit execution and measurement probabilities. -/
 theorem part1_clause2 :
   (∀ (I : Type u) (J : Type v) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (A B : Matrix I I ℂ),
@@ -469,6 +560,9 @@ theorem part1_clause2 :
     obtain ⟨hlegal,hquery,hgate,hsize⟩ := relabelCircuit_legality_resources e C
     exact ⟨hrun,hprob,hquery,hgate,hsize,hlegal⟩
 
+/-- Collects tensor-product multiplication, adjoint, trace, and identity laws, together with
+matrix extensionality on basis kets. It also includes Pauli-axis expansion, matrix-entry
+resolution, and the Pauli-shadow reconstruction kernel. -/
 theorem part1_clause3 :
   (∀ (n : ℕ) (A B : Fin n → Operator 2),
     tensorPauliProduct n A * tensorPauliProduct n B = tensorPauliProduct n (fun i => A i * B i) ∧

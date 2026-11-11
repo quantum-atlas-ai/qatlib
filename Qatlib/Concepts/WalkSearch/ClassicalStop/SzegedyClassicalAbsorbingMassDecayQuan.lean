@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayStat
+
+/-!
+# Geometric decay of classical unmarked mass
+
+The module identifies the evolution of the unmarked part of an absorbing law with multiplication
+by `unmarkedPrincipal`. It proves `SzegedyClassicalAbsorbingMassDecay`, giving a geometric bound
+from the symmetric-chain gap and marked fraction. See [Szegedy2004] for the mathematical
+background.
+
+## Main statements
+
+* `restricted_law_step`: evolution on the unmarked principal matrix.
+* `szegedyClassicalAbsorbingMassDecay`: the unmarked-mass bound.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.ProjectorCS
@@ -16,6 +35,7 @@ namespace Qatlib.Concepts.WalkSearch.ClassicalStop
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A sum with the indicator of being unmarked equals the sum over the subtype `Unmarked I S`. -/
 private theorem sum_unmarked_indicator {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (f : I → ℝ) :
     (∑ i, if i ∉ S then f i else 0) = ∑ i : Unmarked I S, f i.1 := by
@@ -23,6 +43,9 @@ private theorem sum_unmarked_indicator {I : Type} [Fintype I] [DecidableEq I]
     (Finset.univ.filter (fun i => i ∉ S)) (by intro i; simp) f
   simpa only [Finset.sum_filter] using h
 
+/-- For a symmetric kernel and a law following the marked absorbing recurrence, the complexified
+unmarked restriction at the next step equals `unmarkedPrincipal P S` applied to the current
+restriction. -/
 private theorem restricted_law_step {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (hs : ∀ i j, P i j = P j i)
     (law : ℕ → I → ℝ)
@@ -47,6 +70,9 @@ private theorem restricted_law_step {I : Type} [Fintype I] [DecidableEq I]
   rw [Complex.ofReal_mul, hs i.1 j.1]
   ring
 
+/-- Establishes the bound `(1 - δ * ε / 2) ^ K` on the unmarked mass of the uniformly
+initialized absorbing law under the stated symmetric-chain gap and marked-fraction
+conditions. See [Szegedy2004]. -/
 theorem szegedyClassicalAbsorbingMassDecay : SzegedyClassicalAbsorbingMassDecay := by
   intro I _ _ _ P S δ ε K hδ hδ1 hP hε hεp law hzero hstep
   let U := Unmarked I S

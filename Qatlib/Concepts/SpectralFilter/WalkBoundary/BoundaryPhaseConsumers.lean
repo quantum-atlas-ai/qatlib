@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
 import Qatlib.Concepts.SpectralFilter.WalkBoundary.SzegedyAccessConsumers
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+
+/-!
+# Phase readout at Szegedy walk boundaries
+
+This module expands counted phase reflection into row-preparation access for a Szegedy walk and
+verifies the resulting execution and resource counts. The endpoint examples illustrate the
+spectral boundary cases in [Szegedy2004].
+
+A periodic two-state walk has a negative cross-Gram label whose walk state is fixed, while a
+uniform two-state chain has a normalized idle state fixed by the walk. Both yield the all-zero
+phase event with probability one.
+
+## Main statements
+
+* `boundary_szegedy_actual_row_reflection_expansion`: row-access substitution and exact counts.
+* `boundary_periodic_minus_gram_actual_primitive_consumer`: periodic negative-Gram endpoint
+  readout.
+* `boundary_idle_extra_one_actual_consumer`: exact readout and reflection of an idle fixed
+  state.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -36,6 +61,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators
 
+/-- The phase-reflection word after substituting the lifted controlled Szegedy implementation
+for each walk query. -/
 noncomputable def endpointRowReflectionWord {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (j : I) : List (AdjointStep (PhaseReflectionSpace (I×I) M k)) :=
   substituteAdjointCircuit
@@ -44,6 +71,9 @@ noncomputable def endpointRowReflectionWord {I : Type} [Fintype I] [DecidableEq 
       (compileControlled (countedSzegedyWord j)))
     (phaseReflectionWord M k)
 
+/-- A unitary row preparation yields a well-formed expanded phase-reflection word with
+`8*k*(M-1)` queries and `12*k*(M-1)+4*k+1` gates. Its evaluated matrix equals phase
+reflection using the Szegedy walk oracle. -/
 theorem boundary_szegedy_actual_row_reflection_expansion : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (j : I) (U : Matrix (I×I) (I×I) ℂ) (M k : ℕ),
     IsTransitionMatrix P → U ∈ Matrix.unitaryGroup (I×I) ℂ → 2 ≤ M →
@@ -83,6 +113,9 @@ theorem boundary_szegedy_actual_row_reflection_expansion : ∀ (I : Type) [Finty
   · rw [hs.2.2.1,hb.2,hc.2.1,hc.2.2]; ring
   · rw [hs.1,hsem]
 
+/-- For the periodic two-state chain, exhibit a −1 cross-Gram vector whose prepared state is
+fixed by the expanded reflection and has zero-phase detection probability one, with exact
+resource counts. This is an endpoint case of [Szegedy2004]. -/
 theorem boundary_periodic_minus_gram_actual_primitive_consumer : ∀ (M k : ℕ), 2 ≤ M →
     let v : QState Bool := fun b => if b then -(Real.sqrt 2 : ℂ)⁻¹ else (Real.sqrt 2 : ℂ)⁻¹
     let w := SzegedyIsometry periodicFlipTransition*ᵥv
@@ -123,6 +156,9 @@ theorem boundary_periodic_minus_gram_actual_primitive_consumer : ∀ (M k : ℕ)
   rw [hexp.2.2.2]
   exact hread.2.2
 
+/-- For the uniform two-state chain, exhibit a normalized state annihilated by both isometry
+adjoints, fixed by the walk and phase reflection, with zero-phase detection probability one.
+It realizes the idle sector in [Szegedy2004]. -/
 theorem boundary_idle_extra_one_actual_consumer : ∀ (M k : ℕ), 2 ≤ M →
     let P : Bool → Bool → ℝ := fun _ _ => 1/2
     let w : QState (Bool×Bool) := fun p => if p.1=p.2 then (1/2 : ℂ) else -(1/2 : ℂ)

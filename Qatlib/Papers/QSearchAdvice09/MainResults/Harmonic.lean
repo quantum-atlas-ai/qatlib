@@ -74,6 +74,27 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Harmonic sums and logarithmic growth
+
+This module defines `harmSum` and proves its recurrence and elementary logarithmic bounds. These
+estimates establish `harmSum_isTheta`, the logarithmic growth law used for the boundary
+exponents of power-law advice distributions.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `log_succ_le_harm`: The nth harmonic sum is at least log(n + 1).
+* `harm_le_one_add_log`: The nth harmonic sum is at most 1 + log n, with real logarithm
+  conventions at zero.
+* `harmSum_isTheta`: The harmonic sum is Theta(log n) as n tends to infinity.
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -84,18 +105,22 @@ open Finset
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- The nth harmonic sum, expressed as the sum of 1/(k + 1) over k < n. -/
 def harmSum (n : ℕ) : ℝ := ∑ k ∈ range n, 1 / ((k : ℝ) + 1)
 
+/-- Every harmonic sum is nonnegative. -/
 theorem harmSum_nonneg (n : ℕ) : 0 ≤ harmSum n := by
   unfold harmSum
   refine sum_nonneg ?_
   intro k _
   positivity
 
+/-- The next harmonic sum is obtained by adding 1/(n + 1). -/
 theorem harmSum_succ (n : ℕ) : harmSum (n + 1) = harmSum n + 1 / ((n : ℝ) + 1) := by
   unfold harmSum
   rw [sum_range_succ]
 
+/-- For a positive natural number k, log(k + 1) − log k is at most 1/k. -/
 theorem log_ratio_le_inv {k : ℕ} (hk : 0 < k) :
     Real.log ((k : ℝ) + 1) - Real.log (k : ℝ) ≤ 1 / (k : ℝ) := by
   have hk0 : (0 : ℝ) < (k : ℝ) := by exact_mod_cast hk
@@ -108,6 +133,7 @@ theorem log_ratio_le_inv {k : ℕ} (hk : 0 < k) :
     ring
   linarith
 
+/-- The nth harmonic sum is at least log(n + 1). -/
 theorem log_succ_le_harm (n : ℕ) : Real.log ((n : ℝ) + 1) ≤ harmSum n := by
   induction n with
   | zero => simp [harmSum]
@@ -117,6 +143,7 @@ theorem log_succ_le_harm (n : ℕ) : Real.log ((n : ℝ) + 1) ≤ harmSum n := b
     push_cast at h ⊢
     linarith
 
+/-- The nth harmonic sum is at most 1 + log n, with real logarithm conventions at zero. -/
 theorem harm_le_one_add_log (n : ℕ) : harmSum n ≤ 1 + Real.log (n : ℝ) := by
   induction n with
   | zero => simp [harmSum]
@@ -135,6 +162,7 @@ theorem harm_le_one_add_log (n : ℕ) : harmSum n ≤ 1 + Real.log (n : ℝ) := 
       push_cast at h ⊢
       linarith
 
+/-- The harmonic sum is Theta(log n) as n tends to infinity [Montanaro2011]. -/
 theorem harmSum_isTheta :
     Asymptotics.IsTheta Filter.atTop harmSum (fun n : ℕ => Real.log (n : ℝ)) := by
   constructor

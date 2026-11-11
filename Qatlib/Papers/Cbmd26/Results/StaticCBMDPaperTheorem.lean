@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDUniformConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+
+/-!
+# Static CBMD with output-norm query bounds
+
+`StaticCBMDPaperResult` expresses the static algorithm's heralding, output accuracy, and
+expected and pathwise query guarantees using the actual output norm. Uniform polynomial and
+phase choices satisfy this result for admissible dissipative matrices and fixed-factor output
+estimates in the static setting of [WangEtAl2026].
+
+## Main statements
+
+* `static_cbmd_paper_theorem4`: constructs uniform circuit parameters satisfying the paper-form
+  static result.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,6 +73,9 @@ local instance cbmdStaticCBMDPaperTheoremInstance1 (J : Type) [DecidableEq J] : 
   inferInstanceAs (DecidableEq (J × (Fin 4 × (Bool × (Bool × Bool)))))
 variable {Anc I : Type} [Fintype Anc] [DecidableEq Anc] [Fintype I] [DecidableEq I]
 
+/-- The static preparation specification combining circuit validity, heralding probability at
+least `1/8`, expected and pathwise input and data query bounds in terms of the actual output
+norm, and conditional normalized-output accuracy up to phase. -/
 def StaticCBMDPaperResult (a₀ : Anc) (α t ε η c : ℝ) (P : Polynomial ℂ)
     (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ)
     (L H : Matrix I I ℂ) (U : Matrix (Anc × I) (Anc × I) ℂ)
@@ -99,6 +121,10 @@ def StaticCBMDPaperResult (a₀ : Anc) (α t ε η c : ℝ) (P : Polynomial ℂ)
             IsNormalizedApplication (NormedSpace.exp (t • (-(L + Complex.I • H)))) ψ
               ((star z) • y) ε)
 
+/-- For the stated positive normalization and output estimate, nonnegative time, `0 < ε ≤ 1/2`,
+and factor `c ≥ 1`, polynomial and phase data can be chosen uniformly so that every
+admissible static instance satisfies `StaticCBMDPaperResult`. This is the static
+specialization of [Wang et al., Theorem 4][WangEtAl2026]. -/
 theorem static_cbmd_paper_theorem4
     (a₀ : Anc) (α t ε η c : ℝ) (hα : 0 < α) (ht : 0 ≤ t)
     (hε : 0 < ε) (hεhalf : ε ≤ 1/2) (hη : 0 < η) (hc : 1 ≤ c) :

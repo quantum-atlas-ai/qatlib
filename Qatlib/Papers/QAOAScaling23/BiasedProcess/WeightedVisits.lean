@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.Execution
 import Qatlib.Papers.QAOAScaling23.WeightedCost.Telescope
+
+/-!
+# Weighted visit probabilities for descending traces
+
+This module specifies `RowLaw`, under which the next rank is sampled from normalized weights
+below the current rank. It proves exact visit means for deterministic and randomly initialized
+starting ranks, including the weighted visit formula used in the descent-cost analysis of
+[ShaydulinEtAl2024].
+
+## Main statements
+
+* `descend_visit_mean`: For rows satisfying `RowLaw`, the expected number of visits to `j`
+  during descent from `r` equals `hitValue q j r`.
+* `initialized_visit_mean`: When the initial rank law has weights `q`, the expected visits to
+  rank `j` equal `q j / prefixSum q (j + 1)`. This is the biased-descent visit formula used in
+  [ShaydulinEtAl2024].
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,11 +37,14 @@ open scoped Classical
 open Qatlib.Foundations.ProbabilityCore.FiniteBranch
 open Qatlib.Papers.QAOAScaling23.WeightedCost
 
+/-- The condition that each row's next-rank marginal equals `q j / prefixSum q (r + 1)`. -/
 def RowLaw (q : ℕ → ℝ) (rows : (r : ℕ) → Row r) : Prop :=
   ∀ r (j : Fin (r+1)),
     (∑ a, if (rows r).next a=j then ((rows r).law a).toReal else 0)=
       q j.val / prefixSum q (r+1)
 
+/-- Under `RowLaw`, the mean of a function of the next rank equals its sum against the
+normalized prefix weights. -/
 theorem row_next_mean (q : ℕ → ℝ) (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows)
     (r : ℕ) (f : ℕ → ℝ) :
     (∑ a, ((rows r).law a).toReal * f ((rows r).next a).val)=
@@ -41,15 +66,21 @@ theorem row_next_mean (q : ℕ → ℝ) (rows : (r : ℕ) → Row r) (hlaw : Row
       intro j _
       rw [hlaw r j]
 
+/-- A nonnegative weight sequence with positive zeroth weight has positive prefix mass at every
+positive endpoint. -/
 theorem prefix_positive (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (k : ℕ) (hk : 0<k) : 0<prefixSum q k := by
   have h : q 0≤prefixSum q k :=
     Finset.single_le_sum (fun j _ => hnn j) (by simpa using hk)
   exact h0.trans_le h
 
+/-- The visit value for target rank `j`: zero below `j`, one at `j`, and `q j / prefixSum q (j +
+1)` above `j`. -/
 def hitValue (q : ℕ → ℝ) (j r : ℕ) : ℝ :=
   if r<j then 0 else if r=j then 1 else q j / prefixSum q (j+1)
 
+/-- When `j < r`, the weighted sum of `hitValue q j` over ranks below `r` equals the prefix mass
+times `q j / prefixSum q (j + 1)`. -/
 theorem weighted_harmonic (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (j r : ℕ) (hr : j<r) :
     (∑ i : Fin r, q i.val * hitValue q j i.val)=
@@ -79,6 +110,7 @@ theorem weighted_harmonic (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
       have hp := prefix_positive q h0 hnn (r+1) (by omega)
       field_simp
 
+/-- Prepending rank `r` increases the visit count for `j` by one exactly when `r = j`. -/
 theorem visits_prepend (j r cost sample : ℕ) (bad : Bool) (tr : Trace) :
     visits j (prepend r cost bad sample tr) = (if r=j then 1 else 0)+visits j tr := by
   by_cases h : r=j
@@ -86,6 +118,8 @@ theorem visits_prepend (j r cost sample : ℕ) (bad : Bool) (tr : Trace) :
     simp [visits,prepend,add_comm]
   · simp [visits,prepend,h]
 
+/-- For rows satisfying `RowLaw`, the expected number of visits to `j` during descent from `r`
+equals `hitValue q j r`. -/
 theorem descend_visit_mean (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows) (j r : ℕ) :
     (descend rows r).mean (visits j)=hitValue q j r := by
@@ -132,6 +166,8 @@ theorem descend_visit_mean (q : ℕ → ℝ) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
             field_simp [ne_of_gt hp]
           simpa only [hitValue,hlt,heq,if_false,zero_add] using hsum
 
+/-- When the initial rank law has weights `q`, the expected visits to rank `j` equal `q j /
+prefixSum q (j + 1)`. This is the biased-descent visit formula used in [ShaydulinEtAl2024]. -/
 theorem initialized_visit_mean {L : ℕ} (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L, (p i).toReal=q i.val) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows) (j : Fin L) :

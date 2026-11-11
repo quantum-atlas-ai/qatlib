@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetwork
 import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+
+/-!
+# Gaussian-rational tensor tables
+
+`TableTensorNet` assigns a Gaussian-rational table to each vertex of a finite tensor network,
+and `tableDecode` interprets these tables as complex tensors. The module proves that decoding,
+contraction, and basic size measures are compatible with permutations of half-edge labels. The
+tensor representation provides finite arithmetic examples in the matrix product state setting of
+[PerezGarciaEtAl2007].
+
+Explicit product, Bell, and three-site chain networks illustrate the codec.
+`chain_contract_eq_mpsAmplitude` identifies the chain contraction with the amplitude of the
+specified matrix product state.
+
+## Main statements
+
+* `tableEncode_decode_tensor`: encoding Gaussian-rational tensor entries and decoding recovers
+  each entry.
+* `netContract_tablePermute`: contraction is preserved after transporting the open assignment.
+* `tableHeight_permute` and `tableBitSize_permute`: table size measures are invariant under
+  relabeling.
+* `bell_contract` and `chain_contract_eq_mpsAmplitude`: explicit contraction formulas.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,28 +50,39 @@ open Qatlib.Concepts.TensorNetwork.GaugeInvariance
 open Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetwork
 open scoped BigOperators
 
+/-- Gaussian-rational tensor entries indexed by each vertex and its incident half-edge
+assignment, on the graph data of `N`. -/
 structure TableTensorNet (N : TensorNet) where
 
   num : (v : Fin N.nv) → (∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) → GaussianRat
 
+/-- Replaces the tensors of `N` by the complex interpretations of the Gaussian-rational entries
+in `T`. -/
 def tableDecode (N : TensorNet) (T : TableTensorNet N) : TensorNet :=
   { N with tensor := fun v a => gaussianRatComplex (T.num v a) }
 
+/-- A tensor entry of the decoded network is the complex interpretation of the corresponding
+table entry. -/
 theorem tableDecode_tensor (N : TensorNet) (T : TableTensorNet N) (v : Fin N.nv)
     (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
     (tableDecode N T).tensor v a = gaussianRatComplex (T.num v a) := rfl
 
+/-- Decoding preserves the vertex count, half-edge count, dimensions, site map, and partner map
+of the original network. -/
 theorem tableDecode_graph (N : TensorNet) (T : TableTensorNet N) :
     (tableDecode N T).nv = N.nv ∧ (tableDecode N T).nh = N.nh
       ∧ (tableDecode N T).dims = N.dims ∧ (tableDecode N T).site = N.site
       ∧ (tableDecode N T).partner = N.partner := ⟨rfl, rfl, rfl, rfl, rfl⟩
 
+/-- Chooses a Gaussian-rational representative for each tensor entry, assuming every entry has
+such a representative. -/
 noncomputable def tableEncode (N : TensorNet)
     (h : ∀ (v : Fin N.nv) (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)),
       ∃ q : GaussianRat, N.tensor v a = gaussianRatComplex q) :
     TableTensorNet N where
   num v a := Classical.choose (h v a)
 
+/-- Decoding the table chosen by `tableEncode` recovers every original tensor entry. -/
 theorem tableEncode_decode_tensor (N : TensorNet)
     (h : ∀ (v : Fin N.nv) (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)),
       ∃ q : GaussianRat, N.tensor v a = gaussianRatComplex q)
@@ -52,12 +91,16 @@ theorem tableEncode_decode_tensor (N : TensorNet)
   rw [tableDecode_tensor]
   exact (Classical.choose_spec (h v a)).symm
 
+/-- Transports a tensor table along a permutation of half-edge labels by pulling back each local
+assignment. -/
 def tablePermute (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh) :
     TableTensorNet (permNet N π) where
   num v a := T.num v (fun g : {g : Fin N.nh // N.site g = v} =>
     (a ⟨π g.val, (permNet_site N π g.val).trans g.property⟩).cast
       (permNet_dims N π g.val))
 
+/-- A permuted table entry equals the original table entry at the local assignment transported
+through `π` with its dimension casts. -/
 theorem tablePermute_num (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh)
     (v : Fin N.nv)
     (a : ∀ h : {h : Fin (permNet N π).nh // (permNet N π).site h = v},
@@ -67,6 +110,8 @@ theorem tablePermute_num (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh �
           (a ⟨π g.val, (permNet_site N π g.val).trans g.property⟩).cast
             (permNet_dims N π g.val)) := rfl
 
+/-- Pulls a local assignment on the permuted network back to an assignment on the original
+network. -/
 def tablePosPull (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv) :
     (∀ h : {h : Fin (permNet N π).nh // (permNet N π).site h = v},
       Fin ((permNet N π).dims h.val)) →
@@ -74,12 +119,14 @@ def tablePosPull (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv) :
   fun a g => (a ⟨π g.val, (permNet_site N π g.val).trans g.property⟩).cast
       (permNet_dims N π g.val)
 
+/-- Pushes a local assignment on the original network to the permuted network using `π.symm`. -/
 def tablePosPush (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv) :
     (∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) →
       (∀ h : {h : Fin (permNet N π).nh // (permNet N π).site h = v},
         Fin ((permNet N π).dims h.val)) :=
   fun b h' => b ⟨π.symm h'.val, h'.property⟩
 
+/-- Pulling back a pushed local assignment recovers the original assignment. -/
 theorem tablePosPull_push (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv)
     (b : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
     tablePosPull N π v (tablePosPush N π v b) = b := by
@@ -93,6 +140,8 @@ theorem tablePosPull_push (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin 
   show (b ⟨π.symm (π g.val), (permNet_site N π g.val).trans g.property⟩).val = (b g).val
   rw [hg]
 
+/-- Pushing forward a pulled local assignment recovers the original assignment on the permuted
+network. -/
 theorem tablePosPush_pull (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv)
     (a : ∀ h : {h : Fin (permNet N π).nh // (permNet N π).site h = v},
       Fin ((permNet N π).dims h.val)) :
@@ -109,6 +158,8 @@ theorem tablePosPush_pull (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin 
       (permNet_site N π (π.symm h'.val)).trans hmid⟩).val = (a h').val
   rw [hh]
 
+/-- The equivalence between local assignments on the permuted and original networks, given by
+pullback and pushforward. -/
 def tablePosEquiv (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv) :
     (∀ h : {h : Fin (permNet N π).nh // (permNet N π).site h = v},
       Fin ((permNet N π).dims h.val)) ≃
@@ -118,33 +169,45 @@ def tablePosEquiv (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) (v : Fin N.nv) :
   left_inv := tablePosPush_pull N π v
   right_inv := tablePosPull_push N π v
 
+/-- Decoding a permuted table equals permuting the decoded tensor network. -/
 theorem tableDecode_permNet (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh) :
     tableDecode (permNet N π) (tablePermute N T π) = permNet (tableDecode N T) π := rfl
 
+/-- Pullback of an open assignment depends only on graph data and is unchanged by table
+decoding. -/
 theorem openPull_tableDecode (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh)
     (y : OpenAssign (permNet N π)) :
     openPull (tableDecode N T) π y = openPull N π y := rfl
 
+/-- The contraction of a permuted decoded table equals the original contraction at the
+pulled-back open assignment. -/
 theorem netContract_tablePermute (N : TensorNet) (T : TableTensorNet N)
     (π : Fin N.nh ≃ Fin N.nh) (y : OpenAssign (permNet N π)) :
     netContract (tableDecode (permNet N π) (tablePermute N T π)) y
       = netContract (tableDecode N T) (openPull N π y) :=
   netContract_permNet (tableDecode N T) π y
 
+/-- Pushing an original open assignment forward preserves the contraction of the decoded table
+under permutation. -/
 theorem netContract_tablePermute_push (N : TensorNet) (T : TableTensorNet N)
     (π : Fin N.nh ≃ Fin N.nh) (y : OpenAssign N) :
     netContract (tableDecode (permNet N π) (tablePermute N T π)) (openPush N π y)
       = netContract (tableDecode N T) y :=
   netContract_permPush (tableDecode N T) π y
 
+/-- The maximum of the absolute numerators and denominators of the real and imaginary rational
+components. -/
 def grHeight (q : GaussianRat) : ℕ :=
   max (max q.1.num.natAbs q.1.den) (max q.2.num.natAbs q.2.den)
 
+/-- The maximum Gaussian-rational height over all vertex table entries, with finite suprema
+taken in the natural numbers. -/
 def tableHeight (N : TensorNet) (T : TableTensorNet N) : ℕ :=
   Finset.univ.sup fun v : Fin N.nv =>
     Finset.univ.sup fun a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val) =>
       grHeight (T.num v a)
 
+/-- The height of any table entry is bounded by the height of the entire table. -/
 theorem grHeight_le_tableHeight (N : TensorNet) (T : TableTensorNet N) (v : Fin N.nv)
     (a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)) :
     grHeight (T.num v a) ≤ tableHeight N T :=
@@ -154,6 +217,7 @@ theorem grHeight_le_tableHeight (N : TensorNet) (T : TableTensorNet N) (v : Fin 
       Finset.univ.sup fun a : ∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val) =>
         grHeight (T.num v a)) (Finset.mem_univ v))
 
+/-- Permuting half-edge labels preserves the height of a tensor table. -/
 theorem tableHeight_permute (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh) :
     tableHeight (permNet N π) (tablePermute N T π) = tableHeight N T := by
   apply le_antisymm
@@ -192,15 +256,19 @@ theorem tableHeight_permute (N : TensorNet) (T : TableTensorNet N) (π : Fin N.n
             Fin ((permNet N π).dims h.val) =>
         grHeight ((tablePermute N T π).num w c)) (Finset.mem_univ v)
 
+/-- The dimension at the permuted half-edge `π h` in the decoded network equals the original
+dimension at `h`. -/
 theorem permNet_dims_tableDecode (N : TensorNet) (T : TableTensorNet N)
     (π : Fin N.nh ≃ Fin N.nh) (h : Fin N.nh) :
     (permNet (tableDecode N T) π).dims (π h) = (tableDecode N T).dims h :=
   permNet_dims (tableDecode N T) π h
 
+/-- Permuting half-edge labels preserves the number of open legs. -/
 theorem card_openLeg_permNet (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) :
     Fintype.card (OpenLeg (permNet N π)) = Fintype.card (OpenLeg N) :=
   Fintype.card_congr (permOpenLeg N π).symm
 
+/-- The bond dimension of a decoded tensor table is invariant under half-edge permutation. -/
 theorem netBondDimension_tablePermute (N : TensorNet) (T : TableTensorNet N)
     (π : Fin N.nh ≃ Fin N.nh) :
     netBondDimension (tableDecode (permNet N π) (tablePermute N T π))
@@ -208,17 +276,22 @@ theorem netBondDimension_tablePermute (N : TensorNet) (T : TableTensorNet N)
   rw [tableDecode_permNet]
   exact netBondDimension_permNet (tableDecode N T) π
 
+/-- The assigned bit size of a Gaussian rational: the sum of the base-two logarithms of its
+absolute numerators and denominators, plus 6. -/
 def grBitSize (q : GaussianRat) : ℕ :=
   q.1.num.natAbs.log2 + q.1.den.log2 + q.2.num.natAbs.log2 + q.2.den.log2 + 6
 
+/-- The sum of the assigned Gaussian-rational bit sizes over all tensor table entries. -/
 def tableBitSize (N : TensorNet) (T : TableTensorNet N) : ℕ :=
   ∑ v : Fin N.nv, ∑ a : (∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val)),
     grBitSize (T.num v a)
 
+/-- The total number of local table positions, summed over the vertices of the network. -/
 def tableReadCount (N : TensorNet) : ℕ :=
   ∑ v : Fin N.nv,
     Fintype.card (∀ h : {h : Fin N.nh // N.site h = v}, Fin (N.dims h.val))
 
+/-- Permuting half-edge labels preserves the total assigned bit size of a tensor table. -/
 theorem tableBitSize_permute (N : TensorNet) (T : TableTensorNet N)
     (π : Fin N.nh ≃ Fin N.nh) :
     tableBitSize (permNet N π) (tablePermute N T π) = tableBitSize N T := by
@@ -226,22 +299,27 @@ theorem tableBitSize_permute (N : TensorNet) (T : TableTensorNet N)
   intro v _
   exact Fintype.sum_equiv (tablePosEquiv N π v) _ _ (fun _ => rfl)
 
+/-- Permuting half-edge labels preserves the total number of table positions. -/
 theorem tableReadCount_permute (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) :
     tableReadCount (permNet N π) = tableReadCount N := by
   apply Finset.sum_congr rfl
   intro v _
   exact Fintype.card_congr (tablePosEquiv N π v)
 
+/-- A decoded network with no vertices and no half-edges has contraction 1. -/
 theorem tableDecode_empty_contract (N : TensorNet) (T : TableTensorNet N)
     (hnv : N.nv = 0) (hnh : N.nh = 0) (y : OpenAssign N) :
     netContract (tableDecode N T) y = 1 :=
   netContract_of_empty_net (N := tableDecode N T) hnv hnh y
 
+/-- A decoded network with an internal edge of dimension zero has contraction zero. -/
 theorem tableDecode_zero_bond_contract (N : TensorNet) (T : TableTensorNet N)
     (hd : ∃ i : InternalEdge N, N.dims i.val = 0) (y : OpenAssign N) :
     netContract (tableDecode N T) y = 0 :=
   netContract_of_isEmpty_internal (N := tableDecode N T) hd y
 
+/-- Collects compatibility of decoding and contraction with half-edge permutation, preservation
+of dimensions, and invariance of table height and bond dimension. -/
 theorem frontier1 (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh) :
     tableDecode (permNet N π) (tablePermute N T π) = permNet (tableDecode N T) π
     ∧ (∀ y : OpenAssign (permNet N π),
@@ -256,6 +334,8 @@ theorem frontier1 (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin 
     permNet_dims_tableDecode N T π, tableHeight_permute N T π,
     netBondDimension_tablePermute N T π⟩
 
+/-- When every half-edge is open, network contraction is the product of the vertex tensor
+entries at the external assignment. -/
 theorem netContract_allOpen (N : TensorNet) (hno : ∀ j : Fin N.nh, N.partner j = none)
     (ext : OpenAssign N) :
     netContract N ext = ∏ v : Fin N.nv,
@@ -268,6 +348,8 @@ theorem netContract_allOpen (N : TensorNet) (hno : ∀ j : Fin N.nh, N.partner j
   refine Finset.prod_congr rfl fun v _ => congrArg (N.tensor v) (funext fun h => ?_)
   exact portValue_of_partner_none ext default h.val (hno h.val)
 
+/-- The two-vertex network with one open two-dimensional half-edge at each vertex and no
+internal edges. -/
 def prodNet : TensorNet where
   nv := 2
   nh := 2
@@ -279,19 +361,25 @@ def prodNet : TensorNet where
   dims_match := by intro j k hj; cases hj
   tensor := fun _ _ => 0
 
+/-- The tensor table on `prodNet` whose entry at vertex `v` and its local bit is given by `g`. -/
 def prodTable (g : Fin 2 → Fin 2 → GaussianRat) : TableTensorNet prodNet where
   num v a := g v (a ⟨v, by
     show (prodNet).site v = v
     rfl⟩)
 
+/-- A product-network table entry is `g` evaluated at the vertex and the bit on its unique
+half-edge. -/
 theorem prodTable_num (g : Fin 2 → Fin 2 → GaussianRat) (v : Fin (prodNet).nv)
     (a : ∀ h : {h : Fin (prodNet).nh // (prodNet).site h = v}, Fin ((prodNet).dims h.val)) :
     (prodTable g).num v a = g v (a ⟨v, by
       show (prodNet).site v = v
       rfl⟩) := rfl
 
+/-- The open assignment of `prodNet` specified by the two bits of `y`. -/
 def prodAssign (y : Fin 2 → Fin 2) : OpenAssign prodNet := fun o => y o.val
 
+/-- The decoded product-network contraction is the product of the two complex Gaussian-rational
+entries selected by `y`. -/
 theorem prod_contract (g : Fin 2 → Fin 2 → GaussianRat) (y : Fin 2 → Fin 2) :
     netContract (tableDecode prodNet (prodTable g)) (prodAssign y)
       = gaussianRatComplex (g 0 (y 0)) * gaussianRatComplex (g 1 (y 1)) := by
@@ -309,8 +397,11 @@ theorem prod_contract (g : Fin 2 → Fin 2 → GaussianRat) (y : Fin 2 → Fin 2
     prodTable_num]
   rfl
 
+/-- The permutation interchanging the two half-edge labels of `prodNet`. -/
 def prodSwap : Fin 2 ≃ Fin 2 := Equiv.swap (⟨0, by omega⟩ : Fin 2) ⟨1, by omega⟩
 
+/-- Swapping the half-edge labels of the product network and transporting its open assignment
+preserves the explicit two-factor contraction. -/
 theorem prod_perm_contract (g : Fin 2 → Fin 2 → GaussianRat) (y : Fin 2 → Fin 2) :
     netContract (tableDecode (permNet prodNet prodSwap)
         (tablePermute prodNet (prodTable g) prodSwap))
@@ -319,14 +410,19 @@ theorem prod_perm_contract (g : Fin 2 → Fin 2 → GaussianRat) (y : Fin 2 → 
   (netContract_tablePermute_push prodNet (prodTable g) prodSwap
     (prodAssign y)).trans (prod_contract g y)
 
+/-- Assigns half-edges 0 and 1 to the first Bell-network vertex and half-edges 2 and 3 to the
+second. -/
 def bellSite (j : Fin 4) : Fin 2 :=
   if (j : ℕ) = 0 ∨ (j : ℕ) = 1 then 0 else 1
 
+/-- Pairs Bell-network half-edges 1 and 2 and leaves half-edges 0 and 3 open. -/
 def bellPartner (j : Fin 4) : Option (Fin 4) :=
   if (j : ℕ) = 1 then some 2
   else if (j : ℕ) = 2 then some 1
   else none
 
+/-- A two-vertex, four-half-edge network with two-dimensional legs, one internal bond, and two
+open legs. -/
 def bellNet : TensorNet where
   nv := 2
   nh := 4
@@ -344,36 +440,43 @@ def bellNet : TensorNet where
     fin_cases j <;> fin_cases k <;> simp [bellPartner] at hj ⊢
   tensor := fun _ _ => 0
 
+/-- Half-edge 1 is paired with half-edge 2 by `bellPartner`. -/
 theorem bell_partner_one : bellPartner (⟨1, by omega⟩ : Fin 4) = some ⟨2, by omega⟩ := by
   simp [bellPartner]
 
+/-- Half-edge 2 is paired with half-edge 1 by `bellPartner`. -/
 theorem bell_partner_two : bellPartner (⟨2, by omega⟩ : Fin 4) = some ⟨1, by omega⟩ := by
   simp [bellPartner]
 
+/-- Half-edge 0 is incident to the Bell-network vertex whose value is 0. -/
 theorem bell_site_zero (v : Fin (bellNet).nv) (hv : (v : ℕ) = 0) :
     (bellNet).site (⟨0, by omega⟩ : Fin 4) = v := by
   apply Fin.ext
   show (0 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 1 is incident to the Bell-network vertex whose value is 0. -/
 theorem bell_site_one (v : Fin (bellNet).nv) (hv : (v : ℕ) = 0) :
     (bellNet).site (⟨1, by omega⟩ : Fin 4) = v := by
   apply Fin.ext
   show (0 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 2 is incident to the Bell-network vertex whose value is 1. -/
 theorem bell_site_two (v : Fin (bellNet).nv) (hv : (v : ℕ) = 1) :
     (bellNet).site (⟨2, by omega⟩ : Fin 4) = v := by
   apply Fin.ext
   show (1 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 3 is incident to the Bell-network vertex whose value is 1. -/
 theorem bell_site_three (v : Fin (bellNet).nv) (hv : (v : ℕ) = 1) :
     (bellNet).site (⟨3, by omega⟩ : Fin 4) = v := by
   apply Fin.ext
   show (1 : ℕ) = (v : ℕ)
   omega
 
+/-- The chosen representative of any internal edge of `bellNet` has half-edge value 1. -/
 theorem bell_internal_val (i : InternalEdge bellNet) : (i.val : ℕ) = 1 := by
   have hkey : ∀ (j k : Fin 4), bellPartner j = some k → (j : ℕ) < (k : ℕ) → (j : ℕ) = 1 := by
     intro j k hk hlt
@@ -381,6 +484,8 @@ theorem bell_internal_val (i : InternalEdge bellNet) : (i.val : ℕ) = 1 := by
   obtain ⟨k, hk, hlt⟩ := i.2
   exact hkey i.val k hk hlt
 
+/-- The equivalence between assignments to the Bell network's internal edge and a single bit in
+`Fin 2`. -/
 def bellEdgeEquiv :
     (∀ i : InternalEdge bellNet, Fin ((bellNet).dims i.val)) ≃ Fin 2 where
   toFun e := e ⟨(⟨1, by omega⟩ : Fin 4),
@@ -400,6 +505,8 @@ def bellEdgeEquiv :
     intro k
     rfl
 
+/-- The Gaussian-rational table imposing equality of the two incident bits at each Bell-network
+vertex. -/
 def bellTable : TableTensorNet bellNet where
   num v a :=
     if hv : (v : ℕ) = 0 then
@@ -412,22 +519,28 @@ def bellTable : TableTensorNet bellNet where
             bell_site_three v (by have hn : (bellNet).nv = 2 := rfl; have := v.isLt; omega)⟩ then
         (1, 0) else (0, 0)
 
+/-- Half-edge 0 remains open in the decoded Bell table. -/
 theorem bell_partner_zero :
     (tableDecode bellNet bellTable).partner (⟨0, by omega⟩ : Fin 4) = none := by
   show bellPartner (⟨0, by omega⟩ : Fin 4) = none
   simp [bellPartner]
 
+/-- Half-edge 3 remains open in the decoded Bell table. -/
 theorem bell_partner_three :
     (tableDecode bellNet bellTable).partner (⟨3, by omega⟩ : Fin 4) = none := by
   show bellPartner (⟨3, by omega⟩ : Fin 4) = none
   simp [bellPartner]
 
+/-- In the decoded Bell table, half-edge 1 is paired with half-edge 2. -/
 theorem bell_partner_one' : (tableDecode bellNet bellTable).partner (⟨1, by omega⟩ : Fin 4)
     = some (⟨2, by omega⟩ : Fin 4) := bell_partner_one
 
+/-- In the decoded Bell table, half-edge 2 is paired with half-edge 1. -/
 theorem bell_partner_two' : (tableDecode bellNet bellTable).partner (⟨2, by omega⟩ : Fin 4)
     = some (⟨1, by omega⟩ : Fin 4) := bell_partner_two
 
+/-- At Bell-network vertex 0, the table entry is 1 when the bits on half-edges 0 and 1 agree,
+and is 0 otherwise. -/
 theorem bellTable_num_zero (v : Fin (bellNet).nv) (hv : (v : ℕ) = 0)
     (a : ∀ h : {h : Fin (bellNet).nh // (bellNet).site h = v}, Fin ((bellNet).dims h.val)) :
     (bellTable).num v a =
@@ -436,6 +549,8 @@ theorem bellTable_num_zero (v : Fin (bellNet).nv) (hv : (v : ℕ) = 0)
   show dite ((v : ℕ) = 0) _ _ = _
   rw [dif_pos hv]
 
+/-- At Bell-network vertex 1, the table entry is 1 when the bits on half-edges 2 and 3 agree,
+and is 0 otherwise. -/
 theorem bellTable_num_one (v : Fin (bellNet).nv) (hv : ¬(v : ℕ) = 0)
     (a : ∀ h : {h : Fin (bellNet).nh // (bellNet).site h = v}, Fin ((bellNet).dims h.val)) :
     (bellTable).num v a =
@@ -447,9 +562,12 @@ theorem bellTable_num_one (v : Fin (bellNet).nv) (hv : ¬(v : ℕ) = 0)
   show dite ((v : ℕ) = 0) _ _ = _
   rw [dif_neg hv]
 
+/-- The Bell-network open assignment placing `p` at half-edge 0 and `q` at half-edge 3. -/
 def bellAssign (p q : Fin 2) : OpenAssign bellNet := fun o =>
   if (o.val : ℕ) = 0 then p else q
 
+/-- The decoded Bell-network contraction is 1 when its two external bits agree, and is 0
+otherwise. -/
 theorem bell_contract (p q : Fin 2) :
     netContract (tableDecode bellNet bellTable) (bellAssign p q)
       = if p = q then (1 : ℂ) else 0 := by
@@ -524,9 +642,12 @@ theorem bell_contract (p q : Fin 2) :
   rw [Fin.sum_univ_two, hfin 0, hfin 1]
   fin_cases p <;> fin_cases q <;> simp
 
+/-- Assigns half-edges 0 and 1 to vertex 0, half-edges 2 through 4 to vertex 1, and half-edges 5
+and 6 to vertex 2. -/
 def chainSite (j : Fin 7) : Fin 3 :=
   if (j : ℕ) ≤ 1 then 0 else if (j : ℕ) ≤ 4 then 1 else 2
 
+/-- Pairs chain half-edges 1 with 3 and 4 with 5, leaving half-edges 0, 2, and 6 open. -/
 def chainPartner (j : Fin 7) : Option (Fin 7) :=
   if (j : ℕ) = 1 then some 3
   else if (j : ℕ) = 3 then some 1
@@ -534,6 +655,8 @@ def chainPartner (j : Fin 7) : Option (Fin 7) :=
   else if (j : ℕ) = 5 then some 4
   else none
 
+/-- The three-vertex chain network with seven two-dimensional half-edges, two internal bonds,
+and three open legs. -/
 def chainNet : TensorNet where
   nv := 3
   nh := 7
@@ -551,64 +674,76 @@ def chainNet : TensorNet where
     fin_cases j <;> fin_cases k <;> simp [chainPartner] at hj ⊢
   tensor := fun _ _ => 0
 
+/-- Half-edge 1 is paired with half-edge 3 by `chainPartner`. -/
 theorem chain_partner_one : chainPartner (⟨1, by omega⟩ : Fin 7)
     = some (⟨3, by omega⟩ : Fin 7) := by
   simp [chainPartner]
 
+/-- Half-edge 3 is paired with half-edge 1 by `chainPartner`. -/
 theorem chain_partner_three : chainPartner (⟨3, by omega⟩ : Fin 7)
     = some (⟨1, by omega⟩ : Fin 7) := by
   simp [chainPartner]
 
+/-- Half-edge 4 is paired with half-edge 5 by `chainPartner`. -/
 theorem chain_partner_four : chainPartner (⟨4, by omega⟩ : Fin 7)
     = some (⟨5, by omega⟩ : Fin 7) := by
   simp [chainPartner]
 
+/-- Half-edge 5 is paired with half-edge 4 by `chainPartner`. -/
 theorem chain_partner_five : chainPartner (⟨5, by omega⟩ : Fin 7)
     = some (⟨4, by omega⟩ : Fin 7) := by
   simp [chainPartner]
 
+/-- Half-edge 0 is incident to chain vertex 0. -/
 theorem chain_site_zero (v : Fin (chainNet).nv) (hv : (v : ℕ) = 0) :
     (chainNet).site (⟨0, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (0 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 1 is incident to chain vertex 0. -/
 theorem chain_site_one (v : Fin (chainNet).nv) (hv : (v : ℕ) = 0) :
     (chainNet).site (⟨1, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (0 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 2 is incident to chain vertex 1. -/
 theorem chain_site_two (v : Fin (chainNet).nv) (hv : (v : ℕ) = 1) :
     (chainNet).site (⟨2, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (1 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 3 is incident to chain vertex 1. -/
 theorem chain_site_three (v : Fin (chainNet).nv) (hv : (v : ℕ) = 1) :
     (chainNet).site (⟨3, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (1 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 4 is incident to chain vertex 1. -/
 theorem chain_site_four (v : Fin (chainNet).nv) (hv : (v : ℕ) = 1) :
     (chainNet).site (⟨4, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (1 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 5 is incident to chain vertex 2. -/
 theorem chain_site_five (v : Fin (chainNet).nv) (hv : (v : ℕ) = 2) :
     (chainNet).site (⟨5, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (2 : ℕ) = (v : ℕ)
   omega
 
+/-- Half-edge 6 is incident to chain vertex 2. -/
 theorem chain_site_six (v : Fin (chainNet).nv) (hv : (v : ℕ) = 2) :
     (chainNet).site (⟨6, by omega⟩ : Fin 7) = v := by
   apply Fin.ext
   show (2 : ℕ) = (v : ℕ)
   omega
 
+/-- The chosen representative of a chain internal edge has half-edge value 1 or 4. -/
 theorem chain_internal_val (i : InternalEdge chainNet) :
     (i.val : ℕ) = 1 ∨ (i.val : ℕ) = 4 := by
   have hkey : ∀ (j k : Fin 7), chainPartner j = some k → (j : ℕ) < (k : ℕ) →
@@ -618,6 +753,8 @@ theorem chain_internal_val (i : InternalEdge chainNet) :
   obtain ⟨k, hk, hlt⟩ := i.2
   exact hkey i.val k hk hlt
 
+/-- The equivalence between assignments to the two internal chain edges and ordered pairs of
+bits. -/
 def chainEdgeEquiv :
     (∀ i : InternalEdge chainNet, Fin ((chainNet).dims i.val)) ≃ Fin 2 × Fin 2 where
   toFun e :=
@@ -646,6 +783,8 @@ def chainEdgeEquiv :
     intro p
     rfl
 
+/-- The Gaussian-rational tables on `chainNet` specifying the boundary bit conditions and the
+middle tensor's zero physical bit with matching bond bits. -/
 def chainTable : TableTensorNet chainNet where
   num v a :=
     if hv : (v : ℕ) = 0 then
@@ -664,33 +803,42 @@ def chainTable : TableTensorNet chainNet where
           then (1, 0) else (0, 0))
       else (1, 0)
 
+/-- Half-edge 0 remains open in the decoded chain table. -/
 theorem chain_partner_zero :
     (tableDecode chainNet chainTable).partner (⟨0, by omega⟩ : Fin 7) = none := by
   show chainPartner (⟨0, by omega⟩ : Fin 7) = none
   simp [chainPartner]
 
+/-- Half-edge 2 remains open in the decoded chain table. -/
 theorem chain_partner_two :
     (tableDecode chainNet chainTable).partner (⟨2, by omega⟩ : Fin 7) = none := by
   show chainPartner (⟨2, by omega⟩ : Fin 7) = none
   simp [chainPartner]
 
+/-- Half-edge 6 remains open in the decoded chain table. -/
 theorem chain_partner_six :
     (tableDecode chainNet chainTable).partner (⟨6, by omega⟩ : Fin 7) = none := by
   show chainPartner (⟨6, by omega⟩ : Fin 7) = none
   simp [chainPartner]
 
+/-- In the decoded chain table, half-edge 1 is paired with half-edge 3. -/
 theorem chain_partner_one' : (tableDecode chainNet chainTable).partner (⟨1, by omega⟩ : Fin 7)
     = some (⟨3, by omega⟩ : Fin 7) := chain_partner_one
 
+/-- In the decoded chain table, half-edge 3 is paired with half-edge 1. -/
 theorem chain_partner_three' : (tableDecode chainNet chainTable).partner (⟨3, by omega⟩ : Fin 7)
     = some (⟨1, by omega⟩ : Fin 7) := chain_partner_three
 
+/-- In the decoded chain table, half-edge 4 is paired with half-edge 5. -/
 theorem chain_partner_four' : (tableDecode chainNet chainTable).partner (⟨4, by omega⟩ : Fin 7)
     = some (⟨5, by omega⟩ : Fin 7) := chain_partner_four
 
+/-- In the decoded chain table, half-edge 5 is paired with half-edge 4. -/
 theorem chain_partner_five' : (tableDecode chainNet chainTable).partner (⟨5, by omega⟩ : Fin 7)
     = some (⟨4, by omega⟩ : Fin 7) := chain_partner_five
 
+/-- At chain vertex 0, external bit 0 selects bond bit 0 with value 1, while external bit 1
+gives value 1 for either bond bit; all remaining entries are zero. -/
 theorem chainTable_num_zero (v : Fin (chainNet).nv) (hv : (v : ℕ) = 0)
     (a : ∀ h : {h : Fin (chainNet).nh // (chainNet).site h = v}, Fin ((chainNet).dims h.val)) :
     (chainTable).num v a =
@@ -701,6 +849,8 @@ theorem chainTable_num_zero (v : Fin (chainNet).nv) (hv : (v : ℕ) = 0)
   show dite ((v : ℕ) = 0) _ _ = _
   rw [dif_pos hv]
 
+/-- At chain vertex 1, the entry is 1 exactly when the bit on half-edge 2 is zero and the bits
+on half-edges 3 and 4 agree. -/
 theorem chainTable_num_one (v : Fin (chainNet).nv) (hv : (v : ℕ) = 1)
     (a : ∀ h : {h : Fin (chainNet).nh // (chainNet).site h = v}, Fin ((chainNet).dims h.val)) :
     (chainTable).num v a =
@@ -716,6 +866,8 @@ theorem chainTable_num_one (v : Fin (chainNet).nv) (hv : (v : ℕ) = 1)
   show dite ((v : ℕ) = 0) _ _ = _
   rw [dif_neg (by omega), dif_pos hv]
 
+/-- At chain vertex 2, external bit 0 selects bond bit 1 with value 1, while external bit 1
+gives value 1 for either bond bit; all remaining entries are zero. -/
 theorem chainTable_num_two (v : Fin (chainNet).nv) (hv0 : ¬(v : ℕ) = 0) (hv1 : ¬(v : ℕ) = 1)
     (a : ∀ h : {h : Fin (chainNet).nh // (chainNet).site h = v}, Fin ((chainNet).dims h.val)) :
     (chainTable).num v a =
@@ -729,9 +881,12 @@ theorem chainTable_num_two (v : Fin (chainNet).nv) (hv0 : ¬(v : ℕ) = 0) (hv1 
   show dite ((v : ℕ) = 0) _ _ = _
   rw [dif_neg hv0, dif_neg hv1]
 
+/-- The open chain assignment placing the three bits of `y` on half-edges 0, 2, and 6. -/
 def chainExt (y : Fin 3 → Fin 2) : OpenAssign chainNet := fun o =>
   if (o.val : ℕ) = 0 then y 0 else if (o.val : ℕ) = 2 then y 1 else y 2
 
+/-- The chain contraction is zero unless its middle external bit is zero; otherwise it is the
+sum of the indicators that the first and last external bits equal 1. -/
 theorem chain_contract (y : Fin 3 → Fin 2) :
     netContract (tableDecode chainNet chainTable) (chainExt y)
       = if (y 1 : ℕ) = 0 then
@@ -856,6 +1011,8 @@ theorem chain_contract (y : Fin 3 → Fin 2) :
   rcases hy0 with v0 | v0 <;> rcases hy1 with v1 | v1 <;> rcases hy2 with v2 | v2 <;>
     simp [v0, v1, v2]
 
+/-- The decoded chain-network contraction equals the three-site matrix product state amplitude
+defined by `shortChainTensors`. -/
 theorem chain_contract_eq_mpsAmplitude (y : Fin 3 → Fin 2) :
     netContract (tableDecode chainNet chainTable) (chainExt y)
       = @mpsAmplitude 3 2 2 _ shortChainTensors y := by

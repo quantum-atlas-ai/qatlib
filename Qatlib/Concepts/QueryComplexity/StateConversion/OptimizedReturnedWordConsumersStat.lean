@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Optimized returned-word specification
+
+`OptimizedReturnedWordConsumers` specifies coherent and noncoherent state-conversion programs
+obtained from approximate Gram-matrix budgets. A single positive natural constant controls their
+oracle-call bounds, with coherent real overlap or noncoherent overlap against a normalized
+garbage state.
+
+The mathematical background is described in [LeeEtAl2011].
+
+## Main statements
+
+* `OptimizedReturnedWordConsumers`: uniform returned-word bounds for both conversion models.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -20,6 +40,9 @@ namespace Qatlib.Concepts.QueryComplexity.StateConversion
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The uniform existence of legal coherent and noncoherent conversion words from raw budgets at
+tolerance `ε⁴ / 16`, using at most `ceil (c * W * log (1 / ε) / ε²)` calls for one positive
+constant `c`. -/
 def OptimizedReturnedWordConsumers : Prop :=
   ∃ c : ℕ, 0<c ∧ ∀ (X H : Type) [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (n q : ℕ)

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.AxisRotations.Rotation
 
+/-!
+# Finite histories of axis rotations
+
+`historyProduct` forms the chronological product of `rotationStep` matrices, with each new step
+multiplied on the left. `phi` records the third component of the resulting first column,
+describing the evolution from the first coordinate vector.
+
+The module proves orthogonality, operator norm one, vanishing at zero field history, continuity,
+and explicit Lipschitz bounds in the history variables. These are the finite rotation-history
+estimates used in [GohMuller2026].
+
+## Main statements
+
+* `zero_history_column`: zero field history leaves the first coordinate vector fixed.
+* `history_difference`: a weighted sum bounds the difference of two history products.
+* `phi_difference_l2`: the scalar history function has an explicit Euclidean Lipschitz bound.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
@@ -15,26 +37,36 @@ open Qatlib.Foundations.MatrixGeometry.AxisRotations.Rotation
 
 namespace Qatlib.Foundations.MatrixGeometry.AxisRotations.History
 
+/-- The ordered product of rotation steps along a field history, starting at the identity and
+multiplying each new step on the left. -/
 def historyProduct (s : ℕ → ℝ) : (t : ℕ) → (Fin t → ℝ) → Mat3
   | 0, _ => 1
   | t+1, x => rotationStep (s (t+1)) (x (Fin.last t)) *
       historyProduct s t (fun j => x j.castSucc)
 
+/-- The entry in row two and column zero of the rotation-history matrix, giving the third
+component of its action on the first coordinate vector. -/
 def phi (s : ℕ → ℝ) (t : ℕ) (x : Fin t → ℝ) : ℝ := historyProduct s t x 2 0
 
+/-- Every finite rotation-history product is an orthogonal matrix. -/
 theorem history_unitary (s : ℕ → ℝ) (t : ℕ) (x : Fin t → ℝ) :
     historyProduct s t x ∈ Matrix.unitaryGroup (Fin 3) ℝ := by
   induction t with
   | zero => exact one_mem _
   | succ t ih => exact mul_mem (step_unitary _ _) (ih _)
 
+/-- Every finite rotation-history product has operator norm one, as used in the rotation-history
+representation of [GohMuller2026]. -/
 theorem history_norm (s : ℕ → ℝ) (t : ℕ) (x : Fin t → ℝ) : ‖historyProduct s t x‖=1 :=
   CStarRing.norm_of_mem_unitary (history_unitary s t x)
 
+/-- At zero field, a rotation step fixes the first coordinate vector. -/
 theorem zero_step_column (s : ℝ) : (fun i : Fin 3 => rotationStep s 0 i 0)=![1,0,0] := by
   ext i
   fin_cases i <;> simp [rotationStep, driverAngle, problemAngle, Matrix.mul_apply, Fin.sum_univ_three]
 
+/-- A zero field history leaves the first coordinate vector fixed at every finite time, as in
+the zero-history property of [GohMuller2026]. -/
 theorem zero_history_column (s : ℕ → ℝ) (t : ℕ) :
     (fun i : Fin 3 => historyProduct s t (fun _ => 0) i 0)=![1,0,0] := by
   induction t with
@@ -48,9 +80,13 @@ theorem zero_history_column (s : ℕ → ℝ) (t : ℕ) :
     simp_rw [hc]
     simpa [Fin.sum_univ_three] using congrFun (zero_step_column (s (t+1))) i
 
+/-- The scalar history function vanishes on the zero field history, as required in
+[GohMuller2026]. -/
 theorem phi_zero (s : ℕ → ℝ) (t : ℕ) : phi s t (fun _ => 0)=0 := by
   exact congrFun (zero_history_column s t) 2
 
+/-- The operator norm difference of two history products is bounded by the sum of `2 * |s (j +
+1)| * |x j - y j|` over their coordinates. -/
 theorem history_difference (s : ℕ → ℝ) (t : ℕ) (x y : Fin t → ℝ) :
     ‖historyProduct s t x-historyProduct s t y‖ ≤
       ∑ j : Fin t, 2 * |s (j+1)| * |x j-y j| := by
@@ -73,6 +109,8 @@ theorem history_difference (s : ℕ → ℝ) (t : ℕ) (x y : Fin t → ℝ) :
         add_le_add (ih _ _) (step_difference_le _ _ _)
       _ = _ := by rw [Fin.sum_univ_castSucc]; rfl
 
+/-- The absolute value of any entry of a real three-by-three matrix is at most its operator
+norm. -/
 theorem matrix_entry_le_opNorm (A : Mat3) (i j : Fin 3) : |A i j|≤‖A‖ := by
   let e : EuclideanSpace ℝ (Fin 3) := EuclideanSpace.single j 1
   have he : ‖e‖=1 := by simp [e, PiLp.norm_single]
@@ -83,11 +121,16 @@ theorem matrix_entry_le_opNorm (A : Mat3) (i j : Fin 3) : |A i j|≤‖A‖ := b
   rw [he, mul_one] at h1
   simpa only [hv, Real.norm_eq_abs] using h2.trans h1
 
+/-- The difference of two scalar history values is bounded by the weighted sum of their
+coordinate differences. -/
 theorem phi_difference_sum (s : ℕ → ℝ) (t : ℕ) (x y : Fin t → ℝ) :
     |phi s t x-phi s t y|≤∑ j : Fin t, 2 * |s (j+1)| * |x j-y j| := by
   exact (matrix_entry_le_opNorm (historyProduct s t x-historyProduct s t y) 2 0).trans
     (history_difference s t x y)
 
+/-- The scalar history difference is at most twice the Euclidean norm of the schedule
+coefficients times the Euclidean distance between histories. This gives the history
+Lipschitz estimate used in [GohMuller2026]. -/
 theorem phi_difference_l2 (s : ℕ → ℝ) (t : ℕ) (x y : Fin t → ℝ) :
     |phi s t x-phi s t y|≤2*Real.sqrt (∑ j : Fin t, s (j+1)^2)*
       Real.sqrt (∑ j : Fin t, (x j-y j)^2) := by
@@ -104,6 +147,8 @@ theorem phi_difference_l2 (s : ℕ → ℝ) (t : ℕ) (x y : Fin t → ℝ) :
   rw [← Finset.mul_sum]
   nlinarith
 
+/-- For a fixed schedule value, the rotation step depends continuously on the real field
+variable. -/
 theorem continuous_step (s : ℝ) : Continuous (rotationStep s) := by
   apply Continuous.mul continuous_const
   apply continuous_pi
@@ -112,6 +157,8 @@ theorem continuous_step (s : ℝ) : Continuous (rotationStep s) := by
   intro j
   fin_cases i <;> fin_cases j <;> simp [problemAngle] <;> fun_prop
 
+/-- For a fixed schedule and length, the rotation-history matrix depends continuously on the
+field history. -/
 theorem continuous_history (s : ℕ → ℝ) (t : ℕ) : Continuous (historyProduct s t) := by
   induction t with
   | zero => exact continuous_const
@@ -119,6 +166,7 @@ theorem continuous_history (s : ℕ → ℝ) (t : ℕ) : Continuous (historyProd
     exact ((continuous_step _).comp (continuous_apply _)).mul
       (ih.comp (continuous_pi (fun j => continuous_apply j.castSucc)))
 
+/-- For a fixed schedule and length, the scalar history function is continuous. -/
 theorem continuous_phi (s : ℕ → ℝ) (t : ℕ) : Continuous (phi s t) := by
   exact ((continuous_apply 0).comp (continuous_apply 2)).comp (continuous_history s t)
 

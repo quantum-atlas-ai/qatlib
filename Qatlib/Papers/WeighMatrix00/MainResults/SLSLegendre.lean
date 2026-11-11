@@ -9,6 +9,28 @@ import Mathlib.Data.Matrix.Basic
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Shifted Legendre states and their correlations
+
+The shifted quadratic character defines `legendreMatrix` and a family of states `slsState` with
+one additional coordinate. The character correlation identity gives their normalization and
+orthogonality, which are packaged with a two-call count in `SLSProcedure`.
+
+This development forms part of the formalization of [VanDam2002].
+
+## Main statements
+
+* `fact5_nearOrthogonality`: In characteristic different from two, the correlation of two
+  shifted quadratic characters is `card F - 1` for equal shifts and minus one otherwise.
+* `source_theorem2_twoQuerySLS`: There exists an `SLSProcedure` with call count two whose states
+  are `slsState` and whose state pairings equal the Kronecker delta.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,27 +43,36 @@ open Finset
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
+/-- The integer-valued quadratic character of the finite field. -/
 def legendreSymbol (x : F) : ℤ := quadraticChar F x
 
+/-- The quadratic character evaluated at `i + s`, with shift `s`. -/
 def shiftedLegendre (s i : F) : ℤ := quadraticChar F (i + s)
 
+/-- The matrix whose entry at `(i, j)` is the quadratic character of `i + j`. -/
 def legendreMatrix : Matrix F F ℤ := fun i j => quadraticChar F (i + j)
 
+/-- The quadratic character vanishes at zero. -/
 theorem legendreSymbol_zero : legendreSymbol (F := F) 0 = 0 := by
   simpa [legendreSymbol] using quadraticChar_zero (F := F)
 
+/-- The quadratic character vanishes exactly at zero. -/
 theorem legendreSymbol_eq_zero_iff (x : F) : legendreSymbol x = 0 ↔ x = 0 :=
   quadraticChar_eq_zero_iff
 
+/-- The quadratic character is multiplicative. -/
 theorem legendreSymbol_mul (x y : F) : legendreSymbol (x * y) = legendreSymbol x * legendreSymbol y := by
   simpa [legendreSymbol] using map_mul (quadraticChar F) x y
 
+/-- The square of the quadratic character of a nonzero element is one. -/
 theorem legendreSymbol_sq_one {x : F} (hx : x ≠ 0) : legendreSymbol x ^ 2 = 1 := by
   simpa [legendreSymbol] using quadraticChar_sq_one hx
 
+/-- The quadratic character takes the value one at one. -/
 theorem legendreSymbol_one : legendreSymbol (F := F) 1 = 1 := by
   simpa [legendreSymbol] using map_one (quadraticChar F)
 
+/-- The sum of squares of a shifted quadratic character is `card F - 1`. -/
 theorem fact5_diagonal (s : F) :
     ∑ i : F, quadraticChar F (i + s) * quadraticChar F (i + s) =
       (Fintype.card F : ℤ) - 1 := by
@@ -79,6 +110,8 @@ theorem fact5_diagonal (s : F) :
         rw [hsingle, Finset.sum_const, Finset.card_univ]
         simp
 
+/-- In characteristic different from two, the correlation of two shifted quadratic characters is
+`card F - 1` for equal shifts and minus one otherwise. See [VanDam2002]. -/
 theorem fact5_nearOrthogonality (hF : ringChar F ≠ 2) (s r : F) :
     ∑ i : F, quadraticChar F (i + r) * quadraticChar F (i + s) =
       if s = r then (Fintype.card F : ℤ) - 1 else -1 := by
@@ -203,17 +236,22 @@ theorem fact5_nearOrthogonality (hF : ringChar F ≠ 2) (s r : F) :
       linarith
     rw [hfinal]
 
+/-- The column Gram sum of the Legendre matrix is `card F - 1` on the diagonal and minus one off
+the diagonal. -/
 theorem legendreMatrix_gram (hF : ringChar F ≠ 2) (a b : F) :
     ∑ i : F, legendreMatrix (F := F) i a * legendreMatrix (F := F) i b =
       if a = b then (Fintype.card F : ℤ) - 1 else -1 := by
   simpa [legendreMatrix, eq_comm] using fact5_nearOrthogonality hF b a
 
+/-- The shifted quadratic-character vector augmented by a constant coordinate and scaled by the
+square root of the field cardinality. -/
 def slsState (s : F) : F ⊕ Unit → ℂ :=
   fun x =>
     match x with
     | Sum.inl i => (quadraticChar F (i + s) : ℂ) / (Real.sqrt (Fintype.card F : ℝ) : ℂ)
     | Sum.inr _ => 1 / (Real.sqrt (Fintype.card F : ℝ) : ℂ)
 
+/-- The sum of the squared amplitudes of `slsState s` is one under the stated field hypotheses. -/
 theorem slsState_norm (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F) (s : F) :
     ∑ x : F ⊕ Unit, slsState s x * slsState s x = 1 := by
   have hq0 : (0 : ℝ) < (Fintype.card F : ℝ) := by exact_mod_cast (Nat.zero_lt_of_lt hq)
@@ -247,6 +285,8 @@ theorem slsState_norm (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F) (s : F) 
   rw [show ((Fintype.card F : ℂ) - 1 + 1) = (Fintype.card F : ℂ) by ring, hsq]
   exact div_self (by exact_mod_cast (ne_of_gt hq0))
 
+/-- Distinct shifted Legendre states have zero bilinear amplitude pairing under the stated field
+hypotheses. -/
 theorem slsState_orthogonal (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F)
     {s r : F} (hsr : s ≠ r) :
     ∑ x : F ⊕ Unit, slsState s x * slsState r x = 0 := by
@@ -278,6 +318,8 @@ theorem slsState_orthogonal (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F)
   rw [hright, ← Finset.sum_div, ← add_div, hoffC]
   norm_num
 
+/-- A record of an oracle-call count and a family of states with unit self-pairing and zero
+pairing for distinct shifts. -/
 structure SLSProcedure (F : Type*) [Field F] [Fintype F] where
 
   oracleCalls : ℕ
@@ -288,6 +330,8 @@ structure SLSProcedure (F : Type*) [Field F] [Fintype F] where
 
   orthogonal : ∀ s r, s ≠ r → ∑ x, state s x * state r x = 0
 
+/-- There exists an `SLSProcedure` with call count two whose states are `slsState` and whose
+state pairings equal the Kronecker delta. See [VanDam2002]. -/
 theorem source_theorem2_twoQuerySLS (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F) :
     ∃ P : SLSProcedure F,
       P.oracleCalls = 2 ∧

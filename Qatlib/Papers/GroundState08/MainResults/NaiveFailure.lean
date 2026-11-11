@@ -10,6 +10,25 @@ import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.LinearAlgebra.Matrix.DotProduct
 import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
 
+/-!
+# Noncommuting projections and small amplification overlap
+
+This module constructs two real rank-one projections in dimension two whose amplification
+overlap can be arbitrarily small, illustrating the noncommutativity issue discussed in
+[PoulinWocjan2009]. It also proves that a matrix commuting with `Q` preserves vectors fixed by
+`Q`.
+
+## Main statements
+
+* `noncommuting_failure`: noncommuting projections with overlap below any positive tolerance.
+* `commuting_case_preserves_range`: preservation of the fixed-vector condition under
+  commutation.
+
+## References
+
+* [Poulin and Wocjan, 2009][PoulinWocjan2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,26 +37,36 @@ open Matrix
 
 namespace Qatlib.Papers.GroundState08.MainResults.NaiveFailure
 
+/-- The first coordinate vector in real dimension two. -/
 def e0 : Fin 2 → ℝ := ![1, 0]
 
+/-- The orthogonal projection onto the first coordinate axis in real dimension two. -/
 def qProj : Matrix (Fin 2) (Fin 2) ℝ := Matrix.diagonal ![1, 0]
 
+/-- The unit vector with coordinates `cos θ` and `sin θ`. -/
 def tiltVec (θ : ℝ) : Fin 2 → ℝ := ![Real.cos θ, Real.sin θ]
 
+/-- The rank-one orthogonal projection onto the line spanned by `tiltVec θ`. -/
 def rProj (θ : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
   fun i j => tiltVec θ i * tiltVec θ j
 
+/-- The real coordinatewise inner product of two vectors in dimension two. -/
 def innerVec (u v : Fin 2 → ℝ) : ℝ := ∑ i, u i * v i
 
+/-- The ratio of the inner product of `rProj θ *ᵥ e0` with its `qProj` image to its squared
+norm. -/
 def amplificationOverlap (θ : ℝ) : ℝ :=
   innerVec (rProj θ *ᵥ e0) (qProj *ᵥ (rProj θ *ᵥ e0)) /
     innerVec (rProj θ *ᵥ e0) (rProj θ *ᵥ e0)
 
+/-- The projection `qProj` fixes the first coordinate vector. -/
 lemma qProj_mulVec_e0 : qProj *ᵥ e0 = e0 := by
   funext i
   fin_cases i <;>
     simp [qProj, e0, Matrix.mulVec, dotProduct, Matrix.diagonal]
 
+/-- Projecting the first coordinate vector onto the tilted line yields `cos θ` times `tiltVec
+θ`. -/
 lemma rProj_mulVec_e0 (θ : ℝ) :
     rProj θ *ᵥ e0 = Real.cos θ • tiltVec θ := by
   funext i
@@ -45,16 +74,19 @@ lemma rProj_mulVec_e0 (θ : ℝ) :
     simp [rProj, tiltVec, e0, Matrix.mulVec, dotProduct]
   ring
 
+/-- Projecting the tilted unit vector onto the first coordinate axis yields `cos θ` times `e0`. -/
 lemma qProj_mulVec_tiltVec (θ : ℝ) :
     qProj *ᵥ tiltVec θ = Real.cos θ • e0 := by
   funext i
   fin_cases i <;>
     simp [qProj, tiltVec, e0, Matrix.mulVec, dotProduct, Matrix.diagonal]
 
+/-- The tilted vector has squared norm one. -/
 lemma innerVec_tiltVec_self (θ : ℝ) : innerVec (tiltVec θ) (tiltVec θ) = 1 := by
   simp [innerVec, tiltVec]
   nlinarith [Real.cos_sq_add_sin_sq θ]
 
+/-- The amplification overlap of the two projections equals `cos θ ^ 2` [PoulinWocjan2009]. -/
 lemma amplificationOverlap_eq_cos_sq (θ : ℝ) :
     amplificationOverlap θ = Real.cos θ ^ 2 := by
   have hnum : innerVec (rProj θ *ᵥ e0) (qProj *ᵥ (rProj θ *ᵥ e0)) =
@@ -74,6 +106,7 @@ lemma amplificationOverlap_eq_cos_sq (θ : ℝ) :
   · simp [hc]
   · field_simp
 
+/-- The coordinate and tilted projections do not commute when `0 < θ < π/2` [PoulinWocjan2009]. -/
 lemma qProj_rProj_ne_comm (θ : ℝ) (h0 : 0 < θ) (h1 : θ < Real.pi / 2) :
     qProj * rProj θ ≠ rProj θ * qProj := by
   intro heq
@@ -87,6 +120,8 @@ lemma qProj_rProj_ne_comm (θ : ℝ) (h0 : 0 < θ) (h1 : θ < Real.pi / 2) :
   · rw [h] at hpos; linarith
   · rw [h] at hpos; linarith
 
+/-- For every positive `δ`, some angle strictly between zero and `π/2` has squared cosine less
+than `δ`. -/
 lemma exists_angle_cos_sq_lt (δ : ℝ) (hδ : 0 < δ) :
     ∃ θ : ℝ, 0 < θ ∧ θ < Real.pi / 2 ∧ Real.cos θ ^ 2 < δ := by
   have hsqrt : 0 < Real.sqrt δ := Real.sqrt_pos.mpr hδ
@@ -126,6 +161,8 @@ lemma exists_angle_cos_sq_lt (δ : ℝ) (hδ : 0 < δ) :
       exact pow_lt_pow_left₀ hxlt (by positivity) (by norm_num)
     linarith
 
+/-- For every positive tolerance, there are noncommuting coordinate and tilted projections whose
+amplification overlap equals a squared cosine below that tolerance [PoulinWocjan2009]. -/
 theorem noncommuting_failure (δ : ℝ) (hδ : 0 < δ) :
     ∃ θ : ℝ, 0 < θ ∧ θ < Real.pi / 2 ∧
       qProj * rProj θ ≠ rProj θ * qProj ∧
@@ -134,12 +171,15 @@ theorem noncommuting_failure (δ : ℝ) (hδ : 0 < δ) :
   obtain ⟨θ, h0, h1, hlt⟩ := exists_angle_cos_sq_lt δ hδ
   exact ⟨θ, h0, h1, qProj_rProj_ne_comm θ h0 h1, amplificationOverlap_eq_cos_sq θ, hlt⟩
 
+/-- If `Q` and `R` commute and `Q` fixes `ψ`, then `Q` also fixes `R *ᵥ ψ` [PoulinWocjan2009]. -/
 theorem commuting_case_preserves_range
     {n : ℕ} (Q R : Matrix (Fin n) (Fin n) ℝ) (hQR : Q * R = R * Q)
     (ψ : Fin n → ℝ) (hQ : Q *ᵥ ψ = ψ) :
     Q *ᵥ (R *ᵥ ψ) = R *ᵥ ψ := by
   rw [Matrix.mulVec_mulVec, hQR, ← Matrix.mulVec_mulVec, hQ]
 
+/-- If `Q` and `R` commute, applying `R` to a vector fixed by `Q` produces another vector fixed
+by `Q`. -/
 theorem commuting_overlap_eq_one
     {n : ℕ} (Q R : Matrix (Fin n) (Fin n) ℝ) (hQR : Q * R = R * Q)
     (ψ : Fin n → ℝ) (hQ : Q *ᵥ ψ = ψ) :

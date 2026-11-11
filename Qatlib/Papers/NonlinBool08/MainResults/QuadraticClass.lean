@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+
+/-!
+# Quadratic bent functions and quadratic duals
+
+Defines binary quadratic functions and their polarization matrices `symplectic`. Invertibility
+of the polarization matrix gives a flat Walsh spectrum; in even dimension, completing the
+quadratic expression yields a bent dual that is quadratic up to a constant. See [Roetteler2008].
+
+## Main statements
+
+* `quad_walsh_sq`: nonsingular polarization gives squared Walsh coefficients 2^n.
+* `quad_comp`: substitution by the inverse polarization matrix transforms the quadratic
+  coefficients.
+* `corollary3_quadratic_bent`: the quadratic function and a quadratic dual are bent.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,24 +37,34 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.QuadraticClass
 
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- The binary quadratic function `dot x (Q.mulVec x) + dot L x`. -/
 def quad {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n)
     (x : BVec n) : ZMod 2 :=
   dot x (Q.mulVec x) + dot L x
 
+/-- The polarization matrix `Q + Qᵀ` of the binary quadratic expression. -/
 def symplectic {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) :
     Matrix (Fin n) (Fin n) (ZMod 2) :=
   Q + Qᵀ
 
+/-- The vector obtained by applying the nonsingular inverse of the polarization matrix to the
+frequency `w`. -/
 def pt {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (w : BVec n) : BVec n :=
   (symplectic Q)⁻¹.mulVec w
 
+/-- The quadratic coefficient matrix obtained by congruence with the inverse polarization
+matrix. -/
 def dualQ {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) :
     Matrix (Fin n) (Fin n) (ZMod 2) :=
   ((symplectic Q)⁻¹)ᵀ * Q * (symplectic Q)⁻¹
 
+/-- The linear coefficient vector transformed by the inverse transpose of the polarization
+matrix. -/
 def dualL {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n) : BVec n :=
   ((symplectic Q)⁻¹)ᵀ.mulVec L
 
+/-- The binary derivative of `quad Q L` in direction `z` is its polarization term `dot x
+((symplectic Q).mulVec z)` plus `quad Q L z`. -/
 lemma quad_polar {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n)
     (x z : BVec n) :
     quad Q L x + quad Q L (x + z)
@@ -47,12 +77,15 @@ lemma quad_polar {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n)
   try rw [show (2 : ZMod 2) = 0 from by decide]
   try simp
 
+/-- With unit determinant of the polarization matrix, `pt Q w` maps to `w` under that matrix. -/
 lemma pt_spec {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (hB : IsUnit (symplectic Q).det) (w : BVec n) :
     (symplectic Q).mulVec (pt Q w) = w := by
   unfold pt
   rw [Matrix.mulVec_mulVec, Matrix.mul_nonsing_inv _ hB, Matrix.one_mulVec]
 
+/-- A polarization matrix with unit determinant sends a vector to zero exactly when that vector
+is zero. -/
 lemma symplectic_mulVec_eq_zero_iff {n : ℕ}
     (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (hB : IsUnit (symplectic Q).det)
     (z : BVec n) :
@@ -68,6 +101,8 @@ lemma symplectic_mulVec_eq_zero_iff {n : ℕ}
     rw [h]
     simp
 
+/-- A quadratic Boolean function with nonsingular polarization has derivative sign sum `2 ^ n`
+at zero shift and zero elsewhere. -/
 lemma quad_autocorrelation {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (L : BVec n) (hB : IsUnit (symplectic Q).det) (z : BVec n) :
     (∑ x : BVec n, eps (quad Q L x + quad Q L (x + z)))
@@ -88,6 +123,8 @@ lemma quad_autocorrelation {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
   · rw [if_neg (fun hc => h (hz.mp hc)), if_neg h]
     simp
 
+/-- Every squared Walsh coefficient of a quadratic Boolean function with nonsingular
+polarization equals `2 ^ n`. -/
 lemma quad_walsh_sq {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (L : BVec n) (hB : IsUnit (symplectic Q).det) (w : BVec n) :
     walsh (quad Q L) w ^ 2 = (2 : ℤ) ^ n := by
@@ -110,6 +147,8 @@ lemma quad_walsh_sq {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
   · intro hmem
     simp at hmem
 
+/-- For nonsingular polarization, adding the frequency term to a quadratic function is
+equivalent to translating by `pt Q w` and adding its quadratic value. -/
 lemma quad_complete {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (L : BVec n) (hB : IsUnit (symplectic Q).det) (x w : BVec n) :
     quad Q L x + dot w x = quad Q L (x + pt Q w) + quad Q L (pt Q w) := by
@@ -134,6 +173,8 @@ lemma quad_complete {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
       = quad Q L x + dot x w from by
     rw [add_assoc, add_self_zmod2, add_zero]]
 
+/-- For nonsingular polarization, each Walsh coefficient equals the zero-frequency coefficient
+times the sign of `quad Q L (pt Q w)`. -/
 lemma quad_walsh_shift_at {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (L : BVec n) (hB : IsUnit (symplectic Q).det) (w : BVec n) :
     walsh (quad Q L) w = eps (quad Q L (pt Q w)) * walsh (quad Q L) 0 := by
@@ -163,6 +204,8 @@ lemma quad_walsh_shift_at {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
   simp only [hterm]
   rw [← Finset.mul_sum, hre]
 
+/-- In even dimension with nonsingular polarization, the zero-frequency Walsh coefficient is `2
+^ (n / 2)` times a binary sign. -/
 lemma quad_walsh0_sign {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (L : BVec n) (hB : IsUnit (symplectic Q).det) (hn : Even n) :
     ∃ c : ZMod 2, walsh (quad Q L) 0 = (2 : ℤ) ^ (n / 2) * eps c := by
@@ -175,6 +218,8 @@ lemma quad_walsh0_sign {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
   · exact ⟨0, by rw [h, eps_zero, mul_one]⟩
   · exact ⟨1, by rw [h, eps_one]; ring⟩
 
+/-- Composing the quadratic function with `pt Q` gives the quadratic function with coefficients
+`dualQ Q` and `dualL Q L`. -/
 lemma quad_comp {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n)
     (w : BVec n) :
     quad Q L (pt Q w) = quad (dualQ Q) (dualL Q L) w := by
@@ -193,6 +238,9 @@ lemma quad_comp {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n)
         = dot (((symplectic Q)⁻¹)ᵀ.mulVec L) w from dotProduct_comm _ _]
   rw [hQ, hL]
 
+/-- In even dimension, a binary quadratic function with nonsingular polarization is bent and
+possesses a bent dual that is quadratic up to a constant. See [Roetteler, Corollary
+3][Roetteler2008]. -/
 theorem corollary3_quadratic_bent {n : ℕ}
     (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (L : BVec n)
     (hn : Even n) (hB : IsUnit (symplectic Q).det) :

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LatentPQCTran26.MainResults.EuclideanLayer
+
+/-!
+# Bias meta-gradients of concentrated affine decoders
+
+`expectedLoss` is the population loss of the Euclidean affine decoder. Under bounded features
+and the stated smoothness and concentration hypotheses, `proposition10_actual` lower-bounds the
+native gradient along bias perturbations and compares it with the full parameter gradient. See
+[TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `expectedLoss`: The expected loss obtained by applying the Euclidean affine decoder to latent
+  features and then evaluating `L`.
+* `proposition10_actual`: Under the stated boundedness and smoothness hypotheses, decoder
+  outputs within `gamma ≤ g / (2 * Lambda)` of a point with gradient norm at least `g` yield
+  bias meta-gradient norm at least `g / 2`, bounded above by the full meta-gradient norm.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -12,16 +34,22 @@ open MeasureTheory
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.NoBiasBarrenPlateau
 open EuclideanLayer LinearMetaGrad
 
+/-- The expected loss obtained by applying the Euclidean affine decoder to latent features and
+then evaluating `L`. -/
 def expectedLoss {K D : ℕ} {Z : Type*} [MeasurableSpace Z]
     (r : Measure Z) (h : Z → Fin D → ℝ)
     (L : EuclideanSpace ℝ (Fin K) → ℝ) (w : Parameters K D) : ℝ :=
   populationLoss r h (decoder K D) L w
 
+/-- If `Lambda > 0` and `gamma ≤ g / (2 * Lambda)`, then `g - Lambda * gamma ≥ g / 2`. -/
 theorem radius_arithmetic (g Lambda gamma : ℝ) (hLambda : 0 < Lambda)
     (hgamma : gamma ≤ g / (2 * Lambda)) : g / 2 ≤ g - Lambda * gamma := by
   have hm := (le_div_iff₀ (show 0 < 2 * Lambda by positivity)).mp hgamma
   linarith
 
+/-- Under the stated boundedness and smoothness hypotheses, decoder outputs within `gamma ≤ g /
+(2 * Lambda)` of a point with gradient norm at least `g` yield bias meta-gradient norm at
+least `g / 2`, bounded above by the full meta-gradient norm [TranEtAl2026]. -/
 theorem proposition10_actual {K D : ℕ} {Z : Type*} [MeasurableSpace Z]
     (r : Measure Z) [IsProbabilityMeasure r]
     (h : Z → Fin D → ℝ) (hh : AEStronglyMeasurable h r)

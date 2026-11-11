@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+/-!
+# Statement of the joint empirical value-at-risk bound
+
+The predicate `EmpiricalNativeVaRJoint` specifies population CDF brackets for native
+value-at-risk output after independent sampling. The quantile tolerance includes estimation,
+sampling, and preparation errors, while the probability bound accounts for the finite loss grid
+and the number of binary-search readouts.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `EmpiricalNativeVaRJoint`: The joint sampling and native value-at-risk guarantee on a nonempty
+  sorted grid containing every loss value. Under its precision and positivity conditions, the
+  probability of an invalid index or violated CDF brackets is at most xs.length/(4Nν²) +
+  (Nat.clog 2 xs.length + 1)(8/9)^r.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,10 @@ namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The joint sampling and native value-at-risk guarantee on a nonempty sorted grid containing
+every loss value. Under its precision and positivity conditions, the probability of an
+invalid index or violated CDF brackets is at most xs.length/(4Nν²) + (Nat.clog 2 xs.length +
+1)(8/9)^r. -/
 def EmpiricalNativeVaRJoint : Prop :=
   ∀ (n N ebits bits M r : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
     (xs : List ℚ) (q ε : ℚ) (ν : ℝ),

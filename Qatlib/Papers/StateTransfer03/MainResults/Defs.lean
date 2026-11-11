@@ -58,6 +58,26 @@ import Mathlib.Topology.Instances.Matrix
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Spectral amplitudes for spin-network state transfer
+
+This module defines path adjacency matrices, matrix-exponential propagators, and positive-time
+perfect-transfer predicates. It separately defines finite spectral amplitudes from eigenvalues
+and weights and proves their product and power identities, supplying the Cartesian spectral
+model for spin-network transfer in [ChristandlEtAl2004].
+
+## Main statements
+
+* `PerfectTransfer`: existence of a positive time with unit transition-amplitude norm.
+* `spectralAmplitude_prod`: additive energies and product weights give a product of amplitudes.
+* `spectralAmplitude_pow`: the amplitude of the spectral power is the corresponding scalar
+  power.
+
+## References
+
+* [Christandl et al., 2004][ChristandlEtAl2004]
+-/
+
 namespace Qatlib.Papers.StateTransfer03.MainResults.Defs
 
 open Matrix
@@ -69,64 +89,89 @@ set_option linter.unusedVariables false
 
 noncomputable section
 
+/-- The real adjacency matrix of the path on `N` vertices, with unit weights between consecutive
+indices. -/
 def pathAdj (N : ℕ) : Matrix (Fin N) (Fin N) ℝ :=
   fun i j => if i.val + 1 = j.val ∨ j.val + 1 = i.val then 1 else 0
 
+/-- The complex matrix obtained by casting every entry of a real matrix. -/
 def complexify {m n : Type*} (A : Matrix m n ℝ) : Matrix m n ℂ :=
   A.map Complex.ofReal
 
+/-- The matrix-exponential propagator `exp (-I * t • A)`. -/
 def propagator {n : Type*} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (t : ℝ) : Matrix n n ℂ :=
   NormedSpace.exp (-(Complex.I * (t : ℂ)) • A)
 
+/-- The transition amplitude from index `a` to index `b`, given by the `(b, a)` propagator
+entry. -/
 def amplitude {n : Type*} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (a b : n) (t : ℝ) : ℂ :=
   propagator A t b a
 
+/-- The existence of a positive time at which the transition amplitude from `a` to `b` has norm
+one. -/
 def PerfectTransfer {n : Type*} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (a b : n) : Prop :=
   ∃ t : ℝ, 0 < t ∧ ‖amplitude A a b t‖ = 1
 
+/-- The first vertex of a nonempty chain. -/
 def chainFirst (N : ℕ) (hN : 0 < N) : Fin N := ⟨0, hN⟩
 
+/-- The last vertex of a nonempty chain. -/
 def chainLast (N : ℕ) (hN : 0 < N) : Fin N :=
   ⟨N - 1, Nat.sub_lt hN (by decide : (0 : ℕ) < 1)⟩
 
+/-- The scalar evolution phase `exp (-I * t * E)`. -/
 def phase (E t : ℝ) : ℂ :=
   Complex.exp (-(Complex.I * (t : ℂ) * (E : ℂ)))
 
+/-- The path spectral value `2 * cos ((k + 1) * π / (N + 1))`. -/
 def pathEigenvalue (N : ℕ) (k : Fin N) : ℝ :=
   2 * Real.cos (((k.val : ℝ) + 1) * Real.pi / ((N : ℝ) + 1))
 
+/-- The endpoint spectral weight `2 / (N + 1)` times the sine factors at the first and last path
+vertices. -/
 def pathWeight (N : ℕ) (k : Fin N) : ℝ :=
   (2 / ((N : ℝ) + 1)) *
     Real.sin (((k.val : ℝ) + 1) * Real.pi / ((N : ℝ) + 1)) *
       Real.sin (((k.val : ℝ) + 1) * (N : ℝ) * Real.pi / ((N : ℝ) + 1))
 
+/-- The finite sum of the weights `u k` times the evolution phases for the energies `E k`. -/
 def spectralAmplitude {ι : Type*} [Fintype ι] (E : ι → ℝ) (u : ι → ℂ)
     (t : ℝ) : ℂ :=
   ∑ k, u k * phase (E k) t
 
+/-- The existence of a positive time at which the finite spectral amplitude has norm one. -/
 def SpectralPerfectTransfer {ι : Type*} [Fintype ι] (E : ι → ℝ) (u : ι → ℂ) : Prop :=
   ∃ t : ℝ, 0 < t ∧ ‖spectralAmplitude E u t‖ = 1
 
+/-- The spectral amplitude formed from `pathEigenvalue N` and `pathWeight N`. -/
 def pathSpectralAmplitude (N : ℕ) (t : ℝ) : ℂ :=
   spectralAmplitude (pathEigenvalue N) (fun k => (pathWeight N k : ℂ)) t
 
+/-- The energy on a product index obtained by adding the two component energies. -/
 def productEigenvalue {ι κ : Type*} (E : ι → ℝ) (F : κ → ℝ) (p : ι × κ) : ℝ :=
   E p.1 + F p.2
 
+/-- The weight on a product index obtained by multiplying the two component weights. -/
 def productWeight {ι κ : Type*} (u : ι → ℂ) (v : κ → ℂ) (p : ι × κ) : ℂ :=
   u p.1 * v p.2
 
+/-- The sum of the `d` coordinate energies, defined recursively with value zero for the empty
+power. -/
 def powerEigenvalue {ι : Type*} (E : ι → ℝ) : ∀ d : ℕ, (Fin d → ι) → ℝ
   | 0, _ => 0
   | _ + 1, p => E (p 0) + powerEigenvalue E _ (fun i => p i.succ)
 
+/-- The product of the `d` coordinate weights, defined recursively with value one for the empty
+power. -/
 def powerWeight {ι : Type*} (u : ι → ℂ) : ∀ d : ℕ, (Fin d → ι) → ℂ
   | 0, _ => 1
   | _ + 1, p => u (p 0) * powerWeight u _ (fun i => p i.succ)
 
+/-- For additive product energies and multiplicative weights, the spectral amplitude is the
+product of the two component amplitudes [ChristandlEtAl2004]. -/
 theorem spectralAmplitude_prod {ι κ : Type*} [Fintype ι] [Fintype κ]
     (E : ι → ℝ) (u : ι → ℂ) (F : κ → ℝ) (v : κ → ℂ) (t : ℝ) :
     spectralAmplitude (productEigenvalue E F) (productWeight u v) t =
@@ -146,6 +191,8 @@ theorem spectralAmplitude_prod {ι κ : Type*} [Fintype ι] [Fintype κ]
   rw [harg, Complex.exp_add]
   ring
 
+/-- The spectral amplitude of a successor power equals the amplitude for the product of one
+factor and the preceding power. -/
 theorem powerAmplitude_succ {ι : Type*} [Fintype ι]
     (E : ι → ℝ) (u : ι → ℂ) (d : ℕ) (t : ℝ) :
     spectralAmplitude (powerEigenvalue E (d + 1)) (powerWeight u (d + 1)) t =
@@ -184,6 +231,8 @@ theorem powerAmplitude_succ {ι : Type*} [Fintype ι]
   simp only [phase, harg, Complex.exp_add]
   ring
 
+/-- The spectral amplitude of the `d`-fold power data equals the `d`th power of the
+single-factor amplitude [ChristandlEtAl2004]. -/
 theorem spectralAmplitude_pow {ι : Type*} [Fintype ι]
     (E : ι → ℝ) (u : ι → ℂ) (d : ℕ) (t : ℝ) :
     spectralAmplitude (powerEigenvalue E d) (powerWeight u d) t =

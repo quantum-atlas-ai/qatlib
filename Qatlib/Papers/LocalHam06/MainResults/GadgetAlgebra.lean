@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Mathlib.Tactic
 
+/-!
+# Real matrix algebra for local gadgets
+
+This module studies three explicit real two-by-two matrices and their quadratic forms, including
+the skew-symmetric matrix `pauliY`. It proves coefficient bounds and expands three-factor
+Kronecker products to isolate a residual in `twoLocalSpan`, supplying algebraic ingredients for
+Lemma 8 of [KempeKitaevRegev2006].
+
+## Main statements
+
+* `gadget_B_lower`: Bounds the quadratic form of a shifted, scaled matrix from below.
+* `kron_expand`: Expands a three-factor product into eight terms.
+* `gadget_product_sub_mem_twoLocal`: Shows that subtracting the three-factor term leaves a
+  two-local residual.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 noncomputable section
 
 open Matrix
@@ -16,44 +36,56 @@ namespace Qatlib.Papers.LocalHam06.MainResults.GadgetAlgebra
 
 set_option autoImplicit false
 
+/-- The real matrix with rows `(0, 1)` and `(1, 0)`. -/
 def pauliX : Matrix (Fin 2) (Fin 2) ℝ := !![0, 1; 1, 0]
 
+/-- The real skew-symmetric matrix with rows `(0, -1)` and `(1, 0)`. -/
 def pauliY : Matrix (Fin 2) (Fin 2) ℝ := !![0, -1; 1, 0]
 
+/-- The real diagonal matrix with diagonal entries one and negative one. -/
 def pauliZ : Matrix (Fin 2) (Fin 2) ℝ := !![1, 0; 0, -1]
 
+/-- The real quadratic form `∑ i, v i * (B *ᵥ v) i`. -/
 def rayleighR {n : Type*} [Fintype n] (B : Matrix n n ℝ) (v : n → ℝ) : ℝ :=
   ∑ i, v i * (B.mulVec v) i
 
+/-- The square of `pauliX` is the identity matrix. -/
 theorem pauliX_sq : pauliX * pauliX = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The square of the real skew-symmetric matrix `pauliY` is negative identity. -/
 theorem pauliY_sq : pauliY * pauliY = -1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliY, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The square of `pauliZ` is the identity matrix. -/
 theorem pauliZ_sq : pauliZ * pauliZ = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The quadratic form of `pauliX` at `v` is `2 * v 0 * v 1`. -/
 theorem rayleighR_pauliX (v : Fin 2 → ℝ) :
     rayleighR pauliX v = 2 * (v 0 * v 1) := by
   simp [rayleighR, pauliX, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
   ring
 
+/-- The quadratic form of the real skew-symmetric matrix `pauliY` is zero. -/
 theorem rayleighR_pauliY (v : Fin 2 → ℝ) : rayleighR pauliY v = 0 := by
   simp [rayleighR, pauliY, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
   ring
 
+/-- The quadratic form of `pauliZ` is `v 0^2 - v 1^2`. -/
 theorem rayleighR_pauliZ (v : Fin 2 → ℝ) :
     rayleighR pauliZ v = v 0 ^ 2 - v 1 ^ 2 := by
   simp [rayleighR, pauliZ, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
   ring
 
+/-- The quadratic form of any of the three listed real matrices is bounded below by the negative
+squared Euclidean norm [KempeKitaevRegev2006]. -/
 theorem rayleighR_pauli_lower (P : Matrix (Fin 2) (Fin 2) ℝ)
     (hP : P = pauliX ∨ P = pauliY ∨ P = pauliZ) (v : Fin 2 → ℝ) :
     -(∑ i, v i ^ 2) ≤ rayleighR P v := by
@@ -65,6 +97,8 @@ theorem rayleighR_pauli_lower (P : Matrix (Fin 2) (Fin 2) ℝ)
   · rw [rayleighR_pauliZ, Fin.sum_univ_two]
     nlinarith [sq_nonneg (v 0), sq_nonneg (v 1)]
 
+/-- The quadratic form of any of the three listed real matrices is bounded above by the squared
+Euclidean norm. -/
 theorem rayleighR_pauli_upper (P : Matrix (Fin 2) (Fin 2) ℝ)
     (hP : P = pauliX ∨ P = pauliY ∨ P = pauliZ) (v : Fin 2 → ℝ) :
     rayleighR P v ≤ ∑ i, v i ^ 2 := by
@@ -76,6 +110,8 @@ theorem rayleighR_pauli_upper (P : Matrix (Fin 2) (Fin 2) ℝ)
   · rw [rayleighR_pauliZ, Fin.sum_univ_two]
     nlinarith [sq_nonneg (v 0), sq_nonneg (v 1)]
 
+/-- The quadratic form of `a • 1 + t • P` is `a` times the squared Euclidean norm plus `t` times
+the quadratic form of `P`. -/
 theorem rayleighR_smul_add {n : Type*} [Fintype n] [DecidableEq n] (a t : ℝ)
     (P : Matrix n n ℝ) (v : n → ℝ) :
     rayleighR (a • (1 : Matrix n n ℝ) + t • P) v
@@ -88,6 +124,8 @@ theorem rayleighR_smul_add {n : Type*} [Fintype n] [DecidableEq n] (a t : ℝ)
   intro i _
   ring
 
+/-- For `n ≥ 1` and `|t| ≤ 1 / n^3`, the quadratic form of `(2 / n^3) • 1 + t • P` is at least
+`1 / n^3` times the squared norm for each listed matrix `P` [KempeKitaevRegev2006]. -/
 theorem gadget_B_lower {n : ℝ} (hn : 1 ≤ n) (P : Matrix (Fin 2) (Fin 2) ℝ)
     (hP : P = pauliX ∨ P = pauliY ∨ P = pauliZ) {t : ℝ}
     (ht : |t| ≤ 1 / n ^ 3) (v : Fin 2 → ℝ) :
@@ -117,6 +155,7 @@ theorem gadget_B_lower {n : ℝ} (hn : 1 ≤ n) (P : Matrix (Fin 2) (Fin 2) ℝ)
     nlinarith [hle2, hid]
   linarith
 
+/-- Each entry of any of the three listed real matrices has absolute value at most one. -/
 theorem pauli_entry_abs_le_one (P : Matrix (Fin 2) (Fin 2) ℝ)
     (hP : P = pauliX ∨ P = pauliY ∨ P = pauliZ) (i j : Fin 2) :
     |P i j| ≤ 1 := by
@@ -125,6 +164,8 @@ theorem pauli_entry_abs_le_one (P : Matrix (Fin 2) (Fin 2) ℝ)
   · subst h; fin_cases i <;> fin_cases j <;> simp [pauliY]
   · subst h; fin_cases i <;> fin_cases j <;> simp [pauliZ]
 
+/-- For `n ≥ 1` and `|t| ≤ 1 / n^3`, each entry of `(2 / n^3) • 1 + t • P` has absolute value at
+most `3 / n^3` for each listed matrix `P` [KempeKitaevRegev2006]. -/
 theorem gadget_B_entry_bound {n : ℝ} (hn : 1 ≤ n) (P : Matrix (Fin 2) (Fin 2) ℝ)
     (hP : P = pauliX ∨ P = pauliY ∨ P = pauliZ) {t : ℝ}
     (ht : |t| ≤ 1 / n ^ 3) (i j : Fin 2) :
@@ -149,6 +190,8 @@ theorem gadget_B_entry_bound {n : ℝ} (hn : 1 ≤ n) (P : Matrix (Fin 2) (Fin 2
   have hid : 2 / n ^ 3 + 1 / n ^ 3 = 3 / n ^ 3 := by ring
   linarith [hsum, hid]
 
+/-- The Kronecker product of three sums `ai • 1 + ti • Ai` expands into the eight terms obtained
+by independently choosing an identity or matrix factor [KempeKitaevRegev2006]. -/
 theorem kron_expand (a1 a2 a3 t1 t2 t3 : ℝ)
     (A1 A2 A3 : Matrix (Fin 2) (Fin 2) ℝ) :
     (a1 • (1 : Matrix (Fin 2) (Fin 2) ℝ) + t1 • A1) ⊗ₖ
@@ -167,8 +210,10 @@ theorem kron_expand (a1 a2 a3 t1 t2 t3 : ℝ)
   simp only [Matrix.add_apply, Matrix.smul_apply, smul_eq_mul, Matrix.kroneckerMap_apply]
   ring
 
+/-- The basis index type `(Fin 2 × Fin 2) × Fin 2` for three binary factors. -/
 abbrev G3 : Type := (Fin 2 × Fin 2) × Fin 2
 
+/-- The real span of three-factor Kronecker matrices with at least one identity factor. -/
 def twoLocalSpan : Submodule ℝ (Matrix G3 G3 ℝ) :=
   Submodule.span ℝ
     {M : Matrix G3 G3 ℝ |
@@ -176,6 +221,8 @@ def twoLocalSpan : Submodule ℝ (Matrix G3 G3 ℝ) :=
       (∃ A C : Matrix (Fin 2) (Fin 2) ℝ, M = A ⊗ₖ 1 ⊗ₖ C) ∨
       (∃ B C : Matrix (Fin 2) (Fin 2) ℝ, M = 1 ⊗ₖ B ⊗ₖ C)}
 
+/-- For nonzero `n`, subtracting `c • (A1 ⊗ₖ A2 ⊗ₖ A3)` from the specified product of shifted
+factors leaves an element of `twoLocalSpan` [KempeKitaevRegev2006]. -/
 theorem gadget_product_sub_mem_twoLocal {n : ℝ} (hn : n ≠ 0) (c : ℝ)
     (A1 A2 A3 : Matrix (Fin 2) (Fin 2) ℝ) :
     (((2 / n ^ 3) • (1 : Matrix (Fin 2) (Fin 2) ℝ) + (n ^ 6 * c) • A1) ⊗ₖ

@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseStat
 import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverse
 import Qatlib.Concepts.QuditTeleport.ResourceIff.ConverseTools
+
+/-!
+# The four-correction marginal converse and positivity
+
+`fourFixedCorrectionsMaxEntConverse` proves the receiver-marginal converse for positive
+semidefinite resources using branch positivity and no-signalling. The proof gives the maximally
+mixed receiver marginal required by perfect teleportation with fixed unitary corrections.
+
+An explicit matrix `indefiniteResource` produces the identity channel with Bell measurements and
+Pauli corrections but is not positive semidefinite, disproving the unrestricted contract. The
+resource setting is the qubit teleportation protocol of [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `fourFixedCorrectionsMaxEntConverse`: Every positive semidefinite resource enabling four fixed
+  unitary corrections has receiver marginal `(1 / 2) • 1`. See [Bennett et al., 1993, Eq.
+  (9)][BennettEtAl1993Teleportation].
+* `fourFixedCorrectionsMaxEntConverse_impossible`: The receiver-marginal converse without a
+  resource-positivity hypothesis is false.
+* `indefiniteResource_not_positive`: The matrix `indefiniteResource` is not positive
+  semidefinite.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,22 +48,28 @@ open scoped Classical BigOperators ComplexOrder
 set_option maxRecDepth 8192
 set_option maxHeartbeats 0
 
+/-- The four Bell-state projectors as matrices indexed by `Fin 4`. -/
 private noncomputable def bellProjectorRaw (s : Fin 4) : Matrix (Fin 4) (Fin 4) ℂ :=
   ![!![1/2,0,0,1/2; 0,0,0,0; 0,0,0,0; 1/2,0,0,1/2],
     !![1/2,0,0,-1/2; 0,0,0,0; 0,0,0,0; -1/2,0,0,1/2],
     !![0,0,0,0; 0,1/2,1/2,0; 0,1/2,1/2,0; 0,0,0,0],
     !![0,0,0,0; 0,1/2,-1/2,0; 0,-1/2,1/2,0; 0,0,0,0]] s
 
+/-- The Bell-state projectors reindexed by pairs of qubit basis indices. -/
 private noncomputable def bellProjectors (s : Fin 4) : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
   (bellProjectorRaw s).submatrix finProdFinEquiv finProdFinEquiv
 
+/-- The four correction matrices `1`, `Z`, `X`, and `Z * X` in the chosen Bell-outcome order. -/
 private noncomputable def pauliCorrections (s : Fin 4) : Operator 2 :=
   ![!![1,0;0,1], !![1,0;0,-1], !![0,1;1,0], !![0,1;-1,0]] s
 
+/-- The two-qubit matrix with entries `1` at `(00, 00)` and `1 / 2` at `(00, 11)` and `(11,
+00)`, and zero elsewhere. -/
 private noncomputable def indefiniteResource : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
   ( !![1,0,0,1/2; 0,0,0,0; 0,0,0,0; 1/2,0,0,0] : Matrix (Fin 4) (Fin 4) ℂ).submatrix
     finProdFinEquiv finProdFinEquiv
 
+/-- Each of the four chosen Pauli correction matrices is unitary. -/
 private theorem pauliCorrections_unitary (s : Fin 4) :
     pauliCorrections s ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff, Matrix.star_eq_conjTranspose]
@@ -45,6 +78,8 @@ private theorem pauliCorrections_unitary (s : Fin 4) :
     norm_num [pauliCorrections, Matrix.mul_apply, Fin.sum_univ_two,
       Matrix.conjTranspose_apply, Matrix.one_apply]
 
+/-- The Bell projector Kraus family, tensored with the identity on Bob's qubit, satisfies the
+completeness relation. -/
 private theorem bellProjectors_complete :
     ∑ s : Fin 4, (TensorGate (bellProjectors s) (1 : Operator 2))ᴴ *
       TensorGate (bellProjectors s) (1 : Operator 2) = 1 := by
@@ -58,6 +93,8 @@ private theorem bellProjectors_complete :
       Fintype.sum_prod_type, Fin.sum_univ_two, Fin.sum_univ_four, Matrix.one_apply, Matrix.cons_val_two, Matrix.cons_val_three, map_ofNat,
       finProdFinEquiv]
 
+/-- Bell measurement with `indefiniteResource` and the chosen Pauli corrections recovers every
+input operator after summing branches. -/
 private theorem indefiniteResource_channel (ρ : Operator 2) :
     ∑ s : Fin 4, pauliCorrections s * bobBranchMarginal bellProjectors
       indefiniteResource s ρ * (pauliCorrections s)ᴴ = ρ := by
@@ -71,6 +108,7 @@ private theorem indefiniteResource_channel (ρ : Operator 2) :
       Matrix.one_apply, Matrix.vecMul, dotProduct, Matrix.add_apply, Matrix.cons_val_two,
       Matrix.cons_val_three, map_ofNat] <;> ring
 
+/-- The receiver-marginal converse without a resource-positivity hypothesis is false. -/
 theorem fourFixedCorrectionsMaxEntConverse_impossible :
     ¬ FourFixedCorrectionsMaxEntConverseCore := by
   intro h
@@ -82,6 +120,8 @@ theorem fourFixedCorrectionsMaxEntConverse_impossible :
   norm_num [PartialTrace, relabelGate, indefiniteResource, Matrix.submatrix_apply,
     Matrix.reindex_apply, Fin.sum_univ_two, finProdFinEquiv, Matrix.one_apply] at he
 
+/-- Every positive semidefinite resource enabling four fixed unitary corrections has receiver
+marginal `(1 / 2) • 1`. See [Bennett et al., 1993, Eq. (9)][BennettEtAl1993Teleportation]. -/
 theorem fourFixedCorrectionsMaxEntConverse : FourFixedCorrectionsMaxEntConverse := by
   intro K U ω hω htele
   obtain ⟨hU, hK, hsum⟩ := htele
@@ -120,6 +160,7 @@ theorem fourFixedCorrectionsMaxEntConverse : FourFixedCorrectionsMaxEntConverse 
   simp only [Matrix.smul_apply, smul_eq_mul] at he ⊢
   linear_combination -he / 2
 
+/-- The matrix `indefiniteResource` is not positive semidefinite. -/
 theorem indefiniteResource_not_positive : ¬ indefiniteResource.PosSemidef := by
   intro h
   let v : Fin 2 × Fin 2 → ℂ := fun x => (![1, 0, 0, -2] : Fin 4 → ℂ) (finProdFinEquiv x)

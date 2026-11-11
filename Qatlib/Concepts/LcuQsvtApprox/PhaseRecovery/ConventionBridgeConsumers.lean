@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
 import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
+
+/-!
+# Source-convention QSVT word consumers
+
+This module connects real polynomial phase synthesis to explicit alternating words and their
+controlled-family compilation. For a bounded odd polynomial of exact degree `d`,
+`source_convention_actual_word_consumer_spec` supplies phases, length and parity constraints, a
+robust real singular-value transform, and exact compiler counts.
+
+The word-level consumers also bound success mass and normalized output error for normalized
+inputs, using the alternating phase-modulation framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `source_convention_actual_word_consumer_spec`: assemble phase synthesis, robust encoding,
+  compiler semantics, and output estimates.
+* `source_convention_actual_word_consumer`: specialize the word guarantees to a normalized
+  input.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
@@ -36,6 +60,9 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- For a bounded odd polynomial of positive exact degree `d` and a contractive normalized block
+encoding, constructs `d` source-convention phases with minimal length and prescribed parity,
+robust singular-transform encoding, exact compiler counts, and statewise output guarantees. -/
 theorem source_convention_actual_word_consumer_spec :
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -96,6 +123,9 @@ theorem source_convention_actual_word_consumer_spec :
   · simpa only [List.length_map, hlen] using!
       queryCount_compileQSVT (rangeProjector R) (rangeProjector L) 1 (Φ.map anglePhase)
 
+/-- For each normalized input, constructs a source-convention word of length `d` with
+success-mass and normalized-output bounds, unitary controlled-family compilation, and
+exactly `d` oracle queries [Gilyén et al., Lemma 19][GilyenSuLowWiebe2019]. -/
 theorem source_convention_actual_word_consumer :
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.Qubit
 import Mathlib.Analysis.Matrix.Order
 import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+
+/-!
+# Filtered Gram factorization certificates
+
+This module defines finite witness certificates for filtered gamma-two factorizations and proves
+their budget laws. It also relates real overlaps of normalized state families to Gram-difference
+certificates and converts such certificates to approximate unitary alignment after finite
+padding, following [LeeEtAl2011].
+
+## Main statements
+
+* `gramFilteredCert`: filtered factorization with bounded squared witness masses.
+* `gramFilteredCert_hadamard_le`: removing an absorbed Schur factor multiplies certificate
+  budgets.
+* `gram_unitary_overlap_of_filteredCert`: an unfiltered Gram-difference certificate gives a
+  common padded unitary with a real-overlap bound.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,15 +47,23 @@ section Definitions
 
 variable {X H : Type}
 
+/-- The all-ones complex matrix, used as the single filter for unfiltered Gram factorizations. -/
 def gramFilterAllOnes : Matrix X X ℂ := fun _ _ => 1
 
+/-- The Boolean input-difference filter, equal to zero when inputs agree at coordinate `j` and
+one otherwise. See [Lee et al., Definition 3.2][LeeEtAl2011]. -/
 def gramFilterDelta {n : ℕ} (input : X → Fin n → Bool) : Fin n → Matrix X X ℂ :=
   fun j x y => if input x j = input y j then (0 : ℂ) else 1
 
+/-- The Gram matrix of a finite-dimensional state family, with entry `(x,y)` equal to the inner
+product of `ρ x` and `ρ y`. -/
 noncomputable def gramStateMatrix {H : Type} [Fintype H] {X : Type}
     (ρ : X → QState H) : Matrix X X ℂ :=
   fun x y => Qatlib.Foundations.PureStateMath.Inner (ρ x) (ρ y)
 
+/-- The existence of finite-dimensional left and right witnesses whose filtered inner products
+reconstruct `A` and whose squared masses at each input are at most `W`. This is the budgeted
+factorization formulation associated with [Lee et al., Definition 3.1][LeeEtAl2011]. -/
 def gramFilteredCert {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (W : ℝ) : Prop :=
   ∃ (Q : Type) (_ : Fintype Q) (u v : Fin n → X → Q → ℂ),
     (∀ x, ∑ j, ∑ q, Complex.normSq (u j x q) ≤ W) ∧
@@ -42,12 +72,15 @@ def gramFilteredCert {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X �
 
 end Definitions
 
+/-- A filtered factorization certificate remains valid when its budget is increased. -/
 theorem gramFilteredCert_mono {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W W' : ℝ}
     (h : gramFilteredCert A Z W) (hWW' : W ≤ W') : gramFilteredCert A Z W' := by
   rcases h with ⟨Q, hQ, u, v, hu, hv, huv⟩
   exact ⟨Q, hQ, u, v, fun x => (hu x).trans hWW', fun y => (hv y).trans hWW', huv⟩
 
+/-- The zero matrix has a filtered factorization certificate at every nonnegative budget for any
+filter family. -/
 theorem gramFilteredCert_zero {X : Type} {n : ℕ} (Z : Fin n → Matrix X X ℂ)
     {W : ℝ} (hW : 0 ≤ W) : gramFilteredCert 0 Z W := by
   refine ⟨Fin 0, inferInstance, fun _ _ _ => 0, fun _ _ _ => 0, ?_, ?_, ?_⟩
@@ -56,6 +89,8 @@ theorem gramFilteredCert_zero {X : Type} {n : ℕ} (Z : Fin n → Matrix X X ℂ
   · intro x y
     simp [dotProduct]
 
+/-- Certificates for two matrices with the same filters combine into a certificate for their sum
+with the sum of the budgets. See [Lee et al., Lemma A.2][LeeEtAl2011]. -/
 theorem gramFilteredCert_add {X : Type} {n : ℕ} {A B : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W₁ W₂ : ℝ}
     (hA : gramFilteredCert A Z W₁) (hB : gramFilteredCert B Z W₂) :
@@ -77,6 +112,7 @@ theorem gramFilteredCert_add {X : Type} {n : ℕ} {A B : Matrix X X ℂ}
       Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr, mul_add,
       Finset.sum_add_distrib]
 
+/-- Negating the target matrix preserves the filtered certificate budget. -/
 theorem gramFilteredCert_neg {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W : ℝ} (h : gramFilteredCert A Z W) :
     gramFilteredCert (-A) Z W := by
@@ -86,6 +122,8 @@ theorem gramFilteredCert_neg {X : Type} {n : ℕ} {A : Matrix X X ℂ}
   · intro x y
     simp only [Matrix.neg_apply, huv, dotProduct, mul_neg, Finset.sum_neg_distrib]
 
+/-- Scaling a target matrix by a nonnegative real `c` scales a filtered certificate budget by
+`c`. -/
 private theorem gramFilteredCert_smul_nonneg {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W : ℝ} (c : ℝ) (hc : 0 ≤ c)
     (h : gramFilteredCert A Z W) : gramFilteredCert (c • A) Z (c * W) := by
@@ -118,6 +156,8 @@ private theorem gramFilteredCert_smul_nonneg {X : Type} {n : ℕ} {A : Matrix X 
       ring, hss]
     ring
 
+/-- Scaling a target matrix by a real `c` scales the filtered certificate budget by `|c|`. See
+[Lee et al., Lemma A.2][LeeEtAl2011]. -/
 theorem gramFilteredCert_smul {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W : ℝ} (c : ℝ)
     (h : gramFilteredCert A Z W) : gramFilteredCert (c • A) Z (|c| * W) := by
@@ -127,6 +167,9 @@ theorem gramFilteredCert_smul {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     have hs := gramFilteredCert_neg (gramFilteredCert_smul_nonneg (-c) hc' h)
     simpa only [abs_of_neg (lt_of_not_ge hc), neg_smul, neg_neg] using! hs
 
+/-- A certificate for `A` with filters `Z j * B` and an unfiltered certificate for `B` give a
+certificate for `A` with filters `Z` and the product budget. See [Lee et al., Equation
+(3.2)][LeeEtAl2011]. -/
 theorem gramFilteredCert_hadamard_le {X : Type} {n : ℕ} {A B : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W W' : ℝ}
     (hA : gramFilteredCert A (fun j x y => Z j x y * B x y) W)
@@ -175,16 +218,21 @@ theorem gramFilteredCert_hadamard_le {X : Type} {n : ℕ} {A B : Matrix X X ℂ}
     rw [← ht]
     ring
 
+/-- The sum of squared complex magnitudes of a finite state vector. -/
 private noncomputable def fgMass {H : Type} [Fintype H] (ψ : QState H) : ℝ :=
   ∑ i, Complex.normSq (ψ i)
 
+/-- The squared mass of a finite state vector is nonnegative. -/
 private theorem fgMass_nonneg {H : Type} [Fintype H] (ψ : QState H) : 0 ≤ fgMass ψ :=
   Finset.sum_nonneg fun i _ => Complex.normSq_nonneg (ψ i)
 
+/-- A normalized finite state vector has squared mass one. -/
 private theorem fgMass_normalized {H : Type} [Fintype H] {ψ : QState H}
     (hψ : Normalized ψ) : fgMass ψ = 1 := by
   simpa only [fgMass, Complex.normSq_eq_norm_sq] using! hψ
 
+/-- The squared mass of a real linear combination is the sum of the squared-coefficient masses
+and twice the coefficient product times the real overlap. -/
 private theorem fgMass_combination {H : Type} [Fintype H] (ψ φ : QState H) (a b : ℝ) :
     fgMass (fun i => (a : ℂ) * ψ i + (b : ℂ) * φ i) =
       a ^ 2 * fgMass ψ + b ^ 2 * fgMass φ + 2 * a * b * (Qatlib.Foundations.PureStateMath.Inner ψ φ).re := by
@@ -200,6 +248,8 @@ private theorem fgMass_combination {H : Type} [Fintype H] (ψ φ : QState H) (a 
   rw [show (Qatlib.Foundations.PureStateMath.Inner ψ φ).re = ∑ i, (star (ψ i) * φ i).re by
     simp [inner_apply, RCLike.star_def]]
 
+/-- Expands the inner product of two real linear combinations into the four pairwise inner
+products with their coefficient products. -/
 private theorem fg_inner_combination {H : Type} [Fintype H]
     (ψ φ ξ η : QState H) (a b c d : ℝ) :
     Qatlib.Foundations.PureStateMath.Inner (fun i => (a : ℂ) * ψ i + (b : ℂ) * φ i)
@@ -219,6 +269,7 @@ private theorem fg_inner_combination {H : Type} [Fintype H]
     ring]
   simp only [Finset.sum_add_distrib, ← Finset.mul_sum]
 
+/-- A finite state vector with zero squared mass is the zero vector. -/
 private theorem fgMass_eq_zero {H : Type} [Fintype H] {ψ : QState H}
     (hψ : fgMass ψ = 0) : ψ = 0 := by
   classical
@@ -229,6 +280,9 @@ private theorem fgMass_eq_zero {H : Type} [Fintype H] {ψ : QState H}
 
 set_option maxHeartbeats 1000000 in
 
+/-- For normalized state families with real overlaps at least `sqrt (1-ε)` and `0 ≤ ε ≤ 1`,
+their Gram difference has a single-all-ones-filter certificate with budget `2*sqrt ε`. See
+[Lee et al., Lemma 4.8][LeeEtAl2011]. -/
 theorem gramFilteredCert_of_realPart_overlap {H X : Type} [Fintype H] [Fintype X]
     {ε : ℝ} (hε : 0 ≤ ε) (hε1 : ε ≤ 1) (ρ σ : X → QState H)
     (hρ : ∀ x, Normalized (ρ x)) (hσ : ∀ x, Normalized (σ x))
@@ -318,12 +372,14 @@ theorem gramFilteredCert_of_realPart_overlap {H X : Type} [Fintype H] [Fintype X
       push_cast
       linear_combination -(Qatlib.Foundations.PureStateMath.Inner (ρ x) (ρ y) - Qatlib.Foundations.PureStateMath.Inner (σ x) (σ y)) * habc
 
+/-- The squared mass of a state vector equals the real part of its inner product with itself. -/
 private theorem fgMass_inner_self {H : Type} [Fintype H] (ψ : QState H) :
     fgMass ψ = (Qatlib.Foundations.PureStateMath.Inner ψ ψ).re := by
   classical
   rw [inner_self, ← Complex.ofReal_sum, Complex.ofReal_re]
   simp only [fgMass, Complex.normSq_eq_norm_sq]
 
+/-- Conjugating an inner product exchanges its two arguments. -/
 private theorem fg_inner_conj {H : Type} [Fintype H] (ψ φ : QState H) :
     star (Qatlib.Foundations.PureStateMath.Inner ψ φ) = Qatlib.Foundations.PureStateMath.Inner φ ψ := by
   classical
@@ -332,12 +388,16 @@ private theorem fg_inner_conj {H : Type} [Fintype H] (ψ φ : QState H) :
   intro i _
   ring
 
+/-- The inner product of direct-sum state vectors equals the sum of the inner products of their
+components. -/
 private theorem fg_inner_sum {H K : Type} [Fintype H] [Fintype K]
     (a b : QState H) (p q : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (Sum.elim a p) (Sum.elim b q) = Qatlib.Foundations.PureStateMath.Inner a b + Qatlib.Foundations.PureStateMath.Inner p q := by
   classical
   simp only [inner_apply, Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr]
 
+/-- The real part of a finite-state inner product is at most the product of the square roots of
+the squared masses. -/
 private theorem fg_re_inner_le {H : Type} [Fintype H] (a b : QState H) :
     (Qatlib.Foundations.PureStateMath.Inner a b).re ≤ Real.sqrt (fgMass a) * Real.sqrt (fgMass b) := by
   classical
@@ -349,6 +409,9 @@ private theorem fg_re_inner_le {H : Type} [Fintype H] (a b : QState H) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- An all-ones-filter certificate of budget `ε ≥ 0` for the Gram difference of normalized
+families yields a finite padding and a common unitary whose aligned real overlaps are at
+least `1-sqrt (2*ε)`. See [Lee et al., Lemma 4.8][LeeEtAl2011]. -/
 theorem gram_unitary_overlap_of_filteredCert {H X : Type}
     [Fintype H] [DecidableEq H] [Fintype X] [DecidableEq X]
     {ε : ℝ} (hε : 0 ≤ ε) (ρ σ : X → QState H)

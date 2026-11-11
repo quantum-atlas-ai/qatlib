@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ManifoldInv07.MainResults.CircuitCorrectness
+
+/-!
+# Exact and approximate source-invariant recognizers
+
+This module packages the matrix data for the invariant expectation of
+[GarneroneMarzuoliRasetti2007] in `CompiledRecognizer`. Its value is the multiplexed expectation
+of the supplied matrices and weight vector.
+
+The exact existence theorem retains the unitary fixed-vector and block matrix-element
+hypotheses. The approximate theorem uses normalized nonnegative weights and uniform
+return-amplitude accuracy to bound the recognizer value's distance from the phase-adjusted
+source invariant.
+
+## Main statements
+
+* `source_expectation_exact`: A recognizer realizes the prescribed invariant expectation under
+  the supplied identities.
+* `source_expectation_approximate`: Uniform block approximation yields an ε-accurate recognizer
+  value.
+
+## References
+
+* [Garnerone et al., 2007][GarneroneMarzuoliRasetti2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +44,8 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.ManifoldInv07.MainResults.Defs
 open Qatlib.Papers.ManifoldInv07.MainResults.CircuitCorrectness
 
+/-- Matrix data consisting of a color-register matrix, controlled blocks, a distinguished basis
+label, a level, an integer signature, and color-indexed polynomial values. -/
 structure CompiledRecognizer (J P : Type*) [Fintype J] [Fintype P]
     [DecidableEq J] where
   S0 : Matrix J J ℂ
@@ -28,14 +55,19 @@ structure CompiledRecognizer (J P : Type*) [Fintype J] [Fintype P]
   sigma : ℤ
   coloredPoly : J → ℂ
 
+/-- The multiplexed expectation of a compiled recognizer with the supplied real weights. -/
 noncomputable def CompiledRecognizer.value {J P : Type*} [Fintype J] [Fintype P]
     [DecidableEq J] [DecidableEq P] (C : CompiledRecognizer J P) (μ : J → ℝ) : ℂ :=
   muxExpectation C.S0 C.U μ C.p0
 
+/-- The source phase has complex norm one at every natural level. -/
 theorem sourceAlpha_norm (k : ℕ) : ‖sourceAlpha k‖ = 1 := by
   unfold sourceAlpha
   exact Complex.norm_exp_ofReal_mul_I _
 
+/-- Given nonnegative weights, a unitary `S0` fixing their square-root state, and the supplied
+block matrix-element identities, there exists a recognizer whose value is the phase-adjusted
+source invariant [GarneroneMarzuoliRasetti2007]. -/
 theorem source_expectation_exact {J P : Type*} [Fintype J] [Fintype P]
     [DecidableEq J] [DecidableEq P]
     (k : ℕ) (S0 : Matrix J J ℂ) (U : J → Matrix P P ℂ)
@@ -50,6 +82,9 @@ theorem source_expectation_exact {J P : Type*} [Fintype J] [Fintype P]
   show muxExpectation S0 U μ p0 = _
   exact source_equation_39 k S0 U μ Jpoly σ p0 hμ hS0u hS0 hKaul
 
+/-- For normalized nonnegative weights and the supplied unitary fixed-vector and exact block
+identities, block return-amplitude errors at most ε/2 give a recognizer value within ε of
+the phase-adjusted invariant when ε ≥ 0 [GarneroneMarzuoliRasetti2007]. -/
 theorem source_expectation_approximate {J P : Type*} [Fintype J] [Fintype P]
     [DecidableEq J] [DecidableEq P]
     (k : ℕ) (S0 : Matrix J J ℂ) (U U' : J → Matrix P P ℂ)

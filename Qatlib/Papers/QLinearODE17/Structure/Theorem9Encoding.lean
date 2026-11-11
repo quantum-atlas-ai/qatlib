@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.Structure.Theorem9ExtAux
 import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+
+/-!
+# Sparse overlap encoding of the V2 Taylor system
+
+This module bounds the entries and row and column supports of `taylorStepMatrixV2`. A generator
+with operator norm at most one and at most s nonzero entries per row and column yields
+Taylor-system entries of norm at most one and sparsity at most k + s + 3.
+
+`taylorV2_sparse_encoding` packages the resulting sparse overlap encoding and operator-norm
+bound for the linear-system construction associated with [BerryEtAl2017ODE].
+
+## Main statements
+
+* `taylorV2_row_sparse`: A bound of k + s + 3 on each row support.
+* `taylorV2_col_sparse`: The corresponding column-support bound.
+* `taylorV2_sparse_encoding`: Projected unitary encoding of the scaled Taylor matrix.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -24,6 +46,7 @@ set_option warningAsError false
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- The norm of any entry of a complex matrix is at most its L2 operator norm. -/
 theorem taylor_matrix_entry_norm_le (M : Matrix N N ℂ) (i j : N) : ‖M i j‖ ≤ ‖M‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖ = 1 := by
     have hs : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖^2 = 1 := by
@@ -41,6 +64,8 @@ theorem taylor_matrix_entry_norm_le (M : Matrix N N ℂ) (i j : N) : ‖M i j‖
   rw [he] at hi
   exact hi.trans hn
 
+/-- If the generator has L2 operator norm at most 1, every entry of the V2 Taylor matrix has
+norm at most 1. -/
 theorem taylorV2_entry_norm_le (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖ ≤ 1)
     (r c : Fin (m*(k+1)+p+1) × N) : ‖taylorStepMatrixV2 m k p M r c‖ ≤ 1 := by
   classical
@@ -68,6 +93,8 @@ theorem taylorV2_entry_norm_le (m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖ 
       · simp only [taylorStepMatrixV2, if_neg hrc, if_neg hs, if_neg hj, sub_zero]
         split_ifs <;> norm_num
 
+/-- The number of labels in `Fin d` whose values lie in the half-open interval [a, b) is at most
+b - a. -/
 private theorem taylor_label_interval_card (d a b : ℕ) :
     (Finset.univ.filter (fun l : Fin d => a ≤ l.val ∧ l.val < b)).card ≤ b-a := by
   let S := Finset.univ.filter (fun l : Fin d => a ≤ l.val ∧ l.val < b)
@@ -81,6 +108,9 @@ private theorem taylor_label_interval_card (d a b : ℕ) :
 
 omit [Fintype N] in
 
+/-- A nonzero V2 Taylor entry lies on the diagonal, in a preceding-label generator coupling, in
+the preceding jump interval with equal state indices, or in a preceding-label identity
+coupling. -/
 private theorem taylorV2_nonzero_support (m k p : ℕ) (M : Matrix N N ℂ)
     (r c : Fin (m*(k+1)+p+1) × N) (hn : taylorStepMatrixV2 m k p M r c ≠ 0) :
     r=c ∨
@@ -109,6 +139,8 @@ private theorem taylorV2_nonzero_support (m k p : ℕ) (M : Matrix N N ℂ)
     · rfl
   exact hn (by simp only [taylorStepMatrixV2,if_neg h.1,hs,hj,hp,sub_zero])
 
+/-- If each generator row has at most s nonzero entries, each V2 Taylor row has at most k + s +
+3 nonzero entries. -/
 theorem taylorV2_row_sparse (s m k p : ℕ) (M : Matrix N N ℂ)
     (hM : ∀ n, (Finset.univ.filter (fun c => M n c ≠ 0)).card ≤ s)
     (r : Fin (m*(k+1)+p+1) × N) :
@@ -143,6 +175,8 @@ theorem taylorV2_row_sparse (s m k p : ℕ) (M : Matrix N N ℂ)
   simp only [Finset.card_singleton] at hleft hright
   omega
 
+/-- If each generator column has at most s nonzero entries, each V2 Taylor column has at most k
++ s + 3 nonzero entries. -/
 theorem taylorV2_col_sparse (s m k p : ℕ) (M : Matrix N N ℂ)
     (hM : ∀ n, (Finset.univ.filter (fun r => M r n ≠ 0)).card ≤ s)
     (c : Fin (m*(k+1)+p+1) × N) :
@@ -183,6 +217,9 @@ theorem taylorV2_col_sparse (s m k p : ℕ) (M : Matrix N N ℂ)
   simp only [Finset.card_singleton] at hleft hright
   omega
 
+/-- Under the generator norm and sparsity bounds, sparse overlap frames give a projected unitary
+encoding of the Taylor matrix divided by k + s + 3, and its operator norm is at most k + s +
+3. -/
 theorem taylorV2_sparse_encoding (s m k p : ℕ) (M : Matrix N N ℂ) (hM : ‖M‖ ≤ 1)
     (hr : ∀ n, (Finset.univ.filter (fun c => M n c ≠ 0)).card ≤ s)
     (hc : ∀ n, (Finset.univ.filter (fun r => M r n ≠ 0)).card ≤ s) :

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
 import Qatlib.Foundations.CbmdAnalysis.Core.FinitePoleBounds
 import Mathlib.Analysis.PSeries
+
+/-!
+# Summability of auxiliary sampling weights
+
+This module computes the norms of auxiliary lattice weights and bounds their tails by an
+inverse-square sequence. For a nonempty auxiliary pole set and positive lattice parameter, these
+estimates yield absolute summability of the weights and of weighted numerator samples bounded on
+the real axis, supporting the sampling series in [WangEtAl2026].
+
+## Main statements
+
+* `auxWeight_norm_le_inv_sq`: bounds weights outside twice the pole-radius bound.
+* `auxWeight_norm_summable`: the weight norms are summable over the integers.
+* `auxWeight_smul_summable`: bounded real-axis samples give a convergent vector-valued series in
+  a complete space.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -16,6 +37,9 @@ noncomputable section
 namespace CBMD
 open scoped BigOperators
 
+/-- For positive `a`, the auxiliary weight norm equals the absolute scalar numerator times the
+normalization product, divided by `2 * π * a` and the target and auxiliary distance factors
+at `k / a`. -/
 theorem auxWeight_norm (s : Finset ℂ) {a : ℝ} (ha : 0 < a) (k : ℤ) :
     ‖auxWeight s a k‖ =
       (|Real.exp (-2 * Real.pi * a) - 1| * ∏ p ∈ s, ‖-Complex.I - p‖) /
@@ -28,15 +52,20 @@ theorem auxWeight_norm (s : Finset ℂ) {a : ℝ} (ha : 0 < a) (k : ℤ) :
   simp only [div_eq_mul_inv, mul_inv_rev, inv_inv]
   ring
 
+/-- The constant `2 * a * |exp (-2 * π * a) - 1| * (∏ p ∈ s, ‖-I - p‖) / π` used in
+inverse-square auxiliary weight bounds. -/
 def auxWeightTailConstant (s : Finset ℂ) (a : ℝ) : ℝ :=
   2 * a * |Real.exp (-2 * Real.pi * a) - 1| *
     (∏ p ∈ s, ‖-Complex.I - p‖) / Real.pi
 
+/-- The auxiliary weight tail constant is nonnegative for positive `a`. -/
 theorem auxWeightTailConstant_nonneg (s : Finset ℂ) {a : ℝ} (ha : 0 < a) :
     0 ≤ auxWeightTailConstant s a := by
   unfold auxWeightTailConstant
   positivity
 
+/-- For a nonempty auxiliary set and positive `a`, indices with `|k / a|` at least twice the
+pole-radius bound satisfy `‖auxWeight s a k‖ ≤ auxWeightTailConstant s a / k ^ 2`. -/
 theorem auxWeight_norm_le_inv_sq (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (ha : 0 < a)
     (k : ℤ) (hk : 2 * finitePoleRadius s ≤ |(k : ℝ) / a|) :
     ‖auxWeight s a k‖ ≤ auxWeightTailConstant s a * (1 / (k : ℝ) ^ 2) := by
@@ -72,6 +101,8 @@ theorem auxWeight_norm_le_inv_sq (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (h
       field_simp
       ring
 
+/-- For a nonempty auxiliary set and positive `a`, the inverse-square auxiliary weight bound
+holds outside a finite set of integer indices. -/
 theorem auxWeight_norm_le_inv_sq_eventually (s : Finset ℂ) (hs : s.Nonempty)
     {a : ℝ} (ha : 0 < a) :
     ∀ᶠ k : ℤ in Filter.cofinite,
@@ -87,6 +118,8 @@ theorem auxWeight_norm_le_inv_sq_eventually (s : Finset ℂ) (hs : s.Nonempty)
   apply (le_div_iff₀ ha).mpr
   nlinarith
 
+/-- For a nonempty auxiliary set and positive `a`, the auxiliary weight norms are summable over
+the integers. -/
 theorem auxWeight_norm_summable (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (ha : 0 < a) :
     Summable (fun k : ℤ => ‖auxWeight s a k‖) := by
   have hg := (Real.summable_one_div_int_pow.mpr (by omega : 1 < (2 : ℕ))).mul_left
@@ -94,9 +127,13 @@ theorem auxWeight_norm_summable (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (ha
   apply hg.of_norm_bounded_eventually
   simpa only [norm_norm] using! auxWeight_norm_le_inv_sq_eventually s hs ha
 
+/-- For a nonempty auxiliary set and positive `a`, the complex auxiliary weights form a summable
+integer-indexed series. -/
 theorem auxWeight_summable (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (ha : 0 < a) :
     Summable (auxWeight s a) := (auxWeight_norm_summable s hs ha).of_norm
 
+/-- If `U` has norm at most one on the real axis, then the norms of its auxiliary weighted
+samples are summable for a nonempty auxiliary set and positive `a`. -/
 theorem auxWeight_smul_norm_summable {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℂ E] (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (ha : 0 < a)
     (U : ℂ → E) (hUreal : ∀ x : ℝ, ‖U (x : ℂ)‖ ≤ 1) :
@@ -107,6 +144,8 @@ theorem auxWeight_smul_norm_summable {E : Type*} [NormedAddCommGroup E]
   simpa only [mul_one] using!
     mul_le_mul_of_nonneg_left (hUreal ((k : ℝ) / a)) (norm_nonneg (auxWeight s a k))
 
+/-- In a complete complex normed space, real-axis values of norm at most one give a summable
+auxiliary weighted sample series for a nonempty auxiliary set and positive `a`. -/
 theorem auxWeight_smul_summable {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℂ E] [CompleteSpace E] (s : Finset ℂ) (hs : s.Nonempty)
     {a : ℝ} (ha : 0 < a) (U : ℂ → E) (hUreal : ∀ x : ℝ, ‖U (x : ℂ)‖ ≤ 1) :

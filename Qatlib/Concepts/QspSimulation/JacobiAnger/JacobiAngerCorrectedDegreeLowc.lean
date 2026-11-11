@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeStat
 import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+
+/-!
+# Corrected Jacobi–Anger truncation degree bound
+
+This module proves `JacobiAngerCorrectedDegree`, bounding the factorial tail expression at
+`lcCorrectedQ`. Elementary estimates on factorials, logarithms, and real powers establish the
+corrected cutoff used with the Jacobi–Anger error estimate in [LowChuang2017].
+
+## Main statements
+
+* `jacobiAngerCorrectedDegree`: The corrected cutoff is at least τ + 1 and makes the tail
+  expression at most ε/8.
+* `fact_ge_third_pow`: The factorial lower bound (q/3)^q ≤ q!.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,14 +39,17 @@ namespace Qatlib.Concepts.QspSimulation.JacobiAnger
 
 section Helpers
 
+/-- The natural logarithm of three is at least one. -/
 private theorem one_le_log_three : (1 : ℝ) ≤ Real.log 3 := by
   have hexp : Real.exp 1 < 2.7182818286 := Real.exp_one_lt_d9
   have h3 : Real.exp 1 ≤ 3 := by linarith
   exact (Real.le_log_iff_exp_le (by norm_num)).mpr h3
 
+/-- A natural power of a real quotient equals the quotient of the corresponding powers. -/
 private theorem div_pow_real (a b : ℝ) (n : ℕ) : (a / b) ^ n = a ^ n / b ^ n := by
   rw [div_eq_mul_inv, mul_pow, inv_pow, div_eq_mul_inv]
 
+/-- For a positive natural q, the real quantity (1 + 1/q)^q is at most three. -/
 private theorem one_add_inv_pow_le_three (q : ℕ) (hq : 1 ≤ q) :
     (1 + 1 / (q : ℝ)) ^ q ≤ 3 := by
   have hsumpos : (0 : ℝ) < 1 + 1 / (q : ℝ) := by positivity
@@ -43,6 +65,7 @@ private theorem one_add_inv_pow_le_three (q : ℕ) (hq : 1 ≤ q) :
     linarith [hstep, hqone, one_le_log_three]
   exact (Real.log_le_log_iff (by positivity) (by norm_num)).mp hlog
 
+/-- For every natural q, the real factorial q! is at least (q/3)^q. -/
 private theorem fact_ge_third_pow (q : ℕ) : ((q : ℝ) / 3) ^ q ≤ (q.factorial : ℝ) := by
   induction q with
   | zero => norm_num
@@ -89,6 +112,7 @@ private theorem fact_ge_third_pow (q : ℕ) : ((q : ℝ) / 3) ^ q ≤ (q.factori
         rw [div_pow_real, div_le_iff₀ hden]
         exact le_trans h2 (le_of_eq hfinal2)
 
+/-- For u ≥ 0, the product (1 + u)^(1/3) log(1 + u) is at most 2u. -/
 private theorem cube_bound (u : ℝ) (hu : 0 ≤ u) :
     (1 + u) ^ ((1 : ℝ) / 3) * Real.log (1 + u) ≤ 2 * u := by
   have h1pos : (0 : ℝ) < 1 + u := by linarith
@@ -138,6 +162,9 @@ private theorem cube_bound (u : ℝ) (hu : 0 ≤ u) :
 
 end Helpers
 
+/-- For τ ≥ 0 and 0 < ε ≤ 1, the corrected cutoff q is at least τ + 1 and satisfies 4τ^q/(2^q
+q!) ≤ ε/8. This supplies a cutoff for the Jacobi–Anger tail estimate in [Low and Chuang,
+Eqs. (16)–(17)][LowChuang2017]. -/
 theorem jacobiAngerCorrectedDegree : JacobiAngerCorrectedDegree := by
   intro τ ε hτ hεpos hεle
   refine ⟨?_, lcCorrectedQ_length_budget τ ε⟩

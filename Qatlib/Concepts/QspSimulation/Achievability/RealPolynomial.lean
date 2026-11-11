@@ -9,6 +9,40 @@ import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 import Qatlib.Concepts.BlockEncoding.Basic
 import Mathlib.Algebra.Polynomial.Expand
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Completion and phase synthesis for real polynomials
+
+For a real polynomial with `HasRealParity`, the contracted residual `squareResidual` expresses
+`1 - p ^ 2` as a polynomial in `X ^ 2`. A representation of this residual yields real
+polynomials satisfying a weighted sum-of-squares identity with controlled degrees and parities.
+The complex polynomial `completionP` then forms a `CompletedPair` whose first component has real
+part equal to the target polynomial.
+
+Strict boundedness on `[-1, 1]` supplies the positive residual needed for completion and phase
+synthesis. For a target bounded by one, `halfTarget` supplies strict boundedness and gives a
+response whose real part is half the target, together with exact block-encoding normalization
+two. These results connect real-polynomial completion to the QSP and QSVT constructions of
+[LowChuang2017] and [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `exists_real_sos_of_rep` converts a residual representation into the weighted sum-of-squares
+  identity.
+* `exists_completedPair_of_strict` completes a strictly bounded polynomial with the required
+  degree and parity.
+* `exists_phases_of_strict` synthesizes a phase list of length `d` with the target real
+  response.
+* `exists_phases_half_of_bounded` synthesizes half of a polynomial bounded by one.
+* `blockEncoding_two_of_half_target` converts an exact half-target encoding into normalization
+  two and zero error.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -23,22 +57,29 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 
 open Polynomial
 
+/-- The parity condition `p(-X) = (-1)^d p(X)` for a real polynomial, expressed as a polynomial
+composition identity. -/
 def HasRealParity (d : ℕ) (p : Polynomial ℝ) : Prop :=
   p.comp (-X) = C ((-1 : ℝ) ^ d) * p
 
+/-- The contraction by two of `1 - p ^ 2`, retaining its even-indexed coefficients as
+coefficients in the squared variable. -/
 noncomputable def squareResidual (p : Polynomial ℝ) : Polynomial ℝ :=
   contract 2 (1 - p ^ 2)
 
+/-- The square of any natural-number power of minus one is one. -/
 private theorem neg_one_pow_sq (d : ℕ) : ((-1 : ℝ) ^ d) ^ 2 = 1 := by
   rw [← pow_mul, Nat.mul_comm d 2, pow_mul]
   norm_num
 
+/-- If `p` has a fixed real parity, the residual polynomial `1 - p ^ 2` is even. -/
 theorem residual_even {d : ℕ} {p : Polynomial ℝ} (hp : HasRealParity d p) :
     (1 - p ^ 2).comp (-X) = 1 - p ^ 2 := by
   change p.comp (-X) = C ((-1 : ℝ) ^ d) * p at hp
   simp only [sub_comp, one_comp, pow_comp, hp, mul_pow, ← C_pow,
     neg_one_pow_sq, C_1, one_mul]
 
+/-- An even real polynomial has zero coefficient at every index not divisible by two. -/
 private theorem coeff_zero_of_odd {f : Polynomial ℝ}
     (hf : f.comp (-X) = f) {k : ℕ} (hk : ¬ 2 ∣ k) : f.coeff k = 0 := by
   have he := congrArg (fun q : Polynomial ℝ => q.coeff k) hf
@@ -47,6 +88,8 @@ private theorem coeff_zero_of_odd {f : Polynomial ℝ}
   simp only [hx, comp_C_mul_X_coeff, ho.neg_one_pow] at he
   linarith
 
+/-- Contracting an even real polynomial by two and then composing with `X ^ 2` recovers the
+original polynomial. -/
 theorem comp_square_contract_of_even {f : Polynomial ℝ}
     (hf : f.comp (-X) = f) : (contract 2 f).comp (X ^ 2) = f := by
   rw [← expand_eq_comp_X_pow]
@@ -56,10 +99,14 @@ theorem comp_square_contract_of_even {f : Polynomial ℝ}
   · rw [Nat.div_mul_cancel hk]
   · exact (coeff_zero_of_odd hf hk).symm
 
+/-- For a polynomial with real parity, composing `squareResidual p` with `X ^ 2` gives `1 - p ^
+2`. -/
 theorem squareResidual_comp {d : ℕ} {p : Polynomial ℝ} (hp : HasRealParity d p) :
     (squareResidual p).comp (X ^ 2) = 1 - p ^ 2 :=
   comp_square_contract_of_even (residual_even hp)
 
+/-- For a polynomial `p` with real parity, any polynomial whose composition with `X ^ 2` is `1 -
+p ^ 2` equals `squareResidual p`. -/
 theorem squareResidual_eq_of_comp {p h : Polynomial ℝ} {d : ℕ}
     (hp : HasRealParity d p) (hh : h.comp (X ^ 2) = 1 - p ^ 2) :
     squareResidual p = h := by
@@ -67,6 +114,8 @@ theorem squareResidual_eq_of_comp {p h : Polynomial ℝ} {d : ℕ}
   change (squareResidual p).comp (X ^ 2) = h.comp (X ^ 2)
   rw [squareResidual_comp hp, hh]
 
+/-- Contraction by two sends a real polynomial of degree at most `2 * d` to one of degree at
+most `d`. -/
 theorem contract_two_degree_le {f : Polynomial ℝ} {d : ℕ}
     (hf : f.degree ≤ ((2 * d : ℕ) : WithBot ℕ)) :
     (contract 2 f).degree ≤ (d : WithBot ℕ) := by
@@ -77,6 +126,7 @@ theorem contract_two_degree_le {f : Polynomial ℝ} {d : ℕ}
   have hkd : d < k := by exact_mod_cast hk
   exact_mod_cast (show 2 * d < k * 2 by omega)
 
+/-- If `p` has degree at most `d`, its contracted square residual also has degree at most `d`. -/
 theorem squareResidual_degree_le {p : Polynomial ℝ} {d : ℕ}
     (hp : p.degree ≤ (d : WithBot ℕ)) :
     (squareResidual p).degree ≤ (d : WithBot ℕ) := by
@@ -88,6 +138,8 @@ theorem squareResidual_degree_le {p : Polynomial ℝ} {d : ℕ}
     omega
   exact (natDegree_sub_le _ _).trans (max_le (by simp) hsq)
 
+/-- If a polynomial with real parity is strictly bounded in absolute value by one on `[-1, 1]`,
+its square residual is positive on `[0, 1]`. -/
 theorem squareResidual_pos {p : Polynomial ℝ} {d : ℕ}
     (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| < 1) :
@@ -102,6 +154,7 @@ theorem squareResidual_pos {p : Polynomial ℝ} {d : ℕ}
   rcases abs_lt.mp hs with ⟨hlo, hhi⟩
   nlinarith
 
+/-- Composing a polynomial of degree at most `m` with `X ^ 2` gives degree at most `2 * m`. -/
 private theorem comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
     (hf : f.degree ≤ (m : WithBot ℕ)) :
     (f.comp (X ^ 2)).degree ≤ ((2 * m : ℕ) : WithBot ℕ) := by
@@ -110,6 +163,8 @@ private theorem comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
   have hd := natDegree_le_of_degree_le hf
   omega
 
+/-- Multiplying the square-variable composition of a polynomial of degree at most `m` by `X`
+gives degree at most `2 * m + 1`. -/
 private theorem X_comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
     (hf : f.degree ≤ (m : WithBot ℕ)) :
     (X * f.comp (X ^ 2)).degree ≤ ((2 * m + 1 : ℕ) : WithBot ℕ) := by
@@ -119,6 +174,8 @@ private theorem X_comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
   rw [natDegree_X] at h
   omega
 
+/-- If `f` has degree strictly below `m`, then `X * f.comp (X ^ 2)` has degree strictly below `2
+* m`. -/
 private theorem X_comp_square_degree_lt {f : Polynomial ℝ} {m : ℕ}
     (hf : f.degree < (m : WithBot ℕ)) :
     (X * f.comp (X ^ 2)).degree < ((2 * m : ℕ) : WithBot ℕ) := by
@@ -135,14 +192,19 @@ private theorem X_comp_square_degree_lt {f : Polynomial ℝ} {m : ℕ}
   rw [natDegree_X, hsq] at h
   exact_mod_cast (show (X * f.comp (X ^ 2)).natDegree < 2 * m by omega)
 
+/-- Every polynomial composed with `X ^ 2` has real parity `2 * m`. -/
 private theorem comp_square_parity (f : Polynomial ℝ) (m : ℕ) :
     HasRealParity (2 * m) (f.comp (X ^ 2)) := by
   simp [HasRealParity, comp_assoc, pow_comp, pow_mul]
 
+/-- Multiplying a square-variable polynomial by `X` gives real parity `2 * m + 1`. -/
 private theorem X_comp_square_parity (f : Polynomial ℝ) (m : ℕ) :
     HasRealParity (2 * m + 1) (X * f.comp (X ^ 2)) := by
   simp [HasRealParity, mul_comp, comp_assoc, pow_comp, pow_add, pow_mul]
 
+/-- A representation of the square residual of a polynomial with parity `d` gives `1 - p ^ 2 = A
+^ 2 + (1 - X ^ 2) * B ^ 2`, with degrees at most `d` and strictly below `d`, respectively.
+The polynomials `A` and `B` have real parities `d` and `d + 1`. -/
 theorem exists_real_sos_of_rep {p : Polynomial ℝ} {d : ℕ}
     (hp : HasRealParity d p) (rep : Representation d (squareResidual p)) :
     ∃ A B : Polynomial ℝ,
@@ -185,19 +247,27 @@ theorem exists_real_sos_of_rep {p : Polynomial ℝ} {d : ℕ}
 
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- The complex polynomial formed by embedding `p` and `A` into complex coefficients and taking
+`p + Complex.I * A`. -/
 noncomputable def completionP (p A : Polynomial ℝ) : Polynomial ℂ :=
   p.map Complex.ofRealHom + C Complex.I * A.map Complex.ofRealHom
 
+/-- Embedding a real polynomial into complex coefficients produces a polynomial fixed by
+coefficientwise conjugation. -/
 @[simp] theorem conjugate_real_map (p : Polynomial ℝ) :
     conjugatePolynomial (p.map Complex.ofRealHom) = p.map Complex.ofRealHom := by
   ext k
   simp
 
+/-- Embedding a real polynomial into complex coefficients preserves its parity as
+`HasResponseParity`. -/
 theorem HasRealParity.map {d : ℕ} {p : Polynomial ℝ} (hp : HasRealParity d p) :
     HasResponseParity d (p.map Complex.ofRealHom) := by
   have h := congrArg (Polynomial.map Complex.ofRealHom) hp
   simpa [HasResponseParity, Polynomial.map_comp] using h
 
+/-- The sum of `completionP p A` and its coefficient conjugate is twice the complex embedding of
+`p`. -/
 theorem completionP_real_part (p A : Polynomial ℝ) :
     completionP p A + conjugatePolynomial (completionP p A) =
       C (2 : ℂ) * p.map Complex.ofRealHom := by
@@ -206,6 +276,8 @@ theorem completionP_real_part (p A : Polynomial ℝ) :
   simp only [Complex.star_def, Complex.conj_I, map_neg, map_ofNat]
   ring
 
+/-- At every real argument, the real part of the evaluation of `completionP p A` equals the
+evaluation of `p`. -/
 theorem completionP_eval_re (p A : Polynomial ℝ) (x : ℝ) :
     ((completionP p A).eval (x : ℂ)).re = p.eval x := by
   have hp : (p.map Complex.ofRealHom).eval (x : ℂ) = Complex.ofReal (p.eval x) :=
@@ -214,6 +286,9 @@ theorem completionP_eval_re (p A : Polynomial ℝ) (x : ℝ) :
     Polynomial.eval_map_apply (p := A) Complex.ofRealHom x
   simp [completionP, hp, hA, Complex.mul_re]
 
+/-- A weighted real sum-of-squares identity with the stated degree and parity bounds gives a
+completed pair consisting of `completionP p A` and the complex embedding of `B`. See
+[GilyenSuLowWiebe2019] for polynomial completion in QSVT. -/
 theorem completedPair_of_real_sos {p A B : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hi : 1 - p ^ 2 = A ^ 2 + (1 - X ^ 2) * B ^ 2)
@@ -249,6 +324,9 @@ theorem completedPair_of_real_sos {p A B : Polynomial ℝ} {d : ℕ}
           (1 - X ^ 2) * (B.map Complex.ofRealHom) ^ 2) := by rw [hi2]; ring
       _ = 1 := by rw [← hi']; ring
 
+/-- A degree bound, real parity, and a representation of the square residual give a completed
+pair whose first polynomial has coefficientwise real part `p` and evaluates with real part
+`p(x)` at every real `x`. -/
 theorem exists_completedPair_of_rep {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (rep : Representation d (squareResidual p)) :
@@ -260,6 +338,9 @@ theorem exists_completedPair_of_rep {p : Polynomial ℝ} {d : ℕ}
     completedPair_of_real_sos hpdeg hp hi hA hB hAp hBp,
     completionP_real_part p A, completionP_eval_re p A⟩
 
+/-- A degree bound, real parity, and a representation of the square residual give phase-valued
+parameters with list length `d` whose first response has real part `p(x)` at every real `x`.
+See [LowChuang2017]. -/
 theorem exists_phases_of_rep {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (rep : Representation d (squareResidual p)) :
@@ -269,6 +350,9 @@ theorem exists_phases_of_rep {p : Polynomial ℝ} {d : ℕ}
   obtain ⟨base, zs, hb, hzs, hn, hP, _⟩ := exists_response_of_completedPair hpair
   exact ⟨base, zs, hb, hzs, hn, by simpa only [hP] using hre⟩
 
+/-- A real polynomial of degree at most `d` and parity `d`, strictly bounded in absolute value
+by one on `[-1, 1]`, extends to a completed pair whose first component has real part equal
+to that polynomial. See [GilyenSuLowWiebe2019]. -/
 theorem exists_completedPair_of_strict {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| < 1) :
@@ -279,6 +363,9 @@ theorem exists_completedPair_of_strict {p : Polynomial ℝ} {d : ℕ}
     (squareResidual_pos hp hb) (squareResidual_degree_le hpdeg)
   exact exists_completedPair_of_rep hpdeg hp rep
 
+/-- A real polynomial of degree at most `d` and parity `d`, strictly bounded by one on `[-1,
+1]`, is the real part of a first response from a phase list of length `d`. The response plus
+its coefficient conjugate equals twice the embedded target polynomial; see [LowChuang2017]. -/
 theorem exists_phases_of_strict {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| < 1) :
@@ -292,20 +379,25 @@ theorem exists_phases_of_strict {p : Polynomial ℝ} {d : ℕ}
   exact ⟨base, zs, hbase, hzs, hn, by simpa only [hP] using hpoly,
     by simpa only [hP] using hre⟩
 
+/-- The real target polynomial scaled by one half. -/
 noncomputable def halfTarget (p : Polynomial ℝ) : Polynomial ℝ := C (1 / 2) * p
 
+/-- Scaling a target polynomial by one half preserves any upper bound on its degree. -/
 theorem halfTarget_degree_le {p : Polynomial ℝ} {d : ℕ}
     (hp : p.degree ≤ (d : WithBot ℕ)) :
     (halfTarget p).degree ≤ (d : WithBot ℕ) := by
   exact degree_le_of_natDegree_le ((natDegree_C_mul_le _ _).trans
     (natDegree_le_of_degree_le hp))
 
+/-- Scaling a target polynomial by one half preserves its real parity. -/
 theorem halfTarget_parity {p : Polynomial ℝ} {d : ℕ} (hp : HasRealParity d p) :
     HasRealParity d (halfTarget p) := by
   change p.comp (-X) = C ((-1 : ℝ) ^ d) * p at hp
   simp only [HasRealParity, halfTarget, mul_comp, C_comp, hp]
   ring
 
+/-- If a real polynomial is bounded in absolute value by one on `[-1, 1]`, its half target is
+strictly bounded by one there. -/
 theorem halfTarget_strict {p : Polynomial ℝ}
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
     ∀ x ∈ Set.Icc (-1 : ℝ) 1, |(halfTarget p).eval x| < 1 := by
@@ -315,11 +407,14 @@ theorem halfTarget_strict {p : Polynomial ℝ}
   norm_num
   linarith
 
+/-- Twice the evaluation of the half target equals the original target evaluation. -/
 theorem halfTarget_normalization (p : Polynomial ℝ) (x : ℝ) :
     2 * (halfTarget p).eval x = p.eval x := by
   simp only [halfTarget, eval_mul, eval_C]
   ring
 
+/-- Twice the complex embedding of the half target equals the complex embedding of the original
+polynomial. -/
 private theorem halfTarget_map_twice (p : Polynomial ℝ) :
     C (2 : ℂ) * (halfTarget p).map Complex.ofRealHom = p.map Complex.ofRealHom := by
   have h : C (2 : ℝ) * halfTarget p = p := by
@@ -329,6 +424,9 @@ private theorem halfTarget_map_twice (p : Polynomial ℝ) :
   simpa only [Polynomial.map_mul, Polynomial.map_C, map_ofNat,
     Polynomial.map_ofNat] using hc
 
+/-- A degree-bounded real polynomial with the required parity and absolute value at most one on
+`[-1, 1]` gives a completed pair whose first component has real part equal to half the
+target. Its sum with its coefficient conjugate is the embedded target polynomial. -/
 theorem exists_completedPair_half_of_bounded {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
@@ -343,6 +441,10 @@ theorem exists_completedPair_half_of_bounded {p : Polynomial ℝ} {d : ℕ}
     rw [hre]
     exact halfTarget_normalization p x
 
+/-- A real polynomial of degree at most `d` and parity `d`, bounded by one on `[-1, 1]`, has
+half its value realized as the real part of a response from a phase list of length `d`. The
+response plus its coefficient conjugate equals the embedded target polynomial; see
+[GilyenSuLowWiebe2019]. -/
 theorem exists_phases_half_of_bounded {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
@@ -365,6 +467,8 @@ open Qatlib
 open Qatlib
 open scoped Matrix.Norms.L2Operator
 
+/-- An exact projected unitary encoding of one half of `A` is a block encoding of `A` with
+normalization two and error zero. -/
 theorem blockEncoding_two_of_half_target
     {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
     [DecidableEq H] [DecidableEq I] [DecidableEq O]

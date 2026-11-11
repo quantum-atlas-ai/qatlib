@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabLimit07.MainResults.ProbabilityFlow
+
+/-!
+# Runtime lower bounds from probability flow
+
+Turns a uniform bound on a probability derivative into a lower bound on the time needed to reach
+a target value. The specialization `runtime_lower_bound_eq21_initialUniform` combines the
+interpolated Hamiltonian flow estimate with the solution probability of the initial uniform
+state. See [IoannouMosca2008].
+
+## Main statements
+
+* `runtime_lower_bound`: A derivative bound controls the time required for a prescribed
+  probability increase.
+* `runtime_lower_bound_eq21_initialUniform`: Derives the runtime inequality for uniform
+  initialization.
+
+## References
+
+* [Ioannou and Mosca, 2008][IoannouMosca2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,8 @@ open scoped BigOperators Matrix
 
 variable {n : ℕ}
 
+/-- A differentiable real function with absolute derivative at most `B` on `[0,T]` satisfies `p
+T - p 0 ≤ B * T` for nonnegative `T` [IoannouMosca2008]. -/
 theorem sub_le_of_deriv_bound {p : ℝ → ℝ} {T B : ℝ} (hT : 0 ≤ T)
     (hdiff : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ p t)
     (hbound : ∀ t ∈ Set.Icc 0 T, |deriv p t| ≤ B) :
@@ -31,6 +54,8 @@ theorem sub_le_of_deriv_bound {p : ℝ → ℝ} {T B : ℝ} (hT : 0 ≤ T)
   rw [Real.norm_eq_abs, Real.norm_eq_abs, sub_zero, abs_of_nonneg hT] at h
   exact (le_abs_self (p T - p 0)).trans h
 
+/-- If `B > 0`, `p 0 = p0`, and `p T ≥ c`, an absolute derivative bound `B` implies `(c - p0) /
+B ≤ T` [IoannouMosca2008]. -/
 theorem runtime_lower_bound {p : ℝ → ℝ} {T B c p0 : ℝ} (hT : 0 ≤ T) (hB : 0 < B)
     (hdiff : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ p t)
     (hbound : ∀ t ∈ Set.Icc 0 T, |deriv p t| ≤ B)
@@ -43,6 +68,9 @@ theorem runtime_lower_bound {p : ℝ → ℝ} {T B c p0 : ℝ} (hT : 0 ≤ T) (h
   rw [div_le_iff₀ hB]
   linarith
 
+/-- With the stated positive parameters, initial value `cardP0 / N`, and derivative bound, the
+runtime is at least `(c * sqrt N - cardP0 / sqrt N) / (2 * cardP0 * maxF * compDim)`
+[IoannouMosca2008]. -/
 theorem runtime_lower_bound_eq21 {p : ℝ → ℝ} {T c : ℝ} {cardP0 maxF compDim : ℝ}
     {N : ℝ} (hN : 0 < N) (hT : 0 ≤ T) (hcard : 0 < cardP0) (hmaxF : 0 < maxF)
     (hcomp : 0 < compDim) (hsq : Real.sqrt N ^ 2 = N)
@@ -63,6 +91,9 @@ theorem runtime_lower_bound_eq21 {p : ℝ → ℝ} {T c : ℝ} {cardP0 maxF comp
     nlinarith [hsq]
   rwa [hrewrite] at hmain
 
+/-- Normalized interpolated Schrödinger evolution from the uniform state obeys the equation (21)
+runtime lower bound when the solution-set size, energy bound, and complement dimension are
+positive [IoannouMosca2008]. -/
 theorem runtime_lower_bound_eq21_initialUniform {q p : ℕ}
     (F : Fin (q + 1) → ℝ) (qIdx : Reg n → Fin (q + 1))
     (E : Fin (p + 1) → ℝ) (pIdx : Reg n → Fin (p + 1)) (K : Fin (q + 1))

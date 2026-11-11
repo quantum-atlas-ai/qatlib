@@ -9,6 +9,28 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Complex.Arg
 import Mathlib.Data.Complex.Basic
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Two-mode rotation and target overlap
+
+This module develops a finite complex inner product and squared norm for two-mode walk dynamics.
+It defines a phase-evolving difference of two vectors and proves its normalization for
+orthonormal modes, together with a sinusoidal target-overlap identity when the target overlaps
+both modes equally.
+
+The controlled spatial-search setting is described in [Tulsi2008].
+
+## Main statements
+
+* `rotState_nrm2`: normalization of the rotating state.
+* `rotState_bornProb`: exact sinusoidal overlap formula.
+* `rotState_success_ge`: a lower bound from the overlap and rotation angle.
+
+## References
+
+* [Tulsi, 2008][Tulsi2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,24 +41,34 @@ namespace Qatlib.Papers.WalkSpatial08.MainResults
 
 variable {ι : Type*} [Fintype ι]
 
+/-- The finite complex inner product, conjugate-linear in the first argument and linear in the
+second. -/
 def ip (f g : ι → ℂ) : ℂ := ∑ i, conj (f i) * g i
 
+/-- The squared Euclidean norm of a finite complex vector, expressed as a sum of squared
+amplitude norms. -/
 def nrm2 (f : ι → ℂ) : ℝ := ∑ i, ‖f i‖ ^ 2
 
+/-- The squared norm `nrm2` is nonnegative. -/
 theorem nrm2_nonneg (f : ι → ℂ) : 0 ≤ nrm2 f := by
   unfold nrm2
   exact Finset.sum_nonneg (fun i _ => by positivity)
 
+/-- The inner product of a vector with itself is its squared norm embedded in the complex
+numbers. -/
 theorem ip_self (f : ι → ℂ) : ip f f = (nrm2 f : ℂ) := by
   unfold ip nrm2
   push_cast
   refine Finset.sum_congr rfl (fun i _ => ?_)
   exact Complex.conj_mul' (f i)
 
+/-- The real part of the finite inner product is the sum of the real parts of its coordinate
+terms. -/
 theorem ip_re (f g : ι → ℂ) : (ip f g).re = ∑ i, (conj (f i) * g i).re := by
   unfold ip
   exact Complex.re_sum Finset.univ _
 
+/-- The inner product distributes over subtraction in its second argument. -/
 theorem ip_sub_right (f g h : ι → ℂ) :
     ip f (fun i => g i - h i) = ip f g - ip f h := by
   unfold ip
@@ -44,6 +76,7 @@ theorem ip_sub_right (f g h : ι → ℂ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   ring
 
+/-- Scaling the second vector multiplies the inner product by the same complex scalar. -/
 theorem ip_smul_right (f g : ι → ℂ) (c : ℂ) :
     ip f (fun i => c * g i) = c * ip f g := by
   unfold ip
@@ -51,6 +84,7 @@ theorem ip_smul_right (f g : ι → ℂ) (c : ℂ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   ring
 
+/-- The inner product distributes over addition in its second argument. -/
 theorem ip_add_right (f g h : ι → ℂ) :
     ip f (fun i => g i + h i) = ip f g + ip f h := by
   unfold ip
@@ -58,6 +92,7 @@ theorem ip_add_right (f g h : ι → ℂ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   ring
 
+/-- Scaling the first vector multiplies the inner product by the conjugate scalar. -/
 theorem ip_smul_left (f g : ι → ℂ) (c : ℂ) :
     ip (fun i => c * f i) g = conj c * ip f g := by
   unfold ip
@@ -66,6 +101,7 @@ theorem ip_smul_left (f g : ι → ℂ) (c : ℂ) :
   simp only [map_mul]
   ring
 
+/-- Complex scalar multiplication scales the squared norm by the squared scalar norm. -/
 theorem nrm2_smul (f : ι → ℂ) (c : ℂ) :
     nrm2 (fun i => c * f i) = ‖c‖ ^ 2 * nrm2 f := by
   unfold nrm2
@@ -73,11 +109,13 @@ theorem nrm2_smul (f : ι → ℂ) (c : ℂ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [norm_mul, mul_pow]
 
+/-- The complex phase `exp (I * θ)` has norm one for real `θ`. -/
 theorem norm_exp_I_mul (θ : ℝ) : ‖Complex.exp (Complex.I * (θ : ℂ))‖ = 1 := by
   rw [Complex.norm_exp]
   have h : (Complex.I * (θ : ℂ)).re = 0 := by simp
   rw [h, Real.exp_zero]
 
+/-- The squared norm of the difference of orthogonal vectors is the sum of their squared norms. -/
 theorem nrm2_sub_of_orthogonal (f g : ι → ℂ) (h : ip f g = 0) :
     nrm2 (fun i => f i - g i) = nrm2 f + nrm2 g := by
   have hre : ∑ i, (conj (f i) * g i).re = 0 := by
@@ -96,24 +134,31 @@ theorem nrm2_sub_of_orthogonal (f g : ι → ℂ) (h : ip f g = 0) :
     Finset.sum_sub_distrib, Finset.sum_add_distrib, ← Finset.mul_sum, hre]
   ring
 
+/-- The difference of `u` and `v` with opposite phases `exp (±I * T * α)`, scaled by the inverse
+square root of two. -/
 def rotState (α : ℝ) (T : ℕ) (u v : ι → ℂ) : ι → ℂ :=
   fun i => ((Real.sqrt 2 : ℂ))⁻¹ *
     (Complex.exp (Complex.I * (((T : ℝ) * α : ℝ) : ℂ)) * u i
       - Complex.exp (-(Complex.I * (((T : ℝ) * α : ℝ) : ℂ))) * v i)
 
+/-- The sum of two vectors scaled by the inverse square root of two. -/
 def alphaPlus (u v : ι → ℂ) : ι → ℂ :=
   fun i => ((Real.sqrt 2 : ℂ))⁻¹ * (u i + v i)
 
+/-- The squared norm of the inner product of a target vector with a state vector. -/
 def bornProb (t ψ : ι → ℂ) : ℝ := ‖ip t ψ‖ ^ 2
 
+/-- The complex inverse of `sqrt 2` has norm equal to the real inverse of `sqrt 2`. -/
 theorem norm_sqrt2_inv : ‖((Real.sqrt 2 : ℂ))⁻¹‖ = (Real.sqrt 2)⁻¹ := by
   rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg 2)]
 
+/-- The norm of `2 * I * sin θ` equals `2 * |sin θ|`. -/
 theorem norm_two_I_sin (θ : ℝ) :
     ‖(2 : ℂ) * Complex.I * (Real.sin θ : ℂ)‖ = 2 * |Real.sin θ| := by
   rw [norm_mul, norm_mul, Complex.norm_ofNat, Complex.norm_I, mul_one, Complex.norm_real,
     Real.norm_eq_abs]
 
+/-- For orthogonal unit vectors `u` and `v`, the rotating state has squared norm one. -/
 theorem rotState_nrm2 (α : ℝ) (T : ℕ) {u v : ι → ℂ}
     (hu : nrm2 u = 1) (hv : nrm2 v = 1) (huv : ip u v = 0) :
     nrm2 (rotState α T u v) = 1 := by
@@ -144,6 +189,9 @@ theorem rotState_nrm2 (α : ℝ) (T : ℕ) {u v : ι → ℂ}
   rw [hsqrt]
   norm_num
 
+/-- If the target has equal inner products with both modes, its overlap square with the rotating
+state equals its overlap square with `alphaPlus` times `sin (T * α)²`. See [Main result:
+O(sqrt(N log N)) two-dimensional spatial search][Tulsi2008]. -/
 theorem rotState_bornProb (α : ℝ) (T : ℕ) {t u v : ι → ℂ}
     (ha : ip t u = ip t v) :
     bornProb t (rotState α T u v)
@@ -197,6 +245,7 @@ theorem rotState_bornProb (α : ℝ) (T : ℕ) {t u v : ι → ℂ}
   rw [mul_pow, mul_pow, mul_pow, inv_pow, h2', hsin]
   field_simp
 
+/-- The squared sine is at least one half for angles between `π / 4` and `π / 2`. -/
 theorem sin_sq_ge_half {θ : ℝ} (h1 : Real.pi / 4 ≤ θ) (h2 : θ ≤ Real.pi / 2) :
     1 / 2 ≤ Real.sin θ ^ 2 := by
   have hmono := Real.sin_le_sin_of_le_of_le_pi_div_two
@@ -211,6 +260,8 @@ theorem sin_sq_ge_half {θ : ℝ} (h1 : Real.pi / 4 ≤ θ) (h2 : θ ≤ Real.pi
     rw [div_pow, h2']; norm_num
   linarith [hsqval, hsq]
 
+/-- Equal target overlaps, an `alphaPlus` overlap lower bound `d2`, and a squared sine at least
+one half give rotating-state overlap square at least `d2 / 2`. -/
 theorem rotState_success_ge (α : ℝ) (T : ℕ) {t u v : ι → ℂ}
     (ha : ip t u = ip t v) {d2 : ℝ}
     (hle : d2 ≤ bornProb t (alphaPlus u v))

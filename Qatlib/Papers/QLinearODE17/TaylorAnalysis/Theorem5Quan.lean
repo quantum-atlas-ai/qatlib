@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Stat
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Norm
+
+/-!
+# Condition number bound for the V2 Taylor system
+
+`theorem5V2` proves the proposition `Theorem5V2` by combining the forward matrix bound with
+inverse estimates transported through a diagonalizing basis. See [BerryEtAl2017ODE] for the
+paper's setting.
+
+## Main statements
+
+* `theorem5V2`: For the stable diagonalizable matrices and parameter bounds in `Theorem5V2`, the
+  V2 Taylor-system condition number is at most `6 * (‖V‖ * ‖V⁻¹‖) * k * (m+p)`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +34,9 @@ open Matrix
 open scoped Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- For the stable diagonalizable matrices and parameter bounds in `Theorem5V2`, the V2
+Taylor-system condition number is at most `6 * (‖V‖ * ‖V⁻¹‖) * k * (m+p)`. See
+[BerryEtAl2017ODE]. -/
 theorem theorem5V2 : Theorem5V2 := by
   intro N _ _ m k p A V D hm hk hp hfac hd hA hV1 hV2 hnorm hre
   have hz : ∀ n : N,‖D n n‖ ≤ 1 := by

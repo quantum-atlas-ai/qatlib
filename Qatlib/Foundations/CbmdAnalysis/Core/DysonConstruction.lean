@@ -19,6 +19,28 @@ import Mathlib.Analysis.Calculus.Deriv.Star
 import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Construction of ordered Dyson evolution
+
+This module constructs `orderedEvolution` from recursively integrated `orderedDysonTerm` values
+for a continuous complex matrix field. Factorial norm bounds prove series convergence, and
+differentiation identifies the sum as the unique solution of the matrix equation with derivative
+`-A t * V t` and identity initial value. The cocycle identity supplies the evolution semantics
+used in [WangEtAl2026].
+
+## Main statements
+
+* `orderedDysonTerm_norm_le`: bounds each term by `(M * |t - s|) ^ n / n!`.
+* `orderedEvolution_hasDerivAt`: the series solves the ordered matrix differential equation.
+* `ordered_evolution_dyson_semantics`: collects summability, initial value, differential
+  equation, composition, and uniqueness.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -30,21 +52,27 @@ namespace CBMD
 open Matrix Set
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- The ℓ² operator norm of the identity complex matrix is at most one, including an empty index
+type. -/
 private theorem l2_norm_one_le {I : Type*} [Fintype I] [DecidableEq I] :
     ‖(1 : Matrix I I ℂ)‖ ≤ 1 := by
   rcases subsingleton_or_nontrivial (Matrix I I ℂ) with h | h
   · simp [Subsingleton.elim (1 : Matrix I I ℂ) 0]
   · exact CStarRing.norm_one.le
 
+/-- The recursively defined Dyson terms for the equation `V' = -A * V`, starting with the
+identity and integrating `-(A u * orderedDysonTerm A s n u)` from `s` to the final time. -/
 noncomputable def orderedDysonTerm {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s : ℝ) : ℕ → ℝ → Matrix I I ℂ
   | 0, _ => 1
   | n+1, t => ∫ u in s..t, -(A u * orderedDysonTerm A s n u)
 
+/-- The infinite sum of the ordered Dyson terms from initial time `s` to final time `t`. -/
 noncomputable def orderedEvolution {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s t : ℝ) : Matrix I I ℂ :=
   ∑' n : ℕ, orderedDysonTerm A s n t
 
+/-- For a continuous matrix field, every ordered Dyson term is continuous in the final time. -/
 theorem orderedDysonTerm_continuous {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) (n : ℕ) :
     Continuous (orderedDysonTerm A s n) := by
@@ -54,6 +82,8 @@ theorem orderedDysonTerm_continuous {I : Type} [Fintype I] [DecidableEq I]
     exact (intervalIntegral.differentiable_integral_of_continuous
       (hA.mul ih).neg).continuous
 
+/-- For continuous `A`, the derivative of the `(n + 1)`st Dyson term at `t` is `-(A t *
+orderedDysonTerm A s n t)`. -/
 theorem orderedDysonTerm_hasDerivAt_succ {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) (n : ℕ) (t : ℝ) :
     HasDerivAt (orderedDysonTerm A s (n+1))
@@ -62,10 +92,12 @@ theorem orderedDysonTerm_hasDerivAt_succ {I : Type} [Fintype I] [DecidableEq I]
   exact intervalIntegral.integral_hasDerivAt_right (hc.intervalIntegrable _ _)
     hc.aestronglyMeasurable.stronglyMeasurableAtFilter hc.continuousAt
 
+/-- Every positive-order Dyson term vanishes when its final time equals its initial time. -/
 @[simp] theorem orderedDysonTerm_succ_self {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s : ℝ) (n : ℕ) : orderedDysonTerm A s (n+1) s = 0 := by
   simp [orderedDysonTerm]
 
+/-- Ordered evolution from a time to itself is the identity matrix. -/
 @[simp] theorem orderedEvolution_self {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s : ℝ) : orderedEvolution A s s = 1 := by
   unfold orderedEvolution
@@ -75,6 +107,8 @@ theorem orderedDysonTerm_hasDerivAt_succ {I : Type} [Fintype I] [DecidableEq I]
     obtain ⟨k, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
     exact orderedDysonTerm_succ_self A s k
 
+/-- If `A` is continuous and bounded in norm by `M ≥ 0` between `s` and `t`, its `n`th Dyson
+term has norm at most `(M * |t - s|) ^ n / n!`. -/
 theorem orderedDysonTerm_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t M : ℝ)
     (hM : 0 ≤ M) (hbound : ∀ u ∈ uIcc s t, ‖A u‖ ≤ M) (n : ℕ) :
@@ -108,6 +142,8 @@ theorem orderedDysonTerm_norm_le {I : Type} [Fintype I] [DecidableEq I]
         rw [Nat.factorial_succ, Nat.cast_mul, Nat.cast_add, Nat.cast_one, mul_pow]
         field_simp
 
+/-- For a continuous matrix field, the ordered Dyson terms are summable for every pair of
+initial and final times. -/
 theorem orderedDysonTerm_summable {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     Summable (fun n => orderedDysonTerm A s n t) := by
@@ -118,6 +154,8 @@ theorem orderedDysonTerm_summable {I : Type} [Fintype I] [DecidableEq I]
   exact orderedDysonTerm_norm_le A hA s t M (le_max_left _ _)
     (fun u hu => (hC (A u) ⟨u, hu, rfl⟩).trans (le_max_right _ _)) n
 
+/-- For a continuous matrix field, ordered evolution has final-time derivative `-(A t *
+orderedEvolution A s t)`. -/
 theorem orderedEvolution_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     HasDerivAt (orderedEvolution A s) (-(A t * orderedEvolution A s t)) t := by
@@ -165,6 +203,8 @@ theorem orderedEvolution_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
   rw [hsum] at hd
   simpa only [he] using hd.const_add 1
 
+/-- Two globally differentiable matrix-valued solutions of `V' = -A * V` for continuous `A` are
+equal if they agree at one time. -/
 theorem ordered_matrix_ode_unique {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (f g : ℝ → Matrix I I ℂ) (s : ℝ) (hinit : f s = g s)
@@ -197,6 +237,8 @@ theorem ordered_matrix_ode_unique {I : Type} [Fintype I] [DecidableEq I]
     (continuous_iff_continuousAt.mpr (fun u => (hg u).continuousAt)).continuousOn
     (fun u _ => hg u) (fun _ _ => Set.mem_univ _) hinit ht
 
+/-- For continuous `A`, composing evolution from `s` to `r` with evolution from `r` to `t` gives
+evolution from `s` to `t`, with the later evolution multiplying on the left. -/
 theorem orderedEvolution_cocycle {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s r t : ℝ) :
     orderedEvolution A r t * orderedEvolution A s r = orderedEvolution A s t := by
@@ -209,6 +251,9 @@ theorem orderedEvolution_cocycle {I : Type} [Fintype I] [DecidableEq I]
     (orderedEvolution_hasDerivAt A hA s)
   exact congrFun he t
 
+/-- For every continuous complex matrix field, the Dyson series converges and its sum has
+identity initial value, solves `V' = -A * V`, satisfies the cocycle identity, and is the
+unique global solution with that initial value. -/
 theorem ordered_evolution_dyson_semantics :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : ℝ → Matrix I I ℂ),
       Continuous A →

@@ -71,6 +71,28 @@ import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.SupportBounds
 import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+
+/-!
+# Single-source shortest-path cost estimates
+
+This module bounds the level cost `ssspLevelCost` using aggregate cardinality and edge-count
+hypotheses. It then bounds the finite sum `ssspCost` and gives an existential multiplicative
+bound at the √(nm)(log n)^(3/2) scale under a level-count hypothesis.
+
+The source paper is [DurrEtAl2006].
+
+## Main statements
+
+* `sssp_level_cost_le`: For positive s, at most n/s summands and total edge count at most m give
+  a level cost at most √(nm).
+* `theorem18_query_cost`: If n ≥ 1 and the number of levels is at most log n/log 2 + 2, there
+  exists a positive constant bounding `ssspCost` by that constant times √(nm)(log n)^(3/2).
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -80,9 +102,12 @@ namespace Qatlib.Papers.QQueryGraph04.MainResults.ShortestPath
 open Finset
 open Qatlib.Papers.QQueryGraph04.MainResults.Model
 
+/-- The sum of √(s·m j) over the index type at a single shortest-path level. -/
 noncomputable def ssspLevelCost {ι : Type*} [Fintype ι] (s : ℕ) (m_ : ι → ℕ) : ℝ :=
   ∑ j, Real.sqrt ((s : ℝ) * (m_ j : ℝ))
 
+/-- For positive s, at most n/s summands and total edge count at most m give a level cost at
+most √(nm) [DurrEtAl2006]. -/
 theorem sssp_level_cost_le {ι : Type*} [Fintype ι] (s n m : ℕ) (m_ : ι → ℕ)
     (hs : 0 < s) (hcard : Fintype.card ι ≤ n / s) (hm : (∑ j, m_ j) ≤ m) :
     ssspLevelCost s m_ ≤ Real.sqrt ((n : ℝ) * (m : ℝ)) := by
@@ -116,10 +141,12 @@ theorem sssp_level_cost_le {ι : Type*} [Fintype ι] (s n m : ℕ) (m_ : ι → 
         · exact Real.sqrt_nonneg _
     _ = Real.sqrt ((n : ℝ) * (m : ℝ)) := by rw [Real.sqrt_mul (Nat.cast_nonneg n)]
 
+/-- The sum of `len` identical shortest-path level budgets √(nm)√(log n). -/
 noncomputable def ssspCost (n m len : ℕ) : ℝ :=
   ∑ _l ∈ Finset.range len,
     Real.sqrt ((n : ℝ) * (m : ℝ)) * Real.sqrt (Real.log (n : ℝ))
 
+/-- The total shortest-path cost is at most `len` times √(nm)√(log n) [DurrEtAl2006]. -/
 theorem ssspCost_le (n m len : ℕ) :
     ssspCost n m len ≤
       (len : ℝ) * (Real.sqrt ((n : ℝ) * (m : ℝ)) * Real.sqrt (Real.log (n : ℝ))) := by
@@ -130,6 +157,8 @@ theorem ssspCost_le (n m len : ℕ) :
     simp [Finset.sum_const, nsmul_eq_mul]
   rw [h]
 
+/-- If n ≥ 1 and the number of levels is at most log n/log 2 + 2, there exists a positive
+constant bounding `ssspCost` by that constant times √(nm)(log n)^(3/2) [DurrEtAl2006]. -/
 theorem theorem18_query_cost (n m len : ℕ) (hn : 1 ≤ n)
     (hlen : (len : ℝ) ≤ Real.log (n : ℝ) / Real.log 2 + 2) :
     ∃ C : ℝ, 0 < C ∧ ssspCost n m len ≤

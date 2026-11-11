@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
+
+/-!
+# QSVT from bounded holomorphic approximation
+
+`sharp_holomorphic_qsvt_exists` combines a bounded polynomial approximation with the normalized
+QSVT bridge. For a function holomorphic on the radius-two closed disk, bounded by `M` on its
+circle, and real and bounded by `1` on `[0, 1]`, it supplies four phase lists implementing its
+Hermitian functional calculus on spectra in `[g, 1]`, with normalization `4`, error `ε`, and
+explicit degree and query bounds.
+
+This uniform construction supports the CBMD algorithms associated with [WangEtAl2026].
+
+## Main statements
+
+* `sharp_holomorphic_qsvt_exists` constructs uniform phases with explicit degree, query,
+  normalization, and error bounds.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,6 +64,11 @@ namespace CBMD
 open Matrix Polynomial Metric Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For positive `g` and `ε`, a function complex differentiable on the radius-two closed disk,
+bounded by `M ≥ 1` on its circle, and real with norm at most `1` on `[0, 1]` has a
+polynomial and four uniform QSVT phase lists with the stated degree and query bounds. For
+every projected unitary encoding of a Hermitian matrix with spectrum in `[g, 1]`, their LCU
+block-encodes the functional calculus of `f` with normalization `4` and error `ε`. -/
 theorem sharp_holomorphic_qsvt_exists
     (f : ℂ → ℂ) (g M ε : ℝ) (hg : 0 < g) (hM : 1 ≤ M) (hε : 0 < ε)
     (hf : DifferentiableOn ℂ f (closedBall 0 2))

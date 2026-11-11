@@ -33,6 +33,27 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Rational and integer readout of amplitude labels
+
+This module turns an AE phase label into a rational dyadic estimate or an integer count
+estimate. `dyadicRound` rounds down to a prescribed binary precision, while `countLabelReadout`
+and `countLabelReadoutNearest` implement floor and nearest-integer count readout for the
+amplitude-estimation and counting setting of [BrassardEtAl2002].
+
+## Main statements
+
+* `dyadicRound_error`: bound the error after dyadic rounding.
+* `countLabelReadout_error`: bound floor count-readout error by one.
+* `countLabelReadoutNearest_error`: bound nearest count-readout error by one half.
+* `countLabelReadoutNearest_tie`: specify upward rounding at a half-integer tie.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -52,21 +73,25 @@ set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
+/-- Round `x` down to the rational dyadic value `⌊x * 2^b⌋ / 2^b`. -/
 noncomputable def dyadicRound (b : ℕ) (x : ℝ) : ℚ :=
   ((⌊x * (2 : ℝ)^b⌋ : ℤ) : ℚ) / ((2 : ℚ)^b)
 
+/-- Casting dyadic rounding to the reals gives the scaled integer-floor formula. -/
 theorem dyadicRound_cast (b : ℕ) (x : ℝ) :
     (dyadicRound b x : ℝ) = ((⌊x * (2 : ℝ)^b⌋ : ℤ) : ℝ) / (2 : ℝ)^b := by
   simp only [dyadicRound]
   push_cast
   ring
 
+/-- The real value of dyadic rounding is at most the input. -/
 theorem dyadicRound_le (b : ℕ) (x : ℝ) : (dyadicRound b x : ℝ) ≤ x := by
   have hfloor := Int.floor_le (x * (2 : ℝ)^b)
   have hpos : (0:ℝ) < (2 : ℝ)^b := by positivity
   rw [dyadicRound_cast, div_le_iff₀ hpos]
   exact hfloor
 
+/-- The absolute dyadic-rounding error multiplied by `2^b` is strictly less than one. -/
 theorem dyadicRound_error (b : ℕ) (x : ℝ) :
     |(dyadicRound b x : ℝ) - x| * (2 : ℝ)^b < 1 := by
   have hfloor := Int.floor_le (x * (2 : ℝ)^b)
@@ -91,9 +116,11 @@ theorem dyadicRound_error (b : ℕ) (x : ℝ) :
   · linarith
   · linarith
 
+/-- Dyadic rounding fixes zero at every precision. -/
 theorem dyadicRound_zero (b : ℕ) : dyadicRound b 0 = 0 := by
   simp [dyadicRound]
 
+/-- Dyadic rounding fixes one at every precision. -/
 theorem dyadicRound_one (b : ℕ) : dyadicRound b 1 = 1 := by
   have hpow : (2 : ℝ)^b = (((2 ^ b : ℕ) : ℤ) : ℝ) := by
     have h1 : ((2 ^ b : ℕ) : ℝ) = (2 : ℝ)^b := Nat.cast_pow 2 b
@@ -104,17 +131,21 @@ theorem dyadicRound_one (b : ℕ) : dyadicRound b 1 = 1 := by
   rw [dyadicRound, hfloor]
   simp [Int.cast_ofNat, Nat.cast_pow]
 
+/-- The rational dyadic rounding of an AE label's amplitude estimate at precision `b`. -/
 noncomputable def labelReadout (M : ℕ) (b : ℕ) (z : Fin M) : ℚ :=
   dyadicRound b (aeEstimate M z)
 
+/-- Every AE label's amplitude estimate lies in the interval `[0, 1]`. -/
 theorem aeEstimate_mem (M : ℕ) (z : Fin M) : 0 ≤ aeEstimate M z ∧ aeEstimate M z ≤ 1 := by
   constructor
   · exact sq_nonneg _
   · exact Real.sin_sq_le_one _
 
+/-- The natural-number floor of `N` times the AE label's amplitude estimate. -/
 noncomputable def countLabelReadout (N : ℕ) (M : ℕ) (z : Fin M) : ℕ :=
   Nat.floor ((N : ℝ) * aeEstimate M z)
 
+/-- Floor count readout never exceeds the population size `N`. -/
 theorem countLabelReadout_le (N M : ℕ) (z : Fin M) : countLabelReadout N M z ≤ N := by
   have hle : aeEstimate M z ≤ 1 := (aeEstimate_mem M z).2
   have ha0 : (0:ℝ) ≤ aeEstimate M z := (aeEstimate_mem M z).1
@@ -128,6 +159,7 @@ theorem countLabelReadout_le (N M : ℕ) (z : Fin M) : countLabelReadout N M z �
   have hcast : (Nat.floor ((N : ℝ) * aeEstimate M z) : ℝ) ≤ (N : ℝ) := by linarith
   exact Nat.cast_le.mp hcast
 
+/-- Floor count readout differs from the scaled amplitude estimate by strictly less than one. -/
 theorem countLabelReadout_error (N M : ℕ) (z : Fin M) :
     |(countLabelReadout N M z : ℝ) - (N : ℝ) * aeEstimate M z| < 1 := by
   have hle : aeEstimate M z ≤ 1 := (aeEstimate_mem M z).2
@@ -146,6 +178,8 @@ theorem countLabelReadout_error (N M : ℕ) (z : Fin M) :
   · linarith
   · linarith
 
+/-- If the scaled amplitude estimate is a natural number `k`, floor count readout returns `k`
+exactly. -/
 theorem countLabelReadout_exact (N M : ℕ) (z : Fin M) (k : ℕ)
     (h : (N : ℝ) * aeEstimate M z = (k : ℝ)) :
     countLabelReadout N M z = k := by
@@ -153,19 +187,24 @@ theorem countLabelReadout_exact (N M : ℕ) (z : Fin M) (k : ℕ)
     rw [h, Nat.floor_natCast]
   exact hfloor
 
+/-- Floor count readout with population size zero is zero. -/
 theorem countLabelReadout_zero (N M : ℕ) (z : Fin M) :
     countLabelReadout 0 M z = 0 := by
   simp [countLabelReadout]
 
+/-- An amplitude estimate equal to one gives floor count readout equal to `N`. -/
 theorem countLabelReadout_full (N M : ℕ) (z : Fin M) (h : aeEstimate M z = 1) :
     countLabelReadout N M z = N := by
   have hfloor : Nat.floor ((N : ℝ) * aeEstimate M z) = N := by
     rw [h, mul_one, Nat.floor_natCast]
   exact hfloor
 
+/-- Round the scaled amplitude estimate to a natural number by taking the floor after adding one
+half. -/
 noncomputable def countLabelReadoutNearest (N : ℕ) (M : ℕ) (z : Fin M) : ℕ :=
   Nat.floor ((N : ℝ) * aeEstimate M z + 1 / 2)
 
+/-- Nearest-integer count readout never exceeds the population size `N`. -/
 theorem countLabelReadoutNearest_le (N M : ℕ) (z : Fin M) :
     countLabelReadoutNearest N M z ≤ N := by
   have hle : aeEstimate M z ≤ 1 := (aeEstimate_mem M z).2
@@ -188,6 +227,8 @@ theorem countLabelReadoutNearest_le (N M : ℕ) (z : Fin M) :
   rw [countLabelReadoutNearest]
   omega
 
+/-- Nearest-integer count readout differs from the scaled amplitude estimate by at most one
+half. -/
 theorem countLabelReadoutNearest_error (N M : ℕ) (z : Fin M) :
     |(countLabelReadoutNearest N M z : ℝ) - (N : ℝ) * aeEstimate M z| ≤ 1 / 2 := by
   have ha0 : (0:ℝ) ≤ aeEstimate M z := (aeEstimate_mem M z).1
@@ -205,6 +246,8 @@ theorem countLabelReadoutNearest_error (N M : ℕ) (z : Fin M) :
   · linarith
   · linarith
 
+/-- At the half-integer scaled estimate `k + 1/2`, nearest-integer count readout returns `k +
+1`. -/
 theorem countLabelReadoutNearest_tie (N M : ℕ) (z : Fin M) (k : ℕ)
     (h : (N : ℝ) * aeEstimate M z = (k : ℝ) + 1 / 2) :
     countLabelReadoutNearest N M z = k + 1 := by

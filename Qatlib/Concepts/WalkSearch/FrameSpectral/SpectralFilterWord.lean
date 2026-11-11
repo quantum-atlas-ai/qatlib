@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralExecutionContinuationDefs
+
+/-!
+# Sine envelope spectral filter circuits
+
+This module constructs repeated sine envelope detection and reflection words on explicit phase
+registers. It proves their well-formedness, exact query and gate counts, and action on
+eigenstates and finite spectral superpositions.
+
+`envelope_phase_actual_spectral_packet` identifies the zero branch with the diagonal kernel
+filter. The bound `frontier1` compares the actual reflection with the ideal target reflection
+while retaining the explicit target-amplitude error terms. The quantum walk spectral framework
+is developed in [Szegedy2004].
+
+## Main statements
+
+* `envelopeDetectionWord_resources`: Well-formedness and exact detection resources.
+* `envelope_phase_actual_spectral_packet`: Spectral packet and zero branch formulas.
+* `frontier1`: Reflection error bound with explicit target terms and resource counts.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -70,6 +94,7 @@ open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Relabelling a gate by an equivalence commutes with conjugate transpose. -/
 private theorem envelope_relabel_adjoint {H K : Type} (e : H ≃ K)
     (U : Matrix H H ℂ) : (relabelGate e U)ᴴ = relabelGate e Uᴴ := by
   ext i j
@@ -77,6 +102,7 @@ private theorem envelope_relabel_adjoint {H K : Type} (e : H ≃ K)
 
 omit [Fintype I] in
 
+/-- The sine envelope forward word equals the compilation of the sine envelope phase circuit. -/
 theorem envelopeForwardWord_eq_compile (M : ℕ) (hM : 2 ≤ M) :
     sinEnvelopeForwardWord (I := I) M hM =
       phaseCompileCircuit (sinEnvelopePhaseCircuit (I := I) M hM) := by
@@ -86,15 +112,18 @@ theorem envelopeForwardWord_eq_compile (M : ℕ) (hM : 2 ≤ M) :
   simp only [sinEnvelopeForwardWord, phaseCompileCircuit, hmap]
   exact List.map_reverse.symm
 
+/-- For `M ≥ 2`, the sine envelope forward word is a well-formed adjoint circuit. -/
 theorem envelopeForwardWord_wellFormed (M : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (sinEnvelopeForwardWord (I := I) M hM) := by
   rw [envelopeForwardWord_eq_compile M hM]
   exact phaseCompileCircuit_wellFormed (sin_envelope_phase_circuit_unitary (I := I) M hM)
 
+/-- Lifting the identity through the phase tail gate gives the identity. -/
 private theorem envelopeTailGate_one (M k : ℕ) :
     phaseTailGate (I := I) M k 1 = 1 := by
   rw [phaseTailGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- The phase tail gate lift preserves matrix multiplication. -/
 private theorem envelopeTailGate_mul (M k : ℕ)
     (U V : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate (I := I) M k (U * V) =
@@ -102,16 +131,19 @@ private theorem envelopeTailGate_mul (M k : ℕ)
   unfold phaseTailGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- The phase tail gate lift commutes with conjugate transpose. -/
 private theorem envelopeTailGate_adjoint (M k : ℕ)
     (U : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate (I := I) M k Uᴴ = (phaseTailGate (I := I) M k U)ᴴ := by
   rw [phaseTailGate, phaseTailGate, envelope_relabel_adjoint,
     tensorGate_conjTranspose, Matrix.conjTranspose_one]
 
+/-- Lifting the identity through the phase head gate gives the identity. -/
 private theorem envelopeHeadGate_one (M k : ℕ) :
     phaseHeadGate (I := I) M k 1 = 1 := by
   rw [phaseHeadGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- The phase head gate lift preserves matrix multiplication. -/
 private theorem envelopeHeadGate_mul (M k : ℕ)
     (U V : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate (I := I) M k (U * V) =
@@ -119,12 +151,15 @@ private theorem envelopeHeadGate_mul (M k : ℕ)
   unfold phaseHeadGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- The phase head gate lift commutes with conjugate transpose. -/
 private theorem envelopeHeadGate_adjoint (M k : ℕ)
     (U : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate (I := I) M k Uᴴ = (phaseHeadGate (I := I) M k U)ᴴ := by
   rw [phaseHeadGate, phaseHeadGate, envelope_relabel_adjoint,
     tensorGate_conjTranspose, Matrix.conjTranspose_one]
 
+/-- Two phase label functions on `Fin (k + 1)` are equal exactly when their zero coordinates and
+successor-coordinate tails are equal. -/
 private theorem envelope_function_eq_iff (M k : ℕ) (x y : Fin (k + 1) → Fin M) :
     x = y ↔ x 0 = y 0 ∧ (fun j : Fin k => x j.succ) = (fun j : Fin k => y j.succ) := by
   constructor
@@ -136,6 +171,8 @@ private theorem envelope_function_eq_iff (M k : ℕ) (x y : Fin (k + 1) → Fin 
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Lifting the parallel oracle through the phase tail gate gives the parallel oracle on the
+enlarged phase register. -/
 private theorem envelopeTailGate_oracle (M k : ℕ)
     (A : Matrix (Bool × I) (Bool × I) ℂ) :
     phaseTailGate (I := I) M k (parallelOracle (J := Fin k → Fin M) A) =
@@ -156,6 +193,8 @@ private theorem envelopeTailGate_oracle (M k : ℕ)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Lifting the parallel oracle through the phase head gate gives the parallel oracle on the
+enlarged phase register. -/
 private theorem envelopeHeadGate_oracle (M k : ℕ)
     (A : Matrix (Bool × I) (Bool × I) ℂ) :
     phaseHeadGate (I := I) M k (parallelOracle (J := Fin M) A) =
@@ -175,6 +214,8 @@ private theorem envelopeHeadGate_oracle (M k : ℕ)
   · have hxy : x ≠ y := fun h => hh ((envelope_function_eq_iff M k x y).mp h).1
     simp [hh, ht, hxy]
 
+/-- The repeated sine envelope detection word, recursively combining a lifted tail detection
+word with a lifted forward word on the head register. -/
 noncomputable def envelopeDetectionWord (M : ℕ) (hM : 2 ≤ M) : (k : ℕ) →
     List (AdjointStep (PhaseReflectionSpace I M k))
   | 0 => []
@@ -182,6 +223,8 @@ noncomputable def envelopeDetectionWord (M : ℕ) (hM : 2 ≤ M) : (k : ℕ) →
       phaseLiftWord (phaseTailGate M k) (envelopeDetectionWord M hM k) ++
         phaseLiftWord (phaseHeadGate M k) (sinEnvelopeForwardWord (I := I) M hM)
 
+/-- The repeated sine envelope detection word is well formed and uses `k * (M - 1)` queries and
+`k * (2 * (M - 1) + 2)` gates. -/
 theorem envelopeDetectionWord_resources (M k : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (envelopeDetectionWord (I := I) M hM k) ∧
       adjointQueryCount (envelopeDetectionWord (I := I) M hM k) = k * (M - 1) ∧
@@ -212,6 +255,8 @@ theorem envelopeDetectionWord_resources (M k : ℕ) (hM : 2 ≤ M) :
         (phaseLiftWord_counts _ _).2, ih.2.2, hsingle.2]
       ring
 
+/-- The evaluation matrix of the successor detection word factors into the lifted tail
+evaluation and the lifted head forward evaluation. -/
 theorem envelopeDetectionWord_evaluate_succ (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) :
     evaluate (parallelOracle (controlOracle W)) (envelopeDetectionWord M hM (k + 1)) =
       phaseTailGate (I := I) M k
@@ -228,12 +273,16 @@ theorem envelopeDetectionWord_evaluate_succ (W : Matrix I I ℂ) (M k : ℕ) (hM
   rw [envelopeHeadGate_oracle M k (controlOracle W)] at hh
   rw [envelopeDetectionWord, evaluate_append, ht, hh]
 
+/-- The eigenstate packet whose amplitudes are products of sine envelope kernels on the phase
+labels, with the flag fixed to false. -/
 noncomputable def envelopeKernelPacket (M k : ℕ) (φ : ℝ) (v : QState I) :
     QState (PhaseReflectionSpace I M k) :=
   fun p => (∏ j : Fin k, sinEnvelopeKernel M φ (p.1 j)) * (if p.2.1 then 0 else v p.2.2)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Tensoring one sine envelope kernel with a tail packet and relabelling yields the successor
+packet. -/
 private theorem envelopeKernelPacket_succ (M k : ℕ) (φ : ℝ) (v : QState I) :
     relabelState (phaseTailSplit I M k).symm
       (TensorState (sinEnvelopeKernel M φ) (envelopeKernelPacket M k φ v)) =
@@ -243,6 +292,8 @@ private theorem envelopeKernelPacket_succ (M k : ℕ) (φ : ℝ) (v : QState I) 
   rw [Fin.prod_univ_succ]
   ring
 
+/-- A phase label function equals the all-zero phase index exactly when every label has value
+zero. -/
 private theorem envelope_zero_predicate (M k : ℕ) (hM : 0 < M) (x : Fin k → Fin M) :
     phaseZeroIndex M k hM = x ↔ ∀ j, (x j).val = 0 := by
   constructor
@@ -254,6 +305,8 @@ private theorem envelope_zero_predicate (M k : ℕ) (hM : 0 < M) (x : Fin k → 
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The successor phase embedding is the relabelled tensor product of zero tail labels, a zero
+head label, a false flag, and the input state. -/
 private theorem envelope_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I) :
     phaseReflectionEmbed M (k + 1) v =
       relabelState (phaseHeadSplit I M k).symm
@@ -271,6 +324,8 @@ private theorem envelope_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I
     | rw [if_pos (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
     | (intro _ he; exact (ht he).elim)
 
+/-- On an eigenstate, the lifted head forward circuit creates one sine envelope kernel while
+leaving the remaining phase registers in their embedded state. -/
 private theorem envelope_head_eigen (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -293,6 +348,8 @@ private theorem envelope_head_eigen (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I �
     simp [relabelState, phaseHeadSplit, phaseTailSplit, TensorState,
       Qatlib.Foundations.PureStateMath.Ket, phaseFlagEmbed]
 
+/-- The repeated sine envelope detection circuit sends an embedded eigenstate to its product
+kernel packet. -/
 theorem envelopeDetectionWord_eigenstate (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -308,6 +365,8 @@ theorem envelopeDetectionWord_eigenstate (M k : ℕ) (hM : 2 ≤ M) (W : Matrix 
       envelope_head_eigen M k hM W v φ hv, phaseTailGate, applyGate_relabelGate,
       applyGate_tensorGate, applyGate_one, ih, envelopeKernelPacket_succ]
 
+/-- Projecting a sine envelope packet onto the all-zero phase event gives the embedded
+eigenstate scaled by the `k`th power of the zero-label kernel. -/
 private theorem envelopeKernelPacket_project_zero (M k : ℕ) (hM : 0 < M) (φ : ℝ)
     (v : QState I) :
     ApplyGate (Projector (phaseZeroEvent M k)) (envelopeKernelPacket M k φ v) =
@@ -321,11 +380,15 @@ private theorem envelopeKernelPacket_project_zero (M k : ℕ) (hM : 0 < M) (φ :
       phaseReflectionEmbed, phaseZeroIndex]
   · cases b <;> simp [collapse_apply, phaseZeroEvent, phaseReflectionEmbed, hx]
 
+/-- The adjoint detection word, followed in list order by the zero phase reflection and the
+detection word, forming the compiled envelope reflection. -/
 noncomputable def envelopeReflectionWord (M : ℕ) (hM : 2 ≤ M) (k : ℕ) :
     List (AdjointStep (PhaseReflectionSpace I M k)) :=
   adjointCircuit (envelopeDetectionWord M hM k) ++ [.gate (phaseZeroReflection M k)] ++
     envelopeDetectionWord M hM k
 
+/-- The envelope reflection word is well formed and uses `2 * k * (M - 1)` queries and `4 * k *
+(M - 1) + 4 * k + 1` gates. -/
 theorem envelope_reflection_actual_queries_and_macros (M k : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (envelopeReflectionWord (I := I) M hM k) ∧
       adjointQueryCount (envelopeReflectionWord (I := I) M hM k) = 2 * k * (M - 1) ∧
@@ -347,11 +410,15 @@ theorem envelope_reflection_actual_queries_and_macros (M k : ℕ) (hM : 2 ≤ M)
       adjointGateCount_adjointCircuit, adjointGateCount, hg]
     ring
 
+/-- The output of the evaluated envelope reflection word on the phase embedding of the input
+state. -/
 noncomputable def envelopeReflectionState (W : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M)
     (k : ℕ) (ψ : QState I) : QState (PhaseReflectionSpace I M k) :=
   ApplyGate (evaluate (parallelOracle (controlOracle W)) (envelopeReflectionWord M hM k))
     (phaseReflectionEmbed M k ψ)
 
+/-- For a unitary walk eigenstate, the sum of the envelope reflection output and the embedded
+input equals the adjoint detection action on twice the zero-label kernel contribution. -/
 theorem envelope_reflection_eigenstate_residual (M k : ℕ) (hM : 2 ≤ M)
     (W : Matrix I I ℂ) (v : QState I) (φ : ℝ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -409,6 +476,8 @@ theorem envelope_reflection_eigenstate_residual (M k : ℕ) (hM : 2 ≤ M)
   simp only [ApplyGate, Matrix.mulVec_smul]
   module
 
+/-- For a unitary walk eigenstate, the deviation of envelope reflection from negation is at most
+twice the `k`th power of the zero-label kernel norm times the input norm. -/
 theorem envelope_reflection_eigenstate_error (M k : ℕ) (hM : 2 ≤ M)
     (W : Matrix I I ℂ) (v : QState I) (φ : ℝ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -428,15 +497,22 @@ theorem envelope_reflection_eigenstate_error (M k : ℕ) (hM : 2 ≤ M)
   rw [norm_smul, norm_smul, norm_pow, phaseReflectionEmbed_norm M k (by omega)]
   norm_num [mul_assoc]
 
+/-- The state produced by applying the repeated sine envelope detection circuit to an embedded
+input. -/
 noncomputable def envelopeDetectionState (W : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M)
     (k : ℕ) (ψ : QState I) : QState (PhaseReflectionSpace I M k) :=
   ApplyGate (evaluate (parallelOracle (controlOracle W)) (envelopeDetectionWord M hM k))
     (phaseReflectionEmbed M k ψ)
 
+/-- The unnormalized output branch obtained from envelope detection by taking all phase labels
+zero and the flag false. -/
 noncomputable def envelopeZeroBranch (W : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M)
     (k : ℕ) (ψ : QState I) : QState I :=
   fun i => envelopeDetectionState W M hM k ψ (phaseZeroIndex M k (by omega), (false, i))
 
+/-- For a finite eigenstate superposition, envelope detection is the sum of its kernel packets,
+and the zero branch multiplies each coefficient by the corresponding zero-label kernel
+power. -/
 theorem envelope_phase_actual_spectral_packet
     (J : Type) [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M)
@@ -462,6 +538,9 @@ theorem envelope_phase_actual_spectral_packet
 
 omit [DecidableEq I] in
 
+/-- For an orthonormal family, bounds diagonal filtering error by the target amplitude
+discrepancy and the off-target multiplier bound weighted by their respective coefficient
+masses. -/
 theorem envelope_packet_filter_error
     (J : Type) [Fintype J] [DecidableEq J]
     (v : J → QState I) (c α : J → ℂ) (T : Finset J) (s : ℂ) (C : ℝ)
@@ -556,6 +635,8 @@ theorem envelope_packet_filter_error
     Real.sqrt_sq (add_nonneg (mul_nonneg (norm_nonneg _) (Real.sqrt_nonneg _))
       (mul_nonneg hC (Real.sqrt_nonneg _)))] at h2
 
+/-- Phases at distance zero from zero have the same sine envelope zero-label kernel as phase
+zero. -/
 theorem envelope_zero_phase_kernel (M : ℕ) (hM : 0 < M) (φ : ℝ)
     (hφ : phaseDistance φ 0 = 0) :
     sinEnvelopeKernel M φ (⟨0, hM⟩ : Fin M)
@@ -568,6 +649,9 @@ theorem envelope_zero_phase_kernel (M : ℕ) (hM : 0 < M) (φ : ℝ)
   have hk := sin_envelope_kernel_int_add M 0 (⟨0, hM⟩ : Fin M) (⌊φ + 1 / 2⌋ : ℤ)
   rw [hφ', show ((⌊φ + 1 / 2⌋ : ℤ) : ℝ) = 0 + ((⌊φ + 1 / 2⌋ : ℤ) : ℝ) from by simp, hk]
 
+/-- Bounds the actual envelope reflection error by off-target contraction and explicit
+target-amplitude terms under the stated spectral gap hypotheses, and gives its exact query
+and gate counts. -/
 theorem frontier1
     (J : Type) [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)

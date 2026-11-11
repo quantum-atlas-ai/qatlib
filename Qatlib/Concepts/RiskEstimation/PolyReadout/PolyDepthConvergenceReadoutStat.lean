@@ -10,6 +10,26 @@ import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrict
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
+
+/-!
+# Specification of polynomial payoff readout
+
+This module defines `PolyDepthConvergenceReadout`, the concentration property for rescaled
+native median readout of the polynomially rotated payoff law.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `PolyDepthConvergenceReadout`: The proposition that the rescaled median readout estimates the
+  Born-weighted mean of a payoff in `[0, 1]` within `riskPolyReadoutWindow`, except with
+  probability at most `(8 / 9) ^ r`, when `0 < c ≤ 1`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,6 +65,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition that the rescaled median readout estimates the Born-weighted mean of a
+payoff in `[0, 1]` within `riskPolyReadoutWindow`, except with probability at most `(8 / 9)
+^ r`, when `0 < c ≤ 1`. -/
 def PolyDepthConvergenceReadout : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (u : ℕ) (c : ℝ) (M r bits : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M),

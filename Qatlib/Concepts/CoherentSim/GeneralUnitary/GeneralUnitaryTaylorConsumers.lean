@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.GeneralUnitary.GeneralUnitaryTaylor
+
+/-!
+# Coherent Taylor simulation for unitary decompositions
+
+This module applies factorial Taylor simulation to unitary decompositions whose weighted sum is
+Hermitian. It proves coherent accuracy and resource counts and controls the same program under
+unitary oracle noise, including exact cancellation with its adjoint, using the method of
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `general_unitary_taylor_actual_simulation`: Coherent simulation when the weighted sum is
+  Hermitian.
+* `general_unitary_taylor_same_program_noise`: Perturbation bounds and exact forward-adjoint
+  cancellation.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,6 +67,8 @@ variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
 omit [DecidableEq J] in
 
+/-- The chosen segment count makes the coefficient mass times the absolute segment duration at
+most `1 / 2`. -/
 private theorem generalTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)
     (hΛ : (∑ j, |h j|) ≤ Λ) (hT : |t| ≤ T) :
     (∑ j, |h j|) * |t / (taylorSegments Λ T : ℝ)| ≤ 1 / 2 := by
@@ -58,6 +81,8 @@ private theorem generalTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : �
     mul_le_mul hΛ hT (abs_nonneg _) (Nat.cast_nonneg _)
   linarith
 
+/-- A positive number of exact equal-duration evolution segments composes to evolution for the
+total duration. -/
 private theorem generalTaylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : ℕ) (hs : 0 < s) :
     (hamiltonianEvolution H (t / s)) ^ s = hamiltonianEvolution H t := by
   have hp : ∀ n : ℕ, (hamiltonianEvolution H (t / s)) ^ n =
@@ -77,6 +102,9 @@ private theorem generalTaylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : �
   have hs0 : (s : ℝ) ≠ 0 := by exact_mod_cast hs.ne'
   rw [mul_div_cancel₀ _ hs0]
 
+/-- For unitary summands with Hermitian weighted sum, the factorial Taylor circuit is well
+formed and has relative vector error at most `2⁻ᵏ`. The forward circuit and its adjoint have
+the specified query and gate counts. See [BerryEtAl2015Taylor]. -/
 theorem general_unitary_taylor_actual_simulation :
     ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
       (h : J → ℝ) (U : J → Matrix I I ℂ) (j₀ : J) (t : ℝ) (Λ T k : ℕ),
@@ -122,6 +150,10 @@ theorem general_unitary_taylor_actual_simulation :
   exact herr.trans
       (mul_le_mul_of_nonneg_right (factorial_taylor_tail_and_coherent_precision.2 s k) (norm_nonneg _))
 
+/-- Unitary oracle perturbations of size `δ` give relative simulation error at most `2⁻ᵏ + 3 * s
+* K * δ`, with total forward-adjoint query cost `6 * s * K`. Evaluating the adjoint after
+the same perturbed forward circuit exactly recovers the embedded input. See
+[BerryEtAl2015Taylor]. -/
 theorem general_unitary_taylor_same_program_noise :
     ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
       (h : J → ℝ) (U V : J → Matrix I I ℂ) (j₀ : J) (t δ : ℝ) (Λ T k : ℕ),

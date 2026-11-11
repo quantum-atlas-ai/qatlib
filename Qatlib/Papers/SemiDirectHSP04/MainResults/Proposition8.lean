@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition7
+
+/-!
+# Noncommutativity of the canonical cyclic semidirect product
+
+For an odd prime `p` and `r ≥ 2`, the canonical action is nontrivial and the two canonical
+generators do not commute. In contrast, every subgroup contained in the left-generated cyclic
+subgroup has commuting elements, as expressed by `proposition8_cyclic_subgroup_abelian`. See
+[InuiLeGall2007] for the mathematical setting.
+
+## Main statements
+
+* `proposition8_nonabelian`: exhibits the two canonical generators as a noncommuting pair.
+* `proposition8_cyclic_subgroup_abelian`: proves commutativity within subgroups of the left
+  cyclic factor.
+
+## References
+
+* [Inui and Le Gall, 2007][InuiLeGall2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +40,7 @@ variable {p r : ℕ} (hp : p.Prime) (hp2 : p ≠ 2) (hr : 2 ≤ r)
 local notation "u" => canonicalUnit p r hp hr
 local notation "hu" => canonicalUnit_pow_eq_one p r hp hp2 hr
 
+/-- The left-coordinate embedding into the canonical semidirect product is injective. -/
 theorem px_injective :
     Function.Injective (px p r (canonicalUnit p r hp hr)
       (canonicalUnit_pow_eq_one p r hp hp2 hr)) := by
@@ -29,6 +50,7 @@ theorem px_injective :
     simpa [px] using this
   exact Multiplicative.ofAdd.injective h2
 
+/-- The residue defining the canonical unit differs from one. -/
 theorem canonicalUnit_coe_ne_one :
     ((canonicalUnit p r hp hr : (ZMod (p ^ r))ˣ) : ZMod (p ^ r)) ≠ 1 := by
   rw [canonicalUnit_coe p r hp hr]
@@ -42,6 +64,8 @@ theorem canonicalUnit_coe_ne_one :
     pow_lt_pow_right₀ hp.one_lt (by omega)
   exact (Nat.not_dvd_of_pos_of_lt hpos hlt) hz
 
+/-- The canonical left and right generators do not commute. See [Inui and Le Gall, 2007,
+Proposition 8][InuiLeGall2007]. -/
 theorem proposition8_nonabelian :
     canonicalX p r hp hp2 hr * canonicalY p r hp hp2 hr
       ≠ canonicalY p r hp hp2 hr * canonicalX p r hp hp2 hr := by
@@ -68,6 +92,8 @@ theorem proposition8_nonabelian :
     exact hleft
   exact canonicalUnit_coe_ne_one hp hr hone.symm
 
+/-- Every subgroup contained in the canonical left cyclic subgroup has pairwise commuting
+elements. See [Inui and Le Gall, 2007, Proposition 8][InuiLeGall2007]. -/
 theorem proposition8_cyclic_subgroup_abelian
     (K : Subgroup (Ppr p r u hu))
     (hK : K ≤ Subgroup.zpowers (canonicalX p r hp hp2 hr)) :

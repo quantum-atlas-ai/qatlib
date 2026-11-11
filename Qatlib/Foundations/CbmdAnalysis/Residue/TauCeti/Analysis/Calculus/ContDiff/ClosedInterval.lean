@@ -8,6 +8,25 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Mathlib.Analysis.Calculus.FDeriv.Extend
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.IteratedDerivWithin
+
+/-!
+# Continuous jets on closed intervals
+
+This module characterizes finite smoothness on a closed interval by continuous jets whose
+derivative identities hold on the interior. The endpoint extension and boundedness results
+support the piecewise smooth contour calculus used for [WangEtAl2026].
+
+## Main statements
+
+* `contDiffOn_Icc_iff_exists_continuous_jet`: the continuous jet characterization of Cⁿ
+  regularity.
+* `ContDiffOn.isBounded_image_deriv`: boundedness of the ordinary derivative.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +42,8 @@ namespace TauCeti
 variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
   {a b : ℝ} {f g : ℝ → F}
 
+/-- A continuous derivative on the interior of a nondegenerate closed interval extends to a
+derivative within that interval at every point. -/
 theorem hasDerivWithinAt_Icc_of_continuousOn (hab : a < b)
     (hf : ContinuousOn f (Icc a b)) (hg : ContinuousOn g (Icc a b))
     (hd : ∀ x ∈ Ioo a b, HasDerivAt f (g x) x) {x : ℝ} (hx : x ∈ Icc a b) :
@@ -41,6 +62,8 @@ theorem hasDerivWithinAt_Icc_of_continuousOn (hab : a < b)
   rw [closure_Ioo hab.ne] at hy
   exact (hf y hy).mono Ioo_subset_Icc_self
 
+/-- A continuous jet satisfying successive derivative identities on the interval interior agrees
+with the iterated derivatives within the closed interval. -/
 theorem eqOn_iteratedDerivWithin_Icc_of_continuous_jet (hab : a < b)
     {n : ℕ} {J : ℕ → ℝ → F} (hzero : EqOn (J 0) f (Icc a b))
     (hc : ∀ j ≤ n, ContinuousOn (J j) (Icc a b))
@@ -56,6 +79,8 @@ theorem eqOn_iteratedDerivWithin_Icc_of_continuous_jet (hab : a < b)
     exact (hasDerivWithinAt_Icc_of_continuousOn hab (hc j (by omega))
       (hc (j + 1) hj) (hd j hjn) hx).derivWithin (uniqueDiffOn_Icc hab x hx)
 
+/-- A continuous jet through order `n`, with the prescribed interior derivative relations, makes
+`f` Cⁿ on the closed interval. -/
 theorem contDiffOn_Icc_of_continuous_jet (hab : a < b)
     {n : ℕ} {J : ℕ → ℝ → F} (hzero : EqOn (J 0) f (Icc a b))
     (hc : ∀ j ≤ n, ContinuousOn (J j) (Icc a b))
@@ -73,6 +98,8 @@ theorem contDiffOn_Icc_of_continuous_jet (hab : a < b)
     exact ((hasDerivWithinAt_Icc_of_continuousOn hab (hc j (by omega))
       (hc (j + 1) (by omega)) (hd j hj) hx).congr heq (heq hx)).differentiableWithinAt
 
+/-- On a nondegenerate closed interval, being Cⁿ is equivalent to possessing a continuous jet
+through order `n` with successive interior derivative relations. -/
 theorem contDiffOn_Icc_iff_exists_continuous_jet (hab : a < b) {n : ℕ} :
     ContDiffOn ℝ n f (Icc a b) ↔
       ∃ J : ℕ → ℝ → F, EqOn (J 0) f (Icc a b) ∧
@@ -93,6 +120,8 @@ theorem contDiffOn_Icc_iff_exists_continuous_jet (hab : a < b) {n : ℕ} :
 
 end TauCeti
 
+/-- The ordinary derivative of a C¹ or smoother function on a closed interval has bounded image
+there. -/
 theorem ContDiffOn.isBounded_image_deriv {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     {f : ℝ → F} {a b : ℝ} {n : ℕ∞ω} (hf : ContDiffOn ℝ n f (Icc a b)) (hn : 1 ≤ n) :
     Bornology.IsBounded (deriv f '' Icc a b) := by

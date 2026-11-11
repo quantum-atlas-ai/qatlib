@@ -5,10 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+
+/-!
+# Corrected kernel-witness contract
+
+Defines `KernelWitnessCorrected` using `sourcePositiveWitness` and `sourceNegativeWitness`, with
+source dual feasibility and `W ≥ 1` as hypotheses. The proposition explicitly requires both
+witnesses to be nonzero and states their kernel and quantitative overlap properties.
+
+This interface records the witness estimates for the reflection construction of [Reichardt2011].
+
+## Main statements
+
+* `KernelWitnessCorrected`: requires positive root concentration of `9/10` and negative squared
+  overlap at least `1 / (9 * W * (W + 1))` times squared norm.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 
+/-- The source dual-feasible contract asserting nonzero explicit positive and negative kernel
+witnesses, with positive root mass at least `9/10` of squared norm and negative squared
+overlap at least `1 / (9 * W * (W + 1))` times squared norm. -/
 def KernelWitnessCorrected : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (n m : ℕ)
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ) (W : ℝ),

@@ -8,6 +8,25 @@ import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
 import Qatlib.Papers.AdiabEquiv04.MainResults.Model.EigenRayleigh
 import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
 import Qatlib.Papers.AdiabEquiv04.MainResults.Perturbation.SpectralPerturbation
+
+/-!
+# A sharp ground-energy perturbation bound
+
+This module develops normalization and quadratic-form estimates for an isometric subspace and
+its orthogonal complement. The scalar estimate `core_bound` yields the lower ground-energy bound
+from Lemma 3.17 of [AharonovEtAl2007Adiabatic], with correction `K² / (J - 2K)`.
+
+## Main statements
+
+* `rayleigh_abs_le`: extension of a normalized quadratic-form bound to arbitrary vectors.
+* `core_bound`: the scalar inequality controlling the two subspace contributions.
+* `lemma_3_17_ground_lower`: the sharp lower bound for the perturbed ground energy.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,18 +42,23 @@ open Qatlib.Papers.AdiabEquiv04.MainResults.Model
 
 variable {ι σ : Type} [Fintype ι] [DecidableEq ι] [Fintype σ] [DecidableEq σ]
 
+/-- Swapping the two arguments of the coordinate inner product conjugates its value. -/
 theorem dotProduct_star_swap' {κ : Type} [Fintype κ] (a b : κ → ℂ) :
     (star b) ⬝ᵥ a = star ((star a) ⬝ᵥ b) := by
   rw [dotProduct, dotProduct, star_sum]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   simp only [Pi.star_apply, star_mul, star_star]
 
+/-- A Hermitian matrix can be moved from the second argument of the coordinate inner product to
+the first. -/
 theorem herm_dot_swap {κ : Type} [Fintype κ] {M : Matrix κ κ ℂ} (hM : M.IsHermitian)
     (x y : κ → ℂ) :
     (star x) ⬝ᵥ (M *ᵥ y) = (star (M *ᵥ x)) ⬝ᵥ y := by
   have h := dotProduct_star_mulVec_left M x y
   rwa [hM.eq] at h
 
+/-- Complex scalar multiplication multiplies a vector's squared coordinate norm by the squared
+norm of the scalar. -/
 theorem normSq_smul_complex {κ : Type} [Fintype κ] (c : ℂ) (ψ : κ → ℂ) :
     (∑ i, Complex.normSq ((c • ψ) i)) = Complex.normSq c * ∑ i, Complex.normSq (ψ i) := by
   rw [Finset.mul_sum]
@@ -42,6 +66,8 @@ theorem normSq_smul_complex {κ : Type} [Fintype κ] (c : ℂ) (ψ : κ → ℂ)
   simp only [Pi.smul_apply, smul_eq_mul]
   rw [Complex.normSq_mul]
 
+/-- Complex scalar multiplication of a vector multiplies its Rayleigh expression by the squared
+norm of the scalar. -/
 theorem rayleigh_smul_complex {κ : Type} [Fintype κ] (c : ℂ) (M : Matrix κ κ ℂ)
     (ψ : κ → ℂ) :
     ((star (c • ψ)) ⬝ᵥ (M *ᵥ (c • ψ))).re =
@@ -56,10 +82,12 @@ theorem rayleigh_smul_complex {κ : Type} [Fintype κ] (c : ℂ) (M : Matrix κ 
   rw [hc, smul_eq_mul, Complex.mul_re]
   simp
 
+/-- The squared coordinate norm of every vector is nonnegative. -/
 theorem normSq_nonneg_aux {κ : Type} [Fintype κ] (ψ : κ → ℂ) :
     0 ≤ normSq ψ :=
   Finset.sum_nonneg (fun i _ => Complex.normSq_nonneg (ψ i))
 
+/-- The squared coordinate norm of a nonzero vector is positive. -/
 theorem normSq_pos_aux {κ : Type} [Fintype κ] {ψ : κ → ℂ} (h : ψ ≠ 0) :
     0 < normSq ψ := by
   obtain ⟨i, hi⟩ := Function.ne_iff.mp h
@@ -70,6 +98,7 @@ theorem normSq_pos_aux {κ : Type} [Fintype κ] {ψ : κ → ℂ} (h : ψ ≠ 0)
     Finset.single_le_sum hnonneg (Finset.mem_univ i)
   linarith
 
+/-- The squared norm of the sum of two orthogonal vectors is the sum of their squared norms. -/
 theorem normSq_add_of_orth {κ : Type} [Fintype κ] {a b : κ → ℂ}
     (hab : (star a) ⬝ᵥ b = 0) :
     normSq (a + b) = normSq a + normSq b := by
@@ -86,9 +115,11 @@ theorem normSq_add_of_orth {κ : Type} [Fintype κ] {a b : κ → ℂ}
   simp only [Complex.add_re, Complex.zero_re]
   ring
 
+/-- The vector obtained by scaling `y` by the inverse of the square root of its squared norm. -/
 def unitVec {κ : Type} [Fintype κ] [DecidableEq κ] (y : κ → ℂ) : κ → ℂ :=
   ((Real.sqrt (normSq y) : ℝ) : ℂ)⁻¹ • y
 
+/-- Normalizing a nonzero vector with `unitVec` gives squared norm one. -/
 theorem normSq_unitVec {κ : Type} [Fintype κ] [DecidableEq κ] {y : κ → ℂ} (hy : y ≠ 0) :
     normSq (unitVec y) = 1 := by
   unfold unitVec normSq
@@ -104,6 +135,8 @@ theorem normSq_unitVec {κ : Type} [Fintype κ] [DecidableEq κ] {y : κ → ℂ
   rw [hc]
   exact inv_mul_cancel₀ (ne_of_gt (normSq_pos_aux hy))
 
+/-- For nonzero `y`, its Rayleigh expression is `normSq y` times the Rayleigh expression of
+`unitVec y`. -/
 theorem rayleigh_unitVec {κ : Type} [Fintype κ] [DecidableEq κ] (M : Matrix κ κ ℂ)
     {y : κ → ℂ} (hy : y ≠ 0) :
     rayleigh M y = normSq y * rayleigh M (unitVec y) := by
@@ -122,6 +155,8 @@ theorem rayleigh_unitVec {κ : Type} [Fintype κ] [DecidableEq κ] (M : Matrix �
   congr 1
   rw [Complex.normSq_ofReal, ← pow_two, Real.sq_sqrt (le_of_lt hpos)]
 
+/-- A bound `K` on the absolute Rayleigh expression of normalized vectors extends to the bound
+`K * normSq y` on every vector `y`. -/
 theorem rayleigh_abs_le {κ : Type} [Fintype κ] [DecidableEq κ] (M : Matrix κ κ ℂ) {K : ℝ}
     (hK : ∀ φ : κ → ℂ, IsNormalized φ → |rayleigh M φ| ≤ K) (y : κ → ℂ) :
     |rayleigh M y| ≤ K * normSq y := by
@@ -136,6 +171,8 @@ theorem rayleigh_abs_le {κ : Type} [Fintype κ] [DecidableEq κ] (M : Matrix κ
           mul_le_mul_of_nonneg_left (hK (unitVec y) (normSq_unitVec hy)) (normSq_nonneg_aux y)
       _ = K * normSq y := mul_comm _ _
 
+/-- On the range of an isometry, the Rayleigh expression is at least the squared vector norm
+times the ground energy of the restricted Hamiltonian. -/
 theorem rayleigh_range_ge_ground {κ ν : Type} [Fintype κ] [DecidableEq κ]
     [Fintype ν] [DecidableEq ν]
     (V : Matrix κ ν ℂ) (hV : Vᴴ * V = 1) (H₁ : Hamiltonian κ) (hν : 0 < Fintype.card ν)
@@ -151,6 +188,8 @@ theorem rayleigh_range_ge_ground {κ ν : Type} [Fintype κ] [DecidableEq κ]
       (groundEnergy_le_rayleigh (restrict V H₁ hV) hν (unitVec c) (normSq_unitVec hc))
       (le_of_lt hpos)
 
+/-- A lower bound `J` on normalized vectors annihilated by `Vᴴ` extends to `J * normSq y` for
+every vector annihilated by `Vᴴ`. -/
 theorem rayleigh_H2_ge {κ ν : Type} [Fintype κ] [DecidableEq κ] [Fintype ν] [DecidableEq ν]
     (H₂ : Hamiltonian κ) (V : Matrix κ ν ℂ) (J : ℝ)
     (hpos : ∀ ψ : κ → ℂ, IsNormalized ψ → Vᴴ *ᵥ ψ = 0 → J ≤ rayleigh H₂.mat ψ)
@@ -172,6 +211,7 @@ theorem rayleigh_H2_ge {κ ν : Type} [Fintype κ] [DecidableEq κ] [Fintype ν]
     rw [rayleigh_unitVec H₂.mat hy]
     linarith [h1, h2]
 
+/-- For positive `A`, the quadratic `A * t² - 2 * K * t` is at least `-K² / A`. -/
 theorem quad_min (A K t : ℝ) (hA : 0 < A) :
     -(K ^ 2 / A) ≤ A * t ^ 2 - 2 * K * t := by
   have h1 : 0 ≤ (A * t - K) ^ 2 := sq_nonneg _
@@ -179,6 +219,8 @@ theorem quad_min (A K t : ℝ) (hA : 0 < A) :
   rw [← neg_div, div_le_iff₀ hA]
   nlinarith [h1, h2]
 
+/-- Under the stated nonnegativity, normalization, square-root, and `2 * K < J` conditions, the
+two-component quadratic expression is at least `gS - K² / (J - 2 * K)`. -/
 theorem core_bound (gS J K u s ux sy : ℝ)
     (hux : ux ^ 2 = u) (hsy : sy ^ 2 = s) (hu : u + s = 1)
     (hu0 : 0 ≤ u) (hs0 : 0 ≤ s) (hux0 : 0 ≤ ux) (hsy0 : 0 ≤ sy)
@@ -205,6 +247,8 @@ theorem core_bound (gS J K u s ux sy : ℝ)
     nlinarith [hsa, h1, h2]
   nlinarith [stepA, hu, hu0, hs0]
 
+/-- For a Hermitian matrix and orthogonal vectors `x` and `y`, the Rayleigh expression of their
+sum is the sum of their Rayleigh expressions plus twice the real cross term. -/
 theorem rayleigh_add_orth {κ : Type} [Fintype κ] {M : Matrix κ κ ℂ} (hM : M.IsHermitian)
     {x y : κ → ℂ} (hxy : (star x) ⬝ᵥ y = 0) :
     rayleigh M (x + y) =
@@ -221,6 +265,9 @@ theorem rayleigh_add_orth {κ : Type} [Fintype κ] {M : Matrix κ κ ℂ} (hM : 
   simp only [Complex.add_re, Complex.star_def, Complex.conj_re]
   ring
 
+/-- Under the stated isometry, penalty-kernel, complementary penalty, and bilinear bounds with
+`2 * K < J`, the ground energy of `H₁ + H₂` is at least the restricted ground energy minus
+`K² / (J - 2 * K)`. See [AharonovEtAl2007Adiabatic]. -/
 theorem lemma_3_17_ground_lower
     (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1)
     (H₁ H₂ : Hamiltonian ι) (J K : ℝ) (hJ : 2 * K < J) (hK0 : 0 ≤ K)

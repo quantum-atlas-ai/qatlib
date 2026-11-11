@@ -14,6 +14,26 @@ import Mathlib.Analysis.Calculus.Deriv.Inv
 import Mathlib.Analysis.Calculus.Deriv.Pow
 import Mathlib.Analysis.Calculus.Deriv.Slope
 import Mathlib.Analysis.Calculus.MeanValue
+
+/-!
+# Higher-order pole asymptotics near tangents
+
+This module estimates primitives of inverse powers near a pole and compares curve points with
+equal-radius tangent targets. Under little-o flatness assumptions, the primitive differences
+vanish for pole orders up to the flatness order, supporting higher-order contour truncation
+arguments for [WangEtAl2026].
+
+## Main statements
+
+* `chord_to_tangent_isLittleO`: transfer of flatness to the equal-radius tangent target.
+* `antiderivative_diff_at_tangent_target_tendsto_zero`: vanishing of the primitive comparison
+  error.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +47,8 @@ namespace TauCeti.Contour
 
 open Asymptotics Complex Filter Set Topology
 
+/-- For `k ≥ 2`, the function `-(k - 1)⁻¹ * (z - s)⁻(k - 1)` has derivative `1 / (z - s)^k` away
+from `s`. -/
 theorem hasDerivAt_antiderivative_pow_inv {s : ℂ} {k : ℕ} (hk : 2 ≤ k) {z : ℂ} (hz : z ≠ s) :
     HasDerivAt (fun w => -(↑(k - 1) : ℂ)⁻¹ * ((w - s) ^ (k - 1))⁻¹)
       (1 / (z - s) ^ k) z := by
@@ -46,6 +68,8 @@ theorem hasDerivAt_antiderivative_pow_inv {s : ℂ} {k : ℕ} (hk : 2 ≤ k) {z 
     field_simp
   exact hval ▸ h_const
 
+/-- If a segment stays at least distance `ε > 0` from a pole, the inverse-power primitive
+differs at its endpoints by at most `ε⁻ᵏ` times the segment length. -/
 theorem norm_antiderivative_diff_le_segment_bound
     {z₁ z₂ s : ℂ} {k : ℕ} {ε : ℝ} (hk : 2 ≤ k) (hε : 0 < ε)
     (h_seg_avoids : ∀ z ∈ segment ℝ z₁ z₂, ε ≤ ‖z - s‖) :
@@ -67,6 +91,8 @@ theorem norm_antiderivative_diff_le_segment_bound
   exact (convex_segment z₁ z₂).norm_image_sub_le_of_norm_hasDerivWithin_le h_deriv h_bound
     (left_mem_segment _ _ _) (right_mem_segment _ _ _)
 
+/-- A curve with nonzero derivative is eventually nonnegatively aligned with a tangent vector
+representing the chosen side of the parameter approach. -/
 private theorem eventually_re_mul_conj_nonneg
     {γ : ℝ → ℂ} {t₀ : ℝ} {s L : ℂ} {u : Set ℝ} {T : ℂ} (hL : L ≠ 0)
     (h_deriv : HasDerivWithinAt γ L u t₀) (h_s : γ t₀ = s)
@@ -91,6 +117,8 @@ private theorem eventually_re_mul_conj_nonneg
     nlinarith [abs_le.mp (habs.trans (mul_le_mul_of_nonneg_right h_b (norm_nonneg L)))]
   nlinarith [abs_nonneg (t - t₀), sq_nonneg ‖L‖]
 
+/-- A nonzero derivative within a set excluding the base parameter ensures that the curve
+eventually avoids its base value within that set. -/
 private theorem eventually_ne_of_hasDerivWithinAt
     {γ : ℝ → ℂ} {t₀ : ℝ} {s L : ℂ} {u : Set ℝ} (hu : t₀ ∉ u) (hL : L ≠ 0)
     (h_deriv : HasDerivWithinAt γ L u t₀) (h_s : γ t₀ = s) :
@@ -99,6 +127,9 @@ private theorem eventually_ne_of_hasDerivWithinAt
     with t ht h_eq
   exact ht (by rw [slope_def_module, h_eq, h_s, sub_self, smul_zero])
 
+/-- If tangent deviation is little-o of the `n`th power of the chord norm and the tangent
+orientation is nonnegative, the distance to the equal-length tangent target has the same
+little-o bound. -/
 theorem chord_to_tangent_isLittleO {γ : ℝ → ℂ} {s : ℂ} {l : Filter ℝ} {T : ℂ} {n : ℕ}
     (h_re : ∀ᶠ t in l, 0 ≤ ((γ t - s) * starRingEnd ℂ T).re)
     (h_dev : (fun t => ‖tangentDeviation (γ t - s) T‖) =o[l]
@@ -120,6 +151,8 @@ theorem chord_to_tangent_isLittleO {γ : ℝ → ℂ} {s : ℂ} {l : Filter ℝ}
     abs_of_nonneg (norm_nonneg _)]
   exact ht
 
+/-- For endpoints at distance `d` from a pole, every point on their segment has squared distance
+at least `d² - ‖z₁ - z₂‖² / 4`. -/
 private theorem norm_sq_segment_to_pole_lower_bound {z₁ z₂ s : ℂ} {d : ℝ}
     (h₁ : ‖z₁ - s‖ = d) (h₂ : ‖z₂ - s‖ = d) {z : ℂ} (hz : z ∈ segment ℝ z₁ z₂) :
     d ^ 2 - ‖z₁ - z₂‖ ^ 2 / 4 ≤ ‖z - s‖ ^ 2 := by
@@ -152,6 +185,8 @@ private theorem norm_sq_segment_to_pole_lower_bound {z₁ z₂ s : ℂ} {d : ℝ
   have h_quad : α ^ 2 + 2 * α * β + β ^ 2 = 1 := by nlinarith [h_sum]
   nlinarith [h_quad, h_ab_le, sq_nonneg (‖z₁ - z₂‖)]
 
+/-- If two points have distance `d` from a pole and their chord length is at most `d`, the
+segment stays at least distance `d / 2` from the pole. -/
 private theorem norm_segment_to_pole_lower_bound_half {z₁ z₂ s : ℂ} {d : ℝ}
     (h₁ : ‖z₁ - s‖ = d) (h₂ : ‖z₂ - s‖ = d) (h_chord : ‖z₁ - z₂‖ ≤ d)
     {z : ℂ} (hz : z ∈ segment ℝ z₁ z₂) :
@@ -161,6 +196,8 @@ private theorem norm_segment_to_pole_lower_bound_half {z₁ z₂ s : ℂ} {d : �
       mul_self_le_mul_self (norm_nonneg _) h_chord]
   exact (abs_le_of_sq_le_sq' h_le_sq (norm_nonneg _)).2
 
+/-- Bounds the difference of inverse-power primitives at a point and its equal-radius tangent
+target by their distance times `(‖w - s‖ / 2)⁻ᵏ`. -/
 private theorem norm_antiderivative_diff_at_tangent_target_le {w s L : ℂ} {k : ℕ} (hk : 2 ≤ k)
     (hL : L ≠ 0) (hw_ne : w ≠ s) (h_chord_le : ‖w - (s + (‖w - s‖ / ‖L‖ : ℝ) • L)‖ ≤ ‖w - s‖) :
     ‖(-(↑(k - 1) : ℂ)⁻¹ * ((w - s) ^ (k - 1))⁻¹) -
@@ -184,6 +221,8 @@ private theorem norm_antiderivative_diff_at_tangent_target_le {w s L : ℂ} {k :
     norm_neg, show ‖w - tgt‖ = ‖tgt - w‖ from norm_sub_rev _ _]
   exact h_F_diff
 
+/-- If a function is little-o of `d^n`, with `d` positive and tending to zero, its quotient by
+`d^k` tends to zero for `k ≤ n`. -/
 private theorem tendsto_div_pow_zero_of_isLittleO {chord d : ℝ → ℝ} {l : Filter ℝ} {n k : ℕ}
     (h_chord : chord =o[l] (fun t => d t ^ n)) (h_d : Tendsto d l (𝓝 0))
     (h_d_pos : ∀ᶠ t in l, 0 < d t) (hkn : k ≤ n) :
@@ -208,6 +247,8 @@ private theorem tendsto_div_pow_zero_of_isLittleO {chord d : ℝ → ℝ} {l : F
     _ ≤ ε / 2 * 1 := by gcongr
     _ < ε := by linarith
 
+/-- For `2 ≤ k ≤ n`, a little-o chord-to-tangent error of order `n` makes the inverse-power
+primitive difference tend to zero as the curve approaches the pole. -/
 theorem antiderivative_diff_at_tangent_target_tendsto_zero
     {γ : ℝ → ℂ} {s : ℂ} {l : Filter ℝ} {T : ℂ} {n k : ℕ} (hT : T ≠ 0) (hk : 2 ≤ k) (hkn : k ≤ n)
     (h_chord : (fun t => ‖γ t - s - (‖γ t - s‖ / ‖T‖ : ℝ) • T‖) =o[l]
@@ -255,6 +296,9 @@ theorem antiderivative_diff_at_tangent_target_tendsto_zero
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h_const_ratio
     (Eventually.of_forall fun _ => norm_nonneg _) h_F_diff_le
 
+/-- At a crossing with nonzero right derivative and tangent deviation little-o of the `n`th
+chord power, inverse-power primitives of orders `2 ≤ k ≤ n` agree asymptotically with their
+right tangent targets. -/
 theorem antiderivative_diff_at_tangent_target_tendsto_zero_right
     {γ : ℝ → ℂ} {t₀ : ℝ} {s L : ℂ} {n k : ℕ}
     (hL : L ≠ 0) (h_deriv : HasDerivWithinAt γ L (Ioi t₀) t₀) (h_s : γ t₀ = s)
@@ -273,6 +317,9 @@ theorem antiderivative_diff_at_tangent_target_tendsto_zero_right
     (chord_to_tangent_isLittleO h_re h_dev) h_ne
     (h_s ▸ h_deriv.continuousWithinAt)
 
+/-- At a crossing with nonzero left derivative and tangent deviation little-o of the `n`th chord
+power, inverse-power primitives of orders `2 ≤ k ≤ n` agree asymptotically with targets
+along the negative tangent. -/
 theorem antiderivative_diff_at_tangent_target_tendsto_zero_left
     {γ : ℝ → ℂ} {t₀ : ℝ} {s L : ℂ} {n k : ℕ}
     (hL : L ≠ 0) (h_deriv : HasDerivWithinAt γ L (Iio t₀) t₀) (h_s : γ t₀ = s)

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapOptimalPreparationCostStat
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+
+/-!
+# Preparation-window bound for trapezoidal forced evolution
+
+`inhomogeneousTrapezoidOptimalPreparationCost` bounds the prescribed amplification window by `8
+* q + 1`, where `q` is the initial-plus-integrated-source mass divided by the output norm lower
+bound. The estimate uses the computed source schedule and its source-mass condition.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneousTrapezoidOptimalPreparationCost`: proves the `8 * q + 1` window bound.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -31,6 +50,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Under the prescribed trapezoidal source schedule and source-mass condition, the
+amplification window is at most `8 * q + 1`, where `q = (1 + ∫ u in s..t,
+‖toEuclidean_fromVec (b u)‖) / τ` [AnLiuLin2023]. -/
 theorem inhomogeneousTrapezoidOptimalPreparationCost :
     InhomogeneousTrapezoidOptimalPreparationCost := by
   intro I _ _ L L' H H' b b' b'' s t ε τ Λ β β₂ lamL lamH lamLd lamHd bmax Mt B P i₀ hL hH hb

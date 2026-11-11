@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Finset.Card
+
+/-!
+# Weighted interval decoding with comparison counts
+
+`weightDecodeCounted` scans natural-number weights in label order, returning the bucket
+containing a ticket and the number of comparisons performed. The accompanying
+`weightTotalCounted` computes the total weight while counting its additions.
+
+The module identifies every decoding interval, proves its fiber cardinality, and establishes
+exact costs on both success and rejection. These finite counting constructions support the
+classical randomized computation framework in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `weightDecodeCounted_some_iff`: a label is returned precisely on its half-open prefix
+  interval.
+* `weightDecodeCounted_fibers`: each label has as many valid tickets as its weight.
+* `weighted_decoder_intervals_and_actual_cost`: the decoder satisfies the interval, fiber, and
+  work-count specifications together.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.FairRandomBits.RationalReject
@@ -17,15 +42,19 @@ section ScanHelpers
 
 variable {N : ℕ}
 
+/-- The sum of the natural-number weights in a list of label-weight pairs. -/
 private def pairSum : List (Fin N × ℕ) → ℕ
   | [] => 0
   | (_, w) :: t => w + pairSum t
 
+/-- The total weight of an empty pair list is zero. -/
 @[simp] private theorem pairSum_nil : pairSum ([] : List (Fin N × ℕ)) = 0 := rfl
 
+/-- Prepending a pair adds its weight to the total weight of the remaining list. -/
 @[simp] private theorem pairSum_cons (e : Fin N × ℕ) (t : List (Fin N × ℕ)) :
     pairSum (e :: t) = e.2 + pairSum t := rfl
 
+/-- The total weight of concatenated pair lists is the sum of their total weights. -/
 private theorem pairSum_append (l₁ l₂ : List (Fin N × ℕ)) :
     pairSum (l₁ ++ l₂) = pairSum l₁ + pairSum l₂ := by
   induction l₁ with
@@ -35,16 +64,20 @@ private theorem pairSum_append (l₁ l₂ : List (Fin N × ℕ)) :
       rw [ih]
       omega
 
+/-- Splitting a pair list into its first `k` entries and its remaining entries preserves the sum
+of weights. -/
 private theorem pairSum_split (l : List (Fin N × ℕ)) (k : ℕ) (_hk : k ≤ l.length) :
     pairSum l = pairSum (l.take k) + pairSum (l.drop k) :=
   calc pairSum l = pairSum (l.take k ++ l.drop k) := by rw [List.take_append_drop]
     _ = pairSum (l.take k) + pairSum (l.drop k) := pairSum_append _ _
 
+/-- The total weight of a prefix is at most the total weight of the full list. -/
 private theorem pairSum_take_le (l : List (Fin N × ℕ)) (m : ℕ) (hm : m ≤ l.length) :
     pairSum (l.take m) ≤ pairSum l := by
   have h := pairSum_split l m hm
   omega
 
+/-- Extending a prefix by one entry increases its total weight by that entry's weight. -/
 private theorem pairSum_take_succ (l : List (Fin N × ℕ)) (k : ℕ) (hk : k < l.length) :
     pairSum (l.take (k + 1)) = pairSum (l.take k) + l[k].2 := by
   have h1 : l.take (k + 1) = l.take k ++ [l[k]] := by
@@ -52,18 +85,24 @@ private theorem pairSum_take_succ (l : List (Fin N × ℕ)) (k : ℕ) (hk : k < 
     simp
   rw [h1, pairSum_append, pairSum_cons, pairSum_nil, add_zero]
 
+/-- Prepending one pair increases the list length by one. -/
 private theorem length_cons (e : Fin N × ℕ) (t : List (Fin N × ℕ)) :
     (e :: t).length = t.length + 1 := by simp
 
+/-- Equality of the optional output and both natural-number components implies equality of the
+corresponding triples. -/
 private theorem triple_congr {α : Type} {o₁ o₂ : Option α} {a₁ a₂ b₁ b₂ : ℕ}
     (h₁ : o₁ = o₂) (h₂ : a₁ = a₂) (h₃ : b₁ = b₂) : (o₁, a₁, b₁) = (o₂, a₂, b₂) := by
   subst h₁
   simp only [h₂, h₃]
 
+/-- Indexing a list constructed by `List.ofFn` recovers the corresponding function value. -/
 private theorem ofFn_getElem {M : ℕ} {α : Type} (f : Fin M → α) (k : ℕ) (hk : k < M) :
     (List.ofFn f)[k]'(by rw [List.length_ofFn]; exact hk) = f ⟨k, hk⟩ := by
   exact List.getElem_ofFn (i := k) (by rw [List.length_ofFn]; exact hk)
 
+/-- Scan weighted labels until the ticket lies below a cumulative upper bound, recording the
+bound and comparison count. -/
 private def weightScan : List (Fin N × ℕ) → ℕ → ℕ → ℕ → Option (Fin N) × ℕ × ℕ
   | [], k, acc, _ => (none, acc, k)
   | e :: t, k, acc, u =>
@@ -71,12 +110,16 @@ private def weightScan : List (Fin N × ℕ) → ℕ → ℕ → ℕ → Option 
       if u < upper then (some e.1, upper, k + 1)
       else weightScan t (k + 1) upper u
 
+/-- A nonempty list's prefix of length `q + 1` is its head followed by the tail's prefix of
+length `q`. -/
 private theorem cons_take_succ (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q : ℕ) :
     (e :: t).take (q + 1) = [e] ++ t.take q := by
   have h1 : (e :: t).take 1 = [e] := by simp
   have h2 : (e :: t).drop 1 = t := rfl
   rw [show q + 1 = 1 + q by omega, List.take_add, h1, h2]
 
+/-- A stopping inequality for a cons-list prefix implies the corresponding inequality with the
+head weight added to the accumulator. -/
 private theorem cons_stop (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc u : ℕ)
     (h : u < acc + pairSum ((e :: t).take (q + 1))) :
     u < acc + e.2 + pairSum (t.take q) := by
@@ -84,6 +127,8 @@ private theorem cons_stop (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc u 
   rw [← Nat.add_assoc] at h
   exact h
 
+/-- Failure of a cons-list prefix stopping inequality implies failure of the corresponding
+inequality with the head weight absorbed into the accumulator. -/
 private theorem cons_stop'' (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc u : ℕ)
     (h : ¬ (u < acc + pairSum ((e :: t).take (q + 1)))) :
     ¬ (u < acc + e.2 + pairSum (t.take q)) := by
@@ -91,6 +136,8 @@ private theorem cons_stop'' (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc 
   rw [← Nat.add_assoc] at h
   exact h
 
+/-- A stopping inequality with the head weight absorbed into the accumulator gives the
+corresponding cons-list prefix inequality. -/
 private theorem cons_stop_lift (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc u : ℕ)
     (h : u < acc + e.2 + pairSum (t.take q)) :
     u < acc + pairSum ((e :: t).take (q + 1)) := by
@@ -98,6 +145,8 @@ private theorem cons_stop_lift (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q a
     ← Nat.add_assoc]
   exact h
 
+/-- Failure of a stopping inequality with the head weight absorbed into the accumulator gives
+failure of the corresponding cons-list prefix inequality. -/
 private theorem cons_stop' (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc u : ℕ)
     (h : ¬ (u < acc + e.2 + pairSum (t.take q))) :
     ¬ (u < acc + pairSum ((e :: t).take (q + 1))) := by
@@ -105,21 +154,27 @@ private theorem cons_stop' (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (q acc u
   intro hc
   exact h (by rw [Nat.add_assoc]; exact hc)
 
+/-- The head's stopping inequality implies the stopping inequality for the prefix of length one. -/
 private theorem cons_stop_head (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (acc u : ℕ)
     (h : u < acc + e.2) : u < acc + pairSum ((e :: t).take 1) := by
   rw [cons_take_succ e t 0, pairSum_append, pairSum_cons, pairSum_nil, add_zero]
   exact h
 
+/-- Failure of the head's stopping inequality implies failure of the prefix-of-length-one
+stopping inequality. -/
 private theorem cons_stop_head' (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (acc u : ℕ)
     (h : ¬ (u < acc + e.2)) : ¬ (u < acc + pairSum ((e :: t).take 1)) := by
   rw [cons_take_succ e t 0, pairSum_append, pairSum_cons, pairSum_nil, add_zero]
   exact h
 
+/-- The stopping inequality for a prefix of length one implies the head's stopping inequality. -/
 private theorem cons_stop_head_inv (e : Fin N × ℕ) (t : List (Fin N × ℕ)) (acc u : ℕ)
     (h : u < acc + pairSum ((e :: t).take 1)) : u < acc + e.2 := by
   rw [cons_take_succ e t 0, pairSum_append, pairSum_cons, pairSum_nil, add_zero] at h
   exact h
 
+/-- If `p` is the first prefix whose upper bound exceeds the ticket, the scan returns its label,
+upper bound, and `k + p + 1` comparisons. -/
 private theorem weightScan_spec_found (l : List (Fin N × ℕ)) (k acc u : ℕ) (p : ℕ)
     (hp : p < l.length) (hstop : u < acc + pairSum (l.take (p + 1)))
     (hbefore : ∀ q, q < p → ¬ (u < acc + pairSum (l.take (q + 1)))) :
@@ -147,6 +202,8 @@ private theorem weightScan_spec_found (l : List (Fin N × ℕ)) (k acc u : ℕ) 
           exact triple_congr rfl (by omega) (by omega)
         rw [hi, hget, key]
 
+/-- If no prefix upper bound exceeds the ticket, the scan returns no label, the final
+accumulated weight, and the initial count plus the list length. -/
 private theorem weightScan_spec_none (l : List (Fin N × ℕ)) (k acc u : ℕ)
     (hnone : ∀ p, p < l.length → ¬ (u < acc + pairSum (l.take (p + 1)))) :
     weightScan l k acc u = (none, acc + pairSum l, k + l.length) := by
@@ -166,6 +223,8 @@ private theorem weightScan_spec_none (l : List (Fin N × ℕ)) (k acc u : ℕ)
         exact triple_congr rfl (by omega) (by omega)
       rw [hi, key]
 
+/-- The scan returns a label exactly when there is a first prefix upper bound exceeding the
+ticket. -/
 private theorem weightScan_found_iff (l : List (Fin N × ℕ)) (acc u : ℕ) :
     ∀ k : ℕ, (weightScan l k acc u).1 ≠ none ↔
       ∃ p, p < l.length ∧ u < acc + pairSum (l.take (p + 1))
@@ -210,6 +269,7 @@ private theorem weightScan_found_iff (l : List (Fin N × ℕ)) (acc u : ℕ) :
             exact cons_stop'' e t (q + 1) acc u
               (hbefore' (q + 1) (by omega))
 
+/-- If some prefix upper bound exceeds the ticket, there is a first such prefix. -/
 private theorem weightScan_stop_exists (l : List (Fin N × ℕ)) (acc u : ℕ) (p : ℕ)
     (hp : p < l.length) (hstop : u < acc + pairSum (l.take (p + 1))) :
     ∃ p₀, p₀ < l.length ∧ u < acc + pairSum (l.take (p₀ + 1))
@@ -229,6 +289,7 @@ private theorem weightScan_stop_exists (l : List (Fin N × ℕ)) (acc u : ℕ) (
         · exfalso
           exact hq (fun hnc _ => hqp hnc)
 
+/-- Two prefix positions satisfying the first-stopping condition must be equal. -/
 private theorem weightScan_stop_unique (l : List (Fin N × ℕ)) (acc u : ℕ) (p p' : ℕ)
     (hstop : u < acc + pairSum (l.take (p + 1)))
     (hbefore : ∀ q, q < p → ¬ (u < acc + pairSum (l.take (q + 1))))
@@ -240,6 +301,7 @@ private theorem weightScan_stop_unique (l : List (Fin N × ℕ)) (acc u : ℕ) (
     · exact absurd hstop' (hbefore p' h')
     · omega
 
+/-- The scan returns a label exactly when some prefix upper bound exceeds the ticket. -/
 private theorem weightScan_hit_iff (l : List (Fin N × ℕ)) (acc u k : ℕ) :
     (weightScan l k acc u).1 ≠ none ↔
       ∃ p, p < l.length ∧ u < acc + pairSum (l.take (p + 1)) := by
@@ -257,20 +319,26 @@ section WeightedDecoder
 
 variable {N : ℕ}
 
+/-- The sum of all natural-number label weights. -/
 def weightTotal (w : Fin N → ℕ) : ℕ := ∑ j : Fin N, w j
 
+/-- The sum of the weights of labels strictly preceding `j`. -/
 def weightPrefix (w : Fin N → ℕ) (j : Fin N) : ℕ :=
   ∑ i ∈ Finset.univ.filter (fun i : Fin N => i.val < j.val), w i
 
+/-- The list of labels paired with their weights in increasing label order. -/
 private def weightList (w : Fin N → ℕ) : List (Fin N × ℕ) :=
   List.ofFn fun j : Fin N => (j, w j)
 
+/-- The total weight of the first `k` entries of the ordered weight list. -/
 private def lprefix (w : Fin N → ℕ) (k : ℕ) : ℕ := pairSum ((weightList w).take k)
 
+/-- A sum over a finite type equals the corresponding sum over its universal finite set. -/
 private theorem sum_univ {α : Type} [Fintype α] [DecidableEq α] (f : α → ℕ) :
     (∑ i : α, f i) = ∑ i ∈ Finset.univ, f i := by
   rw [← Finset.sum_attach]
 
+/-- The labels below `k + 1` are the labels below `k` together with the label at position `k`. -/
 private theorem filter_lt_eq_insert (k : ℕ) (hk : k < N) :
     ((Finset.univ.filter (fun i : Fin N => i.val < k + 1)) : Finset (Fin N))
       = (Finset.univ.filter (fun i : Fin N => i.val < k)) ∪ {⟨k, hk⟩} := by
@@ -287,6 +355,7 @@ private theorem filter_lt_eq_insert (k : ℕ) (hk : k < N) :
     · omega
     · exact Nat.lt_succ_self k
 
+/-- The weight sum below `k + 1` equals the sum below `k` plus the weight at position `k`. -/
 private theorem sum_filter_lt_succ (w : Fin N → ℕ) (k : ℕ) (hk : k < N) :
     ((Finset.univ.filter (fun i : Fin N => i.val < k + 1)) : Finset (Fin N)).sum w
       = ((Finset.univ.filter (fun i : Fin N => i.val < k)) : Finset (Fin N)).sum w + w ⟨k, hk⟩ := by
@@ -298,6 +367,7 @@ private theorem sum_filter_lt_succ (w : Fin N → ℕ) (k : ℕ) (hk : k < N) :
       simp at hi),
     Finset.sum_singleton]
 
+/-- Increasing the cutoff cannot decrease the sum of natural-number weights below that cutoff. -/
 private theorem sum_filter_mono (w : Fin N → ℕ) {k l : ℕ} (hkl : k ≤ l) :
     ((Finset.univ.filter (fun i : Fin N => i.val < k)) : Finset (Fin N)).sum w
       ≤ ((Finset.univ.filter (fun i : Fin N => i.val < l)) : Finset (Fin N)).sum w := by
@@ -310,6 +380,8 @@ private theorem sum_filter_mono (w : Fin N → ℕ) {k l : ℕ} (hkl : k ≤ l) 
   intro i _ _
   exact Nat.zero_le _
 
+/-- For `k ≤ N`, summing weights of labels below `k` equals the weight-list prefix sum `lprefix
+w k`. -/
 private theorem sum_filter_lt (w : Fin N → ℕ) : ∀ (k : ℕ), k ≤ N →
     ((Finset.univ.filter (fun i : Fin N => i.val < k)) : Finset (Fin N)).sum w = lprefix w k := by
   intro k
@@ -339,10 +411,12 @@ private theorem sum_filter_lt (w : Fin N → ℕ) : ∀ (k : ℕ), k ≤ N →
           rw [pairSum_take_succ (weightList w) k hkg, hget]
         _ = lprefix w (k + 1) := rfl
 
+/-- The weight preceding label `j` equals the list prefix sum at `j.val`. -/
 private theorem weightPrefix_eq_lprefix' (w : Fin N → ℕ) (j : Fin N) :
     weightPrefix w j = lprefix w j.val := by
   rw [weightPrefix, sum_filter_lt w j.val (by simp)]
 
+/-- The total weight of the ordered weight list equals `weightTotal w`. -/
 private theorem pairSum_weightList (w : Fin N → ℕ) : pairSum (weightList w) = weightTotal w := by
   have hLen : (weightList w).length = N := List.length_ofFn
   have htake : (weightList w).take N = weightList w :=
@@ -357,12 +431,14 @@ private theorem pairSum_weightList (w : Fin N → ℕ) : pairSum (weightList w) 
           ext i
           simp, sum_univ]
 
+/-- The prefix sum at the full label count equals the total weight. -/
 private theorem lprefix_total (w : Fin N → ℕ) : lprefix w N = weightTotal w := by
   have hLen : (weightList w).length = N := List.length_ofFn
   have htake : (weightList w).take N = weightList w :=
     (List.take_eq_self_iff (weightList w)).mpr (by simp [hLen])
   rw [lprefix, htake, pairSum_weightList]
 
+/-- Every prefix sum up to the label count is at most the total weight. -/
 private theorem lprefix_le_total (w : Fin N → ℕ) (k : ℕ) (hk : k ≤ N) :
     lprefix w k ≤ weightTotal w := by
   have hLen : (weightList w).length = N := List.length_ofFn
@@ -371,11 +447,13 @@ private theorem lprefix_le_total (w : Fin N → ℕ) (k : ℕ) (hk : k ≤ N) :
       pairSum_take_le (weightList w) k (by simpa [hLen] using hk)
     _ = weightTotal w := pairSum_weightList w
 
+/-- The ordered list's prefix weight sum is monotone for cutoffs bounded by `N`. -/
 private theorem lprefix_mono (w : Fin N → ℕ) {k l : ℕ} (hkl : k ≤ l) (hl : l ≤ N) :
     lprefix w k ≤ lprefix w l := by
   rw [← sum_filter_lt w k (by omega), ← sum_filter_lt w l hl]
   exact sum_filter_mono w hkl
 
+/-- Extending a weight-list prefix by one label adds that label's weight. -/
 private theorem lprefix_succ (w : Fin N → ℕ) (k : ℕ) (hk : k < N) :
     lprefix w (k + 1) = lprefix w k + w ⟨k, hk⟩ := by
   have hLen : (weightList w).length = N := List.length_ofFn
@@ -385,10 +463,13 @@ private theorem lprefix_succ (w : Fin N → ℕ) (k : ℕ) (hk : k < N) :
     exact ofFn_getElem (fun j : Fin N => (j, w j)) k hk
   rw [lprefix, lprefix, pairSum_take_succ (weightList w) k hkg, hget]
 
+/-- The prefix sum through label `j` equals `weightPrefix w j + w j`. -/
 private theorem lprefix_succ' (w : Fin N → ℕ) (j : Fin N) :
     lprefix w (j.val + 1) = weightPrefix w j + w j := by
   rw [lprefix_succ w j.val j.isLt, weightPrefix_eq_lprefix' w j]
 
+/-- The sum of weights in a prefix of length `q + 1` is at most that in a prefix of length `r`
+when `q + 1 ≤ r`. -/
 private theorem pairSum_take_mono (l : List (Fin N × ℕ)) {q r : ℕ} (hqr : q + 1 ≤ r)
     (_hr : r ≤ l.length) : pairSum (l.take (q + 1)) ≤ pairSum (l.take r) := by
   have hsub : q ≤ r := by omega
@@ -410,19 +491,24 @@ private theorem pairSum_take_mono (l : List (Fin N × ℕ)) {q r : ℕ} (hqr : q
   rw [hA, hB, pairSum_append, pairSum_append]
   exact Nat.add_le_add_left hinner _
 
+/-- Ordered weight-list prefix sums are monotone between the specified bounded prefix lengths. -/
 private theorem pairSum_take_mono_w (w : Fin N → ℕ) {q r : ℕ} (hqr : q + 1 ≤ r) (hr : r ≤ N) :
     pairSum ((weightList w).take (q + 1)) ≤ pairSum ((weightList w).take r) := by
   have hLen : (weightList w).length = N := List.length_ofFn
   exact pairSum_take_mono (weightList w) hqr (by omega)
 
+/-- Sum a list of weights and count one addition for each list entry. -/
 private def weightTotalCountedAux : List (Fin N × ℕ) → ℕ × ℕ
   | [] => (0, 0)
   | (_, wj) :: t =>
       let r := weightTotalCountedAux t
       (r.1 + wj, r.2 + 1)
 
+/-- The total label weight together with the number of additions used by the list-based
+summation. -/
 def weightTotalCounted (w : Fin N → ℕ) : ℕ × ℕ := weightTotalCountedAux (weightList w)
 
+/-- The counted list summation returns its weight sum and its length as the addition count. -/
 private theorem weightTotalCountedAux_spec : ∀ (l : List (Fin N × ℕ)),
     (weightTotalCountedAux l).1 = pairSum l ∧ (weightTotalCountedAux l).2 = l.length := by
   intro l
@@ -434,6 +520,7 @@ private theorem weightTotalCountedAux_spec : ∀ (l : List (Fin N × ℕ)),
       rw [h1, h2, pairSum_cons]
       exact ⟨by omega, rfl⟩
 
+/-- Summing the ordered weights returns `(weightTotal w, N)`. -/
 theorem weightTotalCounted_ofFn (w : Fin N → ℕ) :
     weightTotalCounted w = (weightTotal w, N) := by
   obtain ⟨h1, h2⟩ := weightTotalCountedAux_spec (weightList w)
@@ -441,16 +528,22 @@ theorem weightTotalCounted_ofFn (w : Fin N → ℕ) :
   rw [weightTotalCounted]
   exact Prod.ext (by rw [h1, pairSum_weightList]) (by rw [h2]; simp [hLen])
 
+/-- Decode a natural-number ticket by a cumulative weight scan and return its optional label and
+actual comparison count. -/
 def weightDecodeCounted (w : Fin N → ℕ) (u : ℕ) : Option (Fin N) × ℕ :=
   let r := weightScan (weightList w) 0 0 u
   (r.1, r.2.2)
 
+/-- The counted decoder's optional output equals the underlying weight scan's optional output. -/
 private theorem weightDecodeCounted_out (w : Fin N → ℕ) (u : ℕ) :
     (weightDecodeCounted w u).1 = (weightScan (weightList w) 0 0 u).1 := rfl
 
+/-- The counted decoder's comparison count equals the underlying weight scan's count. -/
 private theorem weightDecodeCounted_cnt (w : Fin N → ℕ) (u : ℕ) :
     (weightDecodeCounted w u).2 = (weightScan (weightList w) 0 0 u).2.2 := rfl
 
+/-- A successful decoding returns some label `j` after `j.val + 1` comparisons, with the ticket
+in that label's prefix interval. -/
 private theorem weightDecodeCounted_hit (w : Fin N → ℕ) (u : ℕ)
     (hr : (weightDecodeCounted w u).1 ≠ none) :
     ∃ (j : Fin N), weightDecodeCounted w u = (some j, j.val + 1) ∧
@@ -496,6 +589,8 @@ private theorem weightDecodeCounted_hit (w : Fin N → ℕ) (u : ℕ)
     rw [lprefix_succ' w ⟨p, hpl⟩] at hlt
     exact hlt
 
+/-- A rejected ticket uses all `N` comparisons and reaches no prefix upper bound exceeding the
+ticket. -/
 private theorem weightDecodeCounted_miss (w : Fin N → ℕ) (u : ℕ)
     (hr : (weightDecodeCounted w u).1 = none) :
     (weightDecodeCounted w u).2 = N ∧ ∀ p : ℕ, p < N → ¬ (u < lprefix w (p + 1)) := by
@@ -512,6 +607,8 @@ private theorem weightDecodeCounted_miss (w : Fin N → ℕ) (u : ℕ)
   · intro p hp hc
     exact hno p (by simpa [hLen] using hp) (by simpa [lprefix] using hc)
 
+/-- Decoding uses at most `N` comparisons, exactly `N` on rejection, and exactly `j.val + 1`
+when returning `j`. -/
 theorem weightDecodeCounted_bounds (w : Fin N → ℕ) (u : ℕ) :
     (weightDecodeCounted w u).2 ≤ N ∧
       ((weightDecodeCounted w u).1 = none → (weightDecodeCounted w u).2 = N) ∧
@@ -535,10 +632,13 @@ theorem weightDecodeCounted_bounds (w : Fin N → ℕ) (u : ℕ) :
       have hi' : i = j := Option.some.inj (by rw [hj] at hi; exact hi.symm)
       rw [hi', hj]
 
+/-- If the decoder returns no label, its comparison count is exactly `N`. -/
 theorem weightDecodeCounted_hit_count (w : Fin N → ℕ) (u : ℕ)
     (hr : (weightDecodeCounted w u).1 = none) : (weightDecodeCounted w u).2 = N :=
   (weightDecodeCounted_miss w u hr).1
 
+/-- Decoding returns `j` exactly when the ticket lies in the half-open interval from
+`weightPrefix w j` to `weightPrefix w j + w j`. -/
 theorem weightDecodeCounted_some_iff (w : Fin N → ℕ) (u : ℕ) (j : Fin N) :
     (weightDecodeCounted w u).1 = some j ↔ weightPrefix w j ≤ u ∧ u < weightPrefix w j + w j := by
   constructor
@@ -570,6 +670,7 @@ theorem weightDecodeCounted_some_iff (w : Fin N → ℕ) (u : ℕ) (j : Fin N) :
     have hget : ((weightList w)[j.val]).1 = j := congrArg Prod.fst hjg
     rw [weightDecodeCounted_out, hspec, hget]
 
+/-- The decoder rejects a ticket exactly when the ticket is at least the total weight. -/
 theorem weightDecodeCounted_none_iff (w : Fin N → ℕ) (u : ℕ) :
     (weightDecodeCounted w u).1 = none ↔ weightTotal w ≤ u := by
   constructor
@@ -596,6 +697,8 @@ theorem weightDecodeCounted_none_iff (w : Fin N → ℕ) (u : ℕ) :
     rw [hlp] at h1
     omega
 
+/-- The cardinality of a filtered finite type equals the sum of its predicate's zero-one
+indicator. -/
 private theorem card_filter_eq_sum_ite {α : Type} [Fintype α] [DecidableEq α] (P : α → Prop)
     [DecidablePred P] : (Finset.univ.filter P).card = ∑ a : α, if P a then 1 else 0 := by
   calc (Finset.univ.filter P).card = ∑ a ∈ Finset.univ.filter P, (1 : ℕ) :=
@@ -605,6 +708,7 @@ private theorem card_filter_eq_sum_ite {α : Type} [Fintype α] [DecidableEq α]
     _ = ∑ a : α, if P a then 1 else 0 :=
         (sum_univ (fun a => if P a then (1 : ℕ) else 0)).symm
 
+/-- A half-open label bucket contained in the ticket space has cardinality equal to its weight. -/
 private theorem card_bucket (w : Fin N → ℕ) (j : Fin N)
     (hj : weightPrefix w j + w j ≤ weightTotal w) :
     (Finset.univ.filter (fun u : Fin (weightTotal w) =>
@@ -633,6 +737,8 @@ private theorem card_bucket (w : Fin N → ℕ) (j : Fin N)
     simp only at h
     omega
 
+/-- Among tickets below the total weight, the decoder's fiber over label `j` has cardinality `w
+j`. -/
 theorem weightDecodeCounted_fibers (w : Fin N → ℕ) (j : Fin N) :
     (Finset.univ.filter (fun u : Fin (weightTotal w) =>
       (weightDecodeCounted w u.val).1 = some j)).card = w j := by
@@ -646,11 +752,13 @@ theorem weightDecodeCounted_fibers (w : Fin N → ℕ) (j : Fin N) :
     Finset.filter_congr fun u _ => weightDecodeCounted_some_iff w u.val j
   rw [hcong, card_bucket w j hj]
 
+/-- The upper endpoint of each label's prefix interval is at most the total weight. -/
 theorem weightPrefix_add_le (w : Fin N → ℕ) (j : Fin N) :
     weightPrefix w j + w j ≤ weightTotal w := by
   rw [← lprefix_succ' w j]
   exact lprefix_le_total w (j.val + 1) (by simp)
 
+/-- The label returned by decoding a ticket strictly below the positive total weight. -/
 def weightTicket (w : Fin N → ℕ) (_hW : 0 < weightTotal w) (u : Fin (weightTotal w)) : Fin N :=
   (weightDecodeCounted w u.val).1.get (by
     rw [Option.isSome_iff_ne_none]
@@ -658,6 +766,8 @@ def weightTicket (w : Fin N → ℕ) (_hW : 0 < weightTotal w) (u : Fin (weightT
     rw [weightDecodeCounted_none_iff] at hc
     omega)
 
+/-- The counted total and decoder satisfy the exact addition count, decoding intervals,
+comparison counts, fiber cardinalities, and valid-ticket output specification. -/
 theorem weighted_decoder_intervals_and_actual_cost :
     ∀ (N : ℕ) (w : Fin N → ℕ),
       (weightTotalCounted w).1 = weightTotal w ∧ (weightTotalCounted w).2 = N ∧

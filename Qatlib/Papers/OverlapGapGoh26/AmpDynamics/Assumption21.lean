@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Regularity
+
+/-!
+# Regularity assumptions for the actual AMP coordinates
+
+Packages the zero-history and Euclidean Lipschitz bounds for the actual coordinate maps into a
+common positive constant, in the finite-memory setting of [GohMuller2026]. The module also
+records the catalyst coefficient at its maximizing schedule value and identifies the initial
+coordinate of the clipped history.
+
+## Main statements
+
+* `actual_assumption21`: provides one constant for both coordinate-map estimates through a fixed
+  horizon.
+* `bounded_initial_coordinate`: recovers the seed when it already lies in the clipping interval.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +35,9 @@ open Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Regularity
 
 namespace Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Assumption21
 
+/-- For schedules in `[0, 1]` through horizon `T`, there is a common positive Euclidean
+Lipschitz constant for `fCoord` and `FCoord` at every stage up to `T`, and each `fCoord`
+vanishes at zero history [GohMuller2026]. -/
 theorem actual_assumption21 (s : ℕ → ℝ) (T : ℕ)
     (hs : ∀ r≤T, s r ∈ Set.Icc (0:ℝ) 1) :
     ∃ K : ℝ, 0<K ∧
@@ -35,8 +58,11 @@ theorem actual_assumption21 (s : ℕ → ℝ) (T : ℕ)
       (mul_le_mul_of_nonneg_right (by linarith [Real.sqrt_nonneg (T:ℝ)] :
         (1+4/27:ℝ)≤2*Real.sqrt (T:ℝ)+(1+4/27)) (by positivity))
 
+/-- The catalyst coefficient `s ^ 2 * (1 − s)` takes the value `4 / 27` at `s = 2 / 3`
+[GohMuller2026]. -/
 theorem catalyst_attained : (2/3:ℝ)^2*(1-2/3)=4/27 := by norm_num
 
+/-- The initial coordinate of every `ampHistory` is `fun i => clip M (seed i)`. -/
 theorem actual_initial_coordinate {r N : ℕ} (M : ℝ)
     (J : Fin N → (Fin r → Fin N) → ℝ) (seed : Fin N → ℝ) (s : ℕ → ℝ) (t : ℕ) :
     ampHistory M J seed s t 0=fun i => clip M (seed i) := by
@@ -48,6 +74,8 @@ theorem actual_initial_coordinate {r N : ℕ} (M : ℝ)
     rw [Fin.snoc_castSucc]
     exact ih
 
+/-- If the seed lies in `[−M, M]` coordinatewise, the initial coordinate of every `ampHistory`
+equals the seed. -/
 theorem bounded_initial_coordinate {r N : ℕ} (M : ℝ)
     (J : Fin N → (Fin r → Fin N) → ℝ) (seed : Fin N → ℝ)
     (hseed : ∀ i, seed i ∈ Set.Icc (-M) M) (s : ℕ → ℝ) (t : ℕ) :

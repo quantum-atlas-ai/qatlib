@@ -9,6 +9,25 @@ import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowDefs
+
+/-!
+# Clifford basis shadow channel specification
+
+`CliffordBasisShadowChannelSubgoal` packages the basis shadow channel formula and the
+unbiasedness of its inverse reconstruction. Both statements use the actual Born weight for
+measurement after applying the ensemble unitary, with `CliffordMomentHypothesisV2` as the moment
+assumption. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `CliffordBasisShadowChannelSubgoal`: the channel and reconstruction proposition for the
+  corrected moment orientation.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +39,9 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition that a unitary ensemble satisfying `CliffordMomentHypothesisV2` in dimension
+at least two has the displayed depolarizing basis channel and unbiased inverse
+reconstruction under actual Born record weights. -/
 def CliffordBasisShadowChannelSubgoal : Prop :=
   ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)

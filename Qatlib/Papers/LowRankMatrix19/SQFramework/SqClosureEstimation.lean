@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowRankMatrix19.SQFramework.SqClosureEstimationDefs
+
+/-!
+# Pilot estimation and resource accounting for sample/query closure
+
+This module proves unbiasedness and concentration for `sqPilotEnergy`, converts pilot estimates
+into sufficient sampling budgets, and records alias-law resource bounds. Its endpoint results
+also expose bit-time accounting, fair-bit counts, and fixed-precision error bounds in the
+framework of [ChiaEtAl2022].
+
+## Main statements
+
+* `clause18_endpoint`: Combines pilot unbiasedness with a one-third failure-probability bound.
+* `clause19_endpoint`: Collects normalized alias probabilities and preprocessing accounting.
+* `clause20_endpoint`: Collects ledger, bit-time, fair-bit, and rounding guarantees.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.IntervalArith.IntervalOps
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.CacheOp
@@ -30,11 +50,15 @@ open scoped Classical BigOperators Matrix.Norms.Frobenius
 
 noncomputable section
 
+/-- The squared energy of the sampled row sketch equals the empirical average of the row squared
+norms divided by their sampling probabilities. -/
 theorem sqPilotEnergy_eq {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ)
     (p : FinDist K) (r : ℕ) (ω : Fin r → K) :
     sqPilotEnergy A p r ω = FinDist.avg (fun k => sketchRowSquared A k / p.prob k) ω := by
   exact compactSketched_energy_avg p r ω A
 
+/-- For a positive number of samples from the energy sampling law, the expected pilot energy
+equals `sketchSquared A`. -/
 theorem sqPilotEnergy_unbiased {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ)
     (hA : 0 < sketchSquared A) (r : ℕ) (hr : 0 < r) :
     (∑ ω : Fin r → K, (energySamplingLaw A hA).probOf ω
@@ -56,6 +80,8 @@ theorem sqPilotEnergy_unbiased {K C : Type} [Fintype K] [Fintype C] (A : Matrix 
         sketch_energy_expectation (energySamplingLaw A hA) A 1 (by norm_num) hA
           (energySampling_dominates_one A hA)
 
+/-- For positive sample count and `0 < δ < 1`, the probability that pilot energy deviates by at
+least `sqPilotScale 1 δ r * sketchSquared A` is at most `δ`. -/
 theorem sqPilotConcentration {K C : Type} [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] (A : Matrix K C ℂ) (hA : 0 < sketchSquared A) (r : ℕ) (hr : 0 < r)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
@@ -66,6 +92,8 @@ theorem sqPilotConcentration {K C : Type} [Fintype K] [DecidableEq K] [Fintype C
     hr (by norm_num) hA (energySampling_dominates_one A hA)).2.2.2 δ hδ hδ1
   simpa [sqPilotScale, sqPilotEnergy, sqRowSketch] using! h
 
+/-- On the stated strict pilot-deviation event and with scale less than one, dividing pilot
+energy by one minus that scale strictly exceeds the true squared energy. -/
 theorem sqPilotOverEstimate {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ)
     (hA : 0 < sketchSquared A) (r : ℕ) (δ : ℝ) (ω : Fin r → K)
     (hgood : |sqPilotEnergy A (energySamplingLaw A hA) r ω - sketchSquared A|
@@ -86,11 +114,15 @@ theorem sqPilotOverEstimate {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C
   unfold sqPilotUpperEstimate
   exact (lt_div_iff₀ h2).2 h1'
 
+/-- The pilot sample-count expression expands to the stated formula with factor `32 * φ ^ 2 *
+log (2 / (δ / 3))` and the squared pilot upper estimate. -/
 theorem sqPilotSampleCount_eq (ehat cdev L ε φ δ : ℝ) (rank : ℕ) :
     sqPilotSampleCount ehat cdev L ε φ δ rank
       = 32 * φ ^ 2 * Real.log (2 / (δ / 3)) * (L * rankLogFactor rank) ^ 2
         * (ehat / (1 - cdev)) ^ 2 / ε ^ 2 := rfl
 
+/-- Under the stated positivity and upper-estimate hypotheses, a sample count at least
+`sqPilotSampleCount` makes the rank- and Lipschitz-scaled row-tail bound at most `ε / 2`. -/
 theorem sqPilotBudget {L ε φ δ E ehat cdev : ℝ} {rank r : ℕ} (hL : 0 < L) (hε : 0 < ε)
     (hφ : 1 ≤ φ) (hδ : 0 < δ) (hδ1 : δ < 1) (hE : 0 < E) (hr : 0 < r) (hehat : 0 < ehat)
     (hcdev1 : cdev < 1)
@@ -136,52 +168,70 @@ theorem sqPilotBudget {L ε φ δ E ehat cdev : ℝ} {rank r : ℕ} (hL : 0 < L)
       _ = ε ^ 2 * (r : ℝ) := by ring
   exact rowTailBudget hL hε hφ hδ hδ1 hE.le hr hbudget
 
+/-- The alias law assigns index `i` probability `(w i : ℝ) / W`. -/
 theorem aliasLaw_prob {n : ℕ} (w : Fin n → ℕ) (W : ℕ) (hW : 0 < W) (h : aliasTotal w = W)
     (i : Fin n) : (aliasLaw w W hW h).prob i = (w i : ℝ) / W := rfl
 
+/-- The alias law's probabilities sum to one when the positive total weight is `W`. -/
 theorem aliasLaw_sum_one {n : ℕ} (w : Fin n → ℕ) (W : ℕ) (hW : 0 < W) (h : aliasTotal w = W) :
     (∑ i, (aliasLaw w W hW h).prob i) = 1 :=
   (aliasLaw w W hW h).sum_one
 
+/-- The abstract alias preprocessing cost equals `2 * n + 1`. -/
 theorem alias_preprocess_cost (n : ℕ) : aliasPreprocessCost n = 2 * n + 1 := rfl
 
+/-- For `n ≥ 1`, the abstract alias preprocessing cost is at most `3 * n`. -/
 theorem alias_preprocess_cost_le (n : ℕ) (hn : 1 ≤ n) : aliasPreprocessCost n ≤ 3 * n := by
   unfold aliasPreprocessCost
   omega
 
+/-- The alias space cost equals the input size `n`. -/
 theorem alias_space_cost (n : ℕ) : aliasSpaceCost n = n := rfl
 
+/-- The alias draw cost equals one. -/
 theorem alias_draw_cost : aliasDrawCost = 1 := rfl
 
+/-- The total abstract alias cost equals the preprocessing cost plus the number of draws. -/
 theorem alias_total_cost (n q : ℕ) : aliasTotalCost n q = aliasPreprocessCost n + q := by
   simp [aliasTotalCost, aliasDrawCost]
 
+/-- The abstract preprocessing cost is at most the cost of `q` draws exactly when `2 * n + 1 ≤
+q`. -/
 theorem alias_preprocess_not_dominant (n q : ℕ) :
     (aliasPreprocessCost n ≤ q * aliasDrawCost) ↔ (2 * n + 1 ≤ q) := by
   unfold aliasPreprocessCost aliasDrawCost
   omega
 
+/-- The abstract alias preprocessing cost is bounded by the total cost including any number of
+draws. -/
 theorem alias_preprocess_le_total (n q : ℕ) :
     aliasPreprocessCost n ≤ aliasTotalCost n q := by
   unfold aliasTotalCost
   omega
 
+/-- The sample/query closure ledger is the sketch arithmetic ledger with the same parameters. -/
 theorem sqClosureLedger_eq (n r c q : ℕ) :
     sqClosureLedger n r c q = sketchArithmeticLedger n r c q := rfl
 
+/-- The closure fair-bit count equals the given number of draws. -/
 theorem sqClosure_fairBits_eq (draws : ℕ) : sqClosureFairBits draws = draws := rfl
 
+/-- For word width at least two and a positive total of reads and multiplications, the closure
+ledger's bit-time count is strictly greater than its RAM operation count. -/
 theorem sqClosure_bitTime_ge_ram (n r c q : ℕ) (w : ℕ) (hw : 2 ≤ w)
     (hpos : 0 < (sqClosureLedger n r c q).reads + (sqClosureLedger n r c q).multiplies) :
     (sqClosureLedger n r c q).ramOps < (sqClosureLedger n r c q).bitTime w :=
   SqBitLedger.bitTime_gt_ramOps _ w hw hpos
 
+/-- Casting the rational pilot first and second moments to the reals gives the empirical
+averages of the real-valued samples and their squares. -/
 theorem sqPilotMoments_cast {I : Type} [Fintype I] [DecidableEq I] (N : ℕ)
     (f : I → ℚ) (omega : Fin N → I) :
     ((pilotMoments N f omega).1 : ℝ) = FinDist.avg (fun i => (f i : ℝ)) omega ∧
       ((pilotMoments N f omega).2.1 : ℝ) = FinDist.avg (fun i => (f i : ℝ) ^ 2) omega :=
   pilotMoments_cast_avg N f omega
 
+/-- Rounding a real number with precision parameter `p` changes it by at most `(pow2 p)⁻¹`. -/
 theorem sqClosure_fixedRound_error {x : ℝ} (p : ℕ) :
     |fixedRound p x - x| ≤ (pow2 p)⁻¹ := by
   have hpow : 0 < pow2 p := by unfold pow2; positivity
@@ -205,6 +255,8 @@ theorem sqClosure_fixedRound_error {x : ℝ} (p : ℕ) :
   rw [hone] at h2
   exact h2
 
+/-- At failure budget `δ / 3`, the pilot-deviation probability is at most `δ / 3`, and two such
+budgets sum to at most `δ`. -/
 theorem sqPilotStrategy_good {K C : Type} [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] (A : Matrix K C ℂ) (hA : 0 < sketchSquared A) (r : ℕ) (hr : 0 < r)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
@@ -216,6 +268,9 @@ theorem sqPilotStrategy_good {K C : Type} [Fintype K] [DecidableEq K] [Fintype C
   · exact sqPilotConcentration A hA r hr (δ / 3) (by linarith) (by linarith)
   · linarith
 
+/-- For positive pilot sample count and `0 < δ < 1`, pilot energy is unbiased, its stated
+deviation event has probability at most `δ / 3`, and two such failure budgets fit within `δ`
+[ChiaEtAl2022]. -/
 theorem clause18_endpoint {K C : Type} [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] (A : Matrix K C ℂ) (hA : 0 < sketchSquared A) (r : ℕ) (hr : 0 < r)
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ < 1) :
@@ -227,6 +282,9 @@ theorem clause18_endpoint {K C : Type} [Fintype K] [DecidableEq K] [Fintype C]
       δ / 3 + δ / 3 ≤ δ := by
   exact ⟨sqPilotEnergy_unbiased A hA r hr, sqPilotStrategy_good A hA r hr δ hδ hδ1⟩
 
+/-- For positive total weight, alias probabilities sum to one, preprocessing costs `2 * n + 1`,
+space costs `n`, and total and amortization costs satisfy the displayed identities
+[ChiaEtAl2022]. -/
 theorem clause19_endpoint {n : ℕ} (w : Fin n → ℕ) (W : ℕ) (hW : 0 < W)
     (h : aliasTotal w = W) (q : ℕ) :
     (∑ i, (aliasLaw w W hW h).prob i) = 1 ∧
@@ -240,6 +298,9 @@ theorem clause19_endpoint {n : ℕ} (w : Fin n → ℕ) (W : ℕ) (hW : 0 < W)
   refine And.intro (alias_total_cost n q) ?_
   exact alias_preprocess_not_dominant n q
 
+/-- Under the word-width and positive-operation hypotheses, the closure ledger equals the sketch
+ledger, bit time exceeds RAM operations, fair-bit count equals draws, and rounding error is
+at most `(pow2 p)⁻¹` [ChiaEtAl2022]. -/
 theorem clause20_endpoint (n r c q : ℕ) (w : ℕ) (hw : 2 ≤ w)
     (hpos : 0 < (sqClosureLedger n r c q).reads + (sqClosureLedger n r c q).multiplies)
     (draws : ℕ) (x : ℝ) (p : ℕ) :

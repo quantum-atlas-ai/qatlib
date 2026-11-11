@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleEncoding
+
+/-!
+# Incremental triangle counting
+
+`admissionThirdVertices` records the common neighbors present immediately before an edge's first
+admission. Combining these sets into `admissionTriangleTarget` and injecting triangles into that
+target proves `fact5_incremental`.
+
+This finite counting argument is used in subset-search reductions, with algorithmic background
+in [ChildsEisenberg2003].
+
+## Main statements
+
+* `admissionThirdVertices_card_le`: bound each edge's available third vertices.
+* `fact5_incremental`: at most `n.choose 2 * τ` triangles under the prefix common-neighbor
+  bound.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
@@ -13,11 +35,15 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The common neighbors of an edge's endpoints before its first admission, or the empty set
+when neither orientation occurs. -/
 def admissionThirdVertices (l : List (Fin n×Fin n)) (e : Fin n×Fin n) : Finset (Fin n) :=
   if edgeAdmissionRank l e < l.length then
     nbrOf (l.take (edgeAdmissionRank l e)).toFinset e.1 ∩ nbrOf (l.take (edgeAdmissionRank l e)).toFinset e.2
   else ∅
 
+/-- If every inserted edge has at most `τ` earlier common neighbors, each
+`admissionThirdVertices` set has cardinality at most `τ`. -/
 theorem admissionThirdVertices_card_le (l : List (Fin n×Fin n)) (τ : ℕ)
     (hc : ∀ i,(h : i < l.length)→tOf (l.take i).toFinset l[i].1 l[i].2 ≤ τ) (e : Fin n×Fin n) :
     (admissionThirdVertices l e).card ≤ τ := by
@@ -29,9 +55,11 @@ theorem admissionThirdVertices_card_le (l : List (Fin n×Fin n)) (τ : ℕ)
     · simpa only [he,Prod.fst_swap,Prod.snd_swap,tOf,Finset.inter_comm] using hh
   · simp
 
+/-- The finite set of canonical edges paired with their common neighbors at first admission. -/
 def admissionTriangleTarget (l : List (Fin n×Fin n)) : Finset ((Fin n×Fin n)×Fin n) :=
   (canonicalPairs n).biUnion (fun e=>(admissionThirdVertices l e).image (fun v=>(e,v)))
 
+/-- The last-edge encoding of every canonical triangle belongs to `admissionTriangleTarget l`. -/
 theorem triangle_encoding_mem_target (l : List (Fin n×Fin n)) (x : Fin n×Fin n×Fin n)
     (hx : x∈trianglesOf l.toFinset) : triangleLastEdge l x∈admissionTriangleTarget l := by
   have hg := triangleLastEdge_good l x hx
@@ -42,6 +70,7 @@ theorem triangle_encoding_mem_target (l : List (Fin n×Fin n)) (x : Fin n×Fin n
   refine ⟨(triangleLastEdge l x).2,?_,Prod.eta _⟩
   simpa only [admissionThirdVertices,if_pos hg.2.1] using hg.2.2
 
+/-- Proves `fact5`: the prefix common-neighbor bound implies `triCount T ≤ n.choose 2 * τ`. -/
 theorem fact5_incremental : fact5 := by
   intro n τ T l hT _hNodup hc
   have heq : T=l.toFinset := by ext p;simpa only [List.mem_toFinset] using hT p

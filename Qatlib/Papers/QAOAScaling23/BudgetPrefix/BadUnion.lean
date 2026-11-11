@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.WeightedCost.ComputedBound
+
+/-!
+# Union bounds for oracle failures along descent
+
+This module expresses oracle failure as a trace indicator and bounds its expectation using
+uniform row-wise bad-event bounds. It transfers the bound to a randomly initialized descent and
+identifies the indicator mean with the failure probability for the budget analysis of
+[ShaydulinEtAl2024].
+
+## Main statements
+
+* `descend_bad_bound`: If every row's bad-event mean is at most `ε ≥ 0`, descent from rank `r`
+  has accumulated bad-indicator mean at most `r * ε`.
+* `initialized_bad_bound`: For an initial law on `Fin L` and row bad-event means at most `ε ≥
+  0`, the accumulated bad-indicator mean is at most `L * ε`.
+* `bad_probability`: The probability that a tree trace has its oracle bad flag set equals the
+  mean of `badIndicator`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,11 +37,15 @@ open scoped Classical
 open Qatlib.Foundations.ProbabilityCore.FiniteBranch
 open Qatlib.Papers.QAOAScaling23.BiasedProcess
 
+/-- The real indicator that a trace's accumulated oracle bad flag is true. -/
 def badIndicator (tr : Trace) : ℝ := if tr.oracleBad then 1 else 0
 
+/-- The real mean of the bad-outcome indicator under the specified row law. -/
 def rowBadMean (rows : (r : ℕ) → Row r) (r : ℕ) : ℝ :=
   ∑ a, ((rows r).law a).toReal * (if (rows r).bad a then 1 else 0)
 
+/-- If every row's bad-event mean is at most `ε ≥ 0`, descent from rank `r` has accumulated
+bad-indicator mean at most `r * ε`. -/
 theorem descend_bad_bound (rows : (r : ℕ) → Row r) (ε : ℝ) (hε : 0≤ε)
     (hrow : ∀ r,rowBadMean rows r≤ε) (r : ℕ) :
     (descend rows r).mean badIndicator≤(r:ℝ)*ε := by
@@ -57,6 +84,8 @@ theorem descend_bad_bound (rows : (r : ℕ) → Row r) (ε : ℝ) (hε : 0≤ε)
           simp only [rowBadMean,mul_add,Finset.sum_add_distrib,← Finset.sum_mul,Tree.weights_sum,one_mul]
         _ ≤ _ := by have h:=hrow r; push_cast; nlinarith
 
+/-- For an initial law on `Fin L` and row bad-event means at most `ε ≥ 0`, the accumulated
+bad-indicator mean is at most `L * ε`. -/
 theorem initialized_bad_bound {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → Row r)
     (ε : ℝ) (hε : 0≤ε) (hrow : ∀ r,rowBadMean rows r≤ε) :
     (initialized p rows).mean badIndicator≤(L:ℝ)*ε := by
@@ -70,6 +99,8 @@ theorem initialized_bad_bound {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → 
         (mul_le_mul_of_nonneg_right (by exact_mod_cast i.isLt.le) hε)
     _ = _ := by rw [← Finset.sum_mul,Tree.weights_sum,one_mul]
 
+/-- The probability that a tree trace has its oracle bad flag set equals the mean of
+`badIndicator`. -/
 theorem bad_probability (t : Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree Trace) :
     t.probability (fun tr => tr.oracleBad=true)=t.mean badIndicator := by
   apply Tree.mean_congr

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
 import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+/-!
+# Coefficientwise orthogonal purification errors
+
+The functions `purified` and `purifiedTilde` describe a state and its coefficientwise
+perturbation, and `ptraceP` traces out the purification register. The orthogonality and
+normalization hypotheses bound the trace distance between their reduced matrices. This
+development supports the treatment in [TangWright2025].
+
+## Main statements
+
+* `purifiedTilde`: rescaled purification components with added errors.
+* `ptraceP`: partial trace over the second register.
+* `lemma32_orthogonal_errors`: reduced-state trace distance is at most `δ`.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,17 +41,26 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 set_option warningAsError false
 
+/-- The bipartite vector whose coordinate `(i, p)` is the output coefficient `o i` times the
+purification coefficient `φ i p`. -/
 def purified {r q : ℕ} (o : Fin r → ℂ) (φ : Fin r → Fin q → ℂ) :
     Fin r × Fin q → ℂ :=
   fun p => o p.1 * φ p.1 p.2
 
+/-- The perturbed bipartite vector obtained by rescaling each purification component by `α i`
+and adding `err i` before multiplying by `o i`. -/
 def purifiedTilde {r q : ℕ} (o : Fin r → ℂ) (φ : Fin r → Fin q → ℂ)
     (α : Fin r → ℂ) (err : Fin r → Fin q → ℂ) : Fin r × Fin q → ℂ :=
   fun p => o p.1 * (α p.1 * φ p.1 p.2 + err p.1 p.2)
 
+/-- The reduced matrix obtained by tracing the outer product of a bipartite vector over its
+second register. -/
 def ptraceP {r q : ℕ} (ψ : Fin r × Fin q → ℂ) : Matrix (Fin r) (Fin r) ℂ :=
   fun i j => ∑ p, ψ (i, p) * star (ψ (j, p))
 
+/-- Under the stated orthonormality, error orthogonality, normalization, and coefficient bounds
+`1 - δ ≤ ‖α i‖^2 ≤ 1`, the reduced-state trace distance is at most `δ` [Tang and Wright,
+Lemma 3.2][TangWright2025]. -/
 theorem lemma32_orthogonal_errors {r q : ℕ} (_hr : 0 < r)
     (o : Fin r → ℂ) (φ : Fin r → Fin q → ℂ) (α : Fin r → ℂ)
     (err : Fin r → Fin q → ℂ) (δ : ℝ) (_hδ : 0 ≤ δ)

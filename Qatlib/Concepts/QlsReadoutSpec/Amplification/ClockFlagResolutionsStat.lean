@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Clock and flag resolution contract
+
+Defines `Clause3ClockFlagResolutions`, collecting algebraic consequences expected of a legal
+chain of clock projectors and a commuting bad flag. It specifies nested-projector products,
+positive differences of potentials, an orthogonal resolution of the identity by clock
+increments, flag refinements, and potential endpoint identities in the setting of [LowSu2026].
+
+## Main statements
+
+* `Clause3ClockFlagResolutions`: states the clock resolution and potential projector identities.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +45,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The contract for nested clock products, orthogonal clock increments resolving the identity,
+commuting flag refinements, decreasing potential projectors, and their initial and final
+values. -/
 def Clause3ClockFlagResolutions : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ), clockLegal m P bad →

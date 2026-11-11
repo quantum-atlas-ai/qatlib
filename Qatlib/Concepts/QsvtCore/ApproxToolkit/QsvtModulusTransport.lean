@@ -20,6 +20,28 @@ import Qatlib.Concepts.WalkSearch.Spectral.Approximation
 import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
 import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
 import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+
+/-!
+# Modulus bounds for spectral and singular value transforms
+
+This module transports scalar moduli of continuity to Hermitian functional calculus and singular
+value transforms. It proves special cases of the bound with `modulusRobustnessFactor`, gives
+polynomial interpolation and Hermitian dilation identities, and derives the general transport
+conclusions under `PrintedLipschitzTransport` or `Th20MainBound`. The mathematical background is
+developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `clause33_conj3`: a rank dependent modulus estimate for Hermitian contractions.
+* `clause33_of_printed_lipschitz_transport`: the three modulus conclusions under the stated
+  Lipschitz transport hypothesis.
+* `tunableGoal_of_th20`: conditional singular value bounds and dilation block identities.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -65,12 +87,14 @@ open Qatlib
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 
+/-- A modulus of continuity is nonnegative at every nonnegative argument. -/
 theorem modulus_nonneg {f : ℝ → ℂ} {ω : ℝ → ℝ} (hω : ModulusOfContinuity f ω)
     {t : ℝ} (ht : 0 ≤ t) : 0 ≤ ω t := by
   have h := hω.mono ht
   rw [hω.at_zero] at h
   exact h
 
+/-- The modulus robustness factor is at least four for nonnegative perturbation size. -/
 theorem four_le_modulusRobustnessFactor {δ : ℝ} (hδ : 0 ≤ δ) :
     4 ≤ modulusRobustnessFactor δ := by
   unfold modulusRobustnessFactor
@@ -85,6 +109,7 @@ theorem four_le_modulusRobustnessFactor {δ : ℝ} (hδ : 0 ≤ δ) :
   have := mul_le_mul_of_nonneg_left hsq (by norm_num : (0:ℝ) ≤ 4)
   simpa using! this
 
+/-- The norm of the difference of two matrix contractions is at most two. -/
 theorem norm_sub_le_two {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : ‖A‖ ≤ 1) (hB : ‖B‖ ≤ 1) : ‖A - B‖ ≤ 2 := by
   have h := norm_sub_le A B
@@ -92,6 +117,7 @@ theorem norm_sub_le_two {I : Type} [Fintype I] [DecidableEq I]
   have h2 : ‖A‖ + ‖B‖ ≤ 2 := by linarith
   exact h.trans h2
 
+/-- The modulus robustness factor is at least eleven for perturbation sizes in `(0, 2]`. -/
 theorem eleven_le_modulusRobustnessFactor {δ : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2) :
     (11:ℝ) ≤ modulusRobustnessFactor δ := by
   have hdiv : (1:ℝ) ≤ 2 / δ := by
@@ -122,6 +148,8 @@ theorem eleven_le_modulusRobustnessFactor {δ : ℝ} (hδ : 0 < δ) (hδ2 : δ �
   unfold modulusRobustnessFactor
   linarith
 
+/-- Hermitian functional calculus gives the same matrix when the norm of the difference of its
+matrix arguments is zero. -/
 theorem clause33_conj2 :
     ∀ (H : Type) [Fintype H] [DecidableEq H] (A B : Matrix H H ℂ)
       (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ),
@@ -129,6 +157,8 @@ theorem clause33_conj2 :
   intro H _ _ A B hA hB f h
   exact hermitianFunction_eq_of_norm_sub_zero A B hA hB f h
 
+/-- There is a positive universal constant giving a modulus bound for Hermitian contractions
+with a logarithmic weight in the smaller rank. -/
 theorem clause33_conj3 :
     ∃ c₀ : ℝ, 0 < c₀ ∧
       ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
@@ -138,6 +168,8 @@ theorem clause33_conj3 :
             (2 + c₀ * hermitianRankLogWeight (min A.rank B.rank)) * ω ‖A - B‖ :=
   modulus_rankLog_stability
 
+/-- At positive matrix separation, the swept clamped response is scalar Lipschitz on the pair of
+spectra with constant `ω ‖A - B‖ / ‖A - B‖`. -/
 theorem linearSweep_pair_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (f : ℝ → ℂ) (ω : ℝ → ℝ) (hω : ModulusOfContinuity f ω)
@@ -147,6 +179,8 @@ theorem linearSweep_pair_lipschitz {I : Type} [Fintype I] [DecidableEq I]
   intro x _ y _
   exact linearSweep_lipschitz hδpos (clampResponse_dominates hω) hω.mono x y
 
+/-- A bound `M` for the swept responses yields a bound of `2 * ω ‖A - B‖ + M` for the original
+Hermitian responses. -/
 theorem modulus_main_of_middle {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -190,6 +224,8 @@ theorem modulus_main_of_middle {I : Type} [Fintype I] [DecidableEq I]
   have hsum : (ω ‖A - B‖ + M) + ω ‖A - B‖ = 2 * ω ‖A - B‖ + M := by ring
   exact hboth.trans (le_of_eq hsum)
 
+/-- The modulus robustness bound holds for distinct Hermitian contractions when at least one has
+rank zero. -/
 theorem modulus_printed_of_minRankZero {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -223,6 +259,8 @@ theorem modulus_printed_of_minRankZero {I : Type} [Fintype I] [DecidableEq I]
     mul_le_mul_of_nonneg_right hle hωδ
   exact h3'.trans hmul
 
+/-- The spectral Frobenius norm is bounded by the operator norm times the square root of the
+matrix dimension. -/
 theorem spectralFrobenius_le_sqrt_card_mul_norm {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : spectralFrobenius X ≤ Real.sqrt (Fintype.card I) * ‖X‖ := by
   have hcol (j : I) : ∑ i : I, Complex.normSq (X i j) ≤ ‖X‖ ^ 2 := by
@@ -263,6 +301,8 @@ theorem spectralFrobenius_le_sqrt_card_mul_norm {I : Type} [Fintype I] [Decidabl
   rw [spectralFrobenius_sq, mul_pow, hN, Finset.sum_comm]
   exact hsum.trans (le_of_eq hconst)
 
+/-- The modulus robustness bound holds when its factor dominates two plus the square root of the
+dimension. -/
 theorem modulus_printed_of_card_bound {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -309,6 +349,8 @@ theorem modulus_printed_of_card_bound {I : Type} [Fintype I] [DecidableEq I]
     mul_le_mul_of_nonneg_right hcard hωδ
   exact h3'.trans hmul
 
+/-- The modulus robustness bound holds for distinct Hermitian contractions of dimension at most
+eighty-one. -/
 theorem modulus_printed_of_card_le_eighty_one {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -329,12 +371,15 @@ theorem modulus_printed_of_card_le_eighty_one {I : Type} [Fintype I] [DecidableE
   have h11 : Real.sqrt (Fintype.card I) + 2 ≤ (11:ℝ) := by linarith
   linarith
 
+/-- The Hermitian functional calculus of a constant response is that constant times the identity
+matrix. -/
 theorem hermitianFunction_const {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (c : ℂ) :
     hermitianFunction A hA (fun _ : ℝ => c) = c • (1 : Matrix I I ℂ) := by
   unfold hermitianFunction
   exact spectralDiagonal_const _ _
 
+/-- Constant responses satisfy the modulus robustness bound for any two Hermitian matrices. -/
 theorem modulus_printed_of_const_response {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (c : ℂ) (ω : ℝ → ℝ) (hω : ModulusOfContinuity (fun _ : ℝ => c) ω) :
@@ -344,6 +389,7 @@ theorem modulus_printed_of_const_response {I : Type} [Fintype I] [DecidableEq I]
   exact mul_nonneg (le_trans (by norm_num) (four_le_modulusRobustnessFactor (norm_nonneg _)))
     (modulus_nonneg hω (norm_nonneg _))
 
+/-- Hermitian functional calculus sends the affine response `c + m * x` to `c • 1 + m • A`. -/
 theorem hermitianFunction_affine {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (c m : ℂ) :
     hermitianFunction A hA (fun x : ℝ => c + m * (x:ℂ)) =
@@ -356,6 +402,7 @@ theorem hermitianFunction_affine {I : Type} [Fintype I] [DecidableEq I]
     (orderedHermitian_diagonal hA).symm
   rw [hadd, hermitianFunction_const, hmul, hid]
 
+/-- Affine responses satisfy the modulus robustness bound for distinct Hermitian contractions. -/
 theorem modulus_printed_of_affine_response {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (c m : ℂ) (ω : ℝ → ℝ)
@@ -409,6 +456,7 @@ theorem modulus_printed_of_affine_response {I : Type} [Fintype I] [DecidableEq I
   rw [hnorm]
   exact h1
 
+/-- Every natural power of a matrix contraction has norm at most one. -/
 theorem norm_pow_le_one {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : ‖A‖ ≤ 1) (k : ℕ) : ‖A ^ k‖ ≤ 1 := by
   induction k with
@@ -428,6 +476,8 @@ theorem norm_pow_le_one {I : Type} [Fintype I] [DecidableEq I]
     exact (Matrix.l2_opNorm_mul _ _).trans
       ((mul_le_mul ih hA (norm_nonneg _) zero_le_one).trans (le_of_eq (one_mul (1:ℝ))))
 
+/-- The difference of the `k`th powers of two matrix contractions has norm at most `k * ‖A -
+B‖`. -/
 theorem pow_sub_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : ‖A‖ ≤ 1) (hB : ‖B‖ ≤ 1) (k : ℕ) :
     ‖A ^ k - B ^ k‖ ≤ (k : ℝ) * ‖A - B‖ := by
@@ -455,6 +505,8 @@ theorem pow_sub_norm_le {I : Type} [Fintype I] [DecidableEq I]
     have := add_le_add h1 h2
     exact this.trans (le_of_eq h3)
 
+/-- Polynomial functional calculus on Hermitian contractions is Lipschitz with constant bounded
+by the sum of `k * |p.coeff k|`. -/
 theorem polynomial_sub_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (p : Polynomial ℝ) :
@@ -507,6 +559,8 @@ theorem polynomial_sub_norm_le {I : Type} [Fintype I] [DecidableEq I]
     rw [hsum', ← Finset.sum_mul]
   rw [hre]
 
+/-- A coefficient bound dominated by the target modulus estimate yields the modulus robustness
+bound for a real polynomial response. -/
 theorem modulus_printed_of_polynomial_response {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (p : Polynomial ℝ) (ω : ℝ → ℝ)
@@ -518,6 +572,8 @@ theorem modulus_printed_of_polynomial_response {I : Type} [Fintype I] [Decidable
       modulusRobustnessFactor ‖A - B‖ * ω ‖A - B‖ :=
   (polynomial_sub_norm_le A B hA hB hA1 hB1 p).trans hcmp
 
+/-- A modulus bound with coefficient `K` implies the robustness bound when `K` is at most
+`modulusRobustnessFactor ‖A - B‖`. -/
 theorem modulus_printed_of_uniform_constant {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (f : ℝ → ℂ) (ω : ℝ → ℝ) (hω : ModulusOfContinuity f ω) (K : ℝ)
@@ -527,6 +583,8 @@ theorem modulus_printed_of_uniform_constant {I : Type} [Fintype I] [DecidableEq 
       modulusRobustnessFactor ‖A - B‖ * ω ‖A - B‖ :=
   hK.trans (mul_le_mul_of_nonneg_right hcmp (modulus_nonneg hω (norm_nonneg (A - B))))
 
+/-- A universal rank logarithm estimate yields the robustness bound when its coefficient is
+dominated by the robustness factor for this pair. -/
 theorem modulus_printed_of_rankLog_comparison {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -546,6 +604,8 @@ theorem modulus_printed_of_rankLog_comparison {I : Type} [Fintype I] [DecidableE
     (2 + c₀ * hermitianRankLogWeight (min A.rank B.rank))
     (hap I A B hA hB f ω hA1 hB1 hω) hcmp
 
+/-- The assertion that scalar Lipschitz control on the spectra of distinct Hermitian
+contractions yields operator control with coefficient `modulusRobustnessFactor ‖A - B‖ - 2`. -/
 def PrintedLipschitzTransport : Prop :=
   ∀ (J : Type) [Fintype J] [DecidableEq J] (A B : Matrix J J ℂ)
     (hA : A.IsHermitian) (hB : B.IsHermitian) (g : ℝ → ℂ) (L : ℝ),
@@ -554,6 +614,8 @@ def PrintedLipschitzTransport : Prop :=
     ‖hermitianFunction A hA g - hermitianFunction B hB g‖ ≤
       (modulusRobustnessFactor ‖A - B‖ - 2) * L * ‖A - B‖
 
+/-- The Lipschitz transport hypothesis implies the modulus robustness bound for distinct
+Hermitian contractions. -/
 theorem clause33_conj1_of_printed_lipschitz_transport (hgap : PrintedLipschitzTransport) :
     ∀ (H : Type) [Fintype H] [DecidableEq H] (A B : Matrix H H ℂ)
       (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ) (ω : ℝ → ℝ),
@@ -581,6 +643,8 @@ theorem clause33_conj1_of_printed_lipschitz_transport (hgap : PrintedLipschitzTr
       modulusRobustnessFactor ‖A - B‖ * ω ‖A - B‖ := by ring
   exact hmain.trans (le_of_eq hsum)
 
+/-- The Lipschitz transport hypothesis gives the robustness bound, equality at zero separation,
+and the universal rank logarithm bound. -/
 theorem clause33_of_printed_lipschitz_transport (hgap : PrintedLipschitzTransport) :
     (∀ (H : Type) [Fintype H] [DecidableEq H] (A B : Matrix H H ℂ)
       (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ) (ω : ℝ → ℝ),
@@ -612,6 +676,8 @@ open Qatlib
 open Qatlib
 set_option warningAsError false
 
+/-- Eigenvector columns whose matrix satisfies `W * Wᴴ = 1` express Hermitian functional
+calculus by conjugating the diagonal response values. -/
 theorem hermitianFunction_eq_of_eigenColumns {I : Type} [Fintype I] [DecidableEq I]
     {n : ℕ} (M : Matrix I I ℂ) (hM : M.IsHermitian) (f : ℝ → ℂ)
     (W : Matrix I (Fin n) ℂ) (lam : Fin n → ℝ)
@@ -633,6 +699,8 @@ theorem hermitianFunction_eq_of_eigenColumns {I : Type} [Fintype I] [DecidableEq
     _ = hermitianFunction M hM f * 1 := by rw [hW1]
     _ = hermitianFunction M hM f := by rw [Matrix.mul_one]
 
+/-- Hermitian functional calculus for a complex polynomial agrees with evaluating that
+polynomial at the matrix. -/
 theorem hermitianFunction_polynomial_complex {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (p : Polynomial ℂ) :
     hermitianFunction A hA (fun x => p.eval (x : ℂ)) = aeval A p := by
@@ -641,6 +709,8 @@ theorem hermitianFunction_polynomial_complex {I : Type} [Fintype I] [DecidableEq
   unfold hermitianFunction
   congr 1
 
+/-- Responses agreeing on all ordered eigenvalues give equal Hermitian functional calculus
+matrices. -/
 theorem hermitianFunction_congr_on_values {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f g : ℝ → ℂ)
     (h : ∀ i : Fin (Fintype.card I), f (orderedHermitianValues hA i) = g (orderedHermitianValues hA i)) :
@@ -650,9 +720,11 @@ theorem hermitianFunction_congr_on_values {I : Type} [Fintype I] [DecidableEq I]
   funext i
   exact h i
 
+/-- The assertion that a matrix has a nonzero eigenvector with eigenvalue `μ`. -/
 def HasVecEigen {X : Type} [Fintype X] (M : Matrix X X ℂ) (μ : ℂ) : Prop :=
   ∃ v : X → ℂ, v ≠ 0 ∧ M *ᵥ v = μ • v
 
+/-- Every eigenvalue of a unitarily conjugated diagonal matrix is one of its diagonal values. -/
 theorem hasVecEigen_of_unitary_diagonal {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y]
     (W : Matrix X Y ℂ) (hW1 : W * Wᴴ = 1) (hW2 : Wᴴ * W = 1) (g : Y → ℂ) (μ : ℂ)
@@ -683,12 +755,15 @@ theorem hasVecEigen_of_unitary_diagonal {X Y : Type} [Fintype X] [DecidableEq X]
   rw [hzero, Matrix.mulVec_zero] at hv'
   exact hv0 hv'
 
+/-- The right Gram matrix is diagonal in the right singular basis with squared singular values. -/
 theorem rightGram_spectralDiagonal {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) :
     Aᴴ * A = spectralDiagonal (rightSingularBasis A)
       (fun i => (matrixSingularValues A i : ℂ) ^ 2) :=
   eq_spectralDiagonal_of_action _ _ _ (gram_apply_rightSingularBasis A)
 
+/-- The left Gram matrix acts on a left singular basis vector by the corresponding squared
+singular value. -/
 theorem leftSingularBasis_gram_action {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (j : Fin (Fintype.card O)) :
     (A * Aᴴ).toEuclideanLin (leftSingularBasis A j) =
@@ -711,12 +786,15 @@ theorem leftSingularBasis_gram_action {I O : Type} [Fintype I] [DecidableEq I] [
       LinearMap.map_zero, hz]
     simp
 
+/-- The left Gram matrix is diagonal in the left singular basis with squared singular values. -/
 theorem leftGram_spectralDiagonal {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) :
     A * Aᴴ = spectralDiagonal (leftSingularBasis A)
       (fun j => (matrixSingularValues A j : ℂ) ^ 2) :=
   eq_spectralDiagonal_of_action _ _ _ (leftSingularBasis_gram_action A)
 
+/-- Every eigenvalue of the right Gram matrix is a squared singular value indexed by the input
+dimension. -/
 theorem hasVecEigen_rightGram {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (μ : ℂ) (h : HasVecEigen (Aᴴ * A) μ) :
     ∃ i : Fin (Fintype.card I), μ = (matrixSingularValues A i : ℂ) ^ 2 := by
@@ -725,6 +803,8 @@ theorem hasVecEigen_rightGram {I O : Type} [Fintype I] [DecidableEq I] [Fintype 
     hasVecEigen_of_unitary_diagonal (basisColumns (rightSingularBasis A))
       (basisColumns_mul_adjoint _) (basisColumns_adjoint_mul _) _ μ h
 
+/-- Every eigenvalue of the left Gram matrix is a squared singular value indexed by the output
+dimension. -/
 theorem hasVecEigen_leftGram {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (μ : ℂ) (h : HasVecEigen (A * Aᴴ) μ) :
     ∃ j : Fin (Fintype.card O), μ = (matrixSingularValues A j : ℂ) ^ 2 := by
@@ -733,6 +813,8 @@ theorem hasVecEigen_leftGram {I O : Type} [Fintype I] [DecidableEq I] [Fintype O
     hasVecEigen_of_unitary_diagonal (basisColumns (leftSingularBasis A))
       (basisColumns_mul_adjoint _) (basisColumns_adjoint_mul _) _ μ h
 
+/-- Every ordered eigenvalue of the Hermitian dilation is a singular value of `A` or its
+negative; see [HarrowHassidimLloyd2009]. -/
 theorem dilation_orderedValue_signed_singular {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (j : Fin (Fintype.card (O ⊕ I))) :
     ∃ k : ℕ,
@@ -803,6 +885,8 @@ theorem dilation_orderedValue_signed_singular {I O : Type} [Fintype I] [Decidabl
   · obtain ⟨kk, hk⟩ := hasVecEigen_rightGram A ((lam : ℂ) ^ 2) ⟨_, hI0, hI⟩
     exact ⟨kk, hkey hk⟩
 
+/-- Consistent complex values at finitely many real nodes can be interpolated by a complex
+polynomial. -/
 theorem exists_poly_eval_nodes {ι : Type} [DecidableEq ι]
     (s : Finset ι) (v : ι → ℝ) (r : ι → ℂ)
     (hcons : ∀ i j, i ∈ s → j ∈ s → v i = v j → r i = r j) :
@@ -833,6 +917,7 @@ theorem exists_poly_eval_nodes {ι : Type} [DecidableEq ι]
     rw [Finset.not_nonempty_iff_eq_empty.mp hs] at hi
     simp at hi
 
+/-- An odd complex valued function on the reals vanishes at zero. -/
 theorem IsOddFunction_eq_zero {f : ℝ → ℂ} (h : IsOddFunction f) : f 0 = 0 := by
   have h1 : f 0 = -f 0 := by
     rw [← h 0]
@@ -841,6 +926,8 @@ theorem IsOddFunction_eq_zero {f : ℝ → ℂ} (h : IsOddFunction f) : f 0 = 0 
   have h3 : (2 : ℂ) * f 0 = 0 := by simpa [two_mul] using! h2
   exact (mul_eq_zero.mp h3).resolve_left (by norm_num)
 
+/-- An even singular polynomial can interpolate any prescribed response on all singular values
+of a finite matrix. -/
 theorem exists_even_singular_poly {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (f : ℝ → ℂ) :
     ∃ q : Polynomial ℂ, ∀ k : ℕ,
@@ -871,6 +958,8 @@ theorem exists_even_singular_poly {I O : Type} [Fintype I] [DecidableEq I] [Fint
     rw [hz]
     simpa using! h0
 
+/-- An odd singular polynomial can interpolate an odd response on all singular values of a
+finite matrix. -/
 theorem exists_odd_singular_poly {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (f : ℝ → ℂ) (hodd : IsOddFunction f) :
     ∃ q : Polynomial ℂ, ∀ k : ℕ,
@@ -914,6 +1003,8 @@ theorem exists_odd_singular_poly {I O : Type} [Fintype I] [DecidableEq I] [Finty
         _ = f (matrixSingularValues A k) := by field_simp
     · exact absurd (matrixSingularValues_of_card_le A (by omega)) hz
 
+/-- Responses agreeing on the input indexed singular values have equal right singular
+transforms. -/
 theorem rightSingularTransform_congr {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (f g : ℝ → ℂ)
     (h : ∀ i : Fin (Fintype.card I), f (matrixSingularValues A i) = g (matrixSingularValues A i)) :
@@ -923,6 +1014,8 @@ theorem rightSingularTransform_congr {I O : Type} [Fintype I] [DecidableEq I] [F
   funext i
   exact h i
 
+/-- Responses agreeing on the output indexed singular values have equal left singular
+transforms. -/
 theorem leftSingularTransform_congr {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (f g : ℝ → ℂ)
     (h : ∀ j : Fin (Fintype.card O), f (matrixSingularValues A j) = g (matrixSingularValues A j)) :
@@ -932,15 +1025,19 @@ theorem leftSingularTransform_congr {I O : Type} [Fintype I] [DecidableEq I] [Fi
   funext j
   exact h j
 
+/-- Evaluating an even singular polynomial at `-x` gives its value at `x`. -/
 theorem evenSingularPolynomial_eval_neg (q : Polynomial ℂ) (x : ℂ) :
     (evenSingularPolynomial q).eval (-x) = (evenSingularPolynomial q).eval x := by
   simp [evenSingularPolynomial, Polynomial.eval_comp, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- The odd singular polynomial associated to `q` evaluates to `x * q.eval (x ^ 2)`. -/
 theorem oddSingularPolynomial_eval (q : Polynomial ℂ) (x : ℂ) :
     (oddSingularPolynomial q).eval x = x * q.eval (x ^ 2) := by
   simp [oddSingularPolynomial, evenSingularPolynomial, Polynomial.eval_mul, Polynomial.eval_X,
     Polynomial.eval_comp, Polynomial.eval_pow]
 
+/-- One odd singular polynomial interpolates an odd response on the singular values of both `A`
+and its adjoint. -/
 theorem exists_odd_singular_poly_pair {I O : Type} [Fintype I] [DecidableEq I] [Fintype O]
     [DecidableEq O] (A : Matrix O I ℂ) (f : ℝ → ℂ) (hodd : IsOddFunction f) :
     ∃ q : Polynomial ℂ,
@@ -1016,6 +1113,8 @@ theorem exists_odd_singular_poly_pair {I O : Type} [Fintype I] [DecidableEq I] [
       rw [hz]
       simp [IsOddFunction_eq_zero hodd]
 
+/-- A polynomial matching the response at all positive and negative singular values evaluates on
+the Hermitian dilation to its functional calculus. -/
 theorem hermitianFunction_dilation_eq_aeval {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (f : ℝ → ℂ) (p : Polynomial ℂ)
     (hmatch : ∀ k : ℕ,
@@ -1034,6 +1133,8 @@ theorem hermitianFunction_dilation_eq_aeval {I O : Type} [Fintype I] [DecidableE
       exact (hmatch k).2.symm)
   rw [h, hermitianFunction_polynomial_complex]
 
+/-- An even response of the Hermitian dilation is block diagonal with the left and right
+singular transforms as its diagonal blocks. -/
 theorem hermitianDilation_even_fromBlocks {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (f : ℝ → ℂ) (heven : IsEvenFunction f) :
     hermitianFunction (hermitianDilation A) (hermitianDilation_adjoint A) f =
@@ -1065,11 +1166,14 @@ theorem hermitianDilation_even_fromBlocks {I O : Type} [Fintype I] [DecidableEq 
       Polynomial.eval_X] using! this
   rw [leftSingularTransform_congr A _ _ hleft, rightSingularTransform_congr A _ _ hright]
 
+/-- Evaluating an odd singular polynomial at `-x` negates its value at `x`. -/
 theorem oddSingularPolynomial_eval_neg (q : Polynomial ℂ) (x : ℂ) :
     (oddSingularPolynomial q).eval (-x) = - (oddSingularPolynomial q).eval x := by
   simp [oddSingularPolynomial, evenSingularPolynomial, Polynomial.eval_mul, Polynomial.eval_X,
     Polynomial.eval_comp, Polynomial.eval_pow]
 
+/-- An odd response of the Hermitian dilation has zero diagonal blocks and the singular
+transforms of `A` and `Aᴴ` off the diagonal; see [HarrowHassidimLloyd2009]. -/
 theorem hermitianDilation_odd_fromBlocks {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (f : ℝ → ℂ) (hodd : IsOddFunction f) :
     hermitianFunction (hermitianDilation A) (hermitianDilation_adjoint A) f =
@@ -1101,6 +1205,8 @@ theorem hermitianDilation_odd_fromBlocks {I O : Type} [Fintype I] [DecidableEq I
     simpa [oddSingularPolynomial_eval] using! this
   rw [hA, hAH]
 
+/-- The assertion of the modulus robustness bound for functional calculus on distinct finite
+Hermitian contractions. -/
 def Th20MainBound : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (A B : Matrix H H ℂ)
       (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ) (ω : ℝ → ℝ),
@@ -1108,6 +1214,8 @@ def Th20MainBound : Prop :=
       ‖hermitianFunction A hA f - hermitianFunction B hB f‖ ≤
         modulusRobustnessFactor ‖A - B‖ * ω ‖A - B‖
 
+/-- The Hermitian modulus bound implies the same robustness estimate for odd singular transforms
+of distinct contractions. -/
 theorem odd_singularTransform_bound_of_th20 (hTh20 : Th20MainBound)
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -1139,6 +1247,8 @@ theorem odd_singularTransform_bound_of_th20 (hTh20 : Th20MainBound)
   rw [hermitianDilation_sub_norm] at hth
   exact hle.trans hth
 
+/-- The Hermitian modulus bound implies the same robustness estimate for right singular
+transforms with an even response. -/
 theorem rightEven_singularTransform_bound_of_th20 (hTh20 : Th20MainBound)
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
@@ -1170,6 +1280,8 @@ theorem rightEven_singularTransform_bound_of_th20 (hTh20 : Th20MainBound)
   rw [hermitianDilation_sub_norm] at hth
   exact hle.trans hth
 
+/-- The Hermitian modulus bound yields odd and even singular transform estimates, equality at
+zero separation, and the corresponding dilation block identities. -/
 theorem tunableGoal_of_th20 (hTh20 : Th20MainBound) :
   (∀ (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
       (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ),

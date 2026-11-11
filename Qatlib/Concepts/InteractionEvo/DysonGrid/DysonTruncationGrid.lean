@@ -10,6 +10,28 @@ import Mathlib.Topology.Algebra.InfiniteSum.Order
 import Mathlib.Data.List.Sublists
 import Mathlib.Algebra.BigOperators.Ring.List
 
+/-!
+# Dyson prefixes and strict grid expansions
+
+This module defines the continuous Dyson prefix `dysonPrefix` and the sampled Euler product
+`dysonGridRun`. It proves an explicit factorial remainder for the continuous series and an
+operator error bound for the grid under bounded Hermitian and Lipschitz hypotheses.
+
+The grid product expands as a sum over strict sublists, with binomial degree counts. These
+constructions support the truncated Dyson simulation setting of [LowWiebe2018].
+
+## Main statements
+
+* `dyson_finite_prefix_explicit_factorial_tail`: factorial remainder for continuous Dyson
+  prefixes.
+* `dyson_sorted_grid_actual_error_and_cost`: the grid error bound and factor count.
+* `dyson_grid_strict_subset_expansion`: expand the grid product into ordered sublist products.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,18 +49,24 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- Sum the continuous ordered Dyson terms of degrees zero through `K` from `s` to `t`. -/
 noncomputable def dysonPrefix {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s t : ℝ) (K : ℕ) : Matrix I I ℂ :=
   ∑ j ∈ Finset.range (K + 1), orderedDysonTerm A s j t
 
+/-- The Euler factor `1 - i (t / M) H(t j / M)` at grid index `j`. -/
 noncomputable def dysonGridStep {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M : ℕ) (j : Fin M) : Matrix I I ℂ :=
   1 - ((t / (M : ℝ) : ℝ) : ℂ) • (Complex.I • H (t * j.val / M))
 
+/-- The reverse-order product of the `M` sampled Euler factors. -/
 noncomputable def dysonGridRun {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M : ℕ) : Matrix I I ℂ :=
   ((List.ofFn (dysonGridStep H t M)).reverse).prod
 
+/-- A continuous matrix field bounded by `Λ` has Dyson-prefix remainder at most `exp(Λ |t-s|) (Λ
+|t-s|)^(K+1) / (K+1)!`. This is a continuous-series tail estimate for the simulation setting
+of [LowWiebe2018]. -/
 theorem dyson_finite_prefix_explicit_factorial_tail :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : ℝ → Matrix I I ℂ)
       (s t Λ : ℝ) (K : ℕ), Continuous A → 0 ≤ Λ →
@@ -84,6 +112,8 @@ theorem dyson_finite_prefix_explicit_factorial_tail :
       dsimp [a, k]
       ring
 
+/-- For a nonnegative step `h` and norm bound `Λ`, the Euler factor differs from constant
+Hamiltonian evolution by at most `exp(Λ h) (Λ h)² / 2`. -/
 private theorem dyson_euler_factor_error {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) (h Λ : ℝ) (hh : 0 ≤ h) (hΛ : 0 ≤ Λ) (hB : ‖B‖ ≤ Λ) :
     ‖(1 - (h : ℂ) • (Complex.I • B)) - HamiltonianEvolution B h‖ ≤
@@ -101,6 +131,7 @@ private theorem dyson_euler_factor_error {I : Type} [Fintype I] [DecidableEq I]
   rw [hp, orderedEvolution_constant_hamiltonian, sub_zero, norm_sub_rev] at ht
   simpa [abs_of_nonneg hh, Nat.factorial] using! ht
 
+/-- The Euler factor at a nonnegative step `h` has norm at most `exp(Λ h)` when `‖B‖ ≤ Λ`. -/
 private theorem dyson_euler_factor_norm {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) (h Λ : ℝ) (hh : 0 ≤ h) (hB : ‖B‖ ≤ Λ) :
     ‖1 - (h : ℂ) • (Complex.I • B)‖ ≤ Real.exp (Λ * h) := by
@@ -113,11 +144,14 @@ private theorem dyson_euler_factor_norm {I : Type} [Fintype I] [DecidableEq I]
       exact add_le_add l2_norm_one_le (mul_le_mul_of_nonneg_left hB hh)
     _ ≤ _ := by simpa [add_comm, mul_comm] using! Real.add_one_le_exp (Λ * h)
 
+/-- The ordered product of the first `n` factors, with each new factor multiplied on the left. -/
 private noncomputable def dysonLeftProduct {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) : ℕ → Matrix I I ℂ
   | 0 => 1
   | n + 1 => f n * dysonLeftProduct f n
 
+/-- The recursively defined left product equals the product of the reversed list of its first
+`n` factors. -/
 private theorem dysonLeftProduct_eq_reverse_prod {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) (n : ℕ) :
     dysonLeftProduct f n = ((List.ofFn (fun j : Fin n => f j.val)).reverse).prod := by
@@ -130,6 +164,8 @@ private theorem dysonLeftProduct_eq_reverse_prod {I : Type} [Fintype I] [Decidab
     simp only [Fin.val_last, Fin.val_castSucc]
     rw [dysonLeftProduct, ih]
 
+/-- The recursively defined left product equals the reverse product of `f` mapped over
+`List.range n`. -/
 private theorem dysonLeftProduct_eq_range_prod {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) (n : ℕ) :
     dysonLeftProduct f n = (((List.range n).map f).reverse).prod := by
@@ -137,15 +173,20 @@ private theorem dysonLeftProduct_eq_range_prod {I : Type} [Fintype I] [Decidable
   | zero => simp [dysonLeftProduct]
   | succ n ih => simp [List.range_succ, dysonLeftProduct, ih]
 
+/-- Clamp a real number to the interval with endpoints zero and `t` by taking `max 0 (min t u)`. -/
 private def dysonClip (t u : ℝ) : ℝ := max 0 (min t u)
 
+/-- For nonnegative `t`, clamping any real number produces a point of `[0, t]`. -/
 private theorem dysonClip_mem (t : ℝ) (ht : 0 ≤ t) (u : ℝ) :
     dysonClip t u ∈ Set.Icc 0 t :=
   ⟨le_max_left _ _, max_le ht (min_le_left _ _)⟩
 
+/-- Clamping fixes every point already in `[0, t]`. -/
 private theorem dysonClip_eq {t u : ℝ} (hu : u ∈ Set.Icc 0 t) : dysonClip t u = u := by
   simp [dysonClip, min_eq_right hu.2, max_eq_right hu.1]
 
+/-- Matrix fields agreeing on `[0, t]` have equal ordered evolutions from zero to nonnegative
+time `t`. -/
 private theorem dyson_interval_evolution_congr {I : Type} [Fintype I] [DecidableEq I]
     (A B : ℝ → Matrix I I ℂ) (t : ℝ) (ht : 0 ≤ t)
     (hAB : ∀ u ∈ Set.Icc 0 t, A u = B u) :
@@ -166,6 +207,8 @@ private theorem dyson_interval_evolution_congr {I : Type} [Fintype I] [Decidable
   unfold orderedEvolution
   exact tsum_congr (fun n => hterm n t ⟨ht, le_rfl⟩)
 
+/-- Running the list of matrix gate steps indexed by `List.range n` applies the recursively
+defined left product to the input state. -/
 private theorem dysonLeftProduct_run {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) (n : ℕ) (ψ : QState I) :
     Run 1 ((List.range n).map (fun j => Step.gate (f j))) ψ =
@@ -176,6 +219,9 @@ private theorem dysonLeftProduct_run {I : Type} [Fintype I] [DecidableEq I]
     rw [List.range_succ, List.map_append, run_append, ih]
     simp [Run, ApplyGate, dysonLeftProduct, Matrix.mulVec_mulVec]
 
+/-- For a continuous Hermitian field with Lipschitz constant `L`, the product of sampled
+constant evolutions has error at most `L t² / (2 M)` for a positive grid and nonnegative
+time. -/
 private theorem dyson_sampled_product_error {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t L : ℝ) (M : ℕ) (hH : Continuous H)
     (ht : 0 ≤ t) (hL : 0 ≤ L) (hM : 0 < M)
@@ -238,6 +284,8 @@ private theorem dyson_sampled_product_error {I : Type} [Fintype I] [DecidableEq 
   rw [← toEuclideanCLM_applyGate, toEuclidean_fromVec_toVec_fromEuclidean] at h
   exact h
 
+/-- If one factor family is bounded by `B ≥ 1`, the other by one, and their differences by `B
+d`, their length-`M` left products differ by at most `M B^M d`. -/
 private theorem dysonLeftProduct_perturbation {I : Type} [Fintype I] [DecidableEq I]
     (f g : ℕ → Matrix I I ℂ) (B d : ℝ) (M : ℕ) (hB : 1 ≤ B) (hd : 0 ≤ d)
     (hf : ∀ j < M, ‖f j‖ ≤ B) (hg : ∀ j < M, ‖g j‖ ≤ 1)
@@ -286,6 +334,9 @@ private theorem dysonLeftProduct_perturbation {I : Type} [Fintype I] [DecidableE
         _ = ((n + 1 : ℕ) : ℝ) * B ^ (n + 1) * d := by push_cast; ring
   exact herr M le_rfl
 
+/-- For a bounded continuous Hermitian Lipschitz field, the `M`-factor Euler grid has error at
+most `exp(Λ t) (Λ² + L) t² / (2 M)` and its factor list has length `M`. The grid is used in
+the Dyson simulation setting of [LowWiebe2018]. -/
 theorem dyson_sorted_grid_actual_error_and_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H : ℝ → Matrix I I ℂ)
       (t Λ L : ℝ) (M : ℕ), Continuous H → 0 ≤ t → 0 ≤ Λ → 0 ≤ L → 0 < M →
@@ -352,6 +403,8 @@ theorem dyson_sorted_grid_actual_error_and_cost :
       have he : 1 ≤ Real.exp (Λ * t) := Real.one_le_exp (mul_nonneg hΛ ht)
       nlinarith [mul_nonneg hL (sq_nonneg t)]
 
+/-- Expand a list product of matrices of the form `1 + A` as the sum of products over all
+sublists. -/
 private theorem dyson_list_product_one_add {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ)) :
     (l.map (fun A => 1 + A)).prod = (l.sublists.map List.prod).sum := by
@@ -365,6 +418,8 @@ private theorem dyson_list_product_one_add {I : Type} [Fintype I] [DecidableEq I
     rw [List.sum_map_mul_left]
     simp [add_mul]
 
+/-- The Euler grid product equals the sum of products over all sublists of its reverse-ordered
+increment list. -/
 theorem dyson_grid_strict_subset_expansion {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M : ℕ) :
     dysonGridRun H t M =
@@ -382,6 +437,8 @@ theorem dyson_grid_strict_subset_expansion {I : Type} [Fintype I] [DecidableEq I
   rw [dysonGridRun, ← hword]
   exact dyson_list_product_one_add l
 
+/-- The reverse-ordered grid increment list has `choose M k` sublists of length `k`, and every
+listed degree-`k` word has length `k`. -/
 theorem dyson_grid_strict_degree_count {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M k : ℕ) :
     let l := (List.ofFn (fun j : Fin M =>

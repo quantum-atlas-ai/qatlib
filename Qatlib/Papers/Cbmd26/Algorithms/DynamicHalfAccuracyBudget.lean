@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicFinalQueryBudget
+
+/-!
+# Dynamic query bounds at half accuracy
+
+Controls the extra `dynamicDysonDegree` required when the simulation accuracy is halved. The
+degree increases by at most a factor of three, which transfers the amplified dynamic query bound
+to the fine-grid construction. These results support the contour-based algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `dynamicDysonDegree_half_le`: bounds the degree increase.
+* `dynamicHalfAccuracy_amplified_query_bound`: gives the resulting amplified query bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +50,7 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- Reducing a positive tolerance by a factor of four increases its dyadic order by at most two. -/
 theorem dyadicOrder_quarter_le {δ : ℝ} (hδ : 0 < δ) :
     dyadicOrder (δ / 4) ≤ dyadicOrder δ + 2 := by
   have hd : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -47,6 +67,7 @@ theorem dyadicOrder_quarter_le {δ : ℝ} (hδ : 0 < δ) :
   change Real.log δ⁻¹ / Real.log 2 ≤ (dyadicOrder δ : ℝ) at h
   linarith
 
+/-- The chosen Dyson degree is positive for a positive segment count and accuracy in `(0, 1]`. -/
 theorem dynamicDysonDegree_pos {S : ℕ} (hS : 0 < S) {ζ : ℝ}
     (hζ : 0 < ζ) (hζ1 : ζ ≤ 1) : 0 < dynamicDysonDegree S ζ := by
   have hξ := dynamicSegmentAccuracy_bounds hS hζ hζ1
@@ -58,6 +79,8 @@ theorem dynamicDysonDegree_pos {S : ℕ} (hS : 0 < S) {ζ : ℝ}
   rw [hn0, pow_zero] at he
   linarith [hξ.2]
 
+/-- Halving a simulation accuracy in `(0, 1]` increases the chosen Dyson degree by at most a
+factor of three. -/
 theorem dynamicDysonDegree_half_le {S : ℕ} (hS : 0 < S) {ζ : ℝ}
     (hζ : 0 < ζ) (hζ1 : ζ ≤ 1) :
     dynamicDysonDegree S (ζ / 2) ≤ 3 * dynamicDysonDegree S ζ := by
@@ -70,6 +93,8 @@ theorem dynamicDysonDegree_half_le {S : ℕ} (hS : 0 < S) {ζ : ℝ}
   rw [he]
   omega
 
+/-- The amplified segment-degree cost at half accuracy satisfies the displayed dynamic query
+bound with an additional factor of three. -/
 theorem dynamicHalfAccuracy_amplified_query_bound {α T ε η q : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) (hq : 0 ≤ q) :

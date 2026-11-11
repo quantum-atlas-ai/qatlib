@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Bounded binary preparation loop
+
+The stack-machine `program` iterates the binary update `Data.next` under control of a binary
+counter. The relation `Models` connects these word-level updates to numerical trial iteration,
+yielding the `intBisect` result from `initialData`.
+
+The module bounds word growth, execution steps, clock costs, and stack height. For background on
+classical machine models in quantum computation, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `machine_intBisect`: the loop computes the integer bisection result and clears its counter
+  stacks.
+* `complete_ticks`: an explicit bound on the number of loop steps.
+* `complete_bounds`: bounds on total clock cost, maximum clock cost, and stack height.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,6 +52,8 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec (Bits binaryValue)
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- The five binary words carrying the square, linear, denominator, right-hand side, and
+accumulated-result data of the preparation loop. -/
 structure Data where
   sq4 : Bits
   lin2 : Bits
@@ -37,9 +62,13 @@ structure Data where
   a : Bits
   deriving DecidableEq
 
+/-- Stores the five data words in the twelve stacks used by a trial round, with all auxiliary
+stacks empty. -/
 def dataStore (d : Data) : Fin 12 → Bits :=
   TrialEmit.store d.sq4 d.lin2 d.q d.rhs d.a [] [] [] [] [] [] []
 
+/-- Updates the five data words by one trial round, including the next bit of the accumulated
+result. -/
 def Data.next (d : Data) : Data :=
   ⟨false::false::TrialRound.AState.emit (TrialRound.stS d.sq4 d.lin2 d.q d.rhs),
     false::TrialRound.AState.emit (TrialRound.stL d.sq4 d.lin2 d.q d.rhs),
@@ -47,15 +76,20 @@ def Data.next (d : Data) : Data :=
     (TrialRound.outR4 d.sq4 d.lin2 d.q d.rhs).reverse,
     (!(TrialRound.runState d.sq4 d.lin2 d.q d.rhs).w)::d.a⟩
 
+/-- The comparison-local state produced by a trial round on the given data. -/
 def finalCore (d : Data) : TrialCompare.Local :=
   (TrialRound.roundCfg d.sq4 d.lin2 d.q d.rhs d.a).var
 
+/-- The stack store produced by one trial round is the canonical store of the updated data. -/
 theorem next_store (d : Data) :
     (TrialRound.roundCfg d.sq4 d.lin2 d.q d.rhs d.a).stk = dataStore d.next := rfl
 
+/-- The twelve arithmetic stacks together with the two counter stacks. -/
 abbrev Slot := Fin 12 ⊕ Fin 2
+/-- The pair of comparison-local and counter-local states used by the loop. -/
 abbrev Local := TrialCompare.Local × Counter.Local
 
+/-- Control labels for trial rounds, counter decrements, branching, and final cleanup. -/
 inductive Label where
   | round : TrialRound.Label → Label
   | counter : Counter.Label → Label
@@ -64,9 +98,13 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.counter .borrow⟩
 
+/-- Replaces the comparison-local component while preserving the counter-local state. -/
 def putCore (v : Local) (w : TrialCompare.Local) : Local := (w,v.2)
+/-- Replaces the counter-local component while preserving the comparison-local state. -/
 def putCounter (v : Local) (w : Counter.Local) : Local := (v.1,w)
 
+/-- The stack-machine program that decrements a binary counter, performs trial rounds, and
+clears the counter before halting. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .round l => StackCall.stmt Sum.inl Label.round (.counter .borrow)
       Prod.fst putCore (TrialRound.program l)
@@ -80,21 +118,28 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
         (.load (fun _ => (TrialRound.resetLocal,(false,none))) .halt)
         (.goto (fun _ => .finish)))
 
+/-- Combines the arithmetic data store with a counter word and a temporary counter word. -/
 def store (counter temporary : Bits) (d : Data) : Slot → Bits :=
   Sum.elim (dataStore d) (stackPair counter temporary)
 
+/-- The configuration at the start of a counter decrement, with the temporary counter stack
+empty. -/
 def loopCfg (counter : Bits) (d : Data) (v : Local) :
     TM2.Cfg (fun _ : Slot => Bool) Label Local :=
   ⟨some (.counter .borrow),v,store counter [] d⟩
 
+/-- The configuration that branches on the counter-decrement result. -/
 def branchCfg (counter : Bits) (d : Data) (v : Local) :
     TM2.Cfg (fun _ : Slot => Bool) Label Local :=
   ⟨some .branch,v,store counter [] d⟩
 
+/-- The trial-round entry configuration with the comparison-local state reset. -/
 def roundEntry (counter : Bits) (d : Data) (v : Counter.Local) :
     TM2.Cfg (fun _ : Slot => Bool) Label Local :=
   ⟨some (.round .init),(TrialRound.resetLocal,v),store counter [] d⟩
 
+/-- The embedded trial round produces the updated data and final comparison state, with the same
+clock cost as the standalone round. -/
 theorem round_call (counter : Bits) (d : Data) (v : Counter.Local) :
     stackRun program (TrialRound.roundFuel d.sq4 d.lin2 d.q d.rhs) (roundEntry counter d v) =
       some (loopCfg counter d.next (finalCore d,v)) ∧
@@ -109,6 +154,8 @@ theorem round_call (counter : Bits) (d : Data) (v : Counter.Local) :
     (TrialRound.resetLocal,v) _ _ _ (TrialRound.round_run d.sq4 d.lin2 d.q d.rhs d.a)
   exact h
 
+/-- A positive binary counter is decremented without changing its word length, using at most
+twice its length plus three steps and a quadratic clock bound. -/
 theorem decrement_positive (counter : Bits) (d : Data) (v : Local)
     (hp : 0 < binaryValue counter) :
     ∃ ticks next, ticks  ≤  2*counter.length+3 ∧ next.length=counter.length ∧
@@ -125,6 +172,8 @@ theorem decrement_positive (counter : Bits) (d : Data) (v : Local)
   · exact h.1
   · exact h.2.trans_le hc
 
+/-- Decrementing a zero-valued counter produces an all-true word of the same length and a false
+continuation flag, with a quadratic clock bound. -/
 theorem decrement_zero (counter : Bits) (d : Data) (v : Local)
     (hz : binaryValue counter=0) :
     stackRun program (2*counter.length+2) (loopCfg counter d v) =
@@ -137,6 +186,7 @@ theorem decrement_zero (counter : Bits) (d : Data) (v : Local)
     Counter.program program (fun _ => rfl) v _ _ _ hr
   exact ⟨h.1,h.2.trans_le hc⟩
 
+/-- A true continuation flag enters a fresh trial round in one step. -/
 theorem branch_positive (counter : Bits) (d : Data) (v : TrialCompare.Local) :
     stackRun program 1 (branchCfg counter d (v,(true,none))) =
       some (roundEntry counter d (true,none)) := by
@@ -149,13 +199,17 @@ instance : Fintype TrialCompare.Local :=
       left_inv := by intro v; rcases v with ⟨a,b,c,d,e,f,g⟩; rfl
       right_inv := by intro v; cases v; rfl }
 
+/-- The cleanup configuration that drains the remaining counter word. -/
 def finishCfg (counter : Bits) (d : Data) (v : Local) :
     TM2.Cfg (fun _ : Slot => Bool) Label Local :=
   ⟨some .finish,v,store counter [] d⟩
 
+/-- The halted configuration with the given arithmetic data, empty counter stacks, and reset
+local state. -/
 def haltedCfg (d : Data) : TM2.Cfg (fun _ : Slot => Bool) Label Local :=
   ⟨none,(TrialRound.resetLocal,(false,none)),store [] [] d⟩
 
+/-- Updating the counter stack replaces the counter word in the combined store. -/
 theorem store_update_counter (counter temporary : Bits) (d : Data) (bits : Bits) :
     Function.update (store counter temporary d) (.inr 0) bits = store bits temporary d := by
   change Function.update (StackCall.rightFrame (dataStore d) (stackPair counter temporary))
@@ -163,20 +217,24 @@ theorem store_update_counter (counter temporary : Bits) (d : Data) (bits : Bits)
   rw [← StackCall.rightFrame_update,stackPair_update_zero]
   rfl
 
+/-- A false continuation flag enters counter cleanup in one step. -/
 theorem branch_zero (counter : Bits) (d : Data) (v : TrialCompare.Local) :
     stackRun program 1 (branchCfg counter d (v,(false,none))) =
       some (finishCfg counter d (v,(false,none))) := by
   simp [stackRun,TM2.step,program,branchCfg,finishCfg,TM2.stepAux]
 
+/-- One cleanup step pops the leading counter bit and records it in the local state. -/
 theorem finish_step (b : Bool) (counter : Bits) (d : Data) (v : Local) :
     TM2.step program (finishCfg (b::counter) d v) =
       some (finishCfg counter d (v.1,(v.2.1,some b))) := by
   simp [TM2.step,program,finishCfg,TM2.stepAux,store]
 
+/-- Cleanup of an empty counter reaches the canonical halted configuration in one step. -/
 theorem finish_nil (d : Data) (v : Local) :
     stackRun program 1 (finishCfg [] d v) = some (haltedCfg d) := by
   simp [stackRun,TM2.step,program,finishCfg,haltedCfg,TM2.stepAux,store]
 
+/-- Cleanup drains a counter word and halts in its length plus one steps. -/
 theorem finish_run (counter : Bits) (d : Data) (v : Local) :
     stackRun program (counter.length+1) (finishCfg counter d v) = some (haltedCfg d) := by
   induction counter generalizing v with
@@ -189,6 +247,8 @@ theorem finish_run (counter : Bits) (d : Data) (v : Local) :
     rw [h,Option.bind_some]
     exact ih _
 
+/-- A counter of value `n` causes exactly `n` data updates before the program reaches the
+canonical halted configuration. -/
 theorem complete (n : ℕ) (counter : Bits) (d : Data) (v : Local)
     (hnum : binaryValue counter=n) :
     ∃ ticks, stackRun program ticks (loopCfg counter d v) =
@@ -217,10 +277,13 @@ theorem complete (n : ℕ) (counter : Bits) (d : Data) (v : Local)
     rw [run_add,hDBR,Option.bind_some]
     simpa only [Function.iterate_succ_apply] using! hI
 
+/-- Relates binary data to a numerical trial state: the square and linear words represent `4 *
+s.sq` and `2 * s.lin2`, and the other words represent `Q`, `s.rhs`, and `s.a`. -/
 def Models (Q : ℕ) (s : TrialEmit.MState) (d : Data) : Prop :=
   binaryValue d.sq4=4*s.sq ∧ binaryValue d.lin2=2*s.lin2 ∧ binaryValue d.q=Q ∧
   binaryValue d.rhs=s.rhs ∧ binaryValue d.a=s.a
 
+/-- One binary data update preserves the relation to the corresponding numerical trial step. -/
 theorem models_next {Q : ℕ} {s : TrialEmit.MState} {d : Data} (h : Models Q s d) :
     Models Q (TrialEmit.mStep Q s) d.next := by
   obtain ⟨hs,hl,hq,hr,ha⟩ := h
@@ -248,6 +311,7 @@ theorem models_next {Q : ℕ} {s : TrialEmit.MState} {d : Data} (h : Models Q s 
     rw [h4,hb,ha,TrialEmit.mStep_a_field]
     by_cases hbit : TrialEmit.mBit Q s=1 <;> simp [hbit]
 
+/-- Iterating the binary update preserves the relation to the numerical trial iteration. -/
 theorem models_iterate {Q : ℕ} {s : TrialEmit.MState} {d : Data} (h : Models Q s d) (n : ℕ) :
     Models Q (TrialEmit.mIterate Q n s) ((Data.next^[n]) d) := by
   induction n with
@@ -255,16 +319,22 @@ theorem models_iterate {Q : ℕ} {s : TrialEmit.MState} {d : Data} (h : Models Q
   | succ n ih =>
     simpa only [Function.iterate_succ_apply',TrialEmit.mIterate] using! models_next ih
 
+/-- The initial binary data for parameters `P` and `Q`, with denominator `Q`, right-hand side `4
+* P`, and the other words empty. -/
 def initialData (P Q : ℕ) : Data := ⟨[],[],Nat.bits Q,Nat.bits (4*P),[]⟩
 
+/-- The initial binary data models the initial numerical trial state. -/
 theorem initial_models (P Q : ℕ) : Models Q (TrialEmit.mInit P) (initialData P Q) := by
   simp [Models,initialData,TrialEmit.mInit,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
 
+/-- The result word after `k` binary updates represents `intBisect P Q k`. -/
 theorem iterate_intBisect (P Q k : ℕ) :
     binaryValue (((Data.next^[k]) (initialData P Q)).a) = intBisect P Q k := by
   have h := (models_iterate (initial_models P Q) k).2.2.2.2
   exact h.trans (TrialEmit.mIterate_intBisect P Q k)
 
+/-- The loop computes `intBisect P Q k` from the standard initial data and binary counter,
+halting with both counter stacks empty. -/
 theorem machine_intBisect (P Q k : ℕ) :
     ∃ ticks last, stackRun program ticks
         (loopCfg (Nat.bits k) (initialData P Q) (TrialRound.resetLocal,(false,none))) = some last ∧
@@ -275,15 +345,18 @@ theorem machine_intBisect (P Q k : ℕ) :
   refine ⟨ticks,haltedCfg ((Data.next^[k]) (initialData P Q)),hr,rfl,?_,rfl,rfl⟩
   exact iterate_intBisect P Q k
 
+/-- The maximum length of the five binary data words. -/
 def Data.width (d : Data) : ℕ :=
   max d.sq4.length (max d.lin2.length (max d.q.length (max d.rhs.length d.a.length)))
 
+/-- Each data-word length is bounded by the data width. -/
 theorem width_fields (d : Data) :
     d.sq4.length ≤ d.width ∧ d.lin2.length ≤ d.width ∧ d.q.length ≤ d.width ∧
     d.rhs.length ≤ d.width ∧ d.a.length ≤ d.width := by
   unfold Data.width
   omega
 
+/-- Comparison fuel is at most `m + 4` when all four comparison words have length at most `m`. -/
 theorem compare_fuel_le (m : ℕ) (st : TrialCompare.CState)
     (ha : st.a.length ≤ m) (hb : st.b.length ≤ m) (hd : st.d.length ≤ m) (hr : st.r.length ≤ m) :
     TrialCompare.fuel st  ≤  m+4 := by
@@ -306,6 +379,7 @@ theorem compare_fuel_le (m : ℕ) (st : TrialCompare.CState)
         (by change st.r.tail.length ≤ m; simp only [List.length_tail]; omega)
       omega
 
+/-- Addition fuel is at most `m + 4` when its three state words have length at most `m`. -/
 theorem addition_fuel_le (m : ℕ) (st : TrialRound.AState)
     (hx : st.x.length ≤ m) (hy : st.y.length ≤ m) (hz : st.z.length ≤ m) :
     st.fuel  ≤  m+4 := by
@@ -327,6 +401,7 @@ theorem addition_fuel_le (m : ℕ) (st : TrialRound.AState)
         (by change st.z.tail.length ≤ m; simp only [List.length_tail]; omega)
       omega
 
+/-- Each word emitted by a comparison state has length at most its fuel. -/
 theorem compare_emit_lengths (st : TrialCompare.CState) :
     (TrialEmit.emitS st).length ≤ TrialCompare.fuel st ∧
     (TrialEmit.emitL st).length ≤ TrialCompare.fuel st ∧
@@ -354,6 +429,7 @@ theorem compare_emit_lengths (st : TrialCompare.CState) :
     · rw [TrialEmit.emitR.eq_def,if_neg hh,List.length_cons,hf]
       omega
 
+/-- The word emitted by an addition state has length at most its fuel. -/
 theorem addition_emit_length (st : TrialRound.AState) : st.emit.length ≤ st.fuel := by
   induction st using TrialRound.AState.fuel.induct with
   | case1 st hh =>
@@ -363,6 +439,8 @@ theorem addition_emit_length (st : TrialRound.AState) : st.emit.length ≤ st.fu
     rw [TrialRound.AState.fuel.eq_def,TrialRound.AState.emit.eq_def,if_neg hh,if_neg hh,List.length_cons]
     omega
 
+/-- The seven intermediate output lengths of a trial round are bounded by the input width plus
+the stated constants. -/
 theorem round_out_lengths (d : Data) :
     (TrialRound.outL d.sq4 d.lin2 d.q d.rhs).length ≤ d.width+4 ∧
     (TrialRound.outS d.sq4 d.lin2 d.q d.rhs).length ≤ d.width+4 ∧
@@ -396,6 +474,8 @@ theorem round_out_lengths (d : Data) :
   · change ((TrialEmit.emitQ (TrialRound.st0 d.sq4 d.lin2 d.q d.rhs)).reverse++[]).length ≤ _
     simpa only [List.length_append,List.length_reverse,List.length_nil,Nat.add_zero] using! hq
 
+/-- A trial round uses at most `20 * (d.width + 10)` fuel and increases the data width by at
+most ten. -/
 theorem round_budget (d : Data) :
     TrialRound.roundFuel d.sq4 d.lin2 d.q d.rhs ≤ 20*(d.width+10) ∧
     d.next.width ≤ d.width+10 := by
@@ -432,6 +512,7 @@ theorem round_budget (d : Data) :
     simp only [List.length_cons,List.length_reverse]
     omega
 
+/-- After `n` data updates, the width is at most the initial width plus `10 * n`. -/
 theorem iterate_width (n : ℕ) (d : Data) : ((Data.next^[n]) d).width ≤ d.width+10*n := by
   induction n with
   | zero => simp
@@ -440,6 +521,8 @@ theorem iterate_width (n : ℕ) (d : Data) : ((Data.next^[n]) d).width ≤ d.wid
     have h := (round_budget ((Data.next^[n]) d)).2
     omega
 
+/-- The loop halts after the prescribed number of updates with an explicit bound on the number
+of stack-machine steps. -/
 theorem complete_ticks (n : ℕ) (counter : Bits) (d : Data) (v : Local)
     (hnum : binaryValue counter=n) :
     ∃ ticks, stackRun program ticks (loopCfg counter d v) =
@@ -478,6 +561,7 @@ theorem complete_ticks (n : ℕ) (counter : Bits) (d : Data) (v : Local)
           30*(counter.length+d.width+10*(n+1)+10) := by omega
       nlinarith
 
+/-- Embedding a stack-machine statement as a subroutine preserves its number of statement nodes. -/
 theorem call_nodes {K J Λ Λ' σ ρ : Type} [DecidableEq K] [DecidableEq J]
     (stackCode : K → J) (labelCode : Λ → Λ') (returnTo : Λ') (get : ρ → σ)
     (put : ρ → σ → ρ) (q : TM2.Stmt (fun _ : K => Bool) Λ σ) :
@@ -491,6 +575,7 @@ theorem call_nodes {K J Λ Λ' σ ρ : Type} [DecidableEq K] [DecidableEq J]
   | goto f => rfl
   | halt => rfl
 
+/-- The value `programNodes program` is at most eleven. -/
 theorem program_nodes_le : programNodes program ≤ 11 := by
   unfold programNodes
   apply Finset.sup_le
@@ -503,11 +588,13 @@ theorem program_nodes_le : programNodes program ≤ 11 := by
   | branch => simp [program,stackNodes]
   | finish => simp [program,stackNodes]
 
+/-- The sweep factor of the loop program is at most 265. -/
 theorem sweep_factor_le : sweepFactor program ≤ 265 := by
   have h := program_nodes_le
   unfold sweepFactor
   nlinarith
 
+/-- The initial stack height is bounded by the sum of the counter length and the data width. -/
 theorem initial_height (counter : Bits) (d : Data) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (loopCfg counter d v).stk ≤ counter.length+d.width := by
   obtain ⟨ha,hb,hq,hr,haa⟩ := width_fields d
@@ -518,6 +605,8 @@ theorem initial_height (counter : Bits) (d : Data) (v : Local) :
   | inl i => fin_cases i <;> simp [loopCfg,store,dataStore,TrialEmit.store] <;> omega
   | inr i => fin_cases i <;> simp [loopCfg,store,stackPair]
 
+/-- The loop halts with the iterated data and satisfies the stated bounds on total clock cost,
+maximum clock cost, and maximum stack height. -/
 theorem complete_bounds (n : ℕ) (counter : Bits) (d : Data) (v : Local)
     (hnum : binaryValue counter=n) :
     ∃ ticks, stackRun program ticks (loopCfg counter d v) =

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.ExactQuantileNoMargin
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
+
+/-!
+# Exact quantile bisection without a margin
+
+This module proves exact bisection for a monotone finite CDF and applies it to a sorted support
+list under unitary preparation. It also gives a counterexample showing that the unitarity
+hypothesis in `riskExactQuantileNoMargin` is necessary.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `riskExactQuantileNoMargin`: For unitary preparation and a nonempty sorted list containing
+  every loss, exact CDF bisection finds the first quantile index and its least threshold value
+  for `0 < q < 1`, without a margin hypothesis; see [WoernerEgger2019].
+* `exactQuantileNoMargin_counterexample_without_unitary`: The exact quantile bisection guarantee
+  fails in general when the preparation matrix is not required to be unitary.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.RiskEstimation.VaRQuantile
@@ -20,6 +43,9 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 set_option warningAsError false
 
+/-- Given a monotone finite sequence, a valid bracketing interval, and enough bisection fuel,
+exact bisection returns an index in that interval whose value reaches `q` and whose
+predecessors are all below `q`. -/
 theorem exactBisect_spec (F : ℕ → ℝ) (q : ℝ) (len : ℕ)
     (hmono : ∀ u v, u ≤ v → v < len → F u ≤ F v) :
     ∀ (fuel lo hi : ℕ),
@@ -64,6 +90,9 @@ theorem exactBisect_spec (F : ℕ → ℝ) (q : ℝ) (len : ℕ)
       obtain ⟨h1, h2, h3, h4⟩ := ih ((lo + hi) / 2 + 1) hi hmidhi hhi hwR hbelowR habove
       exact ⟨hmidlo.trans h1, h2, h3, h4⟩
 
+/-- For unitary preparation and a nonempty sorted list containing every loss, exact CDF
+bisection finds the first quantile index and its least threshold value for `0 < q < 1`,
+without a margin hypothesis; see [WoernerEgger2019]. -/
 theorem riskExactQuantileNoMargin : ExactQuantileNoMargin := by
   show ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
       (loss : I → ℚ) (xs : List ℚ) (q : ℝ),
@@ -104,8 +133,11 @@ theorem riskExactQuantileNoMargin : ExactQuantileNoMargin := by
   rw [List.getD_eq_getElem xs 0 hvv, List.getD_eq_getElem xs 0 hu]
   exact hs.getElem_le_getElem_of_le (Nat.le_of_not_lt hvu)
 
+/-- An alternative name for the exact quantile bisection guarantee `riskExactQuantileNoMargin`. -/
 theorem exactQuantileNoMargin : ExactQuantileNoMargin := riskExactQuantileNoMargin
 
+/-- The exact quantile bisection guarantee fails in general when the preparation matrix is not
+required to be unitary. -/
 theorem exactQuantileNoMargin_counterexample_without_unitary :
     ¬ (∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
       (loss : I → ℚ) (xs : List ℚ) (q : ℝ),

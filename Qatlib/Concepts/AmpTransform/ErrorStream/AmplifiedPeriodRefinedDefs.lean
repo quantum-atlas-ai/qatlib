@@ -8,6 +8,32 @@ import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseRefinedDefs
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportAmpl
 import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+
+/-!
+# Refined period-recovery interfaces and resource ledgers
+
+This module defines source-verified candidates and two-stage fresh-observation recovery,
+together with progression separation and query ledgers. `Clause4TwoStageRecovery` through
+`Clause8ZeroModeRuntime` state recovery, layer-comparison, degeneracy, ambiguity, and zero-mode
+resource requirements.
+
+`aqBoundaryOracle` gives the concrete fixed-noise oracle used to express ambiguity between two
+different verified periods.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `aqTwoStageRecover`: fresh disambiguation of source-verified candidates.
+* `Clause5LayerStepDistinction`: cyclic verification and layer-dependent costs.
+* `Clause7FixedNoiseBoundary`: a concrete two-period ambiguity statement.
+* `Clause8ZeroModeRuntime`: zero-mode transport with resource ledgers.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -36,39 +62,53 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open Qatlib
 open scoped Classical BigOperators ENNReal
 
+/-- The candidate periods below `N` accepted by the source-oracle verifier. -/
 def aqVerifiedCandidates (N : ℕ) (h : Fin N → Bool) (s M : ℕ) : Finset ℕ :=
   (Finset.range N).filter (fun P : ℕ => (aqVerify h s M P).1 = true)
 
+/-- Filter the source-verified candidates by consistency with a fresh observation. -/
 def aqTwoStageCompatible (N : ℕ) (h : Fin N → Bool) (s M : ℕ)
     (obs : Finset (Fin N)) : Finset ℕ :=
   aqFreshCompatible N s M (aqVerifiedCandidates N h s M) obs
 
+/-- Apply likelihood-based fresh disambiguation to the source-verified candidate set. -/
 noncomputable def aqTwoStageRecover (N : ℕ) (h : Fin N → Bool) (s M : ℕ) (p : ℝ)
     (obs : Finset (Fin N)) : Option ℕ :=
   aqFreshDisambiguate N s M (aqVerifiedCandidates N h s M) p obs
 
+/-- The candidate-progression separation used for period identification. -/
 def aqPeriodSeparation (N s M P P' : ℕ) : ℕ :=
   aqCandidateSeparation N s M P P'
 
+/-- The finite register progression `aqProgressionSet N s M P`. -/
 def aqPeriodProgression (N s M P : ℕ) : Finset (Fin N) :=
   aqProgressionSet N s M P
 
+/-- The natural-number layer count `N - M + 1`. -/
 def aqZeroModeLayers (N M : ℕ) : ℕ := N - M + 1
 
+/-- The product of the zero-mode layer count and the per-layer gate ledger `3 * k + 2`. -/
 def aqZeroModeRuntime (N M k : ℕ) : ℕ :=
   aqZeroModeLayers N M * (3 * k + 2)
 
+/-- The density-counting query ledger `32 * N - 1`. -/
 def aqNextDensityCountingQueries (N : ℕ) : ℕ := 32 * N - 1
 
+/-- The sum of the density-counting ledger and the public amplification round count. -/
 def aqNextPublicRecoveryQueries (N M : ℕ) : ℕ :=
   aqNextDensityCountingQueries N + aqPublicRoundCount N M
 
+/-- The sum of the density-counting ledger and the layer-dependent amplification round count. -/
 def aqNextLayerRecoveryQueries (N M L : ℕ) : ℕ :=
   aqNextDensityCountingQueries N + aqLayerRoundCount N M L
 
+/-- The natural-number difference between public and layer-dependent recovery query ledgers. -/
 def aqNextRecoveryQuerySaving (N M L : ℕ) : ℕ :=
   aqNextPublicRecoveryQueries N M - aqNextLayerRecoveryQueries N M L
 
+/-- The conjunction of verified-candidate inclusion, positivity of separation for noncontained
+progressions, exact fresh-consistency probability, and recovery after refuting false
+candidates. -/
 def Clause4TwoStageRecovery : Prop :=
   (∀ (N s M : ℕ) (h : Fin N → Bool) (P : ℕ) (hP : P < N),
       (aqVerify h s M P).1 = true → P ∈ aqVerifiedCandidates N h s M)
@@ -86,6 +126,8 @@ def Clause4TwoStageRecovery : Prop :=
         aqFreshCompatible N s M cands (aqFreshMarked N s M P σ) = {P} ∧
           aqFreshDisambiguate N s M cands p (aqFreshMarked N s M P σ) = some P)
 
+/-- The cyclic-verification, density-counting, and round-saving statements, together with
+distinctions between progression lengths and period steps. -/
 def Clause5LayerStepDistinction : Prop :=
   (∀ (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M P : ℕ)
       (hM : 2 ≤ M) (hP : 0 < P) (hMP : M * P ≤ N) (G : Finset (Fin N))
@@ -122,6 +164,8 @@ def Clause5LayerStepDistinction : Prop :=
       aqPeriodProgression N s M P ≠ aqPeriodProgression N s L P)
   ∧ (0 < aqPeriodSeparation 128 0 2 4 2)
 
+/-- The Haar, sampling, and QFT statements together with zero-length progression degeneracy and
+the density-counting and layer-dependent resource comparisons. -/
 def Clause6ZeroMPromise : Prop :=
   HaarGeneralWN
   ∧ (∀ (C fuel : ℕ) (hC : 0 < C),
@@ -154,9 +198,14 @@ def Clause6ZeroMPromise : Prop :=
       aqNextPublicRecoveryQueries N M - aqNextLayerRecoveryQueries N M L
         = aqNextRecoveryQuerySaving N M L)
 
+/-- The size-128 oracle marking the period-two progression of length four together with noise
+sites eight and twelve. -/
 def aqBoundaryOracle : Fin 128 → Bool :=
   fun x => decide (x ∈ (aqProgressionSet 128 0 4 2 ∪ ({8, 12} : Finset (Fin 128))))
 
+/-- The explicit fixed-noise boundary example in which periods two and four yield the same
+oracle, pass verification, and remain in the verified candidate set despite positive
+separation. -/
 def Clause7FixedNoiseBoundary : Prop :=
   ((aqProgressionSet 128 0 4 2 ∪ ({8, 12} : Finset (Fin 128))) =
       (aqProgressionSet 128 0 4 4 ∪ ({2, 6} : Finset (Fin 128)))) ∧
@@ -166,6 +215,8 @@ def Clause7FixedNoiseBoundary : Prop :=
   (2 ∈ aqVerifiedCandidates 128 aqBoundaryOracle 0 4) ∧
   (4 ∈ aqVerifiedCandidates 128 aqBoundaryOracle 0 4)
 
+/-- The Bernoulli zero-mode transport statement together with progression cardinalities and the
+layer, query, and gate ledgers under the stated assumptions. -/
 def Clause8ZeroModeRuntime : Prop :=
   BernoulliErrorStreamZeroModeTransport
   ∧ (∀ (N k : ℕ) [NeZero N] (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)

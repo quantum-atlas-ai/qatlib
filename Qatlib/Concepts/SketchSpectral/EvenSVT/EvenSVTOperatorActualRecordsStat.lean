@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
 import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsStat
+
+/-!
+# Statement of actual-record SVT operator accuracy
+
+`EvenSVTOperatorActualRecords` states the operator-norm approximation guarantee for the output
+`Rᴴ * fbar(Cc * Ccᴴ) * R + f(0) I`. It uses exact row-energy and conditional column-energy
+sampling laws together with spectral-band regularity and explicit concentration budgets in the
+setting of [ChiaEtAl2022].
+
+## Main statements
+
+* `EvenSVTOperatorActualRecords`: The proposition that exact squared-norm row and
+  conditional-column laws and the specified budgets yield a joint record distribution with
+  even-SVT operator-norm failure probability at most `δ`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -20,6 +40,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The proposition that exact squared-norm row and conditional-column laws and the specified
+budgets yield a joint record distribution with even-SVT operator-norm failure probability at
+most `δ`. -/
 def EvenSVTOperatorActualRecords : Prop :=
   ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (r c : ℕ) (f fbar : ℝ → ℂ) (L Lbar d ε δ η₁ η₂ : ℝ)

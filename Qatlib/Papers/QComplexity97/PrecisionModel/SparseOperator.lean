@@ -9,6 +9,23 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
 
+/-!
+# Operator norm of a sparse matrix
+
+This module proves `sparse_opNorm_le`, an operator-norm estimate for finite complex matrices
+used in the precision setting of [BernsteinVazirani1997]. A uniform entry bound together with
+uniform row and column support bounds controls the Euclidean operator norm.
+
+## Main statements
+
+* `sparse_opNorm_le`: a matrix with at most `N` nonzero entries per row and column and entry
+  norms at most `ε ≥ 0` has operator norm at most `N * ε`.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,6 +34,8 @@ namespace Qatlib.Papers.QComplexity97.PrecisionModel
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- A finite complex square matrix with at most `N` nonzero entries in every row and column and
+all entry norms bounded by `ε ≥ 0` has Euclidean operator norm at most `N * ε`. -/
 theorem sparse_opNorm_le {ι : Type*} [Fintype ι] [DecidableEq ι]
     (M : Matrix ι ι ℂ) {ε : ℝ} (hε : 0 ≤ ε) (N : ℕ)
     (hentry : ∀ i j, ‖M i j‖ ≤ ε)

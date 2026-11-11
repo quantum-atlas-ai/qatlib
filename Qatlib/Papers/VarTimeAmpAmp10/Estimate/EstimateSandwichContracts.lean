@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+/-!
+# An existential amplitude-estimation contract
+
+This module defines `estimateSandwich`, an existential estimate-and-distribution contract
+supporting the estimation analysis of [Ambainis2012]. For each unitary preparation and failure
+tolerance, it asks for a finite outcome law, a high-mass set satisfying the specified error
+bound, exact zero estimates at zero mass, and a circuit realization with a query-and-gate bound.
+
+## Main statements
+
+* `estimateSandwich`: The existential probability, accuracy, zero-mass, and circuit-cost
+  contract.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,11 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.Estimate
 
 open Matrix
 
+/-- The proposition that every unitary-prepared marked probability has an estimator with a
+normalized nonnegative finite law, a good set of mass at least `1 - δ` satisfying the stated
+resolution-dependent error bound, and exact zero output at zero mass. The law must be
+realized by a circuit with combined query and gate count at most `r * (6 * M - 3)` for some
+`M ≥ 2` and `r`. -/
 def estimateSandwich : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ), W ∈ Matrix.unitaryGroup I ℂ →

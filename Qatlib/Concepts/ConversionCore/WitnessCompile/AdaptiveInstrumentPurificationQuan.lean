@@ -11,6 +11,31 @@ import Mathlib.Data.List.GetD
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationAux
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationConstr
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationProgram
+
+/-!
+# Adaptive purification in an enlarged source space
+
+A finite encoding packs branch records, the original workspace, and a spare address into one
+enlarged source workspace. `sourcePurifySpaceEquiv` preserves the clean spare-address embedding
+and transports the lifted oracle to the ordinary alphabet oracle.
+
+`adaptiveInstrumentPurification` uses this equivalence to obtain exact recorded-output
+simulation by a legal source word. This supplies a computation-model bridge for the coherent and
+noncoherent state conversion definitions in [LeeEtAl2011].
+
+## Main statements
+
+* `sourcePurifyCode_injective` and `sourcePurifyCode_surjective`: correctness of the workspace
+  encoding.
+* `sourcePurifyRelabel_oracle`: compatibility with the alphabet oracle.
+* `adaptiveInstrumentPurification`: the purification specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -29,19 +54,25 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The workspace code placing spare address `n` in the first `L*r` positions and all other
+spare addresses after them. -/
 def sourcePurifyCode {L r n : ℕ} (p : Fin L × Fin r × Fin (n+1)) : ℕ :=
   if p.2.2.val=n then p.1.val*r+p.2.1.val
   else L*r+(p.1.val*r+p.2.1.val)*n+p.2.2.val
 
+/-- At spare address `n`, the purification code is the packed record-and-workspace index
+`l.val*r+j.val`. -/
 @[simp] theorem sourcePurifyCode_top {L r n : ℕ} (l : Fin L) (j : Fin r) :
     sourcePurifyCode (l,j,(⟨n,Nat.lt_succ_self n⟩ : Fin (n+1)))=l.val*r+j.val := by
   simp only [sourcePurifyCode,if_true]
 
+/-- A spare address other than `n` is encoded as `L*r+(l.val*r+j.val)*n+w.val`. -/
 @[simp] theorem sourcePurifyCode_off {L r n : ℕ} (l : Fin L) (j : Fin r)
     (w : Fin (n+1)) (hw : w.val≠n) :
     sourcePurifyCode (l,j,w)=L*r+(l.val*r+j.val)*n+w.val := by
   simp only [sourcePurifyCode,if_neg hw]
 
+/-- For positive workspace and record sizes, the purification code is below `L*r*(n+1)`. -/
 theorem sourcePurifyCode_lt {L r n : ℕ} (_hr : 0<r) (_hL : 0<L)
     (p : Fin L × Fin r × Fin (n+1)) : sourcePurifyCode p<L*r*(n+1) := by
   have hp3 := p.2.2.isLt
@@ -61,6 +92,7 @@ theorem sourcePurifyCode_lt {L r n : ℕ} (_hr : 0<r) (_hL : 0<L)
       omega
     omega
 
+/-- For positive workspace size, the purification workspace code is injective. -/
 theorem sourcePurifyCode_injective {L r n : ℕ} (hr : 0<r) :
     Function.Injective (sourcePurifyCode (L := L) (r := r) (n := n)) := by
   intro a b hab
@@ -134,6 +166,8 @@ theorem sourcePurifyCode_injective {L r n : ℕ} (hr : 0<r) :
     exact Prod.ext (Fin.ext (Nat.eq_of_mul_eq_mul_right hr h3))
       (Prod.ext (Fin.ext h2) (Fin.ext h1))
 
+/-- For positive workspace size, every index below `L*r*(n+1)` is represented by a purification
+code. -/
 theorem sourcePurifyCode_surjective {L r n : ℕ} (hr : 0<r) (k : Fin (L*r*(n+1))) :
     ∃ p : Fin L × Fin r × Fin (n+1), sourcePurifyCode p=k.val := by
   by_cases hk : k.val<L*r
@@ -164,11 +198,14 @@ theorem sourcePurifyCode_surjective {L r n : ℕ} (hr : 0<r) (k : Fin (L*r*(n+1)
     rw [sourcePurifyCode_off _ _ _ hw,hc2,Nat.add_assoc,← hm2]
     exact (Nat.add_comm _ _).trans (Nat.sub_add_cancel hkge)
 
+/-- The source-space map preserving the source registers and packing the record, workspace, and
+spare address into the enlarged workspace. -/
 def sourcePurifyFullMap {H : Type} (n q r L : ℕ) (hr : 0<r) (hL : 0<L)
     (y : Fin L × SourceSpace n q H r × Fin (n+1)) : SourceSpace n q H (L*r*(n+1)) :=
   (y.2.1.1,(y.2.1.2.1,⟨sourcePurifyCode (y.1,y.2.1.2.2,y.2.2),
     sourcePurifyCode_lt hr hL (y.1,y.2.1.2.2,y.2.2)⟩))
 
+/-- The full purification source-space map is bijective. -/
 theorem sourcePurifyFullMap_bijective {H : Type} (n q r L : ℕ) (hr : 0<r) (hL : 0<L) :
     Function.Bijective (sourcePurifyFullMap (H := H) n q r L hr hL) := by
   constructor
@@ -193,11 +230,15 @@ theorem sourcePurifyFullMap_bijective {H : Type} (n q r L : ℕ) (hr : 0<r) (hL 
     simp only [sourcePurifyFullMap]
     exact Prod.ext rfl (Prod.ext rfl (Fin.ext ht))
 
+/-- The equivalence between the explicit purification register space and the source space with
+workspace size `L*r*(n+1)`. -/
 def sourcePurifySpaceEquiv {H : Type} (n q r L : ℕ) (hr : 0<r) (hL : 0<L) :
     (Fin L × SourceSpace n q H r × Fin (n+1)) ≃ SourceSpace n q H (L*r*(n+1)) :=
   Equiv.ofBijective (sourcePurifyFullMap (H := H) n q r L hr hL)
     (sourcePurifyFullMap_bijective (H := H) n q r L hr hL)
 
+/-- On spare address `n`, the purification-space equivalence agrees with the tree-record
+encoding. -/
 theorem sourcePurifySpaceEquiv_code {H : Type} {n q r L : ℕ} (hr : 0<r) (hL : 0<L)
     (hRle : L*r≤L*r*(n+1)) (l : Fin L) (s : SourceSpace n q H r) :
     sourcePurifySpaceEquiv n q r L hr hL (l,s,⟨n,Nat.lt_succ_self n⟩)=
@@ -208,6 +249,8 @@ theorem sourcePurifySpaceEquiv_code {H : Type} {n q r L : ℕ} (hr : 0<r) (hL : 
   exact Prod.ext rfl (Prod.ext rfl (Fin.ext (by
     simp only [sourcePurifyCode,if_true])))
 
+/-- Relabeling the lifted purification oracle by the workspace equivalence gives the alphabet
+oracle on the enlarged source space. -/
 theorem sourcePurifyRelabel_oracle {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r L : ℕ} (hr : 0<r) (hL : 0<L)
     (input : X → Fin n → Fin (q+1)) (x : X) :
@@ -220,6 +263,9 @@ theorem sourcePurifyRelabel_oracle {X H : Type} [Fintype X] [DecidableEq X]
   intro y
   rfl
 
+/-- Legal adaptive computations satisfy the exact recorded-output purification specification
+with at most twice their oracle-call count. This supports the coherent and noncoherent
+models of [Lee et al., Definitions 2.1 and 2.2][LeeEtAl2011]. -/
 theorem adaptiveInstrumentPurification : AdaptiveInstrumentPurification := by
   intro X H _ _ _ _ _ n q r hr input T hT
   have hL : 0<max 1 (sourceAdaptiveLeaves T) :=

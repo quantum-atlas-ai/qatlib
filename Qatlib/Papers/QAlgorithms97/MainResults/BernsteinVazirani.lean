@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
 import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted
 import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+
+/-!
+# Bernstein-Vazirani and affine parity queries
+
+The Bernstein-Vazirani circuit recovers a binary parity secret with one bit-oracle query; adding
+a constant affine offset changes only the final global phase. This module records exact circuit
+states, deterministic readout, and classical query-tree lower bounds in the oracle framework of
+[CleveEtAl1998].
+
+## Main statements
+
+* `bernstein_vazirani_single_query`: exact recovery with one query.
+* `affine_bernstein_vazirani_readout`: one-query readout for affine parity.
+* `parity_classical_zero_error_lower_bound`: the classical query-tree lower bound.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +39,8 @@ open Qatlib.Concepts.UniformBqp.BvParityBound
 
 namespace Qatlib.Papers.QAlgorithms97.MainResults.BernsteinVazirani
 
+/-- The one-query Bernstein-Vazirani circuit maps the zero register and minus ancilla to the
+secret basis state and the same ancilla [Cleve et al., Section 3][CleveEtAl1998]. -/
 theorem bernstein_vazirani_single_query (n : ℕ) (a : Reg n) :
     Run (BitOracleOn (bvCharBit a)) (bvOneCallCircuit n)
         (TensorState (Ket (ZeroStr n)) Minus) = TensorState (Ket a) Minus ∧
@@ -27,6 +49,8 @@ theorem bernstein_vazirani_single_query (n : ℕ) (a : Reg n) :
     Qatlib.Papers.QComplexity97.XorSeparation.parityOracleSeparationRestricted
   exact h.1 n a
 
+/-- The two-query word implements the tensor product of the phase oracle and Pauli Z on any
+input state, using exactly two queries. -/
 theorem bernstein_vazirani_two_query_phase (n : ℕ) (f : Reg n → Bool)
     (ψ : QState (Reg n × Bool)) :
     Run (BitOracleOn f) (bvTwoCallWord n) ψ =
@@ -36,6 +60,8 @@ theorem bernstein_vazirani_two_query_phase (n : ℕ) (f : Reg n → Bool)
     Qatlib.Papers.QComplexity97.XorSeparation.parityOracleSeparationRestricted
   exact h.2.1 n f ψ
 
+/-- Any Boolean query tree that recovers every length-`n` parity secret exactly has maximum
+query count at least `n` [CleveEtAl1998]. -/
 theorem parity_classical_zero_error_lower_bound (n : ℕ)
     (T : Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree (Reg n) (Reg n))
     (hT : ∀ a : Reg n,
@@ -46,12 +72,17 @@ theorem parity_classical_zero_error_lower_bound (n : ℕ)
     Qatlib.Papers.QComplexity97.XorSeparation.parityOracleSeparationRestricted
   exact h.2.2 n T hT
 
+/-- The restricted parity-oracle separation combines one-query secret recovery, the two-query
+phase identity, and the `n`-query lower bound for exact classical Boolean query trees. -/
 theorem parity_oracle_separation_restricted :
     Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted :=
   Qatlib.Papers.QComplexity97.XorSeparation.parityOracleSeparationRestricted
 
+/-- The parity function with secret `a` and constant Boolean offset `b`. -/
 def affineParity {n : ℕ} (a : Reg n) (b : Bool) (x : Reg n) : Bool := bvCharBit a x != b
 
+/-- The affine parity phase oracle sends the uniform state to the Hadamard image of the secret
+basis state, with sign determined by the offset. -/
 theorem affine_phase_prepares_secret {n : ℕ} (a : Reg n) (b : Bool) :
     ApplyGate (PhaseOracle (affineParity a b)) (Uniform (Reg n)) =
       (if b then (-1 : ℂ) else 1) • ApplyGate (HadamardN n) (Ket a) := by
@@ -60,6 +91,8 @@ theorem affine_phase_prepares_secret {n : ℕ} (a : Reg n) (b : Bool) :
   simp only [Pi.smul_apply, smul_eq_mul, OracleInterfaces.phaseOracle_apply]
   cases b <;> cases h : bvCharBit a x <;> simp [affineParity, h]
 
+/-- The one-query circuit for affine parity prepares the secret basis state with an
+offset-dependent sign and leaves the minus ancilla unchanged. -/
 theorem affine_bernstein_vazirani_run (n : ℕ) (a : Reg n) (b : Bool) :
     Run (BitOracleOn (affineParity a b)) (bvOneCallCircuit n)
       (TensorState (Ket (ZeroStr n)) Minus) =
@@ -75,6 +108,8 @@ theorem affine_bernstein_vazirani_run (n : ℕ) (a : Reg n) (b : Bool) :
     applyGate_one]
   rfl
 
+/-- The affine Bernstein-Vazirani circuit reads out the secret with probability one using
+exactly one query. -/
 theorem affine_bernstein_vazirani_readout (n : ℕ) (a : Reg n) (b : Bool) :
     MeasureProb (Run (BitOracleOn (affineParity a b)) (bvOneCallCircuit n)
       (TensorState (Ket (ZeroStr n)) Minus)) ({a} ×ˢ (Finset.univ : Finset Bool)) = 1 ∧
@@ -84,6 +119,8 @@ theorem affine_bernstein_vazirani_readout (n : ℕ) (a : Reg n) (b : Bool) :
     cases b <;> simp [MeasureProb, BornProb, Qatlib.Foundations.PureStateMath.Ket]
   · rfl
 
+/-- A Boolean query tree recovering the secret for every affine parity function has maximum
+query count at least `n`. -/
 theorem affine_classical_lower_bound (n : ℕ)
     (T : Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree (Reg n) (Reg n))
     (hT : ∀ (a : Reg n) (b : Bool),

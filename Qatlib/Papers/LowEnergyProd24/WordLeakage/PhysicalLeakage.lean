@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalTail
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
 import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.PolynomialGrowth
+
+/-!
+# Weighted leakage estimates for physical product words
+
+This module transports the weighted interaction-generator and product-word estimates to physical
+Hamiltonians. It concludes an exponential bound on transitions from a low-energy input sector to
+a high-energy output sector for the original word, as in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_uniform_generator_bound`: Bounds the weighted physical interaction generator uniformly
+  up to a small step.
+* `actual_product_leakage`: Bounds physical leakage by the energy gap and integrated growth
+  exponent.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +44,8 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- Under physical lower-order cancellation and the small-step condition, the weighted
+interaction-generator norm for `0 ≤ t ≤ s` is at most `growthCoefficient * t ^ p`. -/
 theorem actual_uniform_generator_bound (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
@@ -47,6 +69,8 @@ theorem actual_uniform_generator_bound (h : PhysicalHamiltonian N R M k d J)
       div_le_div_of_nonneg_left (by dsimp [D]; positivity) (by linarith) (by nlinarith)
     _ = _ := by dsimp [growthCoefficient, C, D]; ring
 
+/-- For a nonnegative small step, the weighted original physical product word has norm at most
+`exp (stepExponent L k d J stages p s)` under lower-order cancellation. -/
 theorem actual_weighted_word_bound (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
@@ -73,6 +97,9 @@ theorem actual_weighted_word_bound (h : PhysicalHamiltonian N R M k d J)
     hf.continuousOn (fun t _ => (hder t).hasDerivWithinAt) h0 hbound s ⟨hs, le_rfl⟩
   simpa only [one_mul, f, physical_relative_norm, stepExponent] using hb
 
+/-- Under the physical locality, cancellation, and small-step hypotheses, original product-word
+leakage is at most `exp (-(Λ - Δ) / (2 * J * k * d) + stepExponent L k d J stages p s)`
+[HejaziZiniArrazola2024]. -/
 theorem actual_product_leakage (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))

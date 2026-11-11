@@ -8,6 +8,30 @@ import Qatlib.Papers.Cbmd26.Algorithms.ApproximationJackson
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximationAmplifier
 import Mathlib.Topology.MetricSpace.Lipschitz
 import Mathlib.Algebra.Order.Floor.Semiring
+
+/-!
+# Bounded polynomial windows across a spectral gap
+
+`bounded_step_polynomial_exists` combines Jackson approximation of a clipped ramp with Bernstein
+majority amplification. The resulting polynomial takes values in `[0, 1]` on `[-1, 1]`, is small
+on `[-1, 0]`, and is close to `1` on `[g, 1]`. `dyadicOrder_error` and
+`bounded_step_polynomial_precision` turn the geometric error into a prescribed positive
+tolerance with an explicit degree budget.
+
+These windows localize the polynomial approximations used by the CBMD constructions associated
+with [WangEtAl2026].
+
+## Main statements
+
+* `bounded_step_polynomial_exists` constructs a bounded window with geometric error.
+* `dyadicOrder_error` selects an order meeting a positive tolerance.
+* `bounded_step_polynomial_precision` gives a window for the prescribed tolerance.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.Cbmd26.Algorithms
@@ -18,16 +42,20 @@ namespace CBMD
 open Polynomial
 open scoped Classical
 
+/-- The affine function `2 / g * x - 1`, clipped to the interval `[-1, 1]`. -/
 private def clippedRamp (g x : ℝ) : ℝ := min 1 (max (-1) (2 / g * x - 1))
 
+/-- The clipped ramp is continuous for every real parameter `g`. -/
 private theorem clippedRamp_continuous (g : ℝ) : Continuous (clippedRamp g) := by
   unfold clippedRamp
   fun_prop
 
+/-- The clipped ramp has absolute value at most `1` for all real `g` and `x`. -/
 private theorem clippedRamp_bounded (g x : ℝ) : |clippedRamp g x| ≤ 1 := by
   apply abs_le.mpr
   exact ⟨le_min (by norm_num) (le_max_left _ _), min_le_left _ _⟩
 
+/-- For `g > 0`, the clipped ramp is Lipschitz with constant `2 / g`. -/
 private theorem clippedRamp_lipschitz {g : ℝ} (hg : 0 < g) (x y : ℝ) :
     |clippedRamp g x - clippedRamp g y| ≤ (2 / g) * |x - y| := by
   have hl := ((LipschitzWith.id.const_max (-1 : ℝ)).const_min 1).dist_le_mul
@@ -37,6 +65,7 @@ private theorem clippedRamp_lipschitz {g : ℝ} (hg : 0 < g) (x y : ℝ) :
   have hpos : 0 < 2 / g := div_pos (by norm_num) hg
   simpa only [clippedRamp, he, abs_mul, abs_of_pos hpos] using hl
 
+/-- For `g > 0`, the clipped ramp equals `-1` at every nonpositive input. -/
 private theorem clippedRamp_low {g : ℝ} (hg : 0 < g) {x : ℝ} (hx : x ≤ 0) :
     clippedRamp g x = -1 := by
   have hh : 2 / g * x - 1 ≤ -1 := by
@@ -44,6 +73,7 @@ private theorem clippedRamp_low {g : ℝ} (hg : 0 < g) {x : ℝ} (hx : x ≤ 0) 
     linarith
   simp [clippedRamp, max_eq_left hh]
 
+/-- For `g > 0`, the clipped ramp equals `1` at every input at least `g`. -/
 private theorem clippedRamp_high {g : ℝ} (hg : 0 < g) {x : ℝ} (hx : g ≤ x) :
     clippedRamp g x = 1 := by
   have hh : 1 ≤ 2 / g * x - 1 := by
@@ -52,6 +82,9 @@ private theorem clippedRamp_high {g : ℝ} (hg : 0 < g) {x : ℝ} (hx : g ≤ x)
     linarith
   exact min_eq_left (hh.trans (le_max_right _ _))
 
+/-- For `g > 0`, positive `K`, and `K ≥ 512 / g`, there is a polynomial of degree at most `4 * m
+* (K - 1)` taking values in `[0, 1]` on `[-1, 1]`. It is at most `(1 / 2) ^ m` on `[-1, 0]`
+and differs from `1` by at most that amount on `[g, 1]`. -/
 theorem bounded_step_polynomial_exists (g : ℝ) (hg : 0 < g)
     (K m : ℕ) (hK : 0 < K) (hKg : 512 / g ≤ (K : ℝ)) :
     ∃ W : Polynomial ℝ,
@@ -106,8 +139,10 @@ theorem bounded_step_polynomial_exists (g : ℝ) (hg : 0 < g)
       linarith [(abs_le.mp he').1]
     simpa only [W, eval_comp] using majorityPolynomial_high m (Q.eval x) hhigh
 
+/-- The natural ceiling of `log (ε⁻¹) / log 2`, used to choose a geometric amplification order. -/
 def dyadicOrder (ε : ℝ) : ℕ := ⌈Real.log ε⁻¹ / Real.log 2⌉₊
 
+/-- For every positive `ε`, the geometric error `(1 / 2) ^ dyadicOrder ε` is at most `ε`. -/
 theorem dyadicOrder_error {ε : ℝ} (hε : 0 < ε) :
     (1 / 2 : ℝ) ^ dyadicOrder ε ≤ ε := by
   have htwo : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -126,6 +161,9 @@ theorem dyadicOrder_error {ε : ℝ} (hε : 0 < ε) :
       linarith
     _ = ε := Real.exp_log hε
 
+/-- For positive `g` and `ε`, there is a polynomial of degree at most `4 * dyadicOrder ε * ⌈512
+/ g⌉₊` taking values in `[0, 1]` on `[-1, 1]`. It is at most `ε` on `[-1, 0]` and differs
+from `1` by at most `ε` on `[g, 1]`. -/
 theorem bounded_step_polynomial_precision (g ε : ℝ) (hg : 0 < g) (hε : 0 < ε) :
     ∃ W : Polynomial ℝ,
       W.natDegree ≤ 4 * dyadicOrder ε * ⌈512 / g⌉₊ ∧

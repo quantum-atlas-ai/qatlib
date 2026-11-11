@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
+
+/-!
+# Vanishing binary pairing sums
+
+`lemma_4_4` proves a vanishing identity for the `ZMod 2` sum of `mu` over a subgroup of
+cardinality at least four. The hypothesis requires that the pairing with the chosen element is
+not identically zero on the subgroup. This development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `lemma_4_4`: a nonzero pairing on a sufficiently large subgroup has zero binary sum.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +40,8 @@ attribute [local instance] Classical.propDecidable
 
 variable {n : ℕ}
 
+/-- If a subgroup has at least four elements and pairing with `y` is not identically zero on it,
+the sum of those pairings in `ZMod 2` is zero. This is Lemma 4.4 of [RoettelerBeth1998]. -/
 theorem lemma_4_4 (U : Subgroup (Wreath n)) (y : Wreath n)
     (hcard : 4 ≤ Fintype.card U)
     (hy : ¬ ∀ u : U, mu (u : Wreath n) y = 0) :

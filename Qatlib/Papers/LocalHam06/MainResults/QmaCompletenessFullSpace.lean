@@ -10,6 +10,26 @@ import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessPadding
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+
+/-!
+# Full-space energy guarantees for history Hamiltonians
+
+This module bounds the energy of individual physical terms and their sum on the full state
+space. It then lifts circuit soundness to the full Hamiltonian and combines padding with
+completeness, soundness, and threshold separation in the reduction framework of
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `actual_full_no_min`: Extends the soundness lower bound to every normalized physical state.
+* `padded_full_contract`: Packages the padded yes/no energy guarantees and positive threshold
+  gap.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -30,6 +50,7 @@ open scoped Classical
 set_option autoImplicit false
 noncomputable section
 
+/-- The energy of each rounded physical propagation term is at least `-32 * mass ψ`. -/
 theorem propagation_lower (C : QmaHistoryCircuit) (i : Fin C.gates.length)
     (ψ : QState (Phys C)) :
     -(32:ℝ)*mass ψ ≤ energy (physicalPropagation i (qmaRoundedGates C (qmaClause2Bits C) i)) ψ := by
@@ -40,6 +61,7 @@ theorem propagation_lower (C : QmaHistoryCircuit) (i : Fin C.gates.length)
     (propagationTerm_local _ _ _ _) (propagationTerm_value _ _ _ _)
     (physicalPropagation_entry_norm i _ (qmaRoundedGate_entry_norm_le_two g _ hb)) ψ
 
+/-- The energy of each physical input term is at least `-32 * mass ψ`. -/
 theorem input_lower (C : QmaHistoryCircuit) (j : Fin C.qubits) (ψ : QState (Phys C)) :
     -(32:ℝ)*mass ψ ≤ energy (physicalInput j) ψ := by
   have hv:=boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) false j
@@ -48,6 +70,7 @@ theorem input_lower (C : QmaHistoryCircuit) (j : Fin C.qubits) (ψ : QState (Phy
     (boundaryTerm C.gates.length C.qubits (qmaClause2Bits C) false j) (physicalInput j)
     ((boundaryTerm_local _ _ _ _ _).trans (by omega)) hv (physicalInput_entry_norm j) ψ
 
+/-- The energy of the physical output term is at least `-32 * mass ψ`. -/
 theorem output_lower (C : QmaHistoryCircuit) (ψ : QState (Phys C)) :
     -(32:ℝ)*mass ψ ≤ energy (physicalOutput C.outputWire) ψ := by
   have hv:=boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) true C.outputWire
@@ -57,6 +80,7 @@ theorem output_lower (C : QmaHistoryCircuit) (ψ : QState (Phys C)) :
     (physicalOutput C.outputWire) ((boundaryTerm_local _ _ _ _ _).trans (by omega)) hv
     (physicalOutput_entry_norm C.outputWire) ψ
 
+/-- The energy of the remainder Hamiltonian is at least `-restK C * mass ψ`. -/
 theorem rest_lower (C : QmaHistoryCircuit) (ψ : QState (Phys C)) :
     -restK C*mass ψ ≤ energy (rest C) ψ := by
   have ht : ∀H∈(termPairs C).map Prod.fst,∀φ : QState (Phys C),
@@ -71,6 +95,9 @@ theorem rest_lower (C : QmaHistoryCircuit) (ψ : QState (Phys C)) :
   simpa only [List.length_map,restLength_exact,restK,rest] using
     matrixSum_lower _ ht ψ
 
+/-- If every legal normalized circuit input is accepted with probability at most `ε`, then every
+normalized physical state has full-Hamiltonian energy at least `min (qmaClause2NoBound C ε)
+1`. -/
 theorem actual_full_no_min (C : QmaHistoryCircuit) (ε : ℝ)
     (hsound : ∀φ : QState (Reg C.qubits),QmaInitLegal C φ → Normalized φ →
       qmaHistoryAcceptProb C φ ≤ ε) (η : QState (Phys C)) (hη : Normalized η) :
@@ -84,6 +111,7 @@ theorem actual_full_no_min (C : QmaHistoryCircuit) (ε : ℝ)
     (by unfold restK; positivity) (by unfold clockJ; rfl) (min_le_right _ _)
     hLegal (rest_lower C) η hη
 
+/-- The no-energy cutoff is at most one. -/
 theorem noCut_le_one (C : QmaHistoryCircuit) : noCut C ≤ 1 := by
   have hn : 0 ≤ (C.gates.length:ℝ):=Nat.cast_nonneg _
   have hd : 1 ≤ ((C.gates.length:ℝ)+1)^3:=one_le_pow₀ (by linarith)
@@ -91,6 +119,10 @@ theorem noCut_le_one (C : QmaHistoryCircuit) : noCut C ≤ 1 := by
   simpa only [noCut,one_div_one] using
     one_div_le_one_div_of_le (by norm_num : (0:ℝ)<1) hden
 
+/-- Under the stated completeness and soundness parameter bounds, the padded Hamiltonian
+satisfies the yes/no energy implications, has positive yes cutoff, and has no-minus-yes gap
+equal to the yes cutoff. This is the padded energy contract used in the constructions of
+[KempeKitaevRegev2006]. -/
 theorem padded_full_contract (C : QmaHistoryCircuit) (a ε : ℝ)
     (hε : ε ≤ 1/4)
     (ha : 1-a ≤ 1/((2:ℝ)^14*(((paid64 C).gates.length:ℝ)+1)^2)) :

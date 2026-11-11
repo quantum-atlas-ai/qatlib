@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# Operator norm invariance under basis relabeling
+
+This module proves that relabeling a finite basis preserves the Euclidean norm of a state and
+the induced ℓ² operator norm of a matrix. It also preserves distances between matrices,
+including a swap of tensor registers; these are coordinate-invariance properties of the operator
+norm [Bhatia1997].
+
+## Main statements
+
+* `norm_toEuclidean_relabelState`: Relabeling preserves the Euclidean state norm.
+* `l2_norm_relabelGate`: Relabeling preserves the ℓ² operator norm.
+* `l2_norm_swap_registers_sub`: Swapping registers preserves operator-norm distance.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +40,7 @@ set_option linter.unusedSectionVars false
 
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
+/-- Relabeling a finite state basis by an equivalence preserves its Euclidean ℓ² norm. -/
 theorem norm_toEuclidean_relabelState (e : I ≃ J) (w : QState I) :
     ‖toEuclidean_fromVec (relabelState e w)‖ = ‖toEuclidean_fromVec w‖ := by
   have hsq : ‖toEuclidean_fromVec (relabelState e w)‖ ^ 2 = ‖toEuclidean_fromVec w‖ ^ 2 := by
@@ -30,6 +51,7 @@ theorem norm_toEuclidean_relabelState (e : I ≃ J) (w : QState I) :
     _ = Real.sqrt (‖toEuclidean_fromVec w‖ ^ 2) := by rw [hsq]
     _ = ‖toEuclidean_fromVec w‖ := Real.sqrt_sq (norm_nonneg _)
 
+/-- Relabeling a matrix basis by an equivalence does not increase its induced ℓ² operator norm. -/
 theorem l2_opNorm_relabelGate_le (e : I ≃ J) (N : Matrix I I ℂ) :
     ‖relabelGate e N‖ ≤ ‖N‖ := by
   have hround2 : ∀ s : QState J, relabelState e (relabelState e.symm s) = s := by
@@ -73,6 +95,7 @@ theorem l2_opNorm_relabelGate_le (e : I ≃ J) (N : Matrix I I ℂ) :
         (Matrix.l2_opNorm_toEuclideanCLM _).symm
     _ ≤ ‖N‖ := hclm
 
+/-- Relabeling a matrix basis by an equivalence preserves its induced ℓ² operator norm. -/
 theorem l2_norm_relabelGate (e : I ≃ J) (N : Matrix I I ℂ) :
     ‖relabelGate e N‖ = ‖N‖ :=
   le_antisymm (l2_opNorm_relabelGate_le e N)
@@ -80,6 +103,8 @@ theorem l2_norm_relabelGate (e : I ≃ J) (N : Matrix I I ℂ) :
       have h := l2_opNorm_relabelGate_le e.symm (relabelGate e N)
       rwa [relabelGate_relabelGate] at h)
 
+/-- Simultaneously relabeling two matrices preserves the induced ℓ² operator norm of their
+difference. -/
 theorem l2_norm_relabelGate_sub (e : I ≃ J) (A B : Matrix I I ℂ) :
     ‖relabelGate e A - relabelGate e B‖ = ‖A - B‖ := by
   have hsub : relabelGate e A - relabelGate e B = relabelGate e (A - B) := by
@@ -87,6 +112,8 @@ theorem l2_norm_relabelGate_sub (e : I ≃ J) (A B : Matrix I I ℂ) :
     simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sub_apply]
   rw [hsub, l2_norm_relabelGate]
 
+/-- Swapping the two tensor-register indices of two matrices preserves their induced ℓ²
+operator-norm distance. -/
 theorem l2_norm_swap_registers_sub (A B : Matrix (I × J) (I × J) ℂ) :
     ‖relabelGate (Equiv.prodComm I J) A - relabelGate (Equiv.prodComm I J) B‖
       = ‖A - B‖ :=

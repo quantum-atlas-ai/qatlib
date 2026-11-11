@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonSparseHam09.MainResults.Thm3DenseLowerBound
 import Qatlib.Papers.NonSparseHam09.MainResults.NormChain
+
+/-!
+# Spectral norm of the all-ones matrix
+
+Computes the action of the all-ones matrix on a finite complex vector and proves its exact
+Euclidean operator norm. The result `specNorm_const_one` supplies a sharp example for
+comparisons among matrix norms. See [ChildsKothari2010] for the surrounding analysis.
+
+## Main statements
+
+* `const_one_mulVec`: The all-ones matrix sends a vector to the constant vector whose value is
+  the sum of its coordinates.
+* `specNorm_const_one`: On a finite nonempty index type, the spectral norm of the all-ones
+  matrix equals the cardinality of that type.
+
+## References
+
+* [Childs and Kothari, 2010][ChildsKothari2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,11 +40,15 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 
+/-- The all-ones matrix sends a vector to the constant vector whose value is the sum of its
+coordinates [ChildsKothari2010]. -/
 lemma const_one_mulVec (v : ι → ℂ) :
     (fun _ _ : ι => (1 : ℂ)) *ᵥ v = fun _ => ∑ j, v j := by
   funext i
   simp [Matrix.mulVec, dotProduct]
 
+/-- On a finite nonempty index type, the spectral norm of the all-ones matrix equals the
+cardinality of that type [ChildsKothari2010]. -/
 theorem specNorm_const_one :
     specNorm (fun _ _ : ι => (1 : ℂ)) = (Fintype.card ι : ℝ) := by
   set J : Matrix ι ι ℂ := fun _ _ => (1 : ℂ) with hJ

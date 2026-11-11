@@ -46,6 +46,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Boltzmann suppression and finite postprocessing
+
+This module proves finite bounds supporting the spectral truncation and postprocessing
+discussion of [LidarWang1999]. Positive inverse temperature makes Boltzmann weights decrease
+with energy, and a finite tail is bounded by its cardinality times a cutoff weight.
+
+For a double sum supported on an active set, `source_active_set_truncation` restricts both
+indices to that set. A polynomial cardinality bound then gives the squared polynomial bound on
+the number of index pairs.
+
+## Main statements
+
+* `source_boltzmann_tail_sum`: bounds a finite Boltzmann tail using its multiplicity.
+* `source_active_set_truncation`: restricts a double sum using an exact support hypothesis.
+* `source_polynomial_postprocessing`: bounds the cardinality of the active set squared.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -53,15 +75,20 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ThermalRate98.MainResults
 
+/-- At positive inverse temperature, increasing the energy decreases the Boltzmann weight. -/
 theorem source_boltzmann_suppression (β E_lo E_hi : ℝ) (hβ : 0 < β) (h : E_lo ≤ E_hi) :
     Real.exp (-(β * E_hi)) ≤ Real.exp (-(β * E_lo)) := by
   apply Real.exp_le_exp.2
   nlinarith
 
+/-- At positive inverse temperature, every energy at least `E₀` has Boltzmann weight at most
+that of `E₀`. -/
 theorem source_boltzmann_relative_suppression (β E₀ E : ℝ) (hβ : 0 < β) (h : E₀ ≤ E) :
     Real.exp (-(β * E)) ≤ Real.exp (-(β * E₀)) :=
   source_boltzmann_suppression β E₀ E hβ h
 
+/-- A finite set of energies bounded below by `E₀` has total Boltzmann weight at most its
+cardinality times `exp (-β * E₀)`, for positive `β`. See [LidarWang1999]. -/
 theorem source_boltzmann_tail_sum {I : Type*} [Fintype I] (β E₀ : ℝ) (hβ : 0 < β)
     (E : I → ℝ) (S : Finset I) (hb : ∀ n ∈ S, E₀ ≤ E n) :
     (∑ n ∈ S, Real.exp (-(β * E n))) ≤
@@ -74,6 +101,8 @@ theorem source_boltzmann_tail_sum {I : Type*} [Fintype I] (β E₀ : ℝ) (hβ :
     _ = (S.card : ℝ) * Real.exp (-(β * E₀)) := by
         rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- A finite double sum can be restricted to `S × S` when its summand vanishes whenever either
+index lies outside `S`. See [LidarWang1999]. -/
 theorem source_active_set_truncation {I : Type*} [Fintype I] [DecidableEq I]
     (f : I → I → ℂ) (S : Finset I)
     (h : ∀ n m, n ∉ S ∨ m ∉ S → f n m = 0) :
@@ -100,6 +129,8 @@ theorem source_active_set_truncation {I : Type*} [Fintype I] [DecidableEq I]
         intro n hn
         exact hinner n hn
 
+/-- If the active set has cardinality at most `K` and `K ≤ ν^c`, its Cartesian square has
+cardinality at most `ν^(2 * c)`. See [LidarWang1999]. -/
 theorem source_polynomial_postprocessing {I : Type*} (S : Finset I) (K ν c : ℕ)
     (hS : S.card ≤ K) (hK : K ≤ ν ^ c) :
     (S.product S).card ≤ ν ^ (2 * c) := by

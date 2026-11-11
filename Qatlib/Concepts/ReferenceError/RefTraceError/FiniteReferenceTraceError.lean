@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+
+/-!
+# Finite reference error bounds for unitary mixtures
+
+This module defines mixtures and their iterates on systems with arbitrary finite references. It
+proves trace norm invariance for unitary conjugation, contraction for unitary mixtures, and
+branch-replacement bounds controlled by the probability-weighted operator distance
+`mixtureAccessDistance`. The channel interpretation follows [Watrous2018].
+
+## Main statements
+
+* `finite_reference_conjugation_error`: the bound `2*‖U-V‖*Matrix.traceNorm ρ`.
+* `finite_reference_mixture_iteration`: agreement with bundled channel iteration and
+  preservation of positivity and trace.
+* `finite_reference_iterated_mixture_error`: linear accumulation of access error.
+* `finite_reference_input_and_access_error` and `finite_reference_observable_error`: combined
+  input, access, and observable estimates.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -25,39 +48,50 @@ set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
+/-- The probability-weighted sum of the operator norm distances between corresponding branch
+operators. -/
 noncomputable def mixtureAccessDistance {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U V : J → Operator D) : ℝ :=
   ∑ j, d.prob j * ‖U j - V j‖
 
+/-- The mixture of conjugations by system branch operators tensored with the identity on a
+finite reference. -/
 noncomputable def referenceMixture {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
   ChannelMixture d (fun j => TensorGate (U j) (1 : Operator r)) ρ
 
+/-- The result of iterating the reference mixture `n` times. -/
 noncomputable def referenceMixturePower {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r n : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
   (referenceMixture d U r)^[n] ρ
 
+/-- The complex-linear map underlying the finite conjugation mixture. -/
 noncomputable def channelMixtureMap {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) : Operator D →ₗ[ℂ] Operator D where
   toFun ρ := ChannelMixture d U ρ
   map_add' ρ σ := channelMixture_add d U ρ σ
   map_smul' c ρ := channelMixture_smul d U c ρ
 
+/-- The `n`-fold composition of the mixture linear map, with the identity map at zero. -/
 noncomputable def mixturePowerMap {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) : ℕ → (Operator D →ₗ[ℂ] Operator D)
   | 0 => LinearMap.id
   | n + 1 => (mixturePowerMap d U n).comp (channelMixtureMap d U)
 
+/-- The `n`-fold composition of the forgotten unitary mixture channel, with the identity channel
+at zero. -/
 noncomputable def mixturePowerChannel {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     ℕ → QuantumChannel D D
   | 0 => QuantumChannel.id D
   | n + 1 => (mixturePowerChannel d U hU n).comp (unitaryMixtureInstrument d U hU).forget
 
+/-- Tensoring a unitary system operator with a finite identity reference gives a unitary
+operator. -/
 theorem tensorGate_one_unitary {D R : ℕ} {U : Operator D}
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     TensorGate U (1 : Operator R) ∈ Matrix.unitaryGroup (Fin D × Fin R) ℂ := by
@@ -69,6 +103,8 @@ theorem tensorGate_one_unitary {D R : ℕ} {U : Operator D}
 
 set_option maxHeartbeats 400000 in
 
+/-- Conjugation by a unitary system operator tensored with an identity reference preserves the
+trace norm of every matrix input. -/
 theorem finite_reference_unitary_traceNorm {D : ℕ} (U : Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -96,6 +132,8 @@ theorem finite_reference_unitary_traceNorm {D : ℕ} (U : Operator D) (r : ℕ)
   refine le_trans (le_of_eq (congrArg Matrix.traceNorm hcollapse.symm))
     (Matrix.traceNorm_sandwich_le hnormH hnorm)
 
+/-- The difference of two matrix conjugations splits into two terms containing the difference of
+their conjugating matrices. -/
 private lemma conj_conj_sub {n : Type} [Fintype n] (W X ρ : Matrix n n ℂ) :
     W * ρ * Wᴴ - X * ρ * Xᴴ
       = (W - X) * ρ * Wᴴ + X * ρ * (W - X)ᴴ := by
@@ -105,6 +143,8 @@ private lemma conj_conj_sub {n : Type} [Fintype n] (W X ρ : Matrix n n ℂ) :
     rw [Matrix.conjTranspose_sub, Matrix.mul_sub]
   rw [step1, step2, sub_add_sub_cancel]
 
+/-- Tensoring two operators with the same identity reference does not increase the operator norm
+of their difference. -/
 private lemma l2_tensorGate_sub_le {I J : Type} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (A B : Matrix I I ℂ) :
     ‖TensorGate A (1 : Matrix J J ℂ) - TensorGate B (1 : Matrix J J ℂ)‖ ≤ ‖A - B‖ := by
@@ -117,6 +157,8 @@ private lemma l2_tensorGate_sub_le {I J : Type} [Fintype I] [DecidableEq I] [Fin
 
 set_option maxHeartbeats 400000 in
 
+/-- For unitary `U` and `V`, replacing reference-extended conjugation by `U` with that by `V`
+changes the output by trace norm at most `2*‖U-V‖*Matrix.traceNorm ρ`. -/
 theorem finite_reference_conjugation_error {D : ℕ} (U V : Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -194,6 +236,7 @@ theorem finite_reference_conjugation_error {D : ℕ} (U V : Operator D) (r : ℕ
       _ = Matrix.traceNorm ρ * ‖U - V‖ := by rw [one_mul]
   exact le_trans (add_le_add hA hB) (le_of_eq (by ring))
 
+/-- The trace norm of a finite matrix sum is at most the sum of the trace norms. -/
 private theorem traceNorm_sum_le {ι : Type} [Fintype ι] [DecidableEq ι] {n : Type}
     [Fintype n] (f : ι → Matrix n n ℂ) :
     Matrix.traceNorm (∑ i, f i) ≤ ∑ i, Matrix.traceNorm (f i) := by
@@ -207,10 +250,13 @@ private theorem traceNorm_sum_le {ι : Type} [Fintype ι] [DecidableEq ι] {n : 
           exact le_trans (Matrix.traceNorm_add_le _ _) (add_le_add (le_refl _) ih)
     exact main Finset.univ
 
+/-- Multiplication by a nonnegative real scalar multiplies the matrix trace norm by that scalar. -/
 private lemma traceNorm_smul_ofReal_nonneg {n : Type} [Fintype n] {p : ℝ} (hp : 0 ≤ p)
     (X : Matrix n n ℂ) : Matrix.traceNorm ((p : ℂ) • X) = p * Matrix.traceNorm X := by
   rw [Matrix.traceNorm_smul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hp]
 
+/-- The reference mixture expands as the probability-weighted sum of reference-extended branch
+conjugations. -/
 theorem referenceMixture_apply {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -219,6 +265,8 @@ theorem referenceMixture_apply {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
           (TensorGate (U j) (1 : Operator r))ᴴ) :=
   rfl
 
+/-- A mixture of unitary conjugations tensored with a finite identity reference contracts trace
+norm. -/
 theorem finite_reference_mixture_contraction {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -233,6 +281,8 @@ theorem finite_reference_mixture_contraction {J : Type} [Fintype J] [DecidableEq
       finite_reference_unitary_traceNorm (U j) r ρ (hU j)]
   rw [Finset.sum_congr rfl fun j _ => hterm j, ← Finset.sum_mul, d.sum_one, one_mul]
 
+/-- Replacing unitary branches `U` with `V` changes the reference mixture output by at most
+`2*mixtureAccessDistance d U V*Matrix.traceNorm ρ`. -/
 theorem finite_reference_mixture_error {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U V : J → Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -273,6 +323,7 @@ theorem finite_reference_mixture_error {J : Type} [Fintype J] [DecidableEq J] {D
           Finset.sum_congr rfl fun j _ => by ring
     _ = 2 * mixtureAccessDistance d U V * Matrix.traceNorm ρ := hsum
 
+/-- The mixture linear map equals the probability-weighted sum of branch conjugation maps. -/
 theorem channelMixtureMap_eq_sum {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) :
     channelMixtureMap d U = ∑ j, (d.prob j : ℂ) • conjBranch (U j) := by
@@ -281,6 +332,7 @@ theorem channelMixtureMap_eq_sum {J : Type} [Fintype J] [DecidableEq J] {D : ℕ
   simp only [channelMixtureMap, LinearMap.coe_mk, AddHom.coe_mk, LinearMap.sum_apply,
     LinearMap.smul_apply, conjBranch_apply, ChannelMixture]
 
+/-- Tensor extension of the mixture linear map agrees with the reference mixture. -/
 theorem tensorLeft_channelMixtureMap {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -289,6 +341,8 @@ theorem tensorLeft_channelMixtureMap {J : Type} [Fintype J] [DecidableEq J] {D :
   exact Finset.sum_congr rfl fun j _ => by
     rw [tensorLeft_smul, tensorLeft_conjBranch]
 
+/-- Tensor extension of the iterated mixture linear map agrees with the iterated reference
+mixture. -/
 theorem tensorLeft_mixturePowerMap {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r n : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -301,6 +355,8 @@ theorem tensorLeft_mixturePowerMap {J : Type} [Fintype J] [DecidableEq J] {D : �
       simp only [mixturePowerMap, tensorLeft_comp, ih, tensorLeft_channelMixtureMap]
       rfl
 
+/-- The reference mixture equals tensor extension of the forgotten unitary mixture instrument
+channel. -/
 theorem finite_reference_mixture_instrument {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (r : ℕ)
@@ -310,6 +366,7 @@ theorem finite_reference_mixture_instrument {J : Type} [Fintype J] [DecidableEq 
     LinearMap.ext fun ρ' => unitaryMixture_forget d U hU ρ'
   rw [hmap, tensorLeft_channelMixtureMap d U r ρ]
 
+/-- The map of the iterated unitary mixture channel equals the iterated mixture linear map. -/
 theorem mixturePowerChannel_map {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (n : ℕ) :
@@ -328,6 +385,8 @@ theorem mixturePowerChannel_map {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
       rw [hcomp, ih, hmap]
       rfl
 
+/-- Tensor extension of the iterated unitary mixture channel equals the iterated reference
+mixture. -/
 theorem tensorLeft_mixturePowerChannel {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (n r : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -335,6 +394,8 @@ theorem tensorLeft_mixturePowerChannel {J : Type} [Fintype J] [DecidableEq J] {D
   rw [mixturePowerChannel_map]
   exact tensorLeft_mixturePowerMap d U r n ρ
 
+/-- Unitary mixture iteration agrees with both its linear-map iteration and its reference
+extension, preserves positive semidefiniteness, and preserves trace. -/
 theorem finite_reference_mixture_iteration {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (n r : ℕ)
@@ -351,6 +412,7 @@ theorem finite_reference_mixture_iteration {J : Type} [Fintype J] [DecidableEq J
   · rw [← tensorLeft_mixturePowerChannel d U hU n r ρ]
     exact tensorLeft_trace_map _ (mixturePowerChannel d U hU n).tracePreserving ρ
 
+/-- The reference mixture preserves subtraction of inputs. -/
 theorem referenceMixture_sub {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r : ℕ)
     (ρ σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -360,6 +422,7 @@ theorem referenceMixture_sub {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
   refine Finset.sum_congr rfl fun j _ => ?_
   rw [Matrix.mul_sub, Matrix.sub_mul, smul_sub]
 
+/-- Every iterate of the reference mixture preserves subtraction of inputs. -/
 theorem referenceMixturePower_sub {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r n : ℕ)
     (ρ σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -374,6 +437,7 @@ theorem referenceMixturePower_sub {J : Type} [Fintype J] [DecidableEq J] {D : �
         fun x => Function.iterate_succ_apply' (referenceMixture d U r) n x
       rw [hiter, hiter, hiter, ih, referenceMixture_sub]
 
+/-- Every iterate of a reference mixture of unitary branches contracts trace norm. -/
 theorem referenceMixturePower_contraction {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (r n : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -387,6 +451,8 @@ theorem referenceMixturePower_contraction {J : Type} [Fintype J] [DecidableEq J]
       rw [hiter]
       exact le_trans (ih _) (finite_reference_mixture_contraction d U r ρ hU)
 
+/-- For unitary branch families, the `n`-step reference outputs differ by trace norm at most
+`2*n*mixtureAccessDistance d U V*Matrix.traceNorm ρ`. -/
 theorem finite_reference_iterated_mixture_error {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (d : FinDist J) (U V : J → Operator D) (r n : ℕ)
     (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -454,6 +520,8 @@ theorem finite_reference_iterated_mixture_error {J : Type} [Fintype J] [Decidabl
         _ = 2 * ((n + 1 : ℕ) : ℝ) * mixtureAccessDistance d U V * Matrix.traceNorm ρ :=
               hcast
 
+/-- For unitary branches, the trace norm difference of the iterated outputs is at most the input
+trace norm difference plus `2*n*mixtureAccessDistance d U V*Matrix.traceNorm σ`. -/
 theorem finite_reference_input_and_access_error {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (d : FinDist J) (U V : J → Operator D) (r n : ℕ)
     (ρ σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -476,6 +544,8 @@ theorem finite_reference_input_and_access_error {J : Type} [Fintype J] [Decidabl
   have h2 := finite_reference_iterated_mixture_error d U V r n σ hU hV
   exact add_le_add h1 h2
 
+/-- For unitary branches, the difference of the real observable traces is bounded by `‖M‖` times
+the sum of the input trace norm error and the iterated access error. -/
 theorem finite_reference_observable_error {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (d : FinDist J) (U V : J → Operator D) (r n : ℕ)
     (ρ σ M : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)

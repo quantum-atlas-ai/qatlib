@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascade
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateCompilationAux
+
+/-!
+# Probability and amplification bounds for record-driven cascades
+
+This module proves legality and probability normalization for the record-driven construction,
+together with a good-record mass bound of `9 / 10`. It also supplies relative estimation bounds,
+bounded first-crossing arguments, and output-state properties used to establish the
+variable-time algorithm associated with [Ambainis2012].
+
+## Main statements
+
+* `recordDrivenLaw_probability`: normalization and nonnegativity of the record law.
+* `recordDriven_sharp_good_mass`: the good-record mass lower bound.
+* `recordDriven_prefix_crossing`: bounded minimal threshold crossing.
+* `recordDriven_good_ray`: preservation of the final good-state direction.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -31,6 +52,7 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- Cascade words agree when their schedules agree on all indices below the prefix length. -/
 theorem cascadeWord_congr (s t : ℕ → ℕ) (i : ℕ)
     (h : ∀ j, j < i → s j = t j) : cascadeWord s i = cascadeWord t i := by
   induction i with
@@ -39,6 +61,8 @@ theorem cascadeWord_congr (s t : ℕ → ℕ) (i : ℕ)
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- The input word at record position `i` depends only on record entries at positions strictly
+below `i`. -/
 theorem recordDrivenInputWord_prefix (m : ℕ) (i : Fin (m+1))
     (ω ω' : RecordDrivenRecord m) (h : ∀ j, j.val < i.val → ω j = ω' j) :
     recordDrivenInputWord m ω i = recordDrivenInputWord m ω' i := by
@@ -56,6 +80,7 @@ theorem recordDrivenInputWord_prefix (m : ℕ) (i : Fin (m+1))
 
 omit [DecidableEq C] in
 
+/-- Good amplification preserves legality of a data word. -/
 theorem goodAAWord_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (word : List DataVtStep) (hw : DataVtWordLegal stages word) (k : ℕ) :
     DataVtWordLegal stages (goodAAWord word k) := by
@@ -76,6 +101,7 @@ theorem goodAAWord_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 
 omit [DecidableEq C] in
 
+/-- All record-driven estimation input words and the output word are legal data words. -/
 theorem recordDriven_words_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (ω : RecordDrivenRecord stages.length) :
     (∀ i, DataVtWordLegal stages (recordDrivenInputWord stages.length ω i)) ∧
@@ -93,6 +119,8 @@ theorem recordDriven_words_legal (stages : List (Matrix (VtSpace C) (VtSpace C) 
   · apply goodAAWord_legal
     exact cascadeWord_legal stages _ stages.length le_rfl
 
+/-- For a legal growing pipeline, the record-driven law sums to one and is nonnegative at every
+record. -/
 theorem recordDrivenLaw_probability
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history) :
@@ -105,6 +133,8 @@ theorem recordDrivenLaw_probability
   · intro ω
     exact dataRecordLaw_nonneg _ _ _ _ stages history j₀ _ ω
 
+/-- For `m ≥ 1`, the union-bound loss `(m + 1) * (8 / 9) ^ recordDrivenRepetitions m` is at most
+`1 / 10`. -/
 theorem recordDriven_union_loss (m : ℕ) (hm : 1 ≤ m) :
     ((m+1 : ℕ) : ℝ)*(8/9 : ℝ)^(recordDrivenRepetitions m) ≤ 1/10 := by
   have hb := one_add_mul_le_pow (show (-2 : ℝ) ≤ 1/8 by norm_num) (1000*m)
@@ -123,6 +153,8 @@ theorem recordDriven_union_loss (m : ℕ) (hm : 1 ≤ m) :
   push_cast at hb ⊢
   nlinarith
 
+/-- For a nonempty legal growing pipeline, records satisfying all prescribed estimation error
+bounds have total law mass at least `9 / 10`. -/
 theorem recordDriven_sharp_good_mass
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history) (hm : 1 ≤ stages.length) :
@@ -144,6 +176,8 @@ theorem recordDriven_sharp_good_mass
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- If `a ≥ 0`, `M > 0`, and `M * sqrt a ≥ 1000`, the data estimation radius is at most `a /
+100`. -/
 theorem dataEstimateRadius_relative (a : ℝ) (ha : 0 ≤ a)
     (M : ℕ) (hM : 0 < M) (hres : 1000 ≤ (M : ℝ)*Real.sqrt a) :
     dataEstimateRadius a M ≤ a/100 := by
@@ -178,6 +212,8 @@ theorem dataEstimateRadius_relative (a : ℝ) (ha : 0 ≤ a)
     _ = (2*Real.pi/1000+Real.pi^2/1000000)*a := by ring
     _ ≤ a/100 := by simpa only [one_div_mul_eq_div] using! mul_le_mul_of_nonneg_right hπ ha
 
+/-- The matrix of one good-amplification round equals the prepared amplification iterate for the
+input-word matrix. -/
 theorem goodAARound_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (word : List DataVtStep) :
     dataVtWordMatrix stages history j₀ (goodAARound word) =
@@ -186,6 +222,8 @@ theorem goodAARound_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     dataVtWordMatrix_inverse, dataVtStepMatrix, preparedAAIterate]
   noncomm_ring
 
+/-- The matrix of a good-amplified word is the `k`th power of its prepared amplification iterate
+times the input-word matrix. -/
 theorem goodAAWord_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (word : List DataVtStep) (k : ℕ) :
     dataVtWordMatrix stages history j₀ (goodAAWord word k) =
@@ -201,6 +239,7 @@ theorem goodAAWord_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
   exact (dataVtWordMatrix_append stages history j₀ _ _).trans (congrArg
     (fun A => A*dataVtWordMatrix stages history j₀ word) (hr k))
 
+/-- Good amplification multiplies the input word's charged time by `2 * k + 1`. -/
 theorem goodAAWord_time (word : List DataVtStep) (k : ℕ) :
     dataVtWordTime (goodAAWord word k) = (2*k+1)*dataVtWordTime word := by
   have hr : dataVtWordTime (goodAARound word) = 2*dataVtWordTime word := by
@@ -216,6 +255,8 @@ theorem goodAAWord_time (word : List DataVtStep) (k : ℕ) :
   rw [goodAAWord, dataVtWordTime_append, hf, hr]
   ring
 
+/-- For a legal supported pipeline starting in the running sector, every record-driven output
+has good-sector collapse proportional to the original pipeline's final good-sector collapse. -/
 theorem recordDriven_good_ray
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history) (hj : j₀.1 = vtRunningFlag)
@@ -248,6 +289,8 @@ theorem recordDriven_good_ray
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- For `m ≥ 1` and `a ≥ 1 / (10^12 * m³)`, the prescribed resolution satisfies `M * sqrt a ≥
+1000`. -/
 theorem recordDriven_floor_resolution (m : ℕ) (hm : 1 ≤ m) (a : ℝ)
     (ha : 1/(10^12*(m : ℝ)^3) ≤ a) :
     1000 ≤ (recordDrivenResolution m : ℝ)*Real.sqrt a := by
@@ -273,6 +316,8 @@ theorem recordDriven_floor_resolution (m : ℕ) (hm : 1 ≤ m) (a : ℝ)
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- For `m ≥ 1` and `a ≥ 1 / (10^12 * m³)`, the prescribed-resolution data estimation radius is
+at most `a / 100`. -/
 theorem recordDriven_floor_radius (m : ℕ) (hm : 1 ≤ m) (a : ℝ)
     (ha : 1/(10^12*(m : ℝ)^3) ≤ a) :
     dataEstimateRadius a (recordDrivenResolution m) ≤ a/100 := by
@@ -283,6 +328,8 @@ theorem recordDriven_floor_radius (m : ℕ) (hm : 1 ≤ m) (a : ℝ)
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- For nonnegative `θ` and `n` with `n * θ ≤ 1`, `sin (n * θ)` is at least `n * (1 - (n * θ)² /
+4) * sin θ`. -/
 theorem sine_small_window_gain (θ n : ℝ) (hθ : 0 ≤ θ) (hn : 0 ≤ n)
     (hwin : n*θ ≤ 1) :
     n*(1-(n*θ)^2/4)*Real.sin θ ≤ Real.sin (n*θ) := by
@@ -301,6 +348,8 @@ theorem sine_small_window_gain (θ n : ℝ) (hθ : 0 ≤ θ) (hn : 0 ≤ n)
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- For `0 ≤ θ ≤ π`, nonnegative `n`, and `n * θ ≤ 1`, the squared small-window sine gain
+satisfies the stated lower bound. -/
 theorem sine_small_window_gain_sq (θ n : ℝ) (hθ : 0 ≤ θ) (hθ1 : θ ≤ Real.pi)
     (hn : 0 ≤ n) (hwin : n*θ ≤ 1) :
     n^2*(1-(n*θ)^2/4)^2*(Real.sin θ)^2 ≤ (Real.sin (n*θ))^2 := by
@@ -312,6 +361,8 @@ theorem sine_small_window_gain_sq (θ n : ℝ) (hθ : 0 ≤ θ) (hθ1 : θ ≤ R
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- If a decidable predicate holds at some index at most `N`, searching `List.range (N + 1)`
+returns its least satisfying index, which is at most `N`. -/
 theorem bounded_first_crossing (N : ℕ) (P : ℕ → Prop) [DecidablePred P]
     (hex : ∃ k, k ≤ N ∧ P k) :
     ∃ k, (List.range (N+1)).find? (fun k => decide (P k)) = some k ∧
@@ -332,6 +383,9 @@ theorem bounded_first_crossing (N : ℕ) (P : ℕ → Prop) [DecidablePred P]
 
 omit [Fintype C] [DecidableEq C] in
 
+/-- For `m > 16`, a probability above the stated floor and a relative-error estimate yield a
+selected prefix count within the cap that is the first to reach estimated gain `1 / (6 *
+m)`. -/
 theorem recordDriven_prefix_crossing (m : ℕ) (hm : 16 < m) (a : ℝ)
     (labels : RecordDrivenLabels m)
     (ha : 1/(10^12*(m : ℝ)^3) ≤ a)
@@ -376,6 +430,7 @@ theorem recordDriven_prefix_crossing (m : ℕ) (hm : 16 < m) (a : ℝ)
   rw [he]
   exact ⟨hk, hp, fun j hj => lt_of_not_ge (hmin j hj)⟩
 
+/-- For a legal growing pipeline, every record-driven output state is normalized. -/
 theorem recordDriven_output_normalized
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
@@ -385,6 +440,8 @@ theorem recordDriven_output_normalized
     (dataVtWordMatrix_unitary stages history j₀ hl _ (recordDriven_words_legal stages ω).2)
     (normalized_ket j₀)
 
+/-- For a legal growing pipeline, the sum of the output's good and running masses is at most
+one. -/
 theorem recordDriven_output_flag_mass_le_one
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
@@ -402,6 +459,8 @@ theorem recordDriven_output_flag_mass_le_one
   rw [← measureProb_union _ hdis]
   exact measureProb_le_one (recordDriven_output_normalized stages history j₀ hl ω) _
 
+/-- For a legal growing pipeline, an output good mass of at least `2 / 5` implies running mass
+at most `3 / 5`. -/
 theorem recordDriven_output_running_of_good
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)

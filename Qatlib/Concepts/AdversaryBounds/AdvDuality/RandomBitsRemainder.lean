@@ -10,6 +10,33 @@ import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionTermination
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
+
+/-!
+# Fair-bit execution laws and weighted sampling bounds
+
+This module identifies the costed law of a finite `CoinCode` with execution on a sufficiently
+long uniform bit tape and with a native tape implementation. It verifies composition, read
+bounds, control-state counts, and the laws of fixed-length bit blocks. These provide explicit
+random-bit accounting in the computational setting of [KitaevShenVyalyi2002].
+
+For `weightedSampler`, the module proves exact rejection, return, path-cost, and expectation
+formulas, together with vanishing timeout and a finite limiting expected read count under
+positive total weight. Integer square-root weights yield event-error bounds for `sqrtSampler`,
+including separate precision and timeout contributions.
+
+## Main statements
+
+* `CoinCode.tapeLaw_eq_law`: A tape at least as long as the code depth realizes its costed law.
+* `weightedSampler_law`: Weighted sampling realizes the counted rational rejection process.
+* `weightedSampler_expected_reads_limit`: Expected reads converge to a finite geometric-series
+  value.
+* `sqrtSampler_event_bias`: Event bias is at most the sum of precision and fuel errors.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,9 +59,12 @@ namespace CoinCode
 
 variable {α β : Type}
 
+/-- Running a return node leaves its value unchanged and consumes no bits. -/
 @[simp] theorem run_ret (bs : List Bool) (a : α) : run bs (.ret a) = (.ret a, 0) := by
   cases bs <;> rfl
 
+/-- Running on concatenated tapes is equivalent to running on the first tape and resuming on the
+second, with the read counts added. -/
 theorem run_append (xs ys : List Bool) (p : CoinCode α) :
     p.run (xs ++ ys) =
       let z := p.run xs
@@ -47,6 +77,7 @@ theorem run_append (xs ys : List Bool) (p : CoinCode α) :
       | ret a => simp [run]
       | bit p q => simp only [List.cons_append, run]; rw [ih]; simp [Nat.add_assoc]
 
+/-- The number of bits read by a finite coin program is at most the supplied tape length. -/
 theorem run_reads_le (bs : List Bool) (p : CoinCode α) :
     (p.run bs).2 ≤ bs.length := by
   induction bs generalizing p with
@@ -59,6 +90,7 @@ theorem run_reads_le (bs : List Bool) (p : CoinCode α) :
           simp only [run, List.length_cons]
           omega
 
+/-- The number of bits read by a finite coin program is at most its depth. -/
 theorem run_reads_le_depth (bs : List Bool) (p : CoinCode α) :
     (p.run bs).2 ≤ p.depth := by
   induction bs generalizing p with
@@ -70,6 +102,7 @@ theorem run_reads_le_depth (bs : List Bool) (p : CoinCode α) :
           have h := ih (if b then q else p)
           cases b <;> simp only [run, depth, Bool.false_eq_true, ↓reduceIte] at * <;> omega
 
+/-- A tape whose length is at least the code depth leaves execution at a return node. -/
 theorem run_complete (bs : List Bool) (p : CoinCode α) (h : p.depth ≤ bs.length) :
     ∃ a, (p.run bs).1 = .ret a := by
   induction bs generalizing p with
@@ -83,6 +116,7 @@ theorem run_complete (bs : List Bool) (p : CoinCode α) (h : p.depth ≤ bs.leng
             cases b <;> simp <;> omega
           simpa [run] using ih (if b then q else p) h'
 
+/-- Binding a code to continuations of depth at most `c` increases its depth by at most `c`. -/
 theorem depth_bind_le (p : CoinCode α) (f : α → CoinCode β) (c : ℕ)
     (h : ∀ a, (f a).depth ≤ c) : (p.bind f).depth ≤ p.depth + c := by
   induction p with
@@ -91,6 +125,8 @@ theorem depth_bind_le (p : CoinCode α) (f : α → CoinCode β) (c : ℕ)
       simp only [bind, depth]
       omega
 
+/-- A uniform tape of length at least the code depth realizes the intrinsic costed law, with
+each result wrapped in `some`. -/
 theorem tapeLaw_eq_law (p : CoinCode α) (n : ℕ) (h : p.depth ≤ n) :
     tapeLaw n p = p.law.map (fun z => (some z.1, z.2)) := by
   induction p generalizing n with
@@ -124,6 +160,7 @@ theorem tapeLaw_eq_law (p : CoinCode α) (n : ℕ) (h : p.depth ≤ n) :
                 simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge, PMF.map_comp,
                     Function.comp_def]
 
+/-- The costed law of code composition is the costed bind of the component laws. -/
 theorem law_bind (p : CoinCode α) (f : α → CoinCode β) :
     (p.bind f).law = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind p.law (fun a => (f a).law) := by
   induction p with
@@ -138,6 +175,8 @@ theorem law_bind (p : CoinCode α) (f : α → CoinCode β) :
       · rw [hq]
         exact (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_bind 1 q.law (fun a => (f a).law)).symm
 
+/-- Mapping returned values through a pure continuation maps the value component of the costed
+law and preserves its cost. -/
 theorem law_bind_ret (p : CoinCode α) (f : α → β) :
     (p.bind (fun a => .ret (f a))).law = p.law.map (fun z => (f z.1, z.2)) := by
   rw [law_bind]
@@ -145,6 +184,7 @@ theorem law_bind_ret (p : CoinCode α) (f : α → β) :
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
   exact PMF.bind_pure_comp _ _
 
+/-- The law of an `n`-bit block is `fairBitsCosted n`. -/
 theorem block_law (n : ℕ) : (block n).law = fairBitsCosted n := by
   induction n with
   | zero => rfl
@@ -158,6 +198,7 @@ theorem block_law (n : ℕ) : (block n).law = fairBitsCosted n := by
       funext b
       cases b <;> simp
 
+/-- The depth of an `n`-bit block is at most `n`. -/
 theorem block_depth_le (n : ℕ) : (block n).depth ≤ n := by
   induction n with
   | zero => rfl
@@ -167,6 +208,8 @@ theorem block_depth_le (n : ℕ) : (block n).depth ≤ n := by
           (.ret ((regSuccEquiv n).symm (ω, true)))) 1 (by intro ω; rfl)
       exact h.trans (by omega)
 
+/-- A bit block returns a uniformly distributed register and charges exactly one read per
+register bit. -/
 theorem block_law_uniform (b : ℕ) :
     (block b).law = (PMF.uniformOfFintype' (Reg b)).map (fun ω => (ω, b)) := by
   rw [block_law]
@@ -177,6 +220,8 @@ theorem block_law_uniform (b : ℕ) :
   · subst k; simp
   · simp [hk]
 
+/-- A uniform register of length `n + 1` can be sampled by choosing its head bit and its
+remaining `n` bits independently and uniformly. -/
 private theorem uniform_bits_split {B : Type} (n : ℕ) (f : Reg (n + 1) → B) :
     (PMF.uniformOfFintype' (Reg (n + 1))).map f =
       (PMF.uniformOfFintype' Bool).bind (fun b =>
@@ -194,6 +239,7 @@ private theorem uniform_bits_split {B : Type} (n : ℕ) (f : Reg (n + 1) → B) 
   change (if y = f (Fin.cons b ω) then _ else 0) = _
   split_ifs <;> simp_all [ENNReal.mul_inv, mul_comm]
 
+/-- The law of a fresh tape of length `n` is the uniform law on `Reg n` mapped to lists. -/
 theorem freshTape_uniform (n : ℕ) :
     freshTape n = (PMF.uniformOfFintype' (Reg n)).map List.ofFn := by
   induction n with
@@ -204,9 +250,11 @@ theorem freshTape_uniform (n : ℕ) :
       rw [freshTape, ih, uniform_bits_split]
       simp only [PMF.map_comp, Function.comp_def, List.ofFn_cons]
 
+/-- The subtree at the root position of a code is the code itself. -/
 @[simp] theorem atPosition_root (p : CoinCode α) : p.atPosition p.root = p := by
   cases p <;> rfl
 
+/-- The number of positions of a finite coin code equals its node count. -/
 theorem positions_card (p : CoinCode α) : Fintype.card p.Positions = p.nodes := by
   induction p with
   | ret a => rfl
@@ -215,6 +263,8 @@ theorem positions_card (p : CoinCode α) : Fintype.card p.Positions = p.nodes :=
       simp only [Fintype.card_sum, Fintype.card_unit, hp, hq]
       omega
 
+/-- Mapping a successor position to its subtree gives the branch selected by the bit, or `none`
+at a return node. -/
 theorem nextPosition_spec (p : CoinCode α) (b : Bool) (i : p.Positions) :
     (p.nextPosition b i).map p.atPosition =
       match p.atPosition i with
@@ -228,12 +278,15 @@ theorem nextPosition_spec (p : CoinCode α) (b : Bool) (i : p.Positions) :
       · simpa only [nextPosition, Option.map_map, Function.comp_def, atPosition] using hp i
       · simpa only [nextPosition, Option.map_map, Function.comp_def, atPosition] using hq i
 
+/-- A position containing a return node has no successor for either bit. -/
 theorem nextPosition_none_of_ret (p : CoinCode α) (i : p.Positions) (a : α)
     (h : p.atPosition i = .ret a) (b : Bool) : p.nextPosition b i = none := by
   have hs := nextPosition_spec p b i
   rw [h] at hs
   exact Option.map_eq_none_iff.mp hs
 
+/-- A position containing a bit node has a successor whose subtree is the branch selected by the
+bit. -/
 theorem nextPosition_some_of_bit (p : CoinCode α) (i : p.Positions) (q r : CoinCode α)
     (h : p.atPosition i = .bit q r) (b : Bool) :
     ∃ j, p.nextPosition b i = some j ∧ p.atPosition j = if b then r else q := by
@@ -241,6 +294,8 @@ theorem nextPosition_some_of_bit (p : CoinCode α) (i : p.Positions) (q r : Coin
   rw [h] at hs
   exact Option.map_eq_some_iff.mp hs
 
+/-- One native transition follows `nextPosition` and leaves the tape unchanged, or halts when
+there is no successor. -/
 theorem native_step (p : CoinCode α) (b : Bool) (i : p.Positions)
     (T : Turing.Tape (Option Bool)) :
     Turing.TM0.step (p.nativeTable b) ⟨i, T⟩ =
@@ -248,6 +303,8 @@ theorem native_step (p : CoinCode α) (b : Bool) (i : p.Positions)
   rw [TM0_step_apply]
   simp only [nativeTable, Option.map_map, Function.comp_def, TM0StmtApply, Turing.Tape.write_self]
 
+/-- Native execution from any code position agrees with running its subtree on the supplied
+bits, both in mapped output and bit count. -/
 theorem native_run (p : CoinCode α) (f : α → Bool) (bs : List Bool)
     (i : p.Positions) (T : Turing.Tape (Option Bool)) :
     coinTapeRunAux p.nativeTable (p.nativeAccept f) bs ⟨i, T⟩ =
@@ -274,12 +331,16 @@ theorem native_run (p : CoinCode α) (f : α → Bool) (bs : List Bool)
           rw [coinTapeRunAux, if_neg (by simp [hh]), native_step, hj]
           simp only [Option.map_some, ih, hat, run, Prod.map, id_eq, Nat.add_comm 1]
 
+/-- Native execution from the root agrees with executing the whole coin code, after applying the
+Boolean output map. -/
 theorem native_run_root (p : CoinCode α) (f : α → Bool) (bs : List Bool)
     (T : Turing.Tape (Option Bool)) :
     coinTapeRunAux p.nativeTable (p.nativeAccept f) bs ⟨p.root, T⟩ =
       ((p.run bs).1.output.map f, (p.run bs).2) := by
   simpa only [atPosition_root] using native_run p f bs p.root T
 
+/-- The native transition tables for `false` and `true` halt at exactly the same control
+positions and tape symbols. -/
 theorem native_halt_shared (p : CoinCode α) (i : p.Positions) (γ : Option Bool) :
     p.nativeTable false i γ = none ↔ p.nativeTable true i γ = none := by
   cases h : p.atPosition i with
@@ -289,11 +350,15 @@ theorem native_halt_shared (p : CoinCode α) (i : p.Positions) (γ : Option Bool
       obtain ⟨j1, hj1, _⟩ := nextPosition_some_of_bit p i q r h true
       simp [nativeTable, hj0, hj1]
 
+/-- The native tape implementation returns the mapped coin-code output and the same read count
+for any input tape and supplied coin bits. -/
 theorem native_coinTapeRun (p : CoinCode α) (f : α → Bool) (input bs : List Bool) :
     coinTapeRun p.nativeTable (p.nativeAccept f) (input.map some) bs =
       ((p.run bs).1.output.map f, (p.run bs).2) := by
   exact native_run_root p f bs _
 
+/-- The native transition count from a code position equals the number of bits read by its
+subtree. -/
 theorem native_transition_count (p : CoinCode α) (bs : List Bool) (i : p.Positions)
     (T : Turing.Tape (Option Bool)) :
     coinTapeTransitionCountAux p.nativeTable bs ⟨i, T⟩ = ((p.atPosition i).run bs).2 := by
@@ -312,6 +377,8 @@ theorem native_transition_count (p : CoinCode α) (bs : List Bool) (i : p.Positi
           rw [coinTapeTransitionCountAux, if_neg (by simp [hh]), native_step, hj]
           simp only [Option.map_some, ih, hat, run, Nat.add_comm 1]
 
+/-- The native output and read-count law on a uniform finite tape is the corresponding
+`tapeLaw`, with outputs mapped through `f`. -/
 theorem native_uniform_prefix_law (p : CoinCode α) (f : α → Bool) (input : List Bool)
     (n : ℕ) :
     (PMF.uniformOfFintype' (Reg n)).map
@@ -322,6 +389,8 @@ theorem native_uniform_prefix_law (p : CoinCode α) (f : α → Bool) (input : L
   funext ω
   exact native_coinTapeRun p f input (List.ofFn ω)
 
+/-- A uniform tape at least as long as the code depth realizes its intrinsic native output and
+read-count law. -/
 theorem native_uniform_law (p : CoinCode α) (f : α → Bool) (input : List Bool)
     (n : ℕ) (h : p.depth ≤ n) :
     (PMF.uniformOfFintype' (Reg n)).map
@@ -332,16 +401,20 @@ theorem native_uniform_law (p : CoinCode α) (f : α → Bool) (input : List Boo
 
 end CoinCode
 
+/-- A weighted trial has the law obtained by applying the counted weight decoder to a fair
+`b`-bit block. -/
 theorem weightedTrial_law {N : ℕ} (w : Fin N → ℕ) (b : ℕ) :
     (weightedTrial w b).law = (fairBitsCosted b).map
       (fun z => (weightDecodeCounted w (bitVecEquiv b z.1).val, z.2)) := by
   rw [weightedTrial, CoinCode.law_bind_ret, CoinCode.block_law]
 
+/-- A weighted trial has code depth at most `b`. -/
 theorem weightedTrial_depth_le {N : ℕ} (w : Fin N → ℕ) (b : ℕ) :
     (weightedTrial w b).depth ≤ b := by
   exact (CoinCode.depth_bind_le _ _ 0 (by intro a; rfl)).trans
     (by simpa using CoinCode.block_depth_le b)
 
+/-- A weighted sampler with at most `fuel` trials has code depth at most `b * fuel`. -/
 theorem weightedSampler_depth_le {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ) :
     (weightedSampler w b fuel).depth ≤ b * fuel := by
   suffices h : ∀ cfg, (countedLoop w b fuel cfg).depth ≤ b * fuel from h _
@@ -360,6 +433,8 @@ theorem weightedSampler_depth_le {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ) :
             exact (CoinCode.depth_bind_le _ _ 0 (by intro y; rfl)).trans
               (by simpa using ih (countedTrialResult w b BD ω))
 
+/-- A uniform `b`-bit register produces the counted rational-rejection transition law from the
+current bit and comparison counters. -/
 theorem countedTrialResult_law {N : ℕ} (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) :
     (PMF.uniformOfFintype' (Reg b)).map (countedTrialResult w b BD) =
       rationalCountedNext w b BD := by
@@ -368,6 +443,8 @@ theorem countedTrialResult_law {N : ℕ} (w : Fin N → ℕ) (b : ℕ) (BD : ℕ
   rw [rationalCountedNext, h, PMF.map_comp]
   rfl
 
+/-- The counted loop realizes the fuel-bounded rational transition process and charges `b` bit
+reads per executed trial. -/
 theorem countedLoop_law {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (cfg : Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) :
     (countedLoop w b fuel cfg).law =
@@ -397,11 +474,15 @@ theorem countedLoop_law {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
           funext z
           simp [Nat.mul_add, Nat.add_comm]
 
+/-- The weighted sampler realizes `rationalRejectionRun`, with read cost equal to `b` times the
+number of executed trials. -/
 theorem weightedSampler_law {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ) :
     (weightedSampler w b fuel).law = (rationalRejectionRun w b fuel).map
       (fun z => (z, b * z.2)) :=
   countedLoop_law w b fuel _
 
+/-- A uniform tape of length at least `b * fuel` realizes the weighted sampler law with
+completed results wrapped in `some`. -/
 theorem weightedSampler_tapeLaw {N : ℕ} (w : Fin N → ℕ) (b fuel n : ℕ)
     (h : b * fuel ≤ n) :
     CoinCode.tapeLaw n (weightedSampler w b fuel) =
@@ -410,6 +491,8 @@ theorem weightedSampler_tapeLaw {N : ℕ} (w : Fin N → ℕ) (b fuel n : ℕ)
     weightedSampler_law, PMF.map_comp]
   rfl
 
+/-- With at least `b * fuel` uniform tape bits, the native sampler realizes the mapped
+rational-rejection output law and charges `b` reads per trial. -/
 theorem weightedSampler_native_law {N : ℕ} (w : Fin N → ℕ) (b fuel n : ℕ)
     (h : b * fuel ≤ n) (input : List Bool)
     (f : (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ) × ℕ) → Bool) :
@@ -421,11 +504,14 @@ theorem weightedSampler_native_law {N : ℕ} (w : Fin N → ℕ) (b fuel n : ℕ
     weightedSampler_law, PMF.map_comp]
   rfl
 
+/-- A sampler run reads at most the minimum of the supplied tape length and `b * fuel`. -/
 theorem weightedSampler_run_bound {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ) (bs : List Bool) :
     ((weightedSampler w b fuel).run bs).2 ≤ min bs.length (b * fuel) :=
   le_min (CoinCode.run_reads_le _ _)
     ((CoinCode.run_reads_le_depth _ _).trans (weightedSampler_depth_le w b fuel))
 
+/-- If the total weight fits in `b` bits, the timeout probability is the rejection mass raised
+to `fuel`. -/
 theorem weightedSampler_timeout {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hb : weightTotal w ≤ 2 ^ b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (weightedSampler w b fuel).law
@@ -433,6 +519,8 @@ theorem weightedSampler_timeout {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
   rw [weightedSampler_law, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map]
   exact rational_pending_mass w b fuel hb
 
+/-- For positive total weight fitting in `b` bits, the probability of returning `j` is its
+normalized weight multiplied by one minus the timeout probability. -/
 theorem weightedSampler_return {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) (j : Fin N) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (weightedSampler w b fuel).law
@@ -441,6 +529,8 @@ theorem weightedSampler_return {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
   rw [weightedSampler_law, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map]
   exact (rational_finite_return_pending_and_first_stop N w b fuel hW hb).2.1 j
 
+/-- Every supported sampler execution uses at most `fuel` trials, reads exactly `b` bits per
+trial, and performs at most `N` comparisons per trial. -/
 theorem weightedSampler_paths {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (z : (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ) × ℕ) × ℕ)
     (hz : z ∈ (weightedSampler w b fuel).law.support) :
@@ -451,6 +541,9 @@ theorem weightedSampler_paths {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
   obtain ⟨ht, hb, hc, _, _⟩ := (rational_counted_run_projection_and_paths N w b fuel).2 y hy
   exact ⟨ht, rfl, hb, hc⟩
 
+/-- For positive total weight fitting in `b` bits, expected reads and comparisons are their
+respective per-trial costs multiplied by the finite geometric sum of rejection
+probabilities. -/
 theorem weightedSampler_expectations {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (weightedSampler w b fuel).law =
@@ -469,6 +562,8 @@ theorem weightedSampler_expectations {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ
   · rw [weightedSampler_law, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
     exact h.2.2.1
 
+/-- For positive total weight fitting in `b` bits, the timeout probability tends to zero as the
+fuel tends to infinity. -/
 theorem weightedSampler_timeout_tendsto_zero {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     Filter.Tendsto (fun fuel => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (weightedSampler w b fuel).law
@@ -476,10 +571,12 @@ theorem weightedSampler_timeout_tendsto_zero {N : ℕ} (w : Fin N → ℕ) (b : 
   simpa only [weightedSampler_law, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map] using
     (rational_unbounded_actual_first_stop_law N w b hW hb).2.2.2.1
 
+/-- The infimum over fuel budgets of the weighted sampler's timeout probability. -/
 noncomputable def weightedSamplerNever {N : ℕ} (w : Fin N → ℕ) (b : ℕ) : ℝ≥0∞ :=
   ⨅ fuel, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (weightedSampler w b fuel).law
     (fun z => rejectionOutcome z.1.1 = .inr ())
 
+/-- For positive total weight fitting in `b` bits, the infimum of timeout probabilities is zero. -/
 theorem weightedSamplerNever_eq_zero {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     weightedSamplerNever w b = 0 := by
@@ -487,6 +584,8 @@ theorem weightedSamplerNever_eq_zero {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
   exact ge_of_tendsto (weightedSampler_timeout_tendsto_zero w b hW hb)
     (Filter.Eventually.of_forall fun fuel => iInf_le _ fuel)
 
+/-- For positive total weight fitting in `b` bits, expected reads converge to `b` divided by one
+minus the rejection mass, and this limit is finite. -/
 theorem weightedSampler_expected_reads_limit {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     Filter.Tendsto (fun fuel => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (weightedSampler w b fuel).law)
@@ -503,6 +602,8 @@ theorem weightedSampler_expected_reads_limit {N : ℕ} (w : Fin N → ℕ) (b : 
   rw [heq]
   exact h.2.2.2.2.2.2.1
 
+/-- With one zero-weight outcome and zero-bit blocks, every permitted trial fails, increments
+the comparison counter once, and reads no bits. -/
 theorem zeroWeight_zeroBit_loop (fuel : ℕ) (BD : ℕ × ℕ) :
     countedLoop (fun _ : Fin 1 => 0) 0 fuel (.inr BD) =
       .ret (.inr (BD.1, BD.2 + fuel), fuel) := by
@@ -514,12 +615,16 @@ theorem zeroWeight_zeroBit_loop (fuel : ℕ) (BD : ℕ × ℕ) :
       simp only [countedLoop, CoinCode.block, CoinCode.bind, ht, ih]
       simp [Nat.add_assoc, Nat.add_comm 1]
 
+/-- The infimum of timeout probabilities is one for the one-outcome zero-weight sampler with
+zero-bit blocks. -/
 theorem zeroWeight_zeroBit_never :
     weightedSamplerNever (fun _ : Fin 1 => 0) 0 = 1 := by
   unfold weightedSamplerNever
   simp only [weightedSampler, zeroWeight_zeroBit_loop, CoinCode.law, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, rejectionOutcome, ite_true, iInf_const]
 
+/-- A feedback trial has the law of counted weight decoding on a fair block, updating the state
+on acceptance while preserving the environment. -/
 theorem feedbackTrial_law {S E : Type} {N : ℕ} (weights : S → Fin N → ℕ)
     (update : S → Fin N → S) (b : ℕ) (s : S) (env : E) :
     (feedbackTrial weights update b s env).law =
@@ -529,6 +634,8 @@ theorem feedbackTrial_law {S E : Type} {N : ℕ} (weights : S → Fin N → ℕ)
   rw [feedbackTrial, CoinCode.law_bind_ret, weightedTrial_law, PMF.map_comp]
   rfl
 
+/-- The integer square-root weight lies at or below the scaled real square root, with a gap
+strictly less than one. -/
 theorem sqrtWeight_interval (s a : ℕ) :
     (sqrtWeight s a : ℝ) ≤ (s : ℝ) * Real.sqrt a ∧
       (s : ℝ) * Real.sqrt a < (sqrtWeight s a : ℝ) + 1 := by
@@ -542,6 +649,8 @@ theorem sqrtWeight_interval (s a : ℕ) :
   have hnon : 0 ≤ (s : ℝ) * Real.sqrt a := by positivity
   constructor <;> nlinarith [sq_nonneg ((sqrtWeight s a : ℝ) - (s : ℝ) * Real.sqrt a)]
 
+/-- At positive scale `s`, dividing the integer square-root weight by `s` underestimates the
+real square root by a nonnegative amount strictly less than `1 / s`. -/
 theorem sqrtWeight_error (s a : ℕ) (hs : 0 < s) :
     0 ≤ Real.sqrt a - (sqrtWeight s a : ℝ) / s ∧
       Real.sqrt a - (sqrtWeight s a : ℝ) / s < 1 / (s : ℝ) := by
@@ -554,10 +663,13 @@ theorem sqrtWeight_error (s a : ℕ) (hs : 0 < s) :
     rw [sub_mul, div_mul_cancel₀ _ (ne_of_gt hp)]
     nlinarith [h.2]
 
+/-- A positive input and positive scale give a positive integer square-root weight. -/
 theorem sqrtWeight_positive (s a : ℕ) (hs : 0 < s) (ha : 0 < a) : 0 < sqrtWeight s a := by
   apply Nat.sqrt_pos.mpr
   exact Nat.mul_pos ha (Nat.pow_pos hs)
 
+/-- Under the subweight and deficit bounds, the difference between the two normalized event
+weights is at most the relative total-weight deficit. -/
 theorem normalized_subweight_event_error (u v U W : ℝ)
     (hU : 0 < U) (hUW : U ≤ W) (hu : 0 ≤ u) (huU : u ≤ U)
     (huv : u ≤ v) (hdiff : v - u ≤ W - U) :
@@ -577,6 +689,8 @@ theorem normalized_subweight_event_error (u v U W : ℝ)
     _ ≤ (U * (W - U)) / (U * W) := div_le_div_of_nonneg_right hnum (mul_pos hU hW).le
     _ = (W - U) / W := by field_simp
 
+/-- Componentwise underapproximations with error at most `δ` and total mass at least one change
+every normalized event weight by at most `N * δ`. -/
 theorem normalized_underapprox_event_bound {N : ℕ} (u v : Fin N → ℝ) (δ : ℝ)
     (F : Finset (Fin N)) (hu : ∀ i, 0 ≤ u i) (huv : ∀ i, u i ≤ v i)
     (hδ : ∀ i, v i - u i ≤ δ) (hU : 1 ≤ ∑ i, u i) :
@@ -605,11 +719,14 @@ theorem normalized_underapprox_event_bound {N : ℕ} (u v : Fin N → ℝ) (δ :
       nlinarith [mul_nonneg (sub_nonneg.mpr hUW) (sub_nonneg.mpr (hU.trans hUW))]
     _ ≤ _ := herr
 
+/-- For a positive natural input, the integer square-root weight is at least the scale. -/
 theorem sqrtWeight_ge_scale (s a : ℕ) (ha : 0 < a) : s ≤ sqrtWeight s a := by
   apply Nat.le_sqrt'.mpr
   have h : 1 ≤ a := ha
   nlinarith [Nat.mul_le_mul_right (s ^ 2) h]
 
+/-- If some input weight is positive, normalizing integer square-root weights at positive scale
+`s` changes any event probability by at most `N / s`. -/
 theorem sqrtWeight_event_error {N : ℕ} (a : Fin N → ℕ) (s : ℕ) (hs : 0 < s)
     (ha : ∃ i, 0 < a i) (F : Finset (Fin N)) :
     |(∑ i ∈ F, (sqrtWeight s (a i) : ℝ)) / (∑ i, (sqrtWeight s (a i) : ℝ)) -
@@ -633,6 +750,8 @@ theorem sqrtWeight_event_error {N : ℕ} (a : Fin N → ℕ) (s : ℕ) (hs : 0 <
   rw [div_div_div_cancel_right₀ (ne_of_gt hsp)] at h
   simpa only [mul_one_div] using h
 
+/-- Using `sqrtPrecisionScale N k` bounds every normalized square-root event error by `1 / 2 ^
+k` when some input weight is positive. -/
 theorem sqrtWeight_precision_event_error {N : ℕ} (a : Fin N → ℕ) (k : ℕ)
     (ha : ∃ i, 0 < a i) (F : Finset (Fin N)) :
     |(∑ i ∈ F, (sqrtWeight (sqrtPrecisionScale N k) (a i) : ℝ)) /
@@ -645,6 +764,8 @@ theorem sqrtWeight_precision_event_error {N : ℕ} (a : Fin N → ℕ) (k : ℕ)
   apply (div_le_div_iff₀ (by positivity) (by positivity)).mpr
   nlinarith [pow_pos (by norm_num : (0 : ℝ) < 2) k]
 
+/-- For positive total weight fitting in `b` bits, the probability of acceptance in `F` is its
+normalized total weight times one minus the timeout probability. -/
 theorem weightedSampler_set_return {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) (F : Finset (Fin N)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (weightedSampler w b fuel).law (fun z => acceptedIn F z.1.1) =
@@ -664,6 +785,8 @@ theorem weightedSampler_set_return {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
   simp only [weightedSampler_return w b fuel hW hb]
   simp only [div_eq_mul_inv, ← Finset.sum_mul, Nat.cast_sum]
 
+/-- The real-valued probability of acceptance in `F` is its normalized weight multiplied by one
+minus the real rejection mass raised to `fuel`. -/
 theorem weightedSampler_set_return_real {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) (F : Finset (Fin N)) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (weightedSampler w b fuel).law (fun z => acceptedIn F z.1.1)).toReal =
@@ -676,6 +799,8 @@ theorem weightedSampler_set_return_real {N : ℕ} (w : Fin N → ℕ) (b fuel : 
     ENNReal.toReal_sub_of_le hq (by simp), ENNReal.toReal_pow]
   simp only [ENNReal.toReal_natCast, ENNReal.toReal_one]
 
+/-- The precision-scaled square-root weights have positive total weight whenever some input
+weight is positive. -/
 theorem sqrtWeights_total_pos {N : ℕ} (a : Fin N → ℕ) (k : ℕ)
     (ha : ∃ i, 0 < a i) : 0 < weightTotal (sqrtWeights a k) := by
   obtain ⟨i, hi⟩ := ha
@@ -683,6 +808,8 @@ theorem sqrtWeights_total_pos {N : ℕ} (a : Fin N → ℕ) (k : ℕ)
   have hp : 0 < sqrtWeights a k i := sqrtWeight_positive _ _ hs hi
   exact lt_of_lt_of_le hp (Finset.single_le_sum (fun j _ => Nat.zero_le _) (Finset.mem_univ i))
 
+/-- When some input weight is positive, the probability of acceptance in any finite set differs
+from its normalized square-root weight by at most `1 / 2 ^ k + 1 / 2 ^ fuel`. -/
 theorem sqrtSampler_event_bias {N : ℕ} (a : Fin N → ℕ) (k fuel : ℕ)
     (ha : ∃ i, 0 < a i) (F : Finset (Fin N)) :
     |(Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (sqrtSampler a k fuel).law (fun z => acceptedIn F z.1.1)).toReal -
@@ -728,6 +855,8 @@ theorem sqrtSampler_event_bias {N : ℕ} (a : Fin N → ℕ) (k fuel : ℕ)
     _ ≤ t + 1 / (2 : ℝ) ^ k := add_le_add (mul_le_of_le_one_left ht hr1) happ
     _ ≤ _ := by linarith
 
+/-- On an empty outcome type with zero-bit blocks, the counted loop preserves the bit and
+comparison counters and records `fuel` failed trials. -/
 theorem countedLoop_empty_zeroBit (fuel : ℕ) (BD : ℕ × ℕ) :
     countedLoop (fun _ : Fin 0 => 1) 0 fuel (.inr BD) = .ret (.inr BD,fuel) := by
   induction fuel with
@@ -740,6 +869,8 @@ theorem countedLoop_empty_zeroBit (fuel : ℕ) (BD : ℕ × ℕ) :
       rw [hd,ih]
       simp [CoinCode.bind,Nat.add_comm]
 
+/-- The sampler on an empty outcome type with zero-bit blocks returns the pending zero-counter
+configuration and the full trial count without reading bits. -/
 theorem weightedSampler_empty_zeroBit (cap : ℕ) :
     weightedSampler (fun _ : Fin 0 => 1) (Nat.clog 2 0) cap = .ret (.inr (0,0),cap) := by
   have hw : Nat.clog 2 0 = 0 := by decide +kernel

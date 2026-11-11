@@ -10,6 +10,33 @@ import Mathlib.Data.List.Perm.Subperm
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
 import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerSepa
+
+/-!
+# Classical oracle witness bounds
+
+This module proves resource bounds for sampler prefixes, phase-oracle padding, and bounded
+searches for unused binary strings. It also establishes weighted sampling estimates, protected
+diagonal lengths, and tensor-state occupation inequalities in the finite oracle-circuit setting
+of [KitaevShenVyalyi2002].
+
+`classifier_strong_sampling_lower` transfers classifier acceptance and rejection hypotheses to a
+lower bound for cumulative sampling. The tensor lemmas express normalization, permutation
+symmetry, and occupation-event bounds using the state and measurement conventions of
+[Watrous2018].
+
+## Main statements
+
+* `paddedSamplerPrefix_resources`: gives exact padded query counts and a word-length bound.
+* `classifier_strong_sampling_lower`: derives a strong-average lower bound for cumulative
+  sampling success.
+* `occupied_born_le_moment`: bounds an occupation event by a Born-weighted occupation moment.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +57,7 @@ open Qatlib.Concepts.QmaCompleteness.WitnessSampler
 open Qatlib.Concepts.QmaCompleteness.WitnessSampler.SeparatingQMAFromQCMAWithAClassicalOracle2025
 open scoped BigOperators
 
+/-- The number of sampler prefixes equals the number of `S` queries in the circuit. -/
 theorem samplerPrefixes_length {I : Type} (D : Matrix I I ℂ) (C : TOCircuit I) :
     (samplerPrefixes D C).length = TOQueryCountS C := by
   induction C with
@@ -37,6 +65,8 @@ theorem samplerPrefixes_length {I : Type} (D : Matrix I I ℂ) (C : TOCircuit I)
   | cons s C ih =>
     cases s <;> simp [samplerPrefixes, TOQueryCountS, ih, Nat.add_comm]
 
+/-- Running the extracted sampler prefixes produces the list of `S`-query states with earlier
+`S` queries replaced by `D`. -/
 theorem samplerPrefixes_run {I : Type} [Fintype I] [DecidableEq I]
     (D S U : Matrix I I ℂ) (C : TOCircuit I) (ψ : QState I) :
     ((samplerPrefixes D C).map (fun P => TORun S U P ψ)) = sQueryStates D U C ψ := by
@@ -45,6 +75,8 @@ theorem samplerPrefixes_run {I : Type} [Fintype I] [DecidableEq I]
   | cons s C ih =>
     cases s <;> simp [samplerPrefixes, sQueryStates, List.map_map, Function.comp_def, TORun, ih]
 
+/-- Each sampler prefix has no `S` queries, no more `U` queries than the original circuit, and
+no greater length. -/
 theorem samplerPrefixes_resources {I : Type} (D : Matrix I I ℂ) (C P : TOCircuit I)
     (hP : P ∈ samplerPrefixes D C) :
     TOQueryCountS P = 0 ∧ TOQueryCountU P ≤ TOQueryCountU C ∧ P.length ≤ C.length := by
@@ -68,11 +100,13 @@ theorem samplerPrefixes_resources {I : Type} (D : Matrix I I ℂ) (C P : TOCircu
         obtain ⟨hS, hU, hlen⟩ := ih Q hQ
         exact ⟨hS, hU, Nat.succ_le_succ hlen⟩
 
+/-- The binary alphabet list on `n` bits has length `2^n`. -/
 theorem binaryAlphabet_length (n : ℕ) : (binaryAlphabet n).length = 2 ^ n := by
   induction n with
   | zero => rfl
   | succ n ih => simp [binaryAlphabet, ih, pow_succ, Nat.mul_two]
 
+/-- Every `n`-bit register configuration occurs in the binary alphabet list. -/
 theorem mem_binaryAlphabet (n : ℕ) (x : Reg n) : x ∈ binaryAlphabet n := by
   induction n with
   | zero =>
@@ -89,12 +123,15 @@ theorem mem_binaryAlphabet (n : ℕ) (x : Reg n) : x ∈ binaryAlphabet n := by
     · apply List.mem_append_right
       exact List.mem_map.mpr ⟨_, hm, by simpa [hb] using! hx⟩
 
+/-- The full fresh-string search returns `none` exactly when every `n`-bit string occurs in the
+history. -/
 theorem firstFresh_eq_none_iff (n : ℕ) (hist : List (Reg n)) :
     firstFresh n hist = none ↔ ∀ x : Reg n, x ∈ hist := by
   simp only [firstFresh, List.find?_eq_none, Bool.not_eq_true, decide_eq_false_iff_not,
     not_not]
   exact ⟨fun h x => h x (mem_binaryAlphabet n x), fun h x _ => h x⟩
 
+/-- Every string returned by the sampler fallback is absent from the history. -/
 theorem samplerFallback_fresh (n : ℕ) (hist : List (Reg n)) (x y : Reg n)
     (h : samplerFallback n hist x = some y) : y ∉ hist := by
   unfold samplerFallback at h
@@ -103,10 +140,13 @@ theorem samplerFallback_fresh (n : ℕ) (hist : List (Reg n)) (x y : Reg n)
   · cases h
     assumption
 
+/-- The sampler fallback returns its input string when that string is absent from the history. -/
 theorem samplerFallback_direct (n : ℕ) (hist : List (Reg n)) (x : Reg n)
     (hx : x ∉ hist) : samplerFallback n hist x = some x := by
   simp [samplerFallback, hx]
 
+/-- If the prefix has at most `t` `U` queries, padding preserves its `S` query count, raises its
+`U` query count to `t`, and adds exactly `t - TOQueryCountU P` steps. -/
 theorem paddedPrefix_resources {I : Type} (t : ℕ) (P : TOCircuit I)
     (hP : TOQueryCountU P ≤ t) :
     TOQueryCountS (paddedPrefix t P) = TOQueryCountS P ∧
@@ -131,6 +171,8 @@ theorem paddedPrefix_resources {I : Type} (t : ℕ) (P : TOCircuit I)
   simp only [paddedPrefix, hS, hU, (hrep _).1, (hrep _).2, Nat.add_zero,
     Nat.add_sub_of_le hP, List.length_append, List.length_replicate, and_self]
 
+/-- The value component of the counted binary-prefix generator is the first `k` entries of the
+binary alphabet. -/
 theorem binaryPrefixCounted_value (n k : ℕ) :
     (binaryPrefixCounted n k).1 = (binaryAlphabet n).take k := by
   induction n generalizing k with
@@ -146,6 +188,7 @@ theorem binaryPrefixCounted_value (n k : ℕ) :
       simpa only [binaryAlphabet_length] using!
         (List.take_eq_take_min (l := binaryAlphabet n) (i := k + 1)).symm
 
+/-- The counted binary-prefix generator uses at most `(2 * n + 1) * k + 1` recursive visits. -/
 theorem binaryPrefixCounted_visits (n k : ℕ) :
     (binaryPrefixCounted n k).2 ≤ (2 * n + 1) * k + 1 := by
   induction n generalizing k with
@@ -165,6 +208,7 @@ theorem binaryPrefixCounted_visits (n k : ℕ) :
         _ = (2*n+1) * (k+1) + 3 := by rw [hsum]
         _ ≤ (2*(n+1)+1) * (k+1) + 1 := by nlinarith
 
+/-- The binary alphabet list has no repeated entries. -/
 theorem binaryAlphabet_nodup (n : ℕ) : (binaryAlphabet n).Nodup := by
   induction n with
   | zero => simp [binaryAlphabet]
@@ -178,6 +222,8 @@ theorem binaryAlphabet_nodup (n : ℕ) : (binaryAlphabet n).Nodup := by
     have h := congrFun hab 0
     simp at h
 
+/-- The bounded fresh-string search returns `none` exactly when the history contains every
+`n`-bit string. -/
 theorem firstFreshBounded_eq_none_iff (n : ℕ) (hist : List (Reg n)) :
     firstFreshBounded n hist = none ↔ ∀ x : Reg n, x ∈ hist := by
   simp only [firstFreshBounded, binaryPrefixCounted_value, List.find?_eq_none,
@@ -195,6 +241,7 @@ theorem firstFreshBounded_eq_none_iff (n : ℕ) (hist : List (Reg n)) :
   · intro h x _
     exact h x
 
+/-- The bounded fresh-string search agrees with the full binary-alphabet search. -/
 theorem firstFreshBounded_eq_firstFresh (n : ℕ) (hist : List (Reg n)) :
     firstFreshBounded n hist = firstFresh n hist := by
   cases h : firstFreshBounded n hist with
@@ -207,6 +254,8 @@ theorem firstFreshBounded_eq_firstFresh (n : ℕ) (hist : List (Reg n)) :
       simpa only [firstFreshBounded, binaryPrefixCounted_value] using! h
     exact ((List.take_prefix (hist.length + 1) (binaryAlphabet n)).find?_eq_some ht).symm
 
+/-- Appending copies of a phase oracle at the end of a prefix preserves every
+computational-basis event probability. -/
 theorem paddedPrefix_phase_readout {I : Type} [Fintype I] [DecidableEq I]
     (f : I → Bool) (S : Matrix I I ℂ) (P : TOCircuit I) (t : ℕ)
     (ψ : QState I) (E : Finset I) :
@@ -234,12 +283,16 @@ theorem paddedPrefix_phase_readout {I : Type} [Fintype I] [DecidableEq I]
       split_ifs <;> simp
   exact (congrArg (fun φ => MeasureProb φ E) (happ P _ ψ)).trans (hrep _ _)
 
+/-- The `U` forrelation phase oracle is the diagonal phase oracle for the predicate combining
+its control bit with `U`. -/
 theorem forrPhaseOracleU_diagonal (n : ℕ) (U : Reg n → Bool) (W : Type)
     [Fintype W] [DecidableEq W] :
     forrPhaseOracleU n U W = PhaseOracle (fun p : ForrSpace n W => p.2.1.2 && U p.2.1.1) := by
   simp only [forrPhaseOracleU, TensorGate, PhaseOracle, ← Matrix.diagonal_one,
     Matrix.diagonal_kronecker_diagonal, one_mul, mul_one]
 
+/-- A sampler prefix padded to a circuit-wide `U` query bound has zero `S` queries, exactly `t`
+`U` queries, and length at most `C.length + t`. -/
 theorem paddedSamplerPrefix_resources {I : Type} (D : Matrix I I ℂ)
     (C P : TOCircuit I) (t : ℕ) (hP : P ∈ samplerPrefixes D C) (hC : TOQueryCountU C ≤ t) :
     TOQueryCountS (paddedPrefix t P) = 0 ∧
@@ -251,6 +304,8 @@ theorem paddedSamplerPrefix_resources {I : Type} (D : Matrix I I ℂ)
   rw [hlenp]
   omega
 
+/-- Flattening words with zero `S` queries, exactly `t` `U` queries, and length at most `L`
+yields the corresponding counts and length bound multiplied by the number of words. -/
 theorem cumulativeWords_resources {I : Type} (words : List (TOCircuit I)) (t L : ℕ)
     (hwords : ∀ P ∈ words, TOQueryCountS P = 0 ∧ TOQueryCountU P = t ∧ P.length ≤ L) :
     TOQueryCountS words.flatten = 0 ∧
@@ -275,6 +330,8 @@ theorem cumulativeWords_resources {I : Type} (words : List (TOCircuit I)) (t L :
       List.length_cons, Nat.succ_mul, List.length_append]
     exact ⟨trivial, Nat.add_comm _ _, (add_le_add hPL hiL).trans_eq (Nat.add_comm _ _)⟩
 
+/-- For every fixed sample tuple, the strong Bernoulli weights sum to one over all Boolean
+oracles. -/
 theorem strongWeight_sum (n ℓ : ℕ) (κ : ℝ) (s : Fin ℓ → Reg n) :
     ∑ U : Reg n → Bool, strongBernoulliWeight n ℓ κ s U = 1 := by
   classical
@@ -303,9 +360,11 @@ theorem strongWeight_sum (n ℓ : ℕ) (κ : ℝ) (s : Fin ℓ → Reg n) :
     by_cases hy : y = ZeroStr n <;> simp [factor, hy]
   simp only [hf, Finset.prod_const_one]
 
+/-- The strong weighted average of the constant function one is one. -/
 theorem strongAverage_one (n ℓ : ℕ) (κ : ℝ) : strongAverage n ℓ κ (fun _ _ => 1) = 1 := by
   simp [strongAverage, strongWeight_sum]
 
+/-- For nonnegative `κ`, the strong weighted average preserves pointwise inequalities. -/
 theorem strongAverage_mono (n ℓ : ℕ) (κ : ℝ) (hκ : 0 ≤ κ)
     (f g : (Fin ℓ → Reg n) → (Reg n → Bool) → ℝ) (hfg : ∀ s U, f s U ≤ g s U) :
     strongAverage n ℓ κ f ≤ strongAverage n ℓ κ g := by
@@ -314,6 +373,8 @@ theorem strongAverage_mono (n ℓ : ℕ) (κ : ℝ) (hκ : 0 ≤ κ)
   exact Finset.sum_le_sum fun s _ => Finset.sum_le_sum fun U _ =>
     mul_le_mul_of_nonneg_left (hfg s U) (strongBernoulliWeight_nonneg n ℓ κ hκ s U)
 
+/-- For nonnegative `κ`, a nonnegative function bounded below by `L` on strong yes instances has
+strong average at least `(1 - strongFailProb) * L`. -/
 theorem strongAverage_lower_of_good (n ℓ v : ℕ) (κ t1 t2 L : ℝ) (hκ : 0 ≤ κ)
     (f : (Fin ℓ → Reg n) → (Reg n → Bool) → ℝ)
     (hf : ∀ s U, 0 ≤ f s U)
@@ -345,6 +406,8 @@ theorem strongAverage_lower_of_good (n ℓ v : ℕ) (κ t1 t2 L : ℝ) (hκ : 0 
       _ = L := by rw [strongAverage_one, one_mul]
   nlinarith only [hmono, hpartition]
 
+/-- A query to the packed bit oracle uses the tag bit to select `S` or `U` and XORs the selected
+oracle value into the answer bit. -/
 theorem packedOracle_query (S U : ∀ n, Reg n → Bool) (n : ℕ) (tag : Bool)
     (x : Reg n) (b : Bool) :
     ApplyGate (BitOracleOn (packedOracle S U (n+1))) (Ket (Fin.cons tag x, b)) =
@@ -352,10 +415,13 @@ theorem packedOracle_query (S U : ∀ n, Reg n → Bool) (n : ℕ) (tag : Bool)
   rw [applyGate_bitOracleOn_ket]
   rfl
 
+/-- The false-tag and true-tag restrictions of the packed oracle recover `S` and `U`,
+respectively. -/
 theorem packedOracle_restrictions (S U : ∀ n, Reg n → Bool) (n : ℕ) (x : Reg n) :
     packedOracle S U (n+1) (Fin.cons false x) = S n x ∧
     packedOracle S U (n+1) (Fin.cons true x) = U n x := ⟨rfl, rfl⟩
 
+/-- The diagonal length sequence is strictly increasing. -/
 theorem diagonalLengths_strictMono (threshold : ℕ → ℕ) (window : ℕ → ℕ → ℕ) :
     StrictMono (diagonalLengths threshold window) := by
   apply strictMono_nat_of_lt_succ
@@ -363,6 +429,8 @@ theorem diagonalLengths_strictMono (threshold : ℕ → ℕ) (window : ℕ → �
   simp only [diagonalLengths]
   omega
 
+/-- Every diagonal length exceeds its threshold, and each later length exceeds the query window
+associated with each earlier stage. -/
 theorem diagonalLengths_protection (threshold : ℕ → ℕ) (window : ℕ → ℕ → ℕ) :
     (∀ k, threshold k < diagonalLengths threshold window k) ∧
     (∀ k j, k < j → window k (diagonalLengths threshold window k) <
@@ -381,6 +449,7 @@ theorem diagonalLengths_protection (threshold : ℕ → ℕ) (window : ℕ → �
       omega
     exact hnext.trans_le ((diagonalLengths_strictMono threshold window).monotone (by omega))
 
+/-- The cumulative sampler success quantity is nonnegative. -/
 theorem cumulativeSamplerSuccess_nonneg (n q : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (S U : Reg n → Bool) (C : TOCircuit (ForrSpace n W))
     (ψfam : (Fin q → Bool) → QState (ForrSpace n W)) (v : ℕ) :
@@ -408,6 +477,9 @@ theorem cumulativeSamplerSuccess_nonneg (n q : ℕ) (W : Type) [Fintype W] [Deci
   unfold cumulativeSamplerSuccess
   exact mul_nonneg (by positivity) (Finset.sum_nonneg fun w _ => hcum (ψfam w) v [])
 
+/-- Under the unitary classifier, normalization, query-budget, and acceptance-gap hypotheses,
+the strong average of cumulative sampling success is at least `(1 - strongFailProb) * ((1 /
+2^q) * (1 / (36 * t²)))^v`. -/
 theorem classifier_strong_sampling_lower (n ℓ q t v : ℕ) (κ : ℝ) (hκ : 0 ≤ κ)
     (W : Type) [Fintype W] [DecidableEq W]
     (C : TOCircuit (ForrSpace n W))
@@ -443,6 +515,8 @@ theorem classifier_strong_sampling_lower (n ℓ q t v : ℕ) (κ : ℝ) (hκ : 0
       rw [heq]
       exact hist.toFinset_card_le.trans hlen
 
+/-- The inner product of two `ℓ`-fold condensate tensors is the `ℓ`-th power of the underlying
+state inner product. -/
 theorem condensateTensor_inner {I : Type} [Fintype I] [DecidableEq I]
     (ℓ : ℕ) (φ ψ : QState I) :
     Inner (condensateTensor ℓ φ) (condensateTensor ℓ ψ) = (Inner φ ψ) ^ ℓ := by
@@ -454,17 +528,20 @@ theorem condensateTensor_inner {I : Type} [Fintype I] [DecidableEq I]
       (f := fun _j i => (starRingEnd ℂ) (φ i) * ψ i)).symm
   rw [hsum, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+/-- A condensate tensor of a normalized state is normalized. -/
 theorem condensateTensor_normalized {I : Type} [Fintype I] [DecidableEq I]
     (ℓ : ℕ) (φ : QState I) (hφ : Normalized φ) : Normalized (condensateTensor ℓ φ) := by
   rw [normalized_iff_inner_self, condensateTensor_inner,
     (normalized_iff_inner_self φ).mp hφ, one_pow]
 
+/-- A condensate tensor is invariant under permutations of its tensor coordinates. -/
 theorem condensateTensor_symmetric {I : Type} (ℓ : ℕ) (φ : QState I)
     (π : Equiv.Perm (Fin ℓ)) (s : Fin ℓ → I) :
     condensateTensor ℓ φ (s ∘ π) = condensateTensor ℓ φ s := by
   unfold condensateTensor
   exact Equiv.prod_comp π (fun j => φ (s j))
 
+/-- Permuting the sample coordinates preserves each occupation count. -/
 theorem occupationCount_permutation {I : Type} [DecidableEq I] {ℓ : ℕ}
     (x : I) (s : Fin ℓ → I) (π : Equiv.Perm (Fin ℓ)) :
     occupationCount x (s ∘ π) = occupationCount x s := by
@@ -473,6 +550,8 @@ theorem occupationCount_permutation {I : Type} [DecidableEq I] {ℓ : ℕ}
   intro j
   simp only [Finset.mem_filter, Finset.mem_univ, true_and, Function.comp_apply]
 
+/-- The indicator that all guessed values occur is bounded by the product of their occupation
+counts. -/
 theorem occupied_indicator_le_moment {I : Type} [DecidableEq I] {ℓ v : ℕ}
     (guesses : Fin v → I) (s : Fin ℓ → I) :
     (if allOccupied guesses s then 1 else 0) ≤ occupationMoment guesses s := by
@@ -484,6 +563,8 @@ theorem occupied_indicator_le_moment {I : Type} [DecidableEq I] {ℓ v : ℕ}
     exact Nat.succ_le_iff.mpr (Finset.card_pos.mpr ⟨j, by simp [hj]⟩)
   · exact Nat.zero_le _
 
+/-- The Born mass that all guessed values occur is bounded by the Born-weighted sum of their
+occupation-count product. -/
 theorem occupied_born_le_moment {I : Type} [Fintype I] [DecidableEq I] {ℓ v : ℕ}
     (guesses : Fin v → I) (φ : QState (Fin ℓ → I)) :
     MeasureProb φ (Finset.univ.filter fun s => allOccupied guesses s) ≤

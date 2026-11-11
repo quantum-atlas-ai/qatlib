@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
+
+/-!
+# Normalization statement for bosonic permanent weights
+
+`BosonDistributionNormalization` states that the permanent weights of all occupations sum to one
+whenever the input matrix has orthonormal columns. It packages the normalization property
+independently of its proof.
+
+The mathematical background is described in [KoehlerLeung2026].
+
+## Main statements
+
+* `BosonDistributionNormalization`: the normalization property for isometric input matrices.
+
+## References
+
+* [Koehler and Leung, 2026][KoehlerLeung2026]
+-/
+
 open Qatlib.Concepts.BosonFock.BosonOperators
 open Qatlib
 
@@ -14,6 +33,8 @@ open Qatlib
 
 open scoped Matrix
 
+/-- The proposition that the sum of `bosonWeight A S` over all occupations is one for every
+matrix `A` satisfying `Aᴴ * A = 1`. -/
 def BosonDistributionNormalization : Prop :=
   ∀ (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ), Aᴴ * A = 1 →
     ∑ S : FockOccupation m n, bosonWeight A S = 1

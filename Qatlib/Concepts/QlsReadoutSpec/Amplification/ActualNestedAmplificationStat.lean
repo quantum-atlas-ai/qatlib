@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Amplitude amplification action and cost contract
+
+Defines `Clause5ActualNestedAmplification`, the contract for a legal amplitude amplification
+word with a normalized seed and an orthogonal good projector. Under the no-overshoot angle
+bound, it specifies the projected state through `gainLoss` and records exact call, gate, and
+weighted query costs for the construction of [LowSu2026].
+
+## Main statements
+
+* `Clause5ActualNestedAmplification`: states legality, projected state, and resource identities
+  for `aaWord`.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +47,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The contract asserting legality, the projected sine law, and exact oracle, gate, and
+weighted query costs for `aaWord` under the stated unitarity, normalization, projector, and
+no-overshoot hypotheses. -/
 def Clause5ActualNestedAmplification : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (slots : ℕ)
     (U : ℕ → Matrix H H ℂ) (B : Word H 1) (ω : QState H)

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+/-!
+# Lower bound estimates for distribution testing
+
+This module proves numerical and finite distribution estimates used in distribution testing
+lower bounds. It transfers an assumed collision lower bound to orthogonality testing, averages
+acceptance probabilities over permutations, and bounds the moment comparison series for the
+distribution `hardDist`.
+
+The mathematical setting follows [BravyiHarrowHassidim2011].
+
+## Main statements
+
+* `theorem4_orthogonality_lower_bound`: transfer of a supplied cubic root collision lower bound.
+* `valiantSum_le`: a bound on the moment comparison series.
+* `corollary1_distance_lt`: the resulting strict distance estimate.
+
+## References
+
+* [Bravyi et al., 2011][BravyiHarrowHassidim2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,12 +44,18 @@ namespace Qatlib.Papers.DistTesting09.MainResults.LowerBounds
 
 variable {N : ℕ}
 
+/-- A collision query lower bound of `c * N^(1/3)` transfers to `QC` whenever the supplied
+reduction satisfies `collQC ≤ QC`. See [Bravyi et al., 2011, Theorem
+4][BravyiHarrowHassidim2011]. -/
 theorem theorem4_orthogonality_lower_bound (N : ℕ) (c : ℝ) (hc : 0 < c)
     (QC collQC : ℝ) (hred : collQC ≤ QC)
     (hcoll : c * (N : ℝ) ^ ((1 : ℝ) / 3) ≤ collQC) :
     c * (N : ℝ) ^ ((1 : ℝ) / 3) ≤ QC := by
   linarith
 
+/-- If every function has acceptance probability at least `2/3`, the normalized average over
+permutations also has acceptance probability at least `2/3`. See [Bravyi et al., 2011, Lemma
+9][BravyiHarrowHassidim2011]. -/
 theorem lemma9_average_acceptance (S : ℕ) (Pacc : (Fin S → Fin S) → ℝ)
     (hacc : ∀ σ, (2 : ℝ) / 3 ≤ Pacc σ) :
     (2 : ℝ) / 3 ≤ (1 / (S.factorial : ℝ)) *
@@ -49,6 +77,9 @@ theorem lemma9_average_acceptance (S : ℕ) (Pacc : (Fin S → Fin S) → ℝ)
   rw [hfac, one_div, inv_mul_eq_div, le_div_iff₀ hcard]
   exact hsum
 
+/-- A sampling acceptance probability within `η` of the permutation average is at least `2/3 -
+η` when every acceptance probability is at least `2/3`. See [Bravyi et al., 2011, Lemma
+9][BravyiHarrowHassidim2011]. -/
 theorem lemma9_classical_to_sampling (S : ℕ) (Pacc : (Fin S → Fin S) → ℝ)
     (Psamp η : ℝ) (hη : 0 ≤ η)
     (hacc : ∀ σ, (2 : ℝ) / 3 ≤ Pacc σ)
@@ -59,6 +90,8 @@ theorem lemma9_classical_to_sampling (S : ℕ) (Pacc : (Fin S → Fin S) → ℝ
   have hle := (abs_le.mp hclose).1
   linarith
 
+/-- The L1 distance of two distributions equals two minus twice the sum of their pointwise
+minimum probabilities. See [Bravyi et al., 2011, Lemma 10][BravyiHarrowHassidim2011]. -/
 theorem l1_eq_two_sub_two_mul_min (p q : Dist N) :
     l1 p q = 2 - 2 * ∑ i, min (p.prob i) (q.prob i) := by
   have hpt : ∀ i : Fin N, |p.prob i - q.prob i|
@@ -76,12 +109,17 @@ theorem l1_eq_two_sub_two_mul_min (p q : Dist N) :
     p.sum_one, q.sum_one]
   ring
 
+/-- The L1 distance between any two finite probability distributions is at most two. See [Bravyi
+et al., 2011, Lemma 10][BravyiHarrowHassidim2011]. -/
 theorem lemma10_two_to_one (p q : Dist N) : l1 p q ≤ 2 := by
   rw [l1_eq_two_sub_two_mul_min]
   have hmin : (0 : ℝ) ≤ ∑ i, min (p.prob i) (q.prob i) :=
     Finset.sum_nonneg fun i _ => le_min (p.nonneg i) (q.nonneg i)
   linarith
 
+/-- A distribution with probability `2 / N` on the first `N / 2` outcomes and zero elsewhere has
+L1 distance one from uniformity. See [Bravyi et al., 2011, Corollary
+1][BravyiHarrowHassidim2011]. -/
 theorem l1_hard_uniform [NeZero N] (p : Dist N)
     (hp : ∀ i : Fin N, p.prob i = if (i : ℕ) < N / 2 then 2 / (N : ℝ) else 0) :
     l1 p (uniform N) = 1 := by
@@ -102,8 +140,11 @@ theorem l1_hard_uniform [NeZero N] (p : Dist N)
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   exact mul_inv_cancel₀ hN
 
+/-- The sum of the `k`th powers of the point probabilities of `p`. -/
 def moment (p : Dist N) (k : ℕ) : ℝ := ∑ i, p.prob i ^ k
 
+/-- For `k ≥ 1`, the `k`th moment of the uniform distribution is `1 / N^(k - 1)`. See [Bravyi et
+al., 2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem moment_uniform [NeZero N] (k : ℕ) (hk : 1 ≤ k) :
     moment (uniform N) k = 1 / (N : ℝ) ^ (k - 1) := by
   have hN : (N:ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
@@ -118,15 +159,21 @@ theorem moment_uniform [NeZero N] (k : ℕ) (hk : 1 ≤ k) :
     rw [← mul_assoc, mul_inv_cancel₀ hN, one_mul]]
   rw [div_eq_mul_inv]
 
+/-- The expression `2^(k - 1) / N^(k - 1)` used in the hard distribution moment estimates. -/
 def hardMoment (N k : ℕ) : ℝ := (2:ℝ) ^ (k - 1) / (N:ℝ) ^ (k - 1)
 
+/-- The uniform moment expression `1 / N^(k - 1)`. -/
 def unifMoment (N k : ℕ) : ℝ := 1 / (N:ℝ) ^ (k - 1)
 
+/-- The sample scale `sqrt N / 32` used in the moment comparison estimates. -/
 def Mfive (N : ℕ) : ℝ := (1/32) * Real.sqrt (N:ℝ)
 
+/-- The sample scale `Mfive N` equals `32⁻¹ * sqrt N`. -/
 theorem Mfive_eq (N : ℕ) : Mfive N = (32:ℝ)⁻¹ * Real.sqrt (N:ℝ) := by
   unfold Mfive; rw [one_div]
 
+/-- For positive `N` and `k ≥ 2`, the scaled hard moment `(Mfive N)^k * hardMoment N k` is at
+most `1/512`. See [Bravyi et al., 2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem hard_moment_scaled_five (N k : ℕ) (hk : 2 ≤ k) (hN : 1 ≤ N) :
     (Mfive N) ^ k * hardMoment N k ≤ (1:ℝ) / 512 := by
   have hNpos : (0:ℝ) < (N:ℝ) := by exact_mod_cast hN
@@ -164,6 +211,8 @@ theorem hard_moment_scaled_five (N k : ℕ) (hk : 2 ≤ k) (hN : 1 ≤ N) :
         apply mul_le_mul hA hfrac (by positivity) (by norm_num)
     _ = 1/512 := by ring
 
+/-- For positive `N` and `k ≥ 1`, the uniform moment expression is at most the hard moment
+expression. -/
 theorem unifMoment_le_hardMoment (N k : ℕ) (hN : 1 ≤ N) (hk : 1 ≤ k) :
     unifMoment N k ≤ hardMoment N k := by
   have hNpos : (0:ℝ) < (N:ℝ) := by exact_mod_cast hN
@@ -174,10 +223,13 @@ theorem unifMoment_le_hardMoment (N k : ℕ) (hN : 1 ≤ N) (hk : 1 ≤ k) :
   calc (1:ℝ) = (2:ℝ)^0 := by norm_num
     _ ≤ (2:ℝ)^(k-1) := pow_le_pow_right₀ (by norm_num) h0
 
+/-- The scaled difference of hard and uniform moments, divided by the factorial and square root
+factors in the moment comparison series. -/
 def valiantTerm (N k : ℕ) : ℝ :=
   (Mfive N)^k * (hardMoment N k - unifMoment N k) /
     (((k/2).factorial : ℝ) * Real.sqrt (1 + (Mfive N)^k * hardMoment N k))
 
+/-- The moment comparison term is nonnegative for positive `N` and `k ≥ 2`. -/
 theorem valiantTerm_nonneg (N k : ℕ) (hN : 1 ≤ N) (hk : 2 ≤ k) :
     0 ≤ valiantTerm N k := by
   have hMk : (0:ℝ) ≤ (Mfive N)^k := by
@@ -191,6 +243,7 @@ theorem valiantTerm_nonneg (N k : ℕ) (hN : 1 ≤ N) (hk : 2 ≤ k) :
     · exact_mod_cast Nat.zero_le _
     · exact Real.sqrt_nonneg _
 
+/-- For positive `N` and `k ≥ 2`, the moment comparison term is at most `1 / (512 * (k / 2)!)`. -/
 theorem valiantTerm_le (N k : ℕ) (hN : 1 ≤ N) (hk : 2 ≤ k) :
     valiantTerm N k ≤ (1:ℝ) / 512 / ((k/2).factorial : ℝ) := by
   have hfpos : (0:ℝ) < ((k/2).factorial : ℝ) := by exact_mod_cast Nat.factorial_pos _
@@ -223,16 +276,19 @@ theorem valiantTerm_le (N k : ℕ) (hN : 1 ≤ N) (hk : 2 ≤ k) :
         nth_rewrite 1 [show (1:ℝ)/512 = (1:ℝ)/512 * 1 by ring]
         exact mul_le_mul_of_nonneg_left hs1 hnn
 
+/-- The sum of the reciprocal factorial series equals `exp 1`. -/
 theorem tsum_half_factorial :
     (∑' k : ℕ, (1:ℝ) / ((k.factorial : ℝ))) = Real.exp 1 := by
   have h := congrFun (Real.exp_eq_exp_ℝ.trans (NormedSpace.exp_eq_tsum (𝕂 := ℝ) (𝔸 := ℝ))) 1
   simp only [smul_eq_mul, one_pow, mul_one] at h
   rw [h]; apply tsum_congr; intro n; rw [div_eq_mul_inv, one_mul]
 
+/-- The reciprocal factorial series is summable over the natural numbers. -/
 theorem summable_half_factorial :
     Summable (fun k : ℕ => (1:ℝ) / ((k.factorial : ℝ))) := by
   simpa only [one_pow] using! Real.summable_pow_div_factorial (1:ℝ)
 
+/-- The series with terms `1 / (k / 2)!` sums to `2 * exp 1`. -/
 theorem tsum_paired_factorial :
     (∑' k : ℕ, (1:ℝ) / (((k / 2).factorial : ℝ))) = 2 * Real.exp 1 := by
   have heven : (∑' k : ℕ, (1:ℝ) / (((2*k) / 2).factorial : ℝ))
@@ -250,6 +306,7 @@ theorem tsum_paired_factorial :
       funext k; rw [show (2*k+1)/2 = k by omega]
     rw [this]; exact summable_half_factorial
 
+/-- The series with terms `1 / (k / 2)!` is summable. -/
 theorem summable_paired :
     Summable (fun k : ℕ => (1:ℝ) / (((k / 2).factorial : ℝ))) := by
   apply Summable.even_add_odd
@@ -260,6 +317,7 @@ theorem summable_paired :
       funext k; rw [show (2*k+1)/2 = k by omega]
     rw [this]; exact summable_half_factorial
 
+/-- The shifted series with terms `1 / ((k + 2) / 2)!` sums to `2 * exp 1 - 2`. -/
 theorem tsum_paired_shift :
     (∑' k : ℕ, (1:ℝ) / (((k + 2) / 2).factorial : ℝ)) = 2 * Real.exp 1 - 2 := by
   have hA := Summable.tsum_eq_zero_add
@@ -280,12 +338,15 @@ theorem tsum_paired_shift :
         apply tsum_congr; intro b; rw [show b + 2 = (b+1)+1 by omega]
     _ = 2 * Real.exp 1 - 2 := hB'
 
+/-- The shifted paired reciprocal factorial series has sum at most four. See [Bravyi et al.,
+2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem factorial_pair_series_le_four :
     (∑' k : ℕ, (1:ℝ) / (((k + 2) / 2).factorial : ℝ)) ≤ 4 := by
   rw [tsum_paired_shift]
   have := Real.exp_one_lt_three
   linarith
 
+/-- For positive `N`, the moment comparison terms indexed by `k + 2` form a summable series. -/
 theorem summable_valiantTerm (N : ℕ) (hN : 1 ≤ N) :
     Summable (fun k : ℕ => valiantTerm N (k+2)) := by
   have hg : Summable (fun k : ℕ => (1:ℝ) / 512 / (((k+2)/2).factorial : ℝ)) := by
@@ -297,6 +358,8 @@ theorem summable_valiantTerm (N : ℕ) (hN : 1 ≤ N) :
     (fun k => valiantTerm_nonneg N (k+2) hN (by omega))
     (fun k => valiantTerm_le N (k+2) hN (by omega)) hg
 
+/-- For positive `N`, the sum of the moment comparison terms indexed by `k + 2` is at most
+`1/128`. See [Bravyi et al., 2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem valiantSum_le (N : ℕ) (hN : 1 ≤ N) :
     (∑' k : ℕ, valiantTerm N (k+2)) ≤ (1:ℝ) / 128 := by
   have hcmp : ∀ k : ℕ, valiantTerm N (k+2) ≤ (1:ℝ)/512 / (((k+2)/2).factorial : ℝ) :=
@@ -320,6 +383,8 @@ theorem valiantSum_le (N : ℕ) (hN : 1 ≤ N) :
     mul_le_mul_of_nonneg_left hfour (by norm_num)
   nlinarith [hmain, hb]
 
+/-- If `δ ≤ 1/10000` and `D` satisfies the stated moment series bound, then `D < 1/12`. See
+[Bravyi et al., 2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem corollary1_distance_lt (N : ℕ) (hN : 1 ≤ N) (δ D : ℝ)
     (hδ : δ ≤ 1/10000)
     (hL12 : D ≤ 40*δ + 10*(∑' k : ℕ, valiantTerm N (k+2))) :
@@ -332,12 +397,15 @@ theorem corollary1_distance_lt (N : ℕ) (hN : 1 ≤ N) (δ D : ℝ)
   have hnum : 40*(1/10000:ℝ) + 10*(1/128:ℝ) < 1/12 := by norm_num
   linarith
 
+/-- The supplied implication from `D < 1/12` yields `P` under the stated small parameter and
+moment series bounds. See [Bravyi et al., 2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem corollary1_not_testable (N : ℕ) (hN : 1 ≤ N) (δ D : ℝ) (P : Prop)
     (hδ : δ ≤ 1/10000)
     (hL12 : D ≤ 40*δ + 10*(∑' k : ℕ, valiantTerm N (k+2)))
     (hlemma11 : D < 1/12 → P) : P :=
   hlemma11 (corollary1_distance_lt N hN δ D hδ hL12)
 
+/-- For `m ≤ N`, exactly `m` elements of `Fin N` have underlying natural number less than `m`. -/
 theorem card_filter_lt (N m : ℕ) (hm : m ≤ N) :
     (Finset.univ.filter (fun i : Fin N => (i:ℕ) < m)).card = m := by
   rw [← Fintype.card_coe]
@@ -351,6 +419,8 @@ theorem card_filter_lt (N m : ℕ) (hm : m ≤ N) :
     · intro b; apply Fin.ext; rfl
   simpa using! h
 
+/-- For nonzero even `N`, the distribution assigning probability `2 / N` to the first `N / 2`
+outcomes and zero to the rest. -/
 def hardDist (N : ℕ) [NeZero N] (hN2 : 2 * (N / 2) = N) : Dist N where
   prob i := if (i:ℕ) < N / 2 then 2 / (N:ℝ) else 0
   nonneg i := by
@@ -371,6 +441,8 @@ def hardDist (N : ℕ) [NeZero N] (hN2 : 2 * (N / 2) = N) : Dist N where
       linarith
     rw [hcast, show (N:ℝ)/2 * (2/(N:ℝ)) = 1 by field_simp]
 
+/-- For `k ≥ 1`, the `k`th moment of `hardDist` equals `hardMoment N k`. See [Bravyi et al.,
+2011, Corollary 1][BravyiHarrowHassidim2011]. -/
 theorem moment_hard (N k : ℕ) [NeZero N] (hN2 : 2 * (N/2) = N) (hk : 1 ≤ k) :
     moment (hardDist N hN2) k = hardMoment N k := by
   have hN : (N:ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)

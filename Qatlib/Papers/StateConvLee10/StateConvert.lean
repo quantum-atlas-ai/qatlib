@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessSpectralMassesQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+
+/-!
+# State-conversion algorithms and spectral estimates
+
+This module supplies a legal approximate state-conversion word from a finite filtered Gram
+budget and proves the accompanying effective spectral gap and witness-mass estimates. The bounds
+control the query count, target overlap, and small-phase components used in the construction of
+[LeeEtAl2011].
+
+## Main statements
+
+* `source_state_conversion`: a filtered Gram bound yields a legal word with the stated query and
+  approximation guarantees.
+* `source_effective_gap`: a product of reflections controls the small-phase part of a projected
+  vector.
+* `source_witness_masses`: factorization witnesses give the stated plus and minus spectral-mass
+  bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -42,6 +65,9 @@ open Qatlib.Concepts.QueryComplexity.StateConversion
 
 namespace Qatlib.Papers.StateConvLee10.StateConvert
 
+/-- For normalized families, a filtered Gram budget `W ≥ 0` and `0 < ε ≤ 1 / 3` yield a legal
+word using at most `c * ceil (W * log (2 / ε) / ε²)` queries with the stated target overlap,
+zero-query cases, and conditional norm-error guarantee [LeeEtAl2011]. -/
 theorem source_state_conversion :
   ∃ c : ℕ, 0<c ∧ ∀ (X H : Type) [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (n q : ℕ)
@@ -60,6 +86,9 @@ theorem source_state_conversion :
         sourceClean n q r hr false (ρ x)-sourceClean n q r hr true (σ x))‖ < 4*ε) := by
   exact Qatlib.Concepts.QueryComplexity.StateConversion.realBudgetConversionAlgorithm
 
+/-- For the displayed spectral decomposition of a product of projector reflections, if `L w = 0`
+and `Θ ≥ 0`, the small-phase component of `P w` has norm at most `(Θ / 2) * ‖w‖`
+[LeeEtAl2011]. -/
 theorem source_effective_gap
     (H : Type) [Fintype H] [DecidableEq H] (P L V : Matrix H H ℂ)
     (angles : H → ℝ) (Θ : ℝ) (w : QState H)
@@ -75,6 +104,9 @@ theorem source_effective_gap
       (L := L) (V := V) (angles := angles) (Θ := Θ) (w := w) (_hP := _hP) (_hL := _hL) (hV := hV)
       (_hangles := _hangles) (hU := hU) (hΘ := hΘ) (hLw := hLw)
 
+/-- Under the stated normalization, factorization, and witness-budget hypotheses, the plus
+vector has zero-phase mass at least `1 - ε²`, and the minus vector has small-phase mass at
+most `(Θ² / 4) * (W² / ε² + 1)` for `Θ ≥ 0` [LeeEtAl2011]. -/
 theorem source_witness_masses :
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     (n q m : ℕ) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)

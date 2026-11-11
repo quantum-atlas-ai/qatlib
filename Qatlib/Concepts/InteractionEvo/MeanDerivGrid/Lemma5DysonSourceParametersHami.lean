@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonSourceParametersStat
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonTruncationHami
+
+/-!
+# Sufficient parameters for Dyson grid approximation
+
+`lemma5DysonSourceParameters` proves the Dyson approximation bound from an explicit grid-size
+condition involving the derivative norm integral and a separate factorial tail bound. The
+Hamiltonian is continuously differentiable, Hermitian, uniformly bounded, and restricted to a
+short time interval. These estimates support the interaction-picture simulation analysis of
+[LowWiebe2018].
+
+## Main statements
+
+* `lemma5DysonSourceParameters`: the source-parameter form of the truncation and discretization
+  estimate.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +33,9 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- Proves `Lemma5DysonSourceParameters`, giving error at most ε for the truncated Dyson grid
+sum under the stated grid-size and tail conditions; see [Low and Wiebe, Lemma
+5][LowWiebe2018]. -/
 theorem lemma5DysonSourceParameters : Lemma5DysonSourceParameters := by
   intro I _ _ H Hd t Λ ε K M hH hHd hderiv ht hM hε hbound hlog hgrid htail
   apply lemma5DysonTruncation I H Hd t Λ ε K M hH hHd hderiv ht hM hε hbound hlog

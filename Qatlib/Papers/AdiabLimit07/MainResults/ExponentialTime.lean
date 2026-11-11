@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabLimit07.MainResults.ProbabilityFlow
+
+/-!
+# Probability bounds for a diagonal binary driver
+
+Defines the scaled complement projector `finalProjector` and its interpolation with a diagonal
+driver. The module proves that computational basis probabilities have zero derivative for this
+diagonal evolution and derives the stated finite-time bounds using a derivative estimate and a
+bound on two basis probabilities. See [IoannouMosca2008].
+
+## Main statements
+
+* `beta0_deriv_zero`: Every computational basis probability is constant to first order along the
+  diagonal evolution.
+* `beta0_lower_bound`: An initially unit basis probability satisfies a finite-time lower bound.
+* `exponential_time_eq30`: Combines the flow and overlap estimates into the target probability
+  bound.
+
+## References
+
+* [Ioannou and Mosca, 2008][IoannouMosca2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,13 +41,18 @@ open scoped BigOperators Matrix
 
 variable {n : ℕ}
 
+/-- The scaled complement of the computational basis projector at `w`, equal to `E1` times `I -
+|w⟩⟨w|`. -/
 def finalProjector (E1 : ℝ) (w : Reg n) : Matrix (Reg n) (Reg n) ℂ :=
   (E1 : ℂ) • (1 - Matrix.of (fun x y => if x = w ∧ y = w then (1 : ℂ) else 0))
 
+/-- The affine interpolation between the diagonal energies `Fdiag` and `finalProjector E1 w`. -/
 def binaryDriver (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ) :
     Matrix (Reg n) (Reg n) ℂ :=
   (1 - s) • Matrix.diagonal (fun z => (Fdiag z : ℂ)) + s • finalProjector E1 w
 
+/-- An entry of the final projector is `E1` times the identity entry minus the projector entry
+at `w`. -/
 theorem finalProjector_apply (E1 : ℝ) (w x y : Reg n) :
     finalProjector E1 w x y
       = (E1 : ℂ) * ((if x = y then (1 : ℂ) else 0)
@@ -33,11 +60,13 @@ theorem finalProjector_apply (E1 : ℝ) (w x y : Reg n) :
   unfold finalProjector
   simp [Matrix.smul_apply, Matrix.sub_apply, Matrix.one_apply]
 
+/-- Every entry of the final projector has zero imaginary part. -/
 theorem finalProjector_im (E1 : ℝ) (w x y : Reg n) :
     (finalProjector E1 w x y).im = 0 := by
   rw [finalProjector_apply]
   split_ifs <;> simp
 
+/-- Every off-diagonal entry of the final projector is zero. -/
 theorem finalProjector_offdiag {E1 : ℝ} {w : Reg n} {x y : Reg n} (hxy : x ≠ y) :
     finalProjector E1 w x y = 0 := by
   rw [finalProjector_apply, if_neg hxy]
@@ -45,6 +74,7 @@ theorem finalProjector_offdiag {E1 : ℝ} {w : Reg n} {x y : Reg n} (hxy : x ≠
   rw [if_neg hconj]
   ring
 
+/-- Every off-diagonal entry of the binary driver is zero. -/
 theorem binaryDriver_offdiag (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ)
     {x y : Reg n} (hxy : x ≠ y) :
     binaryDriver Fdiag E1 w s x y = 0 := by
@@ -55,6 +85,7 @@ theorem binaryDriver_offdiag (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s :
   rw [h1, finalProjector_offdiag (E1 := E1) (w := w) hxy]
   simp
 
+/-- Every entry of the binary driver has zero imaginary part. -/
 theorem binaryDriver_im (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ) (x y : Reg n) :
     (binaryDriver Fdiag E1 w s x y).im = 0 := by
   unfold binaryDriver
@@ -67,6 +98,7 @@ theorem binaryDriver_im (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ)
   rw [h1, h2]
   simp
 
+/-- Multiplication by the binary driver acts coordinatewise by its diagonal entries. -/
 theorem binaryDriver_mulVec_diag (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ)
     (γ : QState (Reg n)) (x : Reg n) :
     (binaryDriver Fdiag E1 w s).mulVec γ x
@@ -78,6 +110,8 @@ theorem binaryDriver_mulVec_diag (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) 
   · intro h
     exact absurd (Finset.mem_univ x) h
 
+/-- A differentiable real function whose derivative has absolute value at most `B` on `[0,T]`
+satisfies `|p T - p 0| ≤ B * T` for nonnegative `T`. -/
 theorem abs_sub_le_of_deriv_bound {p : ℝ → ℝ} {T B : ℝ} (hT : 0 ≤ T)
     (hdiff : ∀ t ∈ Set.Icc 0 T, DifferentiableAt ℝ p t)
     (hbound : ∀ t ∈ Set.Icc 0 T, |deriv p t| ≤ B) :
@@ -90,6 +124,8 @@ theorem abs_sub_le_of_deriv_bound {p : ℝ → ℝ} {T B : ℝ} (hT : 0 ≤ T)
   rw [Real.norm_eq_abs, Real.norm_eq_abs, sub_zero, abs_of_nonneg hT] at h
   exact h
 
+/-- The assumed lower bound at `u`, two-probability inequality, and basis overlap formula imply
+the upper bound `(2 * E1 * T + 1) / sqrt (2 ^ n)` at `w`. -/
 theorem eq30_from_28_29 {E1 T : ℝ} (ψ : QState (Reg n)) (w u : Reg n)
     (hE1 : 0 ≤ E1) (hT : 0 ≤ T)
     (h28 : 1 - 2 * E1 * T / Real.sqrt (((2 : ℕ) ^ n : ℝ))
@@ -104,6 +140,8 @@ theorem eq30_from_28_29 {E1 T : ℝ} (ψ : QState (Reg n)) (w u : Reg n)
   rw [hinner] at h29'
   linarith
 
+/-- Under coordinatewise Schrödinger evolution with the diagonal binary driver, the derivative
+of every computational basis Born probability is zero. -/
 theorem beta0_deriv_zero {Fdiag : Reg n → ℝ} {E1 : ℝ} {w u : Reg n}
     {s : ℝ → ℝ} {ψ : ℝ → QState (Reg n)} {T : ℝ}
     (hSchrod : SchrodingerIVP (fun t => binaryDriver Fdiag E1 w (s t)) ψ T)
@@ -128,6 +166,8 @@ theorem beta0_deriv_zero {Fdiag : Reg n → ℝ} {E1 : ℝ} {w u : Reg n}
   rw [hX]
   ring
 
+/-- For the binary driver with `E1 ≥ 0` and schedule in `[0,1]`, the absolute derivative of each
+basis probability is at most `2 * E1 / sqrt (2 ^ n)`. -/
 theorem beta0_flow_bound {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
     (s : ℝ → ℝ) (hE1 : 0 ≤ E1)
     (ψ : ℝ → QState (Reg n)) (T : ℝ)
@@ -139,6 +179,8 @@ theorem beta0_flow_bound {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
   rw [beta0_deriv_zero hSchrod ht, abs_zero]
   exact div_nonneg (by positivity) (Real.sqrt_nonneg _)
 
+/-- An initially unit basis probability is at least `1 - 2 * E1 * T / sqrt (2 ^ n)` after
+nonnegative time `T`. -/
 theorem beta0_lower_bound {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
     (s : ℝ → ℝ) (hE1 : 0 ≤ E1)
     (ψ : ℝ → QState (Reg n)) (T : ℝ)
@@ -164,6 +206,8 @@ theorem beta0_lower_bound {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
     exact Real.sqrt_nonneg _
   linarith
 
+/-- For a normalized state, the sum of the Born probabilities at `w` and `u` is at most one plus
+the norm of their basis-vector inner product. -/
 theorem orthogonality_ineq (ψ : QState (Reg n)) (w u : Reg n) (hψ : Normalized ψ) :
     BornProb ψ w + BornProb ψ u
       ≤ 1 + ‖Qatlib.Foundations.PureStateMath.Inner
@@ -192,6 +236,8 @@ theorem orthogonality_ineq (ψ : QState (Reg n)) (w u : Reg n) (hψ : Normalized
         (fun z _ _ => bornProb_nonneg ψ z)
     linarith [htot]
 
+/-- Under the stated evolution, initialization, normalization, and overlap hypotheses, the final
+probability at `w` is at most `(2 * E1 * T + 1) / sqrt (2 ^ n)`. -/
 theorem exponential_time_eq30 {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
     (s : ℝ → ℝ) (hE1 : 0 ≤ E1)
     (ψ : ℝ → QState (Reg n)) (T : ℝ)

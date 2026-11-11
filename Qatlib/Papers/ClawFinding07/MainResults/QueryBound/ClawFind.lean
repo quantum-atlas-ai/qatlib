@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.KClawDetect
+
+/-!
+# Claw-search error and cost bounds
+
+This module bounds the finite error sums and weighted detection costs used in claw finding in
+[Tani2009]. It defines `clawSearchCost` and `clawSearchStandardCost`, then extends these cost
+expressions to `k`-claw search through `kClawSearchCost` and `kClawSearchStandardCost`.
+
+## Main statements
+
+* `clawSearch_error_lt_third`: the two stage error sums total less than `1/3`.
+* `theorem8_clawFinding_regime1` and `theorem8_clawFinding_regime2`: comparison cost bounds in
+  the two size regimes.
+* `theorem10_kClawFinding_regime1` and `corollary11_kClawFinding_regime1`: representative bounds
+  for comparison and standard `k`-claw search costs.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +35,7 @@ namespace Qatlib.Papers.ClawFinding07.MainResults.QueryBound
 
 open scoped BigOperators
 
+/-- Twice the stage error `(1/3)^(s+2)` is strictly smaller than `(1/3)^(s+1)`. -/
 theorem two_runs_error {s : ℕ} :
     2 * (1 / 3 : ℝ) ^ (s + 2) < (1 / 3 : ℝ) ^ (s + 1) := by
   have hpow : (1 / 3 : ℝ) ^ (s + 2) = (1 / 3 : ℝ) ^ (s + 1) * (1 / 3) := by
@@ -22,6 +44,7 @@ theorem two_runs_error {s : ℕ} :
   rw [hpow]
   nlinarith
 
+/-- Every finite sum of stage errors `(1/3)^(s+2)` is strictly less than `1/6`. -/
 theorem stage_error_lt_sixth (S : ℕ) :
     ∑ s ∈ Finset.range S, (1 / 3 : ℝ) ^ (s + 2) < 1 / 6 := by
 
@@ -38,6 +61,8 @@ theorem stage_error_lt_sixth (S : ℕ) :
   have hpos : (0 : ℝ) < (1 / 3 : ℝ) ^ S := by positivity
   nlinarith
 
+/-- The combined error sums of the two search stages are strictly less than `1/3`, as used in
+[Tani, Theorem 8][Tani2009]. -/
 theorem clawSearch_error_lt_third (S2 S3 : ℕ) :
     (∑ s ∈ Finset.range S2, (1 / 3 : ℝ) ^ (s + 2))
       + (∑ s ∈ Finset.range S3, (1 / 3 : ℝ) ^ (s + 2)) < 1 / 3 := by
@@ -45,6 +70,7 @@ theorem clawSearch_error_lt_third (S2 S3 : ℕ) :
   have h3 := stage_error_lt_sixth S3
   linarith
 
+/-- Evaluates the finite weighted geometric sum with terms `(s+1)(4/5)^(s+1)`. -/
 theorem weighted_geom_four_fifths (S : ℕ) :
     (∑ s ∈ Finset.range S, ((s : ℝ) + 1) * (4 / 5 : ℝ) ^ (s + 1))
       = 20 * (1 - ((S : ℝ) + 1) * (4 / 5 : ℝ) ^ S
@@ -60,6 +86,7 @@ theorem weighted_geom_four_fifths (S : ℕ) :
       push_cast
       ring
 
+/-- The finite weighted geometric sum with ratio `4/5` is bounded above by `20`. -/
 theorem weighted_geom_four_fifths_le (S : ℕ) :
     (∑ s ∈ Finset.range S, ((s : ℝ) + 1) * (4 / 5 : ℝ) ^ (s + 1)) ≤ 20 := by
   rw [weighted_geom_four_fifths]
@@ -79,25 +106,31 @@ theorem weighted_geom_four_fifths_le (S : ℕ) :
     linarith
   nlinarith
 
+/-- Cubing `(4/5)^n` gives `(64/125)^n`. -/
 theorem four_fifths_pow_cube (n : ℕ) :
     ((4 / 5 : ℝ) ^ n) ^ 3 = (64 / 125 : ℝ) ^ n := by
   rw [← pow_mul, show n * 3 = 3 * n by ring, pow_mul]
   norm_num
 
+/-- Squaring `(4/5)^n` gives `(16/25)^n`. -/
 theorem four_fifths_pow_sq (n : ℕ) :
     ((4 / 5 : ℝ) ^ n) ^ 2 = (16 / 25 : ℝ) ^ n := by
   rw [← pow_mul, show n * 2 = 2 * n by ring, pow_mul]
   norm_num
 
+/-- Bounds `(1/2)^n` above by `(64/125)^n`. -/
 theorem half_pow_le (n : ℕ) :
     (1 / 2 : ℝ) ^ n ≤ (64 / 125 : ℝ) ^ n :=
   pow_le_pow_left₀ (by norm_num) (by norm_num) n
 
+/-- Bounds `(1/2)^n` above by the square of `(4/5)^n`. -/
 theorem half_pow_le_sq (n : ℕ) : (1 / 2 : ℝ) ^ n ≤ ((4 / 5 : ℝ) ^ n) ^ 2 := by
   calc (1 / 2 : ℝ) ^ n ≤ (16 / 25 : ℝ) ^ n :=
         pow_le_pow_left₀ (by norm_num) (by norm_num) n
     _ = ((4 / 5 : ℝ) ^ n) ^ 2 := by rw [four_fifths_pow_sq]
 
+/-- For nonnegative `N` and `M`, halving `M` repeatedly decreases the cube-root product at least
+as fast as the factor `(4/5)^n`. -/
 theorem rpow_third_div_pow_le {N M : ℝ} (hN : 0 ≤ N) (hM : 0 ≤ M) (n : ℕ) :
     (N * (M / 2 ^ n)) ^ (1 / 3 : ℝ)
       ≤ (N * M) ^ (1 / 3 : ℝ) * (4 / 5 : ℝ) ^ n := by
@@ -120,6 +153,8 @@ theorem rpow_third_div_pow_le {N M : ℝ} (hN : 0 ≤ N) (hM : 0 ≤ M) (n : ℕ
   rw [hbase, Real.mul_rpow hNM (by positivity)]
   exact hmain
 
+/-- Bounds the cube root of the square of `N/2^n` by `(N^2)^(1/3)` times `(4/5)^n`, for
+nonnegative `N`. -/
 theorem rpow_third_sq_div_pow_le {N : ℝ} (hN : 0 ≤ N) (n : ℕ) :
     ((N / 2 ^ n) * (N / 2 ^ n)) ^ (1 / 3 : ℝ)
       ≤ (N ^ 2) ^ (1 / 3 : ℝ) * (4 / 5 : ℝ) ^ n := by
@@ -148,6 +183,7 @@ theorem rpow_third_sq_div_pow_le {N : ℝ} (hN : 0 ≤ N) (n : ℕ) :
   rw [hbase, Real.mul_rpow hN2 (by positivity)]
   exact hmain
 
+/-- Bounds `sqrt (M/2^n)` by `sqrt M` times `(4/5)^n`, for nonnegative `M`. -/
 theorem sqrt_div_pow_le {M : ℝ} (hM : 0 ≤ M) (n : ℕ) :
     Real.sqrt (M / 2 ^ n) ≤ Real.sqrt M * (4 / 5 : ℝ) ^ n := by
   have hbase : M / 2 ^ n = M * (1 / 2 : ℝ) ^ n := by
@@ -160,6 +196,7 @@ theorem sqrt_div_pow_le {M : ℝ} (hM : 0 ≤ M) (n : ℕ) :
         have h := Real.sqrt_le_sqrt (half_pow_le_sq n)
         rwa [Real.sqrt_sq (by positivity)] at h
 
+/-- When `l > 0` and `l^3 = N*M`, the symmetric comparison detection cost is `3*l*log (2*l)`. -/
 theorem clawDetectCost_symm {N M l : ℝ} (hl : 0 < l) (hNM : l ^ 3 = N * M) :
     clawDetectCost N M l l = 3 * l * Real.log (2 * l) := by
   have hNMpos : 0 < N * M := by rw [← hNM]; positivity
@@ -176,6 +213,8 @@ theorem clawDetectCost_symm {N M l : ℝ} (hl : 0 < l) (hNM : l ^ 3 = N * M) :
   field_simp
   ring
 
+/-- Bounds the symmetric comparison detection cost by `6*l*log N₀` when `l^3 = N*M`, `0 < l ≤
+N₀`, and `N₀ ≥ 2`. -/
 theorem clawDetectCost_symm_le {N M l N₀ : ℝ} (hl : 0 < l) (hNM : l ^ 3 = N * M)
     (hlle : l ≤ N₀) (hN₀ : 2 ≤ N₀) :
     clawDetectCost N M l l ≤ 6 * l * Real.log N₀ := by
@@ -191,6 +230,7 @@ theorem clawDetectCost_symm_le {N M l N₀ : ℝ} (hl : 0 < l) (hNM : l ^ 3 = N 
     apply mul_le_mul_of_nonneg_left hlog; positivity
   nlinarith
 
+/-- If `N` and `M` are nonnegative and `N^2 ≤ M`, then `(N*M)^(1/3) ≤ sqrt M`. -/
 theorem rpow_third_le_sqrt {N M : ℝ} (hN : 0 ≤ N) (hM : 0 ≤ M) (hNM : N ^ 2 ≤ M) :
     (N * M) ^ (1 / 3 : ℝ) ≤ Real.sqrt M := by
   by_cases hN0 : N = 0
@@ -210,6 +250,8 @@ theorem rpow_third_le_sqrt {N M : ℝ} (hN : 0 ≤ N) (hM : 0 ≤ M) (hNM : N ^ 
             ring
     exact le_of_pow_le_pow_left₀ (by norm_num : (3:ℕ) ≠ 0) (Real.sqrt_nonneg M) hcube
 
+/-- The comparison cost expression for the two claw-search stages, with weighted detection costs
+on successively halved domains. -/
 def clawSearchCost (N M : ℝ) (S2 S3 : ℕ) : ℝ :=
   (∑ s ∈ Finset.range S2, ((s : ℝ) + 1) *
       (if N ^ 2 ≤ M / 2 ^ (s + 1) then
@@ -223,6 +265,8 @@ def clawSearchCost (N M : ℝ) (S2 S3 : ℕ) : ℝ :=
         (((N / 2 ^ (s + 1)) * (N / 2 ^ (s + 1))) ^ (1 / 3 : ℝ))
         (((N / 2 ^ (s + 1)) * (N / 2 ^ (s + 1))) ^ (1 / 3 : ℝ)))
 
+/-- The standard-query cost expression for the two claw-search stages, using the same domain
+reductions and repetition weights as `clawSearchCost`. -/
 def clawSearchStandardCost (N M : ℝ) (S2 S3 : ℕ) : ℝ :=
   (∑ s ∈ Finset.range S2, ((s : ℝ) + 1) *
       (if N ^ 2 ≤ M / 2 ^ (s + 1) then
@@ -236,6 +280,7 @@ def clawSearchStandardCost (N M : ℝ) (S2 S3 : ℕ) : ℝ :=
         (((N / 2 ^ (s + 1)) * (N / 2 ^ (s + 1))) ^ (1 / 3 : ℝ))
         (((N / 2 ^ (s + 1)) * (N / 2 ^ (s + 1))) ^ (1 / 3 : ℝ)))
 
+/-- Dividing a positive real number by `2^n` strictly decreases it when `n > 0`. -/
 theorem div_pow_two_lt_self {M : ℝ} (hM : 0 < M) {n : ℕ} (hn : 0 < n) : M / 2 ^ n < M := by
   have hbase : M / 2 ^ n = M * (1 / 2 : ℝ) ^ n := by
     rw [div_eq_mul_inv, ← inv_pow]
@@ -245,6 +290,7 @@ theorem div_pow_two_lt_self {M : ℝ} (hM : 0 < M) {n : ℕ} (hn : 0 < n) : M / 
   have := mul_lt_mul_of_pos_left hpow hM
   simpa using this
 
+/-- Dividing a nonnegative real number by `2^n` does not increase it. -/
 theorem div_pow_two_le_self {M : ℝ} (hM : 0 ≤ M) (n : ℕ) : M / 2 ^ n ≤ M := by
   have hbase : M / 2 ^ n = M * (1 / 2 : ℝ) ^ n := by
     rw [div_eq_mul_inv, ← inv_pow]
@@ -253,6 +299,8 @@ theorem div_pow_two_le_self {M : ℝ} (hM : 0 ≤ M) (n : ℕ) : M / 2 ^ n ≤ M
   have hpow : (1 / 2 : ℝ) ^ n ≤ 1 := pow_le_one₀ (by norm_num) (by norm_num)
   nlinarith [mul_le_mul_of_nonneg_left hpow hM]
 
+/-- For `2 ≤ N ≤ M < N^2`, bounds `clawSearchCost` by `4096*(N*M)^(1/3)*log N`, uniformly in
+both stage counts. This is the first comparison-cost regime of [Tani, Theorem 8][Tani2009]. -/
 theorem theorem8_clawFinding_regime1 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
     (hNM : N ≤ M) (hM : M < N ^ 2) :
     clawSearchCost N M S2 S3 ≤ 4096 * (N * M) ^ (1 / 3 : ℝ) * Real.log N := by
@@ -417,6 +465,7 @@ theorem theorem8_clawFinding_regime1 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
     nlinarith
   linarith
 
+/-- When `l > 0` and `l^3 = N*M`, the symmetric standard detection cost is `3*l`. -/
 theorem clawDetectStandardCost_symm {N M l : ℝ} (hl : 0 < l) (hNM : l ^ 3 = N * M) :
     clawDetectStandardCost N M l l = 3 * l := by
   have hNMpos : 0 < N * M := by rw [← hNM]; positivity
@@ -430,6 +479,8 @@ theorem clawDetectStandardCost_symm {N M l : ℝ} (hl : 0 < l) (hNM : l ^ 3 = N 
   field_simp
   ring
 
+/-- For `N ≥ 2` and `N^2 ≤ M`, bounds `clawSearchCost` by `4096*sqrt M*log N`, uniformly in both
+stage counts. This is the second comparison-cost regime of [Tani, Theorem 8][Tani2009]. -/
 theorem theorem8_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
     (hM : N ^ 2 ≤ M) :
     clawSearchCost N M S2 S3 ≤ 4096 * Real.sqrt M * Real.log N := by
@@ -610,6 +661,8 @@ theorem theorem8_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
       ≤ 4096 * Real.sqrt M * Real.log N := by nlinarith
   linarith
 
+/-- For `2 ≤ N ≤ M < N^2`, bounds `clawSearchStandardCost` by `1024*(N*M)^(1/3)`. This is the
+first standard-query cost regime of [Tani, Corollary 9][Tani2009]. -/
 theorem corollary9_clawFinding_regime1 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
     (hNM : N ≤ M) (hM : M < N ^ 2) :
     clawSearchStandardCost N M S2 S3 ≤ 1024 * (N * M) ^ (1 / 3 : ℝ) := by
@@ -743,6 +796,8 @@ theorem corollary9_clawFinding_regime1 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
       ≤ 1024 * (N * M) ^ (1 / 3 : ℝ) := by nlinarith
   linarith
 
+/-- For `N ≥ 2` and `N^2 ≤ M`, bounds `clawSearchStandardCost` by `1024*sqrt M`. This is the
+second standard-query cost regime of [Tani, Corollary 9][Tani2009]. -/
 theorem corollary9_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
     (hM : N ^ 2 ≤ M) :
     clawSearchStandardCost N M S2 S3 ≤ 1024 * Real.sqrt M := by
@@ -893,6 +948,8 @@ theorem corollary9_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
   have hfin : 80 * Real.sqrt M + 60 * Real.sqrt M ≤ 1024 * Real.sqrt M := by nlinarith
   linarith
 
+/-- Bounds every finite weighted geometric sum by `20` when its ratio lies between `0` and
+`4/5`. -/
 theorem weighted_geom_le_of_le {r : ℝ} (hr0 : 0 ≤ r) (hr : r ≤ 4 / 5) (S : ℕ) :
     (∑ s ∈ Finset.range S, ((s : ℝ) + 1) * r ^ (s + 1)) ≤ 20 := by
   have hmono : (∑ s ∈ Finset.range S, ((s : ℝ) + 1) * r ^ (s + 1))
@@ -903,6 +960,7 @@ theorem weighted_geom_le_of_le {r : ℝ} (hr0 : 0 ≤ r) (hr : r ≤ 4 / 5) (S :
     exact pow_le_pow_left₀ hr0 hr (s + 1)
   exact le_trans hmono (weighted_geom_four_fifths_le S)
 
+/-- For `k ≥ 2`, the geometric ratio `2^(-(k-1)/(k+1))` is at most `4/5`. -/
 theorem rpow_ratio_le {k : ℕ} (hk : 2 ≤ k) :
     (2 : ℝ) ^ (-(((k : ℝ) - 1) / ((k : ℝ) + 1))) ≤ 4 / 5 := by
   have hkR : (2 : ℝ) ≤ (k : ℝ) := by exact_mod_cast hk
@@ -931,6 +989,8 @@ theorem rpow_ratio_le {k : ℕ} (hk : 2 ≤ k) :
       (by rw [hcinv3]; exact hhalf)
   exact le_trans hinv hle
 
+/-- Factors the `(k+1)`-st real root of `P/2^((s+1)*(k-1))` into the root of nonnegative `P` and
+a geometric factor, for `k ≥ 1`. -/
 theorem klevel_factor {P : ℝ} (hP : 0 ≤ P) {k : ℕ} (hk : 1 ≤ k) (s : ℕ) :
     (P / 2 ^ ((s + 1) * (k - 1))) ^ (1 / ((k : ℝ) + 1))
       = P ^ (1 / ((k : ℝ) + 1))
@@ -959,6 +1019,8 @@ theorem klevel_factor {P : ℝ} (hP : 0 ≤ P) {k : ℕ} (hk : 1 ≤ k) (s : ℕ
   rw [show ((s : ℝ) + 1) = ((s + 1 : ℕ) : ℝ) by push_cast; ring]
   rw [Real.rpow_mul_natCast h2]
 
+/-- Factors a real power of `X/2^(m*q)` into `X^e` and the `m`-th power of `2^(-q*e)`, for
+nonnegative `X`. -/
 theorem rpow_div_pow_factor {X : ℝ} (hX : 0 ≤ X) (e : ℝ) (q m : ℕ) :
     (X / 2 ^ (m * q)) ^ e = X ^ e * ((2 : ℝ) ^ (-((q : ℝ) * e))) ^ m := by
   have h2 : (0 : ℝ) ≤ 2 := by norm_num
@@ -975,6 +1037,7 @@ theorem rpow_div_pow_factor {X : ℝ} (hX : 0 ≤ X) (e : ℝ) (q m : ℕ) :
     ring
   rw [hexp, Real.rpow_mul_natCast h2]
 
+/-- For `k ≥ 2` and `q ≥ k-1`, bounds `2^(-q/(k+1))` by `4/5`. -/
 theorem two_rpow_neg_le_four_fifths {k q : ℕ} (hk : 2 ≤ k) (hq : k - 1 ≤ q) :
     (2 : ℝ) ^ (-((q : ℝ) / ((k : ℝ) + 1))) ≤ 4 / 5 := by
   have hkR : (0 : ℝ) < (k : ℝ) + 1 := by positivity
@@ -991,6 +1054,8 @@ theorem two_rpow_neg_le_four_fifths {k q : ℕ} (hk : 2 ≤ k) (hq : k - 1 ≤ q
     exact neg_le_neg hexp
   exact le_trans hmono (rpow_ratio_le hk)
 
+/-- Bounds the `(k+1)`-st root of `P/2^(m*q)` by the root of `P` times `(4/5)^m`, when `P ≥ 0`,
+`k ≥ 2`, and `q ≥ k-1`. -/
 theorem klevel_regime1_major {k : ℕ} (hk : 2 ≤ k) {P : ℝ} (hP : 0 ≤ P) {q : ℕ}
     (hq : k - 1 ≤ q) (m : ℕ) :
     (P / 2 ^ (m * q)) ^ (1 / ((k : ℝ) + 1))
@@ -1003,6 +1068,7 @@ theorem klevel_regime1_major {k : ℕ} (hk : 2 ≤ k) {P : ℝ} (hP : 0 ≤ P) {
     ring
   exact pow_le_pow_left₀ (by positivity) hr m
 
+/-- For positive natural `q`, bounds `2^(-q/2)` by `4/5`. -/
 theorem two_rpow_neg_half_le {q : ℕ} (hq : 1 ≤ q) :
     (2 : ℝ) ^ (-((q : ℝ) * (1/2))) ≤ 4 / 5 := by
   have hqR : (1 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hq
@@ -1015,12 +1081,16 @@ theorem two_rpow_neg_half_le {q : ℕ} (hq : 1 ≤ q) :
   rw [hmatch] at hmono
   exact le_trans hmono (rpow_ratio_le (by norm_num : 2 ≤ 2))
 
+/-- Factors `sqrt (X/2^(m*q))` into `sqrt X` and the `m`-th power of `2^(-q/2)`, for nonnegative
+`X`. -/
 theorem sqrt_div_pow_factor {X : ℝ} (hX : 0 ≤ X) (q m : ℕ) :
     Real.sqrt (X / 2 ^ (m * q))
       = Real.sqrt X * ((2 : ℝ) ^ (-((q : ℝ) * (1/2)))) ^ m := by
   rw [Real.sqrt_eq_rpow, Real.sqrt_eq_rpow]
   exact rpow_div_pow_factor hX (1/2) q m
 
+/-- For positive `N1` and `A` with `N1^k ≤ A` and `k ≥ 2`, bounds `(N1*A)^(1/(k+1))` by `sqrt
+(A/N1^(k-2))`. -/
 theorem klevel_base_le_regime2 {k : ℕ} (hk : 2 ≤ k) {N1 A : ℝ} (hN1 : 0 < N1) (hA : 0 < A)
     (hAk : N1 ^ k ≤ A) :
     (N1 * A) ^ (1 / ((k : ℝ) + 1)) ≤ Real.sqrt (A / N1 ^ (k - 2)) := by
@@ -1077,6 +1147,8 @@ theorem klevel_base_le_regime2 {k : ℕ} (hk : 2 ≤ k) {N1 A : ℝ} (hN1 : 0 < 
     _ = ((A / N1 ^ (k - 2)) ^ (1/2 : ℝ)) ^ (2 * (k + 1)) := by
         rw [← Real.rpow_mul_natCast hX (1/2) (2 * (k + 1)), he2, Real.rpow_natCast]
 
+/-- The weighted comparison detection cost along a finite sequence of domain reductions by
+powers of `2^q` for a `k`-claw search. -/
 def kSeqCost (k : ℕ) (N1 A : ℝ) (q : ℕ) (S : ℕ) : ℝ :=
   ∑ s ∈ Finset.range S, ((s : ℝ) + 1) *
     (if N1 ^ k ≤ A / 2 ^ ((s + 1) * q) then
@@ -1085,6 +1157,8 @@ def kSeqCost (k : ℕ) (N1 A : ℝ) (q : ℕ) (S : ℕ) : ℝ :=
       kClawDetectCost k (N1 * (A / 2 ^ ((s + 1) * q)))
         ((N1 * (A / 2 ^ ((s + 1) * q))) ^ (1 / ((k : ℝ) + 1))))
 
+/-- The weighted standard-query detection cost along a finite sequence of domain reductions by
+powers of `2^q` for a `k`-claw search. -/
 def kSeqStandardCost (k : ℕ) (N1 A : ℝ) (q : ℕ) (S : ℕ) : ℝ :=
   ∑ s ∈ Finset.range S, ((s : ℝ) + 1) *
     (if N1 ^ k ≤ A / 2 ^ ((s + 1) * q) then
@@ -1093,12 +1167,18 @@ def kSeqStandardCost (k : ℕ) (N1 A : ℝ) (q : ℕ) (S : ℕ) : ℝ :=
       kClawDetectStandardCost k (N1 * (A / 2 ^ ((s + 1) * q)))
         ((N1 * (A / 2 ^ ((s + 1) * q))) ^ (1 / ((k : ℝ) + 1))))
 
+/-- The total comparison cost expression for the two `k`-claw search stages, with reduction
+exponents `k-1` and `k`. -/
 def kClawSearchCost (k : ℕ) (N1 A : ℝ) (S2 S3 : ℕ) : ℝ :=
   kSeqCost k N1 A (k - 1) S2 + kSeqCost k N1 A k S3
 
+/-- The total standard-query cost expression for the two `k`-claw search stages, with reduction
+exponents `k-1` and `k`. -/
 def kClawSearchStandardCost (k : ℕ) (N1 A : ℝ) (S2 S3 : ℕ) : ℝ :=
   kSeqStandardCost k N1 A (k - 1) S2 + kSeqStandardCost k N1 A k S3
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and `0 < A ≤ N1^k`, bounds `kSeqCost` by
+`20*(k+1)^2*(N1*A)^(1/(k+1))*log N1` when `q ≥ k-1`. -/
 theorem kseq_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAle : A ≤ N1 ^ k) {q : ℕ} (hq : k - 1 ≤ q) (S : ℕ) :
     kSeqCost k N1 A q S
@@ -1183,6 +1263,8 @@ theorem kseq_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA 
         positivity
     _ = 20 * ((k : ℝ) + 1) ^ 2 * (N1 * A) ^ (1 / ((k : ℝ) + 1)) * Real.log N1 := by ring
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and positive `A ≥ N1^k`, bounds `kSeqCost` by `20*(k+1)^2*sqrt
+(A/N1^(k-2))*log N1` when `q ≥ k-1`. -/
 theorem kseq_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAk : N1 ^ k ≤ A) {q : ℕ} (hq : k - 1 ≤ q) (S : ℕ) :
     kSeqCost k N1 A q S
@@ -1299,6 +1381,8 @@ theorem kseq_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA 
         positivity
     _ = 20 * ((k : ℝ) + 1) ^ 2 * Real.sqrt (A / N1 ^ (k - 2)) * Real.log N1 := by ring
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and `0 < A ≤ N1^k`, bounds `kSeqStandardCost` by
+`20*(k+1)*(N1*A)^(1/(k+1))` when `q ≥ k-1`. -/
 theorem kseqStandard_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAle : A ≤ N1 ^ k) {q : ℕ} (hq : k - 1 ≤ q) (S : ℕ) :
     kSeqStandardCost k N1 A q S
@@ -1377,6 +1461,8 @@ theorem kseqStandard_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ 
         positivity
     _ = 20 * ((k : ℝ) + 1) * (N1 * A) ^ (1 / ((k : ℝ) + 1)) := by ring
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and positive `A ≥ N1^k`, bounds `kSeqStandardCost` by `20*(k+1)*sqrt
+(A/N1^(k-2))` when `q ≥ k-1`. -/
 theorem kseqStandard_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAk : N1 ^ k ≤ A) {q : ℕ} (hq : k - 1 ≤ q) (S : ℕ) :
     kSeqStandardCost k N1 A q S
@@ -1481,6 +1567,9 @@ theorem kseqStandard_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ 
         positivity
     _ = 20 * ((k : ℝ) + 1) * Real.sqrt (A / N1 ^ (k - 2)) := by ring
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and `0 < A ≤ N1^k`, bounds the total comparison search cost by
+`64*(k+1)^2*(N1*A)^(1/(k+1))*log N1`. This gives the first cost regime of [Tani, Theorem
+10][Tani2009]. -/
 theorem theorem10_kClawFinding_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAle : A ≤ N1 ^ k) (S2 S3 : ℕ) :
     kClawSearchCost k N1 A S2 S3
@@ -1493,6 +1582,9 @@ theorem theorem10_kClawFinding_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN
   rw [kClawSearchCost]
   nlinarith [h2, h3, hX]
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and positive `A ≥ N1^k`, bounds the total comparison search cost by
+`64*(k+1)^2*sqrt (A/N1^(k-2))*log N1`. This gives the second cost regime of [Tani, Theorem
+10][Tani2009]. -/
 theorem theorem10_kClawFinding_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAk : N1 ^ k ≤ A) (S2 S3 : ℕ) :
     kClawSearchCost k N1 A S2 S3
@@ -1505,6 +1597,9 @@ theorem theorem10_kClawFinding_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN
   rw [kClawSearchCost]
   nlinarith [h2, h3, hX]
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and `0 < A ≤ N1^k`, bounds the total standard-query search cost by
+`64*(k+1)*(N1*A)^(1/(k+1))`. This gives the first cost regime of [Tani, Corollary
+11][Tani2009]. -/
 theorem corollary11_kClawFinding_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAle : A ≤ N1 ^ k) (S2 S3 : ℕ) :
     kClawSearchStandardCost k N1 A S2 S3
@@ -1516,6 +1611,9 @@ theorem corollary11_kClawFinding_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (
   rw [kClawSearchStandardCost]
   nlinarith [h2, h3, hX]
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and positive `A ≥ N1^k`, bounds the total standard-query search cost
+by `64*(k+1)*sqrt (A/N1^(k-2))`. This gives the second cost regime of [Tani, Corollary
+11][Tani2009]. -/
 theorem corollary11_kClawFinding_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA : 0 < A)
     (hAk : N1 ^ k ≤ A) (S2 S3 : ℕ) :
     kClawSearchStandardCost k N1 A S2 S3

@@ -12,6 +12,25 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Topology.Algebra.Polynomial
 import Mathlib.Topology.Order.IntermediateValue
 
+/-!
+# Dolph–Chebyshev window polynomials
+
+This module defines the scaled Chebyshev polynomial `dolphWindowPolynomial`, its feasibility
+conditions, and its central suppression interval. It proves exact degree and endpoint values,
+boundedness on the unit interval, and a characterization of the flat-center width. Background
+and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `dolphWindowPolynomial`: the scaled Chebyshev window.
+* `dolphWindowPolynomial_norm_le_one`: boundedness on the unit interval.
+* `dolphWindow_flatCenter_iff`: the exact central-width criterion.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
@@ -23,33 +42,44 @@ namespace Qatlib.Concepts.QsvtCore.ApproxToolkit
 open Polynomial
 open scoped Classical BigOperators
 
+/-- The hyperbolic expression cosh(y arcosh(x)) extending the Chebyshev formula to a real order
+`y`. -/
 noncomputable def generalizedChebyshev (y x : ℝ) : ℝ :=
   Real.cosh (y * Real.arcosh x)
 
+/-- The Dolph-window scaling factor cosh(arcosh(ε⁻¹)/n), with division interpreted in the real
+numbers. -/
 noncomputable def dolphWindowScale (ε : ℝ) (n : ℕ) : ℝ :=
   generalizedChebyshev ((1 : ℝ) / n) (ε⁻¹)
 
+/-- The scaled Chebyshev polynomial ε Tₙ(`dolphWindowScale ε n` · X). -/
 noncomputable def dolphWindowPolynomial (ε : ℝ) (n : ℕ) : Polynomial ℝ :=
   Polynomial.C ε *
     (Polynomial.Chebyshev.T ℝ (n : ℤ)).comp
       (Polynomial.C (dolphWindowScale ε n) * Polynomial.X)
 
+/-- Requires degree at most `n`, absolute value at most one on [−1, 1], and endpoint values 1
+and (−1)ⁿ. -/
 def DolphFeasible (n : ℕ) (P : Polynomial ℝ) : Prop :=
   P.degree ≤ n ∧
     (∀ x : ℝ, |x| ≤ 1 → |P.eval x| ≤ 1) ∧
     P.eval 1 = 1 ∧
     P.eval (-1) = ((-1 : ℝ) ^ n)
 
+/-- States that the absolute value of `P` is at most `ε` on the interval |x| ≤ `lam`. -/
 def DolphFlatCenter (P : Polynomial ℝ) (ε lam : ℝ) : Prop :=
   ∀ x : ℝ, |x| ≤ lam → |P.eval x| ≤ ε
 
+/-- The natural ceiling of log(2/ε)/√(2δ), used as a sufficient Dolph-window degree. -/
 noncomputable def dolphWindowDegree (ε δ : ℝ) : ℕ :=
   Nat.ceil (Real.log (2 / ε) / Real.sqrt (2 * δ))
 
+/-- Evaluating the integer-order Chebyshev polynomial at cosh(θ) yields cosh(nθ). -/
 theorem chebyshev_eval_cosh (n : ℤ) (θ : ℝ) :
     (Polynomial.Chebyshev.T ℝ n).eval (Real.cosh θ) = Real.cosh (n * θ) :=
   Polynomial.Chebyshev.T_real_cosh θ n
 
+/-- For nonnegative integer order, the Chebyshev polynomial is monotone on [1, ∞). -/
 theorem chebyshev_monoOn_one_le {n : ℤ} (hn : 0 ≤ n) {x y : ℝ} (hx : 1 ≤ x) (hy : 1 ≤ y)
     (hxy : x ≤ y) :
     (Polynomial.Chebyshev.T ℝ n).eval x ≤ (Polynomial.Chebyshev.T ℝ n).eval y := by
@@ -63,6 +93,7 @@ theorem chebyshev_monoOn_one_le {n : ℤ} (hn : 0 ≤ n) {x y : ℝ} (hx : 1 ≤
   exact Real.cosh_strictMonoOn.le_iff_le
     (mul_nonneg (by exact_mod_cast hn) hθx0) (mul_nonneg (by exact_mod_cast hn) hθy0) |>.mpr hmul
 
+/-- For positive integer order, the Chebyshev polynomial is strictly increasing on [1, ∞). -/
 theorem chebyshev_strictMonoOn_one_le {n : ℤ} (hn : 0 < n) {x y : ℝ} (hx : 1 ≤ x) (hy : 1 ≤ y)
     (hxy : x < y) :
     (Polynomial.Chebyshev.T ℝ n).eval x < (Polynomial.Chebyshev.T ℝ n).eval y := by
@@ -78,17 +109,20 @@ theorem chebyshev_strictMonoOn_one_le {n : ℤ} (hn : 0 < n) {x y : ℝ} (hx : 1
     (mul_nonneg (by exact_mod_cast (le_of_lt hn)) hθx0)
     (mul_nonneg (by exact_mod_cast (le_of_lt hn)) hθy0) |>.mpr hmul
 
+/-- Every Chebyshev node has absolute value at most one. -/
 theorem chebyshev_node_abs_le_one (n i : ℕ) : |Polynomial.Chebyshev.node n i| ≤ 1 := by
   have h := Polynomial.Chebyshev.node_mem_Icc (n := n) (i := i)
   rw [abs_le]
   exact ⟨h.1, h.2⟩
 
+/-- Negating the input preserves the absolute value of a natural-order Chebyshev polynomial. -/
 theorem chebyshev_abs_eval_neg (n : ℕ) (z : ℝ) :
     |(Polynomial.Chebyshev.T ℝ (n : ℤ)).eval (-z)| =
       |(Polynomial.Chebyshev.T ℝ (n : ℤ)).eval z| := by
   rw [Polynomial.Chebyshev.T_eval_neg, abs_mul]
   simp
 
+/-- For |z| ≥ 1, the absolute value of Tₙ(z) equals Tₙ(|z|). -/
 theorem chebyshev_abs_eval_eq_abs_of_one_le (n : ℕ) {z : ℝ} (hz : 1 ≤ |z|) :
     |(Polynomial.Chebyshev.T ℝ (n : ℤ)).eval z| =
       (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval |z| := by
@@ -106,11 +140,13 @@ theorem chebyshev_abs_eval_eq_abs_of_one_le (n : ℕ) {z : ℝ} (hz : 1 ≤ |z|)
       linarith
     rw [← chebyshev_abs_eval_neg n z, abs_of_nonneg hpos]
 
+/-- The real-valued integer sign power of a natural number equals its ordinary power of −1. -/
 theorem chebyshev_negOnePow_eq (n : ℕ) :
     (((n : ℤ)).negOnePow : ℝ) = ((-1 : ℝ) ^ n) := by
   rw [Int.coe_negOnePow]
   simp
 
+/-- For positive `n` and 0 < ε ≤ 1, evaluating Tₙ at the Dolph scale yields ε⁻¹. -/
 theorem dolphWindowScale_eval (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval (dolphWindowScale ε n) = ε⁻¹ := by
   have hεinv : 1 ≤ ε⁻¹ := by
@@ -123,17 +159,21 @@ theorem dolphWindowScale_eval (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) (
   rw [dolphWindowScale, generalizedChebyshev, chebyshev_eval_cosh, hmul,
     Real.cosh_arcosh hεinv]
 
+/-- Evaluating the Dolph polynomial at `x` yields ε times Tₙ evaluated at the scaled input. -/
 theorem dolphWindowPolynomial_eval (ε : ℝ) (n : ℕ) (x : ℝ) :
     (dolphWindowPolynomial ε n).eval x =
       ε * (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval (dolphWindowScale ε n * x) := by
   rw [dolphWindowPolynomial, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_comp]
   simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_X]
 
+/-- For positive tolerance, the Dolph scale is at least one. -/
 theorem dolphWindowScale_ge_one (ε : ℝ) (n : ℕ) (hε : 0 < ε) :
     1 ≤ dolphWindowScale ε n := by
   unfold dolphWindowScale generalizedChebyshev
   exact Real.one_le_cosh _
 
+/-- For positive `n` and positive tolerance, the Dolph-window polynomial has natural degree
+exactly `n`. -/
 theorem dolphWindowPolynomial_natDegree (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) :
     (dolphWindowPolynomial ε n).natDegree = n := by
   have hc : dolphWindowScale ε n ≠ 0 := by
@@ -154,6 +194,8 @@ theorem dolphWindowPolynomial_natDegree (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε :
   · rw [Polynomial.Chebyshev.leadingCoeff_T, hqlead, hdeg]
     positivity
 
+/-- For positive `n` and 0 < ε ≤ 1, the Dolph-window polynomial takes value one at the right
+endpoint. -/
 theorem dolphWindowPolynomial_eval_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε)
     (hε1 : ε ≤ 1) :
     (dolphWindowPolynomial ε n).eval 1 = 1 := by
@@ -161,6 +203,8 @@ theorem dolphWindowPolynomial_eval_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 
   rw [dolphWindowPolynomial_eval, mul_one, hscale]
   exact mul_inv_cancel₀ hε.ne'
 
+/-- For positive `n` and 0 < ε ≤ 1, the Dolph-window polynomial takes value (−1)ⁿ at the left
+endpoint. -/
 theorem dolphWindowPolynomial_eval_neg_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε)
     (hε1 : ε ≤ 1) :
     (dolphWindowPolynomial ε n).eval (-1) = ((-1 : ℝ) ^ n) := by
@@ -174,6 +218,8 @@ theorem dolphWindowPolynomial_eval_neg_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (h�
   rw [hneg, hscale, chebyshev_negOnePow_eq]
   field_simp
 
+/-- For positive `n` and 0 < ε ≤ 1, the Dolph-window polynomial has absolute value at most one
+on [−1, 1]. -/
 theorem dolphWindowPolynomial_norm_le_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (x : ℝ) (hx : |x| ≤ 1) :
     |(dolphWindowPolynomial ε n).eval x| ≤ 1 := by
@@ -211,6 +257,8 @@ theorem dolphWindowPolynomial_norm_le_one (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε
         mul_le_mul_of_nonneg_left key hε.le
     _ = 1 := mul_inv_cancel₀ hε.ne'
 
+/-- For positive `n`, 0 < ε ≤ 1, and positive `lam`, the Dolph polynomial is bounded by `ε` on
+|x| ≤ `lam` exactly when `lam` is at most the reciprocal Dolph scale. -/
 theorem dolphWindow_flatCenter_iff (ε : ℝ) (n : ℕ) (hn : 0 < n) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (lam : ℝ) (hlam0 : 0 < lam) :
     DolphFlatCenter (dolphWindowPolynomial ε n) ε lam ↔

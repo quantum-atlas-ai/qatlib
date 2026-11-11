@@ -10,6 +10,29 @@ import Mathlib.FieldTheory.Finite.Extension
 import Mathlib.FieldTheory.Minpoly.ConjRootClass
 import Mathlib.FieldTheory.Galois.Basic
 import Mathlib.Tactic
+
+/-!
+# Cyclotomic orbit factors and minimal polynomials
+
+This module identifies conjugates of powers of a primitive root with modular multiplication
+orbits of Frobenius. Products over these orbits give mapped minimal polynomials, and the orbit
+leaders yield a factorization of `X ^ N - 1` together with divisibility results for selected
+factors.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `minpoly_map_eq_orbit_prod`: The minimal polynomial of `ζ ^ s.val`, mapped to `L`, is the
+  product of the linear factors indexed by its Frobenius exponent orbit.
+* `corollary3_cyclotomic_factorization`: The product of the mapped minimal polynomials indexed
+  by cyclotomic orbit leaders equals `X ^ N - 1`.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +43,8 @@ open Polynomial Finset
 
 variable {N : ℕ} [NeZero N] {L : Type*} [Field L]
 
+/-- Membership in the multiplication orbit of `s` is equivalent to being `u ^ n * s` for some
+natural exponent. See [GeraciVanBussel2007]. -/
 theorem mem_orbit_iff_npow {u : (ZMod N)ˣ} {s t : ZMod N} :
     t ∈ OrbitSieve.orbitFinset u s ↔ ∃ n : ℕ, ((u ^ n : (ZMod N)ˣ) : ZMod N) * s = t := by
   constructor
@@ -30,6 +55,8 @@ theorem mem_orbit_iff_npow {u : (ZMod N)ˣ} {s t : ZMod N} :
   · rintro ⟨n, rfl⟩
     exact OrbitSieve.pow_mul_mem u s n
 
+/-- For a function constant on each leader orbit, its total sum equals the sum of leader values
+weighted by orbit cardinalities. See [GeraciVanBussel2007]. -/
 theorem sum_leaders_card_mul_eq {u : (ZMod N)ˣ} (f : ZMod N → L)
     (hf : ∀ l ∈ OrbitSieve.leaders u, ∀ t ∈ OrbitSieve.orbitFinset u l, f t = f l) :
     ∑ l ∈ OrbitSieve.leaders u, (OrbitSieve.orbitFinset u l).card • f l =
@@ -44,6 +71,8 @@ theorem sum_leaders_card_mul_eq {u : (ZMod N)ˣ} (f : ZMod N → L)
   intro l hl
   rw [Finset.sum_congr rfl (fun t ht => hf l hl t ht), Finset.sum_const]
 
+/-- Multiplying the products over all leader orbits equals the product over all residues. See
+[GeraciVanBussel2007]. -/
 theorem prod_leaders_prod_orbit_eq {u : (ZMod N)ˣ} (f : ZMod N → Polynomial L) :
     ∏ l ∈ OrbitSieve.leaders u, ∏ t ∈ OrbitSieve.orbitFinset u l, f t = ∏ t : ZMod N, f t := by
   classical
@@ -54,6 +83,8 @@ theorem prod_leaders_prod_orbit_eq {u : (ZMod N)ˣ} (f : ZMod N → Polynomial L
   rw [hcover]
   exact (Finset.prod_biUnion (OrbitSieve.leaders_pairwiseDisjoint u)).symm
 
+/-- The product of the linear factors corresponding to powers of a primitive `N`th root is `X ^
+N - 1`. See [GeraciVanBussel2007]. -/
 theorem prod_univ_eq_X_pow_sub_one {ζ : L} (hζ : IsPrimitiveRoot ζ N) :
     ∏ t : ZMod N, (X - C (ζ ^ t.val)) = X ^ N - 1 := by
   rw [X_pow_sub_one_eq_prod (NeZero.pos N) hζ]
@@ -80,6 +111,8 @@ variable [DecidableEq L] {ζ : L}
 
 omit [DecidableEq L] in
 
+/-- Iterated Frobenius on a power of `ζ` multiplies its residue exponent by the corresponding
+power of the unit represented by `p`. -/
 theorem frob_pow_apply (hζ : IsPrimitiveRoot ζ N) (hunit : IsUnit (p : ZMod N))
     (s : ZMod N) (i : ℕ) :
     (FiniteField.frobeniusAlgEquivOfAlgebraic (ZMod p) L ^ i) (ζ ^ s.val) =
@@ -98,6 +131,8 @@ theorem frob_pow_apply (hζ : IsPrimitiveRoot ζ N) (hunit : IsUnit (p : ZMod N)
   conv_lhs => rw [← hpu]
   ring
 
+/-- The conjugate-root class of `ζ ^ s.val` is the image of the multiplication orbit of `s`
+under the root-power map. See [GeraciVanBussel2007]. -/
 theorem carrier_eq_orbit (hζ : IsPrimitiveRoot ζ N)
     (hunit : IsUnit (p : ZMod N)) (s : ZMod N) :
     (ConjRootClass.mk (ZMod p) (ζ ^ s.val)).carrier =
@@ -120,6 +155,8 @@ theorem carrier_eq_orbit (hζ : IsPrimitiveRoot ζ N)
     exact ⟨FiniteField.frobeniusAlgEquivOfAlgebraic (ZMod p) L ^ i,
       frob_pow_apply hζ hunit s i⟩
 
+/-- The minimal polynomial of `ζ ^ s.val`, mapped to `L`, is the product of the linear factors
+indexed by its Frobenius exponent orbit. See [GeraciVanBussel2007]. -/
 theorem minpoly_map_eq_orbit_prod (hζ : IsPrimitiveRoot ζ N)
     (hunit : IsUnit (p : ZMod N)) (s : ZMod N) :
     (minpoly (ZMod p) (ζ ^ s.val)).map (algebraMap (ZMod p) L) =
@@ -142,6 +179,8 @@ theorem minpoly_map_eq_orbit_prod (hζ : IsPrimitiveRoot ζ N)
   apply ZMod.val_injective N
   exact hζ.pow_inj a.val_lt b.val_lt hab
 
+/-- The product of the mapped minimal polynomials indexed by cyclotomic orbit leaders equals `X
+^ N - 1`. See [GeraciVanBussel2007]. -/
 theorem corollary3_cyclotomic_factorization (hζ : IsPrimitiveRoot ζ N)
     (hunit : IsUnit (p : ZMod N)) :
     ∏ l ∈ OrbitSieve.leaders hunit.unit,
@@ -157,12 +196,16 @@ theorem corollary3_cyclotomic_factorization (hζ : IsPrimitiveRoot ζ N)
   rw [h, prod_leaders_prod_orbit_eq (u := hunit.unit)
     (f := fun t => (X - C (ζ ^ t.val))), prod_univ_eq_X_pow_sub_one hζ]
 
+/-- The mapped minimal polynomial associated with a cyclotomic leader divides `X ^ N - 1`. See
+[GeraciVanBussel2007]. -/
 theorem coset_factor_dvd_X_pow_sub_one (hζ : IsPrimitiveRoot ζ N)
     (hunit : IsUnit (p : ZMod N)) {l : ZMod N} (hl : l ∈ OrbitSieve.leaders hunit.unit) :
     (minpoly (ZMod p) (ζ ^ l.val)).map (algebraMap (ZMod p) L) ∣ X ^ N - 1 := by
   rw [← corollary3_cyclotomic_factorization hζ hunit]
   exact Finset.dvd_prod_of_mem _ hl
 
+/-- The product of the mapped minimal polynomials over any subset of leaders divides `X ^ N -
+1`. See [GeraciVanBussel2007]. -/
 theorem prod_subset_dvd_X_pow_sub_one (hζ : IsPrimitiveRoot ζ N)
     (hunit : IsUnit (p : ZMod N)) (T : Finset (ZMod N))
     (hT : T ⊆ OrbitSieve.leaders hunit.unit) :
@@ -173,6 +216,8 @@ theorem prod_subset_dvd_X_pow_sub_one (hζ : IsPrimitiveRoot ζ N)
   rw [← corollary3_cyclotomic_factorization hζ hunit, ← hsplit]
   exact dvd_mul_left _ _
 
+/-- A nonempty `t`-element set has `2 ^ t - 2` subsets that are nonempty and proper. See
+[GeraciVanBussel2007]. -/
 theorem card_nontrivial_subsets (t : ℕ) (ht : 0 < t) :
     ((Finset.univ : Finset (Fin t)).powerset.filter
         (fun T => T.Nonempty ∧ T ≠ Finset.univ)).card = 2 ^ t - 2 := by

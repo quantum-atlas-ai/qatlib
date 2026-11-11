@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Mathlib.Algebra.Order.Chebyshev
 import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+/-!
+# Euclidean norms of diagonal tensors and edge weights
+
+Defines the Euclidean tensor norm `tensorNorm` and the diagonal tensor `diagTensor` used in the
+scale calculations of [AradLandau2010]. Its norm is the Euclidean norm of the diagonal
+coefficient vector, independent of the number of tensor indices when a distinguished index is
+given.
+
+The remaining results compare the maximum absolute entry, Euclidean norm, and absolute entry sum
+of finite real vectors, including the square-root cardinality bound.
+
+## Main statements
+
+* `tensorNorm_diagTensor`: computes the Euclidean norm from diagonal coefficients.
+* `deltaTensor_norm`: evaluates the all-ones diagonal case.
+* `sum_abs_le_sqrt_card_mul_sqrt_sum_sq`: bounds the absolute sum by the Euclidean norm times
+  the square root of the cardinality.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,13 +39,19 @@ namespace Qatlib.Papers.TensorNetwork08.MainResults.Norm
 open Classical
 open scoped BigOperators
 
+/-- The Euclidean norm of a finite complex tensor, defined as the square root of the sum of
+squared entry norms. -/
 noncomputable def tensorNorm {ι : Type*} [Fintype ι] (v : ι → ℂ) : ℝ :=
   Real.sqrt (∑ i, ‖v i‖ ^ 2)
 
+/-- The tensor equal to `α (x a)` when all labels equal the distinguished label `x a`, and zero
+otherwise. -/
 noncomputable def diagTensor {n : ℕ} {C : Type*} [DecidableEq C] (a : Fin n) (α : C → ℂ)
     (x : Fin n → C) : ℂ :=
   if ∀ i, x i = x a then α (x a) else 0
 
+/-- The finite set of labelings whose entries all equal the distinguished entry is the image of
+the constant-labeling map. -/
 theorem filter_diag_eq_image {n : ℕ} {C : Type*} [Fintype C] [DecidableEq C]
     (a : Fin n) :
     (Finset.univ.filter (fun x : Fin n → C => ∀ i, x i = x a))
@@ -35,6 +65,8 @@ theorem filter_diag_eq_image {n : ℕ} {C : Type*} [Fintype C] [DecidableEq C]
   · rintro ⟨c, rfl⟩ i
     rfl
 
+/-- The Euclidean norm of `diagTensor a α` is the square root of the sum of squared norms of the
+coefficients `α`. -/
 theorem tensorNorm_diagTensor {n : ℕ} {C : Type*} [Fintype C] [DecidableEq C]
     (a : Fin n) (α : C → ℂ) :
     tensorNorm (diagTensor a α) = Real.sqrt (∑ c : C, ‖α c‖ ^ 2) := by
@@ -57,6 +89,8 @@ theorem tensorNorm_diagTensor {n : ℕ} {C : Type*} [Fintype C] [DecidableEq C]
   have := congrFun h a
   simpa using this
 
+/-- The all-ones diagonal tensor has Euclidean norm equal to the square root of the label
+cardinality. See [AradLandau2010]. -/
 theorem deltaTensor_norm {n : ℕ} {C : Type*} [Fintype C] [DecidableEq C] (a : Fin n) :
     tensorNorm (diagTensor a (fun _ : C => (1 : ℂ))) = Real.sqrt (Fintype.card C) := by
   classical
@@ -66,11 +100,14 @@ theorem deltaTensor_norm {n : ℕ} {C : Type*} [Fintype C] [DecidableEq C] (a : 
     rw [← Complex.normSq_eq_norm_sq, Complex.normSq_one]
   simp [hone]
 
+/-- Diagonal tensors with the same coefficients and distinguished indices have equal Euclidean
+norms, even when their numbers of indices differ. See [AradLandau2010]. -/
 theorem identityTensor_norm_eq {n m : ℕ} {C : Type*} [Fintype C] [DecidableEq C]
     (a : Fin n) (b : Fin m) (α : C → ℂ) :
     tensorNorm (diagTensor a α) = tensorNorm (diagTensor b α) := by
   rw [tensorNorm_diagTensor, tensorNorm_diagTensor]
 
+/-- The maximum absolute entry of a nonempty finite real vector is at most its Euclidean norm. -/
 theorem sup'_abs_le_sqrt_sum_sq {C : Type*} [Fintype C] [Nonempty C] (w : C → ℝ) :
     (Finset.univ.sup' Finset.univ_nonempty (fun c => |w c|))
       ≤ Real.sqrt (∑ c, |w c| ^ 2) := by
@@ -80,6 +117,8 @@ theorem sup'_abs_le_sqrt_sum_sq {C : Type*} [Fintype C] [Nonempty C] (w : C → 
   exact Finset.single_le_sum (f := fun i => |w i| ^ 2) (fun i _ => by positivity)
     (Finset.mem_univ c)
 
+/-- The absolute entry sum of a finite real vector is at most the square root of its index
+cardinality times its Euclidean norm. -/
 theorem sum_abs_le_sqrt_card_mul_sqrt_sum_sq {C : Type*} [Fintype C] (w : C → ℝ) :
     (∑ c, |w c|) ≤ Real.sqrt (Fintype.card C) * Real.sqrt (∑ c, |w c| ^ 2) := by
   classical
@@ -94,6 +133,8 @@ theorem sum_abs_le_sqrt_card_mul_sqrt_sum_sq {C : Type*} [Fintype C] (w : C → 
     Real.sqrt_mul (by positivity)] at hsqrt
   exact hsqrt
 
+/-- The Euclidean norm of a finite real vector is at most the sum of the absolute values of its
+entries. -/
 theorem sqrt_sum_sq_le_sum_abs {C : Type*} [Fintype C] (w : C → ℝ) :
     Real.sqrt (∑ c, |w c| ^ 2) ≤ ∑ c, |w c| := by
   classical
@@ -104,6 +145,7 @@ theorem sqrt_sum_sq_le_sum_abs {C : Type*} [Fintype C] (w : C → ℝ) :
       ≤ Real.sqrt ((∑ c, |w c|) ^ 2) := Real.sqrt_le_sqrt hsq
     _ = ∑ c, |w c| := Real.sqrt_sq hnonneg
 
+/-- The square of the absolute value of a real number equals its square. -/
 theorem abs_sq_eq_sq (w : ℝ) : |w| ^ 2 = w ^ 2 := by
   rw [sq_abs]
 

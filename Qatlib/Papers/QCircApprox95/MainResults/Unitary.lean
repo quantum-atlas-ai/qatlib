@@ -9,6 +9,27 @@ import Qatlib.Papers.QCircApprox95.MainResults.GramExtension
 import Mathlib.Data.Matrix.ColumnRowPartitioned
 import Mathlib.LinearAlgebra.Matrix.ToLin
 import Mathlib.Analysis.InnerProductSpace.PiL2
+
+/-!
+# Unitary completion with a fixed subspace
+
+Starting from a matrix with orthonormal rows, the module constructs complementary rows and a
+unitary matrix extending the prescribed rows. The completion fixes a subspace of dimension m −
+k, with versions for both a sum-indexed coordinate space and `Fin m`. See [Knill1995].
+
+## Main statements
+
+* `exists_complement_rows`: constructs orthonormal complementary rows.
+* `exists_kernel_isometry`: finds an isometric column family in the kernel of the prefix
+  difference.
+* `lemma_three_two_completion`: extends the rows to a unitary fixing an m − k dimensional
+  subspace.
+
+## References
+
+* [Knill, 1995][Knill1995]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +41,7 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.QCircApprox95.MainResults
 
+/-- If `V * Vᴴ = 1`, the rows of `V`, viewed in Euclidean space, form an orthonormal family. -/
 theorem rows_orthonormal_vectors {k : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (V : Matrix (Fin k) X ℂ) (hV : V * Vᴴ = 1) :
     Orthonormal ℂ (fun i : Fin k => WithLp.toLp 2 (fun j : X => V i j)) := by
@@ -34,6 +56,8 @@ theorem rows_orthonormal_vectors {k : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   rw [h, hV]
   simp [Matrix.one_apply, eq_comm]
 
+/-- A matrix with orthonormal rows on the sum-indexed coordinate space has complementary
+orthonormal rows `Y` satisfying `Vᴴ * V + Yᴴ * Y = 1`. -/
 theorem exists_complement_rows (k m : ℕ) (_hk : k ≤ m)
     (V : Matrix (Fin k) (Fin k ⊕ Fin (m - k)) ℂ) (hV : V * Vᴴ = 1) :
     ∃ Y : Matrix (Fin (m - k)) (Fin k ⊕ Fin (m - k)) ℂ,
@@ -113,9 +137,12 @@ theorem exists_complement_rows (k m : ℕ) (_hk : k ≤ m)
     rw [hCeq, Matrix.conjTranspose_fromRows_eq_fromCols_conjTranspose,
       Matrix.fromCols_mul_fromRows]
 
+/-- The prefix coordinate projection on `Fin k ⊕ Fin (m - k)`. -/
 def prefixSum (k m : ℕ) : Matrix (Fin k) (Fin k ⊕ Fin (m - k)) ℂ :=
   fun i p => if p = Sum.inl i then 1 else 0
 
+/-- For `k ≤ m`, there is an isometric family of `m - k` columns in the kernel of `V - prefixSum
+k m`. -/
 theorem exists_kernel_isometry (k m : ℕ) (hk : k ≤ m)
     (V : Matrix (Fin k) (Fin k ⊕ Fin (m - k)) ℂ) :
     ∃ X : Matrix (Fin k ⊕ Fin (m - k)) (Fin (m - k)) ℂ,
@@ -176,6 +203,9 @@ theorem exists_kernel_isometry (k m : ℕ) (hk : k ≤ m)
     rw [hcol, hof]
     simp
 
+/-- A sum-indexed matrix with orthonormal rows extends to a unitary fixing a subspace of
+dimension `m - k`, and an orthonormal family `Z` of the complementary size exists. This is
+the sum-indexed completion statement associated with Lemma 3.2 of [Knill1995]. -/
 theorem lemma_three_two_completion_sum (k m : ℕ) (hk : k ≤ m)
     (V : Matrix (Fin k) (Fin k ⊕ Fin (m - k)) ℂ) (hV : V * Vᴴ = 1) :
     ∃ (Z : Matrix (Fin (m - k)) (Fin k ⊕ Fin (m - k)) ℂ)
@@ -274,6 +304,9 @@ theorem lemma_three_two_completion_sum (k m : ℕ) (hk : k ≤ m)
         rw [← Matrix.mulVecLin_mul, hWX]
       exact congrArg (fun f => f z) hcomp
 
+/-- For `k ≤ m`, a `k`-by-`m` matrix with orthonormal rows extends to an `m`-dimensional unitary
+fixing a subspace of dimension `m - k`, and an orthonormal family `Z` of the complementary
+size exists. See Lemma 3.2 of [Knill1995]. -/
 theorem lemma_three_two_completion (k m : ℕ) (hk : k ≤ m)
     (V : Matrix (Fin k) (Fin m) ℂ) (hV : V * Vᴴ = 1) :
     ∃ (Z : Matrix (Fin (m - k)) (Fin m) ℂ) (W : Matrix (Fin m) (Fin m) ℂ),

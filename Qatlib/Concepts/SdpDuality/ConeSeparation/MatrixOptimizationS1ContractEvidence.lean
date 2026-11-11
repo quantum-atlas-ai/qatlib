@@ -7,6 +7,37 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
 import QuantumInfo.ForMathlib.HermitianMat.CFC
 import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+
+/-!
+# Positive components and counterexamples for SDP contracts
+
+This module separates provable components of the source SDP contracts from counterexamples to
+their combined statements. It proves Golden--Thompson consequences through `clause21_conj12`,
+identity rescaling through `clause4_lemma2_part`, parameter existence through
+`clause4_normalized_kernel_part` and `clause25_conj2b_part`, and the width-rescaling identities
+in `clause25_conj2_part`.
+
+The contracts arise in the quantum SDP setting of [BrandaoSvore2017]. The refutations identify
+failures in the exact quantified statements here: a scaled payoff can be negative, local
+bisection budgets do not bound an arbitrary number of guesses, and the certificate objective
+bound lacks a sufficient restriction on the distinguished constraint value.
+
+## Main statements
+
+* `clause21_conj12`: The Hermitian Golden--Thompson gap is nonnegative with equality exactly for
+  commuting inputs, and the positive-definite logarithmic-input inequality holds.
+* `clause4_lemma2_part` and `clause4_normalized_kernel_part`: Provide the stated rescaling and
+  positive real parameter witnesses.
+* `clause25_conj2_part` and `clause25_conj2b_part`: Prove the width-rescaling formulas and
+  existence of a positive integer horizon.
+* `clause3_conj1_refuted`, `clause3_conj3_refuted`, and `clause4_refuted`: Refute the combined
+  contracts through their respective false components.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -23,6 +54,9 @@ open Qatlib.Concepts.SdpDuality.ConeSeparation
 open Qatlib.Concepts.SdpMmwSolver.OracleError
 open Qatlib
 
+/-- Refutes the proposed combined scaled-payoff contract under its listed positivity and width
+assumptions. A scalar instance has scaled payoff trace minus two, contradicting the asserted
+positive semidefiniteness. -/
 theorem clause3_conj1_refuted : ¬
     (∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
         (y : Fin m → ℝ) (ρ : Operator D) (α R ε η δ : ℝ)
@@ -114,6 +148,9 @@ theorem clause3_conj1_refuted : ¬
     exact h1.1
   linarith
 
+/-- The Golden--Thompson gap of Hermitian matrices is nonnegative and vanishes exactly when they
+commute. For positive definite Hermitian inputs, the real trace of the exponential of the
+sum of their spectral logarithms is at most the real trace of their product. -/
 theorem clause21_conj12 :
     (∀ (n : ℕ) (H K : Matrix (Fin n) (Fin n) ℂ),
       H.IsHermitian → K.IsHermitian →
@@ -127,6 +164,9 @@ theorem clause21_conj12 :
   · intro n A B hA hB
     exact log_input_gt_le A B hA hB
 
+/-- Provides a legal `Lemma2Rescale` preserving the stated feasibility and objective comparisons
+in both directions. The witness keeps `bp = b`, uses scale one and zero value error, and
+takes each comparison state to itself. -/
 theorem clause4_lemma2_part : ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (b : Fin m → ℝ) (α R δ : ℝ),
     0 < D → 0 < m → 0 < α → 0 < R → 0 < δ →
@@ -173,6 +213,9 @@ theorem clause4_lemma2_part : ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : O
     · show (Matrix.trace (Cv * σ)).re ≤ (Matrix.trace (Cv * σ)).re + 0
       rw [add_zero]
 
+/-- Constructs positive real parameters `η ≤ 1` and `T` satisfying `η ≤ δ / (8 * R)` and
+`Real.log D / (η * T) ≤ δ * α / (4 * R)`. It also supplies the stated self-comparison
+objective inequality with additive slack `δ * α / 2` for each feasible density operator. -/
 theorem clause4_normalized_kernel_part : ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (b : Fin m → ℝ) (α R δ : ℝ),
     0 < D → 0 < m → 0 < α → 0 < R → 0 < δ →
@@ -219,6 +262,9 @@ theorem clause4_normalized_kernel_part : ∀ (D m : ℕ) (A : Fin m → Operator
   · intro σ _hσ _hfeas
     exact le_add_of_nonneg_right (div_nonneg (le_of_lt hP) (by norm_num))
 
+/-- Refutes the proposed universal bisection-budget conclusion for every real `R` and `δ`. Zero
+legal budgets allow choosing the number of guesses one larger than its asserted logarithmic
+bound. -/
 theorem clause4_conj3_counterexample : ∀ (R δ : ℝ),
     ¬ (∀ (N : ℕ) (guess : Fin N → ℝ) (spend : Fin N → BisectionBudget)
         (totalFail totalError : ℝ),
@@ -237,6 +283,9 @@ theorem clause4_conj3_counterexample : ∀ (R δ : ℝ),
       exact ⟨le_rfl, le_rfl, le_rfl, le_rfl⟩)).2.2.2
   omega
 
+/-- Refutes the universal claim that per-guess legal bisection budgets force the stated
+logarithmic bound on the number of guesses, by specializing `clause4_conj3_counterexample`
+to `R = δ = 1`. -/
 theorem clause4_conj3_refuted : ¬
     (∀ (R δ : ℝ) (N : ℕ) (guess : Fin N → ℝ) (spend : Fin N → BisectionBudget)
         (totalFail totalError : ℝ),
@@ -249,6 +298,8 @@ theorem clause4_conj3_refuted : ¬
   intro h
   exact clause4_conj3_counterexample 1 1 (h 1 1)
 
+/-- Refutes the combined rescaling, normalized-parameter, and bisection contract by extracting
+its false universal bound on the number of guesses from a scalar zero-matrix instance. -/
 theorem clause4_refuted : ¬
     (∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
         (α R δ : ℝ),
@@ -316,6 +367,10 @@ theorem clause4_refuted : ¬
   obtain ⟨_, _, h3⟩ := h hD hm hα hR hδ hA hCv hb
   exact clause4_conj3_counterexample (1:ℝ) (1:ℝ) h3
 
+/-- Dividing the constraint weights by `1 + 2 * R * ε` turns the source width bound into the
+bound `α`, identifies the exact width slack, and preserves the stated slack-adjusted payoff
+inequality. The proof requires positivity of `α`, `R`, and `ε` and the two given width and
+payoff inequalities. -/
 theorem clause25_conj2_part (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : Fin m → ℝ) (ρ : Operator D) (α R ε : ℝ)
     (hα : 0 < α) (hR : 0 < R) (hε : 0 < ε)
@@ -357,6 +412,9 @@ theorem clause25_conj2_part (D m : ℕ) (A : Fin m → Operator D) (Cv : Operato
     rw [hinv, hinv]
     exact mul_le_mul_of_nonneg_right h1 (inv_nonneg.mpr (le_of_lt hc))
 
+/-- Refutes the proposed combined contract through its certificate-objective conclusion. In the
+scalar example with distinguished constraint bound ten and zero history, the certificate
+offset alone exceeds `(1 + δ) * α + exactWidthSlack α R ε`. -/
 theorem clause3_conj3_refuted : ¬
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (y : Fin m → ℝ) (ρ : Operator D) (α R ε η δ : ℝ)
@@ -435,6 +493,8 @@ theorem clause3_conj3_refuted : ¬
   simp only [sdpDualCertificate] at hbad
   norm_num [exactWidthSlack] at hbad
 
+/-- For `0 < η' < ε`, there is a positive natural horizon `T` for which `η' + Real.log D / (η' *
+T) < ε`, under the listed positivity assumptions on dimension and tolerance. -/
 theorem clause25_conj2b_part (D : ℕ) (ε η' : ℝ)
     (_hD : 0 < D) (_hε : 0 < ε) (hη' : 0 < η') (hη'ε : η' < ε) :
     ∃ T : ℕ, 0 < T ∧ η' + Real.log D / (η' * T) < ε := by

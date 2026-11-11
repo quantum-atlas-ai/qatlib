@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartFirstSuccessStat
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartAttemptLawTigh
 import Qatlib.Concepts.SearchStopping.PaidRestart.BranchCostOutputRelabel
+
+/-!
+# First-success receipts for verified Grover search
+
+Proves `actualRestartFirstSuccess` by applying the fixed-price restart formulas to the actual
+search-and-verification transition. It identifies the joint address and receipt distribution and
+its support. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `actualRestartFirstSuccess`: Establishes `ActualRestartFirstSuccess`, including the geometric
+  joint mass formula and support restrictions for verified Grover restarts.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -20,6 +38,8 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- Establishes `ActualRestartFirstSuccess`, including the geometric joint mass formula and
+support restrictions for verified Grover restarts. See [BoyerEtAl1998]. -/
 theorem actualRestartFirstSuccess : ActualRestartFirstSuccess := by
   intro I _ _ hN T' v hT hv hprep A j hC price hp
   (try dsimp only)

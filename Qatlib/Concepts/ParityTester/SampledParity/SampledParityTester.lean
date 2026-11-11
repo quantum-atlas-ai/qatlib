@@ -10,6 +10,29 @@ import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+
+/-!
+# Accuracy and read bounds for sampled parity checks
+
+This module relates `runSchedule` to the syndrome `parityMatrix rows *ᵥ x` and computes
+`missMass` for uniformly sampled row indices with replacement. It combines the resulting power
+formula with a row-width bound to control acceptance mass and the number of coordinate reads.
+Parity-check and syndrome background is discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `runSchedule_values_and_reads` identifies the returned syndrome entries and the complete read
+  log.
+* `uniform_schedule_missMass` gives the exact acceptance mass as the zero-syndrome row fraction
+  raised to the number of samples.
+* `amplified_test_accuracy_and_reads` bounds this mass by `ε` and every length-`t` sample
+  schedule by `t * w` reads under the stated hypotheses.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CodingDecoding.CssTesters
@@ -22,6 +45,9 @@ namespace Qatlib.Concepts.ParityTester.SampledParity
 open Qatlib.Concepts.ParityTester.SampledParity Qatlib.Concepts.SparseSyndrome.RowScan Matrix
 open scoped BigOperators
 
+/-- The values returned by a schedule are the selected entries of `parityMatrix rows *ᵥ x`, in
+schedule order. Its read log is the concatenation of the selected row lists, including
+repetitions. -/
 theorem runSchedule_values_and_reads :
     ∀ (n : ℕ) (rows : List (List (Fin n))) (x : Fin n → ZMod 2)
         (schedule : List (Fin rows.length)),
@@ -41,12 +67,15 @@ theorem runSchedule_values_and_reads :
         rows.get i ++ schedule.flatMap (fun j => rows.get j)
       rw [hl, ih.2]
 
+/-- A schedule passes exactly when every row index occurring in it has zero syndrome value. -/
 private theorem passes_iff {n : ℕ} (rows : List (List (Fin n)))
     (x : Fin n → ZMod 2) (schedule : List (Fin rows.length)) :
     passes rows x schedule = true ↔ ∀ i ∈ schedule, (parityMatrix rows *ᵥ x) i = 0 := by
   rw [passes, (runSchedule_values_and_reads n rows x schedule).1]
   simp
 
+/-- For a nonempty row list, the acceptance mass of `t` independent uniform row choices is the
+fraction of zero-syndrome rows raised to the power `t`. -/
 theorem uniform_schedule_missMass :
     ∀ (n : ℕ) (rows : List (List (Fin n))) (x : Fin n → ZMod 2) (t : ℕ),
       rows ≠ [] →
@@ -71,6 +100,8 @@ theorem uniform_schedule_missMass :
   unfold missMass
   rw [hschedules, Fintype.card_piFinset_const, hz, Nat.cast_pow, div_pow]
 
+/-- If each row has length at most `w`, the read log of any schedule has length at most the
+schedule length times `w`. -/
 private theorem schedule_reads_le {n : ℕ} (rows : List (List (Fin n)))
     (x : Fin n → ZMod 2) (w : ℕ) (hwidth : ∀ row ∈ rows, row.length ≤ w)
     (schedule : List (Fin rows.length)) :
@@ -83,6 +114,9 @@ private theorem schedule_reads_le {n : ℕ} (rows : List (List (Fin n)))
     simp only [List.flatMap_cons, List.length_append, List.length_cons, Nat.add_mul, Nat.one_mul]
     omega
 
+/-- For nonempty rows of width at most `w`, a violated-row fraction at least `δ` in `[0, 1]`
+gives acceptance mass at most `ε` whenever `(1 - δ) ^ t ≤ ε`. Every schedule specified by
+`t` samples uses at most `t * w` coordinate reads. -/
 theorem amplified_test_accuracy_and_reads :
     ∀ (n t w : ℕ) (rows : List (List (Fin n))) (x : Fin n → ZMod 2)
         (δ ε : ℚ), rows ≠ [] →

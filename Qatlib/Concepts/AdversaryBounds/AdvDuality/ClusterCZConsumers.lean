@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
 import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
+
+/-!
+# Controlled-Z branch semantics on concrete inputs
+
+This module evaluates the observed controlled-Z pattern on a uniform two-qubit input and on a
+maximally entangled reference input. It also checks the maximally mixed state and the
+cancellation of two successive patterns, including their gate and measurement counts.
+
+These examples connect the branch maps to the controlled-Z and entanglement formalism of
+[NielsenChuang2010].
+
+## Main statements
+
+* `cluster_cz_plus_actual_entangling_consumer`: the uniform product input produces a nonproduct
+  state.
+* `cluster_cz_actual_bell_reference_changed_consumer`: the pattern changes an entangled
+  reference input.
+* `cluster_cz_true_mixed_and_double_pattern_identity_consumer`: the mixed state is fixed and two
+  patterns compose to the identity.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,18 +55,24 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The uniform two-qubit input state obtained by relabeling the tensor product of two plus
+states. -/
 noncomputable def clusterCZPlusInput : QState (Fin 4) :=
   relabelState teleportOutcomeEquiv (TensorState Plus Plus)
 
+/-- The uniform controlled-Z input state is normalized. -/
 theorem clusterCZPlusInput_normalized : Normalized clusterCZPlusInput :=
   normalized_relabelState _ (normalized_tensorState normalized_plus normalized_plus)
 
+/-- Every computational-basis amplitude of `clusterCZPlusInput` is `1 / 2`. -/
 theorem clusterCZPlusInput_apply (r : Fin 4) : clusterCZPlusInput r = (1 / 2 : ℂ) := by
   obtain ⟨⟨u, v⟩, rfl⟩ : ∃ q : Bool × Bool, r = teleportOutcomeEquiv q :=
     ⟨_, (Equiv.apply_symm_apply _ _).symm⟩
   simp [clusterCZPlusInput, relabelState, Function.comp_apply, TensorState, Plus,
     hadamard_apply_false, sqrt2_inv_sq]
 
+/-- Summing the actual controlled-Z branches on the uniform input gives the outer product of the
+controlled-Z output state. -/
 theorem clusterCZPlusInput_hsum :
     (∑ o : Bool × Bool, clusterCZActualBranchMap o.1 o.2 (outerProduct clusterCZPlusInput))
       = outerProduct (ApplyGate clusterCZ clusterCZPlusInput) := by
@@ -50,6 +81,8 @@ theorem clusterCZPlusInput_hsum :
     conjBranch_outerProduct]
   rfl
 
+/-- The normalized uniform input has the displayed controlled-Z output density matrix, and its
+output vector cannot be expressed as a tensor product of two one-qubit states. -/
 theorem cluster_cz_plus_actual_entangling_consumer :
     Normalized clusterCZPlusInput ∧
       (∑ o : Bool × Bool, clusterCZActualBranchMap o.1 o.2 (outerProduct clusterCZPlusInput))
@@ -82,15 +115,20 @@ theorem cluster_cz_plus_actual_entangling_consumer :
     rw [← hff, ← htt, ← hft, ← htf] at key
     norm_num at key
 
+/-- The maximally entangled state between the four-dimensional system and a four-dimensional
+reference. -/
 noncomputable def clusterCZBellReferenceInput : QState (Fin 4 × Fin 4) :=
   fun p => if p.1 = p.2 then (1 / 2 : ℂ) else 0
 
+/-- The controlled-Z Bell reference input is normalized. -/
 theorem clusterCZBellReferenceInput_normalized : Normalized clusterCZBellReferenceInput := by
   show ∑ p : Fin 4 × Fin 4, ‖clusterCZBellReferenceInput p‖ ^ 2 = 1
   rw [Fintype.sum_prod_type]
   simp [Fin.sum_univ_four, clusterCZBellReferenceInput]
   norm_num
 
+/-- Summing the actual branches on the system half of the Bell reference input gives the state
+obtained by controlled-Z tensored with the reference identity. -/
 theorem clusterCZBellReference_hsum :
     (∑ o : Bool × Bool, tensorLeft (clusterCZActualBranchMap o.1 o.2)
         (outerProduct clusterCZBellReferenceInput))
@@ -99,6 +137,8 @@ theorem clusterCZBellReference_hsum :
   rw [(cluster_cz_actual_reference_channel 4 (outerProduct clusterCZBellReferenceInput)
     false false).2, tensorGate_outerProduct_conj]
 
+/-- The normalized Bell reference input is transformed by the actual controlled-Z branches into
+a density matrix distinct from its initial density matrix. -/
 theorem cluster_cz_actual_bell_reference_changed_consumer :
     Normalized clusterCZBellReferenceInput ∧
       (∑ o : Bool × Bool, tensorLeft (clusterCZActualBranchMap o.1 o.2)
@@ -126,6 +166,9 @@ theorem cluster_cz_actual_bell_reference_changed_consumer :
   rw [outerProduct_apply, outerProduct_apply, hval, hval] at e
   norm_num [clusterCZBellReferenceInput, Complex.conj_ofNat] at e
 
+/-- The maximally mixed two-qubit state is a nonpure fixed point of the branch sum, and two
+patterns act identically even with a reference. Every pair of leaves uses 26 gates and four
+measurements. -/
 theorem cluster_cz_true_mixed_and_double_pattern_identity_consumer :
     IsDensityOperator ((1 / 4 : ℂ) • (1 : Operator 4)) ∧
       ¬ IsPureDensityOperator ((1 / 4 : ℂ) • (1 : Operator 4)) ∧

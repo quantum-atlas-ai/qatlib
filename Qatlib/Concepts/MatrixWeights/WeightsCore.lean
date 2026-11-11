@@ -12,6 +12,35 @@ import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
 import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 
+/-!
+# Noncommuting matrix multiplicative weights
+
+`mmwWeight`, `mmwState`, and `mmwAverage` define exponential weights, normalized Gibbs iterates,
+and their arithmetic average. The analysis derives a Golden-Thompson trace inequality from
+Schatten bounds and a dyadic product limit, then combines one-step potential bounds with a
+density-operator exponential estimate.
+
+The matrix analysis background is developed in [HiaiPetz2014], and the SDP motivation for the
+resulting regret bound appears in [BrandaoSvore2017].
+
+## Main statements
+
+* `matrix_mw_actual_gibbs_iterates_density` proves positive normalization and density of the
+  Gibbs iterates.
+* `matrix_mw_golden_thompson_trace_potential` proves the exponential trace inequality for
+  arbitrary Hermitian matrices.
+* `mmw_potential_ratio_step` and `mmw_log_potential_step` bound the change of the trace
+  potential for bounded Hermitian losses.
+* `matrix_mw_noncommuting_regret` bounds cumulative loss against any density comparator with
+  scaled error `eta^2*T + log D`.
+
+## References
+
+- [Hiai and Petz, 2014][HiaiPetz2014], *Introduction to Matrix Analysis and Applications*.
+* [Brandao and Svore, 2017][BrandaoSvore2017], *Quantum Speed-Ups for Solving Semidefinite
+  Programs*.
+-/
+
 set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option backward.isDefEq.respectTransparency false
@@ -26,17 +55,25 @@ namespace Qatlib.Concepts.MatrixWeights.WeightsCore
 open Matrix
 open scoped Classical BigOperators Matrix Matrix.Norms.L2Operator ComplexOrder
 
+/-- Defines the unnormalized matrix weight as the exponential of minus the learning rate times
+the sum of losses before round `t`. -/
 noncomputable def mmwWeight (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ) : Operator D :=
   NormedSpace.exp (-η • (∑ s∈Finset.range t, M s))
 
+/-- Normalizes `mmwWeight` by the reciprocal of the real part of its trace to form the matrix
+multiplicative weights iterate. -/
 noncomputable def mmwState (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ) : Operator D :=
   ((Matrix.trace (mmwWeight D M η t)).re : ℂ)⁻¹ • mmwWeight D M η t
 
+/-- Defines the arithmetic average of the first `T` normalized matrix multiplicative weights
+iterates. -/
 noncomputable def mmwAverage (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) : Operator D :=
   (T : ℂ)⁻¹ • ∑ t∈Finset.range T, mmwState D M η t
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- In positive dimension, the exponential of a Hermitian operator is positive semidefinite and
+has a real trace with strictly positive real part. -/
 theorem mmw_exp_positive_trace (D : ℕ) (A : Operator D) (hD : 0 < D)
     (hA : A.IsHermitian) :
     (NormedSpace.exp A).PosSemidef ∧ 0 < (Matrix.trace (NormedSpace.exp A)).re ∧
@@ -58,6 +95,8 @@ theorem mmw_exp_positive_trace (D : ℕ) (A : Operator D) (hD : 0 < D)
     rw [← hreal]
     exact (HermitianMat.trace_eq_trace H.exp).symm
 
+/-- For positive dimension and Hermitian losses, every exponential weight has strictly positive
+real trace and its normalized Gibbs iterate is a density operator [BrandaoSvore2017]. -/
 theorem matrix_mw_actual_gibbs_iterates_density
     (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ) (hD : 0 < D)
     (hM : ∀ s, (M s).IsHermitian) :
@@ -78,6 +117,8 @@ theorem matrix_mw_actual_gibbs_iterates_density
     apply inv_mul_cancel₀
     exact_mod_cast ne_of_gt hp.2.1
 
+/-- For commuting matrices, the real trace of the exponential of their sum equals the real trace
+of the product of their exponentials. -/
 theorem mmw_commuting_trace_potential (D : ℕ) (A B : Operator D) (h : Commute A B) :
     (Matrix.trace (NormedSpace.exp (A+B))).re =
       (Matrix.trace (NormedSpace.exp A * NormedSpace.exp B)).re := by
@@ -85,6 +126,8 @@ theorem mmw_commuting_trace_potential (D : ℕ) (A B : Operator D) (h : Commute 
 
 variable {d : Type*} [Fintype d] [DecidableEq d]
 
+/-- For positive `p` and a positive integer `n`, the Schatten `p/n` quantity of `Z^n` is at most
+the `n`th power of the Schatten `p` quantity of `Z`. -/
 theorem mmw_schatten_power_le (Z : Matrix d d ℂ) (p : ℝ) (hp : 0 < p)
     (n : ℕ) (hn : 0 < n) :
     schattenNorm (Z ^ n) (p / n) ≤ schattenNorm Z p ^ n := by
@@ -105,6 +148,7 @@ theorem mmw_schatten_power_le (Z : Matrix d d ℂ) (p : ℝ) (hp : 0 < p)
       exact hh.trans ((mul_le_mul_of_nonneg_right (ih hn')
         (schattenNorm_nonneg Z p)).trans_eq (pow_succ _ _).symm)
 
+/-- The absolute value of a matrix trace is bounded by its Schatten one norm. -/
 theorem mmw_trace_le_schatten_one (Z : Matrix d d ℂ) :
     ‖Matrix.trace Z‖ ≤ schattenNorm Z 1 := by
   have he : schattenNorm Z 1 = Z.traceNorm := by
@@ -114,12 +158,16 @@ theorem mmw_trace_le_schatten_one (Z : Matrix d d ℂ) :
   rw [he]
   exact Matrix.abs_trace_le_traceNorm Z
 
+/-- For positive integer `n`, the absolute trace of `Z^n` is at most the `n`th power of the
+Schatten `n` norm of `Z`. -/
 theorem mmw_trace_power_le_schatten (Z : Matrix d d ℂ) (n : ℕ) (hn : 0 < n) :
     ‖Matrix.trace (Z ^ n)‖ ≤ schattenNorm Z n ^ n := by
   have hp : (0 : ℝ) < n := by exact_mod_cast hn
   exact (mmw_trace_le_schatten_one _).trans (by
     simpa [ne_of_gt hp] using! mmw_schatten_power_le Z n hp n hn)
 
+/-- For positive integer `m`, the `2*m` power of the Schatten `2*m` norm equals the real trace
+of `(Z.adjoint * Z)^m`. -/
 theorem mmw_schatten_even_moment (Z : Matrix d d ℂ) (m : ℕ) (hm : 0 < m) :
     schattenNorm Z (2 * m) ^ (2 * m) = (Matrix.trace ((Zᴴ * Z) ^ m)).re := by
   have he : (2 * (m : ℝ)) = ((2 * m : ℕ) : ℝ) := by push_cast; ring
@@ -143,11 +191,15 @@ theorem mmw_schatten_even_moment (Z : Matrix d d ℂ) (m : ℕ) (hm : 0 < m) :
   congr 1
   simp only [H, Matrix.conjTranspose_conjTranspose]
 
+/-- For positive integer `m`, the absolute trace of `Z^(2*m)` is bounded by the real trace of
+`(Z.adjoint * Z)^m`. -/
 theorem mmw_trace_even_power_le (Z : Matrix d d ℂ) (m : ℕ) (hm : 0 < m) :
     ‖Matrix.trace (Z ^ (2 * m))‖ ≤ (Matrix.trace ((Zᴴ * Z) ^ m)).re := by
   have h := mmw_trace_power_le_schatten Z (2 * m) (by omega)
   simpa only [Nat.cast_mul, Nat.cast_ofNat, mmw_schatten_even_moment Z m hm] using! h
 
+/-- Swapping the two factors in a matrix product leaves the trace of every natural power of that
+product unchanged. -/
 theorem mmw_trace_mul_power_swap (A B : Matrix d d ℂ) (n : ℕ) :
     Matrix.trace ((A * B) ^ n) = Matrix.trace ((B * A) ^ n) := by
   have h (k : ℕ) : (A * B) ^ k * A = A * (B * A) ^ k := by
@@ -163,6 +215,8 @@ theorem mmw_trace_mul_power_swap (A B : Matrix d d ℂ) (n : ℕ) :
   | succ k =>
     rw [pow_succ, ← mul_assoc, h, Matrix.trace_mul_comm, ← mul_assoc, ← pow_succ']
 
+/-- For Hermitian `X` and `Y`, the real trace of `(X*Y)^(2^k)` is bounded by the real trace of
+`X^(2^k) * Y^(2^k)`. -/
 theorem mmw_dyadic_trace_power_le (X Y : Matrix d d ℂ)
     (hX : X.IsHermitian) (hY : Y.IsHermitian) (k : ℕ) :
     (Matrix.trace ((X * Y) ^ (2 ^ k))).re ≤
@@ -194,6 +248,8 @@ theorem mmw_dyadic_trace_power_le (X Y : Matrix d d ℂ)
 open Filter
 open scoped MatrixOrder Topology
 
+/-- For positive semidefinite `A` and `B`, the imaginary-time product runs with `2^k` steps at
+time one converge to the exponential of `-(A+B)`. -/
 theorem mmw_psd_dyadic_lie_limit (D : ℕ) (A B : Operator D)
     (hA : A.PosSemidef) (hB : B.PosSemidef) :
     Tendsto (fun k : ℕ => imaginaryRun A B 1 (2 ^ k)) atTop
@@ -211,6 +267,8 @@ theorem mmw_psd_dyadic_lie_limit (D : ℕ) (A B : Operator D)
   have ht := (squeeze_zero_norm hb hz).add_const (NormedSpace.exp (-(A+B)))
   simpa using! ht
 
+/-- For positive semidefinite `A` and `B`, the real trace of `exp (-(A+B))` is at most the real
+trace of `exp (-A) * exp (-B)`. -/
 theorem mmw_golden_thompson_negative_psd (D : ℕ) (A B : Operator D)
     (hA : A.PosSemidef) (hB : B.PosSemidef) :
     (Matrix.trace (NormedSpace.exp (-(A+B)))).re ≤
@@ -237,6 +295,8 @@ theorem mmw_golden_thompson_negative_psd (D : ℕ) (A B : Operator D)
 open Filter
 open scoped MatrixOrder Topology
 
+/-- Adding a real scalar multiple of the identity to an operator multiplies its exponential by
+the scalar exponential. -/
 theorem mmw_exp_scalar_shift (D : ℕ) (A : Operator D) (c : ℝ) :
     NormedSpace.exp (A + c • (1 : Operator D)) = (Real.exp c) • NormedSpace.exp A := by
   have hc : Commute A (c • (1 : Operator D)) := (Commute.one_right A).smul_right c
@@ -246,6 +306,8 @@ theorem mmw_exp_scalar_shift (D : ℕ) (A : Operator D) (c : ℝ) :
     simpa [Algebra.algebraMap_eq_smul_one, Real.exp_eq_exp_ℝ] using! h.symm
   rw [he, Matrix.mul_smul, Matrix.mul_one]
 
+/-- In positive dimension, subtracting a Hermitian operator from its operator norm times the
+identity produces a positive semidefinite operator. -/
 theorem mmw_shift_posSemidef (D : ℕ) (A : Operator D) (hA : A.IsHermitian) (hD : 0 < D) :
     (‖A‖ • (1 : Operator D) - A).PosSemidef := by
   letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
@@ -256,6 +318,8 @@ theorem mmw_shift_posSemidef (D : ℕ) (A : Operator D) (hA : A.IsHermitian) (hD
           spectrum.norm_le_norm_of_mem (hA.eigenvalues_mem_spectrum_real i))
   exact Matrix.le_iff.mp h
 
+/-- The Golden-Thompson inequality bounds the real trace of `exp (A+B)` by that of `exp A * exp
+B` for arbitrary Hermitian operators [BrandaoSvore2017]. -/
 theorem matrix_mw_golden_thompson_trace_potential
     (D : ℕ) (A B : Operator D) (hA : A.IsHermitian) (hB : B.IsHermitian) :
     (Matrix.trace (NormedSpace.exp (A+B))).re ≤
@@ -284,6 +348,7 @@ theorem matrix_mw_golden_thompson_trace_potential
 open Matrix Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder Topology
 
+/-- For `0 < eta <= 1` and `abs x <= 1`, bounds `exp (-eta*x)` by `1 - eta*x + eta^2`. -/
 theorem mmw_scalar_loss_exp_le (η x : ℝ) (hη : 0 < η) (hη1 : η ≤ 1) (hx : |x| ≤ 1) :
     Real.exp (-η*x) ≤ 1-η*x+η^2 := by
   have ha : |-η*x| ≤ η := by
@@ -295,6 +360,8 @@ theorem mmw_scalar_loss_exp_le (η x : ℝ) (hη : 0 < η) (hη1 : η ≤ 1) (hx
   have hh := (le_abs_self (Real.exp (-η*x)-1-(-η*x))).trans hb
   nlinarith
 
+/-- For a Hermitian contraction in positive dimension and `0 < eta <= 1`, bounds `exp (-eta M)`
+above in matrix order by `(1 + eta^2) I - eta M`. -/
 theorem mmw_loss_exp_order (D : ℕ) (M : Operator D) (η : ℝ)
     (hD : 0<D) (hM : M.IsHermitian) (hn : ‖M‖ ≤ 1) (hη : 0<η) (hη1 : η≤1) :
     (NormedSpace.exp (-η • M)) ≤ (1+η^2) • (1 : Operator D) - η • M := by
@@ -326,6 +393,8 @@ theorem mmw_loss_exp_order (D : ℕ) (M : Operator D) (η : ℝ)
 open Matrix Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder Topology
 
+/-- Left multiplication by a positive semidefinite matrix preserves matrix-order inequalities
+after taking the real part of the trace. -/
 theorem mmw_trace_mul_mono (D : ℕ) (W X Y : Operator D) (hW : W.PosSemidef)
     (hXY : X ≤ Y) : (Matrix.trace (W*X)).re ≤ (Matrix.trace (W*Y)).re := by
   have hp : (Y-X).PosSemidef := Matrix.le_iff.mp hXY
@@ -337,6 +406,8 @@ theorem mmw_trace_mul_mono (D : ℕ) (W X Y : Operator D) (hW : W.PosSemidef)
   rw [Matrix.mul_sub, Matrix.trace_sub, Complex.sub_re] at hn
   linarith
 
+/-- Expresses the real trace loss of the normalized Gibbs iterate as the corresponding
+unnormalized trace loss divided by the real trace of its weight. -/
 theorem mmw_trace_loss_normalization (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ) :
     (Matrix.trace (M t * mmwState D M η t)).re =
       (Matrix.trace (M t * mmwWeight D M η t)).re /
@@ -345,11 +416,15 @@ theorem mmw_trace_loss_normalization (D : ℕ) (M : ℕ → Operator D) (η : �
     smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
   ring
 
+/-- Every matrix multiplicative weights exponential weight is positive semidefinite when the
+losses are Hermitian and the dimension is positive. -/
 theorem mmwWeight_posSemidef (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ)
     (hD : 0<D) (hM : ∀ s, (M s).IsHermitian) : (mmwWeight D M η t).PosSemidef := by
   have hs : (∑ s∈Finset.range t, M s).IsHermitian := isSelfAdjoint_sum _ (fun s _ => hM s)
   exact (mmw_exp_positive_trace D _ hD (hs.smul (by simp [IsSelfAdjoint]))).1
 
+/-- For bounded Hermitian losses and `0 < eta <= 1`, the ratio of consecutive trace potentials
+is at most one minus the scaled current Gibbs loss plus `eta^2`. -/
 theorem mmw_potential_ratio_step (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ)
     (hD : 0<D) (hη : 0<η) (hη1 : η≤1)
     (hM : ∀ s, (M s).IsHermitian ∧ ‖M s‖≤1) :
@@ -386,6 +461,8 @@ theorem mmw_potential_ratio_step (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (
   rw [he]
   exact hu
 
+/-- For bounded Hermitian losses and `0 < eta <= 1`, the increase of the logarithmic trace
+potential is at most the negative scaled current Gibbs loss plus `eta^2`. -/
 theorem mmw_log_potential_step (D : ℕ) (M : ℕ → Operator D) (η : ℝ) (t : ℕ)
     (hD : 0<D) (hη : 0<η) (hη1 : η≤1)
     (hM : ∀ s, (M s).IsHermitian ∧ ‖M s‖≤1) :
@@ -401,6 +478,8 @@ open Matrix Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder Topology
 set_option warningAsError false
 
+/-- The underlying matrix of the Hermitian-matrix exponential equals the normed-space
+exponential of the underlying matrix. -/
 theorem mmw_hermitian_exp_mat {d : Type*} [Fintype d] [DecidableEq d]
     (H : HermitianMat d ℂ) : H.exp.mat = NormedSpace.exp H.mat := by
   rw [HermitianMat.exp, HermitianMat.mat_cfc]
@@ -408,6 +487,8 @@ theorem mmw_hermitian_exp_mat {d : Type*} [Fintype d] [DecidableEq d]
     Matrix.IsHermitian.instContinuousFunctionalCalculus
   exact CFC.real_exp_eq_normedSpace_exp H.H
 
+/-- For a Hermitian operator and a density operator, the exponential of their real trace pairing
+is bounded by the real trace of the operator exponential. -/
 theorem mmw_density_exp_jensen (D : ℕ) (X σ : Operator D)
     (hX : X.IsHermitian) (hσ : IsDensityOperator σ) :
     Real.exp (Matrix.trace (σ * X)).re ≤ (Matrix.trace (NormedSpace.exp X)).re := by
@@ -450,6 +531,10 @@ theorem mmw_density_exp_jensen (D : ℕ) (X σ : Operator D)
   intro i _
   exact (mul_le_mul_of_nonneg_right (hple i) (Real.exp_pos _).le).trans_eq (one_mul _)
 
+/-- For bounded Hermitian losses in positive dimension and `0 < eta <= 1`, cumulative Gibbs loss
+multiplied by `eta` is at most the similarly scaled loss of any density comparator plus
+`eta^2*T + log D`. The estimate supports matrix multiplicative weights SDP analysis
+[BrandaoSvore2017]. -/
 theorem matrix_mw_noncommuting_regret
     (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) (σ : Operator D)
     (hD : 0<D) (hη : 0<η) (hη1 : η≤1)

@@ -13,6 +13,33 @@ import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
 import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
 import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+
+/-!
+# Specifications for QSVT implementations
+
+This module defines records and predicates for constant phase words, mixed-parity polynomial
+decompositions, numerical synthesis, frame transport, finite local backends, and workspace
+channels. They provide explicit interfaces for the quantum polynomial transformations developed
+in [GilyenSuLowWiebe2019].
+
+The data records retain phase lists and resource counters. Separate predicates such as
+`PhaseInversionSuccess`, `FrameTransportSuccess`, and `finiteBackendRealizes` specify
+approximation, execution, and resource guarantees.
+
+## Main statements
+
+* `mixedParitySplit`: four real coefficient polynomials describing real and imaginary even and
+  odd parts.
+* `PhaseInversionSuccess`: residual, approximation, and runtime requirements for a numerical
+  result.
+* `FrameTransportSuccess`: preparation, inverse, controlled execution, and count requirements.
+* `PhysicalWorkspaceSpec`: density-operator approximation and workspace resource bounds.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -39,11 +66,15 @@ section G8
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- There is a shortest source phase word realizing `c • 1`, with length zero for `c = 1` and
+one otherwise. -/
 def ComplexConstantWordClassification (U P Q : Matrix H H ℂ) (c : ℂ) : Prop :=
   ∃ Φ : List ℝ, sourceDefWord U P Q Φ = c • 1 ∧
     (∀ Ψ : List ℝ, sourceDefWord U P Q Ψ = c • 1 → Φ.length ≤ Ψ.length) ∧
     Φ.length = if c = 1 then 0 else 1
 
+/-- The identity and every other unit-modulus scalar satisfy the specified constant-word
+classification, and no nonidentity scalar is realized by an empty word. -/
 def ComplexConstantReflectionCorrect (U P Q : Matrix H H ℂ) : Prop :=
   ComplexConstantWordClassification U P Q 1 ∧
     (∀ c : ℂ, Qatlib.Concepts.PhaseGeometry.Phase.IsPhase c →
@@ -52,23 +83,31 @@ def ComplexConstantReflectionCorrect (U P Q : Matrix H H ℂ) : Prop :=
 
 end G8
 
+/-- The real polynomial whose coefficient at `k` is the original coefficient at `2 * k`. -/
 noncomputable def evenPolyPart (p : Polynomial ℝ) : Polynomial ℝ :=
   ∑ k ∈ Finset.range (p.natDegree / 2 + 1), C (p.coeff (2 * k)) * X ^ k
 
+/-- The real polynomial whose coefficient at `k` is the original coefficient at `2 * k + 1`. -/
 noncomputable def oddPolyPart (p : Polynomial ℝ) : Polynomial ℝ :=
   ∑ k ∈ Finset.range ((p.natDegree + 1) / 2), C (p.coeff (2 * k + 1)) * X ^ k
 
+/-- The real polynomial obtained by taking the real part of each complex coefficient. -/
 noncomputable def polyRealPart (P : Polynomial ℂ) : Polynomial ℝ :=
   ∑ n ∈ Finset.range (P.natDegree + 1), C (P.coeff n).re * X ^ n
 
+/-- The real polynomial obtained by taking the imaginary part of each complex coefficient. -/
 noncomputable def polyImagPart (P : Polynomial ℂ) : Polynomial ℝ :=
   ∑ n ∈ Finset.range (P.natDegree + 1), C (P.coeff n).im * X ^ n
 
+/-- The four real polynomials formed from the even and odd coefficients of the real and
+imaginary parts of `P`. -/
 noncomputable def mixedParitySplit (P : Polynomial ℂ) :
     Polynomial ℝ × Polynomial ℝ × Polynomial ℝ × Polynomial ℝ :=
   (evenPolyPart (polyRealPart P), oddPolyPart (polyRealPart P),
     evenPolyPart (polyImagPart P), oddPolyPart (polyImagPart P))
 
+/-- A record of even and odd phase lists, normalization, ancilla count, error, and query counts
+for a mixed-parity implementation. -/
 structure MixedParityImplementation {H : Type} [Fintype H] [DecidableEq H]
     (U P Q : Matrix H H ℂ) (Pr : Polynomial ℂ) where
 
@@ -86,6 +125,8 @@ structure MixedParityImplementation {H : Type} [Fintype H] [DecidableEq H]
 
   queryOdd : ℕ
 
+/-- A numerical synthesis result recording a list of Gaussian rational data, a residual, and a
+bit-runtime counter. -/
 structure PhaseInversionResult where
 
   phases : List GaussianRat
@@ -94,9 +135,13 @@ structure PhaseInversionResult where
 
   runtimeBits : ℕ
 
+/-- The complex polynomial whose coefficients are the supplied finite list, with zero
+coefficients beyond the list. -/
 noncomputable def phaseInversionIdealPoly (coeffs : List ℂ) : Polynomial ℂ :=
   ∑ i ∈ Finset.range coeffs.length, C (coeffs.getD i 0) * X ^ i
 
+/-- The numerical result has `0 < ε ≤ 1 / 2`, residual between zero and `ε`, the stated
+fifth-power runtime bound, and uniform data-polynomial error at most `ε` on `[-1, 1]`. -/
 noncomputable def PhaseInversionSuccess (d : ℕ) (coeffs : List ℂ) (ε : ℝ)
     (res : PhaseInversionResult) : Prop :=
   0 < ε ∧ ε ≤ 1 / 2 ∧ 0 ≤ res.residual ∧ res.residual ≤ ε ∧
@@ -109,9 +154,13 @@ section Clause11
 
 variable {H I : Type} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
 
+/-- Embeds a state into Boolean control sector `b`, assigning zero amplitude to the other
+sector. -/
 def controlledSector (b : Bool) (ψ : QState H) : QState (Bool × H) :=
   fun p => if p.1 = b then ψ p.2 else 0
 
+/-- A record of seed labels, preparation, inverse and controlled circuits, an error parameter,
+and their query and gate counters for a frame. -/
 structure FrameImplementation (F : Matrix H I ℂ) where
 
   seed : I → H
@@ -136,6 +185,9 @@ structure FrameImplementation (F : Matrix H I ℂ) where
 
   controlledGate : ℕ
 
+/-- For an isometric frame and positive tolerance, requires injective seeds, the stated
+preparation, inverse and controlled error bounds, and exact agreement of the recorded
+circuit counters. -/
 noncomputable def FrameTransportSuccess (F : Matrix H I ℂ)
     (impl : FrameImplementation F) (ε : ℝ) : Prop :=
   Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry F → 0 < ε →
@@ -159,6 +211,8 @@ noncomputable def FrameTransportSuccess (F : Matrix H I ℂ)
 
 end Clause11
 
+/-- A local instruction list on `w` wires together with total error, gate count, bit time, and
+peak-space data. -/
 structure FiniteBackendCompilation (w : ℕ) where
 
   gates : List (LocalQFTGate w)
@@ -171,6 +225,8 @@ structure FiniteBackendCompilation (w : ℕ) where
 
   peakSpace : ℕ
 
+/-- The target is unitary and the compiled matrix is within the nonnegative recorded error, with
+exact list-length gate count and the specified bit-time and space bounds. -/
 noncomputable def finiteBackendRealizes {w : ℕ} (target : Matrix (Reg w) (Reg w) ℂ)
     (comp : FiniteBackendCompilation w) : Prop :=
   0 ≤ comp.totalError ∧ target ∈ Matrix.unitaryGroup (Reg w) ℂ ∧
@@ -183,6 +239,8 @@ section Clause14
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Specifies the controlled and adjoint oracles and unitary value, control and adjoint circuits
+realizing them within the given query, gate and size budgets. -/
 noncomputable def SparseAccessImplementationSpec
     (valueOracle : Matrix I I ℂ)
     (controlledOracle : Matrix (Bool × I) (Bool × I) ℂ)
@@ -207,6 +265,8 @@ section PaidWalk
 
 variable {D : ℕ}
 
+/-- Requires positive tolerance, a unitary ideal, trace-norm approximation on all density
+operators, and the stated bounds relating ancilla, peak space and retry budget. -/
 noncomputable def PhysicalWorkspaceSpec (ε : ℝ) (ideal : Operator D)
     (channel : QuantumChannel D D) (peakSpace ancilla retryBudget : ℕ) : Prop :=
   0 < ε ∧ ideal ∈ Matrix.unitaryGroup (Fin D) ℂ ∧

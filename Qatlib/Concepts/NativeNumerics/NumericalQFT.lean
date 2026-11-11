@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
 import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Numerical quantum Fourier transform budgets
+
+This module assigns the rational phase precision `numericalPhaseBudget` to the local quantum
+Fourier transform and its inverse. The Fourier-transform circuit is treated in the setting
+described by [NielsenChuang2010].
+
+The numerical circuits approximate every measurement-event probability to within `2^(-t)`. For
+Fourier phase states, the inverse circuit reads the correct grid label with probability at least
+`1 - 2^(-t)`, with exact term and squaring counts.
+
+## Main statements
+
+* `localQFT_length`: The exact length of the local Fourier circuit.
+* `numerical_qft_forward_inverse_born_budget`: Measurement-event error bounds for both numerical
+  directions.
+* `numerical_qft_actual_grid_readout_and_arithmetic_ledger`: Grid readout success and arithmetic
+  counts.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.GateVocabulary.GateVocab
@@ -33,6 +58,7 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
+/-- Every natural number `n` is at most `2^n`. -/
 private theorem nat_le_two_pow : ∀ n : ℕ, n ≤ 2 ^ n := by
   intro n
   induction n with
@@ -44,6 +70,7 @@ private theorem nat_le_two_pow : ∀ n : ℕ, n ≤ 2 ^ n := by
         omega
       omega
 
+/-- The local QFT circuit on `n` bits has length `n + n*(n-1)/2 + n/2`. -/
 theorem localQFT_length (n : ℕ) :
     (localQFT n).length = n + n * (n - 1) / 2 + n / 2 := by
   obtain ⟨-, -, -, gc, -, -⟩ := localQFT_exact_gate_counts_and_wires n
@@ -52,6 +79,7 @@ theorem localQFT_length (n : ℕ) :
   rw [← gclen]
   exact gc
 
+/-- Twice the local QFT circuit length is at most `2^(2*n+6)`. -/
 private theorem two_mul_localQFT_length_le (n : ℕ) :
     2 * (localQFT n).length ≤ 2 ^ (2 * n + 6) := by
   rw [localQFT_length n]
@@ -80,8 +108,12 @@ private theorem two_mul_localQFT_length_le (n : ℕ) :
     Nat.pow_le_pow_right (by norm_num) (by omega)
   omega
 
+/-- The phase precision `t + 2*(n+1) + 4` used to achieve a measurement error budget of `2^(-t)`
+for the numerical QFT. -/
 def numericalPhaseBudget (n : ℕ) (t : ℕ) : ℕ := t + 2 * (n + 1) + 4
 
+/-- At `numericalPhaseBudget n t` precision, twice the local QFT length times the phase error is
+at most `2^(-t)`. -/
 theorem numericalPhaseBudget_two_len (n t : ℕ) :
     2 * ((localQFT n).length : ℝ) * ((2 : ℝ) ⁻¹) ^ (numericalPhaseBudget n t)
       ≤ ((2 : ℝ) ⁻¹) ^ t := by
@@ -107,6 +139,8 @@ theorem numericalPhaseBudget_two_len (n t : ℕ) :
         mul_le_mul_of_nonneg_left hle (le_of_lt hwpos)
     _ = ((2 : ℝ) ⁻¹) ^ t := by ring
 
+/-- For a normalized input, both the numerical forward and inverse QFT approximate every ideal
+measurement-event probability to within `2^(-t)`. -/
 theorem numerical_qft_forward_inverse_born_budget (n t : ℕ) (ψ : QState (Reg n))
     (S : Finset (Reg n)) (hψ : Normalized ψ) :
     let k := numericalPhaseBudget n t
@@ -179,6 +213,8 @@ theorem numerical_qft_forward_inverse_born_budget (n t : ℕ) (ψ : QState (Reg 
   exact hbound _ _ matAn
     (unitaryGroup_conjTranspose_mem hqftU) herrA
 
+/-- The numerical inverse QFT reads the correct Fourier grid label with probability at least `1
+- 2^(-t)` and has the stated exact series-term and squaring counts. -/
 theorem numerical_qft_actual_grid_readout_and_arithmetic_ledger :
     ∀ (n t : ℕ) (y : Fin (2 ^ n)),
     let k := numericalPhaseBudget n t
@@ -267,6 +303,9 @@ theorem numerical_qft_actual_grid_readout_and_arithmetic_ledger :
     congr 1
     exact (localQFT_class_counts n).2.1
 
+/-- The concrete phase budgets and rational approximation to π have the stated values, Machin's
+arctangent identity holds, and the two-bit inverse QFT example satisfies its readout and
+arithmetic-count bounds. -/
 theorem numerical_qft_concrete_consumer :
     numericalPhaseBudget 2 3 = 13 ∧
     numericalPhaseBudget 0 0 = 6 ∧

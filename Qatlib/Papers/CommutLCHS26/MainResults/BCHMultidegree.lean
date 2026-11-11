@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarization
+
+/-!
+# Polarization of logarithm multidegrees
+
+`scaleWords` assigns polynomial scalars to letters so that squarefree coefficient extraction
+selects a prescribed multidegree. Disjoint clone blocks produce the product of block factorials
+as the normalization factor.
+
+The resulting identities express selected logarithm components through `BCHPhi.phi` on cloned
+inputs, first in the word algebra and then after evaluation. They support the multidegree BCH
+expansion in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `extract_scaleWords`: extracts a selected word component with its factorial factor.
+* `log_multidegree_eq_phi`: expresses a component as a factorial normalized cloned phi
+  expression.
+* `evaluate_log_sigma_multidegree`: specializes the evaluation formula to dependent pair indexed
+  clones.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,9 +43,12 @@ open BCHDynkin BCHWordLie BCHWordLog BCHMultilinear BCHPolarCoeff BCHPolarizatio
 
 variable {σ α : Type}
 
+/-- The algebra homomorphism scaling each word letter by its assigned multivariate polynomial. -/
 def scaleWords (r : α → MvPolynomial σ ℚ) : WordAlg α →ₐ[ℚ] PolarAlg σ α :=
   evaluateWords (fun i => r i • polarLetter i)
 
+/-- Scaling a word multiplies its basis coefficient by the ordered product of its assigned
+polynomial scalars. -/
 theorem scaleWords_word (r : α → MvPolynomial σ ℚ) (w : List α) :
     scaleWords r (word w) = MonoidAlgebra.single (FreeMonoid.ofList w) (w.map r).prod := by
   induction w with
@@ -30,6 +58,8 @@ theorem scaleWords_word (r : α → MvPolynomial σ ℚ) (w : List α) :
     simp [scaleWords, evaluateWords_letter, polarLetter, List.map_cons, List.prod_cons,
       FreeMonoid.ofList_cons, MonoidAlgebra.smul_single, MonoidAlgebra.single_mul_single]
 
+/-- The product of polynomial scalars along a word equals the product over letters of each
+scalar raised to its occurrence count. -/
 theorem central_product_counts [Fintype α] (r : α → MvPolynomial σ ℚ) (w : List α) :
     (w.map r).prod = ∏ i : α, (r i) ^ w.count i := by
   rw [Finset.prod_list_map_count]
@@ -38,6 +68,9 @@ theorem central_product_counts [Fintype α] (r : α → MvPolynomial σ ℚ) (w 
   simp only [List.mem_toFinset] at hi
   rw [List.count_eq_zero_of_not_mem hi, pow_zero]
 
+/-- For disjoint variable blocks, the full squarefree coefficient of a word's scalar product is
+the product of block factorials when the word has the prescribed multiplicities, and zero
+otherwise. -/
 theorem coeff_grouped_word [Fintype α] (s : α → Finset σ)
     (hs : Pairwise (fun i j => Disjoint (s i) (s j))) (v w : List α)
     (hv : ∀ i, v.count i = (s i).card) :
@@ -64,6 +97,9 @@ theorem coeff_grouped_word [Fintype α] (s : α → Finset σ)
     obtain ⟨i, hi⟩ := not_forall.mp hnot
     exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg (Ne.symm hi))
 
+/-- For disjoint variable blocks of the prescribed cardinalities, extracting the full squarefree
+coefficient of the scaled word algebra element gives its selected multidegree component
+times the product of block factorials. -/
 theorem extract_scaleWords [Fintype α] (s : α → Finset σ)
     (hs : Pairwise (fun i j => Disjoint (s i) (s j))) (v : List α)
     (hv : ∀ i, v.count i = (s i).card) (p : WordAlg α) :
@@ -84,6 +120,7 @@ theorem extract_scaleWords [Fintype α] (s : α → Finset σ)
   | add p q hp hq => simp only [map_add, hp, hq, smul_add]
   | smul c p hp => simp only [map_smul, hp, smul_comm c]
 
+/-- Clone position lists assigned to distinct base letters have disjoint underlying finite sets. -/
 theorem clone_blocks_disjoint (positions : α → List σ) (base : σ → α)
     (hbase : ∀ i, ∀ j ∈ positions i, base j = i) :
     Pairwise (fun i j => Disjoint (positions i).toFinset (positions j).toFinset) := by
@@ -93,6 +130,8 @@ theorem clone_blocks_disjoint (positions : α → List σ) (base : σ → α)
   exact hij ((hbase i t (List.mem_toFinset.mp hti)).symm.trans
     (hbase j t (List.mem_toFinset.mp htj)))
 
+/-- Concatenating clone lists gives a list without repetitions when the base list and each clone
+list have no repetitions and each clone has its designated base. -/
 theorem clone_list_nodup (xs : List α) (hx : xs.Nodup) (positions : α → List σ)
     (hp : ∀ i, (positions i).Nodup) (base : σ → α)
     (hbase : ∀ i, ∀ j ∈ positions i, base j = i) : (xs.flatMap positions).Nodup := by
@@ -101,6 +140,8 @@ theorem clone_list_nodup (xs : List α) (hx : xs.Nodup) (positions : α → List
   intro i j hij t hti htj
   exact hij ((hbase i t hti).symm.trans (hbase j t htj))
 
+/-- When a base list contains every base letter, the finite set of its concatenated clone lists
+is the union of all clone blocks. -/
 theorem clone_list_toFinset [Fintype α] (xs : List α) (hfull : ∀ i, i ∈ xs)
     (positions : α → List σ) :
     (xs.flatMap positions).toFinset = Finset.univ.biUnion (fun i => (positions i).toFinset) := by
@@ -109,6 +150,9 @@ theorem clone_list_toFinset [Fintype α] (xs : List α) (hfull : ∀ i, i ∈ xs
     true_and]
   exact ⟨fun ⟨i, _, ht⟩ => ⟨i, ht⟩, fun ⟨i, ht⟩ => ⟨i, hfull i, ht⟩⟩
 
+/-- For a complete base list without repetitions and compatible clone blocks, phi on the cloned
+letters equals the selected logarithm multidegree component times the product of the clone
+block factorials. -/
 theorem phi_clone_multidegree [Fintype α] (xs : List α) (hx : xs.Nodup)
     (hfull : ∀ i, i ∈ xs) (positions : α → List σ) (hp : ∀ i, (positions i).Nodup)
     (base : σ → α) (hbase : ∀ i, ∀ j ∈ positions i, base j = i)
@@ -144,6 +188,8 @@ theorem phi_clone_multidegree [Fintype α] (xs : List α) (hx : xs.Nodup)
       (fun i => (hv i).trans (hcard i).symm)]
   simp only [hcard]
 
+/-- Under the compatible clone block hypotheses, a selected logarithm multidegree component
+equals phi on the cloned letters divided by the product of their block factorials. -/
 theorem log_multidegree_eq_phi [Fintype α] (xs : List α) (hx : xs.Nodup)
     (hfull : ∀ i, i ∈ xs) (positions : α → List σ) (hp : ∀ i, (positions i).Nodup)
     (base : σ → α) (hbase : ∀ i, ∀ j ∈ positions i, base j = i)
@@ -157,6 +203,8 @@ theorem log_multidegree_eq_phi [Fintype α] (xs : List α) (hx : xs.Nodup)
   intro i _
   exact_mod_cast Nat.factorial_ne_zero (positions i).length
 
+/-- Evaluating a selected logarithm multidegree component gives phi on the evaluated clones
+divided by the product of the clone block factorials. -/
 theorem evaluate_log_multidegree_eq_phi {B : Type} [Ring B] [Algebra ℚ B] [Fintype α]
     (X : α → B) (xs : List α) (hx : xs.Nodup) (hfull : ∀ i, i ∈ xs)
     (positions : α → List σ) (hp : ∀ i, (positions i).Nodup)
@@ -170,6 +218,8 @@ theorem evaluate_log_multidegree_eq_phi {B : Type} [Ring B] [Algebra ℚ B] [Fin
   congr 1
   exact evaluate_relabel X (fun j => base ((xs.flatMap positions).get j)) _
 
+/-- Expanding each entry of a list without repetitions by its prescribed multiplicity gives that
+count for entries in the list and zero for other entries. -/
 theorem count_expanded_list (xs : List α) (hx : xs.Nodup) (m : α → ℕ) (i : α) :
     (xs.flatMap (fun a => List.replicate (m a) a)).count i = if i ∈ xs then m i else 0 := by
   induction xs with
@@ -186,6 +236,8 @@ theorem count_expanded_list (xs : List α) (hx : xs.Nodup) (m : α → ℕ) (i :
         exact hi (List.mem_replicate.mp hm).2
       simp [List.flatMap_cons, ih htail, hi, hrep]
 
+/-- Selecting the expanded multiplicity word and evaluating its logarithm component gives the
+factorial normalized phi expression on the corresponding clones. -/
 theorem evaluate_log_expanded_eq_phi {B : Type} [Ring B] [Algebra ℚ B] [Fintype α]
     (X : α → B) (xs : List α) (hx : xs.Nodup) (hfull : ∀ i, i ∈ xs)
     (positions : α → List σ) (hp : ∀ i, (positions i).Nodup)
@@ -198,6 +250,9 @@ theorem evaluate_log_expanded_eq_phi {B : Type} [Ring B] [Algebra ℚ B] [Fintyp
   intro i
   rw [count_expanded_list xs hx, if_pos (hfull i)]
 
+/-- For a finite indexed family and a multiplicity profile, the selected logarithm component
+evaluates to phi on the dependent pair indexed clones divided by the product of multiplicity
+factorials. -/
 theorem evaluate_log_sigma_multidegree {B : Type} [Ring B] [Algebra ℚ B] {Γ : ℕ}
     (X : Fin Γ → B) (m : Fin Γ → ℕ) :
     let positions := fun i => List.ofFn

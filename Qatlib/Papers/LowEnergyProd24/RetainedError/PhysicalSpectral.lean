@@ -8,6 +8,25 @@ import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalCoefficients
 import Qatlib.Papers.LowEnergyProd24.LocalModel.FiniteBudget
 import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.NestedLeakage
 import Qatlib.Papers.LowEnergyProd24.RetainedError.CutoffChain
+
+/-!
+# Spectral bounds for original physical commutators
+
+This module defines `nested` using the original physical groups and compares it with the
+centered model. Scalar shifts disappear from nonempty commutators and ordered off-diagonal
+blocks, allowing the centered leakage bounds to control original energy transitions in
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `nested_centered`: Records the scalar correction only at nesting depth zero.
+* `original_nested_leakage`: Bounds original nested-commutator leakage across an energy gap.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,10 +43,14 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- The nested commutator of original physical groups, starting with `h.grouped seed` and
+applying the listed groups from the outside inward. -/
 def nested (h : PhysicalHamiltonian N R M k d J) (seed : Fin M) : List (Fin M) → Matrix (Register N) (Register N) ℂ
   | [] => h.grouped seed
   | a::xs => h.grouped a*nested h seed xs-nested h seed xs*h.grouped a
 
+/-- The original nested commutator equals its normalized-model counterpart, with the scalar
+group center added only when the list is empty [HejaziZiniArrazola2024]. -/
 theorem nested_centered (h : PhysicalHamiltonian N R M k d J) (seed : Fin M) (xs : List (Fin M)) :
     nested h seed xs=RetainedError.nested h.normalized seed xs+
       if xs=[] then (h.groupCenter seed : ℂ) • 1 else 0 := by
@@ -56,6 +79,8 @@ theorem nested_centered (h : PhysicalHamiltonian N R M k d J) (seed : Fin M) (xs
       (if xs=[] then (h.groupCenter seed : ℂ) • 1 else 0) hz 1 (by norm_num)
     simpa only [adIter, ad, RetainedError.nested, List.cons_ne_nil, if_false, add_zero] using he
 
+/-- For `Δ ≤ Λ`, replacing the original nested commutator by its normalized-model counterpart
+preserves the block from energies below `Δ` to energies above `Λ`. -/
 theorem original_offdiagonal_centered (h : PhysicalHamiltonian N R M k d J) (seed : Fin M)
     (xs : List (Fin M)) (Δ Λ : ℝ) (hΔ : Δ ≤ Λ) :
     high h.total h.total_hermitian Λ*nested h seed xs*low h.total h.total_hermitian Δ =
@@ -69,6 +94,8 @@ theorem original_offdiagonal_centered (h : PhysicalHamiltonian N R M k d J) (see
     · simp only [mul_zero, zero_mul]
   rw [nested_centered, mul_add, add_mul, hz, add_zero]
 
+/-- For ordered cutoffs, the original nested-commutator leakage is bounded by `sourceEll` at its
+depth times exponential decay in the energy gap [HejaziZiniArrazola2024]. -/
 theorem original_nested_leakage (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ) (seed : Fin M)
     (hL : (h.labels seed).card ≤ L) (xs : List (Fin M)) (Δ Λ : ℝ) (hΔ : Δ ≤ Λ) :
@@ -85,12 +112,16 @@ theorem original_nested_leakage (h : PhysicalHamiltonian N R M k d J)
       rw [physical_weight_centered]
     _ ≤ _ := mul_le_mul_of_nonneg_left (actual_weighted_source_ell h.normalized hJ hk hd L seed hL xs) (Real.exp_pos _).le
 
+/-- The nested commutator formed in the bounded representation equals the nested commutator of
+the original physical groups. -/
 theorem asBounded_nested (h : PhysicalHamiltonian N R M k d J) (seed : Fin M) (xs : List (Fin M)) :
     RetainedError.nested h.asBounded seed xs=nested h seed xs := by
   induction xs with
   | nil => rfl
   | cons a xs ih => rw [RetainedError.nested, nested, ih]; rfl
 
+/-- The opposite off-diagonal blocks of an original physical nested commutator have equal
+operator norms. -/
 theorem original_excursion_reverse (h : PhysicalHamiltonian N R M k d J) (seed : Fin M)
     (xs : List (Fin M)) (Δ Λ : ℝ) :
     ‖low h.total h.total_hermitian Δ*nested h seed xs*high h.total h.total_hermitian Λ‖ =

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary710Stat
+
+/-!
+# Elementary synthesis of multi-controlled special unitaries
+
+This module proves `corollary7_10`, a linear elementary-gate bound for multi-controlled qubit
+unitaries of determinant one, in the setting of [BarencoEtAl1995]. The construction uses a
+separate spectator wire and preserves the background register; `elementary_and_target` lifts
+conjunction-toggle semantics from basis vectors to arbitrary target fibres.
+
+## Main statements
+
+* `elementary_and_target`: Extension of a basis conjunction toggle to a target fibre.
+* `corollary7_10`: A legal, query-free implementation with length at most `240 * (m + 2)`.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,7 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 
 open Matrix
 
+/-- Boolean sequences agreeing on the first `m` entries have the same prefix conjunction. -/
 private theorem elementary_prefix_congr (a b : ℕ → Bool) (m : ℕ)
     (h : ∀ i < m, a i = b i) : noWorkPrefixAnd a m = noWorkPrefixAnd b m := by
   apply Bool.eq_iff_iff.mpr
@@ -31,11 +51,14 @@ private theorem elementary_prefix_congr (a b : ℕ → Bool) (m : ℕ)
     rw [h i hi]
     exact hb i hi
 
+/-- Running a compiled reflection-gate word preserves addition of states. -/
 private theorem elementary_run_add {N : ℕ} (gs : List (ReflectionGate N))
     (ψ φ : QState (Reg N)) : Run 1 (reflectionCompile gs) (ψ + φ) =
       Run 1 (reflectionCompile gs) ψ + Run 1 (reflectionCompile gs) φ := by
   simp only [run_reflectionCompile, ApplyGate, Matrix.mulVec_add]
 
+/-- A gate word that performs a conjunction-controlled target toggle on basis states acts on an
+arbitrary target fibre by the corresponding controlled `PauliX`. -/
 private theorem elementary_and_target {N : ℕ} (c : ℕ → Fin N) (m : ℕ) (t : Fin N)
     (hct : ∀ i < m, c i ≠ t) (gs : List (ReflectionGate N))
     (hgs : ∀ x : Reg N, Run 1 (reflectionCompile gs) (Qatlib.Foundations.PureStateMath.Ket x) =
@@ -57,6 +80,9 @@ private theorem elementary_and_target {N : ℕ} (c : ℕ → Fin N) (m : ℕ) (t
   cases ha : noWorkPrefixAnd (fun i => x (c i)) m <;>
     simp [applyGate_one, hflip, add_comm]
 
+/-- Every qubit unitary of determinant one with `m` distinct controls and a separate spectator
+wire has a legal, query-free implementation of length at most `240 * (m + 2)` [Barenco et
+al., Corollary 7.10][BarencoEtAl1995]. -/
 theorem corollary7_10 : Corollary7_10 := by
   intro N m c s t hc hcs hct hst W hW hdet
   cases m with

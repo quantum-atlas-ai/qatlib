@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RandCompile.ChannelBudget.HighPrecisionLchsDefs
 import Mathlib.Analysis.Complex.Conformal
 import Mathlib.Analysis.Complex.OperatorNorm
+
+/-!
+# Refined high precision LCHS estimates
+
+This module refines analytic and resource estimates for high precision LCHS [AnChildsLin2026].
+It distinguishes open-half-plane analyticity from continuity on the closed half-plane,
+identifies source coefficients with the composite quadrature rule, and gives explicit
+coefficient-mass bounds.
+
+The matrix estimates include an all-ones counterexample to an entrywise operator-norm bound and
+Peano integral remainder formulas. The cost results reconcile quadrature loading, amplification,
+and sampling counts, while the product estimates control multiplicative norm growth.
+
+## Main statements
+
+* `clause30_endpoint`: collect boundary, coefficient, norm, and remainder results.
+* `clause31_endpoint`: collect loading and amplification counts and ledger identities.
+* `clause32_endpoint`: collect product norm and multiplicative-error bounds.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.LchsSimulation.Kernel
@@ -31,6 +56,7 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The difference between the closed and open lower half-planes is exactly the real axis. -/
 theorem clause30_kernel_domain_gap_eq_frontier : kernelDomainGap = kernelFrontier := by
   ext z
   simp only [kernelDomainGap, Set.mem_diff, kernelFrontier, Set.mem_setOf_eq,
@@ -41,6 +67,7 @@ theorem clause30_kernel_domain_gap_eq_frontier : kernelDomainGap = kernelFrontie
   · intro h
     exact ⟨by linarith, by intro hlt; linarith⟩
 
+/-- The closure of the open lower half-plane is the closed lower half-plane. -/
 theorem clause30_closed_is_closure_of_open : closure lowerOpenHalfPlane = lowerClosedHalfPlane := by
   have hcl : IsClosed lowerClosedHalfPlane := by
     have h : IsClosed {z : ℂ | z.im ≤ 0} :=
@@ -82,6 +109,7 @@ theorem clause30_closed_is_closure_of_open : closure lowerOpenHalfPlane = lowerC
       have : ε / 2 < ε := by linarith
       exact this
 
+/-- The real-axis indicator is analytic on the open lower half-plane. -/
 theorem clause30_frontier_indicator_analytic_open :
     AnalyticOn ℂ (frontierIndicator : ℂ → ℂ) lowerOpenHalfPlane := by
   have hconst : AnalyticOn ℂ (fun _ => (0 : ℂ)) lowerOpenHalfPlane := by
@@ -97,6 +125,7 @@ theorem clause30_frontier_indicator_analytic_open :
   rw [hz] at hx'
   exact (lt_irrefl _ hx')
 
+/-- The real-axis indicator is not continuous on the closed lower half-plane. -/
 theorem clause30_frontier_indicator_not_continuous_closed :
     ¬ ContinuousOn (frontierIndicator : ℂ → ℂ) lowerClosedHalfPlane := by
   intro h
@@ -133,10 +162,12 @@ theorem clause30_frontier_indicator_not_continuous_closed :
   simp at hlt'
   linarith
 
+/-- Complex conjugation is continuous on the closed lower half-plane. -/
 theorem clause30_conj_continuous_closed :
     ContinuousOn (conj : ℂ → ℂ) lowerClosedHalfPlane :=
   Complex.continuous_conj.continuousOn
 
+/-- Complex conjugation is not analytic on the open lower half-plane. -/
 theorem clause30_conj_not_analytic_open :
     ¬ AnalyticOn ℂ (conj : ℂ → ℂ) lowerOpenHalfPlane := by
   intro h
@@ -209,6 +240,8 @@ theorem clause30_conj_not_analytic_open :
     linarith
   exact hfalse.elim
 
+/-- Identifies the real-axis boundary and shows that open-half-plane analyticity and
+closed-half-plane continuity do not imply one another in general. -/
 theorem clause30_open_closed_boundary_is_real :
     (closure lowerOpenHalfPlane = lowerClosedHalfPlane) ∧
     (kernelDomainGap = kernelFrontier) ∧
@@ -222,6 +255,8 @@ theorem clause30_open_closed_boundary_is_real :
     exact clause30_conj_not_analytic_open
       (hall (conj : ℂ → ℂ) clause30_conj_continuous_closed)
 
+/-- Expands the source coefficient as half the cell width times the node weight and the kernel
+value at the composite node. -/
 theorem clause30_discrete_source_coefficient {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) (m : Fin M) (q : Fin Q) :
     sourceCellCoefficient K node weight κ m q
@@ -229,6 +264,8 @@ theorem clause30_discrete_source_coefficient {Q M : ℕ} (K : ℕ) (node weight 
         κ (compositeNodeAt K node m q) := by
   rfl
 
+/-- A uniform bound on the kernel bounds each cell's coefficient mass by the cell width times
+the absolute-weight sum times that bound. -/
 theorem clause30_source_cell_mass_le {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) (κbound : ℝ) (hκ : ∀ k, ‖κ k‖ ≤ κbound) (hκb : 0 ≤ κbound) :
     ∀ m : Fin M,
@@ -267,6 +304,8 @@ theorem clause30_source_cell_mass_le {Q M : ℕ} (K : ℕ) (node weight : Fin Q 
             (Finset.sum_nonneg fun q _ => abs_nonneg (weight q))
         exact mul_le_mul_of_nonneg_right h1 hκb
 
+/-- For a positive cell count, the total source coefficient mass is at most `2 * K` times the
+absolute-weight sum and the uniform kernel bound. -/
 theorem clause30_source_mass_independent_of_cells {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) (κbound : ℝ) (hκ : ∀ k, ‖κ k‖ ≤ κbound) (hκb : 0 ≤ κbound)
     (hM : 0 < M) :
@@ -300,6 +339,8 @@ theorem clause30_source_mass_independent_of_cells {Q M : ℕ} (K : ℕ) (node we
   rw [hdiv] at hmass
   nlinarith
 
+/-- A uniform source-vector norm bound gives a discrete source norm bound equal to the
+coefficient mass times that bound. -/
 theorem clause30_discrete_source_norm_le {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) (σ : ℝ → QState I) (σbound : ℝ) (hσ : ∀ k, ‖σ k‖ ≤ σbound) :
     ‖discreteSourceTerm M K node weight κ σ‖
@@ -349,12 +390,15 @@ theorem clause30_discrete_source_norm_le {Q M : ℕ} (K : ℕ) (node weight : Fi
             ‖sourceCellCoefficient K node weight κ m q‖) * σbound :=
           (Finset.sum_mul _ _ _).symm
 
+/-- The discrete source term vanishes when every source vector is zero. -/
 theorem clause30_discrete_source_zero_of_zero {Q M : ℕ} (K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) :
     discreteSourceTerm M K node weight κ (fun _ => (0 : QState I)) = 0 := by
   unfold discreteSourceTerm
   simp
 
+/-- A continuous derivative-norm function attains its cell supremum at a point of the closed
+cell of positive width. -/
 theorem clause30_single_evaluation_point_bridge {Q : ℕ} (Φ : ℝ → Matrix I I ℂ)
     (a h : ℝ) (hpos : 0 < h) (hcont : Continuous fun k => ‖iteratedDeriv (2 * Q) Φ k‖) :
     ∃ k ∈ Icc a (a + h),
@@ -362,10 +406,12 @@ theorem clause30_single_evaluation_point_bridge {Q : ℕ} (Φ : ℝ → Matrix I
         sSup ((Icc a (a + h)).image (fun j => ‖iteratedDeriv (2 * Q) Φ j‖)) :=
   clause30_correction_supremum_attained Φ a h hpos hcont
 
+/-- The matrix operator norm is submultiplicative. -/
 theorem clause30_operator_norm_submultiplicative (A B : Matrix I I ℂ) :
     ‖A * B‖ ≤ ‖A‖ * ‖B‖ :=
   l2_opNorm_mul A B
 
+/-- In positive dimension `d`, the operator norm of the all-ones matrix equals `d`. -/
 theorem clause30_all_ones_operator_norm (d : ℕ) (hd : 0 < d) :
     ‖allOnesMatrix d‖ = (d : ℝ) := by
   have hmul : (allOnesMatrix d)ᴴ * allOnesMatrix d = (d : ℝ) • allOnesMatrix d := by
@@ -385,6 +431,8 @@ theorem clause30_all_ones_operator_norm (d : ℕ) (hd : 0 < d) :
   · exact absurd h hne
   · linarith
 
+/-- For dimension greater than one, the all-ones matrix has entrywise supremum one and operator
+norm strictly greater than one. -/
 theorem clause30_entrywise_sup_does_not_bound_operator_norm (d : ℕ) (hd : 1 < d) :
     entrywiseSup (allOnesMatrix d) = 1 ∧ 1 < ‖allOnesMatrix d‖ := by
   constructor
@@ -396,15 +444,19 @@ theorem clause30_entrywise_sup_does_not_bound_operator_norm (d : ℕ) (hd : 1 < 
     have : (2 : ℝ) ≤ (d : ℝ) := by exact_mod_cast (show 2 ≤ d by omega)
     linarith
 
+/-- For dimension greater than one, the all-ones matrix has operator norm greater than one
+despite entrywise supremum one. -/
 theorem clause30_dimension_factor_is_real (d : ℕ) (hd : 1 < d) :
     (1 : ℝ) < ‖allOnesMatrix d‖ ∧ entrywiseSup (allOnesMatrix d) = 1 :=
   ⟨(clause30_entrywise_sup_does_not_bound_operator_norm d hd).2,
    (clause30_entrywise_sup_does_not_bound_operator_norm d hd).1⟩
 
+/-- Each source cell coefficient is exactly the corresponding composite quadrature coefficient. -/
 theorem clause30_discrete_source_uses_composite_rule {Q M : ℕ} (K : ℕ)
     (node weight : Fin Q → ℝ) (κ : ℝ → ℂ) (m : Fin M) (q : Fin Q) :
     sourceCellCoefficient K node weight κ m q = compositeCoefficients K node weight κ m q := rfl
 
+/-- The source coefficient mass equals the composite quadrature coefficient mass. -/
 theorem clause30_discrete_source_mass_is_composite_mass {Q M : ℕ} (K : ℕ)
     (node weight : Fin Q → ℝ) (κ : ℝ → ℂ) :
     sourceCoefficientMass M K node weight κ = compositeCoefficientMass M K node weight κ := by
@@ -415,10 +467,13 @@ theorem clause30_discrete_source_mass_is_composite_mass {Q M : ℕ} (K : ℕ)
   intro q _
   rw [clause30_discrete_source_uses_composite_rule]
 
+/-- The cell remainder expression vanishes when its derivative-bound parameter is zero. -/
 theorem clause30_cell_remainder_zero (Q : ℕ) (c h : ℝ) :
     lchs30CellRemainder Q c 0 h = 0 := by
   simp [lchs30CellRemainder]
 
+/-- For nonnegative coefficient and cell width, the cell remainder expression is monotone in its
+derivative-bound parameter. -/
 theorem clause30_cell_remainder_monotone (Q : ℕ) (c h : ℝ) {s s' : ℝ}
     (hcs : 0 ≤ c) (hh : 0 ≤ h) (hs : s ≤ s') :
     lchs30CellRemainder Q c s h ≤ lchs30CellRemainder Q c s' h := by
@@ -427,6 +482,7 @@ theorem clause30_cell_remainder_monotone (Q : ℕ) (c h : ℝ) {s s' : ℝ}
   have := mul_le_mul_of_nonneg_right hs (mul_nonneg hcs hpow)
   nlinarith [this]
 
+/-- Rewrites the composite remainder as `c * s * (M * h) * h^(2 * Q)`. -/
 theorem clause30_composite_remainder_power (Q M : ℕ) (c s h : ℝ) :
     lchs30CompositeRemainder Q M c s h = c * s * ((M : ℝ) * h) * h ^ (2 * Q) := by
   have hpow : h ^ (2 * Q + 1) = h ^ (2 * Q) * h := by
@@ -435,6 +491,8 @@ theorem clause30_composite_remainder_power (Q M : ℕ) (c s h : ℝ) :
   rw [hpow]
   ring
 
+/-- The near-optimal ledger copies its cell count, nodes per cell, and loaded-pair count from
+the composite quadrature ledger. -/
 theorem clause31_near_optimal_ledger_cells (β T Λ : ℝ) (K : ℕ) (ε : ℝ) (rounds shots : ℕ) :
     (lchs31NearOptimalLedger β T Λ K ε rounds shots).cells =
         (compositeCostLedger β T Λ K ε).cells ∧
@@ -444,6 +502,8 @@ theorem clause31_near_optimal_ledger_cells (β T Λ : ℝ) (K : ℕ) (ε : ℝ) 
         (compositeCostLedger β T Λ K ε).propagatorEvaluations := by
   simp [lchs31NearOptimalLedger, compositeCostLedger]
 
+/-- The ledger's loaded-pair count is cells times nodes per cell, its loading precision is
+`loadingBits ε`, and its total cost is loaded pairs plus rounds plus shots. -/
 theorem clause31_near_optimal_ledger_reconciliation (β T Λ : ℝ) (K : ℕ) (ε : ℝ)
     (rounds shots : ℕ) :
     (lchs31NearOptimalLedger β T Λ K ε rounds shots).loadedPairs =
@@ -454,6 +514,8 @@ theorem clause31_near_optimal_ledger_reconciliation (β T Λ : ℝ) (K : ℕ) (�
         (lchs31NearOptimalLedger β T Λ K ε rounds shots).loadedPairs + rounds + shots := by
   simp [lchs31NearOptimalLedger, lchs31TotalCost, compositeCostLedger] <;> ring
 
+/-- The ledger records `compositeNodeCount β K ε` nodes per cell and `ceil(log(1 / ε) / log 2) +
+1` loading bits. -/
 theorem clause31_near_optimal_polylog_precision (β T Λ : ℝ) (K : ℕ) (ε : ℝ)
     (rounds shots : ℕ) :
     (lchs31NearOptimalLedger β T Λ K ε rounds shots).nodesPerCell =
@@ -462,23 +524,30 @@ theorem clause31_near_optimal_polylog_precision (β T Λ : ℝ) (K : ℕ) (ε : 
         Nat.ceil (Real.log (1 / ε) / Real.log 2) + 1 := by
   simp [lchs31NearOptimalLedger, compositeCostLedger, loadingBits]
 
+/-- The composite node count is bounded by one plus the natural ceiling of the stated
+logarithmic precision expression. -/
 theorem clause31_near_optimal_node_count_log (β K ε : ℝ) :
     compositeNodeCount β K ε ≤
       1 + Nat.ceil (Real.log ((8 / (3 * highKernelC β)) * K / ε) / Real.log 4) := by
   unfold compositeNodeCount
   omega
 
+/-- The loading count equals the number `M * Q` of cell-node pairs. -/
 theorem clause31_loading_count (M Q : ℕ) : loadingCount M Q = M * Q := rfl
 
+/-- The loading-bit count equals `ceil(log(1 / ε) / log 2) + 1`. -/
 theorem clause31_loading_bits_logarithmic (ε : ℝ) :
     loadingBits ε = Nat.ceil (Real.log (1 / ε) / Real.log 2) + 1 := rfl
 
+/-- The amplification-round count is at least one. -/
 theorem clause31_amplification_rounds_pos {Q : ℕ} (M K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) :
     1 ≤ amplificationRounds M K node weight κ := by
   unfold amplificationRounds
   exact le_max_left _ _
 
+/-- If the coefficient L2 norm is positive, the amplification-round count is at most the
+mass-to-L2 ratio plus one. -/
 theorem clause31_amplification_rounds_le_mass {Q : ℕ} (M K : ℕ) (node weight : Fin Q → ℝ)
     (κ : ℝ → ℂ) (hl2 : 0 < compositeCoefficientL2 M K node weight κ) :
     (amplificationRounds M K node weight κ : ℝ)
@@ -514,9 +583,12 @@ theorem clause31_amplification_rounds_le_mass {Q : ℕ} (M K : ℕ) (node weight
   rw [hgoal]
   exact hmax
 
+/-- The linear-combination term loading count equals `M * Q`. -/
 theorem clause31_lcu_term_count (M Q : ℕ) : loadingCount M Q = M * Q :=
   clause31_loading_count M Q
 
+/-- If two matrix norms are bounded by `1 + δ` with nonnegative `δ`, their product norm is
+bounded by `(1 + δ)²`. -/
 theorem clause32_product_norm_le (δ : ℝ) (hδ : 0 ≤ δ) (A B : Matrix I I ℂ)
     (hA : ‖A‖ ≤ 1 + δ) (hB : ‖B‖ ≤ 1 + δ) :
     ‖A * B‖ ≤ (1 + δ) ^ 2 := by
@@ -524,6 +596,8 @@ theorem clause32_product_norm_le (δ : ℝ) (hδ : 0 ≤ δ) (A B : Matrix I I �
     _ ≤ (1 + δ) * (1 + δ) := mul_le_mul hA hB (by positivity) (by positivity)
     _ = (1 + δ) ^ 2 := by ring
 
+/-- For a nonempty matrix list with each norm at most `1 + δ` and nonnegative `δ`, the product
+norm is at most `(1 + δ)` raised to the list length. -/
 theorem clause32_list_product_norm_le (δ : ℝ) (hδ : 0 ≤ δ) :
     ∀ (l : List (Matrix I I ℂ)), l ≠ [] → (∀ A ∈ l, ‖A‖ ≤ 1 + δ) →
       ‖l.prod‖ ≤ (1 + δ) ^ l.length := by
@@ -547,6 +621,7 @@ theorem clause32_list_product_norm_le (δ : ℝ) (hδ : 0 ≤ δ) :
               exact ih hl_nil hl
           _ = (1 + δ) ^ (l.length + 1) := by ring
 
+/-- For nonnegative `δ`, every natural power of `1 + δ` is at least one. -/
 theorem clause32_one_le_pow (δ : ℝ) (hδ : 0 ≤ δ) (n : ℕ) : 1 ≤ (1 + δ) ^ n := by
   induction n with
   | zero => simp
@@ -557,6 +632,7 @@ theorem clause32_one_le_pow (δ : ℝ) (hδ : 0 ≤ δ) (n : ℕ) : 1 ≤ (1 + �
             exact mul_le_mul (by linarith) ih (by positivity) (by positivity)
         _ = (1 + δ) ^ (n + 1) := by rw [pow_succ]; ring
 
+/-- For nonnegative `δ`, the excess `(1 + δ)^n - 1` is at most `n * δ * (1 + δ)^n`. -/
 theorem clause32_relative_error_le (n : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) :
     (1 + δ) ^ n - 1 ≤ n * δ * (1 + δ) ^ n := by
   induction n with
@@ -583,23 +659,30 @@ theorem clause32_relative_error_le (n : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) :
             rw [hcast]
             ring
 
+/-- The filter-round count equals the reciprocal of the filter success probability. -/
 theorem clause32_filter_round_count {X : Type} [Fintype X] [Nonempty X]
     (g : GibbsInput X) : filterRoundCount g = 1 / filterSuccessProbability g := rfl
 
+/-- At positive temperature and positive filter success probability, the filter-round count is
+at least one. -/
 theorem clause32_filter_round_count_ge_one {X : Type} [Fintype X] [Nonempty X]
     (g : GibbsInput X) (hT : 0 < g.temperature) (hp : 0 < filterSuccessProbability g) :
     1 ≤ filterRoundCount g := by
   rw [filterRoundCount]
   exact clause32_filter_success_fee g hT hp
 
+/-- The observable sample-count definition agrees with `gibbsSampleCount`. -/
 theorem clause32_observable_sample_count {X : Type} [Fintype X] [Nonempty X]
     (g : GibbsInput X) (ε δ : ℝ) :
     observableSampleCount g ε δ = gibbsSampleCount g ε δ := rfl
 
+/-- The source preparation loading count equals `M * Q`. -/
 theorem clause32_source_preparation_term_count (M Q : ℕ) :
     loadingCount M Q = M * Q :=
   clause31_loading_count M Q
 
+/-- Under the stated derivative and continuity assumptions, the first-order Taylor remainder
+equals the interval integral of `(b - y) • f'' y`. -/
 theorem lchs30_peano_remainder {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [CompleteSpace E] (f f' f'' : ℝ → E) (a b : ℝ)
     (h₁ : ∀ x ∈ Set.uIcc a b, HasDerivAt f (f' x) x)
@@ -648,6 +731,8 @@ theorem lchs30_peano_remainder {E : Type*} [NormedAddCommGroup E] [NormedSpace �
     abel
   rw [hkey]
 
+/-- On an ordered interval, a uniform second-derivative norm bound `C` bounds the first-order
+Taylor remainder norm by `C * (b - a)² / 2`. -/
 theorem lchs30_peano_remainder_norm {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [CompleteSpace E] (f f' f'' : ℝ → E) (a b : ℝ) (C : ℝ) (hab : a ≤ b)
     (h₁ : ∀ x ∈ Set.uIcc a b, HasDerivAt f (f' x) x)
@@ -688,6 +773,8 @@ theorem lchs30_peano_remainder_norm {E : Type*} [NormedAddCommGroup E] [NormedSp
     _ = ((b - a) ^ 2 / 2) * C := hstep3
     _ = C * (b - a) ^ 2 / 2 := by ring
 
+/-- For a matrix-valued function with the stated derivatives, the first-order Taylor remainder
+equals the weighted integral of its second derivative. -/
 theorem lchs30_peano_remainder_matrix (Φ Φ' Φ'' : ℝ → Matrix I I ℂ) (a b : ℝ)
     (h₁ : ∀ x ∈ Set.uIcc a b, HasDerivAt Φ (Φ' x) x)
     (h₂ : ∀ x ∈ Set.uIcc a b, HasDerivAt Φ' (Φ'' x) x)
@@ -696,6 +783,8 @@ theorem lchs30_peano_remainder_matrix (Φ Φ' Φ'' : ℝ → Matrix I I ℂ) (a 
     Φ b - Φ a - (b - a) • Φ' a = ∫ y in a..b, (b - y) • Φ'' y :=
   lchs30_peano_remainder Φ Φ' Φ'' a b h₁ h₂ hc hc'
 
+/-- A uniform matrix second-derivative norm bound gives the first-order Taylor remainder bound
+`C * (b - a)² / 2` when `a ≤ b`. -/
 theorem lchs30_peano_remainder_norm_matrix (Φ Φ' Φ'' : ℝ → Matrix I I ℂ) (a b : ℝ) (C : ℝ)
     (hab : a ≤ b)
     (h₁ : ∀ x ∈ Set.uIcc a b, HasDerivAt Φ (Φ' x) x)
@@ -706,10 +795,14 @@ theorem lchs30_peano_remainder_norm_matrix (Φ Φ' Φ'' : ℝ → Matrix I I ℂ
     ‖Φ b - Φ a - (b - a) • Φ' a‖ ≤ C * (b - a) ^ 2 / 2 :=
   lchs30_peano_remainder_norm Φ Φ' Φ'' a b C hab h₁ h₂ hc hc' hC
 
+/-- Rewrites `M * (s * h² / 2)` as `s * (M * h) * h / 2`. -/
 theorem lchs30_peano_composite_scaling (M : ℕ) (s h : ℝ) :
     (M : ℝ) * (s * h ^ 2 / 2) = s * ((M : ℝ) * h) * h / 2 := by
   ring
 
+/-- Collects the half-plane boundary distinctions, source coefficient identities, matrix norm
+counterexamples, and remainder formulas. It also packages the vector and matrix Peano
+integral identities and norm bounds. -/
 theorem clause30_endpoint :
     (closure lowerOpenHalfPlane = lowerClosedHalfPlane) ∧
     (kernelDomainGap = kernelFrontier) ∧
@@ -792,6 +885,8 @@ theorem clause30_endpoint :
   · intro M s h
     exact lchs30_peano_composite_scaling M s h
 
+/-- Collects loading counts, logarithmic loading precision, amplification bounds, and
+reconciliation of the high precision LCHS cost ledger in the setting of [AnChildsLin2026]. -/
 theorem clause31_endpoint :
     (∀ M Q : ℕ, loadingCount M Q = M * Q) ∧
     (∀ ε : ℝ, loadingBits ε = Nat.ceil (Real.log (1 / ε) / Real.log 2) + 1) ∧
@@ -832,6 +927,8 @@ theorem clause31_endpoint :
   · intro β K ε
     exact clause31_near_optimal_node_count_log β K ε
 
+/-- Collects two-factor and nonempty-list product norm bounds, the multiplicative-error
+estimate, and the source loading count. -/
 theorem clause32_endpoint :
     (∀ (δ : ℝ) (A B : Matrix I I ℂ), 0 ≤ δ → ‖A‖ ≤ 1 + δ → ‖B‖ ≤ 1 + δ →
       ‖A * B‖ ≤ (1 + δ) ^ 2) ∧
@@ -849,6 +946,8 @@ theorem clause32_endpoint :
   · intro M Q
     exact clause32_source_preparation_term_count M Q
 
+/-- Identifies the filter-round count with reciprocal success probability and the observable
+sample count with `gibbsSampleCount`. -/
 theorem clause32_fee_endpoint {X : Type} [Fintype X] [Nonempty X] (g : GibbsInput X) :
     filterRoundCount g = 1 / filterSuccessProbability g ∧
       ∀ ε δ : ℝ, observableSampleCount g ε δ = gibbsSampleCount g ε δ :=

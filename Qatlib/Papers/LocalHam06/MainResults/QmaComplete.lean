@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessFullSpace
+
+/-!
+# Padded history-Hamiltonian energy separation
+
+The predicates `YesWitness` and `NoSound` express completeness and soundness conditions for a
+history circuit. Under the specified parameter bounds, `two_local_hamiltonian_qma_hard` packages
+the padded Hamiltonian and separated energy thresholds used in the reduction of
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `YesWitness`: Requires a legal normalized input with acceptance at least `a`.
+* `NoSound`: Bounds acceptance by `ε` on every legal normalized input.
+* `two_local_hamiltonian_qma_hard`: Constructs the Hamiltonian with positive yes threshold and a
+  gap equal to that threshold.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,14 +45,20 @@ open Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 
 set_option autoImplicit false
 
+/-- The circuit has a legal normalized input whose acceptance probability is at least `a`. -/
 def YesWitness (C : QmaHistoryCircuit) (a : ℝ) : Prop :=
   ∃ φ : QState (Reg C.qubits),
     QmaInitLegal C φ ∧ Normalized φ ∧ a ≤ qmaHistoryAcceptProb C φ
 
+/-- Every legal normalized input to the circuit has acceptance probability at most `ε`. -/
 def NoSound (C : QmaHistoryCircuit) (ε : ℝ) : Prop :=
   ∀ φ : QState (Reg C.qubits),
     QmaInitLegal C φ → Normalized φ → qmaHistoryAcceptProb C φ ≤ ε
 
+/-- Under the stated bounds on `ε` and `1 - a`, the padded history Hamiltonian has positive yes
+threshold, no-minus-yes gap equal to the yes threshold, and the specified completeness and
+soundness energy implications. This packages the energy separation used for Theorem 1 of
+[KempeKitaevRegev2006]. -/
 theorem two_local_hamiltonian_qma_hard
     (C : QmaHistoryCircuit) (a ε : ℝ)
     (hε : ε ≤ 1 / 4)

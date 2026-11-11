@@ -32,13 +32,34 @@ import Mathlib.Order.RelClasses
 import Mathlib.Order.SuccPred.Nat
 import Mathlib.Tactic
 
+/-!
+# Balanced NAND evaluation and certificate-size recurrences
+
+This module defines leaf assignments and recursive evaluation for balanced `d`-ary NAND trees.
+It also defines the certificate-size recurrence from [AmbainisEtAl2009] and proves its
+parity-dependent closed forms, positivity, and leaf-count bound.
+
+## Main statements
+
+* `certSize_closed_form`: solves the two size recurrences.
+* `certSize_pos`: gives positivity for branching factor at least one.
+* `certSize_le_leafCount`: bounds the recurrence by the number of leaves.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.CertQuery09.MainResults.Source
 
+/-- A Boolean assignment to the `d ^ k` leaves of a balanced `d`-ary tree of depth `k`. -/
 abbrev LeafAssignment (d k : ℕ) : Type := Fin (d ^ k) → Bool
 
+/-- Recursive balanced NAND evaluation, returning the leaf bit at depth zero and the negation of
+the conjunction of all child values at positive depth. -/
 def nandEval (d : ℕ) : (k : ℕ) → LeafAssignment d k → Bool
   | 0, x => x ⟨0, by simp⟩
   | k + 1, x =>
@@ -46,17 +67,26 @@ def nandEval (d : ℕ) : (k : ℕ) → LeafAssignment d k → Bool
           nandEval d k
             (fun i => x (Fin.cast (pow_succ' d k).symm (finProdFinEquiv (j, i)))))
 
+/-- The NAND certificate-size recurrence with value one at depth zero, zero-output size `d`
+times the preceding one-output size, and one-output size equal to the preceding zero-output
+size. -/
 def certSize (d : ℕ) : Bool → ℕ → ℕ
   | _, 0 => 1
   | false, k + 1 => d * certSize d true k
   | true, k + 1 => certSize d false k
 
+/-- The parity-dependent closed expression for the zero-output size recurrence: `d ^ (k / 2)` at
+even depth and `d ^ ((k + 1) / 2)` at odd depth. -/
 def certSizeZeroClosed (d k : ℕ) : ℕ :=
   if k % 2 = 0 then d ^ (k / 2) else d ^ ((k + 1) / 2)
 
+/-- The parity-dependent closed expression for the one-output size recurrence: `d ^ (k / 2)` at
+even depth and `d ^ ((k - 1) / 2)` at odd depth. -/
 def certSizeOneClosed (d k : ℕ) : ℕ :=
   if k % 2 = 0 then d ^ (k / 2) else d ^ ((k - 1) / 2)
 
+/-- Both certificate-size recurrences equal their parity-dependent closed expressions,
+corresponding to the size formulas in [Ambainis et al., Eqs. (1)-(2)][AmbainisEtAl2009]. -/
 theorem certSize_closed_form (d : ℕ) (k : ℕ) :
     certSize d false k = certSizeZeroClosed d k ∧
       certSize d true k = certSizeOneClosed d k := by
@@ -94,6 +124,8 @@ theorem certSize_closed_form (d : ℕ) (k : ℕ) :
           have h1 : (k + 1) % 2 = 0 := by omega
           simp [h0, h1]
 
+/-- For branching factor `d ≥ 1`, the size recurrence is positive for either output bit and
+every depth. -/
 theorem certSize_pos (d b k) (hd : 1 ≤ d) : 0 < certSize d b k := by
   induction k generalizing b with
   | zero => cases b <;> simp [certSize]
@@ -103,6 +135,7 @@ theorem certSize_pos (d b k) (hd : 1 ≤ d) : 0 < certSize d b k := by
         exact Nat.mul_pos (by omega) (ih true)
       · simpa [certSize] using ih false
 
+/-- For `d ≥ 1`, either certificate-size recurrence is at most the leaf count `d ^ k`. -/
 theorem certSize_le_leafCount (d b k) (hd : 1 ≤ d) : certSize d b k ≤ d ^ k := by
   induction k generalizing b with
   | zero => cases b <;> simp [certSize]

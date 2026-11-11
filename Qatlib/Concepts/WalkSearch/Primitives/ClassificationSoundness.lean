@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+/-!
+# Sound triangle outputs from classification
+
+Proves witness soundness for neighborhood search and the full classification scan. Every
+reported triple forms a triangle in the input graph, independently of the degree-test
+correctness assumptions used in separate resource bounds; see [Ambainis2005] for quantum search
+background.
+
+## Main statements
+
+* `neighborhoodSearch_sound`: A pair returned by the operational neighborhood search at `v`
+  forms a triangle with `v`, with all three required edges in `G.edges`.
+* `classifyScan_sound`: Every triple returned by `classifyScan` satisfies `tri3` and has all
+  three required edges in `G.edges`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,8 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- A pair returned by the operational neighborhood search at `v` forms a triangle with `v`,
+with all three required edges in `G.edges`. -/
 theorem neighborhoodSearch_sound (G : UGraph n) (sgs : SGSExecution) (v : Fin n) (ρ : sgs.seed)
     (w w' : Fin n) (h : operationalSgsFind sgs (neighborhoodMarked G v) 2 (n*n) ρ=some (w,w')) :
     tri3 G.edges v w w' ∧ (v,w)∈G.edges ∧ (v,w')∈G.edges ∧ (w,w')∈G.edges := by
@@ -29,6 +52,8 @@ theorem neighborhoodSearch_sound (G : UGraph n) (sgs : SGSExecution) (v : Fin n)
   have hne3 : w≠w' := by intro he;subst w';exact G.loopless w h3
   exact ⟨(tri3_iff _ _ _ _).mpr ⟨hne1,hne3,hne2,Or.inl h1,Or.inl h3,Or.inl h2⟩,h1,h2,h3⟩
 
+/-- Every triple returned by `classifyScan` satisfies `tri3` and has all three required edges in
+`G.edges`. -/
 theorem classifyScan_sound (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) :

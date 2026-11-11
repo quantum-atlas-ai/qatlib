@@ -12,6 +12,32 @@ import Qatlib.Concepts.QueryComplexity.Amplification.ParallelCopies
 import Qatlib.Foundations.BornMetrics.EventProbability
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 import Qatlib.Concepts.QueryComplexity.Reflections.ReflectionsPhaseBridge
+
+/-!
+# Counted bit-query programs for reflection algorithms
+
+`reflectionsFrame` embeds logical states into an explicit query register, and
+compute-phase-uncompute implements controlled source reflections. The module constructs clocked
+reflection trials and routes independent copies through a shared bit oracle, with exact query
+and gate counts.
+
+`reflections_amplified_actual` combines 100 trials with a threshold event to obtain success
+probability at least 2/3 from the stated probability gap, in the reflection framework of
+[Reichardt2011].
+
+## Main statements
+
+* `reflections_two_query_source_program`: implements a controlled two-reflection unitary using
+  two queries and two gates.
+* `standardCopiesCircuit_spec`: runs a circuit on each tensor factor with explicit routing
+  overhead.
+* `reflections_amplified_actual`: constructs the counted amplified decision circuit.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -45,14 +71,19 @@ open scoped BigOperators
 variable {A H : Type} [Fintype A] [DecidableEq A] [Fintype H] [DecidableEq H]
   {n : ℕ}
 
+/-- Embeds a logical state with query address `addr` and a false query bit, assigning zero
+amplitude off this frame. -/
 def reflectionsFrame (addr : H → Fin n) (ψ : QState (A × H)) :
     QState ((Fin n × Bool) × (A × H)) :=
   fun p => if p.1 = (addr p.2.2, false) then ψ p.2 else 0
 
+/-- The matrix embedding each logical basis vector into its addressed query frame with a false
+query bit. -/
 def reflectionsFrameMatrix (addr : H → Fin n) :
     Matrix ((Fin n × Bool) × (A × H)) (A × H) ℂ :=
   fun p q => if p = ((addr q.2, false), q) then 1 else 0
 
+/-- Matrix multiplication by `reflectionsFrameMatrix` agrees with `reflectionsFrame`. -/
 theorem reflectionsFrameMatrix_apply (addr : H → Fin n) (ψ : QState (A × H)) :
     reflectionsFrameMatrix (A := A) addr *ᵥ ψ = reflectionsFrame addr ψ := by
   funext p
@@ -68,6 +99,7 @@ theorem reflectionsFrameMatrix_apply (addr : H → Fin n) (ψ : QState (A × H))
     simp only [he, if_false, zero_mul]
   · simp
 
+/-- The query-frame embedding matrix is an isometry. -/
 theorem reflectionsFrameMatrix_isometry (addr : H → Fin n) :
     Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (reflectionsFrameMatrix (A := A) addr) := by
   unfold Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry
@@ -85,6 +117,8 @@ theorem reflectionsFrameMatrix_isometry (addr : H → Fin n) :
     simp only [hr, if_false, star_zero, zero_mul]
   · simp
 
+/-- Every unitary logical gate extends to a unitary on the query-frame space that intertwines
+the frame embedding. -/
 theorem reflectionsFrame_transport (addr : H → Fin n) (L : Matrix (A × H) (A × H) ℂ)
     (hL : L ∈ Matrix.unitaryGroup (A × H) ℂ) :
     ∃ K : Matrix ((Fin n × Bool) × (A × H)) ((Fin n × Bool) × (A × H)) ℂ,
@@ -108,9 +142,12 @@ theorem reflectionsFrame_transport (addr : H → Fin n) (L : Matrix (A × H) (A 
     _ = F *ᵥ (L *ᵥ ψ) := (Matrix.mulVec_mulVec _ _ _).symm
     _ = _ := reflectionsFrameMatrix_apply addr (L *ᵥ ψ)
 
+/-- Applies `U` on the `H` register for active control values and the identity for inactive
+values. -/
 def reflectionsControlled (active : A → Bool) (U : Matrix H H ℂ) :
     Matrix (A × H) (A × H) ℂ := Select (fun a => if active a then U else 1)
 
+/-- A controlled selection of a unitary and the identity is unitary. -/
 theorem reflectionsControlled_unitary (active : A → Bool) (U : Matrix H H ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     reflectionsControlled active U ∈ Matrix.unitaryGroup (A × H) ℂ := by
@@ -118,6 +155,8 @@ theorem reflectionsControlled_unitary (active : A → Bool) (U : Matrix H H ℂ)
   intro a
   cases active a <;> simp [hU]
 
+/-- Evaluates the controlled gate on each control fibre, applying `U` precisely on active
+fibres. -/
 theorem reflectionsControlled_apply (active : A → Bool) (U : Matrix H H ℂ)
     (ψ : QState (A × H)) (a : A) (h : H) :
     ApplyGate (reflectionsControlled active U) ψ (a, h) =
@@ -133,12 +172,15 @@ theorem reflectionsControlled_apply (active : A → Bool) (U : Matrix H H ℂ)
     simp [Ne.symm hb]
   · simp
 
+/-- The diagonal sign gate controlled by activity and the exclusive-or of the query bit with the
+optional column bit. -/
 def reflectionsColumnPhase (bit : H → Option Bool) (active : A → Bool) :
     Matrix ((Fin n × Bool) × (A × H)) ((Fin n × Bool) × (A × H)) ℂ :=
   Matrix.diagonal fun p => match bit p.2.2 with
     | none => 1
     | some b => if active p.2.1 && (p.1.2 ^^ b) then -1 else 1
 
+/-- The column-phase sign gate is unitary. -/
 theorem reflectionsColumnPhase_unitary (bit : H → Option Bool) (active : A → Bool) :
     reflectionsColumnPhase (n := n) bit active ∈ Matrix.unitaryGroup _ ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
@@ -151,12 +193,16 @@ theorem reflectionsColumnPhase_unitary (bit : H → Option Bool) (active : A →
   | none => simp
   | some b => simp only []; split_ifs <;> norm_num
 
+/-- The logical diagonal sign gate obtained from the oracle value at `addr`, the optional column
+bit, and the activity control. -/
 def reflectionsLogicalPhase (addr : H → Fin n) (bit : H → Option Bool)
     (active : A → Bool) (o : Fin n → Bool) : Matrix (A × H) (A × H) ℂ :=
   Matrix.diagonal fun p => match bit p.2 with
     | none => 1
     | some b => if active p.1 && (o (addr p.2) ^^ b) then -1 else 1
 
+/-- Two bit-oracle calls surrounding the column-phase gate implement the logical phase gate on
+framed states. -/
 theorem reflections_compute_phase_uncompute (addr : H → Fin n) (bit : H → Option Bool)
     (active : A → Bool) (o : Fin n → Bool) (ψ : QState (A × H)) :
     Run (workspaceBitOracle (W := A × H) o)
@@ -183,16 +229,20 @@ theorem reflections_compute_phase_uncompute (addr : H → Fin n) (bit : H → Op
 
 variable {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
 
+/-- Extracts a query vertex address, using address zero on the other vertex summands. -/
 def reflectionsVertexAddress (f : X → Bool) (hn : 0 < n) : Vertex X f n m → Fin n
   | .inr (.inr (j, _, _)) => j
   | _ => ⟨0, hn⟩
 
+/-- Extracts the Boolean label of a query vertex and returns `none` on the other vertex
+summands. -/
 def reflectionsVertexBit (f : X → Bool) : Vertex X f n m → Option Bool
   | .inr (.inr (_, b, _)) => some b
   | _ => none
 
 omit [Fintype A] [Fintype X] in
 
+/-- The logical vertex phase equals the controlled reflection `2 • pixProj - 1`. -/
 theorem reflections_source_phase (f : X → Bool) (hn : 0 < n)
     (input : X → Fin n → Bool) (active : A → Bool) (x : X) :
     reflectionsLogicalPhase (reflectionsVertexAddress f hn) (reflectionsVertexBit f)
@@ -218,6 +268,8 @@ theorem reflections_source_phase (f : X → Bool) (hn : 0 < n)
         simp [reflectionsLogicalPhase, reflectionsControlled, Select, pixProj, hzw, ha]
   · simp [reflectionsLogicalPhase, reflectionsControlled, Select, hab]
 
+/-- Successive controlled applications of `V` and `U` equal a controlled application of `U * V`
+with the same activity predicate. -/
 theorem reflectionsControlled_product_apply (active : A → Bool) (U V : Matrix H H ℂ)
     (ψ : QState (A × H)) :
     ApplyGate (reflectionsControlled active U) (ApplyGate (reflectionsControlled active V) ψ) =
@@ -229,6 +281,7 @@ theorem reflectionsControlled_product_apply (active : A → Bool) (U V : Matrix 
     exact congrFun (Matrix.mulVec_mulVec (fun w => ψ (a, w)) U V) z
   · simp only [if_neg ha]
 
+/-- A singleton circuit containing a unitary gate is a unitary circuit. -/
 theorem reflections_single_gate_wellFormed (U : Matrix H H ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) : IsUnitaryCircuit [Step.gate U] := by
   intro V hV
@@ -241,6 +294,8 @@ theorem reflections_single_gate_wellFormed (U : Matrix H H ℂ)
   · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_pos hij] using he
   · simpa only [Matrix.star_eq_conjTranspose, Matrix.one_apply, if_neg hij] using he
 
+/-- Constructs a circuit implementing the controlled source two-reflection unitary on framed
+states using exactly two queries and two gates. -/
 theorem reflections_two_query_source_program (A X : Type)
     [Fintype A] [DecidableEq A] [Fintype X] [DecidableEq X]
     (n m : ℕ) (f : X → Bool) (hn : 0 < n)
@@ -278,11 +333,15 @@ theorem reflections_two_query_source_program (A X : Type)
     rw [reflections_source_phase, reflectionsControlled_product_apply]
     rfl
 
+/-- The ordered product of controlled copies of `U` with the successive activity predicates,
+starting from the identity. -/
 def reflectionsLoop (active : ℕ → A → Bool) (U : Matrix H H ℂ) :
     ℕ → Matrix (A × H) (A × H) ℂ
   | 0 => 1
   | k + 1 => reflectionsControlled (active k) U * reflectionsLoop active U k
 
+/-- Implements `T` controlled source-walk steps on framed states using exactly `2 * T` queries
+and `2 * T` gates. -/
 theorem reflections_counted_source_loop (A X : Type)
     [Fintype A] [DecidableEq A] [Fintype X] [DecidableEq X]
     (n m : ℕ) (f : X → Bool) (hn : 0 < n) (input : X → Fin n → Bool)
@@ -312,9 +371,13 @@ theorem reflections_counted_source_loop (A X : Type)
       rw [Matrix.mulVec_mulVec]
       rfl
 
+/-- Activates a clock-control pair when its Boolean flag is true and the step index does not
+exceed the clock value. -/
 def reflectionsClockActive (τ : ℕ) (k : ℕ) (a : Fin τ × Bool) : Bool :=
   a.2 && decide (k ≤ a.1.val)
 
+/-- After `k` clocked steps, a true control fibre receives `U` to the power `min k (t.val + 1)`,
+while a false fibre is unchanged. -/
 theorem reflections_clock_loop_fibre (τ k : ℕ) (U : Matrix H H ℂ)
     (ψ : QState ((Fin τ × Bool) × H)) (t : Fin τ) (b : Bool) (z : H) :
     (reflectionsLoop (reflectionsClockActive τ) U k *ᵥ ψ) ((t, b), z) =
@@ -347,6 +410,8 @@ theorem reflections_clock_loop_fibre (τ k : ℕ) (U : Matrix H H ℂ)
           min_eq_right (by omega : t.val + 1 ≤ k + 1)]
         simp only [if_true]
 
+/-- A complete clocked loop applies `U ^ (t.val + 1)` on each true clock fibre and leaves false
+fibres unchanged. -/
 theorem reflections_clock_loop_complete (τ : ℕ) (U : Matrix H H ℂ)
     (ψ : QState ((Fin τ × Bool) × H)) :
     reflectionsLoop (reflectionsClockActive τ) U τ *ᵥ ψ =
@@ -355,6 +420,7 @@ theorem reflections_clock_loop_complete (τ : ℕ) (U : Matrix H H ℂ)
   funext ⟨⟨t, b⟩, z⟩
   rw [reflections_clock_loop_fibre, min_eq_right (by omega : t.val + 1 ≤ τ)]
 
+/-- Framing a normalized state preserves normalization. -/
 theorem reflectionsFrame_normalized (addr : H → Fin n) (ψ : QState (A × H))
     (hψ : Normalized ψ) : Normalized (reflectionsFrame addr ψ) := by
   have he :=
@@ -363,14 +429,17 @@ theorem reflectionsFrame_normalized (addr : H → Fin n) (ψ : QState (A × H))
   rw [reflectionsFrameMatrix_apply] at he
   exact he.trans hψ
 
+/-- The tensor product of a uniform clock state, a plus control state, and the input state `r`. -/
 def reflectionsTrialStart (τ : ℕ) (r : QState H) : QState ((Fin τ × Bool) × H) :=
   TensorState (TensorState (Uniform (Fin τ)) Plus) r
 
+/-- The trial start state is normalized when the clock is nonempty and `r` is normalized. -/
 theorem reflectionsTrialStart_normalized (τ : ℕ) (hτ : 0 < τ)
     (r : QState H) (hr : Normalized r) : Normalized (reflectionsTrialStart τ r) :=
   normalized_tensorState
     (normalized_tensorState (normalized_uniform (by simpa using hτ)) normalized_plus) hr
 
+/-- A unitary prepares any normalized framed state from the specified framed basis state. -/
 theorem reflections_frame_prepare (addr : H → Fin n) (j : A × H)
     (ψ : QState (A × H)) (hψ : Normalized ψ) :
     ∃ K : Matrix ((Fin n × Bool) × (A × H)) ((Fin n × Bool) × (A × H)) ℂ,
@@ -390,14 +459,18 @@ theorem reflections_frame_prepare (addr : H → Fin n) (j : A × H)
   funext p
   exact congrArg (fun M : Matrix _ Unit ℂ => M p ()) hKT
 
+/-- The Hadamard gate on the trial control bit, tensored with identities on the clock and state
+registers. -/
 def reflectionsTrialHadamard (τ : ℕ) : Matrix ((Fin τ × Bool) × H) ((Fin τ × Bool) × H) ℂ :=
   TensorGate (TensorGate (1 : Matrix (Fin τ) (Fin τ) ℂ) Hadamard) 1
 
+/-- The trial-control Hadamard gate is unitary. -/
 theorem reflectionsTrialHadamard_unitary (τ : ℕ) :
     reflectionsTrialHadamard (H := H) τ ∈ Matrix.unitaryGroup _ ℂ :=
   tensorGate_unitary (tensorGate_unitary (Submonoid.one_mem _) hadamard_unitary)
     (Submonoid.one_mem _)
 
+/-- Gives the sum-and-difference amplitude formula for the trial-control Hadamard gate. -/
 theorem reflectionsTrialHadamard_apply (τ : ℕ) (ψ : QState ((Fin τ × Bool) × H))
     (t : Fin τ) (b : Bool) (z : H) :
     ApplyGate (reflectionsTrialHadamard τ) ψ ((t, b), z) =
@@ -411,11 +484,15 @@ theorem reflectionsTrialHadamard_apply (τ : ℕ) (ψ : QState ((Fin τ × Bool)
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The clock-indexed sum and difference of `r` and its image under the corresponding positive
+power of `U`. -/
 def reflectionsTrialOutput (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) :
     QState ((Fin τ × Bool) × H) := fun p =>
   Uniform (Fin τ) p.1.1 / 2 *
     (r p.2 + (if p.1.2 then -1 else 1) * (U ^ (p.1.1.val + 1) *ᵥ r) p.2)
 
+/-- A clocked loop followed by the trial Hadamard produces `reflectionsTrialOutput` from the
+trial start state. -/
 theorem reflections_trial_output (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) :
     ApplyGate (reflectionsTrialHadamard τ)
       (reflectionsLoop (reflectionsClockActive τ) U τ *ᵥ reflectionsTrialStart τ r) =
@@ -433,6 +510,8 @@ theorem reflections_trial_output (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) 
   linear_combination (Uniform (Fin τ) t *
     (r z + (if b then -1 else 1) * (U ^ (t.val + 1) *ᵥ r) z)) * hs
 
+/-- Measuring a logical event after framing has the same probability as measuring that event in
+the original state. -/
 theorem reflections_frame_readout (addr : H → Fin n) (ψ : QState (A × H))
     (E : Finset (A × H)) :
     MeasureProb (reflectionsFrame addr ψ)
@@ -451,6 +530,8 @@ theorem reflections_frame_readout (addr : H → Fin n) (ψ : QState (A × H))
     measureProb_collapse, Finset.inter_univ, Finset.inter_univ] at hm
   exact hm
 
+/-- Constructs the framed source-walk trial from a fixed basis state with exactly `2 * τ`
+queries and `2 * τ + 2` gates. -/
 theorem reflections_actual_trial (X : Type) [Fintype X] [DecidableEq X]
     (n m τ : ℕ) (f : X → Bool) (hn : 0 < n) (hτ : 0 < τ)
     (input : X → Fin n → Bool)
@@ -494,10 +575,13 @@ open scoped Classical BigOperators
 
 variable {n k : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- Swaps the shared query register with the query register of copy `j`, leaving that copy's
+workspace unchanged. -/
 private def copySwap (j : Fin k)
     (z : (Fin n × Bool) × (Fin k → (Fin n × Bool) × W)) :=
   ((z.2 j).1, Function.update z.2 j (z.1, (z.2 j).2))
 
+/-- Swapping the shared query register with a fixed copy twice is the identity. -/
 private theorem copySwap_involutive (j : Fin k) : Function.Involutive (copySwap (n := n) (W := W) j) := by
   intro z
   apply Prod.ext
@@ -507,12 +591,16 @@ private theorem copySwap_involutive (j : Fin k) : Function.Involutive (copySwap 
     · subst l; simp [copySwap]
     · simp [copySwap]
 
+/-- The permutation gate routing the shared query register to copy `j`. -/
 private noncomputable def copySwapGate (j : Fin k) := permMatrix (copySwap (n := n) (W := W) j)
 
+/-- The query-routing swap gate is unitary. -/
 private theorem copySwapGate_unitary (j : Fin k) :
     copySwapGate (n := n) (W := W) j ∈ Matrix.unitaryGroup _ ℂ :=
   permMatrix_unitary (copySwap_involutive j)
 
+/-- Swapping into copy `j`, querying, and swapping back applies the oracle to that copy alone on
+tensor-product inputs. -/
 private theorem routed_query (j : Fin k) (x : Fin n → Bool)
     (χ : QState (Fin n × Bool)) (ψ : Fin k → QState ((Fin n × Bool) × W)) :
     ApplyGate (copySwapGate j) (ApplyGate (workspaceBitOracle x)
@@ -531,6 +619,8 @@ private theorem routed_query (j : Fin k) (x : Fin n → Bool)
     simp [applyGate_workspaceBitOracle]
   · simp [hl]
 
+/-- Routes a circuit to copy `j`, replacing each query by a swap-query-swap sequence through the
+shared query register. -/
 noncomputable def StandardCopyCircuit (j : Fin k) :
     Circuit ((Fin n × Bool) × W) →
       Circuit ((Fin n × Bool) × (Fin k → (Fin n × Bool) × W))
@@ -539,6 +629,7 @@ noncomputable def StandardCopyCircuit (j : Fin k) :
   | Step.query :: C => Step.gate (copySwapGate j) :: Step.query ::
       Step.gate (copySwapGate j) :: StandardCopyCircuit j C
 
+/-- Routing a unitary circuit to one copy preserves circuit unitarity. -/
 theorem standardCopyCircuit_unitary (j : Fin k)
     {C : Circuit ((Fin n × Bool) × W)} (hC : IsUnitaryCircuit C) :
     IsUnitaryCircuit (StandardCopyCircuit j C) := by
@@ -556,18 +647,22 @@ theorem standardCopyCircuit_unitary (j : Fin k)
         (isUnitaryCircuit_query _).mpr ((isUnitaryCircuit_gate _ _).mpr
           ⟨copySwapGate_unitary j, ih htail⟩)⟩
 
+/-- Routing a circuit to one copy preserves its query count. -/
 theorem standardCopyCircuit_queries (j : Fin k) (C : Circuit ((Fin n × Bool) × W)) :
     QueryCount (StandardCopyCircuit j C) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [StandardCopyCircuit, QueryCount, ih]
 
+/-- Routing a circuit to one copy adds two gates for each original query. -/
 theorem standardCopyCircuit_gates (j : Fin k) (C : Circuit ((Fin n × Bool) × W)) :
     GateCount (StandardCopyCircuit j C) = GateCount C + 2 * QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [StandardCopyCircuit, GateCount, QueryCount, ih] <;> omega
 
+/-- The routed circuit runs the original circuit on copy `j` of a tensor-product input and
+preserves the other factors. -/
 theorem standardCopyCircuit_run (j : Fin k) (C : Circuit ((Fin n × Bool) × W))
     (x : Fin n → Bool) (χ : QState (Fin n × Bool))
     (ψ : Fin k → QState ((Fin n × Bool) × W)) :
@@ -585,10 +680,13 @@ theorem standardCopyCircuit_run (j : Fin k) (C : Circuit ((Fin n × Bool) × W))
       rw [StandardCopyCircuit, run_gate, run_query, run_gate, routed_query, ih, run_query]
       simp
 
+/-- Concatenates the routed circuit for every copy in `Fin k`. -/
 noncomputable def StandardCopiesCircuit (k : ℕ) (C : Circuit ((Fin n × Bool) × W)) :
     Circuit ((Fin n × Bool) × (Fin k → (Fin n × Bool) × W)) :=
   (List.finRange k).flatMap fun j => StandardCopyCircuit j C
 
+/-- Concatenating routed versions of a unitary circuit over a list of copy indices yields a
+unitary circuit. -/
 private theorem copies_list_unitary {C : Circuit ((Fin n × Bool) × W)}
     (hC : IsUnitaryCircuit C) (L : List (Fin k)) :
     IsUnitaryCircuit (L.flatMap fun j => StandardCopyCircuit j C) := by
@@ -598,12 +696,16 @@ private theorem copies_list_unitary {C : Circuit ((Fin n × Bool) × W)}
     simp only [List.flatMap_cons, isUnitaryCircuit_append]
     exact ⟨standardCopyCircuit_unitary j hC, ih⟩
 
+/-- The query count of a list of routed copies is the list length times the original query
+count. -/
 private theorem copies_list_queries (C : Circuit ((Fin n × Bool) × W)) (L : List (Fin k)) :
     QueryCount (L.flatMap fun j => StandardCopyCircuit j C) = L.length * QueryCount C := by
   induction L with
   | nil => simp
   | cons j L ih => simp [queryCount_append, standardCopyCircuit_queries, ih, Nat.succ_mul, Nat.add_comm]
 
+/-- A list of routed copies uses its length times the original gate count plus twice the
+original query count per copy. -/
 private theorem copies_list_gates (C : Circuit ((Fin n × Bool) × W)) (L : List (Fin k)) :
     GateCount (L.flatMap fun j => StandardCopyCircuit j C) =
       L.length * (GateCount C + 2 * QueryCount C) := by
@@ -611,6 +713,8 @@ private theorem copies_list_gates (C : Circuit ((Fin n × Bool) × W)) (L : List
   | nil => simp
   | cons j L ih => simp [gateCount_append, standardCopyCircuit_gates, ih, Nat.succ_mul, Nat.add_comm]
 
+/-- For a list without repeated indices, the routed circuits update exactly the listed tensor
+factors by the original circuit. -/
 private theorem copies_list_run (C : Circuit ((Fin n × Bool) × W)) (x : Fin n → Bool)
     (χ : QState (Fin n × Bool)) (L : List (Fin k)) (hL : L.Nodup)
     (ψ : Fin k → QState ((Fin n × Bool) × W)) :
@@ -630,6 +734,8 @@ private theorem copies_list_run (C : Circuit ((Fin n × Bool) × W)) (x : Fin n 
     · subst l; simp [hj]
     · simp [hl]
 
+/-- Constructs independent runs on all `k` tensor factors with `k` times the original queries
+and two routing gates per copied query. -/
 theorem standardCopiesCircuit_spec (k : ℕ) (C : Circuit ((Fin n × Bool) × W))
     (hC : IsUnitaryCircuit C) :
     IsUnitaryCircuit (StandardCopiesCircuit k C) ∧
@@ -649,6 +755,7 @@ theorem standardCopiesCircuit_spec (k : ℕ) (C : Circuit ((Fin n × Bool) × W)
 
 end ReflectionsFresh
 
+/-- The probability of a false trial-control outcome equals `reflectionsPowerMean`. -/
 theorem reflections_trial_born (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) :
     MeasureProb (reflectionsTrialOutput τ U r)
       (Finset.univ.filter (fun p : (Fin τ × Bool) × H => p.1.2 = false)) =
@@ -669,14 +776,18 @@ theorem reflections_trial_born (τ : ℕ) (U : Matrix H H ℂ) (r : QState H) :
   simp_rw [← Finset.mul_sum]
   ring
 
+/-- The event that at least 75 of 100 coordinates belong to `S`. -/
 def reflectionsAccept100 (S : Finset H) : Finset (Fin 100 → H) :=
   Finset.univ.filter (fun ω => 75 ≤ (Finset.univ.filter (fun j => ω j ∈ S)).card)
 
+/-- The finite probability distribution given by the Born probabilities of a normalized state. -/
 def reflectionsBornLaw (φ : QState H) (hφ : Normalized φ) : FinDist H where
   prob := BornProb φ
   nonneg := bornProb_nonneg φ
   sum_one := hφ
 
+/-- For 100 tensor copies, the threshold event or its complement has probability at least 2/3
+under the respective 9/10 or 3/5 probability bound. -/
 theorem reflections_fresh100_born (φ : QState H) (hφ : Normalized φ) (S : Finset H)
     (b : Bool) (hgap : if b then (9 / 10 : ℝ) ≤ MeasureProb φ S
       else MeasureProb φ S ≤ (3 / 5 : ℝ)) :
@@ -767,6 +878,8 @@ theorem reflections_fresh100_born (φ : QState H) (hφ : Normalized φ) (S : Fin
   cases b <;> simp only [Bool.false_eq_true, if_false, if_true] at hbad ⊢ <;>
     dsimp [bad] at hbad <;> linarith
 
+/-- Amplifies the stated decision gap to success probability at least 2/3 using 100 copies and
+exact routing resource counts. -/
 theorem reflections_amplified_actual (X : Type) [Fintype X] [DecidableEq X]
     (n : ℕ) (hn : 0 < n) (input : X → Fin n → Bool) (f : X → Bool)
     {W : Type} [Fintype W] [DecidableEq W] (j : W)

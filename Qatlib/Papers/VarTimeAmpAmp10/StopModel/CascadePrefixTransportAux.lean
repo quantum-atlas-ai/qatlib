@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgramAux
+
+/-!
+# Transport of live cascade components
+
+The lemmas describe how stage evolution and amplitude amplification transport a scalar multiple
+of the original live component together with a bad component supported in the reached history.
+Amplification stays in the span of the marked and unmarked components.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `growing_stage_live_transport`: stage transport with a reached bad remainder.
+* `live_aa_transport`: preservation of the live/bad span during amplification.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,8 @@ open Matrix
 open scoped Classical BigOperators
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- For a unitary preparation matrix, every amplitude-amplification iterate lies in the span of
+the prepared state's marked and unmarked components. -/
 theorem prepared_aa_orbit_span (A : Matrix (VtSpace C) (VtSpace C) ℂ) (j₀ : VtSpace C)
     (hA : A ∈ Matrix.unitaryGroup (VtSpace C) ℂ) (S : Finset (VtSpace C)) (k : ℕ) :
     ∃ c d : ℂ,
@@ -45,6 +67,8 @@ theorem prepared_aa_orbit_span (A : Matrix (VtSpace C) (VtSpace C) ℂ) (j₀ : 
     rw [hstep.1, hstep.2]
     module
 
+/-- For a unitary preparation matrix, amplification with the live set stays in the span of the
+prepared state's live and nonlive components. -/
 theorem live_aa_orbit_span (A : Matrix (VtSpace C) (VtSpace C) ℂ) (j₀ : VtSpace C)
     (hA : A ∈ Matrix.unitaryGroup (VtSpace C) ℂ) (k : ℕ) :
     ∃ c d : ℂ,
@@ -53,10 +77,13 @@ theorem live_aa_orbit_span (A : Matrix (VtSpace C) (VtSpace C) ℂ) (j₀ : VtSp
         d • (preparedAAState A j₀-Collapse (preparedAAState A j₀) (liveSet C)) :=
   prepared_aa_orbit_span A j₀ hA (liveSet C) k
 
+/-- A basis label lies outside the live set exactly when its flag is `vtBadFlag`. -/
 theorem nonlive_iff_bad (p : VtSpace C) : p ∉ liveSet C ↔ p.1 = vtBadFlag := by
   obtain ⟨f, x⟩ := p
   fin_cases f <;> simp [liveSet, goodSet, runningSet, vtGoodFlag, vtRunningFlag, vtBadFlag]
 
+/-- A growing-history stage fixes any state supported on bad labels whose payloads lie in the
+current history. -/
 theorem growing_stage_fixes_bad (history : ℕ → Finset C) (i : ℕ)
     (U : Matrix (VtSpace C) (VtSpace C) ℂ) (hU : IsGrowingVtStage history i U)
     (b : QState (VtSpace C))
@@ -74,6 +101,8 @@ theorem growing_stage_fixes_bad (history : ℕ → Finset C) (i : ℕ)
   simp_rw [ht]
   simp
 
+/-- The nonlive part of a supported original prefix state is supported on bad labels in the
+current history. -/
 theorem original_bad_support (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hs : GrowingVtSupported stages history j₀)
     (i : ℕ) (hi : i ≤ stages.length) :
@@ -89,6 +118,7 @@ theorem original_bad_support (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)
     simpa only [Pi.sub_apply, collapse_apply, if_neg hl, sub_zero] using hp
   exact ⟨hf, (hs i hi p hφ).1 (by rw [hf]; decide)⟩
 
+/-- A state supported only on bad flags has zero collapse onto the live set. -/
 theorem collapse_bad_live_zero (b : QState (VtSpace C))
     (hb : ∀ p, b p ≠ 0 → p.1 = vtBadFlag) : Collapse b (liveSet C) = 0 := by
   funext p
@@ -100,6 +130,8 @@ theorem collapse_bad_live_zero (b : QState (VtSpace C))
     exact ((nonlive_iff_bad p).mpr hf) hp
   · simp [hp]
 
+/-- A legal stage transports a scalar multiple of the original live prefix plus a reached bad
+remainder to the corresponding next-prefix form. -/
 theorem growing_stage_live_transport
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
@@ -147,6 +179,8 @@ theorem growing_stage_live_transport
       exact hn ⟨hf, hl.2.1 i hm⟩
     exact hp (by simp [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, hno, hbo, hoo])
 
+/-- Amplification of a prepared state decomposed into a scalar live component and a remainder
+with zero live collapse stays in their span. -/
 theorem live_aa_transport (A : Matrix (VtSpace C) (VtSpace C) ℂ) (j₀ : VtSpace C)
     (hA : A ∈ Matrix.unitaryGroup (VtSpace C) ℂ) (k : ℕ)
     (φ b : QState (VtSpace C)) (a : ℂ)

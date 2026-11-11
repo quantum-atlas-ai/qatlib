@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+/-!
+# Computed range projection by QSVT
+
+This module constructs a finite phase-synthesis word for the even range polynomial `1 - (1 -
+X²)^n`. It relates the resulting left singular transform to the range support projector and
+bounds the output-event mass using the singular-value gap, following the transformation
+framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `computed_range_packet`: Successful synthesis, exact word costs, and a block encoding.
+* `nativeRange_left_support_error`: Approximation of the range support projector.
+* `computed_range_actual_word_and_mass`: Unitary preparation and projection-probability
+  accuracy.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
@@ -42,14 +63,19 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The coordinate embedding of the output space into the left summand of `O ⊕ I`. -/
 noncomputable def fitLeft {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] :
     Matrix (O⊕I) O ℂ := fun h o => if h=Sum.inl o then 1 else 0
 
+/-- The coordinate embedding of the input space into the right summand of `O ⊕ I`. -/
 noncomputable def fitRight {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] :
     Matrix (O⊕I) I ℂ := fun h i => if h=Sum.inr i then 1 else 0
 
+/-- Rational coefficients obtained by multiplying the native reciprocal polynomial by `X`. -/
 def nativeRangeCoefficients (n : ℕ) : List ℚ := ratMulList [0,1] (nativeReciprocalCoefficients n)
 
+/-- The full computed phase word synthesized for the range polynomial at the explicit cutoff,
+with the empty word as the synthesis-failure branch. -/
 noncomputable def fitProjectionWord {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (κ k : ℕ) : List (AdjointStep (Bool×(O⊕I))) :=
   let n := explicitInverseCutoff κ (k+2)
@@ -58,21 +84,26 @@ noncomputable def fitProjectionWord {O I : Type} [Fintype O] [DecidableEq O] [Fi
   | some data => fullComputedPhaseWord (rangeProjector (fitRight (O:=O) (I:=I)))
       (rangeProjector (fitLeft (O:=O) (I:=I))) data
 
+/-- The preparation applying `B` on the workspace and then the evaluated range-projection word,
+with the control unchanged by `B`. -/
 noncomputable def fitProjectionPrepare {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (U B : Matrix (O⊕I) (O⊕I) ℂ) (κ k : ℕ) :
     Matrix (Bool×(O⊕I)) (Bool×(O⊕I)) ℂ :=
   evaluate (parallelOracle U) (fitProjectionWord (O:=O) (I:=I) κ k) *
     TensorGate (1 : Matrix Bool Bool ℂ) B
 
+/-- The finite measurement event with control `false` and workspace in the output summand. -/
 def fitOutputEvent (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] :
     Finset (Bool×(O⊕I)) := Finset.univ.filter (fun h => h.1=false ∧ ∃ o : O,h.2=Sum.inl o)
 
+/-- The native range coefficients represent the real polynomial `1 - (1 - X²)^n`. -/
 theorem nativeRangeCoefficients_semantics (n : ℕ) :
     realTarget (nativeRangeCoefficients n) = 1 - (1 - Polynomial.X^2)^n := by
   rw [nativeRangeCoefficients, realTarget_mul, nativeReciprocalCoefficients_semantics]
   have hx : realTarget ([0,1] : List ℚ) = Polynomial.X := by simp [realTarget_cons]
   rw [hx, X_mul_reciprocalPolynomial]
 
+/-- The native range polynomial has absolute value at most one on `[-1, 1]`. -/
 theorem nativeRangeCoefficients_bounded (n : ℕ) (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(realTarget (nativeRangeCoefficients n)).eval x| ≤ 1 := by
   rw [nativeRangeCoefficients_semantics]
@@ -84,6 +115,8 @@ theorem nativeRangeCoefficients_bounded (n : ℕ) (x : ℝ) (hx : x ∈ Set.Icc 
   rw [abs_of_nonneg (by linarith)]
   linarith
 
+/-- At the explicit cutoff for positive `κ`, the native range polynomial is bounded on `[-1, 1]`
+and approximates one within `(1/2)^(k + 2)` whenever `κ⁻¹ ≤ |x| ≤ 1`. -/
 theorem computed_range_native_polynomial_and_gap (κ k : ℕ) (hκ : 0 < κ) :
     let n := explicitInverseCutoff κ (k+2)
     realTarget (nativeRangeCoefficients n) = 1 - (1 - Polynomial.X^2)^n ∧
@@ -110,6 +143,7 @@ theorem computed_range_native_polynomial_and_gap (κ k : ℕ) (hκ : 0 < κ) :
   rw [div_mul_cancel₀ _ (ne_of_gt hx0)] at hm
   exact hm.trans (by simpa using! mul_le_mul_of_nonneg_left hx1 (by positivity : 0 ≤ (1/2:ℝ)^(k+2)))
 
+/-- The native range polynomial has degree at most `2 * n` and the real parity of `2 * n`. -/
 theorem nativeRangeCoefficients_admissible (n : ℕ) :
     (realTarget (nativeRangeCoefficients n)).degree ≤ ((2*n : ℕ) : WithBot ℕ) ∧
     Qatlib.Concepts.QspSimulation.Achievability.HasRealParity (2*n) (realTarget (nativeRangeCoefficients n)) := by
@@ -125,6 +159,9 @@ theorem nativeRangeCoefficients_admissible (n : ℕ) :
     simp [Polynomial.sub_comp, Polynomial.pow_comp,
         Even.neg_one_pow (show Even (2*n) from ⟨n, by omega⟩)]
 
+/-- Finite synthesis succeeds and yields a well-formed range word with `2 * n` queries and `2 *
+n + 3` gates at the explicit cutoff `n`. Its evaluation block-encodes the left singular
+transform within `(1/2)^(k + 2)`. -/
 theorem computed_range_packet {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (U : Matrix (O⊕I) (O⊕I) ℂ)
     (κ k : ℕ) (henc : ProjectedUnitaryEncoding A U fitLeft fitRight) :
@@ -181,6 +218,8 @@ theorem computed_range_packet {O I : Type} [Fintype O] [DecidableEq O]
     exact fullComputedPhaseWord_block fitLeft fitLeft U (rangeProjector fitRight) (rangeProjector fitLeft)
       data _ _ henc.left_isometry henc.left_isometry hfull.1 henc.unitary hraw
 
+/-- The output-event mass equals the squared norm of the state compressed by the adjoint
+coordinate phase frame. -/
 theorem fitOutputEvent_mass {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (v : QState (Bool×(O⊕I))) :
     MeasureProb v (fitOutputEvent O I) =
@@ -193,6 +232,8 @@ theorem fitOutputEvent_mass {O I : Type} [Fintype O] [DecidableEq O] [Fintype I]
   simp [MeasureProb, BornProb, fitOutputEvent, Finset.sum_filter, Fintype.sum_prod_type,
     Fintype.sum_sum_type]
 
+/-- If `B` prepares the embedded input `b`, its tensor lift prepares the coordinate phase-frame
+embedding of `b` from `Ket (false, j)`. -/
 theorem fitProjection_input {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O)
     (hB : B*ᵥKet j = fitLeft*ᵥb) :
@@ -206,6 +247,8 @@ theorem fitProjection_input {O I : Type} [Fintype O] [DecidableEq O] [Fintype I]
   ext ⟨c,h⟩
   cases c <;> simp [coordinatePhaseFrame_apply, Matrix.mulVec, dotProduct]
 
+/-- When `B` prepares the embedded input, the range-preparation output-event mass equals the
+squared norm of the corresponding postselection vector. -/
 theorem fitProjection_mass {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (U B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O) (κ k : ℕ)
     (hB : B*ᵥKet j = fitLeft*ᵥb) :
@@ -218,6 +261,8 @@ theorem fitProjection_mass {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] 
   congr 2
   simp only [postselectionVector, compress, Matrix.mulVec_mulVec, Matrix.mul_assoc]
 
+/-- The left singular transform of the native range polynomial equals the polynomial `1 - (1 -
+X)^n` evaluated at `A * Aᴴ`. -/
 theorem nativeRange_left_aeval {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (n : ℕ) :
     leftSingularTransform A (fun x => (((realTarget (nativeRangeCoefficients n)).eval x:ℝ):ℂ)) =
@@ -227,6 +272,7 @@ theorem nativeRange_left_aeval {O I : Type} [Fintype O] [DecidableEq O]
   funext x
   simp [nativeRangeCoefficients_semantics]
 
+/-- The native range left singular transform annihilates every vector in the kernel of `Aᴴ`. -/
 theorem nativeRange_left_kernel {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (n : ℕ)
     (hb : Aᴴ*ᵥb=0) :
@@ -242,6 +288,8 @@ theorem nativeRange_left_kernel {O I : Type} [Fintype O] [DecidableEq O]
     sub_zero, one_pow, sub_self, zero_smul] at hh
   exact (stateVector_eq_zero_iff _).mp hh
 
+/-- The matrix `A * matrixPseudoinverse A` is the left singular transform of the indicator of
+nonzero singular values. -/
 theorem fit_left_support {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) :
     A*matrixPseudoinverse A = leftSingularTransform A (fun x => if x=0 then 0 else 1) := by
@@ -273,6 +321,8 @@ theorem fit_left_support {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [D
       Matrix.mulVec_zero]
     rfl
 
+/-- Under the projected encoding and positive singular-value gap assumptions, the native range
+transform approximates `A * matrixPseudoinverse A` within `(1/2)^(k + 2)` in operator norm. -/
 theorem nativeRange_left_support_error {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (U : Matrix (O⊕I) (O⊕I) ℂ)
     (κ k : ℕ) (henc : ProjectedUnitaryEncoding A U fitLeft fitRight) (hκ : 0 < κ)
@@ -297,6 +347,9 @@ theorem nativeRange_left_support_error {O I : Type} [Fintype O] [DecidableEq O]
     rw [show (1:ℂ)=((1:ℝ):ℂ) from rfl, ← Complex.ofReal_sub, Complex.norm_real, Real.norm_eq_abs, abs_sub_comm]
     exact hg
 
+/-- The computed range preparation is unitary and its word is well formed with the stated exact
+query and gate counts. Under the preparation and singular-value gap assumptions, its
+output-event mass differs from squared least-squares overlap by at most `(1/2)^k`. -/
 theorem computed_range_actual_word_and_mass
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (U B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O) (κ k : ℕ)
@@ -346,6 +399,8 @@ theorem computed_range_actual_word_and_mass
     _ ≤ (2*(1/2:ℝ)^(k+2))*2 := mul_le_mul hab hsum (by positivity) (by positivity)
     _ = _ := by rw [pow_add]; norm_num; ring
 
+/-- If the input has zero least-squares overlap and the encoding and preparation assumptions
+hold, the computed output-event mass is at most `(1/2)^(2 * (k + 2))`. -/
 theorem computed_range_actual_zero_overlap_leakage
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (U B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O) (κ k : ℕ)

@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceMoments
+
+/-!
+# Prefix Identities for Thermal Source Paths
+
+This module extends the one-step thermal source identities of [JiangEtAl2026] to finite path
+prefixes. `pathKraus_snoc` and `pathInstrument_branch_snoc` describe appending an outcome, and
+`pathBornLaw_snoc` factors an extended path probability through the conditional state of its
+prefix.
+
+The resulting identities recover prefix marginals, compute the next-index marginal, and express
+centered operator moments without dividing by the prefix probability. They therefore also apply
+to prefixes of zero probability, with the supplied reference states handling conditional-state
+values there.
+
+## Main statements
+
+- `pathBornLaw_prefix_marginal` and `pathBornLaw_next_index` compute extension marginals.
+* `pathBornLaw_centered_prefix` and `pathBornLaw_prefix_covariance` give probability-weighted
+  centered moments.
+- `pathBornLaw_centered_update` centers an arbitrary operator-valued update.
+- `pathBornLaw_predictable_centered` permits a complex multiplier depending on the fixed prefix.
+
+## References
+
+* [Jiang et al., 2026][JiangEtAl2026], *Thermal-Drift Sampling: Generating Thermal Ensembles for
+  Learning Many-Body Systems*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +43,8 @@ namespace Qatlib.Papers.ThermalDrift26.ThermalSampling
 open Qatlib Matrix
 open scoped BigOperators
 
+/-- Appending an outcome to a path left-multiplies its ordered Kraus product by the new
+outcome's Kraus operator. -/
 theorem pathKraus_snoc {O : Type} {d : ℕ} (K : O → Qatlib.Foundations.PureStateMath.Operator d) (N : ℕ)
     (w : Fin N → O) (o : O) :
     pathKraus K (N + 1) (Fin.snoc w o) = K o * pathKraus K N w := by
@@ -28,6 +58,8 @@ theorem pathKraus_snoc {O : Type} {d : ℕ} (K : O → Qatlib.Foundations.PureSt
     rw [ih]
     exact Matrix.mul_assoc _ _ _
 
+/-- The instrument branch for a path with one appended outcome applies the prefix branch first
+and then the ideal one-step branch at the new outcome. -/
 theorem pathInstrument_branch_snoc {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (a : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (o : Fin L × Bool) (rho : Qatlib.Foundations.PureStateMath.Operator d) :
@@ -36,6 +68,8 @@ theorem pathInstrument_branch_snoc {L d : ℕ} (F : ReflectionFamily L d)
   simp only [pathInstrument_branch, pathKraus_snoc, idealInstrument_branch,
     Matrix.conjTranspose_mul, Matrix.mul_assoc]
 
+/-- The probability of an extended path is its prefix probability times the one-step Born
+probability computed from the prefix's conditional density, for any reference-state family. -/
 theorem pathBornLaw_snoc {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (a : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (o : Fin L × Bool) (rho : Qatlib.Foundations.PureStateMath.DensityOperator d)
@@ -53,6 +87,8 @@ theorem pathBornLaw_snoc {L d : ℕ} (F : ReflectionFamily L d)
   simp only [smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
   rfl
 
+/-- Summing all one-outcome extensions of a fixed prefix recovers that prefix's path
+probability. -/
 theorem pathBornLaw_prefix_marginal {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (a : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (reference : (Fin N → Fin L × Bool) → Qatlib.Foundations.PureStateMath.DensityOperator d) :
@@ -61,6 +97,8 @@ theorem pathBornLaw_prefix_marginal {L d : ℕ} (F : ReflectionFamily L d)
   simp_rw [pathBornLaw_snoc F p a N w _ rho reference]
   rw [← Finset.mul_sum, (bornLaw F p a (pathBornState F p a N rho reference w)).sum_one, mul_one]
 
+/-- Summing the two extensions with next index `j` gives the prefix probability times `p.prob
+j`, including when the prefix has probability zero. -/
 theorem pathBornLaw_next_index {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (a : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (reference : (Fin N → Fin L × Bool) → Qatlib.Foundations.PureStateMath.DensityOperator d)
@@ -70,6 +108,9 @@ theorem pathBornLaw_next_index {L d : ℕ} (F : ReflectionFamily L d)
   simp_rw [pathBornLaw_snoc F p a N w _ rho reference]
   rw [← Finset.mul_sum, bornLaw_index]
 
+/-- For a fixed thermal path prefix, summing the next signed increments centered by the
+conditional state's `logDrift`, weighted by extended-path probabilities, gives the zero
+operator. -/
 theorem pathBornLaw_centered_prefix {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (tau : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (reference : (Fin N → Fin L × Bool) → Qatlib.Foundations.PureStateMath.DensityOperator d) :
@@ -81,6 +122,9 @@ theorem pathBornLaw_centered_prefix {L d : ℕ} (F : ReflectionFamily L d)
     Complex.ofReal_mul, ← smul_smul]
   rw [← Finset.smul_sum, bornLaw_centered_mean, smul_zero]
 
+/-- For a fixed thermal prefix, the extended-path weighted square of the centered next increment
+is the prefix probability times `tau^2*I - D*D`, where `D` is the drift at its conditional
+state. -/
 theorem pathBornLaw_prefix_covariance {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (tau : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (reference : (Fin N → Fin L × Bool) → Qatlib.Foundations.PureStateMath.DensityOperator d) :
@@ -94,6 +138,8 @@ theorem pathBornLaw_prefix_covariance {L d : ℕ} (F : ReflectionFamily L d)
     Complex.ofReal_mul, ← smul_smul]
   rw [← Finset.smul_sum, bornLaw_logStep_covariance]
 
+/-- For any operator-valued update `G`, subtracting its mean under the prefix conditional
+state's one-step Born law gives zero when summed against the extended-path probabilities. -/
 theorem pathBornLaw_centered_update {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (a : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (reference : (Fin N → Fin L × Bool) → Qatlib.Foundations.PureStateMath.DensityOperator d)
@@ -114,6 +160,8 @@ theorem pathBornLaw_centered_update {L d : ℕ} (F : ReflectionFamily L d)
       sub_self]
   rw [hm, smul_zero]
 
+/-- Multiplying the centered next thermal increment by any complex scalar depending on the fixed
+prefix preserves its zero sum under the extended-path probabilities. -/
 theorem pathBornLaw_predictable_centered {L d : ℕ} (F : ReflectionFamily L d)
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (tau : ℝ) (N : ℕ) (w : Fin N → Fin L × Bool)
     (rho : Qatlib.Foundations.PureStateMath.DensityOperator d) (reference : (Fin N → Fin L × Bool) → Qatlib.Foundations.PureStateMath.DensityOperator d)

@@ -22,6 +22,25 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SimpRw
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Finite pair U-statistics
+
+This module defines pair-kernel means, variances, unordered index pairs, and counted pair
+U-statistics for finite probability laws. It proves unbiasedness and the exact variance
+decomposition used by quadratic classical-shadow estimators [HuangKuengPreskill2020].
+
+## Main statements
+
+* `finite_pair_u_statistic_actual_value_and_count`: counted evaluation correctness.
+* `finite_pair_u_statistic_unbiased`: unbiasedness for at least two samples.
+* `finite_pair_u_statistic_exact_variance`: exact conditional and kernel variance decomposition.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -32,22 +51,29 @@ namespace Qatlib.Concepts.ShadowModels.UStatBackend
 open scoped BigOperators
 set_option autoImplicit false
 
+/-- The mean of a pair kernel under two independent draws from `p`. -/
 noncomputable def pairKernelMean {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) : ℝ := ∑ x, ∑ y, p.prob x * p.prob y * h x y
 
+/-- The variance of a pair kernel under two independent draws from `p`. -/
 noncomputable def pairKernelVariance {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) : ℝ :=
   ∑ x, ∑ y, p.prob x * p.prob y * (h x y - pairKernelMean p h) ^ 2
 
+/-- The variance, over the first draw, of the mean obtained by averaging the second argument of
+the pair kernel. -/
 noncomputable def pairConditionalVariance {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) : ℝ :=
   ∑ x, p.prob x * ((∑ y, p.prob y * h x y) - pairKernelMean p h) ^ 2
 
+/-- The recursively enumerated list of index pairs with the first index strictly smaller than
+the second. -/
 def pairIndexList : (m : ℕ) → List (Fin m × Fin m)
   | 0 => []
   | m + 1 => (pairIndexList m).map (fun p => (p.1.castSucc, p.2.castSucc)) ++
       List.ofFn (fun i : Fin m => (i.castSucc, Fin.last m))
 
+/-- Every pair in `pairIndexList m` has its first index strictly smaller than its second. -/
 theorem pairIndexList_ordered (m : ℕ) (p : Fin m × Fin m) (hp : p ∈ pairIndexList m) :
     p.1 < p.2 := by
   induction m with
@@ -58,6 +84,7 @@ theorem pairIndexList_ordered (m : ℕ) (p : Fin m × Fin m) (hp : p ∈ pairInd
       · exact ih q hq
       · exact i.isLt
 
+/-- The list of unordered index pairs has length `m.choose 2`. -/
 theorem pairIndexList_length (m : ℕ) : (pairIndexList m).length = m.choose 2 := by
   induction m with
   | zero => rfl
@@ -66,18 +93,23 @@ theorem pairIndexList_length (m : ℕ) : (pairIndexList m).length = m.choose 2 :
       rw [Nat.choose_succ_succ, Nat.choose_one_right]
       simp [Nat.add_comm]
 
+/-- The sum of the kernel values over the index pairs in `pairIndexList`. -/
 noncomputable def pairKernelSum {X : Type} {m : ℕ} (h : X → X → ℝ)
     (ω : Fin m → X) : ℝ := ((pairIndexList m).map (fun p => h (ω p.1) (ω p.2))).sum
 
+/-- The pair-kernel sum divided by the number `m.choose 2` of unordered index pairs. -/
 noncomputable def pairUStatistic {X : Type} {m : ℕ} (h : X → X → ℝ)
     (ω : Fin m → X) : ℝ := pairKernelSum h ω / (m.choose 2 : ℝ)
 
+/-- The pair U-statistic computed by a fold, together with its number of kernel evaluations. -/
 noncomputable def pairUCounted {X : Type} {m : ℕ} (h : X → X → ℝ)
     (ω : Fin m → X) : ℝ × ℕ :=
   let a := (pairIndexList m).foldl
     (fun a p => (a.1 + h (ω p.1) (ω p.2), a.2 + 1)) (0, 0)
   (a.1 / (m.choose 2 : ℝ), a.2)
 
+/-- A counted additive fold accumulates the sum of the mapped values and increases the count by
+the list length. -/
 private theorem pair_fold_value_count {P : Type} (f : P → ℝ) (ps : List P) (a : ℝ × ℕ) :
     ps.foldl (fun a p => (a.1 + f p, a.2 + 1)) a =
       (a.1 + (ps.map f).sum, a.2 + ps.length) := by
@@ -85,17 +117,22 @@ private theorem pair_fold_value_count {P : Type} (f : P → ℝ) (ps : List P) (
   | nil => simp
   | cons p ps ih => simp [ih, add_assoc, Nat.add_comm]
 
+/-- The counted pair evaluator returns `pairUStatistic` and performs exactly `m.choose 2` kernel
+evaluations. See [HuangKuengPreskill2020]. -/
 theorem finite_pair_u_statistic_actual_value_and_count (X : Type) (m : ℕ)
     (h : X → X → ℝ) (ω : Fin m → X) :
     (pairUCounted h ω).1 = pairUStatistic h ω ∧ (pairUCounted h ω).2 = m.choose 2 := by
   simp [pairUCounted, pair_fold_value_count, pairUStatistic, pairKernelSum, pairIndexList_length]
 
+/-- The product probabilities of all functions from a finite index type sum to one. -/
 private theorem prod_law_sum_one {A X : Type} [Fintype A] [DecidableEq A] [Fintype X] (p : FinDist X) :
     ∑ ω : A → X, ∏ i, p.prob (ω i) = 1 := by
   classical
   rw [← Fintype.piFinset_univ, ← Finset.prod_univ_sum]
   simp only [p.sum_one, Finset.prod_const_one]
 
+/-- Restricting an independent finite record along an injective index map gives the
+corresponding product law on the selected coordinates. -/
 theorem finite_pair_record_marginal {A B X : Type} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] [Fintype X]
     (p : FinDist X) (f : B → A) (hf : Function.Injective f) (g : (B → X) → ℝ) :
     ∑ ω : A → X, (∏ i, p.prob (ω i)) * g (ω ∘ f) =
@@ -132,6 +169,8 @@ theorem finite_pair_record_marginal {A B X : Type} [Fintype A] [DecidableEq A] [
       ring
     _ = _ := by rw [prod_law_sum_one, mul_one]
 
+/-- The expectation of a kernel on two distinct record coordinates equals its mean under two
+independent draws. -/
 private theorem pair_expect_two {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (i j : Fin m) (hij : i ≠ j) (h : X → X → ℝ) :
     ∑ ω : Fin m → X, p.probOf ω * h (ω i) (ω j) = pairKernelMean p h := by
@@ -145,6 +184,7 @@ private theorem pair_expect_two {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
   rw [he, ← (Equiv.boolArrowEquivProd X).symm.sum_comp, Fintype.sum_prod_type]
   simp [Equiv.boolArrowEquivProd, pairKernelMean, mul_comm]
 
+/-- Expectation of a finite list sum equals the list sum of the expectations. -/
 private theorem pair_expect_list {Ω P : Type} [Fintype Ω] (w : Ω → ℝ)
     (ps : List P) (f : Ω → P → ℝ) :
     ∑ ω, w ω * (ps.map (f ω)).sum = (ps.map (fun p => ∑ ω, w ω * f ω p)).sum := by
@@ -153,6 +193,8 @@ private theorem pair_expect_list {Ω P : Type} [Fintype Ω] (w : Ω → ℝ)
   | cons p ps ih =>
       simp only [List.map_cons, List.sum_cons, mul_add, Finset.sum_add_distrib, ih]
 
+/-- For `m ≥ 2`, the pair U-statistic has expectation equal to the pair-kernel mean. See
+[HuangKuengPreskill2020]. -/
 theorem finite_pair_u_statistic_unbiased (X : Type) [Fintype X] (p : FinDist X)
     (m : ℕ) (h : X → X → ℝ) (hm : 2 ≤ m) :
     (∑ ω : Fin m → X, p.probOf ω * pairUStatistic h ω) = pairKernelMean p h := by
@@ -169,6 +211,7 @@ theorem finite_pair_u_statistic_unbiased (X : Type) [Fintype X] (p : FinDist X)
   simp only [List.map_const', List.sum_replicate, nsmul_eq_mul, pairIndexList_length]
   exact mul_div_cancel_left₀ _ (by exact_mod_cast (Nat.choose_pos hm).ne')
 
+/-- The list of unordered index pairs has no duplicates. -/
 theorem pairIndexList_nodup (m : ℕ) : (pairIndexList m).Nodup := by
   induction m with
   | zero => simp [pairIndexList]
@@ -186,6 +229,8 @@ theorem pairIndexList_nodup (m : ℕ) : (pairIndexList m).Nodup := by
         have he := congrArg Prod.snd hab
         exact Fin.castSucc_ne_last _ he
 
+/-- Summing a constant over index pairs incident to a fixed index yields `m - 1` copies of the
+constant. -/
 private theorem pair_incident_sum (m : ℕ) (i : Fin m) (c : ℝ) :
     ((pairIndexList m).map (fun p => if p.1 = i ∨ p.2 = i then c else 0)).sum =
       (m - 1 : ℕ) * c := by
@@ -210,6 +255,7 @@ private theorem pair_incident_sum (m : ℕ) (i : Fin m) (c : ℝ) :
         calc _ = (((m - 1 : ℕ) : ℝ) + 1) * c := by ring
           _ = _ := by rw [hmR]
 
+/-- Three distinct coordinates of an independent record have the threefold product law. -/
 private theorem pair_expect_three {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (i j k : Fin m) (hij : i ≠ j) (hik : i ≠ k) (hjk : j ≠ k)
     (g : X → X → X → ℝ) :
@@ -229,6 +275,8 @@ private theorem pair_expect_three {X : Type} [Fintype X] (p : FinDist X) {m : �
   rw [← (finTwoArrowEquiv X).symm.sum_comp, Fintype.sum_prod_type]
   simp [finTwoArrowEquiv, mul_assoc]
 
+/-- Centered pair-kernel values sharing their first coordinate have covariance equal to
+`pairConditionalVariance` when the three record indices are distinct. -/
 private theorem pair_shared_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → ℝ) (i j k : Fin m) (hij : i ≠ j) (hik : i ≠ k) (hjk : j ≠ k) :
     ∑ ω : Fin m → X, p.probOf ω *
@@ -254,6 +302,8 @@ private theorem pair_shared_covariance {X : Type} [Fintype X] (p : FinDist X) {m
       ring
     _ = _ := by rw [hm]
 
+/-- Four coordinates selected injectively from an independent record have the fourfold product
+law. -/
 private theorem pair_expect_four {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (f : Fin 4 → Fin m) (hf : Function.Injective f) (g : X → X → X → X → ℝ) :
     ∑ ω : Fin m → X, p.probOf ω * g (ω (f 0)) (ω (f 1)) (ω (f 2)) (ω (f 3)) =
@@ -273,6 +323,7 @@ private theorem pair_expect_four {X : Type} [Fintype X] (p : FinDist X) {m : ℕ
   simp [finTwoArrowEquiv, Fin.consEquiv, Fin.cons, Fin.cases, mul_assoc]
   rfl
 
+/-- Subtracting the pair-kernel mean produces a kernel with mean zero. -/
 private theorem pair_center_mean {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) :
     pairKernelMean p (fun x y => h x y - pairKernelMean p h) = 0 := by
@@ -281,6 +332,7 @@ private theorem pair_center_mean {X : Type} [Fintype X] (p : FinDist X)
   simp only [mul_sub, Finset.sum_sub_distrib, ← Finset.mul_sum, ← Finset.sum_mul,
     p.sum_one, one_mul, mul_one, sub_self]
 
+/-- Centered kernel values evaluated on four distinct record indices have covariance zero. -/
 private theorem pair_disjoint_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → ℝ) (f : Fin 4 → Fin m) (hf : Function.Injective f) :
     ∑ ω : Fin m → X, p.probOf ω *
@@ -306,6 +358,9 @@ private theorem pair_disjoint_covariance {X : Type} [Fintype X] (p : FinDist X) 
       ring
     _ = 0 := by rw [pair_center_mean, mul_zero]
 
+/-- For a symmetric kernel, the covariance of two ordered index pairs is determined by their
+shared endpoints and whether the two pairs coincide, with the displayed conditional-variance
+and kernel-variance coefficients. -/
 private theorem pair_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → ℝ) (hsym : ∀ x y, h x y = h y x)
     (i j k l : Fin m) (hij : i < j) (hkl : k < l) :
@@ -371,6 +426,8 @@ private theorem pair_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
             rw [hc]
             simp [he, Ne.symm hik, Ne.symm hil, Ne.symm hjk, Ne.symm hjl]
 
+/-- For a symmetric kernel and `m ≥ 2`, the second moment of the centered pair sum is `m.choose
+2` times the sum of the kernel variance and `2 * (m - 2)` times the conditional variance. -/
 private theorem pair_centered_sum_variance {X : Type} [Fintype X] (p : FinDist X)
     (m : ℕ) (h : X → X → ℝ) (hm : 2 ≤ m) (hsym : ∀ x y, h x y = h y x) :
     (∑ ω : Fin m → X, p.probOf ω *
@@ -422,6 +479,9 @@ private theorem pair_centered_sum_variance {X : Type} [Fintype X] (p : FinDist X
       push_cast
       ring
 
+/-- For a symmetric kernel and `m ≥ 2`, the pair U-statistic variance is `4 * (m - 2) / (m * (m
+- 1))` times the conditional variance plus `2 / (m * (m - 1))` times the kernel variance.
+See [HuangKuengPreskill2020]. -/
 theorem finite_pair_u_statistic_exact_variance (X : Type) [Fintype X] (p : FinDist X)
     (m : ℕ) (h : X → X → ℝ) (hm : 2 ≤ m) (hsym : ∀ x y, h x y = h y x) :
     (∑ ω : Fin m → X, p.probOf ω * (pairUStatistic h ω - pairKernelMean p h) ^ 2) =
@@ -449,6 +509,7 @@ theorem finite_pair_u_statistic_exact_variance (X : Type) [Fintype X] (p : FinDi
   field_simp
   ring
 
+/-- The variance of a real function under a finite probability law is at most its second moment. -/
 theorem finite_pair_variance_le_second {X : Type} [Fintype X] (p : FinDist X)
     (f : X → ℝ) :
     (∑ x, p.prob x * (f x - ∑ y, p.prob y * f y) ^ 2) ≤ ∑ x, p.prob x * f x ^ 2 := by

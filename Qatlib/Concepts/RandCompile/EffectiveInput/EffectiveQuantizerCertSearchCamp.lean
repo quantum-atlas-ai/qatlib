@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerCertSearchStat
 import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
+
+/-!
+# Correctness of finite quantizer certificate search
+
+This module proves correctness of the bounded rational certificate search `certSearch`. It
+relates rational and real certificates, identifies the least certified precision, and proves
+invariance under changes to oracle values beyond the searched prefix. These input-quantization
+guarantees support the qDRIFT framework of [Campbell2019].
+
+## Main statements
+
+* `certSearch_spec`: characterizes failure and the least successful precision.
+* `effectiveQuantizerCertSearch`: proves the effective search specification and precision bound.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +40,7 @@ namespace Qatlib.Concepts.RandCompile.EffectiveInput
 open Matrix
 open scoped Classical BigOperators
 
+/-- The rational ceiling-quantizer certificate is equivalent to its real-valued counterpart. -/
 private theorem certRat_iff_cert {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) (k : ℕ) :
     ceilQuantizerCertRat M q k ↔ ceilQuantizerCert M q k := by
   unfold ceilQuantizerCertRat ceilQuantizerCert ratLowerMass
@@ -28,25 +48,35 @@ private theorem certRat_iff_cert {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ)
   push_cast
   rfl
 
+/-- Rational ceiling-quantizer certification at precision `k` depends only on oracle values at
+that precision. -/
 private theorem certRat_congr {L : ℕ} (M : ℕ) {q q' : Fin L → ℕ → ℚ} (k : ℕ)
     (h : ∀ j, q' j k = q j k) :
     ceilQuantizerCertRat M q' k ↔ ceilQuantizerCertRat M q k := by
   unfold ceilQuantizerCertRat
   rw [Finset.sum_congr rfl (fun j (_ : j ∈ Finset.univ) => h j)]
 
+/-- With zero fuel, the search returns precision zero exactly when the precision-zero rational
+certificate holds. -/
 private theorem certSearch_zero {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) :
     certSearch M q 0 = if ceilQuantizerCertRat M q 0 then some 0 else none := rfl
 
+/-- Increasing the fuel by one preserves any previously successful search result. -/
 private theorem certSearch_succ_some {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) (fuel k : ℕ)
     (h : certSearch M q fuel = some k) : certSearch M q (fuel+1) = some k := by
   simp only [certSearch, h]
 
+/-- After an unsuccessful search through `fuel`, the next step returns `fuel + 1` exactly when
+its rational certificate holds. -/
 private theorem certSearch_succ_none {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) (fuel : ℕ)
     (h : certSearch M q fuel = none) :
     certSearch M q (fuel+1) =
       if ceilQuantizerCertRat M q (fuel+1) then some (fuel+1) else none := by
   simp only [certSearch, h]
 
+/-- The search returns no result exactly when every precision within its fuel fails
+certification. Any returned precision is certified, is within the fuel bound, and is the
+least certified precision. -/
 private theorem certSearch_spec {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) (fuel : ℕ) :
     (certSearch M q fuel = none ↔ ∀ k ≤ fuel, ¬ ceilQuantizerCertRat M q k) ∧
     (∀ k : ℕ, certSearch M q fuel = some k →
@@ -114,6 +144,9 @@ private theorem certSearch_spec {L : ℕ} (M : ℕ) (q : Fin L → ℕ → ℚ) 
           subst hk'eq
           exact ⟨hspec.1.trans (by omega), hspec.2.1, hspec.2.2⟩
 
+/-- Valid rational lower oracles with positive total mass and positive quantizer scale satisfy
+`EffectiveQuantizerCertSearch`, including termination at the least certified precision, its
+logarithmic bound, and dependence only on the searched oracle prefix. -/
 theorem effectiveQuantizerCertSearch : EffectiveQuantizerCertSearch := by
   intro L M h q hor hlam hM
   refine ⟨?_, ?_, ?_⟩

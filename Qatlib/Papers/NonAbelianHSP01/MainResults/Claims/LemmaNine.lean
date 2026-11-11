@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
 import Qatlib.Papers.NonAbelianHSP01.MainResults.AbelianHSP
+
+/-!
+# Abelian hidden-subgroup characterization
+
+Bundles normality, the right-stabilizer description, and uniqueness of a hidden subgroup in a
+commutative group. The declaration `lemma_nine` collects these algebraic consequences of the
+hiding condition. See [IvanyosMagniezSantha2003] for the surrounding analysis.
+
+## Main statements
+
+* `lemma_nine`: In a commutative group, the hidden subgroup is normal, equals the right
+  stabilizer of the hiding function, and is determined by that function's pointwise values.
+
+## References
+
+* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +33,9 @@ namespace Qatlib.Papers.NonAbelianHSP01.MainResults.Claims
 
 open scoped IsMulCommutative
 
+/-- In a commutative group, the hidden subgroup is normal, equals the right stabilizer of the
+hiding function, and is determined by that function's pointwise values
+[IvanyosMagniezSantha2003]. -/
 theorem lemma_nine {G : Type*} [Group G] [IsMulCommutative G] {X : Type*}
     (I : HiddenSubgroupInstance G X) :
     I.H.Normal ∧

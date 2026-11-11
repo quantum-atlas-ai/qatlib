@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.CommonNormalizationBridge
+
+/-!
+# Masked oracle access with a clean control register
+
+The `maskQueryWord` construction implements a label-dependent oracle mask by computing it into a
+Boolean control, querying a controlled oracle, and uncomputing. Substitution through
+`cleanMaskedWord` preserves the encoded block on the false control sector and gives exact
+resource counts. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `cleanMaskedWord_evaluate`: describes evaluation in each Boolean control sector.
+* `cleanMaskedWord_blockEncoding`: transfers a masked block encoding with explicit circuit
+  costs.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -43,13 +63,17 @@ open scoped Matrix.Norms.L2Operator
 variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I]
 
+/-- Selects `U` or the identity according to a Boolean mask on the label register. -/
 def maskedOracle (mask : J → Bool) (U : Matrix W W ℂ) : Matrix (J × W) (J × W) ℂ :=
   select (fun j => if mask j then U else 1)
 
+/-- Defines the permutation matrix that flips the control bit exactly on labels where the mask
+is true. -/
 def maskCompute (mask : J → Bool) : Matrix (Bool × (J × W)) (Bool × (J × W)) ℂ :=
   (select (fun j => if mask j then controlFlip (H := W) else 1)).submatrix
     (controlSpectatorEquiv J W) (controlSpectatorEquiv J W)
 
+/-- The mask-computation matrix is unitary. -/
 theorem maskCompute_unitary (mask : J → Bool) :
     maskCompute (W := W) mask ∈ Matrix.unitaryGroup (Bool × (J × W)) ℂ := by
   apply relabelGate_mem_unitary (e := (controlSpectatorEquiv J W).symm)
@@ -59,9 +83,12 @@ theorem maskCompute_unitary (mask : J → Bool) :
   · simp
   · exact controlFlip_unitary
 
+/-- Computes a mask into the control, makes one forward query, and uncomputes the mask. -/
 def maskQueryWord (mask : J → Bool) : List (AdjointStep (Bool × (J × W))) :=
   [.gate (maskCompute mask), .forward, .gate (maskCompute mask)]
 
+/-- The mask query word evaluates in control sector `b` to the oracle masked by the exclusive-or
+of `b` and the label mask. -/
 theorem maskQueryWord_evaluate (mask : J → Bool) (U : Matrix W W ℂ) :
     evaluate (controlOracle (parallelOracle (J := J) U)) (maskQueryWord mask) =
       select (fun b : Bool => maskedOracle (fun j => xor b (mask j)) U) := by
@@ -85,15 +112,19 @@ theorem maskQueryWord_evaluate (mask : J → Bool) (U : Matrix W W ℂ) :
 
 omit [Fintype J] [Fintype W] [Fintype I] [DecidableEq I] in
 
+/-- The mask query word uses exactly one query and two gates. -/
 theorem maskQueryWord_cost (mask : J → Bool) :
     adjointQueryCount (maskQueryWord (W := W) mask) = 1 ∧
     adjointGateCount (maskQueryWord (W := W) mask) = 2 := by
   exact ⟨rfl, rfl⟩
 
+/-- The mask query word is a well-formed adjoint circuit. -/
 theorem maskQueryWord_wellFormed (mask : J → Bool) :
     WellFormedAdjointCircuit (maskQueryWord (W := W) mask) := by
   simpa [maskQueryWord] using maskCompute_unitary (W := W) mask
 
+/-- Evaluating a spectator-lifted word against a selected oracle equals selecting the branchwise
+evaluations. -/
 theorem evaluate_spectatorLiftWord_select {K H : Type} [Fintype K] [DecidableEq K]
     [Fintype H] [DecidableEq H] (U : K → Matrix H H ℂ) (cs : List (AdjointStep H)) :
     evaluate (select U) (spectatorLiftWord K cs) = select (fun k => evaluate (U k) cs) := by
@@ -107,10 +138,14 @@ theorem evaluate_spectatorLiftWord_select {K H : Type} [Fintype K] [DecidableEq 
     cases c <;> simp [spectatorLiftStep, instructionMatrix, parallelOracle,
       parallel_select_adjoint, parallel_select_mul]
 
+/-- Substitutes the mask query implementation into the Boolean spectator lift of an adjoint
+word. -/
 def cleanMaskedWord (mask : J → Bool) (cs : List (AdjointStep (J × W))) :
     List (AdjointStep (Bool × (J × W))) :=
   substituteAdjointCircuit (maskQueryWord mask) (spectatorLiftWord Bool cs)
 
+/-- The clean masked word evaluates in control sector `b` to the original word with the
+exclusive-or mask applied to its oracle. -/
 theorem cleanMaskedWord_evaluate (mask : J → Bool) (U : Matrix W W ℂ)
     (cs : List (AdjointStep (J × W))) :
     evaluate (controlOracle (parallelOracle (J := J) U)) (cleanMaskedWord mask cs) =
@@ -119,6 +154,7 @@ theorem cleanMaskedWord_evaluate (mask : J → Bool) (U : Matrix W W ℂ)
   rw [(substitute_adjoint_evaluate_cost _ _ _).1, maskQueryWord_evaluate,
     evaluate_spectatorLiftWord_select]
 
+/-- The clean masked word preserves the query count and adds two gates for every original query. -/
 theorem cleanMaskedWord_cost (mask : J → Bool) (cs : List (AdjointStep (J × W))) :
     adjointQueryCount (cleanMaskedWord mask cs) = adjointQueryCount cs ∧
     adjointGateCount (cleanMaskedWord mask cs) = adjointGateCount cs + 2 * adjointQueryCount cs := by
@@ -130,12 +166,15 @@ theorem cleanMaskedWord_cost (mask : J → Bool) (cs : List (AdjointStep (J × W
     (maskQueryWord_cost mask).2, Nat.mul_comm] at hg
   exact ⟨hq, hg⟩
 
+/-- The clean masked transformation preserves well-formedness. -/
 theorem cleanMaskedWord_wellFormed (mask : J → Bool) {cs : List (AdjointStep (J × W))}
     (hcs : WellFormedAdjointCircuit cs) : WellFormedAdjointCircuit (cleanMaskedWord mask cs) :=
   (substitute_adjoint_evaluate_cost
     (1 : Matrix (Bool × (J × W)) (Bool × (J × W)) ℂ) _ _).2.2.2
     (maskQueryWord_wellFormed mask) (spectatorLiftWord_wellFormed Bool hcs)
 
+/-- Compressing a selected matrix on a tagged frame equals compressing the matrix in the tagged
+sector. -/
 theorem compress_tagFrame_select {K H : Type} [Fintype K] [DecidableEq K]
     [Fintype H] [DecidableEq H] (b : K) (V : K → Matrix H H ℂ)
     (F : Matrix H I ℂ) :
@@ -143,6 +182,8 @@ theorem compress_tagFrame_select {K H : Type} [Fintype K] [DecidableEq K]
   rw [compress_tagFrame, prepare_select_compress]
   simp [lcuMatrix, Ket, compress]
 
+/-- A masked-oracle block encoding transfers to the false-tagged clean-control frame with the
+same scale and error, preserving queries and adding two gates per query. -/
 theorem cleanMaskedWord_blockEncoding (mask : J → Bool) (U : Matrix W W ℂ)
     (hU : U ∈ Matrix.unitaryGroup W ℂ) (cs : List (AdjointStep (J × W)))
     (hcs : WellFormedAdjointCircuit cs) (A : Matrix I I ℂ) (F : Matrix (J × W) I ℂ)

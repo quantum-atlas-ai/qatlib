@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonGap
+
+/-!
+# Claw-detection cost expressions
+
+This module defines `szegedyCost` and its claw-detection specializations for the comparison and
+standard-query models of [Tani2009]. Algebraic expansions and explicit estimates give separate
+bounds for `N ≤ M < N^2` and `N^2 ≤ M`.
+
+## Main statements
+
+* `clawDetectCost_eq` and `clawDetectStandardCost_eq`: expanded detection cost formulas.
+* `lemma4_clawDetect_comparison`: comparison cost bounds in both regimes.
+* `corollary5_clawDetect_standard`: standard-query cost bounds in both regimes.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,15 +33,23 @@ namespace Qatlib.Papers.ClawFinding07.MainResults.QueryBound
 
 open scoped BigOperators
 
+/-- The Szegedy detection cost expression `CU + (CF + CW)/sqrt (δ*ε)`, with setup, checking, and
+walk costs and gap and marked-fraction parameters. -/
 def szegedyCost (CU CF CW δ ε : ℝ) : ℝ :=
   CU + (CF + CW) / Real.sqrt (δ * ε)
 
+/-- The comparison cost expression for claw detection with subset sizes `l` and `m`, including
+logarithmic setup and walk costs. -/
 def clawDetectCost (N M l m : ℝ) : ℝ :=
   szegedyCost ((l + m) * Real.log (l + m)) 0 (Real.log (l + m)) (1 / m) (l * m / (N * M))
 
+/-- The standard-query cost expression for claw detection with subset sizes `l` and `m`, linear
+setup cost, and unit walk cost. -/
 def clawDetectStandardCost (N M l m : ℝ) : ℝ :=
   szegedyCost (l + m) 0 1 (1 / m) (l * m / (N * M))
 
+/-- For positive subset sizes and positive `N*M`, expands the comparison detection cost as
+`(l+m)*log (l+m) + log (l+m)*sqrt (N*M/l)`. -/
 theorem clawDetectCost_eq {N M l m : ℝ} (hl : 0 < l) (hm : 0 < m) (hNM : 0 < N * M) :
     clawDetectCost N M l m
       = (l + m) * Real.log (l + m) + Real.log (l + m) * Real.sqrt (N * M / l) := by
@@ -37,6 +64,8 @@ theorem clawDetectCost_eq {N M l m : ℝ} (hl : 0 < l) (hm : 0 < m) (hNM : 0 < N
   field_simp
   try ring
 
+/-- For positive subset sizes and positive `N*M`, expands the standard detection cost as
+`l+m+sqrt (N*M/l)`. -/
 theorem clawDetectStandardCost_eq {N M l m : ℝ} (hl : 0 < l) (hm : 0 < m)
     (hNM : 0 < N * M) :
     clawDetectStandardCost N M l m = (l + m) + Real.sqrt (N * M / l) := by
@@ -51,6 +80,7 @@ theorem clawDetectStandardCost_eq {N M l m : ℝ} (hl : 0 < l) (hm : 0 < m)
   field_simp
   try ring
 
+/-- For positive `N*M`, cubing its real cube root recovers `N*M`. -/
 theorem rpow_third_cube {N M : ℝ} (hNM : 0 < N * M) :
     ((N * M) ^ (1/3:ℝ)) ^ 3 = N * M := by
   have h := Real.rpow_mul (le_of_lt hNM) (1/3:ℝ) (3:ℝ)
@@ -58,6 +88,8 @@ theorem rpow_third_cube {N M : ℝ} (hNM : 0 < N * M) :
   rw [show (1/3:ℝ) * 3 = 1 by norm_num, Real.rpow_one, h3, Real.rpow_natCast] at h
   exact h.symm
 
+/-- For positive `N` and `M` with `M < N^2`, the cube root of `N*M` is strictly smaller than
+`N`. -/
 theorem rpow_third_lt {N M : ℝ} (hN : 0 < N) (hM0 : 0 < M) (hM : M < N ^ 2) :
     (N * M) ^ (1/3:ℝ) < N := by
   have hNM : (0:ℝ) < N * M := by positivity
@@ -68,6 +100,8 @@ theorem rpow_third_lt {N M : ℝ} (hN : 0 < N) (hM0 : 0 < M) (hM : M < N ^ 2) :
     nlinarith
   exact lt_of_pow_lt_pow_left₀ 3 (le_of_lt hN) hcube
 
+/-- For `2 ≤ N ≤ M < N^2`, the comparison detection cost at equal subset sizes `(N*M)^(1/3)` is
+at most `64*(N*M)^(1/3)*log N`. This is the first regime of [Tani, Lemma 4][Tani2009]. -/
 theorem lemma4_clawDetect_regime1 (N M : ℝ) (hN : 2 ≤ N) (hNM' : N ≤ M)
     (hM : M < N ^ 2) :
     clawDetectCost N M ((N * M) ^ (1/3:ℝ)) ((N * M) ^ (1/3:ℝ))
@@ -106,6 +140,8 @@ theorem lemma4_clawDetect_regime1 (N M : ℝ) (hN : 2 ≤ N) (hNM' : N ≤ M)
           have hxlog : (0:ℝ) ≤ x * Real.log N := mul_nonneg (le_of_lt hx0) hlogN
           nlinarith
 
+/-- For `N ≥ 2` and `N^2 ≤ M`, the comparison detection cost at subset sizes `N` is at most
+`64*sqrt M*log N`. This is the second regime of [Tani, Lemma 4][Tani2009]. -/
 theorem lemma4_clawDetect_regime2 (N M : ℝ) (hN : 2 ≤ N) (hM : N ^ 2 ≤ M) :
     clawDetectCost N M N N ≤ 64 * Real.sqrt M * Real.log N := by
   have hN0 : (0:ℝ) < N := by linarith
@@ -152,6 +188,8 @@ theorem lemma4_clawDetect_regime2 (N M : ℝ) (hN : 2 ≤ N) (hM : N ^ 2 ≤ M) 
           have : (0:ℝ) ≤ Real.sqrt M * Real.log N := mul_nonneg hsq0 hlogN
           nlinarith
 
+/-- Combines the two comparison detection cost bounds for `N ≤ M < N^2` and `N^2 ≤ M`, assuming
+`N ≥ 2`, as in [Tani, Lemma 4][Tani2009]. -/
 theorem lemma4_clawDetect_comparison (N M : ℝ) (hN : 2 ≤ N) :
     (N ≤ M → M < N ^ 2 →
         clawDetectCost N M ((N * M) ^ (1/3:ℝ)) ((N * M) ^ (1/3:ℝ))
@@ -160,6 +198,8 @@ theorem lemma4_clawDetect_comparison (N M : ℝ) (hN : 2 ≤ N) :
   ⟨fun hNM hM => lemma4_clawDetect_regime1 N M hN hNM hM,
    fun h => lemma4_clawDetect_regime2 N M hN h⟩
 
+/-- For `2 ≤ N ≤ M < N^2`, bounds the standard detection cost at equal subset sizes
+`(N*M)^(1/3)` by `4*(N*M)^(1/3)`, as in [Tani, Corollary 5][Tani2009]. -/
 theorem corollary5_clawDetect_standard_regime1 (N M : ℝ) (hN : 2 ≤ N)
     (hNM' : N ≤ M) (_hM : M < N ^ 2) :
     clawDetectStandardCost N M ((N * M) ^ (1/3:ℝ)) ((N * M) ^ (1/3:ℝ))
@@ -186,6 +226,8 @@ theorem corollary5_clawDetect_standard_regime1 (N M : ℝ) (hN : 2 ≤ N)
   rw [hcost]
   linarith
 
+/-- For `N ≥ 2` and `N^2 ≤ M`, bounds the standard detection cost at subset sizes `N` by `4*sqrt
+M`, as in [Tani, Corollary 5][Tani2009]. -/
 theorem corollary5_clawDetect_standard_regime2 (N M : ℝ) (hN : 2 ≤ N)
     (hM : N ^ 2 ≤ M) :
     clawDetectStandardCost N M N N ≤ 4 * Real.sqrt M := by
@@ -209,6 +251,8 @@ theorem corollary5_clawDetect_standard_regime2 (N M : ℝ) (hN : 2 ≤ N)
   rw [hcost]
   linarith
 
+/-- Combines the two standard-query detection cost regimes under `N ≥ 2`, as in [Tani, Corollary
+5][Tani2009]. -/
 theorem corollary5_clawDetect_standard (N M : ℝ) (hN : 2 ≤ N) :
     (N ≤ M → M < N ^ 2 →
         clawDetectStandardCost N M ((N * M) ^ (1/3:ℝ)) ((N * M) ^ (1/3:ℝ))

@@ -8,12 +8,37 @@ import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
 import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 
+/-!
+# Entropy lower bounds for classical queries
+
+This module derives lower bounds on expected query cost from Kraft inequalities and entropy. It
+defines natural logarithm entropy as `entropy` and the weighted actual query cost as
+`expectedQueries`.
+
+The results apply to exact recovery on all labels or only on the positive probability support.
+They formalize the classical information bound discussed in [TerhalSmolin1998].
+
+## Main statements
+
+* `entropy_le_log_mul_length`: an entropy bound for lengths satisfying a Kraft inequality.
+* `information_lower_bound`: entropy divided by the logarithm of the answer alphabet size bounds
+  expected queries.
+* `support_information_lower_bound`: the same bound when correctness holds on the source
+  support.
+
+## References
+
+* [Terhal and Smolin, 1998][TerhalSmolin1998]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QueryComplexity.AdaptiveInfo.EntropyBound
 
 open Qatlib.Concepts.QueryComplexity.AdaptiveInfo
 
+/-- The entropy of a finite probability distribution is at most its cross entropy against any
+strictly positive subprobability function. -/
 theorem entropy_le_cross_of_subprob {Y : Type} [Fintype Y]
     (p q : Y → ℝ) (hp : ∀ y, 0 ≤ p y) (hsum : ∑ y, p y = 1)
     (hq : ∀ y, 0 < q y) (hqsum : ∑ y, q y ≤ 1) :
@@ -34,6 +59,8 @@ theorem entropy_le_cross_of_subprob {Y : Type} [Fintype Y]
   simp only [Finset.sum_sub_distrib, Finset.sum_add_distrib, Finset.sum_neg_distrib, hsum] at hs
   linarith
 
+/-- Lengths satisfying the Kraft inequality bound entropy by the expected length times the
+natural logarithm of the alphabet size. -/
 theorem entropy_le_log_mul_length {Y : Type} [Fintype Y] (p : Y → ℝ)
     (hp : ∀ y, 0 ≤ p y) (hsum : ∑ y, p y = 1)
     (A : ℕ) (hA : 0 < A) (length : Y → ℕ)
@@ -49,6 +76,8 @@ theorem entropy_le_log_mul_length {Y : Type} [Fintype Y] (p : Y → ℝ)
   rw [← Finset.mul_sum] at h
   nlinarith
 
+/-- For an alphabet of at least two symbols, entropy divided by the logarithm of its size bounds
+the expected length of any lengths satisfying the Kraft inequality. -/
 theorem entropy_div_log_le_length {Y : Type} [Fintype Y] (p : Y → ℝ)
     (hp : ∀ y, 0 ≤ p y) (hsum : ∑ y, p y = 1)
     (A : ℕ) (hA : 2 ≤ A) (length : Y → ℕ)
@@ -57,13 +86,19 @@ theorem entropy_div_log_le_length {Y : Type} [Fintype Y] (p : Y → ℝ)
   apply (div_le_iff₀ (Real.log_pos (by exact_mod_cast (show 1<A by omega)))).2
   simpa only [mul_comm] using entropy_le_log_mul_length p hp hsum A (by omega) length hKraft
 
+/-- The natural logarithm entropy of a finite real weight function, defined as the sum of
+`Real.negMulLog`. -/
 noncomputable def entropy {Y : Type} [Fintype Y] (p : Y → ℝ) : ℝ :=
   ∑ y, Real.negMulLog (p y)
 
+/-- The expected actual query count of a classical tree, weighted by a finite source
+distribution. -/
 noncomputable def expectedQueries {I A Y : Type} [Fintype Y]
     (oracle : Y → I → A) (tree : ClassicalDefs.QueryTree I A Y) (p : Y → ℝ) : ℝ :=
   ∑ y, p y * ((ClassicalDefs.run (oracle y) tree).2:ℝ)
 
+/-- For exact recovery, source entropy divided by the logarithm of the answer alphabet
+cardinality is a lower bound on expected queries. -/
 theorem information_lower_bound {I A Y : Type} [Fintype A] [Nonempty A]
     [Fintype Y] [DecidableEq Y] (oracle : Y → I → A)
     (tree : ClassicalDefs.QueryTree I A Y) (p : Y → ℝ)
@@ -75,6 +110,9 @@ theorem information_lower_bound {I A Y : Type} [Fintype A] [Nonempty A]
   simpa only [Finset.mem_univ,true_implies] using
     ClassicalDefs.actual_kraft oracle tree Finset.univ (fun y _ => hcorrect y)
 
+/-- The entropy lower bound on expected queries requires exact recovery only for labels with
+positive source probability. This is the support version of the information bound in [Terhal
+and Smolin, Eq. (1.2)][TerhalSmolin1998]. -/
 theorem support_information_lower_bound {I A Y : Type} [Fintype A] [Nonempty A]
     [Fintype Y] [DecidableEq Y] (oracle : Y → I → A)
     (tree : ClassicalDefs.QueryTree I A Y) (p : Y → ℝ)
@@ -105,6 +143,8 @@ theorem support_information_lower_bound {I A Y : Type} [Fintype A] [Nonempty A]
     (fun y hy => by simp only [hz y hy,zero_mul])] at h
   exact h
 
+/-- The entropy lower bound expressed using entropy in bits and the base two logarithm of the
+answer alphabet cardinality. -/
 theorem source_information_lower_bound {I A Y : Type} [Fintype A] [Nonempty A]
     [Fintype Y] [DecidableEq Y] (oracle : Y → I → A)
     (tree : ClassicalDefs.QueryTree I A Y) (p : Y → ℝ)

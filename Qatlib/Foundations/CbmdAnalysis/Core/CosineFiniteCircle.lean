@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineCoefficients
 import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
+
+/-!
+# Finite cosine-regulator circle identities
+
+This module defines cosine contour radii, finite pole sets, weighted samples, and their partial
+sums. It locates the denominator zeros inside each disk and applies the simple-zero circle
+formula to obtain a finite sampling identity. These identities provide the finite contour step
+in [WangEtAl2026].
+
+## Main statements
+
+* `cosineContourPoleSet_zeros`: the closed-disk zeros are exactly the finite pole set.
+* `cosineContourPoleSet_simple`: every listed zero has nonzero denominator derivative.
+* `cosineContour_circle_identity_normalized`: the normalized integral equals the target minus
+  the weighted baseline plus the weighted finite sample sum.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -16,13 +37,16 @@ namespace CBMD
 open Complex Metric Set
 open scoped BigOperators
 
+/-- The cosine contour radius `(n * π) ^ 2 / (γ * τ ^ 2)`. -/
 def cosineCircleRadius (γ τ : ℝ) (n : ℕ) : ℝ := ((n : ℝ) * Real.pi) ^ 2 / (γ * τ ^ 2)
 
+/-- For positive `γ` and `τ`, the sample pole norm equals `cosineSampleScale γ τ k`. -/
 theorem cosineSamplePole_norm {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (k : ℕ) :
     ‖cosineSamplePole γ τ k‖ = cosineSampleScale γ τ k := by
   simp only [cosineSamplePole, norm_mul, norm_neg, norm_I, one_mul,
     Complex.norm_real, Real.norm_eq_abs, abs_of_pos (cosineSampleScale_pos hγ hτ k)]
 
+/-- For positive `γ` and `τ`, distinct natural indices give distinct cosine sample poles. -/
 theorem cosineSamplePole_injective {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) :
     Function.Injective (cosineSamplePole γ τ) := by
   intro j k hjk
@@ -35,6 +59,8 @@ theorem cosineSamplePole_injective {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) :
   have := (mul_right_cancel₀ Real.pi_ne_zero hx)
   exact_mod_cast (add_right_cancel this : (j : ℝ) = (k : ℝ))
 
+/-- For positive parameters, the `k`th sample pole lies in the open `n`th cosine disk exactly
+when `k < n`. -/
 theorem cosineSamplePole_mem_ball {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (k n : ℕ) :
     cosineSamplePole γ τ k ∈ ball (0 : ℂ) (cosineCircleRadius γ τ n) ↔ k < n := by
   rw [mem_ball_zero_iff, cosineSamplePole_norm hγ hτ]
@@ -51,6 +77,8 @@ theorem cosineSamplePole_mem_ball {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (k
     have hh : (k : ℝ) + 1 ≤ n := by exact_mod_cast h
     linarith
 
+/-- For positive parameters, the `k`th sample pole lies in the closed `n`th cosine disk exactly
+when `k < n`. -/
 theorem cosineSamplePole_mem_closedBall {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (k n : ℕ) :
     cosineSamplePole γ τ k ∈ closedBall (0 : ℂ) (cosineCircleRadius γ τ n) ↔ k < n := by
   rw [mem_closedBall_zero_iff, cosineSamplePole_norm hγ hτ]
@@ -67,14 +95,19 @@ theorem cosineSamplePole_mem_closedBall {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < 
     have hh : (k : ℝ) + 1 ≤ n := by exact_mod_cast h
     linarith
 
+/-- The finite set containing zero, one, and the first `n` cosine sample poles. -/
 def cosineContourPoleSet (γ τ : ℝ) (n : ℕ) : Finset ℂ :=
   insert 0 (insert 1 ((Finset.range n).image (cosineSamplePole γ τ)))
 
+/-- For positive parameters, the contour denominator vanishes exactly at zero, one, and the
+cosine sample poles. -/
 theorem cosineContourDenominator_eq_zero_iff {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (z : ℂ) :
     cosineContourDenominator γ τ z = 0 ↔ z = 0 ∨ z = 1 ∨ ∃ k, z = cosineSamplePole γ τ k := by
   simp only [cosineContourDenominator, mul_eq_zero, sub_eq_zero,
     cosineRegulator_eq_zero_iff hγ hτ, or_assoc]
 
+/-- For positive parameters and cosine radius greater than one, every point of the finite
+contour pole set lies strictly inside the disk. -/
 theorem cosineContourPoleSet_inside {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (n : ℕ)
     (hR : 1 < cosineCircleRadius γ τ n) :
     ∀ z ∈ cosineContourPoleSet γ τ n, z ∈ ball (0 : ℂ) (cosineCircleRadius γ τ n) := by
@@ -86,6 +119,8 @@ theorem cosineContourPoleSet_inside {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) 
   · simpa only [mem_ball_zero_iff, norm_one] using hR
   · exact (cosineSamplePole_mem_ball hγ hτ k n).mpr hk
 
+/-- For positive parameters, the zeros of the contour denominator in the closed `n`th cosine
+disk are exactly the finite contour pole set. -/
 theorem cosineContourPoleSet_zeros {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (n : ℕ)
     (z : ℂ) (hz : z ∈ closedBall (0 : ℂ) (cosineCircleRadius γ τ n)) :
     cosineContourDenominator γ τ z = 0 ↔ z ∈ cosineContourPoleSet γ τ n := by
@@ -101,6 +136,8 @@ theorem cosineContourPoleSet_zeros {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (
     · exact Or.inr (Or.inl rfl)
     · exact Or.inr (Or.inr ⟨k, rfl⟩)
 
+/-- For positive parameters, the contour denominator has nonzero derivative at every point of
+the finite contour pole set. -/
 theorem cosineContourPoleSet_simple {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (n : ℕ) :
     ∀ z ∈ cosineContourPoleSet γ τ n, deriv (cosineContourDenominator γ τ) z ≠ 0 := by
   intro z hz
@@ -112,6 +149,8 @@ theorem cosineContourPoleSet_simple {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) 
     exact cosineRegulator_one_ne_zero hγ hτ
   · exact cosineContourDenominator_deriv_sample_ne_zero hγ hτ k
 
+/-- For positive parameters, a sum over the finite contour pole set splits into the values at
+zero and one and the sum over the first `n` sample poles. -/
 theorem cosineContourPoleSet_sum {M : Type*} [AddCommMonoid M]
     {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (n : ℕ) (f : ℂ → M) :
     ∑ z ∈ cosineContourPoleSet γ τ n, f z =
@@ -133,17 +172,24 @@ theorem cosineContourPoleSet_sum {M : Type*} [AddCommMonoid M]
 section Numerator
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- The numerator `U z` multiplied by the ratio of the regulator at one to the contour
+denominator at `z`. -/
 def cosineContourIntegrand (γ τ : ℝ) (U : ℂ → E) (z : ℂ) : E :=
   (cosineRegulator γ τ 1 / cosineContourDenominator γ τ z) • U z
 
+/-- The numerator value at the `k`th cosine sample pole weighted by its sample coefficient. -/
 def cosineSample (γ τ : ℝ) (U : ℂ → E) (k : ℕ) : E :=
   cosineSampleCoefficient γ τ k • U (cosineSamplePole γ τ k)
 
+/-- The sum of the first `n` weighted cosine samples. -/
 def cosineLCUSum (γ τ : ℝ) (n : ℕ) (U : ℂ → E) : E :=
   ∑ k ∈ Finset.range n, cosineSample γ τ U k
 
 variable [CompleteSpace E]
 
+/-- For positive parameters, radius greater than one, and complex differentiable `U`, the
+contour integral equals `2πI` times `U 1 - cosineRegulator γ τ 1 • U 0 + cosineRegulator γ τ
+1 • cosineLCUSum γ τ n U`. -/
 theorem cosineContour_circle_identity {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (n : ℕ) (hR : 1 < cosineCircleRadius γ τ n)
     (U : ℂ → E) (hU : Differentiable ℂ U) :
@@ -191,6 +237,9 @@ theorem cosineContour_circle_identity {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ
   dsimp [c]
   abel
 
+/-- For positive parameters, radius greater than one, and complex differentiable `U`, dividing
+the cosine contour integral by `2πI` yields the target minus the regulator-weighted baseline
+plus the regulator-weighted finite sample sum. -/
 theorem cosineContour_circle_identity_normalized {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (n : ℕ) (hR : 1 < cosineCircleRadius γ τ n)
     (U : ℂ → E) (hU : Differentiable ℂ U) :

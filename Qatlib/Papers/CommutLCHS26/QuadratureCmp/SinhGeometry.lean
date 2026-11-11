@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.BudgetRates
+
+/-!
+# Geometry of budget-selected sinh grids
+
+This module bounds the number of nodes and physical radius of the budget-selected sinh
+quadrature rule in [AftabAnTrivisa2026]. Explicit constants control the inverse-hyperbolic-sine
+window, the capped mesh step, and the physical endpoint after rounding the cutoff.
+
+The final results combine budget accuracy with geometric bounds and derive asymptotic rates for
+fixed parameters and budgets that dominate the total error.
+
+## Main statements
+
+* `kernel_budget_geometry`: accuracy, node count, and greatest-radius estimates.
+* `kernel_balanced_geometry`: asymptotic node-count and physical-radius bounds.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -18,6 +39,7 @@ open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule (window)
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid (cutoff)
 
+/-- For nonnegative `u`, the inverse hyperbolic sine is at most `2 log (1 + u)`. -/
 theorem arsinh_le_twolog {u : ℝ} (hu : 0 ≤ u) : Real.arsinh u ≤ 2 * Real.log (1 + u) := by
   have hs : Real.sqrt (1 + u ^ 2) ≤ 1 + u := by
     apply (Real.sqrt_le_iff).mpr
@@ -29,8 +51,11 @@ theorem arsinh_le_twolog {u : ℝ} (hu : 0 ≤ u) : Real.arsinh u ≤ 2 * Real.l
   rw [he, Real.arsinh]
   exact Real.log_le_log (by positivity) ha
 
+/-- The positive constant `2 + 1 / log 2` used to bound the sinh window. -/
 def windowFactor : ℝ := 2 + 1 / Real.log 2
 
+/-- For `u ≥ 1`, the capped inverse-hyperbolic-sine window is bounded by `windowFactor * log (1
++ u)`. -/
 theorem window_le_log {u : ℝ} (hu : 1 ≤ u) :
     max 1 (Real.arsinh u) ≤ windowFactor * Real.log (1 + u) := by
   have hlog : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -45,6 +70,8 @@ theorem window_le_log {u : ℝ} (hu : 1 ≤ u) :
   · have ha := arsinh_le_twolog (show 0 ≤ u by linarith)
     linarith
 
+/-- For positive strip half-width, mass, and budget, the inverse selected step is at most `1 +
+meshLog / (2πβ)`. -/
 theorem inv_step_le {β M ε : ℝ} (hβ : 0 < β) (hM : 0 < M) (hε : 0 < ε) :
     1 / step β M ε ≤ 1 + meshLog M ε / (2 * Real.pi * β) := by
   have hl := meshLog_pos hM hε
@@ -58,8 +85,11 @@ theorem inv_step_le {β M ε : ℝ} (hβ : 0 < β) (hM : 0 < M) (hε : 0 < ε) :
     rw [hi]
     linarith
 
+/-- The constant `3 + 2 * windowFactor` used in the node-count bound. -/
 def nodeFactor : ℝ := 3 + 2 * windowFactor
 
+/-- Under the stated scale and positivity hypotheses, the selected sinh grid cardinality is
+bounded by the explicit logarithmic expression with factor `nodeFactor`. -/
 theorem budget_node_count (c η β M C εm εt : ℝ) (hη : 0 < η)
     (hηc : η ≤ 2 * c) (hβ : 0 < β) (hM : 0 < M) (hεm : 0 < εm) :
     let u := 2 * c / η * Real.sqrt (tailLog C εt)
@@ -98,9 +128,12 @@ theorem budget_node_count (c η β M C εm εt : ℝ) (hη : 0 < η)
   dsimp [nodeFactor]
   nlinarith [mul_nonneg hlog (show 0 ≤ 1 + meshLog M εm / β by positivity)]
 
+/-- The explicit constant built from `cosh 1` and `sinh 1` used in the physical-radius bound. -/
 def radiusFactor : ℝ := 2 * (Real.cosh 1 + Real.sinh 1) +
   Real.sinh 1 * (Real.cosh 1 + Real.sinh 1 + 1)
 
+/-- For mesh step in `(0, 1]`, the physical endpoint of the cutoff sinh grid is at most
+`radiusFactor * (c u + η)`. -/
 theorem radius_bound {c η h u : ℝ} (hc : 0 < c) (hη : 0 < η) (hh : 0 < h)
     (hh₁ : h ≤ 1) (hu : 0 ≤ u) :
     η * Real.sinh (h * cutoff (window c η u) h) ≤ radiusFactor * (c * u + η) := by
@@ -143,22 +176,28 @@ theorem radius_bound {c η h u : ℝ} (hc : 0 < c) (hη : 0 < η) (hh : 0 < h)
   have hcross2 : 0 ≤ Real.sinh 1 * (Real.cosh 1 + Real.sinh 1 + 1) * (c * u) := by positivity
   nlinarith
 
+/-- The window bound constant is positive. -/
 theorem windowFactor_pos : 0 < windowFactor := by unfold windowFactor; positivity
 
+/-- The node-count bound constant is positive. -/
 theorem nodeFactor_pos : 0 < nodeFactor := by
     unfold nodeFactor; have := windowFactor_pos; positivity
 
+/-- The radius bound constant is positive. -/
 theorem radiusFactor_pos : 0 < radiusFactor := by
   have hs : 0 < Real.sinh 1 := Real.sinh_pos_iff.mpr (by norm_num)
   unfold radiusFactor
   positivity
 
+/-- For nonnegative `u`, `log (1 + 2u)` is at most `2 log (1 + u)`. -/
 theorem log_double_le {u : ℝ} (hu : 0 ≤ u) :
     Real.log (1 + 2 * u) ≤ 2 * Real.log (1 + u) := by
   have h := Real.log_le_log (by positivity : 0 < 1 + 2 * u)
     (show 1 + 2 * u ≤ (1 + u) ^ 2 by nlinarith [sq_nonneg u])
   simpa only [Real.log_pow, Nat.cast_ofNat] using! h
 
+/-- Bounds of `2L` on the tail and mesh logarithms yield the displayed explicit node-scale bound
+for `L ≥ 1` under the stated scale conditions. -/
 theorem node_scale_le {c η β L ℓt ℓm : ℝ} (hc : 0 < c) (hη : 0 < η)
     (hηc : η ≤ 2 * c) (hβ : 0 < β) (hL : 1 ≤ L) (ht : ℓt ≤ 2 * L)
     (hm : ℓm ≤ 2 * L) (hm₀ : 0 ≤ ℓm) :
@@ -196,6 +235,8 @@ theorem node_scale_le {c η β L ℓt ℓm : ℝ} (hc : 0 < c) (hη : 0 < η)
   dsimp [F]
   field_simp
 
+/-- For fixed admissible scales and positive budgets asymptotically dominating `ε`, the selected
+node count is `O(β⁻¹ log(1 / ε) log(1 + (2c / η) sqrt (log (1 / ε))))` near zero. -/
 theorem selected_nodes_isBigO (c η β M C : ℝ) (hc : 0 < c) (hη : 0 < η)
     (hηc : η ≤ 2 * c) (hβ : 0 < β) (hM : 0 < M) (hC : 0 < C)
     (εm εt : ℝ → ℝ)
@@ -227,6 +268,8 @@ theorem selected_nodes_isBigO (c η β M C : ℝ) (hc : 0 < c) (hη : 0 < η)
   rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg hf, abs_of_nonneg hg]
   exact hn.trans hs
 
+/-- For fixed positive parameters and positive budgets asymptotically dominating `ε`, the
+selected physical radius is `O(c sqrt (log (1 / ε)) + η)` near zero. -/
 theorem selected_radius_isBigO (c η β M C : ℝ) (hc : 0 < c) (hη : 0 < η)
     (hβ : 0 < β) (hM : 0 < M) (hC : 0 < C) (εm εt : ℝ → ℝ)
     (hmpos : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < εm ε)
@@ -258,6 +301,9 @@ theorem selected_radius_isBigO (c η β M C : ℝ) (hc : 0 < c) (hη : 0 < η)
       _ = _ := by ring
   exact hr.trans hscale
 
+/-- Along any filter, the stated eventual scale and positivity conditions give uniform
+node-count and physical-radius bounds in terms of the budget logarithms; see [Aftab et al.,
+Corollary 4.18][AftabAnTrivisa2026]. -/
 theorem uniform_geometry_isBigO {α : Type*} (l : Filter α)
     (c η β M C εm εt : α → ℝ)
     (ha : ∀ᶠ x in l, 0 < c x ∧ 0 < η x ∧ η x ≤ 2 * c x ∧
@@ -318,6 +364,9 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The budget-selected sinh rule has positive step, error at most `εm + εt`, explicit
+node-count bounds, and a greatest physical radius satisfying the displayed estimate; see
+[Aftab et al., Corollary 4.18][AftabAnTrivisa2026]. -/
 theorem kernel_budget_geometry (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hηc : η ≤ 2 * c) (hβ₀ : 0 < β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef) {T εm εt : ℝ}
@@ -349,6 +398,9 @@ theorem kernel_budget_geometry (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 
     physical_radius_max η Y h hη.le hh.le,
     radius_bound hc hη hh (min_le_left _ _) (Real.sqrt_nonneg _)⟩
 
+/-- For fixed kernel parameters and a half-width below `analyticWidth`, budgets asymptotically
+dominating `ε` give the stated logarithmic node-count and square-root-logarithmic radius
+bounds; see [Aftab et al., Corollary 4.18][AftabAnTrivisa2026]. -/
 theorem kernel_balanced_geometry (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hηc : η ≤ 2 * c) (hβ₀ : 0 < β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) {T : ℝ}

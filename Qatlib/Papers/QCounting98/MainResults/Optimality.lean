@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundBeal
+
+/-!
+# Threshold-decision lower bounds
+
+`thresholdDecision` tests a bound on the number of marked inputs. The module derives lower
+bounds from block sensitivity through polynomial degree to the query depth of a well-formed
+observed circuit with error at most one third. The mathematical context is
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `thresholdDecision_boundedError_query_depth_lower`: A well-formed observed circuit on a
+  normalized input that approximates the threshold decision within `1/3` satisfies `N - t ≤ 16 *
+  observedQueryDepth²`.
+* `thresholdDecision_query_depth_ge_sqrt`: Under the stated bounded-error circuit hypotheses,
+  `sqrt (N - t)` is at most four times the observed query depth.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,9 +46,12 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.QCounting98.MainResults.Optimality
 
+/-- The Boolean test that the number of true entries in an input of length `N` is at most `t`. -/
 def thresholdDecision (N t : ℕ) : (Fin N → Bool) → Bool :=
   fun x => (Finset.univ.filter (fun i => x i = true)).card ≤ t
 
+/-- For `t ≤ N`, the block sensitivity of the threshold decision is at least `N - t`. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem blockSensitivity_thresholdDecision_ge (N t : ℕ) (ht : t ≤ N) :
     N - t ≤ blockSensitivity (thresholdDecision N t) := by
   classical
@@ -111,6 +136,9 @@ theorem blockSensitivity_thresholdDecision_ge (N t : ℕ) (ht : t ≤ N) :
   rw [h𝔅card] at hle
   exact le_trans hle hsup
 
+/-- A polynomial bounded between zero and one on Boolean inputs and approximating the threshold
+decision within `1/3` satisfies `N - t ≤ 16 * totalDegree²`. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem thresholdDecision_polynomial_degree_lower
     (N t : ℕ) (ht : t ≤ N) (p : MvPolynomial (Fin N) ℝ)
     (hp0 : ∀ x : Fin N → Bool,
@@ -135,6 +163,9 @@ theorem thresholdDecision_polynomial_degree_lower
     exact_mod_cast hbs
   nlinarith [hbound, hbscast]
 
+/-- A well-formed observed circuit on a normalized input that approximates the threshold
+decision within `1/3` satisfies `N - t ≤ 16 * observedQueryDepth²`. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem thresholdDecision_boundedError_query_depth_lower
     (N t : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin N × Bool) × W)) (ψ : QState ((Fin N × Bool) × W))
@@ -147,6 +178,8 @@ theorem thresholdDecision_boundedError_query_depth_lower
     (adaptiveBlockSensitivityQueryBound N W P ψ (thresholdDecision N t) hP hψ).1 herror
   exact le_trans (blockSensitivity_thresholdDecision_ge N t ht) hbs
 
+/-- Under the stated bounded-error circuit hypotheses, `sqrt (N - t)` is at most four times the
+observed query depth. See [BrassardHoyerTapp1998Counting]. -/
 theorem thresholdDecision_query_depth_ge_sqrt
     (N t : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin N × Bool) × W)) (ψ : QState ((Fin N × Bool) × W))

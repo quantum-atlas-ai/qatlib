@@ -11,6 +11,24 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Di
 import Mathlib.Analysis.Calculus.ParametricIntervalIntegral
 import Mathlib.Analysis.Calculus.Deriv.Inv
 import Mathlib.Analysis.Calculus.FDeriv.Measurable
+
+/-!
+# Differentiating the second Dixon component
+
+This module differentiates the Cauchy integral component `dixonH2` with respect to a pole
+outside the curve trace. Kernel continuity and measurability lemmas support the
+squared-denominator derivative formula used in the contour calculus for [WangEtAl2026].
+
+## Main statements
+
+* `h2_pole_hasDerivAt`: the reciprocal-kernel derivative.
+* `hasDerivAt_dixonH2`: differentiation of the Cauchy integral.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -27,19 +45,26 @@ section
 
 variable {f : ℂ → ℂ} {γ : ℝ → ℂ} {a b : ℝ} {w : ℂ}
 
+/-- The derivative with respect to `w` of `(z - w)⁻¹ * c` is `(z - w)⁻² * c` when `z ≠ w`. -/
 private theorem h2_pole_hasDerivAt (c z w : ℂ) (hne : z - w ≠ 0) :
     HasDerivAt (fun w' ↦ (z - w')⁻¹ * c) ((z - w)⁻¹ ^ 2 * c) w :=
   ((((hasDerivAt_id' w).const_sub z).inv hne).congr_deriv (by rw [inv_pow]; ring)).mul_const c
 
+/-- The reciprocal Cauchy kernel along a continuous curve is continuous when its pole is
+avoided. -/
 private theorem h2_kernel_continuousOn (hγ_cont : ContinuousOn γ (uIcc a b)) {w' : ℂ}
     (hoff : ∀ t ∈ uIcc a b, γ t ≠ w') : ContinuousOn (fun t ↦ (γ t - w')⁻¹) (uIcc a b) :=
   (hγ_cont.sub continuousOn_const).inv₀ fun t ht ↦ sub_ne_zero.mpr (hoff t ht)
 
+/-- Multiplying the contour numerator by a continuous scalar factor preserves almost everywhere
+strong measurability on the integration interval. -/
 private theorem h2_factor_mul_num_aestronglyMeasurable {g : ℝ → ℂ} (hg : ContinuousOn g (uIcc a b))
     (hnum : AEStronglyMeasurable (fun t ↦ f (γ t) * deriv γ t) (volume.restrict (Ι a b))) :
     AEStronglyMeasurable (fun t ↦ g t * (f (γ t) * deriv γ t)) (volume.restrict (Ι a b)) :=
   ((hg.mono Set.uIoc_subset_uIcc).aestronglyMeasurable measurableSet_uIoc).mul hnum
 
+/-- Away from the curve, the derivative of `dixonH2` is the contour integral with denominator
+`(γ t - w)²`, assuming continuity and integrability of the original Cauchy integrand. -/
 theorem hasDerivAt_dixonH2 (hγ_cont : ContinuousOn γ (uIcc a b))
     (hoff : ∀ t ∈ uIcc a b, γ t ≠ w)
     (h_cauchy_int : IntervalIntegrable (fun t ↦ f (γ t) / (γ t - w) * deriv γ t) volume a b) :

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
 import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+
+/-!
+# Eigenvectors and Rayleigh bounds
+
+The module develops finite-dimensional spectral expansions and Rayleigh bounds for Hermitian
+matrices, supporting the adiabatic model of [AharonovEtAl2007Adiabatic]. It identifies
+variational ground energies, proves a second-eigenvalue bound on vectors orthogonal to a ground
+vector, and relates these expressions to isometric restrictions.
+
+## Main statements
+
+* `rayleigh_spectral` and `parseval_eigVec`: eigenbasis formulas for quadratic expressions and
+  squared norms.
+* `groundEnergy_le_rayleigh`: the variational lower bound on normalized vectors.
+* `ground_add_le_ground_restrict`: an upper bound obtained from an isometric subspace.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,15 +42,19 @@ namespace Qatlib.Papers.AdiabEquiv04.MainResults.Model
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- The column of the Hermitian eigenvector unitary indexed by `j`. -/
 def eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) : ι → ℂ :=
   fun i => hA.eigenvectorUnitary i j
 
+/-- The vector `eigVec A hA j` equals the corresponding vector in the orthonormal eigenvector
+basis. -/
 theorem eigVec_eq_basis (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     eigVec A hA j = ⇑(hA.eigenvectorBasis j) := by
   funext i
   rw [eigVec, ← Matrix.IsHermitian.eigenvectorUnitary_col_eq (hA := hA)]
   rfl
 
+/-- Multiplication by `A` scales `eigVec A hA j` by its real eigenvalue embedded in `ℂ`. -/
 theorem mulVec_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     A *ᵥ eigVec A hA j = fun i => (hA.eigenvalues j : ℂ) * eigVec A hA j i := by
   have hb := eigVec_eq_basis A hA j
@@ -39,15 +64,20 @@ theorem mulVec_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
   rw [hb]
   simp only [Pi.smul_apply, Complex.real_smul]
 
+/-- The eigenvector unitary multiplied by its adjoint is the identity matrix. -/
 theorem unitary_mul_star (A : Matrix ι ι ℂ) (hA : A.IsHermitian) :
     (hA.eigenvectorUnitary : Matrix ι ι ℂ) * star (hA.eigenvectorUnitary : Matrix ι ι ℂ) = 1 := by
   exact mem_unitaryGroup_iff.mp hA.eigenvectorUnitary.2
 
+/-- Applying the adjoint eigenvector unitary and then the eigenvector unitary recovers the
+original vector. -/
 theorem unitary_mulVec_star (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     (hA.eigenvectorUnitary : Matrix ι ι ℂ) *ᵥ
       ((star (hA.eigenvectorUnitary : Matrix ι ι ℂ)) *ᵥ ψ) = ψ := by
   rw [mulVec_mulVec, unitary_mul_star, one_mulVec]
 
+/-- Applying the eigenvector unitary to `v` equals the sum of the eigenvectors with coefficients
+`v j`. -/
 theorem unitary_mulVec_eq_sum (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (v : ι → ℂ) :
     (hA.eigenvectorUnitary : Matrix ι ι ℂ) *ᵥ v = ∑ j, v j • eigVec A hA j := by
   ext i
@@ -55,11 +85,15 @@ theorem unitary_mulVec_eq_sum (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (v : �
   refine Finset.sum_congr rfl (fun j _ => ?_)
   ring
 
+/-- The `j`th coordinate after applying the adjoint eigenvector unitary is the inner product
+with the `j`th eigenvector. -/
 theorem star_unitary_mulVec_apply (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) (j : ι) :
     ((star (hA.eigenvectorUnitary : Matrix ι ι ℂ)) *ᵥ ψ) j =
       (star (eigVec A hA j)) ⬝ᵥ ψ := by
   simp only [Matrix.mulVec, dotProduct, eigVec, Pi.star_apply, Matrix.star_apply]
 
+/-- Matrix-vector multiplication by a Hermitian matrix is obtained by conjugating its diagonal
+eigenvalue matrix by the eigenvector unitary. -/
 theorem spectral_mulVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     A *ᵥ ψ = (hA.eigenvectorUnitary : Matrix ι ι ℂ) *ᵥ
       (diagonal (RCLike.ofReal ∘ hA.eigenvalues) *ᵥ
@@ -67,6 +101,8 @@ theorem spectral_mulVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι →
   conv_lhs => rw [hA.spectral_theorem]
   simp [Unitary.conjStarAlgAut_apply, mulVec_mulVec, Matrix.mul_assoc]
 
+/-- The vector `A *ᵥ ψ` is the eigenvector sum with coefficients equal to the eigenvalues times
+the eigenbasis coefficients of `ψ`. -/
 theorem mulVec_spectral_sum (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     A *ᵥ ψ = ∑ j, ((hA.eigenvalues j : ℂ) * ((star (eigVec A hA j)) ⬝ᵥ ψ)) • eigVec A hA j := by
   rw [spectral_mulVec A hA ψ]
@@ -82,12 +118,16 @@ theorem mulVec_spectral_sum (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι
     rfl
   rw [hd, unitary_mulVec_eq_sum]
 
+/-- The inner product of `ψ` with an eigenvector is the conjugate of the inner product in the
+reverse order. -/
 theorem dot_star_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) (j : ι) :
     (star ψ) ⬝ᵥ eigVec A hA j = star ((star (eigVec A hA j)) ⬝ᵥ ψ) := by
   simp only [dotProduct, Pi.star_apply, Complex.star_def, map_sum, map_mul, Complex.conj_conj]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   ring
 
+/-- The complex quadratic expression `ψᴴ A ψ` is the sum of the eigenvalues weighted by the
+squared norms of the eigenbasis coefficients. -/
 theorem dotProduct_star_spectral (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     (star ψ) ⬝ᵥ (A *ᵥ ψ) =
       ∑ j, (hA.eigenvalues j : ℂ) * ((Complex.normSq ((star (eigVec A hA j)) ⬝ᵥ ψ) : ℝ) : ℂ) := by
@@ -102,6 +142,8 @@ theorem dotProduct_star_spectral (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ
       = (hA.eigenvalues j : ℂ) * (c * star c) := by ring
     _ = (hA.eigenvalues j : ℂ) * ((Complex.normSq c : ℝ) : ℂ) := by rw [hcc]
 
+/-- The real quadratic expression of a Hermitian matrix is the sum of its real eigenvalues
+weighted by squared eigenbasis coefficients. -/
 theorem rayleigh_spectral (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     ((star ψ) ⬝ᵥ (A *ᵥ ψ)).re =
       ∑ j, hA.eigenvalues j * Complex.normSq ((star (eigVec A hA j)) ⬝ᵥ ψ) := by
@@ -112,6 +154,8 @@ theorem rayleigh_spectral (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι �
 
 omit [DecidableEq ι] in
 
+/-- The coordinate sum of squared norms equals the real part of the inner product of a vector
+with itself. -/
 theorem normSq_eq_re_dotProduct (ψ : ι → ℂ) :
     (∑ i, Complex.normSq (ψ i)) = ((star ψ) ⬝ᵥ ψ).re := by
   rw [dotProduct, Complex.re_sum]
@@ -119,6 +163,7 @@ theorem normSq_eq_re_dotProduct (ψ : ι → ℂ) :
   have h := congrArg Complex.re (Complex.normSq_eq_conj_mul_self (z := ψ i))
   simpa [Pi.star_apply, Complex.star_def] using! h.symm
 
+/-- The sum of squared eigenbasis coefficients equals the sum of squared coordinate norms. -/
 theorem parseval_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     ∑ j, Complex.normSq ((star (eigVec A hA j)) ⬝ᵥ ψ) =
       ∑ i, Complex.normSq (ψ i) := by
@@ -147,6 +192,8 @@ theorem parseval_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι →
     exact Finset.sum_congr rfl (fun j _ => Complex.ofReal_re _)
   rw [← hre, normSq_eq_re_dotProduct]
 
+/-- Eigenvectors in the chosen basis have inner product one for equal indices and zero
+otherwise. -/
 theorem dot_star_eigVec_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j k : ι) :
     (star (eigVec A hA j)) ⬝ᵥ eigVec A hA k = if j = k then 1 else 0 := by
   have hU : (star (hA.eigenvectorUnitary : Matrix ι ι ℂ)) *
@@ -156,6 +203,7 @@ theorem dot_star_eigVec_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j k 
   simp only [Matrix.mul_apply, Matrix.one_apply] at h
   simpa [dotProduct, eigVec, Pi.star_apply] using h
 
+/-- Each chosen eigenvector has squared coordinate norm one. -/
 theorem normSq_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     ∑ i, Complex.normSq (eigVec A hA j i) = 1 := by
   have hp := parseval_eigVec A hA (eigVec A hA j)
@@ -165,6 +213,7 @@ theorem normSq_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     rw [dot_star_eigVec_eigVec, if_neg hk, Complex.normSq_zero]
   · intro hj; exact absurd (Finset.mem_univ j) hj
 
+/-- The Rayleigh expression of a chosen eigenvector equals its eigenvalue. -/
 theorem rayleigh_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     ((star (eigVec A hA j)) ⬝ᵥ (A *ᵥ eigVec A hA j)).re = hA.eigenvalues j := by
   rw [rayleigh_spectral A hA (eigVec A hA j), Finset.sum_eq_single j]
@@ -173,22 +222,28 @@ theorem rayleigh_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     rw [dot_star_eigVec_eigVec, if_neg hk, Complex.normSq_zero, mul_zero]
   · intro hj; exact absurd (Finset.mem_univ j) hj
 
+/-- The equivalence identifying a finite type with `Fin` of its cardinality, used to index the
+ordered eigenvalues. -/
 def eigIdx (ι : Type) [Fintype ι] : ι ≃ Fin (Fintype.card ι) :=
   (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))).symm
 
+/-- The eigenvalue indexed by `j` equals the ordered eigenvalue indexed by `eigIdx ι j`. -/
 theorem eigenvalues_eq_eigenvalues₀ (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     hA.eigenvalues j = hA.eigenvalues₀ (eigIdx ι j) := rfl
 
+/-- The ground energy of a Hamiltonian is at most each of its eigenvalues. -/
 theorem groundEnergy_le_eigenvalues (H : Hamiltonian ι) (h : 0 < Fintype.card ι) (j : ι) :
     groundEnergy H h ≤ H.herm.eigenvalues j := by
   rw [groundEnergy, eigvals]
   exact H.herm.eigenvalues₀_antitone (Nat.le_sub_one_of_lt (eigIdx ι j).isLt)
 
+/-- On a nonempty finite basis, some eigenvalue equals the ground energy. -/
 theorem exists_eigenvalues_eq_groundEnergy (H : Hamiltonian ι) (h : 0 < Fintype.card ι) :
     ∃ j : ι, H.herm.eigenvalues j = groundEnergy H h := by
   refine ⟨eigIdx ι |>.symm ⟨Fintype.card ι - 1, by omega⟩, ?_⟩
   rw [eigenvalues_eq_eigenvalues₀, Equiv.apply_symm_apply, groundEnergy, eigvals]
 
+/-- If `2 ≤ n`, every element of `Fin n` other than the last is at most the penultimate element. -/
 theorem fin_le_pred_of_ne_top {n : ℕ} (hn : 2 ≤ n) (x : Fin n)
     (hx : x ≠ ⟨n - 1, by omega⟩) : x ≤ ⟨n - 2, by omega⟩ := by
   rw [Fin.le_def]
@@ -197,6 +252,8 @@ theorem fin_le_pred_of_ne_top {n : ℕ} (hn : 2 ≤ n) (x : Fin n)
   have hlt := x.isLt
   omega
 
+/-- The second-lowest energy is at most every eigenvalue whose ordered index is not the final
+index. -/
 theorem secondLowestEnergy_le_eigenvalues (H : Hamiltonian ι) (h2 : 2 ≤ Fintype.card ι)
     (j : ι) (hj : eigIdx ι j ≠ ⟨Fintype.card ι - 1, by omega⟩) :
     secondLowestEnergy H h2 ≤ H.herm.eigenvalues j := by
@@ -205,6 +262,7 @@ theorem secondLowestEnergy_le_eigenvalues (H : Hamiltonian ι) (h2 : 2 ≤ Finty
   rw [secondLowestEnergy, eigvals]
   exact he
 
+/-- The ground energy is at most the second-lowest energy. -/
 theorem groundEnergy_le_secondLowest (H : Hamiltonian ι) (h2 : 2 ≤ Fintype.card ι) :
     groundEnergy H (by omega) ≤ secondLowestEnergy H h2 := by
   have hx : (⟨Fintype.card ι - 2, by omega⟩ : Fin (Fintype.card ι)) ≤
@@ -214,6 +272,8 @@ theorem groundEnergy_le_secondLowest (H : Hamiltonian ι) (h2 : 2 ≤ Fintype.ca
   rw [groundEnergy, secondLowestEnergy, eigvals]
   exact he
 
+/-- The ground energy is at most the Rayleigh expression of any normalized vector. See
+[AharonovEtAl2007Adiabatic]. -/
 theorem groundEnergy_le_rayleigh (H : Hamiltonian ι) (h : 0 < Fintype.card ι)
     (ψ : ι → ℂ) (hψ : IsNormalized ψ) :
     groundEnergy H h ≤ rayleigh H.mat ψ := by
@@ -234,6 +294,8 @@ theorem groundEnergy_le_rayleigh (H : Hamiltonian ι) (h : 0 < Fintype.card ι)
           Finset.sum_le_sum (fun j _ =>
             mul_le_mul_of_nonneg_right (groundEnergy_le_eigenvalues H h j) (Complex.normSq_nonneg _))
 
+/-- A Hamiltonian on a nonempty finite basis possesses a normalized vector minimizing its
+Rayleigh expression. -/
 theorem exists_groundVec (H : Hamiltonian ι) (h : 0 < Fintype.card ι) :
     ∃ ψ : ι → ℂ, IsGroundVector H ψ := by
   obtain ⟨j, hj⟩ := exists_eigenvalues_eq_groundEnergy H h
@@ -245,6 +307,7 @@ theorem exists_groundVec (H : Hamiltonian ι) (h : 0 < Fintype.card ι) :
       from rayleigh_eigVec H.mat H.herm j, hj]
     exact groundEnergy_le_rayleigh H h φ hφ
 
+/-- Every vector is the sum of the chosen eigenvectors weighted by its inner products with them. -/
 theorem eigVec_expansion (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι → ℂ) :
     ψ = ∑ k, ((star (eigVec A hA k)) ⬝ᵥ ψ) • eigVec A hA k := by
   calc ψ = (hA.eigenvectorUnitary : Matrix ι ι ℂ) *ᵥ
@@ -255,6 +318,7 @@ theorem eigVec_expansion (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (ψ : ι �
     _ = ∑ j, ((star (eigVec A hA j)) ⬝ᵥ ψ) • eigVec A hA j :=
         Finset.sum_congr rfl (fun j _ => by rw [star_unitary_mulVec_apply])
 
+/-- The Rayleigh expression of any ground vector equals the lowest eigenvalue. -/
 theorem rayleigh_of_groundVector (H : Hamiltonian ι) (h : 0 < Fintype.card ι)
     (ψ : ι → ℂ) (hψ : IsGroundVector H ψ) :
     rayleigh H.mat ψ = groundEnergy H h := by
@@ -265,6 +329,8 @@ theorem rayleigh_of_groundVector (H : Hamiltonian ι) (h : 0 < Fintype.card ι)
       from rayleigh_eigVec H.mat H.herm j, hj]
   exact le_antisymm (hφr ▸ hψ.2 _ hφn) (groundEnergy_le_rayleigh H h ψ hψ.1)
 
+/-- A ground vector has zero coefficient along every chosen eigenvector whose eigenvalue is
+strictly above the ground energy. See [AharonovEtAl2007Adiabatic]. -/
 theorem groundVector_coeffs_vanish (H : Hamiltonian ι) (h : 0 < Fintype.card ι)
     (ψ : ι → ℂ) (hψ : IsGroundVector H ψ) (k : ι)
     (hk : groundEnergy H h < H.herm.eigenvalues k) :
@@ -300,12 +366,16 @@ theorem groundVector_coeffs_vanish (H : Hamiltonian ι) (h : 0 < Fintype.card ι
 
 omit [DecidableEq ι] in
 
+/-- Scaling the first argument of the coordinate inner product multiplies the result by the
+conjugate scalar. -/
 theorem dotProduct_star_smul (c : ℂ) (u v : ι → ℂ) :
     (star (c • u)) ⬝ᵥ v = star c * ((star u) ⬝ᵥ v) := by
   simp only [dotProduct, Pi.star_apply, Pi.smul_apply, smul_eq_mul, Finset.mul_sum, star_mul]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   ring
 
+/-- A normalized vector orthogonal to a ground vector has Rayleigh expression at least the
+second-lowest energy. See [AharonovEtAl2007Adiabatic]. -/
 theorem secondLowest_le_rayleigh_of_orth_ground (H : Hamiltonian ι)
     (h2 : 2 ≤ Fintype.card ι) (ξ w : ι → ℂ)
     (hξ : IsGroundVector H ξ) (hw : IsNormalized w) (horth : (star ξ) ⬝ᵥ w = 0) :
@@ -396,6 +466,8 @@ theorem secondLowest_le_rayleigh_of_orth_ground (H : Hamiltonian ι)
 
 variable {σ : Type} [Fintype σ] [DecidableEq σ]
 
+/-- The adjoint identity rewrites the inner product of `ξ` with `Vᴴ *ᵥ w` as the inner product
+of `V *ᵥ ξ` with `w`. -/
 theorem dotProduct_star_mulVec_left {m n : Type} [Fintype m] [Fintype n]
     (V : Matrix m n ℂ) (ξ : n → ℂ) (w : m → ℂ) :
     (star ξ) ⬝ᵥ (Vᴴ *ᵥ w) = (star (V *ᵥ ξ)) ⬝ᵥ w := by
@@ -403,12 +475,14 @@ theorem dotProduct_star_mulVec_left {m n : Type} [Fintype m] [Fintype n]
 
 omit [DecidableEq ι] in
 
+/-- Applying an isometric matrix and then its conjugate transpose recovers the original vector. -/
 theorem isometry_mulVec_mulVec (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1) (ξ : σ → ℂ) :
     Vᴴ *ᵥ (V *ᵥ ξ) = ξ := by
   rw [mulVec_mulVec, hV, one_mulVec]
 
 omit [DecidableEq ι] in
 
+/-- An isometric matrix preserves `normSq` under matrix-vector multiplication. -/
 theorem normSq_isometry (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1) (ξ : σ → ℂ) :
     normSq (V *ᵥ ξ) = normSq ξ := by
   unfold normSq
@@ -416,6 +490,8 @@ theorem normSq_isometry (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1) (ξ : σ → 
   congr 1
   rw [← dotProduct_star_mulVec_left V ξ (V *ᵥ ξ), isometry_mulVec_mulVec V hV]
 
+/-- The Rayleigh expression of the restricted Hamiltonian at `ξ` equals that of the original
+Hamiltonian at `V *ᵥ ξ`. See [AharonovEtAl2007Adiabatic]. -/
 theorem rayleigh_isometry (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1) (H : Hamiltonian ι) (ξ : σ → ℂ) :
     rayleigh (restrict V H hV).mat ξ = rayleigh H.mat (V *ᵥ ξ) := by
   unfold rayleigh restrict
@@ -424,6 +500,8 @@ theorem rayleigh_isometry (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1) (H : Hamilt
 
 omit [DecidableEq σ] in
 
+/-- If `Vᴴ * H₂.mat * V = 0`, then the Rayleigh expression of `H₂` vanishes on every vector of
+the form `V *ᵥ ξ`. See [AharonovEtAl2007Adiabatic]. -/
 theorem rayleigh_compressed_zero (H₂ : Hamiltonian ι) (V : Matrix ι σ ℂ)
     (hzero : Vᴴ * H₂.mat * V = 0) (ξ : σ → ℂ) : rayleigh H₂.mat (V *ᵥ ξ) = 0 := by
   unfold rayleigh
@@ -433,6 +511,8 @@ theorem rayleigh_compressed_zero (H₂ : Hamiltonian ι) (V : Matrix ι σ ℂ)
     simp only [← mulVec_mulVec]
   rw [h, hzero, zero_mulVec, dotProduct_zero, Complex.zero_re]
 
+/-- If `V` is isometric and the compression of `H₂` by `V` vanishes, the ground energy of `H₁ +
+H₂` is at most that of the restriction of `H₁`. See [AharonovEtAl2007Adiabatic]. -/
 theorem ground_add_le_ground_restrict (V : Matrix ι σ ℂ) (hV : Vᴴ * V = 1)
     (H₁ H₂ : Hamiltonian ι) (hzero : Vᴴ * H₂.mat * V = 0)
     (hcardS : 0 < Fintype.card σ) (hcard : 0 < Fintype.card ι) :

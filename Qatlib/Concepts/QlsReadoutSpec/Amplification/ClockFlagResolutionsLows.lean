@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsStat
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+
+/-!
+# Clock and flag projector resolutions
+
+Proves `Clause3ClockFlagResolutions` from the clock legality hypotheses. Nested clock projectors
+yield orthogonal increments summing to the identity, commuting bad-flag refinements, and
+decreasing potential projectors with explicit endpoint values, corresponding to the projector
+identities of [LowSu2026].
+
+## Main statements
+
+* `Clause3ClockFlagResolutions_answer`: establishes the clock increment, flag refinement, and
+  potential identities.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators ComplexOrder
 
+/-- Proves the clock and flag projector resolution contract, including orthogonal increments,
+flag refinements, potential order, and endpoint identities; see [Low and Su, Propositions 11
+and 12][LowSu2026]. -/
 theorem Clause3ClockFlagResolutions_answer : Clause3ClockFlagResolutions := by
   intro H _ _ m P bad hlegal
   obtain ⟨hP, hP0, hPm, hpsd, hbad, hcomm⟩ := hlegal

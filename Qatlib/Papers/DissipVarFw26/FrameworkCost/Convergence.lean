@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.DissipVarFw26.FrameworkCost.PL
 import Mathlib.Algebra.Order.Floor.Ring
+
+/-!
+# Conditional convergence and integer precision budgets
+
+Under smoothness, a Polyak–Łojasiewicz condition, and a global lower bound, gradient descent
+with step size `1 / β` satisfies an exponential gap estimate. The natural-number ceiling
+`precisionSteps` yields an actual iterate reaching each positive tolerance, with explicit bounds
+on the rounded iteration budget.
+
+This development follows [YaoEtAl2026].
+
+## Main statements
+
+* `theorem1_geometric_decay`: exponential decay under the stated optimization hypotheses.
+* `theorem1_actual_precision`: the iterate at `precisionSteps` reaches the requested accuracy.
+* `theorem1_global_convergence`: decay, accuracy, and the rounded budget estimate in one
+  statement.
+
+## References
+
+* [Yao et al., 2026][YaoEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +43,9 @@ open Qatlib.Papers.DissipVarFw26.FrameworkCost.PL
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 
+/-- For `SmoothGrad C β`, `PLCond C μ Cstar`, a global lower bound `Cstar`, and `0 < μ ≤ β`,
+gradient descent with step `1 / β` has gap at most `exp (-(μ / β) * t)` times its initial
+gap. See [YaoEtAl2026]. -/
 theorem theorem1_geometric_decay
     (C : E → ℝ) (β μ Cstar : ℝ) (hβ : 0 < β) (hsmooth : SmoothGrad C β)
     (hpl : PLCond C μ Cstar) (hmin : ∀ x, Cstar ≤ C x) (_hμ0 : 0 < μ) (hμβ : μ ≤ β)
@@ -37,6 +63,8 @@ theorem theorem1_geometric_decay
     ring
   simpa only [harg] using hthis
 
+/-- For positive `Δ0`, `ε`, `β`, and `μ`, evaluating the exponential gap bound at `(β / μ) * log
+(Δ0 / ε)` gives a value at most `ε`. See [YaoEtAl2026]. -/
 theorem theorem1_iteration_bound
     (Δ0 ε β μ : ℝ) (hβ : 0 < β) (hμ0 : 0 < μ) (hΔ0 : 0 < Δ0) (hε : 0 < ε) :
     Real.exp (-(μ / β * ((β / μ) * Real.log (Δ0 / ε)))) * Δ0 ≤ ε := by
@@ -55,6 +83,8 @@ theorem theorem1_iteration_bound
   calc (Δ0 / ε)⁻¹ * Δ0 = ε := heq
     _ ≤ ε := le_refl ε
 
+/-- For positive `β`, `μ`, and `ε` with `ε ≤ Δ0`, bounds `β / μ ≤ P` and `log (Δ0 / ε) ≤ Q` with
+`P ≥ 0` imply `(β / μ) * log (Δ0 / ε) ≤ P * Q`. See [YaoEtAl2026]. -/
 theorem theorem1_poly_iterations
     (P Q β μ Δ0 ε : ℝ) (hβ : 0 < β) (hμ0 : 0 < μ) (_hΔ0 : 0 < Δ0) (hε : 0 < ε)
     (hP0 : 0 ≤ P) (hεle : ε ≤ Δ0)
@@ -67,9 +97,13 @@ theorem theorem1_poly_iterations
     linarith
   exact mul_le_mul hβμ hlog hlog0 hP0
 
+/-- The natural-number ceiling of `(β / μ) * log (Δ0 / ε)`. -/
 def precisionSteps (β μ Δ0 ε : ℝ) : ℕ :=
   Nat.ceil ((β / μ) * Real.log (Δ0 / ε))
 
+/-- Under the smoothness, PL, and lower-bound hypotheses with `0 < μ ≤ β` and positive initial
+gap, the gradient-descent iterate at `precisionSteps` has gap at most any prescribed
+positive `ε`. See [YaoEtAl2026]. -/
 theorem theorem1_actual_precision
     (C : E → ℝ) (β μ Cstar : ℝ) (hβ : 0 < β) (hsmooth : SmoothGrad C β)
     (hpl : PLCond C μ Cstar) (hmin : ∀ x, Cstar ≤ C x) (hμ0 : 0 < μ) (hμβ : μ ≤ β)
@@ -83,6 +117,8 @@ theorem theorem1_actual_precision
     ((mul_le_mul_of_nonneg_right he hΔ0.le).trans
       (theorem1_iteration_bound (C θ0 - Cstar) ε β μ hβ hμ0 hΔ0 hε))
 
+/-- For positive `β`, `μ`, and `ε` with `ε ≤ Δ0` and `β / μ ≤ P`, the rounded budget is strictly
+smaller than `P * log (Δ0 / ε) + 1`. -/
 theorem precisionSteps_lt_poly (P β μ Δ0 ε : ℝ) (hβ : 0 < β) (hμ : 0 < μ)
     (hε : 0 < ε) (hεle : ε ≤ Δ0) (hβμ : β / μ ≤ P) :
     (precisionSteps β μ Δ0 ε : ℝ) < P * Real.log (Δ0 / ε) + 1 := by
@@ -91,6 +127,10 @@ theorem precisionSteps_lt_poly (P β μ Δ0 ε : ℝ) (hβ : 0 < β) (hμ : 0 < 
   exact (Nat.ceil_lt_add_one (mul_nonneg (div_pos hβ hμ).le hl)).trans_le
     (add_le_add (mul_le_mul_of_nonneg_right hβμ hl) (le_refl 1))
 
+/-- Under the stated smoothness, PL, lower-bound, and positivity hypotheses, gradient descent
+has exponential gap decay and reaches every positive tolerance at `precisionSteps`, whose
+value is less than `P * Q + 1` under the corresponding ratio and logarithm bounds. See
+[YaoEtAl2026]. -/
 theorem theorem1_global_convergence
     (C : E → ℝ) (β μ Cstar : ℝ) (hβ : 0 < β) (hsmooth : SmoothGrad C β)
     (hpl : PLCond C μ Cstar) (hmin : ∀ x, Cstar ≤ C x) (hμ0 : 0 < μ) (hμβ : μ ≤ β)

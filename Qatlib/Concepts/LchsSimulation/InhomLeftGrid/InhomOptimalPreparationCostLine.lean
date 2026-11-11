@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomOptimalPreparationCostStat
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionLine
+
+/-!
+# Preparation-window cost for inhomogeneous LCHS
+
+`inhomogeneousOptimalPreparationCost` bounds the amplification-window length for the unified
+inhomogeneous LCHS coefficients. With the prescribed quadrature schedule, derivative and norm
+bounds, source-integral slack, and solution-norm lower bound τ, the window length is at most
+`8*q + 1`, where `q = (1 + ∫ ‖b(u)‖ du) / τ`. This gives a concrete finite-grid preparation
+estimate related to [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneousOptimalPreparationCost`: the explicit source-norm preparation-window bound.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -28,6 +47,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Proves `InhomogeneousOptimalPreparationCost`, bounding the prescribed preparation-window
+length by `8*q + 1` with `q = (1 + ∫ ‖b(u)‖ du) / τ` under its schedule and regularity
+hypotheses; see [AnLiuLin2023]. -/
 theorem inhomogeneousOptimalPreparationCost : InhomogeneousOptimalPreparationCost := by
   intro I _ _ L H b b' s t ε τ Λ β lamL lamH bmax Mt B P i₀ hL hH hb hPSD hHerm hst
     hε hbmax0 hτ _hετ hd hβ hbmax hlL hlH hΛ _hB _hP _hprep hMt hslack _hτx

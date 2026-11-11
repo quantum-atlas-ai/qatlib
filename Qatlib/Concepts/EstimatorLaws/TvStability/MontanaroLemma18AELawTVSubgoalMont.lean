@@ -8,6 +8,29 @@ import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18AELawTVSubgoalS
 import Qatlib.Concepts.AEMeanReadout.AELawStability.MontanaroClaim17Mont
 import Qatlib.Concepts.EstimatorLaws.TvStability.Lemma18PhaseTVAux
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
+
+/-!
+# Amplitude-estimation law stability
+
+Proves the amplitude-estimation output-law stability estimate used in Lemma 18 of
+[Montanaro2015]. The argument expresses the law as an equal mixture of two phase kernels,
+controls their total variation through phase-state overlap, and bounds the phase change in terms
+of the change in good-event probability.
+
+## Main statements
+
+* `phase_label_tv` bounds phase-kernel total variation by `π * M / sqrt 3` times the phase
+  displacement.
+* `ae_closed_mixture` gives the two-phase mixture formula, including event probabilities zero
+  and one.
+* `montanaroLemma18AELawTVSubgoal` proves the stated `π² * M / (2 * sqrt 3)` square-root
+  stability bound.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,8 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 open Matrix
 open scoped Classical BigOperators
 
+/-- Bounds total variation between two phase-kernel label laws by `(π * M / sqrt 3) * |ω₁ - ω₂|`
+for `M ≥ 2`. -/
 private theorem phase_label_tv (M : ℕ) (hM : 2 ≤ M) (ω₁ ω₂ : ℝ) :
     (1 / 2 : ℝ) * ∑ z : Fin M,
       |‖qpeKernel M ω₁ z‖ ^ 2 - ‖qpeKernel M ω₂ z‖ ^ 2| ≤
@@ -83,6 +108,8 @@ private theorem phase_label_tv (M : ℕ) (hM : 2 ≤ M) (ω₁ ω₂ : ℝ) :
     _ ≤ (Real.pi * M / Real.sqrt 3) * |ω₁ - ω₂| :=
       mul_le_mul_of_nonneg_left hδangle (by positivity)
 
+/-- Expresses an amplitude-estimation label probability as the equal mixture of kernels at
+phases `±arcsin (sqrt μ) / π`, including `μ = 0` and `μ = 1`. -/
 private theorem ae_closed_mixture {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (μ : ℝ)
@@ -116,6 +143,9 @@ private theorem ae_closed_mixture {I : Type} [Fintype I] [DecidableEq I]
   rw [hμ, Real.sin_arcsin (by linarith [Real.sqrt_nonneg μ]) hr.le,
     Real.sq_sqrt hμ0]
 
+/-- Proves the amplitude-estimation law bound used in Lemma 18 of [Montanaro2015]: total
+variation is at most `π² * M / (2 * sqrt 3)` times the square root of the change in
+good-event probability. -/
 theorem montanaroLemma18AELawTVSubgoal : MontanaroLemma18AELawTVSubgoal := by
   intro I _ _ M hM A₁ A₂ j₁ j₂ S₁ S₂ hA₁ hA₂ μ₁ μ₂ hμ₁ hμ₂
   let θ₁ := Real.arcsin (Real.sqrt μ₁)

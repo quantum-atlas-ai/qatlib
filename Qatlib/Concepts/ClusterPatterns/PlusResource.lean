@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
 import Mathlib.Analysis.Normed.Module.Connected
+
+/-!
+# Preparing qubit states from the plus resource
+
+`clusterPlusState` is the one-qubit plus state, and `clusterPlusOutputVector` records a branch
+of a cluster sequence started from this state. The module proves that four unit-modulus
+measurement parameters prepare any normalized qubit vector exactly, together with branch
+amplitudes, reduced densities, probabilities, and circuit costs.
+
+The construction gives an explicit state-preparation instance of the measurement-based resource
+scheme in [RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_plus_word_surjectivity`: every normalized qubit vector is reached by a four-step
+  cluster word.
+* `cluster_plus_resource_preparation`: state preparation with exact branch amplitudes and
+  resource counts.
+* `cluster_plus_resource_output_density`: reduced branch density and total branch mass.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -28,16 +53,20 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The one-qubit plus state with computational basis indexed by `Fin 2`. -/
 noncomputable def clusterPlusState : QState (Fin 2) := relabelState boolEquivFin2 Plus
 
+/-- The plus state embedded by `clusterSequenceInitialFrame` into an `n + 1` qubit register. -/
 noncomputable def clusterPlusInput (n : ℕ) : QState (Fin (2 ^ (n + 1))) :=
   clusterSequenceInitialFrame n *ᵥ clusterPlusState
 
+/-- The unnormalized output vector of branch `ω` of the cluster sequence on the plus input. -/
 noncomputable def clusterPlusOutputVector (zs : List ℂ) (ω : Reg zs.length) :
     QState (Fin (2 ^ (zs.length + 1))) :=
   (observedLeaf 1 (clusterSequenceProgram zs) (clusterSequenceLeaf zs ω)).operator *ᵥ
     clusterPlusInput zs.length
 
+/-- Complex numbers of equal norm differ by multiplication by a unit-modulus scalar. -/
 theorem clusterPlus_unit_phase (a b : ℂ) (h : ‖a‖ = ‖b‖) :
     ∃ z : ℂ, ‖z‖ = 1 ∧ z * b = a := by
   by_cases hb : b = 0
@@ -46,6 +75,8 @@ theorem clusterPlus_unit_phase (a b : ℂ) (h : ‖a‖ = ‖b‖) :
   · refine ⟨a / b, ?_, div_mul_cancel₀ a hb⟩
     rw [norm_div, h, div_self (norm_ne_zero_iff.mpr hb)]
 
+/-- Two circles with radii `r` and `s` and centers zero and `p` intersect under the stated
+triangle inequalities. -/
 theorem clusterPlus_circle_intersection (p : ℂ) (r s : ℝ)
     (hr : 0 ≤ r) (_hs : 0 ≤ s)
     (hlo : |r - ‖p‖| ≤ s) (hhi : s ≤ r + ‖p‖) :
@@ -73,6 +104,8 @@ theorem clusterPlus_circle_intersection (p : ℂ) (r s : ℝ)
     (show s ∈ Set.Icc ‖a - p‖ ‖-a - p‖ by simpa [hda, hdb] using And.intro hlo hhi)
   exact ⟨w, by simpa [Metric.mem_sphere, dist_zero_right] using hw, hws⟩
 
+/-- For unit-modulus parameters, the branch output is supported on measurement register `ω` and
+equals the logical output scaled by `(1 / √2)^zs.length`. -/
 theorem clusterPlus_actual_amplitude (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1)
     (ω v : Reg zs.length) (c : Fin 2) :
     clusterPlusOutputVector zs ω
@@ -92,6 +125,8 @@ theorem clusterPlus_actual_amplitude (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z�
     ring
   · simp [h]
 
+/-- Each cluster-sequence branch on the plus input accepts, uses no queries, and has `zs.length`
+measurements and `6 * zs.length - 1` gates. -/
 theorem clusterPlus_actual_cost (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1)
     (ω : Reg zs.length) :
     (observedLeaf 1 (clusterSequenceProgram zs) (clusterSequenceLeaf zs ω)).accepted = true ∧
@@ -101,12 +136,16 @@ theorem clusterPlus_actual_cost (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1
   have h := (cluster_sequence_actual_program_and_feedback_cost zs hzs).2.2.2 ω
   exact ⟨h.1, h.2.1, h.2.2.2.1, h.2.2.1⟩
 
+/-- The reciprocal of the real square root of two is positive. -/
 private theorem clusterPlus_q_pos : 0 < (Real.sqrt 2)⁻¹ := by positivity
 
+/-- The square of the reciprocal of the real square root of two equals one half. -/
 private theorem clusterPlus_q_sq : ((Real.sqrt 2)⁻¹)^2 = (1 / 2 : ℝ) := by
   rw [inv_pow, Real.sq_sqrt (by norm_num)]
   norm_num
 
+/-- The normalized sum and difference of two complex amplitudes preserve their total squared
+norm. -/
 theorem clusterPlus_hadamard_norm (e f : ℂ) :
     ‖((Real.sqrt 2 : ℂ)⁻¹) * (e + f)‖^2 +
       ‖((Real.sqrt 2 : ℂ)⁻¹) * (e - f)‖^2 = ‖e‖^2 + ‖f‖^2 := by
@@ -117,6 +156,8 @@ theorem clusterPlus_hadamard_norm (e f : ℂ) :
   rw [norm_mul, norm_mul, hq, mul_pow, mul_pow, clusterPlus_q_sq]
   nlinarith
 
+/-- For a normalized pair of amplitudes, the phase of the second can be chosen so that their
+normalized sum has norm at most `1 / √2`. -/
 theorem clusterPlus_small_component (e t : ℂ) (h : ‖e‖^2 + ‖t‖^2 = 1) :
     ∃ f : ℂ, ‖f‖ = ‖t‖ ∧
       ‖((Real.sqrt 2 : ℂ)⁻¹) * (e + f)‖ ≤ (Real.sqrt 2)⁻¹ := by
@@ -138,6 +179,8 @@ theorem clusterPlus_small_component (e t : ℂ) (h : ‖e‖^2 + ‖t‖^2 = 1) 
   rw [norm_mul, norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by positivity), hsum]
   simpa using mul_le_mul_of_nonneg_left hdiff clusterPlus_q_pos.le
 
+/-- Discarding the measured register in a branch yields the outer product of the logical output
+scaled by `(1 / √2)^(2 * zs.length)`. -/
 theorem clusterPlus_actual_density (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1)
     (ω : Reg zs.length) (c c' : Fin 2) :
     (∑ v : Reg zs.length,
@@ -157,6 +200,8 @@ theorem clusterPlus_actual_density (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ 
   · intro v hv
     simp only [clusterPlus_actual_amplitude zs hzs, if_neg hv, zero_mul]
 
+/-- If the logical word reaches a normalized vector, each branch has total squared norm `(1 /
+2)^zs.length`. -/
 theorem clusterPlus_actual_mass (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1)
     (φ : QState (Fin 2)) (hφ : (∑ c : Fin 2, ‖φ c‖ * ‖φ c‖) = 1)
     (hword : clusterSequenceUnitary zs *ᵥ clusterPlusState = φ) (ω : Reg zs.length) :
@@ -191,6 +236,8 @@ theorem clusterPlus_actual_mass (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1
     simp only [clusterPlus_actual_amplitude zs hzs, if_neg hv, norm_zero, zero_mul,
       Finset.sum_const_zero]
 
+/-- A normalized pair with first component of norm at most `1 / √2` possesses a second component
+of the same norm satisfying the stated circle equation. -/
 theorem clusterPlus_middle_circle (c s : ℂ) (hn : ‖c‖^2 + ‖s‖^2 = 1)
     (hc : ‖c‖ ≤ (Real.sqrt 2)⁻¹) :
     ∃ w : ℂ, ‖w‖ = ‖s‖ ∧
@@ -224,16 +271,21 @@ theorem clusterPlus_middle_circle (c s : ℂ) (hn : ‖c‖^2 + ‖s‖^2 = 1)
     abs_of_pos (by positivity)]
   exact mul_inv_cancel₀ (by positivity)
 
+/-- Every computational-basis amplitude of `clusterPlusState` equals `1 / √2`. -/
 theorem clusterPlusState_entry (i : Fin 2) :
     clusterPlusState i = (Real.sqrt 2 : ℂ)⁻¹ := by
   fin_cases i <;> simp [clusterPlusState, Plus, Hadamard, relabelState, boolEquivFin2]
 
+/-- The action of `clusterJ z` is the normalized sum and difference of the input amplitudes with
+the second multiplied by `z`. -/
 theorem clusterPlus_J_apply (z : ℂ) (x : QState (Fin 2)) (i : Fin 2) :
     (clusterJ z *ᵥ x) i = if i = 0 then
       (Real.sqrt 2 : ℂ)⁻¹ * (x 0 + z * x 1) else
       (Real.sqrt 2 : ℂ)⁻¹ * (x 0 - z * x 1) := by
   fin_cases i <;> simp [Matrix.mulVec, dotProduct, Fin.sum_univ_two, clusterJ_entry] <;> ring
 
+/-- A normalized pair satisfying the circle condition is reached from the plus state by two
+unit-modulus cluster steps. -/
 theorem clusterPlus_first_two (c w : ℂ) (hn : ‖c‖^2 + ‖w‖^2 = 1)
     (hcirc : ‖(Real.sqrt 2 : ℂ) * (c + w) - 1‖ = 1) :
     ∃ z₁ z₂ : ℂ, ‖z₁‖ = 1 ∧ ‖z₂‖ = 1 ∧
@@ -286,6 +338,8 @@ theorem clusterPlus_first_two (c w : ℂ) (hn : ‖c‖^2 + ‖w‖^2 = 1)
     field_simp
     ring
 
+/-- Every normalized qubit vector is the exact output of a four-step cluster word with
+unit-modulus parameters, as a resource-preparation instance of [RaussendorfBriegel2000]. -/
 theorem cluster_plus_word_surjectivity :
     ∀ φ : QState (Fin 2), (∑ i : Fin 2, ‖φ i‖ * ‖φ i‖) = 1 →
       ∃ zs : List ℂ, zs.length = 4 ∧ (∀ z ∈ zs, ‖z‖ = 1) ∧
@@ -344,6 +398,9 @@ theorem cluster_plus_word_surjectivity :
     rcases hz with rfl | rfl | rfl | rfl <;> assumption
   · simpa only [clusterSequenceUnitary, Matrix.one_mul, ← Matrix.mulVec_mulVec] using h4
 
+/-- Every normalized qubit vector has a four-step cluster preparation with exact branch
+amplitudes, acceptance, and query, measurement, and gate counts. This realizes the
+plus-resource preparation scheme associated with [RaussendorfBriegel2000]. -/
 theorem cluster_plus_resource_preparation :
     ∀ φ : QState (Fin 2), (∑ i : Fin 2, ‖φ i‖ * ‖φ i‖) = 1 →
       ∃ zs : List ℂ, zs.length = 4 ∧ (∀ z ∈ zs, ‖z‖ = 1) ∧
@@ -363,6 +420,9 @@ theorem cluster_plus_resource_preparation :
   intro ω v c
   rw [clusterPlus_actual_amplitude zs hzs, hword]
 
+/-- Every normalized qubit vector has a four-step cluster preparation whose reduced branch
+density is its outer product scaled by `(1 / √2)^8` and whose branch mass is `1 / 16`. See
+[RaussendorfBriegel2000]. -/
 theorem cluster_plus_resource_output_density :
     ∀ φ : QState (Fin 2), (∑ i : Fin 2, ‖φ i‖ * ‖φ i‖) = 1 →
       ∃ zs : List ℂ, zs.length = 4 ∧ (∀ z ∈ zs, ‖z‖ = 1) ∧

@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClusterPatterns.PauliNetwork.CountedClusterNetwork
 import Qatlib.Concepts.ClusterPatterns.PauliNetwork.ClusterNetworkConsumers
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+/-!
+# Deferred Pauli corrections in cluster networks
+
+This module defines `PauliFrame`, the outcome-dependent update `frameUpdate`, and the
+uncorrected measurement branches `rawNetworkStepBranch` and `deferredHistoryBranch`. These
+constructions track the Pauli factors produced by the cluster measurement scheme of
+[RaussendorfBriegel2000] while adjusting subsequent wire parameters.
+
+For legal networks acting on inputs carrying the initial Pauli frame, the branch formulas
+express every valid history as a weighted conjugation by the logical matrix followed by its
+final Pauli frame; invalid histories give zero. `frameCorrectionSteps` realizes the inverse
+final frame with local Pauli gates, and the cost lemmas count the raw measurements, messages,
+and terminal correction gates.
+
+## Main statements
+
+* `deferred_pauli_actual_raw_step_frame_transport`: transport a Pauli frame through one legal
+  measurement step.
+* `deferred_pauli_actual_history_linear_branch`: express a full history using its logical matrix
+  and final frame.
+* `deferredCorrectedBranch_eq`: remove the final frame from a history branch.
+* `deferred_pauli_terminal_correction_actual_local_cost`: realize the inverse frame using at
+  most `2 * n` local gates.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -33,18 +63,26 @@ set_option maxHeartbeats 4000000
 set_option linter.unusedVariables false
 set_option linter.unusedSectionVars false
 
+/-- A pair of Boolean registers recording the local Pauli X and Z exponents on `n` wires. -/
 abbrev PauliFrame (n : ℕ) := Reg n×Reg n
 
+/-- The Pauli frame with every X and Z exponent equal to `false`. -/
 def zeroPauliFrame (n : ℕ) : PauliFrame n := (fun _=>false,fun _=>false)
 
+/-- The tensor product of the local X-times-Z Pauli factors selected by `F.1` and `F.2`, indexed
+by `Fin (2 ^ n)`. -/
 noncomputable def pauliFrameGate (n : ℕ) (F : PauliFrame n) : Operator (2^n) :=
  relabelGate (bitVecEquiv n) (pauliProductDensity (fun i=>
   relabelGate boolEquivFin2 ((if F.1 i then PauliX else 1)*(if F.2 i then PauliZ else 1))))
 
+/-- Adjust a wire gate by conjugating its complex parameter when the current X frame bit is set;
+a CZ gate retains its endpoints. -/
 noncomputable def frameAdjustedGate {n : ℕ} (F : PauliFrame n) : ClusterNetworkGate n→ClusterNetworkGate n
  | .inl (i,ζ) => .inl (i,if F.1 i then star ζ else ζ)
  | .inr (i,j) => .inr (i,j)
 
+/-- Update the X and Z frame registers after a wire or CZ step with the given pair of
+measurement outcomes. -/
 def frameUpdate {n : ℕ} (F : PauliFrame n) : ClusterNetworkGate n→(Bool×Bool)→PauliFrame n
  | .inl (i,_),o => (Function.update F.1 i (o.1 ^^ F.2 i),Function.update F.2 i (F.1 i))
  | .inr (i,j),o =>
@@ -54,16 +92,22 @@ def frameUpdate {n : ℕ} (F : PauliFrame n) : ClusterNetworkGate n→(Bool×Boo
     fun k=>if k=lo then (F.2 k ^^ F.1 hi) ^^ o.2
            else if k=hi then (F.2 k ^^ F.1 lo) ^^ o.1 else F.2 k)
 
+/-- Propagate an initial Pauli frame through a gate list by applying `frameUpdate` along the
+outcome history. -/
 def finalPauliFrame {n : ℕ} : (gs : List (ClusterNetworkGate n))→
  (Fin gs.length→Bool×Bool)→PauliFrame n→PauliFrame n
  | [],_,F => F
  | g::gs,hist,F => finalPauliFrame gs (fun k=>hist k.succ) (frameUpdate F g (hist 0))
 
+/-- The observed cluster wire circuit consisting of four gates and one binary measurement,
+terminating without an outcome-dependent correction. -/
 noncomputable def uncorrectedWireProgram (ζ : ℂ) : ObservedCircuit (Fin 4) :=
  .step (.gate clusterWireHbGate) (.step (.gate (clusterWirePhaseGate ζ))
   (.step (.gate clusterCZ) (.step (.gate clusterWireHaGate)
    (.measure 2 clusterAliceLabel (fun _=>.halt true)))))
 
+/-- The observed cluster CZ circuit consisting of nine gates and two binary measurements,
+terminating without outcome-dependent corrections. -/
 noncomputable def uncorrectedCZProgram : ObservedCircuit (Fin 16) :=
  .step (.gate clusterCZHaGate) (.step (.gate clusterCZHdGate)
   (.step (.gate clusterCZHbGate) (.step (.gate clusterCZHcGate)
@@ -72,15 +116,22 @@ noncomputable def uncorrectedCZProgram : ObservedCircuit (Fin 16) :=
      (.step (.gate clusterCZHdGate)
       (.measure 2 clusterCZLabelA (fun _=>.measure 2 clusterCZLabelD (fun _=>.halt true)))))))))))
 
+/-- Lift the outcome-`a` leaf of `uncorrectedWireProgram` at wire `i` to an operator on the `n +
+2` network wires. -/
 noncomputable def rawNetworkWireLeaf (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) : Operator (2^(n+2)) :=
  (networkStepLiftLeaf (eWireFin n i)
   (observedLeaf 1 (uncorrectedWireProgram ζ) (Fin.cast (by rfl) (boolEquivFin2 a)))).operator
 
+/-- Lift the outcome-`(a, d)` leaf of `uncorrectedCZProgram` at ordered endpoints `lo < hi` to
+the `n + 2` network wires. -/
 noncomputable def rawNetworkCZLeaf (n : ℕ) (lo hi : Fin n) (h : (lo:ℕ)<hi)
  (a d : Bool) : Operator (2^(n+2)) :=
  (networkStepLiftLeaf (eCzFin n lo hi h)
   (observedLeaf 1 uncorrectedCZProgram (Fin.cast (by rfl) (teleportOutcomeEquiv (a,d))))).operator
 
+/-- The uncorrected operator map obtained by loading the network frame, applying the selected
+measurement leaf, and tracing out the auxiliary factor. Wire outcomes with a true second bit
+and CZ steps with coincident endpoints give zero. -/
 noncomputable def rawNetworkStepCore {n : ℕ} : ClusterNetworkGate n→Bool×Bool→Operator (2^n)→Operator (2^n)
  | .inl (i,ζ),o,ρ => if o.2 then 0 else
    Matrix.traceLeft (relabelGate (eWireOutFin n i).symm
@@ -94,20 +145,28 @@ noncomputable def rawNetworkStepCore {n : ℕ} : ClusterNetworkGate n→Bool×Bo
      (rawNetworkCZLeaf n (networkCzLo i j) (networkCzHi i j) (networkCzLo_lt_hi i j h) o.1 o.2)ᴴ))
    else 0
 
+/-- Compose the raw step maps along a history, adjusting each gate to the current Pauli frame
+and updating that frame after the step. -/
 noncomputable def deferredHistoryCore {n : ℕ} : (gs : List (ClusterNetworkGate n))→
  (Fin gs.length→Bool×Bool)→PauliFrame n→Operator (2^n)→Operator (2^n)
  | [],_,_,ρ => ρ
  | g::gs,hist,F,ρ => deferredHistoryCore gs (fun k=>hist k.succ)
    (frameUpdate F g (hist 0)) (rawNetworkStepCore (frameAdjustedGate F g) (hist 0) ρ)
 
+/-- The list of local Pauli X and Z gates selected by the frame bits, ordered by wire with X
+preceding Z on each wire. -/
 noncomputable def frameCorrectionSteps {n : ℕ} (F : PauliFrame n) : List (ReflectionGate n) :=
  (List.ofFn (fun i : Fin n=>
   (if F.1 i then [Sum.inl (i,PauliX)] else []) ++
   (if F.2 i then [Sum.inl (i,PauliZ)] else []))).flatten
 
+/-- The total number of true X and Z frame bits, counting the local Pauli gates needed for the
+terminal correction. -/
 def frameCorrectionCost {n : ℕ} (F : PauliFrame n) : ℕ :=
  ∑i,((if F.1 i then 1 else 0)+(if F.2 i then 1 else 0))
 
+/-- The query, gate, measurement, and message-bit counts of the selected uncorrected network
+leaf. Invalid wire outcomes and CZ steps with coincident endpoints receive the zero tuple. -/
 noncomputable def rawNetworkStepCost {n : ℕ} : ClusterNetworkGate n→Bool×Bool→ℕ×ℕ×ℕ×ℕ
  | .inl (i,ζ),o => if o.2 then (0,0,0,0) else
    let L := networkStepLiftLeaf (eWireFin n i)
@@ -119,6 +178,8 @@ noncomputable def rawNetworkStepCost {n : ℕ} : ClusterNetworkGate n→Bool×Bo
    (L.queries,L.gates,L.measurements,(clusterCZMessage o.1 o.2).length)
    else (0,0,0,0)
 
+/-- Accumulate the four raw resource counts along a history while adjusting gates and
+propagating the Pauli frame. -/
 noncomputable def deferredRawPathCost {n : ℕ} : (gs : List (ClusterNetworkGate n))→
  (Fin gs.length→Bool×Bool)→PauliFrame n→ℕ×ℕ×ℕ×ℕ
  | [],_,_ => (0,0,0,0)
@@ -127,11 +188,14 @@ noncomputable def deferredRawPathCost {n : ℕ} : (gs : List (ClusterNetworkGate
    let t := deferredRawPathCost gs (fun k=>hist k.succ) (frameUpdate F g (hist 0))
    (s.1+t.1,s.2.1+t.2.1,s.2.2.1+t.2.2.1,s.2.2.2+t.2.2.2)
 
+/-- The raw history cost with the length of the final frame correction added to its gate count. -/
 noncomputable def deferredPathCost {n : ℕ} (gs : List (ClusterNetworkGate n))
  (hist : Fin gs.length→Bool×Bool) (F : PauliFrame n) : ℕ×ℕ×ℕ×ℕ :=
  let c := deferredRawPathCost gs hist F
  (c.1,c.2.1+(frameCorrectionSteps (finalPauliFrame gs hist F)).length,c.2.2.1,c.2.2.2)
 
+/-- Package `rawNetworkStepCore` as a complex-linear map on operators for the specified gate and
+outcome. -/
 noncomputable def rawNetworkStepBranch {n : ℕ} (g : ClusterNetworkGate n) (o : Bool × Bool) :
     Operator (2 ^ n) →ₗ[ℂ] Operator (2 ^ n) where
   toFun := rawNetworkStepCore g o
@@ -166,6 +230,8 @@ noncomputable def rawNetworkStepBranch {n : ℕ} (g : ClusterNetworkGate n) (o :
           relabelGate_smul', traceLeft_smul, RingHom.id_apply]
       · simp [rawNetworkStepCore, hv]
 
+/-- The complex-linear history map obtained by composing frame-adjusted raw step branches and
+propagating the initial Pauli frame. -/
 noncomputable def deferredHistoryBranch {n : ℕ} :
     (gs : List (ClusterNetworkGate n)) → (Fin gs.length → Bool × Bool) →
     PauliFrame n → Operator (2 ^ n) →ₗ[ℂ] Operator (2 ^ n)
@@ -174,6 +240,8 @@ noncomputable def deferredHistoryBranch {n : ℕ} :
       (deferredHistoryBranch gs (fun k => hist k.succ) (frameUpdate F g (hist 0))).comp
         (rawNetworkStepBranch (frameAdjustedGate F g) (hist 0))
 
+/-- Evaluating the linear history branch agrees with the recursively defined
+`deferredHistoryCore` on every operator. -/
 theorem deferredHistoryBranch_apply {n : ℕ} (gs : List (ClusterNetworkGate n))
     (hist : Fin gs.length → Bool × Bool) (F : PauliFrame n) (ρ : Operator (2 ^ n)) :
     deferredHistoryBranch gs hist F ρ = deferredHistoryCore gs hist F ρ := by
@@ -183,6 +251,8 @@ theorem deferredHistoryBranch_apply {n : ℕ} (gs : List (ClusterNetworkGate n))
       exact ih (fun k => hist k.succ) (frameUpdate F g (hist 0))
         (rawNetworkStepCore (frameAdjustedGate F g) (hist 0) ρ)
 
+/-- The correction block on one wire has matrix equal to the local Z choice multiplied by the
+local X choice, embedded at that wire. -/
 theorem frameCorrectionBlock_matrix {n : ℕ} (F : PauliFrame n) (i : Fin n) :
     reflectionProgramMatrix
       ((if F.1 i then [Sum.inl (i, PauliX)] else []) ++
@@ -193,6 +263,7 @@ theorem frameCorrectionBlock_matrix {n : ℕ} (F : PauliFrame n) (i : Fin n) :
     simp [reflectionProgramMatrix, reflectionGateMatrix, hx, hz,
       wireGate_one, wireGate_mul]
 
+/-- Every terminal frame correction list satisfies `reflectionLegal`. -/
 theorem frameCorrectionSteps_legal {n : ℕ} (F : PauliFrame n) :
     reflectionLegal (frameCorrectionSteps F) := by
   intro g hg
@@ -203,6 +274,7 @@ theorem frameCorrectionSteps_legal {n : ℕ} (F : PauliFrame n) :
   all_goals rcases hg with rfl | rfl <;>
     simp only [reflectionGateLegal] <;> first | exact pauliX_unitary | exact pauliZ_unitary
 
+/-- The number of gates in `frameCorrectionSteps` equals `frameCorrectionCost`. -/
 theorem frameCorrectionSteps_length {n : ℕ} (F : PauliFrame n) :
     (frameCorrectionSteps F).length = frameCorrectionCost F := by
   simp only [frameCorrectionSteps, List.length_flatten, List.map_ofFn,
@@ -212,6 +284,7 @@ theorem frameCorrectionSteps_length {n : ℕ} (F : PauliFrame n) :
   intro i _
   cases hx : F.1 i <;> cases hz : F.2 i <;> simp [hx, hz]
 
+/-- Correcting a Pauli frame on `n` wires requires at most `2 * n` local Pauli gates. -/
 theorem frameCorrectionCost_le {n : ℕ} (F : PauliFrame n) :
     frameCorrectionCost F ≤ 2 * n := by
   calc
@@ -221,6 +294,8 @@ theorem frameCorrectionCost_le {n : ℕ} (F : PauliFrame n) :
       cases hx : F.1 i <;> cases hz : F.2 i <;> simp [hx, hz]
     _ = 2 * n := by simp [Nat.mul_comm]
 
+/-- For a list of distinct wires, the product of their correction blocks equals the reindexed
+tensor product of their local Z-times-X factors, with identity on unlisted wires. -/
 theorem frameCorrectionList_matrix {n : ℕ} (F : PauliFrame n) (is : List (Fin n))
     (his : is.Nodup) :
     reflectionProgramMatrix (is.flatMap (fun i =>
@@ -244,6 +319,8 @@ theorem frameCorrectionList_matrix {n : ℕ} (F : PauliFrame n) (is : List (Fin 
         simp [his.1]
       · simp [hji]
 
+/-- The matrix of the complete terminal correction list is the conjugate transpose of
+`pauliFrameGate`, reindexed to Boolean registers. -/
 theorem frameCorrectionSteps_matrix {n : ℕ} (F : PauliFrame n) :
     reflectionProgramMatrix (frameCorrectionSteps F) =
       relabelGate (bitVecEquiv n).symm ((pauliFrameGate n F)ᴴ) := by
@@ -260,6 +337,9 @@ theorem frameCorrectionSteps_matrix {n : ℕ} (F : PauliFrame n) :
   cases hx : F.1 i <;> cases hz : F.2 i <;>
     simp [hx, hz, pauliX_conjTranspose, pauliZ_conjTranspose]
 
+/-- The terminal correction list is legal, has length `frameCorrectionCost F ≤ 2 * n`, and its
+compiled circuit acts by the reindexed conjugate transpose of the frame operator on every
+state. -/
 theorem deferred_pauli_terminal_correction_actual_local_cost :
     ∀ (n : ℕ) (F : PauliFrame n),
       reflectionLegal (frameCorrectionSteps F) ∧
@@ -275,16 +355,22 @@ theorem deferred_pauli_terminal_correction_actual_local_cost :
   rw [run_reflectionCompile, frameCorrectionSteps_matrix]
   rfl
 
+/-- A valid uncorrected wire step uses zero queries, four gates, one measurement, and one
+message bit. -/
 theorem rawNetworkWireCost (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) :
     rawNetworkStepCost (.inl (i, ζ)) (a, false) = (0, 4, 1, 1) := by
   cases a <;> rfl
 
+/-- An uncorrected CZ step on distinct wires uses zero queries, nine gates, two measurements,
+and two message bits. -/
 theorem rawNetworkCZCost (n : ℕ) (i j : Fin n) (h : i ≠ j) (a d : Bool) :
     rawNetworkStepCost (.inr (i, j)) (a, d) = (0, 9, 2, 2) := by
   have hv : (i : ℕ) ≠ (j : ℕ) := fun hv => h (Fin.ext hv)
   simp only [rawNetworkStepCost, dif_pos hv]
   cases a <;> cases d <;> rfl
 
+/-- For a legal network and valid history, the raw path cost is `(0, 4 * u + 9 * c, u + 2 * c, u
++ 2 * c)`, where `u` and `c` are its wire and CZ counts, for every initial frame. -/
 theorem deferredRawPathCost_eq {n : ℕ} (gs : List (ClusterNetworkGate n))
     (hist : Fin gs.length → Bool × Bool) (F : PauliFrame n)
     (hgs : networkLegal gs) (hh : networkBranchValid gs hist) :
@@ -320,9 +406,13 @@ theorem deferredRawPathCost_eq {n : ℕ} (gs : List (ClusterNetworkGate n))
           simp [networkCounts]
           omega
 
+/-- The two-qubit leaf operator for outcome `a` of the uncorrected wire circuit with parameter
+`ζ`. -/
 noncomputable def rawWireSmallLeaf (ζ : ℂ) (a : Bool) : Operator 4 :=
   (observedLeaf 1 (uncorrectedWireProgram ζ) (Fin.cast (by rfl) (boolEquivFin2 a))).operator
 
+/-- The corrected wire leaf equals the uncorrected leaf followed by the outcome-dependent X
+feedback operator. -/
 theorem correctedWireLeaf_eq (ζ : ℂ) (a : Bool) :
     networkWireSmallLeafOp ζ a = clusterWireXbGate a * rawWireSmallLeaf ζ a := by
   have hr : rawWireSmallLeaf ζ a =
@@ -333,6 +423,7 @@ theorem correctedWireLeaf_eq (ζ : ℂ) (a : Bool) :
   rw [networkWireSmallLeafOp, clusterWireLeafOperator_eq, hr]
   simp only [Equiv.symm_apply_apply, Matrix.one_mul, Matrix.mul_assoc]
 
+/-- The outcome-dependent wire X feedback operator squares to the identity. -/
 theorem wireFeedback_square (a : Bool) :
     clusterWireXbGate a * clusterWireXbGate a = 1 := by
   unfold clusterWireXbGate clusterWireXbB
@@ -340,10 +431,15 @@ theorem wireFeedback_square (a : Bool) :
   cases a <;> simp [PauliX, permMatrix_mul_self Bool.not_not, teleportRelabelGate_one,
       tensorGate_one]
 
+/-- The uncorrected wire leaf is recovered by multiplying the corrected leaf on the left by the
+X feedback operator. -/
 theorem rawWireSmallLeaf_eq (ζ : ℂ) (a : Bool) :
     rawWireSmallLeaf ζ a = clusterWireXbGate a * networkWireSmallLeafOp ζ a := by
   rw [correctedWireLeaf_eq, ← Matrix.mul_assoc, wireFeedback_square, Matrix.one_mul]
 
+/-- On a basis input with a false auxiliary bit, the reindexed raw wire leaf fixes the measured
+bit to `a` and applies `pauliXChoice a * clusterJ ζ` to the output with amplitude factor `1
+/ √2`. -/
 theorem rawWireSmallLeaf_column (ζ : ℂ) (a bb : Bool) :
     (relabelGate teleportOutcomeEquiv.symm (rawWireSmallLeaf ζ a)) *ᵥ Qatlib.Foundations.PureStateMath.Ket (bb, false) =
       (fun q : Bool × Bool => if q.1 = a then ((Real.sqrt 2 : ℂ)⁻¹) *
@@ -361,17 +457,24 @@ theorem rawWireSmallLeaf_column (ζ : ℂ) (a bb : Bool) :
     simp [pauliXChoice, Matrix.mul_apply, Fin.sum_univ_two, PauliX, permMatrix,
       relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, boolEquivFin2]
 
+/-- The Boolean-register tensor operator acting by `pauliXChoice a * clusterJ ζ` on wire `i` and
+by identity on the other wires. -/
 noncomputable def rawNetworkWireGateB {n : ℕ} (i : Fin n) (ζ : ℂ) (a : Bool) :
     Matrix (Reg n) (Reg n) ℂ :=
   pauliProductDensity (fun j => if j = i then pauliXChoice a * clusterJ ζ else 1)
+/-- The operator `pauliXChoice a * clusterJ ζ` embedded on wire `i`, indexed by `Fin (2 ^ n)`. -/
 noncomputable def rawNetworkWireGate {n : ℕ} (i : Fin n) (ζ : ℂ) (a : Bool) : Operator (2 ^ n) :=
   tensorPauliWireGate n i (pauliXChoice a * clusterJ ζ)
 
+/-- The Boolean-register raw wire operator is the reindexing of `rawNetworkWireGate` along the
+inverse bit-vector equivalence. -/
 theorem rawNetworkWireGateB_eq {n : ℕ} (i : Fin n) (ζ : ℂ) (a : Bool) :
     rawNetworkWireGateB i ζ a = relabelGate (bitVecEquiv n).symm (rawNetworkWireGate i ζ a) := by
   unfold rawNetworkWireGateB rawNetworkWireGate tensorPauliWireGate tensorPauliProduct
   rw [relabelGate_relabelGate]
 
+/-- Each raw wire matrix entry is the local entry on wire `i` multiplied by Kronecker delta
+factors on all other wires. -/
 theorem rawNetworkWireGateB_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (w v : Reg n) :
     rawNetworkWireGateB i ζ a w v
       = (pauliXChoice a * clusterJ ζ) (boolEquivFin2 (w i)) (boolEquivFin2 (v i))
@@ -397,6 +500,8 @@ theorem rawNetworkWireGateB_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (w
         (boolEquivFin2 (v j))) (Finset.mem_univ i)).symm).trans
     (congrArg₂ (· * ·) h1 (Finset.prod_congr rfl fun j hj => hne j hj))
 
+/-- The raw wire operator sends a basis ket to the local wire output, supported on registers
+agreeing with the input away from `i`. -/
 theorem rawNetworkWireGateB_mulVec_ket (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (w v : Reg n) :
     (rawNetworkWireGateB i ζ a *ᵥ Qatlib.Foundations.PureStateMath.Ket v) w
       = (pauliXChoice a * clusterJ ζ) (boolEquivFin2 (w i)) (boolEquivFin2 (v i))
@@ -406,6 +511,9 @@ theorem rawNetworkWireGateB_mulVec_ket (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Boo
   rw [Fintype.sum_eq_single v (fun u hu => by rw [if_neg hu, mul_zero]),
     if_pos rfl, mul_one, rawNetworkWireGateB_apply, networkIndicator_prod_erase]
 
+/-- Applying a lifted raw wire leaf to a column of `networkFrame` gives the routed tensor
+product of its measured local output and the unchanged spectator basis state, with amplitude
+factor `1 / √2`. -/
 theorem rawNetworkWireLeaf_column (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (x : Fin (2 ^ n)) :
     (rawNetworkWireLeaf n i ζ a) *ᵥ (fun r => networkFrame n r x)
       = relabelState (bitVecEquiv (n + 2)) (relabelState (networkWireRoute n i)
@@ -429,6 +537,8 @@ theorem rawNetworkWireLeaf_column (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (x
   simp only [ApplyGate]
   rw [rawWireSmallLeaf_column]
 
+/-- After output reindexing, a raw wire leaf applied to a frame column is supported on auxiliary
+label `(a, false)` and has logical component `rawNetworkWireGateB` scaled by `1 / √2`. -/
 theorem rawNetworkWireLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     (x : Fin (2 ^ n)) :
     relabelState (eWireOutFin n i).symm
@@ -493,6 +603,7 @@ theorem rawNetworkWireLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Boo
       rw [if_pos h1, if_neg h2, mul_zero]
     · rw [if_neg h1, zero_mul]
 
+/-- On a matrix unit, the raw wire step is one half of conjugation by `rawNetworkWireGate`. -/
 theorem rawNetworkWireBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     (x y : Fin (2 ^ n)) :
     rawNetworkStepCore (.inl (i, ζ)) (a, false) (networkMatUnit x y)
@@ -557,6 +668,8 @@ theorem rawNetworkWireBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
         (rawNetworkWireGate i ζ a) (Qatlib.Foundations.PureStateMath.Ket y) from rfl,
     ← matOuter_sandwich]
 
+/-- For every operator, the valid raw wire branch is one half of conjugation by
+`rawNetworkWireGate`. -/
 theorem rawNetworkWireBranch_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     (ρ : Operator (2 ^ n)) :
     rawNetworkStepBranch (.inl (i, ζ)) (a, false) ρ =
@@ -570,9 +683,13 @@ theorem rawNetworkWireBranch_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
   rw [rawNetworkWireBranch_matUnit, conjBranch_apply, smul_smul, smul_smul]
   rw [mul_comm]
 
+/-- The scalar factor `(if x then star ζ else 1) * (if x && z then -1 else 1)` arising when a
+wire step transports a local Pauli frame. -/
 noncomputable def wireFramePhase (ζ : ℂ) (x z : Bool) : ℂ :=
   (if x then star ζ else 1) * (if x && z then -1 else 1)
 
+/-- For a unit-norm parameter, multiplying the adjusted raw wire matrix by the input Pauli frame
+equals the updated output frame times `clusterJ ζ`, up to `wireFramePhase`. -/
 theorem wireFrameTransport (ζ : ℂ) (hζ : ‖ζ‖ = 1) (x z a : Bool) :
     (pauliXChoice a * clusterJ (if x then star ζ else ζ)) *
       relabelGate boolEquivFin2 ((if x then PauliX else 1) * (if z then PauliZ else 1)) =
@@ -592,6 +709,8 @@ theorem wireFrameTransport (ζ : ℂ) (hζ : ‖ζ‖ = 1) (x z a : Bool) :
   all_goals change (starRingEnd ℂ) ζ * ζ = 1 at hz
   all_goals rw [mul_assoc, hz, mul_one]
 
+/-- For `‖ζ‖ = 1`, the adjusted raw wire operator multiplied by the input frame equals
+`wireFramePhase` times the updated frame multiplied by the logical wire gate. -/
 theorem wireFrameTransport_network (n : ℕ) (i : Fin n) (ζ : ℂ) (hζ : ‖ζ‖ = 1)
     (F : PauliFrame n) (a : Bool) :
     rawNetworkWireGate i (if F.1 i then star ζ else ζ) a * pauliFrameGate n F =
@@ -618,10 +737,13 @@ theorem wireFrameTransport_network (n : ℕ) (i : Fin n) (ζ : ℂ) (hζ : ‖ζ
     simpa [c, frameUpdate] using wireFrameTransport ζ hζ (F.1 i) (F.2 i) a
   · simp [c, frameUpdate, Function.update_of_ne hj, hj]
 
+/-- The wire frame transport scalar has norm one whenever `ζ` has norm one. -/
 theorem wireFramePhase_norm (ζ : ℂ) (hζ : ‖ζ‖ = 1) (x z : Bool) :
     ‖wireFramePhase ζ x z‖ = 1 := by
   cases x <;> cases z <;> simp [wireFramePhase, norm_mul, hζ]
 
+/-- Multiplying a conjugating operator by a unit-norm scalar leaves its conjugation map
+unchanged. -/
 theorem deferred_conj_phase {D : ℕ} (c : ℂ) (hc : ‖c‖ = 1) (U : Operator D)
     (ρ : Operator D) : conjBranch (c • U) ρ = conjBranch U ρ := by
   have hh : c * star c = 1 := by
@@ -632,6 +754,8 @@ theorem deferred_conj_phase {D : ℕ} (c : ℂ) (hc : ‖c‖ = 1) (U : Operator
     Matrix.mul_smul, smul_smul]
   rw [mul_comm (star c) c, hh, one_smul]
 
+/-- For a unit-norm wire parameter, the adjusted raw step applied to a framed input equals one
+half of conjugation by the updated frame times the logical wire gate. -/
 theorem deferred_wire_actual_frame_transport (n : ℕ) (i : Fin n) (ζ : ℂ)
     (hζ : ‖ζ‖ = 1) (F : PauliFrame n) (a : Bool) (ρ : Operator (2 ^ n)) :
     rawNetworkStepCore (frameAdjustedGate F (.inl (i, ζ))) (a, false)
@@ -648,9 +772,12 @@ theorem deferred_wire_actual_frame_transport (n : ℕ) (i : Fin n) (ζ : ℂ)
   rw [hm, wireFrameTransport_network n i ζ hζ F a,
     deferred_conj_phase _ (wireFramePhase_norm ζ hζ (F.1 i) (F.2 i))]
 
+/-- The four-qubit leaf operator for outcomes `(a, d)` of the uncorrected CZ circuit. -/
 noncomputable def rawCZSmallLeaf (a d : Bool) : Operator 16 :=
   (observedLeaf 1 uncorrectedCZProgram (Fin.cast (by rfl) (teleportOutcomeEquiv (a, d)))).operator
 
+/-- The uncorrected CZ leaf is the preparation operator followed by the two measurement
+Hadamards and the projectors selecting outcomes `a` and `d`. -/
 theorem rawCZSmallLeaf_operator (a d : Bool) :
     rawCZSmallLeaf a d =
       Projector (Finset.univ.filter (fun r => clusterCZLabelD r = boolEquivFin2 d)) *
@@ -667,6 +794,9 @@ theorem rawCZSmallLeaf_operator (a d : Bool) :
   simp only [Matrix.one_mul, Matrix.mul_assoc]
   rfl
 
+/-- On a basis input with two false auxiliary bits, the raw CZ leaf selects measurement label
+`(a, d)` and shifts the logical bits by those outcomes with the CZ sign and amplitude factor
+`1 / 2`. -/
 theorem rawCZSmallLeaf_column (a d x y : Bool) :
     ApplyGate (rawCZSmallLeaf a d)
       (relabelState clusterCZRegisterEquiv (Qatlib.Foundations.PureStateMath.Ket ((x, y), (false, false)))) =
@@ -721,18 +851,24 @@ theorem rawCZSmallLeaf_column (a d x y : Bool) :
   cases a <;> cases d <;> cases a' <;> cases d' <;>
     simp [relabelState, Function.comp_apply, Equiv.symm_apply_apply]
 
+/-- The complex sign equal to `-1` when both Boolean arguments are true and to `1` otherwise. -/
 def frameBitSign (z b : Bool) : ℂ := if z && b then -1 else 1
 
+/-- The product of the local Z-frame signs evaluated on the bits of the basis register `v`. -/
 noncomputable def frameSign {n : ℕ} (F : PauliFrame n) (v : Reg n) : ℂ :=
   ∏ i, frameBitSign (F.2 i) (v i)
 
+/-- Flip each basis-register bit according to the corresponding X-frame bit. -/
 def frameShift {n : ℕ} (F : PauliFrame n) (v : Reg n) : Reg n :=
   fun i => v i ^^ F.1 i
 
+/-- The tensor product of local X-times-Z frame factors, indexed directly by Boolean registers. -/
 noncomputable def pauliFrameGateB {n : ℕ} (F : PauliFrame n) : Matrix (Reg n) (Reg n) ℂ :=
   pauliProductDensity (fun i => relabelGate boolEquivFin2
     ((if F.1 i then PauliX else 1) * (if F.2 i then PauliZ else 1)))
 
+/-- A local X-times-Z frame entry is the delta selecting the X-shifted output bit multiplied by
+the Z sign of the input bit. -/
 theorem frameLocal_entry (x z w v : Bool) :
     relabelGate boolEquivFin2 ((if x then PauliX else 1) * (if z then PauliZ else 1))
       (boolEquivFin2 w) (boolEquivFin2 v) =
@@ -741,6 +877,8 @@ theorem frameLocal_entry (x z w v : Bool) :
     simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply,
       Matrix.mul_apply, Fintype.sum_bool, PauliX, PauliZ, permMatrix, boolEquivFin2, frameBitSign]
 
+/-- A Boolean-register frame matrix entry is `frameSign F v` when the output is `frameShift F
+v`, and zero otherwise. -/
 theorem pauliFrameGateB_entry {n : ℕ} (F : PauliFrame n) (w v : Reg n) :
     pauliFrameGateB F w v = if w = frameShift F v then frameSign F v else 0 := by
   change (∏ i, relabelGate boolEquivFin2
@@ -764,19 +902,28 @@ theorem pauliFrameGateB_entry {n : ℕ} (F : PauliFrame n) (w v : Reg n) :
   rw [hi]
   by_cases hw : w = frameShift F v <;> simp [hw, frameSign]
 
+/-- Flip the bit at `lo` by `a` and, at a distinct index `hi`, by `d`, preserving all other
+bits. The `lo` case takes precedence if the endpoints coincide. -/
 def rawCZShift {n : ℕ} (lo hi : Fin n) (a d : Bool) (v : Reg n) : Reg n :=
   fun k => if k = lo then v k ^^ a else if k = hi then v k ^^ d else v k
 
+/-- The Boolean-register raw CZ operator obtained by multiplying `networkCzGateB` by the
+permutation matrix of `rawCZShift`. -/
 noncomputable def rawNetworkCZGateB {n : ℕ} (lo hi : Fin n) (a d : Bool) :
     Matrix (Reg n) (Reg n) ℂ := networkCzGateB lo hi * permMatrix (rawCZShift lo hi a d)
+/-- The reindexing of `rawNetworkCZGateB` to `Fin (2 ^ n)`. -/
 noncomputable def rawNetworkCZGate {n : ℕ} (lo hi : Fin n) (a d : Bool) : Operator (2 ^ n) :=
   relabelGate (bitVecEquiv n) (rawNetworkCZGateB lo hi a d)
 
+/-- A raw CZ matrix entry vanishes unless the output is the outcome-dependent bit shift of the
+input; its nonzero value is the CZ sign of the output bits. -/
 theorem rawNetworkCZGateB_entry {n : ℕ} (lo hi : Fin n) (a d : Bool) (w v : Reg n) :
     rawNetworkCZGateB lo hi a d w v =
       if w = rawCZShift lo hi a d v then (if w lo && w hi then (-1 : ℂ) else 1) else 0 := by
   simp [rawNetworkCZGateB, networkCzGateB, Matrix.diagonal_mul, permMatrix]
 
+/-- The raw CZ operator sends a basis ket to its outcome-shifted register with the CZ sign
+determined by the shifted endpoint bits. -/
 theorem rawNetworkCZGateB_mulVec_ket {n : ℕ} (lo hi : Fin n) (a d : Bool) (w v : Reg n) :
     (rawNetworkCZGateB lo hi a d *ᵥ Qatlib.Foundations.PureStateMath.Ket v) w =
       if w = rawCZShift lo hi a d v then (if w lo && w hi then (-1 : ℂ) else 1) else 0 := by
@@ -784,6 +931,8 @@ theorem rawNetworkCZGateB_mulVec_ket {n : ℕ} (lo hi : Fin n) (a d : Bool) (w v
   rw [Fintype.sum_eq_single v (fun u hu => by rw [if_neg hu, mul_zero]),
     if_pos rfl, mul_one, rawNetworkCZGateB_entry]
 
+/-- For ordered distinct endpoints, the raw CZ bit shift preserves every spectator coordinate
+enumerated by `networkCzSpec`. -/
 theorem rawCZShift_spec {n : ℕ} (lo hi : Fin n) (h : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) (v : Reg n) (k : Fin (n - 2)) :
     rawCZShift lo hi a d v
@@ -796,6 +945,8 @@ theorem rawCZShift_spec {n : ℕ} (lo hi : Fin n) (h : (lo : ℕ) < (hi : ℕ))
     fun he => hh.2 (congrArg Fin.val he)
   simp [rawCZShift, hl, hr]
 
+/-- In product coordinates, the raw CZ leaf fixes the measured pair to `(a, d)` and sends `(x,
+y)` to `(x ^^ a, y ^^ d)` with its CZ sign and amplitude factor `1 / 2`. -/
 theorem rawCZSmallLeaf_apply (a d x y : Bool) :
     ApplyGate (relabelGate clusterCZRegisterEquiv.symm (rawCZSmallLeaf a d))
       (Qatlib.Foundations.PureStateMath.Ket ((x, y), (false, false))) =
@@ -813,9 +964,13 @@ theorem rawCZSmallLeaf_apply (a d x y : Bool) :
   cases a <;> cases d <;> cases a' <;> cases d' <;> cases x <;> cases y <;>
     cases b <;> cases c <;> simp
 
+/-- The local raw CZ matrix entry, supported on the outcome-shifted bit pair and carrying the CZ
+sign of the output pair. -/
 def rawCZEntry (a d : Bool) (w v : Bool × Bool) : ℂ :=
   if w = (v.1 ^^ a, v.2 ^^ d) then (if w.1 && w.2 then -1 else 1) else 0
 
+/-- The product-coordinate raw CZ leaf on a basis input has measured label `(a, d)` and logical
+amplitudes equal to one half of `rawCZEntry`. -/
 theorem rawCZSmallLeaf_apply_entry (a d x y : Bool) :
     ApplyGate (relabelGate clusterCZRegisterEquiv.symm (rawCZSmallLeaf a d))
       (Qatlib.Foundations.PureStateMath.Ket ((x, y), (false, false))) =
@@ -823,6 +978,8 @@ theorem rawCZSmallLeaf_apply_entry (a d x y : Bool) :
       if q.1 = (a, d) then (1 / 2 : ℂ) * rawCZEntry a d q.2 (x, y) else 0 :=
   rawCZSmallLeaf_apply a d x y
 
+/-- For ordered endpoints, equality to the raw CZ shift is equivalent to the two prescribed
+endpoint flips and equality of all spectator coordinates. -/
 theorem rawCZSupport_split {n : ℕ} (lo hi : Fin n) (h : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) (w v : Reg n) :
     (w = rawCZShift lo hi a d v) ↔
@@ -842,6 +999,8 @@ theorem rawCZSupport_split {n : ℕ} (lo hi : Fin n) (h : (lo : ℕ) < (hi : ℕ
   rw [hs] at hh
   simpa [rawCZShift, hn] using hh
 
+/-- A lifted raw CZ leaf applied to a frame column factors, after routing, into the measured
+local CZ output scaled by one half and the unchanged spectator basis state. -/
 theorem rawNetworkCZLeaf_column (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) (x : Fin (2 ^ n)) :
     (rawNetworkCZLeaf n lo hi h1 a d) *ᵥ (fun r => networkFrame n r x)
@@ -867,6 +1026,8 @@ theorem rawNetworkCZLeaf_column (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi
     networkRelabelState_ket, networkCzRoute_symm_frameVec, ← tensorState_ket_ket,
     applyGate_tensorGate, applyGate_one, rawCZSmallLeaf_apply_entry]
 
+/-- After output reindexing, the raw CZ leaf on a frame column is supported on auxiliary label
+`(a, d)` and has logical component `rawNetworkCZGateB` scaled by one half. -/
 theorem rawNetworkCZLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) (x : Fin (2 ^ n)) :
     relabelState (eCzOutFin n lo hi h1).symm
@@ -945,6 +1106,8 @@ theorem rawNetworkCZLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) 
         (Prod.ext (congrArg Prod.fst hp) (congrArg Prod.snd hp)))
     rw [if_neg hpairne, zero_mul, if_neg hq]
 
+/-- For distinct CZ endpoints, the raw step on a matrix unit equals one quarter of conjugation
+by the raw CZ operator with canonically ordered endpoints. -/
 theorem rawNetworkCZBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j : ℕ))
     (a d : Bool) (x y : Fin (2 ^ n)) :
     rawNetworkStepCore (.inr (i, j)) (a, d) (networkMatUnit x y)
@@ -1022,6 +1185,8 @@ theorem rawNetworkCZBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j
     show (rawNetworkCZGate (networkCzLo i j) (networkCzHi i j) a d *ᵥ Qatlib.Foundations.PureStateMath.Ket y) = ApplyGate (rawNetworkCZGate (networkCzLo i j) (networkCzHi i j) a d) (Qatlib.Foundations.PureStateMath.Ket y) from rfl,
     ← matOuter_sandwich]
 
+/-- For distinct CZ endpoints, the raw CZ branch on every operator equals one quarter of
+conjugation by `rawNetworkCZGate` with canonically ordered endpoints. -/
 theorem rawNetworkCZBranch_apply (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j : ℕ))
     (a d : Bool) (ρ : Operator (2 ^ n)) :
     rawNetworkStepBranch (.inr (i, j)) (a, d) ρ =
@@ -1036,15 +1201,20 @@ theorem rawNetworkCZBranch_apply (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j :
   rw [rawNetworkCZBranch_matUnit n i j h, conjBranch_apply, smul_smul, smul_smul]
   rw [mul_comm]
 
+/-- The explicit X and Z frame registers after a CZ outcome at the specified endpoints,
+including the cross-coupled input X bits in the Z updates. -/
 def czFrameResult {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (a d : Bool) : PauliFrame n :=
   (fun k => if k = lo then F.1 k ^^ a else if k = hi then F.1 k ^^ d else F.1 k,
    fun k => if k = lo then (F.2 k ^^ F.1 hi) ^^ d
      else if k = hi then (F.2 k ^^ F.1 lo) ^^ a else F.2 k)
 
+/-- The sign associated with the XOR of two frame bits is the product of their signs on the same
+basis bit. -/
 theorem frameBitSign_xor (z x b : Bool) :
     frameBitSign (z ^^ x) b = frameBitSign z b * frameBitSign x b := by
   cases z <;> cases x <;> cases b <;> norm_num [frameBitSign]
 
+/-- The updated CZ frame shift is the input frame shift followed by `rawCZShift`. -/
 theorem czFrameResult_shift {n : ℕ} (F : PauliFrame n) (lo hi : Fin n)
     (a d : Bool) (v : Reg n) :
     frameShift (czFrameResult F lo hi a d) v =
@@ -1058,6 +1228,8 @@ theorem czFrameResult_shift {n : ℕ} (F : PauliFrame n) (lo hi : Fin n)
       simp [frameShift, czFrameResult, rawCZShift, hl, Bool.xor_assoc]
     · simp [frameShift, czFrameResult, rawCZShift, hl, hh]
 
+/-- For distinct endpoints, the updated frame sign equals the input frame sign times the two
+cross-coupled endpoint signs from the X frame and measurement outcomes. -/
 theorem czFrameResult_sign {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo ≠ hi)
     (a d : Bool) (v : Reg n) :
     frameSign (czFrameResult F lo hi a d) v =
@@ -1081,6 +1253,9 @@ theorem czFrameResult_sign {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo
   rw [Finset.prod_mul_distrib, Finset.prod_mul_distrib]
   simp
 
+/-- For distinct endpoints, the raw CZ operator times the Boolean-register input frame equals
+the updated frame times the logical CZ operator, up to the displayed endpoint-dependent
+sign. -/
 theorem czFrameTransportB {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo ≠ hi)
     (a d : Bool) :
     rawNetworkCZGateB lo hi a d * pauliFrameGateB F =
@@ -1110,6 +1285,8 @@ theorem czFrameTransportB {n : ℕ} (F : PauliFrame n) (lo hi : Fin n) (hn : lo 
   · rw [if_neg hw, if_neg hw]
     simp
 
+/-- For distinct endpoints, a raw CZ step on a framed input equals one quarter of conjugation by
+the updated Pauli frame times the logical CZ gate. -/
 theorem deferred_cz_actual_frame_transport (n : ℕ) (i j : Fin n)
     (h : (i : ℕ) ≠ (j : ℕ)) (F : PauliFrame n) (a d : Bool) (ρ : Operator (2 ^ n)) :
     rawNetworkStepCore (.inr (i, j)) (a, d) (conjBranch (pauliFrameGate n F) ρ) =
@@ -1146,6 +1323,10 @@ theorem deferred_cz_actual_frame_transport (n : ℕ) (i j : Fin n)
       rw [conjBranch_comp]
   rw [hcomp, hm, deferred_conj_phase c hc]
 
+/-- For one legal gate, the frame-adjusted raw branch transports the input frame to
+`frameUpdate` and implements the logical gate with weight one half for a wire or one quarter
+for CZ; invalid outcomes give zero. This is the single-step frame identity for the
+measurement scheme of [RaussendorfBriegel2000]. -/
 theorem deferred_pauli_actual_raw_step_frame_transport :
     ∀ (n : ℕ) (F : PauliFrame n) (g : ClusterNetworkGate n)
       (o : Bool × Bool) (ρ : Operator (2 ^ n)), networkLegal [g] →
@@ -1173,11 +1354,17 @@ theorem deferred_pauli_actual_raw_step_frame_transport :
         networkLogicalMatrix, networkGateMatrix] using
         deferred_cz_actual_frame_transport n i j h F a d ρ
 
+/-- Composing conjugation by `B` with conjugation by `A` gives conjugation by the matrix product
+`A * B`. -/
 theorem deferredConj_comp_apply {D : ℕ} (A B : Operator D) (ρ : Operator D) :
     conjBranch A (conjBranch B ρ) = conjBranch (A * B) ρ := by
   show ((conjBranch A).comp (conjBranch B)) ρ = _
   rw [conjBranch_comp]
 
+/-- For a legal network, the linear history map agrees with `deferredHistoryCore` and sends a
+framed input to conjugation by the final frame times the logical matrix, weighted by `2` to
+the negative wire-plus-twice-CZ count on valid histories and zero otherwise. This gives the
+history frame identity for the measurement scheme of [RaussendorfBriegel2000]. -/
 theorem deferred_pauli_actual_history_linear_branch :
     ∀ (n : ℕ) (gs : List (ClusterNetworkGate n))
       (hist : Fin gs.length → Bool × Bool) (F : PauliFrame n), networkLegal gs →
@@ -1228,6 +1415,7 @@ theorem deferred_pauli_actual_history_linear_branch :
       · rw [if_neg hV1, map_zero,
           if_neg (fun hv => hV1 ((networkBranchValid_cons g gs hist).mp hv).1)]
 
+/-- Every Pauli frame operator belongs to the unitary group on `Fin (2 ^ n)`. -/
 theorem pauliFrameGate_unitary (n : ℕ) (F : PauliFrame n) :
     pauliFrameGate n F ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ := by
   let A : Fin n → Operator 2 := fun i => relabelGate boolEquivFin2
@@ -1250,12 +1438,15 @@ theorem pauliFrameGate_unitary (n : ℕ) (F : PauliFrame n) :
     simpa only [Matrix.star_eq_conjTranspose] using Matrix.mem_unitaryGroup_iff'.mp (hu i)
   rw [hh, tensorPauliProduct_one]
 
+/-- The operator of the zero Pauli frame is the identity matrix. -/
 theorem zeroPauliFrame_gate (n : ℕ) : pauliFrameGate n (zeroPauliFrame n) = 1 := by
   change tensorPauliProduct n (fun i => relabelGate boolEquivFin2
     ((if (zeroPauliFrame n).1 i then PauliX else 1) *
      (if (zeroPauliFrame n).2 i then PauliZ else 1))) = 1
   simp [zeroPauliFrame, teleportRelabelGate_one, tensorPauliProduct_one]
 
+/-- Starting from the zero frame, a legal network history is weighted conjugation by its final
+Pauli frame times the logical matrix when valid, and is zero otherwise. -/
 theorem deferredHistoryBranch_zero_formula {n : ℕ} (gs : List (ClusterNetworkGate n))
     (hist : Fin gs.length → Bool × Bool) (hgs : networkLegal gs) (ρ : Operator (2 ^ n)) :
     deferredHistoryBranch gs hist (zeroPauliFrame n) ρ =
@@ -1268,6 +1459,9 @@ theorem deferredHistoryBranch_zero_formula {n : ℕ} (gs : List (ClusterNetworkG
   simp only [conjBranch_apply, Matrix.one_mul, Matrix.conjTranspose_one, Matrix.mul_one] at h
   exact h
 
+/-- For a legal network, composing a zero-frame history branch with the inverse final frame
+gives conjugation by the logical matrix weighted by `2` to the negative wire-plus-twice-CZ
+count for valid histories, and the zero map otherwise. -/
 theorem deferredCorrectedBranch_eq {n : ℕ} (gs : List (ClusterNetworkGate n))
     (hist : Fin gs.length → Bool × Bool) (hgs : networkLegal gs) :
     (conjBranch ((pauliFrameGate n (finalPauliFrame gs hist (zeroPauliFrame n)))ᴴ)).comp

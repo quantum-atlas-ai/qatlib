@@ -9,10 +9,31 @@ import Mathlib.Data.Nat.Factorization.Basic
 import Mathlib.Data.Nat.Totient
 import Mathlib.Algebra.BigOperators.Associated
 
+/-!
+# Lucas primality certificates with separate witnesses
+
+This module proves a Lucas primality criterion allowing a different modular witness for each
+prime divisor of `N - 1`. Valuation comparisons combine the separate order witnesses into a
+divisibility statement, and `separateLucasProduct` accepts an explicit prime-power product for
+`N - 1`; this certificate framework is relevant to quantum primality testing [ChauLo1995].
+
+## Main statements
+
+* `forcedValuation`: Failure to divide m/q forces the full q-adic exponent of m.
+* `separateLucas`: Separate witnesses for the prime divisors of N - 1 imply primality.
+* `separateLucasProduct`: A prime-power product supplies the factors for the criterion.
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Foundations.PrimalityCerts.LucasTests
 
+/-- If `d ∣ m` but `d` does not divide `m / q`, where `q` is a prime divisor of nonzero `m`, the
+q-adic exponent of `m` is at most that of `d`. -/
 theorem forcedValuation {m d q : ℕ} (hm : m ≠ 0) (hq : q.Prime)
     (hqm : q ∣ m) (hdm : d ∣ m) (hnot : ¬ d ∣ m / q) :
     m.factorization q ≤ d.factorization q := by
@@ -33,6 +54,8 @@ theorem forcedValuation {m d q : ℕ} (hm : m ≠ 0) (hq : q.Prime)
     rw [hzero, Nat.sub_zero]
     exact hle p
 
+/-- Nonzero `m` divides nonzero `c` if each prime divisor `q` of `m` has a common divisor of `m`
+and `c` that does not divide `m / q`. -/
 theorem dvd_fromSeparateWitnesses {m c : ℕ} (hm : m ≠ 0) (hc : c ≠ 0)
     (hw : ∀ q : ℕ, q.Prime → q ∣ m →
       ∃ d : ℕ, d ∣ m ∧ d ∣ c ∧ ¬ d ∣ m / q) : m ∣ c := by
@@ -46,6 +69,8 @@ theorem dvd_fromSeparateWitnesses {m c : ℕ} (hm : m ≠ 0) (hc : c ≠ 0)
   · rw [Nat.factorization_eq_zero_of_not_dvd hqm]
     exact Nat.zero_le _
 
+/-- The Lucas criterion with a separate witness for each prime divisor of `N - 1`: witnesses
+satisfying the full-power equality and reduced-power inequality imply `N.Prime`. -/
 theorem separateLucas (N : ℕ)
     (hw : ∀ q : ℕ, q.Prime → q ∣ N - 1 →
       ∃ a : ZMod N, a ^ (N - 1) = 1 ∧ a ^ ((N - 1) / q) ≠ 1) : N.Prime := by
@@ -73,6 +98,8 @@ theorem separateLucas (N : ℕ)
       exact orderOf_dvd_iff_pow_eq_one.mp (horder ▸ hd)
   exact Nat.le_of_dvd Fintype.card_pos hdiv
 
+/-- If `N - 1` is the specified product of prime powers and each listed prime has a Lucas
+witness, then `N` is prime. -/
 theorem separateLucasProduct (N : ℕ) (S : Finset ℕ) (β : ℕ → ℕ)
     (hprime : ∀ p ∈ S, p.Prime) (hfactor : N - 1 = ∏ p ∈ S, p ^ β p)
     (hw : ∀ p ∈ S, ∃ a : ZMod N,

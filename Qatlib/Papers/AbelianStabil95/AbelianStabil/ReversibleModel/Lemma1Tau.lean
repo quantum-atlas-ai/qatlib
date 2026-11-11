@@ -6,12 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.ReversibleOperationDefs
 
+/-!
+# Reversible XOR evaluation by uncomputation
+
+`lemma1_tau_representable` uses a reversible computation, a register-copy operation, and the
+reversed computation to implement `Ftau`. The theorem preserves an arbitrary target register
+through XOR evaluation, restores the auxiliary registers to zero, and records the exact cost and
+membership in the supplied reversible basis. The development follows [Kitaev1995].
+
+## Main statements
+
+* `lemma1_tau_representable`: constructs clean XOR evaluation at cost `2 * L + m`.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel
 
 open Qatlib.Foundations.PureStateMath
 
+/-- A basis sequence of cost `L` realizing the lifted computation of `F`, together with the copy
+operation, yields a basis sequence of cost `2 * L + m` implementing `(u, v) ↦ (u, v XOR F
+u)` with zero auxiliary output. This is the compute–copy–uncompute construction of [Kitaev,
+1995, Lemma 1][Kitaev1995]. -/
 theorem lemma1_tau_representable
     {n m w : ℕ} (F : Reg n → Reg m)
     (C : (Reg n × (Reg m × Reg w)) ≃ (Reg n × (Reg m × Reg w)))

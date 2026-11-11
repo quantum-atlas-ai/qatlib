@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedInstrument.ClockBridge.StatisticsDefs
+
+/-!
+# Confidence budget accounting
+
+This module collects the statistical confidence bounds with exact record and failure budget
+identities. The example `clause33_peak_space` shows that the total number of native selector
+cells can differ from the maximum of the pilot size and one main block size. The Monte Carlo
+setting is described in [Montanaro2015].
+
+## Main statements
+
+* `clause33_budget_charges`: states the additive budget identities.
+* `clause33_endpoint`: collects confidence and resource accounting statements.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -21,6 +40,8 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option linter.unusedVariables false
 
+/-- For the displayed budget with three one-record blocks, the native selector cell count
+differs from `confidencePeakSpace`. -/
 theorem clause33_peak_space :
     nativeSelectorCells
         { pilotRecords := 1, blockSize := 1, blockCount := 3,
@@ -30,11 +51,16 @@ theorem clause33_peak_space :
           epsilon := 1 / 10, pilotFailure := 1 / 10, mainFailure := 1 / 10 } := by
   simp [nativeSelectorCells, confidencePeakSpace]
 
+/-- The total record count is the pilot count plus the main block record count, and the total
+failure budget is the sum of the two phase budgets. -/
 theorem clause33_budget_charges (b : ConfidenceBudget) :
     b.totalRecords = b.pilotRecords + b.blockSize * b.blockCount ∧
     b.totalFailure = b.pilotFailure + b.mainFailure :=
   ⟨rfl, rfl⟩
 
+/-- Collects the confidence estimates and record identity under their hypotheses, an explicit
+inequality between selector cells and peak-space accounting, and the additive record and
+failure budget identities. -/
 theorem clause33_endpoint :
     (∀ {X : Type} [Fintype X] (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
       (tol : ℝ) (htol : 0 < tol)

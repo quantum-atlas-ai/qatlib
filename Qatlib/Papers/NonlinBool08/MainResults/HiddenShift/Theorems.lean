@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
 import Qatlib.Papers.NonlinBool08.MainResults.AffineTransform
 import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
+
+/-!
+# Bent hidden-shift identities and decoding
+
+Defines the hidden-shift promises and proves uniqueness and spectral decoding for bent functions
+with a Boolean dual. It also gives binary orthogonality constraints and matching exact query
+bounds for the shifted dot-product family. See [Roetteler2008].
+
+## Main statements
+
+* `decode_eq`: the corrected Walsh spectrum identifies the hidden shift.
+* `orth_ext`: all orthogonality constraints determine the shift.
+* `mmZero_lower`: fewer than m fixed queries cannot distinguish all shifts in the dot-product
+  family.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,12 +41,16 @@ open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 open Qatlib.Papers.NonlinBool08.MainResults.AffineTransform
 open Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland
 
+/-- The relation that `g x = f (x + s)` for every input `x`. -/
 def HidesShiftOn {Ω : Type} [Add Ω] (f g : Ω → ZMod 2) (s : Ω) : Prop :=
   ∀ x, g x = f (x + s)
 
+/-- The binary hidden-shift promise consisting of bentness of `f` and the shift relation from
+`f` to `g`. -/
 def HidesShift {n : ℕ} (f g : BVec n → ZMod 2) (s : BVec n) : Prop :=
   Bent f ∧ HidesShiftOn f g s
 
+/-- A function shifted from a bent function under `HidesShift` is itself bent. -/
 theorem bent_of_hidesShift {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
     (h : HidesShift f g s) : Bent g := by
   have hfun : g = fun x => f ((1 : Matrix (Fin n) (Fin n) (ZMod 2)).mulVec x + s) := by
@@ -37,10 +61,13 @@ theorem bent_of_hidesShift {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
   rw [hfun]
   exact (lemma2_affine f 1 (by simp) s h.1).1
 
+/-- The hidden-shift relation on pairs of binary vectors together with a Maiorana-McFarland
+representation of the unshifted function. -/
 def MMShift {m : ℕ} (f g : (BVec m × BVec m) → ZMod 2) (s : BVec m × BVec m) : Prop :=
   HidesShiftOn f g s ∧
     ∃ (π : Equiv.Perm (BVec m)) (h : BVec m → ZMod 2), f = mm π h
 
+/-- A bent function cannot have two distinct shifts producing the same shifted function. -/
 theorem hidesShift_unique {n : ℕ} {f g : BVec n → ZMod 2} {s s' : BVec n}
     (hf : Bent f) (hs : HidesShiftOn f g s) (hs' : HidesShiftOn f g s') :
     s = s' := by
@@ -71,12 +98,16 @@ theorem hidesShift_unique {n : ℕ} {f g : BVec n → ZMod 2} {s s' : BVec n}
   rw [hsum] at hac
   exact pow_ne_zero n (by norm_num : (2 : ℤ) ≠ 0) hac
 
+/-- The Walsh spectrum of `g` with its signs corrected by the Boolean function `ft`. -/
 def phaseVec {n : ℕ} (ft g : BVec n → ZMod 2) (w : BVec n) : ℤ :=
   eps (ft w) * walsh g w
 
+/-- The unnormalized Walsh sum of the corrected spectrum `phaseVec` at `u`. -/
 def finalAmp {n : ℕ} (ft g : BVec n → ZMod 2) (u : BVec n) : ℤ :=
   ∑ w : BVec n, eps (dot w u) * phaseVec ft g w
 
+/-- Under the dual and hidden-shift promises in even dimension, the final amplitude is zero away
+from `s` and equals `2 ^ (n / 2) * 2 ^ n` at `s`. -/
 theorem finalAmp_eq {n : ℕ} {f g ft : BVec n → ZMod 2} {s : BVec n}
     (hd : IsDual f ft) (hg : HidesShiftOn f g s) (_hn : Even n) (u : BVec n) :
     finalAmp ft g u = (2 : ℤ) ^ (n / 2) * (if u = s then (2 : ℤ) ^ n else 0) := by
@@ -120,6 +151,8 @@ theorem finalAmp_eq {n : ℕ} {f g ft : BVec n → ZMod 2} {s : BVec n}
           intro h0
           exact h ((add_eq_zero_iff_eq_bvec u s).mp h0)
 
+/-- Every bent Boolean function in even dimension possesses a Boolean dual in the sense of
+`IsDual`. -/
 theorem exists_isDual_of_bent {n : ℕ} {f : BVec n → ZMod 2}
     (hf : Bent f) (hn : Even n) : ∃ ft : BVec n → ZMod 2, IsDual f ft := by
   classical
@@ -150,9 +183,12 @@ theorem exists_isDual_of_bent {n : ℕ} {f : BVec n → ZMod 2}
     rw [if_neg hne, eps_one, h]
     ring
 
+/-- Chooses an input with nonzero final amplitude, returning zero if no such input exists. -/
 def decode {n : ℕ} (ft g : BVec n → ZMod 2) : BVec n :=
   if h : ∃ u : BVec n, finalAmp ft g u ≠ 0 then Classical.choose h else 0
 
+/-- In even dimension, decoding the spectrum corrected by a dual of `f` recovers any shift from
+`f` to `g`. -/
 theorem decode_eq {n : ℕ} {f g ft : BVec n → ZMod 2} {s : BVec n}
     (hd : IsDual f ft) (hg : HidesShiftOn f g s) (hn : Even n) :
     decode ft g = s := by
@@ -169,6 +205,8 @@ theorem decode_eq {n : ℕ} {f g ft : BVec n → ZMod 2} {s : BVec n}
     exact hu (by rw [finalAmp_eq hd hg hn u, if_neg hne, mul_zero])
   exact hprop _ (Classical.choose_spec hex)
 
+/-- The cross-correlation of translated sign vectors of a bent function and its shift is `2 ^ n`
+when the translations differ by `s` and zero otherwise. -/
 theorem bent_gram_shift {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
     (hf : Bent f) (hg : HidesShiftOn f g s) (x x' : BVec n) :
     (∑ y : BVec n, eps (f (x + y) + g (x' + y)))
@@ -183,15 +221,18 @@ theorem bent_gram_shift {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
       abel)]
   exact bent_gram hf x (x' + s)
 
+/-- The dot product with a vector supported at coordinate `i` is `v i * c`. -/
 lemma dot_single_left {n : ℕ} (i : Fin n) (c : ZMod 2) (v : BVec n) :
     dot (Pi.single i c) v = v i * c := by
   simp only [dot]
   rw [dotProduct_comm]
   exact dot_single v i c
 
+/-- The binary linear constraint `dot a.1 s + a.2 = 0` on the shift `s`. -/
 def orth {n : ℕ} (a : BVec n × ZMod 2) (s : BVec n) : Prop :=
   dot a.1 s + a.2 = 0
 
+/-- Two shifts satisfying exactly the same binary orthogonality constraints are equal. -/
 theorem orth_ext {n : ℕ} (s s' : BVec n)
     (h : ∀ a : BVec n × ZMod 2, orth a s ↔ orth a s') : s = s' := by
   funext i
@@ -210,11 +251,15 @@ theorem orth_ext {n : ℕ} (s s' : BVec n)
       _ = s i := by rw [zero_add]
   exact hcalc.symm
 
+/-- The dot-product Boolean function on a pair of binary vectors. -/
 def mmZero {m : ℕ} (p : BVec m × BVec m) : ZMod 2 := dot p.1 p.2
 
+/-- The dot-product Boolean function with its second input translated by `s`. -/
 def mmShiftFun {m : ℕ} (s : BVec m) (p : BVec m × BVec m) : ZMod 2 :=
   dot p.1 (p.2 + s)
 
+/-- The function `mmShiftFun s` satisfies the Maiorana-McFarland shift promise for `mmZero` with
+shift `(0, s)`. -/
 theorem mmZero_isShift {m : ℕ} (s : BVec m) :
     MMShift (mmZero (m := m)) (mmShiftFun s) (0, s) := by
   constructor
@@ -226,6 +271,8 @@ theorem mmZero_isShift {m : ℕ} (s : BVec m) :
     rcases p with ⟨x, y⟩
     simp [mmZero, mm]
 
+/-- Any tuple of fewer than `m` binary vectors of length `m` possesses a nonzero common
+orthogonal vector. -/
 lemma exists_orthogonal_nonzero {m k : ℕ} (hk : k < m)
     (x : Fin k → BVec m) :
     ∃ δ : BVec m, δ ≠ 0 ∧ ∀ i, dot (x i) δ = 0 := by
@@ -246,6 +293,8 @@ lemma exists_orthogonal_nonzero {m k : ℕ} (hk : k < m)
   have hi : L v i = 0 := by rw [hv]; rfl
   simpa [L, dot, dotProductBilin] using hi
 
+/-- There are `m` fixed query points whose values distinguish all shifts of the dot-product
+family. -/
 theorem mmZero_upper {m : ℕ} :
     ∃ pts : Fin m → BVec m × BVec m,
       ∀ s s' : BVec m,
@@ -261,6 +310,8 @@ theorem mmZero_upper {m : ℕ} :
   rw [e1, e2] at hi
   exact hi
 
+/-- For any fixed set of fewer than `m` query points, two distinct shifts of the dot-product
+family give identical answers at every point. -/
 theorem mmZero_lower {m k : ℕ} (hk : k < m)
     (pts : Fin k → BVec m × BVec m) :
     ∃ s s' : BVec m, s ≠ s' ∧

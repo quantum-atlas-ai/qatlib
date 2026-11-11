@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+
+/-!
+# Specification of Ising cluster pulse compilation
+
+This module defines `IsingClusterPulseCompilation`, the specification for implementing an
+ordered graph's source pulse by controlled-Z gates and local frame gates. It packages the matrix
+factorization, unitarity, exact gate count, absence of queries, and equality of circuit
+execution with pulse application; the resource construction is motivated by
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `IsingClusterPulseCompilation`: Requires a unitary realization with one gate per edge and one
+  gate per frame vertex.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +35,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.ClusterPatterns.ClusterCompile
 open Qatlib
 
+/-- The proposition that every ordered graph pulse factors into frame and controlled-Z matrices
+and is realized by a unitary circuit with zero queries and the stated exact gate count. -/
 def IsingClusterPulseCompilation : Prop :=
   ∀ (n : ℕ) (edges : Finset (Fin n × Fin n)),
     (∀ e ∈ edges, e.1 < e.2) →

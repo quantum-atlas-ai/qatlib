@@ -8,6 +8,21 @@ import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
 import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
 import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+
+/-!
+# Selected-output stability for fair-bit qDRIFT
+
+A stabilized channel error bound controls both the output operator and its
+mass after selecting a set of instrument outcomes. If the ideal selected mass
+`p` exceeds the error `δ`, the normalized selected states differ in trace norm
+by at most `2 * δ / p`. Applying this to finite fair-bit qDRIFT also records
+the executed circuit's gate, query, random-bit, and sampling-work bounds.
+
+The simulator originates in [Campbell2019]; channel distinguishability and
+postselection background are treated in
+[Watrous, *The Theory of Quantum Information*][Watrous2018]. The finite sampler
+and selected-output guarantees here are properties of the local construction.
+-/
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -32,6 +47,9 @@ open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- Stabilized channel error controls selected masses and, when `δ < p`,
+normalized selected outputs by `2 * δ / p`. For the channel-norm framework,
+see [Watrous, completely bounded trace norms][Watrous2018]. -/
 theorem selected_channel_stabilized_reference_error :
     ∀ (O : Type) [Fintype O] (D E F r : ℕ) (T U : QuantumChannel D E)
     (J : Instrument O E F) (S : Finset O) (δ : ℝ)
@@ -71,6 +89,11 @@ theorem selected_channel_stabilized_reference_error :
     (tensorLeft_posSemidef hA hXT) (tensorLeft_posSemidef hA hXU) hδ hcontr
   exact ⟨hcontr, hG2.1, hG2.2.2⟩
 
+/-- For a normalized positive input and the prescribed fair-bit qDRIFT budgets, an ideal
+selected mass `p` above `δ = (1/2)^s` gives actual selected mass at least `p - δ` and
+normalized-output trace-norm error at most `2 * δ / p`. Every sampled circuit has zero
+oracle queries, `n` gates, and the stated fair-bit and comparison bounds. See
+[Campbell2019]. -/
 theorem fair_qdrift_actual_selected_output_and_ledgers :
     ∀ (O : Type) [Fintype O] (L D E T s r : ℕ) (w : Fin L → ℕ) (j₀ : Fin L)
     (K : Fin L → Operator D) (t : ℝ) (J : Instrument O D E) (S : Finset O)

@@ -8,6 +8,27 @@ import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroGibbsOverlapContracts
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityMont
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqOverlapSubgoalMont
 
+/-!
+# Gibbs normalization and schedule overlap
+
+Establishes the Gibbs overlap bound used in the cooling-schedule analysis of [Montanaro2015],
+while exposing a missing normalization factor in the original candidate contract. A
+constant-energy two-point example refutes that candidate identity; normalized Gibbs laws then
+yield the valid overlap estimate.
+
+## Main statements
+
+* `montanaro_raw_gibbs_sum_identity` computes the unnormalized sum without an extra initial
+  partition-function factor.
+* `montanaroChiSqScheduleOverlapSubgoal_false` refutes the original candidate contract.
+* `montanaro_schedule_overlap_bound` derives `1 / B ≤ gibbsOverlap²` from the Chebyshev schedule
+  inequality.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.EstimatorLaws.TvStability.Montanaro2015
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
@@ -16,6 +37,7 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Computes the raw Gibbs sum as `Z(2 * β₂ - β₁) / Z(β₂)²`, without a factor of `Z(β₁)`. -/
 theorem montanaro_raw_gibbs_sum_identity (Ω : Type) [Fintype Ω]
     (H : Ω → ℕ) (β₁ β₂ : ℝ) :
     chiSqGibbsSum H β₁ β₂ = partitionFn H (2*β₂-β₁)/partitionFn H β₂^2 := by
@@ -28,6 +50,8 @@ theorem montanaro_raw_gibbs_sum_identity (Ω : Type) [Fintype Ω]
   congr 1
   ring
 
+/-- Refutes the original Gibbs schedule contract using a two-point, zero-energy example, where
+its proposed raw-sum identity has the wrong normalization. -/
 theorem montanaroChiSqScheduleOverlapSubgoal_false : ¬ MontanaroChiSqScheduleOverlapSubgoal := by
   intro h
   have hh := (h Bool (fun _ => 0) 0 0 1 (by norm_num)
@@ -36,12 +60,16 @@ theorem montanaroChiSqScheduleOverlapSubgoal_false : ¬ MontanaroChiSqScheduleOv
     (by norm_num [partitionFn, Fintype.sum_bool])).1
   norm_num [chiSqGibbsSum, partitionFn, Fintype.sum_bool] at hh
 
+/-- The normalized finite Gibbs law at inverse temperature `β`, constructed from a positive
+partition function. -/
 private noncomputable def scheduleGibbs {Ω : Type} [Fintype Ω] (H : Ω → ℕ) (β : ℝ)
     (hZ : 0 < partitionFn H β) : FinDist Ω where
   prob x := Real.exp (-(β*(H x : ℝ)))/partitionFn H β
   nonneg x := div_nonneg (Real.exp_nonneg _) (le_of_lt hZ)
   sum_one := by rw [← Finset.sum_div]; exact div_self (ne_of_gt hZ)
 
+/-- Identifies the overlap expression of the normalized Gibbs laws at `β₂` and `β₁` with
+`gibbsOverlap`. -/
 private theorem scheduleGibbs_overlap {Ω : Type} [Fintype Ω]
     (H : Ω → ℕ) (β₁ β₂ : ℝ) (hZ₁ : 0 < partitionFn H β₁) (hZ₂ : 0 < partitionFn H β₂) :
     (∑ x, (scheduleGibbs H β₂ hZ₂).prob x *
@@ -70,6 +98,8 @@ private theorem scheduleGibbs_overlap {Ω : Type} [Fintype Ω]
   congr 1
   ring
 
+/-- Relates one plus the chi-squared divergence of the normalized Gibbs laws to `Z(β₁)` times
+the raw Gibbs sum. -/
 private theorem scheduleGibbs_chi {Ω : Type} [Fintype Ω]
     (H : Ω → ℕ) (β₁ β₂ : ℝ) (hZ₁ : 0 < partitionFn H β₁) (hZ₂ : 0 < partitionFn H β₂) :
     chiSqDist (scheduleGibbs H β₂ hZ₂) (scheduleGibbs H β₁ hZ₁) + 1 =
@@ -80,6 +110,8 @@ private theorem scheduleGibbs_chi {Ω : Type} [Fintype Ω]
   intro x _
   field_simp [ne_of_gt hZ₁, ne_of_gt hZ₂, ne_of_gt (Real.exp_pos (-(β₁*(H x : ℝ))))]
 
+/-- Proves the squared Gibbs overlap lower bound `1 / B` from the Chebyshev schedule inequality
+and positive partition functions, as used in [Montanaro2015]. -/
 theorem montanaro_schedule_overlap_bound (Ω : Type) [Fintype Ω]
     (H : Ω → ℕ) (β₁ β₂ B : ℝ) (_hβ : β₁ ≤ β₂)
     (hZ₁ : 0 < partitionFn H β₁) (hZ₂ : 0 < partitionFn H β₂) (_hB : 0 < B)

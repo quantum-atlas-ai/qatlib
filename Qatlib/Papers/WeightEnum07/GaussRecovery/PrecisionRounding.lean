@@ -8,6 +8,30 @@ import Qatlib.Papers.WeightEnum07.MainResults.Theorem13
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Precision bounds for exact weight recovery
+
+This module propagates componentwise approximation errors through finite weighted sums and the
+affine weight formula. The resulting half-spacing estimate supports
+`weightCounts_exact_of_precision`, which recovers exact weight multiplicities by rounding to a
+known integer lattice.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `weight_error_lt_half`: Under the stated positivity, parameter, and precision assumptions, the
+  scaled error expression is strictly less than `L / 2`.
+* `weightCounts_exact_of_precision`: If all word weights are divisible by positive `L` and
+  approximations are within `L / 2`, lattice rounding recovers the entire exact weight-count
+  function.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +42,8 @@ namespace Qatlib.Papers.WeightEnum07.GaussRecovery
 open scoped BigOperators
 open Qatlib.Papers.WeightEnum07.MainResults
 
+/-- If coefficients have absolute value at most one and each approximation error is at most `B`,
+the weighted-sum error is at most `s.card * B`. -/
 theorem abs_sum_mul_sub_le {ι : Type*} (s : Finset ι) (χ G Ĝ : ι → ℝ) {B : ℝ}
     (hχ : ∀ i ∈ s, |χ i| ≤ 1)
     (h : ∀ i ∈ s, |G i - Ĝ i| ≤ B) :
@@ -36,6 +62,8 @@ theorem abs_sum_mul_sub_le {ι : Type*} (s : Finset ι) (χ G Ĝ : ι → ℝ) {
     _ ≤ ∑ i ∈ s, B := Finset.sum_le_sum hterm
     _ = s.card * B := by rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- Multiplying the weighted-sum formula by a nonnegative scale `c` bounds its error by `c *
+(s.card * B)`. -/
 theorem weight_error_bound {ι : Type*} (s : Finset ι) (C c : ℝ) (χ G Ĝ : ι → ℝ) {B : ℝ}
     (hc : 0 ≤ c) (hχ : ∀ i ∈ s, |χ i| ≤ 1)
     (h : ∀ i ∈ s, |G i - Ĝ i| ≤ B) :
@@ -47,6 +75,8 @@ theorem weight_error_bound {ι : Type*} (s : Finset ι) (C c : ℝ) (χ G Ĝ : �
   calc c * |∑ i ∈ s, χ i * G i - ∑ i ∈ s, χ i * Ĝ i| ≤ c * (s.card * B) :=
         mul_le_mul_of_nonneg_left hsum hc
 
+/-- Under the stated positivity, parameter, and precision assumptions, the scaled error
+expression is strictly less than `L / 2`. See [GeraciVanBussel2007]. -/
 theorem weight_error_lt_half {q N d : ℕ} {L Q ε : ℝ}
     (hq : 0 < q) (hdpos : 0 < d) (hN : 0 < N) (hQ : 0 < Q) (hL : 0 < L)
     (hd : ((q : ℝ) - 1) * ((d : ℝ) - 1) < (q : ℝ) * N)
@@ -85,6 +115,8 @@ theorem weight_error_lt_half {q N d : ℕ} {L Q ε : ℝ}
   rw [heq] at hmain
   linarith
 
+/-- If all word weights are divisible by positive `L` and approximations are within `L / 2`,
+lattice rounding recovers the entire exact weight-count function. See [GeraciVanBussel2007]. -/
 theorem weightCounts_exact_of_precision {n : ℕ} (words : Finset (Fin n → ℤ))
     (approx : (Fin n → ℤ) → ℝ) {L : ℕ} (hL : 0 < L)
     (hdiv : ∀ w ∈ words, (L : ℤ) ∣ (hammingWeightOf w : ℤ))

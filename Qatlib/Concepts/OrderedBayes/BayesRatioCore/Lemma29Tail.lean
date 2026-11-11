@@ -8,6 +8,24 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# Obstruction to the specified query tail contract
+
+This module proves `lemma2_9Tail_obstruction`, refuting `Lemma2_9TailContract`, a formal
+tail-bound contract associated with [BenOrHassidim2007]. A deterministic query-count random
+variable at n = 4, p = 3/4, δ = 1/256, c₁ = 1, and χ = 2 satisfies its mean and lower-tail
+hypotheses but violates its proposed upper-tail conclusion.
+
+## Main statements
+
+* `lemma2_9Tail_obstruction`: the specified tail contract is false.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.9][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +35,9 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib
 
+/-- The formal tail proposition `Lemma2_9TailContract` associated with [Ben-Or and Hassidim,
+Lemma 2.9][BenOrHassidim2007] is false, as witnessed by a deterministic nonnegative random
+variable satisfying its mean and lower-tail hypotheses. -/
 theorem lemma2_9Tail_obstruction : ¬ Lemma2_9TailContract := by
   intro h
   have hl2 : Real.log 2 ≠ 0 := (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne'

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ActualBalance
+
+/-!
+# Rigidity of relaxed parity success
+
+For event acceptance below the parity query threshold, weak separation of the two parity classes
+forces every acceptance value to equal one half. The theorem `parity_no_condition8` rules out
+uniform separation by any positive bias. These results support the parity analysis of
+[FarhiEtAl1998].
+
+## Main statements
+
+* `parity_relaxed_success_forces_half`: If `2 * QueryCount C < n` and event acceptance is at
+  least one half on even inputs and at most one half on odd inputs, it equals one half on every
+  input.
+* `parity_no_condition8`: With `2 * QueryCount C < n`, event acceptance cannot be uniformly at
+  least `1 / 2 + ε` on even inputs and at most `1 / 2 - ε` on odd inputs for positive `ε`.
+
+## References
+
+* [Farhi et al., 1998][FarhiEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +44,8 @@ set_option autoImplicit false
 variable {n : ℕ}
 variable {W : Type} [Fintype W] [DecidableEq W]
 
+/-- If `2 * QueryCount C < n` and event acceptance is at least one half on even inputs and at
+most one half on odd inputs, it equals one half on every input. -/
 theorem parity_relaxed_success_forces_half
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W))
@@ -104,6 +128,8 @@ theorem parity_relaxed_success_forces_half
       simp only [hPm, Finset.mem_filter, Finset.mem_univ, true_and]
       exact hft)
 
+/-- With `2 * QueryCount C < n`, event acceptance cannot be uniformly at least `1 / 2 + ε` on
+even inputs and at most `1 / 2 - ε` on odd inputs for positive `ε`. -/
 theorem parity_no_condition8
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W))

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Taylor polynomials and norm remainders
+
+The polynomial `pfTaylorBefore f p` sums the Taylor terms at zero of degrees strictly below `p`.
+The module relates it to Mathlib's Taylor polynomial and bounds its remainder by a uniform bound
+on the `p`th derivative along the interval between zero and the evaluation point. For
+background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `pfTaylorBefore_succ`: relation with `taylorWithinEval`.
+* `pf_taylor_before_norm_bound`: derivative-controlled Taylor remainder bound.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -15,15 +34,21 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix Set MeasureTheory Filter
 open scoped Classical BigOperators ContDiff Topology
 
+/-- The Taylor sum at zero over degrees strictly below `p`, with terms `(t ^ n / n!) •
+iteratedDeriv n f 0`. -/
 def pfTaylorBefore {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : ℝ→E) (p : ℕ) (t : ℝ) : E :=
   ∑ n∈Finset.range p,(t^n/(n.factorial:ℝ)) • iteratedDeriv n f 0
 
+/-- The Taylor sum below degree `n + 1` equals Mathlib's degree-`n` Taylor polynomial on the
+whole real line. -/
 theorem pfTaylorBefore_succ {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : ℝ→E) (n : ℕ) (t : ℝ) : pfTaylorBefore f (n+1) t=taylorWithinEval f n univ 0 t := by
   rw [taylor_within_apply]
   simp only [pfTaylorBefore,iteratedDerivWithin_univ,sub_zero,div_eq_mul_inv,mul_comm]
 
+/-- For a smooth function into a complete real normed space, a bound `C` on its `p`th derivative
+gives remainder at most `C * |t| ^ p / p!`. -/
 theorem pf_taylor_before_norm_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [CompleteSpace E] (f : ℝ→E) (hf : ContDiff ℝ ∞ f) (p : ℕ) (t C : ℝ) (hC : 0≤C)
     (hder : ∀ u∈uIcc 0 t,‖iteratedDeriv p f u‖≤C) :

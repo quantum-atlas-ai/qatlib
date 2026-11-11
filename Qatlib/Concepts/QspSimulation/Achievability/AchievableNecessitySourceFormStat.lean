@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
+
+/-!
+# Source-form QSP necessity statement
+
+This module packages the necessary properties of the amplitude `lcPlusAmp` into a proposition.
+It requires a squared-modulus bound of one, normalization at angle zero, and a repository-word
+representation for nonempty phase lists on the angle interval from zero to twice pi. This
+formulation records the source convention used in the QSP construction of [LowChuang2017].
+
+## Main statements
+
+* `AchievableNecessitySourceForm` specifies the bound and normalization together with a phase
+  list equal to `lcHalfDiffs phis.reverse` and satisfying the required length relation.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017], *Optimal Hamiltonian Simulation by Quantum Signal
+  Processing*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +34,10 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence
 
 namespace Qatlib.Concepts.QspSimulation.Achievability
 
+/-- Specifies that `lcPlusAmp` has squared modulus at most one and equals one at zero angle. For
+a nonempty phase list and angle between zero and twice pi, it also requires a representation
+by `lcRepoAmp` at the cosine half-angle, using `lcHalfDiffs phis.reverse` and a phase list
+whose length is one less than that of `phis`. -/
 def AchievableNecessitySourceForm : Prop :=
   ∀ (phis : List ℝ) (θ : ℝ),
 

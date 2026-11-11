@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutStat
+
+/-!
+# Specification of finite-copy Helstrom discrimination
+
+This module defines `FiniteCopyHelstromDiscrimination`, a proposition relating the positive
+spectral projector of `ρ - σ` to equal-prior discrimination success. It requires that this
+projector attains the trace-norm optimum and that all binary effects satisfy the corresponding
+upper bound [Helstrom1976].
+
+The specification also requires a success lower bound for timed two-species sign readout under a
+spectral gap, together with its four resource counts. The finite-copy component expresses the
+discrimination application of [LloydMohseniRebentrost2014] using `twoSpeciesSignErrorBudget`.
+
+## Main statements
+
+* `FiniteCopyHelstromDiscrimination`: the combined optimality, finite-copy accuracy, and
+  resource specification.
+
+## References
+
+* [Helstrom, 1976][Helstrom1976]
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -20,6 +44,9 @@ namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix
 open scoped ComplexOrder BigOperators
 
+/-- The proposition combining Helstrom optimality of the positive spectral projector with a
+finite-copy two-species success bound under a spectral gap. It also specifies the four
+resource counts of the QPE procedure. -/
 def FiniteCopyHelstromDiscrimination : Prop :=
   ∀ (d M n : ℕ) (γ : ℝ) (ρ σ V : Operator d) (x : Fin d → ℝ),
     2 ≤ M → 0 < n → 0 < γ → γ ≤ 1 →

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodStat
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanNearPeriodSampling
+
+/-!
+# Simon decoding as a near-period distinguisher
+
+Proves `boundedErrorNearPeriodDistinguisher` by combining the counted Simon decoding pipeline
+with the near-period Fourier sampling bound. For injective functions, the probability of an
+output other than the zero string is at most `2 ^ (-k)` after `n + k` samples.
+
+For a nonzero near period with at most `2 ^ n / (n + k)` violating inputs, the probability of
+not returning the zero string is at least `(1 - 1 / (n + k)) ^ (n + k)`. This develops the
+bounded-error extension of Simon's sampling method [Simon1997].
+
+## Main statements
+
+* `allDot_reject_zero`: rules out the zero-string output when samples are orthogonal to a
+  nonzero vector.
+* `boundedErrorNearPeriodDistinguisher`: establishes the distinguisher specification and its
+  resource counts.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.ReductionCore
@@ -25,6 +49,8 @@ open Qatlib.Concepts.HspRecovery.BackendAudit Qatlib.Concepts.WalkFind.UniformTh
 open Qatlib.Concepts.HspRecovery.Distinguisher
 open scoped Classical ENNReal
 
+/-- If every decoded sample is orthogonal to a nonzero Boolean vector `s`, the Simon secret
+decoder does not return the zero string. -/
 private lemma allDot_reject_zero {n m : ℕ}
     (s : BooleanVec n) (hs : s ≠ 0) (xs : Fin m → AddChar (BooleanVec n) ℂ)
     (hx : ∀ i, booleanDot s (booleanDecodedSamples xs i) = 0) :
@@ -40,6 +66,9 @@ private lemma allDot_reject_zero {n m : ℕ}
   rw [hc] at hm
   exact hs (by simpa using hm)
 
+/-- Establishes the counted Simon near-period distinguisher specification, including the
+injective-case error bound and the near-period lower bound for not returning the zero string
+[Simon1997]. -/
 theorem boundedErrorNearPeriodDistinguisher : BoundedErrorNearPeriodDistinguisher := by
   intro n k R _ _ _ f
   refine ⟨(simon_actual_preparation_and_quantum_cost f (n + k)).2.2.2.2, ?_, ?_⟩

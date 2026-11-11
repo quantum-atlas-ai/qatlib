@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHPerturbation
 import Mathlib.Algebra.Order.Antidiag.Pi
+
+/-!
+# Products of commutator mass series
+
+This module groups products of nonnegative summable sequences by total degree using
+`degreeEquiv`. The specialized profile `massProfile` records products of odd commutator mass
+terms with a fixed total index.
+
+Under `OddControl`, these profiles sum to powers of `commutatorMass` and bound the Dyson
+remainder for repeated symmetric steps with Hermitian generators. This supplies the mass product
+estimates used in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `degree_hasSum`: groups a product series by total degree.
+* `massProfile_hasSum`: sums the mass profile to a power of the commutator mass.
+* `remainder_profile_bound`: bounds the Dyson remainder by the total profile with repetition and
+  factorial denominators.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -19,6 +43,8 @@ open BCHControlled BCHCommMass BCHPerturbation
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 set_option warningAsError false
 
+/-- For a summable nonnegative real sequence, the sum of products over p tuples equals the pth
+power of its sum. -/
 theorem tuple_hasSum (f : ℕ → ℝ) (hf : Summable f) (hpos : ∀ n, 0 ≤ f n) (p : ℕ) :
     HasSum (fun v : Fin p → ℕ => ∏ i, f (v i)) ((∑' n, f n) ^ p) := by
   induction p with
@@ -34,6 +60,8 @@ theorem tuple_hasSum (f : ℕ → ℝ) (hf : Summable f) (hpos : ∀ n, 0 ≤ f 
       simpa only [Fin.prod_univ_succ, Fin.cons_zero, Fin.cons_succ, pow_succ'] using! h
     exact (Fin.consEquiv (fun _ : Fin (p + 1) => ℕ)).hasSum_iff.mp he
 
+/-- The equivalence between tuples of natural numbers grouped by total degree and all tuples of
+natural numbers. -/
 def degreeEquiv (p : ℕ) : (Σ n : ℕ, ↥(Finset.finAntidiagonal p n)) ≃ (Fin p → ℕ) where
   toFun v := v.2.1
   invFun v := ⟨∑ i, v i, ⟨v, Finset.mem_finAntidiagonal.mpr rfl⟩⟩
@@ -44,6 +72,8 @@ def degreeEquiv (p : ℕ) : (Σ n : ℕ, ↥(Finset.finAntidiagonal p n)) ≃ (F
     rfl
   right_inv _ := rfl
 
+/-- Grouping products of a summable nonnegative sequence by total degree gives a series summing
+to the pth power of its sum. -/
 theorem degree_hasSum (f : ℕ → ℝ) (hf : Summable f) (hpos : ∀ n, 0 ≤ f n) (p : ℕ) :
     HasSum (fun n => ∑ v ∈ Finset.finAntidiagonal p n, ∏ i, f (v i)) ((∑' n, f n) ^ p) := by
   have hs := (degreeEquiv p).hasSum_iff.mpr (tuple_hasSum f hf hpos p)
@@ -58,11 +88,14 @@ theorem degree_hasSum (f : ℕ → ℝ) (hf : Summable f) (hpos : ∀ n, 0 ≤ f
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The sum of products of `p` commutator mass terms with total index `n`. -/
 def massProfile (xs : List (Matrix I I ℂ)) (t : ℝ) (p n : ℕ) : ℝ :=
   ∑ v ∈ Finset.finAntidiagonal p n, ∏ i, massTerm xs t (v i)
 
 omit [DecidableEq I] in
 
+/-- A tuple of total index `n` contributes the factor `|t|^(2*n + 3*p)` times the product of the
+corresponding commutator bounds divided by squared degrees. -/
 theorem tuple_mass_degree (xs : List (Matrix I I ℂ)) (t : ℝ) (p n : ℕ)
     (v : Fin p → ℕ) (hv : v ∈ Finset.finAntidiagonal p n) :
     (∏ i, massTerm xs t (v i)) = |t| ^ (2 * n + 3 * p) *
@@ -81,11 +114,16 @@ theorem tuple_mass_degree (xs : List (Matrix I I ℂ)) (t : ℝ) (p n : ℕ)
       ring
     _ = _ := by rw [Finset.prod_mul_distrib, Finset.prod_pow_eq_pow_sum, he]
 
+/-- Under `OddControl` and within its radius, the mass profile sums to the pth power of the
+commutator mass. -/
 theorem massProfile_hasSum (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
     (hc : OddControl xs r J) (t : ℝ) (ht : |t| ≤ r) (p : ℕ) :
     HasSum (massProfile xs t p) (commutatorMass xs t ^ p) :=
   degree_hasSum _ (massTerm_summable xs r J hc t ht) (massTerm_nonneg xs t) p
 
+/-- For Hermitian generators under `OddControl`, positive repetition count and positive
+remainder order, the Dyson remainder norm is bounded by the total mass profile divided by
+the repetition count to power `2*p` and by `p!`. -/
 theorem remainder_profile_bound (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J)
     (q : ℕ) (hq : 0 < q) (t : ℝ) (ht : |t| ≤ r) (p : ℕ) (hp : 0 < p) :

@@ -102,6 +102,25 @@ import Mathlib.Topology.MetricSpace.Pseudo.Constructions
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Rayleigh energies, compressions, and self-energy
+
+This module defines real quadratic-form energies and their infima on unit vectors, both globally
+and within a subspace. The compression, resolvent, and self-energy constructions provide the
+operator vocabulary for [KempeKitaevRegev2006], while the remaining lemmas establish basic norm
+bounds and properties of the energy sets.
+
+## Main statements
+
+* `groundEnergy`: Defines the infimum of unit-vector Rayleigh values.
+* `selfEnergy`: Defines self-energy using a compressed resolvent.
+* `sectionEnergy_mul_le`: Bounds a quadratic form below using its subspace energy.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 noncomputable section
 
 open scoped ComplexOrder
@@ -112,31 +131,43 @@ namespace Qatlib.Papers.LocalHam06.MainResults.OperatorDefs
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
   [FiniteDimensional ℂ E] [Nontrivial E]
 
+/-- The real part of the quadratic form `inner ℂ v (H v)`. -/
 def rayleigh (H : E →L[ℂ] E) (v : E) : ℝ := (inner ℂ v (H v)).re
 
+/-- The set of real Rayleigh values of `H` on unit vectors. -/
 def rect (H : E →L[ℂ] E) : Set ℝ := rayleigh H '' {v : E | ‖v‖ = 1}
 
+/-- The set of real Rayleigh values of `H` on unit vectors lying in `S`. -/
 def sectionSet (S : Submodule ℂ E) (H : E →L[ℂ] E) : Set ℝ :=
   rayleigh H '' {v : E | ‖v‖ = 1 ∧ v ∈ S}
 
+/-- The infimum of the unit-vector Rayleigh values of `H`. -/
 def groundEnergy (H : E →L[ℂ] E) : ℝ := sInf (rect H)
 
+/-- The infimum of the Rayleigh values of `H` on unit vectors in `S`. -/
 def sectionEnergy (S : Submodule ℂ E) (H : E →L[ℂ] E) : ℝ := sInf (sectionSet S H)
 
+/-- The operator on `L` obtained by restricting the input to `L` and orthogonally projecting the
+output back to `L`. -/
 def compressedOperator (L : Submodule ℂ E) (T : E →L[ℂ] E) : L →L[ℂ] L :=
   ((L.starProjection : E →L[ℂ] E).comp (T.comp L.subtypeL)).codRestrict L
     (fun x => L.starProjection_apply_mem (T x))
 
+/-- The ring inverse of `z • 1 - T`. -/
 def resolventOperator (T : E →L[ℂ] E) (z : ℂ) : E →L[ℂ] E :=
   Ring.inverse (z • (1 : E →L[ℂ] E) - T)
 
+/-- The self-energy operator `z • 1` minus the ring inverse of the resolvent of `H + V`
+compressed to `L`. -/
 def selfEnergy (L : Submodule ℂ E) (H V : E →L[ℂ] E) (z : ℝ) : L →L[ℂ] L :=
   (z : ℂ) • (1 : L →L[ℂ] L) -
     Ring.inverse (compressedOperator L (resolventOperator (H + V) (z : ℂ)))
 
+/-- The Rayleigh value at the zero vector is zero. -/
 lemma rayleigh_zero (H : E →L[ℂ] E) : rayleigh H 0 = 0 := by
   simp [rayleigh]
 
+/-- The absolute Rayleigh value is at most `‖H‖ * ‖v‖^2`. -/
 lemma abs_rayleigh_le (H : E →L[ℂ] E) (v : E) :
     |rayleigh H v| ≤ ‖H‖ * ‖v‖ ^ 2 := by
   calc
@@ -148,18 +179,22 @@ lemma abs_rayleigh_le (H : E →L[ℂ] E) (v : E) :
         exact H.le_opNorm v
     _ = ‖H‖ * ‖v‖ ^ 2 := by ring
 
+/-- The Rayleigh value is at least `-(‖H‖ * ‖v‖^2)`. -/
 lemma rayleigh_neg_le (H : E →L[ℂ] E) (v : E) :
     -(‖H‖ * ‖v‖ ^ 2) ≤ rayleigh H v := by
   have h := abs_rayleigh_le H v
   have h2 := neg_abs_le (rayleigh H v)
   linarith
 
+/-- The Rayleigh value is at most `‖H‖ * ‖v‖^2`. -/
 lemma rayleigh_le (H : E →L[ℂ] E) (v : E) :
     rayleigh H v ≤ ‖H‖ * ‖v‖ ^ 2 := by
   have h := abs_rayleigh_le H v
   have h2 := le_abs_self (rayleigh H v)
   linarith
 
+/-- Scaling the input vector by a real scalar scales its Rayleigh value by the square of that
+scalar. -/
 lemma rayleigh_smul_real (H : E →L[ℂ] E) (r : ℝ) (v : E) :
     rayleigh H (r • v) = r ^ 2 * rayleigh H v := by
   have hsmul : (r : ℂ) • v = r • v := IsScalarTower.algebraMap_smul ℂ (r : ℝ) v
@@ -178,6 +213,7 @@ lemma rayleigh_smul_real (H : E →L[ℂ] E) (r : ℝ) (v : E) :
     ring
   exact hcomp
 
+/-- The nontrivial inner product space contains a unit vector. -/
 lemma exists_norm_eq_one : ∃ v : E, ‖v‖ = 1 := by
   obtain ⟨v, hv⟩ := exists_ne (0 : E)
   refine ⟨‖v‖⁻¹ • v, ?_⟩
@@ -187,6 +223,7 @@ lemma exists_norm_eq_one : ∃ v : E, ‖v‖ = 1 := by
   rw [norm_smul, hnorm]
   exact inv_mul_cancel₀ (ne_of_gt hpos)
 
+/-- The set of unit-vector Rayleigh values is bounded below. -/
 lemma bddBelow_rect (H : E →L[ℂ] E) : BddBelow (rect H) := by
   refine ⟨-‖H‖, ?_⟩
   rintro x ⟨v, hv, rfl⟩
@@ -194,6 +231,7 @@ lemma bddBelow_rect (H : E →L[ℂ] E) : BddBelow (rect H) := by
   rw [hv] at h
   simpa using h
 
+/-- The set of Rayleigh values on unit vectors in a subspace is bounded below. -/
 lemma bddBelow_sectionSet (S : Submodule ℂ E) (H : E →L[ℂ] E) :
     BddBelow (sectionSet S H) := by
   refine ⟨-‖H‖, ?_⟩
@@ -202,10 +240,12 @@ lemma bddBelow_sectionSet (S : Submodule ℂ E) (H : E →L[ℂ] E) :
   rw [hv] at h
   simpa using h
 
+/-- The set of unit-vector Rayleigh values is nonempty. -/
 lemma rect_nonempty (H : E →L[ℂ] E) : (rect H).Nonempty := by
   obtain ⟨v, hv⟩ := exists_norm_eq_one (E := E)
   exact ⟨rayleigh H v, v, hv, rfl⟩
 
+/-- A nonzero subspace has a nonempty set of unit-vector Rayleigh values. -/
 lemma sectionSet_nonempty (S : Submodule ℂ E) (H : E →L[ℂ] E) (hS : S ≠ ⊥) :
     (sectionSet S H).Nonempty := by
   obtain ⟨v, hvS, hv0⟩ := Submodule.exists_mem_ne_zero_of_ne_bot hS
@@ -216,11 +256,13 @@ lemma sectionSet_nonempty (S : Submodule ℂ E) (H : E →L[ℂ] E) (hS : S ≠ 
   rw [norm_smul, hnorm]
   exact inv_mul_cancel₀ (ne_of_gt hpos)
 
+/-- The subspace energy is at most the Rayleigh value of any unit vector in that subspace. -/
 lemma sectionEnergy_le_rayleigh (S : Submodule ℂ E) (H : E →L[ℂ] E)
     {v : E} (hv : ‖v‖ = 1) (hvS : v ∈ S) :
     sectionEnergy S H ≤ rayleigh H v :=
   csInf_le (bddBelow_sectionSet S H) ⟨v, ⟨hv, hvS⟩, rfl⟩
 
+/-- For a vector in `S`, its Rayleigh value is at least `sectionEnergy S H * ‖v‖^2`. -/
 lemma sectionEnergy_mul_le (S : Submodule ℂ E) (H : E →L[ℂ] E)
     {v : E} (hvS : v ∈ S) :
     sectionEnergy S H * ‖v‖ ^ 2 ≤ rayleigh H v := by
@@ -245,6 +287,7 @@ lemma sectionEnergy_mul_le (S : Submodule ℂ E) (H : E →L[ℂ] E)
         exact mul_le_mul_of_nonneg_right hle' (le_of_lt (by positivity))
       _ = rayleigh H v := div_mul_cancel₀ _ (ne_of_gt (by positivity))
 
+/-- For a nonzero subspace, the section energy is at most the operator norm. -/
 lemma sectionEnergy_le_norm (S : Submodule ℂ E) (H : E →L[ℂ] E) (hS : S ≠ ⊥) :
     sectionEnergy S H ≤ ‖H‖ := by
   obtain ⟨v, hvS, hv0⟩ := Submodule.exists_mem_ne_zero_of_ne_bot hS

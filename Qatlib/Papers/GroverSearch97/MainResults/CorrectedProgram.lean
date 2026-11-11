@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GroverSearch96.MainResults.LocalImplementation
 import Qatlib.Papers.GroverSearch96.MainResults.GainConvergence
+
+/-!
+# An initialized local Grover search program
+
+`corrected_initialized_search` packages singleton search as a unitary local circuit initialized
+in the zero basis state with clean ancillary registers. For at least two qubits, it realizes the
+embedded Grover state and has success probability strictly above one half for every target.
+
+The same iteration count satisfies both the strict square root bound and the `(π/4) * sqrt
+(2^n)` bound, with explicit query and local gate counts. See [Grover1997].
+
+## Main statements
+
+* `corrected_initialized_search`: For `n ≥ 2`, there is a unitary initialized local search
+  circuit with `k < sqrt (2^n)` and `k ≤ (π/4) * sqrt (2^n)`, exactly `k` queries, and at most
+  `(34*k+1)*n` gates. Its normalized output is the embedded Grover state and finds every
+  singleton target with probability strictly above `1/2`.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +44,10 @@ open Qatlib.Concepts.QftPreparation.LocalQFTImplementation Qatlib.Concepts.Circu
 
 namespace Qatlib.Papers.GroverSearch97.MainResults
 
+/-- For `n ≥ 2`, there is a unitary initialized local search circuit with `k < sqrt (2^n)` and
+`k ≤ (π/4) * sqrt (2^n)`, exactly `k` queries, and at most `(34*k+1)*n` gates. Its
+normalized output is the embedded Grover state and finds every singleton target with
+probability strictly above `1/2`. See [Grover1997]. -/
 theorem corrected_initialized_search (n : ℕ) (hn : 2 ≤ n) :
     ∃ k : ℕ, (k : ℝ) < Real.sqrt (2 ^ n : ℝ) ∧
       (k : ℝ) ≤ Real.pi / 4 * Real.sqrt (2 ^ n : ℝ) ∧

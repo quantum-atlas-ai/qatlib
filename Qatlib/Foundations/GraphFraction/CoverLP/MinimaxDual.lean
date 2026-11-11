@@ -7,15 +7,44 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
 import QuantumInfo.ForMathlib.Minimax
 
+/-!
+# Minimax duality for independent-set covers
+
+This module defines a bilinear `payoff` between vertex weights and weights on independent-set
+contexts. The support functional `independentSupport` is the largest context weight, and
+maximizing the payoff over context distributions recovers that support.
+
+A finite simplex minimax identity and the coverage representation give
+`support_min_eq_inverse_cover`, identifying the minimum support over vertex distributions with
+the reciprocal unweighted fractional cover value. This context-cover duality is relevant to the
+strategies in [XuEtAl2026].
+
+## Main statements
+
+* `context_game_minimax`: For a nonempty vertex type, minimizing over vertex probability vectors
+  and maximizing over context probability vectors can be interchanged.
+* `payoff_eq_coverage`: The payoff is the sum of vertex weights times their context coverages.
+* `support_min_eq_inverse_cover`: On a nonempty finite vertex type, the infimum of
+  independent-set support over vertex probability vectors equals the reciprocal unit-demand
+  fractional cover value.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.GraphFraction.CoverLP
 open scoped Classical BigOperators
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- The weighted pairing of context masses with the sums of vertex weights in each context. -/
 def payoff (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ) : ℝ :=
   ∑ I, q I * ∑ i∈I.val,w i
 
+/-- The payoff with fixed vertex weights, packaged as a continuous real linear functional of the
+context weights. -/
 def contextPair (G : SimpleGraph V) (w : V → ℝ) : (Context G → ℝ) →L[ℝ] ℝ :=
   LinearMap.toContinuousLinearMap {
     toFun := payoff G w
@@ -27,6 +56,7 @@ def contextPair (G : SimpleGraph V) (w : V → ℝ) : (Context G → ℝ) →L[�
       simp [payoff,Finset.mul_sum,mul_assoc]
   }
 
+/-- The payoff packaged as a continuous real bilinear pairing of vertex and context weights. -/
 def gamePair (G : SimpleGraph V) : (V → ℝ) →L[ℝ] (Context G → ℝ) →L[ℝ] ℝ :=
   LinearMap.toContinuousLinearMap {
     toFun := contextPair G
@@ -42,16 +72,20 @@ def gamePair (G : SimpleGraph V) : (V → ℝ) →L[ℝ] (Context G → ℝ) →
       simp [payoff,Finset.mul_sum,mul_left_comm]
   }
 
+/-- The supremum of the total vertex weight over all independent-set contexts. -/
 def independentSupport (G : SimpleGraph V) (w : V → ℝ) : ℝ :=
   sSup (Set.range (fun I : Context G => ∑ i∈I.val,w i))
 
+/-- The set of context weight sums is bounded above. -/
 theorem independentSupport_bddAbove (G : SimpleGraph V) (w : V → ℝ) :
     BddAbove (Set.range (fun I : Context G => ∑ i∈I.val,w i)) := Set.Finite.bddAbove (Set.finite_range _)
 
+/-- The weight sum of any independent-set context is at most `independentSupport G w`. -/
 theorem context_le_support (G : SimpleGraph V) (w : V → ℝ) (I : Context G) :
     (∑ i∈I.val,w i)  ≤  independentSupport G w :=
   le_csSup (independentSupport_bddAbove G w) (Set.mem_range_self I)
 
+/-- The payoff against a context probability vector is at most the independent-set support. -/
 theorem payoff_le_support (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ)
     (hq : q∈stdSimplex ℝ (Context G)) : payoff G w q  ≤  independentSupport G w := by
   calc _  ≤  ∑ I,q I*independentSupport G w := by
@@ -60,10 +94,14 @@ theorem payoff_le_support (G : SimpleGraph V) (w : V → ℝ) (q : Context G →
          exact mul_le_mul_of_nonneg_left (context_le_support G w I) (hq.1 I)
        _ = independentSupport G w := by rw [← Finset.sum_mul,hq.2,one_mul]
 
+/-- Concentrating all context weight on one context makes the payoff equal its vertex weight
+sum. -/
 theorem payoff_dirac (G : SimpleGraph V) (w : V → ℝ) (I : Context G) :
     payoff G w (Pi.single I 1) = ∑ i∈I.val,w i := by
   simp [payoff,Pi.single_apply]
 
+/-- The independent-set support equals the supremum of the payoff over context probability
+vectors. -/
 theorem support_eq_context_sup (G : SimpleGraph V) (w : V → ℝ) :
     independentSupport G w = ⨆ q : stdSimplex ℝ (Context G),payoff G w q := by
   have hb : BddAbove (Set.range (fun q : stdSimplex ℝ (Context G) => payoff G w q)) :=
@@ -79,6 +117,8 @@ theorem support_eq_context_sup (G : SimpleGraph V) (w : V → ℝ) :
     intro q
     exact payoff_le_support G w q q.2
 
+/-- For a nonempty vertex type, minimizing over vertex probability vectors and maximizing over
+context probability vectors can be interchanged. -/
 theorem context_game_minimax (G : SimpleGraph V) [Nonempty V] :
     (⨅ w : stdSimplex ℝ V,⨆ q : stdSimplex ℝ (Context G),payoff G w q) =
       ⨆ q : stdSimplex ℝ (Context G),⨅ w : stdSimplex ℝ V,payoff G w q := by
@@ -88,6 +128,7 @@ theorem context_game_minimax (G : SimpleGraph V) [Nonempty V] :
     (by exact ⟨Pi.single (Classical.choice (contextNonempty G)) 1,single_mem_stdSimplex ℝ _⟩)
     (by exact ⟨Pi.single (Classical.choice ‹Nonempty V›) 1,single_mem_stdSimplex ℝ _⟩)
 
+/-- The payoff is the sum of vertex weights times their context coverages. -/
 theorem payoff_eq_coverage (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ) :
     payoff G w q = ∑ i,w i*coverage G q i := by
   have hi (I : Context G) : (∑ i∈I.val,w i)=∑ i,w i*incidence G I i := by
@@ -100,11 +141,13 @@ theorem payoff_eq_coverage (G : SimpleGraph V) (w : V → ℝ) (q : Context G �
   intro I _
   ring
 
+/-- Concentrating the vertex weight at `i` makes the payoff equal the coverage of `i`. -/
 theorem payoff_vertex_dirac (G : SimpleGraph V) (q : Context G → ℝ) (i : V) :
     payoff G (Pi.single i 1) q = coverage G q i := by
   rw [payoff_eq_coverage]
   simp [Pi.single_apply]
 
+/-- The payoff of vertex and context probability vectors is nonnegative. -/
 theorem payoff_nonneg (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ)
     (hw : w∈stdSimplex ℝ V) (hq : q∈stdSimplex ℝ (Context G)) : 0 ≤ payoff G w q := by
   unfold payoff
@@ -112,6 +155,8 @@ theorem payoff_nonneg (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ
   intro I _
   exact mul_nonneg (hq.1 I) (Finset.sum_nonneg (fun i _ => hw.1 i))
 
+/-- For nonnegative context masses, the payoff is at most the independent-set support times the
+total context mass. -/
 theorem payoff_le_mass_support (G : SimpleGraph V) (w : V → ℝ) (x : Context G → ℝ)
     (hx : ∀ I,0 ≤ x I) : payoff G w x  ≤  independentSupport G w*(∑ I,x I) := by
   calc _  ≤  ∑ I,x I*independentSupport G w := by
@@ -120,6 +165,8 @@ theorem payoff_le_mass_support (G : SimpleGraph V) (w : V → ℝ) (x : Context 
          exact mul_le_mul_of_nonneg_left (context_le_support G w I) (hx I)
        _ = independentSupport G w*(∑ I,x I) := by rw [← Finset.sum_mul,mul_comm]
 
+/-- For a vertex probability vector and a feasible unit-demand cover, the support times the
+cover's total mass is at least one. -/
 theorem one_le_support_mass (G : SimpleGraph V) (w : V → ℝ)
     (hw : w∈stdSimplex ℝ V) (x : Context G → ℝ) (hx : Feasible G (fun _ => 1) x) :
     1 ≤ independentSupport G w*(∑ I,x I) := by
@@ -132,6 +179,7 @@ theorem one_le_support_mass (G : SimpleGraph V) (w : V → ℝ)
            exact mul_le_mul_of_nonneg_left (hx.2 i) (hw.1 i)
   exact hl.trans (payoff_le_mass_support G w x hx.1)
 
+/-- The fractional cover value is at most the total mass of any feasible cover. -/
 theorem coverValue_le_mass (G : SimpleGraph V) (a : V → ℝ) (x : Context G → ℝ)
     (hx : Feasible G a x) : coverValue G a ≤ ∑ I,x I := by
   apply csInf_le
@@ -140,6 +188,7 @@ theorem coverValue_le_mass (G : SimpleGraph V) (a : V → ℝ) (x : Context G �
     exact Finset.sum_nonneg (fun I _ => hy.1 I)
   · exact ⟨x,hx,rfl⟩
 
+/-- Dividing all context weights by `r` divides every vertex coverage by `r`. -/
 theorem coverage_div (G : SimpleGraph V) (q : Context G → ℝ) (r : ℝ) (i : V) :
     coverage G (fun I => q I/r) i=coverage G q i/r := by
   unfold coverage
@@ -148,10 +197,14 @@ theorem coverage_div (G : SimpleGraph V) (q : Context G → ℝ) (r : ℝ) (i : 
   intro I _
   ring
 
+/-- The unit-demand fractional cover value is strictly positive on a nonempty finite vertex
+type. -/
 theorem unweighted_cover_pos (G : SimpleGraph V) [Nonempty V] : 0<coverValue G (fun _ => 1) :=
   (attained_strategy G (fun _ => 1) (by intro i;norm_num)
     (Classical.choice ‹Nonempty V›) (by norm_num)).1
 
+/-- For every context probability vector, the infimum of its payoff over vertex probability
+vectors is at most the reciprocal unit-demand cover value. -/
 theorem context_min_le_inverse_cover (G : SimpleGraph V) [Nonempty V]
     (q : stdSimplex ℝ (Context G)) :
     (⨅ w : stdSimplex ℝ V,payoff G w q)  ≤  1/coverValue G (fun _ => 1) := by
@@ -182,6 +235,8 @@ theorem context_min_le_inverse_cover (G : SimpleGraph V) [Nonempty V]
     have hh := (le_div_iff₀ htp).mp hc'
     nlinarith
 
+/-- On a nonempty finite vertex type, the infimum of independent-set support over vertex
+probability vectors equals the reciprocal unit-demand fractional cover value. -/
 theorem support_min_eq_inverse_cover (G : SimpleGraph V) [Nonempty V] :
     (⨅ w : stdSimplex ℝ V,independentSupport G w)=1/coverValue G (fun _ => 1) := by
   have hc := unweighted_cover_pos G

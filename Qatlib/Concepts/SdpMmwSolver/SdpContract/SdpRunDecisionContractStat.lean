@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpDuality.ConeSeparation.SdpRunMacros
+
+/-!
+# SDP run decision contract
+
+`SdpRunDecisionContract` states the certificate guarantees for failure and success along one
+response history. It records primal feasibility and trace control for a failed round, and
+distributional encoding, dual feasibility, and weak-duality consequences when all oracle
+contracts hold.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `SdpRunDecisionContract`: The proposition combining a failed-round primal objective lower
+  bound (1 − δ)α with an all-round-success dual certificate and primal objective upper bound (1
+  + δ)α.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +39,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition combining a failed-round primal objective lower bound (1 − δ)α with an
+all-round-success dual certificate and primal objective upper bound (1 + δ)α. -/
 def SdpRunDecisionContract : Prop :=
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε η : ℝ),

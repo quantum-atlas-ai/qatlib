@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+
+/-!
+# Error estimates for bounded spectral functions
+
+The map `clamp` restricts real outcomes to a closed interval without increasing their distance
+to a point in that interval. The expectation estimates combine a high-probability good set, a
+bound on the function, and a bound on the change in the outcome distribution, following the
+functional-calculus argument of [JanzingWocjan2006].
+
+## Main statements
+
+* `lemma1_ideal_error`: bounds the expectation error using good-outcome accuracy and bad-outcome
+  mass.
+* `lemma1_continuous_functional_calculus`: controls a bounded function of clamped outcomes using
+  a Lipschitz estimate relative to the target.
+* `lemma1_delta_bound`: specializes the distribution error to `2 ^ (p + 2) * δ`.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,14 +37,18 @@ namespace Qatlib.Papers.BQPMixSparse06.MainResults
 
 open Finset
 
+/-- The real clamping function `max lo (min hi x)`. -/
 def clamp (lo hi x : ℝ) : ℝ := max lo (min hi x)
 
+/-- If `lo ≤ hi`, the clamped value belongs to the closed interval from `lo` to `hi`. -/
 lemma clamp_mem {lo hi x : ℝ} (hlo : lo ≤ hi) : clamp lo hi x ∈ Set.Icc lo hi := by
   constructor
   · exact le_max_left _ _
   · unfold clamp
     exact max_le hlo (min_le_left _ _)
 
+/-- Clamping to a nonempty closed interval does not increase the distance to any point of that
+interval. -/
 lemma abs_clamp_sub_le {lo hi lam x : ℝ} (hlo : lo ≤ hi) (hlam : lam ∈ Set.Icc lo hi) :
     |clamp lo hi x - lam| ≤ |x - lam| := by
   obtain ⟨hlam_lo, hlam_hi⟩ := hlam
@@ -49,6 +75,9 @@ lemma abs_clamp_sub_le {lo hi lam x : ℝ} (hlo : lo ≤ hi) (hlam : lam ∈ Set
         rw [min_eq_right (le_of_lt h2), max_eq_right (le_of_lt h1)]
       rw [hc]
 
+/-- For probability weights with good-set mass at least `1 - θ`, good-outcome error at most `2 *
+π * η * K`, and bad-outcome error at most `2 * M`, the expectation error is at most `2 * θ *
+M + 2 * π * K * η`. -/
 theorem lemma1_ideal_error {Ω : Type*} [Fintype Ω]
     (q : Ω → ℝ) (hq0 : ∀ a, 0 ≤ q a) (hq1 : ∑ a, q a = 1)
     (post : Ω → ℝ) (target M K θ η : ℝ)
@@ -117,6 +146,8 @@ theorem lemma1_ideal_error {Ω : Type*} [Fintype Ω]
     linarith
   linarith [htri, hA, hB]
 
+/-- A probability-weighted mixture of errors bounded in absolute value by a nonnegative `E` is
+itself bounded in absolute value by `E`. -/
 theorem lemma1_mixture_error {ι : Type*} [Fintype ι]
     (w : ι → ℝ) (hw0 : ∀ j, 0 ≤ w j) (hw1 : ∑ j, w j = 1)
     (e : ι → ℝ) (E : ℝ) (hE : 0 ≤ E) (h : ∀ j, |e j| ≤ E) :
@@ -130,6 +161,8 @@ theorem lemma1_mixture_error {ι : Type*} [Fintype ι]
     _ = (∑ j, w j) * E := by rw [Finset.sum_mul]
     _ = E := by rw [hw1, one_mul]
 
+/-- A change in weights of total absolute size at most `D` changes the weighted sum of a
+function bounded by `M` by at most `D * M`. -/
 theorem lemma1_distribution_error {Ω : Type*} [Fintype Ω]
     (q qt post : Ω → ℝ) (D M : ℝ) (hM : 0 ≤ M)
     (hD : ∑ a, |q a - qt a| ≤ D) (hpost : ∀ a, |post a| ≤ M) :
@@ -149,6 +182,8 @@ theorem lemma1_distribution_error {Ω : Type*} [Fintype Ω]
     _ = (∑ a, |q a - qt a|) * M := by rw [Finset.sum_mul]
     _ ≤ D * M := mul_le_mul_of_nonneg_right hD hM
 
+/-- Combines an ideal expectation bound and a distribution perturbation bound to obtain error at
+most `(2 * θ + D) * M + 2 * π * K * η` [JanzingWocjan2006]. -/
 theorem lemma1_error_bound {Ω : Type*} [Fintype Ω]
     (q qt post : Ω → ℝ) (target M K θ η D : ℝ) (hM : 0 ≤ M)
     (hideal : |∑ a, qt a * post a - target| ≤ 2 * θ * M + 2 * Real.pi * K * η)
@@ -166,6 +201,9 @@ theorem lemma1_error_bound {Ω : Type*} [Fintype Ω]
       (2 * θ + D) * M + 2 * Real.pi * K * η := by ring
   linarith [htri, hpert, hideal, hsum]
 
+/-- For bounded postprocessing with the stated Lipschitz estimate, good-outcome accuracy, and
+distribution error `D`, the expectation of the clamped outcomes differs from `f lam` by at
+most `(2 * θ + D) * M + 2 * π * K * η` [JanzingWocjan2006, Lemma 1][JanzingWocjan2006]. -/
 theorem lemma1_continuous_functional_calculus {Ω : Type*} [Fintype Ω]
     (q qt : Ω → ℝ) (hq0 : ∀ a, 0 ≤ q a) (hqt0 : ∀ a, 0 ≤ qt a)
     (hq1 : ∑ a, q a = 1) (hqt1 : ∑ a, qt a = 1)
@@ -208,6 +246,8 @@ theorem lemma1_continuous_functional_calculus {Ω : Type*} [Fintype Ω]
       simpa using! h
     linarith
 
+/-- Specializes the clamped functional-calculus expectation bound to a distribution error at
+most `2 ^ (p + 2) * δ` [JanzingWocjan2006, Lemma 1][JanzingWocjan2006]. -/
 theorem lemma1_delta_bound {Ω : Type*} [Fintype Ω]
     (q qt : Ω → ℝ) (hq0 : ∀ a, 0 ≤ q a) (hqt0 : ∀ a, 0 ≤ qt a)
     (hq1 : ∑ a, q a = 1) (hqt1 : ∑ a, qt a = 1)

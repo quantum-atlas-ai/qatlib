@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreAuxiliary
+
+/-!
+# Gauss-Legendre rules and cell remainder bounds
+
+The module constructs positive Gauss-Legendre rules with distinct interior nodes, polynomial
+exactness through degree `2 * Q - 1`, and the nodal-product integral formula. It proves the
+correctly parenthesized cell remainder estimate and refutes the version with the quadrature sum
+placed inside the integral. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `gauss_legendre_rule_exists`: For every positive `Q`, there exist distinct nodes in `(-1, 1)`
+  and positive weights exact through degree `2 * Q - 1`, satisfying the stated squared
+  nodal-product integral formula.
+* `gauss_legendre_cell_error_bound`: For a positive cell width and a function of class `C^(2 *
+  Q)`, the stated polynomial exactness and nodal-product identity bound the absolute quadrature
+  error by the Gauss factorial coefficient times the supremum of the absolute `2 * Q`-th
+  derivative.
+* `gauss_legendre_cell_error_bound_false`: The proposed universal remainder inequality with the
+  quadrature sum inside the interval integral is false.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +40,8 @@ namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open Set MeasureTheory
 open scoped BigOperators
 
+/-- The midpoint rule integrates every real polynomial of natural degree at most one exactly on
+any interval from `a` to `b`. -/
 theorem gauss_midpoint_exact_linear (a b : ℝ) (p : Polynomial ℝ)
     (hp : p.natDegree ≤ 1) :
     (∫ x in a..b, p.eval x) = (b - a) * p.eval ((a + b) / 2) := by
@@ -27,6 +55,8 @@ theorem gauss_midpoint_exact_linear (a b : ℝ) (p : Polynomial ℝ)
   simp only [smul_eq_mul]
   ring
 
+/-- There exists a one-node positive Gauss-Legendre rule on `[-1, 1]` with an interior node,
+degree-one exactness, and the stated squared nodal-product integral. -/
 theorem gauss_legendre_rule_one : ∃ node weight : Fin 1 → ℝ,
     (∀ q, node q ∈ Ioo (-1) 1) ∧ Function.Injective node ∧ (∀ q, 0 < weight q) ∧
     (∀ p : Polynomial ℝ, p.natDegree ≤ 2 * 1 - 1 →
@@ -44,6 +74,8 @@ theorem gauss_legendre_rule_one : ∃ node weight : Fin 1 → ℝ,
     exact hh
   · norm_num [integral_pow]
 
+/-- The proposed universal remainder inequality with the quadrature sum inside the interval
+integral is false. -/
 theorem gauss_legendre_cell_error_bound_false : ¬ (
     ∀ (Q : ℕ) (a h : ℝ) (node weight : Fin Q → ℝ) (f : ℝ → ℝ),
       1 ≤ Q → 0 < h →
@@ -79,6 +111,7 @@ theorem gauss_legendre_cell_error_bound_false : ¬ (
     (by norm_num) (by norm_num) he hω contDiff_const
   norm_num [iteratedDeriv_const, intervalIntegral.integral_const] at hh
 
+/-- Any rule exact for the stated polynomial degree range on `[-1, 1]` has total weight two. -/
 theorem gauss_rule_weight_sum (Q : ℕ) (node weight : Fin Q → ℝ)
     (hexact : ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
       ∫ x in (-1 : ℝ)..1, p.eval x = ∑ q, weight q * p.eval (node q)) :
@@ -87,6 +120,8 @@ theorem gauss_rule_weight_sum (Q : ℕ) (node weight : Fin Q → ℝ)
   norm_num at hh
   exact hh.symm
 
+/-- Polynomial exactness on `[-1, 1]` transfers to the affinely rescaled cell `[a, a + h]` with
+weights multiplied by `h / 2`. -/
 theorem gauss_cell_rule_affine_exact (Q : ℕ) (a h : ℝ) (node weight : Fin Q → ℝ)
     (hexact : ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
       ∫ x in (-1 : ℝ)..1, p.eval x = ∑ q, weight q * p.eval (node q))
@@ -116,6 +151,8 @@ theorem gauss_cell_rule_affine_exact (Q : ℕ) (a h : ℝ) (node weight : Fin Q 
   rw [show a + h * (node q + 1) / 2 = h / 2 * node q + (a + h / 2) by ring]
   ring
 
+/-- For a polynomial within the exactness degree range, the absolute difference between its cell
+integral and the quadrature sum is zero. -/
 theorem gauss_cell_polynomial_error_eq_zero (Q : ℕ) (a h : ℝ)
     (node weight : Fin Q → ℝ)
     (hexact : ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
@@ -126,17 +163,21 @@ theorem gauss_cell_polynomial_error_eq_zero (Q : ℕ) (a h : ℝ)
       ∑ q, (h / 2) * weight q * p.eval (a + h * (node q + 1) / 2)| = 0 := by
   rw [hexact p hp, sub_self, abs_zero]
 
+/-- The Rodrigues seed polynomial `(Polynomial.X * Polynomial.X - 1)^Q`. -/
 private def rodPoly (Q : ℕ) : Polynomial ℝ :=
   (Polynomial.X * Polynomial.X - 1) ^ Q
 
+/-- The Rodrigues seed `rodPoly Q` equals `(Polynomial.X * Polynomial.X - 1)^Q`. -/
 private theorem rodPoly_def (Q : ℕ) :
     rodPoly Q = (Polynomial.X * Polynomial.X - 1) ^ Q := rfl
 
+/-- The real value of `rodPoly Q` at `x` is `(x * x - 1)^Q`. -/
 private theorem eval_rodPoly (Q : ℕ) (x : ℝ) :
     (rodPoly Q).eval x = (x * x - 1) ^ Q := by
   rw [rodPoly_def, Polynomial.eval_pow, Polynomial.eval_sub, Polynomial.eval_mul,
     Polynomial.eval_X, Polynomial.eval_one]
 
+/-- The polynomial `Polynomial.X * Polynomial.X - 1` is monic. -/
 private theorem monic_XmulX_sub_one :
     (Polynomial.X * Polynomial.X - 1 : Polynomial ℝ).Monic := by
   rw [show (Polynomial.X * Polynomial.X - 1 : Polynomial ℝ) =
@@ -145,6 +186,7 @@ private theorem monic_XmulX_sub_one :
         ring]
   exact (Polynomial.monic_X_sub_C (1 : ℝ)).mul (Polynomial.monic_X_add_C (1 : ℝ))
 
+/-- The natural degree of `Polynomial.X * Polynomial.X - 1` is two. -/
 private theorem natDegree_XmulX_sub_one :
     (Polynomial.X * Polynomial.X - 1 : Polynomial ℝ).natDegree = 2 := by
   rw [show (Polynomial.X * Polynomial.X - 1 : Polynomial ℝ) =
@@ -154,20 +196,26 @@ private theorem natDegree_XmulX_sub_one :
     (Polynomial.monic_X_sub_C (1 : ℝ)).natDegree_mul (Polynomial.monic_X_add_C (1 : ℝ)),
     Polynomial.natDegree_X_sub_C, Polynomial.natDegree_X_add_C]
 
+/-- The Rodrigues seed polynomial `rodPoly Q` is monic. -/
 private theorem rodPoly_monic (Q : ℕ) : (rodPoly Q).Monic :=
   monic_XmulX_sub_one.pow Q
 
+/-- The Rodrigues seed polynomial `rodPoly Q` is nonzero. -/
 private theorem rodPoly_ne_zero (Q : ℕ) : rodPoly Q ≠ 0 :=
   (rodPoly_monic Q).ne_zero
 
+/-- The natural degree of `rodPoly Q` is `2 * Q`. -/
 private theorem natDegree_rodPoly (Q : ℕ) : (rodPoly Q).natDegree = 2 * Q := by
   rw [rodPoly_def, monic_XmulX_sub_one.natDegree_pow, natDegree_XmulX_sub_one]
   omega
 
+/-- The polynomial `Polynomial.X * Polynomial.X - 1` evaluates to `x * x - 1` at `x`. -/
 private theorem eval_XmulX_sub_one (x : ℝ) :
     (Polynomial.X * Polynomial.X - 1 : Polynomial ℝ).eval x = x * x - 1 := by
   rw [Polynomial.eval_sub, Polynomial.eval_mul, Polynomial.eval_X, Polynomial.eval_one]
 
+/-- Every derivative of `rodPoly Q` of order less than `Q` vanishes at a real point satisfying
+`x * x = 1`. -/
 private theorem rodPoly_iterate_eval_endpoints {Q k : ℕ} (hk : k < Q) (x : ℝ)
     (hx : x * x = 1) : (Polynomial.derivative^[k] (rodPoly Q)).eval x = 0 := by
   have hdvd : (Polynomial.X * Polynomial.X - 1 : Polynomial ℝ) ^ (Q - k) ∣
@@ -177,6 +225,8 @@ private theorem rodPoly_iterate_eval_endpoints {Q k : ℕ} (hk : k < Q) (x : ℝ
   rw [hs, Polynomial.eval_mul, Polynomial.eval_pow, eval_XmulX_sub_one, hx, sub_self,
     zero_pow (Nat.sub_ne_zero_of_lt hk), zero_mul]
 
+/-- The `Q`-fold derivative of `rodPoly Q` is orthogonal on `[-1, 1]` to every polynomial of
+natural degree less than `Q`. -/
 private theorem rodPoly_orthogonal (Q : ℕ) (g : Polynomial ℝ) (hg : g.natDegree < Q) :
     ∫ x in (-1 : ℝ)..1, (Polynomial.derivative^[Q] (rodPoly Q)).eval x * g.eval x = 0 := by
   rw [Qatlib.Concepts.LchsSimulation.Quadrature.integral_poly_iterate_parts (rodPoly Q) Q g (-1) 1
@@ -185,6 +235,8 @@ private theorem rodPoly_orthogonal (Q : ℕ) (g : Polynomial ℝ) (hg : g.natDeg
     Polynomial.iterate_derivative_eq_zero hg]
   simp
 
+/-- The integral of `rodPoly Q` over `[-1, 1]` equals the stated signed factorial expression
+`(-1)^Q * (2 * 4^Q * (Q.factorial)^2 / (2 * Q + 1).factorial)`. -/
 private theorem integral_rodPoly (Q : ℕ) :
     ∫ x in (-1 : ℝ)..1, (rodPoly Q).eval x =
       (-1 : ℝ) ^ Q * (2 * 4 ^ Q * ((Q.factorial : ℝ) * (Q.factorial : ℝ)) /
@@ -212,6 +264,7 @@ private theorem integral_rodPoly (Q : ℕ) :
   rw [intervalIntegral.integral_congr (fun x _ => hpt x), intervalIntegral.integral_const_mul,
     hI]
 
+/-- For `k ≤ Q`, the natural degree of the `k`-fold derivative of `rodPoly Q` is `2 * Q - k`. -/
 private theorem natDegree_iterate_deriv_rodPoly (Q : ℕ) : ∀ k : ℕ, k ≤ Q →
     (Polynomial.derivative^[k] (rodPoly Q)).natDegree = 2 * Q - k := by
   intro k
@@ -233,6 +286,7 @@ private theorem natDegree_iterate_deriv_rodPoly (Q : ℕ) : ∀ k : ℕ, k ≤ Q
         (Qatlib.Concepts.LchsSimulation.Quadrature.natDegree_derivative_eq hp0 hpos).1]
     omega
 
+/-- For positive `Q`, the `Q`-fold derivative of `rodPoly Q` is nonzero. -/
 private theorem legendre_deriv_ne_zero (Q : ℕ) (hQ : 1 ≤ Q) :
     Polynomial.derivative^[Q] (rodPoly Q) ≠ 0 := by
   intro h0
@@ -240,6 +294,8 @@ private theorem legendre_deriv_ne_zero (Q : ℕ) (hQ : 1 ≤ Q) :
   rw [h0, Polynomial.natDegree_zero] at hnd
   omega
 
+/-- For `k ≤ Q`, the leading coefficient of the `k`-fold derivative of `rodPoly Q` is `(2 *
+Q).factorial / (2 * Q - k).factorial`. -/
 private theorem leadingCoeff_iterate_deriv_rodPoly (Q : ℕ) : ∀ k : ℕ, k ≤ Q →
     (Polynomial.derivative^[k] (rodPoly Q)).leadingCoeff =
       ((2 * Q).factorial : ℝ) / ((2 * Q - k).factorial : ℝ) := by
@@ -271,6 +327,8 @@ private theorem leadingCoeff_iterate_deriv_rodPoly (Q : ℕ) : ∀ k : ℕ, k �
     have h3 : ((2 * Q).factorial : ℝ) ≠ 0 := by positivity
     field_simp
 
+/-- For positive `Q`, the `Q`-fold derivative of `rodPoly Q` has at least `Q` distinct roots of
+odd multiplicity in `(-1, 1)`. -/
 private theorem legendre_odd_root_count (Q : ℕ) (hQ : 1 ≤ Q) :
     Q ≤ (Finset.filter (fun ρ => ρ ∈ Ioo (-1 : ℝ) 1 ∧
         Odd ((Polynomial.derivative^[Q] (rodPoly Q)).rootMultiplicity ρ))
@@ -369,6 +427,8 @@ private theorem legendre_odd_root_count (Q : ℕ) (hQ : 1 ≤ Q) :
   rw [hintU] at hintpos
   exact absurd hintpos (lt_irrefl 0)
 
+/-- For positive `Q`, the integral of the square of the `Q`-fold derivative of `rodPoly Q` over
+`[-1, 1]` is `2 * 4^Q * (Q.factorial)^2 / (2 * Q + 1)`. -/
 private theorem integral_legendre_sq (Q : ℕ) (hQ : 1 ≤ Q) :
     ∫ x in (-1 : ℝ)..1, ((Polynomial.derivative^[Q] (rodPoly Q)).eval x *
         (Polynomial.derivative^[Q] (rodPoly Q)).eval x) =
@@ -401,6 +461,9 @@ private theorem integral_legendre_sq (Q : ℕ) (hQ : 1 ≤ Q) :
   rw [hfac, ← mul_assoc, ← mul_assoc, hsign, one_mul]
   field_simp
 
+/-- For every positive `Q`, there exist distinct nodes in `(-1, 1)` and positive weights exact
+through degree `2 * Q - 1`, satisfying the stated squared nodal-product integral formula.
+See [AnChildsLin2026]. -/
 theorem gauss_legendre_rule_exists : ∀ Q : ℕ, 1 ≤ Q → ∃ node weight : Fin Q → ℝ,
     (∀ q, node q ∈ Ioo (-1) 1) ∧ Function.Injective node ∧ (∀ q, 0 < weight q) ∧
     (∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
@@ -638,6 +701,8 @@ theorem gauss_legendre_rule_exists : ∀ Q : ℕ, 1 ≤ Q → ∃ node weight : 
     ring
   exact ⟨node, weight, hnodeIoo, hinj, hwpos, hexact, homega⟩
 
+/-- A positive affine cell rescaling transforms the reference squared nodal-product integral
+into the stated factorial expression proportional to `h^(2 * Q + 1)`. -/
 theorem gauss_cell_omega (Q : ℕ) (a h : ℝ) (node : Fin Q → ℝ) (hpos : 0 < h)
     (href : (∫ t in (-1 : ℝ)..1, ∏ q : Fin Q, (t - node q) ^ 2) =
       ((2 : ℝ) ^ (2 * Q + 1) * (Q.factorial : ℝ) ^ 4) /
@@ -666,6 +731,10 @@ theorem gauss_cell_omega (Q : ℕ) (a h : ℝ) (node : Fin Q → ℝ) (hpos : 0 
 
 set_option maxHeartbeats 1000000 in
 
+/-- For a positive cell width and a function of class `C^(2 * Q)`, the stated polynomial
+exactness and nodal-product identity bound the absolute quadrature error by the Gauss
+factorial coefficient times the supremum of the absolute `2 * Q`-th derivative. See
+[AnChildsLin2026]. -/
 theorem gauss_legendre_cell_error_bound :
     ∀ (Q : ℕ) (a h : ℝ) (node weight : Fin Q → ℝ) (f : ℝ → ℝ),
       1 ≤ Q → 0 < h →

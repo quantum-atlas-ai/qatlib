@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoise
 import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoiseConsumers
+
+/-!
+# Bernoulli noise averages for amplified QFT circuits
+
+This module transports fixed-cardinality signal-plus-noise Fourier moments to Born probabilities
+of `conditionalAmplifiedQFTCircuit`. The formulas retain the signal-noise cross term, the
+layer-dependent gain, and the avoidance factor for noise disjoint from the signal.
+
+The results apply at nonzero frequency with a nonempty signal and a complement of size at least
+two, subject to the stated layer-angle conditions. They also give circuit unitarity and exact
+query and gate counts.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `bernoulli_noise_joint_moment_and_actual_qft`: Fourier moments together with actual-circuit
+  means.
+* `bernoulli_noise_actual_amplified_qft`: layerwise Born means and Bernoulli transport.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -20,6 +45,9 @@ noncomputable section
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open scoped Classical BigOperators
 
+/-- Under the stated complement-size, nonzero-frequency, and layer-angle assumptions, combine
+the Bernoulli mixed Fourier moment with exact conditional amplified-QFT Born means, circuit
+costs, and complement-layer transport. -/
 theorem bernoulli_noise_joint_moment_and_actual_qft :
   ∀ (N k : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∀ (d : FinDist (Finset (ZMod N))),
@@ -82,6 +110,9 @@ theorem bernoulli_noise_joint_moment_and_actual_qft :
     exact (hlevel L (Finset.mem_range.mp hL)).2.2.2.2
   · exact bernoulli_complement_transport N p d hd A _
 
+/-- Under the stated assumptions, give the conditional amplified-QFT circuit costs and exact
+nonzero-frequency layer means, their binomial mixture, and the unnormalized disjoint-noise
+transport identity; see [Cornwell, Section 3.4.4][Cornwell2014]. -/
 theorem bernoulli_noise_actual_amplified_qft :
   ∀ (N k : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∀ (d : FinDist (Finset (ZMod N))),

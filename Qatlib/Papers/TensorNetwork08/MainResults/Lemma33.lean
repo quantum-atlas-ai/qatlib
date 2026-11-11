@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
 import Qatlib.Concepts.QueryComplexity.NormObstruction.Lemma33FactorizationToAlgorithmQuan
+
+/-!
+# Unitary dilation of a normalized linear map
+
+Proves the finite-dimensional dilation statement of Lemma 3.3 in [AradLandau2010]. For a nonzero
+complex matrix `A`, normalization by its Euclidean operator norm produces a contraction that can
+be embedded as the first block of a unitary on a doubled index space.
+
+The theorem `lemma3_3_unitary_dilation` states the action on vectors supported in the first
+summand and supplies a matrix for the remaining output block.
+
+## Main statements
+
+* `lemma3_3_unitary_dilation`: constructs the unitary and its action on the first summand.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Lemma33
@@ -17,6 +37,8 @@ variable {R : Type} [Fintype R] [DecidableEq R]
 
 set_option maxHeartbeats 4000000 in
 
+/-- Every nonzero finite complex matrix `A` has a unitary dilation on the doubled index space
+whose first output block on `Sum.elim α 0` is `‖A‖⁻¹` times `A *ᵥ α`. See [AradLandau2010]. -/
 theorem lemma3_3_unitary_dilation (A : Matrix R R ℂ) (hA : A ≠ 0) :
     ∃ (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (S : Matrix R R ℂ),
       U ∈ Matrix.unitaryGroup (R ⊕ R) ℂ ∧

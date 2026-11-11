@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20ProbabilityBoundStat
+
+/-!
+# Resonant probability bound for noisy progressions
+
+`lemma20ProbabilityBound_answer` proves an exact Born-probability formula and an upper bound at
+nonzero frequencies resonant with the progression step. It uses the total marked cardinality to
+bound the progression-plus-noise Fourier sum in the setting of Lemma 20 of [Cornwell2014].
+
+## Main statements
+
+* `lemma20ProbabilityBound_answer`: Proves `Lemma20ProbabilityBound`: at a nonzero resonant
+  frequency, the conditional amplified Fourier probability has the stated Fourier-sum expression
+  and total-cardinality upper bound; see [Cornwell, Lemma 20][Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +33,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- Proves `Lemma20ProbabilityBound`: at a nonzero resonant frequency, the conditional amplified
+Fourier probability has the stated Fourier-sum expression and total-cardinality upper bound;
+see [Cornwell, Lemma 20][Cornwell2014]. -/
 theorem lemma20ProbabilityBound_answer : Lemma20ProbabilityBound := by
   unfold Lemma20ProbabilityBound
   intro N _ s M P G y hM hP hbound hhalf hdis hy _hres

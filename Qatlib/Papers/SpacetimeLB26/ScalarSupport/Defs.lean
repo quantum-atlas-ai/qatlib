@@ -77,6 +77,26 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# Scalar quantities for spacetime bounds
+
+This module defines finite width sums, contraction products, binary entropy, binary relative
+entropy, and budget-feasible allocations for [BhartiHaugTanggara2026]. It supplies the
+product-to-exponential and Jensen estimates used to bound the maximal survival product.
+
+## Main statements
+
+* `prod_one_sub_le_exp_neg_sum`: A finite product of `1 - f s`, with each `f s` in `[0, 1]`, is
+  at most the exponential of minus their sum.
+* `jensen_rpow_sum`: For positive `p` and positive `S`, the sum of `p^(q s)` is at least `S`
+  times `p` raised to the average of the exponents.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -87,38 +107,53 @@ namespace Qatlib.Papers.SpacetimeLB26.ScalarSupport
 open scoped BigOperators
 open Finset
 
+/-- The sum of the supplied layer-envelope widths. -/
 def layerEnvelopeSum {S : ℕ} (q : Fin S → ℝ) : ℝ := ∑ s, q s
 
+/-- The sum of the layer widths along a supplied record. -/
 def recordCost {S : ℕ} (q : Fin S → ℝ) : ℝ := ∑ s, q s
 
+/-- The sum of the supplied expected layer widths. -/
 def expectedWidthsSum {S : ℕ} (q : Fin S → ℝ) : ℝ := ∑ s, q s
 
+/-- The product over layers of the factors `1 - κ^(2 * q s)`. -/
 def contractionProduct {S : ℕ} (κ : ℝ) (q : Fin S → ℝ) : ℝ :=
   ∏ s, (1 - κ ^ (2 * q s))
 
+/-- Binary entropy in bits, expressed using the real logarithm. -/
 def h2 (x : ℝ) : ℝ := -(x * Real.log x + (1 - x) * Real.log (1 - x)) / Real.log 2
 
+/-- Binary relative entropy with natural logarithms, comparing Bernoulli parameters `Δ` and `p`. -/
 def binaryKL (Δ p : ℝ) : ℝ :=
   Δ * Real.log (Δ / p) + (1 - Δ) * Real.log ((1 - Δ) / (1 - p))
 
+/-- The condition that `δ` lies strictly between zero and `1/2` and has binary entropy `1/2`. -/
 def IsGilbertVarshamovRate (δ : ℝ) : Prop := h2 δ = 1 / 2 ∧ 0 < δ ∧ δ < 1 / 2
 
+/-- The nonnegative part `max 0 (log x)` of the real logarithm. -/
 def logPlus (x : ℝ) : ℝ := max 0 (Real.log x)
 
+/-- The finite set of integer width allocations bounded by `m` in every layer and with total
+width at most `C`. -/
 def feasibleAllocs (S m : ℕ) (C : ℝ) : Finset (Fin S → Fin (m + 1)) :=
   Finset.univ.filter (fun n => (∑ s, ((n s : ℕ) : ℝ)) ≤ C)
 
+/-- The largest product of layer survival factors over budget-feasible allocations, or zero if
+there are none. -/
 noncomputable def maxSurvivalProd (S m : ℕ) (C p : ℝ) : ℝ :=
   if h : (feasibleAllocs S m C).Nonempty then
     (feasibleAllocs S m C).sup' h (fun n => ∏ s, (1 - p ^ (((n s : ℕ) : ℝ))))
   else 0
 
+/-- A nonnegative budget makes the feasible-allocation set nonempty. -/
 theorem feasibleAllocs_nonempty {S m : ℕ} {C : ℝ} (hC : 0 ≤ C) :
     (feasibleAllocs S m C).Nonempty := by
   refine ⟨fun _ => 0, ?_⟩
   simp only [feasibleAllocs, Finset.mem_filter, Finset.mem_univ, true_and]
   simpa using hC
 
+/-- A finite product of `1 - f s`, with each `f s` in `[0, 1]`, is at most the exponential of
+minus their sum. -/
 theorem prod_one_sub_le_exp_neg_sum {S : ℕ} {f : Fin S → ℝ}
     (hf : ∀ s, 0 ≤ f s ∧ f s ≤ 1) :
     (∏ s, (1 - f s)) ≤ Real.exp (-(∑ s, f s)) := by
@@ -132,6 +167,8 @@ theorem prod_one_sub_le_exp_neg_sum {S : ℕ} {f : Fin S → ℝ}
         congr 1
         simp [Finset.sum_neg_distrib]
 
+/-- For positive `p` and positive `S`, the sum of `p^(q s)` is at least `S` times `p` raised to
+the average of the exponents. -/
 theorem jensen_rpow_sum {S : ℕ} {p : ℝ} (hp : 0 < p) (hS : 0 < S) (q : Fin S → ℝ) :
     (S : ℝ) * p ^ ((∑ s, q s) / (S : ℝ)) ≤ ∑ s, p ^ (q s) := by
   have hSpos : (0 : ℝ) < (S : ℝ) := by exact_mod_cast hS
@@ -157,6 +194,8 @@ theorem jensen_rpow_sum {S : ℕ} {p : ℝ} (hp : 0 < p) (hS : 0 < S) (q : Fin S
   rw [← mul_assoc, hS1, one_mul] at hmul
   exact hmul
 
+/-- For a nonnegative budget, the maximal survival product is the finite supremum over feasible
+allocations. -/
 theorem maxSurvivalProd_eq {S m : ℕ} {C p : ℝ} (hC : 0 ≤ C) :
     maxSurvivalProd S m C p =
       (feasibleAllocs S m C).sup' (feasibleAllocs_nonempty (S := S) (m := m) hC)

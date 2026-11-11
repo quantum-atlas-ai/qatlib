@@ -20,6 +20,38 @@ import Mathlib.Data.Finset.Dedup
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.Real.Sqrt
 import Qatlib.Papers.JuntaLearning07.MainResults.ClassicalLearningLowerBound
+
+/-!
+# Ingredients for learning juntas
+
+This module develops the probability model and error estimates used in the two-stage junta
+learner of [AticiServedio2007]. `JointLearner`, `exampleProb`, and `jointProb` describe
+hypotheses formed from Fourier samples and independent uniform examples, while
+`highInfluenceSet` isolates coordinates above the influence threshold.
+
+The second-stage construction `stage2Hypothesis` depends only on its selected coordinates. The
+estimates `disagreement_flipList_le` and `fact_iv6_shift` control the effect of changing
+low-influence coordinates, supplying the coordinate-shift estimate associated with Fact IV.6 and
+ingredients for Theorem IV.5.
+
+## Main statements
+
+* `highInfluenceSet_subset_relevant` and `highInfluenceSet_card_le` place the high-influence
+  coordinates inside any coordinate set determining the target.
+* `stage2Hypothesis_isKJunta` bounds the number of coordinates used by the constructed
+  hypothesis.
+* `disagreement_flipList_le` bounds disagreement under distinct coordinate flips by their total
+  influence.
+* `fact_iv6_shift` gives an error below `ε / 10` for shifts on at most `k` coordinates of
+  influence below `ε / (10 * k)`.
+- `stage2_error_arithmetic` verifies the final scalar error inequality.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007], Quantum Algorithms for Learning and Testing
+  Juntas, Theorem IV.5 and Fact IV.6.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,22 +65,31 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- The type of learners that map a transcript of `T` Fourier-sampled coordinate sets and `M`
+Boolean-cube examples to a Boolean hypothesis on `n` coordinates. -/
 def JointLearner (n T M : ℕ) : Type :=
   (Fin T → Finset (Fin n)) → (Fin M → (Fin n → Bool)) → ((Fin n → Bool) → Bool)
 
+/-- The probability of an event under `M` independent uniform samples from the `n`-dimensional
+Boolean cube. -/
 def exampleProb (n M : ℕ) (E : (Fin M → (Fin n → Bool)) → Prop) : ℝ := by
   classical
   exact ∑ xs : Fin M → (Fin n → Bool), if E xs then (((2 : ℝ) ^ n)⁻¹) ^ M else 0
 
+/-- The probability of an event involving `T` independent Fourier samples from `f` and `M`
+independent uniform Boolean-cube examples, with the two transcripts sampled independently. -/
 def jointProb (f : (Fin n → Bool) → Bool) (T M : ℕ)
     (E : (Fin T → Finset (Fin n)) → (Fin M → (Fin n → Bool)) → Prop) : ℝ := by
   classical
   exact ∑ s : Fin T → Finset (Fin n), (∏ t : Fin T, fsWeight f (s t)) *
     ∑ xs : Fin M → (Fin n → Bool), if E s xs then (((2 : ℝ) ^ n)⁻¹) ^ M else 0
 
+/-- The set of coordinates whose Boolean influence on `f` is at least `ε / (10 * k)`. -/
 def highInfluenceSet (f : (Fin n → Bool) → Bool) (ε : ℝ) (k : ℕ) : Finset (Fin n) :=
   Finset.univ.filter (fun i => ε / (10 * (k : ℝ)) ≤ boolInfluence f i)
 
+/-- If `f` depends only on `I` and `ε` and `k` are positive, every coordinate in
+`highInfluenceSet f ε k` belongs to `I`. -/
 theorem highInfluenceSet_subset_relevant {I : Finset (Fin n)}
     {f : (Fin n → Bool) → Bool} (hdep : dependsOnlyOn I f)
     {ε : ℝ} {k : ℕ} (hε : 0 < ε) (hk : 0 < k) :
@@ -62,16 +103,22 @@ theorem highInfluenceSet_subset_relevant {I : Finset (Fin n)}
   have hpos : 0 < ε / (10 * (k : ℝ)) := by positivity
   linarith
 
+/-- If `f` depends only on `I` and `ε` and `k` are positive, the high-influence set has
+cardinality at most `I.card`. -/
 theorem highInfluenceSet_card_le {I : Finset (Fin n)}
     {f : (Fin n → Bool) → Bool} (hdep : dependsOnlyOn I f)
     {ε : ℝ} {k : ℕ} (hε : 0 < ε) (hk : 0 < k) :
     (highInfluenceSet f ε k).card ≤ I.card :=
   Finset.card_le_card (highInfluenceSet_subset_relevant hdep hε hk)
 
+/-- The hypothesis obtained by evaluating `table` after retaining the input coordinates in `A`
+and setting every other coordinate to `false`. -/
 def stage2Hypothesis (A : Finset (Fin n)) (table : (Fin n → Bool) → Bool) :
     (Fin n → Bool) → Bool :=
   fun x => table (fun i => if i ∈ A then x i else false)
 
+/-- The second-stage hypothesis depends only on the coordinates in `A`, for every choice of
+`table`. -/
 theorem stage2Hypothesis_dependsOnlyOn (A : Finset (Fin n))
     (table : (Fin n → Bool) → Bool) :
     dependsOnlyOn A (stage2Hypothesis A table) := by
@@ -83,6 +130,7 @@ theorem stage2Hypothesis_dependsOnlyOn (A : Finset (Fin n))
   · rw [if_pos hi, if_pos hi, hxy i hi]
   · rw [if_neg hi, if_neg hi]
 
+/-- If `A` contains at most `k` coordinates, the second-stage hypothesis is a `k`-junta. -/
 theorem stage2Hypothesis_isKJunta {k : ℕ} (A : Finset (Fin n))
     (table : (Fin n → Bool) → Bool) (hA : A.card ≤ k) :
     IsKJunta (n := n) k (stage2Hypothesis A table) :=
@@ -94,10 +142,13 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- Flips the coordinates of a Boolean-cube input successively in the order specified by a list. -/
 def flipList {n : ℕ} : List (Fin n) → (Fin n → Bool) → (Fin n → Bool)
   | [], x => x
   | i :: l, x => flipList l (cubeFlip x i)
 
+/-- Uniform disagreement is unchanged when the same coordinate flip is applied to the inputs of
+both Boolean functions. -/
 theorem disagreement_flip_comp {n : ℕ} (F G : (Fin n → Bool) → Bool) (i : Fin n) :
     disagreement (fun x => F (cubeFlip x i)) (fun x => G (cubeFlip x i)) =
       disagreement F G := by
@@ -106,11 +157,14 @@ theorem disagreement_flip_comp {n : ℕ} (F G : (Fin n → Bool) → Bool) (i : 
   exact Equiv.sum_comp (cubeFlipEquiv i)
     (fun x => if F x = G x then (0 : ℝ) else 1)
 
+/-- Every Boolean function has zero uniform disagreement with itself. -/
 theorem disagreement_self {n : ℕ} (f : (Fin n → Bool) → Bool) :
     disagreement f f = 0 := by
   unfold disagreement uniformExpect
   simp
 
+/-- For a list of distinct coordinates, the disagreement between `f` and its coordinate-flipped
+version is at most the sum of the influences of those coordinates. -/
 theorem disagreement_flipList_le {n : ℕ} (f : (Fin n → Bool) → Bool)
     {l : List (Fin n)} (hnd : l.Nodup) :
     disagreement f (fun x => f (flipList l x)) ≤
@@ -150,6 +204,10 @@ theorem disagreement_flipList_le {n : ℕ} (f : (Fin n → Bool) → Bool)
         _ ≤ boolInfluence f i + ∑ j ∈ l.toFinset, boolInfluence f j := by linarith
         _ = ∑ j ∈ (i :: l).toFinset, boolInfluence f j := hsum.symm
 
+/-- If `B` has at most `k` coordinates, each of influence below `ε / (10 * k)`, then flipping
+any coordinates of `B` selected by `s` changes `f` on a fraction less than `ε / 10` of
+inputs, for positive `k` and `ε`. This is the coordinate-shift estimate associated with Fact
+IV.6 of [AticiServedio2007]. -/
 theorem fact_iv6_shift {k : ℕ} {ε : ℝ} (hk : 0 < k) (hε : 0 < ε)
     {f : (Fin n → Bool) → Bool} {B : Finset (Fin n)} {s : Fin n → Bool}
     (hinf : ∀ i ∈ B, boolInfluence f i < ε / (10 * (k : ℝ)))
@@ -191,6 +249,8 @@ theorem fact_iv6_shift {k : ℕ} {ε : ℝ} (hk : 0 < k) (hε : 0 < ε)
             field_simp
   exact lt_of_le_of_lt hle hsum_lt
 
+/-- For positive `ε`, the combined error expression `1 - (1 - ε / 3) ^ 2 + ε / 3` is strictly
+less than `ε`. -/
 theorem stage2_error_arithmetic {ε : ℝ} (hε : 0 < ε) :
     1 - (1 - ε / 3) ^ 2 + ε / 3 < ε := by
   have h3 : ε / 3 ≠ 0 := by linarith

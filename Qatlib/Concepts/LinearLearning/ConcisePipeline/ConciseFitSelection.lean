@@ -22,6 +22,33 @@ import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeProjection
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+
+/-!
+# Coordinate selection for concise least-squares fits
+
+This module studies least-squares fitting after selecting a subset of design-matrix columns. It
+defines `selectedDesignMatrix` and `coordinateTail`, bounds the selected residual by the omitted
+coefficient norm, and transfers an approximation of the normalized coefficient direction into a
+tail bound. This supports the concise-fitting setting of [WiebeBraunLloyd2012].
+
+The sampling construction `histogramSampleLaw` selects coordinates from a normalized state's
+Born distribution. Exact unseen-coordinate probabilities give expected missed-mass bounds and a
+probability guarantee for the selected set, with a two-dimensional identity example computing
+the residual and tail explicitly.
+
+## Main statements
+
+* `conciseFit_selected_residual_bounds`: lower and upper bounds for the selected-fit residual.
+* `conciseFit_direction_tail_bound`: coefficient-tail control from a direction approximation.
+* `conciseFit_histogram_expectation_exact`: the exact expected missed mass.
+* `conciseFit_histogram_markov`: a probability bound for small missed mass.
+* `conciseFit_identity_values`: explicit residual and tail values in dimension two.
+
+## References
+
+* [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
+-/
+
 set_option warningAsError false
 
 
@@ -56,16 +83,21 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The design matrix with columns outside the selected finite set replaced by zero. -/
 noncomputable def selectedDesignMatrix {O I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (S : Finset I) : Matrix O I ℂ :=
   A * Matrix.diagonal (fun i => if i ∈ S then (1:ℂ) else 0)
 
+/-- The vector retaining exactly the coordinates outside the selected finite set. -/
 def coordinateTail {I : Type} [DecidableEq I] (S : Finset I) (x : QState I) : QState I :=
   fun i => if i ∈ S then 0 else x i
 
+/-- The sum of Born weights on coordinates outside the selected finite set. -/
 noncomputable def missedSelectionMass {I : Type} [Fintype I]
     (φ : QState I) (S : Finset I) : ℝ := ∑ i ∈ Sᶜ, BornProb φ i
 
+/-- The probability mass function of one Born-distributed coordinate sample from a normalized
+state. -/
 noncomputable def histogramTrial {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : Normalized φ) : PMF I :=
   PMF.ofFintype (fun i => ENNReal.ofReal (BornProb φ i)) (by
@@ -73,12 +105,16 @@ noncomputable def histogramTrial {I : Type} [Fintype I] [DecidableEq I]
       bornProb_sum_eq_one hφ]
     exact ENNReal.ofReal_one)
 
+/-- The law of a list of independent Born-distributed coordinate samples of the specified
+length. -/
 noncomputable def histogramSampleLaw {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : Normalized φ) : ℕ → PMF (List I)
   | 0 => PMF.pure []
   | R+1 => (histogramSampleLaw φ hφ R).bind
       fun l => (histogramTrial φ hφ).map fun i => i :: l
 
+/-- Applying the selected design matrix is equivalent to applying the original matrix after
+removing the coordinate tail. -/
 theorem selectedDesignMatrix_mulVec {O I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (S : Finset I) (x : QState I) :
     selectedDesignMatrix A S *ᵥ x = A *ᵥ (x - coordinateTail S x) := by
@@ -89,6 +125,7 @@ theorem selectedDesignMatrix_mulVec {O I : Type} [Fintype I] [DecidableEq I]
   rw [Matrix.mulVec_diagonal]
   by_cases h : i ∈ S <;> simp [coordinateTail, h]
 
+/-- The squared Euclidean norm of the coordinate tail equals the missed selection mass. -/
 theorem coordinateTail_norm_sq {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (x : QState I) :
     ‖stateVector (coordinateTail S x)‖^2 = missedSelectionMass x S := by
@@ -105,6 +142,7 @@ theorem coordinateTail_norm_sq {I : Type} [Fintype I] [DecidableEq I]
       ext i
       simp
 
+/-- Removing selected coordinates does not increase the Euclidean norm. -/
 theorem coordinateTail_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (x : QState I) :
     ‖stateVector (coordinateTail S x)‖ ≤ ‖stateVector x‖ := by
@@ -116,6 +154,8 @@ theorem coordinateTail_norm_le {I : Type} [Fintype I] [DecidableEq I]
     exact bornProb_nonneg x i
   nlinarith [norm_nonneg (stateVector (coordinateTail S x)), norm_nonneg (stateVector x)]
 
+/-- For a normalized target, the squared residual of the least-squares vector is one minus the
+squared least-squares overlap. -/
 private theorem full_fit_residual {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (hb : Normalized b) :
     ‖stateVector (A *ᵥ leastSquaresVector A b - b)‖^2 = 1 - leastSquaresOverlap A b ^ 2 := by
@@ -123,6 +163,9 @@ private theorem full_fit_residual {O I : Type} [Fintype O] [DecidableEq O]
   rw [(normalized_iff_stateVector_norm b).mp hb, one_pow] at h
   linarith
 
+/-- For a normalized target and a design matrix of norm at most one, the selected fit's squared
+residual lies between the full-fit squared residual and the square of the full-fit residual
+norm plus the omitted coefficient norm. -/
 theorem conciseFit_selected_residual_bounds :
     ∀ {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
       (A : Matrix O I ℂ) (b : QState O) (S : Finset I),
@@ -166,6 +209,9 @@ theorem conciseFit_selected_residual_bounds :
   · rw [hsqrt]
     exact pow_le_pow_left₀ (norm_nonneg _) (hmin.trans htri) 2
 
+/-- If a normalized state approximates the normalized least-squares direction within `η` and has
+missed mass at most `μ ≥ 0`, the squared coefficient-tail norm is at most the full
+coefficient norm squared times `2 * μ + 2 * η ^ 2`. -/
 theorem conciseFit_direction_tail_bound :
     ∀ {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
       (A : Matrix O I ℂ) (b : QState O) (S : Finset I) (φ : QState I) (η μ : ℝ),
@@ -208,6 +254,7 @@ theorem conciseFit_direction_tail_bound :
       rw [htail, norm_smul, Real.norm_of_nonneg (norm_nonneg _), mul_pow]
     _ ≤ _ := mul_le_mul_of_nonneg_left hdsq (sq_nonneg _)
 
+/-- For `0 ≤ p ≤ 1`, the unseen point mass `p * (1 - p) ^ R` is at most `1 / (R + 1)`. -/
 theorem conciseFit_point_mass_tail_bound (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) (R : ℕ) :
     p * (1 - p)^R ≤ 1 / ((R : ℝ) + 1) := by
   have hq0 : 0 ≤ 1 - p := sub_nonneg.mpr hp1
@@ -230,6 +277,7 @@ theorem conciseFit_point_mass_tail_bound (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1
   rw [hsum] at hm
   nlinarith [pow_nonneg hq0 (R + 1)]
 
+/-- With zero samples from a normalized state, the expected missed selection mass is one. -/
 theorem conciseFit_histogram_zero_expectation {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : Normalized φ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (histogramSampleLaw φ hφ 0)
@@ -237,6 +285,7 @@ theorem conciseFit_histogram_zero_expectation {I : Type} [Fintype I] [DecidableE
   simp [histogramSampleLaw, missedSelectionMass, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure,
     bornProb_sum_eq_one hφ]
 
+/-- A single Born-distributed sample avoids coordinate `i` with probability `1 - BornProb φ i`. -/
 private theorem histogramTrial_avoid {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : Normalized φ) (i : I) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (histogramTrial φ hφ) (fun j => j ≠ i) =
@@ -274,6 +323,8 @@ private theorem histogramTrial_avoid {I : Type} [Fintype I] [DecidableEq I]
       · positivity
     _ = _ := by rw [hs]
 
+/-- After `R` independent samples, coordinate `i` remains unseen with probability `(1 - BornProb
+φ i) ^ R`, viewed in `ℝ≥0∞`. -/
 theorem conciseFit_histogram_unseen {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : Normalized φ) (i : I) (R : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (histogramSampleLaw φ hφ R) (fun l => i ∉ l.toFinset) =
@@ -317,6 +368,8 @@ theorem conciseFit_histogram_unseen {I : Type} [Fintype I] [DecidableEq I]
         rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_const_mul, hind]
       _ = _ := by rw [ih, pow_succ]; exact mul_comm _ _
 
+/-- The expected missed mass after `R` samples is the sum over coordinates of their Born weight
+times their probability of remaining unseen. -/
 theorem conciseFit_histogram_expectation_exact {I : Type} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : Normalized φ) (R : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (histogramSampleLaw φ hφ R)
@@ -359,6 +412,8 @@ theorem conciseFit_histogram_expectation_exact {I : Type} [Fintype I] [Decidable
     by_cases h : i ∈ l.toFinset <;> simp [h]
   rw [hind, conciseFit_histogram_unseen]
 
+/-- The expected missed selection mass after `R` samples is at most the number of coordinates
+divided by `R + 1`. -/
 theorem conciseFit_histogram_expectation :
     ∀ {I : Type} [Fintype I] [DecidableEq I] (φ : QState I) (hφ : Normalized φ) (R : ℕ),
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (histogramSampleLaw φ hφ R)
@@ -385,6 +440,7 @@ theorem conciseFit_histogram_expectation :
       rw [← ENNReal.ofReal_sum_of_nonneg (fun _ _ => by positivity)]
       simp [div_eq_mul_inv]
 
+/-- The real probabilities of an event and its complement sum to one. -/
 private theorem event_complement_real {X : Type} (p : PMF X) (E : X → Prop) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E).toReal + (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => ¬ E x)).toReal = 1 := by
   classical
@@ -402,6 +458,8 @@ private theorem event_complement_real {X : Type} (p : PMF X) (E : X → Prop) :
   simpa only [ENNReal.toReal_add (hfin E) (hfin _), ENNReal.toReal_one]
     using! congrArg ENNReal.toReal hsum
 
+/-- For `μ > 0`, the probability that missed mass after `R` samples is at most `μ` is at least
+`1 - Fintype.card I / ((R + 1) * μ)`. -/
 theorem conciseFit_histogram_markov :
     ∀ {I : Type} [Fintype I] [DecidableEq I] (φ : QState I) (hφ : Normalized φ)
       (R : ℕ) (μ : ℝ), 0 < μ →
@@ -442,6 +500,9 @@ theorem conciseFit_histogram_markov :
   dsimp only [p, E] at hgood hbad
   linarith
 
+/-- For the two-dimensional identity design and uniform target, the full fit is exact and the
+selected fit satisfies residual and tail bounds; fifteen histogram samples achieve missed
+mass at most one half with probability at least three quarters. -/
 theorem conciseFit_identity_consumer :
 let A : Matrix (Fin 2) (Fin 2) ℂ := (1 : Matrix (Fin 2) (Fin 2) ℂ)
 let b : QState (Fin 2) := fun _ => (1/Real.sqrt 2 : ℂ)
@@ -488,6 +549,8 @@ leastSquaresOverlap A b = 1 ∧
     rw [hx] at h
     simpa [b] using! h
 
+/-- For the two-dimensional identity design, uniform target, and selection `{0}`, both the
+squared selected-fit residual and squared omitted-coordinate norm equal one half. -/
 theorem conciseFit_identity_values :
     let A : Matrix (Fin 2) (Fin 2) ℂ := 1
     let b : QState (Fin 2) := fun _ => (1/Real.sqrt 2 : ℂ)

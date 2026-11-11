@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+
+/-!
+# A seven-gate relative Toffoli word
+
+`sourceRelativeToffoliSteps` implements a relative Toffoli using four single-qubit rotations and
+three CNOTs. Its target-fibre and basis-state formulas make the additional conditional sign
+explicit, supplying the relative-phase building block used in the multi-control constructions of
+[BarencoEtAl1995].
+
+## Main statements
+
+* `sourceRelativeToffoliSteps_fibre`: Conditional `PauliX`, `PauliZ`, or identity action on the
+  target.
+* `sourceRelativeToffoliSteps_ket`: Basis action with the explicit sign.
+* `sourceRelativeToffoliSteps_counts`: Seven gates in total, including four single-qubit gates.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,8 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators
 
+/-- Multiplying `PauliX` on both sides by the same qubit Euler rotation leaves `PauliX`
+unchanged. -/
 private theorem rotation_x_rotation (θ : ℝ) :
     qubitEulerRotation θ * PauliX * qubitEulerRotation θ = PauliX := by
   calc
@@ -30,6 +53,9 @@ private theorem rotation_x_rotation (θ : ℝ) :
       rw [pauliX_mul_qubitEulerRotation, qubitEulerRotation_mul,
         add_neg_cancel, qubitEulerRotation_zero, Matrix.one_mul]
 
+/-- Evaluates the alternating rotation and Boolean-controlled `PauliX` product as `PauliX` when
+both bits are true, `qubitEulerRotation (-4 * θ) * PauliX` when only the first is true, and
+the identity otherwise. -/
 private theorem relative_factor (θ : ℝ) (a b : Bool) :
     (qubitEulerRotation θ)ᴴ * (if b then PauliX else 1) *
       (qubitEulerRotation θ)ᴴ * (if a then PauliX else 1) *
@@ -58,15 +84,18 @@ private theorem relative_factor (θ : ℝ) (a b : Bool) :
         ring
   · rw [rotation_x_rotation, pauliX_mul_self, Matrix.one_mul, rotation_x_rotation]
 
+/-- The seven-gate relative Toffoli word formed from four target rotations and three CNOTs. -/
 def sourceRelativeToffoliSteps {N : ℕ} (a b t : Fin N) : List (ReflectionGate N) :=
   let A := qubitEulerRotation (-Real.pi/4);
   [.inl (t,A), .inr (b,t), .inl (t,A), .inr (a,t),
     .inl (t,Aᴴ), .inr (b,t), .inl (t,Aᴴ)]
 
+/-- The relative Toffoli gate word equals its syntactic adjoint. -/
 theorem sourceRelativeToffoliSteps_adjoint {N : ℕ} (a b t : Fin N) :
     reflectionAdjoint (sourceRelativeToffoliSteps a b t) = sourceRelativeToffoliSteps a b t := by
   simp [sourceRelativeToffoliSteps, reflectionAdjoint, reflectionGateAdjoint]
 
+/-- The relative Toffoli word is legal when both controls differ from its target. -/
 theorem sourceRelativeToffoliSteps_legal {N : ℕ} (a b t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) : reflectionLegal (sourceRelativeToffoliSteps a b t) := by
   intro g hg
@@ -80,6 +109,8 @@ theorem sourceRelativeToffoliSteps_legal {N : ℕ} (a b t : Fin N)
   · exact hbt
   · rw [qubitEulerRotation_conjTranspose]; exact qubitEulerRotation_unitary _
 
+/-- On a target fibre, the relative Toffoli word applies `PauliX` when both controls are true,
+`PauliZ` when only the first is true, and the identity otherwise. -/
 theorem sourceRelativeToffoliSteps_fibre {N : ℕ} (a b t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) (x : Reg N) (φ : QState Bool) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (sourceRelativeToffoliSteps a b t))
@@ -96,16 +127,23 @@ theorem sourceRelativeToffoliSteps_fibre {N : ℕ} (a b t : Fin N)
   simp only [← Matrix.mul_assoc]
   rw [relative_factor, show -4*(-Real.pi/4)=Real.pi from by ring, hZ]
 
+/-- A target fibre containing the basis vector `Ket b` is the register basis vector with the
+target bit set to `b`. -/
 private theorem fibre_basis {N : ℕ} (t : Fin N) (x : Reg N) (b : Bool) :
     multiWireState t x (Qatlib.Foundations.PureStateMath.Ket b) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t b) := by
   cases b <;> simp [multiWireState, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The action of `PauliZ` on `Ket b` multiplies it by minus one for `b = true` and by one
+otherwise. -/
 private theorem z_basis (b : Bool) :
     ApplyGate PauliZ (Qatlib.Foundations.PureStateMath.Ket b) = (if b then (-1:ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket b := by
   ext q
   cases b <;> cases q <;> simp [ApplyGate, Matrix.mulVec, dotProduct, PauliZ,
       Qatlib.Foundations.PureStateMath.Ket]
 
+/-- On a register basis vector, the relative Toffoli word toggles the target by the conjunction
+of its controls, with sign minus one exactly when the first control and original target are
+true and the second control is false. -/
 theorem sourceRelativeToffoliSteps_ket {N : ℕ} (a b t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (sourceRelativeToffoliSteps a b t))
@@ -122,6 +160,7 @@ theorem sourceRelativeToffoliSteps_ket {N : ℕ} (a b t : Fin N)
       applyGate_pauliX_ket, z_basis, multiWireState_smul, fibre_basis,
       Bool.xor_false, Bool.xor_true, Function.update_eq_self, one_smul]
 
+/-- The relative Toffoli word has seven gates, of which four are single-qubit gates. -/
 theorem sourceRelativeToffoliSteps_counts {N : ℕ} (a b t : Fin N) :
     (sourceRelativeToffoliSteps a b t).length = 7 ∧
     ((sourceRelativeToffoliSteps a b t).filter Sum.isLeft).length = 4 := by

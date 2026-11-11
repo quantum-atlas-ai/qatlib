@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerStat
 import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Lemma61HybridSamplerCoreSepa
+
+/-!
+# Cumulative witness-sampler bound
+
+This module proves `theorem6_2CumulativeSampler` from the hybrid query-mass bound. It controls
+transition mass into fresh elements of `S`, iterates this estimate over sampling histories, and
+averages over the family of witness states.
+
+The proof also verifies that `hardcodeS` removes all first-oracle queries while preserving the
+second-oracle query count. Its query-analysis ingredients use the hybrid method of
+[BennettEtAl1997].
+
+## Main statements
+
+* `theorem6_2CumulativeSampler`: cumulative success is at least `1 / (2 ^ q : ℝ) * (1 / (36 * (t
+  : ℝ) ^ 2)) ^ v`, together with the hardcoded query-count identities.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,31 +46,42 @@ section G4
 
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- The measurement mass `MeasureProb φ A` of any finite event `A` is nonnegative for every
+vector `φ`. -/
 private theorem measureProb_nonneg {I : Type} [Fintype I] (φ : QState I) (A : Finset I) :
     (0 : ℝ) ≤ MeasureProb φ A :=
   Finset.sum_nonneg fun i _ => sq_nonneg (‖φ i‖)
 
+/-- For finite events `A ⊆ B`, the measurement masses satisfy `MeasureProb φ A ≤ MeasureProb φ
+B` for every vector `φ`. -/
 private theorem measureProb_mono {I : Type} [Fintype I] (φ : QState I)
     (A B : Finset I) (hAB : A ⊆ B) : MeasureProb φ A ≤ MeasureProb φ B :=
   Finset.sum_le_sum_of_subset_of_nonneg hAB
     (fun i _ _ => sq_nonneg (‖φ i‖))
 
+/-- The sum of a pointwise nonnegative real function `f` over any list `L` is nonnegative. -/
 private theorem list_map_sum_nonneg' {α : Type} (f : α → ℝ) (hf : ∀ x, 0 ≤ f x)
     (L : List α) : (0 : ℝ) ≤ (L.map f).sum := by
   induction L with
   | nil => simp
   | cons a L ih => simp only [List.map_cons, List.sum_cons]; linarith [hf a, ih]
 
+/-- The controlled fiber measurement mass `controlFiberMass n S Δ W φ` is nonnegative for every
+vector `φ`. -/
 private theorem controlFiberMass_nonneg' (S Δ : Reg n → Bool)
     (φ : QState (ForrSpace n W)) : (0 : ℝ) ≤ controlFiberMass n S Δ W φ :=
   measureProb_nonneg φ _
 
+/-- Summing the list sum of `f φ x` over `x` in a finite set `T` equals the list sum over `φ` of
+the finite sums over `T`. -/
 private theorem sum_swap {I : Type} (L : List I) (f : I → Reg n → ℝ) (T : Finset (Reg n)) :
     (∑ x ∈ T, (L.map (fun φ => f φ x)).sum) = (L.map (fun φ => ∑ x ∈ T, f φ x)).sum := by
   induction L with
   | nil => simp
   | cons a L ih => simp [ih, Finset.sum_add_distrib]
 
+/-- If every element of `hist` satisfies `S`, then every string selected by its membership
+predicate `regOfList n hist` also satisfies `S`. -/
 private theorem regOfList_subset (hist : List (Reg n)) (S : Reg n → Bool)
     (hsub : ∀ x ∈ hist, S x) : ∀ x, regOfList n hist x → S x := by
   intro x hx
@@ -56,6 +89,8 @@ private theorem regOfList_subset (hist : List (Reg n)) (S : Reg n → Bool)
   · exact hsub x hxh
   · exact absurd (of_decide_eq_true hx) hxh
 
+/-- The sum of `sQueryBornMass n W φ x` over addresses `x` in `T` equals the measurement mass of
+all basis states whose first oracle address lies in `T`. -/
 private theorem sum_sQueryBornMass (φ : QState (ForrSpace n W)) (T : Finset (Reg n)) :
     (∑ x ∈ T, sQueryBornMass n W φ x)
       = MeasureProb φ (Finset.univ.filter fun p : ForrSpace n W => p.1.1 ∈ T) := by
@@ -66,6 +101,8 @@ private theorem sum_sQueryBornMass (φ : QState (ForrSpace n W)) (T : Finset (Re
   refine Finset.sum_congr rfl fun p _ => ?_
   rw [Finset.sum_ite_eq]
 
+/-- The transition mass `directTransitionMass n W S U C ψ hist x` is nonnegative for every
+circuit, vector, history, and address. -/
 private theorem directTransitionMass_nonneg (S U : Reg n → Bool)
     (C : TOCircuit (ForrSpace n W)) (ψ : QState (ForrSpace n W)) (hist : List (Reg n))
     (x : Reg n) : (0 : ℝ) ≤ directTransitionMass n W S U C ψ hist x := by
@@ -73,6 +110,8 @@ private theorem directTransitionMass_nonneg (S U : Reg n → Bool)
   refine mul_nonneg (one_div_nonneg.mpr (by positivity)) ?_
   exact list_map_sum_nonneg' _ (fun φ => measureProb_nonneg φ _) _
 
+/-- The recursive success mass `cumDirectSuccess n W S U C ψ v hist` is nonnegative for every
+number of remaining samples `v` and history `hist`. -/
 private theorem cumDirectSuccess_nonneg (S U : Reg n → Bool)
     (C : TOCircuit (ForrSpace n W)) (ψ : QState (ForrSpace n W)) :
     ∀ (v : ℕ) (hist : List (Reg n)), (0 : ℝ) ≤ cumDirectSuccess n W S U C ψ v hist := by
@@ -88,6 +127,9 @@ private theorem cumDirectSuccess_nonneg (S U : Reg n → Bool)
       exact directTransitionMass_nonneg S U C ψ hist x
     · simp [hx]
 
+/-- If `TOQueryCountS C ≤ t` and the summed controlled fiber mass along the history oracle
+execution divided by `t` is at least `1 / (36 * t ^ 2)`, then the total
+`directTransitionMass` of unseen addresses satisfying `S` is at least the same bound. -/
 private theorem transition_sum_ge (S U : Reg n → Bool)
     (C : TOCircuit (ForrSpace n W)) (ψ : QState (ForrSpace n W)) (hist : List (Reg n))
     (t : ℕ) (hcount : TOQueryCountS C ≤ t)
@@ -190,6 +232,10 @@ private theorem transition_sum_ge (S U : Reg n → Bool)
       exact h4.symm.trans_le htk'
     exact h2.trans h1
 
+/-- If `TOQueryCountS C ≤ t` and every distinct history in `S` of length at most `v` has summed
+controlled fiber mass divided by `t` at least `1 / (36 * t ^ 2)`, then `cumDirectSuccess`
+for `v'` further samples is at least `(1 / (36 * t ^ 2)) ^ v'` whenever the distinct
+starting history lies in `S` and its length plus `v'` is at most `v`. -/
 private theorem cumDirectSuccess_ge (S U : Reg n → Bool)
     (C : TOCircuit (ForrSpace n W)) (ψ : QState (ForrSpace n W))
     (t v : ℕ) (hcount : TOQueryCountS C ≤ t)
@@ -244,6 +290,8 @@ private theorem cumDirectSuccess_ge (S U : Reg n → Bool)
       exact transition_sum_ge S U C ψ hist t hcount (hper hist hnodup hsub hlenv)
     exact h2.trans h1
 
+/-- Replacing every first oracle query by the fixed gate `oΔ` using `hardcodeS` leaves zero
+first oracle queries. -/
 private theorem hardcodeS_countS {I : Type} (oΔ : Matrix I I ℂ) (C : TOCircuit I) :
     TOQueryCountS (hardcodeS oΔ C) = 0 := by
   induction C with
@@ -254,6 +302,8 @@ private theorem hardcodeS_countS {I : Type} (oΔ : Matrix I I ℂ) (C : TOCircui
     | queryS => show TOQueryCountS (hardcodeS oΔ C) = 0; exact ih
     | queryU => show TOQueryCountS (hardcodeS oΔ C) = 0; exact ih
 
+/-- Replacing first oracle queries by fixed gates using `hardcodeS` preserves the number
+`TOQueryCountU C` of second oracle queries. -/
 private theorem hardcodeS_countU {I : Type} (oΔ : Matrix I I ℂ) (C : TOCircuit I) :
     TOQueryCountU (hardcodeS oΔ C) = TOQueryCountU C := by
   induction C with
@@ -268,6 +318,10 @@ private theorem hardcodeS_countU {I : Type} (oΔ : Matrix I I ℂ) (C : TOCircui
 
 set_option maxHeartbeats 1000000 in
 
+/-- Establishes `Theorem6_2CumulativeSampler`: under its normalization, query bounds, and
+acceptance gap hypotheses, cumulative sampling succeeds with mass at least `1 / (2 ^ q) * (1
+/ (36 * t ^ 2)) ^ v`, and hardcoding each history oracle removes first oracle queries while
+preserving second oracle queries. -/
 theorem theorem6_2CumulativeSampler : Theorem6_2CumulativeSampler := by
   intro n q t v W _ _ S U C ψfam E hC hnorm hcountS hcountU hsmall hgood
   obtain ⟨w₀, hw₀⟩ := hgood

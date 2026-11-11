@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
+
+/-!
+# Trapezoidal source quadrature definitions
+
+`inhTrapNode` and `inhTrapWeight` define a source-time grid with both endpoints and half
+endpoint weights. The sum `inhTrapSourceSum` combines this time quadrature with the static LCHS
+parameter quadrature. See [AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `inhTrapWeight`: The source-time trapezoidal weight, equal to half the step at the endpoint
+  indices and the full step at interior indices.
+* `inhTrapSourceSum`: The trapezoidal source-time sum obtained by applying the static LCHS
+  propagator approximation to each sampled source vector.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -28,17 +48,24 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 namespace Qatlib.Concepts.LchsSimulation.KTrapezoid
 
+/-- The source-time grid node `s + l * inhStep Mt s t`, including the endpoint index `Mt`. -/
 noncomputable def inhTrapNode (Mt : ℕ) (s t : ℝ) (l : Fin (Mt+1)) : ℝ :=
   s + (l : ℝ) * inhStep Mt s t
 
+/-- The source-time trapezoidal weight, equal to half the step at the endpoint indices and the
+full step at interior indices. -/
 noncomputable def inhTrapWeight (Mt : ℕ) (s t : ℝ) (l : Fin (Mt+1)) : ℝ :=
   if (l : ℕ) = 0 ∨ (l : ℕ) = Mt then inhStep Mt s t / 2 else inhStep Mt s t
 
+/-- The ordered unitary-family evolution from a trapezoidal source-time node to `t` at a static
+LCHS parameter node. -/
 noncomputable def inhTrapSourceKUnitary (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N Mt : ℕ)
     (j : Fin N) (l : Fin (Mt+1)) : Matrix I I ℂ :=
   orderedEvolution (fun u => Complex.I • (H u + staticLchsGrid K N j • L u))
     (inhTrapNode Mt s t l) t
 
+/-- The trapezoidal source-time sum obtained by applying the static LCHS propagator
+approximation to each sampled source vector. -/
 noncomputable def inhTrapSourceSum (L H : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (s t : ℝ)
     (K N Mt : ℕ) : QState I :=
   ∑ l : Fin (Mt+1), (inhTrapWeight Mt s t l : ℂ) •

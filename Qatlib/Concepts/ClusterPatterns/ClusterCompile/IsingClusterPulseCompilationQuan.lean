@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationStat
+
+/-!
+# Ising cluster pulse compilation
+
+This module proves `IsingClusterPulseCompilation` by factoring the source pulse into its
+controlled-Z and local frame components. The compiled word realizes the pulse on every input
+state with a unitary circuit, zero oracle queries, and an exact gate count, in the
+cluster-resource setting of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `isingClusterPulseCompilation`: Establishes the pulse factorization, circuit semantics, and
+  resource specification for ordered graph edges.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +34,9 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.ClusterPatterns.ClusterCompile
 open Qatlib
 
+/-- Ordered graph edges possess an Ising pulse compilation with the specified matrix
+factorization, unitary circuit, exact gate count, zero queries, and state semantics; see
+[RaussendorfBriegel2000]. -/
 theorem isingClusterPulseCompilation : IsingClusterPulseCompilation := by
   classical
   intro n edges _

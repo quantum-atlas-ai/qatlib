@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Nearest-grid success in phase estimation
+
+A lower bound on the squared sinc function yields a constant probability for a nearest-grid
+phase estimate. The theorem `phase_estimation_best_approx_success` gives an outcome within half
+a grid spacing in circular distance and mass at least `4 / π²`, following the analysis of
+[CleveEtAl1998].
+
+## Main statements
+
+* `sinc_sq_lower`: the analytic squared-sinc lower bound.
+* `phase_estimation_best_approx_success`: a nearest-grid outcome with probability at least `4 /
+  π²`.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +37,8 @@ open Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
 namespace Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation
 
+/-- For `0 < t ≤ 1 / 2`, the squared sinc ratio `sin (πt) ^ 2 / (π ^ 2 * t ^ 2)` is at least `4
+/ π ^ 2`. -/
 lemma sinc_sq_lower (t : ℝ) (ht0 : 0 < t) (ht : t ≤ 1 / 2) :
     4 / Real.pi ^ 2 ≤ Real.sin (Real.pi * t) ^ 2 / (Real.pi ^ 2 * t ^ 2) := by
   have hs : 2 * t ≤ Real.sin (Real.pi * t) := by
@@ -34,6 +56,9 @@ lemma sinc_sq_lower (t : ℝ) (ht0 : 0 < t) (ht : t ≤ 1 / 2) :
     field_simp
   linarith
 
+/-- For `M > 2` and phase in `[0, 1)`, some grid outcome is within circular distance `1 / (2M)`
+and has phase-estimation outcome mass at least `4 / π ^ 2` [Cleve et al., Section
+5][CleveEtAl1998]. -/
 theorem phase_estimation_best_approx_success (M : ℕ) (ω : ℝ) (hM : 2 < M)
     (hω0 : 0 ≤ ω) (hω1 : ω < 1) :
     ∃ x : Fin M,

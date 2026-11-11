@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
 import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
+
+/-!
+# Counted QSVT words for singular value thresholds
+
+This module chooses phase sequences realizing `thresholdPolynomial` and compiles them into a
+real-part QSVT word. For a projected unitary encoding of `A`, the word exactly encodes a
+polynomial in `Aᴴ * A`. A gap between squared singular values and `τ^2` then gives an
+approximate encoding of `rightThresholdProjection A τ`.
+
+The construction follows the singular value transformation framework of [GilyenSuLowWiebe2019].
+The bounds here use the particular threshold polynomial and compiled word defined in the
+library.
+
+## Key declarations
+
+* `thresholdBase`, `thresholdPhases`, and `thresholdWord` select and compile the phases.
+* `threshold_word_exact_gram_encoding` identifies the exact compressed polynomial.
+* `threshold_actual_word_encoding_and_cost` gives error `signPolynomialError γ k / 2`, exactly
+  `2 * 3^k` total forward and backward oracle queries, and `2 * 3^k + 1` fixed gates under the
+  stated gap assumptions.
+* `threshold_actual_noisy_oracle_error` adds at most `(2 * 3^k) * δ` to the error when the
+  unitary oracle changes by operator norm at most `δ`.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -39,6 +67,10 @@ open scoped Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 
+/-- For a threshold in `[0, 1]`, there exist unit-modulus base and list phases of length `2 *
+3^k` whose response has real part `thresholdPolynomial τ k` on the real line. The response
+plus its coefficientwise conjugate is twice that real polynomial embedded into the complex
+coefficients. -/
 private theorem exists_threshold_phases (τ : ℝ) (k : ℕ)
     (hτ : τ ∈ Set.Icc (0 : ℝ) 1) :
     ∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧
@@ -55,14 +87,21 @@ private theorem exists_threshold_phases (τ : ℝ) (k : ℕ)
     have hb := thresholdPolynomial_eval_mem_Icc k hτ (abs_le.mpr hx)
     exact abs_le.mpr ⟨by linarith [hb.1], hb.2⟩
 
+/-- A chosen base phase realizing the threshold polynomial when `τ` lies in `[0, 1]`; it is
+defined to be one otherwise. -/
 noncomputable def thresholdBase (τ : ℝ) (k : ℕ) : ℂ :=
   if hτ : τ ∈ Set.Icc (0 : ℝ) 1 then
     Classical.choose (exists_threshold_phases τ k hτ) else 1
 
+/-- A chosen phase list realizing the threshold polynomial when `τ` lies in `[0, 1]`; it is the
+empty list otherwise. -/
 noncomputable def thresholdPhases (τ : ℝ) (k : ℕ) : List ℂ :=
   if hτ : τ ∈ Set.Icc (0 : ℝ) 1 then
     Classical.choose (Classical.choose_spec (exists_threshold_phases τ k hτ)) else []
 
+/-- For `τ` in `[0, 1]`, the chosen base and list entries are phases, the list has length `2 *
+3^k`, and its response has real part equal to `thresholdPolynomial τ k` at every real
+argument. -/
 theorem threshold_phase_word_response (τ : ℝ) (k : ℕ)
     (hτ : τ ∈ Set.Icc (0 : ℝ) 1) :
     IsPhase (thresholdBase τ k) ∧ (∀ z ∈ thresholdPhases τ k, IsPhase z) ∧
@@ -73,6 +112,8 @@ theorem threshold_phase_word_response (τ : ℝ) (k : ℕ)
   simp only [thresholdBase, thresholdPhases, dif_pos hτ]
   exact ⟨hs.1, hs.2.1, hs.2.2.1, hs.2.2.2.2⟩
 
+/-- The adjoint circuit word obtained by compiling real-part QSVT with the range projectors of
+`L` and `R` and the chosen threshold phases. -/
 noncomputable def thresholdWord {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (τ : ℝ) (k : ℕ) :
@@ -85,6 +126,9 @@ section Encoding
 variable {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   [Fintype O] [DecidableEq O]
 
+/-- For a projected unitary encoding of `A` and `τ` in `[0, 1]`, the threshold word evaluated
+with `parallelOracle Uᴴ` exactly encodes `thresholdFactor τ k` applied to `Aᴴ * A`. Both
+encoding frames are `averageFrame R`. -/
 theorem threshold_word_exact_gram_encoding (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (τ : ℝ) (k : ℕ)
     (h : ProjectedUnitaryEncoding A U L R) (hτ : τ ∈ Set.Icc (0 : ℝ) 1) :
@@ -106,6 +150,11 @@ theorem threshold_word_exact_gram_encoding (A : Matrix O I ℂ) (U : Matrix H H 
   rw [ht] at hex
   simpa only [thresholdWord, evaluate_compileRealPartQSVT] using hex
 
+/-- If `τ` is in `[0, 1]` and every squared singular value is separated from `τ^2` by at least
+`γ`, with `0 < γ ≤ 1`, the threshold word is well formed and block encodes the right
+threshold projection with scale one and error `signPolynomialError γ k / 2`. This library
+realization of the threshold-projector framework in [GilyenSuLowWiebe2019] uses exactly `2 *
+3^k` total forward and backward oracle queries and `2 * 3^k + 1` fixed gates. -/
 theorem threshold_actual_word_encoding_and_cost (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (τ γ : ℝ) (k : ℕ)
     (h : ProjectedUnitaryEncoding A U L R) (hτ : τ ∈ Set.Icc (0 : ℝ) 1)
@@ -138,6 +187,10 @@ theorem threshold_actual_word_encoding_and_cost (A : Matrix O I ℂ) (U : Matrix
   · exact hc.1.trans hlen
   · exact hc.2.trans (congrArg (fun n => n + 1) hlen)
 
+/-- Under the threshold and squared-singular-value gap assumptions, replacing the encoding
+unitary `U` by a unitary `V` with operator-norm error at most `δ` gives a block encoding of
+the same right threshold projection. Its scale is one and its error is at most
+`signPolynomialError γ k / 2 + (2 * 3^k) * δ`. -/
 theorem threshold_actual_noisy_oracle_error (A : Matrix O I ℂ) (U V : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (τ γ δ : ℝ) (k : ℕ)
     (h : ProjectedUnitaryEncoding A U L R) (hV : V ∈ Matrix.unitaryGroup H ℂ)

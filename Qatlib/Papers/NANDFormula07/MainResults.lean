@@ -89,6 +89,38 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# Spectral Ingredients for NAND Formula Evaluation
+
+This module develops weighted tree and spectral estimates for the NAND formula framework of
+[ChildsEtAl2007]. `NandTreeData` records the parent map, tail vertices, weights, Boolean labels,
+and size and spectral parameters; `NandTreeData.ham` gives the corresponding real weighted
+adjacency action.
+
+The results provide subtree geometry, zero energy amplitude and normalization lemmas, tail
+extension estimates, local eigenvector ratio bounds, Perron factorization identities, and
+elementary cost comparisons. These are component statements with their hypotheses stated
+explicitly.
+
+## Main statements
+
+* `lemma3_zero_amplitude_of_eval_true` forces zero amplitude at an internal true vertex under
+  the NAND and weight conditions.
+* `lemma4_normalize_of_unnormalized` normalizes a subtree vector and retains a lower bound on
+  its root amplitude.
+* `theorem2_tail_extension` extends a subtree vector to a global zero energy vector with a tail
+  overlap bound.
+* `gammaV_ge_inv_GammaPrime`, `lemma6_eval_false_branch`, and `lemma6_eval_true_step` supply
+  local spectral estimates.
+* `perron_factorization_norm_one` supplies oppositely directed edge factors with unit squared
+  row sums from a positive eigenvector of eigenvalue one.
+
+## References
+
+* [Childs et al., 2007][ChildsEtAl2007]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.NANDFormula07.MainResults
@@ -99,6 +131,10 @@ set_option autoImplicit false
 
 variable {V : Type} [Fintype V] [DecidableEq V]
 
+/-- Data for a finite weighted NAND tree with two distinguished tail vertices, Boolean labels,
+sizes, heights, and spectral parameters. The fields impose the tail parent relations, strict
+height descent, positive sizes, symmetric weights, and the stated parameter monotonicity
+bounds. -/
 structure NandTreeData (V : Type) [Fintype V] [DecidableEq V] where
   root : V
   root' : V
@@ -135,27 +171,39 @@ namespace NandTreeData
 
 variable (D : NandTreeData V)
 
+/-- A vertex is a leaf when no vertex has it as its parent. -/
 def IsLeaf (v : V) : Prop := ∀ c, D.parent c ≠ some v
 
+/-- A vertex is internal when it has at least one child under the parent map. -/
 def IsInternal (v : V) : Prop := ∃ c, D.parent c = some v
 
+/-- Membership in the subtree rooted at `p`, defined by the reflexive transitive closure of the
+parent to child relation. -/
 def InSubtree (p v : V) : Prop :=
   Relation.ReflTransGen (fun a b : V => D.parent b = some a) p v
 
+/-- The real weighted adjacency action at `v`, formed by adding its parent contribution, when
+present, to the weighted contributions of all its children. -/
 noncomputable def ham (a : V → ℝ) (v : V) : ℝ :=
   (match D.parent v with
     | some p => D.weight p v * a p
     | none => 0) +
   ∑ x : V, if D.parent x = some v then D.weight v x * a x else 0
 
+/-- Every vertex belongs to its own subtree. -/
 theorem inSubtree_refl (p : V) : D.InSubtree p p := Relation.ReflTransGen.refl
 
+/-- A child of `p` belongs to the subtree rooted at `p`. -/
 theorem inSubtree_child {p c : V} (h : D.parent c = some p) : D.InSubtree p c :=
   Relation.ReflTransGen.single h
 
+/-- Subtree membership is transitive: a descendant of a descendant of `p` is a descendant of
+`p`. -/
 theorem inSubtree_trans {p v u : V} (hpv : D.InSubtree p v) (hvu : D.InSubtree v u) :
     D.InSubtree p u := Relation.ReflTransGen.trans hpv hvu
 
+/-- The weighted adjacency action commutes with multiplication of the amplitude vector by a real
+scalar. -/
 theorem ham_smul (c : ℝ) (a : V → ℝ) (v : V) :
     D.ham (c • a) v = c * D.ham a v := by
   simp only [NandTreeData.ham, Pi.smul_apply, smul_eq_mul]
@@ -170,6 +218,8 @@ theorem ham_smul (c : ℝ) (a : V → ℝ) (v : V) :
     · simp only [hx, if_true]; ring
     · simp only [hx, if_false]; ring
 
+/-- At a leaf, the weighted adjacency action consists only of the parent contribution, or is
+zero when the leaf has no parent. -/
 theorem ham_leaf_eq (a : V → ℝ) {v : V} (hleaf : D.IsLeaf v) :
     D.ham a v =
       (match D.parent v with
@@ -183,6 +233,9 @@ theorem ham_leaf_eq (a : V → ℝ) {v : V} (hleaf : D.IsLeaf v) :
 
 end NandTreeData
 
+/-- Under the stated NAND label and edge weight conditions, an internal vertex labeled `true`
+has zero amplitude whenever `ham a` vanishes throughout its subtree. This is the zero
+amplitude conclusion associated with Lemma 3 of [ChildsEtAl2007]. -/
 theorem lemma3_zero_amplitude_of_eval_true (D : NandTreeData V) {a : V → ℝ} {p : V}
     (hNandTrue : ∀ v, D.IsInternal v → D.eval v = true →
       ∃ c, D.parent c = some v ∧ D.eval c = false)
@@ -237,6 +290,9 @@ theorem lemma3_zero_amplitude_of_eval_true (D : NandTreeData V) {a : V → ℝ} 
         exact (mul_eq_zero.mp hprod).resolve_left (ne_of_gt (hWeight_pos hpc hcfalse))
   exact key (D.height p) p rfl hp_int hp_eval ha
 
+/-- For positive `σ`, `s`, and `y` with `y <= sqrt s * σ`, the reciprocal of `sqrt σ * s^(1 /
+4)` is at most `1 / sqrt y`. This is a scalar normalization estimate associated with Lemma 4
+of [ChildsEtAl2007]. -/
 theorem lemma4_normalization_bound {σ s y : ℝ} (hσ : 0 < σ) (hs : 0 < s)
     (hy : 0 < y) (hle : y ≤ Real.sqrt s * σ) :
     1 / (Real.sqrt σ * s ^ (1 / 4 : ℝ)) ≤ 1 / Real.sqrt y := by
@@ -258,6 +314,11 @@ theorem lemma4_normalization_bound {σ s y : ℝ} (hσ : 0 < σ) (hs : 0 < s)
   have hspos : 0 < Real.sqrt y := Real.sqrt_pos.mpr hy
   exact one_div_le_one_div_of_le hspos hroot
 
+/-- Normalizes a vector supported in the subtree of `p` whose weighted adjacency action vanishes
+there and whose amplitude at `p` is one, as a component associated with Lemma 4 and Theorem
+2 of [ChildsEtAl2007]. Under the positive norm and parameter bounds, the normalized vector
+retains these support and zero energy properties and has amplitude at least `1 / (sqrt
+(D.sigmaMinus p) * (D.sz p)^(1 / 4))` at `p`. -/
 theorem lemma4_normalize_of_unnormalized (D : NandTreeData V) {p : V} {a : V → ℝ}
     (hnorm_pos : 0 < ∑ v : V, (a v) ^ 2)
     (hzero : ∀ v, D.InSubtree p v → D.ham a v = 0)
@@ -295,6 +356,8 @@ theorem lemma4_normalize_of_unnormalized (D : NandTreeData V) {p : V} {a : V →
     rw [ha'p]
     exact lemma4_normalization_bound hσ hs hn_pos hbound
 
+/-- If `x > 0` and `0 <= y <= x^2`, then `x / sqrt (y + x^2)` is at least `1 / sqrt 2`. This is
+the scalar overlap estimate associated with Theorem 2 of [ChildsEtAl2007]. -/
 theorem overlap_ratio_ge_inv_sqrt_two {x y : ℝ} (hx : 0 < x) (hy : 0 ≤ y)
     (hxy : y ≤ x ^ 2) :
     1 / Real.sqrt 2 ≤ x / Real.sqrt (y + x ^ 2) := by
@@ -310,13 +373,20 @@ theorem overlap_ratio_ge_inv_sqrt_two {x y : ℝ} (hx : 0 < x) (hy : 0 ≤ y)
     _ ≤ x / Real.sqrt (y + x ^ 2) := by
         apply div_le_div_of_nonneg_left hx.le hspos hsqrt_le
 
+/-- The spectral parameter `Gamma σr = 1 / (2 * σr)`. -/
 noncomputable def Gamma (σr : ℝ) : ℝ := 1 / (2 * σr)
 
+/-- The spectral parameter `GammaPrime σr = 8 * σr`. -/
 noncomputable def GammaPrime (σr : ℝ) : ℝ := 8 * σr
 
+/-- The local spectral expression `Gamma σr - (Gamma σr)^2 * σv - E^2 * (1 + GammaPrime σr) *
+σpv`. -/
 noncomputable def gammaV (σr σv σpv E : ℝ) : ℝ :=
   Gamma σr - Gamma σr ^ 2 * σv - E ^ 2 * (1 + GammaPrime σr) * σpv
 
+/-- For nonnegative local parameters and positive `σr`, the local expression `gammaV` is at most
+`Gamma σr`. This is a scalar estimate associated with Lemma 6 and Theorem 5 of
+[ChildsEtAl2007]. -/
 theorem gammaV_le_Gamma {σr σv σpv E : ℝ}
     (hσv : 0 ≤ σv) (hσpv : 0 ≤ σpv) (hσr : 0 < σr) :
     gammaV σr σv σpv E ≤ Gamma σr := by
@@ -330,6 +400,9 @@ theorem gammaV_le_Gamma {σr σv σpv E : ℝ}
   unfold gammaV
   linarith
 
+/-- Under the stated lower and upper bounds on the spectral parameters and `0 < E <= 1 / (9 * σr
+* sqrt σpr)`, the local expression `gammaV` is at least `1 / GammaPrime σr`. This is a
+scalar spectral estimate associated with Theorems 2 and 5 of [ChildsEtAl2007]. -/
 theorem gammaV_ge_inv_GammaPrime {σr σv σpv σpr E : ℝ}
     (hσr1 : 1 ≤ σr) (hσv1 : 1 ≤ σv) (hσvr : σv ≤ σr)
     (hσpv1 : 1 ≤ σpv) (hσpvr : σpv ≤ σpr)
@@ -362,6 +435,9 @@ theorem gammaV_ge_inv_GammaPrime {σr σv σpv σpr E : ℝ}
   field_simp
   nlinarith [hE2pv, hσvr, hσpv1, hσpvr, hσr1]
 
+/-- For a positive energy eigenvector with nonzero amplitude at a leaf and positive parent edge
+weight, the parent to leaf amplitude ratio is positive and equals the energy divided by that
+weight. This is the leaf component associated with Lemma 6 of [ChildsEtAl2007]. -/
 theorem lemma6_leaf_ratio (D : NandTreeData V) {a : V → ℝ} {E : ℝ} {v p : V}
     (hpv : D.parent v = some p) (hleaf : D.IsLeaf v)
     (heig : ∀ w, D.ham a w = E * a w) (hE : 0 < E)
@@ -381,6 +457,9 @@ theorem lemma6_leaf_ratio (D : NandTreeData V) {a : V → ℝ} {E : ℝ} {v p : 
     linarith
   exact ⟨by rw [hratio]; positivity, hratio⟩
 
+/-- The bounds `1 / (8 * σ^2 * N + σ * sqrt N) <= E^2` and `E^2 <= 1 / (81 * σ^2 * N)` are
+incompatible when `σ >= 1`, `N >= 1`, and `E > 0`. This is a scalar contradiction associated
+with Theorem 5 of [ChildsEtAl2007]. -/
 theorem tail_energy_contradiction {σ N E : ℝ} (hσ : 1 ≤ σ) (hN : 1 ≤ N)
     (hE : 0 < E)
     (hlow : 1 / (8 * σ ^ 2 * N + σ * Real.sqrt N) ≤ E ^ 2)
@@ -402,6 +481,10 @@ theorem tail_energy_contradiction {σ N E : ℝ} (hσ : 1 ≤ σ) (hN : 1 ≤ N)
     one_div_lt_one_div_of_lt hden2 hstrict
   linarith
 
+/-- Converts the given bound with exponent `1 / 2 + C / sqrt (log N)` into a bound with exponent
+`1 / 2 + ε` for every `N >= max N₀ 2`, assuming the exponent correction is at most `ε` from
+`N₀` onward. This is a conditional cost comparison associated with Theorems 1 and 9 of
+[ChildsEtAl2007]. -/
 theorem cost_half_add_eps (cost : ℕ → ℝ) {C c : ℝ} (hC : 0 < C) (hc : 0 < c)
     (hbound : ∀ N : ℕ, 2 ≤ N →
       cost N ≤ c * (N : ℝ) ^ ((1 : ℝ) / 2 + C / Real.sqrt (Real.log (N : ℝ))))
@@ -426,6 +509,9 @@ theorem cost_half_add_eps (cost : ℕ → ℝ) {C c : ℝ} (hC : 0 < C) (hc : 0 
     _ ≤ c * (N : ℝ) ^ ((1 : ℝ) / 2 + ε) :=
         mul_le_mul_of_nonneg_left hpow hc.le
 
+/-- For `N > 1` and `C > 0`, the square root of `N` is at most `N^(1 / 2 + C / sqrt (log N))`.
+This is a scalar comparison associated with the cost scales in Theorems 1 and 9 of
+[ChildsEtAl2007]. -/
 theorem sqrt_le_rpow_add {N : ℝ} (hN : 1 < N) {C : ℝ} (hC : 0 < C) :
     Real.sqrt N ≤ N ^ ((1 : ℝ) / 2 + C / Real.sqrt (Real.log N)) := by
   rw [Real.sqrt_eq_rpow]
@@ -437,18 +523,22 @@ theorem sqrt_le_rpow_add {N : ℝ} (hN : 1 < N) {C : ℝ} (hC : 0 < C) :
 
 namespace NandTreeData
 
+/-- The height of a descendant is at most the height of its subtree root. -/
 theorem inSubtree_height_le (D : NandTreeData V) {p v : V} (h : D.InSubtree p v) :
     D.height v ≤ D.height p := by
   induction h with
   | refl => exact le_rfl
   | tail _ hbc ih => exact le_trans (Nat.le_of_lt (D.height_lt hbc)) ih
 
+/-- A vertex in the subtree of `p` is either `p` itself or has a parent that also lies in that
+subtree. -/
 theorem inSubtree_tail (D : NandTreeData V) {p v : V} (h : D.InSubtree p v) :
     v = p ∨ ∃ q, D.InSubtree p q ∧ D.parent v = some q := by
   rcases Relation.ReflTransGen.cases_tail h with rfl | ⟨q, hpq, hqv⟩
   · exact Or.inl rfl
   · exact Or.inr ⟨q, hpq, hqv⟩
 
+/-- The parent of a descendant other than the subtree root remains in the same subtree. -/
 theorem inSubtree_parent (D : NandTreeData V) {p v c : V} (h : D.InSubtree p c)
     (hc : D.parent c = some v) (hne : c ≠ p) : D.InSubtree p v := by
   rcases D.inSubtree_tail h with rfl | ⟨q, hpq, hqc⟩
@@ -458,6 +548,8 @@ theorem inSubtree_parent (D : NandTreeData V) {p v c : V} (h : D.InSubtree p c)
     subst hvq
     exact hpq
 
+/-- If two vertices have a common descendant, then one belongs to the subtree rooted at the
+other. -/
 theorem inSubtree_comparable (D : NandTreeData V) {a b u : V}
     (ha : D.InSubtree a u) (hb : D.InSubtree b u) :
     D.InSubtree a b ∨ D.InSubtree b a := by
@@ -480,6 +572,7 @@ theorem inSubtree_comparable (D : NandTreeData V) {a b u : V}
           exact ih b hb2
   exact key u ha b hb
 
+/-- A descendant distinct from the subtree root has strictly smaller height. -/
 theorem inSubtree_height_lt_of_ne (D : NandTreeData V) {p v : V}
     (h : D.InSubtree p v) (hne : v ≠ p) : D.height v < D.height p := by
   have hle := D.inSubtree_height_le h
@@ -498,6 +591,7 @@ theorem inSubtree_height_lt_of_ne (D : NandTreeData V) {p v : V}
           omega
     exact hne (key v h heq)
 
+/-- Mutual subtree membership forces two vertices to be equal. -/
 theorem inSubtree_antisymm (D : NandTreeData V) {a b : V} (hab : D.InSubtree a b)
     (hba : D.InSubtree b a) : a = b := by
   by_contra hne
@@ -505,6 +599,8 @@ theorem inSubtree_antisymm (D : NandTreeData V) {a b : V} (hab : D.InSubtree a b
   have h2 := D.inSubtree_height_lt_of_ne hba hne
   omega
 
+/-- When `v` has parent `p`, expands its weighted adjacency action as the weighted amplitude at
+`p` plus the sum of weighted child amplitudes. -/
 theorem ham_eq_of_parent (D : NandTreeData V) {a : V → ℝ} {v p : V}
     (hp : D.parent v = some p) :
     D.ham a v = D.weight p v * a p +
@@ -512,6 +608,8 @@ theorem ham_eq_of_parent (D : NandTreeData V) {a : V → ℝ} {v p : V}
   unfold NandTreeData.ham
   rw [hp]
 
+/-- At a vertex without a parent, the weighted adjacency action is the sum of its weighted child
+amplitudes. -/
 theorem ham_eq_of_parent_none (D : NandTreeData V) {a : V → ℝ} {v : V}
     (hp : D.parent v = none) :
     D.ham a v = ∑ x : V, if D.parent x = some v then D.weight v x * a x else 0 := by
@@ -519,6 +617,7 @@ theorem ham_eq_of_parent_none (D : NandTreeData V) {a : V → ℝ} {v : V}
   rw [hp]
   exact zero_add _
 
+/-- The weighted adjacency action is additive in the amplitude vector. -/
 theorem ham_add (D : NandTreeData V) (a b : V → ℝ) (v : V) :
     D.ham (a + b) v = D.ham a v + D.ham b v := by
   classical
@@ -541,10 +640,12 @@ theorem ham_add (D : NandTreeData V) (a b : V → ℝ) (v : V) :
     rw [hsum, mul_add]
     ring
 
+/-- The weighted adjacency action of the zero amplitude vector vanishes at every vertex. -/
 theorem ham_zero (D : NandTreeData V) (v : V) : D.ham (fun _ => 0) v = 0 := by
   have h := D.ham_smul 0 (fun _ => (1 : ℝ)) v
   simpa using! h
 
+/-- The weighted adjacency action commutes with a finite sum of amplitude vectors. -/
 theorem ham_sum (D : NandTreeData V) {ι : Type*} (s : Finset ι) (f : ι → V → ℝ)
     (v : V) :
     D.ham (fun u => ∑ i ∈ s, f i u) v = ∑ i ∈ s, D.ham (f i) v := by
@@ -560,6 +661,9 @@ theorem ham_sum (D : NandTreeData V) {ι : Type*} (s : Finset ι) (f : ι → V 
 
 end NandTreeData
 
+/-- Bounds `1 + ∑ i, s i * σ i / sqrt sp` by `sqrt sp * σp` when the nonnegative sizes sum to
+positive `sp`, each `σ i <= σmax`, and `1 / sqrt sp + σmax <= σp`. This is a scalar norm
+estimate associated with Lemma 4 of [ChildsEtAl2007]. -/
 theorem lemma4_norm_bound {sp σp σmax : ℝ} {ι : Type*} [Fintype ι]
     (s σ : ι → ℝ) (hsp : 0 < sp) (hs : ∀ i, 0 ≤ s i)
     (hσmax : ∀ i, σ i ≤ σmax) (hsum : ∑ i, s i = sp)
@@ -594,6 +698,11 @@ theorem lemma4_norm_bound {sp σp σmax : ℝ} {ι : Type*} [Fintype ι]
     linarith
   linarith
 
+/-- Under the stated tail adjacency, weight, and root amplitude conditions, extends a unit
+squared norm vector supported in the root subtree and having zero energy there to a global
+zero energy vector, as a component associated with Theorem 2 of [ChildsEtAl2007]. The
+extension preserves the subtree amplitudes, has the specified values at the two tail
+vertices, and has normalized absolute amplitude at least `1 / sqrt 2` at `root''`. -/
 theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
     (hzero : ∀ v, D.InSubtree D.root v → D.ham a v = 0)
     (hsupp : ∀ v, ¬ D.InSubtree D.root v → a v = 0)
@@ -842,6 +951,8 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
     rw [hnorm_b, ← sq_abs]
     exact hratio
 
+/-- For positive `sp` and `sv`, the square of the quarter power `(sv / sp)^(1 / 4)` equals `sqrt
+(sv / sp)`. This is a scalar weight identity associated with Lemma 4 of [ChildsEtAl2007]. -/
 theorem weight_sq_eq {sp sv : ℝ} (hsp : 0 < sp) (hsv : 0 < sv) :
     ((sv / sp) ^ (1 / 4 : ℝ)) ^ 2 = Real.sqrt (sv / sp) := by
   have hpos : 0 < sv / sp := div_pos hsv hsp
@@ -849,6 +960,9 @@ theorem weight_sq_eq {sp sv : ℝ} (hsp : 0 < sp) (hsv : 0 < sv) :
   have h : (1 / 4 : ℝ) + 1 / 4 = 1 / 2 := by norm_num
   rw [h, ← Real.sqrt_eq_rpow]
 
+/-- For positive sizes, if `hpv = (sv / sp)^(1 / 4)` and `hvc` is at least `(sc / sv)^(1 / 4)`,
+then `hpv^2 / hvc^2 <= sv / (sqrt sp * sqrt sc)`. This is a scalar weight estimate
+associated with Lemma 4 of [ChildsEtAl2007]. -/
 theorem weight_ratio_sq_le {sp sv sc hpv hvc : ℝ} (hsp : 0 < sp) (hsv : 0 < sv)
     (hsc : 0 < sc) (hhpv : hpv = (sv / sp) ^ (1 / 4 : ℝ))
     (hhvc : (sc / sv) ^ (1 / 4 : ℝ) ≤ hvc) (_hhvc_pos : 0 < hvc) :
@@ -878,6 +992,7 @@ theorem weight_ratio_sq_le {sp sv sc hpv hvc : ℝ} (hsp : 0 < sp) (hsv : 0 < sv
 
 namespace NandTreeData
 
+/-- If a subtree contains a vertex distinct from its root, then its root has a child. -/
 theorem inSubtree_exists_child (D : NandTreeData V) {p v : V} (h : D.InSubtree p v) :
     v ≠ p → ∃ c, D.parent c = some p := by
   induction h with
@@ -890,17 +1005,21 @@ theorem inSubtree_exists_child (D : NandTreeData V) {p v : V} (h : D.InSubtree p
         exact ⟨c, hstep⟩
       · exact ih hu
 
+/-- The only vertex in a leaf's subtree is the leaf itself. -/
 theorem inSubtree_eq_self_of_isLeaf (D : NandTreeData V) {p v : V}
     (hleaf : D.IsLeaf p) (h : D.InSubtree p v) : v = p := by
   by_contra hne
   obtain ⟨c, hc⟩ := D.inSubtree_exists_child h hne
   exact hleaf c hc
 
+/-- If a vertex lies outside a subtree and has a parent, then its parent also lies outside that
+subtree. -/
 theorem not_inSubtree_parent (D : NandTreeData V) {p v q : V}
     (h : ¬ D.InSubtree p v) (hq : D.parent v = some q) : ¬ D.InSubtree p q := by
   intro hpq
   exact h (D.inSubtree_trans hpq (D.inSubtree_child hq))
 
+/-- A vertex's parent does not belong to the subtree rooted at that vertex. -/
 theorem parent_not_inSubtree (D : NandTreeData V) {p q : V} (hpq : D.parent p = some q) :
     ¬ D.InSubtree p q := by
   intro h
@@ -910,6 +1029,10 @@ theorem parent_not_inSubtree (D : NandTreeData V) {p q : V} (hpq : D.parent p = 
 
 end NandTreeData
 
+/-- For a leaf `p` with `1 / sqrt (D.sz p) <= D.sigmaMinus p`, constructs a vector supported in
+its subtree with amplitude one at `p` and zero weighted adjacency action throughout that
+subtree, as the leaf component associated with Lemma 4 of [ChildsEtAl2007]. Its squared norm
+is at most `sqrt (D.sz p) * D.sigmaMinus p`. -/
 theorem lemma4_leaf_exists (D : NandTreeData V) {p : V} (hleaf : D.IsLeaf p)
     (hσ : 1 / Real.sqrt (D.sz p : ℝ) ≤ D.sigmaMinus p) :
     ∃ a : V → ℝ,
@@ -963,6 +1086,9 @@ theorem lemma4_leaf_exists (D : NandTreeData V) {p : V} (hleaf : D.IsLeaf p)
       _ ≤ Real.sqrt (D.sz p : ℝ) * D.sigmaMinus p :=
           mul_le_mul_of_nonneg_left hσ hspos.le
 
+/-- Combines the stated squared weight ratio bound and amplitude bound to obtain `hpv^2 / (hvc^2
+* ã^2) <= sv * σc / sqrt sp`, under the listed positivity assumptions. This is a scalar
+child contribution estimate associated with Lemma 4 of [ChildsEtAl2007]. -/
 theorem child_term_bound {hpv hvc ã sp sv sc σc : ℝ}
     (hã : 0 < ã) (hhvc : 0 < hvc) (hsp : 0 < Real.sqrt sp)
     (hsc : 0 < Real.sqrt sc) (hsv : 0 ≤ sv)
@@ -986,6 +1112,10 @@ theorem child_term_bound {hpv hvc ã sp sv sc σc : ℝ}
 
 namespace NandTreeData
 
+/-- Setting the parent amplitude to one and rescaling a vector supported in a chosen child's
+subtree makes the weighted adjacency action vanish at the intermediate vertex. This
+component associated with Lemma 4 of [ChildsEtAl2007] uses nonzero chosen child amplitude
+and edge weight, with the scaling factor specified in the statement. -/
 theorem construction_vertex_energy (D : NandTreeData V) {p v cv : V} {ã : V → ℝ}
     (hpv : D.parent v = some p) (hvcv : D.parent cv = some v)
     (hweight : D.weight v cv ≠ 0) (hãcv : ã cv ≠ 0)
@@ -1056,9 +1186,14 @@ theorem construction_vertex_energy (D : NandTreeData V) {p v cv : V} {ã : V →
 
 end NandTreeData
 
+/-- The nonnegative factor `sqrt (H v w * δ w / δ v)` associated with an ordered pair of
+vertices. -/
 noncomputable def perronFactor (H : V → V → ℝ) (δ : V → ℝ) (v w : V) : ℝ :=
   Real.sqrt (H v w * δ w / δ v)
 
+/-- For symmetric nonnegative `H` and strictly positive `δ`, the product of the factors for `(v,
+w)` and `(w, v)` equals `H v w`. This is the edge factorization component associated with
+Claim 8 of [ChildsEtAl2007]. -/
 theorem perronFactor_comp (H : V → V → ℝ) (δ : V → ℝ)
     (hsymm : ∀ v w, H v w = H w v)
     (hnonneg : ∀ v w, 0 ≤ H v w)
@@ -1078,6 +1213,9 @@ theorem perronFactor_comp (H : V → V → ℝ) (δ : V → ℝ)
     _ = Real.sqrt (H v w ^ 2) := by rw [hprod]
     _ = H v w := Real.sqrt_sq (hnonneg v w)
 
+/-- If `δ` is a strictly positive eigenvector of a nonnegative `H` with eigenvalue `μ`, then
+each row's sum of squared Perron factors equals `μ`. This is the row norm component
+associated with Claim 8 of [ChildsEtAl2007]. -/
 theorem perronFactor_row (H : V → V → ℝ) (δ : V → ℝ) (μ : ℝ)
     (hnonneg : ∀ v w, 0 ≤ H v w)
     (hδpos : ∀ v, 0 < δ v)
@@ -1094,6 +1232,10 @@ theorem perronFactor_row (H : V → V → ℝ) (δ : V → ℝ) (μ : ℝ)
   rw [← Finset.sum_div, heig v]
   exact mul_div_cancel_right₀ μ hv
 
+/-- For symmetric nonnegative `H` with a strictly positive eigenvector of eigenvalue one, the
+oppositely directed Perron factors multiply to each matrix entry and every row's squared
+factors sum to one. This is the normalized factorization associated with Claim 8 of
+[ChildsEtAl2007]. -/
 theorem perron_factorization_norm_one (H : V → V → ℝ) (δ : V → ℝ)
     (hsymm : ∀ v w, H v w = H w v)
     (hnonneg : ∀ v w, 0 ≤ H v w)
@@ -1104,10 +1246,16 @@ theorem perron_factorization_norm_one (H : V → V → ℝ) (δ : V → ℝ)
   ⟨perronFactor_comp H δ hsymm hnonneg hδpos,
    perronFactor_row H δ 1 hnonneg hδpos (fun v => by simpa using heig v)⟩
 
+/-- Every Perron factor is nonnegative, with no sign assumptions on its inputs. This is a
+component associated with the factorization in Claim 8 of [ChildsEtAl2007]. -/
 theorem perronFactor_nonneg (H : V → V → ℝ) (δ : V → ℝ) :
     ∀ v w, 0 ≤ perronFactor H δ v w :=
   fun v w => Real.sqrt_nonneg _
 
+/-- For a positive energy eigenvector with nonzero amplitude at `v`, the stated nonpositive
+child ratios and their bounds imply `0 < a p / a v <= y0 v * E`, as a local component
+associated with Lemma 6 of [ChildsEtAl2007]. The coefficient `y0 v` is the specified
+weighted child sum divided by the positive parent edge weight. -/
 theorem lemma6_eval_false_branch (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     {v p : V} {y0 y1 : V → ℝ}
     (hpv : D.parent v = some p) (heig : ∀ w, D.ham a w = E * a w)
@@ -1185,6 +1333,10 @@ theorem lemma6_eval_false_branch (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
   calc a p / a v * D.weight p v = D.weight p v * (a p / a v) := by ring
     _ ≤ _ := hupper
 
+/-- If the local minus parameter increases by at least `1 / sqrt sc` and the local plus
+parameter increases by at least `sv`, bounds the new `gammaV` by the old value minus the two
+corresponding correction terms, for positive `σr`. This is a scalar induction estimate
+associated with Lemma 6 of [ChildsEtAl2007]. -/
 theorem gammaV_step {σr E σmd σpd σmv σpv sc sv : ℝ}
     (hσr : 0 < σr)
     (h1 : σmd + 1 / Real.sqrt sc ≤ σmv) (h2 : σpd + sv ≤ σpv) :
@@ -1201,6 +1353,10 @@ theorem gammaV_step {σr E σmd σpd σmv σpv sc sv : ℝ}
   nlinarith [mul_le_mul_of_nonneg_left h1 hA,
              mul_le_mul_of_nonneg_left h2 hB]
 
+/-- Combines the eigenvector equation and the stated lower bounds on false and true child
+amplitude ratios to bound `-E * D.weight p v * (a p / a v)` from below, as a local component
+associated with Lemma 6 of [ChildsEtAl2007]. The bound is the sum of `D.weight v c / y0 c`
+over false children minus `E^2` times one plus the weighted `y1` sum over true children. -/
 theorem lemma6_eval_true_step (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     {v p : V} {y0 y1 : V → ℝ}
     (hpv : D.parent v = some p) (heig : ∀ w, D.ham a w = E * a w)
@@ -1290,6 +1446,10 @@ theorem lemma6_eval_true_step (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
   rw [hmain]
   nlinarith [hES]
 
+/-- For quarter power weights determined by positive child sizes, the stated bounds on `y` and
+the total child size imply `1 + ∑ i, h i * y i <= (1 + Γ') * sqrt sv`, assuming `sv >= 1`
+and `Γ' >= 0`. This is a scalar coefficient estimate associated with Lemma 6 of
+[ChildsEtAl2007]. -/
 theorem coefficient_bound {sv Γ' : ℝ} {ι : Type*} [Fintype ι]
     (s y h : ι → ℝ) (hsv1 : 1 ≤ sv) (hΓ' : 0 ≤ Γ')
     (hspos : ∀ i, 0 < s i)
@@ -1333,6 +1493,9 @@ theorem coefficient_bound {sv Γ' : ℝ} {ι : Type*} [Fintype ι]
     nlinarith [hnonneg]
   linarith [hsum_le, hsvdiv, hlow]
 
+/-- Under the stated positivity conditions, a lower bound `-E * h * (αp / αv) >= γ / sqrt sv`
+forces the reciprocal ratio to be negative and at least `-(h * sqrt sv / γ) * E`. This is a
+scalar ratio estimate associated with Lemma 6 of [ChildsEtAl2007]. -/
 theorem lemma6_eval_true_final {E h γ sv αp αv : ℝ}
     (hE : 0 < E) (hh : 0 < h) (hγ : 0 < γ) (hsv : 0 < sv)
     (hmain : -E * h * (αp / αv) ≥ γ / Real.sqrt sv) (hav : αv ≠ 0) :

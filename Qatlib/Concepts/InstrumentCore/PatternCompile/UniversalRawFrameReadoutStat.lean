@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+/-!
+# Raw graph readout contract
+
+This module defines `UniversalRawFrameReadout`, a specification for legal graph measurement
+patterns. It combines exact leaf counts and resources, raw reference-system branch identities,
+an instrument with uniform history weights, and correctness of event probabilities after
+classical Pauli-frame decoding.
+
+The specification isolates the raw execution and classical readout guarantees used in
+measurement-based universality [RaussendorfBriegel2000].
+
+## Main definitions
+
+* `UniversalRawFrameReadout`: the resource, instrument, and event-mass contract for raw graph
+  execution.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -23,6 +45,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The assertion that legal graph words have the specified raw leaf counts and resources,
+framed reference-branch formulas, uniform instrument probabilities, and correct decoded
+event masses [RaussendorfBriegel2000]. -/
 def UniversalRawFrameReadout : Prop :=
   ∀ (n L : ℕ) (G : GraphWord n L), networkLegal (List.ofFn G) →
     observedLeafCount (mbqcRawProgram G)=2^(graphWireCount G) ∧

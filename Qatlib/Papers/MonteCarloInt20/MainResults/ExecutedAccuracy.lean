@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
 import Qatlib.Papers.MonteCarloInt20.CostModels.NestedReceipts
 import Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
+
+/-!
+# Accuracy of the executed nested circuit
+
+This module connects the evaluated nested circuit word to the finite Monte Carlo target
+associated with [KanekoEtAl2020]. `executed_finite_accuracy` gives a Born-probability guarantee
+including both the outer estimation window and the smooth inner payoff bias.
+
+`actual_term_call_hierarchy` expands the forward and backward body accesses into an exact count
+of underlying term queries.
+
+## Main statements
+
+* `executed_finite_accuracy`: bounds the target error of the executed circuit with probability
+  at least `8 / π²`.
+* `actual_term_call_hierarchy`: counts the underlying term calls in the nested word.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -36,6 +58,9 @@ noncomputable local instance dataDecision (n M : ℕ) (I : Type) [DecidableEq I]
 noncomputable local instance fullDecision (n M N : ℕ) (I : Type) [DecidableEq I] :
     DecidableEq (Inner N ((Reg n × Inner M I) × Bool)) := instDecidableEqProd
 
+/-- Under the stated smoothness and payoff-range hypotheses, with positive coordinate width,
+even `M ≥ 2`, and `N ≥ 2`, the executed nested circuit estimates `finiteTarget` within
+`outerWindow` plus `finiteBudget` with Born probability at least `8 / π²` [KanekoEtAl2020]. -/
 theorem executed_finite_accuracy {n s d p : ℕ} (hd : 0 < d)
     (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N) (hEven : 2 ∣ M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
@@ -58,6 +83,8 @@ theorem executed_finite_accuracy {n s d p : ℕ} (hd : 0 < d)
       outerWindow N (finiteMean M hM a c seed termCode D g)+finiteBudget M a c seed termCode D gp K)
   exact (finite_nested_total_error hd M N hM hN hEven a c seed termCode D g gp K hg hgp hrange).trans_eq he.symm
 
+/-- For positive `M` and `N`, the total forward and backward body-access count multiplied by the
+body query count equals `2 * ((2 * N - 1) * (2 * M - 1))`. -/
 theorem actual_term_call_hierarchy {n s d p : ℕ}
     (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))

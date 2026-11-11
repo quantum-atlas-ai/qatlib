@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ImaginaryFlow.GroundLimit.SpectralDamping
 
+/-!
+# Finite damping with degenerate lowest energy
+
+This module extends finite exponential damping to a possibly degenerate minimum energy.
+`retainedGround` keeps every weighted vector whose assigned energy equals the chosen minimum,
+and `gaugeFixedState_tendsto_groundspace` proves convergence to that sum.
+
+When the retained sum is nonzero, `normalized_spectral_groundspace` gives convergence of
+normalized imaginary-time states to its normalization. These estimates support the
+imaginary-time setting of [McArdleTew2020].
+
+## Main statements
+
+* `gaugeFixedState_tendsto_groundspace`: convergence of the gauge-fixed curve to all retained
+  minimum-energy terms.
+* `normalized_spectral_groundspace`: normalized convergence under a nonzero retained-sum
+  hypothesis.
+
+## References
+
+* [McArdle and Tew, 2020][McArdleTew2020]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.ImaginaryFlow.GroundLimit
@@ -15,10 +38,13 @@ open scoped BigOperators Topology Classical
 section FiniteDamping
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The sum of all weighted vectors whose assigned energy equals the energy at `i0`. -/
 def retainedGround {ι : Type*} [Fintype ι] (eig : ι → ℝ) (c : ι → ℝ)
     (v : ι → E) (i0 : ι) : E :=
   ∑ i, if eig i = eig i0 then c i • v i else 0
 
+/-- If the energy at `i0` is minimal, the gauge-fixed finite damping curve converges to the sum
+of all terms with that energy. -/
 theorem gaugeFixedState_tendsto_groundspace {ι : Type*} [Fintype ι]
     (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E) (i0 : ι)
     (hmin : ∀ i, eig i0 ≤ eig i) :
@@ -37,6 +63,8 @@ theorem gaugeFixedState_tendsto_groundspace {ι : Type*} [Fintype ι]
     simpa only [if_neg hi, zero_mul, zero_smul] using
       (he.mul (tendsto_const_nhds (x := c i))).smul (tendsto_const_nhds (x := v i))
 
+/-- If the energy at `i0` is minimal and the retained sum is nonzero, normalized finite damping
+converges to the normalized retained sum. -/
 theorem normalized_spectral_groundspace {ι : Type*} [Fintype ι]
     (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E) (i0 : ι)
     (hmin : ∀ i, eig i0 ≤ eig i) (hr : retainedGround eig c v i0 ≠ 0) :

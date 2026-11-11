@@ -23,6 +23,28 @@ import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.SplitIfs
 import Mathlib.Topology.Algebra.Module.ModuleTopology
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Stat
+
+/-!
+# Posterior invariants and expected information gain
+
+This module establishes positivity of answer probabilities, normalization of posterior updates,
+and an exact expected-information identity for the ordered search model of [BenOrHassidim2007].
+The information gain equals the binary entropy of the answer minus that of the noise parameter.
+
+Quadratic bounds for `queryInfo` control the loss from an imperfectly balanced cut and yield the
+drift estimate `zoo_bayes_expected_info_rise`.
+
+## Main statements
+
+* `zoo_bayes_posterior_invariants`: both updates remain nonnegative normalized priors.
+* `zoo_bayes_expected_info_identity`: exact formula for the expected information increment.
+* `zoo_bayes_expected_info_rise`: the lower bound specified by `Lemma2_3`.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.3][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
@@ -30,6 +52,7 @@ namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 open scoped BigOperators NNReal ENNReal
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- Every prefix mass of a nonnegative normalized prior lies between zero and one, inclusive. -/
 private theorem prefix_probability {n : ℕ} (a : Fin n → ℝ) (i : Fin n)
     (ha : ∀ j, 0 ≤ a j) (hsum : ∑ j, a j = 1) :
     0 ≤ prefixMass a i ∧ prefixMass a i ≤ 1 := by
@@ -45,6 +68,8 @@ private theorem prefix_probability {n : ℕ} (a : Fin n → ℝ) (i : Fin n)
     intro j _hj
     by_cases h : j.val ≤ i.val <;> simp [h, ha j]
 
+/-- For a nonnegative normalized prior and 1/2 < p < 1, both answer normalizers are strictly
+positive and their sum is one. -/
 theorem zoo_bayes_answer_probabilities {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : ℝ)
     (ha : ∀ j, 0 ≤ a j) (hsum : ∑ j, a j = 1) (hp : 1 / 2 < p) (hp1 : p < 1) :
     0 < normFalse a i p ∧ 0 < normTrue a i p ∧ normFalse a i p + normTrue a i p = 1 := by
@@ -60,6 +85,8 @@ theorem zoo_bayes_answer_probabilities {n : ℕ} (a : Fin n → ℝ) (i : Fin n)
   · nlinarith
   · ring
 
+/-- When the prior weights sum to one, weighting the inclusive prefix by p and its complement by
+1 - p gives total weight `normFalse a i p`. -/
 private theorem false_weight_sum {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : ℝ)
     (hsum : ∑ j, a j = 1) :
     (∑ j, if j.val ≤ i.val then p * a j else (1 - p) * a j) = normFalse a i p := by
@@ -72,6 +99,8 @@ private theorem false_weight_sum {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : 
   unfold normFalse
   ring
 
+/-- When the prior weights sum to one, weighting the inclusive prefix by 1 - p and its
+complement by p gives total weight `normTrue a i p`. -/
 private theorem true_weight_sum {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : ℝ)
     (hsum : ∑ j, a j = 1) :
     (∑ j, if j.val ≤ i.val then (1 - p) * a j else p * a j) = normTrue a i p := by
@@ -84,6 +113,8 @@ private theorem true_weight_sum {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : �
   unfold normTrue normFalse
   ring
 
+/-- For a nonnegative normalized prior and 1/2 < p < 1, both `updateFalse` and `updateTrue` have
+nonnegative weights summing to one. -/
 theorem zoo_bayes_posterior_invariants {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : ℝ)
     (ha : ∀ j, 0 ≤ a j) (hsum : ∑ j, a j = 1) (hp : 1 / 2 < p) (hp1 : p < 1) :
     (∀ j, 0 ≤ updateFalse a i p j) ∧ (∑ j, updateFalse a i p j) = 1 ∧
@@ -107,6 +138,7 @@ theorem zoo_bayes_posterior_invariants {n : ℕ} (a : Fin n → ℝ) (i : Fin n)
   · simp only [updateTrue, ← Finset.sum_div]
     rw [true_weight_sum a i p hsum, div_self hT.ne']
 
+/-- The base-two entropy of a nonnegative normalized finite prior is nonnegative. -/
 theorem zoo_bayes_entropy_nonnegative {n : ℕ} (a : Fin n → ℝ)
     (ha : ∀ j, 0 ≤ a j) (hsum : ∑ j, a j = 1) : 0 ≤ entropy a := by
   have hj1 (j : Fin n) : a j ≤ 1 := by
@@ -120,6 +152,8 @@ theorem zoo_bayes_entropy_nonnegative {n : ℕ} (a : Fin n → ℝ)
     (div_nonpos_of_nonpos_of_nonneg (Real.log_nonpos (ha j) (hj1 j))
       (Real.log_pos (by norm_num)).le)
 
+/-- For a nonnegative normalized prior and 1/2 < p < 1, clamping `normTrue a i p` to a
+probability leaves its real value unchanged. -/
 theorem zoo_bayes_answer_clamp {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : ℝ)
     (ha : ∀ j, 0 ≤ a j) (hsum : ∑ j, a j = 1) (hp : 1 / 2 < p) (hp1 : p < 1) :
     ((clampProb (normTrue a i p) : ℝ≥0) : ℝ) = normTrue a i p := by
@@ -128,6 +162,8 @@ theorem zoo_bayes_answer_clamp {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : �
   change max 0 (min (normTrue a i p) 1) = normTrue a i p
   rw [min_eq_left hT1, max_eq_right hT.le]
 
+/-- Expands d times the entropy of the scaled weights `c j * a j / d` into the displayed sum of
+base-two logarithms, for nonnegative `a`, positive `c`, and d > 0. -/
 private theorem weighted_entropy_update {n : ℕ} (a c : Fin n → ℝ) (d : ℝ)
     (ha : ∀ j, 0 ≤ a j) (hc : ∀ j, 0 < c j) (hd : 0 < d) :
     d * entropy (fun j => c j * a j / d) =
@@ -144,6 +180,8 @@ private theorem weighted_entropy_update {n : ℕ} (a c : Fin n → ℝ) (d : ℝ
       Real.log_mul (hc j).ne' hx.ne']
     field_simp [hd.ne', (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne']
 
+/-- For a nonnegative normalized prior and 1/2 < p < 1, the answer-weighted increment in
+`postInfo` equals `binEntropy (normFalse a i p) - binEntropy p`. -/
 theorem zoo_bayes_expected_info_identity {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p : ℝ)
     (ha : ∀ j, 0 ≤ a j) (hsum : ∑ j, a j = 1) (hp : 1 / 2 < p) (hp1 : p < 1) :
     normFalse a i p * (postInfo (updateFalse a i p) - postInfo a) +
@@ -192,20 +230,29 @@ theorem zoo_bayes_expected_info_identity {n : ℕ} (a : Fin n → ℝ) (i : Fin 
   rw [show normTrue a i p = 1 - normFalse a i p from rfl] at hraw ⊢
   linear_combination -hraw
 
+/-- Expresses `queryInfo p` as one minus the natural-logarithm binary entropy `Real.binEntropy
+p` divided by `Real.log 2`. -/
 theorem zoo_bayes_queryInfo_natural (p : ℝ) :
     queryInfo p = 1 - Real.binEntropy p / Real.log 2 := by
   simp only [queryInfo, binEntropy, Real.binEntropy, Real.log_inv]
   ring
 
+/-- The binary entropy deficit 1 - `Real.binEntropy x`/`Real.log 2` minus the quadratic term c(x
+- 1/2)². -/
 private noncomputable def infoCorrection (c x : ℝ) : ℝ :=
   1 - Real.binEntropy x / Real.log 2 - c * (x - 1 / 2)^2
 
+/-- The expression (log x - log(1 - x))/log 2 - 2c(x - 1/2), used as the derivative of
+`infoCorrection c` on (0, 1). -/
 private noncomputable def infoCorrectionD (c x : ℝ) : ℝ :=
   (Real.log x - Real.log (1 - x)) / Real.log 2 - 2 * c * (x - 1 / 2)
 
+/-- The expression 1/(x(1 - x)log 2) - 2c, used as the second derivative of `infoCorrection c`
+on (0, 1). -/
 private noncomputable def infoCorrectionDD (c x : ℝ) : ℝ :=
   1 / (x * (1 - x) * Real.log 2) - 2 * c
 
+/-- For 0 < x < 1, `infoCorrection c` has derivative `infoCorrectionD c x` at x. -/
 private theorem correction_deriv (c x : ℝ) (hx : 0 < x) (hx1 : x < 1) :
     HasDerivAt (infoCorrection c) (infoCorrectionD c x) x := by
   have h := ((hasDerivAt_const x (1 : ℝ)).sub
@@ -215,6 +262,7 @@ private theorem correction_deriv (c x : ℝ) (hx : 0 < x) (hx1 : x < 1) :
   (try dsimp [infoCorrectionD])
   ring
 
+/-- For 0 < x < 1, `infoCorrectionD c` has derivative `infoCorrectionDD c x` at x. -/
 private theorem correction_second_deriv (c x : ℝ) (hx : 0 < x) (hx1 : x < 1) :
     HasDerivAt (infoCorrectionD c) (infoCorrectionDD c x) x := by
   have hlog := Real.hasDerivAt_log hx.ne'
@@ -228,9 +276,11 @@ private theorem correction_second_deriv (c x : ℝ) (hx : 0 < x) (hx1 : x < 1) :
     (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne']
   ring
 
+/-- The correction `infoCorrection c` vanishes at 1/2 for every c. -/
 private theorem correction_half (c : ℝ) : infoCorrection c (1 / 2) = 0 := by
   simp [infoCorrection, (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne']
 
+/-- The correction `infoCorrection c` has derivative zero at 1/2 for every c. -/
 private theorem correction_half_deriv (c : ℝ) : HasDerivAt (infoCorrection c) 0 (1 / 2) := by
   have hh : infoCorrectionD c (1 / 2) = 0 := by
     dsimp only [infoCorrectionD]
@@ -240,6 +290,8 @@ private theorem correction_half_deriv (c : ℝ) : HasDerivAt (infoCorrection c) 
   rw [hh] at h
   exact h
 
+/-- For 1/2 < p < 1, the query information satisfies 2(p - 1/2)² ≤ `queryInfo p`, providing a
+quadratic estimate for the ordered search analysis [BenOrHassidim2007]. -/
 theorem zoo_bayes_queryInfo_quadratic_lower {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
     2 * (p - 1 / 2)^2 ≤ queryInfo p := by
   have hcv : ConvexOn ℝ (Set.Icc (1 / 2 : ℝ) 1) (infoCorrection 2) := by
@@ -274,6 +326,7 @@ theorem zoo_bayes_queryInfo_quadratic_lower {p : ℝ} (hp : 1 / 2 < p) (hp1 : p 
   dsimp [infoCorrection] at hf
   linarith
 
+/-- For 1/4 ≤ p ≤ 1/2, the query information satisfies `queryInfo p` ≤ 4(p - 1/2)². -/
 theorem zoo_bayes_queryInfo_quadratic_upper {p : ℝ}
     (hp : 1 / 4 ≤ p) (hp1 : p ≤ 1 / 2) : queryInfo p ≤ 4 * (p - 1 / 2)^2 := by
   have hcc : ConcaveOn ℝ (Set.Icc (1 / 4 : ℝ) (1 / 2)) (infoCorrection 4) := by
@@ -312,6 +365,9 @@ theorem zoo_bayes_queryInfo_quadratic_upper {p : ℝ}
   dsimp [infoCorrection] at hf
   linarith
 
+/-- Proves `Lemma2_3`: under its normalized-prior, balanced-cut, and parameter hypotheses,
+expected information gain is at least `queryInfo p` times 1 - 1/(3 log₂ n) [Ben-Or and
+Hassidim, Lemma 2.3][BenOrHassidim2007]. -/
 theorem zoo_bayes_expected_info_rise : Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma2_3 := by
   intro n a i p ε hn hp hp1 hε hcap ha hsum hqlo hqhi
   let L : ℝ := Real.log n / Real.log 2

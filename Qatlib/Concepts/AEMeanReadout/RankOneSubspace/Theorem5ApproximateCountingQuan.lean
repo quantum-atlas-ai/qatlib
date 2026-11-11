@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingStat
+
+/-!
+# Approximate counting from amplitude estimation
+
+`theorem5ApproximateCounting` proves a probability lower bound for counting marked elements
+using `aeLaw` with Fourier preparation. The module also checks that the success constant `8 /
+π²` is at most one. For background, see [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `theorem5ApproximateCounting`: For positive `N`, marked size at most `N / 2`, and `P ≥ 4`, the
+  amplitude-estimation law assigns mass at least `8 / π²` to estimates with count error strictly
+  below `2π * sqrt (|S| * N) / P + π² * N / P²`. See [BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +39,14 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- The success constant `8 / π²` is at most one. -/
 private theorem counting_success_constant : 8/Real.pi^2 ≤ (1 : ℝ) := by
   apply (div_le_one (sq_pos_of_pos Real.pi_pos)).2
   nlinarith [Real.pi_gt_three]
 
+/-- For positive `N`, marked size at most `N / 2`, and `P ≥ 4`, the amplitude-estimation law
+assigns mass at least `8 / π²` to estimates with count error strictly below `2π * sqrt (|S|
+* N) / P + π² * N / P²`. See [BrassardHoyerTapp1998Counting]. -/
 theorem theorem5ApproximateCounting : Theorem5ApproximateCounting := by
   intro N P S hN _hS hP
   have hP2 : 2 ≤ P := by omega

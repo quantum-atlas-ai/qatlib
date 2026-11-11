@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+/-!
+# Filtered Gram bounds for bit queries
+
+Proves that a bit oracle call changes the Gram matrix of normalized states by a filtered
+certificate of budget two. Summing these certificates along a unitary circuit gives a budget of
+twice its query count [LeeEtAl2011].
+
+The final theorem only requires the circuit output to have the target Gram matrix, so it also
+covers conversion specified by equality of pairwise output inner products.
+
+## Main statements
+
+* `gram_one_query_filteredCert`: gives the budget-two certificate for a bit query.
+* `gram_exact_state_conversion_filteredCert`: bounds target Gram change by twice the query
+  count.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,18 +43,23 @@ namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 
 open Matrix
 
+/-- Simultaneously XOR-flipping the Boolean coordinate of two state slices preserves their inner
+product. -/
 private theorem gram_query_slice_flip_inner {R : ℕ} (a b : QState (Bool × Fin R))
     (c : Bool) :
     (star (fun bw : Bool × Fin R => a (bw.1 ^^ c, bw.2)) ⬝ᵥ
       (fun bw : Bool × Fin R => b (bw.1 ^^ c, bw.2))) = star a ⬝ᵥ b := by
   cases c <;> simp [dotProduct, Fintype.sum_prod_type, add_comm]
 
+/-- XOR-flipping a state slice's Boolean coordinate preserves its total squared amplitude. -/
 private theorem gram_query_slice_flip_mass {R : ℕ} (a : QState (Bool × Fin R))
     (c : Bool) :
     (∑ bw : Bool × Fin R, Complex.normSq (a (bw.1 ^^ c, bw.2))) =
       ∑ bw, Complex.normSq (a bw) := by
   cases c <;> simp [Fintype.sum_prod_type, add_comm]
 
+/-- One workspace bit oracle call on normalized states yields a filtered Gram difference
+certificate with budget two, as in [Lee et al., Lemma 4.7][LeeEtAl2011]. -/
 theorem gram_one_query_filteredCert {X : Type} [Fintype X] [DecidableEq X]
     {n R : ℕ} (input : X → Fin n → Bool)
     {ψ : X → QState ((Fin n × Bool) × Fin R)} (hψ : ∀ x, Normalized (ψ x)) :
@@ -82,6 +109,8 @@ theorem gram_one_query_filteredCert {X : Type} [Fintype X] [DecidableEq X]
       Fintype.sum_prod_type, applyGate_workspaceBitOracle_mk, Finset.sum_sub_distrib,
       a, b]
 
+/-- A unitary bit-query circuit acting on normalized states yields a filtered Gram difference
+certificate with budget twice its query count. -/
 private theorem gram_run_filteredCert {X : Type} [Fintype X] [DecidableEq X]
     {n R : ℕ} (input : X → Fin n → Bool)
     (C : Circuit ((Fin n × Bool) × Fin R)) (hC : IsUnitaryCircuit C)
@@ -113,6 +142,9 @@ private theorem gram_run_filteredCert {X : Type} [Fintype X] [DecidableEq X]
       rw [hw] at h
       simpa only [hm, run_query, queryCount_query] using h
 
+/-- If a unitary circuit with `T` queries has the target family's pairwise output inner
+products, then the initial-to-target Gram difference has a filtered certificate with budget
+`2*T` [LeeEtAl2011]. -/
 theorem gram_exact_state_conversion_filteredCert {X : Type} [Fintype X] [DecidableEq X]
     {n R T : ℕ} (input : X → Fin n → Bool)
     (ρ σ : X → QState ((Fin n × Bool) × Fin R))

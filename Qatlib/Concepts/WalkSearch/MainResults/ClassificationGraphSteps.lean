@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Primitives.DegreeConcentration
 import Qatlib.Concepts.WalkSearch.Primitives.RemovalTriangleFact5
+
+/-!
+# Graph steps in pair classification
+
+`presentGraph` restricts a graph to a symmetric set of candidate pairs, and `highEadd` collects
+the pairs removed by a high degree step. The fiber count `highProgressFibers_card` yields a
+lower bound on the progress of that step when all remaining pairs meet the common neighbor
+threshold. For background on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `pairSetSymmetric`: The finite set of ordered pairs is closed under swapping its coordinates.
+* `highEadd_progress`: If every pair in the symmetric set `S` has at least `τ` common neighbors
+  in `S`, the high degree step removes at least `τ` times the degree of `v` in `presentGraph`
+  pairs.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,13 +38,17 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The finite set of ordered pairs is closed under swapping its coordinates. -/
 def pairSetSymmetric (S : Finset (Fin n×Fin n)) : Prop := ∀ a b,(a,b)∈S→(b,a)∈S
 
+/-- For a symmetric pair set, membership in `nbrOf S a` is equivalent to membership of the
+ordered pair `(a, b)` in `S`. -/
 theorem mem_symmetric_nbr_iff (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S) (a b : Fin n) :
     b∈nbrOf S a ↔ (a,b)∈S := by
   rw [mem_nbrOf_iff]
   exact ⟨fun h=>h.elim id (hS b a),Or.inl⟩
 
+/-- Restrict `G` to the intersection of its edges with the symmetric candidate pair set `S`. -/
 def presentGraph (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S) : UGraph n where
   edges := G.edges∩S
   symm := by
@@ -34,6 +59,8 @@ def presentGraph (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetr
     intro a h
     exact G.loopless a (Finset.mem_inter.mp h).1
 
+/-- The neighbors in `presentGraph` are the intersection of the graph neighbors and the
+candidate pair neighbors. -/
 theorem presentGraph_neighbors (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S) (v : Fin n) :
     nbrOf (presentGraph G S hS).edges v=nbrOf G.edges v∩nbrOf S v := by
   ext x
@@ -41,10 +68,13 @@ theorem presentGraph_neighbors (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : 
   change ((v,x)∈G.edges∩S) ↔ x∈nbrOf G.edges v∩nbrOf S v
   simp only [Finset.mem_inter,mem_graph_nbr_iff,mem_symmetric_nbr_iff S hS]
 
+/-- Select pairs of `S` incident to `v` or crossing between the graph neighborhood of `v` and
+its neighborhood in `S`, in either orientation. -/
 def highEadd (G : UGraph n) (S : Finset (Fin n×Fin n)) (v : Fin n) : Finset (Fin n×Fin n) :=
   S.filter fun p=>p.1=v ∨ p.2=v ∨
     (p.1∈nbrOf G.edges v ∧ p.2∈nbrOf S v) ∨ (p.2∈nbrOf G.edges v ∧ p.1∈nbrOf S v)
 
+/-- The pair set selected by a high degree step is symmetric whenever `S` is symmetric. -/
 theorem highEadd_symmetric (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S) (v : Fin n) :
     pairSetSymmetric (highEadd G S v) := by
   intro a b h
@@ -52,15 +82,20 @@ theorem highEadd_symmetric (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : pair
   refine ⟨hS a b h.1,?_⟩
   tauto
 
+/-- The difference of two symmetric finite pair sets is symmetric. -/
 theorem symmetric_sdiff {S T : Finset (Fin n×Fin n)} (hS : pairSetSymmetric S) (hT : pairSetSymmetric T) :
     pairSetSymmetric (S\T) := by
   intro a b h
   simp only [Finset.mem_sdiff] at h ⊢
   exact ⟨hS a b h.1,fun hb=>h.2 (hT b a hb)⟩
 
+/-- Collect ordered pairs `(x, y)` with `x` in `P` and `y` a common neighbor of `v` and `x` in
+`S`. -/
 def highProgressFibers (S : Finset (Fin n×Fin n)) (v : Fin n) (P : Finset (Fin n)) : Finset (Fin n×Fin n) :=
   P.biUnion fun x=>(nbrOf S v∩nbrOf S x).image (fun y=>(x,y))
 
+/-- The cardinality of `highProgressFibers S v P` is the sum of the common neighbor counts `tOf
+S v x` over `x` in `P`. -/
 theorem highProgressFibers_card (S : Finset (Fin n×Fin n)) (v : Fin n) (P : Finset (Fin n)) :
     (highProgressFibers S v P).card=∑ x∈P,tOf S v x := by
   unfold highProgressFibers
@@ -75,6 +110,8 @@ theorem highProgressFibers_card (S : Finset (Fin n×Fin n)) (v : Fin n) (P : Fin
     obtain ⟨b,_,hb⟩:=Finset.mem_image.mp hf
     exact hxy (congrArg Prod.fst (ha.trans hb.symm))
 
+/-- If every pair in the symmetric set `S` has at least `τ` common neighbors in `S`, the high
+degree step removes at least `τ` times the degree of `v` in `presentGraph` pairs. -/
 theorem highEadd_progress (G : UGraph n) (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S)
     (v : Fin n) (τ : ℕ) (hthin : ∀ a b,(a,b)∈S→τ≤tOf S a b) :
     degOf (presentGraph G S hS).edges v*τ≤(highEadd G S v).card := by

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutator
 import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrderConsumers
+
+/-!
+# Strang segmentation, gate costs, and observables
+
+This module carries the Strang error estimate through repeated segments while counting the gates
+and their indexed prices in `finiteStrangWord`. The explicit choice `finiteStrangSegments` gives
+a requested positive accuracy and a corresponding error bound for conjugating an observable. For
+background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `finite_strang_same_word_error_and_tariffs`: unitarity, gate counts, prices, and global error
+  for one word.
+* `finite_strang_selected_accuracy_and_observable`: explicit segmentation and observable error.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,9 +41,12 @@ namespace Qatlib.Concepts.TrotterFormula.FiniteStrang
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The positive segment count given by the ceiling of `√(|t| ^ 3 * finiteStrangConstant H /
+ε)`, with minimum one. -/
 def finiteStrangSegments {D m : ℕ} (H : Fin m → Operator D) (t ε : ℝ) : ℕ :=
   max 1 (Nat.ceil (Real.sqrt (|t|^3*finiteStrangConstant H/ε)))
 
+/-- A tagged word whose matrix components are unitary has a unitary interpretation. -/
 private theorem fs_word_unitary {D : ℕ} (xs : List (Operator D × ℕ))
     (h : ∀ x ∈ xs, x.1 ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     pfInterpret xs ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -35,6 +58,8 @@ private theorem fs_word_unitary {D : ℕ} (xs : List (Operator D × ℕ))
     exact (Matrix.unitaryGroup _ _).mul_mem
       (ih (fun y hy => h y (List.mem_cons_of_mem _ hy))) (h x List.mem_cons_self)
 
+/-- The interpreted `r`-segment Strang word is the `r`th power of a single segment of duration
+`t / r`. -/
 private theorem fs_word_repeat {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) (r : ℕ) :
     pfInterpret (finiteStrangWord H t r) =
       (pfInterpret (finiteStrangWord H (t/r) 1))^r := by
@@ -43,6 +68,8 @@ private theorem fs_word_repeat {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) 
     List.flatten_cons, List.flatten_nil, List.append_nil, he]
   exact pfInterpret_repeat _ _
 
+/-- The Strang word has `2 * m * r` gates, each term appears `2 * r` times, and its total price
+is `2 * r` times the sum of term prices. -/
 private theorem fs_word_ledger {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) (r : ℕ)
     (price : ℕ → ℕ) :
     (finiteStrangWord H t r).length = 2*m*r ∧
@@ -71,6 +98,9 @@ private theorem fs_word_ledger {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) 
   · simp only [List.map_flatten, List.map_replicate, List.sum_flatten, List.sum_replicate, hp, nsmul_eq_mul, Nat.cast_id]
     ring
 
+/-- For Hermitian terms and positive segment count, the Strang word is unitary with explicit
+length, per-term counts, total price, and error bounded by `|t| ^ 3 * finiteStrangConstant H
+/ r ^ 2` [ChildsEtAl2021Trotter]. -/
 theorem finite_strang_same_word_error_and_tariffs :
     ∀ (D m r : ℕ) (H : Fin m → Operator D) (t : ℝ) (price : ℕ → ℕ),
       (∀ j, (H j).IsHermitian) → 0 < r →
@@ -112,11 +142,14 @@ theorem finite_strang_same_word_error_and_tariffs :
   rw [abs_div, abs_of_pos (by exact_mod_cast hr : 0 < (r : ℝ))]
   field_simp
 
+/-- The finite Strang nested commutator coefficient is nonnegative. -/
 private theorem fs_constant_nonneg {D m : ℕ} (H : Fin m → Operator D) :
     0 ≤ finiteStrangConstant H := by
   unfold finiteStrangConstant
   positivity
 
+/-- For positive `ε`, the selected segment count gives a unitary Strang word with error at most
+`ε` and observable conjugation error at most `2 * ‖O‖ * ε` [ChildsEtAl2021Trotter]. -/
 theorem finite_strang_selected_accuracy_and_observable :
     ∀ (D m : ℕ) (H : Fin m → Operator D) (t ε : ℝ) (O : Operator D),
       (∀ j, (H j).IsHermitian) → 0 < ε →

@@ -8,6 +8,27 @@ import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgor
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+
+/-!
+# State conversion from real budgets
+
+This module turns real filtered Gram-matrix budgets into legal native `SourceWord` algorithms.
+It compiles a one-pass phase-reflection construction, controls its errors and resources, and
+treats zero budgets and degenerate alphabets by query-free conversion.
+
+The mathematical background is described in [LeeEtAl2011].
+
+## Main statements
+
+* `source_onepass_native_algorithm`: a native conversion word from explicit factorization
+  witnesses.
+* `realBudgetConversionAlgorithm`: the uniform real-budget conversion guarantee.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -41,6 +62,7 @@ open Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators ENNReal ComplexOrder
 
+/-- An alphabet-filtered budget `W` bounds the unfiltered value of the same matrix by `2 * W`. -/
 theorem sourceAlphabet_unfiltered_budget {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (A : Matrix X X ℂ)
     (W : ℝ) (hW : 0≤W)
@@ -66,6 +88,8 @@ theorem sourceAlphabet_unfiltered_budget {X : Type} [Fintype X] [DecidableEq X]
     _ ≤ ENNReal.ofReal W*ENNReal.ofReal 2 := mul_le_mul hval hb zero_le zero_le
     _ = ENNReal.ofReal (2*W) := by rw [← ENNReal.ofReal_mul hW,mul_comm W 2]
 
+/-- An unfiltered Gram discrepancy at most `δ` yields a unitary on a native source space
+converting the clean states with pointwise Euclidean error at most `sqrt (2 * δ)`. -/
 theorem source_free_word_native {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (n q : ℕ) (ρ σ : X → QState H)
     (δ : ℝ) (hn : ∀ x, Normalized (ρ x)∧Normalized (σ x)) (hδ : 0≤δ)
@@ -103,6 +127,8 @@ theorem source_free_word_native {X H : Type} [Fintype X] [DecidableEq X]
     ← Matrix.mulVec_sub,isometry_mulVec_norm hF]
   exact herr x
 
+/-- Normalized states with squared Euclidean distance at most `ε ≤ 1` have real inner product at
+least `sqrt (1 - ε)`. -/
 theorem source_overlap_of_distance {H : Type} [Fintype H]
     (ψ φ : QState H) (hψ : Normalized ψ) (hφ : Normalized φ)
     (ε : ℝ) (_hε : 0≤ε) (hε1 : ε≤1)
@@ -123,24 +149,32 @@ theorem source_overlap_of_distance {H : Type} [Fintype H]
     nlinarith [Real.sqrt_nonneg (1-ε),sq_nonneg ε]
   linarith
 
+/-- Embeds a tagged data state in the logical root summand of the source geometry. -/
 def sourceLogicalRoot {H : Type} [DecidableEq H] (n q m : ℕ) (tag : Bool)
     (ψ : QState H) : QState (SourceGeometry n q m H) :=
   Sum.elim (TensorState (Ket tag) ψ) 0
 
+/-- Embeds a state with false control tag and zero clock value in the phase-reflection
+workspace. -/
 def sourceConversionEmbed {H : Type} [DecidableEq H] (b : ℕ) (ψ : QState H) :
     QState ((Bool×H)×Fin (2^b)) :=
   TensorState (TensorState (Ket false) ψ) (Ket 0)
 
+/-- Maps a tagged data label to the corresponding logical root label with false control and zero
+clock coordinates. -/
 def sourceConversionCode (H : Type) (n q m b : ℕ) :
     Bool×H → (Bool×SourceGeometry n q m H)×Fin (2^b) :=
   fun p => ((false,.inl p),0)
 
+/-- The logical-root conversion code is injective. -/
 theorem sourceConversionCode_injective (H : Type) (n q m b : ℕ) :
     Function.Injective (sourceConversionCode H n q m b) := by
   intro p t he
   have h := congrArg (fun v => v.1.2) he
   exact Sum.inl.inj h
 
+/-- The conversion basis frame sends a tagged data tensor to the workspace embedding of its
+logical root state. -/
 theorem sourceConversionFrame_root {H : Type} [Fintype H] [DecidableEq H]
     (n q m b : ℕ) (tag : Bool) (ψ : QState H) :
     sourceBasisFrame (sourceConversionCode H n q m b) *ᵥ TensorState (Ket tag) ψ=
@@ -156,6 +190,7 @@ theorem sourceConversionFrame_root {H : Type} [Fintype H] [DecidableEq H]
     simp [sourceBasisFrame,sourceConversionCode,Matrix.mulVec,dotProduct,
       sourceConversionEmbed,sourceLogicalRoot,TensorState]
 
+/-- The native basis frame sends a tagged data tensor to the corresponding clean source state. -/
 theorem sourceNativeFrame_clean {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState H) :
     sourceBasisFrame (fun p : Bool×H => ((0,0),(p,(⟨0,hr⟩ : Fin r))) :
@@ -169,6 +204,8 @@ theorem sourceNativeFrame_clean {H : Type} [Fintype H] [DecidableEq H]
     split_ifs <;> simp_all
   · simp [ha]
 
+/-- Compiles a legal controlled-reflection conversion word to the alphabet-oracle source space,
+preserving its error bound and at most doubling its calls. -/
 theorem sourceConversion_native_word {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q m b : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -237,12 +274,15 @@ theorem sourceConversion_native_word {X H : Type} [Fintype X] [DecidableEq X]
     isometry_mulVec_norm hF]
   exact herr x
 
+/-- Source-word evaluation is independent of the chosen decidable equality on the basis type. -/
 theorem sourceWordMatrix_decidable_transport {S : Type} [Fintype S]
     (d e : DecidableEq S) (O : Matrix S S ℂ) (C : SourceWord S) :
     @sourceWordMatrix S _ d O C=@sourceWordMatrix S _ e O C := by
   cases Subsingleton.elim d e
   rfl
 
+/-- The false and true logical root states decompose into the sum and difference of the
+corresponding plus and minus states, scaled by `1 / sqrt 2`. -/
 theorem sourceLogicalRoot_splits {H : Type} [DecidableEq H] (n q m : ℕ) (ρ σ : QState H) :
     sourceLogicalRoot n q m false ρ=(Real.sqrt 2 : ℂ)⁻¹ • (sourcePlus ρ σ+sourceMinus ρ σ) ∧
     sourceLogicalRoot n q m true σ=(Real.sqrt 2 : ℂ)⁻¹ • (sourcePlus ρ σ-sourceMinus ρ σ) := by
@@ -257,6 +297,8 @@ theorem sourceLogicalRoot_splits {H : Type} [DecidableEq H] (n q m : ℕ) (ρ σ
       first | linear_combination (ρ h)*hs | linear_combination (σ h)*hs
   | inr p => simp [sourceLogicalRoot,sourcePlus,sourceMinus]
 
+/-- Bounds conversion error between logical root states by the sum of the phase-reflection
+errors on their plus and minus components. -/
 theorem source_onepass_balanced_error {H : Type} [Fintype H] [DecidableEq H]
     (n q m : ℕ) (U : Matrix (SourceGeometry n q m H) (SourceGeometry n q m H) ℂ)
     (M : ℕ) (ρ σ : QState H) (a b : ℝ)
@@ -285,6 +327,8 @@ theorem source_onepass_balanced_error {H : Type} [Fintype H] [DecidableEq H]
   exact (mul_le_mul_of_nonneg_right hc (norm_nonneg _)).trans
     (by rw [one_mul]; exact (norm_add_le _ _).trans (add_le_add hp hm))
 
+/-- Explicit filtered factorization witnesses with budget `W` yield a legal native word using at
+most `4 * (2^a - 1)` calls and error at most `2 * η + 4 * W / (η * 2^a)`. -/
 theorem source_onepass_native_algorithm {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q m : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -371,6 +415,8 @@ theorem source_onepass_native_algorithm {X H : Type} [Fintype X] [DecidableEq X]
   rw [phaseSourceCompile_calls,(phase_reflection_actual_queries_and_macros (I:=SourceGeometry n q m H) (2^a) 1 hM).2.1]
   omega
 
+/-- The chosen power-of-two phase register lies between `2048 * K` and `4096 * K` and gives the
+stated ceiling-based oracle-call bound. -/
 theorem sourceOnePass_resources (W ε : ℝ) (hε : 0<ε) (hε1 : ε≤1/3) (hW : ε/8≤W) :
     let K := max 1 (Nat.ceil (W/ε^2))
     let a := Nat.clog 2 (2048*K)
@@ -411,6 +457,8 @@ theorem sourceOnePass_resources (W ε : ℝ) (hε : 0<ε) (hε1 : ε≤1/3) (hW 
   change 4*(2^(Nat.clog 2 (2048*K))-1)≤65536*N
   omega
 
+/-- A matrix with a finite alphabet-filtered budget is zero if the budget, query length, or
+alphabet parameter is zero. -/
 theorem sourceAlphabet_degenerate_gram {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (A : Matrix X X ℂ)
     (W : ℝ) (_hW : 0≤W)
@@ -440,6 +488,8 @@ theorem sourceAlphabet_degenerate_gram {X : Type} [Fintype X] [DecidableEq X]
       omega
     exact hj (by simp only [sourceAlphabetDelta,if_pos he])
 
+/-- A phase-register size of at least `2048 * W / ε²` bounds the stated one-pass error
+expression by `ε / 4`. -/
 theorem sourceOnePass_error_bound (W ε : ℝ) (hε : 0<ε) (_hW : ε/8≤W)
     (M : ℕ) (hM : 0<M) (hsize : 2048*(W/ε^2)≤(M : ℝ)) :
     2*(ε/64)+4*W/((ε/64)*(M : ℝ))≤ε/4 := by
@@ -452,6 +502,9 @@ theorem sourceOnePass_error_bound (W ε : ℝ) (hε : 0<ε) (_hW : ε/8≤W)
     nlinarith only [hh]
   linarith
 
+/-- Establishes the uniform native state-conversion algorithm from a real filtered budget,
+including query-free degenerate cases; see [Lee et al., Theorem 4.1 and Proposition
+4.6][LeeEtAl2011]. -/
 theorem realBudgetConversionAlgorithm : RealBudgetConversionAlgorithm := by
   refine ⟨65536,by norm_num,?_⟩
   intro X H _ _ _ _ _ n q input ρ σ W ε hn hW hb hε hε1

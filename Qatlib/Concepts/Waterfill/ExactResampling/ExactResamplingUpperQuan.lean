@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpperStat
+
+/-!
+# Exact resampling upper bound
+
+The theorem `exactResamplingUpper` chooses a water level realizing a prescribed fidelity between
+the endpoint values and proves the `ExactResamplingUpper` contract. The resulting circuit has an
+explicit normalized output, exact target overlap, no data queries, and a source-query bound
+determined by the selected mass.
+
+The algorithmic context is quantum rejection sampling [OzolsRoettelerRoland2013], introduced by
+[Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -21,6 +34,9 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Proves `ExactResamplingUpper`: every permitted target fidelity has a realizing water level
+and an exact normalized resampling circuit with the specified overlap and access counts; see
+[OzolsRoettelerRoland2013] for the quantum rejection-sampling context. -/
 theorem exactResamplingUpper : ExactResamplingUpper := by
   intro m π σ γlo γhi hπ hσ hπnorm hσnorm hlohi hlow hwit hhigh hwit2 p hpmin hpmax
   obtain ⟨γ,hlo,hhi,heq,_hopt⟩ := sourceFidelityLevelSubgoal m π σ γlo γhi hπ hσ

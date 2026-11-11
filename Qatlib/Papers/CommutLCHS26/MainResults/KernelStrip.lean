@@ -10,6 +10,29 @@ import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
 import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+
+/-!
+# Analytic strip estimates for the simulation kernel
+
+This module defines the complex `propagator`, the rational-Gaussian `coefficient`, and their
+operator-valued `integrand` for [AftabAnTrivisa2026]. For Hermitian H and positive semidefinite
+L, the propagator growth is controlled by the positive part of the imaginary parameter.
+
+Away from the kernel poles, Gaussian majorants establish strip analyticity, uniform decay, and
+bounds on horizontal-line integrals. These estimates give an explicit infinite trapezoidal mesh
+error.
+
+## Main statements
+
+* `norm_propagator_le`: bounds complex-parameter propagator growth.
+* `integrand_strip_estimates`: collects analyticity, decay, and integral bounds.
+* `integrand_mesh_error`: bounds the infinite trapezoidal discretization error.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,11 +46,14 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The complex-parameter propagator exp(-T i(H + zL)). -/
 def propagator (H L : Matrix ι ι ℂ) (T : ℝ) (z : ℂ) : Matrix ι ι ℂ :=
   NormedSpace.exp ((-T : ℂ) • (I • (H + z • L)))
 
 omit [Fintype ι] in
 
+/-- For Hermitian H and L, the Hermitian part of the shifted generator is -2 Im(z)L - 2γ times
+the identity. -/
 theorem shifted_part (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
     (hL : L.IsHermitian) (z : ℂ) (γ : ℝ) :
     (I • (H + z • L) - γ • (1 : Matrix ι ι ℂ)) +
@@ -40,6 +66,8 @@ theorem shifted_part (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
   simp [Complex.ext_iff, mul_re, mul_im]
   constructor <;> ring
 
+/-- For positive semidefinite L, the matrix ‖L‖ times the identity minus L is positive
+semidefinite. -/
 theorem norm_gap_pos (L : Matrix ι ι ℂ) (hL : L.PosSemidef) :
     (‖L‖ • (1 : Matrix ι ι ℂ) - L).PosSemidef := by
   letI : CStarAlgebra (Matrix ι ι ℂ) := {}
@@ -47,6 +75,8 @@ theorem norm_gap_pos (L : Matrix ι ι ℂ) (hL : L.PosSemidef) :
     (ha := hL.isHermitian.isSelfAdjoint)
   simpa only [Algebra.algebraMap_eq_smul_one] using! h
 
+/-- For Hermitian H and positive semidefinite L, shifting i(H + zL) by the stated scalar makes
+its Hermitian part positive semidefinite. -/
 theorem shifted_generator_pos (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
     (hL : L.PosSemidef) (z : ℂ) :
     ((I • (H + z • L) - (-max 0 z.im * ‖L‖) • (1 : Matrix ι ι ℂ)) +
@@ -61,6 +91,8 @@ theorem shifted_generator_pos (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
     rw [he]
     exact (norm_gap_pos L hL).smul (mul_nonneg (by norm_num) hz)
 
+/-- For nonnegative T, Hermitian H, and positive semidefinite L, the propagator norm is at most
+exp(max(0, Im z) T ‖L‖). -/
 theorem norm_propagator_le (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
     (hL : L.PosSemidef) {T : ℝ} (hT : 0 ≤ T) (z : ℂ) :
     ‖propagator H L T z‖ ≤ Real.exp (max 0 z.im * T * ‖L‖) := by
@@ -75,16 +107,20 @@ theorem norm_propagator_le (H L : Matrix ι ι ℂ) (hH : H.IsHermitian)
   · congr 1
     ring
 
+/-- The complex-parameter propagator is analytic at every complex point. -/
 theorem propagator_analytic (H L : Matrix ι ι ℂ) (T : ℝ) (z : ℂ) :
     AnalyticAt ℂ (propagator H L T) z := by
   apply (NormedSpace.exp_analytic _).comp
   fun_prop
 
+/-- The rational-Gaussian kernel coefficient with exponent n and parameters b, c, d, including
+its 1/(2π) normalization [AftabAnTrivisa2026]. -/
 def coefficient (n : ℕ) (b c d : ℝ) (z : ℂ) : ℂ :=
   ((b + 1 : ℝ) ^ n / (2 * Real.pi) : ℝ) *
     exp ((d : ℂ) * (1 - I * z)) * exp (-(z ^ 2 + 1) / (4 * (c : ℂ) ^ 2)) /
       ((1 - I * z) * ((b : ℂ) + I * z) ^ n)
 
+/-- The factor 1 - iz is nonzero on a closed strip of half-width less than 1. -/
 theorem lower_ne_zero {ρ : ℝ} (hρ : ρ < 1) {z : ℂ} (hz : |z.im| ≤ ρ) :
     1 - I * z ≠ 0 := by
   intro h
@@ -93,6 +129,7 @@ theorem lower_ne_zero {ρ : ℝ} (hρ : ρ < 1) {z : ℂ} (hz : |z.im| ≤ ρ) :
   have := (abs_le.mp hz).1
   linarith
 
+/-- The factor (b + iz)^n is nonzero on the strip if n = 0 or the half-width is less than b. -/
 theorem upper_pow_ne_zero (n : ℕ) {b ρ : ℝ} (hb : n = 0 ∨ ρ < b)
     {z : ℂ} (hz : |z.im| ≤ ρ) : ((b : ℂ) + I * z) ^ n ≠ 0 := by
   rcases hb with rfl | hb
@@ -104,6 +141,8 @@ theorem upper_pow_ne_zero (n : ℕ) {b ρ : ℝ} (hb : n = 0 ∨ ρ < b)
     have := (abs_le.mp hz).2
     linarith
 
+/-- The kernel coefficient is analytic on a neighborhood of the closed strip when its
+denominator factors do not vanish there. -/
 theorem coefficient_analytic (n : ℕ) (b c d : ℝ) {ρ : ℝ} (hρ : ρ < 1)
     (hb : n = 0 ∨ ρ < b) :
     AnalyticOnNhd ℂ (coefficient n b c d) {z | |z.im| ≤ ρ} := by
@@ -114,6 +153,8 @@ theorem coefficient_analytic (n : ℕ) (b c d : ℝ) {ρ : ℝ} (hρ : ρ < 1)
   · fun_prop
   · exact mul_ne_zero (lower_ne_zero hρ hz) (upper_pow_ne_zero n hb hz)
 
+/-- The real part of the kernel exponent splits into a vertical contribution and the horizontal
+Gaussian term -Re(z)²/(4c²). -/
 theorem exponent_re (c d : ℝ) (z : ℂ) :
     ((d : ℂ) * (1 - I * z)).re + (-(z ^ 2 + 1) / (4 * (c : ℂ) ^ 2)).re =
       d * (1 + z.im) + (z.im ^ 2 - 1) / (4 * c ^ 2) - z.re ^ 2 / (4 * c ^ 2) := by
@@ -123,6 +164,7 @@ theorem exponent_re (c d : ℝ) (z : ℂ) :
     zero_add, neg_re, add_re, pow_two]
   ring
 
+/-- For |β| ≤ ρ and K ≥ 0, the linear growth dβ + max(0, β)K is bounded by ρ max(-d, d + K). -/
 theorem linear_exponent_le {ρ K β d : ℝ} (hK : 0 ≤ K)
     (hβ : |β| ≤ ρ) : d * β + max 0 β * K ≤ ρ * max (-d) (d + K) := by
   have hq : 0 ≤ max (-d) (d + K) := by
@@ -139,6 +181,8 @@ theorem linear_exponent_le {ρ K β d : ℝ} (hK : 0 ≤ K)
     have hr := mul_le_mul_of_nonneg_left (abs_le.mp hβ).2 hq
     nlinarith
 
+/-- For b > 0, the kernel norm equals its explicit real exponential numerator divided by the
+norms of the rational denominator factors. -/
 theorem norm_coefficient (n : ℕ) (b c d : ℝ) (hb : 0 < b) (z : ℂ) :
     ‖coefficient n b c d z‖ =
       ((b + 1) ^ n / (2 * Real.pi)) *
@@ -156,6 +200,7 @@ theorem norm_coefficient (n : ℕ) (b c d : ℝ) (hb : 0 < b) (z : ℂ) :
   simp only [neg_div]
   ring
 
+/-- On |Im z| ≤ ρ with ρ < b, the denominator norm is bounded below by (1 - ρ)(b - ρ)^n. -/
 theorem denominator_lower {ρ b : ℝ} (hb : ρ < b)
     {z : ℂ} (hz : |z.im| ≤ ρ) (n : ℕ) :
     (1 - ρ) * (b - ρ) ^ n ≤ ‖1 - I * z‖ * ‖(b : ℂ) + I * z‖ ^ n := by
@@ -170,6 +215,8 @@ theorem denominator_lower {ρ b : ℝ} (hb : ρ < b)
   exact mul_le_mul h1 (pow_le_pow_left₀ (sub_pos.mpr hb).le h2 n)
     (pow_nonneg (sub_pos.mpr hb).le n) (norm_nonneg _)
 
+/-- The kernel exponent together with propagator growth is bounded by its stated strip-uniform
+vertical contribution. -/
 theorem full_exponent_le {ρ K β d c : ℝ} (hK : 0 ≤ K) (hβ : |β| ≤ ρ) :
     d * (1 + β) + (β ^ 2 - 1) / (4 * c ^ 2) + max 0 β * K ≤
       d + (ρ ^ 2 - 1) / (4 * c ^ 2) + ρ * max (-d) (d + K) := by
@@ -180,10 +227,12 @@ theorem full_exponent_le {ρ K β d c : ℝ} (hK : 0 ≤ K) (hβ : |β| ≤ ρ) 
     (show 0 ≤ 4 * c ^ 2 by positivity)
   linarith
 
+/-- The explicit strip amplitude multiplying the horizontal Gaussian majorant. -/
 def amplitude (n : ℕ) (b c d ρ K : ℝ) : ℝ :=
   (b + 1) ^ n / (2 * Real.pi * (1 - ρ) * (b - ρ) ^ n) *
     Real.exp (d + (ρ ^ 2 - 1) / (4 * c ^ 2) + ρ * max (-d) (d + K))
 
+/-- The denominator norm has the stated strip lower bound if n = 0 or ρ < b. -/
 theorem denominator_lower_or (n : ℕ) {ρ b : ℝ} (hb : n = 0 ∨ ρ < b)
     {z : ℂ} (hz : |z.im| ≤ ρ) :
     (1 - ρ) * (b - ρ) ^ n ≤ ‖1 - I * z‖ * ‖(b : ℂ) + I * z‖ ^ n := by
@@ -195,6 +244,8 @@ theorem denominator_lower_or (n : ℕ) {ρ b : ℝ} (hb : n = 0 ∨ ρ < b)
     linarith [(abs_le.mp hz).1]
   · exact denominator_lower hb hz n
 
+/-- The kernel norm times the propagator growth majorant is bounded by the strip amplitude times
+the horizontal Gaussian. -/
 theorem coefficient_growth_le (n : ℕ) (b c d : ℝ) (hb : 0 < b)
     {ρ K : ℝ} (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) (hK : 0 ≤ K)
     {z : ℂ} (hz : |z.im| ≤ ρ) :
@@ -231,6 +282,7 @@ theorem coefficient_growth_le (n : ℕ) (b c d : ℝ) (hb : 0 < b)
       simp only [div_eq_mul_inv, _root_.mul_inv_rev]
       ring
 
+/-- For c > 0, the Gaussian exp(-x²/(4c²)) is integrable on the real line. -/
 theorem gaussian_integrable {c : ℝ} (hc : 0 < c) :
     Integrable (fun x : ℝ => Real.exp (-x ^ 2 / (4 * c ^ 2))) := by
   convert! integrable_exp_neg_mul_sq (show 0 < 1 / (4 * c ^ 2) by positivity) using 1
@@ -238,6 +290,7 @@ theorem gaussian_integrable {c : ℝ} (hc : 0 < c) :
   congr 1
   ring
 
+/-- For c > 0, the integral of exp(-x²/(4c²)) over the real line is 2c√π. -/
 theorem gaussian_integral {c : ℝ} (hc : 0 < c) :
     (∫ x : ℝ, Real.exp (-x ^ 2 / (4 * c ^ 2))) = 2 * c * Real.sqrt Real.pi := by
   have h := integral_gaussian (1 / (4 * c ^ 2))
@@ -250,15 +303,20 @@ theorem gaussian_integral {c : ℝ} (hc : 0 < c) :
     show 4 * c ^ 2 = (2 * c) ^ 2 by ring, Real.sqrt_sq (by positivity)]
   ring
 
+/-- The operator-valued kernel coefficient multiplied by the complex-parameter propagator. -/
 def integrand (n : ℕ) (b c d T : ℝ) (H L : Matrix ι ι ℂ) (z : ℂ) : Matrix ι ι ℂ :=
   coefficient n b c d z • propagator H L T z
 
+/-- The operator-valued integrand is analytic on a neighborhood of the closed strip when the
+kernel denominator is nonzero there. -/
 theorem integrand_analytic (n : ℕ) (b c d T : ℝ) (H L : Matrix ι ι ℂ)
     {ρ : ℝ} (hρ : ρ < 1) (hb : n = 0 ∨ ρ < b) :
     AnalyticOnNhd ℂ (integrand n b c d T H L) {z | |z.im| ≤ ρ} := by
   intro z hz
   exact (coefficient_analytic n b c d hρ hb z hz).smul (propagator_analytic H L T z)
 
+/-- For Hermitian H, positive semidefinite L, and T ≥ 0, the integrand norm is bounded by its
+strip amplitude times a horizontal Gaussian. -/
 theorem norm_integrand_le (n : ℕ) (b c d : ℝ) (hb : 0 < b)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ : ℝ} (hT : 0 ≤ T) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b)
@@ -271,10 +329,13 @@ theorem norm_integrand_le (n : ℕ) (b c d : ℝ) (hb : 0 < b)
   simpa only [mul_assoc] using! coefficient_growth_le n b c d hb hρ hbn
     (mul_nonneg hT (norm_nonneg L)) hz
 
+/-- The explicit horizontal integral bound obtained from the strip amplitude and Gaussian
+integral. -/
 def mass (n : ℕ) (b c d ρ K : ℝ) : ℝ :=
   c / Real.sqrt Real.pi * ((b + 1) ^ n / ((1 - ρ) * (b - ρ) ^ n)) *
     Real.exp (d + (ρ ^ 2 - 1) / (4 * c ^ 2) + ρ * max (-d) (d + K))
 
+/-- The strip amplitude times 2c√π equals the strip mass. -/
 theorem amplitude_mul_gaussian (n : ℕ) (b c d ρ K : ℝ) :
     amplitude n b c d ρ K * (2 * c * Real.sqrt Real.pi) = mass n b c d ρ K := by
   unfold amplitude mass
@@ -292,6 +353,8 @@ theorem amplitude_mul_gaussian (n : ℕ) (b c d ρ K : ℝ) :
   simp only [div_eq_mul_inv]
   ring
 
+/-- Under the stated positivity and pole-separation hypotheses, the integrand is integrable
+along each horizontal line in the closed strip. -/
 theorem integrand_integrable (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ y : ℝ} (hT : 0 ≤ T) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b)
@@ -307,6 +370,8 @@ theorem integrand_integrable (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     simpa using! norm_integrand_le n b c d hb H L hH hL hT hρ hbn
       (z := (x : ℂ) + y * I) (by simpa using! hy)
 
+/-- The integral of the integrand norm along any horizontal line in the strip is bounded by the
+strip mass. -/
 theorem integral_norm_integrand_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ y : ℝ} (hT : 0 ≤ T) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b)
@@ -323,6 +388,8 @@ theorem integral_norm_integrand_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 
         (z := (x : ℂ) + y * I) (by simpa using! hy)
     _ = _ := by rw [integral_const_mul, gaussian_integral hc, amplitude_mul_gaussian]
 
+/-- Under the stated kernel and matrix hypotheses, the integrand decays uniformly across the
+closed strip. -/
 theorem integrand_decay (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ : ℝ} (hT : 0 ≤ T) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) :
@@ -343,6 +410,8 @@ theorem integrand_decay (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
   simpa only [sq_abs, add_re, ofReal_re, mul_re, ofReal_im, I_re, I_im,
     mul_zero, zero_mul, sub_zero, add_zero] using! he
 
+/-- The infinite trapezoidal mesh error is at most twice the strip mass divided by exp(2πρ/h) -
+1. -/
 theorem integrand_mesh_error (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ h : ℝ} (hT : 0 ≤ T) (hρ₀ : 0 < ρ) (hρ : ρ < 1)
@@ -360,6 +429,9 @@ theorem integrand_mesh_error (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     exact integral_norm_integrand_le n b c d hb hc H L hH hL hT hρ hbn
       (abs_le.mpr ⟨hy.1.le, hy.2.le⟩)
 
+/-- The kernel integrand is analytic near the strip, decays uniformly there, and has integrable
+horizontal restrictions with the stated mass bound [Aftab et al., Lemma
+4.12][AftabAnTrivisa2026]. -/
 theorem integrand_strip_estimates (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ : ℝ} (hT : 0 ≤ T) (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) :

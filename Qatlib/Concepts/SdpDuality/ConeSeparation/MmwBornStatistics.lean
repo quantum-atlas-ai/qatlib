@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimization
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+
+/-!
+# Adaptive Born statistics for matrix multiplicative weights
+
+`MmwAdaptiveRun` selects each matrix multiplicative weights round from the preceding outcomes
+and assigns probabilities to complete transcripts. The module proves conditional unbiasedness of
+the recorded payoff, normalization of the transcript law, and exponential bounds for cumulative
+recorded-minus-actual deviations.
+
+`MmwRunBornReceipt` charges disjoint stopping and timeout events to a deviation event. When the
+adaptive states follow Gibbs updates, `expected_recorded_le_comparator` transfers the matrix
+regret bound to expected recorded payoffs, supplying statistical ingredients for quantum SDP
+algorithms such as [BrandaoSvore2017].
+
+## Main statements
+
+* `deviation_failure_mass`: two-sided cumulative deviation bound.
+* `MmwRunBornReceipt.discipline`: combined stop and timeout mass bound.
+* `frontier1`: combined statistical and regret guarantees.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ProbabilityCore.Concentration
@@ -31,62 +56,78 @@ open scoped BigOperators Classical ComplexOrder Matrix.Norms.L2Operator
 
 noncomputable section
 
+/-- An adaptive sequence of `T` matrix multiplicative weights rounds, with each round selected
+from the preceding outcome record. -/
 structure MmwAdaptiveRun (O D T : ℕ) where
 
   round : (t : ℕ) → (ht : t < T) → (Fin t → Fin O) → MmwRound O D
 
+/-- The restriction of a complete transcript to the first `t` outcomes. -/
 def MmwAdaptiveRun.prefixOf {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (t : ℕ) (ht : t < T) (ω : Fin T → Fin O) : Fin t → Fin O :=
   fun s => ω ⟨(s : ℕ), Nat.lt_trans s.isLt ht⟩
 
+/-- The round selected at time `t` by the prefix of the given transcript. -/
 def MmwAdaptiveRun.roundAt {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
     (ω : Fin T → Fin O) : MmwRound O D :=
   R.round (t : ℕ) t.isLt (R.prefixOf (t : ℕ) t.isLt ω)
 
+/-- The product of the conditional round probabilities along a complete transcript. -/
 def MmwAdaptiveRun.transcriptProb {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (ω : Fin T → Fin O) : ℝ :=
   ∏ t : Fin T, (R.roundAt t ω).law.prob (ω t)
 
+/-- The recorded value of the outcome at time `t` in the round selected by the transcript. -/
 def MmwAdaptiveRun.recordOf {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
     (ω : Fin T → Fin O) : ℝ :=
   (R.roundAt t ω).record (ω t)
 
+/-- The actual payoff of the round selected at time `t` by the transcript prefix. -/
 def MmwAdaptiveRun.payoffOf {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
     (ω : Fin T → Fin O) : ℝ :=
   (R.roundAt t ω).actualPayoff
 
+/-- The recorded value minus the actual round payoff at time `t`. -/
 def MmwAdaptiveRun.devAt {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
     (ω : Fin T → Fin O) : ℝ :=
   R.recordOf t ω - R.payoffOf t ω
 
+/-- The sum of all recorded round values along the transcript. -/
 def MmwAdaptiveRun.cumRecord {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (ω : Fin T → Fin O) : ℝ :=
   ∑ t : Fin T, R.recordOf t ω
 
+/-- The sum of the actual round payoffs along the transcript. -/
 def MmwAdaptiveRun.cumPayoff {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (ω : Fin T → Fin O) : ℝ :=
   ∑ t : Fin T, R.payoffOf t ω
 
+/-- The sum of the recorded-minus-actual payoff deviations along the transcript. -/
 def MmwAdaptiveRun.cumDev {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (ω : Fin T → Fin O) : ℝ :=
   ∑ t : Fin T, R.devAt t ω
 
+/-- The sum of transcript probabilities over a finite event. -/
 def MmwAdaptiveRun.eventMass {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (E : Finset (Fin T → Fin O)) : ℝ :=
   ∑ ω ∈ E, R.transcriptProb ω
 
+/-- Every adaptive transcript has nonnegative probability. -/
 theorem MmwAdaptiveRun.transcriptProb_nonneg {O D T : ℕ}
     (R : MmwAdaptiveRun O D T) (ω : Fin T → Fin O) : 0 ≤ R.transcriptProb ω :=
   Finset.prod_nonneg fun t _ => (R.roundAt t ω).law.nonneg _
 
+/-- The adaptive run obtained by omitting the last of `T + 1` rounds. -/
 def MmwAdaptiveRun.trunc {O D : ℕ} {T : ℕ} (R : MmwAdaptiveRun O D (T + 1)) :
     MmwAdaptiveRun O D T where
   round t ht h := R.round t (Nat.lt_succ_of_lt ht) h
 
+/-- The final round of an adaptive run as a function of its length-`T` outcome prefix. -/
 def MmwAdaptiveRun.lastRound {O D : ℕ} {T : ℕ} (R : MmwAdaptiveRun O D (T + 1)) :
     (Fin T → Fin O) → MmwRound O D :=
   R.round T (Nat.lt_succ_self T)
 
+/-- Appending one outcome to a transcript preserves its values at all earlier indices. -/
 theorem snoc_val_lt {O T : ℕ} (π : Fin T → Fin O) (o : Fin O) (k : ℕ)
     (h : k < T) :
     (show Fin (T + 1) → Fin O from Fin.snoc π o) ⟨k, Nat.lt_succ_of_lt h⟩
@@ -96,6 +137,8 @@ theorem snoc_val_lt {O T : ℕ} (π : Fin T → Fin O) (o : Fin O) (k : ℕ)
   · rfl
   · omega
 
+/-- An earlier prefix of an extended transcript agrees with the corresponding prefix in the
+truncated run. -/
 theorem MmwAdaptiveRun.prefixOf_snoc_cast {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (t : ℕ) (ht : t < T)
     (π : Fin T → Fin O) (o : Fin O) :
@@ -104,12 +147,15 @@ theorem MmwAdaptiveRun.prefixOf_snoc_cast {O D : ℕ} {T : ℕ}
   funext s
   exact snoc_val_lt π o ↑s (Nat.lt_trans s.isLt ht)
 
+/-- The length-`T` prefix of a transcript formed by appending an outcome to `π` is `π`. -/
 theorem MmwAdaptiveRun.prefixOf_snoc_last {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (π : Fin T → Fin O) (o : Fin O) :
     R.prefixOf T (Nat.lt_succ_self T) (Fin.snoc π o) = π := by
   funext s
   exact snoc_val_lt π o ↑s s.isLt
 
+/-- The equivalence between a length-`T` transcript paired with a final outcome and a length-`T
++ 1` transcript. -/
 def transcriptSnocEquiv (T O : ℕ) :
     (Fin T → Fin O) × Fin O ≃ (Fin (T + 1) → Fin O) where
   toFun p := Fin.snoc p.1 p.2
@@ -120,6 +166,8 @@ def transcriptSnocEquiv (T O : ℕ) :
     · simp [Fin.snoc_last]
   right_inv ω := by simp [Fin.snoc_init_self]
 
+/-- A sum over length-`T + 1` transcripts decomposes into a sum over prefixes and final
+outcomes. -/
 theorem sum_transcripts_snoc {O : ℕ} {M : Type} [AddCommMonoid M] {T : ℕ}
     (g : (Fin (T + 1) → Fin O) → M) :
     (∑ ω : Fin (T + 1) → Fin O, g ω)
@@ -130,6 +178,7 @@ theorem sum_transcripts_snoc {O : ℕ} {M : Type} [AddCommMonoid M] {T : ℕ}
   exact Finset.sum_congr rfl fun x _ =>
     Finset.sum_congr rfl fun y _ => rfl
 
+/-- A sum over empty transcripts equals the value at the unique empty transcript. -/
 theorem sum_transcripts_zero {O : ℕ} (g : (Fin 0 → Fin O) → ℝ) :
     (∑ ω : Fin 0 → Fin O, g ω) = g (fun i => Fin.elim0 i) := by
   haveI : Unique (Fin 0 → Fin O) :=
@@ -137,6 +186,8 @@ theorem sum_transcripts_zero {O : ℕ} (g : (Fin 0 → Fin O) → ℝ) :
   rw [Finset.univ_unique, Finset.sum_singleton]
   exact congrArg g (Subsingleton.elim _ _)
 
+/-- An earlier round on an extended transcript agrees with the corresponding round of the
+truncated run. -/
 theorem MmwAdaptiveRun.roundAt_castSucc_snoc {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (t : Fin T) (π : Fin T → Fin O)
     (o : Fin O) :
@@ -147,6 +198,8 @@ theorem MmwAdaptiveRun.roundAt_castSucc_snoc {O D : ℕ} {T : ℕ}
   rw [prefixOf_snoc_cast]
   rfl
 
+/-- The last round on an extended transcript is the final-round function evaluated at its
+prefix. -/
 theorem MmwAdaptiveRun.roundAt_snoc_last {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (π : Fin T → Fin O) (o : Fin O) :
     R.roundAt (Fin.last T) (Fin.snoc π o) = R.lastRound π := by
@@ -154,6 +207,7 @@ theorem MmwAdaptiveRun.roundAt_snoc_last {O D : ℕ} {T : ℕ}
       (R.prefixOf T (Nat.lt_succ_self T) (Fin.snoc π o)) = R.lastRound π
   exact congrArg (R.round T (Nat.lt_succ_self T)) (prefixOf_snoc_last R π o)
 
+/-- Appending a final outcome preserves all earlier recorded values in the truncated run. -/
 theorem MmwAdaptiveRun.recordOf_castSucc_snoc {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (t : Fin T) (π : Fin T → Fin O)
     (o : Fin O) :
@@ -161,6 +215,7 @@ theorem MmwAdaptiveRun.recordOf_castSucc_snoc {O D : ℕ} {T : ℕ}
   simp only [MmwAdaptiveRun.recordOf]
   rw [roundAt_castSucc_snoc, Fin.snoc_castSucc]
 
+/-- Appending a final outcome preserves all earlier actual payoffs in the truncated run. -/
 theorem MmwAdaptiveRun.payoffOf_castSucc_snoc {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (t : Fin T) (π : Fin T → Fin O)
     (o : Fin O) :
@@ -168,18 +223,24 @@ theorem MmwAdaptiveRun.payoffOf_castSucc_snoc {O D : ℕ} {T : ℕ}
   simp only [MmwAdaptiveRun.payoffOf]
   rw [roundAt_castSucc_snoc]
 
+/-- The final recorded value on an extended transcript is the final round's record for the
+appended outcome. -/
 theorem MmwAdaptiveRun.recordOf_snoc_last {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (π : Fin T → Fin O) (o : Fin O) :
     R.recordOf (Fin.last T) (Fin.snoc π o) = (R.lastRound π).record o := by
   simp only [MmwAdaptiveRun.recordOf]
   rw [roundAt_snoc_last, Fin.snoc_last]
 
+/-- The final actual payoff on an extended transcript is the payoff of the final round chosen by
+its prefix. -/
 theorem MmwAdaptiveRun.payoffOf_snoc_last {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (π : Fin T → Fin O) (o : Fin O) :
     R.payoffOf (Fin.last T) (Fin.snoc π o) = (R.lastRound π).actualPayoff := by
   simp only [MmwAdaptiveRun.payoffOf]
   rw [roundAt_snoc_last]
 
+/-- The probability of an extended transcript factors into its prefix probability and the final
+conditional outcome probability. -/
 theorem MmwAdaptiveRun.transcriptProb_snoc {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (π : Fin T → Fin O) (o : Fin O) :
     R.transcriptProb (Fin.snoc π o)
@@ -190,6 +251,8 @@ theorem MmwAdaptiveRun.transcriptProb_snoc {O D : ℕ} {T : ℕ}
   exact Finset.prod_congr rfl fun t _ => by
     rw [roundAt_castSucc_snoc, Fin.snoc_castSucc]
 
+/-- The cumulative deviation of an extended transcript equals its prefix deviation plus the
+final recorded-minus-actual payoff. -/
 theorem MmwAdaptiveRun.cumDev_snoc {O D : ℕ} {T : ℕ}
     (R : MmwAdaptiveRun O D (T + 1)) (π : Fin T → Fin O) (o : Fin O) :
     R.cumDev (Fin.snoc π o) = R.trunc.cumDev π
@@ -208,12 +271,15 @@ theorem MmwAdaptiveRun.cumDev_snoc {O D : ℕ} {T : ℕ}
         + ((R.lastRound π).record o - (R.lastRound π).actualPayoff)
   rw [Fin.sum_univ_castSucc, h2, Finset.sum_congr rfl (fun t _ => h1 t)]
 
+/-- For every outcome history, the conditional mean of the next recorded value equals that
+round's actual payoff. -/
 theorem cond_record_mean {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : ℕ)
     (ht : t < T) (h : Fin t → Fin O) :
     (∑ o : Fin O, (R.round t ht h).law.prob o * (R.round t ht h).record o)
       = (R.round t ht h).actualPayoff :=
   mmwRound_record_mean (R.round t ht h)
 
+/-- The actual payoff of a matrix multiplicative weights round lies in the interval `[0, 1]`. -/
 theorem actualPayoff_mem_unit {O D : ℕ} (r : MmwRound O D) :
     0 ≤ r.actualPayoff ∧ r.actualPayoff ≤ 1 := by
   have h := (mmwRound_record_mean r).symm
@@ -226,6 +292,7 @@ theorem actualPayoff_mem_unit {O D : ℕ} (r : MmwRound O D) :
   rw [h1] at hle
   exact hle
 
+/-- Each recorded-minus-actual payoff deviation has absolute value at most one. -/
 theorem devAt_abs_le_one {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
     (ω : Fin T → Fin O) : |R.devAt t ω| ≤ 1 := by
   have h1 := (R.roundAt t ω).hf (ω t)
@@ -235,6 +302,8 @@ theorem devAt_abs_le_one {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
   rw [abs_le]
   constructor <;> linarith
 
+/-- Expectation over full transcripts decomposes into expectation over prefixes followed by the
+conditional final-round expectation. -/
 theorem expect_snoc {O D : ℕ} {T : ℕ} (R : MmwAdaptiveRun O D (T + 1))
     (F : (Fin (T + 1) → Fin O) → ℝ) :
     (∑ ω : Fin (T + 1) → Fin O, R.transcriptProb ω * F ω)
@@ -246,6 +315,7 @@ theorem expect_snoc {O D : ℕ} {T : ℕ} (R : MmwAdaptiveRun O D (T + 1))
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun o _ => by ring
 
+/-- The probabilities of all complete adaptive transcripts sum to one. -/
 theorem MmwAdaptiveRun.transcriptProb_sum {O D : ℕ} :
     ∀ (T : ℕ) (R : MmwAdaptiveRun O D T),
       (∑ ω : Fin T → Fin O, R.transcriptProb ω) = 1 := by
@@ -266,6 +336,8 @@ theorem MmwAdaptiveRun.transcriptProb_sum {O D : ℕ} :
     simp only [hin, mul_one]
     exact ih R.trunc
 
+/-- The cumulative recorded-minus-actual payoff deviation has expectation zero under the
+adaptive transcript law. -/
 theorem cumDev_expect_zero {O D : ℕ} :
     ∀ (T : ℕ) (R : MmwAdaptiveRun O D T),
       (∑ ω : Fin T → Fin O, R.transcriptProb ω * R.cumDev ω) = 0 := by
@@ -308,6 +380,8 @@ theorem cumDev_expect_zero {O D : ℕ} :
     simp only [hin]
     exact ih R.trunc
 
+/-- The cumulative recorded value equals the cumulative actual payoff plus the cumulative
+deviation. -/
 theorem cumRecord_eq {O D T : ℕ} (R : MmwAdaptiveRun O D T) (ω : Fin T → Fin O) :
     R.cumRecord ω = R.cumPayoff ω + R.cumDev ω := by
   simp only [MmwAdaptiveRun.cumRecord, MmwAdaptiveRun.cumPayoff, MmwAdaptiveRun.cumDev,
@@ -315,12 +389,15 @@ theorem cumRecord_eq {O D T : ℕ} (R : MmwAdaptiveRun O D T) (ω : Fin T → Fi
   rw [← Finset.sum_add_distrib]
   exact Finset.sum_congr rfl fun t _ => by ring
 
+/-- For `x` in `[-1, 1]`, `exp (lam * x)` is bounded by the chord `cosh lam + sinh lam * x`. -/
 theorem exp_le_cosh_sinh (lam x : ℝ) (hx : -1 ≤ x) (hx' : x ≤ 1) :
     Real.exp (lam * x) ≤ Real.cosh lam + Real.sinh lam * x := by
   have h := Real.exp_mul_le_cosh_add_mul_sinh (abs_le.mpr ⟨hx, hx'⟩) lam
   rw [mul_comm x lam, mul_comm x (Real.sinh lam)] at h
   exact h
 
+/-- A mean-zero random variable in `[-1, 1]` on a finite probability space has exponential
+moment at most `cosh lam`. -/
 theorem exp_chord_law {O : ℕ} (p d : Fin O → ℝ) (hp0 : ∀ o, 0 ≤ p o)
     (hp1 : ∑ o, p o = 1) (hd : ∀ o, |d o| ≤ 1) (hmean : ∑ o, p o * d o = 0)
     (lam : ℝ) :
@@ -345,6 +422,8 @@ theorem exp_chord_law {O : ℕ} (p d : Fin O → ℝ) (hp0 : ∀ o, 0 ≤ p o)
         Finset.sum_le_sum fun o _ => mul_le_mul_of_nonneg_left (hchord o) (hp0 o)
     _ = Real.cosh lam := by rw [hsplit, hc, hs, add_zero]
 
+/-- For every prefix, the final round's recorded-minus-actual payoff deviation has conditional
+mean zero. -/
 theorem lastRound_dev_mean {O D : ℕ} {T : ℕ} (R : MmwAdaptiveRun O D (T + 1))
     (π : Fin T → Fin O) :
     (∑ o : Fin O, (R.lastRound π).law.prob o
@@ -365,6 +444,8 @@ theorem lastRound_dev_mean {O D : ℕ} {T : ℕ} (R : MmwAdaptiveRun O D (T + 1)
   rw [Finset.sum_congr rfl (fun o _ => hsplit o), Finset.sum_sub_distrib, h2, h3,
     sub_self]
 
+/-- The exponential moment of the cumulative deviation is at most `(cosh lam)^T` for every real
+`lam`. -/
 theorem cumDev_mgf {O D : ℕ} :
     ∀ (T : ℕ) (R : MmwAdaptiveRun O D T) (lam : ℝ),
       (∑ ω : Fin T → Fin O, R.transcriptProb ω * Real.exp (lam * R.cumDev ω))
@@ -446,6 +527,7 @@ theorem cumDev_mgf {O D : ℕ} :
           mul_le_mul_of_nonneg_right (ih R.trunc lam) (Real.cosh_pos lam).le
       _ = (Real.cosh lam) ^ (T + 1) := by rw [pow_succ]
 
+/-- For nonnegative `lam`, the upper tail at `δ` is bounded by `exp (T * lam² / 2 - lam * δ)`. -/
 theorem upperTail_bound {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ lam : ℝ)
     (hlam : 0 ≤ lam) :
     R.eventMass ((Finset.univ : Finset (Fin T → Fin O)).filter
@@ -495,6 +577,8 @@ theorem upperTail_bound {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ lam : ℝ)
             = -(lam * δ) + (T : ℝ) * (lam ^ 2 / 2) from by ring,
           ← Real.exp_add]
 
+/-- For positive `δ`, the probability that the cumulative deviation is at least `δ` is bounded
+by `exp (-δ² / (2 * T))`. -/
 theorem upperTail_exp {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ : ℝ)
     (hδ : 0 < δ) :
     R.eventMass ((Finset.univ : Finset (Fin T → Fin O)).filter
@@ -521,6 +605,8 @@ theorem upperTail_exp {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ : ℝ)
       ring
     rwa [hexp] at hbound
 
+/-- For nonnegative `δ` and nonpositive `lam`, the lower tail below `-δ` is bounded by `exp (T *
+lam² / 2 + lam * δ)`. -/
 theorem lowerTail_bound {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ lam : ℝ)
     (hδ : 0 ≤ δ) (hlam : lam ≤ 0) :
     R.eventMass ((Finset.univ : Finset (Fin T → Fin O)).filter
@@ -571,6 +657,8 @@ theorem lowerTail_bound {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ lam : ℝ)
             = lam * δ + (T : ℝ) * (lam ^ 2 / 2) from by ring,
           ← Real.exp_add]
 
+/-- For positive `δ`, the probability that the cumulative deviation is at most `-δ` is bounded
+by `exp (-δ² / (2 * T))`. -/
 theorem lowerTail_exp {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ : ℝ)
     (hδ : 0 < δ) :
     R.eventMass ((Finset.univ : Finset (Fin T → Fin O)).filter
@@ -597,6 +685,8 @@ theorem lowerTail_exp {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ : ℝ)
       ring
     rwa [hexp] at hbound
 
+/-- For positive `δ`, the probability of absolute cumulative deviation at least `δ` is at most
+`2 * exp (-δ² / (2 * T))`. -/
 theorem deviation_failure_mass {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (δ : ℝ) (hδ : 0 < δ) :
     R.eventMass ((Finset.univ : Finset (Fin T → Fin O)).filter
@@ -642,6 +732,8 @@ theorem deviation_failure_mass {O D T : ℕ} (R : MmwAdaptiveRun O D T)
         add_le_add (upperTail_exp R δ hδ) (lowerTail_exp R δ hδ)
     _ = 2 * Real.exp (-(δ ^ 2) / (2 * (T : ℝ))) := by ring
 
+/-- An adaptive run with a positive deviation threshold and disjoint stop and timeout events
+contained in the deviation failure event. -/
 structure MmwRunBornReceipt (O D T : ℕ) where
 
   run : MmwAdaptiveRun O D T
@@ -660,12 +752,16 @@ structure MmwRunBornReceipt (O D T : ℕ) where
     (Finset.univ : Finset (Fin T → Fin O)).filter
       (fun ω => δ ≤ |run.cumDev ω|)
 
+/-- The transcript probability mass of the receipt's stop event. -/
 def MmwRunBornReceipt.stopMass {O D T : ℕ} (S : MmwRunBornReceipt O D T) : ℝ :=
   S.run.eventMass S.stopEvent
 
+/-- The transcript probability mass of the receipt's timeout event. -/
 def MmwRunBornReceipt.timeoutMass {O D T : ℕ} (S : MmwRunBornReceipt O D T) : ℝ :=
   S.run.eventMass S.timeoutEvent
 
+/-- The stop and timeout masses are nonnegative, and their sum is bounded by the two-sided
+exponential deviation bound. -/
 theorem MmwRunBornReceipt.discipline {O D T : ℕ} (S : MmwRunBornReceipt O D T) :
     0 ≤ S.stopMass ∧ 0 ≤ S.timeoutMass ∧
       S.stopMass + S.timeoutMass
@@ -684,26 +780,34 @@ theorem MmwRunBornReceipt.discipline {O D T : ℕ} (S : MmwRunBornReceipt O D T)
     _ ≤ 2 * Real.exp (-(S.δ ^ 2) / (2 * (T : ℝ))) :=
         deviation_failure_mass S.run S.δ S.hδ
 
+/-- The observable of the adaptive round selected by the specified time and outcome history. -/
 def MmwAdaptiveRun.lossAt {O D T : ℕ} (R : MmwAdaptiveRun O D T) (t : Fin T)
     (h : Fin (t : ℕ) → Fin O) : Operator D :=
   (R.round (t : ℕ) t.isLt h).observable
 
+/-- The transcript-dependent sequence of round observables, extended by zero after time `T`. -/
 def MmwAdaptiveRun.lossSequence {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (ω : Fin T → Fin O) : ℕ → Operator D :=
   fun s => if hs : s < T
     then (R.round s hs (R.prefixOf s hs ω)).observable
     else 0
 
+/-- The sum of real trace payoffs of the transcript's round observables against the comparator
+matrix `σ`. -/
 def MmwAdaptiveRun.comparatorLoss {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (σ : Operator D) (ω : Fin T → Fin O) : ℝ :=
   ∑ t : Fin T, (Matrix.trace (R.lossAt t (R.prefixOf (t : ℕ) t.isLt ω) * σ)).re
 
+/-- Requires every transcript-dependent round state to equal the matrix multiplicative weights
+state for its loss sequence and learning rate. -/
 def MmwAdaptiveRun.followsGibbsUpdate {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (η : ℝ) : Prop :=
   ∀ (ω : Fin T → Fin O) (t : Fin T),
     (R.roundAt t ω).ρ
       = Qatlib.Concepts.MatrixWeights.WeightsCore.mmwState D (R.lossSequence ω) η (t : ℕ)
 
+/-- Every matrix in the transcript-dependent loss sequence is Hermitian and has operator norm at
+most one. -/
 theorem lossSequence_hermitian_unit {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (ω : Fin T → Fin O) (s : ℕ) :
     (R.lossSequence ω s).IsHermitian ∧ ‖R.lossSequence ω s‖ ≤ 1 := by
@@ -713,6 +817,8 @@ theorem lossSequence_hermitian_unit {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     exact ⟨payoffObservable_hermitian _ _, (mmwRound_record_psd_unit _).2⟩
   · exact ⟨Matrix.isHermitian_zero, by simp⟩
 
+/-- For positive dimension and `0 < η ≤ 1`, an adaptive run following Gibbs updates has
+cumulative actual payoff at most the density comparator loss plus `η * T + log D / η`. -/
 theorem pointwise_gibbs_regret {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     (η : ℝ) (σ : Operator D)
     (hD : 0 < D) (hη : 0 < η) (hη1 : η ≤ 1) (hσ : IsDensityOperator σ)
@@ -761,6 +867,8 @@ theorem pointwise_gibbs_regret {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     linarith
   exact (mul_le_mul_iff_of_pos_left hη).mp hkey
 
+/-- For an adaptive run following Gibbs updates with `0 < η ≤ 1`, the expected cumulative record
+is at most the expected density comparator loss plus `η * T + log D / η`. -/
 theorem expected_recorded_le_comparator {O D T : ℕ}
     (R : MmwAdaptiveRun O D T) (η : ℝ) (σ : Operator D)
     (hD : 0 < D) (hη : 0 < η) (hη1 : η ≤ 1) (hσ : IsDensityOperator σ)
@@ -809,6 +917,8 @@ theorem expected_recorded_le_comparator {O D T : ℕ}
     _ = (∑ ω : Fin T → Fin O, R.transcriptProb ω * R.comparatorLoss σ ω)
         + η * (T : ℝ) + Real.log D / η := (add_assoc _ _ _).symm
 
+/-- Combines conditional unbiasedness, zero expected cumulative deviation, exponential deviation
+and stop-timeout bounds, and the expected recorded regret bound under Gibbs updates. -/
 theorem frontier1 :
     (∀ (O D T : ℕ) (R : MmwAdaptiveRun O D T) (t : ℕ) (ht : t < T)
         (h : Fin t → Fin O),

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+/-!
+# Statistical distance estimation
+
+The midpoint distribution and the bounded statistic `xRatio` express half the L1 distance as an
+expectation. This module proves concentration for their empirical mean, a perturbation estimate
+for ratios, and an empirical estimator for set probabilities. The final theorem gives compatible
+real sample and query scales for the statistical difference estimates.
+
+The mathematical setting follows [BravyiHarrowHassidim2011].
+
+## Main statements
+
+* `midpoint_expect_xRatio`: the statistic has expectation equal to half the L1 distance.
+* `lemma1_estdist`: an approximate empirical mean estimates this expectation with the stated
+  confidence.
+* `theorem5_estprob`: a classical empirical set probability bound.
+
+## References
+
+* [Bravyi et al., 2011][BravyiHarrowHassidim2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,6 +45,7 @@ namespace Qatlib.Papers.DistTesting09.MainResults.StatisticalDifference
 
 variable {N : ℕ}
 
+/-- The probability distribution obtained by averaging the point probabilities of `p` and `q`. -/
 def midpoint (p q : Dist N) : Dist N where
   prob i := (p.prob i + q.prob i) / 2
   nonneg i := by
@@ -37,18 +61,23 @@ def midpoint (p q : Dist N) : Dist N where
       _ = (1 + 1) * (1 / 2) := by rw [p.sum_one, q.sum_one]
       _ = 1 := by norm_num
 
+/-- The midpoint distribution assigns probability `(p.prob i + q.prob i) / 2` to outcome `i`. -/
 @[simp] theorem midpoint_prob (p q : Dist N) (i : Fin N) :
     (midpoint p q).prob i = (p.prob i + q.prob i) / 2 := rfl
 
+/-- The absolute difference of the point probabilities divided by their sum, with value zero
+when that sum is zero. -/
 def xRatio (p q : Dist N) (i : Fin N) : ℝ :=
   if p.prob i + q.prob i = 0 then 0 else |p.prob i - q.prob i| / (p.prob i + q.prob i)
 
+/-- The statistic `xRatio` is nonnegative at every outcome. -/
 theorem xRatio_nonneg (p q : Dist N) (i : Fin N) : 0 ≤ xRatio p q i := by
   unfold xRatio
   split_ifs with h
   · norm_num
   · exact div_nonneg (abs_nonneg _) (by linarith [p.nonneg i, q.nonneg i])
 
+/-- The statistic `xRatio` is at most one at every outcome. -/
 theorem xRatio_le_one (p q : Dist N) (i : Fin N) : xRatio p q i ≤ 1 := by
   unfold xRatio
   split_ifs with h
@@ -60,6 +89,8 @@ theorem xRatio_le_one (p q : Dist N) (i : Fin N) : xRatio p q i ≤ 1 := by
     rw [div_le_one hpq, abs_le]
     constructor <;> linarith
 
+/-- The expectation of `xRatio` under the midpoint distribution equals half the L1 distance of
+`p` and `q`. -/
 theorem midpoint_expect_xRatio (p q : Dist N) :
     (midpoint p q).expect (fun i => xRatio p q i) = (1 / 2) * l1 p q := by
   rw [l1]
@@ -81,6 +112,7 @@ theorem midpoint_expect_xRatio (p q : Dist N) :
         exact Finset.sum_congr rfl fun i _ => hterm i
     _ = (1 / 2) * ∑ i, |p.prob i - q.prob i| := by rw [Finset.mul_sum]
 
+/-- The L1 distance between two finite probability distributions is at most two. -/
 theorem l1_le_two (p q : Dist N) : l1 p q ≤ 2 := by
   unfold l1
   have hterm : ∀ i : Fin N, |p.prob i - q.prob i| ≤ p.prob i + q.prob i := by
@@ -95,6 +127,7 @@ theorem l1_le_two (p q : Dist N) : l1 p q ≤ 2 := by
         rw [Finset.sum_add_distrib, p.sum_one, q.sum_one]
         norm_num
 
+/-- The variance of `xRatio` under the midpoint distribution is at most one. -/
 theorem midpoint_variance_xRatio_le (p q : Dist N) :
     (midpoint p q).variance (fun i => xRatio p q i) ≤ 1 := by
   rw [FinDist.variance_eq_expect_sq_sub]
@@ -112,9 +145,13 @@ theorem midpoint_variance_xRatio_le (p q : Dist N) :
   nlinarith [le_trans hsq_le hmean,
     sq_nonneg ((midpoint p q).expect (fun i => xRatio p q i))]
 
+/-- The empirical mean of `xRatio p q` over the sample tuple. -/
 def xBar (p q : Dist N) {n : ℕ} (S : Fin n → Fin N) : ℝ :=
   (1 / (n : ℝ)) * ∑ a, xRatio p q (S a)
 
+/-- With at least `27 / (τ * ε²)` samples, the probability that `xBar` differs from half the L1
+distance by at least `ε / 3` is at most `τ / 3`. See [Bravyi et al., 2011, Lemma
+1][BravyiHarrowHassidim2011]. -/
 theorem lemma1_mean_concentration [NeZero N] (p q : Dist N) (ε τ : ℝ)
     (hε : 0 < ε) (hτ : 0 < τ) (n : ℕ) (hn : 0 < n)
     (hnbig : 27 / (τ * ε ^ 2) ≤ (n : ℝ)) :
@@ -192,6 +229,9 @@ theorem lemma1_mean_concentration [NeZero N] (p q : Dist N) (ε τ : ℝ)
       (fun S : Fin n → Fin N => ε / 3 ≤ |xBar p q S - (1 / 2) * l1 p q|) ≤ τ / 3 := hcheb'
   rwa [eventMass_independent_const] at hgoal
 
+/-- An estimator within `ε / 3` of `xBar` differs from half the L1 distance by less than `ε`
+with probability at least `1 - τ`, under the stated sample size bound. See [Bravyi et al.,
+2011, Lemma 1][BravyiHarrowHassidim2011]. -/
 theorem lemma1_estdist [NeZero N] (p q : Dist N) (ε τ : ℝ) (hε : 0 < ε) (hτ : 0 < τ)
     (n : ℕ) (hn : 0 < n) (hnbig : 27 / (τ * ε ^ 2) ≤ (n : ℝ))
     (xhat : (Fin n → Fin N) → ℝ)
@@ -218,6 +258,9 @@ theorem lemma1_estdist [NeZero N] (p q : Dist N) (ε τ : ℝ) (hε : 0 < ε) (h
     (fun S => |xhat S - (1 / 2) * l1 p q| < ε)
   linarith
 
+/-- If the nonnegative inputs have relative perturbations at most `δ ≤ 1/5` and both
+denominators are positive, their signed difference ratios differ by at most `5 * δ`. See
+[Bravyi et al., 2011, Proposition 1][BravyiHarrowHassidim2011]. -/
 theorem prop1_ratio_lipschitz (p q pt qt δ : ℝ) (hp : 0 ≤ p) (hq : 0 ≤ q)
     (hδ0 : 0 ≤ δ) (hδ : δ ≤ 1 / 5)
     (hp' : |pt - p| ≤ δ * p) (hq' : |qt - q| ≤ δ * q)
@@ -302,9 +345,13 @@ theorem prop1_ratio_lipschitz (p q pt qt δ : ℝ) (hp : 0 ≤ p) (hq : 0 ≤ q)
     _ = 5 * δ := by
         field_simp
 
+/-- The empirical fraction of sampled outcomes lying in the finite set `A`. -/
 def estProbEst {M : ℕ} (A : Finset (Fin N)) (S : Fin M → Fin N) : ℝ :=
   (∑ a, if S a ∈ A then (1 : ℝ) else 0) / (M : ℝ)
 
+/-- The empirical mass of `A` has additive error at most `δ` with probability at least `1 - ω`
+when `M` is positive and at least the mass of `A` divided by `ω * δ²`. See [Bravyi et al.,
+2011, Theorem 5][BravyiHarrowHassidim2011]. -/
 theorem theorem5_estprob [NeZero N] (p : Dist N) (A : Finset (Fin N))
     (M : ℕ) (hM : 0 < M) (δ ω : ℝ) (hδ : 0 < δ) (hω : 0 < ω)
     (hMbound : (∑ x ∈ A, p.prob x) / (ω * δ ^ 2) ≤ (M : ℝ)) :
@@ -349,6 +396,9 @@ theorem theorem5_estprob [NeZero N] (p : Dist N) (A : Finset (Fin N))
   rw [heq] at hcompl
   linarith [hcompl, htail]
 
+/-- For positive `ε` and `τ`, there exist positive real sample and query scales satisfying the
+stated lower bounds and total cost at most `64 * sqrt N / (τ^5 * ε^8)`. See [Bravyi et al.,
+2011, Theorem 1][BravyiHarrowHassidim2011]. -/
 theorem theorem1_statistical_difference [NeZero N] (ε τ : ℝ) (hε : 0 < ε) (hτ : 0 < τ) :
     ∃ (n Mq : ℝ), 0 < n ∧ 27 / (τ * ε ^ 2) ≤ n ∧ 0 < Mq ∧
       Real.sqrt (N : ℝ) / (ε ^ 6 * τ ^ 4) ≤ Mq ∧

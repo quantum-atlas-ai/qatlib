@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+
+/-!
+# Specification of search with unknown success mass
+
+`Theorem3QuadraticSpeedupUnknownA` specifies geometric search schedules for prepared marked mass
+`sin² θ` with `0 < θ ≤ π/4`. It requires an arbitrarily small failure bound, a uniform bound on
+expected preparation calls, and sound successful outputs. For background, see
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `Theorem3QuadraticSpeedupUnknownA`: The proposition that a unitary preparation with marked
+  mass `sin² θ` and `0 < θ ≤ π/4` has geometric search schedules achieving every positive
+  failure tolerance, expected preparation count at most `150 * sqrt 2 / sin θ`, and only marked
+  successful outputs.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -17,6 +38,9 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib
 open scoped ENNReal
 
+/-- The proposition that a unitary preparation with marked mass `sin² θ` and `0 < θ ≤ π/4` has
+geometric search schedules achieving every positive failure tolerance, expected preparation
+count at most `150 * sqrt 2 / sin θ`, and only marked successful outputs. -/
 def Theorem3QuadraticSpeedupUnknownA : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j₀ : I)
     (S : Finset I),

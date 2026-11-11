@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalOffGridReadout
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Amplitude estimation with local Fourier gates
+
+This module compiles prepared amplitude estimation into a circuit whose forward and inverse
+Fourier transforms use local gates. `localAECircuit` and `localAEState` connect the
+implementation to the ideal phase-estimation output used in [BrassardEtAl2002], with explicit
+query counts, gate counts, and state error.
+
+The state estimate transfers the BHMT amplitude-estimation event to the implemented circuit.
+When the Fourier bandwidth is sufficient, the backend is exact, including the zero-amplitude
+endpoint; a uniform preparation also gives a quantum-counting consumer.
+
+## Main statements
+
+* `local_ae_actual_compilation_resources`: compute query and gate resources.
+* `local_ae_whole_state_error`: bound the implemented state's Euclidean error.
+* `local_ae_actual_bhmt_event`: lower-bound the implemented amplitude-estimation success
+  probability.
+* `local_ae_counting_consumer`: specialize the estimate to counting a marked finite set.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -45,27 +71,33 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- A positive exponent `n` gives `2 ≤ 2^n` in the natural numbers. -/
 theorem two_le_two_pow {n : ℕ} (hn : 1 ≤ n) : 2 ≤ 2^n := by
   obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hn
   rw [Nat.pow_add, Nat.pow_one]
   calc (2 : ℕ) = 2*1 := by ring
     _ ≤ 2*2^k := Nat.mul_le_mul le_rfl Nat.one_le_two_pow
 
+/-- The real power `2^n` equals the real cast of the corresponding natural power. -/
 theorem two_pow_real_eq_cast (n : ℕ) : (2^n : ℝ) = ((2^n : ℕ) : ℝ) := by
   rw [Nat.cast_pow, Nat.cast_ofNat]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Relabeling a matrix commutes with subtraction. -/
 theorem relabelGate_sub {J : Type*} [Fintype J] [DecidableEq J] (e : I ≃ J)
     (A B : Matrix I I ℂ) : relabelGate e A - relabelGate e B = relabelGate e (A - B) := by
   ext i j
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sub_apply]
 
+/-- Relabeling a finite-register gate to bit vectors and back recovers the original matrix. -/
 theorem relabelGate_roundtrip (n : ℕ) (U : Matrix (Fin (2^n)) (Fin (2^n)) ℂ) :
     relabelGate (bitVecEquiv n) (relabelGate (bitVecEquiv n).symm U) = U := by
   have h := relabelGate_relabelGate (bitVecEquiv n).symm U
   rwa [Equiv.symm_symm] at h
 
+/-- Measuring a predicate on the ideal AE phase register gives the sum of `aeLaw` probabilities
+over the satisfying labels. -/
 theorem measureProb_ideal_eq_aeLaw_sum (M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (P : Fin M → Prop) :
@@ -83,21 +115,26 @@ theorem measureProb_ideal_eq_aeLaw_sum (M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M)
   rw [h1]
   exact (aeLaw_event M hM2 A j S hA P).symm
 
+/-- Lift a relabeled local Fourier gate to the AE register by acting trivially on the flag and
+target registers. -/
 noncomputable def localAEGateMatrix (n : ℕ) (g : LocalQFTGate n) :
     Matrix (Fin (2^n) × (Bool × I)) (Fin (2^n) × (Bool × I)) ℂ :=
   TensorGate (relabelGate (bitVecEquiv n) (localGateMatrix g))
     (1 : Matrix (Bool × I) (Bool × I) ℂ)
 
+/-- Every lifted local Fourier gate is unitary on the joint AE register. -/
 theorem localAEGateMatrix_unitary (n : ℕ) (g : LocalQFTGate n) :
     localAEGateMatrix (I := I) n g ∈ Matrix.unitaryGroup (Fin (2^n) × (Bool × I)) ℂ :=
   tensorGate_unitary
     ((relabelGate_mem_unitaryGroup (bitVecEquiv n) (localGateMatrix g)).mpr
       (localGateMatrix_unitary g)) (Matrix.unitaryGroup (Bool × I) ℂ).one_mem
 
+/-- Compile a list of local Fourier gates into ordinary gates on the AE register. -/
 noncomputable def localAETableCircuit (n : ℕ) (gs : List (LocalQFTGate n)) :
     Circuit (Fin (2^n) × (Bool × I)) :=
   gs.map fun g => Step.gate (localAEGateMatrix (I := I) n g)
 
+/-- A compiled local Fourier gate list forms a unitary circuit. -/
 theorem localAETableCircuit_isUnitary (n : ℕ) (gs : List (LocalQFTGate n)) :
     IsUnitaryCircuit (localAETableCircuit n gs :
       Circuit (Fin (2^n) × (Bool × I))) := by
@@ -108,6 +145,8 @@ theorem localAETableCircuit_isUnitary (n : ℕ) (gs : List (LocalQFTGate n)) :
 
 omit [Fintype I] in
 
+/-- The compiled local Fourier gate list uses no oracle queries and one ordinary gate per list
+entry. -/
 theorem localAETableCircuit_counts (n : ℕ) (gs : List (LocalQFTGate n)) :
     QueryCount (localAETableCircuit n gs : Circuit (Fin (2^n) × (Bool × I))) = 0 ∧
     GateCount (localAETableCircuit n gs : Circuit (Fin (2^n) × (Bool × I)))
@@ -116,11 +155,15 @@ theorem localAETableCircuit_counts (n : ℕ) (gs : List (LocalQFTGate n)) :
   | nil => exact ⟨rfl, rfl⟩
   | cons g gs ih => exact ⟨ih.1, congrArg (fun x => x + 1) ih.2⟩
 
+/-- The joint-register matrix of a local Fourier program, acting trivially on the flag and
+target registers. -/
 noncomputable def localAEBackendMatrix (n : ℕ) (gs : List (LocalQFTGate n)) :
     Matrix (Fin (2^n) × (Bool × I)) (Fin (2^n) × (Bool × I)) ℂ :=
   TensorGate (relabelGate (bitVecEquiv n) (localProgramMatrix gs))
     (1 : Matrix (Bool × I) (Bool × I) ℂ)
 
+/-- Executing the compiled local Fourier gate list equals applying `localAEBackendMatrix`,
+independently of the supplied oracle. -/
 theorem localAETableCircuit_run (n : ℕ) (gs : List (LocalQFTGate n))
     (O : Matrix (Fin (2^n) × (Bool × I)) (Fin (2^n) × (Bool × I)) ℂ)
     (ψ : QState (Fin (2^n) × (Bool × I))) :
@@ -139,6 +182,8 @@ theorem localAETableCircuit_run (n : ℕ) (gs : List (LocalQFTGate n))
       simp only [localAEBackendMatrix, localAEGateMatrix, localProgramMatrix_cons]
       rw [tensorGate_mul, CircuitRelabel.relabelGate_mul, one_mul]
 
+/-- The lifted approximate Fourier program and its adjoint each differ from their ideal matrices
+in operator norm by at most `πn / 2^(b + 1)`. -/
 theorem localAEBackend_error (n b : ℕ) :
     ‖localAEBackendMatrix (I := I) n (approxLocalQFT n b)
         - TensorGate (QFTMatrix (2^n)) (1 : Matrix (Bool × I) (Bool × I) ℂ)‖
@@ -174,22 +219,28 @@ theorem localAEBackend_error (n b : ℕ) :
     rw [← relabelGate_conjTranspose]
     exact herrB
 
+/-- The forward approximate local Fourier circuit on the AE register. -/
 noncomputable def localAEForwardCircuit (n b : ℕ) :
     Circuit (Fin (2^n) × (Bool × I)) :=
   localAETableCircuit n (approxLocalQFT n b)
 
+/-- The adjoint approximate local Fourier circuit on the AE register. -/
 noncomputable def localAEBackwardCircuit (n b : ℕ) :
     Circuit (Fin (2^n) × (Bool × I)) :=
   localAETableCircuit n (localProgramAdjoint (approxLocalQFT n b))
 
+/-- The total number of ordinary gates in the forward and backward local Fourier circuits. -/
 def localAEFourierGates (n b : ℕ) : ℕ := 2 * (approxLocalQFT n b).length
 
+/-- The concatenation of the controlled flag-iterate words for all phase-register labels. -/
 noncomputable def localAEFlagWord (M : ℕ) (A : Matrix I I ℂ) (j : I) :
     Circuit (Fin M × (Bool × I)) :=
   (aeFlagAccessWord (I := I) M).map (aeAccessInstruction M A j)
 
 omit [Fintype I] in
 
+/-- Decompose the ideal counted AE circuit into state preparation, forward Fourier transform,
+flag word, and inverse Fourier transform. -/
 theorem countedAECircuit_split (M : ℕ) (A : Matrix I I ℂ) (j : I) :
     countedAECircuit M A j =
       [Step.gate (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ)
@@ -201,6 +252,7 @@ theorem countedAECircuit_split (M : ℕ) (A : Matrix I I ℂ) (j : I) :
   simp only [List.map_cons, List.map_append, aeAccessInstruction]
   rfl
 
+/-- For positive `M`, the flag word uses `M - 1` oracle queries and `5(M - 1)` ordinary gates. -/
 theorem localAEFlagWord_counts (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     QueryCount (localAEFlagWord M A j) = M - 1 ∧
     GateCount (localAEFlagWord M A j) = 5*(M-1) := by
@@ -211,6 +263,8 @@ theorem localAEFlagWord_counts (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : 
   simp only [gateCount_append, gateCount_gate, gateCount_nil, Nat.zero_add] at h2
   omega
 
+/-- The amplitude-estimation circuit combining preparation, local forward Fourier gates, the
+flag word, and local inverse Fourier gates. -/
 noncomputable def localAECircuit (n b : ℕ) (A : Matrix I I ℂ) (j : I) :
     Circuit (Fin (2^n) × (Bool × I)) :=
   [Step.gate (TensorGate (1 : Matrix (Fin (2^n)) (Fin (2^n)) ℂ)
@@ -219,11 +273,15 @@ noncomputable def localAECircuit (n b : ℕ) (A : Matrix I I ℂ) (j : I) :
   ++ localAEFlagWord (2^n) A j
   ++ localAEBackwardCircuit n b
 
+/-- The output of `localAECircuit` on the initial phase, flag, and target basis state with the
+prepared marking oracle. -/
 noncomputable def localAEState (n b : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) :
     QState (Fin (2^n) × (Bool × I)) :=
   Run (aeControlledGate (2^n) (preparedMark S)) (localAECircuit n b A j)
     (TensorState (Ket (⟨0, by positivity⟩ : Fin (2^n))) (TensorState (Ket false) (Ket j)))
 
+/-- For any input state, executing local AE factors into preparation, the local forward Fourier
+backend, the flag word, and the local inverse Fourier backend. -/
 theorem localAECircuit_run_any (n b : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (ψ : QState (Fin (2^n) × (Bool × I))) :
     Run (aeControlledGate (2^n) (preparedMark S)) (localAECircuit n b A j) ψ
@@ -241,6 +299,8 @@ theorem localAECircuit_run_any (n b : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fin
   rw [localAEForwardCircuit, localAETableCircuit_run, localAEBackwardCircuit,
     localAETableCircuit_run]
 
+/-- For any input state, executing ideal counted AE factors into preparation, the exact forward
+Fourier transform, the flag word, and the exact inverse Fourier transform. -/
 theorem countedAECircuit_run_any (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (ψ : QState (Fin M × (Bool × I))) :
     Run (aeControlledGate M (preparedMark S)) (countedAECircuit M A j) ψ
@@ -252,6 +312,8 @@ theorem countedAECircuit_run_any (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fin
   rw [countedAECircuit_split, run_append, run_append, run_append]
   simp only [run_gate, run_nil]
 
+/-- Express the local-versus-ideal AE state difference using the same preparation and flag word
+with local versus exact Fourier matrices. -/
 theorem localAE_state_diff (n b : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 0 < 2^n) :
     localAEState n b A j S
@@ -278,6 +340,8 @@ theorem localAE_state_diff (n b : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset 
     (countedAE_output (2^n) hM A j S).symm,
     localAECircuit_run_any, countedAECircuit_run_any]
 
+/-- For `n ≥ 1`, local AE uses `2^n - 1` queries and `5(2^n - 1) + 1 + localAEFourierGates n b`
+gates, with the stated bound on Fourier gates. -/
 theorem local_ae_actual_compilation_resources (n b : ℕ) (hn : 1 ≤ n)
     (A : Matrix I I ℂ) (j : I) :
     QueryCount (localAECircuit n b A j) = 2^n - 1 ∧
@@ -315,6 +379,8 @@ theorem local_ae_actual_compilation_resources (n b : ℕ) (hn : 1 ≤ n)
   have hbound := (approxLocalQFT_actual_filter_and_cost n b).2.2.2.1
   exact Nat.mul_le_mul (le_refl 2) (hgc.symm.trans_le hbound)
 
+/-- For positive phase-register width and unitary preparation, the AE flag word is a unitary
+circuit. -/
 theorem localAEFlagWord_isUnitary (n : ℕ) (hn : 1 ≤ n) (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     IsUnitaryCircuit (localAEFlagWord (2^n) A j :
@@ -325,6 +391,8 @@ theorem localAEFlagWord_isUnitary (n : ℕ) (hn : 1 ≤ n) (A : Matrix I I ℂ) 
   rw [countedAECircuit_split, List.mem_append, List.mem_append, List.mem_append]
   tauto
 
+/-- For positive phase-register width and unitary preparation, the compiled local AE circuit is
+unitary. -/
 theorem localAECircuit_isUnitary (n b : ℕ) (hn : 1 ≤ n) (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     IsUnitaryCircuit (localAECircuit n b A j :
@@ -345,6 +413,8 @@ theorem localAECircuit_isUnitary (n b : ℕ) (hn : 1 ≤ n) (A : Matrix I I ℂ)
   exact (isUnitaryCircuit_append _ _).mpr ⟨(isUnitaryCircuit_append _ _).mpr ⟨
     (isUnitaryCircuit_append _ _).mpr ⟨h1, h2⟩, h3⟩, h4⟩
 
+/-- Replacing the forward and backward matrices around a unitary circuit changes the output of a
+normalized state by at most the sum of the two operator-norm errors. -/
 theorem local_backend_output_error {J : Type*} [Fintype J] [DecidableEq J]
     (O F T F' T' : Matrix J J ℂ) (W : Circuit J) (x₀ : QState J)
     (hO : O ∈ Matrix.unitaryGroup J ℂ) (hW : IsUnitaryCircuit W)
@@ -400,6 +470,8 @@ theorem local_backend_output_error {J : Type*} [Fintype J] [DecidableEq J]
 
 set_option maxHeartbeats 1000000 in
 
+/-- For unitary preparation and `n ≥ 1`, the local AE output is normalized and lies within
+Euclidean distance `πn / 2^b` of the ideal embedded QPE output. -/
 theorem local_ae_whole_state_error (n b : ℕ) (hn : 1 ≤ n) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     Normalized (localAEState n b A j S) ∧
@@ -461,6 +533,8 @@ theorem local_ae_whole_state_error (n b : ℕ) (hn : 1 ≤ n) (A : Matrix I I �
 
 omit [DecidableEq I] in
 
+/-- The BHMT success-event filters agree when the denominator `2^n` is written as a cast natural
+power or as a real power. -/
 theorem local_ae_bhmt_event_filter_cast (n : ℕ) (a : ℝ) :
     (Finset.univ.filter (fun p : Fin (2^n) × (Bool × I) =>
         |aeEstimate (2^n) p.1 - a| ≤ 2*Real.pi*Real.sqrt (a*(1-a))/((2^n : ℕ) : ℝ)
@@ -472,6 +546,8 @@ theorem local_ae_bhmt_event_filter_cast (n : ℕ) (a : ℝ) :
   intro p _
   simp only [Nat.cast_pow, Nat.cast_ofNat]
 
+/-- The implemented BHMT amplitude-estimation error event has probability at least `8/π² -
+2πn/2^b` for `n ≥ 1` and unitary preparation [BrassardEtAl2002]. -/
 theorem local_ae_actual_bhmt_event (n b : ℕ) (hn : 1 ≤ n) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     let a := MeasureProb (preparedAAState A j) S
@@ -553,6 +629,8 @@ theorem local_ae_actual_bhmt_event (n b : ℕ) (hn : 1 ≤ n) (A : Matrix I I �
     _ ≥ 8/Real.pi^2 - 2*(Real.pi*(n:ℝ)/(2^b:ℝ)) := by linarith [hkey]
     _ = 8/Real.pi^2 - 2*Real.pi*(n:ℝ)/(2^b:ℝ) := by ring
 
+/-- If `n ≤ b + 2`, local AE equals the ideal output; with unitary preparation and zero marked
+probability, the phase label is zero with probability one. -/
 theorem local_ae_exact_backend_and_zero_consumer (n b : ℕ) (hn : 1 ≤ n)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hnb : n ≤ b+2) :
     localAEState n b A j S
@@ -599,6 +677,8 @@ theorem local_ae_exact_backend_and_zero_consumer (n b : ℕ) (hn : 1 ≤ n)
   rw [← hpr]
   exact hend
 
+/-- Uniform Fourier preparation estimates the marked-set cardinality with the stated BHMT
+counting error and success probability at least `8/π² - 2πn/2^b` [BrassardEtAl2002]. -/
 theorem local_ae_counting_consumer (N n b : ℕ) (hN : 0 < N) (hn : 1 ≤ n)
     (S : Finset (Fin N)) :
     let A := QFTMatrix N

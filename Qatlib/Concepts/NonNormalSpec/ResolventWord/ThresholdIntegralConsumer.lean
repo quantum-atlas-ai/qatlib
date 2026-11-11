@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+
+/-!
+# Circuit realization of threshold integral amplification
+
+An integrated threshold amplifier yields a phase word whose encoded matrix approximates `γ • A`
+when the singular values of `A` lie in the inner approximation interval. The construction
+includes the word length and compilation counts, using the singular value transformation
+framework of [GilyenSuLowWiebe2019]
+
+## Main statements
+
+* `oddSingularTransform_linear`: identifies a linear singular value transform with matrix
+  scaling.
+* `integrated_threshold_query_consumer`: constructs the approximate scaled block encoding with
+  explicit counts.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -29,6 +50,7 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix Polynomial
 open scoped Matrix.Norms.L2Operator
 
+/-- Applying the odd singular value transform for `x ↦ γ * x` gives the scalar multiple `γ • A`. -/
 theorem oddSingularTransform_linear {I O : Type*}
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (γ : ℝ) :
@@ -45,6 +67,9 @@ theorem oddSingularTransform_linear {I O : Type*}
     · simp [hij]
   rw [hdiag, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- Under the stated parameter and norm bounds, there is a real phase word of length `D = 2 *
+3^k + 1` that block encodes `γ • A` with error `ε / 2`. Its compiled counts are `(D, 2 *
+3^k, 2 * 3^k + 2, D)`, and its length satisfies the explicit logarithmic tolerance bound. -/
 theorem integrated_threshold_query_consumer
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

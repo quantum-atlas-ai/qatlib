@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingDefs
+
+/-!
+# POVM information hiding contract
+
+`PovmInformationHidingSubgoal` states a finite entropy bound for a complete positive
+semidefinite measurement applied to rotated projector code operators. Its hypotheses specify
+projector traces, parameter ranges, unitarity on the ensemble support, and exact first and
+Hermitian second rotation moments.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `PovmInformationHidingSubgoal`: specifies the entropy-gap upper bound `α²(d - r) / (r(d +
+  1))`.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -19,6 +40,9 @@ open Matrix
 open scoped ComplexOrder
 open scoped Classical BigOperators
 
+/-- The proposition asserting an outcome entropy gap at most `α² * (d - r) / (r * (d + 1))` for
+the stated finite POVM and uniformly indexed projector codes. The implication assumes the
+specified parameter ranges and exact first and Hermitian second rotation moments. -/
 def PovmInformationHidingSubgoal : Prop :=
   ∀ (d r M : ℕ) (O : Type) [Fintype O] [DecidableEq O]
     (I : Type) [Fintype I] [DecidableEq I]

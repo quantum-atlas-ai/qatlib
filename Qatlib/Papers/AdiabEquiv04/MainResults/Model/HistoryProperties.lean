@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryConstruction
 import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+
+/-!
+# The initial circuit history vector
+
+This module identifies the time-zero history vector with the all-zero total basis vector and
+proves its normalization. The clock, input, and initial-clock penalties annihilate this vector,
+and positivity of `Hinit` makes it a ground vector for the construction of
+[AharonovEtAl2007Adiabatic].
+
+## Main statements
+
+* `gamma_zero`: the time-zero history vector is `zeroTotal`.
+* `Hinit_isPositive`: the initial Hamiltonian has nonnegative Rayleigh expressions.
+* `gamma0_isGroundVector`: the initial history vector is a ground vector.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007Adiabatic]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,16 +38,20 @@ open scoped BigOperators ComplexOrder
 
 namespace Qatlib.Papers.AdiabEquiv04.MainResults.Model
 
+/-- The product of zero circuit gates is the identity matrix. -/
 theorem prefixU_zero {n : ℕ} (gates : GateSeq n) :
     prefixU gates 0 = 1 := by
   simp [prefixU]
 
+/-- The computational vector at time zero is the all-zero basis vector. -/
 theorem alpha_zero {n : ℕ} (gates : GateSeq n) : alpha gates 0 = zeroBasis n := by
   simp [alpha, prefixU_zero]
 
+/-- The total basis vector supported on the all-zero computational and clock configurations. -/
 def zeroTotal (n L : ℕ) : Vector (TotalBasis n L) :=
   fun p => if p = ((fun _ => 0), (fun _ => 0)) then 1 else 0
 
+/-- The all-zero total basis vector has squared norm one. -/
 theorem normSq_zeroTotal (n L : ℕ) : normSq (zeroTotal n L) = 1 := by
   classical
   unfold normSq zeroTotal
@@ -39,6 +63,7 @@ theorem normSq_zeroTotal (n L : ℕ) : normSq (zeroTotal n L) = 1 := by
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The time-zero history vector equals the all-zero total basis vector. -/
 theorem gamma_zero (n L : ℕ) (gates : GateSeq n) :
     gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩ = zeroTotal n L := by
   classical
@@ -59,6 +84,8 @@ theorem gamma_zero (n L : ℕ) (gates : GateSeq n) :
       intro h; exact h1 (congrArg Prod.fst h)
     simp [zeroBasis, h1, hp]
 
+/-- Multiplication of a vector by a finite sum of matrices equals the sum of the individual
+matrix-vector products. -/
 theorem finset_sum_mulVec {κ : Type} {ι : Type} [Fintype ι]
     (s : Finset κ) (f : κ → Matrix ι ι ℂ) (ψ : Vector ι) :
     (∑ k ∈ s, f k) *ᵥ ψ = ∑ k ∈ s, f k *ᵥ ψ := by
@@ -67,6 +94,7 @@ theorem finset_sum_mulVec {κ : Type} {ι : Type} [Fintype ι]
   | empty => simp
   | insert a s ha ih => simp [Finset.sum_insert ha, Matrix.add_mulVec, ih]
 
+/-- The initial-clock penalty annihilates the time-zero history vector. -/
 theorem Hclockinit_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     Hclockinit n L hL2 *ᵥ gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩ = 0 := by
   classical
@@ -82,6 +110,7 @@ theorem Hclockinit_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n)
     simp [h, zeroTotal, hp]
   · simp [h]
 
+/-- The input penalty annihilates the time-zero history vector. -/
 theorem Hinput_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     Hinput n L hL2 *ᵥ gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩ = 0 := by
   classical
@@ -101,6 +130,7 @@ theorem Hinput_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     simp [h1, h2, zeroTotal, hp]
   · simp [h]
 
+/-- The clock penalty annihilates the time-zero history vector. -/
 theorem Hclock_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     Hclock n L hL2 *ᵥ gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩ = 0 := by
   classical
@@ -120,6 +150,7 @@ theorem Hclock_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     simp [h1, h2, zeroTotal, hp]
   · simp [h]
 
+/-- The initial Hamiltonian annihilates the time-zero history vector. -/
 theorem Hinit_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     (Hinit n L hL2).mat *ᵥ gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩ = 0 := by
   unfold Hinit
@@ -130,6 +161,7 @@ theorem Hinit_mulVec_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     Hclock_mulVec_gamma0 n L hL2 gates]
   simp
 
+/-- The Rayleigh expression of the initial Hamiltonian is nonnegative on every vector. -/
 theorem Hinit_isPositive (n L : ℕ) (hL2 : 2 ≤ L) :
     IsPositive (Hinit n L hL2).mat := by
   unfold Hinit
@@ -138,6 +170,7 @@ theorem Hinit_isPositive (n L : ℕ) (hL2 : 2 ≤ L) :
     (IsPositive.finset_sum _ (fun _ _ => basisProj_isPositive _))).add
     (IsPositive.finset_sum _ (fun _ _ => basisProj_isPositive _))
 
+/-- The time-zero history vector has Rayleigh expression zero for the initial Hamiltonian. -/
 theorem rayleigh_Hinit_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     rayleigh (Hinit n L hL2).mat
       (gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩) = 0 := by
@@ -145,6 +178,8 @@ theorem rayleigh_Hinit_gamma0 (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
   rw [Hinit_mulVec_gamma0]
   simp
 
+/-- The normalized time-zero history vector is a ground vector of the initial Hamiltonian. See
+[AharonovEtAl2007Adiabatic]. -/
 theorem gamma0_isGroundVector (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n) :
     IsGroundVector (Hinit n L hL2)
       (gamma (L := L) gates ⟨0, Nat.zero_lt_succ L⟩) := by

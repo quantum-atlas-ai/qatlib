@@ -8,6 +8,27 @@ import Qatlib.Foundations.CbmdAnalysis.Core.KernelSeriesIdentity
 import Qatlib.Foundations.CbmdAnalysis.Core.StaticDyson
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeightPositive
 import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
+
+/-!
+# Finite static kernel sample families
+
+This module specializes the integer-weight contour kernel to static dissipative matrix
+evolution. It defines finite sample indices, frequencies, weights, and a common normalization
+for the LCU approximation in [WangEtAl2026].
+
+## Main statements
+
+* `staticKernel_target_error`: the finite LCU approximates the dissipative exponential within
+  `δ`.
+* `staticKernel_card_log_bound`: bounds the number of retained samples.
+* `staticKernel_family`: collects the approximation, mass, normalization, and frequency
+  estimates.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,31 +58,47 @@ namespace CBMD
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The integer kernel order selected for error `δ / 2`. -/
 def staticKernelOrder (δ : ℝ) : ℕ :=
     _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelOrder (δ / 2)
+/-- The kernel spacing selected from the growth parameter `t * α`, half-error budget, and static
+kernel order. -/
 def staticKernelSpacing (α t δ : ℝ) : ℝ :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelSpacing (t * α) (δ / 2) (staticKernelOrder δ)
+/-- The natural cutoff selected from the static kernel spacing and half-error budget. -/
 def staticKernelCutoff (α t δ : ℝ) : ℕ :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelCutoff (staticKernelSpacing α t δ) (δ / 2)
+/-- The finite type of integer sample labels between minus the static cutoff and the static
+cutoff, inclusive. -/
 abbrev StaticKernelIndex (α t δ : ℝ) :=
   {k : ℤ // k ∈ Finset.Icc (-(staticKernelCutoff α t δ : ℤ)) (staticKernelCutoff α t δ)}
+/-- The zero integer label in the static kernel index type. -/
 def staticKernelZero (α t δ : ℝ) : StaticKernelIndex α t δ := ⟨0, by simp⟩
+/-- The real frequency obtained by dividing the integer sample label by the static kernel
+spacing. -/
 def staticKernelFrequency (α t δ : ℝ) (k : StaticKernelIndex α t δ) : ℝ :=
   (k.val : ℝ) / staticKernelSpacing α t δ
+/-- The integer kernel weight at a retained sample frequency, using the chosen order and
+spacing. -/
 def staticKernelWeight (α t δ : ℝ) (k : StaticKernelIndex α t δ) : ℂ :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerWeight (staticKernelOrder δ) (staticKernelSpacing α t δ)
     (staticKernelFrequency α t δ k)
+/-- The logarithmic frequency bound `2 * max 0 (log (kernelTailConstant / (δ / 2)) / 2) + 5`. -/
 def staticKernelFrequencyBound (δ : ℝ) : ℝ :=
   2 * max 0 (Real.log (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelTailConstant / (δ / 2)) / 2) + 5
+/-- The common static sample normalization `α * (1 + staticKernelFrequencyBound δ)`. -/
 def staticKernelNormalization (α δ : ℝ) : ℝ := α * (1 + staticKernelFrequencyBound δ)
 
+/-- The chosen static kernel spacing is at least one. -/
 theorem staticKernelSpacing_ge_one (α t δ : ℝ) : 1 ≤ staticKernelSpacing α t δ :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelSpacing_ge_one _ _ _
 
+/-- The coefficient mass of the retained static kernel weights is strictly positive. -/
 theorem staticKernel_mass_pos (α t δ : ℝ) : 0 < coefficientMass (staticKernelWeight α t δ) :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerWeight_attached_mass_pos _
     (lt_of_lt_of_le (by norm_num) (staticKernelSpacing_ge_one α t δ)) _
 
+/-- The retained static kernel coefficient mass is at most `5 * integerWeightConstant`. -/
 theorem staticKernel_mass_le (α t δ : ℝ) :
     coefficientMass (staticKernelWeight α t δ) ≤ 5 * _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerWeightConstant := by
   unfold coefficientMass staticKernelWeight staticKernelFrequency
@@ -72,19 +109,25 @@ theorem staticKernel_mass_le (α t δ : ℝ) :
   exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerWeight_lattice_norm_sum_le _
       (staticKernelSpacing_ge_one α t δ) _
 
+/-- The static kernel frequency bound is strictly positive for every `δ`. -/
 theorem staticKernelFrequencyBound_pos (δ : ℝ) : 0 < staticKernelFrequencyBound δ := by
   unfold staticKernelFrequencyBound
   positivity
 
+/-- Every retained static sample frequency has absolute value strictly below
+`staticKernelFrequencyBound δ`. -/
 theorem staticKernel_frequency_lt (α t δ : ℝ) (k : StaticKernelIndex α t δ) :
     |staticKernelFrequency α t δ k| < staticKernelFrequencyBound δ :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelRetained_frequency_lt (staticKernelSpacing_ge_one α t δ) (δ / 2) k.val k.property
 
+/-- A positive original normalization `α` gives a positive common static sample normalization. -/
 theorem staticKernelNormalization_pos {α : ℝ} (hα : 0 < α) (δ : ℝ) :
     0 < staticKernelNormalization α δ := by
   unfold staticKernelNormalization
   exact mul_pos hα (by linarith [staticKernelFrequencyBound_pos δ])
 
+/-- For `α > 0`, the common static normalization bounds `α * sqrt (1 + frequency²)` for every
+retained sample. -/
 theorem staticKernel_normalization_bound {α : ℝ} (hα : 0 < α) (t δ : ℝ)
     (k : StaticKernelIndex α t δ) :
     α * Real.sqrt (1 + staticKernelFrequency α t δ k ^ 2) ≤ staticKernelNormalization α δ := by
@@ -97,11 +140,15 @@ theorem staticKernel_normalization_bound {α : ℝ} (hα : 0 < α) (t δ : ℝ)
     · nlinarith [sq_abs (staticKernelFrequency α t δ k), abs_nonneg (staticKernelFrequency α t δ k)]
   exact mul_le_mul_of_nonneg_left (hsq.trans (by linarith)) hα.le
 
+/-- The static sample index type has cardinality twice the cutoff plus one. -/
 theorem staticKernel_card (α t δ : ℝ) :
     Fintype.card (StaticKernelIndex α t δ) = 2 * staticKernelCutoff α t δ + 1 := by
   rw [Fintype.card_coe]
   exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.kernelCutoff_card _ _
 
+/-- For positive `α`, nonnegative time, and `δ ∈ (0, 1]`, the static sample count satisfies the
+explicit bound in terms of `t * α` and the logarithms of the kernel-tail and auxiliary
+constants divided by `δ / 2`. -/
 theorem staticKernel_card_log_bound {α t δ : ℝ} (hα : 0 < α) (ht : 0 ≤ t)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     let M :=
@@ -118,11 +165,15 @@ theorem staticKernel_card_log_bound {α t δ : ℝ} (hα : 0 < α) (ht : 0 ≤ t
 section Matrices
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The finite weighted sum of exponentials generated by the sampled matrices `H + frequency •
+L`. -/
 def staticKernelLCU (α t δ : ℝ) (H L : Matrix I I ℂ) : Matrix I I ℂ :=
   ∑ k : StaticKernelIndex α t δ, staticKernelWeight α t δ k •
     NormedSpace.exp ((-Complex.I * (t : ℂ)) •
       (H + (staticKernelFrequency α t δ k : ℂ) • L))
 
+/-- The static kernel LCU equals the integer LCU sum of the constant-coefficient Dyson
+propagator at the chosen order, spacing, and cutoff. -/
 theorem staticKernelLCU_eq_integerLCU (α t δ : ℝ) (H L : Matrix I I ℂ) :
     staticKernelLCU α t δ H L =
       _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerLCUSum (staticKernelOrder δ) (staticKernelSpacing α t δ)
@@ -137,6 +188,8 @@ theorem staticKernelLCU_eq_integerLCU (α t δ : ℝ) (H L : Matrix I I ℂ) :
   simp only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerLCUSum, _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerSample,
     _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.dysonPropagator_const_eq_exp, sub_zero]
 
+/-- For Hermitian `H`, positive semidefinite `L`, `‖L‖ ≤ α`, and nonnegative time, the
+constant-coefficient Dyson propagator at `z` has norm at most `exp (max z.im 0 * (t * α))`. -/
 theorem staticKernel_dyson_growth (H L : Matrix I I ℂ)
     (hH : H.IsHermitian) (hL : L.PosSemidef) {α t : ℝ}
     (hbound : ‖L‖ ≤ α) (ht : 0 ≤ t) (z : ℂ) :
@@ -148,6 +201,8 @@ theorem staticKernel_dyson_growth (H L : Matrix I I ℂ)
   exact h.trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left
     (mul_le_mul_of_nonneg_left hbound ht) (le_max_right _ _)))
 
+/-- Under the dissipativity, norm, nonnegative-time, and `δ ∈ (0, 1]` hypotheses, the static
+kernel LCU approximates the target dissipative exponential in operator norm within `δ`. -/
 theorem staticKernel_target_error (H L : Matrix I I ℂ)
     (hH : H.IsHermitian) (hL : L.PosSemidef) {α t δ : ℝ}
     (hbound : ‖L‖ ≤ α) (ht : 0 ≤ t) (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
@@ -160,6 +215,9 @@ theorem staticKernel_target_error (H L : Matrix I I ℂ)
   simpa only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.dysonPropagator_at_neg_I, _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.orderedEvolution_const,
     sub_zero, staticKernelOrder, staticKernelSpacing, staticKernelCutoff] using! he
 
+/-- The static kernel family simultaneously satisfies the target error bound, positive bounded
+coefficient mass, positive common normalization, and uniform sample normalization and
+frequency bounds under the stated dissipativity and parameter hypotheses. -/
 theorem staticKernel_family (H L : Matrix I I ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {α t δ : ℝ} (hα : 0 < α) (ht : 0 ≤ t) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (hbound : ‖L‖ ≤ α) :

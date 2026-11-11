@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
+
+/-!
+# Subset pair-search cost identities
+
+The subset scale `n/√k` normalizes the expected pair-density expression. `theorem5_cost`
+transfers a supplied two-thirds-power cost bound to this scale, and
+`theorem5_constant_probability` gives the associated real-power probability inequality. The
+mathematical context is [KaplanEtAl2015].
+
+## Main statements
+
+* `theorem5_cost`: A cost bounded by `C * m^(2/3)` for every positive `m` is bounded at `m =
+  n/√k` by `C * n^(2/3) * k^(-1/3)` for positive `n` and `k`.
+* `theorem5_constant_probability`: For real `k > 1`, the expression `1 - (1 - 1/k)^k` is at
+  least one half.
+
+## References
+
+* [Kaplan et al., 2015][KaplanEtAl2015]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +36,8 @@ namespace Qatlib.Papers.QCryptanal15.MainResults.PairSearch
 
 open Complexity
 
+/-- For positive `n` and `k`, the normalized subset scale satisfies `k * ((n/√k)/n)² = 1`. See
+[KaplanEtAl2015]. -/
 theorem theorem5_subset_pair_density (n k : ℝ) (hn : 0 < n) (hk : 0 < k) :
     k * (n / Real.sqrt k / n) ^ 2 = 1 := by
   have hsqrtpos : 0 < Real.sqrt k := Real.sqrt_pos.mpr hk
@@ -23,6 +46,8 @@ theorem theorem5_subset_pair_density (n k : ℝ) (hn : 0 < n) (hk : 0 < k) :
   rw [hratio, div_pow, one_pow, Real.sq_sqrt hk.le]
   field_simp
 
+/-- A cost bounded by `C * m^(2/3)` for every positive `m` is bounded at `m = n/√k` by `C *
+n^(2/3) * k^(-1/3)` for positive `n` and `k`. See [KaplanEtAl2015]. -/
 theorem theorem5_cost (n k C : ℝ) (hn : 0 < n) (hk : 0 < k)
     (cost : ℝ → ℝ)
     (hCost : ∀ m : ℝ, 0 < m → cost m ≤ C * m ^ (2 / 3 : ℝ)) :
@@ -35,6 +60,8 @@ theorem theorem5_cost (n k C : ℝ) (hn : 0 < n) (hk : 0 < k)
       rw [subset_cost_eq n k hn hk]
     _ = C * n ^ (2 / 3 : ℝ) * k ^ (-(1 / 3) : ℝ) := by ring
 
+/-- For real `k > 1`, the expression `1 - (1 - 1/k)^k` is at least one half. See
+[KaplanEtAl2015]. -/
 theorem theorem5_constant_probability (k : ℝ) (hk : 1 < k) :
     1 / 2 ≤ 1 - (1 - 1 / k) ^ k := by
   have hk0 : 0 < k := by linarith
@@ -61,6 +88,8 @@ theorem theorem5_constant_probability (k : ℝ) (hk : 1 < k) :
     exact one_div_le_one_div_of_le (by norm_num) h2
   linarith
 
+/-- For positive `n` and `k`, there exists the positive subset scale `m = n/√k` satisfying the
+stated transferred cost bound. See [KaplanEtAl2015]. -/
 theorem theorem5_subset_size_cost (n k C : ℝ) (hn : 0 < n) (hk : 0 < k)
     (cost : ℝ → ℝ)
     (hCost : ∀ m : ℝ, 0 < m → cost m ≤ C * m ^ (2 / 3 : ℝ)) :

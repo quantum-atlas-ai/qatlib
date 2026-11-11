@@ -9,6 +9,34 @@ import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+/-!
+# Finite ensemble shadow reconstruction
+
+For a bijective finite ensemble measurement map, this module defines inverse snapshots and their
+real observable statistics. It proves Hermitian trace-one reconstruction, identifies second
+moments with a positive moment effect, and bounds variance by the norm of the centered moment
+effect.
+
+A spectral argument shows that the moment-effect norm is attained as a maximal second moment
+over density states. Shared-record median-of-means estimates then give simultaneous guarantees
+for many observables, with counted summation and sorting costs. See [HuangKuengPreskill2020] for
+background.
+
+## Main statements
+
+* `finite_ensemble_inverse_snapshot_reconstruction`: snapshot properties and unbiased state
+  reconstruction.
+* `finite_ensemble_computed_variance_bound`: expectation and centered moment-effect variance
+  bounds.
+* `finite_ensemble_same_records_many_observables`: simultaneous median-of-means estimates on
+  shared records.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,10 +62,13 @@ set_option linter.unusedVariables false
 
 variable {X : Type} [Fintype X] {D : ℕ}
 
+/-- The trace of four matrix factors is unchanged by moving the first two factors to the end. -/
 theorem trace_mul_comm_assoc4 (A B C R : Operator D) :
     Matrix.trace (A * B * C * R) = Matrix.trace (C * R * A * B) := by
   rw [Matrix.mul_assoc, Matrix.trace_mul_comm, ← Matrix.mul_assoc]
 
+/-- In positive dimension, the real expectation of a Hermitian positive semidefinite operator in
+any density state is at most its norm, and some density state attains that norm. -/
 theorem psd_spectral {E : Operator D} (hE : E.IsHermitian) (hEps : E.PosSemidef)
     (hD : 0 < D) :
     (∀ {ρ : Operator D}, IsDensityOperator ρ → (Matrix.trace (E * ρ)).re ≤ ‖E‖) ∧
@@ -172,40 +203,52 @@ theorem psd_spectral {E : Operator D} (hE : E.IsHermitian) (hEps : E.PosSemidef)
     rw [htrEψ, ← Complex.ofReal_sum, hsum, Complex.ofReal_one, mul_one,
       Complex.ofReal_re, hEq]
 
+/-- In positive dimension, the real trace pairing of a Hermitian positive semidefinite operator
+with a density operator is at most its operator norm. -/
 theorem re_trace_psd_density_le {E : Operator D} (hE : E.IsHermitian) (hEps : E.PosSemidef)
     {ρ : Operator D} (hρ : IsDensityOperator ρ) (hD : 0 < D) :
     (Matrix.trace (E * ρ)).re ≤ ‖E‖ :=
   (psd_spectral hE hEps hD).1 hρ
 
+/-- In positive dimension, some density state attains the operator norm of a Hermitian positive
+semidefinite operator in the real trace pairing. -/
 theorem exists_density_re_trace_eq {E : Operator D} (hE : E.IsHermitian)
     (hEps : E.PosSemidef) (hD : 0 < D) :
     ∃ (ρ : Operator D) (hρ : IsDensityOperator ρ),
       (Matrix.trace (E * ρ)).re = ‖E‖ :=
   (psd_spectral hE hEps hD).2
 
+/-- The complex linear equivalence associated with a bijective ensemble measurement map. -/
 noncomputable def ensembleMeasurementEquiv (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) : Operator D ≃ₗ[ℂ] Operator D :=
   LinearEquiv.ofBijective (ensembleMeasurementMap p U) hM
 
+/-- The inverse measurement map applied to the conjugated basis projector of a record. -/
 noncomputable def ensembleSnapshot (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (o : X × Fin D) : Operator D :=
   (ensembleMeasurementEquiv p U hM).symm (ensembleProjector U o)
 
+/-- The real trace pairing of an operator with the inverse snapshot associated with a
+measurement record. -/
 noncomputable def ensembleStatistic (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (A : Operator D)
     (o : X × Fin D) : ℝ :=
   (Matrix.trace (A * ensembleSnapshot p U hM o)).re
 
+/-- The sum of conjugated basis projectors weighted by ensemble probabilities and squared
+snapshot statistics. -/
 noncomputable def ensembleMomentEffect (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (A : Operator D) : Operator D :=
   ∑ o : X × Fin D, ((p.prob o.1 * (ensembleStatistic p U hM A o) ^ 2 : ℝ) : ℂ)
     • ensembleProjector U o
 
+/-- Applying the measurement map to an inverse snapshot recovers its conjugated basis projector. -/
 theorem ensembleMeasurementMap_snapshot (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (o : X × Fin D) :
     ensembleMeasurementMap p U (ensembleSnapshot p U hM o) = ensembleProjector U o :=
   (ensembleMeasurementEquiv p U hM).apply_symm_apply _
 
+/-- The ensemble measurement map commutes with conjugate transpose. -/
 theorem ensembleMeasurementMap_conjTranspose (p : FinDist X) (U : X → Operator D)
     (A : Operator D) :
     ensembleMeasurementMap p U (Aᴴ) = (ensembleMeasurementMap p U A)ᴴ := by
@@ -223,6 +266,7 @@ theorem ensembleMeasurementMap_conjTranspose (p : FinDist X) (U : X → Operator
   congr 1
   ring
 
+/-- The measurement map of a unitary ensemble preserves matrix trace. -/
 theorem ensembleMeasurementMap_trace (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (A : Operator D) :
     Matrix.trace (ensembleMeasurementMap p U A) = Matrix.trace A := by
@@ -230,6 +274,7 @@ theorem ensembleMeasurementMap_trace (p : FinDist X) (U : X → Operator D)
   rw [ensembleMeasurementMap_one p U hU, Matrix.mul_one, Matrix.mul_one] at h
   exact h.symm
 
+/-- Every inverse snapshot of a bijective ensemble measurement map is Hermitian. -/
 theorem ensembleSnapshot_isHermitian (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (o : X × Fin D) :
     (ensembleSnapshot p U hM o).IsHermitian := by
@@ -237,6 +282,7 @@ theorem ensembleSnapshot_isHermitian (p : FinDist X) (U : X → Operator D)
   rw [ensembleMeasurementMap_conjTranspose, ensembleMeasurementMap_snapshot,
     ensembleProjector_conjTranspose]
 
+/-- For a unitary ensemble with bijective measurement map, every inverse snapshot has trace one. -/
 theorem ensembleSnapshot_trace (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (o : X × Fin D) :
@@ -244,6 +290,8 @@ theorem ensembleSnapshot_trace (p : FinDist X) (U : X → Operator D)
   rw [← ensembleMeasurementMap_trace p U hU, ensembleMeasurementMap_snapshot,
     ensembleProjector_trace U hU o]
 
+/-- The measurement map of a density operator is the sum of ensemble projectors weighted by
+their actual record probabilities. -/
 theorem ensembleMeasurementMap_rho (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) :
@@ -273,6 +321,7 @@ theorem ensembleMeasurementMap_rho (p : FinDist X) (U : X → Operator D)
       Complex.ofReal_mul]
   rw [hc]
 
+/-- The probability-weighted mean of inverse snapshots reconstructs the input density operator. -/
 theorem ensembleSnapshot_reconstruction (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (ρ : Operator D)
@@ -283,6 +332,9 @@ theorem ensembleSnapshot_reconstruction (p : FinDist X) (U : X → Operator D)
   simp only [map_sum, map_smul, ensembleMeasurementMap_snapshot]
   exact (ensembleMeasurementMap_rho p U hU hρ).symm
 
+/-- Inverse ensemble snapshots are Hermitian with trace one, and their mean under the actual
+record law equals the density operator, as in [Huang, Kueng, and Preskill, Definition
+1][HuangKuengPreskill2020]. -/
 theorem finite_ensemble_inverse_snapshot_reconstruction (X : Type) [Fintype X] (D : ℕ)
     (p : FinDist X) (U : X → Operator D) (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) :
@@ -295,6 +347,8 @@ theorem finite_ensemble_inverse_snapshot_reconstruction (X : Type) [Fintype X] (
     ensembleSnapshot_trace p U hU hM o⟩,
     fun ρ hρ => ensembleSnapshot_reconstruction p U hU hM ρ hρ⟩
 
+/-- The inverse-snapshot statistic is unbiased for the real trace expectation of the input
+operator. -/
 theorem ensemble_expect_statistic (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (ρ : Operator D)
@@ -312,6 +366,8 @@ theorem ensemble_expect_statistic (p : FinDist X) (U : X → Operator D)
   rw [Matrix.mul_smul, Matrix.trace_smul, smul_eq_mul, Complex.mul_re,
     Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
 
+/-- The second moment of the inverse-snapshot statistic equals the real trace pairing of its
+moment effect with the density state. -/
 theorem ensemble_expect_statistic_sq (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (ρ : Operator D)
@@ -327,6 +383,7 @@ theorem ensemble_expect_statistic_sq (p : FinDist X) (U : X → Operator D)
     (finite_ensemble_actual_kraus_born X D p U hU).2 ρ hρ o]
   ring
 
+/-- The ensemble moment effect is positive semidefinite. -/
 theorem ensembleMomentEffect_posSemidef (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (A : Operator D) :
     (ensembleMomentEffect p U hM A).PosSemidef := by
@@ -336,6 +393,8 @@ theorem ensembleMomentEffect_posSemidef (p : FinDist X) (U : X → Operator D)
     (RCLike.nonneg_iff.mpr ⟨mul_nonneg (p.nonneg o.1) (sq_nonneg _),
       RCLike.ofReal_im _⟩)
 
+/-- Subtracting the normalized trace times the identity from an operator subtracts the real
+normalized trace from every snapshot statistic. -/
 theorem ensembleStatistic_center (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (A : Operator D)
@@ -346,6 +405,8 @@ theorem ensembleStatistic_center (p : FinDist X) (U : X → Operator D)
     Matrix.smul_mul, Matrix.one_mul, Matrix.trace_smul, smul_eq_mul,
     ensembleSnapshot_trace p U hU hM o, mul_one, Complex.sub_re]
 
+/-- The variance of a snapshot statistic is bounded by the operator norm of the moment effect
+for the operator with its normalized trace removed. -/
 theorem ensemble_variance_le (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (ρ : Operator D)
@@ -400,6 +461,9 @@ theorem ensemble_variance_le (p : FinDist X) (U : X → Operator D)
     _ ≤ ‖ensembleMomentEffect p U hM A0‖ :=
         re_trace_psd_density_le hMEps.1 hMEps hρ hD
 
+/-- For a Hermitian observable, the ensemble statistic is unbiased and its variance is bounded
+by the norm of the centered moment effect, giving the variance estimate of [Huang, Kueng,
+and Preskill, Lemma 1][HuangKuengPreskill2020]. -/
 theorem finite_ensemble_computed_variance_bound (X : Type) [Fintype X] (D : ℕ)
     (p : FinDist X) (U : X → Operator D) (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (ρ A : Operator D)
@@ -414,6 +478,9 @@ theorem finite_ensemble_computed_variance_bound (X : Type) [Fintype X] (D : ℕ)
   exact ⟨ensemble_expect_statistic p U hU hM ρ hρ A,
     ensemble_variance_le p U hU hM ρ hρ A⟩
 
+/-- In positive dimension, the moment effect of a Hermitian observable is positive semidefinite
+and its norm is the greatest second moment over all density states. This realizes the
+spectral shadow-norm characterization used in [HuangKuengPreskill2020]. -/
 theorem finite_ensemble_second_moment_spectral_maximum (X : Type) [Fintype X] (D : ℕ)
     (p : FinDist X) (U : X → Operator D) (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hM : Function.Bijective (ensembleMeasurementMap p U)) (A : Operator D) :
@@ -434,6 +501,10 @@ theorem finite_ensemble_second_moment_spectral_maximum (X : Type) [Fintype X] (D
     rw [ensemble_expect_statistic_sq p U hU hM ρ hρ A]
     exact re_trace_psd_density_le hME.1 hME hρ hD
 
+/-- For positive block counts and tolerance, the stated centered moment-effect bounds give a
+shared-record simultaneous median failure probability at most `card Z * 3^(K/2) / 2^K`. This
+is a finite ensemble guarantee in the form of [Huang, Kueng, and Preskill, Theorem
+1][HuangKuengPreskill2020]. -/
 theorem finite_ensemble_same_records_many_observables (X Z : Type) [Fintype X] [Fintype Z]
     (D L K : ℕ) (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -496,16 +567,21 @@ theorem finite_ensemble_same_records_many_observables (X Z : Type) [Fintype X] [
         simp
         ring
 
+/-- Sum a real statistic over a list, returning the sum and an addition counter. -/
 noncomputable def ensembleStatisticSumCounted {X : Type} (f : X → ℝ) : List X → ℝ × ℕ
   | [] => (0,0)
   | x::xs => let s := ensembleStatisticSumCounted f xs; (f x+s.1,s.2+1)
 
+/-- The counted statistic sum returns the ordinary mapped sum and a counter equal to the list
+length. -/
 theorem ensembleStatisticSumCounted_spec {X : Type} (f : X → ℝ) (xs : List X) :
     (ensembleStatisticSumCounted f xs).1 = (xs.map f).sum ∧ (ensembleStatisticSumCounted f xs).2 = xs.length := by
   induction xs with
   | nil => simp [ensembleStatisticSumCounted]
   | cons x xs ih => simp [ensembleStatisticSumCounted, ih]
 
+/-- Compute the median of the block averages using counted summation and insertion sort,
+returning the value, addition count, and comparison count. -/
 noncomputable def ensembleMedianOfMeansCounted {X : Type} (f : X → ℝ) {L K : ℕ}
     (ω : Fin K → Fin L → X) : ℝ × ℕ × ℕ :=
   let groups := List.ofFn fun k =>
@@ -513,6 +589,8 @@ noncomputable def ensembleMedianOfMeansCounted {X : Type} (f : X → ℝ) {L K :
   let sort := insertionSortCounted (groups.map Prod.fst)
   (sort.1.getD (K/2) 0,(groups.map Prod.snd).sum,sort.2)
 
+/-- The counted median equals `medianOfMeans`, records exactly `K*L` additions, and uses at most
+`K*K` sorting comparisons. -/
 theorem ensembleMedianOfMeansCounted_spec {X : Type} [Fintype X] [DecidableEq X]
     (q : FinDist X) (f : X → ℝ) {L K : ℕ} (ω : Fin K → Fin L → X) :
     (ensembleMedianOfMeansCounted f ω).1 = q.medianOfMeans f ω ∧
@@ -537,6 +615,8 @@ theorem ensembleMedianOfMeansCounted_spec {X : Type} [Fintype X] [DecidableEq X]
     rw [hvalues]
     simpa [values] using insertionSortCounted_cost_le values
 
+/-- On shared records, every counted observable estimate equals its median of means, total
+additions equal `card Z * (K*L)`, and total comparisons are at most `card Z * (K*K)`. -/
 theorem ensemble_shared_records_statistic_work {Z : Type} [Fintype Z]
     (p : FinDist X) (U : X → Operator D)
     (hM : Function.Bijective (ensembleMeasurementMap p U))

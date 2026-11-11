@@ -9,6 +9,31 @@ import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
 import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+/-!
+# Branch actions of the printed plus-I detector walk
+
+This module computes the actions of the printed plus-I reflection and walk words on both control
+branches. The uncontrolled branch of the reflection retains the marker, whereas a complete walk
+word acts identically there.
+
+For row preserving access, `plusIWalkWord_flagShear` describes the controlled branch by
+`printedFlagShear`. This yields involutivity and the parity formula
+`printedWalkBlock_period_two` for repeated walk words. The quantum walk spectral framework is
+developed in [Szegedy2004].
+
+## Main statements
+
+* `plusIReflectionWord_uncontrolled_marker`: The uncontrolled reflection branch acts as the
+  marker.
+* `plusIWalkWord_flagShear`: The controlled walk branch acts by a flag shear.
+* `printedWalkBlock_period_two`: Repeated printed walk words depend only on parity.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -36,6 +61,8 @@ open Matrix
 open Qatlib
 open scoped Kronecker
 
+/-- Evaluating a detection word with a leading instruction applies that instruction to the state
+obtained from the remaining word. -/
 private theorem evaluate_cons {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (s : DetectionStep I)
     (ss : List (DetectionStep I)) (w : QState (DetectionSpace I)) :
@@ -45,6 +72,7 @@ private theorem evaluate_cons {I : Type} [Fintype I] [DecidableEq I]
       = detectionInstruction U S s * detectionEvaluate U S ss := rfl
   rw [h, ← Matrix.mulVec_mulVec w]
 
+/-- Expands the action of three leading detection instructions into three nested matrix actions. -/
 private theorem evaluate_cons3 {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I)
     (s1 s2 s3 : DetectionStep I) (ss : List (DetectionStep I)) (w : QState (DetectionSpace I)) :
@@ -56,6 +84,7 @@ private theorem evaluate_cons3 {I : Type} [Fintype I] [DecidableEq I]
     evaluate_cons U S s2 (s3 :: ss) w,
     evaluate_cons U S s3 ss w]
 
+/-- Expands the action of two leading detection instructions into two nested matrix actions. -/
 private theorem evaluate_cons2 {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I)
     (s1 s2 : DetectionStep I) (ss : List (DetectionStep I)) (w : QState (DetectionSpace I)) :
@@ -64,6 +93,8 @@ private theorem evaluate_cons2 {I : Type} [Fintype I] [DecidableEq I]
           (detectionInstruction U S s2 *ᵥ (detectionEvaluate U S ss *ᵥ w))) := by
   rw [evaluate_cons U S s1 (s2 :: ss) w, evaluate_cons U S s2 ss w]
 
+/-- Expands the printed plus-I reflection word into forward row access, marking, and backward
+row access. -/
 private theorem evaluate_reflection {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (j : I) (w : QState (DetectionSpace I)) :
     (detectionEvaluate U S (plusIReflectionWord j) *ᵥ w)
@@ -76,6 +107,8 @@ private theorem evaluate_reflection {I : Type} [Fintype I] [DecidableEq I]
   rw [hlist, evaluate_cons3 U S .rowForward .marker .rowBackward [] w, hmarker, hnil,
     Matrix.one_mulVec]
 
+/-- Expands the printed plus-I walk word into the two controlled swap and row access reflection
+blocks. -/
 private theorem evaluate_walk {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (j : I) (w : QState (DetectionSpace I)) :
     (detectionEvaluate U S (plusIWalkWord j) *ᵥ w)
@@ -104,6 +137,8 @@ private theorem evaluate_walk {I : Type} [Fintype I] [DecidableEq I]
     evaluate_cons2 U S .marker .rowBackward [] w,
     hmarker, hfixed, hnil, Matrix.one_mulVec]
 
+/-- A selected matrix family acts identically on the false control branch when its false branch
+matrix is the identity. -/
 private theorem select_uncontrolled {D : Type} [Fintype D] [DecidableEq D]
     (f : Bool → Matrix D D ℂ) (hf : f false = 1) (v : QState (Bool × D)) :
     ∀ (d : D), (Qatlib.Concepts.BlockEncoding.LCU.select f *ᵥ v) (false, d) = v (false, d) := by
@@ -136,6 +171,7 @@ private theorem select_uncontrolled {D : Type} [Fintype D] [DecidableEq D]
       simp [hne]
     · simp [hb]
 
+/-- Forward row access leaves all amplitudes on the false control branch unchanged. -/
 private theorem rowForward_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (w : QState (DetectionSpace I))
     (d : Bool × (I × I)) :
@@ -145,6 +181,7 @@ private theorem rowForward_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
   rw [hrf]
   exact select_uncontrolled _ (by rfl) w d
 
+/-- Backward row access leaves all amplitudes on the false control branch unchanged. -/
 private theorem rowBackward_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (w : QState (DetectionSpace I))
     (d : Bool × (I × I)) :
@@ -154,6 +191,7 @@ private theorem rowBackward_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
   rw [hrb]
   exact select_uncontrolled _ (by rfl) w d
 
+/-- The controlled swap leaves all amplitudes on the false control branch unchanged. -/
 private theorem cs_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
     (w : QState (DetectionSpace I)) (d : Bool × (I × I)) :
     (detectionControlledSwap *ᵥ w) (false, d) = w (false, d) := by
@@ -163,6 +201,7 @@ private theorem cs_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
   rw [hcs]
   exact select_uncontrolled _ (by rfl) w d
 
+/-- The detection marking gate acts by precomposition with `detectionMarkPermutation`. -/
 theorem marker_apply {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (w : QState (DetectionSpace I)) (p : DetectionSpace I) :
     (detectionMarkGate S *ᵥ w) p = w (detectionMarkPermutation S p) := by
@@ -171,6 +210,8 @@ theorem marker_apply {I : Type} [Fintype I] [DecidableEq I]
   rw [h]
   exact applyGate_permMatrix (detectionMarkPermutation_involutive S) w p
 
+/-- On the false control branch, conjugating the marking gate by row access has the same action
+as the marking gate. -/
 private theorem reflection_marker {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (w : QState (DetectionSpace I))
     (d : Bool × (I × I)) :
@@ -197,6 +238,7 @@ private theorem reflection_marker {I : Type} [Fintype I] [DecidableEq I]
   rw [hrb]
   rw [marker_apply S w (false, c, (x, y)), hσ]
 
+/-- The printed plus-I reflection word acts as the marking gate on the false control branch. -/
 theorem plusIReflectionWord_uncontrolled_marker {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (v : QState (DetectionSpace I)) :
@@ -207,6 +249,7 @@ theorem plusIReflectionWord_uncontrolled_marker {I : Type} [Fintype I] [Decidabl
   rw [evaluate_reflection U S j v]
   exact reflection_marker U S v (c, xy)
 
+/-- The printed plus-I walk word leaves every amplitude on the false control branch unchanged. -/
 theorem plusIWalkWord_uncontrolled_identity {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (v : QState (DetectionSpace I)) :
@@ -285,6 +328,7 @@ theorem plusIWalkWord_uncontrolled_identity {I : Type} [Fintype I] [DecidableEq 
   rw [hmk2]
   rw [← hσ, detectionMarkPermutation_involutive S (false, c, (x, y))]
 
+/-- The detection phase gate leaves the false control branch unchanged. -/
 private theorem phase_uncontrolled {I : Type} [Fintype I] [DecidableEq I] (j : I)
     (w : QState (DetectionSpace I)) (d : Bool × (I × I)) :
     (detectionPhase j *ᵥ w) (false, d) = w (false, d) := by
@@ -302,6 +346,7 @@ private theorem phase_uncontrolled {I : Type} [Fintype I] [DecidableEq I] (j : I
   rw [hdiag]
   simp
 
+/-- The corrected detection reflection word acts identically on the false control branch. -/
 theorem correctedReflectionWord_uncontrolled_identity {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (v : QState (DetectionSpace I)) :
@@ -361,6 +406,8 @@ theorem correctedReflectionWord_uncontrolled_identity {I : Type} [Fintype I] [De
   rw [hrb]
   rw [← hσ, detectionMarkPermutation_involutive S (false, c, (x, y))]
 
+/-- The half walk acts on the false control branch by precomposition with the marking
+permutation. -/
 private theorem halfWalk_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (w : QState (DetectionSpace I))
     (c : Bool) (xy : I × I) :
@@ -395,6 +442,8 @@ private theorem halfWalk_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
     rowBackward_uncontrolled U S w (c ^^ decide (x ∈ S), (x, y))
   rw [hrb]
 
+/-- Prepending a printed plus-I walk word does not change the false control branch of the
+remaining word's output. -/
 private theorem walkWord_append_uncontrolled {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (rest : List (DetectionStep I)) (v : QState (DetectionSpace I)) :
@@ -456,6 +505,8 @@ private theorem walkWord_append_uncontrolled {I : Type} [Fintype I] [DecidableEq
     rw [← hσ, detectionMarkPermutation_involutive S (false, c, (x, y))]
   rw [houter]
 
+/-- Any number of repeated printed plus-I walk words acts identically on the false control
+branch. -/
 theorem printedWalkBlock_uncontrolled_identity {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I) (K : ℕ)
     (v : QState (DetectionSpace I)) :
@@ -476,6 +527,8 @@ theorem printedWalkBlock_uncontrolled_identity {I : Type} [Fintype I] [Decidable
         c xy]
       exact ih
 
+/-- For unitary row access, the forward detection instruction multiplied by the backward
+instruction is the identity. -/
 theorem rowAccess_reverse_matrix {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (hU : U ∈ Matrix.unitaryGroup (I × I) ℂ)
     (S : Finset I) :
@@ -546,6 +599,8 @@ theorem rowAccess_reverse_matrix {I : Type} [Fintype I] [DecidableEq I]
         if_neg (Ne.symm hb'')]
     simp
 
+/-- The Kronecker product of an identity matrix with `M` acts by `M` on each fixed
+first-coordinate slice. -/
 private theorem kronecker_one_mulVec {D E : Type} [Fintype D] [Fintype E] [DecidableEq D]
     (M : Matrix E E ℂ) (g : D × E → ℂ) (b : D) (q : E) :
     (((1 : Matrix D D ℂ) ⊗ₖ M) *ᵥ g) (b, q) = (M *ᵥ (fun e ↦ g (b, e))) q := by
@@ -569,6 +624,8 @@ private theorem kronecker_one_mulVec {D E : Type} [Fintype D] [Fintype E] [Decid
     rw [h0 j j₂ hj]
     simp
 
+/-- On the true control branch, a selected matrix family acts by its true branch matrix on the
+corresponding slice. -/
 private theorem select_controlled {D : Type} [Fintype D] [DecidableEq D]
     (f : Bool → Matrix D D ℂ) (w : QState (Bool × D)) (d : D) :
     (Qatlib.Concepts.BlockEncoding.LCU.select f *ᵥ w) (true, d) = (f true *ᵥ (fun e ↦ w (true, e))) d := by
@@ -595,6 +652,7 @@ private theorem select_controlled {D : Type} [Fintype D] [DecidableEq D]
     rw [hF b e hb]
     simp
 
+/-- The swap gate acts by exchanging the two coordinates of the input state. -/
 private theorem swapGate_mulVec {I : Type} [Fintype I] [DecidableEq I]
     (f : I × I → ℂ) (p : I × I) :
     (SwapGate *ᵥ f) p = f (Prod.swap p) := by
@@ -618,6 +676,7 @@ private theorem swapGate_mulVec {I : Type} [Fintype I] [DecidableEq I]
     rw [hF q hq]
     simp
 
+/-- Evaluation of concatenated detection words is the product of their evaluation matrices. -/
 private theorem evaluate_append {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I)
     (xs ys : List (DetectionStep I)) :
@@ -626,11 +685,14 @@ private theorem evaluate_append {I : Type} [Fintype I] [DecidableEq I]
   | nil => simp [detectionEvaluate]
   | cons x xs ih => simp [detectionEvaluate, ih, Matrix.mul_assoc]
 
+/-- If `V * W = 1`, applying `W` and then `V` returns every coordinate of the original vector. -/
 private theorem rowAccess_roundtrip {I : Type} [Fintype I] [DecidableEq I]
     (V W : Matrix I I ℂ) (hVW : V * W = 1) (f : I → ℂ) (y : I) :
     (V *ᵥ (W *ᵥ f)) y = f y := by
   rw [Matrix.mulVec_mulVec, hVW, Matrix.one_mulVec]
 
+/-- On the true control branch, the detection controlled swap exchanges the two vertex registers
+and preserves the flag. -/
 private theorem cs_controlled {I : Type} [Fintype I] [DecidableEq I]
     (w : QState (DetectionSpace I)) :
     ∀ (c : Bool) (x y : I),
@@ -646,6 +708,8 @@ private theorem cs_controlled {I : Type} [Fintype I] [DecidableEq I]
   rw [swapGate_mulVec]
   rfl
 
+/-- If row access acts slice by slice through `V`, its controlled forward instruction applies
+`V` to each fixed row and flag slice. -/
 private theorem rowForward_controlled {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (V : Matrix I I ℂ)
     (hVf : ∀ (f : I × I → ℂ) (x y : I), (U *ᵥ f) (x, y) = (V *ᵥ (fun e ↦ f (x, e))) y)
@@ -662,6 +726,8 @@ private theorem rowForward_controlled {I : Type} [Fintype I] [DecidableEq I]
   rw [kronecker_one_mulVec]
   exact hVf _ _ _
 
+/-- If adjoint row access acts slice by slice through `W`, its controlled backward instruction
+applies `W` to each fixed row and flag slice. -/
 private theorem rowBackward_controlled {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (W : Matrix I I ℂ)
     (hWb : ∀ (f : I × I → ℂ) (x y : I), (Uᴴ *ᵥ f) (x, y) = (W *ᵥ (fun e ↦ f (x, e))) y)
@@ -678,12 +744,15 @@ private theorem rowBackward_controlled {I : Type} [Fintype I] [DecidableEq I]
   rw [kronecker_one_mulVec]
   exact hWb _ _ _
 
+/-- The detection half walk matrix, formed from controlled swap, forward row access, marking,
+and backward row access. -/
 noncomputable def halfWalkOp {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) :
     Matrix (DetectionSpace I) (DetectionSpace I) ℂ :=
   detectionControlledSwap * detectionInstruction U S .rowForward
     * detectionMarkGate S * detectionInstruction U S .rowBackward
 
+/-- The evaluation matrix of the printed plus-I walk word is the square of `halfWalkOp`. -/
 private theorem walkWord_eq_halfSquared {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (j : I) :
     detectionEvaluate U S (plusIWalkWord j) = halfWalkOp U S * halfWalkOp U S := by
@@ -695,6 +764,8 @@ private theorem walkWord_eq_halfSquared {I : Type} [Fintype I] [DecidableEq I]
   simp only [detectionEvaluate, detectionInstruction, halfWalkOp, Matrix.mul_assoc,
     Matrix.mul_one]
 
+/-- For mutually cancelling row slice matrices, the controlled half walk swaps the vertex
+registers and toggles the flag according to membership of the second vertex in `S`. -/
 private theorem halfWalk_controlled {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (V W : Matrix I I ℂ)
     (hVf : ∀ (f : I × I → ℂ) (x y : I), (U *ᵥ f) (x, y) = (V *ᵥ (fun e ↦ f (x, e))) y)
@@ -751,6 +822,8 @@ private theorem halfWalk_controlled {I : Type} [Fintype I] [DecidableEq I]
   rw [rowAccess_roundtrip V W hVW (fun e' ↦ w (true, c ^^ decide (y ∈ S), (y, e'))) x]
 set_option maxHeartbeats 800000 in
 
+/-- Under `RowPreservingAccess`, the printed plus-I walk acts on the true control branch by
+precomposition with `printedFlagShear`. -/
 theorem plusIWalkWord_flagShear {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (hU : RowPreservingAccess U) (v : QState (DetectionSpace I)) :
@@ -775,6 +848,7 @@ open Qatlib
 open scoped Kronecker
 set_option maxHeartbeats 800000 in
 
+/-- The printed flag shear preserves the outer control label. -/
 private theorem printedFlagShear_preserves_label {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (p : DetectionSpace I) : (printedFlagShear S p).1 = p.1 := by
   by_cases h : p.1 = false
@@ -783,6 +857,8 @@ private theorem printedFlagShear_preserves_label {I : Type} [Fintype I] [Decidab
     · simp [printedFlagShear, h, h2]
     · simp [printedFlagShear, h, h2]
 
+/-- Under row preserving access, the printed plus-I walk fixes the false control branch and
+applies the printed flag shear to the true branch. -/
 private theorem plusIWalkWord_operator {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (hU : RowPreservingAccess U) :
@@ -800,6 +876,8 @@ private theorem plusIWalkWord_operator {I : Type} [Fintype I] [DecidableEq I]
       simp only [if_neg (by simp : (true : Bool) ≠ false)]
       exact plusIWalkWord_flagShear S U j hU z c xy
 
+/-- Under row preserving access, applying the printed plus-I walk twice returns the original
+state. -/
 theorem plusIWalkWord_involutive {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (hU : RowPreservingAccess U) :
@@ -826,6 +904,8 @@ theorem plusIWalkWord_involutive {I : Type} [Fintype I] [DecidableEq I]
     exact printedFlagShear_involutive S p
 set_option maxHeartbeats 400000 in
 
+/-- Under row preserving access, a block of `K` printed plus-I walk words is the identity for
+even `K` and one walk word for odd `K`. -/
 theorem printedWalkBlock_period_two {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (U : Matrix (I × I) (I × I) ℂ) (j : I)
     (hU : RowPreservingAccess U) :

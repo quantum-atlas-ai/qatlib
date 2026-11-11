@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
 import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+
+/-!
+# Finite precision tail-mean risk specification
+
+`CVaRCumulativeRotationFees` specifies a rationally decoded risk estimator combining quantile
+bisection with estimates of a cumulative probability and a truncated loss numerator. Its
+assumptions impose a separated quantile and an error budget for amplitude estimation, payoff
+rotation, and decoding, in the setting of [WoernerEgger2019].
+
+The contract includes the tail-mean error probability, a bound on readout calls, and the
+iteration counts and approximation error of the rational payoff rotations. The tail in this
+formulation consists of losses at most the selected threshold.
+
+## Main statements
+
+* `CVaRCumulativeRotationFees`: the combined risk accuracy, call-count, and rotation-precision
+  contract.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,6 +59,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The specification of the rationally decoded quantile and truncated tail-mean estimator under
+a separated-quantile assumption and a combined precision budget. It bounds the joint failure
+probability, readout calls, square-root iteration counts, and rational payoff error. -/
 def CVaRCumulativeRotationFees : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (loss : I → ℚ) (xs : List ℚ) (q ε : ℚ) (rotationBits bits M r v : ℕ)

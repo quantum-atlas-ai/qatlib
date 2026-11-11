@@ -74,6 +74,29 @@ import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Neighborhoods
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Continuous Grover query-time formulas
+
+This module defines `continuousGroverTime` and the squared-cosine parameterization
+`continuousGroverTimeAt`. It verifies the target identity at the designated zero-error time,
+simplifies the half-error time expression, and proves that the zero-error time divided by √N
+tends to 1/2. See [Mochon2007] for the Hamiltonian oracle formulation.
+
+## Main statements
+
+* `continuousGrover_zeroError_time`: For N > 1, evaluating the squared cosine of the Grover
+  rotation angle at `continuousGroverTime N` gives 1 / N.
+* `continuousGrover_halfError_time`: For N > 1, the continuous Grover time expression with
+  target √(1 / 2) simplifies to N / (4√(N − 1)).
+* `continuousGroverTime_asymptotic`: As real N tends to infinity, `continuousGroverTime N /
+  Real.sqrt N` tends to 1 / 2.
+
+## References
+
+* [Mochon, 2007][Mochon2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -85,12 +108,17 @@ open scoped Topology
 
 namespace Qatlib.Papers.HamOracle06.MainResults
 
+/-- The continuous Grover time N arccos(1 / √N) / (π√(N − 1)). -/
 def continuousGroverTime (N : ℝ) : ℝ :=
   (1 / Real.pi) * (N / Real.sqrt (N - 1)) * Real.arccos (1 / Real.sqrt N)
 
+/-- The continuous Grover time parameter N arccos(√x) / (π√(N − 1)) for a squared-cosine target
+x. -/
 def continuousGroverTimeAt (N x : ℝ) : ℝ :=
   (1 / Real.pi) * (N / Real.sqrt (N - 1)) * Real.arccos (Real.sqrt x)
 
+/-- For N > 1, evaluating the squared cosine of the Grover rotation angle at
+`continuousGroverTime N` gives 1 / N. See [Mochon2007]. -/
 theorem continuousGrover_zeroError_time (N : ℝ) (hN : 1 < N) :
     Real.cos (Real.pi * Real.sqrt (N - 1) / N * continuousGroverTime N) ^ 2 = 1 / N := by
   have hN0 : 0 < N := by linarith
@@ -110,6 +138,8 @@ theorem continuousGrover_zeroError_time (N : ℝ) (hN : 1 < N) :
       simpa using hle
   rw [Real.cos_arccos hmem.1 hmem.2, div_pow, one_pow, Real.sq_sqrt hN0.le]
 
+/-- For N > 1, the continuous Grover time expression with target √(1 / 2) simplifies to N /
+(4√(N − 1)). See [Mochon2007]. -/
 theorem continuousGrover_halfError_time (N : ℝ) (hN : 1 < N) :
     (1 / Real.pi) * (N / Real.sqrt (N - 1)) * Real.arccos (Real.sqrt (1 / 2))
       = N / (4 * Real.sqrt (N - 1)) := by
@@ -124,6 +154,8 @@ theorem continuousGrover_halfError_time (N : ℝ) (hN : 1 < N) :
   rw [harccos]
   field_simp
 
+/-- As real N tends to infinity, `continuousGroverTime N / Real.sqrt N` tends to 1 / 2. See
+[Mochon2007]. -/
 theorem continuousGroverTime_asymptotic :
     Tendsto (fun N : ℝ => continuousGroverTime N / Real.sqrt N) atTop (𝓝 (1 / 2)) := by
   have harc : Tendsto (fun N : ℝ => Real.arccos (1 / Real.sqrt N)) atTop

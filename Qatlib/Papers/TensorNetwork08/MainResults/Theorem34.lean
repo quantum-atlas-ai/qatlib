@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TensorNetwork08.MainResults.HadamardTest
 import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+/-!
+# Scaled statistical error bound for tensor-network estimation
+
+Proves the scaled sampling-error estimate used as a statistical component of Theorem 3.4 in
+[AradLandau2010]. The theorem `theorem3_4_additive_statistical_core` applies the empirical
+sign-mean bound to a positive scale `Δ`.
+
+For positive sample count `N` and tolerance `ε` with `N * ε² ≥ 16`, the probability that the
+scaled complex estimate has error at least `Δ * ε` is at most one quarter.
+
+## Main statements
+
+* `theorem3_4_additive_statistical_core`: bounds the scaled empirical-mean failure probability.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Theorem34
@@ -13,6 +33,9 @@ namespace Qatlib.Papers.TensorNetwork08.MainResults.Theorem34
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.TensorNetwork08.MainResults.HadamardTest
 
+/-- For positive `Δ`, `N`, and `ε`, mean `μ ∈ [-1, 1]`, and `N * ε² ≥ 16`, the probability that
+the scaled empirical sign mean has complex-norm error at least `Δ * ε` is at most one
+quarter. See [AradLandau2010]. -/
 theorem theorem3_4_additive_statistical_core
     (Δ : ℝ) (hΔ : 0 < Δ)
     (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1)

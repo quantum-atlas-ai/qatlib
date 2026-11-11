@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.ContinuousPath
+
+/-!
+# Transport bounds for cube ground energies
+
+`energy_transport_sq` bounds the change of tensor energy on the Hilbert cube by the squared
+Euclidean distance between tensor coefficients. Taking minima gives `cube_ground_transport_sq`;
+after source scaling and division by `N`, `normalized_ground_transport_sq` has squared Lipschitz
+factor `1/N`. These deterministic estimates support the Gaussian ground energy analysis related
+to [GohMuller2026].
+
+## Main statements
+
+* `energy_transport_sq`: At any Hilbert cube vector, the squared energy difference between
+  tensors `A` and `B` is at most `N^q` times the sum of their squared coefficient differences.
+* `cube_ground_transport_sq`: The squared difference between the Hilbert cube minimum energies
+  of two tensors is at most `N^q` times their squared coefficient distance.
+* `normalized_ground_transport_sq`: For `N > 0`, the squared difference of the normalized cube
+  ground energies of two source tensors is at most their squared source coefficient distance
+  divided by `N`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +42,8 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Linear
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
 
+/-- For a vector in the Hilbert cube, the sum of squared degree `q` tensor monomial coefficients
+is at most `N^q`. -/
 theorem cube_coefficient_sq_bound {q N : ℕ} (u : Fin N → ℝ) (hu : u∈hilbertCube N) :
     (∑ k : Fin q → Fin N, (∏ a, u (k a))^2)≤(N:ℝ)^q := by
   rw [coefficient_sq_sum (fun _ : Fin q => u)]
@@ -27,6 +54,8 @@ theorem cube_coefficient_sq_bound {q N : ℕ} (u : Fin N → ℝ) (hu : u∈hilb
       Finset.sum_le_sum (fun i _ => by have hi := hu i; nlinarith [hi.1,hi.2])
     _ = (N:ℝ) := by simp
 
+/-- At any Hilbert cube vector, the squared energy difference between tensors `A` and `B` is at
+most `N^q` times the sum of their squared coefficient differences. -/
 theorem energy_transport_sq {q N : ℕ} (A B : Tensor q N) (u : Fin N → ℝ)
     (hu : u∈hilbertCube N) :
     (tensorEnergy A u-tensorEnergy B u)^2≤(∑ k, (A k-B k)^2)*(N:ℝ)^q := by
@@ -40,6 +69,8 @@ theorem energy_transport_sq {q N : ℕ} (A B : Tensor q N) (u : Fin N → ℝ)
   exact (Finset.sum_mul_sq_le_sq_mul_sq Finset.univ _ _).trans
     (mul_le_mul_of_nonneg_left (cube_coefficient_sq_bound u hu) (by positivity))
 
+/-- The minimum tensor energy on the Hilbert cube is at most the energy at any vector in that
+cube. -/
 theorem cubeOpt_le_energy {q N : ℕ} (A : Tensor q N) (u : Fin N → ℝ)
     (hu : u∈hilbertCube N) : cubeOpt A≤tensorEnergy A u := by
   have hc : IsCompact (hilbertCube N) := isCompact_pi_infinite (fun _ : Fin N => isCompact_Icc)
@@ -47,6 +78,8 @@ theorem cubeOpt_le_energy {q N : ℕ} (A : Tensor q N) (u : Fin N → ℝ)
       continuous_tensorEnergy.comp (continuous_const.prodMk continuous_id)
   exact csInf_le (hc.bddBelow_image he.continuousOn) (Set.mem_image_of_mem _ hu)
 
+/-- The squared difference between the Hilbert cube minimum energies of two tensors is at most
+`N^q` times their squared coefficient distance. -/
 theorem cube_ground_transport_sq {q N : ℕ} (A B : Tensor q N) :
     (cubeOpt A-cubeOpt B)^2≤(∑ k, (A k-B k)^2)*(N:ℝ)^q := by
   let C := (∑ k, (A k-B k)^2)*(N:ℝ)^q
@@ -69,9 +102,12 @@ theorem cube_ground_transport_sq {q N : ℕ} (A B : Tensor q N) :
   have hs := Real.sq_sqrt hC
   nlinarith
 
+/-- The tensor obtained by multiplying each source coordinate by `√((N^r)⁻¹)`. -/
 def sourceTensor {r N : ℕ} (G : Tensor (r+1) N) : Tensor (r+1) N :=
   fun k => Real.sqrt (((N:ℝ)^r)⁻¹)*G k
 
+/-- For `N > 0`, the squared difference of the normalized cube ground energies of two source
+tensors is at most their squared source coefficient distance divided by `N`. -/
 theorem normalized_ground_transport_sq {r N : ℕ} (hN : 0<N)
     (G D : Tensor (r+1) N) :
     (cubeOpt (sourceTensor G)/(N:ℝ)-cubeOpt (sourceTensor D)/(N:ℝ))^2≤

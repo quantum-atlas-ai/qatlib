@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CurveGroups.AffineAdd.ReversibleWord
+
+/-!
+# Encoded addition agrees with curve addition
+
+This module proves that `sourcePermutation` computes the native curve group sum on encoded
+affine inputs satisfying the two inversion domain conditions, with clean auxiliary registers. It
+connects the reversible word to the elliptic curve arithmetic setting of [RoettelerEtAl2017].
+
+## Main statements
+
+* `sourcePermutation_native`: encoded affine addition computes the group sum.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +33,9 @@ open WeierstrassCurve.Affine
 
 variable {K : Type*} [Field K] [DecidableEq K] {w : ℕ}
 
+/-- For nonsingular affine inputs with distinct X coordinates and the negative double exclusion,
+`sourcePermutation` produces an encoded affine representative of their sum with zero
+auxiliary registers. -/
 theorem sourcePermutation_native (E : FieldEncoding K w) {a b x1 y1 x2 y2 : K}
     (h1 : (shortCurve a b).Nonsingular x1 y1)
     (h2 : (shortCurve a b).Nonsingular x2 y2) (hx : x1 ≠ x2)

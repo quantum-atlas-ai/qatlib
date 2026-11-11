@@ -131,6 +131,26 @@ import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.Neighborhoods
 import Mathlib.Topology.Order.OrderClosed
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Simon collision bounds for linear-system reductions
+
+This module analyzes the Simon-reduction runtime and the collision counting underlying the
+lower-bound argument in [HarrowHassidimLloyd2009]. The set `hitPeriods` records periods
+exhibited by distinct queried points, and its cardinality bounds imply a square-root query
+threshold and conditional constraints on runtime exponents.
+
+## Main statements
+
+* `simon_birthday_sqrt`: Extracts a square-root lower bound from the collision inequality.
+* `source_theorem5_simon_lower_bound_const`: Derives an exponent constraint from an eventual
+  birthday bound with a positive constant.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -141,13 +161,19 @@ namespace Qatlib.Papers.LinearSystems09.SimonLower
 open Filter
 open scoped Real Topology
 
+/-- The Simon-reduction instance-size model `36 * n * 2^(3 * n)`. -/
 noncomputable def simonInstanceSize (n : ℕ) : ℝ := 36 * (n : ℝ) * (2 : ℝ) ^ (3 * (n : ℝ))
 
+/-- The Simon-reduction condition-number parameter `4 * n`. -/
 noncomputable def simonConditionNumber (n : ℕ) : ℝ := 4 * (n : ℝ)
 
+/-- The Simon-reduction runtime model `simonInstanceSize n ^ α * 2 ^ (β * simonConditionNumber
+n)`. -/
 noncomputable def simonReductionRuntime (α β : ℝ) (n : ℕ) : ℝ :=
   simonInstanceSize n ^ α * (2 : ℝ) ^ (β * simonConditionNumber n)
 
+/-- For positive `n`, the logarithm of the Simon runtime is `α * log (36 * n) + (3 * α + 4 * β)
+* n * log 2` [HarrowHassidimLloyd2009]. -/
 theorem clause11_simon_runtime_exponent (α β : ℝ) (n : ℕ) (hn : 0 < n) :
     Real.log (simonReductionRuntime α β n)
       = α * Real.log (36 * (n : ℝ)) + (3 * α + 4 * β) * (n : ℝ) * Real.log 2 := by
@@ -187,6 +213,8 @@ theorem clause11_simon_runtime_exponent (α β : ℝ) (n : ℕ) (hn : 0 < n) :
       simp only [simonConditionNumber]
       ring
 
+/-- An eventual lower bound `2^(n / 2)` on the Simon-reduction runtime implies `3 * α + 4 * β ≥
+1 / 2`, as in Theorem 5 of [HarrowHassidimLloyd2009]. -/
 theorem source_theorem5_simon_lower_bound (α β : ℝ)
     (hbirthday : ∀ᶠ n : ℕ in Filter.atTop,
       (2 : ℝ) ^ ((n : ℝ) / 2) ≤ simonReductionRuntime α β n) :
@@ -263,10 +291,14 @@ theorem source_theorem5_simon_lower_bound (α β : ℝ)
   have := le_of_tendsto hlim hev
   simpa using this
 
+/-- The positive-definite runtime model with the square root of the condition-number parameter
+in the exponential factor. -/
 noncomputable def simonPositiveDefiniteRuntime (α β : ℝ) (n : ℕ) : ℝ :=
   simonInstanceSize n ^ α *
     (2 : ℝ) ^ (β * Real.sqrt (simonConditionNumber n))
 
+/-- For positive `n`, the positive-definite runtime has logarithm `α * log (36 * n) + 3 * α * n
+* log 2 + 2 * β * sqrt n * log 2` [HarrowHassidimLloyd2009]. -/
 theorem source_theorem5_positive_definite_exponent (α β : ℝ) (n : ℕ) (hn : 0 < n) :
     Real.log (simonPositiveDefiniteRuntime α β n)
       = α * Real.log (36 * (n : ℝ)) + 3 * α * (n : ℝ) * Real.log 2 +
@@ -314,13 +346,18 @@ theorem source_theorem5_positive_definite_exponent (α β : ℝ) (n : ℕ) (hn :
       rw [hlogsize, hsqrt]
       ring
 
+/-- The finite set of binary periods obtained as sums of distinct points in `S`
+[HarrowHassidimLloyd2009]. -/
 def hitPeriods {n : ℕ} (S : Finset (Fin n → ZMod 2)) : Finset (Fin n → ZMod 2) :=
   S.offDiag.image (fun p : (Fin n → ZMod 2) × (Fin n → ZMod 2) => p.1 + p.2)
 
+/-- A period belongs to `hitPeriods S` exactly when it is the sum of a pair in `S.offDiag`. -/
 theorem exhibits_iff_mem {n : ℕ} (S : Finset (Fin n → ZMod 2)) (s : Fin n → ZMod 2) :
     (∃ p ∈ S.offDiag, p.1 + p.2 = s) ↔ s ∈ hitPeriods S := by
   simp [hitPeriods]
 
+/-- The number of exhibited periods is at most the number `S.card * S.card - S.card` of ordered
+distinct pairs. -/
 theorem card_hitPeriods_le_offDiag {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
     (hitPeriods S).card ≤ S.card * S.card - S.card := by
   calc (hitPeriods S).card
@@ -329,6 +366,8 @@ theorem card_hitPeriods_le_offDiag {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
     _ ≤ S.offDiag.card := Finset.card_image_le
     _ = S.card * S.card - S.card := Finset.offDiag_card S
 
+/-- The number of exhibited periods is at most `S.card * (S.card - 1)`
+[HarrowHassidimLloyd2009]. -/
 theorem card_hitPeriods_le {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
     (hitPeriods S).card ≤ S.card * (S.card - 1) := by
   have h : S.card * (S.card - 1) = S.card * S.card - S.card := by
@@ -336,6 +375,8 @@ theorem card_hitPeriods_le {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
   rw [h]
   exact card_hitPeriods_le_offDiag S
 
+/-- The zero binary vector is not exhibited by any pair of distinct points
+[HarrowHassidimLloyd2009]. -/
 theorem zero_not_mem_hitPeriods {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
     (0 : Fin n → ZMod 2) ∉ hitPeriods S := by
   intro h
@@ -348,11 +389,13 @@ theorem zero_not_mem_hitPeriods {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
     exact CharTwo.neg_eq (p.2 i)
   rw [hneg, hneg2]
 
+/-- There are `2^n - 1` nonzero binary vectors of length `n`. -/
 theorem card_nonzero_periods (n : ℕ) :
     (Finset.univ.erase (0 : Fin n → ZMod 2)).card = 2 ^ n - 1 := by
   rw [Finset.card_erase_of_mem (Finset.mem_univ _)]
   simp [Fintype.card_fun, ZMod.card]
 
+/-- The number of periods exhibited by `S` is at most `2^n - 1` [HarrowHassidimLloyd2009]. -/
 theorem card_hitPeriods_le_nonzero {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
     (hitPeriods S).card ≤ 2 ^ n - 1 := by
   have hsub : hitPeriods S ⊆ Finset.univ.erase (0 : Fin n → ZMod 2) := by
@@ -364,6 +407,8 @@ theorem card_hitPeriods_le_nonzero {n : ℕ} (S : Finset (Fin n → ZMod 2)) :
         Finset.card_le_card hsub
     _ = 2 ^ n - 1 := card_nonzero_periods n
 
+/-- If three times the ordered-pair count is at most the number of nonzero periods, then the
+exhibited fraction is at most one third [HarrowHassidimLloyd2009]. -/
 theorem simon_birthday_fraction {n : ℕ} (hn : 1 ≤ n) (S : Finset (Fin n → ZMod 2))
     (hsmall : 3 * ((S.card : ℝ) * ((S.card : ℝ) - 1)) ≤ (2 : ℝ) ^ n - 1) :
     ((hitPeriods S).card : ℝ) / ((2 : ℝ) ^ n - 1) ≤ 1 / 3 := by
@@ -388,6 +433,8 @@ theorem simon_birthday_fraction {n : ℕ} (hn : 1 ≤ n) (S : Finset (Fin n → 
     rw [div_le_iff₀ hden]
     nlinarith
 
+/-- If `S` contains at most `q` points and the stated birthday inequality holds for `q`, the
+fraction of exhibited nonzero periods is at most one third [HarrowHassidimLloyd2009]. -/
 theorem simon_birthday_query_bound {n : ℕ} (hn : 1 ≤ n) {q : ℕ} (hq : 1 ≤ q)
     (hsmall : 3 * ((q : ℝ) * ((q : ℝ) - 1)) ≤ (2 : ℝ) ^ n - 1)
     (S : Finset (Fin n → ZMod 2)) (hS : S.card ≤ q) :
@@ -403,6 +450,8 @@ theorem simon_birthday_query_bound {n : ℕ} (hn : 1 ≤ n) {q : ℕ} (hq : 1 �
       mul_le_mul hcq (by linarith) (by linarith) (by linarith)
     exact simon_birthday_fraction hn S (by linarith)
 
+/-- Exhibiting more than one third of nonzero periods using at most `q` queried points forces
+`2^n - 1 < 3 * q * (q - 1)` [HarrowHassidimLloyd2009]. -/
 theorem simon_birthday_query_lower {n : ℕ} (hn : 1 ≤ n) {q : ℕ} (hq : 1 ≤ q)
     (S : Finset (Fin n → ZMod 2)) (hS : S.card ≤ q)
     (hfrac : 1 / 3 < ((hitPeriods S).card : ℝ) / ((2 : ℝ) ^ n - 1)) :
@@ -411,6 +460,8 @@ theorem simon_birthday_query_lower {n : ℕ} (hn : 1 ≤ n) {q : ℕ} (hq : 1 �
   push_neg at hle
   exact absurd (simon_birthday_query_bound hn hq hle S hS) (not_le.mpr hfrac)
 
+/-- The strict birthday inequality forces `q > 2^(n / 2) / 3` for `n ≥ 1`
+[HarrowHassidimLloyd2009]. -/
 theorem simon_birthday_sqrt {n : ℕ} (hn : 1 ≤ n) {q : ℕ}
     (h : (2 : ℝ) ^ n - 1 < 3 * ((q : ℝ) * ((q : ℝ) - 1))) :
     (1 / 3) * (2 : ℝ) ^ ((n : ℝ) / 2) < (q : ℝ) := by
@@ -447,6 +498,8 @@ theorem simon_birthday_sqrt {n : ℕ} (hn : 1 ≤ n) {q : ℕ}
     nlinarith
   exact sub_pos.mp (pos_of_mul_pos_left hprod (le_of_lt hqa))
 
+/-- An eventual lower bound `c * 2^(n / 2)` with positive `c` on the Simon runtime implies `3 *
+α + 4 * β ≥ 1 / 2`, as used in Theorem 5 of [HarrowHassidimLloyd2009]. -/
 theorem source_theorem5_simon_lower_bound_const (α β : ℝ) (c : ℝ) (hc : 0 < c)
     (hbirthday : ∀ᶠ n : ℕ in Filter.atTop,
       c * (2 : ℝ) ^ ((n : ℝ) / 2) ≤ simonReductionRuntime α β n) :
@@ -531,6 +584,8 @@ theorem source_theorem5_simon_lower_bound_const (α β : ℝ) (c : ℝ) (hc : 0 
   have := le_of_tendsto hlim hev
   simpa using this
 
+/-- An eventual unit-constant birthday lower bound on the Simon runtime implies `3 * α + 4 * β ≥
+1 / 2`. -/
 theorem simon_lower_bound_from_const (α β : ℝ)
     (hbirthday : ∀ᶠ n : ℕ in Filter.atTop,
       (2 : ℝ) ^ ((n : ℝ) / 2) ≤ simonReductionRuntime α β n) :

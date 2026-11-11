@@ -77,16 +77,39 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Rounded coefficient probabilities
+
+This module rounds all noninitial probabilities down to a denominator grid and assigns the
+residual mass to the first entry. It proves nonnegativity, exact normalization, and an ℓ¹ error
+budget yielding precision `2⁻μ` for `denominator n μ`. See [VonBurgEtAl2021].
+
+## Main statements
+
+* `rounded_l1_error`: For a probability vector with `n` tail coordinates and positive
+  denominator, the total rounding error is at most `2 * n / M`.
+* `actual_precision`: Rounding a probability vector with `denominator n μ` gives ℓ¹ error at
+  most `2⁻μ`.
+
+## References
+
+* [von Burg et al., 2021][VonBurgEtAl2021]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
 open scoped Classical BigOperators
 namespace Qatlib.Papers.QCatalysis20.MainResults.Rounding
 
+/-- Round the tail weights down to multiples of `1 / M` and assign the remaining mass to the
+first coordinate. -/
 def rounded {n : ℕ} (M : ℕ) (w : Fin (n+1)→ℝ) : Fin (n+1)→ℝ :=
   Fin.cons (1-∑i:Fin n,(Nat.floor ((M:ℝ)*w i.succ):ℝ)/(M:ℝ))
     (fun i=> (Nat.floor ((M:ℝ)*w i.succ):ℝ)/(M:ℝ))
 
+/-- For positive denominator and nonnegative weights, each rounded tail coordinate lies between
+zero and its original value. -/
 theorem rounded_tail_bounds {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
     (hw : ∀i,0≤w i) (i : Fin n) :
     0≤rounded M w i.succ ∧ rounded M w i.succ≤w i.succ := by
@@ -97,10 +120,12 @@ theorem rounded_tail_bounds {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
   · exact (div_le_iff₀ hm).mpr
       (by simpa [mul_comm] using Nat.floor_le (mul_nonneg hm.le (hw i.succ)))
 
+/-- The rounded vector sums to one by the residual definition of its first coordinate. -/
 theorem rounded_sum {n M : ℕ} (w : Fin (n+1)→ℝ) : ∑i,rounded M w i=1 := by
   rw [Fin.sum_univ_succ]
   simp [rounded]
 
+/-- Rounding a probability vector with positive denominator produces nonnegative coordinates. -/
 theorem rounded_nonneg {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
     (hw : ∀i,0≤w i) (hs : ∑i,w i=1) : ∀i,0≤rounded M w i := by
   have ht : ∑i:Fin n,rounded M w i.succ≤∑i:Fin n,w i.succ :=
@@ -112,6 +137,8 @@ theorem rounded_nonneg {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
   change 0≤1-∑i:Fin n,rounded M w i.succ
   linarith [hw 0]
 
+/-- For positive denominator, the original value minus a rounded tail coordinate is at most `1 /
+M`. -/
 theorem rounded_tail_error {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
     (i : Fin n) :
     w i.succ-rounded M w i.succ≤1/(M:ℝ) := by
@@ -122,6 +149,8 @@ theorem rounded_tail_error {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
   field_simp at *
   nlinarith
 
+/-- For a probability vector with `n` tail coordinates and positive denominator, the total
+rounding error is at most `2 * n / M`. -/
 theorem rounded_l1_error {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
     (hw : ∀i,0≤w i) (hs : ∑i,w i=1) :
     ∑i,|rounded M w i-w i|≤2*(n:ℝ)/(M:ℝ) := by
@@ -148,10 +177,14 @@ theorem rounded_l1_error {n M : ℕ} (hM : 0<M) (w : Fin (n+1)→ℝ)
   rw [show 2*(n:ℝ)/(M:ℝ)=2*((n:ℝ)/M) by ring]
   linarith
 
+/-- The positive rounding denominator `2 * (n + 1) * 2^μ` for precision parameter `μ`. -/
 def denominator (n μ : ℕ) : ℕ := 2*(n+1)*2^μ
 
+/-- The chosen rounding denominator is strictly positive. -/
 theorem denominator_pos (n μ : ℕ) : 0<denominator n μ := by unfold denominator;positivity
 
+/-- Rounding a probability vector with `denominator n μ` gives ℓ¹ error at most `2⁻μ`. See
+[VonBurgEtAl2021]. -/
 theorem actual_precision {n : ℕ} (μ : ℕ) (w : Fin (n+1)→ℝ)
     (hw : ∀i,0≤w i) (hs : ∑i,w i=1) :
     ∑i,|rounded (denominator n μ) w i-w i|≤(2:ℝ)^(-(μ:ℤ)) := by

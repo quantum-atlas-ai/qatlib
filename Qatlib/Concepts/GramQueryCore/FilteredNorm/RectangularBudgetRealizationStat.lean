@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Rectangular budget realization specification
+
+The proposition `RectangularBudgetRealization` packages equality with the lifted filtered γ₂
+value, exact certification at nonnegative budgets, and witnesses attaining finite values with a
+stated dimension bound. This records the finite factorization formulation used for filtered γ₂
+[LeeEtAl2011].
+
+## Main statements
+
+* `RectangularBudgetRealization`: The conjunction of equality with the lifted filtered γ₂ value,
+  exact budget certification, and dimension-bounded witnesses attaining every finite rectangular
+  value.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -22,6 +42,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of equality with the lifted filtered γ₂ value, exact budget certification,
+and dimension-bounded witnesses attaining every finite rectangular value. -/
 def RectangularBudgetRealization : Prop :=
   ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),

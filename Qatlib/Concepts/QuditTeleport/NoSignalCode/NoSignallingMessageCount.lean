@@ -8,12 +8,40 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Fintype.Card
 import Mathlib.Tactic
 
+/-!
+# Message counts for no-signalling codes
+
+For a nonnegative array with a normalized reference input and an input-independent receiver
+marginal, `no_signalling_total_success_le_messages` bounds the total diagonal success weight by
+the message alphabet size. Exact decoding then bounds the input alphabet size by the number of
+messages. These bounds formalize the no-signalling communication argument for teleportation
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `no_signalling_total_success_le_messages`: Under nonnegativity, reference normalization, and
+  the stated no-signalling marginal identity, the total diagonal success weight is at most
+  `Fintype.card M`.
+* `no_signalling_exact_code_card_le`: A code satisfying the stated nonnegativity, normalization,
+  and no-signalling conditions with unit success for every input has `Fintype.card X ≤
+  Fintype.card M`.
+* `no_signalling_small_alphabet_fails`: If the message alphabet is smaller than the input
+  alphabet, the stated no-signalling conditions force some input to have success weight strictly
+  less than one.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QuditTeleport.NoSignalCode
 
 open scoped BigOperators
 
+/-- Under nonnegativity, reference normalization, and the stated no-signalling marginal
+identity, the total diagonal success weight is at most `Fintype.card M`. -/
 theorem no_signalling_total_success_le_messages
     {X M : Type} [Fintype X] [Fintype M] (x₀ : X)
     (p : X → M → M → X → ℝ)
@@ -38,6 +66,8 @@ theorem no_signalling_total_success_le_messages
     _ = ∑ _m : M, (1 : ℝ) := by simp_rw [hnorm]
     _ = (Fintype.card M : ℝ) := by simp
 
+/-- A code satisfying the stated nonnegativity, normalization, and no-signalling conditions with
+unit success for every input has `Fintype.card X ≤ Fintype.card M`. -/
 theorem no_signalling_exact_code_card_le
     {X M : Type} [Fintype X] [Fintype M] (x₀ : X)
     (p : X → M → M → X → ℝ)
@@ -50,6 +80,8 @@ theorem no_signalling_exact_code_card_le
   simp_rw [hexact] at h
   simpa using h
 
+/-- If the message alphabet is smaller than the input alphabet, the stated no-signalling
+conditions force some input to have success weight strictly less than one. -/
 theorem no_signalling_small_alphabet_fails
     {X M : Type} [Fintype X] [Fintype M] (x₀ : X)
     (p : X → M → M → X → ℝ)

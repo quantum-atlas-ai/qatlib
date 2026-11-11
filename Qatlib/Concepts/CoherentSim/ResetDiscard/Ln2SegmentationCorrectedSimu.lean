@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2SegmentationCorrectedStat
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedSimu
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Segmentation
+
+/-!
+# Amplified log-two segmentation
+
+This module bounds the Taylor remainder and scale defect for segments of norm-duration at most
+`log 2`. `ln2Segmentation` proves the corrected reset-and-discard simulation guarantee using
+amplified steps and the prescribed tail budget, in the framework of [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `truncatedSegment_ln2_error`: The exponential-tail bound for one Taylor segment.
+* `oaa_cubic_small_error`: A small-error cubic amplification estimate.
+* `ln2Segmentation`: The corrected total trace-norm guarantee.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +43,7 @@ open Matrix
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The truncated exponential mass at `log 2` plus its remaining factorial tail equals two. -/
 theorem ln2Scale_tail_identity (K : ℕ) :
     ln2Scale K+(∑' j : ℕ, Real.log 2^(K+1+j)/((K+1+j).factorial:ℝ))=2 := by
   have hs := (Real.summable_pow_div_factorial (Real.log 2)).sum_add_tsum_nat_add (K+1)
@@ -37,6 +57,8 @@ theorem ln2Scale_tail_identity (K : ℕ) :
   rw [he] at hs
   simpa only [ln2Scale,Nat.add_comm] using! hs
 
+/-- For nonnegative duration with `τ * ‖H‖ ≤ log 2`, the Taylor-segment norm error is bounded by
+the exponential tail at `log 2`. -/
 theorem truncatedSegment_ln2_error (H : Matrix I I ℂ) (τ : ℝ) (K : ℕ)
     (hτ : 0 ≤ τ) (hsize : τ*‖H‖ ≤ Real.log 2) :
     ‖truncatedSegment H τ K-HamiltonianEvolution H τ‖ ≤
@@ -84,6 +106,7 @@ theorem truncatedSegment_ln2_error (H : Matrix I I ℂ) (τ : ℝ) (K : ℕ)
   have hh := hnf.tsum_le_tsum hle hg'
   simpa only [Nat.add_comm] using! hh
 
+/-- For `s ≥ 1` within `δ ≤ 1` of two, the scalar cubic amplification defect is at most `4 * δ`. -/
 theorem oaa_scale_defect_four (s δ : ℝ) (hs : 1 ≤ s) (hd : |s-2| ≤ δ) (hδ : δ ≤ 1) :
     |3/s-4/s^3-1| ≤ 4*δ := by
   have hspos : 0 < s := by linarith
@@ -102,6 +125,8 @@ theorem oaa_scale_defect_four (s δ : ℝ) (hs : 1 ≤ s) (hd : |s-2| ≤ δ) (h
     _ ≤ δ*4 := mul_le_mul_of_nonneg_right hd (by norm_num)
     _ ≤ _ := by nlinarith [mul_le_mul_of_nonneg_left hpow (by positivity : 0 ≤ 4*δ)]
 
+/-- If `X` is within `δ ≤ 1 / 8` of a unitary and `s ≥ 3 / 2` is within `δ` of two, the cubic
+amplified operator has error at most `13 * δ`. -/
 theorem oaa_cubic_small_error (X U : Matrix I I ℂ) (s δ : ℝ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hX : ‖X-U‖ ≤ δ)
     (hs : 3/2 ≤ s) (hd : |s-2| ≤ δ) (hδ : δ ≤ 1/8) :
@@ -130,6 +155,8 @@ theorem oaa_cubic_small_error (X U : Matrix I I ℂ) (s δ : ℝ)
   have hm := mul_le_mul_of_nonneg_right hcoef hδ0
   exact hh.trans (by linarith only [hm,hc])
 
+/-- The `n`th power of Hamiltonian evolution for duration `τ` equals evolution for duration `n *
+τ`. -/
 private theorem hamiltonianEvolution_power (H : Matrix I I ℂ) (τ : ℝ) (n : ℕ) :
     (HamiltonianEvolution H τ)^n = HamiltonianEvolution H ((n:ℝ)*τ) := by
   induction n with
@@ -140,6 +167,9 @@ private theorem hamiltonianEvolution_power (H : Matrix I I ℂ) (τ : ℝ) (n : 
     push_cast
     ring
 
+/-- The corrected log-two segmentation property holds: repeated amplified reset-and-discard
+Taylor steps meet the stated total trace-norm tolerance under its norm and tail assumptions.
+See [BerryEtAl2015Taylor]. -/
 theorem ln2Segmentation : Ln2SegmentationCorrected := by
   intro I _ _ H t ε Λ K J _ _ W j₀ hH ht hnorm hΛ hK hε hε1 henc htail ρ hρ htr
   let r := max 1 (Nat.ceil (Λ*t/Real.log 2))

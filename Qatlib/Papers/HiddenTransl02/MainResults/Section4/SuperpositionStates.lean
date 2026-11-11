@@ -8,6 +8,24 @@ import Qatlib.Foundations.PureStateMath.Qubit
 import Mathlib.Algebra.Group.Subgroup.Basic
 import Mathlib.Tactic
 
+/-!
+# Uniform subgroup and coset states
+
+This module defines the uniform amplitude functions `subgroupState` and `cosetState` used in the
+subgroup and translating-coset superpositions of [FriedlEtAl2014]. It proves their
+normalization, characterizes their supports, and establishes invariance of subgroup states under
+subgroup multiplication.
+
+## Main statements
+
+* `normalized_subgroupState`: proves normalization of the uniform subgroup state.
+* `normalized_cosetState`: proves normalization of the uniform left-coset state.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 namespace Qatlib.Papers.HiddenTransl02.MainResults.Section4
 
 open Qatlib.Foundations.PureStateMath
@@ -20,11 +38,14 @@ noncomputable section
 
 variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
 
+/-- The complex amplitude `1 / sqrt m` used for uniform superpositions. -/
 def uniformAmplitude (m : ℕ) : ℂ := ((Real.sqrt (m : ℝ) : ℂ))⁻¹
 
+/-- The amplitude function equal to `1 / sqrt |H|` on `H` and zero outside `H`. -/
 def subgroupState (H : Subgroup G) [Fintype H] : QState G :=
   fun x => if x ∈ H then uniformAmplitude (Fintype.card H) else 0
 
+/-- The amplitude function equal to `1 / sqrt |H|` on the left coset `uH` and zero outside it. -/
 def cosetState (u : G) (H : Subgroup G) [Fintype H] : QState G :=
   fun x => if u⁻¹ * x ∈ H then uniformAmplitude (Fintype.card H) else 0
 
@@ -32,6 +53,7 @@ section Subgroup
 
 variable (H : Subgroup G) [Fintype H]
 
+/-- The uniform amplitude for the cardinality of a finite subgroup is nonzero. -/
 theorem uniformAmplitude_ne_zero : uniformAmplitude (Fintype.card H) ≠ 0 := by
   have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
   have hsqrt : (0 : ℝ) < Real.sqrt (Fintype.card H : ℝ) := Real.sqrt_pos_of_pos hcard
@@ -40,6 +62,7 @@ theorem uniformAmplitude_ne_zero : uniformAmplitude (Fintype.card H) ≠ 0 := by
   unfold uniformAmplitude
   exact inv_ne_zero hne
 
+/-- The norm of the uniform amplitude for `H` is `1 / sqrt |H|`. -/
 theorem norm_uniformAmplitude :
     ‖uniformAmplitude (Fintype.card H)‖ = (Real.sqrt (Fintype.card H : ℝ))⁻¹ := by
   have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
@@ -47,6 +70,7 @@ theorem norm_uniformAmplitude :
   unfold uniformAmplitude
   rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hsqrt.le]
 
+/-- The subgroup-state amplitude at `x` is nonzero exactly when `x ∈ H`. -/
 theorem subgroupState_ne_zero_iff {x : G} :
     subgroupState H x ≠ 0 ↔ x ∈ H := by
   unfold subgroupState
@@ -58,6 +82,8 @@ theorem subgroupState_ne_zero_iff {x : G} :
     rw [if_pos hx]
     exact uniformAmplitude_ne_zero H
 
+/-- The uniform subgroup state is normalized, as required for subgroup superposition in
+[FriedlEtAl2014]. -/
 theorem normalized_subgroupState : Normalized (subgroupState H) := by
   have hcard : (0 : ℝ) < (Fintype.card H : ℝ) := by exact_mod_cast Fintype.card_pos
   have hstep : ∀ x : G,
@@ -83,6 +109,7 @@ theorem normalized_subgroupState : Normalized (subgroupState H) := by
   rw [hcard']
   field_simp
 
+/-- Left multiplication by an element of `H` preserves the subgroup-state amplitude. -/
 theorem subgroupState_mul_left {h x : G} (hh : h ∈ H) :
     subgroupState H (h * x) = subgroupState H x := by
   unfold subgroupState
@@ -92,6 +119,7 @@ theorem subgroupState_mul_left {h x : G} (hh : h ∈ H) :
     have : h⁻¹ * (h * x) ∈ H := H.mul_mem (H.inv_mem hh) hmem
     simpa using this
 
+/-- Right multiplication by an element of `H` preserves the subgroup-state amplitude. -/
 theorem subgroupState_mul_right {h x : G} (hh : h ∈ H) :
     subgroupState H (x * h) = subgroupState H x := by
   unfold subgroupState
@@ -107,6 +135,7 @@ section Coset
 
 variable (H : Subgroup G) [Fintype H]
 
+/-- The coset-state amplitude at `x` is nonzero exactly when `u⁻¹ * x ∈ H`. -/
 theorem cosetState_ne_zero_iff (u : G) {x : G} :
     cosetState u H x ≠ 0 ↔ u⁻¹ * x ∈ H := by
   unfold cosetState
@@ -118,6 +147,7 @@ theorem cosetState_ne_zero_iff (u : G) {x : G} :
     rw [if_pos hx]
     exact uniformAmplitude_ne_zero H
 
+/-- The uniform state on the left coset represented by `u` is normalized. -/
 theorem normalized_cosetState (u : G) : Normalized (cosetState u H) := by
   have hstep : ∀ x : G,
       ‖cosetState u H x‖ ^ 2 =

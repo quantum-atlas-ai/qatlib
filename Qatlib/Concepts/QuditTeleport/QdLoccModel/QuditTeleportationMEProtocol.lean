@@ -19,6 +19,32 @@ import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+
+/-!
+# A complete measurement for maximally entangled teleportation
+
+`clause4Aux_meKraus` constructs the Alice-side Kraus family using Fourier matrix entries and
+modular shifts. Its branch marginals reproduce conjugation by the resource branch Kraus
+operators.
+
+The orthogonality identities for shifts and Fourier columns prove `clause4Aux_meKraus_complete`,
+so the construction gives a complete measurement family. These results develop resource and
+communication properties of teleportation [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `clause4Aux_meKraus`: The Alice-side Kraus matrix for outcome `o`, supported on output row
+  `(0, 0)` and defined by an inverse Fourier entry and a modular-shift constraint.
+* `clause4Aux_branch_me`: For a pure resource, the branch marginal of `clause4Aux_meKraus`
+  equals conjugation by the corresponding resource branch Kraus operator.
+* `clause4Aux_meKraus_complete`: The Alice-side Kraus family `clause4Aux_meKraus` satisfies `∑
+  o, K oᴴ * K o = 1`.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -55,11 +81,15 @@ open Qatlib.Concepts.QuditTeleport.CommLowerBound
 open Qatlib.Concepts.QuditTeleport.MessagingBounds
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.ResourceIff
+/-- The Alice-side Kraus matrix for outcome `o`, supported on output row `(0, 0)` and defined by
+an inverse Fourier entry and a modular-shift constraint. -/
 noncomputable def clause4Aux_meKraus (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
     Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ :=
   fun u p => (if u = (0, 0) then (1 : ℂ) else 0)
     * (QFTMatrix n)ᴴ o.1 p.1 * (if p.2 = quditAdd n o.2 p.1 then (1 : ℂ) else 0)
 
+/-- For fixed `a` and `c`, summing the indicator `a = quditAdd n o2 c` over the shift index
+gives one. -/
 theorem clause4Aux_quditAdd_sum_one (n : ℕ) [NeZero n] (a c : Fin n) :
     ∑ o2 : Fin n, (if a = quditAdd n o2 c then (1 : ℂ) else 0) = 1 := by
   have hcomp : (∑ o2 : Fin n, (if a = quditAdd n o2 c then (1 : ℂ) else 0))
@@ -68,6 +98,8 @@ theorem clause4Aux_quditAdd_sum_one (n : ℕ) [NeZero n] (a c : Fin n) :
       (fun x => if a = x then (1 : ℂ) else 0)
   rw [hcomp, Finset.sum_ite_eq, if_pos (Finset.mem_univ a)]
 
+/-- The sum of two modular-shift indicators is one when their target indices agree and zero
+otherwise. -/
 theorem clause4Aux_quditAdd_cross_sum (n : ℕ) [NeZero n] (a a' c : Fin n) :
     ∑ o2 : Fin n, (if a = quditAdd n o2 c then (1 : ℂ) else 0)
         * (if a' = quditAdd n o2 c then (1 : ℂ) else 0)
@@ -91,6 +123,7 @@ theorem clause4Aux_quditAdd_cross_sum (n : ℕ) [NeZero n] (a a' c : Fin n) :
       · simp [hq, hq']
     · simp [hq]
 
+/-- The columns of the adjoint Fourier matrix are orthonormal. -/
 theorem clause4Aux_qft_col_orth (n : ℕ) [NeZero n] (c c' : Fin n) :
     ∑ o1 : Fin n, star ((QFTMatrix n)ᴴ o1 c) * (QFTMatrix n)ᴴ o1 c'
       = if c = c' then (1 : ℂ) else 0 := by
@@ -104,6 +137,8 @@ theorem clause4Aux_qft_col_orth (n : ℕ) [NeZero n] (c c' : Fin n) :
     simp [Matrix.mul_apply, Matrix.conjTranspose_apply]
   rw [h3, h2, Matrix.one_apply]
 
+/-- The row Kraus operator for `clause4Aux_meKraus` is the resource branch Kraus operator at row
+`(0, 0)` and zero at every other row. -/
 theorem clause4Aux_rowKraus_me (n : ℕ) [NeZero n] (Ψ : QState (Fin n × Fin n)) (o u : Fin n × Fin n) :
     qdRowKraus (clause4Aux_meKraus n o) Ψ u
       = (if u = (0, 0) then (1 : ℂ) else 0) • quditResourceBranchKraus n Ψ o := by
@@ -131,12 +166,15 @@ theorem clause4Aux_rowKraus_me (n : ℕ) [NeZero n] (Ψ : QState (Fin n × Fin n
   rw [hL, Matrix.smul_apply, smul_eq_mul, hR]
   ring
 
+/-- Scaling a Kraus operator by `c` scales its conjugation branch by `c * star c`. -/
 theorem g8p_conjBranch_smul {n : ℕ} (c : ℂ) (B ρ : Operator n) :
     conjBranch (c • B) ρ = (c * star c) • conjBranch B ρ := by
   simp only [conjBranch_apply, Matrix.conjTranspose_smul, Matrix.smul_mul,
     Matrix.mul_smul, smul_smul]
   rw [mul_comm (star c) c]
 
+/-- For a pure resource, the branch marginal of `clause4Aux_meKraus` equals conjugation by the
+corresponding resource branch Kraus operator. -/
 theorem clause4Aux_branch_me (n : ℕ) [NeZero n] (Ψ : QState (Fin n × Fin n)) (o : Fin n × Fin n)
     (ρ : Operator n) :
     qdBranchMarginal (clause4Aux_meKraus n o) (outerProduct Ψ) ρ
@@ -158,6 +196,8 @@ theorem clause4Aux_branch_me (n : ℕ) [NeZero n] (Ψ : QState (Fin n × Fin n))
   rw [Finset.sum_congr rfl (fun u _ => hkey u), Finset.sum_ite_eq',
     if_pos (Finset.mem_univ _)]
 
+/-- The row Gram sum of `clause4Aux_meKraus` reduces to the product of its two Fourier-and-shift
+coefficients. -/
 private theorem clause4Aux_meKraus_rowGram (n : ℕ) [NeZero n] (o : Fin n × Fin n)
     (p q : Fin n × Fin n) :
     (∑ u : Fin n × Fin n, star (clause4Aux_meKraus n o u p) * clause4Aux_meKraus n o u q)
@@ -178,6 +218,7 @@ private theorem clause4Aux_meKraus_rowGram (n : ℕ) [NeZero n] (o : Fin n × Fi
     rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
   rw [hsum, one_mul]
 
+/-- The Alice-side Kraus family `clause4Aux_meKraus` satisfies `∑ o, K oᴴ * K o = 1`. -/
 theorem clause4Aux_meKraus_complete (n : ℕ) [NeZero n] :
     ∑ o : Fin n × Fin n, (clause4Aux_meKraus n o)ᴴ * clause4Aux_meKraus n o = 1 := by
   classical

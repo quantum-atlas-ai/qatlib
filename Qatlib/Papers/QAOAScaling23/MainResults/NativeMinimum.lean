@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QAOAScaling23.MainResults.CausalTheorem
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.FamilyBudget
 import Qatlib.Papers.QAOAScaling23.LABSDefs
+
+/-!
+# Native minimum finding and LABS optimization
+
+`publicAlgorithm` repeats initialized native strict-improvement search from a prepared Born
+distribution. Positive optimal mass and a sufficient public budget yield a confidence guarantee
+and a pathwise charge cap; rank-zero outputs are true cost minimizers and, for LABS, maximize
+merit factor.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `actual_public_minimum`: For `N ≥ 1` and at most `2^N` candidates, positive optimal Born mass
+  `p` and budget `B ≥ 37500 * N / sqrt p` give native algorithm failure probability at most
+  positive `δ` and pathwise total charge at most `outerIterations δ * B`.
+* `labs_output_merit`: For LABS sequences of length at least three, a batch with saved cost rank
+  zero contains an energy minimizer that maximizes merit factor.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,12 +45,17 @@ open BiasedProcess WeightedCost BudgetPrefix CausalSearch FreshRepeat
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Repeats initialized native search with the public schedule, fuel `2^N`, initialization fee
+three, and `outerIterations δ` fresh trials. -/
 def publicAlgorithm (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (B N : ℕ) (δ : ℝ) :
     Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree (NativeBatch I) :=
   freshNative cost (initializedRun cost (Born.preparedLaw U hU seed)
     (publicOracle U hU seed cost B N) (2^N) B 3 seed) (outerIterations δ)
 
+/-- For `N ≥ 1` and at most `2^N` candidates, positive optimal Born mass `p` and budget `B ≥
+37500 * N / sqrt p` give native algorithm failure probability at most positive `δ` and
+pathwise total charge at most `outerIterations δ * B`. See [ShaydulinEtAl2024]. -/
 theorem actual_public_minimum (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (B N : ℕ) (hN : 1≤N) (hcard : Fintype.card I≤2^N)
     (h0 : 0<Born.weights cost (Born.preparedLaw U hU seed) 0)
@@ -74,6 +103,8 @@ theorem actual_public_minimum (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup
 
 omit [DecidableEq I] in
 
+/-- A batch whose saved candidate has cost rank zero contains a candidate minimizing cost over
+all candidates. -/
 theorem actual_output_optimal (cost : I → ℝ) (b : NativeBatch I)
     (h : b.best.map (fun i => (costRank cost i).val)=some 0) :
     ∃ i,b.best=some i ∧ ∀ j,cost i≤cost j := by
@@ -84,6 +115,9 @@ theorem actual_output_optimal (cost : I → ℝ) (b : NativeBatch I)
       simpa only [hb,Option.map_some,Option.some.injEq] using h
     exact ⟨i,rfl,(costRank_zero_iff cost i).mp hr⟩
 
+/-- For Boolean LABS sequences of length `N ≥ 3`, positive optimal Born mass `p` and budget `B ≥
+37500 * N / sqrt p` give failure probability at most positive `δ` and pathwise total charge
+at most `outerIterations δ * B`. See [ShaydulinEtAl2024]. -/
 theorem labs_public_minimum (N B : ℕ) (hN : 3≤N)
     (U : Matrix (Fin N → Bool) (Fin N → Bool) ℂ)
     (hU : U∈Matrix.unitaryGroup (Fin N → Bool) ℂ) (seed : Fin N → Bool)
@@ -97,6 +131,8 @@ theorem labs_public_minimum (N B : ℕ) (hN : 3≤N)
   exact actual_public_minimum U hU seed LABSDefs.energy B N (by omega)
     (by simp only [Fintype.card_fun,Fintype.card_bool,Fintype.card_fin]; exact le_refl _) h0 hbudget δ hδ
 
+/-- For LABS sequences of length at least three, a batch with saved cost rank zero contains an
+energy minimizer that maximizes merit factor. See [ShaydulinEtAl2024]. -/
 theorem labs_output_merit (N : ℕ) (hN : 3≤N) (b : NativeBatch (Fin N → Bool))
     (h : b.best.map (fun i => (costRank LABSDefs.energy i).val)=some 0) :
     ∃ i,b.best=some i ∧ (∀ j : Fin N → Bool,LABSDefs.energy i≤LABSDefs.energy j) ∧

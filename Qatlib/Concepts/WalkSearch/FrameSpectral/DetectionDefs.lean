@@ -16,6 +16,26 @@ import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralDefs
+
+/-!
+# Source detection endpoint specifications
+
+The propositions `Clause20Spec`, `Clause21Spec`, and `Clause22Spec` collect the requirements
+used to connect graph access, source geometry, corrected detection, and quantum walk search.
+They retain the explicit gap, marked fraction, and access hypotheses needed by the component
+results. The quantum walk spectral framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `Clause20Spec`: Graph setup, reachable dynamics, and source detection requirements.
+* `Clause21Spec`: Empty marked set obstructions and amplification requirements.
+* `Clause22Spec`: Source norm, endpoint, and spectral gap requirements.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,6 +70,9 @@ open Qatlib
 open Qatlib.Concepts.WalkSearch.MnrsAmplify
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The conjunction of graph setup and reachable space laws, the countable exact gate cover
+obstruction, expander and graph access results, corrected detection with resource counts,
+local amplification, and the interior norm correspondence. -/
 def Clause20Spec : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (S : Finset I),
@@ -78,6 +101,9 @@ def Clause20Spec : Prop :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3.{0} ∧
   Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNorm
 
+/-- The conjunction of empty marked set search obstructions, zero success probability, phase
+search accounting, local amplification, the interior norm correspondence, and the specified
+corrected detection guarantee. -/
 def Clause21Spec : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (Sc Uc Cc bound : ℝ),
@@ -102,6 +128,9 @@ def Clause21Spec : Prop :=
     (∀ i, U *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket i) (Qatlib.Foundations.PureStateMath.Ket j) = SzegedyIsometry P *ᵥ Qatlib.Foundations.PureStateMath.Ket i) →
     (1 / 32 : ℝ) ≤ (∑ k : Fin L, detectionProbability U S j (k.val + 1)) / (L : ℝ))
 
+/-- The conjunction of the interior norm and endpoint properties, unmarked discriminant bounds,
+uniqueness of the unit singular value under the stated Markov chain hypotheses, and the
+accompanying amplification and detection requirements. -/
 def Clause22Spec : Prop :=
   Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNorm ∧
   BipartiteTauEndpointVanishes ∧

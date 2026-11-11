@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# History and padding mass of Taylor-system solutions
+
+`taylorNatBlock` extends block extraction to natural labels by zero. A partition of the full
+squared norm, factorial tail estimates, and adjacent-boundary estimates yield
+`taylorV2_history_mass_le`; padding blocks are identified with the terminal time block. See
+[BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorNatBlock`: The block of `x` at natural label `l`, defined to be zero when `l` lies
+  outside the finite label range.
+* `taylorNatBlock_pad`: Every terminal-padding block of a V2 solution equals its terminal time
+  block.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,17 +50,21 @@ set_option warningAsError false
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- The block of `x` at natural label `l`, defined to be zero when `l` lies outside the finite
+label range. -/
 def taylorNatBlock {L : ℕ} (x : QState (Fin L × N)) (l : ℕ) : QState N :=
   fun n => if hl : l < L then x (⟨l,hl⟩,n) else 0
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- At a valid finite label, `taylorNatBlock` agrees with `taylorBlock`. -/
 theorem taylorNatBlock_eq {m k p : ℕ}
     (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (l : Fin (m * (k + 1) + p + 1)) : taylorNatBlock x l.val = taylorBlock x l := by
   funext n
   simp [taylorNatBlock, taylorBlock, l.isLt]
 
+/-- A sum over `m*K` consecutive natural indices splits into `m` blocks of `K` terms. -/
 theorem taylor_sum_range_mul (m K : ℕ) (f : ℕ → ℝ) :
     (∑ l ∈ Finset.range (m * K), f l) =
       ∑ a ∈ Finset.range m, ∑ j ∈ Finset.range K, f (a * K + j) := by
@@ -50,6 +75,8 @@ theorem taylor_sum_range_mul (m K : ℕ) (f : ℕ → ℝ) :
 
 omit [DecidableEq N] in
 
+/-- The full squared Euclidean norm splits into the sum of history-block squared norms and
+terminal-padding squared norms. -/
 theorem taylorV2_norm_partition (m k p : ℕ)
     (x : QState (Fin (m * (k + 1) + p + 1) × N)) :
     ‖stateVector x‖ ^ 2 =
@@ -70,18 +97,21 @@ theorem taylorV2_norm_partition (m k p : ℕ)
     ‖stateVector (taylorNatBlock x l)‖ ^ 2) = _
   rw [Finset.sum_range_add, taylor_sum_range_mul]
 
+/-- The sum of the first `m` positive odd numbers is `m²`. -/
 theorem taylor_sum_odd (m : ℕ) :
     (∑ i ∈ Finset.range m, (2 * (i : ℝ) + 1)) = (m : ℝ) ^ 2 := by
   induction m with
   | zero => simp
   | succ m ih => rw [Finset.sum_range_succ, ih]; push_cast; ring
 
+/-- For `m > 0`, the sum of `(2*i+1)/(25*m)` over `i < m` equals `m / 25`. -/
 theorem taylor_time_error_sum (m : ℕ) (hm : 0 < m) :
     (∑ i ∈ Finset.range m, (2 * (i : ℝ) + 1) / (25 * m)) = (m : ℝ) / 25 := by
   rw [← Finset.sum_div, taylor_sum_odd]
   have hmR : (m : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hm)
   field_simp
 
+/-- For `k ≥ 1`, the indicated reciprocal-factorial tail starting at `2!` is at most `23 / 32`. -/
 theorem taylor_factorial_tail_le (k : ℕ) (hk : 1 ≤ k) :
     (∑ j ∈ Finset.range (k - 1), (Nat.factorial (j + 2) : ℝ)⁻¹) ≤ 23 / 32 := by
   have h := Real.sum_le_exp_of_nonneg (by norm_num : (0 : ℝ) ≤ 1) (k + 1)
@@ -89,6 +119,7 @@ theorem taylor_factorial_tail_le (k : ℕ) (hk : 1 ≤ k) :
   norm_num [Finset.sum_range_succ, add_comm] at h
   linarith [exp_one_le]
 
+/-- The initial sum of squared reciprocal factorials starting at `1!` is at most `32 / 25`. -/
 theorem taylor_factorial_sq_positive_le (k : ℕ) :
     (∑ j ∈ Finset.range k, (Nat.factorial (j + 1) : ℝ)⁻¹ ^ 2) ≤ 32 / 25 := by
   have h := factorial_recip_sq_sum_le k
@@ -97,6 +128,8 @@ theorem taylor_factorial_sq_positive_le (k : ℕ) :
   simp only [inv_pow]
   linarith
 
+/-- For a V2 Taylor-system solution, the next boundary block is the sum of the preceding history
+block. -/
 theorem taylorNatBlock_jump (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)
@@ -112,6 +145,8 @@ theorem taylorNatBlock_jump (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
   intro j _
   exact (taylorNatBlock_eq x ⟨a * (k + 1) + j, step_label_lt _ _ _ _ _ ha (by omega)⟩).symm
 
+/-- For a V2 solution with `‖M‖ ≤ 1`, the positive-order block norm is at most the first-order
+block norm divided by its factorial. -/
 theorem taylorNatBlock_positive_le (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)
@@ -125,12 +160,15 @@ theorem taylorNatBlock_positive_le (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- The map `stateVector` preserves finite sums of states. -/
 theorem taylor_stateVector_sum (s : Finset ℕ) (f : ℕ → QState N) :
     stateVector (∑ i ∈ s, f i) = ∑ i ∈ s, stateVector (f i) := by
   induction s using Finset.induction_on with
   | empty => simp
   | @insert a s ha ih => rw [Finset.sum_insert ha, Finset.sum_insert ha, stateVector_add, ih]
 
+/-- For a V2 solution with `‖M‖ ≤ 1`, `9 / 32` times the first-order block norm is at most the
+sum of the adjacent boundary norms. -/
 theorem taylorNatBlock_first_le (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)
@@ -168,6 +206,7 @@ theorem taylorNatBlock_first_le (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
   dsimp [B] at *
   linarith
 
+/-- For `g ≥ 1` and `0 ≤ u ≤ 2/25`, the square `(2*g+u)²` is at most `(4 + (102/25)*u)*g²`. -/
 theorem taylor_adjacent_error_sq (g u : ℝ) (hg : 1 ≤ g) (hu : 0 ≤ u) (hu' : u ≤ 2/25) :
     (2*g+u)^2 ≤ (4+(102/25)*u)*g^2 := by
   have hg2 : g ≤ g^2 := by nlinarith
@@ -177,6 +216,8 @@ theorem taylor_adjacent_error_sq (g u : ℝ) (hg : 1 ≤ g) (hu : 0 ≤ u) (hu' 
   have h3 := mul_nonneg hu (sub_nonneg.mpr hu')
   nlinarith
 
+/-- The stated pointwise bounds on `Z` and `F` imply a total weighted squared mass at most
+`70*m*g²*q²`. -/
 theorem taylor_history_sum_bound (m : ℕ) (hm : 0 < m) (g q : ℝ)
     (hg : 1 ≤ g) (Z F : ℕ → ℝ)
     (hZ : ∀ i < m, 0 ≤ Z i ∧ Z i ≤ (26/25)*g*q)
@@ -236,6 +277,8 @@ theorem taylor_history_sum_bound (m : ℕ) (hm : 0 < m) (g q : ℝ)
       ring
     _ = _ := by ring
 
+/-- For a V2 solution satisfying the stated boundary norm bounds, the total history-region
+squared mass is at most `70*m*g²*q²`. -/
 theorem taylorV2_history_mass_le (m k p : ℕ) (M : Matrix N N ℂ) (h g q : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hm : 0 < m) (hk : 1 ≤ k) (hg : 1 ≤ g) (hq : 0 ≤ q)
@@ -289,6 +332,7 @@ theorem taylorV2_history_mass_le (m k p : ℕ) (M : Matrix N N ℂ) (h g q : ℝ
       Finset.sum_le_sum (fun a ha => hgroup a (Finset.mem_range.mp ha))
     _ ≤ _ := taylor_history_sum_bound m hm g q hg Z F hZ hF
 
+/-- Every terminal-padding block of a V2 solution equals its terminal time block. -/
 theorem taylorNatBlock_pad (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k+1)+p+1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)

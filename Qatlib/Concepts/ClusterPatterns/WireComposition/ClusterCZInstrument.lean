@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Cluster CZ preparation and instrument
+
+This module constructs a four-qubit resource preparation and the two-outcome-bit instrument
+implementing a logical CZ. It defines physical Hadamard and edge gates, the input and prepared
+frames, raw Kraus operators, and outcome-dependent Pauli feedback.
+
+The corrected Kraus operators retain an explicit outcome-dependent sign and have amplitude
+magnitude one half. Every instrument branch is one quarter of CZ conjugation, and forgetting or
+conditioning outcomes yields the expected logical action, in the measurement-based setting of
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_cz_actual_resource_preparation`: isometric resource preparation by a seven-gate
+  circuit.
+* `cluster_cz_raw_corrected_kraus_phase_and_completeness`: exact Kraus phases and completeness.
+* `cluster_cz_instrument_arbitrary_probability_conditioning`: branch maps, probabilities,
+  forgetting, and conditional states.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,13 +56,19 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The equivalence encoding two pairs of Boolean qubits as a sixteen-dimensional computational
+basis. -/
 def clusterCZRegisterEquiv : (Bool × Bool) × (Bool × Bool) ≃ Fin 16 :=
   (Equiv.prodCongr teleportOutcomeEquiv teleportOutcomeEquiv).trans finProdFinEquiv
 
+/-- The embedding of two logical qubits into physical vertices `a` and `d`, with vertices `b`
+and `c` initialized to zero. -/
 def clusterCZInitialFrame : Matrix (Fin 16) (Fin 4) ℂ :=
   Matrix.of fun r i =>
     if r = clusterCZRegisterEquiv (teleportOutcomeEquiv.symm i, (false, false)) then 1 else 0
 
+/-- Each column of the CZ input frame is the relabeled basis vector with the logical input in
+the first pair and zeros in the second. -/
 theorem clusterCZInitialFrame_column (i : Fin 4) (r : Fin 16) :
     clusterCZInitialFrame r i
       = relabelState clusterCZRegisterEquiv
@@ -52,6 +84,7 @@ theorem clusterCZInitialFrame_column (i : Fin 4) (r : Fin 16) :
       rwa [Equiv.apply_symm_apply] at h3
     simp [clusterCZInitialFrame, relabelState, Qatlib.Foundations.PureStateMath.Ket, h, h2]
 
+/-- The CZ input frame is an isometry. -/
 theorem clusterCZInitialFrame_isometry : IsIsometry clusterCZInitialFrame := by
   have hInj : ∀ i j : Fin 4,
       clusterCZRegisterEquiv (teleportOutcomeEquiv.symm i, (false, false))
@@ -95,123 +128,156 @@ theorem clusterCZInitialFrame_isometry : IsIsometry clusterCZInitialFrame := by
       simp [hij]
   exact h
 
+/-- The Hadamard on physical vertex `a` in Boolean product coordinates. -/
 noncomputable def clusterCZHaB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (TensorGate Hadamard (1 : Matrix Bool Bool ℂ))
     (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
 
+/-- The Hadamard on physical vertex `d` in Boolean product coordinates. -/
 noncomputable def clusterCZHdB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (TensorGate (1 : Matrix Bool Bool ℂ) Hadamard)
     (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
 
+/-- The Hadamard on physical vertex `b` in Boolean product coordinates. -/
 noncomputable def clusterCZHbB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (TensorGate Hadamard (1 : Matrix Bool Bool ℂ))
 
+/-- The Hadamard on physical vertex `c` in Boolean product coordinates. -/
 noncomputable def clusterCZHcB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (TensorGate (1 : Matrix Bool Bool ℂ) Hadamard)
 
+/-- The diagonal CZ gate joining physical vertices `a` and `b` in Boolean coordinates. -/
 noncomputable def clusterCZEdgeAbB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   Matrix.diagonal fun p => if p.1.1 && p.2.1 then (-1 : ℂ) else 1
 
+/-- The diagonal CZ gate joining physical vertices `d` and `c` in Boolean coordinates. -/
 noncomputable def clusterCZEdgeDcB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   Matrix.diagonal fun p => if p.1.2 && p.2.2 then (-1 : ℂ) else 1
 
+/-- The diagonal CZ gate joining physical vertices `b` and `c` in Boolean coordinates. -/
 noncomputable def clusterCZEdgeBcB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   Matrix.diagonal fun p => if p.2.1 && p.2.2 then (-1 : ℂ) else 1
 
+/-- The Hadamard on vertex `a` relabeled to `Fin 16`. -/
 noncomputable def clusterCZHaGate : Operator 16 := relabelGate clusterCZRegisterEquiv clusterCZHaB
 
+/-- The Hadamard on vertex `d` relabeled to `Fin 16`. -/
 noncomputable def clusterCZHdGate : Operator 16 := relabelGate clusterCZRegisterEquiv clusterCZHdB
 
+/-- The Hadamard on vertex `b` relabeled to `Fin 16`. -/
 noncomputable def clusterCZHbGate : Operator 16 := relabelGate clusterCZRegisterEquiv clusterCZHbB
 
+/-- The Hadamard on vertex `c` relabeled to `Fin 16`. -/
 noncomputable def clusterCZHcGate : Operator 16 := relabelGate clusterCZRegisterEquiv clusterCZHcB
 
+/-- The physical CZ on vertices `a` and `b`, relabeled to `Fin 16`. -/
 noncomputable def clusterCZEdgeAbGate : Operator 16 :=
   relabelGate clusterCZRegisterEquiv clusterCZEdgeAbB
 
+/-- The physical CZ on vertices `d` and `c`, relabeled to `Fin 16`. -/
 noncomputable def clusterCZEdgeDcGate : Operator 16 :=
   relabelGate clusterCZRegisterEquiv clusterCZEdgeDcB
 
+/-- The physical CZ on vertices `b` and `c`, relabeled to `Fin 16`. -/
 noncomputable def clusterCZEdgeBcGate : Operator 16 :=
   relabelGate clusterCZRegisterEquiv clusterCZEdgeBcB
 
+/-- The Boolean-coordinate Hadamard on vertex `a` is unitary. -/
 theorem clusterCZHaB_unitary :
     clusterCZHaB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ :=
   tensorGate_unitary (tensorGate_unitary hadamard_unitary (Submonoid.one_mem _))
     (Submonoid.one_mem _)
 
+/-- The Boolean-coordinate Hadamard on vertex `d` is unitary. -/
 theorem clusterCZHdB_unitary :
     clusterCZHdB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ :=
   tensorGate_unitary (tensorGate_unitary (Submonoid.one_mem _) hadamard_unitary)
     (Submonoid.one_mem _)
 
+/-- The Boolean-coordinate Hadamard on vertex `b` is unitary. -/
 theorem clusterCZHbB_unitary :
     clusterCZHbB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ :=
   tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary hadamard_unitary (Submonoid.one_mem _))
 
+/-- The Boolean-coordinate Hadamard on vertex `c` is unitary. -/
 theorem clusterCZHcB_unitary :
     clusterCZHcB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ :=
   tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary (Submonoid.one_mem _) hadamard_unitary)
 
+/-- The Boolean-coordinate CZ on vertices `a` and `b` is unitary. -/
 theorem clusterCZEdgeAbB_unitary :
     clusterCZEdgeAbB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ := by
   refine diagonal_mem_unitaryGroup _ fun p => ?_
   obtain ⟨⟨a, d⟩, ⟨b, c⟩⟩ := p
   cases a <;> cases b <;> simp
 
+/-- The Boolean-coordinate CZ on vertices `d` and `c` is unitary. -/
 theorem clusterCZEdgeDcB_unitary :
     clusterCZEdgeDcB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ := by
   refine diagonal_mem_unitaryGroup _ fun p => ?_
   obtain ⟨⟨a, d⟩, ⟨b, c⟩⟩ := p
   cases d <;> cases c <;> simp
 
+/-- The Boolean-coordinate CZ on vertices `b` and `c` is unitary. -/
 theorem clusterCZEdgeBcB_unitary :
     clusterCZEdgeBcB ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ := by
   refine diagonal_mem_unitaryGroup _ fun p => ?_
   obtain ⟨⟨a, d⟩, ⟨b, c⟩⟩ := p
   cases b <;> cases c <;> simp
 
+/-- The finite-index Hadamard on vertex `a` is unitary. -/
 theorem clusterCZHaGate_unitary : clusterCZHaGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZHaB_unitary _
 
+/-- The finite-index Hadamard on vertex `d` is unitary. -/
 theorem clusterCZHdGate_unitary : clusterCZHdGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZHdB_unitary _
 
+/-- The finite-index Hadamard on vertex `b` is unitary. -/
 theorem clusterCZHbGate_unitary : clusterCZHbGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZHbB_unitary _
 
+/-- The finite-index Hadamard on vertex `c` is unitary. -/
 theorem clusterCZHcGate_unitary : clusterCZHcGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZHcB_unitary _
 
+/-- The finite-index CZ on vertices `a` and `b` is unitary. -/
 theorem clusterCZEdgeAbGate_unitary : clusterCZEdgeAbGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZEdgeAbB_unitary _
 
+/-- The finite-index CZ on vertices `d` and `c` is unitary. -/
 theorem clusterCZEdgeDcGate_unitary : clusterCZEdgeDcGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZEdgeDcB_unitary _
 
+/-- The finite-index CZ on vertices `b` and `c` is unitary. -/
 theorem clusterCZEdgeBcGate_unitary : clusterCZEdgeBcGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup clusterCZEdgeBcB_unitary _
 
+/-- The resource preparation matrix in Boolean coordinates, consisting of four Hadamards
+followed by three CZ edges. -/
 noncomputable def clusterCZPreparationB :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   clusterCZEdgeBcB * (clusterCZEdgeDcB * (clusterCZEdgeAbB *
     (clusterCZHcB * (clusterCZHbB * (clusterCZHdB * clusterCZHaB)))))
 
+/-- The finite-index resource preparation matrix consisting of four Hadamards followed by three
+CZ edges. -/
 noncomputable def clusterCZPreparationGate : Operator 16 :=
   clusterCZEdgeBcGate * (clusterCZEdgeDcGate * (clusterCZEdgeAbGate *
     (clusterCZHcGate * (clusterCZHbGate * (clusterCZHdGate * clusterCZHaGate)))))
 
+/-- The finite-index CZ preparation matrix is the relabeling of its Boolean-coordinate form. -/
 theorem clusterCZPreparationGate_eq_relabel :
     clusterCZPreparationGate = relabelGate clusterCZRegisterEquiv clusterCZPreparationB := by
   unfold clusterCZPreparationGate clusterCZPreparationB clusterCZEdgeBcGate clusterCZEdgeDcGate
@@ -219,6 +285,7 @@ theorem clusterCZPreparationGate_eq_relabel :
   rw [← teleportRelabelGate_mul, ← teleportRelabelGate_mul, ← teleportRelabelGate_mul,
     ← teleportRelabelGate_mul, ← teleportRelabelGate_mul, ← teleportRelabelGate_mul]
 
+/-- The full CZ resource preparation matrix is unitary. -/
 theorem clusterCZPreparationGate_unitary :
     clusterCZPreparationGate ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   Submonoid.mul_mem _ clusterCZEdgeBcGate_unitary
@@ -228,14 +295,18 @@ theorem clusterCZPreparationGate_unitary :
           (Submonoid.mul_mem _ clusterCZHbGate_unitary
             (Submonoid.mul_mem _ clusterCZHdGate_unitary clusterCZHaGate_unitary)))))
 
+/-- The seven-gate circuit implementing the CZ resource preparation. -/
 noncomputable def clusterCZPreparationCircuit : Circuit (Fin 16) :=
   [Step.gate clusterCZHaGate, Step.gate clusterCZHdGate, Step.gate clusterCZHbGate,
     Step.gate clusterCZHcGate, Step.gate clusterCZEdgeAbGate, Step.gate clusterCZEdgeDcGate,
     Step.gate clusterCZEdgeBcGate]
 
+/-- The prepared CZ resource frame obtained by applying `clusterCZPreparationGate` to the input
+frame. -/
 noncomputable def clusterCZPreparedFrame : Matrix (Fin 16) (Fin 4) ℂ :=
   clusterCZPreparationGate * clusterCZInitialFrame
 
+/-- The prepared CZ resource frame is an isometry. -/
 theorem clusterCZPreparedFrame_isometry : IsIsometry clusterCZPreparedFrame := by
   have hU : clusterCZPreparationGateᴴ * clusterCZPreparationGate = 1 := by
     have h := (Matrix.mem_unitaryGroup_iff').mp clusterCZPreparationGate_unitary
@@ -246,6 +317,8 @@ theorem clusterCZPreparedFrame_isometry : IsIsometry clusterCZPreparedFrame := b
       clusterCZInitialFrame, hU, Matrix.one_mul]
   exact clusterCZInitialFrame_isometry
 
+/-- The initial and prepared CZ frames are isometries, and the unitary preparation is
+implemented on every input by a query-free seven-gate circuit. See [RaussendorfBriegel2000]. -/
 theorem cluster_cz_actual_resource_preparation :
     Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry clusterCZInitialFrame ∧
       clusterCZPreparationGate ∈ Matrix.unitaryGroup (Fin 16) ℂ ∧
@@ -261,6 +334,8 @@ theorem cluster_cz_actual_resource_preparation :
     ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec,
     ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
 
+/-- The Hadamard on vertex `a` forms the normalized sum or difference of the two amplitudes at
+that vertex. -/
 theorem clusterCZHaB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZHaB ψ = fun p => ((Real.sqrt 2 : ℂ)⁻¹) *
       (ψ ((false, p.1.2), p.2) + (if p.1.1 then (-1 : ℂ) else 1) * ψ ((true, p.1.2), p.2)) := by
@@ -272,6 +347,8 @@ theorem clusterCZHaB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Hadamard, Matrix.of_apply, Fintype.sum_bool]
   cases a0 <;> simp <;> ring
 
+/-- The Hadamard on vertex `d` forms the normalized sum or difference of the two amplitudes at
+that vertex. -/
 theorem clusterCZHdB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZHdB ψ = fun p => ((Real.sqrt 2 : ℂ)⁻¹) *
       (ψ ((p.1.1, false), p.2) + (if p.1.2 then (-1 : ℂ) else 1) * ψ ((p.1.1, true), p.2)) := by
@@ -283,6 +360,8 @@ theorem clusterCZHdB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Hadamard, Matrix.of_apply, Fintype.sum_bool]
   cases d0 <;> simp <;> ring
 
+/-- The Hadamard on vertex `b` forms the normalized sum or difference of the two amplitudes at
+that vertex. -/
 theorem clusterCZHbB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZHbB ψ = fun p => ((Real.sqrt 2 : ℂ)⁻¹) *
       (ψ (p.1, (false, p.2.2)) + (if p.2.1 then (-1 : ℂ) else 1) * ψ (p.1, (true, p.2.2))) := by
@@ -294,6 +373,8 @@ theorem clusterCZHbB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Hadamard, Matrix.of_apply, Fintype.sum_bool]
   cases b0 <;> simp <;> ring
 
+/-- The Hadamard on vertex `c` forms the normalized sum or difference of the two amplitudes at
+that vertex. -/
 theorem clusterCZHcB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZHcB ψ = fun p => ((Real.sqrt 2 : ℂ)⁻¹) *
       (ψ (p.1, (p.2.1, false)) + (if p.2.2 then (-1 : ℂ) else 1) * ψ (p.1, (p.2.1, true))) := by
@@ -305,6 +386,8 @@ theorem clusterCZHcB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Hadamard, Matrix.of_apply, Fintype.sum_bool]
   cases c0 <;> simp <;> ring
 
+/-- The CZ edge between `a` and `b` multiplies the amplitude by minus one exactly when both
+endpoint bits are true. -/
 theorem clusterCZEdgeAbB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZEdgeAbB ψ
       = fun p => (if p.1.1 && p.2.1 then (-1 : ℂ) else 1) * ψ p := by
@@ -312,6 +395,8 @@ theorem clusterCZEdgeAbB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) 
       (fun p : (Bool × Bool) × (Bool × Bool) => if p.1.1 && p.2.1 then (-1 : ℂ) else 1) from rfl,
     applyGate_diagonal]
 
+/-- The CZ edge between `d` and `c` multiplies the amplitude by minus one exactly when both
+endpoint bits are true. -/
 theorem clusterCZEdgeDcB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZEdgeDcB ψ
       = fun p => (if p.1.2 && p.2.2 then (-1 : ℂ) else 1) * ψ p := by
@@ -319,6 +404,8 @@ theorem clusterCZEdgeDcB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) 
       (fun p : (Bool × Bool) × (Bool × Bool) => if p.1.2 && p.2.2 then (-1 : ℂ) else 1) from rfl,
     applyGate_diagonal]
 
+/-- The CZ edge between `b` and `c` multiplies the amplitude by minus one exactly when both
+endpoint bits are true. -/
 theorem clusterCZEdgeBcB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCZEdgeBcB ψ
       = fun p => (if p.2.1 && p.2.2 then (-1 : ℂ) else 1) * ψ p := by
@@ -328,6 +415,8 @@ theorem clusterCZEdgeBcB_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) 
 
 set_option maxHeartbeats 4000000 in
 
+/-- The decoded CZ resource column has amplitude one half times the output CZ sign, supported
+where the first pair equals the input bits XOR the second pair. -/
 theorem clusterCZDecoded (x y : Bool) :
     ApplyGate (clusterCZHdB * (clusterCZHaB * clusterCZPreparationB))
         (Qatlib.Foundations.PureStateMath.Ket ((x, y), (false, false)))
@@ -345,23 +434,31 @@ theorem clusterCZDecoded (x y : Bool) :
     simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm, mul_left_comm] <;> ring_nf <;>
       try (rw [pow_two, sqrt2_inv_sq]) <;> ring_nf
 
+/-- The logical Kraus matrix extracted at measurement outcomes `a` and `d` after preparation and
+decoding. -/
 noncomputable def clusterCZRawKraus (a d : Bool) : Operator 4 :=
   Matrix.of fun c i =>
     (clusterCZHdGate * clusterCZHaGate * clusterCZPreparationGate * clusterCZInitialFrame)
       (clusterCZRegisterEquiv ((a, d), teleportOutcomeEquiv.symm c)) i
 
+/-- The logical tensor-product X correction specified by the two measurement bits. -/
 noncomputable def clusterCZInputPauli (a d : Bool) : Operator 4 :=
   relabelGate teleportOutcomeEquiv
     (TensorGate (if a then PauliX else 1) (if d then PauliX else 1))
 
+/-- The logical Pauli feedback consisting of outcome-dependent X corrections and the
+cross-coupled Z corrections. -/
 noncomputable def clusterCZLogicalFeedback (a d : Bool) : Operator 4 :=
   relabelGate teleportOutcomeEquiv
     (TensorGate ((if d then PauliZ else 1) * (if a then PauliX else 1))
       ((if a then PauliZ else 1) * (if d then PauliX else 1)))
 
+/-- The raw CZ Kraus operator followed by its logical Pauli feedback. -/
 noncomputable def clusterCZCorrectedKraus (a d : Bool) : Operator 4 :=
   clusterCZLogicalFeedback a d * clusterCZRawKraus a d
 
+/-- The raw CZ Kraus operator is one half of the logical CZ composed with the outcome-dependent
+input X operators. -/
 theorem clusterCZRawKraus_eq (a d : Bool) :
     clusterCZRawKraus a d = (1 / 2 : ℂ) • (clusterCZ * clusterCZInputPauli a d) := by
   ext c i
@@ -393,6 +490,8 @@ theorem clusterCZRawKraus_eq (a d : Bool) :
     simp [TensorGate, Fintype.sum_prod_type, PauliX, permMatrix,
       Matrix.one_apply, Matrix.of_apply]
 
+/-- The Boolean-coordinate Pauli feedback cancels the input X byproducts of CZ up to the sign
+that is negative exactly when both outcomes are true. -/
 theorem clusterCZFeedbackBool_mul (a d : Bool) :
     TensorGate ((if d then PauliZ else 1) * (if a then PauliX else 1))
         ((if a then PauliZ else 1) * (if d then PauliX else 1)) *
@@ -404,6 +503,8 @@ theorem clusterCZFeedbackBool_mul (a d : Bool) :
       Matrix.diagonal_apply, PauliX, PauliZ, permMatrix, Matrix.one_apply, Matrix.of_apply,
       Matrix.smul_apply, smul_eq_mul]
 
+/-- The corrected CZ Kraus operator equals the logical CZ multiplied by one half and the sign
+determined by the conjunction of the outcomes. -/
 theorem clusterCZCorrectedKraus_eq (a d : Bool) :
     clusterCZCorrectedKraus a d
       = ((if a && d then (-1 : ℂ) else 1) / 2) • clusterCZ := by
@@ -419,6 +520,8 @@ theorem clusterCZCorrectedKraus_eq (a d : Bool) :
     Matrix.smul_apply, smul_eq_mul]
   cases a <;> cases d <;> simp; ring
 
+/-- The raw and corrected CZ Kraus operators have the stated Pauli and phase formulas, and the
+corrected Kraus family satisfies completeness. See [RaussendorfBriegel2000]. -/
 theorem cluster_cz_raw_corrected_kraus_phase_and_completeness :
     ∀ a d : Bool,
       clusterCZRawKraus a d = (1 / 2 : ℂ) • (clusterCZ * clusterCZInputPauli a d) ∧
@@ -446,10 +549,12 @@ theorem cluster_cz_raw_corrected_kraus_phase_and_completeness :
   rw [Finset.sum_congr rfl (fun o _ => hterm o), sum_univ_boolPair_smul,
     show ((4 : ℂ) * (1 / 4)) = 1 from by norm_num, one_smul]
 
+/-- The four-outcome instrument built from the corrected CZ Kraus operators. -/
 noncomputable def clusterCZInstrument : Instrument (Bool × Bool) 4 4 :=
   Instrument.ofKraus (fun o : Bool × Bool => clusterCZCorrectedKraus o.1 o.2)
     (cluster_cz_raw_corrected_kraus_phase_and_completeness false false).2.2.2
 
+/-- Each CZ instrument branch is one quarter of conjugation by `clusterCZ`. -/
 theorem clusterCZInstrument_branch_apply (ρ : Operator 4) (a d : Bool) :
     clusterCZInstrument.branch (a, d) ρ = (1 / 4 : ℂ) • conjBranch clusterCZ ρ := by
   have hstar : star ((if a && d then (-1 : ℂ) else 1) / 2)
@@ -461,6 +566,9 @@ theorem clusterCZInstrument_branch_apply (ρ : Operator 4) (a d : Bool) :
     Matrix.smul_mul, smul_smul, hstar]
   cases a <;> cases d <;> norm_num [conjBranch_apply]
 
+/-- Each CZ branch is one quarter of CZ conjugation with probability equal to the real trace
+divided by four; forgetting outcomes gives CZ conjugation, as does conditioning a density
+input on any positive-probability outcome. -/
 theorem cluster_cz_instrument_arbitrary_probability_conditioning :
     ∀ (ρ : Operator 4) (a d : Bool),
       clusterCZInstrument.branch (a, d) ρ = (1 / 4 : ℂ) • conjBranch clusterCZ ρ ∧

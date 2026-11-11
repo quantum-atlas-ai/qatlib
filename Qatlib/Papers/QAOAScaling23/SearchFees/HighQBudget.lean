@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.InterleaveComparison
 import Qatlib.Papers.QAOAScaling23.SearchFees.Failure
+
+/-!
+# Resource bounds for large marked mass
+
+The sampled search stage has resource increment at most `5 * m`, which controls geometric-window
+costs. When marked mass is at least one half and validation is exact, plain trials give
+sufficient early termination to bound every interleaved expected ledger by forty.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `slot_cost_bound`: For positive `m`, the expected single-stage charge in any ledger is at most
+  `5 * m`.
+* `highQ_interleaved_budget`: With exact validation and marked mass at least `1/2`, the expected
+  charge in every ledger of interleaved geometric search is at most forty.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -17,6 +39,7 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Concepts.WalkSearch.QuantumAccess
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 
+/-- The natural ceiling logarithm `Nat.clog 2 m` is at most `m`. -/
 theorem clog_le_window (m:ℕ) : Nat.clog 2 m≤m := by
   rcases Nat.lt_or_ge m 2 with hm|hm
   · rcases Nat.eq_zero_or_pos m with h|h
@@ -31,6 +54,8 @@ theorem clog_le_window (m:ℕ) : Nat.clog 2 m≤m := by
     omega
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- For a positive window `m`, every supported sampled outcome contributes at most `5 * m` to
+any resource ledger. -/
 theorem slot_increment_bound (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (f:Fee) (m:ℕ) (hm:0<m) (out:Option (I×ℕ)×ℕ×ℕ)
     (hout:out∈(preparedAASampled U hU seed S (Nat.clog 2 m) m 3).support) : increment f out≤5*m := by
@@ -49,12 +74,15 @@ theorem slot_increment_bound (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I �
     cases f <;>simp only
         [increment,Option.isSome_some,if_true,Option.map_some,Option.getD_some] <;>omega
 
+/-- For positive `m`, the expected single-stage charge in any ledger is at most `5 * m`. -/
 theorem slot_cost_bound (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (f:Fee) (m:ℕ) (hm:0<m) : slot U hU seed S f m≤((5*m:ℕ):ℝ≥0∞) := by
   apply expectation_le_of_support
   intro out hout
   exact_mod_cast slot_increment_bound U hU seed S f m hm out hout
 
+/-- The expected resource charge of geometric window `off` is at most `15 * (6/5)^off` in
+extended nonnegative reals. -/
 theorem geometric_slot_cost (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (f:Fee) (M off:ℕ) : slot U hU seed S f (geometricWindow M off)≤
       ENNReal.ofReal 15*(ENNReal.ofReal (6/5:ℝ))^off := by
@@ -64,6 +92,8 @@ theorem geometric_slot_cost (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ
     _ ≤ ENNReal.ofReal (15*((6/5:ℝ)^off)) := ENNReal.ofReal_le_ofReal (by have h:=geometric_window_le M off;linarith)
     _ = _ := by rw [ENNReal.ofReal_mul (by norm_num : (0:ℝ)≤15),ENNReal.ofReal_pow (by norm_num : (0:ℝ)≤6/5)]
 
+/-- With exact validation and marked mass at least `1/2`, a plain trial fails with probability
+at most `1/2`. -/
 theorem highQ_plain_fail (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (hQ:(1/2:ℝ)≤MeasureProb (preparedAAState U seed) S) :
     fail U hU seed S valid 1≤(1/2:ℝ≥0∞) := by
@@ -78,6 +108,8 @@ theorem highQ_plain_fail (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (
       _ = _ := ENNReal.mul_inv_cancel (by norm_num) (by finiteness)
   exact hs.trans_eq (ENNReal.eq_sub_of_add_eq (by finiteness) hhalf).symm
 
+/-- With exact validation and marked mass at least `1/2`, the expected charge in every ledger of
+interleaved geometric search is at most forty. -/
 theorem highQ_interleaved_budget (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (hQ:(1/2:ℝ)≤MeasureProb (preparedAAState U seed) S)
     (f:Fee) (M T:ℕ) : expected U hU seed S valid f (interleavePlain (geometricSearchSchedule M T))≤ENNReal.ofReal 40 := by

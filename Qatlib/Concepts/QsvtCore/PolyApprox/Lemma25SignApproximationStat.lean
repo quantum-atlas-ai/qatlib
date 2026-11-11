@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+/-!
+# Specification of sign polynomial approximation
+
+`Lemma25SignApproximation` asks for a real sign approximant bounded on `[-2, 2]` with error at
+most `ε` whenever `δ ≤ |x|`. The proposition records odd parity, a degree bound of `3^k`, and a
+quantitative bound on `2^k`. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Lemma25SignApproximation`: the bounded odd sign approximation specification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
@@ -15,6 +32,9 @@ namespace Qatlib.Concepts.QsvtCore.PolyApprox
 
 open Polynomial
 
+/-- The sign approximation specification with degree at most `3^k`, odd parity, uniform
+boundedness on `[-2, 2]`, error at most `ε` outside the gap, and the displayed bound on
+`2^k`; see [Gilyén et al., Lemma 25][GilyenSuLowWiebe2019]. -/
 def Lemma25SignApproximation : Prop :=
   ∀ (δ ε : ℝ), 0 < δ → δ ≤ 2 → 0 < ε → ε ≤ 1/2 →
     ∃ (P : Polynomial ℝ) (k : ℕ),

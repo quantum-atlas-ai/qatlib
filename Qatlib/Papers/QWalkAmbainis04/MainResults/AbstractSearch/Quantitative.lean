@@ -86,6 +86,29 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 import Qatlib.Papers.QWalkAmbainis04.MainResults.AbstractSearch.EigenEngine
+
+/-!
+# Quantitative bounds for abstract quantum search
+
+`SpecIdx`, `phase`, and `goodVec` encode a distinguished zero phase and conjugate phase pairs
+with real coefficients. The condition `cotEq` expresses orthogonality to the auxiliary vector
+`wPrime`.
+
+Trigonometric identities convert this condition into an exact equation for the search phase and
+explicit upper and lower bounds for its square, under the stated phase separation hypotheses.
+This development supports the analysis in [AmbainisKempeRivosh2004].
+
+## Main statements
+
+* `alpha_exact_eq`: rewrite the cotangent equation in terms of cosine differences.
+* `alpha_sq_upper`: bound the squared search phase from above.
+* `alpha_sq_lower`: bound the squared search phase from below under stronger separation.
+
+## References
+
+* [Ambainis et al., 2004][AmbainisKempeRivosh2004]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -98,17 +121,24 @@ namespace Qatlib.Papers.QWalkAmbainis04.MainResults.AbstractSearch.Quantitative
 
 open Eigen
 
+/-- The spectral index type consisting of one distinguished index and a signed pair for each
+element of `Fin m`. -/
 abbrev SpecIdx (m : ℕ) := Option (Fin m × Bool)
 
+/-- The spectral phase function assigning zero to the distinguished index and `θ j` and `-θ j`
+to each paired index. -/
 def phase {m : ℕ} (θ : Fin m → ℝ) : SpecIdx m → ℝ
   | none => 0
   | some (j, true) => θ j
   | some (j, false) => -θ j
 
+/-- The complex vector with coefficient `a0` at the distinguished index and the real coefficient
+`a j` at both indices of each pair. -/
 def goodVec {m : ℕ} (a0 : ℝ) (a : Fin m → ℝ) : SpecIdx m → ℂ
   | none => (a0 : ℂ)
   | some (j, _) => (a j : ℂ)
 
+/-- The squared norm of `goodVec a0 a` is `a0 ^ 2 + 2 * ∑ j, (a j) ^ 2`. -/
 lemma normSq_goodVec {m : ℕ} (a0 : ℝ) (a : Fin m → ℝ) :
     normSq (goodVec a0 a) = a0 ^ 2 + 2 * ∑ j, (a j) ^ 2 := by
   have hsq : ∀ z : ℝ, ‖((z : ℂ))‖ ^ 2 = z ^ 2 := by
@@ -121,16 +151,22 @@ lemma normSq_goodVec {m : ℕ} (a0 : ℝ) (a : Fin m → ℝ) :
     rw [Finset.sum_add_distrib, ← two_mul, Finset.mul_sum]
   rw [h2]
 
+/-- The vector `goodVec a0 a` has inner product one with itself when its coefficients satisfy
+the stated normalization. -/
 lemma inner_goodVec {m : ℕ} (a0 : ℝ) (a : Fin m → ℝ)
     (h : a0 ^ 2 + 2 * ∑ j, (a j) ^ 2 = 1) :
     inner (goodVec a0 a) (goodVec a0 a) = 1 := by
   rw [Eigen.inner_self_cast, normSq_goodVec, h, Complex.ofReal_one]
 
+/-- The weighted cotangent equation in `α` obtained from the zero phase and the paired phases
+`±θ j`. -/
 def cotEq {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) : Prop :=
   a0 ^ 2 * Real.cot (α / 2) +
     ∑ j : Fin m, (a j) ^ 2 *
       (Real.cot ((α - θ j) / 2) + Real.cot ((α + θ j) / 2)) = 0
 
+/-- The inner product of `goodVec` with `wPrime` is the complex embedding of the weighted
+cotangent expression. -/
 lemma inner_goodVec_wPrime {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ)
     (α : ℝ) :
     inner (goodVec a0 a) (wPrime (phase θ) (goodVec a0 a) α)
@@ -155,6 +191,8 @@ lemma inner_goodVec_wPrime {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m 
     ring
   rw [h0, key]
 
+/-- The cotangent equation implies orthogonality of `goodVec` and the corresponding auxiliary
+vector `wPrime`. -/
 lemma orth_goodVec_of_cotEq {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ)
     {α : ℝ} (h : cotEq θ a0 a α) :
     inner (goodVec a0 a) (wPrime (phase θ) (goodVec a0 a) α) = 0 := by
@@ -162,11 +200,14 @@ lemma orth_goodVec_of_cotEq {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m
   rw [cotEq] at h
   rw [h, Complex.ofReal_zero]
 
+/-- Division by a fixed real number distributes over a finite sum. -/
 lemma sum_div_finset {ι : Type*} (s : Finset ι) (f : ι → ℝ) (c : ℝ) :
     (∑ i ∈ s, f i) / c = ∑ i ∈ s, f i / c := by
   rw [div_eq_mul_inv, Finset.sum_mul]
   exact Finset.sum_congr rfl fun i _ => by rw [div_eq_mul_inv]
 
+/-- For angles with nonzero sine, the sum of their cotangents equals `sin (x + y) / (sin x * sin
+y)`. -/
 lemma cot_add_eq (x y : ℝ) (hx : Real.sin x ≠ 0) (hy : Real.sin y ≠ 0) :
     Real.cot x + Real.cot y = Real.sin (x + y) / (Real.sin x * Real.sin y) := by
   rw [Real.cot_eq_cos_div_sin, Real.cot_eq_cos_div_sin]
@@ -174,6 +215,8 @@ lemma cot_add_eq (x y : ℝ) (hx : Real.sin x ≠ 0) (hy : Real.sin y ≠ 0) :
   rw [Real.sin_add]
   ring
 
+/-- The cotangents of the paired half angles sum to `2 * sin α / (cos θ - cos α)` under the
+stated nonvanishing conditions. -/
 lemma cot_pair_eq {α θ : ℝ}
     (h1 : Real.sin ((α - θ) / 2) ≠ 0) (h2 : Real.sin ((α + θ) / 2) ≠ 0)
     (_hcos : Real.cos θ ≠ Real.cos α) :
@@ -194,6 +237,8 @@ lemma cot_pair_eq {α θ : ℝ}
     mul_ne_zero h2 h1
   field_simp [hne]
 
+/-- The quotient `cot (α / 2) / sin α` equals `1 / (1 - cos α)` when the half-angle sine and
+cosine are nonzero. -/
 lemma cot_half_div_sin {α : ℝ} (h : Real.sin (α / 2) ≠ 0) (hc : Real.cos (α / 2) ≠ 0) :
     Real.cot (α / 2) / Real.sin α = 1 / (1 - Real.cos α) := by
   have h1 : (1 : ℝ) - Real.cos α = 2 * Real.sin (α / 2) ^ 2 := by
@@ -209,6 +254,9 @@ lemma cot_half_div_sin {α : ℝ} (h : Real.sin (α / 2) ≠ 0) (hc : Real.cos (
   rw [Real.cot_eq_cos_div_sin, hsα, h1]
   field_simp [h, hc]
 
+/-- For a positive search phase below all phases in `(0, π)`, `cotEq` yields the exact identity
+relating `a0 ^ 2 / (1 - cos α)` to the weighted cosine denominators. See
+[AmbainisKempeRivosh2004]. -/
 theorem alpha_exact_eq {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ)
     {α : ℝ} (hm : 0 < m) (hθpos : ∀ j, 0 < θ j) (hθπ : ∀ j, θ j < Real.pi)
     (hαpos : 0 < α) (hαθ : ∀ j, α < θ j) (hcot : cotEq θ a0 a α) :
@@ -288,6 +336,7 @@ theorem alpha_exact_eq {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → 
   rw [h1] at hdiv
   linarith
 
+/-- For `0 ≤ x ≤ π`, the quantity `1 - cos x` is at least `2 * x ^ 2 / π ^ 2`. -/
 lemma two_div_pi_sq_mul_sq_le_one_sub_cos (x : ℝ) (h0 : 0 ≤ x) (hπ : x ≤ Real.pi) :
     2 * x ^ 2 / Real.pi ^ 2 ≤ 1 - Real.cos x := by
   have hx2 : 0 ≤ x / 2 := by linarith
@@ -311,11 +360,13 @@ lemma two_div_pi_sq_mul_sq_le_one_sub_cos (x : ℝ) (h0 : 0 ≤ x) (hπ : x ≤ 
   rw [hkey]
   nlinarith [hsqr]
 
+/-- For every real `x`, the quantity `1 - cos x` is at most `x ^ 2 / 2`. -/
 lemma one_sub_cos_le_half_sq (x : ℝ) :
     1 - Real.cos x ≤ x ^ 2 / 2 := by
   have h := Real.one_sub_sq_div_two_le_cos (x := x)
   linarith
 
+/-- For `0 < θ < π`, half of `1 - cos θ` is at most `cos (θ / 2) - cos θ`. -/
 lemma half_one_sub_cos_le_cos_half_sub_cos (θ : ℝ) (h0 : 0 < θ) (hπ : θ < Real.pi) :
     (1 - Real.cos θ) / 2 ≤ Real.cos (θ / 2) - Real.cos θ := by
   have h2 : Real.cos (2 * (θ / 2)) = Real.cos θ := by rw [show 2 * (θ / 2) = θ by ring]
@@ -329,6 +380,9 @@ lemma half_one_sub_cos_le_cos_half_sub_cos (θ : ℝ) (h0 : 0 < θ) (hπ : θ < 
     rw [hcos]; ring
   nlinarith
 
+/-- Under the cotangent equation and the stated positivity and separation hypotheses, `α ^ 2` is
+at most `π ^ 2 * a0 ^ 2 / (4 * ∑ j, (a j) ^ 2 / (1 - cos (θ j)))`. See
+[AmbainisKempeRivosh2004]. -/
 theorem alpha_sq_upper {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ)
     {α : ℝ} (hm : 0 < m) (ha0 : a0 ≠ 0)
     (hθpos : ∀ j, 0 < θ j) (hθπ : ∀ j, θ j < Real.pi)
@@ -432,6 +486,9 @@ theorem alpha_sq_upper {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → 
     (0:ℝ) < 4 * ∑ j : Fin m, (a j) ^ 2 / (1 - Real.cos (θ j)))]
   nlinarith [key]
 
+/-- When `α` is positive and less than every `θ j / 2`, the cotangent equation gives the lower
+bound `a0 ^ 2 / (2 * ∑ j, (a j) ^ 2 / (1 - cos (θ j))) ≤ α ^ 2`, provided `a0 ≠ 0` and `0 <
+θ j < π`. See [AmbainisKempeRivosh2004]. -/
 theorem alpha_sq_lower {m : ℕ} (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ)
     {α : ℝ} (hm : 0 < m) (ha0 : a0 ≠ 0)
     (hθpos : ∀ j, 0 < θ j) (hθπ : ∀ j, θ j < Real.pi)

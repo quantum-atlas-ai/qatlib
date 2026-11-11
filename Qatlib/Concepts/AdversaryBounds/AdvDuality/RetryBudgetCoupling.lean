@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.PlannedRetry
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Couplings for planned retries at different budgets
+
+This module compares two executions of a `PlannedRetry` kernel with ordered budgets.
+`coupledRetry` shares plan choices and trial outcomes while both budgets can pay for the next
+trial. `retry_common_prefix_marginals` identifies the two marginal laws, and
+`retry_coupled_success_and_spending` relates successful outputs, remaining budgets, and spent
+costs. Repeated trials in quantum search provide a motivating setting; see [BrassardEtAl2002]
+for amplitude amplification and estimation.
+
+`retry_output_event_budget_mono` proves monotonicity of successful output events as the budget
+increases. `retry_success_law_same_spent_prefix` gives the stronger pointwise equality for a
+fixed successful output and an affordable spent cost. The intervening natural-number identities
+support the conversion between remaining and spent budgets.
+
+## Main statements
+
+* `retry_common_prefix_marginals`: marginal retry laws at ordered budgets.
+* `retry_coupled_success_and_spending`: shared successful outputs and spent costs.
+* `retry_success_law_same_spent_prefix`: equality of successful masses at fixed affordable
+  spending.
+
+## References
+
+* [Brassard, Hoyer, Mosca, and Tapp, 2002][BrassardEtAl2002], *Quantum amplitude amplification
+  and estimation*.
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin
@@ -24,10 +53,14 @@ universe u v w
 
 variable {State : Type u} {Output : Type v}
 
+/-- A sum of extended nonnegative real numbers equals its value at `a` if every other summand
+vanishes. -/
 theorem tsum_eq_single_of {α : Type*} (f : α → ℝ≥0∞) (a : α)
     (h : ∀ b, b ≠ a → f b = 0) : ∑' b, f b = f a :=
   tsum_eq_single a h
 
+/-- A joint retry law sharing plan choices and outcomes while both budgets can pay for a trial.
+When only the right budget can pay, the left result is fixed and the right run continues. -/
 noncomputable def coupledRetry (K : PlannedRetry State Output) (B C : ℕ) (s : State) :
     PMF ((Option Output × ℕ) × (Option Output × ℕ)) :=
   (K.choose s).bind fun p =>
@@ -49,6 +82,8 @@ termination_by C
 decreasing_by
   exact Nat.sub_lt (lt_of_lt_of_le (K.cost s p).pos ‹_›) (K.cost s p).pos
 
+/-- Pairing a retry run with the fixed left result `(none, b)` preserves the retry law as the
+right marginal. -/
 theorem coupledRetry_frozen_right (K : PlannedRetry State Output) (b c : ℕ) (s : State) :
     (((K.run c s).map (fun r : Option Output × ℕ => ((none, b), r)))
       : PMF ((Option Output × ℕ) × (Option Output × ℕ))).map Prod.snd
@@ -56,6 +91,8 @@ theorem coupledRetry_frozen_right (K : PlannedRetry State Output) (b c : ℕ) (s
   rw [PMF.map_comp, Function.comp_def]
   exact PMF.map_id (K.run c s)
 
+/-- Pairing a retry run with the fixed left result `(none, b)` gives the point mass at that
+result as the left marginal. -/
 theorem coupledRetry_frozen_left (K : PlannedRetry State Output) (b c : ℕ) (s : State) :
     (((K.run c s).map (fun r : Option Output × ℕ => ((none, b), r)))
       : PMF ((Option Output × ℕ) × (Option Output × ℕ))).map Prod.fst
@@ -63,13 +100,18 @@ theorem coupledRetry_frozen_left (K : PlannedRetry State Output) (b c : ℕ) (s 
   rw [PMF.map_comp, Function.comp_def]
   exact PMF.map_const (K.run c s) (none, b)
 
+/-- Subtracting the same natural number preserves a non-strict inequality. -/
 theorem nat_sub_mono_le {B C k : ℕ} (h : B ≤ C) : B - k ≤ C - k := by omega
 
+/-- Subtracting a positive affordable cost strictly decreases a natural-number budget. -/
 theorem nat_sub_lt_budget {C k : ℕ} (hk : 0 < k) (hCk : k ≤ C) : C - k < C := by omega
 
+/-- A cost bounded by `B` is also bounded by any budget `C` with `B ≤ C`. -/
 theorem le_trans_of_le {B C k : ℕ} (hB : k ≤ B) (hBC : B ≤ C) : k ≤ C :=
   Nat.le_trans hB hBC
 
+/-- Evaluate a mapped probability mass function as the sum of the original masses weighted by
+point masses at their images. -/
 theorem pmf_map_apply_eq {α β : Type*} (p : PMF α) (g : α → β) (a : β) :
     (p.map g) a = ∑' b, p b * (PMF.pure (g b)) a := by
   have h : p.map g = p.bind (fun b => PMF.pure (g b)) := by
@@ -81,14 +123,18 @@ theorem pmf_map_apply_eq {α β : Type*} (p : PMF α) (g : α → β) (a : β) :
     · rw [if_neg hab, PMF.pure_apply, if_neg hab, mul_zero]
   rw [h, PMF.bind_apply]
 
+/-- For `q ≤ C`, subtracting `C - q` from `C` recovers `q`. -/
 theorem nat_sub_sub_of_le {C q : ℕ} (h : q ≤ C) : C - (C - q) = q := by omega
 
+/-- If `r` and `q` lie below `C` and `C - r = q`, then `r = C - q`. -/
 theorem nat_sub_eq_of_le {C r q : ℕ} (hr : r ≤ C) (hq : q ≤ C) (h : C - r = q) :
     r = C - q := by
   have h1 : q + r = C := by
     rw [← h, Nat.sub_add_cancel hr]
   omega
 
+/-- For an affordable spent cost `q`, the successful mass in `costedRun` equals the mass in
+`run` at remaining budget `budget - q`. -/
 theorem costedRun_apply (K : PlannedRetry State Output) (budget : ℕ) (s : State) (o : Output)
     (q : ℕ) (hq : q ≤ budget) :
     (K.costedRun budget s) (some o, q) = K.run budget s (some o, budget - q) := by
@@ -135,6 +181,8 @@ theorem costedRun_apply (K : PlannedRetry State Output) (budget : ℕ) (s : Stat
     simpa only [if_pos rfl] using! h
   rw [hcol]
 
+/-- For `B ≤ C`, the left and right marginals of `coupledRetry K B C s` are the retry laws with
+budgets `B` and `C`, respectively. -/
 theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ) (s : State)
     (hBC : B ≤ C) :
     (coupledRetry K B C s).map Prod.fst = K.run B s ∧
@@ -223,38 +271,56 @@ theorem retry_common_prefix_marginals (K : PlannedRetry State Output) (B C : ℕ
         · simp only [dif_neg hB, dif_neg hC, PMF.pure_map]
   exact hright C B s hBC
 
+/-- The total spend `b - r` is the subsequent spend after paying `cost`, plus that initial cost,
+provided both subtractions stay within the budget. -/
 theorem nat_sub_spend_left {b cost r : ℕ} (hcB : cost ≤ b) (hr : r ≤ b - cost) :
     b - r = (b - cost) - r + cost := by omega
 
+/-- The total spend `c - r` is the subsequent spend after paying `cost`, plus that initial cost,
+provided both subtractions stay within the budget. -/
 theorem nat_sub_spend_right {c cost r : ℕ} (hcC : cost ≤ c) (hr : r ≤ c - cost) :
     c - r = (c - cost) - r + cost := by omega
 
+/-- Paying the same cost from ordered budgets preserves their difference when the cost is
+affordable for the smaller budget. -/
 theorem nat_sub_budget_diff {b c cost : ℕ} (hcB : cost ≤ b) (hbc : b ≤ c) :
     (c - cost) - (b - cost) = c - b := by omega
 
+/-- After paying a cost affordable for `b ≤ c`, the remainder of `c` is the remainder of `b`
+plus the original budget difference. -/
 theorem nat_sub_add_diff {b c cost : ℕ} (hcB : cost ≤ b) (hbc : b ≤ c) :
     c - cost = (b - cost) + (c - b) := by omega
 
+/-- Subtraction from a fixed natural number is injective on numbers bounded by that number. -/
 theorem nat_sub_eq_of_eq {C r q : ℕ} (hr : r ≤ C) (hq : q ≤ C) (h : C - q = C - r) : q = r := by
   have h1 : C - q + q = C := Nat.sub_add_cancel hq
   have h2 : C - r + r = C := Nat.sub_add_cancel hr
   rw [h] at h1
   exact Nat.add_left_cancel (h1.trans h2.symm)
 
+/-- The difference `b - b` is bounded by any natural-number difference `c - r`. -/
 theorem nat_sub_self_le (b c r : ℕ) : b - b ≤ c - r := by
   rw [Nat.sub_self]
   exact Nat.zero_le _
 
+/-- For `q < r ≤ B`, subtracting `r` from `B` gives a strictly smaller remainder than
+subtracting `q`. -/
 theorem nat_sub_lt_sub {B r q : ℕ} (hr : r ≤ B) (hqr : q < r) : B - r < B - q := by omega
 
+/-- For `cost ≤ q ≤ B`, paying `cost` from both the budget and the intended spend leaves the
+same final remainder. -/
 theorem nat_sub_sub_add {B q cost : ℕ} (hq : q ≤ B) (hc : cost ≤ q) :
     B - q = (B - cost) - (q - cost) := by omega
 
+/-- A successful retry result has zero mass if its remaining budget exceeds the initial budget. -/
 theorem run_success_eq_zero_of_bgt (K : PlannedRetry State Output) (budget : ℕ) (st : State)
     (o : Output) (r : ℕ) (hr : budget < r) : K.run budget st (some o, r) = 0 :=
   (PMF.apply_eq_zero_iff (K.run budget st) (some o, r)).mpr fun hx =>
     Nat.not_le_of_lt hr ((K.run_remaining budget st (some o, r) hx).1)
 
+/-- On the support of the coupling with `B ≤ C`, the smaller-budget run spends at most as much
+as the larger-budget run. If the smaller run succeeds, both outputs agree, both spent costs
+agree, and their remaining budgets differ by `C - B`. -/
 theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C : ℕ) (s : State)
     (hBC : B ≤ C) (z : (Option Output × ℕ) × (Option Output × ℕ))
     (hz : z ∈ (coupledRetry K B C s).support) :
@@ -368,6 +434,8 @@ theorem retry_coupled_success_and_spending (K : PlannedRetry State Output) (B C 
           exact ⟨nat_sub_self_le b c c, fun hs => absurd hs (by simp)⟩
   exact key C B s hBC z hz
 
+/-- Increasing the retry budget cannot decrease the probability of producing a successful output
+satisfying any fixed predicate `E`. -/
 theorem retry_output_event_budget_mono (K : PlannedRetry State Output) (B C : ℕ) (s : State)
     (E : Output → Prop) (hBC : B ≤ C) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (K.run B s) (fun x => ∃ o, x.1 = some o ∧ E o) ≤
@@ -397,6 +465,8 @@ theorem retry_output_event_budget_mono (K : PlannedRetry State Output) (B C : �
     simp only [hz0, zero_mul]
     exact zero_le
 
+/-- For `q ≤ B ≤ C`, the mass of success with output `o` after spending exactly `q` is unchanged
+when the initial budget increases from `B` to `C`. -/
 theorem run_spend_stable (K : PlannedRetry State Output) : ∀ (B : ℕ) (C : ℕ) (s : State)
     (o : Output) (q : ℕ), B ≤ C → q ≤ B →
       K.run B s (some o, B - q) = K.run C s (some o, C - q) := by
@@ -511,6 +581,8 @@ theorem run_spend_stable (K : PlannedRetry State Output) : ∀ (B : ℕ) (C : �
         have hneC : ¬ ((some o, C - q) = (none, C)) := by simp
         rw [PMF.pure_apply, if_neg hneC, mul_zero]
 
+/-- For `q ≤ B ≤ C`, the costed retry laws at budgets `B` and `C` assign the same mass to the
+successful result `(some o, q)`. -/
 theorem retry_success_law_same_spent_prefix (K : PlannedRetry State Output) (B C : ℕ) (s : State)
     (o : Output) (q : ℕ) (hBC : B ≤ C) (hq : q ≤ B) :
     (K.costedRun B s) (some o, q) = (K.costedRun C s) (some o, q) :=

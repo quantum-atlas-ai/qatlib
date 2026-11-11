@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Concentration for independent bounded observations
+
+`SourceLemma62` gives an exponential tail bound for the equally weighted mean of independent
+observations taking values in [0, 1]. The component distributions may differ, and the mean is
+centered at its expectation under `independent`. See [WocjanYard2006].
+
+## Main statements
+
+* `SourceLemma62`: For M positive independent observations of a function valued in [0, 1], the
+  probability that their mean differs from its expectation by at least positive δ is at most 2
+  exp(−Mδ²/4).
+
+## References
+
+* [Wocjan and Yard, 2006][WocjanYard2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,9 @@ noncomputable section
 
 namespace Qatlib.Papers.JonesPoly06.MainResults
 
+/-- For M positive independent observations of a function valued in [0, 1], the probability that
+their mean differs from its expectation by at least positive δ is at most 2 exp(−Mδ²/4); see
+[WocjanYard2006]. -/
 theorem SourceLemma62
     (M : ℕ) (hM : 0 < M) {X : Type*} [Fintype X] [DecidableEq X]
     (p : Fin M → FinDist X) (f : X → ℝ)

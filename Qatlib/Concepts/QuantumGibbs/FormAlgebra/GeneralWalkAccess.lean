@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuantumGibbs.FormAlgebra.GeneralWalkAccessDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# General kernel row-state preparation
+
+This module realizes ideal and computed preparation of a rational transition row after moving a
+chosen pivot to the distinguished vertex. It proves evaluation identities, operator and state
+error bounds, and exact gate and comparison counts, furnishing row-state setup ingredients for
+quantum walks such as [Szegedy2004].
+
+## Main statements
+
+* `generalIdealSetupWord_exact`: Ideal setup prepares the exact square-root transition row.
+* `generalSetupWord_matrix_error`: An explicit operator-norm approximation bound.
+* `clause37_complete`: The combined row-setup realization and cost account.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -32,6 +52,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- For a word consisting of fixed gates, relabeling and then reversing commutes with evaluation
+up to relabeling the evaluated matrix. -/
 theorem evaluate_relabel_reverse {I J : Type} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (cs : List (AdjointStep I))
     (hg : ∀ c ∈ cs, ∃ V, c = AdjointStep.gate V) :
@@ -56,6 +78,7 @@ theorem evaluate_relabel_reverse {I J : Type} [Fintype I] [DecidableEq I] [Finty
     simp only [relabelAdjointStep_gate, evaluate, instructionMatrix, Matrix.mul_one]
     rw [CircuitRelabel.relabelGate_mul e]
 
+/-- The computed setup word is the reversed list of pivot-relabelled rational weight gates. -/
 theorem generalSetupWord_eq {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) (k : ℕ) :
     generalSetupWord K p k
       = (List.ofFn (fun j => AdjointStep.gate
@@ -64,6 +87,7 @@ theorem generalSetupWord_eq {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V
   rw [rationalWeightWord, List.map_reverse, List.map_ofFn]
   rfl
 
+/-- The ideal setup word is the reversed list of pivot-relabelled ideal weight gates. -/
 theorem generalIdealSetupWord_eq {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) :
     generalIdealSetupWord K p
       = (List.ofFn (fun j => AdjointStep.gate
@@ -72,6 +96,7 @@ theorem generalIdealSetupWord_eq {V : ℕ} (K : GeneralKernel V) (p : GeneralVer
   rw [idealWeightWord, List.map_reverse, List.map_ofFn]
   rfl
 
+/-- The computed kernel row-setup word is a well-formed adjoint circuit. -/
 theorem generalSetupWord_wellFormed {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     (k : ℕ) : WellFormedAdjointCircuit (generalSetupWord K p k) := by
   intro W hW
@@ -87,6 +112,8 @@ theorem generalSetupWord_wellFormed {V : ℕ} (K : GeneralKernel V) (p : General
   exact (relabelGate_mem_unitaryGroup (pivotRelabel p)
     (rationalWeightGate (rowWeight K p) k j)).mpr (rationalWeightGate_unitary (rowWeight K p) k j)
 
+/-- The computed setup word evaluates to the pivot relabeling of the rational weight preparation
+matrix. -/
 theorem generalSetupWord_evaluate {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) (k : ℕ) :
     evaluate 1 (generalSetupWord K p k)
       = relabelGate (pivotRelabel p) (rationalWeightPrepare (rowWeight K p) k) := by
@@ -102,6 +129,8 @@ theorem generalSetupWord_evaluate {V : ℕ} (K : GeneralKernel V) (p : GeneralVe
   rw [h]
   rfl
 
+/-- The ideal setup word evaluates to the pivot relabeling of the ideal weight preparation
+matrix. -/
 theorem generalIdealSetupWord_evaluate {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) :
     evaluate 1 (generalIdealSetupWord K p)
       = relabelGate (pivotRelabel p) (idealWeightPrepare (rowWeight K p)) := by
@@ -117,6 +146,8 @@ theorem generalIdealSetupWord_evaluate {V : ℕ} (K : GeneralKernel V) (p : Gene
   rw [h]
   rfl
 
+/-- The ideal setup word sends `Ket p` to the square-root transition-row state `generalRowState
+K p`. -/
 theorem generalIdealSetupWord_exact {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) :
     evaluate 1 (generalIdealSetupWord K p) *ᵥ Ket p = generalRowState K p := by
   rw [generalIdealSetupWord_evaluate, relabelGate_mulVec_apply]
@@ -128,6 +159,8 @@ theorem generalIdealSetupWord_exact {V : ℕ} (K : GeneralKernel V) (p : General
   rw [huMass]
   exact (generalRowState_eq_relabel K p).symm
 
+/-- The computed setup evaluation differs from ideal pivot-relabelled preparation by at most `32
+* V / 2^k` in operator norm. -/
 theorem generalSetupWord_matrix_error {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     (k : ℕ) :
     ‖evaluate 1 (generalSetupWord K p k)
@@ -139,6 +172,8 @@ theorem generalSetupWord_matrix_error {V : ℕ} (K : GeneralKernel V) (p : Gener
     (rowWeight K p) (rowWeight_nonneg K p)
   exact herr
 
+/-- On `Ket p`, the difference between computed and ideal setup has Euclidean norm at most `32 *
+V / 2^k`. -/
 theorem generalSetupWord_state_error {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     (k : ℕ) :
     ‖toEuclidean_fromVec
@@ -168,6 +203,7 @@ theorem generalSetupWord_state_error {V : ℕ} (K : GeneralKernel V) (p : Genera
       rw [mul_one]
     _ ≤ 32 * (V : ℝ) / 2 ^ k := herr
 
+/-- An adjoint word containing only fixed gates has zero query count. -/
 theorem adjointQueryCount_of_gates {H : Type*} (cs : List (AdjointStep H))
     (hg : ∀ c ∈ cs, ∃ V, c = AdjointStep.gate V) : adjointQueryCount cs = 0 := by
   induction cs with
@@ -179,6 +215,7 @@ theorem adjointQueryCount_of_gates {H : Type*} (cs : List (AdjointStep H))
       exact hg c' (by simp [hc'])
     simp [adjointQueryCount, ih hgs]
 
+/-- An adjoint word containing only fixed gates has gate count equal to its length. -/
 theorem adjointGateCount_of_gates {H : Type*} (cs : List (AdjointStep H))
     (hg : ∀ c ∈ cs, ∃ V, c = AdjointStep.gate V) : adjointGateCount cs = cs.length := by
   induction cs with
@@ -190,6 +227,8 @@ theorem adjointGateCount_of_gates {H : Type*} (cs : List (AdjointStep H))
       exact hg c' (by simp [hc'])
     simp [adjointGateCount, ih hgs]
 
+/-- The computed setup word uses zero queries and `V` gates, while its rational weight
+computation makes `2 * V * k` comparisons. -/
 theorem generalSetupWord_costs {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) (k : ℕ) :
     adjointQueryCount (generalSetupWord K p k) = 0 ∧
     adjointGateCount (generalSetupWord K p k) = V ∧
@@ -216,6 +255,8 @@ theorem generalSetupWord_costs {V : ℕ} (K : GeneralKernel V) (p : GeneralVerte
         (rowWeight_nonneg K p)
     exact hcomp
 
+/-- The list of further graph-access components beyond the row-setup realization and cost
+guarantees established here. -/
 def generalGraphAccessResidual : List String :=
   [ "the graph-local update word (the neighbour row map) is not built here",
     "the graph-local check word (the marked predicate) is not built here",
@@ -223,6 +264,8 @@ def generalGraphAccessResidual : List String :=
     "the intertwining with the double-frame source oracle is not built here",
     "the realised reachable-spectrum statement is not built here" ]
 
+/-- A proposition collecting computed setup legality, ideal row realization, operator and state
+error bounds, and exact query, gate, and comparison counts. -/
 structure GeneralGraphSetupAccount (V : ℕ) (K : GeneralKernel V) (p : GeneralVertex V)
     (k : ℕ) : Prop where
 
@@ -248,6 +291,8 @@ structure GeneralGraphSetupAccount (V : ℕ) (K : GeneralKernel V) (p : GeneralV
 
   comparisons : rationalWeightComparisons (rowWeight K p) k = 2 * V * k
 
+/-- The row-setup construction satisfies every realization, approximation, and cost field of
+`GeneralGraphSetupAccount`. -/
 theorem clause37_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V) (k : ℕ) :
     GeneralGraphSetupAccount V K p k := by
   obtain ⟨hQ, hG, hC⟩ := generalSetupWord_costs K p k

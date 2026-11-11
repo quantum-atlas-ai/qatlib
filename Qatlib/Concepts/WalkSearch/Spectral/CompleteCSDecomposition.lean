@@ -10,6 +10,30 @@ import Mathlib.Analysis.InnerProductSpace.JointEigenspace
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Mathlib.Analysis.Matrix.PosDef
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+
+/-!
+# Complete cosine-sine decomposition of two projectors
+
+This module constructs a simultaneous normal form for two finite-dimensional orthogonal
+projectors. `csCanonicalP` and `csCanonicalQ` describe four endpoint sectors and two-dimensional
+interior blocks. A spectral frame for the first projector diagonalizes the compression of the
+second, and normalized cross columns supply the interior partners.
+
+Residual endpoint frames complete the construction to an isometry whose range is the whole
+ambient space. `complete_two_projector_cs_normal_form` gives the resulting decompositions of
+both projectors; the matrix spectral background is treated in [Bhatia1997].
+
+## Main statements
+
+* `cs_projector_compressed_eigenframe`: diagonal compression in an isometric range frame.
+* `cs_complete_reducing_frame`: completion by interior partners and endpoint frames.
+* `complete_two_projector_cs_normal_form`: simultaneous complete canonical form.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -29,17 +53,28 @@ open Qatlib.Concepts.BlockEncoding.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator ComplexOrder
 
+/-- The canonical coordinate type with four endpoint sectors and `m` two-dimensional interior
+sectors. -/
 abbrev CSIndex (a b c d m : ℕ) := Fin a ⊕ (Fin b ⊕ (Fin c ⊕ (Fin d ⊕ (Fin m×Bool))))
+/-- The diagonal entries of the first canonical projector, selecting its two endpoint sectors
+and the false coordinate of each interior sector. -/
 def csPValue {a b c d m : ℕ} : CSIndex a b c d m → ℂ
   | .inl _ => 0 | .inr (.inl _) => 1 | .inr (.inr (.inl _)) => 1
   | .inr (.inr (.inr (.inl _))) => 0
   | .inr (.inr (.inr (.inr z))) => if z.2 then 0 else 1
+/-- The diagonal entries of the second canonical projector on its endpoint sectors, with zero
+values on the interior sectors. -/
 def csQEndpoint {a b c d m : ℕ} : CSIndex a b c d m → ℂ
   | .inr (.inl _) => 1 | .inr (.inr (.inr (.inl _))) => 1 | _ => 0
+/-- The two-by-two cosine-sine block with diagonal entries `t` and `1 - t` and off-diagonal
+entries `sqrt (t * (1 - t))`. -/
 noncomputable def csQPlane (t : ℝ) (b c : Bool) : ℂ :=
   if b= c then (if b then (1-t:ℝ) else t) else Real.sqrt (t*(1-t))
+/-- The first canonical projector, diagonal in the cosine-sine coordinate type. -/
 noncomputable def csCanonicalP (a b c d m : ℕ) : Matrix (CSIndex a b c d m) (CSIndex a b c d m) ℂ :=
   diagonal csPValue
+/-- The second canonical matrix, combining endpoint diagonal entries with the two-dimensional
+blocks `csQPlane (t i)`. -/
 noncomputable def csCanonicalQ (a b c d m : ℕ) (t : Fin m→ℝ) :
     Matrix (CSIndex a b c d m) (CSIndex a b c d m) ℂ := fun i j =>
   match i,j with
@@ -47,6 +82,7 @@ noncomputable def csCanonicalQ (a b c d m : ℕ) (t : Fin m→ℝ) :
       if z.1= w.1 then csQPlane (t z.1) z.2 w.2 else 0
   | _,_ => if i= j then csQEndpoint i else 0
 
+/-- The cosine-sine plane block is an orthogonal projector when its parameter lies in `[0, 1]`. -/
 theorem cs_plane_isOrthogonalProjector (t : ℝ) (ht : t∈Set.Icc 0 1) :
     IsOrthogonalProjector (csQPlane t : Matrix Bool Bool ℂ) := by
   have hs : 0 ≤ t*(1-t) := mul_nonneg ht.1 (by linarith [ht.2])
@@ -60,6 +96,7 @@ theorem cs_plane_isOrthogonalProjector (t : ℝ) (ht : t∈Set.Icc 0 1) :
       simp [q,csQPlane,Matrix.mul_apply,Complex.mul_re,Complex.mul_im] <;> nlinarith only [hs2]
   exact ⟨hid,hH⟩
 
+/-- The first canonical cosine-sine matrix is an orthogonal projector for all sector dimensions. -/
 theorem cs_canonicalP_isOrthogonalProjector (a b c d m : ℕ) :
     IsOrthogonalProjector (csCanonicalP a b c d m) := by
   have hi : ∀ i : CSIndex a b c d m,csPValue i*csPValue i=csPValue i := by
@@ -92,6 +129,8 @@ theorem cs_canonicalP_isOrthogonalProjector (a b c d m : ℕ) :
     rw [Matrix.diagonal_conjTranspose]
     congr 1; funext i; exact hh i
 
+/-- Every eigenvalue in the Hermitian spectral decomposition of an orthogonal projector is zero
+or one. -/
 theorem cs_projector_eigenvalues_binary {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (i : H) :
     (show P.IsHermitian from hP.2).eigenvalues i=0 ∨
@@ -114,14 +153,18 @@ theorem cs_projector_eigenvalues_binary {H : Type} [Fintype H] [DecidableEq H]
   · exact Or.inl h
   · exact Or.inr (sub_eq_zero.mp h)
 
+/-- The subtype of spectral indices at which the orthogonal projector has eigenvalue one. -/
 abbrev CSProjectorSupport {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) :=
   {i : H // (show P.IsHermitian from hP.2).eigenvalues i=1}
 
+/-- The eigenvector columns of an orthogonal projector restricted to its eigenvalue-one support. -/
 noncomputable def csProjectorFrame {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) : Matrix H (CSProjectorSupport P hP) ℂ :=
   fun h i=>(show P.IsHermitian from hP.2).eigenvectorUnitary h i.1
 
+/-- The projector frame is an isometry and its range projector is the original orthogonal
+projector. -/
 theorem cs_projector_frame_range {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) :
     IsIsometry (csProjectorFrame P hP) ∧ csProjectorFrame P hP*(csProjectorFrame P hP)ᴴ=P := by
@@ -156,15 +199,19 @@ theorem cs_projector_frame_range {H : Type} [Fintype H] [DecidableEq H]
     · simp only [h0,zero_ne_one,if_false,Complex.ofReal_zero,mul_zero,zero_mul]
     · simp only [h1,if_true,Complex.ofReal_one,mul_one]
 
+/-- Matrix multiplication with its finite summation instance made explicit. -/
 private noncomputable abbrev csMatMul {M N K : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) : Matrix M K ℂ :=
   @HMul.hMul (Matrix M N ℂ) (Matrix N K ℂ) (Matrix M K ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 
+/-- The explicit matrix multiplication operation `csMatMul` is associative. -/
 private theorem csMatMul_assoc {M N K L : Type} [Fintype N] [Fintype K]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) (C : Matrix K L ℂ) :
     csMatMul (csMatMul A B) C=csMatMul A (csMatMul B C) := Matrix.mul_assoc A B C
 
+/-- Choose an isometric frame for the range of `P` that diagonalizes the compression of `Q`,
+with all diagonal coefficients in `[0, 1]`. -/
 theorem cs_projector_compressed_eigenframe {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q) :
     ∃ (A : Matrix H (CSProjectorSupport P hP) ℂ) (t : CSProjectorSupport P hP→ℝ),
@@ -224,25 +271,33 @@ theorem cs_projector_compressed_eigenframe {H : Type} [Fintype H] [DecidableEq H
   rw [norm_smul,hu,mul_one,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg htnn] at hh
   exact ⟨htnn,hh.trans hCnorm⟩
 
+/-- The state inner product preserves subtraction in its first argument. -/
 private theorem cs_inner_sub_left {H : Type} [Fintype H] (u v w : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (u-v) w=Qatlib.Foundations.PureStateMath.Inner u w-Qatlib.Foundations.PureStateMath.Inner v w := by simp only [Qatlib.Foundations.PureStateMath.Inner,star_sub,sub_dotProduct]
 
+/-- The state inner product preserves subtraction in its second argument. -/
 private theorem cs_inner_sub_right {H : Type} [Fintype H] (u v w : QState H) :
     Qatlib.Foundations.PureStateMath.Inner u (v-w)=Qatlib.Foundations.PureStateMath.Inner u v-Qatlib.Foundations.PureStateMath.Inner u w := by simp only [Qatlib.Foundations.PureStateMath.Inner,dotProduct_sub]
 
+/-- Scaling the first inner-product argument conjugates the scalar. -/
 private theorem cs_inner_smul_left {H : Type} [Fintype H] (c : ℂ) (u v : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (c • u) v=star c*Qatlib.Foundations.PureStateMath.Inner u v := by simp only [Qatlib.Foundations.PureStateMath.Inner,star_smul,smul_dotProduct,smul_eq_mul]
 
+/-- Scaling the second inner-product argument multiplies by the scalar. -/
 private theorem cs_inner_smul_right {H : Type} [Fintype H] (c : ℂ) (u v : QState H) :
     Qatlib.Foundations.PureStateMath.Inner u (c • v)=c*Qatlib.Foundations.PureStateMath.Inner u v := by simp only [Qatlib.Foundations.PureStateMath.Inner,dotProduct_smul,smul_eq_mul]
 
+/-- The conjugate of a state inner product is the inner product with its arguments exchanged. -/
 private theorem cs_inner_star {H : Type} [Fintype H] (u v : QState H) :
     star (Qatlib.Foundations.PureStateMath.Inner u v)=Qatlib.Foundations.PureStateMath.Inner v u := (star_dotProduct (v:=v) (w:=u)).symm
 
+/-- The residual matrix `Q * A - A * diagonal t` associated with a diagonal compression. -/
 noncomputable def csCrossRaw {H J : Type} [Fintype H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (t : J→ℝ) : Matrix H J ℂ :=
   csMatMul Q A-csMatMul A (diagonal (fun i=>(t i : ℂ)))
 
+/-- A raw cross column is `Q` applied to the corresponding frame column minus that column scaled
+by its compression coefficient. -/
 private theorem cs_cross_column {H J : Type} [Fintype H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (t : J→ℝ) (i : J) :
     (fun h=>csCrossRaw Q A t h i)=Q*ᵥ(fun h=>A h i)-(t i : ℂ) • (fun h=>A h i) := by
@@ -251,6 +306,8 @@ private theorem cs_cross_column {H J : Type} [Fintype H] [Fintype J] [DecidableE
     Matrix.mulVec,dotProduct,Pi.sub_apply,Pi.smul_apply,smul_eq_mul]
   simp [Matrix.diagonal_apply,mul_ite,mul_comm]
 
+/-- If the compression of the projector `Q` is diagonal with coefficients `t`, the raw cross
+Gram matrix is diagonal with entries `t i * (1 - t i)`. -/
 theorem cs_cross_raw_gram {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (A : Matrix H J ℂ) (t : J→ℝ)
     (hA : IsIsometry A) (ht : csMatMul (csMatMul Aᴴ Q) A=diagonal (fun i=>(t i : ℂ))) :
@@ -289,10 +346,13 @@ theorem cs_cross_raw_gram {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [
     ring
   · simp [hij,Matrix.diagonal_apply]
 
+/-- Scale each raw cross column by the inverse square root of `t i * (1 - t i)`. -/
 noncomputable def csCrossNormalized {H J : Type} [Fintype H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (t : J→ℝ) : Matrix H J ℂ :=
   csMatMul (csCrossRaw Q A t) (diagonal (fun i=>(Real.sqrt (t i*(1-t i)) : ℂ)⁻¹))
 
+/-- The normalized cross matrix is orthogonal to `A`, and its Gram matrix selects precisely the
+indices with `0 < t i < 1`. -/
 theorem cs_cross_normalized_grams {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (A : Matrix H J ℂ) (t : J→ℝ)
     (hA : IsIsometry A) (ht : csMatMul (csMatMul Aᴴ Q) A=diagonal (fun i=>(t i : ℂ)))
@@ -334,6 +394,8 @@ theorem cs_cross_normalized_grams {H J : Type} [Fintype H] [DecidableEq H] [Fint
             have he : t i=1 := le_antisymm (hb i).2 (le_of_not_gt (fun hlt=>hi ⟨hp,hlt⟩))
             simp [he]
 
+/-- Each normalized cross column is the raw column scaled by the inverse square root of its
+compression variance. -/
 private theorem cs_cross_normalized_column {H J : Type} [Fintype H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (t : J→ℝ) (i : J) :
     (fun h=>csCrossNormalized Q A t h i)=(Real.sqrt (t i*(1-t i)) : ℂ)⁻¹ •
@@ -341,6 +403,8 @@ private theorem cs_cross_normalized_column {H J : Type} [Fintype H] [Fintype J] 
   funext h
   simp [csCrossNormalized,csMatMul,Matrix.mul_apply,Matrix.diagonal_apply,mul_ite,mul_comm]
 
+/-- For compression coefficients in `[0, 1]`, recover each raw cross column by multiplying its
+normalized column by `sqrt (t i * (1 - t i))`. -/
 theorem cs_cross_scale_recovery {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (A : Matrix H J ℂ) (t : J→ℝ)
     (hA : IsIsometry A) (ht : csMatMul (csMatMul Aᴴ Q) A=diagonal (fun i=>(t i : ℂ)))
@@ -362,6 +426,8 @@ theorem cs_cross_scale_recovery {H J : Type} [Fintype H] [DecidableEq H] [Fintyp
   · have hsC : (s : ℂ)≠0 := Complex.ofReal_ne_zero.mpr hs
     rw [mul_inv_cancel₀ hsC,one_smul]
 
+/-- The projector `Q` acts on the original and normalized cross frames by the two coupled
+cosine-sine block formulas. -/
 theorem cs_cross_Q_actions {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (A : Matrix H J ℂ) (t : J→ℝ)
     (hA : IsIsometry A) (ht : csMatMul (csMatMul Aᴴ Q) A=diagonal (fun i=>(t i : ℂ)))
@@ -425,11 +491,14 @@ theorem cs_cross_Q_actions {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] 
     simp [Matrix.diagonal_apply,mul_ite,Complex.ofReal_sub,mul_comm] at he ⊢
     simpa only [a,b] using! he
 
+/-- A diagonal matrix with real entries, viewed over the complex numbers, equals its adjoint. -/
 private theorem cs_real_diagonal_adjoint {J : Type} [DecidableEq J] (f : J→ℝ) :
     (diagonal (fun i=>(f i : ℂ)))ᴴ=diagonal (fun i=>(f i : ℂ)) := by
   rw [Matrix.diagonal_conjTranspose]
   congr 1; funext i; simp only [Pi.star_apply,Complex.star_def,Complex.conj_ofReal]
 
+/-- The sum of the range matrices of `A` and its normalized cross frame is an orthogonal
+projector commuting with `Q`, and it contains the range projector of `A`. -/
 theorem cs_busy_sum_isProjector_and_commutes {H J : Type} [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (A : Matrix H J ℂ) (t : J→ℝ)
     (hA : IsIsometry A) (ht : csMatMul (csMatMul Aᴴ Q) A=diagonal (fun i=>(t i : ℂ)))
@@ -505,6 +574,7 @@ theorem cs_busy_sum_isProjector_and_commutes {H J : Type} [Fintype H] [Decidable
       _ = (A*Aᴴ+B*Bᴴ)*Q := by rw [← hQa,← hQb]; simp only [Matrix.add_mul,Matrix.mul_assoc]
   · simp only [Matrix.mul_add,hAA,hzero1,add_zero]
 
+/-- The product of two commuting orthogonal projectors is an orthogonal projector. -/
 private theorem cs_commuting_projector_product {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (hc : P*Q=Q*P) : IsOrthogonalProjector (P*Q) := by
@@ -520,6 +590,8 @@ private theorem cs_commuting_projector_product {H : Type} [Fintype H] [Decidable
   · change (P*Q)ᴴ=P*Q
     rw [Matrix.conjTranspose_mul,hPs,hQs,← hc]
 
+/-- Split the complement of a projector commuting with `Q` into orthogonal-projector endpoint
+pieces on which `Q` acts as zero and as the identity. -/
 theorem cs_residual_endpoint_projectors {H : Type} [Fintype H] [DecidableEq H]
     (Q T : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hT : IsOrthogonalProjector T)
     (hc : Q*T=T*Q) :
@@ -544,6 +616,7 @@ theorem cs_residual_endpoint_projectors {H : Type} [Fintype H] [DecidableEq H]
       _ = (1-T)*(Q*Q) := by rw [← Matrix.mul_assoc,← hCQ,Matrix.mul_assoc]
       _ = _ := by rw [hQi]
 
+/-- An orthogonal projector fixes its eigenvalue-one frame. -/
 theorem cs_projector_frame_fixed {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) :
     csMatMul P (csProjectorFrame P hP)=csProjectorFrame P hP := by
@@ -553,6 +626,7 @@ theorem cs_projector_frame_fixed {H : Type} [Fintype H] [DecidableEq H]
     _ = csMatMul (csProjectorFrame P hP*(csProjectorFrame P hP)ᴴ) (csProjectorFrame P hP) := by rw [hf.2]
     _ = csProjectorFrame P hP := by simp only [csMatMul,Matrix.mul_assoc,hgram,Matrix.mul_one]
 
+/-- Concatenating two isometric frames with zero cross Gram matrix gives an isometric frame. -/
 private theorem cs_fromCols_isometry {H J K : Type} [Fintype H] [Fintype J] [Fintype K]
     [DecidableEq J] [DecidableEq K] (A : Matrix H J ℂ) (B : Matrix H K ℂ)
     (hA : IsIsometry A) (hB : IsIsometry B) (hAB : csMatMul Aᴴ B=0) :
@@ -572,11 +646,13 @@ private theorem cs_fromCols_isometry {H J K : Type} [Fintype H] [Fintype J] [Fin
   · exact congrFun (congrFun hBA _) _
   · exact congrFun (congrFun (show Bᴴ*B=1 from hB) _) _
 
+/-- The range matrix of concatenated frames is the sum of their individual range matrices. -/
 private theorem cs_fromCols_range {H J K : Type} [Fintype J] [Fintype K]
     (A : Matrix H J ℂ) (B : Matrix H K ℂ) :
     Matrix.fromCols A B * (Matrix.fromCols A B)ᴴ=A*Aᴴ+B*Bᴴ := by
   rw [Matrix.conjTranspose_fromCols_eq_fromRows_conjTranspose,Matrix.fromCols_mul_fromRows]
 
+/-- A normalized cross column vanishes when its coefficient in `[0, 1]` is an endpoint. -/
 private theorem cs_cross_endpoint_zero {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (A : Matrix H J ℂ) (t : J→ℝ) (hA : IsIsometry A)
@@ -587,6 +663,8 @@ private theorem cs_cross_endpoint_zero {H J : Type} [Fintype H] [DecidableEq H]
   simp only [Matrix.diagonal_apply_eq,if_neg hi] at hg
   exact dotProduct_star_self_eq_zero.mp hg
 
+/-- Restricting the normalized cross matrix to interior coefficients gives an isometry with the
+same range matrix as the unrestricted cross matrix. -/
 theorem cs_interior_partner_isometry {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (A : Matrix H J ℂ) (t : J→ℝ) (hA : IsIsometry A)
@@ -621,6 +699,9 @@ theorem cs_interior_partner_isometry {H J : Type} [Fintype H] [DecidableEq H]
       have hzi : B h i=0 := congrFun hz h
       simp [hi,hzi]
 
+/-- Combine the original frame, its interior partners, and the two residual endpoint frames into
+a complete isometry. The residual frames are annihilated by the original range projector and
+have the stated zero and identity actions under `Q`. -/
 theorem cs_complete_reducing_frame {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (A : Matrix H J ℂ) (t : J→ℝ) (hA : IsIsometry A)
@@ -742,9 +823,14 @@ theorem cs_complete_reducing_frame {H J : Type} [Fintype H] [DecidableEq H]
     _ = T+((1-T)*(1-Q)+(1-T)*Q) := by dsimp [T]; abel
     _ = 1 := by rw [hs,add_sub_cancel]
 
+/-- The subtype of indices with compression coefficient strictly between zero and one. -/
 private abbrev CSInterior {J : Type} (t : J→ℝ) := {i : J // 0<t i ∧ t i<1}
+/-- The sum type indexing the two residual endpoint frames, the original frame, and its interior
+partners. -/
 private abbrev CSMixedIndex (K0 K1 J : Type) (t : J→ℝ) := K0 ⊕ (J ⊕ (K1 ⊕ CSInterior t))
 
+/-- An equivalence from canonical finite cosine-sine coordinates to the mixed frame indices,
+separating coefficients zero, one, and strictly between them. -/
 private noncomputable def csCoordinateEquiv (K0 K1 J : Type)
     [Fintype K0] [Fintype K1] [Fintype J] (t : J→ℝ) (hb : ∀ i,t i∈Set.Icc 0 1) :
     CSIndex (Fintype.card K0) (Fintype.card {i : J // t i=1})
@@ -798,6 +884,8 @@ private noncomputable def csCoordinateEquiv (K0 K1 J : Type)
         · by_cases h0 : t i=0 <;> simp [h1,h0]
       · rcases i with i | i <;> simp
 
+/-- Expand multiplication by the second canonical matrix into its endpoint column actions and
+interior two-column cosine-sine combinations. -/
 private theorem cs_canonicalQ_column {H : Type} {a b c d m : ℕ}
     (V : Matrix H (CSIndex a b c d m) ℂ) (t : Fin m→ℝ) (h : H)
     (i : CSIndex a b c d m) :
@@ -824,6 +912,8 @@ private theorem cs_canonicalQ_column {H : Type} {a b c d m : ℕ}
         · cases b <;> simp [csMatMul,Matrix.mul_apply,Fintype.sum_sum_type,Fintype.sum_prod_type,
             csCanonicalQ,csQPlane,ite_mul,Complex.ofReal_sub,add_comm]
 
+/-- Any two finite-dimensional complex orthogonal projectors have a simultaneous complete
+cosine-sine normal form, with four endpoint sectors and two-dimensional interior blocks. -/
 theorem complete_two_projector_cs_normal_form :
     ∀ (H : Type) [Fintype H] [DecidableEq H] (P Q : Matrix H H ℂ),
     IsOrthogonalProjector P → IsOrthogonalProjector Q →

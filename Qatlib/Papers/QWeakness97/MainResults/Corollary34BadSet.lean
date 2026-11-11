@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
 import Qatlib.Foundations.BornMetrics.EventProbability
 import Mathlib.Tactic.Linarith
+
+/-!
+# Single-address oracle changes and exceptional sets
+
+This module proves a finite Boolean XOR-oracle version of the exceptional-set estimate
+associated with Corollary 3.4 of [BennettEtAl1997]. `accumulatedQueryMass` sums the probability
+of querying one address along the reference-oracle execution; for a unitary circuit and a
+normalized initial state, these masses sum to the query count.
+
+The estimate uses the explicit constant four for this oracle primitive and query-count
+convention. If each oracle `Ay y` agrees with the reference away from `y`, all but at most `4 *
+T^2 / ε^2` addresses produce final states at Euclidean distance at most `ε`, where `T` is the
+positive number of queries.
+
+## Main statements
+
+* `sum_accumulatedQueryMass` gives the total query-mass identity.
+* `single_address_final_distance_sq` bounds the squared final distance by `4 * T` times the
+  address's accumulated mass.
+* `total_single_address_distance_sq_le` bounds the sum of squared distances by `4 * T^2`.
+* `corollary3_4_bad_set` constructs the exceptional set for positive `ε`.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +51,7 @@ open scoped BigOperators
 
 section Generic
 
+/-- Interchange a finite sum over indices with the sum of a real-valued function over a list. -/
 private theorem sum_list_map_comm {α I : Type} [Fintype I] (L : List α) (g : α → I → ℝ) :
     (∑ i : I, (L.map (fun a => g a i)).sum) = (L.map (fun a => ∑ i : I, g a i)).sum := by
   induction L with
@@ -32,6 +60,8 @@ private theorem sum_list_map_comm {α I : Type} [Fintype I] (L : List α) (g : �
     simp only [List.map_cons, List.sum_cons, Finset.sum_add_distrib]
     rw [ih]
 
+/-- Pointwise inequalities on the elements of a list imply the corresponding inequality between
+the sums of the mapped real-valued functions. -/
 private theorem list_map_sum_le {α : Type*} (L : List α) {f g : α → ℝ}
     (h : ∀ a ∈ L, f a ≤ g a) : (L.map f).sum ≤ (L.map g).sum := by
   induction L with
@@ -41,6 +71,8 @@ private theorem list_map_sum_le {α : Type*} (L : List α) {f g : α → ℝ}
     exact add_le_add (h a List.mem_cons_self)
       (ih fun b hb => h b (List.mem_cons_of_mem _ hb))
 
+/-- If nonnegative masses sum to a positive value `T`, at most `4 * T^2 / ε^2` indices have mass
+at least `ε^2 / (4 * T)` for positive `ε`. -/
 theorem card_threshold_set_le {I : Type} [Fintype I] (q : I → ℝ) (hq : ∀ y : I, 0 ≤ q y)
     (T ε : ℝ) (hT : 0 < T) (hε : 0 < ε) (hsum : ∑ y : I, q y = T) :
     ((Finset.univ.filter fun y : I => ε ^ 2 / (4 * T) ≤ q y).card : ℝ) ≤ 4 * T ^ 2 / ε ^ 2 := by
@@ -66,10 +98,14 @@ end Generic
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- Sum the probability mass of the query-address fiber at `y` over all states immediately
+before oracle queries in the execution with reference oracle `A`. -/
 noncomputable def accumulatedQueryMass (A : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (y : I) : ℝ :=
   ((oracleQueryInputs A C ψ).map (fun φ => MeasureProb φ (workspaceQueryFiber (W := W) y))).sum
 
+/-- The accumulated query mass at each address is nonnegative because it is a sum of measurement
+probabilities. -/
 theorem accumulatedQueryMass_nonneg (A : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (y : I) : 0 ≤ accumulatedQueryMass A C ψ y := by
   unfold accumulatedQueryMass
@@ -77,6 +113,9 @@ theorem accumulatedQueryMass_nonneg (A : I → Bool) (C : Circuit ((I × Bool) �
   obtain ⟨φ, _, rfl⟩ := List.mem_map.mp hx
   exact measureProb_nonneg φ _
 
+/-- For a unitary circuit and a normalized initial state, the accumulated masses over all query
+addresses sum to the number of oracle queries. This is the query-mass accounting used in the
+finite-oracle version of Corollary 3.4 of [BennettEtAl1997]. -/
 theorem sum_accumulatedQueryMass (A : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) :
     ∑ y : I, accumulatedQueryMass A C ψ y = (QueryCount C : ℝ) := by
@@ -101,6 +140,9 @@ theorem sum_accumulatedQueryMass (A : I → Bool) (C : Circuit ((I × Bool) × W
           rw [ih]; push_cast; ring
     _ = (QueryCount C : ℝ) := by rw [hlen]
 
+/-- If `B` agrees with `A` away from one address `y`, their final states from a normalized seed
+in a unitary circuit have squared Euclidean distance at most `4 * QueryCount C *
+accumulatedQueryMass A C ψ y`. -/
 theorem single_address_final_distance_sq (A B : I → Bool)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) (y : I)
@@ -131,6 +173,9 @@ theorem single_address_final_distance_sq (A B : I → Bool)
     _ ≤ 4 * (QueryCount C : ℝ) * accumulatedQueryMass A C ψ y :=
         mul_le_mul_of_nonneg_left hle (by positivity)
 
+/-- For a family of oracles differing from the reference only at their indexed addresses, the
+sum of squared final-state distances is at most four times the square of the circuit's query
+count. The circuit is assumed unitary and its initial state normalized. -/
 theorem total_single_address_distance_sq_le (A : I → Bool) (Ay : I → I → Bool)
     (hAy : ∀ (y : I) (x : I), x ≠ y → Ay y x = A x)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
@@ -150,6 +195,11 @@ theorem total_single_address_distance_sq_le (A : I → Bool) (Ay : I → I → B
         rw [Finset.mul_sum]
     _ = 4 * (QueryCount C : ℝ) ^ 2 := by rw [hsum]; ring
 
+/-- For a unitary circuit with a normalized seed, positive query count `T`, and positive
+tolerance `ε`, there is an exceptional set of at most `4 * T^2 / ε^2` addresses outside
+which every permitted single-address oracle change alters the final state by Euclidean
+distance at most `ε`. This is the finite Boolean XOR-oracle estimate associated with
+Corollary 3.4 of [BennettEtAl1997], with its explicit constant four. -/
 theorem corollary3_4_bad_set (A : I → Bool) (Ay : I → I → Bool)
     (hAy : ∀ (y : I) (x : I), x ≠ y → Ay y x = A x)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))

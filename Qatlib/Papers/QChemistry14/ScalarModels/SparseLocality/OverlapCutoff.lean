@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+/-!
+# Gaussian overlap beyond the cutoff radius
+
+This module proves the strict threshold guarantee for the scalar Gaussian overlap formula. If
+both exponents are bounded below by a positive `aMin` and the nonnegative separation exceeds
+`cutoffDistance aMin k`, the overlap is strictly below `10⁻ᵏ`. See [McCleanEtAl2014].
+
+## Main statements
+
+* `gaussOverlap_lt_threshold`: If `a, b ≥ aMin > 0` and the nonnegative separation `R` strictly
+  exceeds `cutoffDistance aMin k`, then `gaussOverlap a b R < 10⁻ᵏ`.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +31,8 @@ namespace Qatlib.Papers.QChemistry14.ScalarModels.SparseLocality
 
 open Qatlib.Papers.QChemistry14.ScalarModels.Definitions
 
+/-- If `a, b ≥ aMin > 0` and the nonnegative separation `R` strictly exceeds `cutoffDistance
+aMin k`, then `gaussOverlap a b R < 10⁻ᵏ`. See [McCleanEtAl2014]. -/
 theorem gaussOverlap_lt_threshold {a b R aMin : ℝ} {k : ℕ}
     (haMin : 0 < aMin) (ha : aMin ≤ a) (hb : aMin ≤ b) (_hR : 0 ≤ R)
     (hcut : cutoffDistance aMin k < R) :

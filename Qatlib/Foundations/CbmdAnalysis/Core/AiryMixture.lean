@@ -8,6 +8,28 @@ import Qatlib.Foundations.CbmdAnalysis.Core.PositivePropagators
 import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorGrowth
 import Mathlib.Probability.Distributions.Beta
 import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+
+/-!
+# Airy propagators as beta mixtures
+
+This module expresses the normalized Airy propagator as a beta-distributed mixture of wave
+propagators at scaled times. The measure `airyMixMeasure` and time change `airyTimeScale` match
+the Airy series coefficients through beta moments. The resulting scalar, positive semidefinite
+matrix, and general algebra norm bounds support the contour estimates in [WangEtAl2026].
+
+## Main statements
+
+* `airyPropagator_wave_mixture`: the Airy propagator is a beta mixture of wave propagators for
+  nonnegative time.
+* `airyPropagator_posSemidef_norm_le_one`: positive semidefinite matrices give contraction
+  bounds.
+* `airyPropagator_norm_le_exp`: an exponential norm bound in a complete normed algebra.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -18,12 +40,15 @@ namespace CBMD
 open Set MeasureTheory ProbabilityTheory Filter
 open scoped Topology
 
+/-- The real beta density is nonnegative when both shape parameters are positive. -/
 private theorem betaPDFReal_nonneg {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (x : ℝ) :
     0 ≤ betaPDFReal α β x := by
   by_cases hx : 0 < x ∧ x < 1
   · exact (betaPDFReal_pos hx.1 hx.2 hα hβ).le
   · simp [betaPDFReal, hx]
 
+/-- Integration against the beta measure equals integration against its real density for
+positive shape parameters. -/
 private theorem beta_integral_eq_density {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (f : ℝ → E) :
     (∫ x, f x ∂betaMeasure α β) = ∫ x, betaPDFReal α β x • f x := by
@@ -36,6 +61,7 @@ private theorem beta_integral_eq_density {E : Type*} [NormedAddCommGroup E] [Nor
   (try dsimp only)
   rw [ENNReal.toReal_ofReal (betaPDFReal_nonneg hα hβ x)]
 
+/-- The real beta density integrates to one when both shape parameters are positive. -/
 private theorem integral_betaPDFReal {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) :
     (∫ x, betaPDFReal α β x) = 1 := by
   letI := isProbabilityMeasureBeta hα hβ
@@ -43,6 +69,8 @@ private theorem integral_betaPDFReal {α β : ℝ} (hα : 0 < α) (hβ : 0 < β)
   rw [beta_integral_eq_density hα hβ] at h
   simpa only [smul_eq_mul, mul_one] using! h
 
+/-- Multiplying a beta density by `x ^ n` shifts its first parameter by `n`, with normalization
+given by a ratio of beta functions. -/
 private theorem beta_moment_density {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (n : ℕ) (x : ℝ) :
     betaPDFReal α β x * x ^ n =
       (beta (α + n) β / beta α β) * betaPDFReal (α + n) β x := by
@@ -55,12 +83,15 @@ private theorem beta_moment_density {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) 
     field_simp
   · simp [betaPDFReal, hx]
 
+/-- The `n`th moment of a beta measure with positive parameters is the ratio `beta (α + n) β /
+beta α β`. -/
 private theorem betaMeasure_moment {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) (n : ℕ) :
     (∫ x : ℝ, x ^ n ∂betaMeasure α β) = beta (α + n) β / beta α β := by
   rw [beta_integral_eq_density hα hβ]
   simp_rw [smul_eq_mul, beta_moment_density hα hβ n]
   rw [integral_const_mul, integral_betaPDFReal (by positivity : 0 < α + n) hβ, mul_one]
 
+/-- The beta measure is concentrated on the open interval `(0, 1)`. -/
 theorem betaMeasure_ae_mem {α β : ℝ} :
     ∀ᵐ x : ℝ ∂betaMeasure α β, x ∈ Ioo (0 : ℝ) 1 := by
   change ∀ᵐ x : ℝ ∂volume.withDensity (fun x => ENNReal.ofReal (betaPDFReal α β x)), x ∈ Ioo 0 1
@@ -71,6 +102,8 @@ theorem betaMeasure_ae_mem {α β : ℝ} :
   change ¬(0 < x ∧ x < 1) at h
   exact hx (by simp [betaPDFReal, h])
 
+/-- For positive parameters, increasing the first beta-function argument by one multiplies its
+value by `α / (α + β)`. -/
 private theorem beta_step {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) :
     beta (α + 1) β = α / (α + β) * beta α β := by
   unfold beta
@@ -79,18 +112,22 @@ private theorem beta_step {α β : ℝ} (hα : 0 < α) (hβ : 0 < β) :
   simp only [div_eq_mul_inv, mul_inv_rev]
   ring
 
+/-- The beta measure with shape parameters `1 / 2` and `1 / 6` used in the Airy wave mixture. -/
 def airyMixMeasure : Measure ℝ := betaMeasure (1 / 2) (1 / 6)
 
 instance airyMixMeasure_probability : IsProbabilityMeasure airyMixMeasure :=
   isProbabilityMeasureBeta (by norm_num) (by norm_num)
 
+/-- The beta-function ratio representing the `n`th moment of `airyMixMeasure`. -/
 private def airyBetaMoment (n : ℕ) : ℝ :=
   beta (1 / 2 + n) (1 / 6) / beta (1 / 2) (1 / 6)
 
+/-- The zeroth Airy beta moment equals one. -/
 private theorem airyBetaMoment_zero : airyBetaMoment 0 = 1 := by
   simp only [airyBetaMoment, Nat.cast_zero, add_zero]
   exact div_self (ne_of_gt (beta_pos (by norm_num) (by norm_num)))
 
+/-- Successive Airy beta moments differ by the factor `(n + 1 / 2) / (n + 2 / 3)`. -/
 private theorem airyBetaMoment_step (n : ℕ) :
     airyBetaMoment (n + 1) =
       ((n : ℝ) + 1 / 2) / ((n : ℝ) + 2 / 3) * airyBetaMoment n := by
@@ -101,6 +138,8 @@ private theorem airyBetaMoment_step (n : ℕ) :
     show (n : ℝ) + 1 / 2 + 1 / 6 = n + 2 / 3 by ring]
   ring
 
+/-- The Airy beta moment multiplied by `(4 / 9) ^ n / (2 * n)!` equals `airySeriesCoefficient
+n`. -/
 private theorem airyBetaMoment_coefficient (n : ℕ) :
     airyBetaMoment n * (((2 * n).factorial : ℝ)⁻¹) * (4 / 9 : ℝ) ^ n =
       airySeriesCoefficient n := by
@@ -121,18 +160,23 @@ private theorem airyBetaMoment_coefficient (n : ℕ) :
     field_simp
     ring
 
+/-- The moments of `airyMixMeasure`, scaled by `(4 / 9) ^ n / (2 * n)!`, recover the Airy series
+coefficients. -/
 theorem airyMixMeasure_moment_coefficient (n : ℕ) :
     (∫ u : ℝ, u ^ n ∂airyMixMeasure) * (((2 * n).factorial : ℝ)⁻¹) *
       (4 / 9 : ℝ) ^ n = airySeriesCoefficient n := by
   rw [airyMixMeasure, betaMeasure_moment (by norm_num) (by norm_num)]
   exact airyBetaMoment_coefficient n
 
+/-- The real Airy time change `(2 / 3) * t * sqrt t`. -/
 def airyTimeScale (t : ℝ) : ℝ := (2 / 3) * t * Real.sqrt t
 
+/-- The Airy time scale is nonnegative for nonnegative time. -/
 theorem airyTimeScale_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ airyTimeScale t := by
   unfold airyTimeScale
   positivity
 
+/-- For nonnegative time, the square of the Airy time scale is `(4 / 9) * t ^ 3`. -/
 theorem airyTimeScale_sq {t : ℝ} (ht : 0 ≤ t) :
     airyTimeScale t ^ 2 = (4 / 9) * t ^ 3 := by
   unfold airyTimeScale
@@ -144,6 +188,8 @@ variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
 
 omit [CompleteSpace E] in
 
+/-- For `u ≥ 0`, multiplying the `n`th wave-series term by `u ^ n` is equivalent to scaling its
+time by `sqrt u`. -/
 private theorem airy_mixture_term (A : E) (t u : ℝ) (hu : 0 ≤ u) (n : ℕ) :
     u ^ n • ((((2 * n).factorial : ℂ)⁻¹) • (-((airyTimeScale t : ℂ) ^ 2) • A) ^ n) =
       (((2 * n).factorial : ℂ)⁻¹) •
@@ -154,6 +200,8 @@ private theorem airy_mixture_term (A : E) (t u : ℝ) (hu : 0 ≤ u) (n : ℕ) :
   exact Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wave_scaled_term A (airyTimeScale t : ℂ)
       (Real.sqrt u) n
 
+/-- For nonnegative time, integrating a wave-series term against the Airy beta measure gives the
+corresponding Airy-series term. -/
 private theorem airy_integrated_term (A : E) (t : ℝ) (ht : 0 ≤ t) (n : ℕ) :
     (∫ u : ℝ, u ^ n • ((((2 * n).factorial : ℂ)⁻¹) •
       (-((airyTimeScale t : ℂ) ^ 2) • A) ^ n) ∂airyMixMeasure) =
@@ -173,6 +221,8 @@ private theorem airy_integrated_term (A : E) (t : ℝ) (ht : 0 ≤ t) (n : ℕ) 
   push_cast at h
   simpa only [mul_assoc] using! h
 
+/-- For nonnegative time, the normalized Airy propagator is the integral of wave propagators
+with time `airyTimeScale t * sqrt u` against `airyMixMeasure`. -/
 theorem airyPropagator_wave_mixture (A : E) (t : ℝ) (ht : 0 ≤ t) :
     airyPropagator A (t : ℂ) =
       ∫ u : ℝ, wavePropagator A
@@ -209,6 +259,8 @@ theorem airyPropagator_wave_mixture (A : E) (t : ℝ) (ht : 0 ≤ t) :
 
 end BanachAlgebra
 
+/-- The normalized scalar Airy propagator has norm at most one for nonnegative scalar argument
+and time. -/
 theorem airyPropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) (ht : 0 ≤ t) :
     ‖airyPropagator (x : ℂ) (t : ℂ)‖ ≤ 1 := by
   rw [airyPropagator_wave_mixture _ t ht]
@@ -222,6 +274,8 @@ theorem airyPropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) (ht 
 
 open scoped Matrix.Norms.L2Operator ComplexOrder in
 
+/-- The normalized Airy propagator of a positive semidefinite complex matrix has norm at most
+one for nonnegative time. -/
 theorem airyPropagator_posSemidef_norm_le_one {n : Type*} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (hA : A.PosSemidef) (t : ℝ) (ht : 0 ≤ t) :
     ‖airyPropagator A (t : ℂ)‖ ≤ 1 := by
@@ -234,6 +288,8 @@ theorem airyPropagator_posSemidef_norm_le_one {n : Type*} [Fintype n] [Decidable
         exact wavePropagator_posSemidef_norm_le_one A hA _))
   simpa using! h
 
+/-- For nonnegative time, the Airy propagator norm is bounded by `exp (airyTimeScale t * sqrt
+‖A‖)` in a complete complex normed algebra with norm-one identity. -/
 theorem airyPropagator_norm_le_exp {E : Type*} [NormedRing E] [NormedAlgebra ℂ E]
     [CompleteSpace E] [NormOneClass E] (A : E) (t : ℝ) (ht : 0 ≤ t) :
     ‖airyPropagator A (t : ℂ)‖ ≤ Real.exp (airyTimeScale t * Real.sqrt ‖A‖) := by

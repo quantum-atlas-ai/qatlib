@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Conditional outputs under boundary QSVT errors
+
+This module transfers the boundary operator-error estimate to output norms and normalized states
+for the same odd complex-phase word. In the QSVT robustness framework of [GilyenSuLowWiebe2019],
+an error smaller than the ideal output norm gives a success-norm lower bound and a
+conditional-state distance bound.
+
+## Main statements
+
+* `complex_boundary_same_word_conditional_output`: Bound the actual output norm and normalized
+  error using the boundary robustness rate.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -33,6 +52,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For an odd unit-phase word applied to an approximate block encoding, let `η = 4 * zs.length
+* √(ε / α)` and let `τ` be the ideal output norm. If `η < τ`, the actual output has squared
+norm at least `(τ - η) ^ 2` and normalized error at most `2 * η / τ` [GilyenSuLowWiebe2019]. -/
 theorem complex_boundary_same_word_conditional_output :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

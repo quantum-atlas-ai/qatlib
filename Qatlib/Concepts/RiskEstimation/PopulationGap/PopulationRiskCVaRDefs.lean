@@ -15,6 +15,30 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+
+/-!
+# Population tail moments and empirical confidence bounds
+
+This module defines population and empirical truncated loss moments and their ratios to
+cumulative probability. The ratios `populationCVaR` and `empiricalCVaR` use the threshold
+restricted payoff, with the lower tail convention used by this development of quantum risk
+analysis [WoernerEgger2019].
+
+Finite sample variance and union bounds control CDF and tail moment errors over a threshold
+list. A separate ratio stability theorem transfers simultaneous numerator and denominator
+accuracy to conditional mean accuracy when the population denominator is sufficiently large.
+
+## Main statements
+
+* `bounded_variance_le_quarter`: variance bound for a payoff in the unit interval.
+* `population_cvar_ratio_stability`: conditional mean error under denominator separation.
+* `population_cvar_confidence_mass`: the finite threshold table failure bound.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -53,15 +77,20 @@ variable {n N : ℕ}
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
+/-- The independent product PMF obtained by sampling once from each of the two supplied PMFs. -/
 noncomputable def populationJointLaw {α β : Type} (p : PMF α) (q : PMF β) : PMF (α × β) :=
   PMF.bind p (fun a => PMF.map (fun b => (a, b)) q)
 
+/-- The shared rational label readout `labelReadout` at size `M` and precision `b`. -/
 noncomputable def s3Readout (M : ℕ) (b : ℕ) (z : Fin M) : ℚ :=
   labelReadout M b z
 
+/-- The nearest integer count readout `countLabelReadoutNearest` at population size `N`. -/
 noncomputable def s3Count (N : ℕ) (M : ℕ) (z : Fin M) : ℕ :=
   countLabelReadoutNearest N M z
 
+/-- A real payoff taking values in `[0, 1]` under a finite probability distribution has variance
+at most one quarter. -/
 theorem bounded_variance_le_quarter {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (hf : ∀ x, 0 ≤ f x ∧ f x ≤ 1) :
     p.variance f ≤ 1/4 := by
@@ -122,6 +151,8 @@ theorem bounded_variance_le_quarter {X : Type} [Fintype X] [DecidableEq X]
   have h2 : μ - μ^2 ≤ 1/4 := by nlinarith [sq_nonneg (2*μ - 1)]
   linarith
 
+/-- The event mass under the independent sample law equals `FinDist.probEvent` for the same
+repeated finite distribution. -/
 theorem iid_mass_eq_probEvent (p : FinDist (Option (Fin n)))
     (E : (Fin N → Option (Fin n)) → Prop) :
     Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass (independentSampleLaw (fun _ : Fin N => p)) E
@@ -132,6 +163,7 @@ theorem iid_mass_eq_probEvent (p : FinDist (Option (Fin n)))
   intro ω _
   rfl
 
+/-- The probability of a union of two sample events is at most the sum of their probabilities. -/
 theorem probEvent_or_le {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) {L : ℕ}
     (A B : (Fin L → X) → Prop) :
     FinDist.probEvent (L := L) p (fun ω => A ω ∨ B ω)
@@ -219,27 +251,37 @@ theorem probEvent_or_le {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) {
         + (Finset.sum ((Finset.univ : Finset (Fin L → X)).filter (fun ω => B ω))
           (fun ω => p.probOf ω)) := by rw [hAeq, hBeq]
 
+/-- The expectation of the rational threshold restricted tail payoff under the population
+distribution. -/
 noncomputable def populationTailMoment {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) : ℝ :=
   ∑ a, p.prob a * (riskTailPayoff loss t a : ℝ)
 
+/-- The population threshold restricted tail moment divided by the population CDF at that
+threshold. -/
 noncomputable def populationCVaR {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) : ℝ :=
   populationTailMoment p loss t / populationCDF p loss t
 
+/-- The sample average of the threshold restricted rational tail payoff, computed using
+empirical multiplicities. -/
 noncomputable def empiricalTailMoment {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (t : ℚ) : ℝ :=
   (((∑ a, empiricalWeight ω a * riskTailPayoff loss t a) / (N : ℚ) : ℚ) : ℝ)
 
+/-- The empirical threshold restricted tail moment divided by the empirical CDF. -/
 noncomputable def empiricalCVaR {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (t : ℚ) : ℝ :=
   empiricalTailMoment ω loss t / (empiricalCDF ω loss t : ℝ)
 
+/-- The population tail moment equals the finite distribution expectation of the threshold
+restricted payoff. -/
 theorem population_tail_moment_eq_expect {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) :
     populationTailMoment p loss t = p.expect (fun i => (riskTailPayoff loss t i : ℝ)) := by
   rfl
 
+/-- The empirical tail moment equals the sample average of the threshold restricted payoff. -/
 theorem empirical_tail_moment_eq_avg (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (t : ℚ) :
     empiricalTailMoment ω loss t = FinDist.avg (fun i => (riskTailPayoff loss t i : ℝ)) ω := by
@@ -256,6 +298,8 @@ theorem empirical_tail_moment_eq_avg (ω : Fin N → Option (Fin n))
   unfold FinDist.avg
   rfl
 
+/-- For losses in `[0, 1]` and positive sample size and tolerance, empirical tail moment error
+exceeds `ν` with mass at most `1 / (4 * N * ν ^ 2)`. -/
 theorem empirical_tail_moment_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν)
     (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1) :
@@ -278,6 +322,9 @@ theorem empirical_tail_moment_sampling_bound {n N : ℕ} (p : FinDist (Option (F
     _ ≤ (1/4 : ℝ)/((N : ℝ)*ν^2) := div_le_div_of_nonneg_right hvar hd.le
     _ = _ := by ring
 
+/-- For bounded losses, simultaneous CDF and tail moment errors at most `η` yield conditional
+mean error at most `4 * η / populationCDF p loss t` when `2 * η` is below the positive
+population CDF. -/
 theorem population_cvar_ratio_stability {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) (η : ℝ) (ω : Fin N → Option (Fin n))
     (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1) (hη : 0 ≤ η)
@@ -314,11 +361,14 @@ theorem population_cvar_ratio_stability {n N : ℕ} (p : FinDist (Option (Fin n)
     (empiricalCDF ω loss t : ℝ) (empiricalTailMoment ω loss t) η hη hp hgap hc hm ha0 haφ
   exact h
 
+/-- The sample event that some listed threshold has CDF or tail moment error exceeding `ν`. -/
 def badTable {n N : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
     (xs : List ℚ) (ν : ℝ) : (Fin N → Option (Fin n)) → Prop := fun ω =>
   (∃ t ∈ xs, ν < |(empiricalCDF ω loss t : ℝ)-populationCDF p loss t|)
   ∨ (∃ t ∈ xs, ν < |empiricalTailMoment ω loss t - populationTailMoment p loss t|)
 
+/-- For losses in `[0, 1]`, the probability of tail moment error above `ν` at any listed
+threshold is at most `xs.length / (4 * N * ν ^ 2)`. -/
 theorem empirical_uniform_tail_moment_sampling_bound {n N : ℕ}
     (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ) (xs : List ℚ)
     (ν : ℝ) (hN : 0 < N) (hν : 0 < ν) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1) :
@@ -355,6 +405,8 @@ theorem empirical_uniform_tail_moment_sampling_bound {n N : ℕ}
       simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
       ring
 
+/-- The probability of CDF error above `ν` at any listed threshold is at most `xs.length / (4 *
+N * ν ^ 2)` for positive sample size and tolerance. -/
 theorem empirical_uniform_cdf_sampling_bound {n N : ℕ}
     (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ) (xs : List ℚ)
     (ν : ℝ) (hN : 0 < N) (hν : 0 < ν) :
@@ -390,6 +442,8 @@ theorem empirical_uniform_cdf_sampling_bound {n N : ℕ}
       simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
       ring
 
+/-- For bounded losses, the probability of either CDF or tail moment error exceeding `ν` at one
+threshold is bounded by the sum of their two sampling bounds. -/
 theorem empirical_threshold_bad_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (t : ℚ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν)
     (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1) :
@@ -440,6 +494,8 @@ theorem empirical_threshold_bad_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
       exact add_le_add (empirical_cdf_sampling_bound p loss t ν hN hν)
         (empirical_tail_moment_sampling_bound p loss t ν hN hν hloss)
 
+/-- For bounded losses, the probability of `badTable` is at most twice `xs.length / (4 * N * ν ^
+2)`. -/
 theorem population_cvar_confidence_mass {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν)
     (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1) :
@@ -480,6 +536,8 @@ theorem population_cvar_confidence_mass {n N : ℕ} (p : FinDist (Option (Fin n)
       simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
       ring
 
+/-- The independent sample law mass of `badTable` is at most twice `xs.length / (4 * N * ν ^ 2)`
+under the bounded loss and positivity hypotheses. -/
 theorem population_cvar_bad_mass {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν)
     (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1) :

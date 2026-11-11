@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpDuality.ConeSeparation.Macros
+
+/-!
+# Larger-branch primal witness contract
+
+`SdpLargerBranchPrimalWitness` specifies the implication from a separation condition at a
+density operator to a primal feasible operator. The identity constraint supplies the trace
+bound, while ε ≤ δ/(16R) controls the objective loss.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `SdpLargerBranchPrimalWitness`: The contract requiring a positive semidefinite primal witness
+  with trace at most R and objective at least (1 − δ)α whenever the stated density-operator
+  separation condition holds.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.BranchProofs
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The contract requiring a positive semidefinite primal witness with trace at most R and
+objective at least (1 − δ)α whenever the stated density-operator separation condition holds. -/
 def SdpLargerBranchPrimalWitness : Prop :=
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (σ₀ : Operator D) (j₀ : Fin m) (α R δ ε : ℝ),

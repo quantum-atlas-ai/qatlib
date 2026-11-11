@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QGradient20.DressedUpdate.GradientStep
 import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+/-!
+# Stationary points of the decoded update
+
+Symmetric polynomial coefficients make `complexDerivative` Hermitian, and a positive branch
+parameter makes `decodedRate` positive. `decoded_stationary_iff` identifies fixed decoded
+updates with vanishing nonconstant gradient coordinates; `stationary_actual_partials` then gives
+zero coordinate derivatives of the objective. The mathematical context is [GaoEtAl2021].
+
+## Main statements
+
+* `decoded_stationary_iff`: For positive tensor order and branch parameter, all decoded
+  coordinates remain fixed exactly when all nonconstant homogeneous-gradient coordinates vanish.
+* `stationary_actual_partials`: For symmetric coefficients and positive tensor order and branch
+  parameter, a fixed decoded update makes the objective's derivative along each nonconstant
+  coordinate equal to zero at the homogeneous input.
+
+## References
+
+* [Gao et al., 2021][GaoEtAl2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,8 @@ open Qatlib.Papers.QGradient20.Polynomial
 open Qatlib.Papers.QGradient20.FilterBranch
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- A symmetric real coefficient matrix yields a Hermitian complex derivative matrix at every
+dressed input. -/
 theorem complexDerivative_hermitian {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ) (hA : A.IsSymm) (x : I → ℝ) :
     (complexDerivative A x).IsHermitian := by
@@ -30,11 +54,14 @@ theorem complexDerivative_hermitian {p : ℕ}
     (derivativeMatrix_symmetric A hA (dressed x)).eq
   exact congrArg Complex.ofReal h
 
+/-- A positive branch parameter gives a strictly positive decoded gradient-step rate. -/
 theorem decodedRate_pos {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) {ξ : ℝ} (hξ : 0 < ξ) : 0 < decodedRate A x ξ := by
   exact div_pos (mul_pos hξ (pow_pos (normalizer_pos x) _)) (spectralScale_pos _)
 
+/-- For positive tensor order and branch parameter, all decoded coordinates remain fixed exactly
+when all nonconstant homogeneous-gradient coordinates vanish. See [GaoEtAl2021]. -/
 theorem decoded_stationary_iff {p : ℕ} (hp : 0 < p)
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) {ξ : ℝ} (hξ : 0 < ξ) (ascent : Bool) :
@@ -55,6 +82,9 @@ theorem decoded_stationary_iff {p : ℕ} (hp : 0 < p)
     rw [outputVector_decode hp A x ξ hξ.le ascent i, h i]
     simp
 
+/-- For symmetric coefficients and positive tensor order and branch parameter, a fixed decoded
+update makes the objective's derivative along each nonconstant coordinate equal to zero at
+the homogeneous input. See [GaoEtAl2021]. -/
 theorem stationary_actual_partials {p : ℕ} (hp : 0 < p)
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ) (hA : A.IsSymm)
     (x : I → ℝ) {ξ : ℝ} (hξ : 0 < ξ) (ascent : Bool)

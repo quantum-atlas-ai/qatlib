@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWordDefs
+
+/-!
+# Trace contraction and channel word error bounds
+
+This module proves trace norm contraction for completely positive trace-preserving maps on
+arbitrary complex matrices, using the Hermitian block dilation `dilation`. The result holds with
+every finite reference and yields finite diamond norm bounds for quantum channels, in the
+framework of [Watrous2018].
+
+It also bounds the error of a finite word of approximate channels by the sum of the step
+budgets. This composition estimate supplies the general channel bound used in random compilation
+[Campbell2019].
+
+## Main statements
+
+* `cp_tp_raw_contraction`: trace norm contraction on arbitrary matrix inputs.
+* `g1`: reference contraction and the finite diamond norm of a channel.
+* `g2`: additive diamond and reference error bounds for channel words.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -22,17 +47,23 @@ set_option autoImplicit false
 set_option maxHeartbeats 3000000
 noncomputable section
 
+/-- The Hermitian block matrix with upper-right block `X`, lower-left block `Xᴴ`, and zero
+diagonal blocks. -/
 def dilation {I : Type} (X : Matrix I I ℂ) : Matrix (I ⊕ I) (I ⊕ I) ℂ :=
   Matrix.fromBlocks 0 X Xᴴ 0
 
+/-- The block dilation of any complex matrix is Hermitian. -/
 theorem dilation_hermitian {I : Type} (X : Matrix I I ℂ) : (dilation X).IsHermitian :=
   Matrix.IsHermitian.fromBlocks (by simp) rfl (by simp)
 
+/-- The trace of a block matrix equals the sum of the traces of its two diagonal blocks. -/
 private theorem trace_blocks {I J : Type} [Fintype I] [Fintype J]
     (A : Matrix I I ℂ) (B : Matrix I J ℂ) (C : Matrix J I ℂ) (D : Matrix J J ℂ) :
     (Matrix.fromBlocks A B C D).trace = A.trace + D.trace := by
   simp [Matrix.trace, Fintype.sum_sum_type]
 
+/-- The trace norm of the Hermitian block dilation is twice the trace norm of the original
+matrix. -/
 theorem dilation_traceNorm {I : Type} [Fintype I] [DecidableEq I] (X : Matrix I I ℂ) :
     (dilation X).traceNorm = 2 * X.traceNorm := by
   classical
@@ -88,6 +119,7 @@ theorem dilation_traceNorm {I : Type} [Fintype I] [DecidableEq I] (X : Matrix I 
       (Matrix.traceNorm_isometry_left hW))
   exact le_antisymm hupper hlower
 
+/-- Applying block-diagonal Kraus operators acts on each block by the original Kraus map. -/
 private theorem kraus_blocks {I J K : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] [Fintype K]
     (A : K → Matrix J I ℂ) (X Y Z V : Matrix I I ℂ) :
@@ -102,6 +134,8 @@ private theorem kraus_blocks {I J K : Type} [Fintype I] [DecidableEq I]
   ext a b
   cases a <;> cases b <;> simp [Matrix.sum_apply]
 
+/-- A completely positive trace-preserving finite matrix map contracts the trace norm of every
+complex matrix input. -/
 theorem cp_tp_raw_contraction {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (T : MatrixMap I J ℂ)
     (hcp : T.IsCompletelyPositive) (htp : T.IsTracePreserving) (X : Matrix I I ℂ) :
@@ -130,6 +164,8 @@ theorem cp_tp_raw_contraction {I J : Type} [Fintype I] [DecidableEq I]
   rw [he, dilation_traceNorm, dilation_traceNorm] at h
   linarith
 
+/-- A quantum channel tensored with a finite identity reference contracts the trace norm of
+every complex matrix input. -/
 theorem channel_raw_contraction {D E : ℕ} (T : QuantumChannel D E) (r : ℕ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     (tensorLeft T.map X).traceNorm ≤ X.traceNorm := by
@@ -142,6 +178,9 @@ theorem channel_raw_contraction {D E : ℕ} (T : QuantumChannel D E) (r : ℕ)
     exact Qatlib.Concepts.ChannelTheory.Stinespring.kron_id_apply T.map r X i j a b
   rwa [he] at h
 
+/-- Every quantum channel contracts trace norm with every finite reference and has finite
+diamond norm at most one. Its finite diamond norm equals one when the input dimension is
+positive. -/
 theorem g1 : ∀ (D E : ℕ) (T : QuantumChannel D E),
     (∀ (r : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ),
       Matrix.traceNorm (tensorLeft T.map X) ≤ Matrix.traceNorm X) ∧
@@ -175,6 +214,8 @@ theorem g1 : ∀ (D E : ℕ) (T : QuantumChannel D E),
   unfold finiteDiamondNorm
   exact le_iSup_of_le 1 (le_iSup_of_le X (by simp [hx, ho]))
 
+/-- Running an appended channel list agrees, at the level of maps, with composing the run of the
+second list after the run of the first. -/
 theorem run_append {D : ℕ} (p q : List (QuantumChannel D D)) :
     (run (p++q)).map = ((run q).comp (run p)).map := by
   induction p with
@@ -185,6 +226,7 @@ theorem run_append {D : ℕ} (p q : List (QuantumChannel D D)) :
     rw [ih]
     rfl
 
+/-- A channel word with nonnegative step errors has a nonnegative total error budget. -/
 theorem budget_nonneg {D : ℕ} (p : List (ApproxStep D))
     (hp : ∀ s ∈ p, 0 ≤ s.error) : 0 ≤ budget p := by
   unfold budget
@@ -193,6 +235,8 @@ theorem budget_nonneg {D : ℕ} (p : List (ApproxStep D))
   obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hx
   exact hp s hs
 
+/-- If every step has nonnegative error bounding its finite diamond norm discrepancy, the finite
+diamond norm error of the composed word is at most the sum of the step errors. -/
 private theorem word_error {D : ℕ} (p : List (ApproxStep D))
     (hp : ∀ s ∈ p, 0 ≤ s.error ∧
       finiteDiamondNorm (s.actual.map-s.ideal.map) ≤ ENNReal.ofReal s.error) :
@@ -231,6 +275,10 @@ private theorem word_error {D : ℕ} (p : List (ApproxStep D))
         ENNReal.ofReal (s.error + budget p)
       rw [ENNReal.ofReal_add hs.1 hb, add_comm])
 
+/-- Nonnegative step allowances bounding the finite diamond norm errors sum to a word bound,
+giving finite diamond distance at most half the budget and reference trace norm error at
+most the budget times the input trace norm. The theorem also records compatibility with a
+preceding channel word, providing the composition estimate used in [Campbell2019]. -/
 theorem g2 : ∀ (D : ℕ) (p : List (ApproxStep D)),
     (∀ s ∈ p, 0 ≤ s.error ∧
       finiteDiamondNorm (s.actual.map-s.ideal.map) ≤ ENNReal.ofReal s.error) →

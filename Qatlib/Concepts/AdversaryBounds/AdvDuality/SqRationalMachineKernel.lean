@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCore
+
+/-!
+# Arithmetic and framing execution kernels
+
+This module records exact final configurations and explicit clock bounds for reading and writing
+frames and for binary arithmetic. `mul_core_complete` also identifies the numerical value of the
+multiplication output, and `add_exact_end` records the final carry state and reversed output
+stack.
+
+These elementary routines support the explicit classical arithmetic underlying quantum
+computation, as discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `read_frame_actual`: reads one framed word with total and maximum clock bounds.
+* `mul_core_complete`: combines multiplication execution, cost bounds, and numerical
+  correctness.
+* `add_exact_end`: gives the exact final configuration of binary addition.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +47,8 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 set_option autoImplicit false
 
+/-- Reading `framed bits` consumes that frame and prepends `bits.reverse` to the output stack,
+with the stated quadratic clock bounds. -/
 theorem read_frame_actual (bits tail out : Bits) (v : FramedTake.Local) : ∃ ticks last,
     stackRun FramedTake.program ticks
       ⟨some (.read (.read .unary)),v,FramedTake.store (framed bits++tail) [] [] out⟩ =
@@ -36,6 +62,8 @@ theorem read_frame_actual (bits tail out : Bits) (v : FramedTake.Local) : ∃ ti
   obtain ⟨ticks,last,hr,hc⟩ := FramedTake.complete bits tail out v
   exact ⟨ticks,last,hr,hc,(maxClock_le_clock _ _ _).trans hc⟩
 
+/-- Copying a reversed bit word emits its framed encoding, preserves the source, and satisfies
+the stated cubic total and maximum clock bounds. -/
 theorem write_frame_actual (bits out : Bits) (v : Symbol) : ∃ ticks,
     stackRun FrameCopy.program ticks
       ⟨some (.copy false .emit),v,FrameCopy.store bits.reverse [] [] [] [] out⟩ =
@@ -59,17 +87,20 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib
 set_option autoImplicit false
 
+/-- The multiplication program has at most five statement nodes per control label. -/
 theorem core_nodes : programNodes mulProgram ≤ 5 := by
   unfold programNodes
   apply Finset.sup_le
   intro l _
   cases l <;> simp [mulProgram,stackNodes]
 
+/-- The multiplication program's sweep factor is at most 61. -/
 theorem core_sweep : sweepFactor mulProgram ≤ 61 := by
   have h := core_nodes
   unfold sweepFactor
   nlinarith
 
+/-- The initial multiplication stack height is at most one plus the combined operand lengths. -/
 theorem core_initial_height (x y : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (mulStart x y).stk ≤ 1+x.length+y.length := by
   unfold Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight
@@ -79,6 +110,8 @@ theorem core_initial_height (x y : Bits) :
   all_goals simp [mulStart,mulStacks]
   all_goals omega
 
+/-- The multiplication tick count, including two final steps, is at most `10 * (1 + x.length +
+y.length)^2`. -/
 theorem core_ticks (x y : Bits) :
     mulTotalTicks x y y.length+2 ≤ 10*(1+x.length+y.length)^2 := by
   let L := 1+x.length+y.length
@@ -91,6 +124,9 @@ theorem core_ticks (x y : Bits) :
   dsimp only [L] at *
   nlinarith
 
+/-- The multiplication core halts in the specified configuration and produces a bit word whose
+binary value is the product of the operand values. It satisfies the stated quartic
+total-clock and quadratic maximum-clock bounds. -/
 theorem mul_core_complete (x y : Bits) :
     let L := 1+x.length+y.length
     stackRun mulProgram (mulTotalTicks x y y.length+2)
@@ -137,9 +173,13 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open Qatlib
 set_option autoImplicit false
 
+/-- The final addition state, retaining the carry after the operand-length bound and clearing
+both input-symbol registers. -/
 def finalAddVar (x y : Bits) : AddVar :=
   ⟨(addTurns (max x.length y.length) ⟨false,x,y,[]⟩).carry,none,none⟩
 
+/-- Binary addition halts after `max x.length y.length + 1` ticks with empty input stacks and
+reversed `bitAdd x y` output. Both clock measures are bounded by `addClockBound x y`. -/
 theorem add_exact_end (x y : Bits) :
     stackRun addProgram (max x.length y.length+1) (addStart x y) =
       some ⟨none,finalAddVar x y,addStacks [] [] (bitAdd x y).reverse⟩ ∧

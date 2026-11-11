@@ -10,12 +10,33 @@ import Mathlib.Data.Finset.Max
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic
 
+/-!
+# Multiplicative orbit leaders modulo N
+
+Multiplication by a unit partitions `ZMod N` into the finite orbits `orbitFinset`. The least
+residue in each orbit is a leader, and the leader orbits cover all residues without overlap,
+giving `sum_orbit_card_eq`.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `exists_leader`: Every multiplication orbit contains a leader.
+* `sum_orbit_card_eq`: The cardinalities of the leader orbits sum to `N`.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.WeightEnum07.OrbitSieve
 
 variable {N : ℕ} [NeZero N]
 
+/-- The permutation of `ZMod N` given by multiplication by the unit `u`. See
+[GeraciVanBussel2007]. -/
 def mulUnitEquiv (u : (ZMod N)ˣ) : ZMod N ≃ ZMod N where
   toFun a := (u : ZMod N) * a
   invFun a := ((u⁻¹ : (ZMod N)ˣ) : ZMod N) * a
@@ -30,9 +51,12 @@ def mulUnitEquiv (u : (ZMod N)ˣ) : ZMod N ≃ ZMod N where
       rw [← Units.val_mul, mul_inv_cancel, Units.val_one]
     rw [← mul_assoc, h, one_mul]
 
+/-- The finite multiplication orbit of `a`, obtained from powers of `u` below its order. -/
 noncomputable def orbitFinset (u : (ZMod N)ˣ) (a : ZMod N) : Finset (ZMod N) :=
   (Finset.range (orderOf u)).image (fun j => ((u ^ j : (ZMod N)ˣ) : ZMod N) * a)
 
+/-- Membership in the orbit means that some power of `u` with exponent below its order sends `a`
+to `b`. -/
 lemma mem_orbitFinset {u : (ZMod N)ˣ} {a b : ZMod N} :
     b ∈ orbitFinset u a ↔
       ∃ j, j < orderOf u ∧ ((u ^ j : (ZMod N)ˣ) : ZMod N) * a = b := by
@@ -43,14 +67,17 @@ lemma mem_orbitFinset {u : (ZMod N)ˣ} {a b : ZMod N} :
   · rintro ⟨j, hj, h⟩
     exact ⟨j, Finset.mem_range.mpr hj, h⟩
 
+/-- Every natural power of `u` sends `a` to an element of its orbit. -/
 lemma pow_mul_mem (u : (ZMod N)ˣ) (a : ZMod N) (j : ℕ) :
     ((u ^ j : (ZMod N)ˣ) : ZMod N) * a ∈ orbitFinset u a := by
   rw [mem_orbitFinset]
   exact ⟨j % orderOf u, Nat.mod_lt _ (orderOf_pos u), by rw [pow_mod_orderOf]⟩
 
+/-- Every residue belongs to its own multiplication orbit. -/
 lemma self_mem_orbitFinset (u : (ZMod N)ˣ) (a : ZMod N) : a ∈ orbitFinset u a := by
   simpa using pow_mul_mem u a 0
 
+/-- The orbit of an element belonging to the orbit of `a` is contained in the orbit of `a`. -/
 lemma orbit_subset_of_mem {u : (ZMod N)ˣ} {a b : ZMod N} (hb : b ∈ orbitFinset u a) :
     orbitFinset u b ⊆ orbitFinset u a := by
   intro c hc
@@ -67,6 +94,7 @@ lemma orbit_subset_of_mem {u : (ZMod N)ˣ} {a b : ZMod N} (hb : b ∈ orbitFinse
   rw [hEq]
   exact pow_mul_mem u a (m + k)
 
+/-- Membership in a multiplication orbit is symmetric. -/
 lemma self_mem_of_mem {u : (ZMod N)ˣ} {a b : ZMod N} (hb : b ∈ orbitFinset u a) :
     a ∈ orbitFinset u b := by
   rw [mem_orbitFinset] at hb
@@ -85,13 +113,18 @@ lemma self_mem_of_mem {u : (ZMod N)ˣ} {a b : ZMod N} (hb : b ∈ orbitFinset u 
   rw [heq, hbk] at hmem
   exact hmem
 
+/-- Elements in the same multiplication orbit have equal orbit finsets. See
+[GeraciVanBussel2007]. -/
 lemma orbit_eq_of_mem {u : (ZMod N)ˣ} {a b : ZMod N} (hb : b ∈ orbitFinset u a) :
     orbitFinset u b = orbitFinset u a := by
   exact Finset.Subset.antisymm (orbit_subset_of_mem hb) (orbit_subset_of_mem (self_mem_of_mem hb))
 
+/-- The residue `l` has least natural representative among the elements of its multiplication
+orbit. -/
 def IsLeader (u : (ZMod N)ˣ) (l : ZMod N) : Prop :=
   ∀ b ∈ orbitFinset u l, l.val ≤ b.val
 
+/-- Every multiplication orbit contains a leader. See [GeraciVanBussel2007]. -/
 lemma exists_leader (u : (ZMod N)ˣ) (a : ZMod N) :
     ∃ l ∈ orbitFinset u a, IsLeader u l := by
   obtain ⟨l, hl, hmin⟩ :=
@@ -102,10 +135,12 @@ lemma exists_leader (u : (ZMod N)ˣ) (a : ZMod N) :
   rw [hle] at hb
   exact hmin b hb
 
+/-- The finite set of least-residue representatives of multiplication orbits. -/
 noncomputable def leaders (u : (ZMod N)ˣ) : Finset (ZMod N) := by
   classical
   exact Finset.univ.filter (fun l => IsLeader u l)
 
+/-- The union of the orbits indexed by leaders contains every residue modulo `N`. -/
 lemma univ_subset_biUnion (u : (ZMod N)ˣ) :
     (Finset.univ : Finset (ZMod N)) ⊆ (leaders u).biUnion (orbitFinset u) := by
   classical
@@ -116,6 +151,7 @@ lemma univ_subset_biUnion (u : (ZMod N)ˣ) :
     exact hlead
   exact Finset.mem_biUnion.mpr ⟨l, hle, self_mem_of_mem hl⟩
 
+/-- Orbits indexed by distinct leaders are disjoint. -/
 lemma leaders_pairwiseDisjoint (u : (ZMod N)ˣ) :
     (leaders u : Set (ZMod N)).PairwiseDisjoint (orbitFinset u) := by
   classical
@@ -137,6 +173,7 @@ lemma leaders_pairwiseDisjoint (u : (ZMod N)ˣ) :
   have hv2 : l1.val ≤ l2.val := hlead1 l2 hmem2
   exact hne (ZMod.val_injective N (le_antisymm hv2 hv1))
 
+/-- The cardinalities of the leader orbits sum to `N`. See [GeraciVanBussel2007]. -/
 theorem sum_orbit_card_eq (u : (ZMod N)ˣ) :
     ∑ l ∈ leaders u, (orbitFinset u l).card = N := by
   classical
@@ -145,9 +182,11 @@ theorem sum_orbit_card_eq (u : (ZMod N)ˣ) :
   have hcard := Finset.card_biUnion (leaders_pairwiseDisjoint u)
   rw [← hcard, ← hcover, Finset.card_univ, ZMod.card]
 
+/-- Every multiplication orbit is nonempty. -/
 lemma orbitFinset_nonempty (u : (ZMod N)ˣ) (a : ZMod N) : (orbitFinset u a).Nonempty :=
   ⟨a, self_mem_orbitFinset u a⟩
 
+/-- Every multiplication orbit has positive cardinality. -/
 lemma orbitFinset_card_pos (u : (ZMod N)ˣ) (a : ZMod N) : 0 < (orbitFinset u a).card :=
   Finset.card_pos.mpr (orbitFinset_nonempty u a)
 

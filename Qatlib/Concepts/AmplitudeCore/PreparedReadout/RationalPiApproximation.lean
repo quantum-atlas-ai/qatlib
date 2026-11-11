@@ -11,6 +11,30 @@ import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+
+/-!
+# Rational Machin approximations to pi
+
+`atanRatSeries` computes finite rational arctangent sums, and `piRatApprox` combines them using
+Machin's identity. Derivative and monotonicity estimates bound the arctangent remainder and
+yield an explicit dyadic error bound for the computed approximation to π.
+
+These rational constants support numerical phase decoding in quantum algorithms;
+[NielsenChuang2010] provides background on that application.
+
+## Main statements
+
+* `rational_arctan_series_explicit_remainder`: bounds the rational arctangent approximation
+  error.
+* `rational_machin_pi_identity`: proves Machin's identity.
+* `rational_machin_pi_computed_precision`: gives positivity, an upper bound of four, and the
+  dyadic precision estimate.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,13 +43,16 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
+/-- The rational partial sum of the arctangent power series with `L` terms. -/
 def atanRatSeries (x : ℚ) : ℕ → ℚ
   | 0 => 0
   | L + 1 => atanRatSeries x L + (-1 : ℚ) ^ L * x ^ (2 * L + 1) / (2 * L + 1)
 
+/-- The real polynomial consisting of the first `L` arctangent-series terms. -/
 private noncomputable def atanPoly (L : ℕ) (t : ℝ) : ℝ :=
   ∑ j ∈ Finset.range L, (-1 : ℝ) ^ (j : ℕ) * t ^ (2 * j + 1) / (2 * j + 1)
 
+/-- Casting the rational arctangent partial sum to the reals yields `atanPoly`. -/
 theorem atanRatSeries_cast (x : ℚ) : ∀ L : ℕ,
     ((atanRatSeries x L : ℚ) : ℝ) = atanPoly L (x : ℝ) := by
   intro L
@@ -41,12 +68,15 @@ theorem atanRatSeries_cast (x : ℚ) : ∀ L : ℕ,
       rw [hcast, ih]
       simp only [atanPoly, Finset.sum_range_succ]
 
+/-- The one-term rational arctangent partial sum equals its argument. -/
 theorem atanRatSeries_one (x : ℚ) : atanRatSeries x 1 = x := by
   norm_num [atanRatSeries]
 
+/-- The one-term real arctangent polynomial equals its argument. -/
 private theorem atanPoly_one (t : ℝ) : atanPoly 1 t = t := by
   norm_num [atanPoly]
 
+/-- The derivative of `atanPoly L` is the finite alternating sum of even powers. -/
 private theorem hasDerivAt_atanPoly : ∀ (L : ℕ) (t : ℝ),
     HasDerivAt (atanPoly L) (∑ j ∈ Finset.range L, (-1 : ℝ) ^ (j : ℕ) * t ^ (2 * j)) t := by
   intro L
@@ -72,6 +102,7 @@ private theorem hasDerivAt_atanPoly : ∀ (L : ℕ) (t : ℝ),
       rw [hsplit]
       simpa using! ((ih t).add hterm).congr_deriv (by rw [Finset.sum_range_succ])
 
+/-- The derivative of the arctangent remainder is `(-1)^L * t^(2 * L) / (1 + t²)`. -/
 private theorem hasDerivAt_arctan_sub_atanPoly (L : ℕ) (t : ℝ) :
     HasDerivAt (fun s => Real.arctan s - atanPoly L s)
       ((-1 : ℝ) ^ (L : ℕ) * t ^ (2 * L) / (1 + t ^ 2)) t := by
@@ -102,12 +133,15 @@ private theorem hasDerivAt_arctan_sub_atanPoly (L : ℕ) (t : ℝ) :
   field_simp
   ring
 
+/-- Every natural power of minus one lies between minus one and one. -/
 private theorem neg_one_pow_bounds (L : ℕ) :
     (-1 : ℝ) ≤ (-1 : ℝ) ^ (L : ℕ) ∧ (-1 : ℝ) ^ (L : ℕ) ≤ 1 := by
   have habs : |(-1 : ℝ) ^ (L : ℕ)| ≤ 1 := by
     rw [abs_pow, abs_neg, abs_one, one_pow]
   exact abs_le.mp habs
 
+/-- The first omitted power term minus the arctangent remainder is monotone on the nonnegative
+reals. -/
 private theorem monotoneOn_compensate_sub (L : ℕ) :
     MonotoneOn (fun t : ℝ => t ^ (2 * L + 1) / (2 * L + 1)
       - (Real.arctan t - atanPoly L t)) (Set.Ici 0) := by
@@ -137,6 +171,8 @@ private theorem monotoneOn_compensate_sub (L : ℕ) :
   refine div_nonneg (mul_nonneg (pow_nonneg hu' (2 * L)) ?_) (by positivity)
   nlinarith [sq_nonneg u, hsign]
 
+/-- The first omitted power term plus the arctangent remainder is monotone on the nonnegative
+reals. -/
 private theorem monotoneOn_compensate_add (L : ℕ) :
     MonotoneOn (fun t : ℝ => t ^ (2 * L + 1) / (2 * L + 1)
       + (Real.arctan t - atanPoly L t)) (Set.Ici 0) := by
@@ -166,10 +202,13 @@ private theorem monotoneOn_compensate_add (L : ℕ) :
   refine div_nonneg (mul_nonneg (pow_nonneg hu' (2 * L)) ?_) (by positivity)
   nlinarith [sq_nonneg u, hsign.1, hsign.2]
 
+/-- Every arctangent partial-sum polynomial vanishes at zero. -/
 private theorem atanPoly_zero (L : ℕ) : atanPoly L 0 = 0 := by
   rw [atanPoly]
   exact Finset.sum_eq_zero fun j _ => by simp
 
+/-- For nonnegative `t`, the arctangent remainder is bounded in absolute value by `t^(2 * L + 1)
+/ (2 * L + 1)`. -/
 private theorem arctan_series_remainder_nonneg (L : ℕ) (t : ℝ) (ht : 0 ≤ t) :
     |Real.arctan t - atanPoly L t| ≤ t ^ (2 * L + 1) / (2 * L + 1) := by
   have hzero : ((0 : ℝ) ^ (2 * L + 1) / (2 * L + 1)
@@ -184,6 +223,7 @@ private theorem arctan_series_remainder_nonneg (L : ℕ) (t : ℝ) (ht : 0 ≤ t
     (Set.mem_Ici.mpr ht) ht
   exact abs_le.mpr ⟨by linarith [hzero, hm1], by linarith [hzero', hm2]⟩
 
+/-- The arctangent partial-sum polynomial is odd. -/
 private theorem atanPoly_neg (L : ℕ) (t : ℝ) :
     atanPoly L (-t) = -atanPoly L t := by
   rw [atanPoly, atanPoly, ← Finset.sum_neg_distrib]
@@ -195,6 +235,8 @@ private theorem atanPoly_neg (L : ℕ) (t : ℝ) :
   rw [hodd]
   ring
 
+/-- For rational inputs of absolute value at most `1 / 2`, the arctangent partial sum has error
+bounded by the absolute first omitted term. -/
 theorem rational_arctan_series_explicit_remainder (x : ℚ) (L : ℕ)
     (hx : |(x : ℝ)| ≤ 1 / 2) :
     |((atanRatSeries x L : ℚ) : ℝ) - Real.arctan (x : ℝ)|
@@ -213,6 +255,7 @@ theorem rational_arctan_series_explicit_remainder (x : ℚ) (L : ℕ)
     rw [heq, habs]
     exact arctan_series_remainder_nonneg L _ hu
 
+/-- Machin's identity expresses π as `16 * arctan(1 / 5) - 4 * arctan(1 / 239)`. -/
 theorem rational_machin_pi_identity :
     16 * Real.arctan ((1 / 5 : ℝ)) - 4 * Real.arctan ((1 / 239 : ℝ)) = Real.pi := by
   have h1 : Real.arctan ((1 / 5 : ℝ)) + Real.arctan ((1 / 5 : ℝ))
@@ -257,9 +300,11 @@ theorem rational_machin_pi_identity :
   rw [hsplit, h4]
   linarith [h5]
 
+/-- The rational Machin approximation using `k + 3` terms of each arctangent series. -/
 def piRatApprox (k : ℕ) : ℚ :=
   16 * atanRatSeries ((1 / 5 : ℚ)) (k + 3) - 4 * atanRatSeries ((1 / 239 : ℚ)) (k + 3)
 
+/-- The rational Machin approximation has error at most `20 / 5^(2 * k + 7)`. -/
 private theorem piRatApprox_error_le (k : ℕ) :
     |((piRatApprox k : ℚ) : ℝ) - Real.pi| ≤ 20 / ((5 : ℝ) ^ (2 * k + 7)) := by
   have hL : 2 * (k + 3) + 1 = 2 * k + 7 := by omega
@@ -317,6 +362,7 @@ private theorem piRatApprox_error_le (k : ℕ) :
           (mul_le_mul_of_nonneg_left h239 (by norm_num : (0 : ℝ) ≤ 4))
     _ = 20 / ((5 : ℝ) ^ (2 * k + 7)) := by ring
 
+/-- The power of five dominates `20 * 2^(k + 2)`, as needed for the dyadic precision estimate. -/
 private theorem twenty_two_pow_le (k : ℕ) :
     (20 : ℝ) * ((2 : ℝ) ^ (k + 2)) ≤ ((5 : ℝ) ^ (2 * k + 7)) := by
   induction k with
@@ -332,6 +378,8 @@ private theorem twenty_two_pow_le (k : ℕ) :
       rw [h2, h5]
       nlinarith [ih, pow_nonneg (by norm_num : (0 : ℝ) ≤ 5) (2 * k + 7)]
 
+/-- Machin's identity holds, and each computed rational approximation lies strictly between zero
+and four with error at most `2^(-(k + 2))`. -/
 theorem rational_machin_pi_computed_precision :
     16 * Real.arctan ((1 / 5 : ℝ)) - 4 * Real.arctan ((1 / 239 : ℝ)) = Real.pi ∧
     ∀ k : ℕ, 0 < piRatApprox k ∧ piRatApprox k < 4 ∧

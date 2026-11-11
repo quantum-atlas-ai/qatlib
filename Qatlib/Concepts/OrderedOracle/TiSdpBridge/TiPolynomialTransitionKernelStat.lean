@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+
+/-!
+# Statement of the polynomial transition kernel
+
+This module packages the Fourier-coordinate formula and the one-step transition guarantees into
+the proposition `TiPolynomialTransitionKernel`. The invariant algorithm setting appears in
+[FarhiEtAl1999], and the polynomial constraints underlying the transition appear in
+[ChildsLandahlParrilo2007].
+
+The first part specifies the parity-supported Fourier transform of `tiPolynomialState`. The
+second part requires positive time and equality of the two polynomial norms at roots of `z^n =
+(-1)^t`, and then states unit-modulus phases, unitarity, translation commutation, and the
+desired oracle-followed-by-transition state identity.
+
+## Main statements
+
+* `TiPolynomialTransitionKernel` is the conjunction of the Fourier-coordinate identity and the
+  conditional one-step transition properties.
+
+## References
+
+- [Farhi et al., 1999][FarhiEtAl1999], translation-invariant ordered-search algorithms.
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007], polynomial descriptions of
+  ordered-search feasibility.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +43,10 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped BigOperators Classical
 
+/-- Packages the parity-supported Fourier formula for polynomial states and the conditional
+guarantees for a positive-time transition. Equal polynomial norms on the relevant roots
+imply unit-modulus phases, unitarity, translation commutation, and the
+oracle-followed-by-transition state identity. -/
 def TiPolynomialTransitionKernel : Prop :=
   (∀ (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (l : Fin (2*n)),
     ApplyGate (QFTMatrix (2*n))ᴴ (tiPolynomialState n t p) l =

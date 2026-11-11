@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+
+/-!
+# Continuous path obstructions from overlap gaps
+
+`ensembleOGP` imposes a forbidden interval for normalized overlaps between near minimum cube
+vectors across the tensor interpolation ensemble. A continuous nonzero path with sufficiently
+decorrelated endpoints crosses this interval, so `actual_amp_ogp_obstruction` forces the AMP
+path above the permitted energy margin at some parameter. This deterministic bridge underlies
+the conditional obstruction associated with [GohMuller2026].
+
+## Main statements
+
+* `actual_overlap_gap_crossing`: A continuous nonzero path on `[0,1]` whose endpoints have
+  normalized overlap at most `ν₁` crosses the open overlap interval `(ν₁,ν₂)` relative to its
+  initial vector whenever `ν₁ < ν₂ < 1`.
+* `actual_amp_ogp_obstruction`: Under the ensemble overlap gap condition with `ν₁ < ν₂ < 1`, a
+  nonzero AMP output path with endpoint overlap at most `ν₁` has energy strictly above the
+  interpolated cube minimum plus `μ` at some parameter. See [GohMuller2026].
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,10 +41,13 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
 
 namespace Qatlib.Papers.OverlapGapGoh26.OgpBridge.Path
 
+/-- The finite dimensional cube of real coordinate vectors whose entries lie in `[-1,1]`. -/
 def hilbertCube (N : ℕ) : Set (Fin N → ℝ) := {u | ∀ i, u i ∈ Set.Icc (-1:ℝ) 1}
 
+/-- The infimum of tensor energy over the Hilbert cube. -/
 def cubeOpt {q N : ℕ} (J : Tensor q N) : ℝ := sInf (tensorEnergy J '' hilbertCube N)
 
+/-- The tensor energy attains its infimum at a vector in the Hilbert cube. -/
 theorem cubeOpt_attained {q N : ℕ} (J : Tensor q N) :
     ∃ u ∈ hilbertCube N, tensorEnergy J u=cubeOpt J := by
   have hc : IsCompact (hilbertCube N) := isCompact_pi_infinite (fun _ : Fin N => isCompact_Icc)
@@ -36,15 +63,19 @@ theorem cubeOpt_attained {q N : ℕ} (J : Tensor q N) :
   · exact le_csInf (Set.image_nonempty.mpr hn) (by rintro _ ⟨v,hv,rfl⟩; exact hmin hv)
   · exact csInf_le hb (Set.mem_image_of_mem _ hu)
 
+/-- The absolute inner product of two Euclidean vectors divided by the product of their norms. -/
 def normalizedOverlap {N : ℕ} (u v : EuclideanSpace ℝ (Fin N)) : ℝ :=
   |inner (𝕜:=ℝ) u v|/(‖u‖*‖v‖)
 
+/-- Every nonzero Euclidean vector has normalized overlap one with itself. -/
 theorem normalizedOverlap_self {N : ℕ} (u : EuclideanSpace ℝ (Fin N)) (hu : u≠0) :
     normalizedOverlap u u=1 := by
   unfold normalizedOverlap
   rw [real_inner_self_eq_norm_sq, abs_of_nonneg (sq_nonneg _), pow_two]
   exact div_self (mul_ne_zero (norm_ne_zero_iff.mpr hu) (norm_ne_zero_iff.mpr hu))
 
+/-- The condition that cube vectors within energy margin `μ` of the respective minima at any two
+interpolation parameters have normalized overlap at most `ν₁` or at least `ν₂`. -/
 def ensembleOGP {q N : ℕ} (A B : Tensor q N) (μ ν₁ ν₂ : ℝ) : Prop :=
   ∀ τ ∈ Set.Icc (0:ℝ) 1, ∀ σ ∈ Set.Icc (0:ℝ) 1,
     ∀ (u v : EuclideanSpace ℝ (Fin N)), u.ofLp ∈ hilbertCube N → v.ofLp ∈ hilbertCube N →
@@ -52,6 +83,9 @@ def ensembleOGP {q N : ℕ} (A B : Tensor q N) (μ ν₁ ν₂ : ℝ) : Prop :=
       tensorEnergy (interpolate A B σ) v.ofLp ≤ cubeOpt (interpolate A B σ)+μ →
       normalizedOverlap u v≤ν₁ ∨ ν₂≤normalizedOverlap u v
 
+/-- A continuous nonzero path on `[0,1]` whose endpoints have normalized overlap at most `ν₁`
+crosses the open overlap interval `(ν₁,ν₂)` relative to its initial vector whenever `ν₁ < ν₂
+< 1`. -/
 theorem actual_overlap_gap_crossing {N : ℕ} (V : ℝ → EuclideanSpace ℝ (Fin N))
     (hV : ContinuousOn V (Set.Icc (0:ℝ) 1))
     (hnz : ∀ τ ∈ Set.Icc (0:ℝ) 1, V τ≠0)
@@ -72,6 +106,9 @@ theorem actual_overlap_gap_crossing {N : ℕ} (V : ℝ → EuclideanSpace ℝ (F
   change normalizedOverlap (V 0) (V τ)=(ν₁+ν₂)/2 at he
   exact ⟨τ,hτ,by rw [he]; constructor <;> linarith⟩
 
+/-- Under the ensemble overlap gap condition with `ν₁ < ν₂ < 1`, a nonzero AMP output path with
+endpoint overlap at most `ν₁` has energy strictly above the interpolated cube minimum plus
+`μ` at some parameter. See [GohMuller2026]. -/
 theorem actual_amp_ogp_obstruction {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ)
     (A B : Tensor (r+1) N) (seed : Fin N → ℝ) (μ ν₁ ν₂ : ℝ)
     (hogp : ensembleOGP A B μ ν₁ ν₂) (hgap : ν₁<ν₂) (hhigh : ν₂<1)
@@ -90,6 +127,8 @@ theorem actual_amp_ogp_obstruction {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : 
     (fun i => outputPath_cube M s T A B seed τ i) (hn 0 hz) (hn τ hτ)
   rcases hb with hb | hb <;> linarith
 
+/-- If both vector norms are at least `b > 0`, their absolute inner product is at most `δN`, and
+`δN ≤ ν₁b²` with `ν₁ ≥ 0`, then their normalized overlap is at most `ν₁`. -/
 theorem decorrelation_to_normalized {N : ℕ} (u v : EuclideanSpace ℝ (Fin N))
     (b δ ν₁ : ℝ) (hb : 0<b) (hν : 0≤ν₁) (hu : b≤‖u‖) (hv : b≤‖v‖)
     (hdec : |inner (𝕜:=ℝ) u v|≤δ*(N:ℝ)) (hscale : δ*(N:ℝ)≤ν₁*b^2) :

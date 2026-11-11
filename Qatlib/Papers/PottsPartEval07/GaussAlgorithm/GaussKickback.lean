@@ -42,6 +42,26 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Gauss-sum phase kickback identities
+
+The Gauss sum `gaussSum` pairs a multiplicative character with a scaled additive character.
+Changing a nonzero additive parameter gives the character factor needed for the coordinate
+identities `kickback` and `kickback_normalised`; `characterState` records the unnormalized
+character amplitudes [GeraciLidar2008].
+
+## Main statements
+
+* `gaussSum_mul_right`: Rescaling the additive parameter introduces the inverse multiplicative
+  character.
+* `kickback_normalised`: The normalized character amplitudes satisfy the Gauss-sum kickback
+  identity.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.GaussAlgorithm
@@ -50,11 +70,14 @@ open scoped BigOperators
 
 variable {F : Type*} [Field F] [Fintype F]
 
+/-- The Gauss sum of `χ` and the additive character `e` scaled by the field parameter `β`. -/
 noncomputable def gaussSum (χ : MulChar F ℂ) (e : AddChar F ℂ) (β : F) : ℂ :=
   ∑ x : F, χ x * e (β * x)
 
+/-- The unnormalized amplitude function of a multiplicative-character state. -/
 noncomputable def characterState (χ : MulChar F ℂ) : F → ℂ := fun x => χ x
 
+/-- A multiplicative character has nonzero value at every nonzero field element. -/
 theorem mulChar_apply_ne_zero {χ : MulChar F ℂ} {y : F} (hy : y ≠ 0) : χ y ≠ 0 := by
   have hu : IsUnit y := isUnit_iff_ne_zero.mpr hy
   have hcoe : χ y = (χ.toUnitHom hu.unit : ℂ) := by
@@ -62,9 +85,13 @@ theorem mulChar_apply_ne_zero {χ : MulChar F ℂ} {y : F} (hy : y ≠ 0) : χ y
   rw [hcoe]
   exact Units.ne_zero _
 
+/-- The sum of a nontrivial multiplicative character over the finite field is zero
+[GeraciLidar2008]. -/
 theorem character_sum_zero {χ : MulChar F ℂ} (hχ : χ ≠ 1) : ∑ x : F, χ x = 0 :=
   MulChar.sum_eq_zero_of_ne_one hχ
 
+/-- Scaling the additive parameter by nonzero `y` multiplies the Gauss sum by the inverse of `χ
+y` [GeraciLidar2008]. -/
 theorem gaussSum_mul_right (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (hy : y ≠ 0) :
     gaussSum χ e (β * y) = (χ y)⁻¹ * gaussSum χ e β := by
   have hχy : χ y ≠ 0 := mulChar_apply_ne_zero hy
@@ -81,6 +108,8 @@ theorem gaussSum_mul_right (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (
     rw [← mul_assoc, ← mul_assoc, inv_mul_cancel₀ hχy, one_mul]
   rw [hsimp]
 
+/-- Multiplication by `χ y ^ 2` converts the Fourier-type sum at nonzero `y` into `χ y` times
+the Gauss sum [GeraciLidar2008]. -/
 theorem kickback (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (hy : y ≠ 0) :
     χ y ^ 2 * (∑ x : F, χ x * e (β * x * y)) = χ y * gaussSum χ e β := by
   have hχy : χ y ≠ 0 := mulChar_apply_ne_zero hy
@@ -96,6 +125,8 @@ theorem kickback (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (hy : y ≠
   rw [show χ y ^ 2 * ((χ y)⁻¹ * gaussSum χ e β)
         = (χ y ^ 2 * (χ y)⁻¹) * gaussSum χ e β by ring, hcancel]
 
+/-- The kickback identity with normalization factor `N⁻¹` has scalar factor `gaussSum χ e β *
+N⁻¹` [GeraciLidar2008]. -/
 theorem kickback_normalised (χ : MulChar F ℂ) (e : AddChar F ℂ) (β y : F) (hy : y ≠ 0)
     (N : ℂ) (hN : N ≠ 0) :
     χ y ^ 2 * ((N⁻¹) * ∑ x : F, χ x * e (β * x * y))

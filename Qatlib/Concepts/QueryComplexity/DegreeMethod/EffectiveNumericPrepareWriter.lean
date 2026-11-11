@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Writing framed register words
+
+The parameterized `program` preserves its source register while prepending its framed word to an
+output buffer. It composes copying, frame encoding, and temporary-source cleanup, with `store`
+describing the registers and framing workspace.
+
+The theorem `complete` proves correctness and a cubic execution bound in the source and existing
+output lengths. For the classical computational background, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `copy_call`: a register is copied in reverse order into writer workspace.
+* `encode_call`: the corresponding frame is prepended to the output.
+* `complete`: the writer halts with the frame written and workspace cleared.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,8 +43,10 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec (Bits framed)
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- The framed-writer stacks together with a family of source registers. -/
 abbrev Slot (K : Type) := FrameCopy.Slot ⊕ K
 
+/-- Control labels for copying a register, framing the copy, draining workspace, and halting. -/
 inductive Label where
   | copy (l : NatEmit.Label)
   | encode (l : FrameCopy.Label)
@@ -33,10 +57,14 @@ instance : Inhabited Label := ⟨.copy .emit⟩
 
 variable {K : Type} [DecidableEq K]
 
+/-- Maps register copying to the framed-writer restoration and source stacks. -/
 def copyCode (src : K) : Fin 3 → Slot K
   | 0 => .inr src | 1 => .inl .restore | _ => .inl .source
+/-- Selects the framed-writer source stack for cleanup. -/
 def drainCode (_ : Fin 1) : Slot K := .inl .source
 
+/-- The program that copies a source register, prepends its framed encoding to the output
+buffer, and clears its temporary source stack. -/
 def program (src : K) : Label → TM2.Stmt (fun _ : Slot K => Bool) Label Symbol
   | .copy l => StackCall.stmt (copyCode src) Label.copy (.encode (.copy false .emit))
       id (fun _ v => v) (NatEmit.program l)
@@ -44,15 +72,20 @@ def program (src : K) : Label → TM2.Stmt (fun _ : Slot K => Bool) Label Symbol
   | .drain l => StackCall.stmt drainCode Label.drain .done id (fun _ v => v) (Normalization.drainProgram l)
   | .done => .halt
 
+/-- Combines the source registers with a writer-source word, output buffer, and empty framing
+workspace. -/
 def store (R : K → Bits) (source out : Bits) : Slot K → Bits :=
   Sum.elim (FrameCopy.store source [] [] [] [] out) R
 
 omit [DecidableEq K] in
 
+/-- The stack map for copying a source register is injective. -/
 theorem copyCode_injective (src : K) : Function.Injective (copyCode src) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [copyCode] at h ⊢
 
+/-- Copying a source register produces its reversed contents in writer workspace while
+preserving the register and output buffer, with a quadratic clock bound. -/
 theorem copy_call (src : K) (R : K → Bits) (out : Bits) (v : Symbol) :
     stackRun (program src) (2*(R src).length+3) ⟨some (.copy .emit),v,store R [] out⟩ =
       some ⟨some (.encode (.copy false .emit)),none,store R (R src).reverse out⟩ ∧
@@ -86,6 +119,8 @@ theorem copy_call (src : K) (R : K → Bits) (out : Bits) (v : Symbol) :
     hsame,List.append_nil,hfinal] at hr hc
   exact ⟨hr,hc.trans_le (by simpa only [List.length_nil,Nat.add_zero] using NatEmit.copy_clock_bound (R src) [] v)⟩
 
+/-- Encoding a reversed source prepends its frame to the output buffer while retaining the
+source and registers, with a cubic clock bound. -/
 theorem encode_call (src : K) (R : K → Bits) (bits out : Bits) (v : Symbol) :
     ∃ ticks, stackRun (program src) ticks
       ⟨some (.encode (.copy false .emit)),v,store R bits.reverse out⟩ =
@@ -102,6 +137,8 @@ theorem encode_call (src : K) (R : K → Bits) (bits out : Bits) (v : Symbol) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Cleanup empties the writer-source stack while preserving registers and output, with a
+quadratic clock bound. -/
 theorem drain_call (src : K) (R : K → Bits) (bits out : Bits) (v : Symbol) :
     stackRun (program src) (bits.length+1) ⟨some (.drain 0),v,store R bits out⟩ =
       some ⟨some .done,none,store R [] out⟩ ∧
@@ -137,6 +174,8 @@ theorem drain_call (src : K) (R : K → Bits) (bits out : Bits) (v : Symbol) :
   rw [hc,Normalization.drain_clock]
   nlinarith
 
+/-- The writer prepends the selected register's frame to the output buffer and halts with empty
+workspace and unchanged registers within a cubic execution bound. -/
 theorem complete (src : K) (R : K → Bits) (out : Bits) :
     Execution (program src) ⟨some (.copy .emit),none,store R [] out⟩
       ⟨none,none,store R [] (framed (R src)++out)⟩

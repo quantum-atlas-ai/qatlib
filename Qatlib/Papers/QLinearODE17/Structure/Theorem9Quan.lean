@@ -8,6 +8,26 @@ import Qatlib.Papers.QLinearODE17.Structure.Theorem9Stat
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
 import Qatlib.Papers.QLinearODE17.Structure.Theorem9Encoding
 import Qatlib.Papers.QLinearODE17.Structure.Theorem9Readout
+
+/-!
+# Quantitative ODE construction with measured readout
+
+This module proves `theorem9V3`, the quantitative construction packaged by `Theorem9V3`. It
+combines the sparse overlap encoding and singular-value gap with a finite inverse word, then
+derives a clipped joint success bound and a conditional normalized-block readout estimate.
+
+The result is the V2 Taylor-system formulation associated with Theorem 9 of [BerryEtAl2017ODE],
+with its resource counts and positivity guard stated explicitly in `Theorem9V3`.
+
+## Main statements
+
+* `theorem9V3`: The quantitative construction, postselection, and guarded readout theorem.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -39,6 +59,10 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 set_option maxHeartbeats 1000000 in
 
+/-- Establishes `Theorem9V3`, including the sparse encoding and gap parameter, finite
+inverse-word counts and output accuracy, clipped joint success bound, and guarded
+normalized-block readout estimate. This is the formal quantitative construction associated
+with [Berry et al., Theorem 9][BerryEtAl2017ODE]. -/
 theorem theorem9V3 : Theorem9V3 := by
   classical
   intro N _ _ s m k p kq A V D h g x_in b x hm hk hp hh hg hkq hfac hr hc hd hA hV1 hV2 hre hM hq hacc hdecay hx

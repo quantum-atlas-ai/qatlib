@@ -23,6 +23,31 @@ import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Foundations.OperatorErrors.OperatorError
+
+/-!
+# Local quantum Fourier transform implementation
+
+Constructs the quantum Fourier transform on Boolean registers from Hadamard, controlled dyadic
+phase, and swap gates. The matrix proof tracks binary register values and phase exponents, then
+verifies the positive-phase Fourier convention and its adjoint. The circuit construction has the
+standard background of [NielsenChuang2010].
+
+`approxLocalQFT` removes controlled phases with denominator exponent greater than `b + 2`. The
+module proves exact gate counts and bounds both forward and adjoint operator errors by `π * n /
+2 ^ (b + 1)`.
+
+## Main statements
+
+* `localHadamard_actual_implementation`: prepares the uniform state with one Hadamard per wire.
+* `localQFT_exact_positive_matrix`: identifies the exact Fourier matrix and its adjoint.
+* `localQFT_exact_gate_counts_and_wires`: counts gates and records their wire indices.
+* `approxLocalQFT_operator_error`: bounds forward and adjoint approximation errors.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -43,12 +68,19 @@ set_option autoImplicit false
 
 variable {n : ℕ}
 
+/-- The natural number encoded by a Boolean register, with wire zero as the most significant
+bit. -/
 def regValue (n : ℕ) (x : Reg n) : ℕ := ∑ i, (if x i then 1 else 0) * 2 ^ (n - 1 - i.val)
 
+/-- The natural number encoded by a Boolean register, with wire zero as the least significant
+bit. -/
 def regValueLsb (n : ℕ) (x : Reg n) : ℕ := ∑ i, (if x i then 1 else 0) * 2 ^ i.val
 
+/-- Restricts an `(n + 1)`-wire register to its first `n` wires. -/
 def regCastSucc {n : ℕ} (x : Reg (n + 1)) : Reg n := fun i => x i.castSucc
 
+/-- The value of an `(n + 1)`-wire register is twice the value of its first `n` wires plus its
+last bit. -/
 theorem regValue_succ (x : Reg (n + 1)) :
     regValue (n + 1) x = regValue n (regCastSucc x) * 2 + (if x (Fin.last n) then 1 else 0) := by
   have hcast : ∀ i : Fin n, ((i.castSucc : Fin (n + 1)) : ℕ) = i.val := fun i => rfl
@@ -65,6 +97,8 @@ theorem regValue_succ (x : Reg (n + 1)) :
   rw [hsum]
   rfl
 
+/-- The natural value of `bitVecEquiv m x` equals the most significant bit first encoding
+`regValue m x`. -/
 theorem bitVecEquiv_val_eq_regValue :
     ∀ (m : ℕ) (x : Reg m), (bitVecEquiv m x).val = regValue m x := by
   intro m
@@ -100,16 +134,21 @@ theorem bitVecEquiv_val_eq_regValue :
       rw [hbf, show x (Fin.natAdd m 0) = x (Fin.last m) from rfl]
       ring
 
+/-- Expands the value of `bitVecEquiv m x` as the sum of bit values times `2 ^ (m - 1 - i.val)`. -/
 theorem bitVecEquiv_binary_msb_expansion :
     ∀ (m : ℕ) (x : Reg m),
       (bitVecEquiv m x).val = ∑ i : Fin m, (if x i then 1 else 0) * 2 ^ (m - 1 - i.val) :=
   fun m x => bitVecEquiv_val_eq_regValue m x
 
+/-- The local gate program applying one Hadamard gate to each register wire. -/
 def localHadamard (n : ℕ) : List (LocalQFTGate n) := (List.finRange n).map LocalQFTGate.h
 
+/-- The local Hadamard program on `n` wires contains exactly `n` gates. -/
 @[simp] theorem localHadamard_length (n : ℕ) : (localHadamard n).length = n := by
   simp [localHadamard]
 
+/-- For distinct selected wires, the Hadamard program matrix is the product of their Hadamard
+entries when all unselected bits agree, and is zero otherwise. -/
 theorem localProgramMatrix_map_h (ws : List (Fin n)) (hnd : ws.Nodup) :
     ∀ (x y : Reg n), localProgramMatrix (ws.map LocalQFTGate.h) x y =
       if (∀ k : Fin n, k ∉ ws → x k = y k)
@@ -188,6 +227,7 @@ theorem localProgramMatrix_map_h (ws : List (Fin n)) (hnd : ws.Nodup) :
           rw [if_neg (fun h => hne ((h k₀ hk₀ws).trans (hzsupp k₀ hk₀w))), zero_mul]
         · rw [if_neg hzsupp, mul_zero]
 
+/-- The matrix of the local Hadamard program equals the tensor Hadamard matrix `HadamardN n`. -/
 theorem localProgramMatrix_localHadamard (n : ℕ) :
     localProgramMatrix (localHadamard n) = HadamardN n := by
   ext x y
@@ -197,6 +237,8 @@ theorem localProgramMatrix_localHadamard (n : ℕ) :
   rw [← List.ofFn_eq_map, List.prod_ofFn]
   rfl
 
+/-- The local Hadamard program implements `HadamardN n`, prepares the uniform state from the
+zero register, and uses exactly `n` gates and zero queries. -/
 theorem localHadamard_actual_implementation (n : ℕ) :
     localProgramMatrix (localHadamard n) = HadamardN n ∧
     (localHadamard n).length = n ∧
@@ -210,11 +252,13 @@ theorem localHadamard_actual_implementation (n : ℕ) :
     by rw [run, localProgramMatrix_localHadamard n]; exact applyGate_hadamardN_ket_zero n,
     by rw [gc, localHadamard_length], qc⟩
 
+/-- The `n`th power of the square root of two is the square root of `2 ^ n`. -/
 theorem sqrt_two_pow (n : ℕ) : (Real.sqrt 2) ^ n = Real.sqrt ((2 : ℝ) ^ n) := by
   induction n with
   | zero => simp
   | succ n ih => rw [pow_succ, pow_succ, Real.sqrt_mul (by positivity), ← ih]
 
+/-- Expresses a power of the primitive `2 ^ n`th root of unity as a complex exponential. -/
 theorem primRoot_two_pow_pow (n m : ℕ) :
     primRoot (2 ^ n) ^ m
       = Complex.exp (((2 * Real.pi * m / ((2 ^ n : ℕ) : ℝ)) : ℝ) * Complex.I) := by
@@ -223,6 +267,8 @@ theorem primRoot_two_pow_pow (n m : ℕ) :
   push_cast
   ring
 
+/-- For positive `n`, the primitive `2 ^ n`th root of unity raised to `2 ^ (n - 1)` equals minus
+one. -/
 theorem primRoot_two_pow_pow_half (n : ℕ) (hn : 0 < n) :
     primRoot (2 ^ n) ^ (2 ^ (n - 1)) = -1 := by
   rw [primRoot_two_pow_pow]
@@ -235,12 +281,16 @@ theorem primRoot_two_pow_pow_half (n : ℕ) (hn : 0 < n) :
     field_simp
   rw [h1, Complex.exp_pi_mul_I]
 
+/-- Expresses a Hadamard entry as the inverse square root of two times a power of the primitive
+`2 ^ n`th root, for positive `n`. -/
 theorem hadamard_entry_eq (n : ℕ) (hn : 0 < n) (p q : Bool) :
     Hadamard p q = (Real.sqrt 2 : ℂ)⁻¹ *
       primRoot (2 ^ n) ^ (p.toNat * q.toNat * 2 ^ (n - 1)) := by
   show (Real.sqrt 2 : ℂ)⁻¹ * (if p && q then -1 else 1) = _
   cases p <;> cases q <;> simp [primRoot_two_pow_pow_half n hn]
 
+/-- Expresses the positive dyadic phase of exponent `c - a + 1` as a power of the primitive `2 ^
+n`th root when `a ≤ c < n`. -/
 theorem cp_phase_eq (n a c : ℕ) (hac : a ≤ c) (hc : c < n) :
     Complex.exp (dyadicPhaseAngle (c - a + 1) false * Complex.I)
       = primRoot (2 ^ n) ^ (2 ^ (n - 1 - c + a)) := by
@@ -256,9 +306,12 @@ theorem cp_phase_eq (n a c : ℕ) (hac : a ≤ c) (hc : c < n) :
   rw [div_eq_div_iff (by positivity) (by positivity)]
   linear_combination 2 * Real.pi * h1
 
+/-- The primitive `2 ^ n`th root raised to `2 ^ n` equals one. -/
 theorem primRoot_two_pow_pow_self (n : ℕ) : primRoot (2 ^ n) ^ (2 ^ n) = 1 :=
   (isPrimitiveRoot_primRoot (pow_ne_zero n (by norm_num : (2 : ℕ) ≠ 0))).pow_eq_one
 
+/-- One Fourier circuit row: a Hadamard on wire `a` followed by controlled dyadic phases between
+`a` and every later wire. -/
 def localQFTRow (n a : ℕ) (ha : a < n) : List (LocalQFTGate n) :=
   .h ⟨a, ha⟩ :: (List.range' (a + 1) (n - 1 - a)).pmap
     (fun c hc => LocalQFTGate.cp ⟨a, ha⟩ ⟨c, hc⟩ (c - a + 1) false)
@@ -266,6 +319,8 @@ def localQFTRow (n a : ℕ) (ha : a < n) : List (LocalQFTGate n) :=
       obtain ⟨i, hi, rfl⟩ := List.mem_range'.mp hc
       omega)
 
+/-- A finite list product of powers of a complex number equals that number raised to the sum of
+the exponents. -/
 theorem list_prod_pow_eq_pow_sum (x : ℂ) (m : ℕ → ℕ) :
     ∀ l : List ℕ, (l.map fun c => x ^ m c).prod = x ^ (l.map m).sum := by
   intro l
@@ -274,6 +329,8 @@ theorem list_prod_pow_eq_pow_sum (x : ℂ) (m : ℕ → ℕ) :
   | cons c l ih =>
     rw [List.map_cons, List.prod_cons, List.map_cons, List.sum_cons, ih, pow_add]
 
+/-- A program whose gate matrices are diagonal has diagonal program matrix, with each diagonal
+entry the product of the gate entries. -/
 theorem localProgramMatrix_diagonal (gs : List (LocalQFTGate n)) (f : LocalQFTGate n → Reg n → ℂ)
     (h : ∀ g ∈ gs, localGateMatrix g = Matrix.diagonal (f g)) :
     localProgramMatrix gs = Matrix.diagonal (fun u => (gs.map fun g => f g u).prod) := by
@@ -294,6 +351,8 @@ theorem localProgramMatrix_diagonal (gs : List (LocalQFTGate n)) (f : LocalQFTGa
     rw [List.map_cons, List.prod_cons]
     exact mul_comm _ _
 
+/-- Expresses the controlled dyadic phase matrix as a diagonal matrix of powers of the primitive
+`2 ^ n`th root. -/
 theorem localGateMatrix_cp_eq_diagonal_pow (n a c : ℕ) (ha : a < n) (hac : a ≤ c)
     (hc : c < n) :
     localGateMatrix (LocalQFTGate.cp ⟨a, ha⟩ ⟨c, hc⟩ (c - a + 1) false)
@@ -307,11 +366,15 @@ theorem localGateMatrix_cp_eq_diagonal_pow (n a c : ℕ) (ha : a < n) (hac : a �
   cases hu1 : u ⟨a, ha⟩ <;> cases hu2 : u ⟨c, hc⟩ <;>
     simp [cp_phase_eq n a c hac hc]
 
+/-- The total integer phase exponent for controlled phase gates from wire `a` to a specified
+interval of target wires. -/
 def localQFTCpListPhaseSum (n : ℕ) (a : Fin n) (u : Reg n) (s l : ℕ)
     (H : ∀ c ∈ List.range' s l, c < n) : ℕ :=
   ((List.range' s l).pmap (fun c hc =>
     (u a).toNat * (u ⟨c, hc⟩).toNat * 2 ^ (n - 1 - c + a.val)) H).sum
 
+/-- The controlled phase gates from wire `a` to a valid interval of later wires form the
+diagonal matrix determined by `localQFTCpListPhaseSum`. -/
 theorem localProgramMatrix_cps (n a : ℕ) (ha : a < n) :
     ∀ (s l : ℕ) (_hs : a < s) (_hl : s + l ≤ n) (H : ∀ c ∈ List.range' s l, c < n),
     localProgramMatrix ((List.range' s l).pmap
@@ -365,34 +428,48 @@ theorem localProgramMatrix_cps (n a : ℕ) (ha : a < n) :
             (u ⟨a, ha⟩).toNat * (u ⟨c, hc⟩).toNat * 2 ^ (n - 1 - c + a)) Hrest).sum from rfl]
     exact add_comm _ _
 
+/-- The recursively assembled prefix of Fourier rows, appending row `r` at the successor step
+when `r < n`. -/
 def localQFTRows (n : ℕ) : (r : ℕ) → List (LocalQFTGate n)
   | 0 => []
   | r + 1 => if h : r < n then localQFTRows n r ++ localQFTRow n r h else []
 
+/-- The zero-row Fourier prefix is the empty program. -/
 theorem localQFTRows_zero (n : ℕ) : localQFTRows n 0 = [] := rfl
 
+/-- For `r < n`, the next Fourier prefix appends `localQFTRow n r` to the first `r` rows. -/
 theorem localQFTRows_succ (n r : ℕ) (hr : r < n) :
     localQFTRows n (r + 1) = localQFTRows n r ++ localQFTRow n r hr :=
   dif_pos hr
 
+/-- The recursively assembled prefix of outer-wire swaps used to reverse the register order. -/
 def localQFTSwapPrefix (n : ℕ) : (m : ℕ) → List (LocalQFTGate n)
   | 0 => []
   | m + 1 => if h : m + 1 ≤ n / 2 then
       localQFTSwapPrefix n m ++ [LocalQFTGate.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩]
     else []
 
+/-- Within the first `n / 2` swaps, the next swap prefix appends the swap between wires `m` and
+`n - 1 - m`. -/
 theorem localQFTSwapPrefix_succ (n m : ℕ) (hm : m + 1 ≤ n / 2) :
     localQFTSwapPrefix n (m + 1)
       = localQFTSwapPrefix n m ++ [LocalQFTGate.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩] :=
   dif_pos hm
 
+/-- The full register-reversal program, consisting of `n / 2` outer-wire swaps. -/
 def localQFTSwaps (n : ℕ) : List (LocalQFTGate n) := localQFTSwapPrefix n (n / 2)
 
+/-- The local Fourier program consisting of all Fourier rows followed by register-reversal
+swaps. -/
 def localQFT (n : ℕ) : List (LocalQFTGate n) := localQFTRows n n ++ localQFTSwaps n
 
+/-- The integer exponent contributed by the controlled phase between wire `a` and target `c`,
+taking the target bit as zero when `c` is out of range. -/
 def cpExpSummand (n : ℕ) (a : Fin n) (u : Reg n) (c : ℕ) : ℕ :=
   (u a).toNat * (if hc : c < n then (u ⟨c, hc⟩).toNat else 0) * 2 ^ (n - 1 - c + a.val)
 
+/-- A list sum over `List.range' s l` equals the corresponding finite sum over the interval from
+`s` to `s + l`. -/
 theorem list_sum_map_range' (m : ℕ → ℕ) (s : ℕ) :
     ∀ l : ℕ, ((List.range' s l).map m).sum = ∑ i ∈ Finset.Ico s (s + l), m i := by
   intro l
@@ -409,9 +486,12 @@ theorem list_sum_map_range' (m : ℕ → ℕ) (s : ℕ) :
       show s + (l + 1) = s + l + 1 from by omega,
       Finset.sum_Ico_succ_top (Nat.le_add_right s l)]
 
+/-- The total integer controlled-phase exponent from wire `a` to every later wire. -/
 def localQFTCpPhaseSum (n : ℕ) (a : Fin n) (u : Reg n) : ℕ :=
   ∑ j : Fin n, if a.val < j.val then (u a).toNat * (u j).toNat * 2 ^ (n - 1 - j.val + a.val) else 0
 
+/-- Expresses `localQFTCpPhaseSum` as a sum of `cpExpSummand` over the natural indices greater
+than `a` and below `n`. -/
 theorem localQFTCpPhaseSum_eq_filter_range (n : ℕ) (a : Fin n) (u : Reg n) :
     localQFTCpPhaseSum n a u
       = ∑ c ∈ (Finset.range n).filter (fun c => a.val < c), cpExpSummand n a u c := by
@@ -432,6 +512,7 @@ theorem localQFTCpPhaseSum_eq_filter_range (n : ℕ) (a : Fin n) (u : Reg n) :
     (fun c => if a.val < c then cpExpSummand n a u c else 0) n]
   exact Finset.sum_congr rfl fun j _ => hpoint j
 
+/-- Filtering `Finset.range n` to indices greater than `a` gives `Finset.Ico (a + 1) n`. -/
 theorem filter_range_lt_eq_Ico (n a : ℕ) :
     (Finset.range n).filter (fun c => a < c) = Finset.Ico (a + 1) n := by
   rw [Finset.range_eq_Ico]
@@ -440,6 +521,8 @@ theorem filter_range_lt_eq_Ico (n a : ℕ) :
     Finset.filter_congr (fun c _ => (Nat.succ_le_iff).symm)]
   exact Finset.Ico_filter_le_of_left_le (Nat.zero_le _)
 
+/-- The phase sum using bounded target indices equals the ordinary mapped sum of `cpExpSummand`
+over the same interval. -/
 theorem pmap_phase_sum_eq_map_sum (n a : ℕ) (ha : a < n) (u : Reg n)
     (s l : ℕ) (H : ∀ c ∈ List.range' s l, c < n) :
     ((List.range' s l).pmap (fun c hc =>
@@ -454,6 +537,7 @@ theorem pmap_phase_sum_eq_map_sum (n a : ℕ) (ha : a < n) (u : Reg n)
     rw [dif_pos (H x.1 x.2)]
   rw [List.map_congr_left hx, List.attach_map_val]
 
+/-- The interval phase sum for all wires after `a` equals `localQFTCpPhaseSum`. -/
 theorem localQFTCpListPhaseSum_eq (n a : ℕ) (ha : a < n) (u : Reg n)
     (H : ∀ c ∈ List.range' (a + 1) (n - 1 - a), c < n) :
     localQFTCpListPhaseSum n ⟨a, ha⟩ u (a + 1) (n - 1 - a) H
@@ -464,13 +548,18 @@ theorem localQFTCpListPhaseSum_eq (n a : ℕ) (ha : a < n) (u : Reg n)
     localQFTCpPhaseSum_eq_filter_range, filter_range_lt_eq_Ico,
     show a + 1 + (n - 1 - a) = n from by omega]
 
+/-- The total integer Fourier phase exponent contributed by the first `r` rows for output
+register `z` and input register `x`. -/
 def localQFTPhaseNum (n r : ℕ) (z x : Reg n) : ℕ :=
   ∑ i : Fin n, if i.val < r then (z i).toNat *
     (∑ j : Fin n, if i ≤ j then (x j).toNat * 2 ^ (n - 1 - j.val + i.val) else 0) else 0
 
+/-- The Fourier phase numerator for zero rows is zero. -/
 theorem localQFTPhaseNum_zero (n : ℕ) (z x : Reg n) : localQFTPhaseNum n 0 z x = 0 :=
   Finset.sum_eq_zero fun i _ => if_neg (Nat.not_lt_zero i.val)
 
+/-- For `r < n`, the next phase numerator adds the contribution of output bit `r` paired with
+input bits at or after `r`. -/
 theorem localQFTPhaseNum_succ (n r : ℕ) (hr : r < n) (z x : Reg n) :
     localQFTPhaseNum n (r + 1) z x
       = localQFTPhaseNum n r z x + (z ⟨r, hr⟩).toNat *
@@ -502,6 +591,8 @@ theorem localQFTPhaseNum_succ (n r : ℕ) (hr : r < n) (z x : Reg n) :
   rw [Finset.sum_congr rfl (fun i _ => hsplit i), Finset.sum_add_distrib]
   simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
 
+/-- Splits the row phase sum into the diagonal bit contribution and the contributions from
+strictly later wires. -/
 theorem localQFTPhaseNum_inner_split (n r : ℕ) (hr : r < n) (x : Reg n) :
     (∑ j : Fin n, if ⟨r, hr⟩ ≤ j then (x j).toNat * 2 ^ (n - 1 - j.val + r) else 0)
       = (x ⟨r, hr⟩).toNat * 2 ^ (n - 1)
@@ -526,6 +617,8 @@ theorem localQFTPhaseNum_inner_split (n r : ℕ) (hr : r < n) (x : Reg n) :
   show (x ⟨r, hr⟩).toNat * 2 ^ (n - 1 - r + r) + _ = _
   rw [show n - 1 - r + r = n - 1 from by omega]
 
+/-- Evaluates a Hadamard matrix sum over an unprocessed register tail, assuming the coefficient
+function is unchanged by the specified update at the current wire. -/
 theorem localQFT_h_step_sum (n r : ℕ) (hr : r < n) (z x : Reg n) (g : Reg n → ℂ)
     (hg : g (Function.update z ⟨r, hr⟩ (x ⟨r, hr⟩)) = g z) :
     (∑ w : Reg n, localGateMatrix (.h ⟨r, hr⟩) z w *
@@ -570,6 +663,8 @@ theorem localQFT_h_step_sum (n r : ℕ) (hr : r < n) (z x : Reg n) (g : Reg n �
       rw [if_neg (fun hM => hne ((hH i₀ hi₀r).trans (hM i₀ (by omega)))), mul_zero]
     · rw [localGateMatrix_h, if_neg hH, zero_mul]
 
+/-- For `r ≤ n`, the first `r` Fourier rows have entries given by the normalization factor and
+`localQFTPhaseNum`, with zero entries when unprocessed bits disagree. -/
 theorem localProgramMatrix_localQFTRows (n : ℕ) :
     ∀ (r : ℕ) (_hr : r ≤ n) (z x : Reg n),
     localProgramMatrix (localQFTRows n r) z x
@@ -676,6 +771,8 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
       rw [hscal, hexp]
     · rw [if_neg hsupp, mul_zero, if_neg hsupp]
 
+/-- The product of two register permutation matrices is the matrix associated with their
+composed maps. -/
 theorem permMatrix_mul (σ τ : Reg n → Reg n) :
     permMatrix σ * permMatrix τ = permMatrix (σ ∘ τ) := by
   ext i j
@@ -686,6 +783,8 @@ theorem permMatrix_mul (σ τ : Reg n → Reg n) :
     rw [if_neg hk, mul_zero]
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- Left multiplication by the matrix of an involutive register map evaluates the left matrix
+index at that map. -/
 theorem permMatrix_mul_apply (σ : Reg n → Reg n) (hσ : Function.Involutive σ)
     (M : Matrix (Reg n) (Reg n) ℂ) (y x : Reg n) :
     (permMatrix σ * M) y x = M (σ y) x := by
@@ -697,9 +796,13 @@ theorem permMatrix_mul_apply (σ : Reg n → Reg n) (hσ : Function.Involutive �
     rw [if_neg (fun h => hw (((congrArg σ h).trans (hσ w)).symm)), zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- The wire map reversing indices in the first or last `m` positions and fixing the other
+indices. -/
 def qftSwapPerm (n m : ℕ) (i : Fin n) : Fin n :=
   if i.val < m ∨ n - 1 - i.val < m then ⟨n - 1 - i.val, by have h := i.isLt; omega⟩ else i
 
+/-- The value of `qftSwapPerm n m i` is `n - 1 - i.val` if either outer-position test holds, and
+is `i.val` otherwise. -/
 theorem qftSwapPerm_val (n m : ℕ) (i : Fin n) :
     (qftSwapPerm n m i).val
       = if i.val < m ∨ n - 1 - i.val < m then n - 1 - i.val else i.val := by
@@ -709,10 +812,13 @@ theorem qftSwapPerm_val (n m : ℕ) (i : Fin n) :
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
+/-- The zero-swap wire map fixes every wire. -/
 theorem qftSwapPerm_zero (n : ℕ) (i : Fin n) : qftSwapPerm n 0 i = i := by
   show (if i.val < 0 ∨ n - 1 - i.val < 0 then _ else i) = i
   rw [if_neg (by simp)]
 
+/-- Composing the current wire map with the next outer-wire swap gives the successor swap map
+when `m + 1 ≤ n / 2`. -/
 theorem qftSwapPerm_step (n m : ℕ) (hm : m + 1 ≤ n / 2) (i : Fin n) :
     qftSwapPerm n m (Equiv.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩ i)
       = qftSwapPerm n (m + 1) i := by
@@ -748,6 +854,7 @@ theorem qftSwapPerm_step (n m : ℕ) (hm : m + 1 ≤ n / 2) (i : Fin n) :
         · rw [Equiv.swap_apply_of_ne_of_ne (hne_of_val _ h3) (hne_of_val _ (by omega)),
             if_neg (fun h => h.elim h1 h2), if_neg (by omega)]
 
+/-- After `n / 2` swaps, the wire map is `Fin.rev`. -/
 theorem qftSwapPerm_half (n : ℕ) (i : Fin n) : qftSwapPerm n (n / 2) i = Fin.rev i := by
   apply Fin.ext
   rw [qftSwapPerm_val, Fin.val_rev]
@@ -760,6 +867,8 @@ theorem qftSwapPerm_half (n : ℕ) (i : Fin n) : qftSwapPerm n (n / 2) i = Fin.r
     have h2 : ¬ n - 1 - i.val < n / 2 := fun h2 => h (Or.inr h2)
     omega
 
+/-- For `m ≤ n / 2`, the swap-prefix program matrix is the register permutation matrix induced
+by `qftSwapPerm n m`. -/
 theorem localProgramMatrix_swapPrefix (n : ℕ) :
     ∀ (m : ℕ) (_hm : m ≤ n / 2),
     localProgramMatrix (localQFTSwapPrefix n m)
@@ -798,6 +907,7 @@ theorem localProgramMatrix_swapPrefix (n : ℕ) :
       = w (qftSwapPerm n (m + 1) i)
     rw [qftSwapPerm_step n m hm]
 
+/-- The full swap program implements reversal of the register wires. -/
 theorem localProgramMatrix_localQFTSwaps (n : ℕ) :
     localProgramMatrix (localQFTSwaps n)
       = permMatrix (fun (w : Reg n) (i : Fin n) => w (Fin.rev i)) := by
@@ -807,6 +917,8 @@ theorem localProgramMatrix_localQFTSwaps (n : ℕ) :
   funext w i
   rw [qftSwapPerm_half]
 
+/-- The least significant bit first value of a reversed register equals its most significant bit
+first value. -/
 theorem regValueLsb_comp_rev (n : ℕ) (w : Reg n) :
     regValueLsb n (fun i => w (Fin.rev i)) = regValue n w := by
   have hpoint : ∀ i : Fin n, (if w (Fin.rev i) then 1 else 0) * 2 ^ i.val
@@ -819,6 +931,8 @@ theorem regValueLsb_comp_rev (n : ℕ) (w : Reg n) :
   exact Equiv.sum_comp (Fin.rev_involutive.toPerm Fin.rev)
     (fun j => (if w j then 1 else 0) * 2 ^ (n - 1 - j.val))
 
+/-- Expands the full Fourier phase numerator as the triangular double sum over pairs of wire
+indices. -/
 theorem localQFTPhaseNum_full (n : ℕ) (z x : Reg n) :
     localQFTPhaseNum n n z x
       = ∑ i : Fin n, (z i).toNat *
@@ -827,6 +941,8 @@ theorem localQFTPhaseNum_full (n : ℕ) (z x : Reg n) :
   intro i _
   rw [if_pos i.isLt]
 
+/-- The product of the two register encodings equals the full Fourier phase numerator plus `2 ^
+n` times an explicit integer correction. -/
 theorem regValue_mul_regValueLsb (n : ℕ) (x z : Reg n) :
     regValue n x * regValueLsb n z
       = localQFTPhaseNum n n z x + 2 ^ n *
@@ -883,12 +999,15 @@ theorem regValue_mul_regValueLsb (n : ℕ) (x z : Reg n) :
     Finset.sum_congr rfl (fun a _ => Finset.sum_add_distrib), Finset.sum_add_distrib,
     hB, hG]
 
+/-- Powers of the primitive root with exponent given by the product of register encodings agree
+with those given by the full Fourier phase numerator. -/
 theorem primRoot_pow_regValue_mul_lsb (n : ℕ) (x z : Reg n) :
     primRoot (2 ^ n) ^ (regValue n x * regValueLsb n z)
       = primRoot (2 ^ n) ^ localQFTPhaseNum n n z x := by
   rw [regValue_mul_regValueLsb, pow_add, pow_mul, primRoot_two_pow_pow_self, one_pow,
     mul_one]
 
+/-- Reversing the wires of a Boolean register twice returns the original register. -/
 theorem reg_rev_involutive (n : ℕ) :
     Function.Involutive (fun w : Reg n => fun i => w (Fin.rev i)) := by
   intro w
@@ -896,6 +1015,8 @@ theorem reg_rev_involutive (n : ℕ) :
   show w (Fin.rev (Fin.rev i)) = w i
   rw [Fin.rev_rev]
 
+/-- The local Fourier program implements `QFTMatrix (2 ^ n)` after relabeling by `bitVecEquiv
+n`. -/
 theorem localProgramMatrix_localQFT (n : ℕ) :
     localProgramMatrix (localQFT n) = relabelGate (bitVecEquiv n).symm (QFTMatrix (2 ^ n)) := by
   ext y x
@@ -920,6 +1041,8 @@ theorem localProgramMatrix_localQFT (n : ℕ) :
   rw [← Nat.cast_mul, zpow_natCast, mul_comm (bitVecEquiv n y).val (bitVecEquiv n x).val,
     inv_pow, ← Complex.ofReal_pow, sqrt_two_pow, Nat.cast_pow, Nat.cast_ofNat]
 
+/-- The local Fourier program implements the relabeled positive-phase Fourier matrix, and its
+adjoint program implements the conjugate transpose. -/
 theorem localQFT_exact_positive_matrix (n : ℕ) :
     localProgramMatrix (localQFT n) = relabelGate (bitVecEquiv n).symm (QFTMatrix (2 ^ n)) ∧
     localProgramMatrix (localProgramAdjoint (localQFT n)) =
@@ -927,14 +1050,19 @@ theorem localQFT_exact_positive_matrix (n : ℕ) :
   obtain ⟨-, adj, -⟩ := localDyadicProgram_run_adjoint_cost n (localQFT n) (Ket (ZeroStr n))
   exact ⟨localProgramMatrix_localQFT n, by rw [adj, localProgramMatrix_localQFT n]⟩
 
+/-- The Fourier program filtered to retain controlled phases with exponent at most `b + 2`,
+together with every Hadamard and swap. -/
 def approxLocalQFT (n b : ℕ) : List (LocalQFTGate n) :=
   (localQFT n).filter fun g => match g with
     | .cp _ _ k _ => decide (k ≤ b + 2)
     | _ => true
 
+/-- The readout circuit obtained from the adjoint of the truncated local Fourier program. -/
 noncomputable def localGridReadoutCircuit (n b : ℕ) : Circuit (Reg n) :=
   localProgramCircuit (localProgramAdjoint (approxLocalQFT n b))
 
+/-- A predicate false on every controlled phase in a Fourier row interval has count zero on that
+interval. -/
 theorem countP_cpPmap_false (n a : ℕ) (ha : a < n) (p : LocalQFTGate n → Bool)
     (H : ∀ c ∈ List.range' (a + 1) (n - 1 - a), c < n)
     (hp : ∀ (c : ℕ) (hc : c < n), p (LocalQFTGate.cp ⟨a, ha⟩ ⟨c, hc⟩ (c - a + 1) false) = false) :
@@ -947,6 +1075,8 @@ theorem countP_cpPmap_false (n a : ℕ) (ha : a < n) (p : LocalQFTGate n → Boo
       rw [hp c (by obtain ⟨i, hi, rfl⟩ := List.mem_range'.mp hc; omega)]
       exact Bool.false_ne_true)]
 
+/-- A predicate true on every controlled phase after wire `a` has count `n - 1 - a` on that
+row's phase list. -/
 theorem countP_cpPmap_true (n a : ℕ) (ha : a < n) (p : LocalQFTGate n → Bool)
     (H : ∀ c ∈ List.range' (a + 1) (n - 1 - a), c < n)
     (hp : ∀ (c : ℕ) (hc : c < n), p (LocalQFTGate.cp ⟨a, ha⟩ ⟨c, hc⟩ (c - a + 1) false) = true) :
@@ -958,6 +1088,8 @@ theorem countP_cpPmap_true (n a : ℕ) (ha : a < n) (p : LocalQFTGate n → Bool
       exact hp c (by obtain ⟨i, hi, rfl⟩ := List.mem_range'.mp hc; omega)),
     List.length_attach, List.length_range']
 
+/-- For `r ≤ n`, the row prefix contains `r` Hadamards, the sum of `n - 1 - a` controlled phases
+over its rows, and no swaps. -/
 theorem localQFTRows_class_counts (n : ℕ) :
     ∀ (r : ℕ) (_hr : r ≤ n),
     (localQFTRows n r).countP (fun g => match g with | .h _ => true | _ => false) = r ∧
@@ -994,6 +1126,8 @@ theorem localQFTRows_class_counts (n : ℕ) :
     · rw [List.countP_append, hrowCp, ihCp, Finset.sum_range_succ]
     · rw [List.countP_append, hrowSwap, ihSwap]
 
+/-- A valid prefix of `m` reversal swaps contains no Hadamards or controlled phases and exactly
+`m` swaps. -/
 theorem localQFTSwapPrefix_class_counts (n : ℕ) :
     ∀ (m : ℕ) (_hm : m ≤ n / 2),
     (localQFTSwapPrefix n m).countP (fun g => match g with | .h _ => true | _ => false) = 0 ∧
@@ -1015,6 +1149,8 @@ theorem localQFTSwapPrefix_class_counts (n : ℕ) :
     · rw [List.countP_append, ihSwap, List.countP_cons, List.countP_nil]
       simp
 
+/-- The exact Fourier program contains `n` Hadamards, `n * (n - 1) / 2` controlled phases, and
+`n / 2` swaps. -/
 theorem localQFT_class_counts (n : ℕ) :
     (localQFT n).countP (fun g => match g with | .h _ => true | _ => false) = n ∧
     (localQFT n).countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
@@ -1035,6 +1171,8 @@ theorem localQFT_class_counts (n : ℕ) :
     rfl
   · rw [List.countP_append, hSwap, sSwap, Nat.zero_add]
 
+/-- The length of a local Fourier gate list is the sum of its Hadamard, controlled-phase, and
+swap counts. -/
 theorem length_eq_countP_add (l : List (LocalQFTGate n)) :
     l.length = l.countP (fun g => match g with | .h _ => true | _ => false)
       + l.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
@@ -1045,6 +1183,8 @@ theorem length_eq_countP_add (l : List (LocalQFTGate n)) :
     rw [List.length_cons, List.countP_cons, List.countP_cons, List.countP_cons, ih]
     cases g <;> simp <;> omega
 
+/-- Every controlled phase in a valid Fourier row prefix joins increasing wire indices, has
+exponent `c.val - a.val + 1`, and has positive phase sign. -/
 theorem mem_localQFTRows_cp (n r : ℕ) (hr : r ≤ n) (a c : Fin n) (k : ℕ) (neg : Bool)
     (hg : LocalQFTGate.cp a c k neg ∈ localQFTRows n r) :
     a.val < c.val ∧ k = c.val - a.val + 1 ∧ neg = false := by
@@ -1066,6 +1206,7 @@ theorem mem_localQFTRows_cp (n r : ℕ) (hr : r ≤ n) (a c : Fin n) (k : ℕ) (
         show r < r + 1 + 1 * i ∧ r + 1 + 1 * i - r + 1 = r + 1 + 1 * i - r + 1 ∧ false = false
         exact ⟨by omega, rfl, rfl⟩
 
+/-- No swap gate occurs in a Fourier row prefix with `r ≤ n`. -/
 theorem no_swap_mem_localQFTRows (n r : ℕ) (hr : r ≤ n) (a c : Fin n)
     (hg : LocalQFTGate.swap a c ∈ localQFTRows n r) : False := by
   induction r with
@@ -1082,6 +1223,8 @@ theorem no_swap_mem_localQFTRows (n r : ℕ) (hr : r ≤ n) (a c : Fin n)
         obtain ⟨c', hc', h⟩ := hg
         nomatch h
 
+/-- Every swap in a reversal prefix pairs an index below `n / 2` with its strictly larger
+reversed index. -/
 theorem mem_localQFTSwapPrefix_swap (n m : ℕ) (a c : Fin n)
     (hg : LocalQFTGate.swap a c ∈ localQFTSwapPrefix n m) :
     a.val < c.val ∧ a.val < n / 2 ∧ c.val = n - 1 - a.val := by
@@ -1101,6 +1244,7 @@ theorem mem_localQFTSwapPrefix_swap (n m : ℕ) (a c : Fin n)
         else []) from rfl, dif_neg hm] at hg
       exact absurd hg (by simp)
 
+/-- No controlled phase gate occurs in a reversal swap prefix. -/
 theorem no_cp_mem_localQFTSwapPrefix (n m : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool)
     (hg : LocalQFTGate.cp a c k neg ∈ localQFTSwapPrefix n m) : False := by
   induction m with
@@ -1116,6 +1260,8 @@ theorem no_cp_mem_localQFTSwapPrefix (n m : ℕ) (a c : Fin n) (k : ℕ) (neg : 
         else []) from rfl, dif_neg hm] at hg
       exact absurd hg (by simp)
 
+/-- Every controlled phase in the full Fourier program joins increasing wires with exponent
+equal to their distance plus one and positive phase sign. -/
 theorem mem_localQFT_cp (n : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool)
     (hg : LocalQFTGate.cp a c k neg ∈ localQFT n) :
     a.val < c.val ∧ k = c.val - a.val + 1 ∧ neg = false := by
@@ -1124,6 +1270,8 @@ theorem mem_localQFT_cp (n : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool)
   · exact mem_localQFTRows_cp n n (le_refl n) a c k neg hg
   · exact absurd hg (no_cp_mem_localQFTSwapPrefix n (n / 2) a c k neg)
 
+/-- Every swap in the full Fourier program pairs a wire below `n / 2` with its strictly larger
+reversed wire. -/
 theorem mem_localQFT_swap (n : ℕ) (a c : Fin n)
     (hg : LocalQFTGate.swap a c ∈ localQFT n) :
     a.val < c.val ∧ a.val < n / 2 ∧ c.val = n - 1 - a.val := by
@@ -1132,6 +1280,9 @@ theorem mem_localQFT_swap (n : ℕ) (a c : Fin n)
   · exact absurd hg (no_swap_mem_localQFTRows n n (le_refl n) a c)
   · exact mem_localQFTSwapPrefix_swap n (n / 2) a c hg
 
+/-- The exact Fourier circuit has `n` Hadamards, `n * (n - 1) / 2` controlled phases, `n / 2`
+swaps, their summed gate cost, zero queries, and the specified phase and swap wire
+relations. -/
 theorem localQFT_exact_gate_counts_and_wires (n : ℕ) :
     ((localQFT n).filter (fun g => match g with | .h _ => true | _ => false)).length = n ∧
     ((localQFT n).filter (fun g => match g with | .cp _ _ _ _ => true | _ => false)).length
@@ -1155,6 +1306,8 @@ theorem localQFT_exact_gate_counts_and_wires (n : ℕ) :
   | cp a c k neg => exact mem_localQFT_cp n a c k neg hg
   | swap a c => exact mem_localQFT_swap n a c hg
 
+/-- Counts indices in `List.range' s l` satisfying `c - r + 1 ≤ b + 2` as `min l (r + b + 2 -
+s)`. -/
 theorem countP_range'_sub_le (l : ℕ) (s r b : ℕ) :
     (List.range' s l).countP (fun c => decide (c - r + 1 ≤ b + 2))
       = min l (r + b + 2 - s) := by
@@ -1169,6 +1322,8 @@ theorem countP_range'_sub_le (l : ℕ) (s r b : ℕ) :
     · rw [if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
       omega
 
+/-- The number of controlled phases retained from a valid target interval is `min l (r + b + 2 -
+s)`. -/
 theorem countP_keep_cpPmap (n r b : ℕ) (hr : r < n) :
     ∀ (s l : ℕ) (_hl : s + l ≤ n) (H : ∀ c ∈ List.range' s l, c < n),
     ((List.range' s l).pmap
@@ -1198,6 +1353,8 @@ theorem countP_keep_cpPmap (n r b : ℕ) (hr : r < n) :
     · rw [if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
       omega
 
+/-- After truncation, the phase list after wire `r` contains `min (n - 1 - r) (b + 1)`
+controlled phases. -/
 theorem countP_isCp_filter_keep_cpPmap (n r b : ℕ) (hr : r < n)
     (H : ∀ c ∈ List.range' (r + 1) (n - 1 - r), c < n) :
     (((List.range' (r + 1) (n - 1 - r)).pmap
@@ -1222,6 +1379,8 @@ theorem countP_isCp_filter_keep_cpPmap (n r b : ℕ) (hr : r < n)
     countP_keep_cpPmap n r b hr (r + 1) (n - 1 - r) (by omega) H,
     show r + b + 2 - (r + 1) = b + 1 from by omega]
 
+/-- Truncation retains one Hadamard and `min (n - 1 - r) (b + 1)` controlled phases from row
+`r`. -/
 theorem countP_keep_localQFTRow (n r b : ℕ) (hr : r < n) :
     (localQFTRow n r hr).countP (fun g => match g with
         | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true)
@@ -1234,6 +1393,7 @@ theorem countP_keep_localQFTRow (n r b : ℕ) (hr : r < n) :
   show min (n - 1 - r) (b + 1) + 1 = 1 + min (n - 1 - r) (b + 1)
   omega
 
+/-- The truncated Fourier row contains exactly `min (n - 1 - r) (b + 1)` controlled phase gates. -/
 theorem countP_isCp_filter_keep_localQFTRow (n r b : ℕ) (hr : r < n) :
     ((localQFTRow n r hr).filter (fun g => match g with
         | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true)).countP
@@ -1248,6 +1408,8 @@ theorem countP_isCp_filter_keep_localQFTRow (n r b : ℕ) (hr : r < n) :
   show min (n - 1 - r) (b + 1) + 0 = min (n - 1 - r) (b + 1)
   omega
 
+/-- For `r ≤ n`, the retained gate count in the first `r` rows is `r` plus the sum of `min (n -
+1 - a) (b + 1)` over those rows. -/
 theorem countP_keep_localQFTRows (n b : ℕ) :
     ∀ (r : ℕ) (_hr : r ≤ n),
     (localQFTRows n r).countP (fun g => match g with
@@ -1267,6 +1429,8 @@ theorem countP_keep_localQFTRows (n b : ℕ) :
       ih (by omega), Finset.sum_range_succ]
     ring
 
+/-- For `r ≤ n`, the controlled-phase count in the truncated row prefix is the sum of `min (n -
+1 - a) (b + 1)` over its rows. -/
 theorem countP_isCp_filter_keep_localQFTRows (n b : ℕ) :
     ∀ (r : ℕ) (_hr : r ≤ n),
     ((localQFTRows n r).filter (fun g => match g with
@@ -1286,6 +1450,7 @@ theorem countP_isCp_filter_keep_localQFTRows (n b : ℕ) :
     rw [localQFTRows_succ n r hrlt, List.filter_append, List.countP_append,
       countP_isCp_filter_keep_localQFTRow n r b hrlt, ih (by omega), Finset.sum_range_succ]
 
+/-- A reversal swap prefix of valid length `m ≤ n / 2` contains exactly `m` gates. -/
 theorem localQFTSwapPrefix_length (n m : ℕ) (hm : m ≤ n / 2) :
     (localQFTSwapPrefix n m).length = m := by
   induction m with
@@ -1294,6 +1459,7 @@ theorem localQFTSwapPrefix_length (n m : ℕ) (hm : m ≤ n / 2) :
     rw [localQFTSwapPrefix_succ n m hm, List.length_append, List.length_singleton,
       ih (by omega)]
 
+/-- Every gate in a reversal swap prefix passes the controlled-phase truncation predicate. -/
 theorem keep_mem_localQFTSwapPrefix (n m b : ℕ) (g : LocalQFTGate n)
     (hg : g ∈ localQFTSwapPrefix n m) :
     (fun g => match g with | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true) g = true := by
@@ -1302,6 +1468,9 @@ theorem keep_mem_localQFTSwapPrefix (n m b : ℕ) (g : LocalQFTGate n)
   | cp a c k neg => exact absurd hg (no_cp_mem_localQFTSwapPrefix n m a c k neg)
   | swap a c => rfl
 
+/-- The truncated Fourier program is the stated phase filter and has exact gate cost `n + (∑ i ∈
+Finset.range n, min (n - 1 - i) (b + 1)) + n / 2`, bounded by `n + n * (b + 1) + n / 2`. It
+equals the exact program when `n ≤ b + 2`. -/
 theorem approxLocalQFT_actual_filter_and_cost (n b : ℕ) :
     approxLocalQFT n b = (localQFT n).filter (fun g => match g with
       | .cp _ _ k _ => decide (k ≤ b + 2)
@@ -1357,6 +1526,7 @@ theorem approxLocalQFT_actual_filter_and_cost (n b : ℕ) :
       omega
     | swap a c => rfl
 
+/-- A unitary matrix on Boolean registers has L2 operator norm one. -/
 theorem l2_opNorm_of_mem_unitaryGroup (U : Matrix (Reg n) (Reg n) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Reg n) ℂ) : ‖U‖ = 1 := by
   have h1 : Uᴴ * U = 1 := by
@@ -1374,6 +1544,8 @@ theorem l2_opNorm_of_mem_unitaryGroup (U : Matrix (Reg n) (Reg n) ℂ)
   · exact h
   · linarith
 
+/-- Replacing a controlled dyadic phase of exponent `k` by the identity incurs operator error at
+most `2 * π / 2 ^ k`. -/
 theorem localDyadicPhase_omission_operator_error (n : ℕ) (a c : Fin n) (k : ℕ) (neg : Bool) :
     ‖localGateMatrix (.cp a c k neg) - (1 : Matrix (Reg n) (Reg n) ℂ)‖ ≤
       2 * Real.pi / (2 ^ k : ℝ) := by
@@ -1415,6 +1587,8 @@ theorem localDyadicPhase_omission_operator_error (n : ℕ) (a c : Fin n) (k : �
   · rw [if_neg h, norm_zero]
     positivity
 
+/-- The reversed matrix product of a filtered program equals the reversed product of the full
+program with discarded gates replaced by the identity. -/
 theorem prod_filter_reverse (P : LocalQFTGate n → Bool) (gs : List (LocalQFTGate n)) :
     ((gs.filter P).reverse.map localGateMatrix).prod
       = (gs.reverse.map fun g => if P g then localGateMatrix g else 1).prod := by
@@ -1430,6 +1604,8 @@ theorem prod_filter_reverse (P : LocalQFTGate n → Bool) (gs : List (LocalQFTGa
         List.map_nil, List.prod_append, List.prod_cons, List.prod_nil, mul_one, if_neg hg,
         mul_one]
 
+/-- Bounds the sum of omitted dyadic phase estimates on a target interval by the geometric tail
+starting at the larger of the interval and truncation exponents. -/
 theorem sum_range'_omitted_phase_le (l : ℕ) (s r b : ℕ) :
     ((List.range' s l).map fun c =>
         if decide (c - r + 1 ≤ b + 2) then (0 : ℝ) else 2 * Real.pi / 2 ^ (c - r + 1)).sum
@@ -1463,6 +1639,8 @@ theorem sum_range'_omitted_phase_le (l : ℕ) (s r b : ℕ) :
       rw [hhalf]
       linarith [hiht]
 
+/-- A retained positive controlled phase has zero replacement error, while a discarded phase has
+error at most `2 * π / 2 ^ k`. -/
 theorem gate_error_le (n b : ℕ) (a c : Fin n) (k : ℕ) :
     ‖localGateMatrix (.cp a c k false) -
       (if decide (k ≤ b + 2) then localGateMatrix (.cp a c k false) else 1)‖
@@ -1474,6 +1652,8 @@ theorem gate_error_le (n b : ℕ) (a c : Fin n) (k : ℕ) :
       if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
     exact localDyadicPhase_omission_operator_error n a c k false
 
+/-- The sum of controlled-phase replacement errors on a valid target interval is bounded by the
+sum of the corresponding omitted dyadic phase estimates. -/
 theorem sum_gate_errors_cpPmap_le (n r b : ℕ) (hr : r < n) :
     ∀ (s l : ℕ) (_hl : s + l ≤ n) (H : ∀ c ∈ List.range' s l, c < n),
     (((List.range' s l).pmap (fun c hc => LocalQFTGate.cp ⟨r, hr⟩ ⟨c, hc⟩ (c - r + 1) false) H).map
@@ -1508,6 +1688,7 @@ theorem sum_gate_errors_cpPmap_le (n r b : ℕ) (hr : r < n) :
     have htail := ih (s + 1) (by omega) Hrest
     linarith
 
+/-- The sum of truncation errors in one Fourier row is at most `π / 2 ^ (b + 1)`. -/
 theorem sum_gate_errors_row_le (n r b : ℕ) (hr : r < n) :
     ((localQFTRow n r hr).map fun g =>
         ‖localGateMatrix g - (if (fun g => match g with | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true) g
@@ -1531,6 +1712,8 @@ theorem sum_gate_errors_row_le (n r b : ℕ) (hr : r < n) :
   rw [hmax, show b + 3 - 1 = b + 2 from by omega, hhalf] at htail
   exact hgeom.trans htail
 
+/-- For `r ≤ n`, the sum of truncation errors in the first `r` Fourier rows is at most `r * π /
+2 ^ (b + 1)`. -/
 theorem sum_gate_errors_rows_le (n b : ℕ) :
     ∀ (r : ℕ) (_hr : r ≤ n),
     ((localQFTRows n r).map fun g =>
@@ -1555,6 +1738,7 @@ theorem sum_gate_errors_rows_le (n b : ℕ) :
     rw [hcast]
     exact add_le_add hiht hrow
 
+/-- The truncation error sum on a reversal swap prefix is zero. -/
 theorem sum_gate_errors_swaps (n m b : ℕ) :
     ((localQFTSwapPrefix n m).map fun g =>
         ‖localGateMatrix g - (if (fun g => match g with | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true) g
@@ -1576,6 +1760,8 @@ theorem sum_gate_errors_swaps (n m b : ℕ) :
         else []) from rfl, dif_neg hm]
       rfl
 
+/-- The sum of gate replacement errors in the complete Fourier program is at most `π * n / 2 ^
+(b + 1)`. -/
 theorem sum_gate_errors_le (n b : ℕ) :
     ((localQFT n).map fun g =>
         ‖localGateMatrix g - (if (fun g => match g with | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true) g
@@ -1588,6 +1774,8 @@ theorem sum_gate_errors_le (n b : ℕ) :
       = (n : ℝ) * Real.pi / 2 ^ (b + 1) from by ring]
   exact hrows
 
+/-- The operator norm difference between the truncated and exact Fourier programs is at most `π
+* n / 2 ^ (b + 1)`. -/
 theorem approxLocalQFT_operator_error_forward (n b : ℕ) :
     ‖localProgramMatrix (approxLocalQFT n b) - localProgramMatrix (localQFT n)‖
       ≤ Real.pi * (n : ℝ) / 2 ^ (b + 1) := by
@@ -1633,6 +1821,8 @@ theorem approxLocalQFT_operator_error_forward (n b : ℕ) :
     List.map_reverse, List.sum_reverse]
   exact sum_gate_errors_le n b
 
+/-- Both the truncated Fourier program and its adjoint approximate the corresponding relabeled
+Fourier matrices with operator error at most `π * n / 2 ^ (b + 1)`. -/
 theorem approxLocalQFT_operator_error (n b : ℕ) :
     ‖localProgramMatrix (approxLocalQFT n b) - relabelGate (bitVecEquiv n).symm (QFTMatrix (2 ^ n))‖ ≤
       Real.pi * (n : ℝ) / (2 ^ (b + 1) : ℝ) ∧

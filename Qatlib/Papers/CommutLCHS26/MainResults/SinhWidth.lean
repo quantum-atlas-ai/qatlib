@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.SinhStrip
 import Mathlib.Data.EReal.Basic
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+/-!
+# Analytic width of the sinh transform
+
+This module defines `analyticWidth` using analyticity of the complete transformed matrix
+integrand in [AftabAnTrivisa2026]. For nonempty matrix index types, genuine denominator zeros
+obstruct continuity and yield a characterization of admissible strip widths by pole gaps.
+
+The final estimates express the analytic and quadrature bounds using `analyticWidth`, including
+the degenerate case of empty matrix index types.
+
+## Main statements
+
+* `lt_width_iff_gaps`: characterization of widths by pole-gap inequalities.
+* `original_estimates`: strip mass and mesh estimates below the analytic width.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,16 +43,22 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The product of the lower pole factor and the `n`th power of the upper pole factor after the
+sinh substitution. -/
 def denominator (n : ℕ) (b η : ℝ) (z : ℂ) : ℂ :=
   (1 - I * ((η : ℂ) * Complex.sinh z)) *
     ((b : ℂ) + I * ((η : ℂ) * Complex.sinh z)) ^ n
 
+/-- The numerator of the transformed scalar kernel, including the sinh Jacobian and exponential
+factors. -/
 def numerator (n : ℕ) (b c d η : ℝ) (z : ℂ) : ℂ :=
   ((η : ℂ) * Complex.cosh z) *
     (((b + 1 : ℝ) ^ n / (2 * Real.pi) : ℝ) : ℂ) *
     Complex.exp ((d : ℂ) * (1 - I * ((η : ℂ) * Complex.sinh z))) *
     Complex.exp (-(((η : ℂ) * Complex.sinh z) ^ 2 + 1) / (4 * (c : ℂ) ^ 2))
 
+/-- Multiplying the transformed integrand by its nonzero denominator gives its numerator times
+the transformed propagator. -/
 theorem product_identity (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (z : ℂ)
     (hz : denominator n b η z ≠ 0) :
     denominator n b η z • transformed n b c d T η H L z =
@@ -43,6 +70,8 @@ theorem product_identity (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (
   change denominator n b η z * _ * (_ / denominator n b η z) = _
   field_simp [hz]
 
+/-- The transformed numerator is nonzero on the imaginary axis within `|y| < π / 2` for positive
+`b` and `η`. -/
 theorem numerator_ne_zero (n : ℕ) {b η y : ℝ} (hb : 0 < b) (hη : 0 < η)
     (hy : |y| < Real.pi / 2) (c d : ℝ) : numerator n b c d η ((y : ℂ) * I) ≠ 0 := by
   have hcos : Real.cos y ≠ 0 := (Real.cos_pos_of_mem_Ioo
@@ -55,6 +84,8 @@ theorem numerator_ne_zero (n : ℕ) {b η y : ℝ} (hb : 0 < b) (hη : 0 < η)
     (by positivity : (b + 1) ^ n / (2 * Real.pi) ≠ 0))) (Complex.exp_ne_zero _))
       (Complex.exp_ne_zero _)
 
+/-- The transformed denominator is nonzero off the imaginary axis within `|y| < π / 2` for
+positive `η`. -/
 theorem denominator_ne_zero_off_axis (n : ℕ) (b : ℝ) {η x y : ℝ} (hη : 0 < η)
     (hx : x ≠ 0) (hy : |y| < Real.pi / 2) :
     denominator n b η ((x : ℂ) + y * I) ≠ 0 := by
@@ -75,6 +106,8 @@ theorem denominator_ne_zero_off_axis (n : ℕ) (b : ℝ) {η x y : ℝ} (hη : 0
     linear_combination -he
   exact mul_ne_zero hl (pow_ne_zero n (hp b))
 
+/-- For a nonempty matrix index type, the transformed integrand is discontinuous at an
+imaginary-axis zero of its denominator under the stated positivity conditions. -/
 theorem not_continuous_pole [Nonempty ι] (n : ℕ) {b η y : ℝ} (hb : 0 < b) (hη : 0 < η)
     (hy : |y| < Real.pi / 2) (c d T : ℝ) (H L : Matrix ι ι ℂ)
     (hz : denominator n b η ((y : ℂ) * I) = 0) :
@@ -111,6 +144,8 @@ theorem not_continuous_pole [Nonempty ι] (n : ℕ) {b η y : ℝ} (hb : 0 < b) 
   apply hn
   simpa only [z₀, hz, zero_smul] using! he.symm
 
+/-- For a nonempty matrix index type, continuity of the transformed integrand within `|im z| < π
+/ 2` forces its denominator to be nonzero. -/
 theorem denominator_ne_zero_of_continuous [Nonempty ι] (n : ℕ) {b η : ℝ}
     (hb : 0 < b) (hη : 0 < η) (c d T : ℝ) (H L : Matrix ι ι ℂ) {z : ℂ}
     (hz : |z.im| < Real.pi / 2) (hc : ContinuousAt (transformed n b c d T η H L) z) :
@@ -126,6 +161,8 @@ theorem denominator_ne_zero_of_continuous [Nonempty ι] (n : ℕ) {b η : ℝ}
   apply not_continuous_pole n hb hη hz c d T H L (by simpa only [he] using! hd)
   simpa only [he] using! hc
 
+/-- For a nonempty matrix index type and positive `b` and `η`, analyticity near the closed strip
+is equivalent to the stated lower and upper pole-gap conditions. -/
 theorem transformed_analytic_iff [Nonempty ι] (n : ℕ) {b η β : ℝ} (hb : 0 < b)
     (hη : 0 < η) (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 2)
     (c d T : ℝ) (H L : Matrix ι ι ℂ) :
@@ -156,10 +193,14 @@ theorem transformed_analytic_iff [Nonempty ι] (n : ℕ) {b η β : ℝ} (hb : 0
   · rintro ⟨hgap, hbn⟩
     exact transformed_analytic n b c d T η β hη hβ₀ hβ hgap hbn H L
 
+/-- The extended-real supremum of positive strip half-widths on which the complete transformed
+matrix integrand is analytic on a neighborhood. -/
 def analyticWidth (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) : EReal :=
   sSup {w : EReal | ∃ β : ℝ, 0 < β ∧ w = (β : EReal) ∧
     AnalyticOnNhd ℂ (transformed n b c d T η H L) {z : ℂ | |z.im| ≤ β}}
 
+/-- A real half-width is strictly below `analyticWidth` exactly when a larger positive
+half-width possesses the required strip analyticity. -/
 theorem lt_analyticWidth_iff (n : ℕ) (b c d T η β : ℝ) (H L : Matrix ι ι ℂ) :
     (β : EReal) < analyticWidth n b c d T η H L ↔
       ∃ γ : ℝ, 0 < γ ∧ β < γ ∧
@@ -172,12 +213,16 @@ theorem lt_analyticWidth_iff (n : ℕ) (b c d T η β : ℝ) (H L : Matrix ι ι
   · rintro ⟨γ, hγ, hlt, ha⟩
     exact ⟨(γ : EReal), ⟨γ, hγ, rfl, ha⟩, EReal.coe_lt_coe hlt⟩
 
+/-- The transformed integrand is analytic on a neighborhood of every closed strip whose
+half-width is below `analyticWidth`. -/
 theorem analytic_of_lt_width (n : ℕ) (b c d T η β : ℝ) (H L : Matrix ι ι ℂ)
     (hβ : (β : EReal) < analyticWidth n b c d T η H L) :
     AnalyticOnNhd ℂ (transformed n b c d T η H L) {z : ℂ | |z.im| ≤ β} := by
   obtain ⟨γ, _, hγ, ha⟩ := (lt_analyticWidth_iff n b c d T η β H L).mp hβ
   exact ha.mono (fun _ hz => hz.trans hγ.le)
 
+/-- For a nonempty matrix index type, a nonnegative half-width below `analyticWidth` and `π / 2`
+satisfies the lower and applicable upper pole-gap conditions. -/
 theorem gaps_of_lt_width [Nonempty ι] (n : ℕ) {b η β : ℝ} (hb : 0 < b)
     (hη : 0 < η) (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 2)
     (c d T : ℝ) (H L : Matrix ι ι ℂ)
@@ -186,6 +231,8 @@ theorem gaps_of_lt_width [Nonempty ι] (n : ℕ) {b η β : ℝ} (hb : 0 < b)
   exact (transformed_analytic_iff n hb hη hβ₀ hβ c d T H L).mp
     (analytic_of_lt_width n b c d T η β H L hw)
 
+/-- The strict pole-gap conditions imply that the half-width lies strictly below
+`analyticWidth`. -/
 theorem lt_width_of_gaps (n : ℕ) {η β : ℝ} (hη : 0 < η) (hβ₀ : 0 ≤ β)
     (hβ : β < Real.pi / 2) (b c d T : ℝ) (H L : Matrix ι ι ℂ)
     (hgap : η * Real.sin β < 1) (hbn : n = 0 ∨ η * Real.sin β < b) :
@@ -205,6 +252,8 @@ theorem lt_width_of_gaps (n : ℕ) {η β : ℝ} (hη : 0 < η) (hβ₀ : 0 ≤ 
   exact (lt_analyticWidth_iff n b c d T η β H L).mpr ⟨γ, hg₀, hγ,
     transformed_analytic n b c d T η γ hη hg₀.le hgπ hg1 hgn H L⟩
 
+/-- For a nonempty matrix index type, lying below `analyticWidth` is equivalent to the two
+pole-gap conditions within the stated range; see [AftabAnTrivisa2026]. -/
 theorem lt_width_iff_gaps [Nonempty ι] (n : ℕ) {b η β : ℝ} (hb : 0 < b)
     (hη : 0 < η) (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 2)
     (c d T : ℝ) (H L : Matrix ι ι ℂ) :
@@ -213,15 +262,20 @@ theorem lt_width_iff_gaps [Nonempty ι] (n : ℕ) {b η β : ℝ} (hb : 0 < b)
   exact ⟨gaps_of_lt_width n hb hη hβ₀ hβ c d T H L,
     fun h => lt_width_of_gaps n hη hβ₀ hβ b c d T H L h.1 h.2⟩
 
+/-- The transformed integrand is zero when the matrix index type is empty. -/
 theorem transformed_empty [IsEmpty ι] (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (z : ℂ) :
     transformed n b c d T η H L z = 0 := Subsingleton.elim _ _
 
+/-- The transformed integrand is analytic near every closed strip when the matrix index type is
+empty. -/
 theorem analytic_empty [IsEmpty ι] (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (β : ℝ) :
     AnalyticOnNhd ℂ (transformed n b c d T η H L) {z : ℂ | |z.im| ≤ β} := by
   have he : transformed n b c d T η H L = fun _ => 0 := funext (transformed_empty n b c d T η H L)
   rw [he]
   exact analyticOnNhd_const
 
+/-- The analytic strip width is infinite when the matrix index type is empty, as a degenerate
+case of the width construction in [AftabAnTrivisa2026]. -/
 theorem analyticWidth_empty [IsEmpty ι] (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) :
     analyticWidth n b c d T η H L = ⊤ := by
   apply (EReal.eq_top_iff_forall_lt _).mpr
@@ -230,10 +284,14 @@ theorem analyticWidth_empty [IsEmpty ι] (n : ℕ) (b c d T η : ℝ) (H L : Mat
   refine ⟨max β 0 + 1, by positivity, ?_, analytic_empty n b c d T η H L _⟩
   linarith [le_max_left β 0]
 
+/-- The strip mass bound is nonnegative for positive `b` and `η` and nonnegative half-width. -/
 theorem mass_nonneg (n : ℕ) {b c d η β K : ℝ} (hb : 0 < b) (hη : 0 < η) (hβ₀ : 0 ≤ β) :
     0 ≤ stripMass n b c d η β K :=
   mul_nonneg (amplitude_nonneg n hb hη hβ₀) (Real.sqrt_nonneg _)
 
+/-- Below `analyticWidth` and `π / 4`, the transformed integrand is analytic near the strip,
+decays uniformly, and has integrable horizontal slices bounded by `stripMass` under the
+stated positivity hypotheses. -/
 theorem original_strip_estimates (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef) {T : ℝ} (hT : 0 ≤ T)
@@ -263,6 +321,8 @@ theorem original_strip_estimates (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc 
     obtain ⟨hgap, hbn⟩ := gaps_of_lt_width n hb hη hβ₀ (by linarith [Real.pi_pos]) c d T H L hw
     exact transformed_strip_estimates n b c d η β hb hc hη hβ₀ hβ hgap hbn H L hH hL hT
 
+/-- A positive half-width below `analyticWidth` and `π / 4` gives mesh error at most `2 *
+stripMass / (exp (2πβ / h) - 1)` under the stated positivity hypotheses. -/
 theorem original_mesh_error (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hβ₀ : 0 < β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
@@ -279,6 +339,8 @@ theorem original_mesh_error (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 <
   · intro y hy
     exact (hs.2.2 y (abs_le.mpr ⟨hy.1.le, hy.2.le⟩)).2
 
+/-- Below `analyticWidth` and `π / 4`, the supremum of the horizontal norm integrals is at most
+`stripMass` under the stated hypotheses. -/
 theorem original_mass_supremum (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef) {T : ℝ} (hT : 0 ≤ T)
@@ -291,6 +353,9 @@ theorem original_mass_supremum (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 
   · rintro r ⟨y, hy, rfl⟩
     exact (original_strip_estimates n b c d η β hb hc hη hβ₀ hβ H L hH hL hT hw).2.2 y hy |>.2
 
+/-- Under the stated positivity hypotheses, a positive half-width below `analyticWidth` and `π /
+4` gives analyticity, uniform decay, a horizontal mass bound, and mesh error estimates; see
+[Aftab et al., Lemma 4.16][AftabAnTrivisa2026]. -/
 theorem original_estimates (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hβ₀ : 0 < β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef) {T : ℝ} (hT : 0 ≤ T)

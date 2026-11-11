@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.PottsPartEval07.PottsBridge.PottsWeightEnum
 import Qatlib.Papers.PottsPartEval07.PottsBridge.KernelComponents
+
+/-!
+# The Potts subset expansion
+
+The module expands a Potts spin sum into a sum over edge subsets. The number of connected
+components of the selected-edge graph supplies the power of q, giving the Fortuin–Kasteleyn
+expression and its specialization to `pottsZ` at the reciprocal parameter [GeraciLidar2008].
+
+## Main statements
+
+* `potts_fk_expansion`: The spin-product sum equals the edge-subset component-count sum.
+* `pottsZ_inv_fk`: The reciprocal-parameter partition sum has the same subset expansion.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,8 +34,11 @@ open scoped BigOperators
 
 variable {V E : Type*} [Fintype V] [Fintype E] (ends : E → V × V)
 
+/-- The endpoint map restricted to edges belonging to the finite subset `A`. -/
 def subEnds (A : Finset E) : A → V × V := fun e => ends e.1
 
+/-- The spin sum of products of `1 + v` times the monochromatic indicator expands as the sum of
+`v ^ card A * q ^ componentCount A` over edge subsets [GeraciLidar2008]. -/
 theorem potts_fk_expansion {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] (v : ℝ) :
     (∑ σ : V → ZMod q,
         ∏ e : E, (1 + v * (if σ (ends e).1 = σ (ends e).2 then (1 : ℝ) else 0)))
@@ -83,6 +104,8 @@ theorem potts_fk_expansion {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] 
   rw [kernelSize_eq_pow]
   rw [Nat.cast_pow]
 
+/-- When `1 + v` is nonzero, the Potts sum at `(1 + v)⁻¹` equals the edge-subset sum weighted by
+`v ^ card A` and `q` to the component count [GeraciLidar2008]. -/
 theorem pottsZ_inv_fk {q : ℕ} [NeZero q] [DecidableEq V] [DecidableEq E] (v : ℝ)
     (hv : (1 + v) ≠ 0) :
     pottsZ q ends ((1 + v)⁻¹)

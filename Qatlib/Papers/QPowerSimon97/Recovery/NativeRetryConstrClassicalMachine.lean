@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
 import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+/-!
+# Classical serialization and verification for Simon recovery
+
+Verifies bit serialization, Boolean comparison, and decoder agreement for the classical stage of
+Simon recovery. The explicit bit-operation ledger and expected retry bound account for classical
+work and compare it with the decoding padding allowance used in the construction of [Simon1997].
+
+## Main statements
+
+* `simonClassicalStage_output`: The serialized decoder followed by Boolean comparison of the
+  candidate and zero oracle values agrees with `simonVerifyCandidate` on the decoded record.
+* `clause4_bit_time_bound`: Under the Boolean Simon promise, the unbounded retry time times the
+  classical bit ledger is at most twice the explicit per-block bit-work bound.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,6 +60,8 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery
 variable {n : ℕ}
 noncomputable section
 
+/-- The Boolean register comparison returns `true` exactly when its two input registers are
+equal. -/
 theorem simonCompare_iff {m : ℕ} (a b : Reg m) :
     simonCompare a b = true ↔ a = b := by
   constructor
@@ -56,6 +78,8 @@ theorem simonCompare_iff {m : ℕ} (a b : Reg m) :
 end
 noncomputable section
 
+/-- Comparing the register encodings of two Boolean vectors returns `true` exactly when the
+vectors are equal. -/
 theorem simonCompare_output {m : ℕ} (a b : BooleanVec m) :
     simonCompare ((regBooleanEquiv m).symm a) ((regBooleanEquiv m).symm b) = true ↔ a = b := by
   constructor
@@ -70,6 +94,7 @@ theorem simonCompare_output {m : ℕ} (a b : BooleanVec m) :
 end
 noncomputable section
 
+/-- Serializing a measured character sample returns the corresponding bit of `simonRecordBits`. -/
 theorem simonSerializeBit_actual {n : ℕ} (xs : Fin (n+1) → AddChar (BooleanVec n) ℂ)
     (i : Fin (n+1)) (j : Fin n) :
     simonSerializeBit xs i j = simonRecordBits xs i j := by
@@ -84,6 +109,7 @@ theorem simonSerializeBit_actual {n : ℕ} (xs : Fin (n+1) → AddChar (BooleanV
 end
 noncomputable section
 
+/-- Decoding the serialized bits gives the same result as decoding `simonRecordBits`. -/
 theorem simonDecodeMachine_agrees {n : ℕ} (xs : Fin (n+1) → AddChar (BooleanVec n) ℂ) :
     decodeSimonSecret (fun i => fun j => simonSerializeBit xs i j) =
       decodeSimonSecret (simonRecordBits xs) := by
@@ -95,6 +121,8 @@ theorem simonDecodeMachine_agrees {n : ℕ} (xs : Fin (n+1) → AddChar (Boolean
 end
 noncomputable section
 
+/-- The Boolean echelon run on the sampled Simon rows uses at most `simonBitOpsBound n` recorded
+bit operations. -/
 theorem simonBitOpsBound_actual {n : ℕ} (xs : Fin (n+1) → AddChar (BooleanVec n) ℂ) :
     (booleanEchelonRun (List.ofFn (simonRecordBits xs))).bitOps ≤ simonBitOpsBound n := by
   have h := (boolean_gaussian_actual_operation_bound (simonRecordBits xs)).2.2
@@ -102,6 +130,7 @@ theorem simonBitOpsBound_actual {n : ℕ} (xs : Fin (n+1) → AddChar (BooleanVe
 end
 noncomputable section
 
+/-- The classical bit ledger is at most `2 * Tf + (n + 1) * n + m + simonBitOpsBound n`. -/
 theorem simonClassicalBitLedger_le {n : ℕ} (m : ℕ) (Tf : ℕ)
     (xs : Fin (n+1) → AddChar (BooleanVec n) ℂ) :
     simonClassicalBitLedger m Tf xs ≤ 2*Tf + (n+1)*n + m + simonBitOpsBound n := by
@@ -115,6 +144,8 @@ theorem simonClassicalBitLedger_le {n : ℕ} (m : ℕ) (Tf : ℕ)
 end
 noncomputable section
 
+/-- The serialized decoder followed by Boolean comparison of the candidate and zero oracle
+values agrees with `simonVerifyCandidate` on the decoded record. -/
 theorem simonClassicalStage_output {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (xs : Fin (n+1) → AddChar (BooleanVec n) ℂ) :
     (match decodeSimonSecret (fun i => fun j => simonSerializeBit xs i j) with
@@ -145,6 +176,8 @@ theorem simonClassicalStage_output {n m : ℕ} (f : BooleanVec n → BooleanVec 
 end
 noncomputable section
 
+/-- Under the Boolean Simon promise, the unbounded retry time times the classical bit ledger is
+at most twice the explicit per-block bit-work bound. -/
 theorem clause4_bit_time_bound {n m : ℕ} (f : BooleanVec n → BooleanVec m) (s : Reg n)
     (hp : BooleanSimonPromise f (regBooleanEquiv n s)) (Tf : ℕ)
     (xs : Fin (n+1) → AddChar (BooleanVec n) ℂ) :
@@ -157,6 +190,7 @@ theorem clause4_bit_time_bound {n m : ℕ} (f : BooleanVec n → BooleanVec m) (
 end
 noncomputable section
 
+/-- The recorded bit-operation bound is at most the decoding gate-padding allowance. -/
 theorem simonBitOpsBound_le_decodePad (n : ℕ) :
     simonBitOpsBound n ≤ simonDecodePadGates n := by
   have hinner : (n+1)*n^2+(n+1)*n+(n+1) ≤ (n+1)*n^2+n^3+(n+1)*n+n^2+n+1 := by
@@ -174,6 +208,8 @@ theorem simonBitOpsBound_le_decodePad (n : ℕ) :
 end
 noncomputable section
 
+/-- For positive `n`, the recorded bit-operation bound is strictly less than the decoding
+gate-padding allowance. -/
 theorem simonBitOpsBound_lt_decodePad {n : ℕ} (hn : 0 < n) :
     simonBitOpsBound n < simonDecodePadGates n := by
   have h1 : simonBitOpsBound n ≤ simonBlockOpsBound n := by

@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+
+/-!
+# Warm starts and accumulated channel error
+
+This module embeds real weights as diagonal operators with `loadedDiagonal` and compares ideal
+channel powers with time dependent implementations. The bounds `paid_warm_transfer` and
+`paid_warm_implemented` combine classical total variation, reference error, loading error, and
+accumulated step error in half trace norm. These estimates support error accounting for quantum
+Metropolis sampling [TemmeEtAl2011].
+
+## Main statements
+
+* `loadedDiagonal_halfTrace`: The half trace norm between two loaded diagonal operators equals
+  their classical total variation expression.
+* `implementedRun_halfTrace_error`: Uniform half trace norm error at most `η` per step on
+  density operators gives total error at most `m * η` after `m` implemented steps.
+* `paid_warm_implemented`: The implemented run has half trace norm error at most the sum of the
+  initial total variation, reference error, loading error, and `m * η` step error under the
+  stated density and approximation hypotheses.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,36 +40,45 @@ open Matrix
 open scoped BigOperators ComplexOrder
 set_option autoImplicit false
 
+/-- The diagonal complex operator whose diagonal entries are the real weights `p`. -/
 noncomputable def loadedDiagonal {N : ℕ} (p : Fin N → ℝ) : Qatlib.Foundations.PureStateMath.Operator N :=
   Matrix.diagonal fun i => (p i : ℂ)
 
+/-- Half the sum of the absolute coordinate differences between `p` and `q`. -/
 noncomputable def classicalTV {N : ℕ} (p q : Fin N → ℝ) : ℝ :=
   (∑ i, |p i - q i|) / 2
 
+/-- The channel obtained by applying `T` repeatedly, with the identity channel at zero steps. -/
 noncomputable def repeatedChannel {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N) :
     ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N
   | 0 => Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel.id N
   | m + 1 => T.comp (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.repeatedChannel T m)
 
+/-- Zero iterations of a channel act as the identity on every operator. -/
 @[simp] theorem repeatedChannel_zero {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (A : Qatlib.Foundations.PureStateMath.Operator N) : (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.repeatedChannel T 0).map A = A := rfl
 
+/-- One further iteration applies `T` to the result of the preceding iterations. -/
 @[simp] theorem repeatedChannel_succ {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (m : ℕ) (A : Qatlib.Foundations.PureStateMath.Operator N) :
     (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.repeatedChannel T (m + 1)).map A = T.map ((Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.repeatedChannel T m).map A) := rfl
 
+/-- The composition of the first `m` channels in the sequence `S`, in chronological order. -/
 noncomputable def implementedRun {N : ℕ} (S : ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N) :
     ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N
   | 0 => Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel.id N
   | m + 1 => (S m).comp (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.implementedRun S m)
 
+/-- An implementation with zero steps leaves every operator unchanged. -/
 @[simp] theorem implementedRun_zero {N : ℕ} (S : ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (A : Qatlib.Foundations.PureStateMath.Operator N) : (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.implementedRun S 0).map A = A := rfl
 
+/-- The next implementation step applies `S m` after the first `m` steps. -/
 @[simp] theorem implementedRun_succ {N : ℕ} (S : ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (m : ℕ) (A : Qatlib.Foundations.PureStateMath.Operator N) :
     (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.implementedRun S (m + 1)).map A = (S m).map ((Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.implementedRun S m).map A) := rfl
 
+/-- Nonnegative weights summing to one define a density operator through `loadedDiagonal`. -/
 theorem loadedDiagonal_density {N : ℕ} (p : Fin N → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hsum : ∑ i, p i = 1) :
     Qatlib.Foundations.PureStateMath.IsDensityOperator (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal p) := by
@@ -55,6 +89,8 @@ theorem loadedDiagonal_density {N : ℕ} (p : Fin N → ℝ)
   · simp only [Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal, Matrix.trace_diagonal, ← Complex.ofReal_sum, hsum,
       Complex.ofReal_one]
 
+/-- The half trace norm between two loaded diagonal operators equals their classical total
+variation expression. -/
 theorem loadedDiagonal_halfTrace {N : ℕ} (p q : Fin N → ℝ) :
     Matrix.traceNorm (Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal p - Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal q) / 2 = Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.classicalTV p q := by
   have he : Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal p - Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal q =
@@ -64,6 +100,8 @@ theorem loadedDiagonal_halfTrace {N : ℕ} (p q : Fin N → ℝ) :
   rw [he, Qatlib.Concepts.GibbsMetropolis.RationalBath.real_diagonal_traceNorm]
   rfl
 
+/-- Half the trace norm of an operator difference satisfies the triangle inequality through an
+intermediate operator. -/
 private theorem halfTrace_triangle {N : ℕ} (A B C : Qatlib.Foundations.PureStateMath.Operator N) :
     Matrix.traceNorm (A - C) / 2 ≤
       Matrix.traceNorm (A - B) / 2 + Matrix.traceNorm (B - C) / 2 := by
@@ -71,6 +109,8 @@ private theorem halfTrace_triangle {N : ℕ} (A B C : Qatlib.Foundations.PureSta
   rw [sub_add_sub_cancel] at h
   linarith
 
+/-- If the ideal run from `π` is within `β` of `Q`, the run from `p` is within `classicalTV p π
++ β`, provided both weight vectors are probability distributions. -/
 theorem paid_warm_transfer {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (p π : Fin N → ℝ) (m : ℕ) (Q : Qatlib.Foundations.PureStateMath.Operator N) (β : ℝ)
     (hp : ∀ i, 0 ≤ p i) (hpSum : ∑ i, p i = 1)
@@ -90,6 +130,8 @@ theorem paid_warm_transfer {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace
       Qatlib.Concepts.MixedInstrument.Contraction.WarmStartErrorTransport.loadedDiagonal_halfTrace p π
   linarith
 
+/-- Uniform half trace norm error at most `η` per step on density operators gives total error at
+most `m * η` after `m` implemented steps. -/
 theorem implementedRun_halfTrace_error {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (S : ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N) (η : ℝ) (m : ℕ)
     (hstep : ∀ j < m, ∀ ρ : Qatlib.Foundations.PureStateMath.Operator N, Qatlib.Foundations.PureStateMath.IsDensityOperator ρ →
@@ -120,6 +162,9 @@ theorem implementedRun_halfTrace_error {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP
     push_cast
     nlinarith
 
+/-- The implemented run has half trace norm error at most the sum of the initial total
+variation, reference error, loading error, and `m * η` step error under the stated density
+and approximation hypotheses. -/
 theorem paid_warm_implemented {N : ℕ} (T : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N)
     (S : ℕ → Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel N N) (p π : Fin N → ℝ)
     (m : ℕ) (Q ρ : Qatlib.Foundations.PureStateMath.Operator N) (β η ηload : ℝ)

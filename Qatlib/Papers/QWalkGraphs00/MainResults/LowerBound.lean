@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkGraphs00.MainResults.Core
 import Qatlib.Papers.QWalkGraphs00.MainResults.Times
+
+/-!
+# Boundary ratios and graph conductance
+
+Finite adjacency weights define degrees, cut flow, cut capacity, and the external vertex
+boundary. Minimizing the associated ratios over nonempty subsets of size at most half the vertex
+set gives `conductance` and `phiPrime`; their comparison is Lemma 7.3 of
+[AharonovEtAl2001Walks].
+
+## Main statements
+
+* `cutBoundaryRatio_le_cutConductance`: compares the two ratios on each eligible cut.
+* `lemma_7_3`: bounds `phiPrime` by the maximum degree times `conductance`.
+
+## References
+
+* [Aharonov et al., 2001][AharonovEtAl2001Walks]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,34 +39,48 @@ open Qatlib.Papers.QWalkGraphs00.MainResults.Times
 
 variable {Coin V : Type*} [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V]
 
+/-- The outgoing degree of a vertex, given by the sum of its natural-valued adjacency weights. -/
 def degree (Adj : V → V → ℕ) (v : V) : ℕ := ∑ u, Adj v u
 
+/-- The finite complement of a subset in the vertex set. -/
 def complement (X : Finset V) : Finset V := Finset.univ.filter (fun u => u ∉ X)
 
+/-- The total adjacency weight from a subset to its complement, viewed as a real number. -/
 def cutFlow (Adj : V → V → ℕ) (X : Finset V) : ℝ :=
   ∑ v ∈ X, ∑ u ∈ complement X, (Adj v u : ℝ)
 
+/-- The sum of the outgoing degrees of vertices in a subset. -/
 def cutCapacity (Adj : V → V → ℕ) (X : Finset V) : ℝ :=
   ∑ v ∈ X, (degree Adj v : ℝ)
 
+/-- The ratio of cut flow to cut capacity. -/
 def cutConductance (Adj : V → V → ℕ) (X : Finset V) : ℝ :=
   cutFlow Adj X / cutCapacity Adj X
 
+/-- The vertices outside a subset that receive a nonzero adjacency weight from some vertex
+inside it. -/
 def boundary (Adj : V → V → ℕ) (X : Finset V) : Finset V :=
   Finset.univ.filter (fun u => u ∉ X ∧ ∃ v ∈ X, Adj v u ≠ 0)
 
+/-- The external boundary cardinality divided by the subset cardinality. -/
 def cutBoundaryRatio (Adj : V → V → ℕ) (X : Finset V) : ℝ :=
   ((boundary Adj X).card : ℝ) / (X.card : ℝ)
 
+/-- The nonempty vertex subsets whose cardinality is at most half the cardinality of the whole
+vertex set. -/
 def cuts (V : Type*) [Fintype V] [DecidableEq V] : Finset (Finset V) :=
   Finset.univ.powerset.filter (fun X => X.Nonempty ∧ 2 * X.card ≤ Fintype.card V)
 
+/-- The minimum cut conductance over the nonempty finite family `cuts V`. -/
 def conductance (Adj : V → V → ℕ) (hs : (cuts V).Nonempty) : ℝ :=
   (cuts V).inf' hs (fun X => cutConductance Adj X)
 
+/-- The minimum external-boundary ratio over the nonempty finite family `cuts V`. -/
 def phiPrime (Adj : V → V → ℕ) (hs : (cuts V).Nonempty) : ℝ :=
   (cuts V).inf' hs (fun X => cutBoundaryRatio Adj X)
 
+/-- For zero-one adjacency weights, the external boundary cardinality is at most the total cut
+flow. -/
 lemma boundary_card_le_cutFlow (Adj : V → V → ℕ)
     (hsimple : ∀ v u, Adj v u = 0 ∨ Adj v u = 1) (X : Finset V) :
     ((boundary Adj X).card : ℝ) ≤ cutFlow Adj X := by
@@ -79,6 +112,8 @@ lemma boundary_card_le_cutFlow (Adj : V → V → ℕ)
 
 omit [DecidableEq V] in
 
+/-- If all vertex degrees are at most `d`, the capacity of a subset is at most its cardinality
+times `d`. -/
 lemma cutCapacity_le_card_mul_degree (Adj : V → V → ℕ) (d : ℕ)
     (hmax : ∀ v, degree Adj v ≤ d) (X : Finset V) :
     cutCapacity Adj X ≤ (X.card : ℝ) * (d : ℝ) := by
@@ -88,6 +123,8 @@ lemma cutCapacity_le_card_mul_degree (Adj : V → V → ℕ) (d : ℕ)
         exact_mod_cast hmax v
     _ = (X.card : ℝ) * (d : ℝ) := by simp [Finset.sum_const, nsmul_eq_mul]
 
+/-- For a cut in `cuts V`, zero-one adjacency weights and positive degrees bounded by positive
+`d` imply that its boundary ratio is at most `d` times its conductance. -/
 lemma cutBoundaryRatio_le_cutConductance (Adj : V → V → ℕ) (d : ℕ)
     (hmax : ∀ v, degree Adj v ≤ d) (hdeg : ∀ v, 0 < degree Adj v) (hd : 0 < d)
     (hsimple : ∀ v u, Adj v u = 0 ∨ Adj v u = 1) {X : Finset V} (hX : X ∈ cuts V) :
@@ -117,6 +154,8 @@ lemma cutBoundaryRatio_le_cutConductance (Adj : V → V → ℕ) (d : ℕ)
   rw [← mul_div_assoc, div_le_div_iff₀ hxpos hCpos]
   exact hmain
 
+/-- Multiplication by a positive real constant commutes with the minimum over a nonempty finite
+set. -/
 lemma inf'_mul_const {β : Type*} (s : Finset β) (hs : s.Nonempty) (f : β → ℝ)
     {c : ℝ} (hc : 0 < c) : s.inf' hs (fun b => c * f b) = c * s.inf' hs f := by
   refine le_antisymm ?_ ?_
@@ -133,6 +172,8 @@ lemma inf'_mul_const {β : Type*} (s : Finset β) (hs : s.Nonempty) (f : β → 
   · refine Finset.le_inf' hs (fun b => c * f b) (fun b hb => ?_)
     exact mul_le_mul_of_nonneg_left (Finset.inf'_le f hb) (le_of_lt hc)
 
+/-- For zero-one adjacency weights with positive degrees bounded by positive `d`, `phiPrime` is
+at most `d` times `conductance`. See [Aharonov et al., Lemma 7.3][AharonovEtAl2001Walks]. -/
 theorem lemma_7_3 (Adj : V → V → ℕ) (d : ℕ) (hs : (cuts V).Nonempty)
     (hmax : ∀ v, degree Adj v ≤ d) (hdeg : ∀ v, 0 < degree Adj v) (hd : 0 < d)
     (hsimple : ∀ v u, Adj v u = 0 ∨ Adj v u = 1) :

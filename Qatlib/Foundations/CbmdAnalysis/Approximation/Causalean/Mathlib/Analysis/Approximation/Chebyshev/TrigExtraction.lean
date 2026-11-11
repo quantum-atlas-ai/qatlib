@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Kernel
+
+/-!
+# Trigonometric extraction and coefficient bounds
+
+This module relates even trigonometric polynomials to algebraic polynomials evaluated at cosine.
+It defines the coefficient ℓ¹ quantity `polyCoeffL1` and bounds it for Chebyshev polynomials and
+finite cosine sums, providing coefficient control for the approximation constructions supporting
+[WangEtAl2026].
+
+## Main statements
+
+* `even_trigPoly_exists_polynomial`: an even trigonometric polynomial is a polynomial in cosine
+  with the same degree bound.
+* `chebyshev_coeffL1_le`: the coefficient ℓ¹ quantity of the degree-`n` Chebyshev polynomial is
+  at most `3 ^ n`.
+* `cosine_sum_exists_polynomial`: finite cosine sums have polynomial representations with
+  explicit coefficient bounds.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Approximation
@@ -17,21 +40,28 @@ open Real Polynomial
 open scoped BigOperators
 open scoped BigOperators
 
+/-- An abbreviation for the predicate that a real function is a trigonometric polynomial with
+frequencies at most the given degree. -/
 abbrev IsTrigPolyLE :=
   Causalean.Mathlib.Analysis.BernsteinSzegoTrig.IsTrigPolyLE
 
+/-- The sum of the absolute values of the coefficients of a real polynomial. -/
 noncomputable def polyCoeffL1 (p : Polynomial ℝ) : ℝ :=
   ∑ n ∈ p.support, |p.coeff n|
 
+/-- The coefficient ℓ¹ quantity can be computed by summing over any initial range strictly
+exceeding the natural degree. -/
 private lemma polyCoeffL1_eq_sum_range_of_natDegree_lt (p : Polynomial ℝ) {m : ℕ}
     (hp : p.natDegree < m) :
     polyCoeffL1 p = ∑ k ∈ Finset.range m, |p.coeff k| := by
   change p.sum (fun _ c => |c|) = _
   exact p.sum_over_range' (fun _ => abs_zero) m hp
 
+/-- The zero polynomial has coefficient ℓ¹ quantity zero. -/
 private lemma polyCoeffL1_zero : polyCoeffL1 (0 : Polynomial ℝ) = 0 := by
   simp [polyCoeffL1]
 
+/-- The coefficient ℓ¹ quantity is subadditive under polynomial addition. -/
 private lemma polyCoeffL1_add_le (p q : Polynomial ℝ) :
     polyCoeffL1 (p + q) ≤ polyCoeffL1 p + polyCoeffL1 q := by
 
@@ -46,6 +76,8 @@ private lemma polyCoeffL1_add_le (p q : Polynomial ℝ) :
   exact Finset.sum_le_sum fun i _ => by
     simpa only [Polynomial.coeff_add] using abs_add_le (p.coeff i) (q.coeff i)
 
+/-- The coefficient ℓ¹ quantity of a difference is bounded by the sum of the two coefficient ℓ¹
+quantities. -/
 private lemma polyCoeffL1_sub_le (p q : Polynomial ℝ) :
     polyCoeffL1 (p - q) ≤ polyCoeffL1 p + polyCoeffL1 q := by
   let m := max p.natDegree q.natDegree + 1
@@ -60,6 +92,8 @@ private lemma polyCoeffL1_sub_le (p q : Polynomial ℝ) :
     simpa only [sub_eq_add_neg, Polynomial.coeff_add, Polynomial.coeff_neg, abs_neg] using
       abs_add_le (p.coeff i) (-q.coeff i)
 
+/-- Scalar multiplication scales the coefficient ℓ¹ quantity by the absolute value of the
+scalar. -/
 private lemma polyCoeffL1_smul (c : ℝ) (p : Polynomial ℝ) :
     polyCoeffL1 (c • p) = |c| * polyCoeffL1 p := by
   rw [polyCoeffL1_eq_sum_range_of_natDegree_lt (c • p)
@@ -67,6 +101,7 @@ private lemma polyCoeffL1_smul (c : ℝ) (p : Polynomial ℝ) :
     polyCoeffL1_eq_sum_range_of_natDegree_lt p (Nat.lt_succ_self _)]
   simp only [Polynomial.coeff_smul, smul_eq_mul, abs_mul, Finset.mul_sum]
 
+/-- Multiplication by the polynomial variable preserves the coefficient ℓ¹ quantity. -/
 private lemma polyCoeffL1_X_mul (p : Polynomial ℝ) :
     polyCoeffL1 (Polynomial.X * p) = polyCoeffL1 p := by
   by_cases hp : p = 0
@@ -80,6 +115,8 @@ private lemma polyCoeffL1_X_mul (p : Polynomial ℝ) :
     simp only [Polynomial.coeff_X_mul_zero, abs_zero, add_zero, Nat.succ_eq_add_one,
       Polynomial.coeff_X_mul]
 
+/-- The coefficient ℓ¹ quantity of a finite sum is bounded by the sum of the individual
+coefficient ℓ¹ quantities. -/
 private lemma polyCoeffL1_sum_le {ι : Type*}
     (s : Finset ι) (f : ι → Polynomial ℝ) :
     polyCoeffL1 (∑ i ∈ s, f i) ≤ ∑ i ∈ s, polyCoeffL1 (f i) := by
@@ -90,6 +127,8 @@ private lemma polyCoeffL1_sum_le {ι : Type*}
       simp only [Finset.sum_insert hi]
       exact (polyCoeffL1_add_le _ _).trans (add_le_add_right ih _)
 
+/-- Every even trigonometric polynomial of degree at most `n` is a polynomial in cosine of
+natural degree at most `n`. -/
 theorem even_trigPoly_exists_polynomial {n : ℕ} {q : ℝ → ℝ}
     (hq : IsTrigPolyLE n q) (heven : Function.Even q) :
     ∃ p : Polynomial ℝ, p.natDegree ≤ n ∧ ∀ t : ℝ, p.eval (Real.cos t) = q t := by
@@ -136,6 +175,8 @@ theorem even_trigPoly_exists_polynomial {n : ℕ} {q : ℝ → ℝ}
     rw [Polynomial.eval_C_mul, Polynomial.Chebyshev.T_real_cos]
     norm_num
 
+/-- A real polynomial of natural degree at most `n`, composed with cosine, is an even
+trigonometric polynomial of degree at most `n`. -/
 theorem polynomial_cos_is_even_trigPoly {n : ℕ} (p : Polynomial ℝ)
     (hp : p.natDegree ≤ n) :
     IsTrigPolyLE n (fun t => p.eval (Real.cos t)) ∧
@@ -144,6 +185,8 @@ theorem polynomial_cos_is_even_trigPoly {n : ℕ} (p : Polynomial ℝ)
   intro t
   simp
 
+/-- The coefficient ℓ¹ quantity of the degree-`n` Chebyshev polynomial of the first kind is at
+most `3 ^ n`. -/
 theorem chebyshev_coeffL1_le (n : ℕ) :
     polyCoeffL1 (Polynomial.Chebyshev.T ℝ (n : ℤ)) ≤ (3 : ℝ) ^ n := by
   induction n using Nat.twoStepInduction with
@@ -190,6 +233,8 @@ theorem chebyshev_coeffL1_le (n : ℕ) :
               rw [show n + 2 = (n + 1) + 1 by omega, pow_succ, pow_succ]
               ring
 
+/-- A cosine sum through frequency `n` is represented by a polynomial of degree at most `n`,
+whose coefficient ℓ¹ quantity is at most the sum of `|a k| * 3 ^ k`. -/
 theorem cosine_sum_exists_polynomial (n : ℕ) (a : ℕ → ℝ) :
     ∃ p : Polynomial ℝ,
       p.natDegree ≤ n ∧

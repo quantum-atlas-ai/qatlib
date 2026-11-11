@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
 import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+
+/-!
+# Statement of even SVT decomposition norm bounds
+
+`EvenSVTDecompositionNormBounds` packages the inner Gram operator-norm bound and scalar envelope
+bounds for the outer sketch matrix function. Its Lipschitz hypothesis is restricted to enlarged
+squared-singular-value bands, providing a precise norm statement for the two-sketch analysis of
+[ChiaEtAl2022].
+
+## Main statements
+
+* `EvenSVTDecompositionNormBounds`: The proposition that two Gram error bounds and spectral-band
+  Lipschitz regularity give an inner Gram norm bound, an enclosing scalar envelope, and a
+  matrix-function norm bound for any supplied nonnegative envelope.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -19,6 +39,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The proposition that two Gram error bounds and spectral-band Lipschitz regularity give an
+inner Gram norm bound, an enclosing scalar envelope, and a matrix-function norm bound for
+any supplied nonnegative envelope. -/
 def EvenSVTDecompositionNormBounds : Prop :=
   ∀ (K C RS CT : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]

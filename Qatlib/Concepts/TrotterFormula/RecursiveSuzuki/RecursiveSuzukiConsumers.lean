@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.Basic
+
+/-!
+# Recursive Suzuki simulation and word perturbations
+
+This module turns recursive Suzuki generator lists into segmented exponential words and proves
+unitarity, exact word length, and an explicit exponential-tail error bound. The construction and
+estimates use the product-formula setting of [Suzuki1990] and [ChildsEtAl2021Trotter].
+
+For a unitary replacement word of the same length, a uniform entrywise error accumulates
+linearly with length. Combining it with the simulation error gives an observable conjugation
+bound for arbitrary matrices `O`.
+
+## Main statements
+
+* `recursive_suzuki_actual_simulation_and_cost`: unitarity, length, and simulation error for the
+  actual word.
+* `recursiveSuzuki_unitary_word_noise`: linear accumulation of error between equal-length
+  unitary words.
+* `recursive_suzuki_noisy_same_word_observable`: combined simulation and word error for
+  observable conjugation.
+
+## References
+
+* [Suzuki, 1990][Suzuki1990]
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,16 +47,21 @@ namespace Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The word formed by repeating `r` exponential segments of the level-`k` recursive Suzuki
+generators at step size `t / r`. -/
 noncomputable def recursiveSuzukiWord {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (t : ℝ) (r : ℕ) : List (Matrix I I ℂ) :=
   (List.replicate r ((recursiveSuzukiGenerators hs k).map
     (fun X => NormedSpace.exp ((t/r) • X)))).flatten
 
+/-- The explicit error budget `2r * exp (L * |t/r|) * (L * |t/r|)^(2k+3) / (2k+3)!`, where `L =
+3^k * suzukiMass hs + ‖hs.sum‖`. -/
 noncomputable def recursiveSuzukiError {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (t : ℝ) (r : ℕ) : ℝ :=
   let L := (3 : ℝ)^k*suzukiMass hs + ‖hs.sum‖
   2*r*Real.exp (L*|t/r|)*(L*|t/r|)^(2*k+3)/((2*k+3).factorial : ℝ)
 
+/-- The sum of a list of anti-Hermitian generators is anti-Hermitian. -/
 private theorem recursiveSuzuki_sum_antiHermitian {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (hhs : ∀ X ∈ hs, Xᴴ = -X) : hs.sumᴴ = -hs.sum := by
   induction hs with
@@ -38,6 +70,10 @@ private theorem recursiveSuzuki_sum_antiHermitian {I : Type} [Fintype I] [Decida
     simp only [List.sum_cons, Matrix.conjTranspose_add, hhs X (by simp),
       ih (by intro Y hY; exact hhs Y (by simp [hY])), neg_add]
 
+/-- For anti-Hermitian generators and positive `r`, the recursive Suzuki word product is
+unitary, its length is `r * (2 * hs.length * 5^k)`, and its error is at most
+`recursiveSuzukiError hs k t r`; see [ChildsEtAl2021Trotter] for the product-formula
+framework. -/
 theorem recursive_suzuki_actual_simulation_and_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I]
       (hs : List (Matrix I I ℂ)) (k r : ℕ) (t : ℝ),
@@ -61,6 +97,8 @@ theorem recursive_suzuki_actual_simulation_and_cost :
     (try dsimp only)
     gcongr
 
+/-- Every exponential entry in a recursive Suzuki word is unitary when the input generators are
+anti-Hermitian. -/
 private theorem recursiveSuzukiWord_unitary_entries {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k r : ℕ) (t : ℝ)
     (hhs : ∀ X ∈ hs, Xᴴ = -X) :
@@ -72,6 +110,8 @@ private theorem recursiveSuzukiWord_unitary_entries {I : Type} [Fintype I] [Deci
   obtain ⟨X, hX, rfl⟩ := List.mem_map.mp hU
   exact general_trotter_exp_unitary X (t/r) (recursiveSuzukiGenerators_antiHermitian hs k hhs X hX)
 
+/-- Two equal-length unitary matrix words whose corresponding entries differ by at most a
+nonnegative `δ` have product distance at most `V.length * δ`. -/
 theorem recursiveSuzuki_unitary_word_noise {I : Type} [Fintype I] [DecidableEq I]
     (V W : List (Matrix I I ℂ)) (δ : ℝ) (_hδ : 0 ≤ δ)
     (hlen : V.length = W.length)
@@ -119,6 +159,9 @@ theorem recursiveSuzuki_unitary_word_noise {I : Type} [Fintype I] [DecidableEq I
               _ ≤ (xs.length : ℝ)*δ := by simpa using! ht
         _ = ((xs.length : ℝ)+1)*δ := by ring
 
+/-- For a unitary replacement word of the same length with per-entry error at most `δ`, the
+product error is at most the Suzuki budget plus `V.length * δ`, and conjugation error is at
+most twice that total times `‖O‖`; the simulation component uses [ChildsEtAl2021Trotter]. -/
 theorem recursive_suzuki_noisy_same_word_observable :
     ∀ (I : Type) [Fintype I] [DecidableEq I]
       (hs : List (Matrix I I ℂ)) (k r : ℕ) (t δ : ℝ)

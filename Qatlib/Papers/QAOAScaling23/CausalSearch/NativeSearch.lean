@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeSampled
 import Qatlib.Concepts.WalkSearch.QuantumAccess.CappedGeometricSearch
+
+/-!
+# Clocked native scheduled search
+
+`searchCode` executes the scheduled sampled amplification trials and charges for validation of
+each produced candidate. Its native trace law and exact fee agree with the clocked execution,
+while transcript replay describes every budgeted prefix and the saved candidate stays unchanged.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `searchCode_actual_law`: The value law of `searchCode` equals the native `searchForSchedule`
+  law.
+* `native_search_online_prefix`: Replaying complete search transcripts with budget `B` has the
+  same law as running the search code online with that budget.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,9 +39,13 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Concepts.WalkSearch.QuantumAccess
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The sum of bit, phase-query, validation-query, preparation-call, and macro-gate counts in a
+search trace. -/
 def searchFee (tr : CappedSearchTrace I) : ℕ :=
   tr.bits+tr.phaseQueries+tr.validationQueries+tr.prepareCalls+tr.macroGates
 
+/-- Executes sampled trials along a schedule, paying for validation and stopping at the first
+candidate that passes the validation test. -/
 def searchCode (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) : List ℕ → Code I (CappedSearchTrace I)
   | [] => .ret emptySearchTrace
@@ -30,6 +56,7 @@ def searchCode (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
           .ret (prependSearchReceipt m out {emptySearchTrace with result:=some yg.1})
         else mapCode (prependSearchReceipt m out) (searchCode U hU seed S valid ms)))
 
+/-- The value law of `searchCode` equals the native `searchForSchedule` law. -/
 theorem searchCode_actual_law (cost : I → ℝ) (current : I)
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) (ms : List ℕ) :
@@ -51,6 +78,7 @@ theorem searchCode_actual_law (cost : I → ℝ) (current : I)
         rfl
       | true => simp only [valueLaw,hv,if_true]
 
+/-- The scheduled search code contains no save instructions. -/
 theorem searchCode_noSave (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) (ms : List ℕ) :
     NoSave (searchCode U hU seed S valid ms) := by
@@ -70,6 +98,8 @@ theorem searchCode_noSave (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I �
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Prepending a search receipt adds its sampled word fee and one validation charge exactly when
+a candidate is present. -/
 theorem prepend_searchFee (m : ℕ) (out : Option (I×ℕ)×ℕ×ℕ) (tr : CappedSearchTrace I) :
     searchFee (prependSearchReceipt m out tr)=sampledWordFee out+
       (if out.1.isSome then 1 else 0)+searchFee tr := by
@@ -78,6 +108,7 @@ theorem prepend_searchFee (m : ℕ) (out : Option (I×ℕ)×ℕ×ℕ) (tr : Capp
   | none => simp [prependSearchReceipt,searchFee,sampledWordFee]; ring
   | some yg => simp [prependSearchReceipt,searchFee,sampledWordFee]; ring
 
+/-- Every returned search trace has paid charge equal to `searchFee`. -/
 theorem searchCode_returns (cost : I → ℝ) (current : I)
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) (ms : List ℕ) :
@@ -109,6 +140,8 @@ theorem searchCode_returns (cost : I → ℝ) (current : I)
         simp [ho]
         omega
 
+/-- Replaying complete search transcripts with budget `B` has the same law as running the search
+code online with that budget. -/
 theorem native_search_online_prefix (cost : I → ℝ) (current : I) (B : ℕ)
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) (ms : List ℕ) :
@@ -116,6 +149,8 @@ theorem native_search_online_prefix (cost : I → ℝ) (current : I) (B : ℕ)
       (run cost current B (searchCode U hU seed S valid ms)).law :=
   online_prefix_law _ _ _ _
 
+/-- Every complete search transcript returns a trace whose search fee equals the transcript
+cost. -/
 theorem native_search_transcript (cost : I → ℝ) (current : I)
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) (ms : List ℕ) :
@@ -123,6 +158,7 @@ theorem native_search_transcript (cost : I → ℝ) (current : I)
       (fun es => ∃ tr,returnValue es=some tr ∧ transcriptCost es=searchFee tr) :=
   returns_complete _ _ _ _ (searchCode_returns cost current U hU seed S valid ms)
 
+/-- Every budgeted scheduled-search result retains the initial saved candidate. -/
 theorem native_search_saved_best (cost : I → ℝ) (current : I) (B : ℕ)
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ)
     (seed : I) (S : Finset I) (valid : I → Bool) (ms : List ℕ) :

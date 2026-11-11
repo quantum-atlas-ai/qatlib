@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairSlices
+
+/-!
+# Injectivity masks for pair resampling
+
+Defines `sliceMask`, which removes amplitudes whose two-coordinate replacement tuple is
+noninjective. Pair slices are fixed by this mask; the relevant expectations and cross inner
+products are preserved, allowing `masked_pair_resampling` to retain the unscaled resampling
+inequality. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `sliceMask_cross`: For distinct coordinates, simultaneously masking the column- and
+  row-resampling outputs of a pair slice preserves their inner product.
+* `masked_pair_resampling`: For distinct coordinates, the masked resampling outputs satisfy the
+  unscaled lower bound on twice their real inner product by the negative sum of their real
+  pairings with the original slice.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,10 +36,13 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- The mask that retains a pair amplitude exactly when replacing the two specified coordinates
+by that pair gives an injective tuple. -/
 def sliceMask (f : I → L) (i j : I) (u : EuclideanSpace ℂ (Pair L)) : EuclideanSpace ℂ (Pair L) :=
   WithLp.toLp 2 (fun p => if Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2) then u p else 0)
 omit [Fintype L] in
 
+/-- Applying the injectivity mask to a pair slice leaves the slice unchanged. -/
 theorem sliceMask_pairSlice (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) :
     sliceMask f i j (pairSlice v f i j)=pairSlice v f i j := by
   ext p
@@ -29,6 +54,8 @@ theorem sliceMask_pairSlice (v : InjectiveTuple I L → ℂ) (f : I → L) (i j 
   · change _=extend v (Function.update (Function.update f i p.val.1) j p.val.2)
     simp [h,extend]
 
+/-- Pairing a pair slice with a masked amplitude function gives the same inner product as
+pairing it with the unmasked function. -/
 theorem sliceMask_expectation (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I)
     (u : EuclideanSpace ℂ (Pair L)) :
     inner ℂ (pairSlice v f i j) (sliceMask f i j u)=inner ℂ (pairSlice v f i j) u := by
@@ -45,6 +72,8 @@ theorem sliceMask_expectation (v : InjectiveTuple I L → ℂ) (f : I → L) (i 
       simp [extend,h]
     simp [hz]
 
+/-- For distinct coordinates, simultaneously masking the column- and row-resampling outputs of a
+pair slice preserves their inner product. -/
 theorem sliceMask_cross (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) :
     inner ℂ (sliceMask f i j (R (pairSlice v f i j))) (sliceMask f i j (S (pairSlice v f i j)))=
       inner ℂ (R (pairSlice v f i j)) (S (pairSlice v f i j)) := by
@@ -63,6 +92,9 @@ theorem sliceMask_cross (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I)
     · rw [hmR,hr];simp
     · rw [hmS,hs];simp
 
+/-- For distinct coordinates, the masked resampling outputs satisfy the unscaled lower bound on
+twice their real inner product by the negative sum of their real pairings with the original
+slice. -/
 theorem masked_pair_resampling (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) :
     -(inner ℂ (pairSlice v f i j) (sliceMask f i j (R (pairSlice v f i j)))).re-
       (inner ℂ (pairSlice v f i j) (sliceMask f i j (S (pairSlice v f i j)))).re ≤

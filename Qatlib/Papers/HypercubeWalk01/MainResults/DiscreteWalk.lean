@@ -9,6 +9,26 @@ import Mathlib.Algebra.Order.Floor.Semiring
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Tactic
+
+/-!
+# Discrete hypercube walk coefficients
+
+This module defines the eigenangle `discOmega`, the overlap expression `discOverlapA`, and the
+synthesized discrete-walk mass function `discDist` used in [MooreRussell2001]. It also fixes the
+time-dependent parity comparison and bounds the cosine factor at rounded candidate mixing times.
+
+## Main statements
+
+* `discCoeff`: defines the binomially weighted eigenangle expression for a Fourier coefficient.
+* `IsInstantaneousMixingAt`: expresses closeness to the parity mass function at a specified
+  time.
+* `cos_two_t_at_ceil_odd_multiple`: controls the rounding error at odd multiples of `π * n / 4`.
+
+## References
+
+* [Moore and Russell, 2001][MooreRussell2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,14 +41,19 @@ open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 namespace Qatlib.Papers.HypercubeWalk01.MainResults
 
+/-- The discrete-walk eigenangle `arccos (1 - 2 * k / n)`. -/
 noncomputable def discOmega (n k : ℕ) : ℝ :=
   Real.arccos (1 - 2 * (k : ℝ) / n)
 
+/-- The overlap ratio formed from the cosines and sines of the eigenangles at `k`, `j + l`, and
+`k - j + l`. -/
 noncomputable def discOverlapA (n k j l : ℕ) : ℝ :=
   (Real.cos (discOmega n k) -
       Real.cos (discOmega n (j + l)) * Real.cos (discOmega n (k - j + l))) /
     (Real.sin (discOmega n (j + l)) * Real.sin (discOmega n (k - j + l)))
 
+/-- The coefficient given by the normalized double binomial sum of cosine terms at the sums and
+differences of eigenangles, weighted by `discOverlapA`. -/
 noncomputable def discCoeff (n t k : ℕ) : ℝ :=
   (1 : ℝ) / 2 ^ n *
     ∑ j ∈ Finset.range (k + 1), ∑ l ∈ Finset.range (n - k + 1),
@@ -38,22 +63,30 @@ noncomputable def discCoeff (n t k : ℕ) : ℝ :=
           (1 + discOverlapA n k j l) / 2 *
             Real.cos ((discOmega n (j + l) - discOmega n (k - j + l)) * t))
 
+/-- The real mass function obtained by Fourier synthesis from `discCoeff n t`. -/
 noncomputable def discDist (n t : ℕ) (x : Cube n) : ℝ :=
   uniformMass n * ∑ S : Finset (Fin n), discCoeff n t S.card * chi S x
 
+/-- The mass function equal to `1 / 2 ^ (n - 1)` on vertices whose true-coordinate weight has
+parity `t`, and zero elsewhere. -/
 noncomputable def parityParityMass (n t : ℕ) (x : Cube n) : ℝ :=
   if (∑ i, if x i then (1 : ℕ) else 0) % 2 = t % 2 then ((2 : ℝ) ^ (n - 1))⁻¹ else 0
 
+/-- Half the sum of absolute differences from the parity mass function appropriate to time `t`. -/
 noncomputable def tvDistParityAt (n t : ℕ) (P : Cube n → ℝ) : ℝ :=
   (1 / 2) * ∑ x, |P x - parityParityMass n t x|
 
+/-- The condition that `P` is within `ε` of the time-`t` parity mass function in total
+variation. -/
 def IsInstantaneousMixingAt (n t : ℕ) (ε : ℝ) (P : Cube n → ℝ) : Prop :=
   tvDistParityAt n t P ≤ ε
 
+/-- For positive `n`, the zero-weight discrete eigenangle is zero. -/
 lemma discOmega_zero {n : ℕ} (_hn : 0 < n) : discOmega n 0 = 0 := by
   have harg : 1 - 2 * (((0 : ℕ) : ℝ)) / (n : ℝ) = 1 := by simp
   rw [discOmega, harg, Real.arccos_one]
 
+/-- For positive `n`, the full-weight discrete eigenangle is `π`. -/
 lemma discOmega_self {n : ℕ} (hn : 0 < n) : discOmega n n = Real.pi := by
   have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast hn.ne'
   have harg : 1 - 2 * (n : ℝ) / n = -1 := by
@@ -62,6 +95,8 @@ lemma discOmega_self {n : ℕ} (hn : 0 < n) : discOmega n n = Real.pi := by
   simp only [discOmega, harg]
   exact Real.arccos_neg_one
 
+/-- For positive `n` and odd `k`, rounding `k * (π / 4) * n` upward to a natural time leaves the
+absolute cosine factor at most `2 / n`. -/
 theorem cos_two_t_at_ceil_odd_multiple {n k : ℕ} (hn : 0 < n) (hk : Odd k) :
     |Real.cos (2 * ((⌈(k : ℝ) * (Real.pi / 4) * n⌉₊ : ℕ) : ℝ) / n)| ≤ 2 / n := by
   have hnR : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hn

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SpatialWalk15.MainResults.Lemma2TopOverlap
 import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
 import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
+
+/-!
+# Uniform eigenvectors and almost-sure overlap bounds
+
+This module proves the action of a regular graph's adjacency matrix on the uniform state and
+computes the residual after subtracting its rank-one projector. It also lifts a deterministic
+eigenvector-overlap estimate to almost every sample under explicit concentration hypotheses, in
+the setting of [ChakrabortyEtAl2016].
+
+## Main statements
+
+* `adjMatrix_regular_uniform_eigenvector`: the uniform state has adjacency eigenvalue equal to
+  the degree.
+* `regular_lemma2_top_overlap_identity`: exact squared residual for the uniform state.
+* `lemma2_top_overlap_almost_surely`: almost-sure squared-overlap lower bound.
+
+## References
+
+* [Chakraborty et al., 2016][ChakrabortyEtAl2016]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,6 +47,8 @@ variable {V : Type} [Fintype V] [DecidableEq V]
 
 omit [DecidableEq V] in
 
+/-- The adjacency matrix of a graph regular of degree `d` maps the uniform state to `d` times
+that state. -/
 theorem adjMatrix_regular_uniform_eigenvector (G : SimpleGraph V) [DecidableRel G.Adj]
     {d : ℕ} (hd : G.IsRegularOfDegree d) :
     G.adjMatrix ℂ *ᵥ Uniform V = (d : ℂ) • Uniform V := by
@@ -37,12 +60,17 @@ theorem adjMatrix_regular_uniform_eigenvector (G : SimpleGraph V) [DecidableRel 
   rw [Pi.smul_apply, Uniform]
   ring
 
+/-- On a finite vertex type of positive cardinality, the inner product of the uniform state with
+itself has norm one. -/
 theorem regular_uniform_overlap (hN : 0 < Fintype.card V) :
     ‖Inner (Uniform V) (Uniform V)‖ = 1 := by
   have h : Inner (Uniform V) (Uniform V) = 1 :=
     (normalized_iff_inner_self (Uniform V)).1 (normalized_uniform hN)
   rw [h, norm_one]
 
+/-- For a regular graph of degree `d` on a vertex type of positive cardinality, applying its
+adjacency matrix minus the uniform-state projector to the uniform state gives squared
+Euclidean norm `(d - 1) ^ 2` [ChakrabortyEtAl2016]. -/
 theorem regular_lemma2_top_overlap_identity (G : SimpleGraph V) [DecidableRel G.Adj]
     {d : ℕ} (hd : G.IsRegularOfDegree d) (hN : 0 < Fintype.card V) :
     ‖toEuclidean_fromVec ((G.adjMatrix ℂ - rankOneProjector (Uniform V)) *ᵥ Uniform V)‖ ^ 2 =
@@ -59,6 +87,10 @@ theorem regular_lemma2_top_overlap_identity (G : SimpleGraph V) [DecidableRel G.
   rw [hinner]
   norm_num
 
+/-- If almost every matrix is within matrix norm `η ≤ δ` of the projector onto normalized `s`
+and possesses a normalized eigenvector with real eigenvalue at least `1 - δ`, then almost
+every matrix possesses such an eigenvector with squared overlap at least `1 - 2 * δ` with
+`s` [ChakrabortyEtAl2016]. -/
 theorem lemma2_top_overlap_almost_surely
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Mof : Ω → Matrix V V ℂ) (s : QState V) (hs : Normalized s)
@@ -75,6 +107,9 @@ theorem lemma2_top_overlap_almost_surely
     lemma2_top_overlap_from_concentration (Mof ω) s x ℓ δ η
       hs hx heig hη0 hconc hηδ hℓ⟩
 
+/-- For a regular graph of degree `d` on a vertex type of positive cardinality, its adjacency
+matrix minus the uniform-state projector maps the uniform state to `(d - 1)` times that
+state. -/
 theorem regular_perturbation_acts_as_scalar (G : SimpleGraph V) [DecidableRel G.Adj]
     {d : ℕ} (hd : G.IsRegularOfDegree d) (hN : 0 < Fintype.card V) :
     (G.adjMatrix ℂ - rankOneProjector (Uniform V)) *ᵥ Uniform V =

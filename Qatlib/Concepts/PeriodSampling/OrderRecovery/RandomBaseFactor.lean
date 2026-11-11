@@ -9,6 +9,30 @@ import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.ZMod.QuotientRing
 import Mathlib.Algebra.Group.Pi.Units
 import Mathlib.GroupTheory.Index
+
+/-!
+# Random-base success in the factoring reduction
+
+This module defines `randomBaseGood` and `randomBaseSuccess` for factor extraction using the
+exact order of a uniformly chosen modular unit. For odd moduli, a base succeeds precisely when
+its order is even and its half-order power is not minus one, as in [Shor1997].
+
+Finite-group power-fiber bounds and the Chinese remainder decomposition control the number of
+failing bases. The resulting lower bound depends on the number of distinct prime factors of the
+modulus.
+
+## Main statements
+
+* `random_base_exact_order_factor_characterization`: the exact even-order and half-power
+  criterion for success.
+* `random_base_crt_success_bound`: success probability at least `1 - 2^{-(k - 1)}` for an odd
+  modulus with `k ≥ 2` distinct prime factors.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,13 +41,18 @@ noncomputable section
 namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 open scoped Classical
 
+/-- A modular unit is good when factor extraction using its exact multiplicative order returns a
+divisor. -/
 noncomputable def randomBaseGood (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) : Prop :=
   (orderFactor N a (orderOf a)).isSome
 
+/-- The fraction of modular units satisfying `randomBaseGood`, expressed as a real number. -/
 noncomputable def randomBaseSuccess (N : ℕ) [NeZero N] : ℝ :=
   (Fintype.card ((ZMod N)ˣ) : ℝ)⁻¹ *
     ((Finset.univ.filter (fun a : (ZMod N)ˣ => randomBaseGood N a)).card : ℝ)
 
+/-- For an odd modulus greater than one and a unit squaring to one, its residue predecessor is
+coprime to the modulus exactly when the unit equals minus one. -/
 private theorem root_predecessor_coprime_iff (N : ℕ) [NeZero N]
     (hN : 1 < N) (hodd : Odd N) (x : (ZMod N)ˣ)
     (hx : x ^ 2 = 1) :
@@ -51,6 +80,8 @@ private theorem root_predecessor_coprime_iff (N : ℕ) [NeZero N]
     convert! hu.neg using 1
     ring
 
+/-- For an odd modulus greater than one, a base yields a factor from its exact order exactly
+when that order is even and the half-order power is not minus one [Shor1997]. -/
 theorem random_base_exact_order_factor_characterization :
     ∀ (N : ℕ) [NeZero N] (a : (ZMod N)ˣ), 1 < N → Odd N →
       (randomBaseGood N a ↔ Even (orderOf a) ∧
@@ -108,11 +139,14 @@ theorem random_base_exact_order_factor_characterization :
       simpa [even_iff_two_dvd, Nat.dvd_iff_mod_eq_zero] using! he
     simp [randomBaseGood, orderFactor, hmod, he]
 
+/-- An element whose square is one is unchanged by every odd natural power. -/
 private theorem involution_odd_power {G : Type*} [Monoid G] (z : G)
     (hz : z ^ 2 = 1) {m : ℕ} (hm : Odd m) : z ^ m = z := by
   obtain ⟨k, hk⟩ := hm
   rw [hk, pow_add, pow_mul, hz, one_pow, pow_one, one_mul]
 
+/-- In a finite commutative group with a nonidentity involution `z`, there is a power taking
+some element to `z` and sending every stated failure case to either one or `z`. -/
 private theorem involution_failure_two_fibers {G : Type*} [CommGroup G] [Fintype G]
     (z : G) (hz : z ^ 2 = 1) (hne : z ≠ 1) :
     ∃ E : ℕ, (∃ b : G, b ^ E = z) ∧
@@ -196,6 +230,8 @@ private theorem involution_failure_two_fibers {G : Type*} [CommGroup G] [Fintype
           ring
         _ = z := by rw [hahalf]; exact involution_odd_power z hz hcodd
 
+/-- If a nonidentity element is an `E`th power in a finite commutative group, each fiber of the
+`E`th-power map has at most half the group cardinality. -/
 private theorem power_fiber_double_le_card {G : Type*} [CommGroup G] [Fintype G]
     (E : ℕ) (z : G) (hne : z ≠ 1) (hroot : ∃ b : G, b ^ E = z) (y : G) :
     2 * (Finset.univ.filter (fun a : G => a ^ E = y)).card ≤ Fintype.card G := by
@@ -227,6 +263,9 @@ private theorem power_fiber_double_le_card {G : Type*} [CommGroup G] [Fintype G]
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- In a finite product of commutative groups, an `E`th-power fiber has cardinality at most the
+group cardinality divided by `2` to the number of coordinates, under the coordinatewise
+nonidentity-root hypotheses. -/
 private theorem power_pi_fiber_bound {ι : Type*} [Fintype ι]
     {G : ι → Type*} [∀ i, CommGroup (G i)] [∀ i, Fintype (G i)]
     (E : ℕ) (z : ∀ i, G i) (hne : ∀ i, z i ≠ 1)
@@ -256,6 +295,8 @@ private theorem power_pi_fiber_bound {ι : Type*} [Fintype ι]
   simpa only [Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ,
     ← hcount, ← Fintype.card_pi] using! hp
 
+/-- For an odd nonzero modulus, the full power of each prime factor appearing in its
+factorization exceeds two. -/
 private theorem odd_prime_power_gt_two (N : ℕ) [NeZero N] (hodd : Odd N)
     (p : N.primeFactors) : 2 < (p : ℕ) ^ N.factorization p := by
   have hp := Nat.prime_of_mem_primeFactors p.property
@@ -272,6 +313,8 @@ private theorem odd_prime_power_gt_two (N : ℕ) [NeZero N] (hodd : Odd N)
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- For an odd modulus where minus one is an `E`th power, each modular-unit power fiber has size
+at most the unit-group cardinality divided by `2` to the number of distinct prime factors. -/
 private theorem random_base_power_fiber_bound (N : ℕ) [NeZero N] (hodd : Odd N)
     (E : ℕ) (hroot : ∃ b : (ZMod N)ˣ, b ^ E = -1) (y : (ZMod N)ˣ) :
     2 ^ N.primeFactors.card *
@@ -307,6 +350,9 @@ private theorem random_base_power_fiber_bound (N : ℕ) [NeZero N] (hodd : Odd N
   rw [Fintype.card_coe, ← Nat.card_congr efiber, ← Nat.card_congr e.toEquiv] at h
   simpa only [Nat.card_eq_fintype_card, Fintype.card_subtype] using! h
 
+/-- For an odd modulus greater than one with at least two distinct prime factors, exact-order
+factor extraction succeeds on a uniformly chosen unit with probability at least `1 - 2^{-(k
+- 1)}`, where `k` counts those factors [Shor1997]. -/
 theorem random_base_crt_success_bound :
     ∀ (N : ℕ) [NeZero N], 1 < N → Odd N →
       2 ≤ N.primeFactors.card →

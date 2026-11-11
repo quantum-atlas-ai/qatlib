@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.SurvivalDP
 import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Allocation
+
+/-!
+# Exponential survival bounds for adaptive erasure policies
+
+This module compares the survival probability of an `ErasurePolicy` with a deterministic width
+allocation, then bounds the allocation product by an exponential using its total budget. The
+resulting estimate controls adaptive survival in terms of the number of steps and available
+spacetime cost [BhartiHaugTanggara2026].
+
+## Main statements
+
+* `execute_le_allocation`: Some deterministic allocation bounds an adaptive policy's survival.
+* `execute_survival_le_exp`: The survival probability is at most exp(-S p^(C/S)).
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +32,8 @@ open scoped NNReal ENNReal BigOperators
 open Finset
 namespace Qatlib.Foundations.ProbabilityCore.ErasureAdaptive
 
+/-- For `S > 0` and `0 < p < 1`, a width allocation with total real cost at most `C` has
+survival product at most `Real.exp (-(S : ℝ) * p ^ (C / (S : ℝ)))`. -/
 theorem survival_product_le_exp
     (S m : ℕ) (hS : 0 < S) (p C : ℝ) (hp : 0 < p) (hp1 : p < 1)
     (n : Fin S → Fin (m + 1))
@@ -84,6 +105,8 @@ theorem survival_product_le_exp
         apply Real.exp_le_exp_of_le
         linarith [hsum_ge]
 
+/-- For `p ≤ 1`, every adaptive erasure policy has survival probability bounded by the survival
+product of some deterministic width allocation with the same step count and budget. -/
 theorem execute_le_allocation {R : Type*} (p : ℝ≥0) (hp : p ≤ 1) {S C : ℕ}
     (policy : ErasurePolicy R S C) :
     ∃ widths : Fin S → ℕ, (∑ i, widths i) ≤ C ∧
@@ -91,6 +114,8 @@ theorem execute_le_allocation {R : Type*} (p : ℝ≥0) (hp : p ≤ 1) {S C : �
   obtain ⟨w,hw,he⟩ := bestProduct_attained p S C
   exact ⟨w,hw,he ▸ execute_le_best p hp policy⟩
 
+/-- For `0 < p < 1` and `S > 0`, the real survival probability of a policy with `S` noise steps
+and budget `C` is at most exp(-S p^(C/S)). -/
 theorem execute_survival_le_exp {R : Type*} (p : ℝ≥0) (hp : 0 < p) (hp1 : p < 1)
     {S C : ℕ} (hS : 0 < S) (policy : ErasurePolicy R S C) :
     (execute p hp1.le policy true).toReal ≤

@@ -9,6 +9,29 @@ import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.MatrixAccess.FrameFilterProd
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+/-!
+# Specification of the optimal-coefficient reciprocal encoding
+
+`OptimalCoefficientBlockEncodingSubgoal` specifies a phase-list construction for the reciprocal
+of a state-preconditioned matrix under consistency, spectral-gap, and solution-norm promises.
+With effective parameter `2 * c ^ 2 * κ`, it requires a logarithmic degree bound, a positive
+scaling coefficient, a quantitative block-encoding error, exact compilation counts, and
+postselection output within `4 * ε` of the normalized original solution.
+
+Polynomial reciprocal transformations and projected block encodings provide the algorithmic
+background [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `OptimalCoefficientBlockEncodingSubgoal`: States the reciprocal encoding and postselection
+  guarantees with explicit constants.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,6 +61,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- The specification requires a preconditioned reciprocal phase list with explicit degree,
+coefficient, encoding-error, and compilation-count bounds, postselection probability at
+least `(c₀ * κ * (1 - 2 * ε)) ^ 2`, and normalized output error at most `4 * ε` under the
+stated consistency and spectral promises. -/
 def OptimalCoefficientBlockEncodingSubgoal : Prop :=
   ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O]

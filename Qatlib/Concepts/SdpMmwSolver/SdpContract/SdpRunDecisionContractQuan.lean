@@ -9,6 +9,29 @@ import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualSampleOutputQuan
 import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerTriggerRunQuan
 import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpDualCertificateMacroQuan
 import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWeakDuality
+
+/-!
+# Primal and dual outcomes of the SDP run
+
+`sdpRunDecisionContract` combines the two solver outcomes under the normalized input and
+parameter hypotheses. A failed round gives a primal witness with objective at least (1 − δ)α;
+successful contracts at every round give a sampled dual certificate and an upper bound (1 + δ)α
+on every primal feasible objective.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpRunDecisionContract`: Under the stated solver hypotheses, a failed round yields the
+  specified primal witness, while successful oracle contracts at every round yield a sampled
+  dual feasible certificate of cost at most (1 + δ)α and the corresponding primal upper bound.
+  See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +44,9 @@ namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Under the stated solver hypotheses, a failed round yields the specified primal witness,
+while successful oracle contracts at every round yield a sampled dual feasible certificate
+of cost at most (1 + δ)α and the corresponding primal upper bound. See [BrandaoSvore2017]. -/
 theorem sdpRunDecisionContract : SdpRunDecisionContract := by
   intro D m A Cv b y j₀ α R δ ε η hD hα hα1 hR hδ hδ1 hε hη hsmall hεcap hA hCv hb hA0 hb0
   constructor

@@ -63,6 +63,30 @@ import Mathlib.Topology.Continuous
 import Mathlib.Topology.Defs.Basic
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Differentiation of ordered tensor energies
+
+`Tensor` and `tensorEnergy` encode homogeneous real polynomial energies indexed by ordered
+tuples. `tensorDirectional` sums the contribution from differentiating each slot, and
+`tensorGradient` specializes this derivative to coordinate directions without a symmetry
+assumption on the tensor.
+
+The module proves directional derivative formulas, joint continuity in coefficients and
+coordinates, and single-entry and quadratic special cases. These calculations apply to the
+tensor energy models in [GohMuller2026].
+
+## Main statements
+
+* `tensor_energy_hasDerivAt`: the slotwise formula differentiates the energy along a line.
+* `tensor_gradient_partial`: coordinate directions give the defined gradient entries.
+* `quadratic_directional`: the explicit derivative of a real quadratic matrix energy.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -72,14 +96,21 @@ open scoped BigOperators
 
 namespace Qatlib.Foundations.MatrixAlgebra.TensorDiff
 
+/-- A real tensor indexed by ordered `q`-tuples of coordinates in `Fin N`. -/
 abbrev Tensor (q N : ℕ) := (Fin q → Fin N) → ℝ
 
+/-- The homogeneous polynomial obtained by contracting each ordered tensor entry with the
+product of its selected coordinates. -/
 def tensorEnergy {q N : ℕ} (J : Tensor q N) (z : Fin N → ℝ) : ℝ :=
   ∑ k, J k * ∏ a, z (k a)
 
+/-- The slotwise directional derivative formula for the ordered tensor energy, summed over all
+tuples and differentiated slots. -/
 def tensorDirectional {q N : ℕ} (J : Tensor q N) (z v : Fin N → ℝ) : ℝ :=
   ∑ k, J k * ∑ a, (∏ b ∈ Finset.univ.erase a, z (k b)) * v (k a)
 
+/-- Along the line `z + t * v`, the tensor energy has derivative `tensorDirectional J z v` at
+zero. This supplies the ordered tensor differentiation used in [GohMuller2026]. -/
 theorem tensor_energy_hasDerivAt {q N : ℕ} (J : Tensor q N) (z v : Fin N → ℝ) :
     HasDerivAt (fun t : ℝ => tensorEnergy J (fun i => z i+t*v i))
       (tensorDirectional J z v) 0 := by
@@ -92,16 +123,23 @@ theorem tensor_energy_hasDerivAt {q N : ℕ} (J : Tensor q N) (z v : Fin N → �
       (HasDerivAt.fun_finsetProd (u:=Finset.univ) (fun a _ => hz a)).const_mul (J k)
   exact HasDerivAt.fun_sum (u:=Finset.univ) (fun k _ => hp k)
 
+/-- The directional derivative formula evaluated at the coordinate basis vector for `i`. -/
 def tensorGradient {q N : ℕ} (J : Tensor q N) (z : Fin N → ℝ) (i : Fin N) : ℝ :=
   tensorDirectional J z (Pi.single i 1)
 
+/-- The derivative of the tensor energy in coordinate direction `i` at zero is `tensorGradient J
+z i`, for the tensor energy setting of [GohMuller2026]. -/
 theorem tensor_gradient_partial {q N : ℕ} (J : Tensor q N) (z : Fin N → ℝ) (i : Fin N) :
     HasDerivAt (fun t : ℝ => tensorEnergy J (fun j => z j+t*((Pi.single i (1:ℝ) : Fin N → ℝ) j)))
       (tensorGradient J z i) 0 := tensor_energy_hasDerivAt J z _
 
+/-- The vector-valued contraction obtained by fixing the output index and summing each tensor
+slice against products of `r` coordinates. -/
 def interaction {r N : ℕ} (J : Fin N → (Fin r → Fin N) → ℝ) (z : Fin N → ℝ) (i : Fin N) : ℝ :=
   ∑ k, J i k * ∏ a, z (k a)
 
+/-- The interaction vector depends continuously on both the tensor coefficients and the input
+coordinates. -/
 theorem continuous_interaction {r N : ℕ} :
     Continuous (fun p : (Fin N → (Fin r → Fin N) → ℝ) × (Fin N → ℝ) =>
       interaction p.1 p.2) := by
@@ -110,22 +148,30 @@ theorem continuous_interaction {r N : ℕ} :
   unfold interaction
   fun_prop
 
+/-- The tensor energy depends continuously on both its tensor coefficients and its input
+coordinates. -/
 theorem continuous_tensorEnergy {q N : ℕ} :
     Continuous (fun p : Tensor q N × (Fin N → ℝ) => tensorEnergy p.1 p.2) := by
   unfold tensorEnergy
   fun_prop
 
+/-- A tensor supported at one ordered tuple has energy equal to its coefficient times the
+corresponding coordinate monomial. -/
 theorem tensorEnergy_single {q N : ℕ} (u : Fin q → Fin N) (c : ℝ) (z : Fin N → ℝ) :
     tensorEnergy (Pi.single u c) z=c*∏ a,z (u a) := by
   classical
   simp [tensorEnergy,Pi.single_apply]
 
+/-- The directional derivative formula for a tensor supported at one tuple is its coefficient
+times the sum of the slotwise differentiated monomials. -/
 theorem tensorDirectional_single {q N : ℕ} (u : Fin q → Fin N) (c : ℝ) (z v : Fin N → ℝ) :
     tensorDirectional (Pi.single u c) z v=
       c*∑ a,(∏ b∈Finset.univ.erase a,z (u b))*v (u a) := by
   classical
   simp [tensorDirectional,Pi.single_apply]
 
+/-- The derivative at zero of the quadratic energy along `z + t * v` is the sum of the two terms
+obtained by differentiating each factor, without requiring matrix symmetry. -/
 theorem quadratic_directional {N : ℕ} (A : Matrix (Fin N) (Fin N) ℝ) (z v : Fin N → ℝ) :
     HasDerivAt (fun t : ℝ => ∑ i, ∑ j, A i j*(z i+t*v i)*(z j+t*v j))
       (∑ i, ∑ j, A i j*(v i*z j+z i*v j)) 0 := by

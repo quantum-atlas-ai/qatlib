@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+
+/-!
+# Polynomial domain-rescaling specification
+
+The proposition `Clause27PolynomialDomainRescaling` specifies a same-length coefficient vector
+representing the original Chebyshev expansion at twice its argument. It also equates the
+half-interval and full-interval suprema and relates evaluation at two matrix normalizations.
+Related mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `Clause27PolynomialDomainRescaling`: The scalar and matrix domain-rescaling contract.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -25,6 +43,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The assertion that every finite Chebyshev expansion has a same-length coefficient vector for
+evaluation at twice the argument, with equal half-interval and full-interval suprema and the
+corresponding matrix-normalization identity. -/
 def Clause27PolynomialDomainRescaling : Prop :=
   ∀ (n : ℕ) (c : Fin n → ℂ), ∃ q : Fin n → ℂ,
     (∀ x : ℝ, chebValue q x=chebValue c (2*x)) ∧

@@ -10,6 +10,35 @@ import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
 import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+/-!
+# Realizing Gram witnesses by phase-query circuits
+
+This module turns the positive semidefinite block updates in `gramQueryWitness` into finite
+circuits with unitary gates and an exact query count. Gram factorization and unitary transport
+realize each update, while labeled output sectors give exact readout; the isometry `gramBitLift`
+also relates idle-extended phase queries to bit queries in the state-conversion setting of
+[LeeEtAl2011].
+
+## Main statements
+
+* `gram_equal_actual_unitary_transport`: Matrices on the same finite row and column index types
+  with equal Gram matrices are related by left multiplication by a unitary matrix [LeeEtAl2011].
+
+* `gram_idle_phase_actual_single_bit_query_bridge`: The bit-query lift is an isometry
+  intertwining one idle-extended phase query with one workspace bit query [LeeEtAl2011].
+
+* `gram_witness_actual_exact_phase_query_algorithm`: A Gram query witness separating different
+  output labels yields a phase-query algorithm with positive finite workspace, exactly `T`
+  queries, unitary gates, and success probability one on every input [LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -35,13 +64,20 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
+/-- The Boolean phase sign at an active query index, with value one at the additional idle
+index. -/
 noncomputable def gramQuerySign {n : ℕ} (f : Fin n → Bool) (i : Fin (n + 1)) : ℂ :=
   if h : i.val < n then (if f ⟨i.val, h⟩ then -1 else 1) else 1
 
+/-- The diagonal phase-query matrix acting by `gramQuerySign` on the query register and
+trivially on the workspace. -/
 noncomputable def gramPhaseQuery (n R : ℕ) (f : Fin n → Bool) :
     Matrix (Fin (n + 1) × Fin R) (Fin (n + 1) × Fin R) ℂ :=
   Matrix.diagonal (fun iw => gramQuerySign f iw.1)
 
+/-- The Gram evolution conditions for `T` queries: the initial Gram matrix is all ones, and each
+step decomposes into positive semidefinite query blocks whose phase conjugations sum to the
+next Gram matrix. -/
 def gramQueryWitness {X : Type} [Fintype X] [DecidableEq X] (n T : ℕ)
     (input : X → Fin n → Bool) (G : Fin (T + 1) → Matrix X X ℂ)
     (M : Fin T → Fin (n + 1) → Matrix X X ℂ) : Prop :=
@@ -51,6 +87,8 @@ def gramQueryWitness {X : Type} [Fintype X] [DecidableEq X] (n T : ℕ)
       (∑ i, Matrix.diagonal (fun x => star (gramQuerySign (input x) i)) * M t i *
         Matrix.diagonal (fun x => gramQuerySign (input x) i)) = G ⟨t.val + 1, by omega⟩
 
+/-- The embedding of active query indices into the antisymmetric Boolean target state and of the
+idle index into the symmetric target state at address zero. -/
 noncomputable def gramBitLift (n R : ℕ) [NeZero n] :
     Matrix ((Fin n × Bool) × Fin R) (Fin (n + 1) × Fin R) ℂ := fun q iw =>
   if _h : iw.1.val < n then
@@ -58,6 +96,8 @@ noncomputable def gramBitLift (n R : ℕ) [NeZero n] :
       ((Real.sqrt 2 : ℂ)⁻¹) * (if q.1.2 then -1 else 1) else 0
   else if q.1.1.val = 0 ∧ q.2 = iw.2 then (Real.sqrt 2 : ℂ)⁻¹ else 0
 
+/-- Every finite positive semidefinite complex matrix is the Gram matrix `Vᴴ * V` of a square
+matrix `V` [LeeEtAl2011]. -/
 theorem gram_positive_matrix_actual_factorization :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (A : Matrix X X ℂ),
       A.PosSemidef → ∃ V : Matrix X X ℂ, Vᴴ * V = A := by
@@ -65,6 +105,8 @@ theorem gram_positive_matrix_actual_factorization :
   obtain ⟨V, hV⟩ := CStarAlgebra.nonneg_iff_eq_star_mul_self.mp hA.nonneg
   exact ⟨V, by simpa only [Matrix.star_eq_conjTranspose] using! hV.symm⟩
 
+/-- Matrices with equal Gram matrices induce linear maps giving the same inner products on every
+pair of input vectors. -/
 theorem gram_equal_inner_action {H X : Type} [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] (V W : Matrix H X ℂ) (h : Vᴴ * V = Wᴴ * W)
     (a b : EuclideanSpace ℂ X) :
@@ -79,6 +121,8 @@ theorem gram_equal_inner_action {H X : Type} [Fintype H] [DecidableEq H]
 set_option maxHeartbeats 1000000 in
 set_option backward.isDefEq.respectTransparency true in
 
+/-- Matrices on the same finite row and column index types with equal Gram matrices are related
+by left multiplication by a unitary matrix [LeeEtAl2011]. -/
 theorem gram_equal_actual_unitary_transport :
     ∀ (H X : Type) [Fintype H] [DecidableEq H] [Fintype X] [DecidableEq X]
       (V W : Matrix H X ℂ), Vᴴ * V = Wᴴ * W →
@@ -131,11 +175,13 @@ theorem gram_equal_actual_unitary_transport :
   rw [LinearIsometry.extend_apply (L.isometryOfInner hLis) ⟨v a, LinearMap.mem_range_self v a⟩]
   exact hL a _
 
+/-- Every active or idle query sign has squared complex norm one. -/
 theorem gramQuerySign_star_mul_self {n : ℕ} (f : Fin n → Bool) (i : Fin (n + 1)) :
     star (gramQuerySign f i) * gramQuerySign f i = 1 := by
   unfold gramQuerySign
   split_ifs <;> norm_num
 
+/-- The phase-query matrix with an idle index is unitary. -/
 theorem gramPhaseQuery_unitary (n R : ℕ) (f : Fin n → Bool) :
     gramPhaseQuery n R f ∈ Matrix.unitaryGroup (Fin (n + 1) × Fin R) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, gramPhaseQuery,
@@ -144,6 +190,8 @@ theorem gramPhaseQuery_unitary (n R : ℕ) (f : Fin n → Bool) :
   funext iw
   exact gramQuerySign_star_mul_self f iw.1
 
+/-- An active column of the bit-query embedding is the normalized antisymmetric Boolean target
+state at its query address and workspace coordinate. -/
 theorem gramBitLift_active (n R : ℕ) [NeZero n] (a : Fin n) (w : Fin R)
     (q : (Fin n × Bool) × Fin R) :
     gramBitLift n R q (a.castSucc, w) =
@@ -153,6 +201,8 @@ theorem gramBitLift_active (n R : ℕ) [NeZero n] (a : Fin n) (w : Fin R)
   congr 1
   exact propext (and_congr_left (fun _ => Fin.ext_iff.symm))
 
+/-- An idle column of the bit-query embedding is the normalized symmetric Boolean target state
+at address zero and its workspace coordinate. -/
 theorem gramBitLift_idle (n R : ℕ) [NeZero n] (w : Fin R)
     (q : (Fin n × Bool) × Fin R) :
     gramBitLift n R q (Fin.last n, w) =
@@ -161,6 +211,7 @@ theorem gramBitLift_idle (n R : ℕ) [NeZero n] (w : Fin R)
   congr 1
   exact propext (and_congr_left (fun _ => by simp only [Fin.ext_iff, Fin.val_zero]))
 
+/-- The square of the complex inverse of `Real.sqrt 2` is `1 / 2`. -/
 private theorem gram_inverse_sqrt_two_sq : ((Real.sqrt 2 : ℂ)⁻¹) ^ 2 = 1 / 2 := by
   rw [inv_pow]
   have hs : (Real.sqrt 2 : ℂ) ^ 2 = 2 := by
@@ -168,6 +219,8 @@ private theorem gram_inverse_sqrt_two_sq : ((Real.sqrt 2 : ℂ)⁻¹) ^ 2 = 1 / 
   rw [hs]
   norm_num
 
+/-- The Gram entry between two active columns of the bit-query embedding is one exactly when
+both their query and workspace indices agree. -/
 private theorem gramBitLift_gram_active_active (n R : ℕ) [NeZero n]
     (a b : Fin n) (w v : Fin R) :
     ((gramBitLift n R)ᴴ * gramBitLift n R) (a.castSucc, w) (b.castSucc, v) =
@@ -180,6 +233,7 @@ private theorem gramBitLift_gram_active_active (n R : ℕ) [NeZero n]
   all_goals simp_all [ite_and, mul_ite, eq_comm]
   field_simp
 
+/-- Every active column of the bit-query embedding is orthogonal to every idle column. -/
 private theorem gramBitLift_gram_active_idle (n R : ℕ) [NeZero n]
     (a : Fin n) (w v : Fin R) :
     ((gramBitLift n R)ᴴ * gramBitLift n R) (a.castSucc, w) (Fin.last n, v) = 0 := by
@@ -189,6 +243,8 @@ private theorem gramBitLift_gram_active_idle (n R : ℕ) [NeZero n]
   by_cases ha : a = 0 <;> by_cases hwv : w = v
   all_goals simp_all [ite_and, mul_ite, eq_comm]
 
+/-- The Gram entry between idle columns of the bit-query embedding is the indicator that their
+workspace indices agree. -/
 private theorem gramBitLift_gram_idle_idle (n R : ℕ) [NeZero n] (w v : Fin R) :
     ((gramBitLift n R)ᴴ * gramBitLift n R) (Fin.last n, w) (Fin.last n, v) =
       if w = v then 1 else 0 := by
@@ -199,10 +255,14 @@ private theorem gramBitLift_gram_idle_idle (n R : ℕ) [NeZero n] (w v : Fin R) 
   all_goals simp_all [ite_and, mul_ite, eq_comm]
   field_simp
 
+/-- The matrix obtained by applying the input-dependent oracle `O x` to column `x` of `V`. -/
 noncomputable def gramQueriedColumns {H X : Type} [Fintype H]
     (O : X → Matrix H H ℂ) (V : Matrix H X ℂ) : Matrix H X ℂ :=
   fun h x => (O x *ᵥ (fun j => V j x)) h
 
+/-- An initial all-ones Gram matrix and Gram-preserving oracle column updates yield a circuit
+with unitary gates and exactly `T` queries that produces the prescribed final columns from a
+basis state. -/
 theorem gram_actual_circuit_of_column_updates (H X : Type) [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] (T : ℕ) (j : H) (O : X → Matrix H H ℂ)
     (V : Fin (T + 1) → Matrix H X ℂ)
@@ -245,6 +305,7 @@ theorem gram_actual_circuit_of_column_updates (H X : Type) [Fintype H] [Decidabl
       exact congrArg (fun A : Matrix H X ℂ => A h x) hUV
   exact hrun T le_rfl
 
+/-- Every idle column of the bit-query embedding is orthogonal to every active column. -/
 private theorem gramBitLift_gram_idle_active (n R : ℕ) [NeZero n]
     (a : Fin n) (w v : Fin R) :
     ((gramBitLift n R)ᴴ * gramBitLift n R) (Fin.last n, w) (a.castSucc, v) = 0 := by
@@ -255,6 +316,7 @@ private theorem gramBitLift_gram_idle_active (n R : ℕ) [NeZero n]
   simp only [Matrix.conjTranspose_apply, gramBitLift_gram_active_idle, star_zero] at hh
   exact hh.symm
 
+/-- The embedding from active-and-idle phase-query states into bit-query states is an isometry. -/
 theorem gramBitLift_isIsometry (n R : ℕ) [NeZero n] : IsIsometry (gramBitLift n R) := by
   unfold IsIsometry
   ext ⟨i, w⟩ ⟨j, v⟩
@@ -275,6 +337,8 @@ theorem gramBitLift_isIsometry (n R : ℕ) [NeZero n] : IsIsometry (gramBitLift 
     · rw [gramBitLift_gram_active_active]
       simp [Matrix.one_apply]
 
+/-- The bit-query embedding intertwines the idle-extended phase query with the workspace bit
+oracle. -/
 theorem gramBitLift_query_intertwining (n R : ℕ) [NeZero n] (f : Fin n → Bool) :
     workspaceBitOracle (W := Fin R) f * gramBitLift n R =
       gramBitLift n R * gramPhaseQuery n R f := by
@@ -290,6 +354,8 @@ theorem gramBitLift_query_intertwining (n R : ℕ) [NeZero n] (f : Fin n → Boo
       cases b <;> cases hf : f a <;> by_cases hwv : w = v <;> simp [gramQuerySign, hf, hwv]
     · simp [haj]
 
+/-- The bit-query lift is an isometry intertwining one idle-extended phase query with one
+workspace bit query [LeeEtAl2011]. -/
 theorem gram_idle_phase_actual_single_bit_query_bridge :
     ∀ (n R : ℕ) [NeZero n] (f : Fin n → Bool), IsIsometry (gramBitLift n R) ∧
       workspaceBitOracle (W := Fin R) f * gramBitLift n R =
@@ -297,6 +363,7 @@ theorem gram_idle_phase_actual_single_bit_query_bridge :
   intro n R _ f
   exact ⟨gramBitLift_isIsometry n R, gramBitLift_query_intertwining n R f⟩
 
+/-- Conjugating a complex scalar by a query sign leaves it unchanged. -/
 theorem gramQuerySign_conjugate_scalar {n : ℕ} (f : Fin n → Bool)
     (i : Fin (n + 1)) (z : ℂ) :
     star (gramQuerySign f i) * z * gramQuerySign f i = z := by
@@ -304,6 +371,7 @@ theorem gramQuerySign_conjugate_scalar {n : ℕ} (f : Fin n → Bool)
     _ = z * (star (gramQuerySign f i) * gramQuerySign f i) := by ring
     _ = _ := by rw [gramQuerySign_star_mul_self, mul_one]
 
+/-- Every Gram matrix in a query witness has diagonal entries equal to one. -/
 theorem gramQueryWitness_diagonal_one {X : Type} [Fintype X] [DecidableEq X]
     {n T : ℕ} {input : X → Fin n → Bool} {G : Fin (T + 1) → Matrix X X ℂ}
     {M : Fin T → Fin (n + 1) → Matrix X X ℂ} (h : gramQueryWitness n T input G M) :
@@ -320,6 +388,7 @@ theorem gramQueryWitness_diagonal_one {X : Type} [Fintype X] [DecidableEq X]
       gramQuerySign_conjugate_scalar] at ha
     exact ha.symm.trans (hb.trans (ih x))
 
+/-- Every Gram matrix in a query witness is positive semidefinite. -/
 theorem gramQueryWitness_posSemidef {X : Type} [Fintype X] [DecidableEq X]
     {n T : ℕ} {input : X → Fin n → Bool} {G : Fin (T + 1) → Matrix X X ℂ}
     {M : Fin T → Fin (n + 1) → Matrix X X ℂ} (h : gramQueryWitness n T input G M) :
@@ -339,12 +408,16 @@ theorem gramQueryWitness_posSemidef {X : Type} [Fintype X] [DecidableEq X]
       (Matrix.diagonal (fun x => gramQuerySign (input x) j))
     simpa only [Matrix.diagonal_conjTranspose] using! hp
 
+/-- The vertical stack of a family of square matrices, with zero entries in an additional
+workspace summand. -/
 noncomputable def gramDirectSumMatrix {Q X Y : Type} (F : Q → Matrix X X ℂ) :
     Matrix (Q × (X ⊕ Y)) X ℂ := fun iw x =>
   match iw.2 with
   | Sum.inl a => F iw.1 a x
   | Sum.inr _ => 0
 
+/-- The Gram matrix of the padded vertical stack is the sum of the Gram matrices of its
+components. -/
 theorem gramDirectSumMatrix_gram {Q X Y : Type} [Fintype Q] [Fintype X] [Fintype Y]
     (F : Q → Matrix X X ℂ) :
     (gramDirectSumMatrix (Y := Y) F)ᴴ * gramDirectSumMatrix F = ∑ i, (F i)ᴴ * F i := by
@@ -352,6 +425,8 @@ theorem gramDirectSumMatrix_gram {Q X Y : Type} [Fintype Q] [Fintype X] [Fintype
   simp [Matrix.mul_apply, Matrix.conjTranspose_apply, Fintype.sum_prod_type,
     Fintype.sum_sum_type, gramDirectSumMatrix, Matrix.sum_apply]
 
+/-- Applying the input-dependent phase query to the padded stack multiplies each component on
+the right by its corresponding diagonal query signs. -/
 theorem gramDirectSumMatrix_queried {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y]
     {n : ℕ} (input : X → Fin n → Bool) (F : Fin (n + 1) → Matrix X X ℂ) :
     gramQueriedColumns (fun x => Matrix.diagonal
@@ -362,6 +437,8 @@ theorem gramDirectSumMatrix_queried {X Y : Type} [Fintype X] [DecidableEq X] [Fi
   cases w <;> simp [gramQueriedColumns, Matrix.mulVec_diagonal,
     gramDirectSumMatrix, Matrix.mul_diagonal, mul_comm]
 
+/-- The matrix placing column `x` of `B` in the output sector labeled by `label x` at query
+index zero. -/
 noncomputable def gramOutputMatrix {X Z : Type} [DecidableEq Z] (n : ℕ)
     (label : X → Z) (B : Matrix X X ℂ) :
     Matrix (Fin (n + 1) × (X ⊕ (Z × X))) X ℂ := fun iw x =>
@@ -369,6 +446,8 @@ noncomputable def gramOutputMatrix {X Z : Type} [DecidableEq Z] (n : ℕ)
   | Sum.inl _ => 0
   | Sum.inr za => if iw.1 = 0 ∧ za.1 = label x then B za.2 x else 0
 
+/-- Placing columns into output-label sectors preserves their Gram matrix when columns with
+different labels are orthogonal. -/
 theorem gramOutputMatrix_gram {X Z : Type} [Fintype X] [DecidableEq X]
     [Fintype Z] [DecidableEq Z] (n : ℕ) (label : X → Z) (B : Matrix X X ℂ)
     (hcross : ∀ x y, label x ≠ label y → (Bᴴ * B) x y = 0) :
@@ -383,12 +462,16 @@ theorem gramOutputMatrix_gram {X Z : Type} [Fintype X] [DecidableEq X]
     rw [hz]
     simp [ite_and, mul_ite, Ne.symm hxy]
 
+/-- The readout returning the stored output label on the labeled workspace summand and the
+fallback value on the other summand. -/
 noncomputable def gramOutputReadout {X Z : Type} (n : ℕ) (fallback : Z) :
     Fin (n + 1) × (X ⊕ (Z × X)) → Z := fun iw =>
   match iw.2 with
   | Sum.inl _ => fallback
   | Sum.inr za => za.1
 
+/-- The output matrix has zero amplitude at every coordinate whose readout differs from the
+column's prescribed label. -/
 theorem gramOutputMatrix_support {X Z : Type} [DecidableEq Z] (n : ℕ)
     (label : X → Z) (B : Matrix X X ℂ) (fallback : Z) (x : X)
     (iw : Fin (n + 1) × (X ⊕ (Z × X))) (hiw : gramOutputReadout n fallback iw ≠ label x) :
@@ -400,6 +483,9 @@ theorem gramOutputMatrix_support {X Z : Type} [DecidableEq Z] (n : ℕ)
     change za.1 ≠ label x at hiw
     simp [gramOutputMatrix, hiw]
 
+/-- A Gram query witness whose final Gram matrix vanishes between different output labels yields
+an exact `T`-query phase circuit on the explicit sum workspace, with unitary gates and
+success probability one. -/
 theorem gram_witness_sum_workspace_realization
     (X Z : Type) [Fintype X] [DecidableEq X] [Nonempty X] [Fintype Z] [DecidableEq Z]
     (n T : ℕ) (input : X → Fin n → Bool) (label : X → Z)
@@ -489,6 +575,9 @@ theorem gram_witness_sum_workspace_realization
         simp [BornProb, hz]
     _ = 1 := hn
 
+/-- A Gram query witness separating different output labels yields a phase-query algorithm with
+positive finite workspace, exactly `T` queries, unitary gates, and success probability one
+on every input [LeeEtAl2011]. -/
 theorem gram_witness_actual_exact_phase_query_algorithm :
     ∀ (X Z : Type) [Fintype X] [DecidableEq X] [Nonempty X]
       [Fintype Z] [DecidableEq Z] (n T : ℕ) (input : X → Fin n → Bool)

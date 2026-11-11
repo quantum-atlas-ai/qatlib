@@ -5,6 +5,38 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSectorHelpers
+
+/-!
+# Readout identities for polynomial states and parity sectors
+
+This module relates polynomial coefficients to orthonormal readout vectors and folded
+computational-basis events. The ordered-search interpretation follows the invariant setting in
+[FarhiEtAl1999] and the polynomial formulation in [ChildsLandahlParrilo2007]. The map
+`tiPolynomialState` preserves inner products, so `tiPolynomialReadoutVector` extracts the
+corresponding coefficient.
+
+Within the sector on which half-turn translation acts by `(-1)^t`, `tiFoldedEvent` and the
+readout-vector squared overlaps give the same measurement values. Normalization is required for
+the total readout mass to equal one; the coordinate and folded-event identities themselves hold
+without a normalization assumption.
+
+## Main statements
+
+* `ti_state_inner`, `ti_state_readout`, and `ti_readout_orthogonal` establish the readout
+  geometry.
+- `ti_sector_readout_mass` gives total mass one for normalized states in the sector.
+* `ti_sector_folded_eq_readout` identifies folded-event probabilities with squared readout
+  overlaps.
+* `ti_translated_readout_correct` identifies the correct-output squared overlap with the squared
+  norm of the coefficient at zero.
+
+## References
+
+- [Farhi et al., 1999][FarhiEtAl1999], invariant ordered-search states and readout.
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007], polynomial ordered-search
+  formulations.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +52,8 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped Classical BigOperators
 
+/-- Shows that embedding two coefficient vectors into polynomial states at the same time
+preserves their complex inner product. -/
 theorem ti_state_inner (n t : ℕ) (p q : Fin n → ℂ) :
     Qatlib.Foundations.PureStateMath.Inner (tiPolynomialState n t p) (tiPolynomialState n t q)=Qatlib.Foundations.PureStateMath.Inner p q := by
   have hs : (Real.sqrt 2 : ℂ)⁻¹*(Real.sqrt 2 : ℂ)⁻¹=(1/2:ℂ) := by
@@ -48,16 +82,22 @@ theorem ti_state_inner (n t : ℕ) (p q : Fin n → ℂ) :
   rw [← Finset.mul_sum]
   ring
 
+/-- Shows that the inner product of the readout vector for `y` with `tiPolynomialState n t p`
+equals the coefficient `p y`. -/
 theorem ti_state_readout (n t : ℕ) (p : Fin n → ℂ) (y : Fin n) :
     Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector n t y) (tiPolynomialState n t p)=p y := by
   rw [tiPolynomialReadoutVector,ti_state_inner]
   simp [inner_apply,Ket]
 
+/-- Shows that the readout vectors at a fixed time are orthonormal: their inner product is one
+for equal indices and zero otherwise. -/
 theorem ti_readout_orthogonal (n t : ℕ) (y z : Fin n) :
     Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector n t y) (tiPolynomialReadoutVector n t z)=
       if y=z then 1 else 0 := by
   rw [tiPolynomialReadoutVector,tiPolynomialReadoutVector,ti_state_inner,inner_ket_ket]
 
+/-- Shows that the sum of squared complex norms of a polynomial state's coordinates equals the
+corresponding sum for its coefficient vector. -/
 theorem ti_state_norm_sum (n t : ℕ) (p : Fin n → ℂ) :
     (∑ i,Complex.normSq (tiPolynomialState n t p i))=∑ i,Complex.normSq (p i) := by
   have hs : Complex.normSq ((Real.sqrt 2 : ℂ)⁻¹)=(1/2:ℝ) := by
@@ -68,6 +108,8 @@ theorem ti_state_norm_sum (n t : ℕ) (p : Fin n → ℂ) :
     Complex.normSq_neg,map_one,one_pow,one_mul,← Finset.mul_sum]
   ring
 
+/-- Shows that the first-half coordinates of a normalized state in the half-turn sector,
+multiplied by `sqrt 2`, have squared complex norms summing to one. -/
 theorem ti_normalized_sector_coefficients (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*n)))
     (hψ : Normalized ψ) (hp : ApplyGate ((tiTranslation n)^n) ψ=(-1:ℂ)^t • ψ) :
     ∑ i : Fin n,Complex.normSq ((Real.sqrt 2 : ℂ)*ψ ⟨i.val,by have := i.isLt; omega⟩)=1 := by
@@ -79,6 +121,8 @@ theorem ti_normalized_sector_coefficients (n t : ℕ) [NeZero n] (ψ : QState (F
   rw [ti_state_norm_sum] at hn
   exact hn
 
+/-- Shows that the squared overlaps with all time-`t` readout vectors sum to one for a
+normalized state on which half-turn translation acts by `(-1)^t`. -/
 theorem ti_sector_readout_mass (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*n)))
     (hψ : Normalized ψ) (hp : ApplyGate ((tiTranslation n)^n) ψ=(-1:ℂ)^t • ψ) :
     (∑ y : Fin n,Complex.normSq (Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector n t y) ψ))=1 := by
@@ -89,6 +133,8 @@ theorem ti_sector_readout_mass (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*n)))
         (tiPolynomialState n t (fun i => (Real.sqrt 2 : ℂ)*ψ ⟨i.val,by have := i.isLt; omega⟩))) := by rw [← he]
     _ = _ := by simpa only [ti_state_readout] using hn
 
+/-- Computes the measurement value of the folded event for `y` in a polynomial state as the
+squared complex norm of `p y`. -/
 theorem ti_state_folded (n t : ℕ) (p : Fin n → ℂ) (y : Fin n) :
     MeasureProb (tiPolynomialState n t p) (tiFoldedEvent n y)=Complex.normSq (p y) := by
   have hs : Complex.normSq ((Real.sqrt 2 : ℂ)⁻¹)=(1/2:ℝ) := by
@@ -108,6 +154,8 @@ theorem ti_state_folded (n t : ℕ) (p : Fin n → ℂ) (y : Fin n) :
   simp
   ring
 
+/-- Shows that for a state in the time-`t` half-turn sector, the folded-event measurement value
+equals the squared norm of its overlap with the corresponding readout vector. -/
 theorem ti_sector_folded_eq_readout (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*n)))
     (hp : ApplyGate ((tiTranslation n)^n) ψ=(-1:ℂ)^t • ψ) (y : Fin n) :
     MeasureProb ψ (tiFoldedEvent n y)=Complex.normSq (Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector n t y) ψ) := by
@@ -116,6 +164,8 @@ theorem ti_sector_folded_eq_readout (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*
   conv_rhs => rw [he]
   rw [ti_state_folded,ti_state_readout]
 
+/-- Computes the overlap of a state in the time-`t` half-turn sector with the readout vector for
+`y` as `sqrt 2` times its first-half coordinate at `y`. -/
 theorem ti_sector_readout_value (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*n)))
     (hp : ApplyGate ((tiTranslation n)^n) ψ=(-1:ℂ)^t • ψ) (y : Fin n) :
     Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector n t y) ψ =
@@ -126,6 +176,8 @@ theorem ti_sector_readout_value (n t : ℕ) [NeZero n] (ψ : QState (Fin (2*n)))
         (fun i => (Real.sqrt 2 : ℂ)*ψ ⟨i.val,by have := i.isLt; omega⟩)) := congrArg (Qatlib.Foundations.PureStateMath.Inner _) he
     _ = _ := ti_state_readout n t _ y
 
+/-- Computes the first-half coordinate at `ospFun n j` after translating a polynomial state by
+`j.val`. It is `p 0 / sqrt 2`, with an additional factor `(-1)^t` when `j.val ≥ n`. -/
 theorem ti_translated_correct_first (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (j : Fin (2*n)) :
     ApplyGate ((tiTranslation n)^j.val) (tiPolynomialState n t p)
       ⟨(ospFun n j).val,by have := (ospFun n j).isLt; omega⟩ =
@@ -165,6 +217,8 @@ theorem ti_translated_correct_first (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (
     change tiPolynomialState n t p (e.symm ⟨(ospFun n j).val,_⟩)=_
     rw [he,ti_state_second]
 
+/-- Shows that the squared overlap of a translated polynomial state with the readout vector for
+`ospFun n j` equals the squared complex norm of `p 0`. -/
 theorem ti_translated_readout_correct (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (j : Fin (2*n)) :
     Complex.normSq (Qatlib.Foundations.PureStateMath.Inner (tiPolynomialReadoutVector n t (ospFun n j))
       (ApplyGate ((tiTranslation n)^j.val) (tiPolynomialState n t p)))=Complex.normSq (p 0) := by

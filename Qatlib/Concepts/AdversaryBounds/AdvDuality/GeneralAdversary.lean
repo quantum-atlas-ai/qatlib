@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessNega
+
+/-!
+# General adversary bounds and Boolean examples
+
+This module states the general adversary, minimax, composition, separation, and state conversion
+propositions `clause16Prop` through `clause20Prop`. It also provides an engine deriving the
+query bound from explicit progress estimates, in the setting of negative weight adversaries
+[HoyerLeeSpalek2007]. These proposition definitions specify mathematical claims without
+themselves proving the entire collection.
+
+The concrete results include a lower bound for the six bit Kushilevitz example, its relative
+Hamming distance, and exact certificate complexities for a monotone extension. Certificate
+terminology is also used in [AmbainisEtAl2009].
+
+## Main statements
+
+* `clause16_engine_of_obligations`: combine initial, final, and per query progress bounds.
+* `advPmValue_kushilevitz_ge`: a concrete general adversary lower bound.
+* `relativeHamming_sixBitF`: the partial function's relative Hamming distance is `1 / 3`.
+* `certComplexity_monotoneSixBitG_eq_three`: both output certificate complexities equal three.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,6 +57,8 @@ open Qatlib.Concepts.AdversaryBounds.AdvDuality.NegativeWeightsMakeAdversariesSt
 open scoped Matrix.Norms.L2Operator ComplexOrder ENNReal
 open Classical BigOperators
 
+/-- The proposition asserting general adversary query lower bounds for bounded error phase
+oracle runs, including the sharper binary output constant [HoyerLeeSpalek2007]. -/
 def clause16Prop : Prop :=
   ∀ (q n : ℕ) [NeZero q] (X W Y : Type) [Fintype X] [DecidableEq X] [Fintype W] [Fintype Y]
     (input : X → Fin n → Fin q) (f : X → Y)
@@ -49,6 +78,8 @@ def clause16Prop : Prop :=
       ENNReal.ofReal ((1 - 2 * Real.sqrt (eps * (1 - eps))) / 2) *
         advPmValue input f ≤ ((QueryCount C : ℕ) : ℝ≥0∞))
 
+/-- The proposition asserting equality of the positive cost nonnegative adversary and minimax
+values, with witnesses attaining both optima. -/
 def clause17Prop : Prop :=
   ∀ (X κ : Type) [Fintype X] [DecidableEq X] [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (α : κ → ℝ),
@@ -60,6 +91,8 @@ def clause17Prop : Prop :=
       advAlphaWitnessR input α Γ = advAlphaR input g α) ∧
     (∃ p : X → κ → ℝ, IsMinimaxOptimal input g α p)
 
+/-- The proposition asserting a weighted composition upper bound together with attaining
+component adversaries and composed minimax witnesses. -/
 def clause18Prop : Prop :=
   ∀ (k : ℕ) (X : Fin k → Type) (n : Fin k → ℕ) [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (gin : ∀ i, X i → Fin (n i) → Bool) (g : ∀ i, X i → Bool) (f : (Fin k → Bool) → Bool)
@@ -90,6 +123,9 @@ def clause18Prop : Prop :=
         minimaxWitnessValue (fun u : Fin k → Bool => u) f
           (fun i => (blockCosts gin g α i).toReal) pf)
 
+/-- The proposition collecting explicit adversary separations, relative Hamming bounds, and
+certificate complexity formulas for Boolean examples and their iterates
+[HoyerLeeSpalek2007]. -/
 def clause19Prop : Prop :=
   ENNReal.ofReal (2.5135) ≤
       advPmValue (fun w : Fin 4 → Bool => w) ambainisSorted4 ∧
@@ -123,6 +159,8 @@ def clause19Prop : Prop :=
         (iterateTotal monotoneSixBitG d)).toReal ^ (1.098 : ℝ)) ≤
       advPmValue (fun w : Fin (6^d) → Bool => w) (iterateTotal monotoneSixBitG d))
 
+/-- The proposition asserting coherent state conversion with a query bound controlled by a
+positive finite filtered Gram distance and the error tolerance. -/
 def clause20Prop : Prop :=
   ∀ (q n : ℕ) [NeZero q] (X W : Type) [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     (input : X → Fin n → Fin q)
@@ -137,6 +175,7 @@ def clause20Prop : Prop :=
             sigma eps ∧
           (T : ℝ) ≤ c * γ.toReal * Real.log (1 / eps) / eps ^ 2
 
+/-- A bounded error run uses a unitary circuit. -/
 theorem isBoundedErrorRun_isUnitary {X W Y : Type} [Fintype W] [Fintype Y] {q n : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y)
     (C : Circuit ((Fin n × Fin q) × W)) (psi : QState ((Fin n × Fin q) × W))
@@ -144,6 +183,7 @@ theorem isBoundedErrorRun_isUnitary {X W Y : Type} [Fintype W] [Fintype Y] {q n 
     (hrun : IsBoundedErrorRun input f C psi out eps) : IsUnitaryCircuit C :=
   hrun.1
 
+/-- The initial state of a bounded error run is normalized. -/
 theorem isBoundedErrorRun_normalized {X W Y : Type} [Fintype W] [Fintype Y] {q n : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y)
     (C : Circuit ((Fin n × Fin q) × W)) (psi : QState ((Fin n × Fin q) × W))
@@ -151,6 +191,7 @@ theorem isBoundedErrorRun_normalized {X W Y : Type} [Fintype W] [Fintype Y] {q n
     (hrun : IsBoundedErrorRun input f C psi out eps) : Normalized psi :=
   hrun.2.1
 
+/-- The output operators of a bounded error run form a POVM. -/
 theorem isBoundedErrorRun_isPovm {X W Y : Type} [Fintype W] [Fintype Y] {q n : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y)
     (C : Circuit ((Fin n × Fin q) × W)) (psi : QState ((Fin n × Fin q) × W))
@@ -158,6 +199,7 @@ theorem isBoundedErrorRun_isPovm {X W Y : Type} [Fintype W] [Fintype Y] {q n : �
     (hrun : IsBoundedErrorRun input f C psi out eps) : IsPovm out :=
   hrun.2.2.1
 
+/-- The error parameter of a bounded error run lies between zero and one half. -/
 theorem isBoundedErrorRun_eps {X W Y : Type} [Fintype W] [Fintype Y] {q n : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y)
     (C : Circuit ((Fin n × Fin q) × W)) (psi : QState ((Fin n × Fin q) × W))
@@ -165,6 +207,8 @@ theorem isBoundedErrorRun_eps {X W Y : Type} [Fintype W] [Fintype Y] {q n : ℕ}
     (hrun : IsBoundedErrorRun input f C psi out eps) : 0 ≤ eps ∧ eps ≤ 1 / 2 :=
   ⟨hrun.2.2.2.1, hrun.2.2.2.2.1⟩
 
+/-- A bounded error run returns the correct output with probability at least one minus its error
+parameter on every input. -/
 theorem isBoundedErrorRun_success {X W Y : Type} [Fintype W] [Fintype Y] {q n : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y)
     (C : Circuit ((Fin n × Fin q) × W)) (psi : QState ((Fin n × Fin q) × W))
@@ -173,21 +217,26 @@ theorem isBoundedErrorRun_success {X W Y : Type} [Fintype W] [Fintype Y] {q n : 
     ∀ x, 1 - eps ≤ povmProb out (f x) (Run (phaseOracle (W := W) (input x)) C psi) :=
   hrun.2.2.2.2.2
 
+/-- Each coordinate filtered adversary norm is bounded by the supremum of the filter norms. -/
 theorem genAdvFilter_le_maxFilterNorm {X κ A : Type} [Fintype X] [DecidableEq X] [Fintype κ]
     [DecidableEq A] (input : X → κ → A) (Γ : Matrix X X ℂ) (i : κ) :
     ‖genAdvFilter input Γ i‖ ≤ maxFilterNorm input Γ :=
   le_ciSup (Set.Finite.bddAbove (Set.finite_range fun j : κ => ‖genAdvFilter input Γ j‖)) i
 
+/-- The supremum of the coordinate filtered adversary norms is nonnegative. -/
 theorem maxFilterNorm_nonneg {X κ A : Type} [Fintype X] [DecidableEq X] [Fintype κ]
     [DecidableEq A] (input : X → κ → A) (Γ : Matrix X X ℂ) :
     0 ≤ maxFilterNorm input Γ :=
   Real.iSup_nonneg fun _ => norm_nonneg _
 
+/-- A matrix indexed by an empty type has operator norm zero. -/
 theorem norm_eq_zero_of_isEmpty {X : Type} [Fintype X] [DecidableEq X] [IsEmpty X]
     (Γ : Matrix X X ℂ) : ‖Γ‖ = 0 := by
   have h : Γ = 0 := Subsingleton.elim _ _
   rw [h, norm_zero]
 
+/-- The predicate asserting a total progress change bound of twice the query count times the
+maximum filtered norm. -/
 def PhaseOracleProgressRunBound {q n : ℕ} [NeZero q] {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] (input : X → Fin n → Fin q) (Γ : Matrix X X ℂ) : Prop :=
   ∀ (weight : QState X) (C : Circuit ((Fin n × Fin q) × W))
@@ -197,6 +246,8 @@ def PhaseOracleProgressRunBound {q n : ℕ} [NeZero q] {X W : Type} [Fintype X] 
       - advProgress Γ weight states| ≤
       2 * (QueryCount C) * maxFilterNorm input Γ
 
+/-- The predicate bounding final adversary progress for successful normalized POVM outputs, with
+an improved bound for two outputs. -/
 def PovmFinalProgressBound {X H Y : Type} [Fintype X] [DecidableEq X] [Fintype H] [Fintype Y]
     (Γ : Matrix X X ℂ) (f : X → Y) (out : Y → Matrix H H ℂ) (eps : ℝ) : Prop :=
   ∀ (weight : QState X) (states : X → QState H),
@@ -205,6 +256,7 @@ def PovmFinalProgressBound {X H Y : Type} [Fintype X] [DecidableEq X] [Fintype H
     (∀ x, 1 - eps ≤ povmProb out (f x) (states x)) →
     |advProgress Γ weight states| ≤ (2 * Real.sqrt (eps * (1 - eps)) + 2 * eps) * ‖Γ‖
 
+/-- A complex exponential with real phase multiplied by `2πi` has norm one. -/
 theorem complex_exp_phase_norm (x : ℝ) :
     ‖Complex.exp ((2 * Real.pi * Complex.I) * (x : ℂ))‖ = 1 := by
   have h : (2 * Real.pi * Complex.I) * (x : ℂ) = ((2 * Real.pi * x : ℝ) * Complex.I) := by
@@ -212,6 +264,7 @@ theorem complex_exp_phase_norm (x : ℝ) :
   rw [h]
   exact Complex.norm_exp_ofReal_mul_I _
 
+/-- The phase oracle is the diagonal matrix of its input dependent complex phases. -/
 theorem phaseOracle_eq_diagonal {q n : ℕ} [NeZero q] {W : Type}
     (input : Fin n → Fin q) :
     phaseOracle (W := W) input =
@@ -224,6 +277,8 @@ theorem phaseOracle_eq_diagonal {q n : ℕ} [NeZero q] {W : Type}
     simp [phaseOracle, Matrix.diagonal]
   · simp [phaseOracle, Matrix.diagonal, h]
 
+/-- For a bounded error run with normalized final states, the assumed progress and POVM
+estimates imply the general witness norm query bound [HoyerLeeSpalek2007]. -/
 theorem clause16_engine_of_obligations
     (q n : ℕ) [NeZero q] (X W Y : Type) [Fintype X] [DecidableEq X] [Fintype W] [Fintype Y]
     (input : X → Fin n → Fin q) (f : X → Y)
@@ -272,11 +327,13 @@ theorem clause16_engine_of_obligations
     rw [hlam] at htri
     nlinarith
 
+/-- For Boolean inputs, the general coordinate filter equals `advFilter`. -/
 theorem genAdvFilter_eq_advFilter {X : Type} {n : ℕ}
     (input : X → Fin n → Bool) (Γ : Matrix X X ℂ) (i : Fin n) :
     genAdvFilter input Γ i = advFilter input Γ i :=
   rfl
 
+/-- Each Boolean coordinate filter norm is bounded by `advFilterBound`. -/
 theorem advFilter_le_advFilterBound {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (input : X → Fin n → Bool) (Γ : Matrix X X ℂ) (i : Fin n) :
     ‖advFilter input Γ i‖ ≤ advFilterBound input Γ := by
@@ -299,6 +356,7 @@ theorem advFilter_le_advFilterBound {X : Type} [Fintype X] [DecidableEq X] {n : 
       · exact ih a (max z b) ha
   exact helper _ _ _ hmem
 
+/-- The supremum of the general Boolean filter norms is bounded by `advFilterBound`. -/
 theorem maxFilterNorm_le_advFilterBound {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (input : X → Fin n → Bool) (Γ : Matrix X X ℂ) :
     maxFilterNorm input Γ ≤ advFilterBound input Γ := by
@@ -315,6 +373,8 @@ theorem maxFilterNorm_le_advFilterBound {X : Type} [Fintype X] [DecidableEq X] {
     exact hm _ _
   exact Real.iSup_le h hge0
 
+/-- The Kushilevitz example has general adversary value at least `2 + 3 * sqrt 5 / 5`
+[HoyerLeeSpalek2007]. -/
 theorem advPmValue_kushilevitz_ge :
     ENNReal.ofReal (2 + 3 * Real.sqrt 5 / 5) ≤
       advPmValue kushilevitzInputW kushilevitzFunW := by
@@ -352,9 +412,11 @@ theorem advPmValue_kushilevitz_ge :
       (∀ x y, kushilevitzFunW x = kushilevitzFunW y → Γ x y = 0) ∧ Γ ≠ 0} =>
       advPmWitnessValue kushilevitzInputW Γ.1) ⟨kushilevitzGammaW, hHerm, hZero, hne⟩
 
+/-- The number of coordinates at which both six bit words are true. -/
 private def commonBits (x y : Fin 6 → Bool) : ℕ :=
   (Finset.univ.filter fun i => x i && y i).card
 
+/-- Two distinct six bit words of weight three have Hamming distance at least two. -/
 lemma hamming_two_le {x y : Fin 6 → Bool}
     (hx : kushilevitzWeightOf x = 3) (hy : kushilevitzWeightOf y = 3) (hxy : x ≠ y) :
     2 ≤ hamming x y := by
@@ -403,6 +465,7 @@ lemma hamming_two_le {x y : Fin 6 → Bool}
     exact hne this
   omega
 
+/-- Every input where `sixBitF` returns a Boolean has weight three. -/
 lemma sixBitF_weight {w : Fin 6 → Bool} {b : Bool} (h : sixBitF w = some b) :
     kushilevitzWeightOf w = 3 := by
   by_contra hc
@@ -412,6 +475,7 @@ lemma sixBitF_weight {w : Fin 6 → Bool} {b : Bool} (h : sixBitF w = some b) :
   rw [hnone] at h
   simp at h
 
+/-- The infimum Hamming distance between false and true inputs of `sixBitF` is two. -/
 lemma sixBitF_hamming_iInf :
     (⨅ w : {w : (Fin 6 → Bool) × (Fin 6 → Bool) //
         sixBitF w.1 = some false ∧ sixBitF w.2 = some true},
@@ -450,12 +514,14 @@ lemma sixBitF_hamming_iInf :
   rw [hp] at hle
   exact le_antisymm hle hge
 
+/-- The relative Hamming distance of `sixBitF` equals one third. -/
 theorem relativeHamming_sixBitF : relativeHamming sixBitF = 1/3 := by
   unfold relativeHamming
   simp only [if_neg (by norm_num : ¬(6:ℕ) = 0)]
   rw [sixBitF_hamming_iInf]
   norm_num
 
+/-- The real power `3 ^ 1.098` is at most `2 + 3 * sqrt 5 / 5`. -/
 lemma three_rpow_1098_le : (3:ℝ) ^ (1.098:ℝ) ≤ 2 + 3 * Real.sqrt 5 / 5 := by
   have hE1lo : 2.7182812 ≤ Real.exp 1 := by
     have h := Real.exp_bound (x := 1) (by norm_num) (n := 10) (by norm_num)
@@ -517,6 +583,8 @@ lemma three_rpow_1098_le : (3:ℝ) ^ (1.098:ℝ) ≤ 2 + 3 * Real.sqrt 5 / 5 := 
   refine le_trans hA ?_
   gcongr
 
+/-- The Kushilevitz adversary value is at least the inverse relative Hamming distance of
+`sixBitF` raised to `1.098`. -/
 theorem advPmValue_kushilevitz_rate :
     ENNReal.ofReal ((1 / relativeHamming sixBitF) ^ (1.098 : ℝ)) ≤
       advPmValue kushilevitzInputW kushilevitzFunW := by
@@ -526,6 +594,7 @@ theorem advPmValue_kushilevitz_rate :
   rw [hbase]
   exact le_trans (ENNReal.ofReal_le_ofReal three_rpow_1098_le) advPmValue_kushilevitz_ge
 
+/-- An if expression is independent of the chosen decision procedure for its proposition. -/
 lemma ite_eq_ite_of_decidable {p : Prop} {d1 d2 : Decidable p} {α : Sort*} {a b : α} :
     @ite α p d1 a b = @ite α p d2 a b := by
   cases d1 with
@@ -536,6 +605,8 @@ lemma ite_eq_ite_of_decidable {p : Prop} {d1 d2 : Decidable p} {α : Sort*} {a b
     | isTrue h' => exact absurd h' h
     | isFalse h' => rfl
 
+/-- A set is a certificate exactly when every input either has the same output or fails to agree
+on that set. -/
 lemma IsCertificate_iff {m : ℕ} {h : (Fin m → Bool) → Bool} {x : Fin m → Bool}
     (S : Finset (Fin m)) :
     IsCertificate h x S ↔ ∀ y, h y = h x ∨ ¬(∀ i ∈ S, y i = x i) := by
@@ -554,12 +625,15 @@ instance instDecidableIsCertificate {m : ℕ} (h : (Fin m → Bool) → Bool) (x
     (S : Finset (Fin m)) : Decidable (IsCertificate h x S) :=
   decidable_of_iff _ (IsCertificate_iff S).symm
 
+/-- The minimum certificate size is the infimum of certificate cardinalities, assigning top to
+sets that are not certificates. -/
 lemma minCertSize_eq_iInf {m : ℕ} {h : (Fin m → Bool) → Bool} {x : Fin m → Bool} :
     minCertSize h x = ⨅ T : Finset (Fin m),
       (if IsCertificate h x T then (T.card : WithTop ℕ) else ⊤) := by
   unfold minCertSize
   exact congrArg iInf (funext fun T => ite_eq_ite_of_decidable)
 
+/-- The minimum certificate size is at most the cardinality of any certificate. -/
 lemma minCertSize_le_card {m : ℕ} {h : (Fin m → Bool) → Bool} {x : Fin m → Bool}
     {S : Finset (Fin m)} (hc : IsCertificate h x S) : minCertSize h x ≤ S.card := by
   rw [minCertSize_eq_iInf]
@@ -567,6 +641,8 @@ lemma minCertSize_le_card {m : ℕ} {h : (Fin m → Bool) → Bool} {x : Fin m �
       if IsCertificate h x T then (T.card : WithTop ℕ) else ⊤) S) ?_
   simp [hc]
 
+/-- A natural number bounding every certificate cardinality from below also bounds the minimum
+certificate size from below. -/
 lemma le_minCertSize {m : ℕ} {h : (Fin m → Bool) → Bool} {x : Fin m → Bool} {n : ℕ}
     (H : ∀ S : Finset (Fin m), IsCertificate h x S → n ≤ S.card) :
     (n : WithTop ℕ) ≤ minCertSize h x := by
@@ -581,9 +657,11 @@ lemma le_minCertSize {m : ℕ} {h : (Fin m → Bool) → Bool} {x : Fin m → Bo
 set_option maxRecDepth 200000 in
 set_option maxHeartbeats 2000000 in
 
+/-- Every input of `monotoneSixBitG` has a certificate of cardinality at most three. -/
 lemma exists_cert_le_three : ∀ x : Fin 6 → Bool, ∃ S : Finset (Fin 6),
     S.card ≤ 3 ∧ IsCertificate monotoneSixBitG x S := by decide
 
+/-- The minimum certificate size of `monotoneSixBitG` is at most three at every input. -/
 lemma minCertSize_le_three (x : Fin 6 → Bool) :
     minCertSize monotoneSixBitG x ≤ 3 := by
   obtain ⟨S, hS, hc⟩ := exists_cert_le_three x
@@ -591,17 +669,24 @@ lemma minCertSize_le_three (x : Fin 6 → Bool) :
   have hcast : (S.card : WithTop ℕ) ≤ 3 := by exact_mod_cast hS
   exact le_trans this hcast
 
+/-- The six bit word with every bit false. -/
 def allZeros : Fin 6 → Bool := fun _ => false
 
+/-- The six bit word with every bit true. -/
 def allOnes : Fin 6 → Bool := fun _ => true
 
+/-- The monotone six bit function returns false on the all zero word. -/
 lemma allZeros_g : monotoneSixBitG allZeros = false := by decide
 
+/-- The monotone six bit function returns true on the all one word. -/
 lemma allOnes_g : monotoneSixBitG allOnes = true := by decide
 
+/-- The Kushilevitz word weight equals the number of true coordinates. -/
 lemma kushilevitzWeightOf_eq_card (w : Fin 6 → Bool) :
     kushilevitzWeightOf w = (Finset.univ.filter fun i => w i).card := rfl
 
+/-- Every certificate of the all zero input for `monotoneSixBitG` needs at least three
+coordinates. -/
 lemma three_le_minCertSize_allZeros : (3 : WithTop ℕ) ≤ minCertSize monotoneSixBitG allZeros := by
   refine le_minCertSize (n := 3) ?_
   intro S hc
@@ -626,6 +711,8 @@ lemma three_le_minCertSize_allZeros : (3 : WithTop ℕ) ≤ minCertSize monotone
   rw [hyg, allZeros_g] at hcon
   exact absurd hcon (by simp)
 
+/-- Every certificate of the all one input for `monotoneSixBitG` needs at least three
+coordinates. -/
 lemma three_le_minCertSize_allOnes : (3 : WithTop ℕ) ≤ minCertSize monotoneSixBitG allOnes := by
   refine le_minCertSize (n := 3) ?_
   intro S hc
@@ -652,12 +739,15 @@ lemma three_le_minCertSize_allOnes : (3 : WithTop ℕ) ≤ minCertSize monotoneS
   rw [hyg, allOnes_g] at hcon
   exact absurd hcon (by simp)
 
+/-- Output specific certificate complexity is the supremum of minimum certificate sizes, with
+zero for inputs of the other output. -/
 lemma certComplexity_eq_iSup {m : ℕ} {h : (Fin m → Bool) → Bool} {b : Bool} :
     certComplexity h b = ⨆ x : Fin m → Bool,
       (if h x = b then minCertSize h x else 0) := by
   unfold certComplexity
   exact congrArg iSup (funext fun x => ite_eq_ite_of_decidable)
 
+/-- The false and true certificate complexities of `monotoneSixBitG` both equal three. -/
 theorem certComplexity_monotoneSixBitG_eq_three :
     certComplexity monotoneSixBitG false = 3 ∧
     certComplexity monotoneSixBitG true = 3 := by

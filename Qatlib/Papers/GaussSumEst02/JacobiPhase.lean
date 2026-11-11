@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Jacobi
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+/-!
+# Symmetry and special values of Jacobi sums
+
+This module proves the symmetry of `jacobiSum` and evaluates the cases involving trivial or
+inverse multiplicative characters. The change of variables in `sum_reflect` exchanges the two
+character factors. See [VanDamSeroussi2002].
+
+## Main statements
+
+* `jacobiSum_symm`: The Jacobi sum is symmetric in its two multiplicative characters.
+* `jacobiSum_trivial_left`: The Jacobi sum of the trivial character and a nontrivial character
+  is `-1`.
+* `jacobiSum_self_inv`: The Jacobi sum of a nontrivial character and its pointwise inverse is
+  minus the character value at `-1`.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +38,7 @@ namespace Qatlib.Papers.GaussSumEst02.JacobiPhase
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- The multiplicative character obtained by taking the pointwise complex inverse of `ψ`. -/
 def invMultChar {K : Type*} [Field K] (ψ : MultChar K) : MultChar K where
   toFun x := (ψ.toFun x)⁻¹
   map_zero' := by simp [ψ.map_zero']
@@ -24,6 +46,7 @@ def invMultChar {K : Type*} [Field K] (ψ : MultChar K) : MultChar K where
   map_mul' x y := by rw [ψ.map_mul', mul_inv]
   norm_eq_one x hx := by rw [norm_inv, ψ.norm_eq_one x hx, inv_one]
 
+/-- Summation over a finite field is invariant under the substitution `x ↦ 1 - x`. -/
 theorem sum_reflect {K : Type*} [Field K] [Fintype K] (f : K → ℂ) :
     (∑ x : K, f (1 - x)) = ∑ y : K, f y := by
   refine Finset.sum_bij (i := fun a _ => (1 - a : K)) ?_ ?_ ?_ ?_
@@ -33,6 +56,7 @@ theorem sum_reflect {K : Type*} [Field K] [Fintype K] (f : K → ℂ) :
   · intro b _; exact ⟨1 - b, Finset.mem_univ _, by ring⟩
   · intro a _; rfl
 
+/-- The Jacobi sum is symmetric in its two multiplicative characters [VanDamSeroussi2002]. -/
 theorem jacobiSum_symm {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K) :
     jacobiSum χ ψ = jacobiSum ψ χ := by
   rw [jacobiSum, jacobiSum]
@@ -51,6 +75,8 @@ theorem jacobiSum_symm {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K) :
     _ = ∑ x : K, ψ.toFun x * χ.toFun (1 - x) := by
         exact Finset.sum_congr rfl fun x _ => mul_comm _ _
 
+/-- The Jacobi sum of two trivial characters is the complex cast of the field cardinality minus
+two, with subtraction performed in `ℕ` [VanDamSeroussi2002]. -/
 theorem jacobiSum_trivial_trivial {K : Type*} [Field K] [Fintype K] :
     jacobiSum (trivialMultChar K) (trivialMultChar K)
       = ((Fintype.card K - 2 : ℕ) : ℂ) := by
@@ -83,6 +109,8 @@ theorem jacobiSum_trivial_trivial {K : Type*} [Field K] [Fintype K] :
     ring
   rw [hcast]
 
+/-- The Jacobi sum of the trivial character and a nontrivial character is `-1`
+[VanDamSeroussi2002]. -/
 theorem jacobiSum_trivial_left {K : Type*} [Field K] [Fintype K] (ψ : MultChar K)
     (hψ : ψ.IsNontrivial) :
     jacobiSum (trivialMultChar K) ψ = -1 := by
@@ -101,6 +129,8 @@ theorem jacobiSum_trivial_left {K : Type*} [Field K] [Fintype K] (ψ : MultChar 
     ψ.map_one', sum_reflect, multChar_sum_eq_zero ψ hψ]
   ring
 
+/-- The Jacobi sum of a nontrivial character and its pointwise inverse is minus the character
+value at `-1` [VanDamSeroussi2002]. -/
 theorem jacobiSum_self_inv {K : Type*} [Field K] [Fintype K] (ψ : MultChar K)
     (hψ : ψ.IsNontrivial) :
     jacobiSum ψ (invMultChar ψ) = -ψ.toFun (-1) := by

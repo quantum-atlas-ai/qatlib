@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensionsDefs
+
+/-!
+# Query-space transport laws and counterexamples
+
+This module proves oracle simulation, clean-ancilla transport, observed stopping laws,
+positive-cost termination, and truncated search polynomial representation. The combined theorem
+`g2` records the Boolean/value-oracle correspondences and phase/bit simulations with resource
+ledgers.
+
+It also supplies explicit counterexamples to an unrestricted hybrid bound and an adversary
+transport claim lacking normalized input. The circuit, measurement, and phase-oracle background
+follows [NielsenChuang2010]; the finite-query polynomial viewpoint is developed in
+[BealsEtAl2001].
+
+## Main statements
+
+* `g2`: oracle correspondences and ledger-aware simulations
+* `bridgePolynomialTransport_fixed`: adaptive purification and a degree-bounded acceptance
+  polynomial
+* `clause3_false`: failure of the combined specification containing the unrestricted hybrid
+  bound
+* `clause1_false`: failure of the combined specification containing unnormalized adversary
+  transport
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.BornMetrics.EventProbability
@@ -36,11 +65,13 @@ open Matrix
 
 open scoped Matrix.Norms.L2Operator ENNReal BigOperators
 
+/-- Applying a matrix gate commutes with complex scalar multiplication of a state. -/
 lemma applyGate_smul {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (c : ℂ) (ψ : QState I) :
     ApplyGate U (c • ψ) = c • ApplyGate U ψ := by
   simp [ApplyGate, Matrix.mulVec_smul]
 
+/-- Circuit execution commutes with complex scalar multiplication of the input state. -/
 lemma run_smul {I : Type} [Fintype I] [DecidableEq I] (oracle : Matrix I I ℂ) (c : ℂ) :
     ∀ (C : Circuit I) (ψ : QState I), Run oracle C (c • ψ) = c • Run oracle C ψ := by
   intro C
@@ -57,6 +88,7 @@ lemma run_smul {I : Type} [Fintype I] [DecidableEq I] (oracle : Matrix I I ℂ) 
       show Run oracle C (ApplyGate oracle (c • ψ)) = c • Run oracle C (ApplyGate oracle ψ)
       rw [applyGate_smul, ih]
 
+/-- Scaling a state by `c` scales every measurement event mass by `‖c‖ ^ 2`. -/
 lemma measureProb_smul {I : Type} [Fintype I] [DecidableEq I]
     (c : ℂ) (ψ : QState I) (S : Finset I) :
     MeasureProb (c • ψ) S = ‖c‖ ^ 2 * MeasureProb ψ S := by
@@ -68,15 +100,18 @@ lemma measureProb_smul {I : Type} [Fintype I] [DecidableEq I]
   conv_lhs => simp only [h]
   rw [Finset.mul_sum]
 
+/-- The measurement mass of the empty event is zero. -/
 lemma measureProb_empty {I : Type} [Fintype I] [DecidableEq I] (ψ : QState I) :
     MeasureProb ψ ∅ = 0 := by
   simp [MeasureProb]
 
+/-- The constantly false phase oracle is the identity matrix. -/
 lemma phaseOracle_false_eq_one {I : Type} [Fintype I] [DecidableEq I] :
     PhaseOracle (fun _ => false) = (1 : Matrix I I ℂ) := by
   rw [PhaseOracle, show (fun _ : I => if false then (-1 : ℂ) else 1) = (fun _ => (1 : ℂ)) by
     funext i; simp, Matrix.diagonal_one]
 
+/-- The constantly true phase oracle is the negative identity matrix. -/
 lemma phaseOracle_true_eq_neg_one {I : Type} [Fintype I] [DecidableEq I] :
     PhaseOracle (fun _ => true) = (-1 : Matrix I I ℂ) := by
   rw [PhaseOracle, show (fun _ : I => if true then (-1 : ℂ) else 1) = (fun _ => (-1 : ℂ)) by
@@ -86,16 +121,19 @@ lemma phaseOracle_true_eq_neg_one {I : Type} [Fintype I] [DecidableEq I] :
   rw [Matrix.neg_apply, Matrix.one_apply]
   by_cases h : i = j <;> simp [h]
 
+/-- Applying the constantly true phase oracle multiplies the state by minus one. -/
 lemma applyGate_phaseOracle_true {I : Type} [Fintype I] [DecidableEq I] (ψ : QState I) :
     ApplyGate (PhaseOracle (fun _ => true)) ψ = (-1 : ℂ) • ψ := by
   funext x
   rw [applyGate_phaseOracle]
   simp
 
+/-- Applying the constantly false phase oracle leaves the state unchanged. -/
 lemma applyGate_phaseOracle_false {I : Type} [Fintype I] [DecidableEq I] (ψ : QState I) :
     ApplyGate (PhaseOracle (fun _ => false)) ψ = ψ := by
   rw [phaseOracle_false_eq_one, applyGate_one]
 
+/-- Runs with the two constant phase oracles differ by the global factor `(-1) ^ QueryCount C`. -/
 lemma run_phaseOracle_const {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (C : Circuit I) (ψ : QState I),
       Run (PhaseOracle (fun _ => true)) C ψ =
@@ -120,6 +158,8 @@ lemma run_phaseOracle_const {I : Type} [Fintype I] [DecidableEq I] :
         show QueryCount (Step.query :: C) = QueryCount C + 1 from rfl, pow_succ, mul_smul,
         ih, run_smul]
 
+/-- The two constant phase oracles give identical measurement probabilities in every fixed
+circuit. -/
 lemma phaseConstantUnidentifiable_fixed {I : Type} [Fintype I] [DecidableEq I] :
     phaseConstantUnidentifiable (I := I) := by
   intro C ψ S
@@ -128,27 +168,34 @@ lemma phaseConstantUnidentifiable_fixed {I : Type} [Fintype I] [DecidableEq I] :
     rw [norm_pow, norm_neg, norm_one, one_pow, one_pow]
   rw [h, one_mul]
 
+/-- The answer bit after a bit-oracle action is the XOR of the initial bit and `f x`. -/
 lemma bitAction_snd {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) (x : I) (b : Bool) :
     (bitAction f (x, b)).2 = (b ^^ f x) := rfl
 
+/-- The answer value after an additive oracle action is `z + g x`. -/
 lemma valueAction_snd {I : Type} [Fintype I] [DecidableEq I] {R : Type} [AddGroup R]
     (g : I → R) (x : I) (z : R) :
     (valueAction g (x, z)).2 = z + g x := rfl
 
+/-- Adding one to itself in `ZMod 2` gives zero. -/
 lemma zmod2_one_add_one : (1 : ZMod 2) + 1 = 0 :=
   eq_neg_iff_add_eq_zero.mp (ZMod.neg_eq_self_mod_two (1 : ZMod 2)).symm
 
+/-- One and zero are distinct in `ZMod 2`. -/
 lemma zmod2_one_ne_zero : (1 : ZMod 2) ≠ 0 := by norm_num
 
+/-- The Boolean-to-`ZMod 2` encoding turns XOR with `f x` into addition of its encoded value. -/
 lemma boolToZMod_xor {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) (x : I) (b : Bool) :
     boolToZMod (b ^^ f x) =
       boolToZMod b + (if f x then (1 : ZMod 2) else 0) := by
   cases hf : f x <;> cases hb : b <;> simp [boolToZMod, hf, hb, Bool.xor, zmod2_one_add_one]
 
+/-- The zero-one encoding of `f x` equals `boolToZMod b` exactly when `f x = b`. -/
 lemma value_action_eq_iff {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) (x : I) (b : Bool) :
     (if f x then (1 : ZMod 2) else 0) = boolToZMod b ↔ f x = b := by
   cases hf : f x <;> cases hb : b <;> simp [boolToZMod, hf, hb, zmod2_one_ne_zero]
 
+/-- Bit-oracle actions and additive `ZMod 2` oracle actions agree under the Boolean encoding. -/
 lemma bitAction_unify {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) :
     bitValueActionsUnify f := by
   intro x b
@@ -156,12 +203,15 @@ lemma bitAction_unify {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) :
   rw [boolToZMod_xor]
   simp only [valueAction_snd]
 
+/-- The squared complex norm of `1 / sqrt 2` equals one half. -/
 lemma norm_one_div_sqrt_two : ‖((1 : ℂ) / (Real.sqrt 2 : ℂ))‖ ^ 2 = 1 / 2 := by
   have h2 : (0 : ℝ) ≤ 2 := by norm_num
   have hs : (Real.sqrt 2) ^ 2 = 2 := Real.sq_sqrt h2
   rw [norm_div, norm_one, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (Real.sqrt_nonneg 2), div_pow, one_pow, hs]
 
+/-- The squared amplitudes of `spanPlus x y` are one on the coincident basis state, or one half
+on each of two distinct basis states, and zero elsewhere. -/
 lemma spanPlus_normSq {I : Type} [Fintype I] [DecidableEq I] (x y : I) (z : I) :
     ‖spanPlus x y z‖ ^ 2 =
       if z = x then (if x = y then (1 : ℝ) else 1 / 2)
@@ -174,6 +224,7 @@ lemma spanPlus_normSq {I : Type} [Fintype I] [DecidableEq I] (x y : I) (z : I) :
       simp [hzx, norm_one_div_sqrt_two]
     · simp [hzx, hzy, norm_one_div_sqrt_two]
 
+/-- The state `spanPlus x y` is normalized, including when its two indices coincide. -/
 lemma spanPlus_normalized {I : Type} [Fintype I] [DecidableEq I] (x y : I) :
     Normalized (spanPlus x y) := by
   unfold Normalized
@@ -199,10 +250,13 @@ lemma spanPlus_normalized {I : Type} [Fintype I] [DecidableEq I] (x y : I) :
     simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
     norm_num
 
+/-- Measuring `spanPlus x y` over the full basis has total probability one. -/
 lemma spanPlus_measureProb_univ {I : Type} [Fintype I] [DecidableEq I] (x y : I) :
     MeasureProb (spanPlus x y) Finset.univ = 1 :=
   measureProb_univ (spanPlus_normalized x y)
 
+/-- A known false baseline enables exact extraction of `f x` using a unitary circuit with at
+most one phase query. -/
 lemma baselineExtractsBit_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (f : I → Bool) (x xstar : I), baselineExtractsBit f x xstar := by
   intro f x xstar
@@ -221,6 +275,8 @@ lemma baselineExtractsBit_fixed {I : Type} [Fintype I] [DecidableEq I] :
     · intro _
       exact measureProb_empty _
 
+/-- For error below one half, a fixed circuit cannot distinguish the two constant phase oracles
+using the specified event thresholds. -/
 lemma noBaselinePhaseToBit_fixed {I : Type} [Fintype I] [DecidableEq I] (ε : ℝ)
     (hε0 : 0 ≤ ε) (hε : ε < 1 / 2) : noBaselinePhaseToBit (I := I) ε := by
   intro C ψ S _
@@ -229,9 +285,12 @@ lemma noBaselinePhaseToBit_fixed {I : Type} [Fintype I] [DecidableEq I] (ε : �
   have h : 1 - ε ≤ ε := le_trans hlo (heq.symm ▸ hhi)
   linarith
 
+/-- The access charge is the total access count times the sum of address bits and per-access
+charge. -/
 lemma accessCharge_eq (L : AccessLedger) :
     L.accessCharge = L.totalAccesses * (L.addressBits + L.perAccessCharge) := rfl
 
+/-- Every oracle and ledger satisfy the charged capability law under the honesty condition. -/
 lemma chargedCapabilityLaw_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (U : Matrix I I ℂ) (L : AccessLedger), chargedCapabilityLaw U L := by
   intro U L
@@ -244,6 +303,8 @@ lemma chargedCapabilityLaw_fixed {I : Type} [Fintype I] [DecidableEq I] :
     · exact Or.inl h2
     · exact Or.inr h2.2.2
 
+/-- Every workspace bit-oracle circuit possesses a simulation using the workspace phase oracle
+with the specified gate overhead and access ledgers. -/
 lemma bitToPhaseSimulation_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (W : Type) [Fintype W] [DecidableEq W] (f : I → Bool)
       (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)),
@@ -265,6 +326,8 @@ lemma bitToPhaseSimulation_fixed {I : Type} [Fintype I] [DecidableEq I] :
     · intro S
       exact measureProb_bitToPhaseCircuitSameInput f C ψ S
 
+/-- Every phase-oracle circuit possesses a lifted bit-oracle simulation with a `Minus` ancilla
+and the specified access ledgers. -/
 lemma phaseToBitSimulation_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (f : I → Bool) (C : Circuit I) (ψ : QState I),
       ∃ (source target : AccessLedger), phaseToBitSimulation f C ψ source target := by
@@ -286,9 +349,12 @@ lemma phaseToBitSimulation_fixed {I : Type} [Fintype I] [DecidableEq I] :
       rw [liftCircuitTo_bool]
       exact h
 
+/-- The XOR of two Booleans is false exactly when the second equals the first. -/
 lemma xor_false_iff {b c : Bool} : (b ^^ c) = false ↔ c = b := by
   cases b <;> cases c <;> simp [Bool.xor]
 
+/-- A single bit query from a false answer register gives answer probability equal to the input
+mass on the corresponding fiber of `f`. -/
 lemma marginal_right_bitOracleOn_query {I : Type} [Fintype I] [DecidableEq I]
     (f : I → Bool) (ψ : QState I) (b : Bool) :
     MarginalProbRight (Run (BitOracleOn f) [Step.query] (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket false)))
@@ -320,6 +386,8 @@ lemma marginal_right_bitOracleOn_query {I : Type} [Fintype I] [DecidableEq I]
   show (∑ x ∈ Finset.univ, if f x = b then BornProb ψ x else 0) = _
   rw [← Finset.sum_filter]
 
+/-- The additive `ZMod 2` and Boolean bit-oracle answer-register readouts have equal
+probabilities under the Boolean encoding. -/
 lemma valueBitReadoutUnify_fixed {I : Type} [Fintype I] [DecidableEq I] (f : I → Bool) :
     valueBitReadoutUnify f := by
   intro ψ b
@@ -337,6 +405,10 @@ lemma valueBitReadoutUnify_fixed {I : Type} [Fintype I] [DecidableEq I] (f : I �
     exact value_action_eq_iff f x b
   rw [hL, hconv, marginal_right_bitOracleOn_query]
 
+/-- Bit and additive Boolean oracles have matching actions and readouts, and both phase/bit
+simulation directions possess resource ledgers. Constant phase oracles are
+indistinguishable, a false baseline enables bit extraction, and honest capabilities satisfy
+the charge law. -/
 theorem g2 :
     ∀ (I : Type) [Fintype I] [DecidableEq I],
       (∀ f : I → Bool, bitValueActionsUnify f ∧ valueBitReadoutUnify f) ∧
@@ -365,6 +437,8 @@ theorem g2 :
   · intro U L
     exact chargedCapabilityLaw_fixed U L
 
+/-- Every finite observed circuit satisfies the acceptance split, exact query truncation, and
+expected-query tail bound in `stopJointLaw`. -/
 lemma stopJointLaw_fixed {I : Type} [Fintype I] [DecidableEq I] :
     ∀ (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I), stopJointLaw O P ψ := by
   intro O P ψ K
@@ -385,6 +459,8 @@ lemma stopJointLaw_fixed {I : Type} [Fintype I] [DecidableEq I] :
     rfl
   · exact observedAcceptance_truncate_eq O P ψ K
 
+/-- Strictly positive state costs and finite expected weighted cost force zero nontermination
+mass. -/
 lemma positiveCharge_finiteCost_noNontermination {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (RandomizedExecution.Configuration S O))
     (c : S → ℕ) (cfg : RandomizedExecution.Configuration S O)
@@ -393,6 +469,7 @@ lemma positiveCharge_finiteCost_noNontermination {S O : Type} [Fintype S] [Decid
   weightedExpectedCost_finite_nontermination next c cfg
     (fun s => Nat.succ_le_iff.mpr (hc s)) h
 
+/-- The event mass of halted configurations is the sum of their output-cost point masses. -/
 lemma event_inl_eq_tsum {S O : Type} [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
     (p : CostedLaw (RandomizedExecution.Configuration S O)) :
     CostedLaw.event p (fun x => ∃ a, x.1 = Sum.inl a) =
@@ -401,6 +478,8 @@ lemma event_inl_eq_tsum {S O : Type} [Fintype S] [DecidableEq S] [Fintype O] [De
   rw [tsum_prod_type', tsum_sum_type']
   simp
 
+/-- Finite halted and pending masses sum to one, and the never-stop mass is the infimum of
+pending masses. -/
 lemma stopTailNeverJointLaw_fixed {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (RandomizedExecution.Configuration S O))
     (cfg : RandomizedExecution.Configuration S O) : stopTailNeverJointLaw next cfg := by
@@ -415,6 +494,7 @@ lemma stopTailNeverJointLaw_fixed {S O : Type} [Fintype S] [DecidableEq S]
   rw [hs, event_inl_eq_tsum]
   exact weighted_law_halt_pending_partition (RandomizedExecution.runFor next n cfg)
 
+/-- The deterministic singleton self-loop survives every finite number of steps with mass one. -/
 lemma finiteSurvival_zeno :
     ∀ n : ℕ, finiteSurvival zenoNext n (Sum.inr PUnit.unit) = 1 := by
   intro n
@@ -428,11 +508,14 @@ lemma finiteSurvival_zeno :
     rw [CostedLaw.expectation_pure]
     exact ih
 
+/-- The pending mass of the deterministic singleton self-loop is one at every finite fuel. -/
 lemma pendingMass_zeno (n : ℕ) :
     pendingMass zenoNext (Sum.inr PUnit.unit) n = 1 := by
   rw [pendingMass_eq_finiteSurvival]
   exact finiteSurvival_zeno n
 
+/-- The singleton self-loop with zero costs has positive nontermination mass and zero expected
+weighted cost. -/
 lemma zenoZeroCharge_fixed : zenoZeroCharge zenoNext zenoCharge PUnit.unit := by
   refine ⟨?_, ?_, ?_⟩
   · intro t
@@ -450,17 +533,20 @@ lemma zenoZeroCharge_fixed : zenoZeroCharge zenoNext zenoCharge PUnit.unit := by
     intro s _
     simp [zenoCharge]
 
+/-- Unbounded search acceptance is one when some input value is true. -/
 lemma unboundedSearchAcceptance_of_exists (f : ℕ → Bool) (h : ∃ k, f k = true) :
     unboundedSearchAcceptance f = 1 := by
   classical
   simp [unboundedSearchAcceptance, h]
 
+/-- Unbounded search acceptance is zero when every input value differs from true. -/
 lemma unboundedSearchAcceptance_of_forall (f : ℕ → Bool) (h : ∀ k, f k ≠ true) :
     unboundedSearchAcceptance f = 0 := by
   classical
   have hne : ¬∃ k, f k = true := fun ⟨k, hk⟩ => h k hk
   simp [unboundedSearchAcceptance, hne]
 
+/-- The polynomial `1 - ∏ k < K, (1 - X k)` has total degree at most `K`. -/
 lemma truncatedSearchPoly_degree (K : ℕ) :
     ((1 - ∏ k ∈ Finset.range K, (1 - MvPolynomial.X k : MvPolynomial ℕ ℝ)) :
       MvPolynomial ℕ ℝ).totalDegree ≤ K := by
@@ -481,6 +567,7 @@ lemma truncatedSearchPoly_degree (K : ℕ) :
   rw [MvPolynomial.totalDegree_one, Nat.zero_max]
   exact hprod.trans hsum
 
+/-- Each variable has degree at most one in `1 - ∏ k < K, (1 - X k)`. -/
 lemma truncatedSearchPoly_degreeOf (K : ℕ) (i : ℕ) :
     ((1 - ∏ k ∈ Finset.range K, (1 - MvPolynomial.X k : MvPolynomial ℕ ℝ)) :
       MvPolynomial ℕ ℝ).degreeOf i ≤ 1 := by
@@ -503,14 +590,19 @@ lemma truncatedSearchPoly_degreeOf (K : ℕ) (i : ℕ) :
   rw [MvPolynomial.degreeOf_one, Nat.zero_max]
   exact hprod.trans hsum
 
+/-- Search acceptance over the first `K` indices is one when one of those indices has value
+true. -/
 lemma truncatedSearchAcceptance_pos (K : ℕ) (f : ℕ → Bool) (h : ∃ k, k < K ∧ f k = true) :
     truncatedSearchAcceptance K f = 1 := by
   simp [truncatedSearchAcceptance, h]
 
+/-- Search acceptance over the first `K` indices is zero when none has value true. -/
 lemma truncatedSearchAcceptance_neg (K : ℕ) (f : ℕ → Bool) (h : ¬∃ k, k < K ∧ f k = true) :
     truncatedSearchAcceptance K f = 0 := by
   simp [truncatedSearchAcceptance, h]
 
+/-- Truncated search possesses a multilinear polynomial representation of total degree at most
+`K`. -/
 lemma truncatedSearchPolyRep_fixed (K : ℕ) : truncatedSearchPolyRep K := by
   classical
   set q : MvPolynomial ℕ ℝ := 1 - ∏ k ∈ Finset.range K, (1 - MvPolynomial.X k) with hq
@@ -542,6 +634,8 @@ lemma truncatedSearchPolyRep_fixed (K : ℕ) : truncatedSearchPolyRep K := by
       rw [Finset.prod_eq_one hall, sub_self,
         truncatedSearchAcceptance_neg K f hex]
 
+/-- No multilinear polynomial in countably many variables represents unbounded search acceptance
+on all Boolean inputs. -/
 lemma noUnconditionalPolyRep_fixed : noUnconditionalPolyRep := by
   classical
   rintro ⟨p, hmulti, he⟩
@@ -588,6 +682,8 @@ lemma noUnconditionalPolyRep_fixed : noUnconditionalPolyRep := by
   rw [e0, e1] at heq
   exact zero_ne_one heq
 
+/-- The readout projection ignoring an ancilla is the data readout projection tensored with the
+ancilla identity. -/
 lemma readoutEffect_ancillaReadout {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Finset I) :
     readoutEffect (K := I × J) (ancillaReadout A) =
@@ -603,6 +699,8 @@ lemma readoutEffect_ancillaReadout {I J : Type} [Fintype I] [DecidableEq I]
     · simp [hjl]
   · simp [hik]
 
+/-- Every normalized unitary upper-bound witness lifts to a clean ancilla while preserving its
+resource counts and success probabilities. -/
 lemma cleanUpperTransport_fixed {I J F : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] :
     ∀ (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J) (Q : ℕ) (p : ℝ),
@@ -632,6 +730,8 @@ lemma cleanUpperTransport_fixed {I J F : Type} [Fintype I] [DecidableEq I]
     rw [h]
     exact hacc f
 
+/-- Normalized bounded-error unitary circuits with clean ancillas satisfy the specified
+adversary lower bound. -/
 lemma cleanAncillaLowerTransport_fixed {J : Type} [Fintype J] [DecidableEq J]
     {X : Type} [Fintype X] [DecidableEq X] [Nonempty X] {n : ℕ}
     (input : X → Fin n → Bool) (f : X → Bool) (Γ : Matrix X X ℂ) (ε : ℝ) :
@@ -644,6 +744,8 @@ lemma cleanAncillaLowerTransport_fixed {J : Type} [Fintype J] [DecidableEq J]
     exact hsuccess x
   · simp [advWeightNorm]
 
+/-- A well-formed observed circuit on a positive number of input bits possesses a unitary
+adaptive purification bridge with the specified resource bounds. -/
 lemma adaptivePurificationBridge_fixed {n : ℕ} (W : Type) [Fintype W] [DecidableEq W]
     [Nonempty W] (P : ObservedCircuit ((Fin n × Bool) × W))
     (hn : 0 < n) (hP : observedWellFormed P) :
@@ -657,6 +759,9 @@ lemma adaptivePurificationBridge_fixed {n : ℕ} (W : Type) [Fintype W] [Decidab
   refine ⟨h.1, ?_⟩
   exact observed_full_history_acceptance_transport P R C f ψ h.1 h.2
 
+/-- A well-formed observed circuit on a positive number of bits possesses an adaptive
+purification bridge and a multilinear acceptance representation of degree at most twice its
+query depth. -/
 lemma bridgePolynomialTransport_fixed {n : ℕ} (W : Type) [Fintype W] [DecidableEq W]
     [Nonempty W] (P : ObservedCircuit ((Fin n × Bool) × W))
     (ψ : QState ((Fin n × Bool) × W))
@@ -677,14 +782,21 @@ lemma bridgePolynomialTransport_fixed {n : ℕ} (W : Type) [Fintype W] [Decidabl
     rw [multilinearize_eval _ _ (fun i => by cases f i <;> simp)]
     exact observedRawAcceptancePolynomial_eval P ψ f
 
+/-- The two-query circuit on a one-dimensional basis used in the hybrid-distance counterexample. -/
 def hcC : Circuit (Fin 1) := [Step.query, Step.query]
 
+/-- The one-dimensional oracle matrix with entry two used in the hybrid-distance counterexample. -/
 def hcO1 : Matrix (Fin 1) (Fin 1) ℂ := fun _ _ => 2
 
+/-- The one-dimensional oracle matrix with entry three used in the hybrid-distance
+counterexample. -/
 def hcO2 : Matrix (Fin 1) (Fin 1) ℂ := fun _ _ => 3
 
+/-- The one-dimensional input state with amplitude one used in the hybrid-distance
+counterexample. -/
 def hcψ : QState (Fin 1) := fun _ => 1
 
+/-- Applying `hcO1` multiplies the single input amplitude by two. -/
 lemma applyGate_hcO1 (v : QState (Fin 1)) : ApplyGate hcO1 v = fun _ => 2 * v 0 := by
   funext i
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
@@ -695,6 +807,7 @@ lemma applyGate_hcO1 (v : QState (Fin 1)) : ApplyGate hcO1 v = fun _ => 2 * v 0 
   · intro h
     exact absurd (Finset.mem_univ (0 : Fin 1)) h
 
+/-- Applying `hcO2` multiplies the single input amplitude by three. -/
 lemma applyGate_hcO2 (v : QState (Fin 1)) : ApplyGate hcO2 v = fun _ => 3 * v 0 := by
   funext i
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
@@ -705,29 +818,35 @@ lemma applyGate_hcO2 (v : QState (Fin 1)) : ApplyGate hcO2 v = fun _ => 3 * v 0 
   · intro h
     exact absurd (Finset.mem_univ (0 : Fin 1)) h
 
+/-- The two-query counterexample circuit with oracle `hcO1` produces amplitude four. -/
 lemma run_hcO1 : Run hcO1 hcC hcψ = fun _ => (4 : ℂ) := by
   simp only [hcC, Run]
   rw [applyGate_hcO1, applyGate_hcO1]
   funext x
   norm_num [hcψ]
 
+/-- The two-query counterexample circuit with oracle `hcO2` produces amplitude nine. -/
 lemma run_hcO2 : Run hcO2 hcC hcψ = fun _ => (9 : ℂ) := by
   simp only [hcC, Run]
   rw [applyGate_hcO2, applyGate_hcO2]
   funext x
   norm_num [hcψ]
 
+/-- The two-query counterexample circuit has no nonunitary fixed gates and is a unitary circuit. -/
 lemma isUnitaryCircuit_hcC : IsUnitaryCircuit hcC := by
   intro U hU
   simp [hcC] at hU
 
+/-- The one-dimensional counterexample input is normalized. -/
 lemma normalized_hcψ : Normalized hcψ := by
   show ∑ i : Fin 1, ‖hcψ i‖ ^ 2 = 1
   simp [hcψ]
 
+/-- The counterexample circuit contains exactly two queries. -/
 lemma queryCount_hcC : QueryCount hcC = 2 := by
   simp [hcC, QueryCount]
 
+/-- The operator-norm distance between the two counterexample oracle matrices equals one. -/
 lemma oracleDistance_hcO1_hcO2 : oracleDistance hcO1 hcO2 = 1 := by
   have hsub : hcO1 - hcO2 = Matrix.diagonal fun _ => (-1 : ℂ) := by
     ext i j
@@ -739,10 +858,13 @@ lemma oracleDistance_hcO1_hcO2 : oracleDistance hcO1 hcO2 = 1 := by
   show ‖(fun _ : Fin 1 => (-1 : ℂ))‖ = 1
   simp
 
+/-- Conversion of finite coordinate states to Euclidean space preserves subtraction. -/
 lemma toEuclidean_fromVec_sub {I : Type*} [Fintype I] (u v : QState I) :
     toEuclidean_fromVec u - toEuclidean_fromVec v = toEuclidean_fromVec (u - v) :=
   (WithLp.toLp_sub 2 u v).symm
 
+/-- The proposed hybrid-distance bound fails for the two nonunitary one-dimensional
+counterexample oracles. -/
 lemma hybridDistanceBound_hc_false :
     ¬ hybridDistanceBound (K := Fin 1) hcO1 hcO2 hcC hcψ 2 := by
   intro h
@@ -770,12 +892,16 @@ lemma hybridDistanceBound_hc_false :
   rw [hnorm, oracleDistance_hcO1_hcO2] at hineq
   norm_num at hineq
 
+/-- The hybrid-distance specification does not hold universally for unrestricted oracle
+matrices. -/
 lemma clause41_conj2_false :
     ¬ (∀ (K : Type) [Fintype K] [DecidableEq K] (O₁ O₂ : Matrix K K ℂ) (C : Circuit K)
         (ψ₀ : QState K) (Q : ℕ), hybridDistanceBound O₁ O₂ C ψ₀ Q) := by
   intro h
   exact hybridDistanceBound_hc_false (h (Fin 1) hcO1 hcO2 hcC hcψ 2)
 
+/-- The conjunction of stopping-tail laws, an unrestricted hybrid bound, an expected-charge
+adversary bound, positive-cost termination, and search-polynomial statements. -/
 def BaseClause41 : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (P : ObservedCircuit I)
       (ψ : QState I),
@@ -802,40 +928,54 @@ def BaseClause41 : Prop :=
     zenoZeroCharge zenoNext zenoCharge PUnit.unit ∧
     noUnconditionalPolyRep ∧ (∀ K : ℕ, truncatedSearchPolyRep K)
 
+/-- The combined specification `BaseClause41` is false. -/
 theorem clause3_false : ¬ BaseClause41 := by
   intro h
   obtain ⟨_, h2, _⟩ :=
     h (Fin 1) (1 : Matrix (Fin 1) (Fin 1) ℂ) (.halt false) hcψ
   exact clause41_conj2_false h2
 
+/-- The embedding of the five address indices into the nonzero elements of `Fin 6`. -/
 def geB (i : Fin 5) : Fin 6 := ⟨i.val + 1, by omega⟩
 
+/-- The six-input Boolean family whose nonzero inputs have a single true coordinate selected by
+`geB`. -/
 def geInput : Fin 6 → Fin 5 → Bool := fun x j => decide (x = geB j)
 
+/-- The Boolean function on `Fin 6` that is true exactly at nonzero inputs. -/
 def geF : Fin 6 → Bool := fun x => decide (x ≠ 0)
 
+/-- The star-shaped adversary matrix connecting zero to each nonzero input with weight one. -/
 def geΓ : Matrix (Fin 6) (Fin 6) ℂ :=
   fun x y => if (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0) then 1 else 0
 
+/-- The unnormalized input with amplitude one at every address with a false answer bit and zero
+at every true answer bit. -/
 def geΨ : QState ((Fin 5 × Bool) × PUnit) := fun p => if p.1.2 = false then (1 : ℂ) else 0
 
+/-- The diagonal projection onto basis states with a true answer bit. -/
 def geAcc : Matrix ((Fin 5 × Bool) × PUnit) ((Fin 5 × Bool) × PUnit) ℂ :=
   Matrix.diagonal fun p => if p.1.2 = true then (1 : ℂ) else 0
 
+/-- The observed circuit that queries once and accepts exactly the true-answer projection
+branch. -/
 def geP : ObservedCircuit ((Fin 5 × Bool) × PUnit) :=
   .step .query (.project geAcc (.halt false) (.halt true))
 
+/-- Every value of the address embedding `geB` is nonzero. -/
 lemma geB_ne_zero (i : Fin 5) : geB i ≠ 0 := by
   intro h
   have := congrArg Fin.val h
   simp [geB] at this
 
+/-- The address embedding `geB` is injective. -/
 lemma geB_injective : Function.Injective geB := by
   intro i j h
   apply Fin.ext
   have := congrArg Fin.val h
   simpa [geB] using this
 
+/-- Every nonzero element of `Fin 6` is the image of an address under `geB`. -/
 lemma geB_surjective_of_ne_zero {x : Fin 6} (hx : x ≠ 0) :
     ∃ i : Fin 5, geB i = x := by
   refine ⟨⟨x.val - 1, ?_⟩, ?_⟩
@@ -846,36 +986,45 @@ lemma geB_surjective_of_ne_zero {x : Fin 6} (hx : x ≠ 0) :
     have h1 : 0 < x.val := Fin.pos_of_ne_zero hx
     omega
 
+/-- The answer-bit projection `geAcc` is idempotent. -/
 lemma geAcc_mul_self : geAcc * geAcc = geAcc := by
   rw [geAcc, Matrix.diagonal_mul_diagonal]
   congr 1
   funext p
   by_cases hp : p.1.2 = true <;> simp [hp]
 
+/-- The answer-bit projection `geAcc` is self-adjoint. -/
 lemma geAcc_conjTranspose : geAccᴴ = geAcc := by
   rw [geAcc, Matrix.diagonal_conjTranspose]
   congr 1
   funext p
   by_cases hp : p.1.2 = true <;> simp [hp]
 
+/-- The matrix `geAcc` is a self-adjoint projection. -/
 lemma isStarProjection_geAcc : IsStarProjection geAcc :=
   isStarProjection_iff'.mpr ⟨geAcc_mul_self, geAcc_conjTranspose⟩
 
+/-- The one-query observed counterexample circuit is well formed. -/
 lemma observedWellFormed_geP : observedWellFormed geP := by
   simp [geP, observedWellFormed, isStarProjection_geAcc]
 
+/-- The observed counterexample circuit has query depth one. -/
 lemma observedQueryDepth_geP : observedQueryDepth geP = 1 := by
   simp [geP, observedQueryDepth]
 
+/-- Applying `geAcc` retains amplitudes with a true answer bit and sets all others to zero. -/
 lemma applyGate_geAcc (φ : QState ((Fin 5 × Bool) × PUnit)) :
     ApplyGate geAcc φ = fun p => if p.1.2 = true then φ p else 0 := by
   funext p
   simp only [ApplyGate, geAcc, Matrix.mulVec_diagonal]
   by_cases hp : p.1.2 = true <;> simp [hp]
 
+/-- The counterexample input has amplitude one on false-answer basis states and zero elsewhere. -/
 lemma geΨ_apply (p : (Fin 5 × Bool) × PUnit) :
     geΨ p = if p.1.2 = false then (1 : ℂ) else 0 := rfl
 
+/-- A query followed by projection and Boolean halting has acceptance mass equal to the full
+mass of the true projection branch after the query. -/
 lemma observedAcceptance_query_project_halt
     {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (φ : QState I)
     (P : Matrix I I ℂ) :
@@ -891,6 +1040,7 @@ lemma observedAcceptance_query_project_halt
   rw [observedAcceptance, htraces]
   simp [List.filter, List.foldl, branchMass, MeasureProb]
 
+/-- The counterexample circuit's acceptance mass equals the number of true input coordinates. -/
 lemma acc_geΨ (x : Fin 6) :
     observedAcceptance (workspaceBitOracle (W := PUnit) (geInput x)) geP geΨ
       = ∑ i : Fin 5, if geInput x i = true then (1 : ℝ) else 0 := by
@@ -935,6 +1085,7 @@ lemma acc_geΨ (x : Fin 6) :
     · simp [hi]
   simp only [hbool]
 
+/-- A finite sum supported by the equality test at `a` equals `f a`. -/
 lemma sum_ite_eq_self {α β : Type} [Fintype α] [DecidableEq α] [AddCommMonoid β]
     (a : α) (f : α → β) :
     (∑ x : α, if x = a then f x else 0) = f a := by
@@ -945,6 +1096,7 @@ lemma sum_ite_eq_self {α β : Type} [Fintype α] [DecidableEq α] [AddCommMonoi
   · intro h
     exact absurd (Finset.mem_univ a) h
 
+/-- The number of true coordinates is zero at input zero and one at every nonzero input. -/
 lemma sum_geInput (x : Fin 6) :
     (∑ i : Fin 5, if geInput x i = true then (1 : ℝ) else 0) = if x = 0 then 0 else 1 := by
   by_cases hx : x = 0
@@ -969,6 +1121,7 @@ lemma sum_geInput (x : Fin 6) :
     · intro h
       exact absurd (Finset.mem_univ i) h
 
+/-- The observed counterexample circuit satisfies the zero-error tree condition on `geΨ`. -/
 lemma treeBoundedError_geP : treeBoundedError geInput geF geP geΨ 0 := by
   intro x
   simp only [acc_geΨ, sum_geInput]
@@ -977,20 +1130,26 @@ lemma treeBoundedError_geP : treeBoundedError geInput geF geP geΨ 0 := by
     simp [geF]
   · simp [geF, hx]
 
+/-- The counterexample function is true exactly at nonzero inputs. -/
 lemma geF_eq_true (x : Fin 6) : geF x = true ↔ x ≠ 0 := by
   simp [geF]
 
+/-- The counterexample function is false exactly at input zero. -/
 lemma geF_eq_false (x : Fin 6) : geF x = false ↔ x = 0 := by
   simp [geF]
 
+/-- Coordinate `i` of the counterexample input is true exactly at `geB i`. -/
 lemma geInput_eq_iff (z : Fin 6) (i : Fin 5) : geInput z i = true ↔ z = geB i := by
   simp [geInput]
 
+/-- An entry of the star adversary matrix equals one exactly when one index is zero and the
+other is nonzero. -/
 lemma geΓ_support_iff (x y : Fin 6) :
     geΓ x y = 1 ↔ (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0) := by
   show (if (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0) then (1 : ℂ) else 0) = 1 ↔ _
   by_cases h : (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0) <;> simp [h]
 
+/-- The star adversary matrix is equal to its conjugate transpose. -/
 lemma geΓ_isHermitian : geΓᴴ = geΓ := by
   ext x y
   simp only [Matrix.conjTranspose_apply]
@@ -1000,6 +1159,7 @@ lemma geΓ_isHermitian : geΓᴴ = geΓ := by
   · have hy : ¬((y = 0 ∧ x ≠ 0) ∨ (x = 0 ∧ y ≠ 0)) := fun hh => h (Or.symm hh)
     simp [geΓ, h, hy]
 
+/-- The star matrix is a valid adversary matrix for `geF`. -/
 lemma adversaryValid_geΓ : adversaryValid geF geΓ := by
   refine ⟨geΓ_isHermitian, ?_⟩
   intro x y h
@@ -1012,6 +1172,7 @@ lemma adversaryValid_geΓ : adversaryValid geF geΓ := by
       exact hy ((geF_eq_false x).mp (h.trans ((geF_eq_false 0).mpr rfl)))
   simp [hD]
 
+/-- A supported adversary pair differing at coordinate `i` must connect zero with `geB i`. -/
 lemma advFilter_support (i : Fin 5) (x y : Fin 6)
     (hd : geInput x i ≠ geInput y i)
     (hΓ : (x = 0 ∧ y ≠ 0) ∨ (y = 0 ∧ x ≠ 0)) :
@@ -1032,6 +1193,8 @@ lemma advFilter_support (i : Fin 5) (x y : Fin 6)
       exact hd heq
     exact Or.inr ⟨hxi, rfl⟩
 
+/-- The coordinate-filtered star matrix has unit entries only on the two directed edges between
+zero and `geB i`. -/
 lemma advFilter_geΓ (i : Fin 5) (x y : Fin 6) :
     advFilter geInput geΓ i x y
       = if (x = 0 ∧ y = geB i) ∨ (x = geB i ∧ y = 0) then (1 : ℂ) else 0 := by
@@ -1056,6 +1219,8 @@ lemma advFilter_geΓ (i : Fin 5) (x y : Fin 6) :
         exact hd (by simp [geInput, (geB_ne_zero i).symm])
     rw [if_neg hD]
 
+/-- A left fold of `max` stays below `m` when its initial value and every list entry are bounded
+by `m`. -/
 lemma list_foldl_max_le' (l : List ℝ) (m : ℝ) :
     ∀ s, s ≤ m → (∀ x ∈ l, x ≤ m) → l.foldl max s ≤ m := by
   induction l with
@@ -1065,10 +1230,13 @@ lemma list_foldl_max_le' (l : List ℝ) (m : ℝ) :
     simp only [List.foldl_cons, List.mem_cons, forall_eq_or_imp] at h ⊢
     exact ih _ (max_le hs h.1) h.2
 
+/-- A left fold of `max` starting at zero stays below a nonnegative bound on all list entries. -/
 lemma list_foldl_max_le {l : List ℝ} {m : ℝ} (hm : 0 ≤ m) (h : ∀ x ∈ l, x ≤ m) :
     l.foldl max 0 ≤ m :=
   list_foldl_max_le' l m 0 hm h
 
+/-- The filtered star matrix exchanges the zero and `geB i` coordinates of a vector and vanishes
+on all other coordinates. -/
 lemma advFilter_mulVec_apply (i : Fin 5) (v : QState (Fin 6)) (x : Fin 6) :
     (advFilter geInput geΓ i *ᵥ v) x
       = if x = 0 then v (geB i) else if x = geB i then v 0 else 0 := by
@@ -1133,6 +1301,7 @@ lemma advFilter_mulVec_apply (i : Fin 5) (v : QState (Fin 6)) (x : Fin 6) :
         simp [hD y]
       rw [hsum0, if_neg hx0, if_neg hxi]
 
+/-- Each coordinate-filtered star matrix has operator norm at most one. -/
 lemma advFilter_norm_le (i : Fin 5) : ‖advFilter geInput geΓ i‖ ≤ 1 := by
   refine l2_opNorm_le_of_mulVec_le (by norm_num) _ ?_
   intro v
@@ -1181,6 +1350,7 @@ lemma advFilter_norm_le (i : Fin 5) : ‖advFilter geInput geΓ i‖ ≤ 1 := by
     le_of_sq_le_sq hle (norm_nonneg _)
   simpa using hs
 
+/-- The maximum coordinate-filter norm bound of the star adversary matrix is at most one. -/
 lemma advFilterBound_geΓ_le : advFilterBound geInput geΓ ≤ 1 := by
   unfold advFilterBound
   refine list_foldl_max_le (by norm_num) ?_
@@ -1188,6 +1358,7 @@ lemma advFilterBound_geΓ_le : advFilterBound geInput geΓ ≤ 1 := by
   intro i
   exact advFilter_norm_le i
 
+/-- The operator norm of the star adversary matrix is at least `sqrt 5`. -/
 lemma norm_geΓ : Real.sqrt 5 ≤ advWeightNorm geΓ := by
   have hvec : geΓ *ᵥ (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 6))
       = (fun y : Fin 6 => if y ≠ 0 then (1 : ℂ) else 0) := by
@@ -1250,6 +1421,7 @@ lemma norm_geΓ : Real.sqrt 5 ≤ advWeightNorm geΓ := by
   rw [hvec, hnorm, hket, mul_one] at h
   simpa [advWeightNorm] using h
 
+/-- The adversary-transport specification fails for the unnormalized one-query counterexample. -/
 lemma bridgeAdversaryTransport_geP_false :
     ¬ bridgeAdversaryTransport geInput geF geΓ 0 geP := by
   rintro ⟨R, C, _, _, hineq⟩
@@ -1265,6 +1437,8 @@ lemma bridgeAdversaryTransport_geP_false :
     (Real.lt_sqrt (by norm_num : (0:ℝ) ≤ 2)).mpr (by norm_num)
   exact absurd (le_trans norm_geΓ hle) (not_le.mpr hgt)
 
+/-- Well-formedness and bounded error alone do not imply the universal adaptive
+adversary-transport specification stated here. -/
 lemma clause9_conj4_false :
     ¬ (∀ (X : Type) [Fintype X] [DecidableEq X] [Nonempty X] (n : ℕ) (W : Type)
         [Fintype W] [DecidableEq W] [Nonempty W]
@@ -1278,6 +1452,8 @@ lemma clause9_conj4_false :
     (h (Fin 6) 5 PUnit geInput geF geΓ 0 geP geΨ (by omega) observedWellFormed_geP
       treeBoundedError_geP adversaryValid_geΓ (by norm_num) (by norm_num))
 
+/-- The conjunction of universal clean-ancilla upper and lower transport, polynomial transport,
+and adaptive adversary transport without an input normalization requirement. -/
 def BaseClause9 : Prop :=
   ∀ (I J F : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J],
     (∀ (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J) (Q : ℕ) (p : ℝ),
@@ -1296,6 +1472,7 @@ def BaseClause9 : Prop :=
         adversaryValid f Γ → 0 ≤ ε → ε ≤ 1 / 2 →
         bridgeAdversaryTransport input f Γ ε P)
 
+/-- The combined specification `BaseClause9` is false. -/
 theorem clause1_false : ¬ BaseClause9 := by
   intro h
   obtain ⟨_, _, _, h4⟩ := h (Fin 5) PUnit PUnit

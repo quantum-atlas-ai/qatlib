@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpDuality.ConeSeparation.Macros
+
+/-!
+# Dual certificate contract
+
+`SdpDualCertificateMacro` states the certificate guarantee for successful responses along the
+actual matrix multiplicative weights history. It requires bounded Hermitian input matrices, an
+identity constraint, and error parameters satisfying η + ε ≤ δ/(8R).
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `SdpDualCertificateMacro`: The contract asserting that successful bounded-width responses
+  along the Gibbs history yield a nonnegative dual certificate of cost at most (1 + δ)α whose
+  matrix slack is positive semidefinite.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +39,9 @@ namespace Qatlib.Concepts.SdpMmwSolver.BranchProofs
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The contract asserting that successful bounded-width responses along the Gibbs history yield
+a nonnegative dual certificate of cost at most (1 + δ)α whose matrix slack is positive
+semidefinite. -/
 def SdpDualCertificateMacro : Prop :=
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε η : ℝ),

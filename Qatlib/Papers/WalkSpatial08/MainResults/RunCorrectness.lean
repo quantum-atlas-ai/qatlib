@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.WalkSpatial08.MainResults.RunDynamics
 import Qatlib.Papers.WalkSpatial08.MainResults.RunRates
+
+/-!
+# Success weights for balanced lattice schedules
+
+This module defines the model success weight and a schedule carrying iteration, setup, and
+time-accounting data. At the balanced control parameter, it bounds the phase increment and the
+rounded iteration angle, yielding a constant lower bound on the success weight and an eventual
+balanced schedule.
+
+The controlled spatial-search setting is described in [Tulsi2008].
+
+## Main statements
+
+* `modelSuccessWeight_ge`: success weight at least `1 / 66` for side length at least sixteen.
+* `balanced_schedule_bound`: schedules with the prescribed step count and constant success
+  weight.
+
+## References
+
+* [Tulsi, 2008][Tulsi2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,10 +36,14 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.WalkSpatial08.MainResults
 
+/-- The balanced final-overlap square multiplied by the squared sine of the accumulated model
+phase after `it` iterations. -/
 def modelSuccessWeight (n it : ℕ) : ℝ :=
   finalOverlapSq n (deltaStar n) *
     Real.sin (((it : ℝ) * alphaDelta n (deltaStar n))) ^ 2
 
+/-- A lattice model schedule containing iteration and setup counts and a time account whose
+total steps equal twice the iterations plus setup. -/
 structure LatticeBudgetSchedule (n : ℕ) where
 
   iterations : ℕ
@@ -28,10 +54,13 @@ structure LatticeBudgetSchedule (n : ℕ) where
 
   steps_eq : account.steps = 2 * iterations + setup
 
+/-- The existence of a lattice schedule with total steps at most `T` and model success weight at
+least `p`. -/
 def ModelBudgetWithin (n : ℕ) (T p : ℝ) : Prop :=
   ∃ alg : LatticeBudgetSchedule n,
     (alg.account.steps : ℝ) ≤ T ∧ p ≤ modelSuccessWeight n alg.iterations
 
+/-- For lattice side length at least sixteen, the balanced model phase increment is positive. -/
 theorem alphaDeltaStar_pos {n : ℕ} (hn : 16 ≤ n) :
     0 < alphaDelta n (deltaStar n) := by
   have hnpos : 0 < n := by omega
@@ -47,6 +76,8 @@ theorem alphaDeltaStar_pos {n : ℕ} (hn : 16 ≤ n) :
     nlinarith
   linarith [hlow, hpos]
 
+/-- For lattice side length at least sixteen, the balanced model phase increment is at most one
+quarter. -/
 theorem alphaDeltaStar_le_quarter {n : ℕ} (hn : 16 ≤ n) :
     alphaDelta n (deltaStar n) ≤ 1 / 4 := by
   have hnpos : 0 < n := by omega
@@ -68,6 +99,9 @@ theorem alphaDeltaStar_le_quarter {n : ℕ} (hn : 16 ≤ n) :
   rw [alphaDeltaStar_eq hnpos hlog, show (1 : ℝ) / 4 = 2 / 8 by norm_num]
   exact div_le_div_of_nonneg_left (by norm_num) (by norm_num) hden
 
+/-- For side length at least sixteen, rounding `π / (4 * alphaDelta n (deltaStar n))` upward
+gives an accumulated phase with squared sine at least one half. See [Main result: O(sqrt(N
+log N)) two-dimensional spatial search][Tulsi2008]. -/
 theorem iterations_sin_sq_ge {n : ℕ} (hn : 16 ≤ n) :
     1 / 2 ≤ Real.sin (((Nat.ceil (Real.pi / (4 * alphaDelta n (deltaStar n))) : ℕ) : ℝ)
       * alphaDelta n (deltaStar n)) ^ 2 := by
@@ -96,6 +130,8 @@ theorem iterations_sin_sq_ge {n : ℕ} (hn : 16 ≤ n) :
     linarith [hlt, hx1α, hpi]
   exact sin_sq_ge_half h1 h2
 
+/-- For side length at least sixteen, the rounded balanced iteration count has model success
+weight at least `1 / 66`. -/
 theorem modelSuccessWeight_ge {n : ℕ} (hn : 16 ≤ n) :
     1 / 66 ≤ modelSuccessWeight n (Nat.ceil (Real.pi / (4 * alphaDelta n (deltaStar n)))) := by
   unfold modelSuccessWeight
@@ -116,6 +152,9 @@ theorem modelSuccessWeight_ge {n : ℕ} (hn : 16 ≤ n) :
   have hval : (1 : ℝ) / 33 * (1 / 2) = 1 / 66 := by norm_num
   linarith [hmul, hval]
 
+/-- For all sufficiently large side lengths, there is a schedule with exactly
+`controlledWalkTimeSteps n` steps and a uniform positive lower bound on model success
+weight. See [Main result: O(sqrt(N log N)) two-dimensional spatial search][Tulsi2008]. -/
 theorem balanced_schedule_bound :
     ∃ c : ℝ, 0 < c ∧ ∃ N₀ : ℕ, ∀ n ≥ N₀,
       ∃ alg : LatticeBudgetSchedule n,

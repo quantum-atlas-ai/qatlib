@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.MachineDefs
+
+/-!
+# Algebraic acceptance amplification
+
+The finite geometric-sum identity `lemma6_amplification_identity` gives the acceptance
+expression `1 - (1 - p) * (1 - 2 * p) ^ (2 * f)`. This expression lies in `[0, 1]` when `p`
+does.
+
+`lemma6_amplified_machine` packages the expression into an abstract `QTM` record while retaining
+logarithmic-space and polynomial-time bounds for a polynomially bounded repetition function. The
+formalization follows [Watrous1998].
+
+## Main statements
+
+* `lemma6_amplification_identity`: sum the acceptance contributions exactly.
+* `lemma6_amplified_bounds`: bound the amplified expression between zero and one.
+* `lemma6_amplified_machine`: construct a record with the amplified acceptance function.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.MachineResults
@@ -15,6 +38,8 @@ open scoped BigOperators
 set_option autoImplicit false
 noncomputable section
 
+/-- The initial term `p` plus the stated finite sum of amplification contributions equals `1 -
+(1 - p) * (1 - 2 * p) ^ (2 * f)`. See [Watrous1998]. -/
 theorem lemma6_amplification_identity (p : ℝ) (f : ℕ) :
     p + ∑ j ∈ Finset.range f, p * (1 - 2 * p) ^ (2 * j) * (2 - 2 * p) ^ 2 =
       1 - (1 - p) * (1 - 2 * p) ^ (2 * f) := by
@@ -37,6 +62,8 @@ theorem lemma6_amplification_identity (p : ℝ) (f : ℕ) :
     rw [hpow]
     ring
 
+/-- For `0 ≤ p ≤ 1`, the amplified expression `1 - (1 - p) * (1 - 2 * p) ^ (2 * f)` lies between
+zero and one. -/
 theorem lemma6_amplified_bounds (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (f : ℕ) :
     0 ≤ 1 - (1 - p) * (1 - 2 * p) ^ (2 * f) ∧
       1 - (1 - p) * (1 - 2 * p) ^ (2 * f) ≤ 1 := by
@@ -60,6 +87,9 @@ theorem lemma6_amplified_bounds (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (f : �
       _ = 1 := by ring
   exact ⟨by linarith, by linarith⟩
 
+/-- A logarithmic-space, polynomial-time `QTM` record and a polynomially bounded repetition
+function yield a record with the same resource properties and the stated amplified
+acceptance function. See [Watrous1998]. -/
 theorem lemma6_amplified_machine (M : QTM) (hlog : LogSpace M) (hsteps : PolyTime M)
     (f : ℕ → ℕ) (hf : PolyBounded f) :
     ∃ Mf : QTM,

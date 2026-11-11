@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PauliClifford.ExactRank.MeasuredPauliShadows
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Moments and concentration of Pauli shadow estimates
+
+For the single-qubit observable `pauliObservable c θ`, this module identifies
+`pauliSnapshotValue c θ` with the trace against a Pauli shadow and computes its mean, second
+moment, and variance under the physical distribution `pauliRecordDist`. These formulas give the
+finite probability calculation underlying the classical-shadow estimator
+[HuangKuengPreskill2020].
+
+The result `pauli_shadow_many_observable_concentration` applies median-of-means concentration
+and a union bound to a shared array of independent records for finitely many observables. Its
+bound uses `K / 2` as natural-number division, exactly as in the finite-distribution
+concentration statement.
+
+## Main statements
+
+* `trace_pauliMatrix_mul` gives the trace orthogonality of the three Pauli matrices.
+* `trace_observable_shadow` identifies the matrix trace with the real snapshot formula.
+* `pauli_shadow_mean_second_moment` proves unbiasedness, exact moments, and the variance bound
+  `3 * ∑ a, (θ a)^2`.
+* `pauli_shadow_many_observable_concentration` bounds simultaneous estimation failure by `M *
+  3^(K/2) / 2^K` under the stated block-size budget.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,21 +53,26 @@ open scoped ComplexOrder
 set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 
+/-- Each of the three Pauli matrices has trace zero. -/
 theorem trace_pauliMatrix (a : Fin 3) : Matrix.trace (pauliMatrix a) = 0 := by
   fin_cases a <;>
     simp [pauliX, pauliY, pauliZ, Matrix.trace_fin_two]
 
+/-- The trace of the product of two Pauli matrices is two when their axes agree and zero
+otherwise. -/
 theorem trace_pauliMatrix_mul (a b : Fin 3) :
     Matrix.trace (pauliMatrix a * pauliMatrix b) = if a = b then 2 else 0 := by
   fin_cases a <;> fin_cases b <;>
     simp [pauliX, pauliY, pauliZ, Matrix.trace_fin_two] <;> norm_num
 
+/-- The trace of the Pauli observable is twice its identity coefficient `c`. -/
 theorem pauliObservable_trace (c : ℝ) (θ : Fin 3 → ℝ) :
     Matrix.trace (pauliObservable c θ) = 2 * (c : ℂ) := by
   rw [pauliObservable, Matrix.trace_add, Matrix.trace_smul, Matrix.trace_sum]
   simp [Matrix.trace_smul, trace_pauliMatrix, Matrix.trace_one, Fintype.card_fin]
   ring
 
+/-- The trace pairing of the Pauli observable with axis `a` is twice its coefficient `θ a`. -/
 theorem pauliObservable_mul_pauliMatrix_trace (c : ℝ) (θ : Fin 3 → ℝ) (a : Fin 3) :
     Matrix.trace (pauliObservable c θ * pauliMatrix a) = 2 * (θ a : ℂ) := by
   have h1 : ∀ a' : Fin 3, Matrix.trace (((θ a' : ℂ) • pauliMatrix a') * pauliMatrix a)
@@ -56,6 +90,8 @@ theorem pauliObservable_mul_pauliMatrix_trace (c : ℝ) (θ : Fin 3 → ℝ) (a 
     Finset.sum_ite_eq', if_pos (Finset.mem_univ a)]
   ring
 
+/-- The trace pairing with a Pauli outcome projector is `c + s * θ a`, where `s` is one for
+`true` and minus one for `false`. -/
 theorem trace_observable_projector (c : ℝ) (θ : Fin 3 → ℝ) (a : Fin 3) (b : Bool) :
     Matrix.trace (pauliObservable c θ * PauliProjector a b)
       = (c : ℂ) + (if b then (1 : ℂ) else -1) * (θ a : ℂ) := by
@@ -64,6 +100,8 @@ theorem trace_observable_projector (c : ℝ) (θ : Fin 3 → ℝ) (a : Fin 3) (b
     pauliObservable_mul_pauliMatrix_trace]
   ring
 
+/-- The complex trace of the observable against a Pauli shadow equals the corresponding real
+snapshot value coerced to the complex numbers. -/
 theorem trace_observable_shadow (c : ℝ) (θ : Fin 3 → ℝ) (a : Fin 3) (b : Bool) :
     Matrix.trace (pauliObservable c θ * PauliShadow b a)
       = ((pauliSnapshotValue c θ (a, b) : ℝ) : ℂ) := by
@@ -71,6 +109,8 @@ theorem trace_observable_shadow (c : ℝ) (θ : Fin 3 → ℝ) (a : Fin 3) (b : 
     Matrix.mul_one, trace_observable_projector, pauliObservable_trace]
   cases b <;> simp [pauliSnapshotValue] <;> ring
 
+/-- For a density operator, the real trace pairing of the Pauli observable is `c + ∑ a, θ a *
+pauliExpectation a ρ`. -/
 theorem pauliObservable_trace_re (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (c : ℝ) (θ : Fin 3 → ℝ) :
     (Matrix.trace (pauliObservable c θ * ρ)).re = c + ∑ a, θ a * pauliExpectation a ρ := by
@@ -88,6 +128,9 @@ theorem pauliObservable_trace_re (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     Complex.re_sum, zero_mul, sub_zero, mul_one]
   rfl
 
+/-- The snapshot equals the real shadow trace and is unbiased for the observable expectation;
+writing `s = ∑ a, θ a * pauliExpectation a ρ`, its second moment is `c^2 + 2*c*s + 3*∑ a, (θ
+a)^2`. Its variance is `3*∑ a, (θ a)^2 - s^2`, hence at most `3*∑ a, (θ a)^2`. -/
 theorem pauli_shadow_mean_second_moment (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (c : ℝ) (θ : Fin 3 → ℝ) :
     (∀ o, pauliSnapshotValue c θ o = (Matrix.trace (pauliObservable c θ * PauliShadow o.2 o.1)).re) ∧
@@ -213,6 +256,10 @@ theorem pauli_shadow_mean_second_moment (ρ : Operator 2) (hρ : IsDensityOperat
     rw [h3]
     exact sub_le_self _ (sq_nonneg _)
 
+/-- For positive `L`, `K`, and `ε`, if every observable satisfies `12 * ∑ a, (θ j a)^2 ≤ L *
+ε^2`, the probability that any median-of-means estimate has absolute error greater than `ε`
+is at most `M * 3^(K/2) / 2^K`. The probability uses independent blocks of `L` physical
+Pauli records, and `K / 2` is natural-number division. -/
 theorem pauli_shadow_many_observable_concentration (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (L K M : ℕ) (c : Fin M → ℝ) (θ : Fin M → Fin 3 → ℝ) (ε : ℝ) (hL : 0<L) (hK : 0<K) (hε : 0<ε)
     (hbud : ∀ j, 12*(∑ a, (θ j a)^2) ≤ (L:ℝ)*ε^2) :

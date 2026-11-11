@@ -8,6 +8,32 @@ import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
 import QuantumInfo.Entropy.DPI
 import QuantumInfo.Entropy.SSA
+
+/-!
+# Density-matrix entropy calculus
+
+This module connects positive semidefinite trace-one matrices to mixed states and transports
+entropy and relative entropy across that correspondence. It establishes spectral formulas,
+unitary invariance, tensor-product additivity, and partial-trace identities in
+finite-dimensional quantum information as developed in [Watrous2018].
+
+The main consumer theorem packages data processing, strong subadditivity, conditional entropy,
+and coherent information, with nonsingularity assumptions for finite real relative-entropy
+differences.
+
+## Main statements
+
+* `entropy_density_bridge`: Entropy formulas and compatibility with pure states, conjugation,
+  products, and partial trace.
+* `relative_entropy_density_bridge`: Support, trace-log, equality, invariance, and classical
+  relative-entropy formulas.
+* `dpi_ssa_partial_trace_consumers`: Channel and partial-trace entropy consequences.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.BornBridge
@@ -26,39 +52,54 @@ namespace Qatlib.Concepts.QuantumEntropy.EntropyCalculus
 open Qatlib
 open scoped BigOperators ComplexOrder InnerProductSpace RealInnerProductSpace Matrix
 
+/-- The type of positive semidefinite complex matrices with trace one on the finite index type
+`I`. -/
 abbrev Density (I : Type) [Fintype I] [DecidableEq I] :=
   {ρ : Matrix I I ℂ // ρ.PosSemidef ∧ Matrix.trace ρ = 1}
 
+/-- Convert a density matrix to the corresponding mixed state. -/
 def state {I : Type} [Fintype I] [DecidableEq I] (ρ : Density I) : MState I :=
   Qatlib.Foundations.PureStateMath.BornBridge.densityMatrixEquivMState I ρ
 
+/-- Convert a mixed state to its positive semidefinite trace-one density matrix. -/
 def localState {I : Type} [Fintype I] [DecidableEq I] (ρ : MState I) : Density I :=
   (Qatlib.Foundations.PureStateMath.BornBridge.densityMatrixEquivMState I).symm ρ
 
+/-- The von Neumann entropy of the mixed state corresponding to a density matrix. -/
 def entropy {I : Type} [Fintype I] [DecidableEq I] (ρ : Density I) : ℝ := Sᵥₙ (state ρ)
 
+/-- The extended nonnegative quantum relative entropy of the mixed states corresponding to two
+density matrices. -/
 def relative {I : Type} [Fintype I] [DecidableEq I] (ρ σ : Density I) : ENNReal :=
   qRelativeEnt (state ρ) (state σ)
 
+/-- The real part of the trace of `ρ` times the difference of the matrix logarithms of `ρ` and
+`σ`. -/
 def logTrace {I : Type} [Fintype I] [DecidableEq I] (ρ σ : Density I) : ℝ :=
   (Matrix.trace (ρ.val * ((state ρ).M.log.mat - (state σ).M.log.mat))).re
 
+/-- The matrix underlying the converted mixed state is the original density matrix. -/
 @[simp] theorem state_m {I : Type} [Fintype I] [DecidableEq I] (ρ : Density I) :
     (state ρ).m = ρ.val :=
   Qatlib.Foundations.PureStateMath.BornBridge.densityMatrixEquivMState_m ρ
 
+/-- The density matrix obtained from a mixed state is its underlying matrix. -/
 @[simp] theorem localState_val {I : Type} [Fintype I] [DecidableEq I] (s : MState I) :
     (localState s).val = s.m :=
   Qatlib.Foundations.PureStateMath.BornBridge.densityMatrixEquivMState_symm_val s
 
+/-- Converting a mixed state to a density matrix and back returns the original state. -/
 @[simp] theorem state_localState {I : Type} [Fintype I] [DecidableEq I] (s : MState I) :
     state (localState s) = s := by
   apply MState.ext_m
   rfl
 
+/-- The entropy of a finite probability distribution is the sum of `Real.negMulLog` of its
+probabilities. -/
 private theorem Hₛ_eq_sum_negMulLog {α : Type} [Fintype α] (d : ProbDistribution α) :
     Hₛ d = ∑ i, Real.negMulLog ((d i : ℝ)) := rfl
 
+/-- Von Neumann entropy is additive on tensor products of mixed states. -/
 private theorem Sᵥₙ_prod_add {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (s : MState I) (t : MState J) :
     Sᵥₙ (s ⊗ᴹ t) = Sᵥₙ s + Sᵥₙ t := by
@@ -84,6 +125,9 @@ private theorem Sᵥₙ_prod_add {I J : Type} [Fintype I] [DecidableEq I] [Finty
     rw [← Finset.sum_mul, s.spectrum.normalized, one_mul]
   rw [h1, h2]
 
+/-- Transfer the spectral entropy formula, nonnegativity, dimension bound, pure-state vanishing,
+unitary invariance, and product additivity to density matrices. The bridge also identifies
+partial trace and records the zero convention for `Real.negMulLog`, as in [Watrous2018]. -/
 theorem entropy_density_bridge :
   (∀ (I : Type) [Fintype I] [DecidableEq I] (ρ : Density I),
     (state ρ).m = ρ.val ∧
@@ -142,14 +186,20 @@ theorem entropy_density_bridge :
     show ((state ρ).traceRight).m = PartialTrace ρ.val
     rfl
 
+/-- The trace-log expression equals the real inner product of the density operator with the
+logarithm difference. -/
 private theorem logTrace_eq_inner {I : Type} [Fintype I] [DecidableEq I] (ρ σ : Density I) :
     logTrace ρ σ = ⟪(state ρ).M, (state ρ).M.log - (state σ).M.log⟫ := rfl
 
+/-- For nonnegative `v`, its coercion through `NNReal` to `ENNReal` agrees with `ENNReal.ofReal
+v`. -/
 private theorem ofNNReal_eq_ofReal {v : ℝ} (hv : 0 ≤ v) :
     ENNReal.ofNNReal ⟨v, hv⟩ = ENNReal.ofReal v := by
   rw [ENNReal.ofReal_eq_coe_nnreal hv]
   rfl
 
+/-- Under the kernel inclusion expressing support containment, quantum relative entropy equals
+`ENNReal.ofReal` of the logarithmic inner product. -/
 private theorem qRelativeEnt_of_ker {I : Type} [Fintype I] [DecidableEq I]
     (s t : MState I) (h : t.M.ker ≤ s.M.ker) :
     qRelativeEnt s t = ENNReal.ofReal ⟪s.M, s.M.log - t.M.log⟫ := by
@@ -158,6 +208,7 @@ private theorem qRelativeEnt_of_ker {I : Type} [Fintype I] [DecidableEq I]
     simp [qRelativeEnt, SandwichedRelRentropy, h]
   rw [h1, ofNNReal_eq_ofReal (inner_log_sub_log_nonneg h)]
 
+/-- For positive `t`, the expression `t * log t - t + 1` is nonnegative. -/
 private theorem le_aux_log (t : ℝ) (ht : 0 < t) : 0 ≤ t * Real.log t - t + 1 := by
   have h1 : Real.log (1 / t) ≤ 1 / t - 1 := Real.log_le_sub_one_of_pos (by positivity)
   rw [show 1 / t = t⁻¹ from (inv_eq_one_div t).symm, Real.log_inv t] at h1
@@ -168,6 +219,8 @@ private theorem le_aux_log (t : ℝ) (ht : 0 < t) : 0 ≤ t * Real.log t - t + 1
   have h4 : t * (1 - 1 / t) = t - 1 := by field_simp
   nlinarith [h2, h4]
 
+/-- For positive `t` different from one, the expression `t * log t - t + 1` is strictly
+positive. -/
 private theorem lt_aux_log (t : ℝ) (ht : 0 < t) (ht1 : t ≠ 1) :
     0 < t * Real.log t - t + 1 := by
   have hne : 1 / t ≠ 1 := by
@@ -185,6 +238,8 @@ private theorem lt_aux_log (t : ℝ) (ht : 0 < t) (ht1 : t ≠ 1) :
   have h4 : t * (1 - 1 / t) = t - 1 := by field_simp
   nlinarith [h2, h4]
 
+/-- The real trace of the product of the two displayed rank-one matrices equals the squared norm
+of the corresponding entry of `Uᴴ * V`. -/
 private theorem trace_proj_mul_normSq {I : Type} [Fintype I] [DecidableEq I]
     (U V : Matrix I I ℂ) (i j : I) :
     RCLike.re ((U * Matrix.single i i 1 * U.conjTranspose *
@@ -239,6 +294,8 @@ private theorem trace_proj_mul_normSq {I : Type} [Fintype I] [DecidableEq I]
     rw [hcc, Complex.normSq_eq_norm_sq]
   exact h2
 
+/-- Under support containment, a zero logarithmic inner product forces the two mixed states'
+density matrices to coincide. -/
 private theorem strict_klein_density {I : Type} [Fintype I] [DecidableEq I]
     (s t : MState I) (hker : t.M.ker ≤ s.M.ker)
     (hD : ⟪s.M, s.M.log - t.M.log⟫ = 0) : s.m = t.m := by
@@ -676,6 +733,8 @@ private theorem strict_klein_density {I : Type} [Fintype I] [DecidableEq I]
   show s.M.mat = t.M.mat
   rw [hAexp, hBexp]
 
+/-- A vector lies in the kernel of a classical mixed state exactly when each probability times
+the corresponding vector coordinate is zero. -/
 private theorem mem_ker_ofClassical_iff {I : Type} [Fintype I] [DecidableEq I]
     (q : ProbDistribution I) (x : EuclideanSpace ℂ I) :
     x ∈ (MState.ofClassical q).M.ker ↔ ∀ i, ((q i : ℝ) : ℂ) * x i = 0 := by
@@ -692,6 +751,8 @@ private theorem mem_ker_ofClassical_iff {I : Type} [Fintype I] [DecidableEq I]
       Matrix.mulVec_diagonal]
     exact hx i
 
+/-- Classical support containment implies the corresponding reverse inclusion of mixed-state
+kernels. -/
 private theorem ker_ofClassical_le_of_support {I : Type} [Fintype I] [DecidableEq I]
     (p q : ProbDistribution I) (h : ∀ i, (q i : ℝ) = 0 → (p i : ℝ) = 0) :
     (MState.ofClassical q).M.ker ≤ (MState.ofClassical p).M.ker := by
@@ -710,6 +771,8 @@ private theorem ker_ofClassical_le_of_support {I : Type} [Fintype I] [DecidableE
       · exact hxi h0
     rw [hc, mul_zero]
 
+/-- Failure of classical support containment prevents the corresponding reverse kernel
+inclusion. -/
 private theorem not_ker_ofClassical {I : Type} [Fintype I] [DecidableEq I]
     (p q : ProbDistribution I) (h : ¬ ∀ i, (q i : ℝ) = 0 → (p i : ℝ) = 0) :
     ¬ ((MState.ofClassical q).M.ker ≤ (MState.ofClassical p).M.ker) := by
@@ -731,6 +794,8 @@ private theorem not_ker_ofClassical {I : Type} [Fintype I] [DecidableEq I]
     if_true] at hval
   exact hi.2 hval
 
+/-- Under classical support containment, the logarithmic operator inner product equals the sum
+of `p i * (log (p i) - log (q i))`. -/
 private theorem inner_log_ofClassical {I : Type} [Fintype I] [DecidableEq I]
     (p q : ProbDistribution I) (h : ∀ i, (q i : ℝ) = 0 → (p i : ℝ) = 0) :
     ⟪(MState.ofClassical p).M, (MState.ofClassical p).M.log - (MState.ofClassical q).M.log⟫
@@ -760,6 +825,9 @@ private theorem inner_log_ofClassical {I : Type} [Fintype I] [DecidableEq I]
 
 set_option maxHeartbeats 2000000 in
 
+/-- Characterize finite relative entropy by support containment and prove its trace-log formula
+and zero-equality criterion. Also record simultaneous unitary invariance, product
+additivity, and the extended classical relative-entropy formula; see [Watrous2018]. -/
 theorem relative_entropy_density_bridge :
   (∀ (I : Type) [Fintype I] [DecidableEq I] (ρ σ : Density I),
     (relative ρ σ ≠ ⊤ ↔ (state σ).M.ker ≤ (state ρ).M.ker) ∧
@@ -839,6 +907,10 @@ theorem relative_entropy_density_bridge :
       rw [dif_pos zero_lt_one]
       exact dif_neg hk
 
+/-- Transfer channel data processing, strong subadditivity, conditional entropy, and
+coherent-information identities to the density-matrix bridge. For a nonsingular reference
+state, also identify the finite nonnegative relative-entropy loss under partial trace with
+the corresponding trace-log difference. -/
 theorem dpi_ssa_partial_trace_consumers :
   (∀ (D E : ℕ) (T : QuantumChannel D E) (ρ σ : Density (Fin D)),
     let Φ := Qatlib.Concepts.ChannelTheory.Stinespring.toPhyslib T

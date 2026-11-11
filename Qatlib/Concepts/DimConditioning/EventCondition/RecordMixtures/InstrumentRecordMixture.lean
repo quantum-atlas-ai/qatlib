@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.RecordMixtures
 import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+/-!
+# Instrument record representatives and reconstruction
+
+This module defines `representative` by using the conditional state at positive record
+probability and a target operator otherwise. It proves density preservation of these
+representatives and reconstructs every branch by multiplying by its probability.
+
+`forget_error` transfers conditional trace distance bounds on good records to the output with
+the record forgotten. The underlying instrument formalism is described in [Watrous2018].
+
+## Main statements
+
+* `reconstruction`: probability times representative recovers each branch.
+* `forget_error`: good record error plus bad record mass bounds the forgotten output error.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,11 +37,15 @@ open scoped ComplexOrder
 
 variable {R : Type} [Fintype R] [DecidableEq R] {N D : ℕ}
 
+/-- Use the record conditional state when its probability is positive and the supplied target
+operator otherwise. -/
 noncomputable def representative (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument R N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N) (target : Qatlib.Foundations.PureStateMath.Operator D) (r : R) : Qatlib.Foundations.PureStateMath.Operator D :=
   if h : 0 < Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb I ρ r then I.conditionalState ρ r h else target
 
 omit [DecidableEq R] in
 
+/-- For density input, multiplying a record representative by its probability recovers that
+record branch output. -/
 theorem reconstruction (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument R N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N) (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ)
     (target : Qatlib.Foundations.PureStateMath.Operator D) (r : R) :
     ((Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb I ρ r : ℝ) : ℂ) • Qatlib.Concepts.DimConditioning.EventCondition.InstrumentRecordMixture.representative I ρ target r=I.branch r ρ := by
@@ -32,6 +57,8 @@ theorem reconstruction (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument R 
 
 omit [DecidableEq R] in
 
+/-- Every record representative is a density operator when both the input and fallback target
+are density operators. -/
 theorem representative_density (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument R N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N) (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ)
     (target : Qatlib.Foundations.PureStateMath.Operator D) (ht : Qatlib.Foundations.PureStateMath.IsDensityOperator target) (r : R) :
     Qatlib.Foundations.PureStateMath.IsDensityOperator (Qatlib.Concepts.DimConditioning.EventCondition.InstrumentRecordMixture.representative I ρ target r) := by
@@ -40,6 +67,8 @@ theorem representative_density (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instr
   · exact I.isDensityOperator_conditionalState hρ r h
   · exact ht
 
+/-- Good record conditional trace distance at most `η` and bad record probability at most `ζ`
+imply forgotten output trace distance at most `η + ζ` from the target. -/
 theorem forget_error (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument R N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N) (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ)
     (target : Qatlib.Foundations.PureStateMath.Operator D) (ht : Qatlib.Foundations.PureStateMath.IsDensityOperator target) (good : Finset R) (η ζ : ℝ) (hη : 0 ≤ η)
     (hgood : ∀ r ∈ good, ∀ h : 0 < Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb I ρ r,

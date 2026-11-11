@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionQSVTGeneralStat
 import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+
+/-!
+# Source-convention QSVT theorem
+
+This module proves `sourceConventionQSVTGeneral`, assembling real phase synthesis, minimal phase
+lengths, and parity-dependent projected singular transforms. The statement packages the
+source-convention consequences of the alternating-phase QSVT framework in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sourceConventionQSVTGeneral`: Establish the complete packaged source-convention statement.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
@@ -20,6 +38,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- Establish the source-convention QSVT statement, including optimal phase lengths,
+parity-dependent corners, and constant responses [GilyenSuLowWiebe2019]. -/
 theorem sourceConventionQSVTGeneral : SourceConventionQSVTGeneral := by
   constructor
   · intro H I O _ _ _ _ _ _ A U L R p d h hd hdeg hpar hb

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Theorem15DiscreteSkeletonStat
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Theorem15DiscreteSkeletonCounterex
 import Qatlib.Papers.LinDynamics23.DiscreteObs.DiscreteLchsCost
+
+/-!
+# Proof of the discrete LCHS skeleton
+
+`sqrt_label_mass` identifies the square root of a selected-label probability with the Euclidean
+norm of its data branch. The theorem `theorem15DiscreteSkeleton` proves the corrected discrete
+contract, including normalized output error, compilation counts, and randomized amplification
+success under the contract's reconstruction-closeness hypothesis. See [AnChildsLin2026] for the
+paper context.
+
+## Main statements
+
+* `sqrt_label_mass`: The square root of the probability mass on a fixed label equals the
+  Euclidean norm of the corresponding data branch.
+* `theorem15DiscreteSkeleton`: The corrected discrete LCHS skeleton contract holds, including
+  output trace-norm error, compilation identities, and the stated amplification-window success
+  bound.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -31,6 +54,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The square root of the probability mass on a fixed label equals the Euclidean norm of the
+corresponding data branch. -/
 private theorem sqrt_label_mass {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
     (j₀ : Fin N) (y : QState (Fin N × I)) :
     Real.sqrt (MeasureProb y (Finset.univ.filter (fun x : Fin N × I => x.1 = j₀))) =
@@ -42,6 +67,9 @@ private theorem sqrt_label_mass {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
     rfl
   rw [he, Real.sqrt_sq (norm_nonneg _)]
 
+/-- The corrected discrete LCHS skeleton contract holds, including output trace-norm error,
+compilation identities, and the stated amplification-window success bound [An et al.,
+Theorem 15][AnChildsLin2026]. -/
 theorem theorem15DiscreteSkeleton : Theorem15DiscreteSkeleton := by
   intro I _ _ N c V B i₀ E ε hV hB hα _hε
   (try dsimp only)

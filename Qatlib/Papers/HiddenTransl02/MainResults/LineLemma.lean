@@ -12,6 +12,30 @@ import Mathlib.Data.ZMod.Basic
 import Mathlib.Data.Fin.Rev
 import Mathlib.Tactic
 
+/-!
+# Coefficient reconstruction along polynomial lines
+
+This module expands powers along a line and proves that suitable coefficient combinations
+recover each mixed monomial. The results `coeffMatrix_mulVec_injective` and `exists_coeffs`
+establish the required coefficient system over a field, while the residue-field lemmas verify
+nonvanishing and distinctness for degrees below a prime modulus.
+
+The development follows [FriedlEtAl2014].
+
+## Main statements
+
+* `line_combination_of_coeffs`: If the coefficients `c` satisfy the stated binomial moment
+  equations, their linear combination of the powers (Z + aY)^k equals Z^l Y^(k−l), for l ≤ k.
+* `exists_coeffs`: Under nonvanishing binomial factors and distinct natural evaluation points,
+  coefficients exist whose binomial moments select the index l ≤ k.
+* `zmod_choose_ne_zero`: For prime p and i ≤ k < p, the binomial coefficient k choose i is
+  nonzero in `ZMod p`.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 set_option autoImplicit false
 set_option warningAsError true
 noncomputable section
@@ -24,6 +48,8 @@ section Combination
 
 variable {R : Type*} [CommRing R]
 
+/-- Expands (Z + aY)^k as a sum indexed by `Fin (k + 1)` with binomial coefficients and the
+corresponding powers of a, Z, and Y. -/
 theorem add_mul_pow_expand (Z Y a : R) (k : ℕ) :
     (Z + a * Y) ^ k =
       ∑ i : Fin (k + 1), (Nat.choose k i.val : R) * a ^ (k - i.val) * Z ^ i.val *
@@ -35,6 +61,9 @@ theorem add_mul_pow_expand (Z Y a : R) (k : ℕ) :
   rw [mul_pow]
   ring
 
+/-- If the coefficients `c` satisfy the stated binomial moment equations, their linear
+combination of the powers (Z + aY)^k equals Z^l Y^(k−l), for l ≤ k ([Lemma
+3.2][FriedlEtAl2014]). -/
 theorem line_combination_of_coeffs (Z Y : R) (k l : ℕ) (hl : l ≤ k) (c : Fin (k + 1) → R)
     (hc : ∀ i : Fin (k + 1),
       ∑ a : Fin (k + 1), c a * (Nat.choose k i.val : R) * (a.val : R) ^ (k - i.val) =
@@ -75,6 +104,9 @@ section Exists
 
 variable {K : Type*} [Field K]
 
+/-- The binomially weighted reversed-power matrix has an injective multiplication map when its
+binomial factors are nonzero and its natural evaluation points are distinct in the field
+([Lemma 3.2][FriedlEtAl2014]). -/
 theorem coeffMatrix_mulVec_injective (k : ℕ)
     (hk : ∀ i ≤ k, (Nat.choose k i : K) ≠ 0)
     (hpt : Function.Injective (fun i : Fin (k + 1) => (i.val : K))) :
@@ -117,6 +149,8 @@ theorem coeffMatrix_mulVec_injective (k : ℕ)
     exact (mul_eq_zero.mp hrow).resolve_left hne
   exact sub_eq_zero.mp hsub
 
+/-- Under nonvanishing binomial factors and distinct natural evaluation points, coefficients
+exist whose binomial moments select the index l ≤ k ([Lemma 3.2][FriedlEtAl2014]). -/
 theorem exists_coeffs (k l : ℕ) (_hl : l ≤ k)
     (hk : ∀ i ≤ k, (Nat.choose k i : K) ≠ 0)
     (hpt : Function.Injective (fun i : Fin (k + 1) => (i.val : K))) :
@@ -145,6 +179,8 @@ end Exists
 
 section ZMod
 
+/-- For prime p and i ≤ k < p, the binomial coefficient k choose i is nonzero in `ZMod p`
+([Lemma 3.2][FriedlEtAl2014]). -/
 theorem zmod_choose_ne_zero {p : ℕ} (hp : p.Prime) {k : ℕ} (hk : k < p) {i : ℕ} (hi : i ≤ k) :
     (Nat.choose k i : ZMod p) ≠ 0 := by
   intro hzero
@@ -158,6 +194,8 @@ theorem zmod_choose_ne_zero {p : ℕ} (hp : p.Prime) {k : ℕ} (hk : k < p) {i :
     exact absurd (Nat.Prime.dvd_factorial hp |>.mp hdvd) (by omega)
   exact hkfact hfact.symm
 
+/-- For k < p under the supplied prime hypothesis, natural casting from `Fin (k + 1)` into `ZMod
+p` is injective ([Lemma 3.2][FriedlEtAl2014]). -/
 theorem zmod_natCast_injective_on_fin {p : ℕ} (_hp : p.Prime) {k : ℕ} (hk : k < p) :
     Function.Injective (fun i : Fin (k + 1) => (i.val : ZMod p)) := by
   intro i j hij

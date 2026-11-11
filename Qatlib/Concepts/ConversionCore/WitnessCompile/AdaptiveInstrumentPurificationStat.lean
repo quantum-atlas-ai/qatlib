@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Adaptive instrument purification specification
+
+`AdaptiveInstrumentPurification` specifies exact simulation of a legal adaptive computation by a
+legal source word in an enlarged workspace. The simulation retains branch records, uses at most
+twice the adaptive oracle-call count, and identifies branch probabilities and output density.
+
+The statement uses finite-dimensional instrument purification as developed in [Watrous2018].
+
+## Main statements
+
+* `AdaptiveInstrumentPurification`: the quantified isometric simulation and branch-accounting
+  specification.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -22,6 +42,9 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The specification that every legal adaptive computation possesses an isometric
+recorded-output simulation by a legal source word using at most twice its oracle-call count,
+with normalized branch mass and the corresponding output-density identity. -/
 def AdaptiveInstrumentPurification : Prop :=
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1))

@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.CosineSecondOrderConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticDecodedWord
+
+/-!
+# Decoding Second-Order Prepared Circuits
+
+`basisConvertedPreparedWord` conjugates a prepared circuit by a workspace basis change,
+preserving both oracle-query counts and adding two fixed gates. Its block-encoding theorem
+transfers an encoding from the transformed frame back to the original frame.
+
+For the second-order CBMD circuit associated with the cited paper, `secondOrderAveragePrepare`
+maps `secondOrderDecodedFrame` to `secondOrderFrame`. Applying this basis conversion defines
+`decodedSecondOrderWord`, which retains the encoded operator and accuracy on the decoded frame
+with explicit costs. See [WangEtAl2026].
+
+## Main statements
+
+* `basisConvertedPreparedWord_evaluate` computes the conjugated evaluation, and
+  `basisConvertedPreparedWord_blockEncoding` transfers the encoding frame.
+* `secondOrderAveragePrepare_unitary` and `secondOrderAveragePrepare_frame` establish the
+  decoding basis change.
+* `decodedSecondOrderWord_cost` gives `8 * D + 2` queries to each oracle and `80 * D + 35` fixed
+  gates.
+* `decodedSecondOrderWord_valid` and `decodedSecondOrderWord_blockEncoding` preserve validity
+  and the encoding guarantees.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,9 +79,12 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 section Generic
 variable {W I : Type} [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
+/-- Adds gates `Dᴴ` and `D` around a prepared circuit to express its evaluation in the basis
+determined by `D`. -/
 def basisConvertedPreparedWord (D : Matrix W W ℂ) (cs : List (PreparedStep W)) :
     List (PreparedStep W) := [.gate Dᴴ] ++ cs ++ [.gate D]
 
+/-- Evaluation of the basis-converted prepared word is `Dᴴ * evaluatePrepared O1 O2 cs * D`. -/
 theorem basisConvertedPreparedWord_evaluate (D O1 O2 : Matrix W W ℂ)
     (cs : List (PreparedStep W)) :
     evaluatePrepared O1 O2 (basisConvertedPreparedWord D cs) =
@@ -62,6 +94,7 @@ theorem basisConvertedPreparedWord_evaluate (D O1 O2 : Matrix W W ℂ)
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- Basis conversion preserves the data and input query counts and adds exactly two fixed gates. -/
 theorem basisConvertedPreparedWord_cost (D : Matrix W W ℂ) (cs : List (PreparedStep W)) :
     preparedDataQueries (basisConvertedPreparedWord D cs) = preparedDataQueries cs ∧
     preparedInputQueries (basisConvertedPreparedWord D cs) = preparedInputQueries cs ∧
@@ -70,6 +103,7 @@ theorem basisConvertedPreparedWord_cost (D : Matrix W W ℂ) (cs : List (Prepare
     Qatlib.Concepts.LcuPostselect.ScaledLCU.LCUFixedPoint.gates_append, preparedDataQueries, preparedInputQueries, preparedFixedGates,
     Nat.add_assoc]
 
+/-- A unitary basis change preserves validity of a prepared circuit. -/
 theorem basisConvertedPreparedWord_valid (D : Matrix W W ℂ)
     (hD : D ∈ Matrix.unitaryGroup W ℂ) (cs : List (PreparedStep W))
     (hcs : PreparedCircuitValid cs) : PreparedCircuitValid (basisConvertedPreparedWord D cs) := by
@@ -80,6 +114,8 @@ theorem basisConvertedPreparedWord_valid (D : Matrix W W ℂ)
   · exact hcs c hc
   · exact hD
 
+/-- For unitary `D` and isometric `F`, basis conversion transfers a block encoding on frame `D *
+F` to one on `F` with the same normalization and error. -/
 theorem basisConvertedPreparedWord_blockEncoding (D O1 O2 : Matrix W W ℂ)
     (hD : D ∈ Matrix.unitaryGroup W ℂ) (cs : List (PreparedStep W))
     (A : Matrix I I ℂ) (F : Matrix W I ℂ) (hF : IsIsometry F) (α ε : ℝ)
@@ -95,8 +131,12 @@ end Generic
 section Actual
 variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I]
+/-- The second-order circuit workspace consisting of an outer Boolean control, the four-branch
+prepared predicate labels, and data workspace `W`. -/
 abbrev SecondOrderSpace (J W : Type) := Bool × (PreparedPredicateLabels (Fin 4) J Bool × W)
 
+/-- The unitary real-part averaging preparation acting on the appropriate Boolean register in
+the flattened second-order workspace. -/
 def secondOrderAveragePrepare : Matrix (SecondOrderSpace J W) (SecondOrderSpace J W) ℂ :=
   parallelOracle (J := Bool)
     ((parallelOracle (J := Fin 4 × J)
@@ -104,6 +144,8 @@ def secondOrderAveragePrepare : Matrix (SecondOrderSpace J W) (SecondOrderSpace 
       (preparedPredicateWorkspaceEquiv (Fin 4) J Bool W)
       (preparedPredicateWorkspaceEquiv (Fin 4) J Bool W))
 
+/-- The clean second-order encoding frame obtained by fixing the outer control, branch and
+sample labels, and the two inner Boolean registers. -/
 def secondOrderDecodedFrame (j₀ : J) (F : Matrix W I ℂ) :
     Matrix (SecondOrderSpace J W) I ℂ :=
   tagFrame false (reindexFrame (preparedPredicateWorkspaceEquiv (Fin 4) J Bool W)
@@ -111,6 +153,7 @@ def secondOrderDecodedFrame (j₀ : J) (F : Matrix W I ℂ) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The real-part averaging preparation on the second-order workspace is unitary. -/
 theorem secondOrderAveragePrepare_unitary :
     secondOrderAveragePrepare (J := J) (W := W) ∈ Matrix.unitaryGroup (SecondOrderSpace J W) ℂ := by
   apply parallelOracle_unitary
@@ -121,12 +164,15 @@ theorem secondOrderAveragePrepare_unitary :
   rw [normalized_iff_inner_self]
   exact realPartAmplitude_normalized
 
+/-- The second-order decoded frame is an isometry whenever its underlying frame `F` is an
+isometry. -/
 theorem secondOrderDecodedFrame_isIsometry (j₀ : J) (F : Matrix W I ℂ) (hF : IsIsometry F) :
     IsIsometry (secondOrderDecodedFrame j₀ F) := by
   apply tagFrame_isIsometry
   apply reindexFrame_isIsometry
   exact tagFrame_isIsometry _ _ (tagFrame_isIsometry _ _ (tagFrame_isIsometry _ _ hF))
 
+/-- The second-order averaging preparation maps the decoded frame to `secondOrderFrame j₀ F`. -/
 theorem secondOrderAveragePrepare_frame (j₀ : J) (F : Matrix W I ℂ) :
     secondOrderAveragePrepare * secondOrderDecodedFrame j₀ F = secondOrderFrame j₀ F := by
   unfold secondOrderAveragePrepare secondOrderDecodedFrame secondOrderFrame
@@ -139,6 +185,8 @@ theorem secondOrderAveragePrepare_frame (j₀ : J) (F : Matrix W I ℂ) :
   rw [← Matrix.mul_assoc, prepareRegister_mul_prepareLift, complexPrepare_mulVec_ket]
   rfl
 
+/-- Conjugates `secondOrderWord` by the second-order averaging preparation to use the decoded
+encoding frame. -/
 def decodedSecondOrderWord (c : J → ℂ) (j₀ : J) (F : Matrix W I ℂ) (D : ℕ)
     (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ)) (βL βH : ℝ) (s : J → ℝ) :
     List (PreparedStep (SecondOrderSpace J W)) :=
@@ -146,6 +194,8 @@ def decodedSecondOrderWord (c : J → ℂ) (j₀ : J) (F : Matrix W I ℂ) (D : 
 
 omit [Fintype W] [DecidableEq I] in
 
+/-- With phase-list lengths given by `uniformBranchDegree`, the decoded second-order word uses
+`8 * D + 2` queries to each oracle and `80 * D + 35` fixed gates. -/
 theorem decodedSecondOrderWord_cost (c : J → ℂ) (j₀ : J) (F : Matrix W I ℂ) (D : ℕ)
     (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ))
     (hlen : ∀ k, (zs k).length = uniformBranchDegree D k) (βL βH : ℝ) (s : J → ℝ) :
@@ -159,12 +209,15 @@ theorem decodedSecondOrderWord_cost (c : J → ℂ) (j₀ : J) (F : Matrix W I �
 
 omit [DecidableEq I] in
 
+/-- Validity of the second-order prepared word implies validity of its decoded basis conversion. -/
 theorem decodedSecondOrderWord_valid (c : J → ℂ) (j₀ : J) (F : Matrix W I ℂ) (D : ℕ)
     (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ)) (βL βH : ℝ) (s : J → ℝ)
     (hcs : PreparedCircuitValid (secondOrderWord c j₀ F D base zs βL βH s)) :
     PreparedCircuitValid (decodedSecondOrderWord c j₀ F D base zs βL βH s) :=
   basisConvertedPreparedWord_valid _ secondOrderAveragePrepare_unitary _ hcs
 
+/-- For an isometric underlying frame, decoding transfers the second-order word's block encoding
+to `secondOrderDecodedFrame` with the same target, normalization, and error. -/
 theorem decodedSecondOrderWord_blockEncoding (c : J → ℂ) (j₀ : J) (F : Matrix W I ℂ)
     (hF : IsIsometry F) (D : ℕ) (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ))
     (βL βH : ℝ) (s : J → ℝ) (O1 O2 : Matrix (SecondOrderSpace J W) (SecondOrderSpace J W) ℂ)

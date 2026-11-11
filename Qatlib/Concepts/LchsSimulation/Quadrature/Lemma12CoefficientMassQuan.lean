@@ -8,6 +8,28 @@ import Qatlib.Concepts.LchsSimulation.Quadrature.Lemma12CoefficientMassStat
 import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialKernelModulus
 import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+
+/-!
+# Coefficient mass for composite Gauss LCHS
+
+Positive polynomial-exact rules give a simple window-dependent bound on the composite
+coefficient mass. The theorem `lemma12CoefficientMass` establishes the refined budget with a
+kernel integral term and an explicit grid correction, while `node_omega_prod_integral` recovers
+the nodal-product identity from exactness. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `lemma12_coefficient_mass_le_window`: For a positive polynomial-exact rule and `M ≥ 1`, the
+  composite coefficient mass is at most `2 * K / highKernelC β` when `0 < β < 1`.
+* `lemma12CoefficientMass`: The composite Gauss coefficient mass is bounded by the stated kernel
+  integral budget plus `2 * K / (3 * highKernelC β) * (16 * h)^(2 * Q)`, as formalized for [An,
+  Childs, and Lin, Lemma 12][AnChildsLin2026].
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +41,8 @@ noncomputable section
 namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open Set MeasureTheory
 
+/-- For `0 < β < 1`, `K ≥ 1`, and `M ≥ 1`, the displayed kernel integral budget plus the
+composite grid correction is strictly positive. -/
 theorem lemma12_coefficient_budget_pos (β : ℝ) (K Q M : ℕ)
     (hβ : 0 < β) (hβ1 : β < 1) (hK : 1 ≤ K) (hM : 1 ≤ M) :
     0 < (Real.exp 1) ^ 2 / Real.pi * (1 + 1 / (β * (1 - β))) +
@@ -28,6 +52,8 @@ theorem lemma12_coefficient_budget_pos (β : ℝ) (K Q M : ℕ)
   have hC := highKernelC_pos β
   positivity
 
+/-- For a positive polynomial-exact rule and `M ≥ 1`, the composite coefficient mass is at most
+`2 * K / highKernelC β` when `0 < β < 1`. -/
 theorem lemma12_coefficient_mass_le_window (β : ℝ) (K Q M : ℕ)
     (node weight : Fin Q → ℝ) (hβ : 0 < β) (hβ1 : β < 1) (hM : 1 ≤ M)
     (hw : ∀ q, 0 < weight q)
@@ -63,6 +89,8 @@ theorem lemma12_coefficient_mass_le_window (β : ℝ) (K Q M : ℕ)
       dsimp [h]
       field_simp
 
+/-- For positive `Q`, a rule exact through degree `2 * Q - 1` has the stated factorial value for
+the integral of the squared nodal product on `[-1, 1]`. -/
 private theorem node_omega_prod_integral (Q : ℕ) (hQ : 1 ≤ Q) (node weight : Fin Q → ℝ)
     (hexact : ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
       ∫ x in (-1 : ℝ)..1, p.eval x = ∑ q, weight q * p.eval (node q)) :
@@ -180,6 +208,9 @@ private theorem node_omega_prod_integral (Q : ℕ) (hQ : 1 ≤ Q) (node weight :
     _ = ((2 : ℝ) ^ (2 * Q + 1) * (Q.factorial : ℝ) ^ 4) /
           (((2 * Q + 1 : ℕ) : ℝ) * (((2 * Q).factorial : ℕ) : ℝ) ^ 2) := homega₁
 
+/-- The composite Gauss coefficient mass is bounded by the stated kernel integral budget plus `2
+* K / (3 * highKernelC β) * (16 * h)^(2 * Q)`, as formalized for [An, Childs, and Lin, Lemma
+12][AnChildsLin2026]. -/
 theorem lemma12CoefficientMass : Lemma12CoefficientMass := by
   intro β K Q M node weight hβ hβ1 hK hQ hM hw hexact
   (try dsimp only)

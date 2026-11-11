@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceScheduleStat
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
+
+/-!
+# Explicit schedules for left-grid source approximation
+
+`inhomogeneousSourceSchedule` chooses the window cutoff, LCHS node count, and source time-grid
+size to meet the prescribed accuracy. The resulting schedule also bounds the coefficient spacing
+and the sampled source mass. See [AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `inhomogeneousSourceSchedule`: The prescribed cutoff, LCHS node count, and positive time-grid
+  size achieve source error at most `ε / 2`, together with the stated spacing, raw-budget, and
+  source-mass bounds.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -23,6 +42,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The prescribed cutoff, LCHS node count, and positive time-grid size achieve source error at
+most `ε / 2`, together with the stated spacing, raw-budget, and source-mass bounds. See
+[AnLiuLin2023]. -/
 theorem inhomogeneousSourceSchedule : InhomogeneousSourceSchedule := by
   intro I _ _ L H b b' s t ε Λ β lamL lamH bmax hL hH hb hPSD hHerm hst hε hbmax0
     hd hβ hbmax hlL hlH hΛ

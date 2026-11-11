@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionStat
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+
+/-!
+# Correctness of unified trapezoidal LCHS preparation
+
+The unified family separates into homogeneous and source labels, has an explicit
+coefficient-mass factorization, and consists of unitary matrices under the preparation
+hypotheses. `inhTrap_unified_raw_vector` identifies its action with the homogeneous quadrature
+plus the source quadrature. `inhomogeneousTrapezoidPreparedSolution` transfers vector
+approximation error to the density of every positive-success compiled output.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inhTrap_unified_coefficient_mass`: factors the combined mass into Cauchy mass and source
+  mass.
+* `inhTrap_unified_raw_vector`: identifies the unified approximation vector.
+* `inhomogeneousTrapezoidPreparedSolution`: proves the conditional output density bound.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -36,12 +60,16 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- On a homogeneous label, the unified coefficient is the corresponding static Cauchy-grid
+coefficient. -/
 theorem inhTrap_coeff_homogeneous (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ) (j : Fin N) :
     inhTrapUnifiedCoeff b s t K N Mt (Fin.castAdd (N*(Mt+1)) j) = staticLchsCoeff K N j := by
   simp [inhTrapUnifiedCoeff, j.isLt]
 
 omit [DecidableEq I] in
 
+/-- On a source label, the unified coefficient is the product of the time trapezoid weight,
+Cauchy-grid coefficient, and sampled source norm. -/
 theorem inhTrap_coeff_source (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)
     (p : Fin N × Fin (Mt+1)) :
     inhTrapUnifiedCoeff b s t K N Mt (Fin.natAdd N (finProdFinEquiv p)) =
@@ -53,6 +81,8 @@ theorem inhTrap_coeff_source (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)
 
 omit [DecidableEq I] in
 
+/-- For `s ≤ t`, the unified coefficient mass equals the Cauchy coefficient mass times one plus
+the trapezoid-weighted sum of source norms. -/
 theorem inhTrap_unified_coefficient_mass (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)
     (hst : s ≤ t) :
     coefficientMass (inhTrapUnifiedCoeff b s t K N Mt) =
@@ -83,6 +113,8 @@ theorem inhTrap_unified_coefficient_mass (b : ℝ → QState I) (s t : ℝ) (K N
 
 omit [DecidableEq I] in
 
+/-- The unified coefficient mass is positive for positive cutoff and node count on an ordered
+time interval. -/
 theorem inhTrap_unified_mass_pos (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)
     (hst : s ≤ t) (hK : 0 < K) (hN : 0 < N) :
     0 < coefficientMass (inhTrapUnifiedCoeff b s t K N Mt) := by
@@ -94,6 +126,8 @@ theorem inhTrap_unified_mass_pos (b : ℝ → QState I) (s t : ℝ) (K N Mt : �
       mul_nonneg (inh_trap_weight_nonneg Mt s t hst _) (norm_nonneg _))
   linarith
 
+/-- Every unified matrix is unitary when the generators have the stated continuity and
+Hermiticity properties and all input and source preparation matrices are unitary. -/
 theorem inhTrap_unified_unitary (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N Mt : ℕ)
     (B : Matrix I I ℂ) (P : Fin (Mt+1) → Matrix I I ℂ)
     (hL : Continuous L) (hH : Continuous H)
@@ -113,12 +147,16 @@ theorem inhTrap_unified_unitary (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N 
   · exact (unitaryGroup I ℂ).mul_mem (hV _ _ _)
       ((unitaryGroup I ℂ).mul_mem (hP _) (Unitary.star_mem hB))
 
+/-- On a homogeneous label, the unified matrix is the full-interval ordered Hamiltonian
+propagator at that Cauchy-grid node. -/
 theorem inhTrap_unitary_homogeneous (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N Mt : ℕ)
     (B : Matrix I I ℂ) (P : Fin (Mt+1) → Matrix I I ℂ) (j : Fin N) :
     inhTrapUnifiedUnitary L H s t K N Mt B P (Fin.castAdd (N*(Mt+1)) j) =
       orderedEvolution (fun u => Complex.I • (H u+staticLchsGrid K N j • L u)) s t := by
   simp [inhTrapUnifiedUnitary, j.isLt]
 
+/-- On a source label, the unified matrix is the source-time Hamiltonian propagator multiplied
+by the source preparation and the conjugate transpose of the input preparation. -/
 theorem inhTrap_unitary_source (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N Mt : ℕ)
     (B : Matrix I I ℂ) (P : Fin (Mt+1) → Matrix I I ℂ) (p : Fin N × Fin (Mt+1)) :
     inhTrapUnifiedUnitary L H s t K N Mt B P (Fin.natAdd N (finProdFinEquiv p)) =
@@ -127,6 +165,9 @@ theorem inhTrap_unitary_source (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N M
   rw [dif_neg (by simp only [Fin.val_natAdd]; omega)]
   simp only [Fin.val_natAdd, Nat.add_sub_cancel_left, Fin.eta, Equiv.symm_apply_apply]
 
+/-- If the source preparations load the normalized nonzero source vectors, applying the unified
+linear combination to the prepared input gives the homogeneous quadrature vector plus the
+trapezoidal source sum. -/
 theorem inhTrap_unified_raw_vector (L H : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s t : ℝ) (K N Mt : ℕ) (B : Matrix I I ℂ) (P : Fin (Mt+1) → Matrix I I ℂ) (i₀ : I)
     (hB : B ∈ unitaryGroup I ℂ)
@@ -173,6 +214,9 @@ theorem inhTrap_unified_raw_vector (L H : ℝ → Matrix I I ℂ) (b : ℝ → Q
   simp_rw [← Finset.smul_sum, ← Matrix.smul_mulVec, ← Matrix.sum_mulVec]
   rfl
 
+/-- Every positive-success compiled unified output has density trace norm error at most `4 * ε /
+τ` when its raw approximation error is at most `ε ≤ τ / 2` and the forced output norm is at
+least `τ` [AnLiuLin2023]. -/
 theorem inhomogeneousTrapezoidPreparedSolution : InhomogeneousTrapezoidPreparedSolution := by
   intro I _ _ L H b s t ε τ K N Mt B P i₀ j₀ hL hH hPSD hHerm hst hB hP
     _hprep hK hN _hMt hε hτ hετ

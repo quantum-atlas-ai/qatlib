@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
 
+/-!
+# Scalar semigroup reproduced by the LCHS kernel
+
+The Fourier-weighted boundary kernel is integrable for real frequencies. For nonnegative `x`,
+`near_exponential_kernel_scalar_semigroup_consumer` identifies its integral with the scalar
+decay factor `Real.exp (-x)`. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `near_exponential_kernel_scalar_semigroup_consumer`: For `0 < β < 1` and `x ≥ 0`, the
+  Fourier-weighted kernel is integrable and its real-line integral equals `Real.exp (-x)`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +34,8 @@ open MeasureTheory Set
 open scoped Classical ComplexOrder
 set_option warningAsError false
 
+/-- For `0 < β < 1` and real `x`, the product of `highKernelG β k` with `Complex.exp (-Complex.I
+* k * x)` is integrable in `k`. -/
 theorem highKernel_fourier_integrable (β x : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     Integrable (fun k : ℝ => highKernelG β k *
       Complex.exp (-Complex.I * (k : ℂ) * (x : ℂ))) := by
@@ -30,6 +49,8 @@ theorem highKernel_fourier_integrable (β x : ℝ) (hβ : 0 < β) (hβ1 : β < 1
   rw [norm_mul, Complex.norm_exp]
   simp
 
+/-- For `0 < β < 1` and `x ≥ 0`, the Fourier-weighted kernel is integrable and its real-line
+integral equals `Real.exp (-x)`. See [AnChildsLin2026]. -/
 theorem near_exponential_kernel_scalar_semigroup_consumer :
     ∀ (β x : ℝ), 0 < β → β < 1 → 0 ≤ x →
       Integrable (fun k : ℝ => highKernelG β k *

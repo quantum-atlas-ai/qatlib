@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidScheduleStat
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureLine
+
+/-!
+# Accuracy schedules for trapezoidal LCHS
+
+`homogeneous_k_trapezoid_schedule_of_quadrature` turns the quantitative quadrature statement
+into explicit cutoff and subdivision choices. The theorem `homogeneousKTrapezoidSchedule`
+instantiates this implication with the proved quadrature bound. See [AnLiuLin2023] for the
+mathematical setting.
+
+## Main statements
+
+* `homogeneousKTrapezoidSchedule`: The prescribed cutoff and positive trapezoidal subdivision
+  count achieve operator-norm error at most `ε` under the stated forward-time and generator norm
+  hypotheses.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -22,6 +42,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The homogeneous trapezoidal quadrature bound implies the explicit schedule with positive
+subdivision count and operator-norm error at most `ε`. -/
 theorem homogeneous_k_trapezoid_schedule_of_quadrature
     (hq : HomogeneousKTrapezoidQuadrature) : HomogeneousKTrapezoidSchedule := by
   intro I _ _ L H s t ε lamL hL hH hPSD hHerm hst hε hbound
@@ -70,6 +92,8 @@ theorem homogeneous_k_trapezoid_schedule_of_quadrature
   exact he.trans ((add_le_add le_rfl
     (mul_le_mul_of_nonneg_left hCF (by positivity))).trans (by linarith only [htail, hquad, hε.le]))
 
+/-- The prescribed cutoff and positive trapezoidal subdivision count achieve operator-norm error
+at most `ε` under the stated forward-time and generator norm hypotheses. See [AnLiuLin2023]. -/
 theorem homogeneousKTrapezoidSchedule : HomogeneousKTrapezoidSchedule :=
   homogeneous_k_trapezoid_schedule_of_quadrature homogeneousKTrapezoidQuadrature
 

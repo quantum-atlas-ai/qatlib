@@ -8,6 +8,31 @@ import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
 import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
 import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+
+/-!
+# Signal simulation words for binary clock midpoints
+
+This module builds coherent binary clock evolution from guarded quantum signal processing words
+[LowChuang2017]. Each `atomWord` implements one dyadic pulse, and `program` concatenates the
+pulses while retaining a common simulator frame.
+
+`instructions` uses all dyadic axes to select the desired midpoint evolution on every clock
+label. Full-state error bounds compose additively, and the resource theorems give exact query
+and gate sums for the forward and adjoint words.
+
+## Main statements
+
+* `target_midpoint`: the complete dyadic target selects evolution at each rational midpoint.
+* `instructions_full_output_error`: the complete framed error is at most `(q+1)*2⁻ᵏ` times the
+  input norm.
+* `instructions_resources`: the compiled word is well formed and its costs are sums of pulse
+  costs.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -49,9 +74,14 @@ open Qatlib.Concepts.QspSimulation.Achievability
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- The signal simulator register consisting of three Boolean flags and the underlying register
+`H`. -/
 abbrev SimulatorSpace (H : Type) := Bool × (Bool × (Bool × H))
+/-- The binary clock register together with an enable flag and the signal simulator register. -/
 abbrev Physical (q : ℕ) (H : Type) := Reg q × (Bool × SimulatorSpace H)
 
+/-- Rectangular complex matrix multiplication with its finite intermediate index type specified
+explicitly. -/
 private noncomputable abbrev matmul {X Y Z : Type} [Fintype Y]
     (A : Matrix X Y ℂ) (B : Matrix Y Z ℂ) : Matrix X Z ℂ :=
   @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
@@ -61,14 +91,19 @@ section Spectator
 
 variable {C W : Type} [Fintype C] [DecidableEq C] [Fintype W] [DecidableEq W]
 
+/-- Extend an explicit gate by an untouched register `C`, preserving forward and backward oracle
+instructions. -/
 noncomputable def spectatorStep : AdjointStep W → AdjointStep (C × W)
   | .gate V => .gate (parallelOracle (J := C) V)
   | .forward => .forward
   | .backward => .backward
 
+/-- Extend every instruction of an adjoint word by an untouched register `C`. -/
 noncomputable def spectatorWord (cs : List (AdjointStep W)) : List (AdjointStep (C × W)) :=
   cs.map spectatorStep
 
+/-- Evaluating a spectator-extended word with the extended oracle gives the spectator extension
+of its original evaluation. -/
 theorem spectatorWord_evaluate (O : Matrix W W ℂ) (cs : List (AdjointStep W)) :
     evaluate (parallelOracle (J := C) O) (spectatorWord cs) =
       parallelOracle (J := C) (evaluate O cs) := by
@@ -95,6 +130,7 @@ theorem spectatorWord_evaluate (O : Matrix W W ℂ) (cs : List (AdjointStep W)) 
 
 omit [Fintype C] [Fintype W] [DecidableEq W] in
 
+/-- Adding a spectator register preserves the adjoint query count. -/
 theorem spectatorWord_queryCount (cs : List (AdjointStep W)) :
     adjointQueryCount (spectatorWord (C := C) cs) = adjointQueryCount cs := by
   induction cs with
@@ -105,6 +141,7 @@ theorem spectatorWord_queryCount (cs : List (AdjointStep W)) :
 
 omit [Fintype C] [Fintype W] [DecidableEq W] in
 
+/-- Adding a spectator register preserves the explicit gate count. -/
 theorem spectatorWord_gateCount (cs : List (AdjointStep W)) :
     adjointGateCount (spectatorWord (C := C) cs) = adjointGateCount cs := by
   induction cs with
@@ -113,6 +150,7 @@ theorem spectatorWord_gateCount (cs : List (AdjointStep W)) :
     change adjointGateCount (spectatorStep c :: spectatorWord cs) = adjointGateCount (c :: cs)
     cases c <;> simp [spectatorStep, adjointGateCount, ih]
 
+/-- Adding a spectator register preserves well-formedness of an adjoint word. -/
 theorem spectatorWord_wellFormed (cs : List (AdjointStep W))
     (hcs : WellFormedAdjointCircuit cs) :
     WellFormedAdjointCircuit (spectatorWord (C := C) cs) := by
@@ -128,17 +166,21 @@ theorem spectatorWord_wellFormed (cs : List (AdjointStep W))
     · exact ih hcs
     · exact ih hcs
 
+/-- Flip the enable flag on precisely those control labels for which `g` is true. -/
 noncomputable def guardToggle (g : C → Bool) : Matrix (C × (Bool × W)) (C × (Bool × W)) ℂ :=
   select (fun c => if g c then controlFlip else 1)
 
+/-- Surround a spectator extension of the controlled word by two guard toggles. -/
 noncomputable def guardedWord (g : C → Bool) (cs : List (AdjointStep W)) :
     List (AdjointStep (C × (Bool × W))) :=
   [.gate (guardToggle g)] ++ spectatorWord (compileControlled cs) ++ [.gate (guardToggle g)]
 
+/-- The controlled matrix `V`, conjugated by the control flip when `b` is true. -/
 noncomputable def enabledMatrix (b : Bool) (V : Matrix W W ℂ) :
     Matrix (Bool × W) (Bool × W) ℂ :=
   if b then controlFlip * controlOracle V * controlFlip else controlOracle V
 
+/-- The conditional enable-flag toggle is unitary. -/
 theorem guardToggle_unitary (g : C → Bool) :
     guardToggle (W := W) g ∈ Matrix.unitaryGroup _ ℂ := by
   change select (fun c : C => if g c then controlFlip (H := W) else 1) ∈
@@ -153,6 +195,8 @@ theorem guardToggle_unitary (g : C → Bool) :
       · rw [if_neg hc]
         exact Submonoid.one_mem _)
 
+/-- The guarded word evaluates to the clock selection of `enabledMatrix (g c)` applied to the
+original word's evaluation. -/
 theorem guardedWord_evaluate (g : C → Bool) (O : Matrix W W ℂ)
     (cs : List (AdjointStep W)) :
     evaluate (parallelOracle (J := C) (controlOracle O)) (guardedWord g cs) =
@@ -165,6 +209,7 @@ theorem guardedWord_evaluate (g : C → Bool) (O : Matrix W W ℂ)
   funext c
   cases g c <;> simp [enabledMatrix]
 
+/-- Guarding a well-formed adjoint word preserves well-formedness. -/
 theorem guardedWord_wellFormed (g : C → Bool) (cs : List (AdjointStep W))
     (hcs : WellFormedAdjointCircuit cs) : WellFormedAdjointCircuit (guardedWord g cs) := by
   have ht : WellFormedAdjointCircuit ([.gate (guardToggle (W := W) g)] :
@@ -174,18 +219,22 @@ theorem guardedWord_wellFormed (g : C → Bool) (cs : List (AdjointStep W))
 
 omit [Fintype C] [Fintype W] in
 
+/-- Guarding a word preserves its adjoint query count. -/
 theorem guardedWord_queryCount (g : C → Bool) (cs : List (AdjointStep W)) :
     adjointQueryCount (guardedWord g cs) = adjointQueryCount cs := by
   simp [guardedWord, spectatorWord_queryCount, queryCount_compileControlled, adjointQueryCount]
 
 omit [Fintype C] [Fintype W] in
 
+/-- Guarding a word adds exactly two explicit gates. -/
 theorem guardedWord_gateCount (g : C → Bool) (cs : List (AdjointStep W)) :
     adjointGateCount (guardedWord g cs) = adjointGateCount cs + 2 := by
   simp only [guardedWord, adjointGateCount_append, spectatorWord_gateCount,
     gateCount_compileControlled, adjointGateCount]
   omega
 
+/-- On a fixed Boolean fiber, a controlled oracle applies `V` when the fiber is true and the
+identity otherwise. -/
 theorem controlOracle_fiber (b : Bool) (V : Matrix W W ℂ) :
     matmul (controlOracle V) (encodingFiber (I := W) b) =
       matmul (encodingFiber b) (if b then V else 1) := by
@@ -194,6 +243,7 @@ theorem controlOracle_fiber (b : Bool) (V : Matrix W W ℂ) :
     simp [matmul, controlOracle, select, encodingFiber, Matrix.mul_apply,
       Fintype.sum_prod_type, Matrix.one_apply, mul_ite, ite_mul]
 
+/-- The control flip sends the Boolean fiber `b` to the fiber `!b`. -/
 theorem controlFlip_fiber (b : Bool) :
     matmul (controlFlip (H := W)) (encodingFiber (I := W) b) = encodingFiber (!b) := by
   ext ⟨c, i⟩ j
@@ -201,6 +251,8 @@ theorem controlFlip_fiber (b : Bool) :
     simp [matmul, controlFlip, encodingFiber, Matrix.mul_apply,
       Fintype.sum_prod_type, Matrix.one_apply, mul_ite]
 
+/-- On the false enable fiber, `enabledMatrix b V` applies `V` if `b` is true and the identity
+otherwise. -/
 theorem enabledMatrix_fiber (b : Bool) (V : Matrix W W ℂ) :
     matmul (enabledMatrix b V) (encodingFiber (I := W) false) =
       matmul (encodingFiber false) (if b then V else 1) := by
@@ -223,6 +275,8 @@ theorem enabledMatrix_fiber (b : Bool) (V : Matrix W W ℂ) :
         rw [controlFlip_fiber]
         simp only [Bool.not_true]
 
+/-- Applying the enabled matrix to a state in the false enable fiber conditionally applies `V`
+while preserving that fiber. -/
 theorem enabledMatrix_apply (b : Bool) (V : Matrix W W ℂ) (ψ : QState W) :
     enabledMatrix b V *ᵥ (encodingFiber false *ᵥ ψ) =
       encodingFiber false *ᵥ ((if b then V else 1) *ᵥ ψ) := by
@@ -240,11 +294,13 @@ section JointError
 variable {C O I : Type} [Fintype C] [DecidableEq C]
   [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- Extend a rectangular frame by the identity on the control register `C`. -/
 noncomputable def liftFrame (F : Matrix O I ℂ) : Matrix (C × O) (C × I) ℂ :=
   (1 : Matrix C C ℂ) ⊗ₖ F
 
 omit [Fintype O] [DecidableEq O] [DecidableEq I] in
 
+/-- Applying a lifted frame acts independently on each control slice. -/
 theorem liftFrame_mulVec (F : Matrix O I ℂ) (Ψ : QState (C × I)) (c : C) (o : O) :
     (liftFrame F *ᵥ Ψ) (c, o) = (F *ᵥ (fun i => Ψ (c, i))) o := by
   simp [liftFrame, Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
@@ -252,12 +308,15 @@ theorem liftFrame_mulVec (F : Matrix O I ℂ) (Ψ : QState (C × I)) (c : C) (o 
 
 omit [DecidableEq O] in
 
+/-- Applying a selected matrix acts on each control slice by the matrix selected by that label. -/
 theorem select_mulVec (M : C → Matrix O O ℂ) (Ψ : QState (C × O)) (c : C) (o : O) :
     (select M *ᵥ Ψ) (c, o) = (M c *ᵥ (fun i => Ψ (c, i))) o := by
   simp [select, Matrix.mulVec, dotProduct, Fintype.sum_prod_type, ite_mul]
 
 omit [DecidableEq C] [DecidableEq I] in
 
+/-- The squared Euclidean norm of a joint state is the sum of the squared norms of its control
+slices. -/
 theorem joint_norm_sq (Ψ : QState (C × I)) :
     ‖toEuclidean_fromVec Ψ‖ ^ 2 =
       ∑ c : C, ‖toEuclidean_fromVec (fun i => Ψ (c, i))‖ ^ 2 := by
@@ -265,6 +324,8 @@ theorem joint_norm_sq (Ψ : QState (C × I)) :
 
 omit [DecidableEq O] [DecidableEq I] in
 
+/-- A uniform framed error bound on every control slice gives the same relative error bound for
+the coherent selected operation. -/
 theorem selected_full_output_error (M : C → Matrix O O ℂ) (F : Matrix O I ℂ)
     (V : C → Matrix I I ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     (h : ∀ c (ψ : QState I),
@@ -290,6 +351,8 @@ theorem selected_full_output_error (M : C → Matrix O O ℂ) (F : Matrix O I �
 
 omit [DecidableEq O] [Fintype I] in
 
+/-- Extending an isometric frame by the identity on a control register preserves the isometry
+property. -/
 theorem liftFrame_isometry (F : Matrix O I ℂ) (hF : IsIsometry F) :
     IsIsometry (liftFrame (C := C) F) := by
   change Fᴴ * F = 1 at hF
@@ -303,9 +366,12 @@ section EnabledError
 
 variable {W I : Type} [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
 
+/-- Embed a frame into the false enable-flag fiber. -/
 noncomputable def enableFrame (R : Matrix W I ℂ) : Matrix (Bool × W) I ℂ :=
   matmul (encodingFiber (I := W) false) R
 
+/-- A framed relative error bound remains valid after adding a false enable flag and
+conditionally enabling the operation. -/
 theorem enabled_full_output_error (b : Bool) (E : Matrix W W ℂ) (R : Matrix W I ℂ)
     (V : Matrix I I ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     (h : ∀ ψ : QState I,
@@ -334,12 +400,17 @@ theorem enabled_full_output_error (b : Bool) (E : Matrix W W ℂ) (R : Matrix W 
 
 end EnabledError
 
+/-- The rational simulation time of a dyadic pulse, obtained by multiplying `τ` by its midpoint
+coefficient. -/
 def atomTime (q : ℕ) (τ : ℚ) (a : Option (Fin q)) : ℚ :=
   τ * DyadicClockPulses.midpointCoefficient q a
 
+/-- The sum of the times of pulses enabled by a given binary clock label. -/
 def activeTime {q : ℕ} (τ : ℚ) (as : List (Option (Fin q))) (x : Reg q) : ℚ :=
   (as.map (fun a => if DyadicClockPulses.axisEnabled a x then atomTime q τ a else 0)).sum
 
+/-- Using all dyadic axes gives total active time equal to `τ` times the clock label's rational
+midpoint. -/
 theorem midpoint_activeTime (q : ℕ) (τ : ℚ) (x : Reg q) :
     activeTime τ (DyadicClockPulses.axes q) x =
       τ * Clock.rationalMidpoint (2 ^ q) (Clock.clockLabel q x) := by
@@ -362,6 +433,7 @@ theorem midpoint_activeTime (q : ℕ) (τ : ℚ) (x : Reg q) :
   field_simp [(DyadicClockPulses.denominator_pos q).ne']
   ring
 
+/-- The sum of absolute pulse times equals `|τ|*(1-1/(2*denominator q))`. -/
 theorem midpoint_absolute_time (q : ℕ) (τ : ℚ) :
     ((DyadicClockPulses.axes q).map (fun a => |atomTime q τ a|)).sum =
       |τ| * (1 - 1 / (2 * DyadicClockPulses.denominator q)) := by
@@ -384,6 +456,7 @@ theorem midpoint_absolute_time (q : ℕ) (τ : ℚ) :
   field_simp [(DyadicClockPulses.denominator_pos q).ne']
   ring
 
+/-- The sum of absolute dyadic pulse times is at most `|τ|`. -/
 theorem midpoint_absolute_time_le (q : ℕ) (τ : ℚ) :
     ((DyadicClockPulses.axes q).map (fun a => |atomTime q τ a|)).sum ≤ |τ| := by
   rw [midpoint_absolute_time]
@@ -395,51 +468,69 @@ section Actual
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- The oracle on the three-flag signal simulator register, with the specified controlled and
+identity extensions of `U`. -/
 noncomputable def signalOracle (U : Matrix H H ℂ) :
     Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ) (controlOracle (parallelOracle (J := Bool) U))
 
+/-- The signal oracle with an additional enable control and an untouched binary clock register. -/
 noncomputable def nestedOracle (q : ℕ) (U : Matrix H H ℂ) :
     Matrix (Physical q H) (Physical q H) ℂ :=
   parallelOracle (J := Reg q) (controlOracle (signalOracle U))
 
+/-- The simulator frame obtained by applying `scaleEightFrame` to the Hamiltonian frame of `F`. -/
 noncomputable def simulatorFrame (F : Matrix H I ℂ) : Matrix (SimulatorSpace H) I ℂ :=
   scaleEightFrame (hamiltonianFrame F)
 
+/-- Extend the simulator frame by a false enable flag and the clock identity to obtain the
+common pulse frame. -/
 noncomputable def commonFrame (q : ℕ) (F : Matrix H I ℂ) :
     Matrix (Physical q H) (Reg q × I) ℂ :=
   liftFrame (enableFrame (simulatorFrame F))
 
+/-- The computed signal word for one dyadic pulse, guarded by that pulse's clock-enable
+function. -/
 noncomputable def atomWord (q : ℕ) (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ)
     (a : Option (Fin q)) : List (AdjointStep (Physical q H)) :=
   guardedWord (DyadicClockPulses.axisEnabled a) (computedSignalWord F (atomTime q τ a) k)
 
+/-- Concatenate the guarded signal words for a list of dyadic pulse axes. -/
 noncomputable def program (q : ℕ) (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) :
     List (Option (Fin q)) → List (AdjointStep (Physical q H))
   | [] => []
   | a :: as => atomWord q F τ k a ++ program q F τ k as
 
+/-- The guarded signal program containing every dyadic midpoint pulse axis. -/
 noncomputable def instructions (q : ℕ) (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) :
     List (AdjointStep (Physical q H)) := program q F τ k (DyadicClockPulses.axes q)
 
+/-- The computed segment count multiplied by the per-segment query cost
+`27*(4*computedSignalCutoff t k+1)`. -/
 def queryCost (t : ℚ) (k : ℕ) : ℕ :=
   computedSignalSegments t * (27 * (4 * computedSignalCutoff t k + 1))
 
+/-- The explicit gate cost of a guarded computed signal pulse, including its two guard toggles. -/
 def macroCost (t : ℚ) (k : ℕ) : ℕ :=
   computedSignalSegments t * (27 * (4 * computedSignalCutoff t k + 6) + 79) + 2
 
+/-- The clock-selected evolution for a single enabled dyadic pulse, with the identity on
+disabled labels. -/
 noncomputable def atomTarget (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
     (a : Option (Fin q)) : Matrix (Reg q × I) (Reg q × I) ℂ :=
   select (fun x => if DyadicClockPulses.axisEnabled a x then
     hamiltonianEvolution A (atomTime q τ a : ℝ) else 1)
 
+/-- The clock-selected Hamiltonian evolution at the total active time of a pulse list. -/
 noncomputable def target (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
     (as : List (Option (Fin q))) : Matrix (Reg q × I) (Reg q × I) ℂ :=
   select (fun x => hamiltonianEvolution A (activeTime τ as x : ℝ))
 
+/-- The target for the empty pulse list is the identity matrix. -/
 theorem target_nil (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ) : target q A τ [] = 1 := by
   simp [target, activeTime, parallel_select_one]
 
+/-- The target for a leading pulse and a tail factors as the pulse target times the tail target. -/
 theorem target_cons (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
     (a : Option (Fin q)) (as : List (Option (Fin q))) :
     target q A τ (a :: as) = atomTarget q A τ a * target q A τ as := by
@@ -456,6 +547,7 @@ theorem target_cons (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
     congr 1
     simp [activeTime, hx]
 
+/-- Every pulse-list target is unitary when the encoded matrix is Hermitian. -/
 theorem target_unitary (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
     (as : List (Option (Fin q))) (hA : A.IsHermitian) :
     target q A τ as ∈ Matrix.unitaryGroup _ ℂ := by
@@ -465,11 +557,13 @@ theorem target_unitary (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ)
     (fun x : Reg q => hamiltonianEvolution A (activeTime τ as x : ℝ))
     (fun _ => hamiltonianEvolution_unitary hA _)
 
+/-- The nested signal oracle is unitary when its underlying oracle `U` is unitary. -/
 theorem nestedOracle_unitary (q : ℕ) (U : Matrix H H ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) : nestedOracle q U ∈ Matrix.unitaryGroup _ ℂ :=
   parallelOracle_unitary (controlOracle_unitary
     (tensorGate_unitary (Submonoid.one_mem _) (controlOracle_unitary (parallelOracle_unitary hU))))
 
+/-- The common clock and enable frame is an isometry for the stated projected unitary encoding. -/
 theorem commonFrame_isometry (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (_hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
     IsIsometry (commonFrame q F) := by
@@ -479,6 +573,8 @@ theorem commonFrame_isometry (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
   exact liftFrame_isometry _ (Qatlib.Concepts.BlockEncoding.EncodingCore.IsIsometry.mul
     (encodingFiber_isIsometry false) hR)
 
+/-- Each guarded pulse word is well formed and has query count `queryCost` and gate count
+`macroCost` at its pulse time. -/
 theorem atomWord_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) (a : Option (Fin q))
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
@@ -491,6 +587,8 @@ theorem atomWord_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
   · simpa only [atomWord, guardedWord_queryCount, queryCost] using! hq
   · simpa only [atomWord, guardedWord_gateCount, macroCost] using! congrArg (fun n => n + 2) hg
 
+/-- A pulse program is well formed and its query and gate counts are the sums of the
+corresponding pulse costs. -/
 theorem program_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) (as : List (Option (Fin q)))
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
@@ -505,6 +603,8 @@ theorem program_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     · simp only [program, adjointQueryCount_append, hq, ih.2.1, List.map_cons, List.sum_cons]
     · simp only [program, adjointGateCount_append, hg, ih.2.2, List.map_cons, List.sum_cons]
 
+/-- A single guarded pulse approximates its target on the common frame within `2⁻ᵏ` times the
+input Euclidean norm. -/
 theorem atomWord_full_output_error (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) (a : Option (Fin q))
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
@@ -531,6 +631,8 @@ section Composition
 
 variable {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- Two framed relative error bounds combine with error at most `ε+δ` when the first implemented
+matrix and second target are unitary. -/
 theorem compose_full_output_error (W E : Matrix O O ℂ) (R : Matrix O I ℂ)
     (V Z : Matrix I I ℂ) (δ ε : ℝ)
     (hW : W ∈ Matrix.unitaryGroup O ℂ) (hZ : Z ∈ Matrix.unitaryGroup I ℂ)
@@ -565,6 +667,8 @@ section FullConsumer
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- A pulse program's framed output error is at most its list length times `2⁻ᵏ` times the input
+Euclidean norm. -/
 theorem program_full_output_error (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) (as : List (Option (Fin q)))
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
@@ -592,6 +696,8 @@ theorem program_full_output_error (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H
         simp only [List.length_cons, Nat.cast_add, Nat.cast_one]
         ring
 
+/-- The target for all dyadic axes selects Hamiltonian evolution at `τ` times each clock label's
+rational midpoint. -/
 theorem target_midpoint (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ) :
     target q A τ (DyadicClockPulses.axes q) =
       select (fun x : Reg q => hamiltonianEvolution A
@@ -601,6 +707,8 @@ theorem target_midpoint (q : ℕ) (A : Matrix I I ℂ) (τ : ℚ) :
   funext x
   rw [midpoint_activeTime]
 
+/-- The complete binary clock word approximates its midpoint target on the common frame within
+`(q+1)*2⁻ᵏ` times the input norm. -/
 theorem instructions_full_output_error (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ)
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
@@ -614,6 +722,8 @@ theorem instructions_full_output_error (q : ℕ) (A : Matrix I I ℂ) (U : Matri
   simpa only [instructions, target_midpoint, DyadicClockPulses.axes_length] using!
     program_full_output_error q A U F τ k (DyadicClockPulses.axes q) hA h Ψ
 
+/-- The complete binary clock word is well formed, with exact query and gate counts given by
+sums of its dyadic pulse costs. -/
 theorem instructions_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ)
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
@@ -624,6 +734,8 @@ theorem instructions_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H �
       ((DyadicClockPulses.axes q).map (fun a => macroCost (atomTime q τ a) k)).sum :=
   program_resources q A U F τ k (DyadicClockPulses.axes q) hA h
 
+/-- The complete binary clock instruction word evaluates to a unitary matrix for the stated
+Hermitian encoding. -/
 theorem instructions_unitary (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ)
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
@@ -631,6 +743,8 @@ theorem instructions_unitary (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
   (instructions_resources q A U F τ k hA h).1.evaluate_unitary
     (nestedOracle_unitary q U h.unitary)
 
+/-- The adjoint binary clock word is well formed and has the same dyadic query and gate sums as
+the forward word. -/
 theorem inverse_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ)
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F) :
@@ -643,6 +757,8 @@ theorem inverse_resources (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
   exact ⟨hw.adjointCircuit, (adjointQueryCount_adjointCircuit _).trans hq,
     (adjointGateCount_adjointCircuit _).trans hg⟩
 
+/-- Evaluating the adjoint binary clock word gives the conjugate transpose of the forward
+evaluation. -/
 theorem inverse_evaluate (q : ℕ) (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ)
     (U : Matrix H H ℂ) :
     evaluate (nestedOracle q U) (adjointCircuit (instructions q F τ k)) =

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.LinearMap
 import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
 
+/-!
+# Curvelet frame reconstruction
+
+This module defines analysis coefficients and integral synthesis for a real Hilbert-space
+family. The predicate `IsCurveletFrame` packages integrability, membership of synthesized
+vectors in a subspace, and a Gram identity, from which reconstruction and Parseval identities
+follow.
+
+These constructions accompany the results of [Liu2009].
+
+## Main statements
+
+* `curvelet_reconstruction`: reconstructs a vector in the frame subspace from its coefficients.
+* `curvelet_parseval`: identifies coefficient energy with squared norm.
+
+## References
+
+* [Liu, 2009][Liu2009]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -19,11 +39,15 @@ namespace Qatlib.Papers.CurveletLiu08.MainResults
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
 variable {I : Type*} [MeasurableSpace I]
 
+/-- The coefficient function given by the real inner products of the frame vectors with `f`. -/
 def curveletCoeff (v : I → H) (f : H) : I → ℝ := fun i => ⟪v i, f⟫
 
+/-- The Bochner integral of the frame vectors weighted by the coefficient function. -/
 noncomputable def curveletSynthesis (v : I → H) (μ : Measure I) (c : I → ℝ) : H :=
   ∫ i, c i • v i ∂μ
 
+/-- Conditions on a real Hilbert-space family ensuring integrability of analyzed vectors,
+subspace membership of synthesis, and preservation of inner products on the subspace. -/
 structure IsCurveletFrame (V : Submodule ℝ H) (μ : Measure I) (v : I → H) : Prop where
 
   integrable : ∀ f : H, Integrable (fun i => (⟪v i, f⟫ : ℝ) • v i) μ
@@ -32,6 +56,8 @@ structure IsCurveletFrame (V : Submodule ℝ H) (μ : Measure I) (v : I → H) :
 
   gram : ∀ f ∈ V, ∀ g ∈ V, ∫ i, ⟪v i, f⟫ * ⟪v i, g⟫ ∂μ = ⟪f, g⟫
 
+/-- The inner product of an integrable synthesis with a fixed vector equals the integral of the
+corresponding scalar inner products. -/
 theorem inner_curveletSynthesis (v : I → H) (μ : Measure I) (c : I → ℝ)
     (hint : Integrable (fun i => c i • v i) μ) (g : H) :
     ⟪curveletSynthesis v μ c, g⟫ = ∫ i, c i * ⟪v i, g⟫ ∂μ := by
@@ -42,6 +68,8 @@ theorem inner_curveletSynthesis (v : I → H) (μ : Measure I) (c : I → ℝ)
   filter_upwards with i
   rw [innerSL_apply_apply, real_inner_smul_right, real_inner_comm]
 
+/-- A vector in the frame subspace equals the synthesis of its analysis coefficients under
+`IsCurveletFrame`. See [Liu2009]. -/
 theorem curvelet_reconstruction (V : Submodule ℝ H) (μ : Measure I) (v : I → H)
     (F : IsCurveletFrame V μ v) {f : H} (hf : f ∈ V) :
     curveletSynthesis v μ (curveletCoeff v f) = f := by
@@ -56,6 +84,8 @@ theorem curvelet_reconstruction (V : Submodule ℝ H) (μ : Measure I) (v : I �
     rw [inner_sub_left, hpair _ hxV, sub_self]
   exact sub_eq_zero.mp hx0
 
+/-- For a vector in the frame subspace, the integral of squared coefficients equals its squared
+norm under `IsCurveletFrame`. See [Liu2009]. -/
 theorem curvelet_parseval (V : Submodule ℝ H) (μ : Measure I) (v : I → H)
     (F : IsCurveletFrame V μ v) {f : H} (hf : f ∈ V) :
     ∫ i, (⟪v i, f⟫ : ℝ) ^ 2 ∂μ = ‖f‖ ^ 2 := by

@@ -12,6 +12,27 @@ import Mathlib.Analysis.Calculus.Deriv.Add
 import Mathlib.Analysis.Calculus.Deriv.Mul
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Topology.Order.Compact
+
+/-!
+# Distance-truncated contour principal values
+
+This module defines `HasCauchyPVAt`, `CauchyPVExistsAt`, and `cauchyPVAt` using contour
+integrals with a shrinking distance cutoff about a specified point. It proves integrability
+criteria, uniqueness, linearity, congruence, concatenation, and transformation laws for the
+principal-value calculus supporting [WangEtAl2026].
+
+## Main statements
+
+* `HasCauchyPVAt.of_avoidance`: agreement with the ordinary integral away from the center.
+* `HasCauchyPVAt.concat`: additivity over adjacent intervals.
+* `HasCauchyPVAt.const_mul_curve`: invariance under nonzero complex scaling with a transformed
+  integrand.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,12 +46,17 @@ open Filter Topology
 
 namespace TauCeti.Contour
 
+/-- The contour integral has principal value `L` at `z₀` when distance-truncated integrands are
+eventually interval integrable and their integrals converge to `L` as the positive cutoff
+tends to zero. -/
 def HasCauchyPVAt (γ : ℝ → ℂ) (a b : ℝ) (f : ℂ → ℂ) (z₀ : ℂ) (L : ℂ) : Prop :=
   (∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
       (fun t => if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0) MeasureTheory.volume a b) ∧
     Tendsto (fun ε ↦ ∫ t in a..b, if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0)
       (𝓝[>] 0) (𝓝 L)
 
+/-- Unfolds the principal-value predicate into eventual integrability and convergence of the
+distance-truncated contour integrals. -/
 theorem hasCauchyPVAt_iff {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ} :
     HasCauchyPVAt γ a b f z₀ L ↔
       (∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
@@ -39,6 +65,8 @@ theorem hasCauchyPVAt_iff {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀
           (𝓝[>] 0) (𝓝 L) :=
   Iff.rfl
 
+/-- Establishes principal value `L` by eventually identifying the integrable truncated contour
+integrals with a function tending to `L`. -/
 theorem HasCauchyPVAt.of_tendsto {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ L : ℂ} {F : ℝ → ℂ}
     (hF : Tendsto F (𝓝[>] (0 : ℝ)) (𝓝 L))
     (h : ∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
@@ -47,21 +75,30 @@ theorem HasCauchyPVAt.of_tendsto {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ
     HasCauchyPVAt γ a b f z₀ L :=
   hasCauchyPVAt_iff.mpr ⟨h.mono fun _ hε ↦ hε.1, hF.congr' (h.mono fun _ hε ↦ hε.2.symm)⟩
 
+/-- The `limUnder` value of contour integrals truncated outside the closed ball of radius `ε`
+about `z₀`, as `ε` tends to zero from above. -/
 def cauchyPVAt (γ : ℝ → ℂ) (a b : ℝ) (f : ℂ → ℂ) (z₀ : ℂ) : ℂ :=
   limUnder (𝓝[>] (0 : ℝ)) fun ε ↦
     ∫ t in a..b, if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0
 
+/-- Existence of a complex limit satisfying `HasCauchyPVAt` for the given curve, interval,
+integrand, and truncation center. -/
 def CauchyPVExistsAt (γ : ℝ → ℂ) (a b : ℝ) (f : ℂ → ℂ) (z₀ : ℂ) : Prop :=
   ∃ L : ℂ, HasCauchyPVAt γ a b f z₀ L
 
+/-- Principal-value existence is equivalent to the existence of a value satisfying
+`HasCauchyPVAt`. -/
 theorem cauchyPVExistsAt_iff {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} :
     CauchyPVExistsAt γ a b f z₀ ↔ ∃ L, HasCauchyPVAt γ a b f z₀ L :=
   Iff.rfl
 
+/-- A specified principal value implies principal-value existence. -/
 theorem CauchyPVExistsAt.intro {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) : CauchyPVExistsAt γ a b f z₀ :=
   ⟨L, h⟩
 
+/-- Truncation according to distance from an almost everywhere measurable complex map preserves
+almost everywhere strong measurability. -/
 theorem aestronglyMeasurable_truncated {α E : Type*} [MeasurableSpace α] [TopologicalSpace E]
     [Zero E] {μ : MeasureTheory.Measure α} {γ : α → ℂ} {F : α → E} {z₀ : ℂ} {ε : ℝ}
     (hγ : AEMeasurable γ μ) (hF : MeasureTheory.AEStronglyMeasurable F μ) :
@@ -73,6 +110,8 @@ theorem aestronglyMeasurable_truncated {α E : Type*} [MeasurableSpace α] [Topo
   rw [h]
   exact hF.indicator₀ (nullMeasurableSet_lt aemeasurable_const ((hγ.sub_const z₀).norm))
 
+/-- A measurable truncated contour integrand is interval integrable when the curve derivative is
+integrable and the function is bounded on the retained portion. -/
 theorem intervalIntegrable_truncated_mul_deriv {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀ : ℂ} {a b M ε : ℝ}
     (hderiv_int : IntervalIntegrable (fun t => deriv γ t) MeasureTheory.volume a b)
     (h_aesm : MeasureTheory.AEStronglyMeasurable
@@ -89,6 +128,8 @@ theorem intervalIntegrable_truncated_mul_deriv {γ : ℝ → ℂ} {f : ℂ → �
   · rw [norm_zero]
     positivity
 
+/-- For positive cutoff, an inverse-power pole times the curve derivative is interval integrable
+after distance truncation, assuming curve continuity and derivative integrability. -/
 theorem intervalIntegrable_pow_inv_mul_deriv_truncated {γ : ℝ → ℂ} {z₀ : ℂ} {a b : ℝ}
     (c : ℂ) (k : ℕ) (hγ_cont : ContinuousOn γ (Set.uIcc a b))
     (hderiv_int : IntervalIntegrable (fun t => deriv γ t) MeasureTheory.volume a b)
@@ -106,6 +147,8 @@ theorem intervalIntegrable_pow_inv_mul_deriv_truncated {γ : ℝ → ℂ} {z₀ 
   rw [norm_div, norm_pow]
   gcongr
 
+/-- For positive cutoff, the truncated reciprocal kernel times the curve derivative is interval
+integrable under curve continuity and derivative integrability. -/
 theorem intervalIntegrable_inv_sub_truncated {γ : ℝ → ℂ} {z₀ : ℂ} {a b : ℝ}
     (hγ_cont : ContinuousOn γ (Set.uIcc a b))
     (hderiv_int : IntervalIntegrable (fun t => deriv γ t) MeasureTheory.volume a b)
@@ -115,6 +158,8 @@ theorem intervalIntegrable_inv_sub_truncated {γ : ℝ → ℂ} {z₀ : ℂ} {a 
   simpa using
     intervalIntegrable_pow_inv_mul_deriv_truncated (z₀ := z₀) 1 1 hγ_cont hderiv_int hε
 
+/-- On an interval whose interior stays beyond the cutoff, the logarithmic derivative of `γ -
+z₀` equals the truncated reciprocal integrand almost everywhere. -/
 theorem ae_logDeriv_sub_eq_truncated {γ : ℝ → ℂ} {z₀ : ℂ} {a b ε : ℝ} (hab : a ≤ b)
     (hfar : ∀ s ∈ Set.Ioo a b, ε < ‖γ s - z₀‖) :
     ∀ᵐ s ∂MeasureTheory.volume, s ∈ Set.uIoc a b →
@@ -124,6 +169,8 @@ theorem ae_logDeriv_sub_eq_truncated {γ : ℝ → ℂ} {z₀ : ℂ} {a b ε : �
   rw [Set.uIoc_of_le hab] at hmem
   rw [if_pos (hfar s ⟨hmem.1, hmem.2.lt_of_ne hs_ne⟩), deriv_sub_const, inv_mul_eq_div]
 
+/-- If the curve lies within the cutoff almost everywhere, the truncated integrand is interval
+integrable and its integral is zero. -/
 theorem intervalIntegrable_truncated_and_integral_truncated_eq_zero_of_norm_le {E : Type*}
     [NormedAddCommGroup E] [NormedSpace ℝ E] {γ : ℝ → ℂ} {g : ℝ → E} {z₀ : ℂ} {a b ε : ℝ}
     (hnear : ∀ᵐ s ∂MeasureTheory.volume, s ∈ Set.uIoc a b → ‖γ s - z₀‖ ≤ ε) :
@@ -137,6 +184,8 @@ theorem intervalIntegrable_truncated_and_integral_truncated_eq_zero_of_norm_le {
       (((MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr hae).mono fun _ hs => hs.symm),
     intervalIntegral.integral_zero_ae hae⟩
 
+/-- Constructs a principal-value statement from eventual integrability and convergence of the
+truncated integrals. -/
 theorem HasCauchyPVAt.intro {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (hint : ∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
       (fun t => if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0) MeasureTheory.volume a b)
@@ -145,6 +194,8 @@ theorem HasCauchyPVAt.intro {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z�
     HasCauchyPVAt γ a b f z₀ L :=
   ⟨hint, htendsto⟩
 
+/-- If the curve stays a positive distance from `z₀` and the truncations are eventually
+integrable, the ordinary contour integral is its principal value. -/
 theorem HasCauchyPVAt.of_dist_lower_bound {γ : ℝ → ℂ} {z₀ : ℂ} {f : ℂ → ℂ}
     {a b m : ℝ} (hm_pos : 0 < m) (h_far : ∀ t ∈ Set.uIcc a b, m ≤ ‖γ t - z₀‖)
     (h_int_tr : ∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
@@ -157,32 +208,41 @@ theorem HasCauchyPVAt.of_dist_lower_bound {γ : ℝ → ℂ} {z₀ : ℂ} {f : �
     rw [if_pos (lt_of_lt_of_le hε.2 (h_far t ht))]
   exact HasCauchyPVAt.intro h_int_tr (Tendsto.congr' h_ev.symm tendsto_const_nhds)
 
+/-- A principal-value statement gives convergence of the distance-truncated contour integrals. -/
 theorem HasCauchyPVAt.tendsto {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) :
     Tendsto (fun ε ↦ ∫ t in a..b, if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0)
       (𝓝[>] 0) (𝓝 L) :=
   h.2
 
+/-- A principal-value statement gives interval integrability of the truncated integrands for all
+sufficiently small positive cutoffs. -/
 theorem HasCauchyPVAt.eventually_intervalIntegrable {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     {L : ℂ} (h : HasCauchyPVAt γ a b f z₀ L) :
     ∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
       (fun t => if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0) MeasureTheory.volume a b :=
   h.1
 
+/-- The value `cauchyPVAt` equals any value satisfying the principal-value predicate. -/
 theorem HasCauchyPVAt.cauchyPVAt_eq {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) : cauchyPVAt γ a b f z₀ = L :=
   h.2.limUnder_eq
 
+/-- The principal value of a fixed contour integrand at a fixed center is unique. -/
 theorem HasCauchyPVAt.unique {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L₁ L₂ : ℂ}
     (h₁ : HasCauchyPVAt γ a b f z₀ L₁) (h₂ : HasCauchyPVAt γ a b f z₀ L₂) : L₁ = L₂ :=
   tendsto_nhds_unique h₁.2 h₂.2
 
+/-- When a principal value exists, `cauchyPVAt` satisfies its defining principal-value
+predicate. -/
 theorem CauchyPVExistsAt.hasCauchyPVAt_cauchyPVAt {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ a b f z₀) :
     HasCauchyPVAt γ a b f z₀ (cauchyPVAt γ a b f z₀) := by
   obtain ⟨_, hL⟩ := h
   rwa [hL.cauchyPVAt_eq]
 
+/-- Functions agreeing along the curve on the open parameter interval have the same specified
+principal value. -/
 theorem HasCauchyPVAt.congr_along_curve {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) (h_eq : ∀ t ∈ Set.uIoo a b, f (γ t) = g (γ t)) :
     HasCauchyPVAt γ a b g z₀ L := by
@@ -193,6 +253,8 @@ theorem HasCauchyPVAt.congr_along_curve {γ : ℝ → ℂ} {a b : ℝ} {f g : �
   · refine Filter.Tendsto.congr (fun ε => intervalIntegral.integral_congr_uIoo fun t ht => ?_) h.2
     simp only [h_eq t ht]
 
+/-- Functions agreeing along the curve on the open parameter interval have equal `cauchyPVAt`
+values. -/
 theorem cauchyPVAt_congr_along_curve {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ → ℂ} {z₀ : ℂ}
     (h_eq : ∀ t ∈ Set.uIoo a b, f (γ t) = g (γ t)) :
     cauchyPVAt γ a b f z₀ = cauchyPVAt γ a b g z₀ := by
@@ -202,6 +264,8 @@ theorem cauchyPVAt_congr_along_curve {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ �
   refine intervalIntegral.integral_congr_uIoo fun t ht => ?_
   simp only [h_eq t ht]
 
+/-- Almost everywhere equal curves with matching derivatives away from the truncation center
+have almost everywhere equal positively truncated integrands. -/
 private theorem truncated_integrand_congr_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_eq : γ₁ =ᵐ[MeasureTheory.volume.restrict (Set.uIoc a b)] γ₂)
     (h_deriv : ∀ᵐ t ∂MeasureTheory.volume.restrict (Set.uIoc a b),
@@ -215,6 +279,8 @@ private theorem truncated_integrand_congr_ae {γ₁ γ₂ : ℝ → ℂ} {a b : 
   · rw [if_neg, if_neg] <;> simp [hz, ← ht, hε.not_gt]
   · simp only [ht, htd hz]
 
+/-- Transfers a principal value between almost everywhere equal curves whose derivatives agree
+away from the truncation center. -/
 theorem HasCauchyPVAt.congr_curve_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ₁ a b f z₀ L)
     (h_eq : γ₁ =ᵐ[MeasureTheory.volume.restrict (Set.uIoc a b)] γ₂)
@@ -230,18 +296,23 @@ theorem HasCauchyPVAt.congr_curve_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f 
     exact intervalIntegral.integral_congr_ae_restrict
       (truncated_integrand_congr_ae h_eq h_deriv (Set.mem_Ioi.mp hε))
 
+/-- Curves agreeing on the open parameter interval have equal truncated integrands throughout
+that interval. -/
 private theorem truncated_integrand_eqOn_uIoo {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_eq : Set.EqOn γ₁ γ₂ (Set.uIoo a b)) (ε : ℝ) :
     Set.EqOn (fun t => if ‖γ₁ t - z₀‖ > ε then f (γ₁ t) * deriv γ₁ t else 0)
       (fun t => if ‖γ₂ t - z₀‖ > ε then f (γ₂ t) * deriv γ₂ t else 0) (Set.uIoo a b) :=
   fun _ ht => by simp only [h_eq ht, h_eq.deriv isOpen_Ioo ht]
 
+/-- Transfers a principal value between curves agreeing on the open parameter interval. -/
 theorem HasCauchyPVAt.congr_curve {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ₁ a b f z₀ L) (h_eq : Set.EqOn γ₁ γ₂ (Set.uIoo a b)) :
     HasCauchyPVAt γ₂ a b f z₀ L :=
   ⟨h.1.mono fun ε hε => IntervalIntegrable.congr_uIoo hε (truncated_integrand_eqOn_uIoo h_eq ε),
     h.2.congr fun ε => intervalIntegral.integral_congr_uIoo (truncated_integrand_eqOn_uIoo h_eq ε)⟩
 
+/-- Principal-value existence transfers between almost everywhere equal curves with matching
+derivatives away from the truncation center. -/
 theorem CauchyPVExistsAt.congr_curve_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ₁ a b f z₀)
     (h_eq : γ₁ =ᵐ[MeasureTheory.volume.restrict (Set.uIoc a b)] γ₂)
@@ -251,12 +322,15 @@ theorem CauchyPVExistsAt.congr_curve_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} 
   let ⟨_, hL⟩ := h
   CauchyPVExistsAt.intro (hL.congr_curve_ae h_eq h_deriv)
 
+/-- Principal-value existence transfers between curves agreeing on the open parameter interval. -/
 theorem CauchyPVExistsAt.congr_curve {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ₁ a b f z₀) (h_eq : Set.EqOn γ₁ γ₂ (Set.uIoo a b)) :
     CauchyPVExistsAt γ₂ a b f z₀ :=
   let ⟨_, hL⟩ := h
   CauchyPVExistsAt.intro (hL.congr_curve h_eq)
 
+/-- Almost everywhere equal curves with matching derivatives away from the truncation center
+have equal `cauchyPVAt` values. -/
 theorem cauchyPVAt_congr_curve_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_eq : γ₁ =ᵐ[MeasureTheory.volume.restrict (Set.uIoc a b)] γ₂)
     (h_deriv : ∀ᵐ t ∂MeasureTheory.volume.restrict (Set.uIoc a b),
@@ -271,6 +345,7 @@ theorem cauchyPVAt_congr_curve_ae {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : �
   unfold cauchyPVAt Filter.limUnder
   rw [Filter.map_congr hev]
 
+/-- Curves agreeing on the open parameter interval have equal `cauchyPVAt` values. -/
 theorem cauchyPVAt_congr_curve {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_eq : Set.EqOn γ₁ γ₂ (Set.uIoo a b)) :
     cauchyPVAt γ₁ a b f z₀ = cauchyPVAt γ₂ a b f z₀ := by
@@ -279,6 +354,8 @@ theorem cauchyPVAt_congr_curve {γ₁ γ₂ : ℝ → ℂ} {a b : ℝ} {f : ℂ 
   ext ε
   exact intervalIntegral.integral_congr_uIoo (truncated_integrand_eqOn_uIoo h_eq ε)
 
+/-- Multiplying the integrand by a complex constant multiplies its principal value by that
+constant. -/
 theorem HasCauchyPVAt.const_mul {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) (c : ℂ) :
     HasCauchyPVAt γ a b (fun z => c * f z) z₀ (c * L) := by
@@ -288,6 +365,7 @@ theorem HasCauchyPVAt.const_mul {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ}
   · simpa only [← intervalIntegral.integral_const_mul, mul_ite, mul_zero, mul_assoc] using
       h.2.const_mul c
 
+/-- The principal value of a sum is the sum of the specified principal values. -/
 theorem HasCauchyPVAt.add {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ → ℂ} {z₀ : ℂ} {L₁ L₂ : ℂ}
     (hf : HasCauchyPVAt γ a b f z₀ L₁) (hg : HasCauchyPVAt γ a b g z₀ L₂) :
     HasCauchyPVAt γ a b (fun z => f z + g z) z₀ (L₁ + L₂) := by
@@ -298,6 +376,7 @@ theorem HasCauchyPVAt.add {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ → ℂ} {z�
     filter_upwards [hf.1, hg.1] with ε hfi hgi
     simp only [← intervalIntegral.integral_add hfi hgi, ite_add_ite, add_zero, add_mul]
 
+/-- The zero function has principal value zero along every curve. -/
 theorem HasCauchyPVAt.zero {γ : ℝ → ℂ} {a b : ℝ} {z₀ : ℂ} :
     HasCauchyPVAt γ a b (fun _ => 0) z₀ 0 := by
   refine ⟨?_, ?_⟩
@@ -305,11 +384,13 @@ theorem HasCauchyPVAt.zero {γ : ℝ → ℂ} {a b : ℝ} {z₀ : ℂ} :
     simpa only [zero_mul, ite_self] using intervalIntegrable_const
   · simpa only [zero_mul, ite_self, intervalIntegral.integral_zero] using tendsto_const_nhds
 
+/-- The `cauchyPVAt` value of the zero function is zero. -/
 @[simp]
 theorem cauchyPVAt_zero {γ : ℝ → ℂ} {a b : ℝ} {z₀ : ℂ} :
     cauchyPVAt γ a b (fun _ => 0) z₀ = 0 :=
   HasCauchyPVAt.zero.cauchyPVAt_eq
 
+/-- The principal value on a degenerate parameter interval is zero. -/
 theorem HasCauchyPVAt.refl (γ : ℝ → ℂ) (a : ℝ) (f : ℂ → ℂ) (z₀ : ℂ) :
     HasCauchyPVAt γ a a f z₀ 0 := by
   refine HasCauchyPVAt.intro ?_ ?_
@@ -317,15 +398,18 @@ theorem HasCauchyPVAt.refl (γ : ℝ → ℂ) (a : ℝ) (f : ℂ → ℂ) (z₀ 
     exact IntervalIntegrable.refl
   · simpa only [intervalIntegral.integral_same] using tendsto_const_nhds (x := (0 : ℂ))
 
+/-- A principal value exists on a degenerate parameter interval. -/
 theorem CauchyPVExistsAt.refl (γ : ℝ → ℂ) (a : ℝ) (f : ℂ → ℂ) (z₀ : ℂ) :
     CauchyPVExistsAt γ a a f z₀ :=
   CauchyPVExistsAt.intro (HasCauchyPVAt.refl γ a f z₀)
 
+/-- The `cauchyPVAt` value on a degenerate parameter interval is zero. -/
 @[simp]
 theorem cauchyPVAt_same (γ : ℝ → ℂ) (a : ℝ) (f : ℂ → ℂ) (z₀ : ℂ) :
     cauchyPVAt γ a a f z₀ = 0 :=
   (HasCauchyPVAt.refl γ a f z₀).cauchyPVAt_eq
 
+/-- The principal value of a finite sum is the finite sum of its specified principal values. -/
 theorem HasCauchyPVAt.sum {ι : Type*} {γ : ℝ → ℂ} {a b : ℝ} {z₀ : ℂ} {f : ι → ℂ → ℂ} {L : ι → ℂ}
     {s : Finset ι} (h : ∀ i ∈ s, HasCauchyPVAt γ a b (f i) z₀ (L i)) :
     HasCauchyPVAt γ a b (fun z => ∑ i ∈ s, f i z) z₀ (∑ i ∈ s, L i) := by
@@ -336,6 +420,8 @@ theorem HasCauchyPVAt.sum {ι : Type*} {γ : ℝ → ℂ} {a b : ℝ} {z₀ : �
     simp only [Finset.sum_insert hj]
     exact (h j (Finset.mem_insert_self j s)).add (ih fun i hi => h i (Finset.mem_insert_of_mem hi))
 
+/-- For a continuous curve avoiding the truncation center, an integrable contour integrand has
+principal value equal to its ordinary integral. -/
 theorem HasCauchyPVAt.of_avoidance {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_cont : ContinuousOn γ (Set.uIcc a b)) (h_avoid : ∀ t ∈ Set.uIcc a b, γ t ≠ z₀)
     (hf_int : IntervalIntegrable (fun t => f (γ t) * deriv γ t) MeasureTheory.volume a b) :
@@ -348,6 +434,7 @@ theorem HasCauchyPVAt.of_avoidance {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → �
   refine (intervalIntegrable_congr fun t ht => ?_).mpr hf_int
   exact if_pos (hε.2.trans_le (ht₀_min (Set.uIoc_subset_uIcc ht)))
 
+/-- Principal values add when adjacent parameter intervals are concatenated. -/
 theorem HasCauchyPVAt.concat {γ : ℝ → ℂ} {a b c : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} {L₁ L₂ : ℂ}
     (h_ab : HasCauchyPVAt γ a b f z₀ L₁) (h_bc : HasCauchyPVAt γ b c f z₀ L₂) :
     HasCauchyPVAt γ a c f z₀ (L₁ + L₂) := by
@@ -358,6 +445,8 @@ theorem HasCauchyPVAt.concat {γ : ℝ → ℂ} {a b c : ℝ} {f : ℂ → ℂ} 
     filter_upwards [h_ab.1, h_bc.1] with ε hab_int hbc_int
     exact intervalIntegral.integral_add_adjacent_intervals hab_int hbc_int
 
+/-- Principal values on finitely many consecutive parameter intervals sum to the principal value
+on the full interval. -/
 theorem HasCauchyPVAt.concat_range {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀ : ℂ} {n : ℕ} {t : ℕ → ℝ} {L : ℕ → ℂ}
     (h : ∀ k < n, HasCauchyPVAt γ (t k) (t (k + 1)) f z₀ (L k)) :
     HasCauchyPVAt γ (t 0) (t n) f z₀ (∑ k ∈ Finset.range n, L k) := by
@@ -369,6 +458,8 @@ theorem HasCauchyPVAt.concat_range {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀ : 
         ih fun k hk => h k (hk.trans n.lt_succ_self)
       simpa only [Finset.sum_range_succ] using hprefix.concat (h n n.lt_succ_self)
 
+/-- A positive distance lower bound and eventual integrability of the truncations imply
+principal-value existence. -/
 theorem cauchyPVExistsAt_of_dist_lower_bound {γ : ℝ → ℂ} {z₀ : ℂ} {f : ℂ → ℂ} {a b m : ℝ}
     (hm_pos : 0 < m) (h_far : ∀ t ∈ Set.uIcc a b, m ≤ ‖γ t - z₀‖)
     (h_int_tr : ∀ᶠ ε in 𝓝[>] (0 : ℝ), IntervalIntegrable
@@ -376,18 +467,23 @@ theorem cauchyPVExistsAt_of_dist_lower_bound {γ : ℝ → ℂ} {z₀ : ℂ} {f 
     CauchyPVExistsAt γ a b f z₀ :=
   ⟨_, HasCauchyPVAt.of_dist_lower_bound hm_pos h_far h_int_tr⟩
 
+/-- A continuous curve avoiding the truncation center has a principal value whenever the
+ordinary contour integrand is interval integrable. -/
 theorem cauchyPVExistsAt_of_avoidance {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_cont : ContinuousOn γ (Set.uIcc a b)) (h_avoid : ∀ t ∈ Set.uIcc a b, γ t ≠ z₀)
     (hf_int : IntervalIntegrable (fun t => f (γ t) * deriv γ t) MeasureTheory.volume a b) :
     CauchyPVExistsAt γ a b f z₀ :=
   ⟨_, HasCauchyPVAt.of_avoidance h_cont h_avoid hf_int⟩
 
+/-- Principal-value existence is preserved by multiplication of the integrand by a complex
+constant. -/
 theorem CauchyPVExistsAt.const_mul {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ a b f z₀) (c : ℂ) :
     CauchyPVExistsAt γ a b (fun z => c * f z) z₀ :=
   let ⟨_, hL⟩ := h
   ⟨_, hL.const_mul c⟩
 
+/-- Principal-value existence is preserved by addition of integrands. -/
 theorem CauchyPVExistsAt.add {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ → ℂ} {z₀ : ℂ}
     (hf : CauchyPVExistsAt γ a b f z₀) (hg : CauchyPVExistsAt γ a b g z₀) :
     CauchyPVExistsAt γ a b (fun z => f z + g z) z₀ :=
@@ -395,15 +491,19 @@ theorem CauchyPVExistsAt.add {γ : ℝ → ℂ} {a b : ℝ} {f g : ℂ → ℂ} 
   let ⟨_, hLg⟩ := hg
   ⟨_, hLf.add hLg⟩
 
+/-- The zero function possesses a principal value along every curve. -/
 theorem CauchyPVExistsAt.zero {γ : ℝ → ℂ} {a b : ℝ} {z₀ : ℂ} :
     CauchyPVExistsAt γ a b (fun _ => 0) z₀ :=
   ⟨0, HasCauchyPVAt.zero⟩
 
+/-- A finite sum of integrands possessing principal values also possesses a principal value. -/
 theorem CauchyPVExistsAt.sum {ι : Type*} {γ : ℝ → ℂ} {a b : ℝ} {z₀ : ℂ} {f : ι → ℂ → ℂ}
     {s : Finset ι} (h : ∀ i ∈ s, CauchyPVExistsAt γ a b (f i) z₀) :
     CauchyPVExistsAt γ a b (fun z => ∑ i ∈ s, f i z) z₀ :=
   ⟨_, HasCauchyPVAt.sum fun i hi => (h i hi).hasCauchyPVAt_cauchyPVAt⟩
 
+/-- Translating the curve and truncation center by `c` and replacing the integrand by `f (z -
+c)` preserves the specified principal value. -/
 theorem HasCauchyPVAt.translate {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) (c : ℂ) :
     HasCauchyPVAt (fun t => γ t + c) a b (fun z => f (z - c)) (z₀ + c) L := by
@@ -412,17 +512,23 @@ theorem HasCauchyPVAt.translate {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ}
     simpa using hε
   · simpa using h.tendsto
 
+/-- Translating the curve and truncation center together, with the corresponding translated
+integrand, preserves principal-value existence. -/
 theorem CauchyPVExistsAt.translate {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ a b f z₀) (c : ℂ) :
     CauchyPVExistsAt (fun t => γ t + c) a b (fun z => f (z - c)) (z₀ + c) :=
   let ⟨_, hL⟩ := cauchyPVExistsAt_iff.mp h
   CauchyPVExistsAt.intro (hL.translate c)
 
+/-- Translation of the curve and center with the corresponding translated integrand leaves
+`cauchyPVAt` unchanged. -/
 theorem cauchyPVAt_translate {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ} (c : ℂ) :
     cauchyPVAt (fun t => γ t + c) a b (fun z => f (z - c)) (z₀ + c)
       = cauchyPVAt γ a b f z₀ := by
   simp [cauchyPVAt]
 
+/-- Nonzero complex scaling of the curve and center, with the inverse-scaled integrand, changes
+the truncation radius from `ε` to `ε / ‖c‖`. -/
 private theorem truncated_const_mul_curve_eq {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀ c : ℂ} (hc : c ≠ 0)
     (ε t : ℝ) : (if ‖c * γ t - c * z₀‖ > ε then
         (fun z => c⁻¹ * f (c⁻¹ * z)) (c * γ t) * deriv (fun t => c * γ t) t else 0)
@@ -432,6 +538,8 @@ private theorem truncated_const_mul_curve_eq {γ : ℝ → ℂ} {f : ℂ → ℂ
   simp only [hiff, deriv_const_mul_field', inv_mul_cancel_left₀ hc]
   split_ifs <;> field_simp
 
+/-- Nonzero complex scaling of the curve and center preserves the specified principal value
+after replacing the integrand by `c⁻¹ * f (c⁻¹ * z)`. -/
 theorem HasCauchyPVAt.const_mul_curve {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) {c : ℂ} (hc : c ≠ 0) :
     HasCauchyPVAt (fun t => c * γ t) a b (fun z => c⁻¹ * f (c⁻¹ * z)) (c * z₀) L := by
@@ -446,12 +554,16 @@ theorem HasCauchyPVAt.const_mul_curve {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ �
     filter_upwards with ε
     exact intervalIntegral.integral_congr fun t _ => (truncated_const_mul_curve_eq hc ε t).symm
 
+/-- Nonzero complex scaling of the curve and center, with the corresponding inverse-scaled
+integrand, preserves principal-value existence. -/
 theorem CauchyPVExistsAt.const_mul_curve {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ a b f z₀) {c : ℂ} (hc : c ≠ 0) :
     CauchyPVExistsAt (fun t => c * γ t) a b (fun z => c⁻¹ * f (c⁻¹ * z)) (c * z₀) :=
   let ⟨_, hL⟩ := cauchyPVExistsAt_iff.mp h
   CauchyPVExistsAt.intro (hL.const_mul_curve hc)
 
+/-- Nonzero complex scaling of the curve and center, with the corresponding inverse-scaled
+integrand, leaves `cauchyPVAt` unchanged. -/
 theorem cauchyPVAt_const_mul_curve {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ c : ℂ} (hc : c ≠ 0) :
     cauchyPVAt (fun t => c * γ t) a b (fun z => c⁻¹ * f (c⁻¹ * z)) (c * z₀)
       = cauchyPVAt γ a b f z₀ := by
@@ -464,6 +576,7 @@ theorem cauchyPVAt_const_mul_curve {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → �
   congr 3 with ε
   exact intervalIntegral.integral_congr fun t _ => truncated_const_mul_curve_eq hc ε t
 
+/-- Exchanging the parameter endpoints negates the specified principal value. -/
 theorem HasCauchyPVAt.symm {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ L : ℂ}
     (h : HasCauchyPVAt γ a b f z₀ L) :
     HasCauchyPVAt γ b a f z₀ (-L) := by
@@ -474,17 +587,21 @@ theorem HasCauchyPVAt.symm {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z�
     exact (intervalIntegral.integral_symm (f :=
       fun t => if ‖γ t - z₀‖ > ε then f (γ t) * deriv γ t else 0) a b).symm
 
+/-- Principal-value existence is preserved when the parameter endpoints are exchanged. -/
 theorem CauchyPVExistsAt.symm {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ a b f z₀) :
     CauchyPVExistsAt γ b a f z₀ :=
   let ⟨_, hL⟩ := cauchyPVExistsAt_iff.mp h
   cauchyPVExistsAt_iff.mpr ⟨_, hL.symm⟩
 
+/-- When the principal value exists, exchanging the parameter endpoints negates `cauchyPVAt`. -/
 theorem cauchyPVAt_symm {γ : ℝ → ℂ} {a b : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h : CauchyPVExistsAt γ a b f z₀) :
     cauchyPVAt γ b a f z₀ = -cauchyPVAt γ a b f z₀ :=
   h.hasCauchyPVAt_cauchyPVAt.symm.cauchyPVAt_eq
 
+/-- Principal-value existence on adjacent parameter intervals implies existence on their
+concatenation. -/
 theorem CauchyPVExistsAt.concat {γ : ℝ → ℂ} {a b c : ℝ} {f : ℂ → ℂ} {z₀ : ℂ}
     (h_ab : CauchyPVExistsAt γ a b f z₀) (h_bc : CauchyPVExistsAt γ b c f z₀) :
     CauchyPVExistsAt γ a c f z₀ :=
@@ -492,6 +609,8 @@ theorem CauchyPVExistsAt.concat {γ : ℝ → ℂ} {a b c : ℝ} {f : ℂ → �
   let ⟨_, hL₂⟩ := h_bc
   ⟨_, hL₁.concat hL₂⟩
 
+/-- Principal-value existence on finitely many consecutive parameter intervals implies existence
+on the full interval. -/
 theorem CauchyPVExistsAt.concat_range {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀ : ℂ} {n : ℕ}
     {t : ℕ → ℝ} (h : ∀ k < n, CauchyPVExistsAt γ (t k) (t (k + 1)) f z₀) :
     CauchyPVExistsAt γ (t 0) (t n) f z₀ := by
@@ -499,6 +618,8 @@ theorem CauchyPVExistsAt.concat_range {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀
     cauchyPVAt γ (t k) (t (k + 1)) f z₀) ?_)
   exact fun k hk => (h k hk).hasCauchyPVAt_cauchyPVAt
 
+/-- When principal values exist on consecutive parameter intervals, the `cauchyPVAt` value on
+the full interval is their sum. -/
 theorem cauchyPVAt_concat_range {γ : ℝ → ℂ} {f : ℂ → ℂ} {z₀ : ℂ} {n : ℕ}
     {t : ℕ → ℝ} (h : ∀ k < n, CauchyPVExistsAt γ (t k) (t (k + 1)) f z₀) :
     cauchyPVAt γ (t 0) (t n) f z₀ =

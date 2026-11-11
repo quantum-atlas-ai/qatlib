@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
+
+/-!
+# Specification of expanded polynomial readout
+
+This module defines `PolyFigTwoExpandedReadout`, the native median concentration guarantee for
+the expanded Figure 2 amplitude-estimation law.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `PolyFigTwoExpandedReadout`: The proposition that expanded Figure 2 native readout estimates a
+  polynomial payoff in `[0, 1]` within `riskPolyReadoutWindow`, with failure probability at most
+  `(8 / 9) ^ r`, for `0 < c ≤ 1`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +45,9 @@ namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The proposition that expanded Figure 2 native readout estimates a polynomial payoff in `[0,
+1]` within `riskPolyReadoutWindow`, with failure probability at most `(8 / 9) ^ r`, for `0 <
+c ≤ 1`. -/
 def PolyFigTwoExpandedReadout : Prop :=
   ∀ (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) (u : ℕ) (c : ℝ) (fp : Polynomial ℝ)
     (M r bits : ℕ), (hA : A ∈ Matrix.unitaryGroup (Reg n) ℂ) → (hM : 2 ≤ M) →

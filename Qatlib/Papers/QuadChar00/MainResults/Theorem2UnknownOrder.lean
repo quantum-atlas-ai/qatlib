@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QuadChar00.MainResults.Defs
 import Qatlib.Papers.QuadChar00.MainResults.Lemma1FullAmplitude
+
+/-!
+# Fourier support and denominator recovery
+
+This module supplies arithmetic and Fourier identities for the unknown modulus shifted Jacobi
+problem. It proves uniform Fourier amplitude norms on units, recovery of a coprime rational
+denominator, and vanishing outside the Fourier support of a periodically lifted function. See
+[VanDamHallgren2000].
+
+## Main statements
+
+* `theorem2_amplitude_uniform_units`: For odd squarefree `n > 1`, the shifted Jacobi Fourier
+  amplitude has the same norm at every unit frequency, namely the norm of the normalized Jacobi
+  Gauss sum.
+* `theorem2_unit_fraction_den`: If `n > 0` and `y` is coprime to `n`, the reduced rational
+  number `y / n` has denominator `n`.
+* `theorem2_periodic_fourier_off_support`: The Fourier sum of a function lifted from `ZMod n` to
+  `ZMod (k * n)` vanishes at frequencies whose canonical representative is not divisible by `k`.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +39,9 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- For odd squarefree `n > 1`, the shifted Jacobi Fourier amplitude has the same norm at every
+unit frequency, namely the norm of the normalized Jacobi Gauss sum. See
+[VanDamHallgren2000]. -/
 theorem theorem2_amplitude_uniform_units (n : ℕ) [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) (s : ZMod n) (y : ZMod n) (hy : IsUnit y) :
     ‖modularFourier n (fun x => ((jacobiCharZMod n (x + s) : ℤ) : ℂ)) y‖
@@ -35,6 +62,8 @@ theorem theorem2_amplitude_uniform_units (n : ℕ) [NeZero n] (hn : Odd n)
             ZMod.stdAddChar (-(s * y)) * ((jacobiCharZMod n y : ℤ) : ℂ) by ring]
   rw [norm_mul, norm_mul, AddChar.norm_apply, hJ, mul_one, mul_one]
 
+/-- If `n > 0` and `y` is coprime to `n`, the reduced rational number `y / n` has denominator
+`n`. See [VanDamHallgren2000]. -/
 theorem theorem2_unit_fraction_den (n y : ℕ) (hn : 0 < n) (hcop : Nat.Coprime y n) :
     Rat.den ((y : ℚ) / n) = n := by
   have hn0 : (n : ℤ) ≠ 0 := by exact_mod_cast hn.ne'
@@ -48,6 +77,8 @@ theorem theorem2_unit_fraction_den (n y : ℕ) (hn : 0 < n) (hcop : Nat.Coprime 
   rw [hgn]
   simp
 
+/-- The Fourier sum of a function lifted from `ZMod n` to `ZMod (k * n)` vanishes at frequencies
+whose canonical representative is not divisible by `k`. See [VanDamHallgren2000]. -/
 theorem theorem2_periodic_fourier_off_support (n k : ℕ) [NeZero n] [NeZero k]
     [NeZero (k * n)] (g : ZMod n → ℂ) (y : ZMod (k * n))
     (hy : ¬ (k : ℕ) ∣ y.val) :

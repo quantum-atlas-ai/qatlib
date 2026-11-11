@@ -9,6 +9,35 @@ import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
 import Qatlib.Concepts.ClassicalTape.FairCoinTape
 import Mathlib.Probability.Distributions.Uniform
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+
+/-!
+# Coin-tape kernels and finite random words
+
+This module interprets a coin-indexed Turing machine as the fair-bit transition kernel
+`coinTapeKernel`. The normalization `coinTapeNormalize` separates terminated Boolean outputs
+from running configurations, and `coinTapeObserve` retains the output and read cost. This
+connects explicit random-word execution with the probabilistic computation viewpoint of
+[KitaevShenVyalyi2002].
+
+The finite kernel law agrees with execution on uniformly distributed Boolean words. The
+resulting bridge identifies output-and-cost point masses, pending mass, and expected reads.
+Further lemmas show that supported running configurations are live and that common halting makes
+transition counts equal read counts.
+
+## Main statements
+
+* `coinTape_observed_law`: equality of the kernel and uniform-word observation laws.
+* `unbounded_coin_tape_actual_finite_coin_bridge`: point masses, pending mass, and expected cost
+  at a finite budget.
+* `coinTape_zero_pending`: zero pending mass when every supplied word returns an output.
+* `coinTape_transitionCount_eq_reads`: equality of transition and read counts under common
+  halting.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
@@ -21,12 +50,16 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal Classical
 
+/-- Convert a coin-halting configuration into its Boolean result and retain a live configuration
+as a running state. -/
 def coinTapeNormalize (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (q+1))) :
     Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin (q+1)) :=
   if coinHalt M cfg then Sum.inl (accept cfg.q) else Sum.inr cfg
 
+/-- Take the transition selected by a coin bit, returning the current acceptance bit if no
+transition exists and normalizing any successor. -/
 def coinTapeSelected (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (q+1)))
@@ -35,21 +68,27 @@ def coinTapeSelected (q : ℕ)
   | none => Sum.inl (accept cfg.q)
   | some cfg' => coinTapeNormalize q M accept cfg'
 
+/-- The transition kernel obtained by choosing a fair Boolean bit and applying
+`coinTapeSelected`. -/
 noncomputable def coinTapeKernel (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (q+1))) :
     PMF (Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin (q+1))) :=
   (PMF.bernoulli (1/2) (by norm_num)).map (coinTapeSelected q M accept cfg)
 
+/-- Observe a costed configuration as an optional Boolean result with the same cost. -/
 def coinTapeObserve {q : ℕ}
     (x : (Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin (q+1))) × ℕ) : Option Bool × ℕ :=
   (match x.1 with | Sum.inl b => some b | Sum.inr _ => none, x.2)
 
+/-- A Bernoulli bit with parameter `1/2` has the uniform distribution on `Bool`. -/
 private theorem fairBit_uniform :
     PMF.bernoulli (1/2) (by norm_num) = PMF.uniformOfFintype' Bool := by
   ext b
   cases b <;> norm_num [PMF.bernoulli_apply, PMF.uniformOfFintype'_apply]
 
+/-- A uniform Boolean word of length `n + 1` can be sampled by adjoining a fair head bit to an
+independent uniform tail. -/
 private theorem uniform_bits_cons (n : ℕ) :
     PMF.uniformOfFintype' (Fin (n+1) → Bool) =
       (PMF.bernoulli (1/2) (by norm_num)).bind
@@ -64,6 +103,7 @@ private theorem uniform_bits_cons (n : ℕ) :
   cases w 0 <;> simp [PMF.uniformOfFintype'_apply, pow_succ,
     ENNReal.mul_inv, mul_comm]
 
+/-- Observing a costed coin-tape law commutes with charging one unit of cost. -/
 private theorem observe_charge {q : ℕ}
     (p : CostedLaw (Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin (q+1)))) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge 1 p).map coinTapeObserve =
@@ -71,6 +111,8 @@ private theorem observe_charge {q : ℕ}
   simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge, PMF.map_comp]
   rfl
 
+/-- The observed law of the kernel after `n` ticks equals the law obtained by running the tape
+machine on a uniform Boolean word of length `n`. -/
 theorem coinTape_observed_law (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (n : ℕ)
@@ -116,6 +158,8 @@ theorem coinTape_observed_law (q : ℕ)
         funext w
         simp [Prod.map, Nat.add_comm]
 
+/-- The expectation of a nonnegative real function of a uniform Boolean word is its sum divided
+by `2 ^ T`, embedded in the extended nonnegative reals. -/
 private theorem uniform_bits_expectation (T : ℕ) (f : (Fin T → Bool) → ℝ)
     (hf : ∀ w, 0 ≤ f w) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (PMF.uniformOfFintype' (Fin T → Bool))
@@ -128,6 +172,8 @@ private theorem uniform_bits_expectation (T : ℕ) (f : (Fin T → Bool) → ℝ
   rw [← Finset.mul_sum]
   ring
 
+/-- The probability of an event on uniform Boolean words of length `T` is its number of
+satisfying words divided by `2 ^ T`. -/
 private theorem uniform_bits_event (T : ℕ) (E : (Fin T → Bool) → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (PMF.uniformOfFintype' (Fin T → Bool)) E =
       ENNReal.ofReal ((∑ w, if E w then (1 : ℝ) else 0) / (2 : ℝ)^T) := by
@@ -140,6 +186,8 @@ private theorem uniform_bits_event (T : ℕ) (E : (Fin T → Bool) → Prop) :
   rw [h]
   exact uniform_bits_expectation T _ (fun w => by split_ifs <;> norm_num)
 
+/-- Observing a costed law preserves the point mass of each terminated Boolean output and cost
+pair. -/
 theorem coinTape_observe_point {q : ℕ}
     (p : CostedLaw (Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin (q+1)))) (b : Bool) (k : ℕ) :
     (p.map coinTapeObserve) (some b, k) = p (Sum.inl b, k) := by
@@ -149,6 +197,9 @@ theorem coinTape_observe_point {q : ℕ}
   rintro ⟨c, j⟩
   cases c <;> simp [coinTapeObserve]
 
+/-- For a coin-tape machine with common halting, finite kernel execution has the same
+output-and-cost masses as averaging over uniform coin words. Its pending mass is one minus
+the two success probabilities, and its expected cost is the average number of reads. -/
 theorem unbounded_coin_tape_actual_finite_coin_bridge :
     ∀ (q : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
       (accept : Fin (q+1) → Bool) (input : List Bool) (T : ℕ),
@@ -221,6 +272,8 @@ theorem unbounded_coin_tape_actual_finite_coin_bridge :
       (fun _ => Nat.cast_nonneg _) using 1
     simp
 
+/-- Summing the joint halting masses for output `b` through time `T` gives the corresponding
+finite fair-tape success probability. -/
 theorem coinTape_success_mass (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (input : List Bool) (T : ℕ) (b : Bool) :
@@ -250,6 +303,8 @@ theorem coinTape_success_mass (q : ℕ)
   · simp [hx]
   · simp [hx]
 
+/-- If every coin word of length `T` yields an output, the normalized coin-tape kernel has zero
+pending mass at time `T`. -/
 theorem coinTape_zero_pending (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (input : List Bool) (T : ℕ)
@@ -270,6 +325,7 @@ theorem coinTape_zero_pending (q : ℕ)
   rw [he, coinTape_observed_law, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map]
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_zero _ _ h
 
+/-- Every configuration retained as running by normalization fails the coin-halting predicate. -/
 theorem coinTapeNormalize_running (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (cfg cfg' : Turing.TM0.Cfg (Option Bool) (Fin (q+1)))
@@ -281,6 +337,8 @@ theorem coinTapeNormalize_running (q : ℕ)
     subst cfg'
     exact Bool.eq_false_iff.mpr ‹¬coinHalt M cfg = true›
 
+/-- Every running configuration in the support of the coin-tape kernel fails the coin-halting
+predicate. -/
 theorem coinTapeKernel_running (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (cfg cfg' : Turing.TM0.Cfg (Option Bool) (Fin (q+1)))
@@ -293,6 +351,8 @@ theorem coinTapeKernel_running (q : ℕ)
     simp only [hs] at hc
     exact coinTapeNormalize_running q M accept cfg'' cfg' hc
 
+/-- Every running configuration in the support of a finite normalized kernel run fails the
+coin-halting predicate. -/
 theorem coinTapeRun_running (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (T : ℕ)
@@ -330,6 +390,8 @@ theorem coinTapeRun_running (q : ℕ)
         exact ih d hi s y.2 hy'
   exact hinv T _ (fun s hs => coinTapeNormalize_running q M accept cfg s hs) cfg' k h
 
+/-- With common halting, absence of a transition for either selected coin implies the
+coin-halting predicate. -/
 theorem coinTape_step_none_common (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (hcommon : ∀ ql γ, (M false ql γ = none) ↔ (M true ql γ = none))
@@ -343,6 +405,8 @@ theorem coinTape_step_none_common (q : ℕ)
   have ht := (hcommon _ _).mp hf
   simp [coinHalt, hf, ht]
 
+/-- For a machine with common halting, the number of executed transitions equals the number of
+coin reads on every finite coin list. -/
 theorem coinTape_transitionCount_eq_reads (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool)

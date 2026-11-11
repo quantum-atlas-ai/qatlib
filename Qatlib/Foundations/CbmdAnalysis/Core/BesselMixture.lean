@@ -8,6 +8,28 @@ import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+
+/-!
+# Bessel propagators as wave mixtures
+
+This module represents `besselPropagator` as the average of wave propagators with sinusoidally
+scaled time. Wallis moments identify the integrated coefficients, while the scalar wave formula
+gives norm bounds for both propagators on nonnegative scalar inputs. These mixture and
+contraction estimates support [WangEtAl2026].
+
+## Main statements
+
+* `besselPropagator_wave_mixture`: the Bessel propagator is the normalized sine-time wave
+  integral.
+* `wavePropagator_scalar_square`: a scalar square reduces the wave propagator to complex cosine.
+* `besselPropagator_scalar_nonneg_norm_le_one`: nonnegative scalar inputs give norm at most one
+  at real times.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -19,6 +41,7 @@ namespace CBMD
 open Complex MeasureTheory Metric Filter
 open scoped Topology
 
+/-- The ratio of successive norms of inverse even factorials is `((2 * n + 2) * (2 * n + 1))⁻¹`. -/
 private theorem even_factorial_ratio (n : ℕ) :
     ‖(((2 * (n + 1)).factorial : ℂ)⁻¹)‖ / ‖(((2 * n).factorial : ℂ)⁻¹)‖ =
       ((2 * (n : ℝ) + 2) * (2 * (n : ℝ) + 1))⁻¹ := by
@@ -36,6 +59,7 @@ private theorem even_factorial_ratio (n : ℕ) :
   have h2 : 2 * (n : ℝ) + 2 ≠ 0 := by positivity
   field_simp
 
+/-- The ratio of successive norms of inverse even factorials tends to zero. -/
 private theorem even_factorial_ratio_tendsto :
     Tendsto (fun n : ℕ => ‖(((2 * n.succ).factorial : ℂ)⁻¹)‖ /
       ‖(((2 * n).factorial : ℂ)⁻¹)‖) atTop (𝓝 0) := by
@@ -52,6 +76,8 @@ variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
 
 omit [CompleteSpace E] in
 
+/-- The norms of the wave propagator power-series terms are summable for every `A` and complex
+time `t`. -/
 theorem wave_series_norm_summable (A : E) (t : ℂ) :
     Summable (fun n : ℕ => ‖(((2 * n).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ n‖) := by
   let c : ℕ → ℂ := fun n => ((2 * n).factorial : ℂ)⁻¹
@@ -64,6 +90,8 @@ theorem wave_series_norm_summable (A : E) (t : ℂ) :
 
 omit [CompleteSpace E] in
 
+/-- Multiplying the `n`th wave-series term by `s ^ (2 * n)` is equivalent to scaling the complex
+time by the real number `s`. -/
 theorem wave_scaled_term (A : E) (t : ℂ) (s : ℝ) (n : ℕ) :
     s ^ (2 * n) • ((((2 * n).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ n) =
       (((2 * n).factorial : ℂ)⁻¹) • (-((t * (s : ℂ)) ^ 2) • A) ^ n := by
@@ -75,6 +103,8 @@ theorem wave_scaled_term (A : E) (t : ℂ) (s : ℝ) (n : ℕ) :
   rw [smul_comm]
   rfl
 
+/-- The integral of `sin θ ^ (2 * n)` on `[0, π]`, divided by `(2 * n)!`, equals `π * (n!)⁻² *
+(1 / 4) ^ n`. -/
 private theorem bessel_wallismoment (n : ℕ) :
     (∫ θ in (0 : ℝ)..Real.pi, Real.sin θ ^ (2 * n)) *
       (((2 * n).factorial : ℝ)⁻¹) =
@@ -100,6 +130,8 @@ private theorem bessel_wallismoment (n : ℕ) :
   rw [mul_assoc, hp]
   ring
 
+/-- Integrating the sine-weighted `n`th wave-series term over `[0, π]` gives `π` times the
+corresponding Bessel-series term. -/
 private theorem bessel_integrated_term (A : E) (t : ℂ) (n : ℕ) :
     (∫ θ in (0 : ℝ)..Real.pi, Real.sin θ ^ (2 * n) •
       ((((2 * n).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ n)) =
@@ -120,6 +152,8 @@ private theorem bessel_integrated_term (A : E) (t : ℂ) (n : ℕ) :
   push_cast at h
   simpa only [mul_assoc] using h
 
+/-- The Bessel propagator at complex time `t` equals `1 / π` times the integral of wave
+propagators at times `t * sin θ` over `[0, π]`. -/
 theorem besselPropagator_wave_mixture (A : E) (t : ℂ) :
     besselPropagator A t = (Real.pi⁻¹) •
       (∫ θ in (0 : ℝ)..Real.pi, wavePropagator A (t * (Real.sin θ : ℂ))) := by
@@ -154,6 +188,7 @@ theorem besselPropagator_wave_mixture (A : E) (t : ℂ) :
 
 end BanachAlgebra
 
+/-- The scalar wave propagator at argument `z ^ 2` and time `t` equals `cos (t * z)`. -/
 theorem wavePropagator_scalar_square (z t : ℂ) :
     wavePropagator (z ^ 2) t = Complex.cos (t * z) := by
   rw [wavePropagator, Complex.cos_eq_tsum]
@@ -165,6 +200,8 @@ theorem wavePropagator_scalar_square (z t : ℂ) :
   simp only [div_eq_mul_inv]
   ring
 
+/-- For a nonnegative real scalar input, the wave propagator has norm at most one at every real
+time. -/
 theorem wavePropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) :
     ‖wavePropagator (x : ℂ) (t : ℂ)‖ ≤ 1 := by
   have hx' : (x : ℂ) = (Real.sqrt x : ℂ) ^ 2 := by
@@ -173,6 +210,8 @@ theorem wavePropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) :
     ← Complex.ofReal_cos, Complex.norm_real, Real.norm_eq_abs]
   exact Real.abs_cos_le_one _
 
+/-- For a nonnegative real scalar input, the Bessel propagator has norm at most one at every
+real time. -/
 theorem besselPropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) :
     ‖besselPropagator (x : ℂ) (t : ℂ)‖ ≤ 1 := by
   rw [besselPropagator_wave_mixture, norm_smul, Real.norm_eq_abs,

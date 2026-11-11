@@ -9,27 +9,57 @@ import Mathlib.NumberTheory.Harmonic.Bounds
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 
+/-!
+# Clock bounds for ranked minimum finding
+
+`sourceMeanBudget` and `sourceTimeout` specify explicit square-root and logarithmic clock
+bounds. Reciprocal square-root telescoping and harmonic-sum estimates control the expected cost
+of descending rank traces.
+
+The bounds provide the numerical cost estimates used in the BBHT-based minimum-finding analysis
+of [DurrHoyer1996].
+
+## Main statements
+
+* `sourceTimeout_eq_twice`: identifies the timeout as twice the mean bound.
+* `source_clock_sum`: bounds the weighted source-call cost sum.
+* `expectedTraceCost_le_sourceMeanBudget`: transfers a per-rank cost envelope to the mean
+  budget.
+
+## References
+
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The real binary logarithm `log x / log 2`. -/
 noncomputable def binaryLog (x : ℝ) : ℝ := Real.log x / Real.log 2
 
+/-- The source mean-clock bound `(45 / 4) * sqrt N + (7 / 10) * (binaryLog N)²`. -/
 noncomputable def sourceMeanBudget (N : ℕ) : ℝ :=
   (45 / 4 : ℝ) * Real.sqrt N + (7 / 10 : ℝ) * (binaryLog N) ^ 2
 
+/-- The source timeout `(45 / 2) * sqrt N + (7 / 5) * (binaryLog N)²`. -/
 noncomputable def sourceTimeout (N : ℕ) : ℝ :=
   (45 / 2 : ℝ) * Real.sqrt N + (7 / 5 : ℝ) * (binaryLog N) ^ 2
 
+/-- The source timeout is twice the source mean budget. -/
 theorem sourceTimeout_eq_twice (N : ℕ) : sourceTimeout N = 2 * sourceMeanBudget N := by
   unfold sourceTimeout sourceMeanBudget
   ring
 
+/-- The source mean budget is positive for positive `N`. -/
 theorem sourceMeanBudget_pos (N : ℕ) (hN : 0 < N) : 0 < sourceMeanBudget N := by
   have hs : 0 < Real.sqrt (N : ℝ) := Real.sqrt_pos.2 (by exact_mod_cast hN)
   unfold sourceMeanBudget
   nlinarith [sq_nonneg (binaryLog N)]
 
+/-- The reciprocal square-root cost term is bounded by a telescoping difference for positive
+ranks. -/
 theorem sqrtCost_step (r : ℕ) (hr : 0 < r) :
     1 / (((r : ℝ) + 1) * Real.sqrt r) ≤
       2 * (1 / Real.sqrt r - 1 / Real.sqrt ((r : ℝ) + 1)) := by
@@ -50,6 +80,7 @@ theorem sqrtCost_step (r : ℕ) (hr : 0 < r) :
   rw [heq]
   nlinarith [sq_nonneg (Real.sqrt (r : ℝ) - Real.sqrt ((r : ℝ) + 1))]
 
+/-- The finite sum of reciprocal square-root cost terms is at most two. -/
 theorem sqrtCost_sum (n : ℕ) :
     (∑ k ∈ Finset.range n, 1 / (((k : ℝ) + 2) * Real.sqrt ((k : ℝ) + 1))) ≤ 2 := by
   have ht (m : ℕ) : (∑ k ∈ Finset.range m,
@@ -67,6 +98,7 @@ theorem sqrtCost_sum (n : ℕ) :
   have hp : 0 ≤ 1 / Real.sqrt ((n : ℝ) + 1) := by positivity
   linarith [ht n]
 
+/-- The harmonic tail starting at denominator two equals `harmonic (n + 1) - 1`. -/
 theorem harmonic_tail (n : ℕ) :
     (∑ k ∈ Finset.range n, (1 : ℝ) / ((k : ℝ) + 2)) = (harmonic (n + 1) : ℝ) - 1 := by
   induction n with
@@ -76,6 +108,7 @@ theorem harmonic_tail (n : ℕ) :
     push_cast
     ring
 
+/-- For positive `N`, the initialization contribution is at most `(7 / 10) * (binaryLog N)²`. -/
 theorem initialization_sum (N : ℕ) (hN : 0 < N) :
     (∑ k ∈ Finset.range (N - 1), binaryLog N / ((k : ℝ) + 2)) ≤
       (7 / 10 : ℝ) * (binaryLog N) ^ 2 := by
@@ -105,6 +138,7 @@ theorem initialization_sum (N : ℕ) (hN : 0 < N) :
     _ = Real.log 2 * L ^ 2 := by nlinarith [heq]
     _ ≤ _ := mul_le_mul_of_nonneg_right hlog2 (sq_nonneg L)
 
+/-- The weighted source call costs sum to at most `sourceMeanBudget N`. -/
 theorem source_clock_sum (N : ℕ) (hN : 0 < N) :
     (∑ k ∈ Finset.range (N - 1),
       ((9 / 2 : ℝ) * Real.sqrt ((N : ℝ) / ((k : ℝ) + 1)) + binaryLog N) /
@@ -125,6 +159,8 @@ theorem source_clock_sum (N : ℕ) (hN : 0 < N) :
   unfold sourceMeanBudget
   linarith
 
+/-- A rank cost vanishing at rank one and satisfying the stated per-rank envelope has expected
+trace cost at most `sourceMeanBudget N`. -/
 theorem expectedTraceCost_le_sourceMeanBudget (N : ℕ) (hN : 0 < N) (cost : ℕ → ℝ)
     (hstop : cost 1 = 0)
     (hcost : ∀ r, 2 ≤ r → r ≤ N → cost r ≤

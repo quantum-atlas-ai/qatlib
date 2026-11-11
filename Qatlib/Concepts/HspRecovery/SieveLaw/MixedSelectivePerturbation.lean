@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+/-!
+# Selective instrument perturbation bounds
+
+The map `selectiveMap` sums instrument branches over an outcome event, and
+`normalizedPositiveBranch` normalizes a positive-trace output. This module proves complete
+positivity, trace non-increase, and trace-norm contraction with arbitrary finite reference
+systems, using the quantum-operation framework of [Watrous2018].
+
+It also bounds the difference of output masses and the distance between normalized positive
+branches from an unnormalized trace-norm perturbation bound.
+
+## Main statements
+
+* `selectiveMap_reference_contraction`: trace-norm contraction on Hermitian reference-system
+  inputs.
+* `positive_selected_output_mass_and_normalization_stability`: mass and normalized-output
+  perturbation estimates.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,19 +47,26 @@ open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The linear map obtained by summing an instrument's branches over a selected finite set of
+outcomes. -/
 noncomputable def selectiveMap {O : Type} [Fintype O] {D E : ℕ}
     (J : Instrument O D E) (S : Finset O) : Operator D →ₗ[ℂ] Operator E :=
   ∑ o ∈ S, J.branch o
 
+/-- Normalization of a matrix by its positive real trace, with value zero when that trace is not
+positive. -/
 noncomputable def normalizedPositiveBranch {I : Type} [Fintype I]
     (σ : Matrix I I ℂ) : Matrix I I ℂ :=
   if 0 < (Matrix.trace σ).re then (((Matrix.trace σ).re)⁻¹ : ℂ) • σ else 0
 
+/-- The sum of selected instrument branches is completely positive. -/
 theorem selectiveMap_cp {O : Type} [Fintype O] {D E : ℕ}
     (J : Instrument O D E) (S : Finset O) :
     CompletelyPositive (selectiveMap J S) :=
   CompletelyPositive.sum fun o _ => J.cp o
 
+/-- The sum of selected instrument branches is trace non-increasing on positive semidefinite
+inputs. -/
 theorem selectiveMap_tni {O : Type} [Fintype O] {D E : ℕ}
     (J : Instrument O D E) (S : Finset O) :
     TraceNonIncreasing (selectiveMap J S) := by
@@ -52,6 +83,8 @@ theorem selectiveMap_tni {O : Type} [Fintype O] {D E : ℕ}
           (fun o _ _ => instrumentProb_nonneg J hA o)
     _ = (Matrix.trace A).re := sum_instrumentProb J A
 
+/-- Extending a finite sum of linear maps by the identity on a reference system equals the sum
+of their extensions. -/
 private theorem tensorLeft_finset_sum {O : Type} [Fintype O] {D E R : ℕ}
     (T : O → (Operator D →ₗ[ℂ] Operator E)) (S : Finset O)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
@@ -59,6 +92,8 @@ private theorem tensorLeft_finset_sum {O : Type} [Fintype O] {D E R : ℕ}
   ext x y
   simp [tensorLeft, Matrix.sum_apply, LinearMap.sum_apply]
 
+/-- A selected instrument map tensored with the identity does not increase the real trace of a
+positive semidefinite input. -/
 theorem selectiveMap_tensorLeft_tni {O : Type} [Fintype O] {D E R : ℕ}
     (J : Instrument O D E) (S : Finset O)
     {ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ} (hρ : ρ.PosSemidef) :
@@ -79,23 +114,29 @@ theorem selectiveMap_tensorLeft_tni {O : Type} [Fintype O] {D E R : ℕ}
           (fun o _ _ => hnonneg o)
     _ = (Matrix.trace ρ).re := htotal
 
+/-- The trace norm of a positive semidefinite matrix equals the real part of its trace. -/
 theorem posSemidef_traceNorm_eq_re {I : Type} [Fintype I] {M : Matrix I I ℂ}
     (hM : M.PosSemidef) : Matrix.traceNorm M = (Matrix.trace M).re := by
   have hc : ((Matrix.traceNorm M : ℂ)) = Matrix.trace M := hM.traceNorm_eq_trace
   simpa using congrArg Complex.re hc
 
+/-- The positive part of a Hermitian matrix is positive semidefinite. -/
 private theorem selective_posPart_posSemidef {n : Type} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : (Qatlib.Concepts.ReferenceError.DensityToRaw.HermitianSplit.posPart hA).PosSemidef := by
   refine (Matrix.posSemidef_diagonal_iff.mpr ?_).mul_mul_conjTranspose_same _
   intro i
   exact RCLike.ofReal_nonneg.mpr (le_max_right (hA.eigenvalues i) 0)
 
+/-- The negative part in the Hermitian positive-minus-negative decomposition is positive
+semidefinite. -/
 private theorem selective_negPart_posSemidef {n : Type} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : (Qatlib.Concepts.ReferenceError.DensityToRaw.HermitianSplit.negPart hA).PosSemidef := by
   refine (Matrix.posSemidef_diagonal_iff.mpr ?_).mul_mul_conjTranspose_same _
   intro i
   exact RCLike.ofReal_nonneg.mpr (le_max_right (-hA.eigenvalues i) 0)
 
+/-- A selected instrument map extended by a reference identity contracts the trace norm of
+positive semidefinite matrices. -/
 private theorem selectiveMap_tensorLeft_posSemidef_norm
     {O : Type} [Fintype O] {D E R : ℕ} (J : Instrument O D E) (S : Finset O)
     {M : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ} (hM : M.PosSemidef) :
@@ -104,6 +145,8 @@ private theorem selectiveMap_tensorLeft_posSemidef_norm
     posSemidef_traceNorm_eq_re hM]
   exact selectiveMap_tensorLeft_tni J S hM
 
+/-- A selected instrument map contracts the trace norm of Hermitian matrices after extension by
+any finite reference identity. -/
 theorem selectiveMap_reference_contraction {O : Type} [Fintype O] {D E : ℕ}
     (J : Instrument O D E) (S : Finset O) :
     ∀ (r : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ),
@@ -136,6 +179,8 @@ theorem selectiveMap_reference_contraction {O : Type} [Fintype O] {D E : ℕ}
             (selectiveMap_tensorLeft_posSemidef_norm J S hneg)
     _ = Matrix.traceNorm X := (Qatlib.Concepts.ReferenceError.DensityToRaw.HermitianSplit.traceNorm_sub_posPart_negPart hX).symm
 
+/-- Selected instrument maps are completely positive, trace non-increasing, and trace-norm
+contractive on Hermitian inputs with any finite reference system. -/
 theorem selective_instrument_cp_tni_reference_contraction :
     ∀ (O : Type) [Fintype O] (D E : ℕ) (J : Instrument O D E) (S : Finset O),
     CompletelyPositive (selectiveMap J S) ∧ TraceNonIncreasing (selectiveMap J S) ∧
@@ -144,6 +189,10 @@ theorem selective_instrument_cp_tni_reference_contraction :
   intro O _ D E J S
   exact ⟨selectiveMap_cp J S, selectiveMap_tni J S, selectiveMap_reference_contraction J S⟩
 
+/-- Positive semidefinite matrices at trace-norm distance at most `η ≥ 0` have real traces
+differing by at most `η`, and a zero real trace gives zero normalized branch. If `η` is
+below the second matrix's real trace, the first has positive trace and their normalized
+branches are within `2*η` divided by that reference trace. -/
 theorem positive_selected_output_mass_and_normalization_stability :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (σ τ : Matrix I I ℂ) (η : ℝ),
     σ.PosSemidef → τ.PosSemidef → 0 ≤ η → Matrix.traceNorm (σ-τ) ≤ η →

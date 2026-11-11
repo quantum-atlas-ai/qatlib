@@ -11,6 +11,26 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Module
+
+/-!
+# Payoff error accumulation and a Gibbs counterexample
+
+`sdpCumulativePayoffError` and `sdpScaledPayoffError` quantify cumulative and mass-scaled payoff
+errors. `not_sdpSparsificationGibbsError` gives a two-dimensional example showing that the
+proposed per-round error bound alone cannot ensure an arbitrary Gibbs trace-distance tolerance.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `not_sdpSparsificationGibbsError`: The proposed `SdpSparsificationGibbsError` contract is
+  false: its payoff error hypotheses do not ensure every positive trace-distance tolerance.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +45,8 @@ open Qatlib.Concepts.MatrixWeights.WeightsCore
 namespace Qatlib.Concepts.SdpMmwSolver.OracleError
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Per-round operator-norm errors at most 1/(4T) accumulate to at most ηt/(4T) in the Gibbs
+exponents when T > 0 and η ≥ 0. -/
 theorem sdpCumulativePayoffError (D T t : ℕ) (M N : ℕ → Operator D) (η : ℝ)
     (hT : 0 < T) (hη : 0 ≤ η)
     (herr : ∀ s, ‖M s - N s‖ ≤ 1 / (4 * (T : ℝ))) :
@@ -42,6 +64,8 @@ theorem sdpCumulativePayoffError (D T t : ℕ) (M N : ℕ → Operator D) (η : 
       simp only [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
       ring
 
+/-- For α > 0, the mass-scaled payoff error equals the constraint-sum approximation error
+divided by 4α. See [BrandaoSvore2017]. -/
 theorem sdpScaledPayoffError (D m Q : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (α mass : ℝ) (idx : Fin Q → Fin m) (y : ℕ → Fin m → ℝ) (t : ℕ)
     (hα : 0 < α) :
@@ -57,25 +81,35 @@ theorem sdpScaledPayoffError (D m Q : ℕ) (A : Fin m → Operator D) (Cv : Oper
   rw [he, norm_smul, Real.norm_eq_abs, abs_of_pos (by positivity : 0 < (4 * α)⁻¹)]
   ring
 
+/-- The two-dimensional diagonal constraint matrix with entries 1 and 0 used in the Gibbs
+approximation counterexample. -/
 private def testA : Operator 2 := Matrix.diagonal ![1, 0]
+/-- The constant exact payoff history with α = 2, zero objective matrix, and zero dual response. -/
 private def exactM : ℕ → Operator 2 := sdpDualPayoff 2 1 (fun _ => testA) 0 2 (fun _ _ => 0)
+/-- The constant sampled payoff history formed by sampling `testA` once with α = 2. -/
 private def sampleM : ℕ → Operator 2 :=
     fun _s => sdpSparsifiedPayoff 2 1 1 (fun _ => testA) 0 2 (fun _ => 0)
 
+/-- The exact payoff in the counterexample is the diagonal matrix with both entries 1/2. -/
 private lemma payoff_exact (s : ℕ) : exactM s = Matrix.diagonal ![(1/2:ℂ), 1/2] := by
   ext i j
   fin_cases i <;> fin_cases j <;> norm_num [exactM, sdpDualPayoff, Matrix.diagonal]
 
+/-- The sampled payoff in the counterexample is the diagonal matrix with entries 5/8 and 1/2. -/
 private lemma payoff_sample (s : ℕ) : sampleM s = Matrix.diagonal ![(5/8:ℂ), 1/2] := by
   ext i j
   fin_cases i <;> fin_cases j <;> norm_num [sampleM, sdpSparsifiedPayoff, testA, Matrix.diagonal]
 
+/-- The complex exponential of −n log(2) equals the reciprocal of 2 raised to the natural power
+n. -/
 private lemma scalar_exp (n : ℕ) :
     NormedSpace.exp ((-(n:ℝ)*Real.log 2 : ℝ) : ℂ) = ((2:ℝ)^n)⁻¹ := by
   rw [← Complex.exp_eq_exp_ℂ, ← Complex.ofReal_exp]
   congr 1
   rw [neg_mul, Real.exp_neg, Real.exp_nat_mul, Real.exp_log (by norm_num : (0:ℝ)<2)]
 
+/-- After one round at learning rate 8 log(2), the exact Gibbs state is diagonal with entries
+1/2 and 1/2. -/
 private lemma state_exact : mmwState 2 exactM (8 * Real.log 2) 1 =
     Matrix.diagonal ![(1/2:ℂ), 1/2] := by
   have he : mmwWeight 2 exactM (8 * Real.log 2) 1 =
@@ -97,6 +131,8 @@ private lemma state_exact : mmwState 2 exactM (8 * Real.log 2) 1 =
   fin_cases i <;> fin_cases j <;>
     norm_num [Matrix.trace, Fin.sum_univ_two, Matrix.diagonal]
 
+/-- After one round at learning rate 8 log(2), the sampled Gibbs state is diagonal with entries
+1/3 and 2/3. -/
 private lemma state_sample : mmwState 2 sampleM (8 * Real.log 2) 1 =
     Matrix.diagonal ![(1/3:ℂ), 2/3] := by
   have he : mmwWeight 2 sampleM (8 * Real.log 2) 1 =
@@ -123,6 +159,8 @@ private lemma state_sample : mmwState 2 sampleM (8 * Real.log 2) 1 =
   fin_cases i <;> fin_cases j <;>
     norm_num [Matrix.trace, Fin.sum_univ_two, Matrix.diagonal]
 
+/-- The proposed `SdpSparsificationGibbsError` contract is false: its payoff error hypotheses do
+not ensure every positive trace-distance tolerance. -/
 theorem not_sdpSparsificationGibbsError : ¬ SdpSparsificationGibbsError := by
   intro h
   have hdiff : mmwState 2 exactM (8 * Real.log 2) 1 -

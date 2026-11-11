@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicFreshRegisterBridge
 import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+
+/-!
+# Normalized dynamic samples from an original encoding
+
+The identity `sampleAncillaFrame_eq` relates the padded sample frame to the standard encoding
+fiber. An exact original encoding of `L + iH` bounds `H + sL`, and
+`dynamic_padded_sample_encoding` supplies its normalized projected unitary encoding on the
+dynamic sample registers. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `original_first_order_norm_bound`: bounds the first-order Hermitian sample.
+* `dynamic_padded_sample_encoding`: gives its normalized projected unitary encoding.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,6 +73,8 @@ variable {Anc I : Type} [Fintype Anc] [DecidableEq Anc] [Fintype I] [DecidableEq
 local instance cbmdDynamicSampleInputBridgeInstance1 (Anc : Type) [DecidableEq Anc] : DecidableEq (DynamicSampleAnc Anc) :=
   inferInstanceAs (DecidableEq (Bool × (Bool × Anc)))
 
+/-- Reindexing the doubly false-tagged original ancilla frame gives the encoding fiber at
+`(false, false, a₀)`. -/
 theorem sampleAncillaFrame_eq (a₀ : Anc) :
     reindexFrame (sampleAncillaEquiv Anc I)
       (tagFrame false (tagFrame false (tagFrame a₀ (1 : Matrix I I ℂ)))) =
@@ -64,6 +85,8 @@ theorem sampleAncillaFrame_eq (a₀ : Anc) :
     simp [reindexFrame, sampleAncillaEquiv, tagFrame, encodingFiber_apply, Matrix.one_apply, hp,
         hc, ha, hi]
 
+/-- An exact block encoding of `L + iH` with Hermitian components bounds `‖H + sL‖` by `α * sqrt
+(1 + s²)`. -/
 theorem original_first_order_norm_bound
     (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (U : Matrix (Anc × I) (Anc × I) ℂ) (a₀ : Anc) (α s : ℝ)
@@ -75,6 +98,8 @@ theorem original_first_order_norm_bound
   simp only [zero_mul] at he
   exact exact_blockEncoding_norm_bound _ _ _ _ he
 
+/-- An exact original encoding and the sample normalization bound give a projected unitary
+encoding of `(H + sL) / Λ` on the clean dynamic sample ancilla fiber. -/
 theorem dynamic_padded_sample_encoding
     (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (U : Matrix (Anc × I) (Anc × I) ℂ) (a₀ : Anc) (α Λ s : ℝ)

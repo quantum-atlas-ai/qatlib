@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
 import Qatlib.Concepts.WalkSearch.Spectral.BipartiteTauCorrespondenceConsumers
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+
+/-!
+# Szegedy detection guarantees
+
+The module exposes the corrected Szegedy detector's program semantics and instruction counts,
+together with its relation to the unmarked bipartite walk and discriminant. It records zero
+detection for empty marked sets and a threshold-event bound for nonempty marked mass.
+
+`source_theorem_two_random_power_detection` gives constant average detection probability over a
+sufficiently long range of positive walk powers, with explicit resource bounds. See
+[Szegedy2004] for the mathematical background.
+
+## Main statements
+
+* `source_find_marked_program`: unitary semantics and exact counts.
+* `source_section_seven_unmarked_bridge`: the bipartite-walk identity.
+* `source_theorem_two_random_power_detection`: average success and resource bounds.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,9 @@ open Qatlib.Concepts.Execution.WorkspaceCP
 
 namespace Qatlib.Concepts.WalkSearch.Detection.Basic
 
+/-- Given a transition matrix and a unitary row preparation, the detector program is unitary,
+produces the marked interference state, and has counts `(4 * K + 1, 4 * K + 1, 4 * K + 2)`.
+See [Szegedy2004]. -/
 theorem source_find_marked_program
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (j : I)
@@ -40,6 +66,8 @@ theorem source_find_marked_program
     detectionCounts (detectionProgram j K) = (4 * K + 1, 4 * K + 1, 4 * K + 2) :=
   corrected_szegedy_actual_detector_and_counts I P S j U K hP hU hp
 
+/-- Each of the detector's row-query, marker, and fixed-gate counts is at most `4 * K + 2`. See
+[Szegedy2004]. -/
 theorem source_find_marked_instruction_bound
     (I : Type) [DecidableEq I] (j : I) (K : ℕ) :
     (detectionCounts (detectionProgram j K)).1 ≤ 4 * K + 2 ∧
@@ -54,6 +82,9 @@ theorem source_find_marked_instruction_bound
   · show 4 * K + 2 ≤ 4 * K + 2
     omega
 
+/-- For a symmetric transition matrix, identifies the corrected marked walk with the bipartite
+walk of the unmarked row frame and its swapped frame, and identifies its discriminant with
+the stated off-diagonal principal-matrix blocks. See [Szegedy2004]. -/
 theorem source_section_seven_unmarked_bridge
     (I : Type) [Fintype I] [DecidableEq I] (P : I → I → ℝ) (S : Finset I)
     (hP : IsTransitionMatrix P) (hsym : ∀ i j, P i j = P j i) :
@@ -63,6 +94,8 @@ theorem source_section_seven_unmarked_bridge
       Matrix.fromBlocks 0 (unmarkedPrincipal P S) (unmarkedPrincipal P S) 0 :=
   corrected_marked_walk_bipartite_bridge I P S hP hsym
 
+/-- For a symmetric transition matrix and a unitary row preparation, the detector accepts with
+probability zero for an empty marked set at every power. See [Szegedy2004]. -/
 theorem source_section_seven_empty_interference
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ) (K : ℕ)
@@ -72,6 +105,8 @@ theorem source_section_seven_empty_interference
     detectionProbability U ∅ j K = 0 :=
   corrected_szegedy_empty_mark_one_sided I P j U K hP hsym hU hp
 
+/-- Under the stated symmetric-chain gap assumptions and positive marked fraction, the corrected
+walk's threshold mass at `lemma3Length` is at least `1 / 6`. See [Szegedy2004]. -/
 theorem source_section_seven_threshold_event
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ)
@@ -90,6 +125,9 @@ theorem source_section_seven_threshold_event
   rw [hring]
   exact hth.2
 
+/-- For a symmetric transition matrix and a unitary row preparation, the average detection
+probability for an empty marked set is zero over any range of positive powers. See
+[Szegedy2004]. -/
 theorem source_theorem_two_empty_marks
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ) (L : ℕ)
@@ -103,6 +141,9 @@ theorem source_theorem_two_empty_marks
     exact corrected_szegedy_empty_mark_one_sided I P j U (k.val + 1) hP hsym hU hp
   rw [hzero, zero_div]
 
+/-- Under the stated gap, marked-fraction, and unitary-preparation assumptions, `L ≥ 1000 / sqrt
+(δ * ε)` gives average detection probability at least `1 / 32`, with row-query and marker
+counts at most `4 * L + 1` and fixed-gate count at most `4 * L + 2`. See [Szegedy2004]. -/
 theorem source_theorem_two_random_power_detection
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ) (L : ℕ) (j : I)

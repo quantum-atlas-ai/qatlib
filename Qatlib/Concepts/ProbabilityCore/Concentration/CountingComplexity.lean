@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ProbabilityCore.Concentration.CountingComplexityDefs
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCounting
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+
+/-!
+# Hash-based counting estimates and failure bounds
+
+This module proves exact first and second moments for `CcEstimate`, a rescaled zero-fiber count
+for affine Boolean hashes. A coordinate-flip bijection gives balanced row parities and the
+pairwise joint-zero counts needed for the variance calculation.
+
+The variance yields threshold and relative-error failure bounds, which are transported to
+sampler output fibers and events. Explicit bit-time inequalities account for oracle access.
+These classical counting estimates complement the quantum counting and estimation tasks of
+[BrassardEtAl2002].
+
+## Main statements
+
+* `ccPairIndependence`: joint-zero counts factor for distinct witnesses.
+* `ccEstimateDevSq_eq`: the exact sum of squared deviations of the estimator.
+* `ccFailureProb_le_eps`: a failure budget bounds relative-error failure probability.
+* `ccSamplerEventSet_failure_prob`: the same failure bound applies to sampler events.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -21,12 +46,14 @@ open Qatlib
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCounting
 open Qatlib.Concepts.CountingClasses.ClassTransport
 
+/-- A relation of positive finite count contains a witness. -/
 private theorem ecRelCount_pos {L : ℕ} (R : Set (Fin L → Bool)) (h : EcRelCount R > 0) :
     ∃ w : Fin L → Bool, R w := by
   classical
   obtain ⟨w, hw⟩ := Finset.card_pos.mp h
   exact ⟨w, (Finset.mem_filter.mp hw).2⟩
 
+/-- A relation of count zero has zero zero-hash fiber count for every seed. -/
 private theorem ecRelFiberCount_eq_zero_of_count_zero {L ℓ : ℕ} (R : Set (Fin L → Bool))
     (h : EcRelCount R = 0) (s : EcHashSeed L ℓ) : EcRelFiberCount R s = 0 := by
   classical
@@ -43,6 +70,8 @@ private theorem ecRelFiberCount_eq_zero_of_count_zero {L ℓ : ℕ} (R : Set (Fi
     omega
   · simp [hw]
 
+/-- The sum of the rescaled estimates over all hash seeds equals the relation count times `2 ^
+(ℓ * L + ℓ)`. -/
 theorem ccEstimate_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ∑ s : EcHashSeed L ℓ, CcEstimate R s = EcRelCount R * 2 ^ (ℓ * L + ℓ) := by
   classical
@@ -61,20 +90,24 @@ theorem ccEstimate_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
         _ = EcRelCount R * 2 ^ (ℓ + ℓ * L) := by rw [pow_add]
         _ = EcRelCount R * 2 ^ (ℓ * L + ℓ) := by rw [Nat.add_comm]
 
+/-- A seed is good exactly when twice its estimate is at least the true relation count. -/
 theorem ccGoodSeed_iff {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashSeed L ℓ) :
     CcGoodSeed R s ↔ EcRelCount R ≤ 2 * CcEstimate R s := Iff.rfl
 
+/-- Every hash seed is either good or bad for the specified relation. -/
 theorem ccGoodSeed_or_bad {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashSeed L ℓ) :
     CcGoodSeed R s ∨ CcBadSeed R s := by
   by_cases h : CcGoodSeed R s
   · exact Or.inl h
   · exact Or.inr h
 
+/-- There exists a hash seed whose estimate is at least the true relation count. -/
 theorem ccBestSeed_estimate {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ∃ s : EcHashSeed L ℓ, EcRelCount R ≤ CcEstimate R s := by
   obtain ⟨s, h1, _⟩ := ecRelFiberCount_best (L := L) (ℓ := ℓ) R
   exact ⟨s, h1⟩
 
+/-- A relation of count zero has no bad hash seeds. -/
 theorem ccNoBadSeed_of_zero_count {L ℓ : ℕ} (R : Set (Fin L → Bool))
     (h : EcRelCount R = 0) : CcBadSeedCount (L := L) (ℓ := ℓ) R = 0 := by
   classical
@@ -87,6 +120,8 @@ theorem ccNoBadSeed_of_zero_count {L ℓ : ℕ} (R : Set (Fin L → Bool))
     simp [CcEstimate, h1, h]
   simp [hgood, CcBadSeed]
 
+/-- For a relation of positive count, at most half of the hash seeds give an estimate at least
+twice the true count. -/
 theorem ccOverEstimate_count_le_half {L ℓ : ℕ} (R : Set (Fin L → Bool))
     (hm : 0 < EcRelCount R) :
     2 * (∑ s : EcHashSeed L ℓ, if 2 * EcRelCount R ≤ CcEstimate R s then 1 else 0)
@@ -149,31 +184,41 @@ theorem ccOverEstimate_count_le_half {L ℓ : ℕ} (R : Set (Fin L → Bool))
     exact h'
   exact Nat.le_of_mul_le_mul_left h4 hm
 
+/-- Boolean exclusive-or equals addition in the Boolean additive structure. -/
 private theorem ccBool_add_xor (a b : Bool) : (a ^^ b) = (a + b) := by
   cases a <;> cases b <;> decide
 
+/-- Boolean negation equals exclusive-or with `true`. -/
 private theorem ccBool_not_xor (b : Bool) : (!b) = (b ^^ true) := by
   cases b <;> decide
 
+/-- Exclusive-or with `false` preserves a Boolean value. -/
 private theorem ccBool_xor_false (b : Bool) : (b ^^ false) = b := by
   cases b <;> decide
 
+/-- The Boolean value `false` is the additive zero. -/
 private theorem ccBool_false_zero : (false : Bool) = 0 := by decide
 
+/-- Adding a Boolean value to itself gives `false`. -/
 private theorem ccBool_add_self (b : Bool) : (b + b) = false := by
   cases b <;> decide
 
+/-- Boolean conjunction distributes over exclusive-or in its left argument. -/
 private theorem ccBool_and_xor_l (a b c : Bool) :
     ((a ^^ b) && c) = ((a && c) ^^ (b && c)) := by
   cases a <;> cases b <;> cases c <;> decide
 
+/-- Boolean conjunction distributes over exclusive-or in its right argument. -/
 private theorem ccBool_and_xor_r (a b c : Bool) :
     (c && (a ^^ b)) = ((c && a) ^^ (c && b)) := by
   cases a <;> cases b <;> cases c <;> decide
 
+/-- The exclusive-or of two Boolean values is `false` exactly when they are equal. -/
 private theorem ccBool_xor_eq_false (u v : Bool) : (u ^^ v) = false ↔ u = v := by
   cases u <;> cases v <;> decide
 
+/-- A finite sum of pointwise Boolean exclusive-ors equals the exclusive-or of the two finite
+sums. -/
 private theorem ccSumXor {L : ℕ} (a b : Fin L → Bool) :
     (∑ j : Fin L, (a j ^^ b j)) = ((∑ j : Fin L, a j) ^^ (∑ j : Fin L, b j)) := by
   classical
@@ -184,6 +229,8 @@ private theorem ccSumXor {L : ℕ} (a b : Fin L → Bool) :
   rw [h1, Finset.sum_add_distrib]
   exact (ccBool_add_xor _ _).symm
 
+/-- An affine Boolean hash vanishes on a witness exactly when every offset bit equals the
+corresponding row parity. -/
 theorem ccEcHashZero_iff {L ℓ : ℕ} (mat : Fin ℓ → Fin L → Bool) (off : Fin ℓ → Bool)
     (w : Fin L → Bool) :
     EcHashZero (mat, off) w ↔ ∀ i : Fin ℓ, off i = CcRowParity w (mat i) := by
@@ -200,6 +247,8 @@ theorem ccEcHashZero_iff {L ℓ : ℕ} (mat : Fin ℓ → Fin L → Bool) (off :
     show Bool.xor (∑ j : Fin L, (mat i j && w j)) (off i) = false
     exact hxor
 
+/-- The difference of two witness row parities equals the row parity of their pointwise
+exclusive-or. -/
 theorem ccRowParity_diff {L : ℕ} (w w' row : Fin L → Bool) :
     CcRowParityDiff w w' row = CcRowParity (CcWitnessDiff w w') row := by
   classical
@@ -215,6 +264,8 @@ theorem ccRowParity_diff {L : ℕ} (w w' row : Fin L → Bool) :
   rw [h1, h2]
   exact (ccBool_add_xor _ _).symm
 
+/-- The pointwise exclusive-or of two witnesses is everywhere `false` exactly when the witnesses
+are equal. -/
 theorem ccWitnessDiff_eq_zero_iff {L : ℕ} (w w' : Fin L → Bool) :
     (∀ j : Fin L, CcWitnessDiff w w' j = false) ↔ w = w' := by
   constructor
@@ -228,6 +279,8 @@ theorem ccWitnessDiff_eq_zero_iff {L : ℕ} (w w' : Fin L → Bool) :
     subst h
     simp [CcWitnessDiff]
 
+/-- Two witnesses have agreeing matrix parities exactly when every matrix row has even parity
+against their difference. -/
 theorem ccMatrixParityAgree_iff {L ℓ : ℕ} (w w' : Fin L → Bool)
     (mat : Fin ℓ → Fin L → Bool) :
     CcMatrixParityAgree w w' mat ↔
@@ -238,6 +291,7 @@ theorem ccMatrixParityAgree_iff {L ℓ : ℕ} (w w' : Fin L → Bool)
   · intro h i
     exact (ccRowParity_diff w w' (mat i)) ▸ h i
 
+/-- Flipping a row coordinate where the witness difference is `true` negates its row parity. -/
 theorem ccRowParity_flip {L : ℕ} (d row : Fin L → Bool) (j₀ : Fin L)
     (hd : d j₀ = true) :
     CcRowParity d (CcFlipAt row j₀) = !CcRowParity d row := by
@@ -281,6 +335,7 @@ theorem ccRowParity_flip {L : ℕ} (d row : Fin L → Bool) (j₀ : Fin L)
   symm
   exact ccBool_not_xor _
 
+/-- Flipping a Boolean row twice at the same coordinate returns the original row. -/
 theorem ccFlipAt_involutive {L : ℕ} (row : Fin L → Bool) (j₀ : Fin L) :
     CcFlipAt (CcFlipAt row j₀) j₀ = row := by
   funext j
@@ -289,6 +344,8 @@ theorem ccFlipAt_involutive {L : ℕ} (row : Fin L → Bool) (j₀ : Fin L) :
     simp [CcFlipAt]
   · simp [CcFlipAt, hj]
 
+/-- Two witnesses both hash to zero exactly when the offset matches the first witness parities
+and the two witnesses have agreeing matrix parities. -/
 theorem ccJointZero_iff {L ℓ : ℕ} (mat : Fin ℓ → Fin L → Bool) (off : Fin ℓ → Bool)
     (w w' : Fin L → Bool) :
     CcHashJointZero (mat, off) w w' ↔
@@ -321,25 +378,31 @@ theorem ccJointZero_iff {L ℓ : ℕ} (mat : Fin ℓ → Fin L → Bool) (off : 
       rw [hw]
       exact heq
 
+/-- Every Boolean value equals either `false` or `true`. -/
 private theorem ccBool_eq_false_or_true (v : Bool) : v = false ∨ v = true := by
   cases v with
   | false => exact Or.inl rfl
   | true => exact Or.inr rfl
 
+/-- A Boolean value equal to `false` is unequal to `true`. -/
 private theorem ccBool_ne_true_of_eq_false {v : Bool} (h : v = false) : v ≠ true := by
   intro h2
   rw [h] at h2
   exact Bool.noConfusion h2
 
+/-- A Boolean value equal to `true` is unequal to `false`. -/
 private theorem ccBool_ne_false_of_eq_true {v : Bool} (h : v = true) : v ≠ false := by
   intro h2
   rw [h] at h2
   exact Bool.noConfusion h2
 
+/-- Every row parity is either `false` or `true`. -/
 private theorem ccRowParity_eq_false_or_true {L : ℕ} (d row : Fin L → Bool) :
     CcRowParity d row = false ∨ CcRowParity d row = true :=
   ccBool_eq_false_or_true (CcRowParity d row)
 
+/-- Flipping a row at a coordinate where the tested vector is `true` interchanges even and odd
+parity. -/
 private theorem ccFlipAt_swap_parity {L : ℕ} (d : Fin L → Bool) (j₀ : Fin L)
     (hd : d j₀ = true) (row : Fin L → Bool) :
     (CcRowParity d row = false → CcRowParity d (CcFlipAt row j₀) = true) ∧
@@ -353,6 +416,8 @@ private theorem ccFlipAt_swap_parity {L : ℕ} (d : Fin L → Bool) (j₀ : Fin 
     rw [h, hr]
     rfl
 
+/-- For a vector with a `true` coordinate, the sets of rows of even and odd parity have equal
+cardinality. -/
 private theorem ccRowParity_flip_bij {L : ℕ} (d : Fin L → Bool) (j₀ : Fin L)
     (hd : d j₀ = true) :
     (Finset.univ.filter (fun r : Fin L → Bool => CcRowParity d r = false)).card
@@ -371,6 +436,7 @@ private theorem ccRowParity_flip_bij {L : ℕ} (d : Fin L → Bool) (j₀ : Fin 
     · exact (ccFlipAt_swap_parity d j₀ hd b).2 (Finset.mem_filter.mp hb).2
     · exact ccFlipAt_involutive b j₀
 
+/-- For a nonzero Boolean vector, exactly `2 ^ (L - 1)` rows have even parity against it. -/
 theorem ccRowEvenCount_eq {L : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fin L, d j = true) :
     CcRowEvenCount d = 2 ^ (L - 1) := by
   classical
@@ -416,6 +482,7 @@ theorem ccRowEvenCount_eq {L : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fin L, d 
   unfold CcRowEvenCount
   exact (ecCard_eq_sum (fun r : Fin L → Bool => CcRowParity d r = false)).symm.trans hcard
 
+/-- For a nonzero Boolean vector, exactly `2 ^ (L - 1)` rows have odd parity against it. -/
 theorem ccRowOddCount_eq {L : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fin L, d j = true) :
     CcRowOddCount d = 2 ^ (L - 1) := by
   classical
@@ -432,6 +499,8 @@ theorem ccRowOddCount_eq {L : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fin L, d j
   rw [hodd, ← hbij, heven]
   exact ccRowEvenCount_eq d ⟨j₀, hdj₀⟩
 
+/-- For a nonzero Boolean vector, exactly `2 ^ (ℓ * (L - 1))` matrices have even parity against
+it in every row. -/
 theorem ccMatrixEvenCount_eq {L ℓ : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fin L, d j = true) :
     CcMatrixEvenCount ℓ d = 2 ^ (ℓ * (L - 1)) := by
   classical
@@ -476,6 +545,8 @@ theorem ccMatrixEvenCount_eq {L ℓ : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fi
   calc (2 ^ (L - 1)) ^ ℓ = 2 ^ ((L - 1) * ℓ) := (Nat.pow_mul 2 (L - 1) ℓ).symm
     _ = 2 ^ (ℓ * (L - 1)) := by rw [Nat.mul_comm]
 
+/-- Exactly one Boolean offset vector agrees at every coordinate with a specified Boolean
+vector. -/
 private theorem ccOffsetUnique {ℓ : ℕ} (g : Fin ℓ → Bool) :
     (∑ off : Fin ℓ → Bool, if (∀ i : Fin ℓ, off i = g i) then 1 else 0) = 1 := by
   classical
@@ -492,6 +563,8 @@ private theorem ccOffsetUnique {ℓ : ℕ} (g : Fin ℓ → Bool) :
   rw [Finset.sum_ite_eq' (Finset.univ : Finset (Fin ℓ → Bool)) g (fun _ => 1)]
   simp
 
+/-- The number of hash seeds vanishing on both witnesses equals the piecewise count
+`CcPairZeroCount`. -/
 theorem ccHashJointZeroCount_eq {L ℓ : ℕ} (w w' : Fin L → Bool) :
     CcHashJointZeroCount ℓ w w' = CcPairZeroCount ℓ w w' := by
   classical
@@ -583,6 +656,8 @@ theorem ccHashJointZeroCount_eq {L ℓ : ℕ} (w w' : Fin L → Bool) :
     rw [hmain, hagree, hfinal]
     simp [CcPairZeroCount, hww]
 
+/-- For distinct witnesses, their joint-zero seed count times the total seed count equals the
+square of the single-witness zero count. -/
 theorem ccPairIndependence {L ℓ : ℕ} (w w' : Fin L → Bool) (hww : w ≠ w') :
     CcHashJointZeroCount ℓ w w' * 2 ^ (ℓ * L + ℓ) = (2 ^ (ℓ * L)) ^ 2 := by
   classical
@@ -605,6 +680,8 @@ theorem ccPairIndependence {L ℓ : ℕ} (w w' : Fin L → Bool) (hww : w ≠ w'
       rw [h2]
     _ = (2 ^ (ℓ * L)) ^ 2 := Nat.pow_mul 2 (ℓ * L) 2
 
+/-- Bit time covers twice the query count, the query-bit charge, the encoded input length, and
+the output-bit charge. -/
 theorem ccBitTime_charge {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     2 * (EcChargeOf P A ρ x t).queries + (EcChargeOf P A ρ x t).queryBits
@@ -614,33 +691,40 @@ theorem ccBitTime_charge {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (�
   unfold CcBitTime
   omega
 
+/-- Bit time is at least the underlying charged execution time. -/
 theorem ccBitTime_ge_time {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     (EcChargeOf P A ρ x t).time ≤ CcBitTime P A ρ x t := by
   unfold CcBitTime
   omega
 
+/-- The encoded input length is the original Boolean-list length plus one. -/
 theorem ccInputBits_eq {x : List Bool} : CcInputBits x = x.length + 1 := by
   unfold CcInputBits
   rw [EcEncode_length]
 
+/-- An execution with at least one oracle query has charged time at least two. -/
 theorem ccOracleCall_not_free {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (hq : 0 < (EcChargeOf P A ρ x t).queries) :
     2 ≤ (EcChargeOf P A ρ x t).time := by
   have h := EcCharge_sound P A ρ x t
   omega
 
+/-- Twice the oracle query count is bounded by charged execution time. -/
 theorem ccOracleCall_queries_le_half {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) :
     2 * (EcChargeOf P A ρ x t).queries ≤ (EcChargeOf P A ρ x t).time :=
   EcCharge_queries_le_half_time P A ρ x t
 
+/-- The indicator sum for a sampler output equals the cardinality of its seed fiber. -/
 theorem ccSampler_exact {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     (∑ r : Fin L → Bool, if Sam.O r = y then 1 else 0)
       = (Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card := by
   classical
   rw [← ecCard_eq_sum]
 
+/-- The sum of estimates for a sampler output fiber equals its cardinality times the total
+number of hash seeds. -/
 theorem ccSampler_estimate_sum {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     ∑ s : EcHashSeed L ℓ, CcEstimate (EcSamplerSeedSet Sam y) s
       = (Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card
@@ -650,6 +734,8 @@ theorem ccSampler_estimate_sum {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out
   rw [ecSamplerSeedSet_card] at h
   exact h
 
+/-- Every sampler output fiber possesses a hash seed whose estimate is at least the fiber
+cardinality. -/
 theorem ccSampler_good_seed {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     ∃ s : EcHashSeed L ℓ,
       (Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card
@@ -659,24 +745,30 @@ theorem ccSampler_good_seed {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (
   rw [ecSamplerSeedSet_card] at h1
   exact ⟨s, h1⟩
 
+/-- Summing the estimates of a sampler output fiber gives its cardinality multiplied by `2 ^ (ℓ
+* L + ℓ)`. -/
 theorem ccSampler_average_case {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     (∑ s : EcHashSeed L ℓ, CcEstimate (EcSamplerSeedSet Sam y) s)
       = (Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card
         * 2 ^ (ℓ * L + ℓ) := by
   exact ccSampler_estimate_sum (L := L) (ℓ := ℓ) Sam y
 
+/-- The natural-number indicator of membership in a relation. -/
 private noncomputable def ccInd {L : ℕ} (R : Set (Fin L → Bool)) (w : Fin L → Bool) : ℕ :=
   if R w then 1 else 0
 
+/-- Summing the membership indicator over all witnesses gives the relation count. -/
 private theorem ccInd_eq_sum {L : ℕ} (R : Set (Fin L → Bool)) :
     (∑ w : Fin L → Bool, ccInd R w) = EcRelCount R := by
   rw [ecRelCount_eq_sum R]
   rfl
 
+/-- The natural-number membership indicator is idempotent under multiplication. -/
 private theorem ccInd_mul_self {L : ℕ} (R : Set (Fin L → Bool)) (w : Fin L → Bool) :
     ccInd R w * ccInd R w = ccInd R w := by
   by_cases h : R w <;> simp [ccInd, h]
 
+/-- A double sum weighted by the equality indicator reduces to the sum of its diagonal terms. -/
 private theorem ccDiagSum {L : ℕ} (g : (Fin L → Bool) → (Fin L → Bool) → ℕ) :
     (∑ w : Fin L → Bool, ∑ w' : Fin L → Bool, g w w' * (if w = w' then 1 else 0))
       = ∑ w : Fin L → Bool, g w w := by
@@ -694,6 +786,8 @@ private theorem ccDiagSum {L : ℕ} (g : (Fin L → Bool) → (Fin L → Bool) �
         rw [Finset.sum_ite_eq' (Finset.univ : Finset (Fin L → Bool)) w (fun w' => g w w')]
         simp
 
+/-- The sum over seeds of two relation-and-zero-hash indicators equals the product of the
+relation indicators and the joint-zero seed count. -/
 private theorem ccJointFiberSum {L ℓ : ℕ} (R : Set (Fin L → Bool)) (w w' : Fin L → Bool) :
     (∑ s : EcHashSeed L ℓ,
         (if R w ∧ EcHashZero s w then 1 else 0) * (if R w' ∧ EcHashZero s w' then 1 else 0))
@@ -745,6 +839,7 @@ private theorem ccJointFiberSum {L ℓ : ℕ} (R : Set (Fin L → Bool)) (w w' :
         _ = (if R w then 1 else 0) * (if R w' then 1 else 0) * CcHashJointZeroCount ℓ w w' := by
             simp [hw]
 
+/-- A finite sum of pointwise sums of natural numbers splits into the two separate sums. -/
 private theorem ccSumAdd1 {α : Type} [Fintype α] (p q : α → ℕ) :
     (∑ a, (p a + q a)) = (∑ a, p a) + (∑ a, q a) := by
   have h : ∀ s : Finset α, (Finset.sum s (fun a => p a + q a))
@@ -758,6 +853,8 @@ private theorem ccSumAdd1 {α : Type} [Fintype α] (p q : α → ℕ) :
         omega
   simpa using h (Finset.univ)
 
+/-- Summing the affine expression `A * b s + (B * c s + E)` distributes over its variable terms
+and multiplies the constant term by the number of indices. -/
 private theorem ccSumPoly {α : Type} [Fintype α] (A B E : ℝ) (b c : α → ℝ) :
     (∑ s : α, (A * b s + (B * c s + E)))
       = A * (∑ s : α, b s) + (B * (∑ s : α, c s) + E * (∑ _s : α, 1)) := by
@@ -773,6 +870,7 @@ private theorem ccSumPoly {α : Type} [Fintype α] (A B E : ℝ) (b c : α → �
         ring
   simpa using h (Finset.univ)
 
+/-- A constant natural-number factor can be taken outside a double sum over Boolean witnesses. -/
 private theorem ccSumConst2 {L : ℕ} (A : ℕ) (f : (Fin L → Bool) → (Fin L → Bool) → ℕ) :
     (∑ w : Fin L → Bool, ∑ w' : Fin L → Bool, A * f w w')
       = A * (∑ w : Fin L → Bool, ∑ w' : Fin L → Bool, f w w') := by
@@ -785,6 +883,7 @@ private theorem ccSumConst2 {L : ℕ} (A : ℕ) (f : (Fin L → Bool) → (Fin L
         exact (Finset.mul_sum (Finset.univ : Finset (Fin L → Bool))
           (fun w => ∑ w' : Fin L → Bool, f w w') A).symm
 
+/-- A double sum of pointwise sums over Boolean witnesses splits into the two double sums. -/
 private theorem ccSumAdd2 {L : ℕ} (p q : (Fin L → Bool) → (Fin L → Bool) → ℕ) :
     (∑ w : Fin L → Bool, ∑ w' : Fin L → Bool, (p w w' + q w w'))
       = (∑ w : Fin L → Bool, ∑ w' : Fin L → Bool, p w w')
@@ -800,6 +899,8 @@ private theorem ccSumAdd2 {L : ℕ} (p q : (Fin L → Bool) → (Fin L → Bool)
         exact ccSumAdd1 (fun w => ∑ w' : Fin L → Bool, p w w')
           (fun w => ∑ w' : Fin L → Bool, q w w')
 
+/-- The sum of squared zero-hash fiber sizes is `m * 2 ^ (ℓ * L) + (m² - m) * 2 ^ (ℓ * (L -
+1))`, where `m` is the relation count. -/
 theorem ccFiberSq_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     (∑ s : EcHashSeed L ℓ, EcRelFiberCount R s ^ 2)
       = EcRelCount R * 2 ^ (ℓ * L) + (EcRelCount R ^ 2 - EcRelCount R) * 2 ^ (ℓ * (L - 1)) := by
@@ -995,6 +1096,8 @@ theorem ccFiberSq_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
               = (EcRelCount R ^ 2 - EcRelCount R) * 2 ^ (ℓ * (L - 1)) := mul_comm _ _
           rw [h1, h2]
 
+/-- Under the three stated product identities, the quadratic second-moment expression simplifies
+to `mr * (Ar - 1) * Nr`. -/
 private theorem ccVarAlgebra {Ar Br Cr Nr mr : ℝ}
     (h1 : (Ar * Ar) * (mr * Br) = (Nr * Ar) * mr)
     (h2 : (Ar * Ar) * ((mr ^ 2 - mr) * Cr) = Nr * (mr ^ 2 - mr))
@@ -1009,6 +1112,8 @@ private theorem ccVarAlgebra {Ar Br Cr Nr mr : ℝ}
           rw [h1, h2, h3]
     _ = mr * (Ar - 1) * Nr := by ring
 
+/-- The total squared deviation of the rescaled estimator equals `m * (2 ^ ℓ - 1) * 2 ^ (ℓ * L +
+ℓ)`, where `m` is the true relation count. -/
 theorem ccEstimateDevSq_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     CcEstimateDevSq ℓ R
       = (EcRelCount R : ℝ) * (((2 : ℝ) ^ ℓ) - 1) * ((2 : ℝ) ^ (ℓ * L + ℓ)) := by
@@ -1181,6 +1286,8 @@ theorem ccEstimateDevSq_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
   rw [CcEstimateDevSq]
   exact hmain
 
+/-- For positive relation count `m`, the relative-error failure count times `m` is at most `4 *
+(2 ^ ℓ - 1) * 2 ^ (ℓ * L + ℓ)`. -/
 theorem ccFailureCount_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R) :
     (CcFailureCount ℓ R : ℝ) * (EcRelCount R : ℝ)
       ≤ 4 * (((2 : ℝ) ^ ℓ) - 1) * ((2 : ℝ) ^ (ℓ * L + ℓ)) := by
@@ -1255,6 +1362,8 @@ theorem ccFailureCount_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < 
     linarith
   nlinarith
 
+/-- For a positive relation count satisfying `CcFailureBudget`, the failure count is at most `ε`
+times the total number of hash seeds. -/
 theorem ccFailureRate_le_eps {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R)
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount R) ε) :
     (CcFailureCount ℓ R : ℝ) ≤ ε * ((2 : ℝ) ^ (ℓ * L + ℓ)) := by
@@ -1265,6 +1374,8 @@ theorem ccFailureRate_le_eps {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < 
   have hb' : 4 * (((2 : ℝ) ^ ℓ) - 1) ≤ ε * (EcRelCount R : ℝ) := hb.2
   nlinarith
 
+/-- For a positive relation count satisfying `CcFailureBudget`, the probability of error greater
+than half the true count is at most `ε`. -/
 theorem ccFailureProb_le_eps {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R)
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount R) ε) :
     CcFailureProb ℓ R ≤ ε := by
@@ -1276,6 +1387,7 @@ theorem ccFailureProb_le_eps {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < 
   rw [div_le_iff₀ hN]
   linarith
 
+/-- A sampler output fiber count equals its output probability multiplied by `2 ^ L`. -/
 theorem ccSampler_output_prob_count {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     (EcRelCount (EcSamplerSeedSet Sam y) : ℝ) = (2 : ℝ) ^ L * EcSamplerProb Sam y := by
   classical
@@ -1284,6 +1396,8 @@ theorem ccSampler_output_prob_count {L : ℕ} {Out : Type} (Sam : EcSampler L Ou
   push_cast
   ring
 
+/-- The uniform mean of the hash estimates for a sampler output fiber equals its output
+probability multiplied by `2 ^ L`. -/
 theorem ccSampler_estimate_expectation {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     (∑ s : EcHashSeed L ℓ, CcEstimate (EcSamplerSeedSet Sam y) s)
         / ((2 : ℝ) ^ (ℓ * L + ℓ))
@@ -1296,6 +1410,8 @@ theorem ccSampler_estimate_expectation {L ℓ : ℕ} {Out : Type} (Sam : EcSampl
   rw [hone]
   ring
 
+/-- Every sampler output fiber possesses a good hash seed, whose estimate is at least half the
+fiber count. -/
 theorem ccSampler_good_seed_multiplicative {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out)
     (y : Out) :
     ∃ s : EcHashSeed L ℓ, CcGoodSeed (EcSamplerSeedSet Sam y) s := by
@@ -1315,18 +1431,24 @@ theorem ccSampler_good_seed_multiplicative {L ℓ : ℕ} {Out : Type} (Sam : EcS
     exact hnn.trans_eq (Nat.two_mul _).symm
   exact Nat.le_trans h1 h2
 
+/-- For a positive sampler output fiber count satisfying the failure budget, the failure count
+is at most `ε` times the number of hash seeds. -/
 theorem ccSampler_failure_rate {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out)
     (hm : 0 < EcRelCount (EcSamplerSeedSet Sam y))
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount (EcSamplerSeedSet Sam y)) ε) :
     (CcFailureCount ℓ (EcSamplerSeedSet Sam y) : ℝ) ≤ ε * ((2 : ℝ) ^ (ℓ * L + ℓ)) :=
   ccFailureRate_le_eps (L := L) (ℓ := ℓ) (EcSamplerSeedSet Sam y) hm hb
 
+/-- For a positive sampler output fiber count satisfying the failure budget, its relative-error
+failure probability is at most `ε`. -/
 theorem ccSampler_failure_prob {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out)
     (hm : 0 < EcRelCount (EcSamplerSeedSet Sam y))
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount (EcSamplerSeedSet Sam y)) ε) :
     CcFailureProb ℓ (EcSamplerSeedSet Sam y) ≤ ε :=
   ccFailureProb_le_eps (L := L) (ℓ := ℓ) (EcSamplerSeedSet Sam y) hm hb
 
+/-- For positive relation count `m` and threshold `τ > 0`, the number of seeds with absolute
+error above `τ`, multiplied by `τ²`, is at most `m * (2 ^ ℓ - 1) * 2 ^ (ℓ * L + ℓ)`. -/
 theorem ccBadSeedCount_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R)
     (τ : ℝ) (hτ : 0 < τ) :
     (CcThresholdBadSeedCount ℓ τ R : ℝ) * τ ^ 2
@@ -1388,12 +1510,16 @@ theorem ccBadSeedCount_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < 
   rw [hmain] at hx
   linarith
 
+/-- The total squared deviation for a sampler output fiber equals its count times `(2 ^ ℓ - 1) *
+2 ^ (ℓ * L + ℓ)`. -/
 theorem ccSampler_estimate_devSq {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     CcEstimateDevSq ℓ (EcSamplerSeedSet Sam y)
       = (EcRelCount (EcSamplerSeedSet Sam y) : ℝ) * (((2 : ℝ) ^ ℓ) - 1)
         * ((2 : ℝ) ^ (ℓ * L + ℓ)) := by
   exact ccEstimateDevSq_eq (L := L) (ℓ := ℓ) (EcSamplerSeedSet Sam y)
 
+/-- For a positive sampler output fiber count and positive threshold, the threshold failure
+count times the squared threshold is bounded by the total squared deviation formula. -/
 theorem ccSampler_bad_seed_count_bound {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out)
     (y : Out) (hm : 0 < EcRelCount (EcSamplerSeedSet Sam y)) (τ : ℝ) (hτ : 0 < τ) :
     (CcThresholdBadSeedCount ℓ τ (EcSamplerSeedSet Sam y) : ℝ) * τ ^ 2
@@ -1401,6 +1527,8 @@ theorem ccSampler_bad_seed_count_bound {L ℓ : ℕ} {Out : Type} (Sam : EcSampl
         * ((2 : ℝ) ^ (ℓ * L + ℓ)) :=
   ccBadSeedCount_bound (L := L) (ℓ := ℓ) (EcSamplerSeedSet Sam y) hm τ hτ
 
+/-- For any real threshold, the counts of sampler-fiber hash estimates with error at most the
+threshold and error above it sum to the total hash-seed count. -/
 theorem ccSampler_good_seed_count {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out)
     (y : Out) (τ : ℝ) :
     (∑ s : EcHashSeed L ℓ,
@@ -1450,6 +1578,8 @@ theorem ccSampler_good_seed_count {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L 
   rw [hcard] at hsplit
   linarith
 
+/-- The seed count of a sampler event is the sum of the output-fiber counts over outputs where
+the event predicate is true. -/
 theorem ccSamplerEventSet_count {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSampler L Out)
     (Ev : Out → Bool) :
     EcRelCount (CcSamplerEventSet Sam Ev)
@@ -1471,6 +1601,8 @@ theorem ccSamplerEventSet_count {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSa
   rw [← hcard] at h
   exact h
 
+/-- A sampler event probability is the sum of its accepted output-fiber counts divided by `2 ^
+L`. -/
 theorem ccSamplerEventSet_prob {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSampler L Out)
     (Ev : Out → Bool) :
     CcSamplerEventProb Sam Ev
@@ -1482,18 +1614,24 @@ theorem ccSamplerEventSet_prob {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSam
   rw [ccSamplerEventSet_count Sam Ev]
   norm_cast
 
+/-- The sum of hash estimates for a sampler event equals its seed count times the number of hash
+seeds. -/
 theorem ccSamplerEventSet_estimate_mean {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out)
     (Ev : Out → Bool) :
     (∑ s : EcHashSeed L ℓ, CcEstimate (CcSamplerEventSet Sam Ev) s)
       = EcRelCount (CcSamplerEventSet Sam Ev) * 2 ^ (ℓ * L + ℓ) := by
   exact ccEstimate_sum (L := L) (ℓ := ℓ) (CcSamplerEventSet Sam Ev)
 
+/-- A sampler event with positive seed count and the stated failure budget has relative-error
+failure probability at most `ε`. -/
 theorem ccSamplerEventSet_failure_prob {L ℓ : ℕ} {Out : Type} (Sam : EcSampler L Out)
     (Ev : Out → Bool) (hm : 0 < EcRelCount (CcSamplerEventSet Sam Ev))
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount (CcSamplerEventSet Sam Ev)) ε) :
     CcFailureProb ℓ (CcSamplerEventSet Sam Ev) ≤ ε :=
   ccFailureProb_le_eps (L := L) (ℓ := ℓ) (CcSamplerEventSet Sam Ev) hm hb
 
+/-- Sampler bit time covers all random bits, `2 * addrBits + 1` units per query, and the
+output-bit count. -/
 theorem ccSamplerBitTime_lower (L ℓ addrBits queries outputBits : ℕ) :
     CcSamplerRandomBits L ℓ + queries * (2 * addrBits + 1) + outputBits
       ≤ CcSamplerBitTime L ℓ addrBits queries outputBits := by

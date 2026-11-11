@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.InnerProductSpace.Basic
 
+/-!
+# Averaging bounds for branch costs
+
+This module develops finite weighted-sum estimates for the averaging argument in
+[JefferyKothariMagniez2013]. `overlapLedger` records contributions from retained and replaced
+unitary branches, and `withinBudget` selects indices whose costs do not exceed a threshold.
+
+For normalized amplitudes and unit branch states, `averaging_conversion_inner` bounds the real
+overlap by 1 minus twice the excluded weight. The remaining results bound excluded weight using
+nonnegative costs and a positive multiple of their weighted sum.
+
+## Main statements
+
+* `withinBudget_spec`: membership is equivalent to satisfying the cost threshold.
+* `averaging_conversion_inner`: a real overlap bound from excluded branch mass.
+* `averaging_query_bound`: a finite weighted tail estimate.
+* `averaging_constant_error`: a threshold at k times the weighted cost gives a bound of 1 - 2/k.
+
+## References
+
+* [Jeffery et al., 2013][JefferyKothariMagniez2013]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,19 +38,25 @@ open scoped Real ComplexOrder BigOperators ComplexInnerProductSpace
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
 
+/-- The weighted sum with contribution one on branches in C and contribution ⟪s i, U i (s i)⟫
+outside C, weighted by squared amplitude norms. -/
 def overlapLedger {n : ℕ} (U : Fin n → H ≃ₗᵢ[ℂ] H) (s : Fin n → H)
     (α : Fin n → ℂ) (C : Finset (Fin n)) : ℂ :=
   ∑ i, ((‖α i‖ ^ 2 : ℝ) : ℂ) *
     (if i ∈ C then 1 else ⟪s i, U i (s i)⟫)
 
+/-- The finite set of branch indices whose cost Q i is at most the threshold q. -/
 def withinBudget {n : ℕ} (Q : Fin n → ℝ) (q : ℝ) : Finset (Fin n) :=
   Finset.univ.filter (fun i => Q i ≤ q)
 
+/-- An index belongs to `withinBudget Q q` exactly when its cost is at most q. -/
 theorem withinBudget_spec {n : ℕ} (Q : Fin n → ℝ) (q : ℝ) :
     ∀ i, i ∈ withinBudget Q q ↔ Q i ≤ q := by
   intro i
   simp [withinBudget]
 
+/-- For unit branch states and amplitudes whose squared norms sum to one, the real part of
+`overlapLedger` is at least 1 minus twice the total squared amplitude outside C. -/
 theorem averaging_conversion_inner {n : ℕ} (α : Fin n → ℂ) (s : Fin n → H)
     (U : Fin n → H ≃ₗᵢ[ℂ] H) (C : Finset (Fin n))
     (hs : ∀ i, ‖s i‖ = 1) (hα : ∑ i, ‖α i‖ ^ 2 = 1) :
@@ -81,6 +110,9 @@ theorem averaging_conversion_inner {n : ℕ} (α : Fin n → ℂ) (s : Fin n →
   rw [hre]
   linarith [hcompl, hCsum]
 
+/-- For nonnegative weights and costs, the excluded weight times a nonnegative threshold is
+bounded by the total weighted cost when C consists exactly of indices at or below that
+threshold. -/
 theorem averaging_query_bound {n : ℕ} (p Q : Fin n → ℝ) (C : Finset (Fin n))
     (q : ℝ) (hp : ∀ i, 0 ≤ p i) (hQ : ∀ i, 0 ≤ Q i)
     (hC : ∀ i, i ∈ C ↔ Q i ≤ q) (_hq : 0 ≤ q) :
@@ -101,6 +133,9 @@ theorem averaging_query_bound {n : ℕ} (p Q : Fin n → ℝ) (C : Finset (Fin n
     exact mul_nonneg (hp i) (hQ i)
   linarith [hstep, hsubset]
 
+/-- For nonnegative weights and costs, retaining indices of cost at most k times the weighted
+cost yields 1 minus twice the excluded weight at least 1 - 2/k, provided k and the threshold
+are positive. -/
 theorem averaging_constant_error {n : ℕ} (p Q : Fin n → ℝ)
     (C : Finset (Fin n)) (k : ℝ)
     (hp : ∀ i, 0 ≤ p i) (hQ : ∀ i, 0 ≤ Q i)

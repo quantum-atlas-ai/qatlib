@@ -9,6 +9,31 @@ import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Exact synthesis of parallel hopping blocks
+
+The two-level hopping evolution is expressed using Hadamard gates, the library phase convention
+for `Rz`, and an explicit global phase. `blockWord` performs the resulting four operations on
+every block in parallel. The module also bounds the qubit word size by the real base-two
+logarithm.
+
+The mathematical setting is that of [AbramsLloyd1997].
+
+## Main statements
+
+* `xEvol_eq`: The evolution of `t • PauliX` for time `τ` equals `Hadamard * Rz (2 * τ * t) *
+  Hadamard` multiplied by the phase `exp(-iτt)`.
+* `blockWord_correct`: The four-gate block circuit implements the exact parallel hopping
+  evolution, is unitary, and has zero queries.
+* `quWordBits_log_bounds`: For `m ≥ 1`, the word size lies between `log(m) / log(2)` and that
+  quantity plus one.
+
+## References
+
+* [Abrams and Lloyd, 1997][AbramsLloyd1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +45,7 @@ open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.Mix
 open Qatlib.Foundations.PureStateMath
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The square of the complex reciprocal of `sqrt(2)` is `1 / 2`. -/
 theorem inv_sqrt2_mul_complex :
     (((Real.sqrt 2 : ℝ) : ℂ)⁻¹) * (((Real.sqrt 2 : ℝ) : ℂ)⁻¹) = (1/2 : ℂ) := by
   have hs : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = 2 := by
@@ -28,24 +54,30 @@ theorem inv_sqrt2_mul_complex :
   rw [← mul_inv, hs]
   norm_num
 
+/-- Conjugating `PauliZ` by the Hadamard matrix gives `PauliX`. -/
 theorem hadamard_conj_pauliZ : Hadamard * PauliZ * Hadamard = PauliX := by
   ext a b
   cases a <;> cases b <;>
     simp [Hadamard, PauliZ, PauliX, permMatrix, Matrix.mul_apply] <;>
     rw [inv_sqrt2_mul_complex] <;> norm_num
 
+/-- The Hadamard matrix squares to the identity matrix. -/
 theorem hadamard_mul_self : Hadamard * Hadamard = (1 : Matrix Bool Bool ℂ) := by
   ext a b
   cases a <;> cases b <;>
     simp [Hadamard, Matrix.mul_apply] <;>
     rw [inv_sqrt2_mul_complex] <;> norm_num
 
+/-- The Hadamard matrix is invertible as a matrix-ring element. -/
 theorem hadamard_unit : IsUnit (Hadamard : Matrix Bool Bool ℂ) :=
   isUnit_iff_exists_inv.mpr ⟨Hadamard, hadamard_mul_self⟩
 
+/-- The inverse of the Hadamard matrix is itself. -/
 theorem hadamard_inv : (Hadamard : Matrix Bool Bool ℂ)⁻¹ = Hadamard :=
   Matrix.inv_eq_right_inv hadamard_mul_self
 
+/-- Expresses `Rz θ` as a global phase `exp(iθ/2)` times the matrix exponential of `-iθ PauliZ /
+2`. -/
 theorem Rz_eq_smul_exp (θ : ℝ) :
     Rz θ = (Complex.exp ((θ/2 : ℝ) * Complex.I)) • NormedSpace.exp
       ((-(Complex.I) * ((θ/2 : ℝ) : ℂ)) • PauliZ) := by
@@ -61,6 +93,8 @@ theorem Rz_eq_smul_exp (θ : ℝ) :
     congr 1
     ring
 
+/-- Hadamard conjugation sends the exponential of `φ • PauliZ` to the exponential of `φ •
+PauliX`. -/
 theorem hadamard_expZ_hadamard (φ : ℂ) :
     Hadamard * NormedSpace.exp (φ • PauliZ) * Hadamard =
       NormedSpace.exp (φ • PauliX) := by
@@ -70,6 +104,8 @@ theorem hadamard_expZ_hadamard (φ : ℂ) :
   congr 1
   rw [Matrix.mul_smul, Matrix.smul_mul, hadamard_conj_pauliZ]
 
+/-- The evolution of `t • PauliX` for time `τ` equals `Hadamard * Rz (2 * τ * t) * Hadamard`
+multiplied by the phase `exp(-iτt)`. -/
 theorem xEvol_eq (t τ : ℝ) :
     HamiltonianEvolution ((t : ℂ) • PauliX) τ =
       (Complex.exp ((-(τ*t) : ℝ) * Complex.I)) •
@@ -91,9 +127,11 @@ theorem xEvol_eq (t τ : ℝ) :
     ring
   rw [hzero, Complex.exp_zero, one_smul]
 
+/-- The diagonal matrix multiplying every basis vector by the common phase `exp(iφ)`. -/
 def globalPhase (I : Type*) [Fintype I] [DecidableEq I] (φ : ℝ) : Matrix I I ℂ :=
   Matrix.diagonal (fun _ => Complex.exp (φ * Complex.I))
 
+/-- A finite diagonal matrix with squared-norm-one entries is unitary. -/
 theorem diagonal_unitary {J : Type*} [Fintype J] [DecidableEq J]
     (f : J → ℂ) (hf : ∀ x, Complex.normSq (f x) = 1) :
     Matrix.diagonal f ∈ Matrix.unitaryGroup J ℂ := by
@@ -106,15 +144,18 @@ theorem diagonal_unitary {J : Type*} [Fintype J] [DecidableEq J]
     rfl
   rw [h, Matrix.diagonal_one]
 
+/-- The complex exponential `exp(iφ)` has squared norm one for real `φ`. -/
 theorem normSq_exp_I (φ : ℝ) : Complex.normSq (Complex.exp (φ * Complex.I)) = 1 := by
   rw [Complex.normSq_eq_norm_sq, Complex.norm_exp]
   simp
 
+/-- A global phase matrix is unitary. -/
 theorem globalPhase_unitary (I : Type*) [Fintype I] [DecidableEq I] (φ : ℝ) :
     globalPhase I φ ∈ Matrix.unitaryGroup I ℂ := by
   unfold globalPhase
   exact diagonal_unitary _ (fun _ => normSq_exp_I φ)
 
+/-- The Hadamard matrix is unitary. -/
 theorem hadamard_unitary : Hadamard ∈ Matrix.unitaryGroup Bool ℂ := by
   have hstar : (star Hadamard : Matrix Bool Bool ℂ) = Hadamard := by
     ext a b
@@ -122,6 +163,7 @@ theorem hadamard_unitary : Hadamard ∈ Matrix.unitaryGroup Bool ℂ := by
       simp [Hadamard, Matrix.star_apply]
   rw [Matrix.mem_unitaryGroup_iff', hstar, hadamard_mul_self]
 
+/-- The phase rotation matrix `Rz θ` is unitary for real `θ`. -/
 theorem Rz_unitary (θ : ℝ) : Rz θ ∈ Matrix.unitaryGroup Bool ℂ := by
   apply diagonal_unitary
   intro a
@@ -129,6 +171,7 @@ theorem Rz_unitary (θ : ℝ) : Rz θ ∈ Matrix.unitaryGroup Bool ℂ := by
   · simp
   · simpa [Rz] using! normSq_exp_I θ
 
+/-- A block diagonal matrix with the same unitary two-level matrix in every block is unitary. -/
 theorem blockDiagonal_unitary {ι : Type*} [Fintype ι] [DecidableEq ι]
     {U : Matrix Bool Bool ℂ} (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     Matrix.blockDiagonal (fun _ : ι => U) ∈ Matrix.unitaryGroup (Bool × ι) ℂ := by
@@ -140,12 +183,16 @@ theorem blockDiagonal_unitary {ι : Type*} [Fintype ι] [DecidableEq ι]
   rw [hfun]
   exact Matrix.blockDiagonal_one
 
+/-- The four-gate parallel block circuit consisting of Hadamard, phase rotation, Hadamard, and
+global phase operations. -/
 def blockWord (k : ℕ) (t time : ℝ) : Circuit (Bool × Fin k) :=
   [ .gate (Matrix.blockDiagonal (fun _ : Fin k => Hadamard)),
     .gate (Matrix.blockDiagonal (fun _ : Fin k => Rz (2*time*t))),
     .gate (Matrix.blockDiagonal (fun _ : Fin k => Hadamard)),
     .gate (Matrix.blockDiagonal (fun _ : Fin k => globalPhase Bool (-(time*t)))) ]
 
+/-- The parallel hopping evolution equals the product of its global phase, Hadamard, phase
+rotation, and Hadamard block matrices in matrix multiplication order. [AbramsLloyd1997] -/
 theorem blockU_eq_four (k : ℕ) (t time : ℝ) :
     ParallelBlocks.blockU k t time =
       Matrix.blockDiagonal (fun _ : Fin k => globalPhase Bool (-(time*t))) *
@@ -160,6 +207,8 @@ theorem blockU_eq_four (k : ℕ) (t time : ℝ) :
   rw [globalPhase, ← Matrix.smul_one_eq_diagonal]
   simp only [Matrix.smul_mul, Matrix.one_mul]
 
+/-- The four-gate block circuit implements the exact parallel hopping evolution, is unitary, and
+has zero queries. [AbramsLloyd1997] -/
 theorem blockWord_correct (k : ℕ) (t time : ℝ) (ψ : QState (Bool × Fin k)) :
     Run 1 (blockWord k t time) ψ = ApplyGate (ParallelBlocks.blockU k t time) ψ ∧
       IsUnitaryCircuit (blockWord k t time) ∧
@@ -178,6 +227,8 @@ theorem blockWord_correct (k : ℕ) (t time : ℝ) (ψ : QState (Bool × Fin k))
   simp only [blockWord, Run, run_gate]
   rw [← applyGate_mul, ← applyGate_mul, ← applyGate_mul]
 
+/-- For `m ≥ 1`, the word size lies between `log(m) / log(2)` and that quantity plus one.
+[AbramsLloyd1997] -/
 theorem quWordBits_log_bounds (m : ℕ) (hm : 1 ≤ m) :
     Real.log (m : ℝ) / Real.log 2 ≤ (quWordBits m : ℝ) ∧
       (quWordBits m : ℝ) ≤ Real.log (m : ℝ) / Real.log 2 + 1 := by

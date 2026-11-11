@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+/-!
+# Workspace hybrid bounds for marked sets
+
+This module records the states immediately before oracle queries and bounds the effect of
+changing a Boolean oracle on a set of indices. The query masses on that disagreement set control
+both the final Euclidean deviation and its square, following the hybrid method of
+[BennettEtAl1997].
+
+## Main statements
+
+* `oracle_query_inputs_accounting`: query input states have the expected count and
+  normalization.
+* `workspace_mark_set_hybrid`: the final deviation is controlled by reference disagreement
+  masses.
+* `measureProb_sqrt_lipschitz`: event mass square roots are Lipschitz in the state norm.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,15 +45,20 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The states immediately preceding oracle queries during execution of a circuit with the
+workspace bit oracle for `f`. -/
 noncomputable def oracleQueryInputs (f : I → Bool) :
     Circuit ((I × Bool) × W) → QState ((I × Bool) × W) → List (QState ((I × Bool) × W))
   | [], _ => []
   | Step.gate U :: C, ψ => oracleQueryInputs f C (ApplyGate U ψ)
   | Step.query :: C, ψ => ψ :: oracleQueryInputs f C (ApplyGate (workspaceBitOracle f) ψ)
 
+/-- The workspace basis states whose query index belongs to `S`. -/
 def workspaceMarkFiber (S : Finset I) : Finset ((I × Bool) × W) :=
   Finset.univ.filter (fun p => p.1.1 ∈ S)
 
+/-- For a unitary circuit and normalized initial state, the recorded query inputs number exactly
+`QueryCount C`, remain normalized, and have total query fiber mass one. -/
 theorem oracle_query_inputs_accounting (f : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) :
     (oracleQueryInputs f C ψ).length = QueryCount C ∧
@@ -55,6 +82,9 @@ theorem oracle_query_inputs_accounting (f : I → Bool) (C : Circuit ((I × Bool
         · subst φ; exact ⟨hψ, measureProb_sum_workspaceQueryFiber hψ⟩
         · exact hmem φ h
 
+/-- Replacing a workspace bit oracle changes a state by Euclidean norm at most twice the square
+root of its mass on the oracle disagreement set. See [Bennett et al., Theorem
+3.3][BennettEtAl1997]. -/
 theorem workspace_mark_set_query_l2 (f g : I → Bool) (ψ : QState ((I × Bool) × W)) :
     ‖toEuclidean_fromVec (ApplyGate (workspaceBitOracle g) ψ-ApplyGate (workspaceBitOracle f) ψ)‖ ≤
       2*Real.sqrt (MeasureProb ψ (workspaceMarkFiber (W := W)
@@ -84,6 +114,9 @@ theorem workspace_mark_set_query_l2 (f g : I → Bool) (ψ : QState ((I × Bool)
       ring
     _ = _ := by rw [norm_toEuclidean_collapse_eq_sqrt_measureProb]
 
+/-- For a unitary circuit, the final state deviation between two oracles is at most twice the
+sum of the square roots of their disagreement masses along the reference execution. See
+[Bennett et al., Theorem 3.3][BennettEtAl1997]. -/
 theorem workspace_mark_set_hybrid (f g : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (hC : IsUnitaryCircuit C) :
     ‖toEuclidean_fromVec (Run (workspaceBitOracle g) C ψ-Run (workspaceBitOracle f) C ψ)‖ ≤
@@ -114,6 +147,9 @@ theorem workspace_mark_set_hybrid (f g : I → Bool) (C : Circuit ((I × Bool) �
       simp only [oracleQueryInputs, List.map_cons, List.sum_cons]
       ring
 
+/-- For a unitary circuit and normalized initial state, the squared final oracle deviation is
+bounded by four times the query count times the total disagreement mass along the reference
+execution. See [Bennett et al., Theorem 3.3][BennettEtAl1997]. -/
 theorem workspace_mark_set_hybrid_energy (f g : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) :
     ‖toEuclidean_fromVec (Run (workspaceBitOracle g) C ψ-Run (workspaceBitOracle f) C ψ)‖^2 ≤
@@ -143,10 +179,12 @@ theorem workspace_mark_set_hybrid_energy (f g : I → Bool) (C : Circuit ((I × 
   rw [hms]
   nlinarith only [hc, hh]
 
+/-- The workspace query fiber consisting of indices whose first component is `y`. -/
 def workspaceQuerySliceFiber {V K W : Type} [Fintype V] [DecidableEq V] [Fintype K] [Fintype W]
     (y : V) : Finset (((V × K) × Bool) × W) :=
   Finset.univ.filter (fun p => p.1.1.1 = y)
 
+/-- For a normalized state, the masses of the query slices indexed by `V` sum to one. -/
 theorem workspace_query_slice_mass_partition {V K W : Type} [Fintype V] [DecidableEq V]
     [Fintype K] [Fintype W] (φ : QState (((V × K) × Bool) × W)) (hφ : Normalized φ) :
     (∑ y : V, MeasureProb φ (workspaceQuerySliceFiber (V := V) y)) = 1 := by
@@ -154,6 +192,8 @@ theorem workspace_query_slice_mass_partition {V K W : Type} [Fintype V] [Decidab
     (fun p => BornProb φ p)
   exact he.trans hφ
 
+/-- The square root of the mass of any event changes by at most the Euclidean distance between
+two states. -/
 theorem measureProb_sqrt_lipschitz {R : Type} [Fintype R] [DecidableEq R]
     (χ χ' : QState R) (E : Finset R) :
     |Real.sqrt (MeasureProb χ' E)-Real.sqrt (MeasureProb χ E)| ≤

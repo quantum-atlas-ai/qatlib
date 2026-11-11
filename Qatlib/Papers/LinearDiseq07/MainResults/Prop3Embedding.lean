@@ -29,18 +29,38 @@ import Mathlib.Data.ZMod.Defs
 import Mathlib.Logic.Equiv.Defs
 import Mathlib.Tactic
 
+/-!
+# Embedding products of cyclic groups
+
+The additive maps `embHom` and `embProd` send cyclic factors into a common modulus by scaling
+coordinates. The injectivity theorem supplies the algebraic embedding used in Proposition 3 of
+[Ivanyos2008].
+
+## Main statements
+
+* `embHom_apply`: Gives the representative formula for the cyclic map.
+* `embProd_injective`: Proves injectivity for positive moduli.
+
+## References
+
+* [Ivanyos, 2008][Ivanyos2008]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
 
 namespace Qatlib.Papers.LinearDiseq07.MainResults
 
+/-- The additive map from `ZMod mi` to `ZMod m` induced by scaling by `m / mi` when `mi` divides
+`m`. -/
 def embHom (m mi : ℕ) (hmi : mi ∣ m) : ZMod mi →+ ZMod m :=
   ZMod.lift mi
     ⟨(AddMonoidHom.mulLeft ((m / mi : ℕ) : ZMod m)).comp (Int.castAddHom (ZMod m)), by
       show ((m / mi : ℕ) : ZMod m) * ((mi : ℤ) : ZMod m) = 0
       rw [Int.cast_natCast, ← Nat.cast_mul, Nat.div_mul_cancel hmi, ZMod.natCast_self]⟩
 
+/-- For nonzero `mi`, the cyclic map sends `x` to the residue of `(m / mi) * x.val` modulo `m`. -/
 theorem embHom_apply (m mi : ℕ) [NeZero mi] (hmi : mi ∣ m) (x : ZMod mi) :
     embHom m mi hmi x = (((m / mi) * x.val : ℕ) : ZMod m) := by
   conv_lhs => rw [← ZMod.natCast_zmod_val x]
@@ -49,12 +69,16 @@ theorem embHom_apply (m mi : ℕ) [NeZero mi] (hmi : mi ∣ m) (x : ZMod mi) :
   rw [ZMod.lift_coe]
   simp [AddMonoidHom.comp_apply, Nat.cast_mul]
 
+/-- The coordinatewise additive map from a product of cyclic groups into a power of `ZMod m`,
+used in Proposition 3 of [Ivanyos2008]. -/
 def embProd {n : ℕ} (m : ℕ) (mi : Fin n → ℕ) (hmi : ∀ i, mi i ∣ m) :
     (∀ i, ZMod (mi i)) →+ (Fin n → ZMod m) where
   toFun x i := embHom m (mi i) (hmi i) (x i)
   map_zero' := by funext i; exact map_zero _
   map_add' x y := by funext i; exact map_add _ _ _
 
+/-- When all moduli are positive and each factor modulus divides `m`, the product embedding is
+injective, as required in Proposition 3 of [Ivanyos2008]. -/
 theorem embProd_injective {n : ℕ} (m : ℕ) (mi : Fin n → ℕ) (hm : 0 < m)
     (hmi : ∀ i, mi i ∣ m) (hpos : ∀ i, 0 < mi i) :
     Function.Injective (embProd m mi hmi) := by

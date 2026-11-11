@@ -8,6 +8,28 @@ import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
 import Mathlib.GroupTheory.Perm.Sign
 import Mathlib.Data.ZMod.Basic
 import Qatlib.Papers.QMechSim97.MainResults.Defs
+
+/-!
+# Periodic lattice propagation circuits
+
+Constructs quantum circuits implementing permutations of occupation wires and specializes them
+to the periodic lattice read shift of [BoghosianTaylor1998]. `latticeReadShift` reads from the
+site displaced by the negative velocity, while the compiled reflection circuits implement this
+permutation on arbitrary states and preserve fixed particle-number sectors.
+
+## Main statements
+
+* `propagation_sector_from_semantics`: A circuit with the stated wire permutation semantics
+  preserves support on any fixed occupation sector.
+* `lattice_propagation_number_sector`: There exists a unitary lattice propagation circuit with
+  no queries and at most `6 * d * l ^ d` gates that preserves every fixed occupation sector
+  [BoghosianTaylor1998].
+
+## References
+
+* [Boghosian and Taylor, 1998][BoghosianTaylor1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +43,8 @@ open Qatlib.Concepts.MatrixAccess.KnownFrameSynth
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 open scoped Classical BigOperators
 
+/-- The swap factorization produced from a list containing every moved point has length at most
+the length of that list. -/
 private theorem swapFactorsAux_length {N : ℕ} (l : List (Fin N)) :
     ∀ (f : Equiv.Perm (Fin N)) (h : ∀ {x}, f x ≠ x → x ∈ l),
       (Equiv.Perm.swapFactorsAux l f h).val.length ≤ l.length := by
@@ -42,6 +66,8 @@ private theorem swapFactorsAux_length {N : ℕ} (l : List (Fin N)) :
       have hs := Equiv.Perm.ne_and_ne_of_swap_mul_apply_ne_self hy
       exact List.mem_of_ne_of_mem hs.2 (h hs.1)
 
+/-- A list of swap permutations can be compiled into a legal reflection gate list of length at
+most three times the number of swaps, with the stated action on basis states. -/
 private theorem compile_swap_factors {N : ℕ} (L : List (Equiv.Perm (Fin N)))
     (hL : ∀ g ∈ L, Equiv.Perm.IsSwap g) :
     ∃ gs : List (ReflectionGate N), reflectionLegal gs ∧ gs.length ≤ 3 * L.length ∧
@@ -63,6 +89,7 @@ private theorem compile_swap_factors {N : ℕ} (L : List (Equiv.Perm (Fin N)))
       rw [reflectionCompile_append, run_append, hsrun, hrun]
       congr 1
 
+/-- Circuit execution distributes over finite complex linear combinations of states. -/
 private theorem run_sum_smul {I J : Type} [Fintype I] [DecidableEq I] [Fintype J]
     (C : Circuit I) (c : J → ℂ) (ψ : J → QState I) :
     Run 1 C (∑ j, c j • ψ j) = ∑ j, c j • Run 1 C (ψ j) := by
@@ -72,6 +99,8 @@ private theorem run_sum_smul {I J : Type} [Fintype I] [DecidableEq I] [Fintype J
     cases s <;> simp only [run_gate, run_query, ApplyGate, Matrix.mulVec_sum,
       Matrix.mulVec_smul, ih]
 
+/-- Every wire permutation has a legal unitary reflection circuit with no queries and at most `3
+* N` gates, acting by the corresponding permutation of basis configurations. -/
 theorem permutation_propagation_word {N : ℕ} (f : Equiv.Perm (Fin N)) :
     ∃ gs : List (ReflectionGate N), reflectionLegal gs ∧
       IsUnitaryCircuit (reflectionCompile gs) ∧
@@ -96,39 +125,53 @@ theorem permutation_propagation_word {N : ℕ} (f : Equiv.Perm (Fin N)) :
     intro x _
     rw [hrun, F.property.1]
 
+/-- The number of true occupation bits in a register configuration. -/
 def occupation {N : ℕ} (x : Reg N) : ℕ := Fintype.card {i : Fin N // x i = true}
 
+/-- Permuting the wires of a register configuration preserves its occupation count. -/
 theorem propagation_occupation {N : ℕ} (f : Equiv.Perm (Fin N)) (x : Reg N) :
     occupation (x ∘ f) = occupation x :=
   Fintype.card_congr (Equiv.subtypeEquivOfSubtype (p := fun i => x i = true) f)
 
+/-- The type of sites on a `d`-dimensional periodic lattice with coordinates in `ZMod l`. -/
 abbrev Site (d l : ℕ) := Fin d → ZMod l
 
+/-- A lattice site paired with a coordinate direction and a Boolean velocity sign. -/
 abbrev LatticeWire (d l : ℕ) := Site d l × (Fin d × Bool)
 
+/-- The signed coordinate velocity, equal to `1` or `-1` in the selected direction and zero in
+the others. -/
 def velocity (d l : ℕ) (v : Fin d × Bool) : Site d l :=
   fun j => if j = v.1 then if v.2 then 1 else -1 else 0
 
+/-- The wire permutation sending `(x, v)` to `(x - velocity v, v)` on the periodic lattice. -/
 def latticeReadShift (d l : ℕ) : Equiv.Perm (LatticeWire d l) where
   toFun z := (z.1 - velocity d l z.2, z.2)
   invFun z := (z.1 + velocity d l z.2, z.2)
   left_inv z := by simp
   right_inv z := by simp
 
+/-- For nonzero `l`, the periodic lattice has exactly `2 * d * l ^ d` occupation wires. -/
 theorem latticeWire_card (d l : ℕ) [NeZero l] :
     Fintype.card (LatticeWire d l) = 2 * d * l ^ d := by
   simp [LatticeWire, Site, Fintype.card_prod, ZMod.card,
     mul_comm, mul_left_comm]
 
+/-- An equivalence between lattice wires and the finite index type of size `Defs.qubitCount d
+l`. -/
 def latticeWireIndex (d l : ℕ) [NeZero l] :
     LatticeWire d l ≃ Fin (Defs.qubitCount d l) :=
   (Fintype.equivFin (LatticeWire d l)).trans
     (finCongr (latticeWire_card d l))
 
+/-- The periodic read-shift permutation transported to the finite wire indices. -/
 def latticePermutation (d l : ℕ) [NeZero l] :
     Equiv.Perm (Fin (Defs.qubitCount d l)) :=
   ((latticeWireIndex d l).symm.trans (latticeReadShift d l)).trans (latticeWireIndex d l)
 
+/-- Periodic lattice propagation has a legal unitary reflection circuit with no queries and at
+most `6 * d * l ^ d` gates, with the stated action on arbitrary states
+[BoghosianTaylor1998]. -/
 theorem lattice_propagation_word (d l : ℕ) [NeZero l] :
     ∃ gs : List (ReflectionGate (Defs.qubitCount d l)),
       reflectionLegal gs ∧ IsUnitaryCircuit (reflectionCompile gs) ∧
@@ -143,6 +186,8 @@ theorem lattice_propagation_word (d l : ℕ) [NeZero l] :
     GateCount (reflectionCompile gs) ≤ 3 * Defs.qubitCount d l := hG
     _ = 6 * d * l ^ d := by unfold Defs.qubitCount; ring
 
+/-- A circuit with the stated wire permutation semantics preserves support on any fixed
+occupation sector. -/
 theorem propagation_sector_from_semantics {N : ℕ} (f : Equiv.Perm (Fin N))
     (C : Circuit (Reg N))
     (hC : ∀ ψ : QState (Reg N), Run 1 C ψ = ∑ x, ψ x • Ket (x ∘ f))
@@ -161,6 +206,8 @@ theorem propagation_sector_from_semantics {N : ℕ} (f : Equiv.Perm (Fin N))
     simp [hψ x hx]
   · simp [Qatlib.Foundations.PureStateMath.Ket, he]
 
+/-- There exists a unitary lattice propagation circuit with no queries and at most `6 * d * l ^
+d` gates that preserves every fixed occupation sector [BoghosianTaylor1998]. -/
 theorem lattice_propagation_number_sector (d l : ℕ) [NeZero l] :
     ∃ gs : List (ReflectionGate (Defs.qubitCount d l)),
       IsUnitaryCircuit (reflectionCompile gs) ∧

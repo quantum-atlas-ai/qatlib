@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.InnerProductSpace.Spectrum
 
+/-!
+# Eigenvalue comparison from quadratic form bounds
+
+For symmetric operators on a finite-dimensional real inner product space, this module expands
+quadratic forms in an orthonormal eigenbasis and controls them on selected eigenspaces. The
+comparison `eigenvalues_abs_sub_le` bounds corresponding eigenvalue differences from two
+quadratic form inequalities. See [KempeKitaevRegev2006].
+
+## Main statements
+
+* `quad_le_of_span`: If all selected eigenvalues are at most `μ`, the quadratic form on their
+  span is at most `μ` times the squared norm.
+* `eigenvalues_le_add`: A quadratic form inequality between symmetric operators with error `ε`
+  times the squared norm bounds each eigenvalue of `T` by the corresponding eigenvalue of `S`
+  plus `ε`.
+* `eigenvalues_abs_sub_le`: Two opposite quadratic form bounds with error `ε` imply that
+  corresponding eigenvalues differ in absolute value by at most `ε`.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -17,6 +40,8 @@ namespace Qatlib.Papers.LocalHam06.MainResults.Spectral
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
 
+/-- The quadratic form of a symmetric operator is the sum of its eigenvalues times the squared
+coordinates in its orthonormal eigenbasis. -/
 theorem inner_apply_eq_sum_eigen
     (T : E →ₗ[ℝ] E) (hT : T.IsSymmetric) {n : ℕ} (hn : Module.finrank ℝ E = n) (x : E) :
     ⟪x, T x⟫ = ∑ i : Fin n, hT.eigenvalues hn i * (⟪hT.eigenvectorBasis hn i, x⟫) ^ 2 := by
@@ -31,6 +56,8 @@ theorem inner_apply_eq_sum_eigen
   rw [real_inner_comm x ((hT.eigenvectorBasis hn) i)]
   ring
 
+/-- A vector in the span of a selected subset of eigenbasis vectors is orthogonal to every
+eigenbasis vector outside that subset. -/
 theorem inner_eq_zero_of_mem_span
     {T : E →ₗ[ℝ] E} (hT : T.IsSymmetric) {n : ℕ} (hn : Module.finrank ℝ E = n)
     (s : Finset (Fin n)) {j : Fin n} (hj : j ∉ s) {x : E}
@@ -49,12 +76,15 @@ theorem inner_eq_zero_of_mem_span
   · intro a p _ hp
     rw [inner_smul_right, hp, mul_zero]
 
+/-- The sum of the squared coordinates in the orthonormal eigenbasis equals the squared norm. -/
 theorem sum_sq_inner_eigen
     (T : E →ₗ[ℝ] E) (hT : T.IsSymmetric) {n : ℕ} (hn : Module.finrank ℝ E = n) (x : E) :
     ∑ i : Fin n, (⟪hT.eigenvectorBasis hn i, x⟫) ^ 2 = ‖x‖ ^ 2 := by
   have h := (hT.eigenvectorBasis hn).sum_sq_norm_inner_right x
   simpa only [Real.norm_eq_abs, sq_abs] using h
 
+/-- If all selected eigenvalues are at most `μ`, the quadratic form on their span is at most `μ`
+times the squared norm. -/
 theorem quad_le_of_span
     {T : E →ₗ[ℝ] E} (hT : T.IsSymmetric) {n : ℕ} (hn : Module.finrank ℝ E = n)
     {μ : ℝ} {s : Finset (Fin n)} (hμ : ∀ i ∈ s, hT.eigenvalues hn i ≤ μ) {x : E}
@@ -86,6 +116,8 @@ theorem quad_le_of_span
         rw [← hsplit₂]
     _ = μ * ‖x‖ ^ 2 := by rw [sum_sq_inner_eigen T hT hn x]
 
+/-- If all selected eigenvalues exceed `μ`, the quadratic form on every nonzero vector in their
+span exceeds `μ` times the squared norm. -/
 theorem quad_lt_of_span
     {T : E →ₗ[ℝ] E} (hT : T.IsSymmetric) {n : ℕ} (hn : Module.finrank ℝ E = n)
     {μ : ℝ} {s : Finset (Fin n)} (hμ : ∀ i ∈ s, μ < hT.eigenvalues hn i) {x : E}
@@ -138,6 +170,8 @@ theorem quad_lt_of_span
 
 omit [FiniteDimensional ℝ E] in
 
+/-- The span of the image of a finite index set equals the span of the corresponding family
+indexed by its membership subtype. -/
 theorem span_image_eq_range {n : ℕ} (f : Fin n → E) (s : Finset (Fin n)) :
     Submodule.span ℝ (f '' (s : Set (Fin n))) =
       Submodule.span ℝ (Set.range (fun j : {j : Fin n // j ∈ s} => f j)) := by
@@ -151,6 +185,8 @@ theorem span_image_eq_range {n : ℕ} (f : Fin n → E) (s : Finset (Fin n)) :
 
 omit [FiniteDimensional ℝ E] in
 
+/-- The span of a finite subset of an orthonormal family has dimension equal to the cardinality
+of that subset. -/
 theorem finrank_span_image {n : ℕ} (f : Fin n → E) (s : Finset (Fin n))
     (hf : Orthonormal ℝ f) :
     Module.finrank ℝ (Submodule.span ℝ (f '' (s : Set (Fin n)))) = s.card := by
@@ -164,6 +200,9 @@ theorem finrank_span_image {n : ℕ} (f : Fin n → E) (s : Finset (Fin n))
   exact finrank_span_eq_card
       ((hf.comp (fun j : {j : Fin n // j ∈ s} => (j : Fin n)) Subtype.val_injective).linearIndependent)
 
+/-- A quadratic form inequality between symmetric operators with error `ε` times the squared
+norm bounds each eigenvalue of `T` by the corresponding eigenvalue of `S` plus `ε`. See
+[KempeKitaevRegev2006]. -/
 theorem eigenvalues_le_add {T S : E →ₗ[ℝ] E} (hT : T.IsSymmetric) (hS : S.IsSymmetric)
     {n : ℕ} (hn : Module.finrank ℝ E = n) {ε : ℝ}
     (hTS : ∀ x, ⟪x, T x⟫ ≤ ⟪x, S x⟫ + ε * ‖x‖ ^ 2) (i : Fin n) :
@@ -233,6 +272,8 @@ theorem eigenvalues_le_add {T S : E →ₗ[ℝ] E} (hT : T.IsSymmetric) (hS : S.
     omega
   exact hi_not ((hmem i).mpr hcon)
 
+/-- Two opposite quadratic form bounds with error `ε` imply that corresponding eigenvalues
+differ in absolute value by at most `ε`. See [KempeKitaevRegev2006]. -/
 theorem eigenvalues_abs_sub_le {T S : E →ₗ[ℝ] E} (hT : T.IsSymmetric) (hS : S.IsSymmetric)
     {n : ℕ} (hn : Module.finrank ℝ E = n) {ε : ℝ}
     (hTS : ∀ x, ⟪x, T x⟫ ≤ ⟪x, S x⟫ + ε * ‖x‖ ^ 2)

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.UniformQSVTPhases
 import Qatlib.Papers.Cbmd26.Algorithms.FourBranchWordBridge
 import Qatlib.Papers.Cbmd26.Algorithms.TwoOracleWordBridge
+
+/-!
+# Flat selected QSVT for polynomial families
+
+This module combines polynomial branch labels and sample labels into one coefficient LCU.
+Common-degree phase columns yield selected branch encodings, which are assembled into an exact
+encoding of a weighted polynomial family for the CBMD constructions of [WangEtAl2026].
+
+## Main statements
+
+* `flatResponseWord_cost`: gives the query and fixed-gate counts of the flat response word.
+* `bounded_polynomial_family_phases`: constructs phases uniformly over Hermitian projected
+  encodings.
+* `flat_polynomial_family_encoding`: encodes the weighted polynomial sum with normalization `4 *
+  coefficientMass c`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -49,11 +70,15 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {J H I : Type} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I]
 
+/-- The flattened coefficient for a branch-label pair, given by the four-branch coefficient
+times the sample coefficient. -/
 def flatBranchCoefficients (c : J → ℂ) (kj : Fin 4 × J) : ℂ :=
   fourBranchCoefficients kj.1 * c kj.2
 
 omit [DecidableEq J] [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] in
 
+/-- The coefficient mass of the flattened family is four times the original sample coefficient
+mass. -/
 theorem flatBranchCoefficients_mass (c : J → ℂ) :
     coefficientMass (flatBranchCoefficients c) = 4 * coefficientMass c := by
   simp only [coefficientMass, flatBranchCoefficients, Fintype.sum_prod_type, norm_mul]
@@ -62,6 +87,8 @@ theorem flatBranchCoefficients_mass (c : J → ℂ) :
   simp only [hn, one_mul, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   norm_num
 
+/-- The coefficient-wrapped, reindexed four-branch selected response word with common branch
+degrees. -/
 def flatResponseWord (c : J → ℂ) (j₀ : J) (F : Matrix H I ℂ) (D : ℕ)
     (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ)) :
     List (AdjointStep ((Fin 4 × J) × (Bool × H))) :=
@@ -70,6 +97,8 @@ def flatResponseWord (c : J → ℂ) (j₀ : J) (F : Matrix H I ℂ) (D : ℕ)
       (compileFourSelected (fun k => indexedHermitianResponseWord F
         (uniformBranchDegree D k) (base k) (zs k))))
 
+/-- The reindexed four-branch masked oracle selecting the Boolean-parallel lift of each sample
+oracle. -/
 def flatResponseOracle (U : J → Matrix H H ℂ) :
     Matrix ((Fin 4 × J) × (Bool × H)) ((Fin 4 × J) × (Bool × H)) ℂ :=
   (maskedOracle fourActive (select (fun j => parallelOracle (J := Bool) (U j)))).submatrix
@@ -77,6 +106,8 @@ def flatResponseOracle (U : J → Matrix H H ℂ) :
 
 omit [DecidableEq I] in
 
+/-- The flat response word evaluates to the coefficient LCU of the individual Hermitian branch
+response words over all branch-label pairs. -/
 theorem flatResponseWord_evaluate (c : J → ℂ) (j₀ : J) (U : J → Matrix H H ℂ)
     (F : Matrix H I ℂ) (D : ℕ) (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ)) :
     evaluate (flatResponseOracle U) (flatResponseWord c j₀ F D base zs) =
@@ -93,6 +124,8 @@ theorem flatResponseWord_evaluate (c : J → ℂ) (j₀ : J) (U : J → Matrix H
 
 omit [Fintype H] [DecidableEq I] in
 
+/-- With the common branch lengths, the flat response word uses `8 * D + 2` adjoint queries and
+`8 * D + 15` fixed gates. -/
 theorem flatResponseWord_cost (c : J → ℂ) (j₀ : J) (F : Matrix H I ℂ) (D : ℕ)
     (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ))
     (hlen : ∀ k, (zs k).length = uniformBranchDegree D k) :
@@ -106,6 +139,8 @@ theorem flatResponseWord_cost (c : J → ℂ) (j₀ : J) (F : Matrix H I ℂ) (D
     uniformBranchDegree_sum]
   norm_num
 
+/-- Positive sample coefficient mass, an isometric signal frame, and unit-modulus base and list
+phases make the flat response word well formed. -/
 theorem flatResponseWord_wellFormed (c : J → ℂ) (j₀ : J) (hc : 0 < coefficientMass c)
     (F : Matrix H I ℂ) (hF : IsIsometry F) (D : ℕ)
     (base : Fin 4 → J → ℂ) (hb : ∀ k j, IsPhase (base k j))
@@ -121,6 +156,8 @@ theorem flatResponseWord_wellFormed (c : J → ℂ) (j₀ : J) (hc : 0 < coeffic
 
 omit [DecidableEq J] [Fintype H] [DecidableEq H] in
 
+/-- Summing the four real polynomial branches with flattened coefficients reconstructs the
+weighted sum of the original complex polynomial evaluations. -/
 theorem flatBranch_polynomial_sum (c : J → ℂ) (A : J → Matrix I I ℂ)
     (P : J → Polynomial ℂ) :
     (∑ kj : Fin 4 × J, flatBranchCoefficients c kj •
@@ -141,6 +178,9 @@ theorem flatBranch_polynomial_sum (c : J → ℂ) (A : J → Matrix I I ℂ)
 
 omit [Fintype J] [DecidableEq J] in
 
+/-- A family of polynomials bounded by one on `[-1, 1]` with a common degree bound possesses
+label-dependent unit-modulus phase columns of common branch lengths. These phases realize
+every real branch uniformly over Hermitian projected encodings. -/
 theorem bounded_polynomial_family_phases (P : J → Polynomial ℂ) (D : ℕ)
     (hD : ∀ j, (P j).natDegree ≤ D)
     (hP : ∀ j, ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖(P j).eval (x : ℂ)‖ ≤ 1) :
@@ -171,6 +211,9 @@ theorem bounded_polynomial_family_phases (P : J → Polynomial ℂ) (D : ℕ)
   rw [phaseColumns_map]
   exact (ha kj.1 kj.2 H I (A kj.2) (U kj.2) F (hA kj.2) (hAU kj.2)).1
 
+/-- Exact projected encodings of all polynomial branches combine into a block encoding of `∑ j,
+c j • aeval (A j) (P j)` with normalization `4 * coefficientMass c` and zero error when the
+coefficient mass is positive. -/
 theorem flat_polynomial_family_encoding (c : J → ℂ) (j₀ : J) (hc : 0 < coefficientMass c)
     (P : J → Polynomial ℂ) (D : ℕ) (A : J → Matrix I I ℂ) (U : J → Matrix H H ℂ)
     (F : Matrix H I ℂ) (base : Fin 4 → J → ℂ) (zs : Fin 4 → List (J → ℂ))

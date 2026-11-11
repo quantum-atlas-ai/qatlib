@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QWalkSearch02.MainResults.WalkDefs
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Binomial stationary state of the reduced search walk
+
+The binomial weights `W` satisfy the neighboring-coordinate recurrences for the radial line
+walk. These identities show that `linePsi0` is fixed by the unperturbed walk, compute its change
+under the marked perturbation, and verify normalization and orthogonality facts used in
+[ShenviKempeWhaley2003].
+
+## Main statements
+
+* `lineWalk_mulVec_linePsi0`: shows that the binomial state is fixed by the unperturbed walk.
+* `perturbedLineWalk_mulVec_linePsi0`: computes the single-coordinate perturbation.
+* `innerC_linePsi0_self`: proves normalization for positive dimension.
+
+## References
+
+* [Shenvi et al., 2003][ShenviKempeWhaley2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,8 +37,11 @@ open scoped BigOperators Matrix
 
 namespace Qatlib.Papers.QWalkSearch02.MainResults
 
+/-- The binomial amplitude `√(choose (n - 1) i / 2^n)`. -/
 def W (n i : ℕ) : ℝ := Real.sqrt ((Nat.choose (n-1) i : ℝ) / (2:ℝ)^n)
 
+/-- When `i + 1 < n`, consecutive binomial coefficients of order `n - 1` differ by the factor
+`(n - 1 - i) / (i + 1)` over the reals. -/
 lemma choose_succ_real {n i : ℕ} (hi : i + 1 < n) :
     (Nat.choose (n-1) (i+1) : ℝ) = (Nat.choose (n-1) i : ℝ) * (((n:ℝ)-1-(i:ℝ))/((i:ℝ)+1)) := by
   have h := Nat.choose_succ_right_eq (n-1) i
@@ -36,6 +59,7 @@ lemma choose_succ_real {n i : ℕ} (hi : i + 1 < n) :
   field_simp
   linarith [h']
 
+/-- When `i + 1 < n`, the next binomial amplitude is `W n i` times `√((n - 1 - i) / (i + 1))`. -/
 lemma W_succ_mul {n i : ℕ} (hi : i + 1 < n) :
     W n (i+1) = W n i * Real.sqrt (((n:ℝ) - 1 - (i:ℝ)) / ((i:ℝ)+1)) := by
   unfold W
@@ -44,6 +68,7 @@ lemma W_succ_mul {n i : ℕ} (hi : i + 1 < n) :
         = ((Nat.choose (n-1) i : ℝ)/(2:ℝ)^n) * (((n:ℝ)-1-(i:ℝ))/((i:ℝ)+1)) by ring]
   rw [Real.sqrt_mul (by positivity)]
 
+/-- When `i + 1 < n`, the product of the two stated square-root factors equals `n - 1 - i`. -/
 lemma sqrt_ratio_mul {n i : ℕ} (hi : i + 1 < n) :
     Real.sqrt (((i:ℝ)+1) * ((n:ℝ)-1-(i:ℝ)))
       * Real.sqrt (((n:ℝ)-1-(i:ℝ))/((i:ℝ)+1)) = ((n:ℝ)-1-(i:ℝ)) := by
@@ -57,6 +82,7 @@ lemma sqrt_ratio_mul {n i : ℕ} (hi : i + 1 < n) :
   rw [hsq]
   exact Real.sqrt_sq (le_of_lt hnr)
 
+/-- The sine coefficient at index `i + 1` is `2 / n * √((i + 1) * (n - 1 - i))`. -/
 lemma sinOmega_succ_eq {n i : ℕ} :
     sinOmega n ((i:ℕ)+1) = (2/(n:ℝ)) * Real.sqrt (((i:ℝ)+1) * ((n:ℝ)-1-(i:ℝ))) := by
   unfold sinOmega
@@ -64,12 +90,15 @@ lemma sinOmega_succ_eq {n i : ℕ} :
   congr 1
   ring_nf
 
+/-- The cosine coefficient at index `i + 1` is `1 - 2 * (i + 1) / n`. -/
 lemma cosOmega_succ_eq {n i : ℕ} :
     cosOmega n ((i:ℕ)+1) = 1 - 2*((i:ℝ)+1)/(n:ℝ) := by
   unfold cosOmega
   push_cast
   ring
 
+/-- For `n ≥ 1`, the forward-neighbor sine term minus the cosine term equals the binomial
+amplitude at the current index. See [ShenviKempeWhaley2003]. -/
 lemma rowR {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     (if h : (i:ℕ)+1 < n then sinOmega n ((i:ℕ)+1) * W n ((i:ℕ)+1) else 0)
       - cosOmega n ((i:ℕ)+1) * W n (i:ℕ) = W n (i:ℕ) := by
@@ -92,10 +121,13 @@ lemma rowR {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     rw [hi, hc]
     ring
 
+/-- The square of `W n k` is `choose (n - 1) k / 2^n`. -/
 lemma W_sq {n k : ℕ} : (W n k)^2 = (Nat.choose (n-1) k : ℝ)/(2:ℝ)^n := by
   unfold W
   rw [Real.sq_sqrt (by positivity)]
 
+/-- For `0 < i < n`, the preceding binomial coefficient of order `n - 1` is the current
+coefficient times `i / (n - i)`. -/
 lemma choose_pred_real {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
     (Nat.choose (n-1) (i-1) : ℝ) = (Nat.choose (n-1) i : ℝ) * ((i:ℝ)/((n:ℝ)-(i:ℝ))) := by
   have h := choose_succ_real (n:=n) (i:=i-1) (by omega : (i-1)+1 < n)
@@ -112,6 +144,7 @@ lemma choose_pred_real {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
   field_simp at h ⊢
   linarith [h]
 
+/-- For `0 < i < n`, the preceding binomial amplitude is `W n i` times `√(i / (n - i))`. -/
 lemma W_pred_mul {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
     W n (i-1) = W n i * Real.sqrt ((i:ℝ)/((n:ℝ)-(i:ℝ))) := by
   have hlt : (i:ℝ) < (n:ℝ) := by exact_mod_cast hin
@@ -129,6 +162,7 @@ lemma W_pred_mul {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
   · have : 0 ≤ W n (i-1) := Real.sqrt_nonneg _
     linarith
 
+/-- For `0 < i < n`, the product of the two stated square-root factors equals `i`. -/
 lemma sqrt_ratio_mul2 {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
     Real.sqrt ((i:ℝ)*((n:ℝ)-(i:ℝ))) * Real.sqrt ((i:ℝ)/((n:ℝ)-(i:ℝ))) = (i:ℝ) := by
   have hi : (0:ℝ) < (i:ℝ) := by exact_mod_cast h0
@@ -138,6 +172,8 @@ lemma sqrt_ratio_mul2 {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
   have hsq : ((i:ℝ)*((n:ℝ)-(i:ℝ))) * ((i:ℝ)/((n:ℝ)-(i:ℝ))) = (i:ℝ)^2 := by field_simp
   rw [hsq, Real.sqrt_sq (le_of_lt hi)]
 
+/-- For `n ≥ 1`, the cosine term plus the backward-neighbor sine term equals the binomial
+amplitude at the current index. See [ShenviKempeWhaley2003]. -/
 lemma rowL {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     cosOmega n (i:ℕ) * W n (i:ℕ)
       + (if h : 0 < (i:ℕ) then sinOmega n (i:ℕ) * W n ((i:ℕ)-1) else 0) = W n (i:ℕ) := by
@@ -162,6 +198,8 @@ lemma rowL {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     rw [hc]
     ring
 
+/-- A finite sum supported at the successor of `i` equals that successor value when it is in
+range, and zero otherwise. -/
 lemma sum_ite_succ {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     (∑ j : Fin n, if (j:ℕ) = (i:ℕ)+1 then f (j:ℕ) else 0)
       = if h : (i:ℕ)+1 < n then f ((i:ℕ)+1) else 0 := by
@@ -179,6 +217,7 @@ lemma sum_ite_succ {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     have hc : ¬ ((b:ℕ) = (i:ℕ)+1) := by omega
     rw [if_neg hc]
 
+/-- A finite sum supported at the index `i` equals the function value at `i`. -/
 lemma sum_ite_self {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     (∑ j : Fin n, if (j:ℕ) = (i:ℕ) then f (j:ℕ) else 0) = f (i:ℕ) := by
   rw [Finset.sum_eq_single i]
@@ -189,6 +228,8 @@ lemma sum_ite_self {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     rw [if_neg hc]
   · intro hh; exact absurd (Finset.mem_univ _) hh
 
+/-- A finite sum supported at the predecessor of `i` equals that predecessor value for positive
+`i`, and zero at index zero. -/
 lemma sum_ite_pred {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     (∑ j : Fin n, if (i:ℕ) = (j:ℕ)+1 then f (j:ℕ) else 0)
       = if h : 0 < (i:ℕ) then f ((i:ℕ)-1) else 0 := by
@@ -207,6 +248,8 @@ lemma sum_ite_pred {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     have hc : ¬ ((i:ℕ) = (b:ℕ)+1) := by omega
     rw [if_neg hc]
 
+/-- For `n ≥ 1`, the unperturbed radial line walk fixes `linePsi0 n`. See
+[ShenviKempeWhaley2003]. -/
 theorem lineWalk_mulVec_linePsi0 {n : ℕ} (hn : 1 ≤ n) :
     lineWalk n *ᵥ linePsi0 n = linePsi0 n := by
   funext s
@@ -276,6 +319,9 @@ theorem lineWalk_mulVec_linePsi0 {n : ℕ} (hn : 1 ≤ n) :
     congr 1
     linarith [rowL hn i]
 
+/-- For `n ≥ 1`, the perturbed radial line walk sends `linePsi0 n` to itself minus a correction
+supported at `Sum.inr o` with value `2 * linePsi0 n (Sum.inl o)`. See
+[ShenviKempeWhaley2003]. -/
 theorem perturbedLineWalk_mulVec_linePsi0 {n : ℕ} (hn : 1 ≤ n) (o : Fin n) :
     perturbedLineWalk n o *ᵥ linePsi0 n
       = linePsi0 n - (fun (s : LineIdx n) => if s = (Sum.inr o : LineIdx n) then (2:ℂ) * linePsi0 n (Sum.inl o) else 0) := by
@@ -303,6 +349,8 @@ theorem perturbedLineWalk_mulVec_linePsi0 {n : ℕ} (hn : 1 ≤ n) (o : Fin n) :
       intro hh; exact hs hh.1
     rw [if_neg hc]; simp
 
+/-- For `n > 0` and `x ≤ n`, the squares of `cosOmega n x` and `sinOmega n x` sum to one. See
+[ShenviKempeWhaley2003]. -/
 lemma cosOmega_sq_add_sinOmega_sq {n x : ℕ} (hn : 0 < n) (hx : x ≤ n) :
     cosOmega n x ^ 2 + sinOmega n x ^ 2 = 1 := by
   unfold cosOmega sinOmega
@@ -314,6 +362,8 @@ lemma cosOmega_sq_add_sinOmega_sq {n x : ℕ} (hn : 0 < n) (hx : x ≤ n) :
   field_simp
   ring
 
+/-- For `n ≥ 1`, the sum over `Fin n` of the binomial coefficients of order `n - 1` equals `2^(n
+- 1)`. -/
 lemma choose_sum_fin {n : ℕ} (hn : 1 ≤ n) :
     (∑ i : Fin n, (Nat.choose (n - 1) (i:ℕ) : ℝ)) = (2:ℝ)^(n-1) := by
   have hr : Finset.range n = Finset.range ((n-1)+1) := by congr 1; omega
@@ -322,6 +372,7 @@ lemma choose_sum_fin {n : ℕ} (hn : 1 ≤ n) :
   push_cast
   ring
 
+/-- For `n ≥ 1`, the ratio `2^(n - 1) / 2^n` equals one half. -/
 lemma half_eq {n : ℕ} (hn : 1 ≤ n) :
     ((2:ℝ)^(n-1) / (2:ℝ)^n) = 1/2 := by
   have hpow : (2:ℝ)^n = (2:ℝ)^(n-1) * 2 := by
@@ -331,6 +382,8 @@ lemma half_eq {n : ℕ} (hn : 1 ≤ n) :
   have hpos : ((2:ℝ)^(n-1)) ≠ 0 := by positivity
   field_simp
 
+/-- For `n ≥ 1`, the Hermitian inner product of `linePsi0 n` with itself is one. See
+[ShenviKempeWhaley2003]. -/
 lemma innerC_linePsi0_self {n : ℕ} (hn : 1 ≤ n) :
     innerC (linePsi0 n) (linePsi0 n) = 1 := by
   unfold innerC linePsi0 lineIdxNat
@@ -357,9 +410,11 @@ lemma innerC_linePsi0_self {n : ℕ} (hn : 1 ≤ n) :
   rw [Finset.sum_congr rfl (fun i _ => key i)]
   rw [hS]; norm_num
 
+/-- The left and right components of `linePsi0` at each index are equal. -/
 lemma linePsi0_inl_eq_inr (n : ℕ) (i : Fin n) :
     linePsi0 n (Sum.inl i) = linePsi0 n (Sum.inr i) := rfl
 
+/-- The right component of `linePsi1` is the negative of its left component at every index. -/
 lemma linePsi1_inr_eq_neg (m : ℕ) (i : Fin (2*m)) :
     linePsi1 m (Sum.inr i) = - linePsi1 m (Sum.inl i) := by
   unfold linePsi1
@@ -367,6 +422,7 @@ lemma linePsi1_inr_eq_neg (m : ℕ) (i : Fin (2*m)) :
   · simp [h]
   · simp [h]
 
+/-- The vectors `linePsi0 (2 * m)` and `linePsi1 m` are orthogonal. See [ShenviKempeWhaley2003]. -/
 lemma innerC_linePsi0_linePsi1 (m : ℕ) :
     innerC (linePsi0 (2*m)) (linePsi1 m) = 0 := by
   unfold innerC

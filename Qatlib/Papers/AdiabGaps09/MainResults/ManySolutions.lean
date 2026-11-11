@@ -9,6 +9,28 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.Archimedean.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Tactic
+
+/-!
+# Several gap sums and retry expressions
+
+The module defines a family of second-order gap sums on the Boolean cube and the fraction of
+configurations for which every sum is positive. It computes means and covariances, proves the
+one-sum half-cube bound, and establishes existence of retry counts making the success expression
+at least one half, in the setting of [FarhiEtAl2011].
+
+## Main statements
+
+* `cubeMean_multiGap` and `cubeCov_multiGap`: the moments of the indexed gap sums.
+* `successFraction_k1_ge_half`: eventual success fraction at least one half for one sum with
+  positive total coefficient.
+* `constant_retries_exists` and `polynomial_retries`: existence of positive retry counts for the
+  stated success parameters.
+
+## References
+
+* [Farhi et al., 2011][FarhiEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,25 +43,33 @@ open Qatlib.Papers.AdiabGaps09.MainResults
 
 namespace Qatlib.Papers.AdiabGaps09.MainResults.ManySolutions
 
+/-- The gap sum `∑ i, cSq (z i) * d r i` for the coefficient vector indexed by `r`. -/
 def multiGap {k n : ℕ} (d : Fin k → Fin n → ℝ) (z : Fin n → Bool) (r : Fin k) : ℝ :=
   ∑ i, cSq (z i) * d r i
 
+/-- The condition that every gap sum indexed by `r : Fin k` is strictly positive at `z`. -/
 def MultiSuccess {k n : ℕ} (d : Fin k → Fin n → ℝ) (z : Fin n → Bool) : Prop :=
   ∀ r : Fin k, 0 < multiGap d z r
 
+/-- The number of Boolean configurations satisfying `MultiSuccess d`, divided by `2 ^ n`. -/
 def successFraction {k n : ℕ} (d : Fin k → Fin n → ℝ) : ℝ := by
   classical
   exact ((Finset.univ.filter (fun z : Fin n → Bool => MultiSuccess d z)).card : ℝ)
     / (2 : ℝ) ^ n
 
+/-- The uniform mean of the gap sum indexed by `r` is `(5/4) * ∑ i, d r i`. See [FarhiEtAl2011]. -/
 theorem cubeMean_multiGap {k n : ℕ} (d : Fin k → Fin n → ℝ) (r : Fin k) :
     cubeMean (fun z => multiGap d z r) = (5 / 4) * ∑ i, d r i :=
   cubeMean_second_order (d r)
 
+/-- Each indexed gap sum equals its mean `(5/4) * ∑ i, d r i` plus the centered sum `Tsum (d r)
+z`. -/
 theorem multiGap_eq {k n : ℕ} (d : Fin k → Fin n → ℝ) (z : Fin n → Bool) (r : Fin k) :
     multiGap d z r = (5 / 4) * (∑ i, d r i) + Tsum (d r) z :=
   secondOrderGap_eq n (d r) z
 
+/-- The uniform cube covariance of the gap sums indexed by `q` and `r` equals `∑ i, d q i * d r
+i`. See [FarhiEtAl2011]. -/
 theorem cubeCov_multiGap {k n : ℕ} (d : Fin k → Fin n → ℝ) (q r : Fin k) :
     cubeCov (fun z => multiGap d z q) (fun z => multiGap d z r)
       = ∑ i, d q i * d r i := by
@@ -80,11 +110,14 @@ theorem cubeCov_multiGap {k n : ℕ} (d : Fin k → Fin n → ℝ) (q r : Fin k)
   rw [hprod, hmq, hmr]
   ring
 
+/-- The fraction of configurations satisfying `MultiSuccess` is nonnegative. -/
 theorem successFraction_nonneg {k n : ℕ} (d : Fin k → Fin n → ℝ) :
     0 ≤ successFraction (k := k) (n := n) d := by
   unfold successFraction
   positivity
 
+/-- The fraction of configurations satisfying `MultiSuccess` is at most one. See
+[FarhiEtAl2011]. -/
 theorem successFraction_le_one {k n : ℕ} (d : Fin k → Fin n → ℝ) :
     successFraction (k := k) (n := n) d ≤ 1 := by
   classical
@@ -95,6 +128,8 @@ theorem successFraction_le_one {k n : ℕ} (d : Fin k → Fin n → ℝ) :
   rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_fin] at h
   exact_mod_cast h
 
+/-- For a single coefficient vector, `MultiSuccess` is equivalent to strict positivity of
+`secondOrderGap d z`. -/
 theorem multiSuccess_k1_iff {n : ℕ} (d : Fin n → ℝ) (z : Fin n → Bool) :
     MultiSuccess (k := 1) (fun (_ : Fin 1) (i : Fin n) => d i) z
       ↔ 0 < secondOrderGap d z := by
@@ -106,6 +141,8 @@ theorem multiSuccess_k1_iff {n : ℕ} (d : Fin n → ℝ) (z : Fin n → Bool) :
     fin_cases r
     simpa [multiGap] using! h
 
+/-- If the sum of coefficients is eventually positive, the success fraction for the single
+indexed gap sum is eventually at least one half. See [FarhiEtAl2011]. -/
 theorem successFraction_k1_ge_half (d : (n : ℕ) → Fin n → ℝ)
     (h : ∀ᶠ n in Filter.atTop, 0 < ∑ i, d n i) :
     ∀ᶠ n in Filter.atTop,
@@ -136,6 +173,8 @@ theorem successFraction_k1_ge_half (d : (n : ℕ) → Fin n → ℝ)
   calc (1 / 2) * (2 : ℝ) ^ n = (2 : ℝ) ^ n / 2 := by ring
     _ ≤ _ := hcard
 
+/-- For `0 < p ≤ 1`, some positive natural number `K` satisfies `1 - (1 - p) ^ K ≥ 1/2`. See
+[FarhiEtAl2011]. -/
 theorem constant_retries_exists (p : ℝ) (hp0 : 0 < p) (_hp1 : p ≤ 1) :
     ∃ K : ℕ, 0 < K ∧ 1 / 2 ≤ 1 - (1 - p) ^ K := by
   have hb : 1 - p < 1 := by linarith
@@ -147,6 +186,8 @@ theorem constant_retries_exists (p : ℝ) (hp0 : 0 < p) (_hp1 : p ≤ 1) :
     exact absurd hK (by norm_num)
   · exact h
 
+/-- For natural `k ≥ 1` and `c > 0`, some positive natural number `K` satisfies `1 - (1 - 1 /
+k^c) ^ K ≥ 1/2`. See [FarhiEtAl2011]. -/
 theorem polynomial_retries (k c : ℕ) (hk : 1 ≤ k) (_hc : 0 < c) :
     ∃ K : ℕ, 0 < K ∧ 1 / 2 ≤ 1 - (1 - 1 / ((k : ℝ) ^ c)) ^ K := by
   have hk1 : (1 : ℝ) ≤ (k : ℝ) := by exact_mod_cast hk
@@ -157,10 +198,12 @@ theorem polynomial_retries (k c : ℕ) (hk : 1 ≤ k) (_hc : 0 < c) :
     exact hpow
   exact constant_retries_exists (1 / ((k : ℝ) ^ c)) hp0 hp1
 
+/-- The dot product of two coefficient vectors divided by the product of their Euclidean norms. -/
 def correlation {n : ℕ} (dq dr : Fin n → ℝ) : ℝ :=
   (∑ i, dq i * dr i)
     / (Real.sqrt (∑ i, (dq i) ^ 2) * Real.sqrt (∑ i, (dr i) ^ 2))
 
+/-- For a family consisting of one coefficient vector, `multiGap` equals `secondOrderGap`. -/
 theorem multiGap_one {n : ℕ} (d : Fin n → ℝ) (z : Fin n → Bool) :
     multiGap (fun (_ : Fin 1) => d) z 0 = secondOrderGap d z := by
   unfold multiGap

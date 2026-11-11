@@ -14,6 +14,27 @@ import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Amplification product and event bounds
+
+This module derives stage-time and product-sum estimates from positive base weights,
+amplified-weight floors, gain windows, and the amplification time recurrence.
+`clause89_frozen_residual_false` also disproves a universal conjunction that imposes these
+hypotheses on arbitrary input sequences.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `clause89_ratio_bound`: square-root gain-ratio control of a call multiplier.
+* `clause89_event_bounds`: stage and cumulative bounds corresponding to equations (5)–(6).
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -66,6 +87,8 @@ open Qatlib
 set_option warningAsError false
 noncomputable section
 
+/-- The universal conjunction of positivity, gain-window, recurrence, and time-bound assertions
+for arbitrary sequences is false. -/
 lemma clause89_frozen_residual_false :
     ¬ (∀ (m : ℕ) (rs rs' : ℕ → ℝ) (k : ℕ → ℕ) (T : ℕ → ℝ),
       1 ≤ m →
@@ -87,6 +110,8 @@ lemma clause89_frozen_residual_false :
 end
 noncomputable section
 
+/-- For `μ ≥ 1`, the squared recurrence correction factor times `1 - 1 / (3 * μ)` is at least
+one. -/
 lemma clause89_const_factor (μ : ℝ) (hμ : 1 ≤ μ) :
     (1 + 1 / (3 * μ - 1)) ^ 2 * (1 - 1 / (3 * μ)) ≥ 1 := by
   have h3μ : 0 < 3 * μ := by positivity
@@ -98,6 +123,8 @@ lemma clause89_const_factor (μ : ℝ) (hμ : 1 ≤ μ) :
 end
 noncomputable section
 
+/-- For positive base and amplified weights, the gain-window inequality bounds `a` by the
+corrected square-root ratio `√p / √q` when `μ ≥ 1`. -/
 lemma clause89_ratio_bound (μ a p q : ℝ) (hμ : 1 ≤ μ) (_ha : 0 < a) (hp : 0 < p) (hq : 0 < q)
     (hwin : (1 - 1 / (3 * μ)) * a ^ 2 * q ≤ p) :
     a ≤ (1 + 1 / (3 * μ - 1)) * (Real.sqrt p / Real.sqrt q) := by
@@ -131,6 +158,8 @@ lemma clause89_ratio_bound (μ a p q : ℝ) (hμ : 1 ≤ μ) (_ha : 0 < a) (hp :
 end
 noncomputable section
 
+/-- A nonnegative initial time and the odd-multiplier dyadic recurrence imply nonnegative times
+through stage `m`. -/
 lemma clause89_T_nonneg (m : ℕ) (k : ℕ → ℕ) (T : ℕ → ℝ) (hT0 : 0 ≤ T 0)
     (hrec : ∀ i : ℕ, 1 ≤ i → i ≤ m →
       T i = (2 * k i + 1 : ℝ) * (T (i - 1) + (2 : ℝ) ^ ((i : ℕ) - 1))) :
@@ -149,6 +178,8 @@ lemma clause89_T_nonneg (m : ℕ) (k : ℕ → ℕ) (T : ℕ → ℝ) (hT0 : 0 �
 end
 noncomputable section
 
+/-- A gain-ratio product over a nonempty half-open interval factors into its first ratio and the
+remaining product. -/
 lemma clause89_prod_peel (rs rs' : ℕ → ℝ) (i M : ℕ) (hi : i < M) :
     gainRatioProduct rs rs' i M =
       gainRatio (rs i) (rs' i) * gainRatioProduct rs rs' (i + 1) M := by
@@ -162,6 +193,7 @@ lemma clause89_prod_peel (rs rs' : ℕ → ℝ) (i M : ℕ) (hi : i < M) :
 end
 noncomputable section
 
+/-- A sum over a nonempty half-open interval splits into its first term and the remaining sum. -/
 lemma clause89_sum_peel (f : ℕ → ℝ) (i M : ℕ) (hi : i < M) :
     (∑ j ∈ Finset.Ico i M, f j) = f i + ∑ j ∈ Finset.Ico (i + 1) M, f j := by
   have hmem : i ∈ Finset.Ico i M := Finset.mem_Ico.mpr ⟨by omega, hi⟩
@@ -174,6 +206,9 @@ lemma clause89_sum_peel (f : ℕ → ℝ) (i M : ℕ) (hi : i < M) :
 end
 noncomputable section
 
+/-- Under positive base weights, amplified-weight floors, gain windows, and the time recurrence,
+the stage and cumulative product-sum time bounds hold as in equations (5)–(6) of
+[Ambainis2012]. -/
 lemma clause89_event_bounds (m : ℕ) (rs rs' : ℕ → ℝ) (k : ℕ → ℕ) (T : ℕ → ℝ)
     (hm : 1 ≤ m)
     (hpos : ∀ j : ℕ, 1 ≤ j → j ≤ m → 0 < rs' j)

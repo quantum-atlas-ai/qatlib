@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+
+/-!
+# Specification of the polynomial pair characterization
+
+`Theorem3Characterization` formulates the phase-realization criterion for quantum signal
+processing polynomial pairs. It equates realization by a phase base and a list of length `k`
+with degree bounds, response parities, and weighted squared-norm normalization on `[-1, 1]`. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Theorem3Characterization`: the phase-realization equivalence for a polynomial pair.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -16,6 +34,9 @@ open Polynomial
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
+/-- The assertion that a phase realization of length `k` exists exactly for complex polynomial
+pairs satisfying the degree, parity, and normalization conditions of [Gilyén et al., Theorem
+3][GilyenSuLowWiebe2019]. -/
 def Theorem3Characterization : Prop :=
   ∀ (k : ℕ) (P Q : Polynomial ℂ),
     (∃ base : ℂ, ∃ zs : List ℂ,

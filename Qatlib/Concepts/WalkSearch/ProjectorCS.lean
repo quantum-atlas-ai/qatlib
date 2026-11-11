@@ -17,6 +17,28 @@ import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Unmarked principal matrices and walk gaps
+
+`SymmetricChainGap` expresses a quadratic-form spectral gap for a symmetric transition matrix.
+The module restricts the Szegedy row frame to unmarked states, identifies its swap Gram matrix
+with the unmarked principal matrix, and bounds that matrix's norm by `1 - δ * markedFraction S`.
+
+These constructions connect a classical chain gap and marked fraction to the walk geometry of
+[Szegedy2004].
+
+## Main statements
+
+* `unmarkedRowFrame_swap_gram`: the restricted swap Gram identity.
+* `symmetric_chain_unmarked_real_quadratic_upper`: the unmarked quadratic-form bound.
+* `unmarked_principal_gram_and_gap`: combine isometry, Gram identity, and norm bound.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -39,27 +61,38 @@ open Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- The condition that `P` is a symmetric transition matrix and its quadratic form on zero-sum
+real vectors is bounded by `1 - δ` times squared norm. -/
 def SymmetricChainGap {I : Type} [Fintype I] (P : I→I→ℝ) (δ : ℝ) : Prop :=
   IsTransitionMatrix P ∧ (∀ i j,P i j= P j i) ∧
   ∀ v : I→ℝ,(∑ i,v i)=0 →
     (∑ i,∑ j,v i*P i j*v j)   ≤   (1-δ)*∑ i,(v i)^2
+/-- The subtype of indices outside the marked finite set `S`. -/
 abbrev Unmarked (I : Type) [DecidableEq I] (S : Finset I) := {i : I // i∉S}
+/-- The Szegedy isometry matrix restricted to columns indexed by unmarked states. -/
 noncomputable def unmarkedRowFrame {I : Type} [DecidableEq I] (P : I→I→ℝ) (S : Finset I) :
     Matrix (I×I) (Unmarked I S) ℂ := fun xy i=> SzegedyIsometry P xy i.1
+/-- The complex-valued principal matrix obtained by restricting `P` to unmarked rows and
+columns. -/
 noncomputable def unmarkedPrincipal {I : Type} [DecidableEq I] (P : I→I→ℝ) (S : Finset I) :
     Matrix (Unmarked I S) (Unmarked I S) ℂ := fun i j=>(P i.1 j.1:ℂ)
+/-- The real ratio of the marked-set cardinality to the total index cardinality. -/
 noncomputable def markedFraction {I : Type} [Fintype I] (S : Finset I) : ℝ :=
   (S.card:ℝ)/(Fintype.card I:ℝ)
 
+/-- Matrix multiplication with its finite-index multiplication instance supplied explicitly. -/
 private noncomputable abbrev principalMul {M N K : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) : Matrix M K ℂ :=
   @HMul.hMul (Matrix M N ℂ) (Matrix N K ℂ) (Matrix M K ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 
+/-- The explicitly instantiated matrix multiplication `principalMul` is associative. -/
 private theorem principalMul_assoc {M N K L : Type} [Fintype N] [Fintype K]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) (C : Matrix K L ℂ) :
     principalMul (principalMul A B) C=principalMul A (principalMul B C) := Matrix.mul_assoc A B C
 
+/-- Restricting the Szegedy row frame to unmarked columns preserves the isometry property for a
+transition matrix. -/
 theorem unmarkedRowFrame_isIsometry {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (hP : IsTransitionMatrix P) :
     IsIsometry (unmarkedRowFrame P S) := by
@@ -69,6 +102,8 @@ theorem unmarkedRowFrame_isIsometry {I : Type} [Fintype I] [DecidableEq I]
   simpa only [Matrix.mul_apply,Matrix.conjTranspose_apply,unmarkedRowFrame,Matrix.one_apply,
     Subtype.val_inj] using! he
 
+/-- For a symmetric transition matrix, the swap Gram matrix of the unmarked row frame equals the
+unmarked principal matrix. -/
 theorem unmarkedRowFrame_swap_gram {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (hP : IsTransitionMatrix P) (hs : ∀ i j,P i j=P j i) :
     (unmarkedRowFrame P S)ᴴ*(SwapGate : Matrix (I×I) (I×I) ℂ)*(unmarkedRowFrame P S)=unmarkedPrincipal P S := by
@@ -84,6 +119,7 @@ theorem unmarkedRowFrame_swap_gram {I : Type} [Fintype I] [DecidableEq I]
   simp only [unmarkedPrincipal,SzegedyDiscriminant,Matrix.map_apply,Matrix.of_apply]
   rw [← hs i.1 j.1,← pow_two,Real.sqrt_sq (hP.1 i.1 j.1)]
 
+/-- The unmarked principal matrix of a real symmetric matrix is Hermitian. -/
 theorem unmarkedPrincipal_isHermitian {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (hs : ∀ i j,P i j=P j i) :
     (unmarkedPrincipal P S).IsHermitian := by
@@ -91,6 +127,7 @@ theorem unmarkedPrincipal_isHermitian {I : Type} [Fintype I] [DecidableEq I]
   ext i j
   simp [unmarkedPrincipal,Matrix.conjTranspose_apply,hs]
 
+/-- On a nonempty finite index type, the marked fraction lies between zero and one. -/
 theorem markedFraction_mem_Icc {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (S : Finset I) : markedFraction S∈Set.Icc 0 1 := by
   have hn : 0<(Fintype.card I : ℝ) := Nat.cast_pos.mpr Fintype.card_pos
@@ -99,6 +136,8 @@ theorem markedFraction_mem_Icc {I : Type} [Fintype I] [DecidableEq I] [Nonempty 
   simpa only [one_mul] using!
       (show (S.card : ℝ)   ≤   (Fintype.card I : ℝ) by exact_mod_cast S.card_le_univ)
 
+/-- The chain-gap condition bounds an arbitrary real quadratic form by `(1 - δ)` times squared
+norm plus the stated squared-sum correction. -/
 theorem symmetric_chain_real_quadratic_upper {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I→I→ℝ) (δ : ℝ) (h : SymmetricChainGap P δ) (v : I→ℝ) :
     (∑ i,∑ j,v i*P i j*v j)   ≤   (1-δ)*(∑ i,(v i)^2)+δ*(∑ i,v i)^2/(Fintype.card I : ℝ) := by
@@ -143,9 +182,12 @@ theorem symmetric_chain_real_quadratic_upper {I : Type} [Fintype I] [DecidableEq
     _   ≤   (1-δ)*(∑ i,(z i)^2)+n*m^2 := add_le_add hgap le_rfl
     _ = _ := by rw [mul_div_assoc,← hmean]; ring
 
+/-- Extends a real function on unmarked indices by zero on the marked set. -/
 private noncomputable def principalZeroExtend {I : Type} [DecidableEq I] (S : Finset I)
     (f : Unmarked I S→ℝ) : I→ℝ := fun i=>if h : i∉S then f ⟨i,h⟩ else 0
 
+/-- Summing the zero extension over all indices equals summing the original function over
+unmarked indices. -/
 private theorem principalZeroExtend_sum {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (f : Unmarked I S→ℝ) :
     (∑ i,principalZeroExtend S f i)=∑ i : Unmarked I S,f i := by
@@ -160,6 +202,8 @@ private theorem principalZeroExtend_sum {I : Type} [Fintype I] [DecidableEq I]
   have hm : i∈S := by simpa using! hi
   simp [principalZeroExtend,hm]
 
+/-- A weighted sum of the zero extension equals the corresponding weighted sum over unmarked
+indices. -/
 private theorem principalZeroExtend_weighted {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (f : Unmarked I S→ℝ) (c : I→ℝ) :
     (∑ i,c i*principalZeroExtend S f i)=∑ i : Unmarked I S,c i.1*f i := by
@@ -167,6 +211,8 @@ private theorem principalZeroExtend_weighted {I : Type} [Fintype I] [DecidableEq
     unfold principalZeroExtend; split_ifs <;> simp
   simp only [he,principalZeroExtend_sum]
 
+/-- For a nonnegative gap parameter, the unmarked real quadratic form is at most `(1 - δ *
+markedFraction S)` times squared norm. -/
 theorem symmetric_chain_unmarked_real_quadratic_upper {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I→I→ℝ) (S : Finset I) (δ : ℝ) (hδ : 0  ≤  δ) (h : SymmetricChainGap P δ)
     (f : Unmarked I S→ℝ) :
@@ -207,6 +253,8 @@ theorem symmetric_chain_unmarked_real_quadratic_upper {I : Type} [Fintype I] [De
   rw [← hcardR]
   ring
 
+/-- For entrywise nonnegative `P`, the norm of the unmarked complex quadratic form is bounded by
+the quadratic sum of coordinate norms. -/
 private theorem principal_complex_quadratic_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (hp : ∀ i j,0 ≤ P i j) (u : QState (Unmarked I S)) :
     ‖Qatlib.Foundations.PureStateMath.Inner u ((unmarkedPrincipal P S)*ᵥu)‖ ≤
@@ -222,6 +270,8 @@ private theorem principal_complex_quadratic_norm_le {I : Type} [Fintype I] [Deci
       apply Finset.sum_le_sum; intro i _; exact norm_sum_le _ _
     _ = _ := by simp only [norm_mul,norm_star,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg (hp _ _)]
 
+/-- For `0 < δ ≤ 1` and `SymmetricChainGap P δ`, establishes the restricted-frame isometry, swap
+Gram identity, and norm bound `1 - δ * markedFraction S`. -/
 theorem unmarked_principal_gram_and_gap : ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I→I→ℝ) (S : Finset I) (δ : ℝ),0<δ → δ ≤ 1 → SymmetricChainGap P δ →
   IsIsometry (unmarkedRowFrame P S) ∧

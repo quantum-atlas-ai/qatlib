@@ -20,6 +20,33 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Coherent amplification of scale-eight encodings
+
+This module adds a Boolean attenuation register to a scale-eight block encoding and applies
+three levels of cubic oblivious amplitude amplification. The attenuation parameter `8 * sin (π /
+54)` makes the ideal compressed amplitude reach one after the three angle-tripling steps.
+
+The construction provides a concrete circuit, its query and fixed-gate counts, and noisy and
+exact framed-state guarantees. It uses the amplitude amplification mechanism of
+[BrassardEtAl2002], with explicit Lipschitz error propagation through each cubic step.
+
+## Main statements
+
+* `scale_eight_three_level_actual_counts`: amplification uses 27 times the body query count and
+  `27 * adjointGateCount cs + 79` fixed gates.
+* `scaleEight_compressed_error`: the amplified compression error is at most `3375 * ε`.
+* `scale_eight_noisy_clean_workspace_bound`: the framed-state error is at most `sqrt (6750 * ε)`
+  times the input norm.
+* `scale_eight_exact_clean_amplification`: an exact scale-eight encoding implements the target
+  unitary exactly on the lifted frame.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError
 set_option warningAsError false
@@ -51,39 +78,51 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- The real two-dimensional matrix with diagonal `c` and off-diagonal entries `-sqrt (1 - c ^
+2)` and `sqrt (1 - c ^ 2)`. -/
 noncomputable def scaleEightRotation (c : ℝ) : Matrix Bool Bool ℂ := fun b b' =>
   if b then (if b' then (c : ℂ) else (Real.sqrt (1-c^2) : ℂ))
   else (if b' then -(Real.sqrt (1-c^2) : ℂ) else (c : ℂ))
 
+/-- The attenuation rotation with parameter `8 * sin (π / 54)`. -/
 noncomputable def scaleEightAttenuation : Matrix Bool Bool ℂ :=
   scaleEightRotation (8*Real.sin (Real.pi/54))
 
+/-- The demonstration rotation with parameter `1 / 8`. -/
 noncomputable def scaleEightDemoRotation : Matrix Bool Bool ℂ := scaleEightRotation (1/8)
 
+/-- The frame obtained by embedding `R` into the false branch of an added Boolean register. -/
 noncomputable def scaleEightFrame {H I : Type} [Fintype H] [Fintype I]
     (R : Matrix H I ℂ) : Matrix (Bool × H) I ℂ := fun x i =>
   if x.1 = false then R x.2 i else 0
 
+/-- The instruction lift that tensors fixed gates with a Boolean identity and preserves oracle
+query directions. -/
 noncomputable def scaleEightLiftStep {H : Type} : AdjointStep H → AdjointStep (Bool × H)
   | .gate G => .gate (TensorGate (1 : Matrix Bool Bool ℂ) G)
   | .forward => .forward
   | .backward => .backward
 
+/-- The lifted circuit word followed by the attenuation gate on the added Boolean register. -/
 noncomputable def scaleEightLiftWord {H : Type} (cs : List (AdjointStep H)) :
     List (AdjointStep (Bool × H)) :=
   cs.map scaleEightLiftStep ++ [.gate (TensorGate scaleEightAttenuation 1)]
 
+/-- The circuit word obtained by recursively substituting the previous level into the
+shared-frame cubic amplification word. -/
 noncomputable def scaleEightLevels {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ) :
     ℕ → List (AdjointStep H) → List (AdjointStep H)
   | 0, cs => cs
   | k+1, cs => substituteAdjointCircuit (scaleEightLevels R k cs) (coherentOAAWord R)
 
+/-- The attenuated lifted word followed by three recursive levels of cubic amplification. -/
 noncomputable def scaleEightAmplifyWord {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ) (cs : List (AdjointStep H)) :
     List (AdjointStep (Bool × H)) :=
   scaleEightLevels (scaleEightFrame R) 3 (scaleEightLiftWord cs)
 
+/-- The attenuation rotation is unitary when `|c| ≤ 1`. -/
 theorem scaleEightRotation_unitary (c : ℝ) (hc : |c| ≤ 1) :
     scaleEightRotation c ∈ Matrix.unitaryGroup Bool ℂ := by
   have hc2 : 0 ≤ 1-c^2 := by rcases abs_le.mp hc with ⟨hl,hu⟩; nlinarith
@@ -95,6 +134,7 @@ theorem scaleEightRotation_unitary (c : ℝ) (hc : |c| ≤ 1) :
     simp [Matrix.mul_apply, Matrix.conjTranspose_apply, scaleEightRotation] <;>
     ring_nf <;> simp_all
 
+/-- The attenuation parameter `8 * sin (π / 54)` is positive and at most one. -/
 theorem scaleEight_parameter_bounds :
     0 < 8*Real.sin (Real.pi/54) ∧ 8*Real.sin (Real.pi/54) ≤ 1 := by
   have hθ : 0 < Real.pi/54 := by positivity
@@ -105,6 +145,7 @@ theorem scaleEight_parameter_bounds :
   · positivity
   · linarith [Real.pi_lt_four]
 
+/-- Adding the false Boolean branch preserves the isometry property of a frame. -/
 theorem scaleEightFrame_isometry {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ) (hR : IsIsometry R) :
     IsIsometry (scaleEightFrame R) := by
@@ -113,6 +154,8 @@ theorem scaleEightFrame_isometry {H I : Type} [Fintype H] [DecidableEq H]
   simpa [Matrix.mul_apply, Matrix.conjTranspose_apply, scaleEightFrame,
     Fintype.sum_prod_type, Fintype.sum_bool] using! congrFun (congrFun hR i) j
 
+/-- Evaluation of the lifted instructions with the identity-tensored oracle equals the
+identity-tensored original evaluation. -/
 private theorem lift_evaluate {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (cs : List (AdjointStep H)) :
     evaluate (TensorGate (1 : Matrix Bool Bool ℂ) O) (cs.map scaleEightLiftStep) =
@@ -123,6 +166,7 @@ private theorem lift_evaluate {H : Type} [Fintype H] [DecidableEq H]
     cases c <;> simp [List.map_cons, scaleEightLiftStep, evaluate, instructionMatrix, ih,
       tensorGate_conjTranspose, tensorGate_mul]
 
+/-- Lifting every instruction to the added Boolean register preserves circuit well-formedness. -/
 private theorem lift_wellFormed {H : Type} [Fintype H] [DecidableEq H]
     (cs : List (AdjointStep H)) (hcs : WellFormedAdjointCircuit cs) :
     WellFormedAdjointCircuit (cs.map scaleEightLiftStep) := by
@@ -136,6 +180,7 @@ private theorem lift_wellFormed {H : Type} [Fintype H] [DecidableEq H]
     · exact ih hcs
     · exact ih hcs
 
+/-- The attenuated lifted word preserves the body query count and adds exactly one fixed gate. -/
 theorem scaleEightLiftWord_counts {H : Type} (cs : List (AdjointStep H)) :
     adjointQueryCount (scaleEightLiftWord cs) = adjointQueryCount cs ∧
     adjointGateCount (scaleEightLiftWord cs) = adjointGateCount cs+1 := by
@@ -147,6 +192,8 @@ theorem scaleEightLiftWord_counts {H : Type} (cs : List (AdjointStep H)) :
   simp [scaleEightLiftWord, adjointQueryCount_append, adjointGateCount_append,
     adjointQueryCount, adjointGateCount, hm]
 
+/-- Compression of `TensorGate B U` through the lifted frame equals `B false false` times the
+original compression of `U`. -/
 theorem scaleEightFrame_compress {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ)
     (B : Matrix Bool Bool ℂ) (U : Matrix H H ℂ) :
@@ -157,9 +204,12 @@ theorem scaleEightFrame_compress {H I : Type} [Fintype H] [DecidableEq H]
     tensorGate_apply, Fintype.sum_prod_type,
     Finset.mul_sum, Finset.sum_mul, mul_assoc, mul_left_comm]
 
+/-- The matrix cubic amplification map `3 • X - 4 • (X * Xᴴ * X)`. -/
 noncomputable def scaleEightCubic {I : Type} [Fintype I] (X : Matrix I I ℂ) : Matrix I I ℂ :=
   (3 : ℂ) • X - (4 : ℂ) • (X*Xᴴ*X)
 
+/-- On a unitary multiplied by `sin θ`, the cubic map replaces the scalar amplitude by `sin (3 *
+θ)`. -/
 theorem scaleEightCubic_sin {I : Type} [Fintype I] [DecidableEq I]
     (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) :
     scaleEightCubic ((Real.sin θ : ℂ) • V) = (Real.sin (3*θ) : ℂ) • V := by
@@ -172,6 +222,8 @@ theorem scaleEightCubic_sin {I : Type} [Fintype I] [DecidableEq I]
   push_cast
   ring
 
+/-- On matrices of operator norm at most one, the cubic amplification map is Lipschitz with
+constant 15. -/
 theorem scaleEightCubic_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (hX : ‖X‖ ≤ 1) (hY : ‖Y‖ ≤ 1) :
     ‖scaleEightCubic X - scaleEightCubic Y‖ ≤ 15*‖X-Y‖ := by
@@ -189,6 +241,8 @@ theorem scaleEightCubic_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     _ = 3*‖X-Y‖+4*‖X*Xᴴ*X-Y*Yᴴ*Y‖ := by rw [norm_smul,norm_smul]; norm_num
     _ ≤ 15*‖X-Y‖ := by linarith
 
+/-- If a unitary's compression through an isometric frame is within `δ` of a target unitary, its
+full framed action has error at most `sqrt (2 * δ)` times the input norm. -/
 theorem scaleEight_clean_from_compression {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (V : Matrix I I ℂ) (W : Matrix H H ℂ)
     (R : Matrix H I ℂ) (δ : ℝ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
@@ -215,6 +269,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- The scale-eight attenuation is unitary and has false-false entry `8 * sin (π / 54)`, which
+is positive and at most one. -/
 theorem scale_eight_attenuation_actual_unitary :
     scaleEightAttenuation ∈ Matrix.unitaryGroup Bool ℂ ∧
     scaleEightAttenuation false false = (8*Real.sin (Real.pi/54) : ℝ) ∧
@@ -223,6 +279,9 @@ theorem scale_eight_attenuation_actual_unitary :
   refine ⟨scaleEightRotation_unitary _ ?_, rfl, hb⟩
   rw [abs_of_pos hb.1]; exact hb.2
 
+/-- The lifted frame is isometric and the attenuated lifted body is well formed. Evaluating that
+body with the lifted oracle gives the tensor product of the attenuation rotation and the
+original body evaluation. -/
 theorem scale_eight_lift_frame_and_body (H I : Type) [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (R : Matrix H I ℂ)
     (cs : List (AdjointStep H)) (hR : IsIsometry R) (hcs : WellFormedAdjointCircuit cs) :
@@ -241,6 +300,9 @@ theorem scale_eight_lift_frame_and_body (H I : Type) [Fintype H] [DecidableEq H]
   · rw [scaleEightLiftWord, evaluate_append, lift_evaluate]
     simp [evaluate, instructionMatrix, tensorGate_mul]
 
+/-- Recursive amplification preserves well-formedness, multiplies the query count by `3 ^ k`,
+and satisfies `adjointGateCount (scaleEightLevels R k cs) + 2 = 3 ^ k * (adjointGateCount cs
++ 2)`. -/
 private theorem scaleEightLevels_properties {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ) (hR : IsIsometry R)
     (cs : List (AdjointStep H)) (hcs : WellFormedAdjointCircuit cs) (k : ℕ) :
@@ -257,6 +319,8 @@ private theorem scaleEightLevels_properties {H I : Type} [Fintype H] [DecidableE
     · rw [scaleEightLevels, he.2.2.1, pow_succ]
       nlinarith [ih.2.2]
 
+/-- The three-level scale-eight circuit is well formed, uses `27 * adjointQueryCount cs`
+queries, and has `27 * adjointGateCount cs + 79` fixed gates. -/
 theorem scale_eight_three_level_actual_counts (H I : Type) [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ) (cs : List (AdjointStep H))
     (hR : IsIsometry R) (hcs : WellFormedAdjointCircuit cs) :
@@ -275,6 +339,8 @@ theorem scale_eight_three_level_actual_counts (H I : Type) [Fintype H] [Decidabl
     change adjointGateCount (scaleEightLevels (scaleEightFrame R) 3 (scaleEightLiftWord cs)) = _
     omega
 
+/-- After `k` cubic levels, an initial compression error `ε` around `sin θ • V` becomes at most
+`15 ^ k * ε` around `sin (3 ^ k * θ) • V`. -/
 private theorem scaleEightLevels_error {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (R : Matrix H I ℂ)
     (body : List (AdjointStep H)) (V : Matrix I I ℂ) (θ ε : ℝ)
@@ -306,6 +372,8 @@ private theorem scaleEightLevels_error {H I : Type} [Fintype H] [DecidableEq H]
       _ ≤ 15*((15 : ℝ)^k*ε) := mul_le_mul_of_nonneg_left ih (by norm_num)
       _ = (15 : ℝ)^(k+1)*ε := by rw [pow_succ]; ring
 
+/-- Amplifying a scale-eight block encoding of a unitary yields compression error at most `3375
+* ε` on the lifted frame. -/
 theorem scaleEight_compressed_error {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (R : Matrix H I ℂ)
     (cs : List (AdjointStep H)) (V : Matrix I I ℂ) (ε : ℝ)
@@ -338,6 +406,8 @@ theorem scaleEight_compressed_error {H I : Type} [Fintype H] [DecidableEq H]
   simpa only [ha, Real.sin_pi_div_two, Complex.ofReal_one, one_smul,
     show (15 : ℝ)^3 = 3375 by norm_num, scaleEightAmplifyWord] using! he
 
+/-- The scale-eight amplified circuit differs from the ideal lifted target action by at most
+`sqrt (6750 * ε)` times the input norm. -/
 theorem scale_eight_noisy_clean_workspace_bound (H I : Type) [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (R : Matrix H I ℂ)
     (cs : List (AdjointStep H)) (V : Matrix I I ℂ) (ε : ℝ)
@@ -357,6 +427,8 @@ theorem scale_eight_noisy_clean_workspace_bound (H I : Type) [Fintype H] [Decida
     (scaleEight_compressed_error O R cs V ε hO hcs hV h) ψ
   simpa only [show (2 : ℝ)*(3375*ε) = 6750*ε by ring] using! he
 
+/-- For an exact scale-eight encoding of a unitary, the amplified circuit acts exactly as that
+unitary on every input in the lifted frame. -/
 theorem scale_eight_exact_clean_amplification (H I : Type) [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (R : Matrix H I ℂ)
     (cs : List (AdjointStep H)) (V : Matrix I I ℂ)

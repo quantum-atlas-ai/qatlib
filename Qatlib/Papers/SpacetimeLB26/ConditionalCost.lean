@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+/-!
+# Conditional resource costs from error suppression
+
+This module converts assumed exponential lower and upper bounds on error into resource estimates
+for [BhartiHaugTanggara2026]. `accuracy_dependent_cost_from_converse` gives necessary protection
+and cost, while `sufficient_cost_from_suppression` selects an available integer protection size
+using a logarithmic threshold.
+
+## Main statements
+
+* `accuracy_dependent_cost_from_converse`: An error lower bound `a * exp (-b * d^β)` together
+  with error at most `ε < a` forces logarithmic lower bounds on `d` and on any resource cost
+  bounded below by `cres * d^γ`.
+* `sufficient_cost_from_suppression`: If available integer protection sizes approximate every
+  real size above `d0` within a factor `κ`, choose one whose specified exponential error
+  expression is at most `ε` and whose power-law cost satisfies the explicit logarithmic upper
+  bound.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +37,9 @@ noncomputable section
 namespace Qatlib.Papers.SpacetimeLB26.ConditionalCost
 open Qatlib.Papers.SpacetimeLB26.ScalarSupport
 
+/-- An error lower bound `a * exp (-b * d^β)` together with error at most `ε < a` forces
+logarithmic lower bounds on `d` and on any resource cost bounded below by `cres * d^γ`. See
+[BhartiHaugTanggara2026]. -/
 theorem accuracy_dependent_cost_from_converse
     (a b cres β γ d PL Cres ε : ℝ)
     (ha : 0 < a) (hb : 0 < b) (hcres : 0 < cres) (hβ : 0 < β) (hγ : 0 < γ)
@@ -70,6 +97,7 @@ theorem accuracy_dependent_cost_from_converse
   have := mul_le_mul_of_nonneg_left hdγ (le_of_lt hcres)
   linarith
 
+/-- For positive `R`, multiplying `R` by `exp (-logPlus R)` gives a value at most one. -/
 theorem r_mul_exp_neg_logPlus_le_one (R : ℝ) (hR : 0 < R) :
     R * Real.exp (-(logPlus R)) ≤ 1 := by
   by_cases h1 : 1 ≤ R
@@ -83,6 +111,9 @@ theorem r_mul_exp_neg_logPlus_le_one (R : ℝ) (hR : 0 < R) :
     rw [logPlus, max_eq_left (le_of_lt hlog), neg_zero, Real.exp_zero, mul_one]
     exact le_of_lt hlt
 
+/-- If available integer protection sizes approximate every real size above `d0` within a factor
+`κ`, choose one whose specified exponential error expression is at most `ε` and whose
+power-law cost satisfies the explicit logarithmic upper bound. See [BhartiHaugTanggara2026]. -/
 theorem sufficient_cost_from_suppression
     (α B β CH γ d0 κ Ccomp M ε : ℝ) (D : Set ℕ)
     (hα : 0 < α) (hB : 0 < B) (hβ : 0 < β) (hCH : 0 < CH) (hγ : 0 < γ)

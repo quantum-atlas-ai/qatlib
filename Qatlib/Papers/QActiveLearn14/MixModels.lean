@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QActiveLearn14.TailedBounds
+
+/-!
+# Mixture bounds for quantum reflecting
+
+This module formalizes the mixture estimate behind Theorem 5 of [PaparoEtAl2014]. If a
+successful branch is within `η` of the target in total variation and the failure probability is
+at most `β ^ k₃`, the output mixture is within `β ^ k₃ + η` of the target.
+
+## Main statements
+
+* `theorem5_quantum_reflecting`: the total-variation mixture estimate.
+* `theorem5_distance_le_delta`: a target error from two half-error bounds.
+* `theorem5_with_half_constant`: the estimate with failure base one half.
+
+## References
+
+* [Paparo et al., 2014][PaparoEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +36,9 @@ open scoped BigOperators
 
 variable {X : Type*} [Fintype X]
 
+/-- A mixture with success probability at least `1 - β ^ k₃` and successful-branch distance at
+most `η` has total-variation distance at most `β ^ k₃ + η` from the target [Paparo et al.,
+Theorem 5][PaparoEtAl2014]. -/
 theorem theorem5_quantum_reflecting
     (πtilde κ ν σ : X → ℝ) (p β η : ℝ) (k₃ : ℕ)
     (hπ : IsProbability πtilde) (_hν : IsProbability ν)
@@ -48,6 +70,8 @@ theorem theorem5_quantum_reflecting
   rw [hkey] at hstep
   linarith
 
+/-- The mixture is within total-variation distance `δ` when both the failure bound `β ^ k₃` and
+the successful-branch error `η` are at most `δ / 2`. -/
 theorem theorem5_distance_le_delta
     (πtilde κ ν σ : X → ℝ) (p β η δ : ℝ) (k₃ : ℕ)
     (hπ : IsProbability πtilde) (hν : IsProbability ν)
@@ -63,6 +87,8 @@ theorem theorem5_distance_le_delta
     hsuccess hp0 hp1 hβ0 hβ1 hνclose hη0 hη1
   linarith
 
+/-- A mixture whose failure probability is at most `(1 / 2) ^ k₃` is within `(1 / 2) ^ k₃ + η`
+of the target under the stated probability and approximation assumptions. -/
 theorem theorem5_with_half_constant
     (πtilde κ ν σ : X → ℝ) (p η : ℝ) (k₃ : ℕ)
     (hπ : IsProbability πtilde) (hν : IsProbability ν) (hσ : IsProbability σ)

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Flagged frame filters for block-encoding products
+
+`frameFlagFilter` couples a Boolean flag to a frame range operator, and `flagFrame` embeds a
+rectangular frame in the false flag sector. For an isometric intermediate frame, the filter is
+unitary and its false-to-false block is the range projector. This construction uses the
+block-encoding framework discussed in [GilyenSuLowWiebe2019].
+
+`frameFilteredProduct` inserts this filter between two lifted matrices. Compression gives an
+exact product of rectangular corners, leading to a scaled approximate block encoding and
+quantitative conditional-output guarantees.
+
+## Main statements
+
+* `frame_filter_actual_unitary_and_success_block`: unitarity and the successful flag block.
+* `frame_filtered_rectangular_corner_product`: exact multiplication of compressed corners.
+* `frame_filtered_scaled_approximate_product`: product scale and approximation error.
+* `frame_filtered_actual_conditional_output`: nonzero output, probability, and normalized-state
+  error bounds.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -30,44 +56,58 @@ open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The flagged operator `I ⊗ P + X ⊗ (I - P)`, where `P` is `rangeProjector F`. -/
 noncomputable def frameFlagFilter {H M : Type} [Fintype H] [DecidableEq H] [Fintype M]
     [DecidableEq M] (F : Matrix H M ℂ) : Matrix (Bool × H) (Bool × H) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ) (rangeProjector F) +
     TensorGate PauliX (1 - rangeProjector F)
 
+/-- Embeds a rectangular frame into the false flag sector, with zero entries in the true sector. -/
 def flagFrame {H I : Type} (R : Matrix H I ℂ) : Matrix (Bool × H) I ℂ :=
   Matrix.of fun p i => if p.1 = false then R p.2 i else 0
 
+/-- Places `frameFlagFilter F` between the flag-preserving lifts of `U` and `V`, giving the
+product `(I ⊗ V) * frameFlagFilter F * (I ⊗ U)`. -/
 noncomputable def frameFilteredProduct {H M : Type} [Fintype H] [DecidableEq H] [Fintype M]
     [DecidableEq M] (F : Matrix H M ℂ) (U V : Matrix H H ℂ) :
     Matrix (Bool × H) (Bool × H) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ) V * frameFlagFilter F *
     TensorGate (1 : Matrix Bool Bool ℂ) U
 
+/-- An entry of a flagged frame equals the original frame entry in the false sector and zero in
+the true sector. -/
 @[simp] theorem flagFrame_apply {H I : Type} (R : Matrix H I ℂ) (p : Bool × H) (i : I) :
     flagFrame R p i = if p.1 = false then R p.2 i else 0 := rfl
 
+/-- The false sector of a flagged frame is the original frame. -/
 theorem flagFrame_false {H I : Type} (R : Matrix H I ℂ) (h : H) (i : I) :
     flagFrame R (false, h) i = R h i := rfl
 
+/-- The true sector of a flagged frame is zero. -/
 theorem flagFrame_true {H I : Type} (R : Matrix H I ℂ) (h : H) (i : I) :
     flagFrame R (true, h) i = 0 := rfl
 
+/-- The adjoint of a flagged frame equals the original frame adjoint on false flags and vanishes
+on true flags. -/
 theorem flagFrame_conjTranspose_apply {H I : Type} (R : Matrix H I ℂ) (i : I)
     (p : Bool × H) :
     (flagFrame R)ᴴ i p = if p.1 = false then (Rᴴ) i p.2 else 0 := by
   obtain ⟨b, h⟩ := p
   cases b <;> simp [Matrix.conjTranspose_apply]
 
+/-- Tensoring a gate with a zero right factor gives the zero matrix. -/
 private theorem tensorGate_zero_right {H J : Type} [Fintype H] [DecidableEq H] [Fintype J]
     [DecidableEq J] (U : Matrix H H ℂ) : TensorGate U (0 : Matrix J J ℂ) = 0 :=
   Matrix.kronecker_zero U
 
+/-- Tensoring with a fixed left factor distributes over addition of the right factors. -/
 private theorem tensorGate_add_right {H J : Type} [Fintype H] [DecidableEq H] [Fintype J]
     [DecidableEq J] (U : Matrix H H ℂ) (A B : Matrix J J ℂ) :
     TensorGate U A + TensorGate U B = TensorGate U (A + B) :=
   (Matrix.kronecker_add U A B).symm
 
+/-- For an isometric frame, the flag filter is unitary and its false-to-false block is the
+frame's range projector. -/
 theorem frame_filter_actual_unitary_and_success_block (H M : Type) [Fintype H]
     [DecidableEq H] [Fintype M] [DecidableEq M] (F : Matrix H M ℂ) (hF : IsIsometry F) :
     frameFlagFilter F ∈ Matrix.unitaryGroup (Bool × H) ℂ ∧
@@ -103,6 +143,8 @@ section
 variable {H I M O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   [Fintype M] [DecidableEq M] [Fintype O] [DecidableEq O]
 
+/-- The flag-preserving lift of `W` applied to a flagged frame has entries of `W * R` in the
+false sector and zero elsewhere. -/
 private theorem tensorGate_one_mul_flagFrame_apply (W : Matrix H H ℂ) (R : Matrix H I ℂ)
     (p : Bool × H) (i : I) :
     (TensorGate (1 : Matrix Bool Bool ℂ) W * flagFrame R) p i =
@@ -122,6 +164,7 @@ private theorem tensorGate_one_mul_flagFrame_apply (W : Matrix H H ℂ) (R : Mat
           Fintype.sum_prod_type]
       rw [hval, if_neg (by simp)]
 
+/-- The operator `X ⊗ Y` sends a flagged frame to the true sector with entries of `Y * R`. -/
 private theorem tensorGate_pauliX_mul_flagFrame_apply (Y : Matrix H H ℂ) (R : Matrix H I ℂ)
     (p : Bool × H) (i : I) :
     (TensorGate PauliX Y * flagFrame R) p i =
@@ -141,6 +184,7 @@ private theorem tensorGate_pauliX_mul_flagFrame_apply (Y : Matrix H H ℂ) (R : 
       rw [hval, if_pos rfl]
       rfl
 
+/-- Applying `I ⊗ W` to a flagged frame equals flagging `W * R`. -/
 private theorem tensorGate_one_mul_flagFrame (W : Matrix H H ℂ) (R : Matrix H I ℂ) :
     TensorGate (1 : Matrix Bool Bool ℂ) W * flagFrame R = flagFrame (W * R) := by
   ext p i
@@ -148,6 +192,8 @@ private theorem tensorGate_one_mul_flagFrame (W : Matrix H H ℂ) (R : Matrix H 
   obtain ⟨b, h⟩ := p
   cases b <;> simp
 
+/-- Multiplying the adjoint of one flagged frame by another recovers the corresponding unflagged
+product. -/
 private theorem flagFrame_conjTranspose_mul_flagFrame (L : Matrix H O ℂ) (X : Matrix H I ℂ) :
     (flagFrame L)ᴴ * flagFrame X = Lᴴ * X := by
   ext o i
@@ -164,6 +210,7 @@ private theorem flagFrame_conjTranspose_mul_flagFrame (L : Matrix H O ℂ) (X : 
   simp
   rfl
 
+/-- Compression of `X ⊗ Y` between two false-flag frames is zero. -/
 private theorem flagFrame_conjTranspose_mul_pauliX_zero (L : Matrix H O ℂ) (Y : Matrix H H ℂ)
     (R : Matrix H I ℂ) :
     (flagFrame L)ᴴ * TensorGate PauliX Y * flagFrame R = 0 := by
@@ -182,12 +229,14 @@ private theorem flagFrame_conjTranspose_mul_pauliX_zero (L : Matrix H O ℂ) (Y 
   rw [Finset.sum_congr rfl fun p _ => h1 p]
   exact Finset.sum_const_zero
 
+/-- Compression of `I ⊗ W` between false-flag frames equals `Lᴴ * W * R`. -/
 private theorem flagFrame_conjTranspose_mul_tensorGate (L : Matrix H O ℂ) (W : Matrix H H ℂ)
     (R : Matrix H I ℂ) :
     (flagFrame L)ᴴ * TensorGate (1 : Matrix Bool Bool ℂ) W * flagFrame R = Lᴴ * W * R := by
   rw [Matrix.mul_assoc, tensorGate_one_mul_flagFrame, flagFrame_conjTranspose_mul_flagFrame,
     Matrix.mul_assoc]
 
+/-- Adding a false flag preserves the isometry property of a frame. -/
 theorem flagFrame_isIsometry {R : Matrix H I ℂ} (hR : IsIsometry R) :
     IsIsometry (flagFrame R) := by
   show (flagFrame R)ᴴ * flagFrame R = 1
@@ -195,6 +244,8 @@ theorem flagFrame_isIsometry {R : Matrix H I ℂ} (hR : IsIsometry R) :
 
 end
 
+/-- Compression of the flagged filtered product equals the product of the two rectangular
+compressions through the intermediate frame. -/
 theorem frame_filtered_rectangular_corner_product (H I M O : Type) [Fintype H]
     [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype M] [DecidableEq M] [Fintype O]
     [DecidableEq O] (R : Matrix H I ℂ) (F : Matrix H M ℂ) (L : Matrix H O ℂ)
@@ -214,6 +265,8 @@ theorem frame_filtered_rectangular_corner_product (H I M O : Type) [Fintype H]
   show Lᴴ * (V * rangeProjector F * U) * R = Lᴴ * V * F * (Fᴴ * U * R)
   simp only [rangeProjector, ← Matrix.mul_assoc]
 
+/-- Two block encodings sharing an intermediate frame compose through the flag filter with scale
+`α * β` and error `β * ε + α * η + ε * η`. -/
 theorem frame_filtered_scaled_approximate_product (H I M O : Type) [Fintype H]
     [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype M] [DecidableEq M] [Fintype O]
     [DecidableEq O] (A : Matrix M I ℂ) (B : Matrix O M ℂ) (R : Matrix H I ℂ)
@@ -265,6 +318,10 @@ theorem frame_filtered_scaled_approximate_product (H I M O : Type) [Fintype H]
           h1.error_le (norm_nonneg _) (le_of_lt h2.normalization_pos)
     _ = β * ε + α * η + ε * η := by ring
 
+/-- For a normalized input, if the product-encoding error is smaller than the norm of the target
+output, the compressed output is nonzero. Its full-event probability has the stated squared
+lower bound, and its normalized distance from the target direction is at most twice the
+error divided by the target norm. -/
 theorem frame_filtered_actual_conditional_output (H I M O : Type) [Fintype H]
     [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype M] [DecidableEq M] [Fintype O]
     [DecidableEq O] (A : Matrix M I ℂ) (B : Matrix O M ℂ) (R : Matrix H I ℂ)

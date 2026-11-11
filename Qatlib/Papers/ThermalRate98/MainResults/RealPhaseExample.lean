@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ThermalRate98.MainResults.MeasurementBorn
 import Qatlib.Papers.ThermalRate98.MainResults.EvolutionInit
+
+/-!
+# A real state evolving to complex amplitudes
+
+This module evaluates `physicalPropagation` for the Pauli Z Hamiltonian at time `π / 4` with `ħ
+= 1`. Although the uniform Boolean state has real amplitudes, an evolved amplitude has imaginary
+part `-1 / 2`, illustrating the phase issue in the reconstruction discussion of [LidarWang1999].
+
+## Main statements
+
+* `physicalPropagation_pauliZ_pi_quarter`: gives the diagonal exponential for this evolution.
+* `uniform_bool_real`: shows that the initial uniform amplitudes are real.
+* `real_initial_can_become_complex`: computes a nonzero imaginary part after evolution.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,8 @@ open scoped BigOperators Matrix.Norms.L2Operator
 open Qatlib.Foundations.PureStateMath
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Multiplying a state by a diagonal matrix multiplies its coordinates pointwise by the
+diagonal entries. -/
 theorem diagonal_mulVec (d : I → ℂ) (v : QState I) :
     Matrix.diagonal d *ᵥ v = fun i => d i * v i := by
   funext i
@@ -28,10 +49,14 @@ theorem diagonal_mulVec (d : I → ℂ) (v : QState I) :
   · intro h
     exact absurd (Finset.mem_univ i) h
 
+/-- At index `i`, diagonal matrix application is the diagonal entry `d i` times the state
+amplitude `v i`. -/
 theorem diagonal_mulVec_apply (d : I → ℂ) (v : QState I) (i : I) :
     (Matrix.diagonal d *ᵥ v) i = d i * v i := by
   rw [diagonal_mulVec]
 
+/-- Propagation under Pauli Z for time `π / 4` with `ħ = 1` is the diagonal matrix of phase
+exponentials for energies `1` and `-1`. -/
 theorem physicalPropagation_pauliZ_pi_quarter :
     physicalPropagation (Real.pi / 4) 1 PauliZ =
       Matrix.diagonal (fun b : Bool =>
@@ -48,9 +73,12 @@ theorem physicalPropagation_pauliZ_pi_quarter :
       (fun b : Bool => if b then (-1 : ℝ) else 1) hV hH]
   simp
 
+/-- Every amplitude of the uniform Boolean state has zero imaginary part. See [LidarWang1999]. -/
 theorem uniform_bool_real (b : Bool) : (Uniform Bool b).im = 0 := by
   simp [Uniform]
 
+/-- The false-coordinate amplitude of the uniform Boolean state evolved under Pauli Z for time
+`π / 4` with `ħ = 1` has imaginary part `-1 / 2` (see [LidarWang1999]). -/
 theorem real_initial_can_become_complex :
     (((physicalPropagation (Real.pi / 4) 1 PauliZ) *ᵥ Uniform Bool) false).im = -1 / 2 := by
   rw [physicalPropagation_pauliZ_pi_quarter, diagonal_mulVec_apply]

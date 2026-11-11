@@ -9,6 +9,29 @@ import Mathlib.Algebra.Group.AddChar
 import Mathlib.Data.Matrix.Mul
 import Mathlib.Tactic
 
+/-!
+# Winnie Li adjacency and centered sphere states
+
+This module defines the sum-of-squares spheres and Winnie Li adjacency matrix used in
+[ChildsSchulmanVazirani2007]. The matrix `adj` acts by summing over unit-sphere translates, and
+`sphereState` is the unnormalized indicator sum of a translated unit sphere.
+
+The modified matrix `adjBar` subtracts the constant-mode contribution. The module computes its
+center coefficient and normalized center expression, proves that it annihilates the constant
+vector, and diagonalizes `adj` on additive characters.
+
+## Main statements
+
+* `mulVec_adj`: expresses adjacency action as a sphere sum.
+* `adjBar_center_coefficient`: computes the modified center coefficient.
+* `adjBar_mulVec_one`: proves the constant-mode cancellation.
+* `mulVec_adj_addChar`: gives additive-character eigenvectors and their eigenvalues.
+
+## References
+
+* [Childs et al., 2007][ChildsSchulmanVazirani2007]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HiddenNonlin07.MainResults.WinnieLiAdjacency
@@ -18,13 +41,17 @@ open Finset
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
+/-- The sum-of-squares quadratic form on `Fin d → F`. -/
 def quadForm {d : ℕ} (x : Fin d → F) : F := ∑ j, x j ^ 2
 
+/-- The finite level set `quadForm x = r`. -/
 def sphere {d : ℕ} (r : F) : Finset (Fin d → F) := univ.filter fun x => quadForm x = r
 
+/-- Membership in `sphere r` is equivalent to the quadratic-form equation `quadForm x = r`. -/
 theorem mem_sphere {d : ℕ} {r : F} {x : Fin d → F} : x ∈ sphere r ↔ quadForm x = r := by
   simp [sphere]
 
+/-- A vector belongs to `sphere r` exactly when its negative does. -/
 theorem neg_mem_sphere {d : ℕ} {r : F} {x : Fin d → F} :
     x ∈ sphere r ↔ -x ∈ sphere r := by
   rw [mem_sphere, mem_sphere, quadForm, quadForm]
@@ -34,6 +61,8 @@ theorem neg_mem_sphere {d : ℕ} {r : F} {x : Fin d → F} :
   · intro h
     simpa [neg_sq] using h
 
+/-- Negating the summation variable preserves the sum of a complex-valued function over the unit
+sphere. -/
 theorem sum_sphere_neg {d : ℕ} (g : (Fin d → F) → ℂ) :
     (∑ s ∈ sphere (d := d) 1, g (-s)) = ∑ s ∈ sphere (d := d) 1, g s := by
   classical
@@ -49,13 +78,17 @@ theorem sum_sphere_neg {d : ℕ} (g : (Fin d → F) → ℂ) :
   · intro s _
     simp
 
+/-- The complex adjacency matrix whose entry is one when `quadForm (x - y) = 1` and zero
+otherwise. -/
 def adj (d : ℕ) : Matrix (Fin d → F) (Fin d → F) ℂ :=
   fun x y => if quadForm (x - y) = 1 then 1 else 0
 
+/-- Translating both vertices by the same vector preserves their adjacency-matrix entry. -/
 theorem adj_add {d : ℕ} (a x y : Fin d → F) : adj d (x + a) (y + a) = adj d x y := by
   have h : x + a - (y + a) = x - y := by abel
   simp only [adj, h]
 
+/-- The adjacency matrix is symmetric in its two vertices. -/
 theorem adj_comm {d : ℕ} (x y : Fin d → F) : adj d x y = adj d y x := by
   have h : y - x = -(x - y) := by abel
   have hq : quadForm (-(x - y)) = quadForm (x - y) := by
@@ -68,6 +101,8 @@ theorem adj_comm {d : ℕ} (x y : Fin d → F) : adj d x y = adj d y x := by
     simp only [Pi.sub_apply]
   simp only [adj, h, hq]
 
+/-- Applying the adjacency matrix to a vector sums that vector over unit-sphere translates of
+the argument. [ChildsSchulmanVazirani2007]. -/
 theorem mulVec_adj {d : ℕ} (v : (Fin d → F) → ℂ) (x : Fin d → F) :
     (adj d *ᵥ v) x = ∑ s ∈ sphere 1, v (x - s) := by
   classical
@@ -94,9 +129,13 @@ theorem mulVec_adj {d : ℕ} (v : (Fin d → F) → ℂ) (x : Fin d → F) :
   simp only [Equiv.coe_fn_mk]
   rw [h]
 
+/-- The unnormalized sum of coordinate vectors at the points `x + s` with `s` on the unit
+sphere. -/
 noncomputable def sphereState {d : ℕ} (x : Fin d → F) : (Fin d → F) → ℂ :=
   ∑ s ∈ sphere 1, Pi.single (x + s) (1 : ℂ)
 
+/-- Applying adjacency to `sphereState x` counts ordered unit-sphere pairs `(s, t)` satisfying
+`x + s + t = y` at coordinate `y`. [ChildsSchulmanVazirani2007]. -/
 theorem mulVec_adj_sphereState {d : ℕ} (x y : Fin d → F) :
     (adj d *ᵥ sphereState x) y =
       ∑ s ∈ sphere 1, ∑ t ∈ sphere 1, (if x + s + t = y then (1 : ℂ) else 0) := by
@@ -120,6 +159,8 @@ theorem mulVec_adj_sphereState {d : ℕ} (x y : Fin d → F) :
       abel
     rw [if_neg h, if_neg h2]
 
+/-- The center coefficient of adjacency applied to `sphereState x` equals the number of points
+on the unit sphere. -/
 theorem center_coefficient {d : ℕ} (x : Fin d → F) :
     (adj d *ᵥ sphereState x) x = ((sphere (F := F) (d := d) (1 : F)).card : ℂ) := by
   classical
@@ -142,6 +183,7 @@ theorem center_coefficient {d : ℕ} (x : Fin d → F) :
   rw [Finset.sum_congr rfl hterm]
   simp only [Finset.sum_const, nsmul_eq_mul, mul_one]
 
+/-- In positive dimension, the unit sphere for the sum-of-squares form is nonempty. -/
 theorem sphere_one_nonempty {d : ℕ} (hd : 0 < d) :
     (sphere (F := F) (d := d) (1 : F)).Nonempty := by
   refine ⟨Pi.single (⟨0, hd⟩ : Fin d) (1 : F), ?_⟩
@@ -154,17 +196,23 @@ theorem sphere_one_nonempty {d : ℕ} (hd : 0 < d) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The matrix with every entry equal to one. -/
 def onesMat (d : ℕ) : Matrix (Fin d → F) (Fin d → F) ℂ := fun _ _ => 1
 
+/-- The adjacency matrix with the all-ones matrix scaled by the unit-sphere size divided by the
+vertex count subtracted. -/
 noncomputable def adjBar (d : ℕ) : Matrix (Fin d → F) (Fin d → F) ℂ :=
   adj d - (((sphere (F := F) (d := d) 1).card : ℂ) /
       (Fintype.card (Fin d → F) : ℂ)) • onesMat d
 
+/-- Every coordinate of the all-ones matrix applied to a vector equals the sum of that vector's
+coordinates. -/
 theorem onesMat_mulVec (d : ℕ) (v : (Fin d → F) → ℂ) (x : Fin d → F) :
     (onesMat d *ᵥ v) x = ∑ y, v y := by
   classical
   simp [Matrix.mulVec, dotProduct, onesMat]
 
+/-- The sum of the coordinates of `sphereState x` equals the unit-sphere cardinality. -/
 theorem sum_sphereState (d : ℕ) (x : Fin d → F) :
     (∑ y, sphereState x y) = ((sphere (F := F) (d := d) 1).card : ℂ) := by
   classical
@@ -180,6 +228,8 @@ theorem sum_sphereState (d : ℕ) (x : Fin d → F) :
     · intro h
       exact absurd (Finset.mem_univ _) h
 
+/-- The center coefficient of `adjBar` applied to `sphereState x` is the sphere size minus its
+square divided by the vertex count. [ChildsSchulmanVazirani2007]. -/
 theorem adjBar_center_coefficient (d : ℕ) (x : Fin d → F) :
     (adjBar d *ᵥ sphereState x) x =
       ((sphere (F := F) (d := d) 1).card : ℂ) -
@@ -195,6 +245,8 @@ theorem adjBar_center_coefficient (d : ℕ) (x : Fin d → F) :
   rw [center_coefficient, onesMat_mulVec, sum_sphereState]
   field_simp
 
+/-- In positive dimension, dividing the modified-adjacency center coefficient by the square root
+of the sphere size gives that square root times one minus the sphere-to-vertex ratio. -/
 theorem adjBar_center_amplitude {d : ℕ} (hd : 0 < d) (x : Fin d → F) :
     (adjBar d *ᵥ sphereState x) x /
         ((Real.sqrt (((sphere (F := F) (d := d) 1).card : ℝ)) : ℂ)) =
@@ -226,6 +278,8 @@ theorem adjBar_center_amplitude {d : ℕ} (hd : 0 < d) (x : Fin d → F) :
             (Fintype.card (Fin d → F) : ℂ))) *
           ((Real.sqrt (((sphere (F := F) (d := d) 1).card : ℝ)) : ℂ)) := by ring
 
+/-- The modified adjacency matrix annihilates the constant-one vector.
+[ChildsSchulmanVazirani2007]. -/
 theorem adjBar_mulVec_one (d : ℕ) :
     adjBar d *ᵥ (fun _ : Fin d → F => (1 : ℂ)) = 0 := by
   classical
@@ -245,6 +299,8 @@ theorem adjBar_mulVec_one (d : ℕ) :
   field_simp
   ring
 
+/-- Every additive character is an eigenvector of the adjacency matrix, with eigenvalue equal to
+its sum over the unit sphere. [ChildsSchulmanVazirani2007]. -/
 theorem mulVec_adj_addChar {d : ℕ} (Ψ : AddChar (Fin d → F) ℂ) :
     adj d *ᵥ (fun x => Ψ x) = (∑ s ∈ sphere 1, Ψ s) • (fun x => Ψ x) := by
   classical

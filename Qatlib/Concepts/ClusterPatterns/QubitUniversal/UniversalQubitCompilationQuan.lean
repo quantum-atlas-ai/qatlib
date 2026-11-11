@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.QubitUniversal.UniversalQubitCompilationStat
+
+/-!
+# Proof of universal qubit cluster compilation
+
+The module proves `UniversalQubitCompilation` by relating phase and Euler-rotation matrices to
+products of `Rz` and Hadamard gates. The resulting four-step cluster word realizes any one-qubit
+unitary up to a unit-modulus scalar, as in the measurement-based construction of
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `universalQubitCompilation_answer`: four-step cluster compilation for every one-qubit unitary.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,6 +44,7 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The Z rotation `Rz s` equals `qubitEulerPhase (-s)` multiplied by the scalar `exp(i s / 2)`. -/
 private theorem rz_phase (s : ℝ) :
     Rz s = Complex.exp (((s/2 : ℝ) : ℂ)*Complex.I) • qubitEulerPhase (-s) := by
   ext i j
@@ -42,6 +61,8 @@ private theorem rz_phase (s : ℝ) :
     push_cast
     ring
 
+/-- The displayed Z-rotation and Hadamard product equals `qubitEulerRotation θ` multiplied by
+`exp(i θ / 2)`. -/
 private theorem rotation_middle (θ : ℝ) :
     Rz (-Real.pi/2) * Hadamard * Rz θ * Hadamard * Rz (Real.pi/2) =
       Complex.exp (((θ/2 : ℝ) : ℂ)*Complex.I) • qubitEulerRotation θ := by
@@ -88,12 +109,15 @@ private theorem rotation_middle (θ : ℝ) :
     | linear_combination (norm := (ring_nf; simp only [hsq]; ring)) (1/2 : ℂ)*hsin
     | linear_combination (norm := (ring_nf; simp only [hsq]; ring)) -(1/2 : ℂ)*hsin
 
+/-- Z rotations turn addition of angles into matrix multiplication. -/
 private theorem rz_add (s t : ℝ) : Rz (s+t)=Rz s*Rz t := by
   ext i j
   rcases i <;> rcases j <;> simp [Rz,Matrix.mul_apply,← Complex.exp_add]
   congr 1
   ring
 
+/-- The displayed Z-Hadamard Euler product equals `knownQubitUnitary p` times the explicitly
+stated phase. -/
 private theorem euler_zxz (p : KnownQubitAngles) :
     Rz (-p.alpha-Real.pi/2)*Hadamard*Rz p.theta*Hadamard*
       Rz (-p.beta+Real.pi/2) =
@@ -120,6 +144,8 @@ private theorem euler_zxz (p : KnownQubitAngles) :
   push_cast
   ring
 
+/-- Every one-qubit unitary is compiled by its four-step cluster word with unit-modulus
+parameters and a unit-modulus overall scalar. See [RaussendorfBriegel2000]. -/
 theorem universalQubitCompilation_answer : UniversalQubitCompilation := by
   intro U hU
   let p := knownQubitAnglesOfUnitary U

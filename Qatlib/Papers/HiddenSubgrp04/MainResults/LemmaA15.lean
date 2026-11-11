@@ -65,6 +65,24 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Error from normalizing a nearby vector
+
+This module proves the real inner-product-space estimate `lemma_A15`. A nonzero vector within ε
+of a unit vector, for 0 ≤ ε ≤ 1, remains within ε√2 after normalization.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `lemma_A15`: If `a` has norm one, `b` is nonzero, and their distance is at most ε with 0 ≤ ε ≤
+  1, then the distance from `a` to `b` divided by its norm is at most ε√2.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HiddenSubgrp04.MainResults
@@ -73,6 +91,8 @@ open scoped InnerProductSpace RealInnerProductSpace
 
 noncomputable section
 
+/-- If `a` has norm one, `b` is nonzero, and their distance is at most ε with 0 ≤ ε ≤ 1, then
+the distance from `a` to `b` divided by its norm is at most ε√2 ([Lemma A.15][Lomont2004]). -/
 theorem lemma_A15 {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     (a b : E) (ε : ℝ) (ha : ‖a‖ = 1) (hb : b ≠ 0)
     (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1) (h : ‖a - b‖ ≤ ε) :

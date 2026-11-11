@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPStat
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+
+/-!
+# Real QSP polynomial completion
+
+`corollary10RealQSP` proves that a real polynomial of positive degree, matching parity, and
+magnitude at most one on `[-1, 1]` is the real part of a complex polynomial of the same degree
+satisfying the complex QSP inequalities.
+
+The result establishes the packaged `Corollary10RealQSP` formulation associated with Corollary
+10 of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `corollary10RealQSP`: constructs the complex polynomial with the prescribed real part and QSP
+  inequalities.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QsvtCore.LinearSystems
@@ -16,6 +37,10 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- Establishes `Corollary10RealQSP`: every bounded real polynomial of positive degree and
+matching parity has a complex completion of the same degree and parity satisfying the real-
+and imaginary-axis QSP conditions, with the prescribed real part [Gilyén et al., Corollary
+10][GilyenSuLowWiebe2019]. -/
 theorem corollary10RealQSP : Corollary10RealQSP := by
   intro Pt d _hd hdeg hpar hb
   obtain ⟨P, Q, hpair, hre, _⟩ := exists_completedPair_of_bounded

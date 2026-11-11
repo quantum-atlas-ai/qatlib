@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Mathlib.Tactic.Linarith
+
+/-!
+# An obstruction to a logarithmic coefficient comparison
+
+This module disproves `Theorem4_2_4_3Contract`, a local coefficient-comparison contract in the
+ordered-search development associated with [BenOrHassidim2007]. The contract bounds an
+entropy-adjusted expression scaled by `Real.log (Real.exp 1) / Real.pi` by the same expression
+scaled by `Real.log 2 / Real.pi`.
+
+`theorem4_2_4_3_obstruction` takes alphabet size two and zero error. The contract then implies
+`1 ≤ Real.log 2`, which contradicts the strict logarithm bound.
+
+## Main statements
+
+* `theorem4_2_4_3_obstruction`: negation of the local coefficient-comparison contract.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +34,8 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch200
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- The local Theorems 4.2 and 4.3 coefficient-comparison contract is false. Alphabet size two
+and zero error would force `1 ≤ Real.log 2`, contradicting the strict logarithm bound. -/
 theorem theorem4_2_4_3_obstruction : ¬ Theorem4_2_4_3Contract := by
   intro h
   have ht := h 2 0 (by decide) (by norm_num) (by norm_num)

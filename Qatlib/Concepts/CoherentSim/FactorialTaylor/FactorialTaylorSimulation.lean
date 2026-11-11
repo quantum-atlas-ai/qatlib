@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.TaylorEncoding.LogarithmicTaylorSimulation
+
+/-!
+# Factorial Taylor cutoff and remainder estimates
+
+`factorialTaylorCutoff` searches for the first factorial exceeding a dyadic threshold, and
+`factorialTaylorPrecision` budgets the error of repeated coherent amplification. The cutoff has
+an eventual logarithmic rate bound, and factorial tail estimates control scalar and matrix
+remainders for truncated Taylor simulation [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `factorial_taylor_native_cutoff_and_rate`: Correctness and eventual growth bound for the
+  cutoff search.
+* `factorial_taylor_tail_and_coherent_precision`: Factorial tail estimates and the accumulated
+  coherent error budget.
+* `factorialTaylor_matrix_remainder_of_unitary`: A matrix Taylor remainder bound for unitary
+  summands.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 open Qatlib.Concepts.OperatorErrors.Robustness
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -31,11 +54,16 @@ open scoped BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The first searched index `n` with `2^m ≤ (n + 1)!`, with fallback value `2 * m + 1`. -/
 def factorialTaylorCutoff (m : ℕ) : ℕ :=
   ((List.range (2*m+2)).find? (fun n => 2^m ≤ (n+1).factorial)).getD (2*m+1)
 
+/-- The precision parameter `2 * (k + Nat.clog 2 (max 1 s) + 8)` for `s` coherent Taylor
+segments. -/
 def factorialTaylorPrecision (s k : ℕ) : ℕ := 2*(k + Nat.clog 2 (max 1 s) + 8)
 
+/-- The factorial cutoff reaches its threshold, is minimal, lies below `2 * m + 1`, and is found
+by the bounded search. -/
 private theorem factorial_search (m : ℕ) :
     2^m ≤ (factorialTaylorCutoff m+1).factorial ∧
     (∀ j < factorialTaylorCutoff m, (j+1).factorial < 2^m) ∧
@@ -60,11 +88,14 @@ private theorem factorial_search (m : ℕ) :
         n ≤ 2*m+1 ∧ True from ⟨hn.1, fun j hj => hn.2.2 j hj,
           by omega, trivial⟩)
 
+/-- Any index whose successor factorial reaches `2^m` bounds `factorialTaylorCutoff m` from
+above. -/
 private theorem factorial_cutoff_le (m n : ℕ) (hn : 2^m ≤ (n+1).factorial) :
     factorialTaylorCutoff m ≤ n := by
   by_contra h
   exact (not_lt_of_ge hn) ((factorial_search m).2.1 n (by omega))
 
+/-- For a natural number `a`, the power `a^a` is bounded by `(2 * a)!`. -/
 private theorem factorial_half_power (a : ℕ) : a^a ≤ (2*a).factorial := by
   have h := Nat.factorial_mul_pow_le_factorial (m := a) (n := a)
   have hp := Nat.factorial_pos a
@@ -73,6 +104,9 @@ private theorem factorial_half_power (a : ℕ) : a^a ≤ (2*a).factorial := by
   rw [ha] at h
   nlinarith
 
+/-- The bounded factorial search succeeds and returns the minimal cutoff. Eventually, the cutoff
+times `Nat.log 2 m` is bounded by a fixed positive constant times `m`. See
+[BerryEtAl2015Taylor]. -/
 theorem factorial_taylor_native_cutoff_and_rate :
   (∀ m : ℕ, 2^m ≤ (factorialTaylorCutoff m+1).factorial ∧
     (∀ j < factorialTaylorCutoff m, (j+1).factorial < 2^m) ∧
@@ -125,6 +159,8 @@ theorem factorial_taylor_native_cutoff_and_rate :
     _ ≤ (2*a)*(3*r) := Nat.mul_le_mul_left _ hLr
     _ ≤ 12*m := by nlinarith
 
+/-- For `0 ≤ θ ≤ 1`, the factorial tail after order `K` is summable and at most twice its first
+term. -/
 theorem factorialTaylor_tail (θ : ℝ) (K : ℕ) (hθ : 0 ≤ θ) (hθ1 : θ ≤ 1) :
     Summable (fun j : ℕ => θ^(K+1+j)/((K+1+j).factorial : ℝ)) ∧
     (∑' j : ℕ, θ^(K+1+j)/((K+1+j).factorial : ℝ)) ≤
@@ -154,6 +190,8 @@ theorem factorialTaylor_tail (θ : ℝ) (K : ℕ) (hθ : 0 ≤ θ) (hθ1 : θ �
   rw [tsum_mul_left, tsum_geometric_two]
   ring
 
+/-- The factorial cutoff and precision choices bound the accumulated coherent amplification
+error over `s` segments by `2⁻ᵏ`. -/
 theorem factorialTaylor_coherent_precision (s k : ℕ) :
     (s:ℝ)*Real.sqrt (2*coherentOAAError
       (2/((factorialTaylorCutoff (factorialTaylorPrecision s k)+1).factorial : ℝ))) ≤
@@ -198,6 +236,8 @@ theorem factorialTaylor_coherent_precision (s k : ℕ) :
       have hp : 0 ≤ (1/2:ℝ)^k := by positivity
       nlinarith [mul_le_mul_of_nonneg_left hsp hp]
 
+/-- The scalar factorial-tail estimate and the dyadic coherent precision budget hold
+simultaneously. See [BerryEtAl2015Taylor]. -/
 theorem factorial_taylor_tail_and_coherent_precision :
   (∀ (θ : ℝ) (K : ℕ), 0 ≤ θ → θ ≤ 1 →
     Summable (fun j : ℕ => θ^(K+1+j)/((K+1+j).factorial : ℝ)) ∧
@@ -214,6 +254,8 @@ variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 omit [DecidableEq J] in
 set_option maxHeartbeats 800000 in
 
+/-- For unitary summands and coefficient mass times segment duration at most `1 / 2`, the
+order-`K` Taylor approximation has norm error at most `2 / (K + 1)!`. -/
 theorem factorialTaylor_matrix_remainder_of_unitary
     (h : J → ℝ) (U : J → Matrix I I ℂ) (τ : ℝ) (K : ℕ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
@@ -266,6 +308,8 @@ theorem factorialTaylor_matrix_remainder_of_unitary
 
 set_option maxHeartbeats 800000 in
 
+/-- For Hermitian unitary summands with the stated small-segment bound, the Taylor approximation
+has norm error at most `2 / (K + 1)!`. -/
 theorem factorialTaylor_matrix_remainder
     (h : J → ℝ) (U : J → Matrix I I ℂ) (τ : ℝ) (K : ℕ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ ∧ (U j).IsHermitian)

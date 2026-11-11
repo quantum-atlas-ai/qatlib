@@ -10,6 +10,32 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
 
+/-!
+# Measurement sums from good-set cardinalities
+
+This module defines the minimum good output cardinality `WgoodMin` and the minimum squared
+cardinality `WgoodSq`, assigning zero when the index set is empty. It proves lower bounds on
+normalized sums of squared square-root multiplicities, including the cardinality estimate
+`lemma31_success_lower_bound`.
+
+The development follows [DeckerDraismaWocjan2009].
+
+## Main statements
+
+* `lemma31_success_lower_bound`: Bounds the normalized square-root sum below by d^(−3n) times
+  the cardinality of `X` times `WgoodMin X W` squared, assuming every selected multiplicity is
+  positive.
+* `lemma31_min_square_bound`: Bounds the normalized square-root sum below by d^(−3n) times the
+  cardinality of `X` times `WgoodSq X W`, assuming every selected multiplicity is positive.
+* `success_probability_constant_of_good_counts`: If `X` and the minimum good output cardinality
+  are each at least d^n/2^n and selected multiplicities are positive, the normalized square-root
+  sum is at least 2^(−3n).
+
+## References
+
+* [Decker et al., 2009][DeckerDraismaWocjan2009]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -18,18 +44,23 @@ namespace Qatlib.Papers.HiddenPoly07.MainResults
 
 open scoped BigOperators
 
+/-- The minimum cardinality of `W x` over `x` in `X`, with value zero when `X` is empty. -/
 def WgoodMin {F : Type*} [Field F] [DecidableEq F] {n : ℕ} (X : Finset (Fin n → F))
     (W : (Fin n → F) → Finset (Fin n → F)) : ℕ :=
   if h : X.Nonempty then
     (X.image fun x => (W x).card).min' (h.image fun x => (W x).card)
   else 0
 
+/-- The minimum of the squared cardinalities of `W x` over `x` in `X`, with value zero when `X`
+is empty. -/
 def WgoodSq {F : Type*} [Field F] [DecidableEq F] {n : ℕ} (X : Finset (Fin n → F))
     (W : (Fin n → F) → Finset (Fin n → F)) : ℕ :=
   if h : X.Nonempty then
     (X.image fun x => (W x).card ^ 2).min' (h.image fun x => (W x).card ^ 2)
   else 0
 
+/-- For an index `x` in `X`, the minimum good output cardinality is at most the cardinality of
+`W x`. -/
 theorem WgoodMin_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F)) {x : Fin n → F}
     (hx : x ∈ X) : WgoodMin X W ≤ (W x).card := by
@@ -37,6 +68,8 @@ theorem WgoodMin_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
   rw [dif_pos ⟨x, hx⟩]
   exact Finset.min'_le _ _ (Finset.mem_image_of_mem _ hx)
 
+/-- For an index `x` in `X`, the minimum squared good output cardinality is at most the squared
+cardinality of `W x`. -/
 theorem WgoodSq_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F)) {x : Fin n → F}
     (hx : x ∈ X) : WgoodSq X W ≤ (W x).card ^ 2 := by
@@ -44,6 +77,9 @@ theorem WgoodSq_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
   rw [dif_pos ⟨x, hx⟩]
   exact Finset.min'_le _ _ (Finset.mem_image_of_mem _ hx)
 
+/-- If every selected multiplicity is at least one, the square of the output-set cardinality is
+at most the square of the sum of square roots of those multiplicities ([Lemma
+3.1][DeckerDraismaWocjan2009]). -/
 theorem goodBlock_success_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     (Wx : Finset (Fin n → F)) (eta : (Fin n → F) → ℕ)
     (hη : ∀ w ∈ Wx, 1 ≤ eta w) :
@@ -55,6 +91,9 @@ theorem goodBlock_success_le {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     exact Finset.sum_le_sum fun w hw => Real.one_le_sqrt.mpr (by exact_mod_cast hη w hw)
   exact pow_le_pow_left₀ (by positivity) hsum1 2
 
+/-- Bounds the normalized square-root sum below by d^(−3n) times the cardinality of `X` times
+`WgoodMin X W` squared, assuming every selected multiplicity is positive ([Lemma
+3.1][DeckerDraismaWocjan2009]). -/
 theorem lemma31_success_lower_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F))
     (eta : (Fin n → F) → (Fin n → F) → ℕ)
@@ -76,6 +115,9 @@ theorem lemma31_success_lower_bound {F : Type*} [Field F] [Fintype F] [Decidable
   have hnonneg : (0 : ℝ) ≤ ((Fintype.card F : ℝ) ^ (3 * n))⁻¹ := by positivity
   exact mul_le_mul_of_nonneg_left hsum hnonneg
 
+/-- Bounds the normalized square-root sum below by d^(−3n) times the cardinality of `X` times
+`WgoodSq X W`, assuming every selected multiplicity is positive ([Lemma
+3.1][DeckerDraismaWocjan2009]). -/
 theorem lemma31_min_square_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F))
     (eta : (Fin n → F) → (Fin n → F) → ℕ)
@@ -97,6 +139,8 @@ theorem lemma31_min_square_bound {F : Type*} [Field F] [Fintype F] [DecidableEq 
   have hnonneg : (0 : ℝ) ≤ ((Fintype.card F : ℝ) ^ (3 * n))⁻¹ := by positivity
   exact mul_le_mul_of_nonneg_left hsum hnonneg
 
+/-- When `WgoodSq X W ≤ 1` and selected multiplicities are positive, bounds the normalized
+square-root sum below using the square of `WgoodSq X W`. -/
 theorem lemma31_printed_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F))
     (eta : (Fin n → F) → (Fin n → F) → ℕ)
@@ -117,6 +161,8 @@ theorem lemma31_printed_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
         exact mul_le_mul_of_nonneg_left hsq hX
     _ ≤ _ := lemma31_min_square_bound X W eta hη
 
+/-- If `X` and the minimum good output cardinality are each at least d^n/2^n and selected
+multiplicities are positive, the normalized square-root sum is at least 2^(−3n). -/
 theorem success_probability_constant_of_good_counts {F : Type*} [Field F] [Fintype F]
     [DecidableEq F] {n : ℕ} (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F))
     (eta : (Fin n → F) → (Fin n → F) → ℕ)

@@ -7,6 +7,29 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Angle
+
+/-!
+# Angle representatives and trigonometric identities
+
+Relates reduction modulo `2π` to equality in `Real.Angle`, and controls subtraction of real
+angle representatives under sign hypotheses. Further lemmas recover integer shifts from matching
+sine and cosine values.
+
+These identities support the crossing-angle calculations used in the contour framework
+associated with [WangEtAl2026].
+
+## Main statements
+
+* `Angle.toIcoMod_eq_toIcoMod_iff_coe_eq`: Two real numbers have the same representative in `[0,
+  2π)` exactly when they determine the same element of `Real.Angle`.
+* `Real.exists_int_eq_add_of_cos_sin_eq`: Equality of both sine and cosine at `2πa` and `2πb`
+  implies that `a` differs from `b` by an integer.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +39,8 @@ section
 
 namespace TauCeti
 
+/-- Two real numbers have the same representative in `[0, 2π)` exactly when they determine the
+same element of `Real.Angle`. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.Angle.toIcoMod_eq_toIcoMod_iff_coe_eq {x y : ℝ} :
     toIcoMod Real.two_pi_pos 0 x = toIcoMod Real.two_pi_pos 0 y ↔
       (x : Real.Angle) = (y : Real.Angle) := by
@@ -25,6 +50,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.Angle.toIcoMod_eq_to
     have hshift : x = y + k • (2 * Real.pi) := by rw [zsmul_eq_mul]; linarith
     rw [hshift, toIcoMod_add_zsmul]
 
+/-- For angles with equal sign and `ψ ≠ π`, taking the real representative commutes with
+subtracting `ψ`. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.Angle.toReal_sub_of_sign_eq {θ ψ : Real.Angle} (hψ : ψ ≠ ↑Real.pi)
     (hs : θ.sign = ψ.sign) : (θ - ψ).toReal = θ.toReal - ψ.toReal := by
   have hψ' : -ψ ≠ ↑Real.pi := fun h ↦ hψ (by rw [← neg_neg ψ, h, Real.Angle.neg_coe_pi])
@@ -32,12 +59,16 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.Angle.toReal_sub_of_
     (by rw [Real.Angle.sign_neg, neg_neg, hs]), Real.Angle.toReal_neg_eq_neg_toReal_iff.2 hψ,
     ← sub_eq_add_neg]
 
+/-- For angles with the same nonzero sign, the difference `ψ - θ` has positive sign exactly when
+`θ.toReal < ψ.toReal`. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.Angle.sign_sub_pos_iff_toReal_lt_of_sign_eq {θ ψ : Real.Angle}
     (hs : θ.sign = ψ.sign) (h0 : θ.sign ≠ 0) : (ψ - θ).sign = 1 ↔ θ.toReal < ψ.toReal := by
   rw [← Real.Angle.sign_toReal (Real.Angle.sub_ne_pi_of_sign_eq_of_sign_ne_zero ψ θ hs.symm h0),
     Real.Angle.toReal_sub_of_sign_eq (Real.Angle.sign_ne_zero_iff.1 h0).2 hs.symm, sign_eq_one_iff,
     sub_pos]
 
+/-- Equality of both sine and cosine at `2πa` and `2πb` implies that `a` differs from `b` by an
+integer. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.exists_int_eq_add_of_cos_sin_eq {a b : ℝ}
     (hc : Real.cos (2 * Real.pi * a) = Real.cos (2 * Real.pi * b))
     (hs : Real.sin (2 * Real.pi * a) = Real.sin (2 * Real.pi * b)) : ∃ n : ℤ, a = b + n := by
@@ -46,6 +77,7 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.exists_int_eq_add_of
   have hpi : (2 * Real.pi) ≠ 0 := by positivity
   exact mul_left_cancel₀ hpi (by linarith)
 
+/-- If `|θ.toReal| = α` and `θ + α = β` with `0 < β < π`, then `β = 2α`. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.Real.Angle.eq_two_mul_of_abs_toReal_eq {θ : Real.Angle} {α β : ℝ}
     (hθ : |θ.toReal| = α) (hβ : θ + α = β) (hβ₀ : 0 < β) (hβπ : β < Real.pi) :
     β = 2 * α := by

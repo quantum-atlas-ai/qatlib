@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Complex.Exponential
+
+/-!
+# Exposing influential coordinates by Fourier sampling
+
+This module bounds the probability that repeated Fourier samples fail to reveal a prescribed set
+of influential coordinates in the learning and scenario arguments of [AticiServedio2007]. If
+every coordinate in `J` has influence at least a positive `ε`, `exposure_union_bound` bounds the
+probability that any coordinate remains unseen after `T` samples by `J.card * (1 - ε) ^ T`.
+
+The exponential version `exposure_union_bound_exp` converts this to `J.card * exp (-(ε * T))`.
+`exposure_success` then turns a failure bound of `1 / 10` into probability at least `9 / 10`
+that every coordinate has appeared.
+
+## Main statements
+
+- `exposure_union_bound` combines individual miss probabilities by a union bound.
+- `exposure_union_bound_exp` gives exponential decay with the number of samples.
+* `exposure_success` guarantees simultaneous exposure with probability at least `9 / 10` under
+  the stated numerical condition.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007], Quantum Algorithms for Learning and Testing
+  Juntas.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +46,8 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- If each coordinate in `J` has influence at least a positive `ε`, the probability that some
+coordinate of `J` is absent from all `T` Fourier samples is at most `J.card * (1 - ε) ^ T`. -/
 theorem exposure_union_bound {f : (Fin n → Bool) → Bool} {J : Finset (Fin n)}
     {ε : ℝ} (_hε : 0 < ε) (hinf : ∀ i ∈ J, ε ≤ boolInfluence f i) (T : ℕ) :
     fsProb f T (fun s => ∃ i ∈ J, ∀ t, i ∉ s t) ≤ (J.card : ℝ) * (1 - ε) ^ T := by
@@ -39,6 +67,8 @@ theorem exposure_union_bound {f : (Fin n → Bool) → Bool} {J : Finset (Fin n)
     _ = (J.card : ℝ) * (1 - ε) ^ T := by
           rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- If each coordinate in `J` has influence at least a positive `ε`, the probability that some
+coordinate is never sampled is at most `J.card * exp (-(ε * T))`. -/
 theorem exposure_union_bound_exp {f : (Fin n → Bool) → Bool} {J : Finset (Fin n)}
     {ε : ℝ} (hε : 0 < ε) (hinf : ∀ i ∈ J, ε ≤ boolInfluence f i) (T : ℕ) :
     fsProb f T (fun s => ∃ i ∈ J, ∀ t, i ∉ s t) ≤ (J.card : ℝ) * Real.exp (-(ε * T)) := by
@@ -63,6 +93,9 @@ theorem exposure_union_bound_exp {f : (Fin n → Bool) → Bool} {J : Finset (Fi
       _ ≤ (J.card : ℝ) * Real.exp (-(ε * T)) :=
           mul_le_mul_of_nonneg_left hpow hcard
 
+/-- If every coordinate in `J` has influence at least a positive `ε` and `J.card * (1 - ε) ^ T ≤
+1 / 10`, then all coordinates of `J` appear among the Fourier samples with probability at
+least `9 / 10`. -/
 theorem exposure_success {f : (Fin n → Bool) → Bool} {J : Finset (Fin n)}
     {ε : ℝ} (hε : 0 < ε) (hinf : ∀ i ∈ J, ε ≤ boolInfluence f i) {T : ℕ}
     (hT : (J.card : ℝ) * (1 - ε) ^ T ≤ 1 / 10) :

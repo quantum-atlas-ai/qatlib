@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourLimit
 import Mathlib.Analysis.Complex.CauchyIntegral
+
+/-!
+# Decay of integer kernels on expanding circles
+
+This module bounds the lattice factor on circles with half-grid radii, including the portion
+near the real axis where its phase requires separate control. A radial lower bound for the
+pole-distance denominator yields quadratic decay of `integerContourIntegrand` on sufficiently
+large circles.
+
+The normalized circle integrals consequently tend to zero under the prescribed half-plane growth
+estimate. This is the vanishing boundary term in the sampling argument of [WangEtAl2026].
+
+## Main statements
+
+* `integerContourIntegrand_circle_le`: gives a uniform quadratic circle bound.
+* `integerContour_circle_tendsto_zero`: proves vanishing normalized circle integrals.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -17,6 +39,8 @@ namespace CBMD
 open Complex Metric Set Filter MeasureTheory
 open scoped Topology BigOperators
 
+/-- On a half-grid circle of radius at least `4a`, points with imaginary part of absolute value
+at most one satisfy `cos (2πa * z.re) ≤ 0`. -/
 private theorem halfGrid_circle_phase {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : 4 * a ≤ halfGridRadius a n) (z : ℂ)
     (hz : ‖z‖ = halfGridRadius a n) (hy : |z.im| ≤ 1) :
@@ -49,6 +73,8 @@ private theorem halfGrid_circle_phase {a : ℝ} (ha : 0 < a) (n : ℕ)
   rw [habs, hphase, Real.cos_add_nat_mul_two_pi, Real.cos_add_pi]
   exact neg_nonpos.mpr (Real.cos_nonneg_of_mem_Icc ⟨hdl, hd0.trans (by positivity)⟩)
 
+/-- For positive spacing, the lattice factor norm is at most one on the strip `|z.im| ≤ 1` of a
+half-grid circle with radius at least `4a`. -/
 private theorem lattice_factor_circle_middle {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : 4 * a ≤ halfGridRadius a n) (z : ℂ)
     (hz : ‖z‖ = halfGridRadius a n) (hy : |z.im| ≤ 1) :
@@ -73,6 +99,8 @@ private theorem lattice_factor_circle_middle {a : ℝ} (ha : 0 < a) (n : ℕ)
   rw [latticePoleFactor, norm_div]
   exact (div_le_one (lt_of_lt_of_le (by norm_num) hden)).mpr (hn.trans hden)
 
+/-- On a half-grid circle of radius at least `4a`, positive spacing and `ρ ≤ 2πa` bound the
+lattice factor times `exp (max z.im 0 * ρ)` by `exp |ρ|`. -/
 theorem lattice_circle_growth_le {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (n : ℕ) (hR : 4 * a ≤ halfGridRadius a n)
     (z : ℂ) (hz : ‖z‖ = halfGridRadius a n) :
@@ -102,6 +130,8 @@ theorem lattice_circle_growth_le {a ρ : ℝ} (ha : 0 < a)
           using latticePoleFactor_norm_le_lower ha z hy1
     exact hone.trans (Real.one_le_exp (abs_nonneg _))
 
+/-- Outside radius `m + 2`, the full pole-distance denominator is at least `(‖z‖ - (m + 2)) ^ (2
+* m + 3)`. -/
 theorem contour_denominator_radial_lower (m : ℕ) (z : ℂ) (hz : m + 2 < ‖z‖) :
     (‖z‖ - (m + 2)) ^ (2 * m + 3) ≤
       ‖z + Complex.I‖ * ‖z - 2 * Complex.I‖ *
@@ -144,6 +174,9 @@ theorem contour_denominator_radial_lower (m : ℕ) (z : ℂ) (hz : m + 2 < ‖z�
 section Integrand
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- Under the stated growth and spacing hypotheses, the integrand norm on a sufficiently large
+half-grid circle is at most `kernelNormalization m * exp |ρ| / (halfGridRadius a n - (m +
+2))²`. -/
 theorem integerContourIntegrand_circle_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ))
@@ -175,6 +208,8 @@ theorem integerContourIntegrand_circle_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     _ ≤ _ := div_le_div_of_nonneg_left (mul_nonneg (kernelNormalization_pos m).le (Real.exp_pos _).le)
       (sq_pos_of_pos hd0) hden
 
+/-- With positive spacing, `ρ ≤ 2πa`, and the stated global growth bound on `U`, the normalized
+integrals over expanding half-grid circles tend to zero. -/
 theorem integerContour_circle_tendsto_zero (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) :

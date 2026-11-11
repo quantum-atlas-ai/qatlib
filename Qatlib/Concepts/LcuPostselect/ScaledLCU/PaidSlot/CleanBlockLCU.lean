@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.PaidSlot.NativeWeightedLCUSlot
+
+/-!
+# Clean-frame compression for weighted LCU
+
+`clean_block_lcu_compress` computes a coefficient-weighted compression when an operator has a
+controlled family as its clean-frame block. Coefficient preparation and diagonal phases produce
+the normalized sum without requiring the ambient operator itself to equal a controlled
+selection.
+
+The matrix identities implement the prepare-select-unprepare algebra used in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `clean_block_lcu_compress`: compress a prepared and phase-weighted clean block to its
+  normalized linear combination.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,7 @@ variable {J H I : Type} [Fintype J] [DecidableEq J]
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- Factors a tagged frame into the label-preserving lift of `F` and the encoding fiber at `j₀`. -/
 private theorem label_frame_fiber (F : Matrix H I ℂ) (j₀ : J) :
     Qatlib.Concepts.LcuPostselect.ScaledLCU.tagFrame j₀ F =
       ((1 : Matrix J J ℂ) ⊗ₖ F) * Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber (I := I) j₀ := by
@@ -30,6 +53,7 @@ private theorem label_frame_fiber (F : Matrix H I ℂ) (j₀ : J) :
     simp [Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber_apply, hx]
   · simp
 
+/-- A label-register preparation intertwines with the label-preserving lift of a frame. -/
 private theorem label_prepare_intertwine (F : Matrix H I ℂ) (P : Matrix J J ℂ) :
     Qatlib.Concepts.BlockEncoding.EncodingCore.prepareRegister (I := H) P * ((1 : Matrix J J ℂ) ⊗ₖ F) =
       ((1 : Matrix J J ℂ) ⊗ₖ F) * Qatlib.Concepts.BlockEncoding.EncodingCore.prepareRegister (I := I) P := by
@@ -38,6 +62,8 @@ private theorem label_prepare_intertwine (F : Matrix H I ℂ) (P : Matrix J J �
 
 omit [Fintype J] [Fintype I] in
 
+/-- A lifted diagonal coefficient-phase matrix equals selection of the phase-weighted identity
+family. -/
 private theorem diagonal_phase_select (d : J → ℂ) :
     Qatlib.Concepts.BlockEncoding.EncodingCore.prepareRegister (I := I) (Matrix.diagonal (fun j => Qatlib.Concepts.BlockEncoding.EncodingCore.coefficientPhase (d j))) =
       Qatlib.Concepts.BlockEncoding.LCU.select (Qatlib.Concepts.BlockEncoding.EncodingCore.phaseAbsorbed d (fun _ => (1 : Matrix I I ℂ))) := by
@@ -46,6 +72,8 @@ private theorem diagonal_phase_select (d : J → ℂ) :
     simp [Qatlib.Concepts.BlockEncoding.EncodingCore.prepareRegister, Matrix.kroneckerMap_apply,
       Qatlib.Concepts.BlockEncoding.LCU.select, Qatlib.Concepts.BlockEncoding.EncodingCore.phaseAbsorbed, Matrix.one_apply, hj, hi]
 
+/-- If the clean-frame compression of `W` is `select Y`, coefficient preparation and phase
+weighting compress it to `∑ j, (d j / coefficientMass d) • Y j`. -/
 theorem clean_block_lcu_compress
     (F : Matrix H I ℂ) (W : Matrix (J × H) (J × H) ℂ)
     (Y : J → Matrix I I ℂ) (d : J → ℂ) (j₀ : J)

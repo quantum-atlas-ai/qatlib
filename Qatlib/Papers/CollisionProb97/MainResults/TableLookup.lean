@@ -6,16 +6,46 @@ Authors: Qatlib Contributors
 
 import Mathlib.Tactic
 
+/-!
+# Lookup and collision recovery in record lists
+
+This module defines list-based lookup, internal collision detection, and recovery of a matching
+input from a stored function value. These operations provide the classical record handling for
+[BrassardHoyerTapp1998Collision].
+
+The soundness and completeness lemmas certify returned records, and `internal_none_unique` shows
+that absence of an internal collision forces uniqueness of inputs at each stored value.
+
+## Main statements
+
+* `lookup_sound`: A successful lookup returns an input whose record with value `z` occurs in the
+  list and satisfies `allow`.
+* `internal_sound`: A pair returned by `internal` consists of distinct inputs occurring in
+  records with a common value.
+* `internal_none_unique`: If no internal collision is found, two records with the same value
+  must have the same input.
+* `recover_exists`: If the value in `p` occurs in the record list, recovery returns a matching
+  stored input paired with `p.1`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Papers.CollisionProb97.MainResults.TableLookup
 variable {S R : Type} [DecidableEq S] [DecidableEq R]
 
+/-- Scans a record list for the first input with value `z` that satisfies the Boolean predicate
+`allow`. -/
 def lookup : List (S × R) → R → (S → Bool) → Option S
   | [], _, _ => none
   | (s, v) :: L, z, allow => if v = z ∧ allow s = true then some s else lookup L z allow
 
 omit [DecidableEq S] in
 
+/-- A successful lookup returns an input whose record with value `z` occurs in the list and
+satisfies `allow`. -/
 theorem lookup_sound (L : List (S × R)) (z : R) (allow : S → Bool) (s : S)
     (h : lookup L z allow = some s) : (s, z) ∈ L ∧ allow s = true := by
   induction L with
@@ -32,6 +62,7 @@ theorem lookup_sound (L : List (S × R)) (z : R) (allow : S → Bool) (s : S)
 
 omit [DecidableEq S] in
 
+/-- If an allowed record with value `z` occurs in the list, lookup returns some input. -/
 theorem lookup_complete (L : List (S × R)) (z : R) (allow : S → Bool) (s : S)
     (hs : (s, z) ∈ L) (ha : allow s = true) : ∃ t, lookup L z allow = some t := by
   induction L with
@@ -48,6 +79,7 @@ theorem lookup_complete (L : List (S × R)) (z : R) (allow : S → Bool) (s : S)
       obtain ⟨u, hu⟩ := ih ht
       exact ⟨u, by simpa only [lookup, if_neg hc] using hu⟩
 
+/-- Searches a record list for two distinct inputs with the same stored value. -/
 def internal : List (S × R) → Option (S × S)
   | [] => none
   | (s, v) :: L =>
@@ -55,6 +87,8 @@ def internal : List (S × R) → Option (S × S)
     | some t => some (s, t)
     | none => internal L
 
+/-- A pair returned by `internal` consists of distinct inputs occurring in records with a common
+value. -/
 theorem internal_sound (L : List (S × R)) (s t : S) (h : internal L = some (s, t)) :
     s ≠ t ∧ ∃ z, (s, z) ∈ L ∧ (t, z) ∈ L := by
   induction L with
@@ -73,6 +107,7 @@ theorem internal_sound (L : List (S × R)) (s t : S) (h : internal L = some (s, 
       have hne : t ≠ s := of_decide_eq_true hwu
       exact ⟨Ne.symm hne, v, List.mem_cons_self, List.mem_cons_of_mem _ hw⟩
 
+/-- If no internal collision is found, two records with the same value must have the same input. -/
 theorem internal_none_unique (L : List (S × R)) (s t : S) (z : R)
     (hn : internal L = none) (hs : (s, z) ∈ L) (ht : (t, z) ∈ L) : s = t := by
   induction L generalizing s t z with
@@ -103,11 +138,15 @@ theorem internal_none_unique (L : List (S × R)) (s t : S) (z : R)
           contradiction
         · exact ih s t z htail hst htt
 
+/-- Looks up a stored input matching the value in `p` and pairs it with the input component of
+`p`. -/
 def recover {X : Type} (L : List (S × R)) (p : X × R) : Option (S × X) :=
   (lookup L p.2 (fun _ => true)).map fun s => (s, p.1)
 
 omit [DecidableEq S] in
 
+/-- If the value in `p` occurs in the record list, recovery returns a matching stored input
+paired with `p.1`. -/
 theorem recover_exists {X : Type} (L : List (S × R)) (p : X × R)
     (h : ∃ s, (s, p.2) ∈ L) : ∃ s, recover L p = some (s, p.1) ∧ (s, p.2) ∈ L := by
   obtain ⟨s, hs⟩ := h

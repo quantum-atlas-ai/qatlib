@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux
+
+/-!
+# Row and block identities for the V2 Taylor system
+
+This module proves the block lower-triangular structure and invertibility of
+`taylorStepMatrixV2`, then computes its action on initial, Taylor-step, jump, and padding rows.
+It evaluates the corresponding right-hand-side entries and extracts block recurrences from the
+solved linear system.
+
+`taylorV2_pad_copies` shows that all padding blocks equal the final time block. These identities
+underlie the Taylor-system analysis in [BerryEtAl2017ODE].
+
+## Main statements
+
+* `taylorStepMatrixV2_det`: The Taylor matrix has determinant one.
+* `taylorV2_block_step`: The Taylor-step recurrence for a solved system.
+* `taylorV2_block_jump`: A time block is the sum of the previous Taylor blocks.
+* `taylorV2_pad_copies`: Every padding block copies the final time block.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +44,7 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [Fintype N] in
 
+/-- A V2 Taylor entry is zero when its row label is smaller than its column label. -/
 theorem taylorStepMatrixV2_above (m k p : ℕ) (M : Matrix N N ℂ)
     (r c : Fin (m * (k + 1) + p + 1) × N) (h : r.1 < c.1) :
     taylorStepMatrixV2 m k p M r c = 0 := by
@@ -30,11 +55,13 @@ theorem taylorStepMatrixV2_above (m k p : ℕ) (M : Matrix N N ℂ)
 
 omit [Fintype N] in
 
+/-- On an equal-label block, the V2 Taylor matrix is the identity on the state index. -/
 theorem taylorStepMatrixV2_same_label (m k p : ℕ) (M : Matrix N N ℂ)
     (r c : Fin (m * (k + 1) + p + 1) × N) (h : r.1 = c.1) :
     taylorStepMatrixV2 m k p M r c = if r.2 = c.2 then 1 else 0 := by
   simp [taylorStepMatrixV2, Prod.ext_iff, h]
 
+/-- The determinant of the V2 Taylor matrix is 1. -/
 theorem taylorStepMatrixV2_det (m k p : ℕ) (M : Matrix N N ℂ) :
     (taylorStepMatrixV2 m k p M).det = 1 := by
   let b : (Fin (m * (k + 1) + p + 1) × N) → OrderDual (Fin (m * (k + 1) + p + 1)) :=
@@ -61,6 +88,7 @@ theorem taylorStepMatrixV2_det (m k p : ℕ) (M : Matrix N N ℂ) :
   intro l _hl
   rw [hblock, Matrix.det_one]
 
+/-- The matrix inverse of the V2 Taylor matrix is both a left and a right inverse. -/
 theorem taylorStepMatrixV2_inverse (m k p : ℕ) (M : Matrix N N ℂ) :
     taylorStepMatrixV2 m k p M * (taylorStepMatrixV2 m k p M)⁻¹ = 1 ∧
       (taylorStepMatrixV2 m k p M)⁻¹ * taylorStepMatrixV2 m k p M = 1 := by
@@ -71,17 +99,20 @@ theorem taylorStepMatrixV2_inverse (m k p : ℕ) (M : Matrix N N ℂ) :
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- Adding a multiple of k + 1 does not change a natural number's remainder modulo k + 1. -/
 theorem label_mod_self (a j k : ℕ) : (a * (k + 1) + j) % (k + 1) = j % (k + 1) := by
   have h0 : a * (k + 1) % (k + 1) = 0 := Nat.mul_mod_left a (k + 1)
   rw [Nat.add_comm, Nat.add_mod, h0, add_zero, Nat.mod_mod]
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- If j ≤ k, the label a(k + 1) + j has remainder j modulo k + 1. -/
 theorem label_mod_of_le (a j k : ℕ) (hj : j ≤ k) : (a * (k + 1) + j) % (k + 1) = j := by
   rw [label_mod_self, Nat.mod_eq_of_lt (by omega)]
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- For a < m and j ≤ k, the Taylor-step label a(k + 1) + j lies below the total label count. -/
 theorem step_label_lt (a m k p j : ℕ) (ha : a < m) (hj : j ≤ k) :
     a * (k + 1) + j < m * (k + 1) + p + 1 := by
   have h1 : (a + 1) * (k + 1) = a * (k + 1) + (k + 1) := Nat.succ_mul a (k + 1)
@@ -90,6 +121,7 @@ theorem step_label_lt (a m k p j : ℕ) (ha : a < m) (hj : j ≤ k) :
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- For a ≤ m, the jump label a(k + 1) lies below the total label count. -/
 theorem jump_label_lt (a m k p : ℕ) (ha : a ≤ m) :
     a * (k + 1) < m * (k + 1) + p + 1 := by
   have h : a * (k + 1) ≤ m * (k + 1) := by gcongr
@@ -97,11 +129,14 @@ theorem jump_label_lt (a m k p : ℕ) (ha : a ≤ m) :
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- For j ≤ p, the padding label m(k + 1) + j lies below the total label count. -/
 theorem pad_label_lt (m k p j : ℕ) (hj : j ≤ p) :
     m * (k + 1) + j < m * (k + 1) + p + 1 := by omega
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- For a < m and 1 ≤ j ≤ k, the predecessor of the Taylor-step label lies below the total label
+count. -/
 theorem pred_label_lt (a m k p j : ℕ) (ha : a < m) (hj : j ≤ k) (hj1 : 1 ≤ j) :
     a * (k + 1) + j - 1 < m * (k + 1) + p + 1 := by
   have h1 : (a + 1) * (k + 1) = a * (k + 1) + (k + 1) := Nat.succ_mul a (k + 1)
@@ -111,6 +146,8 @@ theorem pred_label_lt (a m k p j : ℕ) (ha : a < m) (hj : j ≤ k) (hj1 : 1 ≤
 
 omit [DecidableEq N] in
 
+/-- A sum over label-state pairs restricted to one fixed label equals the sum over the state
+index at that label. -/
 theorem sum_label_single {P : ℕ} (w : Fin P) (F : Fin P × N → ℂ) :
     ∑ c : Fin P × N, (if c.1 = w then F c else 0) = ∑ n' : N, F (w, n') := by
   rw [Fintype.sum_prod_type]
@@ -123,12 +160,15 @@ section RHS
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- The Taylor right-hand side at time label zero equals the initial vector. -/
 theorem taylorRHS_at_zero (m k p : ℕ) (h : ℝ) (x_in b : QState N) (n : N) :
     taylorRHS m k p h x_in b (taylorTimeLabel m k p 0 (Nat.zero_le m), n) = x_in n := by
   simp [taylorRHS, taylorTimeLabel]
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- At a Taylor-step label with 1 ≤ j ≤ k, the right-hand side is h times the source vector for
+j = 1 and zero otherwise. -/
 theorem taylorRHS_at_step (m k p : ℕ) (h : ℝ) (x_in b : QState N) (a j : ℕ)
     (ha : a < m) (hj1 : 1 ≤ j) (hjk : j ≤ k) (n : N) :
     taylorRHS m k p h x_in b (⟨a * (k + 1) + j, step_label_lt a m k p j ha hjk⟩, n) =
@@ -153,6 +193,7 @@ theorem taylorRHS_at_step (m k p : ℕ) (h : ℝ) (x_in b : QState N) (a j : ℕ
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- At a positive time-jump label a(k + 1) with a ≤ m, the Taylor right-hand side is zero. -/
 theorem taylorRHS_at_jump (m k p : ℕ) (h : ℝ) (x_in b : QState N) (a : ℕ)
     (ha1 : 1 ≤ a) (ham : a ≤ m) (n : N) :
     taylorRHS m k p h x_in b (⟨a * (k + 1), jump_label_lt a m k p ham⟩, n) = 0 := by
@@ -160,6 +201,7 @@ theorem taylorRHS_at_jump (m k p : ℕ) (h : ℝ) (x_in b : QState N) (a : ℕ)
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- At a positive padding label, the Taylor right-hand side is zero. -/
 theorem taylorRHS_at_pad (m k p : ℕ) (h : ℝ) (x_in b : QState N) (j : ℕ)
     (hj1 : 1 ≤ j) (hjp : j ≤ p) (n : N) :
     taylorRHS m k p h x_in b (⟨m * (k + 1) + j, pad_label_lt m k p j hjp⟩, n) = 0 := by
@@ -168,6 +210,7 @@ theorem taylorRHS_at_pad (m k p : ℕ) (h : ℝ) (x_in b : QState N) (j : ℕ)
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- The Taylor right-hand side vanishes at every label strictly beyond m(k + 1). -/
 theorem taylorRHS_val_of_gt (m k p : ℕ) (h : ℝ) (x_in b : QState N)
     (r : Fin (m * (k + 1) + p + 1)) (hrg : m * (k + 1) < r.val) (n : N) :
     taylorRHS m k p h x_in b (r, n) = 0 := by
@@ -181,6 +224,7 @@ section Rows
 
 variable (m k p : ℕ) (M : Matrix N N ℂ) (x : QState (Fin (m * (k + 1) + p + 1) × N))
 
+/-- At time label zero, multiplication by the V2 Taylor matrix returns the input state entry. -/
 theorem taylorV2_row_zero (n : N) :
     (taylorStepMatrixV2 m k p M *ᵥ x) (taylorTimeLabel m k p 0 (Nat.zero_le m), n) =
       x (taylorTimeLabel m k p 0 (Nat.zero_le m), n) := by
@@ -214,6 +258,8 @@ theorem taylorV2_row_zero (n : N) :
   simp only [hrow]
   simp
 
+/-- At an interior Taylor-step row, the matrix action is the current entry minus the generator
+applied to the preceding block divided by the row's nonzero remainder modulo k + 1. -/
 theorem taylorV2_row_step (r : Fin (m * (k + 1) + p + 1)) (hrj : 1 ≤ r.val % (k + 1))
     (hrm : r.val < m * (k + 1)) (n : N) :
     (taylorStepMatrixV2 m k p M *ᵥ x) (r, n) =
@@ -295,6 +341,8 @@ theorem taylorV2_row_step (r : Fin (m * (k + 1) + p + 1)) (hrj : 1 ≤ r.val % (
     simp
   rw [hS1, hS2]
 
+/-- At a positive jump row not beyond m(k + 1), the matrix action is the current entry minus the
+sum of entries over the preceding k + 1 labels. -/
 theorem taylorV2_row_jump (r : Fin (m * (k + 1) + p + 1)) (hr0 : 0 < r.val)
     (hrd : (k + 1 : ℕ) ∣ r.val) (hrm : r.val ≤ m * (k + 1)) (n : N) :
     (taylorStepMatrixV2 m k p M *ᵥ x) (r, n) =
@@ -352,6 +400,8 @@ theorem taylorV2_row_jump (r : Fin (m * (k + 1) + p + 1)) (hr0 : 0 < r.val)
     · simp only [hwin, if_false, zero_mul, Finset.sum_const_zero]
   rw [hS1, hS2]
 
+/-- Beyond m(k + 1), the matrix action is the current entry minus the entry at the preceding
+label. -/
 theorem taylorV2_row_pad (r : Fin (m * (k + 1) + p + 1)) (hrg : m * (k + 1) < r.val)
     (n : N) :
     (taylorStepMatrixV2 m k p M *ᵥ x) (r, n) =
@@ -419,6 +469,7 @@ section Recursion
 variable (m k p : ℕ) (A : Matrix N N ℂ) (h : ℝ) (x_in b : QState N)
   (x : QState (Fin (m * (k + 1) + p + 1) × N))
 
+/-- For a solution of the V2 Taylor system, the time-zero block equals the initial vector. -/
 theorem taylorV2_block_zero
     (hx : taylorStepMatrixV2 m k p A *ᵥ x = taylorRHS m k p h x_in b) :
     taylorBlock x (taylorTimeLabel m k p 0 (Nat.zero_le m)) = x_in := by
@@ -427,6 +478,8 @@ theorem taylorV2_block_zero
   rw [taylorV2_row_zero m k p A x n, taylorRHS_at_zero m k p h x_in b n] at h1
   simpa [taylorBlock] using! h1
 
+/-- For a solution of the V2 Taylor system, step j is the generator applied to the preceding
+block divided by j, plus the source term h • b when j = 1. -/
 theorem taylorV2_block_step
     (hx : taylorStepMatrixV2 m k p A *ᵥ x = taylorRHS m k p h x_in b)
     (a j : ℕ) (ha : a < m) (hj1 : 1 ≤ j) (hjk : j ≤ k) :
@@ -453,6 +506,8 @@ theorem taylorV2_block_step
   simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul, taylorBlock, hite]
   linear_combination h1
 
+/-- For a solution of the V2 Taylor system, the time block at a(k + 1) is the sum of the k + 1
+blocks with labels (a - 1)(k + 1) + i. -/
 theorem taylorV2_block_jump
     (hx : taylorStepMatrixV2 m k p A *ᵥ x = taylorRHS m k p h x_in b)
     (a : ℕ) (ha1 : 1 ≤ a) (ham : a ≤ m) :
@@ -529,6 +584,8 @@ theorem taylorV2_block_jump
   simp only [Finset.sum_apply, taylorBlock]
   linear_combination h1 + hwin
 
+/-- For a solution of the V2 Taylor system, a block strictly beyond m(k + 1) equals the block at
+its preceding label. -/
 theorem taylorV2_block_pad
     (hx : taylorStepMatrixV2 m k p A *ᵥ x = taylorRHS m k p h x_in b)
     (r rp : Fin (m * (k + 1) + p + 1)) (hval : rp.val + 1 = r.val)
@@ -545,6 +602,8 @@ theorem taylorV2_block_pad
   simp only [taylorBlock]
   linear_combination h1
 
+/-- For a solution of the V2 Taylor system, every padding block with index from 1 through p
+equals the final time block. -/
 theorem taylorV2_pad_copies
     (hx : taylorStepMatrixV2 m k p A *ᵥ x = taylorRHS m k p h x_in b) :
     ∀ j : ℕ, (hj1 : 1 ≤ j) → (hjp : j ≤ p) →

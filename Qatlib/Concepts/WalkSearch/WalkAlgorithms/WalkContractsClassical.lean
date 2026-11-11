@@ -14,10 +14,28 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Nat.Log
 import Mathlib.Data.Nat.Sqrt
+
+/-!
+# Original graph-search contracts
+
+This module defines the original propositions `theorem3`, `theorem4`, and `theorem5` for graph
+collision, triangle search, and subgraph candidate search. It also defines `triCheck` and
+`triCheckSpec`, including their finite-seed failure and cost requirements.
+
+The contracts express versions of the search bounds surveyed in [Ambainis2005]. Their parameter
+windows and constants are part of the propositions and are examined by subsequent modules.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- The original graph-collision contract asserting a subset parameter, soundness, a finite-seed
+failure bound, and a cost bound proportional to n^(2/3) with a squared logarithmic factor. -/
 def theorem3 : Prop :=
   ∀ (n : ℕ), (hn : 0 < n) →
     ∀ (G : OGraph n) (f : Fin n → Bool) (kcs : KCollisionSolver),
@@ -34,6 +52,8 @@ def theorem3 : Prop :=
         ((gcAlg G f kcs r ρ).2 : ℝ) ≤
           (2 * kcs.κ : ℕ) * ((Nat.log 2 n + 2 : ℕ) ^ 2) * ((n : ℝ) ^ (2 / 3 : ℝ)))
 
+/-- Searches for a vertex completing an edge inside `U` to a triangle, using repeated collision
+tests followed by candidate extraction, and returns the pair with its recorded cost. -/
 noncomputable def triCheck {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (ntape : ncs.seed) :
@@ -63,6 +83,8 @@ noncomputable def triCheck {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finse
           (none, tcost * (Nat.log 2 (n + 1) + 2) * (Nat.sqrt (n + 1) + 1) + 2)
   | none => (none, ncs.cost marked test tcost n ntape)
 
+/-- The original specification of `triCheck`: sound output inside `U`, a finite-seed failure
+bound, and a cost bound by twice `cCOf`. -/
 def triCheckSpec {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ) : Prop :=
   (∀ stape : ℕ → kcs.seed, ∀ ntape : ncs.seed,
@@ -82,6 +104,9 @@ def triCheckSpec {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (triCheck adj U kcs ncs r' c₀ stape ntape).2 ≤
       (2 * cCOf kcs ncs n U.card r' c₀ : ℕ))
 
+/-- The original triangle-search contract with prescribed integer subset windows,
+`triCheckSpec`, soundness, a failure-count bound, and an n^(13/10) cost estimate with a
+cubic logarithmic factor. -/
 def theorem4 : Prop :=
   ∀ (n : ℕ), (hn : 0 < n) →
     ∀ (adj : Fin n → Fin n → Bool) (kcs : KCollisionSolver) (ncs : NoisySearch)
@@ -107,6 +132,9 @@ def theorem4 : Prop :=
         ((th4Alg adj kcs ncs sgs r r' 4 stape gtape).2 : ℝ) ≤
           (2 ^ 16 : ℕ) * ((Nat.log 2 n + 2 : ℕ) ^ 3) * ((n : ℝ) ^ (13 / 10 : ℝ)))
 
+/-- The original subgraph candidate-search contract with a prescribed integer subset window,
+soundness, a failure-count bound, and a real cost estimate independent of the
+collision-solver constant. -/
 def theorem5 : Prop :=
   ∀ (n k : ℕ), 4 ≤ k → (hn : 0 < n) →
     ∀ (H : OGraph k) (hv : Fin k),

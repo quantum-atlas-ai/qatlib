@@ -9,6 +9,33 @@ import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionConsumers
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+
+/-!
+# Rational heat-bath instruments and mixing
+
+`rationalHeatBathProgram` measures a basis label and applies a permutation determined by a
+classical rejection-sampling outcome. Weighted Kraus operators define
+`rationalHeatBathInstrument` and connect its branch probabilities to the recorded classical
+events.
+
+The channel is an explicit mixture of replacement by `rationalHeatBathDensity` and dephasing.
+Closed formulas for its powers yield trace-norm mixing bounds with an arbitrary finite reference
+system. See [TemmeEtAl2011] for background.
+
+## Main statements
+
+* `rational_heat_bath_derived_channel_and_stationarity`: The heat-bath target is stationary, the
+  rejection probability is at most one half, and the channel has the explicit
+  replacement-and-dephasing formula.
+* `rational_heat_bath_derived_reference_mixing_budget`: For positive semidefinite
+  system-reference inputs and positive step count, the replacement error is at most twice the
+  rejection factor times the input trace norm, yielding the stated binary precision budget.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,37 +57,51 @@ open scoped ComplexOrder Classical BigOperators Matrix.Norms.L2Operator ENNReal
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The diagonal density with entries equal to the integer weights divided by their positive
+total. -/
 noncomputable def rationalHeatBathDensity {N : ℕ} (w : Fin N → ℕ) (hW : 0 < weightTotal w) :
     Operator N :=
   Matrix.diagonal fun i => Complex.ofReal ((w i : ℝ) / (weightTotal w : ℝ))
 
+/-- The matrix swapping basis labels `i` and `j` and fixing all other labels. -/
 noncomputable def rationalHeatBathSwap {N : ℕ} (i j : Fin N) : Matrix (Fin N) (Fin N) ℂ :=
   Matrix.of fun a b => if a = j then (if b = i then (1 : ℂ) else 0)
     else if a = i then (if b = j then (1 : ℂ) else 0)
     else if a = b then (1 : ℂ) else 0
 
+/-- Swap the measured label with the selected label, or apply the identity when no label is
+selected. -/
 noncomputable def rationalHeatBathPerm {N : ℕ} (choice : Option (Fin N)) (i : Fin N) :
     Matrix (Fin N) (Fin N) ℂ :=
   match choice with
   | some j => rationalHeatBathSwap i j
   | none => 1
 
+/-- Measure the computational basis label and apply the permutation determined by the optional
+sampled label. -/
 noncomputable def rationalHeatBathProgram {N : ℕ} (choice : Option (Fin N)) :
     ObservedCircuit (Fin N) :=
   .measure N (fun i => i) (fun i => .step (.gate (rationalHeatBathPerm choice i)) (.halt true))
 
+/-- The real one-trial rejection probability using the ceiling binary logarithm of the total
+weight as the bit width. -/
 noncomputable def rationalHeatBathReject {N : ℕ} (w : Fin N → ℕ) : ℝ :=
   (rationalRejectMass w (Nat.clog 2 (weightTotal w))).toReal
 
+/-- The event that a sampler configuration returns the specified label, or remains pending when
+the choice is `none`. -/
 noncomputable def rationalHeatBathEvent {N : ℕ} (R : ℕ) (choice : Option (Fin N)) :
     (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ) × ℕ) → Prop :=
   fun z => match choice with
     | some j => rejectionOutcome z.1 = Sum.inl j
     | none => rejectionOutcome z.1 = Sum.inr ()
 
+/-- Every natural number is at most two raised to its ceiling binary logarithm. -/
 theorem clog2_ge (n : ℕ) : n ≤ 2 ^ Nat.clog 2 n :=
   (Nat.clog_le_iff_le_pow (b := 2) (x := n) (y := Nat.clog 2 n) (by omega)).mp le_rfl
 
+/-- Flattening singleton lists obtained by mapping is the same as mapping their entries
+directly. -/
 theorem flatten_singleton_map {α β : Type*} :
     ∀ (l : List α) (g : α → β), (l.map (fun a => [g a])).flatten = l.map g := by
   intro l
@@ -68,6 +109,8 @@ theorem flatten_singleton_map {α β : Type*} :
   | nil => intro g; rfl
   | cons a l ih => intro g; simp [ih]
 
+/-- The observed Kraus leaves are the basis projectors followed by the selected permutations,
+each with zero queries, one gate, and one measurement. -/
 theorem rationalHeatBathLeaves {N : ℕ} (choice : Option (Fin N)) :
     observedKrausLeaves (1 : Operator N) (rationalHeatBathProgram choice) =
       List.ofFn (fun o : Fin N =>
@@ -84,6 +127,7 @@ theorem rationalHeatBathLeaves {N : ℕ} (choice : Option (Fin N)) :
     rw [List.ofFn_eq_map, flatten_singleton_map, List.ofFn_eq_map]
   exact key _
 
+/-- Casting a finite sum of natural numbers to extended nonnegative reals commutes with the sum. -/
 theorem sumNatCast {α : Type*} [Fintype α] (f : α → ℕ) :
     (∑ i, ((f i : ℕ) : ENNReal)) = ((∑ i, f i : ℕ) : ENNReal) := by
   classical
@@ -94,6 +138,8 @@ theorem sumNatCast {α : Type*} [Fintype α] (f : α → ℕ) :
       rw [ih]
       simp only [Nat.cast_add]
 
+/-- Natural-number weights divided by their positive total sum to one in extended nonnegative
+reals. -/
 theorem sumWeightDiv {N : ℕ} (w : Fin N → ℕ) (hW : 0 < weightTotal w) :
     (∑ i : Fin N, ((w i : ℕ) : ENNReal) / ((weightTotal w : ℕ) : ENNReal)) = 1 := by
   have hc : (∑ i : Fin N, ((w i : ℕ) : ENNReal)) = ((weightTotal w : ℕ) : ENNReal) := by
@@ -109,6 +155,7 @@ theorem sumWeightDiv {N : ℕ} (w : Fin N → ℕ) (hW : 0 < weightTotal w) :
         rw [hc]
         exact ENNReal.mul_inv_cancel (by positivity) (by simp)
 
+/-- The masses of all accepted-label events and the pending event sum to one. -/
 theorem rationalHeatBathEvent_sum {N R : ℕ} (w : Fin N → ℕ) (hW : 0 < weightTotal w) :
     (∑ c : Option (Fin N),
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (rationalRejectionRun w (Nat.clog 2 (weightTotal w)) R)
@@ -147,6 +194,7 @@ theorem rationalHeatBathEvent_sum {N R : ℕ} (w : Fin N → ℕ) (hW : 0 < weig
     (rational_effective_truncation_consumer N w R hW).2.1.trans (by norm_num)
   exact add_tsub_cancel_of_le (pow_le_one₀ (by positivity) hqle)
 
+/-- Normalized nonnegative integer weights with positive total define a density operator. -/
 theorem rationalHeatBathDensity_isDensity {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) : IsDensityOperator (rationalHeatBathDensity w hW) := by
   unfold rationalHeatBathDensity
@@ -159,6 +207,7 @@ theorem rationalHeatBathDensity_isDensity {N : ℕ} (w : Fin N → ℕ)
       rw [← Finset.sum_div, hs, div_self (by positivity)]
     exact_mod_cast h
 
+/-- The explicit heat-bath swap matrix equals the permutation matrix of `Equiv.swap i j`. -/
 theorem rationalHeatBathSwap_eq {N : ℕ} (i j : Fin N) :
     rationalHeatBathSwap i j = permMatrix (Equiv.swap i j) := by
   ext a b
@@ -170,6 +219,7 @@ theorem rationalHeatBathSwap_eq {N : ℕ} (i j : Fin N) :
       by_cases hai : a = i <;> by_cases haj : a = j <;>
       simp_all [rationalHeatBathSwap, permMatrix, Equiv.swap_apply_def, eq_comm]
 
+/-- Every optional-choice heat-bath permutation matrix is unitary. -/
 theorem rationalHeatBathPerm_unitary {N : ℕ} (c : Option (Fin N)) (i : Fin N) :
     rationalHeatBathPerm c i ∈ Matrix.unitaryGroup (Fin N) ℂ := by
   cases c with
@@ -178,6 +228,7 @@ theorem rationalHeatBathPerm_unitary {N : ℕ} (c : Option (Fin N)) (i : Fin N) 
     rw [rationalHeatBathPerm, rationalHeatBathSwap_eq]
     exact permMatrix_unitary (fun k => Equiv.swap_apply_self i j k)
 
+/-- The observed heat-bath program is well formed and has exactly one leaf per basis label. -/
 theorem rationalHeatBathProgram_spec {N : ℕ} (c : Option (Fin N)) :
     observedWellFormed (rationalHeatBathProgram c) ∧
       observedLeafCount (rationalHeatBathProgram c) = N := by
@@ -186,9 +237,12 @@ theorem rationalHeatBathProgram_spec {N : ℕ} (c : Option (Fin N)) :
     exact ⟨rationalHeatBathPerm_unitary c i, trivial⟩
   · simp [rationalHeatBathProgram, observedLeafCount]
 
+/-- The branch operator obtained by projecting onto the measured label and then applying its
+chosen permutation. -/
 noncomputable def rationalHeatBathLeaf {N : ℕ} (c : Option (Fin N)) (i : Fin N) :
     Operator N := rationalHeatBathPerm c i * Projector ({i} : Finset (Fin N))
 
+/-- The operator of the corresponding observed program leaf is `rationalHeatBathLeaf`. -/
 theorem rationalHeatBathLeaf_actual {N : ℕ} (c : Option (Fin N)) (i : Fin N) :
     (observedLeaf 1 (rationalHeatBathProgram c)
       (Fin.cast (rationalHeatBathProgram_spec c).2.symm i)).operator =
@@ -196,6 +250,8 @@ theorem rationalHeatBathLeaf_actual {N : ℕ} (c : Option (Fin N)) (i : Fin N) :
   unfold observedLeaf
   simp [rationalHeatBathLeaves, rationalHeatBathLeaf, Finset.filter_eq']
 
+/-- For a fixed optional choice, the heat-bath leaf operators satisfy the Kraus completeness
+identity. -/
 theorem rationalHeatBathLeaf_complete {N : ℕ} (c : Option (Fin N)) :
     (∑ i, (rationalHeatBathLeaf c i)ᴴ * rationalHeatBathLeaf c i) = 1 := by
   have h := observedKrausLeaves_complete (1 : Operator N)
@@ -204,11 +260,13 @@ theorem rationalHeatBathLeaf_complete {N : ℕ} (c : Option (Fin N)) :
   rw [rationalHeatBathLeaves, List.map_ofFn, List.sum_ofFn] at h
   simpa [rationalHeatBathLeaf, Finset.filter_eq'] using h
 
+/-- The real mass of an optional label outcome after `R` rejection-sampling trials. -/
 noncomputable def rationalHeatBathMass {N : ℕ} (w : Fin N → ℕ) (R : ℕ)
     (c : Option (Fin N)) : ℝ :=
   (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (rationalRejectionRun w (Nat.clog 2 (weightTotal w)) R)
     (rationalHeatBathEvent R c)).toReal
 
+/-- The real masses of all optional heat-bath choices sum to one. -/
 theorem rationalHeatBathMass_sum {N : ℕ} (w : Fin N → ℕ) (hW : 0 < weightTotal w)
     (R : ℕ) : ∑ c, rationalHeatBathMass w R c = 1 := by
   unfold rationalHeatBathMass
@@ -216,15 +274,19 @@ theorem rationalHeatBathMass_sum {N : ℕ} (w : Fin N → ℕ) (hW : 0 < weightT
     ((Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _).trans_lt ENNReal.one_lt_top)),
     rationalHeatBathEvent_sum w hW, ENNReal.toReal_one]
 
+/-- The observed heat-bath leaf operator scaled by the square root of its classical choice
+probability. -/
 noncomputable def rationalHeatBathKraus {N : ℕ} (w : Fin N → ℕ) (R : ℕ)
     (z : Fin N × Option (Fin N)) : Operator N :=
   (Real.sqrt (rationalHeatBathMass w R z.2) : ℂ) •
     (observedLeaf 1 (rationalHeatBathProgram z.2)
       (Fin.cast (rationalHeatBathProgram_spec z.2).2.symm z.1)).operator
 
+/-- Complex conjugation fixes the cast of any real number. -/
 private theorem star_real (r : ℝ) : star (r : ℂ) = (r : ℂ) := by
   simp [RCLike.star_def, Complex.conj_ofReal]
 
+/-- The square of the complex cast of the square root of a heat-bath mass equals that mass. -/
 private theorem heatBath_sqrt_sq {N : ℕ} (w : Fin N → ℕ) (R : ℕ)
     (c : Option (Fin N)) :
     (Real.sqrt (rationalHeatBathMass w R c) : ℂ) *
@@ -232,6 +294,7 @@ private theorem heatBath_sqrt_sq {N : ℕ} (w : Fin N → ℕ) (R : ℕ)
   rw [← Complex.ofReal_mul, ← pow_two,
       Real.sq_sqrt (show 0 ≤ rationalHeatBathMass w R c from ENNReal.toReal_nonneg)]
 
+/-- The classically weighted heat-bath Kraus operators satisfy the completeness identity. -/
 theorem rationalHeatBathKraus_complete {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) :
     (∑ z, (rationalHeatBathKraus w R z)ᴴ * rationalHeatBathKraus w R z) = 1 := by
@@ -243,10 +306,13 @@ theorem rationalHeatBathKraus_complete {N : ℕ} (w : Fin N → ℕ)
   simp_rw [← Finset.smul_sum, rationalHeatBathLeaf_complete]
   rw [← Finset.sum_smul, hs, one_smul]
 
+/-- The quantum instrument defined by the weighted heat-bath Kraus family. -/
 noncomputable def rationalHeatBathInstrument {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) : Instrument (Fin N × Option (Fin N)) N N :=
   Instrument.ofKraus (rationalHeatBathKraus w R) (rationalHeatBathKraus_complete w hW R)
 
+/-- Each instrument branch is the corresponding leaf conjugation multiplied by its classical
+choice probability. -/
 theorem rationalHeatBathInstrument_branch {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) (i : Fin N) (c : Option (Fin N)) (X : Operator N) :
     (rationalHeatBathInstrument w hW R).branch (i,c) X =
@@ -256,6 +322,7 @@ theorem rationalHeatBathInstrument_branch {N : ℕ} (w : Fin N → ℕ)
     Matrix.conjTranspose_smul, star_real, Matrix.smul_mul, Matrix.mul_smul,
     smul_smul, heatBath_sqrt_sq]
 
+/-- The trace of a leaf-conjugated operator equals its diagonal entry at the measured label. -/
 theorem rationalHeatBathLeaf_trace {N : ℕ} (c : Option (Fin N)) (i : Fin N)
     (X : Operator N) : Matrix.trace
       (rationalHeatBathLeaf c i * X * (rationalHeatBathLeaf c i)ᴴ) = X i i := by
@@ -268,6 +335,8 @@ theorem rationalHeatBathLeaf_trace {N : ℕ} (c : Option (Fin N)) (i : Fin N)
     conjBranch_projector_apply, Matrix.trace_diagonal]
   simp
 
+/-- The weight-normalized target is a density, the observed programs are well formed, and branch
+probabilities equal classical choice masses times the real input diagonal entries. -/
 theorem rational_heat_bath_actual_instrument_and_program :
     ∀ (N R : ℕ) (w : Fin N → ℕ) (hW : 0 < weightTotal w),
       IsDensityOperator (rationalHeatBathDensity w hW) ∧
@@ -288,6 +357,8 @@ theorem rational_heat_bath_actual_instrument_and_program :
     rationalHeatBathMass w R c * (X i i).re
   simp only [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, zero_mul, sub_zero]
 
+/-- A heat-bath leaf is the matrix unit sending the measured label to the selected label, with
+the measured label used as default. -/
 theorem rationalHeatBathLeaf_eq_single {N : ℕ} (c : Option (Fin N)) (i : Fin N) :
     rationalHeatBathLeaf c i = Matrix.single (c.getD i) i (1 : ℂ) := by
   ext a b
@@ -301,6 +372,8 @@ theorem rationalHeatBathLeaf_eq_single {N : ℕ} (c : Option (Fin N)) (i : Fin N
     by_cases hbi : b = i <;> by_cases hai : a = i <;> by_cases haj : a = j <;>
       simp_all [rationalHeatBathPerm, rationalHeatBathSwap, eq_comm]
 
+/-- Conjugation by a heat-bath leaf places the measured diagonal entry at its selected output
+label and zero elsewhere. -/
 theorem rationalHeatBathLeaf_conj {N : ℕ} (c : Option (Fin N)) (i : Fin N)
     (X : Operator N) :
     rationalHeatBathLeaf c i * X * (rationalHeatBathLeaf c i)ᴴ =
@@ -310,6 +383,8 @@ theorem rationalHeatBathLeaf_conj {N : ℕ} (c : Option (Fin N)) (i : Fin N)
   by_cases hab : a = b <;> by_cases ha : a = c.getD i <;> by_cases hb : b = c.getD i <;>
     simp_all [Matrix.mul_apply, Matrix.single, Matrix.conjTranspose_apply, eq_comm]
 
+/-- With positive total weight, the one-trial heat-bath rejection probability lies between zero
+and one half. -/
 theorem rationalHeatBathReject_bounds {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) :
     0 ≤ rationalHeatBathReject w ∧ rationalHeatBathReject w ≤ 1/2 := by
@@ -319,6 +394,8 @@ theorem rationalHeatBathReject_bounds {N : ℕ} (w : Fin N → ℕ)
   norm_num [rationalHeatBathReject] at h' ⊢
   exact h'
 
+/-- The probability of no accepted label after `R` trials is the one-trial rejection probability
+raised to `R`. -/
 theorem rationalHeatBathMass_none {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) :
     rationalHeatBathMass w R none = rationalHeatBathReject w ^ R := by
@@ -329,6 +406,8 @@ theorem rationalHeatBathMass_none {N : ℕ} (w : Fin N → ℕ)
     ENNReal.toReal_pow]
   rfl
 
+/-- The mass of an accepted label is its normalized weight times one minus the probability that
+all trials reject. -/
 theorem rationalHeatBathMass_some {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) (j : Fin N) :
     rationalHeatBathMass w R (some j) =
@@ -346,6 +425,8 @@ theorem rationalHeatBathMass_some {N : ℕ} (w : Fin N → ℕ)
     ENNReal.toReal_pow]
   simp [rationalHeatBathReject]
 
+/-- Forgetting the heat-bath outcome gives a mixture of trace-weighted target replacement and
+computational-basis dephasing. -/
 theorem rationalHeatBathInstrument_map {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) (X : Operator N) :
     (rationalHeatBathInstrument w hW R).forget.map X =
@@ -367,6 +448,8 @@ theorem rationalHeatBathInstrument_map {N : ℕ} (w : Fin N → ℕ)
     ring
   · simp [rationalHeatBathDensity, hab]
 
+/-- The heat-bath target is stationary, the rejection probability is at most one half, and the
+channel has the explicit replacement-and-dephasing formula. -/
 theorem rational_heat_bath_derived_channel_and_stationarity :
     ∀ (N R : ℕ) (w : Fin N → ℕ) (hW : 0 < weightTotal w),
       0 ≤ rationalHeatBathReject w ∧ rationalHeatBathReject w ≤ 1/2 ∧
@@ -384,12 +467,15 @@ theorem rational_heat_bath_derived_channel_and_stationarity :
   rw [hd, ← add_smul]
   simp
 
+/-- The iterated heat-bath quantum channel, starting with the identity at power zero. -/
 noncomputable def rationalHeatBathPower {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) : ℕ → QuantumChannel N N
   | 0 => QuantumChannel.id N
   | m + 1 => (rationalHeatBathPower w hW R m).comp
       (rationalHeatBathInstrument w hW R).forget
 
+/-- Forgetting the computational-basis projective measurement gives the diagonal part of an
+operator. -/
 theorem rationalHeatBath_projective_map {N : ℕ} (X : Operator N) :
     (projectiveInstrument (D := N)).forget.map X = Matrix.diagonal (fun i => X i i) := by
   rw [Instrument.forget_apply]
@@ -397,6 +483,8 @@ theorem rationalHeatBath_projective_map {N : ℕ} (X : Operator N) :
   ext a b
   by_cases hab : a = b <;> simp [Matrix.sum_apply, hab]
 
+/-- After `m + 1` heat-bath steps, the residual dephasing coefficient is the rejection
+probability raised to `R * (m + 1)`. -/
 theorem rationalHeatBathPower_succ_map {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R m : ℕ) (X : Operator N) :
     (rationalHeatBathPower w hW R (m+1)).map X =
@@ -422,6 +510,8 @@ theorem rationalHeatBathPower_succ_map {N : ℕ} (w : Fin N → ℕ)
       ring
     · simp [Matrix.add_apply, Matrix.smul_apply, rationalHeatBathDensity, hab]
 
+/-- For a positive number of heat-bath steps, the channel tensored with a reference identity is
+the stated mixture of target replacement and local dephasing. -/
 theorem rational_heat_bath_actual_reference_power_formula :
     ∀ (N R m r : ℕ) (w : Fin N → ℕ) (hW : 0 < weightTotal w)
       (X : Matrix (Fin N × Fin r) (Fin N × Fin r) ℂ), 0 < m →
@@ -442,11 +532,15 @@ theorem rational_heat_bath_actual_reference_power_formula :
   simp only [Nat.succ_eq_add_one]
   ring
 
+/-- The trace norm of a positive semidefinite matrix equals the real part of its trace. -/
 private theorem heatBath_psd_norm {I : Type*} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.PosSemidef) : Matrix.traceNorm X = (Matrix.trace X).re := by
   have h := congrArg Complex.re hX.traceNorm_eq_trace
   simpa using h
 
+/-- For positive semidefinite system-reference inputs and positive step count, the replacement
+error is at most twice the rejection factor times the input trace norm, yielding the stated
+binary precision budget. -/
 theorem rational_heat_bath_derived_reference_mixing_budget :
     ∀ (N R m s r : ℕ) (w : Fin N → ℕ) (hW : 0 < weightTotal w)
       (X : Matrix (Fin N × Fin r) (Fin N × Fin r) ℂ), 0 < m → X.PosSemidef →

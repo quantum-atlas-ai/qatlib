@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.C2GradientAlg.ValueOracleGradientConsumers
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+/-!
+# Rounded value oracles and gradient precision
+
+This module rounds real phase tables to modular value labels and prepares their character
+register with an inverse Fourier transform. It transfers rounding and phase-error bounds to
+gradient readout, including a cosine-squared guarantee for affine targets, in the construction
+of [Jordan2005Gradient].
+
+## Main statements
+
+* `gradient_value_rounded_table_precision`: modular phase error is at most `1/(2*Q)`.
+* `gradient_value_c2_rounded_consumer`: a rounded oracle gives an explicit joint coordinate
+  success bound for a function with bounded second derivative.
+* `gradient_affine_precision_cos2_window`: bounded phase error gives probability at least `cos θ
+  ^ 2` at the affine output.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -29,19 +51,26 @@ namespace Qatlib.Concepts.GradientOracle.ReadoutWindow
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The modular value table obtained by rounding `Q*w z` to the nearest integer and reducing
+modulo `Q`. -/
 noncomputable def gradientValueRoundedTable (d M Q : ℕ) [NeZero Q]
     (w : GradientGrid d M → ℝ) : GradientGrid d M → ZMod Q :=
   fun z => ((round ((Q : ℝ) * w z) : ℤ) : ZMod Q)
 
+/-- The single fixed-gate circuit applying the inverse modular Fourier transform to the target
+register and identity to the data register. -/
 noncomputable def gradientCharPrep (d M Q : ℕ) [NeZero Q] :
     Circuit (GradientGrid d M × ZMod Q) :=
   [Step.gate (TensorGate (1 : Matrix (GradientGrid d M) (GradientGrid d M) ℂ)
     ((zmodQFTGate (N := Q))ᴴ))]
 
+/-- The circuit word formed by `gradientCharPrep d M Q ++ gradientValueWord d M Q`. -/
 noncomputable def gradientValueProgram (d M Q : ℕ) [NeZero Q] :
     Circuit (GradientGrid d M × ZMod Q) :=
   gradientCharPrep d M Q ++ gradientValueWord d M Q
 
+/-- The phase decoded from the rounded value table differs from the target real phase by at most
+`1/(2*Q)` modulo an integer. See [Jordan2005Gradient]. -/
 theorem gradient_value_rounded_table_precision :
     ∀ (d M Q : ℕ) [NeZero Q] (w : GradientGrid d M → ℝ) (z : GradientGrid d M),
       ∃ k : ℤ, |gradientValuePhase Q (gradientValueRoundedTable d M Q w) z-w z-k| ≤ 1/(2*Q) := by
@@ -68,6 +97,9 @@ theorem gradient_value_rounded_table_precision :
     _ ≤ (1/2)/(Q : ℝ) := div_le_div_of_nonneg_right hb hQ.le
     _ = _ := by ring
 
+/-- Under the stated smoothness, Hessian, derivative-range, and grid assumptions, rounded value
+readout estimates all signed derivative coordinates within `w` with probability at least
+`1-16*d/(M*w)-π*M*H*h*d/2-2*π/Q`. See [Jordan2005Gradient]. -/
 theorem gradient_value_c2_rounded_consumer :
     ∀ (d M Q : ℕ) (hM : 0 < M) [NeZero Q]
       (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d)) (H h w : ℝ),
@@ -92,6 +124,9 @@ theorem gradient_value_c2_rounded_consumer :
   rw [hδ] at he
   exact he
 
+/-- The inverse target Fourier gate maps the target basis state at one to `gradientKickState`,
+leaving the zero data state unchanged; the preparation circuit has zero queries and one
+gate. See [Jordan2005Gradient]. -/
 theorem gradient_char_prep_inverse_qft :
     ∀ (d M : ℕ) (hM : 0 < M) (Q : ℕ) [NeZero Q],
       ApplyGate (TensorGate (1 : Matrix (GradientGrid d M) (GradientGrid d M) ℂ)
@@ -110,6 +145,8 @@ theorem gradient_char_prep_inverse_qft :
   · rw [applyGate_tensorGate,applyGate_one,hchar]
   · simp [gradientCharPrep,QueryCount,GateCount]
 
+/-- Executing the same list of unitary fixed gates on two states preserves their inner product,
+independently of the supplied oracles. -/
 private theorem gradient_precision_gate_list_inner {I : Type} [Fintype I] [DecidableEq I]
     (O P : Matrix I I ℂ) (gs : List (Matrix I I ℂ))
     (hgs : ∀ U ∈ gs, U ∈ Matrix.unitaryGroup I ℂ) (ψ χ : QState I) :
@@ -121,6 +158,7 @@ private theorem gradient_precision_gate_list_inner {I : Type} [Fintype I] [Decid
     rw [ih (fun V hV => hgs V (List.mem_cons_of_mem _ hV))]
     exact inner_applyGate (hgs U List.mem_cons_self) ψ χ
 
+/-- The real overlap of two scalar phase rotations of `u` equals `‖u‖^2 * cos (2*π*(b-a))`. -/
 private theorem gradient_precision_phase_inner_re (a b : ℝ) (u : ℂ) :
     ((starRingEnd ℂ) (Complex.exp (2*Real.pi*Complex.I*(a : ℂ))*u)*
       (Complex.exp (2*Real.pi*Complex.I*(b : ℂ))*u)).re =
@@ -146,6 +184,8 @@ private theorem gradient_precision_phase_inner_re (a b : ℝ) (u : ℂ) :
         Complex.exp_ofReal_mul_I_re]
       ring
 
+/-- If `b-a` is within `θ/(2*π)` of an integer and `θ ≤ π`, then `cos (2*π*(b-a))` is at least
+`cos θ`. -/
 private theorem gradient_precision_cos_lower (a b θ : ℝ) (hθ : θ ≤ Real.pi)
     (h : ∃ k : ℤ, |b-a-k| ≤ θ/(2*Real.pi)) : Real.cos θ ≤ Real.cos (2*Real.pi*(b-a)) := by
   obtain ⟨k,hk⟩ := h
@@ -160,6 +200,8 @@ private theorem gradient_precision_cos_lower (a b θ : ℝ) (hθ : θ ≤ Real.p
   rw [he,Real.cos_sub_int_mul_two_pi] at hc
   exact hc
 
+/-- For `0 ≤ θ ≤ π`, pointwise modular phase discrepancy at most `θ/(2*π)` gives
+gradient-readout overlap norm at least `cos θ`. See [Jordan2005Gradient]. -/
 theorem gradient_readout_inner_phase_error :
     ∀ (d M : ℕ) (hM : 0 < M) (φ phiHat : GradientGrid d M → ℝ) (θ : ℝ),
       0 ≤ θ → θ ≤ Real.pi →
@@ -220,6 +262,9 @@ theorem gradient_readout_inner_phase_error :
   rw [hu,one_mul] at he
   exact he
 
+/-- If a phase is within `θ/(2*π)` modulo integers of the affine phase for grid output `q`, with
+`0 ≤ θ ≤ π/2`, its readout probability at `q` is at least `cos θ ^ 2`. See
+[Jordan2005Gradient]. -/
 theorem gradient_affine_precision_cos2_window :
     ∀ (d M : ℕ) (hM : 0 < M) (q : GradientGrid d M) (c θ : ℝ) (phiHat : GradientGrid d M → ℝ),
       0 ≤ θ → θ ≤ Real.pi/2 →

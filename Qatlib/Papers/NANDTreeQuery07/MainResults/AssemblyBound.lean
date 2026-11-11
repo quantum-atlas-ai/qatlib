@@ -8,11 +8,36 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 
+/-!
+# Arithmetic Assembly of the NAND Tree Query Bound
+
+This module supplies the real variable estimates used to assemble the discrete query bound in
+[ChildsEtAl2009Formula]. `log_rpow_le_mul_rpow` absorbs a nonnegative power of a logarithm into
+any positive power of its argument, and `sqrt_log_pow_le_rpow` applies this estimate to the
+simulation cost expression.
+
+## Main statements
+
+* `log_rpow_le_mul_rpow` bounds `(log x)^a` by a positive constant times `x^eta` for `x >= 1`,
+  `a >= 0`, and `eta > 0`.
+* `sqrt_log_pow_le_rpow` bounds `(x * log x)^((1 + delta) / 2)` by a constant times `x^(1 / 2 +
+  epsilon)` when `delta >= 0` and `delta / 2 < epsilon`.
+* `discrete_query_bound_of_step_bound` converts the stated bound on `K` simulation steps into a
+  bound of this form on `2 * K` queries, with `N = 2^n`.
+
+## References
+
+* [Childs et al., 2009][ChildsEtAl2009Formula]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.NANDTreeQuery07.MainResults
 
+/-- For every nonnegative `a` and positive `η`, there is a positive constant `C` such that `(log
+x)^a <= C * x^η` for all real `x >= 1`. This is a scalar estimate associated with the query
+bound in [ChildsEtAl2009Formula]. -/
 theorem log_rpow_le_mul_rpow {a η : ℝ} (ha : 0 ≤ a) (hη : 0 < η) :
     ∃ C : ℝ, 0 < C ∧ ∀ x : ℝ, 1 ≤ x → Real.log x ^ a ≤ C * x ^ η := by
   rcases eq_or_lt_of_le ha with rfl | hapos
@@ -41,6 +66,9 @@ theorem log_rpow_le_mul_rpow {a η : ℝ} (ha : 0 ≤ a) (hη : 0 < η) :
     calc Real.log x ^ a ≤ (x ^ e / e) ^ a := hmono
       _ = (1 / e ^ a) * x ^ η := htarget
 
+/-- If `δ >= 0` and `δ / 2 < ε`, there is a positive constant `C` such that `(x * log x)^((1 +
+δ) / 2) <= C * x^(1 / 2 + ε)` for every real `x >= 1`. This is a scalar estimate associated
+with the query bound in [ChildsEtAl2009Formula]. -/
 theorem sqrt_log_pow_le_rpow (δ ε : ℝ) (hδ : 0 ≤ δ) (hε : δ / 2 < ε) :
     ∃ C : ℝ, 0 < C ∧ ∀ x : ℝ, 1 ≤ x →
       (x * Real.log x) ^ ((1 + δ) / 2) ≤ C * x ^ (1 / 2 + ε) := by
@@ -69,6 +97,10 @@ theorem sqrt_log_pow_le_rpow (δ ε : ℝ) (hδ : 0 ≤ δ) (hε : δ / 2 < ε) 
         have hexp : (1 + δ) / 2 + (ε - δ / 2) = 1 / 2 + ε := by ring
         rw [hexp]
 
+/-- For `δ >= 0`, `δ / 2 < ε`, and positive `C₀` and `c`, converts the stated simulation step
+bound on `K` into `2 * K <= C * (2^n)^(1 / 2 + ε)`. The positive constant `C` is uniform in
+`n` and `K`, giving the conditional arithmetic assembly associated with the query bound in
+[ChildsEtAl2009Formula]. -/
 theorem discrete_query_bound_of_step_bound
     (ε δ : ℝ) (hδ : 0 ≤ δ) (hε : δ / 2 < ε)
     (C₀ c : ℝ) (hC₀ : 0 < C₀) (hc : 0 < c) :

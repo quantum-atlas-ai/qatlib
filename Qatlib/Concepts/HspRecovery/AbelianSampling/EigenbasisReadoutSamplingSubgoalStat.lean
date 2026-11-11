@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+/-!
+# Specification of eigenbasis readout probabilities
+
+`EigenbasisReadoutSamplingSubgoal` specifies the Born probability of phase label events after
+controlled powers and an inverse Fourier transform. For an orthonormal eigenvector family on the
+exact phase grid and normalized coefficients, the event weight is the sum of squared coefficient
+norms for its labels. [Kitaev1995]
+
+## Main statements
+
+* `EigenbasisReadoutSamplingSubgoal`: the proposition specifying exact phase label event
+  probabilities.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -14,6 +33,9 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 
+/-- The proposition that exact phase readout on a normalized superposition of orthonormal
+eigenvectors gives each label event the sum of squared coefficient norms over terms whose
+phase labels lie in that event. -/
 def EigenbasisReadoutSamplingSubgoal : Prop :=
   ∀ (M : ℕ), 0 < M →
   ∀ (Idx I : Type) [Fintype Idx] [DecidableEq Idx] [Fintype I] [DecidableEq I]

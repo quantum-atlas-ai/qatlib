@@ -17,6 +17,30 @@ import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
 import Mathlib.Topology.ContinuousMap.Compact
 import Mathlib.Topology.MetricSpace.Cauchy
 import Mathlib.Topology.Order.IntermediateValue
+
+/-!
+# Volterra evolution and bounded oracle logarithms
+
+This module proves existence, uniqueness, and unitarity for `sourceVolterra` with an entrywise
+integrable Hermitian matrix kernel. Continuous Hermitian approximations give the evolution,
+while `sourceKernelMass` supports the uniqueness argument.
+
+Spectral decompositions establish Hermitian and norm bounds for `sourceLog` and
+`sourceLogOracle` and identify their time-one evolutions with the corresponding unitaries. These
+matrix spectral constructions use the background of [Bhatia1997].
+
+## Main statements
+
+* `sourceVolterra_exists` and `sourceVolterra_unique`: existence and uniqueness on the time
+  interval.
+* `sourceLog_hermitian_norm`: Hermitian logarithms have norm at most π.
+* `volterraAndOracleLogSemantics`: the combined evolution and oracle-logarithm contract.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -34,6 +58,8 @@ namespace Qatlib.Concepts.GramQueryCore.ModelSemantics
 open Matrix
 open scoped Classical BigOperators InnerProductSpace Matrix.Norms.L2Operator
 
+/-- A finite normal complex matrix possesses an orthonormal basis of eigenvectors for its action
+on Euclidean space. -/
 theorem sourceNormal_euclidean_eigenbasis (I : Type) [Fintype I] [DecidableEq I] (U : Matrix I I ℂ)
     (hu : Uᴴ*U = U*Uᴴ) :
     ∃ (b : OrthonormalBasis I ℂ (EuclideanSpace ℂ I)) (μ : I → ℂ),
@@ -106,6 +132,8 @@ theorem sourceNormal_euclidean_eigenbasis (I : Type) [Fintype I] [DecidableEq I]
   intro j
   simpa only [f,OrthonormalBasis.reindex_apply] using! heig (e.symm j)
 
+/-- A finite normal complex matrix possesses a unitary eigenvector matrix `E` satisfying `A * E
+= E * Matrix.diagonal μ`. -/
 theorem sourceNormal_matrix_eigenbasis (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (hA : Aᴴ*A = A*Aᴴ) :
     ∃ (E : Matrix I I ℂ) (μ : I → ℂ),
@@ -122,6 +150,8 @@ theorem sourceNormal_matrix_eigenbasis (I : Type) [Fintype I] [DecidableEq I] (A
   rw [Matrix.mul_diagonal]
   simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct, mul_comm] using! congrFun h i
 
+/-- A unitary matrix has a unitary diagonalization with eigenvalues `exp (iθ)` and angles in
+`(-π, π]`. -/
 theorem sourceUnitary_principal_diagonalization (H : Type) [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     ∃ (V : Matrix H H ℂ) (angles : H → ℝ),
@@ -164,6 +194,8 @@ theorem sourceUnitary_principal_diagonalization (H : Type) [Fintype H] [Decidabl
     _ = (U*V)*Vᴴ := (Matrix.mul_assoc _ _ _).symm
     _ = (V*Matrix.diagonal μ)*Vᴴ := by rw [hUV]
 
+/-- A unitary matrix has a unitary diagonalization with eigenvalues `exp (-iθ)` and angles in
+`(-π, π]`. -/
 theorem sourceUnitary_negative_diagonalization (H : Type) [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     ∃ (V : Matrix H H ℂ) (angles : H → ℝ),
@@ -183,6 +215,8 @@ theorem sourceUnitary_negative_diagonalization (H : Type) [Fintype H] [Decidable
   simpa only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,
     Matrix.diagonal_conjTranspose,hs,Matrix.mul_assoc] using! hh
 
+/-- A unitary matrix and its chosen `sourceLog` share a unitary eigenbasis, with logarithm
+eigenvalues in `(-π, π]` and unitary eigenvalues `exp (-iθ)`. -/
 theorem sourceLog_representation (H : Type) [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     ∃ (V : Matrix H H ℂ) (angles : H → ℝ),
@@ -195,6 +229,7 @@ theorem sourceLog_representation (H : Type) [Fintype H] [DecidableEq H]
   have hv := Classical.choose_spec (Classical.choose_spec hs)
   exact ⟨V,angles,hv.1,hv.2.1,hv.2.2,by simp only [sourceLog,dif_pos hs,V,angles]⟩
 
+/-- The chosen logarithm of a unitary matrix is Hermitian and has operator norm at most π. -/
 theorem sourceLog_hermitian_norm (H : Type) [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     (sourceLog U).IsHermitian ∧ ‖sourceLog U‖≤Real.pi := by
@@ -225,6 +260,8 @@ local instance sourceMatrixPseudoMetrizable (H : Type) [Fintype H] :
   change TopologicalSpace.PseudoMetrizableSpace (H → H → ℂ)
   infer_instance
 
+/-- Entrywise interval integrability of a finite complex matrix function implies interval
+integrability of the matrix function. -/
 theorem sourceVolterra_matrix_integrable (H : Type) [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T : ℝ)
     (hK : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T) :
@@ -248,14 +285,18 @@ theorem sourceVolterra_matrix_integrable (H : Type) [Fintype H] [DecidableEq H]
   rw [hf] at hi
   exact hi
 
+/-- The Hermitian part `(A + Aᴴ) / 2` of a complex matrix. -/
 def sourceHermitianPart {H : Type} (A : Matrix H H ℂ) : Matrix H H ℂ :=
   (1/2 : ℂ) • (A+Aᴴ)
 
+/-- The Hermitian part of any complex matrix is Hermitian. -/
 theorem sourceHermitianPart_hermitian {H : Type} (A : Matrix H H ℂ) :
     (sourceHermitianPart A).IsHermitian := by
   change (sourceHermitianPart A)ᴴ=sourceHermitianPart A
   simp [sourceHermitianPart,Matrix.conjTranspose_smul,Matrix.conjTranspose_add,add_comm]
 
+/-- Taking the Hermitian part of an approximation does not increase its operator-norm distance
+from a Hermitian matrix. -/
 theorem sourceHermitianPart_error {H : Type} [Fintype H] [DecidableEq H]
     (K A : Matrix H H ℂ) (hK : K.IsHermitian) :
     ‖K-sourceHermitianPart A‖≤‖K-A‖ := by
@@ -270,6 +311,8 @@ theorem sourceHermitianPart_error {H : Type} [Fintype H] [DecidableEq H]
   norm_num only [norm_div,norm_one,Complex.norm_ofNat]
   linarith
 
+/-- An entrywise integrable Hermitian kernel on `[0, T]` can be approximated in integrated
+operator norm to any positive tolerance by a globally continuous Hermitian kernel. -/
 theorem sourceVolterra_continuous_approx (H : Type) [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T ε : ℝ) (hT : 0≤T) (hε : 0<ε)
     (hi : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T)
@@ -301,6 +344,8 @@ theorem sourceVolterra_continuous_approx (H : Type) [Fintype H] [DecidableEq H]
   rw [he]
   exact hA
 
+/-- The distance between evolutions of two continuous Hermitian kernels at nonnegative time is
+bounded by the integral of their operator-norm difference. -/
 theorem sourceContinuousEvolution_stability (H : Type) [Fintype H] [DecidableEq H]
     (G K : ℝ → Matrix H H ℂ) (hG : Continuous G) (hK : Continuous K)
     (hGh : ∀ t,(G t).IsHermitian) (hKh : ∀ t,(K t).IsHermitian)
@@ -342,6 +387,8 @@ theorem sourceContinuousEvolution_stability (H : Type) [Fintype H] [DecidableEq 
   rw [norm_sub_rev]
   exact hn
 
+/-- Continuous Hermitian approximations with integrated errors at most `ε` and `η` generate
+evolutions within `ε + η` throughout `[0, T]`. -/
 theorem sourceVolterra_approx_close (H : Type) [Fintype H] [DecidableEq H]
     (K G J : ℝ → Matrix H H ℂ) (T ε η : ℝ) (hT : 0≤T)
     (hKi : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T)
@@ -372,6 +419,9 @@ theorem sourceVolterra_approx_close (H : Type) [Fintype H] [DecidableEq H]
   exact (sourceContinuousEvolution_stability H G J hG hJ hGh hJh t ht.1).trans
     (hsmall.trans hbig)
 
+/-- An integrable Hermitian kernel has continuous Hermitian approximations whose evolutions
+converge uniformly to a continuous unitary path starting at the identity, with error at most
+`2⁻ⁿ`. -/
 theorem sourceVolterra_unitary_limit (H : Type) [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T)
     (hi : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T)
@@ -440,14 +490,18 @@ theorem sourceVolterra_unitary_limit (H : Type) [Fintype H] [DecidableEq H]
     rw [Matrix.mem_unitaryGroup_iff']
     exact tendsto_nhds_unique hp hc
 
+/-- Extend a continuous matrix path on `[0, T]` to the real line by assigning the identity
+outside the interval. -/
 def sourceIntervalPath {H : Type} [Fintype H] [DecidableEq H]
     (T : ℝ) (U : C(Set.Icc 0 T,Matrix H H ℂ)) (t : ℝ) : Matrix H H ℂ :=
   if ht : t∈Set.Icc 0 T then U ⟨t,ht⟩ else 1
 
+/-- The extension `sourceIntervalPath` agrees with the original path at every point of `[0, T]`. -/
 theorem sourceIntervalPath_eq {H : Type} [Fintype H] [DecidableEq H]
     (T : ℝ) (U : C(Set.Icc 0 T,Matrix H H ℂ)) (t : ℝ) (ht : t∈Set.Icc 0 T) :
     sourceIntervalPath T U t=U ⟨t,ht⟩ := by simp [sourceIntervalPath,ht]
 
+/-- The extension `sourceIntervalPath` is continuous on its defining closed interval. -/
 theorem sourceIntervalPath_continuousOn {H : Type} [Fintype H] [DecidableEq H]
     (T : ℝ) (U : C(Set.Icc 0 T,Matrix H H ℂ)) :
     ContinuousOn (sourceIntervalPath T U) (Set.Icc 0 T) := by
@@ -458,6 +512,8 @@ theorem sourceIntervalPath_continuousOn {H : Type} [Fintype H] [DecidableEq H]
   rw [he]
   exact U.continuous
 
+/-- The ordered evolution of a continuous kernel satisfies the matrix Volterra equation with
+integrand `-i G(s) U(s)` and initial value the identity. -/
 theorem sourceOrderedEvolution_volterra_integral (H : Type) [Fintype H] [DecidableEq H]
     (G : ℝ → Matrix H H ℂ) (hG : Continuous G) (t : ℝ) :
     orderedEvolution (fun s => Complex.I • G s) 0 t=1+
@@ -476,6 +532,8 @@ theorem sourceOrderedEvolution_volterra_integral (H : Type) [Fintype H] [Decidab
   simp only [orderedEvolution_self] at he
   exact (eq_add_of_sub_eq he.symm).trans (add_comm _ _)
 
+/-- Uniform path error and integrated kernel error bounded by nonnegative `e` bound the
+difference of the Volterra integrals by `e + e * ∫ ‖K‖` on `[0, T]`. -/
 theorem sourceVolterra_integral_error (H : Type) [Fintype H] [DecidableEq H]
     (K G F V : ℝ → Matrix H H ℂ) (T e : ℝ) (hT : 0≤T) (he : 0≤e)
     (hKi : IntervalIntegrable K MeasureTheory.volume 0 T)
@@ -533,12 +591,15 @@ theorem sourceVolterra_integral_error (H : Type) [Fintype H] [DecidableEq H]
   rw [intervalIntegral.integral_add hdiff (hKn.const_mul e),intervalIntegral.integral_const_mul]
   exact add_le_add hGclose le_rfl
 
+/-- Evaluation of a matrix at the entry `(i, j)`, as a continuous real-linear map. -/
 def sourceMatrixEntryCLM (H : Type) [Fintype H] (i j : H) : Matrix H H ℂ →L[ℝ] ℂ where
   toFun A := A i j
   map_add' _ _ := rfl
   map_smul' _ _ := rfl
   cont := (continuous_apply j).comp (continuous_apply i)
 
+/-- An entrywise integrable Hermitian kernel on a nonnegative time interval possesses a unitary
+solution of `sourceVolterra`. -/
 theorem sourceVolterra_exists (H : Type) [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T)
     (hi : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T)
@@ -599,6 +660,8 @@ theorem sourceVolterra_exists (H : Type) [Fintype H] [DecidableEq H]
     rw [sourceIntervalPath_eq T U t ht]
     exact hUu ⟨t,ht⟩
 
+/-- A `sourceVolterra` solution for an interval-integrable kernel satisfies the matrix integral
+equation, and its matrix integrand is interval integrable. -/
 theorem sourceVolterra_matrix_equation (H : Type) [Fintype H] [DecidableEq H]
     (K V : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T)
     (hK : IntervalIntegrable K MeasureTheory.volume 0 T) (hV : sourceVolterra K T V) :
@@ -618,6 +681,8 @@ theorem sourceVolterra_matrix_equation (H : Type) [Fintype H] [DecidableEq H]
   rw [he]
   exact hV.2.2 t ht
 
+/-- A continuous solution of the homogeneous Volterra equation vanishes when the integrated
+kernel norm on the interval is less than one. -/
 theorem sourceVolterra_short_zero (H : Type) [Fintype H] [DecidableEq H]
     (K D : ℝ → Matrix H H ℂ) (a b : ℝ) (hab : a≤b)
     (hK : IntervalIntegrable K MeasureTheory.volume a b) (hD : ContinuousOn D (Set.Icc a b))
@@ -653,19 +718,24 @@ theorem sourceVolterra_short_zero (H : Type) [Fintype H] [DecidableEq H]
   apply norm_eq_zero.mp
   exact le_antisymm (by rw [← hz]; exact hbound s hs) (norm_nonneg _)
 
+/-- The interval integral of the kernel operator norm from zero to `t`. -/
 noncomputable def sourceKernelMass {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (t : ℝ) : ℝ := ∫ s in (0:ℝ)..t, ‖K s‖
 
+/-- The accumulated kernel mass is zero at time zero. -/
 theorem sourceKernelMass_zero {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) : sourceKernelMass K 0 = 0 := by
   simp [sourceKernelMass]
 
+/-- For nonnegative time, `sourceKernelMass` equals the integral of the kernel norm over the
+closed interval `[0, t]`. -/
 theorem sourceKernelMass_of_nonneg {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) {t : ℝ} (ht : 0≤t) :
     sourceKernelMass K t = ∫ s in Set.Icc (0:ℝ) t, ‖K s‖ := by
   simp only [sourceKernelMass, intervalIntegral.integral_of_le ht]
   exact (MeasureTheory.integral_Icc_eq_integral_Ioc (f := fun s => ‖K s‖)).symm
 
+/-- For an interval-integrable kernel, the accumulated kernel mass is continuous on `[0, T]`. -/
 theorem sourceKernelMass_continuousOn {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T)
     (hK : IntervalIntegrable K MeasureTheory.volume 0 T) :
@@ -676,11 +746,14 @@ theorem sourceKernelMass_continuousOn {H : Type} [Fintype H] [DecidableEq H]
   have hc := hac.continuousOn
   rwa [Set.uIcc_of_le hT] at hc
 
+/-- The accumulated kernel mass at a nonnegative time is nonnegative. -/
 theorem sourceKernelMass_nonneg {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T) :
     0 ≤ sourceKernelMass K T :=
   intervalIntegral.integral_nonneg_of_forall hT (fun _ => norm_nonneg _)
 
+/-- The integral of the kernel norm over `[a, b]` is the difference of the accumulated masses at
+`b` and `a`, for `0 ≤ a ≤ b`. -/
 theorem sourceKernelMass_sub {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) {a b : ℝ} (ha : 0≤a) (hab : a≤b)
     (hK : IntervalIntegrable K MeasureTheory.volume 0 b) :
@@ -691,6 +764,8 @@ theorem sourceKernelMass_sub {H : Type} [Fintype H] [DecidableEq H]
     exact Set.Icc_subset_Icc le_rfl hab
   exact (intervalIntegral.integral_interval_sub_left h1 (h1.mono_set hsub)).symm
 
+/-- The accumulated kernel mass is monotone between nonnegative times for an interval-integrable
+kernel. -/
 theorem sourceKernelMass_mono {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) {a b : ℝ} (ha : 0≤a) (hab : a≤b)
     (hK : IntervalIntegrable K MeasureTheory.volume 0 b) :
@@ -698,6 +773,8 @@ theorem sourceKernelMass_mono {H : Type} [Fintype H] [DecidableEq H]
   rw [← sub_nonneg,← sourceKernelMass_sub K ha hab hK]
   exact intervalIntegral.integral_nonneg_of_forall hab (fun _ => norm_nonneg _)
 
+/-- Two `sourceVolterra` solutions for the same entrywise integrable kernel agree on `[0, T]`
+when `T` is nonnegative. -/
 theorem sourceVolterra_unique {H : Type} [Fintype H] [DecidableEq H]
     (K V W : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T)
     (hi : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T)
@@ -834,6 +911,8 @@ theorem sourceVolterra_unique {H : Type} [Fintype H] [DecidableEq H]
     intro t ht
     exact hfinal t ht
 
+/-- The chosen endpoint `sourceVolterraMatrix K T` equals the endpoint of any `sourceVolterra`
+solution for the integrable kernel. -/
 theorem sourceVolterraMatrix_eq {H : Type} [Fintype H] [DecidableEq H]
     (K : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0≤T)
     (hi : ∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T)
@@ -844,6 +923,7 @@ theorem sourceVolterraMatrix_eq {H : Type} [Fintype H] [DecidableEq H]
   exact sourceVolterra_unique K (Classical.choose hex) F T hT hi
     (Classical.choose_spec hex) hF T ⟨hT,le_refl T⟩
 
+/-- Conjugation by a unitary matrix preserves multiplication. -/
 theorem sourceFrameConj_mul {H : Type} [Fintype H] [DecidableEq H]
     {V : Matrix H H ℂ} (hV : V ∈ Matrix.unitaryGroup H ℂ) (X Y : Matrix H H ℂ) :
     (V*X*Vᴴ)*(V*Y*Vᴴ)=V*(X*Y)*Vᴴ := by
@@ -857,6 +937,8 @@ theorem sourceFrameConj_mul {H : Type} [Fintype H] [DecidableEq H]
       ← Matrix.mul_assoc (V*X) Y Vᴴ,
       Matrix.mul_assoc V X Y]
 
+/-- A constant kernel given by a unitary conjugate of a real diagonal matrix has the
+corresponding diagonal exponential as a Volterra solution. -/
 theorem sourceVolterra_const_spectral {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (angles : H → ℝ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (T : ℝ) (_hT : 0≤T) :
@@ -961,11 +1043,15 @@ theorem sourceVolterra_const_spectral {H : Type} [Fintype H] [DecidableEq H]
     rw [hW0e]
     ring
 
+/-- An entry of a unitarily framed diagonal matrix is the sum of the corresponding products of
+frame entries and diagonal coefficients. -/
 theorem sourceFrameDiag_entry {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (g : H → ℂ) (i j : H) :
     (V*Matrix.diagonal g*Vᴴ) i j=∑ h, V i h*(g h*star (V j h)) := by
   simp [Matrix.mul_apply,Matrix.diagonal_apply,Matrix.conjTranspose_apply,mul_assoc]
 
+/-- A unitary conjugate of a real diagonal matrix with entries in `(-π, π]` is Hermitian and has
+norm at most π. -/
 theorem sourceFrameDiag_hermitian_norm {H : Type} [Fintype H] [DecidableEq H]
     (E : Matrix H H ℂ) (Θ : H → ℝ) (hE : E ∈ Matrix.unitaryGroup H ℂ)
     (hΘ : ∀ i, -Real.pi<Θ i ∧ Θ i≤Real.pi) :
@@ -987,6 +1073,8 @@ theorem sourceFrameDiag_hermitian_norm {H : Type} [Fintype H] [DecidableEq H]
 
 set_option maxHeartbeats 8000000 in
 
+/-- Evolution for unit time under the constant kernel `sourceLog U` returns the unitary matrix
+`U`. -/
 theorem sourceVolterraMatrix_log_value {H : Type} [Fintype H] [DecidableEq H]
     {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     sourceVolterraMatrix (fun _ => sourceLog U) 1=U := by
@@ -1014,6 +1102,8 @@ theorem sourceVolterraMatrix_log_value {H : Type} [Fintype H] [DecidableEq H]
 
 set_option maxHeartbeats 8000000 in
 
+/-- The oracle logarithm has a unitary eigenbasis with real eigenvalues in `(-π, π]`, whose
+negative imaginary exponentials reconstruct the alphabet oracle. -/
 theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     ∃ (E : Matrix ((Fin (n+1) × Fin (q+1)) × S) ((Fin (n+1) × Fin (q+1)) × S) ℂ)
@@ -1307,6 +1397,7 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
         rw [if_neg (fun he => h2 (congrArg (fun r => r.2) he))]
       · rw [if_neg (fun he => h1 (congrArg (fun r => r.1.1) he))]
 
+/-- The alphabet-oracle logarithm is Hermitian and has operator norm at most π. -/
 theorem sourceLogOracle_hermitian_norm (X S : Type) [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     (sourceLogOracle (W := S) input x).IsHermitian ∧
@@ -1317,6 +1408,8 @@ theorem sourceLogOracle_hermitian_norm (X S : Type) [Fintype S] [DecidableEq S] 
 
 set_option maxHeartbeats 8000000 in
 
+/-- The Volterra evolution, bounded unitary logarithm, and alphabet-oracle logarithm properties
+satisfy `VolterraAndOracleLogSemantics`. -/
 theorem volterraAndOracleLogSemantics : VolterraAndOracleLogSemantics := by
   refine ⟨?_,?_,?_⟩
   · intro H _ _ K T hT hi hh

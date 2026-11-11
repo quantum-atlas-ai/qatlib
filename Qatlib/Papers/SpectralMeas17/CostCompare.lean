@@ -35,24 +35,50 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Scalar resource comparisons for spectral measurement
+
+This module defines scalar cost expressions for Trotter steps, Trotter rotations, and the
+spectral measurement resources discussed in [PoulinEtAl2018]. It proves comparisons under
+explicit size and precision inequalities.
+
+## Main statements
+
+* `trotterRotations_eq`: expanded Trotter rotation cost.
+* `our_rotations_le_trotter`: comparison when `N ≤ n` and `0 < Δ ≤ Real.sqrt n`.
+* `our_third_level_le`: upper bound by `n * n / Δ`.
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.SpectralMeas17.CostCompare
 
+/-- The scalar Trotter step cost `Real.sqrt n / Δ ^ 2`. -/
 def trotterSteps (n Δ : ℝ) : ℝ := Real.sqrt n / Δ ^ 2
 
+/-- The scalar Trotter rotation cost `n * trotterSteps n Δ`. -/
 def trotterRotations (n Δ : ℝ) : ℝ := n * trotterSteps n Δ
 
+/-- The scalar Trotter rotation cost equals `n * Real.sqrt n / Δ ^ 2`. -/
 theorem trotterRotations_eq (n Δ : ℝ) :
     trotterRotations n Δ = n * Real.sqrt n / Δ ^ 2 := by
   unfold trotterRotations trotterSteps
   ring
 
+/-- The scalar spectral measurement rotation cost `N / Δ`. -/
 def ourRotations (N Δ : ℝ) : ℝ := N / Δ
 
+/-- The scalar spectral measurement third-level cost `n * N / Δ`. -/
 def ourThirdLevel (n N Δ : ℝ) : ℝ := n * N / Δ
 
+/-- For nonnegative `n` and `N` with `N ≤ n` and `0 < Δ ≤ Real.sqrt n`, the spectral measurement
+rotation cost is at most the Trotter rotation cost in the scalar comparison of
+[PoulinEtAl2018]. -/
 theorem our_rotations_le_trotter (n N Δ : ℝ) (hn : 0 ≤ n) (hN : 0 ≤ N) (hNn : N ≤ n)
     (hΔ : 0 < Δ) (hΔn : Δ ≤ Real.sqrt n) :
     ourRotations N Δ ≤ trotterRotations n Δ := by
@@ -68,6 +94,8 @@ theorem our_rotations_le_trotter (n N Δ : ℝ) (hn : 0 ≤ n) (hN : 0 ≤ N) (h
     mul_le_mul_of_nonneg_right h1 (le_of_lt hΔ)
   simpa [pow_two, mul_assoc] using h2
 
+/-- For nonnegative `n`, `N ≤ n`, and positive `Δ`, the scalar third-level cost is at most `n *
+n / Δ` [PoulinEtAl2018]. -/
 theorem our_third_level_le (n N Δ : ℝ) (hn : 0 ≤ n) (hNn : N ≤ n) (hΔ : 0 < Δ) :
     ourThirdLevel n N Δ ≤ n * n / Δ := by
   unfold ourThirdLevel

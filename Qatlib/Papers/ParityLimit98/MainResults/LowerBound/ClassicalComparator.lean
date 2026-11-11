@@ -6,16 +6,41 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ParityBalance
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+/-!
+# Classical exact parity query lower bound
+
+The set `inspected` records the distinct addresses visited during a deterministic Boolean
+query-tree execution. Agreement on these addresses preserves the execution, so exact parity
+computation must inspect every address and use at least as many queries as there are input bits.
+These results support the parity analysis of [FarhiEtAl1998].
+
+## Main statements
+
+* `classical_parity_inspects_all`: A Boolean query tree computing parity exactly on every input
+  inspects every address on each execution.
+* `classical_parity_query_lower`: A Boolean query tree computing parity exactly makes at least
+  `Fintype.card I` queries on every input.
+
+## References
+
+* [Farhi et al., 1998][FarhiEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Papers.ParityLimit98.MainResults.LowerBound
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- The finite set of addresses queried along the execution of a Boolean query tree on input
+`f`. -/
 def inspected {I O : Type} [DecidableEq I] (f : I → Bool) : BoolQueryTree I O → Finset I
   | .halt _ => ∅
   | .ask i a b => insert i (if f i then inspected f b else inspected f a)
 
+/-- The number of distinct inspected addresses is at most the number of queries made during the
+execution. -/
 theorem inspected_card_le_calls {I O : Type} [DecidableEq I]
     (f : I → Bool) (T : BoolQueryTree I O) :
     (inspected f T).card ≤ (BoolQueryTree.Run f T).2 := by
@@ -27,6 +52,8 @@ theorem inspected_card_le_calls {I O : Type} [DecidableEq I]
     · exact (Finset.card_insert_le _ _).trans (Nat.add_le_add_right ha 1)
     · exact (Finset.card_insert_le _ _).trans (Nat.add_le_add_right hb 1)
 
+/-- If two inputs agree at all addresses inspected on `f`, their query-tree executions have the
+same output and query count. -/
 theorem classical_run_eq_of_inspected_agreement {I O : Type} [DecidableEq I]
     (f g : I → Bool) (T : BoolQueryTree I O)
     (h : ∀ i ∈ inspected f T, f i = g i) : BoolQueryTree.Run f T = BoolQueryTree.Run g T := by
@@ -44,6 +71,7 @@ theorem classical_run_eq_of_inspected_agreement {I O : Type} [DecidableEq I]
         h j (Finset.mem_insert_of_mem (by simpa [hf] using hj))
       simp only [BoolQueryTree.Run, hf, hg, if_true, hb ht]
 
+/-- Flipping a single input bit changes its Boolean parity. -/
 theorem parityOddB_flip_ne {I : Type} [Fintype I] [DecidableEq I] (i : I) (f : I → Bool) :
     parityOddB (flipAt i f) ≠ parityOddB f := by
   intro h
@@ -51,6 +79,8 @@ theorem parityOddB_flip_ne {I : Type} [Fintype I] [DecidableEq I] (i : I) (f : I
   rw [boolSign_eq_ite, boolSign_eq_ite, h] at hs
   cases hp : parityOddB f <;> norm_num [hp] at hs
 
+/-- A Boolean query tree computing parity exactly on every input inspects every address on each
+execution. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem classical_parity_inspects_all {I : Type} [Fintype I] [DecidableEq I]
     (T : BoolQueryTree I Bool) (hc : ∀ f, (BoolQueryTree.Run f T).1 = parityOddB f)
     (f : I → Bool) : inspected f T = Finset.univ := by
@@ -65,6 +95,8 @@ theorem classical_parity_inspects_all {I : Type} [Fintype I] [DecidableEq I]
   rw [hc f, hc (flipAt i f)] at hout
   exact parityOddB_flip_ne i f hout.symm
 
+/-- A Boolean query tree computing parity exactly makes at least `Fintype.card I` queries on
+every input. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem classical_parity_query_lower {I : Type} [Fintype I] [DecidableEq I]
     (T : BoolQueryTree I Bool) (hc : ∀ f, (BoolQueryTree.Run f T).1 = parityOddB f)
     (f : I → Bool) : Fintype.card I ≤ (BoolQueryTree.Run f T).2 := by

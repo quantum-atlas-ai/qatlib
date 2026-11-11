@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+
+/-!
+# Real Pauli estimator moments
+
+This module extends sparse Pauli observables and their tensor measurement statistics to real
+coefficients. Grouping repeated words by `realShadowCoefficient` gives a Parseval identity and a
+coefficient square-sum bound in terms of the observable's operator norm.
+
+Local compatibility weights control the grouped second moment on a specified support, yielding
+`real_pauli_second_moment_bound` with factor `4^S.card`. The final lemmas relate pure-state and
+density-state trace expectations to matrix norms and prove Hermiticity of the real Pauli
+observable. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `realShadowCoefficient_sq_sum_le`: grouped coefficient squares are bounded by the squared
+  operator norm.
+* `real_pauli_second_moment_bound`: the support-dependent real Pauli second-moment bound.
+* `abs_trace_density_le_norm`: a density-state expectation norm bound.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,22 +56,29 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The condition that every Pauli word with a nonzero real coefficient is the identity outside
+`S`. -/
 def realShadowSupported {n q : ℕ} (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ) : Prop :=
   ∀ j, c j ≠ 0 → ∀ i, i ∉ S → w j i = none
 
+/-- The real-weighted sum of tensor Pauli word operators. -/
 noncomputable def realSparsePauliObservable {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ) : Operator (2^n) :=
   ∑ j, (c j : ℂ) • tensorPauliWord n (w j)
 
+/-- The real-weighted sum of tensor Pauli estimator values for a measurement record. -/
 def realSparsePauliValue {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℝ) (o : Fin n → Fin 3 × Bool) : ℝ :=
   ∑ j, c j * tensorPauliValue (w j) o
 
+/-- The sum of coefficients of all terms whose Pauli word equals `u`. -/
 def realShadowCoefficient {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℝ) (u : Fin n → Option (Fin 3)) : ℝ :=
   ∑ j, if w j=u then (c j:ℝ) else 0
 
+/-- Summation against grouped Pauli coefficients equals summation over the original weighted
+terms. -/
 private theorem realShadowCoefficient_sum {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ)
     (f : (Fin n → Option (Fin 3)) → ℝ) :
@@ -57,6 +89,8 @@ private theorem realShadowCoefficient_sum {n q : ℕ}
   intro j _
   simp [ite_mul]
 
+/-- The real trace of the real Pauli observable's square equals `2^n` times the sum of its
+grouped coefficient squares. -/
 private theorem realShadow_parseval {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ) :
     (Matrix.trace (realSparsePauliObservable w c * realSparsePauliObservable w c)).re =
@@ -89,6 +123,7 @@ private theorem realShadow_parseval {n q : ℕ}
     ring
   · simp [h, Ne.symm h]
 
+/-- The norm of a matrix entry is at most the matrix operator norm. -/
 private theorem realShadow_entry_norm {N : ℕ} (A : Operator N) (i j : Fin N) :
     ‖A i j‖ ≤ ‖A‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖ = 1 := by
@@ -106,6 +141,8 @@ private theorem realShadow_entry_norm {N : ℕ} (A : Operator N) (i j : Fin N) :
   rw [he] at hi
   exact hi.trans hn
 
+/-- The sum of squared grouped real Pauli coefficients is at most the squared operator norm of
+the corresponding observable. -/
 theorem realShadowCoefficient_sq_sum_le {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ) :
     ∑ u, (realShadowCoefficient w c u)^2 ≤ ‖realSparsePauliObservable w c‖^2 := by
@@ -130,20 +167,25 @@ theorem realShadowCoefficient_sq_sum_le {n q : ℕ}
   have hp : (0:ℝ)<2^n := by positivity
   nlinarith [ht]
 
+/-- The local shadow compatibility weight is symmetric in its two Pauli labels. -/
 private theorem localShadowWeight_symm (a b : Option (Fin 3)) :
     localShadowWeight a b = localShadowWeight b a := by
   cases a <;> cases b <;> simp [localShadowWeight, eq_comm]
 
+/-- Every local shadow compatibility weight is nonnegative. -/
 private theorem localShadowWeight_nonneg (a b : Option (Fin 3)) :
     0 ≤ localShadowWeight a b := by
   cases a <;> cases b <;> simp [localShadowWeight]
   positivity
 
+/-- Each row of the local shadow weight matrix sums to four. -/
 private theorem localShadowWeight_sum (a : Option (Fin 3)) :
     ∑ b, localShadowWeight a b = 4 := by
   cases a <;> simp [Fintype.sum_option, localShadowWeight]
   norm_num
 
+/-- The product of local shadow weights is `3` to the overlap count for compatible Pauli words
+and zero otherwise. -/
 private theorem localShadowWeight_prod {n : ℕ} (u v : Fin n → Option (Fin 3)) :
     ∏ i, localShadowWeight (u i) (v i) =
       if pauliWordsCompatible u v then (3:ℝ)^pauliWordOverlap u v else 0 := by
@@ -161,6 +203,8 @@ private theorem localShadowWeight_prod {n : ℕ} (u v : Fin n → Option (Fin 3)
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     simp [hu,hv,localShadowWeight,hab]
 
+/-- The absolute sparse Pauli cross moment in a density state is bounded by the product of its
+local shadow weights. -/
 private theorem localShadowMoment_bound {n : ℕ} (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (u v : Fin n → Option (Fin 3)) :
     |sparsePauliMoment ρ u v| ≤ ∏ i, localShadowWeight (u i) (v i) := by
@@ -172,6 +216,8 @@ private theorem localShadowMoment_bound {n : ℕ} (ρ : Operator (2^n))
       (sparsePauliWord_expectation_abs_le_one n ρ hρ _)
   · simp [sparsePauliMoment,h]
 
+/-- Under `realShadowSupported S w c`, the grouped coefficient of any word nontrivial outside
+`S` is zero. -/
 private theorem realShadowCoefficient_outside {n q : ℕ} (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ)
     (hs : realShadowSupported S w c) (u : Fin n → Option (Fin 3))
@@ -187,6 +233,7 @@ private theorem realShadowCoefficient_outside {n q : ℕ} (S : Finset (Fin n))
     simp [hz]
   · simp [hj]
 
+/-- The support-restricted shadow weight is symmetric in its two words. -/
 private theorem localShadowSupportWeight_symm {n : ℕ} (S : Finset (Fin n))
     (u v : Fin n → Option (Fin 3)) :
     localShadowSupportWeight S u v = localShadowSupportWeight S v u := by
@@ -196,6 +243,7 @@ private theorem localShadowSupportWeight_symm {n : ℕ} (S : Finset (Fin n))
   intro i _
   exact localShadowWeight_symm _ _
 
+/-- Every support-restricted shadow weight is nonnegative. -/
 private theorem localShadowSupportWeight_nonneg {n : ℕ} (S : Finset (Fin n))
     (u v : Fin n → Option (Fin 3)) : 0 ≤ localShadowSupportWeight S u v := by
   unfold localShadowSupportWeight
@@ -203,6 +251,7 @@ private theorem localShadowSupportWeight_nonneg {n : ℕ} (S : Finset (Fin n))
   · exact Finset.prod_nonneg (fun _ _ => localShadowWeight_nonneg _ _)
   · exact le_rfl
 
+/-- Each row sum of the support-restricted shadow weights is at most `4^S.card`. -/
 private theorem localShadowSupportWeight_row {n : ℕ} (S : Finset (Fin n))
     (u : Fin n → Option (Fin 3)) : ∑ v, localShadowSupportWeight S u v ≤ (4:ℝ)^S.card := by
   by_cases hu : ∀ i, i ∉ S → u i=none
@@ -236,6 +285,8 @@ private theorem localShadowSupportWeight_row {n : ℕ} (S : Finset (Fin n))
     simp
   · simp [localShadowSupportWeight,hu]
 
+/-- The second moment of the real sparse Pauli estimator equals the double sum of grouped
+coefficient products times sparse Pauli cross moments. -/
 private theorem realShadow_grouped_second {n q : ℕ} (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ) :
     (tensorPauliLaw n ρ hρ).expect (fun o => realSparsePauliValue w c o ^ 2) =
@@ -258,6 +309,8 @@ private theorem realShadow_grouped_second {n q : ℕ} (ρ : Operator (2^n))
   intro o _
   ring
 
+/-- For an observable supported on `S`, the estimator second moment is at most `4^S.card` times
+the sum of squared grouped coefficients. -/
 theorem realShadow_second_le_coefficient {n q : ℕ} (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ)
     (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ) (hs : realShadowSupported S w c) :
@@ -309,6 +362,8 @@ theorem realShadow_second_le_coefficient {n q : ℕ} (S : Finset (Fin n))
         (localShadowSupportWeight_row S u) (sq_nonneg _))
     _ = _ := by rw [← Finset.sum_mul]; ring
 
+/-- For a real Pauli observable supported on `S`, the estimator second moment under the tensor
+Pauli law is at most `4^S.card` times the squared operator norm. -/
 theorem real_pauli_second_moment_bound (n q : ℕ) (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ)
     (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ) (hs : realShadowSupported S w c) :
@@ -317,6 +372,8 @@ theorem real_pauli_second_moment_bound (n q : ℕ) (S : Finset (Fin n))
   (realShadow_second_le_coefficient S w c ρ hρ hs).trans
     (mul_le_mul_of_nonneg_left (realShadowCoefficient_sq_sum_le w c) (by positivity))
 
+/-- A nonnegative uniform bound on the absolute real expectation of a Hermitian matrix over
+normalized pure states bounds its operator norm. -/
 theorem hermitian_norm_le_of_pure_trace {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (M : ℝ) (hM : 0 ≤ M)
     (h : ∀ v : QState I, Normalized v → |(Matrix.trace (A * outerProduct v)).re| ≤ M) :
@@ -351,6 +408,8 @@ theorem hermitian_norm_le_of_pure_trace {I : Type} [Fintype I] [DecidableEq I]
     rw [hs, mul_one]
   simpa only [Complex.norm_real, Real.norm_eq_abs, ht, Complex.ofReal_re] using! h v hn
 
+/-- The absolute real trace expectation of any matrix against a positive semidefinite trace-one
+matrix is at most its operator norm. -/
 theorem abs_trace_density_le_norm {I : Type} [Fintype I] [DecidableEq I]
     (A ρ : Matrix I I ℂ) (hρ : ρ.PosSemidef) (ht : Matrix.trace ρ = 1) :
     |(Matrix.trace (A * ρ)).re| ≤ ‖A‖ := by
@@ -363,6 +422,7 @@ theorem abs_trace_density_le_norm {I : Type} [Fintype I] [DecidableEq I]
     _ ≤ ‖A‖ * Matrix.traceNorm ρ := Matrix.traceNorm_mul_le_opNorm_traceNorm _ _
     _ = _ := by rw [htn, mul_one]
 
+/-- A real linear combination of tensor Pauli word operators is Hermitian. -/
 theorem realSparsePauliObservable_hermitian {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℝ) :
     (realSparsePauliObservable w c).IsHermitian := by

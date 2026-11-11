@@ -8,6 +8,35 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
 import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoalTigh
 import Mathlib.Tactic
+
+/-!
+# Fourier counting circuits and Born accuracy
+
+This module instantiates counted amplitude estimation with Fourier preparation and identifies
+its amplification iterate with the Grover iterate. The state `sourceCountingOutput` realizes the
+estimation law through actual Born probabilities, yielding an explicit counting window with
+probability at least 8/π² and exact query and gate counts.
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `actual_counted_fourier_sampling_support`: For N > 0 and P ≥ 2, the counted Fourier-prepared
+  estimation circuit is unitary with P − 1 queries and 5(P − 1) + 3 gates. Its estimation law
+  assigns probability at least 8/π² to count error at most 2π√(t(N − t))/P + π²N/P², where t is
+  the marked-set size.
+* `source_counting_actual_born`: The source counting output is normalized, and its
+  first-register Born marginals equal the amplitude-estimation law. Every amplitude with the
+  Boolean ancilla equal to true is zero.
+* `source_counting_born_accuracy`: For N > 0 and P ≥ 2, the actual first-register Born
+  probabilities assign mass at least 8/π² to estimates with count error at most 2π√(t(N − t))/P
+  + π²N/P².
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -23,6 +52,10 @@ open Matrix
 
 namespace Qatlib.Papers.QSearchBoyer96.MainResults
 
+/-- For N > 0 and P ≥ 2, the counted Fourier-prepared estimation circuit is unitary with P − 1
+queries and 5(P − 1) + 3 gates. Its estimation law assigns probability at least 8/π² to
+count error at most 2π√(t(N − t))/P + π²N/P², where t is the marked-set size
+[BoyerEtAl1998]. -/
 theorem actual_counted_fourier_sampling_support (N P : ℕ) (hN : 0 < N) (hP : 2 ≤ P)
     (S : Finset (Fin N)) :
     QueryCount (countedAECircuit P (QFTMatrix N) (⟨0,hN⟩ : Fin N)) = P-1 ∧
@@ -38,6 +71,8 @@ theorem actual_counted_fourier_sampling_support (N P : ℕ) (hN : 0 < N) (hP : 2
     (⟨0,hN⟩ : Fin N) S (qftMatrix_unitary hN)
   exact ⟨h.1,h.2.1,h.2.2.1,amplitude_counting_actual_consumer N P hN hP S⟩
 
+/-- For N > 0, the amplification iterate prepared by `QFTMatrix N` at zero equals diffusion
+followed by the marked-set oracle [BoyerEtAl1998]. -/
 theorem actual_counting_iterate_is_grover (N : ℕ) (hN : 0 < N)
     (S : Finset (Fin N)) :
     preparedAAIterate (QFTMatrix N) (⟨0,hN⟩ : Fin N) S =
@@ -69,12 +104,17 @@ theorem actual_counting_iterate_is_grover (N : ℕ) (hN : 0 < N)
   rw [hconj,hprep,houter,hmark]
   rfl
 
+/-- The output state obtained by running the counted Fourier-prepared amplitude-estimation
+circuit from zero registers with the controlled marked oracle. -/
 noncomputable def sourceCountingOutput (N P : ℕ) (hN : 0 < N) (hP : 2 ≤ P)
     (S : Finset (Fin N)) : (Fin P × Bool × Fin N) → ℂ :=
   Run (aeControlledGate P (preparedMark S))
     (countedAECircuit P (QFTMatrix N) (⟨0,hN⟩ : Fin N))
     (TensorState (Ket (⟨0,by omega⟩ : Fin P)) (TensorState (Ket false) (Ket ⟨0,hN⟩)))
 
+/-- The source counting output is normalized, and its first-register Born marginals equal the
+amplitude-estimation law. Every amplitude with the Boolean ancilla equal to true is zero
+[BoyerEtAl1998]. -/
 theorem source_counting_actual_born (N P : ℕ) (hN : 0 < N) (hP : 2 ≤ P)
     (S : Finset (Fin N)) :
     Normalized (sourceCountingOutput N P hN hP S) ∧
@@ -85,6 +125,8 @@ theorem source_counting_actual_born (N P : ℕ) (hN : 0 < N) (hP : 2 ≤ P)
     (⟨0,hN⟩ : Fin N) S (qftMatrix_unitary hN)
   simpa only [sourceCountingOutput, aeControlledGate] using h.2.2.2
 
+/-- For N > 0 and P ≥ 2, the actual first-register Born probabilities assign mass at least 8/π²
+to estimates with count error at most 2π√(t(N − t))/P + π²N/P² [BoyerEtAl1998]. -/
 theorem source_counting_born_accuracy (N P : ℕ) (hN : 0 < N) (hP : 2 ≤ P)
     (S : Finset (Fin N)) :
     (8/Real.pi^2:ℝ) ≤

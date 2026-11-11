@@ -9,6 +9,24 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Real.Basic
+
+/-!
+# Optimized query-complexity specification
+
+`QueryComplexity` specifies a reduced Johnson-walk search at subset size `floor (N^(k/(k+1)))`.
+Above an explicit `k`-dependent input-size threshold, it requires an iteration count with an
+explicit query bound and a positive marked-amplitude lower bound for each `k`-element target set
+[Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `QueryComplexity`: the thresholded optimized-scale query and amplitude proposition.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 
@@ -18,6 +36,9 @@ open Qatlib.Concepts.WalkFind.UniqueCollision
 
 open Matrix
 
+/-- The proposition that, above the stated input-size threshold, each `k`-element target set has
+a search iteration count with the displayed `N^(k/(k+1))` query bound and marked-amplitude
+lower bound. -/
 def QueryComplexity : Prop :=
   ∀ (k N : ℕ), 1 ≤ k →
     ((32 * Real.pi ^ 2 * ((k : ℝ) ^ 3) * (2 ^ (k + 4)) * (k + 1) * k) ^ (k + 1) : ℝ) ≤ N →

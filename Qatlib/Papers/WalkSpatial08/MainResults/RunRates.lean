@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.WalkSpatial08.MainResults.SpectralBounds
 import Mathlib.NumberTheory.Harmonic.Bounds
+
+/-!
+# Logarithmic gap bounds and final overlap
+
+This module bounds the weighted inverse-gap sum by the logarithm of the lattice size. It uses
+this bound at the balanced control parameter to give an explicit positive lower bound for
+`finalOverlapSq`.
+
+The controlled spatial-search setting is described in [Tulsi2008].
+
+## Main statements
+
+* `sumInvGap_le_logLattice`: inverse-gap sum bounded by four times the lattice logarithm.
+* `finalOverlapSq_ge`: balanced overlap square at least `1 / 33`.
+
+## References
+
+* [Tulsi, 2008][Tulsi2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,11 +34,13 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.WalkSpatial08.MainResults
 
+/-- The weighted inverse-gap sum is nonnegative for every lattice side length. -/
 theorem sumInvGap_nonneg (n : ℕ) : 0 ≤ sumInvGap n := by
   unfold sumInvGap
   exact Finset.sum_nonneg fun p _ =>
     Finset.sum_nonneg fun q _ => term_nonneg n p q
 
+/-- For positive `n`, the harmonic number at `n / 2 + 1` is at most `1 + log n`. -/
 theorem harmonic_half_succ_le {n : ℕ} (hn : 1 ≤ n) :
     (harmonic (n / 2 + 1) : ℝ) ≤ 1 + Real.log (n : ℝ) := by
   have hbase : (harmonic (n / 2 + 1) : ℝ) ≤
@@ -31,6 +53,9 @@ theorem harmonic_half_succ_le {n : ℕ} (hn : 1 ≤ n) :
     Real.log_le_log hpos hle
   linarith
 
+/-- For side length at least sixteen, the weighted inverse-gap sum is at most four times the
+logarithm of the lattice size. See [Main result: O(sqrt(N log N)) two-dimensional spatial
+search][Tulsi2008]. -/
 theorem sumInvGap_le_logLattice {n : ℕ} (hn : 16 ≤ n) :
     sumInvGap n ≤ 4 * logLattice n := by
   have hn0 : 0 < n := by omega
@@ -51,9 +76,13 @@ theorem sumInvGap_le_logLattice {n : ℕ} (hn : 16 ≤ n) :
     _ ≤ 4 * (1 + Real.log (n : ℝ)) := by linarith
     _ ≤ 4 * logLattice n := by rw [htwo]; nlinarith
 
+/-- The model overlap square `1 / (1 + 8 * cos δ² * sumInvGap n)`. -/
 def finalOverlapSq (n : ℕ) (δ : ℝ) : ℝ :=
   1 / (1 + 8 * Real.cos δ ^ 2 * sumInvGap n)
 
+/-- For side length at least sixteen, the overlap square at the balanced control parameter is at
+least `1 / 33`. See [Main result: O(sqrt(N log N)) two-dimensional spatial
+search][Tulsi2008]. -/
 theorem finalOverlapSq_ge {n : ℕ} (hn : 16 ≤ n) :
     1 / 33 ≤ finalOverlapSq n (deltaStar n) := by
   have hlog : 1 ≤ logLattice n := logLattice_ge_one_of_ge_16 hn

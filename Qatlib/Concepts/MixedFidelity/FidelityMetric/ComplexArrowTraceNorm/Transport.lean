@@ -8,6 +8,25 @@ import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.Transp
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.Block
 import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Mathlib.Tactic
+
+/-!
+# Isometric transport of arrow-block trace norms
+
+A directional block supported on two unit vectors is an isometric conjugate of `fullBlock`. This
+representation transports its trace norm to the explicit arrow-block formula, including scalar
+normalization and the balanced-tail case. See [Bhatia1997].
+
+## Main statements
+
+* `exists_directional_isometry`: the directional block factors through an isometry.
+* `normalized_directionalBlock_half_traceNorm`: the explicit normalized trace norm.
+* `balanced_directionalBlock_half_traceNorm`: reduction to `errorNumerator`.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +37,8 @@ open Matrix
 open scoped BigOperators
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm
 
+/-- The rectangular frame with distinguished columns `u` and `v` and remaining columns supplied
+by `complexPrepare`. -/
 private def directionalFrame (l n : ℕ) (u : Fin l → ℂ) (v : Fin (n + 1) → ℂ) :
     Matrix (Fin l ⊕ Fin (n + 1)) (Fin 2 ⊕ Fin n) ℂ :=
   fun a b => match a, b with
@@ -28,6 +49,8 @@ private def directionalFrame (l n : ℕ) (u : Fin l → ℂ) (v : Fin (n + 1) �
 
 set_option maxHeartbeats 1500000 in
 
+/-- For unit vectors `u` and `v`, a single isometry realizes every corresponding directional
+block as `J * fullBlock * Jᴴ`. -/
 theorem exists_directional_isometry (l n : ℕ) (u : Fin l → ℂ) (v : Fin (n + 1) → ℂ)
     (hu : ∑ i, ‖u i‖ ^ 2 = 1) (hv : ∑ j, ‖v j‖ ^ 2 = 1) :
     ∃ J : Matrix (Fin l ⊕ Fin (n + 1)) (Fin 2 ⊕ Fin n) ℂ,
@@ -112,6 +135,9 @@ theorem exists_directional_isometry (l n : ℕ) (u : Fin l → ℂ) (v : Fin (n 
   rw [hscaled]
   split_ifs <;> ring
 
+/-- For unit direction vectors and a nonempty second block, the trace norm of any complex-scaled
+directional block equals that of the corresponding scaled arrow block with tail dimension `m
+- 1`. -/
 private theorem directional_traceNorm_scaled (l m : ℕ) (hm : 1 ≤ m)
     (u : Fin l → ℂ) (v : Fin m → ℂ)
     (hu : ∑ i, ‖u i‖ ^ 2 = 1) (hv : ∑ j, ‖v j‖ ^ 2 = 1)
@@ -135,6 +161,8 @@ private theorem directional_traceNorm_scaled (l m : ℕ) (hm : 1 ≤ m)
     rw [heq, Matrix.traceNorm_isometry_right hJ', Matrix.traceNorm_isometry_left hJ']
     simp
 
+/-- For unit directions and positive `q`, the normalized half trace norm is the explicit arrow
+norm plus `(m - 1) * |tail|`, divided by `2 * q`. -/
 theorem normalized_directionalBlock_half_traceNorm (l m : ℕ) (hm : 1 ≤ m)
     (u : Fin l → ℂ) (v : Fin m → ℂ)
     (hu : ∑ i, ‖u i‖ ^ 2 = 1) (hv : ∑ j, ‖v j‖ ^ 2 = 1)
@@ -145,6 +173,8 @@ theorem normalized_directionalBlock_half_traceNorm (l m : ℕ) (hm : 1 ≤ m)
   rw [directional_traceNorm_scaled l m hm u v hu hv]
   exact Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.normalized_fullBlock_half_traceNorm (m - 1) ell mass tail q z hq
 
+/-- For unit directions, nonnegative mass, positive normalization, and `(m - 1) * tail = mass`,
+the normalized half trace norm equals `errorNumerator ell mass (‖z‖ ^ 2) / q`. -/
 theorem balanced_directionalBlock_half_traceNorm (l m : ℕ) (hm : 1 ≤ m)
     (u : Fin l → ℂ) (v : Fin m → ℂ)
     (hu : ∑ i, ‖u i‖ ^ 2 = 1) (hv : ∑ j, ‖v j‖ ^ 2 = 1)

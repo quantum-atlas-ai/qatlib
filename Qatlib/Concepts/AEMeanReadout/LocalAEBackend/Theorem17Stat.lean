@@ -9,6 +9,23 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Real.Sqrt
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Auxiliary
+
+/-!
+# Exact counting specification
+
+`Theorem17Spec.expected` packages the success and expected-cost claims for the adaptive exact
+counter of [BrassardEtAl2002]. For valid estimation grids, it requires success probability at
+least 2/3 and a cost bound proportional to `sqrt ((t + 1) * (N - t + 1))`.
+
+## Main statements
+
+* `Theorem17Spec.expected`: the exact-counting success and cost specification.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +34,8 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 end Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Spec
+/-- Specifies success probability at least `2/3` and expected cost at most `1000 * sqrt ((S.card
++ 1) * (N - S.card + 1))` for the adaptive exact counter with valid grids. -/
 def expected : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     (hM₀ : 2 ≤ BHMTTh17.exactCountM₀ N)

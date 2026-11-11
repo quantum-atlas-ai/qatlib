@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihoodConcentration
 
+/-!
+# Transferring finite event probabilities
+
+This module bounds the difference of finite event probabilities by total variation.
+`success_transfer` transports a success lower bound to a perturbed law, and `repeated_transfer`
+gives the corresponding lower bound for at least one success in independent repetitions.
+Statistical distinguishability and total variation are discussed in [Watrous2018].
+
+## Main statements
+
+* `event_distance`: The absolute difference of the probabilities of any finite event under `p`
+  and `q` is at most their total variation distance `tv p q`.
+* `success_transfer`: An event of probability at least `s` under `p` has probability at least `s
+  - eps` under `q` when `tv p q ≤ eps`.
+* `repeated_transfer`: If an event has probability at least `s` under `p` and `tv p q ≤ eps`,
+  then at least one occurrence in `n` independent `q` samples has probability at least `1 - (1 -
+  s + eps) ^ n`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteDistributionVariation
 open scoped BigOperators Classical
@@ -14,6 +37,8 @@ open FiniteInformationDivergence
 noncomputable section
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The absolute difference of the probabilities of any finite event under `p` and `q` is at
+most their total variation distance `tv p q`. -/
 theorem event_distance (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (S : Finset X) :
     |(∑ x ∈ S, p.prob x)-(∑ x ∈ S, q.prob x)| ≤ tv p q := by
   let d := fun x => p.prob x-q.prob x
@@ -31,10 +56,13 @@ theorem event_distance (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDi
 
 omit [DecidableEq X] in
 
+/-- The total mass assigned to a finite subset by a probability distribution is at most one. -/
 theorem event_mass_le_one (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (S : Finset X) : ∑ x ∈ S, p.prob x ≤ 1 := by
   rw [← p.sum_one]
   exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ S) (fun x _ _ => p.nonneg x)
 
+/-- An event of probability at least `s` under `p` has probability at least `s - eps` under `q`
+when `tv p q ≤ eps`. -/
 theorem success_transfer (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (S : Finset X) (s eps : ℝ)
     (hs : s ≤ ∑ x ∈ S, p.prob x) (he : tv p q ≤ eps) :
     s-eps ≤ ∑ x ∈ S, q.prob x := by
@@ -42,6 +70,8 @@ theorem success_transfer (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fin
     (event_distance p q S)
   linarith
 
+/-- If an event has probability at least `s` under `p` and `tv p q ≤ eps`, then at least one
+occurrence in `n` independent `q` samples has probability at least `1 - (1 - s + eps) ^ n`. -/
 theorem repeated_transfer (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (S : Finset X) (s eps : ℝ)
     (hs : s ≤ ∑ x ∈ S, p.prob x) (he : tv p q ≤ eps) (n : ℕ) :
     1-(1-s+eps)^n ≤ q.probEvent (fun w : Fin n → X => ∃ i, w i ∈ S) := by

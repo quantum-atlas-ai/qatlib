@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.Resources.DipolarDefs
+
+/-!
+# Recovering dipolar Hamiltonian coefficients
+
+`testBloch` constructs a physical product probe whose secondary energy isolates one unordered
+pair coefficient. `secondary_injective` therefore recovers weights from equality of secondary
+Hamiltonians, allowing the zero-weight obstruction for dipolar couplings to be expressed as an
+inequality of actual static Hamiltonian matrices.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `coefficient_recovery`: extracts an edge weight using a product probe.
+* `secondary_injective`: proves injectivity of the weight-to-Hamiltonian map.
+* `no_exact_static_matrix`: rules out a static matrix realization of a target with a zero pair
+  weight.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -17,9 +40,12 @@ open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Graph
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Bloch
 open Qatlib.Papers.RydbergMaxCut26.MomentSdp.Phase
 
+/-- An unordered distinct-site pair equals the symmetric pair formed from its chosen endpoints. -/
 theorem pair_repr {n : ℕ} (s : SitePair n) : s.1=Sym2.mk (endpoints s).1 (endpoints s).2 :=
   (Sym2.sortEquiv.left_inv s.1).symm
 
+/-- Both endpoints of `e` belong to the two endpoints of `s` exactly when the unordered pairs
+`e` and `s` are equal. -/
 theorem support_iff {n : ℕ} (e s : SitePair n) :
     (((endpoints e).1=(endpoints s).1 ∨ (endpoints e).1=(endpoints s).2) ∧
       ((endpoints e).2=(endpoints s).1 ∨ (endpoints e).2=(endpoints s).2)) ↔ e=s := by
@@ -35,9 +61,13 @@ theorem support_iff {n : ℕ} (e s : SitePair n) :
   · rintro rfl
     exact ⟨Or.inl rfl,Or.inr rfl⟩
 
+/-- The Bloch-vector family equal to the positive X unit vector on the endpoints of `s` and zero
+on all other sites. -/
 def testBloch {n : ℕ} (s : SitePair n) (i : Fin n) (a : Fin 3) : ℝ :=
   if i=(endpoints s).1 ∨ i=(endpoints s).2 then if a=0 then 1 else 0 else 0
 
+/-- The product matrix constructed from `testBloch s` is positive semidefinite and has trace
+one. -/
 theorem test_density {n : ℕ} (s : SitePair n) :
     (productState (testBloch s)).PosSemidef ∧ (productState (testBloch s)).trace=1 := by
   apply product_density
@@ -46,6 +76,8 @@ theorem test_density {n : ℕ} (s : SitePair n) :
   · simp [testBloch,sqnorm,hi]
   · simp [testBloch,sqnorm,hi]
 
+/-- The XX+YY pair trace against the probe for `s` is one for pair `s` and zero for every other
+pair. -/
 theorem pair_probe_trace {n : ℕ} (e s : SitePair n) :
     ((pairPauli (endpoints e).1 (endpoints e).2 0+
       pairPauli (endpoints e).1 (endpoints e).2 1)*productState (testBloch s)).trace=
@@ -60,18 +92,25 @@ theorem pair_probe_trace {n : ℕ} (e s : SitePair n) :
       not_and_or.mp (fun h => he ((support_iff e s).mp h))
     rcases hs with h|h <;> simp [testBloch,h,he]
 
+/-- The secondary Hamiltonian energy of the product probe for `s` equals the target coefficient
+`w s`. -/
 theorem coefficient_recovery {n : ℕ} (w : SitePair n → ℝ) (s : SitePair n) :
     energy (secondaryHamiltonian endpoints w) (productState (testBloch s))=w s := by
   simp only [secondaryHamiltonian,energy,Matrix.sum_mul,Matrix.trace_sum,Matrix.smul_mul,
     Matrix.trace_smul,pair_probe_trace]
   simp
 
+/-- Equal secondary Hamiltonian matrices on all unordered distinct-site pairs have identical
+weight functions. -/
 theorem secondary_injective {n : ℕ} (w v : SitePair n → ℝ)
     (h : secondaryHamiltonian endpoints w=secondaryHamiltonian endpoints v) : w=v := by
   funext s
   have he := congrArg (fun H => energy H (productState (testBloch s))) h
   simpa only [coefficient_recovery] using he
 
+/-- For positive `C3` and an injective placement, the zero-drive dipolar Hamiltonian differs
+from every target secondary Hamiltonian with a zero pair weight. This makes the resource
+realization obstruction in [CrostaSaubanereHuber2026] a matrix statement. -/
 theorem no_exact_static_matrix {n : ℕ} (C3 : ℝ) (hC3 : 0 < C3)
     (position : Fin n → EuclideanSpace ℝ (Fin 3)) (hinj : Function.Injective position)
     (w : SitePair n → ℝ) (hmissing : ∃ s,w s=0) :

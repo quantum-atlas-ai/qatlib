@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierIdealGenerationSubgoalStat
 import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalQuan
+
+/-!
+# Generation of the dual group from ideal Fourier samples
+
+`orbitFourierIdealGenerationSubgoal` proves that ideal character samples are uniform and
+generate the full character group with failure probability at most `1 / 3`. The proof transports
+the character distribution to its additive type synonym and applies the stabilizer generation
+bound to `n + 4` samples when the original group has size at most `2 ^ n`. [Kitaev1995]
+
+## Main statements
+
+* `orbitFourierIdealGenerationSubgoal`: establishes uniform character probabilities and the dual
+  group generation bound.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +38,8 @@ open scoped Classical BigOperators
 
 variable (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E]
 
+/-- The Fourier Born distribution transported to the additive type synonym of the complex
+character group. -/
 private noncomputable def additiveBornDist : FinDist (Additive (AddChar E ℂ)) where
   prob x := (fourierBornDist E).prob (Additive.toMul x)
   nonneg x := (fourierBornDist E).nonneg _
@@ -27,12 +48,16 @@ private noncomputable def additiveBornDist : FinDist (Additive (AddChar E ℂ)) 
     rw [Equiv.sum_comp Additive.toMul (fourierBornDist E).prob]
     exact (fourierBornDist E).sum_one
 
+/-- Every element of the additive character type has probability equal to the reciprocal of the
+original group cardinality. -/
 private theorem additiveBornDist_prob (x : Additive (AddChar E ℂ)) :
     (additiveBornDist E).prob x = (Fintype.card E : ℝ)⁻¹ :=
   fourierBornDist_apply E _
 
 omit [DecidableEq E] in
 
+/-- The full additive character subgroup has the same cardinality as the original finite abelian
+group. -/
 private theorem card_top_additive_addChar :
     Fintype.card ↥(⊤ : AddSubgroup (Additive (AddChar E ℂ))) = Fintype.card E := by
   have h1 : Fintype.card ↥(⊤ : AddSubgroup (Additive (AddChar E ℂ))) =
@@ -42,6 +67,8 @@ private theorem card_top_additive_addChar :
 
 omit [Fintype E] [DecidableEq E] in
 
+/-- A family generates the multiplicative character group exactly when its additive type synonym
+generates the full additive group. -/
 private theorem closure_top_iff_closure_top {L : ℕ}
     (ω : Fin L → Additive (AddChar E ℂ)) :
     Subgroup.closure (Set.range (Additive.toMul ∘ ω)) = ⊤ ↔
@@ -78,6 +105,8 @@ private theorem closure_top_iff_closure_top {L : ℕ}
       | neg a _ iha => exact Subgroup.inv_mem _ iha
     exact key (Additive.ofMul y) (by rw [h]; trivial)
 
+/-- The probability of failure to generate the character group is preserved when the Fourier
+Born distribution and samples are transported to the additive character type. -/
 private theorem probEvent_transport (L : ℕ) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := L) (fourierBornDist E)
         (fun hs => Subgroup.closure (Set.range hs) ≠ ⊤)
@@ -95,6 +124,9 @@ private theorem probEvent_transport (L : ℕ) :
   · rw [if_pos h, if_pos ((closure_top_iff_closure_top E ω).not.mpr h)]
     rfl
 
+/-- For a finite abelian group of size at most `2 ^ n` with `n > 0`, ideal Fourier samples are
+uniform on its characters, and `n + 4` independent samples fail to generate the full
+character group with probability at most `1 / 3` [Kitaev1995]. -/
 theorem orbitFourierIdealGenerationSubgoal : OrbitFourierIdealGenerationSubgoal := by
   intro n hn E _ _ _ hcard
   refine ⟨fourierBornDist_apply E, ?_⟩

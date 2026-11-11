@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixAlgebra.ProjectiveFix.ShortRun
 import Qatlib.Papers.CommutingLLL13.NativeFix.Bits
+
+/-!
+# An explicit qubit reset and postselection run
+
+This module gives a concrete one-qubit instance of a violated-projector reset followed by
+zero-outcome postselection in the setting of [SattathArad2015]. The projector selects the
+excited computational basis state, and `qubitInput` is the corresponding pure-state matrix.
+
+The reset yields half the identity, and the subsequent zero run yields half the ground-state
+projector. The result `qubit_execution` verifies its trace and the positivity, normalization,
+and constraint satisfaction of the normalized output.
+
+## Main statements
+
+* `qubit_reset`: The violated reset gives the maximally mixed qubit matrix.
+* `qubit_output`: The zero run gives half the ground-state projector.
+* `qubit_execution`: Verifies the trace and normalized-output properties of this run.
+
+## References
+
+* [Sattath and Arad, 2015][SattathArad2015]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,8 +37,10 @@ namespace Qatlib.Papers.CommutingLLL13.NativeFix
 open Qatlib.Foundations.MatrixAlgebra.ProjectiveFix
 noncomputable section
 
+/-- The qubit basis index type `Fin 2 × Fin 1`, with a trivial auxiliary factor. -/
 abbrev Qubit := Fin 2 × Fin 1
 
+/-- The orthogonal projector onto the computational basis state whose first index is `1`. -/
 def qubitProjector : Projector Qubit where
   val := Matrix.diagonal (fun x => if x.1 = 1 then 1 else 0)
   hermitian := by
@@ -28,21 +53,26 @@ def qubitProjector : Projector Qubit where
     funext x
     split_ifs <;> norm_num
 
+/-- The input matrix equal to the excited-state projector `qubitProjector.val`. -/
 def qubitInput : Matrix Qubit Qubit ℂ := qubitProjector.val
 
+/-- The diagonal projector onto the computational basis state whose first index is `0`. -/
 def qubitGround : Matrix Qubit Qubit ℂ :=
   Matrix.diagonal (fun x => if x.1 = 0 then 1 else 0)
 
+/-- The input matrix `qubitInput` is positive semidefinite and has trace one. -/
 theorem qubitInput_density : qubitInput.PosSemidef ∧ qubitInput.trace = 1 := by
   refine ⟨projector_pos qubitProjector, ?_⟩
   norm_num [qubitInput, qubitProjector, Matrix.trace, Matrix.diag,
     Fintype.sum_prod_type, Fin.sum_univ_two, Fin.sum_univ_one]
   decide
 
+/-- The violated branch of `qubitProjector` leaves `qubitInput` unchanged. -/
 theorem qubit_violated : branch qubitProjector true qubitInput = qubitInput := by
   simp only [branch, outcome, ↓reduceIte, qubitInput, qubitProjector.hermitian.eq,
     qubitProjector.idem]
 
+/-- Resetting the violated qubit input yields the maximally mixed matrix `(1 / 2) • 1`. -/
 theorem qubit_reset : violatedReset qubitProjector qubitInput =
     (1 / 2 : ℝ) • (1 : Matrix Qubit Qubit ℂ) := by
   unfold violatedReset
@@ -54,6 +84,7 @@ theorem qubit_reset : violatedReset qubitProjector qubitInput =
   fin_cases x <;> fin_cases y <;> fin_cases x' <;> fin_cases y'
   all_goals norm_num [qubitInput, qubitProjector, Fin.sum_univ_two, Matrix.one_apply]
 
+/-- A single zero-outcome run after the violated reset yields `(1 / 2) • qubitGround`. -/
 theorem qubit_output :
     zeroRun (fun _ : Fin 1 => qubitProjector) [0]
       (violatedReset qubitProjector qubitInput) = (1 / 2 : ℝ) • qubitGround := by
@@ -67,6 +98,9 @@ theorem qubit_output :
     Matrix.mul_apply, Matrix.conjTranspose_apply, Fintype.sum_prod_type,
     Fin.sum_univ_two, Fin.sum_univ_one, Matrix.one_apply, Matrix.diagonal_apply]
 
+/-- The reset-and-zero-run output has trace `1 / 2`; after normalization it is positive
+semidefinite, has trace one, and is annihilated by `qubitProjector.val`. This verifies the
+explicit short execution associated with [SattathArad2015]. -/
 theorem qubit_execution :
     let W := zeroRun (fun _ : Fin 1 => qubitProjector) [0]
       (violatedReset qubitProjector qubitInput)

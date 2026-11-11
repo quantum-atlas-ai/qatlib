@@ -7,6 +7,42 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
 import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
 import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityBracketCertifiedSearch
+
+/-!
+# Certified Fidelity Search and Rounding
+
+This module constructs rational water-level searches for a target fidelity.
+`certifiedFidelityRun` checks the target range, finds a margin witness, and chooses a refinement
+depth with a certified fidelity error and an explicit operation ledger. These constructions
+support the water-filling approach to quantum rejection sampling described in
+[OzolsRoettelerRoland2013]. Normalization and rational amplitude bounds connect the selected
+level to exact resampling schedules and amplitude amplification [BrassardEtAl2002].
+
+Dyadic rounding supplies mass and dot-product enclosures for `intervalDecision`.
+`intervalFidelitySearch` uses exact comparisons on ambiguous steps and recovers the exact search
+bracket. The remaining results bound rounding error, ambiguity counts, and plateau resolution,
+and construct gap-separation rates from individual saturation pieces or finite segment chains.
+
+## Main statements
+
+* `certifiedFidelityRun_exists_iff_in_range`: characterizes successful runs by the target range
+  check and positive tolerance.
+* `frontier2`: gives bracket, fidelity-error, witness, and operation-count guarantees for a
+  successful run.
+* `certifiedSchedule_windows`: gives schedule bounds after source normalization.
+* `intervalFidelitySearch_eq`: identifies interval search brackets with exact search brackets.
+* `ambiguityCount_le`: bounds ambiguity counts using a positive gap-separation rate.
+* `jointTermination_certifies`: combines precision bounds with at most one ambiguous plateau
+  level.
+* `fidelityGap_rate_across_segment_chain_abs`: propagates a common rate through a finite chain
+  of matching pieces.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -31,9 +67,12 @@ open Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
 open Qatlib.Concepts.Waterfill.LevelFidelity.FidelityBracketCertifiedSearch
 open scoped BigOperators
 
+/-- The lower fidelity endpoint, given by the squared source-target dot product divided by the
+source squared norm, with value zero when that norm vanishes. -/
 def computedPmin {m : ℕ} (π σ : Fin m → ℚ) : ℚ :=
   if (∑ j, (π j) ^ 2) = 0 then 0 else (∑ j, π j * σ j) ^ 2 / (∑ j, (π j) ^ 2)
 
+/-- The computed lower fidelity endpoint is nonnegative. -/
 theorem computedPmin_nonneg {m : ℕ} (π σ : Fin m → ℚ) : 0 ≤ computedPmin π σ := by
   unfold computedPmin
   split_ifs with h
@@ -41,6 +80,8 @@ theorem computedPmin_nonneg {m : ℕ} (π σ : Fin m → ℚ) : 0 ≤ computedPm
   · exact div_nonneg (sq_nonneg _)
       (Finset.sum_nonneg fun j _ => sq_nonneg _)
 
+/-- For nonnegative source entries and positive target entries, the fidelity at
+`computedWaterHigh` equals `computedPmin`. -/
 theorem computedFidelity_at_high {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
     computedFidelity π σ (computedWaterHigh π σ) = computedPmin π σ := by
@@ -56,14 +97,19 @@ theorem computedFidelity_at_high {m : ℕ} (π σ : Fin m → ℚ)
   · simp [computedFidelity, hmassH, computedPmin, hz]
   · simp [computedFidelity, hmassH, hdotH, computedPmin, hz]
 
+/-- Checks whether the target fidelity lies strictly above `computedPmin` and at most
+`computedPmax`. -/
 def targetRangeCheck {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) : Bool :=
   decide (computedPmin π σ < p ∧ p ≤ computedPmax π σ)
 
+/-- A successful target range check places the target in `(computedPmin π σ, computedPmax π σ]`. -/
 theorem targetRangeCheck_spec {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (h : targetRangeCheck π σ p = true) :
     computedPmin π σ < p ∧ p ≤ computedPmax π σ :=
   of_decide_eq_true h
 
+/-- For positive source mass, a target above `computedPmin` gives the strict squared-dot-product
+inequality needed for a fidelity bracket. -/
 theorem pmin_lt_bracket {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hmass : 0 < ∑ j, (π j) ^ 2) (hmin : computedPmin π σ < p) :
     (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2) := by
@@ -71,19 +117,25 @@ theorem pmin_lt_bracket {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
   rw [computedPmin, if_neg hne] at hmin
   exact (div_lt_iff₀ hmass).mp hmin
 
+/-- A margin candidate is an index with positive source entry whose source-target ratio
+satisfies `fidelityReaches`. -/
 def marginCandidate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : Fin m) : Prop :=
   0 < π i ∧ fidelityReaches π σ p (π i / σ i)
 
+/-- Tests positivity of a source entry and the squared-dot-product inequality at its
+source-target ratio. -/
 def marginCandidateTest {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : Fin m) : Bool :=
   decide (0 < π i ∧
     computedDot π σ (π i / σ i) ^ 2 ≥ p * computedMass π σ (π i / σ i))
 
+/-- Every index passing `marginCandidateTest` is a margin candidate. -/
 theorem marginCandidateTest_spec {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : Fin m)
     (h : marginCandidateTest π σ p i = true) :
     marginCandidate π σ p i := by
   have h' := of_decide_eq_true h
   exact ⟨h'.1, h'.2⟩
 
+/-- Every margin candidate passes `marginCandidateTest`. -/
 theorem marginCandidateTest_of {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : Fin m)
     (h : marginCandidate π σ p i) : marginCandidateTest π σ p i = true := by
   have h' : 0 < π i ∧
@@ -91,8 +143,11 @@ theorem marginCandidateTest_of {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : 
     ⟨h.1, h.2⟩
   exact decide_eq_true h'
 
+/-- The operation ledger for one margin candidate test on a table with `m` entries. -/
 def candidateTestLedger (m : ℕ) : CertifiedSearchLedger := ⟨1, m, m, 2⟩
 
+/-- A margin scan result containing an optional witness, the number of tests, and an operation
+ledger. -/
 structure MarginScanResult (m : ℕ) where
 
   witness : Option (Fin m)
@@ -102,6 +157,8 @@ structure MarginScanResult (m : ℕ) where
   ledger : CertifiedSearchLedger
   deriving DecidableEq, Repr
 
+/-- Scans every index in a list for margin candidates, returning the first successful index
+together with total test and operation counts. -/
 def marginScan {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) : List (Fin m) → MarginScanResult m
   | [] => ⟨none, 0, ⟨0, 0, 0, 0⟩⟩
   | i :: rest =>
@@ -110,6 +167,7 @@ def marginScan {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) : List (Fin m) → Ma
       if marginCandidateTest π σ p i then ⟨some i, r.tests + 1, led⟩
       else ⟨r.witness, r.tests + 1, led⟩
 
+/-- A margin scan performs one test for each list entry. -/
 theorem marginScan_tests {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (Fin m)) :
     (marginScan π σ p l).tests = l.length := by
   induction l with
@@ -118,6 +176,8 @@ theorem marginScan_tests {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (
       simp only [marginScan]
       split <;> simp_all
 
+/-- The margin scan ledger records one division, `m` mass reads, `m` dot reads, and two
+comparisons per list entry. -/
 theorem marginScan_ledger {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (Fin m)) :
     (marginScan π σ p l).ledger =
       ⟨l.length, m * l.length, m * l.length, 2 * l.length⟩ := by
@@ -127,6 +187,8 @@ theorem marginScan_ledger {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List 
       simp only [marginScan]
       split <;> simp [ih, ledgerAdd, candidateTestLedger, Nat.mul_succ]
 
+/-- A witness returned by a margin scan belongs to the scanned list and satisfies
+`marginCandidate`. -/
 theorem marginScan_sound {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (Fin m))
     {i : Fin m} (h : (marginScan π σ p l).witness = some i) :
     i ∈ l ∧ marginCandidate π σ p i := by
@@ -143,6 +205,7 @@ theorem marginScan_sound {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (
         obtain ⟨hin, hc⟩ := ih h'
         exact ⟨by simp [hin], hc⟩
 
+/-- If a margin scan returns no witness, no index in its list is a margin candidate. -/
 theorem marginScan_none {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (Fin m))
     (h : (marginScan π σ p l).witness = none) :
     ∀ i ∈ l, ¬ marginCandidate π σ p i := by
@@ -160,29 +223,35 @@ theorem marginScan_none {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (l : List (F
           exact htest (marginCandidateTest_of π σ p j hc)
         · exact ih h' i hin'
 
+/-- Searches all indices for a margin witness and records the scan costs. -/
 def marginWitnessSearch {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) : MarginScanResult m :=
   marginScan π σ p (List.finRange m)
 
+/-- The full margin witness search performs exactly `m` tests. -/
 theorem marginWitnessSearch_count {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
     (marginWitnessSearch π σ p).tests = m := by
   show (marginScan π σ p (List.finRange m)).tests = m
   rw [marginScan_tests, List.length_finRange]
 
+/-- A witness returned by the full search is a margin candidate. -/
 theorem marginWitnessSearch_sound {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {i : Fin m}
     (h : (marginWitnessSearch π σ p).witness = some i) :
     marginCandidate π σ p i := by
   obtain ⟨hin, hc⟩ := marginScan_sound π σ p (List.finRange m) h
   exact hc
 
+/-- If the full search returns no witness, no index is a margin candidate. -/
 theorem marginWitnessSearch_none {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (h : (marginWitnessSearch π σ p).witness = none) :
     ∀ i : Fin m, ¬ marginCandidate π σ p i := by
   intro i
   exact marginScan_none π σ p (List.finRange m) h i (List.mem_finRange i)
 
+/-- The optional margin witness obtained by scanning all indices. -/
 def marginWitness {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) : Option (Fin m) :=
   (marginWitnessSearch π σ p).witness
 
+/-- The rational power `2 ^ n` is at least `n + 1`. -/
 theorem two_pow_ge_succ (n : ℕ) : (2 : ℚ) ^ n ≥ (n : ℚ) + 1 := by
   induction n with
   | zero => norm_num
@@ -193,31 +262,43 @@ theorem two_pow_ge_succ (n : ℕ) : (2 : ℚ) ^ n ≥ (n : ℚ) + 1 := by
       push_cast
       nlinarith
 
+/-- Every rational number is bounded above by a natural power of two. -/
 theorem exists_two_pow_ge {X : ℚ} : ∃ k : ℕ, (2 : ℚ) ^ k ≥ X := by
   obtain ⟨n, hn⟩ := exists_nat_gt X
   refine ⟨n, ?_⟩
   have h := two_pow_ge_succ n
   linarith
 
+/-- The power-of-two threshold used to choose a fidelity search depth from the target,
+tolerance, and witness index. -/
 def requiredBound {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) : ℚ :=
   2 * (∑ j, π j * σ j) * p * computedWaterHigh π σ / (ε * (π i) ^ 2)
 
+/-- The least natural exponent whose power of two reaches a positive rational threshold, with
+value zero for nonpositive thresholds. -/
 def stepCount (X : ℚ) : ℕ :=
   if 0 < X then Nat.find (p := fun k => (2 : ℚ) ^ k ≥ X) exists_two_pow_ge else 0
 
+/-- For a positive threshold, `stepCount` chooses an exponent whose power of two reaches that
+threshold. -/
 theorem stepCount_spec {X : ℚ} (hX : 0 < X) : (2 : ℚ) ^ stepCount X ≥ X := by
   rw [stepCount, if_pos hX]
   exact Nat.find_spec exists_two_pow_ge
 
+/-- For a positive threshold, `stepCount` is no larger than any exponent whose power of two
+reaches it. -/
 theorem stepCount_min {X : ℚ} (hX : 0 < X) {k : ℕ} (hk : (2 : ℚ) ^ k ≥ X) :
     stepCount X ≤ k := by
   rw [stepCount, if_pos hX]
   by_contra hcon
   exact (Nat.find_min exists_two_pow_ge (by omega)) hk
 
+/-- The step count is zero for a nonpositive threshold. -/
 theorem stepCount_of_nonpos {X : ℚ} (hX : X ≤ 0) : stepCount X = 0 := by
   rw [stepCount, if_neg (not_lt.mpr hX)]
 
+/-- An exponent is the step count if its power of two reaches the positive threshold and every
+smaller exponent falls short. -/
 theorem stepCount_eq_of {X : ℚ} (hX : 0 < X) {k : ℕ}
     (hk : (2 : ℚ) ^ k ≥ X) (hkmin : ∀ j : ℕ, j < k → (2 : ℚ) ^ j < X) :
     stepCount X = k := by
@@ -233,15 +314,21 @@ theorem stepCount_eq_of {X : ℚ} (hX : 0 < X) {k : ℕ}
     exact lt_irrefl _
       (lt_of_le_of_lt (Nat.find_spec (exists_two_pow_ge (X := X))) (hkmin _ hlt))
 
+/-- The operation ledger for a fidelity search on `m` entries with `k` refinement steps. -/
 def searchLedger (m k : ℕ) : CertifiedSearchLedger := ⟨m + k, m * k, m * k, k⟩
 
+/-- The operation ledger for scanning all `m` margin candidates. -/
 def scanLedger (m : ℕ) : CertifiedSearchLedger := ⟨m, m * m, m * m, 2 * m⟩
 
+/-- The operation ledger for the final certificate computation on `m` entries. -/
 def certificateLedger (m : ℕ) : CertifiedSearchLedger := ⟨0, 2 * m, 2 * m, 2⟩
 
+/-- The total ledger obtained by adding search, margin scan, and certificate costs. -/
 def runLedger (m k : ℕ) : CertifiedSearchLedger :=
   ledgerAdd (ledgerAdd (searchLedger m k) (scanLedger m)) (certificateLedger m)
 
+/-- Expands the total run ledger into explicit division, mass-read, dot-read, and comparison
+counts. -/
 theorem runLedger_counts (m k : ℕ) :
     runLedger m k =
       ⟨2 * m + k, m * k + m * m + 2 * m, m * k + m * m + 2 * m, k + 2 * m + 2⟩ := by
@@ -257,30 +344,37 @@ theorem runLedger_counts (m k : ℕ) :
       (runLedger m k).dotReads, (runLedger m k).comparisons⟩ := rfl
   rw [h1, hd, hm, hdot, hc]
 
+/-- The total mass-read count is the sum of the search, scan, and certificate mass-read counts. -/
 theorem runLedger_massReads (m k : ℕ) :
     (runLedger m k).massReads
       = (searchLedger m k).massReads + (scanLedger m).massReads
         + (certificateLedger m).massReads := by
   simp only [runLedger, ledgerAdd, searchLedger, scanLedger, certificateLedger]
 
+/-- The total dot-read count is the sum of the search, scan, and certificate dot-read counts. -/
 theorem runLedger_dotReads (m k : ℕ) :
     (runLedger m k).dotReads
       = (searchLedger m k).dotReads + (scanLedger m).dotReads
         + (certificateLedger m).dotReads := by
   simp only [runLedger, ledgerAdd, searchLedger, scanLedger, certificateLedger]
 
+/-- The total comparison count is the sum of the search, scan, and certificate comparison
+counts. -/
 theorem runLedger_comparisons (m k : ℕ) :
     (runLedger m k).comparisons
       = (searchLedger m k).comparisons + (scanLedger m).comparisons
         + (certificateLedger m).comparisons := by
   simp only [runLedger, ledgerAdd, searchLedger, scanLedger, certificateLedger]
 
+/-- The full margin witness search has ledger `scanLedger m`. -/
 theorem marginWitnessSearch_ledger {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
     (marginWitnessSearch π σ p).ledger = scanLedger m := by
   show (marginScan π σ p (List.finRange m)).ledger = scanLedger m
   rw [marginScan_ledger]
   simp [scanLedger]
 
+/-- A fidelity search result storing a selected level, bracket, witness index, refinement depth,
+and operation ledger. -/
 structure CertifiedFidelityRun (m : ℕ) where
 
   level : ℚ
@@ -293,6 +387,8 @@ structure CertifiedFidelityRun (m : ℕ) where
 
   ledger : CertifiedSearchLedger
 
+/-- Runs the fidelity search when the range check passes, a margin witness exists, and its
+required bound is positive. -/
 def certifiedFidelityRun {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) :
     Option (CertifiedFidelityRun m) :=
   if targetRangeCheck π σ p = true then
@@ -306,6 +402,8 @@ def certifiedFidelityRun {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) :
       else none
   else none
 
+/-- A successful run satisfies the range and margin checks, its depth reaches the required
+bound, and its level, bracket, and ledger have the prescribed values. -/
 theorem certifiedFidelityRun_spec {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (h : certifiedFidelityRun π σ p ε = some r) :
     targetRangeCheck π σ p = true ∧
@@ -337,11 +435,14 @@ theorem certifiedFidelityRun_spec {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
         · simp [hX] at h
   · simp at h
 
+/-- A failed target range check makes `certifiedFidelityRun` return `none`. -/
 theorem certifiedFidelityRun_none_of_range {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (h : targetRangeCheck π σ p = false) : certifiedFidelityRun π σ p ε = none := by
   rw [certifiedFidelityRun, h]
   rfl
 
+/-- A nonpositive required bound for the selected witness makes `certifiedFidelityRun` return
+`none`. -/
 theorem certifiedFidelityRun_none_of_bound {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) {i : Fin m}
     (hw : marginWitness π σ p = some i) (hb : requiredBound π σ p ε i ≤ 0) :
     certifiedFidelityRun π σ p ε = none := by
@@ -355,6 +456,7 @@ theorem certifiedFidelityRun_none_of_bound {m : ℕ} (π σ : Fin m → ℚ) (p 
       · rfl
   · rfl
 
+/-- Absence of a margin witness makes `certifiedFidelityRun` return `none`. -/
 theorem certifiedFidelityRun_none_of_no_witness {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (h : marginWitness π σ p = none) : certifiedFidelityRun π σ p ε = none := by
   rw [certifiedFidelityRun]
@@ -364,6 +466,9 @@ theorem certifiedFidelityRun_none_of_no_witness {m : ℕ} (π σ : Fin m → ℚ
       rfl
   · rfl
 
+/-- With nonnegative source entries, positive target entries, positive target fidelity, and a
+positive witness entry, the required bound is positive exactly when the tolerance is
+positive. -/
 theorem requiredBound_sign {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hpi : 0 < π i) :
     (0 < requiredBound π σ p ε i) ↔ (0 < ε) := by
@@ -404,6 +509,8 @@ theorem requiredBound_sign {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : F
     rw [requiredBound]
     exact div_pos hnum hDpos
 
+/-- For nonnegative source entries and positive target entries, a successful run exists exactly
+when the range check passes, a margin candidate exists, and the tolerance is positive. -/
 theorem certifiedFidelityRun_exists_iff {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
     (∃ r : CertifiedFidelityRun m, certifiedFidelityRun π σ p ε = some r) ↔
@@ -440,6 +547,7 @@ theorem certifiedFidelityRun_exists_iff {m : ℕ} (π σ : Fin m → ℚ) (p ε 
         simp only [Option.bind]
         rw [if_pos hX]
 
+/-- The level returned by a successful run equals `selectedLevel` at the run's refinement depth. -/
 theorem certifiedFidelityRun_level_is_selectedLevel {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (h : certifiedFidelityRun π σ p ε = some r) :
     r.level = selectedLevel π σ p r.steps := by
@@ -448,12 +556,15 @@ theorem certifiedFidelityRun_level_is_selectedLevel {m : ℕ} (π σ : Fin m →
   rw [hlevel]
   rfl
 
+/-- The finite set of indices with strictly positive source entries. -/
 def sourceSupport {m : ℕ} (π : Fin m → ℚ) : Finset (Fin m) :=
   Finset.univ.filter (fun j => 0 < π j)
 
+/-- The minimum source-target ratio over the nonempty positive source support. -/
 def minSourceRatio {m : ℕ} (π σ : Fin m → ℚ) (hS : (sourceSupport π).Nonempty) : ℚ :=
   Finset.min' ((sourceSupport π).image (fun j => π j / σ j)) (hS.image (fun j => π j / σ j))
 
+/-- The minimum source ratio is at most the ratio at every index in the positive source support. -/
 theorem minSourceRatio_le {m : ℕ} (π σ : Fin m → ℚ) {hS : (sourceSupport π).Nonempty}
     {j : Fin m} (hj : j ∈ sourceSupport π) :
     minSourceRatio π σ hS ≤ π j / σ j := by
@@ -461,6 +572,7 @@ theorem minSourceRatio_le {m : ℕ} (π σ : Fin m → ℚ) {hS : (sourceSupport
     Finset.mem_image.mpr ⟨j, hj, rfl⟩
   exact Finset.min'_le ((sourceSupport π).image (fun j => π j / σ j)) _ him
 
+/-- Some index in the positive source support attains `minSourceRatio`. -/
 theorem minSourceRatio_mem {m : ℕ} (π σ : Fin m → ℚ) {hS : (sourceSupport π).Nonempty} :
     ∃ j ∈ sourceSupport π, π j / σ j = minSourceRatio π σ hS := by
   have him : minSourceRatio π σ hS ∈ (sourceSupport π).image (fun j => π j / σ j) :=
@@ -469,6 +581,7 @@ theorem minSourceRatio_mem {m : ℕ} (π σ : Fin m → ℚ) {hS : (sourceSuppor
   obtain ⟨j, hj, hval⟩ := Finset.mem_image.mp him
   exact ⟨j, hj, hval⟩
 
+/-- The minimum source ratio is positive when all target entries are positive. -/
 theorem minSourceRatio_pos {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 < σ j)
     {hS : (sourceSupport π).Nonempty} :
     0 < minSourceRatio π σ hS := by
@@ -477,6 +590,8 @@ theorem minSourceRatio_pos {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 < �
   rw [← hval]
   exact div_pos hpi (hσ j)
 
+/-- Nonempty positive source support and positive target entries imply `computedPmax` is
+positive. -/
 theorem computedPmax_pos_of_support {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 < σ j)
     (hS : (sourceSupport π).Nonempty) : 0 < computedPmax π σ := by
   obtain ⟨j, hj⟩ := hS
@@ -495,6 +610,7 @@ theorem computedPmax_pos_of_support {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀
     exact sq_pos_of_pos (hσ j)
   simpa [computedPmax] using! hsum
 
+/-- A positive upper fidelity endpoint implies nonempty positive source support. -/
 theorem sourceSupport_nonempty {m : ℕ} (π σ : Fin m → ℚ)
     (hmax : 0 < computedPmax π σ) : (sourceSupport π).Nonempty := by
   have hsum : 0 < ∑ i, (if 0 < π i then σ i ^ 2 else 0) := by
@@ -517,6 +633,8 @@ theorem sourceSupport_nonempty {m : ℕ} (π σ : Fin m → ℚ)
   · rw [if_neg h] at hj
     exact absurd hj (lt_irrefl 0)
 
+/-- At the minimum source ratio, water filling equals that ratio times the target on positive
+source entries and vanishes elsewhere. -/
 theorem waterFill_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {hS : (sourceSupport π).Nonempty} (j : Fin m) :
@@ -536,6 +654,7 @@ theorem waterFill_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
       mul_nonneg (minSourceRatio_pos π σ hσ (hS := hS)).le (hσ j).le
     rw [waterFill, if_neg hj, hzero, min_eq_left hnonneg]
 
+/-- At the minimum source ratio, the filled mass equals its square times `computedPmax`. -/
 theorem computedMass_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {hS : (sourceSupport π).Nonempty} :
@@ -556,6 +675,7 @@ theorem computedMass_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
           rw [Finset.mul_sum]
     _ = (minSourceRatio π σ hS) ^ 2 * computedPmax π σ := rfl
 
+/-- At the minimum source ratio, the filled dot product equals that ratio times `computedPmax`. -/
 theorem computedDot_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {hS : (sourceSupport π).Nonempty} :
@@ -576,6 +696,7 @@ theorem computedDot_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
           rw [Finset.mul_sum]
     _ = (minSourceRatio π σ hS) * computedPmax π σ := rfl
 
+/-- At the minimum source ratio, the computed fidelity equals `computedPmax`. -/
 theorem computedFidelity_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {hS : (sourceSupport π).Nonempty} :
@@ -595,6 +716,8 @@ theorem computedFidelity_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
   rw [div_eq_iff hne2]
   ring
 
+/-- The minimum source ratio satisfies `fidelityReaches` for every positive target at most
+`computedPmax`, under the stated positivity assumptions. -/
 theorem fidelityReaches_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hpq : p ≤ computedPmax π σ)
     {hS : (sourceSupport π).Nonempty} :
@@ -617,6 +740,8 @@ theorem fidelityReaches_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ) (p :
     _ ≥ (minSourceRatio π σ hS) ^ 2 * computedPmax π σ * p := hkey
     _ = p * ((minSourceRatio π σ hS) ^ 2 * computedPmax π σ) := by ring
 
+/-- For nonnegative source entries and positive target entries, every positive target at most
+`computedPmax` has a margin candidate. -/
 theorem marginCandidate_exists {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hpq : p ≤ computedPmax π σ) :
     ∃ i : Fin m, marginCandidate π σ p i := by
@@ -629,6 +754,7 @@ theorem marginCandidate_exists {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
   rw [← hval] at hreach
   exact hreach
 
+/-- If a margin candidate exists, the full witness search does not return `none`. -/
 theorem marginWitnessSearch_some {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (h : ∃ i : Fin m, marginCandidate π σ p i) :
     (marginWitnessSearch π σ p).witness ≠ none := by
@@ -636,6 +762,8 @@ theorem marginWitnessSearch_some {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
   obtain ⟨i, hc⟩ := h
   exact (marginWitnessSearch_none π σ p hnone i) hc
 
+/-- For nonnegative source entries and positive target entries, a successful run exists exactly
+when the target range check passes and the tolerance is positive. -/
 theorem certifiedFidelityRun_exists_iff_in_range {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
     (∃ r : CertifiedFidelityRun m, certifiedFidelityRun π σ p ε = some r) ↔
@@ -673,6 +801,9 @@ theorem certifiedFidelityRun_exists_iff_in_range {m : ℕ} (π σ : Fin m → �
         simp only [Option.bind]
         rw [if_pos hX]
 
+/-- A successful run has an ordered bracket of the prescribed dyadic width, opposite endpoint
+tests, bounded mass variation, fidelity error at most `ε`, a valid witness, and explicit
+operation counts. -/
 theorem frontier2 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {r : CertifiedFidelityRun m} (h : certifiedFidelityRun π σ p ε = some r) :
@@ -755,6 +886,8 @@ theorem frontier2 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     hmargin.1, hmargin.2, ?_⟩
   rw [hled, runLedger_counts]
 
+/-- Collects the minimum source ratio formulas, existence of a margin witness, and existence
+criterion for a successful run with an in-range target and positive tolerance. -/
 theorem frontier3 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hS : (sourceSupport π).Nonempty)
@@ -800,19 +933,24 @@ theorem frontier3 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
   have hiff := certifiedFidelityRun_exists_iff_in_range π σ p ε hπ hσ
   refine ⟨hpos, ⟨j, hpi, hval⟩, hle, hclip, hmass, hdot, hfid, hmargin, hrun, hiff⟩
 
+/-- The rational dyadic grid point `H * j / 2 ^ k`. -/
 def gridPoint (H : ℚ) (k j : ℕ) : ℚ :=
   H * (j : ℚ) / (2 : ℚ) ^ k
 
+/-- The zeroth dyadic grid point is zero. -/
 theorem gridPoint_zero (H : ℚ) (k : ℕ) : gridPoint H k 0 = 0 := by
   simp [gridPoint]
 
+/-- The grid point of index one at depth zero is `H`. -/
 theorem gridPoint_one (H : ℚ) : gridPoint H 0 1 = H := by
   simp [gridPoint]
 
+/-- Dyadic grid points are nonnegative when the grid height is nonnegative. -/
 theorem gridPoint_nonneg {H : ℚ} (hH : 0 ≤ H) {k j : ℕ} : 0 ≤ gridPoint H k j := by
   unfold gridPoint
   positivity
 
+/-- At fixed depth, grid points are monotone in their index when the grid height is nonnegative. -/
 theorem gridPoint_mono {H : ℚ} (hH : 0 ≤ H) {k : ℕ} {j j' : ℕ} (h : j ≤ j') :
     gridPoint H k j ≤ gridPoint H k j' := by
   have hj : (j : ℚ) ≤ (j' : ℚ) := by exact_mod_cast h
@@ -827,6 +965,8 @@ theorem gridPoint_mono {H : ℚ} (hH : 0 ≤ H) {k : ℕ} {j j' : ℕ} (h : j �
         simp only [gridPoint]
         field_simp
 
+/-- The midpoint of consecutive depth-`k` grid points is the intervening odd-indexed point at
+depth `k + 1`. -/
 theorem gridPoint_mid {H : ℚ} (k a : ℕ) :
     (gridPoint H k a + gridPoint H k (a + 1)) / 2 = gridPoint H (k + 1) (2 * a + 1) := by
   have h1 : ((a + 1 : ℕ) : ℚ) = (a : ℚ) + 1 := by push_cast; ring
@@ -835,12 +975,15 @@ theorem gridPoint_mid {H : ℚ} (k a : ℕ) :
   field_simp
   ring
 
+/-- A grid point is unchanged by doubling its index and increasing the depth by one. -/
 theorem gridPoint_even {H : ℚ} (k a : ℕ) :
     gridPoint H k a = gridPoint H (k + 1) (2 * a) := by
   have h1 : ((2 * a : ℕ) : ℚ) = 2 * (a : ℚ) := by push_cast; ring
   simp only [gridPoint, pow_succ, h1]
   all_goals ring
 
+/-- The successor grid point is unchanged by replacing its index with `2 * a + 2` at the next
+depth. -/
 theorem gridPoint_even_succ {H : ℚ} (k a : ℕ) :
     gridPoint H k (a + 1) = gridPoint H (k + 1) (2 * a + 2) := by
   have h1 : ((a + 1 : ℕ) : ℚ) = (a : ℚ) + 1 := by push_cast; ring
@@ -848,6 +991,8 @@ theorem gridPoint_even_succ {H : ℚ} (k a : ℕ) :
   simp only [gridPoint, pow_succ, h1, h2]
   all_goals ring
 
+/-- Expresses a fidelity bracket as consecutive dyadic grid points whose lower index is maximal
+among successful grid tests. -/
 def GridBracket {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k a : ℕ) : Prop :=
   a < 2 ^ k ∧
     (fidelityBracket π σ p k).1 = gridPoint (computedWaterHigh π σ) k a ∧
@@ -857,6 +1002,8 @@ def GridBracket {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k a : ℕ) : Prop :
     (∀ j : ℕ, j < 2 ^ k →
       fidelityReaches π σ p (gridPoint (computedWaterHigh π σ) k j) → j ≤ a)
 
+/-- If the high endpoint fails the fidelity test, every refinement depth has a dyadic grid
+bracket under the stated positivity assumptions. -/
 theorem gridBracket_exists {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hnot : ¬ fidelityReaches π σ p (computedWaterHigh π σ)) :
@@ -964,6 +1111,7 @@ theorem gridBracket_exists {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
             · have hj2 : 2 * a + 2 ≤ j := by omega
               exact absurd (hexcl j hj2 hQ) ha.2.2.2.2.1
 
+/-- At a fixed depth, increasing the target fidelity cannot increase the grid bracket index. -/
 theorem gridBracket_index_anti {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hpp' : p ≤ p')
     {a a' : ℕ} (ha : GridBracket π σ p k a) (ha' : GridBracket π σ p' k a') :
@@ -979,6 +1127,8 @@ theorem gridBracket_index_anti {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k
     linarith
   exact ha.2.2.2.2.2 a' ha'.1 hQ
 
+/-- Failure of the fidelity test at the high endpoint persists when the target fidelity
+increases. -/
 theorem fidelityReaches_not_at_high_of_le {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ)
     (hnot : ¬ fidelityReaches π σ p (computedWaterHigh π σ)) (hpp' : p ≤ p') :
     ¬ fidelityReaches π σ p' (computedWaterHigh π σ) := by
@@ -990,6 +1140,8 @@ theorem fidelityReaches_not_at_high_of_le {m : ℕ} (π σ : Fin m → ℚ) (p p
   unfold fidelityReaches at hc hnot
   linarith
 
+/-- At a fixed refinement depth, `selectedLevel` is antitone in target fidelity when the smaller
+target fails at the high endpoint. -/
 theorem selectedLevel_anti {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hnot : ¬ fidelityReaches π σ p (computedWaterHigh π σ))
@@ -1011,6 +1163,8 @@ theorem selectedLevel_anti {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : �
     _ = (fidelityBracket π σ p k).2 := ha.2.2.1.symm
     _ = selectedLevel π σ p k := rfl
 
+/-- At a fixed refinement depth, the lower bracket endpoint is antitone in target fidelity under
+the stated high-endpoint failure assumption. -/
 theorem bracket_anti {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hnot : ¬ fidelityReaches π σ p (computedWaterHigh π σ))
@@ -1030,6 +1184,8 @@ theorem bracket_anti {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     _ ≤ gridPoint (computedWaterHigh π σ) k a := hlevels
     _ = (fidelityBracket π σ p k).1 := ha.2.1.symm
 
+/-- For ordered target fidelities, the selected level for the larger target is at most the
+earlier level plus one grid spacing. -/
 theorem selectedLevel_stable {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hnot : ¬ fidelityReaches π σ p (computedWaterHigh π σ))
@@ -1043,6 +1199,8 @@ theorem selectedLevel_stable {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k :
   have hwidth : 0 ≤ computedWaterHigh π σ / 2 ^ k := div_nonneg hHpos hpow
   linarith
 
+/-- For positive source mass and a target above `computedPmin`, the selected level is antitone
+as the target increases. -/
 theorem selectedLevel_anti_in_range {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hmass : 0 < ∑ j, (π j) ^ 2)
@@ -1073,6 +1231,8 @@ theorem selectedLevel_anti_in_range {m : ℕ} (π σ : Fin m → ℚ) (p p' : �
     linarith
   exact selectedLevel_anti π σ p p' k hπ hσ hnot hpp'
 
+/-- For a target above `computedPmin`, increasing the target bounds the new selected level by
+the earlier level plus one grid spacing. -/
 theorem selectedLevel_stable_in_range {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hmass : 0 < ∑ j, (π j) ^ 2)
@@ -1086,6 +1246,8 @@ theorem selectedLevel_stable_in_range {m : ℕ} (π σ : Fin m → ℚ) (p p' : 
   have hwidth : 0 ≤ computedWaterHigh π σ / 2 ^ k := div_nonneg hHpos hpow
   linarith
 
+/-- Successful runs with the same refinement depth have antitone selected levels as their target
+fidelities increase. -/
 theorem certifiedFidelityRun_level_stable {m : ℕ} (π σ : Fin m → ℚ) (p p' ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {r r' : CertifiedFidelityRun m}
@@ -1107,6 +1269,8 @@ theorem certifiedFidelityRun_level_stable {m : ℕ} (π σ : Fin m → ℚ) (p p
   rw [hsel, hsel', hk]
   exact hanti
 
+/-- Collects target monotonicity, the grid-spacing bound, and bracket endpoint tests for targets
+above `computedPmin`. -/
 theorem frontier4 {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hmass : 0 < ∑ j, (π j) ^ 2)
@@ -1155,13 +1319,16 @@ theorem frontier4 {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
   (try dsimp only at hprops)
   refine ⟨hanti, hbrace, hstable, hprops.2.2.1, hprops.2.2.2.2.1, hprops.2.2.2.2.2⟩
 
+/-- The sum of the squares of the rational source entries. -/
 def sourceNormSq {m : ℕ} (π : Fin m → ℚ) : ℚ :=
   ∑ j, (π j) ^ 2
 
+/-- The source squared norm is nonnegative. -/
 theorem sourceNormSq_nonneg {m : ℕ} (π : Fin m → ℚ) : 0 ≤ sourceNormSq π := by
   unfold sourceNormSq
   exact Finset.sum_nonneg fun _ _ => sq_nonneg _
 
+/-- A positive source entry implies a positive source squared norm. -/
 theorem sourceNormSq_pos {m : ℕ} (π : Fin m → ℚ) (i : Fin m) (hpi : 0 < π i) :
     0 < sourceNormSq π := by
   unfold sourceNormSq
@@ -1169,6 +1336,8 @@ theorem sourceNormSq_pos {m : ℕ} (π : Fin m → ℚ) (i : Fin m) (hpi : 0 < �
     Finset.single_le_sum (fun j _ => sq_nonneg _) (Finset.mem_univ i)
   exact lt_of_lt_of_le (sq_pos_of_pos hpi) h1
 
+/-- A successful run yields positive source mass, an in-range target, the strict initial bracket
+inequality, and selection of the upper bracket endpoint. -/
 theorem certifiedFidelityRun_facts {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r) :
     0 < ∑ j, (π j) ^ 2 ∧
@@ -1186,6 +1355,8 @@ theorem certifiedFidelityRun_facts {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ
     pmin_lt_bracket π σ p hmass_pos hmin
   exact ⟨hmass_pos, hmin, hpq, hrange, hlev⟩
 
+/-- The selected amplitude `selectedBeta` of a successful run is positive under the stated
+source and target positivity assumptions. -/
 theorem certifiedBeta_pos {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
@@ -1197,11 +1368,14 @@ theorem certifiedBeta_pos {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
   unfold selectedBeta
   exact Real.sqrt_pos_of_pos (by exact_mod_cast hmass)
 
+/-- The square of `selectedBeta` equals the computed filled mass. -/
 theorem certifiedBeta_sq {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     (selectedBeta π σ γ) ^ 2 = computedMass π σ γ := by
   unfold selectedBeta
   exact Real.sq_sqrt (by exact_mod_cast computedMass_nonneg π σ γ)
 
+/-- The selected amplitude of a successful run is at most the square root of the source squared
+norm. -/
 theorem certifiedBeta_le_norm {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
@@ -1217,6 +1391,7 @@ theorem certifiedBeta_le_norm {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
   unfold selectedBeta
   exact Real.sqrt_le_sqrt hmass_leR
 
+/-- Every rational number is bounded above by the square of a natural number. -/
 theorem exists_nat_sq_ge {X : ℚ} : ∃ N : ℕ, (N : ℚ) ^ 2 ≥ X := by
   obtain ⟨N, hN⟩ := exists_nat_gt X
   refine ⟨N + 1, ?_⟩
@@ -1228,6 +1403,7 @@ theorem exists_nat_sq_ge {X : ℚ} : ∃ N : ℕ, (N : ℚ) ^ 2 ≥ X := by
     ((N + 1 : ℕ) : ℚ) ^ 2 ≥ ((N + 1 : ℕ) : ℚ) := by rw [h2]; nlinarith
     _ ≥ X := by rw [h2]; linarith [hN]
 
+/-- Every rational number is bounded above by the square of a natural number at least one. -/
 theorem exists_nat_sq_ge_unit {X : ℚ} : ∃ N : ℕ, (N : ℚ) ^ 2 ≥ X ∧ 1 ≤ N := by
   obtain ⟨N, hN⟩ := exists_nat_sq_ge (X := X)
   refine ⟨N + 1, ?_, by omega⟩
@@ -1238,30 +1414,37 @@ theorem exists_nat_sq_ge_unit {X : ℚ} : ∃ N : ℕ, (N : ℚ) ^ 2 ≥ X ∧ 1
     nlinarith
   linarith
 
+/-- The least positive natural denominator whose square bounds the source squared norm. -/
 def normalizationDenominator {m : ℕ} (π : Fin m → ℚ) : ℕ :=
   Nat.find (exists_nat_sq_ge_unit (X := sourceNormSq π))
 
+/-- The normalization denominator is at least one and its square bounds the source squared norm. -/
 theorem normalizationDenominator_spec {m : ℕ} (π : Fin m → ℚ) :
     (normalizationDenominator π : ℚ) ^ 2 ≥ sourceNormSq π ∧
       1 ≤ normalizationDenominator π := by
   have h := Nat.find_spec (exists_nat_sq_ge_unit (X := sourceNormSq π))
   simpa only [normalizationDenominator] using! h
 
+/-- No natural number below the normalization denominator is both positive and large enough in
+square to bound the source squared norm. -/
 theorem normalizationDenominator_min {m : ℕ} (π : Fin m → ℚ) {N : ℕ}
     (hN : N < normalizationDenominator π) :
     ¬ ((N : ℚ) ^ 2 ≥ sourceNormSq π ∧ 1 ≤ N) := by
   have h := Nat.find_min (exists_nat_sq_ge_unit (X := sourceNormSq π)) hN
   simpa only [normalizationDenominator] using! h
 
+/-- The reciprocal of the normalization denominator. -/
 def normalizationFactor {m : ℕ} (π : Fin m → ℚ) : ℚ :=
   1 / (normalizationDenominator π : ℚ)
 
+/-- The normalization factor is positive. -/
 theorem normalizationFactor_pos {m : ℕ} (π : Fin m → ℚ) : 0 < normalizationFactor π := by
   unfold normalizationFactor
   have hN : (1 : ℚ) ≤ (normalizationDenominator π : ℚ) := by
     exact_mod_cast (normalizationDenominator_spec π).2
   exact div_pos (by norm_num) (by linarith)
 
+/-- The normalization factor is at most one. -/
 theorem normalizationFactor_le_one {m : ℕ} (π : Fin m → ℚ) :
     normalizationFactor π ≤ 1 := by
   unfold normalizationFactor
@@ -1269,6 +1452,8 @@ theorem normalizationFactor_le_one {m : ℕ} (π : Fin m → ℚ) :
     exact_mod_cast (normalizationDenominator_spec π).2
   exact (div_le_iff₀ (by linarith)).2 (by linarith [hN])
 
+/-- Scaling the source squared norm by the square of the normalization factor gives a value at
+most one. -/
 theorem normalizationFactor_spec {m : ℕ} (π : Fin m → ℚ) :
     normalizationFactor π ^ 2 * sourceNormSq π ≤ 1 := by
   have hN2 : (normalizationDenominator π : ℚ) ^ 2 ≥ sourceNormSq π :=
@@ -1287,6 +1472,8 @@ theorem normalizationFactor_spec {m : ℕ} (π : Fin m → ℚ) :
   rw [heq]
   exact hdiv
 
+/-- Normalizing the source and level scales the selected amplitude into `(0, 1]` and preserves
+the fidelity of a successful run. -/
 theorem certifiedBeta_normalized {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
@@ -1344,9 +1531,12 @@ theorem certifiedBeta_normalized {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     rw [hone] at hsqrt
     linarith
 
+/-- The exact resampling schedule as a triple of round count, angle, and scale. -/
 noncomputable def scheduleTriple (β : ℝ) : ℕ × ℝ × ℝ :=
   (resamplingExactRounds β, resamplingExactAngle β, resamplingExactScale β)
 
+/-- The scale, angle, exact rotation, round-count, and perturbation bounds required of a
+resampling schedule triple. -/
 def ScheduleClause (β : ℝ) (sch : ℕ × ℝ × ℝ) : Prop :=
   1 / 2 ≤ sch.2.2 ∧ sch.2.2 ≤ 1 ∧
     0 < sch.2.1 ∧ sch.2.1 ≤ Real.pi / 2 ∧
@@ -1358,9 +1548,11 @@ def ScheduleClause (β : ℝ) (sch : ℕ × ℝ × ℝ) : Prop :=
     (∀ β' δ : ℝ, 0 ≤ δ → |β - β'| ≤ δ →
       (β' - δ) / 2 ≤ Real.sin sch.2.1 ∧ Real.sin sch.2.1 ≤ β' + δ)
 
+/-- The schedule bounds `ScheduleClause` specialized to `scheduleTriple β`. -/
 def ScheduleWindows (β : ℝ) : Prop :=
   ScheduleClause β (scheduleTriple β)
 
+/-- For `0 < β ≤ 1`, the exact resampling schedule satisfies `ScheduleWindows`. -/
 theorem scheduleWindows (β : ℝ) (hβ : 0 < β) (hβ1 : β ≤ 1) : ScheduleWindows β := by
   obtain ⟨hscaleLo, hscaleHi, hangPos, hangHi, hsin, htotal, hqueries, hend⟩ :=
     resamplingExactSchedule β hβ hβ1
@@ -1378,6 +1570,8 @@ theorem scheduleWindows (β : ℝ) (hβ : 0 < β) (hβ1 : β ≤ 1) : ScheduleWi
     · rw [hsin]
       nlinarith [hscaleHi]
 
+/-- For a selected amplitude in `(0, 1]`, the selected schedule equals `scheduleTriple` and
+satisfies its schedule bounds. -/
 theorem selectedSchedule_windows {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ)
     (hβ : 0 < selectedBeta π σ γ) (hβ1 : selectedBeta π σ γ ≤ 1) :
     ScheduleWindows (selectedBeta π σ γ) ∧
@@ -1385,6 +1579,8 @@ theorem selectedSchedule_windows {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ)
   refine ⟨scheduleWindows _ hβ hβ1, ?_⟩
   rfl
 
+/-- The normalized amplitude of a successful run satisfies `ScheduleWindows`, and its selected
+schedule equals the corresponding `scheduleTriple`. -/
 theorem certifiedSchedule_windows {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) :
@@ -1403,6 +1599,8 @@ theorem certifiedSchedule_windows {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     ((normalizationFactor π) * r.level) hpos hle
   exact ⟨hpos, hle, hw, hsch, hfid⟩
 
+/-- Under the stated normalization and bracket hypotheses, the selected level inherits the exact
+schedule bounds when its amplitude lies in `(0, 1]`. -/
 theorem selectedLevel_inherits_frozen_schedule {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hπn : (∑ j, (π j : ℝ) ^ 2) = 1) (hσn : (∑ j, (σ j : ℝ) ^ 2) = 1)
@@ -1424,6 +1622,8 @@ theorem selectedLevel_inherits_frozen_schedule {m : ℕ} (π σ : Fin m → ℚ)
   · simpa only [ScheduleWindows, ScheduleClause, scheduleTriple, Prod.fst, Prod.snd] using! hw
   · exact hsch
 
+/-- Under the stated normalization hypotheses, a successful run inherits the exact schedule
+bounds at its refinement depth when the selected amplitude lies in `(0, 1]`. -/
 theorem certifiedRun_inherits_frozen_schedule {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hπn : (∑ j, (π j : ℝ) ^ 2) = 1) (hσn : (∑ j, (σ j : ℝ) ^ 2) = 1)
@@ -1444,6 +1644,8 @@ theorem certifiedRun_inherits_frozen_schedule {m : ℕ} (π σ : Fin m → ℚ) 
   exact selectedLevel_inherits_frozen_schedule π σ p r.steps hπ (fun j => (hσ j).le)
     hπn hσn hhigh hmax hβ hβ1
 
+/-- Collects amplitude positivity, mass and norm bounds, fidelity-preserving normalization, and
+exact schedule bounds for a successful run. -/
 theorem frontier5 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r) :
@@ -1482,6 +1684,7 @@ theorem frontier5 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
   exact ⟨hβpos, hβsq, hβnorm, normalizationFactor_pos π, normalizationFactor_le_one π,
     normalizationFactor_spec π, hident, hpos, hle, hfid, hw, hsch⟩
 
+/-- For a real number in `[0, 1]`, its inverse sine is at least the number itself. -/
 theorem arcsin_ge_self {β : ℝ} (hβ : 0 ≤ β) (hβ1 : β ≤ 1) : β ≤ Real.arcsin β := by
   have hmem : β ∈ Set.Icc (-(Real.pi / 2)) (Real.pi / 2) := by
     constructor
@@ -1491,6 +1694,7 @@ theorem arcsin_ge_self {β : ℝ} (hβ : 0 ≤ β) (hβ1 : β ≤ 1) : β ≤ Re
   have hmem2 : β ∈ Set.Icc (-1 : ℝ) 1 := ⟨by linarith, by linarith⟩
   exact (Real.le_arcsin_iff_sin_le hmem hmem2).mpr (Real.sin_le hβ)
 
+/-- For a real number `β` in `[0, 1]`, its inverse sine is at most `Real.pi / 2 * β`. -/
 theorem arcsin_le_half_pi_mul {β : ℝ} (hβ : 0 ≤ β) (hβ1 : β ≤ 1) :
     Real.arcsin β ≤ Real.pi / 2 * β := by
   have hmem : β ∈ Set.Icc (-1 : ℝ) 1 := ⟨by linarith, by linarith⟩
@@ -1507,9 +1711,12 @@ theorem arcsin_le_half_pi_mul {β : ℝ} (hβ : 0 ≤ β) (hβ1 : β ≤ 1) :
       linarith
   exact (Real.arcsin_le_iff_le_sin hmem hmem2).mpr (Real.le_sin_mul hβ hβ1)
 
+/-- A positive rational lower amplitude bound whose product with `2 * t + 1` is at least two. -/
 def RoundBudget (lo : ℚ) (t : ℕ) : Prop :=
   0 < lo ∧ lo * (2 * (t : ℚ) + 1) ≥ 2
 
+/-- A positive rational upper amplitude bound whose product with `2 * t - 1` is strictly less
+than one. -/
 def RoundFloor (hi : ℚ) (t : ℕ) : Prop :=
   0 < hi ∧ hi * (2 * (t : ℚ) - 1) < 1
 
@@ -1521,6 +1728,8 @@ instance decidableRoundFloor (hi : ℚ) : DecidablePred (RoundFloor hi) := fun _
   unfold RoundFloor
   infer_instance
 
+/-- A valid rational round budget below an amplitude in `(0, 1]` bounds its exact resampling
+round count from above. -/
 theorem resamplingExactRounds_le_of_budget {β : ℝ} {lo : ℚ} {t : ℕ}
     (hβ : 0 < β) (hβ1 : β ≤ 1) (hbudget : RoundBudget lo t) (hlo : lo ≤ β) :
     resamplingExactRounds β ≤ t := by
@@ -1552,6 +1761,8 @@ theorem resamplingExactRounds_le_of_budget {β : ℝ} {lo : ℚ} {t : ℕ}
   unfold resamplingExactRounds
   exact Nat.ceil_le.mpr hq
 
+/-- A valid rational round floor above an amplitude in `(0, 1]` bounds its exact resampling
+round count from below when `t ≥ 1`. -/
 theorem resamplingExactRounds_ge_of_floor {β : ℝ} {hi : ℚ} {t : ℕ}
     (hβ : 0 < β) (hβ1 : β ≤ 1) (ht : 1 ≤ t) (hfloor : RoundFloor hi t)
     (hhi : β ≤ hi) :
@@ -1592,6 +1803,8 @@ theorem resamplingExactRounds_ge_of_floor {β : ℝ} {hi : ℚ} {t : ℕ}
     linarith
   omega
 
+/-- A nonnegative rational whose square is at most the computed mass bounds `selectedBeta` from
+below. -/
 theorem selectedBeta_lower {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (lo : ℚ)
     (hlo : 0 ≤ lo) (hlo2 : lo ^ 2 ≤ computedMass π σ γ) :
     lo ≤ selectedBeta π σ γ := by
@@ -1603,6 +1816,8 @@ theorem selectedBeta_lower {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (lo : �
   rw [hsq, Real.sqrt_sq_eq_abs, abs_of_nonneg (by exact_mod_cast hlo)] at h1
   exact h1
 
+/-- A nonnegative rational whose square bounds the computed mass bounds `selectedBeta` from
+above. -/
 theorem selectedBeta_upper {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (hi : ℚ)
     (hhi : 0 ≤ hi) (hhi2 : computedMass π σ γ ≤ hi ^ 2) :
     selectedBeta π σ γ ≤ hi := by
@@ -1614,12 +1829,15 @@ theorem selectedBeta_upper {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (hi : �
   rw [hsq, Real.sqrt_sq_eq_abs, abs_of_nonneg (by exact_mod_cast hhi)] at h1
   exact h1
 
+/-- Nonnegative rational square bounds on the computed mass give a rational interval containing
+`selectedBeta`. -/
 theorem selectedBeta_interval {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (lo hi : ℚ)
     (hlo : 0 ≤ lo) (hhi : 0 ≤ hi) (hlo2 : lo ^ 2 ≤ computedMass π σ γ)
     (hhi2 : computedMass π σ γ ≤ hi ^ 2) :
     lo ≤ selectedBeta π σ γ ∧ selectedBeta π σ γ ≤ hi :=
   ⟨selectedBeta_lower π σ lo hlo hlo2, selectedBeta_upper π σ hi hhi hhi2⟩
 
+/-- Every positive rational lower amplitude bound has a natural round budget. -/
 theorem exists_roundBudget {lo : ℚ} (hlo : 0 < lo) : ∃ t : ℕ, RoundBudget lo t := by
   obtain ⟨N, hN⟩ := exists_nat_gt (2 / lo)
   refine ⟨N, hlo, ?_⟩
@@ -1630,19 +1848,24 @@ theorem exists_roundBudget {lo : ℚ} (hlo : 0 < lo) : ∃ t : ℕ, RoundBudget 
   have h4 : lo * (2 * (N : ℚ) + 1) = 2 * (lo * (N : ℚ)) + lo := by ring
   linarith
 
+/-- The least natural round count satisfying `RoundBudget` for a positive rational lower
+amplitude bound. -/
 noncomputable def roundBudgetSearch (lo : ℚ) (hlo : 0 < lo) : ℕ :=
   Nat.find (p := fun t => RoundBudget lo t) (exists_roundBudget hlo)
 
+/-- The round count returned by `roundBudgetSearch` satisfies `RoundBudget`. -/
 theorem roundBudgetSearch_spec {lo : ℚ} (hlo : 0 < lo) :
     RoundBudget lo (roundBudgetSearch lo hlo) := by
   unfold roundBudgetSearch
   exact Nat.find_spec (p := fun t => RoundBudget lo t) (exists_roundBudget hlo)
 
+/-- The round budget search result is at most every count satisfying the same budget condition. -/
 theorem roundBudgetSearch_le {lo : ℚ} (hlo : 0 < lo) {t : ℕ} (ht : RoundBudget lo t) :
     roundBudgetSearch lo hlo ≤ t := by
   unfold roundBudgetSearch
   exact Nat.find_le (p := fun t => RoundBudget lo t) (h := exists_roundBudget hlo) ht
 
+/-- For every positive rational upper amplitude bound, some natural count fails `RoundFloor`. -/
 theorem exists_not_roundFloor {hi : ℚ} (hhi : 0 < hi) : ∃ t : ℕ, ¬ RoundFloor hi t := by
   obtain ⟨N, hN⟩ := exists_nat_gt (1 / hi)
   refine ⟨N, ?_⟩
@@ -1663,14 +1886,17 @@ theorem exists_not_roundFloor {hi : ℚ} (hhi : 0 < hi) : ∃ t : ℕ, ¬ RoundF
   have h4 : hi * (2 * (N : ℚ) - 1) ≥ hi * (N : ℚ) := by nlinarith [hhi, hN1Q]
   linarith
 
+/-- The least natural count failing `RoundFloor` for a positive rational upper amplitude bound. -/
 noncomputable def roundFloorSearch (hi : ℚ) (hhi : 0 < hi) : ℕ :=
   Nat.find (p := fun t => ¬ RoundFloor hi t) (exists_not_roundFloor hhi)
 
+/-- The count returned by `roundFloorSearch` fails `RoundFloor`. -/
 theorem roundFloorSearch_spec {hi : ℚ} (hhi : 0 < hi) :
     ¬ RoundFloor hi (roundFloorSearch hi hhi) := by
   unfold roundFloorSearch
   exact Nat.find_spec (p := fun t => ¬ RoundFloor hi t) (exists_not_roundFloor hhi)
 
+/-- The first count failing the round floor condition is at least one. -/
 theorem roundFloorSearch_pos {hi : ℚ} (hhi : 0 < hi) : 1 ≤ roundFloorSearch hi hhi := by
   have h0 : RoundFloor hi 0 := by
     refine ⟨hhi, ?_⟩
@@ -1682,6 +1908,7 @@ theorem roundFloorSearch_pos {hi : ℚ} (hhi : 0 < hi) : 1 ≤ roundFloorSearch 
   rw [hz] at hspec
   exact hspec h0
 
+/-- The predecessor of the first count failing `RoundFloor` satisfies `RoundFloor`. -/
 theorem roundFloorSearch_prev {hi : ℚ} (hhi : 0 < hi) :
     RoundFloor hi (roundFloorSearch hi hhi - 1) := by
   by_contra hcon
@@ -1694,6 +1921,8 @@ theorem roundFloorSearch_prev {hi : ℚ} (hhi : 0 < hi) :
   have h2 := roundFloorSearch_pos hhi
   omega
 
+/-- Rational bounds `lo ≤ β ≤ hi` and `ScheduleWindows β` bound the schedule angle's sine
+between `lo / 2` and `hi`. -/
 theorem scheduleWindow_rational {β : ℝ} {lo hi : ℚ}
     (hlo : lo ≤ β) (hhi : β ≤ hi) (hw : ScheduleWindows β) :
     (lo : ℝ) / 2 ≤ Real.sin (resamplingExactAngle β) ∧
@@ -1706,6 +1935,8 @@ theorem scheduleWindow_rational {β : ℝ} {lo hi : ℚ}
   · exact (div_le_div_of_nonneg_right (by exact_mod_cast hlo) (by norm_num)).trans h9
   · exact h10.trans (by exact_mod_cast hhi)
 
+/-- Positive rational bounds on `β` give ratio bounds on the exact schedule scale, together with
+its bounds between one half and one. -/
 theorem scheduleScale_rational {β : ℝ} {lo hi : ℚ}
     (hβ : 0 < β) (hlo : 0 < lo) (hhi : 0 < hi)
     (hlo' : lo ≤ β) (hhi' : β ≤ hi) (hw : ScheduleWindows β) :
@@ -1747,6 +1978,7 @@ theorem scheduleScale_rational {β : ℝ} {lo hi : ℚ}
     rw [← hD]
     exact hB.trans hC
 
+/-- An amplitude in `[1 / 2, 1)` has exactly one resampling round. -/
 theorem resamplingExactRounds_eq_one_of_range {β : ℝ}
     (hβ : 0 < β) (hβ1 : β < 1) (hhalf : (1 : ℝ) / 2 ≤ β) :
     resamplingExactRounds β = 1 := by
@@ -1788,6 +2020,8 @@ theorem resamplingExactRounds_eq_one_of_range {β : ℝ}
     linarith
   omega
 
+/-- Positive rational square bounds on the normalized mass of a successful run give computable
+round-count bounds and bounds on the schedule angle's sine. -/
 theorem certifiedRoundBudget {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
@@ -1826,6 +2060,8 @@ theorem certifiedRoundBudget {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
   obtain ⟨hwin1, hwin2⟩ := scheduleWindow_rational hlo' hhi' hw.1
   exact ⟨hfloorres, hbudgetres, hwin1, hwin2⟩
 
+/-- Collects rational amplitude bounds, round-count bounds, and bounds on the schedule angle's
+sine from a successful run's normalized mass bounds. -/
 theorem frontier6 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
@@ -1855,8 +2091,10 @@ theorem frontier6 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     certifiedRoundBudget π σ p ε hr hπ hσ lo hi hlo hhi hmass hmass2
   exact ⟨hlo', hhi', hf, hb, hw1, hw2⟩
 
+/-- Casting a rational difference to the reals commutes with subtraction. -/
 theorem rat_sub_cast (a b : ℚ) : ((a - b : ℚ) : ℝ) = (a : ℝ) - (b : ℝ) := Rat.cast_sub a b
 
+/-- A rational absolute-value bound remains valid after casting to the reals. -/
 theorem abs_rat_le {a b : ℚ} (h : |a| ≤ b) : |(a : ℝ)| ≤ (b : ℝ) := by
   by_cases hpos : 0 ≤ a
   · have hpos' : 0 ≤ (a : ℝ) := by exact_mod_cast hpos
@@ -1869,6 +2107,8 @@ theorem abs_rat_le {a b : ℚ} (h : |a| ≤ b) : |(a : ℝ)| ≤ (b : ℝ) := by
     rw [abs_of_nonpos hneg']
     exact_mod_cast h
 
+/-- For nonnegative real masses, the absolute difference of their square roots times the sum of
+their square roots equals their absolute difference. -/
 theorem sqrt_sub_mul_sum {M1 M2 : ℝ} (h1 : 0 ≤ M1) (h2 : 0 ≤ M2) :
     |Real.sqrt M2 - Real.sqrt M1| * (Real.sqrt M2 + Real.sqrt M1) = |M2 - M1| := by
   have hsq1 : Real.sqrt M1 ^ 2 = M1 := Real.sq_sqrt h1
@@ -1882,6 +2122,8 @@ theorem sqrt_sub_mul_sum {M1 M2 : ℝ} (h1 : 0 ≤ M1) (h2 : 0 ≤ M2) :
       ring
     _ = |M2 - M1| := by rw [hsq2, hsq1]
 
+/-- Two masses above a positive lower bound have square-root error at most their mass error
+divided by twice the square root of that bound. -/
 theorem precisionSqrt_error {mLo dm mass massHat : ℚ} (hmLo : 0 < mLo) (hdm : 0 ≤ dm)
     (hmass : mLo ≤ mass) (hhat : mLo ≤ massHat)
     (herr : |massHat - mass| ≤ dm) :
@@ -1935,6 +2177,8 @@ theorem precisionSqrt_error {mLo dm mass massHat : ℚ} (hmLo : 0 < mLo) (hdm : 
     div_le_div_of_nonneg_left hdmR (by positivity) hsum
   exact h1.trans h2
 
+/-- Under the strict initial bracket inequality, the endpoint mass difference is at most twice
+the source-target dot product times the dyadic bracket width. -/
 theorem certifiedMass_width {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2)) :
@@ -1955,6 +2199,8 @@ theorem certifiedMass_width {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ
     _ = 2 * (∑ j, π j * σ j) * (computedWaterHigh π σ / (2 : ℚ) ^ k) := by
       rw [hwidth]
 
+/-- A margin witness and the stated refinement-depth bound control the difference of the
+endpoint amplitudes by `ε * π i / p`. -/
 theorem certifiedBeta_precision {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -2117,8 +2363,12 @@ theorem certifiedBeta_precision {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (
       ≤ ((ε * π i / p : ℚ) : ℝ) := hdiv.trans hQ'
   simpa only [selectedBeta] using! hfinal
 
+/-- The difference between a rational lower amplitude bound and the threshold `2 / (2 * t + 1)`
+for a round budget. -/
 def roundBudgetMargin (lo : ℚ) (t : ℕ) : ℚ := lo - 2 / (2 * (t : ℚ) + 1)
 
+/-- Decreasing a lower amplitude bound by at most its round budget margin preserves the same
+round budget. -/
 theorem roundBudget_margin_stable {lo δ : ℚ} {t : ℕ}
     (ht : RoundBudget lo t) (hm : δ ≤ roundBudgetMargin lo t) :
     RoundBudget (lo - δ) t := by
@@ -2142,8 +2392,12 @@ theorem roundBudget_margin_stable {lo δ : ℚ} {t : ℕ}
     linarith
   · linarith [ht.2, hkey]
 
+/-- The difference between the round floor threshold `1 / (2 * t - 1)` and a rational upper
+amplitude bound. -/
 def roundFloorMargin (hi : ℚ) (t : ℕ) : ℚ := 1 / (2 * (t : ℚ) - 1) - hi
 
+/-- For `t ≥ 1`, increasing an upper amplitude bound by a nonnegative amount strictly below its
+floor margin preserves `RoundFloor`. -/
 theorem roundFloor_margin_stable {hi δ : ℚ} {t : ℕ} (hδ : 0 ≤ δ) (ht : 1 ≤ t)
     (hfloor : RoundFloor hi t) (hm : δ < roundFloorMargin hi t) :
     RoundFloor (hi + δ) t := by
@@ -2164,18 +2418,24 @@ theorem roundFloor_margin_stable {hi δ : ℚ} {t : ℕ} (hδ : 0 ≤ δ) (ht : 
   · linarith [hfloor.1, hδ]
   · linarith [hfloor.2, hkey]
 
+/-- A round budget for the perturbed lower bound `lo - δ` bounds the exact resampling rounds
+when that bound is at most the amplitude. -/
 theorem resamplingExactRounds_le_of_budget_precision {β : ℝ} {lo δ : ℚ} {t : ℕ}
     (hβ : 0 < β) (hβ1 : β ≤ 1) (hbudget : RoundBudget (lo - δ) t)
     (hlo : (lo - δ : ℚ) ≤ β) :
     resamplingExactRounds β ≤ t :=
   resamplingExactRounds_le_of_budget hβ hβ1 hbudget hlo
 
+/-- For `t ≥ 1`, a round floor for the perturbed upper bound `hi + δ` gives a lower bound on
+exact resampling rounds. -/
 theorem resamplingExactRounds_ge_of_floor_precision {β : ℝ} {hi δ : ℚ} {t : ℕ}
     (hβ : 0 < β) (hβ1 : β ≤ 1) (ht : 1 ≤ t) (hfloor : RoundFloor (hi + δ) t)
     (hhi : β ≤ (hi + δ : ℚ)) :
     t ≤ resamplingExactRounds β :=
   resamplingExactRounds_ge_of_floor hβ hβ1 ht hfloor hhi
 
+/-- Rational amplitude bounds and `ScheduleWindows` bound the schedule angle's sine between half
+the lower bound and the upper bound. -/
 theorem scheduleWindow_rational_precision {β : ℝ} {lo hi : ℚ}
     (hlo : lo ≤ β) (hhi : β ≤ hi) (hw : ScheduleWindows β) :
     (lo : ℝ) / 2 ≤ Real.sin (resamplingExactAngle β) ∧
@@ -2188,6 +2448,8 @@ theorem scheduleWindow_rational_precision {β : ℝ} {lo hi : ℚ}
   · exact (div_le_div_of_nonneg_right hlo (by norm_num)).trans h9
   · exact h10.trans hhi
 
+/-- Combines fidelity and endpoint-amplitude error bounds with a round budget and sine window
+enlarged by the amplitude error. -/
 theorem frontier7 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -2237,15 +2499,19 @@ theorem frontier7 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k 
     (lo := lo - ε * π i / p) (hi := hi + ε * π i / p) hβ2lo hβ2hi hw
   exact ⟨hfid, hprec, hrounds, hw1, hw2⟩
 
+/-- The spacing `1 / 2 ^ b` of the rational dyadic grid. -/
 def gridStep (b : ℕ) : ℚ := 1 / (2 : ℚ) ^ b
 
+/-- The dyadic grid spacing is strictly positive. -/
 theorem gridStep_pos (b : ℕ) : 0 < gridStep b := by
   unfold gridStep
   positivity
 
+/-- Rounds a rational to the nearest dyadic grid point, choosing the upper point at a tie. -/
 def gridRound (b : ℕ) (x : ℚ) : ℚ :=
   ((⌊x * (2 : ℚ) ^ b + 1 / 2⌋ : ℤ) : ℚ) / (2 : ℚ) ^ b
 
+/-- Nearest-grid rounding changes a rational by at most half the grid spacing. -/
 theorem gridRound_error (b : ℕ) (x : ℚ) :
     |gridRound b x - x| ≤ gridStep b / 2 := by
   have hpow : (0 : ℚ) < (2 : ℚ) ^ b := by positivity
@@ -2272,6 +2538,7 @@ theorem gridRound_error (b : ℕ) (x : ℚ) :
     field_simp [hne]
   linarith
 
+/-- Every rounded rational is an integer multiple of the grid spacing. -/
 theorem gridRound_onGrid (b : ℕ) (x : ℚ) :
     ∃ n : ℤ, gridRound b x = (n : ℚ) * gridStep b := by
   refine ⟨(⌊x * (2 : ℚ) ^ b + 1 / 2⌋ : ℤ), ?_⟩
@@ -2279,9 +2546,12 @@ theorem gridRound_onGrid (b : ℕ) (x : ℚ) :
   unfold gridRound gridStep
   field_simp [hne]
 
+/-- The filled mass obtained by rounding each squared water-fill entry before summing exactly. -/
 def computedMassRounded (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   ∑ j, gridRound b (waterFill π σ γ j ^ 2)
 
+/-- Entrywise nearest rounding changes the filled mass by at most `m` times half the grid
+spacing. -/
 theorem computedMassRounded_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     |computedMassRounded b π σ γ - computedMass π σ γ| ≤ (m : ℚ) * (gridStep b / 2) := by
   have hsum : computedMassRounded b π σ γ - computedMass π σ γ
@@ -2301,21 +2571,28 @@ theorem computedMassRounded_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (�
     simp [Finset.sum_const, Finset.card_univ]
   linarith
 
+/-- The real square root of the entrywise rounded filled mass. -/
 noncomputable def selectedBetaRounded (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℝ :=
   Real.sqrt (computedMassRounded b π σ γ)
 
+/-- The rational amplitude error allowance obtained by dividing the entrywise mass error bound
+by `πi`. -/
 def betaRoundingError (b : ℕ) (πi : ℚ) (m : ℕ) : ℚ :=
   (m : ℚ) * (gridStep b / 2) / πi
 
+/-- The real-valued expression for the entrywise rounding error allowance divided by `πi`. -/
 noncomputable def betaRoundingErrorR (b : ℕ) (πi : ℚ) (m : ℕ) : ℝ :=
   ((m : ℚ) : ℝ) * (((gridStep b : ℚ) : ℝ) / 2) / ((πi : ℚ) : ℝ)
 
+/-- The real amplitude rounding allowance equals the real cast of its rational counterpart. -/
 theorem betaRoundingErrorR_eq (b : ℕ) (πi : ℚ) (m : ℕ) :
     betaRoundingErrorR b πi m = ((betaRoundingError b πi m : ℚ) : ℝ) := by
   unfold betaRoundingErrorR betaRoundingError
   push_cast
   ring
 
+/-- A positive witness mass lower bound and sufficiently small entrywise mass error bound the
+rounded amplitude error by `betaRoundingErrorR`. -/
 theorem certifiedBeta_rounded {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (γ : ℚ) (i : Fin m)
     (hpi : 0 < π i) (hmass : (π i) ^ 2 ≤ computedMass π σ γ)
     (hdmsmall : (m : ℚ) * (gridStep b / 2) ≤ (π i) ^ 2 / 2) :
@@ -2366,9 +2643,13 @@ theorem certifiedBeta_rounded {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (γ : 
   unfold betaRoundingErrorR
   exact hsqr.trans hdiv1
 
+/-- The minimum grid-spacing allowance ensuring the desired amplitude error and a mass error at
+most half the squared witness entry. -/
 def bitBudget (ε p : ℚ) (πi : ℚ) (m : ℕ) : ℚ :=
   min (2 * ε * πi ^ 2 / ((m : ℚ) * p)) (πi ^ 2 / (m : ℚ))
 
+/-- The bit budget is positive when the tolerance, target, witness entry, and table size are
+positive. -/
 theorem bitBudget_pos {ε p πi : ℚ} {m : ℕ} (hm : 0 < m) (hε : 0 < ε) (hp : 0 < p)
     (hπi : 0 < πi) : 0 < bitBudget ε p πi m := by
   unfold bitBudget
@@ -2376,6 +2657,7 @@ theorem bitBudget_pos {ε p πi : ℚ} {m : ℕ} (hm : 0 < m) (hε : 0 < ε) (hp
   · positivity
   · positivity
 
+/-- Every positive rational spacing allowance is reached by some dyadic grid precision. -/
 theorem exists_bitBudget {B : ℚ} (hB : 0 < B) : ∃ b : ℕ, gridStep b ≤ B := by
   obtain ⟨N, hN⟩ := exists_two_pow_ge (X := 1 / B)
   have h1 : (1 : ℚ) ≤ (2 : ℚ) ^ N * B := by
@@ -2391,21 +2673,30 @@ theorem exists_bitBudget {B : ℚ} (hB : 0 < B) : ∃ b : ℕ, gridStep b ≤ B 
   rw [h2]
   linarith
 
+/-- The least natural precision whose dyadic grid spacing is at most a given positive rational
+allowance. -/
 noncomputable def bitBudgetSearch (B : ℚ) (hB : 0 < B) : ℕ :=
   Nat.find (p := fun b => gridStep b ≤ B) (exists_bitBudget hB)
 
+/-- The precision chosen by `bitBudgetSearch` has grid spacing at most the requested allowance. -/
 theorem bitBudgetSearch_spec {B : ℚ} (hB : 0 < B) : gridStep (bitBudgetSearch B hB) ≤ B :=
   Nat.find_spec (p := fun b => gridStep b ≤ B) (exists_bitBudget hB)
 
+/-- The bit budget search chooses no larger a precision than any precision meeting its spacing
+allowance. -/
 theorem bitBudgetSearch_le {B : ℚ} (hB : 0 < B) {b : ℕ} (hb : gridStep b ≤ B) :
     bitBudgetSearch B hB ≤ b :=
   Nat.find_le (p := fun b => gridStep b ≤ B) (h := exists_bitBudget hB) hb
 
+/-- Positive tolerance, target, witness entry, and table size ensure existence of a precision
+meeting `bitBudget`. -/
 theorem exists_bitBudgetSufficient {ε p πi : ℚ} {m : ℕ} (hm : 0 < m) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) : ∃ b : ℕ, gridStep b ≤ bitBudget ε p πi m := by
   refine ⟨bitBudgetSearch (bitBudget ε p πi m) (bitBudget_pos hm hε hp hπi), ?_⟩
   exact bitBudgetSearch_spec (bitBudget_pos hm hε hp hπi)
 
+/-- Meeting the bit budget bounds the amplitude error allowance by `ε * πi / p` and the mass
+error allowance by `πi ^ 2 / 2`. -/
 theorem bitBudget_sufficient {ε p πi : ℚ} {m : ℕ} (hm : 0 < m) (hε : 0 < ε) (hp : 0 < p)
     (hπi : 0 < πi) (b : ℕ) (hb : gridStep b ≤ bitBudget ε p πi m) :
     (m : ℚ) * (gridStep b / 2) / πi ≤ ε * πi / p ∧
@@ -2436,8 +2727,10 @@ theorem bitBudget_sufficient {ε p πi : ℚ} {m : ℕ} (hm : 0 < m) (hε : 0 < 
   rw [div_le_div_iff₀ hπi hp]
   linarith
 
+/-- The combined amplitude loss from the fidelity tolerance and a mass error allowance `dm`. -/
 def precisionLoss (ε p : ℚ) (πi : ℚ) (dm : ℚ) : ℚ := ε * πi / p + dm / πi
 
+/-- A valid round budget has nonnegative round budget margin. -/
 theorem roundBudgetMargin_nonneg {lo : ℚ} {t : ℕ} (ht : RoundBudget lo t) :
     0 ≤ roundBudgetMargin lo t := by
   have hpos : 0 < 2 * (t : ℚ) + 1 := by positivity
@@ -2446,11 +2739,15 @@ theorem roundBudgetMargin_nonneg {lo : ℚ} {t : ℕ} (ht : RoundBudget lo t) :
     linarith [ht.2]
   simpa only [roundBudgetMargin] using! sub_nonneg.mpr h1
 
+/-- An error allowance no larger than the round budget margin preserves the budget after
+subtracting that allowance from the lower amplitude bound. -/
 theorem roundBudget_of_precisionLoss {lo : ℚ} {t : ℕ} {δ : ℚ}
     (htbudget : RoundBudget lo t) (hmargin : δ ≤ roundBudgetMargin lo t) :
     RoundBudget (lo - δ) t :=
   roundBudget_margin_stable htbudget hmargin
 
+/-- A margin witness gives a lower bound of `(π i) ^ 2` on the filled mass at the upper fidelity
+bracket endpoint. -/
 theorem certifiedMass_at_certifiedLevel {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : Fin m) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -2482,6 +2779,8 @@ theorem certifiedMass_at_certifiedLevel {m : ℕ} (π σ : Fin m → ℚ) (p : �
     computedWaterEnergy_mono π σ (fun j => ⟨hπ j, hσ' j⟩) hgc.le hgc_lt.le
   exact le_trans hmass_gc hmass_mono
 
+/-- The bit budget bounds the upper endpoint's rounded amplitude error and gives a lower bound
+obtained from the lower endpoint amplitude and both error allowances. -/
 theorem certifiedRoundBudget_bitBudget {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (k b : ℕ) (lo : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -2513,6 +2812,8 @@ theorem certifiedRoundBudget_bitBudget {m : ℕ} (π σ : Fin m → ℚ) (p ε :
       ≤ selectedBetaRounded b π σ (fidelityBracket π σ p k).2 := by linarith
   linarith
 
+/-- Combines fidelity, endpoint-amplitude, and entrywise rounding error bounds with preservation
+of a round budget under the combined precision loss. -/
 theorem frontier8 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ)
     (lo : ℚ) (t : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -2542,20 +2843,27 @@ theorem frontier8 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k 
     roundBudget_of_precisionLoss htbudget hmarginbudget
   exact ⟨hfid, hprec, hround, hbudget', hweakened⟩
 
+/-- The absolute difference between two rationals is bounded by the sum of their absolute
+differences through a third rational. -/
 theorem abs_sub_triangle (a b c : ℚ) : |a - c| ≤ |a - b| + |b - c| := by
   have h1 : -|a - b| ≤ a - b ∧ a - b ≤ |a - b| := abs_le.mp (le_refl (|a - b|))
   have h2 : -|b - c| ≤ b - c ∧ b - c ≤ |b - c| := abs_le.mp (le_refl (|b - c|))
   rw [abs_le]
   constructor <;> linarith [h1.1, h1.2, h2.1, h2.2]
 
+/-- A left fold of a rational binary operation through a list from a given accumulator. -/
 def exactFold (f : ℚ → ℚ → ℚ) : ℚ → List ℚ → ℚ
   | acc, [] => acc
   | acc, x :: xs => exactFold f (f acc x) xs
 
+/-- A left fold that rounds the accumulator to the dyadic grid after each application of a
+rational binary operation. -/
 def roundedFold (b : ℕ) (f : ℚ → ℚ → ℚ) : ℚ → List ℚ → ℚ
   | acc, [] => acc
   | acc, x :: xs => roundedFold b f (gridRound b (f acc x)) xs
 
+/-- If each operation is nonexpansive in its accumulator, its exact fold is nonexpansive in the
+initial accumulator. -/
 theorem exactFold_lipschitz {f : ℚ → ℚ → ℚ}
     (hf : ∀ a a' x : ℚ, |f a x - f a' x| ≤ |a - a'|) :
     ∀ (a a' : ℚ) (xs : List ℚ), |exactFold f a xs - exactFold f a' xs| ≤ |a - a'| := by
@@ -2569,6 +2877,8 @@ theorem exactFold_lipschitz {f : ℚ → ℚ → ℚ}
           ih (f a x) (f a' x)
         _ ≤ |a - a'| := hf a a' x
 
+/-- For an operation nonexpansive in its accumulator, the rounded fold differs from the exact
+fold by at most half a grid spacing per list entry. -/
 theorem roundedFold_error (b : ℕ) (f : ℚ → ℚ → ℚ)
     (hf : ∀ a a' x : ℚ, |f a x - f a' x| ≤ |a - a'|)
     (acc : ℚ) (xs : List ℚ) :
@@ -2602,8 +2912,11 @@ theorem roundedFold_error (b : ℕ) (f : ℚ → ℚ → ℚ)
               push_cast
               ring
 
+/-- The sum computed by adding list entries sequentially and rounding the accumulator after
+every addition. -/
 def gridSum (b : ℕ) (xs : List ℚ) : ℚ := roundedFold b (fun a x => a + x) 0 xs
 
+/-- Folding rational addition adds the list sum to the initial accumulator. -/
 theorem exactFold_add (acc : ℚ) (xs : List ℚ) :
     exactFold (fun a x => a + x) acc xs = acc + (xs.sum : ℚ) := by
   induction xs generalizing acc with
@@ -2613,6 +2926,8 @@ theorem exactFold_add (acc : ℚ) (xs : List ℚ) :
       rw [ih]
       ring
 
+/-- Sequentially rounded summation differs from the exact sum by at most half a grid spacing per
+entry. -/
 theorem gridSum_error (b : ℕ) (xs : List ℚ) :
     |gridSum b xs - (xs.sum : ℚ)| ≤ (xs.length : ℚ) * (gridStep b / 2) := by
   have h := roundedFold_error b (fun a x => a + x) (fun a a' x => by
@@ -2621,11 +2936,17 @@ theorem gridSum_error (b : ℕ) (xs : List ℚ) :
   rw [exactFold_add, zero_add] at h
   exact h
 
+/-- The filled mass computed by rounding each square and then summing with a rounded
+accumulator. -/
 def computedMassSeq (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   gridSum b (List.ofFn fun j => gridRound b ((waterFill π σ γ j) ^ 2))
 
+/-- The count `2 * m` assigned to rounded square and accumulation operations for a mass
+computation. -/
 def massRoundedOps (m : ℕ) : ℕ := 2 * m
 
+/-- The sequentially rounded filled mass has absolute error at most `2 * m` times half the grid
+spacing. -/
 theorem computedMassSeq_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     |computedMassSeq b π σ γ - computedMass π σ γ| ≤ (2 * m : ℚ) * (gridStep b / 2) := by
   unfold computedMassSeq
@@ -2664,12 +2985,16 @@ theorem computedMassSeq_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : 
     exact abs_sub_triangle _ _ _
   linarith
 
+/-- Twice half the grid spacing equals the grid spacing. -/
 theorem gridStep_half (b : ℕ) : 2 * (gridStep b / 2) = gridStep b := by
   unfold gridStep
   ring
 
+/-- Compares two rationals after rounding each to the dyadic grid. -/
 def gridCompare (b : ℕ) (x y : ℚ) : Bool := decide (gridRound b x ≤ gridRound b y)
 
+/-- If two rationals are separated by more than one grid spacing, their rounded comparison
+equals their exact comparison. -/
 theorem gridCompare_exact_of_sep (b : ℕ) {x y : ℚ} (h : gridStep b < |x - y|) :
     gridCompare b x y = decide (x ≤ y) := by
   have hx : x - gridStep b / 2 ≤ gridRound b x ∧ gridRound b x ≤ x + gridStep b / 2 := by
@@ -2704,20 +3029,28 @@ theorem gridCompare_exact_of_sep (b : ℕ) {x y : ℚ} (h : gridStep b < |x - y|
     have hd : (decide (x ≤ y) : Bool) = false := decide_eq_false hxy
     rw [hdec, hd]
 
+/-- Disagreement between rounded and exact comparisons implies separation at most one grid
+spacing. -/
 theorem gridCompare_ambiguous (b : ℕ) {x y : ℚ}
     (h : gridCompare b x y ≠ decide (x ≤ y)) : |x - y| ≤ gridStep b := by
   by_contra hcon
   exact h (gridCompare_exact_of_sep b (by linarith))
 
+/-- The fidelity test obtained by comparing the rounded target-weighted mass and rounded squared
+dot product. -/
 def predicateRounded (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ) : Bool :=
   gridCompare b (p * computedMass π σ γ) (computedDot π σ γ ^ 2)
 
+/-- If the fidelity comparison gap exceeds one grid spacing, the rounded predicate agrees with
+the exact squared-dot-product test. -/
 theorem predicateRounded_agrees_of_gap (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ)
     (h : gridStep b < |p * computedMass π σ γ - computedDot π σ γ ^ 2|) :
     predicateRounded b π σ p γ = decide (computedDot π σ γ ^ 2 ≥ p * computedMass π σ γ) := by
   unfold predicateRounded
   rw [gridCompare_exact_of_sep b h]
 
+/-- If the fidelity comparison gap exceeds one grid spacing, the rounded predicate is true
+exactly when `fidelityReaches` holds. -/
 theorem predicateRounded_agrees_of_gap_reaches (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ)
     (h : gridStep b < |p * computedMass π σ γ - computedDot π σ γ ^ 2|) :
     predicateRounded b π σ p γ = true ↔ fidelityReaches π σ p γ := by
@@ -2730,6 +3063,8 @@ theorem predicateRounded_agrees_of_gap_reaches (b : ℕ) {m : ℕ} (π σ : Fin 
     have hh2 : computedDot π σ γ ^ 2 ≥ p * computedMass π σ γ := hh
     exact decide_eq_true hh2
 
+/-- Disagreement between the rounded and exact fidelity tests implies a comparison gap at most
+one grid spacing. -/
 theorem predicateRounded_ambiguous (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ)
     (h : predicateRounded b π σ p γ ≠ decide (computedDot π σ γ ^ 2 ≥ p * computedMass π σ γ)) :
     |p * computedMass π σ γ - computedDot π σ γ ^ 2| ≤ gridStep b := by
@@ -2738,6 +3073,8 @@ theorem predicateRounded_ambiguous (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (
       ≠ decide (p * computedMass π σ γ ≤ computedDot π σ γ ^ 2) := h
   exact gridCompare_ambiguous b h'
 
+/-- A level inside the certified bracket, above the witness ratio, and satisfying
+`fidelityReaches` has fidelity error at most `ε` under the stated depth bound. -/
 theorem certifiedFidelity_error_at {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -2847,6 +3184,8 @@ theorem certifiedFidelity_error_at {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ
   rw [habs]
   nlinarith [hgap, hwin, hmass_b, hε.le]
 
+/-- A successful level above the witness ratio and within one bracket width below the upper
+endpoint has fidelity error at most `ε` under the stated depth bound. -/
 theorem certifiedFidelity_error_ambiguous {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (k : ℕ) (γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -2871,6 +3210,8 @@ theorem certifiedFidelity_error_ambiguous {m : ℕ} (π σ : Fin m → ℚ) (p �
   exact certifiedFidelity_error_at π σ p ε i k γ hπ hσ hp hε hpi hrange hsteps
     hγlo' hγhi hγgc hγreach
 
+/-- The upper bracket endpoint lies strictly above any witness ratio satisfying the margin
+inequality, under the strict initial bracket inequality. -/
 theorem certifiedLevel_above_breakpoint {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i : Fin m) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -2886,21 +3227,27 @@ theorem certifiedLevel_above_breakpoint {m : ℕ} (π σ : Fin m → ℚ) (p : �
   exact hnotreach
     (fidelityReaches_mono π σ p hπ (fun j => (hσ j).le) hb0 hle hmargin)
 
+/-- The real square root of the sequentially rounded filled mass. -/
 noncomputable def selectedBetaRoundedSeq (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℝ :=
   Real.sqrt (computedMassSeq b π σ γ)
 
+/-- The rational amplitude error allowance for `2 * m` rounded operations divided by `πi`. -/
 def betaRoundingErrorSeq (b : ℕ) (πi : ℚ) (m : ℕ) : ℚ :=
   (2 * m : ℚ) * (gridStep b / 2) / πi
 
+/-- The real-valued amplitude error allowance for `2 * m` rounded operations divided by `πi`. -/
 noncomputable def betaRoundingErrorSeqR (b : ℕ) (πi : ℚ) (m : ℕ) : ℝ :=
   ((2 * m : ℚ) : ℝ) * (((gridStep b : ℚ) : ℝ) / 2) / ((πi : ℚ) : ℝ)
 
+/-- The real sequential rounding allowance equals the real cast of its rational counterpart. -/
 theorem betaRoundingErrorSeqR_eq (b : ℕ) (πi : ℚ) (m : ℕ) :
     betaRoundingErrorSeqR b πi m = ((betaRoundingErrorSeq b πi m : ℚ) : ℝ) := by
   unfold betaRoundingErrorSeqR betaRoundingErrorSeq
   push_cast
   ring
 
+/-- A positive witness mass lower bound and sufficiently small sequential mass error bound the
+amplitude error by `betaRoundingErrorSeqR`. -/
 theorem certifiedBeta_roundedSeq {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (γ : ℚ) (i : Fin m)
     (hpi : 0 < π i) (hmass : (π i) ^ 2 ≤ computedMass π σ γ)
     (hdmsmall : (2 * m : ℚ) * (gridStep b / 2) ≤ (π i) ^ 2 / 2) :
@@ -2950,10 +3297,12 @@ theorem certifiedBeta_roundedSeq {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (γ
   unfold betaRoundingErrorSeqR
   exact hsqr.trans hdiv1
 
+/-- The sum of the division, mass-read, dot-read, and comparison counts in the total run ledger. -/
 def runOperationCount (m k : ℕ) : ℕ :=
   (runLedger m k).divisions + (runLedger m k).massReads
     + (runLedger m k).dotReads + (runLedger m k).comparisons
 
+/-- The total operation count equals `2 * m * m + 2 * m * k + 2 * k + 8 * m + 2`. -/
 theorem runOperationCount_eq (m k : ℕ) :
     runOperationCount m k = 2 * m * m + 2 * m * k + 2 * k + 8 * m + 2 := by
   have hd : (runLedger m k).divisions = 2 * m + k := by
@@ -2968,10 +3317,13 @@ theorem runOperationCount_eq (m k : ℕ) :
   rw [hd, hm, hdot, hc]
   ring
 
+/-- The total run operation count is strictly positive. -/
 theorem runOperationCount_pos (m k : ℕ) : 0 < runOperationCount m k := by
   rw [runOperationCount_eq]
   omega
 
+/-- The sequential filled-mass error is bounded by the total run operation count times half the
+grid spacing. -/
 theorem computedMassSeq_error_le_runOps (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) (k : ℕ) :
     |computedMassSeq b π σ γ - computedMass π σ γ|
       ≤ (runOperationCount m k : ℚ) * (gridStep b / 2) := by
@@ -2990,12 +3342,17 @@ theorem computedMassSeq_error_le_runOps (b : ℕ) {m : ℕ} (π σ : Fin m → �
         exact_mod_cast h1
       exact mul_le_mul_of_nonneg_right hcast hnonneg
 
+/-- The grid-spacing allowance for a positive operation count, combining amplitude-error and
+witness-mass requirements. -/
 def opBitBudget (ε p : ℚ) (πi : ℚ) (n : ℕ) : ℚ :=
   min (2 * ε * πi ^ 2 / ((n : ℚ) * p)) (πi ^ 2 / (n : ℚ))
 
+/-- The table-size bit budget is the operation bit budget evaluated at that table size. -/
 theorem bitBudget_eq_opBitBudget (ε p πi : ℚ) (m : ℕ) :
     bitBudget ε p πi m = opBitBudget ε p πi m := rfl
 
+/-- The operation bit budget is positive when its operation count, tolerance, target, and
+witness entry are positive. -/
 theorem opBitBudget_pos {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε) (hp : 0 < p)
     (hπi : 0 < πi) : 0 < opBitBudget ε p πi n := by
   unfold opBitBudget
@@ -3003,6 +3360,8 @@ theorem opBitBudget_pos {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε) (
   · positivity
   · positivity
 
+/-- Meeting the operation bit budget bounds the accumulated amplitude error allowance and keeps
+the mass error allowance below half the squared witness entry. -/
 theorem opBitBudget_sufficient {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε) (hp : 0 < p)
     (hπi : 0 < πi) (b : ℕ) (hb : gridStep b ≤ opBitBudget ε p πi n) :
     (n : ℚ) * (gridStep b / 2) / πi ≤ ε * πi / p ∧
@@ -3033,26 +3392,34 @@ theorem opBitBudget_sufficient {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 
   rw [div_le_div_iff₀ hπi hp]
   linarith
 
+/-- The least grid precision meeting the operation bit budget under the stated positivity
+assumptions. -/
 noncomputable def opBitBudgetSearch {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) : ℕ :=
   bitBudgetSearch (opBitBudget ε p πi n) (opBitBudget_pos hn hε hp hπi)
 
+/-- The precision chosen by `opBitBudgetSearch` meets the operation bit budget. -/
 theorem opBitBudgetSearch_spec {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) :
     gridStep (opBitBudgetSearch (hn := hn) (hε := hε) (hp := hp) (hπi := hπi))
       ≤ opBitBudget ε p πi n :=
   bitBudgetSearch_spec (opBitBudget_pos hn hε hp hπi)
 
+/-- The operation bit budget search result is at most every precision meeting the same spacing
+allowance. -/
 theorem opBitBudgetSearch_le {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) {b : ℕ} (hb : gridStep b ≤ opBitBudget ε p πi n) :
     opBitBudgetSearch (hn := hn) (hε := hε) (hp := hp) (hπi := hπi) ≤ b :=
   bitBudgetSearch_le (opBitBudget_pos hn hε hp hπi) hb
 
+/-- A precision meeting the operation bit budget exists under the stated positivity assumptions. -/
 theorem exists_opBitBudgetSufficient {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) : ∃ b : ℕ, gridStep b ≤ opBitBudget ε p πi n :=
   ⟨opBitBudgetSearch (hn := hn) (hε := hε) (hp := hp) (hπi := hπi),
     opBitBudgetSearch_spec hn hε hp hπi⟩
 
+/-- An operation bit budget bounds the sequentially rounded endpoint amplitude error and gives a
+lower bound after subtracting bracket and rounding losses. -/
 theorem certifiedRoundBudget_bitBudgetSeq {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (k b : ℕ) (lo : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -3095,6 +3462,8 @@ theorem certifiedRoundBudget_bitBudgetSeq {m : ℕ} (π σ : Fin m → ℚ) (p �
       ≤ selectedBetaRoundedSeq b π σ (fidelityBracket π σ p k).2 := by linarith
   exact ⟨hround, by linarith⟩
 
+/-- Combines fidelity and endpoint-amplitude accuracy, sequential mass error, a rounded
+amplitude lower bound, and round budget stability under the operation bit budget. -/
 theorem frontier9 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ) (lo : ℚ) (t : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -3128,9 +3497,11 @@ theorem frontier9 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k 
   refine ⟨hfid, hprec, ?_, hparts.1, hcert.2, hweakened⟩
   exact_mod_cast hmass
 
+/-- Rounds a rational downward to the dyadic grid. -/
 def gridFloor (b : ℕ) (x : ℚ) : ℚ :=
   ((⌊x * (2 : ℚ) ^ b⌋ : ℤ) : ℚ) / (2 : ℚ) ^ b
 
+/-- Downward rounding has nonnegative error strictly less than one grid spacing. -/
 theorem gridFloor_error (b : ℕ) (x : ℚ) :
     0 ≤ x - gridFloor b x ∧ x - gridFloor b x < gridStep b := by
   have hpow : (0 : ℚ) < (2 : ℚ) ^ b := by positivity
@@ -3155,6 +3526,7 @@ theorem gridFloor_error (b : ℕ) (x : ℚ) :
       field_simp [hne]
     linarith
 
+/-- Downward grid rounding is monotone. -/
 theorem gridFloor_mono (b : ℕ) {x y : ℚ} (h : x ≤ y) : gridFloor b x ≤ gridFloor b y := by
   have hpow : (0 : ℚ) < (2 : ℚ) ^ b := by positivity
   have hne : (2 : ℚ) ^ b ≠ 0 := by positivity
@@ -3167,6 +3539,7 @@ theorem gridFloor_mono (b : ℕ) {x y : ℚ} (h : x ≤ y) : gridFloor b x ≤ g
   rw [div_le_div_iff₀ hpow hpow]
   exact mul_le_mul_of_nonneg_right h4 hpow.le
 
+/-- Every downward-rounded rational is an integer multiple of the grid spacing. -/
 theorem gridFloor_onGrid (b : ℕ) (x : ℚ) :
     ∃ n : ℤ, gridFloor b x = (n : ℚ) * gridStep b := by
   refine ⟨(⌊x * (2 : ℚ) ^ b⌋ : ℤ), ?_⟩
@@ -3174,6 +3547,7 @@ theorem gridFloor_onGrid (b : ℕ) (x : ℚ) :
   unfold gridFloor gridStep
   field_simp [hne]
 
+/-- Nearest-grid rounding fixes every integer multiple of the grid spacing. -/
 theorem gridRound_gridPoint (b : ℕ) (n : ℤ) :
     gridRound b ((n : ℚ) * gridStep b) = (n : ℚ) * gridStep b := by
   have hne : (2 : ℚ) ^ b ≠ 0 := by positivity
@@ -3192,6 +3566,7 @@ theorem gridRound_gridPoint (b : ℕ) (n : ℤ) :
   unfold gridStep
   field_simp [hne]
 
+/-- Downward grid rounding fixes every integer multiple of the grid spacing. -/
 theorem gridFloor_gridPoint (b : ℕ) (n : ℤ) :
     gridFloor b ((n : ℚ) * gridStep b) = (n : ℚ) * gridStep b := by
   have hne : (2 : ℚ) ^ b ≠ 0 := by positivity
@@ -3204,14 +3579,18 @@ theorem gridFloor_gridPoint (b : ℕ) (n : ℤ) :
   unfold gridStep
   field_simp [hne]
 
+/-- Nearest-grid rounding is idempotent. -/
 theorem gridRound_idem (b : ℕ) (x : ℚ) : gridRound b (gridRound b x) = gridRound b x := by
   obtain ⟨n, hn⟩ := gridRound_onGrid b x
   rw [hn, gridRound_gridPoint]
 
+/-- Downward grid rounding is idempotent. -/
 theorem gridFloor_idem (b : ℕ) (x : ℚ) : gridFloor b (gridFloor b x) = gridFloor b x := by
   obtain ⟨n, hn⟩ := gridFloor_onGrid b x
   rw [hn, gridFloor_gridPoint]
 
+/-- Sequential nearest-rounded addition is exact when the accumulator and every list entry lie
+on the grid. -/
 theorem roundedFold_add_of_gridPoints (b : ℕ) :
     ∀ (acc : ℚ) (xs : List ℚ),
       (∃ n : ℤ, acc = (n : ℚ) * gridStep b) →
@@ -3240,6 +3619,7 @@ theorem roundedFold_add_of_gridPoints (b : ℕ) :
       have hrec := ih (acc + x) hsum hrest
       linarith
 
+/-- Sequential nearest-rounded summation is exact for a list of grid points. -/
 theorem gridSum_of_gridPoints (b : ℕ) (xs : List ℚ)
     (h : ∀ x ∈ xs, ∃ n : ℤ, x = (n : ℚ) * gridStep b) :
     gridSum b xs = (xs.sum : ℚ) := by
@@ -3248,6 +3628,8 @@ theorem gridSum_of_gridPoints (b : ℕ) (xs : List ℚ)
   have hrec := roundedFold_add_of_gridPoints b 0 xs h0 h
   simpa using! hrec
 
+/-- Sequential summation of the rounded mass entries equals their exact sum because all entries
+lie on the same grid. -/
 theorem computedMassSeq_eq_computedMassRounded (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassSeq b π σ γ = computedMassRounded b π σ γ := by
   unfold computedMassSeq
@@ -3264,33 +3646,47 @@ theorem computedMassSeq_eq_computedMassRounded (b : ℕ) {m : ℕ} (π σ : Fin 
   rw [h]
   rfl
 
+/-- The sequentially rounded mass has the sharper error bound of `m` times half the grid
+spacing. -/
 theorem computedMassSeq_error_sharp (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     |computedMassSeq b π σ γ - computedMass π σ γ| ≤ (m : ℚ) * (gridStep b / 2) := by
   rw [computedMassSeq_eq_computedMassRounded]
   exact computedMassRounded_error b π σ γ
 
+/-- Multiplies two rationals and rounds the product downward to the dyadic grid. -/
 def gridMul (b : ℕ) (x y : ℚ) : ℚ := gridFloor b (x * y)
 
+/-- Squares a rational and rounds the square downward to the dyadic grid. -/
 def gridSq (b : ℕ) (x : ℚ) : ℚ := gridFloor b (x * x)
 
+/-- Adds two rationals and rounds the sum downward to the dyadic grid. -/
 def gridAdd (b : ℕ) (x y : ℚ) : ℚ := gridFloor b (x + y)
 
+/-- Downward-rounded multiplication underestimates the product by a nonnegative amount strictly
+below one grid spacing. -/
 theorem gridMul_error (b : ℕ) (x y : ℚ) :
     0 ≤ x * y - gridMul b x y ∧ x * y - gridMul b x y < gridStep b := by
   exact gridFloor_error b (x * y)
 
+/-- Downward-rounded squaring underestimates the square by a nonnegative amount strictly below
+one grid spacing. -/
 theorem gridSq_error (b : ℕ) (x : ℚ) :
     0 ≤ x * x - gridSq b x ∧ x * x - gridSq b x < gridStep b := by
   exact gridFloor_error b (x * x)
 
+/-- Downward-rounded addition underestimates the sum by a nonnegative amount strictly below one
+grid spacing. -/
 theorem gridAdd_error (b : ℕ) (x y : ℚ) :
     0 ≤ x + y - gridAdd b x y ∧ x + y - gridAdd b x y < gridStep b := by
   exact gridFloor_error b (x + y)
 
+/-- Sequentially sums a rational list using downward-rounded addition from a given accumulator. -/
 def gridSumDown (b : ℕ) : ℚ → List ℚ → ℚ
   | acc, [] => acc
   | acc, x :: xs => gridSumDown b (gridAdd b acc x) xs
 
+/-- Sequential downward summation underestimates the exact accumulator-plus-sum by at most one
+grid spacing per entry. -/
 theorem gridSumDown_error (b : ℕ) :
     ∀ (acc : ℚ) (xs : List ℚ),
       0 ≤ acc + (xs.sum : ℚ) - gridSumDown b acc xs ∧
@@ -3312,6 +3708,8 @@ theorem gridSumDown_error (b : ℕ) :
         rw [h1]
         linarith
 
+/-- Sequential downward summation is exact when its initial accumulator and all list entries lie
+on the grid. -/
 theorem gridSumDown_of_gridPoints (b : ℕ) :
     ∀ (acc : ℚ) (xs : List ℚ),
       (∃ n : ℤ, acc = (n : ℚ) * gridStep b) →
@@ -3346,9 +3744,12 @@ theorem gridSumDown_of_gridPoints (b : ℕ) :
       have hrec := ih (acc + x) hsum hrest
       linarith
 
+/-- The filled mass computed by downward rounding each squared entry and accumulating with
+downward-rounded addition. -/
 def computedMassDown (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   gridSumDown b 0 (List.ofFn fun j => gridSq b (waterFill π σ γ j))
 
+/-- The downward mass computation equals the exact sum of its downward-rounded squared entries. -/
 theorem computedMassDown_eq_sum (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassDown b π σ γ = ∑ j, gridSq b (waterFill π σ γ j) := by
   unfold computedMassDown
@@ -3366,6 +3767,7 @@ theorem computedMassDown_eq_sum (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ 
   rw [List.sum_ofFn] at hrec
   simpa using! hrec
 
+/-- The downward mass computation is at most the exact filled mass. -/
 theorem computedMassDown_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassDown b π σ γ ≤ computedMass π σ γ := by
   rw [computedMassDown_eq_sum]
@@ -3374,6 +3776,7 @@ theorem computedMassDown_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : �
   have h := (gridSq_error b (waterFill π σ γ j)).1
   linarith
 
+/-- The downward mass computation underestimates the exact mass by at most `m` grid spacings. -/
 theorem computedMassDown_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     0 ≤ computedMass π σ γ - computedMassDown b π σ γ ∧
       computedMass π σ γ - computedMassDown b π σ γ ≤ (m : ℚ) * gridStep b := by
@@ -3394,6 +3797,8 @@ theorem computedMassDown_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ :
       simp [Finset.sum_const, Finset.card_univ]
     linarith
 
+/-- For nonnegative source and target entries, the downward mass is monotone in nonnegative
+levels. -/
 theorem computedMassDown_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ γ' : ℚ} (hγ : 0 ≤ γ) (h : γ ≤ γ') :
     computedMassDown b π σ γ ≤ computedMassDown b π σ γ' := by
@@ -3410,9 +3815,11 @@ theorem computedMassDown_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
       ≤ gridFloor b ((waterFill π σ γ' j) ^ 2) := gridFloor_mono b hsq
   simpa only [gridSq, pow_two] using! hfloor
 
+/-- The real square root of the downward-rounded filled mass. -/
 noncomputable def selectedBetaDown (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℝ :=
   Real.sqrt (computedMassDown b π σ γ)
 
+/-- The downward-rounded amplitude is at most the exact selected amplitude. -/
 theorem selectedBetaDown_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     selectedBetaDown b π σ γ ≤ selectedBeta π σ γ := by
   have hle : computedMassDown b π σ γ ≤ computedMass π σ γ := computedMassDown_le b π σ γ
@@ -3423,6 +3830,8 @@ theorem selectedBetaDown_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : �
   unfold selectedBetaDown selectedBeta
   exact h1
 
+/-- A nonnegative rational whose square is at most the downward-rounded mass bounds the
+downward-rounded amplitude from below. -/
 theorem selectedBetaDown_lower (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) (lo : ℚ)
     (hlo : 0 ≤ lo) (hlo2 : lo ^ 2 ≤ computedMassDown b π σ γ) :
     lo ≤ selectedBetaDown b π σ γ := by
@@ -3435,12 +3844,15 @@ theorem selectedBetaDown_lower (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ :
   unfold selectedBetaDown
   exact h1
 
+/-- A joint budget recording grid precision, operation count, and resampling round count. -/
 structure JointBudget where
   bits : ℕ
   ops : ℕ
   rounds : ℕ
   deriving DecidableEq, Repr
 
+/-- The stated joint budget certifies fidelity accuracy, downward mass and amplitude bounds, an
+exact round-count upper bound, and operation-based error allowances. -/
 theorem jointBudget_certifies {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (lo : ℚ) (jb : JointBudget)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -3486,6 +3898,8 @@ theorem jointBudget_certifies {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i 
   exact ⟨hfid, (computedMassDown_error jb.bits π σ (fidelityBracket π σ p k).2).1,
     selectedBetaDown_le jb.bits π σ (fidelityBracket π σ p k).2, hrounds, herr, herr2⟩
 
+/-- Combines joint budget guarantees with equality of sequential and entrywise rounded masses
+and the sharper sequential mass error bound. -/
 theorem frontier10 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (lo : ℚ) (jb : JointBudget)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -3519,6 +3933,7 @@ theorem frontier10 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k
     computedMassSeq_error_sharp jb.bits π σ (fidelityBracket π σ p k).2,
     hmass, hβ, hrounds, herr, herr2⟩
 
+/-- Downward grid rounding preserves nonnegativity. -/
 theorem gridFloor_nonneg (b : ℕ) {x : ℚ} (hx : 0 ≤ x) : 0 ≤ gridFloor b x := by
   have hpow : (0 : ℚ) < (2 : ℚ) ^ b := by positivity
   have hx' : 0 ≤ x * (2 : ℚ) ^ b := mul_nonneg hx (by positivity)
@@ -3527,6 +3942,7 @@ theorem gridFloor_nonneg (b : ℕ) {x : ℚ} (hx : 0 ≤ x) : 0 ≤ gridFloor b 
   unfold gridFloor
   exact div_nonneg hcast (le_of_lt hpow)
 
+/-- Nearest-grid rounding preserves nonnegativity. -/
 theorem gridRound_nonneg (b : ℕ) {x : ℚ} (hx : 0 ≤ x) : 0 ≤ gridRound b x := by
   have hpow : (0 : ℚ) < (2 : ℚ) ^ b := by positivity
   have hx' : 0 ≤ x * (2 : ℚ) ^ b + 1 / 2 := by
@@ -3537,6 +3953,7 @@ theorem gridRound_nonneg (b : ℕ) {x : ℚ} (hx : 0 ≤ x) : 0 ≤ gridRound b 
   unfold gridRound
   exact div_nonneg hcast (le_of_lt hpow)
 
+/-- The downward mass is nonnegative for nonnegative source entries, target entries, and level. -/
 theorem computedMassDown_nonneg (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ : ℚ} (hγ : 0 ≤ γ) :
     0 ≤ computedMassDown b π σ γ := by
@@ -3547,15 +3964,20 @@ theorem computedMassDown_nonneg (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     exact le_min (hπ j) (mul_nonneg hγ (hσ j))
   exact gridFloor_nonneg b (mul_nonneg hw hw)
 
+/-- For nonnegative source and target entries, the exact filled mass is monotone in nonnegative
+levels. -/
 theorem computedMass_mono {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     {γ γ' : ℚ} (hγ : 0 ≤ γ) (h : γ ≤ γ') :
     computedMass π σ γ ≤ computedMass π σ γ' := by
   exact computedWaterEnergy_mono π σ (fun j => ⟨hπ j, hσ j⟩) hγ h
 
+/-- The target dot product computed with downward-rounded products and downward-rounded
+summation. -/
 def computedDotDown (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   gridSumDown b 0 (List.ofFn fun j => gridMul b (σ j) (waterFill π σ γ j))
 
+/-- The downward dot computation equals the exact sum of its downward-rounded products. -/
 theorem computedDotDown_eq_sum (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedDotDown b π σ γ = ∑ j, gridMul b (σ j) (waterFill π σ γ j) := by
   unfold computedDotDown
@@ -3573,6 +3995,7 @@ theorem computedDotDown_eq_sum (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ :
   rw [List.sum_ofFn] at hrec
   simpa using! hrec
 
+/-- The downward dot computation is at most the exact dot product. -/
 theorem computedDotDown_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedDotDown b π σ γ ≤ computedDot π σ γ := by
   rw [computedDotDown_eq_sum]
@@ -3580,6 +4003,8 @@ theorem computedDotDown_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ
   refine Finset.sum_le_sum fun j _ => ?_
   exact sub_nonneg.mp (gridMul_error b (σ j) (waterFill π σ γ j)).1
 
+/-- The downward dot computation underestimates the exact dot product by at most `m` grid
+spacings. -/
 theorem computedDotDown_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     0 ≤ computedDot π σ γ - computedDotDown b π σ γ ∧
       computedDot π σ γ - computedDotDown b π σ γ ≤ (m : ℚ) * gridStep b := by
@@ -3598,6 +4023,8 @@ theorem computedDotDown_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : 
       simp [Finset.sum_const, Finset.card_univ]
     linarith
 
+/-- The downward dot computation is nonnegative for nonnegative source entries, target entries,
+and level. -/
 theorem computedDotDown_nonneg (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ : ℚ} (hγ : 0 ≤ γ) :
     0 ≤ computedDotDown b π σ γ := by
@@ -3608,6 +4035,7 @@ theorem computedDotDown_nonneg (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     exact le_min (hπ j) (mul_nonneg hγ (hσ j))
   exact gridFloor_nonneg b (mul_nonneg (hσ j) hw)
 
+/-- For nonnegative target entries, the downward dot computation is monotone in the water level. -/
 theorem computedDotDown_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hσ : ∀ j, 0 ≤ σ j) {γ γ' : ℚ} (h : γ ≤ γ') :
     computedDotDown b π σ γ ≤ computedDotDown b π σ γ' := by
@@ -3620,9 +4048,13 @@ theorem computedDotDown_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
   unfold gridMul
   exact gridFloor_mono b hprod
 
+/-- The dot product obtained by nearest rounding each target-weighted water-fill entry and then
+summing exactly. -/
 def computedDotRounded (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   ∑ j, gridRound b (σ j * waterFill π σ γ j)
 
+/-- The entrywise rounded dot product differs from the exact dot product by at most `m` times
+half the grid spacing. -/
 theorem computedDotRounded_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     |computedDotRounded b π σ γ - computedDot π σ γ| ≤ (m : ℚ) * (gridStep b / 2) := by
   have hsum : computedDotRounded b π σ γ - computedDot π σ γ
@@ -3642,13 +4074,16 @@ theorem computedDotRounded_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ
     simp [Finset.sum_const, Finset.card_univ]
   linarith
 
+/-- An upper rational bound obtained by adding half a grid spacing to the nearest-rounded value. -/
 def gridUpper (b : ℕ) (x : ℚ) : ℚ := gridRound b x + gridStep b / 2
 
+/-- Every rational is at most its `gridUpper` bound. -/
 theorem gridUpper_le (b : ℕ) (x : ℚ) : x ≤ gridUpper b x := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (gridRound_error b x)
   unfold gridUpper
   linarith
 
+/-- The upper grid bound exceeds its argument by at most one grid spacing. -/
 theorem gridUpper_error (b : ℕ) (x : ℚ) : gridUpper b x - x ≤ gridStep b := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (gridRound_error b x)
   unfold gridUpper
@@ -3657,15 +4092,19 @@ theorem gridUpper_error (b : ℕ) (x : ℚ) : gridUpper b x - x ≤ gridStep b :
     ring
   linarith
 
+/-- An upper mass estimate formed by adding the entrywise rounding error allowance to the
+rounded mass. -/
 def computedMassUp (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   computedMassRounded b π σ γ + (m : ℚ) * (gridStep b / 2)
 
+/-- The upper mass estimate bounds the exact filled mass from above. -/
 theorem computedMassUp_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMass π σ γ ≤ computedMassUp b π σ γ := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (computedMassRounded_error b π σ γ)
   unfold computedMassUp
   linarith
 
+/-- The upper mass estimate exceeds the exact mass by at most `m` grid spacings. -/
 theorem computedMassUp_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassUp b π σ γ - computedMass π σ γ ≤ (m : ℚ) * gridStep b := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (computedMassRounded_error b π σ γ)
@@ -3675,15 +4114,19 @@ theorem computedMassUp_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : �
     ring
   linarith
 
+/-- An upper dot-product estimate formed by adding the entrywise rounding error allowance to the
+rounded dot product. -/
 def computedDotUp (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   computedDotRounded b π σ γ + (m : ℚ) * (gridStep b / 2)
 
+/-- The upper dot-product estimate bounds the exact dot product from above. -/
 theorem computedDotUp_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedDot π σ γ ≤ computedDotUp b π σ γ := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (computedDotRounded_error b π σ γ)
   unfold computedDotUp
   linarith
 
+/-- The upper dot-product estimate exceeds the exact dot product by at most `m` grid spacings. -/
 theorem computedDotUp_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedDotUp b π σ γ - computedDot π σ γ ≤ (m : ℚ) * gridStep b := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (computedDotRounded_error b π σ γ)
@@ -3693,6 +4136,8 @@ theorem computedDotUp_error (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : �
     ring
   linarith
 
+/-- The upper dot-product estimate is nonnegative for nonnegative source entries, target
+entries, and level. -/
 theorem computedDotUp_nonneg (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ : ℚ} (hγ : 0 ≤ γ) :
     0 ≤ computedDotUp b π σ γ := by
@@ -3710,28 +4155,35 @@ theorem computedDotUp_nonneg (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     exact mul_nonneg h3 h4
   linarith
 
+/-- The downward and upper mass estimates enclose the exact filled mass. -/
 theorem computedMass_interval (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassDown b π σ γ ≤ computedMass π σ γ ∧
       computedMass π σ γ ≤ computedMassUp b π σ γ :=
   ⟨computedMassDown_le b π σ γ, computedMassUp_le b π σ γ⟩
 
+/-- The downward and upper dot-product estimates enclose the exact dot product. -/
 theorem computedDot_interval (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedDotDown b π σ γ ≤ computedDot π σ γ ∧
       computedDot π σ γ ≤ computedDotUp b π σ γ :=
   ⟨computedDotDown_le b π σ γ, computedDotUp_le b π σ γ⟩
 
+/-- The nearest-rounded mass and its half-spacing error allowance give a two-sided interval for
+the exact mass. -/
 theorem computedMass_nearest_interval (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassRounded b π σ γ - (m : ℚ) * (gridStep b / 2) ≤ computedMass π σ γ ∧
       computedMass π σ γ ≤ computedMassRounded b π σ γ + (m : ℚ) * (gridStep b / 2) := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (computedMassRounded_error b π σ γ)
   constructor <;> linarith
 
+/-- The nearest-rounded dot product and its half-spacing error allowance give a two-sided
+interval for the exact dot product. -/
 theorem computedDot_nearest_interval (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedDotRounded b π σ γ - (m : ℚ) * (gridStep b / 2) ≤ computedDot π σ γ ∧
       computedDot π σ γ ≤ computedDotRounded b π σ γ + (m : ℚ) * (gridStep b / 2) := by
   obtain ⟨hlo, hhi⟩ := abs_le.mp (computedDotRounded_error b π σ γ)
   constructor <;> linarith
 
+/-- The mass interval centered at the nearest-rounded mass has width `m * gridStep b`. -/
 theorem computedMass_interval_width (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassUp b π σ γ - (computedMassRounded b π σ γ - (m : ℚ) * (gridStep b / 2))
       = (m : ℚ) * gridStep b := by
@@ -3741,12 +4193,18 @@ theorem computedMass_interval_width (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) 
     ring
   linarith
 
+/-- Tests whether the squared lower dot estimate is at least the target times the upper mass
+estimate. -/
 def intervalReaches (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ) : Bool :=
   decide (computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ)
 
+/-- Tests whether the squared upper dot estimate is strictly below the target times the downward
+mass estimate. -/
 def intervalFails (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ) : Bool :=
   decide (computedDotUp b π σ γ ^ 2 < p * computedMassDown b π σ γ)
 
+/-- For nonnegative data, target, and level, a successful interval reach test implies
+`fidelityReaches`. -/
 theorem intervalReaches_sound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h : intervalReaches b π σ p γ = true) : fidelityReaches π σ p γ := by
@@ -3770,6 +4228,8 @@ theorem intervalReaches_sound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ 
     _ ≥ p * computedMassUp b π σ γ := h
     _ ≥ p * computedMass π σ γ := hpm
 
+/-- For nonnegative data, target, and level, a successful interval failure test implies failure
+of `fidelityReaches`. -/
 theorem intervalFails_sound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h : intervalFails b π σ p γ = true) : ¬ fidelityReaches π σ p γ := by
@@ -3796,6 +4256,8 @@ theorem intervalFails_sound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : 
       _ ≤ p * computedMass π σ γ := hpm
   exact not_le_of_gt hlt
 
+/-- For nonnegative data and target, a successful interval reach test implies exact reachability
+at every smaller nonnegative level. -/
 theorem intervalReaches_downward {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h : intervalReaches b π σ p γ = true) :
@@ -3804,6 +4266,8 @@ theorem intervalReaches_downward {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p 
   have hreaches := intervalReaches_sound π σ b p γ hπ hσ hγ hp h
   exact fidelityReaches_mono π σ p hπ hσ hγ'0 hγ'le hreaches
 
+/-- For nonnegative data, target, and level, the interval reach and failure tests cannot both
+succeed. -/
 theorem intervalReaches_fails_exclusive {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h1 : intervalReaches b π σ p γ = true) (h2 : intervalFails b π σ p γ = true) : False := by
@@ -3811,9 +4275,12 @@ theorem intervalReaches_fails_exclusive {m : ℕ} (π σ : Fin m → ℚ) (b : �
   have hfail := intervalFails_sound π σ b p γ hπ hσ hγ hp h2
   exact hfail hreach
 
+/-- The nonnegative lower mass bound obtained by subtracting the nearest-rounding error
+allowance and truncating at zero. -/
 def computedMassLo (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   max 0 (computedMassRounded b π σ γ - (m : ℚ) * (gridStep b / 2))
 
+/-- The truncated lower mass estimate is at most the exact mass. -/
 theorem computedMassLo_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     computedMassLo b π σ γ ≤ computedMass π σ γ := by
   unfold computedMassLo
@@ -3822,9 +4289,12 @@ theorem computedMassLo_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ)
   · obtain ⟨hlo, hhi⟩ := abs_le.mp (computedMassRounded_error b π σ γ)
     linarith
 
+/-- The real square root of the truncated lower mass estimate. -/
 noncomputable def selectedBetaIntervalLo (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℝ :=
   Real.sqrt ((computedMassLo b π σ γ : ℚ) : ℝ)
 
+/-- The square root of the truncated lower mass estimate bounds the selected amplitude from
+below. -/
 theorem selectedBetaIntervalLo_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     selectedBetaIntervalLo b π σ γ ≤ selectedBeta π σ γ := by
   have hle : computedMassLo b π σ γ ≤ computedMass π σ γ := computedMassLo_le b π σ γ
@@ -3835,9 +4305,13 @@ theorem selectedBetaIntervalLo_le (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (�
   unfold selectedBetaIntervalLo selectedBeta
   exact h1
 
+/-- The grid-spacing allowance for interval certification, combining the amplitude tolerance
+with a stricter witness-mass requirement. -/
 def intervalOpBitBudget (ε p : ℚ) (πi : ℚ) (n : ℕ) : ℚ :=
   min (2 * ε * πi ^ 2 / ((n : ℚ) * p)) (πi ^ 2 / (n : ℚ) / 2)
 
+/-- The interval operation bit budget is positive when its operation count, tolerance, target,
+and witness entry are positive. -/
 theorem intervalOpBitBudget_pos {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε) (hp : 0 < p)
     (hπi : 0 < πi) : 0 < intervalOpBitBudget ε p πi n := by
   unfold intervalOpBitBudget
@@ -3850,6 +4324,8 @@ theorem intervalOpBitBudget_pos {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0
     have h2 : 0 < πi ^ 2 / (n : ℚ) := div_pos h1 hn'
     exact div_pos h2 (by norm_num)
 
+/-- Meeting the interval operation bit budget bounds the amplitude allowance by `ε * πi / p` and
+the mass allowance by `πi ^ 2 / 4`. -/
 theorem intervalOpBitBudget_sufficient {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) (b : ℕ) (hb : gridStep b ≤ intervalOpBitBudget ε p πi n) :
     (n : ℚ) * (gridStep b / 2) / πi ≤ ε * πi / p ∧
@@ -3880,6 +4356,8 @@ theorem intervalOpBitBudget_sufficient {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (
   rw [div_le_div_iff₀ hπi hp]
   linarith
 
+/-- Under the stated positivity assumptions, the interval operation bit budget is at least half
+the operation bit budget. -/
 theorem intervalOpBitBudget_half {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε) (hp : 0 < p)
     (hπi : 0 < πi) : opBitBudget ε p πi n / 2 ≤ intervalOpBitBudget ε p πi n := by
   unfold opBitBudget intervalOpBitBudget
@@ -3909,6 +4387,8 @@ theorem intervalOpBitBudget_half {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 
   rw [hscale]
   exact min_le_min (by linarith [hA]) le_rfl
 
+/-- One additional bit beyond a precision meeting the operation bit budget suffices to meet the
+interval operation bit budget. -/
 theorem intervalOpBitBudget_oneMoreBit {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (hε : 0 < ε)
     (hp : 0 < p) (hπi : 0 < πi) {b : ℕ} (hb : gridStep b ≤ opBitBudget ε p πi n) :
     gridStep (b + 1) ≤ intervalOpBitBudget ε p πi n := by
@@ -3920,6 +4400,8 @@ theorem intervalOpBitBudget_oneMoreBit {ε p πi : ℚ} {n : ℕ} (hn : 0 < n) (
     field_simp
   linarith
 
+/-- If the operation count bounds the table size and the interval bit budget holds, a witness
+mass lower bound yields `computedMassLo ≥ (π i) ^ 2 / 2`. -/
 theorem computedMassLo_pos_of_budget {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (γ : ℚ) (i : Fin m)
     (ε p : ℚ) (n : ℕ) (hπi : 0 < π i) (hε : 0 < ε) (hp : 0 < p) (hn : 0 < n)
     (hmn : (m : ℚ) ≤ (n : ℚ))
@@ -3943,6 +4425,8 @@ theorem computedMassLo_pos_of_budget {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ)
   rw [max_eq_right hX0]
   linarith [hmassR']
 
+/-- Collects fidelity accuracy, mass and dot enclosures, a positive lower mass bound, and an
+amplitude error allowance under the interval bit budget. -/
 theorem frontier11 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b n : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -3978,6 +4462,8 @@ theorem frontier11 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k
     selectedBetaIntervalLo_le b π σ (fidelityBracket π σ p k).2,
     h1⟩
 
+/-- The three outcomes of an interval fidelity test: certified reach, certified failure, or
+ambiguity. -/
 inductive IntervalDecision where
 
   | reaches : IntervalDecision
@@ -3987,23 +4473,30 @@ inductive IntervalDecision where
   | ambiguous : IntervalDecision
   deriving DecidableEq, Repr
 
+/-- Decides the interval fidelity test, prioritizing certified reach, then certified failure,
+and reporting ambiguity when neither inequality holds. -/
 def intervalDecision (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ) : IntervalDecision :=
   if computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ then IntervalDecision.reaches
   else if computedDotUp b π σ γ ^ 2 < p * computedMassDown b π σ γ then IntervalDecision.fails
   else IntervalDecision.ambiguous
 
+/-- The interval reach test is true exactly when its lower-dot and upper-mass comparison holds. -/
 theorem intervalReaches_eq_true {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ) :
     intervalReaches b π σ p γ = true ↔
       computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ := by
   unfold intervalReaches
   simp only [decide_eq_true_eq]
 
+/-- The interval failure test is true exactly when its upper-dot and lower-mass comparison
+holds. -/
 theorem intervalFails_eq_true {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ) :
     intervalFails b π σ p γ = true ↔
       computedDotUp b π σ γ ^ 2 < p * computedMassDown b π σ γ := by
   unfold intervalFails
   simp only [decide_eq_true_eq]
 
+/-- For nonnegative data, target, and level, the numerical interval reach and failure
+inequalities are incompatible. -/
 theorem interval_certified_exclusive {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h1 : computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ)
@@ -4028,6 +4521,8 @@ theorem interval_certified_exclusive {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ)
     mul_le_mul_of_nonneg_left hLV hp
   nlinarith [hsq, hmul]
 
+/-- Characterizes all three interval decision outcomes by the two comparison inequalities and
+their priority order. -/
 theorem intervalDecision_spec {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ) :
     (intervalDecision b π σ p γ = .reaches ↔
         computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ) ∧
@@ -4045,12 +4540,15 @@ theorem intervalDecision_spec {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ 
     · simp [intervalDecision, hr, hf]
     · simp [intervalDecision, hr, hf]
 
+/-- An interval decision is ambiguous exactly when both certification inequalities fail. -/
 theorem intervalDecision_ambiguous_iff {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ) :
     intervalDecision b π σ p γ = .ambiguous ↔
       ¬ (computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ) ∧
         ¬ (computedDotUp b π σ γ ^ 2 < p * computedMassDown b π σ γ) :=
   (intervalDecision_spec π σ b p γ).2.2
 
+/-- A nonambiguous interval decision rules out simultaneous failure of both certification
+inequalities. -/
 theorem not_ambiguous_of_decision {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (h : intervalDecision b π σ p γ ≠ .ambiguous) :
     ¬ (¬ (computedDotDown b π σ γ ^ 2 ≥ p * computedMassUp b π σ γ) ∧
@@ -4058,10 +4556,13 @@ theorem not_ambiguous_of_decision {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p
   intro hA
   exact h ((intervalDecision_ambiguous_iff π σ b p γ).mpr hA)
 
+/-- The interval decision is `reaches` exactly when the Boolean interval reach test is true. -/
 theorem intervalDecision_eq_reaches {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ) :
     intervalDecision b π σ p γ = .reaches ↔ intervalReaches b π σ p γ = true := by
   rw [(intervalDecision_spec π σ b p γ).1, intervalReaches_eq_true]
 
+/-- For nonnegative data, target, and level, the interval decision is `fails` exactly when the
+Boolean interval failure test is true. -/
 theorem intervalDecision_eq_fails {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p) :
     intervalDecision b π σ p γ = .fails ↔ intervalFails b π σ p γ = true := by
@@ -4073,6 +4574,8 @@ theorem intervalDecision_eq_fails {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p
     intro hr
     exact interval_certified_exclusive π σ b p γ hπ hσ hγ hp hr h
 
+/-- For nonnegative data, target, and level, a `reaches` decision implies exact fidelity
+reachability. -/
 theorem intervalDecision_sound_reaches {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h : intervalDecision b π σ p γ = .reaches) : fidelityReaches π σ p γ := by
@@ -4080,6 +4583,8 @@ theorem intervalDecision_sound_reaches {m : ℕ} (π σ : Fin m → ℚ) (b : �
     (intervalDecision_eq_reaches π σ b p γ).mp h
   exact intervalReaches_sound π σ b p γ hπ hσ hγ hp hh
 
+/-- For nonnegative data, target, and level, a `fails` decision implies failure of exact
+fidelity reachability. -/
 theorem intervalDecision_sound_fails {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h : intervalDecision b π σ p γ = .fails) : ¬ fidelityReaches π σ p γ := by
@@ -4087,10 +4592,14 @@ theorem intervalDecision_sound_fails {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ)
     (intervalDecision_eq_fails π σ b p γ hπ hσ hγ hp).mp h
   exact intervalFails_sound π σ b p γ hπ hσ hγ hp hh
 
+/-- The gap between the upper and lower interval bounds on the squared-dot-minus-target-mass
+expression. -/
 def intervalBandWidth (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ) : ℚ :=
   (computedDotUp b π σ γ ^ 2 - computedDotDown b π σ γ ^ 2) +
     p * (computedMassUp b π σ γ - computedMassDown b π σ γ)
 
+/-- For nonnegative data, target, and level, the lower interval gap bounds the exact fidelity
+comparison gap from below. -/
 theorem intervalBand_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p) :
     computedDotDown b π σ γ ^ 2 - p * computedMassUp b π σ γ
@@ -4104,6 +4613,8 @@ theorem intervalBand_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : �
     mul_le_mul_of_nonneg_left h2 hp
   linarith
 
+/-- For nonnegative data, target, and level, the upper interval gap bounds the exact fidelity
+comparison gap from above. -/
 theorem intervalBand_upper {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p) :
     computedDot π σ γ ^ 2 - p * computedMass π σ γ
@@ -4117,6 +4628,8 @@ theorem intervalBand_upper {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : �
     mul_le_mul_of_nonneg_left h2 hp
   linarith
 
+/-- For nonnegative data, target, and level, an ambiguous decision bounds the absolute fidelity
+comparison gap by `intervalBandWidth`. -/
 theorem intervalDecision_ambiguous_band {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (h : intervalDecision b π σ p γ = .ambiguous) :
@@ -4167,6 +4680,8 @@ theorem intervalDecision_ambiguous_band {m : ℕ} (π σ : Fin m → ℚ) (b : �
       linarith
     linarith [hhi, h2]
 
+/-- Bounds the interval band width by twice the table size times the grid spacing times the sum
+of the dot estimates and target. -/
 theorem intervalBandWidth_le {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p) :
     intervalBandWidth b π σ p γ
@@ -4198,6 +4713,8 @@ theorem intervalBandWidth_le {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ :
   unfold intervalBandWidth
   linarith
 
+/-- For nonnegative target entries, the water-filled dot product is at most the full
+source-target dot product. -/
 theorem computedDot_le_sum {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 ≤ σ j) {γ : ℚ} :
     computedDot π σ γ ≤ ∑ j, π j * σ j := by
   unfold computedDot
@@ -4208,6 +4725,8 @@ theorem computedDot_le_sum {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 ≤
   calc σ j * waterFill π σ γ j ≤ σ j * π j := mul_le_mul_of_nonneg_left hw (hσ j)
     _ = π j * σ j := by ring
 
+/-- Bounds the interval band width using only table size, grid spacing, the full source-target
+dot product, and target fidelity. -/
 theorem intervalBandWidth_le_resolution {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p) :
     intervalBandWidth b π σ p γ
@@ -4228,6 +4747,8 @@ theorem intervalBandWidth_le_resolution {m : ℕ} (π σ : Fin m → ℚ) (b : �
       ≤ 2 * (∑ j, π j * σ j) + (m : ℚ) * (gridStep b) + p := by linarith
   exact h1.trans (mul_le_mul_of_nonneg_left hsum hnonneg)
 
+/-- At positive filled mass, an ambiguous interval decision bounds the fidelity error by the
+interval band width divided by that mass. -/
 theorem intervalAmbiguity_fidelity_close {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (hmass : 0 < computedMass π σ γ)
@@ -4245,6 +4766,7 @@ theorem intervalAmbiguity_fidelity_close {m : ℕ} (π σ : Fin m → ℚ) (b : 
   rw [div_le_div_iff₀ hmass hmass]
   nlinarith [hband]
 
+/-- Nearest-grid rounding is monotone. -/
 theorem gridRound_mono (b : ℕ) {x y : ℚ} (h : x ≤ y) : gridRound b x ≤ gridRound b y := by
   unfold gridRound
   have hpow : 0 < (2 : ℚ) ^ b := by positivity
@@ -4257,6 +4779,8 @@ theorem gridRound_mono (b : ℕ) {x y : ℚ} (h : x ≤ y) : gridRound b x ≤ g
     exact_mod_cast hf
   exact div_le_div_of_nonneg_right hc hpow.le
 
+/-- For nonnegative source and target entries, the nearest-rounded mass is monotone in
+nonnegative levels. -/
 theorem computedMassRounded_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ γ' : ℚ} (hγ : 0 ≤ γ) (h : γ ≤ γ') :
     computedMassRounded b π σ γ ≤ computedMassRounded b π σ γ' := by
@@ -4271,6 +4795,8 @@ theorem computedMassRounded_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     nlinarith [sq_nonneg (waterFill π σ γ' j - waterFill π σ γ j)]
   exact gridRound_mono b hsq
 
+/-- For nonnegative source and target entries, the upper mass estimate is monotone in
+nonnegative levels. -/
 theorem computedMassUp_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ γ' : ℚ} (hγ : 0 ≤ γ) (h : γ ≤ γ') :
     computedMassUp b π σ γ ≤ computedMassUp b π σ γ' := by
@@ -4282,6 +4808,8 @@ theorem computedMassUp_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
   unfold computedMassUp
   linarith
 
+/-- The stated dot-loss and mass-loss margin preserves an interval reach test when the level
+decreases, and the downward dot estimate also decreases. -/
 theorem intervalReaches_downward_of_margin {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hσ : ∀ j, 0 ≤ σ j) (hγ'γ : γ' ≤ γ)
     (hmargin : 2 * computedDotDown b π σ γ * (computedDotDown b π σ γ - computedDotDown b π σ γ')
@@ -4310,6 +4838,8 @@ theorem intervalReaches_downward_of_margin {m : ℕ} (π σ : Fin m → ℚ) (b 
   rw [intervalReaches_eq_true]
   exact hfinal
 
+/-- For nonnegative target entries, the dot-product increase is at most the target squared norm
+times the level increase. -/
 theorem computedDot_gap_le {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 ≤ σ j)
     {γ γ' : ℚ} (h : γ' ≤ γ) :
     computedDot π σ γ - computedDot π σ γ' ≤ (∑ j, (σ j) ^ 2) * (γ - γ') := by
@@ -4348,6 +4878,8 @@ theorem computedDot_gap_le {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 ≤
     _ ≤ σ j * ((γ - γ') * σ j) := mul_le_mul_of_nonneg_left hgap (hσ j)
     _ = (σ j) ^ 2 * (γ - γ') := by ring
 
+/-- The stated cross-multiplied ratio condition preserves an interval reach test when the level
+decreases, assuming positive mass at the original level. -/
 theorem intervalReaches_downward_of_ratio {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hσ : ∀ j, 0 ≤ σ j) (hγ'γ : γ' ≤ γ)
     (hmass : 0 < computedMass π σ γ)
@@ -4390,6 +4922,8 @@ theorem intervalReaches_downward_of_ratio {m : ℕ} (π σ : Fin m → ℚ) (b :
   rw [intervalReaches_eq_true]
   exact hfinal
 
+/-- A search ledger recording refinement steps, interval reads, exact reads, and ambiguous
+decisions. -/
 structure IntervalSearchLedger where
   steps : ℕ
   intervalReads : ℕ
@@ -4397,6 +4931,8 @@ structure IntervalSearchLedger where
   ambiguities : ℕ
   deriving DecidableEq, Repr
 
+/-- Refines a bracket using interval tests at its midpoint, falling back to an exact comparison
+on ambiguity and recording the read costs. -/
 def intervalFidelityStep {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (br : ℚ × ℚ) :
     (ℚ × ℚ) × IntervalSearchLedger :=
   match intervalDecision b π σ p ((br.1 + br.2) / 2) with
@@ -4407,6 +4943,8 @@ def intervalFidelityStep {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (
         (((br.1 + br.2) / 2, br.2), ⟨1, 4 * m, 2 * m, 1⟩)
       else ((br.1, (br.1 + br.2) / 2), ⟨1, 4 * m, 2 * m, 1⟩)
 
+/-- Iterates interval-based bracket refinement from zero and `computedWaterHigh`, accumulating
+the search ledger. -/
 def intervalFidelitySearch {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) :
     ℕ → (ℚ × ℚ) × IntervalSearchLedger
   | 0 => ((0, computedWaterHigh π σ), ⟨0, 0, 0, 0⟩)
@@ -4416,6 +4954,7 @@ def intervalFidelitySearch {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ)
       (s.1, ⟨r.2.steps + s.2.steps, r.2.intervalReads + s.2.intervalReads,
         r.2.exactReads + s.2.exactReads, r.2.ambiguities + s.2.ambiguities⟩)
 
+/-- One interval refinement uses exactly `2 * m` exact reads per ambiguous decision. -/
 theorem intervalFidelityStep_ledger {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (br : ℚ × ℚ) :
     (intervalFidelityStep b π σ p br).2.exactReads
       = 2 * m * (intervalFidelityStep b π σ p br).2.ambiguities := by
@@ -4425,6 +4964,7 @@ theorem intervalFidelityStep_ledger {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) 
   · simp
   · split <;> simp
 
+/-- One interval refinement records one step and `4 * m` interval reads. -/
 theorem intervalFidelityStep_reads {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (br : ℚ × ℚ) :
     (intervalFidelityStep b π σ p br).2.steps = 1 ∧
       (intervalFidelityStep b π σ p br).2.intervalReads = 4 * m := by
@@ -4434,6 +4974,8 @@ theorem intervalFidelityStep_reads {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (
   · exact ⟨rfl, rfl⟩
   · split <;> exact ⟨rfl, rfl⟩
 
+/-- One interval refinement records one ambiguity exactly when both midpoint interval
+certification inequalities fail. -/
 theorem intervalFidelityStep_ambiguity {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (br : ℚ × ℚ) :
     (intervalFidelityStep b π σ p br).2.ambiguities
       = (if ¬ (computedDotDown b π σ ((br.1 + br.2) / 2)) ^ 2
@@ -4453,6 +4995,8 @@ theorem intervalFidelityStep_ambiguity {m : ℕ} (b : ℕ) (π σ : Fin m → �
       rw [if_pos ((intervalDecision_ambiguous_iff π σ b p _).mp hdec)]
       split <;> rfl
 
+/-- For nonnegative data and target, applying the interval refinement to the exact depth-`k`
+bracket gives the exact depth-`k + 1` bracket. -/
 theorem intervalFidelityStep_eq {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) (k : ℕ) :
     (intervalFidelityStep b π σ p (fidelityBracket π σ p k)).1 = fidelityBracket π σ p (k+1) := by
@@ -4486,6 +5030,8 @@ theorem intervalFidelityStep_eq {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p :
       simp only [fidelityBracket]
       split <;> rfl
 
+/-- For nonnegative data and target, the interval search returns the same bracket as the exact
+fidelity search. -/
 theorem intervalFidelitySearch_eq {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) :
     (intervalFidelitySearch b π σ p k).1 = fidelityBracket π σ p k := by
@@ -4496,6 +5042,8 @@ theorem intervalFidelitySearch_eq {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p
       simp only [intervalFidelitySearch]
       rw [ih, hstep]
 
+/-- After `k` refinements, the ledger records `k` steps, `4 * m * k` interval reads, and `2 * m`
+exact reads per ambiguity. -/
 theorem intervalFidelitySearch_ledger {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) :
     (intervalFidelitySearch b π σ p k).2.steps = k ∧
     (intervalFidelitySearch b π σ p k).2.intervalReads = 4 * m * k ∧
@@ -4516,6 +5064,8 @@ theorem intervalFidelitySearch_ledger {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ
         · rw [h3, hstep]
           ring
 
+/-- For nonnegative data and target, the ambiguity count equals the sum of the ambiguity
+indicators at the exact search midpoints. -/
 theorem intervalFidelitySearch_ambiguities {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) :
     (intervalFidelitySearch b π σ p k).2.ambiguities
@@ -4538,6 +5088,8 @@ theorem intervalFidelitySearch_ambiguities {m : ℕ} (b : ℕ) (π σ : Fin m �
       simp only [intervalFidelitySearch]
       rw [ih, hstep, hsearch, Finset.sum_range_succ]
 
+/-- A successful interval reach test within the specified bracket window and above the witness
+ratio certifies fidelity error at most `ε`. -/
 theorem intervalAmbiguity_certificate {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (k b : ℕ) (γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -4555,6 +5107,8 @@ theorem intervalAmbiguity_certificate {m : ℕ} (π σ : Fin m → ℚ) (p ε : 
   exact certifiedFidelity_error_ambiguous π σ p ε i k γ hπ hσ hp hε hpi hrange hsteps
     hγhi hγlo hγgc h1
 
+/-- A successful interval reach test one grid spacing below the upper bracket endpoint certifies
+fidelity error at most `ε` under the stated depth and location bounds. -/
 theorem intervalAmbiguity_reported_certificate {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (i : Fin m) (k b : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
@@ -4585,6 +5139,8 @@ theorem intervalAmbiguity_reported_certificate {m : ℕ} (π σ : Fin m → ℚ)
   exact intervalAmbiguity_certificate π σ p ε i k b _ hπ hσ hp hε hpi hrange hsteps
     hγ0 hγhi hγlo hgc hreach
 
+/-- Combines an ambiguity-band bound at the upper endpoint with a nearby fidelity certificate
+and downward propagation of its interval reach test under a margin condition. -/
 theorem frontier12 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -4624,6 +5180,8 @@ theorem frontier12 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k
   exact (intervalReaches_downward_of_margin π σ b p (fun j => (hσ j).le) hγ'' hmargin
     hreach).2
 
+/-- For nonnegative target entries, the nearest-rounded dot product is monotone in the water
+level. -/
 theorem computedDotRounded_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hσ : ∀ j, 0 ≤ σ j) {γ γ' : ℚ} (h : γ ≤ γ') :
     computedDotRounded b π σ γ ≤ computedDotRounded b π σ γ' := by
@@ -4635,6 +5193,8 @@ theorem computedDotRounded_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     mul_le_mul_of_nonneg_left hfill (hσ j)
   exact gridRound_mono b hprod
 
+/-- For nonnegative target entries, the upper dot-product estimate is monotone in the water
+level. -/
 theorem computedDotUp_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
     (hσ : ∀ j, 0 ≤ σ j) {γ γ' : ℚ} (h : γ ≤ γ') :
     computedDotUp b π σ γ ≤ computedDotUp b π σ γ' := by
@@ -4646,6 +5206,8 @@ theorem computedDotUp_mono (b : ℕ) {m : ℕ} (π σ : Fin m → ℚ)
   unfold computedDotUp
   linarith
 
+/-- The stated squared-dot and mass increment margin preserves an interval failure test when the
+level increases and gives monotonicity of the downward mass. -/
 theorem intervalFails_upward_of_margin {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (_hp : 0 ≤ p)
     (hγγ' : γ ≤ γ')
@@ -4677,6 +5239,8 @@ theorem intervalFails_upward_of_margin {m : ℕ} (π σ : Fin m → ℚ) (b : �
   rw [hsplit]
   linarith
 
+/-- With positive downward mass, the stated cross-multiplied ratio condition preserves an
+interval failure test when the level increases. -/
 theorem intervalFails_upward_of_ratio {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ)
     (hγγ' : γ ≤ γ')
@@ -4711,6 +5275,8 @@ theorem intervalFails_upward_of_ratio {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ
   rw [intervalFails_eq_true]
   linarith
 
+/-- The stated downward margin condition preserves a `reaches` interval decision when the level
+decreases. -/
 theorem intervalDecision_reaches_downward_of_margin {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hσ : ∀ j, 0 ≤ σ j)
     (hγ'γ : γ' ≤ γ)
@@ -4723,6 +5289,8 @@ theorem intervalDecision_reaches_downward_of_margin {m : ℕ} (π σ : Fin m →
   have h2 := intervalReaches_downward_of_margin π σ b p hσ hγ'γ hmargin hh
   exact (intervalDecision_eq_reaches π σ b p γ').mpr h2.2
 
+/-- The stated upward margin condition preserves a `fails` interval decision when the level
+increases. -/
 theorem intervalDecision_fails_upward_of_margin {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (hγγ' : γ ≤ γ')
@@ -4736,6 +5304,8 @@ theorem intervalDecision_fails_upward_of_margin {m : ℕ} (π σ : Fin m → ℚ
   have h2 := intervalFails_upward_of_margin π σ b p hπ hσ hγ hp hγγ' hmargin hh
   exact (intervalDecision_eq_fails π σ b p γ' hπ hσ hγ'0 hp).mpr h2.2
 
+/-- Under the upward failure-propagation margin, an ambiguous decision at the larger level
+prevents a failure decision at the smaller level. -/
 theorem intervalDecision_ambiguous_not_fails_below {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (hγγ' : γ ≤ γ')
@@ -4751,6 +5321,8 @@ theorem intervalDecision_ambiguous_not_fails_below {m : ℕ} (π σ : Fin m → 
     (intervalDecision_ambiguous_iff π σ b p γ').mp h |>.2
   exact hnB hB
 
+/-- Under the downward reach-propagation margin, an ambiguous decision at the smaller level
+prevents a reach decision at the larger level. -/
 theorem intervalDecision_ambiguous_not_reaches_above {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ γ' : ℚ} (hσ : ∀ j, 0 ≤ σ j)
     (hγγ' : γ ≤ γ')
@@ -4768,6 +5340,8 @@ theorem intervalDecision_ambiguous_not_reaches_above {m : ℕ} (π σ : Fin m �
     (intervalDecision_ambiguous_iff π σ b p γ).mp h |>.1
   exact hnA h3
 
+/-- A level between two ambiguous levels is ambiguous when the stated reach and failure
+propagation margins hold on the two subintervals. -/
 theorem intervalDecision_ambiguous_between {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ₁ γ₂ γ₃ : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ₁) (hp : 0 ≤ p)
     (h₁₂ : γ₁ ≤ γ₂) (h₂₃ : γ₂ ≤ γ₃)
@@ -4793,9 +5367,13 @@ theorem intervalDecision_ambiguous_between {m : ℕ} (π σ : Fin m → ℚ) (b 
     exact hnf (hspec.2.1.mpr ⟨hnA, hB⟩)
   exact (intervalDecision_ambiguous_iff π σ b p γ₂).mpr ⟨hnA, hnB⟩
 
+/-- The exact fidelity comparison gap, equal to the squared computed dot product minus the
+target times computed mass. -/
 def fidelityGap {m : ℕ} (π σ : Fin m → ℚ) (p γ : ℚ) : ℚ :=
   computedDot π σ γ ^ 2 - p * computedMass π σ γ
 
+/-- For nonnegative target entries, the exact computed dot product is monotone in the water
+level. -/
 theorem computedDot_mono {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 ≤ σ j)
     {γ γ' : ℚ} (h : γ ≤ γ') : computedDot π σ γ ≤ computedDot π σ γ' := by
   unfold computedDot
@@ -4804,6 +5382,8 @@ theorem computedDot_mono {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ j, 0 ≤ �
     min_le_min (le_refl _) (mul_le_mul_of_nonneg_right h (hσ j))
   exact mul_le_mul_of_nonneg_left hfill (hσ j)
 
+/-- For nonnegative source and target entries, the mass increase is at most twice the full
+source-target dot product times the level increase. -/
 theorem computedMass_gap_le {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 ≤ π j)
     (hσ : ∀ j, 0 ≤ σ j)
     {γ γ' : ℚ} (h : γ' ≤ γ) :
@@ -4877,9 +5457,13 @@ theorem computedMass_gap_le {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 �
       ≤ ∑ j, 2 * (π j * σ j) * (γ - γ') := Finset.sum_le_sum fun j _ => hcoord j
     _ = 2 * (∑ j, π j * σ j) * (γ - γ') := hsum2
 
+/-- The rational constant `2 * (∑ j, π j * σ j) * (p + ∑ j, (σ j) ^ 2)` used to bound variation
+of the fidelity gap. -/
 def fidelityGapLipschitz {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) : ℚ :=
   2 * (∑ j, π j * σ j) * (p + ∑ j, (σ j) ^ 2)
 
+/-- For nonnegative data and target, the fidelity gap is Lipschitz on nonnegative levels with
+constant `fidelityGapLipschitz`. -/
 theorem fidelityGap_lipschitz {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     {γ γ' : ℚ} (hγ : 0 ≤ γ) (hγ' : 0 ≤ γ') :
@@ -4989,9 +5573,13 @@ theorem fidelityGap_lipschitz {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     · linarith
     · linarith
 
+/-- A level-independent bound on the ambiguity band in terms of grid spacing, table size,
+source-target dot product, and target fidelity. -/
 def ambiguityBandBound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) : ℚ :=
   2 * (m : ℚ) * (gridStep b) * (2 * (∑ j, π j * σ j) + (m : ℚ) * (gridStep b) + p)
 
+/-- For nonnegative data, target, and level, an ambiguous interval decision bounds the absolute
+fidelity gap by `ambiguityBandBound`. -/
 theorem intervalAmbiguity_gap_le {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (hamb : intervalDecision b π σ p γ = .ambiguous) :
@@ -5001,6 +5589,8 @@ theorem intervalAmbiguity_gap_le {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p 
   unfold fidelityGap ambiguityBandBound
   linarith
 
+/-- The fidelity gaps at two nonnegative ambiguous levels differ by at most twice the ambiguity
+band bound. -/
 theorem intervalAmbiguity_gap_pair {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     {γ₁ γ₂ : ℚ} (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -5018,30 +5608,40 @@ theorem intervalAmbiguity_gap_pair {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (
       abs_add_le (fidelityGap π σ p γ₁) (-(fidelityGap π σ p γ₂))
   linarith
 
+/-- The interval search operation count obtained by adding interval-read overhead and
+ambiguity-dependent exact-read costs to the base run count. -/
 def intervalRunOperationCount (m k amb : ℕ) : ℕ :=
   runOperationCount m k + 2 * m * k + 2 * m * amb
 
+/-- Expands the interval run operation count as a polynomial in table size, refinement depth,
+and ambiguity count. -/
 theorem intervalRunOperationCount_eq (m k amb : ℕ) :
     intervalRunOperationCount m k amb
       = 2 * m * m + 4 * m * k + 2 * m * amb + 2 * k + 8 * m + 2 := by
   rw [intervalRunOperationCount, runOperationCount_eq]
   ring
 
+/-- The interval run operation count is strictly positive. -/
 theorem intervalRunOperationCount_pos (m k amb : ℕ) :
     0 < intervalRunOperationCount m k amb := by
   have h : (0 : ℕ) < runOperationCount m k := runOperationCount_pos m k
   unfold intervalRunOperationCount
   omega
 
+/-- The interval run operation count is at least the base run operation count. -/
 theorem intervalRunOperationCount_ge (m k amb : ℕ) :
     runOperationCount m k ≤ intervalRunOperationCount m k amb := by
   unfold intervalRunOperationCount
   rw [Nat.add_assoc]
   exact Nat.le_add_right _ _
 
+/-- The operation bit budget evaluated at the interval run operation count, including the
+specified ambiguity count. -/
 def intervalSearchOpBitBudget (ε p πi : ℚ) (m k amb : ℕ) : ℚ :=
   opBitBudget ε p πi (intervalRunOperationCount m k amb)
 
+/-- Meeting the interval search bit budget controls the accumulated amplitude and mass error
+allowances for its operation count. -/
 theorem intervalSearchOpBitBudget_sufficient {ε p πi : ℚ} {m k amb : ℕ}
     (hε : 0 < ε) (hp : 0 < p) (hπi : 0 < πi) (b : ℕ)
     (hb : gridStep b ≤ intervalSearchOpBitBudget ε p πi m k amb) :
@@ -5050,6 +5650,8 @@ theorem intervalSearchOpBitBudget_sufficient {ε p πi : ℚ} {m k amb : ℕ}
   have hn : 0 < intervalRunOperationCount m k amb := intervalRunOperationCount_pos m k amb
   exact opBitBudget_sufficient hn hε hp hπi b hb
 
+/-- A bit budget using the search's actual ambiguity count controls its accumulated amplitude
+and mass error allowances. -/
 theorem intervalSearch_budget {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b : ℕ)
     (hε : 0 < ε) (hp : 0 < p) (hπi : 0 < πi) (k : ℕ)
     (hb : gridStep b
@@ -5060,6 +5662,8 @@ theorem intervalSearch_budget {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ)
         * (gridStep b / 2) ≤ πi ^ 2 / 2 := by
   exact intervalSearchOpBitBudget_sufficient hε hp hπi b hb
 
+/-- Collects conditional propagation of interval decisions, ambiguity between endpoints, gap
+bounds, and accumulated precision bounds using the actual ambiguity count. -/
 theorem frontier13 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 < p) (hε : 0 < ε) (hπi : 0 < πi)
     (γ₁ γ₂ γ₃ : ℚ)
@@ -5118,9 +5722,12 @@ theorem frontier13 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k : ℕ
   have hbud := intervalSearch_budget π σ p ε πi b hε hp hπi k hbudget
   exact ⟨hdown, hup, hamb₂, hband, hlip, hpair, hbud.1, hbud.2⟩
 
+/-- The condition that the scaled target entry does not exceed the source entry at any positive
+source index. -/
 def onPlateau {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : Prop :=
   ∀ j, 0 < π j → γ * σ j ≤ π j
 
+/-- For nonnegative source entries, level zero satisfies the plateau condition. -/
 theorem onPlateau_zero {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 ≤ π j) :
     onPlateau π σ 0 := by
   intro j _
@@ -5131,11 +5738,14 @@ instance onPlateauDecidable {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
   unfold onPlateau
   infer_instance
 
+/-- For nonnegative target entries, the plateau condition persists when the level decreases. -/
 theorem onPlateau_mono {m : ℕ} (π σ : Fin m → ℚ) {γ γ' : ℚ} (hσ : ∀ j, 0 ≤ σ j)
     (h : γ' ≤ γ) (hp : onPlateau π σ γ) : onPlateau π σ γ' := by
   intro j hj
   exact le_trans (mul_le_mul_of_nonneg_right h (hσ j)) (hp j hj)
 
+/-- On the nonnegative plateau, the filled mass equals `γ ^ 2 * computedPmax π σ` under the
+stated nonnegativity assumptions. -/
 theorem computedMass_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (h : onPlateau π σ γ) :
     computedMass π σ γ = γ ^ 2 * computedPmax π σ := by
@@ -5163,6 +5773,8 @@ theorem computedMass_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
   rw [← Finset.mul_sum]
   rfl
 
+/-- On the nonnegative plateau, the filled dot product equals `γ * computedPmax π σ` under the
+stated nonnegativity assumptions. -/
 theorem computedDot_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (h : onPlateau π σ γ) :
     computedDot π σ γ = γ * computedPmax π σ := by
@@ -5190,6 +5802,8 @@ theorem computedDot_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
   rw [← Finset.mul_sum]
   rfl
 
+/-- At a positive plateau level with positive `computedPmax`, the computed fidelity equals
+`computedPmax`. -/
 theorem computedFidelity_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 < γ) (h : onPlateau π σ γ)
     (hmax : 0 < computedPmax π σ) :
@@ -5203,6 +5817,8 @@ theorem computedFidelity_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
   rw [div_eq_iff hne]
   ring
 
+/-- On the nonnegative plateau, the fidelity gap equals `γ ^ 2 * (computedPmax π σ *
+(computedPmax π σ - p))`. -/
 theorem fidelityGap_plateau {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (h : onPlateau π σ γ) :
     fidelityGap π σ p γ = γ ^ 2 * (computedPmax π σ * (computedPmax π σ - p)) := by
@@ -5212,6 +5828,7 @@ theorem fidelityGap_plateau {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ : �
   rw [hmass, hdot]
   ring
 
+/-- When the target equals `computedPmax`, the fidelity gap vanishes on the nonnegative plateau. -/
 theorem fidelityGap_plateau_zero {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (h : onPlateau π σ γ)
     (hp : p = computedPmax π σ) : fidelityGap π σ p γ = 0 := by
@@ -5220,6 +5837,8 @@ theorem fidelityGap_plateau_zero {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ
   rw [hp, hg]
   ring
 
+/-- When the target equals `computedPmax`, the interval failure test is false on the nonnegative
+plateau. -/
 theorem intervalFails_plateau_false {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (h : onPlateau π σ γ)
     (hp : p = computedPmax π σ) : intervalFails b π σ p γ = false := by
@@ -5239,6 +5858,8 @@ theorem intervalFails_plateau_false {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) 
   unfold intervalFails
   exact decide_eq_false hnot
 
+/-- Every nonnegative plateau level satisfies `fidelityReaches` when the target is at most
+`computedPmax`, under the stated nonnegativity assumptions. -/
 theorem fidelityReaches_plateau {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (h : onPlateau π σ γ)
     (hp : p ≤ computedPmax π σ) : fidelityReaches π σ p γ := by
@@ -5255,9 +5876,12 @@ theorem fidelityReaches_plateau {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ 
   unfold fidelityReaches
   linarith
 
+/-- The minimum of the high water endpoint and all source-target ratios on the positive source
+support. -/
 def firstBreakpoint {m : ℕ} (π σ : Fin m → ℚ) : ℚ :=
   (sourceSupport π).fold min (computedWaterHigh π σ) (fun j => π j / σ j)
 
+/-- A finite minimum fold is at most the value at each member of its indexing set. -/
 private theorem fold_min_le {α : Type} [DecidableEq α] (init : ℚ) (f : α → ℚ) :
     ∀ (s : Finset α) (a : α), a ∈ s → s.fold min init f ≤ f a := by
   intro s
@@ -5270,6 +5894,8 @@ private theorem fold_min_le {α : Type} [DecidableEq α] (init : ℚ) (f : α �
       · exact min_le_left _ _
       · exact le_trans (min_le_right _ _) (ih b hb)
 
+/-- A common lower bound for the initial value and all indexed values bounds their finite
+minimum fold from below. -/
 private theorem le_fold_min {α : Type} [DecidableEq α] (init : ℚ) (f : α → ℚ) :
     ∀ (s : Finset α) (x : ℚ), x ≤ init → (∀ a ∈ s, x ≤ f a) → x ≤ s.fold min init f := by
   intro s
@@ -5283,16 +5909,20 @@ private theorem le_fold_min {α : Type} [DecidableEq α] (init : ℚ) (f : α �
       exact ⟨hx a (Finset.mem_insert_self a s),
         ih x hinit fun b hb => hx b (Finset.mem_insert_of_mem hb)⟩
 
+/-- Membership in `sourceSupport` implies strict positivity of the corresponding source entry. -/
 theorem sourceSupport_pos {m : ℕ} (π : Fin m → ℚ) {j : Fin m} (hj : j ∈ sourceSupport π) :
     0 < π j := by
   classical
   exact (Finset.mem_filter.mp hj).2
 
+/-- The first breakpoint is at most every source-target ratio with a positive source entry. -/
 theorem firstBreakpoint_le {m : ℕ} (π σ : Fin m → ℚ) {j : Fin m} (hj : 0 < π j) :
     firstBreakpoint π σ ≤ π j / σ j := by
   unfold firstBreakpoint
   exact fold_min_le _ _ _ j (Finset.mem_filter.mpr ⟨Finset.mem_univ j, hj⟩)
 
+/-- For nonnegative source entries, positive target entries, and nonempty source support, the
+plateau condition holds exactly below the first breakpoint. -/
 theorem onPlateau_iff_le {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 ≤ π j)
     (hσ : ∀ j, 0 < σ j) (hsupp : (sourceSupport π).Nonempty) (γ : ℚ) :
     onPlateau π σ γ ↔ γ ≤ firstBreakpoint π σ := by
@@ -5321,9 +5951,12 @@ theorem onPlateau_iff_le {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 ≤ �
     have h3 : γ ≤ π j / σ j := le_trans h2 h1
     exact (le_div_iff₀ hjσ).1 h3
 
+/-- The midpoint of the fidelity bracket at a given refinement depth. -/
 def bracketMidpoint {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) : ℚ :=
   ((fidelityBracket π σ p k).1 + (fidelityBracket π σ p k).2) / 2
 
+/-- One refinement increases the lower endpoint and decreases the upper endpoint of an ordered
+fidelity bracket. -/
 theorem fidelityBracket_sub {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j : ℕ)
     (hle : (fidelityBracket π σ p j).1 ≤ (fidelityBracket π σ p j).2) :
     (fidelityBracket π σ p (j + 1)).1 ≥ (fidelityBracket π σ p j).1 ∧
@@ -5333,6 +5966,7 @@ theorem fidelityBracket_sub {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j : ℕ
   · constructor <;> linarith
   · constructor <;> linarith
 
+/-- For nonnegative source and target entries, every fidelity bracket is ordered. -/
 theorem fidelityBracket_ordered {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) :
     (fidelityBracket π σ p j).1 ≤ (fidelityBracket π σ p j).2 := by
@@ -5347,6 +5981,8 @@ theorem fidelityBracket_ordered {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j :
       · linarith
       · linarith
 
+/-- For nonnegative source and target entries, later fidelity brackets are contained in earlier
+ones. -/
 theorem fidelityBracket_nested {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {i j : ℕ} (hij : i ≤ j)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) :
     (fidelityBracket π σ p j).1 ≥ (fidelityBracket π σ p i).1 ∧
@@ -5357,6 +5993,7 @@ theorem fidelityBracket_nested {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {i j 
       have hsub := fidelityBracket_sub π σ p j (fidelityBracket_ordered π σ p j hπ hσ)
       exact ⟨le_trans ih.1 hsub.1, le_trans hsub.2 ih.2⟩
 
+/-- The fidelity bracket at depth `j` has width `computedWaterHigh π σ / 2 ^ j`. -/
 theorem fidelityBracket_width {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j : ℕ) :
     (fidelityBracket π σ p j).2 - (fidelityBracket π σ p j).1
       = computedWaterHigh π σ / (2 : ℚ) ^ j := by
@@ -5376,6 +6013,7 @@ theorem fidelityBracket_width {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j : �
         rw [hkey, ih, pow_succ]
         ring
 
+/-- A bracket midpoint becomes one of the endpoints of the next bracket. -/
 theorem bracketMidpoint_endpoint {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j : ℕ) :
     bracketMidpoint π σ p j = (fidelityBracket π σ p (j + 1)).1 ∨
       bracketMidpoint π σ p j = (fidelityBracket π σ p (j + 1)).2 := by
@@ -5384,6 +6022,8 @@ theorem bracketMidpoint_endpoint {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (j 
   · exact Or.inl rfl
   · exact Or.inr rfl
 
+/-- Midpoints at depths `i < j` are separated by at least `computedWaterHigh π σ / 2 ^ (j + 1)`
+for nonnegative data. -/
 theorem bracketMidpoint_separation {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (i j : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hij : i < j) :
     |bracketMidpoint π σ p i - bracketMidpoint π σ p j|
@@ -5430,6 +6070,8 @@ theorem bracketMidpoint_separation {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (
     have h3 : 0 ≤ bracketMidpoint π σ p i - (fidelityBracket π σ p j).2 := by linarith
     linarith
 
+/-- A finite rational set with pairwise separation at least `s > 0` and diameter at most `W` has
+cardinality at most `Nat.floor (W / s) + 1`. -/
 theorem Finset.card_le_of_separated_diam (S : Finset ℚ) (s W : ℚ) (hs : 0 < s)
     (hsep : ∀ x ∈ S, ∀ y ∈ S, x ≠ y → s ≤ |x - y|)
     (hdiam : ∀ x ∈ S, ∀ y ∈ S, |x - y| ≤ W) :
@@ -5495,13 +6137,18 @@ theorem Finset.card_le_of_separated_diam (S : Finset ℚ) (s W : ℚ) (hs : 0 < 
   · have hempty : S = ∅ := Finset.not_nonempty_iff_eq_empty.mp hS
     simp [hempty]
 
+/-- The refinement depths below `k` whose exact bracket midpoints receive ambiguous interval
+decisions. -/
 def ambiguousDepths {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) : Finset ℕ :=
   (Finset.range k).filter
     (fun j => intervalDecision b π σ p (bracketMidpoint π σ p j) = .ambiguous)
 
+/-- The finite set of bracket midpoint levels corresponding to ambiguous depths below `k`. -/
 def ambiguousLevels {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) : Finset ℚ :=
   (ambiguousDepths b π σ p k).image (bracketMidpoint π σ p)
 
+/-- A lower rate bound relating level separation to gap separation for distinct search midpoints
+whose gaps lie in the ambiguity band. -/
 def bandRate {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ) : Prop :=
   ∀ j j' : ℕ, j < k → j' < k → j ≠ j' →
     |fidelityGap π σ p (bracketMidpoint π σ p j)| ≤ ambiguityBandBound π σ b p →
@@ -5510,6 +6157,8 @@ def bandRate {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ) :
       ≤ |fidelityGap π σ p (bracketMidpoint π σ p j)
           - fidelityGap π σ p (bracketMidpoint π σ p j')|
 
+/-- A positive band rate bounds the distance between ambiguous search levels by twice the
+ambiguity band bound divided by that rate. -/
 theorem ambiguousRegionWidth_le {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) (hc : 0 < c)
     (hrate : bandRate π σ b p c k)
@@ -5569,6 +6218,8 @@ theorem ambiguousRegionWidth_le {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c
     rw [le_div_iff₀ hc]
     nlinarith [hrate'', hdiff]
 
+/-- For nonnegative data and target, the search ambiguity count equals the cardinality of
+`ambiguousDepths`. -/
 theorem intervalFidelitySearch_ambiguities_depths {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ)
     (p : ℚ) (k : ℕ) (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) :
     (intervalFidelitySearch b π σ p k).2.ambiguities
@@ -5592,6 +6243,8 @@ theorem intervalFidelitySearch_ambiguities_depths {m : ℕ} (b : ℕ) (π σ : F
   unfold ambiguousDepths
   rfl
 
+/-- For nonnegative source and target entries, bracket midpoints at distinct refinement depths
+are distinct. -/
 theorem bracketMidpoint_ne {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {i j : ℕ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hij : i ≠ j) :
     bracketMidpoint π σ p i ≠ bracketMidpoint π σ p j := by
@@ -5610,6 +6263,8 @@ theorem bracketMidpoint_ne {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {i j : �
     rw [hne, sub_self, abs_zero] at hsep
     linarith
 
+/-- For nonnegative source and target entries, the number of ambiguous levels equals the number
+of ambiguous depths. -/
 theorem ambiguousLevels_card {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) :
     (ambiguousLevels b π σ p k).card = (ambiguousDepths b π σ p k).card := by
@@ -5619,12 +6274,15 @@ theorem ambiguousLevels_card {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : �
   by_contra hne
   exact absurd hij (bracketMidpoint_ne π σ p hπ hσ hne)
 
+/-- Natural powers of rational two are monotone in their exponent. -/
 private theorem two_pow_le {a b : ℕ} (h : a ≤ b) : (2 : ℚ) ^ a ≤ (2 : ℚ) ^ b := by
   have h1 : (2 : ℕ) ^ a ≤ (2 : ℕ) ^ b := Nat.pow_le_pow_right (by omega) h
   calc (2 : ℚ) ^ a = ((2 : ℕ) ^ a : ℚ) := by simp
     _ ≤ ((2 : ℕ) ^ b : ℚ) := by exact_mod_cast h1
     _ = (2 : ℚ) ^ b := by simp
 
+/-- For positive `H`, division by `H / 2 ^ k` equals multiplication by `2 ^ k` followed by
+division by `H`. -/
 private theorem div_grid {W H : ℚ} (hH : 0 < H) (k : ℕ) :
     W / (H / (2 : ℚ) ^ k) = W * (2 : ℚ) ^ k / H := by
   have h2k : (2 : ℚ) ^ k ≠ 0 := by positivity
@@ -5632,6 +6290,8 @@ private theorem div_grid {W H : ℚ} (hH : 0 < H) (k : ℕ) :
   rw [div_eq_div_iff hb (ne_of_gt hH)]
   field_simp [h2k]
 
+/-- Distinct ambiguous levels from the first `k` refinements are separated by at least
+`computedWaterHigh π σ / 2 ^ k`. -/
 theorem ambiguousLevels_separation {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {x y : ℚ}
     (hx : x ∈ ambiguousLevels b π σ p k) (hy : y ∈ ambiguousLevels b π σ p k)
@@ -5674,6 +6334,8 @@ theorem ambiguousLevels_separation {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (
     rw [hxi', hyj']
     exact le_trans hdiv hsep'
 
+/-- A positive band rate bounds the diameter of the ambiguous level set by `2 *
+ambiguityBandBound π σ b p / c`. -/
 theorem ambiguousLevels_diam {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (c : ℚ) (hc : 0 < c) (hrate : bandRate π σ b p c k)
@@ -5689,6 +6351,8 @@ theorem ambiguousLevels_diam {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : �
     exact (Finset.mem_filter.mp hj).2
   exact ambiguousRegionWidth_le π σ b p c k hπ hσ hp hc hrate hxamb hyamb hx hy
 
+/-- A positive band rate bounds the search ambiguity count by the floor of ambiguity-region
+width divided by grid separation, plus one. -/
 theorem ambiguityCount_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (c : ℚ) (hc : 0 < c) (hrate : bandRate π σ b p c k) :
@@ -5718,9 +6382,13 @@ theorem ambiguityCount_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) 
   rw [hconv] at hbound
   exact hbound
 
+/-- The interval search bit budget using the ambiguity count bound obtained from a region width
+`W`, high endpoint `H`, and refinement depth. -/
 def intervalWidthOpBitBudget {ε p πi : ℚ} (m k : ℕ) (W H : ℚ) : ℚ :=
   intervalSearchOpBitBudget ε p πi m k (Nat.floor (W * (2 : ℚ) ^ k / H) + 1)
 
+/-- For positive parameters and operation counts, the operation bit budget is antitone in the
+operation count. -/
 theorem opBitBudget_mono {ε p πi : ℚ} {n n' : ℕ} (hn : 0 < n)
     (hε : 0 < ε) (hp : 0 < p) (hπi : 0 < πi) (h : n ≤ n') :
     opBitBudget ε p πi n' ≤ opBitBudget ε p πi n := by
@@ -5739,12 +6407,15 @@ theorem opBitBudget_mono {ε p πi : ℚ} {n n' : ℕ} (hn : 0 < n)
   unfold opBitBudget
   exact min_le_min hA hB
 
+/-- The interval run operation count is monotone in its ambiguity count. -/
 theorem intervalRunOperationCount_mono (m k : ℕ) {a a' : ℕ} (h : a ≤ a') :
     intervalRunOperationCount m k a ≤ intervalRunOperationCount m k a' := by
   have hmul : 2 * m * a ≤ 2 * m * a' := Nat.mul_le_mul_left (2 * m) h
   unfold intervalRunOperationCount
   linarith
 
+/-- A width-based interval bit budget and positive band rate bound the accumulated error
+allowances using the actual search ambiguity count. -/
 theorem intervalSearch_budget_of_width {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k : ℕ)
     (hε : 0 < ε) (hp : 0 < p) (hπi : 0 < πi)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -5778,24 +6449,32 @@ theorem intervalSearch_budget_of_width {m : ℕ} (π σ : Fin m → ℚ) (p ε �
           exact hbud
   exact intervalSearchOpBitBudget_sufficient hε hp hπi b hb'
 
+/-- The finite set of positive source indices whose scaled target entries strictly exceed their
+source entries. -/
 def satSet {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : Finset (Fin m) :=
   Finset.univ.filter (fun j => 0 < π j ∧ π j < γ * σ j)
 
+/-- The source-target dot product restricted to an index set. -/
 def satDot {m : ℕ} (π σ : Fin m → ℚ) (S : Finset (Fin m)) : ℚ :=
   ∑ j : Fin m, if j ∈ S then σ j * π j else 0
 
+/-- The sum of squared source entries restricted to an index set. -/
 def satMass {m : ℕ} (π : Fin m → ℚ) (S : Finset (Fin m)) : ℚ :=
   ∑ j : Fin m, if j ∈ S then π j ^ 2 else 0
 
+/-- The sum of squared target entries over positive source indices outside the given index set. -/
 def freeSq {m : ℕ} (π σ : Fin m → ℚ) (S : Finset (Fin m)) : ℚ :=
   ∑ j : Fin m, if j ∈ S then 0 else (if 0 < π j then σ j ^ 2 else 0)
 
+/-- At an index in `satSet`, the water-filled entry equals the source entry. -/
 theorem waterFill_sat {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} {j : Fin m}
     (hj : j ∈ satSet π σ γ) : waterFill π σ γ j = π j := by
   have hj' := (Finset.mem_filter.mp hj).2
   have h1 : π j < γ * σ j := hj'.2
   rw [waterFill, min_eq_left (le_of_lt h1)]
 
+/-- At a positive source index outside `satSet`, the water-filled entry equals the level times
+the target entry. -/
 theorem waterFill_free {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} {j : Fin m}
     (hπ : 0 < π j) (hj : j ∉ satSet π σ γ) :
     waterFill π σ γ j = γ * σ j := by
@@ -5806,10 +6485,14 @@ theorem waterFill_free {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} {j : Fin m}
     exact hj' ⟨hπ, lt_of_not_ge hc⟩
   rw [waterFill, min_eq_right h1]
 
+/-- A zero source entry has zero water fill when the level and corresponding target entry are
+nonnegative. -/
 theorem waterFill_zero {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} {j : Fin m}
     (hπ : π j = 0) (hγ : 0 ≤ γ) (hσ : 0 ≤ σ j) : waterFill π σ γ j = 0 := by
   rw [waterFill, hπ, min_eq_left (mul_nonneg hγ hσ)]
 
+/-- For a fixed saturation pattern, the computed dot product equals the saturated dot
+contribution plus the level times `freeSq`. -/
 theorem computedDot_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Finset (Fin m))
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ)
     (hpat : satSet π σ γ = S) :
@@ -5849,6 +6532,8 @@ theorem computedDot_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Fins
   simp only [satDot, freeSq]
   rw [Finset.mul_sum]
 
+/-- For a fixed saturation pattern, the computed mass equals the saturated mass plus the squared
+level times `freeSq`. -/
 theorem computedMass_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Finset (Fin m))
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ)
     (hpat : satSet π σ γ = S) :
@@ -5888,6 +6573,8 @@ theorem computedMass_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Fin
   simp only [satMass, freeSq]
   rw [Finset.mul_sum]
 
+/-- For a fixed saturation pattern, the fidelity gap is the stated quadratic polynomial in the
+level. -/
 theorem fidelityGap_piece {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ : ℚ) (S : Finset (Fin m))
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ)
     (hpat : satSet π σ γ = S) :
@@ -5901,9 +6588,13 @@ theorem fidelityGap_piece {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ : ℚ)
   rw [hD, hM]
   ring
 
+/-- The derivative expression of the fidelity-gap quadratic associated with a fixed saturation
+set. -/
 def pieceSlopeAt {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S : Finset (Fin m)) (γ : ℚ) : ℚ :=
   2 * freeSq π σ S * ((freeSq π σ S - p) * γ + satDot π σ S)
 
+/-- At two nonnegative levels with the same saturation set, the gap difference factors as the
+level difference times the quadratic's secant slope. -/
 theorem fidelityGap_diff_piece {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ₁ γ₂ : ℚ)
     (S : Finset (Fin m))
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -5915,6 +6606,8 @@ theorem fidelityGap_diff_piece {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ�
     fidelityGap_piece π σ p γ₁ S hπ hσ hγ₁ hpat₁]
   ring
 
+/-- At two nonnegative levels with the same saturation set, the gap difference equals the level
+difference times `pieceSlopeAt` at their midpoint. -/
 theorem fidelityGap_diff_piece_slope {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ₁ γ₂ : ℚ)
     (S : Finset (Fin m))
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -5925,10 +6618,13 @@ theorem fidelityGap_diff_piece_slope {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
   unfold pieceSlopeAt
   ring
 
+/-- The absolute difference of two rationals is unchanged by swapping their order. -/
 private theorem abs_sub_swap (a b : ℚ) : |a - b| = |b - a| := by
   have h : a - b = -(b - a) := by ring
   rw [h, abs_neg]
 
+/-- A lower bound on the absolute midpoint slope for a common saturation pattern gives a lower
+bound on gap separation. -/
 theorem fidelityGap_rate_of_piece {m : ℕ} (π σ : Fin m → ℚ) (p c : ℚ)
     (S : Finset (Fin m)) (γ₁ γ₂ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -5941,6 +6637,8 @@ theorem fidelityGap_rate_of_piece {m : ℕ} (π σ : Fin m → ℚ) (p c : ℚ)
       mul_le_mul_of_nonneg_left hslope (abs_nonneg _)
     _ = |(γ₂ - γ₁) * pieceSlopeAt π σ p S ((γ₁ + γ₂) / 2)| := (abs_mul _ _).symm
 
+/-- A common saturation pattern and a uniform absolute slope bound on an interval containing the
+relevant search midpoints imply `bandRate`. -/
 theorem bandRate_of_piece_interval {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (S : Finset (Fin m)) (lo hi : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -5980,6 +6678,7 @@ theorem bandRate_of_piece_interval {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (
     _ = |fidelityGap π σ p (bracketMidpoint π σ p j)
           - fidelityGap π σ p (bracketMidpoint π σ p j')| := by rw [abs_sub_swap]
 
+/-- Cancels a strictly positive common left factor from a rational inequality. -/
 private theorem le_of_mul_le_mul_pos {a b c : ℚ} (hc : 0 < c) (h : c * a ≤ c * b) :
     a ≤ b := by
   have hd : 0 < c⁻¹ := by positivity
@@ -5988,6 +6687,8 @@ private theorem le_of_mul_le_mul_pos {a b c : ℚ} (hc : 0 < c) (h : c * a ≤ c
     mul_le_mul_of_nonneg_left h (le_of_lt hd)
   nlinarith [hdc, h1]
 
+/-- A positive lower bound on the absolute piece slope at same-sign endpoints also bounds its
+absolute value throughout the interval. -/
 theorem pieceSlope_bound_of_endpoints {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S : Finset (Fin m)) {lo hi γ : ℚ} (rate : ℚ) (hrate : 0 < rate)
     (hlo : 0 ≤ lo) (hhi : lo ≤ hi) (hγ : lo ≤ γ) (hγ' : γ ≤ hi)
@@ -6092,10 +6793,13 @@ theorem pieceSlope_bound_of_endpoints {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ
         _ ≤ -(pieceSlopeAt π σ p S γ) := neg_le_neg hmax
         _ = |pieceSlopeAt π σ p S γ| := (abs_of_neg hfg).symm
 
+/-- The smaller of the absolute piece slopes at the two endpoints of an interval. -/
 def pieceSlopeLower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S : Finset (Fin m))
     (lo hi : ℚ) : ℚ :=
   min |pieceSlopeAt π σ p S lo| |pieceSlopeAt π σ p S hi|
 
+/-- Positive same-sign endpoint slopes in absolute value, a common saturation pattern, and
+midpoint location bounds give a band rate via `pieceSlopeLower`. -/
 theorem bandRate_of_piece_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (S : Finset (Fin m)) (lo hi : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -6117,6 +6821,7 @@ theorem bandRate_of_piece_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c
   exact pieceSlope_bound_of_endpoints π σ p S c hc hlo hhi hγ hγ'
     (le_trans hlower (min_le_left _ _)) (le_trans hlower (min_le_right _ _)) hsign
 
+/-- The plateau condition holds exactly when the strict saturation set is empty. -/
 theorem onPlateau_iff_satSet_empty {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     onPlateau π σ γ ↔ satSet π σ γ = ∅ := by
   constructor
@@ -6132,6 +6837,8 @@ theorem onPlateau_iff_satSet_empty {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) 
     rw [hγ] at hmem
     exact (Finset.notMem_empty j) hmem
 
+/-- For two nonnegative plateau levels, the fidelity gap difference factors using their sum,
+difference, and `computedPmax π σ * (computedPmax π σ - p)`. -/
 theorem plateau_gap_rate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ₁ γ₂ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
     (hplate₁ : onPlateau π σ γ₁) (hplate₂ : onPlateau π σ γ₂) :
@@ -6141,6 +6848,8 @@ theorem plateau_gap_rate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ₁ γ�
     fidelityGap_plateau π σ p hπ hσ hγ₁ hplate₁]
   ring
 
+/-- For plateau levels at least `γ₀ > 0` and target at most `computedPmax`, the gap separation
+has rate at least `2 * computedPmax π σ * (computedPmax π σ - p) * γ₀`. -/
 theorem plateau_gap_rate_lower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ₁ γ₂ γ₀ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ₀ : 0 < γ₀)
     (hγ₁ : γ₀ ≤ γ₁) (hγ₂ : γ₀ ≤ γ₂)
@@ -6166,6 +6875,8 @@ theorem plateau_gap_rate_lower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {γ�
       = (computedPmax π σ * (computedPmax π σ - p)) * |γ₂ - γ₁| * (2 * γ₀) := by ring
     _ ≤ (computedPmax π σ * (computedPmax π σ - p)) * |γ₂ - γ₁| * (γ₁ + γ₂) := hmul
 
+/-- A finite minimum fold is positive when its initial value and all indexed values are
+positive. -/
 private theorem fold_min_pos {α : Type} [DecidableEq α] (init : ℚ) (f : α → ℚ)
     (hinit : 0 < init) : ∀ (s : Finset α), (∀ a ∈ s, 0 < f a) → 0 < s.fold min init f := by
   intro s
@@ -6178,6 +6889,8 @@ private theorem fold_min_pos {α : Type} [DecidableEq α] (init : ℚ) (f : α �
       have h2 : 0 < f a := hpos a (Finset.mem_insert_self a s)
       exact lt_min h2 h1
 
+/-- For nonnegative source entries and positive target entries, the first breakpoint is strictly
+positive. -/
 theorem firstBreakpoint_pos {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 ≤ π j)
     (hσ : ∀ j, 0 < σ j) :
     0 < firstBreakpoint π σ := by
@@ -6190,10 +6903,14 @@ theorem firstBreakpoint_pos {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ j, 0 �
   have ha' := (Finset.mem_filter.mp ha).2
   exact div_pos ha' (hσ a)
 
+/-- A candidate plateau level given by the minimum of the first breakpoint and a rate-dependent
+rational bound. -/
 def plateauRateWitness {m : ℕ} (π σ : Fin m → ℚ) (p c : ℚ) : ℚ :=
   min (firstBreakpoint π σ)
       (c / (16 * (computedPmax π σ * (computedPmax π σ - p))))
 
+/-- For a target below `computedPmax`, every positive proposed rate fails to bound gap growth
+uniformly from zero along the plateau, under the stated support and positivity assumptions. -/
 theorem plateau_no_uniform_rate {m : ℕ} (π σ : Fin m → ℚ) (p c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hsupp : (sourceSupport π).Nonempty)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) (hc : 0 < c) :
@@ -6252,6 +6969,8 @@ theorem plateau_no_uniform_rate {m : ℕ} (π σ : Fin m → ℚ) (p c : ℚ)
         mul_lt_mul_of_pos_left hlt' hγ0
     _ = c * plateauRateWitness π σ p c := by ring
 
+/-- For nonnegative data, target, and level, a fidelity gap strictly larger than the ambiguity
+band bound forces a `reaches` interval decision. -/
 theorem intervalDecision_reaches_of_gap {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p γ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ) (hp : 0 ≤ p)
     (hgap : computedDot π σ γ ^ 2 - p * computedMass π σ γ
@@ -6275,9 +6994,13 @@ theorem intervalDecision_reaches_of_gap {m : ℕ} (π σ : Fin m → ℚ) (b : �
     linarith [hhi, h2]
   exact (intervalDecision_spec π σ b p γ).1.mpr (sub_nonneg.mp hdown)
 
+/-- The ambiguity band bound divided by the plateau gap coefficient, used as a bound on squared
+ambiguous plateau levels. -/
 def plateauAmbiguityLevel {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) : ℚ :=
   ambiguityBandBound π σ b p / (computedPmax π σ * (computedPmax π σ - p))
 
+/-- For a target below positive `computedPmax`, an ambiguous nonnegative plateau level has
+square at most `plateauAmbiguityLevel`. -/
 theorem plateau_ambiguity_confined {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) {γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hg : 0 ≤ γ) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ)
@@ -6297,6 +7020,8 @@ theorem plateau_ambiguity_confined {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (
   rw [le_div_iff₀ hPP]
   linarith
 
+/-- If the plateau ambiguity bound is below `γ₀ ^ 2`, every plateau level strictly above `γ₀ >
+0` receives a `reaches` decision. -/
 theorem plateau_resolved_above {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) {γ₀ γ : ℚ}
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ)
@@ -6325,6 +7050,8 @@ theorem plateau_resolved_above {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : 
     nlinarith [hB, hsq]
   exact intervalDecision_reaches_of_gap π σ b p γ hπ hσ (hγ₀.le.trans hγ.le) hp hgap
 
+/-- An ambiguous nonnegative plateau level is at most `max γ₀ (plateauAmbiguityLevel π σ b p /
+γ₀)` for any positive `γ₀`, under the stated target assumptions. -/
 theorem plateau_ambiguity_level_bound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     {γ₀ γ : ℚ} (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hg : 0 ≤ γ)
@@ -6345,12 +7072,14 @@ theorem plateau_ambiguity_level_bound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ
       (le_div_iff₀ hγ₀).2 hmul
     exact le_max_of_le_right hdiv
 
+/-- The dyadic grid spacing is antitone in precision. -/
 theorem gridStep_mono {b b' : ℕ} (h : b ≤ b') : gridStep b' ≤ gridStep b := by
   have h1 : (2 : ℚ) ^ b ≤ (2 : ℚ) ^ b' := two_pow_le h
   have hp : (0 : ℚ) < (2 : ℚ) ^ b := by positivity
   unfold gridStep
   exact div_le_div_of_nonneg_left (by norm_num) hp h1
 
+/-- For nonnegative data and target, the ambiguity band bound is antitone in grid precision. -/
 theorem ambiguityBandBound_mono {m : ℕ} (π σ : Fin m → ℚ) (b b' : ℕ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) (h : b ≤ b') :
     ambiguityBandBound π σ b' p ≤ ambiguityBandBound π σ b p := by
@@ -6375,6 +7104,8 @@ theorem ambiguityBandBound_mono {m : ℕ} (π σ : Fin m → ℚ) (b b' : ℕ) (
         mul_le_mul_of_nonneg_left hbracket
           (mul_nonneg (mul_nonneg (by norm_num) hM0) (gridStep_pos b).le)
 
+/-- When the grid spacing is at most one, bounds the ambiguity band by a linear expression in
+that spacing. -/
 theorem ambiguityBandBound_le_of_step {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     (hu : gridStep b ≤ 1) :
     ambiguityBandBound π σ b p
@@ -6391,9 +7122,13 @@ theorem ambiguityBandBound_le_of_step {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ
       (gridStep_pos b).le
   exact mul_le_mul_of_nonneg_left hbracket hnonneg
 
+/-- The condition that the ambiguity band bound is at most the plateau gap coefficient times `γ₀
+^ 2`. -/
 def plateauResolutionSufficient {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (γ₀ : ℚ) : Prop :=
   ambiguityBandBound π σ b p ≤ computedPmax π σ * (computedPmax π σ - p) * γ₀ ^ 2
 
+/-- For nonnegative data and target, increasing grid precision preserves
+`plateauResolutionSufficient`. -/
 theorem plateauResolution_mono {m : ℕ} (π σ : Fin m → ℚ) (b b' : ℕ) (p : ℚ) (γ₀ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (h : b ≤ b') (hs : plateauResolutionSufficient π σ b p γ₀) :
@@ -6401,6 +7136,8 @@ theorem plateauResolution_mono {m : ℕ} (π σ : Fin m → ℚ) (b b' : ℕ) (p
   unfold plateauResolutionSufficient at *
   exact le_trans (ambiguityBandBound_mono π σ b b' p hπ hσ hp h) hs
 
+/-- For a target below positive `computedPmax` and `γ₀ > 0`, some precision at least the given
+precision satisfies `plateauResolutionSufficient`. -/
 theorem exists_plateauResolution {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (γ₀ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) (hγ₀ : 0 < γ₀) :
@@ -6466,18 +7203,23 @@ theorem exists_plateauResolution {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p 
   unfold plateauResolutionSufficient
   exact le_trans hband hfinal
 
+/-- The ambiguous search levels that also satisfy the plateau condition. -/
 def ambiguousPlateauLevels {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) : Finset ℚ :=
   (ambiguousLevels b π σ p k).filter (fun γ => onPlateau π σ γ)
 
+/-- The ambiguous plateau search levels at least a specified threshold `γ₀`. -/
 def ambiguousPlateauLevelsAbove {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (γ₀ : ℚ) : Finset ℚ :=
   (ambiguousPlateauLevels b π σ p k).filter (fun γ => γ₀ ≤ γ)
 
+/-- There are no more ambiguous plateau levels than ambiguous search levels. -/
 theorem ambiguousPlateauLevels_card_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) :
     (ambiguousPlateauLevels b π σ p k).card ≤ (ambiguousLevels b π σ p k).card := by
   unfold ambiguousPlateauLevels
   exact Finset.card_le_card (Finset.filter_subset _ _)
 
+/-- Distinct ambiguous plateau levels from the first `k` refinements are separated by at least
+`computedWaterHigh π σ / 2 ^ k`. -/
 theorem ambiguousPlateauLevels_separation {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {x y : ℚ}
     (hx : x ∈ ambiguousPlateauLevels b π σ p k) (hy : y ∈ ambiguousPlateauLevels b π σ p k)
@@ -6488,6 +7230,8 @@ theorem ambiguousPlateauLevels_separation {m : ℕ} (b : ℕ) (π σ : Fin m →
   have hy' := (Finset.mem_filter.mp hy).1
   exact ambiguousLevels_separation b π σ p k hπ hσ hx' hy' hne
 
+/-- Above `γ₀ > 0`, ambiguous plateau levels have diameter at most the ambiguity band bound
+divided by the plateau gap coefficient times `γ₀`. -/
 theorem ambiguousPlateauLevels_diam {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ)
@@ -6531,6 +7275,8 @@ theorem ambiguousPlateauLevels_diam {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) 
   rw [le_div_iff₀ hQ0]
   exact le_of_mul_le_mul_right h1' (by norm_num)
 
+/-- Bounds the number of ambiguous plateau levels above `γ₀ > 0` using their diameter and dyadic
+separation. -/
 theorem ambiguousPlateauLevelsAbove_count_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ)
     (k : ℕ) (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ)
@@ -6579,6 +7325,8 @@ theorem ambiguousPlateauLevelsAbove_count_le {m : ℕ} (b : ℕ) (π σ : Fin m 
   rw [hconv] at hbound
   exact hbound
 
+/-- A positive band rate bounds the actual interval operation count by the count obtained from
+the width-based ambiguity estimate. -/
 theorem intervalRunOperationCount_le_of_width {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     (k : ℕ) (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (c : ℚ) (hc : 0 < c) (hrate : bandRate π σ b p c k) :
@@ -6588,10 +7336,14 @@ theorem intervalRunOperationCount_le_of_width {m : ℕ} (π σ : Fin m → ℚ) 
   have hcount := ambiguityCount_le b π σ p k hπ hσ hp c hc hrate
   exact intervalRunOperationCount_mono m k hcount
 
+/-- The floor of the squared-level ambiguity bound divided by squared dyadic separation, plus
+one. -/
 def plateauAmbiguityCountBound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (k : ℕ) : ℕ :=
   Nat.floor (plateauAmbiguityLevel π σ b p
       / (computedWaterHigh π σ / (2 : ℚ) ^ k) ^ 2) + 1
 
+/-- Every ambiguous plateau search level is nonnegative and has square at most
+`plateauAmbiguityLevel`, under the stated target and positivity assumptions. -/
 theorem ambiguousPlateauLevels_bound {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) :
@@ -6614,6 +7366,8 @@ theorem ambiguousPlateauLevels_bound {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ)
   rw [← hj']
   exact ⟨hγ, hconf⟩
 
+/-- If the plateau squared-level ambiguity bound is below the squared dyadic separation, at most
+one plateau search level is ambiguous. -/
 theorem ambiguousPlateauLevels_card_le_one {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ)
@@ -6653,6 +7407,8 @@ theorem ambiguousPlateauLevels_card_le_one {m : ℕ} (b : ℕ) (π σ : Fin m �
       exact mul_self_le_mul_self hu.le hux
     linarith
 
+/-- The number of ambiguous plateau search levels is at most `plateauAmbiguityCountBound` under
+the stated positivity and target assumptions. -/
 theorem ambiguousPlateauLevels_count_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) :
@@ -6746,10 +7502,14 @@ theorem ambiguousPlateauLevels_count_le {m : ℕ} (b : ℕ) (π σ : Fin m → �
     unfold plateauAmbiguityCountBound
     exact hcard
 
+/-- The strict condition that the ambiguity band bound is below the plateau gap coefficient
+times squared dyadic separation. -/
 def plateauResolutionCriterion {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (k : ℕ) : Prop :=
   ambiguityBandBound π σ b p
     < computedPmax π σ * (computedPmax π σ - p) * (computedWaterHigh π σ / (2 : ℚ) ^ k) ^ 2
 
+/-- The plateau resolution criterion ensures at most one ambiguous plateau search level under
+the stated positivity and target assumptions. -/
 theorem plateau_resolution_criterion_sufficient {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ)
@@ -6768,11 +7528,15 @@ theorem plateau_resolution_criterion_sufficient {m : ℕ} (b : ℕ) (π σ : Fin
     exact lt_of_lt_of_le hc (le_of_eq hkey.symm)
   exact ambiguousPlateauLevels_card_le_one b π σ p k hπ hσ hp hP hpp hlt
 
+/-- A rational grid-spacing allowance obtained by dividing half the plateau separation threshold
+by a linear ambiguity-band coefficient. -/
 def plateauJointResolution {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) : ℚ :=
   (computedPmax π σ * (computedPmax π σ - p)
       * (computedWaterHigh π σ / (2 : ℚ) ^ k) ^ 2 / 2)
     / (2 * (m : ℚ) * (2 * (∑ j, π j * σ j) + (m : ℚ) + p))
 
+/-- For a target below positive `computedPmax` and positive table size, sufficiently increasing
+precision satisfies the plateau resolution criterion. -/
 theorem exists_plateauJointResolution {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) (hm : 0 < m) :
@@ -6830,9 +7594,13 @@ theorem exists_plateauJointResolution {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ
   unfold plateauResolutionCriterion
   exact lt_of_le_of_lt (le_trans hband' hmul) hlt
 
+/-- The conjunction of the operation bit budget condition and the plateau resolution criterion
+at fixed search depth and operation count. -/
 def jointTerminationSufficient {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p ε πi : ℚ) (k n : ℕ) : Prop :=
   gridStep b ≤ opBitBudget ε p πi n ∧ plateauResolutionCriterion π σ b p k
 
+/-- For nonnegative data and target, increasing precision preserves the plateau resolution
+criterion. -/
 theorem plateauResolutionCriterion_mono {m : ℕ} (π σ : Fin m → ℚ) (b b' : ℕ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) (h : b ≤ b')
     (hc : plateauResolutionCriterion π σ b p k) :
@@ -6840,6 +7608,8 @@ theorem plateauResolutionCriterion_mono {m : ℕ} (π σ : Fin m → ℚ) (b b' 
   unfold plateauResolutionCriterion at *
   exact lt_of_le_of_lt (ambiguityBandBound_mono π σ b b' p hπ hσ hp h) hc
 
+/-- Under the stated positivity assumptions and a target below `computedPmax`, some precision
+satisfies both the operation bit budget and plateau resolution criterion. -/
 theorem exists_jointTermination {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (k n : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 < p) (hε : 0 < ε) (hπi : 0 < πi)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) (hm : 0 < m) (hn : 0 < n) :
@@ -6851,6 +7621,8 @@ theorem exists_jointTermination {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : �
   · exact plateauResolutionCriterion_mono π σ b2 (max b1 b2) p k hπ hσ hp.le
       (le_max_right _ _) hb2.2
 
+/-- The joint termination condition bounds accumulated amplitude and mass error allowances and
+ensures at most one ambiguous plateau level. -/
 theorem jointTermination_certifies {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p ε πi : ℚ) (k n : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 < p) (hε : 0 < ε) (hπi : 0 < πi)
     (hP : 0 < computedPmax π σ) (hpp : p < computedPmax π σ) (hn : 0 < n)
@@ -6863,12 +7635,18 @@ theorem jointTermination_certifies {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (
   exact ⟨h1, h2,
     plateau_resolution_criterion_sufficient b π σ p k hπ hσ hp.le hP hpp hcrit⟩
 
+/-- The condition that every newly saturated index in `S₂ \ S₁` has a positive source entry
+meeting its target-scaled value at the boundary level. -/
 def pieceBreak {m : ℕ} (π σ : Fin m → ℚ) (γb : ℚ) (S₁ S₂ : Finset (Fin m)) : Prop :=
   ∀ j ∈ S₂ \ S₁, 0 < π j ∧ π j = γb * σ j
 
+/-- The fidelity-gap polynomial associated with a chosen saturation set, built from its
+saturated dot and mass contributions and free squared target mass. -/
 def pieceGap {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S : Finset (Fin m)) (γ : ℚ) : ℚ :=
   (satDot π σ S + γ * freeSq π σ S) ^ 2 - p * (satMass π S + γ ^ 2 * freeSq π σ S)
 
+/-- At a nonnegative level with saturation set `S`, the exact fidelity gap equals `pieceGap π σ
+p S γ` for nonnegative data. -/
 theorem fidelityGap_eq_pieceGap {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ : ℚ) (S : Finset (Fin m))
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hγ : 0 ≤ γ)
     (hpat : satSet π σ γ = S) :
@@ -6878,6 +7656,8 @@ theorem fidelityGap_eq_pieceGap {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ 
   unfold fidelityGap pieceGap
   rw [hD, hM]
 
+/-- The difference of two values of a fixed piece gap factors as the level difference times its
+secant slope. -/
 theorem pieceGap_diff {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S : Finset (Fin m)) (γ₁ γ₂ : ℚ) :
     pieceGap π σ p S γ₂ - pieceGap π σ p S γ₁
       = (γ₂ - γ₁) * (freeSq π σ S * (freeSq π σ S - p) * (γ₁ + γ₂)
@@ -6885,6 +7665,8 @@ theorem pieceGap_diff {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S : Finset (F
   unfold pieceGap
   ring
 
+/-- Expresses the piecewise dot formula as a sum of saturated source-target products and free
+target-square contributions. -/
 private theorem pieceOverlap_eq_sum {m : ℕ} (π σ : Fin m → ℚ) (S : Finset (Fin m)) (γ : ℚ) :
     satDot π σ S + γ * freeSq π σ S
       = ∑ j : Fin m, (if j ∈ S then σ j * π j
@@ -6897,6 +7679,8 @@ private theorem pieceOverlap_eq_sum {m : ℕ} (π σ : Fin m → ℚ) (S : Finse
   · simp [hj]
   · simp [hj]
 
+/-- Expresses the piecewise mass formula as a sum of saturated source squares and free
+level-scaled target squares. -/
 private theorem pieceMass_eq_sum {m : ℕ} (π σ : Fin m → ℚ) (S : Finset (Fin m)) (γ : ℚ) :
     satMass π S + γ ^ 2 * freeSq π σ S
       = ∑ j : Fin m, (if j ∈ S then π j ^ 2
@@ -6909,6 +7693,8 @@ private theorem pieceMass_eq_sum {m : ℕ} (π σ : Fin m → ℚ) (S : Finset (
   · simp [hj]
   · simp [hj]
 
+/-- Nested saturation sets satisfying `pieceBreak` give identical piecewise dot and mass
+formulas at the boundary level. -/
 theorem piece_agreement_at_boundary {m : ℕ} (π σ : Fin m → ℚ) (S₁ S₂ : Finset (Fin m)) (γb : ℚ)
     (hsub : S₁ ⊆ S₂) (hbrk : pieceBreak π σ γb S₁ S₂) :
     satDot π σ S₁ + γb * freeSq π σ S₁ = satDot π σ S₂ + γb * freeSq π σ S₂ ∧
@@ -6957,6 +7743,7 @@ theorem piece_agreement_at_boundary {m : ℕ} (π σ : Fin m → ℚ) (S₁ S₂
   · rw [pieceMass_eq_sum π σ S₁ γb, pieceMass_eq_sum π σ S₂ γb]
     exact Finset.sum_congr rfl (fun j _ => hmasspoint j)
 
+/-- Nested saturation sets satisfying `pieceBreak` give equal piece gaps at the boundary level. -/
 theorem pieceGap_agreement {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m)) (γb : ℚ)
     (hsub : S₁ ⊆ S₂) (hbrk : pieceBreak π σ γb S₁ S₂) :
     pieceGap π σ p S₁ γb = pieceGap π σ p S₂ γb := by
@@ -6964,6 +7751,8 @@ theorem pieceGap_agreement {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S�
   unfold pieceGap
   rw [hdot, hmass]
 
+/-- Across two saturation pieces agreeing at their boundary, the exact gap difference is the sum
+of the two level increments times their piecewise secant slopes. -/
 theorem fidelityGap_diff_pieces {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7002,6 +7791,8 @@ theorem fidelityGap_diff_pieces {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S�
             rw [hd1, hd2]
             ring
 
+/-- A common lower bound on the two secant slopes bounds the gap increase across an intervening
+piece boundary. -/
 theorem fidelityGap_rate_across_pieces {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7032,6 +7823,8 @@ theorem fidelityGap_rate_across_pieces {m : ℕ} (π σ : Fin m → ℚ) (p : �
             + 2 * satDot π σ S₂ * freeSq π σ S₂) * (γ₂ - γb) := add_le_add h1 h2
     _ = fidelityGap π σ p γ₂ - fidelityGap π σ p γ₁ := by rw [hdec]; ring
 
+/-- A common lower bound on the negatives of the two secant slopes bounds the gap decrease
+across an intervening piece boundary. -/
 theorem fidelityGap_rate_across_pieces_down {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7063,6 +7856,8 @@ theorem fidelityGap_rate_across_pieces_down {m : ℕ} (π σ : Fin m → ℚ) (p
     _ = -(fidelityGap π σ p γ₂ - fidelityGap π σ p γ₁) := by rw [hdec]; ring
     _ = fidelityGap π σ p γ₁ - fidelityGap π σ p γ₂ := by ring
 
+/-- A positive rational has a nonnegative lower bound, whereas a negative rational has no
+nonnegative lower bound. -/
 theorem no_common_rate_of_opposite_slopes {x₁ x₂ : ℚ}
     (h₁ : 0 < x₁) (h₂ : x₂ < 0) :
     (∃ c : ℚ, 0 ≤ c ∧ c ≤ x₁) ∧ ¬ (∃ c : ℚ, 0 ≤ c ∧ c ≤ x₂) := by
@@ -7070,17 +7865,22 @@ theorem no_common_rate_of_opposite_slopes {x₁ x₂ : ℚ}
   rintro ⟨c, hc, hc2⟩
   exact absurd (le_trans hc hc2) (not_le.mpr h₂)
 
+/-- The secant slope expression of a fixed piece-gap quadratic between two levels. -/
 def pieceSegmentSlope {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S : Finset (Fin m)) (γ₁ γ₂ : ℚ) : ℚ :=
   freeSq π σ S * (freeSq π σ S - p) * (γ₁ + γ₂) + 2 * satDot π σ S * freeSq π σ S
 
+/-- The smaller of the secant slopes on the two sides of a piece boundary. -/
 def crossPieceRateLower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) : ℚ :=
   min (pieceSegmentSlope π σ p S₁ γ₁ γb) (pieceSegmentSlope π σ p S₂ γb γ₂)
 
+/-- The smaller of the negated secant slopes on the two sides of a piece boundary. -/
 def crossPieceRateLowerDown {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) : ℚ :=
   min (-(pieceSegmentSlope π σ p S₁ γ₁ γb)) (-(pieceSegmentSlope π σ p S₂ γb γ₂))
 
+/-- Across two matching saturation pieces, the exact gap difference is the sum of the two level
+increments weighted by `pieceSegmentSlope`. -/
 theorem fidelityGap_diff_pieces_slope {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7093,6 +7893,8 @@ theorem fidelityGap_diff_pieces_slope {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ
   rw [fidelityGap_diff_pieces π σ p S₁ S₂ γ₁ γb γ₂ hπ hσ hγ₁ hγ₂ hpat₁ hpat₂ hsub hbrk]
   rfl
 
+/-- A positive common lower bound for two nonnegative piece slopes yields the corresponding
+lower bound on gap increase across their boundary. -/
 theorem fidelityGap_rate_across_pieces_lower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7122,6 +7924,8 @@ theorem fidelityGap_rate_across_pieces_lower {m : ℕ} (π σ : Fin m → ℚ) (
   exact fidelityGap_rate_across_pieces π σ p S₁ S₂ γ₁ γb γ₂ c hπ hσ hγ₁ hγ₂ hle₁ hle₂
     hpat₁ hpat₂ hsub hbrk hc₁ hc₂
 
+/-- A positive common lower bound for two negated nonpositive piece slopes yields the
+corresponding lower bound on gap decrease across their boundary. -/
 theorem fidelityGap_rate_across_pieces_down_lower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7152,6 +7956,8 @@ theorem fidelityGap_rate_across_pieces_down_lower {m : ℕ} (π σ : Fin m → �
   exact fidelityGap_rate_across_pieces_down π σ p S₁ S₂ γ₁ γb γ₂ c hπ hσ hγ₁ hγ₂ hle₁ hle₂
     hpat₁ hpat₂ hsub hbrk hc₁ hc₂
 
+/-- A positive common rate bound in either direction across two matching pieces gives an
+absolute gap-separation bound. -/
 theorem fidelityGap_rate_across_pieces_abs {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7209,6 +8015,8 @@ theorem fidelityGap_rate_across_pieces_abs {m : ℕ} (π σ : Fin m → ℚ) (p 
       _ ≤ fidelityGap π σ p γ₁ - fidelityGap π σ p γ₂ := hcert.2.2.2
       _ = |fidelityGap π σ p γ₁ - fidelityGap π σ p γ₂| := by rw [abs_of_nonneg hge]
 
+/-- The existence of two matching saturation pieces across an intervening boundary, in either
+endpoint order, with a common secant rate bound in either direction. -/
 def crossPieceRate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ₁ γ₂ : ℚ) (c : ℚ) : Prop :=
   (∃ γb S₁ S₂,
     γ₁ ≤ γb ∧ γb ≤ γ₂ ∧
@@ -7223,6 +8031,8 @@ def crossPieceRate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ₁ γ₂ : �
     (c ≤ crossPieceRateLower π σ p S₁ S₂ γ₂ γb γ₁ ∨
       c ≤ crossPieceRateLowerDown π σ p S₁ S₂ γ₂ γb γ₁))
 
+/-- Positive cross-piece rate bounds for all relevant pairs of search midpoints imply `bandRate`
+for nonnegative source and target entries. -/
 theorem bandRate_of_cross_piece_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hc : 0 < c)
@@ -7263,11 +8073,14 @@ theorem bandRate_of_cross_piece_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ
       _ = |fidelityGap π σ p (bracketMidpoint π σ p j)
             - fidelityGap π σ p (bracketMidpoint π σ p j')| := hsw2.symm
 
+/-- The minimum of the three secant slopes along a chain of three saturation pieces. -/
 def chainRateLower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ S₃ : Finset (Fin m))
     (γ₁ γb₁ γb₂ γ₂ : ℚ) : ℚ :=
   min (pieceSegmentSlope π σ p S₁ γ₁ γb₁)
     (min (pieceSegmentSlope π σ p S₂ γb₁ γb₂) (pieceSegmentSlope π σ p S₃ γb₂ γ₂))
 
+/-- Across three pieces matching at two boundaries, the exact fidelity gap difference is the sum
+of the three level increments weighted by their piece slopes. -/
 theorem fidelityGap_diff_pieces_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ S₃ : Finset (Fin m)) (γ₁ γb₁ γb₂ γ₂ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7309,6 +8122,8 @@ theorem fidelityGap_diff_pieces_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ
             rw [hd₁, hd₂, hd₃]
             ring
 
+/-- A positive lower bound on all three piece slopes gives a lower bound on the fidelity gap
+increase across the ordered three-piece chain. -/
 theorem fidelityGap_rate_across_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ S₃ : Finset (Fin m)) (γ₁ γb₁ γb₂ γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7349,20 +8164,27 @@ theorem fidelityGap_rate_across_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ
       linarith
     _ = fidelityGap π σ p γ₂ - fidelityGap π σ p γ₁ := by rw [hdec]; ring
 
+/-- A segment specified by an index set and rational lower and upper levels. -/
 structure ChainSegment {m : ℕ} where
   S : Finset (Fin m)
   γlo : ℚ
   γhi : ℚ
 
+/-- The first segment of a list, with the empty-set zero-level segment as the default for an
+empty list. -/
 def chainFirstSeg {m : ℕ} : List (ChainSegment (m := m)) → ChainSegment (m := m)
   | [] => ⟨∅, 0, 0⟩
   | s :: _ => s
 
+/-- The last segment of a list, with the empty-set zero-level segment as the default for an
+empty list. -/
 def chainLastSeg {m : ℕ} : List (ChainSegment (m := m)) → ChainSegment (m := m)
   | [] => ⟨∅, 0, 0⟩
   | [s] => s
   | _ :: t :: rest => chainLastSeg (t :: rest)
 
+/-- Requires nonnegative ordered segment levels, matching adjacent endpoints, nested index sets,
+and the `pieceBreak` condition at each shared boundary. -/
 def ChainWellFormed {m : ℕ} (π σ : Fin m → ℚ) : List (ChainSegment (m := m)) → Prop
   | [] => True
   | [s] => 0 ≤ s.γlo ∧ s.γlo ≤ s.γhi
@@ -7372,30 +8194,38 @@ def ChainWellFormed {m : ℕ} (π σ : Fin m → ℚ) : List (ChainSegment (m :=
       pieceBreak π σ s₁.γhi s₁.S s₂.S ∧
       ChainWellFormed π σ (s₂ :: rest)
 
+/-- The minimum of a rational function over a segment list, with value zero on an empty list. -/
 def chainMin {m : ℕ} (f : ChainSegment (m := m) → ℚ) :
     List (ChainSegment (m := m)) → ℚ
   | [] => 0
   | [s] => f s
   | s :: t :: rest => min (f s) (chainMin f (t :: rest))
 
+/-- The minimum piece secant slope over a segment chain, with value zero for an empty chain. -/
 def chainSlopeLower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (segs : List (ChainSegment (m := m))) : ℚ :=
   chainMin (fun s => pieceSegmentSlope π σ p s.S s.γlo s.γhi) segs
 
+/-- The minimum negated piece secant slope over a segment chain, with value zero for an empty
+chain. -/
 def chainSlopeLowerDown {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (segs : List (ChainSegment (m := m))) : ℚ :=
   chainMin (fun s => -(pieceSegmentSlope π σ p s.S s.γlo s.γhi)) segs
 
+/-- The sum of a segment function weighted by each segment's level width. -/
 def chainWeightedSum {m : ℕ} (f : ChainSegment (m := m) → ℚ)
     (segs : List (ChainSegment (m := m))) : ℚ :=
   (segs.map (fun s => (s.γhi - s.γlo) * f s)).sum
 
+/-- The sum of piece secant slopes weighted by their segment widths. -/
 def chainSegmentSum {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (segs : List (ChainSegment (m := m))) : ℚ :=
   chainWeightedSum (fun s => pieceSegmentSlope π σ p s.S s.γlo s.γhi) segs
 
+/-- The sum of the level widths of all segments in a list. -/
 def chainWidthSum {m : ℕ} (segs : List (ChainSegment (m := m))) : ℚ :=
   (segs.map (fun s => s.γhi - s.γlo)).sum
 
+/-- The chain minimum is at most the function value at every segment in the list. -/
 theorem chainMin_le_of_mem {m : ℕ} (f : ChainSegment (m := m) → ℚ) :
     ∀ (segs : List (ChainSegment (m := m))) (s : ChainSegment (m := m)),
       s ∈ segs → chainMin f segs ≤ f s := by
@@ -7416,6 +8246,8 @@ theorem chainMin_le_of_mem {m : ℕ} (f : ChainSegment (m := m) → ℚ) :
           · exact min_le_left _ _
           · exact le_trans (min_le_right _ _) (ih s hs')
 
+/-- A common lower bound on all segment values bounds the minimum of a nonempty chain from
+below. -/
 theorem le_chainMin {m : ℕ} (f : ChainSegment (m := m) → ℚ) (c : ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] →
       (∀ s ∈ segs, c ≤ f s) → c ≤ chainMin f segs := by
@@ -7436,6 +8268,8 @@ theorem le_chainMin {m : ℕ} (f : ChainSegment (m := m) → ℚ) (c : ℚ) :
             ih (by simp) (fun s hs => hval s (by simp [hs]))
           exact le_min h1 h2
 
+/-- The minimum over a nonempty segment chain is nonpositive exactly when some segment value is
+nonpositive. -/
 theorem chainMin_le_zero_iff {m : ℕ} (f : ChainSegment (m := m) → ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] →
       (chainMin f segs ≤ 0 ↔ ∃ s ∈ segs, f s ≤ 0) := by
@@ -7476,6 +8310,8 @@ theorem chainMin_le_zero_iff {m : ℕ} (f : ChainSegment (m := m) → ℚ) :
                 (ih (by simp)).mpr ⟨s, hs', h⟩
               exact le_trans (min_le_right _ _) hrest
 
+/-- Every segment in a well-formed chain has a nonnegative lower level and an upper level at
+least its lower level. -/
 theorem chainWellFormed_width {m : ℕ} (π σ : Fin m → ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), ChainWellFormed π σ segs →
       (∀ s ∈ segs, 0 ≤ s.γlo ∧ s.γlo ≤ s.γhi) := by
@@ -7499,6 +8335,8 @@ theorem chainWellFormed_width {m : ℕ} (π σ : Fin m → ℚ) :
           · exact ⟨hv.1, hv.2.1⟩
           · exact htail s hs'
 
+/-- The last segment's upper level is nonnegative for a well-formed chain, including the
+empty-chain default. -/
 theorem chainLastSeg_nonneg {m : ℕ} (π σ : Fin m → ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), ChainWellFormed π σ segs →
       0 ≤ (chainLastSeg segs).γhi := by
@@ -7518,6 +8356,8 @@ theorem chainLastSeg_nonneg {m : ℕ} (π σ : Fin m → ℚ) :
           show 0 ≤ (chainLastSeg (b :: rest')).γhi
           exact h
 
+/-- For a nonempty well-formed chain, the sum of widths equals the last upper level minus the
+first lower level. -/
 theorem chainWidthSum_eq {m : ℕ} (π σ : Fin m → ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] → ChainWellFormed π σ segs →
       chainWidthSum segs = (chainLastSeg segs).γhi - (chainFirstSeg segs).γlo := by
@@ -7541,6 +8381,8 @@ theorem chainWidthSum_eq {m : ℕ} (π σ : Fin m → ℚ) :
           rw [← hv.2.2.1]
           ring
 
+/-- On a nonempty chain with nonnegative widths, a common lower bound on segment values bounds
+their weighted sum by that lower bound times the total width. -/
 theorem chainWeightedSum_ge {m : ℕ} (f : ChainSegment (m := m) → ℚ) (c : ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] →
       (∀ s ∈ segs, c ≤ f s) → (∀ s ∈ segs, 0 ≤ s.γhi - s.γlo) →
@@ -7570,6 +8412,8 @@ theorem chainWeightedSum_ge {m : ℕ} (f : ChainSegment (m := m) → ℚ) (c : �
           ring_nf at htail h3 ⊢
           linarith
 
+/-- For a nonempty well-formed chain, the last piece gap minus the first piece gap equals the
+sum of width-weighted piece secant slopes. -/
 theorem pieceGap_diff_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] → ChainWellFormed π σ segs →
       pieceGap π σ p (chainLastSeg segs).S (chainLastSeg segs).γhi
@@ -7604,6 +8448,9 @@ theorem pieceGap_diff_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
           rw [← pieceGap_diff π σ p a.S a.γlo a.γhi]
           ring
 
+/-- For nonnegative data and a nonempty well-formed chain matching the actual endpoint
+saturation sets, the exact fidelity gap difference equals the sum of width-weighted piece
+slopes. -/
 theorem fidelityGap_diff_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] → ChainWellFormed π σ segs →
@@ -7638,6 +8485,7 @@ theorem fidelityGap_diff_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
           simpa only [chainFirstSeg, chainLastSeg] using!
             (pieceGap_diff_chain π σ p (a :: b :: rest') (by simp) hv)
 
+/-- The first lower level of a nonempty well-formed chain is at most its last upper level. -/
 theorem chainFirst_le_last {m : ℕ} (π σ : Fin m → ℚ) :
     ∀ (segs : List (ChainSegment (m := m))), segs ≠ [] → ChainWellFormed π σ segs →
       (chainFirstSeg segs).γlo ≤ (chainLastSeg segs).γhi := by
@@ -7659,6 +8507,7 @@ theorem chainFirst_le_last {m : ℕ} (π σ : Fin m → ℚ) :
           show a.γlo ≤ (chainLastSeg (b :: rest')).γhi
           exact le_trans hstep (le_trans (le_of_eq hjoin) htail)
 
+/-- The width-weighted sum of negated piece slopes equals the negative of `chainSegmentSum`. -/
 theorem chainWeightedSum_neg {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
     ∀ (segs : List (ChainSegment (m := m))),
       chainWeightedSum (fun s => -(pieceSegmentSlope π σ p s.S s.γlo s.γhi)) segs
@@ -7672,6 +8521,8 @@ theorem chainWeightedSum_neg {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
       rw [h]
       ring
 
+/-- A positive common lower bound on piece slopes in a nonempty well-formed chain bounds the
+exact fidelity gap increase when the endpoint saturation sets match. -/
 theorem fidelityGap_rate_across_segment_chain {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (segs : List (ChainSegment (m := m))) (hne : segs ≠ [])
@@ -7701,6 +8552,8 @@ theorem fidelityGap_rate_across_segment_chain {m : ℕ} (π σ : Fin m → ℚ) 
   rw [hdec, ← htel]
   exact hbound
 
+/-- A positive common lower bound on negated piece slopes in a nonempty well-formed chain bounds
+the exact fidelity gap decrease when the endpoint saturation sets match. -/
 theorem fidelityGap_rate_across_segment_chain_down {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (segs : List (ChainSegment (m := m))) (hne : segs ≠ [])
@@ -7736,6 +8589,8 @@ theorem fidelityGap_rate_across_segment_chain_down {m : ℕ} (π σ : Fin m → 
   rw [hdec', ← htel, ← hneg]
   exact hbound
 
+/-- A positive common chain rate in either direction bounds absolute fidelity gap separation by
+that rate times endpoint separation. -/
 theorem fidelityGap_rate_across_segment_chain_abs {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (segs : List (ChainSegment (m := m))) (hne : segs ≠ [])
@@ -7792,6 +8647,8 @@ theorem fidelityGap_rate_across_segment_chain_abs {m : ℕ} (π σ : Fin m → �
       _ = |fidelityGap π σ p (chainFirstSeg segs).γlo
           - fidelityGap π σ p (chainLastSeg segs).γhi| := by rw [habsgap]
 
+/-- For a nonempty chain, the minimum piece slope is nonpositive exactly when at least one
+segment has a nonpositive piece slope. -/
 theorem chainSlopeLower_le_zero_iff {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (segs : List (ChainSegment (m := m))) (hne : segs ≠ []) :
     (chainSlopeLower π σ p segs ≤ 0 ↔
@@ -7799,10 +8656,14 @@ theorem chainSlopeLower_le_zero_iff {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
   simpa only [chainSlopeLower] using!
     (chainMin_le_zero_iff (fun s => pieceSegmentSlope π σ p s.S s.γlo s.γhi) segs hne)
 
+/-- The condition that the product of the two piece secant slopes across a boundary is
+nonpositive. -/
 def breakpointCutsRate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) : Prop :=
   pieceSegmentSlope π σ p S₁ γ₁ γb * pieceSegmentSlope π σ p S₂ γb γ₂ ≤ 0
 
+/-- If the two boundary slopes have nonpositive product, no positive common rate lies below both
+slopes or below both negated slopes. -/
 theorem breakpointCutsRate_no_common_rate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ)
     (hcut : breakpointCutsRate π σ p S₁ S₂ γ₁ γb γ₂) :
@@ -7833,6 +8694,8 @@ theorem breakpointCutsRate_no_common_rate {m : ℕ} (π σ : Fin m → ℚ) (p :
       exact mul_pos (by linarith) (by linarith)
     linarith [hcut]
 
+/-- If the two boundary slopes have positive product, there exists a positive common rate below
+both slopes or below both negated slopes. -/
 theorem no_breakpointCutsRate_common_rate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ)
     (hnocut : ¬ breakpointCutsRate π σ p S₁ S₂ γ₁ γb γ₂) :
@@ -7871,6 +8734,8 @@ theorem no_breakpointCutsRate_common_rate {m : ℕ} (π σ : Fin m → ℚ) (p :
       lt_min (by simpa using! neg_lt_neg hs1) (by simpa using! neg_lt_neg hs2), Or.inr ?_⟩
     rw [crossPieceRateLowerDown]
 
+/-- Collects the exact chain gap decomposition, the segmentwise common slope bounds, and the
+resulting lower bound on gap increase. -/
 theorem frontier21 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
     (segs : List (ChainSegment (m := m))) (hne : segs ≠ [])
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -7896,6 +8761,8 @@ theorem frontier21 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
     hc hlower
   exact ⟨hdec, ⟨hlower, hval⟩, hrate.2⟩
 
+/-- The existence of a nonempty well-formed segment chain joining the two levels in either
+order, matching endpoint saturation sets, with a common rate bound in either direction. -/
 def chainPieceRate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ₁ γ₂ : ℚ) (c : ℚ) : Prop :=
   ∃ segs : List (ChainSegment (m := m)), segs ≠ [] ∧
     ChainWellFormed π σ segs ∧
@@ -7907,6 +8774,8 @@ def chainPieceRate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (γ₁ γ₂ : �
         satSet π σ γ₂ = (chainFirstSeg segs).S ∧
         satSet π σ γ₁ = (chainLastSeg segs).S)
 
+/-- Positive chain rate bounds for all relevant pairs of search midpoints imply `bandRate` for
+nonnegative source and target entries. -/
 theorem bandRate_of_chain_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hc : 0 < c)
@@ -7932,6 +8801,8 @@ theorem bandRate_of_chain_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c
     rw [hlo', hhi'] at hcert
     simpa only [abs_sub_comm] using! hcert
 
+/-- Combines plateau fidelity and gap formulas, failure-test exclusion at maximal target, the
+first-breakpoint characterization, and a band-rate bound on search ambiguities. -/
 theorem frontier14 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 ≤ p)
     (hsupp : (sourceSupport π).Nonempty)
@@ -7961,6 +8832,8 @@ theorem frontier14 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
   have hcount := ambiguityCount_le b π σ p k hπ (fun j => (hσ j).le) hp c hc hrate
   exact ⟨hplateau, hdegen, hwidth, hcount⟩
 
+/-- Collects plateau gap growth above a positive cutoff, confinement and counting of plateau
+ambiguities, and a width-based upper bound on interval operation costs. -/
 theorem frontier15 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 ≤ p)
     (hsupp : (sourceSupport π).Nonempty)
@@ -8009,6 +8882,8 @@ theorem frontier15 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
     hp c hc hrate
   exact ⟨hplateau, hrate', hconf, hcount, hops⟩
 
+/-- Combines plateau formulas with the plateau ambiguity count bound, at most one plateau
+ambiguity, and accumulated error bounds under the joint termination condition. -/
 theorem frontier16 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k n : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hπi : 0 < πi)
     (hsupp : (sourceSupport π).Nonempty) (hpp : p < computedPmax π σ) (hn : 0 < n)
@@ -8034,6 +8909,8 @@ theorem frontier16 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k n : �
     hp.le hmax hpp hcrit
   exact ⟨hplateau, hcount, hone, ⟨h1, h2⟩⟩
 
+/-- Collects boundary agreement, the two-piece gap decomposition, and the gap increase bound
+from a common lower secant slope. -/
 theorem frontier17 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -8060,6 +8937,8 @@ theorem frontier17 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Fins
     hle₁ hle₂ hpat₁ hpat₂ hsub hbrk hc₁ hc₂
   exact ⟨⟨hdot, hmass⟩, hdec, hrate⟩
 
+/-- Collects the two-piece gap decomposition, individual slope bounds from
+`crossPieceRateLower`, and the resulting lower bound on gap increase. -/
 theorem frontier18 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -8088,6 +8967,8 @@ theorem frontier18 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Fins
   refine ⟨hdec, ⟨hlower, le_trans hmin (min_le_left _ _),
     le_trans hmin (min_le_right _ _)⟩, hrate.2.2.2⟩
 
+/-- Combines the two-piece gap decomposition and absolute rate bound with a band rate obtained
+from the stated cross-piece conditions on search midpoints. -/
 theorem frontier19 {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -8122,6 +9003,8 @@ theorem frontier19 {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : 
   have hband := bandRate_of_cross_piece_lower π σ b p c k hπ hσ hc hcross
   refine ⟨hdec, ⟨hlower, h1, h2⟩, habs, hband⟩
 
+/-- Collects the three-piece gap decomposition, individual slope bounds from `chainRateLower`,
+and the resulting lower bound on gap increase. -/
 theorem frontier20 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ S₃ : Finset (Fin m)) (γ₁ γb₁ γb₂ γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)

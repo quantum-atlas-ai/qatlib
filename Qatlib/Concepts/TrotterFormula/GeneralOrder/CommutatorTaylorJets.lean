@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
+
+/-!
+# Taylor jets of conjugation words
+
+The coefficients `pfConjCoeff` are identified with the Taylor jets at zero of the smooth
+conjugation word `pfConjWord`. The module computes the jets of `pfConjTrunc`, proves the order
+of the truncation remainder, and identifies the truncation with `pfTaylorBefore`. For
+background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `pfConjWord_jet`: derivatives at zero are factorial-scaled conjugation coefficients.
+* `pfConjWord_taylor_before`: the coefficient truncation is the Taylor polynomial.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -19,9 +38,12 @@ open Matrix Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The matrix-valued monomial `t ↦ t ^ n • C` is infinitely differentiable over `ℝ`. -/
 theorem pf_monomial_contDiff (C : Matrix I I ℂ) (n : ℕ) :
     ContDiff ℝ ∞ (fun t : ℝ=>t^n • C) := (contDiff_id.pow n).smul contDiff_const
 
+/-- At zero, the `j`th derivative of `t ↦ t ^ n • C` is `n! • C` when `j = n` and zero
+otherwise. -/
 theorem pf_monomial_jet (C : Matrix I I ℂ) (n j : ℕ) :
     iteratedDeriv j (fun t : ℝ=>t^n • C) 0=if j=n then (n.factorial:ℝ) • C else 0 := by
   have hpow : ContDiff ℝ ∞ (fun t : ℝ=>t^n) := contDiff_id.pow n
@@ -29,11 +51,14 @@ theorem pf_monomial_jet (C : Matrix I I ℂ) (n j : ℕ) :
     (by exact_mod_cast (le_top : (j:ℕ∞)≤⊤))) C,iteratedDeriv_fun_pow_zero]
   split_ifs <;> simp
 
+/-- Every finite conjugation coefficient truncation is infinitely differentiable in time. -/
 theorem pfConjTrunc_contDiff (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) :
     ContDiff ℝ ∞ (pfConjTrunc xs B p) := by
   unfold pfConjTrunc
   exact ContDiff.sum (fun _ _=>pf_monomial_contDiff _ _)
 
+/-- The `j`th jet of the truncation is `j! • pfConjCoeff xs B j` below degree `p` and zero at
+all higher degrees. -/
 theorem pfConjTrunc_jet (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p j : ℕ) :
     iteratedDeriv j (pfConjTrunc xs B p) 0=
       if j<p then (j.factorial:ℝ) • pfConjCoeff xs B j else 0 := by
@@ -55,6 +80,8 @@ theorem pfConjTrunc_jet (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p j :
     intro n _
     rw [if_neg (by have hn:=n.isLt;omega : ¬j=n.val)]
 
+/-- The difference between a conjugation word and its degree-below-`p` truncation has
+`trotterOrder` at least `p`. -/
 theorem pfConjWord_remainder_order (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) :
     trotterOrder (fun t=>pfConjWord xs B t-pfConjTrunc xs B p t) p := by
   let a := pfCommAlphaInner xs B p
@@ -74,6 +101,7 @@ theorem pfConjWord_remainder_order (xs : List (Matrix I I ℂ)) (B : Matrix I I 
        _=c*|t| ^p := by dsimp [c];ring
        _≤(c+1)*|t| ^p := by gcongr;linarith
 
+/-- The `j`th derivative at zero of the conjugation word is `j! • pfConjCoeff xs B j`. -/
 theorem pfConjWord_jet (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (j : ℕ) :
     iteratedDeriv j (pfConjWord xs B) 0=(j.factorial:ℝ) • pfConjCoeff xs B j := by
   have hR := (trotter_matrix_order_jets
@@ -86,6 +114,8 @@ theorem pfConjWord_jet (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (j : �
       (by exact_mod_cast (le_top : (j:ℕ∞)≤⊤))),pfConjTrunc_jet,if_pos (by omega : j<j+1)] at hR
   exact sub_eq_zero.mp hR
 
+/-- The Taylor polynomial of the conjugation word through degrees below `p` equals `pfConjTrunc
+xs B p`. -/
 theorem pfConjWord_taylor_before (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) (t : ℝ) :
     pfTaylorBefore (pfConjWord xs B) p t=pfConjTrunc xs B p t := by
   unfold pfTaylorBefore pfConjTrunc

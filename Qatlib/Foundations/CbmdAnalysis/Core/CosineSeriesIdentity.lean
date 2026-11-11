@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleLimit
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineWeightBounds
+
+/-!
+# Infinite cosine sampling identities
+
+This module derives an infinite cosine sampling formula from the finite circle identities and
+vanishing contour integrals. Complex differentiability, bounded sample values, and an eventual
+numerator-to-regulator comparison yield reconstruction of `U 1` and a quantitative finite-sum
+error. This is the analytic sampling step underlying [WangEtAl2026].
+
+## Main statements
+
+* `cosine_kernel_series_identity`: reconstructs `U 1` from the baseline and infinite weighted
+  sample series.
+* `cosineLCU_target_error_le`: bounds the error after retaining samples through index `K`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -18,6 +38,9 @@ open Complex Metric Set Filter
 open scoped Topology BigOperators
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- For positive parameters, a complex differentiable numerator with sample norms at most one
+and an eventual fixed nonnegative circle comparison satisfies `U 1 = cosineRegulator γ τ 1 •
+U 0 - cosineRegulator γ τ 1 • ∑' k, cosineSample γ τ U k` [WangEtAl2026]. -/
 theorem cosine_kernel_series_identity {γ τ C : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (hC : 0 ≤ C) (U : ℂ → E) (hUanalytic : Differentiable ℂ U)
     (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1)
@@ -47,6 +70,9 @@ theorem cosine_kernel_series_identity {γ τ C : ℝ} (hγ : 0 < γ) (hτ : 0 < 
         cosineRegulator γ τ 1 • (∑' k : ℕ, cosineSample γ τ U k) := by abel
     _ = _ := by rw [hz, zero_add]
 
+/-- Under the analytic sampling and circle comparison hypotheses with positive parameters,
+retaining samples through index `K` gives target error at most `‖cosineRegulator γ τ 1‖ * γ
+* τ ^ 2 / (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem cosineLCU_target_error_le {γ τ C : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (hC : 0 ≤ C) (U : ℂ → E) (hUanalytic : Differentiable ℂ U)
     (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1)

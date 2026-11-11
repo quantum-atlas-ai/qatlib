@@ -7,8 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceCoeffLOneBoundStat
 import Mathlib.NumberTheory.Harmonic.Bounds
 
+/-!
+# A one-sided mass bound for central-difference coefficients
+
+`centralDiffCoeff_nat_abs_le` bounds each nonnegative-index coefficient by the reciprocal index,
+with the zero-index case interpreted using real division. Summing these bounds proves
+`centralDifferenceCoeffLOneBound`, the one-sided logarithmic mass estimate. See
+[GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDiffCoeff_nat_abs_le`: The absolute central-difference coefficient at natural index
+  `k` is at most `1 / k`.
+* `centralDifferenceCoeffLOneBound`: For positive order `m`, the sum of absolute coefficients
+  over integer indices from zero through `m` is at most `Real.log m + 1`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 
+/-- The absolute central-difference coefficient at natural index `k` is at most `1 / k`. -/
 theorem centralDiffCoeff_nat_abs_le (m k : ℕ) :
     |centralDiffCoeff m (k : ℤ)| ≤ 1 / (k : ℝ) := by
   by_cases hk : k = 0
@@ -29,6 +50,8 @@ theorem centralDiffCoeff_nat_abs_le (m k : ℕ) :
         (by positivity)
       _ = _ := mul_one _
 
+/-- For positive order `m`, the sum of absolute coefficients over integer indices from zero
+through `m` is at most `Real.log m + 1`. -/
 theorem centralDifferenceCoeffLOneBound : CentralDifferenceCoeffLOneBound := by
   classical
   intro m _

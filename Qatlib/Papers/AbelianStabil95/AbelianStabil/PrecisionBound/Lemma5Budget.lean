@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.PrecisionBound.Lemmas3To5
+
+/-!
+# Uniform precision budgets for mixed operation words
+
+This module computes how `knownPrecs` and `budget` behave under extension of a mixed operation
+word. It bounds the budget by word length times a uniform step error and transfers this estimate
+to event probabilities and to an existing target-error bound. The development follows
+[Kitaev1995].
+
+## Main statements
+
+* `budget_le_length_mul`: bounds the accumulated precision budget by `W.length * δ`.
+* `lemma5_source_bound`: adds at most `2 * W.length * δ` to a target-error bound.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,7 @@ open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 
+/-- The sum of a real constant over a list equals the list length times that constant. -/
 theorem list_sum_map_const (l : List ℕ) (c : ℝ) :
     (l.map (fun _ => c)).sum = (l.length : ℝ) * c := by
   induction l with
@@ -30,24 +50,29 @@ section Recursion
 
 variable {n w : ℕ} {S : Type}
 
+/-- Prepending a known gate at precision `m` prepends `m` to the list of known-gate precisions. -/
 theorem knownPrecs_cons_known (g : LocalQFTGate n) (m : ℕ)
     (W : List (MixedStep n w S)) :
     knownPrecs (MixedStep.known g m :: W) = m :: knownPrecs W := rfl
 
+/-- Prepending an oracle call leaves the list of known-gate precisions unchanged. -/
 theorem knownPrecs_cons_call (s : S) (adj : Bool) (ctrl : Option (Fin n × Bool))
     (W : List (MixedStep n w S)) :
     knownPrecs (MixedStep.call s adj ctrl :: W) = knownPrecs W := rfl
 
+/-- Prepending a known gate at precision `m` adds `2⁻¹ ^ m` to the precision budget. -/
 theorem budget_cons_known (g : LocalQFTGate n) (m : ℕ)
     (W : List (MixedStep n w S)) :
     budget (MixedStep.known g m :: W) = ((2 : ℝ)⁻¹) ^ m + budget W := by
   simp [budget, knownPrecs, List.map_cons, List.sum_cons]
 
+/-- Prepending an oracle call leaves the precision budget unchanged. -/
 theorem budget_cons_call (s : S) (adj : Bool) (ctrl : Option (Fin n × Bool))
     (W : List (MixedStep n w S)) :
     budget (MixedStep.call s adj ctrl :: W) = budget W := by
   simp [budget, knownPrecs]
 
+/-- A precision occurring in a mixed word still occurs after any step is prepended. -/
 theorem mem_knownPrecs_cons {s : MixedStep n w S} {W : List (MixedStep n w S)}
     {m : ℕ} (hm : m ∈ knownPrecs W) : m ∈ knownPrecs (s :: W) := by
   simp only [knownPrecs] at hm ⊢
@@ -56,6 +81,8 @@ theorem mem_knownPrecs_cons {s : MixedStep n w S} {W : List (MixedStep n w S)}
 
 end Recursion
 
+/-- If every known gate has precision `k`, the budget equals the number of known-gate precisions
+times `2⁻¹ ^ k`, as used in [Kitaev1995]. -/
 theorem budget_eq_of_all_prec {n w : ℕ} {S : Type}
     (W : List (MixedStep n w S)) (k : ℕ)
     (hk : ∀ m ∈ knownPrecs W, m = k) :
@@ -81,6 +108,8 @@ theorem budget_eq_of_all_prec {n w : ℕ} {S : Type}
       rw [budget_cons_call, knownPrecs_cons_call]
       exact ih hk'
 
+/-- If each known-gate error is at most nonnegative `δ`, the budget is at most the total word
+length times `δ`, as used in [Kitaev1995]. -/
 theorem budget_le_length_mul {n w : ℕ} {S : Type}
     (W : List (MixedStep n w S)) (δ : ℝ) (hδ0 : 0 ≤ δ)
     (hδ : ∀ m ∈ knownPrecs W, (2 : ℝ)⁻¹ ^ m ≤ δ) :
@@ -108,6 +137,9 @@ theorem budget_le_length_mul {n w : ℕ} {S : Type}
       push_cast
       nlinarith
 
+/-- For a legal mixed word with valid controls and unitary oracles, uniformly bounded known-gate
+errors change every event probability on a normalized input by at most `2 * W.length * δ`.
+This is the uniform bound of [Kitaev, 1995, Lemma 5][Kitaev1995]. -/
 theorem lemma5_mixedWord_uniform {n w : ℕ} (hw : w ≤ n) (S : Type) [DecidableEq S]
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S))
     (paid : List (AccessForm S)) (hv : ValidControls W) (hp : mixedWordLegal W paid)
@@ -122,6 +154,9 @@ theorem lemma5_mixedWord_uniform {n w : ℕ} (hw : w ≤ n) (S : Type) [Decidabl
   have hbudget := budget_le_length_mul W δ hδ0 hδ
   nlinarith
 
+/-- Under the legality, unitarity, and uniform precision hypotheses, an event probability within
+`ε` of a target remains within `ε + 2 * W.length * δ` after implementation. This gives the
+target-error form of [Kitaev, 1995, Lemma 5][Kitaev1995]. -/
 theorem lemma5_source_bound {n w : ℕ} (hw : w ≤ n) (S : Type) [DecidableEq S]
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S))
     (paid : List (AccessForm S)) (hv : ValidControls W) (hp : mixedWordLegal W paid)

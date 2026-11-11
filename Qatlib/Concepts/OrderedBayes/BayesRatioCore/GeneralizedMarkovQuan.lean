@@ -9,6 +9,25 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
+
+/-!
+# Generalized Markov inequality for discrete laws
+
+This module proves `generalizedMarkov_answer`, the generalized Markov estimate used in the
+ordered search analysis of [BenOrHassidim2007]. A nonnegative random variable with mean at most
+a and probability at least 1 - β of being at least b satisfies an upper-tail bound of (a - b +
+βb) / (c - b) when 0 ≤ b ≤ a < c and 0 ≤ β ≤ 1.
+
+## Main statements
+
+* `generalizedMarkov_answer`: the probability of X > c satisfies the stated estimate for any
+  probability mass function.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.8][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +35,9 @@ namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib
 open scoped ENNReal
 
+/-- Proves `GeneralizedMarkov`: a nonnegative discrete X with mean at most a and P(X ≥ b) ≥ 1 -
+β satisfies P(X > c) ≤ (a - b + βb)/(c - b) when 0 ≤ β ≤ 1 and 0 ≤ b ≤ a < c [Ben-Or and
+Hassidim, Lemma 2.8][BenOrHassidim2007]. -/
 theorem generalizedMarkov_answer : GeneralizedMarkov := by
   intro α μ X a b β c _hX hmean hβ0 hβ1 hb0 hba hprob hac
   classical

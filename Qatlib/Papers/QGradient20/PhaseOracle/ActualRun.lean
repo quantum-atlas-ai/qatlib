@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QGradient20.PhaseOracle.HermitianQpe
+
+/-!
+# Born laws for the executed phase circuit
+
+This module connects execution of the counted phase circuit to the abstract QPE output for
+`phaseEvolution`. It also bounds Hermitian eigenvalues and the signed phases obtained from a
+bounded evolution parameter. See [GaoEtAl2021] for the paper context.
+
+## Main statements
+
+* `corrected_signed_phase_range`: If the Hermitian matrix has norm at most one and `0 ≤ τ ≤
+  1/4`, each signed phase `-τ * λ` has absolute value at most 1/4.
+* `actual_run_label_Born`: The label probability in the executed counted phase circuit equals
+  the left marginal probability of its abstract QPE output.
+* `actual_run_spectral_Born`: For an eigenbasis expansion, the executed phase circuit has label
+  weight equal to the sum of squared coefficient norms times the corresponding squared QPE
+  kernel norms.
+
+## References
+
+* [Gao et al., 2021][GaoEtAl2021]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +48,7 @@ open Qatlib.Papers.QGradient20.PhaseOracle
 namespace Qatlib.Papers.QGradient20.PhaseOracle.ActualRun
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Every eigenvalue of a Hermitian matrix has absolute value at most its operator norm. -/
 theorem eigenvalue_abs_le_norm (D : Matrix I I ℂ) (hD : D.IsHermitian) (j : I) : |hD.eigenvalues j|≤‖D‖ := by
   have h := ((Matrix.toEuclideanCLM (𝕜:=ℂ) (n:=I)) D).le_opNorm (hD.eigenvectorBasis j)
   have he : (Matrix.toEuclideanCLM (𝕜:=ℂ) (n:=I)) D (hD.eigenvectorBasis j)=
@@ -35,12 +59,16 @@ theorem eigenvalue_abs_le_norm (D : Matrix I I ℂ) (hD : D.IsHermitian) (j : I)
     mul_one,Matrix.l2_opNorm_toEuclideanCLM,mul_one] at h
   exact h
 
+/-- If the Hermitian matrix has norm at most one and `0 ≤ τ ≤ 1/4`, each signed phase `-τ * λ`
+has absolute value at most 1/4. -/
 theorem corrected_signed_phase_range (D : Matrix I I ℂ) (hD : D.IsHermitian) (hDnorm : ‖D‖≤1)
     (τ : ℝ) (hτ0 : 0≤τ) (hτ1 : τ≤1/4) (j : I) : |-τ*hD.eigenvalues j|≤1/4 := by
   rw [abs_mul,abs_neg,abs_of_nonneg hτ0]
   exact (mul_le_mul_of_nonneg_left ((eigenvalue_abs_le_norm D hD j).trans hDnorm) hτ0).trans
     (by simpa using hτ1)
 
+/-- The label probability in the executed counted phase circuit equals the left marginal
+probability of its abstract QPE output. -/
 theorem actual_run_label_Born (D : Matrix I I ℂ) (τ : ℝ) (M : ℕ) (hM : 0<M) (ψ : I→ℂ) (z : Fin M) :
     MeasureProb
       (Run (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ) (controlOracle (phaseEvolution D τ)))
@@ -51,6 +79,8 @@ theorem actual_run_label_Born (D : Matrix I I ℂ) (τ : ℝ) (M : ℕ) (hM : 0<
   rw [(actual_counted_run D τ M hM ψ).1]
   simp [MeasureProb,MarginalProbLeft,BornProb,Fintype.sum_prod_type]
 
+/-- For an eigenbasis expansion, the executed phase circuit has label weight equal to the sum of
+squared coefficient norms times the corresponding squared QPE kernel norms. -/
 theorem actual_run_spectral_Born (D : Matrix I I ℂ) (hD : D.IsHermitian) (τ : ℝ)
     (M : ℕ) (hM : 0<M) (c : I→ℂ) (z : Fin M) :
     MeasureProb

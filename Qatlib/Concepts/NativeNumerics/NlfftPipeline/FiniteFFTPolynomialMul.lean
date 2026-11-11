@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LaurentPolys.CanonicalComplementFFT
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
 import Mathlib.Data.Finset.NatAntidiagonal
+
+/-!
+# Finite Fourier polynomial multiplication
+
+This module represents finite coefficient prefixes and conjugate reversals as explicit
+polynomials and implements `finiteFFTPolynomialMul` using three radix-two Fourier transforms.
+Fourier-transform conventions are related to the background in [NielsenChuang2010].
+
+Character orthogonality and cyclic convolution show that the returned polynomial is the ordinary
+product when the transform length exceeds the sum of the input degrees. An explicit operation
+counter is bounded in terms of the transform length.
+
+## Main statements
+
+* `finiteCoefficientPrefix_eq_mod`: A finite prefix equals reduction modulo a power of `X`.
+* `finiteFFTPolynomialMul_semantics`: The Fourier multiplication returns `A * B` under the
+  degree bound.
+* `finiteFFTPolynomialMul_operations`: The operation count is at most `10 * 2^q * (q+1)`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,19 +42,28 @@ namespace Qatlib.Concepts.NativeNumerics.NlfftPipeline
 open Polynomial
 open scoped BigOperators
 
+/-- The polynomial with coefficients `f j` for `j < n` and zero coefficients at all higher
+indices. -/
 def finiteCoefficientPolynomial (n : ℕ) (f : ℕ → ℂ) : Polynomial ℂ :=
   ∑ j : Fin n, Polynomial.monomial j.val (f j.val)
 
+/-- The polynomial consisting of the first `n` coefficients of `p`. -/
 def finiteCoefficientPrefix (n : ℕ) (p : Polynomial ℂ) : Polynomial ℂ :=
   finiteCoefficientPolynomial n p.coeff
 
+/-- The finite polynomial whose coefficient at `i ≤ d` is the complex conjugate of `p.coeff
+(d-i)`. -/
 def finiteCoefficientConjRev (d : ℕ) (p : Polynomial ℂ) : Polynomial ℂ :=
   finiteCoefficientPolynomial (d + 1) (fun i => (starRingEnd ℂ) (p.coeff (d - i)))
 
+/-- The polynomial output and operation count of a finite Fourier polynomial multiplication run. -/
 structure FiniteFFTPolynomialMulRun where
   polynomial : Polynomial ℂ
   operations : ℕ
 
+/-- Multiplies finite coefficient arrays by two forward radix-two Fourier transforms, pointwise
+multiplication, and a normalized reversed Fourier transform, recording the arithmetic
+operation count. -/
 def finiteFFTPolynomialMul (q : ℕ) (A B : Polynomial ℂ) : FiniteFFTPolynomialMulRun :=
   let fa := radixTwoFourier q (fun j => A.coeff j.val)
   let fb := radixTwoFourier q (fun j => B.coeff j.val)
@@ -43,6 +76,8 @@ def finiteFFTPolynomialMul (q : ℕ) (A B : Polynomial ℂ) : FiniteFFTPolynomia
     operations := fa.2.1 + fa.2.2 + fb.2.1 + fb.2.2 + fi.2.1 + fi.2.2
       + 2 * 2 ^ q + 1 }
 
+/-- The coefficient at `i` of `finiteCoefficientPolynomial n f` is `f i` when `i < n`, and zero
+otherwise. -/
 theorem finiteCoefficientPolynomial_coeff (n : ℕ) (f : ℕ → ℂ) (i : ℕ) :
     (finiteCoefficientPolynomial n f).coeff i = if i < n then f i else 0 := by
   classical
@@ -64,12 +99,15 @@ theorem finiteCoefficientPolynomial_coeff (n : ℕ) (f : ℕ → ℂ) (i : ℕ) 
     rw [← hcon] at hi
     exact hi j.isLt
 
+/-- A polynomial constructed from `n` coefficients has degree strictly less than `n`, with
+degree viewed in `WithBot ℕ`. -/
 theorem finiteCoefficientPolynomial_degree_lt (n : ℕ) (f : ℕ → ℂ) :
     (finiteCoefficientPolynomial n f).degree < (n : WithBot ℕ) := by
   rw [Polynomial.degree_lt_iff_coeff_zero]
   intro m hm
   rw [finiteCoefficientPolynomial_coeff, if_neg (by omega)]
 
+/-- Taking the first `n` coefficients of a polynomial equals reduction modulo `X^n`. -/
 theorem finiteCoefficientPrefix_eq_mod (n : ℕ) (p : Polynomial ℂ) :
     finiteCoefficientPrefix n p = p % X ^ n := by
   refine Polynomial.ext fun i => ?_
@@ -84,6 +122,7 @@ theorem finiteCoefficientPrefix_eq_mod (n : ℕ) (p : Polynomial ℂ) :
     rw [Polynomial.degree_lt_iff_coeff_zero] at hdeg
     exact (hdeg i (by omega)).symm
 
+/-- If `p.natDegree ≤ d`, the finite coefficient conjugate reversal equals `conjRevN d p`. -/
 theorem finiteCoefficientConjRev_eq (d : ℕ) (p : Polynomial ℂ) (hp : p.natDegree ≤ d) :
     finiteCoefficientConjRev d p = conjRevN d p := by
   refine Polynomial.ext fun i => ?_
@@ -95,6 +134,7 @@ theorem finiteCoefficientConjRev_eq (d : ℕ) (p : Polynomial ℂ) (hp : p.natDe
     have hd' := conjRevN_natDegree_le d p hp
     exact (Polynomial.coeff_eq_zero_of_natDegree_lt (by omega)).symm
 
+/-- A Fourier multiplication of length `2^q` uses at most `10 * 2^q * (q+1)` counted operations. -/
 theorem finiteFFTPolynomialMul_operations (q : ℕ) (A B : Polynomial ℂ) :
     (finiteFFTPolynomialMul q A B).operations ≤ 10 * 2 ^ q * (q + 1) := by
   have key : ∀ f g : Fin (2 ^ q) → ℂ,
@@ -116,6 +156,7 @@ theorem finiteFFTPolynomialMul_operations (q : ℕ) (A B : Polynomial ℂ) :
   simpa only [finiteFFTPolynomialMul] using! key
     (fun j => A.coeff j.val) (fun j => B.coeff j.val)
 
+/-- The complex exponential of an integer multiple of `2 * π * I` equals one. -/
 private theorem expI_two_pi_int (n : ℤ) :
     Complex.exp ((n * (2 * Real.pi)) * Complex.I) = 1 := by
   have h := Complex.exp_eq_exp_iff_exists_int
@@ -124,6 +165,8 @@ private theorem expI_two_pi_int (n : ℤ) :
   refine h.mpr ⟨n, ?_⟩
   ring
 
+/-- The sum of a finite Fourier character is `S` when `S` divides its integer frequency, and
+zero otherwise. -/
 private theorem sum_exp_char (S : ℕ) (hS : 0 < S) (r : ℤ) :
     ∑ t : Fin S, Complex.exp ((-2 * Real.pi * ((r * (t : ℤ) : ℝ) / (S : ℝ))) * Complex.I)
       = if (S : ℤ) ∣ r then (S : ℂ) else 0 := by
@@ -211,6 +254,8 @@ private theorem sum_exp_char (S : ℕ) (hS : 0 < S) (r : ℤ) :
         _ = 0 := h
     · exact absurd (sub_eq_zero.mp h) hζne
 
+/-- Multiplying two Fourier exponential factors with the same sample index adds their frequency
+indices. -/
 private theorem exp_fold_add (S : ℕ) (hS : 0 < S) (m m' t : ℕ) :
     (Complex.exp ((-2 * Real.pi * ((m * t : ℕ) / S : ℝ)) * Complex.I)
       * Complex.exp ((-2 * Real.pi * ((m' * t : ℕ) / S : ℝ)) * Complex.I))
@@ -222,6 +267,8 @@ private theorem exp_fold_add (S : ℕ) (hS : 0 < S) (m m' t : ℕ) :
   field_simp
   ring
 
+/-- The Fourier character sum at a natural frequency is `S` if the corresponding integer
+frequency is divisible by `S`, and zero otherwise. -/
 private theorem sum_exp_char_nat (S : ℕ) (hS : 0 < S) (n : ℕ) :
     ∑ t : Fin S, Complex.exp ((-2 * Real.pi * ((n * t.val : ℕ) / S : ℝ)) * Complex.I)
       = if (S : ℤ) ∣ (n : ℤ) then (S : ℂ) else 0 := by
@@ -231,6 +278,8 @@ private theorem sum_exp_char_nat (S : ℕ) (hS : 0 < S) (n : ℕ) :
   push_cast
   field_simp
 
+/-- The normalized inverse Fourier coefficient of a pointwise product equals the cyclic
+convolution sum over pairs of indices congruent to `k` modulo `S`. -/
 private theorem cyclic_convolution (S : ℕ) (hS : 0 < S) (a b : Fin S → ℂ) (k : ℕ) (hk : k < S) :
     ((S : ℂ)⁻¹ * ∑ t : Fin S,
         ((∑ l : Fin S, a l * Complex.exp ((-2 * Real.pi * ((t.val * l.val : ℕ) / S : ℝ)) * Complex.I))
@@ -352,6 +401,8 @@ private theorem cyclic_convolution (S : ℕ) (hS : 0 < S) (a b : Fin S → ℂ) 
             if (S : ℤ) ∣ (((l : ℤ) + (l' : ℤ)) - (k : ℤ)) then a l * b l' else 0 :=
           Finset.sum_congr rfl fun l _ => Finset.sum_congr rfl fun l' _ => hinner l l'
 
+/-- Two equivalent placements of multiplication and division in the Fourier exponential yield
+the same complex number. -/
 private theorem exp_sem_bridge (S j l : ℕ) :
     Complex.exp ((-2*Real.pi*j*l/(S : ℕ) : ℝ)*Complex.I)
       = Complex.exp ((-2 * Real.pi * ((j * l : ℕ) / S : ℝ)) * Complex.I) := by
@@ -359,6 +410,8 @@ private theorem exp_sem_bridge (S j l : ℕ) :
   push_cast
   field_simp
 
+/-- If `i < S`, `u+v < 2*S`, and `u+v` is congruent to `i` modulo `S`, then `u+v` equals `i` or
+`i+S`. -/
 private theorem dvd_sub_range_cases (S : ℕ) (u v i : ℕ) (hi : i < S)
     (hu : u + v < 2 * S)
     (hd : (S : ℤ) ∣ (((u : ℤ) + (v : ℤ)) - (i : ℤ))) :
@@ -385,6 +438,8 @@ private theorem dvd_sub_range_cases (S : ℕ) (u v i : ℕ) (hi : i < S)
       have h0 : u + v - i - S = 0 := Nat.eq_zero_of_dvd_of_lt hd3 (by omega)
       omega
 
+/-- A sum over the natural antidiagonal of `n` equals the sum of `f j (n-j)` for `j` from zero
+through `n`. -/
 private theorem sum_antidiagonal_eq_range (f : ℕ → ℕ → ℂ) (n : ℕ) :
     ∑ x ∈ Finset.antidiagonal n, f x.1 x.2
       = ∑ j ∈ Finset.range (n + 1), f j (n - j) := by
@@ -394,6 +449,8 @@ private theorem sum_antidiagonal_eq_range (f : ℕ → ℕ → ℂ) (n : ℕ) :
       simp only at h
       exact h)]
 
+/-- If `A.natDegree + B.natDegree < 2^q`, the finite Fourier multiplication returns exactly `A *
+B`. -/
 theorem finiteFFTPolynomialMul_semantics (q : ℕ) (A B : Polynomial ℂ)
     (h : A.natDegree + B.natDegree < 2 ^ q) :
     (finiteFFTPolynomialMul q A B).polynomial = A * B := by

@@ -12,6 +12,26 @@ import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Tactic
+
+/-!
+# Discrete hypercube mixing from coefficient estimates
+
+This module assembles binomial and trigonometric estimates into a conditional discrete-time
+mixing bound in the setting of [MooreRussell2001]. The main result
+`discreteWalk_mixing_of_coeff_estimate` assumes a parity Fourier bound and a uniform coefficient
+estimate and deduces distance of order `n ^ (-7 / 6)` at rounded odd multiples of `π * n / 4`.
+
+## Main statements
+
+* `bracket_bound`: bounds the binomial expression when the cosine parameter is at most `2 / n`.
+* `discreteWalk_mixing_of_coeff_estimate`: deduces the asymptotic mixing bound from the two
+  supplied Fourier estimates.
+
+## References
+
+* [Moore and Russell, 2001][MooreRussell2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +44,7 @@ open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 namespace Qatlib.Papers.HypercubeWalk01.MainResults
 
+/-- The binomial sum `∑ k = 0..n, choose n k * c ^ (2 * k)` equals `(1 + c ^ 2) ^ n`. -/
 theorem sum_choose_cpow (n : ℕ) (c : ℝ) :
     (∑ k ∈ Finset.range (n + 1), (Nat.choose n k : ℝ) * c ^ (2 * k)) = (1 + c^2)^n := by
   rw [show (1:ℝ) + c^2 = c^2 + 1 by ring, add_pow]
@@ -33,6 +54,8 @@ theorem sum_choose_cpow (n : ℕ) (c : ℝ) :
   rw [pow_mul]
   ring
 
+/-- For `n ≥ 1`, the sum over indices from one to `n - 1` equals the sum from zero to `n` minus
+its two endpoint terms. -/
 theorem sum_middle_shift (n : ℕ) (hn : 1 ≤ n) (f : ℕ → ℝ) :
     (∑ k ∈ Finset.range (n - 1), f (k + 1))
       = (∑ k ∈ Finset.range (n + 1), f k) - f 0 - f n := by
@@ -44,6 +67,8 @@ theorem sum_middle_shift (n : ℕ) (hn : 1 ≤ n) (f : ℕ → ℝ) :
     rw [show n - 1 + 1 = n by omega]
   rw [h1, h2]; ring
 
+/-- For `n ≥ 2`, removing the two endpoint terms from the even-power binomial sum gives `(1 + c
+^ 2) ^ n - 1 - c ^ (2 * n)`. -/
 theorem middle_choose_cpow (n : ℕ) (hn : 2 ≤ n) (c : ℝ) :
     (∑ k ∈ Finset.range (n - 1), (Nat.choose n (k + 1) : ℝ) * c ^ (2 * (k + 1)))
       = (1 + c^2)^n - 1 - c^(2*n) := by
@@ -54,6 +79,7 @@ theorem middle_choose_cpow (n : ℕ) (hn : 2 ≤ n) (c : ℝ) :
   simp only [Nat.choose_zero_right, Nat.choose_self, Nat.cast_one]
   ring
 
+/-- For `n ≥ 2`, the sum of the interior binomial coefficients is `2 ^ n - 2`. -/
 theorem middle_choose (n : ℕ) (hn : 2 ≤ n) :
     (∑ k ∈ Finset.range (n - 1), (Nat.choose n (k + 1) : ℝ)) = (2:ℝ)^n - 2 := by
   have h1 : 1 ≤ n := by omega
@@ -64,6 +90,8 @@ theorem middle_choose (n : ℕ) (hn : 2 ≤ n) :
   simp only [Nat.choose_zero_right, Nat.choose_self, Nat.cast_one]
   ring
 
+/-- For `n ≥ 2` and `c ≥ 0`, the interior binomial sum weighted by `2 * c ^ (2 * k) + 2 * c ^ n`
+is at most `2 * ((2 * c) ^ n + (1 + c ^ 2) ^ n - 1)`. -/
 theorem discBinomialAssembly (n : ℕ) (hn : 2 ≤ n) {c : ℝ} (hc0 : 0 ≤ c) :
     (∑ k ∈ Finset.range (n - 1), (Nat.choose n (k + 1) : ℝ) * (2 * c ^ (2*(k+1)) + 2 * c ^ n))
       ≤ 2 * ((2*c)^n + (1 + c^2)^n - 1) := by
@@ -87,6 +115,7 @@ theorem discBinomialAssembly (n : ℕ) (hn : 2 ≤ n) {c : ℝ} (hc0 : 0 ≤ c) 
   rw [hkey]
   linarith
 
+/-- For `0 ≤ y < 1`, the finite geometric sum through `y ^ n` is at most `1 / (1 - y)`. -/
 theorem geom_partial_le (n : ℕ) {y : ℝ} (hy0 : 0 ≤ y) (hy1 : y < 1) :
     (∑ k ∈ Finset.range (n+1), y^k) ≤ 1/(1-y) := by
   have hy0' : y ≠ 1 := ne_of_lt hy1
@@ -100,6 +129,7 @@ theorem geom_partial_le (n : ℕ) {y : ℝ} (hy0 : 0 ≤ y) (hy1 : y < 1) :
   have : (0:ℝ) ≤ y^(n+1) := pow_nonneg hy0 _
   linarith
 
+/-- For `x ≥ 0` and `n * x < 1`, the power `(1 + x) ^ n` is at most `1 / (1 - n * x)`. -/
 theorem one_add_pow_le_geom (n : ℕ) {x : ℝ} (hx : 0 ≤ x) (hnx : (n:ℝ)*x < 1) :
     (1 + x)^n ≤ 1 / (1 - (n:ℝ)*x) := by
   have hsum_pow : (1 + x)^n = ∑ k ∈ Finset.range (n+1), (Nat.choose n k : ℝ) * x^k := by
@@ -122,6 +152,8 @@ theorem one_add_pow_le_geom (n : ℕ) {x : ℝ} (hx : 0 ≤ x) (hnx : (n:ℝ)*x 
       ≤ ∑ k ∈ Finset.range (n+1), ((n:ℝ)*x)^k := Finset.sum_le_sum hterm
     _ ≤ 1/(1 - (n:ℝ)*x) := geom_partial_le n hy0 hnx
 
+/-- For `n ≥ 8` and `0 ≤ c ≤ 2 / n`, the expression `(2 * c) ^ n + (1 + c ^ 2) ^ n - 1` is at
+most `12 / n`. -/
 theorem bracket_bound (n : ℕ) (hn : 8 ≤ n) {c : ℝ} (hc0 : 0 ≤ c) (hc : c ≤ 2/n) :
     (2*c)^n + (1 + c^2)^n - 1 ≤ 12/n := by
   have hnR : (0:ℝ) < (n:ℝ) := by exact_mod_cast (by omega : 0 < n)
@@ -170,12 +202,15 @@ theorem bracket_bound (n : ℕ) (hn : 8 ≤ n) {c : ℝ} (hc0 : 0 ≤ c) (hc : c
   have heq : (4:ℝ)/n + 8/n = 12/n := by ring
   linarith
 
+/-- The total variation expression relative to the time-dependent parity mass function is
+nonnegative. -/
 theorem tvDistParityAt_nonneg (n t : ℕ) (P : Cube n → ℝ) :
     0 ≤ tvDistParityAt n t P := by
   unfold tvDistParityAt
   apply mul_nonneg (by norm_num)
   exact Finset.sum_nonneg (fun x _ => abs_nonneg _)
 
+/-- The Fourier coefficient of `discDist n t` at `S` is `discCoeff n t S.card`. -/
 theorem discDist_fourierCoeff (n t : ℕ) (S : Finset (Fin n)) :
     fourierCoeff (discDist n t) S = discCoeff n t S.card := by
   change fourierCoeff
@@ -183,6 +218,8 @@ theorem discDist_fourierCoeff (n t : ℕ) (S : Finset (Fin n)) :
     = discCoeff n t S.card
   exact fourierCoeff_synthesis (fun T => discCoeff n t T.card) S
 
+/-- If `discDist n t` has total mass one, its squared distance from uniform is bounded by the
+binomially weighted sum of its nonempty squared coefficients divided by four. -/
 theorem discDist_tvDist_sq_le (n t : ℕ) (hP : ∑ x, discDist n t x = 1) :
     (tvDist (discDist n t)) ^ 2 ≤
       (1 / 4) * ∑ k ∈ Finset.range n,
@@ -200,6 +237,10 @@ theorem discDist_tvDist_sq_le (n t : ℕ) (hP : ∑ x, discDist n t x = 1) :
             (Nat.choose n (k + 1) : ℝ) * (discCoeff n t (k + 1)) ^ 2 := by
         rw [sum_by_card_nonempty (fun k => (discCoeff n t k) ^ 2)]
 
+/-- Assuming the stated parity Fourier bound and uniform coefficient estimate, there are `C > 0`
+and `N` such that every `n ≥ N` mixes within `C * n ^ (-7 / 6)` of the corresponding parity
+mass at rounded odd multiples of `π * n / 4`. This is a conditional form of the estimate in
+[Moore and Russell, Theorem 1][MooreRussell2001]. -/
 theorem discreteWalk_mixing_of_coeff_estimate
     (hDS : ∀ (n t : ℕ), 1 ≤ n → (tvDistParityAt n t (discDist n t))^2 ≤
         (1/4) * ∑ k ∈ Finset.range (n-1),

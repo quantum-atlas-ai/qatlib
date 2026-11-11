@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
 import Qatlib.Foundations.CbmdAnalysis.Core.FinitePoleBounds
+
+/-!
+# Decay of auxiliary-regulator circle integrals
+
+This module bounds `auxContourIntegrand` on expanding half-grid circles when the numerator
+satisfies an exponential growth bound compatible with the lattice spacing. A nonempty auxiliary
+pole set gives enough decay for the normalized circle integrals to tend to zero, completing the
+limiting contour step used in [WangEtAl2026].
+
+## Main statements
+
+* `auxContourIntegrand_circle_le`: bounds the integrand by a constant divided by the squared
+  distance from the pole-radius bound.
+* `auxContour_circle_tendsto_zero`: the normalized circle integrals vanish in the limit.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -18,6 +38,10 @@ open Complex Metric Set Filter
 open scoped Topology BigOperators
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- For a nonempty auxiliary pole set, positive lattice parameter, and compatible exponential
+numerator bound, the integrand on a sufficiently large half-grid circle is bounded by the
+normalization product times `exp |ρ|`, divided by `(halfGridRadius a n - finitePoleRadius s)
+^ 2`. -/
 theorem auxContourIntegrand_circle_le (s : Finset ℂ) (hs : s.Nonempty)
     {a ρ : ℝ} (ha : 0 < a) (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (n : ℕ)
@@ -44,6 +68,8 @@ theorem auxContourIntegrand_circle_le (s : Finset ℂ) (hs : s.Nonempty)
       div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_left hLU hN) (by positivity)
     _ ≤ _ := div_le_div_of_nonneg_left (mul_nonneg hN (Real.exp_pos _).le) (sq_pos_of_pos hd0) hden
 
+/-- For a nonempty auxiliary pole set and numerator growth rate `ρ ≤ 2 * π * a` with `a > 0`,
+the normalized auxiliary contour integrals over half-grid circles tend to zero. -/
 theorem auxContour_circle_tendsto_zero (s : Finset ℂ) (hs : s.Nonempty)
     {a ρ : ℝ} (ha : 0 < a) (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) :

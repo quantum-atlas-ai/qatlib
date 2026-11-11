@@ -7,6 +7,39 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraphDefs
 import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphCompiler
 import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
+
+/-!
+# Causal flow examples and preentangled graph resources
+
+This module constructs finite examples separating flow, generalized flow, and absence of
+generalized flow, and proves causality of a correction derived from a checked flow. It collects
+the precise soundness and completeness properties of the search procedures and verifies
+plane-specific correction identities, in the setting of [DanosKashefi2006] and [BrowneEtAl2007].
+
+For legal graph words, it relates sequential and preentangled compiler branches, including
+arbitrary finite reference systems and network-history instruments. It also verifies a Bell
+example, conditional trace preservation for the figure 2b Kraus family, and resource identities
+for gate counts, messages, and operations before the first measurement; see
+[RaussendorfBriegel2001].
+
+## Main statements
+
+* `clause1_complete`: collect search properties, separating examples, and correction results.
+* `clause2_complete`: collect compiler equivalence, instrument identities, and Bell-example
+  results.
+* `clause13UnifiedCharge`: relate graph resource charges to network counts.
+* `clause13CommandExchangeCharge_eq`: sequential and preentangled leaves have equal total gate
+  counts.
+* `clause13PreEntangledResourcesBeforeFirstMeasure`: count gates before the first measurement
+  when a wire step exists.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+* [Browne et al., 2007][BrowneEtAl2007]
+* [Raussendorf and Briegel, 2001][RaussendorfBriegel2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -21,27 +54,40 @@ namespace Qatlib.Concepts.FiniteLocc.LOCCProgram
 
 set_option autoImplicit false
 
+/-- The two-vertex graph with edge `(0, 1)` used in the flow example. -/
 def clause1GraphHasFlow : MbqcGraph 2 where
   edges := {(0, 1)}
 
+/-- The three-vertex graph with edges `(0, 1)`, `(1, 2)`, and `(0, 2)` used to separate
+generalized flow from flow. -/
 def clause1GraphGFlowOnly : MbqcGraph 3 where
   edges := {(0, 1), (1, 2), (0, 2)}
 
+/-- The two-vertex graph with edge `(0, 1)` used with boundary sets that prevent generalized
+flow. -/
 def clause1GraphNoGFlow : MbqcGraph 2 where
   edges := {(0, 1)}
 
+/-- The empty input set for the two-vertex flow example. -/
 def clause1InputA : Finset (Fin 2) := (∅ : Finset (Fin 2))
 
+/-- The singleton output set `{1}` for the two-vertex flow example. -/
 def clause1OutputA : Finset (Fin 2) := ({1} : Finset (Fin 2))
 
+/-- The empty input set for the three-vertex generalized-flow example. -/
 def clause1InputB : Finset (Fin 3) := (∅ : Finset (Fin 3))
 
+/-- The singleton output set `{1}` for the three-vertex generalized-flow example. -/
 def clause1OutputB : Finset (Fin 3) := ({1} : Finset (Fin 3))
 
+/-- The full input set `{0, 1}` for the example with no generalized flow. -/
 def clause1InputC : Finset (Fin 2) := ({0, 1} : Finset (Fin 2))
 
+/-- The empty output set for the example with no generalized flow. -/
 def clause1OutputC : Finset (Fin 2) := (∅ : Finset (Fin 2))
 
+/-- If a vertex satisfies the generalized-flow plane condition and is absent from its correction
+set, its plane is `XY` and it belongs to that set's odd neighborhood. -/
 theorem clause1Plane_of_notMem {n : ℕ} {G : MbqcGraph n} {g : Fin n → Finset (Fin n)}
     {lam : Fin n → MbqcPlane} {v : Fin n}
     (hplane : mbqcGFlowPlaneCond (lam v) (v ∈ g v) (v ∈ mbqcOdd G (g v)))
@@ -64,6 +110,8 @@ theorem clause1Plane_of_notMem {n : ℕ} {G : MbqcGraph n} {g : Fin n → Finset
     simp only [mbqcGFlowPlaneCond] at hp
     exact absurd hp.1 hnot
 
+/-- If a vertex satisfies the generalized-flow plane condition and belongs to its correction
+set, its plane is not `XY`. -/
 theorem clause1Plane_of_mem {n : ℕ} {G : MbqcGraph n} {g : Fin n → Finset (Fin n)}
     {lam : Fin n → MbqcPlane} {v : Fin n}
     (hplane : mbqcGFlowPlaneCond (lam v) (v ∈ g v) (v ∈ mbqcOdd G (g v)))
@@ -74,14 +122,17 @@ theorem clause1Plane_of_mem {n : ℕ} {G : MbqcGraph n} {g : Fin n → Finset (F
   simp only [mbqcGFlowPlaneCond] at hp
   exact hp.1 hmem
 
+/-- The partial flow map sending vertex zero to vertex one and leaving vertex one undefined. -/
 def clause1FlowA : Fin 2 → Option (Fin 2)
   | 0 => some 1
   | 1 => none
 
+/-- The identity rank assignment for the two-vertex flow example. -/
 def clause1RankA : Fin 2 → Fin 2
   | 0 => 0
   | 1 => 1
 
+/-- The specified flow map and rank assignment pass the flow check for example A. -/
 theorem clause1FlowCheckA : mbqcFlowCheck clause1GraphHasFlow clause1InputA clause1OutputA clause1FlowA clause1RankA := by
   intro v hv
   fin_cases v
@@ -94,46 +145,56 @@ theorem clause1FlowCheckA : mbqcFlowCheck clause1GraphHasFlow clause1InputA clau
       fin_cases k <;> simp_all
   · simp [clause1OutputA] at hv
 
+/-- Example A possesses flow. -/
 theorem clause1HasFlowA : MbqcHasFlow clause1GraphHasFlow clause1InputA clause1OutputA :=
   (mbqcHasFlow_iff_check clause1GraphHasFlow clause1InputA clause1OutputA).mpr
     ⟨clause1FlowA, clause1RankA, clause1FlowCheckA⟩
 
+/-- Flow search returns a witness for example A. -/
 theorem clause1SearchFlowA : (mbqcFlowSearch clause1GraphHasFlow clause1InputA clause1OutputA).isSome = true := by
   unfold mbqcFlowSearch
   set_option maxRecDepth 1000000 in
   decide
 
+/-- Generalized-flow search returns a witness for example B with all planes set to `XY`. -/
 theorem clause1SearchGFlowB :
     (mbqcGFlowSearch clause1GraphGFlowOnly clause1InputB clause1OutputB (fun _ => MbqcPlane.XY)).isSome = true := by
   unfold mbqcGFlowSearch
   set_option maxRecDepth 1000000 in
   decide
 
+/-- Example B possesses generalized flow with all planes set to `XY`. -/
 theorem clause1HasGFlowB :
     MbqcHasGFlow clause1GraphGFlowOnly clause1InputB clause1OutputB (fun _ => MbqcPlane.XY) :=
   mbqcHasGFlow_of_search clause1GraphGFlowOnly clause1InputB clause1OutputB (fun _ => MbqcPlane.XY)
     (by rw [clause1SearchGFlowB])
 
+/-- Flow search returns no witness for example B. -/
 theorem clause1SearchFlowB_none :
     (mbqcFlowSearch clause1GraphGFlowOnly clause1InputB clause1OutputB).isSome = false := by
   unfold mbqcFlowSearch
   set_option maxRecDepth 1000000 in
   decide
 
+/-- Example B does not possess flow. -/
 theorem clause1NoFlowB : ¬ MbqcHasFlow clause1GraphGFlowOnly clause1InputB clause1OutputB := by
   rw [mbqcHasFlow_iff_search]
   rw [clause1SearchFlowB_none]
   simp
 
+/-- The odd neighborhood of `{0}` in example C is `{1}`. -/
 theorem clause1OddC_zero : mbqcOdd clause1GraphNoGFlow ({0} : Finset (Fin 2)) = ({1} : Finset (Fin 2)) := by
   decide
 
+/-- The odd neighborhood of the empty set in example C is empty. -/
 theorem clause1OddC_empty : mbqcOdd clause1GraphNoGFlow (∅ : Finset (Fin 2)) = (∅ : Finset (Fin 2)) := by
   decide
 
+/-- The odd neighborhood of `{1}` in example C is `{0}`. -/
 theorem clause1OddC_one : mbqcOdd clause1GraphNoGFlow ({1} : Finset (Fin 2)) = ({0} : Finset (Fin 2)) := by
   decide
 
+/-- Example C has no generalized flow for any measurement-plane assignment. -/
 theorem clause1NoGFlowC (lam : Fin 2 → MbqcPlane) :
     ¬ MbqcHasGFlow clause1GraphNoGFlow clause1InputC clause1OutputC lam := by
   rintro ⟨g, prec, dp, hG0, _, _, _, hC⟩
@@ -167,21 +228,27 @@ theorem clause1NoGFlowC (lam : Fin 2 → MbqcPlane) :
     simp only [mbqcGFlowPlaneCond] at hplane
     exact absurd hplane.1 (by simp)
 
+/-- Flow search returns no witness for example C. -/
 theorem clause1SearchFlowC_none :
     (mbqcFlowSearch clause1GraphNoGFlow clause1InputC clause1OutputC).isSome = false := by
   unfold mbqcFlowSearch
   set_option maxRecDepth 1000000 in
   decide
 
+/-- Example C does not possess flow. -/
 theorem clause1NoFlowC : ¬ MbqcHasFlow clause1GraphNoGFlow clause1InputC clause1OutputC := by
   rw [mbqcHasFlow_iff_search]
   rw [clause1SearchFlowC_none]
   simp
 
+/-- Apply Pauli `X` at a target if a nonoutput flow predecessor has outcome true, and apply the
+identity otherwise. -/
 def clause1FlowCorrection {n : ℕ} (f : Fin n → Option (Fin n)) (O : Finset (Fin n))
     (s : Fin n → Bool) (o : Fin n) : Operator 2 :=
   if ∃ v : Fin n, v ∉ O ∧ f v = some o ∧ s v = true then pauliX else 1
 
+/-- A nonoutput vertex precedes its flow successor in the rank order whenever the flow check
+holds. -/
 theorem clause1Flow_predecessor_rank {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     {f : Fin n → Option (Fin n)} {r : Fin n → Fin n}
     (hcheck : mbqcFlowCheck G I O f r) {v o : Fin n} (hvn : v ∉ O)
@@ -192,6 +259,7 @@ theorem clause1Flow_predecessor_rank {n : ℕ} {G : MbqcGraph n} {I O : Finset (
   rw [hwo] at hprec
   exact hprec
 
+/-- A checked flow makes `clause1FlowCorrection` causal with respect to its rank order. -/
 theorem clause1FlowCorrection_causal {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     {f : Fin n → Option (Fin n)} {r : Fin n → Fin n}
     (hcheck : mbqcFlowCheck G I O f r) :
@@ -209,16 +277,21 @@ theorem clause1FlowCorrection_causal {n : ℕ} {G : MbqcGraph n} {I O : Finset (
   unfold clause1FlowCorrection
   simp only [hiff]
 
+/-- The cluster-network outcome labels determined by a graph history, using the history bit on
+wire steps and false labels on the other steps. -/
 def clause2ClusterLabel {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     Fin L → Bool × Bool :=
   fun t => match gs t with
     | .inl _ => (h.1 t, false)
     | .inr _ => (false, false)
 
+/-- The graph-history cluster labels reindexed by the length of the graph word's list
+representation. -/
 def clause2ClusterLabelCast {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     Fin (List.ofFn gs).length → Bool × Bool :=
   fun t => clause2ClusterLabel gs h (Fin.cast (@List.length_ofFn L (ClusterNetworkGate n) gs) t)
 
+/-- The cluster labels extracted from a graph history form a valid network branch. -/
 theorem clause2ClusterLabel_valid {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     networkBranchValid (List.ofFn gs) (clause2ClusterLabelCast gs h) := by
   intro k
@@ -228,6 +301,7 @@ theorem clause2ClusterLabel_valid {n L : ℕ} (gs : GraphWord n L) (h : GraphHis
   cases hg : gs (Fin.cast (@List.length_ofFn L (ClusterNetworkGate n) gs) k) <;>
     simp [clause2ClusterLabelCast, clause2ClusterLabel, hg]
 
+/-- The two network gate counts sum to the length of the gate list. -/
 theorem clause2NetworkCounts_length {n : ℕ} :
     ∀ (gs : List (ClusterNetworkGate n)),
       (networkCounts gs).1 + (networkCounts gs).2 = gs.length := by
@@ -237,20 +311,26 @@ theorem clause2NetworkCounts_length {n : ℕ} :
   | cons g gs ih =>
     cases g <;> simp only [networkCounts, List.length_cons] <;> omega
 
+/-- The two network gate counts of a graph word sum to its length `L`. -/
 theorem clause2GraphCounts_length {n L : ℕ} (gs : GraphWord n L) :
     (networkCounts (List.ofFn gs)).1 + (networkCounts (List.ofFn gs)).2 = L := by
   have h := clause2NetworkCounts_length (n := n) (List.ofFn gs)
   rw [@List.length_ofFn L (ClusterNetworkGate n) gs] at h
   exact h
 
+/-- The graph wire count equals the first network gate count. -/
 theorem clause2GraphWireCount {n L : ℕ} (gs : GraphWord n L) :
     graphWireCount gs = (networkCounts (List.ofFn gs)).1 := rfl
 
+/-- For a legal network, sequential and preentangled compilation have the same leaf operator for
+each graph history. -/
 theorem clause2Retiming_leaf_eq {n L : ℕ} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs) :
     (graphProgramLeaf false gs h).operator = (graphProgramLeaf true gs h).operator :=
   ((preentangled_graph_actual_leaf_retiming n L gs hlegal).2.2 h).1
 
+/-- For a legal network, sequential and preentangled branches act identically on every joint
+operator with a finite reference system. -/
 theorem clause2Retiming_reference_eq {n L : ℕ} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs) (R : ℕ)
     (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ) :
@@ -261,12 +341,16 @@ theorem clause2Retiming_reference_eq {n L : ℕ} (gs : GraphWord n L)
     congrArg (fun K => TensorGate K (1:Operator R)) hleaf
   simp only [graphActualReference, hK]
 
+/-- For a legal network, sequential and preentangled compilation give the same branch output for
+each graph history. -/
 theorem clause2Retiming_branch_eq {n L : ℕ} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs) (ρ : Operator (2^n)) :
     graphActualBranch false gs h ρ = graphActualBranch true gs h ρ := by
   have href := clause2Retiming_reference_eq gs hlegal h 1 (TensorGate ρ (1:Operator 1))
   simp only [graphActualBranch, href]
 
+/-- A preentangled graph branch equals the corresponding network-history instrument branch
+scaled by `2` to twice the second network count. -/
 theorem clause2ClusterBranch_eq {n L : ℕ} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs) (ρ : Operator (2^n)) :
     graphActualBranch true gs h ρ
@@ -301,6 +385,8 @@ theorem clause2ClusterBranch_eq {n L : ℕ} (gs : GraphWord n L)
   simp only [Matrix.smul_apply, smul_eq_mul]
   rw [← mul_assoc, hscale]
 
+/-- For a legal network, forgetting the network-history instrument outcome equals the sum of the
+preentangled graph branches. -/
 theorem clause2ClusterForget_eq {n L : ℕ} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (ρ : Operator (2^n)) :
     (networkHistoryInstrument (List.ofFn gs) hlegal).forget.map ρ
@@ -309,6 +395,7 @@ theorem clause2ClusterForget_eq {n L : ℕ} (gs : GraphWord n L)
   rw [graphActualBranch_forget n L gs hlegal ρ]
   simp only [conjBranch_apply]
 
+/-- The Bell graph word contains two wire steps. -/
 theorem clause2BellWireCount : graphWireCount graphBellWord = 2 := by
   have h : GraphHistory graphBellWord := ⟨fun _ => false, fun _ _ => rfl⟩
   have hlen := graphMessage_length graphBellWord h
@@ -316,6 +403,7 @@ theorem clause2BellWireCount : graphWireCount graphBellWord = 2 := by
   simp at hlen
   exact hlen.symm
 
+/-- The Bell graph word has network counts `(2, 1)`. -/
 theorem clause2BellCounts : networkCounts (List.ofFn graphBellWord) = (2, 1) := by
   have h1 : (networkCounts (List.ofFn graphBellWord)).1 = 2 := by
     rw [← clause2GraphWireCount graphBellWord, clause2BellWireCount]
@@ -325,9 +413,11 @@ theorem clause2BellCounts : networkCounts (List.ofFn graphBellWord) = (2, 1) := 
     omega
   exact Prod.ext h1 h2
 
+/-- Edge index one in the Bell graph word has endpoints `(2, 1)`. -/
 theorem clause2BellCrossStepEdge : graphEdgeEndpoints graphBellWord 1 = (2, 1) := by
   decide
 
+/-- The two corrected `XY`-plane output operators are equal. -/
 theorem clause12StrongDeterminism :
     clause12CorrectedOutput MbqcPlane.XY false = clause12CorrectedOutput MbqcPlane.XY true := by
   ext i j
@@ -337,19 +427,24 @@ theorem clause12StrongDeterminism :
       clause12XyProjector, clause12PauliXZ, clause12Identity, clause12AdjXZ, clause12AdjIdentity,
       clause12PlaneCorrectionAdj, Matrix.mul_apply, Fin.sum_univ_succ]
 
+/-- For each plane and Boolean outcome, the plane-correction operator equals itself. -/
 theorem clause12Correction_readsOnlyCurrent :
     ∀ (lam : MbqcPlane) (s : Bool),
       clause12PlaneCorrection lam s = clause12PlaneCorrection lam s := by
   intro lam s
   rfl
 
+/-- The alternative correction applying Pauli `X` on true outcomes and the identity on false
+outcomes. -/
 noncomputable def clause12WrongCorrection (s : Bool) : Operator 2 :=
   if s then clause12PauliX else clause12Identity
 
+/-- The output operator conjugated by `clause12WrongCorrection`, using its specified adjoint. -/
 noncomputable def clause12WrongCorrectedOutput (lam : MbqcPlane) (s : Bool) : Operator 2 :=
   let C := clause12WrongCorrection s
   C * clause12Output lam s * (if s then clause12AdjX else clause12AdjIdentity)
 
+/-- The alternative correction gives different `XY`-plane output operators for the two outcomes. -/
 theorem clause12WrongCorrection_counterexample :
     clause12WrongCorrectedOutput MbqcPlane.XY false
       ≠ clause12WrongCorrectedOutput MbqcPlane.XY true := by
@@ -361,6 +456,7 @@ theorem clause12WrongCorrection_counterexample :
     Fin.sum_univ_succ] at h01
   norm_num at h01
 
+/-- The two corrected `XZ`-plane output operators are equal. -/
 theorem clause12XzPlane_determinism :
     clause12CorrectedOutput MbqcPlane.XZ false = clause12CorrectedOutput MbqcPlane.XZ true := by
   ext i j
@@ -370,6 +466,7 @@ theorem clause12XzPlane_determinism :
       clause12ZProjector, clause12PauliX, clause12Identity, clause12AdjX, clause12AdjIdentity,
       clause12PlaneCorrectionAdj, Matrix.mul_apply, Fin.sum_univ_succ]
 
+/-- The correction types assigned to the `XY` and `XZ` planes are distinct. -/
 theorem clause12CorrectionType_plane_specific :
     clause12CorrectionType MbqcPlane.XY ≠ clause12CorrectionType MbqcPlane.XZ := by
   intro h
@@ -377,18 +474,26 @@ theorem clause12CorrectionType_plane_specific :
   simp [clause12CorrectionType, clause12PauliXZ, clause12PauliX] at h01
   norm_num at h01
 
+/-- The specified adjoint correction equals the conjugate transpose of the plane-correction
+operator. -/
 theorem clause12PlaneCorrectionAdj_eq (lam : MbqcPlane) (s : Bool) :
     clause12PlaneCorrectionAdj lam s = Matrix.conjTranspose (clause12PlaneCorrection lam s) := by
   cases lam <;> cases s <;> ext i j <;> fin_cases i <;> fin_cases j <;>
     simp [clause12PlaneCorrectionAdj, clause12PlaneCorrection, clause12CorrectionType, clause12Identity,
       clause12AdjIdentity, clause12AdjX, clause12AdjXZ, clause12PauliX, clause12PauliXZ, Matrix.conjTranspose_apply]
 
+/-- The flow criterion accepts example A with its explicit witness and rejects flow for example
+C. -/
 theorem clause12Criterion_accepts :
     MbqcHasFlow clause1GraphHasFlow clause1InputA clause1OutputA ∧
       (mbqcFlowCheck clause1GraphHasFlow clause1InputA clause1OutputA clause1FlowA clause1RankA = true) ∧
       ¬ MbqcHasFlow clause1GraphNoGFlow clause1InputC clause1OutputC :=
   ⟨clause1HasFlowA, by simp [clause1FlowCheckA], clause1NoFlowC⟩
 
+/-- Flow search characterizes flow, while generalized-flow search is sound and complete under
+`MbqcHasGFlowTotal` but is not complete for `MbqcHasGFlow`. This bundles the separating
+examples and the plane-specific correction identities and counterexample, in the setting of
+[DanosKashefi2006] and [BrowneEtAl2007]. -/
 theorem clause1_complete :
     (∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)),
         MbqcHasFlow G I O ↔ (mbqcFlowSearch G I O).isSome = true) ∧
@@ -429,6 +534,10 @@ theorem clause1_complete :
   · exact ⟨clause12StrongDeterminism, clause12XzPlane_determinism, clause12WrongCorrection_counterexample,
       clause12CorrectionType_plane_specific, clause12Criterion_accepts⟩
 
+/-- For legal graph words, sequential and preentangled compilations agree on branches and
+arbitrary finite references, with the stated instrument scaling, outcome-forgetting
+identity, and counts. The Bell graph example also satisfies the stated edge, branch, and
+total-output identities; see [RaussendorfBriegel2001]. -/
 theorem clause2_complete :
     (∀ (n L : ℕ) (gs : GraphWord n L), networkLegal (List.ofFn gs) →
       ∀ (h : GraphHistory gs) (ρ : Operator (2^n)),
@@ -486,10 +595,14 @@ theorem clause2_complete :
     rw [hcz, Nat.mul_one]
   · exact (preentangled_graph_five_vertex_bell_consumer).2.2.2.1
 
+/-- The trace of a rectangular Kraus conjugation equals the trace of its Gram operator
+multiplied by the input. -/
 private theorem clause3Trace_cycle (A : Operator 2) (K : Matrix (Fin 4) (Fin 2) ℂ) :
     Matrix.trace (K * A * K.conjTranspose) = Matrix.trace (K.conjTranspose * K * A) :=
   Matrix.trace_mul_cycle K A K.conjTranspose
 
+/-- The trace of the sum of the figure 2b branches equals the input trace against the sum of the
+associated Kraus Gram operators. -/
 theorem clause3Fig2bGram_trace {A : Operator 2} :
     Matrix.trace (∑ s : Bool, rbFig2bBranch s A)
       = Matrix.trace ((∑ s : Bool, ∑ z : Bool,
@@ -524,6 +637,8 @@ theorem clause3Fig2bGram_trace {A : Operator 2} :
         simp only [Matrix.add_mul, Matrix.trace_add]
         ring
 
+/-- If the figure 2b Kraus Gram operators sum to the identity, summing the branches preserves
+trace. -/
 theorem clause3Fig2bTotalTrace_of_gram {A : Operator 2}
     (hK : ∑ s : Bool, ∑ z : Bool,
       (rbFig2bKraus s z).conjTranspose * rbFig2bKraus s z = (1 : Operator 2)) :
@@ -531,6 +646,8 @@ theorem clause3Fig2bTotalTrace_of_gram {A : Operator 2}
   rw [clause3Fig2bGram_trace, hK]
   simp
 
+/-- The resource record for a graph history, counting fresh gates, preentanglement gates,
+measurement gates, final feedback, and messages. -/
 noncomputable def clause13GraphCharge {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     Clause13Charge where
   freshGates := (graphFreshGates n L).length
@@ -539,21 +656,25 @@ noncomputable def clause13GraphCharge {n L : ℕ} (gs : GraphWord n L) (h : Grap
   feedbackGates := frameCorrectionCost (graphFinalFrame gs h)
   messages := (graphMessage gs h).length
 
+/-- The fresh-gate charge of a graph word is its length `L`. -/
 theorem clause13Charge_fresh_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     (clause13GraphCharge gs h).freshGates = L := by
   have h := (preentangled_graph_actual_leaf_and_message_resources n L gs h).2.2.2.2.2.2.2.1
   exact h
 
+/-- The preentanglement controlled-`Z` charge of a graph word is its length `L`. -/
 theorem clause13Charge_preEnt_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     (clause13GraphCharge gs h).preEntanglementCz = L := by
   have h := (preentangled_graph_actual_leaf_and_message_resources n L gs h).2.2.2.2.2.2.2.2
   exact h
 
+/-- The message charge equals the graph wire count. -/
 theorem clause13Charge_messages_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     (clause13GraphCharge gs h).messages = graphWireCount gs := by
   have h := (preentangled_graph_actual_leaf_and_message_resources n L gs h).2.2.2.2.2.1
   exact h
 
+/-- The total resource gate charge equals the gate count of the preentangled program leaf. -/
 theorem clause13Charge_total_eq_gates {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     (clause13GraphCharge gs h).totalGates = (graphProgramLeaf true gs h).gates := by
   have hg := (preentangled_graph_actual_leaf_and_message_resources n L gs h).2.2.2.1
@@ -563,6 +684,7 @@ theorem clause13Charge_total_eq_gates {n L : ℕ} (gs : GraphWord n L) (h : Grap
   rw [hg]
   omega
 
+/-- The message charge equals the measurement count of the preentangled program leaf. -/
 theorem clause13Charge_messages_eq_measurements {n L : ℕ} (gs : GraphWord n L)
     (h : GraphHistory gs) :
     (clause13GraphCharge gs h).messages = (graphProgramLeaf true gs h).measurements := by
@@ -570,6 +692,8 @@ theorem clause13Charge_messages_eq_measurements {n L : ℕ} (gs : GraphWord n L)
   have hh := (preentangled_graph_actual_leaf_and_message_resources n L gs h).2.2.2.2.1
   rw [hm, hh]
 
+/-- The message charge is the first network count, the preentanglement charge is `L`, the
+network counts sum to `L`, and the measurement-gate charge is twice the first network count. -/
 theorem clause13UnifiedCharge {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     (clause13GraphCharge gs h).messages = (networkCounts (List.ofFn gs)).1 ∧
     (clause13GraphCharge gs h).preEntanglementCz = L ∧
@@ -581,6 +705,8 @@ theorem clause13UnifiedCharge {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory
   · simp only [clause13GraphCharge]
     rw [clause2GraphWireCount gs]
 
+/-- The recursive preentangled-tail gate charge, assigning two gates per wire step and the final
+frame-correction length at termination. -/
 noncomputable def clause13PreTailGates {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     List (Fin L) → PauliFrame n → ℕ
   | [], F => (graphCorrectionGates gs F).length
@@ -590,6 +716,8 @@ noncomputable def clause13PreTailGates {n L : ℕ} (gs : GraphWord n L) (h : Gra
       | .inl _ => rest + 2
       | .inr _ => rest
 
+/-- The recursive sequential-tail gate charge, assigning three gates per wire step, one per
+other step, and the final frame-correction length. -/
 noncomputable def clause13SeqTailGates {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     List (Fin L) → PauliFrame n → ℕ
   | [], F => (graphCorrectionGates gs F).length
@@ -599,6 +727,7 @@ noncomputable def clause13SeqTailGates {n L : ℕ} (gs : GraphWord n L) (h : Gra
       | .inl _ => rest + 3
       | .inr _ => rest + 1
 
+/-- The recursive preentangled-tail charge equals the gate count of its compiled leaf. -/
 theorem clause13PreTailGates_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) (F : PauliFrame n) :
     clause13PreTailGates gs h ts F = (graphTailLeaf true gs h ts F).gates := by
@@ -618,6 +747,7 @@ theorem clause13PreTailGates_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
         ObservedKrausLeaf.prepend]
       rw [ih]
 
+/-- The recursive sequential-tail charge equals the gate count of its compiled leaf. -/
 theorem clause13SeqTailGates_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) (F : PauliFrame n) :
     clause13SeqTailGates gs h ts F = (graphTailLeaf false gs h ts F).gates := by
@@ -637,14 +767,20 @@ theorem clause13SeqTailGates_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
         if_false, ObservedKrausLeaf.prepend]
       rw [ih]
 
+/-- The number of listed steps strictly before the first wire step, or the list length if there
+is no wire step. -/
 def clause13LeadingSteps {n L : ℕ} (gs : GraphWord n L) : List (Fin L) → ℕ
   | [] => 0
   | t :: ts => if graphWireAt gs t then 0 else 1 + clause13LeadingSteps gs ts
 
+/-- The number of listed steps strictly after the first wire step, or zero if there is no wire
+step. -/
 def clause13TrailingSteps {n L : ℕ} (gs : GraphWord n L) : List (Fin L) → ℕ
   | [] => 0
   | t :: ts => if graphWireAt gs t then ts.length else clause13TrailingSteps gs ts
 
+/-- If a list contains a wire step, its length is the leading-step count plus one plus the
+trailing-step count. -/
 theorem clause13LeadingTrailing_sum {n L : ℕ} (gs : GraphWord n L) (ts : List (Fin L))
     (hw : ∃ t ∈ ts, graphWireAt gs t = true) :
     clause13LeadingSteps gs ts + 1 + clause13TrailingSteps gs ts = ts.length := by
@@ -667,10 +803,12 @@ theorem clause13LeadingTrailing_sum {n L : ℕ} (gs : GraphWord n L) (ts : List 
         List.length_cons]
       omega
 
+/-- The number of wire steps in a list of graph-word indices. -/
 def clause13WireCountIn {n L : ℕ} (gs : GraphWord n L) : List (Fin L) → ℕ
   | [] => 0
   | t :: ts => (if graphWireAt gs t then 1 else 0) + clause13WireCountIn gs ts
 
+/-- The recursive wire count in a list equals `graphSlotCount`. -/
 theorem clause13WireCountIn_eq {n L : ℕ} (gs : GraphWord n L) (ts : List (Fin L)) :
     clause13WireCountIn gs ts = graphSlotCount gs ts := by
   induction ts with
@@ -680,6 +818,8 @@ theorem clause13WireCountIn_eq {n L : ℕ} (gs : GraphWord n L) (ts : List (Fin 
     rw [ih]
     rfl
 
+/-- The sequential-tail gate charge is the list length plus twice the wire count plus the
+correction length for the final accumulated frame. -/
 theorem clause13SeqTailGates_value {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) (F : PauliFrame n) :
     clause13SeqTailGates gs h ts F = ts.length + 2 * clause13WireCountIn gs ts
@@ -701,6 +841,8 @@ theorem clause13SeqTailGates_value {n L : ℕ} (gs : GraphWord n L) (h : GraphHi
       rw [ih]
       all_goals omega
 
+/-- The preentangled-tail gate charge is twice the wire count plus the correction length for the
+final accumulated frame. -/
 theorem clause13PreTailGates_value {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) (F : PauliFrame n) :
     clause13PreTailGates gs h ts F = 2 * clause13WireCountIn gs ts
@@ -722,6 +864,8 @@ theorem clause13PreTailGates_value {n L : ℕ} (gs : GraphWord n L) (h : GraphHi
       rw [ih]
       all_goals omega
 
+/-- Sequential and preentangled compilation have equal total leaf gate counts for every graph
+history. -/
 theorem clause13CommandExchangeCharge_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     (graphProgramLeaf false gs h).gates = (graphProgramLeaf true gs h).gates := by
   have hslot : clause13WireCountIn gs (List.ofFn (fun t : Fin L => t)) = graphWireCount gs := by
@@ -751,6 +895,7 @@ theorem clause13CommandExchangeCharge_eq {n L : ℕ} (gs : GraphWord n L) (h : G
     omega
   rw [hpre, hseq]
 
+/-- Count gate steps before the first measurement or projection, ignoring query steps. -/
 def clause13GatesBeforeFirstMeasure {m : ℕ} : ObservedCircuit (Fin m) → ℕ
   | .halt _ => 0
   | .step (.gate _) next => 1 + clause13GatesBeforeFirstMeasure next
@@ -758,6 +903,7 @@ def clause13GatesBeforeFirstMeasure {m : ℕ} : ObservedCircuit (Fin m) → ℕ
   | .measure _ _ _ => 0
   | .project _ _ _ => 0
 
+/-- Prepending a list of gates adds its length to the gate count before the first measurement. -/
 theorem clause13GatesBeforeFirstMeasure_prepend {m : ℕ} (Us : List (Operator m))
     (P : ObservedCircuit (Fin m)) :
     clause13GatesBeforeFirstMeasure (graphPrepend Us P)
@@ -770,10 +916,13 @@ theorem clause13GatesBeforeFirstMeasure_prepend {m : ℕ} (Us : List (Operator m
     rw [ih]
     omega
 
+/-- Return two if the listed graph steps contain a wire step, and zero otherwise. -/
 def clause13TailGatesBeforeMeasure {n L : ℕ} (gs : GraphWord n L) : List (Fin L) → ℕ
   | [] => 0
   | t :: ts => if graphWireAt gs t then 2 else clause13TailGatesBeforeMeasure gs ts
 
+/-- For a tail containing a wire step, the compiled preentangled tail's gate count before the
+first measurement equals `clause13TailGatesBeforeMeasure`. -/
 theorem clause13Tail_gatesBeforeMeasure {n L : ℕ} (gs : GraphWord n L)
     (F : PauliFrame n) (ts : List (Fin L)) (hw : ∃ t ∈ ts, graphWireAt gs t = true) :
     clause13GatesBeforeFirstMeasure (graphTail true gs ts F)
@@ -798,6 +947,7 @@ theorem clause13Tail_gatesBeforeMeasure {n L : ℕ} (gs : GraphWord n L)
       simp only [graphTail, hg]
       exact ih (graphCzFrame F i j) hw'
 
+/-- A list containing a wire step has tail gate charge two before its first measurement. -/
 theorem clause13TailGatesBeforeMeasure_of_wire {n L : ℕ} (gs : GraphWord n L)
     (ts : List (Fin L)) (hw : ∃ t ∈ ts, graphWireAt gs t = true) :
     clause13TailGatesBeforeMeasure gs ts = 2 := by
@@ -816,6 +966,8 @@ theorem clause13TailGatesBeforeMeasure_of_wire {n L : ℕ} (gs : GraphWord n L)
       have hih := ih hw'
       simp [clause13TailGatesBeforeMeasure, hwt, hih]
 
+/-- A preentangled graph program containing a wire step executes `2 * L + 2` gate steps before
+its first measurement. -/
 theorem clause13PreEntangledResourcesBeforeFirstMeasure {n L : ℕ} (gs : GraphWord n L)
     (h : GraphHistory gs) (hw : ∃ t : Fin L, graphWireAt gs t = true) :
     clause13GatesBeforeFirstMeasure (graphProgram true gs) = 2 * L + 2 := by

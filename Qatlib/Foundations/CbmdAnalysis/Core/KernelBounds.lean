@@ -14,6 +14,26 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 
+/-!
+# Lower bounds for integer regulator products
+
+`kernelSquareProduct` is the real product of quadratic factors `(x - r)² + 1` over the integers
+from `-m` to `m`. Positivity, evenness, and comparisons under integer shifts yield the uniform
+lower bound `(m!)⁴`.
+
+Taking square roots gives a factorial lower bound on the corresponding complex distance product.
+These estimates control the integer regulator used in [WangEtAl2026].
+
+## Main statements
+
+* `kernelSquareProduct_lower`: bounds the quadratic product uniformly in `x`.
+* `integer_regulator_product_lower`: bounds the product of distances to the row poles.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -22,16 +42,19 @@ namespace CBMD
 
 open scoped BigOperators
 
+/-- The recursively paired product of `(x - r)² + 1` for integer indices `r` from `-m` to `m`. -/
 def kernelSquareProduct : ℕ → ℝ → ℝ
   | 0, x => x ^ 2 + 1
   | m + 1, x => kernelSquareProduct m x *
       (((x + (m + 1 : ℕ)) ^ 2 + 1) * ((x - (m + 1 : ℕ)) ^ 2 + 1))
 
+/-- The quadratic kernel product is strictly positive for every real input. -/
 theorem kernelSquareProduct_pos (m : ℕ) (x : ℝ) : 0 < kernelSquareProduct m x := by
   induction m with
   | zero => dsimp [kernelSquareProduct]; positivity
   | succ m ih => dsimp only [kernelSquareProduct]; positivity
 
+/-- The quadratic kernel product is even in its real argument. -/
 theorem kernelSquareProduct_even (m : ℕ) (x : ℝ) :
     kernelSquareProduct m (-x) = kernelSquareProduct m x := by
   induction m with
@@ -41,6 +64,8 @@ theorem kernelSquareProduct_even (m : ℕ) (x : ℝ) :
     congr 1
     ring
 
+/-- Shifting the quadratic product by one replaces its left endpoint factor with the next right
+endpoint factor, as expressed by the cross-multiplied identity. -/
 theorem kernelSquareProduct_shift (m : ℕ) (x : ℝ) :
     kernelSquareProduct m (x + 1) * ((x - m) ^ 2 + 1) =
       kernelSquareProduct m x * ((x + m + 1) ^ 2 + 1) := by
@@ -55,6 +80,8 @@ theorem kernelSquareProduct_shift (m : ℕ) (x : ℝ) :
           (((x + m + 2) ^ 2 + 1) * ((x - (m + 1)) ^ 2 + 1)) := by rw [ih]
       _ = _ := by ring
 
+/-- For nonnegative `x`, shifting the quadratic kernel product from `x` to `x + 1` cannot
+decrease it. -/
 theorem kernelSquareProduct_le_shift (m : ℕ) {x : ℝ} (hx : 0 ≤ x) :
     kernelSquareProduct m x ≤ kernelSquareProduct m (x + 1) := by
   have hd : 0 < (x - m) ^ 2 + 1 := by positivity
@@ -63,6 +90,8 @@ theorem kernelSquareProduct_le_shift (m : ℕ) {x : ℝ} (hx : 0 ≤ x) :
   apply mul_le_mul_of_nonneg_left _ (kernelSquareProduct_pos m x).le
   nlinarith [mul_nonneg hx (Nat.cast_nonneg m : (0 : ℝ) ≤ m)]
 
+/-- For nonnegative `x`, shifting the quadratic kernel product by a natural number cannot
+decrease it. -/
 theorem kernelSquareProduct_le_nat_shift (m n : ℕ) {x : ℝ} (hx : 0 ≤ x) :
     kernelSquareProduct m x ≤ kernelSquareProduct m (x + n) := by
   induction n with
@@ -71,11 +100,14 @@ theorem kernelSquareProduct_le_nat_shift (m n : ℕ) {x : ℝ} (hx : 0 ≤ x) :
     have h := kernelSquareProduct_le_shift m (x := x + n) (by positivity)
     exact ih.trans (by simpa only [Nat.cast_add, Nat.cast_one, add_assoc] using h)
 
+/-- For `0 ≤ x ≤ 1`, the paired quadratic factors at `x + r` and `x - r` have product at least
+`r⁴`. -/
 private theorem kernel_pair_lower {x : ℝ} (hx : 0 ≤ x) (hx1 : x ≤ 1) (r : ℝ) :
     r ^ 4 ≤ ((x + r) ^ 2 + 1) * ((x - r) ^ 2 + 1) := by
   have hx2 : x ^ 2 ≤ 1 := by nlinarith [mul_nonneg hx (sub_nonneg.mpr hx1)]
   nlinarith [mul_nonneg (sq_nonneg r) (sub_nonneg.mpr hx2), sq_nonneg (1 + x ^ 2)]
 
+/-- On the unit interval, the quadratic kernel product is at least `(m!)⁴`. -/
 theorem kernelSquareProduct_lower_unit (m : ℕ) {x : ℝ} (hx : 0 ≤ x) (hx1 : x ≤ 1) :
     (m.factorial : ℝ) ^ 4 ≤ kernelSquareProduct m x := by
   induction m with
@@ -88,6 +120,7 @@ theorem kernelSquareProduct_lower_unit (m : ℕ) {x : ℝ} (hx : 0 ≤ x) (hx1 :
     simpa only [kernelSquareProduct, Nat.factorial_succ, Nat.cast_mul, mul_pow, mul_comm]
       using hmul
 
+/-- For every real `x`, the quadratic kernel product is at least `(m!)⁴`. -/
 theorem kernelSquareProduct_lower (m : ℕ) (x : ℝ) :
     (m.factorial : ℝ) ^ 4 ≤ kernelSquareProduct m x := by
   have hnonneg (y : ℝ) (hy : 0 ≤ y) :
@@ -103,6 +136,8 @@ theorem kernelSquareProduct_lower (m : ℕ) (x : ℝ) :
   · exact hnonneg x hx
   · simpa only [kernelSquareProduct_even] using hnonneg (-x) (by linarith)
 
+/-- The recursively defined quadratic kernel product equals the product of `(x - r)² + 1` over
+the integers in `[-m, m]`. -/
 theorem kernelSquareProduct_eq_int_product (m : ℕ) (x : ℝ) :
     kernelSquareProduct m x = ∏ r ∈ Finset.Icc (-(m : ℤ)) m, ((x - (r : ℝ)) ^ 2 + 1) := by
   induction m with
@@ -113,6 +148,8 @@ theorem kernelSquareProduct_eq_int_product (m : ℕ) (x : ℝ) :
     simp only [kernelSquareProduct, Int.cast_neg, Int.cast_add, Int.cast_natCast,
       Int.cast_one, sub_neg_eq_add, Nat.cast_add, Nat.cast_one]
 
+/-- The product of the distances from a real point to the row poles `r + i`, for `-m ≤ r ≤ m`,
+is at least `(m!)²`. -/
 theorem integer_regulator_product_lower (m : ℕ) (x : ℝ) :
     (m.factorial : ℝ) ^ 2 ≤
       ∏ r ∈ Finset.Icc (-(m : ℤ)) m, ‖(x : ℂ) - (r : ℂ) - Complex.I‖ := by

@@ -9,12 +9,33 @@ import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Order.Interval.Finset.Fin
 import Mathlib.Tactic
 
+/-!
+# A binomial inequality for polynomial counting
+
+This module proves a finite combinatorial inequality used in the hidden-polynomial counting
+arguments associated with [ChildsSchulmanVazirani2007]. For `d ≥ 2` and `1 ≤ t' < t`,
+`choose_add_choose_le` bounds the sum of two binomial counts by `(d + t).choose d`.
+
+The proof compares size-`d` subsets in two intervals of a finite ordered set. Their families
+intersect in one subset, while a further size-`d` subset lies outside their union.
+
+## Main statements
+
+* `choose_add_choose_le`: establishes the binomial-count inequality.
+
+## References
+
+* [Childs et al., 2007][ChildsSchulmanVazirani2007]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HiddenNonlin07.MainResults.HiddenPolyCount
 
 open Finset
 
+/-- For `d ≥ 2` and `1 ≤ t' < t`, the sum of `(d + t').choose d` and `(d + t - t').choose d` is
+at most `(d + t).choose d`. [ChildsSchulmanVazirani2007]. -/
 theorem choose_add_choose_le {d t t' : ℕ} (hd : 2 ≤ d) (ht' : 1 ≤ t') (htt' : t' < t) :
     (d + t').choose d + (d + t - t').choose d ≤ (d + t).choose d := by
   classical

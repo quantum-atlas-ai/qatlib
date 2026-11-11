@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+/-!
+# Double annihilators in finite abelian groups
+
+This module identifies a subgroup of a finite abelian group with its double character
+annihilator, transported back along the canonical double dual embedding. The equivalence
+`doubleCharacterAnnihilatorEquiv` and the cardinality identity yield
+`doubleCharacterAnnihilator_eq`, which supports separation of elements outside the subgroup by
+characters. [Lomont2004]
+
+## Main statements
+
+* `doubleCharacterAnnihilator_eq`: identifies the transported double annihilator with the
+  original subgroup.
+* `doubleDualEmb_mem_characterAnnihilator_characterAnnihilator_iff`: characterizes double
+  annihilator membership through the canonical embedding.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QuditTeleport.TeleportCore
@@ -15,9 +37,12 @@ open scoped Classical
 
 variable {G : Type*} [AddCommGroup G] [Fintype G]
 
+/-- The double character annihilator of `H` transported to `G` by taking its preimage under the
+canonical double dual embedding. -/
 noncomputable def doubleCharacterAnnihilator (H : AddSubgroup G) : AddSubgroup G :=
   (characterAnnihilator (characterAnnihilator H)).comap AddChar.doubleDualEmb
 
+/-- Every subgroup is contained in its transported double character annihilator. -/
 theorem le_doubleCharacterAnnihilator (H : AddSubgroup G) :
     H ≤ doubleCharacterAnnihilator H := by
   intro x hx
@@ -27,6 +52,8 @@ theorem le_doubleCharacterAnnihilator (H : AddSubgroup G) :
   change (χ : AddChar G ℂ) x = 1
   exact (mem_characterAnnihilator H (χ : AddChar G ℂ)).1 χ.property ⟨x, hx⟩
 
+/-- The additive equivalence from the transported double annihilator to the double character
+annihilator, induced by the canonical double dual equivalence. -/
 noncomputable def doubleCharacterAnnihilatorEquiv (H : AddSubgroup G) :
     doubleCharacterAnnihilator H ≃+
       characterAnnihilator (characterAnnihilator H) where
@@ -46,6 +73,8 @@ noncomputable def doubleCharacterAnnihilatorEquiv (H : AddSubgroup G) :
       (χ : AddChar (AddChar G ℂ) ℂ)
   map_add' x y := by ext; simp
 
+/-- The transported double character annihilator of a subgroup of a finite abelian group has the
+same cardinality as the subgroup. -/
 theorem card_doubleCharacterAnnihilator (H : AddSubgroup G) :
     Fintype.card (doubleCharacterAnnihilator H) = Fintype.card H := by
   have htransport : Fintype.card (doubleCharacterAnnihilator H) =
@@ -67,6 +96,8 @@ theorem card_doubleCharacterAnnihilator (H : AddSubgroup G) :
     Nat.mul_right_cancel (Fintype.card_pos) hmul
   exact htransport.trans hcard
 
+/-- For a subgroup of a finite abelian group, the double character annihilator transported along
+the canonical double dual embedding equals the original subgroup [Lomont2004]. -/
 theorem doubleCharacterAnnihilator_eq (H : AddSubgroup G) :
     doubleCharacterAnnihilator H = H := by
   symm
@@ -74,6 +105,8 @@ theorem doubleCharacterAnnihilator_eq (H : AddSubgroup G) :
   rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card,
     card_doubleCharacterAnnihilator]
 
+/-- The double dual embedding of `x` belongs to the double character annihilator of `H` exactly
+when `x` belongs to `H`. -/
 theorem doubleDualEmb_mem_characterAnnihilator_characterAnnihilator_iff
     (H : AddSubgroup G) (x : G) :
     AddChar.doubleDualEmb x ∈ characterAnnihilator (characterAnnihilator H) ↔ x ∈ H := by

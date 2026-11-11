@@ -14,6 +14,31 @@ import Mathlib.Analysis.MeanInequalitiesPow
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Operator concentration for sampled Gram matrices
+
+This module proves an operator norm tail bound for importance-sampled Gram matrices under
+domination of normalized row energies. The sampled Gram construction and its role in low-rank
+arithmetic follow [ChiaEtAl2022]. `compactGramOperatorBadMass` records the probability of a
+strict threshold exceedance.
+
+The proof develops finite sign symmetrization, trace moment inequalities, covariance moment
+bounds, and a truncated Markov estimate. Normalized rows connect those covariance estimates to
+the original Gram sketch, including a separate zero-matrix case.
+
+## Main statements
+
+* `sketchSign_trace_moment`: an even trace moment bound for signed Hermitian sums.
+* `sketch_covariance_truncated_moment`: a truncated covariance error moment bound.
+* `compact_sketch_operator_tail_nontrivial`: a universal-constant Gram operator tail bound under
+  an explicit sample budget.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -34,17 +59,21 @@ namespace Qatlib.Concepts.SketchSpectral.SketchAnalysis
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The probability that the operator norm error of the sampled Gram matrix strictly exceeds
+`η`. -/
 def compactGramOperatorBadMass {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (p : FinDist K) (r : ℕ)
     (A : Matrix K C ℂ) (η : ℝ) : ℝ :=
   p.probEvent (fun ω : Fin r → K => η < ‖sketchProduct p r A A ω - Aᴴ * A‖)
 
+/-- The product sketch of two zero matrices is zero for every sample tuple. -/
 theorem sketchProduct_zero {K C : Type} [Fintype K] (p : FinDist K) (r : ℕ) (ω : Fin r → K) :
     sketchProduct p r (0 : Matrix K C ℂ) (0 : Matrix K C ℂ) ω = 0 := by
   funext i j
   rw [sketchProduct_entry_average]
   simp [sketchSampleMatrix]
 
+/-- Under positive energy domination, a row with zero sampling probability is identically zero. -/
 theorem sketchRow_zero_of_prob_zero {K C : Type} [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] (p : FinDist K) (A : Matrix K C ℂ) (φ E : ℝ) (hφ : 0 < φ) (hE : 0 < E)
     (hdom : ∀ i, sketchRowSquared A i / (φ * E) ≤ p.prob i) (k : K) (hk : p.prob k = 0)
@@ -53,6 +82,8 @@ theorem sketchRow_zero_of_prob_zero {K C : Type} [Fintype K] [DecidableEq K] [Fi
   rw [hk, zero_mul] at hh
   exact sketchRowSquared_eq_zero_entry A k (le_antisymm hh (sketchRowSquared_nonneg A k)) j
 
+/-- Under the positive domination assumptions, the importance-weighted mean of each Gram entry
+equals the corresponding entry of AᴴA. -/
 theorem sketchGram_mean {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ E : ℝ) (hφ : 0 < φ) (hE : 0 < E)
     (hdom : ∀ i, sketchRowSquared A i / (φ * E) ≤ p.prob i) (i : C) (j : C) :
@@ -67,6 +98,8 @@ theorem sketchGram_mean {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [De
   rw [Finset.sum_congr rfl (fun k _ => hterm k)]
   simp [Matrix.mul_apply, Matrix.conjTranspose]
 
+/-- The zero matrix has zero Gram operator bad mass at every nonnegative error threshold. See
+[ChiaEtAl2022]. -/
 theorem compactGramOperatorBadMass_zero : ∀ (K C : Type) [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (p : FinDist K) (r : ℕ) (η : ℝ), 0 ≤ η →
     compactGramOperatorBadMass p r (0 : Matrix K C ℂ) η = 0 := by
@@ -83,6 +116,7 @@ theorem compactGramOperatorBadMass_zero : ∀ (K C : Type) [Fintype K] [Decidabl
   rcases hω with ⟨_, hbad⟩
   exact absurd hbad (hzero ω)
 
+/-- The row product mass of a matrix with itself is its total squared energy. -/
 theorem sketchGram_row_product_mass {K C : Type} [Fintype K] [Fintype C]
     (A : Matrix K C ℂ) : sketchRowProductMass A A = sketchSquared A := by
   unfold sketchRowProductMass sketchSquared
@@ -92,6 +126,7 @@ theorem sketchGram_row_product_mass {K C : Type} [Fintype K] [Fintype C]
 
 open scoped Matrix.Norms.Frobenius in
 
+/-- The spectral Frobenius quantity equals the matrix Frobenius norm. -/
 theorem sketchGram_spectralFrobenius_eq {C : Type} [Fintype C]
     (B : Matrix C C ℂ) : spectralFrobenius B = ‖B‖ := by
   rw [Matrix.frobenius_norm_def, ← Real.sqrt_eq_rpow]
@@ -99,6 +134,8 @@ theorem sketchGram_spectralFrobenius_eq {C : Type} [Fintype C]
 
 open scoped Matrix.Norms.Frobenius in
 
+/-- Under row energy domination with φ ≥ 1 and positive total energy, each Gram sampling atom
+has Frobenius norm at most φ times the total energy. -/
 theorem sketchGram_frobenius_atom_bound {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ) (hφ : 1 ≤ φ)
     (hE : 0 < sketchSquared A)
@@ -113,6 +150,8 @@ theorem sketchGram_frobenius_atom_bound {K C : Type} [Fintype K] [Fintype C]
   simpa only [sketchGram_row_product_mass] using!
     sketch_two_source_atom_bound p A A φ hφ hW hd k
 
+/-- Under row energy domination with φ ≥ 1 and positive total energy, each Gram sampling atom
+has operator norm at most φ times the total energy. -/
 theorem sketchGram_operator_atom_bound {K C : Type} [Fintype K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ) (hφ : 1 ≤ φ)
     (hE : 0 < sketchSquared A)
@@ -122,6 +161,7 @@ theorem sketchGram_operator_atom_bound {K C : Type} [Fintype K] [Fintype C] [Dec
   rw [sketchGram_spectralFrobenius_eq]
   exact sketchGram_frobenius_atom_bound p A φ hφ hE hdom k
 
+/-- Every Gram sampling atom is positive semidefinite. -/
 theorem sketchGram_atom_posSemidef {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (A : Matrix K C ℂ) (k : K) :
     (sketchSampleMatrix p A A k).PosSemidef := by
@@ -133,6 +173,8 @@ theorem sketchGram_atom_posSemidef {K C : Type} [Fintype K] [Fintype C]
   rw [he]
   exact (Matrix.posSemidef_conjTranspose_mul_self U).smul (inv_nonneg.mpr (p.nonneg k))
 
+/-- Squaring a Gram sampling atom multiplies it by the row energy divided by its sampling
+probability. -/
 theorem sketchGram_atom_square {K C : Type} [Fintype K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (k : K) :
     (sketchSampleMatrix p A A k)^2 =
@@ -155,6 +197,7 @@ theorem sketchGram_atom_square {K C : Type} [Fintype K] [Fintype C] [DecidableEq
       ring
     _ = _ := by rw [hrow]; simp only [Complex.ofReal_div]; ring
 
+/-- Under row energy domination and positive total energy, the mean Gram sampling atom is AᴴA. -/
 theorem sketchGram_mean_matrix {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ)
     (hφ : 1 ≤ φ) (hE : 0 < sketchSquared A)
@@ -164,6 +207,8 @@ theorem sketchGram_mean_matrix {K C : Type} [Fintype K] [DecidableEq K]
   simpa only [Matrix.sum_apply, Matrix.smul_apply, Complex.real_smul, sketchSampleMatrix] using!
     sketchGram_mean p A φ (sketchSquared A) (by linarith) hE hdom i j
 
+/-- Under row energy domination, the second moment of the Gram atom is bounded in positive
+semidefinite order by φ times the total energy times AᴴA. -/
 theorem sketchGram_second_moment_posSemidef {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ)
     (hφ : 1 ≤ φ) (hE : 0 < sketchSquared A)
@@ -191,11 +236,14 @@ theorem sketchGram_second_moment_posSemidef {K C : Type} [Fintype K] [DecidableE
   rw [he]
   exact Matrix.posSemidef_sum _ (fun k _ => (sketchGram_atom_posSemidef p A k).smul (hcoef k))
 
+/-- The complex sign associated with a Boolean value. -/
 def sketchSign (b : Bool) : ℂ := if b then 1 else -1
 
+/-- The Boolean sign tuple obtained by flipping coordinate `i`. -/
 def sketchSignFlip {r : ℕ} (i : Fin r) (s : Fin r → Bool) : Fin r → Bool :=
   Function.update s i (!s i)
 
+/-- Flipping the same Boolean sign coordinate twice restores the original tuple. -/
 theorem sketchSignFlip_involutive {r : ℕ} (i : Fin r) :
     Function.Involutive (sketchSignFlip i) := by
   intro s
@@ -205,14 +253,18 @@ theorem sketchSignFlip_involutive {r : ℕ} (i : Fin r) :
     simp [sketchSignFlip]
   · simp [sketchSignFlip, h]
 
+/-- Summing over all Boolean sign tuples is invariant under a fixed coordinate flip. -/
 theorem sketchSignFlip_sum {r : ℕ} (i : Fin r) {M : Type*} [AddCommMonoid M]
     (f : (Fin r → Bool) → M) :
     (∑ s, f (sketchSignFlip i s)) = ∑ s, f s :=
   Equiv.sum_comp ((sketchSignFlip_involutive i).toPerm) f
 
+/-- The matrix sum with coefficients given by the Boolean signs. -/
 def sketchSignMatrix {C : Type*} {r : ℕ} (B : Fin r → Matrix C C ℂ)
     (s : Fin r → Bool) : Matrix C C ℂ := ∑ i, sketchSign (s i) • B i
 
+/-- Flipping one sign subtracts twice its original signed matrix contribution from the signed
+sum. -/
 theorem sketchSignMatrix_flip {C : Type*} {r : ℕ}
     (B : Fin r → Matrix C C ℂ) (i : Fin r) (s : Fin r → Bool) :
     sketchSignMatrix B (sketchSignFlip i s) =
@@ -233,6 +285,8 @@ theorem sketchSignMatrix_flip {C : Type*} {r : ℕ}
   rw [← hsum, mul_smul]
   module
 
+/-- Four times the total trace of the (n + 1)st powers of signed sums equals the summed trace
+pairing of coordinate-flip differences with differences of nth powers. -/
 theorem sketchSign_trace_flip_identity {C : Type*} [Fintype C] [DecidableEq C]
     {r : ℕ} (B : Fin r → Matrix C C ℂ) (n : ℕ) :
     (4 : ℂ) * (∑ s, Matrix.trace (sketchSignMatrix B s ^ (n + 1))) =
@@ -276,6 +330,8 @@ theorem sketchSign_trace_flip_identity {C : Type*} [Fintype C] [DecidableEq C]
     Matrix.trace (sketchSignMatrix B s * sketchSignMatrix B s ^ n)
   rw [pow_succ']
 
+/-- The uniform sign average of the real trace of the squared signed sum equals the real trace
+of the sum of the individual matrix squares. -/
 theorem sketchSign_trace_second_moment {C : Type*} [Fintype C] [DecidableEq C]
     {r : ℕ} (B : Fin r → Matrix C C ℂ) :
     (2 : ℝ) ^ (-(r : ℤ)) *
@@ -310,6 +366,8 @@ theorem sketchSign_trace_second_moment {C : Type*} [Fintype C] [DecidableEq C]
 
 open intervalIntegral in
 
+/-- For even `n`, the scalar power difference pairing is bounded by (n + 1) / 2 times the
+squared difference and the sum of nth powers. -/
 theorem sketch_even_power_mean_value (n : ℕ) (hn : Even n) (a b : ℝ) :
     (a-b)*(a^(n+1)-b^(n+1)) ≤ ((n+1 : ℕ) : ℝ)/2*(a-b)^2*(a^n+b^n) := by
   wlog hab : a ≤ b generalizing a b
@@ -364,6 +422,8 @@ theorem sketch_even_power_mean_value (n : ℕ) (hn : Even n) (a b : ℝ) :
 open Qatlib.Concepts.PhaseGeometry.Phase in
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing in
 
+/-- The real trace of AᵖBᑫ is the sum of products of ordered eigenvalue powers weighted by
+squared overlaps of the two eigenbases. -/
 theorem sketch_hermitian_trace_pow_cross {C : Type} [Fintype C] [DecidableEq C]
     (A B : Matrix C C ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) (p q : ℕ) :
     (Matrix.trace (A^p*B^q)).re =
@@ -396,6 +456,8 @@ theorem sketch_hermitian_trace_pow_cross {C : Type} [Fintype C] [DecidableEq C]
 open Qatlib.Concepts.PhaseGeometry.Phase in
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing in
 
+/-- For even `m`, the Hermitian trace pairing of a matrix difference with the difference of (m +
+1)st powers satisfies the stated mean-value inequality. -/
 theorem sketch_hermitian_trace_mean_value {C : Type} [Fintype C] [DecidableEq C]
     (A B : Matrix C C ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) (m : ℕ) (hm : Even m) :
     (Matrix.trace ((A-B)*(A^(m+1)-B^(m+1)))).re ≤
@@ -477,6 +539,8 @@ theorem sketch_hermitian_trace_mean_value {C : Type} [Fintype C] [DecidableEq C]
         (Complex.normSq_nonneg _)
     _ = _ := by ring
 
+/-- For Hermitian summands and even `m`, the sign-summed trace moment of order m + 2 is bounded
+by m + 1 times the trace pairing of the mth power with the sum of squares. -/
 theorem sketchSign_trace_moment_recurrence {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (B : Fin r → Matrix C C ℂ) (hB : ∀ i, (B i).IsHermitian)
     (m : ℕ) (hm : Even m) :
@@ -523,6 +587,8 @@ theorem sketchSign_trace_moment_recurrence {C : Type} [Fintype C] [DecidableEq C
   simp_rw [hf] at h
   nlinarith
 
+/-- For a positive semidefinite matrix and positive integer `q`, the qth power of its Schatten
+q-norm is the real trace of its qth power. -/
 theorem sketch_psd_schatten_moment {C : Type} [Fintype C] [DecidableEq C] (V : Matrix C C ℂ)
     (hV : V.PosSemidef) (q : ℕ) (hq : 0 < q) :
     schattenNorm V q ^ q = (Matrix.trace (V^q)).re := by
@@ -534,6 +600,8 @@ theorem sketch_psd_schatten_moment {C : Type} [Fintype C] [DecidableEq C] (V : M
   rw [HermitianMat.cfc_pow, HermitianMat.trace_eq_re_trace, HermitianMat.mat_pow] at h
   simpa [H] using! h.symm
 
+/-- For q ≥ 2, the real trace of S^(2q - 2)V is bounded by the corresponding Schatten 2q- and
+q-norm product. -/
 theorem sketch_trace_lower_moment_holder {C : Type} [Fintype C] [DecidableEq C] (S V : Matrix C C ℂ)
     (q : ℕ) (hq : 2 ≤ q) :
     (Matrix.trace (S^(2*q-2)*V)).re ≤
@@ -553,6 +621,8 @@ theorem sketch_trace_lower_moment_holder {C : Type} [Fintype C] [DecidableEq C] 
   exact (Complex.re_le_norm _).trans ((mmw_trace_le_schatten_one _).trans
     (hmul.trans (mul_le_mul_of_nonneg_right hpw (schattenNorm_nonneg V q))))
 
+/-- For nonnegative values under normalized nonnegative weights, a recurrence bounding the 2qth
+moment by `K` times the (2q - 2)nd moment implies a bound by Kᑫ when q ≥ 2. -/
 theorem sketch_finite_moment_self_bound {I : Type*} [Fintype I] (w x : I → ℝ) (q : ℕ)
     (hq : 2 ≤ q) (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i,w i=1) (hx : ∀ i, 0 ≤ x i)
     (K : ℝ) (hK : 0 ≤ K)
@@ -594,6 +664,8 @@ theorem sketch_finite_moment_self_bound {I : Type*} [Fintype I] (w x : I → ℝ
     Real.rpow_natCast] at hr
   exact hr
 
+/-- For Hermitian summands and q ≥ 1, the averaged real trace moment of order 2q is at most (2q
+- 1)ᑫ times the real trace of the qth power of the sum of squares. -/
 theorem sketchSign_trace_moment {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (B : Fin r → Matrix C C ℂ) (q : ℕ) (hq : 1 ≤ q) (hB : ∀ i, (B i).IsHermitian) :
     (2 : ℝ)^(-(r:ℤ))*(∑ s,(Matrix.trace (sketchSignMatrix B s^(2*q))).re) ≤
@@ -643,6 +715,8 @@ theorem sketchSign_trace_moment {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
   simp only [← Finset.mul_sum] at h
   simpa only [he,w,V] using! h
 
+/-- For a positive semidefinite matrix and positive `q`, the real trace of its qth power is at
+most its rank times the qth power of its operator norm. -/
 theorem sketch_psd_trace_power_rank_bound {C : Type} [Fintype C] [DecidableEq C] (V : Matrix C C ℂ)
     (hV : V.PosSemidef) (q : ℕ) (hq : 0 < q) :
     (Matrix.trace (V^q)).re ≤ (V.rank : ℝ)*‖V‖^q := by
@@ -676,6 +750,7 @@ theorem sketch_psd_trace_power_rank_bound {C : Type} [Fintype C] [DecidableEq C]
         pow_le_pow_left₀ (hV.eigenvalues_nonneg i) (hb i) q)
       _ = _ := by simp [hc]
 
+/-- A weighted sum of `r` outer products has rank at most `r`. -/
 theorem sketch_weighted_outer_sum_rank {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (a : Fin r → ℂ) (u v : Fin r → C → ℂ) :
     (∑ i,a i • Matrix.vecMulVec (u i) (v i)).rank ≤ r := by
@@ -688,6 +763,8 @@ theorem sketch_weighted_outer_sum_rank {C : Type} [Fintype C] [DecidableEq C] {r
   rw [he]
   exact (Matrix.rank_mul_le_left U V).trans (by simpa using! Matrix.rank_le_card_width U)
 
+/-- The square of a covariance outer product equals that outer product multiplied by the
+vector's total squared magnitude. -/
 theorem sketch_covariance_atom_square {C : Type} [Fintype C] [DecidableEq C] (u : C → ℂ) :
     (Matrix.vecMulVec u (star u))^2 =
       (∑ j,‖u j‖^2) • Matrix.vecMulVec u (star u) := by
@@ -706,6 +783,8 @@ theorem sketch_covariance_atom_square {C : Type} [Fintype C] [DecidableEq C] (u 
 open Qatlib.Concepts.PhaseGeometry.Phase in
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing in
 
+/-- For a Hermitian matrix and positive `q`, the 2qth power of the operator norm is at most the
+real trace of the 2qth matrix power. -/
 theorem sketch_hermitian_operator_even_trace {C : Type} [Fintype C] [DecidableEq C] (S : Matrix C C ℂ)
     (hS : S.IsHermitian) (q : ℕ) (hq : 0 < q) :
     ‖S‖^(2*q) ≤ (Matrix.trace (S^(2*q))).re := by
@@ -742,6 +821,8 @@ theorem sketch_hermitian_operator_even_trace {C : Type} [Fintype C] [DecidableEq
 
 open scoped MatrixOrder in
 
+/-- For vectors of Euclidean norm at most `R`, the norm of the sum of squared covariance atoms
+is at most R² times the norm of their sum. -/
 theorem sketch_covariance_variance_norm {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (y : Fin r → C → ℂ) (R : ℝ) (hR : 0 ≤ R)
     (hy : ∀ i, ‖toEuclidean_fromVec (y i)‖ ≤ R) :
@@ -767,6 +848,7 @@ theorem sketch_covariance_variance_norm {C : Type} [Fintype C] [DecidableEq C] {
   rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (sq_nonneg R)] at h
   exact h
 
+/-- The sum of the squares of `r` covariance atoms has rank at most `r`. -/
 theorem sketch_covariance_variance_rank {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (y : Fin r → C → ℂ) :
     (∑ i,(Matrix.vecMulVec (y i) (star (y i)))^2).rank ≤ r := by
@@ -774,6 +856,9 @@ theorem sketch_covariance_variance_rank {C : Type} [Fintype C] [DecidableEq C] {
   simpa only [Complex.real_smul] using!
     sketch_weighted_outer_sum_rank (fun i => ((∑ j,‖y i j‖^2 : ℝ):ℂ)) y (fun i=>star (y i))
 
+/-- For vectors of norm at most `R` and q ≥ 1, the averaged 2qth operator norm moment of the
+signed covariance sum is bounded by r(2q - 1)ᑫ times the qth power of R² times the
+covariance sum norm. -/
 theorem sketch_covariance_rademacher_even_moment {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (y : Fin r → C → ℂ) (R : ℝ) (hR : 0 ≤ R)
     (hy : ∀ i, ‖toEuclidean_fromVec (y i)‖ ≤ R) (q : ℕ) (hq : 1 ≤ q) :
@@ -804,6 +889,8 @@ theorem sketch_covariance_rademacher_even_moment {C : Type} [Fintype C] [Decidab
   convert! h using 1
   ring
 
+/-- For nonnegative values under probability weights, a bound on the nth moment by Yⁿ implies
+the bound Yᵖ on every positive moment order p ≤ n. -/
 theorem sketch_finite_lower_moment {I : Type*} [Fintype I] (w x : I → ℝ) (p n : ℕ)
     (hp : 1 ≤ p) (hpn : p ≤ n) (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i,w i=1)
     (hx : ∀ i, 0 ≤ x i) (Y : ℝ) (hY : 0 ≤ Y)
@@ -828,6 +915,8 @@ theorem sketch_finite_lower_moment {I : Type*} [Fintype I] (w x : I → ℝ) (p 
   rw [hy] at h
   exact h
 
+/-- For r ≥ 2 and p ≥ 1, there is a positive moment index `q` with p ≤ 2q and r(2q - 1)ᑫ ≤ (16(p
++ log r))ᑫ. -/
 theorem sketch_rademacher_moment_choice (r p : ℕ) (hr : 2 ≤ r) (hp : 1 ≤ p) :
     ∃ q : ℕ, 1 ≤ q ∧ p ≤ 2*q ∧
       (r:ℝ)*((2*q-1 : ℕ):ℝ)^q ≤ (16*((p:ℝ)+Real.log (r:ℝ)))^q := by
@@ -861,6 +950,8 @@ theorem sketch_rademacher_moment_choice (r p : ℕ) (hr : 2 ≤ r) (hp : 1 ≤ p
     _ ≤ (4:ℝ)^q*(4*L)^q := h
     _ = _ := by rw [← mul_pow]; congr 1; dsimp [L]; ring
 
+/-- For r ≥ 2 and p ≥ 1, the averaged pth norm moment of a signed covariance sum is bounded by
+the pth power of 4R sqrt(p + log r) times the square root of the covariance sum norm. -/
 theorem sketch_covariance_rademacher_moment {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (y : Fin r → C → ℂ) (R : ℝ) (hR : 0 ≤ R)
     (hy : ∀ i, ‖toEuclidean_fromVec (y i)‖ ≤ R) (p : ℕ) (hp : 1 ≤ p) (hr : 2 ≤ r) :
@@ -899,6 +990,8 @@ theorem sketch_covariance_rademacher_moment {C : Type} [Fintype C] [DecidableEq 
   rw [← Finset.mul_sum] at h
   exact h
 
+/-- The norm power of a finite matrix expectation is at most the expectation of the
+corresponding norm power. -/
 theorem sketch_finite_matrix_jensen {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (F : K → Matrix C C ℂ) (p : ℕ) :
     ‖∑ k,law.prob k • F k‖^p ≤ law.expect (fun k=>‖F k‖^p) := by
@@ -911,12 +1004,15 @@ theorem sketch_finite_matrix_jensen {K C : Type} [Fintype K] [DecidableEq K] [Fi
     (fun k _=>law.nonneg k) law.sum_one (fun _ _=>norm_nonneg _) p
   exact (pow_le_pow_left₀ (norm_nonneg _) hn p).trans h
 
+/-- Taking the expectation of `X - F` gives `X` minus the expectation of `F`. -/
 theorem sketch_finite_matrix_center_mean {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (F : K → Matrix C C ℂ) (X : Matrix C C ℂ) :
     (∑ k,law.prob k • (X-F k)) = X-(∑ k,law.prob k • F k) := by
   simp_rw [smul_sub]
   rw [Finset.sum_sub_distrib, ← Finset.sum_smul, law.sum_one, one_smul]
 
+/-- For a positive sample count, the expectation of the average of independent matrix samples
+equals the single-sample mean. -/
 theorem sketch_independent_matrix_mean {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (F : K → Matrix C C ℂ) (r : ℕ) (hr : 0 < r) :
     (∑ ω : Fin r → K,(independentSampleLaw (fun _ : Fin r=>law)).prob ω •
@@ -932,15 +1028,21 @@ theorem sketch_independent_matrix_mean {K C : Type} [Fintype K] [DecidableEq K] 
     simp [FinDist.avg,independentSampleLaw,FinDist.probOf,
         div_eq_mul_inv,mul_assoc,mul_comm]
 
+/-- The pair of sample tuples obtained by exchanging their coordinates where the Boolean
+selector is false. -/
 def sketchGhostSwap {K : Type} {r : ℕ} (s : Fin r → Bool)
     (ω : (Fin r → K) × (Fin r → K)) : (Fin r → K) × (Fin r → K) :=
   (fun i=>if s i then ω.1 i else ω.2 i, fun i=>if s i then ω.2 i else ω.1 i)
 
+/-- Applying the same coordinatewise exchange to a pair of sample tuples twice restores the
+pair. -/
 theorem sketchGhostSwap_involutive {K : Type} {r : ℕ} (s : Fin r → Bool) :
     Function.Involutive (sketchGhostSwap (K := K) s) := by
   intro ω
   apply Prod.ext <;> funext i <;> cases hs : s i <;> simp [sketchGhostSwap,hs]
 
+/-- The coordinatewise exchange preserves the product probability of two independent sample
+tuples. -/
 theorem sketchGhostSwap_weight {K : Type} [Fintype K] [DecidableEq K] {r : ℕ}
     (law : FinDist K) (s : Fin r → Bool) (ω : (Fin r → K) × (Fin r → K)) :
     law.probOf (sketchGhostSwap s ω).1 * law.probOf (sketchGhostSwap s ω).2 =
@@ -951,6 +1053,8 @@ theorem sketchGhostSwap_weight {K : Type} [Fintype K] [DecidableEq K] {r : ℕ}
   intro i _
   cases hs : s i <;> simp [sketchGhostSwap,hs,mul_comm]
 
+/-- The difference of matrix sums after the coordinatewise exchange is the signed sum of the
+original coordinate differences. -/
 theorem sketchGhostSwap_difference {K C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (F : K → Matrix C C ℂ) (s : Fin r → Bool) (ω : (Fin r → K) × (Fin r → K)) :
     (∑ i,F ((sketchGhostSwap s ω).1 i))-(∑ i,F ((sketchGhostSwap s ω).2 i)) =
@@ -961,6 +1065,8 @@ theorem sketchGhostSwap_difference {K C : Type} [Fintype C] [DecidableEq C] {r :
   intro i _
   cases hs : s i <;> simp [sketchGhostSwap,sketchSign,hs]
 
+/-- The expectation of a function of two sample-sum differences is unchanged when the
+differences are replaced by signed coordinate differences. -/
 theorem sketchGhostSwap_sum {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     {r : ℕ} (law : FinDist K) (F : K → Matrix C C ℂ) (s : Fin r → Bool)
     (g : Matrix C C ℂ → ℝ) :
@@ -974,6 +1080,8 @@ theorem sketchGhostSwap_sum {K C : Type} [Fintype K] [DecidableEq K] [Fintype C]
   simp only [Function.Involutive.coe_toPerm,sketchGhostSwap_weight,sketchGhostSwap_difference] at h
   exact h.symm
 
+/-- For a positive sample count, the centered sample-mean norm moment is at most the
+corresponding moment of the difference from an independent sample mean. -/
 theorem sketch_matrix_ghost_jensen {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (F : K → Matrix C C ℂ) (r p : ℕ) (hr : 0 < r) :
     (independentSampleLaw (fun _ : Fin r=>law)).expect (fun ω=>
@@ -993,6 +1101,8 @@ theorem sketch_matrix_ghost_jensen {K C : Type} [Fintype K] [DecidableEq K] [Fin
     exact hh
   exact Finset.sum_le_sum (fun ω _=>mul_le_mul_of_nonneg_left (hj ω) (Q.nonneg ω))
 
+/-- The expected function of the difference of two independent matrix sample sums equals its
+average over signed coordinate differences. -/
 theorem sketch_matrix_ghost_sign_average {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (F : K → Matrix C C ℂ) (r : ℕ) (g : Matrix C C ℂ → ℝ) :
     (independentSampleLaw (fun _ : Fin r=>law)).expect (fun ω=>
@@ -1024,6 +1134,8 @@ theorem sketch_matrix_ghost_sign_average {K C : Type} [Fintype K] [DecidableEq K
       congr 1
       exact Finset.sum_congr rfl (fun s _=>he s)
 
+/-- The pth power of the norm of X - Y is at most 2ᵖ times the sum of the pth norm powers of `X`
+and `Y`. -/
 theorem sketch_matrix_sub_power_bound {C : Type} [Fintype C] [DecidableEq C] (X Y : Matrix C C ℂ) (p : ℕ) :
     ‖X-Y‖^p ≤ (2:ℝ)^p*(‖X‖^p+‖Y‖^p) := by
   by_cases hxy : ‖X‖ ≤ ‖Y‖
@@ -1038,15 +1150,20 @@ theorem sketch_matrix_sub_power_bound {C : Type} [Fintype C] [DecidableEq C] (X 
     exact h.trans
         (mul_le_mul_of_nonneg_left (le_add_of_nonneg_right (pow_nonneg (norm_nonneg Y) p)) (by positivity))
 
+/-- The signed sum of matrix differences equals the difference of the signed sums. -/
 theorem sketchSignMatrix_sub {C : Type} {r : ℕ} (B D : Fin r → Matrix C C ℂ) (s : Fin r → Bool) :
     sketchSignMatrix (fun i=>B i-D i) s=sketchSignMatrix B s-sketchSignMatrix D s := by
   simp only [sketchSignMatrix,smul_sub,Finset.sum_sub_distrib]
 
+/-- Finite expectation distributes over a scalar multiple of the sum of two real-valued
+functions. -/
 theorem sketch_finite_expect_scale_add {K : Type} [Fintype K] [DecidableEq K] (law : FinDist K) (f g : K → ℝ) (c : ℝ) :
     law.expect (fun k=>c*(f k+g k))=c*(law.expect f+law.expect g) := by
   simp only [FinDist.expect,Finset.mul_sum,mul_add,Finset.sum_add_distrib]
   congr 1 <;> apply Finset.sum_congr rfl <;> intro k _ <;> ring
 
+/-- For p ≥ 1, the norm moment of the difference of two independent sample means is bounded by
+4ᵖ times the sign-averaged norm moment of one signed sample mean. -/
 theorem sketch_matrix_ghost_rademacher_bound {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (F : K → Matrix C C ℂ) (r p : ℕ) (hp : 1 ≤ p) :
     (independentSampleLaw (fun _ : Fin r=>law)).expect (fun ω=>
@@ -1101,6 +1218,8 @@ theorem sketch_matrix_ghost_rademacher_bound {K C : Type} [Fintype K] [Decidable
   convert! hs using 1
   ring
 
+/-- If nonnegative `M` satisfies M ≤ Aᵖ(sqrt M + 1), then any Z ≤ min(M, 1) is bounded by (2A)ᵖ
+for p ≥ 1 and nonnegative `A`. -/
 theorem sketch_truncated_moment_self_bound (M A Z : ℝ) (p : ℕ) (hp : 1 ≤ p) (hM : 0 ≤ M) (hA : 0 ≤ A)
     (hrec : M ≤ A^p*(Real.sqrt M+1)) (hZM : Z ≤ M) (hZ1 : Z ≤ 1) :
     Z ≤ (2*A)^p := by
@@ -1121,6 +1240,8 @@ theorem sketch_truncated_moment_self_bound (M A Z : ℝ) (p : ℕ) (hp : 1 ≤ p
     have hbound : Real.sqrt M ≤ 2*A^p := (mul_le_mul_iff_left₀ hsp).mp hmul
     exact hZ1.trans (hs1.trans (hbound.trans hcoef))
 
+/-- For a nonnegative finite random variable, the pth moment of its square root is at most the
+square root of its pth moment. -/
 theorem sketch_finite_root_moment {K : Type} [Fintype K] [DecidableEq K] (law : FinDist K)
     (e : K → ℝ) (he : ∀ k,0 ≤ e k) (p : ℕ) :
     law.expect (fun k=>(Real.sqrt (e k))^p) ≤ Real.sqrt (law.expect (fun k=>e k^p)) := by
@@ -1137,6 +1258,8 @@ theorem sketch_finite_root_moment {K : Type} [Fintype K] [DecidableEq K] (law : 
   change (law.expect (fun k=>(Real.sqrt (e k))^p))^2 ≤ law.expect (fun k=>e k^p) at h
   nlinarith [Real.sq_sqrt hM,Real.sqrt_nonneg (law.expect (fun k=>e k^p))]
 
+/-- For nonnegative `e`, the pth power of sqrt(e + 1) is at most sqrt(2)ᵖ times the sum of
+sqrt(e)ᵖ and one. -/
 theorem sketch_root_add_one_power (e : ℝ) (he : 0 ≤ e) (p : ℕ) :
     (Real.sqrt (e+1))^p ≤ (Real.sqrt 2)^p*((Real.sqrt e)^p+1) := by
   have hs : (0:ℝ)≤Real.sqrt 2 := Real.sqrt_nonneg _
@@ -1154,6 +1277,8 @@ theorem sketch_root_add_one_power (e : ℝ) (he : 0 ≤ e) (p : ℕ) :
     rw [mul_pow] at h
     exact h.trans (by nlinarith)
 
+/-- For r ≥ 2 and p ≥ 1, the pth norm moment of the signed covariance average is bounded by the
+stated radius, logarithmic, and covariance norm factors. -/
 theorem sketch_covariance_rademacher_average_moment {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (y : Fin r → C → ℂ) (R : ℝ) (hR : 0 ≤ R)
     (hy : ∀ i,‖toEuclidean_fromVec (y i)‖ ≤ R) (p : ℕ) (hp : 1 ≤ p) (hr : 2 ≤ r) :
@@ -1173,6 +1298,9 @@ theorem sketch_covariance_rademacher_average_moment {C : Type} [Fintype C] [Deci
         Real.sqrt ‖∑ i,Matrix.vecMulVec (y i) (star (y i))‖)^p := hh
     _ = _ := by rw [mul_pow,mul_pow,div_pow]; ring
 
+/-- If the reference matrix has norm at most one and `r` is positive, the square-root norm power
+of a matrix sum is bounded by the stated factor times one plus the square-root deviation
+power of its average. -/
 theorem sketch_matrix_sum_root_deviation {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (F : Fin r → Matrix C C ℂ) (M : Matrix C C ℂ) (hM : ‖M‖ ≤ 1)
     (hr : 0 < r) (p : ℕ) :
@@ -1195,20 +1323,25 @@ theorem sketch_matrix_sum_root_deviation {C : Type} [Fintype C] [DecidableEq C] 
     (pow_nonneg (Real.sqrt_nonneg (r:ℝ)) p)
   exact hp.trans (by simpa only [mul_pow,mul_assoc] using! h)
 
+/-- Finite expectation commutes with multiplication by a real scalar. -/
 theorem sketch_finite_expect_scale {K : Type} [Fintype K] [DecidableEq K] (law : FinDist K) (f : K → ℝ) (c : ℝ) :
     law.expect (fun k=>c*f k)=c*law.expect f := by
   simpa only [add_zero,law.expect_const] using! sketch_finite_expect_scale_add law f (fun _=>0) c
 
+/-- A finite sum of expectations equals the expectation of the finite sum. -/
 theorem sketch_finite_expect_sum {K I : Type} [Fintype K] [DecidableEq K] [Fintype I]
     (law : FinDist K) (f : I → K → ℝ) :
     (∑ i,law.expect (f i))=law.expect (fun k=>∑ i,f i k) := by
   simp only [FinDist.expect,Finset.mul_sum]
   rw [Finset.sum_comm]
 
+/-- Pointwise comparison of real functions implies comparison of their finite expectations. -/
 theorem sketch_finite_expect_mono {K : Type} [Fintype K] [DecidableEq K] (law : FinDist K) (f g : K → ℝ)
     (h : ∀ k,f k≤g k) : law.expect f ≤ law.expect g := by
   exact Finset.sum_le_sum (fun k _=>mul_le_mul_of_nonneg_left (h k) (law.nonneg k))
 
+/-- For bounded vectors, r ≥ 2, p ≥ 1, and a covariance mean of norm at most one, the centered
+covariance norm moment `M` satisfies the stated bound by a coefficient times sqrt M + 1. -/
 theorem sketch_covariance_moment_self_bound {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (y : K → C → ℂ) (R : ℝ) (r p : ℕ)
     (hr : 2 ≤ r) (hp : 1 ≤ p) (hR : 0 ≤ R)
@@ -1264,6 +1397,8 @@ theorem sketch_covariance_moment_self_bound {K C : Type} [Fintype K] [DecidableE
       mul_le_mul_of_nonneg_left (add_le_add hroot (le_refl 1)) (by positivity)
     _ = _ := by simp only [mul_pow,mul_assoc]
 
+/-- For r ≥ 2, p ≥ 1, and nonnegative `R`, the covariance moment coefficient is at most 64R
+sqrt(log r / r) sqrt p. -/
 theorem sketch_covariance_coefficient (R : ℝ) (hR : 0 ≤ R) (r p : ℕ) (hr : 2 ≤ r) (hp : 1 ≤ p) :
     4*(4*Real.sqrt ((p:ℝ)+Real.log (r:ℝ))*R/(r:ℝ))*(Real.sqrt (r:ℝ)*Real.sqrt 2) ≤
       64*R*Real.sqrt (Real.log (r:ℝ)/(r:ℝ))*Real.sqrt (p:ℝ) := by
@@ -1299,6 +1434,8 @@ theorem sketch_covariance_coefficient (R : ℝ) (hR : 0 ≤ R) (r p : ℕ) (hr :
     _ ≤ 4096*(R^2*Real.log (r:ℝ)/(r:ℝ)*(p:ℝ)) := mul_le_mul_of_nonneg_right (by norm_num) hn
     _ = _ := by ring
 
+/-- For bounded vectors with covariance mean norm at most one, r ≥ 2, and p ≥ 1, the moment of
+the centered covariance error truncated at one is at most (128R sqrt(log r / r) sqrt p)ᵖ. -/
 theorem sketch_covariance_truncated_moment {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (law : FinDist K) (y : K → C → ℂ) (R : ℝ) (r p : ℕ)
     (hr : 2 ≤ r) (hp : 1 ≤ p) (hR : 0 ≤ R)
@@ -1335,9 +1472,13 @@ theorem sketch_covariance_truncated_moment {K C : Type} [Fintype K] [DecidableEq
           mul_le_mul_of_nonneg_left hab (by norm_num)
         _ = _ := by ring
 
+/-- The conjugate of row `k` scaled by the reciprocal square root of its sampling probability
+times `S`. -/
 noncomputable def sketchNormalizedRow {K C : Type} [Fintype K] (p : FinDist K) (A : Matrix K C ℂ)
     (S : ℝ) (k : K) : C → ℂ := fun j=>(Real.sqrt (p.prob k*S))⁻¹ • star (A k j)
 
+/-- For nonnegative `S`, the normalized row covariance atom is the Gram sampling atom scaled by
+S⁻¹. -/
 theorem sketchNormalizedRow_outer {K C : Type} [Fintype K] (p : FinDist K) (A : Matrix K C ℂ)
     (S : ℝ) (hS : 0≤S) (k : K) :
     Matrix.vecMulVec (sketchNormalizedRow p A S k) (star (sketchNormalizedRow p A S k)) =
@@ -1356,6 +1497,8 @@ theorem sketchNormalizedRow_outer {K C : Type} [Fintype K] (p : FinDist K) (A : 
       ring
     _ = _ := by rw [hsC,_root_.mul_inv_rev]; simp only [Complex.star_def]; ring
 
+/-- For nonnegative `S`, the normalized row's squared Euclidean norm is its row energy divided
+by its sampling probability times `S`. -/
 theorem sketchNormalizedRow_norm_sq {K C : Type} [Fintype K] [Fintype C] (p : FinDist K)
     (A : Matrix K C ℂ) (S : ℝ) (hS : 0≤S) (k : K) :
     ‖toEuclidean_fromVec (sketchNormalizedRow p A S k)‖^2 = sketchRowSquared A k/(p.prob k*S) := by
@@ -1368,11 +1511,14 @@ theorem sketchNormalizedRow_norm_sq {K C : Type} [Fintype K] [Fintype C] (p : Fi
 set_option warningAsError false
 open scoped Matrix.Norms.Frobenius in
 
+/-- A nonzero matrix has positive total squared energy. -/
 theorem sketchSquared_pos_of_ne_zero {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ) (hA : A≠0) :
     0<sketchSquared A := by
   rw [← sketch_frobenius_norm_sq]
   exact sq_pos_of_pos (norm_pos_iff.mpr hA)
 
+/-- Under row energy domination and positive `S`, each normalized row has Euclidean norm at most
+sqrt(φ times the total energy divided by S). -/
 theorem sketchNormalizedRow_bound {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ S : ℝ) (hφ : 1≤φ) (hS : 0<S)
     (hE : 0<sketchSquared A) (hdom : ∀ k,sketchRowSquared A k/(φ*sketchSquared A)≤p.prob k) (k : K) :
@@ -1389,10 +1535,13 @@ theorem sketchNormalizedRow_bound {K C : Type} [Fintype K] [DecidableEq K] [Fint
     rw [he]
     exact hrow
 
+/-- The operator norm of AᴴA equals the square of the operator norm of `A`. -/
 theorem sketchGram_norm {K C : Type} [Fintype K] [Fintype C] [DecidableEq C] (A : Matrix K C ℂ) :
     ‖Aᴴ*A‖=‖A‖^2 := by
   simpa only [pow_two] using! Matrix.l2_opNorm_conjTranspose_mul_self A
 
+/-- Under row energy domination and nonnegative `S`, the mean normalized row covariance is S⁻¹
+times AᴴA. -/
 theorem sketchNormalizedRow_mean {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ S : ℝ) (hφ : 1≤φ) (hS : 0≤S)
     (hE : 0<sketchSquared A) (hdom : ∀ k,sketchRowSquared A k/(φ*sketchSquared A)≤p.prob k) :
@@ -1402,6 +1551,8 @@ theorem sketchNormalizedRow_mean {K C : Type} [Fintype K] [DecidableEq K] [Finty
   rw [← sketchGram_mean_matrix p A φ hφ hE hdom,Finset.smul_sum]
   exact Finset.sum_congr rfl (fun k _=>smul_comm _ _ _)
 
+/-- For positive `S` under row energy domination, the normalized covariance error equals the
+Gram sketch operator error divided by `S`. -/
 theorem sketchNormalizedRow_error {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ S : ℝ) (hφ : 1≤φ) (hS : 0<S)
     (hE : 0<sketchSquared A) (hdom : ∀ k,sketchRowSquared A k/(φ*sketchSquared A)≤p.prob k)
@@ -1419,6 +1570,8 @@ theorem sketchNormalizedRow_error {K C : Type} [Fintype K] [DecidableEq K] [Fint
   rw [hprod,norm_smul,Real.norm_eq_abs,abs_of_nonneg (inv_nonneg.mpr hS.le)]
   ring
 
+/-- For a nonzero matrix under row energy domination, normalization by the squared operator norm
+makes the covariance mean have norm one. -/
 theorem sketchNormalizedRow_mean_norm {K C : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ) (hφ : 1≤φ) (hA : A≠0)
     (hdom : ∀ k,sketchRowSquared A k/(φ*sketchSquared A)≤p.prob k) :
@@ -1429,6 +1582,8 @@ theorem sketchNormalizedRow_mean_norm {K C : Type} [Fintype K] [DecidableEq K] [
     norm_smul,Real.norm_eq_abs,abs_of_nonneg (inv_nonneg.mpr hS.le),sketchGram_norm,
     inv_mul_cancel₀ (ne_of_gt hS)]
 
+/-- For a nonnegative finite random variable and 0 ≤ t ≤ 1, tᵖ times the probability of
+exceeding `t` is at most the pth moment of the variable truncated at one. -/
 theorem sketch_finite_truncated_markov {X : Type} [Fintype X] [DecidableEq X] (law : FinDist X)
     (e : X → ℝ) (he : ∀ x,0≤e x) (t : ℝ) (ht : 0≤t) (ht1 : t≤1) (p : ℕ) :
     t^p*(∑ x ∈ Finset.univ.filter (fun x=>t<e x),law.prob x) ≤ law.expect (fun x=>min (e x) 1 ^p) := by
@@ -1443,6 +1598,7 @@ theorem sketch_finite_truncated_markov {X : Type} [Fintype X] [DecidableEq X] (l
     _ ≤ _ := Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _) (fun x _ _=>
       mul_nonneg (law.nonneg x) (pow_nonneg (le_min (he x) (by norm_num)) p))
 
+/-- For 0 < δ < 1, there is a positive integer moment order p ≤ 2 log(4 / δ) with 2⁻ᵖ ≤ δ. -/
 theorem sketch_tail_moment_choice (δ : ℝ) (hδ : 0<δ) (hδ1 : δ<1) :
     ∃ p : ℕ,1≤p ∧ (p:ℝ)≤2*Real.log (4/δ) ∧ (2:ℝ)^(-(p:ℤ))≤δ := by
   have hl2 : (1/2:ℝ)<Real.log 2 := by linarith [Real.log_two_gt_d9]
@@ -1473,6 +1629,8 @@ theorem sketch_tail_moment_choice (δ : ℝ) (hδ : 0<δ) (hδ1 : δ<1) :
   rw [he] at hex
   exact ⟨p,hp,hpm,hex⟩
 
+/-- The stated sample budget and moment-order bound make the covariance moment scale at most η /
+(2S) under the parameter assumptions. -/
 theorem sketch_tail_budget (E S φ η δ : ℝ) (r p : ℕ) (hE : 0≤E) (hS : 0<S)
     (hφ : 1≤φ) (hη : 0≤η) (hr : 2≤r) (hδ : 0<δ) (hδ1 : δ<1)
     (hp : (p:ℝ)≤2*Real.log (4/δ))
@@ -1505,6 +1663,9 @@ theorem sketch_tail_budget (E S φ η δ : ℝ) (r p : ℕ) (hE : 0≤E) (hS : 0
   apply (div_le_div_iff₀ (mul_pos hS hrp) (by positivity : 0<4*S^2)).mpr
   convert! mul_le_mul_of_nonneg_right hn hS.le using 1 <;> ring
 
+/-- There is a universal positive constant such that the stated sample budget bounds the Gram
+operator error probability by `δ`, for r ≥ 2 and a positive threshold no larger than the
+squared operator norm. See [ChiaEtAl2022]. -/
 theorem compact_sketch_operator_tail_nontrivial :
     ∃ c₀ : ℝ,0<c₀ ∧ ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
       (law : FinDist K) (r : ℕ) (A : Matrix K C ℂ) (φ η δ : ℝ),

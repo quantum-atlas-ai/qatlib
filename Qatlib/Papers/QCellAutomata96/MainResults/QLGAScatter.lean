@@ -15,6 +15,27 @@ import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Fintype.EquivFin
 import Mathlib.LinearAlgebra.Matrix.Diagonal
 
+/-!
+# Number-conserving lattice-gas scattering
+
+This module defines the four-state scattering matrix of Equation (25) on a pair of occupation
+sites. It proves unitarity, identifies the one-particle block, and shows that the matrix
+commutes with particle number and preserves every fixed-particle sector. See [Meyer1996a].
+
+## Main statements
+
+* `scatterMatrix_mem_unitary`: The pair scattering matrix is unitary for every choice of real
+  parameters.
+* `scatterMatrix_comm_particleNumber`: The scattering matrix commutes with the particle-number
+  operator.
+* `scatterMatrix_preserves_sector`: Scattering sends a vector supported on the `n`-particle
+  sector to a vector supported on the same sector.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -23,18 +44,25 @@ open scoped Matrix
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- The four occupation basis labels for a pair of sites. -/
 abbrev PairState : Type := Fin 4
 
+/-- The particle counts zero, one, one, and two on the four pair-state labels. -/
 def pairParticles : PairState → ℕ := ![0, 1, 1, 2]
 
+/-- Pair-state label zero contains zero particles. -/
 @[simp] theorem pairParticles_zero : pairParticles 0 = 0 := rfl
 
+/-- Pair-state label one contains one particle. -/
 @[simp] theorem pairParticles_one : pairParticles 1 = 1 := rfl
 
+/-- Pair-state label two contains one particle. -/
 @[simp] theorem pairParticles_two : pairParticles 2 = 1 := rfl
 
+/-- Pair-state label three contains two particles. -/
 @[simp] theorem pairParticles_three : pairParticles 3 = 2 := rfl
 
+/-- A real phase exponential multiplied by its complex conjugate equals one. -/
 theorem exp_I_mul_star (α : ℝ) :
     Complex.exp (I * (α : ℂ)) * star (Complex.exp (I * (α : ℂ))) = 1 := by
   rw [show star (Complex.exp (I * (α : ℂ))) =
@@ -45,6 +73,7 @@ theorem exp_I_mul_star (α : ℝ) :
     ring
   rw [hzero, Complex.exp_zero]
 
+/-- The complex conjugate of a real phase exponential is the exponential of the negative phase. -/
 theorem star_exp_I_mul (α : ℝ) :
     star (Complex.exp (I * (α : ℂ))) = Complex.exp (-(I * (α : ℂ))) := by
   rw [show star (Complex.exp (I * (α : ℂ))) =
@@ -54,6 +83,8 @@ theorem star_exp_I_mul (α : ℝ) :
   rw [map_mul, Complex.conj_I, Complex.conj_ofReal]
   ring
 
+/-- The four-state scattering matrix fixing the vacuum, applying a phased trigonometric block in
+the one-particle sector, and a phase in the two-particle sector. -/
 def scatterMatrix (θ α β : ℝ) : Matrix PairState PairState ℂ :=
   !![1, 0, 0, 0;
      0, I * (Real.sin θ : ℂ) * Complex.exp (I * (α : ℂ)),
@@ -62,6 +93,9 @@ def scatterMatrix (θ α β : ℝ) : Matrix PairState PairState ℂ :=
         I * (Real.sin θ : ℂ) * Complex.exp (I * (α : ℂ)), 0;
      0, 0, 0, Complex.exp (I * (β : ℂ))]
 
+/-- The block matrix with vacuum entry one, symmetric one-particle coefficients `a` and `b`, and
+two-particle phase `f` is unitary under the displayed normalization and cross-term
+conditions. See [Meyer1996a]. -/
 theorem unitary_pair_form (a b f : ℂ)
     (h1 : a * star a + b * star b = 1)
     (h2 : a * star b + b * star a = 0)
@@ -81,6 +115,7 @@ theorem unitary_pair_form (a b f : ℂ)
     simp [Matrix.mul_apply, Fin.sum_univ_four, Matrix.of_apply,
       h1s, h1s', h2s, h2s', h3s]
 
+/-- The pair scattering matrix is unitary for every choice of real parameters. See [Meyer1996a]. -/
 theorem scatterMatrix_mem_unitary (θ α β : ℝ) :
     scatterMatrix θ α β ∈ Matrix.unitaryGroup PairState ℂ := by
   rw [show scatterMatrix θ α β =
@@ -145,9 +180,11 @@ theorem scatterMatrix_mem_unitary (θ α β : ℝ) :
       _ = 0 := by rw [hp]; ring
   · exact exp_I_mul_star β
 
+/-- The diagonal operator assigning each pair basis state its particle count. -/
 def particleNumberOp : Matrix PairState PairState ℂ :=
   Matrix.diagonal (fun i => (pairParticles i : ℂ))
 
+/-- The scattering matrix commutes with the particle-number operator. See [Meyer1996a]. -/
 theorem scatterMatrix_comm_particleNumber (θ α β : ℝ) :
     scatterMatrix θ α β * particleNumberOp = particleNumberOp * scatterMatrix θ α β := by
   ext i j
@@ -155,9 +192,12 @@ theorem scatterMatrix_comm_particleNumber (θ α β : ℝ) :
     simp [scatterMatrix, particleNumberOp, Matrix.mul_apply, Matrix.diagonal] <;>
     ring
 
+/-- The two-by-two submatrix on pair-state labels one and two. -/
 def oneParticleBlock (M : Matrix PairState PairState ℂ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![M 1 1, M 1 2; M 2 1, M 2 2]
 
+/-- The one-particle scattering block is the trigonometric cell-pair matrix multiplied by the
+phase `exp (i * α)`. See [Meyer1996a]. -/
 theorem scatterMatrix_oneParticleBlock (θ α β : ℝ) :
     oneParticleBlock (scatterMatrix θ α β) =
       Complex.exp (I * (α : ℂ)) •
@@ -168,10 +208,14 @@ theorem scatterMatrix_oneParticleBlock (θ α β : ℝ) :
     simp [oneParticleBlock, scatterMatrix, Matrix.smul_apply] <;>
     ring
 
+/-- A scattering-matrix entry vanishes between basis states with different particle counts. See
+[Meyer1996a]. -/
 theorem scatterMatrix_eq_zero_of_particles_ne (θ α β : ℝ) {i k : PairState}
     (h : pairParticles i ≠ pairParticles k) : scatterMatrix θ α β i k = 0 := by
   fin_cases i <;> fin_cases k <;> simp_all [scatterMatrix, pairParticles]
 
+/-- Scattering sends a vector supported on the `n`-particle sector to a vector supported on the
+same sector. See [Meyer1996a]. -/
 theorem scatterMatrix_preserves_sector (θ α β : ℝ) (n : ℕ) (v : PairState → ℂ)
     (hv : ∀ i, v i ≠ 0 → pairParticles i = n) :
     ∀ i, (scatterMatrix θ α β *ᵥ v) i ≠ 0 → pairParticles i = n := by

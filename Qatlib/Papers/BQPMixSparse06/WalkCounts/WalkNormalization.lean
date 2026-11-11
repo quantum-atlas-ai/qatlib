@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.BQPMixSparse06.WalkCounts.MomentSupport
 import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem3DecayIdentity
+
+/-!
+# Normalization of walk matrices and moment gaps
+
+The matrix `randomWalkMatrix G d` scales `G` by `d⁻¹`. Its power identities transfer differences
+of walk counts to differences of normalized matrix entries, and constant row or column sums
+become one after normalization by a nonzero `d`.
+
+For a symmetric zero-one matrix with constant row sums, `second_moment_difference` expresses the
+diagonal-minus-off-diagonal second moment as a nonnegative overlap deficit. Distinct rows give a
+lower bound of one, as used in the walk-count reductions of [JanzingWocjan2006].
+
+## Main statements
+
+* `randomWalk_delta_eq`: normalization scales a length-`m` entry difference by `(d⁻¹) ^ m`.
+* `second_moment_ge_one`: distinct rows force a second-moment difference of at least one.
+* `walkCount_thresholds_disjoint`: ordered thresholds at positive scale are incompatible.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,14 +38,17 @@ namespace Qatlib.Papers.BQPMixSparse06.WalkCounts
 
 open Finset Matrix
 
+/-- The normalized matrix `d⁻¹ • G`. -/
 def randomWalkMatrix {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ) :
     Matrix (Fin N) (Fin N) ℝ :=
   d⁻¹ • G
 
+/-- An entry of `randomWalkMatrix G d` is `d⁻¹ * G i j`. -/
 theorem randomWalkMatrix_apply {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
     (i j : Fin N) : randomWalkMatrix G d i j = d⁻¹ * G i j := by
   simp [randomWalkMatrix, Matrix.smul_apply, smul_eq_mul]
 
+/-- The `m`th power of the normalized matrix is `(d⁻¹) ^ m • G ^ m`. -/
 theorem randomWalkMatrix_pow {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
     (m : ℕ) : (randomWalkMatrix G d) ^ m = (d⁻¹) ^ m • G ^ m := by
   induction m with
@@ -32,11 +58,15 @@ theorem randomWalkMatrix_pow {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ
       rw [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
       rw [pow_succ]
 
+/-- Every entry of the `m`th power is the corresponding entry of `G ^ m` multiplied by `(d⁻¹) ^
+m`. -/
 theorem randomWalkMatrix_pow_apply {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
     (m : ℕ) (i j : Fin N) :
     ((randomWalkMatrix G d) ^ m) i j = (d⁻¹) ^ m * (G ^ m) i j := by
   rw [randomWalkMatrix_pow, Matrix.smul_apply, smul_eq_mul]
 
+/-- The diagonal-minus-off-diagonal difference for the normalized `m`th power is `(d⁻¹) ^ m`
+times the corresponding difference for `G ^ m` [JanzingWocjan2006]. -/
 theorem randomWalk_delta_eq {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
     (m : ℕ) (q r : Fin N) :
     ((randomWalkMatrix G d) ^ m) q q - ((randomWalkMatrix G d) ^ m) q r =
@@ -44,27 +74,35 @@ theorem randomWalk_delta_eq {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
   rw [randomWalkMatrix_pow_apply, randomWalkMatrix_pow_apply]
   ring
 
+/-- A natural power of the reciprocal of `d` is the reciprocal of the same power of `d`. -/
 theorem inv_pow_eq {d : ℝ} (m : ℕ) : (d⁻¹) ^ m = (d ^ m)⁻¹ :=
   inv_pow d m
 
+/-- If each row of `G` sums to the nonzero value `d`, every row of its normalized matrix sums to
+one [JanzingWocjan2006]. -/
 theorem randomWalkMatrix_row_sum {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
     (hd : d ≠ 0) (hrow : ∀ i, ∑ j, G i j = d) (i : Fin N) :
     ∑ j, randomWalkMatrix G d i j = 1 := by
   simp only [randomWalkMatrix_apply]
   rw [← Finset.mul_sum, hrow, inv_mul_cancel₀ hd]
 
+/-- If each column of `G` sums to the nonzero value `d`, every column of its normalized matrix
+sums to one [JanzingWocjan2006]. -/
 theorem randomWalkMatrix_col_sum {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ)
     (hd : d ≠ 0) (hcol : ∀ j, ∑ i, G i j = d) (j : Fin N) :
     ∑ i, randomWalkMatrix G d i j = 1 := by
   simp only [randomWalkMatrix_apply]
   rw [← Finset.mul_sum, hcol, inv_mul_cancel₀ hd]
 
+/-- The negative of the graph Laplacian expression is `G - d • 1` [JanzingWocjan2006]. -/
 theorem neg_graphLaplacian_eq {N : ℕ} (G : Matrix (Fin N) (Fin N) ℝ) (d : ℝ) :
     -Qatlib.Papers.BQPMixSparse06.MainResults.graphLaplacian G d =
       G - d • (1 : Matrix (Fin N) (Fin N) ℝ) := by
   unfold Qatlib.Papers.BQPMixSparse06.MainResults.graphLaplacian
   rw [neg_sub]
 
+/-- For a symmetric zero-one matrix with constant row sums, the diagonal-minus-off-diagonal
+second moment equals `∑ k, G q k * (1 - G r k)` after casting to real numbers. -/
 theorem second_moment_difference {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d : ℝ)
     (h01 : ∀ i j, G i j = 0 ∨ G i j = 1)
     (hsym : ∀ i j, G i j = G j i)
@@ -92,6 +130,8 @@ theorem second_moment_difference {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d :
     rcases h01 q k with h | h <;> simp [h]
   rcases hq with h | h <;> rw [h] <;> ring
 
+/-- Two distinct rows of a zero-one matrix with equal row sums have an index where the first
+entry is one and the second is zero. -/
 theorem exists_one_zero_of_differ {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d : ℝ)
     (h01 : ∀ i j, G i j = 0 ∨ G i j = 1)
     (hrow : ∀ i, ∑ j, (G i j : ℝ) = d)
@@ -145,6 +185,8 @@ theorem exists_one_zero_of_differ {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d 
   · exact absurd hk hk0ne
   · exact ⟨k0, hconv k0 hk⟩
 
+/-- For a symmetric zero-one matrix with constant row sums, distinct rows `q` and `r` give a
+diagonal-minus-off-diagonal second moment at least one [JanzingWocjan2006]. -/
 theorem second_moment_ge_one {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d : ℝ)
     (h01 : ∀ i j, G i j = 0 ∨ G i j = 1)
     (hsym : ∀ i j, G i j = G j i)
@@ -164,6 +206,8 @@ theorem second_moment_ge_one {N : ℕ} (G : Matrix (Fin N) (Fin N) ℤ) (d : ℝ
     rcases h01 q l with hl | hl <;> rcases h01 r l with hr | hr <;> simp [hl, hr]
   exact hsingle
 
+/-- A quantity cannot be both at least `a * e` and at most `b * e` when `b < a` and `e` is
+positive. -/
 theorem walkCount_thresholds_disjoint {Delta a b e : ℝ} (hba : b < a) (he : 0 < e) :
     ¬ (a * e ≤ Delta ∧ Delta ≤ b * e) := by
   rintro ⟨h1, h2⟩

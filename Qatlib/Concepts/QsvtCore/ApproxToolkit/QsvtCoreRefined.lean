@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreDefs
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
+
+/-!
+# Polynomial transport and rectangle approximation bounds
+
+This module proves scalar and matrix perturbation bounds for polynomial responses using
+`polynomialLipschitzWeight`. It transfers these bounds through Hermitian dilations and odd
+singular-value transforms and proves that two translated sign approximations satisfy
+`RectangleBand`. Background and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `abs_polynomial_eval_sub_le`: a scalar Lipschitz bound on the unit interval.
+* `oddSingularTransform_polynomial_transport`: a polynomial perturbation bound for contractions.
+* `rectangle_from_sign`: derives rectangle bands from a sign approximation.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -56,12 +76,15 @@ open Qatlib
 open Qatlib
 set_option warningAsError false
 
+/-- The coefficient-weighted polynomial Lipschitz bound is nonnegative. -/
 theorem polynomialLipschitzWeight_nonneg (p : Polynomial ℝ) :
     0 ≤ polynomialLipschitzWeight p := by
   unfold polynomialLipschitzWeight
   exact Finset.sum_nonneg fun k hk =>
     mul_nonneg (Nat.cast_nonneg _) (abs_nonneg _)
 
+/-- For real `x` and `y` in [−1, 1], the difference of their `k`th powers has absolute value at
+most k|x − y|. -/
 theorem abs_pow_sub_le (x y : ℝ) (hx : |x| ≤ 1) (hy : |y| ≤ 1) (k : ℕ) :
     |x ^ k - y ^ k| ≤ (k : ℝ) * |x - y| := by
   induction k with
@@ -95,6 +118,8 @@ theorem abs_pow_sub_le (x y : ℝ) (hx : |x| ≤ 1) (hy : |y| ≤ 1) (k : ℕ) :
       ring
     exact (add_le_add h1 h2).trans (le_of_eq h3)
 
+/-- On [−1, 1], the difference of two polynomial values is bounded by `polynomialLipschitzWeight
+p` times the distance between the inputs. -/
 theorem abs_polynomial_eval_sub_le (p : Polynomial ℝ) (x y : ℝ) (hx : |x| ≤ 1) (hy : |y| ≤ 1) :
     |p.eval x - p.eval y| ≤ polynomialLipschitzWeight p * |x - y| := by
   have hexp : p.eval x - p.eval y =
@@ -121,6 +146,8 @@ theorem abs_polynomial_eval_sub_le (p : Polynomial ℝ) (x y : ℝ) (hx : |x| �
   rw [hexp]
   exact hsum.trans ((Finset.sum_le_sum fun k hk => hterm k hk).trans (le_of_eq hfin))
 
+/-- The function `polynomialResponseModulus p` is a modulus of continuity for the complex-valued
+cast of the real polynomial response. -/
 theorem polynomial_response_modulus (p : Polynomial ℝ) :
     ModulusOfContinuity (fun x : ℝ => ((p.eval x : ℝ) : ℂ))
       (polynomialResponseModulus p) := by
@@ -140,6 +167,8 @@ theorem polynomial_response_modulus (p : Polynomial ℝ) :
     · unfold polynomialResponseModulus
       exact le_rfl
 
+/-- For contraction matrices `A` and `B`, polynomial functional calculus on their Hermitian
+dilations differs in operator norm by at most `polynomialLipschitzWeight p * ‖A - B‖`. -/
 theorem dilationPolynomialResponseTransport {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A B : Matrix O I ℂ) (p : Polynomial ℝ)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) :
@@ -155,6 +184,8 @@ theorem dilationPolynomialResponseTransport {O I : Type} [Fintype O] [Fintype I]
   rw [hermitianDilation_sub_norm] at hpoly
   exact hpoly
 
+/-- For an odd real polynomial response and contraction matrices `A` and `B`, the odd singular
+transforms differ by at most `polynomialLipschitzWeight p * ‖A - B‖`. -/
 theorem oddSingularTransform_polynomial_transport {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A B : Matrix O I ℂ) (p : Polynomial ℝ)
     (hodd : IsOddFunction (fun x : ℝ => ((p.eval x : ℝ) : ℂ)))
@@ -178,6 +209,9 @@ theorem oddSingularTransform_polynomial_transport {O I : Type} [Fintype O] [Fint
   have htr := dilationPolynomialResponseTransport A B p hA1 hB1
   simpa [hfdef] using! hle.trans htr
 
+/-- For Hermitian contractions, the polynomial functional-calculus difference is bounded by
+`modulusRobustnessFactor` times `polynomialResponseModulus`, both evaluated at the input
+distance. -/
 theorem hermitianFunction_polynomial_printed {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (p : Polynomial ℝ) :
@@ -204,6 +238,9 @@ theorem hermitianFunction_polynomial_printed {I : Type} [Fintype I] [DecidableEq
     ring
   exact hpoly.trans (hmain.trans (le_of_eq hlast))
 
+/-- For an odd polynomial response on contractions, the odd singular-transform difference
+satisfies the product bound given by `modulusRobustnessFactor` and
+`polynomialResponseModulus` at the input distance. -/
 theorem oddSingularTransform_polynomial_printed {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A B : Matrix O I ℂ) (p : Polynomial ℝ)
     (hodd : IsOddFunction (fun x : ℝ => ((p.eval x : ℝ) : ℂ)))
@@ -231,6 +268,7 @@ theorem oddSingularTransform_polynomial_printed {O I : Type} [Fintype O] [Fintyp
     ring
   exact htr.trans (hmain.trans (le_of_eq hlast))
 
+/-- Evaluating the rectangle polynomial yields ((1 − ε₀)/2)(S(x + t) + S(t − x)) + ε₀. -/
 theorem rectanglePolynomial_eval (S : Polynomial ℝ) (ε₀ t x : ℝ) :
     (rectanglePolynomial S ε₀ t).eval x =
       ((1 - ε₀) / 2) * (S.eval (x + t) + S.eval (t - x)) + ε₀ := by
@@ -238,12 +276,16 @@ theorem rectanglePolynomial_eval (S : Polynomial ℝ) (ε₀ t x : ℝ) :
   rw [Polynomial.eval_comp, Polynomial.eval_comp]
   simp only [Polynomial.eval_add, Polynomial.eval_sub, Polynomial.eval_C, Polynomial.eval_X]
 
+/-- The rectangle polynomial response is even for every input polynomial and all real
+parameters. -/
 theorem rectanglePolynomial_even (S : Polynomial ℝ) (ε₀ t x : ℝ) :
     (rectanglePolynomial S ε₀ t).eval (-x) = (rectanglePolynomial S ε₀ t).eval x := by
   rw [rectanglePolynomial_eval, rectanglePolynomial_eval]
   congr 1
   ring
 
+/-- A sign approximation takes values in [1 − σ, 1 + σ] at positive points in [−2, 2] outside
+the gap. -/
 theorem signApprox_pos {S : Polynomial ℝ} {δ σ : ℝ} (hS : SignApproximation S δ σ)
     {y : ℝ} (hy2 : |y| ≤ 2) (hyδ : δ ≤ |y|) (hypos : 0 < y) :
     1 - σ ≤ S.eval y ∧ S.eval y ≤ 1 + σ := by
@@ -252,6 +294,8 @@ theorem signApprox_pos {S : Polynomial ℝ} {δ σ : ℝ} (hS : SignApproximatio
   have h' := abs_le.mp h
   constructor <;> linarith
 
+/-- A sign approximation takes values in [−1 − σ, −1 + σ] at negative points in [−2, 2] outside
+the gap. -/
 theorem signApprox_neg {S : Polynomial ℝ} {δ σ : ℝ} (hS : SignApproximation S δ σ)
     {y : ℝ} (hy2 : |y| ≤ 2) (hyδ : δ ≤ |y|) (hyneg : y < 0) :
     -1 - σ ≤ S.eval y ∧ S.eval y ≤ -1 + σ := by
@@ -260,6 +304,8 @@ theorem signApprox_neg {S : Polynomial ℝ} {δ σ : ℝ} (hS : SignApproximatio
   have h' := abs_le.mp h
   constructor <;> linarith
 
+/-- For 0 < ε₀ < 1, positive gap, and 0 ≤ t with t + δ ≤ 1, two translated sign approximations
+satisfy `RectangleBand` with band error (1 − ε₀)σ. -/
 theorem rectangle_from_sign {S : Polynomial ℝ} {ε₀ δ t σ : ℝ}
     (hε0 : 0 < ε₀) (hε01 : ε₀ < 1) (hδ : 0 < δ) (ht : 0 ≤ t) (htδ : t + δ ≤ 1)
     (hS : SignApproximation S δ σ) :

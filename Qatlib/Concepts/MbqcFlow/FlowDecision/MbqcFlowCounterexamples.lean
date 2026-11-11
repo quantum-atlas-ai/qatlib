@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+
+/-!
+# Counterexamples for flow checking and branch equality
+
+This module constructs a four-vertex instance with `MbqcHasGFlow` for which no candidate passes
+`mbqcGFlowCheck`, and a six-vertex instance refuting `clause6Aux_clause4_branchObligation`. The
+underlying flow and generalized-flow notions are discussed in [DanosKashefi2006] and
+[BrowneEtAl2007].
+
+The proofs enumerate odd neighborhoods and derive rank constraints for the first instance. For
+the second, they force the checked flow map and compute distinct branch entries using
+tensor-product matrices and controlled-Z phases.
+
+## Main statements
+
+* `clause6_clause3b_counter_witness`: the four-vertex instance possesses a generalized flow.
+* `clause6_clause3b_complete_refuted`: the implemented generalized-flow decider is not complete
+  for `MbqcHasGFlow`.
+* `clause6Aux_branch_decider_some`: the six-vertex instance is accepted by the ordinary flow
+  decider.
+* `clause6Aux_clause4_branch_refuted`: the specified universal branch-equality obligation is
+  false.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+* [Browne et al., 2007][BrowneEtAl2007]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -34,93 +63,128 @@ open scoped Classical
 set_option maxHeartbeats 400000
 set_option linter.unusedSimpArgs false
 
+/-- The four-vertex complete bipartite graph with parts `{0, 1}` and `{2, 3}` used for the
+generalized-flow checker counterexample. -/
 def clause6Aux_counterGraph : MbqcGraph 4 where
   edges := {(0, 2), (0, 3), (1, 2), (1, 3)}
 
+/-- The empty input set for the four-vertex generalized-flow checker counterexample. -/
 def clause6Aux_counterI : Finset (Fin 4) := (∅ : Finset (Fin 4))
 
+/-- The singleton output set `{0}` for the four-vertex generalized-flow checker counterexample. -/
 def clause6Aux_counterO : Finset (Fin 4) := ({0} : Finset (Fin 4))
 
+/-- The plane assignment using YZ at vertex three and XY at every other vertex. -/
 def clause6Aux_counterLam : Fin 4 → MbqcPlane := fun v => if v = 3 then .YZ else .XY
 
+/-- In the four-vertex counterexample graph, vertex zero is adjacent exactly to vertices two and
+three. -/
 theorem clause6Aux_adj_zero (u : Fin 4) :
     mbqcAdj clause6Aux_counterGraph 0 u = true ↔ u = 2 ∨ u = 3 := by
   fin_cases u <;> decide
 
+/-- In the four-vertex counterexample graph, vertex one is adjacent exactly to vertices two and
+three. -/
 theorem clause6Aux_adj_one (u : Fin 4) :
     mbqcAdj clause6Aux_counterGraph 1 u = true ↔ u = 2 ∨ u = 3 := by
   fin_cases u <;> decide
 
+/-- In the four-vertex counterexample graph, vertex two is adjacent exactly to vertices zero and
+one. -/
 theorem clause6Aux_adj_two (u : Fin 4) :
     mbqcAdj clause6Aux_counterGraph 2 u = true ↔ u = 0 ∨ u = 1 := by
   fin_cases u <;> decide
 
+/-- In the four-vertex counterexample graph, vertex three is adjacent exactly to vertices zero
+and one. -/
 theorem clause6Aux_adj_three (u : Fin 4) :
     mbqcAdj clause6Aux_counterGraph 3 u = true ↔ u = 0 ∨ u = 1 := by
   fin_cases u <;> decide
 
+/-- The empty set has empty odd neighborhood in the four-vertex counterexample graph. -/
 theorem clause6Aux_odd_empty :
     mbqcOdd clause6Aux_counterGraph (∅ : Finset (Fin 4)) = (∅ : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{0}` in the counterexample graph is `{2, 3}`. -/
 theorem clause6Aux_odd_zero :
     mbqcOdd clause6Aux_counterGraph ({0} : Finset (Fin 4)) = ({2, 3} : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{1}` in the counterexample graph is `{2, 3}`. -/
 theorem clause6Aux_odd_one :
     mbqcOdd clause6Aux_counterGraph ({1} : Finset (Fin 4)) = ({2, 3} : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{2}` in the counterexample graph is `{0, 1}`. -/
 theorem clause6Aux_odd_two :
     mbqcOdd clause6Aux_counterGraph ({2} : Finset (Fin 4)) = ({0, 1} : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{3}` in the counterexample graph is `{0, 1}`. -/
 theorem clause6Aux_odd_three :
     mbqcOdd clause6Aux_counterGraph ({3} : Finset (Fin 4)) = ({0, 1} : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{0, 1}` in the counterexample graph is empty. -/
 theorem clause6Aux_odd_zero_one :
     mbqcOdd clause6Aux_counterGraph ({0, 1} : Finset (Fin 4)) = (∅ : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{0, 2}` in the counterexample graph is the entire vertex set. -/
 theorem clause6Aux_odd_zero_two :
     mbqcOdd clause6Aux_counterGraph ({0, 2} : Finset (Fin 4)) = (Finset.univ : Finset (Fin 4)) := by
   decide
 
+/-- The odd neighborhood of `{0, 3}` in the counterexample graph is the entire vertex set. -/
 theorem clause6Aux_odd_zero_three :
     mbqcOdd clause6Aux_counterGraph ({0, 3} : Finset (Fin 4)) = (Finset.univ : Finset (Fin 4)) := by
   decide
 
+/-- The odd neighborhood of `{1, 3}` in the counterexample graph is the entire vertex set. -/
 theorem clause6Aux_odd_one_three :
     mbqcOdd clause6Aux_counterGraph ({1, 3} : Finset (Fin 4)) = (Finset.univ : Finset (Fin 4)) := by
   decide
 
+/-- The odd neighborhood of `{2, 3}` in the counterexample graph is empty. -/
 theorem clause6Aux_odd_two_three :
     mbqcOdd clause6Aux_counterGraph ({2, 3} : Finset (Fin 4)) = (∅ : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{0, 1, 3}` in the counterexample graph is `{0, 1}`. -/
 theorem clause6Aux_odd_zero_one_three :
     mbqcOdd clause6Aux_counterGraph ({0, 1, 3} : Finset (Fin 4)) = ({0, 1} : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{0, 2, 3}` in the counterexample graph is `{2, 3}`. -/
 theorem clause6Aux_odd_zero_two_three :
     mbqcOdd clause6Aux_counterGraph ({0, 2, 3} : Finset (Fin 4)) = ({2, 3} : Finset (Fin 4)) := by decide
 
+/-- The odd neighborhood of `{1, 2, 3}` in the counterexample graph is `{2, 3}`. -/
 theorem clause6Aux_odd_one_two_three :
     mbqcOdd clause6Aux_counterGraph ({1, 2, 3} : Finset (Fin 4)) = ({2, 3} : Finset (Fin 4)) := by decide
 
+/-- The entire vertex set has empty odd neighborhood in the counterexample graph. -/
 theorem clause6Aux_odd_univ :
     mbqcOdd clause6Aux_counterGraph (Finset.univ : Finset (Fin 4)) = (∅ : Finset (Fin 4)) := by decide
 
+/-- The Boolean XY-plane condition forces correction-set membership to be false and
+odd-neighborhood membership to be true. -/
 theorem clause6Aux_plane_XY_of {mem odd : Bool} (h : mbqcGFlowPlaneCondB .XY mem odd = true) :
     mem = false ∧ odd = true := by
   cases mem <;> cases odd <;> simp [mbqcGFlowPlaneCondB] at h ⊢
 
+/-- The Boolean YZ-plane condition forces correction-set membership to be true and
+odd-neighborhood membership to be false. -/
 theorem clause6Aux_plane_YZ_of {mem odd : Bool} (h : mbqcGFlowPlaneCondB .YZ mem odd = true) :
     mem = true ∧ odd = false := by
   cases mem <;> cases odd <;> simp [mbqcGFlowPlaneCondB] at h ⊢
 
+/-- A false Boolean decision of finite-set membership implies nonmembership. -/
 theorem clause6Aux_notMem_of_decide {v : Fin 4} {S : Finset (Fin 4)}
     (h : decide (v ∈ S) = false) : v ∉ S := by
   rw [decide_eq_false_iff_not] at h
   exact h
 
+/-- A true Boolean decision of finite-set membership implies membership. -/
 theorem clause6Aux_mem_of_decide {v : Fin 4} {S : Finset (Fin 4)}
     (h : decide (v ∈ S) = true) : v ∈ S := by
   exact of_decide_eq_true h
 
+/-- A passing generalized-flow check on the four-vertex counterexample forces the rank at vertex
+one to satisfy one of the four displayed systems of strict and weak inequalities. -/
 theorem clause6Aux_shape_one
     (g : Fin 4 → Finset (Fin 4)) (r : Fin 4 → Fin 4)
     (h : mbqcGFlowCheck clause6Aux_counterGraph clause6Aux_counterI clause6Aux_counterO clause6Aux_counterLam g r) :
@@ -205,6 +269,8 @@ theorem clause6Aux_shape_one
     rw [hEq, clause6Aux_odd_empty] at h1in
     simp at h1in
 
+/-- A passing generalized-flow check on the four-vertex counterexample forces the rank at vertex
+two to satisfy one of the four displayed systems of strict and weak inequalities. -/
 theorem clause6Aux_shape_two
     (g : Fin 4 → Finset (Fin 4)) (r : Fin 4 → Fin 4)
     (h : mbqcGFlowCheck clause6Aux_counterGraph clause6Aux_counterI clause6Aux_counterO clause6Aux_counterLam g r) :
@@ -293,6 +359,8 @@ theorem clause6Aux_shape_two
     rw [hEq, clause6Aux_odd_empty] at h2in
     simp at h2in
 
+/-- A passing generalized-flow check on the four-vertex counterexample forces the rank at vertex
+three to satisfy one of the four displayed systems of strict and weak inequalities. -/
 theorem clause6Aux_shape_three
     (g : Fin 4 → Finset (Fin 4)) (r : Fin 4 → Fin 4)
     (h : mbqcGFlowCheck clause6Aux_counterGraph clause6Aux_counterI clause6Aux_counterO clause6Aux_counterLam g r) :
@@ -375,6 +443,8 @@ theorem clause6Aux_shape_three
     simp only [mbqcRankPrec] at hB0 hB1
     exact ⟨not_lt.mp hB0, not_lt.mp hB1⟩
 
+/-- No correction-set function and finite rank assignment pass `mbqcGFlowCheck` on the
+four-vertex counterexample. -/
 theorem clause6Aux_counter_noCheck :
     ∀ (g : Fin 4 → Finset (Fin 4)) (r : Fin 4 → Fin 4),
       ¬ mbqcGFlowCheck clause6Aux_counterGraph clause6Aux_counterI clause6Aux_counterO clause6Aux_counterLam g r := by
@@ -384,6 +454,8 @@ theorem clause6Aux_counter_noCheck :
     rcases clause6Aux_shape_three g r h with s3 | s3 | s3 | s3 <;>
     omega
 
+/-- The strict relation forming the chain `1 < 2 < 0` and leaving vertex three unrelated to the
+other vertices. -/
 def clause6Aux_counterPrec : Fin 4 → Fin 4 → Prop :=
   fun u v => (u = 1 ∧ v = 2) ∨ (u = 2 ∧ v = 0) ∨ (u = 1 ∧ v = 0)
 
@@ -392,6 +464,7 @@ instance clause6Aux_counterPrecDec : DecidableRel clause6Aux_counterPrec := by
   unfold clause6Aux_counterPrec
   infer_instance
 
+/-- The relation `clause6Aux_counterPrec` is an irreflexive, transitive order. -/
 theorem clause6Aux_counterPrec_strict : IsStrictOrder (Fin 4) clause6Aux_counterPrec where
   irrefl x h := by
     simp only [clause6Aux_counterPrec] at h
@@ -402,12 +475,15 @@ theorem clause6Aux_counterPrec_strict : IsStrictOrder (Fin 4) clause6Aux_counter
       rcases h2 with ⟨h3, h4⟩ | ⟨h3, h4⟩ | ⟨h3, h4⟩ <;>
       simp only [clause6Aux_counterPrec] <;> omega
 
+/-- The correction-set function assigning the empty set to zero and the singletons `{2}`, `{0}`,
+and `{3}` to vertices one, two, and three. -/
 def clause6Aux_counterG : Fin 4 → Finset (Fin 4)
   | 0 => (∅ : Finset (Fin 4))
   | 1 => ({2} : Finset (Fin 4))
   | 2 => ({0} : Finset (Fin 4))
   | 3 => ({3} : Finset (Fin 4))
 
+/-- The four-vertex counterexample possesses a generalized flow in the sense of `MbqcHasGFlow`. -/
 theorem clause6_clause3b_counter_witness :
     MbqcHasGFlow clause6Aux_counterGraph clause6Aux_counterI clause6Aux_counterO clause6Aux_counterLam := by
   refine ⟨clause6Aux_counterG, clause6Aux_counterPrec, clause6Aux_counterPrecDec, ?_, clause6Aux_counterPrec_strict,
@@ -480,6 +556,7 @@ theorem clause6_clause3b_counter_witness :
       simp only [mbqcGFlowPlaneCond, clause6Aux_counterG, clause6Aux_odd_three]
       simp [Finset.mem_insert, Finset.mem_singleton]
 
+/-- A Boolean list search returns a value exactly when some list member satisfies the predicate. -/
 theorem clause6Aux_find_isSome_iff_exists {α : Type} (p : α → Bool) (l : List α) :
     (List.find? p l).isSome = true ↔ ∃ x ∈ l, p x = true := by
   constructor
@@ -491,6 +568,7 @@ theorem clause6Aux_find_isSome_iff_exists {α : Type} (p : α → Bool) (l : Lis
     | none => exact absurd hp (List.find?_eq_none.mp hfind x hx)
     | some a => simp
 
+/-- It is false that every instance possessing `MbqcHasGFlow` is accepted by `mbqcGFlowDecide`. -/
 theorem clause6_clause3b_complete_refuted :
     ¬ (∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)) (lam : Fin n → MbqcPlane),
         MbqcHasGFlow G I O lam → (mbqcGFlowDecide G I O lam).isSome = true) := by
@@ -506,6 +584,8 @@ theorem clause6_clause3b_complete_refuted :
   obtain ⟨p, _, hp⟩ := hsome
   exact clause6Aux_counter_noCheck p.1 p.2 (of_decide_eq_true hp)
 
+/-- The displayed conjunction of flow and generalized-flow determinism, decision equivalences,
+correction synthesis, and the final counterexample assertion is false. -/
 theorem clause1_counter : ¬
     (  (∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)) (a : Fin n → ℝ),
       MbqcHasFlow G I O → MbqcStronglyDeterministic G I O (fun _ => MbqcPlane.XY) a)
@@ -538,15 +618,22 @@ theorem clause1_counter : ¬
   exact clause6_clause3b_complete_refuted
     (fun n G I O lam hg => (h.2.2.2.1 n G I O lam).2 hg)
 
+/-- The six-vertex graph with edges `(0, 3)`, `(1, 4)`, `(2, 3)`, `(2, 4)`, and `(2, 5)` used
+for the branch-equality counterexample. -/
 def clause6Aux_branchGraph : MbqcGraph 6 where
   edges := {(0, 3), (1, 4), (2, 3), (2, 4), (2, 5)}
 
+/-- The empty input set for the six-vertex branch-equality counterexample. -/
 def clause6Aux_branchI : Finset (Fin 6) := (∅ : Finset (Fin 6))
 
+/-- The output set `{3, 4, 5}` for the six-vertex branch-equality counterexample. -/
 def clause6Aux_branchO : Finset (Fin 6) := ({3, 4, 5} : Finset (Fin 6))
 
+/-- The zero measurement-angle assignment for the six-vertex counterexample. -/
 def clause6Aux_branchA : Fin 6 → ℝ := fun _ => 0
 
+/-- The partial flow map sending vertices zero, one, and two to three, four, and five,
+respectively, and leaving outputs undefined. -/
 def clause6Aux_branchFM : Fin 6 → Option (Fin 6) :=
   fun v =>
     if v = 0 then some 3
@@ -554,22 +641,31 @@ def clause6Aux_branchFM : Fin 6 → Option (Fin 6) :=
     else if v = 2 then some 5
     else none
 
+/-- The all-false outcome assignment for the six-vertex counterexample. -/
 def clause6Aux_branchS0 : Fin 6 → Bool := fun _ => false
 
+/-- The outcome assignment that is true exactly at vertices zero and one. -/
 def clause6Aux_branchS1 : Fin 6 → Bool := fun v => decide (v = 0 ∨ v = 1)
 
+/-- The finite rank assignment taking value zero at vertices zero and one, one at vertex two,
+and two at the output vertices. -/
 def clause6Aux_branchR : Fin 6 → Fin 6 :=
   fun v => if v = 0 then 0 else if v = 1 then 0 else if v = 2 then 1 else 2
 
+/-- The six-vertex counterexample has no input vertices. -/
 theorem clause6Aux_branch_card_I : clause6Aux_branchI.card = 0 := by
   simp [clause6Aux_branchI]
 
+/-- The six-vertex counterexample has three output vertices. -/
 theorem clause6Aux_branch_card_O : clause6Aux_branchO.card = 3 := by
   simp [clause6Aux_branchO]
 
+/-- A vertex belongs to the counterexample output set exactly when it is three, four, or five. -/
 theorem clause6Aux_branchO_mem (v : Fin 6) : v ∈ clause6Aux_branchO ↔ v = 3 ∨ v = 4 ∨ v = 5 := by
   simp [clause6Aux_branchO]
 
+/-- Adjacency in the six-vertex counterexample is exactly the symmetric closure of its five
+listed edges. -/
 theorem clause6Aux_branch_adj (u v : Fin 6) :
     mbqcAdj clause6Aux_branchGraph u v = true ↔
       (u = 0 ∧ v = 3) ∨ (u = 3 ∧ v = 0) ∨ (u = 1 ∧ v = 4) ∨ (u = 4 ∧ v = 1) ∨
@@ -577,6 +673,7 @@ theorem clause6Aux_branch_adj (u v : Fin 6) :
       (u = 2 ∧ v = 5) ∨ (u = 5 ∧ v = 2) := by
   fin_cases u <;> fin_cases v <;> simp [mbqcAdj, clause6Aux_branchGraph]
 
+/-- Every neighbor of vertex zero in the six-vertex counterexample is vertex three. -/
 theorem clause6Aux_branch_adj_zero {w : Fin 6} (h : mbqcAdj clause6Aux_branchGraph 0 w = true) :
     w = 3 := by
   rw [clause6Aux_branch_adj] at h
@@ -592,6 +689,7 @@ theorem clause6Aux_branch_adj_zero {w : Fin 6} (h : mbqcAdj clause6Aux_branchGra
   · exact absurd h.1 (by simp)
   · exact absurd h.1 (by simp)
 
+/-- Every neighbor of vertex one in the six-vertex counterexample is vertex four. -/
 theorem clause6Aux_branch_adj_one {w : Fin 6} (h : mbqcAdj clause6Aux_branchGraph 1 w = true) :
     w = 4 := by
   rw [clause6Aux_branch_adj] at h
@@ -607,6 +705,7 @@ theorem clause6Aux_branch_adj_one {w : Fin 6} (h : mbqcAdj clause6Aux_branchGrap
   · exact absurd h.1 (by simp)
   · exact absurd h.1 (by simp)
 
+/-- Every neighbor of vertex two in the six-vertex counterexample is three, four, or five. -/
 theorem clause6Aux_branch_adj_two {w : Fin 6} (h : mbqcAdj clause6Aux_branchGraph 2 w = true) :
     w = 3 ∨ w = 4 ∨ w = 5 := by
   rw [clause6Aux_branch_adj] at h
@@ -622,6 +721,7 @@ theorem clause6Aux_branch_adj_two {w : Fin 6} (h : mbqcAdj clause6Aux_branchGrap
   · exact Or.inr (Or.inr h.2)
   · exact absurd h.1 (by simp)
 
+/-- Every neighbor of vertex three in the six-vertex counterexample is zero or two. -/
 theorem clause6Aux_branch_adj_three {k : Fin 6} (h : mbqcAdj clause6Aux_branchGraph 3 k = true) :
     k = 0 ∨ k = 2 := by
   rw [clause6Aux_branch_adj] at h
@@ -637,6 +737,7 @@ theorem clause6Aux_branch_adj_three {k : Fin 6} (h : mbqcAdj clause6Aux_branchGr
   · exact absurd h.1 (by simp)
   · exact absurd h.1 (by simp)
 
+/-- Every neighbor of vertex four in the six-vertex counterexample is one or two. -/
 theorem clause6Aux_branch_adj_four {k : Fin 6} (h : mbqcAdj clause6Aux_branchGraph 4 k = true) :
     k = 1 ∨ k = 2 := by
   rw [clause6Aux_branch_adj] at h
@@ -652,6 +753,7 @@ theorem clause6Aux_branch_adj_four {k : Fin 6} (h : mbqcAdj clause6Aux_branchGra
   · exact absurd h.1 (by simp)
   · exact absurd h.1 (by simp)
 
+/-- Every neighbor of vertex five in the six-vertex counterexample is vertex two. -/
 theorem clause6Aux_branch_adj_five {k : Fin 6} (h : mbqcAdj clause6Aux_branchGraph 5 k = true) :
     k = 2 := by
   rw [clause6Aux_branch_adj] at h
@@ -667,35 +769,45 @@ theorem clause6Aux_branch_adj_five {k : Fin 6} (h : mbqcAdj clause6Aux_branchGra
   · exact absurd h.1 (by simp)
   · exact h.2
 
+/-- Vertices zero and three are adjacent in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_03 : mbqcAdj clause6Aux_branchGraph 0 3 = true := by
   rw [clause6Aux_branch_adj]; exact Or.inl ⟨rfl, rfl⟩
 
+/-- Vertices one and four are adjacent in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_14 : mbqcAdj clause6Aux_branchGraph 1 4 = true := by
   rw [clause6Aux_branch_adj]; exact Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))
 
+/-- Vertices two and five are adjacent in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_25 : mbqcAdj clause6Aux_branchGraph 2 5 = true := by
   rw [clause6Aux_branch_adj]
   exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))))))))
 
+/-- Vertex three is adjacent to vertex two in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_32 : mbqcAdj clause6Aux_branchGraph 3 2 = true := by
   rw [clause6Aux_branch_adj]
   exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩)))))
 
+/-- Vertex three is adjacent to vertex zero in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_30 : mbqcAdj clause6Aux_branchGraph 3 0 = true := by
   rw [clause6Aux_branch_adj]; exact Or.inr (Or.inl ⟨rfl, rfl⟩)
 
+/-- Vertex four is adjacent to vertex two in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_42 : mbqcAdj clause6Aux_branchGraph 4 2 = true := by
   rw [clause6Aux_branch_adj]
   exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩)))))))
 
+/-- Vertex four is adjacent to vertex one in the six-vertex counterexample. -/
 theorem clause6Aux_branch_adj_41 : mbqcAdj clause6Aux_branchGraph 4 1 = true := by
   rw [clause6Aux_branch_adj]; exact Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩)))
 
+/-- Opposite strict rank inequalities for two vertices are contradictory. -/
 theorem clause6Aux_branch_lt_antisymm {r : Fin 6 → Fin 6} {u v : Fin 6}
     (h1 : mbqcRankPrec r u v) (h2 : mbqcRankPrec r v u) : False := by
   simp only [mbqcRankPrec] at h1 h2
   omega
 
+/-- Every passing flow check on the six-vertex graph has output-masked flow map equal to
+`clause6Aux_branchFM`. -/
 theorem clause6Aux_branch_forced {f : Fin 6 → Option (Fin 6)} {r : Fin 6 → Fin 6}
     (h : mbqcFlowCheck clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO f r) :
     clause6Aux_outMaskedFlow f clause6Aux_branchO = clause6Aux_branchFM := by
@@ -731,6 +843,8 @@ theorem clause6Aux_branch_forced {f : Fin 6 → Option (Fin 6)} {r : Fin 6 → F
   funext v
   fin_cases v <;> simp [clause6Aux_outMaskedFlow, clause6Aux_branchO, clause6Aux_branchFM, h0, h1, h2]
 
+/-- The specified flow map and rank assignment pass the flow checker on the six-vertex
+counterexample. -/
 theorem clause6Aux_branch_check :
     mbqcFlowCheck clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO clause6Aux_branchFM clause6Aux_branchR := by
   intro v hv
@@ -757,6 +871,8 @@ theorem clause6Aux_branch_check :
   · simp [clause6Aux_branchO] at hv
   · simp [clause6Aux_branchO] at hv
 
+/-- If a list contains an element satisfying a Boolean predicate, its first-match search returns
+an element satisfying that predicate. -/
 theorem clause6Aux_find_some_of_mem {α : Type} (p : α → Bool) (l : List α) (x : α)
     (hx : x ∈ l) (hp : p x = true) : ∃ y, l.find? p = some y ∧ p y = true := by
   cases hfind : l.find? p with
@@ -765,10 +881,12 @@ theorem clause6Aux_find_some_of_mem {α : Type} (p : α → Bool) (l : List α) 
   | some y =>
     exact ⟨y, rfl, List.find?_some hfind⟩
 
+/-- Every element of a finite type occurs in the list of its enumerated elements. -/
 theorem clause6Aux_find_mem_complete {α : Type} [Fintype α] (x : α) :
     x ∈ (Fintype.elems (α := α)).toList :=
   Finset.mem_toList.mpr (Fintype.complete x)
 
+/-- The flow decider returns a flow-map and rank pair on the six-vertex counterexample. -/
 theorem clause6Aux_branch_decider_some :
     ∃ p : (Fin 6 → Option (Fin 6)) × (Fin 6 → Fin 6),
       mbqcFlowDecide clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO = some p := by
@@ -787,6 +905,8 @@ theorem clause6Aux_branch_decider_some :
     (fun q => decide (mbqcFlowCheck clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO q.1 q.2)) _ _ hm hx
   exact ⟨y, hy⟩
 
+/-- The equivalence separating the first bit of an `(n + 1)`-bit register from its remaining `n`
+bits. -/
 def clause6Aux_regSplit {n : ℕ} : (Fin (n + 1) → Bool) ≃ Bool × (Fin n → Bool) where
   toFun z := (z 0, fun i => z i.succ)
   invFun p := Fin.cases p.1 p.2
@@ -803,6 +923,8 @@ def clause6Aux_regSplit {n : ℕ} : (Fin (n + 1) → Bool) ≃ Bool × (Fin n �
     funext i
     rfl
 
+/-- A sum over Boolean registers of a product of coordinate factors equals the product of the
+corresponding two-term sums. -/
 theorem clause6Aux_sum_prod_pi {n : ℕ} (h : Fin n → Bool → ℂ) :
     ∑ z : Fin n → Bool, ∏ i : Fin n, h i (z i) = ∏ i : Fin n, ∑ b : Bool, h i b := by
   induction n with
@@ -834,10 +956,14 @@ theorem clause6Aux_sum_prod_pi {n : ℕ} (h : Fin n → Bool → ℂ) :
       Fin.prod_univ_succ _
     rw [hprod]
 
+/-- The Boolean-to-`Fin 2` equivalence sends `false` to zero. -/
 theorem clause6Aux_boolEquivFin2_false : boolEquivFin2 false = 0 := rfl
 
+/-- The Boolean-to-`Fin 2` equivalence sends `true` to one. -/
 theorem clause6Aux_boolEquivFin2_true : boolEquivFin2 true = 1 := rfl
 
+/-- Multiplication of tensor-product matrices agrees with taking the tensor product of the
+pointwise matrix products. -/
 theorem clause6Aux_pauliProductDensity_mul {n : ℕ} (f g : Fin n → Operator 2) :
     pauliProductDensity f * pauliProductDensity g
       = pauliProductDensity (fun i => f i * g i) := by
@@ -858,8 +984,10 @@ theorem clause6Aux_pauliProductDensity_mul {n : ℕ} (f g : Fin n → Operator 2
       clause6Aux_boolEquivFin2_true]
   exact add_comm _ _
 
+/-- The identity operator on the one-dimensional input space of the six-vertex counterexample. -/
 def clause6Aux_branchRho : Operator (2 ^ clause6Aux_branchI.card) := 1
 
+/-- The identity input operator for the six-vertex counterexample is a density operator. -/
 theorem clause6Aux_branchRho_density : IsDensityOperator clause6Aux_branchRho := by
   constructor
   · have h : clause6Aux_branchRho = (1 : Operator 1) := rfl
@@ -867,9 +995,12 @@ theorem clause6Aux_branchRho_density : IsDensityOperator clause6Aux_branchRho :=
     exact Matrix.PosSemidef.one
   · simp [clause6Aux_branchRho, Matrix.trace, clause6Aux_branchI]
 
+/-- An element returned by a Boolean list search satisfies the search predicate. -/
 theorem clause6Aux_check_of_find {α : Type} (p : α → Bool) (l : List α) (x : α)
     (h : l.find? p = some x) : p x = true := List.find?_some h
 
+/-- If the two specified branches have `(0, 0)` entries one and zero for every rank assignment,
+the universal branch-equality obligation is false. -/
 theorem clause6Aux_branch_refuted_skeleton
     (e0 : ∀ r : Fin 6 → Fin 6,
       (mbqcPatternBranch clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO r (fun _ => MbqcPlane.XY)
@@ -913,23 +1044,30 @@ theorem clause6Aux_branch_refuted_skeleton
   rw [v0, v1] at heq00
   exact absurd heq00 (by norm_num)
 
+/-- The assertion that the all-false branch has `(0, 0)` entry one on identity input for every
+rank assignment. -/
 def clause6Aux_branch_entry_zero_obl : Prop :=
   ∀ r : Fin 6 → Fin 6,
     (mbqcPatternBranch clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO r (fun _ => MbqcPlane.XY)
       clause6Aux_branchA (flowCorrection clause6Aux_branchGraph clause6Aux_branchFM) clause6Aux_branchS0
       (1 : Operator (2 ^ clause6Aux_branchI.card))) 0 0 = 1
 
+/-- The assertion that the branch with true outcomes at zero and one has `(0, 0)` entry zero on
+identity input for every rank assignment. -/
 def clause6Aux_branch_entry_one_obl : Prop :=
   ∀ r : Fin 6 → Fin 6,
     (mbqcPatternBranch clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO r (fun _ => MbqcPlane.XY)
       clause6Aux_branchA (flowCorrection clause6Aux_branchGraph clause6Aux_branchFM) clause6Aux_branchS1
       (1 : Operator (2 ^ clause6Aux_branchI.card))) 0 0 = 0
 
+/-- The two counterexample branch-entry assertions together refute
+`clause6Aux_clause4_branchObligation`. -/
 theorem clause6Aux_clause4_branch_refuted_of_entries
     (h0 : clause6Aux_branch_entry_zero_obl) (h1 : clause6Aux_branch_entry_one_obl) :
     ¬ clause6Aux_clause4_branchObligation :=
   clause6Aux_branch_refuted_skeleton h0 h1
 
+/-- Relabelling both factors by the bit-vector equivalence preserves matrix multiplication. -/
 theorem clause6Aux_relabelGate_mul {n : ℕ} (A B : Matrix (Reg n) (Reg n) ℂ) :
     relabelGate (bitVecEquiv n) A * relabelGate (bitVecEquiv n) B
       = relabelGate (bitVecEquiv n) (A * B) := by
@@ -938,6 +1076,7 @@ theorem clause6Aux_relabelGate_mul {n : ℕ} (A B : Matrix (Reg n) (Reg n) ℂ) 
   exact Equiv.sum_comp (bitVecEquiv n).symm
     (fun k => A ((bitVecEquiv n).symm i) k * B k ((bitVecEquiv n).symm j))
 
+/-- Embedding two single-qubit matrices on the same register wire preserves their product. -/
 theorem clause6Aux_regWireGate_mul {n : ℕ} (v : Fin n) (A B : Operator 2) :
     mbqcRegWireGate v A * mbqcRegWireGate v B = mbqcRegWireGate v (A * B) := by
   rw [mbqcRegWireGate_eq, mbqcRegWireGate_eq, pauliProductDensity_mul]
@@ -950,6 +1089,7 @@ theorem clause6Aux_regWireGate_mul {n : ℕ} (v : Fin n) (A B : Operator 2) :
     · simp [hi]
   rw [h, mbqcRegWireGate_eq]
 
+/-- Register-wire gates acting on distinct wires commute. -/
 theorem clause6Aux_regWireGate_comm {n : ℕ} {v w : Fin n} (hvw : v ≠ w)
     (A B : Operator 2) :
     mbqcRegWireGate v A * mbqcRegWireGate w B
@@ -966,17 +1106,21 @@ theorem clause6Aux_regWireGate_comm {n : ℕ} {v w : Fin n} (hvw : v ≠ w)
     · simp only [if_neg hv, if_pos hw, one_mul, mul_one]
     · simp only [if_neg hv, if_neg hw, one_mul]
 
+/-- Embedding single-qubit matrices on the same numbered wire preserves multiplication. -/
 theorem clause6Aux_wireGate_mul {n : ℕ} (v : Fin n) (A B : Operator 2) :
     mbqcWireGate v A * mbqcWireGate v B = mbqcWireGate v (A * B) := by
   unfold mbqcWireGate
   rw [clause6Aux_relabelGate_mul, clause6Aux_regWireGate_mul]
 
+/-- Gates embedded on distinct numbered wires commute. -/
 theorem clause6Aux_wireGate_comm {n : ℕ} {v w : Fin n} (hvw : v ≠ w) (A B : Operator 2) :
     mbqcWireGate v A * mbqcWireGate w B
       = mbqcWireGate w B * mbqcWireGate v A := by
   unfold mbqcWireGate
   rw [clause6Aux_relabelGate_mul, clause6Aux_relabelGate_mul, clause6Aux_regWireGate_comm hvw]
 
+/-- A fold by left multiplication is invariant under a permutation of its gate list when the
+listed gates commute pairwise and commute with the initial matrix. -/
 theorem clause6Aux_foldl_perm {n : ℕ} (g : Fin n → Matrix (Reg n) (Reg n) ℂ) :
     ∀ (L L' : List (Fin n)), L.Perm L' → ∀ (init : Matrix (Reg n) (Reg n) ℂ),
       (∀ a b : Fin n, a ∈ L → b ∈ L → g a * g b = g b * g a) →
@@ -1018,12 +1162,14 @@ theorem clause6Aux_foldl_perm {n : ℕ} (g : Fin n → Matrix (Reg n) (Reg n) �
     · intro a ha
       exact hinit a (h1.mem_iff.mpr ha)
 
+/-- The all-false outcome assignment activates no X-correction condition at any vertex. -/
 theorem clause6Aux_xcond_s0 (u : Fin 6) :
     ¬(∃ v : Fin 6, clause6Aux_branchS0 v = true ∧ clause6Aux_branchFM v = some u) := by
   rintro ⟨v, hv, _⟩
   simp only [clause6Aux_branchS0] at hv
   nomatch hv
 
+/-- The all-false outcome assignment activates no Z-correction condition at any vertex. -/
 theorem clause6Aux_zcond_s0 (u : Fin 6) :
     ¬(∃ v w : Fin 6, clause6Aux_branchS0 v = true ∧ clause6Aux_branchFM v = some w
       ∧ u ≠ v ∧ mbqcAdj clause6Aux_branchGraph w u) := by
@@ -1031,16 +1177,20 @@ theorem clause6Aux_zcond_s0 (u : Fin 6) :
   simp only [clause6Aux_branchS0] at hv
   nomatch hv
 
+/-- Every local flow correction for the all-false outcome assignment is the identity. -/
 theorem clause6Aux_corr_s0 (u : Fin 6) :
     flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS0 u = 1 := by
   unfold flowCorrection
   rw [if_neg (clause6Aux_xcond_s0 u), if_neg (clause6Aux_zcond_s0 u)]
   exact one_mul _
 
+/-- A true value of `clause6Aux_branchS1` occurs only at vertex zero or one. -/
 theorem clause6Aux_S1_of (v : Fin 6) (h : clause6Aux_branchS1 v = true) : v = 0 ∨ v = 1 := by
   unfold clause6Aux_branchS1 at h
   exact of_decide_eq_true h
 
+/-- For the second counterexample outcome assignment, the X-correction condition holds exactly
+at vertices three and four. -/
 theorem clause6Aux_xcond_s1 (u : Fin 6) :
     (∃ v : Fin 6, clause6Aux_branchS1 v = true ∧ clause6Aux_branchFM v = some u) ↔ u = 3 ∨ u = 4 := by
   constructor
@@ -1055,14 +1205,18 @@ theorem clause6Aux_xcond_s1 (u : Fin 6) :
     · exact ⟨0, by decide, by simp [clause6Aux_branchFM, h]⟩
     · exact ⟨1, by decide, by simp [clause6Aux_branchFM, h]⟩
 
+/-- In the six-vertex counterexample, vertex three is adjacent exactly to vertices zero and two. -/
 theorem clause6Aux_adj_from_three (u : Fin 6) :
     mbqcAdj clause6Aux_branchGraph 3 u = true ↔ u = 0 ∨ u = 2 := by
   fin_cases u <;> simp [mbqcAdj, clause6Aux_branchGraph]
 
+/-- In the six-vertex counterexample, vertex four is adjacent exactly to vertices one and two. -/
 theorem clause6Aux_adj_from_four (u : Fin 6) :
     mbqcAdj clause6Aux_branchGraph 4 u = true ↔ u = 1 ∨ u = 2 := by
   fin_cases u <;> simp [mbqcAdj, clause6Aux_branchGraph]
 
+/-- For the second counterexample outcome assignment, the Z-correction condition holds exactly
+at vertex two. -/
 theorem clause6Aux_zcond_s1 (u : Fin 6) :
     (∃ v w : Fin 6, clause6Aux_branchS1 v = true ∧ clause6Aux_branchFM v = some w
       ∧ u ≠ v ∧ mbqcAdj clause6Aux_branchGraph w u) ↔ u = 2 := by
@@ -1086,6 +1240,8 @@ theorem clause6Aux_zcond_s1 (u : Fin 6) :
     exact ⟨0, 3, by decide, by simp [clause6Aux_branchFM], by simp,
       by simp [mbqcAdj, clause6Aux_branchGraph]⟩
 
+/-- The second outcome assignment gives Z at vertex two, X at vertices three and four, and the
+identity elsewhere. -/
 theorem clause6Aux_corr_s1 (u : Fin 6) :
     flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 u =
       if u = 2 then pauliZ else if u = 3 then pauliX else if u = 4 then pauliX else 1 := by
@@ -1094,36 +1250,43 @@ theorem clause6Aux_corr_s1 (u : Fin 6) :
     if_congr (clause6Aux_zcond_s1 u) (by rfl) (by rfl)]
   fin_cases u <;> simp [pauliX, pauliZ]
 
+/-- The flow correction at vertex zero for the second outcome assignment is the identity. -/
 theorem clause6Aux_corr_s1_0 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 0 = 1 := by
   have h2 : ¬((0 : Fin 6) = 2) := by decide
   have h3 : ¬((0 : Fin 6) = 3) := by decide
   have h4 : ¬((0 : Fin 6) = 4) := by decide
   rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_neg h4]
 
+/-- The flow correction at vertex one for the second outcome assignment is the identity. -/
 theorem clause6Aux_corr_s1_1 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 1 = 1 := by
   have h2 : ¬((1 : Fin 6) = 2) := by decide
   have h3 : ¬((1 : Fin 6) = 3) := by decide
   have h4 : ¬((1 : Fin 6) = 4) := by decide
   rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_neg h4]
 
+/-- The flow correction at vertex two for the second outcome assignment is Pauli Z. -/
 theorem clause6Aux_corr_s1_2 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 2 = pauliZ := by
   rw [clause6Aux_corr_s1, if_pos rfl]
 
+/-- The flow correction at vertex three for the second outcome assignment is Pauli X. -/
 theorem clause6Aux_corr_s1_3 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 3 = pauliX := by
   have h2 : ¬((3 : Fin 6) = 2) := by decide
   rw [clause6Aux_corr_s1, if_neg h2, if_pos rfl]
 
+/-- The flow correction at vertex four for the second outcome assignment is Pauli X. -/
 theorem clause6Aux_corr_s1_4 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 4 = pauliX := by
   have h2 : ¬((4 : Fin 6) = 2) := by decide
   have h3 : ¬((4 : Fin 6) = 3) := by decide
   rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_pos rfl]
 
+/-- The flow correction at vertex five for the second outcome assignment is the identity. -/
 theorem clause6Aux_corr_s1_5 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 5 = 1 := by
   have h2 : ¬((5 : Fin 6) = 2) := by decide
   have h3 : ¬((5 : Fin 6) = 3) := by decide
   have h4 : ¬((5 : Fin 6) = 4) := by decide
   rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_neg h4]
 
+/-- Every entry of the zero-angle XY measurement matrix for outcome `false` equals `1 / 2`. -/
 theorem clause6Aux_plane0 (a b : Fin 2) :
     MbqcPlaneBasis MbqcPlane.XY 0 false a b = (2 : ℂ)⁻¹ := by
   have h : MbqcPlaneBasis MbqcPlane.XY 0 false
@@ -1136,6 +1299,8 @@ theorem clause6Aux_plane0 (a b : Fin 2) :
   rw [h]
   fin_cases a <;> fin_cases b <;> simp [pauliX]
 
+/-- The zero-angle XY measurement matrix for outcome `true` has diagonal entries `1 / 2` and
+off-diagonal entries `-1 / 2`. -/
 theorem clause6Aux_plane1 (a b : Fin 2) :
     MbqcPlaneBasis MbqcPlane.XY 0 true a b
       = if a = b then (2 : ℂ)⁻¹ else -(2 : ℂ)⁻¹ := by
@@ -1150,19 +1315,26 @@ theorem clause6Aux_plane1 (a b : Fin 2) :
   rw [h]
   fin_cases a <;> fin_cases b <;> simp [pauliX]
 
+/-- Right multiplication of the false-outcome zero-angle XY matrix by Pauli Z gives entries `1 /
+2` in column zero and `-1 / 2` in the other column. -/
 theorem clause6Aux_plane0Z (a b : Fin 2) :
     (MbqcPlaneBasis MbqcPlane.XY 0 false * pauliZ) a b
       = if b = 0 then (2 : ℂ)⁻¹ else -(2 : ℂ)⁻¹ := by
   rw [Matrix.mul_apply, Fin.sum_univ_two]
   fin_cases b <;> simp [clause6Aux_plane0, pauliZ]
 
+/-- Pauli X has entry one exactly at unequal row and column indices. -/
 theorem clause6Aux_px (a b : Fin 2) : pauliX a b = if a ≠ b then (1 : ℂ) else 0 := by
   fin_cases a <;> fin_cases b <;> simp [pauliX]
 
+/-- The local branch matrix at each vertex, using the flow correction alone on outputs and the
+measurement matrix followed by the correction elsewhere. -/
 noncomputable def clause6Aux_branchLocal (s : Fin 6 → Bool) : Fin 6 → Operator 2 :=
   fun v => if v ∈ clause6Aux_branchO then flowCorrection clause6Aux_branchGraph clause6Aux_branchFM s v
     else MbqcPlaneBasis MbqcPlane.XY 0 (s v) * flowCorrection clause6Aux_branchGraph clause6Aux_branchFM s v
 
+/-- For the all-false outcome assignment, local branch entries are identity entries on outputs
+and `1 / 2` elsewhere. -/
 theorem clause6Aux_local_s0 (v : Fin 6) (a b : Fin 2) :
     clause6Aux_branchLocal clause6Aux_branchS0 v a b
       = if v ∈ clause6Aux_branchO then (if a = b then (1 : ℂ) else 0) else (2 : ℂ)⁻¹ := by
@@ -1174,6 +1346,8 @@ theorem clause6Aux_local_s0 (v : Fin 6) (a b : Fin 2) :
     rw [if_neg hv, hs, clause6Aux_corr_s0, mul_one, clause6Aux_plane0]
     simp [hv]
 
+/-- The second outcome assignment has the displayed local matrices: signed XY matrices at zero
+and one, a column-signed matrix at two, X at three and four, and the identity at five. -/
 theorem clause6Aux_local_s1 (v : Fin 6) (a b : Fin 2) :
     clause6Aux_branchLocal clause6Aux_branchS1 v a b
       = if v = 0 ∨ v = 1 then (if a = b then (2 : ℂ)⁻¹ else -(2 : ℂ)⁻¹)
@@ -1211,9 +1385,12 @@ theorem clause6Aux_local_s1 (v : Fin 6) (a b : Fin 2) :
               simp
             · omega
 
+/-- The product of controlled-Z signs over the five edges of the six-vertex counterexample
+graph. -/
 noncomputable def clause6Aux_czSign (y : Reg 6) : ℂ :=
   ∏ e ∈ clause6Aux_branchGraph.edges, if y e.1 && y e.2 then (-1 : ℂ) else 1
 
+/-- The controlled-Z sign is the product of the five displayed edge-phase factors. -/
 theorem clause6Aux_czSign_eq (y : Reg 6) :
     clause6Aux_czSign y =
       (if y 0 && y 3 then (-1 : ℂ) else 1) * (if y 1 && y 4 then (-1 : ℂ) else 1)
@@ -1227,9 +1404,12 @@ theorem clause6Aux_czSign_eq (y : Reg 6) :
     Finset.prod_singleton]
   ring
 
+/-- The register agreeing with `z` on measured vertices and fixed to `false` on output vertices. -/
 def clause6Aux_rowZ (z : Fin 6 → Bool) : Reg 6 :=
   fun v => if v ∈ clause6Aux_branchO then false else z v
 
+/-- The product of coordinate equality indicators is the equality indicator for the entire
+six-bit register. -/
 theorem clause6Aux_prod_delta (x y : Reg 6) :
     (∏ v : Fin 6, (if x v = y v then (1 : ℂ) else 0)) = if x = y then 1 else 0 := by
   by_cases h : x = y
@@ -1241,6 +1421,7 @@ theorem clause6Aux_prod_delta (x y : Reg 6) :
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     rw [if_neg hi]
 
+/-- Every entry of the input frame for the empty-input six-vertex graph equals `(1 / 2) ^ 3`. -/
 theorem clause6Aux_inFrame (x : Fin (2 ^ 6)) (y : Fin (2 ^ clause6Aux_branchI.card)) :
     mbqcInputFrame clause6Aux_branchI x y = ((2 : ℂ)⁻¹) ^ 3 := by
   have hI : ∀ v : Fin 6, ¬(v ∈ clause6Aux_branchI) := by
@@ -1267,6 +1448,8 @@ theorem clause6Aux_inFrame (x : Fin (2 ^ 6)) (y : Fin (2 ^ clause6Aux_branchI.ca
   calc ((Real.sqrt 2 : ℂ)⁻¹) ^ 6 = (((Real.sqrt 2 : ℂ)⁻¹) ^ 2) ^ 3 := by ring
     _ = ((2 : ℂ)⁻¹) ^ 3 := by rw [hinv]
 
+/-- The zero-output row of the output frame selects exactly the full register `clause6Aux_rowZ
+z`. -/
 theorem clause6Aux_outFrame (z : Reg 6) (x : Fin (2 ^ 6)) :
     mbqcOutputFrame clause6Aux_branchO z 0 x
       = if (bitVecEquiv 6).symm x = clause6Aux_rowZ z then (1 : ℂ) else 0 := by
@@ -1300,6 +1483,8 @@ theorem clause6Aux_outFrame (z : Reg 6) (x : Fin (2 ^ 6)) :
   rw [hp]
   exact clause6Aux_prod_delta _ _
 
+/-- For matrices over any finite index type, a fold by left multiplication is permutation
+invariant when its factors commute pairwise and with the initial matrix. -/
 theorem clause6Aux_foldl_perm_gen {n : ℕ} {ι : Type} [Fintype ι]
     (g : Fin n → Matrix ι ι ℂ) :
     ∀ (L L' : List (Fin n)), L.Perm L' → ∀ (init : Matrix ι ι ℂ),
@@ -1342,6 +1527,7 @@ theorem clause6Aux_foldl_perm_gen {n : ℕ} {ι : Type} [Fintype ι]
     · intro a ha
       exact hinit a (h1.mem_iff.mpr ha)
 
+/-- The execution order is the rank-sorted list of the measured vertices `{0, 1, 2}`. -/
 theorem clause6Aux_execOrder_eq (r : Fin 6 → Fin 6) :
     mbqcExecOrder clause6Aux_branchO r = ({0, 1, 2} : Finset (Fin 6)).sort (mbqcExecLe r) := by
   unfold mbqcExecOrder
@@ -1349,6 +1535,7 @@ theorem clause6Aux_execOrder_eq (r : Fin 6 → Fin 6) :
     decide
   rw [h]
 
+/-- Every rank assignment orders the measured vertices as a permutation of `[0, 1, 2]`. -/
 theorem clause6Aux_execOrder_perm (r : Fin 6 → Fin 6) :
     (mbqcExecOrder clause6Aux_branchO r).Perm [0, 1, 2] := by
   apply Multiset.coe_eq_coe.mp
@@ -1356,20 +1543,27 @@ theorem clause6Aux_execOrder_perm (r : Fin 6 → Fin 6) :
   exact (by decide : (([0, 1, 2] : List (Fin 6)) : Multiset (Fin 6))
     = ({0, 1, 2} : Finset (Fin 6)).val).symm
 
+/-- Each vertex in `{0, 1, 2}` is outside the six-vertex counterexample's output set. -/
 theorem clause6Aux_mem_three (a : Fin 6) (ha : a ∈ ({0, 1, 2} : Finset (Fin 6))) :
     a ∉ clause6Aux_branchO := by
   have h : a = 0 ∨ a = 1 ∨ a = 2 := by simpa using! ha
   rcases h with h | h | h <;> subst h <;> simp [clause6Aux_branchO]
 
+/-- The single-wire embedding of the zero-angle XY measurement matrix multiplied by its local
+flow correction. -/
 noncomputable def clause6Aux_foldG (s : Fin 6 → Bool) : Fin 6 → Operator (2 ^ 6) :=
   fun v => mbqcWireGate v
     (MbqcPlaneBasis MbqcPlane.XY 0 (s v) * flowCorrection clause6Aux_branchGraph clause6Aux_branchFM s v)
 
+/-- The tensor product of output-wire corrections and identity matrices on measured wires,
+relabelled to numbered basis indices. -/
 noncomputable def clause6Aux_initG (s : Fin 6 → Bool) : Operator (2 ^ 6) :=
   relabelGate (bitVecEquiv 6)
     (pauliProductDensity fun v =>
       if v ∈ clause6Aux_branchO then flowCorrection clause6Aux_branchGraph clause6Aux_branchFM s v else 1)
 
+/-- Each embedded measurement-correction matrix is the relabelled tensor product with that
+matrix at its selected wire and identity elsewhere. -/
 theorem clause6Aux_foldG_eq (s : Fin 6 → Bool) (v : Fin 6) :
     clause6Aux_foldG s v = relabelGate (bitVecEquiv 6)
       (pauliProductDensity fun i => if i = v then
@@ -1378,10 +1572,13 @@ theorem clause6Aux_foldG_eq (s : Fin 6 → Bool) (v : Fin 6) :
   unfold clause6Aux_foldG mbqcWireGate
   rw [mbqcRegWireGate_eq]
 
+/-- Embedded measurement-correction matrices on distinct wires commute. -/
 theorem clause6Aux_foldG_comm (s : Fin 6 → Bool) {a b : Fin 6} (hab : a ≠ b) :
     clause6Aux_foldG s a * clause6Aux_foldG s b = clause6Aux_foldG s b * clause6Aux_foldG s a :=
   clause6Aux_wireGate_comm hab _ _
 
+/-- An embedded measurement-correction matrix on a measured vertex commutes with the initial
+output-correction matrix. -/
 theorem clause6Aux_foldG_init_comm (s : Fin 6 → Bool) (a : Fin 6) (ha : a ∉ clause6Aux_branchO) :
     clause6Aux_foldG s a * clause6Aux_initG s = clause6Aux_initG s * clause6Aux_foldG s a := by
   rw [clause6Aux_foldG_eq s a]
@@ -1398,6 +1595,8 @@ theorem clause6Aux_foldG_init_comm (s : Fin 6 → Bool) (a : Fin 6) (ha : a ∉ 
     simp [ha]
   · simp [hi]
 
+/-- For any rank assignment, the interleaved gate equals the relabelled tensor product of the
+local branch matrices. -/
 theorem clause6Aux_interleaved_eq (r : Fin 6 → Fin 6) (s : Fin 6 → Bool) :
     mbqcInterleavedGate clause6Aux_branchO r (fun _ => MbqcPlane.XY) clause6Aux_branchA
       (flowCorrection clause6Aux_branchGraph clause6Aux_branchFM) s
@@ -1459,10 +1658,14 @@ theorem clause6Aux_interleaved_eq (r : Fin 6 → Fin 6) (s : Fin 6 → Bool) :
   funext i
   fin_cases i <;> simp [clause6Aux_branchLocal, clause6Aux_branchO_mem, mul_one, one_mul]
 
+/-- Entries of a matrix relabelled by the bit-vector equivalence are obtained by applying its
+inverse to both indices. -/
 theorem clause6Aux_relabel_apply (M : Matrix (Reg 6) (Reg 6) ℂ) (i j : Fin (2 ^ 6)) :
     relabelGate (bitVecEquiv 6) M i j = M ((bitVecEquiv 6).symm i) ((bitVecEquiv 6).symm j) := by
   simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply]
 
+/-- The counterexample's controlled-Z matrix is diagonal with diagonal value
+`clause6Aux_czSign`. -/
 theorem clause6Aux_czDiag (x y : Reg 6) :
     czMatrix clause6Aux_branchGraph.edges x y = if x = y then clause6Aux_czSign x else 0 := by
   unfold clause6Aux_czSign
@@ -1470,6 +1673,8 @@ theorem clause6Aux_czDiag (x y : Reg 6) :
 
 set_option maxHeartbeats 4000000 in
 
+/-- The `(0, 0)` Kraus entry is `(1 / 2) ^ 3` times the sum of local tensor-product entries
+weighted by the controlled-Z signs. -/
 theorem clause6Aux_kraus_entry (r : Fin 6 → Fin 6) (s : Fin 6 → Bool) (z : Fin 6 → Bool) :
     (mbqcPatternKraus clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO r (fun _ => MbqcPlane.XY)
       clause6Aux_branchA (flowCorrection clause6Aux_branchGraph clause6Aux_branchFM) s z) 0 0
@@ -1621,6 +1826,8 @@ theorem clause6Aux_kraus_entry (r : Fin 6 → Fin 6) (s : Fin 6 → Bool) (z : F
     exact hre
   exact hexp
 
+/-- Every basis index of the empty-input counterexample's one-dimensional input space equals
+zero. -/
 theorem clause6Aux_fin_subsingleton (x : Fin (2 ^ clause6Aux_branchI.card)) : x = 0 := by
   have hc : (2 ^ clause6Aux_branchI.card : ℕ) = 1 := by
     rw [clause6Aux_branch_card_I]
@@ -1633,6 +1840,8 @@ theorem clause6Aux_fin_subsingleton (x : Fin (2 ^ clause6Aux_branchI.card)) : x 
   ext
   exact hval
 
+/-- A sum over the empty-input counterexample's one-dimensional basis equals its summand at
+zero. -/
 theorem clause6Aux_sum_fin1 {α : Type} [AddCommMonoid α] (f : Fin (2 ^ clause6Aux_branchI.card) → α) :
     ∑ x, f x = f 0 := by
   rw [Finset.sum_eq_single (0 : Fin (2 ^ clause6Aux_branchI.card))]
@@ -1641,6 +1850,8 @@ theorem clause6Aux_sum_fin1 {α : Type} [AddCommMonoid α] (f : Fin (2 ^ clause6
   · intro hx
     exact absurd (Finset.mem_univ _) hx
 
+/-- The `(0, 0)` entry of a branch on identity input is the sum, over auxiliary registers, of
+its `(0, 0)` Kraus entries times their complex conjugates. -/
 theorem clause6Aux_branch_entry_eq (s : Fin 6 → Bool) (r : Fin 6 → Fin 6) :
     (mbqcPatternBranch clause6Aux_branchGraph clause6Aux_branchI clause6Aux_branchO r (fun _ => MbqcPlane.XY)
       clause6Aux_branchA (flowCorrection clause6Aux_branchGraph clause6Aux_branchFM) s
@@ -1675,9 +1886,13 @@ theorem clause6Aux_branch_entry_eq (s : Fin 6 → Bool) (r : Fin 6 → Fin 6) :
     ring
   exact hsum
 
+/-- The separated scalar factors for the all-false branch, with value `1 / 2` on measured
+vertices and a false-bit indicator on outputs. -/
 noncomputable def clause6Aux_s0K : Fin 6 → Bool → ℂ :=
   fun v b => if v ∈ clause6Aux_branchO then (if b = false then (1 : ℂ) else 0) else (2 : ℂ)⁻¹
 
+/-- The separated scalar factors for the second branch, combining its measurement signs and
+output-bit constraints. -/
 noncomputable def clause6Aux_s1K (z : Fin 6 → Bool) : Fin 6 → Bool → ℂ :=
   fun v b =>
     if v = 0 then (2 : ℂ)⁻¹ * (if z 0 = false then (1 : ℂ) else -1)
@@ -1687,6 +1902,8 @@ noncomputable def clause6Aux_s1K (z : Fin 6 → Bool) : Fin 6 → Bool → ℂ :
     else if v = 4 then (if b then (1 : ℂ) else 0)
     else (if b = false then (1 : ℂ) else 0)
 
+/-- Entries of the all-false local tensor product are products of output equality indicators and
+`1 / 2` measurement factors. -/
 theorem clause6Aux_localB_s0 (x y : Reg 6) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS0) x y
       = ∏ i : Fin 6,
@@ -1707,6 +1924,8 @@ theorem clause6Aux_localB_s0 (x y : Reg 6) :
       rw [if_neg he, if_neg hb]
   · rw [if_neg hi, if_neg hi]
 
+/-- Entries of the second local tensor product factor into the displayed signed measurement
+entries, X entries, and identity entry. -/
 theorem clause6Aux_localB_s1 (x y : Reg 6) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS1) x y
       = ∏ i : Fin 6,
@@ -1750,11 +1969,13 @@ theorem clause6Aux_localB_s1 (x y : Reg 6) :
         · rw [if_pos h34, if_pos h34, if_pos he, if_pos hb]
         · rw [if_neg h34, if_neg h34, if_neg he, if_neg hb]
 
+/-- The register `clause6Aux_rowZ z` is false at every output vertex. -/
 theorem clause6Aux_rowZ_of (z : Fin 6 → Bool) (i : Fin 6) (hi : i ∈ clause6Aux_branchO) :
     clause6Aux_rowZ z i = false := by
   unfold clause6Aux_rowZ
   rw [if_pos hi]
 
+/-- A product over `Fin 6` expands into the six factors in increasing index order. -/
 theorem clause6Aux_prod6 {α : Type} [CommMonoid α] (f : Fin 6 → α) :
     (∏ i : Fin 6, f i) = f 0 * (f 1 * (f 2 * (f 3 * (f 4 * f 5)))) := by
   rw [Fin.prod_univ_succ, Fin.prod_univ_succ, Fin.prod_univ_succ, Fin.prod_univ_succ,
@@ -1766,6 +1987,8 @@ theorem clause6Aux_prod6 {α : Type} [CommMonoid α] (f : Fin 6 → α) :
   have h1 : (Fin.succ 0 : Fin 6) = 1 := by decide
   rw [h5, h4, h3, h2, h1]
 
+/-- The all-false local tensor-product entry vanishes if the column register is true at an
+output vertex. -/
 theorem clause6Aux_s0_ppd_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi : i ∈ clause6Aux_branchO)
     (hy : y i = true) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS0) (clause6Aux_rowZ z) y = 0 := by
@@ -1774,11 +1997,14 @@ theorem clause6Aux_s0_ppd_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi 
   rw [if_pos hi, clause6Aux_rowZ_of z i hi, hy]
   simp
 
+/-- The separated all-false scalar product vanishes if the register is true at an output vertex. -/
 theorem clause6Aux_s0K_zero (y : Reg 6) (i : Fin 6) (hi : i ∈ clause6Aux_branchO) (hy : y i = true) :
     (∏ j : Fin 6, clause6Aux_s0K j (y j)) = 0 := by
   apply Finset.prod_eq_zero (Finset.mem_univ i)
   simp [clause6Aux_s0K, hi, hy]
 
+/-- The all-false local tensor-product entry weighted by the controlled-Z sign equals the
+product of the separated factors `clause6Aux_s0K`. -/
 theorem clause6Aux_s0_summand (z : Fin 6 → Bool) (y : Reg 6) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS0) (clause6Aux_rowZ z) y * clause6Aux_czSign y
       = ∏ i : Fin 6, clause6Aux_s0K i (y i) := by
@@ -1818,6 +2044,8 @@ theorem clause6Aux_s0_summand (z : Fin 6 → Bool) (y : Reg 6) :
   · rw [clause6Aux_s0_ppd_zero z y 3 (by simp [clause6Aux_branchO]) h3, zero_mul,
       clause6Aux_s0K_zero y 3 (by simp [clause6Aux_branchO]) h3]
 
+/-- The second local tensor-product entry vanishes if the column register is false at vertex
+three or four. -/
 theorem clause6Aux_s1_ppd_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi : i = 3 ∨ i = 4)
     (hy : y i = false) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS1) (clause6Aux_rowZ z) y = 0 := by
@@ -1833,6 +2061,8 @@ theorem clause6Aux_s1_ppd_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi 
     rw [if_pos hc, clause6Aux_rowZ_of z 4 (by simp [clause6Aux_branchO]), hy]
     simp
 
+/-- The second local tensor-product entry vanishes if the column register is true at vertex
+five. -/
 theorem clause6Aux_s1_ppd_zero5 (z : Fin 6 → Bool) (y : Reg 6) (hy : y 5 = true) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS1) (clause6Aux_rowZ z) y = 0 := by
   rw [clause6Aux_localB_s1]
@@ -1843,12 +2073,15 @@ theorem clause6Aux_s1_ppd_zero5 (z : Fin 6 → Bool) (y : Reg 6) (hy : y 5 = tru
   rw [if_neg hc1, if_neg hc2, if_neg hc3, clause6Aux_rowZ_of z 5 (by simp [clause6Aux_branchO]), hy]
   simp
 
+/-- The separated second-branch scalar product vanishes if the register is false at vertex three
+or four. -/
 theorem clause6Aux_s1K_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi : i = 3 ∨ i = 4)
     (hy : y i = false) :
     (∏ j : Fin 6, clause6Aux_s1K z j (y j)) = 0 := by
   apply Finset.prod_eq_zero (Finset.mem_univ i)
   rcases hi with h | h <;> subst h <;> simp [clause6Aux_s1K, hy]
 
+/-- The separated second-branch scalar product vanishes if the register is true at vertex five. -/
 theorem clause6Aux_s1K_zero5 (z : Fin 6 → Bool) (y : Reg 6) (hy : y 5 = true) :
     (∏ j : Fin 6, clause6Aux_s1K z j (y j)) = 0 := by
   apply Finset.prod_eq_zero (Finset.mem_univ (5 : Fin 6))
@@ -1856,6 +2089,8 @@ theorem clause6Aux_s1K_zero5 (z : Fin 6 → Bool) (y : Reg 6) (hy : y 5 = true) 
 
 set_option maxHeartbeats 4000000 in
 
+/-- The second local tensor-product entry weighted by the controlled-Z sign equals the product
+of the separated factors `clause6Aux_s1K`. -/
 theorem clause6Aux_s1_summand (z : Fin 6 → Bool) (y : Reg 6) :
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS1) (clause6Aux_rowZ z) y * clause6Aux_czSign y
       = ∏ i : Fin 6, clause6Aux_s1K z i (y i) := by
@@ -1881,6 +2116,7 @@ theorem clause6Aux_s1_summand (z : Fin 6 → Bool) (y : Reg 6) :
           hy2]
   · rw [clause6Aux_s1_ppd_zero5 z y h5, zero_mul, clause6Aux_s1K_zero5 z y h5]
 
+/-- The controlled-Z-weighted sum of all-false local tensor-product entries equals one. -/
 theorem clause6Aux_s0_sum (z : Fin 6 → Bool) :
     ∑ y : Reg 6, pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS0) (clause6Aux_rowZ z) y
         * clause6Aux_czSign y = 1 := by
@@ -1891,6 +2127,7 @@ theorem clause6Aux_s0_sum (z : Fin 6 → Bool) :
   · simp [clause6Aux_s0K, hi]
   · simp [clause6Aux_s0K, hi]
 
+/-- The controlled-Z-weighted sum of second-branch local tensor-product entries equals zero. -/
 theorem clause6Aux_s1_sum (z : Fin 6 → Bool) :
     ∑ y : Reg 6, pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS1) (clause6Aux_rowZ z) y
         * clause6Aux_czSign y = 0 := by
@@ -1898,6 +2135,7 @@ theorem clause6Aux_s1_sum (z : Fin 6 → Bool) :
   apply Finset.prod_eq_zero (Finset.mem_univ (2 : Fin 6))
   simp [clause6Aux_s1K]
 
+/-- For every rank assignment, the all-false branch on identity input has `(0, 0)` entry one. -/
 theorem clause6Aux_branch_entry_zero : clause6Aux_branch_entry_zero_obl := by
   intro r
   rw [clause6Aux_branch_entry_eq]
@@ -1917,6 +2155,8 @@ theorem clause6Aux_branch_entry_zero : clause6Aux_branch_entry_zero_obl := by
   rw [hcard]
   norm_num
 
+/-- For every rank assignment, the second outcome branch on identity input has `(0, 0)` entry
+zero. -/
 theorem clause6Aux_branch_entry_one : clause6Aux_branch_entry_one_obl := by
   intro r
   rw [clause6Aux_branch_entry_eq]
@@ -1929,6 +2169,7 @@ theorem clause6Aux_branch_entry_one : clause6Aux_branch_entry_one_obl := by
   simp only [hk]
   simp
 
+/-- The universal branch-equality obligation `clause6Aux_clause4_branchObligation` is false. -/
 theorem clause6Aux_clause4_branch_refuted : ¬ Qatlib.Concepts.MbqcFlow.FlowDecision.clause6Aux_clause4_branchObligation :=
   Qatlib.Concepts.MbqcFlow.FlowDecision.clause6Aux_clause4_branch_refuted_of_entries
     Qatlib.Concepts.MbqcFlow.FlowDecision.clause6Aux_branch_entry_zero

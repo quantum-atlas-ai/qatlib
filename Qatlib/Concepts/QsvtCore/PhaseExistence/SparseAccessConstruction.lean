@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstructionDefs
+
+/-!
+# Block encoding from sparse matrix access
+
+`leftPrep` and `rightPrep` prepare row-address and column-value superpositions on a padded
+workspace. For legal sparse-access data with positive row and column slot counts, their relative
+unitary compresses to the matrix divided by `sqrt sr * sqrt sc`.
+
+The module constructs the workspace frames, proves unitarity and the compression formula, and
+packages an exact block encoding with normalization `sparseAlpha sr sc`. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sparse_corner`: compute the selected matrix entry of the preparation product.
+* `sparseProjectedUnitaryEncoding`: encode the normalized sparse matrix.
+* `sparseBlockEncoding`: construct the exact block encoding.
+* `sparseBlockEncoding_norm_le`: bound the matrix norm by the normalization.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -26,6 +50,7 @@ set_option maxHeartbeats 1000000
 variable {I O : Type*} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 variable {sr sc : ℕ}
 
+/-- A finite complex sum supported at a single index equals the value at that index. -/
 private theorem sum_indicator {A : Type*} [Fintype A] [DecidableEq A] (f : A → ℂ) (a : A) :
     (∑ x : A, if a = x then f x else 0) = f a := by
   classical
@@ -34,6 +59,7 @@ private theorem sum_indicator {A : Type*} [Fintype A] [DecidableEq A] (f : A →
   · intro x hx
     rw [if_neg (fun h => hx h.symm)]
 
+/-- A condition independent of the summation index can be moved outside a finite sum. -/
 private theorem sum_block_inner {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B]
     (f : B → ℂ) (x a : A) :
     (∑ b : B, if x = a then f b else 0) = if x = a then ∑ b, f b else 0 := by
@@ -47,6 +73,7 @@ private theorem sum_block_inner {A B : Type*} [Fintype A] [DecidableEq A] [Finty
     rw [if_neg h]
     simp
 
+/-- A double finite sum supported at one outer index reduces to the inner sum at that index. -/
 private theorem sum_block_outer {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B]
     (f : A → B → ℂ) (a : A) :
     (∑ x' : A, ∑ b : B, (if a = x' then f x' b else 0)) = ∑ b, f a b := by
@@ -57,15 +84,20 @@ private theorem sum_block_outer {A B : Type*} [Fintype A] [DecidableEq A] [Finty
   rw [h1]
   rw [sum_indicator (fun x' => ∑ b, f x' b) a]
 
+/-- The block diagonal matrix acting on the second coordinate, with a block selected by the
+first coordinate. -/
 noncomputable def blockDiagFirst {A B : Type*} (blk : A → Matrix B B ℂ) :
     Matrix (A × B) (A × B) ℂ :=
   Matrix.of fun p q => if p.1 = q.1 then (blk p.1) p.2 q.2 else 0
 
+/-- The matrix applying the block indexed by the middle coordinate to the first coordinate and
+preserving the remaining coordinates. -/
 noncomputable def blockDiagCross {A B C : Type*} (blk : A → Matrix B B ℂ) :
     Matrix (B × (A × C)) (B × (A × C)) ℂ :=
   Matrix.of fun p q =>
     if p.2.1 = q.2.1 then (if p.2.2 = q.2.2 then (blk p.2.1) p.1 q.1 else 0) else 0
 
+/-- A block diagonal matrix is unitary when each of its blocks is unitary. -/
 theorem blockDiagFirst_unitary {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B]
     [DecidableEq B] (blk : A → Matrix B B ℂ) (hblk : ∀ a, blk a ∈ Matrix.unitaryGroup B ℂ) :
     blockDiagFirst blk ∈ Matrix.unitaryGroup (A × B) ℂ := by
@@ -119,12 +151,16 @@ theorem blockDiagFirst_unitary {A B : Type*} [Fintype A] [DecidableEq A] [Fintyp
     have hpq : p ≠ q := fun e => h (congrArg Prod.fst e)
     simp [hpq]
 
+/-- The sum of a block row times a conjugated block row is the corresponding entry of the block
+times its conjugate transpose. -/
 private theorem block_inner_sum {A B : Type*} [Fintype B] [DecidableEq B]
     (blk : A → Matrix B B ℂ) (a : A) (b b' : B) :
     (∑ bz : B, ((blk a) b bz) * star ((blk a) b' bz)) = ((blk a) * (blk a)ᴴ) b b' := by
   classical
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
 
+/-- For equal middle and final coordinates, the row product of `blockDiagCross` reduces to the
+corresponding block row product supported on those coordinates. -/
 private theorem cross_term_eq_block {A B C : Type*} [DecidableEq A] [DecidableEq C]
     (blk : A → Matrix B B ℂ) (b b' : B) (a : A) (c : C) :
     ∀ z : B × (A × C),
@@ -141,6 +177,8 @@ private theorem cross_term_eq_block {A B C : Type*} [DecidableEq A] [DecidableEq
   · have h1' : ¬(a = az) := fun e => h1 e.symm
     simp [h1, h1']
 
+/-- Rows of `blockDiagCross` with different middle or final coordinates have zero pointwise
+products after conjugating the second row. -/
 private theorem cross_term_eq_zero {A B C : Type*} [DecidableEq A] [DecidableEq C]
     (blk : A → Matrix B B ℂ) (b b' : B) (a a' : A) (c c' : C)
     (hne : (a = a' ∧ c = c') → False) :
@@ -163,6 +201,7 @@ private theorem cross_term_eq_zero {A B C : Type*} [DecidableEq A] [DecidableEq 
   · have h1' : ¬(a = az) := fun e => h1 e.symm
     simp [h1']
 
+/-- The crossed block diagonal matrix is unitary when each block is unitary. -/
 theorem blockDiagCross_unitary {A B C : Type*} [Fintype A] [DecidableEq A] [Fintype B]
     [DecidableEq B] [Fintype C] [DecidableEq C] (blk : A → Matrix B B ℂ)
     (hblk : ∀ a, blk a ∈ Matrix.unitaryGroup B ℂ) :
@@ -221,21 +260,28 @@ theorem blockDiagCross_unitary {A B C : Type*} [Fintype A] [DecidableEq A] [Fint
       exact haa (congrArg (fun x => x.2.1) e)
     simp [hpq]
 
+/-- The first padded column address, available when the row slot count is positive. -/
 def colScratch (O : Type*) (sr : ℕ) (hsr : 0 < sr) : ColAddr O sr := .inr ⟨0, hsr⟩
 
+/-- The first padded row address, available when the column slot count is positive. -/
 def rowScratch (I : Type*) (sc : ℕ) (hsc : 0 < sc) : RowAddr I sc := .inr ⟨0, hsc⟩
 
+/-- The designated column of `complexPrepare v zero` is the vector `v`. -/
 private theorem complexPrepare_column {J : Type*} [Fintype J] [DecidableEq J] (v : J → ℂ)
     (zero : J) (j : J) : complexPrepare v zero j zero = v j := by
   have h := congrFun (complexPrepare_mulVec_ket v zero) j
   simpa [Matrix.mulVec, dotProduct, Ket, Matrix.mul_apply] using h
 
+/-- The complex norm of a nonnegative real scalar is that scalar. -/
 private theorem realComplex_norm (n : ℝ) (hn : 0 ≤ n) : ‖(n : ℂ)‖ = n := by
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hn]
 
+/-- The complex norm of a real square root is the same real square root. -/
 private theorem sqrtComplex_norm (n : ℝ) : ‖(Real.sqrt n : ℂ)‖ = Real.sqrt n := by
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg n)]
 
+/-- For legal sparse-access data and a positive row slot count, every row-address vector is
+normalized. -/
 theorem rowAddressVector_normalized (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (hsr : 0 < sr) : Qatlib.Foundations.PureStateMath.Normalized (rowAddressVector D i) := by
   have hsqrt : (Real.sqrt sr : ℝ) ^ 2 = (sr : ℝ) := Real.sq_sqrt (Nat.cast_nonneg _)
@@ -266,6 +312,8 @@ theorem rowAddressVector_normalized (D : SparseAccess I O sr sc) (hD : SparseAcc
   rw [hcast]
   exact div_self (Nat.cast_ne_zero.mpr (Nat.ne_of_gt hsr))
 
+/-- For legal sparse-access data, the squared norms of the two Boolean amplitudes at each column
+address sum to one. -/
 private theorem colAmp_norm (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (r : RowAddr I sc) :
     ‖colAmp D j r false‖ ^ 2 + ‖colAmp D j r true‖ ^ 2 = 1 := by
@@ -288,10 +336,14 @@ private theorem colAmp_norm (D : SparseAccess I O sr sc) (hD : SparseAccessLegal
     rw [h1, h2]
     simp
 
+/-- The real weight given by the square of the column slot multiplicity times the squared norm
+of the selected Boolean amplitude. -/
 noncomputable def colValueWeight (D : SparseAccess I O sr sc) (j : O)
     (r : RowAddr I sc) (f : Bool) : ℝ :=
   ((colSlotCount D j r : ℝ) ^ 2) * ‖colAmp D j r f‖ ^ 2
 
+/-- For legal sparse-access data and a positive column slot count, every column-value
+superposition is normalized. -/
 theorem colValueSuperposition_normalized (D : SparseAccess I O sr sc)
     (hD : SparseAccessLegal D) (j : O) (hsc : 0 < sc) :
     Qatlib.Foundations.PureStateMath.Normalized (colValueSuperposition D j) := by
@@ -350,26 +402,35 @@ theorem colValueSuperposition_normalized (D : SparseAccess I O sr sc)
   rw [hcast]
   exact div_self (Nat.cast_ne_zero.mpr (Nat.ne_of_gt hsc))
 
+/-- The matrix preparing the row-address vector from the designated column scratch address. -/
 noncomputable def leftBlock (D : SparseAccess I O sr sc) (i : I) (scratch : ColAddr O sr) :
     Matrix (ColAddr O sr) (ColAddr O sr) ℂ :=
   complexPrepare (rowAddressVector D i) scratch
 
+/-- The matrix preparing the column-value superposition from the designated row scratch address
+with Boolean flag false. -/
 noncomputable def rightBlock (D : SparseAccess I O sr sc) (j : O) (scratch : RowAddr I sc) :
     Matrix (RowAddr I sc × Bool) (RowAddr I sc × Bool) ℂ :=
   complexPrepare (colValueSuperposition D j) (scratch, false)
 
+/-- The workspace matrix applying `leftBlock` on legal row addresses and the identity on padded
+row addresses. -/
 noncomputable def leftPrep (D : SparseAccess I O sr sc) (scratch : ColAddr O sr) :
     Matrix (SparseWorkspace I O sr sc) (SparseWorkspace I O sr sc) ℂ :=
   blockDiagCross (fun r => match r with
     | .inl i => leftBlock D i scratch
     | .inr _ => 1)
 
+/-- The workspace matrix applying `rightBlock` on legal column addresses and the identity on
+padded column addresses. -/
 noncomputable def rightPrep (D : SparseAccess I O sr sc) (scratch : RowAddr I sc) :
     Matrix (SparseWorkspace I O sr sc) (SparseWorkspace I O sr sc) ℂ :=
   blockDiagFirst (fun c => match c with
     | .inl j => rightBlock D j scratch
     | .inr _ => 1)
 
+/-- The left preparation matrix is unitary for legal sparse-access data with a positive row slot
+count. -/
 theorem leftPrep_unitary (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratch : ColAddr O sr) (hsr : 0 < sr) :
     leftPrep D scratch ∈ Matrix.unitaryGroup (SparseWorkspace I O sr sc) ℂ := by
@@ -379,6 +440,8 @@ theorem leftPrep_unitary (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
   | inl i => exact complexPrepare_unitary _ _ (rowAddressVector_normalized D hD i hsr)
   | inr c => exact (Matrix.unitaryGroup _ ℂ).one_mem
 
+/-- The right preparation matrix is unitary for legal sparse-access data with a positive column
+slot count. -/
 theorem rightPrep_unitary (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratch : RowAddr I sc) (hsc : 0 < sc) :
     rightPrep D scratch ∈ Matrix.unitaryGroup (SparseWorkspace I O sr sc) ℂ := by
@@ -388,6 +451,7 @@ theorem rightPrep_unitary (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D
   | inl j => exact complexPrepare_unitary _ _ (colValueSuperposition_normalized D hD j hsc)
   | inr k => exact (Matrix.unitaryGroup _ ℂ).one_mem
 
+/-- The matrix whose columns are basis vectors selected by an injective map is an isometry. -/
 private theorem deltaFrame_isIsometry {H A : Type*} [Fintype H] [DecidableEq H] [Fintype A]
     [DecidableEq A] (f : A → H) (hne : Function.Injective f) :
     IsIsometry (Matrix.of fun x a => if x = f a then 1 else 0) := by
@@ -414,14 +478,19 @@ private theorem deltaFrame_isIsometry {H A : Type*} [Fintype H] [DecidableEq H] 
         * (if x = f a' then (1 : ℂ) else 0)) = 0 := hsum0
       _ = if a = a' then (1 : ℂ) else 0 := by simp [h]
 
+/-- The basis-vector frame embedding row indices with the designated column scratch address and
+Boolean flag false. -/
 noncomputable def leftFrame (scratch : ColAddr O sr) :
     Matrix (SparseWorkspace I O sr sc) I ℂ :=
   Matrix.of fun x i => if x = (scratch, (.inl i, false)) then 1 else 0
 
+/-- The basis-vector frame embedding column indices with the designated row scratch address and
+Boolean flag false. -/
 noncomputable def rightFrame (scratch : RowAddr I sc) :
     Matrix (SparseWorkspace I O sr sc) O ℂ :=
   Matrix.of fun x j => if x = (.inl j, (scratch, false)) then 1 else 0
 
+/-- The row-index frame `leftFrame` is an isometry. -/
 theorem leftFrame_isIsometry (scratch : ColAddr O sr) :
     IsIsometry (leftFrame (I := I) (O := O) (sr := sr) (sc := sc) scratch) := by
   refine deltaFrame_isIsometry _ ?_
@@ -432,6 +501,7 @@ theorem leftFrame_isIsometry (scratch : ColAddr O sr) :
     injection congrArg Prod.fst h1
   exact h2
 
+/-- The column-index frame `rightFrame` is an isometry. -/
 theorem rightFrame_isIsometry (scratch : RowAddr I sc) :
     IsIsometry (rightFrame (I := I) (O := O) (sr := sr) (sc := sc) scratch) := by
   refine deltaFrame_isIsometry _ ?_
@@ -441,6 +511,8 @@ theorem rightFrame_isIsometry (scratch : RowAddr I sc) :
     injection h1
   exact h2
 
+/-- The designated column of `leftPrep` equals the row-address vector on the matching row
+address and false flag, and vanishes elsewhere. -/
 theorem leftPrep_entry (D : SparseAccess I O sr sc) (scratch : ColAddr O sr) (i : I)
     (c : ColAddr O sr) (r : RowAddr I sc) (f : Bool) :
     leftPrep D scratch (c, (r, f)) (scratch, (.inl i, false))
@@ -454,6 +526,8 @@ theorem leftPrep_entry (D : SparseAccess I O sr sc) (scratch : ColAddr O sr) (i 
   | inr c' =>
     simp [leftPrep, blockDiagCross]
 
+/-- The designated column of `rightPrep` equals the column-value superposition on the matching
+column address and vanishes elsewhere. -/
 theorem rightPrep_entry (D : SparseAccess I O sr sc) (scratch : RowAddr I sc) (j : O)
     (c : ColAddr O sr) (r : RowAddr I sc) (f : Bool) :
     rightPrep D scratch (c, (r, f)) (.inl j, (scratch, false))
@@ -467,6 +541,8 @@ theorem rightPrep_entry (D : SparseAccess I O sr sc) (scratch : RowAddr I sc) (j
   | inr k =>
     simp [rightPrep, blockDiagFirst]
 
+/-- For legal sparse-access data with positive slot counts, the selected corner of the
+left-adjoint/right preparation product is `D.entry i j / (sqrt sr * sqrt sc)`. -/
 theorem sparse_corner (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc)
     (i : I) (j : O) (hsr : 0 < sr) (hsc : 0 < sc) :
@@ -547,6 +623,8 @@ theorem sparse_corner (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     simp [hz]
     field_simp [hsrne, hscne]
 
+/-- The two-dimensional amplitude matrix with first column `(a, sqrt (1 - ‖a‖²))` and second
+column `(-sqrt (1 - ‖a‖²), star a)`. -/
 noncomputable def ampGate (a : ℂ) : Matrix Bool Bool ℂ :=
   Matrix.of fun i j =>
     if i = false then
@@ -554,19 +632,24 @@ noncomputable def ampGate (a : ℂ) : Matrix Bool Bool ℂ :=
     else
       (if j = false then ((Real.sqrt (1 - ‖a‖ ^ 2) : ℝ) : ℂ) else (starRingEnd ℂ) a)
 
+/-- The workspace operator `(leftPrep D scratchCol)ᴴ * rightPrep D scratchRow`. -/
 noncomputable def sparseOperator (D : SparseAccess I O sr sc) (scratchCol : ColAddr O sr)
     (scratchRow : RowAddr I sc) :
     Matrix (SparseWorkspace I O sr sc) (SparseWorkspace I O sr sc) ℂ :=
   (leftPrep D scratchCol)ᴴ * (rightPrep D scratchRow)
 
+/-- The sparse normalization `sparseAlpha sr sc` is positive when both slot counts are positive. -/
 theorem sparseAlpha_pos (hsr : 0 < sr) (hsc : 0 < sc) : 0 < sparseAlpha sr sc := by
   exact mul_pos (Real.sqrt_pos.2 (Nat.cast_pos.2 hsr)) (Real.sqrt_pos.2 (Nat.cast_pos.2 hsc))
 
+/-- The complex sparse normalization is nonzero when both slot counts are positive. -/
 theorem sparseAlphaComplex_ne_zero (hsr : 0 < sr) (hsc : 0 < sc) :
     sparseAlphaComplex sr sc ≠ 0 := by
   rw [sparseAlphaComplex_eq]
   exact Complex.ofReal_ne_zero.mpr (ne_of_gt (sparseAlpha_pos hsr hsc))
 
+/-- The sparse workspace operator is unitary for legal data with positive row and column slot
+counts. -/
 theorem sparseOperator_unitary (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc) (hsr : 0 < sr) (hsc : 0 < sc) :
     sparseOperator D scratchCol scratchRow
@@ -587,6 +670,8 @@ theorem sparseOperator_unitary (D : SparseAccess I O sr sc) (hD : SparseAccessLe
     _ = (rightPrep D scratchRow)ᴴ * (1 * rightPrep D scratchRow) := by rw [hL]
     _ = 1 := by rw [Matrix.one_mul, hR]
 
+/-- Compression between the two basis-vector frames selects the corresponding scratch-address
+entry of the workspace matrix. -/
 theorem compress_deltaFrame (scratchCol : ColAddr O sr)
     (scratchRow : RowAddr I sc)
     (U : Matrix (SparseWorkspace I O sr sc) (SparseWorkspace I O sr sc) ℂ) (i : I) (j : O) :
@@ -640,6 +725,8 @@ theorem compress_deltaFrame (scratchCol : ColAddr O sr)
     rw [hR y, if_neg hy]
     simp
 
+/-- The compressed sparse operator has entry `D.entry i j / sparseAlphaComplex sr sc` under
+legality and positive slot counts. -/
 theorem compress_sparseOperator (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc) (i : I) (j : O)
     (hsr : 0 < sr) (hsc : 0 < sc) :
@@ -651,6 +738,8 @@ theorem compress_sparseOperator (D : SparseAccess I O sr sc) (hD : SparseAccessL
   rw [sparse_corner D hD scratchCol scratchRow i j hsr hsc]
   rfl
 
+/-- Compression of the sparse operator between the designated frames equals
+`SparseAccess.encoded D`. -/
 theorem compress_sparseOperator_eq (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc) (hsr : 0 < sr) (hsc : 0 < sc) :
     compress (leftFrame (I := I) (O := O) (sr := sr) (sc := sc) scratchCol)
@@ -660,6 +749,8 @@ theorem compress_sparseOperator_eq (D : SparseAccess I O sr sc) (hD : SparseAcce
   ext i j
   exact compress_sparseOperator D hD scratchCol scratchRow i j hsr hsc
 
+/-- Legal sparse-access data with positive slot counts yields a projected unitary encoding of
+its normalized matrix using the sparse operator and the two frames. -/
 theorem sparseProjectedUnitaryEncoding (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc) (hsr : 0 < sr) (hsc : 0 < sc) :
     ProjectedUnitaryEncoding (SparseAccess.encoded D) (sparseOperator D scratchCol scratchRow)
@@ -670,6 +761,8 @@ theorem sparseProjectedUnitaryEncoding (D : SparseAccess I O sr sc) (hD : Sparse
     rightFrame_isIsometry (I := I) (O := O) (sr := sr) (sc := sc) scratchRow, ?_⟩
   exact compress_sparseOperator_eq D hD scratchCol scratchRow hsr hsc
 
+/-- Legal sparse-access data with positive slot counts yields an exact block encoding with
+normalization `sqrt sr * sqrt sc` and error zero. See [GilyenSuLowWiebe2019]. -/
 theorem sparseBlockEncoding (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc) (hsr : 0 < sr) (hsc : 0 < sc) :
     BlockEncoding (SparseAccess.matrix D) (sparseOperator D scratchCol scratchRow)
@@ -707,6 +800,8 @@ theorem sparseBlockEncoding (D : SparseAccess I O sr sc) (hD : SparseAccessLegal
         exact (div_mul_cancel₀ _ hne).symm)
     rw [hzero, norm_zero]
 
+/-- The norm of the matrix of legal sparse-access data is at most `sqrt sr * sqrt sc` when both
+slot counts are positive. -/
 theorem sparseBlockEncoding_norm_le (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (scratchCol : ColAddr O sr) (scratchRow : RowAddr I sc) (hsr : 0 < sr) (hsc : 0 < sc) :
     ‖SparseAccess.matrix D‖ ≤ sparseAlpha sr sc := by

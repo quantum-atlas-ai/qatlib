@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeightAlgebra
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+/-!
+# Summability of integer sampling weights
+
+`latticeCauchy` is a discrete Cauchy profile dominating the integer weight norms. A telescoping
+comparison proves summability for spacing parameter at least one and bounds the full lattice
+mass by five.
+
+The comparison yields absolute summability of the complex integer weights and bounds every
+finite norm sum by `5 * integerWeightConstant`. These bounds control LCU coefficient mass in
+[WangEtAl2026].
+
+## Main statements
+
+* `latticeCauchy_tsum_le_five`: bounds the discrete Cauchy mass.
+* `integerWeight_lattice_norm_tsum_le`: bounds the total sampling weight norm.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -17,9 +39,12 @@ namespace CBMD
 
 open scoped BigOperators
 
+/-- The discrete Cauchy profile `a / (a² + k²)` on integer indices. -/
 noncomputable def latticeCauchy (a : ℝ) (k : ℤ) : ℝ :=
   a / (a ^ 2 + (k : ℝ) ^ 2)
 
+/-- For `a ≥ 1`, the positive-index Cauchy term at `n + 1` is bounded by `2a / (a + n) - 2a / (a
++ n + 1)`. -/
 private theorem latticeCauchy_nat_le_telescope {a : ℝ} (ha : 1 ≤ a) (n : ℕ) :
     a / (a ^ 2 + ((n : ℝ) + 1) ^ 2) ≤
       2 * a / (a + n) - 2 * a / (a + (n + 1 : ℕ)) := by
@@ -41,6 +66,7 @@ private theorem latticeCauchy_nat_le_telescope {a : ℝ} (ha : 1 ≤ a) (n : ℕ
       push_cast
       ring
 
+/-- For `a ≥ 1`, every finite initial sum of the positive-index Cauchy terms is at most two. -/
 theorem latticeCauchy_sum_range_le_two {a : ℝ} (ha : 1 ≤ a) (N : ℕ) :
     (∑ n ∈ Finset.range N, latticeCauchy a (n + 1)) ≤ 2 := by
   have ha0 : 0 < a := lt_of_lt_of_le (by norm_num) ha
@@ -59,6 +85,7 @@ theorem latticeCauchy_sum_range_le_two {a : ℝ} (ha : 1 ≤ a) (N : ℕ) :
       rw [mul_div_cancel_right₀ 2 ha0.ne']
       exact sub_le_self _ (by positivity)
 
+/-- For `a ≥ 1`, the discrete Cauchy profile is summable over the integers. -/
 theorem latticeCauchy_summable {a : ℝ} (ha : 1 ≤ a) :
     Summable (latticeCauchy a) := by
   have ha0 : 0 < a := lt_of_lt_of_le (by norm_num) ha
@@ -71,6 +98,7 @@ theorem latticeCauchy_summable {a : ℝ} (ha : 1 ≤ a) :
     simp only [latticeCauchy, Int.cast_neg, even_two, Even.neg_pow]
   exact hplus.of_add_one_of_neg_add_one (hminus ▸ hplus)
 
+/-- For `a ≥ 1`, the full discrete Cauchy sum over the integers is at most five. -/
 theorem latticeCauchy_tsum_le_five {a : ℝ} (ha : 1 ≤ a) :
     (∑' k : ℤ, latticeCauchy a k) ≤ 5 := by
   have ha0 : 0 < a := lt_of_lt_of_le (by norm_num) ha
@@ -91,11 +119,14 @@ theorem latticeCauchy_tsum_le_five {a : ℝ} (ha : 1 ≤ a) :
     nlinarith
   linarith
 
+/-- For positive `a`, the discrete Cauchy profile equals `(1 / a) * (1 / (1 + (k / a)²))`. -/
 theorem latticeCauchy_eq_scaled {a : ℝ} (ha : 0 < a) (k : ℤ) :
     latticeCauchy a k = (1 / a) * (1 / (1 + ((k : ℝ) / a) ^ 2)) := by
   unfold latticeCauchy
   field_simp
 
+/-- For `a ≥ 1`, the scaled Cauchy values `1 / (1 + (k / a)²)` are summable over integer
+indices. -/
 theorem scaled_cauchy_summable {a : ℝ} (ha : 1 ≤ a) :
     Summable (fun k : ℤ => 1 / (1 + ((k : ℝ) / a) ^ 2)) := by
   have ha0 : 0 < a := lt_of_lt_of_le (by norm_num) ha
@@ -105,12 +136,15 @@ theorem scaled_cauchy_summable {a : ℝ} (ha : 1 ≤ a) :
   rw [latticeCauchy_eq_scaled ha0]
   field_simp
 
+/-- For `a ≥ 1`, the sum of `1 / (1 + (k / a)²)`, divided by `a`, is at most five. -/
 theorem scaled_cauchy_tsum_le_five {a : ℝ} (ha : 1 ≤ a) :
     (1 / a) * (∑' k : ℤ, 1 / (1 + ((k : ℝ) / a) ^ 2)) ≤ 5 := by
   have ha0 : 0 < a := lt_of_lt_of_le (by norm_num) ha
   rw [← tsum_mul_left]
   simpa only [← latticeCauchy_eq_scaled ha0] using latticeCauchy_tsum_le_five ha
 
+/-- For `a ≥ 1`, each sampled integer weight norm is at most `integerWeightConstant *
+latticeCauchy a k`. -/
 private theorem integerWeight_lattice_norm_le (m : ℕ) {a : ℝ} (ha : 1 ≤ a) (k : ℤ) :
     ‖integerWeight m a ((k : ℝ) / a)‖ ≤ integerWeightConstant * latticeCauchy a k := by
   have ha0 : 0 < a := lt_of_lt_of_le (by norm_num) ha
@@ -122,16 +156,20 @@ private theorem integerWeight_lattice_norm_le (m : ℕ) {a : ℝ} (ha : 1 ≤ a)
       simp only [div_eq_mul_inv, mul_inv_rev]
       ring
 
+/-- For `a ≥ 1`, the norms of the integer weights sampled at `k / a` form a summable series. -/
 theorem integerWeight_lattice_norm_summable (m : ℕ) {a : ℝ} (ha : 1 ≤ a) :
     Summable (fun k : ℤ => ‖integerWeight m a ((k : ℝ) / a)‖) := by
   exact Summable.of_nonneg_of_le (fun _ => norm_nonneg _)
     (integerWeight_lattice_norm_le m ha)
     ((latticeCauchy_summable ha).mul_left integerWeightConstant)
 
+/-- For `a ≥ 1`, the complex integer weights sampled at `k / a` form a summable series. -/
 theorem integerWeight_lattice_summable (m : ℕ) {a : ℝ} (ha : 1 ≤ a) :
     Summable (fun k : ℤ => integerWeight m a ((k : ℝ) / a)) :=
   (integerWeight_lattice_norm_summable m ha).of_norm
 
+/-- For `a ≥ 1`, the total norm of all sampled integer weights is at most `5 *
+integerWeightConstant`. -/
 theorem integerWeight_lattice_norm_tsum_le (m : ℕ) {a : ℝ} (ha : 1 ≤ a) :
     (∑' k : ℤ, ‖integerWeight m a ((k : ℝ) / a)‖) ≤ 5 * integerWeightConstant := by
   calc
@@ -144,6 +182,8 @@ theorem integerWeight_lattice_norm_tsum_le (m : ℕ) {a : ℝ} (ha : 1 ≤ a) :
       mul_le_mul_of_nonneg_left (latticeCauchy_tsum_le_five ha) integerWeightConstant_nonneg
     _ = 5 * integerWeightConstant := mul_comm _ _
 
+/-- For `a ≥ 1`, the sum of sampled integer weight norms over any finite index set is at most `5
+* integerWeightConstant`. -/
 theorem integerWeight_lattice_norm_sum_le (m : ℕ) {a : ℝ} (ha : 1 ≤ a) (s : Finset ℤ) :
     (∑ k ∈ s, ‖integerWeight m a ((k : ℝ) / a)‖) ≤ 5 * integerWeightConstant := by
   exact (Summable.sum_le_tsum s (fun _ _ => norm_nonneg _)

@@ -9,6 +9,28 @@ import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.Analysis.InnerProductSpace.Positive
 
+/-!
+# A finite measurement optimality criterion
+
+This module proves a finite-dimensional trace criterion for optimality of a measurement, as used
+in the quantum matching analysis of [SasakiCarlini2002]. Auxiliary results express products of
+rank-one effects and prove that the real trace of a product of positive semidefinite matrices is
+nonnegative.
+
+The theorem `helstromYuen_optimality` compares any competing positive complete family with the
+given family when its associated matrix `Γ` dominates every score matrix.
+
+## Main statements
+
+* `trace_mul_nonneg`: nonnegativity of the real trace of a product of positive semidefinite
+  matrices.
+* `helstromYuen_optimality`: a dominance certificate bounds every competing measurement score.
+
+## References
+
+* [Sasaki and Carlini, 2002][SasakiCarlini2002]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 noncomputable section
@@ -20,6 +42,8 @@ namespace Qatlib.Papers.QMatching02.MainResults.OptimalityCriterion
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- The trace of the product of two conjugate outer products is the product of their two
+conjugated overlaps. -/
 theorem trace_vecMulVec_mul_vecMulVec (a b : n → ℂ) :
     ((vecMulVec a (star a)) * (vecMulVec b (star b))).trace
       = (star a ⬝ᵥ b) * (star b ⬝ᵥ a) := by
@@ -31,12 +55,16 @@ theorem trace_vecMulVec_mul_vecMulVec (a b : n → ℂ) :
   apply Finset.sum_congr rfl; intro j _
   ring
 
+/-- The conjugated dot product of `x` with `y` is the complex conjugate of the conjugated dot
+product of `y` with `x`. -/
 theorem dotProduct_star_comm (x y : n → ℂ) :
     (star x ⬝ᵥ y) = star (star y ⬝ᵥ x) := by
   simp only [dotProduct, star_sum]
   apply Finset.sum_congr rfl; intro i _
   simp [mul_comm]
 
+/-- The real part of the trace of a product of two positive semidefinite complex matrices is
+nonnegative. -/
 theorem trace_mul_nonneg {A B : Matrix n n ℂ} (hA : A.PosSemidef) (hB : B.PosSemidef) :
     0 ≤ Complex.re ((A * B).trace) := by
   obtain ⟨m, v, rfl⟩ := Matrix.posSemidef_iff_eq_sum_vecMulVec.mp hA
@@ -52,6 +80,9 @@ theorem trace_mul_nonneg {A B : Matrix n n ℂ} (hA : A.PosSemidef) (hB : B.PosS
   rw [hz]
   exact Complex.normSq_nonneg _
 
+/-- If a positive complete family `μ` has `Γ = ∑ i, μ i * G i` and `Γ - G i` positive
+semidefinite for every `i`, then its real trace score bounds that of every positive complete
+family `ν`. -/
 theorem helstromYuen_optimality
     {ι : Type*} [Fintype ι]
     (G μ : ι → Matrix n n ℂ) (Γ : Matrix n n ℂ)

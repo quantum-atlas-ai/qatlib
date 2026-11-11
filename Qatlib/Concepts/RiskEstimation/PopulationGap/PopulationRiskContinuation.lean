@@ -14,6 +14,31 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantizationDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantumReadDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.PopulationRiskCVaRDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.RiskEmitterDefs
+
+/-!
+# Population risk guarantees and implementation interfaces
+
+This module assembles population CDF and conditional mean guarantees, quantile separation
+results, and finite grid approximation interfaces for quantum risk readout [WoernerEgger2019].
+`clause22_endpoint` combines sampling and numerical preparation error with quantum readout
+error, while `clause23_endpoint` records quantile guarantees and a finite sample
+indistinguishability obstruction.
+
+The remaining interfaces collect signed dyadic loading, phase approximation, emitter decisions,
+grid window error, and explicit program resource accounting.
+
+## Main statements
+
+* `clause22_endpoint`: population conditional mean confidence and readout guarantees.
+* `clause23_endpoint`: quantile index properties and sampling limitations.
+* `clause24_endpoint`: signed loading and phase emitter guarantees.
+* `clause25_endpoint`: loaded grid CDF error and resource bounds.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -61,6 +86,8 @@ set_option linter.unusedVariables false
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {n N : ℕ}
 
+/-- For a PMF on pairs, the event that either coordinate satisfies its predicate has mass at
+most the sum of the coordinate event masses. -/
 theorem population_joint_union_le {α β : Type} (p : PMF (α × β))
     (E1 : α → Prop) (E2 : β → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => E1 x.1 ∨ E2 x.2)
@@ -77,20 +104,28 @@ theorem population_joint_union_le {α β : Type} (p : PMF (α × β))
     by_cases h1 : E1 x.1 <;> by_cases h2 : E2 x.2 <;> simp [h1, h2]
   · rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add]
 
+/-- The section readout `s3Readout` equals the shared rational label readout. -/
 theorem s3_readout_is_shared_engine_readout (M : ℕ) (b : ℕ) (z : Fin M) :
     s3Readout M b z = labelReadout M b z := rfl
 
+/-- The section count `s3Count` equals the shared nearest integer count readout. -/
 theorem s3_count_is_shared_engine_count (N : ℕ) (M : ℕ) (z : Fin M) :
     s3Count N M z = countLabelReadoutNearest N M z := rfl
 
+/-- The section count differs from the scaled amplitude estimate `N * aeEstimate M z` by at most
+one half. -/
 theorem s3_per_occasion_quantum_error_le (N : ℕ) (M : ℕ) (z : Fin M) :
     |(s3Count N M z : ℝ) - (N : ℝ) * aeEstimate M z| ≤ 1 / 2 :=
   countLabelReadoutNearest_error N M z
 
+/-- The section count never exceeds the population size `N`. -/
 theorem s3_per_occasion_count_valid (N : ℕ) (M : ℕ) (z : Fin M) :
     s3Count N M z ≤ N :=
   countLabelReadoutNearest_le N M z
 
+/-- Combines population conditional mean identities, tail moment sampling bounds, ratio
+stability, and an end to end quantum conditional mean failure bound under the stated
+separation and precision hypotheses. -/
 theorem clause22_endpoint :
     ∀ (n N : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
       (xs : List ℚ) (t : ℚ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν)
@@ -273,6 +308,9 @@ theorem clause22_endpoint :
         rw [← hring]
         exact (ENNReal.ofReal_add (by positivity) (by positivity)).symm
 
+/-- Collects exact and sample quantile crossing properties, separation based recovery,
+population CDF approximation, and impossibility of perfect finite sample discrimination for
+the specified nearby populations. -/
 theorem clause23_endpoint :
     ∀ (n N : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
       (xs : List ℚ) (q ν : ℝ) (hN : 0 < N) (hν : 0 < ν),
@@ -329,6 +367,8 @@ theorem clause23_endpoint :
     exact exactVaR_no_procedure_exact_under_both ε hε hε1 alg
   · exact sampleVaRIndex_success_lt_one hN
 
+/-- Combines finite grid crossing specifications, quantile rounding error, sampling confidence,
+conditional mean window deviation, and quantile uniqueness under the stated hypotheses. -/
 theorem clause25_quantization_interface :
     ∀ (n N : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℝ)
       (Δ q ν : ℝ) (iT : ℕ) (t : ℝ),
@@ -371,6 +411,8 @@ theorem clause25_quantization_interface :
     · exact (marketVaRAt_unique p loss hv' hv hlt).elim
     · exact (marketVaRAt_unique p loss hv hv' hgt).elim
 
+/-- Gives exact market program sample, comparison, amplitude record, query, and gate accounting
+together with the grid scan bound. -/
 theorem clause25_cost_interface :
     ∀ (n N : ℕ) (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ)
       (Δ ν : ℝ) (iT M r : ℕ),
@@ -388,6 +430,9 @@ theorem clause25_cost_interface :
   refine ⟨rfl, ?_, rfl, rfl, rfl, rfl⟩
   exact marketGridScan_le ω loss Δ ν iT
 
+/-- Combines pointwise loading error, regularity based CDF bias, uniform grid confidence,
+resource bounds, and a necessary sample budget under the stated window regularity
+hypotheses. -/
 theorem clause25_endpoint :
     ∀ (n N : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℝ)
       (ρ Δ ν : ℝ) (iT bits k M r : ℕ),
@@ -433,6 +478,9 @@ theorem clause25_endpoint :
   · intro δ N hδ hN hbound
     exact marketHeadline_sampling_budget hδ hν N hN hbound
 
+/-- Collects signed loading and phase approximation guarantees, numerator and greatest common
+divisor bounds, attainable workspace schedules, and sound emitter decisions with a bounded
+rejection window. -/
 theorem clause24_endpoint :
     ∀ (k L : ℕ) (θ : ℝ),
 

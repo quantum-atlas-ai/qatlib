@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalGraphCompilationQuan
+
+/-!
+# Conditioning on measurement-pattern histories
+
+This module defines `referenceOutput` for a compiled local gate list and derives formulas for
+sums over selected measurement histories. For legal lists, each subset contributes its
+cardinality times the common branch weight, and rescaling any nonempty subset recovers the same
+logical output with the reference unchanged. These are instrument-level consequences of the
+one-way computation framework of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `frontier1`: Constructs the branch instrument and gives subset probability and joint-output
+  formulas.
+* `conditional_reference`: Normalizing any nonempty subset of histories gives `referenceOutput`.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -22,11 +43,16 @@ namespace Qatlib.Concepts.ClusterPatterns.ClusterCompile
 open Qatlib  Matrix
 open scoped Classical BigOperators
 
+/-- The joint operator obtained by conjugating the system by `mbqcLogicalMatrix gs` while
+leaving the finite reference unchanged. -/
 def referenceOutput {n : ℕ} (gs : List (ReflectionGate n)) (R : ℕ)
     (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ) :=
   TensorGate (mbqcLogicalMatrix gs) (1 : Operator R) * X *
     (TensorGate (mbqcLogicalMatrix gs) (1 : Operator R))ᴴ
 
+/-- A legal local gate list yields an instrument realizing its graph branches, with subset
+probabilities proportional to subset cardinality. The corresponding subset sum on any joint
+operator is the same scalar times `referenceOutput`. -/
 theorem frontier1 {n : ℕ} (gs : List (ReflectionGate n)) (hgs : reflectionLegal gs) :
     let G := mbqcGraphWord gs
     let m := 4*(mbqcLocalCounts gs).1 + 2*(mbqcLocalCounts gs).2
@@ -47,6 +73,8 @@ theorem frontier1 {n : ℕ} (gs : List (ReflectionGate n)) (hgs : reflectionLega
   · intro S R X
     simp only [href R, ← Finset.sum_smul, Finset.sum_const, nsmul_eq_mul, referenceOutput]
 
+/-- Rescaling the branch sum over any nonempty set of histories by its uniform weight recovers
+`referenceOutput`. -/
 theorem conditional_reference {n : ℕ} (gs : List (ReflectionGate n)) (hgs : reflectionLegal gs)
     (S : Finset (GraphHistory (mbqcGraphWord gs))) (hS : S.Nonempty) (R : ℕ)
     (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ) :

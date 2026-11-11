@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ThermalRate98.MainResults.MonteCarloBound
+
+/-!
+# Sample mean variance and repetition bounds
+
+This module factors expectations under finite product weights and derives the variance of an
+independent sample mean. The resulting Chebyshev bounds give sufficient repetition counts for
+estimating unit interval observables in the sampling discussion of [LidarWang1999].
+
+It also bounds repeated failure probabilities by an exponential and gives a sufficient number of
+repetitions to observe an event of positive probability.
+
+## Main statements
+
+* `variance_sampleMean`: gives the variance reduction by a factor of the positive sample count.
+* `repetition_bound`: bounds the sample mean deviation probability by a prescribed positive
+  tolerance.
+* `rare_event_repetitions`: bounds the probability of missing an event in every repetition.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +41,7 @@ section Single
 
 variable {α : Type*} [Fintype α]
 
+/-- Finite weighted expectation commutes with a finite sum of functions. -/
 theorem expect_finsetSum {ι : Type*} [Fintype ι] (p : α → ℝ) (f : ι → α → ℝ) :
     expect p (fun a => ∑ i, f i a) = ∑ i, expect p (f i) := by
   unfold expect
@@ -26,6 +50,8 @@ theorem expect_finsetSum {ι : Type*} [Fintype ι] (p : α → ℝ) (f : ι → 
   intro i _
   rw [Finset.mul_sum]
 
+/-- Subtracting the expectation produces a function with zero weighted expectation when the
+weights sum to one. -/
 theorem expect_centered_zero (p X : α → ℝ) (hsum : ∑ a, p a = 1) :
     expect p (fun a => X a - expect p X) = 0 := by
   rw [expect_sub, expect_const p hsum]
@@ -37,6 +63,8 @@ section Product
 
 variable {α : Type*} [Fintype α] [DecidableEq α]
 
+/-- Under product weights, the expectation of a product of coordinate functions is the product
+of their individual weighted expectations. See [LidarWang1999]. -/
 theorem expect_prod_factor (p : α → ℝ) {n : ℕ} (f : Fin n → α → ℝ) :
     expect (prodProb p n) (fun ω => ∏ i, f i (ω i)) = ∏ i, expect p (f i) := by
   unfold expect prodProb
@@ -46,12 +74,15 @@ theorem expect_prod_factor (p : α → ℝ) {n : ℕ} (f : Fin n → α → ℝ)
     rw [Finset.prod_mul_distrib]
   · exact sum_prod_factor (fun i x => p x * f i x)
 
+/-- A finite product with a single potentially nonunit factor equals that factor. -/
 theorem prod_ite_one {n : ℕ} {β : Type*} (u : Fin n → β) (g : β → ℝ) (i : Fin n) :
     (∏ k, (if k = i then g (u k) else (1 : ℝ))) = g (u i) := by
   rw [Finset.prod_eq_mul_prod_diff_singleton i
     (fun k => if k = i then g (u k) else (1 : ℝ)) (by simp)]
   simp
 
+/-- A finite product with two specified distinct potentially nonunit factors equals their
+product. -/
 theorem prod_ite_two {n : ℕ} {β : Type*} (u : Fin n → β) (f g : β → ℝ) {i j : Fin n}
     (hij : i ≠ j) :
     (∏ k, (if k = i then f (u k) else if k = j then g (u k) else (1 : ℝ)))
@@ -75,6 +106,8 @@ theorem prod_ite_two {n : ℕ} {β : Type*} (u : Fin n → β) (f g : β → ℝ
   rw [if_pos rfl]
   ring
 
+/-- Under product weights whose base weights sum to one, a function of one coordinate has its
+original weighted expectation. -/
 theorem expect_coord (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (g : α → ℝ)
     (i : Fin n) :
     expect (prodProb p n) (fun ω => g (ω i)) = expect p g := by
@@ -100,6 +133,8 @@ theorem expect_coord (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (g : α 
     simp [hki, expect_const p hsum]
   rw [hself, Finset.prod_eq_one hother, mul_one]
 
+/-- Functions of two distinct coordinates have a factored expectation under product weights
+whose base weights sum to one. -/
 theorem expect_pair (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (f g : α → ℝ)
     {i j : Fin n} (hij : i ≠ j) :
     expect (prodProb p n) (fun ω => f (ω i) * g (ω j)) = expect p f * expect p g := by
@@ -136,6 +171,8 @@ theorem expect_pair (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (f g : α
   rw [hself, hselfj, Finset.prod_eq_one hrest]
   ring
 
+/-- The expectation of a product of finite sums expands into the double sum of expectations of
+pairwise products. -/
 theorem expect_sum_mul_sum {ι κ : Type*} [Fintype ι] [Fintype κ] (p : α → ℝ)
     (f : ι → α → ℝ) (g : κ → α → ℝ) :
     expect p (fun a => (∑ i, f i a) * (∑ j, g j a))
@@ -158,6 +195,8 @@ theorem expect_sum_mul_sum {ι κ : Type*} [Fintype ι] [Fintype κ] (p : α →
         rw [Finset.sum_comm]
     _ = ∑ i, ∑ j, expect p (fun a => f i a * g j a) := rfl
 
+/-- For a positive number `n` of independent samples from a finite probability distribution, the
+sample mean variance equals the original variance divided by `n`. See [LidarWang1999]. -/
 theorem variance_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 < n) :
     variance (prodProb p n) (sampleMean X n) = (n : ℝ)⁻¹ * variance p X := by
   classical
@@ -227,6 +266,8 @@ theorem variance_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0
   rw [hvar, hsq2]
   field_simp
 
+/-- The probability that the sample mean deviates from its expectation by at least positive `ε`
+is at most the original variance divided by `n * ε²`, for positive `n`. -/
 theorem chebyshev_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 < n)
     {ε : ℝ} (hε : 0 < ε) :
     (∑ ω ∈ Finset.univ.filter (fun ω =>
@@ -240,6 +281,9 @@ theorem chebyshev_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 
   have hε' : ε ^ 2 ≠ 0 := pow_ne_zero 2 hε.ne'
   field_simp
 
+/-- For observations in the unit interval, at least `1 / (4 * ε² * δ)` independent samples make
+the probability of a deviation of at least `ε` no greater than `δ`, for positive `ε` and
+`δ`. See [LidarWang1999]. -/
 theorem repetition_bound (p X : α → ℝ) (hp : IsProb p) (hX0 : ∀ a, 0 ≤ X a)
     (hX1 : ∀ a, X a ≤ 1) {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) {n : ℕ}
     (hn : (1 : ℝ) / (4 * ε ^ 2 * δ) ≤ (n : ℝ)) :
@@ -269,6 +313,8 @@ theorem repetition_bound (p X : α → ℝ) (hp : IsProb p) (hX0 : ∀ a, 0 ≤ 
   rw [div_le_iff₀ (by positivity : (0 : ℝ) < (n : ℝ) * ε ^ 2)]
   nlinarith [h4]
 
+/-- For `p` in the unit interval, the repeated failure factor `(1 - p)^n` is at most `exp (-n *
+p)`. -/
 theorem one_sub_pow_le_exp (p : ℝ) (_hp0 : 0 ≤ p) (hp1 : p ≤ 1) (n : ℕ) :
     (1 - p) ^ n ≤ Real.exp (-(n : ℝ) * p) := by
   have h0 : 0 ≤ 1 - p := by linarith
@@ -281,6 +327,8 @@ theorem one_sub_pow_le_exp (p : ℝ) (_hp0 : 0 ≤ p) (hp1 : p ≤ 1) (n : ℕ) 
         congr 1
         ring
 
+/-- For `0 < p ≤ 1` and positive `δ`, at least `log (1 / δ) / p` repetitions ensure that `(1 -
+p)^n ≤ δ`. See [LidarWang1999]. -/
 theorem rare_event_repetitions (p δ : ℝ) (hp0 : 0 < p) (hp1 : p ≤ 1) (hδ : 0 < δ)
     {n : ℕ} (hn : Real.log (1 / δ) / p ≤ (n : ℝ)) :
     (1 - p) ^ n ≤ δ := by

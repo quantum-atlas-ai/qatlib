@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetRun
+
+/-!
+# Agreement of completed classification scans
+
+`classifyScanBudgeted_completed_matches` connects the query budget implementation to the
+unrestricted classification scan. Whenever the budgeted scan finishes without timing out, its
+entire result agrees with `classifyScan` on the same inputs and tapes. For background on quantum
+search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `classifyScanBudgeted_completed_matches`: If `classifyScanBudgeted` does not time out, its
+  result equals that of the unrestricted `classifyScan` with the same graph, parameters, tapes,
+  and initial state.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical
 variable {n : ℕ}
 
+/-- If `classifyScanBudgeted` does not time out, its result equals that of the unrestricted
+`classifyScan` with the same graph, parameters, tapes, and initial state. -/
 theorem classifyScanBudgeted_completed_matches (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) (budget : ℕ)

@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.QlsQsvtDefs
+
+/-!
+# Threshold sectors for QSVT linear systems
+
+This module proves that the closed singular value sectors are orthogonal projectors and
+transports polynomial reciprocal approximation to a pseudoinverse estimate on those sectors.
+Closed sectors retain the kernel and threshold singular values; under a spectral gap they are
+the identity.
+
+It constructs bounded odd windowed reciprocal responses and source phase words, proves vector
+error estimates, and records completion conditions and execution counts. The relaxed parameter
+versions require positive error and threshold at most one half independently. The mathematical
+background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `clause40_closedSectorTransport`: operator norm control of the projected inverse response.
+* `clause40_endpoint_noEpsLeDelta`: a phase word with sector and vector error bounds under
+  independent parameter hypotheses.
+* `clause40_cor8Bridge`: completion conditions and a phase realization of minimal length for its
+  response.
+* `clause40_endpoint_execution_ledger`: explicit execution ledger fields for a constructed word.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -45,6 +73,7 @@ section Sector
 
 variable {I O : Type*} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 
+/-- Every real closed sector coefficient is either zero or one. -/
 theorem clause40_closedSectorCoefficientReal_zero_one (δ x : ℝ) :
     closedSectorCoefficientReal δ x = 0 ∨ closedSectorCoefficientReal δ x = 1 := by
   by_cases hx : 0 < x
@@ -55,6 +84,7 @@ theorem clause40_closedSectorCoefficientReal_zero_one (δ x : ℝ) :
     · exact Or.inl (by simp [closedSectorCoefficientReal, hx, hn])
     · exact Or.inr (by simp [closedSectorCoefficientReal, hx, hn])
 
+/-- Every complex closed sector coefficient is either zero or one. -/
 theorem clause40_closedSectorCoefficient_zero_one (δ x : ℝ) :
     closedSectorCoefficient δ x = 0 ∨ closedSectorCoefficient δ x = 1 := by
   rcases clause40_closedSectorCoefficientReal_zero_one δ x with h | h
@@ -65,6 +95,7 @@ theorem clause40_closedSectorCoefficient_zero_one (δ x : ℝ) :
     rw [closedSectorCoefficient, h]
     simp
 
+/-- A positive value strictly below the threshold has closed sector coefficient zero. -/
 theorem clause40_closedSectorCoefficient_eq_zero_of_lt {δ x : ℝ} (hx : 0 < x) (hδ : x < δ) :
     closedSectorCoefficient δ x = 0 := by
   have h : closedSectorCoefficientReal δ x = 0 := by
@@ -72,6 +103,8 @@ theorem clause40_closedSectorCoefficient_eq_zero_of_lt {δ x : ℝ} (hx : 0 < x)
   rw [closedSectorCoefficient, h]
   simp
 
+/-- For positive threshold and nonnegative `x`, the closed sector coefficient is one when `x` is
+zero or at least the threshold. -/
 theorem clause40_closedSectorCoefficient_eq_one_of {δ x : ℝ} (hδ : 0 < δ) (hx : 0 ≤ x)
     (h : x = 0 ∨ δ ≤ x) : closedSectorCoefficient δ x = 1 := by
   have hr : closedSectorCoefficientReal δ x = 1 := by
@@ -86,6 +119,8 @@ theorem clause40_closedSectorCoefficient_eq_one_of {δ x : ℝ} (hδ : 0 < δ) (
   rw [closedSectorCoefficient, hr]
   simp
 
+/-- The diagonal matrix of closed sector coefficients on the input indexed singular values is
+idempotent. -/
 private theorem closedSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
     (diagonal (fun i : Fin (Fintype.card I) =>
         closedSectorCoefficient δ (matrixSingularValues A i))) *
@@ -103,6 +138,8 @@ private theorem closedSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
     · rw [h]; simp
   · simp only [Matrix.diagonal_apply, hij, if_false]
 
+/-- The diagonal matrix of closed sector coefficients on the input indexed singular values is
+self adjoint. -/
 private theorem closedSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (diagonal (fun i : Fin (Fintype.card I) =>
       closedSectorCoefficient δ (matrixSingularValues A i)))ᴴ
@@ -115,6 +152,8 @@ private theorem closedSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ
   · rw [Matrix.conjTranspose_apply, Matrix.diagonal_apply_ne _ (Ne.symm h),
       Matrix.diagonal_apply_ne _ h, star_zero]
 
+/-- The diagonal matrix of closed sector coefficients on the output indexed singular values is
+self adjoint. -/
 private theorem closedLeftSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (diagonal (fun j : Fin (Fintype.card O) =>
       closedSectorCoefficient δ (matrixSingularValues A j)))ᴴ
@@ -127,6 +166,8 @@ private theorem closedLeftSectorCoefficient_diagonal_selfAdjoint (A : Matrix O I
   · rw [Matrix.conjTranspose_apply, Matrix.diagonal_apply_ne _ (Ne.symm h),
       Matrix.diagonal_apply_ne _ h, star_zero]
 
+/-- The diagonal matrix of closed sector coefficients on the output indexed singular values is
+idempotent. -/
 private theorem closedLeftSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
     (diagonal (fun j : Fin (Fintype.card O) =>
         closedSectorCoefficient δ (matrixSingularValues A j))) *
@@ -144,6 +185,7 @@ private theorem closedLeftSector_diagonal_mul (A : Matrix O I ℂ) (δ : ℝ) :
     · rw [h]; simp
   · simp only [Matrix.diagonal_apply, hij, if_false]
 
+/-- The closed right singular sector is an orthogonal projector for every matrix and threshold. -/
 theorem clause40_closedRightSector_isOrthogonalProjector (A : Matrix O I ℂ) (δ : ℝ) :
     IsOrthogonalProjector (closedRightSector A δ) := by
   constructor
@@ -174,6 +216,7 @@ theorem clause40_closedRightSector_isOrthogonalProjector (A : Matrix O I ℂ) (�
         closedSectorCoefficient_diagonal_selfAdjoint, Matrix.mul_assoc]
     exact hself
 
+/-- The closed left singular sector is an orthogonal projector for every matrix and threshold. -/
 theorem clause40_closedLeftSector_isOrthogonalProjector (A : Matrix O I ℂ) (δ : ℝ) :
     IsOrthogonalProjector (closedLeftSector A δ) := by
   constructor
@@ -204,10 +247,13 @@ theorem clause40_closedLeftSector_isOrthogonalProjector (A : Matrix O I ℂ) (δ
         closedLeftSectorCoefficient_diagonal_selfAdjoint, Matrix.mul_assoc]
     exact hself
 
+/-- The closed left singular sector is self adjoint. -/
 theorem clause40_closedLeftSector_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (closedLeftSector A δ)ᴴ = closedLeftSector A δ :=
   (clause40_closedLeftSector_isOrthogonalProjector A δ).2
 
+/-- The Gram matrix between the left singular basis columns and left singular columns has
+entries given by their pairwise inner products. -/
 private theorem leftCompanion_gram_entries (A : Matrix O I ℂ) :
     ((basisColumns (leftSingularBasis A))ᴴ * leftSingularColumns A)
       = Matrix.of fun j i => inner ℂ (leftSingularBasis A j) (leftSingularVector A i) := by
@@ -215,6 +261,8 @@ private theorem leftCompanion_gram_entries (A : Matrix O I ℂ) :
   simp [Matrix.mul_apply, Matrix.conjTranspose_apply, leftSingularColumns,
     PiLp.inner_apply, mul_comm]
 
+/-- Applying the closed left sector to the left singular columns equals multiplying those
+columns by the diagonal closed sector coefficients. -/
 private theorem closedLeftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (δ : ℝ) :
     closedLeftSector A δ * leftSingularColumns A
       = leftSingularColumns A
@@ -246,6 +294,8 @@ private theorem closedLeftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (�
     rw [leftSingularVector_eq_zero A i hσ0, h0]
     simp
 
+/-- A polynomial vanishing at zero and approximating `(δ / 2) / x` on `[δ, 1]` has scalar closed
+sector residual at most `ε` on `[0, 1]` under the stated sign hypotheses. -/
 private theorem closedSector_entry_bound {ε δ : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ)
     {Pw : Polynomial ℝ} (heval0 : Pw.eval 0 = 0)
     (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε)
@@ -276,6 +326,9 @@ private theorem closedSector_entry_bound {ε δ : ℝ} (hε : 0 ≤ ε) (hδ : 0
     simp only [Complex.ofReal_zero, Complex.inv_zero, mul_zero, sub_zero, norm_zero]
     exact hε
 
+/-- For a matrix contraction, scalar reciprocal error at most `ε` on `[δ, 1]` and zero response
+at zero give operator error at most `ε` for the closed sector projected adjoint odd
+transform. -/
 theorem clause40_closedSectorTransport
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (Pw : Polynomial ℝ) (ε δ : ℝ)
@@ -393,6 +446,7 @@ theorem clause40_closedSectorTransport
   exact (Matrix.l2_opNorm_mul _ _).trans
     ((mul_le_mul h1 hUn (norm_nonneg _) hε).trans_eq (mul_one ε))
 
+/-- At a positive threshold, the strict coefficient is zero and the closed coefficient is one. -/
 theorem clause40_threshold_stratum_kept {δ : ℝ} (hδ : 0 < δ) :
     strictSectorCoefficient δ δ = 0 ∧ closedSectorCoefficient δ δ = 1 := by
   have hti0 : thresholdIndicator 0 δ = 1 := by
@@ -404,6 +458,8 @@ theorem clause40_threshold_stratum_kept {δ : ℝ} (hδ : 0 < δ) :
   refine ⟨?_, clause40_closedSectorCoefficient_eq_one_of hδ (le_of_lt hδ) (Or.inr (le_refl δ))⟩
   simp [strictSectorCoefficient, hti0]
 
+/-- If every nonzero input indexed singular value is at least the positive threshold, the closed
+right sector is the identity. -/
 theorem clause40_closedRightSector_eq_one_of_gap
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (δ : ℝ) (hδ : 0 < δ)
@@ -423,6 +479,8 @@ theorem clause40_closedRightSector_eq_one_of_gap
   rw [hrep, hcoeff]
   simpa using! (spectralDiagonal_const (rightSingularBasis A) 1)
 
+/-- If every nonzero input indexed singular value is at least the positive threshold, the closed
+left sector is the identity. -/
 theorem clause40_closedLeftSector_eq_one_of_gap
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (δ : ℝ) (hδ : 0 < δ)
@@ -450,6 +508,8 @@ theorem clause40_closedLeftSector_eq_one_of_gap
   rw [hrep, hcoeff]
   simpa using! (spectralDiagonal_const (leftSingularBasis A) 1)
 
+/-- Under the singular value gap, the adjoint polynomial odd transform approximates `(δ / 2)`
+times the full pseudoinverse within `ε` in operator norm. -/
 theorem clause40_closedSectorTransport_of_gap
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (Pw : Polynomial ℝ) (ε δ : ℝ)
@@ -465,6 +525,9 @@ theorem clause40_closedSectorTransport_of_gap
     clause40_closedLeftSector_eq_one_of_gap A δ hδ hgap] at h
   simpa using! h
 
+/-- For an input fixed by the closed left sector, the projected polynomial inverse response
+differs from the scaled pseudoinverse response by at most `ε` times the input Euclidean
+norm. -/
 theorem clause40_thresholdSolutionBranch
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (Pw : Polynomial ℝ) (ε δ : ℝ) (b : O → ℂ)
@@ -503,6 +566,9 @@ theorem clause40_thresholdSolutionBranch
       l2_norm_mulVec_fromVec_le _ _
     _ ≤ ε * qlsNormVec b := mul_le_mul_of_nonneg_right h (norm_nonneg _)
 
+/-- For `0 < ε ≤ δ ≤ 1 / 2`, there exist a bounded odd reciprocal approximation and a source
+phase word with the stated length, parameter bounds, compilation counts, and closed sector
+error at most `ε`. -/
 theorem clause40_sourceWord_closedSector
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -548,12 +614,17 @@ theorem clause40_sourceWord_closedSector
       show (2*(J+3^k+1) : ℕ) = 2*J+2+2*3^k from by ring]
   · exact hsector
 
+/-- The coefficient field of a sector readout is the closed sector coefficient at its singular
+value. -/
 theorem clause40_qlsSectorReadout_coefficient (δ : ℝ) (Pw : Polynomial ℝ) (σ : ℝ) :
     (qlsSectorReadout δ Pw σ).coefficient = closedSectorCoefficient δ σ := rfl
 
+/-- The stratum field of a sector readout is the stratum assigned by `qlsStratum`. -/
 theorem clause40_qlsSectorReadout_stratum (δ : ℝ) (Pw : Polynomial ℝ) (σ : ℝ) :
     (qlsSectorReadout δ Pw σ).stratum = qlsStratum δ σ := rfl
 
+/-- A positive threshold is classified as the threshold stratum, with closed readout coefficient
+one and strict sector coefficient zero. -/
 theorem clause40_threshold_readout_kept {δ : ℝ} (hδ : 0 < δ) :
     qlsStratum δ δ = .threshold ∧
       (qlsSectorReadout δ (Polynomial.C 0) δ).coefficient = 1 ∧
@@ -565,6 +636,9 @@ theorem clause40_threshold_readout_kept {δ : ℝ} (hδ : 0 < δ) :
     rw [if_neg (not_lt_of_ge (le_of_lt hδ)), if_pos hδ,
       if_neg (lt_irrefl _), if_neg (lt_irrefl _)]
 
+/-- The sector readout residual is at most `ε` for singular values in `[0, 1]` outside the
+middle and negative strata, given the stated reciprocal approximation and zero value at
+zero. -/
 theorem clause40_qlsSectorReadout_residual_le {δ ε : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ)
     {Pw : Polynomial ℝ} (heval0 : Pw.eval 0 = 0)
     (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε)
@@ -591,6 +665,8 @@ theorem clause40_qlsSectorReadout_residual_le {δ ε : ℝ} (hε : 0 ≤ ε) (h�
     rw [heval0]
     simp [hε]
 
+/-- A list of singular values in `[0, 1]` outside the middle and negative strata has maximum
+readout residual at most `ε` under the stated polynomial hypotheses. -/
 theorem clause40_qlsMaxResidual_le {δ ε : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ)
     {Pw : Polynomial ℝ} (heval0 : Pw.eval 0 = 0)
     (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε)
@@ -614,6 +690,8 @@ theorem clause40_qlsMaxResidual_le {δ ε : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ)
       simp only [qlsSectorReadouts, List.map_cons, qlsMaxResidual]
       exact max_le hres (by simpa using! hih)
 
+/-- Reciprocal approximation on `[δ, 1]` with `0 < δ ≤ 1` implies that the polynomial value at
+`δ` is within `ε` of `1 / 2`. -/
 theorem clause40_threshold_point_consistency {ε δ : ℝ} (hε : 0 ≤ ε) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     {Pw : Polynomial ℝ} (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε) :
     |Pw.eval δ - 1/2| ≤ ε := by
@@ -622,6 +700,9 @@ theorem clause40_threshold_point_consistency {ε δ : ℝ} (hε : 0 ≤ ε) (hδ
   rw [show (δ/2)/δ = 1/2 by field_simp] at h
   exact h
 
+/-- For `0 < ε ≤ δ ≤ 1 / 2`, a bounded reciprocal response has a source phase realization with
+explicit counts, closed sector operator error at most `ε`, and vector error at most `ε`
+times the input norm on the closed left sector. -/
 theorem clause40_endpoint
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -659,6 +740,8 @@ theorem clause40_endpoint
   intro b hb
   exact clause40_thresholdSolutionBranch A Pw ε δ b hA1 hε.le (by linarith) heval0 happrox hb
 
+/-- With the stated logarithmic choice of `k` and bound on `J`, the window error power is at
+most `2 * min (1 / (8 * J)) (ε / (32 * J))`. -/
 private theorem clause40_windowError_small {ε δ : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1/2)
     {J : ℕ} (hJ2 : 2 ≤ J) (hbudget : (2*J+1 : ℝ) ≤ 32*(2/δ)*Real.log (16/(δ*ε)))
@@ -799,6 +882,9 @@ private theorem clause40_windowError_small {ε δ : ℝ} (hε : 0 < ε) (hε1 : 
     _ = 2*(ε/(32*(J:ℝ))) :=
         Real.exp_log (mul_pos (by norm_num) (div_pos hε (by nlinarith [hJpos])))
 
+/-- For independently chosen `0 < ε ≤ 1 / 2` and `0 < δ ≤ 1 / 2`, there is a bounded odd
+polynomial vanishing at zero and approximating `(δ / 2) / x` on `[δ, 1]`, with the stated
+degree and parameter bounds. -/
 theorem clause40_relaxedWindowedReciprocal (ε δ : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1/2) :
     ∃ (Pw : Polynomial ℝ) (J k : ℕ),
@@ -1187,6 +1273,8 @@ theorem clause40_relaxedWindowedReciprocal (ε δ : ℝ) (hε : 0 < ε) (hε1 : 
       _ ≤ ε/32+(ε/16+ε/8) := add_le_add t1 (add_le_add t2 t3)
       _ ≤ ε := by nlinarith [hε]
 
+/-- The relaxed windowed reciprocal construction applies to `0 < ε ≤ δ ≤ 1 / 2` with the same
+degree, parity, boundedness, and approximation estimates. -/
 theorem clause40_relaxedWindow_frozenSpecialisation (ε δ : ℝ) (hε : 0 < ε)
     (hεδ : ε ≤ δ) (hδ : δ ≤ 1/2) :
     ∃ (Pw : Polynomial ℝ) (J k : ℕ),
@@ -1200,6 +1288,9 @@ theorem clause40_relaxedWindow_frozenSpecialisation (ε δ : ℝ) (hε : 0 < ε)
       (∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε) :=
   clause40_relaxedWindowedReciprocal ε δ hε (hεδ.trans hδ) (lt_of_lt_of_le hε hεδ) hδ
 
+/-- For independent positive `ε` and `δ` at most one half, a source phase word realizes a
+bounded reciprocal response with the stated length, counts, and closed sector error at most
+`ε`. -/
 theorem clause40_sourceWord_relaxedWindow
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -1245,6 +1336,9 @@ theorem clause40_sourceWord_relaxedWindow
       show (2*(J+3^k+1) : ℕ) = 2*J+2+2*3^k from by ring]
   · exact hsector
 
+/-- For independent positive `ε` and `δ` at most one half, a bounded reciprocal response has a
+counted source word with closed sector operator error at most `ε` and the corresponding
+vector error estimate. -/
 theorem clause40_endpoint_noEpsLeDelta
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -1282,6 +1376,8 @@ theorem clause40_endpoint_noEpsLeDelta
   intro b hb
   exact clause40_thresholdSolutionBranch A Pw ε δ b hA1 hε.le hδ heval0 happrox hb
 
+/-- The response polynomial of a completed pair has response parity given by its own natural
+degree, whose parity agrees with the pair index. -/
 theorem clause40_completedPair_ownDegreeParity {n : ℕ} {P Q : Polynomial ℂ}
     (h : Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.CompletedPair n P Q) :
     Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.HasResponseParity P.natDegree P ∧ P.natDegree % 2 = n % 2 := by
@@ -1311,6 +1407,8 @@ theorem clause40_completedPair_ownDegreeParity {n : ℕ} {P Q : Polynomial ℂ}
   calc P.comp (-X) = C ((-1 : ℂ) ^ n) * P := h.parityP
     _ = C ((-1 : ℂ) ^ P.natDegree) * P := by rw [hpow]
 
+/-- The response polynomial of a completed pair satisfies the four conditions in
+`QlsCor8Conditions`. -/
 theorem clause40_cor8_four_conditions {n : ℕ} {P Q : Polynomial ℂ}
     (h : Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.CompletedPair n P Q) : QlsCor8Conditions P := by
   obtain ⟨hpar, hmod⟩ := clause40_completedPair_ownDegreeParity h
@@ -1323,6 +1421,10 @@ theorem clause40_cor8_four_conditions {n : ℕ} {P Q : Polynomial ℂ}
     have hneven : n % 2 = 0 := by omega
     exact h.one_le_normSq_eval_imag hneven y
 
+/-- For the stated error and threshold ranges, a bounded real polynomial has a complex
+completion satisfying `QlsCor8Conditions` and a phase realization of length equal to its odd
+natural degree. Every realization of that complex response has at least this length and the
+same parity. -/
 theorem clause40_cor8Bridge (ε δ : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1/2) :
     ∃ (Pw : Polynomial ℝ) (P : Polynomial ℂ) (J k : ℕ) (Φ : List ℝ),
@@ -1379,6 +1481,9 @@ theorem clause40_cor8Bridge (ε δ : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
       hfour.inner hfour.outer hfour.imaginary
   exact ⟨Pw, P, J, k, Φ, hdeg, hbound, hre, hfour, hPdeg, hPmod, hΦlen, hΦresp, hΦmin⟩
 
+/-- For the stated parameters, a completed complex response has a source word whose length
+equals its degree, whose real part is the bounded real polynomial, and whose singular
+transform encoding and compilation counts are as specified. -/
 theorem clause40_cor8_sourceWord
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -1408,6 +1513,8 @@ theorem clause40_cor8_sourceWord
   · exact hoddbranch (by rw [hΦlen]; exact hPmod)
   · exact hcounts
 
+/-- Compiling a source real phase family from a projected unitary encoding yields a unitary word
+with counts determined by the phase list length. -/
 theorem clause40_cpp_word_unitary {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (henc : ProjectedUnitaryEncoding A U L R)
@@ -1423,6 +1530,8 @@ theorem clause40_cpp_word_unitary {H I O : Type} [Fintype H] [DecidableEq H] [Fi
       (rangeProjector_isOrthogonalProjector hL)
   exact ⟨hu, by simpa [sourceRealFamily] using! hc⟩
 
+/-- The compiled source word acts on the clean family embedding as the selected family of phased
+alternating words. -/
 theorem clause40_cpp_word_clean_action {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (henc : ProjectedUnitaryEncoding A U L R)
@@ -1438,6 +1547,9 @@ theorem clause40_cpp_word_clean_action {H I O : Type} [Fintype H] [DecidableEq H
     (rangeProjector_isOrthogonalProjector hR) (rangeProjector_isOrthogonalProjector hL)
     (sourceRealFamily Φ)
 
+/-- The execution ledger records the phase length as word length, data calls, and phase macros,
+the alternating projector access counts, twice the workspace dimension, and the sum of
+projector accesses as bit time. -/
 theorem clause40_execution_ledger (Φ : List ℝ) (w : ℕ) :
     qlsExecutionLedger Φ w =
       { wordLength := Φ.length
@@ -1452,6 +1564,7 @@ theorem clause40_execution_ledger (Φ : List ℝ) (w : ℕ) :
     simpa [sourceRealFamily] using! cppCompile_counts (sourceRealFamily Φ)
   simp [qlsExecutionLedger, hc]
 
+/-- The execution ledger bit time is twice the phase word length. -/
 theorem clause40_execution_ledger_bitTime (Φ : List ℝ) (w : ℕ) :
     (qlsExecutionLedger Φ w).bitTime = 2*Φ.length := by
   have h := clause40_execution_ledger Φ w
@@ -1459,6 +1572,9 @@ theorem clause40_execution_ledger_bitTime (Φ : List ℝ) (w : ℕ) :
     rw [h]
   omega
 
+/-- Under the stated error and threshold bounds, a constructed phase word has length `2 * J + 1
++ 2 * 3 ^ k` and the specified word, data, phase, workspace, bit time, and compilation
+counts. -/
 theorem clause40_endpoint_execution_ledger
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

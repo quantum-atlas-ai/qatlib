@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FastPoisson19.CostModels.DimensionalComplexity
+
+/-!
+# Accuracy-dependent main complexity bounds
+
+At `alpha = 1`, the grid-size logarithm becomes `log (1 / eps)`. The theorem
+`modeled_main_complexity` uses this substitution and an upper bound on the amplification factor
+to give explicit dimensional resource bounds. These statements concern the formulas and models
+in [WangEtAl2020].
+
+## Main statements
+
+* `log_gridSize_one`: simplifies the grid-size logarithm.
+* `modeled_main_complexity`: gives qubit and gate bounds in terms of accuracy and dimension.
+
+## References
+
+* [Wang et al., 2020][WangEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +33,7 @@ namespace Qatlib.Papers.FastPoisson19.CostModels
 
 open Asymptotics Filter
 
+/-- For positive `eps`, the logarithm of `gridSize eps 1` is `log (1 / eps)`. -/
 lemma log_gridSize_one {eps : ℝ} (heps : 0 < eps) :
     Real.log (gridSize eps 1) = Real.log (1 / eps) := by
   unfold gridSize
@@ -23,6 +43,9 @@ lemma log_gridSize_one {eps : ℝ} (heps : 0 < eps) :
   rw [h1]
   ring
 
+/-- For nonnegative `K`, bounds the qubit model by a constant times `d * log(1 / eps)^2` and,
+when `0 ≤ kappa ≤ K`, the gate model by a constant times `K * d * log(1 / eps)^3`. These are
+bounds on the explicit models associated with [WangEtAl2020]. -/
 theorem modeled_main_complexity (K : ℝ) (_hK : 0 ≤ K) :
     (∀ d eps : ℝ, 0 ≤ d → 0 < eps → eps ≤ 1 →
       dimensionQubitsModel d (registerSize eps 1) (registerSize eps 1) ≤

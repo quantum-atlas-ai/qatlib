@@ -9,6 +9,25 @@ import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
 import Qatlib.Papers.UniversalWalk08.MainResults.Parameters.RunParameters
 import Qatlib.Papers.UniversalWalk08.MainResults.Assembly
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+/-!
+# Conditional time and output guarantees for walk simulation
+
+This module bundles the time, phase, and output estimates for a supplied degree-three zero-one
+Hermitian walk model. The theorem `conditional_time_and_output_bounds` assumes the selected
+runtime and proportional circuit amplitudes with a nonzero scale satisfying the
+inverse-fourth-power bound, then combines the corresponding estimates for [Childs2009].
+
+## Main statements
+
+* `conditional_time_and_output_bounds`: Combine runtime proximity, phase alignment, output
+  probability, and conditioned-statistics guarantees.
+
+## References
+
+* [Childs, 2009][Childs2009]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.UniversalWalk08.MainResults.UniversalComputer
@@ -20,6 +39,10 @@ open Qatlib.Papers.UniversalWalk08.MainResults.Parameters
 
 set_option autoImplicit false
 
+/-- For a supplied degree-three zero-one Hermitian adjacency matrix, the selected runtime, and
+walk amplitudes proportional to a circuit column with the stated nonzero scale bound,
+combine runtime proximity, phase alignment, total output weight at least `1 / m ^ 4`, and
+equality of conditioned output statistics. [Childs2009] -/
 theorem conditional_time_and_output_bounds
     {n m : ℕ} (C : GateCircuit n)
     {V : Type*} [Fintype V] [DecidableEq V]

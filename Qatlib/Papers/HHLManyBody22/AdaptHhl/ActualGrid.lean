@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.HHLManyBody22.AdaptHhl.AdaptScaling
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+/-!
+# AdaptHHL scaling on an exact spectral grid
+
+`adaptGridMatrix` rescales the represented grid HHL matrix by `2^nr*d`. Assuming the grid matrix
+is invertible, the module identifies its pseudoinverse with the inverse and relates the success
+amplitude to the inverse of this rescaled matrix.
+
+For a unitary eigenbasis and positive `d`, `adapt_actual_probability_output` describes both the
+success probability and the conditional output. The remaining results recover the inverse
+solution norm and guarantee a normalized successful output for normalized input. See
+[BaskaranEtAl2023].
+
+## Main statements
+
+* `adapt_actual_probability_output`: For a unitary eigenbasis, positive `d`, and an invertible
+  grid matrix, success probability is `d^2` times the total Born mass of the rescaled inverse
+  solution, and the output is its `ConditionalState`.
+* `adapt_actual_inverse_norm`: Under the stated unitarity, invertibility, and positive scaling
+  hypotheses, the rescaled inverse solution norm is the square root of the grid HHL success
+  probability divided by `d`.
+* `adapt_actual_success_exists`: With a unitary eigenbasis, invertible grid matrix, and
+  normalized input, grid HHL success probability is positive and at least `(hhlCoefficient
+  nr)^2`, and the successful output exists and is normalized.
+
+## References
+
+* [Baskaran et al., 2023][BaskaranEtAl2023]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,10 +52,12 @@ open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 
+/-- The grid HHL matrix rescaled by the complex scalar `2^nr*d`. -/
 def adaptGridMatrix {D : ℕ} (nr : ℕ) (d : ℝ) (label : Fin D→Fin (2^nr))
     (V : Matrix (Fin D) (Fin D) ℂ) : Matrix (Fin D) (Fin D) ℂ :=
   (((2:ℝ)^nr*d:ℝ):ℂ) • gridHHLMatrix label V
 
+/-- For a matrix with invertible determinant, `matrixPseudoinverse A` equals `A⁻¹`. -/
 theorem adapt_pseudoinverse_eq_inverse {D : ℕ} (A : Matrix (Fin D) (Fin D) ℂ)
     (hA : IsUnit A.det) : matrixPseudoinverse A=A⁻¹ := by
   symm
@@ -35,6 +67,8 @@ theorem adapt_pseudoinverse_eq_inverse {D : ℕ} (A : Matrix (Fin D) (Fin D) ℂ
   · rw [Matrix.mul_nonsing_inv _ hA,Matrix.conjTranspose_one]
   · rw [Matrix.nonsing_inv_mul _ hA,Matrix.conjTranspose_one]
 
+/-- For positive `d` and an invertible grid matrix, the inverse of `adaptGridMatrix` is the grid
+matrix inverse scaled by `(2^nr*d)⁻¹`. -/
 theorem adaptGridMatrix_inverse {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     (label : Fin D→Fin (2^nr)) (V : Matrix (Fin D) (Fin D) ℂ)
     (hG : IsUnit (gridHHLMatrix label V).det) :
@@ -44,6 +78,9 @@ theorem adaptGridMatrix_inverse {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     exact_mod_cast (ne_of_gt (mul_pos (by positivity) hd))
   exact Matrix.inv_smul' _ (Units.mk0 _ hk) hG
 
+/-- For positive `d` and an invertible grid matrix, the grid HHL success vector with coefficient
+`hhlCoefficient nr` equals `d` times the solution for `adaptGridMatrix`. See
+[BaskaranEtAl2023]. -/
 theorem adapt_actual_success_amplitude {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     (label : Fin D→Fin (2^nr)) (V : Matrix (Fin D) (Fin D) ℂ)
     (hG : IsUnit (gridHHLMatrix label V).det) (b : Fin D→ℂ) :
@@ -58,6 +95,9 @@ theorem adapt_actual_success_amplitude {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
   have htwo : (2:ℂ)^nr≠0 := pow_ne_zero _ (by norm_num)
   field_simp
 
+/-- For a unitary eigenbasis, positive `d`, and an invertible grid matrix, success probability
+is `d^2` times the total Born mass of the rescaled inverse solution, and the output is its
+`ConditionalState`. See [BaskaranEtAl2023]. -/
 theorem adapt_actual_probability_output {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     (label : Fin D→Fin (2^nr)) (V : Matrix (Fin D) (Fin D) ℂ)
     (hV : V∈Matrix.unitaryGroup (Fin D) ℂ) (hG : IsUnit (gridHHLMatrix label V).det)
@@ -77,6 +117,9 @@ theorem adapt_actual_probability_output {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d
     exact hp
   · rw [ho hc,← conditionalState_smul hc,hs,conditionalState_smul hd]
 
+/-- Under the stated unitarity, invertibility, and positive scaling hypotheses, the rescaled
+inverse solution norm is the square root of the grid HHL success probability divided by `d`.
+See [BaskaranEtAl2023]. -/
 theorem adapt_actual_inverse_norm {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     (label : Fin D→Fin (2^nr)) (V : Matrix (Fin D) (Fin D) ℂ)
     (hV : V∈Matrix.unitaryGroup (Fin D) ℂ) (hG : IsUnit (gridHHLMatrix label V).det)
@@ -87,6 +130,9 @@ theorem adapt_actual_inverse_norm {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     Real.sqrt_mul (sq_nonneg d),Real.sqrt_sq hd.le]
   field_simp
 
+/-- With a unitary eigenbasis, invertible grid matrix, and normalized input, grid HHL success
+probability is positive and at least `(hhlCoefficient nr)^2`, and the successful output
+exists and is normalized. See [BaskaranEtAl2023]. -/
 theorem adapt_actual_success_exists {D : ℕ} (nr : ℕ)
     (label : Fin D→Fin (2^nr)) (V : Matrix (Fin D) (Fin D) ℂ)
     (hV : V∈Matrix.unitaryGroup (Fin D) ℂ) (hG : IsUnit (gridHHLMatrix label V).det)

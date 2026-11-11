@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.MixingContraction
 import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+
+/-!
+# Mixing of the projected connectivity walk
+
+`lemma3State` measures the difference between a column of `walkQ ^ k` and the uniform vector on
+the source component, embedded on diagonal pairs. The identity `lemma3State_eq_diagLift` reduces
+this difference to the vertex-space walk `walkM`.
+
+The mixing theorems bound its Euclidean norm by any positive `ε` after the explicit logarithmic
+step threshold, first assuming `SpectralGap` and then deriving it from regularity. These results
+support the connectivity analysis in [Watrous1998].
+
+## Main statements
+
+* `lemma3State_eq_diagLift`: identify the pair-space error with the lifted vertex-space error.
+* `lemma3_mixing`: an explicit mixing bound under `SpectralGap`.
+* `lemma3_mixing_uncond`: the mixing bound for regular graphs of degree at least two.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing
@@ -19,12 +42,16 @@ noncomputable section
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- The column of `walkQ G d ^ k` starting at `(u, u)`, minus the uniform vector on diagonal
+pairs in the component of `u`. -/
 def lemma3State (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) (k : ℕ) (u : V) :
     V × V → ℝ := by
   classical
   exact fun p => (walkQ G d ^ k) p (u, u) -
     (if p.1 = p.2 ∧ G.Reachable u p.1 then 1 / (compSize G u : ℝ) else 0)
 
+/-- The projected-walk error is the diagonal lift of the difference between the vertex-walk
+distribution and `uniformOn G u`. -/
 theorem lemma3State_eq_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (k : ℕ) (u : V) :
     lemma3State G d k u =
@@ -42,6 +69,9 @@ theorem lemma3State_eq_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
   · rw [if_neg hp, walkQ_pow_apply_offdiag G d k u hp]
     simp [hp]
 
+/-- For a regular graph of degree at least two with the assumed component spectral gap, the
+stated step threshold makes the Euclidean norm of `lemma3State` strictly less than any
+positive `ε`. -/
 theorem lemma3_mixing (G : SimpleGraph V) [DecidableRel G.Adj] {d ε : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (hε : 0 < ε) (u : V)
     (hgap : SpectralGap G d u) (k : ℕ)
@@ -188,6 +218,8 @@ theorem lemma3_mixing (G : SimpleGraph V) [DecidableRel G.Adj] {d ε : ℝ}
         linarith
       _ = ε := hexp_eq
 
+/-- For a regular graph of degree at least two, the stated step threshold makes the Euclidean
+norm of `lemma3State` strictly less than any positive `ε`. See [Watrous1998]. -/
 theorem lemma3_mixing_uncond (G : SimpleGraph V) [DecidableRel G.Adj] {d ε : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (hε : 0 < ε) (u : V) (k : ℕ)
     (hk : (d * (d + 1) ^ 2 * (Fintype.card V : ℝ) ^ 2 / 8) * Real.log (1 / ε) ≤

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleAmplification
+
+/-!
+# Pathwise costs from randomized amplification means
+
+The finite randomized amplification window bounds the cost of each random choice in terms of its
+mean repetition count. This module converts separate expected matrix and state budgets into
+pathwise bounds for the three-oracle framework of [WangEtAl2026].
+
+## Main statements
+
+* `threeAAWord_worst_case_from_mean`: every choice uses at most four times each supplied
+  mean-cost budget.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -50,6 +68,8 @@ open Matrix
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- Bounds on the mean repetition costs imply that every random choice uses at most `4 *
+matrixBudget` queries to each matrix oracle and `4 * stateBudget` state queries. -/
 theorem threeAAWord_worst_case_from_mean (body : List (PreparedStep H))
     (zero : H) (S : Finset H) (m : ℕ) [NeZero m] (matrixBudget stateBudget : ℝ)
     (h1 : (((m : ℝ) + 1) / 2) * preparedDataQueries body ≤ matrixBudget)

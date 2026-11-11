@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
+
+/-!
+# Elementary compilation of polynomial-time simulations
+
+The module bounds the elementary-gate ledger for a finite-window simulation by a quadratic
+function of its time. `corollary2_elementary_polynomial_circuit` produces a list of `Phi3Gate`
+gates that exactly simulates the polynomial-time window evolution on encoded inputs, preserving
+normalization and basis probabilities. See [Yao1993].
+
+## Main statements
+
+* `phi3_ledger_le_quadratic`: bounds the local compilation ledger by a constant times t².
+* `corollary2_elementary_polynomial_circuit`: constructs the elementary gate list with exact
+  simulation guarantees.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,8 @@ open Qatlib.Concepts.MatrixAccess.KnownFrameSynth
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 open Qatlib.Concepts.CircuitImpl.Phi3Universal
 
+/-- For positive `t`, the displayed elementary compilation ledger is at most `3 *
+(phi3PaddingBudget (3 * b) + phi3PaddingBudget b) * t ^ 2`. -/
 theorem phi3_ledger_le_quadratic (t b : ℕ) (ht : 0 < t) :
     t * ((2*t-1) * phi3PaddingBudget (3*b) + (2*t+1) * phi3PaddingBudget b) ≤
       3 * (phi3PaddingBudget (3*b) + phi3PaddingBudget b) * t^2 := by
@@ -30,6 +52,10 @@ theorem phi3_ledger_le_quadratic (t b : ℕ) (ht : 0 < t) :
       · exact Nat.mul_le_mul_right _ (by omega : 2*t+1 ≤ 3*t)
     _ = _ := by ring
 
+/-- For the stated positive parameters and cell-code capacity bound, there is a unitary
+elementary circuit with no queries, the displayed quadratic-in-time length bound, and exact
+encoded state and basis-probability agreement with the window evolution. This gives an
+elementary-gate form of the corollary after Theorem 2 of [Yao1993]. -/
 theorem corollary2_elementary_polynomial_circuit
     {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     (M : LocalQTM Q A) (b n c k : ℕ)

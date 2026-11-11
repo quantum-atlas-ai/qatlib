@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureQuan
+
+/-!
+# Semidefinite formulations of the dual filtered norm
+
+This module supplies attained semidefinite formulations of `sourceDualNorm`, using a diagonal
+positive semidefinite majorant and, for a positive number of filters, a family of positive
+semidefinite matrices with normalized diagonal sum. It also records filter-union,
+Hadamard-product, and tensor-product identities in the framework of [LeeEtAl2011].
+
+## Main statements
+
+* `source_corrected_dual_norm`: the dual norm has the stated attained semidefinite formulations
+  and closure properties.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +43,9 @@ open Qatlib.Concepts.GramQueryCore.FilteredNorm
 
 namespace Qatlib.Papers.StateConvLee10.DualNorm
 
+/-- The dual filtered norm has the stated minimizing diagonal-majorant formulation and, for
+positive filter count, maximizing positive semidefinite formulation; it also satisfies the
+displayed filter-union, Hadamard-product, and tensor-product rules [LeeEtAl2011]. -/
 theorem source_corrected_dual_norm :
   (∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),

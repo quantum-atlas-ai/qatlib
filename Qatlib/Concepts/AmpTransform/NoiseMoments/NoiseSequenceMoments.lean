@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Uniform noise-sequence moments and corrected variance
+
+This module defines `noiseAverage` and `noiseCharacterSum`, proves finite-average identities,
+and computes character-sum mixed moments through degree four.
+`noise_sequence_variance_corrected` includes the order-two resonance correction needed for the
+affine-intensity variance in the noise model associated with [Cornwell2014].
+
+## Main statements
+
+* `noise_sequence_mixed_moments`: For nonzero frequency, computes the character sum's first and
+  mixed moments through degree four, including the correction δ = 1 when 2y=0.
+* `noise_sequence_second_moment`: At nonzero frequency, a uniform noise character sum has mean
+  squared norm L, and its affine intensity has mean ‖c‖²+b²L.
+* `noise_sequence_variance_corrected`: The centered affine intensity has variance
+  b⁴(L²−L+δ(L²−L))+2b²L‖c‖²+2b²L · Re(c²)δ, where δ indicates 2y=0 and y is nonzero.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -19,49 +42,64 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The uniform finite average of a complex-valued function, defined as its sum divided by the
+cardinality of the index type. -/
 noncomputable def noiseAverage {A : Type} [Fintype A] (f : A→ℂ) : ℂ :=
   (Fintype.card A : ℂ)⁻¹*∑ a,f a
 
+/-- The uniform finite average preserves addition. -/
 @[simp] theorem noiseAverage_add {A : Type} [Fintype A] (f g : A→ℂ) :
     noiseAverage (fun a => f a+g a)=noiseAverage f+noiseAverage g := by
   simp [noiseAverage,Finset.sum_add_distrib,mul_add]
 
+/-- The uniform finite average preserves subtraction. -/
 @[simp] theorem noiseAverage_sub {A : Type} [Fintype A] (f g : A→ℂ) :
     noiseAverage (fun a => f a-g a)=noiseAverage f-noiseAverage g := by
   simp [noiseAverage,Finset.sum_sub_distrib,mul_sub]
 
+/-- A constant complex factor on the left can be pulled outside the uniform finite average. -/
 @[simp] theorem noiseAverage_mul_left {A : Type} [Fintype A] (c : ℂ) (f : A→ℂ) :
     noiseAverage (fun a => c*f a)=c*noiseAverage f := by simp [noiseAverage,← Finset.mul_sum,mul_left_comm]
 
+/-- A constant complex factor on the right can be pulled outside the uniform finite average. -/
 @[simp] theorem noiseAverage_mul_right {A : Type} [Fintype A] (f : A→ℂ) (c : ℂ) :
     noiseAverage (fun a => f a*c)=noiseAverage f*c := by simp [noiseAverage,← Finset.sum_mul,mul_assoc]
 
+/-- On a nonempty finite type, the average of a constant is that constant. -/
 @[simp] theorem noiseAverage_const {A : Type} [Fintype A] [Nonempty A] (c : ℂ) :
     noiseAverage (fun _ : A => c)=c := by
   have hn : (Fintype.card A : ℂ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   simp [noiseAverage,Finset.sum_const,hn]
 
+/-- The uniform finite average commutes with complex conjugation. -/
 @[simp] theorem noiseAverage_star {A : Type} [Fintype A] (f : A→ℂ) :
     noiseAverage (fun a => star (f a))=star (noiseAverage f) := by
   simp [noiseAverage,map_mul,map_sum,Complex.star_def,Complex.conj_natCast]
 
+/-- The uniform finite average is unchanged by reindexing along an equivalence. -/
 theorem noiseAverage_equiv {A B : Type} [Fintype A] [Fintype B] (e : A ≃ B) (f : B→ℂ) :
     noiseAverage (fun a => f (e a))=noiseAverage f := by
   rw [noiseAverage,noiseAverage,Fintype.card_congr e,e.sum_comp]
 
+/-- The average over a finite product equals the iterated uniform average. -/
 theorem noiseAverage_prod {A B : Type} [Fintype A] [Fintype B] (f : A×B→ℂ) :
     noiseAverage f=noiseAverage (fun a => noiseAverage (fun b => f (a,b))) := by
   simp only [noiseAverage,Fintype.card_prod,Nat.cast_mul,_root_.mul_inv_rev,Fintype.sum_prod_type]
   rw [← Finset.mul_sum]
   ring
 
+/-- The sum of the standard additive character at frequency y over the L labels in the noise
+sequence. -/
 noncomputable def noiseCharacterSum {N L : ℕ} [NeZero N] (y : ZMod N) (omega : Fin L→ZMod N) : ℂ :=
   ∑ i,ZMod.stdAddChar (omega i*y)
 
+/-- Prepending a noise label adds its character value to `noiseCharacterSum`. -/
 theorem noiseCharacterSum_cons {N L : ℕ} [NeZero N] (y x : ZMod N) (omega : Fin L→ZMod N) :
     noiseCharacterSum y (Fin.cons x omega)=noiseCharacterSum y omega+ZMod.stdAddChar (x*y) := by
   simp [noiseCharacterSum,Fin.sum_univ_succ,add_comm]
 
+/-- Averaging a function of an (L+1)-tuple can be performed by first averaging over its head and
+then its remaining L coordinates. -/
 theorem noiseAverage_tuple_succ {N L : ℕ} [NeZero N] (f : (Fin (L+1)→ZMod N)→ℂ) :
     noiseAverage f=noiseAverage (fun omega : Fin L→ZMod N =>
       noiseAverage (fun x : ZMod N => f (Fin.cons x omega))) := by
@@ -74,6 +112,8 @@ theorem noiseAverage_tuple_succ {N L : ℕ} [NeZero N] (f : (Fin (L+1)→ZMod N)
     (Fintype.card (Fin L→ZMod N) : ℂ)⁻¹*((Fintype.card (ZMod N) : ℂ)⁻¹*∑ omega,∑ x,f (Fin.cons x omega))
   ring
 
+/-- At nonzero frequency, a uniform character has mean zero, second moment one exactly when
+2y=0, and pointwise squared modulus one. -/
 theorem noise_single_character {N : ℕ} [NeZero N] (y : ZMod N) (hy : y≠0) :
     noiseAverage (fun x : ZMod N => ZMod.stdAddChar (x*y))=0 ∧
     noiseAverage (fun x : ZMod N => (ZMod.stdAddChar (x*y))^2)=
@@ -95,6 +135,8 @@ theorem noise_single_character {N : ℕ} [NeZero N] (y : ZMod N) (hy : y≠0) :
     rw [Complex.star_def,Complex.mul_conj,Complex.normSq_eq_norm_sq,norm_stdAddChar]
     norm_num
 
+/-- For a centered unit-modulus variable with real second moment δ, computes the first, second,
+norm-square, cubic mixed, and fourth mixed moments after adding a constant shift. -/
 theorem noise_fresh_moments {A : Type} [Fintype A] [Nonempty A] (X : A→ℂ) (delta s : ℂ)
     (h0 : noiseAverage X=0) (h2 : noiseAverage (fun x => X x^2)=delta)
     (hdelta : star delta=delta) (hu : ∀ x,X x*star (X x)=1) :
@@ -131,6 +173,8 @@ theorem noise_fresh_moments {A : Type} [Fintype A] [Nonempty A] (X : A→ℂ) (d
     simp only [noiseAverage_add,noiseAverage_const,noiseAverage_mul_left,noiseAverage_mul_right,h0,hs0,h2,hs2,mul_zero,zero_mul,zero_add,add_zero]
     ring
 
+/-- For nonzero frequency, computes the character sum's first and mixed moments through degree
+four, including the correction δ = 1 when 2y=0. -/
 theorem noise_sequence_mixed_moments (N L : ℕ) [NeZero N] (y : ZMod N) (hy : y≠0) :
     let delta : ℂ := if 2*y=0 then 1 else 0;
     let S := noiseCharacterSum (L := L) y;
@@ -180,15 +224,20 @@ theorem noise_sequence_mixed_moments (N L : ℕ) [NeZero N] (y : ZMod N) (hy : y
         noiseAverage_mul_left,ih.2.2.2.2,ih.2.2.1,ih.2.1,hstarsq]
       by_cases hr : 2*y=0 <;> simp only [delta,hr,if_true,if_false] <;> ring
 
+/-- Averaging a real-valued function after embedding in ℂ equals the complex embedding of its
+real uniform average. -/
 theorem noiseAverage_real {A : Type} [Fintype A] (f : A→ℝ) :
     noiseAverage (fun a => (f a : ℂ)) = (((Fintype.card A : ℝ)⁻¹*∑ a,f a : ℝ) : ℂ) := by
   unfold noiseAverage
   push_cast
   rfl
 
+/-- The type of length-L sequences in `ZMod N` has cardinality Nᴸ. -/
 theorem noise_tuple_card (N L : ℕ) [NeZero N] : Fintype.card (Fin L→ZMod N)=N^L := by
   simp [Fintype.card_fun,ZMod.card]
 
+/-- At nonzero frequency, a uniform noise character sum has mean squared norm L, and its affine
+intensity has mean ‖c‖²+b²L. -/
 theorem noise_sequence_second_moment : ∀ (N L : ℕ) [NeZero N] (y : ZMod N)
     (c : ℂ) (b : ℝ), y≠0 →
     let S := fun omega : Fin L→ZMod N => ∑ i,ZMod.stdAddChar (omega i*y);
@@ -219,6 +268,8 @@ theorem noise_sequence_second_moment : ∀ (N L : ℕ) [NeZero N] (y : ZMod N)
   exact ⟨by simpa only [Complex.ofReal_re,Complex.natCast_re,Nat.cast_pow,noiseCharacterSum] using congrArg Complex.re hnorm,
     by simpa only [Complex.ofReal_re,Nat.cast_pow,noiseCharacterSum] using congrArg Complex.re hshift⟩
 
+/-- The centered affine intensity has variance b⁴(L²−L+δ(L²−L))+2b²L‖c‖²+2b²L · Re(c²)δ, where δ
+indicates 2y=0 and y is nonzero. -/
 theorem noise_sequence_variance_corrected : ∀ (N L : ℕ) [NeZero N] (y : ZMod N)
     (c : ℂ) (b : ℝ), y≠0 →
     let S := fun omega : Fin L→ZMod N => ∑ i,ZMod.stdAddChar (omega i*y);

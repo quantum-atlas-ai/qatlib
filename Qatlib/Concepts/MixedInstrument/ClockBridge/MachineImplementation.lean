@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedInstrument.ClockBridge.MachineImplementationDefs
+
+/-!
+# Machine implementation and dyadic approximation bounds
+
+This module proves the ledgers for rational dyadic truncation, a four-instruction copy program,
+and real dyadic quantization. The quantization error bound is transferred to the associated
+complex phases by `miRealPhase_error`. See [NielsenChuang2010] for the circuit approximation
+background.
+
+## Main statements
+
+* `miCopyProgramLedger`: verifies the copy instruction sequence.
+* `miRealQuantization_error`: bounds real quantization error.
+* `miRealPhase_error`: bounds the resulting phase error.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,15 +38,21 @@ open Qatlib
 open Qatlib.Concepts.CircuitImpl.GateSynthesis
 open Qatlib.Concepts.CircuitImpl.Phi3Universal
 
+/-- The rational-angle dyadic approximation satisfies `MiDyadicTruncationBound` at every
+precision. -/
 theorem miDyadicTruncationBound (a : RatAngle) (d : ℕ) : MiDyadicTruncationBound a d := by
   unfold MiDyadicTruncationBound
   have h := Nat.div_mul_le_self (a.num * 2 ^ d) a.den
   unfold dyadicApprox
   exact h
 
+/-- The dyadic approximation of a rational angle satisfies `dyadicApprox a d * a.den ≤ a.num * 2
+^ d`. -/
 theorem miDyadicApprox_le (a : RatAngle) (d : ℕ) :
     dyadicApprox a d * a.den ≤ a.num * 2 ^ d := miDyadicTruncationBound a d
 
+/-- The copy program has length four and the instruction sequence specified by
+`MiCopyProgramLedger`. -/
 theorem miCopyProgramLedger (inW work : ℕ) : MiCopyProgramLedger inW work := by
   refine ⟨?_, ?_⟩
   · show (copyProgram inW work).length = 4
@@ -36,6 +62,8 @@ theorem miCopyProgramLedger (inW work : ℕ) : MiCopyProgramLedger inW work := b
         .releaseClean work]
     rfl
 
+/-- The dyadic value lies at or below `r`, and `r` lies strictly below that value plus one
+dyadic step. -/
 theorem miRealQuantization_ledger (r : ℝ) (d : ℕ) : MiRealQuantizationLedger r d := by
   have hpos : (0 : ℝ) < (2 : ℝ) ^ d := by positivity
   have hfloor := Int.floor_le (r * (2 : ℝ) ^ d)
@@ -59,6 +87,7 @@ theorem miRealQuantization_ledger (r : ℝ) (d : ℕ) : MiRealQuantizationLedger
     rw [hcancel] at h2
     exact h2
 
+/-- The absolute error of dyadic quantization is at most one dyadic step. -/
 theorem miRealQuantization_error (r : ℝ) (d : ℕ) :
     |realDyadicValue r d - r| ≤ realDyadicStep d := by
   have h := miRealQuantization_ledger r d
@@ -71,6 +100,7 @@ theorem miRealQuantization_error (r : ℝ) (d : ℕ) :
     positivity
   exact (abs_le).2 ⟨le_of_lt h2, h1.trans hstep⟩
 
+/-- The dyadic step at any natural precision is at most one. -/
 theorem miRealQuantization_step_le_one (d : ℕ) : realDyadicStep d ≤ 1 := by
   rw [realDyadicStep, inv_eq_one_div]
   have h1 : (1 : ℝ) ≤ (2 : ℝ) ^ d := by
@@ -84,6 +114,8 @@ theorem miRealQuantization_step_le_one (d : ℕ) : realDyadicStep d ≤ 1 := by
         linarith
   exact (div_le_one (by positivity)).2 h1
 
+/-- Quantizing the real value of a rational angle gives the integer coercion of its rational
+dyadic approximation. -/
 theorem miRealQuantization_agrees_rational (a : RatAngle) (d : ℕ) :
     realDyadicApprox a.value d = (dyadicApprox a d : ℤ) := by
   have hn : 0 < a.den := a.den_pos
@@ -117,6 +149,8 @@ theorem miRealQuantization_agrees_rational (a : RatAngle) (d : ℕ) :
     rw [div_lt_iff₀ (by exact_mod_cast hn)]
     exact hlt
 
+/-- The norm difference of the phases associated with `r` and its dyadic value is at most twice
+the absolute quantization error. -/
 theorem miRealPhase_error (r : ℝ) (d : ℕ) :
     ‖phaseOf r - phaseOf (realDyadicValue r d)‖ ≤ 2 * |r - realDyadicValue r d| := by
   have herr := miRealQuantization_error r d

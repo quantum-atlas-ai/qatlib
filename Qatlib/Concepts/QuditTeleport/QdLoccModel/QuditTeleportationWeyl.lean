@@ -19,6 +19,38 @@ import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+
+/-!
+# Weyl orthogonality and teleportation branch geometry
+
+`clause4Aux_weyl` and `clause4Aux_hs` provide finite Weyl operators and their Hilbert–Schmidt
+pairing. Character sums prove orthogonality, and the teleportation branch Kraus family has Gram
+matrix `1 / n` times the identity.
+
+The remaining results establish normalization and counting consequences for maximally entangled
+resources, together with positive semidefinite spectral decompositions and square roots. These
+results develop resource and communication properties of teleportation
+[BennettEtAl1993Teleportation]. Matrix positivity and finite-dimensional operator methods are
+treated in [Watrous2018].
+
+## Main statements
+
+* `clause4Aux_weyl_hs`: The Hilbert–Schmidt pairing of two Weyl operators is `n` when both
+  labels agree and zero otherwise.
+* `clause4Aux_branchKraus_gramMatrix`: The Hilbert–Schmidt Gram matrix of the qudit branch Kraus
+  family equals `(1 / n) • 1`.
+* `clause4Aux_me_counting`: For orthonormal-family resources in nonzero dimension, perfect
+  teleportation with unitary corrections gives the outcome, alphabet-bit, and injective-code
+  communication bounds.
+* `clause4Aux_psd_spectral_sqrt`: A positive semidefinite matrix possesses a positive
+  semidefinite Hermitian square root.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -50,24 +82,33 @@ open Qatlib.Concepts.QuditTeleport.ResourceIff
 open scoped BigOperators ComplexOrder MatrixOrder
 open Matrix
 
+/-- The Weyl operator `quditX n b * quditZ n a` with shift `b` and phase parameter `a`. -/
 noncomputable def clause4Aux_weyl (n : ℕ) [NeZero n] (a b : ZMod n) : Operator n :=
   quditX n b * quditZ n a
 
+/-- A Weyl matrix entry is its additive-character phase when the row index is the column index
+shifted by `b`, and zero otherwise. -/
 theorem clause4Aux_weyl_apply (n : ℕ) [NeZero n] (a b : ZMod n) (k j : Fin n) :
     clause4Aux_weyl n a b k j =
       if (ZMod.finEquiv n) k = (ZMod.finEquiv n) j + b
         then ZMod.stdAddChar (a * (ZMod.finEquiv n) j) else 0 :=
   quditXZ_entry n b a k j
 
+/-- The Hilbert–Schmidt pairing obtained by summing `star (A i j) * B i j` over all matrix
+entries. -/
 noncomputable def clause4Aux_hs {ι : Type} [Fintype ι] (A B : Matrix ι ι ℂ) : ℂ :=
   ∑ i : ι, ∑ j : ι, star (A i j) * B i j
 
+/-- Complex conjugation by `star` agrees with `starRingEnd ℂ`. -/
 theorem clause4Aux_star_eq_starRingEnd (z : ℂ) : star z = (starRingEnd ℂ) z := rfl
 
+/-- Conjugating the standard additive character at `t` gives its value at `-t`. -/
 theorem clause4Aux_star_stdAddChar {n : ℕ} [NeZero n] (t : ZMod n) :
     star (ZMod.stdAddChar t) = ZMod.stdAddChar (-t) :=
   conj_stdAddChar t
 
+/-- Summing a constant over the unique preimage of `c` under a finite equivalence yields that
+constant. -/
 private theorem clause4Aux_sum_ite_const {α β : Type} [Fintype α] [Fintype β] [DecidableEq β]
     (e : α ≃ β) (c : β) (s : ℂ) :
     ∑ i : α, (if e i = c then s else 0) = s := by
@@ -76,6 +117,8 @@ private theorem clause4Aux_sum_ite_const {α β : Type} [Fintype α] [Fintype β
   rw [h, Finset.sum_ite_eq']
   simp
 
+/-- The inner product of two Weyl columns vanishes unless their shifts agree, and otherwise
+equals the product of their conjugate and ordinary phase factors. -/
 theorem clause4Aux_weyl_col_sum (n : ℕ) [NeZero n] (a a' b b' : ZMod n) (j : Fin n) :
     ∑ i : Fin n, star (clause4Aux_weyl n a b i j) * clause4Aux_weyl n a' b' i j =
       if (ZMod.finEquiv n) j + b = (ZMod.finEquiv n) j + b'
@@ -123,6 +166,8 @@ theorem clause4Aux_weyl_col_sum (n : ℕ) [NeZero n] (a a' b b' : ZMod n) (j : F
       · rw [if_neg hi, zero_mul]
     rw [Finset.sum_congr rfl (fun i _ => hz i), Finset.sum_const_zero]
 
+/-- The inner product of two phase-character columns is `n` when their phase parameters agree
+and zero otherwise. -/
 theorem clause4Aux_weyl_char_sum (n : ℕ) [NeZero n] (a a' : ZMod n) :
     ∑ j : Fin n, star (ZMod.stdAddChar (a * (ZMod.finEquiv n) j))
         * ZMod.stdAddChar (a' * (ZMod.finEquiv n) j)
@@ -147,6 +192,8 @@ theorem clause4Aux_weyl_char_sum (n : ℕ) [NeZero n] (a a' : ZMod n) :
     rw [if_pos (sub_self a), if_pos rfl]
   · rw [if_neg (fun he => ha (sub_eq_zero.mp he).symm), if_neg ha]
 
+/-- The Hilbert–Schmidt pairing of two Weyl operators is `n` when both labels agree and zero
+otherwise. -/
 theorem clause4Aux_weyl_hs (n : ℕ) [NeZero n] (a a' b b' : ZMod n) :
     clause4Aux_hs (clause4Aux_weyl n a b) (clause4Aux_weyl n a' b') =
       if a = a' ∧ b = b' then (n : ℂ) else 0 := by
@@ -174,11 +221,14 @@ theorem clause4Aux_weyl_hs (n : ℕ) [NeZero n] (a a' b b' : ZMod n) :
     rw [Finset.sum_congr rfl (fun j _ => hz j), Finset.sum_const_zero]
     rw [if_neg (fun h : a = a' ∧ b = b' => hb h.2)]
 
+/-- The Hilbert–Schmidt pairing of a Weyl operator with itself is `n`. -/
 theorem clause4Aux_weyl_hs_self (n : ℕ) [NeZero n] (a b : ZMod n) :
     clause4Aux_hs (clause4Aux_weyl n a b) (clause4Aux_weyl n a b) = (n : ℂ) := by
   rw [clause4Aux_weyl_hs]
   simp
 
+/-- Weyl operators with distinct phase-shift labels are orthogonal for the Hilbert–Schmidt
+pairing. -/
 theorem clause4Aux_weyl_hs_cross (n : ℕ) [NeZero n] (a a' b b' : ZMod n)
     (h : a ≠ a' ∨ b ≠ b') :
     clause4Aux_hs (clause4Aux_weyl n a b) (clause4Aux_weyl n a' b') = 0 := by
@@ -189,6 +239,7 @@ theorem clause4Aux_weyl_hs_cross (n : ℕ) [NeZero n] (a a' b b' : ZMod n)
   · exact h ha
   · exact h hb
 
+/-- The entrywise Hilbert–Schmidt pairing equals `trace (Aᴴ * B)`. -/
 theorem clause4Aux_hs_eq_trace {ι : Type} [Fintype ι] (A B : Matrix ι ι ℂ) :
     clause4Aux_hs A B = Matrix.trace (A.conjTranspose * B) := by
   classical
@@ -196,10 +247,13 @@ theorem clause4Aux_hs_eq_trace {ι : Type} [Fintype ι] (A B : Matrix ι ι ℂ)
   simp only [Matrix.diag_apply, Matrix.mul_apply, Matrix.conjTranspose_apply]
   rw [Finset.sum_comm]
 
+/-- Every Weyl operator `clause4Aux_weyl n a b` is unitary. -/
 theorem clause4Aux_weyl_unitary (n : ℕ) [NeZero n] (a b : ZMod n) :
     clause4Aux_weyl n a b ∈ Matrix.unitaryGroup (Fin n) ℂ :=
   (Matrix.unitaryGroup (Fin n) ℂ).mul_mem (quditX_unitary n b) (quditZ_unitary n a)
 
+/-- Scaling the first argument of the Hilbert–Schmidt pairing by `c` scales the result by `star
+c`. -/
 theorem clause4Aux_hs_smul_left {ι : Type} [Fintype ι] (c : ℂ) (A B : Matrix ι ι ℂ) :
     clause4Aux_hs (c • A) B = star c * clause4Aux_hs A B := by
   classical
@@ -218,6 +272,7 @@ theorem clause4Aux_hs_smul_left {ι : Type} [Fintype ι] (c : ℂ) (A B : Matrix
     (Finset.mul_sum _ (fun i => ∑ j : ι, star (A i j) * B i j) _).symm
   rw [e1, e2]
 
+/-- Scaling the second argument of the Hilbert–Schmidt pairing by `c` scales the result by `c`. -/
 theorem clause4Aux_hs_smul_right {ι : Type} [Fintype ι] (c : ℂ) (A B : Matrix ι ι ℂ) :
     clause4Aux_hs A (c • B) = c * clause4Aux_hs A B := by
   classical
@@ -236,16 +291,21 @@ theorem clause4Aux_hs_smul_right {ι : Type} [Fintype ι] (c : ℂ) (A B : Matri
     (Finset.mul_sum _ (fun i => ∑ j : ι, star (A i j) * B i j) _).symm
   rw [e1, e2]
 
+/-- A qudit teleportation branch Kraus operator is `1 / n` times the Weyl operator with negative
+first outcome coordinate as phase and second coordinate as shift. -/
 theorem clause4Aux_branchKraus_weyl (n : ℕ) [NeZero n] (o : Fin n × Fin n) :
     quditBranchKraus n o = (1 / (n : ℂ)) •
       clause4Aux_weyl n (-((ZMod.finEquiv n) o.1)) ((ZMod.finEquiv n) o.2) := by
   rw [quditBranchKraus_formula]
   rfl
 
+/-- The complex number `1 / n` is fixed by conjugation. -/
 theorem clause4Aux_star_inv_natCast (n : ℕ) : star (1 / (n : ℂ)) = 1 / (n : ℂ) := by
   change (starRingEnd ℂ) (1 / (n : ℂ)) = _
   rw [map_div₀, map_one, map_natCast]
 
+/-- The Hilbert–Schmidt pairing of two teleportation branch Kraus operators is `1 / n` for equal
+outcomes and zero otherwise. -/
 theorem clause4Aux_branchKraus_hs (n : ℕ) [NeZero n] (o o' : Fin n × Fin n) :
     clause4Aux_hs (quditBranchKraus n o) (quditBranchKraus n o') =
       if o = o' then 1 / (n : ℂ) else 0 := by
@@ -269,6 +329,7 @@ theorem clause4Aux_branchKraus_hs (n : ℕ) [NeZero n] (o o' : Fin n × Fin n) :
   · rw [if_neg (fun h => ho (hlab.mp h)), if_neg ho]
     rw [mul_zero, mul_zero]
 
+/-- The Hilbert–Schmidt Gram matrix of the qudit branch Kraus family equals `(1 / n) • 1`. -/
 theorem clause4Aux_branchKraus_gramMatrix (n : ℕ) [NeZero n] :
     (fun o o' : Fin n × Fin n => clause4Aux_hs (quditBranchKraus n o) (quditBranchKraus n o'))
       = (1 / (n : ℂ)) • (1 : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) := by
@@ -297,12 +358,15 @@ open Qatlib.Concepts.QuditTeleport.MessagingBounds
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.ResourceIff
 
+/-- The product of a complex number with its conjugate equals its squared norm, coerced to `ℂ`. -/
 private theorem clause4Aux_normSq_coe (z : ℂ) : z * star z = ((‖z‖ ^ 2 : ℝ) : ℂ) := by
   have h := Complex.normSq_eq_conj_mul_self (z := z)
   rw [Complex.normSq_eq_norm_sq] at h
   refine Eq.trans ?_ h.symm
   exact (mul_comm _ _).symm
 
+/-- A maximally entangled resource built from two orthonormal families in nonzero dimension is
+normalized. -/
 theorem clause4Aux_me_normalized (n : ℕ) [NeZero n] (u v : Fin n → QState (Fin n))
     (hu : QuditOrthonormalFamily n u) (hv : QuditOrthonormalFamily n v) :
     Normalized (quditMaxEntResource n u v) := by
@@ -332,6 +396,8 @@ theorem clause4Aux_me_normalized (n : ℕ) [NeZero n] (u v : Fin n → QState (F
   show ∑ i, ‖Ψ i‖ ^ 2 = 1
   exact_mod_cast key
 
+/-- Perfect teleportation with unitary corrections and a resource of the form
+`quditMaxEntResource` in nonzero dimension requires at least `n²` outcomes. -/
 theorem clause4Aux_me_card_le {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n)
     (u v : Fin n → QState (Fin n))
@@ -340,6 +406,8 @@ theorem clause4Aux_me_card_le {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     n * n ≤ Fintype.card κ :=
   qdCard_le_of_perfect P U hU (quditMaxEntResource n u v) hperf
 
+/-- For orthonormal-family resources in nonzero dimension, perfect teleportation with unitary
+corrections gives the outcome, alphabet-bit, and injective-code communication bounds. -/
 theorem clause4Aux_me_counting {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n)
     (u v : Fin n → QState (Fin n))
@@ -352,6 +420,8 @@ theorem clause4Aux_me_counting {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   have h := clause4_clause2 n κ _ P U (quditMaxEntResource n u v) hnorm hU hperf
   exact ⟨h.2.1, h.2.2.1, h.2.2.2⟩
 
+/-- A positive semidefinite matrix has a unitary spectral decomposition with nonnegative real
+diagonal entries. -/
 theorem clause4Aux_psd_spectral_decomp {ι : Type} [Fintype ι] [DecidableEq ι]
     (ω : Matrix ι ι ℂ) (hω : ω.PosSemidef) :
     ∃ (U : Matrix.unitaryGroup ι ℂ) (d : ι → ℝ),
@@ -363,6 +433,7 @@ theorem clause4Aux_psd_spectral_decomp {ι : Type} [Fintype ι] [DecidableEq ι]
   simp only [Unitary.conjStarAlgAut_apply] at hdecomp
   exact hdecomp
 
+/-- A positive semidefinite matrix possesses a positive semidefinite Hermitian square root. -/
 theorem clause4Aux_psd_spectral_sqrt {ι : Type} [Fintype ι] [DecidableEq ι]
     (ω : Matrix ι ι ℂ) (hω : ω.PosSemidef) :
     ∃ S : Matrix ι ι ℂ, S * S = ω ∧ S.conjTranspose = S ∧ S.PosSemidef := by

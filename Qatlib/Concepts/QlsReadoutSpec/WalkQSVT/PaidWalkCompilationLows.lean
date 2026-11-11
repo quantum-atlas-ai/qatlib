@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PaidWalkCompilationStat
+
+/-!
+# Compilation of paid quantum walks
+
+This module compiles controlled calls to a reflected walk into oracle calls and controlled
+reflections. For an isometry, compilation preserves legality and oracle-call counts, adds one
+known gate per call, and preserves the evaluated matrix. Related mathematical background is
+given in [LowSu2026].
+
+## Main statements
+
+* `wordMatrix_compileWalk`: Exact matrix semantics of walk compilation.
+* `PaidWalkPaidWalkCompilation_answer`: Legality, accounting, and semantic guarantees.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,11 +42,15 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators
 
+/-- The controlled matrix acts by `U` on control labels in `T`, by the identity on other labels,
+and has no entries between distinct control labels. -/
 private theorem controlled_apply {H : Type} [DecidableEq H] {r : ℕ}
     (U : Matrix H H ℂ) (T : Finset (Fin r)) (p t : Space H r) :
     controlled U T p t = if p.2 = t.2 then
       if p.2 ∈ T then U p.1 t.1 else if p.1 = t.1 then 1 else 0 else 0 := rfl
 
+/-- The product of two matrices controlled on the same set is the controlled product of their
+data matrices. -/
 private theorem controlled_mul {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (A B : Matrix H H ℂ) (T : Finset (Fin r)) :
     controlled A T * controlled B T = controlled (A * B) T := by
@@ -117,6 +140,7 @@ private theorem controlled_mul {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     refine Finset.sum_eq_zero (fun k _ => ?_)
     rw [if_neg (fun h : p.2 = k.2 ∧ k.2 = t.2 => hk (h.1.trans h.2))]
 
+/-- Controlling the identity matrix gives the identity matrix. -/
 private theorem controlled_one {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (T : Finset (Fin r)) :
     controlled (1 : Matrix H H ℂ) T = 1 := by
@@ -133,6 +157,7 @@ private theorem controlled_one {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     · rw [if_neg hp, if_neg (fun he => hp (congrArg Prod.fst he))]
   · rw [if_neg hk, if_neg (fun he => hk (congrArg Prod.snd he))]
 
+/-- Conjugate transpose commutes with the controlled-matrix construction. -/
 private theorem controlled_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (A : Matrix H H ℂ) (T : Finset (Fin r)) :
     (controlled A T)ᴴ = controlled Aᴴ T := by
@@ -152,6 +177,7 @@ private theorem controlled_conjTranspose {H : Type} [Fintype H] [DecidableEq H] 
     intro h
     exact (hk h.symm).elim
 
+/-- The controlled matrix of a unitary is unitary. -/
 private theorem controlled_mem_unitary {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (A : Matrix H H ℂ) (T : Finset (Fin r))
     (hA : A ∈ Matrix.unitaryGroup H ℂ) :
@@ -162,6 +188,7 @@ private theorem controlled_mem_unitary {H : Type} [Fintype H] [DecidableEq H] {r
     show (Aᴴ * A : Matrix H H ℂ) = star A * A by rw [Matrix.star_eq_conjTranspose],
     hAA, controlled_one]
 
+/-- The reflection `2 • (G * Gᴴ) - 1` squares to the identity when `G` is an isometry. -/
 private theorem reflect_mul_self {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (G : Matrix H I ℂ) (hIso : IsIsometry G) :
     (2 • (G * Gᴴ) - 1) * (2 • (G * Gᴴ) - 1) = 1 := by
@@ -181,6 +208,7 @@ private theorem reflect_mul_self {H I : Type} [Fintype H] [DecidableEq H]
     rw [show (4 : ℂ) = 2 + 2 from by norm_num, add_smul]
   rw [hstep, h2smul, add_sub_cancel_left, sub_sub_cancel]
 
+/-- The matrix `2 • (G * Gᴴ) - 1` equals its conjugate transpose. -/
 private theorem reflect_selfAdjoint {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (G : Matrix H I ℂ) :
     (2 • (G * Gᴴ) - 1 : Matrix H H ℂ)ᴴ = 2 • (G * Gᴴ) - 1 := by
@@ -188,18 +216,23 @@ private theorem reflect_selfAdjoint {H I : Type} [Fintype H] [DecidableEq H]
     rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
   rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_nsmul, Matrix.conjTranspose_one, hP]
 
+/-- The reflection `2 • (G * Gᴴ) - 1` is unitary when `G` is an isometry. -/
 private theorem reflect_mem_unitary {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (G : Matrix H I ℂ) (hIso : IsIsometry G) :
     (2 • (G * Gᴴ) - 1 : Matrix H H ℂ) ∈ Matrix.unitaryGroup H ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
     reflect_selfAdjoint, reflect_mul_self G hIso]
 
+/-- The matrix semantics of a word step, interpreting oracle calls as controlled oracle matrices
+or their adjoints. -/
 private def stepMatrix {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) : Matrix (Space H r) (Space H r) ℂ :=
   match s with
   | .known U => U
   | .call i T adj => controlled (if adj then (oracles i)ᴴ else oracles i) T
 
+/-- The expansion of a walk step into a known gate or an oracle call paired with the controlled
+range reflection in the appropriate order. -/
 private def expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r → Word H r
   | .known V => [.known V]
@@ -207,10 +240,13 @@ private def expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ
     let R := controlled (2 • (G * Gᴴ) - 1) T
     if adj then [.known R, .call j T true] else [.call j T false, .known R]
 
+/-- Walk compilation is the concatenation of the individual step expansions. -/
 private theorem compileWalk_eq {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) (C : Word H r) :
     compileWalk G C = C.flatMap (expand G) := rfl
 
+/-- The matrix of a word beginning with a step is the remaining word matrix multiplied by the
+initial step matrix. -/
 private theorem wordMatrix_cons {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) (C : Word H r) :
     wordMatrix oracles (s :: C) = wordMatrix oracles C * stepMatrix oracles s := by
@@ -219,10 +255,12 @@ private theorem wordMatrix_cons {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     List.prod_nil, mul_one]
   rfl
 
+/-- The empty word has identity matrix semantics. -/
 private theorem wordMatrix_nil {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) :
     wordMatrix oracles ([] : Word H r) = 1 := rfl
 
+/-- The matrix of concatenated words is the second word matrix multiplied by the first. -/
 private theorem wordMatrix_append {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (C₁ C₂ : Word H r) :
     wordMatrix oracles (C₁ ++ C₂) = wordMatrix oracles C₂ * wordMatrix oracles C₁ := by
@@ -231,6 +269,8 @@ private theorem wordMatrix_append {H : Type} [Fintype H] [DecidableEq H] {r : �
   | cons s C₁ ih =>
     rw [List.cons_append, wordMatrix_cons, wordMatrix_cons, ih, mul_assoc]
 
+/-- The expanded step evaluated with oracle `U` has the same matrix as the original step
+evaluated with the reflected walk. -/
 private theorem expand_wordMatrix {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) (U : Matrix H H ℂ) :
     wordMatrix (fun _ => U) (expand G s) = stepMatrix (fun _ => walk G U) s := by
@@ -261,6 +301,8 @@ private theorem expand_wordMatrix {H I : Type} [Fintype H] [DecidableEq H] [Fint
       rw [show walk G U = (2 • (G * Gᴴ) - 1) * U from rfl,
         Matrix.conjTranspose_mul, reflect_selfAdjoint, controlled_mul]
 
+/-- Compiling walk calls and evaluating with `U` gives the same matrix as evaluating the
+original word with `walk G U`. -/
 private theorem wordMatrix_compileWalk {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (G : Matrix H I ℂ) {r : ℕ} (C : Word H r)
     (U : Matrix H H ℂ) :
@@ -276,6 +318,8 @@ private theorem wordMatrix_compileWalk {H I : Type} [Fintype H] [DecidableEq H]
     rw [compileWalk_eq, List.flatMap_cons, wordMatrix_append, ih',
       wordMatrix_cons, expand_wordMatrix G s U]
 
+/-- The call count of a word with an initial step is the remaining call count plus one exactly
+when that step calls the selected slot. -/
 private theorem calls_cons {H : Type} {r : ℕ} (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) (C : Word H r)
     (slot : ℕ) :
     calls (s :: C) slot = (match s with
@@ -292,12 +336,15 @@ private theorem calls_cons {H : Type} {r : ℕ} (s : Qatlib.Concepts.QlsReadoutS
       exact Nat.add_comm _ _
     · simp [h]
 
+/-- The known-gate count of a word with an initial step is the remaining gate count plus one
+exactly when that step is a known gate. -/
 private theorem gateCount_cons {H : Type} {r : ℕ} (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) (C : Word H r) :
     gateCount (s :: C) = (match s with | .known _ => 1 | _ => 0) + gateCount C := by
   unfold gateCount
   rw [List.countP_cons]
   cases s <;> simp [Nat.add_comm]
 
+/-- Expanding a step retains exactly its original call to each oracle slot. -/
 private theorem calls_expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) (slot : ℕ) :
     calls (expand G s) slot = match s with
@@ -320,6 +367,7 @@ private theorem calls_expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I
       rw [calls_cons, calls_cons]
       simp [calls]
 
+/-- Every expanded step contains exactly one known gate. -/
 private theorem gateCount_expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) :
     gateCount (expand G s) = 1 := by
@@ -340,6 +388,7 @@ private theorem gateCount_expand {H I : Type} [Fintype H] [DecidableEq H] [Finty
       rw [gateCount_cons, gateCount_cons]
       simp [gateCount]
 
+/-- Concatenating all step expansions preserves the call count for each oracle slot. -/
 private theorem calls_flatMap {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) (C : Word H r) (slot : ℕ) :
     calls (C.flatMap (expand G)) slot = calls C slot := by
@@ -353,6 +402,8 @@ private theorem calls_flatMap {H I : Type} [Fintype H] [DecidableEq H] [Fintype 
       rw [List.countP_append]
     rw [h1, calls_expand, calls_cons, ih]
 
+/-- Concatenating all step expansions gives a known-gate count equal to the original word
+length. -/
 private theorem gateCount_flatMap {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] {r : ℕ}
     (G : Matrix H I ℂ) (C : Word H r) :
     gateCount (C.flatMap (expand G)) = C.length := by
@@ -366,6 +417,8 @@ private theorem gateCount_flatMap {H I : Type} [Fintype H] [DecidableEq H] [Fint
       rw [List.countP_append]
     rw [h1, gateCount_expand, ih, Nat.add_comm]
 
+/-- For a legal one-oracle word, the word length is the known-gate count plus the number of
+calls to slot zero. -/
 private theorem length_eq_gateCount_add_calls {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (C : Word H r) (hC : legal 1 C) :
     C.length = gateCount C + calls C 0 := by
@@ -384,6 +437,7 @@ private theorem length_eq_gateCount_add_calls {H : Type} [Fintype H] [DecidableE
       simp [hi0]
       abel
 
+/-- Every step in the expansion of a legal one-oracle step is legal when `G` is an isometry. -/
 private theorem legal_expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] {r : ℕ}
     (G : Matrix H I ℂ) (hIso : IsIsometry G) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r)
@@ -421,6 +475,8 @@ private theorem legal_expand {H I : Type} [Fintype H] [DecidableEq H] [Fintype I
       · exact hs
       · exact hR
 
+/-- Concatenating the expansions of a legal one-oracle word preserves legality when `G` is an
+isometry. -/
 private theorem legal_flatMap {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] {r : ℕ}
     (G : Matrix H I ℂ) (hIso : IsIsometry G) (C : Word H r) (hC : legal 1 C) :
@@ -430,6 +486,8 @@ private theorem legal_flatMap {H I : Type} [Fintype H] [DecidableEq H] [Fintype 
   obtain ⟨s, hsC, hst⟩ := ht
   exact legal_expand G hIso s (hC s hsC) t hst
 
+/-- Walk compilation preserves legality and oracle-call counts, adds one known gate per call,
+and realizes the original word's walk-matrix semantics. -/
 theorem PaidWalkPaidWalkCompilation_answer : PaidWalkPaidWalkCompilation := by
   intro H I _ _ _ _ G r C hIso hLegal
   refine ⟨?_, ?_, ?_, ?_⟩

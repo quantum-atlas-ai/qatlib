@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFGeometric
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFCommutatorBound
+
+/-!
+# Root-profile bounds for multi-product errors
+
+This module converts products of commutator profiles into estimates controlled by the root scale
+`mu`. When μ|t| ≤ 1/2, the scalar `errorProfile` is bounded by (8/3)(μ|t|)^(2m + 1), yielding an
+explicit local multi-product error for the analysis of [AftabAnTrivisa2026].
+
+Chebyshev weights replace the general coefficient mass by a harmonic-number bound and give a
+time-power estimate with an explicit coefficient.
+
+## Main statements
+
+* `errorProfile_le`: bounds the scalar error profile by the root scale.
+* `actualMPF_root_error`: gives the general local multi-product error.
+* `chebyshev_time_power`: isolates the time power for Chebyshev formulas.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +43,7 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I]
 
+/-- The mass profile is bounded by |t|^(2n + 3l) times the raw commutator product. -/
 theorem massProfile_le_raw (xs : List (Matrix I I ℂ)) (t : ℝ) (l n : ℕ) :
     massProfile xs t l n ≤ |t| ^ (2 * n + 3 * l) * rawProduct xs l n := by
   unfold massProfile rawProduct
@@ -38,6 +61,7 @@ theorem massProfile_le_raw (xs : List (Matrix I I ℂ)) (t : ℝ) (l n : ℕ) :
 
 variable [DecidableEq I]
 
+/-- For 1 ≤ l ≤ m and n + l ≥ m, the mass profile is at most (μ|t|)^(2n + 3l). -/
 theorem massProfile_le_mu (xs : List (Matrix I I ℂ)) (m l n : ℕ)
     (hl : 1 ≤ l) (hlm : l ≤ m) (hn : m ≤ n + l) (t : ℝ) :
     massProfile xs t l n ≤ (mu xs m * |t|) ^ (2 * n + 3 * l) := by
@@ -47,6 +71,8 @@ theorem massProfile_le_mu (xs : List (Matrix I I ℂ)) (m l n : ℕ)
       mul_le_mul_of_nonneg_left (rawProduct_le_mu xs m l n hl hlm hn) (pow_nonneg (abs_nonneg t) _)
     _ = _ := by rw [← mul_pow, mul_comm]
 
+/-- For positive m and μ|t| ≤ 1/2, the odd-coefficient control condition holds at radius |t| and
+cutoff 2m + 1. -/
 theorem actual_control (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m) (t : ℝ)
     (ht : mu xs m * |t| ≤ 1 / 2) :
     OddControl xs (⟨|t|, abs_nonneg t⟩ : ℝ≥0) (2 * m + 1) := by
@@ -55,6 +81,8 @@ theorem actual_control (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m) (t : 
   rw [mul_comm]
   linarith
 
+/-- When μ|t| ≤ 1/2, the order-profile tail coefficient at k + m is bounded by (μ|t|)^(2m +
+1)(1/4)^k times the factorial mass. -/
 theorem orderProfile_le (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
     (t : ℝ) (ht : mu xs m * |t| ≤ 1 / 2) (k : ℕ) :
     orderProfile xs t m (k + m) ≤
@@ -77,6 +105,7 @@ theorem orderProfile_le (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
         (Nat.cast_nonneg _)
     _ = _ := by ring
 
+/-- For positive m and μ|t| ≤ 1/2, the error profile is at most (8/3)(μ|t|)^(2m + 1). -/
 theorem errorProfile_le (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
     (t : ℝ) (ht : mu xs m * |t| ≤ 1 / 2) :
     errorProfile xs t m ≤ (8 / 3 : ℝ) * (mu xs m * |t|) ^ (2 * m + 1) := by
@@ -123,6 +152,8 @@ theorem errorProfile_le (xs : List (Matrix I I ℂ)) (m : ℕ) (hm : 0 < m)
 
 variable {K : Type} [Fintype K]
 
+/-- For Hermitian generators with normalized cancellation weights and μ|t| ≤ 1/2, the
+multi-product error is at most 8/3 times the absolute weight mass times (μ|t|)^(2m + 1). -/
 theorem actualMPF_root_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (ha : ∑ j, a j = 1)
     (m : ℕ) (hm : 0 < m) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -136,6 +167,8 @@ theorem actualMPF_root_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, A
 
 omit [Fintype K] in
 
+/-- For Hermitian generators and μ|t| ≤ 1/2, the Chebyshev multi-product error is at most (16/3)
+times the m-th harmonic number times (μ|t|)^(2m + 1). -/
 theorem chebyshev_root_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (m : ℕ) (hm : 0 < m) (t : ℝ) (ht : mu xs m * |t| ≤ 1 / 2) :
     ‖actualMPF xs (ChebyshevNodes.node m) (ChebyshevNodes.weight m) t -
@@ -150,6 +183,8 @@ theorem chebyshev_root_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, A
 
 omit [Fintype K] in
 
+/-- Under the root-scale step condition, the Chebyshev error is bounded by (16/3)Hₘ μ^(2m + 1)
+times |t|^(2m + 1). -/
 theorem chebyshev_time_power (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (m : ℕ) (hm : 0 < m) (t : ℝ) (ht : mu xs m * |t| ≤ 1 / 2) :
     ‖actualMPF xs (ChebyshevNodes.node m) (ChebyshevNodes.weight m) t -

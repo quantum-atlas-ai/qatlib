@@ -5,12 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+
+/-!
+# Specification of general dihedral records
+
+This module defines `SourceGeneralRecordLaw`, the record-extraction specification for arbitrary
+nonzero dihedral moduli in the sieve setting of [Kuperberg2005]. The specification combines
+exact circuit counts with a Fourier-branch factorization into an oracle-output amplitude and a
+labelled phase qubit.
+
+## Main statements
+
+* `SourceGeneralRecordLaw`: one-query, one-gate record extraction with output-amplitude squared
+  norm sum `1 / N`.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 set_option autoImplicit false
 namespace Qatlib.Concepts.HspRecovery.RecordExtract
 
+/-- The specification that every reflection-hiding oracle has a one-query, one-gate record
+circuit whose Fourier-label branches factor into the corresponding phase qubit and an output
+amplitude with squared norm sum `1 / N`. -/
 def SourceGeneralRecordLaw : Prop := by
   classical
   exact

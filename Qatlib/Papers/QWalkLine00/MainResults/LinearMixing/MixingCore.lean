@@ -9,6 +9,26 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Finite-set overlap estimates for mixing
+
+This module proves finite-set inequalities that turn lower bounds on mass at many sites into
+bounds on total variation from uniform. A cardinality estimate for a distinguished subset
+supplies the height-and-mass criterion used in the line-walk mixing analysis of
+[NayakVishwanath2000].
+
+## Main statements
+
+* `mixing_core`: bounds variation by `1 - β * c` from a subset of relative size at least `β`.
+* `good_card_lower`: bounds the distinguished subset cardinality from a mass and height
+  estimate.
+* `mixing_of_height_mass`: combines these estimates into a conditional mixing bound.
+
+## References
+
+* [Nayak and Vishwanath, 2000][NayakVishwanath2000]
+-/
+
 namespace Qatlib.Papers.QWalkLine00.MainResults
 
 set_option autoImplicit false
@@ -16,6 +36,9 @@ set_option autoImplicit false
 open Finset
 open scoped BigOperators
 
+/-- For a probability function on a nonempty finite set, a subset of relative size at least `β`
+whose masses are at least `c / card s` bounds total variation from uniform by `1 - β * c`,
+with `β ≥ 0` and `0 ≤ c ≤ 1`. See [NayakVishwanath2000]. -/
 theorem mixing_core {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℝ) (hcard : 0 < s.card)
     (hp_nonneg : ∀ i ∈ s, 0 ≤ p i) (hp_sum : ∑ i ∈ s, p i = 1)
@@ -81,6 +104,9 @@ theorem mixing_core {ι : Type*} [DecidableEq ι]
   rw [this]
   linarith
 
+/-- If the total mass is at least `M`, all values are at most `U`, and values outside `G` are at
+most `c / card s`, then `card G ≥ (M - c) / (U - c / card s)` when the denominator is
+positive. See [NayakVishwanath2000]. -/
 theorem good_card_lower {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℝ) (hcard : 0 < s.card)
     {U c M : ℝ} (hU : ∀ i ∈ s, p i ≤ U)
@@ -119,6 +145,8 @@ theorem good_card_lower {ι : Type*} [DecidableEq ι]
   rw [div_le_iff₀ hden]
   linarith [hkey]
 
+/-- Under the stated probability, height, and subset mass hypotheses, total variation from
+uniform is at most `1 - ((M - c) / (1 - c)) * c`. See [NayakVishwanath2000]. -/
 theorem mixing_of_height_mass {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℝ) (hcard : 0 < s.card)
     (hp_nonneg : ∀ i ∈ s, 0 ≤ p i) (hp_sum : ∑ i ∈ s, p i = 1)

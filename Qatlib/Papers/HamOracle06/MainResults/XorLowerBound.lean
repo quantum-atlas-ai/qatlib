@@ -94,6 +94,27 @@ import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Neighborhoods
 import Mathlib.Topology.Order.Basic
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Scalar estimates for linear oracle-time lower bounds
+
+This module derives time lower bounds from inequalities of the form a ≤ (πT/2)^j / j!. The
+factorial estimate `factorial_rpow_ge` yields an explicit bound proportional to j, and
+`queryTime_asymptotic_linear` proves an eventual linear estimate after substituting j = ⌊n/2⌋.
+See [Mochon2007] for the Hamiltonian oracle formulation.
+
+## Main statements
+
+* `queryTime_lowerBound_combined`: For j ≥ 1, T ≥ 0, and 0 < δ ≤ 1, the inequality δ ≤ (πT /
+  2)^j / j! implies T ≥ (2 / π)(j / exp 1) δ^(1/j).
+* `queryTime_asymptotic_linear`: For 0 < δ ≤ 1 and c < 1 / (π exp 1), the expression (2 /
+  π)(⌊n/2⌋ / exp 1) δ^(1/⌊n/2⌋) is eventually at least cn as n tends to infinity.
+
+## References
+
+* [Mochon, 2007][Mochon2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -105,6 +126,8 @@ open scoped Topology
 
 namespace Qatlib.Papers.HamOracle06.MainResults
 
+/-- For j ≥ 1 and T, a ≥ 0, the inequality a ≤ (πT / 2)^j / j! implies T ≥ (2 / π)(j!)^(1/j)
+a^(1/j). See [Mochon2007]. -/
 theorem queryTime_lowerBound_power (j : ℕ) (hj : 1 ≤ j) (T a : ℝ) (hT : 0 ≤ T)
     (ha0 : 0 ≤ a)
     (h : a ≤ (1 / (Nat.factorial j : ℝ)) * (Real.pi * T / 2) ^ j) :
@@ -152,6 +175,8 @@ theorem queryTime_lowerBound_power (j : ℕ) (hj : 1 ≤ j) (T a : ℝ) (hT : 0 
             (a ^ (1 / (j : ℝ)) * (Nat.factorial j : ℝ) ^ (1 / (j : ℝ))) := by ring
     _ ≤ T := hfin
 
+/-- For every natural number j ≥ 1, the j-th real root of j! is at least j / exp 1. See
+[Mochon2007]. -/
 theorem factorial_rpow_ge (j : ℕ) (hj : 1 ≤ j) :
     (j : ℝ) / Real.exp 1 ≤ (Nat.factorial j : ℝ) ^ (1 / (j : ℝ)) := by
   have hj0 : 0 < (j : ℝ) := by exact_mod_cast hj
@@ -178,6 +203,8 @@ theorem factorial_rpow_ge (j : ℕ) (hj : 1 ≤ j) :
     rw [hjj, Real.rpow_one]
   rwa [h3] at h2
 
+/-- For j ≥ 1, T ≥ 0, and 0 < δ ≤ 1, the inequality δ ≤ (πT / 2)^j / j! implies T ≥ (2 / π)(j /
+exp 1) δ^(1/j). See [Mochon2007]. -/
 theorem queryTime_lowerBound_combined (j : ℕ) (hj : 1 ≤ j) (T δ : ℝ) (hT : 0 ≤ T)
     (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1)
     (h : δ ≤ (1 / (Nat.factorial j : ℝ)) * (Real.pi * T / 2) ^ j) :
@@ -192,6 +219,8 @@ theorem queryTime_lowerBound_combined (j : ℕ) (hj : 1 ≤ j) (T δ : ℝ) (hT 
     exact mul_le_mul_of_nonneg_left hfac hcoef
   exact hm.trans hpow
 
+/-- For 0 < δ ≤ 1 and c < 1 / (π exp 1), the expression (2 / π)(⌊n/2⌋ / exp 1) δ^(1/⌊n/2⌋) is
+eventually at least cn as n tends to infinity. See [Mochon2007]. -/
 theorem queryTime_asymptotic_linear (δ : ℝ) (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) (c : ℝ)
     (hc : c < 1 / (Real.pi * Real.exp 1)) :
     ∀ᶠ n : ℕ in atTop,

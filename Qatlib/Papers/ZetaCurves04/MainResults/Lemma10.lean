@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+
+/-!
+# Finite-group generation and failure budgets
+
+Proper additive subgroups of finite groups have at most half the ambient cardinality, so their
+complements have at least half. Together with elementary failure-budget and closure facts, this
+module constructs an abstract `ClassGroupGeneratorAlgorithm` record with generating output, the
+stated success bound, and a polynomial cost bound.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `proper_addSubgroup_card_le_half`: A proper additive subgroup of a finite group has
+  cardinality at most half the group cardinality.
+* `lemma10_generating_algorithm`: Under the stated curve-size hypothesis, there exists an
+  abstract generator record whose output generates `G`, whose success value is at least `3 / 4`,
+  and whose cost has the stated polynomial bound.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,22 +41,29 @@ namespace Qatlib.Papers.ZetaCurves04.MainResults.Lemma10
 
 open Qatlib.Papers.ZetaCurves04.MainResults.Model
 
+/-- The three failure allowances `1 / 16`, `1 / 16`, and `1 / 8` sum to `1 / 4`. See
+[Kedlaya2006]. -/
 theorem lemma10_failure_budget : (1 / 16 : ℝ) + 1 / 16 + 1 / 8 = 1 / 4 := by
   norm_num
 
+/-- Three repetitions with failure factor one half give the expression `1 - 1 / 8`. -/
 theorem lemma7_prob_three : (1 : ℝ) - (1 / 2 : ℝ) ^ 3 = 1 - 1 / 8 := by
   norm_num
 
+/-- The finite set of elements belonging to the additive subgroup `H`. -/
 noncomputable def subgroupElems {G : Type*} [AddGroup G] [Fintype G]
     (H : AddSubgroup G) : Finset G := by
   classical
   exact Finset.univ.filter (fun x => x ∈ H)
 
+/-- The finite set of elements outside the additive subgroup `H`. -/
 noncomputable def subgroupCompl {G : Type*} [AddGroup G] [Fintype G]
     (H : AddSubgroup G) : Finset G := by
   classical
   exact Finset.univ.filter (fun x => x ∉ H)
 
+/-- A proper additive subgroup of a finite group has cardinality at most half the group
+cardinality. See [Kedlaya2006]. -/
 theorem proper_addSubgroup_card_le_half {G : Type*} [AddGroup G] [Fintype G]
     [DecidableEq G] (H : AddSubgroup G) (hH : H ≠ ⊤) :
     2 * (subgroupElems H).card ≤ Fintype.card G := by
@@ -68,6 +99,8 @@ theorem proper_addSubgroup_card_le_half {G : Type*} [AddGroup G] [Fintype G]
     exact h
   omega
 
+/-- At least half the elements of a finite group lie outside a proper additive subgroup. See
+[Kedlaya2006]. -/
 theorem more_than_half_outside {G : Type*} [AddGroup G] [Fintype G] [DecidableEq G]
     (H : AddSubgroup G) (hH : H ≠ ⊤) :
     Fintype.card G ≤ 2 * (subgroupCompl H).card := by
@@ -82,6 +115,7 @@ theorem more_than_half_outside {G : Type*} [AddGroup G] [Fintype G] [DecidableEq
     exact h'
   omega
 
+/-- A finite superset of a generating set also generates the whole additive group. -/
 theorem addSubgroup_closure_mono {G : Type*} [AddCommGroup G]
     {S T : Finset G} (hsub : S ⊆ T)
     (hgen : AddSubgroup.closure (S : Set G) = ⊤) :
@@ -94,10 +128,14 @@ theorem addSubgroup_closure_mono {G : Type*} [AddCommGroup G]
   rw [hgen] at hle
   exact top_le_iff.mp hle
 
+/-- The set of all elements generates the whole finite additive group. -/
 theorem addSubgroup_closure_univ {G : Type*} [AddCommGroup G] [Fintype G] :
     AddSubgroup.closure ((Finset.univ : Finset G) : Set G) = ⊤ := by
   rw [Finset.coe_univ, AddSubgroup.closure_univ]
 
+/-- Under the stated curve-size hypothesis, there exists an abstract generator record whose
+output generates `G`, whose success value is at least `3 / 4`, and whose cost has the stated
+polynomial bound. See [Kedlaya2006]. -/
 theorem lemma10_generating_algorithm
     (C : CurveData) (_hsmall : 16 * (C.g : ℝ) < halfPower C.q 1)
     (G : Type) [AddCommGroup G] [Fintype G] :

@@ -9,6 +9,23 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 
+/-!
+# Overlap estimates for state-generation equivalence
+
+Proves scalar and state inner product estimates used in the state-generation equivalence
+construction. The scalar square-root-gate expression has modulus at least `1 / sqrt 2`, and unit
+states have inner product norm at most one. See [AharonovTaShma2007].
+
+## Main statements
+
+* `gate_sqrt_overlap_real`: Bounds the modulus of the scalar gate-overlap expression.
+* `norm_inner_le_one`: Bounds the overlap of unit states by one.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,6 +36,8 @@ namespace Qatlib.Papers.AdiabStateGen03.MainResults.Equivalence
 
 open Qatlib.Papers.AdiabStateGen03.MainResults
 
+/-- For real `x` with `|x| ≤ 1`, the modulus of `(1 + i) / 2 + ((1 - i) / 2) * x` is at least `1
+/ sqrt 2` [AharonovTaShma2007]. -/
 lemma gate_sqrt_overlap_real (x : ℝ) (hx : |x| ≤ 1) :
     1 / Real.sqrt 2 ≤
       ‖(((1 : ℂ) + Complex.I) / 2) + ((1 - Complex.I) / 2) * (x : ℂ)‖ := by
@@ -36,11 +55,14 @@ lemma gate_sqrt_overlap_real (x : ℝ) (hx : |x| ≤ 1) :
   rw [hsqrt, hsq]
   exact Real.sqrt_le_sqrt hge
 
+/-- The norm of the inner product of two unit states is at most one [AharonovTaShma2007]. -/
 theorem norm_inner_le_one {n : ℕ} (α β : State n) (hα : ‖α‖ = 1) (hβ : ‖β‖ = 1) :
     ‖⟪α, β⟫_ℂ‖ ≤ 1 := by
   calc ‖⟪α, β⟫_ℂ‖ ≤ ‖α‖ * ‖β‖ := norm_inner_le_norm α β
     _ = 1 := by rw [hα, hβ, one_mul]
 
+/-- Swapping the arguments of a complex state inner product preserves its norm
+[AharonovTaShma2007]. -/
 theorem norm_inner_comm {n : ℕ} (α β : State n) :
     ‖⟪α, β⟫_ℂ‖ = ‖⟪β, α⟫_ℂ‖ := by
   rw [← inner_conj_symm α β, Complex.norm_conj]

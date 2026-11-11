@@ -8,6 +8,37 @@ import Qatlib.Concepts.MatrixWeights.WeightsCore
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import Mathlib.Data.Finset.Max
+
+/-!
+# Matrix multiplicative weights and minimum-eigenvalue bounds
+
+This module proves comparator bounds for matrix multiplicative weights when each loss matrix is
+positive semidefinite and bounded above by the identity. `matrix_mw_chord_comparator` retains
+the exact scalar chord coefficient, and `matrix_mw_sum_trace_le_scaled_comparator` converts it
+to an explicit rate-dependent bound.
+
+With rate `-log (1 - eps)`, `matrix_mw_source_comparator` gives the customary multiplicative
+comparison, and `matrix_mw_source_min_eigenvalue` chooses a minimum-eigenvalue pure-state
+comparator. These estimates provide the matrix multiplicative-weights ingredients used in the
+SDP analysis of [BrandaoSvore2017].
+
+## Main statements
+
+* `matrix_mw_chord_comparator` bounds the accumulated Gibbs loss using the coefficient `1 - exp
+  (-eta)`.
+* `matrix_mw_sum_trace_le_scaled_comparator` gives a comparator factor `1 + eta` for positive
+  rates.
+* `matrix_mw_source_comparator` gives factor `1 + eps` and additive term `log D / eps` for `0 <
+  eps < 1 / 2`.
+* `matrix_mw_source_min_eigenvalue` specializes this bound to the minimum eigenvalue of the
+  cumulative loss matrix.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]. Quantum Speed-Ups for Solving Semidefinite
+  Programs.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -22,6 +53,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 set_option warningAsError false
 
+/-- For `0 ≤ x ≤ 1` and any real rate `eta`, bounds `exp (-eta * x)` by the chord `1 - (1 - exp
+(-eta)) * x`. -/
 private theorem mwScalarChord (eta x : ℝ) (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
     Real.exp (-eta * x) ≤ 1 - (1 - Real.exp (-eta)) * x := by
   have h := convexOn_exp.2 (Set.mem_univ 0) (Set.mem_univ (-eta))
@@ -29,6 +62,8 @@ private theorem mwScalarChord (eta x : ℝ) (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
   simp only [smul_eq_mul, mul_zero, zero_add, Real.exp_zero] at h
   convert! h using 1 <;> ring
 
+/-- For a positive semidefinite matrix `M ≤ 1`, bounds `exp (-eta • M)` in matrix order by `1 -
+(1 - exp (-eta)) • M`. -/
 private theorem mwChordOrder (D : ℕ) (M : Operator D) (eta : ℝ)
     (hM : M.PosSemidef) (hM1 : M ≤ 1) :
     NormedSpace.exp (-eta • M) ≤ 1 - (1 - Real.exp (-eta)) • M := by
@@ -56,6 +91,9 @@ private theorem mwChordOrder (D : ℕ) (M : Operator D) (eta : ℝ)
   simpa only [HermitianMat.le_iff, HermitianMat.mat_sub, HermitianMat.mat_smul,
     HermitianMat.mat_one, hmat] using! hc
 
+/-- For positive dimension and loss matrices between zero and the identity, bounds the
+successive multiplicative-weights partition-function ratio by `1 - (1 - exp (-eta)) * re
+(trace (M t * mmwState D M eta t))`. -/
 private theorem mwChordRatio (D : ℕ) (M : ℕ → Operator D) (eta : ℝ) (t : ℕ)
     (hD : 0 < D) (hM : ∀ s, (M s).PosSemidef ∧ M s ≤ 1) :
     (Matrix.trace (mmwWeight D M eta (t + 1))).re /
@@ -92,6 +130,8 @@ private theorem mwChordRatio (D : ℕ) (M : ℕ → Operator D) (eta : ℝ) (t :
   rw [he]
   exact hu
 
+/-- For positive dimension and loss matrices between zero and the identity, bounds the one-step
+change in the log partition function by `-(1 - exp (-eta))` times the current Gibbs loss. -/
 private theorem mwChordLogStep (D : ℕ) (M : ℕ → Operator D) (eta : ℝ) (t : ℕ)
     (hD : 0 < D) (hM : ∀ s, (M s).PosSemidef ∧ M s ≤ 1) :
     Real.log (Matrix.trace (mmwWeight D M eta (t + 1))).re -
@@ -103,6 +143,9 @@ private theorem mwChordLogStep (D : ℕ) (M : ℕ → Operator D) (eta : ℝ) (t
   rw [← Real.log_div (hp (t + 1)).ne' (hp t).ne']
   exact (Real.log_le_sub_one_of_pos (div_pos (hp (t + 1)) (hp t))).trans (by linarith)
 
+/-- For positive dimension, positive semidefinite losses bounded by the identity, and any
+density comparator, bounds `1 - exp (-eta)` times the accumulated Gibbs loss by `log D` plus
+`eta` times the comparator loss. -/
 theorem matrix_mw_chord_comparator
     (D T : ℕ) (M : ℕ → Operator D) (eta : ℝ) (sigma : Operator D)
     (hD : 0 < D) (hM : ∀ s, (M s).PosSemidef ∧ M s ≤ 1)
@@ -142,6 +185,10 @@ theorem matrix_mw_chord_comparator
     linarith [hu T]
   exact hmain
 
+/-- For positive rate `eta` and losses between zero and the identity, bounds accumulated Gibbs
+loss by `(1 + eta)` times any density comparator's loss plus `(1 + eta) * log D / eta`. This
+gives a rate-dependent matrix multiplicative-weights comparison relevant to
+[BrandaoSvore2017]. -/
 theorem matrix_mw_sum_trace_le_scaled_comparator
     (D T : ℕ) (M : ℕ → Operator D) (eta : ℝ) (sigma : Operator D)
     (hD : 0 < D) (heta : 0 < eta)
@@ -183,6 +230,7 @@ theorem matrix_mw_sum_trace_le_scaled_comparator
   rw [hidentity]
   simpa only [mul_comm] using! hscaled
 
+/-- For `0 < eps < 1 / 2`, bounds the rate `-log (1 - eps)` by `eps + eps ^ 2`. -/
 private theorem mwSourceRateBound (eps : ℝ) (heps : 0 < eps) (hepshalf : eps < 1 / 2) :
     -Real.log (1 - eps) ≤ eps + eps ^ 2 := by
   have hrem : 0 < 1 - eps := by linarith
@@ -199,6 +247,9 @@ private theorem mwSourceRateBound (eps : ℝ) (heps : 0 < eps) (hepshalf : eps <
     linarith
   nlinarith [mul_le_mul_of_nonneg_left hinv (sq_nonneg eps)]
 
+/-- For `0 < eps < 1 / 2` and losses between zero and the identity during the horizon, the Gibbs
+iterates at rate `-log (1 - eps)` have cumulative loss at most `(1 + eps)` times any density
+comparator's loss plus `log D / eps`. -/
 theorem matrix_mw_source_comparator
     (D T : ℕ) (M : ℕ → Operator D) (eps : ℝ) (sigma : Operator D)
     (hD : 0 < D) (heps : 0 < eps) (hepshalf : eps < 1 / 2)
@@ -255,6 +306,9 @@ theorem matrix_mw_source_comparator
   dsimp only [eta] at hsharp ⊢
   nlinarith
 
+/-- For `0 < eps < 1 / 2` and losses between zero and the identity during the horizon, chooses a
+minimum eigenvalue of the cumulative loss matrix. The Gibbs iterates at rate `-log (1 -
+eps)` have cumulative loss at most `(1 + eps)` times that eigenvalue plus `log D / eps`. -/
 theorem matrix_mw_source_min_eigenvalue
     (D T : ℕ) (M : ℕ → Operator D) (eps : ℝ)
     (hD : 0 < D) (heps : 0 < eps) (hepshalf : eps < 1 / 2)

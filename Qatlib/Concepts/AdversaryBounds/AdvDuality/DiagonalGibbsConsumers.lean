@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+
+/-!
+# Concrete diagonal Gibbs-channel examples
+
+This module evaluates diagonal Gibbs channels in two cases. At inverse temperature zero, every
+positive iterate resets the system to its Gibbs density while retaining the reference marginal;
+a two-level example at inverse temperature `Real.log 2` has an explicit density and geometric
+trace-norm convergence.
+
+The examples use the Gibbs-state and quantum-channel formalism of [NielsenChuang2010].
+
+## Main statements
+
+* `zero_beta_gibbs_reference_reset_consumer`: a positive iterate at zero inverse temperature
+  acts as a reference-preserving reset.
+* `two_level_gibbs_actual_consumer`: the two-level density has weights `2 / 3` and `1 / 3`, with
+  trace-norm error `(2 / 3) * (1 / 4) ^ n` from the specified initial state.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +50,8 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option linter.unusedTactic false
 
+/-- At zero inverse temperature, every positive thermal-channel iterate maps a joint operator to
+the Gibbs density tensored with its reference marginal. -/
 theorem zero_beta_gibbs_reference_reset_consumer (D : ℕ) (hD : 0 < D) (r : ℕ) (E : Fin D → ℝ)
     (n : ℕ) (hn : 0 < n) :
     ∀ ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ,
@@ -74,6 +99,9 @@ theorem zero_beta_gibbs_reference_reset_consumer (D : ℕ) (hD : 0 < D) (r : ℕ
     rw [hker i x, hp x]
   rw [thermalPowerChannel_eq_reset hD E 0 hkπ m, tensorLeft_traceSmulLeft]
 
+/-- For energies zero and one at inverse temperature `Real.log 2`, the Gibbs density is diagonal
+with weights `2 / 3` and `1 / 3`. Starting in basis state zero, the displayed iterate has
+trace-norm error `(2 / 3) * (1 / 4) ^ n`. -/
 theorem two_level_gibbs_actual_consumer (n : ℕ) (hn : 0 < n) :
     let E := fun i : Fin 2 => if i = 0 then (0 : ℝ) else 1
     let β := Real.log 2

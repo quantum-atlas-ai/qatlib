@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialBudgetRun
+
+/-!
+# Allocated costs of the combinatorial algorithm
+
+`preparationScan_sample_cost` bounds preparation queries by the sample size, including repeated
+sampled vertices. `sourceCombAlg_allocated_cost` combines preparation, classification, triangle
+search, and promised edge search reservations into the total budget for every tape. For
+background on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `preparationScan_sample_cost`: For positive `n`, preparation on the distinct vertices in a
+  sample of length `k` uses at most `k * (n + neighborhoodFee n sgs)` queries.
+* `sourceCombAlg_allocated_cost`: For positive `n`, the query count recorded by `sourceCombAlg`
+  on any tape is bounded by `sourceCombinatorialBudget`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,8 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical
 variable {n : ℕ}
 
+/-- For positive `n`, preparation on the distinct vertices in a sample of length `k` uses at
+most `k * (n + neighborhoodFee n sgs)` queries. -/
 theorem preparationScan_sample_cost (G : UGraph n) (sgs : SGSExecution) (k : ℕ)
     (s : Fin k→Fin n) (stape : Fin n→sgs.seed) (hn : 0<n) :
     (preparationScan G sgs stape (Finset.univ.image s).toList).queries≤k*(n+neighborhoodFee n sgs) := by
@@ -27,6 +50,8 @@ theorem preparationScan_sample_cost (G : UGraph n) (sgs : SGSExecution) (k : ℕ
         (Finset.card_image_le (s:=Finset.univ) (f:=s))
   exact hh.trans (Nat.mul_le_mul_right _ hk)
 
+/-- For positive `n`, the query count recorded by `sourceCombAlg` on any tape is bounded by
+`sourceCombinatorialBudget`. -/
 theorem sourceCombAlg_allocated_cost (G : UGraph n) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily)
     (k K c dHi dLo τ tThin : ℕ) (t : sourceCombTape n k K c sgs ets) (hn : 0<n) :
     (Qatlib.Concepts.WalkSearch.MainResults.CombOut.queries (sourceCombAlg G sgs ets k K c dHi dLo τ tThin t))≤

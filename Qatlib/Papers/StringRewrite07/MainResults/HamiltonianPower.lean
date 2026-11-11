@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StringRewrite07.MainResults.Source
+
+/-!
+# Hamiltonian powers on an invariant orbit span
+
+`orbitLM` maps coordinate vectors to linear combinations of a specified vector family. An
+intertwining relation transfers matrix powers to this coordinate model, and orthonormality with
+an orthogonal remainder yields `hamPowerMatrixEntry`; `hamPower_lineAdj` specializes the result
+to a path adjacency matrix. See [JanzingWocjan2010].
+
+## Main statements
+
+* `mulVec_pow_orbitLM`: the intertwining relation extends to every natural power.
+* `hamPowerMatrixEntry`: the endpoint matrix element reduces to a coordinate matrix-power entry.
+* `hamPower_lineAdj`: the same reduction for the path adjacency matrix.
+
+## References
+
+* [Janzing and Wocjan, 2010][JanzingWocjan2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,18 +34,24 @@ namespace Qatlib.Papers.StringRewrite07.MainResults
 
 open Matrix
 
+/-- The adjacency matrix of the path on `n + 1` vertices, with entry one exactly between
+consecutive indices. -/
 def lineAdj (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   fun i j => if (i : ℕ) + 1 = (j : ℕ) ∨ (j : ℕ) + 1 = (i : ℕ) then 1 else 0
 
+/-- The path adjacency matrix is symmetric. -/
 theorem lineAdj_isSymm (n : ℕ) : (lineAdj n).IsSymm := by
   rw [Matrix.IsSymm.ext_iff]
   intro i j
   simp only [lineAdj, or_comm]
 
+/-- The final index `n` in `Fin (n + 1)`. -/
 def lastIdx (n : ℕ) : Fin (n + 1) := ⟨n, Nat.lt_succ_self n⟩
 
+/-- The initial index zero in `Fin (n + 1)`. -/
 def firstIdx (n : ℕ) : Fin (n + 1) := ⟨0, Nat.succ_pos n⟩
 
+/-- Multiplying a matrix by the basis vector at `j` returns its `j`th column. -/
 theorem mulVec_basisVec_apply {n : ℕ} (P : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)
     (j i : Fin (n + 1)) :
     (P *ᵥ basisVec j) i = P i j := by
@@ -37,6 +63,7 @@ theorem mulVec_basisVec_apply {n : ℕ} (P : Matrix (Fin (n + 1)) (Fin (n + 1)) 
   · intro h
     exact absurd (Finset.mem_univ j) h
 
+/-- The linear map sending coordinates `v` to the finite sum `∑ k, v k • a k`. -/
 def orbitLM {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) → ι → ℝ) :
     (Fin (n + 1) → ℝ) →ₗ[ℝ] (ι → ℝ) where
   toFun v := ∑ k, v k • a k
@@ -45,11 +72,13 @@ def orbitLM {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) → ι → ℝ) 
   map_smul' c x := by
     simp only [Pi.smul_apply, smul_eq_mul, mul_smul, Finset.smul_sum, RingHom.id_apply]
 
+/-- Evaluating `orbitLM a` gives the linear combination of `a` with the supplied coordinates. -/
 @[simp]
 theorem orbitLM_apply {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) → ι → ℝ)
     (v : Fin (n + 1) → ℝ) :
     orbitLM a v = ∑ k, v k • a k := rfl
 
+/-- The map `orbitLM a` sends the basis vector at `k` to `a k`. -/
 theorem orbitLM_basisVec {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) → ι → ℝ)
     (k : Fin (n + 1)) :
     orbitLM a (basisVec k) = a k := by
@@ -60,6 +89,8 @@ theorem orbitLM_basisVec {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) →
   · intro h
     exact absurd (Finset.mem_univ k) h
 
+/-- If `H` acts on every `a k` according to column `k` of `P`, then `orbitLM a` intertwines
+multiplication by `P` and by `H`. -/
 theorem mulVec_orbitLM {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (H : Matrix ι ι ℝ) (a : Fin (n + 1) → ι → ℝ)
     (P : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)
@@ -100,6 +131,7 @@ theorem mulVec_orbitLM {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
     _ = ∑ j, (P *ᵥ v) j • a j := by
         simp only [Matrix.mulVec, dotProduct]
 
+/-- The intertwining relation between `H`, `P`, and `orbitLM a` extends to their `m`th powers. -/
 theorem mulVec_pow_orbitLM {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (H : Matrix ι ι ℝ) (a : Fin (n + 1) → ι → ℝ)
     (P : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)
@@ -116,6 +148,8 @@ theorem mulVec_pow_orbitLM {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
         _ = orbitLM a ((P ^ m * P) *ᵥ v) := by rw [Matrix.mulVec_mulVec]
         _ = orbitLM a ((P ^ (m + 1)) *ᵥ v) := by rw [pow_succ]
 
+/-- For an orthonormal family `a`, the dot product of `a i` with `orbitLM a v` is the coordinate
+`v i`. -/
 theorem dot_orbitLM_left {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) → ι → ℝ)
     (ha : ∀ i j, a i ⬝ᵥ a j = if i = j then 1 else 0) (i : Fin (n + 1))
     (v : Fin (n + 1) → ℝ) :
@@ -139,6 +173,7 @@ theorem dot_orbitLM_left {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) →
         · intro h
           exact absurd (Finset.mem_univ i) h
 
+/-- The dot product of `orbitLM a v` with `w` is the sum of `v j * (a j ⬝ᵥ w)`. -/
 theorem dot_orbitLM_right {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) → ι → ℝ)
     (w : ι → ℝ) (v : Fin (n + 1) → ℝ) :
     orbitLM a v ⬝ᵥ w = ∑ j, v j * (a j ⬝ᵥ w) := by
@@ -148,6 +183,8 @@ theorem dot_orbitLM_right {ι : Type} [Fintype ι] {n : ℕ} (a : Fin (n + 1) �
   rw [smul_dotProduct]
   simp
 
+/-- If `H` is symmetric and preserves the span described by `P`, a vector orthogonal to every `a
+k` has zero overlap with the first orbit vector after any power of `H`. -/
 theorem offOrbit_orthogonal {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (H : Matrix ι ι ℝ) (hH : H.IsSymm) (a : Fin (n + 1) → ι → ℝ)
     (P : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)
@@ -164,6 +201,9 @@ theorem offOrbit_orthogonal {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
   intro j _
   rw [dotProduct_comm, hw j, mul_zero]
 
+/-- For a symmetric `H` acting as `P` on an orthonormal family, the first-vector overlap of `H ^
+m` applied to `c` times the last vector plus an orthogonal remainder is `c` times the
+first-to-last entry of `P ^ m`. See [JanzingWocjan2010]. -/
 theorem hamPowerMatrixEntry {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (H : Matrix ι ι ℝ) (hH : H.IsSymm) (a : Fin (n + 1) → ι → ℝ)
     (P : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)
@@ -187,6 +227,9 @@ theorem hamPowerMatrixEntry {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
   rw [h1, h2]
   simp
 
+/-- When a symmetric Hamiltonian acts as path adjacency on an orthonormal family, its endpoint
+power overlap with the stated orthogonal remainder is `c` times the corresponding entry of
+`lineAdj n ^ m`. See [JanzingWocjan2010]. -/
 theorem hamPower_lineAdj {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (H : Matrix ι ι ℝ) (hH : H.IsSymm) (a : Fin (n + 1) → ι → ℝ)
     (ha : ∀ i j, a i ⬝ᵥ a j = if i = j then 1 else 0)
@@ -196,6 +239,8 @@ theorem hamPower_lineAdj {ι : Type} [Fintype ι] [DecidableEq ι] {n : ℕ}
       = c * ((lineAdj n ^ m) (firstIdx n) (lastIdx n)) :=
   hamPowerMatrixEntry H hH a (lineAdj n) ha haH w hw c m
 
+/-- For an orthonormal family and a remainder orthogonal to every family vector, the overlap of
+the last vector with `c` times itself plus that remainder is `c`. -/
 theorem overlap_eq_coefficient {ι : Type} [Fintype ι] {n : ℕ}
     (a : Fin (n + 1) → ι → ℝ)
     (ha : ∀ i j, a i ⬝ᵥ a j = if i = j then 1 else 0)

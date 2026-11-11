@@ -10,6 +10,20 @@ import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
 import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureNaimark
 import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
 import Qatlib.Concepts.ChannelTheory.TwirlChannel
+
+/-!
+# Finite-dimensional Choi-Kraus characterization
+
+A linear map from `D`-dimensional to `E`-dimensional matrix operators is
+completely positive exactly when its Choi matrix is positive semidefinite.
+Equivalently it has a Kraus representation with at most `D * E` operators;
+trace preservation is the Kraus completeness identity. The assembled statement
+also records zero-dimensional cases and compatibility with upstream channel
+predicates.
+
+The source results are [Choi1975] and [Kraus1971]; a textbook account is
+[Nielsen & Chuang, Chapter 8][NielsenChuang2010].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -22,6 +36,9 @@ namespace Qatlib.Concepts.ChoiKraus.ChoiKrausChar
 open Matrix
 open scoped ComplexOrder
 
+/-- A map is completely positive and trace preserving exactly when it admits a
+complete Kraus family of size at most `D * E`; see
+[Choi, completely positive linear maps][Choi1975] and [Kraus1971]. -/
 theorem cp_tp_iff_complete_kraus {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     (CompletelyPositive T ∧ TracePreserving T) ↔
       ∃ (n : ℕ) (K : Fin n → Matrix (Fin E) (Fin D) ℂ),
@@ -33,6 +50,10 @@ theorem cp_tp_iff_complete_kraus {D E : ℕ} (T : Operator D →ₗ[ℂ] Operato
   · rintro ⟨n, K, hK, hC, _⟩
     exact ⟨completelyPositive_of_krausForm hK, tracePreserving_of_krausComplete hK hC⟩
 
+/-- Complete positivity is equivalent to Choi positivity and to a Kraus representation with at
+most `D * E` terms, while trace preservation is equivalent to completeness of any given
+Kraus representation [Choi1975]. The theorem also collects the combined channel
+characterization, zero-dimensional cases, and compatibility with Physlib. -/
 theorem choiKrausCorrected :
   ∀ (D E : ℕ) (T : Operator D →ₗ[ℂ] Operator E),
     (CompletelyPositive T ↔ (ChoiMatrix T).PosSemidef) ∧

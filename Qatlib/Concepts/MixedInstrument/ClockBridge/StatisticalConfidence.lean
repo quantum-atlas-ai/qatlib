@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.StatisticalConfidenceDefs
+
+/-!
+# Pilot and median-of-means confidence bounds
+
+This module proves unbiasedness of the pilot variance quantity and bounds pilot failure using a
+fourth moment. It combines this with a median-of-means bound for the main phase and a union
+bound to verify `ConfidenceBudget` record and failure accounting. See [Montanaro2015] for the
+quantum Monte Carlo context.
+
+## Main statements
+
+* `pilot_failure_le`: bounds pilot failure by a fourth moment.
+* `main_failure_le`: bounds median-of-means failure.
+* `confidence_budget`: combines phase failure and record budgets.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -21,6 +41,8 @@ open scoped Classical BigOperators ComplexOrder
 
 variable {X : Type} [Fintype X]
 
+/-- A finite sum over a predicate equals the unrestricted sum weighted by its real-valued
+indicator. -/
 private theorem sum_filter_eq_indicator {ι : Type} [Fintype ι] (p : ι → Prop)
     [DecidablePred p] (f : ι → ℝ) :
     (∑ ω ∈ Finset.univ.filter p, f ω)
@@ -35,6 +57,7 @@ private theorem sum_filter_eq_indicator {ι : Type} [Fintype ι] (p : ι → Pro
     rw [if_neg h]
     ring
 
+/-- A weighted finite sum distributes over the sum of two functions. -/
 private theorem sum_split_two {ι : Type} [Fintype ι] (w : ι → ℝ) (g h : ι → ℝ) :
     (∑ x, w x * (g x + h x)) = (∑ x, w x * g x) + (∑ x, w x * h x) := by
   calc (∑ x, w x * (g x + h x))
@@ -43,6 +66,8 @@ private theorem sum_split_two {ι : Type} [Fintype ι] (w : ι → ℝ) (g h : �
         ring
     _ = (∑ x, w x * g x) + (∑ x, w x * h x) := Finset.sum_add_distrib
 
+/-- For a positive pilot sample count, the expectation of `pilotVariance` equals the variance of
+`f` under `q`. -/
 theorem pilotVariance_unbiased (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0 < n) :
     ∑ ω : Fin n → X, q.probOf ω * pilotVariance q f ω = q.variance f := by
   have h := q.expect_avg (centeredSq q f) hn
@@ -51,6 +76,8 @@ theorem pilotVariance_unbiased (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0
   show (∑ x, q.prob x * (f x - q.expect f) ^ 2) = (∑ x, q.prob x * (f x - FinDist.expect q f) ^ 2)
   rfl
 
+/-- The variance of a real-valued function under a finite distribution is at most its second
+moment. -/
 private theorem variance_le_secondMoment (q : FinDist X) (g : X → ℝ) :
     q.variance g ≤ q.expect (fun x => g x ^ 2) := by
   set E : ℝ := q.expect g with hE
@@ -86,9 +113,13 @@ private theorem variance_le_secondMoment (q : FinDist X) (g : X → ℝ) :
   have hsq' : 0 ≤ E ^ 2 := sq_nonneg _
   linarith
 
+/-- The probability of the pilot failure event, expressed as an indicator-weighted sum over
+independent pilot samples. -/
 noncomputable def pilotFailureMass (q : FinDist X) (f : X → ℝ) {n : ℕ} (tol : ℝ) : ℝ :=
   ∑ ω : Fin n → X, q.probOf ω * (if pilotBad q f tol ω then (1 : ℝ) else 0)
 
+/-- For a positive pilot sample count and tolerance, the pilot failure probability is at most
+`pilotFourthMoment q f / (n * tol²)`. -/
 theorem pilot_failure_le (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0 < n)
     (tol : ℝ) (htol : 0 < tol) :
     pilotFailureMass q f (n := n) tol ≤ pilotFourthMoment q f / ((n : ℝ) * tol ^ 2) := by
@@ -113,15 +144,21 @@ theorem pilot_failure_le (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0 < n)
   rw [hprob] at hcheb
   exact hcheb.trans (div_le_div_of_nonneg_right hvar2 (by positivity))
 
+/-- The pilot failure probability is at most `δ` whenever the fourth-moment sample-size bound is
+at most `δ`. -/
 theorem pilot_size_sufficient (q : FinDist X) (f : X → ℝ) {n : ℕ} (hn : 0 < n)
     (tol : ℝ) (htol : 0 < tol) (δ : ℝ) (hδ : 0 < δ)
     (hn_size : pilotFourthMoment q f / ((n : ℝ) * tol ^ 2) ≤ δ) :
     pilotFailureMass q f (n := n) tol ≤ δ :=
   (pilot_failure_le q f hn tol htol).trans hn_size
 
+/-- The probability of the main-phase failure event under the product distribution of its
+independent sample blocks. -/
 noncomputable def mainFailureMass (q : FinDist X) (f : X → ℝ) {M L : ℕ} (ε : ℝ) : ℝ :=
   ∑ ω : MainPhase M L X, (∏ m, q.probOf (ω m)) * (if mainBad q f ε ω then (1 : ℝ) else 0)
 
+/-- For positive block size, block count, and error tolerance, the median-of-means failure
+probability is at most `3 ^ (M / 2) / 2 ^ M` under the stated variance bound. -/
 theorem main_failure_le (q : FinDist X) (f : X → ℝ) {M L : ℕ} (hL : 0 < L)
     (hM : 0 < M) (ε : ℝ) (hε : 0 < ε)
     (hvar : 4 * q.variance f ≤ (L : ℝ) * ε ^ 2) :
@@ -140,6 +177,7 @@ theorem main_failure_le (q : FinDist X) (f : X → ℝ) {M L : ℕ} (hL : 0 < L)
   rw [hprob]
   exact hconc
 
+/-- The real-valued indicator of a disjunction is at most the sum of the two indicators. -/
 private theorem indicator_or_le (p q : Prop) [Decidable p] [Decidable q] :
     ((if p ∨ q then (1 : ℝ) else 0))
       ≤ ((if p then (1 : ℝ) else 0)) + ((if q then (1 : ℝ) else 0)) := by
@@ -156,6 +194,8 @@ private theorem indicator_or_le (p q : Prop) [Decidable p] [Decidable q] :
       rw [if_neg hnq, if_neg hp, if_neg hq]
       norm_num
 
+/-- The probability of a pilot or main-phase failure is at most the sum of their individual
+failure probabilities. -/
 theorem merged_failure_le (q : FinDist X) (f : X → ℝ) {n M L : ℕ} (tol ε : ℝ) :
     mergedFailureMass q f (n := n) (M := M) (L := L) tol ε
       ≤ pilotFailureMass q f (n := n) tol + mainFailureMass q f (M := M) (L := L) ε := by
@@ -255,6 +295,9 @@ theorem merged_failure_le (q : FinDist X) (f : X → ℝ) {n M L : ℕ} (tol ε 
         rw [h1, h2, sum_mainBlockMass q M L, q.sum_probOf n]
         ring
 
+/-- Under the stated phase failure bounds and positive sample counts, the merged failure mass is
+within the total failure budget, the record count is additive, and the total count exceeds
+the pilot count. -/
 theorem confidence_budget (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
     (tol : ℝ) (htol : 0 < tol)
     (hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)
@@ -274,6 +317,8 @@ theorem confidence_budget (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
     Nat.mul_pos hpos.2.1 hpos.2.2
   omega
 
+/-- Collects pilot unbiasedness, the pilot fourth-moment bound, the main median-of-means bound,
+the merged failure budget, and the total record identity under the stated budget hypotheses. -/
 theorem clause33_complete (q : FinDist X) (f : X → ℝ) (b : ConfidenceBudget)
     (tol : ℝ) (htol : 0 < tol)
     (hpos : 0 < b.pilotRecords ∧ 0 < b.blockSize ∧ 0 < b.blockCount)

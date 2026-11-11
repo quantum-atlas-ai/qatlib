@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveMeanDerivativeGridErrorStat
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
 
+/-!
+# Dyson error with an integrable derivative
+
+This module proves the three-term truncated Dyson grid error estimate assuming integrability of
+the derivative norm. It controls sampled evolution through an interval-integrable derivative and
+then combines sampling, Euler, and truncation errors. `effectiveMeanDerivativeGridError`
+establishes the resulting contract in the setting of [LowWiebe2018].
+
+## Main statements
+
+* `effectiveMeanDerivativeGridError`: the joint error bound under an integrable derivative-norm
+  hypothesis.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -24,6 +42,8 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- For a nonnegative step `h` and norm bound `Λ`, the Euler factor differs from constant
+Hamiltonian evolution by at most `exp(Λ h) (Λ h)² / 2`. -/
 private theorem dyson_euler_factor_error {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) (h Λ : ℝ) (hh : 0 ≤ h) (hΛ : 0 ≤ Λ) (hB : ‖B‖ ≤ Λ) :
     ‖(1 - (h : ℂ) • (Complex.I • B)) - HamiltonianEvolution B h‖ ≤
@@ -41,6 +61,7 @@ private theorem dyson_euler_factor_error {I : Type} [Fintype I] [DecidableEq I]
   rw [hp, orderedEvolution_constant_hamiltonian, sub_zero, norm_sub_rev] at ht
   simpa [abs_of_nonneg hh, Nat.factorial] using! ht
 
+/-- The Euler factor at a nonnegative step `h` has norm at most `exp(Λ h)` when `‖B‖ ≤ Λ`. -/
 private theorem dyson_euler_factor_norm {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) (h Λ : ℝ) (hh : 0 ≤ h) (hB : ‖B‖ ≤ Λ) :
     ‖1 - (h : ℂ) • (Complex.I • B)‖ ≤ Real.exp (Λ * h) := by
@@ -53,11 +74,14 @@ private theorem dyson_euler_factor_norm {I : Type} [Fintype I] [DecidableEq I]
       exact add_le_add l2_norm_one_le (mul_le_mul_of_nonneg_left hB hh)
     _ ≤ _ := by simpa [add_comm, mul_comm] using! Real.add_one_le_exp (Λ * h)
 
+/-- The ordered product of the first `n` factors, with each new factor multiplied on the left. -/
 private noncomputable def dysonLeftProduct {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) : ℕ → Matrix I I ℂ
   | 0 => 1
   | n + 1 => f n * dysonLeftProduct f n
 
+/-- The recursively defined left product equals the product of the reversed list of its first
+`n` factors. -/
 private theorem dysonLeftProduct_eq_reverse_prod {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) (n : ℕ) :
     dysonLeftProduct f n = ((List.ofFn (fun j : Fin n => f j.val)).reverse).prod := by
@@ -70,6 +94,8 @@ private theorem dysonLeftProduct_eq_reverse_prod {I : Type} [Fintype I] [Decidab
     simp only [Fin.val_last, Fin.val_castSucc]
     rw [dysonLeftProduct, ih]
 
+/-- The recursively defined left product equals the reverse product of `f` mapped over
+`List.range n`. -/
 private theorem dysonLeftProduct_eq_range_prod {I : Type} [Fintype I] [DecidableEq I]
     (f : ℕ → Matrix I I ℂ) (n : ℕ) :
     dysonLeftProduct f n = (((List.range n).map f).reverse).prod := by
@@ -77,15 +103,20 @@ private theorem dysonLeftProduct_eq_range_prod {I : Type} [Fintype I] [Decidable
   | zero => simp [dysonLeftProduct]
   | succ n ih => simp [List.range_succ, dysonLeftProduct, ih]
 
+/-- Clamp a real number to the interval with endpoints zero and `t` by taking `max 0 (min t u)`. -/
 private def dysonClip (t u : ℝ) : ℝ := max 0 (min t u)
 
+/-- For nonnegative `t`, clamping any real number produces a point of `[0, t]`. -/
 private theorem dysonClip_mem (t : ℝ) (ht : 0 ≤ t) (u : ℝ) :
     dysonClip t u ∈ Set.Icc 0 t :=
   ⟨le_max_left _ _, max_le ht (min_le_left _ _)⟩
 
+/-- Clamping fixes every point already in `[0, t]`. -/
 private theorem dysonClip_eq {t u : ℝ} (hu : u ∈ Set.Icc 0 t) : dysonClip t u = u := by
   simp [dysonClip, min_eq_right hu.2, max_eq_right hu.1]
 
+/-- Matrix fields agreeing on `[0, t]` have equal ordered evolutions from zero to nonnegative
+time `t`. -/
 private theorem dyson_interval_evolution_congr {I : Type} [Fintype I] [DecidableEq I]
     (A B : ℝ → Matrix I I ℂ) (t : ℝ) (ht : 0 ≤ t)
     (hAB : ∀ u ∈ Set.Icc 0 t, A u = B u) :
@@ -106,6 +137,8 @@ private theorem dyson_interval_evolution_congr {I : Type} [Fintype I] [Decidable
   unfold orderedEvolution
   exact tsum_congr (fun n => hterm n t ⟨ht, le_rfl⟩)
 
+/-- If one factor family is bounded by `B ≥ 1`, the other by one, and their differences by `B
+d`, their length-`M` left products differ by at most `M B^M d`. -/
 private theorem dysonLeftProduct_perturbation {I : Type} [Fintype I] [DecidableEq I]
     (f g : ℕ → Matrix I I ℂ) (B d : ℝ) (M : ℕ) (hB : 1 ≤ B) (hd : 0 ≤ d)
     (hf : ∀ j < M, ‖f j‖ ≤ B) (hg : ∀ j < M, ‖g j‖ ≤ 1)
@@ -154,6 +187,7 @@ private theorem dysonLeftProduct_perturbation {I : Type} [Fintype I] [DecidableE
         _ = ((n + 1 : ℕ) : ℝ) * B ^ (n + 1) * d := by push_cast; ring
   exact herr M le_rfl
 
+/-- The time derivative of constant Hamiltonian evolution is left multiplication by `-i H`. -/
 private theorem ordered_hamiltonian_deriv {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (t : ℝ) :
     HasDerivAt (HamiltonianEvolution H) (-(Complex.I • H * HamiltonianEvolution H t)) t := by
@@ -169,6 +203,8 @@ private theorem ordered_hamiltonian_deriv {I : Type} [Fintype I] [DecidableEq I]
   rw [he] at hd
   simpa [neg_smul, neg_mul] using! hd
 
+/-- A continuous Hermitian field varying by at most `D` from its left-endpoint value on `[a, b]`
+has frozen-evolution error at most `(b - a) D`. -/
 private theorem dyson_mean_local_error {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (hH : Continuous H) (hHerm : ∀ u, (H u).IsHermitian)
     (a b D : ℝ) (hab : a ≤ b)
@@ -204,6 +240,8 @@ private theorem dyson_mean_local_error {I : Type} [Fintype I] [DecidableEq I]
     (fun u => (by simpa using! ((hasDerivAt_id u).sub_const a).const_mul D)) hn
   simpa [F, U, mul_comm] using! hbnd (Set.right_mem_Icc.mpr hab)
 
+/-- With an interval-integrable derivative and the stated Hermitian and continuity hypotheses,
+the sampled evolution product has error at most `(T / M) ∫₀ᵀ ‖Hd u‖`. -/
 private theorem sampled_grid_integrable_derivative_error :
 ∀ (I : Type) [Fintype I] [DecidableEq I] (H Hd : ℝ → Matrix I I ℂ) (T : ℝ) (M : ℕ),
     Continuous H → 0 ≤ T → 0 < M →
@@ -305,6 +343,9 @@ private theorem sampled_grid_integrable_derivative_error :
     rw [hGe u hu]
   rwa [hprod, hsame] at hn
 
+/-- A bounded continuous Hermitian field with an interval-integrable derivative has Euler grid
+error at most `exp(Λ t) Λ² t² / (2 M) + (t / M) ∫₀ᵗ ‖Hd u‖` under the stated time and grid
+hypotheses. -/
 private theorem dyson_grid_integrable_derivative_error :
 ∀ (I : Type) [Fintype I] [DecidableEq I] (H Hd : ℝ → Matrix I I ℂ) (t Λ : ℝ) (M : ℕ),
     Continuous H → 0 ≤ t → 0 ≤ Λ → 0 < M →
@@ -366,6 +407,9 @@ private theorem dyson_grid_integrable_derivative_error :
   exact (norm_sub_le_norm_sub_add_norm_sub _ _ _).trans
     (by simpa only [hpoly] using! add_le_add hp hs)
 
+/-- The truncated strict Dyson grid satisfies the three-term operator error contract when the
+derivative norm is interval integrable. This gives an integrable-derivative version of the
+estimate in [Low and Wiebe, Lemma 5][LowWiebe2018]. -/
 theorem effectiveMeanDerivativeGridError : EffectiveMeanDerivativeGridError := by
   intro I _ _ H Hd t alpha M K hH hint hderiv ht ha hM hbound hlog
   have hm : MeasureTheory.AEStronglyMeasurable Hd

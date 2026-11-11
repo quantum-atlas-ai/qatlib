@@ -6,6 +6,37 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
 import Qatlib.Papers.ZetaCurves04.MainResults.Model.CoinDefs
+
+/-!
+# Zeta numerator reconstruction lemmas
+
+This module develops algebraic and algorithmic ingredients associated with Theorem 1 of
+[Kedlaya2006]. `theorem1_reciprocity_determines` extends equality of coefficient sequences from
+indices through the genus to indices through twice the genus using reciprocity.
+`theorem1_newton_girard_unique` proves uniqueness at positive indices for sequences satisfying
+the recurrence expressed by `newtonGirardLHS`.
+
+`theorem1_compose` transfers a Monte Carlo class-number output through a reconstruction map
+while preserving the stored cost. `theorem1_zeta_numerator` supplies a `ZetaNumeratorAlgorithm`
+record with success and cost bounds at a descriptor whose `logq` field is zero; its conclusion
+concerns these two fields.
+
+## Main statements
+
+* `theorem1_num_class_numbers`, `theorem1_eighteen_le`: the bound `max 18 (2 * g)` dominates
+  both terms.
+* `theorem1_reciprocity_determines`: reciprocity extends equality of the lower coefficients.
+* `theorem1_newton_girard_unique`: the recurrence determines all positive-index coefficients
+  uniquely.
+* `theorem1_compose`: reconstruction preserves the Monte Carlo property and stored cost.
+* `theorem1_zeta_numerator`: existence of an algorithm record satisfying the stated success and
+  cost bounds.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,12 +49,18 @@ namespace Qatlib.Papers.ZetaCurves04.MainResults.Theorem1
 
 open Qatlib.Papers.ZetaCurves04.MainResults.Model
 
+/-- The bound `max 18 (2 * g)` is at least `2 * g`, providing an arithmetic bound used in the
+setup for [Kedlaya, Theorem 1][Kedlaya2006]. -/
 theorem theorem1_num_class_numbers (g : ℕ) : 2 * g ≤ max 18 (2 * g) :=
   le_max_right 18 (2 * g)
 
+/-- The bound `max 18 (2 * g)` is at least eighteen for every natural genus parameter. -/
 theorem theorem1_eighteen_le (g : ℕ) : 18 ≤ max 18 (2 * g) :=
   le_max_left 18 (2 * g)
 
+/-- Two integer sequences satisfying the same q-reciprocity relation and agreeing at all indices
+through `g` agree at all indices through `2 * g`. This is the coefficient reciprocity step
+associated with [Kedlaya, Theorem 1][Kedlaya2006]. -/
 theorem theorem1_reciprocity_determines (g q : ℕ) (a b : ℕ → ℤ)
     (ha : ∀ i, i ≤ g → a (g + i) = (q : ℤ) ^ i * a (g - i))
     (hb : ∀ i, i ≤ g → b (g + i) = (q : ℤ) ^ i * b (g - i))
@@ -42,12 +79,17 @@ theorem theorem1_reciprocity_determines (g q : ℕ) (a b : ℕ → ℤ)
         _ = (q : ℤ) ^ (k - g) * b (g - (k - g)) := hb (k - g) hi
     rw [h1, h2, hlo (g - (k - g)) (by omega)]
 
+/-- The integer expression n q^n s(n) + ∑_{1 ≤ i < n} a(i)(n - i)q^(n - i)s(n - i) + n a(n) used
+as the left-hand side of the Newton-Girard recurrence. -/
 noncomputable def newtonGirardLHS (q : ℕ) (s a : ℕ → ℤ) (n : ℕ) : ℤ :=
   (n : ℤ) * (q : ℤ) ^ n * s n +
     (∑ i ∈ Finset.Ico 1 n,
       a i * ((n : ℤ) - (i : ℤ)) * (q : ℤ) ^ (n - i) * s (n - i)) +
     (n : ℤ) * a n
 
+/-- Two integer sequences whose `newtonGirardLHS` vanishes at every positive index, for the same
+`q` and `s`, agree at every positive index. This uniqueness statement supports the
+reconstruction step for [Kedlaya, Theorem 1][Kedlaya2006]. -/
 theorem theorem1_newton_girard_unique (q : ℕ) (s a b : ℕ → ℤ)
     (ha : ∀ n, 1 ≤ n → newtonGirardLHS q s a n = 0)
     (hb : ∀ n, 1 ≤ n → newtonGirardLHS q s b n = 0) :
@@ -82,6 +124,9 @@ theorem theorem1_newton_girard_unique (q : ℕ) (s a b : ℕ → ℤ)
     have hEq : (n : ℤ) * a n = (n : ℤ) * b n := by linarith
     exact mul_left_cancel₀ hn0 hEq
 
+/-- Mapping a Monte Carlo algorithm for `classNumbers` through a reconstruction map sending
+`classNumbers` to `P` yields a Monte Carlo algorithm for `P` with the same stored cost. This
+composition supports [Kedlaya, Theorem 1][Kedlaya2006]. -/
 theorem theorem1_compose
     (A : CoinAlgo (ℕ → ℕ)) (Rec : (ℕ → ℕ) → Polynomial ℤ)
     (classNumbers : ℕ → ℕ) (P : Polynomial ℤ)
@@ -94,6 +139,10 @@ theorem theorem1_compose
   rw [hf]
   exact hRec
 
+/-- Under the stated half-power bound, there exists a `ZetaNumeratorAlgorithm` whose success
+field at `⟨C.q, C.g, C.d, 0⟩` is at least 3/4 and whose cost there satisfies the displayed
+polynomial bound. This record-existence statement is associated with [Kedlaya, Theorem
+1][Kedlaya2006]. -/
 theorem theorem1_zeta_numerator (C : CurveData)
     (_hsmall : 16 * (C.g : ℝ) < halfPower C.q 1) :
     ∃ A : ZetaNumeratorAlgorithm,

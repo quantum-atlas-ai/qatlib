@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleMajorityAmpStat
 import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStre
+
+/-!
+# Majority amplification for a standard bit oracle
+
+`standardOracleMajorityAmplification` proves the standard-oracle majority amplification
+specification using sequential routed copies. The proof combines a binomial majority bound with
+an explicit logarithmic choice of repetition count. The background is described in
+[BennettEtAl1997].
+
+## Main statements
+
+* `majority_success`: success bound for an odd tensor power.
+* `standardOracleMajorityAmplification`: the complete majority amplification guarantee.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,8 @@ namespace Qatlib.Concepts.UniformBqp.OracleAmplify
 open Matrix
 open scoped Classical
 
+/-- For a normalized finite state, the measurement probability of the complement of an event is
+one minus the probability of that event. -/
 private theorem measureProb_compl {I : Type} [Fintype I] [DecidableEq I] {ψ : QState I}
     (hψ : Normalized ψ) (S : Finset I) :
     MeasureProb ψ Sᶜ = 1 - MeasureProb ψ S := by
@@ -26,6 +47,8 @@ private theorem measureProb_compl {I : Type} [Fintype I] [DecidableEq I] {ψ : Q
   rw [measureProb_univ hψ] at hsum
   linarith
 
+/-- For `2*r + 1` tensor copies of a normalized state with single-copy success at least `2/3`,
+majority vote succeeds with probability at least `1 - (8/9)^r`. -/
 private theorem majority_success {I : Type} [Fintype I] [DecidableEq I]
     (r : ℕ) (φ : QState I) (hφnorm : Normalized φ) (v : I → Bool) (b : Bool)
     (hb : (2 / 3 : ℝ) ≤ MeasureProb φ (Finset.univ.filter fun y => v y = b)) :
@@ -103,6 +126,8 @@ private theorem majority_success {I : Type} [Fintype I] [DecidableEq I]
   rw [hEq]
   linarith [hbound]
 
+/-- For positive `ε`, choosing the ceiling of `log (1/ε) / log (9/8)` makes the geometric error
+term at most `ε`. -/
 private theorem precision_tail (ε : ℝ) (hε : 0 < ε) :
     (8 / 9 : ℝ) ^ Nat.ceil (Real.log (1 / ε) / Real.log (9 / 8)) ≤ ε := by
   have hd : 0 < Real.log (9 / 8 : ℝ) := Real.log_pos (by norm_num)
@@ -117,6 +142,9 @@ private theorem precision_tail (ε : ℝ) (hε : 0 < ε) :
   rw [hεlog] at hmul ⊢
   nlinarith
 
+/-- Every unitary standard bit-oracle circuit with success at least `2/3` satisfies the majority
+amplification specification, including its repetition and exact cost bounds
+[BennettEtAl1997]. -/
 theorem standardOracleMajorityAmplification : StandardOracleMajorityAmplification := by
   intro n hn W X _ _ _ _ _ C seed v input b ε hC hb hε
   let r := Nat.ceil (Real.log (1 / ε) / Real.log (9 / 8))

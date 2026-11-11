@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCoinReceiptProgram
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.StoppingReference
+
+/-!
+# Finite coin-tape laws for an absorbing walk
+
+This module counts finite fair coin tapes for a walk on the interval from zero to `N`,
+distinguishing left absorption, right absorption, and timeout. It identifies the counts of the
+coin-tape machine with the corresponding walk fibers and normalizes them into rational masses.
+Random walks as computational processes are discussed in [Watrous1998].
+
+The mass at either boundary is bounded by its target absorption probability. The total variation
+expression `raceTV` equals the timeout mass, which satisfies an explicit geometric decay
+estimate in blocks of `N` coin tosses.
+
+## Main statements
+
+* `machineCountOf_eq`: machine outcome counts agree with walk outcome counts.
+* `walkSumOf_eq`: the sum of final walk positions over all length-`t` tapes is `a * 2 ^ t`.
+* `raceTV_eq_timeout`: total variation equals the timeout mass.
+* `raceMass_timeout_decay`: timeout mass has a geometric upper bound.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,24 +45,31 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.CoinTmLaw
 
 open Qatlib
 
+/-- The three possible finite walk outcomes: left absorption, right absorption, and timeout. -/
 inductive RaceOut
   | left | right | timeout
   deriving DecidableEq, Fintype, Inhabited
 
+/-- The optional Boolean encoding of a walk outcome, using false for left, true for right, and
+`none` for timeout. -/
 def outBit : RaceOut → Option Bool
   | .left => some false
   | .right => some true
   | .timeout => none
 
+/-- The outcome determined by whether the final walk position is zero, `N`, or an interior
+point, with the zero test taking priority. -/
 def raceOut (N a : ℕ) (w : List Bool) : RaceOut :=
   if raceWalk N a w = 0 then .left
   else if raceWalk N a w = N then .right
   else .timeout
 
+/-- The recursively enumerated list of all Boolean words of a specified length. -/
 def wordsOf : ℕ → List (List Bool)
   | 0 => [[]]
   | t + 1 => (wordsOf t).flatMap fun w => [false :: w, true :: w]
 
+/-- The list of Boolean words of length `t` has length `2 ^ t`. -/
 theorem wordsOf_length (t : ℕ) : (wordsOf t).length = 2 ^ t := by
   induction t with
   | zero => simp [wordsOf]
@@ -49,6 +81,7 @@ theorem wordsOf_length (t : ℕ) : (wordsOf t).length = 2 ^ t := by
       rw [h, ih, Nat.pow_succ]
       ring
 
+/-- A Boolean word belongs to `wordsOf t` exactly when its length is `t`. -/
 theorem wordsOf_mem : ∀ (t : ℕ) (w : List Bool), w ∈ wordsOf t ↔ w.length = t := by
   intro t
   induction t with
@@ -88,6 +121,8 @@ theorem wordsOf_mem : ∀ (t : ℕ) (w : List Bool), w ∈ wordsOf t ↔ w.lengt
             | false => exact List.Mem.head _
             | true => exact List.Mem.tail _ (List.Mem.head _)
 
+/-- A list contains at least one element satisfying a Boolean predicate if a specified member
+satisfies it. -/
 theorem countP_ge_one_mem {α : Type*} (l : List α) (Q : α → Bool) {x : α}
     (hx : x ∈ l) (hQx : Q x = true) : 1 ≤ l.countP Q := by
   induction l with
@@ -102,6 +137,8 @@ theorem countP_ge_one_mem {α : Type*} (l : List α) (Q : α → Bool) {x : α}
         have h := ih hx'
         omega
 
+/-- Two distinct list members satisfying a Boolean predicate give a predicate count of at least
+two. -/
 theorem countP_ge_two_mem {α : Type*} (l : List α) (P : α → Bool) {x y : α}
     (hx : x ∈ l) (hy : y ∈ l) (hne : x ≠ y) (hPx : P x = true) (hPy : P y = true) :
     2 ≤ l.countP P := by
@@ -138,6 +175,8 @@ theorem countP_ge_two_mem {α : Type*} (l : List α) (P : α → Bool) {x y : α
         have h := ih hxz hyz
         omega
 
+/-- If two distinct list members fail a Boolean predicate, its count plus two is at most the
+list length. -/
 theorem countP_le_length_sub_two {α : Type*} (l : List α) (Q : α → Bool) (x y : α)
     (hx : x ∈ l) (hy : y ∈ l) (hne : x ≠ y) (hQx : Q x = false) (hQy : Q y = false) :
     l.countP Q + 2 ≤ l.length := by
@@ -153,6 +192,7 @@ theorem countP_le_length_sub_two {α : Type*} (l : List α) (Q : α → Bool) (x
   have h := hsplit l
   omega
 
+/-- Counts of the three `RaceOut` values partition the length of any list. -/
 theorem countP_partition_three {α : Type*} (l : List α) (f : α → RaceOut) :
     l.countP (fun x => f x = .left) + l.countP (fun x => f x = .right)
       + l.countP (fun x => f x = .timeout) = l.length := by
@@ -162,6 +202,8 @@ theorem countP_partition_three {α : Type*} (l : List α) (f : α → RaceOut) :
       rw [List.countP_cons, List.countP_cons, List.countP_cons]
       cases hfx : f x <;> simp_all <;> omega
 
+/-- For a natural-valued function on a list, `k` times the count of values equal to `k` is
+bounded by the sum of all values. -/
 theorem countP_mul_le_sum {α : Type*} (l : List α) (f : α → ℕ) (k : ℕ) :
     k * l.countP (fun x => f x = k) ≤ (l.map f).sum := by
   induction l with
@@ -175,6 +217,8 @@ theorem countP_mul_le_sum {α : Type*} (l : List α) (f : α → ℕ) (k : ℕ) 
         have hsum := ih
         omega
 
+/-- If a natural-valued function vanishes outside a predicate and is at most `k` inside it, its
+list sum is at most `k` times the predicate count. -/
 theorem sum_le_mul_countP {α : Type*} (l : List α) (g : α → ℕ) (k : ℕ) (P : α → Bool)
     (h0 : ∀ x ∈ l, P x = false → g x = 0)
     (hk : ∀ x ∈ l, P x = true → g x ≤ k) :
@@ -195,6 +239,8 @@ theorem sum_le_mul_countP {α : Type*} (l : List α) (g : α → ℕ) (k : ℕ) 
           (fun y hy => hk y (by simp [hy]))
         omega
 
+/-- Counting a predicate over a flattened mapped list equals the sum of the counts over the
+individual lists. -/
 theorem countP_flatMap {α β : Type*} (P : β → Bool) (l : List α) (f : α → List β) :
     (l.flatMap f).countP P = (l.map fun x => (f x).countP P).sum := by
   induction l with
@@ -202,6 +248,8 @@ theorem countP_flatMap {α β : Type*} (P : β → Bool) (l : List α) (f : α �
   | cons x ls ih => rw [List.flatMap_cons, List.countP_append, List.map_cons,
       List.sum_cons, ih]
 
+/-- Summing a natural-valued function over a flattened mapped list equals the sum of the
+individual list sums. -/
 theorem sum_flatMap {α β : Type*} (g : β → ℕ) (l : List α) (f : α → List β) :
     ((l.flatMap f).map g).sum = ((l.map fun x => ((f x).map g).sum)).sum := by
   induction l with
@@ -209,6 +257,7 @@ theorem sum_flatMap {α β : Type*} (g : β → ℕ) (l : List α) (f : α → L
   | cons x ls ih => rw [List.flatMap_cons, List.map_append, List.sum_append,
       List.map_cons, List.sum_cons, ih]
 
+/-- If `f w ≤ N` on a list, the sums of `N - f w` and `f w` add to `N` times the list length. -/
 theorem sum_map_sub (N : ℕ) (f : List Bool → ℕ) (l : List (List Bool))
     (hle : ∀ w ∈ l, f w ≤ N) :
     (l.map fun w => N - f w).sum + (l.map f).sum = N * l.length := by
@@ -223,14 +272,19 @@ theorem sum_map_sub (N : ℕ) (f : List Bool → ℕ) (l : List (List Bool))
       simp only [List.map_cons, List.sum_cons, List.length_cons]
       omega
 
+/-- The number of length-`t` coin tapes on which the race machine returns the optional bit
+encoding of outcome `o`. -/
 def machineCountOf (N a t : ℕ) (o : RaceOut) : ℕ :=
   (wordsOf t).countP fun w =>
     (coinTapeRunAux (raceMachine N a) (raceAccept N a) w
       (Turing.TM0.init ([] : List (Option Bool)))).1 = outBit o
 
+/-- The number of length-`t` Boolean words whose absorbing walk outcome is `o`. -/
 def fiberCountOf (N a t : ℕ) (o : RaceOut) : ℕ :=
   (wordsOf t).countP fun w => raceOut N a w = o
 
+/-- For `a ≤ N` and positive `N`, the race machine output on a coin tape is the optional bit
+encoding of the corresponding walk outcome. -/
 theorem race_outBit (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (w : List Bool) :
     (coinTapeRunAux (raceMachine N a) (raceAccept N a) w
         (Turing.TM0.init ([] : List (Option Bool)))).1
@@ -254,6 +308,7 @@ theorem race_outBit (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (w : List Bool) :
         rw [hout, if_neg (fun h => by rcases h with h | h <;> omega)]
         rfl
 
+/-- For `a ≤ N` and positive `N`, the machine count of each outcome equals its walk fiber count. -/
 theorem machineCountOf_eq (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (o : RaceOut) :
     machineCountOf N a t o = fiberCountOf N a t o := by
   simp only [machineCountOf, fiberCountOf]
@@ -261,8 +316,11 @@ theorem machineCountOf_eq (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (o : Race
   rw [race_outBit N a ha hne w]
   cases raceOut N a w <;> cases o <;> simp [outBit]
 
+/-- The sum of final walk positions over all length-`t` Boolean tapes. -/
 def walkSumOf (N a t : ℕ) : ℕ := ((wordsOf t).map (fun w => raceWalk N a w)).sum
 
+/-- The sum over words of length `t + 1` splits into the sums obtained by prepending false and
+true to every word of length `t`. -/
 theorem sum_flatMap_words (g : List Bool → ℕ) (t : ℕ) :
     ((wordsOf (t + 1)).map g).sum
       = ((wordsOf t).map (fun w => g (false :: w))).sum
@@ -276,6 +334,7 @@ theorem sum_flatMap_words (g : List Bool → ℕ) (t : ℕ) :
       rw [ih]
       omega
 
+/-- For `a ≤ N`, the sum of final walk positions over all length-`t` tapes equals `a * 2 ^ t`. -/
 theorem walkSumOf_eq (N a : ℕ) (ha : a ≤ N) : ∀ t, walkSumOf N a t = a * 2 ^ t := by
   intro t
   induction t generalizing a with
@@ -308,6 +367,8 @@ theorem walkSumOf_eq (N a : ℕ) (ha : a ≤ N) : ∀ t, walkSumOf N a t = a * 2
         rw [hfin]
         omega
 
+/-- For `a ≤ N`, the sum of distances from the right boundary over length-`t` tapes equals `(N -
+a) * 2 ^ t`. -/
 theorem walkCompSumOf_eq (N a : ℕ) (ha : a ≤ N) (t : ℕ) :
     ((wordsOf t).map (fun w => N - raceWalk N a w)).sum = (N - a) * 2 ^ t := by
   have hle : ∀ w ∈ wordsOf t, raceWalk N a w ≤ N := fun w hw => raceWalk_le N w ha
@@ -324,6 +385,8 @@ theorem walkCompSumOf_eq (N a : ℕ) (ha : a ≤ N) (t : ℕ) :
       _ = N * 2 ^ t := by rw [hsumna]
   omega
 
+/-- For a valid starting position and positive `N`, `N` times the right absorption count is at
+most `a * 2 ^ t`. -/
 theorem fiberRight_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
     N * fiberCountOf N a t .right ≤ a * 2 ^ t := by
   have hN0 : N ≠ 0 := by omega
@@ -344,6 +407,8 @@ theorem fiberRight_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
   rw [hcongr] at h
   exact h
 
+/-- For a valid starting position and positive `N`, `N` times the left absorption count is at
+most `(N - a) * 2 ^ t`. -/
 theorem fiberLeft_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
     N * fiberCountOf N a t .left ≤ (N - a) * 2 ^ t := by
   have hN0 : N ≠ 0 := by omega
@@ -365,19 +430,25 @@ theorem fiberLeft_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
   rw [hcongr] at h
   exact h
 
+/-- The left, right, and timeout fiber counts sum to `2 ^ t`. -/
 theorem fiber_partition (N a t : ℕ) : fiberCountOf N a t .left + fiberCountOf N a t .right
     + fiberCountOf N a t .timeout = 2 ^ t := by
   have h := countP_partition_three (wordsOf t) (raceOut N a)
   simpa only [fiberCountOf, wordsOf_length] using! h
 
+/-- The rational probability mass of outcome `o`, obtained by dividing its length-`t` fiber
+count by `2 ^ t`. -/
 def raceMass (N a t : ℕ) (o : RaceOut) : ℚ :=
   (fiberCountOf N a t o : ℚ) / (2 : ℚ) ^ t
 
+/-- The rational target masses `a / N` for right absorption, `(N - a) / N` for left absorption,
+and zero for timeout. -/
 def raceTarget (N a : ℕ) : RaceOut → ℚ
   | .right => (a : ℚ) / (N : ℚ)
   | .left => ((N - a : ℕ) : ℚ) / (N : ℚ)
   | .timeout => 0
 
+/-- The rational masses of the three finite walk outcomes sum to one. -/
 theorem raceMass_partition (N a t : ℕ) :
     raceMass N a t .left + raceMass N a t .right + raceMass N a t .timeout = 1 := by
   have hp := fiber_partition N a t
@@ -388,6 +459,7 @@ theorem raceMass_partition (N a t : ℕ) :
   field_simp
   linarith
 
+/-- For `a ≤ N` and positive `N`, the finite right absorption mass is at most its target mass. -/
 theorem raceMass_right_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
     raceMass N a t .right ≤ raceTarget N a .right := by
   have hint := fiberRight_le N a t ha hne
@@ -401,6 +473,7 @@ theorem raceMass_right_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
   field_simp
   linarith
 
+/-- For `a ≤ N` and positive `N`, the finite left absorption mass is at most its target mass. -/
 theorem raceMass_left_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
     raceMass N a t .left ≤ raceTarget N a .left := by
   have hint := fiberLeft_le N a t ha hne
@@ -419,11 +492,13 @@ theorem raceMass_left_le (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
   rw [div_mul_eq_mul_div, div_le_iff₀ (show (0 : ℚ) < (2 : ℚ) ^ t by positivity)]
   exact key
 
+/-- Half the sum of the absolute left and right mass deviations and the timeout mass. -/
 def raceTV (N a t : ℕ) : ℚ :=
   (|raceMass N a t .left - raceTarget N a .left|
     + |raceMass N a t .right - raceTarget N a .right|
     + raceMass N a t .timeout) / 2
 
+/-- For `a ≤ N` and positive `N`, the total variation expression equals the timeout mass. -/
 theorem raceTV_eq_timeout (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
     raceTV N a t = raceMass N a t .timeout := by
   have hleft : raceMass N a t .left ≤ raceTarget N a .left :=
@@ -454,6 +529,7 @@ theorem raceTV_eq_timeout (N a t : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) :
     neg_sub]
   linarith
 
+/-- From a positive position at most `N`, a tape of `k` true bits ends at `min (p + k) N`. -/
 theorem raceWalk_replicate_true (N : ℕ) : ∀ (k p : ℕ), 1 ≤ p → p ≤ N →
     raceWalk N p (List.replicate k true) = min (p + k) N := by
   intro k
@@ -476,6 +552,8 @@ theorem raceWalk_replicate_true (N : ℕ) : ∀ (k p : ℕ), 1 ≤ p → p ≤ N
         congr 1
         omega
 
+/-- From a position at most `N - 1`, a tape of `k` false bits ends at the truncated difference
+`p - k`. -/
 theorem raceWalk_replicate_false (N : ℕ) : ∀ (k p : ℕ), p ≤ N - 1 →
     raceWalk N p (List.replicate k false) = p - k := by
   intro k
@@ -494,6 +572,8 @@ theorem raceWalk_replicate_false (N : ℕ) : ∀ (k p : ℕ), p ≤ N - 1 →
         rw [hstep, ih (p - 1) (by omega)]
         omega
 
+/-- Counting a predicate after mapping a list equals counting its composition with the mapping
+function on the original list. -/
 theorem countP_map' {α β : Type*} (P : β → Bool) (f : α → β) (l : List α) :
     (l.map f).countP P = l.countP (fun x => P (f x)) := by
   induction l with
@@ -501,9 +581,11 @@ theorem countP_map' {α β : Type*} (P : β → Bool) (f : α → β) (l : List 
   | cons a as ih =>
       rw [List.map_cons, List.countP_cons, List.countP_cons, ih]
 
+/-- The natural-valued indicator that a Boolean tape has timeout walk outcome. -/
 def timeoutW (N a : ℕ) (w : List Bool) : ℕ :=
   if raceOut N a w = RaceOut.timeout then 1 else 0
 
+/-- The timeout count of a list of tapes equals the sum of its timeout indicators. -/
 theorem countP_timeoutW_sum (N a : ℕ) (l : List (List Bool)) :
     l.countP (fun w => raceOut N a w = RaceOut.timeout)
       = (l.map (timeoutW N a)).sum := by
@@ -514,6 +596,8 @@ theorem countP_timeoutW_sum (N a : ℕ) (l : List (List Bool)) :
       cases h : raceOut N a w <;> simp [timeoutW, h]
       omega
 
+/-- For a fixed prefix, the timeout count after concatenation equals the sum of the
+corresponding timeout indicators. -/
 theorem countP_compose_timeoutW (N a : ℕ) (u : List Bool) (l : List (List Bool)) :
     l.countP (fun s => raceOut N a (u ++ s) = RaceOut.timeout)
       = (l.map (fun x => timeoutW N a (u ++ x))).sum := by
@@ -521,6 +605,8 @@ theorem countP_compose_timeoutW (N a : ℕ) (u : List Bool) (l : List (List Bool
   rw [countP_map', List.map_map] at e
   exact e
 
+/-- A sum over words of length `t + r` equals the iterated sum over prefixes of length `t` and
+suffixes of length `r`. -/
 theorem sum_wordsOf_add (G : List Bool → ℕ) (r : ℕ) : ∀ t : ℕ,
     ((wordsOf (t + r)).map G).sum
       = ((wordsOf t).map fun u => ((wordsOf r).map fun x => G (u ++ x)).sum).sum := by
@@ -563,6 +649,8 @@ theorem sum_wordsOf_add (G : List Bool → ℕ) (r : ℕ) : ∀ t : ℕ,
         List.map_congr_left hff, List.sum_map_add,
         List.map_congr_left hconF, List.map_congr_left hconT]
 
+/-- For a valid starting position and positive `N`, extending tape length by `N` multiplies the
+timeout count by at most `2 ^ N - 2`. -/
 theorem fiber_timeout_stride (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ) :
     fiberCountOf N a (t + N) .timeout ≤ (2 ^ N - 2) * fiberCountOf N a t .timeout := by
   have hN0 : N ≠ 0 := by omega
@@ -645,6 +733,8 @@ theorem fiber_timeout_stride (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ
     rw [ht] at hP'
     simp at hP'
 
+/-- After `k` blocks of `N` additional bits, the timeout count is at most `(2 ^ N - 2) ^ k`
+times the count at the remaining length `r`. -/
 theorem fiber_timeout_iter (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) : ∀ (k r : ℕ),
     fiberCountOf N a (k * N + r) .timeout
       ≤ (2 ^ N - 2) ^ k * fiberCountOf N a r .timeout := by
@@ -663,6 +753,8 @@ theorem fiber_timeout_iter (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) : ∀ (k r
             Nat.mul_le_mul_left _ hih
         _ = (2 ^ N - 2) ^ (k + 1) * fiberCountOf N a r .timeout := by ring
 
+/-- At tape length `k * N + r`, timeout mass is at most `((2 ^ N - 2) / 2 ^ N) ^ k` for a valid
+starting position and positive `N`. -/
 theorem raceMass_timeout_decay_aux (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (k r : ℕ) :
     raceMass N a (k * N + r) .timeout ≤ ((2 ^ N - 2 : ℚ) / (2 : ℚ) ^ N) ^ k := by
   have h2N : 2 ≤ 2 ^ N := by
@@ -697,6 +789,8 @@ theorem raceMass_timeout_decay_aux (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (k
   rw [hcomb]
   exact hcast
 
+/-- At length `t`, timeout mass is at most `((2 ^ N - 2) / 2 ^ N) ^ (t / N)` for a valid
+starting position and positive `N`. -/
 theorem raceMass_timeout_decay (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ) :
     raceMass N a t .timeout ≤ ((2 ^ N - 2 : ℚ) / (2 : ℚ) ^ N) ^ (t / N) := by
   obtain ⟨k, r, hkr, hrlt⟩ : ∃ k r, t = k * N + r ∧ r < N :=
@@ -711,6 +805,9 @@ theorem raceMass_timeout_decay (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : �
   rw [hk, hkr]
   exact raceMass_timeout_decay_aux N a ha hne k r
 
+/-- For a valid starting position and positive `N`, machine counts equal walk counts, outcome
+masses sum to one, boundary masses are bounded by their targets, and total variation equals
+the geometrically bounded timeout mass. -/
 theorem output2.frontier1 (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ) :
     (∀ o, machineCountOf N a t o = fiberCountOf N a t o)
     ∧ raceMass N a t .left + raceMass N a t .right + raceMass N a t .timeout = 1

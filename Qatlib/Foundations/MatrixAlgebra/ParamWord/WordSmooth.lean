@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordBounds
+
+/-!
+# Lipschitz derivatives of parameterized products
+
+For differentiable factors of norm at most one whose derivatives also have norm at most one,
+`paramWordD_lipschitz_bound` propagates unit Lipschitz bounds on the factors and derivatives to
+a squared-word-length bound on the word derivative.
+
+`paramWord_native_fderiv_lipschitz` states this estimate using the Fréchet derivative `fderiv`.
+This is the abstract product estimate used for the circuit-loss smoothness setting of
+[TranEtAl2026].
+
+## Main statements
+
+* `paramWordD_lipschitz_bound`: Lipschitz constant bounded by the squared word length.
+* `paramWord_native_fderiv_lipschitz`: The same estimate for `fderiv`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
@@ -13,6 +35,9 @@ namespace Qatlib.Foundations.MatrixAlgebra.ParamWord
 variable {E A J : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
   [NormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
 
+/-- If differentiable factors and their derivatives have norm at most one and are each
+1-Lipschitz, the word derivative expression is globally Lipschitz with constant equal to the
+squared word length. -/
 theorem paramWordD_lipschitz_bound (F : J→E→A) (DF : J→E→E→L[ℝ]A)
     (hF : ∀j x,‖F j x‖≤1) (hD : ∀j x,‖DF j x‖≤1)
     (hd : ∀j x,HasFDerivAt (F j) (DF j x) x)
@@ -71,6 +96,9 @@ theorem paramWordD_lipschitz_bound (F : J→E→A) (DF : J→E→E→L[ℝ]A)
               (mul_le_mul hsy ht (norm_nonneg _) hnv)
       _ = _ := by simp only [List.length_cons,Nat.cast_add,Nat.cast_one];ring
 
+/-- If differentiable factors and their derivatives have norm at most one and are each
+1-Lipschitz, the Fréchet derivative of their ordered product is globally Lipschitz with
+constant equal to the squared word length. -/
 theorem paramWord_native_fderiv_lipschitz (F : J→E→A) (DF : J→E→E→L[ℝ]A)
     (hF : ∀j x,‖F j x‖≤1) (hD : ∀j x,‖DF j x‖≤1)
     (hd : ∀j x,HasFDerivAt (F j) (DF j x) x)

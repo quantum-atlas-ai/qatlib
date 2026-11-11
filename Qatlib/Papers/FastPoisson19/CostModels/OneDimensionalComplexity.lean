@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FastPoisson19.CostModels.CircuitCostDefs
+
+/-!
+# One-dimensional Poisson cost bounds
+
+For register parameters satisfying `1 ≤ n ≤ m`, the one-dimensional cost polynomials have
+quadratic qubit and cubic gate bounds. The module also includes nonnegative amplification
+factors and packages the resulting sequence-wise big-O statements. These statements concern the
+formulas and models in [WangEtAl2020].
+
+## Main statements
+
+* `one_dim_qubit_le`: bounds the qubit model by `2 * m^2`.
+* `one_dim_gate_le`: bounds the gate model by `134 * m^3`.
+* `modeled_one_dim_complexity`: combines the asymptotic resource bounds.
+
+## References
+
+* [Wang et al., 2020][WangEtAl2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +35,7 @@ namespace Qatlib.Papers.FastPoisson19.CostModels
 
 open Asymptotics Filter
 
+/-- For `1 ≤ n ≤ m`, the one-dimensional qubit model is at most `2 * m^2`. -/
 theorem one_dim_qubit_le (m n : ℝ) (hn : 1 ≤ n) (hmn : n ≤ m) :
     oneDimQubitsModel m n ≤ 2 * m ^ 2 := by
   have hn0 : (0 : ℝ) ≤ n := by linarith
@@ -23,6 +44,7 @@ theorem one_dim_qubit_le (m n : ℝ) (hn : 1 ≤ n) (hmn : n ≤ m) :
   unfold oneDimQubitsModel
   nlinarith
 
+/-- For `1 ≤ n ≤ m`, the one-dimensional gate model is at most `134 * m^3`. -/
 theorem one_dim_gate_le (m n : ℝ) (hn : 1 ≤ n) (hmn : n ≤ m) :
     oneDimGatesModel m n ≤ 134 * m ^ 3 := by
   have hn0 : (0 : ℝ) ≤ n := by linarith
@@ -31,12 +53,17 @@ theorem one_dim_gate_le (m n : ℝ) (hn : 1 ≤ n) (hmn : n ≤ m) :
   unfold oneDimGatesModel
   nlinarith
 
+/-- For `1 ≤ n ≤ m` and nonnegative `kappa`, the amplified gate model is at most `134 * (kappa *
+m^3)`. -/
 theorem one_dim_amplified_gate_le (m n kappa : ℝ) (hn : 1 ≤ n) (hmn : n ≤ m)
     (hk : 0 ≤ kappa) :
     kappa * oneDimGatesModel m n ≤ 134 * (kappa * m ^ 3) := by
   have h := one_dim_gate_le m n hn hmn
   nlinarith [mul_le_mul_of_nonneg_left h hk]
 
+/-- For sequences satisfying the register and amplification hypotheses, the qubit model is big-O
+of `m^2`, and the gate and amplified gate models are big-O of `m^3` and `kappa * m^3`,
+respectively. -/
 theorem modeled_one_dim_complexity (m n kappa : ℕ → ℝ)
     (hn : ∀ t, 1 ≤ n t) (hmn : ∀ t, n t ≤ m t) (hk : ∀ t, 0 ≤ kappa t) :
     (fun t => oneDimQubitsModel (m t) (n t)) =O[atTop] (fun t => (m t) ^ 2) ∧

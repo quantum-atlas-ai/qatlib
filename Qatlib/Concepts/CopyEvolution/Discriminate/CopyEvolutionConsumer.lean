@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
+
+/-!
+# Explicit copy-evolution examples
+
+This module computes partial-swap evolution for qubit inputs with copies of the zero-state
+projector. `copy_zero_projector_repeated_coherence` gives closed formulas for repeated
+populations and coherences, together with the resource tuple. These examples instantiate the
+density-matrix exponentiation step of [LloydMohseniRebentrost2014].
+
+The plus-state example produces a density operator that is not pure, while the Bell-state
+example tracks a full swap with an entangled reference. The zero-angle, full-swap, and empty-run
+cases provide exact limiting identities.
+
+## Main statements
+
+* `copy_zero_projector_one_step`: the explicit single-step qubit matrix.
+* `copy_zero_projector_repeated_coherence`: the repeated-step matrix and resource counts.
+* `copy_noncommuting_mixed_consumer`: the non-pure output of the plus-state example.
+* `copy_entangled_reference_swap_consumer`: full-swap behavior with a Bell reference.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Foundations.PureStateMath.BornBridge
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -22,13 +47,17 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The projector onto the zero computational basis state is a density operator. -/
 private theorem hrho0 : IsDensityOperator (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) :=
   isDensityOperator_outerProduct (normalized_ket 0)
 
+/-- The zero-state projector has entry one at `(0, 0)` and zero elsewhere. -/
 private theorem rho0_apply (i j : Fin 2) :
     outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2)) i j = if i = 0 ∧ j = 0 then (1 : ℂ) else 0 := by
   fin_cases i <;> fin_cases j <;> simp [outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- A partial-swap step with a zero-state copy has the displayed two-by-two matrix formula,
+including its complex coherence factors. -/
 theorem copy_zero_projector_one_step (θ : ℝ) (σ : Operator 2) :
     partialSwapOutput (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) θ σ =
     !![σ 0 0 + ((Real.sin θ)^2 : ℂ)*σ 1 1,
@@ -47,6 +76,8 @@ theorem copy_zero_projector_one_step (θ : ℝ) (σ : Operator 2) :
     simp [Matrix.mul_apply, rho0_apply] <;>
     ring
 
+/-- Repeated equal-angle steps with zero-state copies have the displayed closed form for
+populations and coherences. The resource tuple for `n` steps is `(n, n, n, 0)`. -/
 theorem copy_zero_projector_repeated_coherence (θ : ℝ) (n : ℕ) (σ : Operator 2) :
     freshCopyRun (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) (List.replicate n θ) σ =
     !![Matrix.trace σ - (((Real.cos θ)^2)^n : ℂ)*σ 1 1,
@@ -91,12 +122,15 @@ theorem copy_zero_projector_repeated_coherence (θ : ℝ) (n : ℕ) (σ : Operat
         simp [Matrix.trace, Matrix.diag_apply] <;>
         ring
 
+/-- The qubit density matrix of the equal superposition of the two computational basis states. -/
 noncomputable def copyEvolutionPlusInput : Operator 2 := (1/2 : ℂ) • !![1,1;1,1]
 
+/-- Every matrix entry of `copyEvolutionPlusInput` equals `1 / 2`. -/
 private theorem plusInput_apply (i j : Fin 2) :
     copyEvolutionPlusInput i j = 1 / 2 := by
   fin_cases i <;> fin_cases j <;> simp [copyEvolutionPlusInput]
 
+/-- The plus-state input is a density operator. -/
 theorem isDensityOperator_copyEvolutionPlusInput :
     IsDensityOperator copyEvolutionPlusInput := by
   have hin : ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = 1 / 2 := by
@@ -121,6 +155,8 @@ theorem isDensityOperator_copyEvolutionPlusInput :
     rw [Matrix.trace_smul, htr]
     norm_num
 
+/-- A partial swap of angle `π / 4` between the plus-state input and a zero-state copy yields
+the displayed density matrix, which is not pure. -/
 theorem copy_noncommuting_mixed_consumer :
     copyEvolutionPlusInput = (1/2 : ℂ) • !![1,1;1,1] ∧
     IsDensityOperator copyEvolutionPlusInput ∧
@@ -177,9 +213,11 @@ theorem copy_noncommuting_mixed_consumer :
       linear_combination 16 * h00 + hI
     exact zero_ne_one h01
 
+/-- The two-qubit Bell state used to test copy evolution with an entangled reference. -/
 noncomputable def copyEvolutionBellInput : QState (Fin 2 × Fin 2) :=
   fun p => if p.1 = p.2 then (Real.sqrt 2 : ℂ)⁻¹ else 0
 
+/-- The left partial trace of the Bell-state density matrix is the maximally mixed qubit state. -/
 theorem traceLeft_outerProduct_copyEvolutionBellInput :
     Matrix.traceLeft (outerProduct copyEvolutionBellInput) = (1/2 : ℂ) • (1 : Operator 2) := by
   ext b b'
@@ -187,6 +225,8 @@ theorem traceLeft_outerProduct_copyEvolutionBellInput :
     simp [Matrix.traceLeft, outerProduct_apply, copyEvolutionBellInput] <;>
     norm_num [inv_sqrt2_mul_self]
 
+/-- For the Bell-state input, a full swap with a zero-state copy resets the system to zero and
+leaves the reference maximally mixed. -/
 theorem copy_entangled_reference_swap_consumer :
     Matrix.traceLeft (outerProduct copyEvolutionBellInput) = (1/2 : ℂ) • (1 : Operator 2) ∧
     partialSwapReferenceOutput (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) (Real.pi/2) 2
@@ -207,6 +247,8 @@ theorem copy_entangled_reference_swap_consumer :
   rw [hc0, hs1, hsc0, traceLeft_outerProduct_copyEvolutionBellInput]
   simp only [zero_smul, zero_add, one_smul, sub_zero]
 
+/-- At angle zero the partial-swap output is unchanged, while at `π / 2` it is `Matrix.trace σ •
+ρ`. An empty copy run is the identity and has zero resource counts. -/
 theorem copy_zero_and_full_swap_limits {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (σ : Operator D) :
     partialSwapOutput ρ 0 σ = σ ∧ partialSwapOutput ρ (Real.pi/2) σ = Matrix.trace σ • ρ ∧

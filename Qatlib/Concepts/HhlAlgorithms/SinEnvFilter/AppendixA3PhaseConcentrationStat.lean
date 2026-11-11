@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
+
+/-!
+# Sine-envelope phase-concentration specification
+
+`AppendixA3PhaseConcentration` states the geometric-sum identity, normalization, fourth-power
+probability tail, and explicit scaled second-moment bound for the sine-envelope kernel. It
+provides a single proposition for the phase-estimation estimates associated with Appendix A.3 of
+[HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `AppendixA3PhaseConcentration`: the conjunction of the four kernel properties.
+
+## References
+
+* [Harrow et al., 2009, Appendix A.3][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +48,9 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
 open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs.SinEnvelopeSpec
 open scoped Real
 
+/-- The conjunction of the sine-envelope kernel's geometric identity, normalization,
+fourth-power tail estimate, and explicit second-moment bound corresponding to [Harrow et
+al., Appendix A.3][HarrowHassidimLloyd2009]. -/
 def AppendixA3PhaseConcentration : Prop :=
   (∀ (M : ℕ) (φ : ℝ) (z : Fin M), 2 ≤ M →
       Complex.exp (Complex.I * (sinEnvelopeDelta M φ z + Real.pi) / (M : ℝ)) ≠ 1 →

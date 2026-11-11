@@ -6,15 +6,40 @@ Authors: Qatlib Contributors
 
 import Mathlib.Tactic
 
+/-!
+# General-ancilla fixed-point error
+
+`generalError` extends the error recurrence with an ancilla parameter `r`, giving the closed
+form `ε * (1 - 2 * r * (1 - ε)) ^ (2 * q)`. The module bounds the comparison threshold,
+identifies a zero-error parameter, and proves strict improvement over `ε ^ (2 * q + 1)` above
+the threshold.
+
+These constructions belong to the formalization of [TulsiGroverPatel2006].
+
+## Main statements
+
+* `generalError_eq_pow`: the closed error recurrence.
+* `threshold_mem`: locates the threshold for `1 / 2 < r ≤ 1`.
+* `error_lt_pow_of_threshold`: strict comparison with the standard power law.
+
+## References
+
+* [Tulsi et al., 2006][TulsiGroverPatel2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.FixedPntSrch05.MainResults.GeneralAncilla
 
+/-- The error recurrence starting at `ε` and multiplying by `(1 - 2 * r * (1 - ε)) ^ 2` at each
+step. -/
 def generalError (ε r : ℝ) : ℕ → ℝ
   | 0 => ε
   | n + 1 => generalError ε r n * (1 - 2 * r * (1 - ε)) ^ 2
 
+/-- The general-ancilla error after `q` steps equals `ε * (1 - 2 * r * (1 - ε)) ^ (2 * q)`.
+[TulsiGroverPatel2006] -/
 theorem generalError_eq_pow (ε r : ℝ) (q : ℕ) :
     generalError ε r q = ε * (1 - 2 * r * (1 - ε)) ^ (2 * q) := by
   induction q with
@@ -28,6 +53,8 @@ theorem generalError_eq_pow (ε r : ℝ) (q : ℕ) :
       rw [hb]
       ring
 
+/-- For `1 / 2 < r ≤ 1`, the threshold `(2 * r - 1) / (2 * r + 1)` lies in the interval `(0, 1 /
+3]`. See [TulsiGroverPatel2006]. -/
 theorem threshold_mem (r : ℝ) (hr0 : 1 / 2 < r) (hr1 : r ≤ 1) :
     0 < (2 * r - 1) / (2 * r + 1) ∧ (2 * r - 1) / (2 * r + 1) ≤ 1 / 3 := by
   have hden : 0 < 2 * r + 1 := by linarith
@@ -36,6 +63,8 @@ theorem threshold_mem (r : ℝ) (hr0 : 1 / 2 < r) (hr1 : r ≤ 1) :
   · rw [div_le_iff₀ hden]
     linarith
 
+/-- If `r > 1 / 2` and `ε0 = 1 - 1 / (2 * r)`, the closed error expression vanishes for every `q
+≥ 1`. See [TulsiGroverPatel2006]. -/
 theorem error_at_zero_threshold (r ε0 : ℝ) (hr0 : 1 / 2 < r)
     (hε0 : ε0 = 1 - 1 / (2 * r)) (q : ℕ) (hq : 1 ≤ q) :
     ε0 * (1 - 2 * r * (1 - ε0)) ^ (2 * q) = 0 := by
@@ -48,6 +77,8 @@ theorem error_at_zero_threshold (r ε0 : ℝ) (hr0 : 1 / 2 < r)
   have hq' : 2 * q ≠ 0 := by omega
   rw [zero_pow hq', mul_zero]
 
+/-- For `r > 1 / 2`, `0 < ε < 1`, and `ε` above the comparison threshold, the general-ancilla
+error expression is strictly below `ε ^ (2 * q + 1)` for `q ≥ 1`. [TulsiGroverPatel2006] -/
 theorem error_lt_pow_of_threshold (ε r : ℝ) (hr0 : 1 / 2 < r)
     (hεrl : (2 * r - 1) / (2 * r + 1) < ε) (hε0 : 0 < ε) (hε1 : ε < 1)
     (q : ℕ) (hq : 1 ≤ q) :

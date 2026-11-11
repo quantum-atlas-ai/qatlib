@@ -10,6 +10,29 @@ import Mathlib.Algebra.BigOperators.Pi
 import Mathlib.Data.List.GetD
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationAux
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationConstr
+
+/-!
+# Programs implementing adaptive purification
+
+Relabeling, block-diagonal evaluation, and gate-prepending operations assemble purification
+programs from adaptive computation trees. `sourceAdaptive_purify_program` constructs a legal
+program that exactly produces the recorded pure output using at most twice the adaptive
+oracle-call count.
+
+The construction implements the deferred-measurement principle through unitary extensions and
+explicit registers, as described in [Watrous2018].
+
+## Main statements
+
+* `sourceRelabelWord_matrix`: compatibility of word evaluation with relabeling.
+* `sourceProgramPrependOp_matrix`: evaluation of an added oracle layer.
+* `sourceAdaptive_purify_program`: exact purification with a query bound.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -29,6 +52,7 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 noncomputable section
 
+/-- Multiplying composable basis frames gives the basis frame of the composed index maps. -/
 theorem sourceBasisFrame_mul {S T U : Type} [DecidableEq S] [Fintype T] [DecidableEq T]
     (f : T → S) (g : U → T) :
     sourceBasisFrame f*sourceBasisFrame g=sourceBasisFrame (f ∘ g) := by
@@ -42,6 +66,8 @@ theorem sourceBasisFrame_mul {S T U : Type} [DecidableEq S] [Fintype T] [Decidab
 end
 noncomputable section
 
+/-- Relabeling a matrix intertwines its action with the basis frame of the relabeling
+equivalence. -/
 theorem sourceRelabelGate_mul_basisFrame {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (M : Matrix I I ℂ) :
     relabelGate e M*sourceBasisFrame ⇑e=sourceBasisFrame ⇑e*M := by
@@ -66,6 +92,8 @@ theorem sourceRelabelGate_mul_basisFrame {I J : Type} [Fintype I] [DecidableEq I
 end
 noncomputable section
 
+/-- Relabeling a permutation matrix gives the permutation matrix of a map intertwined by the
+equivalence. -/
 theorem sourceRelabelGate_permMatrix {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (σ : I → I) (τ : J → J)
     (h : ∀ i, e (σ i)=τ (e i)) :
@@ -89,6 +117,8 @@ theorem sourceRelabelGate_permMatrix {I J : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Applying a relabeled matrix is equivalent to transporting the input to the original indices,
+multiplying, and transporting the output back. -/
 theorem sourceRelabelGate_mulVec {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (M : Matrix I I ℂ) (φ : J → ℂ) :
     relabelGate e M *ᵥ φ=fun j => (M *ᵥ fun i => φ (e i)) (e.symm j) := by
@@ -101,6 +131,7 @@ theorem sourceRelabelGate_mulVec {I J : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Relabeling a finite product of matrices equals the product of their relabelings. -/
 theorem sourceRelabelGate_list_prod {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (l : List (Matrix I I ℂ)) :
     relabelGate e l.prod=(l.map (relabelGate e)).prod := by
@@ -110,12 +141,15 @@ theorem sourceRelabelGate_list_prod {I J : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- The source word obtained by relabeling every known gate while leaving oracle-call flags
+unchanged. -/
 def sourceRelabelWord {I J : Type} [DecidableEq I] [DecidableEq J] (e : I ≃ J) :
     SourceWord I → SourceWord J :=
   List.map (Sum.map (relabelGate e) id)
 end
 noncomputable section
 
+/-- Relabeling a source word preserves its oracle-call count. -/
 theorem sourceRelabelWord_calls {I J : Type} [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (w : SourceWord I) :
     sourceWordCalls (sourceRelabelWord e w)=sourceWordCalls w := by
@@ -128,6 +162,7 @@ theorem sourceRelabelWord_calls {I J : Type} [DecidableEq I] [DecidableEq J]
 end
 noncomputable section
 
+/-- Relabeling a legal source word preserves legality. -/
 theorem sourceRelabelWord_legal {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (w : SourceWord I)
     (hw : sourceWordLegal w) : sourceWordLegal (sourceRelabelWord e w) := by
@@ -140,6 +175,8 @@ theorem sourceRelabelWord_legal {I J : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Evaluating a relabeled word with the relabeled oracle gives the relabeling of the original
+word matrix. -/
 theorem sourceRelabelWord_matrix {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (O : Matrix I I ℂ) (w : SourceWord I) :
     sourceWordMatrix (relabelGate e O) (sourceRelabelWord e w)=
@@ -155,12 +192,15 @@ theorem sourceRelabelWord_matrix {I J : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- The purification program obtained by relabeling its initial matrix and both known matrices
+of each layer. -/
 def sourceRelabelProgram {I J : Type} [DecidableEq I] [DecidableEq J] (e : I ≃ J)
     (P : SourcePurificationProgram I) : SourcePurificationProgram J :=
   ⟨relabelGate e P.start,P.layers.map (fun p => (relabelGate e p.1,relabelGate e p.2))⟩
 end
 noncomputable section
 
+/-- Taking the word of a relabeled purification program agrees with relabeling its word. -/
 theorem sourceRelabelProgram_word {I J : Type} [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (P : SourcePurificationProgram I) :
     sourcePurificationProgramWord (sourceRelabelProgram e P)=
@@ -182,6 +222,7 @@ theorem sourceRelabelProgram_word {I J : Type} [DecidableEq I] [DecidableEq J]
 end
 noncomputable section
 
+/-- Relabeling a legal purification program preserves legality. -/
 theorem sourceRelabelProgram_legal {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (P : SourcePurificationProgram I)
     (hP : sourcePurificationProgramLegal P) :
@@ -194,6 +235,7 @@ theorem sourceRelabelProgram_legal {I J : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Relabeling a purification program preserves the oracle-call count of its word. -/
 theorem sourceRelabelProgram_calls {I J : Type} [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (P : SourcePurificationProgram I) :
     sourceWordCalls (sourcePurificationProgramWord (sourceRelabelProgram e P))=
@@ -202,12 +244,15 @@ theorem sourceRelabelProgram_calls {I J : Type} [DecidableEq I] [DecidableEq J]
 end
 noncomputable section
 
+/-- The purification program that applies `U` before the original program by replacing its
+initial matrix with `P.start*U`. -/
 def sourceProgramPrependGate {S : Type} [Fintype S] (U : Matrix S S ℂ)
     (P : SourcePurificationProgram S) : SourcePurificationProgram S :=
   ⟨P.start*U,P.layers⟩
 end
 noncomputable section
 
+/-- Prepending a known gate right-multiplies the original program matrix by that gate. -/
 theorem sourceProgramPrependGate_matrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (U : Matrix S S ℂ) (P : SourcePurificationProgram S) :
     sourceWordMatrix O (sourcePurificationProgramWord (sourceProgramPrependGate U P))=
@@ -216,6 +261,7 @@ theorem sourceProgramPrependGate_matrix {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Prepending a known gate preserves the program's oracle-call count. -/
 theorem sourceProgramPrependGate_calls {S : Type} [Fintype S] (U : Matrix S S ℂ)
     (P : SourcePurificationProgram S) :
     sourceWordCalls (sourcePurificationProgramWord (sourceProgramPrependGate U P))=
@@ -224,6 +270,7 @@ theorem sourceProgramPrependGate_calls {S : Type} [Fintype S] (U : Matrix S S �
 end
 noncomputable section
 
+/-- Prepending a unitary known gate to a legal purification program preserves legality. -/
 theorem sourceProgramPrependGate_legal {S : Type} [Fintype S] [DecidableEq S]
     (U : Matrix S S ℂ) (hU : U ∈ Matrix.unitaryGroup S ℂ)
     (P : SourcePurificationProgram S) (hP : sourcePurificationProgramLegal P) :
@@ -232,12 +279,16 @@ theorem sourceProgramPrependGate_legal {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The purification program that prepends the operation with matrix `V*Oᴴ*U*O*S0` to the
+original program. -/
 def sourceProgramPrependOp {S : Type} [Fintype S] (S0 U V : Matrix S S ℂ)
     (P : SourcePurificationProgram S) : SourcePurificationProgram S :=
   ⟨S0,(U,P.start*V)::P.layers⟩
 end
 noncomputable section
 
+/-- Prepending an oracle operation right-multiplies the original program matrix by
+`V*Oᴴ*U*O*S0`. -/
 theorem sourceProgramPrependOp_matrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (S0 U V : Matrix S S ℂ) (P : SourcePurificationProgram S) :
     sourceWordMatrix O (sourcePurificationProgramWord (sourceProgramPrependOp S0 U V P))=
@@ -249,6 +300,7 @@ theorem sourceProgramPrependOp_matrix {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Prepending an oracle operation adds exactly two oracle calls. -/
 theorem sourceProgramPrependOp_calls {S : Type} [Fintype S] (S0 U V : Matrix S S ℂ)
     (P : SourcePurificationProgram S) :
     sourceWordCalls (sourcePurificationProgramWord (sourceProgramPrependOp S0 U V P))=
@@ -259,6 +311,8 @@ theorem sourceProgramPrependOp_calls {S : Type} [Fintype S] (S0 U V : Matrix S S
 end
 noncomputable section
 
+/-- Prepending an oracle operation with unitary known matrices to a legal purification program
+preserves legality. -/
 theorem sourceProgramPrependOp_legal {S : Type} [Fintype S] [DecidableEq S]
     (S0 U V : Matrix S S ℂ) (hS0 : S0 ∈ Matrix.unitaryGroup S ℂ)
     (hU : U ∈ Matrix.unitaryGroup S ℂ) (hV : V ∈ Matrix.unitaryGroup S ℂ)
@@ -272,6 +326,7 @@ theorem sourceProgramPrependOp_legal {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- A maximum fold is at most `B` when its initial value and every list element are at most `B`. -/
 theorem sourceFoldl_max_le (l : List ℕ) (a B : ℕ) (ha : a≤B) (h : ∀ x ∈ l, x≤B) :
     l.foldl max a≤B := by
   induction l generalizing a with
@@ -283,6 +338,7 @@ theorem sourceFoldl_max_le (l : List ℕ) (a B : ℕ) (ha : a≤B) (h : ∀ x �
 end
 noncomputable section
 
+/-- Taking the first `i` elements of `List.ofFn f` restricts `f` to `Fin i`. -/
 theorem sourceOfFn_take {α : Type} {m : ℕ} (f : Fin m → α) (i : ℕ) (hi : i≤m) :
     (List.ofFn f).take i=List.ofFn (fun j : Fin i => f (Fin.castLE hi j)) := by
   apply List.ext_getElem
@@ -293,6 +349,8 @@ theorem sourceOfFn_take {α : Type} {m : ℕ} (f : Fin m → α) (i : ℕ) (hi :
 end
 noncomputable section
 
+/-- The sum of lengths of the lists before index `i` equals the corresponding finite sum of
+their lengths. -/
 theorem sourceTake_ofFn_lengths_sum {α : Type} {m : ℕ} (f : Fin m → List α) (i : Fin m) :
     (((List.ofFn f).take i.val).map List.length).sum=
       ∑ j : Fin i.val,(f (Fin.castLE (Nat.le_of_lt i.isLt) j)).length := by
@@ -301,6 +359,8 @@ theorem sourceTake_ofFn_lengths_sum {α : Type} {m : ℕ} (f : Fin m → List α
 end
 noncomputable section
 
+/-- Lookup in a flattened list at a block's cumulative offset plus an internal index agrees with
+lookup in that block. -/
 theorem sourceFlatten_getD {α : Type} (d : α) : ∀ (ls : List (List α)) (i : ℕ)
     (hi : i<ls.length) (j : ℕ) (_hj : j<(ls[i]'hi).length),
     ls.flatten.getD (((ls.take i).map List.length).sum+j) d=(ls[i]'hi).getD j d := by
@@ -330,6 +390,7 @@ theorem sourceFlatten_getD {α : Type} (d : α) : ∀ (ls : List (List α)) (i :
 end
 noncomputable section
 
+/-- A block-diagonal matrix acts independently on the state slice of each block. -/
 theorem sourceBlockDiagonal'_mulVec {I : Type} [Fintype I] [DecidableEq I]
     {S : I → Type} [∀ i,Fintype (S i)] [∀ i,DecidableEq (S i)]
     (M : ∀ i,Matrix (S i) (S i) ℂ) (ψ : (Σ i,S i) → ℂ) :
@@ -347,6 +408,8 @@ theorem sourceBlockDiagonal'_mulVec {I : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- The block-diagonal matrix of permutation matrices is the permutation matrix acting within
+each block. -/
 theorem sourceBlockDiagonal'_permMatrix {I : Type} [DecidableEq I]
     {S : I → Type} [∀ i,DecidableEq (S i)] (σ : ∀ i,S i → S i) :
     Matrix.blockDiagonal' (fun i => permMatrix (σ i))=
@@ -362,18 +425,22 @@ theorem sourceBlockDiagonal'_permMatrix {I : Type} [DecidableEq I]
 end
 noncomputable section
 
+/-- The purification value-negation gate is unitary. -/
 theorem sourcePurifyFlipGate_unitary {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ} :
     sourcePurifyFlipGate (H:=H) (n:=n) (q:=q) (r:=r) (L:=L) ∈ Matrix.unitaryGroup _ ℂ :=
   permMatrix_unitary_of_injective (Equiv.injective _)
 end
 noncomputable section
 
+/-- The purification address-swap gate is unitary. -/
 theorem sourcePurifySwapGate_unitary {H : Type} [Fintype H] [DecidableEq H] {n q r L : ℕ} :
     sourcePurifySwapGate (H:=H) (n:=n) (q:=q) (r:=r) (L:=L) ∈ Matrix.unitaryGroup _ ℂ :=
   permMatrix_unitary_of_injective (Equiv.injective _)
 end
 noncomputable section
 
+/-- On states supported at spare address `n`, the layer formed from two swap gates, the adjoint
+oracle, and the oracle acts as a single lifted oracle. -/
 theorem sourcePurifySwapGate_layer {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X)
@@ -389,6 +456,7 @@ theorem sourcePurifySwapGate_layer {X H : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Conjugating the lifted oracle by the purification flip gate gives the adjoint oracle. -/
 theorem sourcePurifyFlipGate_conj {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q r L : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
@@ -400,6 +468,9 @@ theorem sourcePurifyFlipGate_conj {X H : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Every legal adaptive computation has a legal purification program using at most twice as
+many oracle calls and exactly reproducing its recorded pure output from the initialized
+input embedding. -/
 theorem sourceAdaptive_purify_program {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) :

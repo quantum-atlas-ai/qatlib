@@ -175,40 +175,79 @@ import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Metrizable.Uniformity
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Oracle problems and dispersing circuit estimates
+
+This module defines finite amplitude vectors, oracle problems, `IsDispersing`, and
+`IsPseudoDispersing`. It proves sign-selection and oracle-overlap estimates, transcript-counting
+bounds, recurrence and repetition estimates, Fourier row estimates, and elementary properties of
+the proposed Pauli weights [HallgrenHarrow2008].
+
+## Main statements
+
+* `lemma10_signs`: chooses signs preserving at least a `2 / π` fraction of the sum of norms.
+* `theorem9_quantum_part`: derives a signed overlap bound from pseudo-dispersion.
+* `theorem9_classical_lower_bound`: converts an average-success requirement into a query-count
+  bound.
+* `cyclicQFT_dispersing`: establishes dispersion for the cyclic Fourier matrix.
+* `theorem2_superpolynomial_speedup`: packages a polynomial recurrence bound with a conditional
+  classical success estimate.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 open scoped BigOperators
 open MeasureTheory intervalIntegral
 
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
+/-- Complex-valued amplitudes indexed by `X`. -/
 abbrev Amplitude (X : Type) := X → ℂ
 
+/-- The condition that the sum of squared norms of a finite amplitude vector equals one. -/
 def IsUnitVector {X : Type} [Fintype X] (ψ : Amplitude X) : Prop :=
   ∑ x, ‖ψ x‖ ^ 2 = 1
 
+/-- The condition that both rows and columns of a finite complex matrix are orthonormal. -/
 def IsUnitary {X : Type} [Fintype X] [DecidableEq X] (U : X → X → ℂ) : Prop :=
   (∀ a b, ∑ x, U a x * star (U b x) = if a = b then 1 else 0) ∧
   (∀ x y : X, ∑ a, star (U a x) * U a y = if x = y then 1 else 0)
 
+/-- The complex sign equal to minus one when `f a x` is true and one otherwise. -/
 def oracleSign {A X : Type} (f : A → X → Bool) (a : A) (x : X) : ℂ :=
   if f a x then -1 else 1
 
+/-- The amplitude vector obtained by multiplying `oracleSign f a` by the reciprocal square root
+of the size of `X`. -/
 noncomputable def oracleState {A X : Type} [Fintype X]
     (f : A → X → Bool) (a : A) : Amplitude X :=
   fun x => (1 / (Real.sqrt (Fintype.card X) : ℂ)) * oracleSign f a x
 
+/-- A single-level oracle problem specified by a Boolean function of a secret index and a query
+index. -/
 structure SingleLevelOracleProblem (A X : Type) where
   f : A → X → Bool
 
+/-- The condition that each secret index has squared oracle-state overlap at least `δ` with the
+corresponding row of `U`. -/
 def SolvesSingleLevel {A X : Type} [Fintype X]
     (P : SingleLevelOracleProblem A X) (U : A → X → ℂ) (δ : ℝ) : Prop :=
   ∀ a, δ ≤ ‖∑ x, U a x * oracleState P.f a x‖ ^ 2
 
+/-- Data for a recursive oracle problem: its depth, Boolean function, node secrets, and root
+answer. -/
 structure RecursiveOracleProblem (X A : Type) where
   ℓ : ℕ
   f : A → X → Bool
   secret : List X → A
   answer : Bool
 
+/-- The partial recursive-oracle response: internal nodes require their correct secret, while
+leaves at the prescribed depth use a query without a secret. A valid internal root query
+returns the stored answer, and other valid queries return the Boolean value determined by
+the parent secret. -/
 def RecursiveOracleProblem.query {X A : Type} [Inhabited X] [DecidableEq A]
     (P : RecursiveOracleProblem X A) : List X → Option A → Option Bool :=
   fun xs a? =>
@@ -228,17 +267,23 @@ def RecursiveOracleProblem.query {X A : Type} [Inhabited X] [DecidableEq A]
           if xs.length = P.ℓ then
             some (P.f (P.secret xs.dropLast) xs.getLast!) else none
 
+/-- The condition that at least `card X ^ α` rows have sum of entry norms at least `β * sqrt
+(card X)`. -/
 def IsDispersing {X : Type} [Fintype X] [DecidableEq X]
     (U : X → X → ℂ) (α β : ℝ) : Prop :=
   ∃ A : Finset X, (A.card : ℝ) ≥ (Fintype.card X : ℝ) ^ α ∧
     ∀ a ∈ A, ∑ x, ‖U a x‖ ≥ β * Real.sqrt (Fintype.card X)
 
+/-- The condition that at least `card X ^ α` output labels possess a unit auxiliary amplitude
+vector whose contracted row has sum of norms at least `β * sqrt (card X)`. -/
 def IsPseudoDispersing {M W X : Type} [Fintype M] [Fintype W] [Fintype X] [DecidableEq M]
     (U : M → W → X → ℂ) (α β : ℝ) : Prop :=
   ∃ A : Finset M, (A.card : ℝ) ≥ (Fintype.card X : ℝ) ^ α ∧
     ∀ a ∈ A, ∃ ψ : Amplitude W, IsUnitVector ψ ∧
       ∑ x, ‖∑ w, ψ w * U a w x‖ ≥ β * Real.sqrt (Fintype.card X)
 
+/-- The integral of the absolute value of cosine over a full period from zero to `2 * π` equals
+four [HallgrenHarrow2008]. -/
 lemma integral_abs_cos_zero_two_pi :
     (∫ φ in (0:ℝ)..(2 * Real.pi), |Real.cos φ|) = 4 := by
   have hcont : Continuous (fun x : ℝ => |Real.cos x|) := by fun_prop
@@ -271,6 +316,8 @@ lemma integral_abs_cos_zero_two_pi :
   simp
   ring
 
+/-- The integral over a full phase period of the absolute real part of a rotated complex number
+`z` equals `4 * ‖z‖` [HallgrenHarrow2008]. -/
 lemma integral_norm_re_exp (z : ℂ) :
     (∫ φ in (0:ℝ)..(2 * Real.pi), ‖(Complex.exp (-(φ:ℂ) * Complex.I) * z).re‖) = 4 * ‖z‖ := by
   have hpt : ∀ φ : ℝ,
@@ -316,6 +363,8 @@ lemma integral_norm_re_exp (z : ℂ) :
   rw [hperEq, integral_abs_cos_zero_two_pi]
   ring
 
+/-- For any finite family of complex numbers, signs in `{1, -1}` can be chosen so that the norm
+of their signed sum is at least `2 / π` times the sum of their norms [HallgrenHarrow2008]. -/
 theorem lemma10_signs {X : Type} [Fintype X] (x : X → ℂ) :
     ∃ θ : X → ℤ, (∀ k, θ k = 1 ∨ θ k = -1) ∧
       (2 / Real.pi) * (∑ k, ‖x k‖) ≤ ‖∑ k, (θ k : ℂ) * x k‖ := by
@@ -390,6 +439,9 @@ theorem lemma10_signs {X : Type} [Fintype X] (x : X → ℂ) :
     rw [hnorm, one_mul] at hstep
     exact le_trans hφle (by simpa [z] using hstep)
 
+/-- For a pseudo-dispersing array with nonnegative `β` and nonempty input type, at least `card X
+^ α` labels possess signs and a unit auxiliary vector with squared normalized overlap at
+least `(2 / π * β) ^ 2` [HallgrenHarrow2008]. -/
 theorem theorem9_quantum_part
     {M W X : Type} [Fintype M] [Fintype W] [Fintype X] [DecidableEq M] [Nonempty X]
     (U : M → W → X → ℂ) {α β : ℝ} (hβ : 0 ≤ β)
@@ -440,14 +492,20 @@ theorem theorem9_quantum_part
     apply pow_le_pow_left₀ (by positivity) hlow
   simpa [z] using hsq
 
+/-- A transcript map with `q` Boolean entries and an output map that optionally guesses the
+secret index. -/
 structure ClassicalQueryAlgorithm (A : Type) (q : ℕ) where
   transcript : A → (Fin q → Bool)
   output : (Fin q → Bool) → Option A
 
+/-- The finite set of secret indices correctly recovered from their transcripts by the
+algorithm. -/
 noncomputable def ClassicalQueryAlgorithm.successSet {A : Type} {q : ℕ}
     [Fintype A] [DecidableEq A] (alg : ClassicalQueryAlgorithm A q) : Finset A :=
   Finset.univ.filter (fun a => alg.output (alg.transcript a) = some a)
 
+/-- An algorithm with `q` Boolean transcript entries correctly recovers at most `2 ^ q` secret
+indices. -/
 theorem successSet_card_le {A : Type} [Fintype A] [DecidableEq A] {q : ℕ}
     (alg : ClassicalQueryAlgorithm A q) : alg.successSet.card ≤ 2 ^ q := by
   classical
@@ -472,6 +530,8 @@ theorem successSet_card_le {A : Type} [Fintype A] [DecidableEq A] {q : ℕ}
     rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fin, Fintype.card_bool]
   simpa [huniv] using hcard
 
+/-- If the secret space has size at least `2 ^ (α * n)`, the uniform success fraction of a
+`q`-bit transcript algorithm is at most `2 ^ (q - α * n)` [HallgrenHarrow2008]. -/
 theorem theorem9_classical_average
     {A : Type} [Fintype A] [DecidableEq A] {n q : ℕ} {α : ℝ}
     (hA : (2:ℝ) ^ (α * (n:ℝ)) ≤ (Fintype.card A : ℝ))
@@ -495,6 +555,8 @@ theorem theorem9_classical_average
   rw [le_div_iff₀ hpow2_pos]
   exact hmul
 
+/-- If the secret space has size at least `2 ^ (α * n)` and the uniform success fraction is at
+least positive `δ`, then `q ≥ α * n + logb 2 δ` [HallgrenHarrow2008]. -/
 theorem theorem9_classical_lower_bound
     {A : Type} [Fintype A] [DecidableEq A] {n q : ℕ} {α δ : ℝ}
     (hA : (2:ℝ) ^ (α * (n:ℝ)) ≤ (Fintype.card A : ℝ))
@@ -510,10 +572,13 @@ theorem theorem9_classical_lower_bound
   rw [Real.logb_rpow (by norm_num) (by norm_num)] at hlog
   linarith
 
+/-- The recurrence with initial value zero and step `findQueryCount m (j + 1) = m *
+(findQueryCount m j + 1)`. -/
 def findQueryCount (m : ℕ) : ℕ → ℕ
   | 0 => 0
   | j + 1 => m * (findQueryCount m j + 1)
 
+/-- Multiplying `findQueryCount m j` by `m - 1` over the reals gives `m ^ (j + 1) - m`. -/
 lemma findQueryCount_closed (m j : ℕ) :
     ((m:ℝ) - 1) * (findQueryCount m j : ℝ) = (m:ℝ)^(j+1) - (m:ℝ) := by
   induction j with
@@ -524,6 +589,7 @@ lemma findQueryCount_closed (m j : ℕ) :
       have hp : (m:ℝ)^(j+1+1) = (m:ℝ)^(j+1) * (m:ℝ) := by rw [pow_succ]
       nlinarith [ih, hp]
 
+/-- For `m ≥ 2`, the recurrence `findQueryCount m j` is at most `m ^ (j + 1)`. -/
 lemma findQueryCount_le_pow (m j : ℕ) (hm : 2 ≤ m) :
     findQueryCount m j ≤ m ^ (j + 1) := by
   have hclosed := findQueryCount_closed m j
@@ -539,6 +605,7 @@ lemma findQueryCount_le_pow (m j : ℕ) (hm : 2 ≤ m) :
   have hcast : (findQueryCount m j : ℝ) ≤ (m:ℝ)^(j+1) := le_trans hle1 hle2
   exact_mod_cast hcast
 
+/-- Every natural number `c` is at most `2 ^ c`. -/
 private lemma nat_le_two_pow (c : ℕ) : c ≤ 2 ^ c := by
   induction c with
   | zero => decide
@@ -548,6 +615,8 @@ private lemma nat_le_two_pow (c : ℕ) : c ≤ 2 ^ c := by
             omega
         _ = 2 ^ (d + 1) := by rw [pow_succ]; ring
 
+/-- If `2 ≤ c ≤ n` and `2 ^ k ≤ n`, then `findQueryCount c k ≤ n ^ (c + 1)`
+[HallgrenHarrow2008]. -/
 theorem findQueryCount_polynomial (c k n : ℕ) (hc : 2 ≤ c)
     (hn : c ≤ n) (hk : 2 ^ k ≤ n) :
     findQueryCount c k ≤ n ^ (c + 1) := by
@@ -561,6 +630,8 @@ theorem findQueryCount_polynomial (c k n : ℕ) (hc : 2 ≤ c)
     _ ≤ n * n ^ c := Nat.mul_le_mul_right (n ^ c) hn
     _ = n ^ (c + 1) := by rw [pow_succ, mul_comm]
 
+/-- For `0 < δ ≤ 1`, taking at least `(4 / δ) * log (8 / δ)` repetitions bounds `(1 - δ / 2) ^
+m` by `(δ / 8) ^ 2` [HallgrenHarrow2008]. -/
 theorem repetition_failure_bound {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (m : ℕ)
     (hm : (4 / δ) * Real.log (8 / δ) ≤ (m:ℝ)) :
     (1 - δ / 2) ^ m ≤ (δ / 8) ^ 2 := by
@@ -598,6 +669,9 @@ theorem repetition_failure_bound {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (m
     _ ≤ Real.exp (-(2 * Real.log (8 / δ))) := h5
     _ = (δ / 8) ^ 2 := h6
 
+/-- For fixed `c ≥ 2` and `0 < δ ≤ 1`, the query recurrence has the stated polynomial bound, the
+target success expression is at least `2 / 3`, and the logarithmic repetition threshold
+gives the stated failure bound [HallgrenHarrow2008]. -/
 theorem theorem4_find_polynomial_time
     (c : ℕ) (hc : 2 ≤ c) {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     (∀ n k : ℕ, c ≤ n → 2 ^ k ≤ n → findQueryCount c k ≤ n ^ (c + 1)) ∧
@@ -613,9 +687,12 @@ theorem theorem4_find_polynomial_time
   rw [hsmall] at hsq
   linarith
 
+/-- The finite fibre of the map `φ` over `y`. -/
 def fibre {A σ : Type} [Fintype A] [DecidableEq σ] (φ : A → σ) (y : σ) : Finset A :=
   Finset.univ.filter (fun a => φ a = y)
 
+/-- For nonnegative `B`, the number of elements lying in fibres of size at most `B` is at most
+`card σ * B` [HallgrenHarrow2008]. -/
 theorem card_bad_fibres_le {A σ : Type} [Fintype A] [Fintype σ] [DecidableEq σ]
     [DecidableEq A] (φ : A → σ) {B : ℝ} (hB : 0 ≤ B) :
     ((Finset.univ.filter (fun a => ((fibre φ (φ a)).card : ℝ) ≤ B)).card : ℝ)
@@ -650,6 +727,9 @@ theorem card_bad_fibres_le {A σ : Type} [Fintype A] [Fintype σ] [DecidableEq �
     _ = (s.card : ℝ) * B := h4
     _ ≤ (Fintype.card σ : ℝ) * B := mul_le_mul_of_nonneg_right h5 hB
 
+/-- For `M = card A > 1` and `Q < M ^ (1 / 3)`, at most an `M ^ (-1 / 3)` fraction of elements
+lie in fibres of size at most `M ^ (2 / 3) / 2 ^ k`. Fibres of size at least `M ^ (1 / 3)`
+also satisfy the stated reciprocal remaining-size bound [HallgrenHarrow2008]. -/
 theorem internal_node_hit_probability
     {A : Type} [Fintype A] [DecidableEq A] (k Q : ℕ) (φ : A → (Fin k → Bool))
     (hM : 1 < Fintype.card A)
@@ -703,10 +783,13 @@ theorem internal_node_hit_probability
         ≤ ((fibre φ (φ a)).card : ℝ) - (Q:ℝ) := by linarith
     exact one_div_le_one_div_of_le hden hle
 
+/-- The base-two logarithm of `2 ^ (α * n)` equals `α * n` [HallgrenHarrow2008]. -/
 lemma logb_two_rpow (α : ℝ) (n : ℕ) :
     Real.logb 2 ((2:ℝ) ^ (α * (n:ℝ))) = α * (n:ℝ) := by
   rw [Real.logb_rpow (by norm_num) (by norm_num)]
 
+/-- If both correction terms in the assumed maximum bound for `p` are at most `n ^ (-c * logb 2
+n)`, then `p` is at most one half plus that expression [HallgrenHarrow2008]. -/
 theorem theorem6_classical_superpolynomial_bound
     (n Q ℓ : ℕ) {M : ℝ} (hM : 1 < M) {c : ℝ} (hc : 0 < c)
     (p : ℝ)
@@ -722,6 +805,9 @@ theorem theorem6_classical_superpolynomial_bound
       ≤ (n:ℝ) ^ (-(c * Real.logb 2 (n:ℝ))) := max_le hterm₁ hterm₂
   linarith
 
+/-- Finite group Fourier data consisting of positive representation dimensions whose squares sum
+to the group order, together with a complex array indexed by the corresponding matrix
+coordinates. -/
 structure GroupFourierData (G : Type) [Group G] [Fintype G]
     (Irr : Type) [Fintype Irr] where
   d : Irr → ℕ
@@ -729,6 +815,9 @@ structure GroupFourierData (G : Type) [Group G] [Fintype G]
   sum_sq : ∑ lam, d lam ^ 2 = Fintype.card G
   U : (Σ lam : Irr, Fin (d lam) × Fin (d lam)) → G → ℂ
 
+/-- For a group of order greater than one, the logarithm of the sum of the dimensions in
+`GroupFourierData`, divided by the logarithm of the group order, is at least one half
+[HallgrenHarrow2008]. -/
 lemma group_fourier_alpha_ge_half
     {G : Type} [Group G] [Fintype G] {Irr : Type} [Fintype Irr]
     (D : GroupFourierData G Irr) (hG : 1 < Fintype.card G) :
@@ -778,6 +867,8 @@ lemma group_fourier_alpha_ge_half
   rw [hhalf]
   exact hlog_le
 
+/-- The number of matrix-coordinate row indices in `GroupFourierData` equals the group order
+[HallgrenHarrow2008]. -/
 theorem group_fourier_row_card
     {G : Type} [Group G] [Fintype G] {Irr : Type} [Fintype Irr]
     (D : GroupFourierData G Irr) :
@@ -788,6 +879,9 @@ theorem group_fourier_row_card
   simp only [hsq]
   exact D.sum_sq
 
+/-- If the Fourier data satisfy the stated row-norm lower bound and the logarithmic dimension
+ratio is at most one, their array with a trivial auxiliary index is pseudo-dispersing with
+that ratio and `β = 1 / sqrt 2` [HallgrenHarrow2008]. -/
 theorem theorem11_fourier_pseudo_dispersing
     {G : Type} [Group G] [Fintype G] [DecidableEq G]
     {Irr : Type} [Fintype Irr] [DecidableEq Irr]
@@ -813,10 +907,14 @@ theorem theorem11_fourier_pseudo_dispersing
     · simp [IsUnitVector]
     · simpa using hrow a
 
+/-- The cyclic Fourier matrix on `ZMod N`, with phase `exp (2 * π * I * (a * x).val / N)` and
+normalization `1 / sqrt N`. -/
 noncomputable def cyclicQFT (N : ℕ) [NeZero N] (a x : ZMod N) : ℂ :=
   (1 / (Real.sqrt N : ℂ)) *
     Complex.exp (((2 * Real.pi * ((a * x).val : ℝ) / N : ℝ)) * Complex.I)
 
+/-- For nonzero `N`, each row of `cyclicQFT N` has sum of entry norms equal to `sqrt N`
+[HallgrenHarrow2008]. -/
 theorem cyclicQFT_row_norm (N : ℕ) [NeZero N] (a : ZMod N) :
     ∑ x : ZMod N, ‖cyclicQFT N a x‖ = Real.sqrt N := by
   have hNpos : (0:ℝ) < (N:ℝ) := by
@@ -833,6 +931,8 @@ theorem cyclicQFT_row_norm (N : ℕ) [NeZero N] (a : ZMod N) :
   rw [nsmul_eq_mul, mul_one_div, div_eq_iff (ne_of_gt hsqrt_pos)]
   nlinarith [Real.sq_sqrt hNpos.le]
 
+/-- For `N > 1` and `0 ≤ α ≤ 1`, the cyclic Fourier matrix is dispersing with parameters `α` and
+one [HallgrenHarrow2008]. -/
 theorem cyclicQFT_dispersing (N : ℕ) [NeZero N] {α : ℝ} (hα0 : 0 ≤ α) (hα1 : α ≤ 1)
     (hN : 1 < N) :
     IsDispersing (cyclicQFT N) α 1 := by
@@ -848,6 +948,8 @@ theorem cyclicQFT_dispersing (N : ℕ) [NeZero N] {α : ℝ} (hα0 : 0 ≤ α) (
     rw [cyclicQFT_row_norm]
     simp
 
+/-- For a finite nonnegative vector, the cube of its second moment is at most the square of its
+first moment times its fourth moment [HallgrenHarrow2008]. -/
 theorem l1_ge_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ x, 0 ≤ y x) :
     (∑ x, y x ^ 2) ^ 3 ≤ (∑ x, y x) ^ 2 * (∑ x, y x ^ 4) := by
   set A : ℝ := ∑ x, y x ^ 2 with hAdef
@@ -925,6 +1027,8 @@ theorem l1_ge_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ x, 
       exact le_of_mul_le_mul_left hkey hApos
     simpa only [← hAdef, ← hBdef, ← hDdef] using hdiv
 
+/-- If the fourth moment is at most `T` and `c` is positive, the number of coordinates with
+fourth power at least `c`, multiplied by `c`, is at most `T` [HallgrenHarrow2008]. -/
 theorem card_bad_of_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ x, 0 ≤ y x)
     {T c : ℝ} (hc : 0 < c) (hT : ∑ x, y x ^ 4 ≤ T) :
     ((Finset.univ.filter (fun x => c ≤ y x ^ 4)).card : ℝ) * c ≤ T := by
@@ -945,6 +1049,8 @@ theorem card_bad_of_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : �
   rw [h3] at h1
   exact le_trans h1 h2
 
+/-- A nonnegative vector on `ZMod N` with squared norm one and fourth moment at most `1 / (N * β
+^ 2)` has squared sum at least `N * β ^ 2` when `β` is positive [HallgrenHarrow2008]. -/
 theorem theorem12_random_circuits_dispersing
     (N : ℕ) [NeZero N] (hN : 1 ≤ N) {β : ℝ} (hβ : 0 < β)
     (y : ZMod N → ℝ) (hy : ∀ x, 0 ≤ y x) (hunit : ∑ x, y x ^ 2 = 1)
@@ -980,11 +1086,17 @@ theorem theorem12_random_circuits_dispersing
   rw [heq] at h2
   simpa using h2
 
+/-- A string of `n` Pauli labels represented by a function from `Fin n` to `Fin 4`. -/
 abbrev PauliString (n : ℕ) := Fin n → Fin 4
 
+/-- The Pauli weight equal to `1 / 2 ^ n` at the zero string and `1 / (4 ^ n + 2 ^ n)` at every
+nonzero string. -/
 noncomputable def stationaryWeight (n : ℕ) (p : PauliString n) : ℝ :=
   if p = 0 then (1:ℝ) / (2:ℝ)^n else 1 / ((4:ℝ)^n + (2:ℝ)^n)
 
+/-- The linear update averaging over ordered distinct coordinate pairs, fixing a zero pair and
+replacing a nonzero pair uniformly among its fifteen nonzero values. For fewer than two
+coordinates, the update is the identity [HallgrenHarrow2008]. -/
 noncomputable def randomCircuitStep (n : ℕ) (μ : PauliString n → ℝ) : PauliString n → ℝ :=
   fun q =>
     if n < 2 then μ q
@@ -1000,6 +1112,8 @@ noncomputable def randomCircuitStep (n : ℕ) (μ : PauliString n → ℝ) : Pau
                else 0))
         else 0
 
+/-- The proposed Pauli weights equal `1 / 2 ^ n` at zero and `1 / (4 ^ n + 2 ^ n)` at every
+nonzero string [HallgrenHarrow2008]. -/
 theorem lemma13_stationary_values (n : ℕ) :
     stationaryWeight n 0 = (1:ℝ) / (2:ℝ)^n ∧
       ∀ p : PauliString n, p ≠ 0 →
@@ -1009,6 +1123,7 @@ theorem lemma13_stationary_values (n : ℕ) :
   · intro p hp
     simp [stationaryWeight, hp]
 
+/-- The proposed Pauli weights sum to one [HallgrenHarrow2008]. -/
 theorem stationaryWeight_sum (n : ℕ) :
     ∑ p : PauliString n, stationaryWeight n p = 1 := by
   classical
@@ -1051,6 +1166,8 @@ theorem stationaryWeight_sum (n : ℕ) :
   ring_nf
   rw [hpow]
 
+/-- For `n ≥ 2`, the proposed Pauli weights are positive on nonzero strings, sum to one, and
+assign weight `1 / 2 ^ n` to zero [HallgrenHarrow2008]. -/
 theorem lemma13_markov_chain_properties (n : ℕ) (hn : 2 ≤ n) :
     (∀ p : PauliString n, p ≠ 0 → 0 < stationaryWeight n p) ∧
     (∑ p : PauliString n, stationaryWeight n p = 1) ∧
@@ -1061,6 +1178,9 @@ theorem lemma13_markov_chain_properties (n : ℕ) (hn : 2 ≤ n) :
     positivity
   · simp [stationaryWeight]
 
+/-- For fixed `c ≥ 2` and `0 < δ ≤ 1`, the query recurrence satisfies the stated polynomial
+bound, and the assumed bounds on the two classical correction terms imply the stated upper
+bound on `p` [HallgrenHarrow2008]. -/
 theorem theorem2_superpolynomial_speedup
     (c : ℕ) (hc : 2 ≤ c) {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     (∀ n k : ℕ, c ≤ n → 2 ^ k ≤ n → findQueryCount c k ≤ n ^ (c + 1)) ∧

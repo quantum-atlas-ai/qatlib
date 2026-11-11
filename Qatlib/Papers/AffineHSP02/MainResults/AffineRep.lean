@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AffineHSP02.MainResults.AffineGroup
 import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
 
+/-!
+# A phase-permutation representation of the affine group
+
+Defines `affineRep` on complex functions on `ZMod p` by a multiplicative permutation of indices
+and an additive-character phase. The module gives its matrix entries on delta functions and
+specializes the action to translations and pure multipliers. See [MooreEtAl2002].
+
+## Main statements
+
+* `affineRep_apply`: the coordinate formula for the representation.
+* `affineRep_matrix_entry`: the phase-permutation matrix entries.
+* `affineRep_mult_delta`: multipliers permute delta functions by the inverse multiplier.
+
+## References
+
+* [Moore et al., 2002][MooreEtAl2002]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -15,9 +33,12 @@ namespace Qatlib.Papers.AffineHSP02.MainResults
 
 open HarmonicCore (qroot)
 
+/-- The delta function at `j`, equal to one at `j` and zero at every other residue. -/
 def delta (p : ℕ) [DecidableEq (ZMod p)] (j : ZMod p) : ZMod p → ℂ :=
   fun k => if k = j then 1 else 0
 
+/-- The complex linear map sending `f j` to the additive-character phase at `g.b * j` times `f
+(g.a * j)`. -/
 noncomputable def affineRepLM (p : ℕ) [NeZero p] (g : Aff p) :
     (ZMod p → ℂ) →ₗ[ℂ] (ZMod p → ℂ) where
   toFun f j := (ZMod.stdAddChar (g.b * j) : ℂ) * f ((g.a : ZMod p) * j)
@@ -31,11 +52,14 @@ noncomputable def affineRepLM (p : ℕ) [NeZero p] (g : Aff p) :
     simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply]
     ring
 
+/-- The coordinate formula for the linear map `affineRepLM p g`. -/
 theorem affineRepLM_apply (p : ℕ) [NeZero p] (g : Aff p) (f : ZMod p → ℂ)
     (j : ZMod p) :
     affineRepLM p g f j = (ZMod.stdAddChar (g.b * j) : ℂ) * f ((g.a : ZMod p) * j) :=
   rfl
 
+/-- The affine group representation on complex functions on `ZMod p` defined by phases and
+multiplication of the argument. -/
 noncomputable def affineRep (p : ℕ) [NeZero p] :
     Aff p →* ((ZMod p → ℂ) →ₗ[ℂ] (ZMod p → ℂ)) where
   toFun := affineRepLM p
@@ -68,10 +92,14 @@ noncomputable def affineRep (p : ℕ) [NeZero p] :
     rw [harg]
     ring
 
+/-- The value of `affineRep p g f` at `j` is the standard additive character at `g.b * j` times
+`f (g.a * j)`. -/
 theorem affineRep_apply (p : ℕ) [NeZero p] (g : Aff p) (f : ZMod p → ℂ) (j : ZMod p) :
     affineRep p g f j = (ZMod.stdAddChar (g.b * j) : ℂ) * f ((g.a : ZMod p) * j) :=
   rfl
 
+/-- The matrix entry in row `j` and delta-function column `k` is the phase at `g.b * j` if `k =
+g.a * j`, and zero otherwise. -/
 theorem affineRep_matrix_entry (p : ℕ) [NeZero p] [DecidableEq (ZMod p)] (g : Aff p)
     (j k : ZMod p) :
     affineRep p g (delta p k) j =
@@ -82,18 +110,22 @@ theorem affineRep_matrix_entry (p : ℕ) [NeZero p] [DecidableEq (ZMod p)] (g : 
   · rw [if_pos h, if_pos h.symm, mul_one]
   · rw [if_neg h, if_neg (fun h' => h h'.symm), mul_zero]
 
+/-- A translation acts by multiplying the value at `j` by the additive-character phase at `b *
+j`. -/
 theorem affineRep_trans_apply (p : ℕ) [NeZero p] (b : ZMod p) (f : ZMod p → ℂ)
     (j : ZMod p) :
     affineRep p (Aff.trans b) f j = (ZMod.stdAddChar (b * j) : ℂ) * f j := by
   rw [affineRep_apply]
   simp
 
+/-- A pure multiplier acts by replacing the argument `j` by `a * j`. -/
 theorem affineRep_mult_apply (p : ℕ) [NeZero p] (a : (ZMod p)ˣ) (f : ZMod p → ℂ)
     (j : ZMod p) :
     affineRep p (Aff.mult a) f j = f ((a : ZMod p) * j) := by
   rw [affineRep_apply]
   simp
 
+/-- A pure multiplier sends the delta function at `k` to the delta function at `a⁻¹ * k`. -/
 theorem affineRep_mult_delta (p : ℕ) [NeZero p] [DecidableEq (ZMod p)]
     (a : (ZMod p)ˣ) (k : ZMod p) :
     affineRep p (Aff.mult a) (delta p k) =

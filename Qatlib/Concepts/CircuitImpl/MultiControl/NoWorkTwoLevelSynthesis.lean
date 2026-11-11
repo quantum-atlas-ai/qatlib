@@ -10,6 +10,35 @@ import Qatlib.Foundations.PureStateMath.Tensor
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unitary
+
+/-!
+# Synthesis without work qubits
+
+This module constructs exact local gate tables for controlled one-qubit unitaries and two-level
+instructions, using the elementary-gate synthesis framework of [BarencoEtAl1995]. It develops
+Boolean prefix computations with borrowed bits and derives explicit gate bounds for
+implementations without work qubits and with one clean ancillary qubit.
+
+The instruction tables combine into exact synthesis of arbitrary unitaries on nonempty qubit
+registers. The final comparison theorem supplies implementations of the same unitary both
+without work qubits and in a clean frame.
+
+## Main statements
+
+* `no_work_multi_unitary_control_local_table_and_cost`: quadratic gate bound for a controlled
+  one-qubit unitary without work qubits.
+* `single_ancilla_known_control_local_table_and_cost`: linear gate bound using one clean
+  ancillary qubit.
+* `known_two_level_no_work_local_implementation`: cubic gate bound for a legal two-level
+  instruction.
+* `known_unitary_no_work_actual_local_synthesis`: exact synthesis with at most `768*(n+1)^3*4^n`
+  gates for `1 ≤ n`.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,24 +58,29 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The equivalence identifying a one-qubit register with its Boolean value. -/
 def noWorkOneBitEquiv : Reg 1 ≃ Bool where
   toFun x := x 0
   invFun b := fun _ => b
   left_inv x := by funext i; have : i = 0 := Subsingleton.elim _ _; simp [this]
   right_inv _ := rfl
 
+/-- Splits an `(n+1)`-qubit register into `n` control bits and a target bit. -/
 def noWorkControlSplit (n : ℕ) : Reg (n+1) ≃ (Reg n × Bool) :=
   (regAppendEquiv n 1).trans (Equiv.prodCongr (Equiv.refl _) noWorkOneBitEquiv)
 
+/-- Splits the register into control bits, a target bit, and a one-qubit ancillary register. -/
 def singleAncillaSplit (n : ℕ) : Reg (n+1+1) ≃ ((Reg n × Bool) × Reg 1) :=
   (regAppendEquiv (n+1) 1).trans
     (Equiv.prodCongr (noWorkControlSplit n) (Equiv.refl _))
 
+/-- Embeds a control-target state by adjoining an ancillary qubit in the false basis state. -/
 noncomputable def singleAncillaEmbed (n : ℕ) (ψ : QState (Reg n × Bool)) :
     QState (Reg (n+1+1)) :=
   relabelState (singleAncillaSplit n).symm
     (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket (fun _ : Fin 1 => false)))
 
+/-- The inverse control-target splitting is the data-register equivalence `knownDataEquiv`. -/
 theorem noWorkControlSplit_symm_data (n : ℕ) :
     (noWorkControlSplit n).symm = knownDataEquiv n := by
   apply Equiv.ext
@@ -58,6 +92,7 @@ theorem noWorkControlSplit_symm_data (n : ℕ) :
     exact (knownDataEquiv_control n x b i).symm
   · exact (knownDataEquiv_target n x b).symm
 
+/-- Every unitary matrix on a finite nonempty index type possesses a unitary square root. -/
 theorem noWork_unitary_square_root {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (U : Matrix I I ℂ) (hU : U ∈ unitaryGroup I ℂ) :
     ∃ V : Matrix I I ℂ, V ∈ unitaryGroup I ℂ ∧ V * V = U := by
@@ -93,6 +128,7 @@ theorem noWork_unitary_square_root {I : Type} [Fintype I] [DecidableEq I] [Nonem
           Complex.norm_mul_exp_arg_mul_I z
       _ = U := cfc_id ℂ U hn
 
+/-- A gate on the unique wire equals the Boolean gate transported along `noWorkOneBitEquiv`. -/
 theorem noWork_one_wire_matrix (U : Matrix Bool Bool ℂ) :
     wireGate 1 0 U = relabelGate noWorkOneBitEquiv.symm U := by
   ext x y
@@ -101,6 +137,7 @@ theorem noWork_one_wire_matrix (U : Matrix Bool Bool ℂ) :
   · intro k hk
     exact (hk (Subsingleton.elim _ _)).elim
 
+/-- Every one-qubit unitary has an exact legal one-gate table with no oracle queries. -/
 theorem noWork_one_bit_unitary_table (U : Matrix (Reg 1) (Reg 1) ℂ)
     (hU : U ∈ unitaryGroup (Reg 1) ℂ) :
     ∃ gs : List (ReflectionGate 1), reflectionLegal gs ∧ gs.length = 1 ∧
@@ -117,6 +154,8 @@ theorem noWork_one_bit_unitary_table (U : Matrix (Reg 1) (Reg 1) ℂ)
       reflectionGateMatrix, noWork_one_wire_matrix, B, relabelGate_relabelGate]
     rfl
 
+/-- Every legal two-level instruction on one qubit has an exact legal one-gate table with no
+oracle queries. -/
 theorem noWork_one_bit_two_level_table (g : TwoLevelInstruction (Reg 1))
     (hg : twoLevelLegal g) :
     ∃ gs : List (ReflectionGate 1), reflectionLegal gs ∧ gs.length = 1 ∧
@@ -124,15 +163,18 @@ theorem noWork_one_bit_two_level_table (g : TwoLevelInstruction (Reg 1))
       ∀ ψ : QState (Reg 1), Run 1 (reflectionCompile gs) ψ = twoLevelMatrix g *ᵥ ψ :=
   noWork_one_bit_unitary_table _ (twoLevelMatrix_unitary g hg)
 
+/-- The four-Toffoli gate sequence used for a three-control toggle with a borrowed wire. -/
 noncomputable def noWorkDirtyTripleSteps {N : ℕ} (a b c t w : Fin N) :
     List (ReflectionGate N) :=
   toffoliLocalSteps a b w ++ toffoliLocalSteps w c t ++
     toffoliLocalSteps a b w ++ toffoliLocalSteps w c t
 
+/-- The borrowed-wire three-control toggle sequence has length `60`. -/
 theorem noWorkDirtyTriple_length {N : ℕ} (a b c t w : Fin N) :
     (noWorkDirtyTripleSteps a b c t w).length = 60 := by
   simp [noWorkDirtyTripleSteps, toffoliLocalSteps_length]
 
+/-- The three-control toggle sequence is legal when its five wires are pairwise distinct. -/
 theorem noWorkDirtyTriple_legal {N : ℕ} (a b c t w : Fin N)
     (h : List.Pairwise (· ≠ ·) [a,b,c,t,w]) :
     reflectionLegal (noWorkDirtyTripleSteps a b c t w) := by
@@ -151,6 +193,8 @@ theorem noWorkDirtyTriple_legal {N : ℕ} (a b c t w : Fin N)
     toffoliLocalSteps_legal a b w hab haw hbw⟩,
     toffoliLocalSteps_legal w c t hcw.symm htw.symm hct⟩
 
+/-- On distinct wires, the sequence toggles the target by the conjunction of three controls and
+restores all other basis bits. -/
 theorem noWorkDirtyTriple_ket {N : ℕ} (a b c t w : Fin N)
     (h : List.Pairwise (· ≠ ·) [a,b,c,t,w]) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ)
@@ -188,6 +232,8 @@ theorem noWorkDirtyTriple_ket {N : ℕ} (a b c t w : Fin N)
         Function.update_of_ne hbt]
     · simp [Function.update_of_ne hkt, Function.update_of_ne hkw]
 
+/-- The three-control sequence acts on any state by linearly extending its target-toggle action
+on basis registers, assuming distinct wires. -/
 theorem noWorkDirtyTriple_state {N : ℕ} (a b c t w : Fin N)
     (h : List.Pairwise (· ≠ ·) [a,b,c,t,w]) (ψ : QState (Reg N)) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ)
@@ -199,6 +245,8 @@ theorem noWorkDirtyTriple_state {N : ℕ} (a b c t w : Fin N)
   intro x _
   rw [run_reflectionCompile_smul, noWorkDirtyTriple_ket a b c t w h x]
 
+/-- An uncontrolled known one-qubit unitary has an exact legal one-gate, query-free
+implementation under the control-target relabeling. -/
 theorem noWork_zero_control_table (p : KnownQubitAngles) :
     ∃ gs : List (ReflectionGate 1), reflectionLegal gs ∧ gs.length = 1 ∧
       QueryCount (reflectionCompile gs) = 0 ∧ GateCount (reflectionCompile gs) = 1 ∧
@@ -222,20 +270,25 @@ theorem noWork_zero_control_table (p : KnownQubitAngles) :
       reflectionGateMatrix, hmat]
     exact applyGate_relabelGate _ _ _
 
+/-- Relabeling a basis ket gives the ket at the relabeled index. -/
 private theorem noWork_relabel_ket {I J : Type} [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (x : I) : relabelState e (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (e x) := by
   funext y
   simp [relabelState, Qatlib.Foundations.PureStateMath.Ket, Equiv.symm_apply_eq]
 
+/-- Relabeling states commutes with finite sums. -/
 private theorem noWork_relabel_sum {I J K : Type} [Fintype K]
     (e : I ≃ J) (φ : K → QState I) :
     relabelState e (∑ k, φ k) = ∑ k, relabelState e (φ k) := by
   funext y
   simp [relabelState]
 
+/-- Relabeling states commutes with complex scalar multiplication. -/
 private theorem noWork_relabel_smul {I J : Type} (e : I ≃ J)
     (z : ℂ) (ψ : QState I) : relabelState e (z • ψ) = z • relabelState e ψ := rfl
 
+/-- Updating the final wire of a joined control-target register changes only its target
+component. -/
 theorem noWorkControlJoin_update (n : ℕ) (x : Reg n) (b a : Bool) :
     Function.update ((noWorkControlSplit n).symm (x,b)) (Fin.last n) a =
       (noWorkControlSplit n).symm (x,a) := by
@@ -246,6 +299,8 @@ theorem noWorkControlJoin_update (n : ℕ) (x : Reg n) (b a : Bool) :
   · rw [Function.update_of_ne (by simp), knownDataEquiv_control,
       knownDataEquiv_control]
 
+/-- A superposition on the target wire of a joined register expands as the corresponding two
+basis kets. -/
 theorem noWorkControlJoin_wireState (n : ℕ) (x : Reg n) (b : Bool)
     (φ : QState Bool) :
     multiWireState (Fin.last n) ((noWorkControlSplit n).symm (x,b)) φ =
@@ -253,6 +308,8 @@ theorem noWorkControlJoin_wireState (n : ℕ) (x : Reg n) (b : Bool)
   simp only [multiWireState, noWorkControlJoin_update, Fintype.sum_bool]
   exact add_comm _ _
 
+/-- A singly controlled known one-qubit unitary has an exact legal six-gate, query-free
+implementation. -/
 theorem noWork_one_control_table (p : KnownQubitAngles) :
     ∃ gs : List (ReflectionGate 2), reflectionLegal gs ∧ gs.length = 6 ∧
       QueryCount (reflectionCompile gs) = 0 ∧ GateCount (reflectionCompile gs) = 6 ∧
@@ -296,20 +353,27 @@ theorem noWork_one_control_table (p : KnownQubitAngles) :
   rw [multiKnownGate_ket, noWork_relabel_sum]
   simp only [noWork_relabel_smul, noWork_relabel_ket]
 
+/-- The conjunction of the first `r` values of a Boolean sequence, with empty conjunction true. -/
 def noWorkPrefixAnd (c : ℕ → Bool) (r : ℕ) : Bool := (List.range r).all c
 
+/-- Extending a Boolean prefix by one bit conjoins the previous prefix value with that bit. -/
 @[simp] theorem noWorkPrefixAnd_succ (c : ℕ → Bool) (r : ℕ) :
     noWorkPrefixAnd c (r+1) = (noWorkPrefixAnd c r && c r) := by
   simp [noWorkPrefixAnd, List.range_succ]
 
+/-- Toggles dirty bit `r` by the conjunction of control bit `r+1` and dirty bit `r-1`. -/
 def noWorkDirtyPrefixStage (c : ℕ → Bool) (r : ℕ) (d : ℕ → Bool) : ℕ → Bool :=
   Function.update d r (d r ^^ (c (r+1) && d (r-1)))
 
+/-- The recursive Boolean transformation for accumulating control-prefix conjunctions in dirty
+bits. -/
 def noWorkDirtyPrefixBits (c : ℕ → Bool) : ℕ → (ℕ → Bool) → ℕ → Bool
   | 0, d => d
   | 1, d => Function.update d 0 (d 0 ^^ (c 0 && c 1))
   | r+2, d => noWorkDirtyPrefixStage c (r+1) (noWorkDirtyPrefixBits c (r+1) (noWorkDirtyPrefixStage c (r+1) d))
 
+/-- The prefix transformation toggles dirty bit `i < r` by the first `i+2` controls and leaves
+later dirty bits unchanged. -/
 theorem noWorkDirtyPrefixBits_spec (c d : ℕ → Bool) (r i : ℕ) :
     noWorkDirtyPrefixBits c r d i = if i < r then d i ^^ noWorkPrefixAnd c (i+2) else d i := by
   induction r using Nat.twoStepInduction generalizing d i with
@@ -340,6 +404,7 @@ theorem noWorkDirtyPrefixBits_spec (c d : ℕ → Bool) (r i : ℕ) :
       have he : (i < r+1) = (i < r+1+1) := propext (by omega)
       simp only [he, show r+1+1 = r+2 from by omega]
 
+/-- Applying the dirty-prefix Boolean transformation twice restores the original dirty bits. -/
 theorem noWorkDirtyPrefixBits_involutive (c : ℕ → Bool) (r : ℕ) :
     Function.Involutive (noWorkDirtyPrefixBits c r) := by
   intro d
@@ -347,6 +412,7 @@ theorem noWorkDirtyPrefixBits_involutive (c : ℕ → Bool) (r : ℕ) :
   rw [noWorkDirtyPrefixBits_spec, noWorkDirtyPrefixBits_spec]
   by_cases hi : i < r <;> simp [hi]
 
+/-- The recursive Toffoli gate sequence realizing the dirty-prefix transformation. -/
 noncomputable def noWorkDirtyPrefixSteps {N : ℕ} (c w : ℕ → Fin N) :
     ℕ → List (ReflectionGate N)
   | 0 => []
@@ -355,6 +421,7 @@ noncomputable def noWorkDirtyPrefixSteps {N : ℕ} (c w : ℕ → Fin N) :
       noWorkDirtyPrefixSteps c w (r+1) ++
       toffoliLocalSteps (c (r+2)) (w r) (w (r+1))
 
+/-- The dirty-prefix sequence has length `15*(2*r-1)`, with subtraction in the natural numbers. -/
 theorem noWorkDirtyPrefixSteps_length {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) :
     (noWorkDirtyPrefixSteps c w r).length = 15*(2*r-1) := by
   induction r using Nat.twoStepInduction with
@@ -365,9 +432,11 @@ theorem noWorkDirtyPrefixSteps_length {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) 
     have h : 1 ≤ 2*(r+1) := by omega
     omega
 
+/-- Toggles target wire `t` by the conjunction of wires `a` and `b` in a basis register. -/
 def noWorkToffoliUpdate {N : ℕ} (a b t : Fin N) (x : Reg N) : Reg N :=
   Function.update x t (x t ^^ (x a && x b))
 
+/-- The basis-register transformation induced by the recursive dirty-prefix Toffoli sequence. -/
 def noWorkDirtyPrefixTransform {N : ℕ} (c w : ℕ → Fin N) : ℕ → Reg N → Reg N
   | 0, x => x
   | 1, x => noWorkToffoliUpdate (c 0) (c 1) (w 0) x
@@ -375,10 +444,13 @@ def noWorkDirtyPrefixTransform {N : ℕ} (c w : ℕ → Fin N) : ℕ → Reg N �
       (noWorkDirtyPrefixTransform c w (r+1)
         (noWorkToffoliUpdate (c (r+2)) (w r) (w (r+1)) x))
 
+/-- Requires the used control wires and dirty wires to be separately injective and mutually
+disjoint. -/
 def noWorkDirtyPrefixLayout {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) : Prop :=
   Set.InjOn c (Set.Iio (r+1)) ∧ Set.InjOn w (Set.Iio r) ∧
     ∀ i < r+1, ∀ j < r, c i ≠ w j
 
+/-- A valid dirty-prefix layout remains valid when the prefix length is decreased. -/
 private theorem noWorkDirtyPrefixLayout_mono {N : ℕ} {c w : ℕ → Fin N} {r s : ℕ}
     (h : noWorkDirtyPrefixLayout c w r) (hs : s ≤ r) : noWorkDirtyPrefixLayout c w s := by
   refine ⟨?_,?_,?_⟩
@@ -391,6 +463,7 @@ private theorem noWorkDirtyPrefixLayout_mono {N : ℕ} {c w : ℕ → Fin N} {r 
   · intro i hi j hj
     exact h.2.2 i (by omega) j (by omega)
 
+/-- A valid dirty-prefix layout makes every gate in its sequence legal. -/
 theorem noWorkDirtyPrefixSteps_legal {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) : reflectionLegal (noWorkDirtyPrefixSteps c w r) := by
   induction r using Nat.twoStepInduction with
@@ -407,6 +480,8 @@ theorem noWorkDirtyPrefixSteps_legal {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     simp only [noWorkDirtyPrefixSteps,reflectionLegal_append]
     exact ⟨⟨ht,ih (noWorkDirtyPrefixLayout_mono h (by omega))⟩,ht⟩
 
+/-- Under the layout condition, the compiled dirty-prefix sequence maps each basis ket to the
+ket of `noWorkDirtyPrefixTransform`. -/
 theorem noWorkDirtyPrefixSteps_ket {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ)
@@ -426,6 +501,7 @@ theorem noWorkDirtyPrefixSteps_ket {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     rw [ht,ih (noWorkDirtyPrefixLayout_mono h (by omega)),ht]
     rfl
 
+/-- Boolean sequences agreeing on a prefix have equal conjunctions over that prefix. -/
 private theorem noWorkPrefixAnd_congr (c d : ℕ → Bool) (r : ℕ)
     (h : ∀ i < r, c i = d i) : noWorkPrefixAnd c r = noWorkPrefixAnd d r := by
   apply Bool.eq_iff_iff.mpr
@@ -438,6 +514,8 @@ private theorem noWorkPrefixAnd_congr (c d : ℕ → Bool) (r : ℕ)
     rw [h i hi]
     exact hall i hi
 
+/-- The dirty-prefix register transformation leaves every wire outside its used dirty wires
+unchanged. -/
 theorem noWorkDirtyPrefixTransform_outside {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (x : Reg N) (k : Fin N) (hk : ∀ j < r, k ≠ w j) :
     noWorkDirtyPrefixTransform c w r x k = x k := by
@@ -450,6 +528,8 @@ theorem noWorkDirtyPrefixTransform_outside {N : ℕ} (c w : ℕ → Fin N) (r : 
     rw [ih _ (fun j hj => hk j (by omega))]
     exact Function.update_of_ne (hk (r+1) (by omega)) _ _
 
+/-- Under the layout condition, dirty wire `i < r` is toggled by the conjunction of the first
+`i+2` control bits. -/
 theorem noWorkDirtyPrefixTransform_flag {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (x : Reg N) (i : ℕ) (hi : i < r) :
     noWorkDirtyPrefixTransform c w r x (w i) =
@@ -504,6 +584,7 @@ theorem noWorkDirtyPrefixTransform_flag {N : ℕ} (c w : ℕ → Fin N) (r : ℕ
       congr 1
       exact Function.update_of_ne hiw _ _
 
+/-- Under the layout condition, the dirty-prefix register transformation is an involution. -/
 theorem noWorkDirtyPrefixTransform_involutive {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) :
     Function.Involutive (noWorkDirtyPrefixTransform c w r) := by
@@ -526,6 +607,8 @@ theorem noWorkDirtyPrefixTransform_involutive {N : ℕ} (c w : ℕ → Fin N) (r
     rw [noWorkDirtyPrefixTransform_outside c w r _ k hout,
       noWorkDirtyPrefixTransform_outside c w r x k hout]
 
+/-- Under the layout condition, the dirty-prefix transformation commutes with updates to a wire
+outside all used controls and dirty wires. -/
 theorem noWorkDirtyPrefixTransform_update {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (t : Fin N)
     (hct : ∀ i < r+1, c i ≠ t) (hwt : ∀ j < r, w j ≠ t)
@@ -552,17 +635,22 @@ theorem noWorkDirtyPrefixTransform_update {N : ℕ} (c w : ℕ → Fin N) (r : �
         noWorkDirtyPrefixTransform_outside c w r x k hout,
         Function.update_of_ne hkt]
 
+/-- The gate sequence computing a controlled target toggle using a dirty-prefix computation and
+its repeated use. -/
 noncomputable def noWorkBorrowedAndSteps {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) :
     List (ReflectionGate N) :=
   toffoliLocalSteps (c (r+1)) (w (r-1)) t ++ noWorkDirtyPrefixSteps c w r ++
     toffoliLocalSteps (c (r+1)) (w (r-1)) t ++ noWorkDirtyPrefixSteps c w r
 
+/-- For `1 ≤ r`, the borrowed-AND sequence has exactly `60*r` gates. -/
 theorem noWorkBorrowedAndSteps_length {N : ℕ} (c w : ℕ → Fin N) (t : Fin N)
     (r : ℕ) (hr : 1 ≤ r) : (noWorkBorrowedAndSteps c w t r).length = 60*r := by
   simp only [noWorkBorrowedAndSteps,List.length_append,toffoliLocalSteps_length,
     noWorkDirtyPrefixSteps_length]
   omega
 
+/-- The borrowed-AND sequence is legal under the stated prefix-layout and wire-separation
+conditions with `1 ≤ r`. -/
 theorem noWorkBorrowedAndSteps_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N)
     (r : ℕ) (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -574,6 +662,8 @@ theorem noWorkBorrowedAndSteps_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N)
   simp only [noWorkBorrowedAndSteps,reflectionLegal_append]
   exact ⟨⟨⟨ht,hp⟩,ht⟩,hp⟩
 
+/-- Under the stated layout and separation conditions, the borrowed-AND sequence toggles the
+target by the first `r+2` controls and restores the remaining basis bits. -/
 theorem noWorkBorrowedAndSteps_ket {N : ℕ} (c w : ℕ → Fin N) (t : Fin N)
     (r : ℕ) (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -620,6 +710,8 @@ theorem noWorkBorrowedAndSteps_ket {N : ℕ} (c w : ℕ → Fin N) (t : Fin N)
   cases x t <;> cases x a <;> cases x b <;>
     cases noWorkPrefixAnd (fun i => x (c i)) (r+1) <;> rfl
 
+/-- Distinct control wires and `m-2` disjoint borrowed wires give a legal `m`-control
+target-toggle table of length at most `60*m+1`. -/
 theorem noWork_many_borrowed_and_table {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-2)))
     (hcw : ∀ i < m, ∀ j < m-2, c i ≠ w j)
@@ -678,16 +770,21 @@ theorem noWork_many_borrowed_and_table {N : ℕ} (c w : ℕ → Fin N) (t : Fin 
       simpa only [hm] using!
         noWorkBorrowedAndSteps_ket c w t (m+1) (by omega) hprefix hlast htarget hwork x
 
+/-- A conjunction over a concatenated prefix factors into the conjunctions over its two
+consecutive parts. -/
 private theorem noWorkPrefixAnd_add (c : ℕ → Bool) (a b : ℕ) :
     noWorkPrefixAnd c (a+b) = (noWorkPrefixAnd c a && noWorkPrefixAnd (fun i => c (a+i)) b) := by
   simp [noWorkPrefixAnd,List.range_add,List.all_map,Function.comp_def]
 
+/-- Updating a wire outside the control prefix leaves the prefix conjunction unchanged. -/
 private theorem noWorkPrefixAnd_update {N : ℕ} (c : ℕ → Fin N) (m : ℕ)
     (t : Fin N) (hct : ∀ i < m, c i ≠ t) (x : Reg N) (b : Bool) :
     noWorkPrefixAnd (fun i => Function.update x t b (c i)) m =
       noWorkPrefixAnd (fun i => x (c i)) m :=
   noWorkPrefixAnd_congr _ _ _ (fun i hi => Function.update_of_ne (hct i hi) _ _)
 
+/-- Alternating the specified toggle tables as `as ++ bs ++ as ++ bs` toggles the target by `A x
+&& B x` and restores the borrowed wire, under the stated update-invariance assumptions. -/
 theorem noWork_dirty_and_combine {N : ℕ} (s t : Fin N) (hst : s ≠ t)
     (A B : Reg N → Bool)
     (ha : ∀ (x : Reg N) (v : Bool), A (Function.update x s v) = A x ∧
@@ -716,6 +813,8 @@ theorem noWork_dirty_and_combine {N : ℕ} (s t : Fin N) (hst : s ≠ t)
       simp [Function.update_of_ne hkt]
     · simp [Function.update_of_ne hkt,Function.update_of_ne hks]
 
+/-- With one borrowed wire disjoint from the controls and target, an `m`-control toggle has a
+legal table of length at most `120*(m+1)+4`. -/
 theorem noWork_single_dirty_and_table {N : ℕ} (c : ℕ → Fin N) (s t : Fin N) (m : ℕ)
     (hc : Set.InjOn c (Set.Iio m)) (hcs : ∀ i < m, c i ≠ s)
     (hct : ∀ i < m, c i ≠ t) (hst : s ≠ t) :
@@ -814,11 +913,14 @@ theorem noWork_single_dirty_and_table {N : ℕ} (c : ℕ → Fin N) (s t : Fin N
       congr 2
       rw [← hab,noWorkPrefixAnd_add]
 
+/-- Running a compiled reflection-gate list commutes with addition of states. -/
 private theorem noWork_run_add {N : ℕ} (gs : List (ReflectionGate N))
     (ψ φ : QState (Reg N)) : Run 1 (reflectionCompile gs) (ψ+φ) =
       Run 1 (reflectionCompile gs) ψ + Run 1 (reflectionCompile gs) φ := by
   simp only [run_reflectionCompile,ApplyGate,Matrix.mulVec_add]
 
+/-- A basis-correct AND-toggle table preserves an arbitrary superposition on a separate wire
+outside the controls. -/
 theorem noWork_and_table_wireState {N : ℕ} (c : ℕ → Fin N) (m : ℕ)
     (s t : Fin N) (hst : s ≠ t) (hct : ∀ i < m, c i ≠ t)
     (gs : List (ReflectionGate N))
@@ -835,6 +937,8 @@ theorem noWork_and_table_wireState {N : ℕ} (c : ℕ → Fin N) (m : ℕ)
     exact Function.update_comm hst.symm _ _ x
   simp only [multiWireState,noWork_run_add,run_reflectionCompile_smul,hgs,he]
 
+/-- A unitary on a target wire controlled by `m` distinct other wires has an exact legal table
+of length at most `256*(m+1)^2`. -/
 theorem noWork_multi_control_wire_table {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m, c i ≠ t)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
@@ -909,9 +1013,12 @@ theorem noWork_multi_control_wire_table {N : ℕ} (m : ℕ) (c : ℕ → Fin N) 
       · rw [← applyGate_mul,show V * Vᴴ = 1 from hV.2,applyGate_one]
       · rw [← applyGate_mul,hVV]
 
+/-- Selects the initial control wires in a register containing controls, a target, and `k`
+additional wires. -/
 noncomputable def noWorkControlWires (n k : ℕ) : ℕ → Fin (n+1+k) :=
   fun i => if h : i < n then ⟨i,by omega⟩ else ⟨n,by omega⟩
 
+/-- The selected control wires are injective on indices below `n`. -/
 private theorem noWorkControlWires_inj (n k : ℕ) :
     Set.InjOn (noWorkControlWires n k) (Set.Iio n) := by
   intro i hi j hj he
@@ -919,6 +1026,7 @@ private theorem noWorkControlWires_inj (n k : ℕ) :
   change j < n at hj
   simpa only [noWorkControlWires,dif_pos hi,dif_pos hj] using! congrArg Fin.val he
 
+/-- Every selected control wire with index below `n` differs from the target wire. -/
 private theorem noWorkControlWires_ne_target (n k : ℕ) (i : ℕ) (hi : i < n) :
     noWorkControlWires n k i ≠ (⟨n,by omega⟩ : Fin (n+1+k)) := by
   intro he
@@ -926,6 +1034,8 @@ private theorem noWorkControlWires_ne_target (n k : ℕ) (i : ℕ) (hi : i < n) 
   simp only [noWorkControlWires,dif_pos hi] at hv
   omega
 
+/-- The conjunction on the selected wires of a joined register equals `allControlTrue` on its
+control register. -/
 private theorem noWork_prefix_allControl (n : ℕ) (x : Reg n) (b : Bool) :
     noWorkPrefixAnd (fun i => (noWorkControlSplit n).symm (x,b) (noWorkControlWires n 0 i)) n =
       allControlTrue n x := by
@@ -945,6 +1055,9 @@ private theorem noWork_prefix_allControl (n : ℕ) (x : Reg n) (b : Bool) :
     rw [hcoord i hi]
     exact hall _
 
+/-- An `n`-controlled one-qubit unitary has an exact legal implementation without work qubits
+using at most `256*(n+1)^2` gates and no queries; the gate count equals the table length.
+See [BarencoEtAl1995] for elementary controlled-gate synthesis. -/
 theorem no_work_multi_unitary_control_local_table_and_cost (n : ℕ)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
     ∃ gs : List (ReflectionGate (n+1)), reflectionLegal gs ∧ gs.length ≤ 256*(n+1)^2 ∧
@@ -986,6 +1099,8 @@ theorem no_work_multi_unitary_control_local_table_and_cost (n : ℕ)
   rw [multiKnownGate_ket,noWork_relabel_sum]
   simp only [noWork_relabel_smul,noWork_relabel_ket]
 
+/-- An `n`-controlled known one-qubit unitary has an exact legal implementation without work
+qubits, with at most `256*(n+1)^2` gates, no queries, and gate count equal to table length. -/
 theorem no_work_multi_known_control_local_table_and_cost (n : ℕ) (p : KnownQubitAngles) :
     ∃ gs : List (ReflectionGate (n+1)), reflectionLegal gs ∧ gs.length ≤ 256*(n+1)^2 ∧
       QueryCount (reflectionCompile gs) = 0 ∧ GateCount (reflectionCompile gs) = gs.length ∧
@@ -995,6 +1110,8 @@ theorem no_work_multi_known_control_local_table_and_cost (n : ℕ) (p : KnownQub
   exact no_work_multi_unitary_control_local_table_and_cost n
     (knownQubitUnitary p) (knownQubitUnitary_unitary p)
 
+/-- A known unitary controlled by `m` distinct wires has an exact legal table of length at most
+`720*(m+1)+6` on states whose separate ancillary wire is false, preserving that wire. -/
 private theorem noWork_single_clean_wire_table {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hcs : ∀ i < m, c i ≠ s)
     (hct : ∀ i < m, c i ≠ t) (hst : s ≠ t) (p : KnownQubitAngles) :
@@ -1032,19 +1149,24 @@ private theorem noWork_single_clean_wire_table {N : ℕ} (m : ℕ) (c : ℕ → 
       (multiWireState t q (ApplyGate (if q s then knownQubitUnitary p else 1) φ)) = _
     rw [noWork_and_table_wireState c m s t hst hct as ha,hrestore,hq]
 
+/-- Joining controls, target, and ancillary register recovers each control bit on its designated
+wire. -/
 @[simp] theorem singleAncillaJoin_control (n : ℕ) (x : Reg n) (b : Bool)
     (v : Reg 1) (i : Fin n) :
     (singleAncillaSplit n).symm ((x,b),v) ⟨i.val,by omega⟩ = x i :=
   congrArg (fun z => z.1.1 i) ((singleAncillaSplit n).apply_symm_apply ((x,b),v))
 
+/-- Joining controls, target, and ancillary register places the target bit on wire `n`. -/
 @[simp] theorem singleAncillaJoin_target (n : ℕ) (x : Reg n) (b : Bool) (v : Reg 1) :
     (singleAncillaSplit n).symm ((x,b),v) ⟨n,by omega⟩ = b :=
   congrArg (fun z => z.1.2) ((singleAncillaSplit n).apply_symm_apply ((x,b),v))
 
+/-- Joining controls, target, and ancillary register places the ancillary bit on wire `n+1`. -/
 @[simp] theorem singleAncillaJoin_ancilla (n : ℕ) (x : Reg n) (b : Bool) (v : Reg 1) :
     (singleAncillaSplit n).symm ((x,b),v) ⟨n+1,by omega⟩ = v 0 :=
   congrArg (fun z => z.2 (0 : Fin 1)) ((singleAncillaSplit n).apply_symm_apply ((x,b),v))
 
+/-- Updating the target wire of a joined register changes only the target component. -/
 private theorem singleAncillaJoin_update_target (n : ℕ) (x : Reg n) (b a : Bool) (v : Reg 1) :
     Function.update ((singleAncillaSplit n).symm ((x,b),v)) (⟨n,by omega⟩ : Fin (n+1+1)) a =
       (singleAncillaSplit n).symm ((x,a),v) := by
@@ -1061,6 +1183,8 @@ private theorem singleAncillaJoin_update_target (n : ℕ) (x : Reg n) (b a : Boo
     rw [he,Function.update_of_ne (by intro h; have hv := congrArg Fin.val h; dsimp at hv; omega)]
     simp
 
+/-- A target-wire superposition in the joined register expands over the two possible target bits
+with fixed controls and ancillary register. -/
 private theorem singleAncillaJoin_wireState (n : ℕ) (x : Reg n) (b : Bool) (v : Reg 1)
     (φ : QState Bool) :
     multiWireState (⟨n,by omega⟩ : Fin (n+1+1)) ((singleAncillaSplit n).symm ((x,b),v)) φ =
@@ -1068,20 +1192,25 @@ private theorem singleAncillaJoin_wireState (n : ℕ) (x : Reg n) (b : Bool) (v 
   simp only [multiWireState,singleAncillaJoin_update_target,Fintype.sum_bool]
   exact add_comm _ _
 
+/-- Embedding a basis ket appends a false ancillary bit under `singleAncillaSplit`. -/
 @[simp] theorem singleAncillaEmbed_ket (n : ℕ) (x : Reg n × Bool) :
     singleAncillaEmbed n (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket ((singleAncillaSplit n).symm (x,fun _ => false)) := by
   rw [singleAncillaEmbed,tensorState_ket_ket,noWork_relabel_ket]
 
+/-- Embedding with one false ancillary bit commutes with scalar multiplication. -/
 @[simp] theorem singleAncillaEmbed_smul (n : ℕ) (z : ℂ) (ψ : QState (Reg n × Bool)) :
     singleAncillaEmbed n (z • ψ) = z • singleAncillaEmbed n ψ := by
   funext x
   simp [singleAncillaEmbed,relabelState,TensorState,mul_assoc]
 
+/-- Embedding with one false ancillary bit commutes with finite sums. -/
 private theorem singleAncillaEmbed_sum {J : Type} [Fintype J] (n : ℕ)
     (φ : J → QState (Reg n × Bool)) : singleAncillaEmbed n (∑ j,φ j) = ∑ j,singleAncillaEmbed n (φ j) := by
   funext x
   simp [singleAncillaEmbed,relabelState,TensorState,Finset.sum_mul]
 
+/-- The one-ancillary-qubit embedding equals the prefix-wire embedding after control-target
+relabeling. -/
 private theorem singleAncillaEmbed_wire (n : ℕ) (ψ : QState (Reg n × Bool)) :
     singleAncillaEmbed n ψ = knownWireEmbed (knownPrefixWires (n+1) 1)
       (relabelState (noWorkControlSplit n).symm ψ) := by
@@ -1093,6 +1222,8 @@ private theorem singleAncillaEmbed_wire (n : ℕ) (ψ : QState (Reg n × Bool)) 
     noWork_relabel_ket,knownWireEmbed_smul,knownWireEmbed_ket,knownWireExtend_prefix]
   rfl
 
+/-- A legal control-target implementation with the stated linear bound lifts to a query-free
+implementation on the one-ancillary-qubit embedding with the same bound and exact action. -/
 private theorem singleAncilla_small_table (n : ℕ) (p : KnownQubitAngles)
     (gs : List (ReflectionGate (n+1))) (hgs : reflectionLegal gs)
     (hlen : gs.length ≤ 720*(n+1)+6)
@@ -1111,6 +1242,8 @@ private theorem singleAncilla_small_table (n : ℕ) (p : KnownQubitAngles)
   · intro ψ
     rw [singleAncillaEmbed_wire,knownWireProgram_embed e gs hgs,hr,← singleAncillaEmbed_wire]
 
+/-- An `n`-controlled known one-qubit unitary has an exact legal implementation using one false
+ancillary qubit, at most `720*(n+1)+6` gates, and no queries, restoring the ancillary qubit. -/
 theorem single_ancilla_known_control_local_table_and_cost (n : ℕ) (p : KnownQubitAngles) :
     ∃ gs : List (ReflectionGate (n+1+1)), reflectionLegal gs ∧ gs.length ≤ 720*(n+1)+6 ∧
       QueryCount (reflectionCompile gs) = 0 ∧ GateCount (reflectionCompile gs) = gs.length ∧
@@ -1178,6 +1311,8 @@ theorem single_ancilla_known_control_local_table_and_cost (n : ℕ) (p : KnownQu
   rw [multiKnownGate_ket,singleAncillaEmbed_sum]
   simp only [singleAncillaEmbed_smul,singleAncillaEmbed_ket]
 
+/-- A two-level unitary on the canonical controlled pair has an exact legal table of length at
+most `256*(k+1)^2` without extra wires. -/
 private theorem noWorkCanonicalPair_table (k : ℕ) (B : Matrix Bool Bool ℂ)
     (hB : B ∈ unitaryGroup Bool ℂ) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧ gs.length ≤ 256*(k+1)^2 ∧
@@ -1194,6 +1329,8 @@ private theorem noWorkCanonicalPair_table (k : ℕ) (B : Matrix Bool Bool ℂ)
   rw [noWorkControlSplit_symm_data] at hr
   rw [← hφ,hr,knownCanonicalPair_action]
 
+/-- A unitary two-level block on distinct `(k+1)`-bit addresses has an exact legal table of
+length at most `768*(k+2)^3`. -/
 private theorem noWorkPair_table (k : ℕ) (x y : Reg (k+1)) (hxy : x ≠ y)
     (B : Matrix Bool Bool ℂ) (hB : B ∈ unitaryGroup Bool ℂ) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧ gs.length ≤ 768*(k+2)^3 ∧
@@ -1227,6 +1364,8 @@ private theorem noWorkPair_table (k : ℕ) (x y : Reg (k+1)) (hxy : x ≠ y)
       run_reflectionCompile,hb,run_reflectionCompile,reflectionAdjoint_matrix as has]
     exact known_two_level_unitary_conjugate A hA x y _ _ hxy hpq hx hy B ψ
 
+/-- A unit-modulus phase at the all-true address has an exact legal table of length at most
+`256*(k+1)^2`. -/
 private theorem noWorkCanonicalPhase_table (k : ℕ) (z : ℂ) (hz : star z*z=1) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧ gs.length ≤ 256*(k+1)^2 ∧
       ∀ ψ : QState (Reg (k+1)), Run 1 (reflectionCompile gs) ψ =
@@ -1258,6 +1397,8 @@ private theorem noWorkCanonicalPhase_table (k : ℕ) (z : ℂ) (hz : star z*z=1)
   intro ψ
   rw [hr,hmat]
 
+/-- A unit-modulus phase at any `(k+1)`-bit address has an exact legal table of length at most
+`768*(k+2)^3`. -/
 private theorem noWorkPhase_table (k : ℕ) (x : Reg (k+1)) (z : ℂ) (hz : star z*z=1) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧ gs.length ≤ 768*(k+2)^3 ∧
       ∀ ψ : QState (Reg (k+1)), Run 1 (reflectionCompile gs) ψ = twoLevelMatrix (.phase x z) *ᵥ ψ := by
@@ -1281,6 +1422,8 @@ private theorem noWorkPhase_table (k : ℕ) (x : Reg (k+1)) (z : ℂ) (hz : star
       run_reflectionCompile,hb,run_reflectionCompile,reflectionAdjoint_matrix as has]
     exact known_two_level_phase_conjugate A hA x _ hx z ψ
 
+/-- For `1 ≤ n`, every legal two-level instruction on `n` qubits has an exact legal
+implementation without work qubits, using at most `768*(n+1)^3` gates and no queries. -/
 theorem known_two_level_no_work_local_implementation (n : ℕ) (hn : 1 ≤ n)
     (g : TwoLevelInstruction (Reg n)) (hg : twoLevelLegal g) :
     ∃ gs : List (ReflectionGate n), reflectionLegal gs ∧ gs.length ≤ 768*(n+1)^3 ∧
@@ -1298,6 +1441,8 @@ theorem known_two_level_no_work_local_implementation (n : ℕ) (hn : 1 ≤ n)
     obtain ⟨gs,hgs,hlen,hr⟩ := hlocal
     exact ⟨gs,hgs,hlen,queryCount_reflectionCompile _,gateCount_reflectionCompile _,hr⟩
 
+/-- Legal instruction tables of length at most `C` combine into an exact legal table for a
+two-level program with length at most `C*ts.length`. -/
 theorem noWork_program_table_of_instruction_tables (n C : ℕ)
     (ts : List (TwoLevelInstruction (Reg n)))
     (hts : ∀ g ∈ ts, twoLevelLegal g)
@@ -1308,6 +1453,8 @@ theorem noWork_program_table_of_instruction_tables (n C : ℕ)
       ∀ ψ : QState (Reg n), Run 1 (reflectionCompile gs) ψ = twoLevelProgram ts *ᵥ ψ := by
   exact twoLevel_program_table_of_instruction_tables n n C (fun ψ => ψ) ts hts hlocal
 
+/-- Exact legal tables of length at most `768*(n+1)^3` for all legal two-level instructions
+yield an exact, query-free table for any unitary with at most `768*(n+1)^3*4^n` gates. -/
 theorem noWork_unitary_table_of_instruction_tables (n : ℕ)
     (hlocal : ∀ (g : TwoLevelInstruction (Reg n)), twoLevelLegal g →
       ∃ gs : List (ReflectionGate n), reflectionLegal gs ∧ gs.length ≤ 768*(n+1)^3 ∧
@@ -1319,6 +1466,8 @@ theorem noWork_unitary_table_of_instruction_tables (n : ℕ)
   exact known_unitary_table_of_instruction_tables n n (768*(n+1)^3)
     (fun ψ => ψ) hlocal U hU
 
+/-- A given exact no-work unitary table with the stated bound can be paired with an exact
+clean-frame table bounded by `128*(n+1)^2*4^n`, both using no queries. -/
 theorem noWork_clean_frame_comparison_of_table (n : ℕ)
     (U : Matrix (Reg n) (Reg n) ℂ) (hU : U ∈ unitaryGroup (Reg n) ℂ)
     (gs_nw : List (ReflectionGate n)) (hnw : reflectionLegal gs_nw)
@@ -1334,6 +1483,9 @@ theorem noWork_clean_frame_comparison_of_table (n : ℕ)
   exact ⟨gs_fr,hnw,hfr,hlen,hflen,queryCount_reflectionCompile _,
     queryCount_reflectionCompile _,fun ψ => ⟨hrun ψ,hf ψ⟩⟩
 
+/-- For `1 ≤ n`, every `n`-qubit unitary has an exact legal implementation without work qubits,
+with at most `768*(n+1)^3*4^n` gates and no queries. The construction uses two-level
+synthesis as in [BarencoEtAl1995]. -/
 theorem known_unitary_no_work_actual_local_synthesis (n : ℕ) (hn : 1 ≤ n)
     (U : Matrix (Reg n) (Reg n) ℂ) (hU : U ∈ unitaryGroup (Reg n) ℂ) :
     ∃ gs : List (ReflectionGate n), reflectionLegal gs ∧ gs.length ≤ 768*(n+1)^3*4^n ∧
@@ -1344,6 +1496,8 @@ theorem known_unitary_no_work_actual_local_synthesis (n : ℕ) (hn : 1 ≤ n)
   obtain ⟨gs,hgs,hlen,_,_,hr⟩ := known_two_level_no_work_local_implementation n hn g hg
   exact ⟨gs,hgs,hlen,hr⟩
 
+/-- For `1 ≤ n`, every unitary has query-free legal no-work and clean-frame implementations of
+the same action, with respective bounds `768*(n+1)^3*4^n` and `128*(n+1)^2*4^n`. -/
 theorem no_work_and_clean_frame_same_unitary_consumer (n : ℕ) (hn : 1 ≤ n)
     (U : Matrix (Reg n) (Reg n) ℂ) (hU : U ∈ unitaryGroup (Reg n) ℂ) :
     ∃ gs_nw : List (ReflectionGate n), ∃ gs_fr : List (ReflectionGate (n+(n+1))),

@@ -7,11 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CoherentCompute.ProjectedError.RestrictedUncompute
 import Qatlib.Foundations.CoherentCompute.ProjectedError.ProjectionSuccess
 
+/-!
+# Projected coherent uncomputation
+
+`projected_coherent_uncompute` bounds the operator error of compute–control–uncompute on a
+finite family of input components. `projected_uncompute_of_unit_success` derives the same bound
+from success probabilities on unit vectors in projected input subspaces, using an isometric
+computation and contractive operators. The development follows [Kitaev1995].
+
+## Main statements
+
+* `projected_coherent_uncompute`: bounds the error by `2 * sqrt (card Ω * ε)`.
+* `projected_uncompute_of_unit_success`: obtains the bound from subspace success estimates.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.Assembly
 
+/-- Under the left-inverse, contraction, commutation, and component-error hypotheses,
+compute–control–uncompute differs from the componentwise target by at most `2 * sqrt (card Ω
+* ε)` in operator norm. -/
 theorem projected_coherent_uncompute
     {E Ω Θ : Type} [NormedAddCommGroup E] [NormedSpace ℂ E] [Fintype Ω]
     (U V T : E →L[ℂ] E) (P : Ω → E →L[ℂ] E) (Q : Θ → E →L[ℂ] E)
@@ -28,6 +49,10 @@ theorem projected_coherent_uncompute
       2 * Real.sqrt ((Fintype.card Ω : ℝ) * ε) :=
   Qatlib.Foundations.CoherentCompute.ProjectedError.coherentUncomputeRestrictedBound U V T P Q S F ε hε hVU hV hT hS hcomm hcontrolled hpyth hcompute
 
+/-- For an isometric computation with success at least `1 - ε` on each unit input in the
+specified subspaces, the stated contraction and control hypotheses yield a projected
+uncomputation error at most `2 * sqrt (card Ω * ε)`. This gives a subspace form of the
+estimate underlying [Kitaev, 1995, Theorem 2][Kitaev1995]. -/
 theorem projected_uncompute_of_unit_success
     {E Ω Θ : Type} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [Fintype Ω]
     (W : Ω → Submodule ℂ E) (K : Θ → Submodule ℂ E)

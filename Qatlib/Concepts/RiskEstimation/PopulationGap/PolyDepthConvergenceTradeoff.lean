@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.PolyDepthConvergenceTradeoff
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceRateQuan
+
+/-!
+# Polynomial readout convergence tradeoff
+
+This module proves `riskPolyDepthConvergenceTradeoff`, choosing a positive scale, a phase
+estimation size, and finite precisions so that the combined readout error is at most a
+prescribed tolerance. The construction balances the polynomial approximation remainder against
+readout resolution in the quantum risk setting of [WoernerEgger2019].
+
+## Main statement
+
+* `riskPolyDepthConvergenceTradeoff`: the error target is achievable with phase estimation size
+  bounded by `8 * π * ε ^ (-(2 * u + 3) / (2 * u + 2))`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,9 @@ noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 open scoped BigOperators
 
+/-- For each order `u` and tolerance `0 < ε ≤ 1`, supplies scale and precision parameters
+meeting the readout error target with phase estimation size at most `8 * π * ε ^ (-(2 * u +
+3) / (2 * u + 2))`. -/
 theorem riskPolyDepthConvergenceTradeoff : PolyDepthConvergenceTradeoff := by
   intro u ε hε hε1
   let α : ℝ := 1 / (2 * u + 2)

@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+
+/-!
+# Stopping events for instrument executions
+
+`Leaf` and `pathInstrument` encode finite executions of a controlled quantum instrument,
+including terminated paths and paths that exhaust their step budget. Path probabilities and
+conditional states reconstruct each branch, and event maps collect paths by output and
+accumulated charge.
+
+The exact halting layers form a bounded series of completely positive maps. Their sum
+`haltEventLimit` is trace nonincreasing, and finite approximations converge even after adjoining
+a finite reference system. See [Watrous2018].
+
+## Main statements
+
+* `path_reconstruct`: recover an unnormalized path branch from its probability and state.
+* `finite_event_correspondence`: relate event maps, event probabilities, and normalized states.
+* `haltEventLimit_reference_tendsto`: convergence after tensoring with a reference identity.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,10 +51,12 @@ noncomputable section
 
 variable {C L O : Type} [Fintype L] {D : ℕ}
 
+/-- Finite execution paths of depth at most `n`, stopping when `dest` returns an output. -/
 def Leaf (dest : C→L→O⊕C) : ℕ→C→Type
   | 0,_ => Unit
   | n+1,c => (l : L) × (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c')
 
+/-- The finite enumeration of depth-bounded execution paths. -/
 @[reducible] def leafFintype (dest : C→L→O⊕C) : (n : ℕ) → (c : C) → Fintype (Leaf dest n c)
   | 0,_ => inferInstanceAs (Fintype Unit)
   | n+1,c => by
@@ -43,18 +69,23 @@ def Leaf (dest : C→L→O⊕C) : ℕ→C→Type
 
 instance (dest : C→L→O⊕C) (n : ℕ) (c : C) : Fintype (Leaf dest n c) := leafFintype dest n c
 
+/-- The finite enumeration of the continuation below a terminal output or control state. -/
 @[reducible] def childFintype (dest : C→L→O⊕C) (n : ℕ) (b : O⊕C) :
     Fintype (match b with | .inl _ => Unit | .inr c' => Leaf dest n c') :=
   match b with
   | .inl _ => inferInstanceAs (Fintype Unit)
   | .inr c' => leafFintype dest n c'
 
+/-- The single-outcome instrument whose branch is the identity map. -/
 def identityInstrument (D : ℕ) : Instrument Unit D D :=
   Instrument.ofKraus (fun _ => (1 : Operator D)) (by simp)
 
+/-- The unique branch of `identityInstrument` leaves every operator unchanged. -/
 @[simp] theorem identityInstrument_branch (ρ : Operator D) : (identityInstrument D).branch () ρ=ρ := by
   simp [identityInstrument,Instrument.ofKraus_branch]
 
+/-- The instrument obtained by composing controlled branches along all paths up to a fixed
+depth. -/
 def pathInstrument (I : C→Instrument L D D) (dest : C→L→O⊕C) :
     (n : ℕ) → (c : C) → Instrument (Leaf dest n c) D D
   | 0,_ => identityInstrument D
@@ -67,6 +98,7 @@ def pathInstrument (I : C→Instrument L D D) (dest : C→L→O⊕C) :
       | .inl _ => identityInstrument D
       | .inr c' => pathInstrument I dest n c')
 
+/-- The terminal output or remaining control state at the end of a finite path. -/
 def leafResult (dest : C→L→O⊕C) : (n : ℕ)→(c : C)→Leaf dest n c→O⊕C
   | 0,c,_ => .inr c
   | n+1,c,⟨l,p⟩ =>
@@ -74,6 +106,7 @@ def leafResult (dest : C→L→O⊕C) : (n : ℕ)→(c : C)→Leaf dest n c→O�
       | .inl out => fun _ => .inl out
       | .inr c' => leafResult dest n c') p
 
+/-- The sum of branch prices accumulated along a finite path. -/
 def leafCharge (dest : C→L→O⊕C) (price : C→L→ℕ) : (n : ℕ)→(c : C)→Leaf dest n c→ℕ
   | 0,_,_ => 0
   | n+1,c,⟨l,p⟩ => price c l +
@@ -81,6 +114,7 @@ def leafCharge (dest : C→L→O⊕C) (price : C→L→ℕ) : (n : ℕ)→(c : C
       | .inl _ => fun _ => 0
       | .inr c' => leafCharge dest price n c') p
 
+/-- The list of branch labels encountered along a finite path. -/
 def leafHistory (dest : C→L→O⊕C) : (n : ℕ)→(c : C)→Leaf dest n c→List L
   | 0,_,_ => []
   | n+1,c,⟨l,p⟩ => l::
@@ -88,6 +122,7 @@ def leafHistory (dest : C→L→O⊕C) : (n : ℕ)→(c : C)→Leaf dest n c→L
       | .inl _ => fun _ => []
       | .inr c' => leafHistory dest n c') p
 
+/-- The state obtained by successive normalized branch updates along a finite path. -/
 def pathPost (I : C→Instrument L D D) (dest : C→L→O⊕C) :
     (n : ℕ)→(c : C)→ClockDensity D→Leaf dest n c→ClockDensity D
   | 0,_,ρ,_ => ρ
@@ -96,6 +131,7 @@ def pathPost (I : C→Instrument L D D) (dest : C→L→O⊕C) :
       | .inl _ => fun _ => clockConditional (I c) ρ l
       | .inr c' => pathPost I dest n c' (clockConditional (I c) ρ l)) p
 
+/-- The product of the successive branch probabilities along a finite path. -/
 def pathProbability (I : C→Instrument L D D) (dest : C→L→O⊕C) :
     (n : ℕ)→(c : C)→ClockDensity D→Leaf dest n c→ℝ
   | 0,_,_,_ => 1
@@ -104,6 +140,8 @@ def pathProbability (I : C→Instrument L D D) (dest : C→L→O⊕C) :
       | .inl _ => fun _ => 1
       | .inr c' => pathProbability I dest n c' (clockConditional (I c) ρ l)) p
 
+/-- Multiplying a path's final state by its probability recovers the corresponding unnormalized
+instrument branch. -/
 theorem path_reconstruct (I : C→Instrument L D D) (dest : C→L→O⊕C)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (p : Leaf dest n c) :
     (pathProbability I dest n c ρ p : ℂ) • (pathPost I dest n c ρ p).val =
@@ -134,6 +172,8 @@ theorem path_reconstruct (I : C→Instrument L D D) (dest : C→L→O⊕C)
         rw [Complex.ofReal_mul,mul_smul,ih c' (clockConditional (I c) ρ l) q]
     exact hchild (dest c l) p
 
+/-- The recursively computed path probability equals the probability of the corresponding
+`pathInstrument` outcome. -/
 theorem pathProbability_eq (I : C→Instrument L D D) (dest : C→L→O⊕C)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (p : Leaf dest n c) :
     pathProbability I dest n c ρ p = instrumentProb (pathInstrument I dest n c) ρ.val p := by
@@ -141,6 +181,8 @@ theorem pathProbability_eq (I : C→Instrument L D D) (dest : C→L→O⊕C)
   rw [Matrix.trace_smul,(pathPost I dest n c ρ p).property.2,smul_eq_mul,mul_one] at h
   exact congrArg Complex.re h
 
+/-- For a path of positive probability, the instrument's conditional state equals the
+recursively updated path state. -/
 theorem path_conditional (I : C→Instrument L D D) (dest : C→L→O⊕C)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (p : Leaf dest n c)
     (hp : 0 < instrumentProb (pathInstrument I dest n c) ρ.val p) :
@@ -152,21 +194,27 @@ theorem path_conditional (I : C→Instrument L D D) (dest : C→L→O⊕C)
 
 open Qatlib
 
+/-- The pair consisting of a path's final result and total charge. -/
 def leafRecord (dest : C→L→O⊕C) (price : C→L→ℕ) (n : ℕ) (c : C) (p : Leaf dest n c) : (O⊕C)×ℕ :=
   (leafResult dest n c p,leafCharge dest price n c p)
 
+/-- The sum of finite-path branches whose result and charge satisfy the specified event. -/
 def finiteEventMap (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) : Operator D→ₗ[ℂ]Operator D :=
   eventBranchMap (pathInstrument I dest n c) (fun p => Ev (leafRecord dest price n c p))
 
+/-- The probability of a finite-path event specified by final result and accumulated charge. -/
 def finiteEventProb (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : Operator D) (Ev : (O⊕C)×ℕ→Prop) : ℝ :=
   eventProb (pathInstrument I dest n c) ρ (fun p => Ev (leafRecord dest price n c p))
 
+/-- The normalized operator associated with a finite-path event. -/
 def finitePost (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : Operator D) (Ev : (O⊕C)×ℕ→Prop) : Operator D :=
   normalizedPost (pathInstrument I dest n c) ρ (fun p => Ev (leafRecord dest price n c p))
 
+/-- The normalized event operator is the probability-weighted sum of the positive-probability
+path states, with weights divided by the event probability. -/
 theorem finitePost_path_mixture (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (Ev : (O⊕C)×ℕ→Prop) :
     finitePost I dest price n c ρ.val Ev =
@@ -184,6 +232,9 @@ theorem finitePost_path_mixture (I : C→Instrument L D D) (dest : C→L→O⊕C
     rfl
   · rfl
 
+/-- The event map is its probability times its normalized operator, and its real trace is the
+event probability. Zero probability gives zero operators, while positive probability gives a
+density operator. -/
 theorem finite_event_correspondence (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (Ev : (O⊕C)×ℕ→Prop) :
     finiteEventMap I dest price n c Ev ρ.val =
@@ -194,6 +245,7 @@ theorem finite_event_correspondence (I : C→Instrument L D D) (dest : C→L→O
     (0 < finiteEventProb I dest price n c ρ.val Ev → IsDensityOperator (finitePost I dest price n c ρ.val Ev)) :=
   walkGoal_correspondence _ _ _ _ _ ρ.property _
 
+/-- Every finite-path event map is completely positive. -/
 theorem finite_event_cp (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) : CompletelyPositive (finiteEventMap I dest price n c Ev) := by
   unfold finiteEventMap eventBranchMap
@@ -201,6 +253,7 @@ theorem finite_event_cp (I : C→Instrument L D D) (dest : C→L→O⊕C) (price
   intro p _
   exact (pathInstrument I dest n c).cp p
 
+/-- Every finite-path event map is trace nonincreasing. -/
 theorem finite_event_tni (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) : TraceNonIncreasing (finiteEventMap I dest price n c Ev) := by
   intro ρ hρ
@@ -211,6 +264,8 @@ theorem finite_event_tni (I : C→Instrument L D D) (dest : C→L→O⊕C) (pric
   exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
     (fun p _ _ => instrumentProb_nonneg (pathInstrument I dest n c) hρ p)
 
+/-- A finite event map at successor depth splits into immediate halting branches and
+continuation maps with shifted charge. -/
 theorem finiteEventMap_succ (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) :
     finiteEventMap I dest price (n+1) c Ev =
@@ -262,6 +317,7 @@ theorem finiteEventMap_succ (I : C→Instrument L D D) (dest : C→L→O⊕C) (p
       (try dsimp only)
       simp only [finiteEventMap,eventBranchMap,LinearMap.sum_apply,Finset.sum_filter,LinearMap.comp_apply]
 
+/-- Selecting a single halted output and charge in the finite event map gives `mixedHaltMap`. -/
 theorem finite_event_mixedHaltMap [DecidableEq O] (I : C→Instrument L D D) (dest : C→L→O⊕C)
     (price : C→L→ℕ) (n : ℕ) (c : C) (o : O) (k : ℕ) :
     finiteEventMap I dest price n c (fun z => z=(Sum.inl o,k)) = mixedHaltMap I dest price n c o k := by
@@ -359,13 +415,16 @@ theorem finite_event_mixedHaltMap [DecidableEq O] (I : C→Instrument L D D) (de
         | inr c' => rfl
       · simp only [if_neg hfit,LinearMap.zero_apply]
 
+/-- The predicate selecting halted records whose output and charge satisfy `E`. -/
 def haltPredicate (E : O×ℕ→Prop) (z : (O⊕C)×ℕ) : Prop :=
   match z.1 with | .inl o => E (o,z.2) | .inr _ => False
 
+/-- The finite-depth map for halting with an output and charge satisfying `E`. -/
 def finiteHaltEvent (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (E : O×ℕ→Prop) : Operator D→ₗ[ℂ]Operator D :=
   finiteEventMap I dest price n c (haltPredicate E)
 
+/-- No halting event occurs with a zero step budget. -/
 theorem finiteHaltEvent_zero (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) : finiteHaltEvent I dest price 0 c E=0 := by
   simp only [finiteHaltEvent,finiteEventMap,eventBranchMap,Finset.sum_filter]
@@ -373,6 +432,8 @@ theorem finiteHaltEvent_zero (I : C→Instrument L D D) (dest : C→L→O⊕C) (
   intro p _
   simp [haltPredicate,leafRecord,leafResult]
 
+/-- The successor-depth halting map splits into immediate halts and continuations with the
+current branch price added to their charge. -/
 theorem finiteHaltEvent_succ (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (E : O×ℕ→Prop) :
     finiteHaltEvent I dest price (n+1) c E =
@@ -384,6 +445,8 @@ theorem finiteHaltEvent_succ (I : C→Instrument L D D) (dest : C→L→O⊕C) (
   intro l _
   cases he : dest c l <;> rfl
 
+/-- The map for halting after exactly `n + 1` steps with an output and total charge satisfying
+the event. -/
 def exactEventLayer (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ) :
     ℕ→C→(O×ℕ→Prop)→(Operator D→ₗ[ℂ]Operator D)
   | 0,c,E => ∑ l : L, match dest c l with
@@ -393,11 +456,13 @@ def exactEventLayer (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C
       | .inl _ => 0
       | .inr c' => (exactEventLayer I dest price n c' (fun z => E (z.1,price c l+z.2))).comp ((I c).branch l)
 
+/-- The zero linear map on operators is completely positive. -/
 theorem cp_zero : CompletelyPositive (0 : Operator D→ₗ[ℂ]Operator D) := by
   intro r X _
   change (0 : Matrix (Fin r×Fin D) (Fin r×Fin D) ℂ).PosSemidef
   exact Matrix.PosSemidef.zero
 
+/-- Each exact halting layer is completely positive. -/
 theorem exactEventLayer_cp (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (E : O×ℕ→Prop) : CompletelyPositive (exactEventLayer I dest price n c E) := by
   induction n generalizing c E with
@@ -420,6 +485,7 @@ theorem exactEventLayer_cp (I : C→Instrument L D D) (dest : C→L→O⊕C) (pr
     | inl out => exact cp_zero
     | inr c' => exact (ih c' (fun z => E (z.1,price c l+z.2))).comp ((I c).cp l)
 
+/-- Summing the first `N` exact halting layers gives the depth-`N` halting event map. -/
 theorem exactEventLayer_sum (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (N : ℕ) (c : C) (E : O×ℕ→Prop) :
     (∑ n ∈ Finset.range N, exactEventLayer I dest price n c E) = finiteHaltEvent I dest price N c E := by
@@ -440,6 +506,8 @@ theorem exactEventLayer_sum (I : C→Instrument L D D) (dest : C→L→O⊕C) (p
         (ih c' (fun z => E (z.1,price c l+z.2)))
       simpa only [add_zero,LinearMap.sum_apply,LinearMap.comp_apply] using! hh
 
+/-- The exact halting layers satisfy the trace-series bound required by
+`MixedClockSeries.TraceSeriesBound`. -/
 theorem exactEventLayer_bound (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) :
     MixedClockSeries.TraceSeriesBound (fun n => exactEventLayer I dest price n c E) := by
@@ -451,15 +519,18 @@ theorem exactEventLayer_bound (I : C→Instrument L D D) (dest : C→L→O⊕C) 
   rw [hh]
   exact finite_event_tni I dest price N c (haltPredicate E) hρ
 
+/-- The infinite sum of the exact halting layers for the specified output-and-charge event. -/
 def haltEventLimit (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) : Operator D→ₗ[ℂ]Operator D :=
   MixedClockSeries.cpSeriesLimit (fun n => exactEventLayer I dest price n c E)
     (fun n => exactEventLayer_cp I dest price n c E) (exactEventLayer_bound I dest price c E)
 
+/-- The limiting halting event map is completely positive. -/
 theorem haltEventLimit_cp (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) : CompletelyPositive (haltEventLimit I dest price c E) :=
   MixedClockSeries.cpSeriesLimit_completelyPositive _ _ _
 
+/-- Finite-depth halting maps converge pointwise on operators to `haltEventLimit`. -/
 theorem haltEventLimit_tendsto (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (ρ : Operator D) :
     Filter.Tendsto (fun N => finiteHaltEvent I dest price N c E ρ) Filter.atTop
@@ -468,6 +539,7 @@ theorem haltEventLimit_tendsto (I : C→Instrument L D D) (dest : C→L→O⊕C)
     (fun n => exactEventLayer_cp I dest price n c E) (exactEventLayer_bound I dest price c E) ρ
   simpa only [← LinearMap.sum_apply,exactEventLayer_sum] using! h
 
+/-- The limiting halting event map is trace nonincreasing. -/
 theorem haltEventLimit_tni (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) : TraceNonIncreasing (haltEventLimit I dest price c E) := by
   intro ρ hρ
@@ -476,6 +548,8 @@ theorem haltEventLimit_tni (I : C→Instrument L D D) (dest : C→L→O⊕C) (pr
   apply le_of_tendsto h
   exact Filter.Eventually.of_forall fun N => finite_event_tni I dest price N c (haltPredicate E) hρ
 
+/-- Finite-depth halting maps converge pointwise after tensoring with the identity on any finite
+reference system. -/
 theorem haltEventLimit_reference_tendsto (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (R : ℕ) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
     Filter.Tendsto (fun N => tensorLeft (finiteHaltEvent I dest price N c E) X) Filter.atTop

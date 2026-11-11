@@ -8,6 +8,35 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSq
 import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessExt
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Numerical state preparation from dense tables
+
+This module connects dense rational complex tables to `prepareMatrix` through the zero-extended
+amplitude table `tableAmps`. It bounds preparation error from entrywise approximation,
+constructs square-root amplitude tables for nonnegative rational weights, and treats positive
+total mass using `normTarget` and a rational inverse-square-root approximation.
+Finite-dimensional quantum state preparation is discussed in [NielsenChuang2010].
+
+`prepareChainCost` and `prepareChainBitCostNormalized` specify arithmetic cost models for table
+reads, squared-amplitude accumulation, and normalization bracket refinement. The accompanying
+theorems bound these expressions explicitly in the table size, precision parameter, and
+refinement count.
+
+## Main statements
+
+* `tablePrepare_state_error`: combines entrywise table error with circuit preparation error.
+* `bracketTablePrepare_state_error_width`: gives a precision-dependent square-root target bound.
+* `invSqrtFactor_spec`: bounds a rational approximation of the inverse square root of the mass.
+* `scaledTablePrepare_state_error_width`: controls normalized preparation using a positive mass
+  lower bound.
+* `prepareChainBitCostNormalized_le`: bounds the augmented arithmetic cost expression.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -34,30 +63,40 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 namespace output1
 
+/-- Extends a dense rational complex table to `Option (Fin D)` by assigning `ratZero` to `none`. -/
 def tableAmps {D : ℕ} (t : DenseTable D) : Option (Fin D) → RatComplex :=
   fun a =>
     match a with
     | none => ratZero
     | some i => t i
 
+/-- The extended table amplitude at `none` is `ratZero`. -/
 @[simp] theorem tableAmps_none {D : ℕ} (t : DenseTable D) :
     tableAmps t none = ratZero := rfl
 
+/-- The extended amplitude at `some i` is the original table entry `t i`. -/
 @[simp] theorem tableAmps_some {D : ℕ} (t : DenseTable D) (i : Fin D) :
     tableAmps t (some i) = t i := rfl
 
+/-- The modeled number of reads for a dense table of `D` entries. -/
 def tableReadCount (D : ℕ) : ℕ := D
 
+/-- The modeled dense-table read count is exactly `D`. -/
 theorem tableReadCount_eq (D : ℕ) : tableReadCount D = D := rfl
 
+/-- The extended amplitude index set `Option (Fin D)` contains `D + 1` elements. -/
 theorem tableMass_terms {D : ℕ} :
     (Finset.univ : Finset (Option (Fin D))).card = D + 1 := by
   simp [Fintype.card_option]
 
+/-- The extended table's rational squared-amplitude mass is the sum of the squared moduli of its
+entries. -/
 theorem tableMass_eq {D : ℕ} (t : DenseTable D) :
     rationalWeightMass (fun a => ratSq (tableAmps t a)) =
       ∑ a, ratSq (tableAmps t a) := rfl
 
+/-- For a normalized target vanishing at `none`, pointwise table error `η ≥ 0` with `sqrt (D +
+1) * η < 1` gives preparation error at most `32 * (D + 1) / 2^k + 2 * sqrt (D + 1) * η`. -/
 theorem tablePrepare_state_error {D : ℕ} (k : ℕ) (ψ : QState (Option (Fin D)))
     (hψ : ‖stateVector ψ‖ = 1) (hψ0 : ψ none = 0) (t : DenseTable D)
     {η : ℝ} (hη0 : 0 ≤ η)
@@ -72,6 +111,8 @@ theorem tablePrepare_state_error {D : ℕ} (k : ℕ) (ψ : QState (Option (Fin D
   | none => simp [ratToComplex, ratZero, hψ0, hη0]
   | some i => exact hη i
 
+/-- For `0 < ε ≤ 1`, pointwise table error at most `ε / (8 * sqrt (D + 1))` and precision
+`precisionFor D (ε / 2)` give state-preparation error at most `ε`. -/
 theorem tablePrepare_state_error_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1) (hψ0 : ψ none = 0)
     (t : DenseTable D)
@@ -89,26 +130,36 @@ theorem tablePrepare_state_error_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε) (h�
       simp [ratToComplex, ratZero, hψ0, hpos]
   | some i => exact hη i
 
+/-- The per-entry bit-cost expression `2 * (p + 1) + 1`. -/
 def entryBitCost (p : ℕ) : ℕ := 2 * (p + 1) + 1
 
+/-- The normalization cost model's count of `2 * (D + 1)` real-component squarings. -/
 def normalizationSquares (D : ℕ) : ℕ := 2 * (D + 1)
 
+/-- The normalization cost model's count of `D` additions. -/
 def normalizationAdds (D : ℕ) : ℕ := D
 
+/-- The sum of the modeled normalization squaring and addition counts. -/
 def normalizationOps (D : ℕ) : ℕ := normalizationSquares D + normalizationAdds D
 
+/-- The modeled table-reading bit cost, given by the read count times `entryBitCost p`. -/
 def tableReadBitCost (D p : ℕ) : ℕ := tableReadCount D * entryBitCost p
 
+/-- The modeled normalization bit cost, charging `(p + 1)²` for each normalization operation. -/
 def normalizationBitCost (D p : ℕ) : ℕ := normalizationOps D * (p + 1) ^ 2
 
+/-- The sum of the modeled table-reading and normalization bit costs. -/
 def prepareChainCost (D p : ℕ) : ℕ :=
   tableReadBitCost D p + normalizationBitCost D p
 
+/-- The preparation-chain cost decomposes into table-reading and normalization bit costs. -/
 theorem prepareChainCost_decomposes (D p : ℕ) :
     prepareChainCost D p = tableReadBitCost D p + normalizationBitCost D p := rfl
 
+/-- The normalization operation count is `2 * (D + 1) + D`. -/
 theorem normalizationOps_eq (D : ℕ) : normalizationOps D = 2 * (D + 1) + D := rfl
 
+/-- The modeled preparation-chain cost is at most `8 * (D + 1) * (p + 1)³`. -/
 theorem prepareChainCost_le (D p : ℕ) :
     prepareChainCost D p ≤ 8 * (D + 1) * (p + 1) ^ 3 := by
   have hD : D ≤ D + 1 := by omega
@@ -153,17 +204,23 @@ theorem prepareChainCost_le (D p : ℕ) :
       simpa only [Nat.mul_assoc] using!
         (Nat.mul_le_mul_right ((D + 1) * (p + 1) ^ 3) (by omega : 6 ≤ 8))
 
+/-- The state with amplitude `sqrt (q i)` at `some i` and zero amplitude at `none`. -/
 noncomputable def sqrtTarget {D : ℕ} (q : Fin D → ℚ) : QState (Option (Fin D)) :=
   fun a => match a with
     | none => 0
     | some i => ((Real.sqrt (q i : ℝ) : ℝ) : ℂ)
 
+/-- The square-root target vanishes at `none`. -/
 @[simp] theorem sqrtTarget_none {D : ℕ} (q : Fin D → ℚ) :
     sqrtTarget q none = 0 := rfl
 
+/-- The square-root target's amplitude at `some i` is the real square root of `q i`, viewed as a
+complex number. -/
 @[simp] theorem sqrtTarget_some {D : ℕ} (q : Fin D → ℚ) (i : Fin D) :
     sqrtTarget q (some i) = ((Real.sqrt (q i : ℝ) : ℝ) : ℂ) := rfl
 
+/-- For nonnegative weights, the square-root target's squared Euclidean norm equals the sum of
+the weights. -/
 theorem norm_sqrtTarget_sq {D : ℕ} (q : Fin D → ℚ) (hq : ∀ i, 0 ≤ q i) :
     ‖stateVector (sqrtTarget q)‖ ^ 2 = ∑ i, (q i : ℝ) := by
   rw [Qatlib.Concepts.LocalMachine.LocalTransport.stateVector_norm_sq_sum, Fintype.sum_option]
@@ -174,6 +231,7 @@ theorem norm_sqrtTarget_sq {D : ℕ} (q : Fin D → ℚ) (hq : ∀ i, 0 ≤ q i)
     abs_of_nonneg (Real.sqrt_nonneg _),
     Real.sq_sqrt (show (0 : ℝ) ≤ (q i : ℝ) by exact_mod_cast hq i)]
 
+/-- Nonnegative weights summing to one give a square-root target of Euclidean norm one. -/
 theorem normalized_sqrtTarget {D : ℕ} (q : Fin D → ℚ) (hq : ∀ i, 0 ≤ q i)
     (hsum : ∑ i, (q i : ℝ) = 1) :
     ‖stateVector (sqrtTarget q)‖ = 1 := by
@@ -182,9 +240,13 @@ theorem normalized_sqrtTarget {D : ℕ} (q : Fin D → ℚ) (hq : ∀ i, 0 ≤ q
   have hn := norm_nonneg (stateVector (sqrtTarget q))
   nlinarith
 
+/-- The real rational amplitude table formed from the lower square-root brackets `sqrtLo (q i) S
+k`. -/
 def bracketTable {D : ℕ} (q : Fin D → ℚ) (S : ℚ) (k : ℕ) : DenseTable D :=
   fun i => (sqrtLo (q i) S k, 0)
 
+/-- For `S > 0` and `0 ≤ q i ≤ S²`, each bracket-table amplitude differs from `sqrt (q i)` by at
+most `S / 2^k`. -/
 theorem bracketTable_eta {D : ℕ} (q : Fin D → ℚ) (S : ℚ) (k : ℕ) (hS : 0 < S)
     (hq : ∀ i, 0 ≤ q i) (hSq : ∀ i, q i ≤ S * S) :
     ∀ i : Fin D,
@@ -204,6 +266,9 @@ theorem bracketTable_eta {D : ℕ} (q : Fin D → ℚ) (S : ℚ) (k : ℕ) (hS :
   rw [hdiff, Complex.norm_real, Real.norm_eq_abs, abs_sub_le_iff]
   constructor <;> linarith
 
+/-- For nonnegative weights summing to one and bounded by `S²`, with `S > 0` and `sqrt (D + 1) *
+S / 2^k < 1`, bracket-table preparation error is at most `32 * (D + 1) / 2^k + 2 * sqrt (D +
+1) * S / 2^k`. -/
 theorem bracketTablePrepare_state_error {D : ℕ} (q : Fin D → ℚ) (S : ℚ) (k : ℕ)
     (hS : 0 < S) (hq : ∀ i, 0 ≤ q i) (hSq : ∀ i, q i ≤ S * S)
     (hsum : ∑ i, (q i : ℝ) = 1)
@@ -222,6 +287,9 @@ theorem bracketTablePrepare_state_error {D : ℕ} (q : Fin D → ℚ) (S : ℚ) 
   exact tablePrepare_state_error (D := D) k (sqrtTarget q) hψ hψ0 (bracketTable q S k)
     hη0 (bracketTable_eta q S k hS hq hSq) hgap
 
+/-- For nonnegative weights summing to one and bounded by `S²`, with `S > 0` and `sqrt (D + 1) /
+2^b < 1`, precision `widthPrecision S b` gives error at most `(32 * (D + 1) + 2 * sqrt (D +
+1)) / 2^b`. -/
 theorem bracketTablePrepare_state_error_width {D : ℕ} (q : Fin D → ℚ) (S : ℚ)
     (hS : 0 < S) (hq : ∀ i, 0 ≤ q i) (hSq : ∀ i, q i ≤ S * S)
     (hsum : ∑ i, (q i : ℝ) = 1) (b : ℕ)
@@ -268,6 +336,8 @@ theorem bracketTablePrepare_state_error_width {D : ℕ} (q : Fin D → ℚ) (S :
       linarith
     _ = (32 * ((D : ℝ) + 1) + 2 * Real.sqrt ((D + 1 : ℝ))) / 2 ^ b := by ring
 
+/-- Collects dense-table extension identities, preparation error estimates, explicit read and
+normalization costs, and square-root bracket preparation bounds. -/
 theorem frontier1 :
     ((∀ (D : ℕ) (t : DenseTable D), tableAmps t none = ratZero ∧
         (∀ i : Fin D, tableAmps t (some i) = t i) ∧
@@ -327,6 +397,7 @@ theorem frontier1 :
   · intro D q S hS hq hSq hsum b hgap
     exact bracketTablePrepare_state_error_width q S hS hq hSq hsum b hgap
 
+/-- The state with amplitudes `sqrt (q i / m)` at `some i` and zero at `none`. -/
 noncomputable def normTarget {D : ℕ} (q : Fin D → ℚ) (m : ℝ) :
     QState (Option (Fin D)) :=
   fun a =>
@@ -334,12 +405,15 @@ noncomputable def normTarget {D : ℕ} (q : Fin D → ℚ) (m : ℝ) :
     | none => 0
     | some i => ((Real.sqrt ((q i : ℝ) / m) : ℝ) : ℂ)
 
+/-- The mass-normalized square-root target vanishes at `none`. -/
 @[simp] theorem normTarget_none {D : ℕ} (q : Fin D → ℚ) (m : ℝ) :
     normTarget q m none = 0 := rfl
 
+/-- The mass-normalized target's amplitude at `some i` is `sqrt (q i / m)`. -/
 @[simp] theorem normTarget_some {D : ℕ} (q : Fin D → ℚ) (m : ℝ) (i : Fin D) :
     normTarget q m (some i) = ((Real.sqrt ((q i : ℝ) / m) : ℝ) : ℂ) := rfl
 
+/-- Nonnegative weights summing to a positive mass `m` give `normTarget q m` Euclidean norm one. -/
 theorem norm_normTarget {D : ℕ} (q : Fin D → ℚ) (hq : ∀ i, 0 ≤ q i)
     {m : ℝ} (hm : 0 < m) (hsum : ∑ i, (q i : ℝ) = m) :
     ‖stateVector (normTarget q m)‖ = 1 := by
@@ -355,9 +429,12 @@ theorem norm_normTarget {D : ℕ} (q : Fin D → ℚ) (hq : ∀ i, 0 ≤ q i)
       div_self (ne_of_gt hm)]
   nlinarith [norm_nonneg (stateVector (normTarget q m))]
 
+/-- The real rational table whose entries are `sqrtLo (q i) S k * r`. -/
 def scaledBracketTable {D : ℕ} (q : Fin D → ℚ) (S r : ℚ) (k : ℕ) : DenseTable D :=
   fun i => (sqrtLo (q i) S k * r, 0)
 
+/-- For `S > 0`, `0 ≤ q i ≤ S²`, `r ≥ 0`, and `m > 0`, scaled bracket amplitudes approximate
+`normTarget q m` pointwise within `r * S / 2^k + S * |r - 1 / sqrt m|`. -/
 theorem scaledBracketTable_eta {D : ℕ} (q : Fin D → ℚ) (S r : ℚ) (k : ℕ)
     (hS : 0 < S) (hq : ∀ i, 0 ≤ q i) (hSq : ∀ i, q i ≤ S * S)
     (hr : 0 ≤ r) {m : ℝ} (_hm : 0 < m) :
@@ -406,6 +483,9 @@ theorem scaledBracketTable_eta {D : ℕ} (q : Fin D → ℚ) (S r : ℚ) (k : �
           + (S : ℝ) * |(r : ℝ) - 1 / Real.sqrt m| := by
         gcongr
 
+/-- For nonnegative weights of positive mass `m`, under the weight bound and normalization-gap
+hypotheses, scaled bracket preparation error is at most the circuit error plus `2 * sqrt (D
++ 1)` times the pointwise scaled-bracket error. -/
 theorem scaledTablePrepare_state_error {D : ℕ} (k : ℕ) (q : Fin D → ℚ)
     (S r : ℚ) (hS : 0 < S) (hq : ∀ i, 0 ≤ q i) (hSq : ∀ i, q i ≤ S * S)
     (hr : 0 ≤ r) {m : ℝ} (hm : 0 < m) (hsum : ∑ i, (q i : ℝ) = m)
@@ -434,9 +514,13 @@ theorem scaledTablePrepare_state_error {D : ℕ} (k : ℕ) (q : Fin D → ℚ)
     (scaledBracketTable q S r k) hη0
     (scaledBracketTable_eta q S r k hS hq hSq hr hm) hgap
 
+/-- The rational mean of the reciprocals of the lower and upper square-root brackets for mass
+`m`. -/
 def invSqrtFactor (m S' : ℚ) (j : ℕ) : ℚ :=
   ((1 : ℚ) / sqrtLo m S' j + (1 : ℚ) / sqrtHi m S' j) / 2
 
+/-- For `m > 0`, `S' > 0`, `m ≤ (S')²`, and positive lower bracket, `invSqrtFactor m S' j` is
+nonnegative and approximates `1 / sqrt m` within `(S' / 2^j) / (2 * (sqrtLo m S' j)²)`. -/
 theorem invSqrtFactor_spec {m S' : ℚ} {j : ℕ} (hm : 0 < m) (hS' : 0 < S')
     (hmS' : m ≤ S' * S') (ha : 0 < sqrtLo m S' j) :
     0 ≤ invSqrtFactor m S' j ∧
@@ -524,6 +608,9 @@ theorem invSqrtFactor_spec {m S' : ℚ} {j : ℕ} (hm : 0 < m) (hS' : 0 < S')
             / (2 * ((sqrtLo m S' j : ℚ) : ℝ) ^ 2) := by
             ring
 
+/-- Under the mass, bracket-positivity, and normalization-gap hypotheses, substituting
+`invSqrtFactor` into the scaled table bounds state error by the circuit error plus `2 * sqrt
+(D + 1)` times the combined square-root and reciprocal-square-root bracket errors. -/
 theorem scaledTablePrepare_state_error_factor {D : ℕ} (k j : ℕ) (q : Fin D → ℚ)
     (S S' m : ℚ) (hS : 0 < S) (hq : ∀ i, 0 ≤ q i) (hSq : ∀ i, q i ≤ S * S)
     (hm : 0 < m) (hS' : 0 < S') (hmS' : m ≤ S' * S')
@@ -577,6 +664,9 @@ theorem scaledTablePrepare_state_error_factor {D : ℕ} (k j : ℕ) (q : Fin D �
     (by positivity : (0 : ℝ) ≤ 2 * Real.sqrt ((D + 1 : ℝ)))
   linarith
 
+/-- With a positive mass lower bound `μ ≤ m` and the stated bracket-width and normalization-gap
+hypotheses, width-based precisions give state error at most `(32 * (D + 1) + 4 * sqrt (D +
+1) / sqrt μ + 4 * S * sqrt (D + 1) / μ) / 2^b`. -/
 theorem scaledTablePrepare_state_error_width {D : ℕ} (q : Fin D → ℚ)
     (S S' m μ : ℚ) (b : ℕ) (hS : 0 < S) (hq : ∀ i, 0 ≤ q i)
     (hSq : ∀ i, q i ≤ S * S) (hm : 0 < m) (hS' : 0 < S') (hmS' : m ≤ S' * S')
@@ -730,17 +820,23 @@ theorem scaledTablePrepare_state_error_width {D : ℕ} (q : Fin D → ℚ)
     ring
   linarith
 
+/-- The modeled count of `j` bracket-refinement steps for normalization. -/
 def normalizationBracketSteps (j : ℕ) : ℕ := j
 
+/-- The normalization operation count augmented by the bracket-refinement step count. -/
 def prepareChainOpsNormalized (D j : ℕ) : ℕ :=
   normalizationOps D + normalizationBracketSteps j
 
+/-- The modeled table-reading bit cost plus the augmented normalization operation count times
+`(p + 1)²`. -/
 def prepareChainBitCostNormalized (D p j : ℕ) : ℕ :=
   tableReadBitCost D p + prepareChainOpsNormalized D j * (p + 1) ^ 2
 
+/-- The augmented normalization operation count is `2 * (D + 1) + D + j`. -/
 theorem prepareChainOpsNormalized_eq (D j : ℕ) :
     prepareChainOpsNormalized D j = 2 * (D + 1) + D + j := rfl
 
+/-- The augmented preparation-chain bit cost is at most `16 * (D + j + 1) * (p + 1)³`. -/
 theorem prepareChainBitCostNormalized_le (D p j : ℕ) :
     prepareChainBitCostNormalized D p j ≤ 16 * (D + j + 1) * (p + 1) ^ 3 := by
   have hp : 1 ≤ p + 1 := by omega
@@ -790,6 +886,8 @@ theorem prepareChainBitCostNormalized_le (D p j : ℕ) :
       have : 8 * (D + j + 1) + (j + 1) ≤ 16 * (D + j + 1) := by omega
       exact Nat.mul_le_mul_right _ this
 
+/-- Collects positive-mass target normalization, scaled bracket and inverse-square-root error
+bounds, width-based preparation estimates, and augmented normalization cost bounds. -/
 theorem frontier2 :
     (∀ (D : ℕ) (q : Fin D → ℚ) (m : ℝ), (∀ i, 0 ≤ q i) → 0 < m →
       (∑ i, (q i : ℝ)) = m → ‖stateVector (normTarget q m)‖ = 1) ∧

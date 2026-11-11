@@ -8,9 +8,30 @@ import Qatlib.Foundations.TimeEvolution.DysonError.SeriesSteps
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Data.Nat.Choose.Basic
 
+/-!
+# Exponential bounds for factorial tails
+
+This module bounds tails with factorial denominators by their leading coefficient times
+`Real.exp a` for nonnegative `a`. The shifted version allows an additional natural offset in the
+denominator factorial, as needed in estimates for truncated evolution series.
+
+The mathematical background is discussed in [BerryCosta2024].
+
+## Main statements
+
+* `factorial_tail_le`: bounds the tail starting at degree `K`.
+* `shifted_factorial_tail_le`: includes an additional denominator offset `q`.
+
+## References
+
+* [Berry and Costa, 2024][BerryCosta2024]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Foundations.TimeEvolution.DysonError
 
+/-- For nonnegative `a`, the sum of `a ^ (n + K) / (n + K)!` over natural `n` is at most `a ^ K
+/ K! * exp a`. -/
 theorem factorial_tail_le (a : ℝ) (ha : 0 ≤ a) (K : ℕ) :
     (∑' n : ℕ, a^(n+K) / ((n+K).factorial : ℝ)) ≤
       a^K / (K.factorial : ℝ) * Real.exp a := by
@@ -31,6 +52,8 @@ theorem factorial_tail_le (a : ℝ) (ha : 0 ≤ a) (K : ℕ) :
     exact (NormedSpace.expSeries_div_hasSum_exp a).tsum_eq
   rwa [he] at ht
 
+/-- For nonnegative `a`, the sum of `a ^ (n + K) / (n + K + q)!` is at most `a ^ K / (K + q)! *
+exp a`. -/
 theorem shifted_factorial_tail_le (a : ℝ) (ha : 0 ≤ a) (K q : ℕ) :
     (∑' n : ℕ, a^(n+K) / ((n+K+q).factorial : ℝ)) ≤
       a^K / ((K+q).factorial : ℝ) * Real.exp a := by

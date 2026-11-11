@@ -20,10 +20,30 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Mathlib.Data.Real.Basic
 
+/-!
+# Admissibility of the optimized subset scale
+
+This module verifies the arithmetic conditions for taking the subset size to be `floor
+(N^(k/(k+1)))` in Johnson-walk search [Ambainis2007ElementDistinctness]. The real scale and its
+floor satisfy the power identity, lower subset-size bounds, and separation estimates used by the
+query analysis.
+
+## Main statements
+
+* `jw_optimized_scale_admissibility`: the complete set of scale and floor estimates.
+* `jw_query_threshold_ge_four_k`: the explicit query threshold dominates `4*k`.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- If `k ≥ 1`, `B ≥ 4*k`, and `B^(k+1) ≤ N`, the optimized scale and its floor satisfy the
+displayed power identity, subset-size bounds, and memory and separation inequalities. -/
 theorem jw_optimized_scale_admissibility (k N : ℕ) (B : ℝ) (hk : 1 ≤ k)
     (hB : 4 * (k : ℝ) ≤ B) (hN : B ^ (k + 1) ≤ (N : ℝ)) :
     let X := (N : ℝ) ^ ((k : ℝ) / (k + 1))
@@ -88,6 +108,8 @@ theorem jw_optimized_scale_admissibility (k N : ℕ) (B : ℝ) (hk : 1 ≤ k)
     linarith only [hXr, hX4k, hX0]
   exact ⟨hX1, hXpow, hkr, Nat.le_succ_of_le h2kr, hsize, hremaining⟩
 
+/-- For `k ≥ 1`, the explicit query-analysis threshold `32*π²*k³*2^(k+4)*(k+1)*k` is at least
+`4*k`. -/
 theorem jw_query_threshold_ge_four_k (k : ℕ) (hk : 1 ≤ k) :
     4 * (k : ℝ) ≤ 32 * Real.pi ^ 2 * ((k : ℝ) ^ 3) *
       (2 ^ (k + 4)) * (k + 1) * k := by

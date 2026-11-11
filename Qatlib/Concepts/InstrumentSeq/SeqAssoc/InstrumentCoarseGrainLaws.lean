@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+/-!
+# Instrument coarse-graining laws
+
+This module proves finite-sum identities for composed fibers and pairs of fibers, then applies
+them to instrument outcome coarse-graining. Successive coarse-grainings agree with
+coarse-graining by the composite map, both on branches and on probabilities.
+
+The sequential laws also identify the channel obtained by forgetting outcomes and show that
+separate coarse-graining of two instruments commutes with their sequential composition. The
+channel interpretation follows the quantum information framework of [Wilde2017].
+
+## Main statements
+
+* `Instrument.coarsen_composition_laws`: composition of outcome maps preserves branches and
+  probabilities.
+* `Instrument.seq_coarsen_forget_laws`: sequential composition, forgetting, and coarse-graining.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -15,6 +38,8 @@ namespace Qatlib.Concepts.InstrumentSeq.SeqAssoc
 open Matrix
 open scoped ComplexOrder
 
+/-- A finite sum over a fiber of `g ∘ f` equals the iterated sum over the corresponding fibers
+of `g` and `f`. -/
 theorem sum_fiber_compose {α β γ M : Type*} [Fintype α] [Fintype β] [DecidableEq β]
     [DecidableEq γ] [AddCommMonoid M] (F : α → M) (f : α → β) (g : β → γ) (q : γ) :
     (∑ o ∈ Finset.univ.filter (fun o => g (f o) = q), F o)
@@ -60,6 +85,8 @@ theorem sum_fiber_compose {α β γ M : Type*} [Fintype α] [Fintype β] [Decida
             exact (Finset.sum_filter _ _).symm
           · simp [h]
 
+/-- A finite sum over a fiber of the product map `(u, v)` equals the iterated sum over the
+separate fibers of `u` and `v`. -/
 theorem sum_fiber_pair {α β γ δ M : Type*} [Fintype α] [Fintype β] [DecidableEq γ]
     [DecidableEq δ] [AddCommMonoid M] (F : α → β → M) (u : α → γ) (v : β → δ) (a : γ)
     (b : δ) :
@@ -98,6 +125,8 @@ theorem sum_fiber_pair {α β γ δ M : Type*} [Fintype α] [Fintype β] [Decida
             exact (Finset.sum_filter _ _).symm
           · simp [hx]
 
+/-- Coarse-graining first by `f` and then by `g` gives the same branch maps and outcome
+probabilities as coarse-graining by `g ∘ f`. -/
 theorem Instrument.coarsen_composition_laws {O P Q : Type*} [Fintype O] [Fintype P]
     [DecidableEq P] [Fintype Q] [DecidableEq Q] {D E : ℕ}
     (I : Instrument O D E) (f : O → P) (g : P → Q) (q : Q) (ρ : Operator D) :
@@ -114,6 +143,9 @@ theorem Instrument.coarsen_composition_laws {O P Q : Type*} [Fintype O] [Fintype
       = (Matrix.trace ((I.coarsen (g ∘ f)).branch q ρ)).re
     rw [hpt ρ]⟩
 
+/-- Forgetting the outcomes of sequential instruments gives the composite of their forgotten
+channels. Coarse-graining the paired outcomes agrees branchwise with sequencing the
+separately coarse-grained instruments. -/
 theorem Instrument.seq_coarsen_forget_laws {O P O' P' : Type*} [Fintype O] [Fintype P]
     [DecidableEq P] [Fintype O'] [DecidableEq O'] [Fintype P'] [DecidableEq P']
     {D E F : ℕ} (I : Instrument O D E) (J : Instrument P E F)

@@ -8,6 +8,27 @@ import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedReadoutStat
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedPayoffMassQuan
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationTaylorBiasQuan
 import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+
+/-!
+# Readout of expanded polynomial preparation
+
+This module combines the exact flag-mass identity for expanded preparation with polynomial
+rotation bias and native median concentration. It proves a readout guarantee for polynomial
+payoffs evaluated on binary data registers.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `polyFigTwoExpandedReadout`: The rescaled native median of the expanded Figure 2 law estimates
+  the polynomial payoff mean within `riskPolyReadoutWindow` except with probability at most `(8
+  / 9) ^ r`; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -31,6 +52,7 @@ open Matrix
 open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 
+/-- Event probability is monotone under pointwise inclusion of events. -/
 private theorem event_le_of_subset {X : Type*} (p : PMF X) (E F : X → Prop)
     (h : ∀ x, E x → F x) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p F := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
@@ -42,6 +64,8 @@ private theorem event_le_of_subset {X : Type*} (p : PMF X) (E F : X → Prop)
   · simp only [if_neg hx, mul_zero]
     positivity
 
+/-- For unitary preparation and payoffs in `[0, 1]`, the polynomial rotation mean differs from
+the affine target mean by at most `riskArcsinTail u * c ^ (2 * u + 3) / 2` when `0 < c ≤ 1`. -/
 private theorem polynomial_payoff_mean_bias
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (u : ℕ) (c : ℝ) (hA : A ∈ unitaryGroup I ℂ)
@@ -76,6 +100,9 @@ private theorem polynomial_payoff_mean_bias
           (riskPolyRotationTaylorBias u c (f i) hc hc1 (hf i).1 (hf i).2) (hp i)
     _ = B := by rw [← Finset.sum_mul, hs, one_mul]
 
+/-- The rescaled native median of the expanded Figure 2 law estimates the polynomial payoff mean
+within `riskPolyReadoutWindow` except with probability at most `(8 / 9) ^ r`; see
+[WoernerEgger2019]. -/
 theorem polyFigTwoExpandedReadout : PolyFigTwoExpandedReadout := by
   intro n A j u c fp M r bits hA hM hf hc hc1
   classical

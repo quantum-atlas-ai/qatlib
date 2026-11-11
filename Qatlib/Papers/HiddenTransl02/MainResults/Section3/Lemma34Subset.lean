@@ -13,6 +13,24 @@ import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
 import Qatlib.Papers.HiddenTransl02.MainResults.Section3.Lemma34Ratio
 import Qatlib.Papers.HiddenTransl02.MainResults.Section3.Prop33Span
 import Mathlib.Tactic
+
+/-!
+# Counting polynomial powers on affine slices
+
+This module proves the cardinality inequality of Lemma 3.4 in [FriedlEtAl2014]. It counts
+vectors whose associated linear forms have their `(p - 1)`st powers in a subspace `W`, using
+affine lines and the transverse slice `TZero`.
+
+## Main statements
+
+* `SNonzero_card_le`: bounds the nonzero-dot-product portion using transverse lines.
+* `lemma34_ratio`: bounds `p * |RSet u W k|` by `(p - 1) * |VSet u k|` for nonzero `k`.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,11 +46,13 @@ attribute [local instance] Classical.propDecidable
 
 variable {n p : ℕ}
 
+/-- If `dotU u y = 1`, translating `t` by `a • y` increases its dot product with `u` by `a`. -/
 theorem dotU_add_line (u y : Fin n → ZMod p) (hyu : dotU u y = 1)
     (t : Fin n → ZMod p) (a : ZMod p) :
     dotU u (t + a • y) = dotU u t + a := by
   rw [map_add, dotU_smul, hyu, mul_one]
 
+/-- If `projAlong y i y = 1`, translating `t` by `a • y` increases its projection by `a`. -/
 theorem projAlong_add_line (y : Fin n → ZMod p) (i : Fin n)
     (hπ : projAlong y i y = 1) (t : Fin n → ZMod p) (a : ZMod p) :
     projAlong y i (t + a • y) = projAlong y i t + a := by
@@ -40,17 +60,24 @@ theorem projAlong_add_line (y : Fin n → ZMod p) (i : Fin n)
 
 variable [Fintype (ZMod p)]
 
+/-- The finite set of vectors whose `projAlong y i` coordinate is zero. -/
 def TZero (y : Fin n → ZMod p) (i : Fin n) : Finset (Fin n → ZMod p) :=
   univ.filter (fun t => projAlong y i t = 0)
 
+/-- The finite set of vectors `x` for which `lin x ^ (p - 1)` belongs to `W` and `dotU u x` is
+nonzero. -/
 def SNonzero (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) :
     Finset (Fin n → ZMod p) :=
   univ.filter (fun x => lin x ^ (p - 1) ∈ W ∧ dotU u x ≠ 0)
 
+/-- The scalar `-dotU u t`, which cancels the dot product along a direction pairing to one with
+`u`. -/
 def aZero (u : Fin n → ZMod p) (t : Fin n → ZMod p) : ZMod p :=
   -dotU u t
 
+/-- Over a prime field, the affine slice `VSet u 1` and transverse slice `TZero y i` have equal
+cardinality when `y i ≠ 0` and `dotU u y = 1`. -/
 theorem VSet_one_card_eq_tzero (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin n}
     (hi : y i ≠ 0) (hyu : dotU u y = 1) : (VSet u 1).card = (TZero y i).card := by
   haveI : Fact p.Prime := ⟨hp⟩
@@ -91,6 +118,9 @@ theorem VSet_one_card_eq_tzero (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin 
 
 set_option maxHeartbeats 1000000 in
 
+/-- For prime `p`, if all zero-dot-product powers lie in `W` but `lin y ^ (p - 1)` does not,
+with `dotU u y = 1` and `y i ≠ 0`, then `SNonzero u W` has at most `(TZero y i).card * (p -
+2)` elements. -/
 theorem SNonzero_card_le (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin n}
     (hi : y i ≠ 0) (hyu : dotU u y = 1)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))
@@ -179,6 +209,7 @@ theorem SNonzero_card_le (hp : p.Prime) (u y : Fin n → ZMod p) {i : Fin n}
       ≤ ∑ _t ∈ TZero y i, (p - 2) := Finset.sum_le_sum hbound
     _ = (TZero y i).card * (p - 2) := Finset.sum_const_nat (fun _ _ => rfl)
 
+/-- Over a prime field, `SNonzero u W` has `(p - 1)` times the cardinality of `RSet u W 1`. -/
 theorem SNonzero_card_eq (hp : p.Prime) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) :
     (SNonzero u W).card = (RSet u W 1).card * (p - 1) := by
@@ -228,6 +259,9 @@ theorem SNonzero_card_eq (hp : p.Prime) (u : Fin n → ZMod p)
   rw [hcard, Finset.card_product, Finset.card_erase_of_mem (Finset.mem_univ _),
     Finset.card_univ, ZMod.card]
 
+/-- For prime `p`, if `W` does not contain the full degree-`(p - 1)` homogeneous subspace but
+contains all zero-dot-product powers, then `p * |RSet u W k| ≤ (p - 1) * |VSet u k|` for
+nonzero `k`. This is a case of Lemma 3.4 in [FriedlEtAl2014]. -/
 theorem lemma_3_4_ratio_V0_sub (hp : p.Prime) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))
     (hW : ¬ (MvPolynomial.homogeneousSubmodule (Fin n) (ZMod p) (p - 1) ≤ W))
@@ -292,6 +326,9 @@ theorem lemma_3_4_ratio_V0_sub (hp : p.Prime) (u : Fin n → ZMod p)
   rw [RSet_card_eq_smul hp u W hk, VSet_card_eq_smul hp u hk]
   exact hkey
 
+/-- For prime `p`, if `W` does not contain the full degree-`(p - 1)` homogeneous subspace, then
+`p * |RSet u W k| ≤ (p - 1) * |VSet u k|` for every nonzero `k`. This is the counting
+inequality of [Friedl et al., Lemma 3.4][FriedlEtAl2014]. -/
 theorem lemma34_ratio (hp : p.Prime) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))
     (hW : ¬ (MvPolynomial.homogeneousSubmodule (Fin n) (ZMod p) (p - 1) ≤ W))

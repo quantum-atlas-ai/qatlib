@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
 import Mathlib.Algebra.MvPolynomial.Degrees
 import Mathlib.Algebra.MvPolynomial.CommRing
+
+/-!
+# Acceptance polynomials for query circuits
+
+This module represents circuit amplitudes by complex multivariate polynomials in Boolean oracle
+bits. Evaluation recovers circuit execution, each query increases amplitude degree by at most
+one, and summing squared real and imaginary parts gives a real acceptance polynomial of degree
+at most twice the query count. Boolean multilinearization preserves its values and degree bound.
+
+The mathematical background is described in [BealsEtAl2001].
+
+## Main statements
+
+* `amplitude_polynomial_boolean_run_evaluation`: polynomial evaluation equals circuit amplitude.
+* `acceptance_polynomial_actual_born_and_degree`: Born probability and the degree bound.
+* `acceptance_boolean_multilinearization_preserves_run`: a multilinear acceptance polynomial.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 
@@ -21,19 +43,28 @@ set_option linter.unusedVariables false
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The query-index, answer-bit, and auxiliary-register basis used for polynomial circuit
+semantics. -/
 abbrev PolynomialWorkspace (I W : Type) := (I × Bool) × W
 
+/-- Converts a Boolean function to its zero-one values in a commutative semiring. -/
 def boolValue {σ : Type} {R : Type} [CommSemiring R] (f : σ → Bool) : σ → R :=
   fun i => if f i then 1 else 0
 
+/-- Casting the real zero-one values of a Boolean function to the complexes gives its complex
+zero-one values. -/
 theorem boolValue_cast (f : I → Bool) :
     (fun i => ((boolValue f : I → ℝ) i : ℂ)) = fun i => if f i then (1 : ℂ) else 0 := by
   funext i
   cases h : f i <;> simp [boolValue, h]
 
+/-- Flips the answer bit according to the oracle value at the query index, preserving the
+auxiliary register. -/
 def flipWorkspace (f : I → Bool) (p : PolynomialWorkspace I W) : PolynomialWorkspace I W :=
   ((p.1.1, p.1.2 ^^ f p.1.1), p.2)
 
+/-- Updates a family of amplitude polynomials by a gate's linear action or by polynomial
+interpolation between unflipped and flipped answer bits. -/
 noncomputable def amplitudeStep (s : Step (PolynomialWorkspace I W))
     (P : PolynomialWorkspace I W → MvPolynomial I ℂ) :
     PolynomialWorkspace I W → MvPolynomial I ℂ :=
@@ -42,21 +73,29 @@ noncomputable def amplitudeStep (s : Step (PolynomialWorkspace I W))
   | .query => fun q =>
       (1 - MvPolynomial.X q.1.1) * P q + MvPolynomial.X q.1.1 * P ((q.1.1, !q.1.2), q.2)
 
+/-- Propagates an initial family of amplitude polynomials through a circuit in execution order. -/
 noncomputable def amplitudeFold (P : PolynomialWorkspace I W → MvPolynomial I ℂ) :
     Circuit (PolynomialWorkspace I W) → PolynomialWorkspace I W → MvPolynomial I ℂ :=
   fun C => (C.reverse.foldr (fun s Q => amplitudeStep s Q)) P
 
+/-- The family of amplitude polynomials obtained by executing a circuit from constant
+polynomials representing the initial state. -/
 noncomputable def amplitudePolynomial (C : Circuit (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) : PolynomialWorkspace I W → MvPolynomial I ℂ :=
   amplitudeFold (fun q => MvPolynomial.C (ψ q)) C
 
+/-- The amplitude polynomial of the empty circuit is the constant initial amplitude. -/
 @[simp] theorem amplitudePolynomial_nil (ψ : QState (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) : amplitudePolynomial [] ψ q = MvPolynomial.C (ψ q) := rfl
 
+/-- The amplitude-polynomial family after applying one instruction to the constant polynomials
+of an initial state. -/
 noncomputable def amplitudeState' (s : Step (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) : PolynomialWorkspace I W → MvPolynomial I ℂ :=
   fun r => amplitudeStep s (fun t => MvPolynomial.C (ψ t)) r
 
+/-- Folding a circuit with a first instruction equals folding its tail after the corresponding
+polynomial update. -/
 theorem amplitudeFold_cons (P : PolynomialWorkspace I W → MvPolynomial I ℂ)
     (s : Step (PolynomialWorkspace I W)) (C : Circuit (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) :
@@ -64,6 +103,8 @@ theorem amplitudeFold_cons (P : PolynomialWorkspace I W → MvPolynomial I ℂ)
   simp only [amplitudeFold, List.reverse_cons, List.foldr_append, List.foldr_cons,
     List.foldr_nil]
 
+/-- The amplitude polynomials of a nonempty circuit are obtained by folding the tail from the
+first instruction's polynomial state. -/
 theorem amplitudePolynomial_cons (s : Step (PolynomialWorkspace I W))
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) :
@@ -72,12 +113,16 @@ theorem amplitudePolynomial_cons (s : Step (PolynomialWorkspace I W))
   rw [amplitudePolynomial, amplitudeFold_cons]
   rfl
 
+/-- Appending one instruction to a circuit applies its polynomial update to the circuit's
+amplitude polynomials. -/
 theorem amplitudePolynomial_append_last (C : Circuit (PolynomialWorkspace I W))
     (s : Step (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W)) :
     amplitudePolynomial (C ++ [s]) ψ = amplitudeStep s (amplitudePolynomial C ψ) := by
   simp only [amplitudePolynomial, amplitudeFold, List.reverse_append, List.reverse_singleton,
     List.foldr_append, List.foldr_cons, List.foldr_nil]
 
+/-- Gives the empty-circuit, gate, and query recurrences for the amplitude polynomial at a
+workspace basis label; see [Beals et al., Lemma 4.1][BealsEtAl2001]. -/
 theorem amplitude_polynomial_actual_step_recursion
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (U : Matrix (PolynomialWorkspace I W) (PolynomialWorkspace I W) ℂ) (i : I) (b : Bool)
@@ -99,20 +144,26 @@ theorem amplitude_polynomial_actual_step_recursion
     rfl
   exact ⟨amplitudePolynomial_nil ψ _, hgate, hquery⟩
 
+/-- The single-instruction state update for a Boolean oracle, using matrix action for gates and
+answer-bit relabeling for queries. -/
 noncomputable def amplitudeState (f : I → Bool) (s : Step (PolynomialWorkspace I W))
     (χ : QState (PolynomialWorkspace I W)) : QState (PolynomialWorkspace I W) :=
   match s with
   | .gate U => ApplyGate U χ
   | .query => χ ∘ flipWorkspace f
 
+/-- A gate instruction in `amplitudeState` acts by `ApplyGate`. -/
 @[simp] theorem amplitudeState_gate (f : I → Bool)
     (U : Matrix (PolynomialWorkspace I W) (PolynomialWorkspace I W) ℂ)
     (χ : QState (PolynomialWorkspace I W)) (q : PolynomialWorkspace I W) :
     amplitudeState f (Step.gate U) χ q = ApplyGate U χ q := rfl
 
+/-- A query instruction in `amplitudeState` acts by composition with `flipWorkspace`. -/
 @[simp] theorem amplitudeState_query (f : I → Bool) (χ : QState (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) : amplitudeState f Step.query χ q = χ (flipWorkspace f q) := rfl
 
+/-- A matrix tensored with the identity acts independently on each slice of the auxiliary
+register. -/
 theorem polynomial_applyGate_tensorGate_one (U : Matrix (I × Bool) (I × Bool) ℂ)
     (ψ : QState ((I × Bool) × W)) :
     ApplyGate (TensorGate U 1) ψ = fun p => ApplyGate U (fun k => ψ (k, p.2)) p.1 := by
@@ -141,6 +192,8 @@ theorem polynomial_applyGate_tensorGate_one (U : Matrix (I × Bool) (I × Bool) 
     Matrix.kronecker_apply]
   simp_rw [hone]
 
+/-- Applying the workspace bit oracle evaluates the input state at the corresponding flipped
+answer-bit label. -/
 theorem applyGate_bitOracleOn_workspace (f : I → Bool)
     (ψ : QState (PolynomialWorkspace I W)) (p : PolynomialWorkspace I W) :
     ApplyGate (TensorGate (BitOracleOn f) 1) ψ p = ψ (flipWorkspace f p) := by
@@ -151,12 +204,15 @@ theorem applyGate_bitOracleOn_workspace (f : I → Bool)
   rw [applyGate_bitOracleOn]
   rfl
 
+/-- The workspace bit-oracle action is composition with `flipWorkspace`. -/
 theorem applyGate_bitOracleOn_workspace' (f : I → Bool)
     (ψ : QState (PolynomialWorkspace I W)) :
     ApplyGate (TensorGate (BitOracleOn f) 1) ψ = ψ ∘ flipWorkspace f := by
   funext p
   exact applyGate_bitOracleOn_workspace f ψ p
 
+/-- Executing a singleton circuit with the workspace bit oracle agrees with its `amplitudeState`
+update. -/
 theorem amplitudeState_run (f : I → Bool) (s : Step (PolynomialWorkspace I W))
     (χ : QState (PolynomialWorkspace I W)) :
     Run (TensorGate (BitOracleOn f) 1) [s] χ = amplitudeState f s χ := by
@@ -166,6 +222,8 @@ theorem amplitudeState_run (f : I → Bool) (s : Step (PolynomialWorkspace I W))
     simp only [amplitudeState, run_query, run_nil]
     exact applyGate_bitOracleOn_workspace' f χ
 
+/-- Executing a nonempty circuit equals executing its tail from the first instruction's
+`amplitudeState` update. -/
 theorem amplitudeState_run_cons (f : I → Bool) (s : Step (PolynomialWorkspace I W))
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W)) :
     Run (TensorGate (BitOracleOn f) 1) (s :: C) ψ = Run (TensorGate (BitOracleOn f) 1) C
@@ -177,6 +235,8 @@ theorem amplitudeState_run_cons (f : I → Bool) (s : Step (PolynomialWorkspace 
     rw [← amplitudeState_run f Step.query ψ]
     exact run_query _ _ _
 
+/-- Evaluation of a polynomial step at Boolean oracle values agrees with the corresponding state
+update whenever the input polynomials evaluate to the input state. -/
 theorem amplitudeStep_eval (s : Step (PolynomialWorkspace I W)) (f : I → Bool)
     (P : PolynomialWorkspace I W → MvPolynomial I ℂ) (χ : QState (PolynomialWorkspace I W))
     (hP : ∀ q, MvPolynomial.eval (boolValue f) (P q) = χ q) (q : PolynomialWorkspace I W) :
@@ -204,6 +264,8 @@ theorem amplitudeStep_eval (s : Step (PolynomialWorkspace I W)) (f : I → Bool)
           simp [boolValue, flipWorkspace, hP, hfi, MvPolynomial.eval_sub,
             MvPolynomial.eval_add]
 
+/-- The amplitude polynomial evaluated at a Boolean oracle's zero-one values equals the
+corresponding amplitude of the executed circuit; see [BealsEtAl2001]. -/
 theorem amplitude_polynomial_boolean_run_evaluation
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (f : I → Bool) (q : PolynomialWorkspace I W) :
@@ -231,10 +293,13 @@ theorem amplitude_polynomial_boolean_run_evaluation
   rw [hcast, amplitudePolynomial]
   exact key C (fun q => MvPolynomial.C (ψ q)) f ψ (fun r => by simp) q
 
+/-- The degree cost of an instruction: zero for a gate and one for an oracle query. -/
 def stepDegreeCost : Step (PolynomialWorkspace I W) → ℕ
   | .gate _ => 0
   | .query => 1
 
+/-- A polynomial instruction increases a uniform amplitude-degree bound by at most
+`stepDegreeCost`. -/
 theorem amplitudeStep_totalDegree_le {s : Step (PolynomialWorkspace I W)}
     {P : PolynomialWorkspace I W → MvPolynomial I ℂ} {t : ℕ}
     (hP : ∀ r, (P r).totalDegree ≤ t) (q : PolynomialWorkspace I W) :
@@ -283,6 +348,8 @@ theorem amplitudeStep_totalDegree_le {s : Step (PolynomialWorkspace I W)}
       · exact hC
     exact hsub
 
+/-- Every circuit amplitude polynomial has total degree at most the circuit's oracle-query
+count; see [BealsEtAl2001]. -/
 theorem amplitude_polynomial_actual_query_degree
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (q : PolynomialWorkspace I W) :
@@ -319,12 +386,18 @@ theorem amplitude_polynomial_actual_query_degree
   simpa using key C (fun q => MvPolynomial.C (ψ q)) 0
     (fun r => by simp [MvPolynomial.totalDegree_C]) q
 
+/-- The real polynomial obtained by taking the real part of each coefficient of a complex
+polynomial. -/
 noncomputable def realPart (p : MvPolynomial I ℂ) : MvPolynomial I ℝ :=
   ∑ d ∈ p.support, MvPolynomial.C (p.coeff d).re * MvPolynomial.monomial d 1
 
+/-- The real polynomial obtained by taking the imaginary part of each coefficient of a complex
+polynomial. -/
 noncomputable def imagPart (p : MvPolynomial I ℂ) : MvPolynomial I ℝ :=
   ∑ d ∈ p.support, MvPolynomial.C (p.coeff d).im * MvPolynomial.monomial d 1
 
+/-- Expands the complex cast of a real coefficientwise polynomial evaluation as a sum of cast
+coefficients times complex monomial values. -/
 private theorem cast_eval_part (k : ℂ → ℝ) (s : Finset (I →₀ ℕ)) (c : (I →₀ ℕ) → ℂ) (x : I → ℝ) :
     ((MvPolynomial.eval x (∑ d ∈ s, MvPolynomial.C (k (c d)) * MvPolynomial.monomial d 1) : ℝ) :
       ℂ) = ∑ d ∈ s, (k (c d) : ℂ) * ∏ i, (x i : ℂ) ^ (d i) := by
@@ -336,6 +409,8 @@ private theorem cast_eval_part (k : ℂ → ℝ) (s : Finset (I →₀ ℕ)) (c 
     fun j => Finset.prod_congr rfl fun i _ => Complex.ofReal_pow (x i) (j i)
   simp only [Complex.ofReal_mul, one_mul, Complex.ofReal_prod, hpow]
 
+/-- At real inputs, the evaluations of the coefficientwise real and imaginary parts reconstruct
+the complex polynomial's evaluation. -/
 private theorem realImag_eval_complex (p : MvPolynomial I ℂ) (x : I → ℝ) :
     ((MvPolynomial.eval x (realPart p) : ℝ) : ℂ)
       + Complex.I * ((MvPolynomial.eval x (imagPart p) : ℝ) : ℂ)
@@ -354,21 +429,27 @@ private theorem realImag_eval_complex (p : MvPolynomial I ℂ) (x : I → ℝ) :
     Finset.mul_sum, ← Finset.sum_add_distrib]
   exact Finset.sum_congr rfl fun d _ => key _ _
 
+/-- The sum of the squared real and imaginary parts of a complex number equals its squared norm. -/
 private theorem re_im_sq_eq_normSq (z : ℂ) : z.re ^ 2 + z.im ^ 2 = ‖z‖ ^ 2 := by
   calc z.re ^ 2 + z.im ^ 2 = z.re * z.re + z.im * z.im := by ring
     _ = Complex.normSq z := Complex.normSq_apply z
     _ = ‖z‖ ^ 2 := Complex.normSq_eq_norm_sq z
 
+/-- Evaluation of the coefficientwise real part at real inputs equals the real part of the
+complex evaluation. -/
 theorem realPart_eval (p : MvPolynomial I ℂ) (x : I → ℝ) :
     MvPolynomial.eval x (realPart p) = (MvPolynomial.eval (fun i => (x i : ℂ)) p).re := by
   have h := congrArg Complex.re (realImag_eval_complex p x)
   simpa using h
 
+/-- Evaluation of the coefficientwise imaginary part at real inputs equals the imaginary part of
+the complex evaluation. -/
 theorem imagPart_eval (p : MvPolynomial I ℂ) (x : I → ℝ) :
     MvPolynomial.eval x (imagPart p) = (MvPolynomial.eval (fun i => (x i : ℂ)) p).im := by
   have h := congrArg Complex.im (realImag_eval_complex p x)
   simpa using h
 
+/-- Taking real parts of polynomial coefficients cannot increase total degree. -/
 theorem realPart_totalDegree_le (p : MvPolynomial I ℂ) :
     (realPart p).totalDegree ≤ p.totalDegree := by
   refine (MvPolynomial.totalDegree_finsetSum_le (s := p.support) (d := p.totalDegree) ?_).trans
@@ -386,6 +467,7 @@ theorem realPart_totalDegree_le (p : MvPolynomial I ℂ) :
   have h4 : d.sum (fun _ e => e) ≤ p.totalDegree := MvPolynomial.le_totalDegree hd
   omega
 
+/-- Taking imaginary parts of polynomial coefficients cannot increase total degree. -/
 theorem imagPart_totalDegree_le (p : MvPolynomial I ℂ) :
     (imagPart p).totalDegree ≤ p.totalDegree := by
   refine (MvPolynomial.totalDegree_finsetSum_le (s := p.support) (d := p.totalDegree) ?_).trans
@@ -403,12 +485,16 @@ theorem imagPart_totalDegree_le (p : MvPolynomial I ℂ) :
   have h4 : d.sum (fun _ e => e) ≤ p.totalDegree := MvPolynomial.le_totalDegree hd
   omega
 
+/-- The sum, over accepted basis labels, of the squared real and imaginary amplitude
+polynomials. -/
 noncomputable def rawAcceptancePolynomial (C : Circuit (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) (E : Finset (PolynomialWorkspace I W)) :
     MvPolynomial I ℝ :=
   Finset.sum E fun q =>
     (realPart (amplitudePolynomial C ψ q)) ^ 2 + (imagPart (amplitudePolynomial C ψ q)) ^ 2
 
+/-- The raw acceptance polynomial evaluates to the circuit's Born probability on every Boolean
+oracle and has degree at most twice its query count; see [BealsEtAl2001]. -/
 theorem acceptance_polynomial_actual_born_and_degree
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (E : Finset (PolynomialWorkspace I W)) (f : I → Bool) :
@@ -463,9 +549,11 @@ theorem acceptance_polynomial_actual_born_and_degree
         _ ≤ 2 * QueryCount C := Nat.mul_le_mul_left 2 him
     exact h1.trans h2
 
+/-- Replaces each positive exponent of a finitely supported monomial by one. -/
 noncomputable def clampExponent (d : I →₀ ℕ) : I →₀ ℕ :=
   Finsupp.indicator d.support (fun i _ => 1)
 
+/-- A clamped exponent is zero exactly when the original exponent is zero, and is one otherwise. -/
 @[simp] theorem clampExponent_apply (d : I →₀ ℕ) (i : I) :
     clampExponent d i = if d i = 0 then 0 else 1 := by
   classical
@@ -477,6 +565,7 @@ noncomputable def clampExponent (d : I →₀ ℕ) : I →₀ ℕ :=
       dif_pos (Finsupp.mem_support_iff.mpr h)]
     simp [h]
 
+/-- Clamping an exponent cannot increase any coordinate. -/
 theorem clampExponent_le (d : I →₀ ℕ) (i : I) : clampExponent d i ≤ d i := by
   rw [clampExponent_apply]
   by_cases h : d i = 0
@@ -485,14 +574,18 @@ theorem clampExponent_le (d : I →₀ ℕ) (i : I) : clampExponent d i ≤ d i 
   · rw [if_neg h]
     omega
 
+/-- Every coordinate of an exponent equal to `clampExponent d` is at most one. -/
 theorem clampExponent_mul_le (d : I →₀ ℕ) (e : I →₀ ℕ) (h : clampExponent d = e) (i : I) :
     e i ≤ 1 := by
   rw [← h, clampExponent_apply]
   split_ifs with hi <;> omega
 
+/-- Replaces each monomial's positive exponents by one, combining coefficients of monomials with
+the same clamped exponent. -/
 noncomputable def multilinearize (p : MvPolynomial I ℝ) : MvPolynomial I ℝ :=
   ∑ d ∈ p.support, MvPolynomial.monomial (clampExponent d) (p.coeff d)
 
+/-- Multilinearization cannot increase the total degree of a real polynomial. -/
 theorem multilinearize_totalDegree_le (p : MvPolynomial I ℝ) :
     (multilinearize p).totalDegree ≤ p.totalDegree := by
   refine (MvPolynomial.totalDegree_finsetSum_le (s := p.support) (d := p.totalDegree) ?_).trans
@@ -508,6 +601,8 @@ theorem multilinearize_totalDegree_le (p : MvPolynomial I ℝ) :
   have h5 : d.sum (fun _ e => e) ≤ p.totalDegree := MvPolynomial.le_totalDegree hd
   omega
 
+/-- Every monomial with nonzero coefficient after multilinearization has exponent at most one in
+each variable. -/
 theorem multilinearize_coeff_multilinear (p : MvPolynomial I ℝ) (d : I →₀ ℕ)
     (hd : (multilinearize p).coeff d ≠ 0) (i : I) : d i ≤ 1 := by
   have hne : ∑ d' ∈ p.support,
@@ -524,6 +619,7 @@ theorem multilinearize_coeff_multilinear (p : MvPolynomial I ℝ) (d : I →₀ 
     simpa [MvPolynomial.coeff_monomial, ne_eq] using hne'
   exact clampExponent_mul_le d' d hne''.1 i
 
+/-- At a zero-one input coordinate, clamping a monomial exponent preserves its power value. -/
 private theorem boolPow_clamp (x : I → ℝ) (d : I →₀ ℕ) (i : I)
     (h : x i = 0 ∨ x i = 1) : x i ^ (clampExponent d i) = x i ^ d i := by
   by_cases hd : d i = 0
@@ -533,6 +629,7 @@ private theorem boolPow_clamp (x : I → ℝ) (d : I →₀ ℕ) (i : I)
     | inl hx => simp [hx, clampExponent_apply, hk]
     | inr hx => simp [hx, clampExponent_apply, hk]
 
+/-- Multilinearization preserves polynomial evaluation at every zero-one assignment. -/
 theorem multilinearize_eval (p : MvPolynomial I ℝ) (x : I → ℝ) (hx : ∀ i, x i = 0 ∨ x i = 1) :
     MvPolynomial.eval x (multilinearize p) = MvPolynomial.eval x p := by
   have hpow : ∀ (j : I →₀ ℕ), (∏ i, x i ^ (clampExponent j i)) = ∏ i, x i ^ (j i) :=
@@ -544,11 +641,14 @@ theorem multilinearize_eval (p : MvPolynomial I ℝ) (x : I → ℝ) (hx : ∀ i
   refine Finset.sum_congr rfl fun d _ => ?_
   simp only [MvPolynomial.eval_monomial, Finsupp.prod_pow, hpow]
 
+/-- The multilinearization of a circuit's raw real acceptance polynomial. -/
 noncomputable def booleanAcceptancePolynomial (C : Circuit (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) (E : Finset (PolynomialWorkspace I W)) :
     MvPolynomial I ℝ :=
   multilinearize (rawAcceptancePolynomial C ψ E)
 
+/-- The Boolean acceptance polynomial is multilinear, has degree at most twice the query count,
+and evaluates to the executed circuit's Born probability; see [BealsEtAl2001]. -/
 theorem acceptance_boolean_multilinearization_preserves_run
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (E : Finset (PolynomialWorkspace I W)) :

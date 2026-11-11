@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.PauliClifford.ExactRank.MeasuredPauliShadows
+
+/-!
+# The tetrahedral qubit shadow instrument
+
+`tetraSigns` describes four tetrahedral directions, from which the module constructs Hermitian
+rank-one projectors, complete Kraus operators, and the instrument `tetraInstrument`. The
+associated Born distribution `tetraRecordLaw` determines an unbiased inverse-measurement
+snapshot `tetraSnapshot`. See [HuangKuengPreskill2020].
+
+## Main statements
+
+* `tetraKraus_complete`: the four Kraus effects sum to the identity.
+* `tetrahedral_actual_record_born_law`: the record distribution equals the instrument's Born
+  law.
+* `tetrahedral_measurement_inverse_reconstructs`: averaging the inverse snapshots recovers the
+  input density operator.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -24,33 +47,43 @@ open scoped ComplexOrder
 set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 
+/-- The three signs specifying each of four tetrahedral Bloch directions. -/
 def tetraSigns (a : Fin 4) (j : Fin 3) : ℝ :=
   if a = 0 then 1
   else if a = 1 then (if j = 0 then 1 else -1)
   else if a = 2 then (if j = 1 then 1 else -1)
   else if j = 2 then 1 else -1
 
+/-- The first tetrahedral sign row is identically one. -/
 @[simp] theorem tetraSigns_zero (j : Fin 3) : tetraSigns 0 j = 1 := rfl
 
+/-- The second tetrahedral sign row is positive only in coordinate zero. -/
 @[simp] theorem tetraSigns_one (j : Fin 3) : tetraSigns 1 j = if j = 0 then 1 else -1 := rfl
 
+/-- The third tetrahedral sign row is positive only in coordinate one. -/
 @[simp] theorem tetraSigns_two (j : Fin 3) : tetraSigns 2 j = if j = 1 then 1 else -1 := rfl
 
+/-- The fourth tetrahedral sign row is positive only in coordinate two. -/
 @[simp] theorem tetraSigns_three (j : Fin 3) : tetraSigns 3 j = if j = 2 then 1 else -1 := rfl
 
+/-- The sum of the squared signs in each tetrahedral row is 3. -/
 theorem tetraSigns_row_sq (a : Fin 4) : ∑ j : Fin 3, (tetraSigns a j) ^ 2 = 3 := by
   fin_cases a <;> simp
 
+/-- Each tetrahedral sign coordinate sums to zero over the four outcomes. -/
 theorem tetraSigns_col_sum (j : Fin 3) : ∑ a : Fin 4, tetraSigns a j = 0 := by
   fin_cases j <;> simp [Fin.sum_univ_four]
 
+/-- The tetrahedral sign columns are orthogonal, with squared norm 4. -/
 theorem tetraSigns_frame (j k : Fin 3) :
     ∑ a : Fin 4, tetraSigns a j * tetraSigns a k = if j = k then 4 else 0 := by
   fin_cases j <;> fin_cases k <;> simp [Fin.sum_univ_four] <;> try norm_num
 
+/-- The Pauli combination with coefficients given by a tetrahedral sign row. -/
 noncomputable def tetraSignPauli (a : Fin 4) : Operator 2 :=
   ∑ j : Fin 3, ((tetraSigns a j : ℝ) : ℂ) • pauliMatrix j
 
+/-- Each tetrahedral sign-weighted Pauli combination is Hermitian. -/
 theorem tetraSignPauli_conjTranspose (a : Fin 4) :
     (tetraSignPauli a)ᴴ = tetraSignPauli a := by
   rw [tetraSignPauli, Matrix.conjTranspose_sum]
@@ -59,6 +92,8 @@ theorem tetraSignPauli_conjTranspose (a : Fin 4) :
     show star ((tetraSigns a j : ℝ) : ℂ) = ((tetraSigns a j : ℝ) : ℂ) from by
       simp [Complex.conj_ofReal], pauliMatrix_conjTranspose]
 
+/-- Squaring the sign-weighted Pauli combination gives the sum of squared signs times the
+identity. -/
 theorem tetraSignPauli_mul_self (a : Fin 4) :
     tetraSignPauli a * tetraSignPauli a
       = ((∑ j : Fin 3, (tetraSigns a j) ^ 2 : ℝ) : ℂ) • (1 : Operator 2) := by
@@ -70,9 +105,11 @@ theorem tetraSignPauli_mul_self (a : Fin 4) :
     ring_nf <;>
     norm_num [Complex.I_mul_I]
 
+/-- The normalized Pauli combination in a tetrahedral Bloch direction. -/
 noncomputable def tetraSigmaComb (a : Fin 4) : Operator 2 :=
   ∑ j : Fin 3, ((tetraSigns a j / Real.sqrt 3 : ℝ) : ℂ) • pauliMatrix j
 
+/-- The normalized tetrahedral Pauli combination is `tetraSignPauli` divided by √3. -/
 theorem tetraSigmaComb_eq (a : Fin 4) :
     tetraSigmaComb a = ((Real.sqrt 3 : ℝ) : ℂ)⁻¹ • tetraSignPauli a := by
   have hscal : ∀ n : ℝ, (((n / Real.sqrt 3 : ℝ) : ℂ))
@@ -84,12 +121,14 @@ theorem tetraSigmaComb_eq (a : Fin 4) :
   rw [Finset.smul_sum]
   exact Finset.sum_congr rfl fun j _ => by rw [smul_smul]
 
+/-- The normalized tetrahedral Pauli combination is Hermitian. -/
 theorem tetraSigmaComb_conjTranspose (a : Fin 4) :
     (tetraSigmaComb a)ᴴ = tetraSigmaComb a := by
   rw [tetraSigmaComb_eq, Matrix.conjTranspose_smul,
     show star (((Real.sqrt 3 : ℝ) : ℂ)⁻¹) = ((Real.sqrt 3 : ℝ) : ℂ)⁻¹ from by simp,
     tetraSignPauli_conjTranspose]
 
+/-- Each normalized tetrahedral Pauli combination squares to the identity. -/
 theorem tetraSigmaComb_mul_self (a : Fin 4) : tetraSigmaComb a * tetraSigmaComb a = 1 := by
   have hsqrt : ((Real.sqrt 3 : ℝ) : ℂ) * ((Real.sqrt 3 : ℝ) : ℂ) = ((3 : ℝ) : ℂ) := by
     rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 3)]
@@ -106,21 +145,27 @@ theorem tetraSigmaComb_mul_self (a : Fin 4) : tetraSigmaComb a * tetraSigmaComb 
       _ = 1 := by rw [inv_mul_cancel₀ hne, one_mul]
   rw [hscal, one_smul]
 
+/-- The projector obtained as half the sum of the identity and the normalized tetrahedral Pauli
+combination. -/
 noncomputable def tetraProjector (a : Fin 4) : Operator 2 :=
   (1 / 2 : ℂ) • (1 + tetraSigmaComb a)
 
+/-- The tetrahedral projector scaled by the reciprocal of √2. -/
 noncomputable def tetraKraus (a : Fin 4) : Operator 2 :=
   ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ • tetraProjector a
 
+/-- The inverse-measurement snapshot `3 • tetraProjector a - 1`. -/
 noncomputable def tetraSnapshot (a : Fin 4) : Operator 2 :=
   (3 : ℂ) • tetraProjector a - 1
 
+/-- Every tetrahedral projector is Hermitian. -/
 theorem tetraProjector_conjTranspose (a : Fin 4) :
     (tetraProjector a)ᴴ = tetraProjector a := by
   rw [tetraProjector, Matrix.conjTranspose_smul,
     show star ((1 : ℂ) / 2) = 1 / 2 from by norm_num,
     Matrix.conjTranspose_add, Matrix.conjTranspose_one, tetraSigmaComb_conjTranspose]
 
+/-- Every tetrahedral projector is idempotent. -/
 theorem tetraProjector_mul_self (a : Fin 4) :
     tetraProjector a * tetraProjector a = tetraProjector a := by
   have hS := tetraSigmaComb_mul_self a
@@ -135,13 +180,16 @@ theorem tetraProjector_mul_self (a : Fin 4) :
   rw [hcore]
   module
 
+/-- Each of the three Pauli matrices has trace zero. -/
 theorem trace_pauliMatrix_local (j : Fin 3) : Matrix.trace (pauliMatrix j) = 0 := by
   fin_cases j <;> simp [pauliX, pauliY, pauliZ, Matrix.trace_fin_two]
 
+/-- The identity operator on a qubit has trace 2. -/
 theorem trace_one_two : Matrix.trace (1 : Operator 2) = 2 := by
   rw [Matrix.trace_one, Fintype.card_fin]
   norm_num
 
+/-- Each tetrahedral projector has trace one. -/
 theorem tetraProjector_trace (a : Fin 4) : Matrix.trace (tetraProjector a) = 1 := by
   have hsig : Matrix.trace (tetraSigmaComb a) = 0 := by
     rw [tetraSigmaComb, Matrix.trace_sum]
@@ -151,6 +199,7 @@ theorem tetraProjector_trace (a : Fin 4) : Matrix.trace (tetraProjector a) = 1 :
     trace_one_two]
   norm_num
 
+/-- The four sign-weighted Pauli combinations sum to zero. -/
 theorem tetraSignPauli_sum_zero : ∑ a : Fin 4, tetraSignPauli a = 0 := by
   simp only [tetraSignPauli]
   rw [Finset.sum_comm]
@@ -158,6 +207,7 @@ theorem tetraSignPauli_sum_zero : ∑ a : Fin 4, tetraSignPauli a = 0 := by
   rw [← Finset.sum_smul, ← Complex.ofReal_sum, tetraSigns_col_sum k]
   norm_num
 
+/-- The four tetrahedral projectors sum to twice the identity. -/
 theorem tetraProjector_sum : ∑ a : Fin 4, tetraProjector a = (2 : ℂ) • (1 : Operator 2) := by
   have hsigma : ∑ a : Fin 4, tetraSigmaComb a = 0 := by
     rw [Finset.sum_congr rfl fun a _ => tetraSigmaComb_eq a, ← Finset.smul_sum,
@@ -172,11 +222,13 @@ theorem tetraProjector_sum : ∑ a : Fin 4, tetraProjector a = (2 : ℂ) • (1 
           ← Nat.cast_smul_eq_nsmul (R := ℂ), Nat.cast_ofNat]
         module
 
+/-- Each tetrahedral Kraus operator is Hermitian. -/
 theorem tetraKraus_conjTranspose (a : Fin 4) : (tetraKraus a)ᴴ = tetraKraus a := by
   rw [tetraKraus, Matrix.conjTranspose_smul,
     show star (((Real.sqrt 2 : ℝ) : ℂ)⁻¹) = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ from by simp,
     tetraProjector_conjTranspose]
 
+/-- Each tetrahedral Kraus effect is half its corresponding projector. -/
 theorem tetraKraus_conj_mul (a : Fin 4) :
     (tetraKraus a)ᴴ * tetraKraus a = (1 / 2 : ℂ) • tetraProjector a := by
   rw [tetraKraus_conjTranspose]
@@ -186,6 +238,7 @@ theorem tetraKraus_conj_mul (a : Fin 4) :
     show (((Real.sqrt 2 : ℝ) : ℂ)⁻¹ * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ : ℂ) = (1 : ℂ) / 2 from
       inv_sqrt2_mul_self.trans (by norm_num)]
 
+/-- The tetrahedral Kraus effects sum to the identity. -/
 theorem tetraKraus_complete : ∑ a : Fin 4, (tetraKraus a)ᴴ * tetraKraus a = 1 := by
   calc ∑ a : Fin 4, (tetraKraus a)ᴴ * tetraKraus a
       = ∑ a : Fin 4, (1 / 2 : ℂ) • tetraProjector a :=
@@ -194,6 +247,8 @@ theorem tetraKraus_complete : ∑ a : Fin 4, (tetraKraus a)ᴴ * tetraKraus a = 
     _ = (1 / 2 : ℂ) • ((2 : ℂ) • (1 : Operator 2)) := by rw [tetraProjector_sum]
     _ = 1 := by module
 
+/-- The explicit tetrahedral signs define Hermitian idempotent projectors and their scaled Kraus
+operators satisfy completeness. -/
 theorem tetrahedral_actual_projectors_and_kraus_complete :
     (∀ a : Fin 4, (∑ j : Fin 3, (tetraSigns a j) ^ 2) = 3) ∧
       (∀ a, tetraProjector a
@@ -207,15 +262,20 @@ theorem tetrahedral_actual_projectors_and_kraus_complete :
     fun a => ⟨tetraProjector_conjTranspose a, tetraProjector_mul_self a⟩, fun _ => rfl,
     tetraKraus_complete⟩
 
+/-- The four-outcome qubit instrument defined by the tetrahedral Kraus operators. -/
 noncomputable def tetraInstrument : Instrument (Fin 4) 2 2 :=
   Instrument.ofKraus tetraKraus tetraKraus_complete
 
+/-- The finite probability distribution of tetrahedral instrument outcomes on a density
+operator. -/
 noncomputable def tetraRecordLaw (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     FinDist (Fin 4) where
   prob a := instrumentProb tetraInstrument ρ a
   nonneg a := instrumentProb_nonneg tetraInstrument hρ.1 a
   sum_one := sum_instrumentProb_isDensityOperator tetraInstrument hρ
 
+/-- Each instrument branch is Kraus conjugation, and its probability is half the real trace of
+the tetrahedral projector against the input state. -/
 theorem tetrahedral_actual_record_born_law (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (a : Fin 4) :
     tetraInstrument.branch a ρ = tetraKraus a * ρ * (tetraKraus a)ᴴ ∧
@@ -238,6 +298,7 @@ theorem tetrahedral_actual_record_born_law (ρ : Operator 2) (hρ : IsDensityOpe
   simp only [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- The tetrahedral outcome probabilities, viewed as complex numbers, sum to one. -/
 theorem tetrahedral_prob_sum (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     ∑ a : Fin 4, (((tetraRecordLaw ρ hρ).prob a : ℝ) : ℂ) = 1 := by
   rw [Finset.sum_congr rfl fun a _ => show (((tetraRecordLaw ρ hρ).prob a : ℝ) : ℂ)
@@ -252,6 +313,8 @@ theorem tetrahedral_prob_sum (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
   rw [htotal, hρ.2]
   norm_num [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, Complex.one_re]
 
+/-- The sign-weighted sum of tetrahedral projector expectations is `2 / Real.sqrt 3` times the
+corresponding Pauli expectation. -/
 theorem tetrahedral_trace_col (ρ : Operator 2) (j : Fin 3) :
     ∑ a : Fin 4, (Matrix.trace (tetraProjector a * ρ)).re * tetraSigns a j
       = (2 / Real.sqrt 3) * (Matrix.trace (pauliMatrix j * ρ)).re := by
@@ -332,6 +395,8 @@ theorem tetrahedral_trace_col (ρ : Operator 2) (j : Fin 3) :
   simp only [smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- The sum of tetrahedral projectors weighted by their real traces against a density operator
+equals the identity plus one third of the Pauli expectation sum. -/
 theorem tetrahedral_weighted_effect_sum (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     ∑ a : Fin 4, ((Matrix.trace (tetraProjector a * ρ)).re : ℂ) • tetraProjector a
       = (1 : ℂ) • (1 : Operator 2)
@@ -388,6 +453,8 @@ theorem tetrahedral_weighted_effect_sum (ρ : Operator 2) (hρ : IsDensityOperat
   congr 1
   ring
 
+/-- The Born-weighted average tetrahedral projector equals half the identity plus one sixth of
+the Pauli expectation sum. -/
 theorem tetrahedral_weighted_projector_sum (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     ∑ a : Fin 4, (((tetraRecordLaw ρ hρ).prob a : ℝ) : ℂ) • tetraProjector a
       = (1 / 2 : ℂ) • (1 : Operator 2)
@@ -402,6 +469,8 @@ theorem tetrahedral_weighted_projector_sum (ρ : Operator 2) (hρ : IsDensityOpe
     tetrahedral_weighted_effect_sum ρ hρ]
   module
 
+/-- The snapshots are three times the projectors minus the identity, and their Born-weighted
+average recovers every input density operator. -/
 theorem tetrahedral_measurement_inverse_reconstructs :
     (∀ a : Fin 4, tetraSnapshot a = (3 : ℂ) • tetraProjector a - 1) ∧
       ∀ (ρ : Operator 2) (hρ : IsDensityOperator ρ),

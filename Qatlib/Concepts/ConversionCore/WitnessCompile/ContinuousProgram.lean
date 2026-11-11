@@ -15,6 +15,29 @@ import Qatlib.Concepts.ConversionCore.WitnessCompile.ContinuousAnalysis
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveCompilation
 import Qatlib.Concepts.ConversionCore.WitnessCompile.DecodedRecords
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+
+/-!
+# Continuous source programs and discrete query costs
+
+Legal continuous source programs preserve normalization and have filtered Gram change at most
+`1+π²` times their total query time. The proof telescopes the corresponding one-step bound
+across the program.
+
+The module also identifies compiled adaptive mixed-state channels and compares continuous state
+conversion with discrete query complexity at explicit fixed errors. These bridges implement the
+query-model comparisons studied in [LeeEtAl2011].
+
+## Main statements
+
+* `continuousConversion_source_program_distance`: the total-time filtered Gram bound.
+* `sourceAdaptive_compiled_mixed_channel`: recovery of the adaptive channel after compilation.
+* `stageB_state_conversion_clause93`: continuous and discrete complexity comparisons.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -51,6 +74,8 @@ set_option maxHeartbeats 1000000 in
 set_option backward.isDefEq.respectTransparency false in
 noncomputable section
 
+/-- The matrix of a continuous source program beginning with `s` is the remaining-program matrix
+multiplied by the single-step matrix. -/
 theorem continuousConversion_source_cons {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (s : SourceContinuousStep S) (C : List (SourceContinuousStep S)) :
     sourceContinuousMatrix O (s :: C) = sourceContinuousMatrix O C * sourceContinuousMatrix O [s] := by
@@ -58,6 +83,8 @@ theorem continuousConversion_source_cons {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- A legal single continuous source step evaluated with the logarithmic alphabet oracle is
+unitary. -/
 theorem continuousConversion_source_single_unitary {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (s : SourceContinuousStep ((Fin (n+1) × Fin (q+1)) × W))
@@ -87,6 +114,7 @@ theorem continuousConversion_source_single_unitary {X W : Type} [Fintype W] [Dec
 end
 noncomputable section
 
+/-- A legal continuous source program evaluated with the logarithmic alphabet oracle is unitary. -/
 theorem continuousConversion_source_unitary {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (C : List (SourceContinuousStep ((Fin (n+1) × Fin (q+1)) × W)))
@@ -104,6 +132,7 @@ theorem continuousConversion_source_unitary {X W : Type} [Fintype W] [DecidableE
 end
 noncomputable section
 
+/-- A legal continuous source program has nonnegative total query time. -/
 theorem continuousConversion_source_time_nonneg {S : Type}
     (C : List (SourceContinuousStep S)) [Fintype S] [DecidableEq S]
     (hC : sourceContinuousLegal C) : 0 ≤ sourceContinuousTime C := by
@@ -117,6 +146,8 @@ theorem continuousConversion_source_time_nonneg {S : Type}
 end
 noncomputable section
 
+/-- A filtered Gram-change bound of `B` times query time for every legal single step extends to
+every legal continuous source program. -/
 theorem continuousConversion_source_telescope {X W : Type}
     [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (B : ℝ) (hB : 0 ≤ B)
@@ -165,6 +196,7 @@ theorem continuousConversion_source_telescope {X W : Type}
 end
 noncomputable section
 
+/-- Negating the target matrix leaves its rectangular filtered value unchanged. -/
 theorem continuousConversion_source_neg_value {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) :
     sourceRectValue (-A) Z = sourceRectValue A Z := by
@@ -173,6 +205,8 @@ theorem continuousConversion_source_neg_value {X : Type} [Fintype X] [DecidableE
 end
 noncomputable section
 
+/-- For normalized input states, a legal continuous source program changes the Gram matrix by
+filtered value at most `1+π²` times its total query time. -/
 theorem continuousConversion_source_program_distance {X W : Type}
     [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1))
@@ -209,12 +243,15 @@ theorem continuousConversion_source_program_distance {X W : Type}
 end
 noncomputable section
 
+/-- The matrix map summing `A*D*Aᴴ` over all adaptive branch operators. -/
 def sourceAdaptiveMixedChannel {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (T : SourceAdaptive S) (D : Matrix S S ℂ) : Matrix S S ℂ :=
   ((sourceAdaptiveOperators O T).map (fun A => A*D*Aᴴ)).sum
 end
 noncomputable section
 
+/-- Tracing out the record after applying the adaptive pure matrix to an input matrix gives the
+adaptive mixed channel. -/
 theorem sourceAdaptive_trace_mixed_channel {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (T : SourceAdaptive S) (D : Matrix S S ℂ) :
     conversionTraceRecord (sourceAdaptivePureMatrix O T * D * (sourceAdaptivePureMatrix O T)ᴴ) =
@@ -229,6 +266,9 @@ theorem sourceAdaptive_trace_mixed_channel {S : Type} [Fintype S] [DecidableEq S
 end
 noncomputable section
 
+/-- Every legal adaptive computation has a resource-bounded word compilation whose output, after
+pulling back through the tree frame and tracing out records, equals its mixed channel on
+every input matrix. -/
 theorem sourceAdaptive_compiled_mixed_channel :
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1))
@@ -256,11 +296,15 @@ theorem sourceAdaptive_compiled_mixed_channel :
 end
 noncomputable section
 
+/-- The extended nonnegative constant `ENNReal.ofReal (309237645312*(1+π²))` used in
+continuous-to-discrete fixed-error comparisons. -/
 def sourceFixedContinuousOverhead : ℝ≥0∞ :=
   ENNReal.ofReal ((309237645312:ℝ)*(1+Real.pi^2))
 end
 noncomputable section
 
+/-- Multiplication of the time bound by `309237645312` factors through
+`sourceFixedContinuousOverhead`. -/
 theorem sourceFixedContinuousOverhead_mul_time (t : ℝ) :
     (309237645312:ℝ≥0∞)*ENNReal.ofReal ((1+Real.pi^2)*t) =
       sourceFixedContinuousOverhead*ENNReal.ofReal t := by
@@ -272,6 +316,8 @@ theorem sourceFixedContinuousOverhead_mul_time (t : ℝ) :
 end
 noncomputable section
 
+/-- A legal continuous program achieving coherent error `1/13436928` bounds coherent discrete
+query complexity at error `1/3` by its total time times `sourceFixedContinuousOverhead`. -/
 theorem sourceCoherent_fixed_continuous_program {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ}
     (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -296,6 +342,9 @@ theorem sourceCoherent_fixed_continuous_program {X H : Type}
 end
 noncomputable section
 
+/-- A legal continuous program achieving noncoherent error `1/13436928` bounds noncoherent
+discrete query complexity at error `1/3` by its total time times
+`sourceFixedContinuousOverhead`. -/
 theorem sourceNoncoherent_fixed_continuous_program {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ}
     (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -321,6 +370,9 @@ theorem sourceNoncoherent_fixed_continuous_program {X H : Type}
 end
 noncomputable section
 
+/-- For nonempty payload space and normalized states, coherent discrete query complexity at
+error `1/3` is at most `sourceFixedContinuousOverhead` times coherent continuous complexity
+at error `1/13436928`. -/
 theorem sourceCoherent_fixed_continuousQ_nonempty {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -340,6 +392,9 @@ theorem sourceCoherent_fixed_continuousQ_nonempty {X H : Type}
 end
 noncomputable section
 
+/-- For nonempty payload space and normalized states, noncoherent discrete query complexity at
+error `1/3` is at most `sourceFixedContinuousOverhead` times noncoherent continuous
+complexity at error `1/13436928`. -/
 theorem sourceNoncoherent_fixed_continuousQ_nonempty {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -359,6 +414,9 @@ theorem sourceNoncoherent_fixed_continuousQ_nonempty {X H : Type}
 end
 noncomputable section
 
+/-- For normalized state families, coherent discrete complexity at error `1/3` is bounded by
+coherent continuous complexity at error `1/13436928` times `ENNReal.ofReal
+(309237645312*(1+π²))`. -/
 theorem sourceCoherent_fixed_continuousQ {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -382,6 +440,9 @@ theorem sourceCoherent_fixed_continuousQ {X H : Type}
 end
 noncomputable section
 
+/-- For normalized state families, noncoherent discrete complexity at error `1/3` is bounded by
+noncoherent continuous complexity at error `1/13436928` times `ENNReal.ofReal
+(309237645312*(1+π²))`. -/
 theorem sourceNoncoherent_fixed_continuousQ {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -405,6 +466,8 @@ theorem sourceNoncoherent_fixed_continuousQ {X H : Type}
 end
 noncomputable section
 
+/-- For normalized initial states, decoded coherent adaptive cost and noncoherent adaptive cost
+each compare with the corresponding word query cost within a factor of two. -/
 theorem stageB_state_conversion_clause91 {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -418,6 +481,8 @@ theorem stageB_state_conversion_clause91 {X H : Type}
 end
 noncomputable section
 
+/-- A legal continuous source program has filtered Gram change at most `ENNReal.ofReal
+((1+π²)*sourceContinuousTime C)`. -/
 theorem stageB_state_conversion_clause92 {X W : Type}
     [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1))
@@ -431,6 +496,10 @@ theorem stageB_state_conversion_clause92 {X W : Type}
 end
 noncomputable section
 
+/-- For normalized state families, continuous query complexity is at most discrete query
+complexity at every error, in both conversion models. Conversely, discrete complexity at
+error `1/3` is bounded by continuous complexity at error `1/13436928` with factor
+`ENNReal.ofReal (309237645312*(1+π²))`. -/
 theorem stageB_state_conversion_clause93 {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)

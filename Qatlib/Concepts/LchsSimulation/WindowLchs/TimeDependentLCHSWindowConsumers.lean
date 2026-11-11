@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindow
+
+/-!
+# Time-dependent LCHS preparation-window estimate
+
+`time_dependent_lchs_window_optimal_preparation_cost` bounds the amplification window in terms
+of the inverse norm of the evolved prepared input. For positive output norm and quadrature
+accuracy at most half that norm, the coefficient-mass bound yields a window of size at most `4 *
+q + 1`.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `time_dependent_lchs_window_optimal_preparation_cost`: bounds the window using inverse output
+  norm `q`.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -27,6 +48,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- For positive target output norm and `ε` at most half that norm, the prescribed
+time-dependent LCHS amplification window is at most `4 * q + 1`, where `q` is the inverse
+output norm [AnLiuLin2023]. -/
 theorem time_dependent_lchs_window_optimal_preparation_cost :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t ε Λ : ℝ) (B : Matrix I I ℂ) (i₀ : I),

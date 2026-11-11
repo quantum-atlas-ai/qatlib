@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+
+/-!
+# Local unitaries and partial trace
+
+This module proves that unitary conjugation on the second subsystem leaves the first reduced
+operator unchanged. It develops the finite matrix contractions needed for this identity and then
+transfers the result to outer products of pure states, as in the reduced-state formalism of
+[NielsenChuang2010].
+
+## Main statements
+
+* `sum_contract_conj`: contract a coefficient array using unitary column orthogonality.
+* `partialTrace_conj_tensorRight`: discard a unitary conjugation on the second subsystem.
+* `partialTrace_outerProduct_apply_tensorRight`: obtain the corresponding pure-state marginal
+  identity.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -18,17 +39,22 @@ open scoped Matrix.Norms.L2Operator
 
 variable {D E : ℕ}
 
+/-- An off-diagonal entry of the identity matrix is zero. -/
 private theorem one_apply_zero {i p : Fin D} (h : p ≠ i) : (1 : Matrix (Fin D) (Fin D) ℂ) i p = 0 := by
   rw [Matrix.one_apply, if_neg (Ne.symm h)]
 
+/-- Every diagonal entry of the identity matrix is one. -/
 private theorem one_apply_one (i : Fin D) : (1 : Matrix (Fin D) (Fin D) ℂ) i i = 1 := by
   rw [Matrix.one_apply, if_pos rfl]
 
+/-- A unitary matrix multiplied on the left by its conjugate transpose gives the identity. -/
 private theorem conjTranspose_mul_eq (V : Matrix (Fin E) (Fin E) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Fin E) ℂ) : Vᴴ * V = 1 := by
   have hstar : star V * V = 1 := (Matrix.mem_unitaryGroup_iff').mp hV
   rwa [Matrix.star_eq_conjTranspose] at hstar
 
+/-- Summing a column of a unitary matrix against the conjugate of another column gives the
+corresponding Kronecker delta. -/
 theorem sum_mul_conj_mul_eq (V : Matrix (Fin E) (Fin E) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Fin E) ℂ) (d e : Fin E) :
     (∑ a : Fin E, (V a d) * (starRingEnd ℂ) (V a e)) = if e = d then 1 else 0 := by
@@ -41,6 +67,8 @@ theorem sum_mul_conj_mul_eq (V : Matrix (Fin E) (Fin E) ℂ)
     _ = (1 : Matrix (Fin E) (Fin E) ℂ) e d := by rw [conjTranspose_mul_eq V hV]
     _ = if e = d then 1 else 0 := Matrix.one_apply (i := e) (j := d)
 
+/-- Contracting a two-index coefficient array against a unitary matrix and its conjugate reduces
+to the sum of diagonal coefficients. -/
 theorem sum_contract_conj (V : Matrix (Fin E) (Fin E) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Fin E) ℂ) (c : Fin E → Fin E → ℂ) :
     ((∑ a : Fin E, (∑ q : Fin E, (∑ l : Fin E, (c q l) * (V a q) * (starRingEnd ℂ (V a l)))))) = ∑ q : Fin E, c q q := by
@@ -68,6 +96,8 @@ theorem sum_contract_conj (V : Matrix (Fin E) (Fin E) ℂ)
       _ = c q q := by simp
   exact ((hswap1.trans hswap2).trans hpull).trans (horth.trans hdiag)
 
+/-- A diagonal reference block entry after second-subsystem conjugation expands as the displayed
+double sum over the second input indices. -/
 theorem conj_tensorRight_apply (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ)
     (V : Matrix (Fin E) (Fin E) ℂ) (i j : Fin D) (a : Fin E) :
     (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V * ρ * (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V)ᴴ) (i, a) (j, a) = (∑ q : Fin E, (∑ l : Fin E, (V a q) * ρ (i, q) (j, l) * (starRingEnd ℂ (V a l)))) := by
@@ -112,6 +142,8 @@ theorem conj_tensorRight_apply (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) �
     rfl
   exact ((hexpand.trans hrowsum).trans hfactor).trans hswap
 
+/-- Conjugation by a unitary on the second subsystem leaves the first reduced operator
+unchanged. -/
 theorem partialTrace_conj_tensorRight (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ)
     (V : Matrix (Fin E) (Fin E) ℂ) (hV : V ∈ Matrix.unitaryGroup (Fin E) ℂ) :
     PartialTrace (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V * ρ * (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V)ᴴ) = PartialTrace ρ := by
@@ -127,6 +159,8 @@ theorem partialTrace_conj_tensorRight (ρ : Matrix (Fin D × Fin E) (Fin D × Fi
     exact sum_contract_conj V hV fun q l => ρ (i, q) (j, l)
   exact hentry.trans hcontract
 
+/-- Each entry of the outer product of a gate-transformed vector equals the corresponding entry
+of the conjugated input outer product. -/
 theorem outerProduct_applyGate_mul_conjTranspose
     (U : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (ψ : QState (Fin D × Fin E))
     (i j : Fin D × Fin E) :
@@ -148,6 +182,8 @@ theorem outerProduct_applyGate_mul_conjTranspose
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun p _ => hstep p
 
+/-- Applying a unitary to the second factor of a bipartite pure state leaves its first reduced
+operator unchanged. -/
 theorem partialTrace_outerProduct_apply_tensorRight (ψ : QState (Fin D × Fin E))
     (V : Matrix (Fin E) (Fin E) ℂ) (hV : V ∈ Matrix.unitaryGroup (Fin E) ℂ) :
     PartialTrace (outerProduct (ApplyGate (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V) ψ)) = PartialTrace (outerProduct ψ) := by

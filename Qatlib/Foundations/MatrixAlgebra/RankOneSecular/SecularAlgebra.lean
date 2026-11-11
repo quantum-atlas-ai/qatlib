@@ -75,6 +75,31 @@ import Mathlib.Tactic.NormNum.Basic
 import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# Secular equations for diagonal rank-one perturbations
+
+`diagonalMinusRankOne` defines a real diagonal matrix minus a real multiple of a complex
+rank-one outer product. `resolventVector` and `secularSum` describe its eigenvectors and scalar
+secular equation away from the diagonal poles.
+
+`secular_iff_eigenvalue` proves the equivalence between the secular equation and a nonzero
+eigenvector, and the remaining lemmas show that each such eigenspace lies in the span of its
+resolvent vector. This is finite rank-one spectral algebra in the setting of [Bhatia1997].
+
+## Main statements
+
+* `eigenvector_scalar`: every eigenvector away from the poles is a specified multiple of the
+  resolvent vector.
+* `secular_iff_eigenvalue`: the secular equation characterizes real eigenvalues away from the
+  poles.
+* `eigenvector_mem_span`: the corresponding eigenspace lies in a single-vector span.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
@@ -83,21 +108,29 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The diagonal matrix with real entries `d i`, minus `a` times the outer product of `u` with
+its conjugate. -/
 def diagonalMinusRankOne (d : I→ℝ) (u : I→ℂ) (a : ℝ) : Matrix I I ℂ :=
   Matrix.diagonal (fun i=>(d i:ℂ))-(a:ℂ)•Matrix.vecMulVec u (star u)
 
+/-- The vector with coordinates `u i / (d i - z)`. -/
 def resolventVector (d : I→ℝ) (u : I→ℂ) (z : ℝ) : I→ℂ :=
   fun i=>u i/((d i-z:ℝ):ℂ)
 
+/-- The real secular sum `∑ i, normSq (u i) / (d i - z)`. -/
 def secularSum (d : I→ℝ) (u : I→ℂ) (z : ℝ) : ℝ :=
   ∑i,Complex.normSq (u i)/(d i-z)
 
+/-- The coordinate action of the diagonal rank-one perturbation separates into the diagonal term
+and the rank-one overlap term. -/
 theorem action (d : I→ℝ) (u x : I→ℂ) (a : ℝ) (i : I) :
     (diagonalMinusRankOne d u a *ᵥ x) i=
       (d i:ℂ)*x i-(a:ℂ)*u i*(∑j,star (u j)*x j) := by
   simp [diagonalMinusRankOne,Matrix.mulVec,dotProduct,Matrix.diagonal,Matrix.vecMulVec,
     sub_mul,Finset.sum_sub_distrib,Finset.mul_sum,mul_assoc]
 
+/-- The eigenvector equation for the rank-one perturbation is equivalent to its coordinate
+equations with factors `d i - z`. -/
 theorem eigen_equation_iff (d : I→ℝ) (u x : I→ℂ) (a z : ℝ) :
     diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x ↔
       ∀i,((d i-z:ℝ):ℂ)*x i=(a:ℂ)*u i*(∑j,star (u j)*x j) := by
@@ -111,6 +144,7 @@ theorem eigen_equation_iff (d : I→ℝ) (u x : I→ℂ) (a z : ℝ) :
 
 omit [Fintype I] in
 
+/-- A real diagonal matrix minus a real multiple of `u * uᴴ` equals its conjugate transpose. -/
 theorem hermitian (d : I→ℝ) (u : I→ℂ) (a : ℝ) :
     (diagonalMinusRankOne d u a)ᴴ =diagonalMinusRankOne d u a := by
   ext i j
@@ -123,6 +157,8 @@ theorem hermitian (d : I→ℝ) (u : I→ℂ) (a : ℝ) :
 
 omit [DecidableEq I] in
 
+/-- The pairing of `u` with its resolvent vector equals the complex cast of the real secular
+sum. -/
 theorem resolvent_pairing (d : I→ℝ) (u : I→ℂ) (z : ℝ) :
     (∑i,star (u i)*resolventVector d u z i)=(secularSum d u z:ℂ) := by
   unfold secularSum
@@ -138,6 +174,7 @@ theorem resolvent_pairing (d : I→ℝ) (u : I→ℂ) (z : ℝ) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Away from all diagonal poles, a nonzero vector `u` has a nonzero resolvent vector. -/
 theorem resolvent_ne_zero (d : I→ℝ) (u : I→ℂ) (z : ℝ)
     (hpole : ∀i,d i≠z) (hu : u≠0) : resolventVector d u z≠0 := by
   intro h
@@ -148,6 +185,8 @@ theorem resolvent_ne_zero (d : I→ℝ) (u : I→ℂ) (z : ℝ)
   change u i/((d i-z:ℝ):ℂ)=0 at hi
   exact (div_eq_zero_iff.mp hi).resolve_right hd
 
+/-- Away from the diagonal poles, any eigenvector at `z` is the resolvent vector scaled by `a`
+times its overlap with `u`. -/
 theorem eigenvector_scalar (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (heig : diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x) :
     x=((a:ℂ)*(∑j,star (u j)*x j))•resolventVector d u z := by
@@ -159,6 +198,7 @@ theorem eigenvector_scalar (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
   apply (eq_div_iff hd).mpr
   linear_combination hs i
 
+/-- A nonzero eigenvector away from the diagonal poles has nonzero overlap with `u`. -/
 theorem eigenvector_overlap_ne_zero (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (hx : x≠0) (heig : diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x) :
     (∑j,star (u j)*x j)≠0 := by
@@ -167,6 +207,8 @@ theorem eigenvector_overlap_ne_zero (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
   rw [hc,mul_zero,zero_smul] at he
   exact hx he
 
+/-- A nonzero eigenvector away from the diagonal poles satisfies the scalar secular equation `a
+* secularSum d u z = 1`. -/
 theorem secular_of_eigenvector (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (hx : x≠0) (heig : diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x) :
     a*secularSum d u z=1 := by
@@ -194,6 +236,8 @@ theorem secular_of_eigenvector (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
       _=c*1 := (mul_one _).symm
   exact_mod_cast hh
 
+/-- Away from the diagonal poles, the secular equation makes the resolvent vector satisfy the
+eigenvector equation at `z`. -/
 theorem eigenvector_of_secular (d : I→ℝ) (u : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (hsec : a*secularSum d u z=1) :
     diagonalMinusRankOne d u a *ᵥ resolventVector d u z=(z:ℂ)•resolventVector d u z := by
@@ -209,6 +253,8 @@ theorem eigenvector_of_secular (d : I→ℝ) (u : I→ℂ) (a z : ℝ)
     _=u i*((a:ℂ)*(∑j,star (u j)*resolventVector d u z j)) := by rw [hc,mul_one]
     _=_ := by ring
 
+/-- For nonzero `u` and `z` away from the diagonal poles, the secular equation holds exactly
+when the perturbed matrix has a nonzero eigenvector at `z`. -/
 theorem secular_iff_eigenvalue (d : I→ℝ) (u : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (hu : u≠0) :
     a*secularSum d u z=1 ↔ ∃x:I→ℂ,x≠0 ∧diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x := by
@@ -218,12 +264,16 @@ theorem secular_iff_eigenvalue (d : I→ℝ) (u : I→ℂ) (a z : ℝ)
   · rintro ⟨x,hx,he⟩
     exact secular_of_eigenvector d u x a z hpole hx he
 
+/-- Every eigenvector at a real value away from the diagonal poles belongs to the span of the
+resolvent vector. -/
 theorem eigenvector_mem_span (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (heig : diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x) :
     x∈Submodule.span ℂ {resolventVector d u z} := by
   rw [eigenvector_scalar d u x a z hpole heig]
   exact Submodule.smul_mem _ _ (Submodule.subset_span (by simp))
 
+/-- The coefficient expressing a nonzero eigenvector as a multiple of its resolvent vector is
+nonzero away from the poles. -/
 theorem eigenvector_scalar_ne_zero (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (hx : x≠0) (heig : diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x) :
     ((a:ℂ)*(∑j,star (u j)*x j))≠0 := by
@@ -232,6 +282,8 @@ theorem eigenvector_scalar_ne_zero (d : I→ℝ) (u x : I→ℂ) (a z : ℝ)
   rw [h,zero_smul] at he
   exact hx he
 
+/-- For nonzero `u` away from the diagonal poles, the secular equation is equivalent to the
+resolvent vector satisfying the eigenvector equation. -/
 theorem secular_iff_resolvent_eigenvector (d : I→ℝ) (u : I→ℂ) (a z : ℝ)
     (hpole : ∀i,d i≠z) (hu : u≠0) :
     a*secularSum d u z=1 ↔

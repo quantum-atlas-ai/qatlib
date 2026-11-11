@@ -10,6 +10,30 @@ import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
 import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
 import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
 import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+
+/-!
+# Physical branches of local cluster networks
+
+This module relates lifted wire and controlled-Z measurement patterns to their logical gate
+matrices in the one-way model [RaussendorfBriegel2001]. `networkPhysicalStepProgram` constructs
+the physical step, while `networkActualStepBranch` embeds an arbitrary input operator and traces
+out the record register after a fixed leaf.
+
+The basis-column calculations establish exact branch formulas, including zero branches for
+invalid wire records and the powers of one half determined by `networkCounts`.
+
+## Main statements
+
+* `networkWireStepBranch_apply`: the logical conjugation formula for a wire branch.
+* `networkCzStepBranch_apply`: the logical conjugation formula for a controlled-Z branch.
+* `cluster_network_actual_local_step_branches`: well-formedness and branch correctness for every
+  legal single step.
+
+## References
+
+* [Raussendorf and Briegel, 2001][RaussendorfBriegel2001]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -34,15 +58,21 @@ open Qatlib.Concepts.ClusterPatterns.WireComposition
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 
+/-- The smaller of the two wire indices `i` and `j`. -/
 def networkCzLo {n : ℕ} (i j : Fin n) : Fin n := ⟨min (i : ℕ) (j : ℕ), by omega⟩
 
+/-- The larger of the two wire indices `i` and `j`. -/
 def networkCzHi {n : ℕ} (i j : Fin n) : Fin n := ⟨max (i : ℕ) (j : ℕ), by omega⟩
 
+/-- Distinct wire indices have strictly ordered minimum and maximum. -/
 theorem networkCzLo_lt_hi {n : ℕ} (i j : Fin n) (h : (i : ℕ) ≠ (j : ℕ)) :
     (networkCzLo i j : ℕ) < (networkCzHi i j : ℕ) := by
   show min (i : ℕ) (j : ℕ) < max (i : ℕ) (j : ℕ)
   omega
 
+/-- The observed circuit implementing a network gate on an `n + 2` qubit register. Wire gates
+use the lifted wire pattern, while controlled-Z gates with distinct endpoints use the lifted
+controlled-Z pattern. -/
 noncomputable def networkPhysicalStepProgram {n : ℕ} :
     ClusterNetworkGate n → ObservedCircuit (Fin (2 ^ (n + 2)))
   | .inl (i, ζ) => networkStepLift (eWireFin n i) (clusterWireProgram ζ)
@@ -53,22 +83,31 @@ noncomputable def networkPhysicalStepProgram {n : ℕ} :
           clusterCZProgram
       else .halt true
 
+/-- A network history is valid when the second outcome bit is false at every wire step;
+controlled-Z steps impose no outcome restriction. -/
 def networkBranchValid {n : ℕ} (gs : List (ClusterNetworkGate n))
     (hist : Fin gs.length → Bool × Bool) : Prop :=
   ∀ k : Fin gs.length, match gs.get k with
     | .inl _ => (hist k).2 = false
     | .inr _ => True
 
+/-- The operator of the wire-pattern leaf with outcome `a`, lifted to the network register at
+wire `i`. -/
 noncomputable def networkWireStepLeaf (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) :
     Operator (2 ^ (n + 2)) :=
   (networkStepLiftLeaf (eWireFin n i)
     (observedLeaf 1 (clusterWireProgram ζ) (clusterWireLeaf ζ a))).operator
 
+/-- The operator of the controlled-Z leaf with outcomes `a` and `d`, lifted to the network
+register at the ordered wires `lo` and `hi`. -/
 noncomputable def networkCzStepLeaf (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) : Operator (2 ^ (n + 2)) :=
   (networkStepLiftLeaf (eCzFin n lo hi h1)
     (observedLeaf 1 clusterCZProgram (clusterCZLeaf a d))).operator
 
+/-- The network step map for a fixed outcome, obtained by embedding the input, applying the
+physical leaf, relabeling the output, and tracing out its record register. Invalid wire
+outcomes and controlled-Z steps with coincident endpoints give zero. -/
 noncomputable def networkActualStepCore {n : ℕ} :
     ClusterNetworkGate n → Bool × Bool → Operator (2 ^ n) → Operator (2 ^ n)
   | .inl (i, ζ), o, ρ =>
@@ -87,6 +126,7 @@ noncomputable def networkActualStepCore {n : ℕ} :
                 (networkCzLo_lt_hi i j h) o.1 o.2).conjTranspose))
       else 0
 
+/-- The complex-linear map associated with `networkActualStepCore` for a fixed gate and outcome. -/
 noncomputable def networkActualStepBranch {n : ℕ} (g : ClusterNetworkGate n) (o : Bool × Bool) :
     Operator (2 ^ n) →ₗ[ℂ] Operator (2 ^ n) where
   toFun := networkActualStepCore g o
@@ -121,10 +161,12 @@ noncomputable def networkActualStepBranch {n : ℕ} (g : ClusterNetworkGate n) (
           relabelGate_smul', traceLeft_smul, RingHom.id_apply]
       · simp [networkActualStepCore, hv]
 
+/-- The logical matrix of a singleton gate list is the matrix of that gate. -/
 theorem networkLogicalMatrix_cons {n : ℕ} (g : ClusterNetworkGate n) :
     networkLogicalMatrix [g] = networkGateMatrix g := by
   simp [networkLogicalMatrix]
 
+/-- Relabeling a computational basis ket sends its index along the equivalence. -/
 theorem networkRelabelState_ket {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (i : I) : relabelState e (Ket i) = Ket (e i) := by
   funext x
@@ -134,6 +176,7 @@ theorem networkRelabelState_ket {I J : Type*} [Fintype I] [DecidableEq I] [Finty
   · rw [if_pos h, if_pos ((Equiv.symm_apply_eq e).mp h)]
   · rw [if_neg h, if_neg (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
 
+/-- Successive gate relabelings agree with relabeling along the composite equivalence. -/
 theorem networkRelabelGate_trans {I J K : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] [Fintype K] [DecidableEq K] (e : I ≃ J) (f : J ≃ K)
     (U : Matrix I I ℂ) :
@@ -141,6 +184,8 @@ theorem networkRelabelGate_trans {I J K : Type*} [Fintype I] [DecidableEq I] [Fi
   ext i k
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Equiv.symm_trans_apply]
 
+/-- Relabeling a gate along an inverse equivalence and then the original equivalence recovers
+the gate. -/
 theorem networkRelabelGate_symm {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (U : Matrix J J ℂ) :
     relabelGate e (relabelGate e.symm U) = U := by
@@ -148,6 +193,8 @@ theorem networkRelabelGate_symm {I J : Type*} [Fintype I] [DecidableEq I] [Finty
   rw [Equiv.symm_symm] at h
   exact h
 
+/-- Converting a wire output layout to the wire input layout exchanges the second local bit with
+the selected register bit. -/
 theorem networkWireRouteFromF_outToF (n : ℕ) (i : Fin n) (p : (Bool × Bool) × Reg n) :
     networkWireRouteFromF n i (networkWireOutToF n i p)
       = ((p.1.1, p.2 i), fun k => if k = i then p.1.2 else p.2 k) := by
@@ -168,6 +215,8 @@ theorem networkWireRouteFromF_outToF (n : ℕ) (i : Fin n) (p : (Bool × Bool) �
     · rw [if_neg hk, if_neg hk, if_neg hk]
   exact Prod.ext (Prod.ext h1 h2) (funext fun k => h3 k)
 
+/-- The inverse wire route separates the selected input bit and a zero ancillary bit from the
+remaining embedded register. -/
 theorem networkWireRoute_symm_frameVec (n : ℕ) (i : Fin n) (w : Reg n) :
     (networkWireRoute n i).symm (networkFrameVec n w)
       = ((w i, false), fun k => if k = i then false else w k) := by
@@ -177,9 +226,12 @@ theorem networkWireRoute_symm_frameVec (n : ℕ) (i : Fin n) (w : Reg n) :
   unfold networkWireRouteFromF
   rw [hss]
 
+/-- The four-dimensional operator of a wire-pattern leaf with phase `ζ` and outcome `a`. -/
 noncomputable def networkWireSmallLeafOp (ζ : ℂ) (a : Bool) : Operator 4 :=
   (observedLeaf 1 (clusterWireProgram ζ) (clusterWireLeaf ζ a)).operator
 
+/-- On a basis input with a zero ancillary bit, the relabeled wire leaf is supported on outcome
+`a` and applies `clusterJ ζ` with amplitude `1 / √2`. -/
 theorem networkWireSmallLeaf_column (ζ : ℂ) (a bb : Bool) :
     (relabelGate teleportOutcomeEquiv.symm (networkWireSmallLeafOp ζ a)) *ᵥ (Ket (bb, false))
       = (fun q : Bool × Bool =>
@@ -196,6 +248,8 @@ theorem networkWireSmallLeaf_column (ζ : ℂ) (a bb : Bool) :
     show teleportOutcomeEquiv.symm.symm = teleportOutcomeEquiv from Equiv.symm_symm _,
     networkRelabelState_ket, hkey, relabelState_relabelState]
 
+/-- Applying the relabeled wire leaf to a basis input with a zero ancillary bit yields the
+outcome-supported `clusterJ ζ` column scaled by `1 / √2`. -/
 theorem networkWireSmallLeaf_apply (ζ : ℂ) (a bb : Bool) :
     ApplyGate (relabelGate teleportOutcomeEquiv.symm (networkWireSmallLeafOp ζ a))
         (Ket (bb, false))
@@ -204,6 +258,8 @@ theorem networkWireSmallLeaf_apply (ζ : ℂ) (a bb : Bool) :
             (boolEquivFin2 bb) else 0) :=
   networkWireSmallLeaf_column ζ a bb
 
+/-- A matrix entry of the register-indexed wire gate is the selected `clusterJ ζ` entry times
+equality indicators on every other wire. -/
 theorem networkWireGateB_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (w v : Reg n) :
     networkWireGateB i ζ w v
       = clusterJ ζ (boolEquivFin2 (w i)) (boolEquivFin2 (v i))
@@ -229,6 +285,8 @@ theorem networkWireGateB_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (w v : Reg n) :
         (boolEquivFin2 (v j))) (Finset.mem_univ i)).symm).trans
     (congrArg₂ (· * ·) h1 (Finset.prod_congr rfl fun j hj => hne j hj))
 
+/-- The product of equality indicators away from `i` is the indicator that the registers agree
+after setting their `i`th bits to false. -/
 theorem networkIndicator_prod_erase (n : ℕ) (i : Fin n) (w v : Reg n) :
     ∏ j ∈ Finset.univ.erase i, (if w j = v j then (1 : ℂ) else 0)
       = if (fun k => if k = i then false else w k)
@@ -259,6 +317,8 @@ theorem networkIndicator_prod_erase (n : ℕ) (i : Fin n) (w v : Reg n) :
         exact hcon ⟨j, hj, hjw⟩)
     rw [if_neg hdif, Finset.prod_eq_zero hjmem (if_neg hjne)]
 
+/-- A basis column of the register-indexed wire gate applies `clusterJ ζ` on wire `i` and
+vanishes unless all other bits agree. -/
 theorem networkWireGateB_mulVec_ket (n : ℕ) (i : Fin n) (ζ : ℂ) (w v : Reg n) :
     (networkWireGateB i ζ *ᵥ Ket v) w
       = clusterJ ζ (boolEquivFin2 (w i)) (boolEquivFin2 (v i))
@@ -268,6 +328,8 @@ theorem networkWireGateB_mulVec_ket (n : ℕ) (i : Fin n) (ζ : ℂ) (w v : Reg 
   rw [Fintype.sum_eq_single v (fun u hu => by rw [if_neg hu, mul_zero]),
     if_pos rfl, mul_one, networkWireGateB_apply, networkIndicator_prod_erase]
 
+/-- The lifted wire leaf sends an embedded basis input to the routed tensor product of its
+outcome-supported local column and the unchanged remaining register. -/
 theorem networkWireStepLeaf_column (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (x : Fin (2 ^ n)) :
     (networkWireStepLeaf n i ζ a) *ᵥ (fun r => networkFrame n r x)
       = relabelState (bitVecEquiv (n + 2)) (relabelState (networkWireRoute n i)
@@ -289,6 +351,8 @@ theorem networkWireStepLeaf_column (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool) (
     networkRelabelState_ket, networkWireRoute_symm_frameVec, ← tensorState_ket_ket,
     applyGate_tensorGate, applyGate_one, networkWireSmallLeaf_apply]
 
+/-- In the wire output layout, a lifted wire leaf has record `(a, false)` and logical output
+given by the wire gate, scaled by `1 / √2`. -/
 theorem networkWireStepLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     (x : Fin (2 ^ n)) :
     relabelState (eWireOutFin n i).symm
@@ -353,6 +417,7 @@ theorem networkWireStepLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bo
       rw [if_pos h1, if_neg h2, mul_zero]
     · rw [if_neg h1, zero_mul]
 
+/-- The outer product of two relabeled states equals the relabeling of their outer product. -/
 theorem relabelGate_matOuter_back {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (u w : QState I) :
     matOuter (relabelState e u) (relabelState e w) = relabelGate e (matOuter u w) := by
@@ -360,6 +425,8 @@ theorem relabelGate_matOuter_back {I J : Type*} [Fintype I] [DecidableEq I] [Fin
   exact (relabelGate_relabelGate e.symm
     (matOuter (relabelState e u) (relabelState e w))).symm
 
+/-- A valid wire-step branch acts on each matrix unit as one half of conjugation by the logical
+wire gate. -/
 theorem networkWireStepBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     (x y : Fin (2 ^ n)) :
     networkActualStepCore (.inl (i, ζ)) (a, false) (networkMatUnit x y)
@@ -422,6 +489,8 @@ theorem networkWireStepBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool
     show (networkWireGate i ζ *ᵥ Ket y) = ApplyGate (networkWireGate i ζ) (Ket y) from rfl,
     ← matOuter_sandwich]
 
+/-- A wire-step branch with outcome `(a, false)` satisfies the singleton network branch formula
+with the count-dependent power of one half. -/
 theorem networkWireStepBranch_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     (ρ : Operator (2 ^ n)) :
     networkActualStepBranch (.inl (i, ζ)) (a, false) ρ
@@ -463,6 +532,8 @@ theorem networkWireStepBranch_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
   rw [conjBranch_apply, networkLogicalMatrix_cons]
   simp only [networkGateMatrix, Matrix.mul_smul, Matrix.smul_mul, smul_smul]
 
+/-- Converting a controlled-Z output layout to its input layout separates the outcome pair, the
+selected logical bits, and the complementary register. -/
 theorem networkCzRouteFromF_outToF (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (p : (Bool × Bool) × Reg n) :
     networkCzRouteFromF n lo hi h1 (networkCzOutToF n lo hi p)
@@ -503,6 +574,8 @@ theorem networkCzRouteFromF_outToF (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < 
       if_neg (fun hc => hne.2 (congrArg Fin.val hc))]
   exact Prod.ext (Prod.ext (Prod.ext hA hB) (Prod.ext rfl rfl)) (funext fun k => hS k)
 
+/-- The inverse controlled-Z route extracts the two selected input bits, two zero ancillary
+bits, and the complementary register from an embedded basis input. -/
 theorem networkCzRoute_symm_frameVec (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (w : Reg n) :
     (networkCzRoute n lo hi h1).symm (networkFrameVec n w)
@@ -516,9 +589,12 @@ theorem networkCzRoute_symm_frameVec (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) 
   unfold networkCzRouteFromF
   rw [hss]
 
+/-- The sixteen-dimensional operator of a controlled-Z pattern leaf with outcomes `a` and `d`. -/
 noncomputable def networkCzSmallLeafOp (a d : Bool) : Operator 16 :=
   (observedLeaf 1 clusterCZProgram (clusterCZLeaf a d)).operator
 
+/-- On basis inputs with zero ancillary bits, the relabeled controlled-Z leaf has outcome `(a,
+d)` and applies `clusterCZ` with amplitude `(-1)^(a d) / 2`. -/
 theorem networkCzSmallLeaf_column (a d xx yy : Bool) :
     (relabelGate clusterCZRegisterEquiv.symm (networkCzSmallLeafOp a d)) *ᵥ
         (Ket ((xx, yy), (false, false)))
@@ -535,6 +611,8 @@ theorem networkCzSmallLeaf_column (a d xx yy : Bool) :
     show clusterCZRegisterEquiv.symm.symm = clusterCZRegisterEquiv from Equiv.symm_symm _,
     networkRelabelState_ket, hkey, relabelState_relabelState]
 
+/-- Applying the relabeled controlled-Z leaf to a basis input with zero ancillary bits yields
+the outcome-supported controlled-Z column with its signed factor of one half. -/
 theorem networkCzSmallLeaf_apply (a d xx yy : Bool) :
     ApplyGate (relabelGate clusterCZRegisterEquiv.symm (networkCzSmallLeafOp a d))
         (Ket ((xx, yy), (false, false)))
@@ -543,6 +621,8 @@ theorem networkCzSmallLeaf_apply (a d xx yy : Bool) :
             * clusterCZ (teleportOutcomeEquiv q.2) (teleportOutcomeEquiv (xx, yy)) else 0) :=
   networkCzSmallLeaf_column a d xx yy
 
+/-- The register-indexed controlled-Z gate multiplies a basis ket by minus one precisely when
+both selected bits are true. -/
 theorem networkCzGateB_mulVec_ket (n : ℕ) (lo hi : Fin n) (w v : Reg n) :
     (networkCzGateB lo hi *ᵥ Ket v) w
       = (if w = v then (if w lo && w hi then (-1 : ℂ) else 1) else 0) := by
@@ -554,6 +634,8 @@ theorem networkCzGateB_mulVec_ket (n : ℕ) (lo hi : Fin n) (w v : Reg n) :
     rw [if_pos rfl, if_pos rfl, mul_one]
   · rw [if_neg hw, if_neg hw, mul_zero]
 
+/-- Two registers agree exactly when their bits at `lo` and `hi` agree and their complementary
+registers agree. -/
 theorem networkCzSupport_split (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (w v : Reg n) :
     (w = v) ↔ (((w lo, w hi) = (v lo, v hi)) ∧
@@ -593,6 +675,8 @@ theorem networkCzSupport_split (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi 
             Fin.ext (networkCzSlot_spec (lo : ℕ) (hi : ℕ) (m : ℕ) h1 hm1' hm2')] at hspecm
         exact hspecm
 
+/-- The lifted controlled-Z leaf sends an embedded basis input to its routed local controlled-Z
+column tensored with the unchanged complementary register. -/
 theorem networkCzStepLeaf_column (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) (x : Fin (2 ^ n)) :
     (networkCzStepLeaf n lo hi h1 a d) *ᵥ (fun r => networkFrame n r x)
@@ -619,6 +703,8 @@ theorem networkCzStepLeaf_column (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (h
     networkRelabelState_ket, networkCzRoute_symm_frameVec, ← tensorState_ket_ket,
     applyGate_tensorGate, applyGate_one, networkCzSmallLeaf_apply]
 
+/-- In the controlled-Z output layout, the lifted leaf has record `(a, d)` and the logical
+controlled-Z output scaled by its signed factor of one half. -/
 theorem networkCzStepLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < (hi : ℕ))
     (a d : Bool) (x : Fin (2 ^ n)) :
     relabelState (eCzOutFin n lo hi h1).symm
@@ -699,6 +785,7 @@ theorem networkCzStepLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ)
         (Prod.ext (congrArg Prod.fst hp) (congrArg Prod.snd hp)))
     rw [if_neg hpairne, zero_mul, if_neg hq]
 
+/-- Sorting the two wire indices leaves the register-indexed controlled-Z gate unchanged. -/
 theorem networkCzGateB_lo_hi {n : ℕ} (i j : Fin n) :
     networkCzGateB (networkCzLo i j) (networkCzHi i j) = networkCzGateB i j := by
   ext w w'
@@ -722,12 +809,15 @@ theorem networkCzGateB_lo_hi {n : ℕ} (i j : Fin n) :
   · simp only [networkCzGateB, Matrix.diagonal_apply]
     rw [if_neg hww, if_neg hww]
 
+/-- Sorting the two wire indices leaves the finite-indexed controlled-Z gate unchanged. -/
 theorem networkCzGate_lo_hi {n : ℕ} (i j : Fin n) :
     networkCzGate (networkCzLo i j) (networkCzHi i j) = networkCzGate i j := by
   show relabelGate (bitVecEquiv n) (networkCzGateB (networkCzLo i j) (networkCzHi i j))
       = relabelGate (bitVecEquiv n) (networkCzGateB i j)
   rw [networkCzGateB_lo_hi]
 
+/-- For distinct endpoints, each controlled-Z branch acts on matrix units as one quarter of
+conjugation by the logical controlled-Z gate. -/
 theorem networkCzStepBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j : ℕ))
     (a d : Bool) (x y : Fin (2 ^ n)) :
     networkActualStepCore (.inr (i, j)) (a, d) (networkMatUnit x y)
@@ -805,6 +895,8 @@ theorem networkCzStepBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (
     show (networkCzGate i j *ᵥ Ket y) = ApplyGate (networkCzGate i j) (Ket y) from rfl,
     ← matOuter_sandwich]
 
+/-- For distinct endpoints, a controlled-Z branch is conjugation by the singleton logical matrix
+scaled by the count-dependent power of one half. -/
 theorem networkCzStepBranch_apply (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j : ℕ))
     (a d : Bool) (ρ : Operator (2 ^ n)) :
     networkActualStepBranch (.inr (i, j)) (a, d) ρ
@@ -840,6 +932,8 @@ theorem networkCzStepBranch_apply (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (j 
   rw [conjBranch_apply, networkLogicalMatrix_cons]
   simp only [networkGateMatrix, Matrix.mul_smul, Matrix.smul_mul, smul_smul]
 
+/-- Every legal singleton network gate has a well-formed physical program, and each outcome
+branch is the count-weighted logical conjugation when valid and zero otherwise. -/
 theorem cluster_network_actual_local_step_branches :
     ∀ (n : ℕ) (g : ClusterNetworkGate n), networkLegal [g] →
       observedWellFormed (networkPhysicalStepProgram g) ∧

@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation12Stat
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
 import Qatlib.Concepts.CoherentSim.ResetDiscard.CountedObliviousAmplification
+
+/-!
+# Exact scale-two oblivious amplification
+
+`equation12` proves that oblivious amplification of a scale-two encoding of a unitary gives its
+exact action on the prepared ancillary fiber. `equation12_counted` realizes this action as a
+well-formed circuit with explicit costs, corresponding to the exact amplification step of
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `equation12`: Exact action of scale-two oblivious amplification.
+* `equation12_counted`: A realization using three queries and four gates.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -24,6 +43,8 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- Oblivious amplitude amplification of a scale-two block encoding of a unitary acts exactly as
+that unitary on the prepared ancillary fiber. See [BerryEtAl2015Taylor]. -/
 theorem equation12 : Equation12 := by
   intro J I _ _ _ _ W j₀ U hW hU ψ
   have hUU : U * Uᴴ = 1 := Unitary.mul_star_self_of_mem hU
@@ -51,6 +72,8 @@ theorem equation12 : Equation12 := by
       rw [← Matrix.mulVec_mulVec, fiberProjector_mulVec_tensorState_ket]
     _ = _ := by rw [hleak, hblock, fiberEmbed_mulVec_tensorState_ket]
 
+/-- A scale-two encoding of a unitary yields a well-formed circuit encoding its exact action on
+the ancillary fiber, using three queries and four gates. See [BerryEtAl2015Taylor]. -/
 theorem equation12_counted {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] {W : Matrix (J × I) (J × I) ℂ} {j₀ : J}
     {U : Matrix I I ℂ} (hW : IsBlockEncoding W j₀ U 2)

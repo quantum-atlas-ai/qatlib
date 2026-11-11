@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+
+/-!
+# Implementation bounds for search and parity
+
+This module transports concrete search and parity programs into the common `Implements`,
+`QueryUpper`, and `QueryLower` interfaces. It rules out nonterminating, timed-out, and constant
+implementations of the relevant tasks, and supplies a resource budget for workspace Grover
+search.
+
+The search and query lower-bound background is given in [Grover1996] and [Ambainis2002].
+
+## Main statements
+
+* `search_implements_budget`: For `n ≥ 2`, the singleton-search generator implements its task
+  within `searchBudget`.
+* `parity_lower_bound_consumer`: The parity task has query lower bound `Fintype.card I / 2`,
+  with multiplicative constant one, for the given family of parity programs.
+
+## References
+
+* [Grover, 1996][Grover1996]
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
@@ -26,6 +50,7 @@ set_option warningAsError false
 namespace Qatlib.Concepts.ResourceBounds.AsymBounds
 noncomputable section
 
+/-- A computation that never returns cannot implement a task with a legal instance. -/
 theorem never_not_implements {Inst Out : Type*} (T : TaskSpec Inst Out) (B : Account)
     (i : Inst) (hlegal : T.legal i) :
     ¬Implements T (fun _ => (.never : Outcome (Out × Account))) B := by
@@ -35,6 +60,7 @@ theorem never_not_implements {Inst Out : Type*} (T : TaskSpec Inst Out) (B : Acc
 end
 noncomputable section
 
+/-- A computation that always times out cannot implement a nontrivial task. -/
 theorem timeout_not_implements {Inst Out : Type*} (T : TaskSpec Inst Out) (B : Account)
     (hnt : T.nontrivial) :
     ¬Implements T (fun _ => (.timeout : Outcome (Out × Account))) B := by
@@ -45,6 +71,8 @@ theorem timeout_not_implements {Inst Out : Type*} (T : TaskSpec Inst Out) (B : A
 end
 noncomputable section
 
+/-- A computation with a fixed output cannot implement a nontrivial task, regardless of its
+instance-dependent resource account. -/
 theorem constant_not_implements {Inst Out : Type*} (T : TaskSpec Inst Out) (B : Account)
     (o0 : Out) (K : Inst → Account) (hnt : T.nontrivial) :
     ¬Implements T (fun i => .done (o0, K i)) B := by
@@ -64,6 +92,8 @@ theorem constant_not_implements {Inst Out : Type*} (T : TaskSpec Inst Out) (B : 
 end
 noncomputable section
 
+/-- For `n ≥ 2`, workspace Grover search assigns Born mass at least `1 - 1 / Fintype.card (Reg
+n)` to the marked query fiber. -/
 theorem search_born_mass (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (w : W) (hn : 2 ≤ n) (x : Reg n) :
     MeasureProb (Run (workspaceBitOracle (W := W) (fun y : Reg n => decide (y = x)))
@@ -74,6 +104,7 @@ theorem search_born_mass (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
 end
 noncomputable section
 
+/-- For `n ≥ 2`, the workspace Grover circuit uses at most `2 ^ n` queries. -/
 theorem search_query_count_le (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (w : W) (hn : 2 ≤ n) :
     (QueryCount (workspaceGroverCircuit (W := W) n (singletonSearchIterations n)) : ℝ)
@@ -114,6 +145,8 @@ theorem search_query_count_le (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
 end
 noncomputable section
 
+/-- The singleton-search generator is correct and yields a query upper bound of `2 ^ n` with
+multiplicative constant one. -/
 theorem search_upper_bound_consumer (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (w : W) (hn : 2 ≤ n) :
     Correct (singletonSearchTask n) (searchGen n W w) ∧
@@ -148,6 +181,8 @@ theorem search_upper_bound_consumer (n : ℕ) (W : Type) [Fintype W] [DecidableE
 end
 noncomputable section
 
+/-- The resource account for singleton search, with query allowance `2 ^ n` and circuit-derived
+gate and depth costs. -/
 def searchBudget (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] : Account :=
   { Account.zero with
     queries := 2 ^ n
@@ -157,6 +192,7 @@ def searchBudget (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] : Account :=
 end
 noncomputable section
 
+/-- For `n ≥ 2`, the singleton-search generator implements its task within `searchBudget`. -/
 theorem search_implements_budget (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (w : W) (hn : 2 ≤ n) :
     Implements (singletonSearchTask n) (searchGen n W w) (searchBudget n W) := by
@@ -185,6 +221,8 @@ theorem search_implements_budget (n : ℕ) (W : Type) [Fintype W] [DecidableEq W
 end
 noncomputable section
 
+/-- The parity task has query lower bound `Fintype.card I / 2`, with multiplicative constant
+one, for the given family of parity programs. -/
 theorem parity_lower_bound_consumer (I W : Type) [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] :
     QueryLower (parityGen : ParityProgram I W → Gen (I → Bool) ℝ) (parityTask I)

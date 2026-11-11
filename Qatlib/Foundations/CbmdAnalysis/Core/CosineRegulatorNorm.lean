@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineRegulator
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Norm bounds for the cosine regulator
+
+This module bounds complex cosine by the exponential of the absolute imaginary part and
+evaluates `cosineRegulator` at the target point one. The resulting estimate `exp (τ * sqrt (γ /
+2))` controls the normalization factor in the cosine sampling formulas of [WangEtAl2026].
+
+## Main statements
+
+* `complex_cos_norm_le_exp_abs_im`: an exponential upper bound for complex cosine.
+* `cosineRegulator_one_eq_cos`: an explicit complex cosine formula at the target.
+* `cosineRegulator_one_norm_le`: bounds the target regulator norm for positive parameters.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -15,6 +34,7 @@ noncomputable section
 namespace CBMD
 open Complex
 
+/-- The norm of complex cosine is at most `exp |q.im|`. -/
 theorem complex_cos_norm_le_exp_abs_im (q : ℂ) :
     ‖Complex.cos q‖ ≤ Real.exp |q.im| := by
   have h := norm_add_le (Complex.exp (q * I)) (Complex.exp (-q * I))
@@ -25,6 +45,7 @@ theorem complex_cos_norm_le_exp_abs_im (q : ℂ) :
     zero_sub, Complex.neg_im, neg_neg] at h
   linarith
 
+/-- For positive `γ` and `τ`, the regulator at one equals `cos ((τ * sqrt (γ / 2)) * (1 + I))`. -/
 theorem cosineRegulator_one_eq_cos {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) :
     cosineRegulator γ τ 1 =
       Complex.cos (((τ * Real.sqrt (γ / 2) : ℝ) : ℂ) * (1 + I)) := by
@@ -42,6 +63,7 @@ theorem cosineRegulator_one_eq_cos {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) :
   simpa only [hp] using cosineRegulator_quadratic hγ.ne' hτ.ne'
     ((((τ * Real.sqrt (γ / 2) : ℝ) : ℂ) * (1 + I)))
 
+/-- For positive `γ` and `τ`, the regulator norm at one is at most `exp (τ * sqrt (γ / 2))`. -/
 theorem cosineRegulator_one_norm_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) :
     ‖cosineRegulator γ τ 1‖ ≤ Real.exp (τ * Real.sqrt (γ / 2)) := by
   rw [cosineRegulator_one_eq_cos hγ hτ]

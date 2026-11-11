@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+
+/-!
+# Rational payoff encoding for amplitude estimation
+
+Rational payoff rotations encode an approximate bounded mean into the true-ancilla measurement
+mass of a unitary preparation. The pointwise approximation induces mean bias at most 64/2^k,
+which is added to the amplitude-estimation accuracy bound. This implements bounded-payoff mean
+estimation in the setting of [Montanaro2015] using amplitude estimation from [BrassardEtAl2002].
+
+## Main statements
+
+* `rational_payoff_preparation_mass`: the prepared ancilla mass equals the encoded payoff mean.
+* `rational_payoff_actual_ae_mean_and_precision`: amplitude estimation controls mean error
+  including rational encoding bias.
+* `rational_payoff_numeric_table_and_ae_access_consumer`: a two-value payoff has explicit
+  circuit and access counts.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -24,6 +47,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 
+/-- For rational payoffs in [0, 1] under a unitary-prepared Born law, replacing the payoff by
+`rationalPayoffValue` changes its weighted mean by at most 64/2^k. -/
 theorem rational_payoff_weighted_bias
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (f : I → ℚ) (k : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -45,6 +70,8 @@ theorem rational_payoff_weighted_bias
         (bornProb_nonneg _ _)
     _ = _ := by rw [← Finset.sum_mul, hn, one_mul]
 
+/-- The rational payoff preparation is unitary, its true-ancilla mass equals the encoded payoff
+mean, and this mass differs from the original mean by at most 64/2^k. -/
 theorem rational_payoff_preparation_mass
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (f : I → ℚ) (k : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -71,6 +98,10 @@ theorem rational_payoff_preparation_mass
   rw [h.2]
   exact rational_payoff_weighted_bias A j f k hA hf
 
+/-- For grid size `M ≥ 2`, amplitude estimation of the rational payoff preparation estimates the
+original bounded mean within π/M + π²/M² + 64/2^k with probability at least 8/π². This gives
+the encoding-precision contribution to the setting of [Montanaro2015, Theorem
+3][Montanaro2015]. -/
 theorem rational_payoff_actual_ae_mean_and_precision
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (f : I → ℚ) (k M : ℕ) (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -113,6 +144,9 @@ theorem rational_payoff_actual_ae_mean_and_precision
   · intro z _ _
     exact p.nonneg z
 
+/-- For Hadamard preparation and payoffs 1/4 and 3/4, the encoded mass is within 64/2^k of 1/2,
+with explicit query, gate, and forward and backward access counts. This supplies a counted
+example for the bounded-mean construction of [Montanaro2015, Algorithm 1][Montanaro2015]. -/
 theorem rational_payoff_numeric_table_and_ae_access_consumer (k M : ℕ) (hM : 2 ≤ M) :
     let f : Bool → ℚ := fun b => if b then 3 / 4 else 1 / 4;
     let B := rationalPayoffRotation f k * TensorGate Hadamard (1 : Matrix Bool Bool ℂ);

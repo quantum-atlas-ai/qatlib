@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTauScaledIsometryStat
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
+
+/-!
+# Scaled isometry of the signed τ maps
+
+This module proves `SzegedyTauScaledIsometry` using the component pairing identities. For two
+vectors in a common discriminant eigenspace with `0 < lam < 1`, either signed τ map multiplies
+their inner product by `1 - lam^2`.
+
+The result gives the precise scaling of the interior source correspondence in the bipartite walk
+spectral analysis [Szegedy2004].
+
+## Main statements
+
+* `szegedyTauScaledIsometry`: inner-product scaling on each interior source eigenspace.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -21,18 +41,23 @@ namespace Qatlib.Concepts.WalkSearch.TauEmbedding
 open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 
+/-- The state inner product preserves addition in its first argument. -/
 private theorem inner_add_left {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (u + v) w = Qatlib.Foundations.PureStateMath.Inner u w + Qatlib.Foundations.PureStateMath.Inner v w := by
   simp [Qatlib.Foundations.PureStateMath.Inner, star_add, add_dotProduct]
 
+/-- The state inner product preserves addition in its second argument. -/
 private theorem inner_add_right {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner u (v + w) = Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner u w := by
   simp [Qatlib.Foundations.PureStateMath.Inner, dotProduct_add]
 
+/-- Reversing the state inner-product arguments complex-conjugates the result. -/
 private theorem inner_reverse {K : Type} [Fintype K] (u v : QState K) :
     Qatlib.Foundations.PureStateMath.Inner v u = (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Inner u v) :=
   star_dotProduct (v := v) (w := u)
 
+/-- Establish that either signed τ map multiplies inner products by `1 - lam^2` on a
+discriminant eigenspace with `0 < lam < 1` [Szegedy2004]. -/
 theorem szegedyTauScaledIsometry : SzegedyTauScaledIsometry := by
   intro H I J _ _ _ _ _ _ A B lam hA hB hl hh u v hu hv s
   obtain ⟨hpair, hcross⟩ := szegedyLemma10Pairing H I J A B lam hA hB hl hh u v hu hv

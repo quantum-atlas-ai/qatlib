@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
+
+/-!
+# Picard identities for ordered Dyson prefixes
+
+This module relates finite Dyson prefixes to Picard iteration and residual integral identities.
+Contractivity of the ordered evolution yields factorial truncation estimates for the
+time-dependent setting associated with [AftabAnTrivisa2026].
+
+## Main statements
+
+* `dysonPrefix_error_identity`: an exact propagated-residual formula.
+* `norm_dysonPrefix_error_le`: the factorial error bound under a positive semidefinite
+  Hermitian-part condition.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,11 +39,14 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- A Dyson prefix evaluated at its initial time is the identity matrix. -/
 @[simp] theorem dysonPrefix_self (A : ℝ → Matrix I I ℂ) (s : ℝ) (n : ℕ) :
     dysonPrefix A s s n = 1 := by
   rw [dysonPrefix, Finset.sum_range_succ']
   simp [orderedDysonTerm]
 
+/-- For continuous `A`, the derivative of the successor Dyson prefix is `-A t` times the
+preceding prefix. -/
 theorem dysonPrefix_hasDerivAt_succ (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (s : ℝ) (n : ℕ) (t : ℝ) :
     HasDerivAt (fun u => dysonPrefix A s u (n + 1)) (-(A t * dysonPrefix A s t n)) t := by
@@ -36,6 +58,8 @@ theorem dysonPrefix_hasDerivAt_succ (A : ℝ → Matrix I I ℂ) (hA : Continuou
     simp only [dysonPrefix, Finset.sum_range_succ', orderedDysonTerm]
   · simp only [dysonPrefix, Finset.mul_sum, Finset.sum_neg_distrib]
 
+/-- The derivative of a Dyson prefix equals its highest-order residual term minus `A t` times
+that prefix. -/
 theorem dysonPrefix_hasDerivAt (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (s : ℝ) (n : ℕ) (t : ℝ) :
     HasDerivAt (fun u => dysonPrefix A s u n)
@@ -48,6 +72,7 @@ theorem dysonPrefix_hasDerivAt (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     rw [dysonPrefix, Finset.sum_range_succ]
     noncomm_ring
 
+/-- The successor Dyson prefix satisfies the Picard integral recurrence. -/
 theorem dysonPrefix_succ_eq_picard (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (s : ℝ) (n : ℕ) (t : ℝ) :
     dysonPrefix A s t (n + 1) =
@@ -61,6 +86,8 @@ theorem dysonPrefix_succ_eq_picard (A : ℝ → Matrix I I ℂ) (hA : Continuous
   rw [hi]
   abel
 
+/-- A differentiable matrix function with residual `R` differs from its propagated initial value
+by the ordered-evolution integral of `R`. -/
 theorem residual_identity (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (Y R : ℝ → Matrix I I ℂ)
     (hY : ∀ u, HasDerivAt Y (R u - A u * Y u) u) (hR : Continuous R) (s t : ℝ) :
@@ -77,6 +104,8 @@ theorem residual_identity (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     ((hc.mul hR).intervalIntegrable s t)
   simpa using! hi.symm
 
+/-- The error between a Dyson prefix and ordered evolution is the propagated integral of its
+highest-order residual. -/
 theorem dysonPrefix_error_identity (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (s : ℝ) (n : ℕ) (t : ℝ) :
     dysonPrefix A s t n - orderedEvolution A s t =
@@ -87,6 +116,9 @@ theorem dysonPrefix_error_identity (A : ℝ → Matrix I I ℂ) (hA : Continuous
     (dysonPrefix_hasDerivAt A hA s n)
     (hA.mul (orderedDysonTerm_continuous A hA s n)) s t
 
+/-- For a continuous generator with positive semidefinite Hermitian part and norm bound `M`, the
+Dyson-prefix error on `[s, t]` is at most `(M (t - s))^(n + 1) / (n + 1)!`, supporting the
+time-dependent estimates in [AftabAnTrivisa2026]. -/
 theorem norm_dysonPrefix_error_le (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (hPSD : ∀ u, (A u + (A u)ᴴ).PosSemidef) (s t M : ℝ) (hst : s ≤ t)
     (hM : 0 ≤ M) (hbound : ∀ u ∈ Icc s t, ‖A u‖ ≤ M) (n : ℕ) :

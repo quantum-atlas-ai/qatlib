@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctnessDefs
 import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+
+/-!
+# A compact-register value oracle
+
+This module verifies the bit-register action `compactValueAction` and proves that
+`compactValueOracle` is unitary for a positive alphabet size. Valid addresses receive the input
+value by modular addition in the answer register, while other register fields are preserved
+[NielsenChuang2010].
+
+The theorem `clause32` establishes `CompactMemorySpec`, packaging a legal unitary source circuit
+with one oracle query, compact width bounds, and the required basis-state semantics for the
+collision-search memory model [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `compactValueAction_injective`: injectivity of the register action.
+* `compactValueAction_ket`: loading an input value into a zero answer field.
+* `clause32`: the compact-memory specification.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +52,7 @@ open Qatlib
 open Qatlib.Concepts.WalkFind.UniqueCollision
 open Qatlib.Concepts.WalkFind.WalkSpectrum
 
+/-- The compact value action preserves every bit outside the answer-register interval. -/
 private theorem compactValueAction_outside {N M r w : ℕ} (x : Fin N → ZMod M)
     (ψ : Reg (compactWidth N M r w)) (i : Fin (compactWidth N M r w))
     (hi : ¬(Nat.clog 2 (N+1) ≤ i.val ∧ i.val < Nat.clog 2 (N+1)+Nat.clog 2 (M+1))) :
@@ -34,6 +60,8 @@ private theorem compactValueAction_outside {N M r w : ℕ} (x : Fin N → ZMod M
   unfold compactValueAction
   split_ifs <;> simp_all
 
+/-- The compact value action is the identity when the decoded address or answer lies outside its
+valid range. -/
 private theorem compactValueAction_invalid {N M r w : ℕ} (x : Fin N → ZMod M)
     (ψ : Reg (compactWidth N M r w))
     (h : N ≤ addressValue ψ 0 (Nat.clog 2 (N+1)) ∨
@@ -45,6 +73,7 @@ private theorem compactValueAction_invalid {N M r w : ℕ} (x : Fin N → ZMod M
   · simp [show ¬addressValue ψ 0 (Nat.clog 2 (N+1)) < N by omega]
   · simp [show ¬addressValue ψ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) < M by omega]
 
+/-- The compact value action preserves the decoded address. -/
 private theorem compactValueAction_address {N M r w : ℕ} (x : Fin N → ZMod M)
     (ψ : Reg (compactWidth N M r w)) :
     addressValue (compactValueAction x ψ) 0 (Nat.clog 2 (N+1)) =
@@ -57,6 +86,8 @@ private theorem compactValueAction_address {N M r w : ℕ} (x : Fin N → ZMod M
   have hbit := compactValueAction_outside x ψ (⟨i,hib⟩) (by dsimp; omega)
   simpa [readBit,hib] using! congrArg (fun b => if b then 2^i else 0) hbit
 
+/-- For a valid address and answer, the decoded new answer is the old answer plus the addressed
+input value modulo `M`. -/
 private theorem compactValueAction_answer {N M r w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M)
     (ψ : Reg (compactWidth N M r w))
     (ha : addressValue ψ 0 (Nat.clog 2 (N+1)) < N)
@@ -70,6 +101,7 @@ private theorem compactValueAction_answer {N M r w : ℕ} (hM : 0 < M) (x : Fin 
   rw [dif_pos ha,if_pos hb,addressValue_written ψ _ _ _ (by unfold compactWidth; omega)]
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le (Nat.mod_lt _ hM) (by omega))
 
+/-- For positive `M`, the compact value action is injective on register labels. -/
 private theorem compactValueAction_injective {N M r w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M) :
     Function.Injective (compactValueAction (N := N) (M := M) (r := r) (w := w) x) := by
   letI : NeZero M := ⟨hM.ne'⟩
@@ -134,11 +166,14 @@ private theorem compactValueAction_injective {N M r w : ℕ} (hM : 0 < M) (x : F
     have hφ := compactValueAction_invalid x φ (Or.inl (by omega))
     simpa only [hψ,hφ] using! heq
 
+/-- For positive `M`, the compact value oracle belongs to the unitary group. -/
 private theorem compactValueOracle_unitary {N M r w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M) :
     compactValueOracle (N := N) (M := M) (r := r) (w := w) x ∈
       Matrix.unitaryGroup (Reg (compactWidth N M r w)) ℂ :=
   permMatrix_unitary_of_injective (compactValueAction_injective hM x)
 
+/-- Decoding the address field of `compactKet` gives the supplied address modulo the
+address-field capacity. -/
 private theorem compactKet_address (N M r w : ℕ) (addr v : ℕ) (work data : ℕ → Bool) :
     addressValue (compactKet N M r w addr v work data) 0 (Nat.clog 2 (N+1)) =
       addr % 2^(Nat.clog 2 (N+1)) := by
@@ -152,6 +187,8 @@ private theorem compactKet_address (N M r w : ℕ) (addr v : ℕ) (work data : �
     simp [readBit, compactKet, hib, hjb]
   simpa using! congrArg (fun b => if b then 2^j else 0) hbit
 
+/-- Decoding the answer field of `compactKet` gives the supplied value modulo the answer-field
+capacity. -/
 private theorem compactKet_answer (N M r w : ℕ) (addr v : ℕ) (work data : ℕ → Bool) :
     addressValue (compactKet N M r w addr v work data) (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) =
       v % 2^(Nat.clog 2 (M+1)) := by
@@ -168,6 +205,8 @@ private theorem compactKet_answer (N M r w : ℕ) (addr v : ℕ) (work data : �
       show Nat.clog 2 (N+1)+j-(Nat.clog 2 (N+1)) = j by omega]
   simpa using! congrArg (fun b => if b then 2^j else 0) hbit
 
+/-- For valid decoded address and answer fields, the compact value action writes the modular-sum
+result into the answer bits and preserves all other bits. -/
 private theorem compactValueAction_valid (N M r w : ℕ) (_hM : 0 < M) (x : Fin N → ZMod M)
     (ψ : Reg (compactWidth N M r w)) (addr ans result : ℕ)
     (ha : addr < N) (hb : ans < M)
@@ -182,6 +221,8 @@ private theorem compactValueAction_valid (N M r w : ℕ) (_hM : 0 < M) (x : Fin 
   rw [hA, hB, dif_pos ha, if_pos hb]
   simp only [hr]
 
+/-- On a compact label with valid address `i` and zero answer, the value action writes `(x
+i).val` and preserves the work and data fields. -/
 private theorem compactValueAction_ket {N M r w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M)
     (i : Fin N) (work data : ℕ → Bool) :
     compactValueAction x (compactKet N M r w i.val 0 work data) =
@@ -214,6 +255,8 @@ private theorem compactValueAction_ket {N M r w : ℕ} (hM : 0 < M) (x : Fin N �
       simp [compactKet, show ¬(k.val < Nat.clog 2 (N+1)) by omega,
         show ¬(k.val < Nat.clog 2 (N+1)+Nat.clog 2 (M+1)) by omega]
 
+/-- Applying the compact value oracle to a basis ket gives the basis ket at the label
+transformed by `compactValueAction`. -/
 private theorem compactValueOracle_apply_ket {N M r w : ℕ} (x : Fin N → ZMod M)
     (v : Reg (compactWidth N M r w)) :
     ApplyGate (compactValueOracle (N := N) (M := M) (r := r) (w := w) x) (Qatlib.Foundations.PureStateMath.Ket v) =
@@ -227,6 +270,8 @@ private theorem compactValueOracle_apply_ket {N M r w : ℕ} (x : Fin N → ZMod
     simp [hj]
   · simp
 
+/-- The compact one-query value-loading construction satisfies `CompactMemorySpec`
+[Ambainis2007ElementDistinctness]. -/
 theorem clause32 : Qatlib.Concepts.WalkFind.WalkSpectrum.CompactMemorySpec := by
   intro k _hk
   refine ⟨1, 1, by norm_num, ?_⟩

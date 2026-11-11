@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.SdpConsumerTransportDefs
 import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+
+/-!
+# Counterexamples to universal SDP consumer contracts
+
+This module refutes `diamondEllipsoidBridge` for the zero map in dimension one, and consequently
+refutes the combined consumer specification in `clause5_refuted`. These results concern the
+precise predicates defined in `SdpConsumerTransportDefs`.
+
+Independently, `soundRefuteProgram` has no equality constraints and has arbitrarily large
+feasible primal scores, which rules out `WitnessGenerator.sound` as stated. The weak-duality and
+diamond-norm SDP background is treated in [Watrous2018].
+
+## Main statements
+
+* `clause5_conj5_refuted`: The proposed diamond ellipsoid bridge fails for the one-dimensional
+  zero map.
+* `clause5_refuted`: The combined universal generator and consumer specification is false.
+* `witnessGenerator_sound_unsatisfiable`: No witness generator satisfies the stated
+  unconditional soundness predicate.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.SdpDuality.StrongDuality
@@ -24,6 +49,8 @@ open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.Cha
 
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 
+/-- The diamond SDP for the zero map between one-dimensional operator spaces has zero objective
+matrix. -/
 theorem diamondProgram_zero_objective :
     (diamondProgram (0 : Operator 1 →ₗ[ℂ] Operator 1)).objective = 0 := by
   show directSum (0 : HermitianMat (Fin 1 ⊕ Fin 1) ℂ)
@@ -41,12 +68,15 @@ theorem diamondProgram_zero_objective :
   ext i j
   cases i <;> cases j <;> simp [directSum]
 
+/-- Every primal matrix has score zero in the diamond SDP for the one-dimensional zero map. -/
 theorem zero_primalScore (M : HermitianMat (DiamondRegister 1 1) ℂ) :
     (diamondProgram (0 : Operator 1 →ₗ[ℂ] Operator 1)).primalScore M = 0 := by
   unfold Program.primalScore
   rw [diamondProgram_zero_objective]
   exact inner_zero_left _
 
+/-- Every dual-feasible vector in the diamond SDP for the one-dimensional zero map has
+nonnegative score. -/
 theorem zero_dualScore_nonneg {y : DiamondConstraints 1 1}
     (hy : (diamondProgram (0 : Operator 1 →ₗ[ℂ] Operator 1)).DualFeasible y) :
     (0:ℝ) ≤ (diamondProgram (0 : Operator 1 →ₗ[ℂ] Operator 1)).dualScore y := by
@@ -59,6 +89,8 @@ theorem zero_dualScore_nonneg {y : DiamondConstraints 1 1}
   rw [zero_primalScore] at hwd
   exact hwd
 
+/-- The predicate `diamondEllipsoidBridge` fails for the one-dimensional zero map with zero
+rational Choi matrix. -/
 theorem clause5_conj5_refuted :
     ¬ diamondEllipsoidBridge (0 : Operator 1 →ₗ[ℂ] Operator 1)
         (0 : Matrix (Fin 1 × Fin 1) (Fin 1 × Fin 1) GaussianRational) := by
@@ -73,6 +105,8 @@ theorem clause5_conj5_refuted :
     have hz := hall (-3) (by simp)
     norm_num at hz
 
+/-- No witness generator satisfies the full stated conjunction of soundness, rational consumer
+realizations, boundary cases, and universal diamond ellipsoid bridges. -/
 theorem clause5_refuted : ¬
   ∃ G : WitnessGenerator,
     G.sound ∧
@@ -167,22 +201,28 @@ theorem clause5_refuted : ¬
     rw [h1, h2]
   exact clause5_conj5_refuted (hbr 1 1 0 0 hj)
 
+/-- The rational one-dimensional SDP input with no equality constraints and identity objective. -/
 def soundRefuteInput : RationalSDPInput 1 0 where
   constraints := fun i => Fin.elim0 i
   rhs := fun i => Fin.elim0 i
   objective := (1 : Matrix (Fin 1) (Fin 1) GaussianRational)
 
+/-- The real one-dimensional SDP with zero constraint map, zero right-hand side, and the decoded
+identity objective. -/
 noncomputable def soundRefuteProgram : Program (Fin 1) (EuclideanSpace ℝ (Fin 0)) where
   constraint := 0
   rhs := 0
   objective := roundedHermitianDecode soundRefuteInput.objective
 
+/-- The rational counterexample input realizes the real counterexample program. -/
 theorem soundRefuteInput_realizes : soundRefuteInput.realizes soundRefuteProgram := by
   refine ⟨?_, ?_, rfl⟩
   · intro X
     apply Subsingleton.elim
   · apply Subsingleton.elim
 
+/-- The complex embedding of the one-dimensional Gaussian-rational identity matrix is the
+identity matrix. -/
 theorem gaussianRationalMatrix_one :
     gaussianRationalMatrix (1 : Matrix (Fin 1) (Fin 1) GaussianRational) =
       (1 : Matrix (Fin 1) (Fin 1) ℂ) := by
@@ -194,6 +234,7 @@ theorem gaussianRationalMatrix_one :
     QuadraticAlgebra.re_one, QuadraticAlgebra.im_one]
   rfl
 
+/-- The counterexample program's objective is the one-dimensional Hermitian identity. -/
 theorem soundRefuteProgram_objective_one : soundRefuteProgram.objective = (1 : HermitianMat (Fin 1) ℂ) := by
   show roundedHermitianDecode soundRefuteInput.objective = 1
   unfold soundRefuteInput
@@ -207,6 +248,7 @@ theorem soundRefuteProgram_objective_one : soundRefuteProgram.objective = (1 : H
   simp only [Matrix.smul_apply, Matrix.add_apply, Matrix.one_apply]
   split_ifs <;> norm_num
 
+/-- The counterexample program assigns score `c` to `c` times the one-dimensional identity. -/
 theorem soundRefuteProgram_primalScore_smul_one (c : ℝ) :
     soundRefuteProgram.primalScore (c • (1 : HermitianMat (Fin 1) ℂ)) = c := by
   unfold Program.primalScore
@@ -216,12 +258,16 @@ theorem soundRefuteProgram_primalScore_smul_one (c : ℝ) :
   rw [htr]
   ring
 
+/-- Every nonnegative scalar multiple of the identity is primal feasible for the counterexample
+program. -/
 theorem soundRefuteProgram_primalFeasible_smul_one {c : ℝ} (hc : 0 ≤ c) :
     soundRefuteProgram.PrimalFeasible (c • (1 : HermitianMat (Fin 1) ℂ)) := by
   refine ⟨?_, Subsingleton.elim _ _⟩
   have h01 : (0 : HermitianMat (Fin 1) ℂ) ≤ 1 := zero_le_one
   exact smul_nonneg hc h01
 
+/-- Every witness generator fails the stated soundness predicate, since the unconstrained
+identity-objective counterexample has unbounded feasible primal scores. -/
 theorem witnessGenerator_sound_unsatisfiable (G : WitnessGenerator) :
     ¬ WitnessGenerator.sound G := by
   intro hs

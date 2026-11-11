@@ -7,8 +7,30 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Fin.Basic
 import Mathlib.Data.List.FinRange
 
+/-!
+# Integer data for the 48-ray overlap certificate
+
+This module stores the finite overlap data used for the dimension-six candidate-ray obstruction
+in [Sun2026]. The structure `RawPair` records two labels and integer lower and upper bounds for
+real and imaginary overlap coordinates.
+
+The lists `edges`, `leftSide`, and `records` supply the graph, its coloring data, and the
+interval records checked in the certificate module.
+
+## Main statements
+
+* `RawPair`: Integer rectangle data indexed by two candidate labels.
+* `records`: The stored list of pairwise overlap records.
+
+## References
+
+* [Sun, 2026][Sun2026]
+-/
+
 namespace Qatlib.Papers.MUBCompletion26.Completion
 
+/-- A pair of labels among 48 candidates together with integer lower and upper bounds for the
+real and imaginary coordinates. -/
 structure RawPair where
   a : Fin 48
   b : Fin 48
@@ -18,6 +40,7 @@ structure RawPair where
   imagHi : ℤ
   deriving DecidableEq
 
+/-- The explicit list of label pairs generating the certificate graph. -/
 def edges : List (Fin 48 × Fin 48) := [
   (0, 23), (1, 41), (2, 6), (2, 9), (2, 11), (2, 38),
   (3, 14), (4, 7), (5, 47), (6, 25), (6, 31), (6, 44),
@@ -26,10 +49,12 @@ def edges : List (Fin 48 × Fin 48) := [
   (17, 28), (21, 39), (22, 26), (24, 42), (25, 38), (27, 33),
   (29, 32), (30, 40), (31, 38), (34, 36), (38, 44), (43, 45)]
 
+/-- The explicit list of labels forming one color class of the certificate graph. -/
 def leftSide : List (Fin 48) :=
     [6, 7, 9, 11, 14, 18, 19, 20, 23, 26, 28, 32, 33, 35, 36, 37, 38, 39, 40, 41, 42, 45, 46, 47]
 
 set_option maxRecDepth 32768 in
+/-- The explicit list of integer rectangle records for candidate-pair overlaps. -/
 def records : List RawPair := [
   ⟨0, 1, 9160204162846, 9293054500279, 8022306928757, 8325110748714⟩,
   ⟨0, 2, 49391537790334, 49628662746057, -4446359811438, -4244784612913⟩,

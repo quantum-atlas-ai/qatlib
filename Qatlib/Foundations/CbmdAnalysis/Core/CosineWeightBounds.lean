@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.CosinePropagators
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineRegulatorNorm
 import Mathlib.NumberTheory.Harmonic.Bounds
+
+/-!
+# Cosine weight sums and tail bounds
+
+This module proves absolute summability, inverse-square tail estimates, and logarithmic mass
+bounds for cosine sample coefficients. It defines `cosineFiniteWeightMass` and transfers these
+estimates to bounded vector-valued samples and their regulator-weighted tails, providing
+quantitative weight control for [WangEtAl2026].
+
+## Main statements
+
+* `cosineSampleCoefficient_tail_tsum_le`: an explicit bound on the infinite coefficient-norm
+  tail.
+* `cosineFiniteWeightMass_le_exp_log`: an exponential-times-logarithmic upper bound on finite
+  mass.
+* `cosineSample_weighted_tail_norm_le`: the corresponding regulator-weighted vector tail
+  estimate.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -16,6 +39,8 @@ noncomputable section
 namespace CBMD
 open scoped BigOperators
 
+/-- For `u > 0`, the inverse-cubic term `2 / (u + 1) ^ 3` is bounded by the telescoping
+difference `1 / u ^ 2 - 1 / (u + 1) ^ 2`. -/
 private theorem cosine_cubic_le_telescope (u : ℝ) (hu : 0 < u) :
     2 / (u + 1) ^ 3 ≤ 1 / u ^ 2 - 1 / (u + 1) ^ 2 := by
   have hu1 : 0 < u + 1 := by positivity
@@ -23,6 +48,8 @@ private theorem cosine_cubic_le_telescope (u : ℝ) (hu : 0 < u) :
   field_simp
   nlinarith [sq_nonneg u]
 
+/-- For positive parameters, every finite coefficient-norm tail starting at `K + 1` is at most
+`γ * τ ^ 2 / (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem cosineSampleCoefficient_tail_sum_range_le {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (K N : ℕ) :
     (∑ j ∈ Finset.range N, ‖cosineSampleCoefficient γ τ (K + 1 + j)‖) ≤
@@ -46,6 +73,7 @@ theorem cosineSampleCoefficient_tail_sum_range_le {γ τ : ℝ}
       mul_le_mul_of_nonneg_left (sub_le_self _ (by positivity)) hC
     _ = _ := by dsimp [C]; field_simp
 
+/-- For positive `γ` and `τ`, the cosine sample coefficient norms form a summable sequence. -/
 theorem cosineSampleCoefficient_norm_summable {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) :
     Summable (fun k : ℕ => ‖cosineSampleCoefficient γ τ k‖) := by
@@ -55,6 +83,8 @@ theorem cosineSampleCoefficient_norm_summable {γ τ : ℝ}
         cosineSampleCoefficient_tail_sum_range_le hγ hτ 0 N)
   exact (summable_nat_add_iff 1).mp htail
 
+/-- For positive parameters, the infinite coefficient-norm tail after index `K` is at most `γ *
+τ ^ 2 / (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem cosineSampleCoefficient_tail_tsum_le {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (K : ℕ) :
     (∑' j : ℕ, ‖cosineSampleCoefficient γ τ (K + 1 + j)‖) ≤
@@ -62,6 +92,8 @@ theorem cosineSampleCoefficient_tail_tsum_le {γ τ : ℝ}
   Real.tsum_le_of_sum_range_le (fun _ => norm_nonneg _)
     (cosineSampleCoefficient_tail_sum_range_le hγ hτ K)
 
+/-- The sum of the first `N` coefficient norms is at most `(4 / π) * (1 + log N)` for all real
+parameters. -/
 theorem cosineSampleCoefficient_sum_range_le_log (γ τ : ℝ) (N : ℕ) :
     (∑ k ∈ Finset.range N, ‖cosineSampleCoefficient γ τ k‖) ≤
       (4 / Real.pi) * (1 + Real.log N) := by
@@ -84,6 +116,8 @@ theorem cosineSampleCoefficient_sum_range_le_log (γ τ : ℝ) (N : ℕ) :
         rw [one_div]
   exact hs.trans (mul_le_mul_of_nonneg_left (harmonic_le_one_add_log N) (by positivity))
 
+/-- For positive parameters, the total coefficient-norm sum is at most `(4 / π) * (1 + log (2 +
+γ * τ ^ 2)) + 1 / π ^ 3`. -/
 theorem cosineSampleCoefficient_norm_tsum_le_log {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) :
     (∑' k : ℕ, ‖cosineSampleCoefficient γ τ k‖) ≤
@@ -112,6 +146,8 @@ theorem cosineSampleCoefficient_norm_tsum_le_log {γ τ : ℝ}
   exact hhead.trans (mul_le_mul_of_nonneg_left (show 1 + Real.log (K + 1 : ℕ) ≤
     1 + Real.log (2 + γ * τ ^ 2) by dsimp [X] at hlog; linarith) (by positivity))
 
+/-- For positive parameters, one plus the total coefficient-norm sum is at most `16 * log (2 + γ
+* τ ^ 2)`. -/
 theorem cosineSampleCoefficient_total_mass_le {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) :
     1 + (∑' k : ℕ, ‖cosineSampleCoefficient γ τ k‖) ≤
@@ -129,10 +165,14 @@ theorem cosineSampleCoefficient_total_mass_le {γ τ : ℝ}
   have hm := mul_le_mul_of_nonneg_right hf (show 0 ≤ 1 + Real.log (2 + γ * τ ^ 2) by linarith)
   linarith
 
+/-- The regulator norm at one multiplied by one plus the sum of the first `N` sample coefficient
+norms. -/
 def cosineFiniteWeightMass (γ τ : ℝ) (N : ℕ) : ℝ :=
   ‖cosineRegulator γ τ 1‖ *
     (1 + ∑ k ∈ Finset.range N, ‖cosineSampleCoefficient γ τ k‖)
 
+/-- For positive parameters, the finite cosine weight mass is at most `16 * ‖cosineRegulator γ τ
+1‖ * log (2 + γ * τ ^ 2)`. -/
 theorem cosineFiniteWeightMass_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (N : ℕ) :
     cosineFiniteWeightMass γ τ N ≤
       16 * ‖cosineRegulator γ τ 1‖ * Real.log (2 + γ * τ ^ 2) := by
@@ -147,6 +187,8 @@ theorem cosineFiniteWeightMass_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (N
   convert! h using 1
   ring
 
+/-- For positive parameters, the finite cosine weight mass is at most `16 * exp (τ * sqrt (γ /
+2)) * log (2 + γ * τ ^ 2)`. -/
 theorem cosineFiniteWeightMass_le_exp_log {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (N : ℕ) :
     cosineFiniteWeightMass γ τ N ≤
@@ -159,6 +201,8 @@ theorem cosineFiniteWeightMass_le_exp_log {γ τ : ℝ}
 section Samples
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- For positive parameters, numerator values of norm at most one at all sample poles give a
+summable sequence of weighted sample norms. -/
 theorem cosineSample_norm_summable {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (U : ℂ → E) (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1) :
     Summable (fun k : ℕ => ‖cosineSample γ τ U k‖) := by
@@ -170,12 +214,16 @@ theorem cosineSample_norm_summable {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
 
 variable [CompleteSpace E]
 
+/-- For positive parameters, numerator values of norm at most one at all sample poles give a
+summable weighted sample sequence. -/
 theorem cosineSample_summable {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (U : ℂ → E) (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1) :
     Summable (cosineSample γ τ U) := (cosineSample_norm_summable hγ hτ U hUsample).of_norm
 
 omit [CompleteSpace E] in
 
+/-- For positive parameters and sample values of norm at most one, the weighted sample tail
+after index `K` has norm at most `γ * τ ^ 2 / (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem cosineSample_tail_tsum_norm_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (U : ℂ → E) (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1) (K : ℕ) :
     ‖∑' j : ℕ, cosineSample γ τ U (K + 1 + j)‖ ≤
@@ -193,6 +241,9 @@ theorem cosineSample_tail_tsum_norm_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < �
 
 omit [CompleteSpace E] in
 
+/-- For positive parameters and sample values of norm at most one, the regulator-weighted tail
+after index `K` has norm at most `‖cosineRegulator γ τ 1‖ * γ * τ ^ 2 / (π ^ 3 * (K + 1 / 2)
+^ 2)`. -/
 theorem cosineSample_weighted_tail_norm_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (U : ℂ → E) (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1) (K : ℕ) :
     ‖cosineRegulator γ τ 1 • ∑' j : ℕ, cosineSample γ τ U (K + 1 + j)‖ ≤

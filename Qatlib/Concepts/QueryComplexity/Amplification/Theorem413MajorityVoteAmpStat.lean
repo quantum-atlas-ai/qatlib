@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+
+/-!
+# Statement of majority vote amplification
+
+This module defines `Theorem4_13MajorityVoteAmplification`, a finite circuit formulation
+associated with Theorem 4.13 of [BennettEtAl1997]. A unitary circuit with zero queries and
+success at least 2/3 can be repeated an odd number of times to achieve majority success at least
+1 − ε for every ε > 0, with gate count proportional to the number of copies.
+
+## Main statements
+
+* `Theorem4_13MajorityVoteAmplification`: the proposition specifying majority amplification and
+  exact gate cost.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -14,6 +33,9 @@ namespace Qatlib.Concepts.QueryComplexity.Amplification
 
 open Qatlib
 
+/-- The statement that a unitary circuit with zero queries and success probability at least 2/3
+can be repeated an odd number of times to achieve majority success at least 1 − ε for any ε
+> 0, with gate count multiplied by the copy count. -/
 def Theorem4_13MajorityVoteAmplification : Prop :=
   ∀ {I : Type} [Fintype I] [DecidableEq I] (C : Circuit I) (x₀ : I) (v : I → Bool)
     (b : Bool) (ε : ℝ),

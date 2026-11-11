@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliFourCaseTransportStat
 import Mathlib.Algebra.Field.GeomSum
+
+/-!
+# Fourier-case transport for Bernoulli error streams
+
+This module proves `BernoulliErrorStreamFourCaseTransport` by evaluating the Fourier sum of a
+nonwrapping planted progression as a geometric series. The result specializes actual conditional
+amplified-QFT means to resonant, off-resonant, and vanishing-signal cases at nonzero frequency.
+
+The theorem includes circuit costs, fixed-cardinality noise records, and the corresponding
+Bernoulli mixture and disjoint-noise transport identities.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `bernoulliErrorStreamFourCaseTransport`: the full nonzero-frequency transport statement.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -18,6 +40,8 @@ noncomputable section
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- A positive-step progression whose last site lies below `N` maps its index range injectively
+into `ZMod N`. -/
 private theorem progression_injective (N s M P : ℕ) [NeZero N]
     (hP : 0 < P) (hwrap : s + (M - 1) * P < N) :
     Set.InjOn (fun r : ℕ => (s + r * P : ZMod N)) (Finset.range M) := by
@@ -34,6 +58,8 @@ private theorem progression_injective (N s M P : ℕ) [NeZero N]
   rw [ZMod.val_natCast_of_lt hrN, ZMod.val_natCast_of_lt htN] at hh
   exact Nat.eq_of_mul_eq_mul_right hP (Nat.add_left_cancel hh)
 
+/-- The Fourier sum of a nonwrapping positive-step progression is its initial additive-character
+phase times the geometric sum of the step character. -/
 private theorem progression_fourier_sum (N s M P : ℕ) [NeZero N]
     (hP : 0 < P) (hwrap : s + (M - 1) * P < N) (y : ZMod N) :
     distinctNoiseFourier ((Finset.range M).image (fun r : ℕ => (s + r * P : ZMod N))) y =
@@ -47,19 +73,26 @@ private theorem progression_fourier_sum (N s M P : ℕ) [NeZero N]
     simp only [nsmul_eq_mul]; ring]
   rw [AddChar.map_add_eq_mul, AddChar.map_nsmul_eq_pow]
 
+/-- The standard additive character on `ZMod N` equals one exactly at zero. -/
 private theorem character_eq_one_iff (N : ℕ) [NeZero N] (z : ZMod N) :
     ZMod.stdAddChar z = 1 ↔ z = 0 := by
   rw [← (ZMod.stdAddChar (N := N)).map_zero_eq_one, ZMod.injective_stdAddChar.eq_iff]
 
+/-- A natural power of the standard additive character equals its value at the corresponding
+natural multiple. -/
 private theorem character_power (N : ℕ) [NeZero N] (z : ZMod N) (M : ℕ) :
     (ZMod.stdAddChar z) ^ M = ZMod.stdAddChar ((M : ZMod N) * z) := by
   simpa only [nsmul_eq_mul] using ((ZMod.stdAddChar (N := N)).map_nsmul_eq_pow M z).symm
 
+/-- For `q ≠ 1`, the first `M` powers sum to `(1 - q ^ M) / (1 - q)`. -/
 private theorem geometric_signal (q : ℂ) (hq : q ≠ 1) (M : ℕ) :
     (∑ r ∈ Finset.range M, q ^ r) = (1 - q ^ M) / (1 - q) := by
   rw [geom_sum_eq hq]
   simpa only [neg_sub] using (neg_div_neg_eq (q ^ M - 1) (q - 1)).symm
 
+/-- Establish the nonzero-frequency conditional Born formulas, resonant and geometric branches,
+vanishing-signal branch, and Bernoulli layer transport in
+`BernoulliErrorStreamFourCaseTransport`; see [Cornwell, Section 3.4.4][Cornwell2014]. -/
 theorem bernoulliErrorStreamFourCaseTransport : BernoulliErrorStreamFourCaseTransport := by
   intro N k _ p hp hp1 d hd s M P y θ hM hP hwrap hMN hy hθ A C w a p₂ g q mean
   have hinj := progression_injective N s M P hP hwrap

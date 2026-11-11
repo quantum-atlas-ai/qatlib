@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelFamily
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
 import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+
+/-!
+# Error budgets for dynamic kernel grid targets
+
+Replaces `dynamicKernelSample` with supplied-grid evolutions `dynamicSuppliedGridSample` and
+bounds the error of their weighted sum `dynamicSuppliedGridLCU`. It combines analytic
+truncation, weighted grid discrepancy, and uniform sample implementation error into the target
+error allocation. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicSuppliedGrid_target_error`: combines analytic and weighted grid errors.
+* `dynamicSuppliedGrid_implementation_error`: gives the final `ε * η / 4` implementation bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,12 +71,15 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 section Weighted
 variable {J I : Type} [Fintype J] [Fintype I] [DecidableEq I]
 
+/-- The norm difference of two weighted matrix sums is at most the sum of coefficient norms
+times their pairwise matrix errors. -/
 theorem weightedMatrixSum_error (c : J → ℂ) (X Y : J → Matrix I I ℂ) :
     ‖(∑ j, c j • X j) - ∑ j, c j • Y j‖ ≤ ∑ j, ‖c j‖ * ‖X j - Y j‖ := by
   rw [← Finset.sum_sub_distrib]
   simp_rw [← smul_sub]
   exact (norm_sum_le _ _).trans_eq (by simp only [norm_smul])
 
+/-- A uniform sample error `ζ` bounds the weighted-sum error by `ζ` times the coefficient mass. -/
 theorem weightedMatrixSum_uniform_error (c : J → ℂ) (X Y : J → Matrix I I ℂ)
     (ζ : ℝ) (hXY : ∀ j, ‖X j - Y j‖ ≤ ζ) :
     ‖(∑ j, c j • X j) - ∑ j, c j • Y j‖ ≤ ζ * coefficientMass c := by
@@ -72,17 +94,22 @@ end Weighted
 section Grid
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Defines the supplied-grid evolution for the Hermitian combination at a chosen kernel
+frequency. -/
 def dynamicSuppliedGridSample (H L : ℝ → Matrix I I ℂ) (τ : ℕ → ℝ)
     (N : ℕ) (α T δ : ℝ) (j : StaticKernelIndex α T δ) : Matrix I I ℂ :=
   suppliedGridEvolution τ
     (fun k => H (τ k) + (staticKernelFrequency α T δ j : ℂ) • L (τ k)) N
 
+/-- Forms the kernel-weighted sum of the supplied-grid sample evolutions. -/
 def dynamicSuppliedGridLCU (H L : ℝ → Matrix I I ℂ) (τ : ℕ → ℝ)
     (N : ℕ) (α T δ : ℝ) : Matrix I I ℂ :=
   ∑ j, staticKernelWeight α T δ j • dynamicSuppliedGridSample H L τ N α T δ j
 
 variable {H L : ℝ → Matrix I I ℂ} {T : ℝ}
 
+/-- The supplied-grid LCU approximates the dissipative target with error at most `δ + ρ` when
+analytic truncation is bounded by `δ` and the weighted grid discrepancy by `ρ`. -/
 theorem dynamicSuppliedGrid_target_error
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u, L u)) 0 T)
     (τ : ℕ → ℝ) (N : ℕ) (ht : 0 ≤ T)
@@ -99,6 +126,8 @@ theorem dynamicSuppliedGrid_target_error
   exact (norm_sub_le_norm_sub_add_norm_sub _ (dynamicKernelLCU P α δ) _).trans
     (add_le_add (dynamicKernel_target_error P ht hH hL hbound hδ hδ1) hg)
 
+/-- At the chosen analytic budget, a weighted grid discrepancy at most `ε * η / 16` gives target
+error at most that discrepancy allowance plus the analytic budget. -/
 theorem dynamicSuppliedGrid_chosen_target_error
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u, L u)) 0 T)
     (τ : ℕ → ℝ) (N : ℕ) (ht : 0 ≤ T)
@@ -117,6 +146,8 @@ theorem dynamicSuppliedGrid_chosen_target_error
 
 end Grid
 
+/-- The uniform simulation error weighted by the chosen kernel mass, together with analytic and
+grid allowances, is at most `ε * η / 4`. -/
 theorem dynamicKernel_grid_simulation_budget (α T ε η : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hη1 : η ≤ 1) :
     dynamicSimulationAccuracy ε η *
@@ -133,6 +164,9 @@ section Implementation
 variable {I : Type} [Fintype I] [DecidableEq I]
   {H L : ℝ → Matrix I I ℂ} {T : ℝ}
 
+/-- Uniformly implementing supplied-grid samples within the chosen simulation accuracy gives a
+weighted sum within `ε * η / 4` of the dissipative target under the stated weighted grid
+bound [WangEtAl2026]. -/
 theorem dynamicSuppliedGrid_implementation_error
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u, L u)) 0 T)
     (τ : ℕ → ℝ) (N : ℕ) (ht : 0 ≤ T)

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Tactic.NoncommRing
 
+/-!
+# Linear accumulation of errors in contraction powers
+
+This module proves linear error bounds for powers in a normed ring. The theorem
+`norm_pow_sub_pow_le_of_norm_le_one` controls two contraction powers by their single-step error,
+and `norm_pow_sub_pow_le_same` controls the difference between two powers of one contraction.
+The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `norm_pow_sub_pow_le_of_norm_le_one`: For contractions `a` and `b`, the error between their
+  `n`th powers is at most `n` times the error between `a` and `b`.
+* `norm_pow_sub_pow_le_same`: For a contraction `U` and `m ≤ n`, the error between `U ^ n` and
+  `U ^ m` is at most `(n - m) * ‖U - 1‖`.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -14,6 +34,8 @@ namespace Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries
 
 variable {R : Type*} [SeminormedRing R] [NormOneClass R]
 
+/-- For contractions `a` and `b`, the error between their `n`th powers is at most `n` times the
+error between `a` and `b` [AharonovTaShma2007]. -/
 theorem norm_pow_sub_pow_le_of_norm_le_one (a b : R) (ha : ‖a‖ ≤ 1) (hb : ‖b‖ ≤ 1)
     (n : ℕ) : ‖a ^ n - b ^ n‖ ≤ (n : ℝ) * ‖a - b‖ := by
   induction n with
@@ -35,6 +57,8 @@ theorem norm_pow_sub_pow_le_of_norm_le_one (a b : R) (ha : ‖a‖ ≤ 1) (hb : 
             · exact mul_le_mul_of_nonneg_left hbn (norm_nonneg _)
         _ = ((n + 1 : ℕ) : ℝ) * ‖a - b‖ := by push_cast; ring
 
+/-- For a contraction `U` and `m ≤ n`, the error between `U ^ n` and `U ^ m` is at most `(n - m)
+* ‖U - 1‖`. -/
 theorem norm_pow_sub_pow_le_same (U : R) (hU : ‖U‖ ≤ 1) {m n : ℕ} (hmn : m ≤ n) :
     ‖U ^ n - U ^ m‖ ≤ ((n - m : ℕ) : ℝ) * ‖U - 1‖ := by
   have hpow : U ^ n = U ^ (n - m) * U ^ m := by

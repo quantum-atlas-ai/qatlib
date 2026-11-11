@@ -62,6 +62,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# A fixed vector of the moving grid walk
+
+`coin4C` is the four-dimensional Grover coin, and `movingBlock` combines it with a diagonal
+phase matrix. The explicit vector `movingEig` is fixed by this block when both phase parameters
+are nonzero.
+
+The module computes its overlap with the uniform coin vector `sVec4` and bounds its squared norm
+when the phase parameters have unit modulus. This development supports the analysis in
+[AmbainisKempeRivosh2004].
+
+## Main statements
+
+* `movingBlock_eigen`: the moving block fixes `movingEig` for nonzero parameters.
+* `re_inner_sVec4_movingEig`: express the real overlap through trigonometric functions.
+* `normSq_movingEig_le`: bound the squared norm by 16 for unit-modulus parameters.
+
+## References
+
+* [Ambainis et al., 2004][AmbainisKempeRivosh2004]
+-/
+
 open Matrix
 open scoped BigOperators ComplexOrder
 
@@ -70,25 +92,35 @@ noncomputable section
 
 namespace Qatlib.Papers.QWalkAmbainis04.MainResults.GridWalk
 
+/-- The four-dimensional Grover coin with diagonal entries `-1 / 2` and off-diagonal entries `1
+/ 2`. -/
 def coin4C : Matrix (Fin 4) (Fin 4) ℂ :=
   Matrix.of fun i j => if i = j then (-(1 : ℂ) / 2) else ((1 : ℂ) / 2)
 
+/-- The uniform four-component coin vector, with every component equal to `1 / 2`. -/
 def sVec4 : Fin 4 → ℂ := fun _ => ((1 : ℂ) / 2)
 
+/-- The diagonal matrix with entries `a`, `a⁻¹`, `b`, and `b⁻¹`. -/
 def phaseDiag (a b : ℂ) : Matrix (Fin 4) (Fin 4) ℂ :=
   Matrix.diagonal ![a, a⁻¹, b, b⁻¹]
 
+/-- The moving-walk block obtained by multiplying `phaseDiag a b` by `coin4C`. -/
 def movingBlock (a b : ℂ) : Matrix (Fin 4) (Fin 4) ℂ :=
   phaseDiag a b * coin4C
 
+/-- The explicit vector with components `a * (1 + b)`, `1 + b`, `b * (1 + a)`, and `1 + a`. -/
 def movingEig (a b : ℂ) : Fin 4 → ℂ :=
   ![a * (1 + b), 1 + b, b * (1 + a), 1 + a]
 
+/-- Each component of the Grover coin applied to `v` is half the sum of its components minus the
+corresponding component of `v`. -/
 lemma coin4C_mulVec (v : Fin 4 → ℂ) (i : Fin 4) :
     (coin4C *ᵥ v) i = (∑ j, v j) / 2 - v i := by
   simp only [coin4C, Matrix.mulVec, dotProduct, Matrix.of_apply, Fin.sum_univ_four]
   fin_cases i <;> simp <;> ring
 
+/-- For nonzero `a` and `b`, the block `movingBlock a b` fixes `movingEig a b`. See
+[AmbainisKempeRivosh2004]. -/
 theorem movingBlock_eigen (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) :
     movingBlock a b *ᵥ movingEig a b = movingEig a b := by
 
@@ -133,13 +165,17 @@ theorem movingBlock_eigen (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) :
     have h : (1 + a * b + a + b) - (1 + a) = b * (1 + a) := by ring
     rw [h, ← mul_assoc, inv_mul_cancel₀ hb, one_mul]
 
+/-- The inner product of `sVec4` with `movingEig a b` equals `(1 + a) * (1 + b)`. -/
 theorem inner_sVec4_movingEig (a b : ℂ) :
     (∑ i, star (sVec4 i) * movingEig a b i) = (1 + a) * (1 + b) := by
   simp [sVec4, movingEig, Fin.sum_univ_four]
   ring
 
+/-- The complex phase `exp (φ * I)` associated with a real angle `φ`. -/
 def phaseC (φ : ℝ) : ℂ := Complex.exp (Complex.I * (φ : ℂ))
 
+/-- For phase parameters `φ` and `ψ`, the real part of the uniform-vector overlap is `1 + cos φ
++ cos ψ + cos (φ + ψ)`. See [AmbainisKempeRivosh2004]. -/
 theorem re_inner_sVec4_movingEig (φ ψ : ℝ) :
     ((∑ i, star (sVec4 i) * movingEig (phaseC φ) (phaseC ψ) i)).re
       = 1 + Real.cos φ + Real.cos ψ + Real.cos (φ + ψ) := by
@@ -158,6 +194,8 @@ theorem re_inner_sVec4_movingEig (φ ψ : ℝ) :
   rw [hcos]
   ring
 
+/-- When `a` and `b` have norm one, the sum of squared component norms of `movingEig a b` is at
+most 16. See [AmbainisKempeRivosh2004]. -/
 theorem normSq_movingEig_le (a b : ℂ) (ha : ‖a‖ = 1) (hb : ‖b‖ = 1) :
     ∑ i, ‖movingEig a b i‖ ^ 2 ≤ 16 := by
   have ha1 : ‖1 + b‖ ≤ 2 := by

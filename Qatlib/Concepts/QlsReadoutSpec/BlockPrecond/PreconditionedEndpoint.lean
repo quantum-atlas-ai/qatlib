@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditionedEncoding
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditioningParameters
+
+/-!
+# Completed preconditioned reciprocal encoding
+
+This module proves `optimalCoefficientBlockEncoding_complete`. It combines the preconditioned
+encoding, singular-gap estimate, and reciprocal polynomial construction to obtain a phase list
+with explicit degree and compilation counts. The resulting postselection has the specified
+success lower bound and returns a normalized state within `4 * ε` of the normalized original
+pseudoinverse solution.
+
+The construction applies a polynomial reciprocal transformation to a projected encoding
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `optimalCoefficientBlockEncoding_complete`: Completes the optimal-coefficient encoding and
+  postselection specification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +54,10 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- Establishes `OptimalCoefficientBlockEncodingSubgoal` by constructing the preconditioned
+reciprocal encoding with its degree, coefficient, compilation-count, success-probability,
+and normalized output-error guarantees. The construction uses the singular value
+transformation framework [GilyenSuLowWiebe2019]. -/
 theorem optimalCoefficientBlockEncoding_complete : OptimalCoefficientBlockEncodingSubgoal := by
   intro H I O _ _ _ _ _ _ A U L R κ ε t c s b hκ hε hε1 hc henc hb hs ht hgap hconsistent hτ
   have hκ0 : 0<κ := by linarith

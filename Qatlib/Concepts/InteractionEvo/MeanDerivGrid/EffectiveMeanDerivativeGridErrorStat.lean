@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+/-!
+# Integrable mean derivative grid error contract
+
+This module defines `EffectiveMeanDerivativeGridError`, the three-term accuracy specification
+for strict truncated Dyson grids. Its hypotheses require a bounded continuous Hermitian field,
+an integrable derivative norm, and a short-time bound. The specification follows the Dyson error
+decomposition in the setting of [LowWiebe2018].
+
+## Main statements
+
+* `EffectiveMeanDerivativeGridError`: Euler, derivative-integral, and factorial-tail error
+  terms.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.EffCosts
@@ -19,6 +38,9 @@ open Qatlib.Concepts.InteractionEvo.ComputedGrid Qatlib.Concepts.InteractionEvo.
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPicture2018 Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+/-- The universal three-term bound `exp(alpha t) alpha² t² / (2 M) + (t / M) ∫₀ᵗ ‖Hd u‖ + 2
+(alpha t)^(K+1) / (K+1)!` for truncated grids under the stated bounded-field,
+derivative-norm integrability, and short-time hypotheses. -/
 noncomputable def EffectiveMeanDerivativeGridError : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (H Hd : ℝ → Matrix I I ℂ)
       (t alpha : ℝ) (M K : ℕ),

@@ -7,6 +7,46 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
 import Mathlib.Analysis.LocallyConvex.Separation
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+
+/-!
+# Semidefinite duality and diamond norm optimization
+
+This module proves separation and Slater strong duality for semidefinite programs over finite
+complex Hermitian matrices. It establishes self-duality of `psdCone`, identifies its interior
+with positive definite matrices, and proves optimizer existence through
+`Program.primalSlater_strong_duality`, `Program.dualSlater_strong_duality`, and
+`Program.bothSlater_optimizers`. The `boundaryPrimal` and `boundaryDual` example exhibits a dual
+infimum that is not attained.
+
+The fidelity and diamond norm formulations use the semidefinite programming viewpoint of
+[Watrous2018]. The module identifies their values, relates Choi and Stinespring descriptions,
+and constructs bounded dyadic witnesses and exact rational separation oracles. Its rational
+ellipsoid analysis proves preservation of feasible sublevel points, determinant contraction, and
+finite search guarantees when a positive-radius inner ball is available.
+
+## Main statements
+
+* `psd_trace_self_dual`: positivity characterized by nonnegative real trace pairings.
+* `Program.bothSlater_optimizers`: equal attained primal and dual optima under both Slater
+  conditions.
+* `boundary_dual_infimum_not_attained`: a boundary example with dual infimum zero and no dual
+  minimizer.
+* `fidelity_source_rootFidelity`: the fidelity block program has value equal to root fidelity.
+* `diamondSource_norm_both_optimizers`: the Choi source formulations attain the finite diamond
+  norm for positive input dimension.
+* `finiteDiamondNorm_stinespring`: the Stinespring cross norm equals maximum output root
+  fidelity.
+* `diamondProgram_rational_binary_witness`: a bounded binary certificate for a strictly feasible
+  dual point close to the optimum.
+* `diamondRationalSublevelOracle_cut`: certified separation of the real dual sublevel set.
+* `diamondEllipsoidSolve_outcome`: feasible output or an exhausted search threshold below the
+  optimum plus tolerance.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -24,29 +64,37 @@ open Matrix
 open scoped InnerProductSpace
 open scoped ComplexOrder
 
+/-- The cone of positive semidefinite Hermitian matrices is closed and convex over the reals. -/
 theorem psdCone_closed_convex (I : Type*) [Fintype I] [DecidableEq I] :
     IsClosed (psdCone I : Set (HermitianMat I ℂ)) ∧
       Convex ℝ (psdCone I : Set (HermitianMat I ℂ)) :=
   ⟨(psdCone I).isClosed, (psdCone I).convex⟩
 
+/-- The real inner product of Hermitian matrices equals the real part of the trace of their
+product. -/
 theorem inner_eq_real_trace {I : Type*} [Fintype I] [DecidableEq I]
     (A B : HermitianMat I ℂ) :
     ⟪A, B⟫_ℝ = (Matrix.trace (A.mat * B.mat)).re := by
   have h := HermitianMat.inner_eq_trace_mul (R := ℝ) A B
   exact (congrArg Complex.re h).symm
 
+/-- The positive semidefinite cone is self-dual for the real inner product. -/
 theorem psdCone_self_dual (I : Type*) [Fintype I] [DecidableEq I] :
     ProperCone.innerDual (psdCone I : Set (HermitianMat I ℂ)) = psdCone I := by
   ext A
   change (∀ ⦃B : HermitianMat I ℂ⦄, 0 ≤ B → 0 ≤ ⟪B, A⟫_ℝ) ↔ 0 ≤ A
   simpa only [real_inner_comm] using! (HermitianMat.nonneg_iff_inner_nonneg A).symm
 
+/-- A Hermitian matrix is positive semidefinite exactly when its real trace pairing with every
+positive semidefinite matrix is nonnegative. -/
 theorem psd_trace_self_dual {I : Type*} [Fintype I] [DecidableEq I]
     (A : HermitianMat I ℂ) :
     0 ≤ A ↔ ∀ B : HermitianMat I ℂ, 0 ≤ B →
       0 ≤ (Matrix.trace (A.mat * B.mat)).re := by
   simpa only [inner_eq_real_trace] using! HermitianMat.nonneg_iff_inner_nonneg A
 
+/-- Membership in the closed cone image `(psdCone I).map A` is equivalent to nonnegative pairing
+with every vector whose adjoint image is positive semidefinite. -/
 theorem psd_closed_image_iff {I : Type*} [Fintype I] [DecidableEq I]
     {F : Type*} [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
     (A : HermitianMat I ℂ →L[ℝ] F) (b : F) :
@@ -66,6 +114,8 @@ theorem psd_closed_image_iff {I : Type*} [Fintype I] [DecidableEq I]
     intro X hX
     simpa only [real_inner_comm] using! hy hX
 
+/-- A point lies outside `(psdCone I).map A` exactly when a vector with positive semidefinite
+adjoint image has strictly negative pairing with it. -/
 theorem psd_strict_separator_iff {I : Type*} [Fintype I] [DecidableEq I]
     {F : Type*} [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
     (A : HermitianMat I ℂ →L[ℝ] F) (b : F) :
@@ -75,6 +125,8 @@ theorem psd_strict_separator_iff {I : Type*} [Fintype I] [DecidableEq I]
   push Not
   rfl
 
+/-- A point in `(psdCone I).map A` has no strictly negative separator with positive semidefinite
+adjoint image. -/
 theorem no_strict_separator_of_closed_image {I : Type*} [Fintype I] [DecidableEq I]
     {F : Type*} [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
     (A : HermitianMat I ℂ →L[ℝ] F) (b : F) (hb : b ∈ (psdCone I).map A) :
@@ -82,6 +134,8 @@ theorem no_strict_separator_of_closed_image {I : Type*} [Fintype I] [DecidableEq
   rw [← psd_strict_separator_iff]
   exact not_not.mpr hb
 
+/-- For a positive semidefinite two by two matrix, a zero first diagonal entry forces the upper
+off-diagonal entry to vanish. -/
 theorem zero_corner_forces_zero_offdiagonal (X : HermitianMat (Fin 2) ℂ)
     (hX : 0 ≤ X) (hzero : (X.mat 0 0).re = 0) : X.mat 0 1 = 0 := by
   have hz : X.mat 0 0 = 0 := by
@@ -97,6 +151,8 @@ theorem zero_corner_forces_zero_offdiagonal (X : HermitianMat (Fin 2) ℂ)
     simpa [Matrix.mulVec, dotProduct, Fin.sum_univ_two] using! congrFun hk 1
   simpa only [hcol, star_zero] using! (X.H.apply 0 1).symm
 
+/-- No positive semidefinite two by two matrix has first diagonal real part zero and upper
+off-diagonal real part one. -/
 theorem weak_corner_infeasible :
     ¬ ∃ X : HermitianMat (Fin 2) ℂ,
       0 ≤ X ∧ (X.mat 0 0).re = 0 ∧ (X.mat 0 1).re = 1 := by
@@ -104,6 +160,8 @@ theorem weak_corner_infeasible :
   rw [zero_corner_forces_zero_offdiagonal X hX hzero] at hone
   norm_num at hone
 
+/-- For every positive `ε`, a positive semidefinite two by two matrix has first diagonal real
+part `ε` and upper off-diagonal real part one. -/
 theorem weak_corner_approximate (ε : ℝ) (hε : 0 < ε) :
     ∃ X : HermitianMat (Fin 2) ℂ,
       0 ≤ X ∧ (X.mat 0 0).re = ε ∧ (X.mat 0 1).re = 1 := by
@@ -118,6 +176,8 @@ theorem weak_corner_approximate (ε : ℝ) (hε : 0 < ε) :
     change (v 0 * star (v 1)).re = 1
     simp [v, hs]
 
+/-- A linear functional nonnegative on the indicated positive semidefinite matrix coordinates
+has nonnegative coefficient `b`. -/
 theorem weak_corner_no_strict_separator (a b : ℝ)
     (hdual : ∀ X : HermitianMat (Fin 2) ℂ, 0 ≤ X →
       0 ≤ a * (X.mat 0 0).re + b * (X.mat 0 1).re) : 0 ≤ b := by
@@ -135,6 +195,8 @@ theorem weak_corner_no_strict_separator (a b : ℝ)
   have ha := mul_le_mul_of_nonneg_right (le_abs_self a) hε.le
   nlinarith
 
+/-- Every entry in a row of a positive semidefinite matrix vanishes if the diagonal entry in
+that row has real part zero. -/
 theorem zero_diagonal_row {I : Type*} [Fintype I] [DecidableEq I]
     (X : HermitianMat I ℂ) (hX : 0 ≤ X) (i : I) (hi : (X.mat i i).re = 0)
     (j : I) : X.mat i j = 0 := by
@@ -151,12 +213,18 @@ theorem zero_diagonal_row {I : Type*} [Fintype I] [DecidableEq I]
   have hc : X.mat j i = 0 := by simpa using! congrFun hk j
   simpa only [hc, star_zero] using! (X.H.apply i j).symm
 
+/-- Feasibility for the boundary example: a positive semidefinite two by two matrix with
+diagonal entries of real parts one and zero. -/
 def boundaryPrimal (X : HermitianMat (Fin 2) ℂ) : Prop :=
   0 ≤ X ∧ (X.mat 0 0).re = 1 ∧ (X.mat 1 1).re = 0
 
+/-- The two by two dual slack matrix with diagonal entries `s` and `t` and off-diagonal entries
+minus one. -/
 def boundaryDual (s t : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(s : ℂ), -1; -1, (t : ℂ)]
 
+/-- The real trace pairing with `boundaryDual s t` equals the weighted diagonal sum minus twice
+the real upper off-diagonal entry. -/
 theorem boundary_dual_pairing (s t : ℝ) (X : HermitianMat (Fin 2) ℂ) :
     (Matrix.trace (boundaryDual s t * X.mat)).re =
       s * (X.mat 0 0).re + t * (X.mat 1 1).re - 2 * (X.mat 0 1).re := by
@@ -167,6 +235,7 @@ theorem boundary_dual_pairing (s t : ℝ) (X : HermitianMat (Fin 2) ℂ) :
   norm_num [Matrix.of_apply, Complex.mul_re]
   linarith
 
+/-- Every boundary primal feasible matrix has objective value zero. -/
 theorem boundary_primal_value (X : HermitianMat (Fin 2) ℂ) (hX : boundaryPrimal X) :
     2 * (X.mat 0 1).re = 0 := by
   have hz := zero_diagonal_row X hX.1 1 hX.2.2 0
@@ -174,6 +243,7 @@ theorem boundary_primal_value (X : HermitianMat (Fin 2) ℂ) (hX : boundaryPrima
   simp only [hz, RCLike.star_def, Complex.conj_re, Complex.zero_re] at h
   linarith
 
+/-- A boundary primal feasible matrix cannot be positive definite. -/
 theorem boundary_primal_no_strict_feasibility (X : HermitianMat (Fin 2) ℂ)
     (hX : boundaryPrimal X) : ¬ X.mat.PosDef := by
   intro hp
@@ -182,6 +252,7 @@ theorem boundary_primal_no_strict_feasibility (X : HermitianMat (Fin 2) ℂ)
   rw [hz] at hpos
   exact (lt_irrefl _) hpos
 
+/-- The boundary primal problem has a feasible matrix attaining objective value zero. -/
 theorem boundary_primal_attained :
     ∃ X : HermitianMat (Fin 2) ℂ, boundaryPrimal X ∧ 2 * (X.mat 0 1).re = 0 := by
   let v : Fin 2 → ℂ := ![1,0]
@@ -194,6 +265,8 @@ theorem boundary_primal_attained :
   · change 2 * (v 0 * star (v 1)).re = 0
     norm_num [v]
 
+/-- A positive semidefinite boundary dual slack with first diagonal entry `s` exists exactly
+when `s` is positive. -/
 theorem boundary_dual_feasible_iff (s : ℝ) :
     (∃ t : ℝ, (boundaryDual s t).PosSemidef) ↔ 0 < s := by
   constructor
@@ -222,6 +295,8 @@ theorem boundary_dual_feasible_iff (s : ℝ) :
           hsq, ← _root_.mul_inv_rev]
     exact ⟨s⁻¹, heq ▸ hp⟩
 
+/-- The boundary dual objective values have infimum zero, and no boundary dual feasible point
+attains zero. -/
 theorem boundary_dual_infimum_not_attained :
     IsGLB {s : ℝ | ∃ t : ℝ, (boundaryDual s t).PosSemidef} 0 ∧
       ¬ ∃ t : ℝ, (boundaryDual 0 t).PosSemidef := by
@@ -237,6 +312,7 @@ theorem boundary_dual_infimum_not_attained :
   · rw [boundary_dual_feasible_iff]
     exact lt_irrefl _
 
+/-- Positive definite Hermitian matrices form an open set. -/
 theorem posDef_isOpen (I : Type*) [Fintype I] [DecidableEq I] :
     IsOpen {X : HermitianMat I ℂ | X.mat.PosDef} := by
   rw [isOpen_iff_mem_nhds]
@@ -249,12 +325,14 @@ theorem posDef_isOpen (I : Type*) [Fintype I] [DecidableEq I] :
   exact Y.H.posDef_iff_eigenvalues_pos.mpr fun i =>
     hY (Y.H.spectrum_real_eq_range_eigenvalues.symm ▸ Set.mem_range_self i)
 
+/-- A positive definite matrix lies in the interior of the positive semidefinite cone. -/
 theorem posDef_mem_interior {I : Type*} [Fintype I] [DecidableEq I]
     {X : HermitianMat I ℂ} (hX : X.mat.PosDef) :
     X ∈ interior (psdCone I : Set (HermitianMat I ℂ)) := by
   exact (posDef_isOpen I).subset_interior_iff.mpr
     (fun Y hY => HermitianMat.zero_le_iff.mpr hY.posSemidef) hX
 
+/-- Every interior point of the positive semidefinite cone is positive definite. -/
 theorem interior_posDef {I : Type*} [Fintype I] [DecidableEq I]
     {X : HermitianMat I ℂ} (hX : X ∈ interior (psdCone I : Set (HermitianMat I ℂ))) :
     X.mat.PosDef := by
@@ -275,11 +353,15 @@ theorem interior_posDef {I : Type*} [Fintype I] [DecidableEq I]
   have heq : t • (1 : HermitianMat I ℂ) + (X - t • 1) = X := by abel
   rwa [heq] at h
 
+/-- Positive definiteness is equivalent to membership in the interior of the positive
+semidefinite cone. -/
 theorem posDef_iff_mem_interior {I : Type*} [Fintype I] [DecidableEq I]
     (X : HermitianMat I ℂ) :
     X.mat.PosDef ↔ X ∈ interior (psdCone I : Set (HermitianMat I ℂ)) :=
   ⟨posDef_mem_interior, interior_posDef⟩
 
+/-- Pairing with a positive definite matrix bounds the norm of every positive semidefinite
+matrix below by a fixed positive multiple. -/
 theorem posDef_coercive {I : Type*} [Fintype I] [DecidableEq I]
     {S : HermitianMat I ℂ} (hS : S.mat.PosDef) :
     ∃ c : ℝ, 0 < c ∧ ∀ X : HermitianMat I ℂ, 0 ≤ X → c * ‖X‖ ≤ ⟪S, X⟫_ℝ := by
@@ -307,6 +389,7 @@ namespace Program
 variable {I F : Type*} [Fintype I] [DecidableEq I]
   [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
 
+/-- Every primal feasible score is at most every dual feasible score. -/
 theorem weak_duality (P : Program I F) {X : HermitianMat I ℂ} {y : F}
     (hX : P.PrimalFeasible X) (hy : P.DualFeasible y) :
     P.primalScore X ≤ P.dualScore y := by
@@ -317,6 +400,8 @@ theorem weak_duality (P : Program I F) {X : HermitianMat I ℂ} {y : F}
     _ = ⟪y, P.rhs⟫_ℝ := congrArg (fun z : F => ⟪y, z⟫_ℝ) hX.2
     _ = ⟪P.rhs, y⟫_ℝ := real_inner_comm _ _
 
+/-- Primal and dual feasibility make both value sets nonempty, with primal values bounded above
+and dual values bounded below. -/
 theorem feasible_values_bounded (P : Program I F)
     {X : HermitianMat I ℂ} {y : F} (hX : P.PrimalFeasible X) (hy : P.DualFeasible y) :
     P.primalValues.Nonempty ∧ BddAbove P.primalValues ∧
@@ -328,6 +413,8 @@ theorem feasible_values_bounded (P : Program I F)
   · rintro _ ⟨z, hz, rfl⟩
     exact (Qatlib.Concepts.SdpDuality.StrongDuality.Program.weak_duality P) hX hz
 
+/-- If every positive multiple of `a` is strictly below a fixed real bound, then `a` is
+nonpositive. -/
 private theorem nonpos_of_bounded_ray (a b : ℝ) (h : ∀ t : ℝ, 0 < t → t * a < b) :
     a ≤ 0 := by
   by_contra hn
@@ -336,6 +423,7 @@ private theorem nonpos_of_bounded_ray (a b : ℝ) (h : ∀ t : ℝ, 0 < t → t 
   rw [div_mul_cancel₀ _ ha.ne'] at hh
   linarith [le_abs_self b]
 
+/-- A strict upper bound for all positive multiples of a real number is nonnegative. -/
 private theorem nonneg_of_scaled_upper (a b : ℝ) (h : ∀ t : ℝ, 0 < t → t * a < b) :
     0 ≤ b := by
   by_contra hn
@@ -347,6 +435,8 @@ private theorem nonneg_of_scaled_upper (a b : ℝ) (h : ∀ t : ℝ, 0 < t → t
   have hlow := mul_le_mul_of_nonneg_left (neg_abs_le a) ht.le
   nlinarith
 
+/-- For a surjective constraint map, primal Slater feasibility makes any finite primal supremum
+attainable by a dual feasible point. -/
 theorem primalSlater_dual_attained_of_surjective (P : Program I F)
     [FiniteDimensional ℝ F] (honto : Function.Surjective P.constraint)
     (hslater : P.PrimalSlater) {α : ℝ} (hα : IsLUB P.primalValues α) :
@@ -450,6 +540,8 @@ theorem primalSlater_dual_attained_of_surjective (P : Program I F)
     rintro _ ⟨X, hX, rfl⟩
     exact (Qatlib.Concepts.SdpDuality.StrongDuality.Program.weak_duality P) hX hdual
 
+/-- Primal Slater feasibility makes any finite primal supremum attainable by a dual feasible
+point. -/
 theorem primalSlater_dual_attained (P : Program I F) (hslater : P.PrimalSlater)
     {α : ℝ} (hα : IsLUB P.primalValues α) :
     ∃ y : F, P.DualFeasible y ∧ P.dualScore y = α := by
@@ -484,6 +576,8 @@ theorem primalSlater_dual_attained (P : Program I F) (hslater : P.PrimalSlater)
   rw [← hadj]
   exact hy
 
+/-- Primal Slater feasibility and dual feasibility yield a common primal supremum and dual
+infimum, attained on the dual side; see [Watrous2018]. -/
 theorem primalSlater_strong_duality (P : Program I F) (hslater : P.PrimalSlater)
     {y₀ : F} (hy₀ : P.DualFeasible y₀) :
     ∃ α : ℝ, IsLUB P.primalValues α ∧ IsGLB P.dualValues α ∧
@@ -504,6 +598,8 @@ theorem primalSlater_strong_duality (P : Program I F) (hslater : P.PrimalSlater)
   · intro b hb
     exact hscore ▸ hb ⟨y, hy, rfl⟩
 
+/-- Primal feasible points of the dual slack program are exactly the slack matrices of dual
+feasible points of `P`. -/
 theorem dualSlackProgram_primal_iff (P : Program I F) (X₀ S : HermitianMat I ℂ) :
     (P.dualSlackProgram X₀).PrimalFeasible S ↔
       ∃ y : F, P.DualFeasible y ∧ P.constraint.adjoint y - P.objective = S := by
@@ -536,6 +632,8 @@ theorem dualSlackProgram_primal_iff (P : Program I F) (X₀ S : HermitianMat I �
 
 omit [CompleteSpace F] in
 
+/-- Dual feasibility in the dual slack program is equivalent to primal feasibility of the
+corresponding kernel translate of `X₀`. -/
 theorem dualSlackProgram_dual_iff (P : Program I F) {X₀ : HermitianMat I ℂ}
     (hX₀ : P.PrimalFeasible X₀) (z : P.constraint.ker) :
     (P.dualSlackProgram X₀).DualFeasible z ↔ P.PrimalFeasible (X₀ + (z : HermitianMat I ℂ)) := by
@@ -550,6 +648,8 @@ theorem dualSlackProgram_dual_iff (P : Program I F) {X₀ : HermitianMat I ℂ}
   rw [hadj, sub_neg_eq_add, add_comm (z : HermitianMat I ℂ) X₀]
   exact ⟨fun h => ⟨h, heq⟩, And.left⟩
 
+/-- At a dual slack, the dual slack program's primal score is the original primal score at `X₀`
+minus the original dual score. -/
 theorem dualSlackProgram_primalScore (P : Program I F) {X₀ : HermitianMat I ℂ}
     (hX₀ : P.constraint X₀ = P.rhs) (y : F) :
     (P.dualSlackProgram X₀).primalScore (P.constraint.adjoint y - P.objective) =
@@ -565,6 +665,8 @@ theorem dualSlackProgram_primalScore (P : Program I F) {X₀ : HermitianMat I �
 
 omit [CompleteSpace F] in
 
+/-- The dual slack program's dual score is the drop in the original primal score under the
+kernel translate. -/
 theorem dualSlackProgram_dualScore (P : Program I F) (X₀ : HermitianMat I ℂ)
     (z : P.constraint.ker) :
     (P.dualSlackProgram X₀).dualScore z =
@@ -575,6 +677,8 @@ theorem dualSlackProgram_dualScore (P : Program I F) (X₀ : HermitianMat I ℂ)
     inner_add_right]
   ring
 
+/-- Dual Slater feasibility and primal feasibility yield a common primal supremum and dual
+infimum, attained on the primal side; see [Watrous2018]. -/
 theorem dualSlater_strong_duality (P : Program I F) (hslater : P.DualSlater)
     {X₀ : HermitianMat I ℂ} (hX₀ : P.PrimalFeasible X₀) :
     ∃ α : ℝ, IsLUB P.primalValues α ∧ IsGLB P.dualValues α ∧
@@ -624,6 +728,7 @@ theorem dualSlater_strong_duality (P : Program I F) (hslater : P.DualSlater)
     rw [← hscoreX]
     exact hb ⟨X, hX, rfl⟩
 
+/-- Under dual Slater feasibility, every primal superlevel set is compact. -/
 theorem dualSlater_compact_superlevel (P : Program I F) (hslater : P.DualSlater) (a : ℝ) :
     IsCompact (P.primalSuperlevel a) := by
   obtain ⟨y, hy⟩ := hslater
@@ -646,6 +751,8 @@ theorem dualSlater_compact_superlevel (P : Program I F) (hslater : P.DualSlater)
   have ha : a ≤ P.primalScore X := hX.2
   nlinarith
 
+/-- Slater feasibility on both sides yields primal and dual optimizers with the same value; see
+[Watrous2018]. -/
 theorem bothSlater_optimizers (P : Program I F) (hp : P.PrimalSlater) (hd : P.DualSlater) :
     ∃ (α : ℝ) (X : HermitianMat I ℂ) (y : F),
       P.PrimalFeasible X ∧ P.DualFeasible y ∧
@@ -664,6 +771,7 @@ theorem bothSlater_optimizers (P : Program I F) (hp : P.PrimalSlater) (hd : P.Du
 
 end Program
 
+/-- Block pinching retains the two diagonal blocks and sets the off-diagonal blocks to zero. -/
 @[simp] theorem blockPinch_apply {I : Type*} [Fintype I] (X : HermitianMat (I ⊕ I) ℂ)
     (r c : I ⊕ I) :
     (blockPinch X).mat r c = match r, c with
@@ -671,6 +779,7 @@ end Program
       | Sum.inr i, Sum.inr j => X.mat (Sum.inr i) (Sum.inr j)
       | _, _ => 0 := rfl
 
+/-- Block pinching can be moved between the two arguments of the real inner product. -/
 theorem blockPinch_inner {I : Type*} [Fintype I] [DecidableEq I]
     (X Y : HermitianMat (I ⊕ I) ℂ) :
     ⟪blockPinch X, Y⟫_ℝ = ⟪X, blockPinch Y⟫_ℝ := by
@@ -681,18 +790,21 @@ theorem blockPinch_inner {I : Type*} [Fintype I] [DecidableEq I]
   simp only [Fintype.sum_sum_type, blockPinch_apply, zero_mul, mul_zero,
     Finset.sum_const_zero, add_zero, zero_add]
 
+/-- Block pinching is self-adjoint as a real continuous linear map. -/
 @[simp] theorem blockPinch_adjoint {I : Type*} [Fintype I] [DecidableEq I] :
     (blockPinch : HermitianMat (I ⊕ I) ℂ →L[ℝ] _).adjoint = blockPinch := by
   symm
   apply (ContinuousLinearMap.eq_adjoint_iff _ _).mpr
   exact blockPinch_inner
 
+/-- Block pinching fixes block diagonal Hermitian matrices. -/
 @[simp] theorem blockPinch_blockDiagonal {I : Type*} [Fintype I] (P Q : HermitianMat I ℂ) :
     blockPinch (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q) = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
   apply HermitianMat.ext
   ext r c
   cases r <;> cases c <;> rfl
 
+/-- Block pinching fixes the identity matrix. -/
 @[simp] theorem blockPinch_one {I : Type*} [Fintype I] [DecidableEq I] :
     blockPinch (1 : HermitianMat (I ⊕ I) ℂ) = 1 := by
   apply HermitianMat.ext
@@ -702,6 +814,7 @@ theorem blockPinch_inner {I : Type*} [Fintype I] [DecidableEq I]
   rw [blockPinch_apply]
   cases r <;> cases c <;> simp [Matrix.one_apply]
 
+/-- A block diagonal matrix with positive semidefinite diagonal blocks is positive semidefinite. -/
 theorem blockDiagonal_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) : 0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
   apply HermitianMat.zero_le_iff.mpr
@@ -717,6 +830,8 @@ theorem blockDiagonal_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     Pi.star_apply, zero_mul, mul_zero, Finset.sum_const_zero, add_zero, zero_add]
     using! add_nonneg hp' hq'
 
+/-- The fidelity program satisfies dual Slater feasibility for every pair of Hermitian input
+matrices. -/
 theorem fidelityProgram_dual_strict {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) : (fidelityProgram P Q).DualSlater := by
   refine ⟨1, ?_⟩
@@ -741,6 +856,8 @@ theorem fidelityProgram_dual_strict {I : Type*} [Fintype I] [DecidableEq I]
   exact (Matrix.PosDef.one.smul (by norm_num : (0 : ℝ) < 1/2)).add_posSemidef
     (hg.smul (by norm_num : (0 : ℝ) ≤ 1/2))
 
+/-- For positive semidefinite inputs, the fidelity program has equal primal and dual optimal
+values and a primal optimizer. -/
 theorem fidelityProgram_strong_duality {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) :
     ∃ α : ℝ, IsLUB (fidelityProgram P Q).primalValues α ∧
@@ -752,12 +869,14 @@ theorem fidelityProgram_strong_duality {I : Type*} [Fintype I] [DecidableEq I]
     (X₀ := Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q)
   exact ⟨blockDiagonal_nonneg hP hQ, blockPinch_blockDiagonal P Q⟩
 
+/-- The trace of a block matrix is the sum of the traces of its diagonal blocks. -/
 private theorem block_trace {I J : Type*} [Fintype I] [Fintype J]
     (A : Matrix I I ℂ) (B : Matrix I J ℂ) (C : Matrix J I ℂ) (D : Matrix J J ℂ) :
     Matrix.trace (Matrix.fromBlocks A B C D) = Matrix.trace A + Matrix.trace D := by
   change (∑ i, Matrix.fromBlocks A B C D i i) = (∑ i, A i i) + ∑ i, D i i
   simp only [Fintype.sum_sum_type, Matrix.fromBlocks_apply₁₁, Matrix.fromBlocks_apply₂₂]
 
+/-- Pinching a fidelity primal block yields the block diagonal matrix of its two fixed inputs. -/
 @[simp] theorem blockPinch_fidelityPrimalBlock {I : Type*} [Fintype I]
     (P Q : HermitianMat I ℂ) (X : Matrix I I ℂ) :
     blockPinch (fidelityPrimalBlock P Q X) = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
@@ -765,6 +884,8 @@ private theorem block_trace {I J : Type*} [Fintype I] [Fintype J]
   ext r c
   cases r <;> cases c <;> rfl
 
+/-- The fidelity primal score of a block matrix is the real part of the trace of its
+off-diagonal block. -/
 theorem fidelityProgram_primalScore {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (X : Matrix I I ℂ) :
     (fidelityProgram P Q).primalScore (fidelityPrimalBlock P Q X) =
@@ -780,6 +901,8 @@ theorem fidelityProgram_primalScore {I : Type*} [Fintype I] [DecidableEq I]
     Matrix.trace_conjTranspose, RCLike.star_def, Complex.add_re, Complex.conj_re]
   ring
 
+/-- A fidelity primal block is feasible exactly when its underlying block matrix is positive
+semidefinite. -/
 theorem fidelityProgram_primal_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (X : Matrix I I ℂ) :
     (fidelityProgram P Q).PrimalFeasible (fidelityPrimalBlock P Q X) ↔
@@ -789,6 +912,8 @@ theorem fidelityProgram_primal_block_iff {I : Type*} [Fintype I] [DecidableEq I]
   simp only [blockPinch_fidelityPrimalBlock, and_true, HermitianMat.zero_le_iff]
   rfl
 
+/-- Every feasible fidelity primal matrix has the prescribed diagonal blocks and a freely chosen
+cross block. -/
 theorem fidelityProgram_primal_shape {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} {M : HermitianMat (I ⊕ I) ℂ}
     (hM : (fidelityProgram P Q).PrimalFeasible M) :
@@ -814,6 +939,8 @@ theorem fidelityProgram_primal_shape {I : Type*} [Fintype I] [DecidableEq I]
       change M.mat (Sum.inr i) (Sum.inr j) = Q.mat i j
       exact congrArg (fun A : HermitianMat (I ⊕ I) ℂ => A.mat (Sum.inr i) (Sum.inr j)) hpinch
 
+/-- The real inner product of block diagonal matrices is the sum of the inner products of
+corresponding diagonal blocks. -/
 theorem blockDiagonal_inner {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
     ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z⟫_ℝ = ⟪P,Y⟫_ℝ + ⟪Q,Z⟫_ℝ := by
@@ -823,6 +950,8 @@ theorem blockDiagonal_inner {I : Type*} [Fintype I] [DecidableEq I]
   rw [Matrix.fromBlocks_multiply]
   simp only [zero_mul, mul_zero, zero_add, add_zero, block_trace, Complex.add_re]
 
+/-- The fidelity dual score at half a block diagonal matrix is half the sum of the two input
+pairings. -/
 theorem fidelityProgram_dualScore {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
     (fidelityProgram P Q).dualScore ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) =
@@ -831,6 +960,8 @@ theorem fidelityProgram_dualScore {I : Type*} [Fintype I] [DecidableEq I]
       (1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z⟫_ℝ = _
   rw [inner_smul_right, blockDiagonal_inner, mul_add]
 
+/-- The fidelity dual slack at half a block diagonal matrix is half the corresponding
+`fidelityDualBlock`. -/
 theorem fidelityProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
     (fidelityProgram P Q).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) -
@@ -846,12 +977,15 @@ theorem fidelityProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
   rw [blockPinch_blockDiagonal]
   exact (smul_sub (1/2 : ℝ) (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) (offDiagonal (1 : Matrix I I ℂ))).symm
 
+/-- Block pinching is idempotent. -/
 @[simp] theorem blockPinch_idempotent {I : Type*} [Fintype I]
     (Y : HermitianMat (I ⊕ I) ℂ) : blockPinch (blockPinch Y) = blockPinch Y := by
   apply HermitianMat.ext
   ext r c
   cases r <;> cases c <;> rfl
 
+/-- The pinched matrix is half the block diagonal matrix formed from twice its two principal
+blocks. -/
 theorem fidelity_dual_coordinates {I : Type*} [Fintype I]
     (Y : HermitianMat (I ⊕ I) ℂ) :
     (1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ((2 : ℝ) • principalBlock Y Sum.inl)
@@ -864,6 +998,7 @@ theorem fidelity_dual_coordinates {I : Type*} [Fintype I]
   rw [blockPinch_apply]
   cases r <;> cases c <;> simp [Matrix.smul_apply]
 
+/-- Pinching preserves both dual feasibility and the dual score of the fidelity program. -/
 theorem fidelityProgram_pinched_dual {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (Y : HermitianMat (I ⊕ I) ℂ) :
     ((fidelityProgram P Q).DualFeasible (blockPinch Y) ↔
@@ -878,6 +1013,8 @@ theorem fidelityProgram_pinched_dual {I : Type*} [Fintype I] [DecidableEq I]
   · change ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, blockPinch Y⟫_ℝ = ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, Y⟫_ℝ
     rw [← blockPinch_inner, blockPinch_blockDiagonal]
 
+/-- A half-scaled block diagonal dual point is fidelity dual feasible exactly when its
+`fidelityDualBlock` is positive semidefinite. -/
 theorem fidelityProgram_dual_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) :
     (fidelityProgram P Q).DualFeasible ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) ↔
@@ -890,6 +1027,7 @@ theorem fidelityProgram_dual_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     simpa only [smul_smul, show (2 : ℝ) * (1/2) = 1 by norm_num, one_smul] using! hh
   · exact smul_nonneg (by norm_num : (0 : ℝ) ≤ 1/2)
 
+/-- The fidelity program's primal value set equals `fidelityPrimalValues`. -/
 theorem fidelityProgram_primalValues {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) :
     (fidelityProgram P Q).primalValues = fidelityPrimalValues P Q := by
@@ -903,6 +1041,7 @@ theorem fidelityProgram_primalValues {I : Type*} [Fintype I] [DecidableEq I]
     exact ⟨fidelityPrimalBlock P Q X, (fidelityProgram_primal_block_iff P Q X).mpr hX,
       fidelityProgram_primalScore P Q X⟩
 
+/-- The fidelity program's dual value set equals `fidelityDualValues`. -/
 theorem fidelityProgram_dualValues {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) :
     (fidelityProgram P Q).dualValues = fidelityDualValues P Q := by
@@ -920,6 +1059,8 @@ theorem fidelityProgram_dualValues {I : Type*} [Fintype I] [DecidableEq I]
       (fidelityProgram_dual_block_iff P Q Y Z).mpr hYZ,
       fidelityProgram_dualScore P Q Y Z⟩
 
+/-- For positive semidefinite inputs, the block formulation of fidelity has a common primal
+supremum and dual infimum, attained by a primal cross block. -/
 theorem fidelity_source_strong_duality {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) :
     ∃ α : ℝ, IsLUB (fidelityPrimalValues P Q) α ∧ IsGLB (fidelityDualValues P Q) α ∧
@@ -932,6 +1073,8 @@ theorem fidelity_source_strong_duality {I : Type*} [Fintype I] [DecidableEq I]
   rw [fidelityProgram_primalScore] at hscore
   exact ⟨α, hp, hd, X, (fidelityProgram_primal_block_iff P Q X).mp hM, hscore⟩
 
+/-- Sandwiching a positive semidefinite matrix by its inverse square root on its support yields
+its support projection. -/
 theorem inverseSqrtOnSupport_sandwich {I : Type*} [Fintype I] [DecidableEq I]
     {P : HermitianMat I ℂ} (hP : 0 ≤ P) :
     (inverseSqrtOnSupport P).mat * P.mat * (inverseSqrtOnSupport P).mat = P.supportProj.mat := by
@@ -954,6 +1097,8 @@ theorem inverseSqrtOnSupport_sandwich {I : Type*} [Fintype I] [DecidableEq I]
         field_simp
         nlinarith
 
+/-- The square root times the inverse square root on the support of a positive semidefinite
+matrix equals its support projection. -/
 theorem sqrt_mul_inverseSqrtOnSupport {I : Type*} [Fintype I] [DecidableEq I]
     {P : HermitianMat I ℂ} (hP : 0 ≤ P) :
     P.sqrt.mat * (inverseSqrtOnSupport P).mat = P.supportProj.mat := by
@@ -966,6 +1111,8 @@ theorem sqrt_mul_inverseSqrtOnSupport {I : Type*} [Fintype I] [DecidableEq I]
   · simp [hz]
   · simp [hz, Real.sqrt_ne_zero'.mpr (lt_of_le_of_ne hx (Ne.symm hz))]
 
+/-- The inverse square root on the support times the square root of a positive semidefinite
+matrix equals its support projection. -/
 theorem inverseSqrtOnSupport_mul_sqrt {I : Type*} [Fintype I] [DecidableEq I]
     {P : HermitianMat I ℂ} (hP : 0 ≤ P) :
     (inverseSqrtOnSupport P).mat * P.sqrt.mat = P.supportProj.mat := by
@@ -973,6 +1120,8 @@ theorem inverseSqrtOnSupport_mul_sqrt {I : Type*} [Fintype I] [DecidableEq I]
   simpa only [Matrix.conjTranspose_mul, (inverseSqrtOnSupport P).H.eq,
     P.sqrt.H.eq, P.supportProj.H.eq] using! h
 
+/-- Positive semidefinite matrices with zero real inner product have product `B.mat * A.mat`
+equal to zero. -/
 theorem psd_inner_zero_product {I : Type*} [Fintype I] [DecidableEq I]
     {A B : HermitianMat I ℂ} (hA : 0 ≤ A) (hB : 0 ≤ B) (hz : ⟪A,B⟫_ℝ = 0) :
     B.mat * A.mat = 0 := by
@@ -984,6 +1133,7 @@ theorem psd_inner_zero_product {I : Type*} [Fintype I] [DecidableEq I]
   simpa [HermitianMat.lin, Matrix.toLpLin_apply, Matrix.mulVec, dotProduct,
     Pi.single_apply, Matrix.mul_apply] using! hi
 
+/-- Multiplying a Hermitian matrix on the right by its support projection leaves it unchanged. -/
 theorem mat_mul_supportProj {I : Type*} [Fintype I] [DecidableEq I]
     (P : HermitianMat I ℂ) : P.mat * P.supportProj.mat = P.mat := by
   calc
@@ -998,6 +1148,7 @@ theorem mat_mul_supportProj {I : Type*} [Fintype I] [DecidableEq I]
         by_cases hx : x = 0 <;> simp [hx]
       rw [hf, P.cfc_id]
 
+/-- Multiplying a Hermitian matrix on the right by its kernel projection gives zero. -/
 theorem mat_mul_kerProj {I : Type*} [Fintype I] [DecidableEq I]
     (P : HermitianMat I ℂ) : P.mat * P.kerProj.mat = 0 := by
   have heq : P.kerProj = 1 - P.supportProj :=
@@ -1005,6 +1156,8 @@ theorem mat_mul_kerProj {I : Type*} [Fintype I] [DecidableEq I]
   rw [heq, HermitianMat.mat_sub, HermitianMat.mat_one, Matrix.mul_sub,
     Matrix.mul_one, mat_mul_supportProj, sub_self]
 
+/-- Positivity of a fidelity block matrix forces its cross block to lie in the left support of
+`P`. -/
 theorem fidelity_cross_left_support {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} {X : Matrix I I ℂ}
     (hM : (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef) :
@@ -1035,6 +1188,8 @@ theorem fidelity_cross_left_support {I : Type*} [Fintype I] [DecidableEq I]
     exact P.kerProj_add_supportProj
   rw [heq, HermitianMat.mat_sub, HermitianMat.mat_one, Matrix.sub_mul, Matrix.one_mul, hk, sub_zero]
 
+/-- Positivity of a fidelity block matrix forces its cross block to lie in the right support of
+`Q`. -/
 theorem fidelity_cross_right_support {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} {X : Matrix I I ℂ}
     (hM : (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef) :
@@ -1052,6 +1207,8 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance sdpMatrixCStar {J : Type*} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- The block matrix with identity diagonal blocks and cross block `K` is positive semidefinite
+exactly when `K` has norm at most one. -/
 theorem unit_block_positive_iff {I : Type*} [Fintype I] [DecidableEq I]
     (K : Matrix I I ℂ) :
     (Matrix.fromBlocks (1 : Matrix I I ℂ) K Kᴴ 1).PosSemidef ↔ ‖K‖ ≤ 1 := by
@@ -1064,6 +1221,8 @@ theorem unit_block_positive_iff {I : Type*} [Fintype I] [DecidableEq I]
     Matrix.l2_opNorm_conjTranspose_mul_self]
   constructor <;> intro h <;> nlinarith [norm_nonneg K]
 
+/-- Normalizing the cross block of a positive semidefinite block matrix by the inverse square
+roots on the two supports gives a contraction. -/
 theorem inverseSqrt_cross_contraction {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} {X : Matrix I I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q)
     (hM : (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef) :
@@ -1102,6 +1261,8 @@ theorem inverseSqrt_cross_contraction {I : Type*} [Fintype I] [DecidableEq I]
   rw [← heq]
   exact hD.add hker
 
+/-- The cross block of a positive semidefinite block matrix factors through the two square roots
+and a contraction. -/
 theorem fidelity_block_contraction {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} {X : Matrix I I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q)
     (hM : (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef) :
@@ -1116,6 +1277,8 @@ theorem fidelity_block_contraction {I : Type*} [Fintype I] [DecidableEq I]
       rw [← sqrt_mul_inverseSqrtOnSupport hP, ← inverseSqrtOnSupport_mul_sqrt hQ]
       simp only [Matrix.mul_assoc]
 
+/-- A contraction placed between the square roots of positive semidefinite diagonal blocks
+produces a positive semidefinite block matrix. -/
 theorem fidelity_block_of_contraction {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q)
     {K : Matrix I I ℂ} (hK : ‖K‖ ≤ 1) :
@@ -1136,6 +1299,8 @@ theorem fidelity_block_of_contraction {I : Type*} [Fintype I] [DecidableEq I]
     exact Matrix.mul_assoc _ _ _
   rwa [heq] at h
 
+/-- A block matrix with positive semidefinite diagonal blocks is positive semidefinite exactly
+when its cross block factors through their square roots and a contraction. -/
 theorem fidelity_block_iff_contraction {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) (X : Matrix I I ℂ) :
     (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef ↔
@@ -1145,11 +1310,13 @@ theorem fidelity_block_iff_contraction {I : Type*} [Fintype I] [DecidableEq I]
   · rintro ⟨K, hK, rfl⟩
     exact fidelity_block_of_contraction hP hQ hK
 
+/-- Reversing the order of the two square roots in the trace norm gives `rootFidelity P Q`. -/
 theorem rootFidelity_reverse {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) : Matrix.traceNorm (Q.sqrt.mat * P.sqrt.mat) = rootFidelity P Q := by
   have h := Matrix.traceNorm_conjTranspose (P.sqrt.mat * Q.sqrt.mat)
   simpa only [Matrix.conjTranspose_mul, P.sqrt.H.eq, Q.sqrt.H.eq, rootFidelity] using! h
 
+/-- The real trace of any feasible fidelity cross block is at most `rootFidelity P Q`. -/
 theorem fidelity_block_score_le_rootFidelity {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) {X : Matrix I I ℂ}
     (hX : (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef) :
@@ -1170,6 +1337,8 @@ theorem fidelity_block_score_le_rootFidelity {I : Type*} [Fintype I] [DecidableE
       mul_le_mul_of_nonneg_right hK (Matrix.traceNorm_nonneg _)
     _ = rootFidelity P Q := by rw [one_mul, rootFidelity_reverse]
 
+/-- For positive semidefinite inputs, some feasible fidelity cross block has real trace equal to
+`rootFidelity P Q`. -/
 theorem rootFidelity_block_attained {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) :
     ∃ X : Matrix I I ℂ, (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef ∧
@@ -1192,6 +1361,8 @@ theorem rootFidelity_block_attained {I : Type*} [Fintype I] [DecidableEq I]
       _ = Matrix.trace (U.val * (Q.sqrt.mat * P.sqrt.mat)) := Matrix.trace_mul_comm _ _
   rw [hcycle, hU, rootFidelity_reverse]
 
+/-- Root fidelity is both the primal supremum and dual infimum of the block formulation, and the
+primal supremum is attained; see [Watrous2018]. -/
 theorem fidelity_source_rootFidelity {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) :
     IsLUB (fidelityPrimalValues P Q) (rootFidelity P Q) ∧
@@ -1212,6 +1383,7 @@ theorem fidelity_source_rootFidelity {I : Type*} [Fintype I] [DecidableEq I]
 
 end Contraction
 
+/-- The weighted block primal score is the real trace pairing of `C` with the cross block. -/
 theorem weightedBlockProgram_primalScore {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C X : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).primalScore (fidelityPrimalBlock P Q X) =
@@ -1231,24 +1403,31 @@ theorem weightedBlockProgram_primalScore {I : Type*} [Fintype I] [DecidableEq I]
   simp only [zero_mul, zero_add, add_zero, block_trace, Complex.add_re, hc]
   ring
 
+/-- Every weighted block primal feasible matrix has the prescribed fidelity block form. -/
 theorem weightedBlockProgram_primal_shape {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} {C : Matrix I I ℂ} {M : HermitianMat (I ⊕ I) ℂ}
     (hM : (weightedBlockProgram P Q C).PrimalFeasible M) :
     ∃ X : Matrix I I ℂ, M = fidelityPrimalBlock P Q X :=
   fidelityProgram_primal_shape hM
 
+/-- A weighted block primal matrix is feasible exactly when its underlying block matrix is
+positive semidefinite. -/
 theorem weightedBlockProgram_primal_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C X : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).PrimalFeasible (fidelityPrimalBlock P Q X) ↔
       (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef :=
   fidelityProgram_primal_block_iff P Q X
 
+/-- The weighted block dual score at half a block diagonal matrix is half the sum of the two
+input pairings. -/
 theorem weightedBlockProgram_dualScore {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) (C : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).dualScore ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) =
       (1/2 : ℝ) * ⟪P,Y⟫_ℝ + (1/2 : ℝ) * ⟪Q,Z⟫_ℝ :=
   fidelityProgram_dualScore P Q Y Z
 
+/-- The weighted block dual slack at half a block diagonal matrix is half the corresponding
+`weightedDualBlock`. -/
 theorem weightedBlockProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) (C : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).constraint.adjoint ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) -
@@ -1264,6 +1443,8 @@ theorem weightedBlockProgram_dual_slack {I : Type*} [Fintype I] [DecidableEq I]
   rw [blockPinch_blockDiagonal]
   exact (smul_sub (1/2 : ℝ) (Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) (offDiagonal C)).symm
 
+/-- A half-scaled block diagonal point is weighted block dual feasible exactly when its
+`weightedDualBlock` is positive semidefinite. -/
 theorem weightedBlockProgram_dual_block_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q Y Z : HermitianMat I ℂ) (C : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).DualFeasible ((1/2 : ℝ) • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z) ↔
@@ -1276,6 +1457,7 @@ theorem weightedBlockProgram_dual_block_iff {I : Type*} [Fintype I] [DecidableEq
     simpa only [smul_smul, show (2 : ℝ) * (1/2) = 1 by norm_num, one_smul] using! hh
   · exact smul_nonneg (by norm_num : (0 : ℝ) ≤ 1/2)
 
+/-- Pinching preserves both dual feasibility and the dual score of the weighted block program. -/
 theorem weightedBlockProgram_pinched_dual {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C : Matrix I I ℂ) (Y : HermitianMat (I ⊕ I) ℂ) :
     ((weightedBlockProgram P Q C).DualFeasible (blockPinch Y) ↔
@@ -1290,6 +1472,7 @@ theorem weightedBlockProgram_pinched_dual {I : Type*} [Fintype I] [DecidableEq I
     rw [blockPinch_idempotent]
   · exact (fidelityProgram_pinched_dual P Q Y).2
 
+/-- The weighted block program's primal value set equals `weightedBlockPrimalValues`. -/
 theorem weightedBlockProgram_primalValues {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).primalValues = weightedBlockPrimalValues P Q C := by
@@ -1303,6 +1486,7 @@ theorem weightedBlockProgram_primalValues {I : Type*} [Fintype I] [DecidableEq I
     exact ⟨fidelityPrimalBlock P Q X, (weightedBlockProgram_primal_block_iff P Q C X).mpr hX,
       weightedBlockProgram_primalScore P Q C X⟩
 
+/-- The weighted block program's dual value set equals `weightedBlockDualValues`. -/
 theorem weightedBlockProgram_dualValues {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C : Matrix I I ℂ) :
     (weightedBlockProgram P Q C).dualValues = weightedBlockDualValues P Q C := by
@@ -1323,6 +1507,8 @@ theorem weightedBlockProgram_dualValues {I : Type*} [Fintype I] [DecidableEq I]
 section WeightedContraction
 open scoped Matrix.Norms.L2Operator
 
+/-- The weighted block program satisfies dual Slater feasibility for every choice of Hermitian
+inputs and weight matrix. -/
 theorem weightedBlockProgram_dual_strict {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C : Matrix I I ℂ) : (weightedBlockProgram P Q C).DualSlater := by
   let n : ℝ := ‖C‖ + 1
@@ -1368,6 +1554,8 @@ theorem weightedBlockProgram_dual_strict {I : Type*} [Fintype I] [DecidableEq I]
   exact (Matrix.PosDef.one.smul (by norm_num : (0 : ℝ) < 1/2)).add_posSemidef
     ((HermitianMat.zero_le_iff.mp hH).smul (by norm_num : (0 : ℝ) ≤ 1/2))
 
+/-- For positive semidefinite inputs, the weighted block formulation has a common primal
+supremum and dual infimum, attained by a primal cross block. -/
 theorem weightedBlock_source_strong_duality {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) (C : Matrix I I ℂ) :
     ∃ α : ℝ, IsLUB (weightedBlockPrimalValues P Q C) α ∧
@@ -1384,6 +1572,8 @@ theorem weightedBlock_source_strong_duality {I : Type*} [Fintype I] [DecidableEq
   rw [weightedBlockProgram_primalScore] at hscore
   exact ⟨α, hp, hd, X, (weightedBlockProgram_primal_block_iff P Q C X).mp hM, hscore⟩
 
+/-- The trace of a product of four square matrices is unchanged by cyclically moving the first
+two factors to the end. -/
 private theorem cross_trace_cycle {I : Type*} [Fintype I] (A B C D : Matrix I I ℂ) :
     Matrix.trace (A * (B * C * D)) = Matrix.trace (C * (D * A * B)) := by
   calc
@@ -1392,6 +1582,8 @@ private theorem cross_trace_cycle {I : Type*} [Fintype I] (A B C D : Matrix I I 
     _ = Matrix.trace (((D * A) * B) * C) := by simp only [Matrix.mul_assoc]
     _ = Matrix.trace (C * (D * A * B)) := Matrix.trace_mul_comm _ _
 
+/-- Taking the conjugate transpose and reversing the square root factors preserves the
+sandwiched trace norm. -/
 theorem sandwichedTraceNorm_adjoint {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (C : Matrix I I ℂ) :
     Matrix.traceNorm (Q.sqrt.mat * Cᴴ * P.sqrt.mat) = sandwichedTraceNorm P Q C := by
@@ -1399,6 +1591,7 @@ theorem sandwichedTraceNorm_adjoint {I : Type*} [Fintype I] [DecidableEq I]
   simpa only [Matrix.conjTranspose_mul, P.sqrt.H.eq, Q.sqrt.H.eq,
     Matrix.mul_assoc, sandwichedTraceNorm] using! h
 
+/-- Every feasible weighted cross block has score at most `sandwichedTraceNorm P Q C`. -/
 theorem weightedBlock_score_le_norm {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) (C : Matrix I I ℂ)
     {X : Matrix I I ℂ} (hX : (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef) :
@@ -1413,6 +1606,8 @@ theorem weightedBlock_score_le_norm {I : Type*} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_right hK (Matrix.traceNorm_nonneg _)
     _ = sandwichedTraceNorm P Q C := by rw [one_mul, sandwichedTraceNorm_adjoint]
 
+/-- A feasible weighted cross block attains `sandwichedTraceNorm P Q C` for positive
+semidefinite inputs. -/
 theorem weightedBlock_norm_attained {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) (C : Matrix I I ℂ) :
     ∃ X : Matrix I I ℂ, (Matrix.fromBlocks P.mat X Xᴴ Q.mat).PosSemidef ∧
@@ -1429,6 +1624,8 @@ theorem weightedBlock_norm_attained {I : Type*} [Fintype I] [DecidableEq I]
   refine ⟨P.sqrt.mat * U.val * Q.sqrt.mat, fidelity_block_of_contraction hP hQ hK, ?_⟩
   rw [cross_trace_cycle, hU, sandwichedTraceNorm_adjoint]
 
+/-- The sandwiched trace norm is the common primal supremum and dual infimum of the weighted
+block formulation, with primal attainment. -/
 theorem weightedBlock_source_norm {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) (C : Matrix I I ℂ) :
     IsLUB (weightedBlockPrimalValues P Q C) (sandwichedTraceNorm P Q C) ∧
@@ -1449,6 +1646,8 @@ theorem weightedBlock_source_norm {I : Type*} [Fintype I] [DecidableEq I]
 
 end WeightedContraction
 
+/-- The positive square root of the square of a positive semidefinite Hermitian matrix is the
+original matrix. -/
 theorem sqrt_square_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     {P : HermitianMat I ℂ} (hP : 0 ≤ P) : (P ^ 2).sqrt = P := by
   rw [HermitianMat.sqrt, ← P.cfc_pow, ← P.cfc_comp]
@@ -1459,6 +1658,8 @@ theorem sqrt_square_nonneg {I : Type*} [Fintype I] [DecidableEq I]
       exact Real.sqrt_sq hx
     _ = P := P.cfc_id
 
+/-- Every square complex matrix factors as a unitary matrix times the positive square root of
+its input Gram matrix. -/
 theorem inputGram_polar {I : Type*} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) :
     ∃ U : Matrix I I ℂ, Uᴴ * U = 1 ∧ U * Uᴴ = 1 ∧ A = U * (inputGram A).sqrt.mat := by
   let hH : (Aᴴ * A).IsHermitian := (Matrix.posSemidef_conjTranspose_mul_self A).1
@@ -1507,6 +1708,8 @@ theorem inputGram_polar {I : Type*} [Fintype I] [DecidableEq I] (A : Matrix I I 
             V.val * (W.valᴴ * W.val) * D.mat * W.valᴴ := by simp only [Matrix.mul_assoc]
         rw [heq, hW, Matrix.mul_one]
 
+/-- Applying `tensorLeft T` to a rank-one matrix gives the Choi matrix sandwiched by the
+corresponding input frames. -/
 theorem tensorLeft_rankOne_choi {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (u v : Fin D × Fin R → ℂ) :
     tensorLeft T (fun a b => u a * star (v b)) =
@@ -1531,11 +1734,14 @@ theorem tensorLeft_rankOne_choi {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operat
   intro j hj
   ring
 
+/-- The trace of the Gram matrix of an input frame is the squared norm sum of the original
+vector. -/
 theorem inputFrame_gram_trace {D : ℕ} (u : Fin D × Fin D → ℂ) :
     Matrix.trace (inputGram (inputFrame u)).mat = ∑ a, star (u a) * u a := by
   change (∑ i, ∑ j, star (u (i,j)) * u (i,j)) = _
   rw [Fintype.sum_prod_type]
 
+/-- The Gram matrix of a normalized input frame is positive semidefinite with trace one. -/
 theorem inputFrame_density {D : ℕ} {u : Fin D × Fin D → ℂ}
     (hu : ∑ a, star (u a) * u a = 1) :
     0 ≤ inputGram (inputFrame u) ∧ (inputGram (inputFrame u)).trace = (1 : ℝ) := by
@@ -1544,9 +1750,11 @@ theorem inputFrame_density {D : ℕ} {u : Fin D × Fin D → ℂ}
   · rw [HermitianMat.trace_eq_re_trace, inputFrame_gram_trace, hu]
     rfl
 
+/-- The input frame of a density vector equals the square root of its density matrix. -/
 @[simp] theorem inputFrame_densityVector {D : ℕ} (ρ : DensityInput D) :
     inputFrame (densityVector ρ) = ρ.val.sqrt.mat := rfl
 
+/-- The density vector associated to a density input has squared norm sum one. -/
 theorem densityVector_normalized {D : ℕ} (ρ : DensityInput D) :
     ∑ a, star (densityVector ρ a) * densityVector ρ a = 1 := by
   rw [← inputFrame_gram_trace, inputFrame_densityVector]
@@ -1555,6 +1763,8 @@ theorem densityVector_normalized {D : ℕ} (ρ : DensityInput D) :
     ← HermitianMat.trace_eq_trace (R := ℝ) ρ.val, ρ.property.2]
   rfl
 
+/-- The Choi score equals the trace norm of the amplified map on the rank-one matrix formed from
+the two density vectors. -/
 theorem diamondChoiScore_as_raw {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ρ σ : DensityInput D) :
     diamondChoiScore T ρ σ = Matrix.traceNorm
@@ -1563,6 +1773,7 @@ theorem diamondChoiScore_as_raw {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator
   simp only [diamondChoiScore, Matrix.kronecker, Matrix.conjTranspose_kronecker,
     Matrix.conjTranspose_one, σ.val.sqrt.H.eq]
 
+/-- Multiplication on the left and right by isometries preserves the trace norm. -/
 private theorem traceNorm_two_isometries {I J K : Type*}
     [Fintype I] [Fintype J] [Fintype K] [DecidableEq I]
     (U : Matrix J I ℂ) (V : Matrix K I ℂ) (M : Matrix I I ℂ)
@@ -1581,6 +1792,8 @@ private theorem traceNorm_two_isometries {I J K : Type*}
   · simpa only [Matrix.one_apply, if_pos hij] using! h
   · simpa only [Matrix.one_apply, if_neg hij] using! h
 
+/-- The amplified trace norm of normalized rank-one input data is realized as a Choi score for
+two density inputs. -/
 theorem raw_rankOne_as_diamondChoiScore {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (u v : Fin D × Fin D → ℂ)
     (hu : ∑ a, star (u a) * u a = 1) (hv : ∑ a, star (v a) * v a = 1) :
@@ -1614,6 +1827,7 @@ theorem raw_rankOne_as_diamondChoiScore {D E : ℕ} (T : Operator D →ₗ[ℂ] 
   rw [heq]
   exact traceNorm_two_isometries L R (A * MatrixMap.choi_matrix T * B) hL hR
 
+/-- The Choi variational value is bounded above by the finite diamond norm. -/
 theorem diamondChoiValue_le_finiteDiamond {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     diamondChoiValue T ≤ finiteDiamondNorm T := by
   unfold diamondChoiValue
@@ -1629,6 +1843,7 @@ theorem diamondChoiValue_le_finiteDiamond {D E : ℕ} (T : Operator D →ₗ[ℂ
   rw [hnorm, ENNReal.ofReal_one, mul_one] at h
   exact h
 
+/-- The finite diamond norm equals its Choi variational value; see [Watrous2018]. -/
 theorem finiteDiamondNorm_eq_choi {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondNorm T = diamondChoiValue T := by
   apply le_antisymm ?_ (diamondChoiValue_le_finiteDiamond T)
@@ -1673,6 +1888,8 @@ theorem finiteDiamondNorm_eq_choi {D E : ℕ} (T : Operator D →ₗ[ℂ] Operat
       (diamond_uniform_bound_of_input_bound T δ hinput)
     _ = diamondChoiValue T := ENNReal.ofReal_toReal hfinite
 
+/-- For positive input dimension, a pair of density inputs attains both the finite diamond norm
+and the Choi variational value. -/
 theorem diamondChoi_attained {D E : ℕ} (hD : 0 < D) (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ ρ σ : DensityInput D,
       finiteDiamondNorm T = ENNReal.ofReal (diamondChoiScore T ρ σ) ∧
@@ -1722,17 +1939,21 @@ theorem diamondChoi_attained {D E : ℕ} (hD : 0 < D) (T : Operator D →ₗ[ℂ
     hvalue.trans (congrArg ENNReal.ofReal hreal)
   exact ⟨ρ,σ,hnorm, (finiteDiamondNorm_eq_choi T).symm.trans hnorm⟩
 
+/-- There is no density input in dimension zero. -/
 theorem densityInput_zero_empty : IsEmpty (DensityInput 0) := by
   constructor
   intro ρ
   have h := ρ.property.2
   simp [HermitianMat.trace, Matrix.trace] at h
 
+/-- The finite diamond distance is half the Choi variational value of the difference of the two
+maps. -/
 theorem finiteDiamondDistance_choi {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondDistance T S = (1/2 : ENNReal) * diamondChoiValue (T-S) := by
   unfold finiteDiamondDistance
   rw [finiteDiamondNorm_eq_choi]
 
+/-- The Choi variational value is zero when the input dimension is zero. -/
 theorem diamondChoiValue_zero_input {E : ℕ} (T : Operator 0 →ₗ[ℂ] Operator E) :
     diamondChoiValue T = 0 := by
   letI := densityInput_zero_empty
@@ -1740,6 +1961,7 @@ theorem diamondChoiValue_zero_input {E : ℕ} (T : Operator 0 →ₗ[ℂ] Operat
 
 set_option backward.isDefEq.respectTransparency false
 
+/-- The direct sum of positive semidefinite Hermitian matrices is positive semidefinite. -/
 theorem directSum_nonneg {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {P : HermitianMat I ℂ} {Q : HermitianMat J ℂ}
     (hP : 0 ≤ P) (hQ : 0 ≤ Q) : 0 ≤ directSum P Q := by
@@ -1756,18 +1978,22 @@ theorem directSum_nonneg {I J : Type*} [Fintype I] [Fintype J]
     Pi.star_apply, zero_mul, mul_zero, Finset.sum_const_zero, add_zero, zero_add]
     using! add_nonneg hp hq
 
+/-- The left principal block of a direct sum is its first summand. -/
 @[simp] theorem principalBlock_directSum_left {I J : Type*} [Fintype I] [Fintype J]
     (P : HermitianMat I ℂ) (Q : HermitianMat J ℂ) :
     principalBlock (directSum P Q) Sum.inl = P := by
   apply HermitianMat.ext
   rfl
 
+/-- The right principal block of a direct sum is its second summand. -/
 @[simp] theorem principalBlock_directSum_right {I J : Type*} [Fintype I] [Fintype J]
     (P : HermitianMat I ℂ) (Q : HermitianMat J ℂ) :
     principalBlock (directSum P Q) Sum.inr = Q := by
   apply HermitianMat.ext
   rfl
 
+/-- Pairing a direct sum with a Hermitian matrix splits into pairings with the corresponding
+principal blocks. -/
 theorem directSum_inner {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (P : HermitianMat I ℂ) (Q : HermitianMat J ℂ)
     (M : HermitianMat (I ⊕ J) ℂ) :
@@ -1783,6 +2009,7 @@ theorem directSum_inner {I J : Type*} [Fintype I] [Fintype J]
     Matrix.fromBlocks_apply₂₁, Matrix.fromBlocks_apply₂₂, Matrix.zero_apply,
     zero_mul, Finset.sum_const_zero, add_zero, zero_add]
 
+/-- Density lifting is adjoint to the left partial trace for the real inner product. -/
 theorem densityLift_inner {D E : ℕ} (ρ : HermitianMat (Fin D) ℂ)
     (Y : HermitianMat (Fin E × Fin D) ℂ) :
     ⟪densityLift ρ, Y⟫_ℝ = ⟪ρ, Y.traceLeft⟫_ℝ := by
@@ -1791,6 +2018,8 @@ theorem densityLift_inner {D E : ℕ} (ρ : HermitianMat (Fin D) ℂ)
     HermitianMat.mat_one, HermitianMat.traceLeft_mat]
   exact congrArg Complex.re (Matrix.trace_mul_one_kron_right Y.mat ρ.mat)
 
+/-- The diamond equality map sends primal block data to the two input traces and zero residual
+blocks. -/
 @[simp] theorem diamondEqMap_primalData {D E : ℕ}
     (ρ σ : HermitianMat (Fin D) ℂ)
     (X : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :
@@ -1799,6 +2028,8 @@ theorem densityLift_inner {D E : ℕ} (ρ : HermitianMat (Fin D) ℂ)
     WithLp.toLp 2 (densityLift ρ - densityLift ρ, densityLift σ - densityLift σ)) = _
   simp only [sub_self, diamondDualData]
 
+/-- The diamond program's primal score on block data is the real trace pairing of the Choi
+matrix with the cross block. -/
 theorem diamondProgram_primalScore {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ρ σ : HermitianMat (Fin D) ℂ)
     (X : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :
@@ -1810,12 +2041,16 @@ theorem diamondProgram_primalScore {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
     inner_zero_left, zero_add]
   exact weightedBlockProgram_primalScore _ _ _ _
 
+/-- Pairing a block diagonal matrix with a Hermitian matrix splits into pairings with its two
+principal blocks. -/
 theorem blockDiagonal_inner_general {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) (M : HermitianMat (I ⊕ I) ℂ) :
     ⟪Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q, M⟫_ℝ =
       ⟪P, principalBlock M Sum.inl⟫_ℝ + ⟪Q, principalBlock M Sum.inr⟫_ℝ :=
   directSum_inner P Q M
 
+/-- The diamond equality map records the two input traces and the deviations of the output
+diagonal blocks from the lifted input blocks. -/
 theorem diamondEqMap_apply {D E : ℕ} (M : HermitianMat (DiamondRegister D E) ℂ) :
     diamondEqMap D E M = diamondDualData
       (principalBlock (principalBlock M Sum.inl) Sum.inl).trace
@@ -1826,6 +2061,8 @@ theorem diamondEqMap_apply {D E : ℕ} (M : HermitianMat (DiamondRegister D E) �
         densityLift (principalBlock (principalBlock M Sum.inl) Sum.inr)) := by
   rfl
 
+/-- Pairing `diamondAdjointData` with a primal matrix equals pairing its dual data with the
+image under `diamondEqMap`. -/
 theorem diamondAdjointData_inner {D E : ℕ} (a b : ℝ)
     (Y Z : HermitianMat (Fin E × Fin D) ℂ)
     (M : HermitianMat (DiamondRegister D E) ℂ) :
@@ -1858,6 +2095,7 @@ theorem diamondAdjointData_inner {D E : ℕ} (a b : ℝ)
     densityLift_inner, densityLift_inner]
   ring
 
+/-- The adjoint of `diamondEqMap` on dual data is `diamondAdjointData`. -/
 @[simp] theorem diamondEqMap_adjoint {D E : ℕ} (a b : ℝ)
     (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     (diamondEqMap D E).adjoint (diamondDualData a b Y Z) =
@@ -1866,17 +2104,21 @@ theorem diamondAdjointData_inner {D E : ℕ} (a b : ℝ)
   intro M
   rw [ContinuousLinearMap.adjoint_inner_left, diamondAdjointData_inner]
 
+/-- The diamond program's dual score on `diamondDualData a b Y Z` is `a + b`. -/
 @[simp] theorem diamondProgram_dualScore {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     (diamondProgram T).dualScore (diamondDualData a b Y Z) = a + b := by
   change ⟪diamondDualData 1 1 0 0, diamondDualData a b Y Z⟫_ℝ = _
   simp [diamondDualData, WithLp.prod_inner_apply]
 
+/-- Restricting a positive semidefinite Hermitian matrix along any index map preserves positive
+semidefiniteness. -/
 theorem principalBlock_nonneg {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {M : HermitianMat J ℂ} (hM : 0 ≤ M) (e : I → J) :
     0 ≤ principalBlock M e :=
   HermitianMat.zero_le_iff.mpr ((HermitianMat.zero_le_iff.mp hM).submatrix e)
 
+/-- A direct sum is positive semidefinite exactly when both summands are positive semidefinite. -/
 theorem directSum_nonneg_iff {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (P : HermitianMat I ℂ) (Q : HermitianMat J ℂ) :
     0 ≤ directSum P Q ↔ 0 ≤ P ∧ 0 ≤ Q := by
@@ -1887,10 +2129,14 @@ theorem directSum_nonneg_iff {I J : Type*} [Fintype I] [Fintype J]
   · rintro ⟨hP,hQ⟩
     exact directSum_nonneg hP hQ
 
+/-- A block diagonal matrix is positive semidefinite exactly when both diagonal blocks are
+positive semidefinite. -/
 theorem blockDiagonal_nonneg_iff {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) : 0 ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q ↔ 0 ≤ P ∧ 0 ≤ Q :=
   directSum_nonneg_iff P Q
 
+/-- Diamond primal block data are feasible exactly when the two inputs are density matrices and
+the lifted fidelity block is positive semidefinite. -/
 theorem diamondProgram_primal_block_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ρ σ : HermitianMat (Fin D) ℂ)
     (X : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :
@@ -1912,6 +2158,7 @@ theorem diamondProgram_primal_block_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] 
   simp only [HermitianMat.zero_le_iff]
   tauto
 
+/-- The direct sum of positive definite Hermitian matrices is positive definite. -/
 theorem directSum_posDef {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {P : HermitianMat I ℂ} {Q : HermitianMat J ℂ}
     (hP : P.mat.PosDef) (hQ : Q.mat.PosDef) : (directSum P Q).mat.PosDef := by
@@ -1938,6 +2185,8 @@ theorem directSum_posDef {I J : Type*} [Fintype I] [Fintype J]
   · exact add_pos_of_pos_of_nonneg (hP.dotProduct_mulVec_pos hl)
       (hQ.posSemidef.dotProduct_mulVec_nonneg _)
 
+/-- The diamond program satisfies primal Slater feasibility when the input dimension is
+positive. -/
 theorem diamondProgram_primal_strict {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) : (diamondProgram T).PrimalSlater := by
   let ρ : HermitianMat (Fin D) ℂ := (D : ℝ)⁻¹ • 1
@@ -1959,6 +2208,8 @@ theorem diamondProgram_primal_strict {D E : ℕ} (hD : 0 < D)
   · change diamondEqMap D E (diamondPrimalData ρ ρ 0) = diamondDualData 1 1 0 0
     rw [diamondEqMap_primalData, htrace]
 
+/-- Subtracting a Hermitian matrix from the identity scaled by its norm plus one gives a
+positive definite matrix. -/
 theorem scalar_majorant_posDef {I : Type*} [Fintype I] [DecidableEq I]
     (A : HermitianMat I ℂ) : (((‖A‖ + 1) • (1 : HermitianMat I ℂ)) - A).mat.PosDef := by
   have hA : A ≤ ‖A‖ • (1 : HermitianMat I ℂ) :=
@@ -1971,6 +2222,7 @@ theorem scalar_majorant_posDef {I : Type*} [Fintype I] [DecidableEq I]
   rw [heq, HermitianMat.mat_add, HermitianMat.mat_one]
   exact Matrix.PosDef.one.add_posSemidef hp
 
+/-- The diamond program satisfies dual Slater feasibility. -/
 theorem diamondProgram_dual_strict {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     (diamondProgram T).DualSlater := by
   obtain ⟨W, hW⟩ := weightedBlockProgram_dual_strict
@@ -2003,6 +2255,8 @@ theorem diamondProgram_dual_strict {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
   exact directSum_posDef
     (directSum_posDef (scalar_majorant_posDef _) (scalar_majorant_posDef _)) hw
 
+/-- For positive input dimension, the diamond program has primal and dual optimizers with a
+common supremum and infimum. -/
 theorem diamondProgram_both_optimizers {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (y : DiamondConstraints D E),
@@ -2012,6 +2266,8 @@ theorem diamondProgram_both_optimizers {D E : ℕ} (hD : 0 < D)
   Program.bothSlater_optimizers _ (diamondProgram_primal_strict hD T)
     (diamondProgram_dual_strict T)
 
+/-- Every diamond primal feasible matrix yields two density inputs and a positive semidefinite
+fidelity block with the same primal score. -/
 theorem diamondProgram_primal_reduction {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {M : HermitianMat (DiamondRegister D E) ℂ} (hM : (diamondProgram T).PrimalFeasible M) :
     ∃ (ρ σ : DensityInput D) (X : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ),
@@ -2052,6 +2308,8 @@ theorem diamondProgram_primal_reduction {D E : ℕ} (T : Operator D →ₗ[ℂ] 
       (MatrixMap.choi_matrix T)).primalScore B = _
     rw [hX, weightedBlockProgram_primalScore]
 
+/-- Taking the positive square root commutes with density lifting for positive semidefinite
+input matrices. -/
 theorem densityLift_sqrt {D E : ℕ} {ρ : HermitianMat (Fin D) ℂ} (hρ : 0 ≤ ρ) :
     (densityLift (E := E) ρ).sqrt = densityLift ρ.sqrt := by
   have hs : (densityLift (E := E) ρ.sqrt)^2 = densityLift ρ := by
@@ -2063,6 +2321,8 @@ theorem densityLift_sqrt {D E : ℕ} {ρ : HermitianMat (Fin D) ℂ} (hρ : 0 �
   exact sqrt_square_nonneg (show 0 ≤ densityLift (E := E) ρ.sqrt from
     HermitianMat.kronecker_nonneg (HermitianMat.zero_le_iff.mpr Matrix.PosSemidef.one) ρ.sqrt_nonneg)
 
+/-- The sandwiched trace norm of the Choi matrix between lifted density inputs is
+`diamondChoiScore`. -/
 theorem densityLift_sandwichedTraceNorm {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ρ σ : DensityInput D) :
     sandwichedTraceNorm (densityLift ρ.val) (densityLift σ.val) (MatrixMap.choi_matrix T) =
@@ -2071,6 +2331,8 @@ theorem densityLift_sandwichedTraceNorm {D E : ℕ} (T : Operator D →ₗ[ℂ] 
   rw [densityLift_sqrt ρ.property.1, densityLift_sqrt σ.property.1]
   rfl
 
+/-- For positive input dimension, the diamond program attains a primal supremum whose image
+under `ENNReal.ofReal` is the finite diamond norm. -/
 theorem diamondProgram_primal_norm_attained {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ),
@@ -2111,6 +2373,8 @@ theorem diamondProgram_primal_norm_attained {D E : ℕ} (hD : 0 < D)
     exact le_iSup_of_le ρ' (le_iSup_of_le σ' le_rfl)
   exact (ENNReal.ofReal_le_ofReal_iff (Matrix.traceNorm_nonneg _)).mp he
 
+/-- For positive input dimension, primal and dual optimizers of the diamond program attain the
+finite diamond norm; see [Watrous2018]. -/
 theorem diamondProgram_norm_both_optimizers {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (y : DiamondConstraints D E),
@@ -2128,6 +2392,8 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance diamondMatrixCStar {J : Type*} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- The operator norm of a positive semidefinite matrix times the identity dominates that
+matrix. -/
 theorem nonneg_opNorm_slack {I : Type*} [Fintype I] [DecidableEq I]
     {A : HermitianMat I ℂ} (hA : 0 ≤ A) :
     0 ≤ ‖A.mat‖ • (1 : HermitianMat I ℂ) - A := by
@@ -2139,6 +2405,8 @@ theorem nonneg_opNorm_slack {I : Type*} [Fintype I] [DecidableEq I]
   rw [sub_nonneg]
   simpa only [Algebra.algebraMap_eq_smul_one] using! h
 
+/-- On a nonempty index type, a scalar identity dominating a positive semidefinite matrix has
+scalar at least its operator norm. -/
 theorem opNorm_le_of_nonneg_scalar_slack {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I]
     {A : HermitianMat I ℂ} {a : ℝ} (hA : 0 ≤ A) (hslack : 0 ≤ a • 1 - A) :
     ‖A.mat‖ ≤ a := by
@@ -2155,6 +2423,7 @@ theorem opNorm_le_of_nonneg_scalar_slack {I : Type*} [Fintype I] [DecidableEq I]
   simpa only [HermitianMat.mat_sub, HermitianMat.mat_smul, HermitianMat.mat_one,
     Matrix.nonneg_iff_posSemidef, sub_nonneg] using! HermitianMat.zero_le_iff.mp hslack
 
+/-- The diamond dual slack splits into partial trace scalar slacks and the Choi coupling block. -/
 theorem diamondProgram_dual_slack {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     (diamondProgram T).constraint.adjoint (diamondDualData a b Y Z) -
@@ -2168,6 +2437,8 @@ theorem diamondProgram_dual_slack {D E : ℕ} (T : Operator D →ₗ[ℂ] Operat
   rw [sub_eq_add_neg, Matrix.fromBlocks_neg, Matrix.fromBlocks_add]
   simp only [neg_zero, add_zero, sub_eq_add_neg, HermitianMat.mat_add, HermitianMat.mat_neg]
 
+/-- Diamond dual feasibility is equivalent to positive semidefiniteness of the two partial trace
+scalar slacks and the Choi coupling block. -/
 theorem diamondProgram_dual_block_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     (diamondProgram T).DualFeasible (diamondDualData a b Y Z) ↔
@@ -2176,6 +2447,7 @@ theorem diamondProgram_dual_block_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
   unfold Program.DualFeasible
   rw [diamondProgram_dual_slack, directSum_nonneg_iff, blockDiagonal_nonneg_iff, and_assoc]
 
+/-- The left principal block of `weightedDualBlock C Y Z` is `Y`. -/
 theorem weightedDualBlock_principal_left {I : Type*} [Fintype I] [DecidableEq I]
     (C : Matrix I I ℂ) (Y Z : HermitianMat I ℂ) :
     principalBlock (weightedDualBlock C Y Z) Sum.inl = Y := by
@@ -2184,6 +2456,7 @@ theorem weightedDualBlock_principal_left {I : Type*} [Fintype I] [DecidableEq I]
   change Y.mat i j - 0 = Y.mat i j
   simp
 
+/-- The right principal block of `weightedDualBlock C Y Z` is `Z`. -/
 theorem weightedDualBlock_principal_right {I : Type*} [Fintype I] [DecidableEq I]
     (C : Matrix I I ℂ) (Y Z : HermitianMat I ℂ) :
     principalBlock (weightedDualBlock C Y Z) Sum.inr = Z := by
@@ -2192,24 +2465,31 @@ theorem weightedDualBlock_principal_right {I : Type*} [Fintype I] [DecidableEq I
   change Z.mat i j - 0 = Z.mat i j
   simp
 
+/-- Positive semidefiniteness of a weighted dual block implies positive semidefiniteness of both
+diagonal blocks. -/
 theorem weightedDualBlock_diagonal_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     {C : Matrix I I ℂ} {Y Z : HermitianMat I ℂ} (h : 0 ≤ weightedDualBlock C Y Z) :
     0 ≤ Y ∧ 0 ≤ Z := by
   exact ⟨by simpa only [weightedDualBlock_principal_left] using! principalBlock_nonneg h Sum.inl,
     by simpa only [weightedDualBlock_principal_right] using! principalBlock_nonneg h Sum.inr⟩
 
+/-- Forming a block diagonal matrix commutes with real scalar multiplication. -/
 theorem blockDiagonal_smul {I : Type*} [Fintype I] (r : ℝ) (Y Z : HermitianMat I ℂ) :
     Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (r • Y) (r • Z) = r • Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal Y Z := by
   apply HermitianMat.ext
   simp only [Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal, HermitianMat.mat_mk, HermitianMat.mat_smul,
     Matrix.fromBlocks_smul, smul_zero]
 
+/-- The diamond coupling block formed from half-scaled diagonal blocks is half the weighted dual
+block. -/
 theorem diamond_half_dual_block {I : Type*} [Fintype I] (C : Matrix I I ℂ)
     (Y Z : HermitianMat I ℂ) :
     Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal ((1/2 : ℝ) • Y) ((1/2 : ℝ) • Z) - (1/2 : ℝ) • offDiagonal C =
       (1/2 : ℝ) • weightedDualBlock C Y Z := by
   rw [blockDiagonal_smul, weightedDualBlock, smul_sub]
 
+/-- Doubling the diagonal blocks in a weighted dual block gives twice the diamond coupling
+block. -/
 theorem diamond_double_dual_block {I : Type*} [Fintype I] (C : Matrix I I ℂ)
     (Y Z : HermitianMat I ℂ) :
     weightedDualBlock C ((2 : ℝ) • Y) ((2 : ℝ) • Z) =
@@ -2217,6 +2497,8 @@ theorem diamond_double_dual_block {I : Type*} [Fintype I] (C : Matrix I I ℂ)
   rw [weightedDualBlock, blockDiagonal_smul, smul_sub, smul_smul]
   norm_num
 
+/-- A positive semidefinite source dual block lifts to diamond dual feasible data with score
+equal to `diamondDualObjective`. -/
 theorem diamondSourceDual_lift {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {Y Z : HermitianMat (Fin E × Fin D) ℂ}
     (h : 0 ≤ weightedDualBlock (MatrixMap.choi_matrix T) Y Z) :
@@ -2247,6 +2529,8 @@ theorem diamondSourceDual_lift {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator 
   · rw [diamondProgram_dualScore]
     rfl
 
+/-- For positive input dimension, diamond dual feasible data reduce to a source dual block whose
+objective is no larger. -/
 theorem diamondProgram_dual_reduction {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {y : DiamondConstraints D E}
     (hy : (diamondProgram T).DualFeasible y) :
@@ -2284,6 +2568,7 @@ theorem diamondProgram_dual_reduction {D E : ℕ} (hD : 0 < D)
     Real.norm_eq_abs, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
   linarith
 
+/-- The diamond program's primal value set equals `diamondSourcePrimalValues`. -/
 theorem diamondProgram_primalValues_eq_source {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E) :
     (diamondProgram T).primalValues = diamondSourcePrimalValues T := by
@@ -2298,6 +2583,8 @@ theorem diamondProgram_primalValues_eq_source {D E : ℕ}
     rw [diamondProgram_primalScore]
     exact hs
 
+/-- For positive input dimension, a diamond primal optimizer and a source dual optimizer attain
+the finite diamond norm. -/
 theorem diamondSourceDual_norm_attained {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ)
@@ -2322,6 +2609,8 @@ theorem diamondSourceDual_norm_attained {D E : ℕ} (hD : 0 < D)
       (Qatlib.Concepts.SdpDuality.StrongDuality.Program.weak_duality (P := (diamondProgram T))) hM (diamondSourceDual_lift T hb).1
   rwa [hsM,(diamondSourceDual_lift T hb).2] at hw
 
+/-- For positive input dimension, the source primal and dual formulations attain a common value
+equal to the finite diamond norm; see [Watrous2018]. -/
 theorem diamondSource_norm_both_optimizers {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ (α : ℝ) (ρ σ : DensityInput D)
@@ -2340,6 +2629,7 @@ theorem diamondSource_norm_both_optimizers {D E : ℕ} (hD : 0 < D)
 
 end DiamondNormDual
 
+/-- The trace norm of `A * Bᴴ` equals the root fidelity of the two input Gram matrices. -/
 theorem square_frame_cross_traceNorm {I : Type*} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) :
     Matrix.traceNorm (A * Bᴴ) = rootFidelity (inputGram A) (inputGram B) := by
@@ -2354,6 +2644,8 @@ theorem square_frame_cross_traceNorm {I : Type*} [Fintype I] [DecidableEq I]
   rw [heq,traceNorm_two_isometries U V _ hU hV]
   rfl
 
+/-- The positive square root commutes with conjugation by an isometry for positive semidefinite
+matrices. -/
 theorem sqrt_isometry_conj {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {P : HermitianMat I ℂ} (hP : 0 ≤ P)
     (U : Matrix J I ℂ) (hU : Uᴴ * U = 1) : (P.conj U).sqrt = P.sqrt.conj U := by
@@ -2369,6 +2661,8 @@ theorem sqrt_isometry_conj {I J : Type*} [Fintype I] [Fintype J]
   rw [← hs]
   exact sqrt_square_nonneg (HermitianMat.conj_nonneg U P.sqrt_nonneg)
 
+/-- Simultaneous conjugation by an isometry preserves the root fidelity of positive semidefinite
+matrices. -/
 theorem rootFidelity_isometry_conj {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q)
     (U : Matrix J I ℂ) (hU : Uᴴ * U = 1) :
@@ -2384,6 +2678,7 @@ theorem rootFidelity_isometry_conj {I J : Type*} [Fintype I] [Fintype J]
   rw [heq]
   exact traceNorm_two_isometries U U _ hU hU
 
+/-- The trace norm of `A * Bᴴ` equals the root fidelity of the two frame Gram matrices. -/
 theorem frame_cross_traceNorm {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (A B : Matrix J I ℂ) :
     Matrix.traceNorm (A * Bᴴ) = rootFidelity (frameGram A) (frameGram B) := by
@@ -2416,6 +2711,7 @@ theorem frame_cross_traceNorm {I J : Type*} [Fintype I] [Fintype J]
         (HermitianMat.zero_le_iff.mpr (Matrix.posSemidef_conjTranspose_mul_self A))
         (HermitianMat.zero_le_iff.mpr (Matrix.posSemidef_conjTranspose_mul_self B)) V hV
 
+/-- Transposition preserves the trace norm of a square complex matrix. -/
 theorem traceNorm_transpose {I : Type*} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) : Matrix.traceNorm Mᵀ = Matrix.traceNorm M := by
   let hH : (Mᴴ * M).IsHermitian := (Matrix.posSemidef_conjTranspose_mul_self M).1
@@ -2438,20 +2734,25 @@ theorem traceNorm_transpose {I : Type*} [Fintype I] [DecidableEq I]
     _ = Matrix.traceNorm (U.val * D * V.valᴴ) := (traceNorm_two_isometries _ _ _ hU hV).symm
     _ = Matrix.traceNorm M := congrArg Matrix.traceNorm hform.symm
 
+/-- Hermitian transposition is involutive. -/
 @[simp] theorem hermitianTranspose_involutive {I : Type*} [Fintype I] (P : HermitianMat I ℂ) :
     hermitianTranspose (hermitianTranspose P) = P := by
   apply HermitianMat.ext
   exact Matrix.transpose_transpose P.mat
 
+/-- Hermitian transposition preserves positive semidefiniteness. -/
 theorem hermitianTranspose_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     {P : HermitianMat I ℂ} (hP : 0 ≤ P) : 0 ≤ hermitianTranspose P :=
   HermitianMat.zero_le_iff.mpr (HermitianMat.zero_le_iff.mp hP).transpose
 
+/-- Hermitian transposition preserves the real trace. -/
 @[simp] theorem hermitianTranspose_trace {I : Type*} [Fintype I] (P : HermitianMat I ℂ) :
     (hermitianTranspose P).trace = P.trace := by
   simp only [HermitianMat.trace_eq_re_trace,hermitianTranspose,HermitianMat.mat_mk,
     Matrix.trace_transpose]
 
+/-- For positive semidefinite matrices, Hermitian transposition commutes with the positive
+square root. -/
 theorem hermitianTranspose_sqrt {I : Type*} [Fintype I] [DecidableEq I]
     {P : HermitianMat I ℂ} (hP : 0 ≤ P) :
     (hermitianTranspose P).sqrt = hermitianTranspose P.sqrt := by
@@ -2462,6 +2763,8 @@ theorem hermitianTranspose_sqrt {I : Type*} [Fintype I] [DecidableEq I]
   rw [← hs]
   exact sqrt_square_nonneg (hermitianTranspose_nonneg P.sqrt_nonneg)
 
+/-- Simultaneous Hermitian transposition preserves the root fidelity of positive semidefinite
+matrices. -/
 theorem rootFidelity_transpose {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hQ : 0 ≤ Q) :
     rootFidelity (hermitianTranspose P) (hermitianTranspose Q) = rootFidelity P Q := by
@@ -2471,15 +2774,19 @@ theorem rootFidelity_transpose {I : Type*} [Fintype I] [DecidableEq I]
   rw [← Matrix.transpose_mul,traceNorm_transpose]
   exact rootFidelity_reverse P Q
 
+/-- The density input obtained by transposing its Hermitian matrix. -/
 def densityTranspose {D : ℕ} (ρ : DensityInput D) : DensityInput D :=
   ⟨hermitianTranspose ρ.val,hermitianTranspose_nonneg ρ.property.1,
     (hermitianTranspose_trace ρ.val).trans ρ.property.2⟩
 
+/-- Transposing a density input twice returns the original density input. -/
 @[simp] theorem densityTranspose_involutive {D : ℕ} (ρ : DensityInput D) :
     densityTranspose (densityTranspose ρ) = ρ := by
   apply Subtype.ext
   exact hermitianTranspose_involutive ρ.val
 
+/-- The Choi matrix of a Stinespring cross map factors as one Stinespring factor times the
+conjugate transpose of the other. -/
 theorem stinespringCross_choi {D E : ℕ} {Z : Type*} [Fintype Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     MatrixMap.choi_matrix (stinespringCross A B) = stinespringFactor A * (stinespringFactor B)ᴴ := by
@@ -2487,6 +2794,8 @@ theorem stinespringCross_choi {D E : ℕ} {Z : Type*} [Fintype Z]
   simp [MatrixMap.choi_matrix,stinespringCross,stinespringFactor,Matrix.traceRight,
     Matrix.mul_apply,Matrix.single,Matrix.conjTranspose_apply,Finset.sum_mul,ite_and]
 
+/-- A Stinespring frame equals its Stinespring factor multiplied on the left by the lifted
+square root of the density input. -/
 theorem stinespringFrame_eq_factor {D E : ℕ} {Z : Type*} [Fintype Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) (ρ : DensityInput D) :
     stinespringFrame A ρ = Matrix.kronecker (1 : Operator E) ρ.val.sqrt.mat * stinespringFactor A := by
@@ -2494,6 +2803,8 @@ theorem stinespringFrame_eq_factor {D E : ℕ} {Z : Type*} [Fintype Z]
   simp [stinespringFrame,stinespringFactor,Matrix.mul_apply,Matrix.kronecker,
     Matrix.kroneckerMap_apply,Fintype.sum_prod_type,Matrix.one_apply,mul_comm]
 
+/-- The Gram matrix of a Stinespring frame is the transpose of the complementary output on the
+transposed density matrix. -/
 theorem stinespringFrame_gram {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) (ρ : DensityInput D) :
     frameGram (stinespringFrame A ρ) =
@@ -2540,12 +2851,16 @@ theorem stinespringFrame_gram {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z
   intro j hj
   ring
 
+/-- A Stinespring complementary map sends positive semidefinite matrices to positive
+semidefinite matrices. -/
 theorem stinespringComplement_nonneg {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) {ρ : HermitianMat (Fin D) ℂ} (hρ : 0 ≤ ρ) :
     0 ≤ stinespringComplement A ρ := by
   exact HermitianMat.zero_le_iff.mpr
       ((HermitianMat.zero_le_iff.mp hρ).mul_mul_conjTranspose_same A).traceLeft
 
+/-- The Choi score of a Stinespring cross map equals the root fidelity of its complementary
+outputs on transposed density inputs. -/
 theorem stinespring_choiScore_fidelity {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (ρ σ : DensityInput D) :
     diamondChoiScore (stinespringCross A B) ρ σ =
@@ -2564,6 +2879,8 @@ theorem stinespring_choiScore_fidelity {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
     (stinespringComplement_nonneg A (densityTranspose ρ).property.1)
     (stinespringComplement_nonneg B (densityTranspose σ).property.1)
 
+/-- The finite diamond norm of a Stinespring cross map equals the maximum output root fidelity;
+see [Watrous2018]. -/
 theorem finiteDiamondNorm_stinespring {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     finiteDiamondNorm (stinespringCross A B) = maxOutputRootFidelity A B := by
@@ -2579,6 +2896,8 @@ theorem finiteDiamondNorm_stinespring {D E : ℕ} {Z : Type*} [Fintype Z] [Decid
     rw [← heq]
     exact le_iSup_of_le (densityTranspose ρ) (le_iSup_of_le (densityTranspose σ) le_rfl)
 
+/-- For positive input dimension, two density inputs attain the maximum complementary output
+root fidelity and the finite diamond norm. -/
 theorem maxOutputRootFidelity_attained {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     ∃ ρ σ : DensityInput D,
@@ -2591,6 +2910,7 @@ theorem maxOutputRootFidelity_attained {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
   exact ⟨densityTranspose ρ,densityTranspose σ,hnorm,
     (finiteDiamondNorm_stinespring A B).symm.trans hnorm⟩
 
+/-- The cross map of the canonical left and right Stinespring data is the original linear map. -/
 theorem canonicalStinespring_cross {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     stinespringCross (canonicalStinespringLeft T) (canonicalStinespringRight D E) = T := by
   apply MatrixMap.choi_matrix_inj
@@ -2598,6 +2918,8 @@ theorem canonicalStinespring_cross {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
   change MatrixMap.choi_matrix T * (1 : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ)ᴴ = _
   rw [Matrix.conjTranspose_one,Matrix.mul_one]
 
+/-- The finite diamond norm equals the maximum output root fidelity for the canonical
+Stinespring data. -/
 theorem finiteDiamondNorm_canonical_maxOutputFidelity {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondNorm T = maxOutputRootFidelity (canonicalStinespringLeft T) (canonicalStinespringRight D E) := by
@@ -2605,11 +2927,14 @@ theorem finiteDiamondNorm_canonical_maxOutputFidelity {D E : ℕ}
       finiteDiamondNorm_stinespring (canonicalStinespringLeft T) (canonicalStinespringRight D E)
   rwa [canonicalStinespring_cross] at h
 
+/-- The linear Stinespring complementary map evaluates to `stinespringComplement`. -/
 @[simp] theorem stinespringComplementLinear_apply {D E : ℕ} {Z : Type*}
     [Fintype Z] [DecidableEq Z] (A : Matrix (Fin E × Z) (Fin D) ℂ)
     (ρ : HermitianMat (Fin D) ℂ) :
     stinespringComplementLinear A ρ = stinespringComplement A ρ := rfl
 
+/-- The Stinespring equality map records input traces and deviations of output diagonal blocks
+from their complementary images. -/
 theorem stinespringEqMap_apply {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (M : HermitianMat (StinespringRegister D Z) ℂ) :
     stinespringEqMap A B M = stinespringDualData
@@ -2620,6 +2945,8 @@ theorem stinespringEqMap_apply {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq 
       (principalBlock (principalBlock M Sum.inr) Sum.inr -
         stinespringComplement B (principalBlock (principalBlock M Sum.inl) Sum.inr)) := rfl
 
+/-- Pairing Stinespring adjoint data with a primal matrix equals pairing dual data with its
+Stinespring equality image. -/
 theorem stinespringAdjointData_inner {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (a b : ℝ) (Y W : HermitianMat Z ℂ)
     (M : HermitianMat (StinespringRegister D Z) ℂ) :
@@ -2645,6 +2972,8 @@ theorem stinespringAdjointData_inner {D E : ℕ} {Z : Type*} [Fintype Z] [Decida
   rw [inner_sub_right,inner_sub_right]
   ring
 
+/-- The adjoint of the Stinespring equality map evaluates on dual data as
+`stinespringAdjointData`. -/
 @[simp] theorem stinespringEqMap_adjoint {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (a b : ℝ) (Y W : HermitianMat Z ℂ) :
     (stinespringEqMap A B).adjoint (stinespringDualData a b Y W) =
@@ -2653,6 +2982,8 @@ theorem stinespringAdjointData_inner {D E : ℕ} {Z : Type*} [Fintype Z] [Decida
   intro M
   rw [ContinuousLinearMap.adjoint_inner_left,stinespringAdjointData_inner]
 
+/-- The Stinespring dual slack splits into two scalar adjoint slacks and the fidelity coupling
+block. -/
 theorem stinespringProgram_dual_slack {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (a b : ℝ) (Y W : HermitianMat Z ℂ) :
     (stinespringProgram A B).constraint.adjoint (stinespringDualData a b Y W) -
@@ -2667,12 +2998,15 @@ theorem stinespringProgram_dual_slack {D E : ℕ} {Z : Type*} [Fintype Z] [Decid
   rw [sub_eq_add_neg,Matrix.fromBlocks_neg,Matrix.fromBlocks_add]
   simp only [neg_zero,add_zero,sub_eq_add_neg,HermitianMat.mat_add,HermitianMat.mat_neg]
 
+/-- The Stinespring program's dual score on `stinespringDualData a b Y W` is `a + b`. -/
 @[simp] theorem stinespringProgram_dualScore {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (a b : ℝ) (Y W : HermitianMat Z ℂ) :
     (stinespringProgram A B).dualScore (stinespringDualData a b Y W) = a + b := by
   change ⟪stinespringDualData 1 1 0 0,stinespringDualData a b Y W⟫_ℝ = _
   simp [stinespringDualData,WithLp.prod_inner_apply]
 
+/-- The Stinespring equality map sends primal block data to the two input traces and zero
+residual blocks. -/
 @[simp] theorem stinespringEqMap_primalData {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (ρ σ : HermitianMat (Fin D) ℂ) (X : Matrix Z Z ℂ) :
     stinespringEqMap A B (stinespringPrimalData A B ρ σ X) =
@@ -2683,6 +3017,8 @@ theorem stinespringProgram_dual_slack {D E : ℕ} {Z : Type*} [Fintype Z] [Decid
     (stinespringComplement B σ - stinespringComplement B σ) = _
   rw [sub_self,sub_self]
 
+/-- Stinespring primal block data are feasible exactly when both inputs are density matrices and
+their complementary fidelity block is positive semidefinite. -/
 theorem stinespringProgram_primal_block_iff {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (ρ σ : HermitianMat (Fin D) ℂ) (X : Matrix Z Z ℂ) :
     (stinespringProgram A B).PrimalFeasible (stinespringPrimalData A B ρ σ X) ↔
@@ -2703,6 +3039,7 @@ theorem stinespringProgram_primal_block_iff {D E : ℕ} {Z : Type*} [Fintype Z] 
   simp only [HermitianMat.zero_le_iff]
   tauto
 
+/-- The Stinespring primal score on block data is the real part of the trace of the cross block. -/
 theorem stinespringProgram_primalScore {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (ρ σ : HermitianMat (Fin D) ℂ) (X : Matrix Z Z ℂ) :
     (stinespringProgram A B).primalScore (stinespringPrimalData A B ρ σ X) = (Matrix.trace X).re := by
@@ -2712,6 +3049,7 @@ theorem stinespringProgram_primalScore {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
   rw [directSum_inner,principalBlock_directSum_left,principalBlock_directSum_right,inner_zero_left,zero_add]
   exact fidelityProgram_primalScore _ _ _
 
+/-- The identity minus half the off-diagonal identity block is positive definite. -/
 theorem fidelity_identity_slack_posDef {I : Type*} [Fintype I] [DecidableEq I] :
     ((1 : HermitianMat (I ⊕ I) ℂ) - (1/2 : ℝ) • offDiagonal (1 : Matrix I I ℂ)).mat.PosDef := by
   have hg : (Matrix.fromBlocks (1 : Matrix I I ℂ) (-1 : Matrix I I ℂ)
@@ -2731,6 +3069,7 @@ theorem fidelity_identity_slack_posDef {I : Type*} [Fintype I] [DecidableEq I] :
   exact (Matrix.PosDef.one.smul (by norm_num : (0 : ℝ) < 1/2)).add_posSemidef
     (hg.smul (by norm_num : (0 : ℝ) ≤ 1/2))
 
+/-- The Stinespring program satisfies dual Slater feasibility. -/
 theorem stinespringProgram_dual_strict {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) : (stinespringProgram A B).DualSlater := by
   let P := (stinespringComplementLinear A).adjoint 1
@@ -2744,11 +3083,14 @@ theorem stinespringProgram_dual_strict {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
   exact directSum_posDef (directSum_posDef (scalar_majorant_posDef P) (scalar_majorant_posDef Q))
     fidelity_identity_slack_posDef
 
+/-- A fidelity primal block with zero cross block is the block diagonal matrix of its two
+inputs. -/
 @[simp] theorem fidelityPrimalBlock_zero {I : Type*} [Fintype I] (P Q : HermitianMat I ℂ) :
     fidelityPrimalBlock P Q 0 = Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q := by
   apply HermitianMat.ext
   simp only [fidelityPrimalBlock,Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal,HermitianMat.mat_mk,Matrix.conjTranspose_zero]
 
+/-- The Stinespring program has a primal feasible point when the input dimension is positive. -/
 theorem stinespringProgram_primal_feasible {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     ∃ M, (stinespringProgram A B).PrimalFeasible M := by
@@ -2764,6 +3106,8 @@ theorem stinespringProgram_primal_feasible {D E : ℕ} {Z : Type*} [Fintype Z] [
   exact HermitianMat.zero_le_iff.mp (blockDiagonal_nonneg
     (stinespringComplement_nonneg A hp) (stinespringComplement_nonneg B hp))
 
+/-- Every Stinespring primal feasible matrix yields density inputs and a positive semidefinite
+complementary fidelity block with the same score. -/
 theorem stinespringProgram_primal_reduction {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) {M : HermitianMat (StinespringRegister D Z) ℂ}
     (hM : (stinespringProgram A B).PrimalFeasible M) :
@@ -2808,6 +3152,7 @@ theorem stinespringProgram_primal_reduction {D E : ℕ} {Z : Type*} [Fintype Z] 
     change (fidelityProgram (stinespringComplement A ρ) (stinespringComplement B σ)).primalScore S = _
     rw [hX,fidelityProgram_primalScore]
 
+/-- The Stinespring program's primal value set equals `stinespringSourcePrimalValues`. -/
 theorem stinespringProgram_primalValues_eq_source {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     (stinespringProgram A B).primalValues = stinespringSourcePrimalValues A B := by
@@ -2822,6 +3167,8 @@ theorem stinespringProgram_primalValues_eq_source {D E : ℕ} {Z : Type*} [Finty
     rw [stinespringProgram_primalScore]
     exact hs
 
+/-- For positive input dimension, the Stinespring program has a common primal supremum and dual
+infimum equal to the finite diamond norm, with primal attainment. -/
 theorem stinespringProgram_norm_strong_duality {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     ∃ (α : ℝ) (M : HermitianMat (StinespringRegister D Z) ℂ),
@@ -2855,6 +3202,8 @@ theorem stinespringProgram_norm_strong_duality {D E : ℕ} {Z : Type*} [Fintype 
   · rw [← heq]
     exact le_iSup_of_le ρ (le_iSup_of_le σ le_rfl)
 
+/-- For positive input dimension, density inputs and a complementary cross block attain the
+finite diamond norm and the source primal supremum. -/
 theorem stinespringSource_norm_primal_attained {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     ∃ (α : ℝ) (ρ σ : DensityInput D) (X : Matrix Z Z ℂ),
@@ -2867,6 +3216,8 @@ theorem stinespringSource_norm_primal_attained {D E : ℕ} {Z : Type*} [Fintype 
   rw [stinespringProgram_primalValues_eq_source] at hp
   exact ⟨α,ρ,σ,X,hnorm,hX,hp,hd,hs.symm.trans hscore⟩
 
+/-- The adjoint of the Stinespring complementary map is conjugation of the lifted environment
+matrix by the conjugate transpose of the Stinespring matrix. -/
 theorem stinespringComplementLinear_adjoint {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) (Y : HermitianMat Z ℂ) :
     (stinespringComplementLinear A).adjoint Y =
@@ -2886,6 +3237,8 @@ theorem stinespringComplementLinear_adjoint {D E : ℕ} {Z : Type*} [Fintype Z] 
       have h := Matrix.trace_mul_cycle Aᴴ (Matrix.kronecker (1 : Operator E) Y.mat) (A * ρ.mat)
       simpa only [Matrix.mul_assoc] using! h.symm
 
+/-- Positive semidefiniteness of a fidelity dual block forces its left diagonal block to be
+positive definite. -/
 theorem fidelityDualBlock_left_posDef {I : Type*} [Fintype I] [DecidableEq I]
     {Y W : HermitianMat I ℂ} (h : 0 ≤ fidelityDualBlock Y W) : Y.mat.PosDef := by
   have hdiag := weightedDualBlock_diagonal_nonneg (C := (1 : Matrix I I ℂ)) h
@@ -2904,6 +3257,8 @@ theorem fidelityDualBlock_left_posDef {I : Type*} [Fintype I] [DecidableEq I]
     exact HermitianMat.nonSingular_ker_bot (A := (1 : HermitianMat I ℂ))
   exact (Y.nonSingular_iff_posDef_of_PSD hdiag.1).mp ((Y.nonSingular_iff_ker_bot).mpr hk)
 
+/-- A fidelity dual block is positive semidefinite exactly when its left block is positive
+definite and its right block dominates the inverse left block. -/
 theorem fidelityDualBlock_iff_inverse_slack {I : Type*} [Fintype I] [DecidableEq I]
     (Y W : HermitianMat I ℂ) :
     0 ≤ fidelityDualBlock Y W ↔ Y.mat.PosDef ∧ 0 ≤ W - Y⁻¹ := by
@@ -2933,6 +3288,7 @@ theorem fidelityDualBlock_iff_inverse_slack {I : Type*} [Fintype I] [DecidableEq
         using! HermitianMat.zero_le_iff.mp hs)
     simpa only [Matrix.conjTranspose_neg,Matrix.conjTranspose_one] using! hm
 
+/-- The adjoint of a Stinespring complementary map preserves positive semidefiniteness. -/
 theorem stinespringComplement_adjoint_nonneg {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) {Y : HermitianMat Z ℂ} (hY : 0 ≤ Y) :
     0 ≤ (stinespringComplementLinear A).adjoint Y := by
@@ -2940,6 +3296,8 @@ theorem stinespringComplement_adjoint_nonneg {D E : ℕ} {Z : Type*} [Fintype Z]
   exact HermitianMat.conj_nonneg Aᴴ (HermitianMat.kronecker_nonneg
     (HermitianMat.zero_le_iff.mpr Matrix.PosSemidef.one) hY)
 
+/-- Stinespring dual feasibility is equivalent to positive semidefiniteness of the two scalar
+adjoint slacks and the fidelity coupling block. -/
 theorem stinespringProgram_dual_block_iff {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (a b : ℝ) (Y W : HermitianMat Z ℂ) :
     (stinespringProgram A B).DualFeasible (stinespringDualData a b Y W) ↔
@@ -2954,6 +3312,8 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance stinespringMatrixCStar {J : Type*} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- The operator norm is monotone between Hermitian matrices when the smaller matrix is positive
+semidefinite. -/
 theorem hermitian_opNorm_mono {I : Type*} [Fintype I] [DecidableEq I]
     {P Q : HermitianMat I ℂ} (hP : 0 ≤ P) (hPQ : P ≤ Q) : ‖P.mat‖ ≤ ‖Q.mat‖ := by
   have hm := Matrix.nonneg_iff_posSemidef.mpr (HermitianMat.zero_le_iff.mp (sub_nonneg.mpr hPQ))
@@ -2961,6 +3321,8 @@ theorem hermitian_opNorm_mono {I : Type*} [Fintype I] [DecidableEq I]
   exact CStarAlgebra.norm_le_norm_of_le_of_nonneg hle
     (Matrix.nonneg_iff_posSemidef.mpr (HermitianMat.zero_le_iff.mp hP))
 
+/-- A positive semidefinite fidelity dual block lifts to Stinespring dual feasible data with
+score equal to `stinespringBlockDualObjective`. -/
 theorem stinespringBlockDual_lift {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) {Y W : HermitianMat Z ℂ}
     (h : 0 ≤ fidelityDualBlock Y W) :
@@ -2999,6 +3361,8 @@ theorem stinespringBlockDual_lift {D E : ℕ} {Z : Type*} [Fintype Z] [Decidable
   · rw [stinespringProgram_dualScore]
     rfl
 
+/-- For positive input dimension, every Stinespring dual feasible point reduces to a fidelity
+dual block with no larger objective. -/
 theorem stinespringProgram_dual_reduction {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) {y : StinespringConstraints Z}
     (hy : (stinespringProgram A B).DualFeasible y) :
@@ -3032,6 +3396,8 @@ theorem stinespringProgram_dual_reduction {D E : ℕ} {Z : Type*} [Fintype Z] [D
     Real.norm_eq_abs,abs_of_pos (by norm_num : (0 : ℝ) < 2)]
   linarith
 
+/-- For a positive semidefinite fidelity dual block, the left block is positive definite and
+replacing the right block by its inverse cannot increase the objective. -/
 theorem stinespringBlockDual_to_inverse {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) {Y W : HermitianMat Z ℂ}
     (h : 0 ≤ fidelityDualBlock Y W) :
@@ -3052,6 +3418,8 @@ theorem stinespringBlockDual_to_inverse {D E : ℕ} {Z : Type*} [Fintype Z] [Dec
 
 end StinespringNormDual
 
+/-- For positive input dimension, the Stinespring source primal supremum and both block and
+inverse dual infima equal the finite diamond norm, with primal attainment. -/
 theorem stinespringSource_norm_duality {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     ∃ (α : ℝ) (ρ σ : DensityInput D) (X : Matrix Z Z ℂ),
@@ -3085,6 +3453,8 @@ theorem stinespringSource_norm_duality {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
   rw [stinespringProgram_primalValues_eq_source] at hp
   exact ⟨α,ρ,σ,X,hnorm,hX,hp,hblockGLB,hInvGLB,hs.symm.trans hscore⟩
 
+/-- For positive input dimension, positive definite inverse dual points approximate the finite
+diamond norm from above to every positive tolerance. -/
 theorem stinespringInverseDual_approximation {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (hD : 0 < D) (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     ∃ α : ℝ, finiteDiamondNorm (stinespringCross A B) = ENNReal.ofReal α ∧
@@ -3103,10 +3473,12 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance interiorMatrixCStar {J : Type*} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- The order on Hermitian matrices agrees with the order on their underlying matrices. -/
 theorem hermitian_le_iff_mat_le {I : Type*} [Fintype I] [DecidableEq I]
     (P Q : HermitianMat I ℂ) : P ≤ Q ↔ P.mat ≤ Q.mat := by
   rw [HermitianMat.le_iff,HermitianMat.mat_sub,← Matrix.nonneg_iff_posSemidef,sub_nonneg]
 
+/-- The operator norm of the underlying matrix is bounded by the Hermitian matrix norm. -/
 theorem hermitian_opNorm_le_norm {I : Type*} [Fintype I] [DecidableEq I]
     (H : HermitianMat I ℂ) : ‖H.mat‖ ≤ ‖H‖ := by
   have hh : ‖cfc (fun x : ℝ => x) H.mat‖ ≤ ‖H‖ :=
@@ -3118,17 +3490,21 @@ theorem hermitian_opNorm_le_norm {I : Type*} [Fintype I] [DecidableEq I]
   rw [hid] at hh
   exact hh
 
+/-- Every Hermitian matrix is bounded above by its operator norm times the identity. -/
 theorem hermitian_le_opNorm_smul_one {I : Type*} [Fintype I] [DecidableEq I]
     (H : HermitianMat I ℂ) : H ≤ ‖H.mat‖ • (1 : HermitianMat I ℂ) := by
   apply (hermitian_le_iff_mat_le _ _).mpr
   simp only [HermitianMat.mat_smul,HermitianMat.mat_one,← Algebra.algebraMap_eq_smul_one]
   exact H.H.isSelfAdjoint.le_algebraMap_norm_self
 
+/-- Every Hermitian matrix is bounded below by the negative of its operator norm times the
+identity. -/
 theorem hermitian_neg_opNorm_smul_one_le {I : Type*} [Fintype I] [DecidableEq I]
     (H : HermitianMat I ℂ) : (-‖H.mat‖) • (1 : HermitianMat I ℂ) ≤ H := by
   have hh := neg_le_neg (hermitian_le_opNorm_smul_one (-H))
   simpa only [HermitianMat.mat_neg,norm_neg,neg_smul,neg_neg] using! hh
 
+/-- Two-sided scalar identity bounds of radius `r` bound the operator norm by `r`. -/
 theorem hermitian_opNorm_le_of_bounds {I : Type*} [Fintype I] [DecidableEq I]
     {H : HermitianMat I ℂ} {r : ℝ} (hr : 0 ≤ r)
     (hlo : (-r) • (1 : HermitianMat I ℂ) ≤ H) (hhi : H ≤ r • 1) : ‖H.mat‖ ≤ r := by
@@ -3143,6 +3519,7 @@ theorem hermitian_opNorm_le_of_bounds {I : Type*} [Fintype I] [DecidableEq I]
   rw [hid] at hh
   exact hh
 
+/-- The adjoint of a Stinespring complementary map is monotone. -/
 theorem stinespringAdjoint_mono {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) {Y W : HermitianMat Z ℂ} (h : Y ≤ W) :
     (stinespringComplementLinear A).adjoint Y ≤ (stinespringComplementLinear A).adjoint W := by
@@ -3150,6 +3527,8 @@ theorem stinespringAdjoint_mono {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq
   rw [← map_sub]
   exact stinespringComplement_adjoint_nonneg A (sub_nonneg.mpr h)
 
+/-- The Stinespring complementary adjoint is bounded above by the product of the input operator
+norm and its identity-image operator norm, times the identity. -/
 theorem stinespringAdjoint_upper_bound {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) (Y : HermitianMat Z ℂ) :
     (stinespringComplementLinear A).adjoint Y ≤
@@ -3162,6 +3541,7 @@ theorem stinespringAdjoint_upper_bound {D E : ℕ} {Z : Type*} [Fintype Z] [Deci
       smul_le_smul_of_nonneg_left (hermitian_le_opNorm_smul_one _) (norm_nonneg _)
     _ = _ := by rw [smul_smul]
 
+/-- Subtraction of direct sums equals the direct sum of the respective differences. -/
 theorem directSum_sub {I J : Type*} [Fintype I] [Fintype J]
     (P R : HermitianMat I ℂ) (Q S : HermitianMat J ℂ) :
     directSum P Q - directSum R S = directSum (P - R) (Q - S) := by
@@ -3169,6 +3549,7 @@ theorem directSum_sub {I J : Type*} [Fintype I] [Fintype J]
   simp only [directSum,HermitianMat.mat_mk,HermitianMat.mat_sub,HermitianMat.mat_add,HermitianMat.mat_neg,sub_eq_add_neg,
     Matrix.fromBlocks_neg,Matrix.fromBlocks_add,neg_zero,add_zero]
 
+/-- Direct sums preserve the order of both summands. -/
 theorem directSum_mono {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     {P R : HermitianMat I ℂ} {Q S : HermitianMat J ℂ} (hP : P ≤ R) (hQ : Q ≤ S) :
     directSum P Q ≤ directSum R S := by
@@ -3176,10 +3557,13 @@ theorem directSum_mono {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [De
   rw [directSum_sub]
   exact directSum_nonneg (sub_nonneg.mpr hP) (sub_nonneg.mpr hQ)
 
+/-- Forming block diagonal matrices preserves the order of both blocks. -/
 theorem blockDiagonal_mono {I : Type*} [Fintype I] [DecidableEq I]
     {P R Q S : HermitianMat I ℂ} (hP : P ≤ R) (hQ : Q ≤ S) :
     Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal P Q ≤ Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal R S := directSum_mono hP hQ
 
+/-- The direct sum of equally scaled identity matrices is the equally scaled identity on the sum
+type. -/
 @[simp] theorem directSum_scalar_one {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (r : ℝ) :
     directSum (r • (1 : HermitianMat I ℂ)) (r • (1 : HermitianMat J ℂ)) = r • 1 := by
@@ -3188,9 +3572,12 @@ theorem blockDiagonal_mono {I : Type*} [Fintype I] [DecidableEq I]
   rw [← Matrix.fromBlocks_one (l := I) (m := J),Matrix.fromBlocks_smul]
   simp only [smul_zero]
 
+/-- A block diagonal matrix of equally scaled identity blocks is the equally scaled identity. -/
 @[simp] theorem blockDiagonal_scalar_one {I : Type*} [Fintype I] [DecidableEq I] (r : ℝ) :
     Qatlib.Concepts.DyadicFloor.FloorRounding.blockDiagonal (r • (1 : HermitianMat I ℂ)) (r • 1) = r • 1 := directSum_scalar_one r
 
+/-- Each scalar or matrix coordinate of Stinespring dual data is bounded in absolute value or
+norm by the norm of the full data. -/
 theorem stinespringDual_coordinates_norm_le {Z : Type*} [Fintype Z] [DecidableEq Z]
     (h : StinespringConstraints Z) :
     |(WithLp.ofLp (WithLp.ofLp h).1).1| ≤ ‖h‖ ∧
@@ -3205,6 +3592,8 @@ theorem stinespringDual_coordinates_norm_le {Z : Type*} [Fintype Z] [DecidableEq
   · exact (WithLp.norm_fst_le _ (WithLp.ofLp h).2).trans (WithLp.norm_snd_le _ h)
   · exact (WithLp.norm_snd_le _ (WithLp.ofLp h).2).trans (WithLp.norm_snd_le _ h)
 
+/-- Bounds on the scalar and matrix perturbations give a scalar identity upper bound for the
+input slack perturbation. -/
 theorem stinespringInputPerturbation_upper_bound {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A : Matrix (Fin E × Z) (Fin D) ℂ) {a t : ℝ} {Y : HermitianMat Z ℂ}
     (ha : a ≤ t) (hY : ‖Y.mat‖ ≤ t) :
@@ -3223,6 +3612,8 @@ theorem stinespringInputPerturbation_upper_bound {D E : ℕ} {Z : Type*} [Fintyp
         (hneg.trans (smul_le_smul_of_nonneg_right hscale hi))
     _ = _ := by module
 
+/-- The Stinespring equality adjoint is bounded above by `stinespringPerturbationScale A B`
+times the data norm, times the identity. -/
 theorem stinespringEqMap_adjoint_upper_bound {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (h : StinespringConstraints Z) :
     (stinespringEqMap A B).adjoint h ≤
@@ -3267,11 +3658,14 @@ theorem stinespringEqMap_adjoint_upper_bound {D E : ℕ} {Z : Type*} [Fintype Z]
   rw [hadj]
   simpa only [blockDiagonal_scalar_one,directSum_scalar_one] using! hh
 
+/-- The Stinespring perturbation scale is strictly positive. -/
 theorem stinespringPerturbationScale_pos {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) : 0 < stinespringPerturbationScale A B := by
   unfold stinespringPerturbationScale
   positivity
 
+/-- The operator norm of a Stinespring equality adjoint image is bounded by the perturbation
+scale times the data norm. -/
 theorem stinespringEqMap_adjoint_norm_bound {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) (h : StinespringConstraints Z) :
     ‖((stinespringEqMap A B).adjoint h).mat‖ ≤ stinespringPerturbationScale A B * ‖h‖ := by
@@ -3283,6 +3677,7 @@ theorem stinespringEqMap_adjoint_norm_bound {D E : ℕ} {Z : Type*} [Fintype Z] 
     (mul_nonneg (stinespringPerturbationScale_pos A B).le (norm_nonneg h)) hlo
     (stinespringEqMap_adjoint_upper_bound A B h)
 
+/-- The fidelity identity slack dominates half the identity. -/
 theorem fidelity_identity_slack_margin {I : Type*} [Fintype I] [DecidableEq I] :
     (1/2 : ℝ) • (1 : HermitianMat (I ⊕ I) ℂ) ≤
       1 - (1/2 : ℝ) • offDiagonal (1 : Matrix I I ℂ) := by
@@ -3303,6 +3698,8 @@ theorem fidelity_identity_slack_margin {I : Type*} [Fintype I] [DecidableEq I] :
   rw [heq]
   exact smul_nonneg (by norm_num : (0 : ℝ) ≤ 1/2) hg
 
+/-- Adding the operator norm of a Hermitian matrix to a scalar identity shift gives slack at
+least the original scalar identity shift. -/
 theorem hermitian_scalar_slack_margin {I : Type*} [Fintype I] [DecidableEq I]
     (H : HermitianMat I ℂ) (r : ℝ) :
     r • (1 : HermitianMat I ℂ) ≤ (r + ‖H.mat‖) • 1 - H := by
@@ -3310,6 +3707,7 @@ theorem hermitian_scalar_slack_margin {I : Type*} [Fintype I] [DecidableEq I]
   rw [add_smul,add_sub_assoc]
   exact le_add_of_nonneg_right hn
 
+/-- The dual slack at `stinespringDualCenter A B` dominates half the identity. -/
 theorem stinespringDualCenter_margin {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     (1/2 : ℝ) • (1 : HermitianMat (StinespringRegister D Z) ℂ) ≤
@@ -3327,11 +3725,13 @@ theorem stinespringDualCenter_margin {D E : ℕ} {Z : Type*} [Fintype Z] [Decida
   have hh := directSum_mono (blockDiagonal_mono hP hQ) (fidelity_identity_slack_margin (I := Z))
   simpa only [blockDiagonal_scalar_one,directSum_scalar_one] using! hh
 
+/-- The Stinespring interior radius is strictly positive. -/
 theorem stinespringInteriorRadius_pos {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) : 0 < stinespringInteriorRadius A B := by
   unfold stinespringInteriorRadius
   exact inv_pos.mpr (mul_pos (by norm_num) (stinespringPerturbationScale_pos A B))
 
+/-- The product of the Stinespring perturbation scale and interior radius is one quarter. -/
 theorem stinespringInteriorRadius_scale {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     stinespringPerturbationScale A B * stinespringInteriorRadius A B = (1/4 : ℝ) := by
@@ -3339,6 +3739,8 @@ theorem stinespringInteriorRadius_scale {D E : ℕ} {Z : Type*} [Fintype Z] [Dec
   have hk := (stinespringPerturbationScale_pos A B).ne'
   field_simp
 
+/-- Perturbations within the Stinespring interior radius leave dual slack at least one quarter
+of the identity. -/
 theorem stinespringDualCenter_ball_margin {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) {h : StinespringConstraints Z}
     (hh : ‖h‖ ≤ stinespringInteriorRadius A B) :
@@ -3371,6 +3773,8 @@ theorem stinespringDualCenter_ball_margin {D E : ℕ} {Z : Type*} [Fintype Z] [D
     convert! hm using 1 <;> abel
   exact hmargin
 
+/-- Every perturbation within the Stinespring interior radius gives positive definite dual
+slack. -/
 theorem stinespringDualCenter_ball_posDef {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) {h : StinespringConstraints Z}
     (hh : ‖h‖ ≤ stinespringInteriorRadius A B) :
@@ -3387,6 +3791,7 @@ theorem stinespringDualCenter_ball_posDef {D E : ℕ} {Z : Type*} [Fintype Z] [D
   exact (Matrix.PosDef.one.smul (by norm_num : (0 : ℝ) < 1/4)).add_posSemidef
     (HermitianMat.zero_le_iff.mp hs)
 
+/-- The Stinespring dual center and interior radius define a dual interior ball. -/
 theorem stinespringDualCenter_interior_ball {D E : ℕ} {Z : Type*} [Fintype Z] [DecidableEq Z]
     (A B : Matrix (Fin E × Z) (Fin D) ℂ) :
     (stinespringProgram A B).DualInteriorBall (stinespringDualCenter A B) (stinespringInteriorRadius A B) := by
@@ -3400,6 +3805,7 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance choiInteriorMatrixCStar {J : Type*} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- The off-diagonal construction sends the zero matrix to zero. -/
 @[simp] theorem offDiagonal_zero {I : Type*} [Fintype I] :
     offDiagonal (0 : Matrix I I ℂ) = 0 := by
   apply HermitianMat.ext
@@ -3407,6 +3813,7 @@ noncomputable local instance choiInteriorMatrixCStar {J : Type*} [Fintype J] [De
   ext i j
   cases i <;> cases j <;> rfl
 
+/-- The norm of a cross block times the identity dominates its Hermitian off-diagonal dilation. -/
 theorem norm_cross_dilation_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     (C : Matrix I I ℂ) : 0 ≤ ‖C‖ • (1 : HermitianMat (I ⊕ I) ℂ) - offDiagonal C := by
   by_cases hc : C = 0
@@ -3435,6 +3842,8 @@ theorem norm_cross_dilation_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     simp only [Matrix.fromBlocks_smul,smul_zero,add_zero,zero_add,neg_zero,hscale,hstar]
   rwa [heq]
 
+/-- The scalar shift `‖C‖ / 2 + 1` makes the half-scaled cross-block slack dominate the
+identity. -/
 theorem weighted_block_unit_margin {I : Type*} [Fintype I] [DecidableEq I]
     (C : Matrix I I ℂ) :
     (1 : HermitianMat (I ⊕ I) ℂ) ≤ (‖C‖/2 + 1) • 1 - (1/2 : ℝ) • offDiagonal C := by
@@ -3444,15 +3853,18 @@ theorem weighted_block_unit_margin {I : Type*} [Fintype I] [DecidableEq I]
       (1/2 : ℝ) • (‖C‖ • 1 - offDiagonal C) := by module
   rwa [heq]
 
+/-- The left partial trace of the identity on `Fin E × Fin D` is `E` times the identity. -/
 @[simp] theorem traceLeft_one_fin (D E : ℕ) :
     (1 : HermitianMat (Fin E × Fin D) ℂ).traceLeft = (E : ℝ) • 1 := by
   rw [← HermitianMat.kronecker_one_one,HermitianMat.traceLeft_kron]
   simp only [HermitianMat.trace_one,Fintype.card_fin]
 
+/-- The scalar slack `(1 + a * b) • 1 - a • (b • 1)` equals the identity. -/
 theorem scalar_center_cancel {I : Type*} [Fintype I] [DecidableEq I] (a b : ℝ) :
     (1 + a * b) • (1 : HermitianMat I ℂ) - a • (b • 1) = 1 := by
   rw [smul_smul,add_smul,one_smul,add_sub_cancel_right]
 
+/-- The dual slack at `diamondDualCenter T` dominates the identity. -/
 theorem diamondDualCenter_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     (1 : HermitianMat (DiamondRegister D E) ℂ) ≤
       (diamondProgram T).constraint.adjoint (diamondDualCenter T) - (diamondProgram T).objective := by
@@ -3471,17 +3883,22 @@ theorem diamondDualCenter_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Operato
     exact Matrix.fromBlocks_one
   rwa [hsum] at hh
 
+/-- The left partial trace preserves the Hermitian matrix order. -/
 theorem traceLeft_mono_fin {D E : ℕ} {Y W : HermitianMat (Fin E × Fin D) ℂ}
     (h : Y ≤ W) : Y.traceLeft ≤ W.traceLeft := by
   apply sub_nonneg.mp
   rw [← HermitianMat.traceLeft_sub]
   exact HermitianMat.zero_le_iff.mpr (HermitianMat.zero_le_iff.mp (sub_nonneg.mpr h)).traceLeft
 
+/-- The left partial trace is bounded above by the matrix operator norm times the traced
+dimension, times the identity. -/
 theorem traceLeft_upper_bound_fin {D E : ℕ} (Y : HermitianMat (Fin E × Fin D) ℂ) :
     Y.traceLeft ≤ (‖Y.mat‖ * E) • 1 := by
   have hh := traceLeft_mono_fin (hermitian_le_opNorm_smul_one Y)
   rwa [HermitianMat.traceLeft_smul,traceLeft_one_fin,smul_smul] at hh
 
+/-- Scalar and matrix perturbation bounds yield a scalar identity bound of `t * (1 + E)` on the
+partial trace slack perturbation. -/
 theorem diamondInputPerturbation_upper_bound {D E : ℕ} {a t : ℝ}
     {Y : HermitianMat (Fin E × Fin D) ℂ} (ha : a ≤ t) (hY : ‖Y.mat‖ ≤ t) :
     a • 1 - Y.traceLeft ≤ (t * (1 + E)) • 1 := by
@@ -3495,6 +3912,8 @@ theorem diamondInputPerturbation_upper_bound {D E : ℕ} {a t : ℝ}
       (hneg.trans (smul_le_smul_of_nonneg_right hscale hi))
     _ = _ := by module
 
+/-- The diamond equality adjoint is bounded above by `1 + E` times the data norm, times the
+identity. -/
 theorem diamondEqMap_adjoint_upper_bound {D E : ℕ} (h : DiamondConstraints D E) :
     (diamondEqMap D E).adjoint h ≤ ((1 + (E : ℝ)) * ‖h‖) • 1 := by
   let a := (WithLp.ofLp (WithLp.ofLp h).1).1
@@ -3525,6 +3944,8 @@ theorem diamondEqMap_adjoint_upper_bound {D E : ℕ} (h : DiamondConstraints D E
   rw [hadj]
   simpa only [blockDiagonal_scalar_one,directSum_scalar_one] using! hh
 
+/-- The operator norm of a diamond equality adjoint image is at most `1 + E` times the data
+norm. -/
 theorem diamondEqMap_adjoint_norm_bound {D E : ℕ} (h : DiamondConstraints D E) :
     ‖((diamondEqMap D E).adjoint h).mat‖ ≤ (1 + (E : ℝ)) * ‖h‖ := by
   have hh := diamondEqMap_adjoint_upper_bound (-h)
@@ -3534,17 +3955,21 @@ theorem diamondEqMap_adjoint_norm_bound {D E : ℕ} (h : DiamondConstraints D E)
   exact hermitian_opNorm_le_of_bounds
     (mul_nonneg (by positivity) (norm_nonneg h)) hlo (diamondEqMap_adjoint_upper_bound h)
 
+/-- The diamond interior radius is strictly positive. -/
 theorem diamondInteriorRadius_pos (E : ℕ) : 0 < diamondInteriorRadius E := by
   unfold diamondInteriorRadius
   apply inv_pos.mpr
   have hm : 0 < max 1 E := lt_of_lt_of_le Nat.zero_lt_one (le_max_left 1 E)
   exact_mod_cast (Nat.mul_pos (by decide : 0 < 2) hm)
 
+/-- For positive output dimension, the diamond interior radius is the reciprocal of twice that
+dimension. -/
 theorem diamondInteriorRadius_eq_of_pos {E : ℕ} (hE : 0 < E) :
     diamondInteriorRadius E = (2 * (E : ℝ))⁻¹ := by
   unfold diamondInteriorRadius
   rw [max_eq_right (Nat.succ_le_iff.mpr hE)]
 
+/-- Multiplying the diamond interior radius by `1 + E` gives a value at most one. -/
 theorem diamondInteriorRadius_scale (E : ℕ) :
     (1 + (E : ℝ)) * diamondInteriorRadius E ≤ 1 := by
   have hm : (1 : ℝ) ≤ (max 1 E : ℕ) := by exact_mod_cast le_max_left 1 E
@@ -3554,6 +3979,7 @@ theorem diamondInteriorRadius_scale (E : ℕ) :
   have hh := (div_le_one hp).mpr hcoef
   simpa only [diamondInteriorRadius,Nat.cast_mul,Nat.cast_ofNat,div_eq_mul_inv] using! hh
 
+/-- The diamond dual center and interior radius define a dual interior ball. -/
 theorem diamondDualCenter_interior_ball {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     (diamondProgram T).DualInteriorBall (diamondDualCenter T) (diamondInteriorRadius E) := by
   intro h hh
@@ -3583,12 +4009,14 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance outerMatrixCStar {I : Type*} [Fintype I] [DecidableEq I] :
     CStarAlgebra (Matrix I I ℂ) where
 
+/-- The norm of a positive semidefinite Hermitian matrix is at most its trace. -/
 theorem hermitian_norm_le_trace {I : Type*} [Fintype I] [DecidableEq I]
     {Y : HermitianMat I ℂ} (hY : 0 ≤ Y) : ‖Y‖ ≤ Y.trace := by
   have hh := HermitianMat.inner_le_mul_trace hY hY
   rw [real_inner_self_eq_norm_sq] at hh
   nlinarith [HermitianMat.trace_nonneg hY,norm_nonneg Y]
 
+/-- The Hilbert product norm of a pair is at most the sum of the two component norms. -/
 theorem hilbertPair_norm_le_sum {V W : Type*} [NormedAddCommGroup V] [NormedAddCommGroup W]
     (v : V) (w : W) : ‖WithLp.toLp 2 (v,w)‖ ≤ ‖v‖ + ‖w‖ := by
   have heq : WithLp.toLp 2 (v,w) =
@@ -3599,6 +4027,8 @@ theorem hilbertPair_norm_le_sum {V W : Type*} [NormedAddCommGroup V] [NormedAddC
   simpa only [WithLp.norm_toLp_fst,WithLp.norm_toLp_snd] using!
     norm_add_le (WithLp.toLp 2 (v,(0 : W))) (WithLp.toLp 2 ((0 : V),w))
 
+/-- For nonnegative scalar and matrix coordinates, the diamond dual data norm is bounded by the
+scalar sum plus the two traces. -/
 theorem diamondDualData_norm_le_trace {D E : ℕ} {a b : ℝ}
     {Y W : HermitianMat (Fin E × Fin D) ℂ}
     (ha : 0 ≤ a) (hb : 0 ≤ b) (hY : 0 ≤ Y) (hW : 0 ≤ W) :
@@ -3610,6 +4040,8 @@ theorem diamondDualData_norm_le_trace {D E : ℕ} {a b : ℝ}
   change ‖diamondDualData a b Y W‖ ≤ _ at h1
   linarith [hermitian_norm_le_trace hY,hermitian_norm_le_trace hW]
 
+/-- For positive input dimension, feasible diamond dual data have nonnegative coordinates and
+matrix traces bounded by the corresponding scalars times `D`. -/
 theorem diamondProgram_dual_size_data {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {a b : ℝ}
     {Y W : HermitianMat (Fin E × Fin D) ℂ}
@@ -3642,6 +4074,8 @@ theorem diamondProgram_dual_size_data {D E : ℕ} (hD : 0 < D)
     Fintype.card_fin,HermitianMat.traceLeft_trace] at htY htW
   exact ⟨ha0,hb0,hY,hW,by linarith,by linarith⟩
 
+/-- For positive input dimension, the norm of any diamond dual feasible point is at most `D + 1`
+times its score. -/
 theorem diamondProgram_dual_norm_le_score {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {y : DiamondConstraints D E}
     (hy : (diamondProgram T).DualFeasible y) :
@@ -3657,6 +4091,8 @@ theorem diamondProgram_dual_norm_le_score {D E : ℕ} (hD : 0 < D)
   have hh := diamondDualData_norm_le_trace ha hb hY hW
   nlinarith
 
+/-- The diamond program has a dual feasible point with score `E` times the norm of its Choi
+matrix. -/
 theorem diamondProgram_norm_bound_point {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ y : DiamondConstraints D E, (diamondProgram T).DualFeasible y ∧
       (diamondProgram T).dualScore y = E * ‖MatrixMap.choi_matrix T‖ := by
@@ -3680,6 +4116,9 @@ theorem diamondProgram_norm_bound_point {D E : ℕ} (T : Operator D →ₗ[ℂ] 
     dsimp [c]
     ring
 
+/-- For positive input dimension, primal and dual optimizers attain a common value `α`
+representing the finite diamond norm, with `0 ≤ α ≤ E * ‖MatrixMap.choi_matrix T‖`. The dual
+optimizer has norm at most `2 * ‖MatrixMap.choi_matrix T‖ * D * E`. -/
 theorem diamondProgram_bounded_optimizers {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (y : DiamondConstraints D E),
@@ -3715,6 +4154,7 @@ theorem diamondProgram_bounded_optimizers {D E : ℕ} (hD : 0 < D)
       mul_le_mul_of_nonneg_left hu (by positivity)
     _ ≤ _ := by nlinarith
 
+/-- For positive input dimension, each feasible diamond dual score sublevel set is compact. -/
 theorem diamondProgram_dual_sublevel_compact {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) (t : ℝ) :
     IsCompact {y : DiamondConstraints D E |
@@ -3738,6 +4178,7 @@ open scoped Matrix.Norms.L2Operator MatrixOrder
 noncomputable local instance regularizationMatrixCStar {I : Type*} [Fintype I] [DecidableEq I] :
     CStarAlgebra (Matrix I I ℂ) where
 
+/-- The diamond dual center has score `2 + (‖MatrixMap.choi_matrix T‖ + 2) * E`. -/
 theorem diamondDualCenter_score {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     (diamondProgram T).dualScore (diamondDualCenter T) =
       2 + (‖MatrixMap.choi_matrix T‖ + 2) * E := by
@@ -3745,19 +4186,24 @@ theorem diamondDualCenter_score {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator
   rw [diamondProgram_dualScore]
   ring
 
+/-- The diamond dual center has nonnegative score. -/
 theorem diamondDualCenter_score_nonneg {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     0 ≤ (diamondProgram T).dualScore (diamondDualCenter T) := by
   rw [diamondDualCenter_score]
   positivity
 
+/-- The diamond regularization weight is positive for a positive tolerance. -/
 theorem diamondRegularizationWeight_pos {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {ε : ℝ} (hε : 0 < ε) : 0 < diamondRegularizationWeight T ε := by
   unfold diamondRegularizationWeight
   exact lt_min (by norm_num) (div_pos hε (by positivity))
 
+/-- The diamond regularization weight is at most one. -/
 theorem diamondRegularizationWeight_le_one {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ε : ℝ) : diamondRegularizationWeight T ε ≤ 1 := min_le_left _ _
 
+/-- The regularization weight times the dual center score plus one is at most half the
+tolerance. -/
 theorem diamondRegularizationWeight_budget {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ε : ℝ) :
     diamondRegularizationWeight T ε * ((diamondProgram T).dualScore (diamondDualCenter T) + 1) ≤ ε/2 := by
@@ -3768,10 +4214,13 @@ theorem diamondRegularizationWeight_budget {D E : ℕ} (T : Operator D →ₗ[�
   rw [diamondDualCenter_score]
   nlinarith
 
+/-- The diamond rounding radius is positive for a positive tolerance. -/
 theorem diamondRoundingRadius_pos {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {ε : ℝ} (hε : 0 < ε) : 0 < diamondRoundingRadius T ε :=
   div_pos (diamondRegularizationWeight_pos T hε) (by positivity)
 
+/-- Regularizing a dual feasible point with weight between zero and one gives dual slack at
+least that weight times the identity. -/
 theorem diamondRegularizedDual_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {y : DiamondConstraints D E} (hy : (diamondProgram T).DualFeasible y)
     {θ : ℝ} (hθ : 0 ≤ θ) (hθ1 : θ ≤ 1) :
@@ -3792,6 +4241,8 @@ theorem diamondRegularizedDual_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
     module
   rwa [heq]
 
+/-- A perturbation of norm at most `θ / (2 * (1 + E))` preserves half the regularized scalar
+slack margin. -/
 theorem diamondRegularizedDual_perturbation_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {y : DiamondConstraints D E} (hy : (diamondProgram T).DualFeasible y)
     {θ : ℝ} (hθ : 0 ≤ θ) (hθ1 : θ ≤ 1) {h : DiamondConstraints D E}
@@ -3820,6 +4271,8 @@ theorem diamondRegularizedDual_perturbation_margin {D E : ℕ} (T : Operator D �
       (diamondProgram T).objective + (diamondEqMap D E).adjoint h at hm
   convert! hm using 1 <;> module
 
+/-- A Hermitian matrix dominating a strictly positive scalar multiple of the identity is
+positive definite. -/
 theorem hermitian_posDef_of_scalar_margin {I : Type*} [Fintype I] [DecidableEq I]
     {S : HermitianMat I ℂ} {r : ℝ} (hr : 0 < r) (hs : r • 1 ≤ S) : S.mat.PosDef := by
   have hp : 0 ≤ S - r • 1 := sub_nonneg.mpr hs
@@ -3827,6 +4280,7 @@ theorem hermitian_posDef_of_scalar_margin {I : Type*} [Fintype I] [DecidableEq I
   rw [heq,HermitianMat.mat_add,HermitianMat.mat_smul,HermitianMat.mat_one]
   exact (Matrix.PosDef.one.smul hr).add_posSemidef (HermitianMat.zero_le_iff.mp hp)
 
+/-- Perturbing diamond dual data by `h` changes the dual score by at most twice `‖h‖`. -/
 theorem diamondDualScore_perturbation_bound {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (y h : DiamondConstraints D E) :
     |(diamondProgram T).dualScore (y+h) - (diamondProgram T).dualScore y| ≤ 2 * ‖h‖ := by
@@ -3838,12 +4292,17 @@ theorem diamondDualScore_perturbation_bound {D E : ℕ} (T : Operator D →ₗ[�
   simp only [Program.dualScore,inner_add_right,add_sub_cancel_left]
   exact (abs_real_inner_le_norm _ _).trans (mul_le_mul_of_nonneg_right hr (norm_nonneg h))
 
+/-- The score of a regularized diamond dual point is the corresponding affine combination of its
+original score and the center score. -/
 theorem diamondRegularizedDual_score {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (θ : ℝ) (y : DiamondConstraints D E) :
     (diamondProgram T).dualScore (diamondRegularizedDual T θ y) =
       (1-θ) * (diamondProgram T).dualScore y + θ * (diamondProgram T).dualScore (diamondDualCenter T) := by
   simp only [diamondRegularizedDual,Program.dualScore,inner_add_right,real_inner_smul_right]
 
+/-- For positive input dimension and tolerance, there is a ball of strictly dual feasible points
+with scores within the tolerance above the diamond optimum. The ball has the stated uniform
+slack margin and norm bound. -/
 theorem diamondProgram_near_optimal_ball {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {ε : ℝ} (hε : 0 < ε) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (z : DiamondConstraints D E),
@@ -3891,6 +4350,8 @@ end ChoiDualRegularization
 
 section DyadicSdpRounding
 
+/-- The rational dyadic payload agrees with the complex dyadic payload after embedding the
+Gaussian rational matrix. -/
 theorem rationalDyadicPayload_eq {I : Type*} (p : ℕ) (A : Matrix I I (ℚ × ℚ)) :
     rationalDyadicPayload p A = complexDyadicPayload p (gaussianRatMatrix A) := by
   ext i j
@@ -3899,6 +4360,7 @@ theorem rationalDyadicPayload_eq {I : Type*} (p : ℕ) (A : Matrix I I (ℚ × �
   · change ⌊(2 : ℚ)^p * (A i j).2⌋ = ⌊(2 : ℝ)^p * ((A i j).2 : ℝ)⌋
     norm_cast
 
+/-- Dyadic floor rounding at precision `p` has absolute error at most `1 / 2^p`. -/
 theorem dyadicFloor_error (p : ℕ) (x : ℝ) :
     |(⌊(2 : ℝ)^p * x⌋ : ℝ) / (2 : ℝ)^p - x| ≤ 1 / (2 : ℝ)^p := by
   have hs : 0 < (2 : ℝ)^p := pow_pos (by norm_num) p
@@ -3912,6 +4374,8 @@ theorem dyadicFloor_error (p : ℕ) (x : ℝ) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- Each entry of a Gaussian dyadic reconstruction differs from its original complex entry by
+norm at most `2 / 2^p`. -/
 theorem gaussianDyadicDecode_entry_error {I : Type*} (p : ℕ) (A : Matrix I I ℂ) (i j : I) :
     ‖gaussianDyadicDecode p (complexDyadicPayload p A) i j - A i j‖ ≤ 2 / (2 : ℝ)^p := by
   have hr := dyadicFloor_error p (A i j).re
@@ -3926,6 +4390,8 @@ theorem gaussianDyadicDecode_entry_error {I : Type*} (p : ℕ) (A : Matrix I I �
     _ ≤ 1 / (2 : ℝ)^p + 1 / (2 : ℝ)^p := add_le_add hr hi
     _ = _ := by ring
 
+/-- Each entry of a Hermitian dyadic reconstruction differs from the original matrix entry by
+norm at most `2 / 2^p`. -/
 theorem hermitianDyadicDecode_entry_error {I : Type*} [Fintype I]
     (p : ℕ) (Y : HermitianMat I ℂ) (i j : I) :
     ‖(hermitianDyadicDecode p (complexDyadicPayload p Y.mat) - Y).mat i j‖ ≤ 2 / (2 : ℝ)^p := by
@@ -3944,11 +4410,14 @@ theorem hermitianDyadicDecode_entry_error {I : Type*} [Fintype I]
   change ‖R j i - Y.mat j i‖ ≤ _ at h2
   nlinarith
 
+/-- The square of the Hermitian matrix norm is the sum of squared entry norms. -/
 theorem hermitian_norm_sq_entries {I : Type*} [Fintype I] (Y : HermitianMat I ℂ) :
     ‖Y‖^2 = ∑ i, ∑ j, ‖Y.mat i j‖^2 := by
   rw [HermitianMat.norm_eq_frobenius,← Real.sqrt_eq_rpow]
   exact Real.sq_sqrt (by positivity)
 
+/-- A uniform nonnegative entry bound bounds the Hermitian matrix norm by the index cardinality
+times that bound. -/
 theorem hermitian_norm_le_card_mul_entry_bound {I : Type*} [Fintype I]
     (Y : HermitianMat I ℂ) {r : ℝ} (hr : 0 ≤ r) (hb : ∀ i j, ‖Y.mat i j‖ ≤ r) :
     ‖Y‖ ≤ Fintype.card I * r := by
@@ -3964,6 +4433,8 @@ theorem hermitian_norm_le_card_mul_entry_bound {I : Type*} [Fintype I]
       _ = _ := by simp; ring
   nlinarith [norm_nonneg Y,mul_nonneg (Nat.cast_nonneg (α := ℝ) (Fintype.card I)) hr]
 
+/-- Hermitian dyadic reconstruction at precision `p` has norm error at most twice the index
+cardinality divided by `2^p`. -/
 theorem hermitianDyadicDecode_error {I : Type*} [Fintype I]
     (p : ℕ) (Y : HermitianMat I ℂ) :
     ‖hermitianDyadicDecode p (complexDyadicPayload p Y.mat) - Y‖ ≤
@@ -3974,6 +4445,7 @@ theorem hermitianDyadicDecode_error {I : Type*} [Fintype I]
   convert! hh using 1
   ring
 
+/-- The norm of diamond dual data is at most the sum of the norms of its four coordinates. -/
 theorem diamondDualData_norm_le_sum {D E : ℕ} (a b : ℝ)
     (Y W : HermitianMat (Fin E × Fin D) ℂ) :
     ‖diamondDualData a b Y W‖ ≤ ‖a‖ + ‖b‖ + ‖Y‖ + ‖W‖ := by
@@ -3983,6 +4455,7 @@ theorem diamondDualData_norm_le_sum {D E : ℕ} (a b : ℝ)
   change ‖diamondDualData a b Y W‖ ≤ _ at h1
   linarith
 
+/-- Dyadic reconstruction of diamond dual data has norm error at most `(2 + 4 * E * D) / 2^p`. -/
 theorem diamondDyadicDecode_error {D E : ℕ} (p : ℕ) (y : DiamondConstraints D E) :
     ‖diamondDyadicDecode p (diamondDyadicPayload p y) - y‖ ≤
       (2 + 4 * (E : ℝ) * D) / (2 : ℝ)^p := by
@@ -4015,6 +4488,9 @@ theorem diamondDyadicDecode_error {D E : ℕ} (p : ℕ) (y : DiamondConstraints 
 
 open scoped Matrix.Norms.L2Operator in
 
+/-- If the dyadic reconstruction error fits inside the rounding radius, a dyadic dual witness
+has positive definite slack and score within the tolerance above the attained primal
+optimum. Its slack margin and norm satisfy the stated bounds. -/
 theorem diamondProgram_dyadic_near_optimal {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {ε : ℝ} (hε : 0 < ε) (p : ℕ)
     (hp : (2 + 4 * (E : ℝ) * D) / (2 : ℝ)^p ≤ diamondRoundingRadius T ε) :
@@ -4036,6 +4512,8 @@ theorem diamondProgram_dyadic_near_optimal {D E : ℕ} (hD : 0 < D)
   rw [add_sub_cancel] at hh
   exact ⟨α,M,P,hnorm,hM,hsM,hpr,hdu,hh⟩
 
+/-- If `q` bounds `c / r` for positive `r`, precision `dyadicPrecision q` makes `c / 2^p` at
+most `r`. -/
 theorem dyadicPrecision_sufficient {c r : ℝ} (hr : 0 < r) (q : ℕ) (hq : c/r ≤ q) :
     c / (2 : ℝ)^(dyadicPrecision q) ≤ r := by
   have hn := Nat.lt_pow_succ_log_self (by decide : 1 < 2) q
@@ -4046,6 +4524,8 @@ theorem dyadicPrecision_sufficient {c r : ℝ} (hr : 0 < r) (q : ℕ) (hq : c/r 
   apply (div_le_iff₀ (pow_pos (by norm_num : (0 : ℝ) < 2) _)).mpr
   nlinarith
 
+/-- The selected diamond dyadic precision makes the reconstruction error bound fit within the
+rounding radius. -/
 theorem diamondDyadicPrecision_sufficient {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     {ε : ℝ} (hε : 0 < ε) :
     (2 + 4 * (E : ℝ) * D) / (2 : ℝ)^(diamondDyadicPrecision T ε) ≤ diamondRoundingRadius T ε :=
@@ -4053,6 +4533,9 @@ theorem diamondDyadicPrecision_sufficient {D E : ℕ} (T : Operator D →ₗ[ℂ
 
 open scoped Matrix.Norms.L2Operator in
 
+/-- For positive input dimension and tolerance, the selected precision yields a dyadic dual
+witness with positive definite slack and score within the tolerance above the diamond
+optimum. A primal optimizer and the stated slack and norm bounds hold simultaneously. -/
 theorem diamondProgram_dyadic_witness {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {ε : ℝ} (hε : 0 < ε) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (P : DiamondDyadicData D E),
@@ -4070,6 +4553,8 @@ theorem diamondProgram_dyadic_witness {D E : ℕ} (hD : 0 < D)
         (D+1 : ℝ) * (E * ‖MatrixMap.choi_matrix T‖ + ε) :=
   diamondProgram_dyadic_near_optimal hD T hε _ (diamondDyadicPrecision_sufficient T hε)
 
+/-- Embedding the rational Hermitian dyadic decoder gives the matrix of the complex Hermitian
+dyadic decoder. -/
 theorem hermitianDyadicRatDecode_correct {I : Type*} [Fintype I] (p : ℕ) (P : GaussianDyadicPayload I) :
     gaussianRatMatrix (hermitianDyadicRatDecode p P) = (hermitianDyadicDecode p P).mat := by
   ext i j
@@ -4084,6 +4569,7 @@ end DyadicSdpRounding
 
 section DyadicSdpWords
 
+/-- The norm of each Hermitian matrix entry is at most the norm of the matrix. -/
 theorem hermitian_entry_norm_le {I : Type*} [Fintype I] (Y : HermitianMat I ℂ) (i j : I) :
     ‖Y.mat i j‖ ≤ ‖Y‖ := by
   have h1 : ‖Y.mat i j‖^2 ≤ ∑ k, ‖Y.mat i k‖^2 :=
@@ -4093,6 +4579,8 @@ theorem hermitian_entry_norm_le {I : Type*} [Fintype I] (Y : HermitianMat I ℂ)
   rw [← hermitian_norm_sq_entries] at h2
   nlinarith [norm_nonneg (Y.mat i j),norm_nonneg Y]
 
+/-- An absolute bound `R` on a real number bounds its scaled dyadic floor magnitude by `2^p * R
++ 1`. -/
 theorem dyadicFloor_magnitude (p : ℕ) {x R : ℝ} (hx : |x| ≤ R) :
     |(⌊(2 : ℝ)^p*x⌋ : ℝ)| ≤ (2 : ℝ)^p*R + 1 := by
   have hs : 0 ≤ (2 : ℝ)^p := by positivity
@@ -4103,6 +4591,8 @@ theorem dyadicFloor_magnitude (p : ℕ) {x R : ℝ} (hx : |x| ≤ R) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- A norm bound on a Hermitian matrix bounds both integer coordinates of each complex dyadic
+payload entry by `2^p * R + 1`. -/
 theorem complexDyadicPayload_magnitude {I : Type*} [Fintype I] (p : ℕ)
     (Y : HermitianMat I ℂ) {R : ℝ} (hY : ‖Y‖ ≤ R) (i j : I) :
     |((complexDyadicPayload p Y.mat i j).1 : ℝ)| ≤ (2 : ℝ)^p*R + 1 ∧
@@ -4111,9 +4601,11 @@ theorem complexDyadicPayload_magnitude {I : Type*} [Fintype I] (p : ℕ)
   · exact (Complex.abs_re_le_norm _).trans ((hermitian_entry_norm_le Y i j).trans hY)
   · exact (Complex.abs_im_le_norm _).trans ((hermitian_entry_norm_le Y i j).trans hY)
 
+/-- The Gaussian dyadic word encoding has length `gaussianDyadicWordCount D E`. -/
 @[simp] theorem gaussianDyadicWords_length {D E : ℕ} (P : GaussianDyadicPayload (Fin E × Fin D)) :
     (gaussianDyadicWords P).length = gaussianDyadicWordCount D E := List.length_ofFn
 
+/-- Decoding the Gaussian dyadic word encoding recovers the original payload. -/
 @[simp] theorem gaussianDyadicFromWords_words {D E : ℕ} (P : GaussianDyadicPayload (Fin E × Fin D)) :
     gaussianDyadicFromWords D E (gaussianDyadicWords P) = P := by
   funext i j
@@ -4121,15 +4613,18 @@ theorem complexDyadicPayload_magnitude {I : Type*} [Fintype I] (p : ℕ)
   · simp [gaussianDyadicFromWords,gaussianDyadicWords,gaussianDyadicWord]
   · simp [gaussianDyadicFromWords,gaussianDyadicWords,gaussianDyadicWord]
 
+/-- The diamond dyadic word encoding has length `diamondDyadicWordCount D E`. -/
 @[simp] theorem diamondDyadicWords_length {D E : ℕ} (P : DiamondDyadicData D E) :
     (diamondDyadicWords P).length = diamondDyadicWordCount D E := by
   simp [diamondDyadicWords,diamondDyadicWordCount]
   omega
 
+/-- The diamond dyadic word count is `2 + 4 * (E * D)^2`. -/
 theorem diamondDyadicWordCount_eq (D E : ℕ) : diamondDyadicWordCount D E = 2 + 4*(E*D)^2 := by
   unfold diamondDyadicWordCount gaussianDyadicWordCount
   ring
 
+/-- Decoding a diamond dyadic word encoding succeeds and recovers its original data. -/
 @[simp] theorem diamondDyadicFromWords_words {D E : ℕ} (P : DiamondDyadicData D E) :
     diamondDyadicFromWords D E (diamondDyadicWords P) = some P := by
   unfold diamondDyadicFromWords
@@ -4138,6 +4633,7 @@ theorem diamondDyadicWordCount_eq (D E : ℕ) : diamondDyadicWordCount D E = 2 +
   | mk a b Y W =>
     simp [diamondDyadicWords,List.drop_append]
 
+/-- The rational dyadic word width equals the real dyadic word width after coercing the radius. -/
 theorem rationalDyadicWordWidth_eq (p : ℕ) (R : ℚ) :
     rationalDyadicWordWidth p R = dyadicWordWidth p (R : ℝ) := by
   unfold rationalDyadicWordWidth dyadicWordWidth
@@ -4146,6 +4642,8 @@ theorem rationalDyadicWordWidth_eq (p : ℕ) (R : ℚ) :
   congr 1
   norm_cast
 
+/-- The dyadic word width bounds the natural absolute value of every integer satisfying the
+prescribed scaled magnitude bound. -/
 theorem dyadicWordWidth_bound (p : ℕ) (R : ℝ) {n : ℤ}
     (hn : |(n : ℝ)| ≤ (2 : ℝ)^p*R + 1) : n.natAbs < 2^(dyadicWordWidth p R) := by
   have hq := Nat.le_ceil ((2 : ℝ)^p*R + 1)
@@ -4159,6 +4657,8 @@ theorem dyadicWordWidth_bound (p : ℕ) (R : ℝ) {n : ℤ}
   rw [← Int.natCast_natAbs] at hi
   exact_mod_cast hi
 
+/-- A uniform bound on both Gaussian integer coordinates of a payload bounds every integer in
+its word encoding. -/
 theorem gaussianDyadicWords_magnitude {D E : ℕ} (P : GaussianDyadicPayload (Fin E × Fin D))
     {R : ℝ} (hP : ∀ i j, |((P i j).1 : ℝ)| ≤ R ∧ |((P i j).2 : ℝ)| ≤ R) :
     ∀ n ∈ gaussianDyadicWords P, |(n : ℝ)| ≤ R := by
@@ -4169,6 +4669,8 @@ theorem gaussianDyadicWords_magnitude {D E : ℕ} (P : GaussianDyadicPayload (Fi
   · exact (hP _ _).1
   · exact (hP _ _).2
 
+/-- A norm bound `R` on diamond dual data gives the word bound `dyadicWordWidth p R` for its
+dyadic payload. -/
 theorem diamondDyadicPayload_word_bound {D E : ℕ} (p : ℕ) (y : DiamondConstraints D E)
     {R : ℝ} (hy : ‖y‖ ≤ R) : (diamondDyadicPayload p y).WordBound (dyadicWordWidth p R) := by
   obtain ⟨ha,hb,hY,hW⟩ := stinespringDual_coordinates_norm_le y
@@ -4188,10 +4690,15 @@ theorem diamondDyadicPayload_word_bound {D E : ℕ} (p : ℕ) (y : DiamondConstr
   · exact hsY _ h
   · exact hsW _ h
 
+/-- The diamond dyadic word decoder rejects lists whose length differs from the required word
+count. -/
 theorem diamondDyadicFromWords_reject_length {D E : ℕ} {xs : List ℤ}
     (h : xs.length ≠ diamondDyadicWordCount D E) : diamondDyadicFromWords D E xs = none := by
   exact if_neg h
 
+/-- For positive input dimension and tolerance, a bounded dyadic word witness decodes to a
+strictly dual feasible point within the tolerance above the diamond optimum. Its encoding
+has `2 + 4 * (E * D)^2` words and satisfies the prescribed width and outer size bounds. -/
 theorem diamondProgram_bounded_dyadic_words {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {ε : ℝ} (hε : 0 < ε) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (P : DiamondDyadicData D E),
@@ -4227,9 +4734,12 @@ end DyadicSdpWords
 
 section DyadicSdpBinaryCodec
 
+/-- The bit list of a bit vector has length equal to its width. -/
 @[simp] theorem dyadicBitVecBits_length {w : ℕ} (v : BitVec w) :
     (dyadicBitVecBits v).length = w := List.length_ofFn
 
+/-- Reconstructing a bit vector from its little-endian bit list preserves its signed integer
+value. -/
 theorem dyadicBitVecBits_toInt {w : ℕ} (v : BitVec w) :
     (BitVec.ofBoolListLE (dyadicBitVecBits v)).toInt = v.toInt := by
   have heq : (BitVec.ofBoolListLE (dyadicBitVecBits v)).cast (dyadicBitVecBits_length v) = v := by
@@ -4240,9 +4750,12 @@ theorem dyadicBitVecBits_toInt {w : ℕ} (v : BitVec w) :
   have hh := congrArg BitVec.toInt heq
   simpa only [BitVec.toInt_eq_toNat_cond,BitVec.toNat_cast,dyadicBitVecBits_length] using! hh
 
+/-- The signed dyadic encoding of one integer uses `b + 1` bits. -/
 @[simp] theorem signedDyadicWordBits_length (b : ℕ) (n : ℤ) :
     (signedDyadicWordBits b n).length = b+1 := List.length_ofFn
 
+/-- Decoding a signed dyadic word recovers the original integer when its natural absolute value
+is below `2^b`. -/
 theorem signedDyadicWord_roundtrip (b : ℕ) (n : ℤ) (hn : n.natAbs < 2^b) :
     signedDyadicWordFromBits (signedDyadicWordBits b n) = n := by
   have ha : |n| < (2 : ℤ)^b := by
@@ -4254,6 +4767,7 @@ theorem signedDyadicWord_roundtrip (b : ℕ) (n : ℤ) (hn : n.natAbs < 2^b) :
     (by simpa only [Nat.add_sub_cancel] using! hu)
   exact (dyadicBitVecBits_toInt (BitVec.ofInt (b+1) n)).trans hp
 
+/-- Encoding a list of signed dyadic words uses the list length times `b + 1` bits. -/
 theorem signedDyadicWordsBits_length (b : ℕ) (xs : List ℤ) :
     (signedDyadicWordsBits b xs).length = xs.length*(b+1) := by
   induction xs with
@@ -4264,6 +4778,8 @@ theorem signedDyadicWordsBits_length (b : ℕ) (xs : List ℤ) :
     rw [Nat.add_mul,Nat.one_mul]
     omega
 
+/-- Reading the signed dyadic encoding recovers every word when all natural absolute values are
+below `2^b`. -/
 theorem signedDyadicWordsRead_bits (b : ℕ) (xs : List ℤ)
     (h : ∀ n ∈ xs, n.natAbs < 2^b) :
     signedDyadicWordsRead b xs.length (signedDyadicWordsBits b xs) = xs := by
@@ -4284,15 +4800,18 @@ theorem signedDyadicWordsRead_bits (b : ℕ) (xs : List ℤ)
       signedDyadicWordsRead b xs.length ((signedDyadicWordBits b n ++ signedDyadicWordsBits b xs).drop (b+1)) = n :: xs
     rw [htake,hdrop,signedDyadicWord_roundtrip b n hn,ih ht]
 
+/-- The diamond dyadic bit encoding has length `diamondDyadicBitCount D E b`. -/
 @[simp] theorem diamondDyadicBits_length {D E : ℕ} (b : ℕ) (P : DiamondDyadicData D E) :
     (diamondDyadicBits b P).length = diamondDyadicBitCount D E b := by
   rw [diamondDyadicBits,signedDyadicWordsBits_length,diamondDyadicWords_length]
   rfl
 
+/-- The diamond dyadic bit count is `(2 + 4 * (E * D)^2) * (b + 1)`. -/
 theorem diamondDyadicBitCount_eq (D E b : ℕ) :
     diamondDyadicBitCount D E b = (2+4*(E*D)^2)*(b+1) := by
   rw [diamondDyadicBitCount,diamondDyadicWordCount_eq]
 
+/-- The diamond dyadic bit decoder recovers the original data when the word bound holds. -/
 theorem diamondDyadicFromBits_bits {D E : ℕ} (b : ℕ) (P : DiamondDyadicData D E)
     (hP : P.WordBound b) : diamondDyadicFromBits D E b (diamondDyadicBits b P) = some P := by
   unfold diamondDyadicFromBits
@@ -4300,9 +4819,14 @@ theorem diamondDyadicFromBits_bits {D E : ℕ} (b : ℕ) (P : DiamondDyadicData 
   rw [diamondDyadicBits,← diamondDyadicWords_length P,signedDyadicWordsRead_bits b _ hP]
   exact diamondDyadicFromWords_words P
 
+/-- The diamond dyadic bit decoder rejects lists of an incorrect length. -/
 theorem diamondDyadicFromBits_reject_length {D E b : ℕ} {bs : List Bool}
     (h : bs.length ≠ diamondDyadicBitCount D E b) : diamondDyadicFromBits D E b bs = none := if_neg h
 
+/-- For positive input dimension and tolerance, a bounded dyadic dual witness has a binary
+encoding that decodes exactly and yields a strictly dual feasible point within the tolerance
+above the diamond optimum. The bit count is `(2 + 4 * (E * D)^2) * (diamondDyadicWordWidth T
+ε + 1)`. -/
 theorem diamondProgram_binary_dyadic_witness {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {ε : ℝ} (hε : 0 < ε) :
     ∃ (α : ℝ) (M : HermitianMat (DiamondRegister D E) ℂ) (P : DiamondDyadicData D E) (bs : List Bool),
@@ -4332,33 +4856,43 @@ end DyadicSdpBinaryCodec
 
 section RationalPsdDecision
 
+/-- The real part of the Gaussian rational embedding is the coerced rational real part. -/
 @[simp] theorem gaussianRationalEmbed_re (z : GaussianRational) : (gaussianRationalEmbed z).re = z.re := rfl
 
+/-- The imaginary part of the Gaussian rational embedding is the coerced rational imaginary
+part. -/
 @[simp] theorem gaussianRationalEmbed_im (z : GaussianRational) : (gaussianRationalEmbed z).im = z.im := rfl
 
+/-- Embedding Gaussian rationals commutes with conjugation. -/
 @[simp] theorem gaussianRationalEmbed_star (z : GaussianRational) :
     gaussianRationalEmbed (star z) = star (gaussianRationalEmbed z) := by
   apply Complex.ext <;> simp
       [gaussianRationalEmbed,QuadraticAlgebra.re_star,QuadraticAlgebra.im_star]
 
+/-- The embedding of Gaussian rationals into complex numbers is injective. -/
 theorem gaussianRationalEmbed_injective : Function.Injective gaussianRationalEmbed :=
     gaussianRationalEmbed.injective
 
+/-- A Gaussian rational matrix is Hermitian exactly when its complex embedding is Hermitian. -/
 theorem gaussianRationalMatrix_hermitian_iff {I : Type*} (Q : Matrix I I GaussianRational) :
     (gaussianRationalMatrix Q).IsHermitian ↔ Q.IsHermitian :=
   Matrix.isHermitian_map_iff (fun z => gaussianRationalEmbed_star z) gaussianRationalEmbed_injective
 
+/-- Converting a Gaussian rational matrix to a table and back recovers the matrix. -/
 @[simp] theorem gaussianRationalTableMatrix_table {n : ℕ} (Q : Matrix (Fin n) (Fin n) GaussianRational) :
     gaussianRationalTableMatrix (gaussianRationalTable Q) = Q := by
   funext i j
   simp [gaussianRationalTableMatrix,gaussianRationalTable]
 
+/-- The leading diagonal entry of a Hermitian Gaussian rational matrix has zero imaginary part. -/
 theorem gaussianRational_head_real {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational}
     (hQ : Q.IsHermitian) : (Q 0 0).im = 0 := by
   have h := congrArg (fun z : GaussianRational => z.im) (hQ.apply 0 0)
   simp only [QuadraticAlgebra.im_star] at h
   linarith
 
+/-- The index equivalence splitting off the first coordinate of `Fin (n + 1)` as `Fin 1 ⊕ Fin
+n`. -/
 def psdHeadEquiv (n : ℕ) : Fin 1 ⊕ Fin n ≃ Fin (n+1) where
   toFun := Sum.elim (fun _ => 0) Fin.succ
   invFun := Fin.cases (Sum.inl 0) Sum.inr
@@ -4369,6 +4903,8 @@ def psdHeadEquiv (n : ℕ) : Fin 1 ⊕ Fin n ≃ Fin (n+1) where
   right_inv x := by
     refine Fin.cases ?_ (fun j => ?_) x <;> rfl
 
+/-- Reindexing a Hermitian Gaussian rational matrix by `psdHeadEquiv` displays its leading
+entry, first row and column, and tail as a block matrix. -/
 theorem gaussianRational_block {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational}
     (hQ : Q.IsHermitian) :
     (gaussianRationalMatrix Q).submatrix (psdHeadEquiv n) (psdHeadEquiv n) =
@@ -4389,12 +4925,16 @@ theorem gaussianRational_block {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+1)) Gau
       rw [← gaussianRationalEmbed_star,hQ.apply i.succ 0]
     | inr j => rfl
 
+/-- The real part of the leading diagonal entry of a positive semidefinite Gaussian rational
+matrix is nonnegative. -/
 theorem gaussianRational_psd_head_nonneg {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational}
     (hQ : (gaussianRationalMatrix Q).PosSemidef) : 0 ≤ (Q 0 0).re := by
   have h := (RCLike.nonneg_iff.mp (hQ.diag_nonneg (i := 0))).1
   change (0 : ℝ) ≤ ((Q 0 0).re : ℝ) at h
   exact_mod_cast h
 
+/-- If the leading diagonal real part of a positive semidefinite Gaussian rational matrix
+vanishes, all remaining entries of its first row vanish. -/
 theorem gaussianRational_psd_zero_row {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational}
     (hQ : (gaussianRationalMatrix Q).PosSemidef) (hz : (Q 0 0).re = 0) :
     ∀ j : Fin n, Q 0 j.succ = 0 := by
@@ -4408,10 +4948,13 @@ theorem gaussianRational_psd_zero_row {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+
   apply gaussianRationalEmbed_injective
   simpa only [map_zero] using! h
 
+/-- The leading diagonal entry of a Hermitian Gaussian rational matrix embeds as its real part. -/
 theorem gaussianRational_head_embed {n : ℕ} {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational}
     (hQ : Q.IsHermitian) : gaussianRationalEmbed (Q 0 0) = ((Q 0 0).re : ℂ) := by
   apply Complex.ext <;> simp [gaussianRationalEmbed,gaussianRational_head_real hQ]
 
+/-- For a Hermitian Gaussian rational matrix with positive leading diagonal real part, positive
+semidefiniteness is equivalent to that of its Schur complement. -/
 theorem gaussianRational_psd_schur_iff {n : ℕ}
     {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational} (hQ : Q.IsHermitian)
     (hp : 0 < (Q 0 0).re) :
@@ -4438,6 +4981,8 @@ theorem gaussianRational_psd_schur_iff {n : ℕ}
   rw [← Matrix.posSemidef_submatrix_equiv (psdHeadEquiv n),hblock,
     Matrix.PosDef.fromBlocks₁₁ B D hA,← hschur]
 
+/-- For a Hermitian Gaussian rational matrix with zero leading diagonal real part and zero
+remaining first row, positive semidefiniteness is equivalent to that of its tail. -/
 theorem gaussianRational_psd_zero_iff {n : ℕ}
     {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational} (hQ : Q.IsHermitian)
     (hz : (Q 0 0).re = 0) (hr : ∀ j : Fin n, Q 0 j.succ = 0) :
@@ -4475,6 +5020,8 @@ theorem gaussianRational_psd_zero_iff {n : ℕ}
     exact HermitianMat.zero_le_iff.mp
         (directSum_nonneg (le_refl 0) (HermitianMat.zero_le_iff.mpr htail))
 
+/-- The recursive Gaussian rational positivity checker returns true exactly when the complex
+matrix represented by its table is positive semidefinite. -/
 theorem gaussianRationalPsdCore_correct (n : ℕ) (A : GaussianRationalTable n) :
     gaussianRationalPsdCore n A = true ↔
       (gaussianRationalMatrix (gaussianRationalTableMatrix A)).PosSemidef := by
@@ -4516,22 +5063,30 @@ theorem gaussianRationalPsdCore_correct (n : ℕ) (A : GaussianRationalTable n) 
       intro h
       exact hQ ((gaussianRationalMatrix_hermitian_iff Q).mp h.1)
 
+/-- The Gaussian rational positivity check returns true exactly when the represented complex
+matrix is positive semidefinite. -/
 theorem gaussianRationalPsdCheck_correct {n : ℕ} (A : GaussianRationalTable n) :
     gaussianRationalPsdCheck A = true ↔
       (gaussianRationalMatrix (gaussianRationalTableMatrix A)).PosSemidef :=
   gaussianRationalPsdCore_correct n A
 
+/-- The rational-pair positivity check returns true exactly when the corresponding complex
+matrix is positive semidefinite. -/
 theorem rationalPairPsdCheck_correct {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ℚ × ℚ)) :
     rationalPairPsdCheck Q = true ↔ (gaussianRatMatrix Q).PosSemidef := by
   rw [rationalPairPsdCheck,gaussianRationalPsdCheck_correct,gaussianRationalTableMatrix_table]
   rfl
 
+/-- The dyadic block positivity check returns true exactly when the decoded Hermitian matrix is
+positive semidefinite. -/
 theorem dyadicBlockPsdCheck_correct (D E p : ℕ) (P : GaussianDyadicPayload (Fin E × Fin D)) :
     dyadicBlockPsdCheck D E p P = true ↔ (hermitianDyadicDecode p P).mat.PosSemidef := by
   rw [dyadicBlockPsdCheck,rationalPairPsdCheck_correct]
   change ((gaussianRatMatrix (hermitianDyadicRatDecode p P)).submatrix finProdFinEquiv.symm finProdFinEquiv.symm).PosSemidef ↔ _
   rw [Matrix.posSemidef_submatrix_equiv,hermitianDyadicRatDecode_correct]
 
+/-- The Gaussian rational quadratic form on a vector with a leading coordinate expands into its
+leading row and tail contributions. -/
 theorem gaussianRationalQuadratic_cons {n : ℕ}
     (Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational) (a : GaussianRational) (v : Fin n → GaussianRational) :
     gaussianRationalQuadratic Q (Fin.cons a v) =
@@ -4539,6 +5094,8 @@ theorem gaussianRationalQuadratic_cons {n : ℕ}
       ∑ i, star (v i) * (Q i.succ 0 * a + ∑ j, Q i.succ j.succ * v j) := by
   simp [gaussianRationalQuadratic, dotProduct, Matrix.mulVec, Fin.sum_univ_succ]
 
+/-- The quadratic form on a Schur-lifted vector equals the Schur complement quadratic form when
+the leading entry is nonzero. -/
 theorem gaussianRationalQuadratic_schurLift {n : ℕ}
     (Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational) (h : Q 0 0 ≠ 0)
     (v : Fin n → GaussianRational) :
@@ -4556,17 +5113,22 @@ theorem gaussianRationalQuadratic_schurLift {n : ℕ}
   simp only [sub_mul, Finset.sum_sub_distrib, mul_assoc, ← Finset.mul_sum]
   ring
 
+/-- Prepending a zero coordinate reduces the Gaussian rational quadratic form to that of the
+tail matrix. -/
 theorem gaussianRationalQuadratic_zeroLift {n : ℕ}
     (Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational) (v : Fin n → GaussianRational) :
     gaussianRationalQuadratic Q (Fin.cons 0 v) = gaussianRationalQuadratic (gaussianRationalTail Q) v := by
   rw [gaussianRationalQuadratic_cons]
   simp [gaussianRationalQuadratic, gaussianRationalTail, dotProduct, Matrix.mulVec]
 
+/-- The quadratic form on a standard basis vector equals the corresponding diagonal entry. -/
 theorem gaussianRationalQuadratic_single {n : ℕ}
     (Q : Matrix (Fin n) (Fin n) GaussianRational) (j : Fin n) :
     gaussianRationalQuadratic Q (Pi.single j 1) = Q j j := by
   simp [gaussianRationalQuadratic, Pi.star_single, Matrix.mulVec_single, single_dotProduct]
 
+/-- A nonzero cross entry beside a zero leading diagonal in a Hermitian Gaussian rational matrix
+produces a cross vector with quadratic value minus one. -/
 theorem gaussianRationalQuadratic_cross {n : ℕ}
     {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational} (hQ : Q.IsHermitian)
     (hz : (Q 0 0).re = 0) (j : Fin n) (hb : Q 0 j.succ ≠ 0) :
@@ -4585,10 +5147,12 @@ theorem gaussianRationalQuadratic_cross {n : ℕ}
   field_simp
   ring
 
+/-- The tail of a Hermitian Gaussian rational matrix is Hermitian. -/
 theorem gaussianRationalTail_hermitian {n : ℕ}
     {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational} (hQ : Q.IsHermitian) :
     (gaussianRationalTail Q).IsHermitian := hQ.submatrix Fin.succ
 
+/-- The Schur complement of a Hermitian Gaussian rational matrix is Hermitian. -/
 theorem gaussianRationalSchur_hermitian {n : ℕ}
     {Q : Matrix (Fin (n+1)) (Fin (n+1)) GaussianRational} (hQ : Q.IsHermitian) :
     (gaussianRationalSchur Q).IsHermitian := by
@@ -4599,6 +5163,9 @@ theorem gaussianRationalSchur_hermitian {n : ℕ}
   simp only [gaussianRationalSchur]
   ring
 
+/-- For Hermitian Gaussian rational input, the negative-vector search returns none exactly for
+positive semidefinite matrices, and every returned vector has strictly negative quadratic
+real part. -/
 theorem gaussianRationalNegativeCore_correct (n : ℕ) (A : GaussianRationalTable n)
     (hQ : (gaussianRationalTableMatrix A).IsHermitian) :
     (gaussianRationalNegativeCore n A = none ↔
@@ -4682,6 +5249,8 @@ theorem gaussianRationalNegativeCore_correct (n : ℕ) (A : GaussianRationalTabl
           simpa only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, gaussianRationalQuadratic_schurLift Q ha,
             gaussianRationalTableMatrix_table] using! ht.2 w hw
 
+/-- The Gaussian rational separator reports non-Hermitian input exactly when the represented
+matrix is not Hermitian. -/
 theorem gaussianRationalPsdSeparate_nonHermitian_iff {n : ℕ} (A : GaussianRationalTable n) :
     gaussianRationalPsdSeparate A = .nonHermitian ↔ ¬ (gaussianRationalTableMatrix A).IsHermitian := by
   unfold gaussianRationalPsdSeparate
@@ -4689,6 +5258,8 @@ theorem gaussianRationalPsdSeparate_nonHermitian_iff {n : ℕ} (A : GaussianRati
   · cases gaussianRationalNegativeCore n A <;> simp [hQ]
   · simp [hQ]
 
+/-- The Gaussian rational separator reports positivity exactly when the represented complex
+matrix is positive semidefinite. -/
 theorem gaussianRationalPsdSeparate_psd_iff {n : ℕ} (A : GaussianRationalTable n) :
     gaussianRationalPsdSeparate A = .psd ↔
       (gaussianRationalMatrix (gaussianRationalTableMatrix A)).PosSemidef := by
@@ -4701,6 +5272,8 @@ theorem gaussianRationalPsdSeparate_psd_iff {n : ℕ} (A : GaussianRationalTable
     intro hp
     exact hQ ((gaussianRationalMatrix_hermitian_iff _).mp hp.1)
 
+/-- A negative-vector result certifies Hermitian input and strictly negative real quadratic
+value. -/
 theorem gaussianRationalPsdSeparate_negative {n : ℕ} (A : GaussianRationalTable n)
     (v : Vector GaussianRational n) (hv : gaussianRationalPsdSeparate A = .negative v) :
     (gaussianRationalTableMatrix A).IsHermitian ∧
@@ -4714,6 +5287,8 @@ theorem gaussianRationalPsdSeparate_negative {n : ℕ} (A : GaussianRationalTabl
       subst w
       exact ⟨hQ, (gaussianRationalNegativeCore_correct n A hQ).2 v hc⟩
 
+/-- Embedding a Gaussian rational quadratic form yields the complex matrix quadratic form on the
+embedded vector. -/
 theorem gaussianRationalEmbed_quadratic {n : ℕ} (Q : Matrix (Fin n) (Fin n) GaussianRational)
     (v : Fin n → GaussianRational) :
     gaussianRationalEmbed (gaussianRationalQuadratic Q v) =
@@ -4721,6 +5296,9 @@ theorem gaussianRationalEmbed_quadratic {n : ℕ} (Q : Matrix (Fin n) (Fin n) Ga
   simp [gaussianRationalQuadratic, dotProduct, Matrix.mulVec, gaussianRationalMatrix,
     map_sum, gaussianRationalEmbed_star, Function.comp_def]
 
+/-- A negative result from the Gaussian rational separator gives an embedded vector with
+negative quadratic real part on the input and nonnegative quadratic real part on every
+positive semidefinite matrix. -/
 theorem gaussianRationalPsdSeparate_separates {n : ℕ} (A : GaussianRationalTable n)
     (v : Vector GaussianRational n) (hv : gaussianRationalPsdSeparate A = .negative v) :
     let w := fun i : Fin n => gaussianRationalEmbed v[i]
@@ -4737,6 +5315,8 @@ theorem gaussianRationalPsdSeparate_separates {n : ℕ} (A : GaussianRationalTab
   · intro P hP
     exact hP.re_dotProduct_nonneg _
 
+/-- Every Hermitian Gaussian rational matrix whose complex embedding is not positive
+semidefinite yields a negative-vector result. -/
 theorem gaussianRationalPsdSeparate_complete {n : ℕ} (A : GaussianRationalTable n)
     (hQ : (gaussianRationalTableMatrix A).IsHermitian)
     (hp : ¬ (gaussianRationalMatrix (gaussianRationalTableMatrix A)).PosSemidef) :
@@ -4747,11 +5327,16 @@ theorem gaussianRationalPsdSeparate_complete {n : ℕ} (A : GaussianRationalTabl
   | psd => exact False.elim (hp ((gaussianRationalPsdSeparate_psd_iff A).mp hc))
   | negative v => exact ⟨v,rfl,(gaussianRationalPsdSeparate_negative A v hc).2⟩
 
+/-- The rational-pair separator reports positivity exactly when the corresponding complex matrix
+is positive semidefinite. -/
 theorem rationalPairPsdSeparate_psd_iff {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ℚ × ℚ)) :
     rationalPairPsdSeparate Q = .psd ↔ (gaussianRatMatrix Q).PosSemidef := by
   rw [rationalPairPsdSeparate,gaussianRationalPsdSeparate_psd_iff,gaussianRationalTableMatrix_table]
   rfl
 
+/-- A negative rational-pair separator result gives a complex vector with negative quadratic
+real part on the input and nonnegative quadratic real part on every positive semidefinite
+matrix. -/
 theorem rationalPairPsdSeparate_separates {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ℚ × ℚ))
     (v : Vector GaussianRational n) (hv : rationalPairPsdSeparate Q = .negative v) :
     let w := fun i : Fin n => gaussianRationalEmbed v[i]
@@ -4760,15 +5345,19 @@ theorem rationalPairPsdSeparate_separates {n : ℕ} (Q : Matrix (Fin n) (Fin n) 
   simpa only [gaussianRationalTableMatrix_table] using!
     gaussianRationalPsdSeparate_separates (gaussianRationalTable (Q.map gaussianRationalOfPair)) v hv
 
+/-- Embedding a rational scalar as a Gaussian rational agrees with its direct complex coercion. -/
 @[simp] theorem gaussianRationalEmbed_ratCast (a : ℚ) :
     gaussianRationalEmbed (a : GaussianRational) = (a : ℂ) := by simp
 
+/-- Embedding a Gaussian rational matrix commutes with the left partial trace. -/
 theorem gaussianRationalMatrix_traceLeft {D E : ℕ}
     (Y : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) :
     gaussianRationalMatrix Y.traceLeft = (gaussianRationalMatrix Y).traceLeft := by
   ext i j
   simp [gaussianRationalMatrix,Matrix.traceLeft,map_sum]
 
+/-- The embedded rational diamond slack is the block decomposition formed from the scalar
+partial trace slacks and the Choi coupling block. -/
 theorem diamondRationalSlack_embed {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (Y Z : HermitianMat (Fin E × Fin D) ℂ)
@@ -4840,6 +5429,8 @@ theorem diamondRationalSlack_embed {D E : ℕ}
           rfl
         | inr j => simpa using! congrFun (congrFun hZ i) j
 
+/-- For rational Choi data representing `T`, embedding the dyadic rational slack gives the dual
+slack of the decoded diamond data. -/
 theorem diamondDyadicRationalSlack_embed {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4859,6 +5450,8 @@ theorem diamondDyadicRationalSlack_embed {D E : ℕ}
   rw [diamondDyadicDecode,diamondProgram_dual_slack]
   exact hs
 
+/-- For rational Choi data representing `T`, the dyadic feasibility check returns true exactly
+when the decoded data are diamond dual feasible. -/
 theorem diamondDyadicFeasibleCheck_correct {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4873,6 +5466,8 @@ theorem diamondDyadicFeasibleCheck_correct {D E : ℕ}
   rw [Matrix.posSemidef_submatrix_equiv,diamondDyadicRationalSlack_embed T J hJ]
   exact HermitianMat.zero_le_iff.symm
 
+/-- Embedding the dyadic slack table gives the diamond dual slack reindexed by the rational
+register equivalence. -/
 theorem diamondDyadicSlackTable_embed {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4886,6 +5481,8 @@ theorem diamondDyadicSlackTable_embed {D E : ℕ}
   change (gaussianRationalMatrix (diamondDyadicRationalSlack J p P)).submatrix _ _ = _
   rw [diamondDyadicRationalSlack_embed T J hJ]
 
+/-- For rational Choi data representing `T`, the dyadic slack table represents a Hermitian
+matrix. -/
 theorem diamondDyadicSlackTable_hermitian {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4897,6 +5494,8 @@ theorem diamondDyadicSlackTable_hermitian {D E : ℕ}
   exact ((diamondProgram T).constraint.adjoint (diamondDyadicDecode p P) -
     (diamondProgram T).objective).H.submatrix _
 
+/-- For rational Choi data representing `T`, the dyadic feasibility separator reports positivity
+exactly when the decoded data are diamond dual feasible. -/
 theorem diamondDyadicFeasibleSeparate_psd_iff {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4908,6 +5507,8 @@ theorem diamondDyadicFeasibleSeparate_psd_iff {D E : ℕ}
     ← gaussianRationalPsdCheck_correct]
   exact diamondDyadicFeasibleCheck_correct T J hJ p P
 
+/-- For rational Choi data representing `T`, the dyadic feasibility separator never reports
+non-Hermitian input. -/
 theorem diamondDyadicFeasibleSeparate_not_nonHermitian {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4918,6 +5519,8 @@ theorem diamondDyadicFeasibleSeparate_not_nonHermitian {D E : ℕ}
   exact (gaussianRationalPsdSeparate_nonHermitian_iff _).mp h
     (diamondDyadicSlackTable_hermitian T J hJ p P)
 
+/-- Reindexing a matrix by an equivalence transports its quadratic form to the vector composed
+with that equivalence. -/
 theorem quadratic_submatrix_equiv {I K : Type*} [Fintype I] [Fintype K]
     (M : Matrix I I ℂ) (e : I ≃ K) (v : K → ℂ) :
     star v ⬝ᵥ (M.submatrix e.symm e.symm *ᵥ v) =
@@ -4925,6 +5528,9 @@ theorem quadratic_submatrix_equiv {I K : Type*} [Fintype I] [Fintype K]
   rw [Matrix.submatrix_mulVec_equiv,dotProduct_comp_equiv_symm]
   rfl
 
+/-- A negative dyadic feasibility result yields a vector with negative quadratic real part on
+the decoded dual slack and nonnegative quadratic real part on every feasible diamond dual
+slack. -/
 theorem diamondDyadicFeasibleSeparate_separates {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4946,6 +5552,8 @@ theorem diamondDyadicFeasibleSeparate_separates {D E : ℕ}
   · intro y hy
     exact (HermitianMat.zero_le_iff.mp hy).re_dotProduct_nonneg _
 
+/-- For rational Choi data representing `T`, infeasible decoded dyadic data cause the separator
+to return a negative vector. -/
 theorem diamondDyadicFeasibleSeparate_complete {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4958,6 +5566,8 @@ theorem diamondDyadicFeasibleSeparate_complete {D E : ℕ}
   | psd => exact False.elim (hp ((diamondDyadicFeasibleSeparate_psd_iff T J hJ p P).mp hc))
   | negative v => exact ⟨v,rfl⟩
 
+/-- The binary dyadic feasibility check returns `some true` exactly when the bits decode to
+diamond dual feasible data. -/
 theorem diamondDyadicBinaryFeasibleCheck_correct {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4969,6 +5579,8 @@ theorem diamondDyadicBinaryFeasibleCheck_correct {D E : ℕ}
   rw [diamondDyadicBinaryFeasibleCheck,Option.map_eq_some_iff]
   simp only [diamondDyadicFeasibleCheck_correct T J hJ]
 
+/-- For data satisfying the word bound, checking their binary encoding is equivalent to diamond
+dual feasibility of their dyadic decoding. -/
 theorem diamondDyadicBinaryFeasibleCheck_bits {D E : ℕ}
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -4982,6 +5594,7 @@ theorem diamondDyadicBinaryFeasibleCheck_bits {D E : ℕ}
 section RationalSdpConditioning
 open scoped Matrix.Norms.L2Operator
 
+/-- The norm of a complex Euclidean vector is at most the sum of its coordinate norms. -/
 theorem euclidean_norm_le_sum {I : Type*} [Fintype I] [DecidableEq I] (x : EuclideanSpace ℂ I) :
     ‖x‖ ≤ ∑ i, ‖x i‖ := by
   have hx : x = ∑ i, PiLp.single 2 i (x i) := by
@@ -4992,6 +5605,7 @@ theorem euclidean_norm_le_sum {I : Type*} [Fintype I] [DecidableEq I] (x : Eucli
     _ ≤ ∑ i, ‖(PiLp.single 2 i (x i) : EuclideanSpace ℂ I)‖ := norm_sum_le _ _
     _ = _ := by simp
 
+/-- The operator norm of a complex square matrix is at most the sum of the norms of its entries. -/
 theorem matrix_opNorm_le_sum_entries {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) : ‖A‖ ≤ ∑ i, ∑ j, ‖A i j‖ := by
   rw [Matrix.cstar_norm_def]
@@ -5012,9 +5626,12 @@ theorem matrix_opNorm_le_sum_entries {I : Type*} [Fintype I] [DecidableEq I]
       exact mul_le_mul_of_nonneg_left (PiLp.norm_apply_le x j) (norm_nonneg _)
     _ = _ := by simp only [Finset.sum_mul]
 
+/-- The rational bound `gaussianRationalNormBound J` is nonnegative. -/
 theorem gaussianRationalNormBound_nonneg {I : Type*} [Fintype I] (J : Matrix I I GaussianRational) :
     0 ≤ gaussianRationalNormBound J := by unfold gaussianRationalNormBound; positivity
 
+/-- The operator norm of an embedded Gaussian rational matrix is at most
+`gaussianRationalNormBound J`. -/
 theorem gaussianRationalMatrix_norm_bound {I : Type*} [Fintype I] [DecidableEq I]
     (J : Matrix I I GaussianRational) : ‖gaussianRationalMatrix J‖ ≤ (gaussianRationalNormBound J : ℝ) := by
   apply (matrix_opNorm_le_sum_entries _).trans
@@ -5027,6 +5644,7 @@ theorem gaussianRationalMatrix_norm_bound {I : Type*} [Fintype I] [DecidableEq I
   have h := Complex.norm_le_abs_re_add_abs_im (gaussianRationalEmbed (J i j))
   simpa only [gaussianRationalEmbed_re,gaussianRationalEmbed_im,Rat.cast_abs,gaussianRationalMatrix,Matrix.map_apply] using! h
 
+/-- The rational diamond regularization weight is positive for a positive rational tolerance. -/
 theorem diamondRationalWeight_pos {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) {ε : ℚ} (hε : 0 < ε) :
     0 < diamondRationalWeight J ε := by
@@ -5034,10 +5652,13 @@ theorem diamondRationalWeight_pos {D E : ℕ}
   unfold diamondRationalWeight
   exact lt_min (by norm_num) (div_pos hε (by positivity))
 
+/-- The rational diamond rounding radius is positive for a positive rational tolerance. -/
 theorem diamondRationalRadius_pos {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) {ε : ℚ} (hε : 0 < ε) :
     0 < diamondRationalRadius J ε := div_pos (diamondRationalWeight_pos J hε) (by positivity)
 
+/-- For rational Choi data and nonnegative tolerance, the rational regularization weight is at
+most the real diamond regularization weight. -/
 theorem diamondRationalWeight_le {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) {ε : ℚ} (hε : 0 ≤ ε) :
@@ -5051,6 +5672,8 @@ theorem diamondRationalWeight_le {D E : ℕ} (T : Operator D →ₗ[ℂ] Operato
   apply div_le_div_of_nonneg_left he (by positivity)
   nlinarith [mul_le_mul_of_nonneg_right hR (Nat.cast_nonneg (α := ℝ) E)]
 
+/-- For rational Choi data and nonnegative tolerance, the rational rounding radius is at most
+the real diamond rounding radius. -/
 theorem diamondRationalRadius_le {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) {ε : ℚ} (hε : 0 ≤ ε) :
@@ -5059,6 +5682,8 @@ theorem diamondRationalRadius_le {D E : ℕ} (T : Operator D →ₗ[ℂ] Operato
   push_cast
   exact div_le_div_of_nonneg_right (diamondRationalWeight_le T J hJ hε) (by positivity)
 
+/-- For rational Choi data and positive tolerance, `diamondRationalPrecision` makes the dyadic
+error bound fit within the real rounding radius. -/
 theorem diamondRationalPrecision_sufficient {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) {ε : ℚ} (hε : 0 < ε) :
@@ -5068,6 +5693,7 @@ theorem diamondRationalPrecision_sufficient {D E : ℕ} (T : Operator D →ₗ[�
   have h := Nat.le_ceil ((2 + 4 * (E : ℚ) * D) / diamondRationalRadius J ε)
   exact_mod_cast h
 
+/-- For rational Choi data, the rational outer size bounds the real dyadic outer size. -/
 theorem diamondRationalOuterSize_bound {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (ε : ℚ) :
@@ -5078,6 +5704,7 @@ theorem diamondRationalOuterSize_bound {D E : ℕ} (T : Operator D →ₗ[ℂ] O
   push_cast
   gcongr
 
+/-- For rational Choi data, the dual slack at `diamondRationalCenter J` dominates the identity. -/
 theorem diamondRationalCenter_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) :
@@ -5111,6 +5738,8 @@ theorem diamondRationalCenter_margin {D E : ℕ} (T : Operator D →ₗ[ℂ] Ope
     exact Matrix.fromBlocks_one
   rwa [heq] at ht
 
+/-- Embedding `diamondRationalCenterSlack J` gives the dual slack at the rational diamond
+center. -/
 theorem diamondRationalCenterSlack_embed {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) :
@@ -5125,6 +5754,8 @@ theorem diamondRationalCenterSlack_embed {D E : ℕ} (T : Operator D →ₗ[ℂ]
   rw [diamondRationalSlack_embed _ _ _ _ _ hc hc,hJ]
   rw [diamondRationalCenter,diamondProgram_dual_slack]
 
+/-- Perturbations within the rational diamond interior radius leave dual slack at least half the
+identity. -/
 theorem diamondRationalCenter_interior_ball {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T)
@@ -5152,6 +5783,10 @@ theorem diamondRationalCenter_interior_ball {D E : ℕ} (T : Operator D →ₗ[�
   rw [← one_smul ℝ (1 : HermitianMat (DiamondRegister D E) ℂ)] at hm
   convert! hm using 1 <;> module
 
+/-- For positive input dimension and rational tolerance, rational Choi data possess a bounded
+binary dyadic witness accepted by the feasibility checker and with score within the
+tolerance above the diamond optimum. The witness has the specified bit length, strictly
+positive slack margin, and rational outer size bound. -/
 theorem diamondProgram_rational_binary_witness {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -5207,29 +5842,36 @@ theorem diamondProgram_rational_binary_witness {D E : ℕ} (hD : 0 < D)
   · rw [diamondDyadicBits_length,diamondDyadicBitCount_eq]
   · exact hsize.trans (diamondRationalOuterSize_bound T J hJ ε)
 
+/-- Extracting a rational raw block from diamond coordinates preserves addition. -/
 theorem diamondRationalRawBlock_add {D E : ℕ} (b : Bool) (x y : DiamondRationalCoordinates D E) :
     diamondRationalRawBlock b (x+y) = diamondRationalRawBlock b x + diamondRationalRawBlock b y := by
   ext i j <;> rfl
 
+/-- Extracting a rational raw block from diamond coordinates preserves rational scalar
+multiplication. -/
 theorem diamondRationalRawBlock_smul {D E : ℕ} (b : Bool) (q : ℚ) (x : DiamondRationalCoordinates D E) :
     diamondRationalRawBlock b (q • x) = q • diamondRationalRawBlock b x := by
   ext i j <;> simp [diamondRationalRawBlock,gaussianRationalOfPair]
 
+/-- Gaussian rational symmetrization preserves addition. -/
 theorem gaussianRationalSymmetrize_add {I : Type*} (Q R : Matrix I I GaussianRational) :
     gaussianRationalSymmetrize (Q+R) = gaussianRationalSymmetrize Q + gaussianRationalSymmetrize R := by
   simp only [gaussianRationalSymmetrize,Matrix.conjTranspose_add,smul_add]
   abel
 
+/-- Gaussian rational symmetrization preserves rational scalar multiplication. -/
 theorem gaussianRationalSymmetrize_smul {I : Type*} (q : ℚ) (Q : Matrix I I GaussianRational) :
     gaussianRationalSymmetrize (q • Q) = q • gaussianRationalSymmetrize Q := by
   simp only [gaussianRationalSymmetrize,Matrix.conjTranspose_smul,star_trivial,← smul_add]
   exact smul_comm _ _ _
 
+/-- Gaussian rational symmetrization produces a Hermitian matrix. -/
 theorem gaussianRationalSymmetrize_hermitian {I : Type*} (Q : Matrix I I GaussianRational) :
     (gaussianRationalSymmetrize Q).IsHermitian := by
   change ((1/2 : GaussianRational) • (Q+Qᴴ))ᴴ = (1/2 : GaussianRational) • (Q+Qᴴ)
   simp [Matrix.conjTranspose_smul,Matrix.conjTranspose_add,add_comm]
 
+/-- With zero Choi data, the rational candidate slack preserves addition of coordinates. -/
 theorem diamondRationalCandidateSlack_linear_add {D E : ℕ} (x y : DiamondRationalCoordinates D E) :
     diamondRationalCandidateSlack (0 : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (x+y) =
       diamondRationalCandidateSlack 0 x + diamondRationalCandidateSlack 0 y := by
@@ -5241,6 +5883,7 @@ theorem diamondRationalCandidateSlack_linear_add {D E : ℕ} (x y : DiamondRatio
     simp [Matrix.traceLeft,Finset.sum_add_distrib,Matrix.diagonal_apply]
   all_goals split_ifs <;> ring
 
+/-- With zero Choi data, the rational candidate slack preserves rational scalar multiplication. -/
 theorem diamondRationalCandidateSlack_linear_smul {D E : ℕ} (q : ℚ) (x : DiamondRationalCoordinates D E) :
     diamondRationalCandidateSlack (0 : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (q • x) =
       q • diamondRationalCandidateSlack 0 x := by
@@ -5252,12 +5895,16 @@ theorem diamondRationalCandidateSlack_linear_smul {D E : ℕ} (q : ℚ) (x : Dia
     simp [Matrix.traceLeft,Finset.smul_sum,Matrix.diagonal_apply,smul_sub]
   all_goals simp [Algebra.smul_def]
 
+/-- The rational linear map sending diamond coordinates to their candidate slack with zero Choi
+data. -/
 def diamondRationalSlackLinear (D E : ℕ) : DiamondRationalCoordinates D E →ₗ[ℚ]
     Matrix (DiamondRegister D E) (DiamondRegister D E) GaussianRational where
   toFun := diamondRationalCandidateSlack 0
   map_add' := diamondRationalCandidateSlack_linear_add
   map_smul' := diamondRationalCandidateSlack_linear_smul
 
+/-- Embedding the Gaussian rational symmetrization gives the underlying matrix of the Hermitian
+decoder. -/
 theorem gaussianRationalSymmetrize_embed {I : Type*} [Fintype I]
     (Q : Matrix I I GaussianRational) :
     gaussianRationalMatrix (gaussianRationalSymmetrize Q) = (gaussianRationalHermitianDecode Q).mat := by
@@ -5269,6 +5916,8 @@ theorem gaussianRationalSymmetrize_embed {I : Type*} [Fintype I]
   norm_num
   ring
 
+/-- For rational Choi data, embedding the rational candidate slack gives the diamond dual slack
+of the decoded coordinates. -/
 theorem diamondRationalCandidateSlack_embed {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E) :
@@ -5278,6 +5927,8 @@ theorem diamondRationalCandidateSlack_embed {D E : ℕ} (T : Operator D →ₗ[�
   rw [diamondRationalSlack_embed _ _ _ _ _ (gaussianRationalSymmetrize_embed _) (gaussianRationalSymmetrize_embed _),hJ]
   rw [diamondRationalDecode,diamondProgram_dual_slack]
 
+/-- The rational linear functional taking a Gaussian rational matrix to the real part of its
+quadratic form at `v`. -/
 def gaussianRationalQuadraticLinear (n : ℕ) (v : Fin n → GaussianRational) :
     Matrix (Fin n) (Fin n) GaussianRational →ₗ[ℚ] ℚ where
   toFun Q := (gaussianRationalQuadratic Q v).re
@@ -5287,17 +5938,23 @@ def gaussianRationalQuadraticLinear (n : ℕ) (v : Fin n → GaussianRational) :
     simp only [gaussianRationalQuadratic,dotProduct,Matrix.mulVec,Matrix.smul_apply,smul_mul_assoc,
       mul_smul_comm,← Finset.smul_sum,QuadraticAlgebra.re_smul,smul_eq_mul,RingHom.id_apply]
 
+/-- The rational linear reindexing of a diamond register matrix to the finite index type used by
+the rational separator. -/
 def diamondRationalSlackReindexLinear (D E : ℕ) : Matrix (DiamondRegister D E) (DiamondRegister D E) GaussianRational →ₗ[ℚ]
     Matrix (Fin ((D+D)+(E*D+E*D))) (Fin ((D+D)+(E*D+E*D))) GaussianRational where
   toFun Q := Q.submatrix (diamondRationalRegisterEquiv D E).symm (diamondRationalRegisterEquiv D E).symm
   map_add' _ _ := rfl
   map_smul' _ _ := rfl
 
+/-- The rational linear functional obtained by evaluating a fixed vector's real quadratic form
+on the reindexed linear part of the diamond slack. -/
 def diamondRationalSlackQuadraticLinear {D E : ℕ} (v : Vector GaussianRational ((D+D)+(E*D+E*D))) :
     DiamondRationalCoordinates D E →ₗ[ℚ] ℚ :=
   (gaussianRationalQuadraticLinear _ (fun i => v[i])).comp
     ((diamondRationalSlackReindexLinear D E).comp (diamondRationalSlackLinear D E))
 
+/-- A rational linear functional on finite coordinate vectors is the sum of its standard basis
+values times the coordinates. -/
 theorem linearMap_eq_sum_basis {n : ℕ} (f : (Fin n → ℚ) →ₗ[ℚ] ℚ) (x : Fin n → ℚ) :
     f x = ∑ k, f (Pi.single k 1) * x k := by
   have hx : x = ∑ k, x k • (Pi.single k 1 : Fin n → ℚ) := by
@@ -5307,6 +5964,8 @@ theorem linearMap_eq_sum_basis {n : ℕ} (f : (Fin n → ℚ) →ₗ[ℚ] ℚ) (
     f x = f (∑ k, x k • (Pi.single k 1 : Fin n → ℚ)) := congrArg f hx
     _ = _ := by simp [map_sum,map_smul,mul_comm]
 
+/-- Evaluating the rational separation cut gives the linear slack quadratic functional at the
+candidate coordinates. -/
 theorem diamondRationalSeparationCut_eval {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (v : Vector GaussianRational ((D+D)+(E*D+E*D))) (x : DiamondRationalCoordinates D E) :
@@ -5317,6 +5976,8 @@ theorem diamondRationalSeparationCut_eval {D E : ℕ}
   simp [diamondRationalSeparationCut,diamondRationalSlackQuadraticLinear,
     diamondRationalSlackReindexLinear,diamondRationalSlackLinear,gaussianRationalQuadraticLinear]
 
+/-- The rational candidate slack is the sum of its coordinate-linear part and its value at zero
+coordinates. -/
 theorem diamondRationalCandidateSlack_affine {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (x : DiamondRationalCoordinates D E) :
     diamondRationalCandidateSlack J x = diamondRationalCandidateSlack 0 x + diamondRationalCandidateSlack J 0 := by
@@ -5327,6 +5988,8 @@ theorem diamondRationalCandidateSlack_affine {D E : ℕ}
   intro i j
   rcases i with (i|i)|(i|i) <;> rcases j with (j|j)|(j|j) <;> simp [Matrix.traceLeft]
 
+/-- A rational separation cut's evaluation minus its bound equals the real quadratic value of
+the reindexed candidate slack. -/
 theorem diamondRationalSeparationCut_identity {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (v : Vector GaussianRational ((D+D)+(E*D+E*D))) (x : DiamondRationalCoordinates D E) :
@@ -5340,6 +6003,8 @@ theorem diamondRationalSeparationCut_identity {D E : ℕ}
   simp only [sub_neg_eq_add]
   rfl
 
+/-- For rational Choi data, embedding the candidate table gives the decoded diamond dual slack
+reindexed to the separator's finite register. -/
 theorem diamondRationalCandidateTable_embed {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E) :
@@ -5350,6 +6015,8 @@ theorem diamondRationalCandidateTable_embed {D E : ℕ} (T : Operator D →ₗ[�
   change (gaussianRationalMatrix (diamondRationalCandidateSlack J x)).submatrix _ _ = _
   rw [diamondRationalCandidateSlack_embed T J hJ]
 
+/-- The rational candidate separator reports positivity exactly when the decoded coordinates are
+diamond dual feasible. -/
 theorem diamondRationalCandidateSeparate_psd_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E) :
@@ -5358,6 +6025,7 @@ theorem diamondRationalCandidateSeparate_psd_iff {D E : ℕ} (T : Operator D →
     diamondRationalCandidateTable_embed T J hJ,Matrix.posSemidef_submatrix_equiv]
   exact HermitianMat.zero_le_iff.symm
 
+/-- For rational Choi data, the rational candidate separator never reports non-Hermitian input. -/
 theorem diamondRationalCandidateSeparate_not_nonHermitian {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E) :
@@ -5369,6 +6037,8 @@ theorem diamondRationalCandidateSeparate_not_nonHermitian {D E : ℕ} (T : Opera
   rw [diamondRationalCandidateTable_embed T J hJ]
   exact ((diamondProgram T).constraint.adjoint (diamondRationalDecode x) - (diamondProgram T).objective).H.submatrix _
 
+/-- A negative vector returned for a rational candidate gives a separation cut whose evaluation
+at that candidate is strictly below its bound. -/
 theorem diamondRationalSeparationCut_rejects {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (x : DiamondRationalCoordinates D E)
     (v : Vector GaussianRational ((D+D)+(E*D+E*D))) (hv : diamondRationalCandidateSeparate J x = .negative v) :
@@ -5378,6 +6048,8 @@ theorem diamondRationalSeparationCut_rejects {D E : ℕ}
   have he := diamondRationalSeparationCut_identity J v x
   linarith
 
+/-- Every rational coordinate point decoding to diamond dual feasible data satisfies the
+rational separation cut. -/
 theorem diamondRationalSeparationCut_preserves {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T)
@@ -5402,6 +6074,8 @@ theorem diamondRationalSeparationCut_preserves {D E : ℕ} (T : Operator D →�
   rw [← diamondRationalSeparationCut_identity J v y] at hr
   linarith
 
+/-- The rational separation oracle reports feasibility exactly when the decoded coordinates are
+diamond dual feasible. -/
 theorem diamondRationalSeparationOracle_feasible_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E) :
@@ -5410,6 +6084,7 @@ theorem diamondRationalSeparationOracle_feasible_iff {D E : ℕ} (T : Operator D
   rw [← diamondRationalCandidateSeparate_psd_iff T J hJ]
   cases diamondRationalCandidateSeparate J x <;> simp
 
+/-- For rational Choi data, the rational separation oracle never returns an invalid result. -/
 theorem diamondRationalSeparationOracle_not_invalid {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E) :
@@ -5418,6 +6093,8 @@ theorem diamondRationalSeparationOracle_not_invalid {D E : ℕ} (T : Operator D 
   have hn := diamondRationalCandidateSeparate_not_nonHermitian T J hJ x
   cases hc : diamondRationalCandidateSeparate J x <;> simp_all
 
+/-- Every cut returned by the rational separation oracle strictly rejects its candidate and
+preserves all rational coordinates decoding to dual feasible data. -/
 theorem diamondRationalSeparationOracle_cut {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E)
@@ -5433,16 +6110,20 @@ theorem diamondRationalSeparationOracle_cut {D E : ℕ} (T : Operator D →ₗ[�
     subst C
     exact ⟨diamondRationalSeparationCut_rejects J x v hv,fun y hy => diamondRationalSeparationCut_preserves T J hJ v y hy⟩
 
+/-- The first scalar coordinate of packed rational diamond data is `a`. -/
 @[simp] theorem diamondRationalPack_scalar0 {D E : ℕ} (a b : ℚ)
     (Y Z : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) :
     diamondRationalPack a b Y Z (diamondRationalScalarIndex D E 0) = a := by
   simp [diamondRationalPack,diamondRationalScalarIndex]
 
+/-- The second scalar coordinate of packed rational diamond data is `b`. -/
 @[simp] theorem diamondRationalPack_scalar1 {D E : ℕ} (a b : ℚ)
     (Y Z : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) :
     diamondRationalPack a b Y Z (diamondRationalScalarIndex D E 1) = b := by
   simp [diamondRationalPack,diamondRationalScalarIndex]
 
+/-- Extracting a raw block from packed rational diamond data returns `Y` for false and `Z` for
+true. -/
 theorem diamondRationalPack_block {D E : ℕ} (a b : ℚ)
     (Y Z : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (which : Bool) :
     diamondRationalRawBlock which (diamondRationalPack a b Y Z) = if which then Z else Y := by
@@ -5477,6 +6158,8 @@ theorem diamondRationalPack_block {D E : ℕ} (a b : ℚ)
   · simp [diamondRationalRawBlock,gaussianRationalOfPair,hget,hword]
   · simp [diamondRationalRawBlock,gaussianRationalOfPair,hget,hword]
 
+/-- Hermitian decoding of a constant rational diagonal matrix gives that scalar times the
+identity. -/
 theorem gaussianRationalHermitianDecode_diagonal {I : Type*} [Fintype I] [DecidableEq I] (c : ℚ) :
     gaussianRationalHermitianDecode (Matrix.diagonal (fun _ : I => (c : GaussianRational))) =
       (c : ℝ) • (1 : HermitianMat I ℂ) := by
@@ -5492,6 +6175,7 @@ theorem gaussianRationalHermitianDecode_diagonal {I : Type*} [Fintype I] [Decida
   rw [HermitianMat.mat_smul,HermitianMat.mat_one]
   module
 
+/-- Decoding the rational center coordinates gives the rational diamond dual center. -/
 theorem diamondRationalCenterCoordinates_decode {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) :
     diamondRationalDecode (diamondRationalCenterCoordinates J) = diamondRationalCenter J := by
@@ -5500,6 +6184,7 @@ theorem diamondRationalCenterCoordinates_decode {D E : ℕ}
     diamondRationalPack_block]
   simp [gaussianRationalHermitianDecode_diagonal]
 
+/-- Every cut returned by the rational separation oracle has at least one nonzero coefficient. -/
 theorem diamondRationalSeparationOracle_cut_nonzero {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (x : DiamondRationalCoordinates D E)
@@ -5523,16 +6208,19 @@ theorem diamondRationalSeparationOracle_cut_nonzero {D E : ℕ} (T : Operator D 
 
 section RealSdpCoordinates
 
+/-- Extracting a real raw block from diamond coordinates preserves addition. -/
 theorem diamondRealRawBlock_add {D E : ℕ} (b : Bool) (x y : DiamondRealCoordinates D E) :
     diamondRealRawBlock b (x+y) = diamondRealRawBlock b x + diamondRealRawBlock b y := by
   ext i j
   rfl
 
+/-- Extracting a real raw block from diamond coordinates preserves real scalar multiplication. -/
 theorem diamondRealRawBlock_smul {D E : ℕ} (b : Bool) (r : ℝ) (x : DiamondRealCoordinates D E) :
     diamondRealRawBlock b (r • x) = r • diamondRealRawBlock b x := by
   ext i j
   simp [diamondRealRawBlock,Complex.ext_iff]
 
+/-- Extracting a real Hermitian block from diamond coordinates preserves addition. -/
 theorem diamondRealHermitianBlock_add {D E : ℕ} (b : Bool) (x y : DiamondRealCoordinates D E) :
     diamondRealHermitianBlock b (x+y) = diamondRealHermitianBlock b x + diamondRealHermitianBlock b y := by
   apply HermitianMat.ext
@@ -5543,6 +6231,8 @@ theorem diamondRealHermitianBlock_add {D E : ℕ} (b : Bool) (x y : DiamondRealC
   simp only [smul_add]
   abel
 
+/-- Extracting a real Hermitian block from diamond coordinates preserves real scalar
+multiplication. -/
 theorem diamondRealHermitianBlock_smul {D E : ℕ} (b : Bool) (r : ℝ) (x : DiamondRealCoordinates D E) :
     diamondRealHermitianBlock b (r • x) = r • diamondRealHermitianBlock b x := by
   apply HermitianMat.ext
@@ -5551,14 +6241,18 @@ theorem diamondRealHermitianBlock_smul {D E : ℕ} (b : Bool) (r : ℝ) (x : Dia
   simp only [star_trivial,← smul_add]
   exact smul_comm _ _ _
 
+/-- Forming diamond dual data preserves coordinatewise addition. -/
 theorem diamondDualData_add {D E : ℕ} (a b c d : ℝ) (Y Z U V : HermitianMat (Fin E × Fin D) ℂ) :
     diamondDualData (a+c) (b+d) (Y+U) (Z+V) = diamondDualData a b Y Z + diamondDualData c d U V := by
   rfl
 
+/-- Forming diamond dual data preserves simultaneous real scalar multiplication of all
+coordinates. -/
 theorem diamondDualData_smul {D E : ℕ} (r a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     diamondDualData (r*a) (r*b) (r • Y) (r • Z) = r • diamondDualData a b Y Z := by
   rfl
 
+/-- The real linear map decoding diamond real coordinates into diamond dual data. -/
 def diamondRealDecodeLinear (D E : ℕ) : DiamondRealCoordinates D E →ₗ[ℝ] DiamondConstraints D E where
   toFun := diamondRealDecode
   map_add' x y := by
@@ -5566,12 +6260,17 @@ def diamondRealDecodeLinear (D E : ℕ) : DiamondRealCoordinates D E →ₗ[ℝ]
   map_smul' r x := by
     simp only [diamondRealDecode,Pi.smul_apply,smul_eq_mul,diamondRealHermitianBlock_smul,diamondDualData_smul,RingHom.id_apply]
 
+/-- Extracting a real raw block after embedding rational coordinates equals embedding their
+rational raw block. -/
 theorem diamondRealRawBlock_rational {D E : ℕ} (b : Bool) (x : DiamondRationalCoordinates D E) :
     diamondRealRawBlock b (diamondRationalCoordinatesReal x) = gaussianRationalMatrix (diamondRationalRawBlock b x) := rfl
 
+/-- Real decoding of embedded rational diamond coordinates agrees with rational decoding. -/
 theorem diamondRealDecode_rational {D E : ℕ} (x : DiamondRationalCoordinates D E) :
     diamondRealDecode (diamondRationalCoordinatesReal x) = diamondRationalDecode x := rfl
 
+/-- The real linear functional taking a Hermitian matrix to the real part of its quadratic form
+at `w`. -/
 def hermitianQuadraticLinear {I : Type*} [Fintype I] (w : I → ℂ) : HermitianMat I ℂ →ₗ[ℝ] ℝ where
   toFun H := (star w ⬝ᵥ (H.mat *ᵥ w)).re
   map_add' H K := by
@@ -5579,15 +6278,20 @@ def hermitianQuadraticLinear {I : Type*} [Fintype I] (w : I → ℂ) : Hermitian
   map_smul' r H := by
     simp [HermitianMat.mat_smul,Matrix.smul_mulVec,dotProduct_smul]
 
+/-- The real linear functional given by the coefficient evaluation of a rational affine cut. -/
 def RationalAffineCut.realLinear {n : ℕ} (C : RationalAffineCut n) : (Fin n → ℝ) →ₗ[ℝ] ℝ where
   toFun := C.evalReal
   map_add' x y := by simp [RationalAffineCut.evalReal,mul_add,Finset.sum_add_distrib]
   map_smul' r x := by simp [RationalAffineCut.evalReal,Finset.mul_sum,mul_left_comm]
 
+/-- Real evaluation of a rational affine cut on rational coordinates equals the coercion of its
+rational evaluation. -/
 theorem RationalAffineCut.evalReal_rational {n : ℕ} (C : RationalAffineCut n) (x : Fin n → ℚ) :
     C.evalReal (fun k => (x k : ℝ)) = (C.eval x : ℝ) := by
   simp [RationalAffineCut.evalReal,RationalAffineCut.eval,Rat.cast_sum,Rat.cast_mul]
 
+/-- Real linear functionals on finite coordinates are equal if they agree on every rational
+coordinate vector. -/
 theorem realLinearMap_eq_of_rational {n : ℕ} (f g : (Fin n → ℝ) →ₗ[ℝ] ℝ)
     (h : ∀ q : Fin n → ℚ, f (fun i => (q i : ℝ)) = g (fun i => (q i : ℝ))) : f = g := by
   have he (k : Fin n) : (fun i => ((Pi.single k 1 : Fin n → ℚ) i : ℝ)) =
@@ -5607,6 +6311,8 @@ theorem realLinearMap_eq_of_rational {n : ℕ} (f g : (Fin n → ℝ) →ₗ[ℝ
   intro k _
   rw [map_smul,map_smul,hb]
 
+/-- Real affine functionals on finite coordinates agree everywhere if they agree on every
+rational coordinate vector. -/
 theorem realAffine_eq_of_rational {n : ℕ} (f g : (Fin n → ℝ) →ₗ[ℝ] ℝ) (a b : ℝ)
     (h : ∀ q : Fin n → ℚ, f (fun i => (q i : ℝ)) + a = g (fun i => (q i : ℝ)) + b) :
     ∀ x, f x + a = g x + b := by
@@ -5619,6 +6325,8 @@ theorem realAffine_eq_of_rational {n : ℕ} (f g : (Fin n → ℝ) →ₗ[ℝ] �
   intro x
   rw [hfg,hab]
 
+/-- The coerced real quadratic value of a rational candidate slack equals the Hermitian
+quadratic functional on its decoded diamond dual slack. -/
 theorem diamondRationalQuadratic_real {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T)
@@ -5639,6 +6347,8 @@ theorem diamondRationalQuadratic_real {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
   rw [he,hmat,quadratic_submatrix_equiv]
   rfl
 
+/-- Over real coordinates, a rational separation cut's evaluation minus its bound equals the
+quadratic functional on the decoded diamond dual slack. -/
 theorem diamondRationalSeparationCut_real_identity {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T)
@@ -5677,6 +6387,8 @@ theorem diamondRationalSeparationCut_real_identity {D E : ℕ} (T : Operator D �
   rw [← map_sub] at hh
   exact hh
 
+/-- Every real coordinate point decoding to diamond dual feasible data satisfies the real
+extension of a rational separation cut. -/
 theorem diamondRationalSeparationCut_preserves_real {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T)
@@ -5689,6 +6401,8 @@ theorem diamondRationalSeparationCut_preserves_real {D E : ℕ} (T : Operator D 
   rw [← diamondRationalSeparationCut_real_identity T J hJ v x] at hn
   linarith
 
+/-- A rational separation oracle cut strictly rejects its candidate and preserves all real
+coordinates decoding to diamond dual feasible data. -/
 theorem diamondRationalSeparationOracle_cut_real {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (q : DiamondRationalCoordinates D E)
@@ -5705,6 +6419,7 @@ theorem diamondRationalSeparationOracle_cut_real {D E : ℕ} (T : Operator D →
     exact ⟨diamondRationalSeparationCut_rejects J q v hv,
       fun x hx => diamondRationalSeparationCut_preserves_real T J hJ v x hx⟩
 
+/-- The rational coordinate score coerces to the diamond dual score of the rational decoding. -/
 theorem diamondRationalScore_cast {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) (x : DiamondRationalCoordinates D E) :
     (diamondRationalScore x : ℝ) = (diamondProgram T).dualScore (diamondRationalDecode x) := by
   unfold diamondRationalScore diamondRationalDecode
@@ -5712,21 +6427,25 @@ theorem diamondRationalScore_cast {D E : ℕ} (T : Operator D →ₗ[ℂ] Operat
   push_cast
   rfl
 
+/-- The real coordinate score equals the diamond dual score of the real decoding. -/
 theorem diamondRealScore_eq {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) (x : DiamondRealCoordinates D E) :
     diamondRealScore x = (diamondProgram T).dualScore (diamondRealDecode x) := by
   unfold diamondRealScore diamondRealDecode
   rw [diamondProgram_dualScore]
 
+/-- The objective cut evaluates on rational coordinates as the negative rational diamond score. -/
 theorem diamondRationalObjectiveCut_eval (D E : ℕ) (γ : ℚ) (x : DiamondRationalCoordinates D E) :
     (diamondRationalObjectiveCut D E γ).eval x = -diamondRationalScore x := by
   simp [RationalAffineCut.eval,diamondRationalObjectiveCut,diamondRationalScore,add_mul,Finset.sum_add_distrib,ite_mul,add_comm]
 
+/-- The objective cut evaluates on real coordinates as the negative real diamond score. -/
 theorem diamondRationalObjectiveCut_evalReal (D E : ℕ) (γ : ℚ) (x : DiamondRealCoordinates D E) :
     (diamondRationalObjectiveCut D E γ).evalReal x = -diamondRealScore x := by
   have hc (p : Prop) [Decidable p] : (((if p then (-1 : ℚ) else 0) : ℚ) : ℝ) =
       if p then (-1 : ℝ) else 0 := by split_ifs <;> norm_num
   simp [RationalAffineCut.evalReal,diamondRationalObjectiveCut,diamondRealScore,add_mul,Finset.sum_add_distrib,hc,ite_mul,add_comm]
 
+/-- The objective cut has at least one nonzero coefficient. -/
 theorem diamondRationalObjectiveCut_nonzero (D E : ℕ) (γ : ℚ) :
     ∃ k : Fin (diamondDyadicWordCount D E), (diamondRationalObjectiveCut D E γ).coefficients[k] ≠ 0 := by
   refine ⟨diamondRationalScalarIndex D E 0,?_⟩
@@ -5736,6 +6455,8 @@ theorem diamondRationalObjectiveCut_nonzero (D E : ℕ) (γ : ℚ) :
     norm_num [diamondRationalScalarIndex] at hv
   simp [diamondRationalObjectiveCut,hn]
 
+/-- The rational sublevel oracle reports feasibility exactly when the decoded data are dual
+feasible with score at most `γ`. -/
 theorem diamondRationalSublevelOracle_feasible_iff {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (x : DiamondRationalCoordinates D E) :
@@ -5754,6 +6475,7 @@ theorem diamondRationalSublevelOracle_feasible_iff {D E : ℕ} (T : Operator D �
     rintro ⟨_,hscore⟩
     exact hs (hb.mpr hscore)
 
+/-- For rational Choi data, the rational sublevel oracle never returns an invalid result. -/
 theorem diamondRationalSublevelOracle_not_invalid {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (x : DiamondRationalCoordinates D E) :
@@ -5763,6 +6485,8 @@ theorem diamondRationalSublevelOracle_not_invalid {D E : ℕ} (T : Operator D �
   · exact diamondRationalSeparationOracle_not_invalid T J hJ x
   · simp
 
+/-- Every rational sublevel oracle cut strictly rejects its candidate, preserves the real dual
+score sublevel set, and has a nonzero coefficient. -/
 theorem diamondRationalSublevelOracle_cut {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (q : DiamondRationalCoordinates D E)
@@ -5788,16 +6512,19 @@ theorem diamondRationalSublevelOracle_cut {D E : ℕ} (T : Operator D →ₗ[ℂ
       rw [Rat.cast_neg]
       exact neg_le_neg hscore
 
+/-- The first scalar coordinate of packed real diamond data is `a`. -/
 @[simp] theorem diamondRealPack_scalar0 {D E : ℕ} (a b : ℝ)
     (Y Z : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :
     diamondRealPack a b Y Z (diamondRationalScalarIndex D E 0) = a := by
   simp [diamondRealPack,diamondRationalScalarIndex]
 
+/-- The second scalar coordinate of packed real diamond data is `b`. -/
 @[simp] theorem diamondRealPack_scalar1 {D E : ℕ} (a b : ℝ)
     (Y Z : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) :
     diamondRealPack a b Y Z (diamondRationalScalarIndex D E 1) = b := by
   simp [diamondRealPack,diamondRationalScalarIndex]
 
+/-- Extracting a raw block from packed real diamond data returns `Y` for false and `Z` for true. -/
 theorem diamondRealPack_block {D E : ℕ} (a b : ℝ)
     (Y Z : Matrix (Fin E × Fin D) (Fin E × Fin D) ℂ) (which : Bool) :
     diamondRealRawBlock which (diamondRealPack a b Y Z) = if which then Z else Y := by
@@ -5832,6 +6559,7 @@ theorem diamondRealPack_block {D E : ℕ} (a b : ℝ)
   · simp [diamondRealRawBlock,hget,hword]
   · simp [diamondRealRawBlock,hget,hword]
 
+/-- Decoding packed real scalars and Hermitian matrix blocks gives their diamond dual data. -/
 theorem diamondRealDecode_pack {D E : ℕ} (a b : ℝ) (Y Z : HermitianMat (Fin E × Fin D) ℂ) :
     diamondRealDecode (diamondRealPack a b Y.mat Z.mat) = diamondDualData a b Y Z := by
   have hb (H : HermitianMat (Fin E × Fin D) ℂ) : (1/2 : ℝ) • (H.mat + H.matᴴ) = H.mat := by
@@ -5847,12 +6575,14 @@ theorem diamondRealDecode_pack {D E : ℕ} (a b : ℝ) (Y Z : HermitianMat (Fin 
     simp only [Bool.false_eq_true,if_false,if_true]
     exact hb _
 
+/-- Decoding the real coordinate encoding recovers the original diamond dual data. -/
 theorem diamondRealDecode_encode {D E : ℕ} (y : DiamondConstraints D E) :
     diamondRealDecode (diamondRealEncode y) = y := by
   unfold diamondRealEncode
   rw [diamondRealDecode_pack]
   rfl
 
+/-- The real diamond coordinate decoder is surjective. -/
 theorem diamondRealDecode_surjective (D E : ℕ) : Function.Surjective (@diamondRealDecode D E) :=
   fun y => ⟨diamondRealEncode y,diamondRealDecode_encode y⟩
 
@@ -5874,9 +6604,11 @@ local instance realCoordinatesProdContinuousSMul {A B : Type*} [TopologicalSpace
     apply continuous_induced_rng.mpr
     exact continuous_fst.smul ((WithLp.prod_continuous_ofLp 2 A B).comp continuous_snd)
 
+/-- The real diamond coordinate decoder is continuous. -/
 theorem diamondRealDecode_continuous (D E : ℕ) : Continuous (@diamondRealDecode D E) :=
   (diamondRealDecodeLinear D E).toContinuousLinearMap.continuous
 
+/-- The real coordinate dual score sublevel set is closed. -/
 theorem diamondRealSublevel_closed {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) (γ : ℝ) :
     IsClosed (diamondRealSublevel T γ) := by
   have hΦ := diamondRealDecode_continuous D E
@@ -5887,6 +6619,7 @@ theorem diamondRealSublevel_closed {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
     isClosed_le ((innerSL ℝ (diamondProgram T).rhs).continuous.comp hΦ) continuous_const
   exact hF.inter hO
 
+/-- The real coordinate dual score sublevel set is convex. -/
 theorem diamondRealSublevel_convex {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) (γ : ℝ) :
     Convex ℝ (diamondRealSublevel T γ) := by
   intro x hx y hy a b ha hb hab
@@ -5914,14 +6647,17 @@ theorem diamondRealSublevel_convex {D E : ℕ} (T : Operator D →ₗ[ℂ] Opera
 
 section SdpCoordinateBalls
 
+/-- The diamond coordinate norm is nonnegative. -/
 theorem diamondCoordinateNorm_nonneg {D E : ℕ} (x : DiamondRealCoordinates D E) :
     0 ≤ diamondCoordinateNorm x := norm_nonneg _
 
+/-- The absolute value of each coordinate is at most the diamond coordinate norm. -/
 theorem diamondCoordinateNorm_apply_le {D E : ℕ} (x : DiamondRealCoordinates D E)
     (k : Fin (diamondDyadicWordCount D E)) : |x k| ≤ diamondCoordinateNorm x := by
   simpa only [Real.norm_eq_abs] using!
     PiLp.norm_apply_le (WithLp.toLp 2 x : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E))) k
 
+/-- The diamond coordinate norm is at most the sum of the absolute coordinate values. -/
 theorem diamondCoordinateNorm_le_sum {D E : ℕ} (x : DiamondRealCoordinates D E) :
     diamondCoordinateNorm x ≤ ∑ k, |x k| := by
   let v : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E)) := WithLp.toLp 2 x
@@ -5932,6 +6668,8 @@ theorem diamondCoordinateNorm_le_sum {D E : ℕ} (x : DiamondRealCoordinates D E
     _ ≤ ∑ k, ‖(PiLp.single 2 k (x k) : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E)))‖ := norm_sum_le _ _
     _ = _ := by simp
 
+/-- A uniform absolute coordinate bound bounds the diamond coordinate norm by the word count
+times that bound. -/
 theorem diamondCoordinateNorm_le_card {D E : ℕ} (x : DiamondRealCoordinates D E) {r : ℝ}
     (hx : ∀ k, |x k| ≤ r) : diamondCoordinateNorm x ≤ diamondDyadicWordCount D E * r := by
   apply (diamondCoordinateNorm_le_sum x).trans
@@ -5939,6 +6677,8 @@ theorem diamondCoordinateNorm_le_card {D E : ℕ} (x : DiamondRealCoordinates D 
     ∑ k, |x k| ≤ ∑ _k : Fin (diamondDyadicWordCount D E), r := Finset.sum_le_sum (fun k _ => hx k)
     _ = _ := by simp
 
+/-- Each coordinate of the real diamond encoding is bounded in absolute value by the norm of the
+encoded dual data. -/
 theorem diamondRealEncode_entry_bound {D E : ℕ} (y : DiamondConstraints D E)
     (k : Fin (diamondDyadicWordCount D E)) : |diamondRealEncode y k| ≤ ‖y‖ := by
   obtain ⟨ha,hb,hY,hZ⟩ := stinespringDual_coordinates_norm_le y
@@ -5955,10 +6695,14 @@ theorem diamondRealEncode_entry_bound {D E : ℕ} (y : DiamondConstraints D E)
   · exact hw _ hY _
   · exact hw _ hZ _
 
+/-- The real diamond encoding has coordinate norm at most the word count times the dual data
+norm. -/
 theorem diamondRealEncode_norm_bound {D E : ℕ} (y : DiamondConstraints D E) :
     diamondCoordinateNorm (diamondRealEncode y) ≤ diamondDyadicWordCount D E * ‖y‖ :=
   diamondCoordinateNorm_le_card _ (diamondRealEncode_entry_bound y)
 
+/-- Each entry of a decoded real Hermitian block has norm at most twice the diamond coordinate
+norm. -/
 theorem diamondRealHermitianBlock_entry_bound {D E : ℕ} (b : Bool) (x : DiamondRealCoordinates D E)
     (i j : Fin E × Fin D) : ‖(diamondRealHermitianBlock b x).mat i j‖ ≤ 2 * diamondCoordinateNorm x := by
   have hr (u v : Fin E × Fin D) : ‖diamondRealRawBlock b x u v‖ ≤ 2 * diamondCoordinateNorm x := by
@@ -5974,6 +6718,8 @@ theorem diamondRealHermitianBlock_entry_bound {D E : ℕ} (b : Bool) (x : Diamon
   rw [norm_star] at hh
   nlinarith [hr i j,hr j i]
 
+/-- A decoded real Hermitian block has norm at most `2 * E * D` times the diamond coordinate
+norm. -/
 theorem diamondRealHermitianBlock_norm_bound {D E : ℕ} (b : Bool) (x : DiamondRealCoordinates D E) :
     ‖diamondRealHermitianBlock b x‖ ≤ 2 * (E : ℝ) * D * diamondCoordinateNorm x := by
   have h := hermitian_norm_le_card_mul_entry_bound (diamondRealHermitianBlock b x)
@@ -5981,6 +6727,8 @@ theorem diamondRealHermitianBlock_norm_bound {D E : ℕ} (b : Bool) (x : Diamond
   simp only [Fintype.card_prod,Fintype.card_fin,Nat.cast_mul] at h
   nlinarith
 
+/-- The real diamond decoder's norm is bounded by `diamondCoordinateLipschitz D E` times the
+coordinate norm. -/
 theorem diamondRealDecode_norm_bound {D E : ℕ} (x : DiamondRealCoordinates D E) :
     ‖diamondRealDecode x‖ ≤ (diamondCoordinateLipschitz D E : ℝ) * diamondCoordinateNorm x := by
   have hh := diamondDualData_norm_le_sum (x (diamondRationalScalarIndex D E 0))
@@ -5995,9 +6743,11 @@ theorem diamondRealDecode_norm_bound {D E : ℕ} (x : DiamondRealCoordinates D E
   push_cast
   nlinarith
 
+/-- The diamond coordinate norm of zero is zero. -/
 @[simp] theorem diamondCoordinateNorm_zero (D E : ℕ) : diamondCoordinateNorm (0 : DiamondRealCoordinates D E) = 0 := by
   simp [diamondCoordinateNorm]
 
+/-- The coordinate norm of `x` is at most the coordinate norm of `x - c` plus that of `c`. -/
 theorem diamondCoordinateNorm_sub_add_le {D E : ℕ} (x c : DiamondRealCoordinates D E) :
     diamondCoordinateNorm x ≤ diamondCoordinateNorm (x-c) + diamondCoordinateNorm c := by
   have hx : (WithLp.toLp 2 x : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E))) =
@@ -6009,19 +6759,23 @@ theorem diamondCoordinateNorm_sub_add_le {D E : ℕ} (x c : DiamondRealCoordinat
   rw [hx]
   exact norm_add_le _ _
 
+/-- Real diamond decoding preserves subtraction. -/
 theorem diamondRealDecode_sub {D E : ℕ} (x c : DiamondRealCoordinates D E) :
     diamondRealDecode (x-c) = diamondRealDecode x - diamondRealDecode c :=
   (diamondRealDecodeLinear D E).map_sub x c
 
+/-- The diamond coordinate Lipschitz constant is strictly positive. -/
 theorem diamondCoordinateLipschitz_pos (D E : ℕ) : 0 < diamondCoordinateLipschitz D E := by
   unfold diamondCoordinateLipschitz
   positivity
 
+/-- The diamond coordinate inner radius is positive for a positive rational tolerance. -/
 theorem diamondCoordinateInnerRadius_pos {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) {ε : ℚ} (hε : 0 < ε) :
     0 < diamondCoordinateInnerRadius J ε :=
   div_pos (diamondRationalRadius_pos J hε) (diamondCoordinateLipschitz_pos D E)
 
+/-- The diamond coordinate inner radius is at most one. -/
 theorem diamondCoordinateInnerRadius_le_one {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (ε : ℚ) :
     diamondCoordinateInnerRadius J ε ≤ 1 := by
@@ -6036,6 +6790,8 @@ theorem diamondCoordinateInnerRadius_le_one {D E : ℕ}
   unfold diamondCoordinateLipschitz
   nlinarith [mul_nonneg (Nat.cast_nonneg (α := ℚ) E) (Nat.cast_nonneg (α := ℚ) D)]
 
+/-- A perturbation within the diamond coordinate inner radius decodes to data whose norm is at
+most the rational diamond radius. -/
 theorem diamondCoordinateInnerRadius_control {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (ε : ℚ)
     (h : DiamondRealCoordinates D E) (hh : diamondCoordinateNorm h ≤ (diamondCoordinateInnerRadius J ε : ℝ)) :
@@ -6047,6 +6803,10 @@ theorem diamondCoordinateInnerRadius_control {D E : ℕ}
   have hm := (le_div_iff₀ hL).mp hh
   exact (diamondRealDecode_norm_bound h).trans (by nlinarith)
 
+/-- For positive input dimension and rational tolerance, a bounded coordinate ball decodes to
+strictly dual feasible points with scores within the tolerance above the diamond optimum.
+Its slack is bounded below by half the rational regularization weight times the identity,
+and its coordinate and decoded norms satisfy the outer radius and size bounds. -/
 theorem diamondProgram_coordinate_near_optimal_ball {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -6101,18 +6861,22 @@ theorem diamondProgram_coordinate_near_optimal_ball {D E : ℕ} (hD : 0 < D)
     linarith
   exact ⟨hmargin,hpd,hl,hupper,hcoord,hsize.trans (diamondRationalOuterSize_bound T J hJ ε)⟩
 
+/-- The square of the diamond coordinate norm equals the sum of the squared real coordinates. -/
 theorem diamondCoordinateNorm_sq {D E : ℕ} (x : DiamondRealCoordinates D E) :
     diamondCoordinateNorm x ^ 2 = ∑ k, (x k)^2 := by
   simpa only [diamondCoordinateNorm,Real.norm_eq_abs,sq_abs] using!
     PiLp.norm_sq_eq_of_L2 (fun _ : Fin (diamondDyadicWordCount D E) => ℝ)
       (WithLp.toLp 2 x : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E)))
 
+/-- Membership in a diamond coordinate ball is equivalent to membership in the corresponding
+Euclidean closed ball. -/
 theorem diamondCoordinateBall_mem_iff {D E : ℕ} (c x : DiamondRealCoordinates D E) (r : ℝ) :
     x ∈ diamondCoordinateBall c r ↔
       (WithLp.toLp 2 x : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E))) ∈ Metric.closedBall (WithLp.toLp 2 c) r := by
   rw [Metric.mem_closedBall,dist_eq_norm,← WithLp.toLp_sub]
   rfl
 
+/-- The diamond coordinate outer radius is positive for a positive rational tolerance. -/
 theorem diamondCoordinateOuterRadius_pos {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) {ε : ℚ} (hε : 0 < ε) :
     0 < diamondCoordinateOuterRadius J ε := by
@@ -6121,6 +6885,9 @@ theorem diamondCoordinateOuterRadius_pos {D E : ℕ}
   unfold diamondCoordinateOuterRadius
   positivity
 
+/-- For positive input dimension and rational tolerance, every score threshold at least the
+optimum plus the tolerance has a coordinate inner ball contained in both its dual sublevel
+set and the coordinate outer ball. -/
 theorem diamondProgram_coordinate_sublevel_ball {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -6154,6 +6921,8 @@ section EuclideanCentralCut
 section
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
 
+/-- The retained half of a unit ball satisfies the central-cut quadratic bound with right-hand
+side `n^2` for every real parameter `n > 1`. -/
 theorem unitBall_centralCut_quadratic (n : ℝ) (hn : 1 < n) (u x : V) (hu : ‖u‖ = 1)
     (hx : ‖x‖ ≤ 1) (hcut : 0 ≤ ⟪u,x⟫_ℝ) :
     (n^2-1)*‖x-(1/(n+1)) • u‖^2 +
@@ -6182,10 +6951,13 @@ theorem unitBall_centralCut_quadratic (n : ℝ) (hn : 1 < n) (u x : V) (hu : ‖
 
 end
 
+/-- Pairing a cut's Euclidean normal with a coordinate vector equals its real coefficient
+evaluation. -/
 theorem RationalAffineCut.euclideanNormal_inner {n : ℕ} (C : RationalAffineCut n) (x : Fin n → ℝ) :
     ⟪C.euclideanNormal,WithLp.toLp 2 x⟫_ℝ = C.evalReal x := by
   simp [RationalAffineCut.euclideanNormal,PiLp.inner_apply,RationalAffineCut.evalReal,mul_comm]
 
+/-- A rational affine cut with a nonzero coefficient has nonzero Euclidean normal. -/
 theorem RationalAffineCut.euclideanNormal_ne_zero {n : ℕ} (C : RationalAffineCut n)
     (hC : ∃ k : Fin n, C.coefficients[k] ≠ 0) : C.euclideanNormal ≠ 0 := by
   intro hz
@@ -6194,16 +6966,21 @@ theorem RationalAffineCut.euclideanNormal_ne_zero {n : ℕ} (C : RationalAffineC
   change ((C.coefficients[k] : ℚ) : ℝ) = 0 at ht
   exact hk (Rat.cast_eq_zero.mp ht)
 
+/-- A rational affine cut with a nonzero coefficient has unit normal of norm one. -/
 theorem RationalAffineCut.norm_unitNormal {n : ℕ} (C : RationalAffineCut n)
     (hC : ∃ k : Fin n, C.coefficients[k] ≠ 0) : ‖C.unitNormal‖ = 1 :=
   norm_smul_inv_norm ((Qatlib.Concepts.SdpDuality.StrongDuality.RationalAffineCut.euclideanNormal_ne_zero (C := C)) hC)
 
+/-- In dimension at least two, the central-cut ellipsoid contains every unit-ball point in the
+retained half-space. -/
 theorem euclideanCentralCutEllipsoid_contains {n : ℕ} (hn : 2 ≤ n)
     (u x : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) (hx : ‖x‖ ≤ 1) (hcut : 0 ≤ ⟪u,x⟫_ℝ) :
     x ∈ euclideanCentralCutEllipsoid u := by
   exact unitBall_centralCut_quadratic (n : ℝ)
       (by exact_mod_cast (lt_of_lt_of_le (by norm_num : 1 < 2) hn)) u x hu hx hcut
 
+/-- If a cut rejects the center and retains a point in a positive-radius ball, the normalized
+displacement lies in the cut's central ellipsoid. -/
 theorem RationalAffineCut.centralCut_retains {n : ℕ} (hn : 2 ≤ n) (C : RationalAffineCut n)
     (hC : ∃ k : Fin n, C.coefficients[k] ≠ 0) (q : Fin n → ℚ) (x : Fin n → ℝ)
     (hreject : C.eval q < C.bound) (hkeep : (C.bound : ℝ) ≤ C.evalReal x)
@@ -6223,6 +7000,8 @@ theorem RationalAffineCut.centralCut_retains {n : ℕ} (hn : 2 ≤ n) (C : Ratio
     exact mul_nonneg (inv_nonneg.mpr (norm_nonneg _))
       (mul_nonneg (inv_pos.mpr hR).le (by linarith))
 
+/-- For a unit normal, the central-cut shape determinant is `(n^2 / (n^2 - 1))^n * ((n - 1) / (n
++ 1))`. -/
 theorem euclideanCentralCutShape_det {n : ℕ} (u : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) :
     (euclideanCentralCutShape u).det =
       ((n : ℝ)^2/((n : ℝ)^2-1))^n * (((n : ℝ)-1)/((n : ℝ)+1)) := by
@@ -6242,6 +7021,8 @@ theorem euclideanCentralCutShape_det {n : ℕ} (u : EuclideanSpace ℝ (Fin n)) 
   field_simp
   ring
 
+/-- In dimension at least two, a central-cut shape with unit normal has positive determinant
+bounded above by `n / (n + 1)`. -/
 theorem euclideanCentralCutShape_det_bounds {n : ℕ} (hn : 2 ≤ n)
     (u : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) :
     0 < (euclideanCentralCutShape u).det ∧ (euclideanCentralCutShape u).det ≤ (n : ℝ)/((n : ℝ)+1) := by
@@ -6279,10 +7060,14 @@ theorem euclideanCentralCutShape_det_bounds {n : ℕ} (hn : 2 ≤ n)
       field_simp
     simpa only [heq] using! hfinal
 
+/-- The real coordinate dot product equals the Euclidean inner product after applying
+`WithLp.toLp 2`. -/
 theorem euclidean_dot_inner {n : ℕ} (v w : Fin n → ℝ) :
     v ⬝ᵥ w = ⟪(WithLp.toLp 2 v : EuclideanSpace ℝ (Fin n)),WithLp.toLp 2 w⟫_ℝ := by
   simp [dotProduct,PiLp.inner_apply,mul_comm]
 
+/-- The central-cut shape quadratic form is the scaled squared norm minus the corresponding
+scaled squared normal component. -/
 theorem euclideanCentralCutShape_quadratic {n : ℕ} (u : EuclideanSpace ℝ (Fin n)) (v : Fin n → ℝ) :
     v ⬝ᵥ ((euclideanCentralCutShape u) *ᵥ v) =
       ((n : ℝ)^2/((n : ℝ)^2-1)) *
@@ -6295,6 +7080,7 @@ theorem euclideanCentralCutShape_quadratic {n : ℕ} (u : EuclideanSpace ℝ (Fi
   rw [real_inner_comm (WithLp.toLp 2 v) u]
   ring
 
+/-- In dimension at least two, a central-cut shape with unit normal is positive definite. -/
 theorem euclideanCentralCutShape_posDef {n : ℕ} (hn : 2 ≤ n)
     (u : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) : (euclideanCentralCutShape u).PosDef := by
   have hnr : (2 : ℝ) ≤ n := by exact_mod_cast hn
@@ -6328,6 +7114,8 @@ theorem euclideanCentralCutShape_posDef {n : ℕ} (hn : 2 ≤ n)
     rw [euclideanCentralCutShape_quadratic]
     exact mul_pos (div_pos (sq_pos_of_pos hn0) hns) hp
 
+/-- The inverse central-cut shape is the identity scaled by `(n^2 - 1) / n^2` plus the normal
+outer product scaled by `2 * (n + 1) / n^2`. -/
 theorem euclideanCentralCutShape_inv {n : ℕ} (hn : 2 ≤ n)
     (u : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) :
     (euclideanCentralCutShape u)⁻¹ = (((n : ℝ)^2-1)/(n : ℝ)^2) • (1 : Matrix (Fin n) (Fin n) ℝ) +
@@ -6358,6 +7146,8 @@ theorem euclideanCentralCutShape_inv {n : ℕ} (hn : 2 ≤ n)
   have hb : k*m-k*l*t-k*l*m = 0 := by dsimp [k,l,t,m]; field_simp; ring
   rw [heq,ha,hb,one_smul,zero_smul,add_zero]
 
+/-- Central-cut ellipsoid membership is equivalent to the inverse-shape quadratic bound on
+displacement from its center. -/
 theorem euclideanCentralCutEllipsoid_iff_inverse {n : ℕ} (hn : 2 ≤ n)
     (u x : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) :
     x ∈ euclideanCentralCutEllipsoid u ↔
@@ -6377,6 +7167,10 @@ theorem euclideanCentralCutEllipsoid_iff_inverse {n : ℕ} (hn : 2 ≤ n)
   rw [← div_le_one hn0]
   ring_nf
 
+/-- A rational sublevel oracle cut has a unit normal and positive definite central-cut shape
+with positive determinant at most `n / (n + 1)`, where `n` is the coordinate count. Its
+central ellipsoid retains normalized displacements of sublevel points within the given
+positive radius. -/
 theorem diamondRationalSublevelOracle_centralCut {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (q : DiamondRationalCoordinates D E)
@@ -6405,17 +7199,22 @@ end EuclideanCentralCut
 
 section AffineEllipsoidCut
 
+/-- Euclidean matrix application preserves subtraction. -/
 theorem euclideanMatrixApply_sub {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     (x y : EuclideanSpace ℝ (Fin n)) : euclideanMatrixApply A (x-y) = euclideanMatrixApply A x - euclideanMatrixApply A y := by
   simp [euclideanMatrixApply,WithLp.ofLp_sub,Matrix.mulVec_sub,WithLp.toLp_sub]
 
+/-- Euclidean application of a matrix product equals successive application of its factors. -/
 theorem euclideanMatrixApply_mul {n : ℕ} (A B : Matrix (Fin n) (Fin n) ℝ)
     (x : EuclideanSpace ℝ (Fin n)) : euclideanMatrixApply (A*B) x = euclideanMatrixApply A (euclideanMatrixApply B x) := by
   simp [euclideanMatrixApply,Matrix.mulVec_mulVec]
 
+/-- Euclidean application of the identity matrix fixes every vector. -/
 theorem euclideanMatrixApply_one {n : ℕ} (x : EuclideanSpace ℝ (Fin n)) : euclideanMatrixApply 1 x = x := by
   simp [euclideanMatrixApply]
 
+/-- An invertible congruence preserves the inverse-matrix quadratic form after the corresponding
+change of vector. -/
 theorem euclidean_congruence_inverse_quadratic {n : ℕ} (S B : Matrix (Fin n) (Fin n) ℝ)
     (hS : IsUnit S.det) (v : Fin n → ℝ) :
     (S *ᵥ v) ⬝ᵥ ((S*B*Sᵀ)⁻¹ *ᵥ (S *ᵥ v)) = v ⬝ᵥ (B⁻¹ *ᵥ v) := by
@@ -6426,6 +7225,8 @@ theorem euclidean_congruence_inverse_quadratic {n : ℕ} (S B : Matrix (Fin n) (
   rw [Matrix.dotProduct_transpose_mulVec,hcancel]
   exact dotProduct_comm _ _
 
+/-- An invertible affine change of coordinates transports shape ellipsoid membership to the
+inverse quadratic bound for the original shape. -/
 theorem euclideanShapeEllipsoid_affine_iff {n : ℕ} (c : EuclideanSpace ℝ (Fin n))
     (S B : Matrix (Fin n) (Fin n) ℝ) (hS : IsUnit S.det) (v : EuclideanSpace ℝ (Fin n)) :
     c+euclideanMatrixApply S v ∈ euclideanShapeEllipsoid c (S*B*Sᵀ) ↔
@@ -6435,6 +7236,8 @@ theorem euclideanShapeEllipsoid_affine_iff {n : ℕ} (c : EuclideanSpace ℝ (Fi
   rw [add_sub_cancel_left]
   exact (congrArg (fun t : ℝ => t ≤ 1) (euclidean_congruence_inverse_quadratic S B hS (WithLp.ofLp v))).to_iff
 
+/-- Euclidean application of a transposed matrix is adjoint to application of the original
+matrix. -/
 theorem euclideanMatrixApply_transpose_inner {n : ℕ} (S : Matrix (Fin n) (Fin n) ℝ)
     (g v : EuclideanSpace ℝ (Fin n)) : ⟪euclideanMatrixApply Sᵀ g,v⟫_ℝ = ⟪g,euclideanMatrixApply S v⟫_ℝ := by
   change ⟪(WithLp.toLp 2 (Sᵀ *ᵥ WithLp.ofLp g) : EuclideanSpace ℝ (Fin n)),WithLp.toLp 2 (WithLp.ofLp v)⟫_ℝ =
@@ -6442,6 +7245,7 @@ theorem euclideanMatrixApply_transpose_inner {n : ℕ} (S : Matrix (Fin n) (Fin 
   rw [← euclidean_dot_inner,← euclidean_dot_inner,dotProduct_comm]
   exact Matrix.dotProduct_transpose_mulVec S _ _
 
+/-- An invertible matrix sends every nonzero Euclidean vector to a nonzero vector. -/
 theorem euclideanMatrixApply_ne_zero {n : ℕ} (S : Matrix (Fin n) (Fin n) ℝ)
     (hS : IsUnit S.det) {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0) : euclideanMatrixApply S g ≠ 0 := by
   intro hz
@@ -6451,10 +7255,13 @@ theorem euclideanMatrixApply_ne_zero {n : ℕ} (S : Matrix (Fin n) (Fin n) ℝ)
       hinj (by simpa [euclideanMatrixApply] using! congrArg WithLp.ofLp hz)
   exact congrArg (WithLp.toLp 2) hh
 
+/-- The normalized pullback of a nonzero normal through an invertible matrix has norm one. -/
 theorem euclideanPullbackUnit_norm {n : ℕ} (S : Matrix (Fin n) (Fin n) ℝ)
     (hS : IsUnit S.det) {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0) : ‖euclideanPullbackUnit S g‖ = 1 := by
   exact norm_smul_inv_norm (euclideanMatrixApply_ne_zero Sᵀ (by simpa using! hS) hg)
 
+/-- The affine image of a vector lies in the ellipsoid with shape `S * Sᵀ` exactly when the
+vector has norm at most one. -/
 theorem euclideanShapeEllipsoid_unit_affine_iff {n : ℕ} (c : EuclideanSpace ℝ (Fin n))
     (S : Matrix (Fin n) (Fin n) ℝ) (hS : IsUnit S.det) (v : EuclideanSpace ℝ (Fin n)) :
     c+euclideanMatrixApply S v ∈ euclideanShapeEllipsoid c (S*Sᵀ) ↔ ‖v‖ ≤ 1 := by
@@ -6463,6 +7270,8 @@ theorem euclideanShapeEllipsoid_unit_affine_iff {n : ℕ} (c : EuclideanSpace �
   rw [euclidean_dot_inner,WithLp.toLp_ofLp,real_inner_self_eq_norm_sq] at hh
   exact hh.trans (by constructor <;> intro h <;> nlinarith [norm_nonneg v])
 
+/-- In dimension at least two, an affine cut shape from an invertible matrix and a nonzero
+normal is positive definite. -/
 theorem euclideanAffineCutShape_posDef {n : ℕ} (hn : 2 ≤ n)
     (S : Matrix (Fin n) (Fin n) ℝ) (hS : IsUnit S.det)
     {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0) : (euclideanAffineCutShape S g).PosDef := by
@@ -6471,6 +7280,8 @@ theorem euclideanAffineCutShape_posDef {n : ℕ} (hn : 2 ≤ n)
   simpa only [Matrix.conjTranspose_eq_transpose_of_trivial,Matrix.transpose_transpose] using!
     hB.conjTranspose_mul_mul_same hi
 
+/-- In dimension at least two, the affine cut shape for an invertible matrix and nonzero normal
+has positive determinant at most `n / (n + 1)` times the determinant of `S * Sᵀ`. -/
 theorem euclideanAffineCutShape_det_bounds {n : ℕ} (hn : 2 ≤ n)
     (S : Matrix (Fin n) (Fin n) ℝ) (hS : IsUnit S.det)
     {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0) :
@@ -6488,6 +7299,8 @@ theorem euclideanAffineCutShape_det_bounds {n : ℕ} (hn : 2 ≤ n)
   · have hh := mul_le_mul_of_nonneg_left hbound hs0.le
     simpa only [Matrix.det_mul,Matrix.det_transpose,pow_two,mul_comm,mul_left_comm,mul_assoc] using! hh
 
+/-- In dimension at least two, the affine cut for an invertible matrix and nonzero normal
+retains all original ellipsoid points in the half-space through its center. -/
 theorem euclideanAffineCut_retains {n : ℕ} (hn : 2 ≤ n) (c x : EuclideanSpace ℝ (Fin n))
     (S : Matrix (Fin n) (Fin n) ℝ) (hS : IsUnit S.det)
     {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0)
@@ -6516,10 +7329,13 @@ theorem euclideanAffineCut_retains {n : ℕ} (hn : 2 ≤ n) (c x : EuclideanSpac
     abel
   exact heq ▸ hh
 
+/-- Euclidean matrix application preserves real scalar multiplication. -/
 theorem euclideanMatrixApply_smul {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     (r : ℝ) (x : EuclideanSpace ℝ (Fin n)) : euclideanMatrixApply A (r • x) = r • euclideanMatrixApply A x := by
   simp [euclideanMatrixApply,WithLp.ofLp_smul,Matrix.mulVec_smul,WithLp.toLp_smul]
 
+/-- Every real positive definite matrix factors as `S * Sᵀ` for a matrix `S` with invertible
+determinant. -/
 theorem euclidean_posDef_factor {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (hA : A.PosDef) :
     ∃ S : Matrix (Fin n) (Fin n) ℝ, IsUnit S.det ∧ S*Sᵀ = A := by
   let H : HermitianMat (Fin n) ℝ := ⟨A,hA.isHermitian⟩
@@ -6531,16 +7347,21 @@ theorem euclidean_posDef_factor {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (hA :
   rw [htranspose]
   exact HermitianMat.sqrt_sq (A := H) (HermitianMat.zero_le_iff.mpr hA.posSemidef)
 
+/-- The squared norm of the transposed matrix applied to a vector is the quadratic form of `S *
+Sᵀ` on that vector. -/
 theorem euclideanMatrixApply_transpose_norm_sq {n : ℕ} (S : Matrix (Fin n) (Fin n) ℝ)
     (g : EuclideanSpace ℝ (Fin n)) :
     ‖euclideanMatrixApply Sᵀ g‖^2 = WithLp.ofLp g ⬝ᵥ ((S*Sᵀ) *ᵥ WithLp.ofLp g) := by
   rw [← real_inner_self_eq_norm_sq,euclideanMatrixApply_transpose_inner,← euclideanMatrixApply_mul]
   exact (euclidean_dot_inner _ _).symm
 
+/-- Congruence of a vector outer product by `S` equals the outer product of `S *ᵥ v`. -/
 theorem euclidean_outer_congruence {n : ℕ} (S : Matrix (Fin n) (Fin n) ℝ) (v : Fin n → ℝ) :
     S * Matrix.vecMulVec v v * Sᵀ = Matrix.vecMulVec (S *ᵥ v) (S *ᵥ v) := by
   rw [Matrix.mul_vecMulVec,Matrix.vecMulVec_mul,Matrix.vecMul_transpose]
 
+/-- The affine cut center agrees with the ellipsoid cut center expressed directly using shape `S
+* Sᵀ`. -/
 theorem euclideanAffineCutCenter_formula {n : ℕ} (c : EuclideanSpace ℝ (Fin n))
     (S : Matrix (Fin n) (Fin n) ℝ) (g : EuclideanSpace ℝ (Fin n)) :
     euclideanAffineCutCenter c S g = euclideanEllipsoidCutCenter c (S*Sᵀ) g := by
@@ -6552,6 +7373,7 @@ theorem euclideanAffineCutCenter_formula {n : ℕ} (c : EuclideanSpace ℝ (Fin 
   simp only [one_div,_root_.mul_inv_rev]
   module
 
+/-- The affine cut shape agrees with the ellipsoid cut shape expressed directly using `S * Sᵀ`. -/
 theorem euclideanAffineCutShape_formula {n : ℕ}
     (S : Matrix (Fin n) (Fin n) ℝ) (g : EuclideanSpace ℝ (Fin n)) :
     euclideanAffineCutShape S g = euclideanEllipsoidCutShape (S*Sᵀ) g := by
@@ -6570,6 +7392,9 @@ theorem euclideanAffineCutShape_formula {n : ℕ}
   simp only [div_eq_mul_inv,_root_.mul_inv_rev,← inv_pow]
   module
 
+/-- In dimension at least two, an ellipsoid cut preserves positive definiteness and has positive
+determinant at most `n / (n + 1)` times the original determinant. The new ellipsoid retains
+all original points in the retained half-space. -/
 theorem euclideanEllipsoidCut_correct {n : ℕ} (hn : 2 ≤ n)
     (A : Matrix (Fin n) (Fin n) ℝ) (hA : A.PosDef)
     (c : EuclideanSpace ℝ (Fin n)) {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0) :
@@ -6589,6 +7414,8 @@ theorem euclideanEllipsoidCut_correct {n : ℕ} (hn : 2 ≤ n)
   have hh := euclideanAffineCut_retains hn c x S hS hg hx hc
   rwa [hs,hcen] at hh
 
+/-- Embedding the rational ellipsoid cut shape agrees with the real ellipsoid cut shape for the
+embedded normal. -/
 theorem rationalEllipsoidCutShape_real {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (g : Fin n → ℚ) :
     rationalEllipsoidShapeReal (rationalEllipsoidCutShape A g) =
       euclideanEllipsoidCutShape (rationalEllipsoidShapeReal A) (WithLp.toLp 2 (fun k => (g k : ℝ))) := by
@@ -6596,6 +7423,9 @@ theorem rationalEllipsoidCutShape_real {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ
   simp [rationalEllipsoidShapeReal,rationalEllipsoidCutShape,euclideanEllipsoidCutShape,
     Matrix.mulVec,dotProduct,Matrix.vecMulVec]
 
+/-- A rational sublevel oracle cut gives a positive definite shape with positive determinant at
+most `n / (n + 1)` times the original determinant, where `n` is the coordinate count. The
+updated ellipsoid retains sublevel points in the original ellipsoid. -/
 theorem diamondRationalSublevelOracle_ellipsoidCut {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (q : DiamondRationalCoordinates D E)
@@ -6632,6 +7462,8 @@ theorem diamondRationalSublevelOracle_ellipsoidCut {D E : ℕ} (T : Operator D �
   rw [inner_sub_right,(Qatlib.Concepts.SdpDuality.StrongDuality.RationalAffineCut.euclideanNormal_inner (C := C)),(Qatlib.Concepts.SdpDuality.StrongDuality.RationalAffineCut.euclideanNormal_inner (C := C))]
   linarith [hkeep x hx.1 hx.2]
 
+/-- For positive `r`, an ellipsoid with shape `r^2` times the identity is the closed ball of
+radius `r` about its center. -/
 theorem euclideanShapeEllipsoid_scalar_ball {n : ℕ} (c x : EuclideanSpace ℝ (Fin n))
     {r : ℝ} (hr : 0 < r) : x ∈ euclideanShapeEllipsoid c (r^2 • (1 : Matrix (Fin n) (Fin n) ℝ)) ↔ ‖x-c‖ ≤ r := by
   have hrs : r^2 ≠ 0 := ne_of_gt (sq_pos_of_pos hr)
@@ -6648,10 +7480,13 @@ end AffineEllipsoidCut
 
 section RationalEllipsoidCenter
 
+/-- The rational square root upper approximation is strictly positive. -/
 theorem rationalSqrtUpper_pos (s : ℚ) (p : ℕ) : 0 < rationalSqrtUpper s p := by
   unfold rationalSqrtUpper
   positivity
 
+/-- For nonnegative rational input, the rational square root approximation is strictly above the
+real square root and at most `1 / 2^p` above it. -/
 theorem rationalSqrtUpper_bounds {s : ℚ} (hs : 0 ≤ s) (p : ℕ) :
     Real.sqrt (s : ℝ) < (rationalSqrtUpper s p : ℝ) ∧
       (rationalSqrtUpper s p : ℝ) ≤ Real.sqrt (s : ℝ) + 1/(2 : ℝ)^p := by
@@ -6696,6 +7531,7 @@ theorem rationalSqrtUpper_bounds {s : ℚ} (hs : 0 ≤ s) (p : ℕ) :
   rw [add_div]
   linarith
 
+/-- For positive rational `s`, `min s 1` is a lower bound for its real square root. -/
 theorem rationalSqrt_lower_bound {s : ℚ} (hs : 0 < s) :
     ((min s 1 : ℚ) : ℝ) ≤ Real.sqrt (s : ℝ) := by
   have h0 : (0 : ℝ) < (min s 1 : ℚ) := by exact_mod_cast lt_min hs (by norm_num : (0 : ℚ) < 1)
@@ -6706,6 +7542,8 @@ theorem rationalSqrt_lower_bound {s : ℚ} (hs : 0 < s) :
   have hrs := Real.sq_sqrt hs0
   nlinarith [mul_nonneg h0.le (sub_nonneg.mpr h1)]
 
+/-- The chosen rational square root precision makes `1 / 2^p` at most `η * min s 1` for positive
+`s` and `η`. -/
 theorem rationalSqrtPrecision_sufficient {s η : ℚ} (hs : 0 < s) (hη : 0 < η) :
     1/(2 : ℝ)^(rationalSqrtPrecision s η) ≤ (η : ℝ)*((min s 1 : ℚ) : ℝ) := by
   unfold rationalSqrtPrecision
@@ -6713,6 +7551,9 @@ theorem rationalSqrtPrecision_sufficient {s η : ℚ} (hs : 0 < s) (hη : 0 < η
       (by exact_mod_cast mul_pos hη (lt_min hs (by norm_num : (0 : ℚ) < 1)))
   exact_mod_cast Nat.le_ceil (1/(η*min s 1))
 
+/-- For positive input and relative tolerance, the selected rational square root upper bound
+lies between the square root and `1 + η` times it. The ratio of the square root to this
+bound lies between `1 - η` and one. -/
 theorem rationalSqrtUpper_relative {s η : ℚ} (hs : 0 < s) (hη : 0 < η) :
     let r := (rationalSqrtUpper s (rationalSqrtPrecision s η) : ℝ)
     0 < r ∧ Real.sqrt (s : ℝ) < r ∧ r ≤ (1+(η : ℝ))*Real.sqrt (s : ℝ) ∧
@@ -6733,6 +7574,9 @@ theorem rationalSqrtUpper_relative {s η : ℚ} (hs : 0 < s) (hη : 0 < η) :
 section
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
 
+/-- For `n > 1`, nonnegative `η`, and center-shift factor between `1 - η` and one, every
+retained unit-ball point has approximate central-cut quadratic expression at most `(n +
+η)^2`. -/
 theorem unitBall_approxCentralCut_quadratic (n : ℝ) (hn : 1 < n) (u x : V) (hu : ‖u‖ = 1)
     (hx : ‖x‖ ≤ 1) (hcut : 0 ≤ ⟪u,x⟫_ℝ) {η θ : ℝ}
     (hη : 0 ≤ η) (hθlo : 1-η ≤ θ) (hθhi : θ ≤ 1) :
@@ -6766,11 +7610,15 @@ theorem unitBall_approxCentralCut_quadratic (n : ℝ) (hn : 1 < n) (u x : V) (hu
 
 end
 
+/-- The inverse of a nonzero scalar multiple of an invertible real matrix is the inverse matrix
+scaled by the reciprocal scalar. -/
 theorem realMatrix_inv_smul {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     (hA : IsUnit A.det) {t : ℝ} (ht : t ≠ 0) : (t • A)⁻¹ = t⁻¹ • A⁻¹ := by
   apply Matrix.inv_eq_right_inv
   rw [Matrix.smul_mul,Matrix.mul_smul,Matrix.mul_nonsing_inv A hA,smul_smul,mul_inv_cancel₀ ht,one_smul]
 
+/-- For positive shape scaling, ellipsoid membership is equivalent to bounding the original
+inverse-shape quadratic form by the scale. -/
 theorem euclideanShapeEllipsoid_smul_iff {n : ℕ} (c x : EuclideanSpace ℝ (Fin n))
     (A : Matrix (Fin n) (Fin n) ℝ) (hA : IsUnit A.det) {t : ℝ} (ht : 0 < t) :
     x ∈ euclideanShapeEllipsoid c (t • A) ↔ WithLp.ofLp (x-c) ⬝ᵥ (A⁻¹ *ᵥ WithLp.ofLp (x-c)) ≤ t := by
@@ -6778,6 +7626,8 @@ theorem euclideanShapeEllipsoid_smul_iff {n : ℕ} (c x : EuclideanSpace ℝ (Fi
   rw [realMatrix_inv_smul A hA ht.ne',Matrix.smul_mulVec,dotProduct_smul,smul_eq_mul,
     ← div_eq_inv_mul,div_le_one ht]
 
+/-- The inverse central-cut shape quadratic form equals the weighted sum of the squared norm and
+squared normal component divided by `n^2`. -/
 theorem euclideanCentralCutShape_inverse_quadratic {n : ℕ} (hn : 2 ≤ n)
     (u v : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) :
     WithLp.ofLp v ⬝ᵥ ((euclideanCentralCutShape u)⁻¹ *ᵥ WithLp.ofLp v) =
@@ -6789,6 +7639,9 @@ theorem euclideanCentralCutShape_inverse_quadratic {n : ℕ} (hn : 2 ≤ n)
   rw [real_inner_comm v u]
   ring
 
+/-- In dimension at least two, an approximate central cut with nonnegative `η` and shift factor
+between `1 - η` and one retains the unit half-ball after inflating the shape by `(1 + η /
+n)^2`. -/
 theorem euclideanApproxCentralCut_contains {n : ℕ} (hn : 2 ≤ n)
     (u x : EuclideanSpace ℝ (Fin n)) (hu : ‖u‖ = 1) (hx : ‖x‖ ≤ 1) (hcut : 0 ≤ ⟪u,x⟫_ℝ)
     {η θ : ℝ} (hη : 0 ≤ η) (hθlo : 1-η ≤ θ) (hθhi : θ ≤ 1) :
@@ -6806,6 +7659,9 @@ theorem euclideanApproxCentralCut_contains {n : ℕ} (hn : 2 ≤ n)
     field_simp
   rwa [heq]
 
+/-- In dimension at least two, a positive definite ellipsoid cut with nonzero normal and
+normalization ratio between `1 - η` and one retains the original half-ellipsoid after shape
+inflation by `(1 + η / n)^2`, for nonnegative `η`. -/
 theorem euclideanApproxCut_retains {n : ℕ} (hn : 2 ≤ n)
     (A : Matrix (Fin n) (Fin n) ℝ) (hA : A.PosDef) (c x : EuclideanSpace ℝ (Fin n))
     {g : EuclideanSpace ℝ (Fin n)} (hg : g ≠ 0) {r η : ℝ} (hr : 0 < r) (hη : 0 ≤ η)
@@ -6859,11 +7715,15 @@ theorem euclideanApproxCut_retains {n : ℕ} (hn : 2 ≤ n)
   rw [hpoint,hcenter,hshape] at hh
   exact hh
 
+/-- Coercing a rational ellipsoid quadratic form to the reals equals evaluating the real
+embedded shape and vector. -/
 theorem rationalEllipsoid_quadratic_real {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (g : Fin n → ℚ) :
     ((g ⬝ᵥ (A *ᵥ g) : ℚ) : ℝ) =
       (fun k => (g k : ℝ)) ⬝ᵥ (rationalEllipsoidShapeReal A *ᵥ (fun k => (g k : ℝ))) := by
   simp [rationalEllipsoidShapeReal,Matrix.mulVec,dotProduct]
 
+/-- The embedded rational ellipsoid cut center equals the approximate real cut center using the
+selected rational square root upper bound. -/
 theorem rationalEllipsoidCutCenter_real {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (c g : Fin n → ℚ) (η : ℚ) :
     (WithLp.toLp 2 (fun k => (rationalEllipsoidCutCenter A c g η k : ℝ)) : EuclideanSpace ℝ (Fin n)) =
       euclideanApproxCutCenter (WithLp.toLp 2 (fun k => (c k : ℝ))) (rationalEllipsoidShapeReal A)
@@ -6871,6 +7731,8 @@ theorem rationalEllipsoidCutCenter_real {n : ℕ} (A : Matrix (Fin n) (Fin n) �
   ext k
   simp [rationalEllipsoidCutCenter,euclideanApproxCutCenter,euclideanMatrixApply,rationalEllipsoidShapeReal,Matrix.mulVec,dotProduct]
 
+/-- Embedding the inflated rational cut shape gives the real cut shape scaled by `(1 + η /
+n)^2`. -/
 theorem rationalEllipsoidInflatedShape_real {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (g : Fin n → ℚ) (η : ℚ) :
     rationalEllipsoidShapeReal (rationalEllipsoidInflatedShape A g η) =
       (1+(η : ℝ)/(n : ℝ))^2 • euclideanEllipsoidCutShape (rationalEllipsoidShapeReal A)
@@ -6879,6 +7741,8 @@ theorem rationalEllipsoidInflatedShape_real {n : ℕ} (A : Matrix (Fin n) (Fin n
   ext i j
   simp [rationalEllipsoidShapeReal,rationalEllipsoidInflatedShape]
 
+/-- A rational shape with positive definite real embedding has positive quadratic value on every
+nonzero rational normal. -/
 theorem rationalEllipsoid_quadratic_pos {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ)
     (hA : (rationalEllipsoidShapeReal A).PosDef) (g : Fin n → ℚ) (hg : ∃ k, g k ≠ 0) :
     0 < g ⬝ᵥ (A *ᵥ g) := by
@@ -6892,6 +7756,10 @@ theorem rationalEllipsoid_quadratic_pos {n : ℕ} (A : Matrix (Fin n) (Fin n) �
   rw [← rationalEllipsoid_quadratic_real] at hs
   exact_mod_cast hs
 
+/-- In dimension at least two, a rational approximate cut with nonzero normal and positive
+tolerance preserves positive definiteness and retains the original half-ellipsoid. Its
+positive determinant is bounded by `(1 + η / n)^(2 * n) * n / (n + 1)` times the original
+determinant. -/
 theorem rationalEllipsoidApproxCut_correct {n : ℕ} (hn : 2 ≤ n)
     (A : Matrix (Fin n) (Fin n) ℚ) (hA : (rationalEllipsoidShapeReal A).PosDef)
     (c g : Fin n → ℚ) (hg : ∃ k, g k ≠ 0) {η : ℚ} (hη : 0 < η) :
@@ -6928,6 +7796,7 @@ theorem rationalEllipsoidApproxCut_correct {n : ℕ} (hn : 2 ≤ n)
   · intro x hx hc
     exact euclideanApproxCut_retains hn _ hA _ x hg' hr hηr hθlo hθhi hx hc
 
+/-- For nonnegative `z` with `m * z < 1`, the power `(1 + z)^m` is at most `1 / (1 - m * z)`. -/
 theorem one_add_pow_le_inv_sub_mul {z : ℝ} (hz : 0 ≤ z) (m : ℕ) (hm : (m : ℝ)*z < 1) :
     (1+z)^m ≤ 1/(1-(m : ℝ)*z) := by
   have hp : 0 < 1+z := by linarith
@@ -6945,6 +7814,8 @@ theorem one_add_pow_le_inv_sub_mul {z : ℝ} (hz : 0 ≤ z) (m : ℕ) (hm : (m :
   rw [hprod] at hh
   exact (le_div_iff₀ (by linarith : 0 < 1-(m : ℝ)*z)).mpr hh
 
+/-- In dimension at least two, the center-rounding inflation and central-cut contraction
+together are bounded by `1 - 1 / (2 * (n + 1))`. -/
 theorem ellipsoid_center_inflation_factor {n : ℕ} (hn : 2 ≤ n) :
     (1+1/(16*(n : ℝ)^2))^(2*n) * ((n : ℝ)/((n : ℝ)+1)) ≤ 1-1/(2*((n : ℝ)+1)) := by
   have hnr : (2 : ℝ) ≤ n := by exact_mod_cast hn
@@ -6972,11 +7843,15 @@ theorem ellipsoid_center_inflation_factor {n : ℕ} (hn : 2 ≤ n) :
   apply (div_le_div_iff₀ (mul_pos h8 hnp) (mul_pos (by norm_num) hnp)).mpr
   nlinarith
 
+/-- The rational ellipsoid step tolerance is positive in dimension at least two. -/
 theorem rationalEllipsoidStepTolerance_pos {n : ℕ} (hn : 2 ≤ n) : 0 < rationalEllipsoidStepTolerance n := by
   unfold rationalEllipsoidStepTolerance
   have hn0 : (0 : ℚ) < n := by exact_mod_cast (lt_of_lt_of_le (by norm_num : 0 < 2) hn)
   positivity
 
+/-- In dimension at least two, the selected step tolerance makes a rational ellipsoid cut with
+nonzero normal retain the original half-ellipsoid and preserve positive definiteness. Its
+positive determinant is at most `1 - 1 / (2 * (n + 1))` times the original determinant. -/
 theorem rationalEllipsoidStep_correct {n : ℕ} (hn : 2 ≤ n)
     (A : Matrix (Fin n) (Fin n) ℚ) (hA : (rationalEllipsoidShapeReal A).PosDef)
     (c g : Fin n → ℚ) (hg : ∃ k, g k ≠ 0) :
@@ -7003,6 +7878,10 @@ theorem rationalEllipsoidStep_correct {n : ℕ} (hn : 2 ≤ n)
   have hh := mul_le_mul_of_nonneg_right (ellipsoid_center_inflation_factor hn) hA.det_pos.le
   exact hbound.trans (by simpa only [mul_assoc] using! hh)
 
+/-- Rounding an ellipsoid update from the rational sublevel oracle preserves positive
+definiteness and retains all sublevel points in the original ellipsoid. The determinant
+stays positive and contracts by the factor `1 - 1 / (2 * (n + 1))`, where `n` is the
+coordinate count. -/
 theorem diamondRationalSublevelOracle_roundedEllipsoidCut {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (q : DiamondRationalCoordinates D E)
@@ -7041,21 +7920,29 @@ end RationalEllipsoidCenter
 
 section BoundedEllipsoidSearch
 
+/-- The center of a rational ellipsoid state constructed from functions is the supplied center
+function. -/
 @[simp] theorem RationalEllipsoidState.center_ofFunctions {n : ℕ} (c : Fin n → ℚ) (A : Matrix (Fin n) (Fin n) ℚ) :
     (RationalEllipsoidState.ofFunctions c A).center = c := by
   funext i
   simp [RationalEllipsoidState.center,RationalEllipsoidState.ofFunctions]
 
+/-- The shape of a rational ellipsoid state constructed from functions is the supplied shape
+matrix. -/
 @[simp] theorem RationalEllipsoidState.shape_ofFunctions {n : ℕ} (c : Fin n → ℚ) (A : Matrix (Fin n) (Fin n) ℚ) :
     (RationalEllipsoidState.ofFunctions c A).shape = A := by
   funext i j
   simp [RationalEllipsoidState.shape,RationalEllipsoidState.ofFunctions]
 
+/-- The center after a rational ellipsoid state cut is the rational cut center computed with the
+selected step tolerance. -/
 @[simp] theorem RationalEllipsoidState.cut_center {n : ℕ} (s : RationalEllipsoidState n) (C : RationalAffineCut n) :
     (s.cut C).center = rationalEllipsoidCutCenter s.shape s.center (fun i => C.coefficients[i]) (rationalEllipsoidStepTolerance n) := by
   funext i
   simp [RationalEllipsoidState.cut,RationalEllipsoidState.center,RationalEllipsoidState.shape,rationalEllipsoidCutCenter,Matrix.mulVec,dotProduct]
 
+/-- The shape after a rational ellipsoid state cut is the inflated rational cut shape computed
+with the selected step tolerance. -/
 @[simp] theorem RationalEllipsoidState.cut_shape {n : ℕ} (s : RationalEllipsoidState n) (C : RationalAffineCut n) :
     (s.cut C).shape = rationalEllipsoidInflatedShape s.shape (fun i => C.coefficients[i]) (rationalEllipsoidStepTolerance n) := by
   funext i j
@@ -7063,6 +7950,7 @@ section BoundedEllipsoidSearch
     Matrix.vecMulVec,Matrix.mulVec,dotProduct]
   ring
 
+/-- A diamond ellipsoid run with budget `k` records at most `k` oracle calls. -/
 theorem diamondEllipsoidRun_calls_le {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (γ : ℚ) (k : ℕ)
     (s : RationalEllipsoidState (diamondDyadicWordCount D E)) : (diamondEllipsoidRun J γ k s).trace.length ≤ k := by
@@ -7074,6 +7962,8 @@ theorem diamondEllipsoidRun_calls_le {D E : ℕ}
     | invalid => simp [diamondEllipsoidRun,hc]
     | cut C => simpa only [diamondEllipsoidRun,hc,List.length_cons] using! Nat.succ_le_succ (ih (s.cut C))
 
+/-- Every entry of a diamond ellipsoid run's trace records the sublevel oracle result at the
+recorded state's center. -/
 theorem diamondEllipsoidRun_trace_oracle {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (γ : ℚ) (k : ℕ)
     (s : RationalEllipsoidState (diamondDyadicWordCount D E)) :
@@ -7091,6 +7981,8 @@ theorem diamondEllipsoidRun_trace_oracle {D E : ℕ}
       · exact hc
       · exact ih _ t ht
 
+/-- For rational Choi data representing a linear map, a diamond ellipsoid run never has invalid
+outcome. -/
 theorem diamondEllipsoidRun_not_invalid {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (k : ℕ)
@@ -7103,6 +7995,8 @@ theorem diamondEllipsoidRun_not_invalid {D E : ℕ} (T : Operator D →ₗ[ℂ] 
     | invalid => exact False.elim ((diamondRationalSublevelOracle_not_invalid T J hJ γ s.center) hc)
     | cut C => simpa only [diamondEllipsoidRun,hc] using! ih (s.cut C)
 
+/-- For rational Choi data representing `T`, a feasible diamond ellipsoid run returns a center
+decoding to diamond dual feasible data with score at most `γ`. -/
 theorem diamondEllipsoidRun_feasible {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (k : ℕ)
@@ -7121,6 +8015,9 @@ theorem diamondEllipsoidRun_feasible {D E : ℕ} (T : Operator D →ₗ[ℂ] Ope
     | invalid => simp [diamondEllipsoidRun,hc]
     | cut C => simpa only [diamondEllipsoidRun,hc] using! ih (s.cut C)
 
+/-- A sublevel oracle cut of a state with positive definite shape preserves positive
+definiteness and retains sublevel points in its region. The shape determinant contracts by
+the factor `1 - 1 / (2 * (n + 1))`, where `n` is the coordinate count. -/
 theorem diamondEllipsoidState_cut_correct {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ)
@@ -7137,6 +8034,8 @@ theorem diamondEllipsoidState_cut_correct {D E : ℕ} (T : Operator D →ₗ[ℂ
   simpa only [RationalEllipsoidState.cut_center,RationalEllipsoidState.cut_shape,
     RationalEllipsoidState.region,diamondRationalCoordinatesReal] using! And.intro hp (And.intro hb hkeep)
 
+/-- For rational Choi data and an initially positive definite shape, a diamond ellipsoid run
+preserves positive definiteness and retains every sublevel point in the initial region. -/
 theorem diamondEllipsoidRun_preserves {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (k : ℕ)
@@ -7157,6 +8056,8 @@ theorem diamondEllipsoidRun_preserves {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
       simp only [diamondEllipsoidRun,hc]
       exact ⟨hfinal,fun x hx hs => hkeep x hx (hstep x hx hs)⟩
 
+/-- The ellipsoid determinant contraction factor `1 - 1 / (2 * (n + 1))` lies strictly between
+zero and one. -/
 theorem ellipsoidContraction_bounds (n : ℕ) : 0 < (1-1/(2*((n : ℝ)+1))) ∧ (1-1/(2*((n : ℝ)+1))) < 1 := by
   have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg _
   have hd : (0 : ℝ) < 2*((n : ℝ)+1) := by positivity
@@ -7164,6 +8065,9 @@ theorem ellipsoidContraction_bounds (n : ℕ) : 0 < (1-1/(2*((n : ℝ)+1))) ∧ 
   have hp : (0 : ℝ) < 1/(2*((n : ℝ)+1)) := one_div_pos.mpr hd
   constructor <;> linarith
 
+/-- For rational Choi data and an initially positive definite shape, the final shape determinant
+is bounded by the initial determinant times the contraction factor raised to the number of
+recorded cuts. -/
 theorem diamondEllipsoidRun_det_bound {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ) (k : ℕ)
@@ -7187,6 +8091,8 @@ theorem diamondEllipsoidRun_det_bound {D E : ℕ} (T : Operator D →ₗ[ℂ] Op
       apply hh.trans
       simpa only [rationalEllipsoidTraceCutCount,pow_succ,mul_assoc] using! hm
 
+/-- An exhausted run with budget `k` has exactly `k` recorded cuts and exactly `k` trace
+entries. -/
 theorem diamondEllipsoidRun_exhausted_counts {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (γ : ℚ) (k : ℕ)
     (s : RationalEllipsoidState (diamondDyadicWordCount D E)) :
@@ -7205,6 +8111,7 @@ theorem diamondEllipsoidRun_exhausted_counts {D E : ℕ}
       simpa [diamondEllipsoidRun,hc,rationalEllipsoidTraceCutCount,List.countP_cons] using!
           And.intro (congrArg Nat.succ ht.1) (congrArg Nat.succ ht.2)
 
+/-- The quadratic form of any real matrix satisfies the parallelogram identity. -/
 theorem euclidean_quadratic_parallelogram {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ)
     (v w : EuclideanSpace ℝ (Fin n)) :
     WithLp.ofLp (v+w) ⬝ᵥ (A *ᵥ WithLp.ofLp (v+w)) +
@@ -7214,6 +8121,8 @@ theorem euclidean_quadratic_parallelogram {n : ℕ} (A : Matrix (Fin n) (Fin n) 
     dotProduct_add,add_dotProduct,dotProduct_sub,sub_dotProduct]
   ring
 
+/-- If a positive definite shape ellipsoid contains a closed ball of positive radius `r`, its
+determinant is at least `r^(2 * n)`. -/
 theorem euclideanShapeEllipsoid_ball_det_lower {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (hA : A.PosDef)
     (c d : EuclideanSpace ℝ (Fin n)) {r : ℝ} (hr : 0 < r)
     (hball : ∀ x : EuclideanSpace ℝ (Fin n), ‖x-c‖ ≤ r → x ∈ euclideanShapeEllipsoid d A) :
@@ -7258,6 +8167,7 @@ theorem euclideanShapeEllipsoid_ball_det_lower {n : ℕ} (A : Matrix (Fin n) (Fi
   rw [mul_one,← mul_assoc,hc,one_mul] at hf
   simpa only [← pow_mul] using! hf
 
+/-- For every integer `m ≥ 2`, `(1 - 1 / m)^m` is at most one half. -/
 theorem one_sub_one_div_pow_le_half {m : ℕ} (hm : 2 ≤ m) :
     (1-1/(m : ℝ))^m ≤ (1/2 : ℝ) := by
   have hmr : (2 : ℝ) ≤ m := by exact_mod_cast hm
@@ -7280,6 +8190,8 @@ theorem one_sub_one_div_pow_le_half {m : ℕ} (hm : 2 ≤ m) :
   rw [hprod] at hh
   linarith
 
+/-- For positive radii, the rational ellipsoid search budget makes the contracted outer
+determinant bound strictly smaller than the inner ball determinant bound. -/
 theorem rationalEllipsoidSearchBudget_det_small (n : ℕ) {R r : ℚ} (hR : 0 < R) (hr : 0 < r) :
     (1-1/(2*((n : ℝ)+1)))^(rationalEllipsoidSearchBudget n R r)*(R : ℝ)^(2*n) < (r : ℝ)^(2*n) := by
   let p := dyadicPrecision ⌈R/r⌉₊
@@ -7312,16 +8224,21 @@ theorem rationalEllipsoidSearchBudget_det_small (n : ℕ) {R r : ℚ} (hR : 0 < 
   have hs := mul_le_mul_of_nonneg_left hb (by norm_num : (0 : ℝ) ≤ 1/2)
   exact (hupper.trans hs).trans_lt (by nlinarith [pow_pos hrr (2*n)])
 
+/-- Embedding a rational scalar multiple of the identity shape gives the corresponding real
+scalar multiple of the identity. -/
 theorem rationalEllipsoidShapeReal_smul_one {n : ℕ} (r : ℚ) :
     rationalEllipsoidShapeReal (r • (1 : Matrix (Fin n) (Fin n) ℚ)) = (r : ℝ) • 1 := by
   ext i j
   by_cases h : i = j <;> simp [rationalEllipsoidShapeReal,h]
 
+/-- For positive initial radius, the diamond ellipsoid initial shape is positive definite. -/
 theorem diamondEllipsoidInitialState_posDef (D E : ℕ) {R : ℚ} (hR : 0 < R) :
     (rationalEllipsoidShapeReal (diamondEllipsoidInitialState D E R).shape).PosDef := by
   rw [diamondEllipsoidInitialState,RationalEllipsoidState.shape_ofFunctions,rationalEllipsoidShapeReal_smul_one,Rat.cast_pow]
   exact Matrix.PosDef.one.smul (sq_pos_of_pos (by exact_mod_cast hR))
 
+/-- For positive initial radius, membership in the initial diamond ellipsoid region is
+equivalent to the coordinate norm being at most that radius. -/
 theorem diamondEllipsoidInitialState_region {D E : ℕ} {R : ℚ} (hR : 0 < R) (x : DiamondRealCoordinates D E) :
     (WithLp.toLp 2 x : EuclideanSpace ℝ (Fin (diamondDyadicWordCount D E))) ∈ (diamondEllipsoidInitialState D E R).region ↔
       diamondCoordinateNorm x ≤ (R : ℝ) := by
@@ -7333,11 +8250,15 @@ theorem diamondEllipsoidInitialState_region {D E : ℕ} {R : ℚ} (hR : 0 < R) (
     euclideanShapeEllipsoid_scalar_ball _ _ (by exact_mod_cast hR),sub_zero]
   rfl
 
+/-- The initial diamond ellipsoid shape determinant is the radius raised to twice the coordinate
+count. -/
 theorem diamondEllipsoidInitialState_det (D E : ℕ) (R : ℚ) :
     (rationalEllipsoidShapeReal (diamondEllipsoidInitialState D E R).shape).det = (R : ℝ)^(2*diamondDyadicWordCount D E) := by
   rw [diamondEllipsoidInitialState,RationalEllipsoidState.shape_ofFunctions,rationalEllipsoidShapeReal_smul_one,
     Rat.cast_pow,Matrix.det_smul,Fintype.card_fin,Matrix.det_one,mul_one,← pow_mul]
 
+/-- If a positive-radius ball lies in both the dual sublevel set and the initial outer ball, the
+diamond ellipsoid run finds a feasible point within the prescribed search budget. -/
 theorem diamondEllipsoidRun_feasible_of_ball {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ : ℚ)
@@ -7374,6 +8295,8 @@ theorem diamondEllipsoidRun_feasible_of_ball {D E : ℕ} (T : Operator D →ₗ[
     have hsmall := rationalEllipsoidSearchBudget_det_small (diamondDyadicWordCount D E) hR hr
     exact False.elim (not_lt_of_ge hlower (hdet.trans_lt hsmall))
 
+/-- For positive input dimension and rational tolerance, the diamond ellipsoid solver succeeds
+at every threshold at least the diamond optimum plus that tolerance. -/
 theorem diamondEllipsoidSolve_feasible_above_optimum {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
@@ -7386,6 +8309,8 @@ theorem diamondEllipsoidSolve_feasible_above_optimum {D E : ℕ} (hD : 0 < D)
   intro γ hγ
   exact diamondEllipsoidRun_feasible_of_ball T J hJ γ hR hr c (hball (γ : ℝ) hγ)
 
+/-- For rational Choi data representing `T`, a feasible diamond ellipsoid solver result gives
+decoded dual feasible data with score at most the requested threshold. -/
 theorem diamondEllipsoidSolve_feasible {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ ε : ℚ)
@@ -7394,18 +8319,25 @@ theorem diamondEllipsoidSolve_feasible {D E : ℕ} (T : Operator D →ₗ[ℂ] O
       (diamondProgram T).dualScore (diamondRationalDecode (diamondEllipsoidSolve J γ ε).state.center) ≤ (γ : ℝ) :=
   diamondEllipsoidRun_feasible T J hJ γ _ _ h
 
+/-- The diamond ellipsoid solver's trace length is at most the rational search budget determined
+by its coordinate count and outer and inner radii. -/
 theorem diamondEllipsoidSolve_calls_le {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (γ ε : ℚ) :
     (diamondEllipsoidSolve J γ ε).trace.length ≤
       rationalEllipsoidSearchBudget (diamondDyadicWordCount D E) (diamondCoordinateOuterRadius J ε) (diamondCoordinateInnerRadius J ε) :=
   diamondEllipsoidRun_calls_le J γ _ _
 
+/-- For rational Choi data representing a linear map, the diamond ellipsoid solver never returns
+an invalid outcome. -/
 theorem diamondEllipsoidSolve_not_invalid {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) (γ ε : ℚ) :
     (diamondEllipsoidSolve J γ ε).outcome ≠ .invalid :=
   diamondEllipsoidRun_not_invalid T J hJ γ _ _
 
+/-- For positive input dimension and rational tolerance, each solver run either returns dual
+feasible data below the requested threshold or exhausts its budget with that threshold
+strictly below the diamond optimum plus the tolerance. -/
 theorem diamondEllipsoidSolve_outcome {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)

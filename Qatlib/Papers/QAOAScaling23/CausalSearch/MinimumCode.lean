@@ -9,6 +9,30 @@ import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedPaid
 import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LawTransport
 import Qatlib.Papers.QAOAScaling23.BudgetPrefix.Budget
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.CostClasses
+
+/-!
+# Clocked minimum finding and descent risk
+
+`minimumCode` repeatedly invokes an oracle and saves returned candidates within a fuel limit.
+The module compares its budgeted execution law with row-based descent, defines failure and
+pre-hit risk, and transfers that risk to the physical controller under matching rank and
+joint-law hypotheses.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `physical_failure_le_prehitRisk`: Under rank-order, joint oracle-row law, and sufficient-fuel
+  hypotheses, the mean failure indicator of the budgeted controller is bounded by the descent
+  pre-hit risk.
+* `native_search_paid_law`: The joint return-value and charge law of `searchCode` is the native
+  scheduled-search trace law paired with `searchFee`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,17 +46,23 @@ open Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
 open BiasedProcess
 variable {I : Type}
 
+/-- Builds a fuel-limited controller that calls the oracle, stops on `none`, and otherwise saves
+the candidate before continuing. -/
 def minimumCode (oracle : I → Code I (Option I)) : ℕ → I → Code I I
   | 0,current => .ret current
   | fuel+1,current => bindCode (oracle current) (fun out => match out with
       | none => .ret current
       | some candidate => .save candidate (fun saved => minimumCode oracle fuel saved))
 
+/-- Pairs a row charge with `none` on a bad outcome and with the corresponding candidate on a
+good outcome. -/
 def rowPayload (rows : (r : ℕ) → Row r)
     (candidate : (r : ℕ) → Fin (rows r).outcomes → I) (r : ℕ)
     (a : Fin (rows r).outcomes) : Option I×ℕ :=
   (if (rows r).bad a then none else some (candidate r a),(rows r).charge a)
 
+/-- If the oracle has no save instructions and its joint value-charge law matches a row payload,
+one controller step has the corresponding budgeted row-sampling law. -/
 theorem minimum_step_law (cost : I → ℝ) (oracle : I → Code I (Option I))
     (hno : ∀ i,NoSave (oracle i)) (rows : (r : ℕ) → Row r)
     (candidate : (r : ℕ) → Fin (rows r).outcomes → I)
@@ -59,11 +89,16 @@ theorem minimum_step_law (cost : I → ℝ) (oracle : I → Code I (Option I))
     | true => simp only [if_true,run,Tree.law,PMF.pure_map,charge]; rfl
   · simp only [hc,if_false,Tree.law]
 
+/-- The probability that a descent trace from rank `r` contains an oracle failure or has charge
+exceeding `B`. -/
 def prehitRisk (rows : (r : ℕ) → Row r) (B r : ℕ) : ℝ :=
   (descend rows r).probability (fun tr => tr.oracleBad=true ∨ B<paid tr)
 
+/-- The indicator that the saved best candidate of a controller result has nonzero rank. -/
 def physicalFailure (rank : I → ℕ) (r : Result I I) : ℝ := if rank r.best=0 then 0 else 1
 
+/-- If rank zero characterizes cost minimizers, every budgeted run starting at rank zero has
+failure indicator zero. -/
 theorem minimum_preserves_minimum (cost : I → ℝ) (rank : I → ℕ)
     (hzero : ∀ i,rank i=0 ↔ ∀ j,cost i≤cost j)
     (oracle : I → Code I (Option I)) (fuel B : ℕ) (current : I)
@@ -74,6 +109,8 @@ theorem minimum_preserves_minimum (cost : I → ℝ) (rank : I → ℕ)
   intro out hout
   simp [physicalFailure,hout,hmin]
 
+/-- Expands pre-hit risk at rank `r + 1` into row probabilities, assigning risk one to bad or
+unaffordable outcomes and recursively evaluating the remaining outcomes. -/
 theorem prehitRisk_step (rows : (r : ℕ) → Row r) (B r : ℕ) :
     prehitRisk rows B (r+1)=∑ a,((rows r).law a).toReal *
       (if (rows r).bad a then 1 else if B<(rows r).charge a then 1
@@ -116,6 +153,9 @@ theorem prehitRisk_step (rows : (r : ℕ) → Row r) (B r : ℕ) :
       simp only [prepend,paid,List.sum_cons,Bool.false_or]
       exact or_congr Iff.rfl (Nat.sub_lt_iff_lt_add' (Nat.le_of_not_gt hc)).symm
 
+/-- Under rank-order, joint oracle-row law, and sufficient-fuel hypotheses, the mean failure
+indicator of the budgeted controller is bounded by the descent pre-hit risk. See
+[ShaydulinEtAl2024]. -/
 theorem physical_failure_le_prehitRisk (cost : I → ℝ) (rank : I → ℕ)
     (hzero : ∀ i,rank i=0 ↔ ∀ j,cost i≤cost j)
     (horder : ∀ i j,rank i<rank j ↔ cost i<cost j)
@@ -172,6 +212,8 @@ theorem physical_failure_le_prehitRisk (cost : I → ℝ) (rank : I → ℕ)
           have hcb : B<(rows r).charge a := by omega
           cases hb : (rows r).bad a <;> simp [hcb,hr]
 
+/-- The joint return-value and charge law of `searchCode` is the native scheduled-search trace
+law paired with `searchFee`. -/
 theorem native_search_paid_law [Fintype I] [DecidableEq I] (cost : I → ℝ) (current : I)
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (valid : I → Bool) (ms : List ℕ) :

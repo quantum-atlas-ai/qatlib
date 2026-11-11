@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformDefs
 import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.LowestPair
+
+/-!
+# Rayleigh bounds for the least ordered eigenvalue
+
+The module compares the least ordered eigenvalue of a finite Hermitian matrix with its quadratic
+form. Applying the inequality to coordinate vectors yields `native_min_le_diagonal`, bounding
+the least eigenvalue by each real diagonal entry [ZhouAnLiu2026].
+
+## Main statements
+
+* `native_min_rayleigh`: The quadratic form is bounded below by the least eigenvalue times the
+  squared vector norm.
+* `native_min_le_diagonal`: The least eigenvalue is at most every real diagonal entry.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,8 @@ open scoped Classical Matrix Matrix.Norms.L2Operator
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- For a finite Hermitian matrix, the real quadratic form at `v` is at least its least ordered
+eigenvalue times `‖v‖²`. -/
 theorem native_min_rayleigh {A : Matrix I I ℂ} (hA : A.IsHermitian) (v : EuclideanSpace ℂ I) :
     hA.eigenvalues₀ ⟨Fintype.card I-1,by have :=Fintype.card_pos (α:=I);omega⟩*‖v‖^2 ≤
       (inner ℂ v (A.toEuclideanLin v)).re := by
@@ -27,6 +48,8 @@ theorem native_min_rayleigh {A : Matrix I I ℂ} (hA : A.IsHermitian) (v : Eucli
   change j.val≤Fintype.card I-1
   omega
 
+/-- The least ordered eigenvalue of a finite Hermitian matrix is at most the real part of each
+diagonal entry. -/
 theorem native_min_le_diagonal {A : Matrix I I ℂ} (hA : A.IsHermitian) (i : I) :
     hA.eigenvalues₀ ⟨Fintype.card I-1,by have :=Fintype.card_pos (α:=I);omega⟩≤(A i i).re := by
   have h:=native_min_rayleigh hA (PiLp.single 2 i (1:ℂ))

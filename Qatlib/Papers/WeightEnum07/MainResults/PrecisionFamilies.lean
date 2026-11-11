@@ -10,6 +10,27 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Order.Filter.Basic
 
+/-!
+# Modular orders and fixed-precision families
+
+The multiplicative order `ordMod` of `q` modulo `q ^ k - 1` is exactly `k` for `q ≥ 2` and
+positive `k`. The module also establishes arbitrarily large exponents satisfying the stated
+fixed-precision inequality.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `ordMod_self`: The multiplicative order of `q` modulo `q ^ k - 1` is `k` for `q ≥ 2` and
+  positive `k`.
+* `exists_precision_exponent`: For `q ≥ 2` and `0 < ε < 1`, arbitrarily large natural exponents
+  `k` satisfy `ε ≤ q ^ (k / 2 - 1) / 4`, with the exponent computed in natural numbers.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,6 +38,7 @@ namespace Qatlib.Papers.WeightEnum07.MainResults
 
 open Filter
 
+/-- For `q ≥ 2` and positive `k`, the numbers `q` and `q ^ k - 1` are coprime. -/
 lemma coprime_pow_sub_one {q k : ℕ} (hq : 2 ≤ q) (hk : 1 ≤ k) : Nat.Coprime q (q ^ k - 1) := by
   rw [Nat.coprime_iff_gcd_eq_one]
   have hqk_ge : 1 ≤ q ^ k := le_trans (by omega : 1 ≤ q) (le_self_pow (by omega) (by omega))
@@ -33,8 +55,11 @@ lemma coprime_pow_sub_one {q k : ℕ} (hq : 2 ≤ q) (hk : 1 ≤ k) : Nat.Coprim
   rw [h5] at h4
   exact Nat.dvd_one.mp h4
 
+/-- The multiplicative order of the unit represented by `q` modulo `n`. -/
 def ordMod (q n : ℕ) (h : Nat.Coprime q n) : ℕ := orderOf (ZMod.unitOfCoprime q h)
 
+/-- The multiplicative order of `q` modulo `q ^ k - 1` is `k` for `q ≥ 2` and positive `k`. See
+[GeraciVanBussel2007]. -/
 theorem ordMod_self {q k : ℕ} (hq : 2 ≤ q) (hk : 1 ≤ k) :
     ordMod q (q ^ k - 1) (coprime_pow_sub_one hq hk) = k := by
   classical
@@ -72,6 +97,8 @@ theorem ordMod_self {q k : ℕ} (hq : 2 ≤ q) (hk : 1 ≤ k) :
     omega
   exact absurd (Nat.le_of_dvd hpos hdvd) (by omega)
 
+/-- For `q ≥ 2` and `0 < ε < 1`, arbitrarily large natural exponents `k` satisfy `ε ≤ q ^ (k / 2
+- 1) / 4`, with the exponent computed in natural numbers. See [GeraciVanBussel2007]. -/
 theorem exists_precision_exponent {q : ℕ} (hq : 2 ≤ q) {ε : ℝ} (_hε0 : 0 < ε) (_hε1 : ε < 1) :
     ∀ K : ℕ, ∃ k : ℕ, K ≤ k ∧ ε ≤ (q : ℝ) ^ (k / 2 - 1) / 4 := by
   intro K

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianModel.SpinPath
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.DensityMargin
+
+/-!
+# Overlap gap obstructions for spin readout paths
+
+The spin readout path inherits the continuous overlap crossing argument in both total energy and
+density units. `spinUniformNear_subset_failures` expresses uniform energy proximity as a subset
+of overlap gap, nonzero path, or endpoint decorrelation failures, and
+`gaussian_spin_uniform_success_le_failures` bounds its Gaussian probability. These statements
+connect the spin dynamics to the conditional obstruction associated with [GohMuller2026].
+
+## Main statements
+
+* `actual_spin_density_obstruction`: For `N > 0`, the density ensemble overlap gap condition
+  with `ν₁ < ν₂ < 1` forces a nonzero spin path with endpoint overlap at most `ν₁` to exceed the
+  interpolated cube minimum density plus `μ` somewhere. See [GohMuller2026].
+* `gaussian_spin_uniform_success_le_failures`: For `ν₁ < ν₂ < 1`, the `jointLaw` probability of
+  uniform spin energy proximity is at most the sum of the overlap gap, nonzero path, and
+  endpoint decorrelation failure probabilities.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +45,9 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Gaussian
 
 namespace Qatlib.Papers.OverlapGapGoh26.OgpBridge.SpinObstruction
 
+/-- Under the ensemble overlap gap condition with `ν₁ < ν₂ < 1`, a nonzero spin path with
+endpoint overlap at most `ν₁` exceeds the interpolated cube minimum plus `μ` at some
+parameter. See [GohMuller2026]. -/
 theorem actual_spin_ogp_obstruction {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ)
     (A B : Tensor (r+1) N) (seed : Fin N → ℝ) (μ ν₁ ν₂ : ℝ)
     (hogp : ensembleOGP A B μ ν₁ ν₂) (hgap : ν₁<ν₂) (hhigh : ν₂<1)
@@ -39,6 +66,9 @@ theorem actual_spin_ogp_obstruction {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T :
     (fun i => spinPath_cube M s T A B seed τ i) (hn 0 hz) (hn τ hτ)
   rcases hb with hb | hb <;> linarith
 
+/-- For `N > 0`, the density ensemble overlap gap condition with `ν₁ < ν₂ < 1` forces a nonzero
+spin path with endpoint overlap at most `ν₁` to exceed the interpolated cube minimum density
+plus `μ` somewhere. See [GohMuller2026]. -/
 theorem actual_spin_density_obstruction {r N : ℕ} (hN : 0<N)
     (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (A B : Tensor (r+1) N)
     (seed : Fin N → ℝ) (μ ν₁ ν₂ : ℝ)
@@ -56,18 +86,24 @@ theorem actual_spin_density_obstruction {r N : ℕ} (hN : 0<N)
   have h := (div_lt_div_of_pos_right he hn)
   convert! h using 1; field_simp
 
+/-- The event that the spin readout energy stays at most `μ` above the interpolated cube minimum
+throughout `[0,1]`. -/
 def spinUniformNearEvent {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (μ : ℝ) : Set (Sample r N) :=
   {w | ∀ τ∈Set.Icc (0:ℝ) 1,
     tensorEnergy (interpolate w.1.1 w.1.2 τ) (spinPath M s T w.1.1 w.1.2 w.2 τ).ofLp≤
       cubeOpt (interpolate w.1.1 w.1.2 τ)+μ}
 
+/-- The event that the spin readout path is nonzero at every interpolation parameter in `[0,1]`. -/
 def spinNonzeroEvent {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) : Set (Sample r N) :=
   {w | ∀ τ∈Set.Icc (0:ℝ) 1,spinPath M s T w.1.1 w.1.2 w.2 τ≠0}
 
+/-- The event that the spin readout endpoints have normalized overlap at most `ν`. -/
 def spinDecorrelationEvent {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (ν : ℝ) : Set (Sample r N) :=
   {w | normalizedOverlap (spinPath M s T w.1.1 w.1.2 w.2 0)
       (spinPath M s T w.1.1 w.1.2 w.2 1)≤ν}
 
+/-- For `ν₁ < ν₂ < 1`, uniform spin energy proximity implies failure of the ensemble overlap
+gap, the nonzero path condition, or endpoint decorrelation at threshold `ν₁`. -/
 theorem spinUniformNear_subset_failures {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ)
     (μ ν₁ ν₂ : ℝ) (hgap : ν₁<ν₂) (hhigh : ν₂<1) :
     spinUniformNearEvent (r:=r) (N:=N) M s T μ ⊆
@@ -82,6 +118,9 @@ theorem spinUniformNear_subset_failures {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) 
     · exact Or.inl (Or.inr hn)
   · exact Or.inl (Or.inl ho)
 
+/-- For `ν₁ < ν₂ < 1`, the `jointLaw` probability of uniform spin energy proximity is at most
+the sum of the overlap gap, nonzero path, and endpoint decorrelation failure probabilities.
+See [GohMuller2026]. -/
 theorem gaussian_spin_uniform_success_le_failures {r N : ℕ} (M : ℝ) (v : NNReal)
     (s : ℕ → ℝ) (T : ℕ) (μ ν₁ ν₂ : ℝ) (hgap : ν₁<ν₂) (hhigh : ν₂<1) :
     jointLaw M v r N (spinUniformNearEvent M s T μ)≤

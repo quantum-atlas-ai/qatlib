@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.QueryBudgetSuccess
+
+/-!
+# Corrected query-budget minimum-finding specification
+
+This module defines `Theorem1QueryBudgetCorrected`, a proposition packaging a corrected
+minimum-finding guarantee using `minimumQueryBudget`. It requires success probability between
+one half and one, normalization and budget-local dependence of `minimumBudgetEval`, the explicit
+bound 59√N, and asymptotic square-root growth of the query budget. The motivating
+minimum-finding setting is [DurrHoyer1996].
+
+## Main statements
+
+* `Theorem1QueryBudgetCorrected`: the combined query-budget specification for minimum finding.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +34,10 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
+/-- The corrected minimum-finding query-budget specification, requiring success probability
+between one half and one, evaluator normalization, dependence only on continuation values
+within the budget, the bound 59√N, and an asymptotic square-root budget bound. This
+proposition concerns the minimum-finding setting of [DurrHoyer1996]. -/
 def Theorem1QueryBudgetCorrected : Prop :=
   (∀ (N : ℕ) (_hN : 0 < N) (α : Type) [LinearOrder α] (T : Fin N → α),
     (1 / 2 : ℝ) ≤ minimumInitialSuccess T (minimumQueryBudget N) ∧

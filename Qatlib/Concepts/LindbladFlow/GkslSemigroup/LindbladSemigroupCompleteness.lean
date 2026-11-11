@@ -9,6 +9,20 @@ import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+
+/-!
+# Assembled Lindblad semigroup and KMS identities
+
+This module packages the finite-dimensional semigroup law, a second-order
+short-time remainder, Kraus representations, trace preservation, and density
+preservation for nonnegative times. It adds KMS-adjoint uniqueness, a
+stationarity implication, and the stationary-state commutator expression for
+the Heisenberg Dirichlet form.
+
+The background is [Lindblad1976], [GoriniKossakowskiSudarshan1976], and
+[Breuer & Petruccione, *The Theory of Open Quantum Systems*][BreuerPetruccione2007].
+`Clause22Complete` specifies the exact package proved here.
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
@@ -24,9 +38,11 @@ namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCompletene
 open Matrix Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 open scoped BigOperators MatrixOrder Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The generator norm bound `2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖^2`. -/
 private noncomputable def lindbladGeneratorBound {D : ℕ} (G : GKSL D) : ℝ :=
   2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2
 
+/-- The complex-linear map defined by the Kraus sum `∑ j, K j * ρ * (K j)ᴴ`. -/
 private noncomputable def krausMap {D : ℕ} (K : Fin (D * D * D * D) → Operator D) :
     Operator D →ₗ[ℂ] Operator D where
   toFun ρ := ∑ j, K j * ρ * (K j)ᴴ
@@ -41,6 +57,8 @@ private noncomputable def krausMap {D : ℕ} (K : Fin (D * D * D * D) → Operat
     refine Finset.sum_congr rfl fun j _ => ?_
     rw [Matrix.mul_smul, Matrix.smul_mul]
 
+/-- The conjunction of semigroup, first-order remainder, Kraus, trace, density-preservation,
+growth, KMS-normal-form, and Choi-positivity properties. -/
 def Clause22 : Prop :=
   (∀ (D : ℕ) (G : GKSL D),
 
@@ -72,6 +90,9 @@ def Clause22 : Prop :=
   (∀ (D E : ℕ) (T : Operator D →ₗ[ℂ] Operator E),
       HasKrausFamily T ↔ (ChoiMatrix T).PosSemidef)
 
+/-- Extends `Clause22` with the KMS-adjoint pairing and uniqueness properties, the
+self-adjointness criterion, stationarity from Heisenberg KMS symmetry, and the stationary
+Dirichlet trace identity. -/
 def Clause22Complete : Prop :=
   Clause22 ∧
   (∀ (D E : ℕ) (ρ : Operator D), ρ.PosDef →
@@ -98,6 +119,8 @@ namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCompletene
 open Matrix Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 open scoped BigOperators MatrixOrder Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- Assemble the semigroup, channel, and KMS-adjoint properties of the given GKSL
+generator; see [Lindblad, quantum dynamical semigroups][Lindblad1976]. -/
 theorem clause1_complete : Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCompleteness.Clause22Complete := by
   exact ⟨Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore.g1,
     (fun D E ρ hρ σ T X Y => kmsAdjointMap_inner hρ σ T X Y),

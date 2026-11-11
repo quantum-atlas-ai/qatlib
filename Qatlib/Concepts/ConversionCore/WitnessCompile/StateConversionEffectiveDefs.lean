@@ -9,6 +9,31 @@ import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
 import Mathlib.Data.Nat.Bitwise
+
+/-!
+# Rational witness data and native register frames
+
+`RationalRectFactorization` packages rectangular rational witness data, with both real-complex
+and rational validity predicates. Diagonal and monomial instances provide concrete examples of
+the filtered factorizations used in [LeeEtAl2011].
+
+The module also defines rational approximation data and native register frames, then proves bit,
+overlap, and Hadamard identities culminating in `nativeTagFlip_frame`. The tag flip is the
+elementary Hadamard-phase-Hadamard construction described by the circuit formalism of
+[NielsenChuang2010].
+
+## Main statements
+
+* `RationalRectFactorization.certValid`: requires bounded witness masses and zero residual.
+* `framePos_injective`: proves distinct state indices have distinct faithful frame positions.
+* `nativeTagFlip_frame`: flips the tag of a clean embedded state.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -32,17 +57,22 @@ open Qatlib
 open Qatlib.Concepts.NumericalWord.MixedWordError
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Rational target and filter matrices for a rectangular filtered factorization problem. -/
 structure RationalRectInstance (R S : Type) (n : ℕ) where
 
   A : Matrix R S ℚ
 
   Z : Fin n → Matrix R S ℚ
 
+/-- Embeds a rational rectangular matrix entrywise into the complex numbers. -/
 def rectComplex {R S : Type} (A : Matrix R S ℚ) : Matrix R S ℂ := fun r s => (A r s : ℂ)
 
+/-- Embeds a family of rational filter matrices entrywise into the complex numbers. -/
 def rectComplexZ {R S : Type} {n : ℕ} (Z : Fin n → Matrix R S ℚ) : Fin n → Matrix R S ℂ :=
   fun j => rectComplex (Z j)
 
+/-- Rational left and right witness vectors of dimension `m`, together with a rational budget
+for the given target and filters. -/
 structure RationalRectFactorization {R S : Type} (n m : ℕ)
     (A : Matrix R S ℚ) (Z : Fin n → Matrix R S ℚ) where
 
@@ -57,33 +87,45 @@ namespace RationalRectFactorization
 variable {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
 variable {n m : ℕ} {A : Matrix R S ℚ} {Z : Fin n → Matrix R S ℚ}
 
+/-- The sum of squared rational coordinates of the left witness at row `r`, viewed as a real
+number. -/
 def massU (F : RationalRectFactorization n m A Z) (r : R) : ℝ :=
   ∑ j, ∑ q, ((F.u j r q * F.u j r q : ℚ) : ℝ)
 
+/-- The sum of squared rational coordinates of the right witness at column `s`, viewed as a real
+number. -/
 def massV (F : RationalRectFactorization n m A Z) (s : S) : ℝ :=
   ∑ j, ∑ q, ((F.v j s q * F.v j s q : ℚ) : ℝ)
 
+/-- The complex difference between a target entry and its filtered witness expansion. -/
 def residual (F : RationalRectFactorization n m A Z) (r : R) (s : S) : ℂ :=
   ((A r s : ℚ) : ℂ) - ∑ j, ((Z j r s : ℚ) : ℂ) *
     ∑ k, ((F.u j r k * F.v j s k : ℚ) : ℂ)
 
+/-- Requires both witness masses to be bounded by the budget and every complex residual to
+vanish. -/
 def certValid (F : RationalRectFactorization n m A Z) : Prop :=
   (∀ r, massU F r ≤ (F.budget : ℝ)) ∧ (∀ s, massV F s ≤ (F.budget : ℝ)) ∧
     (∀ r s, residual F r s = 0)
 
+/-- A decision procedure for the mass bounds and zero-residual conditions in `certValid`. -/
 def certValidDecidable (F : RationalRectFactorization n m A Z) : Decidable (certValid F) := by
   unfold certValid
   infer_instance
 
+/-- The rational sum of squared coordinates of the left witness at row `r`. -/
 def massQRational (F : RationalRectFactorization n m A Z) (r : R) : ℚ :=
   ∑ j, ∑ q, F.u j r q * F.u j r q
 
+/-- The rational sum of squared coordinates of the right witness at column `s`. -/
 def massVRational (F : RationalRectFactorization n m A Z) (s : S) : ℚ :=
   ∑ j, ∑ q, F.v j s q * F.v j s q
 
+/-- The rational difference between a target entry and its filtered witness expansion. -/
 def rationalResidual (F : RationalRectFactorization n m A Z) (r : R) (s : S) : ℚ :=
   A r s - ∑ j, Z j r s * ∑ q, F.u j r q * F.v j s q
 
+/-- The rational mass bounds and zero-residual conditions for a rectangular factorization. -/
 def rationalCertValid (F : RationalRectFactorization n m A Z) : Prop :=
   (∀ r, massQRational F r ≤ F.budget) ∧ (∀ s, massVRational F s ≤ F.budget) ∧
     (∀ r s, rationalResidual F r s = 0)
@@ -95,14 +137,19 @@ instance rationalCertValidDecidable (F : RationalRectFactorization n m A Z) :
 
 end RationalRectFactorization
 
+/-- The one-filter instance with target `Matrix.diagonal a` and the identity matrix as filter. -/
 def diagonalRectInstance {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) :
     RationalRectInstance X X 1 where
   A := Matrix.diagonal a
   Z := fun _ => 1
 
+/-- The supremum norm of the complex-valued function obtained from the rational diagonal
+entries. -/
 def diagonalScaleReal {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) : ℝ :=
   ‖(fun r => (a r : ℂ))‖
 
+/-- The one-dimensional diagonal witness with left coordinates `a r / t`, constant right
+coordinate `t`, and budget `t * t`. -/
 def diagonalRectFactorization {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (t : ℚ) : RationalRectFactorization 1 1
       (diagonalRectInstance a).A (diagonalRectInstance a).Z where
@@ -110,29 +157,42 @@ def diagonalRectFactorization {X : Type} [Fintype X] [DecidableEq X]
   v := fun _ _ _ => t
   budget := t * t
 
+/-- The slot count `2 * Fintype.card X + 1` for diagonal witnesses. -/
 def diagonalWitnessSlots {X : Type} [Fintype X] : ℕ :=
   2 * Fintype.card X + 1
 
+/-- Expands the diagonal witness slot count as twice the index cardinality plus one. -/
 theorem diagonalWitnessSlots_eq {X : Type} [Fintype X] :
     diagonalWitnessSlots (X := X) = 2 * Fintype.card X + 1 := rfl
 
+/-- Converts a synthesis word to a native program of the same width by mapping its letters to
+local steps. -/
 def synthWordNativeProgram (p : SynthWord) : SourceNativeProgram where
   width := p.width
   steps := p.letters.map (fun g => SourceNativeStep.local g)
 
+/-- The synthesis primitive predicate agrees with the source fixed-gate predicate on local QFT
+gates. -/
 theorem isFixedPrimitive_iff_sourceFixedGate {w : ℕ} (g : LocalQFTGate w) :
     IsFixedPrimitive g ↔ sourceFixedGate g := by
   cases g <;> simp [IsFixedPrimitive, sourceFixedGate]
 
+/-- The native branch-tag wire index following the address and value registers. -/
 def nativeTagWire (d : SourceRationalProblem) : ℕ :=
   sourceAddressBits d + sourceValueBits d
 
+/-- The register width containing the address bits, value bits, branch tag, and encoded state
+index. -/
 def nativeFrameWidth (d : SourceRationalProblem) : ℕ :=
   sourceAddressBits d + sourceValueBits d + 1 + Nat.clog 2 (d.dimension + 1)
 
+/-- The three-gate Hadamard-phase-Hadamard word on wire `a` using a negative dyadic phase of
+order one. -/
 def nativeFlipWord (w a : ℕ) (ha : a < w) : List (LocalQFTGate w) :=
   [.h ⟨a, ha⟩, .cp ⟨a, ha⟩ ⟨a, ha⟩ 1 true, .h ⟨a, ha⟩]
 
+/-- The native program that applies the three-gate flip word to the branch tag, with width
+`nativeFrameWidth d + k`. -/
 def rationalToNativeProgram (d : SourceRationalProblem) (k : ℕ) : SourceNativeProgram where
   width := nativeFrameWidth d + k
   steps := (nativeFlipWord (nativeFrameWidth d + k) (nativeTagWire d) (by
@@ -140,6 +200,8 @@ def rationalToNativeProgram (d : SourceRationalProblem) (k : ℕ) : SourceNative
       omega)).map
     (fun g => SourceNativeStep.local g)
 
+/-- A selected column for each row and a finite support of active rows, without an injectivity
+requirement. -/
 structure PartialPermutation (R S : Type) [Fintype R] [DecidableEq R] where
 
   col : R → S
@@ -150,26 +212,38 @@ namespace PartialPermutation
 
 variable {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
 
+/-- The rational matrix with entry one at each supported row's selected column and zero
+elsewhere. -/
 def matrix (P : PartialPermutation R S) : Matrix R S ℚ := fun r s =>
   if r ∈ P.support ∧ P.col r = s then 1 else 0
 
+/-- The complex matrix with entry one at each supported row's selected column and zero
+elsewhere. -/
 def complexMatrix (P : PartialPermutation R S) : Matrix R S ℂ := fun r s =>
   if r ∈ P.support ∧ P.col r = s then 1 else 0
 
+/-- The rational matrix placing the row amplitude at each supported row's selected column and
+zero elsewhere. -/
 def monomial (P : PartialPermutation R S) (amp : R → ℚ) : Matrix R S ℚ := fun r s =>
   if r ∈ P.support ∧ P.col r = s then amp r else 0
 
+/-- The complex matrix placing the row amplitude at each supported row's selected column and
+zero elsewhere. -/
 def complexMonomial (P : PartialPermutation R S) (amp : R → ℂ) : Matrix R S ℂ := fun r s =>
   if r ∈ P.support ∧ P.col r = s then amp r else 0
 
 end PartialPermutation
 
+/-- The one-filter instance consisting of a rational partial-monomial target and its underlying
+support matrix. -/
 def monomialRectInstance {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ) :
     RationalRectInstance R S 1 where
   A := P.monomial amp
   Z := fun _ => P.matrix
 
+/-- The one-dimensional partial-monomial witness with supported left coordinates `amp r / t`,
+constant right coordinate `t`, and budget `t * t`. -/
 def monomialRectFactorization {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     [DecidableEq S] (P : PartialPermutation R S) (amp : R → ℚ) (t : ℚ) :
     RationalRectFactorization 1 1 (monomialRectInstance P amp).A
@@ -178,9 +252,12 @@ def monomialRectFactorization {R S : Type} [Fintype R] [DecidableEq R] [Fintype 
   v := fun _ _ _ => t
   budget := t * t
 
+/-- The supremum norm of the complex amplitudes restricted to the supported rows. -/
 def monomialScaleReal {R S : Type} [Fintype R] [DecidableEq R] (P : PartialPermutation R S)
     (amp : R → ℚ) : ℝ := ‖(fun r => if r ∈ P.support then (amp r : ℂ) else 0)‖
 
+/-- A completed coordinate-access computation supplies rational real and imaginary parts within
+`2⁻ʳ` of the requested coordinate. -/
 theorem sourceCoordinateAfter_pair {d : SourceRealProblem} {x : Fin d.count}
     {h : Fin d.dimension} {target : Bool} {r t : ℕ}
     (hc : sourceCoordinateAfter d x h target r t) :
@@ -190,6 +267,8 @@ theorem sourceCoordinateAfter_pair {d : SourceRealProblem} {x : Fin d.count}
   obtain ⟨cfg, a, b, h1, h2, h3, h4⟩ := hc
   exact ⟨a, b, h4⟩
 
+/-- Chooses rational real and imaginary approximations to a start or target coordinate using the
+real-access hypothesis. -/
 def realCoordinateApprox (d : SourceRealProblem) (hacc : sourceRealAccess d)
     (x : Fin d.count) (h : Fin d.dimension) (target : Bool) (r : ℕ) : ℚ × ℚ :=
   let ht : sourceCoordinateAfter d x h target r (Classical.choose (hacc x h target r)) :=
@@ -197,6 +276,8 @@ def realCoordinateApprox (d : SourceRealProblem) (hacc : sourceRealAccess d)
   let hab : ∃ _ : ℚ, ∃ _ : ℚ, _ := sourceCoordinateAfter_pair ht
   (Classical.choose hab, Classical.choose (Classical.choose_spec hab))
 
+/-- Replaces the start and target coordinates of a real problem by chosen rational
+approximations at precision `R`, preserving its structural data. -/
 def rationalizeReal (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     SourceRationalProblem where
   count := d.count
@@ -207,26 +288,32 @@ def rationalizeReal (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ
   start := fun x h => realCoordinateApprox d hacc x h false R
   target := fun x h => realCoordinateApprox d hacc x h true R
 
+/-- Applies the rational native-program construction to the coordinate approximation of a real
+problem at precision `k`. -/
 def realToNativeProgram (d : SourceRealProblem) (hacc : sourceRealAccess d) (k : ℕ) :
     SourceNativeProgram :=
   rationalToNativeProgram (rationalizeReal d hacc k) k
 
+/-- The rational matrix of real inner products of the approximated start-state coordinates. -/
 def rationalGram (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     Matrix (Fin d.count) (Fin d.count) ℚ :=
   fun x y => Finset.univ.sum (fun h : Fin d.dimension =>
     ((rationalizeReal d hacc R).start x h).1 * ((rationalizeReal d hacc R).start y h).1
       + ((rationalizeReal d hacc R).start x h).2 * ((rationalizeReal d hacc R).start y h).2)
 
+/-- The one-filter rational instance with target `rationalGram` and identity filter. -/
 def rationalGramInstance (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ) :
     RationalRectInstance (Fin d.count) (Fin d.count) 1 where
   A := rationalGram d hacc R
   Z := fun _ => 1
 
+/-- A power `2 ^ i` divides `2 ^ m` whenever `i ≤ m`. -/
 theorem pow_dvd_pow (i m : ℕ) (h : i ≤ m) : 2 ^ i ∣ 2 ^ m := by
   obtain ⟨r, rfl⟩ : ∃ r, m = i + r := ⟨m - i, by omega⟩
   refine ⟨2 ^ r, ?_⟩
   rw [Nat.pow_add]
 
+/-- Dividing `2 ^ m` by `2 ^ i` gives `2 ^ (m - i)` when `i ≤ m`. -/
 theorem pow_div_pow (i m : ℕ) (h : i ≤ m) : 2 ^ m / 2 ^ i = 2 ^ (m - i) := by
   obtain ⟨r, rfl⟩ : ∃ r, m = i + r := ⟨m - i, by omega⟩
   have h1 : 2 ^ (i + r) / 2 ^ i = 2 ^ r := by
@@ -234,11 +321,14 @@ theorem pow_div_pow (i m : ℕ) (h : i ≤ m) : 2 ^ m / 2 ^ i = 2 ^ (m - i) := b
     exact Nat.mul_div_cancel_left (2 ^ r) (by positivity : 0 < 2 ^ i)
   rw [h1, Nat.add_sub_cancel_left]
 
+/-- Every positive power of two is divisible by two. -/
 theorem pow_two_mod_two (m : ℕ) (hm : 0 < m) : 2 ^ m % 2 = 0 := by
   obtain ⟨r, rfl⟩ : ∃ r, m = r + 1 := ⟨m - 1, by omega⟩
   rw [Nat.pow_add, Nat.mul_mod, Nat.mul_mod]
   simp
 
+/-- Multiplication by `2 ^ k` shifts binary digits upward by `k`, filling lower positions with
+false bits. -/
 theorem testBit_mul_pow_two (n k j : ℕ) :
     (n * 2 ^ k).testBit j = if j < k then false else n.testBit (j - k) := by
   by_cases hjk : j < k
@@ -266,6 +356,8 @@ theorem testBit_mul_pow_two (n k j : ℕ) :
       rw [Nat.mul_comm, Nat.mul_div_cancel_left n (by positivity : 0 < 2 ^ k)]
     rw [hshift, hquot, if_neg hjk]
 
+/-- The least significant bit of `2 * h + 1` is true, and each higher bit is the preceding bit
+of `h`. -/
 theorem testBit_two_mul_add_one (h j : ℕ) :
     (2 * h + 1).testBit j = if j = 0 then true else h.testBit (j - 1) := by
   by_cases hj : j = 0
@@ -282,18 +374,23 @@ theorem testBit_two_mul_add_one (h j : ℕ) :
     have hquot : (2 * h + 1) / 2 = h := by omega
     rw [hshift, hquot, if_neg hj]
 
+/-- The integer encoding of state index `h` above a false tag at position `a`. -/
 def frameFalseN (a h : ℕ) : ℕ := h * 2 ^ (a + 1)
 
+/-- The integer encoding of state index `h` above a true tag at position `a`. -/
 def frameTrueN (a h : ℕ) : ℕ := 2 ^ a + h * 2 ^ (a + 1)
 
+/-- Rewrites the true-tag encoding as `(1 + 2 * h) * 2 ^ a`. -/
 theorem frameTrueN_eq (a h : ℕ) : frameTrueN a h = (1 + 2 * h) * 2 ^ a := by
   rw [frameTrueN, Nat.pow_succ]
   ring
 
+/-- The tag bit of the false-tag integer encoding is false. -/
 theorem testBit_frameFalseN (a h : ℕ) : (frameFalseN a h).testBit a = false := by
   rw [frameFalseN, testBit_mul_pow_two h (a + 1) a]
   simp [not_lt.2 (by omega : ¬ a < a + 1)]
 
+/-- The tag bit of the true-tag integer encoding is true. -/
 theorem testBit_frameTrueN (a h : ℕ) : (frameTrueN a h).testBit a = true := by
   rw [frameTrueN_eq, Nat.testBit_eq_decide_div_mod_eq]
   have hdiv : 2 ^ a * (1 + 2 * h) / 2 ^ a = 1 + 2 * h := by
@@ -304,6 +401,7 @@ theorem testBit_frameTrueN (a h : ℕ) : (frameTrueN a h).testBit a = true := by
   rw [hmod]
   rfl
 
+/-- The true-tag and false-tag encodings have equal bits at every position other than the tag. -/
 theorem testBit_frame_off (a h i : ℕ) (hi : i ≠ a) :
     (frameTrueN a h).testBit i = (frameFalseN a h).testBit i := by
   by_cases hia : i < a
@@ -373,16 +471,20 @@ theorem testBit_frame_off (a h i : ℕ) (hi : i ≠ a) :
       rw [if_neg (by omega : i - a ≠ 0), hEq]
     rw [hX, hY]
 
+/-- Negates the bit at wire `a` in a register and preserves all other bits. -/
 def flipBit {w : ℕ} (a : Fin w) (y : Reg w) : Reg w :=
   fun i => if i = a then !y i else y i
 
+/-- Evaluating a flipped register at the flipped wire gives the negation of the original bit. -/
 theorem flipBit_apply_self {w : ℕ} (a : Fin w) (y : Reg w) : flipBit a y a = !y a := by
   simp [flipBit]
 
+/-- Flipping wire `a` preserves the bit at every different wire. -/
 theorem flipBit_apply_of_ne {w : ℕ} (a i : Fin w) (y : Reg w) (h : i ≠ a) :
     flipBit a y i = y i := by
   simp [flipBit, h]
 
+/-- Flipping the same register bit twice returns the original register. -/
 theorem flipBit_involutive {w : ℕ} (a : Fin w) (y : Reg w) : flipBit a (flipBit a y) = y := by
   funext i
   by_cases hi : i = a
@@ -390,6 +492,7 @@ theorem flipBit_involutive {w : ℕ} (a : Fin w) (y : Reg w) : flipBit a (flipBi
     simp [flipBit]
   · simp [flipBit, hi]
 
+/-- Flipping a register bit changes the register. -/
 theorem flipBit_ne_self {w : ℕ} (a : Fin w) (y : Reg w) : flipBit a y ≠ y := by
   intro h
   have h1 : y a = !y a := by
@@ -398,19 +501,23 @@ theorem flipBit_ne_self {w : ℕ} (a : Fin w) (y : Reg w) : flipBit a y ≠ y :=
     exact h2
   cases hy : y a <;> simp at h1
 
+/-- The predicate that two registers agree at every wire other than `a`. -/
 def agreeOff {w : ℕ} (a : Fin w) (p q : Reg w) : Prop :=
   ∀ i : Fin w, i ≠ a → p i = q i
 
+/-- Agreement away from a wire is symmetric. -/
 theorem agreeOff_symm {w : ℕ} (a : Fin w) {p q : Reg w} (h : agreeOff a p q) :
     agreeOff a q p := by
   intro i hi
   exact (h i hi).symm
 
+/-- Agreement away from a wire is transitive. -/
 theorem agreeOff_trans {w : ℕ} (a : Fin w) {p q r : Reg w} (h₁ : agreeOff a p q)
     (h₂ : agreeOff a q r) : agreeOff a p r := by
   intro i hi
   exact (h₁ i hi).trans (h₂ i hi)
 
+/-- Registers agreeing away from `a` and having opposite bits at `a` differ by `flipBit a`. -/
 theorem eq_flipBit_of_agreeOff {w : ℕ} (a : Fin w) {q y : Reg w}
     (h : agreeOff a q y) (hbit : q a = !y a) : q = flipBit a y := by
   funext i
@@ -421,6 +528,7 @@ theorem eq_flipBit_of_agreeOff {w : ℕ} (a : Fin w) {q y : Reg w}
     have h2 := flipBit_apply_of_ne a i y hi
     simp [flipBit, hi, h1]
 
+/-- Two registers agree away from `a` exactly when they are equal or differ by a flip at `a`. -/
 theorem agreeOff_iff {w : ℕ} (a : Fin w) (q y : Reg w) :
     agreeOff a q y ↔ y = q ∨ y = flipBit a q := by
   constructor
@@ -444,6 +552,7 @@ theorem agreeOff_iff {w : ℕ} (a : Fin w) (q y : Reg w) :
     · intro i hi
       simp [flipBit, hi]
 
+/-- A finite complex sum multiplied by the equality indicator of `P` evaluates to `f P`. -/
 theorem sum_indicator_single {ι : Type} [Fintype ι] [DecidableEq ι]
     (P : ι) (f : ι → ℂ) :
     (∑ r : ι, f r * (if r = P then 1 else 0)) = f P := by
@@ -455,6 +564,8 @@ theorem sum_indicator_single {ι : Type} [Fintype ι] [DecidableEq ι]
   · intro hP
     exact absurd (Finset.mem_univ P) hP
 
+/-- Summing a function of the bit at `a` over registers agreeing with `q` elsewhere gives the
+two possible bit values. -/
 theorem fiber_sum {w : ℕ} (a : Fin w) (q : Reg w) (c : Bool → ℂ) :
     (∑ r : Reg w, if agreeOff a q r then c (r a) else 0) = c (q a) + c (! q a) := by
   classical
@@ -468,6 +579,8 @@ theorem fiber_sum {w : ℕ} (a : Fin w) (q : Reg w) (c : Bool → ℂ) :
   rw [hset]
   rw [Finset.sum_pair ((flipBit_ne_self a q).symm), flipBit_apply_self]
 
+/-- The sum over registers agreeing off `a` with both endpoints vanishes unless the endpoints
+agree off `a`, and otherwise has two terms. -/
 theorem fiber_sum2 {w : ℕ} (a : Fin w) (q y : Reg w) (c : Bool → ℂ) :
     (∑ r : Reg w, if agreeOff a q r ∧ agreeOff a r y then c (r a) else 0)
       = (if agreeOff a q y then c (q a) + c (! q a) else 0) := by
@@ -496,20 +609,27 @@ theorem fiber_sum2 {w : ℕ} (a : Fin w) (q y : Reg w) (c : Bool → ℂ) :
     rw [hsum]
     simp [hy]
 
+/-- The branch-tag wire index equal to the sum of the address-bit and value-bit counts. -/
 def tagWire (d : SourceRationalProblem) : ℕ :=
   sourceAddressBits d + sourceValueBits d
 
+/-- The register encoding of a state index above the branch-tag bit, with lower address and
+value bits set to zero. -/
 def framePos (d : SourceRationalProblem) (w : ℕ) (tag : Bool) (h : Fin d.dimension) : Reg w :=
   sourceRegBits w ((if tag then 1 else 0) * 2 ^ (tagWire d) + h.val * 2 ^ (tagWire d + 1))
 
+/-- Expresses a false-tag frame position using `frameFalseN` and `sourceRegBits`. -/
 theorem framePos_false (d : SourceRationalProblem) (w : ℕ) (h : Fin d.dimension) :
     framePos d w false h = sourceRegBits w (frameFalseN (tagWire d) h.val) := by
   simp [framePos, frameFalseN, tagWire]
 
+/-- Expresses a true-tag frame position using `frameTrueN` and `sourceRegBits`. -/
 theorem framePos_true (d : SourceRationalProblem) (w : ℕ) (h : Fin d.dimension) :
     framePos d w true h = sourceRegBits w (frameTrueN (tagWire d) h.val) := by
   simp [framePos, frameTrueN, tagWire]
 
+/-- Flipping the tag wire changes a false-tag frame position into the corresponding true-tag
+position. -/
 theorem framePos_flip (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (h : Fin d.dimension) :
     flipBit ⟨tagWire d, hw⟩ (framePos d w false h) = framePos d w true h := by
@@ -526,6 +646,8 @@ theorem framePos_flip (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     simp only [flipBit, sourceRegBits, if_neg hi]
     rw [testBit_frame_off (tagWire d) h.val i.val hival]
 
+/-- Expands a native clean-state amplitude as the sum of state coordinates weighted by their
+frame-position indicators. -/
 theorem sourceNativeClean_eq (d : SourceRationalProblem) (w : ℕ) (tag : Bool)
     (ψ : QState (Fin d.dimension)) (q : Reg w) :
     sourceNativeClean d w tag ψ q
@@ -558,6 +680,7 @@ theorem sourceNativeClean_eq (d : SourceRationalProblem) (w : ℕ) (tag : Bool)
     simp only [Bool.true_eq_false, ↓reduceIte]
     simp
 
+/-- Register-bit encodings distinguish natural numbers below `2 ^ w`. -/
 theorem sourceRegBits_injective {w : ℕ} {v1 v2 : ℕ} (h1 : v1 < 2 ^ w) (h2 : v2 < 2 ^ w)
     (h : sourceRegBits w v1 = sourceRegBits w v2) : v1 = v2 := by
   apply Nat.eq_of_testBit_eq
@@ -571,11 +694,13 @@ theorem sourceRegBits_injective {w : ℕ} {v1 v2 : ℕ} (h1 : v1 < 2 ^ w) (h2 : 
         have h2w : 2 ^ w ≤ 2 ^ i := Nat.pow_le_pow_right Nat.zero_lt_two (by omega)
         omega)]
 
+/-- Distinct state indices have distinct false-tag integer encodings. -/
 theorem frameFalseN_ne {a h1 h2 : ℕ} (h : h1 ≠ h2) : frameFalseN a h1 ≠ frameFalseN a h2 := by
   intro heq
   have h' : h1 * 2 ^ (a + 1) = h2 * 2 ^ (a + 1) := by simpa [frameFalseN] using! heq
   exact h (Nat.mul_right_cancel (by positivity) h')
 
+/-- Distinct state indices have distinct true-tag integer encodings. -/
 theorem frameTrueN_ne {a h1 h2 : ℕ} (h : h1 ≠ h2) : frameTrueN a h1 ≠ frameTrueN a h2 := by
   intro heq
   rw [frameTrueN_eq, frameTrueN_eq] at heq
@@ -583,6 +708,7 @@ theorem frameTrueN_ne {a h1 h2 : ℕ} (h : h1 ≠ h2) : frameTrueN a h1 ≠ fram
   have h'' : 1 + 2 * h1 = 1 + 2 * h2 := Nat.mul_right_cancel (by positivity) h'
   omega
 
+/-- A false-tag integer encoding never equals a true-tag integer encoding. -/
 theorem frameFalseN_ne_frameTrueN {a h1 h2 : ℕ} : frameFalseN a h1 ≠ frameTrueN a h2 := by
   intro heq
   rw [frameFalseN, frameTrueN_eq, Nat.pow_succ] at heq
@@ -593,13 +719,16 @@ theorem frameFalseN_ne_frameTrueN {a h1 h2 : ℕ} : frameFalseN a h1 ≠ frameTr
   have h'' : h1 * 2 = 1 + 2 * h2 := Nat.mul_right_cancel (by positivity) h'
   omega
 
+/-- The width condition providing room for the tag and all encoded state indices. -/
 def frameFaithful (d : SourceRationalProblem) (w : ℕ) : Prop :=
   tagWire d + 1 + Nat.clog 2 (d.dimension + 1) ≤ w
 
+/-- The binary ceiling-logarithm width can represent at least `d.dimension + 1` values. -/
 theorem frameFaithful_clog (d : SourceRationalProblem) :
     d.dimension + 1 ≤ 2 ^ Nat.clog 2 (d.dimension + 1) := by
   exact (Nat.clog_le_iff_le_pow (by norm_num : (1 : ℕ) < 2)).mp (le_refl _)
 
+/-- Under the faithful-width condition, every false-tag state encoding is below `2 ^ w`. -/
 theorem frameFalseN_lt {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful d w)
     (h : Fin d.dimension) : frameFalseN (tagWire d) h.val < 2 ^ w := by
   have hc := frameFaithful_clog d
@@ -622,6 +751,7 @@ theorem frameFalseN_lt {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful
     _ = 2 ^ (tagWire d + 1 + Nat.clog 2 (d.dimension + 1)) := h4
     _ ≤ 2 ^ w := Nat.pow_le_pow_right Nat.zero_lt_two h5
 
+/-- Under the faithful-width condition, every true-tag state encoding is below `2 ^ w`. -/
 theorem frameTrueN_lt {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful d w)
     (h : Fin d.dimension) : frameTrueN (tagWire d) h.val < 2 ^ w := by
   have hc := frameFaithful_clog d
@@ -653,11 +783,14 @@ theorem frameTrueN_lt {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful 
         omega
     _ ≤ 2 ^ w := Nat.pow_le_pow_right Nat.zero_lt_two h5
 
+/-- Every width `nativeFrameWidth d + k` satisfies the faithful-frame condition. -/
 theorem frameFaithful_native (d : SourceRationalProblem) (k : ℕ) :
     frameFaithful d (nativeFrameWidth d + k) := by
   unfold frameFaithful nativeFrameWidth tagWire
   omega
 
+/-- Equal frame positions with the same tag have equal state indices when the frame width is
+faithful. -/
 theorem framePos_injective {d : SourceRationalProblem} {w : ℕ} {tag : Bool}
     {h1 h2 : Fin d.dimension} (hw : frameFaithful d w)
     (h : framePos d w tag h1 = framePos d w tag h2) : h1 = h2 := by
@@ -679,11 +812,13 @@ theorem framePos_injective {d : SourceRationalProblem} {w : ℕ} {tag : Bool}
         exact hne hc (by simpa [frameTrueN, frameTrueN_eq] using! hv)
       exact Fin.ext hval
 
+/-- For a faithful frame width, the frame-position map with a fixed tag is injective. -/
 theorem framePos_injective' {d : SourceRationalProblem} {w : ℕ} {tag : Bool}
     (hw : frameFaithful d w) : Function.Injective (framePos d w tag) := by
   intro h1 h2 h
   exact framePos_injective hw h
 
+/-- False-tag and true-tag frame positions are distinct when the frame width is faithful. -/
 theorem framePos_tag_ne {d : SourceRationalProblem} {w : ℕ} {h1 h2 : Fin d.dimension}
     (hw : frameFaithful d w) : framePos d w false h1 ≠ framePos d w true h2 := by
   rw [framePos_false, framePos_true]
@@ -691,6 +826,8 @@ theorem framePos_tag_ne {d : SourceRationalProblem} {w : ℕ} {h1 h2 : Fin d.dim
   have hv := sourceRegBits_injective (frameFalseN_lt hw h1) (frameTrueN_lt hw h2) heq
   exact frameFalseN_ne_frameTrueN (a := tagWire d) (by simpa [frameFalseN] using! hv)
 
+/-- Equality to a bit flip is equivalent to agreement off the flipped wire and opposite bits at
+that wire. -/
 theorem flipBit_iff {w : ℕ} (a : Fin w) (q y : Reg w) :
     q = flipBit a y ↔ (agreeOff a q y ∧ q a = !y a) := by
   constructor
@@ -700,12 +837,15 @@ theorem flipBit_iff {w : ℕ} (a : Fin w) (q y : Reg w) :
   · intro h
     exact eq_flipBit_of_agreeOff a h.1 h.2
 
+/-- The tag-wire bit of a false-tag frame position is false whenever that wire lies in the
+register. -/
 theorem framePos_false_bit (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (h : Fin d.dimension) :
     (framePos d w false h) ⟨tagWire d, hw⟩ = false := by
   rw [framePos_false, sourceRegBits]
   exact testBit_frameFalseN _ _
 
+/-- Corresponding true-tag and false-tag frame positions agree away from the tag wire. -/
 theorem framePos_true_agree_false (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (h : Fin d.dimension) :
     agreeOff ⟨tagWire d, hw⟩ (framePos d w true h) (framePos d w false h) := by
@@ -715,12 +855,16 @@ theorem framePos_true_agree_false (d : SourceRationalProblem) (w : ℕ) (hw : ta
   rw [← hflip]
   exact flipBit_apply_of_ne ⟨tagWire d, hw⟩ i (framePos d w false h) hi
 
+/-- The tag-wire bit of a true-tag frame position is true whenever that wire lies in the
+register. -/
 theorem framePos_true_bit (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (h : Fin d.dimension) :
     (framePos d w true h) ⟨tagWire d, hw⟩ = true := by
   rw [framePos_true, sourceRegBits]
   exact testBit_frameTrueN _ _
 
+/-- A register equals a true-tag frame position exactly when it agrees off the tag with the
+false-tag position and has a true tag bit. -/
 theorem eq_framePos_true_iff (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (h : Fin d.dimension) (q : Reg w) :
     q = framePos d w true h ↔
@@ -734,6 +878,8 @@ theorem eq_framePos_true_iff (d : SourceRationalProblem) (w : ℕ) (hw : tagWire
   · intro h
     exact ⟨h.1, by simpa [hPa] using! h.2⟩
 
+/-- Expands a local Hadamard action by summing over registers that agree away from the chosen
+wire. -/
 theorem hadamard_mulVec {w : ℕ} (a : Fin w) (u : Reg w → ℂ) (q : Reg w) :
     (localGateMatrix (.h a) *ᵥ u) q
       = ∑ r : Reg w, (if agreeOff a q r then Hadamard (q a) (r a) else 0) * u r := by
@@ -745,6 +891,7 @@ theorem hadamard_mulVec {w : ℕ} (a : Fin w) (u : Reg w → ℂ) (q : Reg w) :
   · simp [localGateMatrix_h, agreeOff]
   · simp [localGateMatrix_h, agreeOff]
 
+/-- A finite sum supported at the single index `P` evaluates to its summand at `P`. -/
 theorem sum_ite_single {ι : Type} [Fintype ι] [DecidableEq ι] (P : ι) (b : ι → ℂ) :
     (∑ r : ι, if r = P then b r else 0) = b P := by
   classical
@@ -753,6 +900,7 @@ theorem sum_ite_single {ι : Type} [Fintype ι] [DecidableEq ι] (P : ι) (b : �
   rw [h1, Finset.sum_ite_eq']
   simp only [Finset.mem_univ, if_true]
 
+/-- Moves the outermost finite sum past the other two finite sums. -/
 theorem sum_swap3 {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ]
     (f : γ → α → β → ℂ) :
     (∑ q : γ, ∑ x : α, ∑ y : β, f q x y) = ∑ x : α, ∑ y : β, ∑ q : γ, f q x y := by
@@ -765,6 +913,7 @@ theorem sum_swap3 {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ]
           intro x _
           exact Finset.sum_comm
 
+/-- An injective frame embedding preserves the sum of coordinatewise products. -/
 theorem sum_frame_overlap {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq κ]
     {P : ι → κ} (hP : Function.Injective P) (ρ σ : ι → ℂ) :
     (∑ q : κ, (∑ h : ι, if q = P h then ρ h else 0) *
@@ -827,6 +976,7 @@ theorem sum_frame_overlap {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq 
             · simp only [if_neg hc, if_neg (Ne.symm hc)]
           rw [heq, sum_ite_single]
 
+/-- Frame expansions with disjoint images have zero sum of coordinatewise products. -/
 theorem sum_frame_overlap_diff {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq κ]
     {P Q : ι → κ} (hPQ : ∀ h h', P h ≠ Q h') (ρ σ : ι → ℂ) :
     (∑ q : κ, (∑ h : ι, if q = P h then ρ h else 0) *
@@ -865,6 +1015,7 @@ theorem sum_frame_overlap_diff {ι κ : Type} [Fintype ι] [Fintype κ] [Decidab
           rw [key]
       _ = 0 := by simp
 
+/-- Expands a native clean-state amplitude as a sum supported on its frame positions. -/
 theorem sourceNativeClean_eq' (d : SourceRationalProblem) (w : ℕ) (tag : Bool)
     (ψ : QState (Fin d.dimension)) (q : Reg w) :
     sourceNativeClean d w tag ψ q
@@ -876,6 +1027,8 @@ theorem sourceNativeClean_eq' (d : SourceRationalProblem) (w : ℕ) (tag : Bool)
   · rw [if_pos hc, if_pos hc, one_mul]
   · rw [if_neg hc, if_neg hc, zero_mul]
 
+/-- Complex conjugation passes through a frame-position sum by conjugating each state
+coordinate. -/
 theorem star_sum_frame {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq κ]
     {P : ι → κ} (f : ι → ℂ) (q : κ) :
     star (∑ h : ι, if q = P h then f h else 0)
@@ -889,6 +1042,7 @@ theorem star_sum_frame {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq κ]
   · simp only [if_pos hc]
   · simp only [if_neg hc, star_zero]
 
+/-- A faithful true-tag clean embedding preserves complex inner products. -/
 theorem clean_overlap_same {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful d w)
     (ρ σ : QState (Fin d.dimension)) :
     (∑ q, star (sourceNativeClean d w true ρ q) * sourceNativeClean d w true σ q)
@@ -905,6 +1059,7 @@ theorem clean_overlap_same {d : SourceRationalProblem} {w : ℕ} (hw : frameFait
           sum_frame_overlap (P := framePos d w true) (framePos_injective' (tag := true) hw)
             (fun h => star (ρ h)) σ
 
+/-- False-tag and true-tag clean embeddings are orthogonal for a faithful frame width. -/
 theorem clean_overlap_diff {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful d w)
     (ρ σ : QState (Fin d.dimension)) :
     (∑ q, star (sourceNativeClean d w false ρ q) * sourceNativeClean d w true σ q) = 0 := by
@@ -920,6 +1075,7 @@ theorem clean_overlap_diff {d : SourceRationalProblem} {w : ℕ} (hw : frameFait
           sum_frame_overlap_diff (P := framePos d w false) (Q := framePos d w true)
             (fun h h' => framePos_tag_ne hw) (fun h => star (ρ h)) σ
 
+/-- The complex exponential of the negative order-one dyadic phase is `-1`. -/
 theorem exp_dyadicPhaseAngle_one_neg :
     Complex.exp (dyadicPhaseAngle 1 true * Complex.I) = -1 := by
   have h1 : dyadicPhaseAngle 1 true = -(Real.pi : ℝ) := by
@@ -934,15 +1090,20 @@ theorem exp_dyadicPhaseAngle_one_neg :
       Complex.sin_ofReal_re, Complex.I_re]
     simp [Real.sin_neg, Real.sin_pi]
 
+/-- The diagonal entry of the order-one phase gate on a repeated wire is negative exactly when
+that wire's bit is true. -/
 theorem zgate_diag {w : ℕ} (a : Fin w) (q : Reg w) :
     localGateMatrix (.cp a a 1 true) q q = (if q a then -1 else 1) := by
   rw [localGateMatrix_cp, if_pos rfl, Bool.and_self]
   rw [exp_dyadicPhaseAngle_one_neg]
 
+/-- The repeated-wire order-one phase gate has zero off-diagonal entries. -/
 theorem zgate_offdiag {w : ℕ} (a : Fin w) (q r : Reg w) (hqr : q ≠ r) :
     localGateMatrix (.cp a a 1 true) q r = 0 := by
   simp only [localGateMatrix_cp, if_neg hqr]
 
+/-- The repeated-wire order-one phase gate multiplies each amplitude by the sign determined by
+that wire's bit. -/
 theorem zgate_mulVec {w : ℕ} (a : Fin w) (u : Reg w → ℂ) (q : Reg w) :
     (localGateMatrix (.cp a a 1 true) *ᵥ u) q = (if q a then -1 else 1) * u q := by
   rw [Matrix.mulVec, dotProduct]
@@ -962,18 +1123,24 @@ theorem zgate_mulVec {w : ℕ} (a : Fin w) (u : Reg w → ℂ) (q : Reg w) :
   rw [hreplace]
   rw [sum_ite_single q (fun _ => (if q a then -1 else 1) * u q)]
 
+/-- Expresses a Hadamard entry as the inverse square root of two times the Boolean-controlled
+sign. -/
 theorem hadamard_entry (p q : Bool) :
     Hadamard p q = (Real.sqrt 2 : ℂ)⁻¹ * (if p && q then -1 else 1) := rfl
 
+/-- Every entry in the false column of the Hadamard matrix equals the inverse square root of
+two. -/
 theorem hadamard_b_false (b : Bool) : Hadamard b false = (Real.sqrt 2 : ℂ)⁻¹ := by
   rw [hadamard_entry]
   cases b <;> simp
 
+/-- The square of the complex inverse of the square root of two is the inverse of two. -/
 theorem inv_sqrt2_sq : ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = (2 : ℂ)⁻¹ := by
   calc ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = ((Real.sqrt 2 : ℂ)⁻¹) ^ 2 := by ring
     _ = ((Real.sqrt 2 : ℂ) ^ 2)⁻¹ := by rw [inv_pow]
     _ = (2 : ℂ)⁻¹ := by rw [sqrt2_sq]
 
+/-- Expands a Hadamard-phase-Hadamard summand as one half times its two Boolean signs. -/
 theorem c_value (qa b : Bool) :
     Hadamard qa b * ((if b then -1 else 1) * Hadamard b false)
       = (2 : ℂ)⁻¹ * ((if qa && b then -1 else 1) * (if b then -1 else 1)) := by
@@ -984,6 +1151,8 @@ theorem c_value (qa b : Bool) :
         * ((if qa && b then -1 else 1) * (if b then -1 else 1)) := by ring
     _ = _ := by rw [inv_sqrt2_sq]
 
+/-- The two Hadamard-phase-Hadamard contributions from a false input sum to the indicator of a
+true output bit. -/
 theorem zbracket {w : ℕ} (a : Fin w) (q : Reg w) :
     (Hadamard (q a) (q a) * ((if q a then -1 else 1) * Hadamard (q a) false)
       + Hadamard (q a) (!q a) * ((if !q a then -1 else 1) * Hadamard (!q a) false))
@@ -1001,6 +1170,8 @@ theorem zbracket {w : ℕ} (a : Fin w) (q : Reg w) :
       Bool.and_true, Bool.and_false]
     ring_nf
 
+/-- Expands the local tag-wire Hadamard applied to a false-tag clean state as a sum over encoded
+state indices. -/
 theorem hadamard_clean (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (ψ : QState (Fin d.dimension)) (q : Reg w) :
     (localGateMatrix (.h ⟨tagWire d, hw⟩) *ᵥ (sourceNativeClean d w false ψ)) q
@@ -1056,6 +1227,8 @@ theorem hadamard_clean (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w
           ring
   rw [hinner]
 
+/-- The Hadamard-phase-Hadamard word on the tag wire sends every false-tag clean state to the
+corresponding true-tag clean state. -/
 theorem nativeTagFlip_frame (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
     (ψ : QState (Fin d.dimension)) :
     (localGateMatrix (.h ⟨tagWire d, hw⟩) * localGateMatrix (.cp ⟨tagWire d, hw⟩ ⟨tagWire d, hw⟩ 1 true) *

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpanProgram07.MainResults.SpanProgram
+
+/-!
+# A span program for three-input majority
+
+This module defines `maj3Program`, a two-coordinate span program with one positive-literal group
+per input. It characterizes acceptance by two scalar equations and proves that nonzero, distinct
+column parameters realize three-input majority, as in [ReichardtSpalek2008].
+
+## Main statements
+
+* `accepts_iff_exists`: Acceptance is equivalent to coefficients supported on true inputs whose
+  target-coordinate sum is one and auxiliary-coordinate sum is zero.
+* `accepts_iff_two_le`: With nonzero `w` and distinct nonzero auxiliary coordinates, the
+  majority program accepts exactly when at least two input bits are true.
+
+## References
+
+* [Reichardt and Spalek, 2008][ReichardtSpalek2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +35,8 @@ namespace Qatlib.Papers.SpanProgram07.MainResults
 
 open Finset
 
+/-- A three-input span program whose column `j` has target coordinate `w`, auxiliary coordinate
+`α j`, and positive literal `j`. -/
 def maj3Program (w : ℂ) (α : Fin 3 → ℂ) : SpanProgram 3 (Fin 3) Unit (Fin 3) where
   grp j := j
   lit j := Lit.pos j
@@ -24,6 +46,7 @@ def maj3Program (w : ℂ) (α : Fin 3 → ℂ) : SpanProgram 3 (Fin 3) Unit (Fin
 
 namespace maj3Program
 
+/-- Column group `j` of the majority program is available exactly when input bit `j` is true. -/
 theorem groupTrue_iff (w : ℂ) (α : Fin 3 → ℂ) (x : Fin 3 → Bool) (j : Fin 3) :
     (maj3Program w α).groupTrue x j ↔ x j = true := by
   constructor
@@ -33,6 +56,8 @@ theorem groupTrue_iff (w : ℂ) (α : Fin 3 → ℂ) (x : Fin 3 → Bool) (j : F
     subst hi
     exact h
 
+/-- Acceptance is equivalent to coefficients supported on true inputs whose target-coordinate
+sum is one and auxiliary-coordinate sum is zero. -/
 theorem accepts_iff_exists (w : ℂ) (α : Fin 3 → ℂ) (x : Fin 3 → Bool) :
     (maj3Program w α).accepts x ↔ ∃ a : Fin 3 → ℂ,
       (∀ i, x i = false → a i = 0) ∧ (∑ j, a j * w = 1) ∧ (∑ j, a j * α j = 0) := by
@@ -62,6 +87,8 @@ theorem accepts_iff_exists (w : ℂ) (α : Fin 3 → ℂ) (x : Fin 3 → Bool) :
   · rintro ⟨a, hsupp, hc⟩
     exact ⟨a, (SpanProgram.supported_iff (P := maj3Program w α) x a).2 hsupp, (hcoord a).2 hc⟩
 
+/-- With nonzero `w` and distinct nonzero auxiliary coordinates, the majority program accepts
+exactly when at least two input bits are true. -/
 theorem accepts_iff_two_le (w : ℂ) (hw : w ≠ 0) (α : Fin 3 → ℂ)
     (hinj : Function.Injective α) (hα0 : ∀ j, α j ≠ 0) (x : Fin 3 → Bool) :
     (maj3Program w α).accepts x ↔ 2 ≤ (univ.filter (fun i => x i)).card := by

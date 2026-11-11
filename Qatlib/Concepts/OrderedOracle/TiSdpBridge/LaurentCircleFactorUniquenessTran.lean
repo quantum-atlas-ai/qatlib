@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorUniquenessStat
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentFactorUniqueness
+
+/-!
+# Uniqueness of closed-disk Laurent factors
+
+This module proves `LaurentCircleFactorUniqueness` using the nonzero highest Laurent coefficient
+to establish each factor's exact degree and nonzero constant term.
+`laurentCircleFactorUniqueness` then applies polynomial phase uniqueness to obtain
+coefficientwise equality up to a unit scalar, within the circle-factor framework used by
+[ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `circle_factor_actual_degree`: a circle factor has degree `n - 1` and a nonzero value at zero
+  when the highest Laurent coefficient is nonzero.
+* `laurentCircleFactorUniqueness`: closed-disk factors are unique up to multiplication by a
+  complex scalar of norm one.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +37,9 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge Polynomial Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- For positive `n`, a square-norm factor `laurentCoefficientPolynomial p` with `p : Fin n → ℂ`
+has degree exactly `n - 1` and nonzero value at zero if the Laurent family's highest
+coefficient is nonzero. -/
 private theorem circle_factor_actual_degree (n : ℕ) [NeZero n] (a p : Fin n → ℂ)
     (htop : a ⟨n-1,by have := NeZero.pos n; omega⟩≠0)
     (hc : ∀ z : ℂ, ‖z‖=1 → complexLaurentEval a z=
@@ -37,6 +62,8 @@ private theorem circle_factor_actual_degree (n : ℕ) [NeZero n] (a p : Fin n �
   rw [← Polynomial.coeff_zero_eq_eval_zero,hc0]
   exact hp0
 
+/-- Proves `LaurentCircleFactorUniqueness`: the two closed-disk factors have full degree and
+their coefficients differ by a single complex scalar of norm one. -/
 theorem laurentCircleFactorUniqueness : LaurentCircleFactorUniqueness := by
   intro n _ a p q _ htop hP hQ hPr hQr
   obtain ⟨hPd,hPc⟩ := circle_factor_actual_degree n a p htop hP

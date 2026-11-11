@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationReceipt
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationWeights
+
+/-!
+# Exact sampling of normalized dual vectors
+
+This module expresses a nonnegative combination of family output distributions, together with a
+point-mass offset, as the scaled law of an exact stopped sampler. `Family.withOffset` prepends a
+deterministic output, while `selectorMasses` converts the offset and rational coefficients into
+selector masses. These constructions support the sampling components of matrix optimization in
+the semidefinite programming setting of [BrandaoSvore2017].
+
+`dual_actual_output` proves that the resulting sampler has probabilities equal to `dualVector`
+divided by the positive scale `dualScale`, under positivity of the offset, nonnegativity of the
+coefficients, and a positive family size.
+
+## Main statements
+
+* `Family.stopped_real`: the real-valued mixture formula for the stopped sampler.
+* `dualVector_sum`: the sum of the vector entries equals `dualScale`.
+* `dual_actual_output`: exact realization of the normalized vector by the offset sampler.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,12 +47,15 @@ variable {T D m : ℕ}
 
 namespace Family
 
+/-- The real-valued probability of output `i` from family component `t`. -/
 noncomputable def realOutput (F : Family T D m) (t : Fin T) (i : Fin m) : ℝ :=
   (F.output t i).toReal
 
+/-- Every real-valued family output probability is nonnegative. -/
 theorem realOutput_nonneg (F : Family T D m) (t : Fin T) (i : Fin m) :
     0 ≤ F.realOutput t i := ENNReal.toReal_nonneg
 
+/-- The real-valued output probabilities of each family component sum to 1. -/
 theorem realOutput_sum (F : Family T D m) (t : Fin T) : ∑ i, F.realOutput t i = 1 := by
   change (∑ i, (F.output t i).toReal) = 1
   rw [← ENNReal.toReal_sum (fun i _ => (F.output t).apply_ne_top i)]
@@ -35,6 +63,8 @@ theorem realOutput_sum (F : Family T D m) (t : Fin T) : ∑ i, F.realOutput t i 
   rw [tsum_fintype] at hs
   rw [hs, ENNReal.toReal_one]
 
+/-- Prepends the deterministic program returning `j₀` to the family while retaining its oracle
+and state data. -/
 def withOffset (F : Family T D m) (j₀ : Fin m) : Family (T+1) D m where
   program := Fin.cons (.ret j₀) F.program
   legal := Fin.cases trivial F.legal
@@ -43,6 +73,7 @@ def withOffset (F : Family T D m) (j₀ : Fin m) : Family (T+1) D m where
   state := F.state
   density := F.density
 
+/-- The zeroth output distribution of the offset family is the point mass at `j₀`. -/
 theorem withOffset_zero (F : Family T D m) (j₀ : Fin m) :
     (F.withOffset j₀).output 0 = PMF.pure j₀ := by
   unfold output
@@ -54,9 +85,13 @@ theorem withOffset_zero (F : Family T D m) (j₀ : Fin m) :
   rw [hv]
   exact PMF.map_const _ _
 
+/-- At each successor index, the offset family's output distribution equals the corresponding
+original component distribution. -/
 theorem withOffset_succ (F : Family T D m) (j₀ : Fin m) (t : Fin T) :
     (F.withOffset j₀).output t.succ = F.output t := rfl
 
+/-- For positive total integer weight within the bit capacity, the stopped sampler's real output
+probability is the mixture of family probabilities with normalized weights. -/
 theorem stopped_real (F : Family T D m) (w : Fin T → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b) (i : Fin m) :
     (((F.stopped w b hW hb).map F.value) i).toReal =
@@ -68,31 +103,42 @@ theorem stopped_real (F : Family T D m) (w : Fin T → ℕ) (b : ℕ)
 
 end Family
 
+/-- The rational selector masses consisting of the leading offset mass `T * a` followed by the
+component masses `μ`. -/
 def selectorMasses (T : ℕ) (a : ℚ) (μ : Fin T → ℚ) : Fin (T+1) → ℚ :=
   Fin.cons ((T : ℚ) * a) μ
 
+/-- The scale `a + (∑ t, μ t) / T` of the offset mixture vector. -/
 noncomputable def dualScale (T : ℕ) (a : ℝ) (μ : Fin T → ℝ) : ℝ :=
   a + (∑ t, μ t) / T
 
+/-- The vector consisting of mass `a` at `j₀` plus the family output mixture weighted by `μ` and
+divided by `T`. -/
 noncomputable def dualVector (F : Family T D m) (j₀ : Fin m)
     (a : ℝ) (μ : Fin T → ℝ) (i : Fin m) : ℝ :=
   (if i = j₀ then a else 0) + (∑ t, μ t * F.realOutput t i) / T
 
+/-- A nonnegative offset and nonnegative component masses give nonnegative selector masses. -/
 theorem selectorMasses_nonneg (a : ℚ) (μ : Fin T → ℚ)
     (ha : 0 ≤ a) (hμ : ∀ t, 0 ≤ μ t) : ∀ u, 0 ≤ selectorMasses T a μ u :=
   Fin.cases (mul_nonneg (Nat.cast_nonneg _) ha) hμ
 
+/-- The real sum of the selector masses is `T * a + ∑ t, μ t`. -/
 theorem selectorMasses_sum (a : ℚ) (μ : Fin T → ℚ) :
     (∑ u, (selectorMasses T a μ u : ℝ)) =
       (T : ℝ) * a + ∑ t, (μ t : ℝ) := by
   rw [Fin.sum_univ_succ]
   simp [selectorMasses]
 
+/-- For positive `T` and `a` and nonnegative component masses, `dualScale T a μ` is strictly
+positive. -/
 theorem dualScale_pos (hT : 0 < T) (a : ℝ) (μ : Fin T → ℝ)
     (ha : 0 < a) (hμ : ∀ t, 0 ≤ μ t) : 0 < dualScale T a μ := by
   have hTr : (0 : ℝ) < T := by exact_mod_cast hT
   exact add_pos_of_pos_of_nonneg ha (div_nonneg (Finset.sum_nonneg (fun t _ => hμ t)) hTr.le)
 
+/-- For positive `T` and `a` and nonnegative component masses, the selector masses have strictly
+positive real sum. -/
 theorem selectorMasses_pos (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ)
     (ha : 0 < a) (hμ : ∀ t, 0 ≤ μ t) :
     0 < ∑ u, (selectorMasses T a μ u : ℝ) := by
@@ -102,6 +148,7 @@ theorem selectorMasses_pos (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ)
   exact add_pos_of_pos_of_nonneg (mul_pos hTr har)
     (Finset.sum_nonneg (fun t _ => by exact_mod_cast hμ t))
 
+/-- The entries of `dualVector` sum to `dualScale`. -/
 theorem dualVector_sum (F : Family T D m) (j₀ : Fin m) (a : ℝ) (μ : Fin T → ℝ) :
     (∑ i, dualVector F j₀ a μ i) = dualScale T a μ := by
   classical
@@ -110,6 +157,9 @@ theorem dualVector_sum (F : Family T D m) (j₀ : Fin m) (a : ℝ) (μ : Fin T �
     Finset.sum_comm]
   simp_rw [← Finset.mul_sum, F.realOutput_sum, mul_one]
 
+/-- For a positive family size, positive rational offset, and nonnegative rational component
+masses, the offset stopped sampler realizes `dualVector` as `dualScale` times its real
+output law. The scale is positive and equals the sum of the vector entries. -/
 theorem dual_actual_output (F : Family T D m) (j₀ : Fin m) (hT : 0 < T)
     (a : ℚ) (μ : Fin T → ℚ) (ha : 0 < a) (hμ : ∀ t, 0 ≤ μ t) :
     let v := selectorMasses T a μ

@@ -6,11 +6,36 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.BinaryOptEncode.ExactGadgets.LocalGadgets
 
+/-!
+# Exact penalties for finite optimization
+
+This module proves that a penalty exceeding the objective range divided by a residual gap
+separates infeasible points from feasible ones and preserves constrained minimizers. For
+finitely many integer residuals, `squaredResidual` has gap at least one away from zero, and
+`safePenalty` supplies an explicit coefficient on a finite search space. These results support
+exact optimization encodings in the setting of [SongEtAl2023].
+
+## Main statements
+
+* `penalty_argmin_iff`: unconstrained minimizers of the penalized objective are exactly the
+  feasible constrained minimizers under the separation hypotheses.
+* `squaredResidual_zero_iff`: the squared residual vanishes exactly when all integer constraints
+  vanish.
+* `safePenalty_argmin_iff`: the explicit coefficient `safePenalty` yields the minimizer
+  equivalence whenever a feasible point exists.
+
+## References
+
+* [Song et al., 2023][SongEtAl2023]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.BinaryOptEncode.ExactGadgets
 open scoped BigOperators
 
+/-- If the positive penalty times the residual gap exceeds the objective range, every point with
+nonzero residual has strictly larger penalized objective than any feasible point. -/
 theorem penalty_infeasible_separation {S : Type*} (f residual : S → ℝ)
     (lower upper penalty gap : ℝ) (hpen : 0 < penalty)
     (hsize : upper - lower < penalty * gap)
@@ -22,6 +47,9 @@ theorem penalty_infeasible_separation {S : Type*} (f residual : S → ℝ)
   rw [hf, mul_zero, add_zero]
   linarith [(hbounds x).1, (hbounds feasible).2]
 
+/-- Given a feasible point and a positive penalty whose residual-gap contribution exceeds the
+objective range, global minimizers of the penalized objective are exactly the feasible
+minimizers of the original objective. -/
 theorem penalty_argmin_iff {S : Type*} (f residual : S → ℝ)
     (lower upper penalty gap : ℝ) (hpen : 0 < penalty)
     (hsize : upper - lower < penalty * gap)
@@ -46,9 +74,12 @@ theorem penalty_argmin_iff {S : Type*} (f residual : S → ℝ)
     · exact (penalty_infeasible_separation f residual lower upper penalty gap hpen hsize
         hbounds hgap y x hy hx).le
 
+/-- The sum of squares of a finite family of integer constraint residuals, regarded as a real
+number. -/
 def squaredResidual {S J : Type*} [Fintype J] (r : J → S → ℤ) (x : S) : ℝ :=
   ∑ j, (r j x : ℝ) ^ 2
 
+/-- The sum of squared integer residuals is zero exactly when every residual is zero. -/
 theorem squaredResidual_zero_iff {S J : Type*} [Fintype J] (r : J → S → ℤ) (x : S) :
     squaredResidual r x = 0 ↔ ∀ j, r j x = 0 := by
   classical
@@ -61,6 +92,7 @@ theorem squaredResidual_zero_iff {S J : Type*} [Fintype J] (r : J → S → ℤ)
   · intro h
     simp [squaredResidual, h]
 
+/-- A nonzero sum of squared integer residuals is at least one. -/
 theorem squaredResidual_gap {S J : Type*} [Fintype J] (r : J → S → ℤ) (x : S)
     (hne : squaredResidual r x ≠ 0) : 1 ≤ squaredResidual r x := by
   classical
@@ -75,9 +107,14 @@ theorem squaredResidual_gap {S J : Type*} [Fintype J] (r : J → S → ℤ) (x :
   exact hs'.trans
     (Finset.single_le_sum (fun k _ => sq_nonneg (r k x : ℝ)) (Finset.mem_univ j))
 
+/-- The explicit penalty coefficient twice the sum of absolute objective values over the finite
+search space, plus one. -/
 def safePenalty {S : Type*} [Fintype S] (f : S → ℝ) : ℝ :=
   2 * (∑ x, |f x|) + 1
 
+/-- On a finite search space with a feasible point, adding `safePenalty` times the squared
+integer residual sum makes the global minimizers exactly the feasible minimizers of the
+original objective. -/
 theorem safePenalty_argmin_iff {S J : Type*} [Fintype S] [Fintype J]
     (f : S → ℝ) (r : J → S → ℤ) (feasible : S) (hf : ∀ j, r j feasible = 0) (x : S) :
     (∀ y, f x + safePenalty f * squaredResidual r x ≤

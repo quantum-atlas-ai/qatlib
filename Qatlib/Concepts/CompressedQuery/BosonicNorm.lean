@@ -8,6 +8,36 @@ import Qatlib.Concepts.BosonFock.BosonOperators.Basic
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompressedOracleBounds
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+/-!
+# Bosonic norm bounds and compressed query records
+
+This module bounds the tensor query step `queryStep` using truncated bosonic operator norms and
+exhibits its failure to preserve normalization at zero cutoff. It then develops record
+projectors and crossing operators directly for the unitary database XOR query.
+
+The local creation operator controls record growth by `recordCoupling p`. The amplitude
+recurrence yields binomial amplitude and probability bounds for `physicalRun`, together with
+normalization, a decompression identity relating the run to ordinary bit queries, and
+cancellation of two consecutive queries.
+
+The mathematical context is discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `queryStep_norm_le`: The tensor query step has operator norm at most √Q.
+* `legacyQueryStep_counterexample`: A normalized input whose tensor query output is not
+  normalized.
+* `physicalQuery_amplitude_recurrence`: The record amplitude growth inequality for one unitary
+  query.
+* `physicalFrontier`: Normalization, decompression, recurrence and binomial bounds for a
+  complete run.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -31,32 +61,44 @@ open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The basis of algorithm address, target and workspace registers together with a Boolean
+database. -/
 abbrev XorBasis (I W : Type) := (((I × Bool) × W) × (I → Bool))
 
+/-- The database XOR basis extended by the bosonic basis with `m` modes and cutoff `Q`. -/
 abbrev JointBasis (I W : Type) (m Q : ℕ) := XorBasis I W × CutBasis m Q
 
+/-- The truncated bosonic word consisting of a single creation or annihilation operation at mode
+`i`. -/
 def fockAction (m Q : ℕ) (i : Fin m) (creation : Bool) :
     Matrix (CutBasis m Q) (CutBasis m Q) ℂ :=
   cutWord m Q [(i, creation)]
 
+/-- The tensor product of the database XOR oracle and the selected truncated bosonic action. -/
 def queryStep {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) {m Q : ℕ} (i : Fin m) (creation : Bool) :
     Matrix (JointBasis I W m Q) (JointBasis I W m Q) ℂ :=
   TensorGate (databaseXorOracle (I := I) (W := W) p) (fockAction m Q i creation)
 
+/-- The diagonal projector onto joint basis states whose Boolean database cardinality is at
+least `threshold`. -/
 def badRecordProjector {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     {m Q : ℕ} (threshold : ℕ) : Matrix (JointBasis I W m Q) (JointBasis I W m Q) ℂ :=
   Matrix.diagonal fun z => if threshold ≤ databaseCard z.1.2 then 1 else 0
 
+/-- The finite set of joint basis states whose Boolean database cardinality is at least
+`threshold`. -/
 def badRecordEvent {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     {m Q : ℕ} (threshold : ℕ) : Finset (JointBasis I W m Q) :=
   Finset.univ.filter fun z => threshold ≤ databaseCard z.1.2
 
+/-- Iterate the action of the matrix `S` on a state the specified number of times. -/
 def queryTrajectory {X : Type} [Fintype X] [DecidableEq X]
     (S : Matrix X X ℂ) : ℕ → QState X → QState X
   | 0, v => v
   | n + 1, v => ApplyGate S (queryTrajectory S n v)
 
+/-- The compressed phase query matrix is unitary for `p` in [0, 1]. -/
 theorem phaseQuery_unitary {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     compressedOracle (I := I) (W := W) p ∈ Matrix.unitaryGroup (XorBasis I W) ℂ := by
@@ -74,6 +116,7 @@ theorem phaseQuery_unitary {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] 
     (Submonoid.mul_mem _ (tensorGate_unitary (Submonoid.one_mem _) hFd) hphase)
     (tensorGate_unitary (Submonoid.one_mem _) hF)
 
+/-- The target Hadamard gate on the algorithm and database basis is unitary. -/
 theorem targetH_unitary {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W] :
     databaseTargetHadamard (I := I) (W := W) ∈ Matrix.unitaryGroup (XorBasis I W) ℂ := by
   unfold databaseTargetHadamard controlHadamard
@@ -81,6 +124,7 @@ theorem targetH_unitary {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [De
     (tensorGate_unitary (tensorGate_unitary (Submonoid.one_mem _) hadamard_unitary) (Submonoid.one_mem _))
     (Submonoid.one_mem _)
 
+/-- The database XOR query matrix is unitary for `p` in [0, 1]. -/
 theorem physicalQuery_unitary {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     databaseXorOracle (I := I) (W := W) p ∈ Matrix.unitaryGroup (XorBasis I W) ℂ := by
@@ -88,17 +132,20 @@ theorem physicalQuery_unitary {I W : Type} [Fintype I] [DecidableEq I] [Fintype 
   exact Submonoid.mul_mem _
     (Submonoid.mul_mem _ targetH_unitary (phaseQuery_unitary p hp0 hp1)) targetH_unitary
 
+/-- For `p` in [0, 1], a database XOR query preserves state normalization. -/
 theorem physicalQuery_normalized {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (v : QState (XorBasis I W)) (hv : Normalized v) :
     Normalized (ApplyGate (databaseXorOracle p) v) :=
   normalized_applyGate (physicalQuery_unitary p hp0 hp1) hv
 
+/-- The operator norm of a single truncated creation or annihilation action is at most √Q. -/
 theorem fockAction_norm_le (m Q : ℕ) (i : Fin m) (creation : Bool) :
     ‖fockAction m Q i creation‖ ≤ Real.sqrt Q := by
   have h := (BosonOperators.sector_and_polynomial_norm_bounds).2.2.2 m Q
     [(1, [(i, creation)])]
   simpa [fockAction] using! h
 
+/-- For `p` in [0, 1], the tensor query step has operator norm at most √Q. -/
 theorem queryStep_norm_le {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) {m Q : ℕ} (i : Fin m) (creation : Bool) :
     ‖queryStep (I := I) (W := W) (Q := Q) p i creation‖ ≤ Real.sqrt Q := by
@@ -108,6 +155,7 @@ theorem queryStep_norm_le {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [
   have hf := fockAction_norm_le m Q i creation
   exact (mul_le_mul hq hf (norm_nonneg _) zero_le_one).trans_eq (one_mul _)
 
+/-- For `p` in [0, 1], the tensor query step with bosonic cutoff zero is the zero matrix. -/
 theorem legacyQueryStep_zero_cutoff {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) {m : ℕ} (i : Fin m) (creation : Bool) :
     queryStep (I := I) (W := W) (Q := 0) p i creation = 0 := by
@@ -115,6 +163,8 @@ theorem legacyQueryStep_zero_cutoff {I W : Type} [Fintype I] [DecidableEq I] [Fi
   have h := queryStep_norm_le (I := I) (W := W) (Q := 0) p hp0 hp1 i creation
   exact le_antisymm (by simpa using! h) (norm_nonneg _)
 
+/-- For `p` in [0, 1], applying the tensor query step at cutoff zero to any state gives a state
+that is not normalized. -/
 theorem legacyQueryStep_zero_notNormalized {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {m : ℕ} (i : Fin m) (creation : Bool) (v : QState (JointBasis I W m 0)) :
@@ -122,9 +172,13 @@ theorem legacyQueryStep_zero_notNormalized {I W : Type} [Fintype I] [DecidableEq
   rw [legacyQueryStep_zero_cutoff p hp0 hp1 i creation]
   simp [ApplyGate, Normalized]
 
+/-- The joint basis state with a single address, false target, empty Boolean database and
+bosonic vacuum at cutoff zero. -/
 def legacyCounterexampleBasis : JointBasis (Fin 1) Unit 1 0 :=
   (((((0 : Fin 1), false), ()), fun _ => false), ⟨0, vacuum 1⟩)
 
+/-- The ket at `legacyCounterexampleBasis` is normalized, but applying the specified creation
+tensor query at cutoff zero gives a state that is not normalized. -/
 theorem legacyQueryStep_counterexample :
     Normalized (Ket legacyCounterexampleBasis) ∧
     ¬ Normalized (ApplyGate (queryStep (I := Fin 1) (W := Unit) (Q := 0)
@@ -132,6 +186,7 @@ theorem legacyQueryStep_counterexample :
   exact ⟨normalized_ket _,
       legacyQueryStep_zero_notNormalized 0 (by norm_num) (by norm_num) 0 true _⟩
 
+/-- The operator norm of the bad-record projector is at most one. -/
 theorem badRecordProjector_norm_le {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] {m Q : ℕ} (threshold : ℕ) :
     ‖badRecordProjector (I := I) (W := W) (m := m) (Q := Q) threshold‖ ≤ 1 := by
@@ -140,6 +195,8 @@ theorem badRecordProjector_norm_le {I W : Type} [Fintype I] [DecidableEq I]
   intro z
   by_cases h : threshold ≤ databaseCard z.1.2 <;> simp [h]
 
+/-- The bad-record projector retains an amplitude exactly when its database cardinality reaches
+the threshold. -/
 theorem badRecordProjector_apply {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] {m Q : ℕ} (threshold : ℕ)
     (v : QState (JointBasis I W m Q)) (z : JointBasis I W m Q) :
@@ -147,6 +204,8 @@ theorem badRecordProjector_apply {I W : Type} [Fintype I] [DecidableEq I]
       if threshold ≤ databaseCard z.1.2 then v z else 0 := by
   simp [badRecordProjector, ApplyGate, Matrix.mulVec_diagonal]
 
+/-- The total Born mass after bad-record projection equals the original Born mass of the
+bad-record event. -/
 theorem badRecordProjector_mass {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] {m Q : ℕ} (threshold : ℕ)
     (v : QState (JointBasis I W m Q)) :
@@ -155,11 +214,14 @@ theorem badRecordProjector_mass {I W : Type} [Fintype I] [DecidableEq I]
   simp [MeasureProb, BornProb, badRecordEvent, Finset.sum_filter,
     badRecordProjector_apply, apply_ite]
 
+/-- The total Born mass of a finite state equals its squared Euclidean norm. -/
 theorem bornMass_eq_norm_sq {X : Type} [Fintype X] [DecidableEq X] (v : QState X) :
     MeasureProb v Finset.univ = ‖toEuclidean_fromVec v‖ ^ 2 := by
   rw [norm_toEuclidean_fromVec_sq]
   rfl
 
+/-- If the operator norm of `S` is at most a nonnegative `c`, its `steps`-fold action has output
+norm at most `c ^ steps` times the input norm. -/
 theorem queryTrajectory_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (S : Matrix X X ℂ) {c : ℝ} (hS : ‖S‖ ≤ c) (hc : 0 ≤ c) (steps : ℕ)
     (v : QState X) :
@@ -177,6 +239,8 @@ theorem queryTrajectory_norm_le {X : Type} [Fintype X] [DecidableEq X]
           mul_le_mul hS ih (norm_nonneg _) hc
         _ = c ^ (steps + 1) * ‖toEuclidean_fromVec v‖ := by ring
 
+/-- For `p` in [0, 1], the norm after one tensor query step followed by bad-record projection is
+at most √Q times the input norm. -/
 theorem badRecord_single_step_norm {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {m Q : ℕ} (i : Fin m) (creation : Bool) (threshold : ℕ)
@@ -202,6 +266,8 @@ theorem badRecord_single_step_norm {I W : Type} [Fintype I] [DecidableEq I]
       · exact queryStep_norm_le p hp0 hp1 i creation
     _ = Real.sqrt Q * ‖toEuclidean_fromVec v‖ := by ring
 
+/-- For `p` in [0, 1], bad-record projection after `steps` tensor query steps has norm at most
+`(√Q)^steps` times the input norm. -/
 theorem badRecord_multi_step_norm {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {m Q : ℕ} (i : Fin m) (creation : Bool) (threshold steps : ℕ)
@@ -225,6 +291,8 @@ theorem badRecord_multi_step_norm {I W : Type} [Fintype I] [DecidableEq I]
       queryTrajectory_norm_le _ (queryStep_norm_le p hp0 hp1 i creation)
         (Real.sqrt_nonneg _) steps v
 
+/-- For `p` in [0, 1], the bad-record Born mass after `steps` tensor query steps is at most `Q ^
+steps` times the initial total Born mass. -/
 theorem badRecord_multi_step_probability {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {m Q : ℕ} (i : Fin m) (creation : Bool) (threshold steps : ℕ)
@@ -249,6 +317,8 @@ theorem badRecord_multi_step_probability {I W : Type} [Fintype I] [DecidableEq I
       ring
     _ = (Q : ℝ) ^ steps * MeasureProb v Finset.univ := by rw [hsqrt]
 
+/-- For a normalized input and `p` in [0, 1], the bad-record Born mass after `steps` tensor
+query steps is at most `Q ^ steps`. -/
 theorem badRecord_multi_step_probability_normalized {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {m Q : ℕ} (i : Fin m) (creation : Bool) (threshold steps : ℕ)
@@ -261,6 +331,8 @@ theorem badRecord_multi_step_probability_normalized {I W : Type} [Fintype I] [De
   rw [hmass, mul_one] at h
   exact h
 
+/-- Package the single-step norm, multi-step norm and multi-step Born mass bounds for the tensor
+query model at cutoff `Q` and `p` in [0, 1]. -/
 theorem frontier1 {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) {m Q : ℕ}
     (i : Fin m) (creation : Bool) (threshold steps : ℕ)
@@ -282,17 +354,24 @@ section PhysicalRecords
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The diagonal projector onto database XOR basis states with at least `k` recorded true bits. -/
 def recordProjector (k : ℕ) : Matrix (XorBasis I W) (XorBasis I W) ℂ :=
   Matrix.diagonal fun z => if k ≤ databaseCard z.2 then 1 else 0
 
+/-- The complementary projector onto database XOR basis states with fewer than `k` recorded true
+bits. -/
 def recordLow (k : ℕ) : Matrix (XorBasis I W) (XorBasis I W) ℂ := 1 - recordProjector k
 
+/-- The finite set of database XOR basis states with database cardinality at least `k`. -/
 def recordEvent (k : ℕ) : Finset (XorBasis I W) :=
   Finset.univ.filter (fun z => k ≤ databaseCard z.2)
 
+/-- The Euclidean norm of the component of `v` supported on databases of cardinality at least
+`k`. -/
 def recordAmplitude (k : ℕ) (v : QState (XorBasis I W)) : ℝ :=
   ‖toEuclidean_fromVec (ApplyGate (recordProjector k) v)‖
 
+/-- The record threshold projector has operator norm at most one. -/
 theorem recordProjector_norm (k : ℕ) : ‖recordProjector (I := I) (W := W) k‖ ≤ 1 := by
   rw [recordProjector, Matrix.l2_opNorm_diagonal]
   apply (pi_norm_le_iff_of_nonneg zero_le_one).mpr
@@ -301,6 +380,8 @@ theorem recordProjector_norm (k : ℕ) : ‖recordProjector (I := I) (W := W) k�
 
 omit [Fintype W] in
 
+/-- The complementary record projector is diagonal, with entry one precisely below the
+cardinality threshold. -/
 theorem recordLow_diagonal (k : ℕ) : recordLow (I := I) (W := W) k =
     Matrix.diagonal (fun z => if k ≤ databaseCard z.2 then (0 : ℂ) else 1) := by
   ext x y
@@ -309,6 +390,7 @@ theorem recordLow_diagonal (k : ℕ) : recordLow (I := I) (W := W) k =
     by_cases hx : k ≤ databaseCard x.2 <;> simp [recordLow, recordProjector, hx]
   · simp [recordLow, recordProjector, hxy]
 
+/-- The projector onto databases below the record threshold has operator norm at most one. -/
 theorem recordLow_norm (k : ℕ) : ‖recordLow (I := I) (W := W) k‖ ≤ 1 := by
   rw [recordLow_diagonal, Matrix.l2_opNorm_diagonal]
   apply (pi_norm_le_iff_of_nonneg zero_le_one).mpr
@@ -317,18 +399,24 @@ theorem recordLow_norm (k : ℕ) : ‖recordLow (I := I) (W := W) k‖ ≤ 1 := 
 
 omit [Fintype W] in
 
+/-- The record threshold projector at threshold zero is the identity. -/
 theorem recordProjector_zero : recordProjector (I := I) (W := W) 0 = 1 := by
   ext x y
   simp [recordProjector, Matrix.diagonal_apply, Matrix.one_apply]
 
+/-- The record threshold projector retains an amplitude exactly when the database cardinality is
+at least `k`. -/
 theorem recordProjector_apply (k : ℕ) (v : QState (XorBasis I W)) (z : XorBasis I W) :
     ApplyGate (recordProjector k) v z = if k ≤ databaseCard z.2 then v z else 0 := by
   simp [recordProjector, ApplyGate, Matrix.mulVec_diagonal]
 
+/-- The total Born mass of the projected state equals the Born mass of the record threshold
+event. -/
 theorem recordProjector_mass (k : ℕ) (v : QState (XorBasis I W)) :
     MeasureProb (ApplyGate (recordProjector k) v) Finset.univ = MeasureProb v (recordEvent k) := by
   simp [MeasureProb, BornProb, recordEvent, Finset.sum_filter, recordProjector_apply, apply_ite]
 
+/-- The Born mass of the record threshold event equals the square of `recordAmplitude k v`. -/
 theorem recordEvent_eq_amplitude_sq (k : ℕ) (v : QState (XorBasis I W)) :
     MeasureProb v (recordEvent k) = recordAmplitude k v ^ 2 := by
   rw [← recordProjector_mass, bornMass_eq_norm_sq]
@@ -336,6 +424,8 @@ theorem recordEvent_eq_amplitude_sq (k : ℕ) (v : QState (XorBasis I W)) :
 
 omit [Fintype W] in
 
+/-- The record projector is the identity on algorithm registers tensored with the database
+cardinality projector. -/
 theorem recordProjector_tensor (k : ℕ) : recordProjector (I := I) (W := W) k =
     TensorGate (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ)
       (Matrix.diagonal (fun d : I → Bool => if k ≤ databaseCard d then (1 : ℂ) else 0)) := by
@@ -343,25 +433,31 @@ theorem recordProjector_tensor (k : ℕ) : recordProjector (I := I) (W := W) k =
   by_cases ha : a = b <;> by_cases hd : d = e <;>
     simp [recordProjector, TensorGate, ha, hd]
 
+/-- A record projector commutes with every gate acting only on the algorithm registers. -/
 theorem recordProjector_algorithm_commute (k : ℕ) (U : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) :
     recordProjector k * TensorGate U (1 : Matrix (I → Bool) (I → Bool) ℂ) =
       TensorGate U (1 : Matrix (I → Bool) (I → Bool) ℂ) * recordProjector k := by
   simp only [recordProjector_tensor, tensorGate_mul, Matrix.mul_one, Matrix.one_mul]
 
+/-- A record projector commutes with the target Hadamard gate. -/
 theorem recordProjector_targetH_commute (k : ℕ) :
     recordProjector (I := I) (W := W) k * databaseTargetHadamard =
       databaseTargetHadamard * recordProjector k :=
   recordProjector_algorithm_commute k controlHadamard
 
+/-- The record transition coupling `2 * Real.sqrt (p * (1 - p))`. -/
 def recordCoupling (p : ℝ) : ℝ := 2 * Real.sqrt (p * (1 - p))
 
+/-- The record transition coupling is nonnegative for every real `p`. -/
 theorem recordCoupling_nonneg (p : ℝ) : 0 ≤ recordCoupling p :=
   mul_nonneg (by norm_num) (Real.sqrt_nonneg _)
 
+/-- Flip the Boolean database value at address `j` and retain every other value. -/
 def flipDatabase (j : I) (d : I → Bool) : I → Bool := Function.update d j (!(d j))
 
 omit [Fintype I] in
 
+/-- Flipping a database twice at the same address restores the original database. -/
 theorem flipDatabase_twice (j : I) (d : I → Bool) : flipDatabase j (flipDatabase j d) = d := by
   funext k
   by_cases hk : k = j
@@ -370,6 +466,7 @@ theorem flipDatabase_twice (j : I) (d : I → Bool) : flipDatabase j (flipDataba
 
 omit [Fintype I] in
 
+/-- A database differs from the result of flipping any specified address. -/
 theorem flipDatabase_ne (j : I) (d : I → Bool) : d ≠ flipDatabase j d := by
   intro h
   have hh := congrFun h j
@@ -377,11 +474,13 @@ theorem flipDatabase_ne (j : I) (d : I → Bool) : d ≠ flipDatabase j d := by
 
 omit [Fintype I] in
 
+/-- Flipping at `j` leaves the database value unchanged at every distinct address `k`. -/
 theorem flipDatabase_off (j : I) (d : I → Bool) (k : I) (hk : k ≠ j) : flipDatabase j d k = d k := by
   simp [flipDatabase, hk]
 
 omit [Fintype I] in
 
+/-- Two distinct Boolean databases that agree away from `j` differ by a flip at `j`. -/
 theorem flipDatabase_of_offeq {j : I} {d e : I → Bool}
     (hrest : ∀ k, k ≠ j → d k = e k) (hne : d ≠ e) : d = flipDatabase j e := by
   have hj : d j ≠ e j := by
@@ -398,24 +497,31 @@ theorem flipDatabase_of_offeq {j : I} {d e : I → Bool}
     cases hd : d j <;> cases he : e j <;> simp_all
   · simpa only [flipDatabase, Function.update_of_ne hk] using! hrest k hk
 
+/-- Flip the database at the query address when the target bit is true, and otherwise leave the
+joint basis state unchanged. -/
 def recordFlip (z : XorBasis I W) : XorBasis I W :=
   if z.1.1.2 then (z.1, flipDatabase z.1.1.1 z.2) else z
 
 omit [Fintype I] [Fintype W] [DecidableEq W] in
 
+/-- The controlled database flip is an involution on the database XOR basis. -/
 theorem recordFlip_involutive : Function.Involutive (recordFlip (I := I) (W := W)) := by
   rintro ⟨⟨⟨j,b⟩,w⟩,d⟩
   cases b with
   | false => rfl
   | true => change (((j,true),w), flipDatabase j (flipDatabase j d)) = _; rw [flipDatabase_twice]
 
+/-- The permutation matrix of the controlled database flip. -/
 def recordFlipGate : Matrix (XorBasis I W) (XorBasis I W) ℂ := permMatrix recordFlip
 
+/-- The controlled database flip matrix is unitary. -/
 theorem recordFlipGate_unitary : recordFlipGate (I := I) (W := W) ∈ Matrix.unitaryGroup (XorBasis I W) ℂ :=
   permMatrix_unitary recordFlip_involutive
 
 omit [Fintype W] in
 
+/-- The controlled flip matrix preserves algorithm indices and, within each block, either flips
+the addressed database bit or acts as the identity according to the target bit. -/
 theorem recordFlipGate_entry (q q' : (I × Bool) × W) (d e : I → Bool) :
     recordFlipGate (q,d) (q',e) =
       if q = q' then
@@ -433,11 +539,15 @@ section PhysicalCross
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The diagonal part in the decomposition of a compressed phase query into a diagonal matrix
+and a scaled controlled database flip. -/
 def phaseDiagonal (p : ℝ) : Matrix (XorBasis I W) (XorBasis I W) ℂ :=
   Matrix.diagonal fun z =>
     if z.1.1.2 then (if z.2 z.1.1.1 then (2 * p - 1 : ℝ) else 1 - 2 * p)
     else (1 - recordCoupling p : ℝ)
 
+/-- For `p` in [0, 1], the compressed phase oracle equals `phaseDiagonal p` plus `recordCoupling
+p` times the controlled database flip. -/
 theorem phaseQuery_decomposition (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     compressedOracle (I := I) (W := W) p = phaseDiagonal p + (recordCoupling p : ℂ) • recordFlipGate := by
   ext ⟨q,d⟩ ⟨q',e⟩
@@ -476,6 +586,7 @@ theorem phaseQuery_decomposition (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
   · rw [compressed_oracle_offdiag p q q' d e hq]
     simp [phaseDiagonal, hq]
 
+/-- A diagonal operator has zero matrix block from below a record threshold to at or above it. -/
 theorem recordProjector_diagonal_cross (k : ℕ) (d : XorBasis I W → ℂ) :
     recordProjector k * Matrix.diagonal d * recordLow k = 0 := by
   rw [recordLow_diagonal]
@@ -483,9 +594,13 @@ theorem recordProjector_diagonal_cross (k : ℕ) (d : XorBasis I W → ℂ) :
   ext x y
   by_cases h : k ≤ databaseCard x.2 <;> simp [Matrix.diagonal_apply, h]
 
+/-- The block of `Q` mapping states below threshold `k` into the subspace at or above that
+threshold. -/
 def recordCross (k : ℕ) (Q : Matrix (XorBasis I W) (XorBasis I W) ℂ) :=
   recordProjector k * Q * recordLow k
 
+/-- For `p` in [0, 1], the threshold-crossing block of the compressed phase query is
+`recordCoupling p` times the corresponding controlled flip block. -/
 theorem recordCross_phase (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     recordCross (I := I) (W := W) k (compressedOracle p) =
       (recordCoupling p : ℂ) • (recordProjector k * recordFlipGate * recordLow k) := by
@@ -494,6 +609,7 @@ theorem recordCross_phase (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     recordProjector_diagonal_cross k _
   rw [hdiag, zero_add, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- The product of two finite matrix contractions is a contraction in operator norm. -/
 theorem opNorm_mul_contractions {X : Type} [Fintype X] [DecidableEq X] (A B : Matrix X X ℂ)
     (hA : ‖A‖ ≤ 1) (hB : ‖B‖ ≤ 1) : ‖A * B‖ ≤ 1 := by
   calc ‖A * B‖ ≤ ‖A‖ * ‖B‖ := Matrix.l2_opNorm_mul _ _
@@ -504,9 +620,11 @@ end PhysicalCross
 
 section LocalBoson
 
+/-- The one-mode occupation configuration with exactly `n` particles. -/
 def singleOccupation (n : ℕ) : Occupation 1 n :=
   ⟨fun _ => ⟨n, Nat.lt_succ_self n⟩, by simp⟩
 
+/-- Every one-mode occupation configuration with `n` particles equals `singleOccupation n`. -/
 theorem singleOccupation_unique (n : ℕ) (s : Occupation 1 n) : s = singleOccupation n := by
   apply Subtype.ext
   funext i
@@ -520,22 +638,29 @@ local instance singleModeUnique (n : ℕ) : Unique (Occupation 1 n) where
   default := singleOccupation n
   uniq := singleOccupation_unique n
 
+/-- The equivalence identifying the one-mode bosonic basis at cutoff one with the Boolean basis. -/
 def singleModeToBit : CutBasis 1 1 ≃ Bool :=
   (Equiv.sigmaUnique (Fin 2) (fun n => Occupation 1 n.val)).trans boolEquivFin2.symm
 
+/-- The inverse Boolean identification selects the particle sector corresponding to the Boolean
+value and its unique one-mode occupation. -/
 theorem singleModeToBit_symm (b : Bool) : singleModeToBit.symm b =
     ⟨boolEquivFin2 b, singleOccupation (boolEquivFin2 b).val⟩ := by
   simp [singleModeToBit]
   exact singleOccupation_unique _ _
 
+/-- The one-mode cutoff-one creation matrix relabelled onto the Boolean basis. -/
 def bitCreation : Matrix Bool Bool ℂ := relabelGate singleModeToBit (cutCreate 1 1 0)
 
+/-- The Boolean creation matrix entry is one exactly for output true and input false, and zero
+otherwise. -/
 theorem bitCreation_entry (a b : Bool) : bitCreation a b = if a && !b then 1 else 0 := by
   change cutCreate 1 1 0 (singleModeToBit.symm a) (singleModeToBit.symm b) = _
   rw [singleModeToBit_symm, singleModeToBit_symm]
   cases a <;> cases b <;>
     simp [cutCreate, singleOccupation, boolEquivFin2]
 
+/-- The Boolean creation matrix has operator norm at most one. -/
 theorem bitCreation_norm : ‖bitCreation‖ ≤ 1 := by
   rw [bitCreation, l2_norm_relabelGate]
   have h := (BosonOperators.sector_and_polynomial_norm_bounds).2.2.1 1 1 (fun _ => (1 : ℂ))
@@ -543,10 +668,13 @@ theorem bitCreation_norm : ‖bitCreation‖ ≤ 1 := by
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The database operator applying Boolean creation at address `j` and the identity at all other
+addresses. -/
 def databaseRaise (j : I) : Matrix (I → Bool) (I → Bool) ℂ :=
   relabelGate (Equiv.funSplitAt j Bool).symm
     (TensorGate bitCreation (1 : Matrix ({k : I // k ≠ j} → Bool) ({k : I // k ≠ j} → Bool) ℂ))
 
+/-- The single-address database raising operator has operator norm at most one. -/
 theorem databaseRaise_norm (j : I) : ‖databaseRaise j‖ ≤ 1 := by
   rw [databaseRaise, l2_norm_relabelGate, l2_norm_tensorGate]
   have hI :=
@@ -559,15 +687,19 @@ section FibreNorm
 
 variable {A D : Type} [Fintype A] [DecidableEq A] [Fintype D] [DecidableEq D]
 
+/-- The block diagonal matrix with block `B a` on the fibre indexed by `a`. -/
 def fibreGate (B : A → Matrix D D ℂ) : Matrix (A × D) (A × D) ℂ :=
   fun x y => if x.1 = y.1 then B x.1 x.2 y.2 else 0
 
 omit [DecidableEq D] in
 
+/-- A fibre gate acts on each fixed first-coordinate slice by its corresponding block. -/
 theorem fibreGate_apply (B : A → Matrix D D ℂ) (v : QState (A × D)) (a : A) (d : D) :
     ApplyGate (fibreGate B) v (a,d) = ApplyGate (B a) (fun e => v (a,e)) d := by
   simp [fibreGate, ApplyGate, Matrix.mulVec, dotProduct, Fintype.sum_prod_type]
 
+/-- If every fibre block has operator norm at most a nonnegative `c`, the full fibre gate has
+operator norm at most `c`. -/
 theorem fibreGate_norm_le (B : A → Matrix D D ℂ) (c : ℝ) (hc : 0 ≤ c) (hB : ∀ a, ‖B a‖ ≤ c) :
     ‖fibreGate B‖ ≤ c := by
   apply l2_opNorm_le_of_mulVec_le hc
@@ -598,6 +730,8 @@ variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- The database raising entry is one exactly when the input bit at `j` is false and the output
+database is its flip at `j`. -/
 theorem databaseRaise_entry (j : I) (d e : I → Bool) :
     databaseRaise j d e = if e j then 0 else if d = flipDatabase j e then 1 else 0 := by
   change bitCreation (d j) (e j) *
@@ -631,9 +765,12 @@ theorem databaseRaise_entry (j : I) (d e : I → Bool) :
           simp [hd, he] at hh
       simp [hf]
 
+/-- The block diagonal gate applying database raising at the query address when the target bit
+is true and the zero operator otherwise. -/
 def recordRaiseGate : Matrix (XorBasis I W) (XorBasis I W) ℂ :=
   fibreGate (fun q : (I × Bool) × W => if q.1.2 then databaseRaise q.1.1 else 0)
 
+/-- The controlled record raising gate has operator norm at most one. -/
 theorem recordRaiseGate_norm : ‖recordRaiseGate (I := I) (W := W)‖ ≤ 1 := by
   apply fibreGate_norm_le _ 1 zero_le_one
   intro q
@@ -643,6 +780,8 @@ theorem recordRaiseGate_norm : ‖recordRaiseGate (I := I) (W := W)‖ ≤ 1 := 
 
 omit [Fintype W] in
 
+/-- The record raising entry is one exactly when algorithm indices agree, the target is true,
+the input database bit is false and the output database flips that bit. -/
 theorem recordRaiseGate_entry (q q' : (I × Bool) × W) (d e : I → Bool) :
     recordRaiseGate (q,d) (q',e) =
       if q = q' then
@@ -656,6 +795,8 @@ theorem recordRaiseGate_entry (q q' : (I × Bool) × W) (d e : I → Bool) :
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- Flipping a database at `j` removes `j` from its support when the bit was true and inserts
+`j` when it was false. -/
 theorem flipDatabase_support (j : I) (d : I → Bool) :
     databaseSupport (flipDatabase j d) =
       if d j then (databaseSupport d).erase j else insert j (databaseSupport d) := by
@@ -667,12 +808,15 @@ theorem flipDatabase_support (j : I) (d : I → Bool) :
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- Flipping a true database bit decreases the database cardinality by one. -/
 theorem flipDatabase_card_true (j : I) (d : I → Bool) (hd : d j = true) :
     databaseCard (flipDatabase j d) + 1 = databaseCard d := by
   have hj : j ∈ databaseSupport d := by simp [databaseSupport, hd]
   have hh := Finset.card_erase_add_one hj
   simpa only [databaseCard, flipDatabase_support, hd, if_true] using! hh
 
+/-- The block of the controlled flip crossing a record threshold equals the corresponding block
+of the controlled raising gate. -/
 theorem recordCross_flip_raise (k : ℕ) :
     recordProjector (I := I) (W := W) k * recordFlipGate * recordLow k =
       recordProjector k * recordRaiseGate * recordLow k := by
@@ -700,6 +844,8 @@ theorem recordCross_flip_raise (k : ℕ) :
       · simp [recordFlipGate_entry, recordRaiseGate_entry, hq]
   · simp [hx]
 
+/-- For `p` in [0, 1], the operator norm of the compressed phase query block crossing any record
+threshold is at most `recordCoupling p`. -/
 theorem phaseCross_bosonic_norm (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     ‖recordCross (I := I) (W := W) k (compressedOracle p)‖ ≤ recordCoupling p := by
   rw [recordCross_phase k p hp0 hp1, recordCross_flip_raise, norm_smul]
@@ -718,15 +864,20 @@ section PhysicalCross
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- For `p` in [0, 1], every record threshold-crossing block of the compressed phase query has
+norm at most `recordCoupling p`. -/
 theorem recordCross_phase_norm (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     ‖recordCross (I := I) (W := W) k (compressedOracle p)‖ ≤ recordCoupling p :=
   phaseCross_bosonic_norm k p hp0 hp1
 
+/-- The projector below a record threshold commutes with the target Hadamard gate. -/
 theorem recordLow_targetH_commute (k : ℕ) :
     recordLow (I := I) (W := W) k * databaseTargetHadamard = databaseTargetHadamard * recordLow k := by
   simp only [recordLow, Matrix.sub_mul, Matrix.mul_sub, Matrix.one_mul, Matrix.mul_one,
     recordProjector_targetH_commute]
 
+/-- The record threshold-crossing block of the database XOR query is the target Hadamard
+conjugate of the corresponding compressed phase query block. -/
 theorem recordCross_xor_eq (k : ℕ) (p : ℝ) :
     recordCross (I := I) (W := W) k (databaseXorOracle p) =
       databaseTargetHadamard * recordCross k (compressedOracle p) * databaseTargetHadamard := by
@@ -738,6 +889,8 @@ theorem recordCross_xor_eq (k : ℕ) (p : ℝ) :
       rw [recordProjector_targetH_commute, recordLow_targetH_commute]
     _ = databaseTargetHadamard * (recordProjector k * compressedOracle p * recordLow k) * databaseTargetHadamard := by noncomm_ring
 
+/-- For `p` in [0, 1], the operator norm of any record threshold-crossing block of the database
+XOR query is at most `recordCoupling p`. -/
 theorem recordCross_xor_norm (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     ‖recordCross (I := I) (W := W) k (databaseXorOracle p)‖ ≤ recordCoupling p := by
   rw [recordCross_xor_eq]
@@ -760,6 +913,8 @@ section PhysicalRecurrence
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- For `p` in [0, 1], a nonzero database XOR query entry can increase database cardinality by
+at most one. -/
 theorem physicalQuery_card_step (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (x y : XorBasis I W) (h : databaseXorOracle p x y ≠ 0) :
     databaseCard x.2 ≤ databaseCard y.2 + 1 := by
@@ -773,6 +928,8 @@ theorem physicalQuery_card_step (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     · exact False.elim (h (databaseXorOracle_offblock p j j b a w w' d e (Or.inr hw)))
   · exact False.elim (h (databaseXorOracle_offblock p j j' b a w w' d e (Or.inl hj)))
 
+/-- For `p` in [0, 1], the database XOR query block crossing threshold `k + 1` is unchanged by
+restricting its input to databases of cardinality at least `k`. -/
 theorem recordCross_crop (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     recordCross (I := I) (W := W) (k + 1) (databaseXorOracle p) =
       recordCross (k + 1) (databaseXorOracle p) * recordProjector k := by
@@ -789,11 +946,15 @@ theorem recordCross_crop (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
       simp [hz]
     · simp [hx]
 
+/-- The output-above-threshold part of `Q` is the sum of its above-to-above block and its
+below-to-above crossing block. -/
 theorem recordCross_decompose (k : ℕ) (Q : Matrix (XorBasis I W) (XorBasis I W) ℂ) :
     recordProjector k * Q = recordProjector k * Q * recordProjector k + recordCross k Q := by
   unfold recordCross recordLow
   noncomm_ring
 
+/-- For `p` in [0, 1], one database XOR query increases the record amplitude at threshold `k +
+1` by at most `recordCoupling p` times the previous amplitude at threshold `k`. -/
 theorem physicalQuery_amplitude_recurrence (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (v : QState (XorBasis I W)) :
     recordAmplitude (k + 1) (ApplyGate (databaseXorOracle p) v) ≤
@@ -823,6 +984,8 @@ theorem physicalQuery_amplitude_recurrence (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (
   change ‖toEuclidean_fromVec (ApplyGate (P * Q * P) v) + toEuclidean_fromVec (ApplyGate C v)‖ ≤ _
   exact (norm_add_le _ _).trans (add_le_add hhigh hlow)
 
+/-- Applying a unitary gate to the algorithm registers does not increase any record threshold
+amplitude. -/
 theorem recordAmplitude_algorithm_le (k : ℕ)
     (U : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ)
     (hU : U ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ) (v : QState (XorBasis I W)) :
@@ -841,24 +1004,33 @@ section PhysicalRuns
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The type of complex square matrices on the algorithm address, target and workspace basis. -/
 abbrev AlgorithmMatrix (I W : Type) := Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ
 
+/-- Every matrix in the algorithm gate list belongs to the unitary group. -/
 def algorithmGatesValid (gates : List (AlgorithmMatrix I W)) : Prop :=
   ∀ U ∈ gates, U ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ
 
+/-- The algorithm input state tensored with the all-false database ket. -/
 def physicalInitial (ψ : QState ((I × Bool) × W)) : QState (XorBasis I W) :=
   TensorState ψ (Ket (fun _ => false))
 
+/-- Apply each algorithm gate in order, tensored with database identity, followed by a database
+XOR query after each gate. -/
 def physicalRun (p : ℝ) (gates : List (AlgorithmMatrix I W)) (v : QState (XorBasis I W)) : QState (XorBasis I W) :=
   gates.foldl (fun state U => ApplyGate (databaseXorOracle p)
     (ApplyGate (TensorGate U (1 : Matrix (I → Bool) (I → Bool) ℂ)) state)) v
 
+/-- Appending one algorithm gate to a physical run applies that lifted gate followed by one
+database XOR query to the previous output. -/
 theorem physicalRun_append (p : ℝ) (gates : List (AlgorithmMatrix I W)) (U : AlgorithmMatrix I W)
     (v : QState (XorBasis I W)) :
     physicalRun p (gates ++ [U]) v = ApplyGate (databaseXorOracle p)
       (ApplyGate (TensorGate U (1 : Matrix (I → Bool) (I → Bool) ℂ)) (physicalRun p gates v)) := by
   simp [physicalRun, List.foldl_append]
 
+/-- For `p` in [0, 1] and a list of unitary algorithm gates, physical execution preserves
+normalization. -/
 theorem physicalRun_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (gates : List (AlgorithmMatrix I W)) (hG : algorithmGatesValid gates)
     (v : QState (XorBasis I W)) (hv : Normalized v) : Normalized (physicalRun p gates v) := by
@@ -872,6 +1044,7 @@ theorem physicalRun_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     have hq := physicalQuery_normalized p hp0 hp1 _ hu
     exact ih htail _ hq
 
+/-- A normalized finite quantum state has Euclidean norm one. -/
 theorem normalized_euclidean_norm {X : Type} [Fintype X] [DecidableEq X]
     (v : QState X) (hv : Normalized v) : ‖toEuclidean_fromVec v‖ = 1 := by
   have hm : MeasureProb v Finset.univ = 1 := by simpa [MeasureProb, Normalized] using! hv
@@ -879,12 +1052,16 @@ theorem normalized_euclidean_norm {X : Type} [Fintype X] [DecidableEq X]
   have hn := norm_nonneg (toEuclidean_fromVec v)
   nlinarith
 
+/-- The record amplitude at threshold zero is the Euclidean norm of the full state. -/
 theorem recordAmplitude_zero (v : QState (XorBasis I W)) : recordAmplitude 0 v = ‖toEuclidean_fromVec v‖ := by
   simp only [recordAmplitude, recordProjector_zero, applyGate_one]
 
+/-- Attaching the empty database to a normalized algorithm state gives a normalized joint state. -/
 theorem physicalInitial_normalized (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ) :
     Normalized (physicalInitial ψ) := normalized_tensorState hψ (normalized_ket _)
 
+/-- The initial state with an empty database has zero record amplitude at every positive
+threshold. -/
 theorem recordAmplitude_initial_pos (k : ℕ) (ψ : QState ((I × Bool) × W)) :
     recordAmplitude (k + 1) (physicalInitial ψ) = 0 := by
   have hz : ApplyGate (recordProjector (k + 1)) (physicalInitial ψ) = 0 := by
@@ -897,6 +1074,9 @@ theorem recordAmplitude_initial_pos (k : ℕ) (ψ : QState ((I × Bool) × W)) :
     · simp [physicalInitial, TensorState, Ket, hd]
   simp [recordAmplitude, hz, toEuclidean_fromVec]
 
+/-- For `p` in [0, 1], normalized input and unitary algorithm gates, the threshold-`k` record
+amplitude after `gates.length` queries is at most `Nat.choose gates.length k *
+recordCoupling p ^ k`. -/
 theorem physicalRun_binomial (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ) :
     ∀ (gates : List (AlgorithmMatrix I W)), algorithmGatesValid gates → ∀ k,
@@ -944,6 +1124,9 @@ theorem physicalRun_binomial (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
           rw [pow_succ]
           ring
 
+/-- For `p` in [0, 1], normalized input and unitary algorithm gates, the Born probability of at
+least `k` records is at most `Nat.choose gates.length k` squared times `recordCoupling p ^
+(2 * k)`. -/
 theorem physicalRun_bad_probability (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ)
     (gates : List (AlgorithmMatrix I W)) (hG : algorithmGatesValid gates) (k : ℕ) :
@@ -965,9 +1148,12 @@ section PhysicalLaw
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The circuit alternating each matrix in the given algorithm gate list with an oracle query. -/
 def physicalCircuit (gates : List (AlgorithmMatrix I W)) : Circuit ((I × Bool) × W) :=
   gates.flatMap (fun U => [.gate U, .query])
 
+/-- Running the lifted alternating circuit with the database XOR oracle equals the corresponding
+folded physical run. -/
 theorem physicalCircuit_run (p : ℝ) (gates : List (AlgorithmMatrix I W)) (v : QState (XorBasis I W)) :
     Run (databaseXorOracle p) (tensorLiftCircuit (physicalCircuit gates)) v = physicalRun p gates v := by
   induction gates generalizing v with
@@ -977,11 +1163,15 @@ theorem physicalCircuit_run (p : ℝ) (gates : List (AlgorithmMatrix I W)) (v : 
       tensorLiftCircuit, List.map_cons, tensorLiftStep, run_gate, run_query]
     exact ih _
 
+/-- A physical run from the empty database equals `databaseXorRun` of the alternating algorithm
+circuit. -/
 theorem physicalRun_eq_databaseXorRun (p : ℝ) (gates : List (AlgorithmMatrix I W))
     (ψ : QState ((I × Bool) × W)) :
     physicalRun p gates (physicalInitial ψ) = databaseXorRun p (physicalCircuit gates) ψ :=
   (physicalCircuit_run p gates (physicalInitial ψ)).symm
 
+/-- For `p` in [0, 1], decompression of a physical run from the empty database gives, at each
+table, its Bernoulli amplitude times the ordinary workspace bit oracle circuit amplitude. -/
 theorem physicalRun_oracle_law (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (gates : List (AlgorithmMatrix I W)) (ψ : QState ((I × Bool) × W))
     (q : (I × Bool) × W) (x : I → Bool) :
@@ -997,12 +1187,16 @@ section PhysicalFrontier
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- For `p` in [0, 1], the square of the record coupling is `4 * p * (1 - p)`. -/
 theorem recordCoupling_sq (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     recordCoupling p ^ 2 = 4 * p * (1 - p) := by
   unfold recordCoupling
   rw [mul_pow, Real.sq_sqrt (mul_nonneg hp0 (sub_nonneg.mpr hp1))]
   ring
 
+/-- For `p` in [0, 1], normalized input and unitary algorithm gates, package normalization, the
+decompression identity, the one-query amplitude recurrence, and the binomial amplitude and
+record probability bounds. -/
 theorem physicalFrontier (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ)
     (gates : List (AlgorithmMatrix I W)) (hG : algorithmGatesValid gates) :
@@ -1037,10 +1231,12 @@ section RepeatedQueries
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The target Hadamard on the database XOR basis squares to the identity. -/
 theorem physicalTargetH_square : databaseTargetHadamard (I := I) (W := W) * databaseTargetHadamard = 1 := by
   simp only [databaseTargetHadamard, controlHadamard, tensorGate_mul, Matrix.one_mul,
     hadamard_mul_self, tensorGate_one]
 
+/-- The joint table phase oracle squares to the identity. -/
 theorem physicalPhase_square : jointPhaseOracle (I := I) (W := W) * jointPhaseOracle = 1 := by
   simp only [jointPhaseOracle, Matrix.diagonal_mul_diagonal]
   ext x y
@@ -1049,6 +1245,7 @@ theorem physicalPhase_square : jointPhaseOracle (I := I) (W := W) * jointPhaseOr
     by_cases h : x.1.1.2 = true ∧ x.2 x.1.1.1 = true <;> simp [h]
   · simp [hxy]
 
+/-- For `p` in [0, 1], the compressed phase oracle squares to the identity. -/
 theorem compressedQuery_square (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     compressedOracle (I := I) (W := W) p * compressedOracle p = 1 := by
   let S : Matrix (XorBasis I W) (XorBasis I W) ℂ := TensorGate
@@ -1070,6 +1267,7 @@ theorem compressedQuery_square (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     _ = Sᴴ * (jointPhaseOracle * jointPhaseOracle) * S := by rw [hSS]; noncomm_ring
     _ = 1 := by rw [physicalPhase_square, Matrix.mul_one, hSS']
 
+/-- For `p` in [0, 1], the database XOR oracle squares to the identity. -/
 theorem physicalQuery_square (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     databaseXorOracle (I := I) (W := W) p * databaseXorOracle p = 1 := by
   let H := databaseTargetHadamard (I := I) (W := W)
@@ -1082,6 +1280,8 @@ theorem physicalQuery_square (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     _ = H * (C * C) * H := by rw [hH]; noncomm_ring
     _ = 1 := by rw [hC, Matrix.mul_one, hH]
 
+/-- For `p` in [0, 1], a physical run with two identity algorithm gates returns the initial
+state because the two database XOR queries cancel. -/
 theorem physicalRun_repeat (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (v : QState (XorBasis I W)) :
     physicalRun p [1,1] v = v := by
   simp only [physicalRun, List.foldl_cons, List.foldl_nil, tensorGate_one, applyGate_one]

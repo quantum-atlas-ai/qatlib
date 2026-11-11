@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
 import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+/-!
+# Statement of truncated sketch isometry
+
+This module defines `TruncatedSketchIsometry`, combining an operator norm error estimate with an
+exact singular projector identity. For positive `τ`, the thresholded reciprocal singular
+transform of Ccᴴ transports a Frobenius Gram error η₂ ≤ τ²α to operator error at most `α`. Its
+action on the exact sketch Gram matrix gives the right singular projector retaining singular
+values at least `τ` [ChiaEtAl2022].
+
+## Main statements
+
+* `TruncatedSketchIsometry`: the quantified error bound and retained-projector identity.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
@@ -16,6 +35,9 @@ namespace Qatlib.Concepts.SketchSpectral.SketchPerturb
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The statement that a Frobenius Gram error η₂ ≤ τ²α yields operator error at most `α` after
+applying the thresholded reciprocal singular transform, together with the exact retained
+right singular projector identity, for positive `τ`. -/
 def TruncatedSketchIsometry : Prop :=
   ∀ (C RS CT : Type) [Fintype C] [DecidableEq C] [Fintype RS] [DecidableEq RS]
     [Fintype CT] [DecidableEq CT]

@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
 import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+
+/-!
+# Robust Amplification of Dyson Segments
+
+`robustDysonWord` expands coherent oblivious amplitude amplification around a normalization-two
+block encoding. For a unitary target and approximation error `δ ≤ 1`, it gives normalization
+one, block-encoding error at most `5 * δ`, and workspace defect at most `sqrt (10 * δ)`.
+
+`concatenateDysonWords` composes amplified segments in a shared frame. Choosing
+`dysonSharedSegmentAccuracy m ε` controls the total workspace error, while
+`freshDysonSegmentedWord` supplies exact query and gate counts for the fresh-register Taylor
+implementation used in the CBMD algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `robust_dyson_segment` gives the amplified encoding, workspace error, and threefold body-query
+  cost.
+* `fresh_dyson_amplified_counted` uses `3 * K` queries and `6 * K + 13` fixed gates.
+* `dyson_segments_shared_frame` bounds the combined encoding error by `5 * m ^ 2 * δ` and
+  workspace defect by `m * sqrt (10 * δ)`.
+* `fresh_dyson_segments_counted` gives `3 * m * K` queries, `m * (6 * K + 13)` gates, and
+  workspace error at most `ε`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,16 +76,22 @@ namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- For `0 ≤ δ ≤ 1`, the coherent oblivious amplitude amplification error is at most `5 * δ`. -/
 theorem dyson_coherentOAAError_le {δ : ℝ} (hδ : 0 ≤ δ) (hδ1 : δ ≤ 1) :
     coherentOAAError δ ≤ 5 * δ := by
   have hs : δ ^ 2 ≤ δ := by nlinarith
   unfold coherentOAAError
   nlinarith [mul_nonneg hδ (sub_nonneg.mpr hδ1)]
 
+/-- Expands the coherent oblivious amplitude amplification word at frame `R` by substituting the
+given Dyson body circuit. -/
 def robustDysonWord {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (body : List (AdjointStep H)) (R : Matrix H I ℂ) :
     List (AdjointStep H) := substituteAdjointCircuit body (coherentOAAWord R)
 
+/-- Amplifying a well-formed normalization-two encoding of a unitary target with `δ ≤ 1` yields
+normalization one, error `5 * δ`, and workspace defect at most `sqrt (10 * δ)`. The expanded
+word uses three times the body queries and `4 + 3 * adjointGateCount body` fixed gates. -/
 theorem robust_dyson_segment {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (O : Matrix H H ℂ) (body : List (AdjointStep H))
     (V : Matrix I I ℂ) (R : Matrix H I ℂ) {δ : ℝ}
@@ -95,6 +129,8 @@ private instance robustFreshLabelWorkspaceDecEq (K : ℕ) :
   @instDecidableEqProd (TaylorWordLabel J K) (FreshQueryWorkspace A J I K)
     inferInstance (robustFreshWorkspaceDecEq K)
 
+/-- The robustly amplified fresh-register Taylor LCU word, using padded coefficients and the
+clean Taylor-label frame. -/
 def freshDysonAmplifiedWord (j₀ : J) (a₀ : A) (K : ℕ)
     (a : (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) :
     List (AdjointStep (TaylorWordLabel J K × FreshQueryWorkspace A J I K)) :=
@@ -103,6 +139,10 @@ def freshDysonAmplifiedWord (j₀ : J) (a₀ : A) (K : ℕ)
       (routedFreshChoices j₀ K K le_rfl) (routedPaddedCoefficients K a))
     (tagFrame (taylorEmptyLabel J K) (freshWordFrame j₀ a₀ K))
 
+/-- A fresh Taylor LCU approximation of a unitary target, with coefficient mass at most two and
+error `δ ≤ 1`, yields a well-formed normalization-one encoding of error `5 * δ` and
+workspace defect at most `sqrt (10 * δ)`. Its amplified word uses `3 * K` queries and `6 * K
++ 13` fixed gates. -/
 theorem fresh_dyson_amplified_counted (j₀ : J) (a₀ : A) (K : ℕ)
     (a : (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) (B : J → Matrix I I ℂ)
     (U : J → Matrix (A × I) (A × I) ℂ) (V : Matrix I I ℂ) {δ : ℝ}
@@ -135,9 +175,12 @@ end Fresh
 section Composition
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- Concatenates the segment words indexed by the supplied list of segment labels. -/
 def concatenateDysonWords {m : ℕ} (cs : Fin m → List (AdjointStep H))
     (is : List (Fin m)) : List (AdjointStep H) := is.flatMap cs
 
+/-- Evaluating the concatenated Dyson word equals evaluation of the corresponding list of
+segment-evaluation matrices. -/
 theorem concatenateDysonWords_evaluate {m : ℕ} (O : Matrix H H ℂ)
     (cs : Fin m → List (AdjointStep H)) (is : List (Fin m)) :
     evaluate O (concatenateDysonWords cs is) =
@@ -150,6 +193,8 @@ theorem concatenateDysonWords_evaluate {m : ℕ} (O : Matrix H H ℂ)
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- The query and fixed-gate counts of a concatenated Dyson word are the sums of the
+corresponding counts along its index list. -/
 theorem concatenateDysonWords_cost {m : ℕ} (cs : Fin m → List (AdjointStep H))
     (is : List (Fin m)) :
     adjointQueryCount (concatenateDysonWords cs is) =
@@ -164,6 +209,7 @@ theorem concatenateDysonWords_cost {m : ℕ} (cs : Fin m → List (AdjointStep H
       And.intro (congrArg (adjointQueryCount (cs i) + ·) ih.1)
         (congrArg (adjointGateCount (cs i) + ·) ih.2)
 
+/-- Concatenating well-formed Dyson segment words gives a well-formed adjoint circuit. -/
 theorem concatenateDysonWords_wellFormed {m : ℕ} (cs : Fin m → List (AdjointStep H))
     (hs : ∀ i, WellFormedAdjointCircuit (cs i)) (is : List (Fin m)) :
     WellFormedAdjointCircuit (concatenateDysonWords cs is) := by
@@ -171,6 +217,9 @@ theorem concatenateDysonWords_wellFormed {m : ℕ} (cs : Fin m → List (Adjoint
   | nil => intro c hc; simp [concatenateDysonWords] at hc
   | cons i is ih => exact Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit.append (hs i) ih
 
+/-- Composing `m` unitary-target segment encodings on one isometric frame, each with
+normalization one and error `5 * δ`, gives encoding error at most `5 * m ^ 2 * δ`. The
+combined workspace defect is at most `m * sqrt (10 * δ)`. -/
 theorem dyson_segments_shared_frame {m : ℕ} (O : Matrix H H ℂ)
     (cs : Fin m → List (AdjointStep H)) (V : Fin m → Matrix I I ℂ)
     (R : Matrix H I ℂ) {δ : ℝ} (hδ : 0 ≤ δ) (hR : IsIsometry R)
@@ -199,8 +248,12 @@ theorem dyson_segments_shared_frame {m : ℕ} (O : Matrix H H ℂ)
       Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq (Nat.cast_nonneg _)]
   rwa [hr] at hf
 
+/-- The per-segment approximation tolerance `ε ^ 2 / (10 * m ^ 2)` for a target workspace error
+`ε` across `m` shared-frame segments. -/
 def dysonSharedSegmentAccuracy (m : ℕ) (ε : ℝ) : ℝ := ε ^ 2 / (10 * (m : ℝ) ^ 2)
 
+/-- For positive `m` and `0 < ε ≤ 1`, the chosen segment tolerance is positive, at most one, and
+satisfies `m * sqrt (10 * dysonSharedSegmentAccuracy m ε) = ε`. -/
 theorem dysonSharedSegmentAccuracy_bounds {m : ℕ} (hm : 0 < m) {ε : ℝ}
     (hε : 0 < ε) (hε1 : ε ≤ 1) :
     0 < dysonSharedSegmentAccuracy m ε ∧ dysonSharedSegmentAccuracy m ε ≤ 1 ∧
@@ -217,6 +270,8 @@ theorem dysonSharedSegmentAccuracy_bounds {m : ℕ} (hm : 0 < m) {ε : ℝ}
     rw [he, Real.sqrt_sq (div_nonneg hε.le hm0.le)]
     field_simp
 
+/-- For positive `m` and `0 < ε ≤ 1`, segment encodings with error `5 *
+dysonSharedSegmentAccuracy m ε` have combined workspace defect at most `ε`. -/
 theorem dyson_segments_chosen_workspace_error {m : ℕ} (hm : 0 < m)
     (O : Matrix H H ℂ) (cs : Fin m → List (AdjointStep H))
     (V : Fin m → Matrix I I ℂ) (R : Matrix H I ℂ) {ε : ℝ}
@@ -236,12 +291,18 @@ section FreshFamily
 variable {A J I : Type} [Fintype A] [DecidableEq A] [Fintype J] [DecidableEq J]
   [Fintype I] [DecidableEq I]
 
+/-- Concatenates the amplified fresh-register Taylor LCU words for the segment coefficient
+family in `unitaryFamilyWord` order. -/
 def freshDysonSegmentedWord (j₀ : J) (a₀ : A) (K : ℕ) {m : ℕ}
     (a : Fin m → (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) :
     List (AdjointStep (TaylorWordLabel J K × FreshQueryWorkspace A J I K)) :=
   concatenateDysonWords (fun i => freshDysonAmplifiedWord (I := I) j₀ a₀ K (a i))
     (unitaryFamilyWord m)
 
+/-- Under the chosen per-segment tolerance and coefficient-mass bound, the segmented fresh Dyson
+word is well formed and encodes the unitary segment product with normalization one, error `ε
+^ 2 / 2`, and workspace defect at most `ε`. It uses `3 * m * K` queries and `m * (6 * K +
+13)` fixed gates. -/
 theorem fresh_dyson_segments_counted (j₀ : J) (a₀ : A) (K : ℕ)
     {m : ℕ} (hm : 0 < m)
     (a : Fin m → (Σ l : Fin (K + 1), Fin l.val → J) → ℂ)

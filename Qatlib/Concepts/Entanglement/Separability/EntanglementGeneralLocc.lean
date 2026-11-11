@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Entanglement.Separability.EntanglementGeneralLoccDefs
+
+/-!
+# Local Kraus operations, marginals, and negativity
+
+This module proves branch and averaging identities for complete left-local Kraus instruments. It
+identifies reduced branch operators and masses, proves that normalized branch masses sum to one,
+and establishes preservation of the second marginal under averaging. It also proves invariance
+of the first marginal under the right-local feedback unitary. These constructions use the
+local-operation framework of [Wilde2017].
+
+The negativity results prove nonnegativity and vanishing on separable and normalized product
+states, following the measure of [VidalWerner2002]. General entropy, majorization-decomposition,
+and deterministic-conversion criteria are defined as propositions for further development.
+
+## Main statements
+
+* `secondMarginal_krausAverageState`: preservation of the untouched subsystem's marginal.
+* `krausBranchReduced_eq`: reduced branch operators as Kraus conjugations.
+* `krausBranchMass_sum_eq_one`: normalization of branch masses.
+* `negativity_of_isSeparableState`: vanishing negativity for separable states.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+* [Vidal and Werner, 2002][VidalWerner2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QuantumEntropy.EntropyCalculus
@@ -28,6 +55,8 @@ open scoped BigOperators ComplexOrder
 
 variable {D E n : ℕ}
 
+/-- The outer product of a state transformed by `W` equals `W * outerProduct ψ *
+W.conjTranspose`. -/
 theorem outerProduct_applyGate_matrix {I : Type*} [Fintype I]
     (W : Matrix I I ℂ) (ψ : QState I) :
     outerProduct (ApplyGate W ψ) = W * outerProduct ψ * W.conjTranspose := by
@@ -40,6 +69,7 @@ theorem outerProduct_applyGate_matrix {I : Type*} [Fintype I]
   simp only [Finset.sum_mul]
   exact Finset.sum_congr rfl fun _ _ => Finset.sum_congr rfl fun _ _ => by ring
 
+/-- A finite sum weighted by the equality indicator at `a` evaluates the summand at `a`. -/
 theorem sum_mul_ite_one {ι : Type*} [Fintype ι] [DecidableEq ι] (a : ι) (f : ι → ℂ) :
     (∑ b, (if a = b then 1 else 0) * f b) = f a := by
   have h : ∀ b, (if a = b then 1 else 0) * f b = if a = b then f b else 0 := by
@@ -51,6 +81,8 @@ theorem sum_mul_ite_one {ι : Type*} [Fintype ι] [DecidableEq ι] (a : ι) (f :
       rw [Finset.sum_ite_eq]
       simp
 
+/-- Applying `A` to the left subsystem acts on each fixed right-coordinate slice by the matrix
+`A`. -/
 theorem applyGate_tensorLeft_apply (A : Operator D) (ψ : QState (Fin D × Fin E))
     (a : Fin D) (b : Fin E) :
     ApplyGate (TensorGate A (1 : Operator E)) ψ (a, b) = ∑ u, A a u * ψ (u, b) := by
@@ -64,17 +96,21 @@ theorem applyGate_tensorLeft_apply (A : Operator D) (ψ : QState (Fin D × Fin E
         exact Finset.sum_congr rfl fun x_2 _ => by ring
     _ = A a x_1 * ψ (x_1, b) := by rw [sum_mul_ite_one]
 
+/-- Interchange the two outer indices of a threefold complex finite sum. -/
 theorem sum_swap_outer {ι κ μ : Type*} [Fintype ι] [Fintype κ] [Fintype μ]
     (f : ι → κ → μ → ℂ) :
     (∑ a, ∑ u, ∑ v, f a u v) = ∑ u, ∑ a, ∑ v, f a u v := by
   rw [@Finset.sum_comm κ ℂ ι]
 
+/-- Interchange the two inner indices of a threefold complex finite sum. -/
 theorem sum_swap_inner {ι κ μ : Type*} [Fintype ι] [Fintype κ] [Fintype μ]
     (f : ι → κ → μ → ℂ) :
     (∑ u, ∑ a, ∑ v, f a u v) = ∑ u, ∑ v, ∑ a, f a u v := by
   refine Finset.sum_congr rfl fun u _ => ?_
   rw [@Finset.sum_comm μ ℂ ι]
 
+/-- The second marginal after a left-local operation is the double sum weighted by the
+conjugated entries of `A.conjTranspose * A`. -/
 theorem secondMarginal_krausBranch (ψ : QState (Fin D × Fin E)) (A : Operator D)
     (b c : Fin E) :
     secondMarginalState (ApplyGate (TensorGate A (1 : Operator E)) ψ) b c
@@ -135,6 +171,8 @@ theorem secondMarginal_krausBranch (ψ : QState (Fin D × Fin E)) (A : Operator 
         rw [hk]
         exact hpoint u v
 
+/-- Kraus completeness gives the conjugated identity-matrix entry when summing entries of the
+operators `(K.op i).conjTranspose * K.op i`. -/
 theorem krausComplete_pointwise (K : KrausInstrument D n) (u k : Fin D) :
     (∑ i, (starRingEnd ℂ) (((K.op i).conjTranspose * (K.op i)) u k))
       = (starRingEnd ℂ) (if u = k then 1 else 0) := by
@@ -147,6 +185,8 @@ theorem krausComplete_pointwise (K : KrausInstrument D n) (u k : Fin D) :
     _ = (starRingEnd ℂ) (if u = k then 1 else 0) := by
         rw [K.hcomplete, Matrix.one_apply]
 
+/-- Averaging all branches of a complete left-local Kraus instrument preserves the second
+marginal. -/
 theorem secondMarginal_krausAverageState (ψ : QState (Fin D × Fin E))
     (K : KrausInstrument D n) (b c : Fin E) :
     secondMarginal (krausAverageState ψ K) b c = secondMarginalState ψ b c := by
@@ -208,6 +248,8 @@ theorem secondMarginal_krausAverageState (ψ : QState (Fin D × Fin E))
     _ = secondMarginalState ψ b c := by
         simp only [secondMarginalState, secondMarginal, outerProduct_apply]
 
+/-- The first reduced operator of a Kraus branch is the original first reduced operator
+conjugated by that branch's Kraus operator. -/
 theorem krausBranchReduced_eq (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n)
     (i : Fin n) :
     krausBranchReduced ψ K i
@@ -215,6 +257,7 @@ theorem krausBranchReduced_eq (ψ : QState (Fin D × Fin E)) (K : KrausInstrumen
   simp only [krausBranchReduced, krausBranch]
   exact partialTrace_outerProduct_apply_tensorLeft (D := D) (E := E) (K.op i) ψ
 
+/-- A Kraus branch mass equals the real part of the trace of its first reduced operator. -/
 theorem krausBranchMass_eq_trace (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n)
     (i : Fin n) :
     krausBranchMass ψ K i = (Matrix.trace (krausBranchReduced ψ K i)).re := by
@@ -227,11 +270,13 @@ theorem krausBranchMass_eq_trace (ψ : QState (Fin D × Fin E)) (K : KrausInstru
   rw [krausBranchMass, h1, h2]
   simp only [Complex.ofReal_re]
 
+/-- Every Kraus branch mass is nonnegative. -/
 theorem krausBranchMass_nonneg (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n)
     (i : Fin n) : 0 ≤ krausBranchMass ψ K i := by
   unfold krausBranchMass
   exact Finset.sum_nonneg fun j _ => by positivity
 
+/-- A Kraus branch has zero mass exactly when every amplitude of its branch state is zero. -/
 theorem krausBranchMass_eq_zero_iff (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n)
     (i : Fin n) :
     krausBranchMass ψ K i = 0 ↔ ∀ j, krausBranch ψ K i j = 0 := by
@@ -251,6 +296,8 @@ theorem krausBranchMass_eq_zero_iff (ψ : QState (Fin D × Fin E)) (K : KrausIns
     intro j _
     simp [h j]
 
+/-- The first marginal of the averaged Kraus output is the sum of the Kraus conjugations of the
+input first marginal. -/
 theorem krausAverage_firstMarginal (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n) :
     PartialTrace (krausAverageState ψ K)
       = ∑ i, (K.op i) * PartialTrace (outerProduct ψ) * (K.op i).conjTranspose := by
@@ -258,6 +305,8 @@ theorem krausAverage_firstMarginal (ψ : QState (Fin D × Fin E)) (K : KrausInst
   rw [partialTrace_sum]
   exact Finset.sum_congr rfl fun i _ => krausBranchReduced_eq ψ K i
 
+/-- For a normalized input, the masses of the branches of a complete Kraus instrument sum to
+one. -/
 theorem krausBranchMass_sum_eq_one (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n)
     (hψ : Normalized ψ) :
     (∑ i, krausBranchMass ψ K i) = 1 := by
@@ -297,6 +346,7 @@ theorem krausBranchMass_sum_eq_one (ψ : QState (Fin D × Fin E)) (K : KrausInst
         rw [h2]
         norm_num
 
+/-- The second marginal of a normalized pure state has trace one. -/
 theorem secondMarginalState_trace (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     Matrix.trace (secondMarginalState ψ) = 1 := by
   have h1 : Matrix.trace (secondMarginalState ψ) = Matrix.trace (outerProduct ψ) := by
@@ -308,20 +358,25 @@ theorem secondMarginalState_trace (ψ : QState (Fin D × Fin E)) (hψ : Normaliz
   rw [h2]
   norm_num
 
+/-- The underlying matrix of `feedbackUnitary ψ` belongs to the unitary group. -/
 theorem feedbackUnitary_mem (ψ : QState (Fin D × Fin E)) :
     (feedbackUnitary ψ).val ∈ Matrix.unitaryGroup (Fin E) ℂ := by
   exact (feedbackUnitary ψ).2
 
+/-- The right-local feedback unitary preserves the first marginal of a normalized input state. -/
 theorem feedbackState_firstMarginal (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     PartialTrace (outerProduct (feedbackState ψ)) = PartialTrace (outerProduct ψ) := by
   exact partialTrace_outerProduct_apply_tensorRight ψ (feedbackUnitary ψ).val
     (feedbackUnitary_mem ψ)
 
+/-- The negativity of a Hermitian bipartite operator is nonnegative. -/
 theorem negativity_nonneg {D E : ℕ} (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ)
     (hρ : ρ.IsHermitian) : 0 ≤ negativity ρ hρ := by
   unfold negativity
   exact Finset.sum_nonneg fun j _ => by positivity
 
+/-- A Hermitian separable state has zero negativity. See [VidalWerner2002] for the negativity
+measure. -/
 theorem negativity_of_isSeparableState {D E : ℕ}
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (hρ : ρ.IsHermitian)
     (hsep : Qatlib.Concepts.FiniteLocc.LOCCProgram.IsSeparableState ρ) :
@@ -342,6 +397,7 @@ theorem negativity_of_isSeparableState {D E : ℕ}
   have h3 : 0 ≤ max (-(partialTransposeEigenvalues ρ hρ j)) 0 := le_max_right _ _
   exact le_antisymm h2 h3
 
+/-- The pure-state density operator of normalized product factors has zero negativity. -/
 theorem negativity_of_productState {D E : ℕ} (a : QState (Fin D)) (b : QState (Fin E))
     (ha : Normalized a) (hb : Normalized b)
     (hρ : (outerProduct (TensorState a b)).IsHermitian) :
@@ -351,11 +407,15 @@ theorem negativity_of_productState {D E : ℕ} (a : QState (Fin D)) (b : QState 
       (normalized_tensorState ha hb)).mpr ⟨a, b, rfl⟩
   exact negativity_of_isSeparableState _ hρ hsep
 
+/-- The proposition that majorization of nonnegative vectors `a` and `b` implies that the
+Shannon entropy expression of `b` is at least that of `a`. -/
 def SchurConcavityShannonGeneral {D : ℕ} (a b : Fin D → ℝ) : Prop :=
   Qatlib.Concepts.FiniteLocc.LOCCProgram.Majorizes a b →
   (∀ j, 0 ≤ a j) → (∀ j, 0 ≤ b j) →
   (∑ j, Real.negMulLog (b j)) ≥ (∑ j, Real.negMulLog (a j))
 
+/-- The proposition that the mass-weighted entropy of normalized reduced spectra of
+positive-mass Kraus branches is bounded by the input Schmidt entropy. -/
 def GeneralInstrumentAverageEntropyBound (D E n : ℕ) : Prop :=
   ∀ (ψ : QState (Fin D × Fin E)) (K : KrausInstrument D n) (hψ : Normalized ψ),
     (∀ i : Fin n, krausBranchMass ψ K i > 0) →
@@ -363,11 +423,16 @@ def GeneralInstrumentAverageEntropyBound (D E n : ℕ) : Prop :=
       (∑ j, Real.negMulLog (krausBranchSpectrum ψ K i j / krausBranchMass ψ K i)))
       ≤ Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs.schmidtEntropy ψ hψ
 
+/-- The existence of a finite sequence of two-coordinate mixing transforms with parameters in
+`[0, 1]` whose fold sends `a` to `b`. -/
 def MajorizationTTransformDecomposition (D : ℕ) (a b : Fin D → ℝ) : Prop :=
   ∃ (l : List (Fin D × Fin D × ℝ)),
     (∀ p ∈ l, 0 ≤ p.2.2 ∧ p.2.2 ≤ 1) ∧
     b = List.foldl (fun s (k, l', θ) => Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs.tTransformSpectrum s θ k l') a l
 
+/-- The proposition that the specified majorization relation between normalized pure-state
+Schmidt spectra implies the existence of a complete LOCC protocol mapping their density
+operators exactly. -/
 def DeterministicConversionCriterion (D E : ℕ) : Prop :=
   ∀ (ψ φ : QState (Fin D × Fin E)) (hψ : Normalized ψ) (hφ : Normalized φ),
     Qatlib.Concepts.FiniteLocc.LOCCProgram.Majorizes (Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs.schmidtSpectrum ψ hψ)

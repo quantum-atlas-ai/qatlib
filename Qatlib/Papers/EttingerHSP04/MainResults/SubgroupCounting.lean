@@ -16,12 +16,34 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Order.Minimal
 import Mathlib.Tactic
 
+/-!
+# Counting subgroups and bounding query parameters
+
+This module bounds the size of minimal generating sets and the number of subgroups of a finite
+group using integer binary logarithms. These estimates control `exactQueryCountFloored` and the
+depth of a binary candidate tree. This develops part of the framework of
+[EttingerHoyerKnill2004].
+
+## Main statements
+
+* `exists_generating_finset_card_le_log2`: bounds the number of generators by `log2 |G|`.
+* `card_subgroups_le_two_pow`: bounds the number of subgroups by a power of two.
+* `exactQueryCountFloored_le`: gives a fourth-degree bound in the binary logarithm of the group
+  order.
+
+## References
+
+* [Ettinger et al., 2004][EttingerHoyerKnill2004]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.EttingerHSP04.MainResults
 
 open scoped BigOperators
 
+/-- Adjoining an element outside a finite subgroup generates a subgroup with at least twice its
+cardinality. See [EttingerHoyerKnill2004]. -/
 theorem two_mul_card_le_card_closure_insert {G : Type*} [Group G] [Fintype G]
     (K : Subgroup G) (x : G) (hx : x ∉ K) :
     2 * Nat.card K ≤ Nat.card (Subgroup.closure (insert x (K : Set G))) := by
@@ -60,6 +82,8 @@ theorem two_mul_card_le_card_closure_insert {G : Type*} [Group G] [Fintype G]
   rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card]
   simpa [C, Fintype.card_prod, Fintype.card_bool, Nat.mul_comm] using hcard
 
+/-- A minimal finite generating set of cardinality `k` generates a subgroup with at least `2 ^
+k` elements. -/
 theorem pow_card_le_card_of_minimal {G : Type*} [Group G] [Fintype G]
     (S : Finset G)
     (hmin : Minimal (fun T : Finset G =>
@@ -145,6 +169,8 @@ theorem pow_card_le_card_of_minimal {G : Type*} [Group G] [Fintype G]
         _ ≤ Nat.card (Subgroup.closure ((insert a s : Finset G) : Set G)) := by
               simpa only [H, Finset.coe_insert] using hdouble
 
+/-- Every subgroup of a finite group has a finite generating set of size at most the integer
+binary logarithm of the ambient group order. See [EttingerHoyerKnill2004]. -/
 theorem exists_generating_finset_card_le_log2 {G : Type*} [Group G] [Fintype G]
     (H : Subgroup G) :
     ∃ S : Finset G, Subgroup.closure (S : Set G) = H ∧ S.card ≤ (Fintype.card G).log2 := by
@@ -169,6 +195,7 @@ theorem exists_generating_finset_card_le_log2 {G : Type*} [Group G] [Fintype G]
     exact Nat.pos_iff_ne_zero.mp hpos
   exact (Nat.le_log2 hG).mpr (hcard.trans hNG)
 
+/-- The number of subgroups is at most `(log2 |G| + 1) * |G| ^ log2 |G|`. -/
 theorem card_subgroups_le {G : Type*} [Group G] [Fintype G] :
     Fintype.card (Subgroup G) ≤
       ((Fintype.card G).log2 + 1) * (Fintype.card G) ^ (Fintype.card G).log2 := by
@@ -219,6 +246,8 @@ theorem card_subgroups_le {G : Type*} [Group G] [Fintype G] :
     _ = ((Fintype.card G).log2 + 1) * (Fintype.card G) ^ (Fintype.card G).log2 := by
         simp [hN, hm]
 
+/-- The number of subgroups is at most `2 ^ ((log2 |G| + 1) * (log2 |G| + 2))`. See
+[EttingerHoyerKnill2004]. -/
 theorem card_subgroups_le_two_pow {G : Type*} [Group G] [Fintype G] :
     Fintype.card (Subgroup G) ≤
       2 ^ (((Fintype.card G).log2 + 1) * ((Fintype.card G).log2 + 2)) := by
@@ -247,9 +276,12 @@ theorem card_subgroups_le_two_pow {G : Type*} [Group G] [Fintype G] :
         apply Nat.pow_le_pow_right (by norm_num)
         nlinarith
 
+/-- The integer query parameter `2 * log2 (4 * r ^ 3) * (log2 r + 1)`. -/
 noncomputable def exactQueryCountFloored (r : Nat) : Nat :=
   (2 * (4 * r ^ 3).log2) * (r.log2 + 1)
 
+/-- At the number of subgroups of `G`, the query parameter is at most `64 * (log2 |G| + 1) ^ 4`.
+See [EttingerHoyerKnill2004]. -/
 theorem exactQueryCountFloored_le {G : Type*} [Group G] [Fintype G] :
     exactQueryCountFloored (Fintype.card (Subgroup G)) ≤
       64 * ((Fintype.card G).log2 + 1) ^ 4 := by
@@ -297,6 +329,8 @@ theorem exactQueryCountFloored_le {G : Type*} [Group G] [Fintype G] :
     nlinarith [hB]
   exact hs.trans hfinal
 
+/-- For every candidate count `r`, some depth at most `r.log2 + 1` has binary capacity at least
+`r`. See [EttingerHoyerKnill2004]. -/
 theorem candidate_tree_depth (r : Nat) : ∃ k ≤ r.log2 + 1, r ≤ 2 ^ k :=
   ⟨r.log2 + 1, le_rfl, le_of_lt Nat.lt_log2_self⟩
 

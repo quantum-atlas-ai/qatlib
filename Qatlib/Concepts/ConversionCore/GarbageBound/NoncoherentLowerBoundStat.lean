@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
 import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
+
+/-!
+# Noncoherent state conversion lower bound specification
+
+`StateConversionNoncoherentLowerBound` states the two-certificate lower bound for conversion
+with garbage states. The target family has Gram matrix `gramStateMatrix σ ⊙ S`, and the
+conclusion permits a new positive semidefinite matrix `S'` with diagonal one after aligning
+phases.
+
+The mathematical context is discussed in [LeeEtAl2011].
+
+## Main statements
+
+* `StateConversionNoncoherentLowerBound`: The noncoherent conversion certificate proposition.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +41,10 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 
 namespace Qatlib.Concepts.ConversionCore.GarbageBound
 
+/-- The statement that noncoherent conversion with absolute overlaps at least √(1 − ε) yields a
+positive semidefinite intermediate matrix and a positive semidefinite garbage matrix with
+diagonal one, with unfiltered error budget 2√(2ε) and query-filtered budget 2T for 0 < ε ≤
+1. -/
 def StateConversionNoncoherentLowerBound : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (n T R : ℕ) (input : X → Fin n → Bool)
     (ε : ℝ), 0 < ε → ε ≤ 1 →

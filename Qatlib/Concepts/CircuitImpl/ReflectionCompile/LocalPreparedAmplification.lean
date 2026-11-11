@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+/-!
+# Local circuits for prepared amplitude amplification
+
+This module compiles prepared-state amplitude amplification into local reflection gates, using
+`reflectionLiftGate` to preserve the clean work register and `localZeroReflectionSteps` for the
+zero-state reflection. `localPreparedAACircuit` consists of state preparation followed by
+repeated amplification blocks, following the reflection construction of [BrassardEtAl2002].
+
+The semantics identify the full output state with the embedded abstract amplification state and
+give exact query and gate counts. A two-qubit search instance reaches the marked basis state
+after one query and 44 gates.
+
+## Main statements
+
+* `local_prepared_aa_actual_state_and_three_counts`: output-state equality and exact resource
+  counts.
+* `localPreparedAACircuit_unitary`: unitarity of the compiled circuit for legal preparation
+  gates.
+* `local_two_qubit_search_actual_consumer`: the exact two-qubit search instance.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -25,26 +51,34 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Lift a local reflection gate to the data wires of the extended register. -/
 noncomputable def reflectionLiftGate (n : ℕ) : ReflectionGate n → ReflectionGate (n+(n-1))
   | .inl (w,U) => .inl (reflectionDataWire n w,U)
   | .inr (c,t) => .inr (reflectionDataWire n c,reflectionDataWire n t)
 
+/-- The register matrix implemented by a list of reflection gates. -/
 noncomputable def reflectionPreparationMatrix {n : ℕ} (gs : List (ReflectionGate n)) :=
   reflectionProgramMatrix gs
 
+/-- One amplification block: a query, inverse preparation, the clean zero-state reflection, and
+forward preparation. -/
 noncomputable def localPreparedAABlock (n : ℕ) (gs : List (ReflectionGate n)) :
     Circuit (Reg (n+(n-1))) :=
   [Step.query] ++ reflectionCompile ((reflectionAdjoint gs).map (reflectionLiftGate n)) ++
     reflectionCompile (localZeroReflectionSteps n) ++
     reflectionCompile (gs.map (reflectionLiftGate n))
 
+/-- The local circuit consisting of forward preparation followed by `k` amplification blocks. -/
 noncomputable def localPreparedAACircuit (n : ℕ) (gs : List (ReflectionGate n)) (k : ℕ) :
     Circuit (Reg (n+(n-1))) :=
   reflectionCompile (gs.map (reflectionLiftGate n)) ++ RepeatCircuit (localPreparedAABlock n gs) k
 
+/-- The local program applying Hadamard to every data wire in increasing wire order. -/
 noncomputable def localHadamardReflectionSteps (n : ℕ) : List (ReflectionGate n) :=
   (List.finRange n).map (fun w => Sum.inl (w,Hadamard))
 
+/-- Updating a data wire of a joined register agrees with updating the data register before
+joining. -/
 private theorem reflectionJoin_update_data (n : ℕ) (x : Reg n) (w : Reg (n-1))
     (i : Fin n) (b : Bool) :
     Function.update ((reflectionSplit n).symm (x,w)) (reflectionDataWire n i) b =
@@ -62,12 +96,14 @@ private theorem reflectionJoin_update_data (n : ℕ) (x : Reg n) (w : Reg (n-1))
       intro h; have := congrArg Fin.val h; simp [reflectionWorkWire,reflectionDataWire] at this; omega
     rw [Function.update_of_ne hne, reflectionJoin_work, reflectionJoin_work]
 
+/-- The clean-work embedding preserves addition of states. -/
 private theorem reflectionEmbed_add (n : ℕ) (ψ φ : QState (Reg n)) :
     reflectionEmbed n (ψ+φ) = reflectionEmbed n ψ + reflectionEmbed n φ := by
   funext z
   simp only [reflectionEmbed, Pi.add_apply]
   split <;> simp
 
+/-- Lifting a legal reflection gate to the extended register preserves legality. -/
 private theorem reflectionLiftGate_legal (n : ℕ) (g : ReflectionGate n)
     (hg : reflectionGateLegal g) : reflectionGateLegal (reflectionLiftGate n g) := by
   rcases g with ⟨w,U⟩ | ⟨c,t⟩
@@ -75,6 +111,8 @@ private theorem reflectionLiftGate_legal (n : ℕ) (g : ReflectionGate n)
   · intro h
     exact hg (Fin.ext (by have := congrArg Fin.val h; simpa using this))
 
+/-- A lifted legal gate acts on embedded basis states as the original gate acts on the data
+register. -/
 private theorem reflectionLiftGate_ket (n : ℕ) (g : ReflectionGate n)
     (hg : reflectionGateLegal g) (x : Reg n) :
     ApplyGate (reflectionGateMatrix (reflectionLiftGate n g)) (reflectionEmbed n (Qatlib.Foundations.PureStateMath.Ket x)) =
@@ -97,10 +135,12 @@ private theorem reflectionLiftGate_ket (n : ℕ) (g : ReflectionGate n)
       reflectionEmbed_ket]
     simp only [reflectionJoin_data, reflectionJoin_update_data]
 
+/-- Matrix application commutes with finite sums of states. -/
 private theorem localApply_sum {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     (U : Matrix I I ℂ) (ψ : J → QState I) :
     ApplyGate U (∑ j,ψ j) = ∑ j,ApplyGate U (ψ j) := Matrix.mulVec_sum _ _ _
 
+/-- A lifted legal gate acts on every embedded state as the original gate on the data state. -/
 private theorem reflectionLiftGate_embed (n : ℕ) (g : ReflectionGate n)
     (hg : reflectionGateLegal g) (ψ : QState (Reg n)) :
     ApplyGate (reflectionGateMatrix (reflectionLiftGate n g)) (reflectionEmbed n ψ) =
@@ -111,6 +151,7 @@ private theorem reflectionLiftGate_embed (n : ℕ) (g : ReflectionGate n)
   conv_rhs => arg 2; arg 2; rw [state_ket_expansion ψ]
   simp only [localApply_sum, reflectionApplyGate_smul, reflectionEmbed_sum, reflectionEmbed_smul]
 
+/-- A compiled lifted legal program acts on embedded states by its preparation matrix. -/
 private theorem reflectionLiftCompile_embed (n : ℕ) (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) (ψ : QState (Reg n)) :
     Run (1 : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
@@ -128,6 +169,8 @@ private theorem reflectionLiftCompile_embed (n : ℕ) (gs : List (ReflectionGate
       reflectionEmbed n (ApplyGate (reflectionProgramMatrix gs * reflectionGateMatrix g) ψ)
     rw [applyGate_mul]
 
+/-- The compiled lifted preparation program acts by its preparation matrix independently of the
+supplied oracle matrix. -/
 private theorem reflectionLiftCompile_oracle (n : ℕ) (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) (O : Matrix (Reg (n+(n-1))) (Reg (n+(n-1))) ℂ)
     (ψ : QState (Reg n)) :
@@ -136,6 +179,8 @@ private theorem reflectionLiftCompile_oracle (n : ℕ) (gs : List (ReflectionGat
   rw [run_eq_of_queryCount_eq_zero O 1 _ (queryCount_reflectionCompile _)]
   exact reflectionLiftCompile_embed n gs hgs ψ
 
+/-- One local amplification block agrees on embedded states with the abstract query, inverse
+preparation, zero-state reflection, and preparation block. -/
 private theorem localPreparedAABlock_embed (n : ℕ) (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) (S : Finset (Reg n)) (ψ : QState (Reg n)) :
     Run (reflectionLift n (preparedMark S)) (localPreparedAABlock n gs) (reflectionEmbed n ψ) =
@@ -153,6 +198,8 @@ private theorem localPreparedAABlock_embed (n : ℕ) (gs : List (ReflectionGate 
     reflectionLiftCompile_oracle n gs hgs]
   rfl
 
+/-- Repeating the local amplification block agrees on embedded states with repeating the
+abstract block. -/
 private theorem localPreparedAARepeat_embed (n k : ℕ) (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) (S : Finset (Reg n)) (ψ : QState (Reg n)) :
     Run (reflectionLift n (preparedMark S)) (RepeatCircuit (localPreparedAABlock n gs) k)
@@ -166,6 +213,9 @@ private theorem localPreparedAARepeat_embed (n k : ℕ) (gs : List (ReflectionGa
     simp only [RepeatCircuit, run_append]
     rw [localPreparedAABlock_embed n gs hgs S ψ, ih]
 
+/-- For legal preparation gates, the local circuit reproduces the embedded
+prepared-amplification output, uses `k` queries, and has `(2 * k + 1) * gs.length + k *
+localReflectionCost n` gates. -/
 theorem local_prepared_aa_actual_state_and_three_counts (n k : ℕ)
     (gs : List (ReflectionGate n)) (S : Finset (Reg n)) (hgs : reflectionLegal gs) :
     let A := reflectionPreparationMatrix gs
@@ -187,6 +237,8 @@ theorem local_prepared_aa_actual_state_and_three_counts (n k : ℕ)
       List.length_map, reflectionAdjoint_length, localZeroReflectionSteps_length]
     ring
 
+/-- The local prepared-amplification circuit is a unitary circuit whenever its preparation gates
+are legal. -/
 theorem localPreparedAACircuit_unitary (n k : ℕ) (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) : IsUnitaryCircuit (localPreparedAACircuit n gs k) := by
   have hlift : ∀ ds : List (ReflectionGate n), reflectionLegal ds →
@@ -206,15 +258,18 @@ theorem localPreparedAACircuit_unitary (n k : ℕ) (gs : List (ReflectionGate n)
   rw [localPreparedAACircuit,isUnitaryCircuit_append]
   exact ⟨hforward,hblock.repeatCircuit k⟩
 
+/-- The local Hadamard preparation program is legal. -/
 theorem localHadamardReflectionSteps_legal (n : ℕ) :
     reflectionLegal (localHadamardReflectionSteps n) := by
   intro g hg
   obtain ⟨w,_,rfl⟩ := List.mem_map.mp hg
   exact hadamard_unitary
 
+/-- The local Hadamard preparation program contains exactly `n` gates. -/
 @[simp] theorem localHadamardReflectionSteps_length (n : ℕ) :
     (localHadamardReflectionSteps n).length = n := by simp [localHadamardReflectionSteps]
 
+/-- The local Hadamard preparation program implements `HadamardN n`. -/
 theorem localHadamardReflectionSteps_matrix (n : ℕ) :
     reflectionPreparationMatrix (localHadamardReflectionSteps n) = HadamardN n := by
   have hmap : ∀ ws : List (Fin n),
@@ -231,15 +286,19 @@ theorem localHadamardReflectionSteps_matrix (n : ℕ) :
   rw [reflectionPreparationMatrix, localHadamardReflectionSteps, hmap]
   exact localProgramMatrix_localHadamard n
 
+/-- Every amplitude of the uniform two-qubit state is `1 / 2`. -/
 private theorem uniform_two_apply (x : Reg 2) : Uniform (Reg 2) x = (1/2 : ℂ) := by
   have h4 : Real.sqrt 4 = 2 := by rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
   norm_num [Uniform,card_reg,h4]
 
+/-- The outer product of the uniform two-qubit state equals the average projection. -/
 private theorem uniform_two_outer : outerProduct (Uniform (Reg 2)) = AverageProjection (Reg 2) := by
   ext x y
   rw [outerProduct_apply, uniform_two_apply, uniform_two_apply]
   norm_num [AverageProjection,card_reg,map_ofNat]
 
+/-- One prepared-amplification iteration with Hadamard preparation maps the two-qubit zero state
+exactly to the marked basis state. -/
 private theorem prepared_two_search (target : Reg 2) :
     Run (preparedMark ({target} : Finset (Reg 2)))
       (preparedAACircuit (HadamardN 2) (fun _ => false) 1) (Qatlib.Foundations.PureStateMath.Ket (fun _ => false)) = Qatlib.Foundations.PureStateMath.Ket target := by
@@ -267,6 +326,8 @@ private theorem prepared_two_search (target : Reg 2) :
   simp only [MarkedVector, Finset.mem_singleton, Qatlib.Foundations.PureStateMath.Ket]
   split_ifs <;> norm_num
 
+/-- The local two-qubit search circuit produces the embedded target basis state with exactly one
+query and 44 gates. -/
 theorem local_two_qubit_search_actual_consumer (target : Reg 2) :
     Run (reflectionLift 2 (preparedMark ({target} : Finset (Reg 2))))
         (localPreparedAACircuit 2 (localHadamardReflectionSteps 2) 1)

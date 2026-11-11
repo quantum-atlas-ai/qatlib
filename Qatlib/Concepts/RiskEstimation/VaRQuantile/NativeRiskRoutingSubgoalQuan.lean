@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeRiskRoutingSubgoalStat
 import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+
+/-!
+# Transport of rational quantile routing
+
+This module identifies rational-valued bisection with `riskBisect` after casting the sample
+values and target to the reals. `riskNativeRouting` also bounds the recorded number of calls by
+the fuel. These results connect rational readout to the bisection procedure of
+[WoernerEgger2019].
+
+## Main statements
+
+* `risk_native_bisect_transport`: equality of the rational and real search laws.
+* `riskNativeRouting`: the transport identity together with the support call bound.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.RiskEstimation.CDFEstimation
@@ -17,6 +36,8 @@ namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open scoped Classical ENNReal
 set_option warningAsError false
 
+/-- Rational bisection agrees with real bisection after casting the samples and target from the
+rationals to the reals. -/
 theorem risk_native_bisect_transport (sampler : ℚ → PMF ℚ) (xs : List ℚ) (q : ℚ)
     (fuel lo hi : ℕ) :
     riskNativeBisect sampler xs q fuel lo hi =
@@ -40,6 +61,9 @@ theorem risk_native_bisect_transport (sampler : ℚ → PMF ℚ) (xs : List ℚ)
       simp only [Function.comp_apply, Rat.cast_le]
       split_ifs <;> rw [← ih]
 
+/-- The rational bisection law agrees with its real-valued transport and records at most the
+supplied fuel in calls. This supplies the rational routing step for the value-at-risk search
+of [Woerner and Egger, Section II][WoernerEgger2019]. -/
 theorem riskNativeRouting : NativeRiskRoutingSubgoal := by
   intro sampler xs q fuel lo hi
   change riskNativeBisect sampler xs q fuel lo hi = _ ∧ _

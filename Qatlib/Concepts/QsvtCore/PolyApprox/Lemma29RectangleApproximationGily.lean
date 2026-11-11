@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationStat
 import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
+
+/-!
+# Quantitative polynomial approximation of a rectangle
+
+`lemma29RectangleApproximation_answer` proves the rectangle approximation specification for a
+threshold separated from both zero and one by the gap parameter. The resulting real polynomial
+is even, bounded on `[-1, 1]`, and approximates the inner and outer plateaus with the stated
+degree and iteration bounds. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `lemma29RectangleApproximation_answer`: construct the bounded even rectangle approximant.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -17,6 +35,9 @@ open Qatlib
 open Qatlib
 set_option maxHeartbeats 1000000 in
 
+/-- For the stated gap, error, and threshold range, an even polynomial satisfies the rectangle
+band inequalities and the specified degree and iteration bounds, realizing the formalized
+version of [Gilyén et al., Lemma 29][GilyenSuLowWiebe2019]. -/
 theorem lemma29RectangleApproximation_answer : Lemma29RectangleApproximation := by
   intro δ' ε' t hδ' hδ'2 hε' hε'2 ht1 ht2
   have hε'0 : 0 < ε' := hε'

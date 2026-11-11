@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualProducer
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.VectorSQBudget
 import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+/-!
+# Preprocessing budgets for classical PCA
+
+Bounds the concrete Gram sample count by its source asymptotic expression and accounts for all
+small-matrix entry queries. The resulting cubic small-SVD and quadratic oracle-work bounds give
+the preprocessing dependence stated for the classical PCA sketch in [Tang2021].
+
+## Main statements
+
+* `pcaSmallEntryTable_count`: The entry-query costs in the small-matrix table sum to `q^2`.
+* `pca_preprocess_source_budget`: The selected sample count yields preprocessing work bounded by
+  the explicit `K^12 / e^6` cubic-log term and `T * K^8 / e^4` squared-log term [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,8 +36,11 @@ namespace Qatlib.Papers.QPCAAssume18.ClassicalPca
 open Matrix
 open Qatlib.Concepts.SketchArith.SketchBuild
 
+/-- The explicit sample-count constant `80000 + 4 / log 4`. -/
 def pcaSampleFactor : ℝ := 80000+4/Real.log 4
 
+/-- For `K ≥ 1`, `0 < e ≤ 1`, and `0 < delta ≤ 1`, the Gram sample count is at most
+`pcaSampleFactor * (K^4 / e^2 * log (4 / delta))`. -/
 theorem pca_samples_source_upper (K e delta : ℝ) (hK : 1≤K) (he : 0<e)
     (he1 : e≤1) (hdelta : 0<delta) (hdelta1 : delta≤1) :
     (pcaGramSamples K e delta:ℝ)≤pcaSampleFactor*(K^4/e^2*Real.log (4/delta)) := by
@@ -51,6 +73,8 @@ theorem pca_samples_source_upper (K e delta : ℝ) (hK : 1≤K) (he : 0<e)
   rw [add_mul,hid]
   linarith
 
+/-- The list of queried row-sketch entries at the sampled columns, paired with their query
+costs. -/
 def pcaSmallEntryTable {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (rows : Fin q→Fin n) (cols : Fin q→Fin d) :
     List (ℂ×ℕ) :=
@@ -58,15 +82,21 @@ def pcaSmallEntryTable {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     compactSketchEntry (compactSketchData (pcaRowLaw A hA) q rows) A
       ((finProdFinEquiv.symm z).1) (cols ((finProdFinEquiv.symm z).2))
 
+/-- The entry-query costs in the small-matrix table sum to `q^2`. -/
 theorem pcaSmallEntryTable_count {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (rows : Fin q→Fin n) (cols : Fin q→Fin d) :
     ((pcaSmallEntryTable A hA rows cols).map Prod.snd).sum=q^2 := by
   simp [pcaSmallEntryTable,compactSketchEntry,Function.comp_def,pow_two]
 
+/-- The cubic work allowance `(q : ℝ)^3` for the small SVD. -/
 def pcaSmallSvdWork (q : ℕ) : ℝ := (q:ℝ)^3
 
+/-- The preprocessing work allowance combining cubic small-SVD work and the explicit
+oracle-access ledger. -/
 def pcaPreprocessWork (q : ℕ) (T : ℝ) : ℝ := pcaSmallSvdWork q+T*(5*(q:ℝ)^2+3*q+3)
 
+/-- For positive `q` and nonnegative access cost `T`, preprocessing work is bounded by `q^3 + 11
+* T * q^2`. -/
 theorem pca_preprocess_paid_bound (q : ℕ) (hq : 0<q) (T : ℝ) (hT : 0≤T) :
     pcaPreprocessWork q T≤(q:ℝ)^3+11*T*(q:ℝ)^2 := by
   have hqR : (1:ℝ)≤q := by exact_mod_cast hq
@@ -74,6 +104,8 @@ theorem pca_preprocess_paid_bound (q : ℕ) (hq : 0<q) (T : ℝ) (hT : 0≤T) :
   have hpoly : 5*(q:ℝ)^2+3*q+3≤11*(q:ℝ)^2 := by nlinarith [sq_nonneg ((q:ℝ)-1)]
   nlinarith [mul_le_mul_of_nonneg_left hpoly hT]
 
+/-- The selected sample count yields preprocessing work bounded by the explicit `K^12 / e^6`
+cubic-log term and `T * K^8 / e^4` squared-log term [Tang2021]. -/
 theorem pca_preprocess_source_budget (K e delta T : ℝ) (hK : 1≤K) (he : 0<e)
     (he1 : e≤1) (hdelta : 0<delta) (hdelta1 : delta≤1) (hT : 0≤T) :
     pcaPreprocessWork (pcaGramSamples K e delta) T≤

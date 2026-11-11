@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
 import Mathlib.LinearAlgebra.Matrix.Block
+
+/-!
+# Triangular structure of the Taylor step matrix
+
+This module proves the label-triangular structure and identity diagonal blocks of
+`taylorStepMatrix`. These give determinant one and a two-sided inverse through
+`taylorStepMatrix_det` and `taylorStepMatrix_inverse`. See [BerryEtAl2017ODE] for the paper's
+setting.
+
+## Main statements
+
+* `taylorStepMatrix_above`: Entries of `taylorStepMatrix` vanish when the row label is smaller
+  than the column label.
+* `taylorStepMatrix_inverse`: The matrix inverse of `taylorStepMatrix` is a two-sided inverse.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -18,6 +38,7 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [Fintype N] in
 
+/-- Entries of `taylorStepMatrix` vanish when the row label is smaller than the column label. -/
 theorem taylorStepMatrix_above (m k p : ℕ) (M : Matrix N N ℂ)
     (r c : Fin (m * (k + 1) + p + 1) × N) (h : r.1 < c.1) :
     taylorStepMatrix m k p M r c = 0 := by
@@ -28,11 +49,13 @@ theorem taylorStepMatrix_above (m k p : ℕ) (M : Matrix N N ℂ)
 
 omit [Fintype N] in
 
+/-- Each diagonal label block of `taylorStepMatrix` is the identity matrix on the state index. -/
 theorem taylorStepMatrix_same_label (m k p : ℕ) (M : Matrix N N ℂ)
     (r c : Fin (m * (k + 1) + p + 1) × N) (h : r.1 = c.1) :
     taylorStepMatrix m k p M r c = if r.2 = c.2 then 1 else 0 := by
   simp [taylorStepMatrix, Prod.ext_iff, h]
 
+/-- The determinant of `taylorStepMatrix` is one. -/
 theorem taylorStepMatrix_det (m k p : ℕ) (M : Matrix N N ℂ) :
     (taylorStepMatrix m k p M).det = 1 := by
   let b : (Fin (m * (k + 1) + p + 1) × N) → OrderDual (Fin (m * (k + 1) + p + 1)) :=
@@ -59,6 +82,7 @@ theorem taylorStepMatrix_det (m k p : ℕ) (M : Matrix N N ℂ) :
   intro l _hl
   rw [hblock, Matrix.det_one]
 
+/-- The matrix inverse of `taylorStepMatrix` is a two-sided inverse. -/
 theorem taylorStepMatrix_inverse (m k p : ℕ) (M : Matrix N N ℂ) :
     taylorStepMatrix m k p M * (taylorStepMatrix m k p M)⁻¹ = 1 ∧
       (taylorStepMatrix m k p M)⁻¹ * taylorStepMatrix m k p M = 1 := by

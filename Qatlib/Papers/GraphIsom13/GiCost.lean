@@ -11,6 +11,25 @@ import Mathlib.Data.Nat.Log
 import Mathlib.Data.Fintype.EquivFin
 import Mathlib.Tactic
 
+/-!
+# The graph-isomorphism cost function
+
+This module defines the integer-string encoding and the three nonnegative penalties used in the
+graph-isomorphism construction of [GaitanClark2014]. The total `cost` vanishes exactly for
+encodings of graph isomorphisms; `gi_cop_witness` extracts a permutation and its
+adjacency-matrix identity from a zero-cost string.
+
+## Main statements
+
+* `gi_cop_zero_iff`: zero-cost witnesses characterize graph isomorphism.
+* `gi_cop_witness`: a permutation witness extracted from zero cost.
+* `gi_cop_positive_iff`: strict positivity characterizes nonisomorphism.
+
+## References
+
+* [Gaitan and Clark, 2014][GaitanClark2014]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,31 +38,41 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.GraphIsom13.GiCost
 
+/-- The ceiling binary logarithm of `N`, giving the width of each integer-string entry. -/
 def encBits (N : ℕ) : ℕ := Nat.clog 2 N
 
+/-- The size `2 ^ encBits N` of the value range for an encoded entry. -/
 def encSize (N : ℕ) : ℕ := 2 ^ encBits N
 
+/-- An `N`-entry string with each entry in the power-of-two range `Fin (encSize N)`. -/
 abbrev IntStr (N : ℕ) := Fin N → Fin (encSize N)
 
+/-- The integer matrix whose `(i, j)` entry is one exactly when `i` equals the value of `s j`. -/
 def sigmaMat {N : ℕ} (s : IntStr N) : Matrix (Fin N) (Fin N) ℤ :=
   fun i j => if (i.val : ℤ) = ((s j).val : ℤ) then 1 else 0
 
+/-- The penalty counting entries of the string whose values lie outside the vertex range. -/
 def cost1 {N : ℕ} (s : IntStr N) : ℕ :=
   ∑ i : Fin N, ∑ a ∈ Finset.Icc N (encSize N - 1), if (s i).val = a then 1 else 0
 
+/-- The penalty counting unordered pairs of distinct positions carrying equal string values. -/
 def cost2 {N : ℕ} (s : IntStr N) : ℕ :=
   ∑ p ∈ (Finset.univ : Finset (Fin N × Fin N)).filter (fun p => p.1 < p.2),
     if s p.1 = s p.2 then 1 else 0
 
+/-- The sum of absolute entrywise differences between the conjugated adjacency matrix and the
+target adjacency matrix. -/
 def cost3 {N : ℕ} (G G' : SimpleGraph (Fin N)) [DecidableRel G.Adj] [DecidableRel G'.Adj]
     (s : IntStr N) : ℕ :=
   ∑ i : Fin N, ∑ j : Fin N,
     Int.natAbs (((sigmaMat s * G.adjMatrix ℤ * (sigmaMat s)ᵀ) - G'.adjMatrix ℤ) i j)
 
+/-- The sum of the out-of-range, collision, and adjacency-matrix discrepancy penalties. -/
 def cost {N : ℕ} (G G' : SimpleGraph (Fin N)) [DecidableRel G.Adj] [DecidableRel G'.Adj]
     (s : IntStr N) : ℕ :=
   cost1 s + cost2 s + cost3 G G' s
 
+/-- The out-of-range penalty vanishes exactly when every string entry is less than `N`. -/
 theorem cost1_eq_zero_iff {N : ℕ} (s : IntStr N) :
     cost1 s = 0 ↔ ∀ i, (s i).val < N := by
   unfold cost1
@@ -67,6 +96,7 @@ theorem cost1_eq_zero_iff {N : ℕ} (s : IntStr N) :
     have hne : (s i).val ≠ a := by omega
     simp [hne]
 
+/-- The collision penalty vanishes exactly when equal string values imply equal positions. -/
 theorem cost2_eq_zero_iff {N : ℕ} (s : IntStr N) :
     cost2 s = 0 ↔ ∀ i j, s i = s j → i = j := by
   unfold cost2
@@ -93,6 +123,8 @@ theorem cost2_eq_zero_iff {N : ℕ} (s : IntStr N) :
       exact absurd (h p.1 p.2 heq) (ne_of_lt hlt)
     simp [hne]
 
+/-- The adjacency discrepancy penalty vanishes exactly when conjugation by `sigmaMat s` yields
+the target adjacency matrix. -/
 theorem cost3_eq_zero_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
     [DecidableRel G.Adj] [DecidableRel G'.Adj] (s : IntStr N) :
     cost3 G G' s = 0 ↔ sigmaMat s * G.adjMatrix ℤ * (sigmaMat s)ᵀ = G'.adjMatrix ℤ := by
@@ -113,6 +145,8 @@ theorem cost3_eq_zero_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
       rw [h]; simp]
     simp
 
+/-- Conjugation by a permutation matrix evaluates the original matrix at the permuted row and
+column indices. -/
 theorem permMatrix_mul_adj_mul_transpose_apply {N : ℕ} (σ : Equiv.Perm (Fin N))
     (A : Matrix (Fin N) (Fin N) ℤ) (i j : Fin N) :
     (σ.permMatrix ℤ * A * (σ.permMatrix ℤ)ᵀ) i j = A (σ i) (σ j) := by
@@ -121,6 +155,8 @@ theorem permMatrix_mul_adj_mul_transpose_apply {N : ℕ} (σ : Equiv.Perm (Fin N
   rw [PEquiv.toMatrix_toPEquiv_mul, PEquiv.mul_toMatrix_toPEquiv]
   simp [Matrix.submatrix_apply, Equiv.Perm.inv_def]
 
+/-- Conjugation by a transposed permutation matrix evaluates the original matrix at the
+inverse-permuted indices. -/
 theorem transpose_permMatrix_conj_apply {N : ℕ} (σ : Equiv.Perm (Fin N))
     (A : Matrix (Fin N) (Fin N) ℤ) (i j : Fin N) :
     ((σ.permMatrix ℤ)ᵀ * A * ((σ.permMatrix ℤ)ᵀ)ᵀ) i j = A (σ.symm i) (σ.symm j) := by
@@ -135,14 +171,18 @@ theorem transpose_permMatrix_conj_apply {N : ℕ} (σ : Equiv.Perm (Fin N))
   rw [h1, h4]
   exact permMatrix_mul_adj_mul_transpose_apply σ.symm A i j
 
+/-- Two integer matrices are related by conjugation with a permutation matrix. -/
 def MatIso {N : ℕ} (A A' : Matrix (Fin N) (Fin N) ℤ) : Prop :=
   ∃ σ : Equiv.Perm (Fin N), A' = σ.permMatrix ℤ * A * (σ.permMatrix ℤ)ᵀ
 
+/-- An integer adjacency-matrix entry is one if and only if its vertices are adjacent. -/
 theorem adjMatrix_eq_one_iff {N : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (i j : Fin N) : G.adjMatrix ℤ i j = 1 ↔ G.Adj i j := by
   rw [SimpleGraph.adjMatrix_apply]
   split <;> simp_all
 
+/-- A graph isomorphism transports the source adjacency matrix to the target by conjugation with
+its transposed permutation matrix. -/
 theorem transpose_permMatrix_conj_adjMatrix {N : ℕ} (G G' : SimpleGraph (Fin N))
     [DecidableRel G.Adj] [DecidableRel G'.Adj] (f : G ≃g G') :
     (Equiv.Perm.permMatrix ℤ f.toEquiv)ᵀ * G.adjMatrix ℤ
@@ -159,6 +199,7 @@ theorem transpose_permMatrix_conj_adjMatrix {N : ℕ} (G G' : SimpleGraph (Fin N
       rw [hiff]; exact h
     rw [if_neg h', if_neg h]
 
+/-- Permutation conjugacy of the integer adjacency matrices is equivalent to graph isomorphism. -/
 theorem matIso_adjMatrix_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
     [DecidableRel G.Adj] [DecidableRel G'.Adj] :
     MatIso (G.adjMatrix ℤ) (G'.adjMatrix ℤ) ↔ Nonempty (G ≃g G') := by
@@ -179,6 +220,8 @@ theorem matIso_adjMatrix_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
     rw [h1, Matrix.transpose_transpose]
     exact (transpose_permMatrix_conj_adjMatrix G G' f).symm
 
+/-- The vertex permutation determined by an injective integer string with all values in the
+vertex range. -/
 def permOf {N : ℕ} (s : IntStr N) (h1 : ∀ i, (s i).val < N)
     (h2 : ∀ i j, s i = s j → i = j) : Equiv.Perm (Fin N) :=
   Equiv.ofBijective (fun i => (⟨(s i).val, h1 i⟩ : Fin N)) <| by
@@ -189,6 +232,8 @@ def permOf {N : ℕ} (s : IntStr N) (h1 : ∀ i, (s i).val < N)
     apply Fin.ext
     simpa [Fin.mk.injEq] using hij
 
+/-- Conjugation by the transpose of a permutation matrix equals conjugation by the inverse
+permutation's matrix. -/
 theorem conj_transpose_permMatrix_eq {N : ℕ} (σ : Equiv.Perm (Fin N))
     (A : Matrix (Fin N) (Fin N) ℤ) :
     (σ.permMatrix ℤ)ᵀ * A * ((σ.permMatrix ℤ)ᵀ)ᵀ
@@ -196,6 +241,8 @@ theorem conj_transpose_permMatrix_eq {N : ℕ} (σ : Equiv.Perm (Fin N))
   ext i j
   simp only [transpose_permMatrix_conj_apply, permMatrix_mul_adj_mul_transpose_apply]
 
+/-- For a valid injective string, `sigmaMat` equals the transpose of the extracted permutation
+matrix. -/
 theorem sigmaMat_eq_transpose_permMatrix {N : ℕ} (s : IntStr N)
     (h1 : ∀ i, (s i).val < N) (h2 : ∀ i j, s i = s j → i = j) :
     sigmaMat s = ((permOf s h1 h2).permMatrix ℤ)ᵀ := by
@@ -219,6 +266,7 @@ theorem sigmaMat_eq_transpose_permMatrix {N : ℕ} (s : IntStr N)
       exact hv'.symm
     rw [if_neg hne, if_neg hk]
 
+/-- A zero-cost integer string exists if and only if the two graphs are isomorphic. -/
 theorem gi_cop_zero_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
     [DecidableRel G.Adj] [DecidableRel G'.Adj] :
     (∃ s : IntStr N, cost G G' s = 0) ↔ Nonempty (G ≃g G') := by
@@ -263,6 +311,8 @@ theorem gi_cop_zero_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
       exact transpose_permMatrix_conj_adjMatrix G G' f
     rw [hc1, hc2, hc3]
 
+/-- A zero-cost string determines a permutation whose transposed matrix is `sigmaMat s` and
+conjugates the source adjacency matrix to the target [GaitanClark2014]. -/
 theorem gi_cop_witness {N : ℕ} (G G' : SimpleGraph (Fin N))
     [DecidableRel G.Adj] [DecidableRel G'.Adj] (s : IntStr N)
     (hs : cost G G' s = 0) :
@@ -280,6 +330,8 @@ theorem gi_cop_witness {N : ℕ} (G G' : SimpleGraph (Fin N))
   rw [← hmat, sigmaMat_eq_transpose_permMatrix s h1' h2']
   simp
 
+/-- Every integer string has strictly positive cost if and only if the two graphs are not
+isomorphic. -/
 theorem gi_cop_positive_iff {N : ℕ} (G G' : SimpleGraph (Fin N))
     [DecidableRel G.Adj] [DecidableRel G'.Adj] :
     (∀ s : IntStr N, 0 < cost G G' s) ↔ ¬ Nonempty (G ≃g G') := by

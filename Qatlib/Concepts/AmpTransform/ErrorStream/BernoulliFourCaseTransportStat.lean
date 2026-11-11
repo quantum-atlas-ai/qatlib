@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliAmplifiedNoiseConsumers
+
+/-!
+# Statement of Bernoulli Fourier-case transport
+
+`BernoulliErrorStreamFourCaseTransport` specifies conditional Born-probability formulas for
+nonzero Fourier labels of a planted progression with noise on its complement. It distinguishes
+resonance, a nonzero geometric numerator, and a vanishing progression Fourier sum.
+
+The statement includes the general layer mean, circuit unitarity and costs, fixed-cardinality
+disjointness, binomial mixing over nonsaturated layers, and transport of the full disjoint-noise
+sum.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `BernoulliErrorStreamFourCaseTransport`: the conditional Fourier-case and Bernoulli mixture
+  interface.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -18,6 +42,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- The proposition collecting actual nonzero-frequency amplified-QFT layer means for a planted
+progression, their resonant, geometric, and vanishing-signal branches, circuit costs, and
+Bernoulli complement transport under the stated assumptions. -/
 def BernoulliErrorStreamFourCaseTransport : Prop :=
   ∀ (N k : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∀ (d : FinDist (Finset (ZMod N))),

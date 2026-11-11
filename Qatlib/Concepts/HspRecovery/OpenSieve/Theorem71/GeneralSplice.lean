@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveExt
+
+/-!
+# Product characters and composed abelian costs
+
+This module defines characters on finite products of cyclic groups and the subgroup of labels
+supported at one distinguished coordinate. It proves multiplicativity in both character
+arguments and reduces a character on that subgroup to its single active coordinate, as used in
+the abelian setting of [Kuperberg2005].
+
+The cost estimates combine a bound on sums of square roots with cardinality and output-length
+bounds for the product label space.
+
+## Main statements
+
+* `prodChar_lastCoord`: reduce a supported product character to one coordinate.
+* `cost_composition`: bound the exponential of a sum of square roots.
+* `theorem71_cost_from_output_length`: control the cardinality-based cost by the sum of
+  coordinate bit lengths.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,23 +41,31 @@ open scoped BigOperators
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- The product label type with one coordinate in `ZMod (N j)` for each index `j`. -/
 abbrev Label (N : ι → ℕ) := (j : ι) → ZMod (N j)
 
+/-- The product of the standard cyclic additive characters evaluated on the coordinate products
+of `k` and `s`. -/
 def prodChar (N : ι → ℕ) [∀ j, NeZero (N j)] (k s : Label N) : ℂ :=
   ∏ j, ZMod.stdAddChar (s j * k j)
 
+/-- A product character evaluated at the zero argument is one. -/
 @[simp] theorem prodChar_zero (N : ι → ℕ) [∀ j, NeZero (N j)] (k : Label N) :
     prodChar N k 0 = 1 := by
   simp only [prodChar, Pi.zero_apply, zero_mul, AddChar.map_zero_eq_one, Finset.prod_const_one]
 
+/-- A product character sends addition of its argument to multiplication of character values. -/
 theorem prodChar_add (N : ι → ℕ) [∀ j, NeZero (N j)] (k s t : Label N) :
     prodChar N k (s + t) = prodChar N k s * prodChar N k t := by
   simp only [prodChar, Pi.add_apply, add_mul, AddChar.map_add_eq_mul, Finset.prod_mul_distrib]
 
+/-- Addition of character labels corresponds to multiplication of the associated product
+character values. -/
 theorem prodChar_add_label (N : ι → ℕ) [∀ j, NeZero (N j)] (k l s : Label N) :
     prodChar N (k + l) s = prodChar N k s * prodChar N l s := by
   simp only [prodChar, Pi.add_apply, mul_add, AddChar.map_add_eq_mul, Finset.prod_mul_distrib]
 
+/-- The additive subgroup of product labels vanishing outside the distinguished coordinate `i₀`. -/
 def lastCoord (N : ι → ℕ) (i₀ : ι) : AddSubgroup (Label N) where
   carrier := {k | ∀ j, j ≠ i₀ → k j = 0}
   zero_mem' := by intro j _; simp
@@ -44,19 +76,25 @@ def lastCoord (N : ι → ℕ) (i₀ : ι) : AddSubgroup (Label N) where
     intro a ha j hj
     rw [Pi.neg_apply, ha j hj, neg_zero]
 
+/-- A label belongs to `lastCoord N i₀` exactly when all coordinates other than `i₀` vanish. -/
 @[simp] theorem mem_lastCoord {N : ι → ℕ} {i₀ : ι} {k : Label N} :
     k ∈ lastCoord N i₀ ↔ ∀ j, j ≠ i₀ → k j = 0 := Iff.rfl
 
+/-- The sum of two labels supported at the distinguished coordinate remains supported there. -/
 theorem lastCoord_add {N : ι → ℕ} {i₀ : ι} {k l : Label N}
     (hk : k ∈ lastCoord N i₀) (hl : l ∈ lastCoord N i₀) :
     k + l ∈ lastCoord N i₀ :=
   (lastCoord N i₀).add_mem hk hl
 
+/-- The difference of two labels supported at the distinguished coordinate remains supported
+there [Kuperberg2005]. -/
 theorem lastCoord_sub {N : ι → ℕ} {i₀ : ι} {k l : Label N}
     (hk : k ∈ lastCoord N i₀) (hl : l ∈ lastCoord N i₀) :
     k - l ∈ lastCoord N i₀ :=
   (lastCoord N i₀).sub_mem hk hl
 
+/-- For a label supported at one coordinate, its product character equals the standard additive
+character at that coordinate [Kuperberg2005]. -/
 theorem prodChar_lastCoord (N : ι → ℕ) [∀ j, NeZero (N j)] {i₀ : ι} {k : Label N}
     (hk : k ∈ lastCoord N i₀) (s : Label N) :
     prodChar N k s = ZMod.stdAddChar (s i₀ * k i₀) := by
@@ -66,16 +104,22 @@ theorem prodChar_lastCoord (N : ι → ℕ) [∀ j, NeZero (N j)] {i₀ : ι} {k
   · intro h
     exact absurd (Finset.mem_univ i₀) h
 
+/-- Two labels supported at the distinguished coordinate have equal product character values if
+their products with the corresponding argument coordinate agree. -/
 theorem prodChar_lastCoord_congr (N : ι → ℕ) [∀ j, NeZero (N j)] {i₀ : ι} {k l : Label N}
     (hk : k ∈ lastCoord N i₀) (hl : l ∈ lastCoord N i₀) (s : Label N)
     (h : s i₀ * k i₀ = s i₀ * l i₀) :
     prodChar N k s = prodChar N l s := by
   rw [prodChar_lastCoord N hk, prodChar_lastCoord N hl, h]
 
+/-- The cardinality of the product label type is the product of the cyclic moduli
+[Kuperberg2005]. -/
 theorem card_label (N : ι → ℕ) [∀ j, NeZero (N j)] :
     Fintype.card (Label N) = ∏ j, N j := by
   simp [Label, Fintype.card_pi, ZMod.card]
 
+/-- The sum of square roots of nonnegative terms is at most the square root of the number of
+terms times their sum. -/
 theorem sum_sqrt_le_sqrt_card_mul_sum (b : ι → ℝ) (hb : ∀ j, 0 ≤ b j) :
     (∑ j, Real.sqrt (b j)) ≤ Real.sqrt ((Fintype.card ι : ℝ) * ∑ j, b j) := by
   have hsq : (∑ j, Real.sqrt (b j)) ^ 2 ≤ (Fintype.card ι : ℝ) * ∑ j, b j := by
@@ -100,17 +144,22 @@ theorem sum_sqrt_le_sqrt_card_mul_sum (b : ι → ℝ) (hb : ∀ j, 0 ≤ b j) :
       = Real.sqrt ((∑ j, Real.sqrt (b j)) ^ 2) := (Real.sqrt_sq hnn).symm
     _ ≤ Real.sqrt ((Fintype.card ι : ℝ) * ∑ j, b j) := Real.sqrt_le_sqrt hsq
 
+/-- For nonnegative `C` and `b`, the exponential cost with exponent `C` times the sum of square
+roots is bounded using the square root of the cardinality times the sum [Kuperberg2005]. -/
 theorem cost_composition (C : ℝ) (hC : 0 ≤ C) (b : ι → ℝ) (hb : ∀ j, 0 ≤ b j) :
     (2 : ℝ) ^ (C * ∑ j, Real.sqrt (b j))
       ≤ (2 : ℝ) ^ (C * Real.sqrt ((Fintype.card ι : ℝ) * ∑ j, b j)) := by
   refine Real.rpow_le_rpow_of_exponent_le (by norm_num) ?_
   exact mul_le_mul_of_nonneg_left (sum_sqrt_le_sqrt_card_mul_sum b hb) hC
 
+/-- The index cardinality is at most the sum of the coordinate bounds `Nat.log2 (N j) + 1`. -/
 theorem card_le_sum_log (N : ι → ℕ) :
     Fintype.card ι ≤ ∑ j, (Nat.log2 (N j) + 1) := by
   rw [show Fintype.card ι = ∑ _j : ι, (1 : ℕ) from by simp]
   exact Finset.sum_le_sum fun j _ => by omega
 
+/-- The natural logarithm of the product label cardinality is at most the sum of the coordinate
+bit-length bounds [Kuperberg2005]. -/
 theorem log_card_label_le (N : ι → ℕ) [∀ j, NeZero (N j)] :
     Real.log (Fintype.card (Label N)) ≤ ∑ j, ((Nat.log2 (N j) + 1 : ℕ) : ℝ) := by
   have hN : ∀ j, 1 ≤ N j := fun j => by
@@ -145,6 +194,9 @@ theorem log_card_label_le (N : ι → ℕ) [∀ j, NeZero (N j)] :
         mul_le_mul_of_nonneg_left hlog2 (by positivity)
     _ = ((Nat.log2 (N j) : ℝ) + 1) := by ring
 
+/-- For nonnegative `C`, the exponential cost based on the square root of log cardinality is
+bounded by the cost based on the square root of the total coordinate bit-length bound
+[Kuperberg2005]. -/
 theorem theorem71_cost_from_output_length (C : ℝ) (hC : 0 ≤ C) (N : ι → ℕ)
     [∀ j, NeZero (N j)] :
     (2 : ℝ) ^ (C * Real.sqrt (Real.log (Fintype.card (Label N))))

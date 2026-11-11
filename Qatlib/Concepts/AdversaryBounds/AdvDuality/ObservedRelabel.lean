@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+/-!
+# Basis relabeling of observed circuits
+
+`relabelObserved` transports gates, projectors, and measurement labels across a basis
+equivalence, and `relabelObservedTrace` transports trace states while retaining classical
+metadata. The trace correspondence preserves event masses, expected query counts, structural
+budgets, and well-formedness. These express basis invariance of the finite-dimensional quantum
+formalism in [NielsenChuang2010].
+
+## Main statements
+
+* `relabelObserved_traces`: Execution commutes with simultaneous relabeling of the circuit,
+  oracle, and input.
+* `relabelObserved_event`: Classical event masses are invariant under basis relabeling.
+* `relabelObserved_expected`: Expected query counts are invariant under basis relabeling.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +46,8 @@ open Matrix
 
 variable {I J : Type*}
 
+/-- Transports an observed circuit across the basis equivalence `e`, relabeling its gates,
+projectors, and measurement labels. -/
 noncomputable def relabelObserved [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) : ObservedCircuit I → ObservedCircuit J
   | .halt accepted => .halt accepted
@@ -34,6 +58,8 @@ noncomputable def relabelObserved [Fintype I] [DecidableEq I] [Fintype J] [Decid
   | .project Q onFalse onTrue =>
       .project (relabelGate e Q) (relabelObserved e onFalse) (relabelObserved e onTrue)
 
+/-- Relabels the state of a branch trace by `e`, preserving its acceptance flag, resource
+counts, and outcome history. -/
 noncomputable def relabelObservedTrace [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (t : BranchTrace I) : BranchTrace J :=
   { state := relabelState e t.state
@@ -45,12 +71,14 @@ noncomputable def relabelObservedTrace [Fintype I] [DecidableEq I] [Fintype J] [
 
 variable [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
+/-- Basis relabeling commutes with taking the operator complement `1 - Q`. -/
 private theorem relabel_compl (e : I ≃ J) (Q : Matrix I I ℂ) :
     relabelGate e (1 - Q) = 1 - relabelGate e Q := by
   calc
     relabelGate e (1 - Q) = relabelGate e (1 : Matrix I I ℂ) - relabelGate e Q := rfl
     _ = 1 - relabelGate e Q := by rw [CircuitRelabel.relabelGate_one]
 
+/-- Relabeling the operator and input state commutes with taking a binary projective branch. -/
 private theorem relabel_projective (e : I ≃ J) (Q : Matrix I I ℂ)
     (b : Bool) (psi : QState I) :
     ProjectiveBranch (relabelGate e Q) b (relabelState e psi) =
@@ -62,6 +90,8 @@ private theorem relabel_projective (e : I ≃ J) (Q : Matrix I I ℂ)
   | true =>
       simpa only [ProjectiveBranch, ↓reduceIte] using applyGate_relabelGate e Q psi
 
+/-- Collapsing onto a relabeled measurement fiber equals relabeling the state collapsed onto the
+original fiber. -/
 private theorem relabel_partition (e : I ≃ J) (psi : QState I)
     {n : ℕ} (label : I → Fin n) (o : Fin n) :
     Collapse (relabelState e psi)
@@ -71,6 +101,8 @@ private theorem relabel_partition (e : I ≃ J) (psi : QState I)
   simp only [collapse_apply, Finset.mem_filter, Finset.mem_univ, true_and,
     relabelState_apply, Function.comp_apply]
 
+/-- Relabeling an orthogonal projector across a basis equivalence preserves the orthogonal
+projector property. -/
 private theorem relabel_projector (e : I ≃ J) {Q : Matrix I I ℂ}
     (hQ : IsOrthogonalProjector Q) : IsOrthogonalProjector (relabelGate e Q) := by
   refine ⟨?_, ?_⟩
@@ -83,12 +115,15 @@ private theorem relabel_projector (e : I ≃ J) {Q : Matrix I I ℂ}
     show (relabelGate e Q)ᴴ = relabelGate e Q
     rw [hstar, hQstar]
 
+/-- Basis relabeling preserves the branch mass of a state. -/
 private theorem relabel_mass (e : I ≃ J) (psi : QState I) :
     branchMass (relabelState e psi) = branchMass psi := by
   change (∑ j : J, BornProb (relabelState e psi) j) = ∑ i : I, BornProb psi i
   simp only [bornProb_relabelState]
   exact e.symm.sum_comp (BornProb psi)
 
+/-- Executing the relabeled circuit with the relabeled oracle and input gives precisely the
+relabeled original traces. -/
 theorem relabelObserved_traces (e : I ≃ J) (O : Matrix I I ℂ)
     (P : ObservedCircuit I) (psi : QState I) :
     observedTraces (relabelGate e O) (relabelObserved e P) (relabelState e psi) =
@@ -111,6 +146,7 @@ theorem relabelObserved_traces (e : I ≃ J) (O : Matrix I I ℂ)
       simp only [relabelObserved, observedTraces, relabel_projective, ihFalse, ihTrue,
         List.map_append, List.map_map, Function.comp_def, relabelObservedTrace]
 
+/-- Basis relabeling preserves the structural query budget of an observed circuit. -/
 theorem relabelObserved_budget (e : I ≃ J) (P : ObservedCircuit I) :
     observedQueryBudget (relabelObserved e P) = observedQueryBudget P := by
   induction P with
@@ -122,6 +158,7 @@ theorem relabelObserved_budget (e : I ≃ J) (P : ObservedCircuit I) :
   | project Q onFalse onTrue ihFalse ihTrue =>
       simp only [relabelObserved, observedQueryBudget, ihFalse, ihTrue]
 
+/-- Basis relabeling preserves well-formedness of an observed circuit. -/
 theorem relabelObserved_wellFormed (e : I ≃ J) (P : ObservedCircuit I)
     (hP : observedWellFormed P) : observedWellFormed (relabelObserved e P) := by
   induction P with
@@ -134,6 +171,8 @@ theorem relabelObserved_wellFormed (e : I ≃ J) (P : ObservedCircuit I)
   | project Q onFalse onTrue ihFalse ihTrue =>
       exact ⟨relabel_projector e hP.1, ihFalse hP.2.1, ihTrue hP.2.2⟩
 
+/-- Simultaneous basis relabeling of circuit, oracle, and input preserves masses of events
+determined by acceptance and outcome history. -/
 theorem relabelObserved_event (e : I ≃ J) (O : Matrix I I ℂ)
     (P : ObservedCircuit I) (psi : QState I)
     (event : Bool → List (ℕ × ℕ) → Bool) :
@@ -143,6 +182,8 @@ theorem relabelObserved_event (e : I ≃ J) (O : Matrix I I ℂ)
   simp only [observedEventMass, relabelObserved_traces, List.map_map,
     Function.comp_def, relabelObservedTrace, relabel_mass]
 
+/-- Simultaneous basis relabeling of circuit, oracle, and input preserves the expected query
+count. -/
 theorem relabelObserved_expected (e : I ≃ J) (O : Matrix I I ℂ)
     (P : ObservedCircuit I) (psi : QState I) :
     expectedObservedQueries (relabelGate e O) (relabelObserved e P) (relabelState e psi) =

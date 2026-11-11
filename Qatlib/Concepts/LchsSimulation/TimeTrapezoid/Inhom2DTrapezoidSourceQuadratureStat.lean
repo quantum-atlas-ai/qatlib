@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureStat
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceQuadrature
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.Inhom2DTrapezoidSourceQuadratureDefs
+
+/-!
+# Specification of two-dimensional source quadrature error
+
+`Inhomogeneous2DTrapezoidSourceQuadrature` states the error bound for `inh2dTrapSourceSum`
+relative to the exact source response. It records continuity, positivity, derivative bounds, and
+norm bounds, with an error consisting of a time trapezoid term and a source-norm-weighted
+parameter quadrature term.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `Inhomogeneous2DTrapezoidSourceQuadrature`: specifies the joint time-and-parameter quadrature
+  estimate.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -36,6 +57,9 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 end Inhomogeneous2DTrapezoidDefinitions
 
+/-- The proposition bounding the joint trapezoidal source error by `(t - s) * inhStep Mt s t ^
+2` times the stated second-derivative bound divided by twelve, plus `(t - s) * bmax` times
+the parameter truncation and trapezoid error. -/
 def Inhomogeneous2DTrapezoidSourceQuadrature : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L L' H H' : ℝ → Matrix I I ℂ)
     (b b' b'' : ℝ → QState I) (s t : ℝ) (K M Mt : ℕ)

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryOracleWord
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover
+
+/-!
+# Controlled Grover words with multiple oracle sources
+
+`instructions` builds a controlled prepared Grover iterate from a preparation word, its adjoint,
+and two controlled reflections. The evaluation theorems identify its coherent action and its
+identity action in the false sector, while the resource theorems count forward and inverse words
+source by source. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `evaluate_instructions`: For unitary source oracles and a well formed preparation word, the
+  instructions evaluate to the controlled prepared amplitude amplification iterate.
+* `counts`: The controlled Grover word doubles every preparation source query count and has
+  twice its known gate count plus two.
+* `projectorHistory_counts`: For a projector history preparation, the controlled Grover word
+  uses twice the history query count for the Hamiltonian source, two calls each to the
+  preparation and projector sources, and twice the history gate count plus two.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -18,10 +42,14 @@ set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- Extends each source oracle to act in parallel on both values of a Boolean spectator
+register. -/
 noncomputable def spectatorSource (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix (Bool × H) (Bool × H) ℂ :=
   fun s => Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle (J := Bool) (O s)
 
+/-- The instruction word consisting of the tensor lifted preparation, controlled seed
+reflection, adjoint preparation, and controlled marking reflection. -/
 noncomputable def instructions (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H) : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step (Bool × H)) :=
   ((Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.tensorWord Bool Aword ++
@@ -29,6 +57,7 @@ noncomputable def instructions (Aword : List (Qatlib.Concepts.AmplitudeCore.Prep
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.adjointWord (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.tensorWord Bool Aword)) ++
       [.gate (Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle (Qatlib.Concepts.LchsSimulation.StaticLchs.preparedMark S))]
 
+/-- Concatenating well formed instruction words preserves well formedness. -/
 private theorem wellFormed_append {X : Type} [Fintype X] [DecidableEq X]
     (u v : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step X))
     (hu : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed u) (hv : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed v) :
@@ -38,6 +67,7 @@ private theorem wellFormed_append {X : Type} [Fintype X] [DecidableEq X]
   · exact hu c hc
   · exact hv c hc
 
+/-- A singleton word containing a unitary known gate is well formed. -/
 private theorem known_gate_wellFormed {X : Type} [Fintype X] [DecidableEq X]
     (V : Matrix X X ℂ) (hV : V ∈ Matrix.unitaryGroup X ℂ) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed [.gate V] := by
@@ -46,6 +76,8 @@ private theorem known_gate_wellFormed {X : Type} [Fintype X] [DecidableEq X]
   subst c
   exact hV
 
+/-- The controlled Grover instruction word is well formed whenever the preparation word is well
+formed. -/
 theorem instructions_wellFormed (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.instructions Aword seed S) := by
@@ -59,6 +91,8 @@ theorem instructions_wellFormed (Aword : List (Qatlib.Concepts.AmplitudeCore.Pre
     (wellFormed_append _ _ (wellFormed_append _ _ hA hR)
       (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.adjointWord_wellFormed _ hA)) hM
 
+/-- For unitary source oracles and a well formed preparation word, the instructions evaluate to
+the controlled prepared amplitude amplification iterate. -/
 theorem evaluate_instructions (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hO : ∀ s, O s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword) :
@@ -89,6 +123,8 @@ theorem evaluate_instructions (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout
   exact (congrArg (fun M => M * Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle (Qatlib.Concepts.LchsSimulation.StaticLchs.preparedMark S)) hs).trans
     (Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle_mul (A * Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover.seedReflection seed * Aᴴ) (Qatlib.Concepts.LchsSimulation.StaticLchs.preparedMark S))
 
+/-- The controlled Grover instructions act on every state as the controlled prepared amplitude
+amplification iterate. -/
 theorem coherent (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hO : ∀ s, O s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword)
@@ -97,6 +133,8 @@ theorem coherent (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceA
       Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle (Qatlib.Concepts.LchsSimulation.StaticLchs.preparedAAIterate (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate O Aword) seed S) *ᵥ ψ := by
   rw [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.evaluate_instructions O Aword seed S hO hw]
 
+/-- The false control sector of the evaluated Grover instructions has the entries of the
+identity matrix. -/
 theorem false_sector (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hO : ∀ s, O s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword)
@@ -107,6 +145,8 @@ theorem false_sector (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSou
   simp [Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle,
       Qatlib.Concepts.BlockEncoding.LCU.select]
 
+/-- For unitary sources and a well formed preparation word, the evaluated controlled Grover
+instructions are unitary. -/
 theorem instructions_unitary (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hO : ∀ s, O s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword) :
@@ -115,6 +155,8 @@ theorem instructions_unitary (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate_unitary _ _ (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.instructions_wellFormed Aword seed S hw)
     (fun s => Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle_unitary (hO s))
 
+/-- The controlled Grover word doubles every preparation source query count and has twice its
+known gate count plus two. -/
 theorem counts (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H) :
     (∀ s, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.queryCount s (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.instructions Aword seed S) =
       2 * Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.queryCount s Aword) ∧
@@ -139,6 +181,8 @@ theorem counts (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.Mult
     rw [hg, hg]
     omega
 
+/-- The adjoint controlled Grover word evaluates to the controlled adjoint of the prepared
+amplitude amplification iterate. -/
 theorem inverse_evaluate (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hO : ∀ s, O s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword) :
@@ -148,6 +192,8 @@ theorem inverse_evaluate (O : Qatlib.Concepts.AmplitudeCore.PreparedReadout.Mult
   rw [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate_adjointWord, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.evaluate_instructions O Aword seed S hO hw,
     Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle_adjoint]
 
+/-- The inverse controlled Grover word is well formed, doubles every preparation source query
+count, and has twice its known gate count plus two. -/
 theorem inverse_resources (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.adjointWord (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.instructions Aword seed S)) ∧
@@ -165,6 +211,9 @@ theorem inverse_resources (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedR
   · rw [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.gateCount_adjointWord]
     exact (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.counts Aword seed S).2
 
+/-- For a projector history preparation, the controlled Grover word uses twice the history query
+count for the Hamiltonian source, two calls each to the preparation and projector sources,
+and twice the history gate count plus two. -/
 theorem projectorHistory_counts (w : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H)) (seed : H) (S : Finset H) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.queryCount .hamiltonian
         (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.instructions (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.projectorHistoryWord w) seed S) =

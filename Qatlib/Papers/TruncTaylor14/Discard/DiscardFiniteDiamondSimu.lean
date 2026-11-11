@@ -7,6 +7,20 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.TruncTaylor14.Discard.DiscardFiniteDiamondStat
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Mathlib.Data.ENNReal.Inv
+
+/-!
+# A channel guarantee for Taylor simulation with workspace discard
+
+The segmented Taylor-LCU workspace construction induces a completely positive
+trace-preserving map after resetting and discarding the ancilla. Its
+reference-system trace-norm estimate is transported to arbitrary operators and
+then to the finite diamond distance, with target error `2⁻ᵏ`. The assembled
+contract also includes the construction's resource bounds.
+
+The simulation method comes from [BerryEtAl2015Taylor]. Channel-distance
+background is [Watrous, completely bounded trace norms][Watrous2018]. The
+discard construction and norm conventions are specified by the local contract.
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -47,6 +61,8 @@ local instance (priority := 10000) sourceAnswerProdProdFast {α β γ : Type} [D
     [DecidableEq β] [DecidableEq γ] : DecidableEq ((α × β) × γ) :=
   @instDecidableEqProd (α × β) γ (@instDecidableEqProd α β _ _) _
 
+/-- For a unitary workspace matrix, every iterate of the source discard linear map is completely
+positive and trace preserving. -/
 private theorem sourceDiscardLinearIterate_channel {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J)
     (hW : W ∈ Matrix.unitaryGroup (J × Fin D) ℂ) (n : ℕ) :
@@ -61,6 +77,9 @@ private theorem sourceDiscardLinearIterate_channel {J : Type} [Fintype J] [Decid
     change Matrix.trace (sourceDiscardLinearIterate W j₀ n (sourceDiscardLinearMap W j₀ X)) = _
     rw [ih.2, hs.2]
 
+/-- The reset-and-discard Taylor simulator is a channel with the stated finite
+diamond-distance and resource bounds. This implements the Taylor-LCU method of
+[Berry et al., truncated Taylor simulation][BerryEtAl2015Taylor]. -/
 theorem sourceDiscardFiniteDiamond : SourceDiscardFiniteDiamond := by
   intro J _ _ D h U j₀ t Λ k hU hHer hΛ ht
   (try simp only [])

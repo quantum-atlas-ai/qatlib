@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountGateMergers
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Raw relative-Toffoli ladders and their signs
+
+`sourcePrefixRaw` builds a recursive dirty-prefix ladder from relative Toffoli words, and
+`sourcePrefixSign` records the sign accumulated along its basis-state action. The construction
+supplies an elementary realization of the borrowed-work ladder techniques in [BarencoEtAl1995].
+
+The module proves legality for valid layouts, the signed basis action, and invariance of the
+accumulated sign under changes to unused wires.
+
+## Main statements
+
+* `sourcePrefixRaw_ket`: The dirty-prefix transform with its explicit scalar sign.
+* `sourcePrefixSign_sq`: The accumulated sign squares to one.
+* `sourcePrefixSign_update`: Invariance under updates outside the ladder wires.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +43,7 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators
 
+/-- A valid dirty-prefix layout remains valid when restricted to any shorter prefix. -/
 theorem sourcePrefixLayout_mono {N : ℕ} {c w : ℕ → Fin N} {r s : ℕ}
     (h : noWorkDirtyPrefixLayout c w r) (hs : s ≤ r) : noWorkDirtyPrefixLayout c w s := by
   refine ⟨?_, ?_, ?_⟩
@@ -33,14 +56,18 @@ theorem sourcePrefixLayout_mono {N : ℕ} {c w : ℕ → Fin N} {r s : ℕ}
   · intro i hi j hj
     exact h.2.2 i (by omega) j (by omega)
 
+/-- The relative Toffoli sign, equal to minus one exactly when the first control and target are
+true and the second control is false. -/
 def sourceRelativeSign {N : ℕ} (a b t : Fin N) (x : Reg N) : ℂ :=
   if x a && !x b && x t then -1 else 1
 
+/-- The square of the relative Toffoli sign is one. -/
 theorem sourceRelativeSign_sq {N : ℕ} (a b t : Fin N) (x : Reg N) :
     sourceRelativeSign a b t x * sourceRelativeSign a b t x = 1 := by
   unfold sourceRelativeSign
   split <;> norm_num
 
+/-- The recursive raw prefix ladder formed by nesting relative Toffoli words. -/
 def sourcePrefixRaw {N : ℕ} (c w : ℕ → Fin N) : ℕ → List (ReflectionGate N)
   | 0 => []
   | 1 => sourceRelativeToffoliSteps (c 0) (c 1) (w 0)
@@ -48,6 +75,8 @@ def sourcePrefixRaw {N : ℕ} (c w : ℕ → Fin N) : ℕ → List (ReflectionGa
       sourcePrefixRaw c w (r+1) ++
       sourceRelativeToffoliSteps (c (r+2)) (w r) (w (r+1))
 
+/-- The recursively accumulated relative sign along the basis-state path of the raw prefix
+ladder. -/
 def sourcePrefixSign {N : ℕ} (c w : ℕ → Fin N) : ℕ → Reg N → ℂ
   | 0, _ => 1
   | 1, x => sourceRelativeSign (c 0) (c 1) (w 0) x
@@ -58,6 +87,7 @@ def sourcePrefixSign {N : ℕ} (c w : ℕ → Fin N) : ℕ → Reg N → ℂ
         sourceRelativeSign (c (r+2)) (w r) (w (r+1))
           (noWorkDirtyPrefixTransform c w (r+1) q)
 
+/-- The raw prefix ladder is legal for a valid dirty-prefix layout. -/
 theorem sourcePrefixRaw_legal {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) : reflectionLegal (sourcePrefixRaw c w r) := by
   induction r using Nat.twoStepInduction with
@@ -72,6 +102,8 @@ theorem sourcePrefixRaw_legal {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     simp only [sourcePrefixRaw, reflectionLegal_append]
     exact ⟨⟨hg, ih (sourcePrefixLayout_mono h (by omega))⟩, hg⟩
 
+/-- On a basis state, the raw prefix ladder implements `noWorkDirtyPrefixTransform` with scalar
+factor `sourcePrefixSign`. -/
 theorem sourcePrefixRaw_ket {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (x : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (sourcePrefixRaw c w r))
@@ -99,6 +131,7 @@ theorem sourcePrefixRaw_ket {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     rw [hg]
     simp only [sourcePrefixSign, noWorkDirtyPrefixTransform, smul_smul, mul_assoc]
 
+/-- The square of the accumulated prefix sign is one. -/
 theorem sourcePrefixSign_sq {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) (x : Reg N) :
     sourcePrefixSign c w r x * sourcePrefixSign c w r x = 1 := by
   induction r using Nat.twoStepInduction generalizing x with
@@ -110,12 +143,15 @@ theorem sourcePrefixSign_sq {N : ℕ} (c w : ℕ → Fin N) (r : ℕ) (x : Reg N
     rw [sourceRelativeSign_sq, ih, sourceRelativeSign_sq]
     norm_num
 
+/-- Changing a wire distinct from both controls and the target leaves the relative Toffoli sign
+unchanged. -/
 private theorem relativeSign_update {N : ℕ} (a b z t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) (hzt : z ≠ t) (x : Reg N) (v : Bool) :
     sourceRelativeSign a b z (Function.update x t v) = sourceRelativeSign a b z x := by
   simp only [sourceRelativeSign, Function.update_of_ne hat, Function.update_of_ne hbt,
     Function.update_of_ne hzt]
 
+/-- A Toffoli register update commutes with setting a wire outside its controls and target. -/
 theorem sourceToffoliUpdate_update {N : ℕ} (a b z t : Fin N)
     (hat : a ≠ t) (hbt : b ≠ t) (hzt : z ≠ t) (x : Reg N) (v : Bool) :
     noWorkToffoliUpdate a b z (Function.update x t v) =
@@ -124,6 +160,8 @@ theorem sourceToffoliUpdate_update {N : ℕ} (a b z t : Fin N)
     Function.update_of_ne hzt]
   exact (Function.update_comm hzt _ _ x).symm
 
+/-- For a valid dirty-prefix layout, changing a wire outside the prefix control and work wires
+leaves the accumulated prefix sign unchanged. -/
 theorem sourcePrefixSign_update {N : ℕ} (c w : ℕ → Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r) (t : Fin N)
     (hc : ∀ i < r+1, c i ≠ t) (hw : ∀ j < r, w j ≠ t)

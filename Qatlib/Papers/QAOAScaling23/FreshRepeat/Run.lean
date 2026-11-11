@@ -8,6 +8,29 @@ import Qatlib.Papers.QAOAScaling23.BudgetPrefix.Budget
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.Order.Floor.Ring
+
+/-!
+# Confidence amplification of budgeted descent
+
+`outerIterations` chooses the number of fresh trials from a target error. The module combines
+the dyadic failure bound with the budgeted descent estimates to prove the error and total-charge
+guarantees of `corrected_source_run` under the stated row-law and resource hypotheses.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `dyadic_error_bound`: For positive `δ`, the dyadic error `(1/2)^(outerIterations δ)` is at
+  most `δ`.
+* `corrected_source_run`: Under the stated row-law, positive-mass, row-charge, and row-failure
+  hypotheses, budget `B ≥ 15 * C * M * N` with `M ≥ 1 / sqrt (popt q)` gives amplified failure
+  probability at most positive `δ` and pathwise total charge at most `outerIterations δ * B`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,8 +42,10 @@ open Qatlib.Papers.QAOAScaling23.BiasedProcess
 open Qatlib.Papers.QAOAScaling23.WeightedCost
 open Qatlib.Papers.QAOAScaling23.BudgetPrefix
 
+/-- The natural ceiling of `logb 2 (1 / δ)`, used as the number of outer repetitions. -/
 def outerIterations (δ : ℝ) : ℕ := Nat.ceil (Real.logb 2 (1/δ))
 
+/-- For positive `δ`, the dyadic error `(1/2)^(outerIterations δ)` is at most `δ`. -/
 theorem dyadic_error_bound (δ : ℝ) (hδ : 0<δ) :
     (1/2:ℝ)^outerIterations δ≤δ := by
   have hceil : Real.logb 2 (1/δ)≤(outerIterations δ:ℝ) := Nat.le_ceil _
@@ -31,6 +56,8 @@ theorem dyadic_error_bound (δ : ℝ) (hδ : 0<δ) :
   have hi := (inv_le_inv₀ hp (show 0<1/δ by positivity)).2 hm
   simpa only [one_div,inv_inv,inv_pow] using hi
 
+/-- If each trial has paid charge at most `B` on every path, a batch of `k` trials has total
+charge at most `k * B`. -/
 theorem freshBatch_path_cap
     (trial : Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree Trace)
     (B : ℕ) (hcap : trial.All (fun tr => paid tr≤B)) (k : ℕ) :
@@ -48,6 +75,9 @@ theorem freshBatch_path_cap
     rw [Nat.add_mul,Nat.one_mul]
     omega
 
+/-- Under the stated row-law, positive-mass, row-charge, and row-failure hypotheses, budget `B ≥
+15 * C * M * N` with `M ≥ 1 / sqrt (popt q)` gives amplified failure probability at most
+positive `δ` and pathwise total charge at most `outerIterations δ * B`. -/
 theorem corrected_source_run {L : ℕ} (hL : 0<L) (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L,(p i).toReal=q i.val) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows)

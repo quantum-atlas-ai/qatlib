@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
 import Mathlib.Data.Fin.Tuple.Sort
+
+/-!
+# Rational readout for composed layered means
+
+The readout `nativeLayerOutput` combines rational amplitude-estimation decoding with rational
+medians. Order-statistic comparison proves uniform median stability, which controls the
+difference from the ideal layered readout.
+
+For nonnegative rational payoffs with Born second moment at most one,
+`native_layered_rational_output_success` gives an explicit rational-output success bound under
+the native preparation law. The layered mean construction follows the framework of
+[Montanaro2015].
+
+## Main statements
+
+* `native_sorted_median_uniform_error`: uniform perturbations of inputs bound the median
+  perturbation.
+* `native_layered_readout_uniform_error`: rational decoding changes the layered readout by at
+  most (1/2)^(k + 6).
+* `native_layered_rational_output_success`: the native rational output has error and failure
+  bounded by 2(1/2)^k.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -23,9 +50,13 @@ namespace Qatlib.Concepts.MonteCarloMean.LayeredMean
 open Matrix
 open scoped BigOperators
 
+/-- The middle value of `2 * r + 1` rational inputs, computed by merge sorting and reading index
+`r`. -/
 def nativeRationalMedian (r : ℕ) (v : Fin (2*r+1) → ℚ) : ℚ :=
   ((List.ofFn v).mergeSort (fun a b => a ≤ b)).getD r 0
 
+/-- The rational layered output formed by weighting each median of native amplitude-estimation
+decodings by its dyadic layer scale. -/
 def nativeLayerOutput (k : ℕ) (ω : LayerRecord k) : ℚ :=
   ∑ l : Fin (k+2), (2 : ℚ)^l.val * nativeRationalMedian (layerRepetitions k)
     (fun z => nativeAEDecode (layerGrid k) (2*k+8) (ω l z))
@@ -34,6 +65,8 @@ noncomputable section
 open scoped Classical
 set_option warningAsError false
 
+/-- Coercing the rational merge-sort median to the reals gives the sorted real block median of
+the coerced inputs. -/
 theorem nativeRationalMedian_cast (r : ℕ) (v : Fin (2*r+1) → ℚ) :
     (nativeRationalMedian r v : ℝ) = sortedBlockMedian r (fun i => (v i : ℝ)) := by
   let xs := List.ofFn v
@@ -53,8 +86,10 @@ theorem nativeRationalMedian_cast (r : ℕ) (v : Fin (2*r+1) → ℚ) :
   rw [hc]
   simp only [xs, List.map_ofFn, Function.comp_def, sortedBlockMedian]
 
+/-- The real value at a specified rank in the tuple sorted by `Tuple.sort`. -/
 private def nativeRank {n : ℕ} (v : Fin n → ℝ) (i : Fin n) : ℝ := v (Tuple.sort v i)
 
+/-- Sorting a tuple preserves the number of entries at most any real threshold. -/
 private theorem native_sorted_filter_card {n : ℕ} (v : Fin n → ℝ) (a : ℝ) :
     (Finset.univ.filter (fun i => nativeRank v i ≤ a)).card =
       (Finset.univ.filter (fun i => v i ≤ a)).card := by
@@ -68,6 +103,7 @@ private theorem native_sorted_filter_card {n : ℕ} (v : Fin n → ℝ) (a : ℝ
     simpa only [Finset.mem_filter, Finset.mem_univ, true_and, nativeRank,
       Equiv.apply_symm_apply] using! hj
 
+/-- Pointwise comparison of two tuples implies comparison of their values at every sorted rank. -/
 private theorem nativeRank_mono {n : ℕ} (v w : Fin n → ℝ)
     (h : ∀ i, v i ≤ w i) (i : Fin n) : nativeRank v i ≤ nativeRank w i := by
   have hw : i.val < (Finset.univ.filter (fun j => w j ≤ nativeRank w i)).card := by
@@ -81,6 +117,7 @@ private theorem nativeRank_mono {n : ℕ} (v w : Fin n → ℝ)
   rw [← native_sorted_filter_card] at hv
   exact (Tuple.lt_card_le_iff_apply_le_of_monotone (Tuple.monotone_sort v)).mp hv
 
+/-- Adding a constant to every tuple entry adds the same constant to every sorted rank. -/
 private theorem nativeRank_add {n : ℕ} (v : Fin n → ℝ) (c : ℝ) (i : Fin n) :
     nativeRank (fun j => v j+c) i = nativeRank v i+c := by
   have hm : Monotone ((fun j => v j+c) ∘ Tuple.sort v) := by
@@ -89,6 +126,7 @@ private theorem nativeRank_add {n : ℕ} (v : Fin n → ℝ) (c : ℝ) (i : Fin 
   have he := Tuple.unique_monotone (Tuple.monotone_sort (fun j => v j+c)) hm
   exact congrFun he i
 
+/-- The sorted block median is the order statistic at rank `r` among `2 * r + 1` values. -/
 private theorem native_median_rank (r : ℕ) (v : Fin (2*r+1) → ℝ) :
     sortedBlockMedian r v = nativeRank v ⟨r, by omega⟩ := by
   have hp := (insertionSortCounted_perm (List.ofFn v)).trans
@@ -99,6 +137,8 @@ private theorem native_median_rank (r : ℕ) (v : Fin (2*r+1) → ℝ) :
   rw [he, List.getD_eq_getElem _ 0 (by simp; omega)]
   simp only [List.getElem_ofFn, Function.comp_apply, nativeRank]
 
+/-- If corresponding inputs differ in absolute value by at most `δ`, their sorted medians differ
+by at most `δ`. -/
 theorem native_sorted_median_uniform_error (r : ℕ) (v w : Fin (2*r+1) → ℝ)
     (δ : ℝ) (h : ∀ i, |v i-w i| ≤ δ) :
     |sortedBlockMedian r v-sortedBlockMedian r w| ≤ δ := by
@@ -110,6 +150,7 @@ theorem native_sorted_median_uniform_error (r : ℕ) (v w : Fin (2*r+1) → ℝ)
   rw [nativeRank_add] at h1 h2
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
+/-- The sum of 2^l over `Fin n` is at most 2^n. -/
 private theorem native_geom_two_sum_le (n : ℕ) : (∑ l : Fin n, (2 : ℝ)^l.val) ≤ (2 : ℝ)^n := by
   have hh : (∑ l : Fin n, (2 : ℝ)^l.val) = (2 : ℝ)^n-1 := by
     induction n with
@@ -122,6 +163,9 @@ private theorem native_geom_two_sum_le (n : ℕ) : (∑ l : Fin n, (2 : ℝ)^l.v
   rw [hh]
   linarith
 
+/-- For every layered record, replacing ideal decoding by rational native decoding and
+merge-sort medians changes the readout by at most (1/2)^(k + 6). This controls readout
+precision for the construction based on [Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem native_layered_readout_uniform_error :
     ∀ (k : ℕ),
       let out := fun ω : LayerRecord k =>
@@ -162,6 +206,10 @@ theorem native_layered_readout_uniform_error :
         pow_add (1/2 : ℝ) (k+2) (k+6), ← mul_assoc, ← mul_pow]
       norm_num
 
+/-- For a nonnegative rational payoff with Born second moment at most one, the native layer
+preparations are unitary and the rational output has error at most 2(1/2)^k with probability
+at least 1 - 2(1/2)^k. This is a rational-output version of the layered construction in
+[Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem native_layered_rational_output_success :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (f : I → ℚ) (k : ℕ) (_hA : A ∈ Matrix.unitaryGroup I ℂ),

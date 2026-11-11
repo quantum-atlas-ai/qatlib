@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
 import Mathlib.Analysis.SpecificLimits.Basic
+
+/-!
+# Noise intensity bounds and fresh-sample concentration
+
+This module gives finite uniform noise distributions and bounds for normalized character-sum
+intensities. It includes the order-two resonance case in the moment analysis associated with
+[Cornwell2014], together with a counterexample to an uncorrected variance expression.
+
+The main concentration statement combines the exact intensity mean with a resonance-safe
+variance bound for an average of fresh samples. Both normalized upper bounds vanish as the noise
+length grows with fixed signal bound.
+
+## Main statements
+
+* `noise_order_two_variance_counterexample`: an explicit order-two variance calculation.
+* `noise_intensity_actual_fresh_mean_concentration`: exact mean, variance bound, and deviation
+  probability for fresh averages.
+* `noise_intensity_n3_actual_fresh_consumer`: a concrete modulus-three specialization.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -20,6 +44,8 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The uniform finite distribution on length-`L` tuples of residues modulo the nonzero modulus
+`N`. -/
 noncomputable def noiseTupleDist (N L : ℕ) [NeZero N] : FinDist (Fin L→ZMod N) where
   prob _ := ((N : ℝ)^L)⁻¹
   nonneg _ := by positivity
@@ -27,6 +53,9 @@ noncomputable def noiseTupleDist (N L : ℕ) [NeZero N] : FinDist (Fin L→ZMod 
     rw [Finset.sum_const,Finset.card_univ,noise_tuple_card,nsmul_eq_mul,Nat.cast_pow]
     exact mul_inv_cancel₀ (pow_ne_zero L (by exact_mod_cast NeZero.ne N))
 
+/-- For fixed `M`, both the normalized mean upper bound and the resonance-safe normalized
+variance upper bound tend to zero as the noise length tends to infinity. These bounds
+concern the noise intensities studied in [Cornwell2014]. -/
 theorem noise_intensity_resonance_safe_bounds_vanish : ∀ (M : ℕ),
     Filter.Tendsto (fun L : ℕ => ((M : ℝ)^2+L)/((M+L : ℕ) : ℝ)^2)
       Filter.atTop (nhds 0) ∧
@@ -69,6 +98,9 @@ theorem noise_intensity_resonance_safe_bounds_vanish : ∀ (M : ℕ),
           div_le_div_of_nonneg_right (by nlinarith) (by positivity)
         _ = _ := by field_simp
 
+/-- For two uniform residues modulo two, the squared character-sum norm has mean two and
+variance four, which differs from `L^2-L` at `L=2`. This exhibits the order-two correction
+relevant to [Cornwell2014]. -/
 theorem noise_order_two_variance_counterexample :
     let S := fun omega : Fin 2→ZMod 2 => ∑ i,ZMod.stdAddChar (omega i);
     ((2 : ℝ)^2)⁻¹*(∑ omega,‖S omega‖^2)=2 ∧
@@ -84,11 +116,14 @@ theorem noise_order_two_variance_counterexample :
   norm_num [Fin.sum_univ_two]
   exact ⟨h1,h2⟩
 
+/-- Expectation under the specified uniform tuple distribution equals the uniform weight times
+the sum over all tuples. -/
 theorem noise_expect_uniform (N L : ℕ) [NeZero N] (p : FinDist (Fin L→ZMod N))
     (hp : ∀ omega,p.prob omega=((N : ℝ)^L)⁻¹) (f : (Fin L→ZMod N)→ℝ) :
     p.expect f=((N : ℝ)^L)⁻¹*∑ omega,f omega := by
   simp only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect,hp,← Finset.mul_sum]
 
+/-- For a natural length `L`, the real number `L^2-L` is nonnegative. -/
 theorem noise_length_square_sub_nonneg (L : ℕ) : 0 ≤ (L : ℝ)^2-L := by
   cases L with
   | zero => norm_num
@@ -96,6 +131,8 @@ theorem noise_length_square_sub_nonneg (L : ℕ) : 0 ≤ (L : ℝ)^2-L := by
     have h : (1 : ℝ) ≤ (L+1 : ℕ) := by exact_mod_cast (show 1 ≤ L+1 by omega)
     nlinarith
 
+/-- If `‖c‖ ≤ M` and `0 ≤ delta ≤ 1`, the shifted resonance variance expression is at most
+`2*(L^2-L)+4*M^2*L`. -/
 theorem noise_shift_variance_upper (L M : ℕ) (c : ℂ) (hc : ‖c‖ ≤ M) (delta : ℝ)
     (hd0 : 0 ≤ delta) (hd1 : delta ≤ 1) :
     ((L : ℝ)^2-L)+delta*((L : ℝ)^2-L)+2*(L : ℝ)*‖c‖^2+
@@ -115,6 +152,10 @@ theorem noise_shift_variance_upper (L M : ℕ) (c : ℂ) (hc : ‖c‖ ≤ M) (d
   have hh2 := mul_le_mul_of_nonneg_left hrD (show 0 ≤ 2*(L : ℝ) by positivity)
   nlinarith
 
+/-- For a nonzero character frequency and uniform noise tuples, compute the normalized intensity
+mean, bound its variance and the deviation probability of a fresh `K`-sample average, and
+show every intensity lies in `[0,1]`. The variance bound includes the resonance contribution
+relevant to [Cornwell2014]. -/
 theorem noise_intensity_actual_fresh_mean_concentration :
     ∀ (N L M K : ℕ) [NeZero N] (y : ZMod N) (c : ℂ)
       (p : FinDist (Fin L→ZMod N)) (eps : ℝ),
@@ -173,6 +214,9 @@ theorem noise_intensity_actual_fresh_mean_concentration :
     refine ⟨by positivity,(div_le_one (pow_pos hTp 2)).mpr ?_⟩
     exact pow_le_pow_left₀ (norm_nonneg _) hnorm 2
 
+/-- For modulus three, two noise terms, and unit signal, the intensity mean is `1/3`, its
+variance is at most `4/27`, and a fresh four-sample average has deviation probability at
+most `1/(27*eps^2)`. -/
 theorem noise_intensity_n3_actual_fresh_consumer (eps : ℝ) (heps : 0 < eps) :
     let p := noiseTupleDist 3 2;
     let F := fun omega : Fin 2→ZMod 3 => ‖(1 : ℂ)+∑ i,ZMod.stdAddChar (omega i)‖^2/9;

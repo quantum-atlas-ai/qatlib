@@ -9,6 +9,29 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.LinearCombination
 import Qatlib.Concepts.HspRecovery.CfOrder.FiniteOrderRecovery.ConvergentBridge
 
+/-!
+# Structural facts for finite continued fractions
+
+Proves positivity, ordering, and endpoint formulas for the continued fraction denominator list
+`cfDenoms`. For exact sampling peaks `j = s * M` with `Q = r * M`, the module characterizes
+occurrence of the order and counts the successful peak indices.
+
+The integer discrepancy `pairD` supports quantitative bounds on convergents and an obstruction
+for moduli that are powers of two. These results analyze continued fraction postprocessing in
+order finding [Shor1997].
+
+## Main statements
+
+* `cfDenoms_pairwise`: proves strict increase of the filtered denominator list.
+* `d1_peak_iff`: characterizes order membership by coprimality.
+* `two_c_D1`: counts order-containing peaks by the totient.
+* `two_b_corollary`: excludes specified orders from all denominator candidates.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option autoImplicit false
 
 set_option autoImplicit false
@@ -17,6 +40,8 @@ namespace Qatlib.Concepts.HspRecovery.CfOrder.FiniteOrderRecovery
 
 open Finset
 
+/-- Strict increase of the second coordinates of a pair list implies strict increase of the list
+obtained by mapping `Prod.snd`. -/
 theorem pairwise_map_snd : ∀ (L : List (ℕ × ℕ)),
     L.Pairwise (fun x y => x.2 < y.2) → (L.map Prod.snd).Pairwise (· < ·) := by
   intro L
@@ -30,6 +55,8 @@ theorem pairwise_map_snd : ∀ (L : List (ℕ × ℕ)),
     obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hy'
     exact hhead y hy
 
+/-- In a nonempty list with strictly increasing second coordinates, every second coordinate is
+at most that of the last pair. -/
 theorem pairwise_le_last : ∀ (L : List (ℕ × ℕ)) (hne : L ≠ []),
     L.Pairwise (fun x y => x.2 < y.2) →
     ∀ x ∈ L, x.2 ≤ (L.getLast hne).2 := by
@@ -58,6 +85,8 @@ theorem pairwise_le_last : ∀ (L : List (ℕ × ℕ)) (hne : L ≠ []),
       · rw [hlast]
         exact ih (List.cons_ne_nil _ _) htail x hx
 
+/-- If the initial denominator is smaller than the numerator, every generated partial quotient
+is at least one. -/
 theorem cfPartialsAux_tail_pos : ∀ (fuel num den : ℕ), den < num →
     ∀ a ∈ cfPartialsAux fuel num den, 1 ≤ a := by
   intro fuel
@@ -73,12 +102,15 @@ theorem cfPartialsAux_tail_pos : ∀ (fuel num den : ℕ), den < num →
         exact (Nat.one_le_div_iff (Nat.succ_pos d)).mpr (by omega)
       · exact ih (d + 1) (num % (d + 1)) (Nat.mod_lt _ (Nat.succ_pos d)) a htail
 
+/-- Positive fuel and a positive denominator produce a nonempty partial quotient list. -/
 theorem cfPartialsAux_ne_nil {fuel num den : ℕ} (hd : 0 < den) (hf : 0 < fuel) :
     cfPartialsAux fuel num den ≠ [] := by
   match fuel, den, hf, hd with
   | (k + 1), (d + 1), _, _ => intro h; simp [cfPartialsAux] at h
   | 0, _, hf0, _ => omega
 
+/-- Positive partial quotients and positive initial denominators give strictly increasing
+convergent denominators, all larger than the second initial denominator. -/
 theorem convPairs_warm : ∀ (as : List ℕ), (∀ a ∈ as, 1 ≤ a) →
     ∀ (p2 p1 : ℕ × ℕ), 1 ≤ p2.2 → 1 ≤ p1.2 →
     (convPairs as p2 p1).Pairwise (fun x y => x.2 < y.2)
@@ -109,6 +141,9 @@ theorem convPairs_warm : ∀ (as : List ℕ), (∀ a ∈ as, 1 ≤ a) →
         omega
       omega
 
+/-- With positive denominator and fuel at least `den + 1`, the last convergent pair is the
+linear combination of the initial pairs with coefficients `num / gcd num den` and `den / gcd
+num den`. -/
 theorem lastConv_linear : ∀ (den : ℕ), ∀ (num fuel : ℕ), 0 < den → den + 1 ≤ fuel →
     ∀ p2 p1 : ℕ × ℕ,
     (convPairs (cfPartialsAux fuel num den) p2 p1).getLast? =
@@ -180,6 +215,8 @@ theorem lastConv_linear : ∀ (den : ℕ), ∀ (num fuel : ℕ), 0 < den → den
       · rw [hkey]; ring
       · rw [hkey]; ring
 
+/-- If second coordinates increase strictly and `getLast?` returns `P`, every second coordinate
+is at most `P.2`. -/
 theorem le_last_opt : ∀ (L : List (ℕ × ℕ)) (P : ℕ × ℕ),
     L.Pairwise (fun x y => x.2 < y.2) → L.getLast? = some P → ∀ x ∈ L, x.2 ≤ P.2 := by
   intro L
@@ -203,6 +240,8 @@ theorem le_last_opt : ∀ (L : List (ℕ × ℕ)) (P : ℕ × ℕ),
         omega
       · exact ih P (List.pairwise_cons.mp hw).2 hL x hx
 
+/-- For `0 < j < Q`, the convergent list begins with `(0, 1)` and `(1, a₁)` for positive `a₁`,
+followed by a tail with strictly increasing denominators greater than `a₁`. -/
 theorem cf_structure (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
     ∃ (a₁ : ℕ) (W : List (ℕ × ℕ)), 1 ≤ a₁
       ∧ convPairs (cfPartials j Q) (0, 1) (1, 0) = (0, 1) :: (1, a₁) :: W
@@ -227,6 +266,7 @@ theorem cf_structure (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
   simp only [convPairs]
   simp
 
+/-- The filtered continued fraction denominator list for zero numerator is empty. -/
 theorem cfDenoms_zero (Q : ℕ) : cfDenoms 0 Q = [] := by
   cases Q with
   | zero => rfl
@@ -234,11 +274,13 @@ theorem cfDenoms_zero (Q : ℕ) : cfDenoms 0 Q = [] := by
     simp [cfDenoms, cfPartials, cfPartialsAux, convPairs,
       Nat.div_eq_of_lt (Nat.succ_pos q), Nat.mod_eq_of_lt (Nat.succ_pos q)]
 
+/-- Every member of `cfDenoms j Q` is positive. -/
 theorem cfDenoms_pos (j Q : ℕ) : ∀ d ∈ cfDenoms j Q, 0 < d := by
   intro d hd
   have h2 : 2 ≤ d := by simpa using (List.mem_filter.mp hd).2
   omega
 
+/-- For `j < Q`, the filtered continued fraction denominator list is strictly increasing. -/
 theorem cfDenoms_pairwise (j Q : ℕ) (hj : j < Q) : (cfDenoms j Q).Pairwise (· < ·) := by
   rcases Nat.eq_zero_or_pos j with rfl | hj0
   · rw [cfDenoms_zero Q]; exact List.Pairwise.nil
@@ -267,6 +309,8 @@ theorem cfDenoms_pairwise (j Q : ℕ) (hj : j < Q) : (cfDenoms j Q).Pairwise (·
       obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hd
       exact hWlower y hy
 
+/-- For `0 < j < Q`, the last convergent pair is the reduced fraction `(j / gcd j Q, Q / gcd j
+Q)`. -/
 theorem cfLast_pair (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
     (convPairs (cfPartials j Q) (0, 1) (1, 0)).getLast?
       = some (j / Nat.gcd j Q, Q / Nat.gcd j Q) := by
@@ -276,6 +320,7 @@ theorem cfLast_pair (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
   rw [hlin]
   simp
 
+/-- For `0 < j < Q`, the reduced denominator `Q / gcd j Q` belongs to `cfDenoms j Q`. -/
 theorem cfDenoms_last_mem (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
     Q / Nat.gcd j Q ∈ cfDenoms j Q := by
   obtain ⟨ys, hys⟩ := List.getLast?_eq_some_iff.mp (cfLast_pair j Q hj0 hj)
@@ -298,6 +343,7 @@ theorem cfDenoms_last_mem (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
     omega
   exact List.mem_filter.mpr ⟨hdens, by simpa using h2⟩
 
+/-- Every filtered convergent denominator for `0 < j < Q` is at most `Q / gcd j Q`. -/
 theorem cfDenoms_le_last (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
     ∀ d ∈ cfDenoms j Q, d ≤ Q / Nat.gcd j Q := by
   intro d hd
@@ -341,11 +387,15 @@ theorem cfDenoms_le_last (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q) :
         have hyle : y.2 ≤ Q / Nat.gcd j Q := hmain y hy
         omega
 
+/-- For `j < Q`, searching the filtered convergent denominators returns `orderOf u` exactly when
+that order occurs in the list. -/
 theorem d1Find_cfDenoms {G : Type*} [Group G] [Fintype G] [DecidableEq G] (u : G)
     {j Q : ℕ} (hj : j < Q) :
     d1Find u (cfDenoms j Q) = some (orderOf u) ↔ orderOf u ∈ cfDenoms j Q :=
   d1Find_eq_orderOf (cfDenoms_pos j Q) (cfDenoms_pairwise j Q hj)
 
+/-- At an exact peak `j = s * M` with positive `Q = r * M` and `r ≥ 2`, the order `r` occurs
+among the denominators exactly when `s` and `r` are coprime. -/
 theorem d1_peak_iff (r M Q : ℕ) (hr : 2 ≤ r) (hQM : r * M = Q) (hQ : 0 < Q)
     (s : ℕ) (hs : s < r) :
     (r ∈ cfDenoms (s * M) Q) ↔ Nat.Coprime s r := by
@@ -397,6 +447,8 @@ theorem d1_peak_iff (r M Q : ℕ) (hr : 2 ≤ r) (hQM : r * M = Q) (hQ : 0 < Q)
       rw [← hQg2]
       exact cfDenoms_last_mem ((s + 1) * M) Q hj0 hj
 
+/-- For positive `Q = r * M` and `r ≥ 2`, exactly `Nat.totient r` peak indices below `r` have
+`r` among their convergent denominators. -/
 theorem two_c_D1 (r M Q : ℕ) (hr : 2 ≤ r) (hQM : r * M = Q) (hQ : 0 < Q) :
     ((Finset.range r).filter (fun s => r ∈ cfDenoms (s * M) Q)).card = Nat.totient r := by
   have hf : (Finset.range r).filter (fun s => r ∈ cfDenoms (s * M) Q)
@@ -411,6 +463,8 @@ theorem two_c_D1 (r M Q : ℕ) (hr : 2 ≤ r) (hQM : r * M = Q) (hQ : 0 < Q) :
   rw [hf2]
   rfl
 
+/-- For positive `Q = r * M`, exactly `r - 1` peak indices below `r` have a convergent
+denominator dividing `r`. -/
 theorem two_c_D2b (r M Q : ℕ) (hQM : r * M = Q) (hQ : 0 < Q) :
     ((Finset.range r).filter (fun s => ∃ d ∈ cfDenoms (s * M) Q, d ∣ r)).card = r - 1 := by
   have hM0 : 0 < M := by
@@ -444,8 +498,10 @@ theorem two_c_D2b (r M Q : ℕ) (hQM : r * M = Q) (hQ : 0 < Q) :
   rw [hIco]
   simp
 
+/-- The integer discrepancy `P.2 * j - P.1 * Q` of a numerator-denominator pair. -/
 def pairD (j Q : ℕ) (P : ℕ × ℕ) : ℤ := (P.2 : ℤ) * j - (P.1 : ℤ) * Q
 
+/-- The discrepancy respects the linear recurrence used to form convergent pairs. -/
 theorem pairD_linear (j Q a : ℕ) (p2 p1 : ℕ × ℕ) :
     pairD j Q (a * p1.1 + p2.1, a * p1.2 + p2.2)
       = a * pairD j Q p1 + pairD j Q p2 := by
@@ -453,12 +509,16 @@ theorem pairD_linear (j Q a : ℕ) (p2 p1 : ℕ × ℕ) :
   push_cast
   ring
 
+/-- Under the signed Euclidean discrepancy identities for the initial pairs, the next
+discrepancy is `ε * (num - a * den)`. -/
 theorem pairD_head (j Q num den a : ℕ) (p2 p1 : ℕ × ℕ) (ε : ℤ)
     (hd2 : pairD j Q p2 = ε * num) (hd1 : pairD j Q p1 = -ε * den) :
     pairD j Q (a * p1.1 + p2.1, a * p1.2 + p2.2) = ε * ((num : ℤ) - (a : ℤ) * den) := by
   rw [pairD_linear, hd2, hd1]
   ring
 
+/-- Under the signed Euclidean stage invariants and sufficient fuel, every generated pair
+satisfies `P.2 * |pairD j Q P| < Q`. -/
 theorem stage_bound (j Q : ℕ) : ∀ (den : ℕ), ∀ (num fuel : ℕ) (p2 p1 : ℕ × ℕ) (ε : ℤ),
     0 < den → den + 1 ≤ fuel → 0 < num → 0 < Q → (ε = 1 ∨ ε = -1) →
     pairD j Q p2 = ε * num → pairD j Q p1 = -ε * den →
@@ -580,6 +640,7 @@ theorem stage_bound (j Q : ℕ) : ∀ (den : ℕ), ∀ (num fuel : ℕ) (p2 p1 :
           exact hheadbound
       · exact hIH P hPtail
 
+/-- For `0 < j < Q`, every convergent pair satisfies `P.2 * |pairD j Q P| < Q`. -/
 theorem conv_q_bound (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q)
     (P : ℕ × ℕ) (hP : P ∈ convPairs (cfPartials j Q) (0, 1) (1, 0)) :
     P.2 * (pairD j Q P).natAbs < Q := by
@@ -587,6 +648,8 @@ theorem conv_q_bound (j Q : ℕ) (hj0 : 0 < j) (hj : j < Q)
   exact stage_bound j Q Q j (Q + 1) (0, 1) (1, 0) 1 hQ (Nat.le_refl _) hj0 hQ (Or.inl rfl)
     (by simp [pairD]) (by simp [pairD]) (by omega) P hP
 
+/-- For `Q = 2 ^ n`, a convergent with nonzero discrepancy and denominator `2 ^ t * m` for odd
+`m` satisfies `4 ^ t * m < Q`. -/
 theorem two_b (n j Q t m : ℕ) (hQ2 : Q = 2 ^ n) (hm : ¬2 ∣ m)
     (hj0 : 0 < j) (hj : j < Q)
     (P : ℕ × ℕ) (hP : P ∈ convPairs (cfPartials j Q) (0, 1) (1, 0))
@@ -643,6 +706,7 @@ theorem two_b (n j Q t m : ℕ) (hQ2 : Q = 2 ^ n) (hm : ¬2 ∣ m)
     exact Nat.mul_le_mul_right _ hge
   exact lt_of_le_of_lt hfin1 hb
 
+/-- Appending a singleton to a list makes its element the result of `getLast?`. -/
 theorem getLast?_append_singleton {α : Type*} (a : α) : ∀ (ys : List α),
     (ys ++ [a]).getLast? = some a := by
   intro ys
@@ -656,6 +720,8 @@ theorem getLast?_append_singleton {α : Type*} (a : α) : ∀ (ys : List α),
       rw [List.getLast?_cons_cons]
       exact ih2
 
+/-- Under the signed Euclidean stage invariants and sufficient fuel, a generated pair with zero
+discrepancy is the last pair in the list. -/
 theorem stage_d0_last (j Q : ℕ) : ∀ (den : ℕ), ∀ (num fuel : ℕ) (p2 p1 : ℕ × ℕ) (ε : ℤ),
     0 < den → den + 1 ≤ fuel → 0 < num → 0 < Q → (ε = 1 ∨ ε = -1) →
     pairD j Q p2 = ε * num → pairD j Q p1 = -ε * den →
@@ -722,6 +788,7 @@ theorem stage_d0_last (j Q : ℕ) : ∀ (den : ℕ), ∀ (num fuel : ℕ) (p2 p1
       · obtain ⟨ys, hys⟩ := hIH P hPtail hdP0
         exact ⟨_, by rw [List.cons_append, hys]⟩
 
+/-- An odd natural number dividing a power of two equals one. -/
 theorem odd_dvd_two_pow : ∀ (k w : ℕ), ¬2 ∣ w → w ∣ 2 ^ k → w = 1 := by
   intro k
   induction k with
@@ -733,6 +800,8 @@ theorem odd_dvd_two_pow : ∀ (k w : ℕ), ¬2 ∣ w → w ∣ 2 ^ k → w = 1 :
     have h2 : w ∣ 2 ^ k * 2 := by rw [← Nat.pow_succ]; exact hdvd
     exact ih w hw (hc.dvd_of_dvd_mul_right h2)
 
+/-- If `Q = 2 ^ n`, `r = 2 ^ u * w` with odd `w ≥ 3`, and `Q ≤ 4 ^ u * w`, then `r` is absent
+from `cfDenoms j Q` for `0 < j < Q`. -/
 theorem two_b_corollary (n u w j Q r : ℕ) (hQ2 : Q = 2 ^ n) (hr : r = 2 ^ u * w)
     (hw : ¬2 ∣ w) (hw3 : 3 ≤ w) (h4 : Q ≤ 4 ^ u * w) (hj0 : 0 < j) (hj : j < Q) :
     r ∉ cfDenoms j Q := by

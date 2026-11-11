@@ -9,6 +9,31 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.SetTheory.Cardinal.Finite
 import Mathlib.Tactic
 
+/-!
+# Coset States and Hiding Families
+
+This module formalizes finite-group amplitude functions and the hiding-family condition used in
+[IvanyosSanselmeSantha2007a]. The definitions `inner`, `rightAct`, and `cosetState` describe the
+complex pairing, right translations, and constant amplitudes on a left coset; `IsHidingSet`
+requires normalization, equality on subgroup cosets, and orthogonality between distinct cosets.
+
+The construction `hidingSet_uniform` obtains such a family from a normal subgroup and a group
+automorphism that preserves subgroup membership.
+
+## Main statements
+
+* `inner_rightAct` proves that right translation preserves the pairing.
+* `cosetState_inner_eq_zero` proves orthogonality for distinct subgroup cosets.
+* `inner_cosetState_self_sqrt` normalizes the uniform coset amplitude by the square root of the
+  subgroup cardinality.
+* `hidingSet_of_cosetState` and `hidingSet_uniform` construct hiding families from normalized
+  coset states.
+
+## References
+
+* [Ivanyos et al., 2007][IvanyosSanselmeSantha2007a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,26 +43,39 @@ open scoped BigOperators
 
 variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
 
+/-- The complex pairing of two amplitude functions, summing the first function times the complex
+conjugate of the second over the finite group. -/
 def inner (ψ φ : G → ℂ) : ℂ := ∑ x, ψ x * star (φ x)
 
+/-- Right translation of an amplitude function by `g`, evaluated at `x` as the original function
+at `x * g⁻¹`. -/
 def rightAct (g : G) (ψ : G → ℂ) : G → ℂ := fun x => ψ (x * g⁻¹)
 
+/-- Applying the same right translation to both amplitude functions preserves their complex
+pairing. -/
 theorem inner_rightAct (g : G) (ψ φ : G → ℂ) :
     inner (rightAct g ψ) (rightAct g φ) = inner ψ φ := by
   unfold inner rightAct
   exact Equiv.sum_comp (Equiv.mulRight g⁻¹) (fun y => ψ y * star (φ y))
 
+/-- Translation by `g * h` equals translation by `g` followed by translation by `h`. -/
 theorem rightAct_mul (g h : G) (ψ : G → ℂ) :
     rightAct (g * h) ψ = rightAct h (rightAct g ψ) := by
   funext x
   simp [rightAct, mul_inv_rev, mul_assoc]
 
+/-- The amplitude function with constant value `c` on the left coset `a * K` and zero outside
+that coset. This supplies a constant-amplitude coset model for the hiding-family framework
+in [IvanyosSanselmeSantha2007a]. -/
 def cosetState (K : Subgroup G) (a : G) (c : ℂ) : G → ℂ := by
   classical
   exact fun x => if ∃ k ∈ K, x = a * k then c else 0
 
+/-- The assertion that `x` can be written as `a * k` for some `k` in `K`. -/
 def inCoset (K : Subgroup G) (a : G) (x : G) : Prop := ∃ k ∈ K, x = a * k
 
+/-- Representatives whose relative element `a⁻¹ * b` lies in `K` define the same left-coset
+membership predicate. -/
 theorem inCoset_congr (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∈ K) :
     ∀ x, inCoset K a x ↔ inCoset K b x := by
   intro x
@@ -49,6 +87,8 @@ theorem inCoset_congr (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∈ K) :
     refine ⟨(a⁻¹ * b) * k, K.mul_mem h hk, ?_⟩
     group
 
+/-- Coset states with the same amplitude agree when their representatives differ by an element
+of `K`. -/
 theorem cosetState_congr (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∈ K) (c : ℂ) :
     cosetState K a c = cosetState K b c := by
   funext x
@@ -60,6 +100,8 @@ theorem cosetState_congr (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∈ K) (c : 
     simp only [cosetState]
     rw [if_neg hxa, if_neg hxb]
 
+/-- For a normal subgroup, right translation sends the coset state at `a` to the coset state at
+`a * g` with the same amplitude. -/
 theorem rightAct_cosetState (K : Subgroup G) [K.Normal] (a g : G) (c : ℂ) :
     rightAct g (cosetState K a c) = cosetState K (a * g) c := by
   funext x
@@ -82,17 +124,23 @@ theorem rightAct_cosetState (K : Subgroup G) [K.Normal] (a g : G) (c : ℂ) :
       · rw [hk_eq]; group
     rw [if_neg hx, if_neg hx']
 
+/-- The condition that a family of amplitude functions is normalized, equal on each left coset
+of `K`, and orthogonal for distinct left cosets. -/
 def IsHidingSet (K : Subgroup G) (Ψ : G → G → ℂ) : Prop :=
   (∀ g, inner (Ψ g) (Ψ g) = 1) ∧
   (∀ g₁ g₂, g₁⁻¹ * g₂ ∈ K → Ψ g₁ = Ψ g₂) ∧
   (∀ g₁ g₂, g₁⁻¹ * g₂ ∉ K → inner (Ψ g₁) (Ψ g₂) = 0)
 
+/-- Two amplitude functions have zero pairing if at every group element at least one of their
+values is zero. -/
 theorem inner_eq_zero_of_disjoint {ψ φ : G → ℂ}
     (h : ∀ x, ψ x = 0 ∨ φ x = 0) : inner ψ φ = 0 := by
   apply Finset.sum_eq_zero
   intro x _
   rcases h x with hx | hx <;> simp [hx]
 
+/-- Coset states on distinct left cosets of `K` are orthogonal. This provides the orthogonality
+ingredient for the hiding-family framework in [IvanyosSanselmeSantha2007a]. -/
 theorem cosetState_inner_eq_zero (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∉ K) (c : ℂ) :
     inner (cosetState K a c) (cosetState K b c) = 0 := by
   apply inner_eq_zero_of_disjoint
@@ -117,6 +165,9 @@ theorem cosetState_inner_eq_zero (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∉ 
     simp only [cosetState]
     rw [if_neg hxa]
 
+/-- Right translates of a normalized coset state, indexed through a subgroup-preserving group
+automorphism, form a hiding family for a normal subgroup. This is an algebraic construction
+within the hiding-family framework in [IvanyosSanselmeSantha2007a]. -/
 theorem hidingSet_of_cosetState (K : Subgroup G) [K.Normal] (φ : G ≃* G)
     (hφ : ∀ x, x ∈ K ↔ φ x ∈ K) (a : G) (c : ℂ)
     (hunit : inner (cosetState K a c) (cosetState K a c) = 1) :
@@ -142,6 +193,9 @@ theorem hidingSet_of_cosetState (K : Subgroup G) [K.Normal] (φ : G ≃* G)
     have hmem : φ (g₁⁻¹ * g₂) ∈ K := by rw [← heq]; exact hconj
     exact (hφ _).mpr hmem
 
+/-- The equivalence from `K` to the left coset at `a`, sending each subgroup element `k` to `a *
+k`. This provides the coset-cardinality input for normalizing coset states in
+[IvanyosSanselmeSantha2007a]. -/
 noncomputable def cosetEquiv (K : Subgroup G) (a : G) :
     K ≃ {x : G // ∃ k ∈ K, x = a * k} := by
   classical
@@ -165,10 +219,13 @@ noncomputable def cosetEquiv (K : Subgroup G) (a : G) :
     show a * (a⁻¹ * (a * k)) = a * k
     group
 
+/-- A left coset has the same cardinality as its subgroup. This is the cardinality identity used
+to normalize coset states in [IvanyosSanselmeSantha2007a]. -/
 theorem card_coset (K : Subgroup G) (a : G) :
     Nat.card {x : G // ∃ k ∈ K, x = a * k} = Nat.card K :=
   (Nat.card_congr (cosetEquiv K a)).symm
 
+/-- The pairing of a coset state with itself equals the subgroup cardinality times `c * star c`. -/
 theorem inner_cosetState_self (K : Subgroup G) (a : G) (c : ℂ) :
     inner (cosetState K a c) (cosetState K a c) = (Nat.card K : ℂ) * (c * star c) := by
   classical
@@ -187,6 +244,9 @@ theorem inner_cosetState_self (K : Subgroup G) (a : G) (c : ℂ) :
     exact card_coset K a
   rw [hcard]
 
+/-- The coset state with amplitude equal to the inverse square root of the subgroup cardinality
+has pairing one with itself. This provides the normalization ingredient for the
+hiding-family framework in [IvanyosSanselmeSantha2007a]. -/
 theorem inner_cosetState_self_sqrt (K : Subgroup G) (a : G) :
     inner (cosetState K a (((Real.sqrt (Nat.card K) : ℂ))⁻¹))
       (cosetState K a (((Real.sqrt (Nat.card K) : ℂ))⁻¹)) = 1 := by
@@ -208,12 +268,18 @@ theorem inner_cosetState_self_sqrt (K : Subgroup G) (a : G) :
     rw [← mul_inv, hsq]
   rw [hc, hcc, mul_inv_cancel₀ hcard]
 
+/-- Uniform normalized coset states translated through a subgroup-preserving automorphism form a
+hiding family for a normal subgroup. This is a normalized coset-family construction within
+the hiding framework in [IvanyosSanselmeSantha2007a]. -/
 theorem hidingSet_uniform (K : Subgroup G) [K.Normal] (φ : G ≃* G)
     (hφ : ∀ x, x ∈ K ↔ φ x ∈ K) (a : G) :
     IsHidingSet K
       (fun g => rightAct (φ g) (cosetState K a (((Real.sqrt (Nat.card K) : ℂ))⁻¹))) :=
   hidingSet_of_cosetState K φ hφ a _ (inner_cosetState_self_sqrt K a)
 
+/-- Right translation by an element of a normal subgroup fixes each of its constant-amplitude
+coset states. This provides subgroup invariance for the coset-state framework in
+[IvanyosSanselmeSantha2007a]. -/
 theorem rightAct_cosetState_of_mem (K : Subgroup G) [K.Normal] {g : G} (hg : g ∈ K)
     (a : G) (c : ℂ) : rightAct g (cosetState K a c) = cosetState K a c := by
   rw [rightAct_cosetState]

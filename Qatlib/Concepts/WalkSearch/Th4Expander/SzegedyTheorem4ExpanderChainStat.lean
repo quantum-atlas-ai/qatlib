@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
 import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainDefs
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Regular-graph chain contract
+
+`SzegedyTheorem4ExpanderChain` specifies the transition and preparation properties of
+`expanderStep`. It assumes positive graph size and degree, symmetric adjacency, and constant
+degree, and requires a symmetric transition matrix together with the precise support condition
+for lifted basis states.
+
+This contract supplies the regular-graph input to the Szegedy walk construction [Szegedy2004].
+
+## Main statements
+
+* `SzegedyTheorem4ExpanderChain`: normalization, symmetry, and frame support requirements.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -16,6 +36,9 @@ open Matrix
 
 namespace Qatlib.Concepts.WalkSearch.Th4Expander
 
+/-- The contract that a nonempty symmetric regular graph of positive degree defines a symmetric
+transition kernel and that its Szegedy frame is supported on the corresponding directed
+edges. -/
 def SzegedyTheorem4ExpanderChain : Prop :=
   ∀ (n d : ℕ) (adj : Fin n → Fin n → Bool),
     0 < n → 0 < d →

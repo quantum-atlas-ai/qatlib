@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchPrimitive.ActualTrial
+
+/-!
+# Preserving output factors under finite-coin sampling
+
+`coin_factor` shows that a common event-probability factor across attempted laws is preserved by
+fuel-limited finite-coin sampling. Applying this to amplification trials gives the marked-output
+factorization for the native sampled experiment.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `coin_factor`: If every attempted law has event `P` equal to event `Q` times a common factor
+  `c`, the corresponding successful-output events retain that factor after finite-coin sampling.
+* `sampled_biased_law`: For marked `i` and marked mass `sin θ` squared with `0 < θ < π/2`, the
+  sampled probability of `i` equals the total marked-candidate probability times its relative
+  prepared Born weight.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +42,8 @@ open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchPrimitive
 
+/-- If every attempted law has event `P` equal to event `Q` times a common factor `c`, the
+corresponding successful-output events retain that factor after finite-coin sampling. -/
 theorem coin_factor {A : Type} (b m fuel : ℕ) (F : Fin m→CostedLaw A)
     (P Q : A→Prop) (c : ℝ≥0∞)
     (h : ∀j,event (F j) (fun y=>P y.1)=event (F j) (fun y=>Q y.1)*c) :
@@ -29,6 +54,9 @@ theorem coin_factor {A : Type} (b m fuel : ℕ) (F : Fin m→CostedLaw A)
   intro j _
   simp only [h j,mul_assoc]
 
+/-- For marked `i` and marked mass `sin θ` squared with `0 < θ < π/2`, the sampled probability
+of `i` equals the total marked-candidate probability times its relative prepared Born
+weight. -/
 theorem sampled_biased_law {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (θ : ℝ) (hθ0 : 0<θ) (hθ1 : θ<Real.pi/2)

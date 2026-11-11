@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.PureStateMath.MixedState
+
+/-!
+# Single-qubit Pauli shadow estimator
+
+This module defines the Pauli measurement projectors and the estimator `PauliShadow`, equal to
+three times the observed projector minus the identity. It proves the Bloch reconstruction
+formula and shows that averaging this estimator over uniformly chosen Pauli axes and
+Born-distributed outcomes recovers the input density matrix [HuangKuengPreskill2020].
+
+## Main statements
+
+* `pauliProjector_sum`: the two outcome projectors sum to the identity.
+* `bloch_reconstruction`: a qubit density operator is reconstructed from its three Pauli
+  expectations.
+* `pauliShadow_unbiased`: the Pauli shadow estimator is unbiased.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
@@ -14,58 +35,77 @@ open scoped ComplexOrder
 
 set_option maxHeartbeats 4000000
 
+/-- The Pauli X matrix, which exchanges the two computational basis vectors. -/
 def pauliX : Matrix (Fin 2) (Fin 2) ℂ := !![0, 1; 1, 0]
 
+/-- The Pauli Y matrix with off-diagonal entries `-Complex.I` and `Complex.I`. -/
 def pauliY : Matrix (Fin 2) (Fin 2) ℂ := !![0, -Complex.I; Complex.I, 0]
 
+/-- The Pauli Z matrix with diagonal entries one and minus one. -/
 def pauliZ : Matrix (Fin 2) (Fin 2) ℂ := !![1, 0; 0, -1]
 
+/-- The Pauli matrix indexed by an axis in `Fin 3`, in X, Y, Z order. -/
 def pauliMatrix (a : Fin 3) : Matrix (Fin 2) (Fin 2) ℂ :=
   if a = 0 then pauliX else if a = 1 then pauliY else pauliZ
 
+/-- Axis zero selects the Pauli X matrix. -/
 @[simp] theorem pauliMatrix_zero : pauliMatrix 0 = pauliX := rfl
 
+/-- Axis one selects the Pauli Y matrix. -/
 @[simp] theorem pauliMatrix_one : pauliMatrix 1 = pauliY := rfl
 
+/-- Axis two selects the Pauli Z matrix. -/
 @[simp] theorem pauliMatrix_two : pauliMatrix 2 = pauliZ := rfl
 
+/-- The Pauli-axis outcome projector, using eigenvalue one for `true` and minus one for `false`. -/
 noncomputable def PauliProjector (a : Fin 3) (b : Bool) : Matrix (Fin 2) (Fin 2) ℂ :=
   (1 / 2 : ℂ) • (1 + (if b then 1 else -1 : ℂ) • pauliMatrix a)
 
+/-- The single-qubit Pauli shadow estimator `3 • PauliProjector a b - 1`
+[HuangKuengPreskill2020]. -/
 noncomputable def PauliShadow (b : Bool) (a : Fin 3) : Matrix (Fin 2) (Fin 2) ℂ :=
   3 • PauliProjector a b - 1
 
+/-- The real part of the trace of the selected Pauli matrix multiplied by `ρ`. -/
 noncomputable def pauliExpectation (a : Fin 3) (ρ : Matrix (Fin 2) (Fin 2) ℂ) : ℝ :=
   (Matrix.trace (pauliMatrix a * ρ)).re
 
+/-- A finite sum over `Bool` is the sum of its values at `false` and `true`. -/
 theorem sum_bool {α : Type*} [AddCommMonoid α] (f : Bool → α) :
     ∑ b : Bool, f b = f false + f true := by
   rw [show (Finset.univ : Finset Bool) = {false, true} from by decide]
   exact Finset.sum_pair (by decide)
 
+/-- The two outcome projectors for a fixed Pauli axis sum to the identity. -/
 theorem pauliProjector_sum (a : Fin 3) : ∑ b : Bool, PauliProjector a b = 1 := by
   rw [sum_bool]
   simp only [PauliProjector, eq_self_iff_true, if_true, Bool.false_eq_true, if_false]
   module
 
+/-- The trace of `pauliX * ρ` is the sum of the two off-diagonal entries of `ρ`. -/
 theorem trace_pauliX_mul (ρ : Matrix (Fin 2) (Fin 2) ℂ) :
     Matrix.trace (pauliX * ρ) = ρ 0 1 + ρ 1 0 := by
   rw [Matrix.trace_fin_two]
   simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
   ring
 
+/-- The trace of `pauliY * ρ` is `Complex.I` times the upper off-diagonal entry minus
+`Complex.I` times the lower one. -/
 theorem trace_pauliY_mul (ρ : Matrix (Fin 2) (Fin 2) ℂ) :
     Matrix.trace (pauliY * ρ) = Complex.I * ρ 0 1 - Complex.I * ρ 1 0 := by
   rw [Matrix.trace_fin_two]
   simp [pauliY, Matrix.mul_apply, Fin.sum_univ_two]
   ring
 
+/-- The trace of `pauliZ * ρ` is the difference of the diagonal entries of `ρ`. -/
 theorem trace_pauliZ_mul (ρ : Matrix (Fin 2) (Fin 2) ℂ) :
     Matrix.trace (pauliZ * ρ) = ρ 0 0 - ρ 1 1 := by
   rw [Matrix.trace_fin_two]
   simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
   ring
 
+/-- A qubit density operator equals one half of the sum of the identity and its Pauli expansion,
+whose coefficients are its real Pauli expectations. -/
 theorem bloch_reconstruction (ρ : Matrix (Fin 2) (Fin 2) ℂ) (hρ : IsDensityOperator ρ) :
     ρ = (1 / 2 : ℂ) • (1 + ∑ a : Fin 3, (pauliExpectation a ρ : ℂ) • pauliMatrix a) := by
   have hherm : ρ.IsHermitian := hρ.1.isHermitian
@@ -101,6 +141,8 @@ theorem bloch_reconstruction (ρ : Matrix (Fin 2) (Fin 2) ℂ) (hρ : IsDensityO
       Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im, Fin.isValue] <;>
     norm_num <;> linarith [htr, him00, him11]
 
+/-- For a trace-one matrix, the outcome-weighted shadow sum at a fixed axis is one half of the
+identity plus three halves of the corresponding Pauli expectation term. -/
 theorem pauliShadow_sum_axis (a : Fin 3) (ρ : Matrix (Fin 2) (Fin 2) ℂ)
     (hρtr : Matrix.trace ρ = 1) :
     ∑ b : Bool, ((Matrix.trace (PauliProjector a b * ρ)).re : ℂ) • PauliShadow b a
@@ -150,6 +192,8 @@ theorem pauliShadow_sum_axis (a : Fin 3) (ρ : Matrix (Fin 2) (Fin 2) ℂ)
   rw [hmod, hsum, hdiff, hpe]
   module
 
+/-- Averaging `PauliShadow` over the three Pauli axes and their Born outcome probabilities
+recovers the qubit density operator [HuangKuengPreskill2020]. -/
 theorem pauliShadow_unbiased (ρ : Matrix (Fin 2) (Fin 2) ℂ) (hρ : IsDensityOperator ρ) :
     (1 / 3 : ℂ) • ∑ a : Fin 3, ∑ b : Bool,
       ((Matrix.trace (PauliProjector a b * ρ)).re : ℂ) • PauliShadow b a = ρ := by

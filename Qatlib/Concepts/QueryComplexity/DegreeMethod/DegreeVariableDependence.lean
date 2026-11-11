@@ -11,6 +11,39 @@ import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
 import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.BooleanPolynomial
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+/-!
+# Polynomial degree and variable dependence
+
+This module bounds the number of relevant variables of a Boolean function in terms of its exact
+multilinear polynomial degree. It develops support bounds for nonzero multilinear polynomials,
+relates formal partial derivatives to coordinate flips, and proves Fourier inversion, Parseval's
+identity, and influence formulas on the uniform Boolean cube. The Fourier calculations include
+the identity used in [AticiServedio2007].
+
+Combining the support and total-influence estimates, `card_le_exactDegree_mul_two_pow` proves `n
+≤ d * 2 ^ (d - 1)` for functions depending on all `n` variables, where `d = exactDegree f`. The
+logarithmic consequences culminate in `exactMinimum_logb_lower_bound`, an explicit exact-query
+lower bound corresponding to [BealsEtAl2001].
+
+## Main statements
+
+* `pow_two_sub_le_card_support`: a nonzero multilinear polynomial of degree at most `d` is
+  nonzero at at least `2 ^ (n - d)` Boolean inputs.
+* `uniform_fourier_inversion`: expansion in the uniform Boolean characters.
+* `sum_sq_eq_mul_sum_uniformFourierCoeff_sq`: Parseval's identity with the unnormalized sum over
+  inputs.
+* `cubeTotalInf_le_exactDegree`: total influence of a Boolean indicator is at most its exact
+  degree.
+* `card_le_exactDegree_mul_two_pow`: a degree bound on the number of relevant variables.
+* `exactMinimum_logb_lower_bound`: a logarithmic lower bound on the exact query minimum.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+* [Atici and Servedio, 2007][AticiServedio2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +63,8 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
 
+/-- A real multilinear polynomial that evaluates to zero at every Boolean input is the zero
+polynomial. -/
 theorem multilinear_eq_zero_of_bool_eval_zero {n : ℕ} (P : MvPolynomial (Fin n) ℝ)
     (hP : ∀ i, P.degreeOf i ≤ 1)
     (he : ∀ x : Fin n → Bool, MvPolynomial.eval (booleanPoint x) P = 0) : P = 0 := by
@@ -47,6 +82,8 @@ theorem multilinear_eq_zero_of_bool_eval_zero {n : ℕ} (P : MvPolynomial (Fin n
     rw [← hy]
     exact he y
 
+/-- Evaluating a multilinear polynomial with its first coordinate set to `false` evaluates the
+constant coefficient of its `finSuccEquiv` expansion at the remaining Boolean coordinates. -/
 theorem bool_eval_cons_false {n : ℕ} (P : MvPolynomial (Fin (n + 1)) ℝ)
     (hP : ∀ i, P.degreeOf i ≤ 1) (y : Fin n → Bool) :
     MvPolynomial.eval (booleanPoint (Fin.cons false y)) P =
@@ -65,6 +102,8 @@ theorem bool_eval_cons_false {n : ℕ} (P : MvPolynomial (Fin (n + 1)) ℝ)
   rw [Polynomial.eval_eq_sum_range' hdegMap]
   simp [Finset.sum_range_succ]
 
+/-- Evaluating a multilinear polynomial with its first coordinate set to `true` gives the sum of
+the evaluations of the constant and linear coefficients of its `finSuccEquiv` expansion. -/
 theorem bool_eval_cons_true {n : ℕ} (P : MvPolynomial (Fin (n + 1)) ℝ)
     (hP : ∀ i, P.degreeOf i ≤ 1) (y : Fin n → Bool) :
     MvPolynomial.eval (booleanPoint (Fin.cons true y)) P =
@@ -84,6 +123,8 @@ theorem bool_eval_cons_true {n : ℕ} (P : MvPolynomial (Fin (n + 1)) ℝ)
   rw [Polynomial.eval_eq_sum_range' hdegMap]
   simp [Finset.sum_range_succ]
 
+/-- The equivalence splitting the nonzero support of a function on the Boolean cube into its
+slices with first coordinate `false` and `true`. -/
 noncomputable def supportSuccEquiv {n : ℕ} (f : (Fin (n + 1) → Bool) → ℝ) :
     {x : Fin (n + 1) → Bool // f x ≠ 0} ≃
       {y : Fin n → Bool // f (Fin.cons false y) ≠ 0} ⊕
@@ -120,12 +161,16 @@ noncomputable def supportSuccEquiv {n : ℕ} (f : (Fin (n + 1) → Bool) → ℝ
     | inl y => simp
     | inr y => simp
 
+/-- The number of Boolean inputs where `f` is nonzero is the sum of the corresponding counts in
+its two first-coordinate slices. -/
 theorem card_support_succ {n : ℕ} (f : (Fin (n + 1) → Bool) → ℝ) :
     Fintype.card {x : Fin (n + 1) → Bool // f x ≠ 0} =
       Fintype.card {y : Fin n → Bool // f (Fin.cons false y) ≠ 0} +
         Fintype.card {y : Fin n → Bool // f (Fin.cons true y) ≠ 0} := by
   rw [Fintype.card_congr (supportSuccEquiv f), Fintype.card_sum]
 
+/-- Maps a tail input with nonzero first-coordinate difference to a nonzero value of `f` in one
+of the two slices above that tail. -/
 noncomputable def derivativeSupportEmbedding {n : ℕ} (f : (Fin (n + 1) → Bool) → ℝ)
     (y : {y : Fin n → Bool // f (Fin.cons true y) - f (Fin.cons false y) ≠ 0}) :
     {x : Fin (n + 1) → Bool // f x ≠ 0} :=
@@ -137,6 +182,8 @@ noncomputable def derivativeSupportEmbedding {n : ℕ} (f : (Fin (n + 1) → Boo
   else
     ⟨Fin.cons false y.1, hy⟩
 
+/-- The map from the support of the first-coordinate difference to the nonzero support of `f` is
+injective. -/
 theorem derivativeSupportEmbedding_injective {n : ℕ} (f : (Fin (n + 1) → Bool) → ℝ) :
     Function.Injective (derivativeSupportEmbedding f) := by
   intro y z hyz
@@ -161,6 +208,9 @@ theorem derivativeSupportEmbedding_injective {n : ℕ} (f : (Fin (n + 1) → Boo
         congrArg Subtype.val hyz
       exact Fin.cons_right_injective (α := fun _ : Fin (n + 1) => Bool) false hcons
 
+/-- A nonzero function represented on the Boolean cube by a multilinear polynomial of total
+degree at most `d` is nonzero at at least `2 ^ (n - d)` inputs, with subtraction in the
+natural numbers. -/
 theorem pow_two_sub_le_card_support {n : ℕ} (f : (Fin n → Bool) → ℝ)
     (P : MvPolynomial (Fin n) ℝ) (d : ℕ) (hd : P.totalDegree ≤ d)
     (hm : ∀ i, P.degreeOf i ≤ 1)
@@ -251,6 +301,8 @@ theorem pow_two_sub_le_card_support {n : ℕ} (f : (Fin n → Bool) → ℝ)
         rw [hsub]
         exact hih.trans (Fintype.card_le_of_injective _ (derivativeSupportEmbedding_injective f))
 
+/-- The coefficient at exponent vector `m` in the partial derivative with respect to `i` is `m i
++ 1` times the coefficient of `P` at `m + Finsupp.single i 1`. -/
 theorem coeff_pderiv {n : ℕ} (m : Fin n →₀ ℕ) (i : Fin n) (P : MvPolynomial (Fin n) ℝ) :
     (MvPolynomial.pderiv i P).coeff m =
       (m i + 1 : ℕ) * P.coeff (m + Finsupp.single i 1) := by
@@ -274,6 +326,8 @@ theorem coeff_pderiv {n : ℕ} (m : Fin n →₀ ℕ) (i : Fin n) (P : MvPolynom
             exact (Finsupp.sub_add_single_one_cancel hsi).symm
           simp [hms]
 
+/-- Every exponent vector in the support of a partial derivative comes from a supported exponent
+vector of `P` by decreasing the differentiated coordinate by one. -/
 theorem mem_support_add_single_of_mem_pderiv {n : ℕ} {m : Fin n →₀ ℕ} {i : Fin n}
     {P : MvPolynomial (Fin n) ℝ} (hm : m ∈ (MvPolynomial.pderiv i P).support) :
     m + Finsupp.single i 1 ∈ P.support := by
@@ -283,6 +337,8 @@ theorem mem_support_add_single_of_mem_pderiv {n : ℕ} {m : Fin n →₀ ℕ} {i
   rw [hz, mul_zero] at hc
   exact hm hc
 
+/-- Taking a nonzero partial derivative lowers total degree by at least one: its total degree
+plus one is at most `P.totalDegree`. -/
 theorem totalDegree_pderiv_add_one_le {n : ℕ} (P : MvPolynomial (Fin n) ℝ) (i : Fin n)
     (h : MvPolynomial.pderiv i P ≠ 0) :
     (MvPolynomial.pderiv i P).totalDegree + 1 ≤ P.totalDegree := by
@@ -293,6 +349,8 @@ theorem totalDegree_pderiv_add_one_le {n : ℕ} (P : MvPolynomial (Fin n) ℝ) (
   have hp := MvPolynomial.le_totalDegree (mem_support_add_single_of_mem_pderiv hm)
   simpa [Finsupp.sum_add_index, add_comm] using! hp
 
+/-- Taking a partial derivative with respect to `i` does not increase the degree in any variable
+`j`. -/
 theorem degreeOf_pderiv_le {n : ℕ} (P : MvPolynomial (Fin n) ℝ) (i j : Fin n) :
     (MvPolynomial.pderiv i P).degreeOf j ≤ P.degreeOf j := by
   classical
@@ -303,6 +361,8 @@ theorem degreeOf_pderiv_le {n : ℕ} (P : MvPolynomial (Fin n) ℝ) (i j : Fin n
     _ ≤ _ := Finset.le_sup (f := fun m : Fin n →₀ ℕ => m j)
       (mem_support_add_single_of_mem_pderiv hm)
 
+/-- If `m i` is nonzero, the monomial product with exponent vector `m` factors as the product
+with exponent vector `m - Finsupp.single i 1` multiplied by `z i`. -/
 theorem prod_pow_eq_sub_single_mul {n : ℕ} (m : Fin n →₀ ℕ) (i : Fin n)
     (hmi : m i ≠ 0) (z : Fin n → ℝ) :
     m.prod (fun j e => z j ^ e) =
@@ -312,6 +372,9 @@ theorem prod_pow_eq_sub_single_mul {n : ℕ} (m : Fin n →₀ ℕ) (i : Fin n)
     (fun j e₁ e₂ => pow_add (z j) e₁ e₂), Finsupp.prod_single_index (by simp)]
   simp
 
+/-- For a monomial of degree at most one in coordinate `i`, its value at `x` minus its value
+after flipping `i` equals its partial derivative at `x`, multiplied by `1` when `x i` is
+true and by `-1` otherwise. -/
 theorem bool_eval_sub_flip_monomial {n : ℕ} (m : Fin n →₀ ℕ) (a : ℝ) (i : Fin n)
     (hmi : m i ≤ 1) (x : Fin n → Bool) :
     MvPolynomial.eval (booleanPoint x) (MvPolynomial.monomial m a) -
@@ -347,6 +410,9 @@ theorem bool_eval_sub_flip_monomial {n : ℕ} (m : Fin n →₀ ℕ) (a : ℝ) (
       prod_pow_eq_sub_single_mul m i hzero (booleanPoint (cubeFlip x i)), hB]
     cases hx : x i <;> simp [hx, hone, booleanPoint, cubeFlip]
 
+/-- For a multilinear polynomial, the difference between its Boolean evaluations at `x` and
+`cubeFlip x i` is its partial derivative at `x`, multiplied by `1` when `x i` is true and by
+`-1` otherwise. -/
 theorem bool_eval_sub_flip {n : ℕ} (P : MvPolynomial (Fin n) ℝ)
     (hP : ∀ i, P.degreeOf i ≤ 1) (x : Fin n → Bool) (i : Fin n) :
     MvPolynomial.eval (booleanPoint x) P - MvPolynomial.eval (booleanPoint (cubeFlip x i)) P =
@@ -359,6 +425,8 @@ theorem bool_eval_sub_flip {n : ℕ} (P : MvPolynomial (Fin n) ℝ)
   exact bool_eval_sub_flip_monomial m (P.coeff m) i
     (MvPolynomial.degreeOf_le_iff.mp (hP i) m hm) x
 
+/-- Under the uniform Boolean-cube weights, the influence of coordinate `i` is `2 ^ n` inverse
+times the sum of squared coordinate-flip differences of `F`. -/
 theorem cubeInf_uniform {n : ℕ} (F : (Fin n → Bool) → ℝ) (i : Fin n) :
     cubeInf n (muWeight (1 / 2) n) F i =
       ((2 : ℝ) ^ n)⁻¹ * ∑ x, (F x - F (cubeFlip x i)) ^ 2 := by
@@ -368,6 +436,9 @@ theorem cubeInf_uniform {n : ℕ} (F : (Fin n → Bool) → ℝ) (i : Fin n) :
   rw [← Finset.mul_sum]
   simp [one_div, inv_pow]
 
+/-- If `f` depends on coordinate `i`, then `2 ^ n` times the uniform influence of `i` on its
+indicator is at least `2 ^ (n - (exactDegree f - 1))`, with both subtractions in the natural
+numbers. -/
 theorem pow_two_sub_le_mul_cubeInf {n : ℕ} (f : (Fin n → Bool) → Bool) (i : Fin n)
     (hdep : ∃ x, f x ≠ f (cubeFlip x i)) :
     (2 : ℝ) ^ (n - (Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f - 1)) ≤
@@ -447,9 +518,13 @@ theorem pow_two_sub_le_mul_cubeInf {n : ℕ} (f : (Fin n → Bool) → Bool) (i 
 open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 open scoped symmDiff
 
+/-- The uniform Fourier coefficient of `F` at `S`, defined as the average of `cubeChar S x * F
+x` over the Boolean cube. -/
 def uniformFourierCoeff {n : ℕ} (S : Finset (Fin n)) (F : (Fin n → Bool) → ℝ) : ℝ :=
   ((2 : ℝ) ^ n)⁻¹ * ∑ x, cubeChar S x * F x
 
+/-- The sum of a Boolean character over the cube is `2 ^ n` for the empty index set and zero
+otherwise. -/
 theorem sum_cubeChar {n : ℕ} (S : Finset (Fin n)) :
     ∑ x, cubeChar S x = if S = ∅ then (2 : ℝ) ^ n else 0 := by
   classical
@@ -474,6 +549,8 @@ theorem sum_cubeChar {n : ℕ} (S : Finset (Fin n)) :
         apply Finset.prod_eq_zero (Finset.mem_univ i)
         simp [hi]
 
+/-- The sum of the product of two Boolean characters over the cube is `2 ^ n` when their index
+sets agree and zero otherwise. -/
 theorem sum_cubeChar_mul {n : ℕ} (S T : Finset (Fin n)) :
     ∑ x, cubeChar S x * cubeChar T x = if S = T then (2 : ℝ) ^ n else 0 := by
   classical
@@ -484,6 +561,8 @@ theorem sum_cubeChar_mul {n : ℕ} (S T : Finset (Fin n)) :
     simp
   · rw [if_neg hST, if_neg (fun h => hST (Finset.symmDiff_eq_empty.mp h))]
 
+/-- The equivalence between Boolean assignments on `Fin n` and finite subsets of `Fin n`,
+sending an assignment to the set of coordinates where it is true. -/
 def cubeSubsetEquiv (n : ℕ) : (Fin n → Bool) ≃ Finset (Fin n) where
   toFun x := Finset.univ.filter (fun i => x i)
   invFun S := fun i => decide (i ∈ S)
@@ -494,6 +573,8 @@ def cubeSubsetEquiv (n : ℕ) : (Fin n → Bool) ≃ Finset (Fin n) where
     ext i
     simp
 
+/-- Summing `cubeChar S x * cubeChar S y` over all index sets gives `2 ^ n` when `x = y` and
+zero otherwise. -/
 theorem sum_cubeChar_points {n : ℕ} (x y : Fin n → Bool) :
     ∑ S : Finset (Fin n), cubeChar S x * cubeChar S y =
       if x = y then (2 : ℝ) ^ n else 0 := by
@@ -534,6 +615,8 @@ theorem sum_cubeChar_points {n : ℕ} (x y : Fin n → Bool) :
         obtain ⟨i, hi⟩ := Function.ne_iff.mp hxy
         exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
 
+/-- Every real function on the Boolean cube equals the sum of its uniform Fourier coefficients
+multiplied by the corresponding Boolean characters. -/
 theorem uniform_fourier_inversion {n : ℕ} (F : (Fin n → Bool) → ℝ) (x : Fin n → Bool) :
     F x = ∑ S, uniformFourierCoeff S F * cubeChar S x := by
   classical
@@ -565,6 +648,9 @@ theorem uniform_fourier_inversion {n : ℕ} (F : (Fin n → Bool) → ℝ) (x : 
         simp [hy]
       · simp
 
+/-- Parseval's identity on the uniform Boolean cube: the sum of squared function values is `2 ^
+n` times the sum of squared Fourier coefficients. See [Atici and Servedio, Lemma
+II.1][AticiServedio2007]. -/
 theorem sum_sq_eq_mul_sum_uniformFourierCoeff_sq {n : ℕ} (F : (Fin n → Bool) → ℝ) :
     ∑ x, F x ^ 2 = (2 : ℝ) ^ n * ∑ S, uniformFourierCoeff S F ^ 2 := by
   classical
@@ -601,6 +687,8 @@ theorem sum_sq_eq_mul_sum_uniformFourierCoeff_sq {n : ℕ} (F : (Fin n → Bool)
         simp [Ne.symm hTS]
       · simp
 
+/-- For any expansion of `F` in Boolean characters with coefficients `a`, the sum of squared
+values of `F` is `2 ^ n` times the sum of squared coefficients. -/
 theorem sum_sq_eq_mul_sum_sq_of_expansion {n : ℕ} (a : Finset (Fin n) → ℝ)
     (F : (Fin n → Bool) → ℝ) (hF : ∀ x, F x = ∑ S, a S * cubeChar S x) :
     ∑ x, F x ^ 2 = (2 : ℝ) ^ n * ∑ S, a S ^ 2 := by
@@ -635,6 +723,8 @@ theorem sum_sq_eq_mul_sum_sq_of_expansion {n : ℕ} (a : Finset (Fin n) → ℝ)
         simp [Ne.symm hTS]
       · simp
 
+/-- Flipping coordinate `i` negates the character indexed by `S` exactly when `i ∈ S`, and
+otherwise leaves it unchanged. -/
 theorem cubeChar_flip {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) (i : Fin n) :
     cubeChar S (cubeFlip x i) = if i ∈ S then -cubeChar S x else cubeChar S x := by
   classical
@@ -662,6 +752,8 @@ theorem cubeChar_flip {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) (i : F
       exact hi hj
     simp [cubeFlip, hji]
 
+/-- The coordinate-flip difference of `F` has Fourier coefficient `2 * uniformFourierCoeff S F`
+on sets containing `i` and zero on the other sets. -/
 theorem flip_sub_fourier_expansion {n : ℕ} (F : (Fin n → Bool) → ℝ) (x : Fin n → Bool) (i : Fin n) :
     F x - F (cubeFlip x i) =
       ∑ S, (if i ∈ S then 2 * uniformFourierCoeff S F else 0) * cubeChar S x := by
@@ -673,6 +765,8 @@ theorem flip_sub_fourier_expansion {n : ℕ} (F : (Fin n → Bool) → ℝ) (x :
   intro S _
   by_cases hi : i ∈ S <;> simp [hi]; ring
 
+/-- The uniform influence of coordinate `i` is four times the sum of squared Fourier
+coefficients indexed by sets containing `i`. -/
 theorem cubeInf_fourier {n : ℕ} (F : (Fin n → Bool) → ℝ) (i : Fin n) :
     cubeInf n (muWeight (1 / 2) n) F i =
       4 * ∑ S, if i ∈ S then uniformFourierCoeff S F ^ 2 else 0 := by
@@ -687,6 +781,8 @@ theorem cubeInf_fourier {n : ℕ} (F : (Fin n → Bool) → ℝ) (i : Fin n) :
   intro S _
   by_cases hi : i ∈ S <;> simp [a, hi]; ring
 
+/-- Uniform total influence is four times the sum of squared Fourier coefficients weighted by
+the cardinalities of their index sets. -/
 theorem cubeTotalInf_fourier {n : ℕ} (F : (Fin n → Bool) → ℝ) :
     cubeTotalInf n (muWeight (1 / 2) n) F =
       4 * ∑ S, (S.card : ℝ) * uniformFourierCoeff S F ^ 2 := by
@@ -705,17 +801,26 @@ theorem cubeTotalInf_fourier {n : ℕ} (F : (Fin n → Bool) → ℝ) :
       intro S _
       simp [Finset.sum_const, nsmul_eq_mul]
 
+/-- Encodes a Boolean assignment as a real sign vector, mapping `true` to `1` and `false` to
+`-1` in each coordinate. -/
 def signPoint {n : ℕ} (x : Fin n → Bool) : Fin n → ℝ := fun i => if x i then 1 else -1
 
+/-- The affine polynomial `(1 + X j) / 2` converting a sign coordinate into a zero-or-one
+coordinate. -/
 def booleanToSignSubst {n : ℕ} (j : Fin n) : MvPolynomial (Fin n) ℝ :=
   MvPolynomial.C (1 / 2) * (1 + MvPolynomial.X j)
 
+/-- Transforms a real multivariate polynomial by replacing every variable `X j` with
+`booleanToSignSubst j`. -/
 def booleanToSignPolynomial {n : ℕ} (P : MvPolynomial (Fin n) ℝ) : MvPolynomial (Fin n) ℝ :=
   P.eval₂ MvPolynomial.C booleanToSignSubst
 
+/-- The real polynomial obtained from the integer Boolean representative of `f` by the affine
+sign-coordinate substitution, representing the zero-or-one indicator of `f` on sign vectors. -/
 def booleanSignRepresentative {n : ℕ} (f : (Fin n → Bool) → Bool) : MvPolynomial (Fin n) ℝ :=
   booleanToSignPolynomial (MvPolynomial.map (Int.castRingHom ℝ) (integerBooleanRepresentative f))
 
+/-- Each affine sign-coordinate substitution polynomial has total degree at most one. -/
 theorem totalDegree_booleanToSignSubst {n : ℕ} (j : Fin n) :
     (booleanToSignSubst j).totalDegree ≤ 1 := by
   unfold booleanToSignSubst
@@ -726,6 +831,7 @@ theorem totalDegree_booleanToSignSubst {n : ℕ} (j : Fin n) :
   simpa using! Nat.add_le_add
     (show (MvPolynomial.C (1 / 2) : MvPolynomial (Fin n) ℝ).totalDegree ≤ 0 by simp) hadd
 
+/-- The degree of `booleanToSignSubst j` in any variable `i` is at most one. -/
 theorem degreeOf_booleanToSignSubst {n : ℕ} (i j : Fin n) :
     (booleanToSignSubst j).degreeOf i ≤ 1 := by
   have hadd : (1 + MvPolynomial.X j : MvPolynomial (Fin n) ℝ).degreeOf i ≤ 1 :=
@@ -736,6 +842,8 @@ theorem degreeOf_booleanToSignSubst {n : ℕ} (i j : Fin n) :
   unfold booleanToSignSubst
   exact (MvPolynomial.degreeOf_mul_le _ _ _).trans (by simpa using! hadd)
 
+/-- The substitution polynomial for coordinate `j` has degree zero in every distinct coordinate
+`i`. -/
 theorem degreeOf_booleanToSignSubst_of_ne {n : ℕ} {i j : Fin n} (hij : i ≠ j) :
     (booleanToSignSubst j).degreeOf i = 0 := by
   apply Nat.eq_zero_of_le_zero
@@ -744,11 +852,15 @@ theorem degreeOf_booleanToSignSubst_of_ne {n : ℕ} {i j : Fin n} (hij : i ≠ j
   have hadd := MvPolynomial.degreeOf_add_le i (1 : MvPolynomial (Fin n) ℝ) (MvPolynomial.X j)
   exact hmul.trans (by simpa [booleanToSignSubst, MvPolynomial.degreeOf_X, hij] using! hadd)
 
+/-- The affine sign-coordinate substitution preserves any upper bound `d` on the total degree of
+`P`. -/
 theorem booleanToSignPolynomial_totalDegree {n : ℕ} (P : MvPolynomial (Fin n) ℝ) {d : ℕ}
     (hP : P.totalDegree ≤ d) : (booleanToSignPolynomial P).totalDegree ≤ d := by
   exact (cube_mv_substitution_degree P booleanToSignSubst
     (fun j => totalDegree_booleanToSignSubst j)).trans (by simpa using! hP)
 
+/-- Applying the affine sign-coordinate substitution to a multilinear polynomial preserves
+multilinearity. -/
 theorem degreeOf_booleanToSignPolynomial {n : ℕ} (P : MvPolynomial (Fin n) ℝ)
     (hP : ∀ i, P.degreeOf i ≤ 1) (i : Fin n) :
     (booleanToSignPolynomial P).degreeOf i ≤ 1 := by
@@ -780,14 +892,19 @@ theorem degreeOf_booleanToSignPolynomial {n : ℕ} (P : MvPolynomial (Fin n) ℝ
         simp [hi, hmi]
     _ ≤ 1 := MvPolynomial.degreeOf_le_iff.mp (hP i) m hm
 
+/-- The sign-coordinate representative of `f` has total degree at most `exactDegree f`. -/
 theorem booleanSignRepresentative_totalDegree {n : ℕ} (f : (Fin n → Bool) → Bool) :
     (booleanSignRepresentative f).totalDegree ≤ Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f := by
   exact booleanToSignPolynomial_totalDegree _ (integerBooleanRepresentative_real_degree_eq f).le
 
+/-- The sign-coordinate representative of a Boolean function has degree at most one in each
+variable. -/
 theorem booleanSignRepresentative_degreeOf {n : ℕ} (f : (Fin n → Bool) → Bool) (i : Fin n) :
     (booleanSignRepresentative f).degreeOf i ≤ 1 := by
   exact degreeOf_booleanToSignPolynomial _ (integerBooleanRepresentative_real_degreeOf f) i
 
+/-- Evaluating the sign-coordinate representative at `signPoint x` gives `1` when `f x` is true
+and `0` otherwise. -/
 theorem eval_booleanSignRepresentative {n : ℕ} (f : (Fin n → Bool) → Bool) (x : Fin n → Bool) :
     MvPolynomial.eval (signPoint x) (booleanSignRepresentative f) = if f x then 1 else 0 := by
   rw [booleanSignRepresentative, booleanToSignPolynomial, ← MvPolynomial.eval_assoc]
@@ -801,6 +918,9 @@ theorem eval_booleanSignRepresentative {n : ℕ} (f : (Fin n → Bool) → Bool)
   rw [hvars]
   exact integerBooleanRepresentative_map_eval f x
 
+/-- Evaluation of a multilinear polynomial at `signPoint x` is the sum over its supported
+monomials of each coefficient multiplied by the Boolean character indexed by that monomial's
+support. -/
 theorem eval_signPoint {n : ℕ} (Q : MvPolynomial (Fin n) ℝ)
     (hQ : ∀ i, Q.degreeOf i ≤ 1) (x : Fin n → Bool) :
     MvPolynomial.eval (signPoint x) Q =
@@ -821,6 +941,8 @@ theorem eval_signPoint {n : ℕ} (Q : MvPolynomial (Fin n) ℝ)
   change Q.coeff m * m.prod (fun i e => signPoint x i ^ e) = _
   rw [hprod]
 
+/-- The uniform Fourier coefficient at `T` of a multilinear polynomial evaluated on sign vectors
+is the sum of its coefficients at supported exponent vectors whose support is `T`. -/
 theorem uniformFourierCoeff_eq_sum_coeff {n : ℕ} (Q : MvPolynomial (Fin n) ℝ)
     (hQ : ∀ i, Q.degreeOf i ≤ 1) (T : Finset (Fin n)) :
     uniformFourierCoeff T (fun x => MvPolynomial.eval (signPoint x) Q) =
@@ -857,6 +979,9 @@ theorem uniformFourierCoeff_eq_sum_coeff {n : ℕ} (Q : MvPolynomial (Fin n) ℝ
       · have hTm : T ≠ m.support := Ne.symm hm
         simp [hm, hTm]
 
+/-- The uniform Fourier coefficient at `T` of the indicator of `f` is the sum of the
+coefficients in `booleanSignRepresentative f` at supported exponent vectors with support
+`T`. -/
 theorem uniformFourierCoeff_boolean_eq_sum_coeff {n : ℕ} (f : (Fin n → Bool) → Bool)
     (T : Finset (Fin n)) :
     uniformFourierCoeff T (fun x => if f x then (1 : ℝ) else 0) =
@@ -866,6 +991,8 @@ theorem uniformFourierCoeff_boolean_eq_sum_coeff {n : ℕ} (f : (Fin n → Bool)
     uniformFourierCoeff_eq_sum_coeff (booleanSignRepresentative f)
       (booleanSignRepresentative_degreeOf f) T
 
+/-- The uniform Fourier coefficient of the indicator of `f` vanishes whenever its index set has
+cardinality greater than `exactDegree f`. -/
 theorem uniformFourierCoeff_eq_zero_of_card_gt_exactDegree {n : ℕ}
     (f : (Fin n → Bool) → Bool) (T : Finset (Fin n))
     (hT : Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f < T.card) :
@@ -882,6 +1009,8 @@ theorem uniformFourierCoeff_eq_zero_of_card_gt_exactDegree {n : ℕ}
     omega
   simp [hne]
 
+/-- For a Boolean indicator, the sum of squared uniform Fourier coefficients equals its
+coefficient at the empty set, hence its uniform mean. -/
 theorem sum_uniformFourierCoeff_sq {n : ℕ} (f : (Fin n → Bool) → Bool) :
     ∑ S, uniformFourierCoeff S (fun x => if f x then (1 : ℝ) else 0) ^ 2 =
       uniformFourierCoeff ∅ (fun x => if f x then (1 : ℝ) else 0) := by
@@ -905,6 +1034,8 @@ theorem sum_uniformFourierCoeff_sq {n : ℕ} (f : (Fin n → Bool) → Bool) :
         rw [hempty, ← mul_assoc, mul_inv_cancel₀ ha, one_mul]
   exact mul_left_cancel₀ ha hmass
 
+/-- For a Boolean indicator with uniform mean `μ`, the sum of squared Fourier coefficients over
+nonempty index sets is `μ - μ ^ 2`. -/
 theorem sum_erase_empty_uniformFourierCoeff_sq {n : ℕ} (f : (Fin n → Bool) → Bool) :
     ∑ S ∈ Finset.univ.erase ∅,
         uniformFourierCoeff S (fun x => if f x then (1 : ℝ) else 0) ^ 2 =
@@ -917,6 +1048,8 @@ theorem sum_erase_empty_uniformFourierCoeff_sq {n : ℕ} (f : (Fin n → Bool) �
   rw [sum_uniformFourierCoeff_sq f] at he
   linarith
 
+/-- The total influence of the zero-or-one indicator of `f` under the uniform Boolean-cube
+weights is at most `exactDegree f`. -/
 theorem cubeTotalInf_le_exactDegree {n : ℕ} (f : (Fin n → Bool) → Bool) :
     cubeTotalInf n (muWeight (1 / 2) n) (fun x => if f x then (1 : ℝ) else 0) ≤
       (Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f : ℝ) := by
@@ -966,6 +1099,8 @@ theorem cubeTotalInf_le_exactDegree {n : ℕ} (f : (Fin n → Bool) → Bool) :
       mul_le_mul_of_nonneg_left hquad (Nat.cast_nonneg _)
     _ = (Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f : ℝ) := mul_one _
 
+/-- If `f` depends on every coordinate, then `n ≤ d * 2 ^ (d - 1)`, where `d = exactDegree f`
+and subtraction is in the natural numbers. -/
 theorem card_le_exactDegree_mul_two_pow {n : ℕ} (f : (Fin n → Bool) → Bool)
     (hdep : ∀ i, ∃ x, f x ≠ f (cubeFlip x i)) :
     n ≤ Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f *
@@ -1015,6 +1150,7 @@ theorem card_le_exactDegree_mul_two_pow {n : ℕ} (f : (Fin n → Bool) → Bool
     · have hnd : n < d := by omega
       exact hnd.le.trans (Nat.le_mul_of_pos_right _ (by positivity))
 
+/-- For a natural number `n ≥ 16`, its base-two logarithm is at least four. -/
 theorem four_le_logb_two_of_sixteen_le {n : ℕ} (hn : 16 ≤ n) :
     4 ≤ Real.logb 2 (n : ℝ) := by
   have hnR : (16 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
@@ -1025,6 +1161,8 @@ theorem four_le_logb_two_of_sixteen_le {n : ℕ} (hn : 16 ≤ n) :
   rw [← h16]
   exact Real.logb_le_logb_of_le (by norm_num) (by norm_num) hnR
 
+/-- If `n ≥ 16` and `f` depends on every coordinate, then its exact degree is at least `log₂ n -
+log₂ (log₂ n) - 1`. -/
 theorem logb_sub_logb_le_exactDegree {n : ℕ} (f : (Fin n → Bool) → Bool)
     (hdep : ∀ i, ∃ x, f x ≠ f (cubeFlip x i)) (hn : 16 ≤ n) :
     Real.logb 2 (n : ℝ) - Real.logb 2 (Real.logb 2 (n : ℝ)) - 1 ≤
@@ -1065,6 +1203,9 @@ theorem logb_sub_logb_le_exactDegree {n : ℕ} (f : (Fin n → Bool) → Bool)
   · have hLd : L < (d : ℝ) := lt_of_not_ge hdL
     linarith
 
+/-- If `n ≥ 16` and `f` depends on every coordinate, then `exactMinimum f` is at least `(log₂ n)
+/ 2 - 2 * log₂ (log₂ n) - 2`. This is an explicit logarithmic exact-query lower bound as in
+[Beals et al., Corollary 4.4][BealsEtAl2001]. -/
 theorem exactMinimum_logb_lower_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
     (hdep : ∀ i, ∃ x, f x ≠ f (cubeFlip x i)) (hn : 16 ≤ n) :
     Real.logb 2 (n : ℝ) / 2 - 2 * Real.logb 2 (Real.logb 2 (n : ℝ)) - 2 ≤
@@ -1080,6 +1221,9 @@ theorem exactMinimum_logb_lower_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
     Real.logb_nonneg (by norm_num) (by linarith)
   linarith
 
+/-- For a Boolean function depending on all coordinates, combines the bound `n ≤ d * 2 ^ (d -
+1)` for `d = exactDegree f` with the explicit logarithmic lower bound on `exactMinimum f`
+when `n ≥ 16` and its nonnegativity when `n < 16`. -/
 theorem frontier1 {n : ℕ} (f : (Fin n → Bool) → Bool)
     (hdep : ∀ i, ∃ x, f x ≠ f (cubeFlip x i)) :
     n ≤ Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f *

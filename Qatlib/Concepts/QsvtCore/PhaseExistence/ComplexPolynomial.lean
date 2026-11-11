@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.RealNonnegConjugateFactorization
 import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+
+/-!
+# Complex polynomial completion for QSP
+
+This module constructs `CompletedPair` data from the degree, parity, and real- and
+imaginary-axis inequalities used in complex QSP phase existence [GilyenSuLowWiebe2019]. The
+construction analyzes the real coefficients of `1 - P * conjugatePolynomial P` after contraction
+by the square variable.
+
+The auxiliary lemmas factor residual polynomials with prescribed sign changes and control the
+degree of the complementary polynomial.
+
+## Main statements
+
+* `residual_square_eval`: relates the contracted residual to the squared norm on the real axis.
+* `divide_X_one_sub_X_nonneg`: extracts a globally nonnegative factor from a residual with
+  endpoint zeros.
+* `exists_completedPair_of_cor8_conditions`: produces a complementary polynomial satisfying
+  `CompletedPair`.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -21,12 +46,18 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open Qatlib
 
+/-- The real polynomial obtained by taking the real part of every coefficient of a complex
+polynomial. -/
 private noncomputable def complexResidualRealCoeffs (P : Polynomial ℂ) : Polynomial ℝ :=
   ⟨⟨P.toFinsupp.coeff.mapRange Complex.re Complex.zero_re⟩⟩
 
+/-- The jth coefficient of `complexResidualRealCoeffs P` is the real part of the jth coefficient
+of P. -/
 private theorem residual_real_coeff (P : Polynomial ℂ) (j : ℕ) :
     (complexResidualRealCoeffs P).coeff j = (P.coeff j).re := rfl
 
+/-- Mapping the real coefficients of the residual `1 - P * conjugatePolynomial P` back to ℂ
+recovers that residual. -/
 private theorem residual_real_map (P : Polynomial ℂ) :
     (complexResidualRealCoeffs (1 - P * conjugatePolynomial P)).map Complex.ofRealHom =
       1 - P * conjugatePolynomial P := by
@@ -41,6 +72,8 @@ private theorem residual_real_map (P : Polynomial ℂ) :
   · simp only [Complex.ofReal_im]
     linarith
 
+/-- For a response polynomial with parity d, the real residual `1 - P * conjugatePolynomial P`
+is invariant under composition with `-X`. -/
 private theorem residual_real_even (P : Polynomial ℂ) (d : ℕ)
     (hp : HasResponseParity d P) :
     (complexResidualRealCoeffs (1 - P * conjugatePolynomial P)).comp (-X) =
@@ -64,6 +97,8 @@ private theorem residual_real_even (P : Polynomial ℂ) (d : ℕ)
   apply Polynomial.map_injective Complex.ofRealHom Complex.ofReal_injective
   simpa only [Polynomial.map_comp, Polynomial.map_neg, map_X, residual_real_map] using he
 
+/-- For a response polynomial with parity d, evaluates the contracted real residual at x² as one
+minus the squared norm of P at the real input x. -/
 private theorem residual_square_eval (P : Polynomial ℂ) (d : ℕ)
     (hp : HasResponseParity d P) (x : ℝ) :
     (contract 2 (complexResidualRealCoeffs (1 - P * conjugatePolynomial P))).eval (x ^ 2) =
@@ -81,6 +116,8 @@ private theorem residual_square_eval (P : Polynomial ℂ) (d : ℕ)
     conjugatePolynomial_eval_real, Complex.star_def, Complex.mul_conj,
     Complex.sub_re, Complex.one_re] using hm
 
+/-- For a response polynomial with parity d, evaluates the contracted real residual at -y² as
+one minus (-1)^d times the squared norm of P at the imaginary input yi. -/
 private theorem residual_imag_eval (P : Polynomial ℂ) (d : ℕ)
     (hp : HasResponseParity d P) (y : ℝ) :
     (contract 2 (complexResidualRealCoeffs (1 - P * conjugatePolynomial P))).eval (-(y ^ 2)) =
@@ -113,6 +150,8 @@ private theorem residual_imag_eval (P : Polynomial ℂ) (d : ℕ)
     ← Complex.ofReal_one, ← Complex.ofReal_sub] at he
   exact Complex.ofReal_injective he
 
+/-- A real polynomial vanishing at one, nonnegative to the left of one and nonpositive to the
+right, factors as `(1 - X) * g` with g nonnegative on all real inputs. -/
 private theorem divide_one_sub_X_nonneg (a : Polynomial ℝ)
     (hroot : a.eval 1 = 0)
     (hleft : ∀ x : ℝ, x ≤ 1 → 0 ≤ a.eval x)
@@ -138,6 +177,8 @@ private theorem divide_one_sub_X_nonneg (a : Polynomial ℝ)
       (fun t ht => ha t ht.1.ne') 1 ⟨le_rfl, by norm_num⟩
   · exact ha x hx
 
+/-- A real polynomial vanishing at zero and one, nonnegative on [0, 1] and nonpositive outside,
+factors as `X * (1 - X) * g` with g nonnegative on all real inputs. -/
 private theorem divide_X_one_sub_X_nonneg (a : Polynomial ℝ)
     (hzero : a.eval 0 = 0) (hone : a.eval 1 = 0)
     (hinside : ∀ x : ℝ, x ∈ Set.Icc 0 1 → 0 ≤ a.eval x)
@@ -176,6 +217,8 @@ private theorem divide_X_one_sub_X_nonneg (a : Polynomial ℝ)
   · subst x; exact hclosed 1 ⟨by norm_num, le_rfl⟩
   exact ha x hx0 hx1
 
+/-- If P has degree at most d and `(1 - X ^ 2) * Q * conjugatePolynomial Q` is its normalization
+residual, then Q has degree strictly less than d. -/
 private theorem complement_degree_lt (P Q : Polynomial ℂ) (d : ℕ)
     (hp : P.degree ≤ (d : WithBot ℕ))
     (hn : (1 - X ^ 2) * Q * conjugatePolynomial Q = 1 - P * conjugatePolynomial P) :
@@ -208,10 +251,14 @@ private theorem complement_degree_lt (P Q : Polynomial ℂ) (d : ℕ)
   rw [degree_eq_natDegree hq]
   exact_mod_cast (show Q.natDegree < d by omega)
 
+/-- Coefficientwise conjugation commutes with composition by `X ^ 2`. -/
 private theorem conjugate_comp_square (W : Polynomial ℂ) :
     conjugatePolynomial (W.comp (X ^ 2)) = (conjugatePolynomial W).comp (X ^ 2) := by
   simp [conjugatePolynomial, Polynomial.map_comp]
 
+/-- A complex polynomial satisfying the degree, parity, interval, exterior, and even-degree
+imaginary-axis conditions of Corollary 8 possesses a complementary polynomial forming
+`CompletedPair d P Q` [GilyenSuLowWiebe2019]. -/
 theorem exists_completedPair_of_cor8_conditions (P : Polynomial ℂ) (d : ℕ)
     (hdeg : P.degree ≤ (d : WithBot ℕ))
     (hpar : Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.HasResponseParity d P)

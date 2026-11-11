@@ -9,34 +9,64 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Algebra.Order.Floor.Semiring
 import Mathlib.Tactic
 
+/-!
+# Arithmetic query bound for subset finding
+
+This module defines rounded memory, walk-step, and iteration counts for the subset-finding
+algorithm of [ChildsEisenberg2003]. Bounds on the rounded memory scale control the explicit
+query count `subsetFindingQueryCount`.
+
+The main result is an eventual power bound for this arithmetic count, with exponent `L / (L +
+1)` and a positive constant depending on `L`.
+
+## Main statements
+
+* `subsetFindingMemory_ge_half`: rounding preserves at least half the memory scale.
+* `N_div_memory_le`: bounds the ratio of input size to memory.
+* `theorem1_cost_arithmetic`: gives the eventual query-count bound for `L ≥ 1`.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.SubsetFinding03.MainResults.QueryComplexityUpperBound
 
+/-- The natural-number floor of the memory scale `N ^ (L / (L + 1))`. -/
 def subsetFindingMemory (N L : ℕ) : ℕ :=
   ⌊((N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)))⌋₊
 
+/-- Rounds a real number by taking the natural-number floor of `x + 1 / 2`. -/
 def roundNearest (x : ℝ) : ℕ :=
   ⌊x + 1 / 2⌋₊
 
+/-- The rounded walk-step count `(π / 2) * √(subsetFindingMemory N L / L)`. -/
 def subsetFindingWalkSteps (N L : ℕ) : ℕ :=
   roundNearest ((Real.pi / 2) * Real.sqrt ((subsetFindingMemory N L : ℝ) / (L : ℝ)))
 
+/-- The rounded iteration count `(π / 2) * (N / subsetFindingMemory N L) ^ (L / 2)`. -/
 def subsetFindingIterations (N L : ℕ) : ℕ :=
   roundNearest
     ((Real.pi / 2) * (((N : ℝ) / (subsetFindingMemory N L : ℝ)) ^ ((L : ℝ) / 2)))
 
+/-- The arithmetic query count consisting of memory setup plus twice the product of walk steps
+and iterations [ChildsEisenberg2003]. -/
 def subsetFindingQueryCount (N L : ℕ) : ℕ :=
   subsetFindingMemory N L + 2 * subsetFindingWalkSteps N L * subsetFindingIterations N L
 
+/-- For nonnegative `x`, the rounded value is at most `x + 1 / 2`. -/
 lemma roundNearest_le (x : ℝ) (hx : 0 ≤ x) : (roundNearest x : ℝ) ≤ x + 1 / 2 := by
   exact Nat.floor_le (by linarith)
 
+/-- The rounded memory is at most `N ^ (L / (L + 1))` under the stated nonnegativity assumption. -/
 lemma subsetFindingMemory_le (N L : ℕ) (hN : 0 ≤ (N : ℝ)) :
     (subsetFindingMemory N L : ℝ) ≤ (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)) := by
   exact Nat.floor_le (Real.rpow_nonneg hN _)
 
+/-- For `L ≥ 1` and `N ≥ 4`, the real memory scale `N ^ (L / (L + 1))` is at least two. -/
 lemma rpow_subsetFinding_ge_two (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
     2 ≤ (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)) := by
   have hLpos : (0 : ℝ) < (L : ℝ) + 1 := by positivity
@@ -55,6 +85,7 @@ lemma rpow_subsetFinding_ge_two (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
     norm_num
   linarith
 
+/-- For `L ≥ 1` and `N ≥ 4`, the rounded memory is at least half of `N ^ (L / (L + 1))`. -/
 lemma subsetFindingMemory_ge_half (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
     (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)) / 2 ≤ (subsetFindingMemory N L : ℝ) := by
   have hx2 : 2 ≤ (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)) :=
@@ -65,6 +96,7 @@ lemma subsetFindingMemory_ge_half (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
       Nat.lt_floor_add_one ((N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)))
   linarith
 
+/-- The rounded memory is at least one when `L ≥ 1` and `N ≥ 4`. -/
 lemma subsetFindingMemory_pos (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
     1 ≤ subsetFindingMemory N L := by
   unfold subsetFindingMemory
@@ -73,6 +105,8 @@ lemma subsetFindingMemory_pos (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
   norm_num
   linarith
 
+/-- For `L ≥ 1` and `N ≥ 4`, the ratio `N / subsetFindingMemory N L` is at most `2 * N ^ (1 / (L
++ 1))`. -/
 lemma N_div_memory_le (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
     (N : ℝ) / (subsetFindingMemory N L : ℝ) ≤
       2 * (N : ℝ) ^ (1 / ((L : ℝ) + 1)) := by
@@ -108,6 +142,9 @@ lemma N_div_memory_le (N L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N) :
     _ = 2 * ((N : ℝ) / x) := by rw [mul_div_assoc]
     _ = 2 * (N : ℝ) ^ (1 / ((L : ℝ) + 1)) := by rw [hNdivx]
 
+/-- For each `L ≥ 1`, there are a positive constant and a threshold beyond which
+`subsetFindingQueryCount N L` is bounded by that constant times `N ^ (L / (L + 1))`
+[ChildsEisenberg2003]. -/
 theorem theorem1_cost_arithmetic (L : ℕ) (hL : 1 ≤ L) :
     ∃ C : ℝ, 0 < C ∧ ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N →
       (subsetFindingQueryCount N L : ℝ) ≤

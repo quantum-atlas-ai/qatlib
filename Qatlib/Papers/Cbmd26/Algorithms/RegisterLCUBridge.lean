@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.IndexedQSVTBridge
+
+/-!
+# Register Reindexing for LCU Encodings
+
+`reindexFrame` transports an encoding frame along a workspace equivalence while preserving
+isometry and compression. Consequently, `reindexWorkspace_blockEncoding` changes the workspace
+indexing without changing the encoded matrix, normalization, or error.
+
+`swapLabelEquiv` exchanges two label registers. The identities for `prepareRegister` and
+`coefficientLCUUnitary` show that coefficient preparation and LCU evaluation commute with
+selecting an independent label, providing register bookkeeping for the CBMD algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `reindexFrame_isIsometry` and `compress_reindexFrame` preserve the frame and compressed
+  operator.
+* `reindexWorkspace_blockEncoding` transports block encodings along a workspace equivalence.
+* `prepareRegister_swap_labels` and `coefficientLCUUnitary_swap_labels` distribute the reindexed
+  preparation and LCU across the outer selected label.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -46,11 +72,13 @@ section Frames
 variable {H K I : Type} [Fintype H] [DecidableEq H] [Fintype K] [DecidableEq K]
   [Fintype I] [DecidableEq I]
 
+/-- Reindexes the workspace rows of an encoding frame along the equivalence `e`. -/
 def reindexFrame (e : K ≃ H) (F : Matrix H I ℂ) : Matrix K I ℂ :=
   F.submatrix e id
 
 omit [DecidableEq H] [DecidableEq K] [Fintype I] in
 
+/-- Reindexing a frame along a workspace equivalence preserves its isometry property. -/
 theorem reindexFrame_isIsometry (e : K ≃ H) (F : Matrix H I ℂ) (hF : IsIsometry F) :
     IsIsometry (reindexFrame e F) := by
   unfold IsIsometry reindexFrame
@@ -59,12 +87,16 @@ theorem reindexFrame_isIsometry (e : K ≃ H) (F : Matrix H I ℂ) (hF : IsIsome
 
 omit [DecidableEq H] [DecidableEq K] [Fintype I] [DecidableEq I] in
 
+/-- Simultaneously reindexing an operator and its encoding frame leaves their compressed
+operator unchanged. -/
 theorem compress_reindexFrame (e : K ≃ H) (F : Matrix H I ℂ) (U : Matrix H H ℂ) :
     compress (reindexFrame e F) (U.submatrix e e) (reindexFrame e F) = compress F U F := by
   simp only [compress, reindexFrame, Matrix.conjTranspose_submatrix]
   rw [Matrix.submatrix_mul_equiv, Matrix.submatrix_mul_equiv]
   rfl
 
+/-- A workspace equivalence transports a block encoding with the same target, normalization, and
+error to the reindexed operator and frame. -/
 theorem reindexWorkspace_blockEncoding (e : K ≃ H) (A : Matrix I I ℂ)
     (U : Matrix H H ℂ) (F : Matrix H I ℂ) (α ε : ℝ)
     (henc : BlockEncoding A U F F α ε) :
@@ -77,6 +109,8 @@ theorem reindexWorkspace_blockEncoding (e : K ≃ H) (A : Matrix I I ℂ)
   exact henc.error_le
 end Frames
 
+/-- Exchanges the two label registers in `J × (K × H)` while leaving the data register
+unchanged. -/
 def swapLabelEquiv (J K H : Type) : J × (K × H) ≃ K × (J × H) where
   toFun p := (p.2.1, (p.1, p.2.2))
   invFun p := (p.2.1, (p.1, p.2.2))
@@ -89,6 +123,8 @@ variable {J K H : Type} [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
 
 omit [Fintype J] [Fintype K] [DecidableEq K] [Fintype H] in
 
+/-- Swapping the two label registers turns preparation on the `K` register into a `J`-selected
+family of the same preparation. -/
 theorem prepareRegister_swap_labels (V : Matrix K K ℂ) :
     (prepareRegister (I := J × H) V).submatrix (swapLabelEquiv J K H) (swapLabelEquiv J K H) =
       select (fun _ : J => prepareRegister (I := H) V) := by
@@ -97,6 +133,8 @@ theorem prepareRegister_swap_labels (V : Matrix K K ℂ) :
     simp [prepareRegister, select, swapLabelEquiv, Matrix.kroneckerMap_apply,
       Matrix.one_apply, hj, hi]
 
+/-- Swapping the two label registers distributes a coefficient LCU of selected operators into
+the selected family of coefficient LCUs. -/
 theorem coefficientLCUUnitary_swap_labels (c : K → ℂ) (k₀ : K)
     (U : K → J → Matrix H H ℂ) :
     (coefficientLCUUnitary c (fun k => select (U k)) k₀).submatrix

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleShadows
+
+/-!
+# Finite POVMs and measurement reconstruction
+
+Defines `FinitePOVM` using effects with nonnegative weighted Gram factorizations and proves that
+the Born probabilities form `povmRecordLaw`. It also defines the linear frame map
+`povmMeasurementMap`, its inverse when bijective, and the associated snapshots and real
+observable statistics.
+
+These finite-dimensional measurement constructions use the standard POVM framework of
+[Watrous2018].
+
+## Main statements
+
+* `povmBorn_sum_one`: normalization of the Born probabilities.
+* `povmSnapshot`: reconstruction snapshot from the inverse measurement map.
+* `povmMeasurementMap_trace_adjoint`: symmetry of the measurement map under the trace pairing.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,6 +50,8 @@ set_option maxHeartbeats 1000000
 
 variable {O : Type} [Fintype O] {D : ℕ}
 
+/-- A finite POVM whose effects sum to the identity and possess nonnegative weighted Gram
+factorizations. -/
 structure FinitePOVM (O : Type) [Fintype O] (D : ℕ) where
 
   effect : O → Operator D
@@ -43,6 +68,7 @@ structure FinitePOVM (O : Type) [Fintype O] (D : ℕ) where
 
 namespace FinitePOVM
 
+/-- Each effect of a finite POVM is Hermitian. -/
 theorem effect_isHermitian (E : FinitePOVM O D) (o : O) : (E.effect o).IsHermitian := by
   show (E.effect o)ᴴ = E.effect o
   rw [E.effect_eq_factor, Matrix.conjTranspose_smul]
@@ -53,6 +79,7 @@ theorem effect_isHermitian (E : FinitePOVM O D) (o : O) : (E.effect o).IsHermiti
     rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
   rw [hF]
 
+/-- Each effect of a finite POVM is positive semidefinite. -/
 theorem effect_posSemidef (E : FinitePOVM O D) (o : O) : (E.effect o).PosSemidef := by
   have hsqrt : (Real.sqrt (E.weight o) : ℂ) ^ 2 = (E.weight o : ℂ) := by
     rw [← Complex.ofReal_pow, Real.sq_sqrt (E.weight_nonneg o)]
@@ -70,6 +97,8 @@ theorem effect_posSemidef (E : FinitePOVM O D) (o : O) : (E.effect o).PosSemidef
 
 end FinitePOVM
 
+/-- For positive semidefinite `ρ`, the trace of `F * ρ * Fᴴ` equals the complex embedding of its
+real part. -/
 theorem factor_trace_re {E : ℕ} (F ρ : Operator E) (hρ : ρ.PosSemidef) :
     Matrix.trace (F * ρ * Fᴴ) = (((Matrix.trace (F * ρ * Fᴴ)).re : ℝ) : ℂ) := by
   have hpsd : (F * ρ * Fᴴ).PosSemidef := by
@@ -80,6 +109,7 @@ theorem factor_trace_re {E : ℕ} (F ρ : Operator E) (hρ : ρ.PosSemidef) :
   · rfl
   · rw [himag, Complex.ofReal_im]
 
+/-- The Born trace equals the nonnegative weighted real trace of the factored state. -/
 theorem povmBorn_trace (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o : O) :
     Matrix.trace (E.effect o * ρ)
@@ -101,18 +131,21 @@ theorem povmBorn_trace (E : FinitePOVM O D) (ρ : Operator D)
     rfl
   · exact mul_nonneg (E.weight_nonneg o) hnonneg
 
+/-- The Born trace of a finite POVM effect against a density operator is real. -/
 theorem povmBorn_trace_real (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o : O) :
     Matrix.trace (E.effect o * ρ) = (((Matrix.trace (E.effect o * ρ)).re : ℝ) : ℂ) := by
   have h := povmBorn_trace E ρ hρ o
   rw [h.1, Complex.ofReal_re]
 
+/-- The real part of each Born trace is nonnegative. -/
 theorem povmBorn_nonneg (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o : O) : 0 ≤ (Matrix.trace (E.effect o * ρ)).re := by
   have h := povmBorn_trace E ρ hρ o
   rw [h.1, Complex.ofReal_re]
   exact h.2
 
+/-- The real Born probabilities of a finite POVM sum to one on a density operator. -/
 theorem povmBorn_sum_one (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) : ∑ o : O, (Matrix.trace (E.effect o * ρ)).re = 1 := by
   have htr : ∑ o : O, Matrix.trace (E.effect o * ρ) = Matrix.trace ρ := by
@@ -128,21 +161,27 @@ theorem povmBorn_sum_one (E : FinitePOVM O D) (ρ : Operator D)
     simp
   rw [← Complex.re_sum, hre]
 
+/-- The finite outcome distribution given by the real Born traces of a POVM on a density
+operator. -/
 noncomputable def povmRecordLaw (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) : FinDist O where
   prob o := (Matrix.trace (E.effect o * ρ)).re
   nonneg o := povmBorn_nonneg E ρ hρ o
   sum_one := povmBorn_sum_one E ρ hρ
 
+/-- The probability of an outcome in `povmRecordLaw` equals the real part of its Born trace. -/
 theorem povmRecordLaw_prob (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o : O) :
     (povmRecordLaw E ρ hρ).prob o = (Matrix.trace (E.effect o * ρ)).re := rfl
 
+/-- The complex embedding of an outcome probability equals its Born trace. -/
 theorem povmRecordLaw_prob_complex (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o : O) :
     (((povmRecordLaw E ρ hρ).prob o : ℝ) : ℂ) = Matrix.trace (E.effect o * ρ) := by
   rw [povmBorn_trace_real E ρ hρ o, povmRecordLaw_prob E ρ hρ o]
 
+/-- For a finite distribution, the second centered moment equals the second moment minus the
+square of the mean. -/
 theorem FinDist.expect_centered_sq {X : Type} [Fintype X] (p : FinDist X) (f : X → ℝ) :
     p.expect (fun x => (f x - p.expect f) ^ 2)
       = p.expect (fun x => (f x) ^ 2) - (p.expect f) ^ 2 := by
@@ -186,6 +225,8 @@ theorem FinDist.expect_centered_sq {X : Type} [Fintype X] (p : FinDist X) (f : X
             Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, p.sum_one]
       _ = p.expect (fun x => (f x) ^ 2) - (p.expect f) ^ 2 := by ring
 
+/-- The complex linear frame map sending `A` to the sum of `trace (E.effect o * A)` times
+`E.effect o`. -/
 noncomputable def povmMeasurementMap (E : FinitePOVM O D) : Operator D →ₗ[ℂ] Operator D where
   toFun A := ∑ o : O, (Matrix.trace (E.effect o * A)) • E.effect o
   map_add' A B := by
@@ -202,9 +243,11 @@ noncomputable def povmMeasurementMap (E : FinitePOVM O D) : Operator D →ₗ[�
     refine Finset.sum_congr rfl fun o _ => ?_
     rw [smul_smul]
 
+/-- Expands the measurement frame map as a sum over POVM effects. -/
 theorem povmMeasurementMap_apply (E : FinitePOVM O D) (A : Operator D) :
     povmMeasurementMap E A = ∑ o : O, (Matrix.trace (E.effect o * A)) • E.effect o := rfl
 
+/-- The measurement frame map is symmetric with respect to the bilinear trace pairing. -/
 theorem povmMeasurementMap_trace_adjoint (E : FinitePOVM O D) (A B : Operator D) :
     Matrix.trace (A * povmMeasurementMap E B) = Matrix.trace (povmMeasurementMap E A * B) := by
   rw [povmMeasurementMap_apply, povmMeasurementMap_apply, Matrix.mul_sum,
@@ -214,14 +257,17 @@ theorem povmMeasurementMap_trace_adjoint (E : FinitePOVM O D) (A B : Operator D)
     smul_eq_mul, Matrix.trace_mul_comm A (E.effect o)]
   ring
 
+/-- The linear equivalence induced by a bijective measurement frame map. -/
 noncomputable def povmMeasurementEquiv (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) : Operator D ≃ₗ[ℂ] Operator D :=
   LinearEquiv.ofBijective (povmMeasurementMap E) hM
 
+/-- The inverse measurement frame map applied to an outcome effect. -/
 noncomputable def povmSnapshot (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (o : O) : Operator D :=
   (povmMeasurementEquiv E hM).symm (E.effect o)
 
+/-- The real trace pairing of an observable with the reconstruction snapshot of an outcome. -/
 noncomputable def povmStatistic (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (A : Operator D) (o : O) : ℝ :=
   (Matrix.trace (A * povmSnapshot E hM o)).re

@@ -10,6 +10,31 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoalTigh
+
+/-!
+# Recurrence and repetition costs for bounded-error search
+
+This module proves scalar cost estimates for the bounded-error search analysis of
+[HoyerMoscaDeWolf2003]. `RoundCostLaw` and `PaperCostLaw` specify cost recurrences;
+`query_cost_le_sqrt` and `paper_query_cost_le_sqrt` bound a scheduled round by `13 * Real.sqrt
+n` under the corresponding recurrence hypotheses.
+
+`bounded_error_expected_cost_le_sqrt` bounds the geometric restart series when the success
+parameter is at least `1/576`. `totalCost` and `total_cost_le_sqrt` account for 1000 repetitions
+of each scheduled round and a logarithmic verification term, while `thousand_repeat_success_ge`
+bounds the scalar success expression for 1000 repetitions.
+
+## Main statements
+
+* `query_cost_le_sqrt`: a scheduled round cost bounded by `13 * Real.sqrt n`.
+* `bounded_error_expected_cost_le_sqrt`: the conditional geometric restart cost bound.
+* `total_cost_le_sqrt`: the square-root bound for the specified scalar total.
+
+## References
+
+* [Høyer et al., 2003][HoyerMoscaDeWolf2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,9 +45,12 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.BndErrSearch03.MainResults.SearchRepetitionCost
 
+/-- The scalar cost conditions `C 1 ≤ 12` and `C (k + 1) ≤ 3 * C k + k` for every natural `k`. -/
 def RoundCostLaw (C : ℕ → ℝ) : Prop :=
   C 1 ≤ 12 ∧ ∀ k : ℕ, C (k + 1) ≤ 3 * C k + (k : ℝ)
 
+/-- Under `RoundCostLaw`, the strengthened bound `C (n + 1) + (n + 1) ≤ 13 * 3 ^ n` holds for
+every natural `n`. -/
 theorem round_cost_succ_aux (C : ℕ → ℝ) (hC : RoundCostLaw C) :
     ∀ n : ℕ, C (n + 1) + ((n + 1 : ℕ) : ℝ) ≤ 13 * 3 ^ n := by
   intro n
@@ -41,6 +69,7 @@ theorem round_cost_succ_aux (C : ℕ → ℝ) (hC : RoundCostLaw C) :
     rw [hc1]
     nlinarith [ih, hstep]
 
+/-- Under `RoundCostLaw`, round `m ≥ 1` has scalar cost at most `13 * 3 ^ (m - 1)`. -/
 theorem round_cost_le (C : ℕ → ℝ) (hC : RoundCostLaw C) (m : ℕ) (hm : 1 ≤ m) :
     C m ≤ 13 * 3 ^ (m - 1) := by
   obtain ⟨n, rfl⟩ : ∃ n, m = n + 1 := ⟨m - 1, by omega⟩
@@ -49,6 +78,8 @@ theorem round_cost_le (C : ℕ → ℝ) (hC : RoundCostLaw C) (m : ℕ) (hm : 1 
   have hnn : (0 : ℝ) ≤ ((n + 1 : ℕ) : ℝ) := by positivity
   linarith
 
+/-- Under `RoundCostLaw` and the schedule condition `9 ^ (m - 1) ≤ n`, round `m ≥ 1` has scalar
+cost at most `13 * Real.sqrt n`. -/
 theorem query_cost_le_sqrt (C : ℕ → ℝ) (hC : RoundCostLaw C) (m : ℕ) (hm : 1 ≤ m)
     (n : ℝ) (_hn : 0 < n) (hschedule : 9 ^ (m - 1) ≤ n) :
     C m ≤ 13 * Real.sqrt n := by
@@ -67,6 +98,9 @@ theorem query_cost_le_sqrt (C : ℕ → ℝ) (hC : RoundCostLaw C) (m : ℕ) (hm
   calc C m ≤ 13 * 3 ^ (m - 1) := hcost
     _ ≤ 13 * Real.sqrt n := mul_le_mul_of_nonneg_left h3le (by norm_num)
 
+/-- Under the cost recurrence and schedule hypotheses, a success parameter `1/576 ≤ p ≤ 1`
+bounds the displayed geometric restart cost series by `576 * (13 * Real.sqrt n)`. This is a
+conditional expected-cost estimate for the analysis in [HoyerMoscaDeWolf2003]. -/
 theorem bounded_error_expected_cost_le_sqrt
     (C : ℕ → ℝ) (hC : RoundCostLaw C) (_hCnn : ∀ m, 0 ≤ C m)
     (m : ℕ) (hm : 1 ≤ m) (n : ℝ) (hn : 0 < n) (hschedule : 9 ^ (m - 1) ≤ n)
@@ -87,9 +121,12 @@ theorem bounded_error_expected_cost_le_sqrt
     _ ≤ (13 * Real.sqrt n) * (576 * p) := hstep
     _ = 576 * (13 * Real.sqrt n) * p := by ring
 
+/-- The scalar cost conditions `C 1 = 1` and `C (k + 1) ≤ 3 * C k + k` for every `k ≥ 1`. -/
 def PaperCostLaw (C : ℕ → ℝ) : Prop :=
   C 1 = 1 ∧ ∀ k : ℕ, 1 ≤ k → C (k + 1) ≤ 3 * C k + (k : ℝ)
 
+/-- Under `PaperCostLaw`, the strengthened bound `C (n + 1) + (n + 1) ≤ 13 * 3 ^ n` holds for
+every natural `n`. -/
 theorem paper_cost_succ_add_le (C : ℕ → ℝ) (hC : PaperCostLaw C) :
     ∀ n : ℕ, C (n + 1) + ((n + 1 : ℕ) : ℝ) ≤ 13 * 3 ^ n := by
   intro n
@@ -109,6 +146,7 @@ theorem paper_cost_succ_add_le (C : ℕ → ℝ) (hC : PaperCostLaw C) :
     rw [hc1]
     nlinarith [ih, hstep]
 
+/-- Under `PaperCostLaw`, round `m ≥ 1` has scalar cost at most `13 * 3 ^ (m - 1)`. -/
 theorem paper_cost_le (C : ℕ → ℝ) (hC : PaperCostLaw C) (m : ℕ) (hm : 1 ≤ m) :
     C m ≤ 13 * 3 ^ (m - 1) := by
   obtain ⟨n, rfl⟩ : ∃ n, m = n + 1 := ⟨m - 1, by omega⟩
@@ -117,6 +155,8 @@ theorem paper_cost_le (C : ℕ → ℝ) (hC : PaperCostLaw C) (m : ℕ) (hm : 1 
   have hnn : (0 : ℝ) ≤ ((n + 1 : ℕ) : ℝ) := by positivity
   linarith
 
+/-- Under `PaperCostLaw` and the schedule condition `9 ^ (m - 1) ≤ n`, round `m ≥ 1` has scalar
+cost at most `13 * Real.sqrt n`. -/
 theorem paper_query_cost_le_sqrt (C : ℕ → ℝ) (hC : PaperCostLaw C) (m : ℕ)
     (hm : 1 ≤ m) (n : ℝ) (_hn : 0 < n) (hschedule : 9 ^ (m - 1) ≤ n) :
     C m ≤ 13 * Real.sqrt n := by
@@ -135,6 +175,7 @@ theorem paper_query_cost_le_sqrt (C : ℕ → ℝ) (hC : PaperCostLaw C) (m : �
   calc C m ≤ 13 * 3 ^ (m - 1) := hcost
     _ ≤ 13 * Real.sqrt n := mul_le_mul_of_nonneg_left h3le (by norm_num)
 
+/-- The sum of the first `n` powers of three is at most `3 ^ n / 2`. -/
 theorem geom_sum_three_le (n : ℕ) :
     ∑ k ∈ Finset.range n, (3 : ℝ) ^ k ≤ 3 ^ n / 2 := by
   rw [geom_sum_eq (by norm_num : (3 : ℝ) ≠ 1) n]
@@ -143,6 +184,7 @@ theorem geom_sum_three_le (n : ℕ) :
   rw [div_le_iff₀ (by norm_num : (0 : ℝ) < 2)]
   nlinarith
 
+/-- For `n ≥ 1`, the natural logarithm is at most `2 * Real.sqrt n`. -/
 theorem log_le_two_sqrt (n : ℝ) (hn : 1 ≤ n) : Real.log n ≤ 2 * Real.sqrt n := by
   have hn0 : (0 : ℝ) ≤ n := by linarith
   have hlog : Real.log n = 2 * Real.log (Real.sqrt n) := by
@@ -153,9 +195,14 @@ theorem log_le_two_sqrt (n : ℝ) (hn : 1 ≤ n) : Real.log n ≤ 2 * Real.sqrt 
   rw [hlog]
   linarith
 
+/-- The scalar total `1000 * ∑ m < M, C (m + 1) + 1000 * V * Real.log n`, combining repeated
+round costs with a logarithmic verification term. -/
 def totalCost (C : ℕ → ℝ) (V : ℝ) (M : ℕ) (n : ℝ) : ℝ :=
   1000 * (∑ m ∈ Finset.range M, C (m + 1)) + 1000 * V * Real.log n
 
+/-- Under `PaperCostLaw`, the schedule condition, and the stated nonnegativity and logarithm
+bounds, `totalCost C V M n` is at most `(19500 + 2000 * V) * Real.sqrt n`. This bounds the
+specified scalar total used in [HoyerMoscaDeWolf2003]. -/
 theorem total_cost_le_sqrt (C : ℕ → ℝ) (hC : PaperCostLaw C) (V : ℝ) (hV : 0 ≤ V)
     (M : ℕ) (hM : 1 ≤ M) (n : ℝ) (_hn : 1 ≤ n)
     (hschedule : 9 ^ (M - 1) ≤ n) (hlog : Real.log n ≤ 2 * Real.sqrt n) :
@@ -203,10 +250,14 @@ theorem total_cost_le_sqrt (C : ℕ → ℝ) (hC : PaperCostLaw C) (V : ℝ) (hV
     _ ≤ (19500 + 2000 * V) * Real.sqrt n := by
         nlinarith [hsqrt_nn, hV, mul_nonneg hV hsqrt_nn]
 
+/-- For `0 < p ≤ 1`, the failure expression `(1 - p) ^ r` tends to zero as the repetition count
+tends to infinity. -/
 theorem repeat_failure_tendsto_zero (p : ℝ) (hp0 : 0 < p) (hp1 : p ≤ 1) :
     Filter.Tendsto (fun r : ℕ => (1 - p) ^ r) Filter.atTop (nhds 0) :=
   tendsto_pow_atTop_nhds_zero_of_lt_one (by linarith) (by linarith)
 
+/-- For `1/576 ≤ p ≤ 1`, the scalar success expression `1 - (1 - p) ^ 1000` is at least one
+half. This gives the constant-repetition estimate used in [HoyerMoscaDeWolf2003]. -/
 theorem thousand_repeat_success_ge (p : ℝ) (hp : (1 / 576 : ℝ) ≤ p) (hp1 : p ≤ 1) :
     (1 / 2 : ℝ) ≤ 1 - (1 - p) ^ 1000 := by
   have hnn : (0 : ℝ) ≤ 1 - p := by linarith

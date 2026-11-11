@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
 import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
 import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+
+/-!
+# Instrument perturbation and postselection bounds
+
+This module represents a finite instrument by a classical-quantum record map and proves that
+selecting outcomes preserves a diamond-norm error bound. The reference-register extensions and
+trace-norm estimates use the finite-dimensional quantum information framework of [Watrous2018].
+
+`frontier1` transfers record error to success and failure branches, success mass, and normalized
+postselected outputs. An explicit pair of two-outcome instruments shows that agreement on a
+selected event alone does not bound the complementary branch error.
+
+## Main statements
+
+* `selectiveMap_diamond_le_cqRecordFin`: transfer record error to a selective outcome map.
+* `frontier1`: bound postselection error using a positive lower bound on ideal success mass.
+* `selectiveOnly_no_free_failure_witness`: exhibit identical selected maps with separated
+  failure outputs.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -28,6 +52,8 @@ open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator ENNReal
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D E R : ℕ}
 
+/-- The complex linear map recording each instrument outcome in a separate diagonal classical
+block. -/
 noncomputable def cqRecord (J : Instrument O D E) :
     Operator D →ₗ[ℂ] Matrix (Fin E × O) (Fin E × O) ℂ where
   toFun ρ := fun x y => if x.2 = y.2 then J.branch x.2 ρ x.1 y.1 else 0
@@ -38,10 +64,13 @@ noncomputable def cqRecord (J : Instrument O D E) :
     ext x y
     by_cases h : x.2 = y.2 <;> simp [h, map_smul]
 
+/-- An equivalence flattening a quantum basis index and a finite classical outcome into `Fin (E
+* Fintype.card O)`. -/
 noncomputable def cqFinEquiv (E : ℕ) (O : Type) [Fintype O] [DecidableEq O] :
     (Fin E × O) ≃ Fin (E * Fintype.card O) :=
   ((Equiv.refl (Fin E)).prodCongr (Fintype.equivFin O)).trans finProdFinEquiv
 
+/-- The instrument's classical-quantum record map reindexed by a single finite dimension. -/
 noncomputable def cqRecordFin (J : Instrument O D E) :
     Operator D →ₗ[ℂ] Operator (E * Fintype.card O) where
   toFun ρ := Matrix.reindex (cqFinEquiv E O) (cqFinEquiv E O) (cqRecord J ρ)
@@ -54,12 +83,15 @@ noncomputable def cqRecordFin (J : Instrument O D E) :
     by_cases h : ((cqFinEquiv E O).symm a).2 = ((cqFinEquiv E O).symm b).2 <;>
       simp [h, map_smul]
 
+/-- Applies a linear map to the left subsystem of a matrix with a finite reference register. -/
 noncomputable def tensorLeftOn {I : Type} [Fintype I]
     (T : Operator D →ₗ[ℂ] Matrix I I ℂ)
     (X : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     Matrix (I × Fin R) (I × Fin R) ℂ :=
   fun x y => T (fun i j => X (i, x.2) (j, y.2)) x.1 y.1
 
+/-- Extending the difference of two maps to the left subsystem equals the difference of their
+extensions. -/
 theorem tensorLeftOn_sub {I : Type} [Fintype I]
     (T S : Operator D →ₗ[ℂ] Matrix I I ℂ)
     (X : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
@@ -67,23 +99,29 @@ theorem tensorLeftOn_sub {I : Type} [Fintype I]
   ext x y
   simp [tensorLeftOn, LinearMap.sub_apply, Matrix.sub_apply]
 
+/-- Sums the diagonal outcome blocks indexed by `S`, retaining the output system and reference
+register. -/
 noncomputable def cqBlock (S : Finset O)
     (M : Matrix ((Fin E × O) × Fin R) ((Fin E × O) × Fin R) ℂ) :
     Matrix (Fin E × Fin R) (Fin E × Fin R) ℂ :=
   fun x y => ∑ o ∈ S, M ((x.1, o), x.2) ((y.1, o), y.2)
 
+/-- Extracting and summing selected outcome blocks commutes with matrix subtraction. -/
 theorem cqBlock_sub (S : Finset O)
     (M N : Matrix ((Fin E × O) × Fin R) ((Fin E × O) × Fin R) ℂ) :
     cqBlock S (M - N) = cqBlock S M - cqBlock S N := by
   ext x y
   simp [cqBlock, Matrix.sub_apply, Finset.sum_sub_distrib]
 
+/-- Tensoring the difference of two operator maps with the reference identity commutes with
+subtraction. -/
 private theorem tensorLeft_map_sub (T S : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (T - S) X = tensorLeft T X - tensorLeft S X := by
   ext x y
   simp [tensorLeft, LinearMap.sub_apply, Matrix.sub_apply]
 
+/-- The reference extension of `cqRecordFin` is the reindexed reference extension of `cqRecord`. -/
 theorem tensorLeft_cqRecordFin (J : Instrument O D E)
     (X : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (cqRecordFin J) X = Matrix.reindex
@@ -96,6 +134,8 @@ theorem tensorLeft_cqRecordFin (J : Instrument O D E)
     Equiv.prodCongr_apply, Equiv.coe_refl, id_eq, Prod.map_fst, Prod.map_snd]
   rfl
 
+/-- The reference extension of a selective instrument map equals the selected block sum of its
+classical-quantum record. -/
 theorem tensorLeft_selective_eq_cqBlock (J : Instrument O D E) (S : Finset O)
     (X : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (selectiveMap J S) X = cqBlock S (tensorLeftOn (cqRecord J) X) := by
@@ -105,11 +145,15 @@ theorem tensorLeft_selective_eq_cqBlock (J : Instrument O D E) (S : Finset O)
   refine Finset.sum_congr rfl fun o _ => ?_
   simp
 
+/-- Places a matrix in each diagonal outcome block belonging to `S` and sets all other blocks to
+zero. -/
 private noncomputable def cqLift (S : Finset O)
     (U : Matrix (Fin E × Fin R) (Fin E × Fin R) ℂ) :
     Matrix ((Fin E × O) × Fin R) ((Fin E × O) × Fin R) ℂ :=
   fun x y => if x.1.2 = y.1.2 ∧ x.1.2 ∈ S then U (x.1.1, x.2) (y.1.1, y.2) else 0
 
+/-- Pairing a matrix with a lifted test matrix by trace equals pairing its selected block sum
+with the original test matrix. -/
 private theorem cqLift_trace (S : Finset O)
     (U : Matrix (Fin E × Fin R) (Fin E × Fin R) ℂ)
     (M : Matrix ((Fin E × O) × Fin R) ((Fin E × O) × Fin R) ℂ) :
@@ -174,6 +218,8 @@ private theorem cqLift_trace (S : Finset O)
           U (i, a) (j, b) * M ((j, o), b) ((i, o), a) :=
           hcomm (fun o a j b => U (i, a) (j, b) * M ((j, o), b) ((i, o), a)) i
 
+/-- If `Uᴴ * U = 1`, the product of the lifted matrix's adjoint with itself is the diagonal
+projector onto outcomes in `S`. -/
 private theorem cqLift_conj_mul (S : Finset O)
     (U : Matrix (Fin E × Fin R) (Fin E × Fin R) ℂ) (hU : Uᴴ * U = 1) :
     (cqLift S U)ᴴ * cqLift S U
@@ -263,6 +309,7 @@ private theorem cqLift_conj_mul (S : Finset O)
     simp only [hzero, Finset.sum_const_zero, Matrix.diagonal_apply]
     rw [if_neg (fun h => hrs (congrArg (fun q => q.1.2) h))]
 
+/-- Summing the selected diagonal classical blocks does not increase the trace norm. -/
 theorem cqBlock_traceNorm_le (S : Finset O)
     (M : Matrix ((Fin E × O) × Fin R) ((Fin E × O) × Fin R) ℂ) :
     Matrix.traceNorm (cqBlock S M) ≤ Matrix.traceNorm M := by
@@ -303,6 +350,8 @@ theorem cqBlock_traceNorm_le (S : Finset O)
         mul_le_mul_of_nonneg_right hnormW (Matrix.traceNorm_nonneg _)
     _ = Matrix.traceNorm M := one_mul _
 
+/-- A nonnegative diamond-norm error bound on the full classical-quantum records also bounds the
+error of any selective outcome map. -/
 theorem selectiveMap_diamond_le_cqRecordFin (J K : Instrument O D E) (S : Finset O)
     {ε : ℝ} (hε : 0 ≤ ε)
     (h : Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm (cqRecordFin J - cqRecordFin K)
@@ -334,6 +383,8 @@ theorem selectiveMap_diamond_le_cqRecordFin (J K : Instrument O D E) (S : Finset
           (tensorLeftOn (cqRecord J - cqRecord K) X)).symm
     _ ≤ ε * Matrix.traceNorm X := hcq
 
+/-- A diamond-norm bound `ε` on the classical-quantum record difference gives selective-branch
+trace-norm error at most `ε` times the input trace norm for every reference register. -/
 theorem selectiveBranch_error_of_cqDiamond (J K : Instrument O D E) (S : Finset O)
     {ε : ℝ} (hε : 0 ≤ ε)
     (h : Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm (cqRecordFin J - cqRecordFin K)
@@ -345,6 +396,10 @@ theorem selectiveBranch_error_of_cqDiamond (J K : Instrument O D E) (S : Finset 
   have hd := selectiveMap_diamond_le_cqRecordFin J K S hε h
   exact (Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm_le_iff_uniform D E _ ε hε).mp hd R ρ
 
+/-- A classical-quantum record error at most `ε < p / 2` gives success and failure branch errors
+and success-mass error at most `ε` on a positive input of trace norm at most one. If the
+ideal success mass is at least `p > 0`, the perturbed success mass is positive and the
+normalized success branches differ by at most `2 * ε / p` in trace norm. -/
 theorem frontier1 :
     ∀ (O : Type) [Fintype O] [DecidableEq O] (D E R : ℕ) (J K : Instrument O D E)
       (S : Finset O) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (p ε : ℝ),
@@ -393,6 +448,8 @@ theorem frontier1 :
   exact hnormbound.trans
     (div_le_div_of_nonneg_left (mul_nonneg (by norm_num) hε) hp hmass)
 
+/-- Separate diamond-error certificates for success and failure maps give the corresponding
+branch trace-norm bounds on positive inputs of trace norm at most one. -/
 theorem selectiveOnly_with_failure_certificate (J K : Instrument O D E) (S : Finset O)
     (εs εf : ℝ) (h0s : 0 ≤ εs) (h0f : 0 ≤ εf)
     (hs : Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm (selectiveMap J S - selectiveMap K S)
@@ -416,63 +473,85 @@ theorem selectiveOnly_with_failure_certificate (J K : Instrument O D E) (S : Fin
   · rw [← tensorLeft_map_sub _ _ ρ]
     exact (e2.trans (mul_le_mul_of_nonneg_left hρn h0f)).trans_eq (mul_one εf)
 
+/-- The two-dimensional Pauli X matrix exchanging the computational basis states. -/
 def pauliX : Matrix (Fin 2) (Fin 2) ℂ := !![0, 1; 1, 0]
 
+/-- The Pauli X matrix is self-adjoint. -/
 theorem pauliX_conjTranspose_self : pauliXᴴ = pauliX := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [pauliX, Matrix.conjTranspose_apply]
 
+/-- The square of the Pauli X matrix is the identity. -/
 theorem pauliX_mul_self : pauliX * pauliX = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply]
 
+/-- The real amplitude `1 / sqrt 2`. -/
 noncomputable def halfAmp : ℝ := (Real.sqrt 2)⁻¹
 
+/-- The square of `halfAmp` equals one half. -/
 theorem halfAmp_sq : halfAmp * halfAmp = 1 / 2 := by
   rw [halfAmp, ← mul_inv, Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   norm_num
 
+/-- The square of `halfAmp` cast to the complex numbers equals one half. -/
 theorem halfAmp_sq_complex : (halfAmp : ℂ) * (halfAmp : ℂ) = ((1 / 2 : ℝ) : ℂ) := by
   rw [← Complex.ofReal_mul, halfAmp_sq]
 
+/-- The conjugate of a real scalar cast to the complex numbers, multiplied by that scalar,
+equals its real square. -/
 private theorem conj_ofReal_mul_self (c : ℝ) :
     star ((c : ℝ) : ℂ) * ((c : ℝ) : ℂ) = ((c * c : ℝ) : ℂ) := by
   rw [show star ((c : ℝ) : ℂ) = (starRingEnd ℂ) ((c : ℝ) : ℂ) from rfl,
     Complex.conj_ofReal, ← Complex.ofReal_mul]
 
+/-- A real scalar cast to the complex numbers, multiplied by its conjugate, equals its real
+square. -/
 private theorem ofReal_mul_star_self (c : ℝ) :
     ((c : ℝ) : ℂ) * star ((c : ℝ) : ℂ) = ((c * c : ℝ) : ℂ) := by
   rw [show star ((c : ℝ) : ℂ) = (starRingEnd ℂ) ((c : ℝ) : ℂ) from rfl,
     Complex.conj_ofReal, ← Complex.ofReal_mul]
 
+/-- The adjoint-times-self product of a real scalar multiple of the identity equals that scalar
+squared times the identity. -/
 private theorem conj_smul_one_mul {n : ℕ} (c : ℝ) :
     (((c : ℝ) : ℂ) • (1 : Matrix (Fin n) (Fin n) ℂ))ᴴ * ((c : ℝ) : ℂ) • 1
       = ((c * c : ℝ) : ℂ) • 1 := by
   simp only [Matrix.conjTranspose_smul, Matrix.conjTranspose_one, smul_mul_assoc,
     Matrix.mul_smul, smul_smul, Matrix.one_mul, Matrix.mul_one, conj_ofReal_mul_self]
 
+/-- The adjoint-times-self product of a real scalar multiple of Pauli X equals that scalar
+squared times the identity. -/
 private theorem conj_smul_pauli_mul (c : ℝ) :
     (((c : ℝ) : ℂ) • pauliX)ᴴ * ((c : ℝ) : ℂ) • pauliX = ((c * c : ℝ) : ℂ) • 1 := by
   simp only [Matrix.conjTranspose_smul, pauliX_conjTranspose_self, smul_mul_assoc,
     Matrix.mul_smul, smul_smul, pauliX_mul_self, conj_ofReal_mul_self]
 
+/-- Conjugation by a real scalar multiple of the identity scales the input operator by the
+scalar squared. -/
 theorem conjBranch_smul_one (c : ℝ) (ρ : Operator D) :
     conjBranch (((c : ℝ) : ℂ) • 1) ρ = ((c * c : ℝ) : ℂ) • ρ := by
   simp only [conjBranch_apply, Matrix.conjTranspose_smul, Matrix.conjTranspose_one,
     smul_mul_assoc, Matrix.mul_smul, smul_smul, Matrix.one_mul, Matrix.mul_one, ofReal_mul_star_self]
 
+/-- Conjugation by a real scalar multiple of Pauli X is the Pauli X conjugation scaled by the
+scalar squared. -/
 theorem conjBranch_smul_pauli (c : ℝ) (ρ : Operator 2) :
     conjBranch (((c : ℝ) : ℂ) • pauliX) ρ
       = ((c * c : ℝ) : ℂ) • (pauliX * ρ * pauliXᴴ) := by
   simp only [conjBranch_apply, Matrix.conjTranspose_smul, smul_mul_assoc,
     Matrix.mul_smul, smul_smul, ofReal_mul_star_self]
 
+/-- The singleton event containing outcome zero in a two-outcome instrument. -/
 def witnessS : Finset (Fin 2) := {0}
 
+/-- The projector onto computational basis state zero in dimension two. -/
 def witnessRho : Operator 2 :=
   Matrix.diagonal (fun i : Fin 2 => if i = 0 then (1 : ℂ) else 0)
 
+/-- The two-outcome instrument with both Kraus operators equal to the identity scaled by
+`halfAmp`. -/
 noncomputable def witnessJ : Instrument (Fin 2) 2 2 :=
   Instrument.ofKraus (fun _ => (halfAmp : ℂ) • 1)
     (by
@@ -483,9 +562,12 @@ noncomputable def witnessJ : Instrument (Fin 2) 2 2 :=
       simp only [e0, ← add_smul, ← Complex.ofReal_add]
       rw [show ((1 / 2 : ℝ) + 1 / 2) = 1 by norm_num, Complex.ofReal_one, one_smul])
 
+/-- Each branch of `witnessJ` is conjugation by the identity scaled by `halfAmp`. -/
 theorem witnessJ_branch (b : Fin 2) (ρ : Operator 2) :
     witnessJ.branch b ρ = ((halfAmp : ℂ) • 1) * ρ * (((halfAmp : ℂ) • 1))ᴴ := rfl
 
+/-- The two-outcome instrument with Kraus operators `halfAmp` times identity and `halfAmp` times
+Pauli X. -/
 noncomputable def witnessK : Instrument (Fin 2) 2 2 :=
   Instrument.ofKraus
     (fun b => if b = 0 then (halfAmp : ℂ) • 1 else (halfAmp : ℂ) • pauliX)
@@ -500,11 +582,15 @@ noncomputable def witnessK : Instrument (Fin 2) 2 2 :=
         if_false, e0, e1, ← add_smul, ← Complex.ofReal_add]
       rw [show ((1 / 2 : ℝ) + 1 / 2) = 1 by norm_num, Complex.ofReal_one, one_smul])
 
+/-- Each branch of `witnessK` is conjugation by its outcome-dependent scaled identity or Pauli X
+Kraus operator. -/
 theorem witnessK_branch (b : Fin 2) (ρ : Operator 2) :
     witnessK.branch b ρ
       = (if b = 0 then (halfAmp : ℂ) • 1 else (halfAmp : ℂ) • pauliX) * ρ
         * ((if b = 0 then (halfAmp : ℂ) • 1 else (halfAmp : ℂ) • pauliX))ᴴ := rfl
 
+/-- The two witness instruments have identical selected maps on `witnessS`, but their
+complementary branch outputs on `witnessRho` differ in trace norm by at least one. -/
 theorem selectiveOnly_no_free_failure_witness :
     selectiveMap witnessJ witnessS = selectiveMap witnessK witnessS ∧
     1 ≤ Matrix.traceNorm

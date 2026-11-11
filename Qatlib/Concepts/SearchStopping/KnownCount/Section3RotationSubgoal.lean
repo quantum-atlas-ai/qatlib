@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.Reflection.Basic
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+/-!
+# Grover circuits and two-amplitude rotation
+
+`GroverStep`, `GroverCircuit`, and `GroverState` define phase-oracle Grover search from the
+uniform state. The module proves validity and exact query counts, derives the two-amplitude
+rotation, and establishes the sine-square marked-set success formula under nonzero sine and
+cosine hypotheses.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `measureProb_groverState`: When sin²(θ) is the marked fraction and both sine and cosine are
+  nonzero, the marked-set probability of `GroverState A j` is sin²((2j + 1)θ). See
+  [BihamEtAl1999]. See [BoyerEtAl1998].
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
@@ -22,39 +44,52 @@ set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- One Grover iteration, consisting of a phase-oracle query followed by the diffusion gate. -/
 noncomputable def GroverStep (I : Type*) [Fintype I] [DecidableEq I] : Circuit I :=
   [Step.query, Step.gate (Diffusion I)]
 
+/-- The circuit obtained by repeating `GroverStep I` exactly j times. -/
 noncomputable def GroverCircuit (I : Type*) [Fintype I] [DecidableEq I] (j : ℕ) : Circuit I :=
   RepeatCircuit (GroverStep I) j
 
+/-- The state obtained by running j Grover iterations with `SetOracle A` from the uniform state. -/
 noncomputable def GroverState (A : Finset I) (j : ℕ) : QState I :=
   Run (SetOracle A) (GroverCircuit I j) (Uniform I)
 
+/-- On a nonempty finite space, `GroverStep I` is a unitary circuit. -/
 theorem isUnitaryCircuit_groverStep (hN : 0 < Fintype.card I) :
     IsUnitaryCircuit (GroverStep I) := by
   simp [GroverStep, diffusion_unitary hN]
 
+/-- On a nonempty finite space, every repeated Grover circuit is unitary. -/
 theorem isUnitaryCircuit_groverCircuit (hN : 0 < Fintype.card I) (j : ℕ) :
     IsUnitaryCircuit (GroverCircuit I j) :=
   (isUnitaryCircuit_groverStep hN).repeatCircuit j
 
+/-- On a nonempty finite space, the Grover state is normalized for every marked set and
+iteration count. -/
 theorem normalized_groverState (hN : 0 < Fintype.card I) (A : Finset I) (j : ℕ) :
     Normalized (GroverState A j) :=
   (isUnitaryCircuit_groverCircuit hN j).normalized_run
     (setOracle_unitary A) (normalized_uniform hN)
 
+/-- A Grover step uses exactly one query. -/
 theorem queryCount_groverStep : QueryCount (GroverStep I) = 1 := rfl
 
+/-- A j-iteration Grover circuit uses exactly j queries. -/
 theorem queryCount_groverCircuit (j : ℕ) : QueryCount (GroverCircuit I j) = j := by
   rw [GroverCircuit, queryCount_repeatCircuit, queryCount_groverStep, mul_one]
 
+/-- The set oracle negates the marked amplitude of a two-amplitude vector and preserves its
+unmarked amplitude. -/
 theorem applyGate_setOracle_markedVector (A : Finset I) (a b : ℂ) :
     ApplyGate (SetOracle A) (MarkedVector A a b) = MarkedVector A (-a) b := by
   funext i
   rw [SetOracle, applyGate_phaseOracle]
   by_cases hi : i ∈ A <;> simp [MarkedVector, hi]
 
+/-- On a nonempty finite space, one Grover step updates the marked and unmarked amplitudes by
+the displayed linear recurrence in the marked fraction. -/
 theorem run_groverStep_markedVector (hN : 0 < Fintype.card I) (A : Finset I) (a b : ℂ) :
     Run (SetOracle A) (GroverStep I) (MarkedVector A a b) =
       MarkedVector A
@@ -70,6 +105,8 @@ theorem run_groverStep_markedVector (hN : 0 < Fintype.card I) (A : Finset I) (a 
   have hn : (Fintype.card I : ℂ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hN)
   split_ifs <;> field_simp <;> ring
 
+/-- For nonzero sin(θ) and cos(θ), the two-amplitude Grover recurrence advances the angle x by
+2θ while retaining scale u. -/
 theorem rotation_scalar (θ x u : ℝ) (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) :
     (1 - 2 * (Real.sin θ) ^ 2) * (u * Real.sin x / Real.sin θ) +
         2 * (1 - (Real.sin θ) ^ 2) * (u * Real.cos x / Real.cos θ) =
@@ -88,6 +125,8 @@ theorem rotation_scalar (θ x u : ℝ) (hs : Real.sin θ ≠ 0) (hc : Real.cos �
     field_simp
   · field_simp
 
+/-- Under the marked-fraction and nonzero-denominator hypotheses, j Grover steps advance the
+two-amplitude angle from x to x + 2jθ. -/
 theorem run_groverCircuit_markedVector (hN : 0 < Fintype.card I) (A : Finset I) (θ u : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (j : ℕ) (x : ℝ) :
@@ -123,6 +162,8 @@ theorem run_groverCircuit_markedVector (hN : 0 < Fintype.card I) (A : Finset I) 
       ring
     rw [ha]
 
+/-- Under the marked-fraction and nonzero-denominator hypotheses, `GroverState A j` has the
+displayed marked and unmarked amplitudes at angle (2j + 1)θ. See [BihamEtAl1999]. -/
 theorem groverState_eq (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (j : ℕ) :
@@ -145,6 +186,9 @@ theorem groverState_eq (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
   have ha : θ + 2 * (j : ℝ) * θ = (2 * j + 1) * θ := by ring
   rw [ha]
 
+/-- When sin²(θ) is the marked fraction and both sine and cosine are nonzero, the marked-set
+probability of `GroverState A j` is sin²((2j + 1)θ). See [BihamEtAl1999]. See
+[BoyerEtAl1998]. -/
 theorem measureProb_groverState (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (j : ℕ) :
@@ -175,6 +219,8 @@ theorem measureProb_groverState (hN : 0 < Fintype.card I) (A : Finset I) (θ : �
         (Real.sin ((2 * j + 1) * θ)) ^ 2 := by ring
     _ = _ := by rw [hscale, div_self (pow_ne_zero 2 hs), one_mul]
 
+/-- Under the marked-fraction and nonzero-denominator hypotheses, there exists a circuit with
+exactly j queries and marked-set success sin²((2j + 1)θ) from the uniform state. -/
 theorem grover_exists_circuit (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (j : ℕ) :

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Phase detection specification
+
+Defines `PhaseDetection`, a uniform source-word implementation of approximate spectral sign
+reflection. It fixes the eigenvalue-one subspace exactly and approximately negates states with
+no component in the specified low-phase subspace.
+
+The specification gives explicit bounds in the inverse phase threshold and logarithmic error
+parameter for both oracle calls and scratch bits, following [LeeEtAl2011].
+
+## Main statements
+
+* `PhaseDetection`: specifies the legal phase word, resource bounds, and spectral behavior.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -19,6 +39,9 @@ namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The proposition that one universal positive constant bounds the query and scratch resources
+of legal phase detection words that fix invariant states and approximately negate states
+outside the low-phase subspace. -/
 def PhaseDetection : Prop :=
   ∃ c : ℕ, 0<c ∧ ∀ (H : Type) [Fintype H] [DecidableEq H]
     (Θ δ : ℝ), 0<Θ → 0<δ →

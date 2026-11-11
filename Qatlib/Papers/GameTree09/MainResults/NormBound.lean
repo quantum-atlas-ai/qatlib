@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.GameTree09.MainResults.Composition
+
+/-!
+# Operator norm bound for OR composition
+
+This module proves the OR-composition norm estimate in the span-program development of
+[Reichardt2009]. The rectangular matrix `orScale` duplicates and rescales the second column
+block; its product with its conjugate transpose is diagonal.
+
+Factoring `orComposedBlock` through this scaling matrix gives the squared operator-norm bound,
+which specializes to the gate coefficients in `lemma_3_4_or`.
+
+## Main statements
+
+* `orComposedBlock_eq_mul`: Factorization of the composed OR block.
+* `orScale_mul_conjTranspose`: The diagonal scaling Gram matrix.
+* `orComposedBlock_norm_sq_le`: The general squared-norm inequality.
+* `lemma_3_4_or`: The OR part of the source composition bound.
+
+## References
+
+* [Reichardt, 2009][Reichardt2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +40,8 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.GameTree09.MainResults
 
+/-- The rectangular scaling matrix that preserves the first block and sends two copies of the
+second block to weights `ε₁` and `ε₂`. -/
 def orScale {α β : Type*} [DecidableEq α] [DecidableEq β] (ε₁ ε₂ : ℝ) :
     Matrix (α ⊕ β) (α ⊕ (β ⊕ β)) ℝ :=
   fun i j =>
@@ -27,38 +52,50 @@ def orScale {α β : Type*} [DecidableEq α] [DecidableEq β] (ε₁ ε₂ : ℝ
           (fun b' => if b = b' then ε₂ else 0)) j)
       i
 
+/-- The diagonal function equal to one on the first summand and `ε₁² + ε₂²` on the second. -/
 def orScaleDiag {α β : Type*} (ε₁ ε₂ : ℝ) : α ⊕ β → ℝ :=
   Sum.elim (fun _ => 1) (fun _ => ε₁ ^ 2 + ε₂ ^ 2)
 
+/-- The first-to-first block of `orScale` is the identity matrix. -/
 theorem orScale_apply_inl_inl {α β : Type*} [DecidableEq α] [DecidableEq β]
     (ε₁ ε₂ : ℝ) (a a' : α) :
     orScale (α := α) (β := β) ε₁ ε₂ (Sum.inl a) (Sum.inl a') =
       (if a = a' then 1 else 0) := rfl
 
+/-- Entries from a first-summand row to either duplicated second-summand column are zero. -/
 theorem orScale_apply_inl_inr {α β : Type*} [DecidableEq α] [DecidableEq β]
     (ε₁ ε₂ : ℝ) (a : α) (j : β ⊕ β) :
     orScale (α := α) (β := β) ε₁ ε₂ (Sum.inl a) (Sum.inr j) = 0 := rfl
 
+/-- Entries from a second-summand row to a first-summand column are zero. -/
 theorem orScale_apply_inr_inl {α β : Type*} [DecidableEq α] [DecidableEq β]
     (ε₁ ε₂ : ℝ) (b : β) (a : α) :
     orScale (α := α) (β := β) ε₁ ε₂ (Sum.inr b) (Sum.inl a) = 0 := rfl
 
+/-- The block from the first copy of the second column summand to the second row summand is `ε₁`
+times the identity. -/
 theorem orScale_apply_inr_inr_inl {α β : Type*} [DecidableEq α] [DecidableEq β]
     (ε₁ ε₂ : ℝ) (b b' : β) :
     orScale (α := α) (β := β) ε₁ ε₂ (Sum.inr b) (Sum.inr (Sum.inl b')) =
       (if b = b' then ε₁ else 0) := rfl
 
+/-- The block from the second copy of the second column summand to the second row summand is
+`ε₂` times the identity. -/
 theorem orScale_apply_inr_inr_inr {α β : Type*} [DecidableEq α] [DecidableEq β]
     (ε₁ ε₂ : ℝ) (b b' : β) :
     orScale (α := α) (β := β) ε₁ ε₂ (Sum.inr b) (Sum.inr (Sum.inr b')) =
       (if b = b' then ε₂ else 0) := rfl
 
+/-- The scaling Gram diagonal is one on the first summand. -/
 theorem orScaleDiag_apply_inl {α β : Type*} (ε₁ ε₂ : ℝ) (a : α) :
     orScaleDiag (α := α) (β := β) ε₁ ε₂ (Sum.inl a) = 1 := rfl
 
+/-- The scaling Gram diagonal is `ε₁² + ε₂²` on the second summand. -/
 theorem orScaleDiag_apply_inr {α β : Type*} (ε₁ ε₂ : ℝ) (b : β) :
     orScaleDiag (α := α) (β := β) ε₁ ε₂ (Sum.inr b) = ε₁ ^ 2 + ε₂ ^ 2 := rfl
 
+/-- The composed OR block with first weight one factors as the source OR block multiplied by
+`orScale`. See [Reichardt2009]. -/
 theorem orComposedBlock_eq_mul {m α β : Type*} [Fintype α] [DecidableEq α]
     [Fintype β] [DecidableEq β] (A : Matrix m α ℝ) (B : Matrix m β ℝ)
     (ε₁ ε₂ : ℝ) :
@@ -107,6 +144,8 @@ theorem orComposedBlock_eq_mul {m α β : Type*} [Fintype α] [DecidableEq α]
     · intro hmem
       exact absurd (Finset.mem_univ b) hmem
 
+/-- The scaling matrix multiplied by its conjugate transpose is the diagonal matrix defined by
+`orScaleDiag`. See [Reichardt2009]. -/
 theorem orScale_mul_conjTranspose {α β : Type*} [Fintype α] [DecidableEq α]
     [Fintype β] [DecidableEq β] (ε₁ ε₂ : ℝ) :
     orScale (α := α) (β := β) ε₁ ε₂ * (orScale (α := α) (β := β) ε₁ ε₂)ᴴ =
@@ -175,6 +214,8 @@ theorem orScale_mul_conjTranspose {α β : Type*} [Fintype α] [DecidableEq α]
       have hne : ¬ ((Sum.inr b : α ⊕ β) = Sum.inr b') := fun hh => h (Sum.inr.inj hh)
       simp [hne]
 
+/-- For nonnegative weights with squared sum at least one, the squared operator norm of
+`orScale` is at most `ε₁² + ε₂²`. -/
 theorem orScale_norm_sq_le {α β : Type*} [Fintype α] [DecidableEq α]
     [Fintype β] [DecidableEq β] {ε₁ ε₂ : ℝ} (hε₁ : 0 ≤ ε₁) (hε₂ : 0 ≤ ε₂)
     (h : 1 ≤ ε₁ ^ 2 + ε₂ ^ 2) :
@@ -205,6 +246,8 @@ theorem orScale_norm_sq_le {α β : Type*} [Fintype α] [DecidableEq α]
   rw [pow_two, hsq]
   exact hdiag
 
+/-- For nonnegative weights with squared sum at least one, the squared norm of the composed OR
+block is at most their squared sum times the squared norm of the source block. -/
 theorem orComposedBlock_norm_sq_le {m α β : Type*} [Fintype m]
     [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β]
     (A : Matrix m α ℝ) (B : Matrix m β ℝ) {ε₁ ε₂ : ℝ}
@@ -231,6 +274,9 @@ theorem orComposedBlock_norm_sq_le {m α β : Type*} [Fintype m]
         mul_le_mul_of_nonneg_left hR2 (by positivity)
     _ = (ε₁ ^ 2 + ε₂ ^ 2) * ‖orSourceBlock A B‖ ^ 2 := by ring
 
+/-- For nonnegative source matrices and positive child weights, the squared norm of the
+OR-composed block is bounded by `(√(s 0) + √(s 1)) / √(s 0 + s 1)` times the squared
+source-block norm. See [Reichardt2009]. -/
 theorem lemma_3_4_or {m α β : Type*} [Fintype m] [DecidableEq m]
     [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β]
     (A : Matrix m α ℝ) (B : Matrix m β ℝ) (s : Fin 2 → ℝ)
@@ -243,6 +289,8 @@ theorem lemma_3_4_or {m α β : Type*} [Fintype m] [DecidableEq m]
     (le_of_lt (alpha_sum_sq_gt_one h0 h1))
   rwa [alpha_sum_sq h0 h1] at hlt
 
+/-- The OR norm bound satisfies `source_lemma_3_4_or_statement` for nonnegative source matrices
+and positive weights. -/
 theorem source_lemma_3_4_or_proved {m α β : Type*} [Fintype m] [DecidableEq m]
     [Fintype α] [DecidableEq α] [Fintype β] [DecidableEq β]
     (A : Matrix m α ℝ) (B : Matrix m β ℝ) (s : Fin 2 → ℝ)

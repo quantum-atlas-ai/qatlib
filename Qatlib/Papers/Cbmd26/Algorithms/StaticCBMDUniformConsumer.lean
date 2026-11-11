@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticUniformOuter
 import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+
+/-!
+# Uniform static CBMD circuit parameters
+
+`StaticCBMDResult` packages circuit validity, heralding, normalized-output accuracy, and
+expected and pathwise query bounds. The uniform construction chooses a polynomial and phases
+before the matrix instance, using only the scalar parameters of the static problem in
+[WangEtAl2026].
+
+## Main statements
+
+* `static_cbmd_uniform_original_oracle_algorithm`: produces shared polynomial and phase data
+  satisfying `StaticCBMDResult` for every admissible matrix encoding and prepared input.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,6 +74,9 @@ local instance cbmdStaticCBMDUniformConsumerInstance1 (J : Type) [DecidableEq J]
 
 variable {Anc I : Type} [Fintype Anc] [DecidableEq Anc] [Fintype I] [DecidableEq I]
 
+/-- The static CBMD specification for fixed polynomial and phase data, including circuit
+validity, success probability, expected and pathwise query bounds, and normalized-output
+accuracy on supported successful branches. -/
 def StaticCBMDResult (a₀ : Anc) (α t ε η : ℝ) (P : Polynomial ℂ)
     (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ)
     (L H : Matrix I I ℂ) (U : Matrix (Anc × I) (Anc × I) ℂ)
@@ -99,6 +121,9 @@ def StaticCBMDResult (a₀ : Anc) (α t ε η : ℝ) (P : Polynomial ℂ)
             IsNormalizedApplication (NormedSpace.exp (t • (-(L + Complex.I • H)))) ψ
               ((star z) • y) ε)
 
+/-- For positive normalization, nonnegative time, `0 < ε ≤ 1/2`, and positive output lower bound
+`η`, polynomial and phase data can be chosen uniformly over all admissible matrix encodings
+and unitary input preparations to satisfy `StaticCBMDResult`. -/
 theorem static_cbmd_uniform_original_oracle_algorithm
     (a₀ : Anc) (α t ε η : ℝ) (hα : 0 < α) (ht : 0 ≤ t)
     (hε : 0 < ε) (hεhalf : ε ≤ 1/2) (hη : 0 < η) :

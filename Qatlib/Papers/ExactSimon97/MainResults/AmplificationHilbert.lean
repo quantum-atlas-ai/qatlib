@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ExactSimon97.MainResults.GroverLemma
+
+/-!
+# Conjugating a rank-one phase update
+
+This module defines the initial basis vector `e0` and the outer-product matrix `ketBra`. It
+computes the conjugation of the corresponding rank-one phase update by a matrix satisfying `A *
+Aᴴ = 1`. These constructions support the results of [BrassardHoyer1997].
+
+## Main statements
+
+* `mul_ketBra_e0`: transports the initial rank-one matrix by conjugation.
+* `zeroRefl_conj`: conjugates the initial phase update into the update along `A *ᵥ e0 d`.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,17 +36,23 @@ open Matrix
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The first standard basis vector in the complex coordinate space indexed by `Fin (d + 1)`. -/
 def e0 (d : ℕ) : Fin (d + 1) → ℂ := Pi.single 0 1
 
+/-- The outer-product matrix with entry `u i * star (v j)`. -/
 def ketBra {d : ℕ} (u v : Fin (d + 1) → ℂ) : Matrix (Fin (d + 1)) (Fin (d + 1)) ℂ :=
   Matrix.of (fun i j => u i * star (v j))
 
+/-- The zeroth coordinate of `e0 d` is one. -/
 lemma e0_zero (d : ℕ) : e0 d 0 = 1 := by
   simp [e0]
 
+/-- Every nonzero coordinate index of `e0 d` has value zero. -/
 lemma e0_ne (d : ℕ) {l : Fin (d + 1)} (hl : l ≠ 0) : e0 d l = 0 := by
   simp [e0, Pi.single_eq_of_ne hl]
 
+/-- Conjugating the outer product of `e0 d` by `A` gives the outer product of `A *ᵥ e0 d`. See
+[BrassardHoyer1997]. -/
 lemma mul_ketBra_e0 (d : ℕ) (A : Matrix (Fin (d + 1)) (Fin (d + 1)) ℂ) :
     A * ketBra (e0 d) (e0 d) * Aᴴ = ketBra (A *ᵥ e0 d) (A *ᵥ e0 d) := by
   ext i j
@@ -53,6 +77,8 @@ lemma mul_ketBra_e0 (d : ℕ) (A : Matrix (Fin (d + 1)) (Fin (d + 1)) ℂ) :
   · intro k _ hk
     rw [e0_ne d hk, star_zero, mul_zero, zero_mul]
 
+/-- If `A * Aᴴ = 1`, conjugation by `A` carries the phase update along `e0 d` to the phase
+update along `A *ᵥ e0 d`. See [BrassardHoyer1997]. -/
 theorem zeroRefl_conj (d : ℕ) (A : Matrix (Fin (d + 1)) (Fin (d + 1)) ℂ)
     (hA : A * Aᴴ = 1) :
     A * (1 + (Complex.I - 1) • ketBra (e0 d) (e0 d)) * Aᴴ =

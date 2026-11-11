@@ -9,6 +9,31 @@ import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
 import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
 import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+/-!
+# Walk intersections and spectral multiplicities
+
+This module characterizes the intersection of the two isometric ranges through the discriminant
+eigenvalue one. It splits the discriminant kernel into cross Gram kernels and relates walk
+eigenvalue multiplicities on the combined range to discriminant eigenspace dimensions. See
+[Szegedy2004].
+
+## Main statements
+
+* `szegedyLemma8_intersection_characterization`: For isometries `A` and `B`, common range
+  vectors are walk fixed points, and equality `A *ᵥ a = B *ᵥ b` is equivalent to the sum vector
+  being fixed by the discriminant.
+* `finrank_ker_bipartiteDiscriminant`: The discriminant kernel has dimension `card I + card J -
+  2 * rank (Aᴴ * B)`.
+* `szegedyLemma9_multiplicity`: For isometries, each walk phase arising from `0 < lam < 1` has
+  the corresponding discriminant eigenspace dimension on the combined range, and the walk
+  eigenvalue minus one has the discriminant kernel dimension.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +52,8 @@ open scoped ComplexOrder
 
 namespace Qatlib.Papers.QuantWalkSpec04.MainResults.Spectral
 
+/-- The bipartite discriminant sends the two components of a sum indexed vector to the cross
+Gram actions `Aᴴ * B` and `Bᴴ * A`. -/
 theorem disc_mulVec_eq_sumElim
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -37,6 +64,8 @@ theorem disc_mulVec_eq_sumElim
   rw [bipartiteDiscriminant, Matrix.fromBlocks_mulVec]
   simp only [Matrix.zero_mulVec, zero_add, add_zero, Function.comp_def]
 
+/-- For isometries `A` and `B`, common range vectors are walk fixed points, and equality `A *ᵥ a
+= B *ᵥ b` is equivalent to the sum vector being fixed by the discriminant. -/
 theorem szegedyLemma8_intersection_characterization
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -78,6 +107,8 @@ theorem szegedyLemma8_intersection_characterization
         have := congrFun h (Sum.inr j)
         simpa using! this
 
+/-- The linear equivalence from the bipartite discriminant kernel to the product of the kernels
+of `Bᴴ * A` and `Aᴴ * B`. -/
 private noncomputable def discKerEquiv {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) :
@@ -123,6 +154,7 @@ private noncomputable def discKerEquiv {H I J : Type} [Fintype H] [DecidableEq H
   map_smul' c u := by
     apply Prod.ext <;> apply Subtype.ext <;> funext x <;> simp
 
+/-- The discriminant kernel has dimension `card I + card J - 2 * rank (Aᴴ * B)`. -/
 theorem finrank_ker_bipartiteDiscriminant
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) :
@@ -142,6 +174,9 @@ theorem finrank_ker_bipartiteDiscriminant
       Matrix.conjTranspose_conjTranspose]
   omega
 
+/-- For isometries, each walk phase arising from `0 < lam < 1` has the corresponding
+discriminant eigenspace dimension on the combined range, and the walk eigenvalue minus one
+has the discriminant kernel dimension. See [Szegedy2004]. -/
 theorem szegedyLemma9_multiplicity
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)

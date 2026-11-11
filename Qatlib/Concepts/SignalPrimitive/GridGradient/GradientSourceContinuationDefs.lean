@@ -12,6 +12,33 @@ import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueGradient
 import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
 import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+
+/-!
+# Value Oracle Gradient Specifications
+
+`valuePhaseGate` and `valueComputeKickbackUncomputeWord` define a value-register phase
+construction for the finite-grid gradient setting of [Jordan2005Gradient]. The word contains two
+value-oracle uses and one phase gate; `stationaryPhaseResidual` and `gradientEstimate` describe
+the affine residual and centered output coordinates.
+
+The three `stageB_fourier_gradient_gext1_spec`, `stageB_fourier_gradient_gext2_spec`, and
+`stageB_fourier_gradient_gext3_spec` propositions collect desired kickback, phase stability,
+readout, dyadic representation, and resource identities. This module defines those
+specifications; their definitions alone do not establish the collected properties.
+
+## Main statements
+
+- `valueComputeKickbackUncomputeWord` defines the value-register circuit word.
+- `stageB_fourier_gradient_gext1_spec` collects phase construction and readout properties.
+- `stageB_fourier_gradient_gext2_spec` collects decoding and representation properties.
+- `stageB_fourier_gradient_gext3_spec` collects circuit and register resource properties.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient], *Fast Quantum Algorithm for Numerical Gradient
+  Estimation*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -34,36 +61,50 @@ open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The complex unit phase associated with the residue `y`, namely `exp (2*pi*I*y.val/Q)`. -/
 noncomputable def valuePhaseCoeff (Q : ℕ) [NeZero Q] (y : ZMod Q) : ℂ :=
   Complex.exp (((2 * Real.pi * ((y.val : ℝ) / (Q : ℝ)) : ℝ) : ℂ) * Complex.I)
 
+/-- The diagonal value-register gate with entries `valuePhaseCoeff Q y`. -/
 noncomputable def valuePhaseGate (Q : ℕ) [NeZero Q] : Matrix (ZMod Q) (ZMod Q) ℂ :=
   Matrix.diagonal (fun y => valuePhaseCoeff Q y)
 
+/-- The adjoint-query word with a backward query, a value-register phase gate, and a forward
+query. -/
 noncomputable def valueComputeKickbackUncomputeWord (d M Q : ℕ) [NeZero Q] :
     List (AdjointStep (GradientGrid d M × ZMod Q)) :=
   [.backward,
    .gate (TensorGate (1 : Matrix (GradientGrid d M) (GradientGrid d M) ℂ) (valuePhaseGate Q)),
    .forward]
 
+/-- The value-register bit budget `Nat.clog 2 (max 2 Q)`. -/
 def valueRegisterBits (Q : ℕ) : ℕ := Nat.clog 2 (max 2 Q)
 
+/-- The phase remaining after subtracting the linear grid phase with slopes `g`. -/
 noncomputable def stationaryPhaseResidual (d M : ℕ) (φ : GradientGrid d M → ℝ)
     (g : Fin d → ℝ) : GradientGrid d M → ℝ :=
   fun x => φ x - ∑ j : Fin d, g j * (x j).val
 
+/-- The centered real grid output, defined by `signedGridValue M z`. -/
 noncomputable def centeredGridOutput (M : ℕ) (z : Fin M) : ℝ :=
   signedGridValue M z
 
+/-- The coordinatewise centered decoding of a grid measurement label. -/
 noncomputable def gradientEstimate (d M : ℕ) (z : GradientGrid d M) : Fin d → ℝ :=
   fun j => centeredGridOutput M (z j)
 
+/-- The proposition that the normalized grid label has an integer numerator over the dyadic
+denominator `2^m`. -/
 def DyadicGridLabel (m : ℕ) (z : Fin (2 ^ m)) : Prop :=
   ∃ n : ℤ, (z.val : ℝ) / (2 : ℝ) ^ m = (n : ℝ) / (2 : ℝ) ^ m
 
+/-- The finite real-record predicate `HasDyadicRecord k θ` used for comparison with dyadic grid
+outputs. -/
 def GeneralRealRecord (k : ℕ) (θ : ℝ) : Prop :=
   HasDyadicRecord k θ
 
+/-- The conjunction specifying value-oracle phase kickback and counts, integer-shift invariance,
+modular phase stability, residual-based readout probability, and exact affine readout. -/
 def stageB_fourier_gradient_gext1_spec : Prop :=
   (∀ (d M Q : ℕ) [NeZero Q] (v : GradientGrid d M → ZMod Q) (x : GradientGrid d M),
       (evaluate (gradientValueOracle Q v) (valueComputeKickbackUncomputeWord d M Q)) *ᵥ
@@ -90,6 +131,8 @@ def stageB_fourier_gradient_gext1_spec : Prop :=
       gradientReadout d M hM (fun x => c + ∑ j : Fin d, (q j).val * (x j).val / (M : ℝ))
         = Complex.exp (2 * Real.pi * Complex.I * (c : ℂ)) • Ket q)
 
+/-- The conjunction specifying centered gradient decoding, residual-based readout probability,
+dyadic output representations, and limits of the general real-record predicate. -/
 def stageB_fourier_gradient_gext2_spec : Prop :=
   (∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
       (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
@@ -111,6 +154,8 @@ def stageB_fourier_gradient_gext2_spec : Prop :=
   (¬ GeneralRealRecord 1 (1 / 3)) ∧
   (∀ (Q : ℕ) (hQ : 1 < Q), ¬ GeneralRealRecord 0 ((1 : ℝ) / Q))
 
+/-- The conjunction specifying gradient circuit counts, readout and value-register bit budgets,
+one-coordinate dyadic output, and a magnitude bound for accurate estimates. -/
 def stageB_fourier_gradient_gext3_spec : Prop :=
   (∀ (d M : ℕ) (hM : 0 < M),
       IsUnitaryCircuit (gradientWord d M) ∧

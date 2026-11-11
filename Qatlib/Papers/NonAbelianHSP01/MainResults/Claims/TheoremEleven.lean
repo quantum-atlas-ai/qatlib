@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
+
+/-!
+# Hidden-subgroup reconstruction from lifts
+
+Packages `theorem_eleven_reduction` as `theorem_eleven`. Given generators for the join and
+intersection with the commutator subgroup, together with compatible lifts and a ledger bound, it
+produces a `HiddenSubgroupSolution` with a corresponding bound. See [IvanyosMagniezSantha2003]
+for the surrounding analysis.
+
+## Main statements
+
+* `theorem_eleven`: Given generators for `I.H ⊔ commutator G` and `I.H ⊓ commutator G`,
+  compatible lifts into `I.H`, and the stated cost bound, a hidden-subgroup solution exists with
+  cost satisfying `PolyBoundedIn B (Nat.card (commutator G))`.
+
+## References
+
+* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,9 @@ set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults.Claims
 
+/-- Given generators for `I.H ⊔ commutator G` and `I.H ⊓ commutator G`, compatible lifts into
+`I.H`, and the stated cost bound, a hidden-subgroup solution exists with cost satisfying
+`PolyBoundedIn B (Nat.card (commutator G))` [IvanyosMagniezSantha2003]. -/
 theorem theorem_eleven {G : Type*} [Group G] (B : BlackBoxGroupData G)
     {X : Type*} (I : HiddenSubgroupInstance G X)
     (S : Finset G) (hS : Subgroup.closure (S : Set G) = I.H ⊔ commutator G)

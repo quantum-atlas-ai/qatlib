@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator.WalkOperatorAction
 import Mathlib.Analysis.Complex.Exponential
+
+/-!
+# Mass preservation and spectral contraction
+
+`RegularDegree` states the common vertex degree, and `SpectralGap` specifies a quantitative
+Euclidean contraction on vectors supported in one component and summing to zero. The module
+proves mass preservation, stationarity of `uniformOn`, and iteration of this contraction.
+
+The initial difference `basisVec u - uniformOn G u` has squared norm `1 - 1 / compSize G u`,
+giving a strict norm bound by one. These results support the connectivity analysis in
+[Watrous1998].
+
+## Main statements
+
+* `walkM_mulVec_uniformOn`: the component-uniform vector is stationary.
+* `l2norm_walkM_pow_le`: iterate the assumed component contraction.
+* `l2norm_basisVec_sub_uniformOn_sq`: compute the squared initial error norm.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing
@@ -19,9 +42,12 @@ noncomputable section
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- The predicate that every vertex has degree `d`, with the finite neighbor count viewed as a
+real number. -/
 def RegularDegree (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) : Prop :=
   ∀ v : V, ((G.neighborFinset v).card : ℝ) = d
 
+/-- The walk coefficients satisfy `walkA d + walkB d * d = 1`. -/
 theorem walkA_add_walkB_mul (d : ℝ) : walkA d + walkB d * d = 1 := by
   rw [walkA, walkB]
   by_cases h : d + 1 = 0
@@ -31,6 +57,7 @@ theorem walkA_add_walkB_mul (d : ℝ) : walkA d + walkB d * d = 1 := by
   · field_simp
     ring
 
+/-- The sum of a column of the adjacency matrix is the degree of its vertex. -/
 theorem sum_adjMatrix_column (G : SimpleGraph V) [DecidableRel G.Adj] (j : V) :
     (∑ i, adjMatrix G i j) = ((G.neighborFinset j).card : ℝ) := by
   have h : (∑ i, adjMatrix G i j) =
@@ -46,6 +73,7 @@ theorem sum_adjMatrix_column (G : SimpleGraph V) [DecidableRel G.Adj] (j : V) :
     simp [SimpleGraph.mem_neighborFinset, G.adj_comm]
   rw [hcard]
 
+/-- For a regular graph, every column of `walkM G d` sums to one. -/
 theorem walkM_column_sum (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (j : V) :
     (∑ i, walkM G d i j) = 1 := by
@@ -63,6 +91,7 @@ theorem walkM_column_sum (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
         rw [hreg j]
         exact walkA_add_walkB_mul d
 
+/-- On a regular graph, applying `walkM` preserves the sum of a real vector's coordinates. -/
 theorem sum_walkM_mulVec_eq (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (x : V → ℝ) :
     (∑ v, (walkM G d *ᵥ x) v) = ∑ v, x v := by
@@ -76,6 +105,7 @@ theorem sum_walkM_mulVec_eq (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
         intro j _
         rw [walkM_column_sum G hreg j, one_mul]
 
+/-- Every power of `walkM` on a regular graph preserves the sum of a real vector's coordinates. -/
 theorem sum_walkM_pow_mulVec_eq (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (k : ℕ) :
     ∀ x : V → ℝ, (∑ v, ((walkM G d ^ k) *ᵥ x) v) = ∑ v, x v := by
@@ -86,6 +116,7 @@ theorem sum_walkM_pow_mulVec_eq (G : SimpleGraph V) [DecidableRel G.Adj] {d : �
     rw [pow_succ', ← Matrix.mulVec_mulVec,
       sum_walkM_mulVec_eq G hreg ((walkM G d ^ n) *ᵥ x), ih x]
 
+/-- The coordinates of the uniform vector on the component of `u` sum to one. -/
 theorem sum_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     (∑ v, uniformOn G u v) = 1 := by
   classical
@@ -100,6 +131,7 @@ theorem sum_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
   rw [mul_one_div]
   exact div_self (ne_of_gt (compSize_pos G u))
 
+/-- The uniform vector on the component of `u` is fixed by `walkM` on a regular graph. -/
 theorem walkM_mulVec_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (u : V) :
     walkM G d *ᵥ uniformOn G u = uniformOn G u := by
@@ -129,6 +161,7 @@ theorem walkM_mulVec_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ
     rw [hsum, uniformOn, if_neg hv]
     ring
 
+/-- Every power of `walkM` on a regular graph fixes the uniform vector on the component of `u`. -/
 theorem walkM_pow_mulVec_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (k : ℕ) (u : V) :
     (walkM G d ^ k) *ᵥ uniformOn G u = uniformOn G u := by
@@ -137,11 +170,15 @@ theorem walkM_pow_mulVec_uniformOn (G : SimpleGraph V) [DecidableRel G.Adj] {d :
   | succ n ih =>
     rw [pow_succ', ← Matrix.mulVec_mulVec, ih, walkM_mulVec_uniformOn G hreg]
 
+/-- The predicate that `walkM` contracts every zero-sum vector supported in the component of `u`
+by the factor `1 - 8 / (d * (d + 1) ^ 2 * compSize G u ^ 2)`. -/
 def SpectralGap (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) (u : V) : Prop :=
   ∀ x : V → ℝ, (∀ v, ¬ G.Reachable u v → x v = 0) → (∑ v, x v = 0) →
     l2norm (walkM G d *ᵥ x) ≤
       (1 - 8 / (d * (d + 1) ^ 2 * (compSize G u : ℝ) ^ 2)) * l2norm x
 
+/-- The `SpectralGap` hypothesis gives its specified contraction bound for a zero-sum vector
+supported in the component of `u`. -/
 theorem component_spectral_contraction (G : SimpleGraph V) [DecidableRel G.Adj]
     {d : ℝ} (u : V) (hgap : SpectralGap G d u) (x : V → ℝ)
     (hsupp : ∀ v, ¬ G.Reachable u v → x v = 0) (hsum : ∑ v, x v = 0) :
@@ -149,6 +186,7 @@ theorem component_spectral_contraction (G : SimpleGraph V) [DecidableRel G.Adj]
       (1 - 8 / (d * (d + 1) ^ 2 * (compSize G u : ℝ) ^ 2)) * l2norm x :=
   hgap x hsupp hsum
 
+/-- A component with one vertex satisfies `SpectralGap` for every real degree parameter. -/
 theorem spectralGap_singleton (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) (u : V)
     (hcard : compSize G u = 1) : SpectralGap G d u := by
   intro x hsupp hsum
@@ -186,6 +224,8 @@ theorem spectralGap_singleton (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   rw [hmul]
   simp [l2norm]
 
+/-- For `2 ≤ d`, the component contraction factor `1 - 8 / (d * (d + 1) ^ 2 * compSize G u ^ 2)`
+is positive. -/
 theorem spectral_coeff_pos (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hd : 2 ≤ d) (u : V) :
     (0 : ℝ) < 1 - 8 / (d * (d + 1) ^ 2 * (compSize G u : ℝ) ^ 2) := by
@@ -214,6 +254,9 @@ theorem spectral_coeff_pos (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     nlinarith [h18]
   linarith
 
+/-- For a regular graph of degree at least two satisfying `SpectralGap`, the norm after `k`
+steps of a component-supported zero-sum vector is bounded by the `k`th power of the
+contraction factor times its initial norm. -/
 theorem l2norm_walkM_pow_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (u : V) (hgap : SpectralGap G d u)
     (x : V → ℝ)
@@ -241,6 +284,7 @@ theorem l2norm_walkM_pow_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
         rw [pow_succ']
         ring
 
+/-- The squared Euclidean norm of `basisVec u - uniformOn G u` is `1 - 1 / compSize G u`. -/
 theorem l2norm_basisVec_sub_uniformOn_sq (G : SimpleGraph V) [DecidableRel G.Adj]
     (u : V) :
     l2norm (basisVec u - uniformOn G u) ^ 2 = 1 - 1 / (compSize G u : ℝ) := by
@@ -294,6 +338,7 @@ theorem l2norm_basisVec_sub_uniformOn_sq (G : SimpleGraph V) [DecidableRel G.Adj
   field_simp
   ring
 
+/-- The Euclidean norm of `basisVec u - uniformOn G u` is at most one. -/
 theorem l2norm_basisVec_sub_uniformOn_le_one (G : SimpleGraph V) [DecidableRel G.Adj]
     (u : V) :
     l2norm (basisVec u - uniformOn G u) ≤ 1 := by
@@ -309,6 +354,7 @@ theorem l2norm_basisVec_sub_uniformOn_le_one (G : SimpleGraph V) [DecidableRel G
     _ ≤ Real.sqrt 1 := Real.sqrt_le_sqrt hS
     _ = 1 := Real.sqrt_one
 
+/-- The Euclidean norm of `basisVec u - uniformOn G u` is strictly less than one. -/
 theorem l2norm_basisVec_sub_uniformOn_lt_one (G : SimpleGraph V) [DecidableRel G.Adj]
     (u : V) :
     l2norm (basisVec u - uniformOn G u) < 1 := by

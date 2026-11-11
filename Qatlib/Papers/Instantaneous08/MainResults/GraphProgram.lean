@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Bias
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+/-!
+# Graph-program simulation of X-programs
+
+This module constructs the bipartite graph amplitude `graphAmp`, its measurement amplitude
+`measAmp`, and the corrected output distribution `outDist`. It proves equality with the
+X-program output distribution and bounds the graph size, formalizing the simulation in Lemma 9
+of [ShepherdBremner2009].
+
+## Main statements
+
+* `measAmp_eq`: reduces the measurement amplitude to a sum with a binary linear constraint.
+* `outDist_eq_prob`: identifies the corrected graph-program distribution with the X-program
+  distribution.
+* `edgeCount_le`: bounds the number of graph edges by `n * k`.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,22 +42,30 @@ open Qatlib.Papers.Instantaneous08.MainResults.ConstantAction
 
 attribute [local instance] Classical.propDecidable
 
+/-- The complex scalar given by the reciprocal of the positive square root of two. -/
 def invSqrtTwo : ℂ := ((Real.sqrt 2 : ℝ)⁻¹ : ℂ)
 
+/-- The Hadamard matrix amplitude `invSqrtTwo * sgn2 (a * b)` for binary indices. -/
 def hAmp (a b : ZMod 2) : ℂ := invSqrtTwo * sgn2 (a * b)
 
+/-- The single-qubit X-rotation amplitude, equal to `cos θ` on the diagonal and `I * sin θ` when
+the binary indices differ. -/
 def xExpAmp (θ : ℝ) (a b : ZMod 2) : ℂ :=
   if a = b then (Real.cos θ : ℂ)
   else if b = a + 1 then Complex.I * (Real.sin θ : ℂ) else 0
 
+/-- The uniform amplitude on `m` qubits, defined as the reciprocal square root of `2 ^ m`. -/
 def plusAmp (m : ℕ) : ℂ := ((Real.sqrt ((2 : ℝ) ^ m))⁻¹ : ℂ)
 
+/-- The square of `invSqrtTwo` equals `1 / 2`. -/
 theorem invSqrtTwo_mul_self : invSqrtTwo * invSqrtTwo = ((2 : ℝ)⁻¹ : ℂ) := by
   unfold invSqrtTwo
   have h : (Real.sqrt 2)⁻¹ * (Real.sqrt 2)⁻¹ = (2 : ℝ)⁻¹ := by
     rw [← mul_inv, Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   exact_mod_cast h
 
+/-- The uniform amplitude for `m + l` qubits is the product of the uniform amplitudes for `m`
+and `l` qubits. -/
 theorem plusAmp_add (m l : ℕ) : plusAmp (m + l) = plusAmp m * plusAmp l := by
   unfold plusAmp
   have h : (Real.sqrt ((2 : ℝ) ^ (m + l)))⁻¹ =
@@ -44,6 +73,7 @@ theorem plusAmp_add (m l : ℕ) : plusAmp (m + l) = plusAmp m * plusAmp l := by
     rw [pow_add, Real.sqrt_mul (by positivity), mul_inv]
   exact_mod_cast h
 
+/-- The squared norm of the uniform `m`-qubit amplitude equals the reciprocal of `2 ^ m`. -/
 theorem normSq_plusAmp (m : ℕ) : Complex.normSq (plusAmp m) = ((2 : ℝ) ^ m)⁻¹ := by
   unfold plusAmp
   rw [Complex.normSq_inv, Complex.normSq_ofReal]
@@ -51,6 +81,7 @@ theorem normSq_plusAmp (m : ℕ) : Complex.normSq (plusAmp m) = ((2 : ℝ) ^ m)�
     Real.mul_self_sqrt (by positivity)
   rw [h]
 
+/-- The product of `plusAmp m` with itself is the complex reciprocal of `2 ^ m`. -/
 theorem plusAmp_sq_mul (m : ℕ) : plusAmp m * plusAmp m = (((2 : ℂ) ^ m)⁻¹) := by
   have h : plusAmp m * plusAmp m = (((2 : ℝ) ^ m)⁻¹ : ℂ) := by
     unfold plusAmp
@@ -61,24 +92,30 @@ theorem plusAmp_sq_mul (m : ℕ) : plusAmp m * plusAmp m = (((2 : ℂ) ^ m)⁻¹
   rw [h]
   congr 1
 
+/-- The `n`th power of the positive square root of two is the positive square root of `2 ^ n`. -/
 theorem sqrt_two_pow (n : ℕ) : (Real.sqrt 2) ^ n = Real.sqrt ((2 : ℝ) ^ n) := by
   induction n with
   | zero => simp
   | succ n ih =>
       rw [pow_succ, ih, pow_succ, Real.sqrt_mul (by positivity : (0 : ℝ) ≤ (2 : ℝ) ^ n)]
 
+/-- The `n`th power of `invSqrtTwo` equals `plusAmp n`. -/
 theorem invSqrtTwo_pow_eq (n : ℕ) : invSqrtTwo ^ n = plusAmp n := by
   unfold invSqrtTwo plusAmp
   have h : ((Real.sqrt 2)⁻¹) ^ n = (Real.sqrt ((2 : ℝ) ^ n))⁻¹ := by
     rw [inv_pow, sqrt_two_pow]
   exact_mod_cast h
 
+/-- The bipartite graph-state amplitude with uniform normalization and one binary phase for each
+nonzero entry of `p`. See [ShepherdBremner2009]. -/
 def graphAmp {n k : ℕ} (p : Fin k → F2Vec n) (x : F2Vec n) (y : F2Vec k) : ℂ :=
   plusAmp (n + k) * ∏ i, ∏ j, sgn2 (p i j * x j * y i)
 
+/-- The binary linear combination of program rows with coefficients `zy`. -/
 def lin {n k : ℕ} (p : Fin k → F2Vec n) (zy : F2Vec k) : F2Vec n :=
   fun j => ∑ i, p i j * zy i
 
+/-- The row-combination map `lin p` preserves addition. -/
 theorem lin_add {n k : ℕ} (p : Fin k → F2Vec n) (a b : F2Vec k) :
     lin p (a + b) = lin p a + lin p b := by
   funext j
@@ -88,10 +125,12 @@ theorem lin_add {n k : ℕ} (p : Fin k → F2Vec n) (a b : F2Vec k) :
   intro i _
   ring
 
+/-- The row-combination map `lin p` sends zero to zero. -/
 @[simp] theorem lin_zero {n k : ℕ} (p : Fin k → F2Vec n) : lin p 0 = 0 := by
   funext j
   simp [lin]
 
+/-- The sum of two binary vectors vanishes if and only if the vectors are equal. -/
 theorem add_eq_zero_iff_eq_vec {n : ℕ} (x y : F2Vec n) : x + y = 0 ↔ x = y := by
   constructor
   · intro h
@@ -103,12 +142,15 @@ theorem add_eq_zero_iff_eq_vec {n : ℕ} (x y : F2Vec n) : x + y = 0 ↔ x = y :
   · intro h
     rw [h, add_self_eq_zero_vec]
 
+/-- The amplitude obtained from `graphAmp` by applying Hadamard amplitudes on the `n`
+coordinates and X-rotation amplitudes on the `k` coordinates. See [ShepherdBremner2009]. -/
 def measAmp {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     (x : F2Vec n) (y : F2Vec k) : ℂ :=
   ∑ zx : F2Vec n, ∑ zy : F2Vec k,
     (∏ j, hAmp (x j) (zx j)) * (∏ i, xExpAmp (θ i) (y i) (zy i)) *
       graphAmp p zx zy
 
+/-- Combines the product of binary sign factors into the sign of `z * (x + ∑ i, q i)`. -/
 theorem sgn2_constraint {k : ℕ} (x z : ZMod 2) (q : Fin k → ZMod 2) :
     sgn2 (x * z) * ∏ i, sgn2 (q i * z) = sgn2 (z * (x + ∑ i, q i)) := by
   have h1 : z * (x + ∑ i, q i) = z * x + ∑ i, z * q i := by
@@ -120,6 +162,8 @@ theorem sgn2_constraint {k : ℕ} (x z : ZMod 2) (q : Fin k → ZMod 2) :
     intro i _
     rw [mul_comm]
 
+/-- The sum over the Hadamard-side variables vanishes unless `x = lin p zy`, in which case it
+equals `plusAmp n * 2 ^ n`. See [ShepherdBremner2009]. -/
 theorem sum_zx {n k : ℕ} (p : Fin k → F2Vec n) (x : F2Vec n) (zy : F2Vec k) :
     (∑ zx : F2Vec n,
         (∏ j, hAmp (x j) (zx j)) * ∏ i, ∏ j, sgn2 (p i j * zx j * zy i)) =
@@ -187,6 +231,8 @@ theorem sum_zx {n k : ℕ} (p : Fin k → F2Vec n) (x : F2Vec n) (zy : F2Vec k) 
             exact h
           rw [if_neg hc, if_neg h]
 
+/-- Expresses the measurement amplitude as `plusAmp k` times the X-rotation sum constrained by
+`lin p zy = x`. See [ShepherdBremner2009]. -/
 theorem measAmp_eq {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     (x : F2Vec n) (y : F2Vec k) :
     measAmp p θ x y =
@@ -260,6 +306,8 @@ theorem measAmp_eq {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
         · rw [if_neg h, if_neg (Ne.symm h)]
           simp
 
+/-- The measurement probability is `2 ^ k` inverse times the squared norm of the constrained
+X-rotation sum. -/
 theorem prob_measAmp {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     (x : F2Vec n) (y : F2Vec k) :
     Complex.normSq (measAmp p θ x y) =
@@ -268,9 +316,13 @@ theorem prob_measAmp {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
           (if lin p zy = x then (∏ i, xExpAmp (θ i) (y i) (zy i)) else 0)) := by
   rw [measAmp_eq, Complex.normSq_mul, normSq_plusAmp]
 
+/-- The graph-program output distribution obtained by summing measurement probabilities with the
+binary correction determined by `lin p`. See [ShepherdBremner2009]. -/
 def outDist {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ) (y' : F2Vec n) : ℝ :=
   ∑ y : F2Vec k, Complex.normSq (measAmp p θ (y' + lin p y) y)
 
+/-- After shifting the second binary index by the first, the X-rotation amplitude is `cos θ` at
+zero and `I * sin θ` otherwise. -/
 theorem xExpAmp_shift (θ : ℝ) (a b : ZMod 2) :
     xExpAmp θ a (a + b) = if b = 0 then (Real.cos θ : ℂ)
       else Complex.I * (Real.sin θ : ℂ) := by
@@ -286,6 +338,8 @@ theorem xExpAmp_shift (θ : ℝ) (a b : ZMod 2) :
     rw [if_neg hne, if_pos rfl]
     rw [if_neg (one_ne_zero (α := ZMod 2))]
 
+/-- The shifted X-rotation amplitude equals the Boolean path coefficient for the condition `b =
+1`. -/
 theorem xExpAmp_shift_eq_pathCoeff (θ : ℝ) (a b : ZMod 2) :
     xExpAmp θ a (a + b) = pathCoeff θ (b = 1) := by
   rw [xExpAmp_shift]
@@ -296,6 +350,8 @@ theorem xExpAmp_shift_eq_pathCoeff (θ : ℝ) (a b : ZMod 2) :
   · subst hb
     simp
 
+/-- Selecting rows using the Boolean tests `a i = 1` gives the binary linear combination `lin p
+a`. -/
 theorem pathSample_eq_lin {n k : ℕ} (p : Fin k → F2Vec n) (a : F2Vec k) :
     pathSample p (fun i => a i = 1) = lin p a := by
   funext j
@@ -307,6 +363,8 @@ theorem pathSample_eq_lin {n k : ℕ} (p : Fin k → F2Vec n) (a : F2Vec k) :
   · simp [h]
   · simp [h]
 
+/-- Translating the binary summation variable by `u` turns the shifted linear constraint and
+X-rotation factors into the unshifted path constraint and path coefficients. -/
 theorem sum_shift_constraint {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     (u : F2Vec k) (x' : F2Vec n) :
     (∑ zy : F2Vec k,
@@ -343,6 +401,8 @@ theorem sum_shift_constraint {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k →
     rw [harg, xExpAmp_shift_eq_pathCoeff]
   · rw [if_neg h, if_neg (fun hh => h (hcond.mp hh))]
 
+/-- Reindexes a sum over binary vectors as a sum over Boolean vectors using the coordinate tests
+for equality to `1`. -/
 theorem sum_zmod_bool {k : ℕ} (g : (Fin k → Bool) → ℂ) :
     (∑ a : F2Vec k, g (fun i => a i = 1)) = ∑ b : Fin k → Bool, g b := by
   classical
@@ -357,6 +417,8 @@ theorem sum_zmod_bool {k : ℕ} (g : (Fin k → Bool) → ℂ) :
   have h := Equiv.sum_comp (Equiv.piCongrRight (fun _ : Fin k => bitEquiv)) g
   simpa [bitEquiv, Equiv.piCongrRight] using! h
 
+/-- The corrected graph-program output distribution equals the X-program output probability, as
+in [Shepherd and Bremner, Lemma 9][ShepherdBremner2009]. -/
 theorem outDist_eq_prob {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     (y' : F2Vec n) :
     outDist p θ y' = prob p θ y' := by
@@ -403,11 +465,16 @@ theorem outDist_eq_prob {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     exact mul_inv_cancel₀ (pow_ne_zero k (by norm_num))]
   rw [one_mul, prob_eq_pathSum]
 
+/-- The number `n + k` of vertices in the bipartite graph-program construction. See
+[ShepherdBremner2009]. -/
 def vertexCount (n k : ℕ) : ℕ := n + k
 
+/-- The number of nonzero binary entries of `p`, viewed as edges of the bipartite graph. See
+[ShepherdBremner2009]. -/
 def edgeCount {n k : ℕ} (p : Fin k → F2Vec n) : ℕ :=
   ∑ i, (Finset.univ.filter (fun j => p i j = 1)).card
 
+/-- The graph-program edge count is at most `n * k`. See [ShepherdBremner2009]. -/
 theorem edgeCount_le {n k : ℕ} (p : Fin k → F2Vec n) :
     edgeCount p ≤ n * k := by
   unfold edgeCount

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
 import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
 import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticConsumer
+
+/-!
+# Compiling dynamic samples to original oracles
+
+Extends coherent sample and padding evaluation to label-dependent original oracle families. The
+construction `dynamicOriginalWord` compiles controlled padded first-order samples using register
+reindexing and clean Boolean masks, preserving the encoded matrix and tracking the resource
+overhead. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicSampleWord_evaluate`: implements the controlled padded sample family.
+* `dynamicOriginalWord_blockEncoding`: transfers encodings to original-oracle words with exact
+  costs.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,6 +72,8 @@ open scoped Matrix.Norms.L2Operator
 variable {J W I T : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I] [Fintype T] [DecidableEq T]
 
+/-- For a label-dependent oracle family, the coherent coefficient word evaluates to the selected
+coefficient LCU unitaries of each oracle-adjoint pair. -/
 theorem coherentCoefficientAdjointWord_evaluate_family (d : J → Bool → ℂ) (b₀ : Bool)
     (U : J → Matrix W W ℂ) :
     evaluate (select (fun j => controlOracle (U j)))
@@ -77,6 +99,8 @@ theorem coherentCoefficientAdjointWord_evaluate_family (d : J → Bool → ℂ) 
   rw [Matrix.mul_assoc _ (coefficientLabelPhase (d j)) (select (oracleAdjointPair (U j))), hphase]
   rfl
 
+/-- For a selected oracle family, inserting the padding register lifts every branch evaluation
+by a Boolean spectator. -/
 theorem insertPaddingWord_evaluate_family (O : J → Matrix W W ℂ)
     (cs : List (AdjointStep (J × W))) (V : J → Matrix W W ℂ)
     (he : evaluate (select O) cs = select V) :
@@ -93,6 +117,8 @@ theorem insertPaddingWord_evaluate_family (O : J → Matrix W W ℂ)
   by_cases hj : j = k <;> by_cases hb : b = c <;>
     simp [parallelOracle, select, controlSpectatorEquiv, hj, hb]
 
+/-- For a selected oracle family, coherent padding evaluates branchwise to the padding
+coefficient LCU unitary. -/
 theorem coherentPaddingWord_evaluate_family (r : J → ℝ) (O : J → Matrix W W ℂ)
     (cs : List (AdjointStep (J × W))) (V : J → Matrix W W ℂ)
     (he : evaluate (select O) cs = select V) :
@@ -115,6 +141,8 @@ theorem coherentPaddingWord_evaluate_family (r : J → ℝ) (O : J → Matrix W 
   rw [Matrix.mul_assoc _ (coefficientLabelPhase _) (parallelOracle _), hphase]
   rfl
 
+/-- Against a selected family of controlled original oracles, the padded first-order word
+evaluates to the selected padded first-order unitaries. -/
 theorem paddedFirstOrderInputWord_evaluate_family (α Λ : ℝ) (s : J → ℝ)
     (U : J → Matrix W W ℂ) :
     evaluate (select (fun j => parallelOracle (J := Bool) (controlOracle (U j))))
@@ -123,17 +151,26 @@ theorem paddedFirstOrderInputWord_evaluate_family (α Λ : ℝ) (s : J → ℝ)
   coherentPaddingWord_evaluate_family _ _ _ _
     (coherentCoefficientAdjointWord_evaluate_family _ _ U)
 
+/-- Abbreviates the controlled sample workspace with label, padding, and original workspace
+registers. -/
 abbrev DynamicSampleWorkspace (J W : Type) := Bool × (J × (Bool × (Bool × W)))
+/-- Abbreviates the spectator label together with the three Boolean labels used by the
+original-oracle compilation. -/
 abbrev DynamicOriginalLabels (T : Type) := T × (Bool × (Bool × Bool))
 
+/-- Defines the controlled selected original-oracle family with an additional Boolean spectator
+register. -/
 def dynamicSampleQuery (U : J → Matrix W W ℂ) :
     Matrix (DynamicSampleWorkspace J W) (DynamicSampleWorkspace J W) ℂ :=
   controlOracle (select (fun j => parallelOracle (J := Bool) (controlOracle (U j))))
 
+/-- Compiles the padded first-order input word into a controlled sample word. -/
 def dynamicSampleWord (α Λ : ℝ) (s : J → ℝ) :
     List (AdjointStep (DynamicSampleWorkspace J W)) :=
   compileControlled (paddedFirstOrderInputWord α Λ s)
 
+/-- The dynamic sample word evaluates to the controlled selected family of padded first-order
+input unitaries. -/
 theorem dynamicSampleWord_evaluate (α Λ : ℝ) (s : J → ℝ) (U : J → Matrix W W ℂ) :
     evaluate (dynamicSampleQuery U) (dynamicSampleWord α Λ s) =
       controlOracle (select (fun j => paddedFirstOrderInputUnitary (U j) α Λ (s j))) := by
@@ -142,17 +179,22 @@ theorem dynamicSampleWord_evaluate (α Λ : ℝ) (s : J → ℝ) (U : J → Matr
 
 omit [Fintype J] [Fintype W] in
 
+/-- The dynamic sample word uses exactly two queries and eight gates. -/
 theorem dynamicSampleWord_cost (α Λ : ℝ) (s : J → ℝ) :
     adjointQueryCount (dynamicSampleWord (W := W) α Λ s) = 2 ∧
     adjointGateCount (dynamicSampleWord (W := W) α Λ s) = 8 := by
   simpa only [dynamicSampleWord, queryCount_compileControlled, gateCount_compileControlled]
     using! paddedFirstOrderInputWord_cost (W := W) α Λ s
 
+/-- Positive normalizations and the pointwise sample bound make the dynamic sample word well
+formed. -/
 theorem dynamicSampleWord_wellFormed (α Λ : ℝ) (s : J → ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ) :
     WellFormedAdjointCircuit (dynamicSampleWord (W := W) α Λ s) :=
   compileControlled_wellFormed (paddedFirstOrderInputWord_wellFormed α Λ s hα hΛ hbound)
 
+/-- Rearranges the original-oracle labels and selected workspace into the spectator and dynamic
+sample layout. -/
 def dynamicOriginalWorkspaceEquiv (T J W : Type) :
     DynamicOriginalLabels T × (J × W) ≃ T × DynamicSampleWorkspace J W where
   toFun := fun ⟨⟨t,b,p,c⟩,j,w⟩ => (t,b,j,p,c,w)
@@ -160,10 +202,14 @@ def dynamicOriginalWorkspaceEquiv (T J W : Type) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Enables the original oracle exactly when both the outer sample control and inner oracle
+control are true. -/
 def dynamicOriginalMask (l : DynamicOriginalLabels T) : Bool := l.2.1 && l.2.2.2
 
 omit [Fintype J] [Fintype W] [Fintype T] in
 
+/-- Reindexing the spectator-lifted dynamic sample query gives the selected original oracle
+masked by `dynamicOriginalMask`. -/
 theorem dynamicSampleQuery_reindex (U : J → Matrix W W ℂ) :
     (parallelOracle (J := T) (dynamicSampleQuery U)).submatrix
       (dynamicOriginalWorkspaceEquiv T J W) (dynamicOriginalWorkspaceEquiv T J W) =
@@ -175,6 +221,8 @@ theorem dynamicSampleQuery_reindex (U : J → Matrix W W ℂ) :
       maskedOracle, select, parallelOracle, controlOracle, ht, hb, hp, hc, hj]
   all_goals cases b <;> cases c <;> simp_all [Matrix.one_apply]
 
+/-- Substitutes the controlled sample implementation into a word, reindexes its registers, and
+compiles the resulting mask with a clean Boolean control. -/
 def dynamicOriginalWord (α Λ : ℝ) (s : J → ℝ)
     (cs : List (AdjointStep (T × DynamicSampleWorkspace J W))) :
     List (AdjointStep (Bool × (DynamicOriginalLabels T × (J × W)))) :=
@@ -182,6 +230,8 @@ def dynamicOriginalWord (α Λ : ℝ) (s : J → ℝ)
     (reindexAdjointWord (dynamicOriginalWorkspaceEquiv T J W)
       (substituteAdjointCircuit (spectatorLiftWord T (dynamicSampleWord α Λ s)) cs))
 
+/-- Original-oracle compilation doubles the query count and adds twelve gates per original
+query. -/
 theorem dynamicOriginalWord_cost (α Λ : ℝ) (s : J → ℝ)
     (cs : List (AdjointStep (T × DynamicSampleWorkspace J W))) :
     adjointQueryCount (dynamicOriginalWord α Λ s cs) = 2 * adjointQueryCount cs ∧
@@ -199,6 +249,9 @@ theorem dynamicOriginalWord_cost (α Λ : ℝ) (s : J → ℝ)
   rw [(reindexAdjointWord_cost _ _).1, (reindexAdjointWord_cost _ _).2, hq, hg] at hgc
   exact ⟨hqc.trans (by omega), hgc.trans (by omega)⟩
 
+/-- Under the stated unitary and normalization bounds, original-oracle compilation preserves the
+encoded matrix, scale, and error on the transported frame, doubling queries and adding
+twelve gates per query. -/
 theorem dynamicOriginalWord_blockEncoding (α Λ : ℝ) (s : J → ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ)
     (U : J → Matrix W W ℂ) (hU : ∀ j, U j ∈ Matrix.unitaryGroup W ℂ)
@@ -236,6 +289,8 @@ theorem dynamicOriginalWord_blockEncoding (α Λ : ℝ) (s : J → ℝ)
 
 omit [Fintype J] [DecidableEq J] in
 
+/-- Exact encodings of the Hermitian-component family `L + iH` yield exact projected encodings
+of `(H + sL) / Λ` using the padded first-order sample unitaries. -/
 theorem dynamic_original_sample_encodings (L H : J → Matrix I I ℂ)
     (hL : ∀ j, (L j).IsHermitian) (hH : ∀ j, (H j).IsHermitian)
     (U : J → Matrix W W ℂ) (R : Matrix W I ℂ) (α Λ : ℝ) (s : J → ℝ)

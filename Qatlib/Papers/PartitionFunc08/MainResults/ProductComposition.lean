@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+/-!
+# Probability bound for products of estimators
+
+The theorem `lemma3_product_composition` combines per-factor relative accuracy using a joint
+good event. For positive factors and `0 < ε ≤ 1`, the specified per-factor error and failure
+budgets ensure relative accuracy of the product with probability at least three quarters. These
+estimates form part of the partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `lemma3_product_composition`: For positive factors and `0 < ε ≤ 1`, per-factor relative error
+  `ε / (2 * ℓ)` with success at least `1 - 1 / (4 * ℓ)` implies relative error `ε` for their
+  product with success at least three quarters.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +35,9 @@ open scoped BigOperators ENNReal
 
 namespace Qatlib.Papers.PartitionFunc08.MainResults.ProductComposition
 
+/-- For positive factors and `0 < ε ≤ 1`, per-factor relative error `ε / (2 * ℓ)` with success
+at least `1 - 1 / (4 * ℓ)` implies relative error `ε` for their product with success at
+least three quarters. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma3_product_composition
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (ℓ : ℕ) (hℓ : 0 < ℓ) {ε : ℝ} (hε0 : 0 < ε) (hε1 : ε ≤ 1)

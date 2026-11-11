@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.GaussianObstruction
+
+/-!
+# Compact finite grids for AMP energy
+
+`energyPath` evaluates the AMP energy density along tensor interpolation. Joint continuity and
+compact data boxes give a finite interpolation grid, which reduces a continuum threshold event
+to localization failure and finitely many grid events in the setting of [GohMuller2026].
+
+## Main statements
+
+* `actual_energy_finite_grid`: a finite grid approximates the energy uniformly on a data box.
+* `gaussian_adaptive_grid_reduction`: a continuum event is bounded by a localization tail and
+  grid probabilities.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,10 +37,14 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Gaussian
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.AdaptiveEnergy
 
+/-- The tensor energy density of the AMP output along interpolation between the two sampled
+tensors. -/
 def energyPath {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (w : Sample r N) (τ : ℝ) : ℝ :=
   tensorEnergy (interpolate w.1.1 w.1.2 τ)
     (ampOutput M (rowTensor (interpolate w.1.1 w.1.2 τ)) w.2 s T)/(N:ℝ)
 
+/-- The AMP energy path is jointly continuous in the sampled tensors, seed, and interpolation
+parameter. -/
 theorem continuous_energyPath {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) :
     Continuous (fun p : Sample r N × ℝ => energyPath M s T p.1 p.2) := by
   have hi : Continuous (fun p : Sample r N × ℝ => interpolate p.1.1.1 p.1.1.2 p.2) := by
@@ -39,16 +62,21 @@ theorem continuous_energyPath {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) 
     (hj.prodMk (show Continuous (fun p : Sample r N × ℝ => p.1.2) from by fun_prop))
   exact ((continuous_tensorEnergy.comp (hi.prodMk ho)).div_const (N:ℝ))
 
+/-- The set of samples whose two tensor arrays lie coordinatewise in `[−R, R]` and whose seed
+lies coordinatewise in `[−M, M]`. -/
 def dataBox (r N : ℕ) (R M : ℝ) : Set (Sample r N) :=
   ({A : Tensor (r+1) N | ∀ k,A k∈Set.Icc (-R) R} ×ˢ
     {B : Tensor (r+1) N | ∀ k,B k∈Set.Icc (-R) R}) ×ˢ
       {seed : Fin N → ℝ | ∀ i,seed i∈Set.Icc (-M) M}
 
+/-- The data box is compact. -/
 theorem isCompact_dataBox (r N : ℕ) (R M : ℝ) : IsCompact (dataBox r N R M) :=
   ((isCompact_pi_infinite (fun _ : Fin (r+1) → Fin N => isCompact_Icc)).prod
     (isCompact_pi_infinite (fun _ : Fin (r+1) → Fin N => isCompact_Icc))).prod
       (isCompact_pi_infinite (fun _ : Fin N => isCompact_Icc))
 
+/-- For positive `ε`, a finite grid in `[0, 1]` approximates every energy path on the data box
+to within `ε`, uniformly in the interpolation parameter. -/
 theorem actual_energy_finite_grid {r N : ℕ} (M R : ℝ) (s : ℕ → ℝ) (T : ℕ)
     (ε : ℝ) (hε : 0<ε) :
     ∃ S : Finset ℝ, (∀ σ∈S, σ∈Set.Icc (0:ℝ) 1) ∧
@@ -72,6 +100,9 @@ theorem actual_energy_finite_grid {r N : ℕ} (M R : ℝ) (s : ℕ → ℝ) (T :
           lt_trans hdist (half_lt_self hδ)
     simpa only [Real.dist_eq] using hd (w,τ) ⟨hw,hτ⟩ (w,σ) ⟨hw,hS hσ⟩ hp
 
+/-- For positive `ε`, a finite grid bounds each continuum exceedance probability at level `c +
+ε` by the data-box complement probability plus the sum of grid exceedance probabilities at
+level `c`. -/
 theorem gaussian_adaptive_grid_reduction {r N : ℕ} (M R : ℝ) (v : NNReal)
     (s : ℕ → ℝ) (T : ℕ) (ε : ℝ) (hε : 0<ε) :
     ∃ S : Finset ℝ, (∀ σ∈S, σ∈Set.Icc (0:ℝ) 1) ∧ ∀ c : ℝ,

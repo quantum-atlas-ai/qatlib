@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
 import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23OutputTransport
+
+/-!
+# Interior QSVT robustness specification
+
+This module defines `Lemma23InteriorRobustness`, the unit-phase singular-response perturbation
+statement associated with Lemma 23 of [GilyenSuLowWiebe2019]. It uses `interiorRate` under
+contraction and midpoint gap conditions, with separate odd and even transform conclusions.
+
+## Main statements
+
+* `Lemma23InteriorRobustness`: Specify the midpoint-dependent singular-response error bound.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -20,6 +37,8 @@ namespace Qatlib.Concepts.QsvtCore.QsVtStability
 open Matrix Polynomial
 open scoped Matrix.Norms.L2Operator
 
+/-- The unit-phase singular-response robustness specification with error `interiorRate` under
+the contraction and midpoint gap conditions. -/
 def Lemma23InteriorRobustness : Prop :=
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (base : ℂ) (zs : List ℂ),

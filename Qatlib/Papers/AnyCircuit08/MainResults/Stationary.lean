@@ -6,18 +6,41 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AnyCircuit08.MainResults.Basic
 
+/-!
+# Stationarity of the Pauli weights
+
+This module decomposes `randomCircuitStep` into fixed-pair sums `stepInner` and establishes
+coordinate-update identities for `pairUpdate`. These identities support the proof that the
+explicit weight function `stationaryWeight` is fixed by the circuit update for every natural
+size [HallgrenHarrow2008].
+
+## Main statements
+
+* `randomCircuitStep_eq`: rewrites the circuit step as an average of fixed-pair sums.
+* `pairUpdate_injective`: shows distinct label pairs yield distinct updates at distinct
+  coordinates.
+* `randomCircuitStep_stationary`: proves invariance of the proposed weights.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
 
 open scoped BigOperators
 
+/-- The common nonzero-string weight `1 / (4 ^ n + 2 ^ n)`. -/
 noncomputable def pauliConst (n : ℕ) : ℝ := 1 / ((4:ℝ) ^ n + (2:ℝ) ^ n)
 
+/-- The stationary weight of a nonzero Pauli string equals `pauliConst n`. -/
 theorem stationaryWeight_of_ne_zero {n : ℕ} {p : PauliString n} (hp : p ≠ 0) :
     stationaryWeight n p = pauliConst n := by
   simp [stationaryWeight, pauliConst, hp]
 
+/-- The sum of incoming weights for the local Pauli update at the specified coordinate pair. -/
 noncomputable def stepInner (n : ℕ) (μ : PauliString n → ℝ) (i j : Fin n)
     (q : PauliString n) : ℝ :=
   ∑ p : PauliString n,
@@ -28,22 +51,29 @@ noncomputable def stepInner (n : ℕ) (μ : PauliString n → ℝ) (i j : Fin n)
        else if (∀ k : Fin n, k ≠ i → k ≠ j → q k = p k) then (1 / 15 : ℝ)
        else 0)
 
+/-- The circuit step is the identity for `n < 2` and otherwise is the normalized sum of
+`stepInner` over ordered distinct coordinate pairs [HallgrenHarrow2008]. -/
 theorem randomCircuitStep_eq (n : ℕ) (μ : PauliString n → ℝ) (q : PauliString n) :
     randomCircuitStep n μ q =
       if n < 2 then μ q
       else (1 / (((n * (n - 1) : ℕ)) : ℝ)) *
         ∑ i : Fin n, ∑ j : Fin n, if i ≠ j then stepInner n μ i j q else 0 := rfl
 
+/-- The Pauli string obtained by updating coordinate `i` to the first label and then coordinate
+`j` to the second label. -/
 def pairUpdate {n : ℕ} (q : PauliString n) (i j : Fin n) (ab : Fin 4 × Fin 4) :
     PauliString n :=
   Function.update (Function.update q i ab.1) j ab.2
 
+/-- A pair update preserves every coordinate distinct from both updated coordinates. -/
 theorem pairUpdate_of_ne {n : ℕ} (q : PauliString n) {i j k : Fin n}
     (hki : k ≠ i) (hkj : k ≠ j) (ab : Fin 4 × Fin 4) :
     pairUpdate q i j ab k = q k := by
   unfold pairUpdate
   rw [Function.update_of_ne hkj, Function.update_of_ne hki]
 
+/-- At distinct update coordinates, `pairUpdate` takes its first assigned label at coordinate
+`i`. -/
 theorem pairUpdate_i {n : ℕ} (q : PauliString n) {i j : Fin n} (hij : i ≠ j)
     (ab : Fin 4 × Fin 4) :
     pairUpdate q i j ab i = ab.1 := by
@@ -51,12 +81,15 @@ theorem pairUpdate_i {n : ℕ} (q : PauliString n) {i j : Fin n} (hij : i ≠ j)
   rw [Function.update_of_ne hij]
   exact Function.update_self i ab.1 q
 
+/-- A pair update takes its second assigned label at coordinate `j`. -/
 theorem pairUpdate_j {n : ℕ} (q : PauliString n) {i j : Fin n}
     (ab : Fin 4 × Fin 4) :
     pairUpdate q i j ab j = ab.2 := by
   unfold pairUpdate
   exact Function.update_self j ab.2 (Function.update q i ab.1)
 
+/-- Updating two distinct coordinates gives an injective map from label pairs to Pauli strings
+[HallgrenHarrow2008]. -/
 theorem pairUpdate_injective {n : ℕ} (q : PauliString n) {i j : Fin n} (hij : i ≠ j) :
     Function.Injective (pairUpdate q i j) := by
   rintro ⟨a, b⟩ ⟨a', b'⟩ h
@@ -70,6 +103,7 @@ theorem pairUpdate_injective {n : ℕ} (q : PauliString n) {i j : Fin n} (hij : 
     exact this
   exact Prod.ext h1 h2
 
+/-- Updating distinct coordinates with a nonzero label pair yields a nonzero Pauli string. -/
 theorem pairUpdate_ne_zero {n : ℕ} (q : PauliString n) {i j : Fin n} (hij : i ≠ j)
     {ab : Fin 4 × Fin 4} (hab : ab ≠ (0, 0)) : pairUpdate q i j ab ≠ 0 := by
   intro h
@@ -84,6 +118,8 @@ theorem pairUpdate_ne_zero {n : ℕ} (q : PauliString n) {i j : Fin n} (hij : i 
     simpa using this
   exact Prod.ext h1 h2
 
+/-- For every natural size `n`, the circuit update fixes `stationaryWeight n`
+[HallgrenHarrow2008]. -/
 theorem randomCircuitStep_stationary (n : ℕ) :
     randomCircuitStep n (stationaryWeight n) = stationaryWeight n := by
   funext q

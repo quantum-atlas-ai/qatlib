@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CurveletLiu08.MainResults.RadialVariance
+
+/-!
+# Continuous curvelet algorithm estimates
+
+This module defines the candidate points `alg1Guess` and `alg2Guess` and proves conditional
+success estimates for continuous curvelet algorithms. The probability theorems combine assumed
+event bounds and accuracy implications into positive success probabilities.
+
+These constructions accompany the results of [Liu2009].
+
+## Main statements
+
+* `norm_alg1Guess_sub_le`: bounds the error of the first candidate point.
+* `source_theorem5`: derives a positive multiple of the cube of the accuracy parameter as a
+  success bound.
+* `source_theorem7`: combines iteration failure bounds with an accuracy implication.
+
+## References
+
+* [Liu, 2009][Liu2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,10 +38,13 @@ open scoped InnerProductSpace RealInnerProductSpace BigOperators
 
 namespace Qatlib.Papers.CurveletLiu08.MainResults
 
+/-- The candidate point obtained by adding `(u * Q3 * βtilde) • θ` to `b`. -/
 def alg1Guess {n : ℕ} (b θ : EuclideanSpace ℝ (Fin n)) (u Q3 βtilde : ℝ) :
     EuclideanSpace ℝ (Fin n) :=
   b + (u * Q3 * βtilde) • θ
 
+/-- The candidate point on the line through `b₁` in direction `θ₁`, with displacement computed
+from the inner products of both directions and `b₁ - b₂`. -/
 def alg2Guess {n : ℕ} (b₁ θ₁ b₂ θ₂ : EuclideanSpace ℝ (Fin n)) :
     EuclideanSpace ℝ (Fin n) :=
   let r : ℝ := ⟪θ₁, θ₂⟫
@@ -27,6 +52,8 @@ def alg2Guess {n : ℕ} (b₁ θ₁ b₂ θ₂ : EuclideanSpace ℝ (Fin n)) :
   let t : ℝ := ⟪θ₂, b₁ - b₂⟫
   (-(s + r * t) / (1 - r ^ 2)) • θ₁ + b₁
 
+/-- For a unit direction, bounds the distance from the first candidate to `b + t • θ + e` by the
+scalar displacement error plus the norm of `e`. See [Liu2009]. -/
 theorem norm_alg1Guess_sub_le {n : ℕ} (b θ e : EuclideanSpace ℝ (Fin n))
     (u Q3 βtilde t : ℝ) (hθ : ‖θ‖ = 1) :
     ‖alg1Guess b θ u Q3 βtilde - (b + t • θ + e)‖
@@ -41,6 +68,9 @@ theorem norm_alg1Guess_sub_le {n : ℕ} (b θ e : EuclideanSpace ℝ (Fin n))
     _ = |u * Q3 * βtilde - t| + ‖e‖ := by
         rw [norm_smul, hθ, mul_one, Real.norm_eq_abs]
 
+/-- The assumed initial-event and relative-loss bounds yield a success probability at least a
+positive multiple of `ν ^ 3`. This is the probability-combination step for Theorem 5 of
+[Liu2009]. -/
 theorem source_theorem5
     (n : ℕ) (hn : 4 ≤ n) (ν : ℝ) (hν : 0 < ν) (_hν1 : ν < 1)
     {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P]
@@ -68,6 +98,8 @@ theorem source_theorem5
     _ ≤ P.real (A ∩ B ∩ C) := hmain
     _ ≤ P.real succ := hsucc
 
+/-- The assumed initial-event and relative-loss bounds yield a positive constant lower bound on
+success probability, as used for Theorem 6 of [Liu2009]. -/
 theorem source_theorem6
     {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P]
     (A B C succ : Set Ω) (hB : MeasurableSet B) (hC : MeasurableSet C)
@@ -87,6 +119,9 @@ theorem source_theorem6
     _ ≤ P.real (A ∩ B ∩ C) := hmain
     _ ≤ P.real succ := hsucc
 
+/-- If each iteration fails with probability at most `2 / S` and all successful iterations imply
+final error at most `μ`, the final accuracy event has a positive constant lower bound when
+`S = 9.4 ^ niter`. This is the iteration-combination step for Theorem 7 of [Liu2009]. -/
 theorem source_theorem7
     (n : ℕ) (hn : 4 ≤ n) (μ : ℝ) (hμ : 0 < μ)
     (niter : ℕ) (hniter : 0 < niter) (S : ℝ) (hS : 1 ≤ S)

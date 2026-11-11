@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MainResults.SearchCost.TheoremSeven
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition3
+
+/-!
+# An MNRS search bound without the extra logarithm
+
+`mnrs_search_theorem_eight` combines the abstract tolerant amplification guarantees with the
+reflection ledger to obtain a cost proportional to `S + (U / sqrt δ + C) / sqrt ε`. Its
+hypotheses explicitly require an invariant subspace, approximate reflections, and a minimal
+amplification level; `mnrs_theoremEight_unique_singularValue` supplies the stated uniqueness
+result for a finite Markov discriminant. For background on search via quantum walks, see
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `mnrsTheoremEightCostConstant`: The constant `6400 * π + 2` used in the MNRS Theorem 8 search
+  cost bound.
+* `mnrs_search_theorem_eight`: Under the invariant subspace, approximate reflection, schedule,
+  and ledger hypotheses, tolerant success is zero at zero marked mass and at least `1 / 24`
+  otherwise, with the stated cost bound proportional to `S + (U / sqrt δ + C) / sqrt ε`; see
+  [Magniez et al., Theorem 8][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,8 +42,12 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
 namespace Qatlib.Concepts.WalkSearch.MainResults.SearchCost
 
+/-- The constant `6400 * π + 2` used in the MNRS Theorem 8 search cost bound. -/
 noncomputable def mnrsTheoremEightCostConstant : ℝ := 6400 * Real.pi + 2
 
+/-- For an irreducible stochastic matrix with positive diagonal and a stationary probability
+vector, the discriminant has exactly one singular value index with value one; see [Magniez
+et al., Theorem 8][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_theoremEight_unique_singularValue {X : Type} [Fintype X] [DecidableEq X]
     [Nonempty X] (P : Matrix X X ℝ) (nu : X → ℝ) (hP : P.IsIrreducible)
     (hrow : ∀ x, ∑ y, P x y = 1) (hdiag : ∀ x, 0 < P x x) (hν0 : ∀ x, 0 ≤ nu x)
@@ -26,6 +55,8 @@ theorem mnrs_theoremEight_unique_singularValue {X : Type} [Fintype X] [Decidable
     ∃! k : ℕ, (Matrix.toEuclideanLin (mnrsDiscriminant P nu)).singularValues k = 1 :=
   search_via_quantum_walk_proposition3 X P nu hP hrow hdiag hν0 hν1 hstat
 
+/-- Under the stated amplification and reflection fee bounds, the recursive cost expression is
+at most `3200 * π / sqrt ε * (U / sqrt δ + C)`. -/
 theorem mnrs_eight_order_form {ε δ U C c₁ : ℝ} (tMax : ℕ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hδ : 0 < δ) (hU : 0 ≤ U) (hC : 0 ≤ C) (hc₁ : 0 ≤ c₁)
     (hc₁U : c₁ ≤ 80 * Real.pi * U / Real.sqrt δ)
@@ -112,6 +143,10 @@ theorem mnrs_eight_order_form {ε δ U C c₁ : ℝ} (tMax : ℕ) (hε : 0 < ε)
         mul_le_mul_of_nonneg_left habsorb (by positivity)
     _ = 3200 * Real.pi * (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * U + C) := by ring
 
+/-- Under the invariant subspace, approximate reflection, schedule, and ledger hypotheses,
+tolerant success is zero at zero marked mass and at least `1 / 24` otherwise, with the
+stated cost bound proportional to `S + (U / sqrt δ + C) / sqrt ε`; see [Magniez et al.,
+Theorem 8][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_search_theorem_eight
     {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
     (Mr : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)

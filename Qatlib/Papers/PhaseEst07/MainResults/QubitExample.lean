@@ -10,6 +10,28 @@ import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 import Mathlib.Tactic
+
+/-!
+# Phase costs for identical qubit preparations
+
+The binomial amplitudes `sourceQubitAmplitude` model real identical-qubit preparations, with
+normalization following from the binomial theorem. Balanced preparations attain
+`sourceQubitMinCost`; the module also proves a general correlation bound and optimality of the
+balanced cost for one and two qubits. The phase-estimation setting is described in
+[VanDamEtAl2007].
+
+## Main statements
+
+* `source_qubit_cost_balanced`: The balanced choice `a = b = 1 / sqrt 2` attains
+  `sourceQubitMinCost N`.
+* `source_qubit_optimal_two`: For a normalized real two-qubit preparation, the cost is at least
+  the balanced-preparation cost.
+
+## References
+
+* [van Dam et al., 2007][VanDamEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,27 +42,34 @@ namespace Qatlib.Papers.PhaseEst07.MainResults.QubitExample
 open scoped BigOperators
 open Qatlib.Papers.PhaseEst07.MainResults.Shared
 
+/-- The real binomial amplitude `sqrt (choose N k) * a ^ (N - k) * b ^ k`. -/
 noncomputable def sourceQubitAmplitude (N : ℕ) (a b : ℝ) (k : ℕ) : ℝ :=
   Real.sqrt (Nat.choose N k : ℝ) * a ^ (N - k) * b ^ k
 
+/-- One half of one minus the sum of adjacent products of the identical-qubit amplitudes. -/
 noncomputable def sourceQubitCost (N : ℕ) (a b : ℝ) : ℝ :=
   (1 - ∑ k ∈ Finset.range N,
       sourceQubitAmplitude N a b k * sourceQubitAmplitude N a b (k + 1)) / 2
 
+/-- The balanced-preparation cost expressed through adjacent binomial coefficients. -/
 noncomputable def sourceQubitMinCost (N : ℕ) : ℝ :=
   (1 : ℝ) / 2 -
     (1 / (2 : ℝ) ^ (N + 1)) *
       ∑ k ∈ Finset.range N,
         Real.sqrt ((Nat.choose N k : ℝ) * (Nat.choose N (k + 1) : ℝ))
 
+/-- The natural-number expression `N + 1` equals itself. -/
 theorem source_qubit_symmetric_dim (N : ℕ) : (N + 1) = N + 1 := rfl
 
+/-- The sum of the binomial coefficients of order `N`, cast to the reals, is `2 ^ N`. -/
 theorem source_qubit_binomial_sum (N : ℕ) :
     ∑ k ∈ Finset.range (N + 1), (Nat.choose N k : ℝ) = (2 : ℝ) ^ N := by
   rw [← Nat.cast_sum, Nat.sum_range_choose]
   push_cast
   ring
 
+/-- The balanced choice `a = b = 1 / sqrt 2` attains `sourceQubitMinCost N`. See [van Dam et
+al., 2007][VanDamEtAl2007]. -/
 theorem source_qubit_cost_balanced (N : ℕ) :
     sourceQubitCost N (1 / Real.sqrt 2) (1 / Real.sqrt 2) = sourceQubitMinCost N := by
   set r : ℝ := 1 / Real.sqrt 2 with hr
@@ -83,6 +112,8 @@ theorem source_qubit_cost_balanced (N : ℕ) :
   rw [hS, one_div_pow, pow_succ]
   ring
 
+/-- The square of a qubit amplitude is the binomial coefficient times the corresponding powers
+of `a ^ 2` and `b ^ 2`. -/
 theorem source_qubit_amplitude_sq (N : ℕ) (a b : ℝ) (k : ℕ) :
     (sourceQubitAmplitude N a b k) ^ 2
       = (Nat.choose N k : ℝ) * (a ^ 2) ^ (N - k) * (b ^ 2) ^ k := by
@@ -94,6 +125,7 @@ theorem source_qubit_amplitude_sq (N : ℕ) (a b : ℝ) (k : ℕ) :
     rw [← pow_mul, ← pow_mul, Nat.mul_comm]
   rw [h2, h3]
 
+/-- The squared qubit amplitudes over `N + 1` indices sum to `(a ^ 2 + b ^ 2) ^ N`. -/
 theorem source_qubit_sq_sum (N : ℕ) (a b : ℝ) :
     ∑ k ∈ Finset.range (N + 1), (sourceQubitAmplitude N a b k) ^ 2
       = (a ^ 2 + b ^ 2) ^ N := by
@@ -105,10 +137,14 @@ theorem source_qubit_sq_sum (N : ℕ) (a b : ℝ) :
   rw [source_qubit_amplitude_sq]
   ring
 
+/-- If `a ^ 2 + b ^ 2 = 1`, the squared qubit amplitudes sum to one. See [van Dam et al.,
+2007][VanDamEtAl2007]. -/
 theorem source_qubit_normalized (N : ℕ) (a b : ℝ) (h : a ^ 2 + b ^ 2 = 1) :
     ∑ k ∈ Finset.range (N + 1), (sourceQubitAmplitude N a b k) ^ 2 = 1 := by
   rw [source_qubit_sq_sum, h, one_pow]
 
+/-- For `N ≥ 1` and `a ^ 2 + b ^ 2 = 1`, the adjacent amplitude correlation is at most `cos (π /
+(N + 2))`. See [van Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_qubit_correlation_le_cos (N : ℕ) (hN : 1 ≤ N) (a b : ℝ)
     (h : a ^ 2 + b ^ 2 = 1) :
     ∑ k ∈ Finset.range N,
@@ -127,6 +163,8 @@ theorem source_qubit_correlation_le_cos (N : ℕ) (hN : 1 ≤ N) (a b : ℝ)
   rw [hcos, hN1, hnorm, mul_one] at hp
   simpa using hp
 
+/-- For a normalized real one-qubit preparation, the cost is at least the balanced-preparation
+cost. See [van Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_qubit_optimal_one (a b : ℝ) (h : a ^ 2 + b ^ 2 = 1) :
     sourceQubitCost 1 a b ≥ sourceQubitMinCost 1 := by
   have hcost : sourceQubitCost 1 a b = (1 - a * b) / 2 := by
@@ -141,6 +179,8 @@ theorem source_qubit_optimal_one (a b : ℝ) (h : a ^ 2 + b ^ 2 = 1) :
   have hab : a * b ≤ 1 / 2 := by nlinarith [sq_nonneg (a - b)]
   linarith
 
+/-- For a normalized real two-qubit preparation, the cost is at least the balanced-preparation
+cost. See [van Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_qubit_optimal_two (a b : ℝ) (h : a ^ 2 + b ^ 2 = 1) :
     sourceQubitCost 2 a b ≥ sourceQubitMinCost 2 := by
   have hcost : sourceQubitCost 2 a b = (1 - Real.sqrt 2 * (a * b)) / 2 := by

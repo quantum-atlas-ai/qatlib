@@ -144,6 +144,31 @@ import Mathlib.Topology.Separation.Regular
 import Mathlib.Topology.UniformSpace.Defs
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
 
+/-!
+# String rewriting and spectral walk-count estimates
+
+This module defines length-preserving rewriting on finite words, its adjacency matrix, and
+promised walk-count differences through `Instance`. It develops polarization and spectral-moment
+identities, coefficient-vanishing arguments, and quantitative estimation bounds used in the
+string-rewriting construction of [JanzingWocjan2010].
+
+The final definitions describe promise problems and abstract circuit reductions. Further lemmas
+relate block sign expectations to output weights and bound spectral moments and dominant
+contributions.
+
+## Main statements
+
+* `step_symm`: symmetric rules give symmetric rewriting steps.
+* `spectral_moment_expansion`: rewrites a walk-count difference using spectral moments.
+* `spectral_coeff_vanishes_of_growth`: removes spectral contributions beyond the growth
+  threshold.
+* `sign_decision_from_estimate`: recovers the promised sign from an accurate estimate.
+
+## References
+
+* [Janzing and Wocjan, 2010][JanzingWocjan2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -151,15 +176,19 @@ namespace Qatlib.Papers.StringRewrite07.MainResults
 
 open Matrix
 
+/-- Words of length `L` over the alphabet `α`, represented as functions on `Fin L`. -/
 abbrev Word (α : Type) (L : ℕ) := Fin L → α
 
+/-- Extracts the length-`k` subword beginning at position `i`, using the bound `i + k ≤ L`. -/
 def subwordAt {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (h : i + k ≤ L) : Fin k → α :=
   fun j => w ⟨i + j.1, by omega⟩
 
+/-- States that the length-`k` subword of `w` beginning at `i` equals `u`. -/
 def HasSubwordAt {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (h : i + k ≤ L)
     (u : Fin k → α) : Prop :=
   subwordAt w i k h = u
 
+/-- Replaces the length-`k` subword beginning at `i` by `v`, preserving all other letters. -/
 def overwriteSubword {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (v : Fin k → α)
     (h : i + k ≤ L) : Word α L :=
   fun j =>
@@ -167,14 +196,18 @@ def overwriteSubword {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (v : Fin 
     else if h2 : (j : ℕ) < i + k then v ⟨(j : ℕ) - i, by omega⟩
     else w j
 
+/-- Relates two words when one is obtained from the other by a single length-preserving
+replacement allowed by `R`. -/
 def Step {α : Type} {L : ℕ} (R : ∀ k, (Fin k → α) → (Fin k → α) → Prop)
     (w w' : Word α L) : Prop :=
   ∃ (i k : ℕ) (h : i + k ≤ L) (u v : Fin k → α),
     R k u v ∧ HasSubwordAt w i k h u ∧ w' = overwriteSubword w i k v h
 
+/-- States that every replacement allowed by `R` is also allowed in the reverse direction. -/
 def IsSymmetricRule {α : Type} (R : ∀ k, (Fin k → α) → (Fin k → α) → Prop) : Prop :=
   ∀ k (u v : Fin k → α), R k u v → R k v u
 
+/-- Extracting a subword immediately after overwriting it returns the replacement word. -/
 @[simp]
 theorem subwordAt_overwrite {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ)
     (v : Fin k → α) (h : i + k ≤ L) :
@@ -195,6 +228,7 @@ theorem subwordAt_overwrite {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ)
   simp only [Fin.val_mk]
   omega
 
+/-- Overwriting the same interval twice has the same effect as the second overwrite alone. -/
 theorem overwrite_overwrite {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ)
     (u v : Fin k → α) (h : i + k ≤ L) :
     overwriteSubword (overwriteSubword w i k u h) i k v h = overwriteSubword w i k v h := by
@@ -206,6 +240,7 @@ theorem overwrite_overwrite {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ)
     · simp only [dif_neg h1, dif_pos h2]
     · simp only [dif_neg h1, dif_neg h2]
 
+/-- Replacing a subword by its existing contents leaves the word unchanged. -/
 theorem overwrite_self {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (u : Fin k → α)
     (h : i + k ≤ L) (hu : HasSubwordAt w i k h u) :
     overwriteSubword w i k u h = w := by
@@ -226,16 +261,19 @@ theorem overwrite_self {α : Type} {L : ℕ} (w : Word α L) (i k : ℕ) (u : Fi
       exact hux
     · simp only [dif_neg h1, dif_neg h2]
 
+/-- A symmetric replacement rule induces a symmetric relation on words. -/
 theorem step_symm {α : Type} {L : ℕ} {R : ∀ k, (Fin k → α) → (Fin k → α) → Prop}
     (hR : IsSymmetricRule R) {w w' : Word α L} (h : Step R w w') : Step R w' w := by
   obtain ⟨i, k, hik, u, v, huv, hu, rfl⟩ := h
   refine ⟨i, k, hik, v, u, hR k u v huv, subwordAt_overwrite w i k v hik, ?_⟩
   rw [overwrite_overwrite, overwrite_self w i k u hik hu]
 
+/-- The real zero-one adjacency matrix of the one-step rewriting relation. -/
 noncomputable def adjMatrix {α : Type} [Fintype α] [DecidableEq α] {L : ℕ}
     (R : ∀ k, (Fin k → α) → (Fin k → α) → Prop) : Matrix (Word α L) (Word α L) ℝ :=
   fun w w' => @ite ℝ (Step R w w') (Classical.propDecidable (Step R w w')) 1 0
 
+/-- The adjacency matrix of a symmetric replacement rule is symmetric. -/
 theorem adjMatrix_isSymm {α : Type} [Fintype α] [DecidableEq α] {L : ℕ}
     {R : ∀ k, (Fin k → α) → (Fin k → α) → Prop} (hR : IsSymmetricRule R) :
     (adjMatrix (L := L) R).IsSymm := by
@@ -247,22 +285,29 @@ theorem adjMatrix_isSymm {α : Type} [Fintype α] [DecidableEq α] {L : ℕ}
     · exact absurd (step_symm hR h') h
     · rw [if_neg h', if_neg h]
 
+/-- The `(s, t)` entry of `A ^ n`, which counts length-`n` walks when `A` is an adjacency
+matrix. -/
 def walkCount {ι : Type} [Fintype ι] [DecidableEq ι] (A : Matrix ι ι ℝ) (n : ℕ)
     (s t : ι) : ℝ :=
   (A ^ n) s t
 
+/-- The difference between the `(s, t)` and `(s, t')` entries of `A ^ n`. -/
 def Delta {ι : Type} [Fintype ι] [DecidableEq ι] (A : Matrix ι ι ℝ) (n : ℕ)
     (s t t' : ι) : ℝ :=
   walkCount A n s t - walkCount A n s t'
 
+/-- Requires the absolute walk-count difference at every length `n` to be at most `c ^ n`. -/
 def GrowthCondition {ι : Type} [Fintype ι] [DecidableEq ι] (A : Matrix ι ι ℝ)
     (s t t' : ι) (c : ℝ) : Prop :=
   ∀ n : ℕ, |Delta A n s t t'| ≤ c ^ n
 
+/-- Requires the absolute walk-count difference at length `m` to be at least `ε * c ^ m`. -/
 def GapCondition {ι : Type} [Fintype ι] [DecidableEq ι] (A : Matrix ι ι ℝ) (m : ℕ)
     (s t t' : ι) (ε c : ℝ) : Prop :=
   ε * c ^ m ≤ |Delta A m s t t'|
 
+/-- A symmetric string-rewriting instance with three distinguished words, a target length, and
+growth and gap promises. -/
 structure Instance (α : Type) [Fintype α] [DecidableEq α] where
   L : ℕ
   rule : ∀ k, (Fin k → α) → (Fin k → α) → Prop
@@ -282,25 +327,33 @@ namespace Instance
 
 variable {α : Type} [Fintype α] [DecidableEq α]
 
+/-- The rewriting adjacency matrix associated with the instance. -/
 def matrix (I : Instance α) : Matrix (Word α I.L) (Word α I.L) ℝ :=
   adjMatrix I.rule
 
+/-- The adjacency matrix of a rewriting instance is symmetric. -/
 theorem matrix_isSymm (I : Instance α) : I.matrix.IsSymm :=
   adjMatrix_isSymm I.rule_symm
 
+/-- The walk-count difference for the instance at length `n`. -/
 def delta (I : Instance α) (n : ℕ) : ℝ :=
   Delta I.matrix n I.s I.t I.t'
 
+/-- The walk-count difference for the instance at its designated length `m`. -/
 def deltaAtM (I : Instance α) : ℝ :=
   I.delta I.m
 
+/-- States that the designated walk-count difference is positive. -/
 def IsYes (I : Instance α) : Prop := 0 < I.deltaAtM
 
+/-- States that the designated walk-count difference is negative. -/
 def IsNo (I : Instance α) : Prop := I.deltaAtM < 0
 
+/-- The instance satisfies its prescribed growth bound for all walk lengths. -/
 theorem growth_condition (I : Instance α) : GrowthCondition I.matrix I.s I.t I.t' I.c :=
   I.growth
 
+/-- The instance satisfies its prescribed gap bound at the designated walk length. -/
 theorem gap_condition (I : Instance α) : GapCondition I.matrix I.m I.s I.t I.t' I.ε I.c :=
   I.gap
 
@@ -310,14 +363,19 @@ section Polarization
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- The coordinate vector with value one at `i` and zero elsewhere. -/
 def basisVec (i : ι) : ι → ℝ := Pi.single i 1
 
+/-- The difference of the coordinate vectors at `t` and `t'`, divided by `√2`. -/
 def phiVec (t t' : ι) : ι → ℝ := fun j => (basisVec t j - basisVec t' j) / Real.sqrt 2
 
+/-- The sum of `basisVec s` and `phiVec t t'`, divided by `√2`. -/
 def psiPlus (s t t' : ι) : ι → ℝ := fun j => (basisVec s j + phiVec t t' j) / Real.sqrt 2
 
+/-- The difference of `basisVec s` and `phiVec t t'`, divided by `√2`. -/
 def psiMinus (s t t' : ι) : ι → ℝ := fun j => (basisVec s j - phiVec t t' j) / Real.sqrt 2
 
+/-- Taking the dot product with a coordinate vector extracts the corresponding coordinate. -/
 @[simp]
 lemma basisVec_dot (s : ι) (v : ι → ℝ) : basisVec s ⬝ᵥ v = v s := by
   rw [dotProduct, Finset.sum_eq_single s]
@@ -329,6 +387,7 @@ lemma basisVec_dot (s : ι) (v : ι → ℝ) : basisVec s ⬝ᵥ v = v s := by
   · intro hs
     exact absurd (Finset.mem_univ s) hs
 
+/-- Summing against the coordinate vector at `t` extracts `v t`. -/
 lemma sum_mul_basisVec (v : ι → ℝ) (t : ι) :
     (∑ j, v j * basisVec t j) = v t := by
   rw [Finset.sum_eq_single t]
@@ -340,17 +399,22 @@ lemma sum_mul_basisVec (v : ι → ℝ) (t : ι) :
   · intro h
     exact absurd (Finset.mem_univ t) h
 
+/-- Multiplication by `phiVec t t'` extracts the difference of the corresponding matrix columns,
+divided by `√2`. -/
 lemma mulVec_phi_apply (A : Matrix ι ι ℝ) (s t t' : ι) :
     (A *ᵥ phiVec t t') s = (A s t - A s t') / Real.sqrt 2 := by
   rw [Matrix.mulVec, dotProduct]
   simp only [phiVec, mul_div_assoc', mul_sub]
   rw [← Finset.sum_div, Finset.sum_sub_distrib, sum_mul_basisVec, sum_mul_basisVec]
 
+/-- For a symmetric matrix, the associated bilinear form is symmetric. -/
 lemma dot_mulVec_comm {A : Matrix ι ι ℝ} (hA : A.IsSymm) (x y : ι → ℝ) :
     x ⬝ᵥ (A *ᵥ y) = y ⬝ᵥ (A *ᵥ x) := by
   calc x ⬝ᵥ (A *ᵥ y) = y ⬝ᵥ (Aᵀ *ᵥ x) := (dotProduct_transpose_mulVec A y x).symm
     _ = y ⬝ᵥ (A *ᵥ x) := by rw [hA.eq]
 
+/-- For a symmetric matrix, the difference of the quadratic forms at `a + b` and `a - b` equals
+four times the mixed bilinear term. -/
 lemma polarization {A : Matrix ι ι ℝ} (hA : A.IsSymm) (a b : ι → ℝ) :
     (a + b) ⬝ᵥ (A *ᵥ (a + b)) - (a - b) ⬝ᵥ (A *ᵥ (a - b))
       = 4 * (a ⬝ᵥ (A *ᵥ b)) := by
@@ -359,24 +423,30 @@ lemma polarization {A : Matrix ι ι ℝ} (hA : A.IsSymm) (a b : ι → ℝ) :
     dotProduct_add, dotProduct_sub, hcomm]
   ring
 
+/-- Scaling both arguments in the difference of two quadratic forms multiplies the result by `c
+^ 2`. -/
 lemma dot_quad_smul (A : Matrix ι ι ℝ) (c : ℝ) (a b : ι → ℝ) :
     (c • (a + b)) ⬝ᵥ (A *ᵥ (c • (a + b))) - (c • (a - b)) ⬝ᵥ (A *ᵥ (c • (a - b)))
       = c ^ 2 * ((a + b) ⬝ᵥ (A *ᵥ (a + b)) - (a - b) ⬝ᵥ (A *ᵥ (a - b))) := by
   simp only [Matrix.mulVec_smul, smul_dotProduct, dotProduct_smul]
   ring
 
+/-- Expresses `psiPlus` as a scalar multiple of `basisVec s + phiVec t t'`. -/
 lemma psiPlus_eq_smul (s t t' : ι) :
     psiPlus s t t' = (Real.sqrt 2)⁻¹ • (basisVec s + phiVec t t') := by
   funext j
   simp only [psiPlus, Pi.add_apply, Pi.smul_apply, div_eq_inv_mul]
   rw [smul_eq_mul, mul_comm]
 
+/-- Expresses `psiMinus` as a scalar multiple of `basisVec s - phiVec t t'`. -/
 lemma psiMinus_eq_smul (s t t' : ι) :
     psiMinus s t t' = (Real.sqrt 2)⁻¹ • (basisVec s - phiVec t t') := by
   funext j
   simp only [psiMinus, Pi.sub_apply, Pi.smul_apply, div_eq_inv_mul]
   rw [smul_eq_mul, mul_comm]
 
+/-- Expresses the difference `A s t - A s t'` as `√2 / 2` times the difference of quadratic
+forms at `psiPlus` and `psiMinus` for symmetric `A` [JanzingWocjan2010]. -/
 theorem delta_eq_polarization {A : Matrix ι ι ℝ} (hA : A.IsSymm) (s t t' : ι) :
     A s t - A s t' =
       (Real.sqrt 2 / 2) *
@@ -399,6 +469,8 @@ section Spectral
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] {κ : Type} [Fintype κ]
 
+/-- A decomposition of a symmetric real matrix into a finite weighted sum of idempotents whose
+pairwise products vanish and whose sum is the identity. -/
 structure SpectralDecomposition (A : Matrix ι ι ℝ) (lam : κ → ℝ) (Q : κ → Matrix ι ι ℝ) :
     Prop where
   symm : A.IsSymm
@@ -407,6 +479,8 @@ structure SpectralDecomposition (A : Matrix ι ι ℝ) (lam : κ → ℝ) (Q : �
   sum_one : ∑ j, Q j = 1
   decomp : A = ∑ j, lam j • Q j
 
+/-- Powers of a matrix with the given spectral decomposition are obtained by raising each
+spectral coefficient to the same power. -/
 theorem pow_eq_sum_smul {A : Matrix ι ι ℝ} {lam : κ → ℝ} {Q : κ → Matrix ι ι ℝ}
     (h : SpectralDecomposition A lam Q) (m : ℕ) :
     A ^ m = ∑ j, (lam j) ^ m • Q j := by
@@ -436,6 +510,8 @@ theorem pow_eq_sum_smul {A : Matrix ι ι ℝ} {lam : κ → ℝ} {Q : κ → Ma
       · intro hj
         exact absurd (Finset.mem_univ j) hj
 
+/-- Expands the quadratic form of `A ^ m` as a weighted sum of quadratic forms of the spectral
+idempotents. -/
 theorem dot_pow_decomp {A : Matrix ι ι ℝ} {lam : κ → ℝ} {Q : κ → Matrix ι ι ℝ}
     (h : SpectralDecomposition A lam Q) (x : ι → ℝ) (m : ℕ) :
     x ⬝ᵥ ((A ^ m) *ᵥ x) = ∑ j, (lam j) ^ m * (x ⬝ᵥ ((Q j) *ᵥ x)) := by
@@ -445,6 +521,8 @@ theorem dot_pow_decomp {A : Matrix ι ι ℝ} {lam : κ → ℝ} {Q : κ → Mat
   intro j _
   rw [Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul]
 
+/-- Expands the walk-count difference at length `m` into spectral moments weighted by the
+difference of two quadratic forms [JanzingWocjan2010]. -/
 theorem spectral_moment_expansion {A : Matrix ι ι ℝ} {lam : κ → ℝ}
     {Q : κ → Matrix ι ι ℝ} (h : SpectralDecomposition A lam Q) (m : ℕ) (s t t' : ι) :
     (A ^ m) s t - (A ^ m) s t' =
@@ -462,9 +540,12 @@ theorem spectral_moment_expansion {A : Matrix ι ι ℝ} {lam : κ → ℝ}
 
 end Spectral
 
+/-- Raises `x` to the power `m` after truncating it to the interval from `-c` to `c` when `c` is
+nonnegative. -/
 def truncFunc (m : ℕ) (c x : ℝ) : ℝ :=
   if x < -c then (-c) ^ m else if x ≤ c then x ^ m else c ^ m
 
+/-- Truncation does not change `x ^ m` when `c` is nonnegative and `|x| ≤ c`. -/
 theorem truncFunc_eq_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) (h : |x| ≤ c) :
     truncFunc m c x = x ^ m := by
   have hle : -c ≤ x := (abs_le.mp h).1
@@ -472,6 +553,7 @@ theorem truncFunc_eq_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) (h : |x| ≤ c) :
   unfold truncFunc
   rw [if_neg (not_lt.mpr hle), if_pos hle']
 
+/-- For nonnegative `c`, the absolute value of the truncated power is at most `c ^ m`. -/
 theorem truncFunc_abs_le {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
     |truncFunc m c x| ≤ c ^ m := by
   unfold truncFunc
@@ -483,6 +565,7 @@ theorem truncFunc_abs_le {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
       exact pow_le_pow_left₀ (abs_nonneg x) (abs_le.mpr ⟨not_lt.mp h1, h2⟩) m
     · rw [if_neg h2, abs_of_nonneg (pow_nonneg hc m)]
 
+/-- For nonnegative `c`, the truncated power equals the power of `x` clamped to `[-c, c]`. -/
 theorem truncFunc_eq_clamp_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
     truncFunc m c x = (max (-c) (min x c)) ^ m := by
   unfold truncFunc
@@ -497,6 +580,8 @@ theorem truncFunc_eq_clamp_pow {m : ℕ} {c x : ℝ} (hc : 0 ≤ c) :
     · have hxc : c ≤ x := (not_le.mp h2).le
       rw [if_neg h2, min_eq_right hxc, max_eq_right (by linarith)]
 
+/-- For nonnegative `c`, the truncated power has Lipschitz bound `m * c ^ (m - 1)`
+[JanzingWocjan2010]. -/
 theorem truncFunc_lipschitz {m : ℕ} {c : ℝ} (hc : 0 ≤ c) (x y : ℝ) :
     |truncFunc m c x - truncFunc m c y| ≤ (m : ℝ) * c ^ (m - 1) * |x - y| := by
   rw [truncFunc_eq_clamp_pow hc, truncFunc_eq_clamp_pow hc]
@@ -524,6 +609,7 @@ theorem truncFunc_lipschitz {m : ℕ} {c : ℝ} (hc : 0 ≤ c) (x y : ℝ) :
       _ ≤ |x - y| * (m : ℝ) * c ^ (m - 1) := by gcongr
       _ = (m : ℝ) * c ^ (m - 1) * |x - y| := by ring
 
+/-- A real sequence bounded in absolute value by `B * q ^ n` tends to zero when `0 ≤ q < 1`. -/
 theorem tendsto_zero_of_abs_le_mul_pow {u : ℕ → ℝ} {B q : ℝ}
     (hq0 : 0 ≤ q) (hq1 : q < 1) (h : ∀ n, |u n| ≤ B * q ^ n) :
     Filter.Tendsto u Filter.atTop (nhds 0) := by
@@ -533,6 +619,7 @@ theorem tendsto_zero_of_abs_le_mul_pow {u : ℕ → ℝ} {B q : ℝ}
     squeeze_zero (fun n => abs_nonneg _) h hgeom
   exact (tendsto_zero_iff_abs_tendsto_zero u).mpr habs
 
+/-- A sequence of period two that tends to zero has both its initial values equal to zero. -/
 theorem eq_zero_of_tendsto_of_period_two {u : ℕ → ℝ}
     (hlim : Filter.Tendsto u Filter.atTop (nhds 0)) (hper : ∀ n, u (n + 2) = u n) :
     u 0 = 0 ∧ u 1 = 0 := by
@@ -566,6 +653,8 @@ theorem eq_zero_of_tendsto_of_period_two {u : ℕ → ℝ}
     rw [Real.dist_eq, sub_zero, hodd (N + 1)] at h1
     exact absurd h1 (lt_irrefl _)
 
+/-- In a finite sum of distinct real exponential terms with the stated decay bound and support
+in `[-1, 1]`, every coefficient at a base of absolute value one vanishes. -/
 theorem coeff_zero_of_unit_modulus {κ : Type} [Fintype κ] (a mu : κ → ℝ)
     {B q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) (hinj : Function.Injective mu)
     (hbound : ∀ n : ℕ, |∑ j, a j * (mu j) ^ n| ≤ B * q ^ n)
@@ -662,6 +751,8 @@ theorem coeff_zero_of_unit_modulus {κ : Type} [Fintype κ] (a mu : κ → ℝ)
   have h2 : a j * mu j = 0 := by nlinarith
   exact (mul_eq_zero.mp h2).resolve_right hmuj
 
+/-- In a finite sum with distinct real bases and growth bounded by `B * c ^ n`, every
+coefficient at a base of absolute value greater than `c` vanishes [JanzingWocjan2010]. -/
 theorem coefficient_vanishes_of_growth {κ : Type} [Fintype κ] (a lam : κ → ℝ) {B c : ℝ}
     (_hB : 0 ≤ B) (hc : 0 ≤ c) (hinj : Function.Injective lam)
     (hgrowth : ∀ n : ℕ, |∑ j, a j * (lam j) ^ n| ≤ B * c ^ n)
@@ -781,6 +872,8 @@ theorem coefficient_vanishes_of_growth {κ : Type} [Fintype κ] (a lam : κ → 
   exact main (Finset.univ.filter (fun j => a j ≠ 0 ∧ c < |lam j|)).card a (le_refl _)
     (fun n => hgrowth n) j hj
 
+/-- Under the walk-count growth promise and distinct spectral values, the difference of spectral
+quadratic-form weights vanishes whenever `|lam j| > c` [JanzingWocjan2010]. -/
 theorem spectral_coeff_vanishes_of_growth {ι : Type} [Fintype ι] [DecidableEq ι]
     {κ : Type} [Fintype κ] {A : Matrix ι ι ℝ} {lam : κ → ℝ} {Q : κ → Matrix ι ι ℝ}
     (h : SpectralDecomposition A lam Q) (hinj : Function.Injective lam) (s t t' : ι)
@@ -822,6 +915,8 @@ theorem spectral_coeff_vanishes_of_growth {ι : Type} [Fintype ι] [DecidableEq 
       - (psiMinus s t t') ⬝ᵥ ((Q k) *ᵥ psiMinus s t t'))
     lam (Real.sqrt_nonneg 2) hc hinj hbound j hj
 
+/-- Bounds the error of a finite probability-weighted estimate by its error on a set of mass at
+least `1 - θ` plus `2 * c ^ m * θ` for the remaining mass [JanzingWocjan2010]. -/
 theorem measurement_error_bound {κ : Type} [Fintype κ] [DecidableEq κ] {m : ℕ} (p v : κ → ℝ)
     (S : Finset κ) (lam : ℝ) {c η θ : ℝ} (hc : 0 ≤ c) (hη : 0 ≤ η) (hθ : 0 ≤ θ)
     (hlam : |lam| ≤ c)
@@ -896,6 +991,8 @@ theorem measurement_error_bound {κ : Type} [Fintype κ] [DecidableEq κ] {m : �
           abs_add_le _ _
     _ ≤ η * (m : ℝ) * c ^ (m - 1) + 2 * c ^ m * θ := add_le_add hgood hbad
 
+/-- For positive `ε` and `0 < δ < 1`, the prescribed rounded sample count bounds the scaled
+square-root sampling radius by `ε * b / 2` when `b ≥ 0` [JanzingWocjan2010]. -/
 theorem sampling_radius_budget {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) (hδ1 : δ < 1)
     (b : ℝ) (hb : 0 ≤ b) :
     b * Real.sqrt (2 * Real.log (2 / δ) /
@@ -937,6 +1034,8 @@ theorem sampling_radius_budget {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) (hδ1
       ≤ b * (ε / 2) := mul_le_mul_of_nonneg_left hsqrt hb
     _ = ε * b / 2 := by ring
 
+/-- Chooses positive precision and failure parameters and a rounded sample count so that both
+measurement and sampling error bounds are at most `ε * I.c ^ I.m / 2` [JanzingWocjan2010]. -/
 theorem section3_parameter_budget {α : Type} [Fintype α] [DecidableEq α] (I : Instance α)
     {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) (hδ1 : δ < 1) :
     ∃ (η θ : ℝ) (N : ℕ),
@@ -972,6 +1071,8 @@ theorem section3_parameter_budget {α : Type} [Fintype α] [DecidableEq α] (I :
       _ = ε * I.c ^ I.m / 2 := by ring
   · simpa using sampling_radius_budget hε hδ hδ1 (I.c ^ I.m) hcm.le
 
+/-- An estimate within distance strictly less than a lower bound on `|Δ|` has the same positive
+and negative sign tests as `Δ`. -/
 theorem sign_eq_of_close {Δ est g : ℝ} (hgap : g ≤ |Δ|) (h : |est - Δ| < g) :
     (0 < est ↔ 0 < Δ) ∧ (est < 0 ↔ Δ < 0) := by
   have h1 : Δ - g < est := by
@@ -1002,6 +1103,7 @@ namespace Instance
 
 variable {α : Type} [Fintype α] [DecidableEq α]
 
+/-- The designated walk-count difference is nonzero when the instance gap parameter is positive. -/
 theorem deltaAtM_ne_zero (I : Instance α) (hε : 0 < I.ε) : I.deltaAtM ≠ 0 := by
   have hcm : (0 : ℝ) < I.c ^ I.m := pow_pos I.hc I.m
   have hpos : 0 < I.ε * I.c ^ I.m := mul_pos hε hcm
@@ -1015,6 +1117,8 @@ theorem deltaAtM_ne_zero (I : Instance α) (hε : 0 < I.ε) : I.deltaAtM ≠ 0 :
     exact hh
   linarith
 
+/-- An estimate with error strictly below the promised gap determines whether the rewriting
+instance is a yes or no instance [JanzingWocjan2010]. -/
 theorem sign_decision_from_estimate (I : Instance α) {est : ℝ} (_hε : 0 < I.ε)
     (hest : |est - I.deltaAtM| < I.ε * I.c ^ I.m) :
     (0 < est ↔ I.IsYes) ∧ (est < 0 ↔ I.IsNo) :=
@@ -1026,11 +1130,14 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- A pair of disjoint yes and no predicates on finite Boolean registers of each length. -/
 structure PromiseProblem where
   Yes : (n : ℕ) → Reg n → Prop
   No : (n : ℕ) → Reg n → Prop
   disjoint : ∀ (n : ℕ) (x : Reg n), Yes n x → No n x → False
 
+/-- Requires a circuit family whose acceptance probabilities are at least `2 / 3` on yes inputs
+and at most `1 / 3` on no inputs of positive length. -/
 def AbstractCircuitPromise (P : PromiseProblem) : Prop :=
   ∃ F : CircuitFamily, ∀ (n : ℕ) (hn : 0 < n) (x : Reg n),
     (P.Yes n x →
@@ -1040,9 +1147,12 @@ def AbstractCircuitPromise (P : PromiseProblem) : Prop :=
       AcceptProb (Run (1 : Matrix (Reg n) (Reg n) ℂ) (F.build n) (Ket x)) hn ≤
         (1 / 3 : ℝ))
 
+/-- Pads a Boolean register to length `D` with false entries. -/
 def padReg {n D : ℕ} (h : n ≤ D) (x : Reg n) : Reg D :=
   fun i => if hi : (i : ℕ) < n then x ⟨(i : ℕ), hi⟩ else false
 
+/-- A promise-preserving map computed exactly on padded basis inputs by circuits of polynomially
+bounded size and output length. -/
 structure AbstractCircuitReduction (P Q : PromiseProblem) where
   outLen : ℕ → ℕ
   map : (n : ℕ) → Reg n → Reg (outLen n)
@@ -1056,15 +1166,21 @@ structure AbstractCircuitReduction (P Q : PromiseProblem) where
   maps_yes : ∀ (n : ℕ) (x : Reg n), P.Yes n x → Q.Yes (outLen n) (map n x)
   maps_no : ∀ (n : ℕ) (x : Reg n), P.No n x → Q.No (outLen n) (map n x)
 
+/-- States that an abstract circuit reduction from `Q` to `P` exists. -/
 def AbstractCircuitReduces (Q P : PromiseProblem) : Prop := Nonempty (AbstractCircuitReduction Q P)
 
+/-- Requires every promise problem satisfying `AbstractCircuitPromise` to reduce to `P` by an
+abstract circuit reduction. -/
 def AbstractCircuitHardness (P : PromiseProblem) : Prop :=
   ∀ Q : PromiseProblem, AbstractCircuitPromise Q → AbstractCircuitReduces Q P
 
+/-- A partial decoder from finite Boolean registers to string-rewriting instances. -/
 structure Encoding (α : Type) [Fintype α] [DecidableEq α] where
 
   decode : (n : ℕ) → Reg n → Option (Instance α)
 
+/-- The promise problem whose decoded rewriting instances have positive or negative designated
+walk-count difference [JanzingWocjan2010]. -/
 def StringRewritingProblem {α : Type} [Fintype α] [DecidableEq α] (enc : Encoding α) :
     PromiseProblem where
   Yes n x := ∃ I : Instance α, enc.decode n x = some I ∧ I.IsYes
@@ -1077,6 +1193,7 @@ def StringRewritingProblem {α : Type} [Fintype α] [DecidableEq α] (enc : Enco
     have hn' : I.deltaAtM < 0 := hn
     exact absurd hy (not_lt.mpr hn'.le)
 
+/-- Combines `AbstractCircuitPromise` with hardness under abstract circuit reductions. -/
 def AbstractCircuitCompleteness (P : PromiseProblem) : Prop :=
   AbstractCircuitPromise P ∧ AbstractCircuitHardness P
 
@@ -1084,12 +1201,16 @@ section SigmaZ
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- The diagonal real matrix acting by `+1` on the first Boolean block and `-1` on the second. -/
 def blockZ : Matrix (Fin 2 × ι) (Fin 2 × ι) ℝ :=
   fun a b =>
     if a.2 = b.2 then (if a.1 = b.1 then (if a.1 = 0 then (1 : ℝ) else -1) else 0) else 0
 
+/-- The sum of squared real amplitudes in block `j`, giving its outcome probability for a
+normalized vector. -/
 def outProb (φ : Fin 2 × ι → ℝ) (j : Fin 2) : ℝ := ∑ i, (φ (j, i)) ^ 2
 
+/-- The block sign matrix multiplies each coordinate by the sign determined by its first index. -/
 theorem blockZ_mulVec (φ : Fin 2 × ι → ℝ) (a : Fin 2 × ι) :
     (blockZ *ᵥ φ) a = (if a.1 = 0 then (1 : ℝ) else -1) * φ a := by
   rw [mulVec, dotProduct, Finset.sum_eq_single a]
@@ -1107,6 +1228,8 @@ theorem blockZ_mulVec (φ : Fin 2 × ι → ℝ) (a : Fin 2 × ι) :
   · intro ha
     exact absurd (Finset.mem_univ a) ha
 
+/-- The quadratic form of `blockZ` equals the difference of the two block weights
+[JanzingWocjan2010]. -/
 theorem blockZ_expect (φ : Fin 2 × ι → ℝ) :
     φ ⬝ᵥ (blockZ *ᵥ φ) = outProb φ 0 - outProb φ 1 := by
   have hstep : φ ⬝ᵥ (blockZ *ᵥ φ) = ∑ a, (if a.1 = 0 then (1 : ℝ) else -1) * (φ a) ^ 2 := by
@@ -1120,6 +1243,8 @@ theorem blockZ_expect (φ : Fin 2 × ι → ℝ) :
   simp only [outProb]
   ring
 
+/-- The quadratic form of the transpose-conjugated block sign matrix equals the output-weight
+difference of the transformed vector [JanzingWocjan2010]. -/
 theorem conj_blockZ_expect (Y : Matrix (Fin 2 × ι) (Fin 2 × ι) ℝ) (ξ : Fin 2 × ι → ℝ) :
     ξ ⬝ᵥ ((Yᵀ * (blockZ * Y)) *ᵥ ξ) = outProb (Y *ᵥ ξ) 0 - outProb (Y *ᵥ ξ) 1 := by
   have h1 : (Yᵀ * (blockZ * Y)) *ᵥ ξ = Yᵀ *ᵥ ((blockZ * Y) *ᵥ ξ) := by rw [mulVec_mulVec]
@@ -1132,10 +1257,14 @@ theorem conj_blockZ_expect (Y : Matrix (Fin 2 × ι) (Fin 2 × ι) ℝ) (ξ : Fi
 
 end SigmaZ
 
+/-- A positive multiple of `p - q` is positive exactly when `q < p`, and negative exactly when
+`p < q` [JanzingWocjan2010]. -/
 theorem delta_sign_iff_outcome {Δ k p q : ℝ} (hk : 0 < k) (h : Δ = k * (p - q)) :
     (0 < Δ ↔ q < p) ∧ (Δ < 0 ↔ p < q) := by
   constructor <;> rw [h] <;> constructor <;> intro h' <;> nlinarith
 
+/-- Bounds a finite spectral moment by `lam₀ ^ m` when all bases have absolute value at most
+nonnegative `lam₀` and the absolute weights sum to at most one [JanzingWocjan2010]. -/
 theorem spectral_sum_growth_bound {κ : Type} [Fintype κ] (lam w : κ → ℝ) {lam₀ : ℝ}
     (hlam₀ : 0 ≤ lam₀) (hlam : ∀ j, |lam j| ≤ lam₀) (hw : ∑ j, |w j| ≤ 1) (m : ℕ) :
     |∑ j, (lam j) ^ m * w j| ≤ lam₀ ^ m := by
@@ -1153,6 +1282,8 @@ theorem spectral_sum_growth_bound {κ : Type} [Fintype κ] (lam w : κ → ℝ) 
     mul_le_mul_of_nonneg_left hw (pow_nonneg hlam₀ m)
   linarith
 
+/-- If two distinct summands equal `dom` and the sum of the absolute remaining terms is at most
+`rest ≤ dom`, then the full sum is at least `dom`. -/
 theorem sum_lower_of_two_dominant {κ : Type} [Fintype κ] [DecidableEq κ] (f : κ → ℝ) (p q : κ)
     {dom rest : ℝ} (hpq : p ≠ q) (hp : f p = dom) (hq : f q = dom)
     (hrest : ∑ j ∈ Finset.univ.filter (fun j => j ≠ p ∧ j ≠ q), |f j| ≤ rest)
@@ -1187,6 +1318,8 @@ theorem sum_lower_of_two_dominant {κ : Type} [Fintype κ] [DecidableEq κ] (f :
   rw [hsum, hp, hq]
   linarith
 
+/-- Two equal dominant spectral contributions give a lower bound of one dominant contribution
+when the absolute remainder is bounded by that contribution [JanzingWocjan2010]. -/
 theorem lineGraph_gap_bound {κ : Type} [Fintype κ] [DecidableEq κ] (lam w : κ → ℝ) (p q : κ)
     {m : ℕ} {lam₀ lam₁ w₀ : ℝ} (hpq : p ≠ q)
     (hp : (lam p) ^ m * w p = lam₀ ^ m * w₀)
@@ -1197,6 +1330,8 @@ theorem lineGraph_gap_bound {κ : Type} [Fintype κ] [DecidableEq κ] (lam w : �
     lam₀ ^ m * w₀ ≤ ∑ j, (lam j) ^ m * w j :=
   sum_lower_of_two_dominant (fun j => (lam j) ^ m * w j) p q hpq hp hq hmid hratio
 
+/-- A spectral value `-lam₀` paired with the parity-adjusted weight `(-1) ^ m * w₀` contributes
+`lam₀ ^ m * w₀` to the moment [JanzingWocjan2010]. -/
 theorem dom_weight_eq {lam₀ w₀ lamq wq : ℝ} {m : ℕ} (hlam : lamq = -lam₀)
     (hw : wq = (-1 : ℝ) ^ m * w₀) : lamq ^ m * wq = lam₀ ^ m * w₀ := by
   rw [hlam, hw, neg_pow]

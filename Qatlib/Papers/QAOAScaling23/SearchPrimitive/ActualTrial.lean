@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
 import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+
+/-!
+# Marked output law of actual amplification trials
+
+The actual prepared amplification circuit scales every marked amplitude by the same sine ratio.
+Consequently, each marked output probability factors as the total marked success probability
+times its relative Born weight in the prepared state, and this factorization holds for
+`preparedAATrial`.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `actual_marked_amplitude`: For marked `i` and marked mass `sin θ` squared with `0 < θ < π/2`,
+  `k` amplification iterations scale the prepared amplitude at `i` by `sin ((2 * k + 1) * θ) /
+  sin θ`.
+* `trial_biased_law`: For marked `i` and marked mass `sin θ` squared with `0 < θ < π/2`, the
+  trial output probability at `i` is the total marked-output probability times the prepared Born
+  weight of `i` divided by the prepared marked mass.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +48,8 @@ open scoped ENNReal
 
 namespace Qatlib.Papers.QAOAScaling23.SearchPrimitive
 
+/-- For marked `i` and marked mass `sin θ` squared with `0 < θ < π/2`, `k` amplification
+iterations scale the prepared amplitude at `i` by `sin ((2 * k + 1) * θ) / sin θ`. -/
 theorem actual_marked_amplitude {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (seed : I) (S : Finset I) (θ : ℝ) (k : ℕ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -34,6 +61,9 @@ theorem actual_marked_amplitude {I : Type} [Fintype I] [DecidableEq I]
   rw [prepared_aa_actual_rotation U seed S θ k hU hθ0 hθ1 hmass]
   simp [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, collapse_apply, hi]
 
+/-- For marked `i` under the first-quadrant angle hypothesis, its Born probability after `k`
+amplification iterations is its prepared Born probability times `sin ((2 * k + 1) * θ)`
+squared divided by the prepared marked mass. -/
 theorem actual_marked_born {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (seed : I) (S : Finset I) (θ : ℝ) (k : ℕ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -46,10 +76,14 @@ theorem actual_marked_born {I : Type} [Fintype I] [DecidableEq I]
     norm_mul, Complex.norm_real, Real.norm_eq_abs, mul_pow, sq_abs, div_pow, hmass]
   rfl
 
+/-- The probability of the equality event at `x` in a finite probability mass function is its
+point mass at `x`. -/
 theorem event_point {X : Type} [Fintype X] [DecidableEq X] (p : PMF X) (x : X) :
     CostedLaw.event p (fun y=>y=x)=p x := by
   simp [CostedLaw.event,CostedLaw.expectation,tsum_fintype]
 
+/-- The probability that a prepared trial returns candidate `i` equals the Born probability at
+`i` of its actual amplification circuit. -/
 theorem trial_point {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     {m : ℕ} (j : Fin m) (i : I) :
@@ -60,6 +94,9 @@ theorem trial_point {I : Type} [Fintype I] [DecidableEq I]
   simp only [event_point]
   rfl
 
+/-- For marked `i` and marked mass `sin θ` squared with `0 < θ < π/2`, the trial output
+probability at `i` is the total marked-output probability times the prepared Born weight of
+`i` divided by the prepared marked mass. -/
 theorem trial_biased_law {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (θ : ℝ) (hθ0 : 0<θ) (hθ1 : θ<Real.pi/2)

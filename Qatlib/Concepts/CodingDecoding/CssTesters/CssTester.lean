@@ -20,6 +20,31 @@ import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.SimpRw
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+
+/-!
+# CSS syndrome projectors and local testers
+
+This module constructs the joint syndrome projectors of a CSS code, the subspaces reachable by
+Pauli errors of bounded weight, and the associated distance operator. The commuting stabilizer
+formalism underlying these constructions is described in [Gottesman1997].
+
+The tester `cssTester` averages the rejecting check projectors. Its syndrome decomposition and
+that of `cssDistanceOperator` reduce the operator soundness condition to scalar inequalities on
+syndromes.
+
+## Main statements
+
+* `cssSyndromeProjector_sum`: the syndrome projectors sum to the identity.
+* `cssSyndromeProjector_mul`: distinct syndrome projectors are orthogonal.
+* `cssNeighborhoodProjector_range`: the neighborhood projector has the prescribed error
+  neighborhood as its range.
+* `cssHasSoundnessAtLeast_iff`: soundness is equivalent to the syndrome inequalities.
+
+## References
+
+* [Gottesman, 1997][Gottesman1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 
@@ -34,31 +59,39 @@ open scoped ComplexOrder
 variable {ι κX κZ : Type*} [Fintype ι] [Fintype κX] [Fintype κZ] [DecidableEq ι]
   [DecidableEq κX] [DecidableEq κZ]
 
+/-- The family of X and Z stabilizer check matrices, indexed by the sum of the two check types. -/
 def cssCheck (c : CssData ι κX κZ) :
     (κX ⊕ κZ) → Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   Sum.elim (fun i => cssPauliX (c.hX i)) (fun j => cssPauliZ (c.hZ j))
 
+/-- The matrix `(1 + phaseOfBit b • S) / 2`, selecting the eigenvalue `phaseOfBit b` when `S` is
+an involution. -/
 noncomputable def cssCheckProjector (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (b : ZMod 2) :
     Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   (2⁻¹ : ℂ) • (1 + phaseOfBit b • S)
 
+/-- The product of the check projectors selecting the X and Z syndrome bits specified by `η`. -/
 noncomputable def cssSyndromeProjector (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) :
     Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   (Finset.univ.toList.map fun k =>
     cssCheckProjector (cssCheck c k) (Sum.elim η.1 η.2 k)).prod
 
+/-- The infimum of the Pauli weights realizing the prescribed syndrome, with value `⊤` when no
+realization exists. -/
 noncomputable def cssSyndromeWeight (c : CssData ι κX κZ)
     (ηX : κX → ZMod 2) (ηZ : κZ → ZMod 2) : ℕ∞ :=
   sInf {w : ℕ∞ | ∃ (x z : ι → ZMod 2), c.hX *ᵥ z = ηX ∧ c.hZ *ᵥ x = ηZ ∧
     (pauliWeight x z : ℕ∞) = w}
 
+/-- The complex span of code vectors acted on by Pauli errors of weight at most `ℓ`. -/
 noncomputable def cssNeighborhood (c : CssData ι κX κZ) (ℓ : ℕ) :
     Submodule ℂ ((ι → ZMod 2) → ℂ) :=
   Submodule.span ℂ
     {v | ∃ (x z : ι → ZMod 2) (w : cssCodespace c), pauliWeight x z ≤ ℓ ∧
       v = (cssPauliX x * cssPauliZ z) *ᵥ (w : (ι → ZMod 2) → ℂ)}
 
+/-- The sum of the syndrome projectors whose minimum realizing Pauli weight is at most `ℓ`. -/
 noncomputable def cssNeighborhoodProjector (c : CssData ι κX κZ) (ℓ : ℕ) :
     Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   ∑ η ∈ Finset.univ.filter
@@ -66,37 +99,46 @@ noncomputable def cssNeighborhoodProjector (c : CssData ι κX κZ) (ℓ : ℕ) 
         cssSyndromeWeight c η.1 η.2 ≤ (ℓ : ℕ∞),
     cssSyndromeProjector c η
 
+/-- The weighted sum of successive neighborhood projector differences, with each layer weighted
+by its radius. -/
 noncomputable def cssDistanceOperator (c : CssData ι κX κZ) :
     Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   ∑ ℓ ∈ Finset.range (Fintype.card ι + 1),
     (ℓ : ℂ) • (cssNeighborhoodProjector c ℓ -
       (if ℓ = 0 then 0 else cssNeighborhoodProjector c (ℓ - 1)))
 
+/-- The average of the rejecting projectors for the X and Z checks. -/
 noncomputable def cssTester (c : CssData ι κX κZ) : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   ((Fintype.card (κX ⊕ κZ) : ℕ) : ℂ)⁻¹ •
     ∑ k ∈ Finset.univ, cssCheckProjector (cssCheck c k) 1
 
+/-- The condition that the tester minus `σ / Fintype.card ι` times the distance operator is
+positive semidefinite. -/
 def cssHasSoundnessAtLeast (c : CssData ι κX κZ) (σ : ℝ) : Prop :=
   (cssTester c - ((σ / (Fintype.card ι : ℝ) : ℂ) • cssDistanceOperator c)).PosSemidef
 
+/-- Every CSS check squares to the identity. -/
 private theorem cssCheck_square (c : CssData ι κX κZ) (k : κX ⊕ κZ) :
     cssCheck c k * cssCheck c k = 1 := by
   cases k with
   | inl i => exact cssPauliX_self_mul (c.hX i)
   | inr j => exact cssPauliZ_self_mul (c.hZ j)
 
+/-- Every CSS check matrix is Hermitian. -/
 private theorem cssCheck_hermitian (c : CssData ι κX κZ) (k : κX ⊕ κZ) :
     (cssCheck c k).IsHermitian := by
   cases k with
   | inl i => exact cssPauliX_isHermitian (c.hX i)
   | inr j => exact cssPauliZ_isHermitian (c.hZ j)
 
+/-- An X check commutes with a Z check of the same CSS code. -/
 private theorem css_check_cross (c : CssData ι κX κZ) (i : κX) (j : κZ) :
     cssPauliX (c.hX i) * cssPauliZ (c.hZ j) = cssPauliZ (c.hZ j) * cssPauliX (c.hX i) := by
   have h : bitDot (c.hX i) (c.hZ j) = 0 := by
     simpa [bitDot, dotProduct, Matrix.mul_apply] using congrFun (congrFun c.hcompat i) j
   rw [cssPauliXZ_comm, bitDot_comm, h, phaseOfBit_zero, one_smul]
 
+/-- Any two CSS check matrices commute. -/
 private theorem cssCheck_commute (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) :
     Commute (cssCheck c k) (cssCheck c k') := by
   change cssCheck c k * cssCheck c k' = cssCheck c k' * cssCheck c k
@@ -112,16 +154,19 @@ private theorem cssCheck_commute (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) :
     | inr j' => simpa only [cssCheck, Sum.elim_inr, cssPauliZ_mul, add_comm] using
         (rfl : cssPauliZ (c.hZ j + c.hZ j') = cssPauliZ (c.hZ j + c.hZ j'))
 
+/-- The two bit projectors associated with a matrix sum to the identity. -/
 private theorem cssCheckProjector_add (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) :
     cssCheckProjector S 0 + cssCheckProjector S 1 = 1 := by
   simp only [cssCheckProjector, phaseOfBit_zero, phaseOfBit_one, one_smul, neg_one_smul]
   module
 
+/-- The bit projector of a Hermitian matrix is Hermitian. -/
 private theorem cssCheckProjector_hermitian
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (hS : S.IsHermitian) (b : ZMod 2) :
     (cssCheckProjector S b).IsHermitian := by
   exact (Matrix.isHermitian_one.add (hS.smul (phaseOfBit_star b))).smul (by simp)
 
+/-- For an involution, the bit projectors are idempotent and mutually orthogonal. -/
 private theorem cssCheckProjector_mul
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (hS : S * S = 1) (b b' : ZMod 2) :
     cssCheckProjector S b * cssCheckProjector S b' =
@@ -132,6 +177,7 @@ private theorem cssCheckProjector_mul
       Matrix.smul_mul, Matrix.mul_smul, smul_smul, add_mul, mul_add, neg_mul, mul_neg,
       neg_neg, one_mul, mul_one, hS] <;> norm_num <;> module
 
+/-- The complex subalgebra generated by the CSS check matrices. -/
 private noncomputable def cssCheckAlgebra (c : CssData ι κX κZ) :
     Subalgebra ℂ (Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) :=
   Algebra.adjoin ℂ (Set.range (cssCheck c))
@@ -144,6 +190,7 @@ private instance cssCheckAlgebra_commutative (c : CssData ι κX κZ) :
 
 open scoped IsMulCommutative
 
+/-- A bit projector of a CSS check, regarded as an element of the check algebra. -/
 private noncomputable def cssCheckAlgebraProjector (c : CssData ι κX κZ)
     (k : κX ⊕ κZ) (b : ZMod 2) : cssCheckAlgebra c :=
   ⟨cssCheckProjector (cssCheck c k) b, by
@@ -152,10 +199,12 @@ private noncomputable def cssCheckAlgebraProjector (c : CssData ι κX κZ)
     apply (cssCheckAlgebra c).smul_mem
     exact Algebra.subset_adjoin ⟨k, rfl⟩⟩
 
+/-- The product of the selected bit projectors inside the commutative check algebra. -/
 private noncomputable def cssAlgebraSyndromeProjector (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) : cssCheckAlgebra c :=
   ∏ k : κX ⊕ κZ, cssCheckAlgebraProjector c k (Sum.elim η.1 η.2 k)
 
+/-- Coercing the check algebra syndrome projector to a matrix yields `cssSyndromeProjector`. -/
 private theorem cssAlgebraSyndromeProjector_coe (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) :
     (cssAlgebraSyndromeProjector c η : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) =
@@ -166,18 +215,21 @@ private theorem cssAlgebraSyndromeProjector_coe (c : CssData ι κX κZ)
   rw [map_list_prod]
   simp [cssSyndromeProjector, cssCheckAlgebraProjector, List.map_map, Function.comp_def]
 
+/-- A sum indexed by `ZMod 2` is the sum of the values at zero and one. -/
 private theorem sum_binary_values {R : Type*} [AddCommMonoid R] (f : ZMod 2 → R) :
     (∑ b : ZMod 2, f b) = f 0 + f 1 := by
   have hs : (Finset.univ : Finset (ZMod 2)) = {0, 1} := by decide
   rw [hs]
   simp [show (0 : ZMod 2) ≠ 1 from by decide]
 
+/-- The two bit projectors for a check sum to the identity in the check algebra. -/
 private theorem cssCheckAlgebraProjector_sum (c : CssData ι κX κZ) (k : κX ⊕ κZ) :
     (∑ b : ZMod 2, cssCheckAlgebraProjector c k b) = 1 := by
   rw [sum_binary_values]
   apply Subtype.ext
   exact cssCheckProjector_add (cssCheck c k)
 
+/-- The syndrome projectors sum to the identity inside the check algebra. -/
 private theorem cssAlgebraSyndromeProjector_sum (c : CssData ι κX κZ) :
     (∑ η : (κX → ZMod 2) × (κZ → ZMod 2), cssAlgebraSyndromeProjector c η) = 1 := by
   classical
@@ -192,6 +244,8 @@ private theorem cssAlgebraSyndromeProjector_sum (c : CssData ι κX κZ) :
   simp_rw [cssCheckAlgebraProjector_sum]
   simp
 
+/-- The joint CSS syndrome projectors sum to the identity, giving a complete decomposition as in
+the stabilizer formalism of [Gottesman1997]. -/
 theorem cssSyndromeProjector_sum (c : CssData ι κX κZ) :
     ∑ η ∈ Finset.univ, cssSyndromeProjector c η = 1 := by
   have h := congrArg (cssCheckAlgebra c).val (cssAlgebraSyndromeProjector_sum c)
@@ -199,6 +253,8 @@ theorem cssSyndromeProjector_sum (c : CssData ι κX κZ) :
   change (∑ η, (cssAlgebraSyndromeProjector c η : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ)) = 1 at h
   simpa only [cssAlgebraSyndromeProjector_coe] using h
 
+/-- Bit projectors of a fixed check multiply to the matching projector or zero in the check
+algebra. -/
 private theorem cssCheckAlgebraProjector_mul (c : CssData ι κX κZ) (k : κX ⊕ κZ)
     (b b' : ZMod 2) :
     cssCheckAlgebraProjector c k b * cssCheckAlgebraProjector c k b' =
@@ -207,6 +263,7 @@ private theorem cssCheckAlgebraProjector_mul (c : CssData ι κX κZ) (k : κX �
   simpa only [cssCheckAlgebraProjector, Subalgebra.coe_mul, apply_ite Subtype.val,
     Subalgebra.coe_zero] using cssCheckProjector_mul (cssCheck c k) (cssCheck_square c k) b b'
 
+/-- Syndrome projectors in the check algebra multiply to the matching projector or zero. -/
 private theorem cssAlgebraSyndromeProjector_mul (c : CssData ι κX κZ)
     (η η' : (κX → ZMod 2) × (κZ → ZMod 2)) :
     cssAlgebraSyndromeProjector c η * cssAlgebraSyndromeProjector c η' =
@@ -232,6 +289,8 @@ private theorem cssAlgebraSyndromeProjector_mul (c : CssData ι κX κZ)
     apply Finset.prod_eq_zero (Finset.mem_univ k)
     rw [cssCheckAlgebraProjector_mul, if_neg hk]
 
+/-- The CSS syndrome projectors are idempotent and pairwise orthogonal; see [Gottesman1997] for
+the stabilizer formalism. -/
 theorem cssSyndromeProjector_mul (c : CssData ι κX κZ)
     (η η' : (κX → ZMod 2) × (κZ → ZMod 2)) :
     cssSyndromeProjector c η * cssSyndromeProjector c η' =
@@ -244,6 +303,7 @@ theorem cssSyndromeProjector_mul (c : CssData ι κX κZ)
       if η = η' then (cssAlgebraSyndromeProjector c η : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) else 0 at h
   simpa only [cssAlgebraSyndromeProjector_coe] using h
 
+/-- Each CSS neighborhood projector is idempotent. -/
 theorem cssNeighborhoodProjector_idem (c : CssData ι κX κZ) (ℓ : ℕ) :
     cssNeighborhoodProjector c ℓ * cssNeighborhoodProjector c ℓ = cssNeighborhoodProjector c ℓ := by
   classical
@@ -255,6 +315,8 @@ theorem cssNeighborhoodProjector_idem (c : CssData ι κX κZ) (ℓ : ℕ) :
   intro η hη
   rw [if_pos (Finset.mem_filter.mp hη).2]
 
+/-- The bit projector selected by a syndrome acts as the identity on its syndrome projector in
+the check algebra. -/
 private theorem cssCheckAlgebraProjector_absorb (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (k : κX ⊕ κZ) :
     cssCheckAlgebraProjector c k (Sum.elim η.1 η.2 k) * cssAlgebraSyndromeProjector c η =
@@ -264,6 +326,7 @@ private theorem cssCheckAlgebraProjector_absorb (c : CssData ι κX κZ)
   rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ k)]
   rw [← mul_assoc, cssCheckAlgebraProjector_mul, if_pos rfl]
 
+/-- A check projector selected by a syndrome absorbs the corresponding syndrome projector. -/
 private theorem cssCheckProjector_absorb (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (k : κX ⊕ κZ) :
     cssCheckProjector (cssCheck c k) (Sum.elim η.1 η.2 k) * cssSyndromeProjector c η =
@@ -275,6 +338,8 @@ private theorem cssCheckProjector_absorb (c : CssData ι κX κZ)
         (cssAlgebraSyndromeProjector c η : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) at h
   simpa only [cssAlgebraSyndromeProjector_coe] using h
 
+/-- A vector is fixed by the bit projector exactly when it has eigenvalue `phaseOfBit b` under
+`S`. -/
 private theorem cssCheckProjector_fixed_iff
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (b : ZMod 2) (v : (ι → ZMod 2) → ℂ) :
     cssCheckProjector S b *ᵥ v = v ↔ S *ᵥ v = phaseOfBit b • v := by
@@ -304,6 +369,7 @@ private theorem cssCheckProjector_fixed_iff
       rw [h]
       module
 
+/-- A product of matrices fixes a vector when every factor fixes it. -/
 private theorem list_prod_fixed
     (l : List (Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ)) (v : (ι → ZMod 2) → ℂ)
     (h : ∀ S ∈ l, S *ᵥ v = v) : l.prod *ᵥ v = v := by
@@ -313,6 +379,8 @@ private theorem list_prod_fixed
     rw [List.prod_cons, ← Matrix.mulVec_mulVec, ih (fun T hT => h T (List.mem_cons_of_mem _ hT)),
       h S (by simp)]
 
+/-- A vector is fixed by the syndrome projector exactly when all checks have the eigenvalues
+specified by the syndrome. -/
 private theorem cssSyndromeProjector_fixed_iff (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (v : (ι → ZMod 2) → ℂ) :
     cssSyndromeProjector c η *ᵥ v = v ↔
@@ -328,11 +396,13 @@ private theorem cssSyndromeProjector_fixed_iff (c : CssData ι κX κZ)
     obtain ⟨k, _, rfl⟩ := List.mem_map.mp hS
     exact (cssCheckProjector_fixed_iff _ _ _).mpr (h k)
 
+/-- A vector belongs to the CSS codespace exactly when every check fixes it. -/
 private theorem mem_cssCodespace_check_iff (c : CssData ι κX κZ) (v : (ι → ZMod 2) → ℂ) :
     v ∈ cssCodespace c ↔ ∀ k : κX ⊕ κZ, cssCheck c k *ᵥ v = v := by
   simp [cssCodespace, cssXStabilized, cssZStabilized, cssXCheckKernel, cssZCheckKernel,
     cssCheck, sub_eq_zero, Sum.forall]
 
+/-- A syndrome of weight at most `ℓ` has a realizing Pauli error of weight at most `ℓ`. -/
 private theorem cssSyndromeWeight_witness_le (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (ℓ : ℕ)
     (h : cssSyndromeWeight c η.1 η.2 ≤ (ℓ : ℕ∞)) :
@@ -350,23 +420,31 @@ private theorem cssSyndromeWeight_witness_le (c : CssData ι κX κZ)
   have hh : (pauliWeight x z : ℕ∞) ≤ (ℓ : ℕ∞) := by rw [hw]; exact h
   exact_mod_cast hh
 
+/-- The square of the Pauli product with labels `x` and `z` is the identity times `phaseOfBit
+(bitDot z x)`. -/
 private theorem pauliError_square (x z : ι → ZMod 2) :
     (cssPauliX x * cssPauliZ z) * (cssPauliX x * cssPauliZ z) = phaseOfBit (bitDot z x) • 1 := by
   rw [cssPauliXZ_mul, binary_add_self, binary_add_self, cssPauliX_zero, cssPauliZ_zero, one_mul]
 
+/-- The Pauli product with labels `x` and `z`, multiplied by the phase that makes it its
+inverse. -/
 private noncomputable def pauliErrorInverse (x z : ι → ZMod 2) :
     Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ := phaseOfBit (bitDot z x) • (cssPauliX x * cssPauliZ z)
 
+/-- Multiplying a Pauli error by `pauliErrorInverse` on the right gives the identity. -/
 private theorem pauliError_mul_inverse (x z : ι → ZMod 2) :
     (cssPauliX x * cssPauliZ z) * pauliErrorInverse x z = 1 := by
   rw [pauliErrorInverse, Matrix.mul_smul, pauliError_square, smul_smul,
     phaseOfBit_mul_self, one_smul]
 
+/-- Multiplying a Pauli error by `pauliErrorInverse` on the left gives the identity. -/
 private theorem pauliError_inverse_mul (x z : ι → ZMod 2) :
     pauliErrorInverse x z * (cssPauliX x * cssPauliZ z) = 1 := by
   rw [pauliErrorInverse, Matrix.smul_mul, pauliError_square, smul_smul,
     phaseOfBit_mul_self, one_smul]
 
+/-- Commuting a CSS check past a Pauli error introduces the phase determined by the
+corresponding syndrome bit. -/
 private theorem cssCheck_pauli_mul (c : CssData ι κX κZ) (x z : ι → ZMod 2) (k : κX ⊕ κZ) :
     cssCheck c k * (cssPauliX x * cssPauliZ z) =
       phaseOfBit (Sum.elim (c.hX *ᵥ z) (c.hZ *ᵥ x) k) •
@@ -386,6 +464,7 @@ private theorem cssCheck_pauli_mul (c : CssData ι κX κZ) (x z : ι → ZMod 2
     simp only [bitDot_zero_right, phaseOfBit_zero, one_smul, zero_add, add_zero]
     rw [add_comm]
 
+/-- Commuting a CSS check past the inverse Pauli error introduces its syndrome phase. -/
 private theorem cssCheck_pauli_inverse (c : CssData ι κX κZ) (x z : ι → ZMod 2) (k : κX ⊕ κZ) :
     cssCheck c k * pauliErrorInverse x z =
       phaseOfBit (Sum.elim (c.hX *ᵥ z) (c.hZ *ᵥ x) k) •
@@ -394,6 +473,7 @@ private theorem cssCheck_pauli_inverse (c : CssData ι κX κZ) (x z : ι → ZM
     smul_smul]
   rw [mul_comm]
 
+/-- A Pauli error applied to a code vector has the check eigenvalues specified by its syndrome. -/
 private theorem pauliError_syndrome_of_code (c : CssData ι κX κZ) (x z : ι → ZMod 2)
     (w : (ι → ZMod 2) → ℂ) (hw : w ∈ cssCodespace c) :
     ∀ k : κX ⊕ κZ, cssCheck c k *ᵥ ((cssPauliX x * cssPauliZ z) *ᵥ w) =
@@ -402,6 +482,7 @@ private theorem pauliError_syndrome_of_code (c : CssData ι κX κZ) (x z : ι �
   rw [Matrix.mulVec_mulVec, cssCheck_pauli_mul, Matrix.smul_mulVec,
     ← Matrix.mulVec_mulVec, (mem_cssCodespace_check_iff c w).mp hw k]
 
+/-- Applying the inverse Pauli error to a vector with its syndrome yields a code vector. -/
 private theorem pauliError_preimage_in_code (c : CssData ι κX κZ) (x z : ι → ZMod 2)
     (v : (ι → ZMod 2) → ℂ)
     (hv : ∀ k : κX ⊕ κZ, cssCheck c k *ᵥ v =
@@ -412,6 +493,8 @@ private theorem pauliError_preimage_in_code (c : CssData ι κX κZ) (x z : ι �
   rw [Matrix.mulVec_mulVec, cssCheck_pauli_inverse, Matrix.smul_mulVec,
     ← Matrix.mulVec_mulVec, hv k, Matrix.mulVec_smul, smul_smul, phaseOfBit_mul_self, one_smul]
 
+/-- The neighborhood projector preserves a syndrome projector of weight at most `ℓ` and
+annihilates one of larger weight. -/
 private theorem cssNeighborhoodProjector_mul_syndrome (c : CssData ι κX κZ) (ℓ : ℕ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) :
     cssNeighborhoodProjector c ℓ * cssSyndromeProjector c η =
@@ -422,6 +505,8 @@ private theorem cssNeighborhoodProjector_mul_syndrome (c : CssData ι κX κZ) (
   simp_rw [cssSyndromeProjector_mul]
   simp
 
+/-- The range of the neighborhood projector is exactly the span of code vectors with Pauli
+errors of weight at most `ℓ`. -/
 theorem cssNeighborhoodProjector_range (c : CssData ι κX κZ) (ℓ : ℕ) :
     LinearMap.range (Matrix.mulVecLin (cssNeighborhoodProjector c ℓ)) = cssNeighborhood c ℓ := by
   classical
@@ -461,6 +546,7 @@ theorem cssNeighborhoodProjector_range (c : CssData ι κX κZ) (ℓ : ℕ) :
         ((cssPauliX x * cssPauliZ z) *ᵥ (w : (ι → ZMod 2) → ℂ)) = _
     rw [← hf, Matrix.mulVec_mulVec, cssNeighborhoodProjector_mul_syndrome, if_pos hη, hf]
 
+/-- A check acts on a syndrome projector by the eigenvalue encoded by its syndrome bit. -/
 private theorem cssCheck_mul_syndrome (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (k : κX ⊕ κZ) :
     cssCheck c k * cssSyndromeProjector c η =
@@ -474,6 +560,8 @@ private theorem cssCheck_mul_syndrome (c : CssData ι κX κZ)
   ext a b
   exact congrFun ((cssCheckProjector_fixed_iff _ _ _).mp (hcol b)) a
 
+/-- The rejecting check projector preserves a syndrome projector exactly when its selected
+syndrome bit is one, and otherwise annihilates it. -/
 private theorem cssReject_mul_syndrome (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (k : κX ⊕ κZ) :
     cssCheckProjector (cssCheck c k) 1 * cssSyndromeProjector c η =
@@ -482,6 +570,8 @@ private theorem cssReject_mul_syndrome (c : CssData ι κX κZ)
     cssCheck_mul_syndrome, phaseOfBit_one, smul_smul]
   by_cases h : Sum.elim η.1 η.2 k = 1 <;> simp only [phaseOfBit, h, if_true, if_false] <;> module
 
+/-- The number of nonzero syndrome bits in the combined check index is the sum of the X and Z
+Hamming weights. -/
 private theorem cssSyndrome_check_count (η : (κX → ZMod 2) × (κZ → ZMod 2)) :
     ((Finset.univ : Finset (κX ⊕ κZ)).filter (fun k => Sum.elim η.1 η.2 k = 1)).card =
       bitWeight η.1 + bitWeight η.2 := by
@@ -490,6 +580,7 @@ private theorem cssSyndrome_check_count (η : (κX → ZMod 2) × (κZ → ZMod 
   simp only [Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr]
   simp only [bitWeight, hb, Finset.card_eq_sum_ones, Finset.sum_filter]
 
+/-- On each syndrome projector, the tester acts by the fraction of violated checks. -/
 private theorem cssTester_mul_syndrome (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) :
     cssTester c * cssSyndromeProjector c η =
@@ -504,6 +595,8 @@ private theorem cssTester_mul_syndrome (c : CssData ι κX κZ)
   congr 1
   rw [div_eq_mul_inv, mul_comm]
 
+/-- The tester is the sum of the syndrome projectors weighted by their fractions of violated
+checks. -/
 theorem cssTester_eq_syndrome (c : CssData ι κX κZ) :
     cssTester c = ∑ η ∈ Finset.univ,
       (((bitWeight η.1 + bitWeight η.2 : ℕ) : ℂ) / (Fintype.card (κX ⊕ κZ) : ℂ)) •
@@ -516,9 +609,11 @@ theorem cssTester_eq_syndrome (c : CssData ι κX κZ) :
       rw [Finset.mul_sum]
       simp_rw [cssTester_mul_syndrome]
 
+/-- A Pauli error has weight at most the number of qubits. -/
 private theorem pauliWeight_le_card (x z : ι → ZMod 2) : pauliWeight x z ≤ Fintype.card ι := by
   exact (Finset.card_filter_le _ _).trans_eq Finset.card_univ
 
+/-- The minimum realizing Pauli weight is either infinite or at most the number of qubits. -/
 private theorem cssSyndromeWeight_top_or_le (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) :
     cssSyndromeWeight c η.1 η.2 = ⊤ ∨ cssSyndromeWeight c η.1 η.2 ≤ (Fintype.card ι : ℕ∞) := by
@@ -538,10 +633,13 @@ private theorem cssSyndromeWeight_top_or_le (c : CssData ι κX κZ)
     rw [← hw]
     exact_mod_cast pauliWeight_le_card x z
 
+/-- The difference of successive threshold indicators selecting the layer of radius `ℓ`. -/
 private noncomputable def cssLayerCoeff (w : ℕ∞) (ℓ : ℕ) : ℂ :=
   (if w ≤ (ℓ : ℕ∞) then 1 else 0) -
     (if ℓ = 0 then 0 else if w ≤ ((ℓ - 1 : ℕ) : ℕ∞) then 1 else 0)
 
+/-- The layer coefficient is one exactly when `w` equals the finite radius `ℓ`, and zero
+otherwise. -/
 private theorem cssLayerCoeff_eq (w : ℕ∞) (ℓ : ℕ) :
     cssLayerCoeff w ℓ = if w = (ℓ : ℕ∞) then 1 else 0 := by
   cases w using ENat.recTopCoe with
@@ -560,6 +658,8 @@ private theorem cssLayerCoeff_eq (w : ℕ∞) (ℓ : ℕ) :
         simp only [if_neg hℓ, if_neg hk, he]
         exact sub_self _
 
+/-- The weighted sum of layer coefficients through radius `N` equals `w.toNat` when `w` is
+infinite or at most `N`. -/
 private theorem cssLayerCoeff_weighted_sum (w : ℕ∞) (N : ℕ)
     (hw : w = ⊤ ∨ w ≤ (N : ℕ∞)) :
     (∑ ℓ ∈ Finset.range (N + 1), (ℓ : ℂ) * cssLayerCoeff w ℓ) = (w.toNat : ℂ) := by
@@ -574,6 +674,8 @@ private theorem cssLayerCoeff_weighted_sum (w : ℕ∞) (N : ℕ)
       simp [Ne.symm hb]
     · simp [Finset.mem_range, show k < N + 1 from by omega]
 
+/-- The neighborhood projector is the syndrome sum weighted by the indicator of the radius
+bound. -/
 private theorem cssNeighborhoodProjector_indicator (c : CssData ι κX κZ) (ℓ : ℕ) :
     cssNeighborhoodProjector c ℓ = ∑ η : (κX → ZMod 2) × (κZ → ZMod 2),
       (if cssSyndromeWeight c η.1 η.2 ≤ (ℓ : ℕ∞) then (1 : ℂ) else 0) • cssSyndromeProjector c η := by
@@ -582,6 +684,8 @@ private theorem cssNeighborhoodProjector_indicator (c : CssData ι κX κZ) (ℓ
   rw [Finset.sum_filter]
   simp
 
+/-- The distance operator is diagonal in the syndrome decomposition, with coefficient equal to
+the natural value of each syndrome weight. -/
 theorem cssDistanceOperator_eq_syndrome (c : CssData ι κX κZ) :
     cssDistanceOperator c = ∑ η ∈ Finset.univ,
       ((cssSyndromeWeight c η.1 η.2).toNat : ℂ) • cssSyndromeProjector c η := by
@@ -604,6 +708,7 @@ theorem cssDistanceOperator_eq_syndrome (c : CssData ι κX κZ) :
     ((ℓ : ℂ) * cssLayerCoeff (cssSyndromeWeight c η.1 η.2) ℓ) • cssSyndromeProjector c η) = _
   rw [← Finset.sum_smul, cssLayerCoeff_weighted_sum _ _ (cssSyndromeWeight_top_or_le c η)]
 
+/-- A finite product of the bit projectors selected by a syndrome is Hermitian as a matrix. -/
 private theorem cssAlgebraProduct_hermitian (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (s : Finset (κX ⊕ κZ)) :
     ((∏ k ∈ s, cssCheckAlgebraProjector c k (Sum.elim η.1 η.2 k) : cssCheckAlgebra c) :
@@ -621,17 +726,20 @@ private theorem cssAlgebraProduct_hermitian (c : CssData ι κX κZ)
       (cssCheckAlgebraProjector c k (Sum.elim η.1 η.2 k))
       (∏ j ∈ s, cssCheckAlgebraProjector c j (Sum.elim η.1 η.2 j)))
 
+/-- Each CSS syndrome projector is Hermitian. -/
 private theorem cssSyndromeProjector_hermitian (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) : (cssSyndromeProjector c η).IsHermitian := by
   rw [← cssAlgebraSyndromeProjector_coe c η]
   exact cssAlgebraProduct_hermitian c η Finset.univ
 
+/-- Each CSS syndrome projector is positive semidefinite. -/
 private theorem cssSyndromeProjector_posSemidef (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) : (cssSyndromeProjector c η).PosSemidef := by
   have h := Matrix.posSemidef_conjTranspose_mul_self (cssSyndromeProjector c η)
   rw [(cssSyndromeProjector_hermitian c η).eq, cssSyndromeProjector_mul, if_pos rfl] at h
   exact h
 
+/-- Every CSS codespace contains a nonzero vector. -/
 private theorem cssCodespace_exists_ne_zero (c : CssData ι κX κZ) :
     ∃ w : (ι → ZMod 2) → ℂ, w ∈ cssCodespace c ∧ w ≠ 0 := by
   have hd : 0 < Module.finrank ℂ ↥(cssCodespace c) := by
@@ -645,6 +753,8 @@ private theorem cssCodespace_exists_ne_zero (c : CssData ι κX κZ) :
   apply Subtype.ext
   exact h
 
+/-- A syndrome with finite realizing weight has a nonzero vector fixed by its syndrome
+projector. -/
 private theorem cssSyndromeProjector_exists_fixed_ne_zero (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (hη : cssSyndromeWeight c η.1 η.2 ≠ ⊤) :
     ∃ v : (ι → ZMod 2) → ℂ, cssSyndromeProjector c η *ᵥ v = v ∧ v ≠ 0 := by
@@ -663,6 +773,8 @@ private theorem cssSyndromeProjector_exists_fixed_ne_zero (c : CssData ι κX κ
     rw [hv, Matrix.mulVec_zero] at he
     exact hw0 he.symm
 
+/-- A real eigenvalue of a positive semidefinite matrix with a nonzero eigenvector is
+nonnegative. -/
 private theorem posSemidef_real_eigen_nonneg
     (T : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (hT : T.PosSemidef)
     (a : ℝ) (v : (ι → ZMod 2) → ℂ) (hv : v ≠ 0)
@@ -684,11 +796,14 @@ private theorem posSemidef_real_eigen_nonneg
     simpa [smul_eq_mul] using (Complex.nonneg_iff.mp hp).1
   exact (mul_nonneg_iff_of_pos_right hn).mp hreal
 
+/-- The fraction of violated checks minus the normalized soundness parameter times the syndrome
+weight. -/
 private noncomputable def cssSoundnessCoeff (c : CssData ι κX κZ) (σ : ℝ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) : ℝ :=
   (bitWeight η.1 + bitWeight η.2 : ℕ) / (Fintype.card (κX ⊕ κZ) : ℝ) -
     σ / (Fintype.card ι : ℝ) * ((cssSyndromeWeight c η.1 η.2).toNat : ℝ)
 
+/-- The difference defining soundness is the syndrome sum weighted by `cssSoundnessCoeff`. -/
 private theorem cssSoundness_difference (c : CssData ι κX κZ) (σ : ℝ) :
     cssTester c - ((σ / (Fintype.card ι : ℝ) : ℂ) • cssDistanceOperator c) =
       ∑ η : (κX → ZMod 2) × (κZ → ZMod 2),
@@ -701,6 +816,8 @@ private theorem cssSoundness_difference (c : CssData ι κX κZ) (σ : ℝ) :
   congr 1
   simp [cssSoundnessCoeff]
 
+/-- The operator soundness condition holds exactly when the normalized distance contribution is
+bounded by the fraction of violated checks for every syndrome. -/
 theorem cssHasSoundnessAtLeast_iff (c : CssData ι κX κZ) (σ : ℝ) :
     cssHasSoundnessAtLeast c σ ↔ ∀ η : (κX → ZMod 2) × (κZ → ZMod 2),
       σ / (Fintype.card ι : ℝ) * ((cssSyndromeWeight c η.1 η.2).toNat : ℝ) ≤

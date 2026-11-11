@@ -5,6 +5,20 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecodingDefs
+
+/-!
+# Steane-code decoding and recovery accounting
+
+The seven-qubit CSS decoder recovers every Pauli label of weight at most one
+from its syndrome. The module proves zero residual error, minimum-weight
+soundness, preservation of the encoded reference for the resulting residual,
+and recovery-cost identities. It also checks fault and space-time bounds for
+the concrete round gadget defined by this development.
+
+The code originates in [Steane1996], within the CSS construction of
+[Calderbank & Shor][CalderbankShor1996]. Stabilizer background is [Gottesman1997];
+the numerical gadget bounds here refer to the local cost and fault model.
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CodingDecoding.CssTesters
@@ -22,15 +36,20 @@ open Matrix
 open Qatlib
 open scoped Classical
 
+/-- The Steane parity-check matrix sends a unit label to its corresponding column. -/
 theorem steaneH_mulVec_single (i : Fin 7) :
     steaneH *ᵥ (unitLabel i) = steaneCol i := by
   funext k
   simp [Matrix.mulVec, dotProduct, steaneH, steaneCol, unitLabel, Finset.sum_ite_eq']
 
+/-- Multiplication by the Steane parity-check matrix commutes with scalar multiplication over
+`ZMod 2`. -/
 theorem steaneH_mulVec_smul (x : ZMod 2) (v : Fin 7 → ZMod 2) :
     steaneH *ᵥ (x • v) = x • steaneH *ᵥ v := by
   simp [Matrix.mulVec_smul]
 
+/-- A binary vector supported at a single index is its value at that index times the
+corresponding unit label. -/
 theorem eq_smul_unitLabel {ι : Type*} [Fintype ι] [DecidableEq ι]
     (x : ι → ZMod 2) {a : ι} (h : ∀ i, i ≠ a → x i = 0) :
     x = x a • (unitLabel a) := by
@@ -41,12 +60,15 @@ theorem eq_smul_unitLabel {ι : Type*} [Fintype ι] [DecidableEq ι]
   · have hx0 : x i = 0 := h i hi
     simp [unitLabel, Pi.smul_apply, hx0, hi]
 
+/-- Every element of `ZMod 2` is either zero or one. -/
 theorem zmod2_eq_zero_or_one (b : ZMod 2) : b = 0 ∨ b = 1 := by
   exact (by decide : ∀ b : ZMod 2, b = 0 ∨ b = 1) b
 
+/-- Every element of `ZMod 2` sums with itself to zero. -/
 theorem zmod2_add_self (a : ZMod 2) : a + a = 0 := by
   rcases zmod2_eq_zero_or_one a with rfl | rfl <;> decide
 
+/-- A Pauli label of weight at most one is zero or is a single-site X, Z, or combined XZ label. -/
 theorem pauliWeight_le_one {ι : Type*} [Fintype ι] [DecidableEq ι]
     (x z : ι → ZMod 2) (h : pauliWeight x z ≤ 1) :
     (x = 0 ∧ z = 0) ∨
@@ -129,11 +151,13 @@ theorem pauliWeight_le_one {ι : Type*} [Fintype ι] [DecidableEq ι]
         · rw [eq_smul_unitLabel z (fun i hi => (hout i hi).2)]
           simp [hza1, one_smul]
 
+/-- The zero Pauli label has weight zero. -/
 theorem pauliWeight_zero {ι : Type*} [Fintype ι] [DecidableEq ι] :
     pauliWeight (0 : ι → ZMod 2) (0 : ι → ZMod 2) = 0 := by
   classical
   simp [pauliWeight]
 
+/-- A single-site X label has Pauli weight one. -/
 theorem pauliWeight_unit_zero {ι : Type*} [Fintype ι] [DecidableEq ι] (a : ι) :
     pauliWeight (unitLabel a) (0 : ι → ZMod 2) = 1 := by
   classical
@@ -145,6 +169,7 @@ theorem pauliWeight_unit_zero {ι : Type*} [Fintype ι] [DecidableEq ι] (a : ι
   rw [hfilter]
   simp
 
+/-- The Pauli weight of two unit labels is one when their sites coincide and two otherwise. -/
 theorem pauliWeight_unit_unit {ι : Type*} [Fintype ι] [DecidableEq ι] (a b : ι) :
     pauliWeight (unitLabel a) (unitLabel b) = if a = b then 1 else 2 := by
   classical
@@ -162,6 +187,7 @@ theorem pauliWeight_unit_unit {ι : Type*} [Fintype ι] [DecidableEq ι] (a b : 
   · subst h; simp
   · simp [h]
 
+/-- A single-site Z label has Pauli weight one. -/
 theorem pauliWeight_zero_unit {ι : Type*} [Fintype ι] [DecidableEq ι] (a : ι) :
     pauliWeight (0 : ι → ZMod 2) (unitLabel a) = 1 := by
   classical
@@ -173,6 +199,7 @@ theorem pauliWeight_zero_unit {ι : Type*} [Fintype ι] [DecidableEq ι] (a : ι
   rw [hfilter]
   simp
 
+/-- A Pauli label with nonzero X component has weight at least one. -/
 theorem pauliWeight_ge_one_of_ne_left {ι : Type*} [Fintype ι] [DecidableEq ι]
     {e f : ι → ZMod 2} (h : e ≠ 0) : 1 ≤ pauliWeight e f := by
   classical
@@ -191,6 +218,7 @@ theorem pauliWeight_ge_one_of_ne_left {ι : Type*} [Fintype ι] [DecidableEq ι]
   unfold pauliWeight
   omega
 
+/-- A Pauli label with nonzero Z component has weight at least one. -/
 theorem pauliWeight_ge_one_of_ne {ι : Type*} [Fintype ι] [DecidableEq ι]
     {e f : ι → ZMod 2} (h : f ≠ 0) : 1 ≤ pauliWeight e f := by
   classical
@@ -209,26 +237,35 @@ theorem pauliWeight_ge_one_of_ne {ι : Type*} [Fintype ι] [DecidableEq ι]
   unfold pauliWeight
   omega
 
+/-- The Steane Pauli syndrome consists of the parity-check products of the Z and X components,
+in that order. -/
 theorem steaneSyndrome (e : PauliLabel (Fin 7)) :
     pauliSyndrome steaneData e = (steaneH *ᵥ e.2, steaneH *ᵥ e.1) := rfl
 
+/-- The Steane single-site label is the corresponding unit label. -/
 theorem steaneSingle_eq (a : Fin 7) : steaneSingle a = unitLabel a := rfl
 
+/-- The Steane correction for a single-site X syndrome returns that X label. -/
 theorem steaneCorr_singleX (a : Fin 7) :
     steaneCorr (0, steaneCol a) = (unitLabel a, 0) := by
   simp [steaneCorr, steaneCorrX, steaneCorrZ, steaneCol_ne_zero a, steaneColIdx_col a,
     steaneSingle_eq]
 
+/-- The Steane correction for a single-site Z syndrome returns that Z label. -/
 theorem steaneCorr_singleZ (a : Fin 7) :
     steaneCorr (steaneCol a, 0) = (0, unitLabel a) := by
   simp [steaneCorr, steaneCorrX, steaneCorrZ, steaneCol_ne_zero a, steaneColIdx_col a,
     steaneSingle_eq]
 
+/-- The Steane correction for a single-site combined XZ syndrome returns the same combined
+label. -/
 theorem steaneCorr_singleY (a : Fin 7) :
     steaneCorr (steaneCol a, steaneCol a) = (unitLabel a, unitLabel a) := by
   simp [steaneCorr, steaneCorrX, steaneCorrZ, steaneCol_ne_zero a, steaneColIdx_col a,
     steaneSingle_eq]
 
+/-- The Steane syndrome decoder returns the original Pauli label for any error
+of weight at most one; see [Steane, error-correcting codes][Steane1996]. -/
 theorem steaneDecoder_corrects_weight_one (e : PauliLabel (Fin 7))
     (h : pauliWeight e.1 e.2 ≤ 1) :
     steaneCorr (pauliSyndrome steaneData e) = e := by
@@ -252,6 +289,7 @@ theorem steaneDecoder_corrects_weight_one (e : PauliLabel (Fin 7))
     simp only [pauliSyndrome, steaneData, steaneH_mulVec_single a]
     exact steaneCorr_singleY a
 
+/-- The Steane decoder leaves zero residual label for every Pauli label of weight at most one. -/
 theorem steaneDecoder_residual_zero (e : PauliLabel (Fin 7))
     (h : pauliWeight e.1 e.2 ≤ 1) :
     residualLabel steaneDecoder e = (0, 0) := by
@@ -263,32 +301,42 @@ theorem steaneDecoder_residual_zero (e : PauliLabel (Fin 7))
   have hz : e.2 + e.2 = 0 := by funext i; exact zmod2_add_self _
   rw [hc, hx, hz]
 
+/-- The zero Pauli label is a Steane stabilizer label. -/
 theorem steaneIsStabilizerLabel_zero : IsStabilizerLabel steaneData (0, 0) := by
   refine ⟨⟨0, ?_⟩, ⟨0, ?_⟩⟩
   · simp [steaneData]
   · simp [steaneData]
 
+/-- The Steane decoder corrects every Pauli label of weight at most one, as in the seven-qubit
+code of [Steane1996]. -/
 theorem steaneDecoder_correctsUpTo : CorrectsUpTo steaneDecoder 1 := by
   intro e he
   rw [steaneDecoder_residual_zero e he]
   exact steaneIsStabilizerLabel_zero
 
+/-- For a nonzero X-error syndrome component, the X correction is the single-site label indexed
+by that syndrome column. -/
 theorem steaneCorrX_index (η : (Fin 3 → ZMod 2) × (Fin 3 → ZMod 2)) (h : η.2 ≠ 0) :
     steaneCorrX η = steaneSingle (steaneColIdx η.2) := by
   simp [steaneCorrX, h]
 
+/-- For a nonzero Z-error syndrome component, the Z correction is the single-site label indexed
+by that syndrome column. -/
 theorem steaneCorrZ_index (η : (Fin 3 → ZMod 2) × (Fin 3 → ZMod 2)) (h : η.1 ≠ 0) :
     steaneCorrZ η = steaneSingle (steaneColIdx η.1) := by
   simp [steaneCorrZ, h]
 
+/-- The Steane X correction vanishes when its syndrome component is zero. -/
 theorem steaneCorrX_zero (η : (Fin 3 → ZMod 2) × (Fin 3 → ZMod 2)) (h : η.2 = 0) :
     steaneCorrX η = 0 := by
   simp [steaneCorrX, h]
 
+/-- The Steane Z correction vanishes when its syndrome component is zero. -/
 theorem steaneCorrZ_zero (η : (Fin 3 → ZMod 2) × (Fin 3 → ZMod 2)) (h : η.1 = 0) :
     steaneCorrZ η = 0 := by
   simp [steaneCorrZ, h]
 
+/-- The Steane decoder satisfies the minimum-weight soundness predicate. -/
 theorem steaneDecoder_minimumWeightSound : MinimumWeightSound steaneDecoder := by
   intro η e he
   show pauliWeight (steaneCorrX η) (steaneCorrZ η) ≤ pauliWeight e.1 e.2
@@ -402,16 +450,21 @@ theorem steaneDecoder_minimumWeightSound : MinimumWeightSound steaneDecoder := b
     · have : 2 ≤ pauliWeight e.1 e.2 := by omega
       omega
 
+/-- Every Steane stabilizer label preserves logical reference states. -/
 theorem steaneStabilizerLabel_preserves (e : PauliLabel (Fin 7))
     (he : IsStabilizerLabel steaneData e) :
     LogicalReferencePreserved steaneData e :=
   logicalReferencePreserved_of_stabilizer steaneData he
 
+/-- The residual after decoding a Pauli label of weight at most one preserves logical reference
+states. -/
 theorem steaneResidual_preserves (e : PauliLabel (Fin 7)) (h : pauliWeight e.1 e.2 ≤ 1) :
     LogicalReferencePreserved steaneData (residualLabel steaneDecoder e) := by
   rw [steaneDecoder_residual_zero e h]
   exact logicalReferencePreserved_of_stabilizer steaneData steaneIsStabilizerLabel_zero
 
+/-- The Steane recovery cost consists of syndrome extraction plus correction gates, the syndrome
+measurements, and the decoder's classical running time. -/
 theorem steaneRecoveryCost (η : (Fin 3 → ZMod 2) × (Fin 3 → ZMod 2)) :
     (recoveryCost steaneData steaneDecoder η).gates
         = syndromeExtractionGates steaneData + correctionGates (steaneCorr η) ∧
@@ -419,6 +472,7 @@ theorem steaneRecoveryCost (η : (Fin 3 → ZMod 2) × (Fin 3 → ZMod 2)) :
       (recoveryCost steaneData steaneDecoder η).classicalTime = steaneDecoder.decodeTime η := by
   simp [recoveryCost, steaneDecoder]
 
+/-- Every Pauli label has a realizing recovery receipt for the Steane code and decoder. -/
 theorem steaneRecoveryReceipt (e : PauliLabel (Fin 7)) :
     ∃ r : RecoveryReceipt steaneData steaneDecoder, r.Realizes e := by
   refine ⟨{ η := pauliSyndrome steaneData e
@@ -426,8 +480,11 @@ theorem steaneRecoveryReceipt (e : PauliLabel (Fin 7)) :
             cost := recoveryCost steaneData steaneDecoder (pauliSyndrome steaneData e) }, ?_⟩
   exact ⟨rfl, rfl, rfl⟩
 
+/-- Two elements of `ZMod 2` sum to zero exactly when they are equal. -/
 theorem zmod2_add_eq_zero_iff : ∀ a b : ZMod 2, a + b = 0 ↔ a = b := by decide
 
+/-- The Steane decoder corrects Pauli errors of weight at most one in a single shot with zero
+syndrome-noise budget. -/
 theorem steaneDecoder_singleShot : CorrectsSingleShotNoisyUpTo steaneDecoder 1 0 := by
   intro e ηobs he hd
   have hd0 : ηobs = pauliSyndrome steaneData e := by
@@ -447,12 +504,15 @@ theorem steaneDecoder_singleShot : CorrectsSingleShotNoisyUpTo steaneDecoder 1 0
   rw [hd0]
   exact steaneDecoder_correctsUpTo e he
 
+/-- For a Pauli error of weight at most one, correcting its true syndrome leaves a Steane
+stabilizer label. -/
 theorem steaneDecoder_succeeds_on_true_syndrome (e : PauliLabel (Fin 7))
     (h : pauliWeight e.1 e.2 ≤ 1) :
     IsStabilizerLabel steaneData
       (residualFromObserved steaneDecoder e (pauliSyndrome steaneData e)) :=
   steaneDecoder_correctsUpTo e h
 
+/-- The sum of Bernoulli subset weights over all subsets of a finite set is one. -/
 theorem binom_subset_sum_eq_one {α : Type} [Fintype α] [DecidableEq α] (p : ℝ) (U : Finset α) :
     ∑ T ∈ U.powerset, p ^ T.card * (1 - p) ^ (U.card - T.card) = 1 := by
   induction U using Finset.induction_on with
@@ -488,6 +548,7 @@ theorem binom_subset_sum_eq_one {α : Type} [Fintype α] [DecidableEq α] (p : �
       rw [hfirst, hsecond, ih]
       ring
 
+/-- The Steane noise weights sum to one over all fault subsets. -/
 theorem steaneNoiseLaw_sum_one (ζ : ℕ) (p : ℝ) :
     ∑ F ∈ (Finset.univ : Finset (Finset (Fin ζ))), steaneNoiseLaw ζ p F = 1 := by
   have hset : (Finset.univ : Finset (Finset (Fin ζ)))
@@ -502,6 +563,8 @@ theorem steaneNoiseLaw_sum_one (ζ : ℕ) (p : ℝ) :
   have h := binom_subset_sum_eq_one p (Finset.univ : Finset (Fin ζ))
   simpa [steaneNoiseLaw, Fintype.card_fin] using h
 
+/-- For `0 ≤ p ≤ 1`, the Steane noise law satisfies the adversarial fault budget with `ζ`
+locations. -/
 theorem steaneNoiseLaw_adversarial (ζ : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     AdversarialFaultBudget (steaneNoiseLaw ζ p) ζ := by
   refine ⟨?_, ?_, ?_⟩
@@ -515,15 +578,18 @@ theorem steaneNoiseLaw_adversarial (ζ : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p
     have hcard : (Finset.univ : Finset (Fin ζ)).card = ζ := by simp
     omega
 
+/-- The Steane round gadget satisfies ideal correctness. -/
 theorem steaneRoundGadget_idealCorrect : steaneRoundGadget.IsIdealCorrect := by
   refine ⟨steaneIsStabilizerLabel_zero, ?_⟩
   decide
 
+/-- A nonzero coordinate of `steaneResidualX F` must lie in the fault set `F`. -/
 theorem steaneResidualX_ne_zero {F : Finset (Fin 7)} {k : Fin 7}
     (h : steaneResidualX F k ≠ 0) : k ∈ F := by
   by_contra hk
   simp [steaneResidualX, hk] at h
 
+/-- The Steane round gadget satisfies fault tolerance at one fault. -/
 theorem steaneRoundGadget_faultTolerant : steaneRoundGadget.IsFaultTolerantAt 1 := by
   intro F hF
   have hsub : Finset.univ.filter (fun i : Fin 7 =>
@@ -540,22 +606,30 @@ theorem steaneRoundGadget_faultTolerant : steaneRoundGadget.IsFaultTolerantAt 1 
   unfold pauliWeight
   exact hcard.trans hF
 
+/-- The single Steane round gadget has cumulative spacetime cost twenty-one. -/
 theorem steaneCumulativeSpaceTime : cumulativeSpaceTime [steaneRoundGadget] = 21 := by
   simp [cumulativeSpaceTime, steaneRoundGadget]
 
+/-- The single Steane round gadget has peak space cost seven. -/
 theorem steanePeakSpace : peakSpace [steaneRoundGadget] = 7 := by
   simp [peakSpace, steaneRoundGadget]
 
+/-- The composed error-window expression for one Steane round, space seven, and tolerance one is
+`21 * p ^ 2`. -/
 theorem steaneComposedErrWindow (p : ℝ) :
     composedErrWindow [steaneRoundGadget] 7 1 p = 21 * p ^ 2 := by
   have hchoose : Nat.choose 7 2 = 21 := by decide
   simp [composedErrWindow, hchoose]
 
+/-- The composed failure-mass expression for one Steane round with tolerance one is `21 * p ^
+2`. -/
 theorem steaneComposedFailureMass (p : ℝ) :
     composedFailureMass [steaneRoundGadget] 1 p = 21 * p ^ 2 := by
   have hchoose : Nat.choose 7 2 = 21 := by decide
   simp [composedFailureMass, GadgetSpec.failureMass, steaneRoundGadget, hchoose]
 
+/-- The finite fault-tolerance parameter record built from the Steane code, decoder, and
+syndrome-round gadget. -/
 def steaneFtRealization : FtRealization where
   N := 7
   mX := 3

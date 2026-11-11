@@ -9,6 +9,30 @@ import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7CorrectedTigh
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem8CorrectedTigh
 import Qatlib.Papers.QSearchBoyer96.MainResults.Sec2KnownCountIterations
 import Mathlib.Tactic
+
+/-!
+# Grover circuit success and query counts
+
+This module connects the exact Grover success formula to execution of `GroverCircuit` from
+`Uniform`. It proves unitarity and exact query counts, then combines the floor iteration choice
+with the marked-density failure bound and the (π/4)√(N/t) query budget.
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `actual_grover_queries_and_success`: On a nonempty finite search space, the j-step Grover
+  circuit is unitary, uses exactly j queries, and succeeds with probability sin²((2j + 1)θ)
+  under the stated angle and nonzero sine and cosine hypotheses.
+* `actual_floor_success_and_cost`: For a nonempty marked set and the stated angle conditions,
+  the floor-iteration Grover circuit has failure probability at most the marked density and uses
+  exactly `groverIterations θ` queries, bounded by (π/4)√(N/t).
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +44,9 @@ open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 namespace Qatlib.Papers.QSearchBoyer96.MainResults
 
+/-- On a nonempty finite search space, the j-step Grover circuit is unitary, uses exactly j
+queries, and succeeds with probability sin²((2j + 1)θ) under the stated angle and nonzero
+sine and cosine hypotheses [BoyerEtAl1998]. -/
 theorem actual_grover_queries_and_success {I : Type} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ)^2 = (A.card : ℝ)/(Fintype.card I : ℝ))
@@ -30,6 +57,9 @@ theorem actual_grover_queries_and_success {I : Type} [Fintype I] [DecidableEq I]
   exact ⟨queryCount_groverCircuit j, isUnitaryCircuit_groverCircuit hN j,
     measureProb_groverState hN A θ hθ hs hc j⟩
 
+/-- For a nonempty marked set and the stated angle conditions, the floor-iteration Grover
+circuit has failure probability at most the marked density and uses exactly
+`groverIterations θ` queries, bounded by (π/4)√(N/t) [BoyerEtAl1998]. -/
 theorem actual_floor_success_and_cost {I : Type} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hA : 0 < A.card)

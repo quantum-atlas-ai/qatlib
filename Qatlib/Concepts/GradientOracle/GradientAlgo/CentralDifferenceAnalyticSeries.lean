@@ -9,6 +9,24 @@ import Mathlib.Analysis.Analytic.Uniqueness
 import Mathlib.Analysis.Analytic.ChangeOrigin
 import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
 import Mathlib.Analysis.SpecificLimits.Normed
+
+/-!
+# Globally convergent analytic ray series
+
+This module bounds Taylor coefficients with derivative growth `A^n * n^(n/2)` and proves
+convergence at every real argument. These scalar estimates support analytic central-difference
+error bounds in the gradient framework of [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_growth_summable`: the growth majorant is summable at every real argument.
+* `centralDiff_scalar_entire_hasSum`: the Taylor series at zero sums to the analytic function.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +36,8 @@ namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators Topology NNReal ENNReal
 open Filter
 
+/-- For nonnegative `A` and positive degree `n`, bounds `A^n * n^(n/2) / n!` by `(exp 1 * A /
+sqrt n)^n`. -/
 theorem centralDiff_growth_coefficient_le (A : ℝ) (hA : 0≤A) (n : ℕ) (hn : 0<n) :
     A^n*(n : ℝ)^((n : ℝ)/2)/(Nat.factorial n : ℝ)≤(Real.exp 1*A/Real.sqrt n)^n := by
   have hnr : (0 : ℝ)<n := by exact_mod_cast hn
@@ -46,6 +66,8 @@ theorem centralDiff_growth_coefficient_le (A : ℝ) (hA : 0≤A) (n : ℕ) (hn :
   field_simp
   nlinarith
 
+/-- For nonnegative `A`, the factorially scaled growth majorant `A^n * n^(n/2) * |t|^n / n!` is
+summable at every real `t`. -/
 theorem centralDiff_growth_summable (A t : ℝ) (hA : 0≤A) :
     Summable (fun n : ℕ => A^n*(n : ℝ)^((n : ℝ)/2)/(Nat.factorial n : ℝ)*|t|^n) := by
   obtain ⟨N,hN⟩ := exists_nat_ge ((2*Real.exp 1*A*|t|)^2)
@@ -70,6 +92,8 @@ theorem centralDiff_growth_summable (A t : ℝ) (hA : 0≤A) :
     _ = (Real.exp 1*A*|t|/Real.sqrt n)^n := by rw [← mul_pow]; congr 1; ring
     _ ≤ _ := pow_le_pow_left₀ (by positivity) hb n
 
+/-- A real function analytic near every real point, with derivatives at zero bounded by `A^n *
+n^(n/2)`, equals its Taylor series at zero at every real argument. -/
 theorem centralDiff_scalar_entire_hasSum (g : ℝ → ℝ)
     (hg : AnalyticOnNhd ℝ g Set.univ) (A : ℝ) (hA : 0≤A)
     (hb : ∀ n : ℕ,|iteratedDeriv n g 0|≤A^n*(n : ℝ)^((n : ℝ)/2)) (t : ℝ) :

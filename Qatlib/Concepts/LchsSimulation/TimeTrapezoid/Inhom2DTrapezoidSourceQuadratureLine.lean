@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.TrapezoidSourceDerivatives
 import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.Inhom2DTrapezoidSourceQuadratureStat
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureLine
+
+/-!
+# Two-dimensional trapezoidal source quadrature bound
+
+`inhomogeneous_2d_trapezoid_source_of_quadrature` derives the joint source quadrature estimate
+from the homogeneous parameter trapezoid estimate. `inhomogeneous2DTrapezoidSourceQuadrature`
+supplies the resulting bound, combining the time quadrature error with the parameter truncation
+and discretization errors.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneous_2d_trapezoid_source_of_quadrature`: reduces the source estimate to homogeneous
+  quadrature.
+* `inhomogeneous2DTrapezoidSourceQuadrature`: establishes the joint source quadrature
+  proposition.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -29,9 +52,13 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+/-- The real continuous linear identification of a finite complex state vector with its
+Euclidean-space representation. -/
 private def trap2dEuclideanMap {I : Type} [Fintype I] : QState I →L[ℝ] EuclideanSpace ℂ I :=
   (PiLp.continuousLinearEquiv 2 ℝ (fun _ : I => ℂ)).symm.toContinuousLinearMap
 
+/-- The homogeneous parameter trapezoid quadrature estimate implies the two-dimensional
+trapezoidal source quadrature estimate. -/
 theorem inhomogeneous_2d_trapezoid_source_of_quadrature
     (hq : HomogeneousKTrapezoidQuadrature) : Inhomogeneous2DTrapezoidSourceQuadrature := by
   intro I _ _ L L' H H' b b' b'' s t K N Mt β β₂ lamL lamH lamLd lamHd bmax
@@ -103,6 +130,9 @@ theorem inhomogeneous_2d_trapezoid_source_of_quadrature
     toEuclidean_fromVec (inhSourceResponse L H b s t)‖ ≤ _
   exact ht.trans ((add_le_add hk hleft).trans_eq (by dsimp [η]; ring))
 
+/-- The two-dimensional trapezoidal source estimate holds, with the time second-derivative error
+and the source-norm-weighted parameter quadrature error for the Duhamel representation
+[AnLiuLin2023]. -/
 theorem inhomogeneous2DTrapezoidSourceQuadrature : Inhomogeneous2DTrapezoidSourceQuadrature :=
   inhomogeneous_2d_trapezoid_source_of_quadrature homogeneousKTrapezoidQuadrature
 

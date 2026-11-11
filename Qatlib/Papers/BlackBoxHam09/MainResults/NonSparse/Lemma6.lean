@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+/-!
+# Lemma 6 amplification parameter arithmetic
+
+This module defines the planar rotation `groverStep` and proves its exact iteration formula in
+`grover_iterate`. The ceiling choice `lemma6Iters` and the scale `lemma6X` satisfy the scalar
+bounds collected by `lemma6_amplitude_amplified_state_prep`, including a bound on the associated
+query count expression.
+
+The rotation and parameter estimates support the amplitude amplification analysis of Lemma 6 in
+[BerryChilds2012].
+
+## Main statements
+
+* `grover_iterate` gives the exact planar iteration formula.
+* `lemma6_amplitude_amplified_state_prep` collects the scalar amplification estimates.
+
+## References
+
+* [Berry and Childs, 2012][BerryChilds2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,10 +43,13 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Inhabited ι] {D L : ℕ}
 
+/-- The planar rotation that sends `(sin α, cos α)` to `(sin (α + 2 * θ), cos (α + 2 * θ))`. -/
 def groverStep (θ : ℝ) (v : ℝ × ℝ) : ℝ × ℝ :=
   (v.1 * Real.cos (2 * θ) + v.2 * Real.sin (2 * θ),
    -v.1 * Real.sin (2 * θ) + v.2 * Real.cos (2 * θ))
 
+/-- One application of `groverStep θ` advances the angle `(2 * r + 1) * θ` to `(2 * (r + 1) + 1)
+* θ`. -/
 theorem groverStep_sin_cos (θ : ℝ) (r : ℕ) :
     groverStep θ (Real.sin (((2 * r + 1 : ℕ) : ℝ) * θ),
         Real.cos (((2 * r + 1 : ℕ) : ℝ) * θ)) =
@@ -37,6 +62,8 @@ theorem groverStep_sin_cos (θ : ℝ) (r : ℕ) :
   simp only [groverStep, h2, Real.sin_add, Real.cos_add]
   exact Prod.ext (by ring) (by ring)
 
+/-- After `r` applications of `groverStep θ`, the initial pair `(sin θ, cos θ)` has angle `(2 *
+r + 1) * θ`. See [Berry and Childs, Lemma 6][BerryChilds2012]. -/
 theorem grover_iterate (θ : ℝ) (r : ℕ) :
     (groverStep θ)^[r] (Real.sin θ, Real.cos θ) =
       (Real.sin (((2 * r + 1 : ℕ) : ℝ) * θ),
@@ -47,20 +74,27 @@ theorem grover_iterate (θ : ℝ) (r : ℕ) :
       rw [Function.iterate_succ_apply', ih]
       exact groverStep_sin_cos θ r
 
+/-- The squared coordinates of the iterated sine and cosine pair sum to one. -/
 theorem grover_iterate_normalized (θ : ℝ) (r : ℕ) :
     ((groverStep θ)^[r] (Real.sin θ, Real.cos θ)).1 ^ 2 +
       ((groverStep θ)^[r] (Real.sin θ, Real.cos θ)).2 ^ 2 = 1 := by
   rw [grover_iterate, Real.sin_sq_add_cos_sq]
 
+/-- The natural ceiling of half the square root amplification parameter minus one half, used as
+the iteration count in Lemma 6. -/
 def lemma6Iters (Λ1 ε : ℝ) (D : ℕ) (Λmax : ℝ) : ℕ :=
   ⌈(1 / 2) * Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) - 1 / 2⌉₊
 
+/-- The odd multiplier `2 * lemma6Iters + 1` is at least `sqrt (ε * Λmax * D / Λ1)`. See [Berry
+and Childs, Lemma 6][BerryChilds2012]. -/
 theorem lemma6Iters_ge (Λ1 ε Λmax : ℝ) (D : ℕ) :
     Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) ≤ 2 * (lemma6Iters Λ1 ε D Λmax : ℝ) + 1 := by
   have h := Nat.le_ceil ((1 / 2) * Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) - 1 / 2)
   unfold lemma6Iters
   linarith
 
+/-- The odd multiplier `2 * lemma6Iters + 1` is at most `sqrt (ε * Λmax * D / Λ1) + 2`. See
+[Berry and Childs, Lemma 6][BerryChilds2012]. -/
 theorem lemma6Iters_le (Λ1 ε Λmax : ℝ) (D : ℕ) :
     (2 * (lemma6Iters Λ1 ε D Λmax : ℝ) + 1) ≤
       Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) + 2 := by
@@ -76,9 +110,13 @@ theorem lemma6Iters_le (Λ1 ε Λmax : ℝ) (D : ℕ) :
     have h := Nat.ceil_lt_add_one (le_of_lt hx0)
     linarith
 
+/-- The scale `(2 * r + 1) ^ 2 * Λ1 / (ε * D)` associated with `r` planar amplification
+iterations. -/
 def lemma6X (Λ1 ε : ℝ) (D : ℕ) (r : ℕ) : ℝ :=
   (2 * (r : ℝ) + 1) ^ 2 * Λ1 / (ε * (D : ℝ))
 
+/-- For positive `D`, `Λ1`, and `ε` and nonnegative `Λmax`, the scale selected using
+`lemma6Iters` is at least `Λmax`. See [Berry and Childs, Lemma 6][BerryChilds2012]. -/
 theorem lemma6X_ge_max {Λ1 Λmax ε : ℝ} {D : ℕ} (hD : 0 < D) (hΛ1 : 0 < Λ1) (hε0 : 0 < ε)
     (hmax : 0 ≤ Λmax) :
     Λmax ≤ lemma6X Λ1 ε D (lemma6Iters Λ1 ε D Λmax) := by
@@ -103,6 +141,8 @@ theorem lemma6X_ge_max {Λ1 Λmax ε : ℝ} {D : ℕ} (hD : 0 < D) (hΛ1 : 0 < �
           exact mul_le_mul_of_nonneg_right hp (le_of_lt hΛ1)
   exact hkey
 
+/-- Multiplying the selected odd iteration multiplier by a nonnegative cost `c` gives at most `c
+* (lemma6QueryExpr + 1)`. -/
 theorem lemma6_query_count {Λ1 ε Λmax c : ℝ} {D : ℕ} (hc : 0 ≤ c) :
     c * (2 * (lemma6Iters Λ1 ε D Λmax : ℝ) + 1) ≤
       c * (lemma6QueryExpr Λ1 ε D Λmax + 1) := by
@@ -110,6 +150,9 @@ theorem lemma6_query_count {Λ1 ε Λmax c : ℝ} {D : ℕ} (hc : 0 ≤ c) :
   have h := lemma6Iters_le Λ1 ε Λmax D
   nlinarith [h, hc]
 
+/-- Under the stated sparsity, norm, and positivity hypotheses, collect the selected iteration
+lower bound, the scale bound, the exact planar rotation formula, and the scalar query budget
+inequality for Lemma 6 of [BerryChilds2012]. -/
 theorem lemma6_amplitude_amplified_state_prep
     (BB : BlackBox ι D L) {Λ1 Λmax ε : ℝ}
     (hsp : IsColumnSparse BB.H D) (hD : 0 < D)

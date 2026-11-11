@@ -63,6 +63,29 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.GroverArbAmp98.MainResults.Dynamics
+
+/-!
+# Optimal real times in the Grover cosine model
+
+This module studies the real-valued cosine model `successAt` for the success oscillation in
+[BihamEtAl1999]. It proves that the specified real measurement times attain `Pmax`, records a
+reciprocal identity for positive success values, and identifies the rotation angle with the one
+in `Dynamics`.
+
+Under `1 ≤ r` and `2*r ≤ r+m`, `iterations_big_O` gives an explicit upper bound for the first
+real-time expression with square-root dependence on `(r+m)/r` and a factor depending on the
+phase.
+
+## Main statements
+
+* `optimal_time_achieves_Pmax`: exact attainment at the specified real times.
+* `iterations_big_O`: an explicit square-root upper bound on the real-time expression.
+
+## References
+
+* [Biham et al., 1999][BihamEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -70,10 +93,14 @@ noncomputable section
 
 namespace Qatlib.Papers.GroverArbAmp98.MainResults.MeasurementTime
 
+/-- The cosine success model `Pav - ΔP * cos θ`. -/
 def successAt (Pav ΔP θ : ℝ) : ℝ := Pav - ΔP * Real.cos θ
 
+/-- The envelope value `Pav + ΔP` for the cosine success model. -/
 def Pmax (Pav ΔP : ℝ) : ℝ := Pav + ΔP
 
+/-- For nonnegative `ΔP`, every phase of the cosine success model is bounded above by `Pmax Pav
+ΔP`. -/
 lemma success_le_Pmax (Pav ΔP θ : ℝ) (hΔ0 : 0 ≤ ΔP) :
     successAt Pav ΔP θ ≤ Pmax Pav ΔP := by
   unfold successAt Pmax
@@ -82,6 +109,8 @@ lemma success_le_Pmax (Pav ΔP θ : ℝ) (hΔ0 : 0 ≤ ΔP) :
     simpa using this
   linarith
 
+/-- For nonzero `ω`, evaluating the cosine model at real time `((j + 1/2) * π - φ) / ω` gives
+`Pmax Pav ΔP` [BihamEtAl1999]. -/
 theorem optimal_time_achieves_Pmax (Pav ΔP φ ω : ℝ) (j : ℕ) (hω : ω ≠ 0) :
     successAt Pav ΔP (2 * (ω * ((((j : ℝ) + 1 / 2) * Real.pi - φ) / ω) + φ))
       = Pmax Pav ΔP := by
@@ -96,21 +125,27 @@ theorem optimal_time_achieves_Pmax (Pav ΔP φ ω : ℝ) (j : ℕ) (hω : ω ≠
   rw [hθ, hcos]
   ring
 
+/-- For positive `Pmax`, multiplying its reciprocal by `Pmax` gives one [BihamEtAl1999]. -/
 theorem inverse_repetitions_arithmetic (Pmax : ℝ) (hpos : 0 < Pmax) :
     (1 / Pmax) * Pmax = 1 := by
   field_simp
 
+/-- The real angle `arccos (1 - 2r/(r+m))` used in the measurement-time expression. -/
 def omegaR (r m : ℕ) : ℝ :=
   Real.arccos (1 - 2 * (r : ℝ) / ((r + m : ℕ) : ℝ))
 
+/-- The measurement-time rotation angle equals the angle defined in `Dynamics`. -/
 lemma omegaR_eq_omega (r m : ℕ) : omegaR r m = Dynamics.omega r m := rfl
 
+/-- For positive total size, the sine of the measurement-time rotation angle is `2√(r*m)/(r+m)`. -/
 lemma sin_omegaR (r m : ℕ) (hN : 0 < r + m) :
     Real.sin (omegaR r m)
       = 2 * Real.sqrt ((r : ℝ) * (m : ℝ)) / ((r + m : ℕ) : ℝ) := by
   rw [omegaR_eq_omega]
   exact Dynamics.omega_sin r m hN
 
+/-- For `1 ≤ r` and `2*r ≤ r+m`, the real-time expression `(π/2 - φ) / omegaR r m` is at most
+`(π/2 + |φ|) * √((r+m)/r) / √2` [BihamEtAl1999]. -/
 theorem iterations_big_O (r m : ℕ) (φ : ℝ) (hr : 1 ≤ r) (hrm : 2 * r ≤ r + m) :
     (Real.pi / 2 - φ) / omegaR r m ≤
       (Real.pi / 2 + |φ|) * Real.sqrt (((r + m : ℕ) : ℝ) / (r : ℝ)) / Real.sqrt 2 := by

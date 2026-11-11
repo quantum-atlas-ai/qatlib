@@ -11,6 +11,37 @@ import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharp
 import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary710Elem
 import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78Elem
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Multicontrolled gate networks
+
+This module collects exact and approximate multicontrolled one-qubit constructions from Section
+7 of [BarencoEtAl1995]. The results give legal local gate lists, their action on register
+states, and explicit gate and query counts. The auxiliary wire in `corollary7_4_paper` and
+`corollary7_10_paper` may start in either basis state; `lemma7_11` instead assumes that its
+auxiliary wire starts at zero.
+
+The approximation results `lemma7_8_approx` and `lemma7_8_with_tolerance` compare a compiled
+circuit with an ideal multicontrolled unitary in operator norm. The natural-number depth
+`approximationDepth` turns a positive tolerance into an explicit logarithmic budget.
+
+## Main statements
+
+* `corollary7_4_paper`: the Toffoli block count is `8 * (n - 5)`, with four exact blocks and at
+  most `48 * n - 204` elementary gates.
+* `corollary7_6`: exact synthesis without an auxiliary wire has a quadratic gate bound.
+* `lemma7_8_with_tolerance`: a positive tolerance is attained with the stated depth-dependent
+  gate bound.
+* `lemma7_9_five_block` and `lemma7_9`: the special-unitary factorization and an exact
+  multicontrolled implementation.
+* `corollary7_10_paper` and `corollary7_12_paper`: linear bounds with a borrowed wire or a
+  zero-initialized auxiliary wire, respectively.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,6 +64,10 @@ open Qatlib.Papers.ElemGates95.ThreeQubit
 
 namespace Qatlib.Papers.ElemGates95.MultiControl.Section7
 
+/-- Corollary 7.4 of [BarencoEtAl1995]: for at least seven logical wires, the multicontrolled
+NOT has a legal implementation of at most `48 * n - 204` elementary gates. The block ledger
+records exactly `8 * (n - 5)` Toffoli blocks and four exact blocks, and the basis-state
+action preserves every wire except the target. -/
 theorem corollary7_4_paper (N n : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     (hn : 7 ≤ n) (hc : Set.InjOn c (Set.Iio (n - 2)))
     (hcs : ∀ i < n - 2, c i ≠ s) (hct : ∀ i < n - 2, c i ≠ t) (hst : s ≠ t) :
@@ -50,6 +85,10 @@ theorem corollary7_4_paper (N n : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     corollary7_4_two_layer_ledger (N := N) (n := n) c s t hn hc hcs hct hst
   exact ⟨cor74Word (n - 2) c s t, hlegal, htoff, hexact, hlen, hq, hg, hrun⟩
 
+/-- Corollary 7.6 of [BarencoEtAl1995], with an explicit quadratic upper bound: an arbitrary
+unitary given by known qubit angles has an exact implementation with `n - 1` controls and no
+auxiliary wire. The compiled circuit uses no queries and at most `256 * ((n - 1) + 1) ^ 2`
+gates. -/
 theorem corollary7_6 (n : ℕ) (_hn : 2 ≤ n) (p : KnownQubitAngles) :
     ∃ gs : List (ReflectionGate ((n - 1) + 1)),
       reflectionLegal gs ∧ gs.length ≤ 256 * ((n - 1) + 1) ^ 2 ∧
@@ -64,6 +103,9 @@ theorem corollary7_6 (n : ℕ) (_hn : 2 ≤ n) (p : KnownQubitAngles) :
     no_work_multi_known_control_local_table_and_cost (n - 1) p
   exact ⟨gs, hlegal, hle, hq, hg, hrun⟩
 
+/-- Constructs a legal circuit of at most `(240 * (m + 1) + 20) * k` gates within operator norm
+`Real.pi / 2 ^ k` of an ideal unitary implementing the specified multicontrolled `U`. The
+compiled circuit uses no queries. -/
 theorem lemma7_8_approx (N m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m, c i ≠ t)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
@@ -78,8 +120,12 @@ theorem lemma7_8_approx (N m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
             (ApplyGate (if noWorkPrefixAnd (fun i => x (c i)) m then U else 1) φ) :=
   Qatlib.Concepts.CircuitImpl.SqrtApprox.lemma7_8 N m k c t hc hct U hU
 
+/-- The natural-number ceiling of the base-two logarithm of `Real.pi / ε`, used as the
+approximation depth for tolerance `ε`. -/
 def approximationDepth (ε : ℝ) : ℕ := Nat.ceil (Real.logb 2 (Real.pi / ε))
 
+/-- For positive `ε`, the chosen approximation depth makes the residual bound `Real.pi / 2 ^
+approximationDepth ε` at most `ε`. -/
 theorem approximationDepth_error_bound (ε : ℝ) (hε : 0 < ε) :
     Real.pi / (2 ^ approximationDepth ε : ℝ) ≤ ε := by
   have hx : 0 < Real.pi / ε := div_pos Real.pi_pos hε
@@ -91,6 +137,10 @@ theorem approximationDepth_error_bound (ε : ℝ) (hε : 0 < ε) :
   apply (div_le_iff₀ hpow).mpr
   exact (div_le_iff₀ hε).mp hp |>.trans_eq (mul_comm _ _)
 
+/-- Lemma 7.8 of [BarencoEtAl1995], with an explicit tolerance-dependent budget: for positive
+`ε`, a legal circuit approximates the specified multicontrolled unitary within operator norm
+`ε`. Its length is at most `(240 * (m + 1) + 20) * approximationDepth ε`, and it uses no
+queries. -/
 theorem lemma7_8_with_tolerance (N m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m, c i ≠ t)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool ℂ)
@@ -108,6 +158,9 @@ theorem lemma7_8_with_tolerance (N m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     lemma7_8_approx N m (approximationDepth ε) c t hc hct U hU
   exact ⟨gs, hl, hn, hq, hg, G, hG, he.trans (approximationDepth_error_bound ε hε), hs⟩
 
+/-- The five-block algebra of Lemma 7.9 of [BarencoEtAl1995]: a special-unitary `W` possesses
+special-unitary factors whose controlled interleaving with two Pauli-X factors equals `W`
+when both Boolean predicates hold and the identity otherwise. -/
 theorem lemma7_9_five_block (W : Matrix Bool Bool ℂ)
     (hW : W ∈ Matrix.unitaryGroup Bool ℂ) (hdet : W.det = 1) :
     ∃ A B C : Matrix Bool Bool ℂ, SU2 A ∧ SU2 B ∧ SU2 C ∧
@@ -120,6 +173,10 @@ theorem lemma7_9_five_block (W : Matrix Bool Bool ℂ)
   intro last otherControls
   cases last <;> cases otherControls <;> simp [hABC, hprod, pauliX_mul_self]
 
+/-- Lemma 7.9 of [BarencoEtAl1995], expressed as the special-unitary `A * X * B * X * C`
+factorization together with existence of an exact legal multicontrolled circuit. The
+compiled circuit uses no queries and acts on every target state with the stated control
+predicate. -/
 theorem lemma7_9 (N m : ℕ) (c : ℕ → Fin N) (t : Fin N) (W : Matrix Bool Bool ℂ)
     (hW : W ∈ Matrix.unitaryGroup Bool ℂ) (hdet : W.det = 1)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m, c i ≠ t) :
@@ -143,6 +200,9 @@ theorem lemma7_9 (N m : ℕ) (c : ℕ → Fin N) (t : Fin N) (W : Matrix Bool Bo
     exact ⟨gs, hlegal, queryCount_reflectionCompile _,
       gateCount_reflectionCompile _, hrun⟩
 
+/-- Corollary 7.10 of [BarencoEtAl1995]: a multicontrolled special-unitary gate has a legal
+implementation of at most `240 * (m + 2)` elementary gates using a distinct borrowed wire.
+Its basis-background semantics preserve that wire without an initialization assumption. -/
 theorem corollary7_10_paper (N m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hcs : ∀ i < m, c i ≠ s) (hct : ∀ i < m, c i ≠ t)
     (hst : s ≠ t) (W : Matrix Bool Bool ℂ) (hW : W ∈ Matrix.unitaryGroup Bool ℂ)
@@ -159,6 +219,9 @@ theorem corollary7_10_paper (N m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
   Qatlib.Concepts.CircuitImpl.MultiControl.corollary7_10
     N m c s t hc hcs hct hst W hW hdet
 
+/-- Lemma 7.11 of [BarencoEtAl1995]: an arbitrary multicontrolled one-qubit unitary has an exact
+legal implementation when the distinct auxiliary wire `s` starts at zero. The stated action
+restores the auxiliary wire and uses no queries. -/
 theorem lemma7_11 (N m : ℕ) (c : ℕ → Fin N) (s t : Fin N) (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ)
     (hc : Set.InjOn c (Set.Iio m)) (hcs : ∀ i < m, c i ≠ s)
@@ -209,6 +272,9 @@ theorem lemma7_11 (N m : ℕ) (c : ℕ → Fin N) (s t : Fin N) (U : Matrix Bool
       (multiWireState t q (ApplyGate (if q s then knownQubitUnitary p else 1) φ)) = _
     rw [noWork_and_table_wireState c m s t hst hct as ha, hrestore, hq, hp]
 
+/-- Corollary 7.12 of [BarencoEtAl1995], with the explicit linear bound `720 * ((n - 2) + 1) +
+6`. The circuit implements the known unitary with `n - 2` controls on the zero-ancilla
+embedding of every input state and returns that embedding. -/
 theorem corollary7_12_paper (n : ℕ) (_hn : 3 ≤ n) (p : KnownQubitAngles) :
     ∃ gs : List (ReflectionGate ((n - 2) + 1 + 1)), reflectionLegal gs ∧
       gs.length ≤ 720 * ((n - 2) + 1) + 6 ∧

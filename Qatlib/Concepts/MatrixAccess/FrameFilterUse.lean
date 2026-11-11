@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MatrixAccess.FrameFilterProd
 import Qatlib.Concepts.QueryWordCore.AdjointCircuits
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Frame-filter words and explicit circuit examples
+
+`frameLiftStep` and `frameFilteredWord` realize flagged frame-filter products as words with
+forward and adjoint oracle access. Evaluation agrees with `frameFilteredProduct`, the query
+counts add, and the filter contributes one gate in this word model. The surrounding
+block-encoding framework is described in [GilyenSuLowWiebe2019].
+
+The plus-state frame supplies a concrete noncoordinate example: filtering an identity corner
+gives amplitude one half and return probability one quarter. A separate three-gate realization
+uses two Hadamards and a CNOT with reversed control and target, with zero oracle queries.
+
+## Main statements
+
+* `frame_filter_actual_body_substitution_and_cost`: word evaluation and exact resource counts.
+* `frame_filter_noncoordinate_actual_leakage_consumer`: the noncoordinate filtered corner and
+  its return probability.
+* `frame_filter_noncoordinate_three_local_gate_consumer`: an explicit three-gate filter circuit.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -54,22 +79,29 @@ open scoped Matrix.Norms.L2Operator ComplexOrder Classical
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- Lifts a gate to `I ⊗ G` on a flagged register while preserving forward and backward oracle
+instructions. -/
 noncomputable def frameLiftStep {H : Type} [Fintype H] [DecidableEq H] :
     AdjointStep H → AdjointStep (Bool × H)
   | .gate G => .gate (TensorGate (1 : Matrix Bool Bool ℂ) G)
   | .forward => .forward
   | .backward => .backward
 
+/-- Forms the lifted word for `cb`, followed by the frame filter, followed by the lifted word
+for `ca`, in the evaluation convention of `AdjointStep`. -/
 noncomputable def frameFilteredWord {H M : Type} [Fintype H] [DecidableEq H] [Fintype M]
     [DecidableEq M] (F : Matrix H M ℂ) (ca cb : List (AdjointStep H)) :
     List (AdjointStep (Bool × H)) :=
   cb.map frameLiftStep ++ [.gate (frameFlagFilter F)] ++ ca.map frameLiftStep
 
+/-- The oracle acting in parallel over a Boolean flag is `I ⊗ O`. -/
 private theorem parallelOracle_bool_eq {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) :
     parallelOracle (J := Bool) O = TensorGate (1 : Matrix Bool Bool ℂ) O :=
   parallelOracle_eq_kronecker O
 
+/-- Evaluating a word lifted to a Boolean flag gives the identity on the flag tensored with the
+original evaluation. -/
 private theorem evaluate_frameLift {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (cs : List (AdjointStep H)) :
     evaluate (parallelOracle (J := Bool) O) (cs.map frameLiftStep) =
@@ -88,6 +120,7 @@ private theorem evaluate_frameLift {H : Type} [Fintype H] [DecidableEq H]
       simp only [List.map_cons, frameLiftStep, evaluate, instructionMatrix, ih]
       rw [parallelOracle_adjoint, parallelOracle_bool_eq, tensorGate_mul, Matrix.one_mul]
 
+/-- Lifting every instruction to a Boolean flag preserves the adjoint query count. -/
 private theorem adjointQueryCount_map_frameLiftStep {H : Type} [Fintype H] [DecidableEq H]
     (cs : List (AdjointStep H)) :
     adjointQueryCount (cs.map frameLiftStep) = adjointQueryCount cs := by
@@ -96,6 +129,7 @@ private theorem adjointQueryCount_map_frameLiftStep {H : Type} [Fintype H] [Deci
   | cons s cs ih =>
     cases s <;> simp [List.map_cons, adjointQueryCount, ih, frameLiftStep]
 
+/-- Lifting every instruction to a Boolean flag preserves the gate count. -/
 private theorem adjointGateCount_map_frameLiftStep {H : Type} [Fintype H] [DecidableEq H]
     (cs : List (AdjointStep H)) :
     adjointGateCount (cs.map frameLiftStep) = adjointGateCount cs := by
@@ -104,6 +138,8 @@ private theorem adjointGateCount_map_frameLiftStep {H : Type} [Fintype H] [Decid
   | cons s cs ih =>
     cases s <;> simp [List.map_cons, adjointGateCount, ih, frameLiftStep]
 
+/-- The filtered word evaluates to the flagged product of the two word evaluations, with the sum
+of their query counts and one additional gate. -/
 theorem frame_filter_actual_body_substitution_and_cost (H M : Type) [Fintype H]
     [DecidableEq H] [Fintype M] [DecidableEq M] (F : Matrix H M ℂ) (O : Matrix H H ℂ)
     (ca cb : List (AdjointStep H)) :
@@ -127,22 +163,28 @@ theorem frame_filter_actual_body_substitution_and_cost (H M : Type) [Fintype H]
     simp only [adjointGateCount]
     omega
 
+/-- The one-column frame whose column is the Hadamard image of the false basis state. -/
 noncomputable def plusFrameCol : Matrix Bool (Fin 1) ℂ :=
   Matrix.replicateCol (Fin 1) (ApplyGate Hadamard (Ket false))
 
+/-- The one-column frame whose column is the false computational basis state. -/
 def zeroFrameCol : Matrix Bool (Fin 1) ℂ := Matrix.replicateCol (Fin 1) (Ket false)
 
+/-- Every entry of `plusFrameCol` is the reciprocal of the square root of two. -/
 theorem plusFrameCol_apply (b : Bool) (i : Fin 1) :
     plusFrameCol b i = (Real.sqrt 2 : ℂ)⁻¹ := by
   simp only [plusFrameCol, Matrix.replicateCol_apply, applyGate_hadamard_ket_false, Plus,
     hadamard_apply_false]
 
+/-- An entry of `zeroFrameCol` is one at false and zero at true. -/
 theorem zeroFrameCol_apply (b : Bool) (i : Fin 1) :
     zeroFrameCol b i = if b = false then (1 : ℂ) else 0 := rfl
 
+/-- Complex conjugation fixes the reciprocal of the real square root of two. -/
 private theorem star_inv_sqrt2 : star ((Real.sqrt 2 : ℂ)⁻¹) = (Real.sqrt 2 : ℂ)⁻¹ := by
   rw [Complex.star_def, ← Complex.ofReal_inv, Complex.conj_ofReal]
 
+/-- The single column of `plusFrameCol` has unit norm. -/
 theorem plusFrameCol_isIsometry : IsIsometry plusFrameCol := by
   show (plusFrameCol)ᴴ * plusFrameCol = 1
   ext o m
@@ -157,6 +199,7 @@ theorem plusFrameCol_isIsometry : IsIsometry plusFrameCol := by
   rw [Fintype.sum_bool, h1, h1, Matrix.one_apply_eq]
   norm_num
 
+/-- The computational basis frame `zeroFrameCol` is an isometry. -/
 theorem zeroFrameCol_isIsometry : IsIsometry zeroFrameCol := by
   show (zeroFrameCol)ᴴ * zeroFrameCol = 1
   ext o m
@@ -172,6 +215,7 @@ theorem zeroFrameCol_isIsometry : IsIsometry zeroFrameCol := by
   rw [Fintype.sum_bool, h1, h1, Matrix.one_apply_eq]
   simp
 
+/-- Every entry of the range projector of the plus-state frame equals one half. -/
 private theorem rangeProjector_plusFrameCol_apply (x y : Bool) :
     rangeProjector plusFrameCol x y = 1 / 2 := by
   have h1 : ∀ m : Fin 1, plusFrameCol x m * (plusFrameColᴴ) m y = 1 / 2 := by
@@ -188,6 +232,9 @@ private theorem rangeProjector_plusFrameCol_apply (x y : Bool) :
   · intro h
     exact absurd (Finset.mem_univ 0) h
 
+/-- For the plus-state intermediate frame and false basis input and output frames, the filtered
+identity corner is one half and the return probability of the false-false basis state is one
+quarter. -/
 theorem frame_filter_noncoordinate_actual_leakage_consumer :
     let F : Matrix Bool (Fin 1) ℂ := Matrix.replicateCol (Fin 1) (ApplyGate Hadamard (Ket false))
     let R : Matrix Bool (Fin 1) ℂ := Matrix.replicateCol (Fin 1) (Ket false)
@@ -252,6 +299,8 @@ theorem frame_filter_noncoordinate_actual_leakage_consumer :
     simp only [MeasureProb, BornProb, Finset.sum_singleton, hamp]
     norm_num
 
+/-- Swapping the tensor factors of CNOT gives the permutation that XORs the second bit into the
+first. -/
 private theorem relabel_prodComm_cnot_apply (p q : Bool × Bool) :
     relabelGate (Equiv.prodComm Bool Bool) CNOT p q =
       if p = (q.1 ^^ q.2, q.2) then (1 : ℂ) else 0 := by
@@ -260,6 +309,8 @@ private theorem relabel_prodComm_cnot_apply (p q : Bool × Bool) :
   simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, CNOT, permMatrix, cnotFlip,
     Equiv.prodComm, Prod.ext_iff, and_comm]
 
+/-- A Hadamard on the second qubit after the reversed-control CNOT has the stated entry formula
+with first output bit equal to the XOR of the inputs. -/
 private theorem hadamard_mul_relabel_cnot_entry (b' x' c y : Bool) :
     (TensorGate (1 : Matrix Bool Bool ℂ) Hadamard *
         relabelGate (Equiv.prodComm Bool Bool) CNOT) (b', x') (c, y) =
@@ -268,6 +319,8 @@ private theorem hadamard_mul_relabel_cnot_entry (b' x' c y : Bool) :
     simp [Matrix.mul_apply, TensorGate, Matrix.one_apply,
       relabel_prodComm_cnot_apply, Hadamard]
 
+/-- Computes the entries of the Hadamard, reversed-control CNOT, Hadamard product as signed
+halves. -/
 private theorem circuit_entry (b' x' b x : Bool) :
     ((TensorGate (1 : Matrix Bool Bool ℂ) Hadamard *
         relabelGate (Equiv.prodComm Bool Bool) CNOT) *
@@ -291,6 +344,8 @@ private theorem circuit_entry (b' x' b x : Bool) :
   rcases b' <;> rcases x' <;> rcases b <;> rcases x <;>
     simp [Hadamard] <;> norm_num [sqrt2_sq, inv_sqrt2_mul_self]
 
+/-- The entries of the three-gate Hadamard and reversed-control CNOT product equal those of the
+plus-frame flag filter. -/
 private theorem three_local_filter_entries (b' x' b x : Bool) :
     ((TensorGate (1 : Matrix Bool Bool ℂ) Hadamard *
         relabelGate (Equiv.prodComm Bool Bool) CNOT) *
@@ -302,6 +357,8 @@ private theorem three_local_filter_entries (b' x' b x : Bool) :
     permMatrix]
   rcases b' <;> rcases x' <;> rcases b <;> rcases x <;> simp <;> norm_num
 
+/-- Two Hadamards on the data qubit surrounding a reversed-control CNOT implement the plus-frame
+flag filter using three gates and zero queries. -/
 theorem frame_filter_noncoordinate_three_local_gate_consumer :
     let F : Matrix Bool (Fin 1) ℂ := Matrix.replicateCol (Fin 1) (ApplyGate Hadamard (Ket false))
     let C : Circuit (Bool × Bool) :=

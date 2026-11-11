@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
+
+/-!
+# Workspace cleanup for the inner term preparation
+
+This module proves basis-state identities for the selected computations used by the inner Monte
+Carlo preparation of [KanekoEtAl2020]. `body_cleanup_basis` shows that computing a term,
+rotating the flag, and reversing the computation restores the data workspace while retaining the
+term-dependent flag state.
+
+## Main statements
+
+* `select_basis`: describes the action of a selected matrix on a basis state.
+* `body_cleanup_basis`: restores the workspace after the term-dependent rotation.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +40,8 @@ open Qatlib.Papers.MonteCarloInt20.MainResults.TermCode
 
 namespace Qatlib.Papers.MonteCarloInt20.MainResults.Cleanup
 
+/-- On a basis state `(i, w)`, the selected matrix leaves the index `i` fixed and applies `U i`
+to `w`. -/
 theorem select_basis {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (U : I → Matrix W W ℂ) (i : I) (w : W) :
     ApplyGate (select U) (Ket (i,w))=TensorState (Ket i) (ApplyGate (U i) (Ket w)) := by
@@ -34,6 +55,9 @@ theorem select_basis {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [Decid
     simp [select,Qatlib.Foundations.PureStateMath.Ket]
   · simp [select,Qatlib.Foundations.PureStateMath.Ket,hk]
 
+/-- For positive coordinate width, term computation followed by flag rotation and uncomputation
+restores the indexed data seed and leaves the flag in the state determined by the decoded
+term value [KanekoEtAl2020]. -/
 theorem body_cleanup_basis {n s d p : ℕ} (hd : 0<d)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) (i : Reg d) :

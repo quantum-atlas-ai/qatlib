@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkFind.UniqueCollision.JohnsonWalk
+
+/-!
+# Statement of Grover interpolation
+
+`GroverInterpolation` specifies a quantitative search guarantee for a real unitary walk combined
+with a target reflection. It records the normalization, overlap, fixed-vector, and spectral
+phase hypotheses together with the desired iteration and target-overlap bounds.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `GroverInterpolation`: states the search guarantee with explicit constants.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 
@@ -14,6 +33,8 @@ open Qatlib.Concepts.WalkFind.UniqueCollision
 
 open Matrix
 
+/-- The proposition that the stated unitary, reality, reflection, and phase-gap hypotheses yield
+target overlap at least `ε^3 / 1000` in at most `8 / (ε * α)` iterations. -/
 def GroverInterpolation : Prop :=
   ∀ (m : ℕ) (ε α : ℝ), 0 < ε → ε ≤ 1 → 0 < α → α ≤ 1 →
     ∀ (Uf Uw : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ),

@@ -6,18 +6,44 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.BinaryArithmetic
 
+/-!
+# Binary charges for Gaussian FFT computations
+
+`gaussianBinaryFFT` augments the shared Gaussian butterfly recursion with binary arithmetic
+charges, and `gaussianBinaryPositiveFFT` includes the charges for conjugating its input and
+output. The module identifies their computed runs with the shared versions and bounds charges
+under an explicit audit of all intermediate integer magnitudes.
+
+For background on finite Fourier transforms in quantum computation, see [NielsenChuang2010].
+
+## Main statements
+
+* `gaussian_shared_fft_counts`: exact product and addition counts.
+* `gaussian_binary_fft_both_value`: agreement with the shared computations.
+* `gaussian_binary_fft_scan_certificate`: conditional charge bounds for both variants.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput
 open scoped BigOperators
 
+/-- The sum of binary addition and subtraction charges determined by the maximum component sizes
+of two Gaussian scalars. -/
 def gaussianButterflyCharge (x y : GaussianDyadicScalar) : ℕ :=
   2 * (max x.1.natAbs.size y.1.natAbs.size + 1) +
     2 * (max x.2.natAbs.size y.2.natAbs.size + 1)
 
+/-- A Gaussian FFT run together with its accumulated binary arithmetic charge. -/
 structure GaussianBinaryFFTRun (k : ℕ) where
   run : GaussianDyadicFFTRun k
   charge : ℕ
 
+/-- Computes the recursive even-odd Gaussian butterfly transform using binary complex
+multiplication and records all multiplication and butterfly charges. -/
 def gaussianBinaryFFT (D : ℕ) : (k : ℕ) → GaussianTwiddleTable k →
     (Fin (2 ^ k) → GaussianDyadicScalar) → GaussianBinaryFFTRun k
   | 0, _, f => ⟨⟨Vector.ofFn f, 0, 0⟩, 0⟩
@@ -40,6 +66,8 @@ def gaussianBinaryFFT (D : ℕ) : (k : ℕ) → GaussianTwiddleTable k →
         (∑ j : Fin (2 ^ (k + 1)), gaussianButterflyCharge e.run.values[(atIndex j).val]
           products[(atIndex j).val].value)⟩
 
+/-- Applies the binary FFT to conjugated input and conjugates the output, adding the input and
+output conjugation charges. -/
 def gaussianBinaryPositiveFFT (D k : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar) : GaussianBinaryFFTRun k :=
   let r := gaussianBinaryFFT D k t (fun j => gaussianScalarConj (f j))
@@ -47,6 +75,8 @@ def gaussianBinaryPositiveFFT (D k : ℕ) (t : GaussianTwiddleTable k)
     r.charge + (∑ j : Fin (2 ^ k), ((f j).2.natAbs.size + 1)) +
       (∑ j : Fin (2 ^ k), (r.run.values[j.val].2.natAbs.size + 1))⟩
 
+/-- A shared transform of length `2 ^ k` records products satisfying `2 * products = k * 2 ^ k`
+and additions equal to `k * 2 ^ k`. -/
 theorem gaussian_shared_fft_counts (D : ℤ) (k : ℕ) (t : GaussianTwiddleTable k)
     (x : Fin (2 ^ k) → GaussianDyadicScalar) :
     2 * (gaussianSharedFFT D k t x).products = k * 2 ^ k ∧
@@ -62,6 +92,8 @@ theorem gaussian_shared_fft_counts (D : ℤ) (k : ℕ) (t : GaussianTwiddleTable
       _ + _ + 2 ^ (k + 1) = (k + 1) * 2 ^ (k + 1)
     constructor <;> nlinarith [he.1, he.2, ho.1, ho.2, pow_succ 2 k]
 
+/-- The run component of the binary FFT equals the shared FFT run with the same natural scale
+cast to an integer. -/
 theorem gaussian_binary_fft_value (D k : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar) :
     (gaussianBinaryFFT D k t f).run = gaussianSharedFFT (D : ℤ) k t f := by
@@ -71,26 +103,35 @@ theorem gaussian_binary_fft_value (D k : ℕ) (t : GaussianTwiddleTable k)
     simp only [gaussianBinaryFFT, gaussianSharedFFT, ih, Vector.getElem_ofFn,
       gaussian_binary_complex_value]
 
+/-- The run component of the positive binary FFT equals the corresponding positive shared FFT
+run. -/
 theorem gaussian_binary_positive_value (D k : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar) :
     (gaussianBinaryPositiveFFT D k t f).run = gaussianSharedPositiveFFT (D : ℤ) k t f := by
   simp only [gaussianBinaryPositiveFFT, gaussianSharedPositiveFFT, gaussian_binary_fft_value]
 
+/-- Both binary FFT variants have run components equal to their respective shared computations. -/
 theorem gaussian_binary_fft_both_value (D k : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar) :
     (gaussianBinaryFFT D k t f).run = gaussianSharedFFT (D : ℤ) k t f ∧
     (gaussianBinaryPositiveFFT D k t f).run = gaussianSharedPositiveFFT (D : ℤ) k t f :=
   ⟨gaussian_binary_fft_value D k t f, gaussian_binary_positive_value D k t f⟩
 
+/-- An integer with absolute value at most `2 ^ W - 1` has absolute-value binary size at most
+`W`. -/
 private theorem bits_of_bound (z : ℤ) (W : ℕ) (h : z.natAbs ≤ 2 ^ W - 1) :
     z.natAbs.size ≤ W := by
   have hp : 0 < (2 : ℕ) ^ W := by positivity
   exact Nat.size_le.mpr (by omega)
 
+/-- A Gaussian scalar whose component magnitudes are at most `2 ^ W - 1` has component binary
+sizes at most `W`. -/
 private theorem scalar_bits_of_bound (z : GaussianDyadicScalar) (W : ℕ)
     (h : GaussianScalarBound z (2 ^ W - 1)) : GaussianScalarBits z W :=
   ⟨bits_of_bound z.1 W h.1, bits_of_bound z.2 W h.2⟩
 
+/-- An integer audit bound of `2 ^ W - 1` ensures that every shared FFT output has component
+binary sizes at most `W`. -/
 theorem gaussian_fft_audit_output_bits (D : ℤ) (k W : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar)
     (h : GaussianFFTIntegerBounded D k t f (2 ^ W - 1)) :
@@ -101,6 +142,8 @@ theorem gaussian_fft_audit_output_bits (D : ℤ) (k W : ℕ) (t : GaussianTwiddl
     simpa only [gaussianSharedFFT, Vector.getElem_ofFn] using scalar_bits_of_bound (f j) W (h.2 j)
   | succ k => exact fun j => scalar_bits_of_bound _ W (h.2.2.2 j)
 
+/-- An integer audit bound of `2 ^ W - 1` ensures that every FFT input has component binary
+sizes at most `W`. -/
 theorem gaussian_fft_audit_input_bits (D : ℤ) (k W : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar)
     (h : GaussianFFTIntegerBounded D k t f (2 ^ W - 1)) :
@@ -121,6 +164,8 @@ theorem gaussian_fft_audit_input_bits (D : ℤ) (k W : ℕ) (t : GaussianTwiddle
         apply Fin.ext; dsimp only [i]; omega
       simpa only [hj] using hx
 
+/-- If both Gaussian operands have component sizes at most `W`, their butterfly charge is at
+most `4 * (W + 1)`. -/
 private theorem butterfly_charge_bound (x y : GaussianDyadicScalar) (W : ℕ)
     (hx : GaussianScalarBits x W) (hy : GaussianScalarBits y W) :
     gaussianButterflyCharge x y ≤ 4 * (W + 1) := by
@@ -129,6 +174,8 @@ private theorem butterfly_charge_bound (x y : GaussianDyadicScalar) (W : ℕ)
   dsimp only [gaussianButterflyCharge]
   omega
 
+/-- Under the stated integer audit, the binary FFT charge is at most `2048 * k * 2 ^ k * (W + 1)
+^ 2`. -/
 theorem gaussian_binary_fft_charge (D k W : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar)
     (h : GaussianFFTIntegerBounded (D : ℤ) k t f (2 ^ W - 1)) :
@@ -179,6 +226,8 @@ theorem gaussian_binary_fft_charge (D k W : ℕ) (t : GaussianTwiddleTable k)
     have hnonneg : 0 ≤ (2 : ℕ) ^ k * (W + 1) ^ 2 := Nat.zero_le _
     nlinarith only [he, ho, hmulSum, haddSum, hscaled, hnonneg]
 
+/-- Under the integer audit for the conjugated input, the positive binary FFT charge is at most
+`4096 * (k + 1) * 2 ^ k * (W + 1) ^ 2`. -/
 theorem gaussian_binary_positive_charge (D k W : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar)
     (h : GaussianFFTIntegerBounded (D : ℤ) k t (fun j => gaussianScalarConj (f j)) (2 ^ W - 1)) :
@@ -207,6 +256,8 @@ theorem gaussian_binary_positive_charge (D k W : ℕ) (t : GaussianTwiddleTable 
     _ = (2048 * k + 2) * 2 ^ k * (W + 1) ^ 2 := by ring
     _ ≤ 4096 * (k + 1) * 2 ^ k * (W + 1) ^ 2 := by gcongr; omega
 
+/-- Packages the ordinary and positive binary FFT charge bounds as implications from their
+respective integer audit conditions. -/
 theorem gaussian_binary_fft_scan_certificate (D k W : ℕ) (t : GaussianTwiddleTable k)
     (f : Fin (2 ^ k) → GaussianDyadicScalar) :
     (GaussianFFTIntegerBounded (D : ℤ) k t f (2 ^ W - 1) →

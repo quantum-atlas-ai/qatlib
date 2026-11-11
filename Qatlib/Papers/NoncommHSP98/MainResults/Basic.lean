@@ -15,6 +15,32 @@ import Mathlib.Tactic
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+
+/-!
+# Dihedral sampling and matrix Fourier identities
+
+This module defines dihedral coset promises, Fourier phases, normalized readout probabilities,
+and the sampling law `zLaw`. It proves the readout identities, cosine expectation formulas,
+concentration bounds, and matrix Fourier formulas for finite-set indicators and their left
+translates.
+
+`Theorem2Statement`, `Theorem3Statement`, and `Theorem5Statement` encode algorithmic guarantees
+using query-count and output-distribution interfaces. The proved statement bundles here are
+`lemma4_holds`, `lemma7_holds`, `theorem8_holds`, and `corollary9_holds`. This development
+accompanies [EttingerHoyer1999].
+
+## Main statements
+
+* `lemma4_holds`: the readout formulas and their elementary probability properties.
+* `lemma7_lower` and `lemma7_upper`: exponential tail bounds for sampled cosine sums.
+* `theorem8_ncFourier_indicator`: a scaled matrix-average identity.
+* `corollary9_coset_indicator`: the corresponding identity for a left translate.
+
+## References
+
+* [Ettinger and Hoyer, 1999][EttingerHoyer1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -31,31 +57,43 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.NoncommHSP98.MainResults
 
+/-- The coordinate type `ZMod N × ZMod 2` for the dihedral group. -/
 abbrev DihPt (N : ℕ) : Type := ZMod N × ZMod 2
 
+/-- Dihedral multiplication, with the first coordinate of the right factor negated when the left
+factor has nonzero binary coordinate. -/
 def dihMul (N : ℕ) (x y : DihPt N) : DihPt N :=
   (x.1 + (if x.2 = 0 then y.1 else -y.1), x.2 + y.2)
 
+/-- The pair `(0, 0)` is a left identity for `dihMul`. -/
 @[simp] lemma dihMul_zero_left (N : ℕ) (y : DihPt N) : dihMul N (0, 0) y = y := by
   ext <;> simp [dihMul]
 
+/-- The pair `(0, 0)` is a right identity for `dihMul`. -/
 @[simp] lemma dihMul_zero_right (N : ℕ) (x : DihPt N) : dihMul N x (0, 0) = x := by
   ext <;> simp [dihMul]
 
+/-- The singleton set consisting of the dihedral identity. -/
 def HTriv (N : ℕ) : Set (DihPt N) := {(0, 0)}
 
+/-- The two-element set consisting of the identity and the reflection `(k0, 1)`. -/
 def H2 (N : ℕ) (k0 : ZMod N) : Set (DihPt N) := {(0, 0), (k0, 1)}
 
+/-- Membership in `HTriv N` is equivalent to equality with `(0, 0)`. -/
 lemma mem_HTriv {N : ℕ} {x : DihPt N} : x ∈ HTriv N ↔ x = (0, 0) := by
   simp [HTriv]
 
+/-- Membership in `H2 N k0` is equivalent to being the identity or the reflection `(k0, 1)`. -/
 lemma mem_H2 {N : ℕ} {k0 : ZMod N} {x : DihPt N} :
     x ∈ H2 N k0 ↔ x = (0, 0) ∨ x = (k0, 1) := by
   simp [H2]
 
+/-- The relation that `y` is obtained by right multiplying `x` by an element of `H`, expressing
+membership in the left translate `xH`. -/
 def InLeftCoset (N : ℕ) (H : Set (DihPt N)) (x y : DihPt N) : Prop :=
   ∃ h ∈ H, dihMul N x h = y
 
+/-- The dihedral coset promise: oracle values agree exactly for pairs related by `InLeftCoset`. -/
 def FulfillsDihedralPromise (N : ℕ) (H : Set (DihPt N)) {R : Type*}
     (γ : DihPt N → R) : Prop :=
   (∀ x y, InLeftCoset N H x y → γ x = γ y) ∧
@@ -65,14 +103,19 @@ namespace FulfillsDihedralPromise
 
 variable {N : ℕ} {R : Type*} {H : Set (DihPt N)} {γ : DihPt N → R}
 
+/-- An oracle satisfying the dihedral promise has equal values on elements related by
+`InLeftCoset`. -/
 lemma eq_of_coset (hγ : FulfillsDihedralPromise N H γ) {x y : DihPt N}
     (h : InLeftCoset N H x y) : γ x = γ y := hγ.1 x y h
 
+/-- Equal oracle values under the dihedral promise imply the `InLeftCoset` relation. -/
 lemma coset_of_eq (hγ : FulfillsDihedralPromise N H γ) {x y : DihPt N}
     (h : γ x = γ y) : InLeftCoset N H x y := hγ.2 x y h
 
 end FulfillsDihedralPromise
 
+/-- For the promise hiding `H2 N k0`, the oracle values at `(0, 0)` and `(0, 1)` agree exactly
+when `k0 = 0`. -/
 theorem promise_H2_zero_test {N : ℕ} {R : Type*} {k0 : ZMod N}
     {γ : DihPt N → R} (hγ : FulfillsDihedralPromise N (H2 N k0) γ) :
     γ (0, 0) = γ (0, 1) ↔ k0 = 0 := by
@@ -89,6 +132,7 @@ theorem promise_H2_zero_test {N : ℕ} {R : Type*} {k0 : ZMod N}
     right
     rw [show (0 : ZMod N) = k0 from hk.symm]
 
+/-- For the trivial hidden set, the oracle values at `(0, 0)` and `(0, 1)` differ. -/
 theorem promise_HTriv_zero_test {N : ℕ} {R : Type*} {γ : DihPt N → R}
     (hγ : FulfillsDihedralPromise N (HTriv N) γ) :
     γ (0, 0) ≠ γ (0, 1) := by
@@ -98,6 +142,8 @@ theorem promise_HTriv_zero_test {N : ℕ} {R : Type*} {γ : DihPt N → R}
   subst hh
   simp [dihMul] at hmul
 
+/-- For the promise hiding `H2 N k0`, comparing the oracle values at `(0, 0)` and `(k, 1)` tests
+exactly whether `k = k0`. -/
 theorem promise_H2_test_iff {N : ℕ} {R : Type*} {k0 k : ZMod N}
     {γ : DihPt N → R} (hγ : FulfillsDihedralPromise N (H2 N k0) γ) :
     γ (0, 0) = γ (k, 1) ↔ k = k0 := by
@@ -112,23 +158,29 @@ theorem promise_H2_test_iff {N : ℕ} {R : Type*} {k0 k : ZMod N}
     rw [hk]
     exact FulfillsDihedralPromise.eq_of_coset hγ ⟨(k0, 1), by simp [H2], by simp [dihMul]⟩
 
+/-- The complex Fourier phase given by the standard additive character at `k * z`. -/
 noncomputable def cphase (N : ℕ) [NeZero N] (k z : ZMod N) : ℂ := ZMod.stdAddChar (k * z)
 
+/-- The real part of the Fourier phase `cphase N k z`. -/
 noncomputable def cosPhase (N : ℕ) [NeZero N] (k z : ZMod N) : ℝ := (cphase N k z).re
 
+/-- The imaginary part of the Fourier phase `cphase N k z`. -/
 noncomputable def sinPhase (N : ℕ) [NeZero N] (k z : ZMod N) : ℝ := (cphase N k z).im
 
+/-- Adding frequencies multiplies their complex Fourier phases. -/
 lemma cphase_add {N : ℕ} [NeZero N] (a b z : ZMod N) :
     cphase N (a + b) z = cphase N a z * cphase N b z := by
   unfold cphase
   rw [← AddChar.map_add_eq_mul, add_mul]
 
+/-- Negating the frequency conjugates its complex Fourier phase. -/
 lemma cphase_neg {N : ℕ} [NeZero N] (a z : ZMod N) :
     cphase N (-a) z = conj (cphase N a z) := by
   unfold cphase
   rw [neg_mul, AddChar.map_neg_eq_inv, ZMod.stdAddChar_apply]
   exact (Circle.coe_inv _).symm.trans (Circle.coe_inv_eq_conj _)
 
+/-- The real part of the Fourier phase equals the cosine of `2π (k * z).val / N`. -/
 theorem cosPhase_eq_cos {N : ℕ} [NeZero N] (k z : ZMod N) :
     cosPhase N k z = Real.cos (2 * Real.pi * ((k * z).val : ℝ) / N) := by
   unfold cosPhase cphase
@@ -139,6 +191,7 @@ theorem cosPhase_eq_cos {N : ℕ} [NeZero N] (k z : ZMod N) :
     ring
   rw [harg, Complex.exp_ofReal_mul_I_re]
 
+/-- The imaginary part of the Fourier phase equals the sine of `2π (k * z).val / N`. -/
 theorem sinPhase_eq_sin {N : ℕ} [NeZero N] (k z : ZMod N) :
     sinPhase N k z = Real.sin (2 * Real.pi * ((k * z).val : ℝ) / N) := by
   unfold sinPhase cphase
@@ -149,11 +202,13 @@ theorem sinPhase_eq_sin {N : ℕ} [NeZero N] (k z : ZMod N) :
     ring
   rw [harg, Complex.exp_ofReal_mul_I_im]
 
+/-- Every cosine phase lies in the real interval from negative one to one. -/
 theorem cosPhase_mem_Icc {N : ℕ} [NeZero N] (k z : ZMod N) :
     cosPhase N k z ∈ Set.Icc (-1 : ℝ) 1 := by
   rw [cosPhase_eq_cos]
   exact Real.cos_mem_Icc _
 
+/-- The sum of a cosine phase over `ZMod N` is `N` for zero frequency and zero otherwise. -/
 theorem sum_cosPhase {N : ℕ} [NeZero N] (k : ZMod N) :
     ∑ z : ZMod N, cosPhase N k z = if k = 0 then (N : ℝ) else 0 := by
   classical
@@ -185,6 +240,8 @@ theorem sum_cosPhase {N : ℕ} [NeZero N] (k : ZMod N) :
     rw [hre, hsum']
     simp
 
+/-- The sum of the cosine phases at frequencies `a + b` and `a - b` equals twice the product of
+the phases at `a` and `b`. -/
 theorem cosPhase_add_sub {N : ℕ} [NeZero N] (a b z : ZMod N) :
     cosPhase N (a + b) z + cosPhase N (a - b) z
       = 2 * cosPhase N a z * cosPhase N b z := by
@@ -203,12 +260,16 @@ theorem cosPhase_add_sub {N : ℕ} [NeZero N] (a b z : ZMod N) :
   unfold cosPhase
   ring
 
+/-- The bit-zero readout mass `(1 + cosPhase N k0 a) / (2 * N)`. -/
 noncomputable def readoutZero (N : ℕ) [NeZero N] (k0 a : ZMod N) : ℝ :=
   (1 / (2 * (N : ℝ))) * (1 + cosPhase N k0 a)
 
+/-- The bit-one readout mass `(1 - cosPhase N k0 a) / (2 * N)`. -/
 noncomputable def readoutOne (N : ℕ) [NeZero N] (k0 a : ZMod N) : ℝ :=
   (1 / (2 * (N : ℝ))) * (1 - cosPhase N k0 a)
 
+/-- The bit-zero readout mass equals `1 / N` times the squared cosine of `π (k0 * a).val / N`.
+See Lemma 4 of [EttingerHoyer1999]. -/
 theorem readoutZero_eq_paper {N : ℕ} [NeZero N] (k0 a : ZMod N) :
     readoutZero N k0 a
       = (1 / (N : ℝ)) * (Real.cos (Real.pi * ((k0 * a).val : ℝ) / N)) ^ 2 := by
@@ -225,6 +286,8 @@ theorem readoutZero_eq_paper {N : ℕ} [NeZero N] (k0 a : ZMod N) :
   field_simp
   ring
 
+/-- The bit-one readout mass equals `1 / N` times the squared sine of `π (k0 * a).val / N`. See
+Lemma 4 of [EttingerHoyer1999]. -/
 theorem readoutOne_eq_paper {N : ℕ} [NeZero N] (k0 a : ZMod N) :
     readoutOne N k0 a
       = (1 / (N : ℝ)) * (Real.sin (Real.pi * ((k0 * a).val : ℝ) / N)) ^ 2 := by
@@ -242,22 +305,26 @@ theorem readoutOne_eq_paper {N : ℕ} [NeZero N] (k0 a : ZMod N) :
   field_simp
   ring
 
+/-- The two bit readout masses for a fixed Fourier outcome sum to `1 / N`. -/
 theorem readoutZero_add_readoutOne {N : ℕ} [NeZero N] (k0 a : ZMod N) :
     readoutZero N k0 a + readoutOne N k0 a = 1 / (N : ℝ) := by
   unfold readoutZero readoutOne
   rw [← mul_add]
   ring_nf
 
+/-- The bit-zero readout mass is nonnegative. -/
 theorem readoutZero_nonneg {N : ℕ} [NeZero N] (k0 a : ZMod N) :
     0 ≤ readoutZero N k0 a := by
   rw [readoutZero_eq_paper]
   positivity
 
+/-- The bit-one readout mass is nonnegative. -/
 theorem readoutOne_nonneg {N : ℕ} [NeZero N] (k0 a : ZMod N) :
     0 ≤ readoutOne N k0 a := by
   rw [readoutOne_eq_paper]
   positivity
 
+/-- Summing the readout masses over both bit outcomes and all Fourier outcomes gives one. -/
 theorem readout_total {N : ℕ} [NeZero N] (k0 : ZMod N) :
     (∑ a : ZMod N, readoutZero N k0 a) + (∑ a : ZMod N, readoutOne N k0 a) = 1 := by
   classical
@@ -269,6 +336,8 @@ theorem readout_total {N : ℕ} [NeZero N] (k0 : ZMod N) :
   rw [Finset.sum_const, Finset.card_univ, ZMod.card, nsmul_eq_mul]
   field_simp
 
+/-- The proposition collecting the readout formulas, nonnegativity, and fixed-outcome
+normalization corresponding to Lemma 4 of [EttingerHoyer1999]. -/
 def Lemma4Statement : Prop :=
   ∀ (N : ℕ) [NeZero N] (k0 a : ZMod N),
     readoutZero N k0 a = (1 / (2 * (N : ℝ))) * (1 + cosPhase N k0 a) ∧
@@ -277,17 +346,22 @@ def Lemma4Statement : Prop :=
     0 ≤ readoutZero N k0 a ∧ 0 ≤ readoutOne N k0 a ∧
     readoutZero N k0 a + readoutOne N k0 a = 1 / (N : ℝ)
 
+/-- The readout identities and probability properties encoded by `Lemma4Statement` hold. See
+Lemma 4 of [EttingerHoyer1999]. -/
 theorem lemma4_holds : Lemma4Statement := by
   intro N _ k0 a
   exact ⟨rfl, readoutZero_eq_paper k0 a, readoutOne_eq_paper k0 a,
     readoutZero_nonneg k0 a, readoutOne_nonneg k0 a, readoutZero_add_readoutOne k0 a⟩
 
+/-- The sampling normalization factor, equal to `1 / N` when `k0 = 0` and `2 / N` otherwise. -/
 noncomputable def zAlpha (N : ℕ) (k0 : ZMod N) : ℝ :=
   if k0 = 0 then (1 : ℝ) / N else 2 / N
 
+/-- The mass `zAlpha N k0 * (1 + cosPhase N k0 z) / 2` used for the dihedral sampling law. -/
 noncomputable def zMass (N : ℕ) [NeZero N] (k0 z : ZMod N) : ℝ :=
   zAlpha N k0 * ((1 + cosPhase N k0 z) / 2)
 
+/-- The sampling mass is `zAlpha N k0` times the squared cosine of `π (k0 * z).val / N`. -/
 theorem zMass_eq_paper {N : ℕ} [NeZero N] (k0 z : ZMod N) :
     zMass N k0 z = zAlpha N k0 * (Real.cos (Real.pi * ((k0 * z).val : ℝ) / N)) ^ 2 := by
   unfold zMass
@@ -299,6 +373,7 @@ theorem zMass_eq_paper {N : ℕ} [NeZero N] (k0 z : ZMod N) :
   rw [harg] at h
   linarith
 
+/-- The normalization factor `zAlpha N k0` is nonnegative. -/
 theorem zAlpha_nonneg {N : ℕ} [NeZero N] (k0 : ZMod N) : 0 ≤ zAlpha N k0 := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
   unfold zAlpha
@@ -306,12 +381,14 @@ theorem zAlpha_nonneg {N : ℕ} [NeZero N] (k0 : ZMod N) : 0 ≤ zAlpha N k0 := 
   · rw [if_pos hk]; positivity
   · rw [if_neg hk]; positivity
 
+/-- The sampling mass `zMass N k0 z` is nonnegative. -/
 theorem zMass_nonneg {N : ℕ} [NeZero N] (k0 z : ZMod N) : 0 ≤ zMass N k0 z := by
   have hcos : -1 ≤ cosPhase N k0 z := (cosPhase_mem_Icc (N := N) k0 z).1
   have hfac : 0 ≤ (1 + cosPhase N k0 z) / 2 := by linarith
   unfold zMass
   exact mul_nonneg (zAlpha_nonneg k0) hfac
 
+/-- The sampling masses over all elements of `ZMod N` sum to one. -/
 theorem zMass_sum_one {N : ℕ} [NeZero N] (k0 : ZMod N) :
     ∑ z : ZMod N, zMass N k0 z = 1 := by
   have hN : (N : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne N
@@ -342,11 +419,14 @@ theorem zMass_sum_one {N : ℕ} [NeZero N] (k0 : ZMod N) :
     field_simp
     ring
 
+/-- The finite probability distribution on `ZMod N` with masses `zMass N k0`. -/
 noncomputable def zLaw (N : ℕ) [NeZero N] (k0 : ZMod N) : FinDist (ZMod N) where
   prob := zMass N k0
   nonneg := zMass_nonneg k0
   sum_one := zMass_sum_one k0
 
+/-- The cosine expectation under `zMass N k0` is `zAlpha N k0 / 2` times the sum of the
+zero-frequency contribution for `k` and half the contributions for `k0 + k` and `k0 - k`. -/
 theorem expect_cosPhase_eq {N : ℕ} [NeZero N] (k0 k : ZMod N) :
     (∑ z : ZMod N, zMass N k0 z * cosPhase N k z)
       = zAlpha N k0 / 2 * ((if k = 0 then (N : ℝ) else 0)
@@ -372,6 +452,8 @@ theorem expect_cosPhase_eq {N : ℕ} [NeZero N] (k0 k : ZMod N) :
     _ = _ := by
         rw [sum_cosPhase, sum_cosPhase, sum_cosPhase]
 
+/-- For nonzero hidden frequency, the expected cosine at either signed hidden frequency is at
+least one half. -/
 theorem expect_cosPhase_ge_half {N : ℕ} [NeZero N] {k0 k : ZMod N}
     (hk0 : k0 ≠ 0) (hk : k = k0 ∨ k = -k0) :
     (1 : ℝ) / 2 ≤ ∑ z : ZMod N, zMass N k0 z * cosPhase N k z := by
@@ -397,6 +479,8 @@ theorem expect_cosPhase_ge_half {N : ℕ} [NeZero N] {k0 k : ZMod N}
       field_simp
       nlinarith [hN]
 
+/-- The expected cosine is zero at a nonzero frequency different from both signed hidden
+frequencies. -/
 theorem expect_cosPhase_eq_zero {N : ℕ} [NeZero N] {k0 k : ZMod N}
     (hk : k ≠ 0) (hkp : k ≠ k0) (hkm : k ≠ -k0) :
     ∑ z : ZMod N, zMass N k0 z * cosPhase N k z = 0 := by
@@ -408,11 +492,13 @@ theorem expect_cosPhase_eq_zero {N : ℕ} [NeZero N] {k0 k : ZMod N}
     if_neg (fun h => hkp (h2.mp h))]
   ring
 
+/-- The product probability of a sample tuple is nonnegative. -/
 lemma probOf_nonneg {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) {L : ℕ}
     (ω : Fin L → X) : 0 ≤ p.probOf ω := by
   unfold FinDist.probOf
   exact Finset.prod_nonneg (fun i _ => p.nonneg (ω i))
 
+/-- The probability of a tuple event equals its mass under the independent product distribution. -/
 lemma probEvent_eq_eventMass_independent {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) {L : ℕ} (E : (Fin L → X) → Prop) [DecidablePred E] :
     p.probEvent E = eventMass (independent (fun _ : Fin L => p)) E := by
@@ -420,6 +506,7 @@ lemma probEvent_eq_eventMass_independent {X : Type*} [Fintype X] [DecidableEq X]
   unfold FinDist.probEvent eventMass independent FinDist.probOf
   rfl
 
+/-- Inclusion of events implies an inequality between their probability masses. -/
 lemma eventMass_mono {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
     [DecidablePred E] [DecidablePred F] (h : ∀ x, E x → F x) :
     eventMass p E ≤ eventMass p F := by
@@ -431,6 +518,7 @@ lemma eventMass_mono {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
   unfold eventMass
   exact Finset.sum_le_sum_of_subset_of_nonneg hsub (fun x _ _ => p.nonneg x)
 
+/-- Pointwise equivalent events have equal probability mass. -/
 lemma eventMass_congr {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
     [DecidablePred E] [DecidablePred F] (h : ∀ x, E x ↔ F x) :
     eventMass p E = eventMass p F := by
@@ -439,6 +527,9 @@ lemma eventMass_congr {X : Type*} [Fintype X] (p : FinDist X) {E F : X → Prop}
   rw [show Finset.univ.filter E = Finset.univ.filter F from
     Finset.filter_congr (fun x _ => h x)]
 
+/-- For positive sample count and nonzero hidden frequency, the cosine sum at either signed
+hidden frequency is at most `m / 4` with probability at most `exp (-m / 32)`. This is the
+lower-tail bound of Lemma 7 of [EttingerHoyer1999]. -/
 theorem lemma7_lower {N : ℕ} [NeZero N] {k0 k : ZMod N} {m : ℕ}
     (hm : 0 < m) (hk0 : k0 ≠ 0) (hk : k = k0 ∨ k = -k0) :
     probEvent (zLaw N k0) (fun ω : Fin m → ZMod N =>
@@ -492,6 +583,9 @@ theorem lemma7_lower {N : ℕ} [NeZero N] {k0 k : ZMod N} {m : ℕ}
   field_simp
   ring
 
+/-- For positive sample count, a nonzero frequency different from both signed hidden frequencies
+has cosine sum at least `m / 4` with probability at most `exp (-m / 32)`. This is the
+upper-tail bound of Lemma 7 of [EttingerHoyer1999]. -/
 theorem lemma7_upper {N : ℕ} [NeZero N] {k0 k : ZMod N} {m : ℕ}
     (hm : 0 < m) (hk : k ≠ 0) (hkp : k ≠ k0) (hkm : k ≠ -k0) :
     probEvent (zLaw N k0) (fun ω : Fin m → ZMod N =>
@@ -543,6 +637,8 @@ theorem lemma7_upper {N : ℕ} [NeZero N] {k0 k : ZMod N} {m : ℕ}
   field_simp
   ring
 
+/-- The proposition combining the lower and upper cosine-sum tail bounds of Lemma 7 of
+[EttingerHoyer1999]. -/
 def Lemma7Statement : Prop := by
   classical
   exact ∀ (N : ℕ) [NeZero N] (m : ℕ), 0 < m → ∀ (k0 k : ZMod N),
@@ -553,16 +649,24 @@ def Lemma7Statement : Prop := by
       probEvent (zLaw N k0) (fun ω : Fin m → ZMod N =>
         (m : ℝ) / 4 ≤ ∑ i, cosPhase N k (ω i)) ≤ Real.exp (-(m : ℝ) / 32))
 
+/-- Both cosine-sum concentration bounds encoded by `Lemma7Statement` hold. See Lemma 7 of
+[EttingerHoyer1999]. -/
 theorem lemma7_holds : Lemma7Statement := by
   intro N _ m hm k0 k
   exact ⟨fun hk0 hk => lemma7_lower hm hk0 hk, fun hk hkp hkm => lemma7_upper hm hk hkp hkm⟩
 
+/-- The finite set of residues with representatives between one and `N / 2`, inclusive. -/
 def Candidates (N : ℕ) [NeZero N] : Finset (ZMod N) :=
   Finset.univ.filter (fun k : ZMod N => 1 ≤ k.val ∧ k.val ≤ N / 2)
 
+/-- The signed representative of `k0` chosen as `k0` when its value is at most `N / 2`, and as
+`-k0` otherwise. -/
 def kRep (N : ℕ) (k0 : ZMod N) : ZMod N :=
   if k0.val ≤ N / 2 then k0 else -k0
 
+/-- The proposition that at least `64 * log N` samples make `kRep N k0` strictly maximize the
+candidate cosine sums with probability at least `1 - 1 / (2 * N)`, for `N ≥ 2` and nonzero
+`k0`. See Theorem 5 of [EttingerHoyer1999]. -/
 def Theorem5Statement : Prop := by
   classical
   exact ∀ (N : ℕ) [NeZero N], 2 ≤ N → ∀ (k0 : ZMod N), k0 ≠ 0 → ∀ (m : ℕ),
@@ -573,22 +677,29 @@ def Theorem5Statement : Prop := by
 
 variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
 
+/-- The matrix Fourier sum of `f` against `ρ`, scaled by the square root of the matrix dimension
+divided by the group cardinality. -/
 noncomputable def ncFourier {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) (f : G → ℂ) :
     Matrix (Fin d) (Fin d) ℂ :=
   ((Real.sqrt ((d : ℝ) / Fintype.card G) : ℝ) : ℂ) • ∑ g, f g • ρ g
 
+/-- The average of the matrix values `ρ h` over the finite set `H`, using inverse-cardinality
+scaling. -/
 noncomputable def fixedProj {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) (H : Finset G) :
     Matrix (Fin d) (Fin d) ℂ :=
   ((H.card : ℂ))⁻¹ • ∑ h ∈ H, ρ h
 
+/-- The conditions that a matrix-valued map preserves the group identity and multiplication. -/
 structure IsMatRep {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) : Prop where
   map_one : ρ 1 = 1
   map_mul : ∀ g h, ρ (g * h) = ρ g * ρ h
 
+/-- The complex-valued indicator function of the finite set `H`. -/
 noncomputable def setIndicator (H : Finset G) : G → ℂ := fun g => if g ∈ H then 1 else 0
 
 omit [Group G] in
 
+/-- The sum of the indicator-weighted matrices over the group equals the sum of `ρ h` over `H`. -/
 lemma sum_indicator_smul {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) (H : Finset G) :
     (∑ g, setIndicator H g • ρ g) = ∑ h ∈ H, ρ h := by
   classical
@@ -605,6 +716,9 @@ lemma sum_indicator_smul {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) (H : 
     _ = ∑ h ∈ H, ρ h := by
         rw [show Finset.univ.filter (fun g => g ∈ H) = H from by ext g; simp]
 
+/-- The matrix Fourier transform of a finite-set indicator equals its matrix average scaled by
+`card H * sqrt (d / card G)`. This is the scaled indicator identity associated with Theorem
+8 of [EttingerHoyer1999]. -/
 theorem theorem8_ncFourier_indicator {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ)
     (_hρ : IsMatRep ρ) (H : Finset G) :
     ncFourier ρ (setIndicator H)
@@ -627,15 +741,19 @@ theorem theorem8_ncFourier_indicator {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d
       rw [mul_right_comm, mul_inv_cancel₀ hcard, one_mul]
     rw [hs]
 
+/-- The finite left translate of `H` by `s`. -/
 def cosetFinset (s : G) (H : Finset G) : Finset G := H.image (fun h => s * h)
 
 omit [Fintype G] in
 
+/-- Membership in `cosetFinset s H` is equivalent to equality with `s * h` for some `h ∈ H`. -/
 lemma mem_cosetFinset {s : G} {H : Finset G} {g : G} :
     g ∈ cosetFinset s H ↔ ∃ h ∈ H, s * h = g := by
   unfold cosetFinset
   rw [Finset.mem_image]
 
+/-- For a matrix representation, summing its values over a left translate of `H` equals `ρ s`
+multiplied by the sum over `H`. -/
 lemma sum_coset_smul {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) (hρ : IsMatRep ρ)
     (s : G) (H : Finset G) :
     (∑ g, setIndicator (cosetFinset s H) g • ρ g) = ρ s * ∑ h ∈ H, ρ h := by
@@ -662,6 +780,8 @@ lemma sum_coset_smul {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ) (hρ : Is
   · intro x _ y _ hxy
     exact mul_left_cancel hxy
 
+/-- The matrix Fourier transform of a left-translate indicator is the corresponding scaled
+matrix average multiplied on the left by `ρ s`. See Corollary 9 of [EttingerHoyer1999]. -/
 theorem corollary9_coset_indicator {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) ℂ)
     (hρ : IsMatRep ρ) (s : G) (H : Finset G) :
     ncFourier ρ (setIndicator (cosetFinset s H))
@@ -685,6 +805,8 @@ theorem corollary9_coset_indicator {d : ℕ} (ρ : G → Matrix (Fin d) (Fin d) 
       rw [mul_right_comm, mul_inv_cancel₀ hcard, one_mul]
     rw [hs]
 
+/-- The proposition asserting the scaled matrix Fourier identity for indicators of finite sets
+under a matrix representation, associated with Theorem 8 of [EttingerHoyer1999]. -/
 def Theorem8Statement : Prop :=
   ∀ (G : Type*) [Group G] [Fintype G] [DecidableEq G] (d : ℕ)
     (ρ : G → Matrix (Fin d) (Fin d) ℂ), IsMatRep ρ →
@@ -693,6 +815,9 @@ def Theorem8Statement : Prop :=
         = (((H.card : ℝ) * Real.sqrt ((d : ℝ) / Fintype.card G) : ℝ) : ℂ) •
             fixedProj ρ H
 
+/-- The proposition asserting the scaled matrix Fourier identity for indicators of left
+translates under a matrix representation, associated with Corollary 9 of
+[EttingerHoyer1999]. -/
 def Corollary9Statement : Prop :=
   ∀ (G : Type*) [Group G] [Fintype G] [DecidableEq G] (d : ℕ)
     (ρ : G → Matrix (Fin d) (Fin d) ℂ), IsMatRep ρ →
@@ -701,24 +826,34 @@ def Corollary9Statement : Prop :=
         = (((H.card : ℝ) * Real.sqrt ((d : ℝ) / Fintype.card G) : ℝ) : ℂ) •
             (ρ s * fixedProj ρ H)
 
+/-- The scaled indicator-transform identity encoded by `Theorem8Statement` holds. See
+[EttingerHoyer1999]. -/
 theorem theorem8_holds : Theorem8Statement := by
   intro G _ _ _ d ρ hρ H
   exact theorem8_ncFourier_indicator ρ hρ H
 
+/-- The scaled left-translate transform identity encoded by `Corollary9Statement` holds. See
+[EttingerHoyer1999]. -/
 theorem corollary9_holds : Corollary9Statement := by
   intro G _ _ _ d ρ hρ s H
   exact corollary9_coset_indicator ρ hρ s H
 
+/-- The probability mass of an event under a single finite distribution. -/
 noncomputable def probSingle {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     (E : X → Prop) [DecidablePred E] : ℝ :=
   Finset.sum (Finset.univ.filter E) p.prob
 
+/-- An oracle-indexed query count and output distribution on optional residues for a dihedral
+identification procedure. -/
 structure DihAlgorithm (N : ℕ) [NeZero N] (R : Type*) where
 
   queries : (DihPt N → R) → ℕ
 
   dist : (DihPt N → R) → FinDist (Option (ZMod N))
 
+/-- The proposition encoding Theorem 3 of [EttingerHoyer1999]: an identification interface with
+the stated logarithmic query bound, certain trivial-case recognition, and recovery of each
+nonzero hidden reflection with probability at least `1 - 1 / (2 * N)`. -/
 def Theorem3Statement : Prop := by
   classical
   exact ∀ (N : ℕ) [NeZero N] (R : Type*), 2 ≤ N →
@@ -730,15 +865,22 @@ def Theorem3Statement : Prop := by
         FulfillsDihedralPromise N (H2 N k0) γ →
         1 - 1 / (2 * (N : ℝ)) ≤ probSingle (A.dist γ) (fun o => o = some k0))
 
+/-- An oracle-indexed query count and distribution on finite sets of dihedral group elements for
+a subgroup-generation procedure. -/
 structure DihGenAlgorithm (N : ℕ) [NeZero N] (R : Type*) where
   queries : (DihedralGroup N → R) → ℕ
   dist : (DihedralGroup N → R) → FinDist (Finset (DihedralGroup N))
 
+/-- The subgroup coset promise that oracle values agree exactly when one argument is obtained
+from the other by right multiplication by an element of `H`. -/
 def FulfillsPromise {G : Type*} [Group G] (H : Subgroup G) {R : Type*}
     (γ : G → R) : Prop :=
   (∀ x y, (∃ h ∈ H, x * h = y) → γ x = γ y) ∧
   (∀ x y, γ x = γ y → ∃ h ∈ H, x * h = y)
 
+/-- The proposition encoding Theorem 2 of [EttingerHoyer1999]: existence of a
+subgroup-generation interface with positive lower and upper logarithmic query bounds and
+probability at least `1 - 2 / N` of producing generators for the hidden subgroup. -/
 def Theorem2Statement : Prop := by
   classical
   exact ∀ (N : ℕ) [NeZero N] (R : Type*), 2 ≤ N →

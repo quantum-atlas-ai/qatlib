@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalGraphCompilationQuan
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalActualFinalReadoutQuan
+
+/-!
+# Classical input preparation and graph-resource independence
+
+A classical input word prefixes a reflection-gate program by Hadamard gates and input-controlled
+Pauli-X gates, converting the uniform state into the requested computational basis state. This
+adds `2 * n` single-wire gates and increases the compiled word length by `8 * n`.
+
+The compiled gate shape, and hence its graph-edge preparation, is independent of the input bits.
+The resulting identities connect fresh-qubit preparation with an all-plus density resource and
+support the full cluster-resource construction in [RaussendorfBriegel2000].
+
+## Main statements
+
+* `mbqcPreparedResource_eq` identifies the prepared graph resource with its all-plus form, and
+  `mbqcAllPlusResource_density` proves that it is a density operator.
+* `mbqcClassicalInput_counts` and `mbqcClassicalInput_length` compute the input-preparation
+  overhead.
+* `mbqcClassicalInput_shape` and `mbqcInputGraph_resource_independent` prove independence of the
+  compiled shape and all-plus resource from the classical input bits.
+* `mbqcClassicalInput_state` and `mbqcClassicalInput_logicalState` identify the prepared program
+  output in register and finite-index coordinates.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -33,6 +61,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- Every amplitude of the uniform state on `2 ^ n` basis indices equals the `n`th power of the
+inverse complex square root of two. -/
 private theorem uniform_power (n : ℕ) (i : Fin (2^n)) :
     Uniform (Fin (2^n)) i=((Real.sqrt 2 : ℂ)⁻¹)^n := by
   have hsqrt (m : ℕ) : Real.sqrt ((2 : ℝ)^m)=(Real.sqrt 2)^m := by
@@ -41,6 +71,8 @@ private theorem uniform_power (n : ℕ) (i : Fin (2^n)) :
     | succ n ih => rw [pow_succ,Real.sqrt_mul (by positivity),ih,pow_succ]
   simp [Uniform,hsqrt n,inv_pow]
 
+/-- Fresh-qubit preparation composed with the input frame sends the uniform `n`-qubit state to
+the uniform state on `n + L` qubits. -/
 theorem mbqcFreshPreparation_uniform (n L : ℕ) :
     (graphGateProduct (graphFreshGates n L)*graphInputFrame n L)*ᵥ Uniform (Fin (2^n))=
       Uniform (Fin (2^(n+L))) := by
@@ -48,6 +80,8 @@ theorem mbqcFreshPreparation_uniform (n L : ℕ) :
   funext r
   simp [Matrix.mulVec,dotProduct,graphRowLift,graphRowLiftB,uniform_power,pow_add,mul_comm]
 
+/-- The prepared resource for a graph word equals the resource obtained by entangling an
+all-plus input. -/
 theorem mbqcPreparedResource_eq {n L : ℕ} (G : GraphWord n L) :
     mbqcPreparedResource G=mbqcAllPlusResource G := by
   unfold mbqcPreparedResource mbqcAllPlusResource
@@ -66,6 +100,7 @@ theorem mbqcPreparedResource_eq {n L : ℕ} (G : GraphWord n L) :
   simpa only [Matrix.conjTranspose_mul,Matrix.mul_assoc] using!
     congrArg (fun X => graphGateProduct (graphEdgeGates G)*X*(graphGateProduct (graphEdgeGates G))ᴴ) hd
 
+/-- The graph-ordered product of a list of unitary matrices is unitary. -/
 private theorem mbqcGateProduct_unitary {D : ℕ} (Us : List (Operator D))
     (hUs : ∀ U ∈ Us, U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     graphGateProduct Us ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -75,6 +110,7 @@ private theorem mbqcGateProduct_unitary {D : ℕ} (Us : List (Operator D))
     exact Submonoid.mul_mem _
       (ih (fun V hV => hUs V (List.mem_cons_of_mem U hV))) (hUs U List.mem_cons_self)
 
+/-- The all-plus resource associated with any graph word is a density operator. -/
 theorem mbqcAllPlusResource_density {n L : ℕ} (G : GraphWord n L) :
     IsDensityOperator (mbqcAllPlusResource G) := by
   have hu : graphGateProduct (graphEdgeGates G) ∈ Matrix.unitaryGroup (Fin (2^(n+L))) ℂ := by
@@ -88,6 +124,8 @@ theorem mbqcAllPlusResource_density {n L : ℕ} (G : GraphWord n L) :
   refine ⟨hρ.1.mul_mul_conjTranspose_same _,?_⟩
   exact (trace_conjBranch_unitary _ hu _).trans hρ.2
 
+/-- The two local-gate counts of a concatenated reflection word are the componentwise sums of
+the counts of its two parts. -/
 private theorem mbqcCounts_append {n : ℕ} (as bs : List (ReflectionGate n)) :
     mbqcLocalCounts (as++bs)=((mbqcLocalCounts as).1+(mbqcLocalCounts bs).1,
       (mbqcLocalCounts as).2+(mbqcLocalCounts bs).2) := by
@@ -97,12 +135,15 @@ private theorem mbqcCounts_append {n : ℕ} (as bs : List (ReflectionGate n)) :
     cases g <;> simp only [List.cons_append,mbqcLocalCounts,ih,Prod.mk.injEq] <;>
       constructor <;> first | trivial | omega
 
+/-- A list of single-wire gates has local counts equal to its length and zero. -/
 private theorem mbqcCounts_wires {n : ℕ} (ls : List (Fin n)) (Us : Fin n → Matrix Bool Bool ℂ) :
     mbqcLocalCounts (ls.map (fun i => Sum.inl (i,Us i)))=(ls.length,0) := by
   induction ls with
   | nil => rfl
   | cons i ls ih => simp [mbqcLocalCounts,ih]
 
+/-- Classical-input preparation adds `2 * n` single-wire gates to the reflection word and
+preserves its other local-gate count. -/
 theorem mbqcClassicalInput_counts {n : ℕ} (gs : List (ReflectionGate n)) (x : Reg n) :
     mbqcLocalCounts (mbqcClassicalInputWord gs x)=
       (2*n+(mbqcLocalCounts gs).1,(mbqcLocalCounts gs).2) := by
@@ -115,11 +156,14 @@ theorem mbqcClassicalInput_counts {n : ℕ} (gs : List (ReflectionGate n)) (x : 
   simp only [mbqcClassicalInputWord,mbqcCounts_append,hh,hx]
   apply Prod.ext <;> (try dsimp only) <;> omega
 
+/-- Compiling the classical-input word adds `8 * n` gates to the length of the compiled original
+word. -/
 theorem mbqcClassicalInput_length {n : ℕ} (gs : List (ReflectionGate n)) (x : Reg n) :
     (mbqcCompiledWord (mbqcClassicalInputWord gs x)).length=8*n+(mbqcCompiledWord gs).length := by
   rw [mbqcCompiledWord_length,mbqcClassicalInput_counts,mbqcCompiledWord_length]
   omega
 
+/-- Enumerating the input graph word recovers the compiled classical-input word. -/
 theorem mbqcInputGraph_ofFn {n : ℕ} [NeZero n] (gs : List (ReflectionGate n)) (x : Reg n) :
     List.ofFn (mbqcInputGraph gs x)=mbqcCompiledWord (mbqcClassicalInputWord gs x) := by
   have he := mbqcClassicalInput_length gs x
@@ -129,6 +173,7 @@ theorem mbqcInputGraph_ofFn {n : ℕ} [NeZero n] (gs : List (ReflectionGate n)) 
     simp only [List.getElem_ofFn,mbqcInputGraph]
     rw [List.getD_eq_getElem _ _ hi']
 
+/-- Adding the classical-input preparation prefix to a legal reflection word preserves legality. -/
 theorem mbqcClassicalInput_legal {n : ℕ} (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) (x : Reg n) : reflectionLegal (mbqcClassicalInputWord gs x) := by
   intro g hg
@@ -141,10 +186,14 @@ theorem mbqcClassicalInput_legal {n : ℕ} (gs : List (ReflectionGate n))
     · exact Submonoid.one_mem _
   · exact hgs g hg
 
+/-- Forgets the parameter of a single-wire cluster gate while retaining its wire index, and
+retains both indices of a two-wire gate. -/
 def mbqcShape {n : ℕ} : ClusterNetworkGate n → Sum (Fin n) (Fin n × Fin n)
   | .inl (i,_) => .inl i
   | .inr p => .inr p
 
+/-- The shape of a local expansion consists of four copies of its wire for a single-wire gate,
+or the target-wire, two-wire, target-wire sequence for a two-wire gate. -/
 private theorem expansion_shape {n : ℕ} (g : ReflectionGate n) :
     (mbqcLocalExpansion g).map mbqcShape=
       match g with
@@ -154,6 +203,8 @@ private theorem expansion_shape {n : ℕ} (g : ReflectionGate n) :
   | inl p => obtain ⟨i,U⟩ := p; rfl
   | inr p => obtain ⟨c,t⟩ := p; rfl
 
+/-- The compiled classical-input word has the same gate-shape sequence for any two input bit
+strings. -/
 theorem mbqcClassicalInput_shape {n : ℕ} (gs : List (ReflectionGate n)) (x y : Reg n) :
     (mbqcCompiledWord (mbqcClassicalInputWord gs x)).map mbqcShape=
       (mbqcCompiledWord (mbqcClassicalInputWord gs y)).map mbqcShape := by
@@ -162,6 +213,7 @@ theorem mbqcClassicalInput_shape {n : ℕ} (gs : List (ReflectionGate n)) (x y :
   congr 1
   simp only [List.flatMap,List.map_ofFn,Function.comp_def]
 
+/-- Graph words with pointwise equal gate shapes have equal graph-edge gate lists. -/
 theorem mbqcGraphEdges_shape {n L : ℕ} (G H : GraphWord n L)
     (hs : ∀ t, mbqcShape (G t)=mbqcShape (H t)) : graphEdgeGates G=graphEdgeGates H := by
   have ha : graphAdvance G=graphAdvance H := by
@@ -206,6 +258,8 @@ theorem mbqcGraphEdges_shape {n L : ℕ} (G H : GraphWord n L)
       subst q
       simp only [graphEdgeEndpoints,hg,hh,hb]
 
+/-- For a fixed reflection word, the all-plus resource of its input graph is independent of the
+classical input bit string. -/
 theorem mbqcInputGraph_resource_independent {n : ℕ} [NeZero n] (gs : List (ReflectionGate n))
     (x y : Reg n) : mbqcAllPlusResource (mbqcInputGraph gs x)=mbqcAllPlusResource (mbqcInputGraph gs y) := by
   have he : graphEdgeGates (mbqcInputGraph gs x)=graphEdgeGates (mbqcInputGraph gs y) := by
@@ -218,12 +272,16 @@ theorem mbqcInputGraph_resource_independent {n : ℕ} [NeZero n] (gs : List (Ref
     exact congrFun ht t
   simp only [mbqcAllPlusResource,he]
 
+/-- A gate acting on one wire equals the product operator with that gate on the selected wire
+and identity on every other wire. -/
 private theorem wire_product {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ) :
     wireGate n i U=pauliProductDensity (fun j => if j=i then relabelGate boolEquivFin2 U else 1) := by
   ext x y
   simp [wireGate,tensorPauliWireGate,tensorPauliProduct,relabelGate,
     Matrix.reindex_apply,Matrix.submatrix_apply]
 
+/-- For a list of distinct wire indices, the corresponding single-wire program equals the
+product operator that applies each listed wire's gate and identity elsewhere. -/
 private theorem wire_table {n : ℕ} (Us : Fin n → Matrix Bool Bool ℂ)
     (is : List (Fin n)) (hnodup : is.Nodup) :
     reflectionProgramMatrix (is.map (fun i => Sum.inl (i,Us i)))=
@@ -243,6 +301,8 @@ private theorem wire_table {n : ℕ} (Us : Fin n → Matrix Bool Bool ℂ)
       simp [hi]
     · by_cases hj : j ∈ is <;> simp [hji,hj]
 
+/-- Applying one prescribed gate on every wire gives the product operator of the relabeled
+one-wire gates. -/
 private theorem wire_table_full (n : ℕ) (Us : Fin n → Matrix Bool Bool ℂ) :
     reflectionProgramMatrix (List.ofFn (fun i => Sum.inl (i,Us i)))=
       pauliProductDensity (fun i => relabelGate boolEquivFin2 (Us i)) := by
@@ -250,6 +310,7 @@ private theorem wire_table_full (n : ℕ) (Us : Fin n → Matrix Bool Bool ℂ) 
       wire_table Us (List.ofFn (fun i : Fin n => i)) (List.nodup_ofFn.mpr Function.injective_id)
   simpa [List.map_ofFn] using! he
 
+/-- The program applying a Hadamard gate on every wire has matrix `HadamardN n`. -/
 private theorem h_table (n : ℕ) :
     reflectionProgramMatrix (List.ofFn (fun i : Fin n => Sum.inl (i,Hadamard)))=HadamardN n := by
   rw [wire_table_full]
@@ -257,6 +318,8 @@ private theorem h_table (n : ℕ) :
   simp [pauliProductDensity,HadamardN,relabelGate,Matrix.reindex_apply,
     Matrix.submatrix_apply,boolEquivFin2]
 
+/-- Applying Pauli X on exactly the true bits of `x` sends the all-zero basis state to the basis
+state indexed by `x`. -/
 private theorem x_table_zero (n : ℕ) (x : Reg n) :
     reflectionProgramMatrix (List.ofFn (fun i : Fin n => Sum.inl (i,if x i then PauliX else 1)))*ᵥ
       Qatlib.Foundations.PureStateMath.Ket (ZeroStr n)=Qatlib.Foundations.PureStateMath.Ket x := by
@@ -272,6 +335,7 @@ private theorem x_table_zero (n : ℕ) (x : Reg n) :
   have hp := congrFun (congrFun (pauliProductDensity_one n) y) x
   simpa only [pauliProductDensity,Matrix.of_apply,he,Matrix.one_apply] using! hp
 
+/-- Applying a Hadamard gate on every wire sends the uniform state to the all-zero basis state. -/
 private theorem h_table_uniform (n : ℕ) :
     reflectionProgramMatrix (List.ofFn (fun i : Fin n => Sum.inl (i,Hadamard)))*ᵥ
       Uniform (Reg n)=Qatlib.Foundations.PureStateMath.Ket (ZeroStr n) := by
@@ -288,6 +352,8 @@ private theorem h_table_uniform (n : ℕ) :
   change (HadamardN n)*ᵥ((HadamardN n)*ᵥ Qatlib.Foundations.PureStateMath.Ket (ZeroStr n))=_
   rw [Matrix.mulVec_mulVec,hunit,Matrix.one_mulVec]
 
+/-- Running the classical-input word on the uniform state equals running the original reflection
+program on the basis state indexed by `x`. -/
 theorem mbqcClassicalInput_state {n : ℕ} (gs : List (ReflectionGate n)) (x : Reg n) :
     reflectionProgramMatrix (mbqcClassicalInputWord gs x)*ᵥ Uniform (Reg n)=
       reflectionProgramMatrix gs*ᵥ Qatlib.Foundations.PureStateMath.Ket x := by
@@ -295,6 +361,8 @@ theorem mbqcClassicalInput_state {n : ℕ} (gs : List (ReflectionGate n)) (x : R
   simp only [← Matrix.mulVec_mulVec]
   rw [h_table_uniform,x_table_zero]
 
+/-- The finite-index logical matrix of the classical-input word sends the uniform state to the
+reindexed output of the original program on the basis state indexed by `x`. -/
 theorem mbqcClassicalInput_logicalState {n : ℕ} (gs : List (ReflectionGate n)) (x : Reg n) :
     mbqcLogicalMatrix (mbqcClassicalInputWord gs x)*ᵥ Uniform (Fin (2^n))=
       (fun i : Fin (2^n) => (reflectionProgramMatrix gs*ᵥ Qatlib.Foundations.PureStateMath.Ket x) ((bitVecEquiv n).symm i)) := by

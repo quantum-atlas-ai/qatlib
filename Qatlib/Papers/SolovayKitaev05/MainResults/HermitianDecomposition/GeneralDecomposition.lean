@@ -9,6 +9,29 @@ import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Matrix.Hermitian
 import Mathlib.LinearAlgebra.Matrix.Trace
+
+/-!
+# Hermitian commutator decompositions in finite dimension
+
+This module develops an unnormalized Fourier matrix over `ZMod d`, proves its orthogonality
+identities, and uses Fourier conjugation to control diagonal entries. It constructs Hermitian
+commutator factors for zero-diagonal matrices and proves
+`exists_hermitian_commutator_of_trace_zero`, the trace-zero decomposition relevant to
+[DawsonNielsen2006].
+
+## Main statements
+
+* `diag_zero_construction`: Every Hermitian matrix with zero diagonal is, after multiplication
+  by `I`, a commutator of two Hermitian matrices.
+* `exists_hermitian_commutator_of_trace_zero`: Every trace-zero Hermitian matrix on `ZMod d` is,
+  after multiplication by `I`, a commutator of two Hermitian matrices, giving the algebraic
+  decomposition used in [DawsonNielsen2006].
+
+## References
+
+* [Dawson and Nielsen, 2006][DawsonNielsen2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,15 +43,19 @@ set_option autoImplicit false
 
 variable {d : ℕ} [NeZero d]
 
+/-- The unnormalized Fourier matrix with entry `stdAddChar (-(i*j))` on `ZMod d`. -/
 noncomputable def fourierMat : Matrix (ZMod d) (ZMod d) ℂ :=
   fun i j => ZMod.stdAddChar (-(i * j))
 
+/-- Complex conjugation of the standard additive character at `a` equals its value at `-a`. -/
 lemma stdAddChar_conj (a : ZMod d) :
     (starRingEnd ℂ) (ZMod.stdAddChar a) = ZMod.stdAddChar (-a) := by
   rw [ZMod.stdAddChar_apply, ZMod.stdAddChar_apply, ← Circle.coe_inv_eq_conj]
   congr 1
   exact (AddChar.map_neg_eq_inv ZMod.toCircle a).symm
 
+/-- The conjugate transpose of the unnormalized Fourier matrix multiplied by the matrix equals
+`d` times the identity. -/
 lemma fourierMat_orth : (fourierMat (d := d) : Matrix (ZMod d) (ZMod d) ℂ)ᴴ * fourierMat =
     (d : ℂ) • 1 := by
   ext i j
@@ -49,6 +76,8 @@ lemma fourierMat_orth : (fourierMat (d := d) : Matrix (ZMod d) (ZMod d) ℂ)ᴴ 
   · have hsub : i - j ≠ 0 := sub_ne_zero.mpr h
     simp [h, hsub]
 
+/-- The unnormalized Fourier matrix multiplied by its conjugate transpose equals `d` times the
+identity. -/
 lemma fourierMat_orth' : (fourierMat (d := d) : Matrix (ZMod d) (ZMod d) ℂ) * fourierMatᴴ =
     (d : ℂ) • 1 := by
   ext i j
@@ -70,16 +99,20 @@ lemma fourierMat_orth' : (fourierMat (d := d) : Matrix (ZMod d) (ZMod d) ℂ) * 
     have hij : i ≠ j := fun e => h e.symm
     simp [hsub, hij]
 
+/-- Every entry of the unnormalized Fourier matrix has complex norm one. -/
 lemma fourierMat_entry_norm (i j : ZMod d) : ‖fourierMat (d := d) i j‖ = 1 := by
   rw [fourierMat, ZMod.stdAddChar_apply]
   exact Circle.norm_coe _
 
+/-- Each Fourier matrix entry multiplied by its complex conjugate equals one. -/
 lemma mul_conj_entry (i j : ZMod d) :
     fourierMat (d := d) i j * star (fourierMat (d := d) i j) = 1 := by
   change fourierMat i j * (starRingEnd ℂ) (fourierMat i j) = 1
   rw [Complex.mul_conj, Complex.normSq_eq_norm_sq, fourierMat_entry_norm]
   norm_num
 
+/-- Every diagonal entry of the Fourier conjugation of a real diagonal matrix equals the sum of
+its diagonal values. -/
 lemma fourier_diag_conj (lam : ZMod d → ℝ) (i : ZMod d) :
     (((fourierMat : Matrix (ZMod d) (ZMod d) ℂ) * diagonal (fun j => (lam j : ℂ)) *
       ((fourierMat : Matrix (ZMod d) (ZMod d) ℂ)ᴴ))) i i = ∑ j, (lam j : ℂ) := by
@@ -102,8 +135,10 @@ lemma fourier_diag_conj (lam : ZMod d → ℝ) (i : ZMod d) :
       = (lam x : ℂ) * (fourierMat i x * star (fourierMat i x)) by ring,
     mul_conj_entry, mul_one]
 
+/-- The real value of the canonical natural-number representative of an element of `ZMod d`. -/
 noncomputable def gval (k : ZMod d) : ℝ := (k.val : ℝ)
 
+/-- Distinct residue labels have distinct complex casts of their `gval` values. -/
 lemma gval_sub_ne_zero {i j : ZMod d} (h : i ≠ j) :
     ((gval j : ℝ) : ℂ) - ((gval i : ℝ) : ℂ) ≠ 0 := by
   intro hz
@@ -115,9 +150,12 @@ lemma gval_sub_ne_zero {i j : ZMod d} (h : i ≠ j) :
 
 omit [NeZero d] in
 
+/-- The complex cast of `gval k` is fixed by complex conjugation. -/
 lemma gval_star (k : ZMod d) : star (((gval k : ℝ)) : ℂ) = ((gval k : ℝ) : ℂ) := by
   simp
 
+/-- Every Hermitian matrix with zero diagonal is, after multiplication by `I`, a commutator of
+two Hermitian matrices. -/
 theorem diag_zero_construction (A : Matrix (ZMod d) (ZMod d) ℂ) (hA : A.IsHermitian)
     (hdiag : ∀ i, A i i = 0) :
     ∃ F G : Matrix (ZMod d) (ZMod d) ℂ,
@@ -163,6 +201,8 @@ theorem diag_zero_construction (A : Matrix (ZMod d) (ZMod d) ℂ) (hA : A.IsHerm
         simp [F, hij]]
       field_simp [hd]
 
+/-- Every trace-zero Hermitian matrix on `ZMod d` is, after multiplication by `I`, a commutator
+of two Hermitian matrices, giving the algebraic decomposition used in [DawsonNielsen2006]. -/
 theorem exists_hermitian_commutator_of_trace_zero
     (H : Matrix (ZMod d) (ZMod d) ℂ) (hH : H.IsHermitian) (htr : H.trace = 0) :
     ∃ F G : Matrix (ZMod d) (ZMod d) ℂ,

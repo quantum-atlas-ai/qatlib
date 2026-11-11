@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.TensorExtraction
 import Mathlib.Algebra.MvPolynomial.Equiv
+
+/-!
+# Bounded Jackson polynomial approximation
+
+`tensorJackson_unit_bound` proves that tensor Jackson convolution preserves a unit bound on the
+normalized cube. `bounded_jackson_polynomial_exists` specializes polynomial extraction to one
+variable: a continuous function bounded by `1` and Lipschitz with constant `L` on `[-1, 1]` has
+an equally bounded polynomial of degree at most `2 * (K - 1)` and error at most `32 * L / K`.
+
+This bounded approximation is used in the CBMD polynomial constructions associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `tensorJackson_unit_bound` proves preservation of the unit bound.
+* `bounded_jackson_polynomial_exists` gives a bounded polynomial with explicit degree and
+  approximation error.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.Cbmd26.Algorithms
@@ -19,6 +42,8 @@ open MeasureTheory Polynomial
 open Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.JacksonApproximation
 open scoped Classical BigOperators
 
+/-- For `K > 0`, tensor Jackson convolution has absolute value at most `1` everywhere if the
+original function is bounded by `1` on the normalized cube. -/
 theorem tensorJackson_unit_bound {d K : ℕ} (hK : 0 < K)
     (f : (Fin d → ℝ) → ℝ)
     (hf : ∀ z ∈ normalizedCube d, |f z| ≤ 1) (x : Fin d → ℝ) :
@@ -33,6 +58,9 @@ theorem tensorJackson_unit_bound {d K : ℕ} (hK : 0 < K)
       (hf _ (cosPoint_mem_normalizedCube _)) (tensorJackson_nonneg hK u)).trans_eq
         (one_mul _)
 
+/-- A continuous real function bounded by `1` and Lipschitz with a nonnegative constant `L` on
+`[-1, 1]` has, for every positive integer `K`, a polynomial of degree at most `2 * (K - 1)`.
+The polynomial remains bounded by `1` there and has uniform error at most `32 * L / K`. -/
 theorem bounded_jackson_polynomial_exists
     (f : ℝ → ℝ) (hf : Continuous f) (L : ℝ) (hL : 0 ≤ L)
     (hbound : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |f x| ≤ 1)

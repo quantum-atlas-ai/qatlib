@@ -9,6 +9,30 @@ import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
 import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+
+/-!
+# Clean-Frame Controlled Partial-Swap Semantics
+
+The diagonal sign `localCopyBellSign` and projector `localCopyCleanProjector` describe the
+parity computation on initialized scratch. Bell basis conjugation converts the resulting
+spectral phase into a polynomial in the register-swap matrix, using standard quantum circuit
+identities as in [NielsenChuang2010].
+
+The main intertwining theorem identifies the complete local word with `controlledSwapRawGate` on
+the image of `localCopyFrame`, so the logical interaction returns its scratch qubits clean.
+
+## Main statements
+
+- `localCopyPhaseUncompute_clean_projector` identifies the computed phase on the clean subspace.
+- `localCopyBell_spectral_conjugation` expresses that phase using the register-swap matrix.
+* `local_controlled_partial_swap_clean_intertwining` gives the exact clean frame semantics of
+  the local controlled partial swap.
+
+## References
+
+- [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -29,15 +53,22 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.FreshCopyExec.QpeConsumers
 
+/-- The sign given by the parity of the bitwise ANDs between corresponding data and fresh
+register bits. -/
 noncomputable def localCopyBellSign (n : ℕ) (x : Reg (3*n+2)) : ℂ :=
   (-1 : ℂ) ^ (∑ i : Fin n, if x (localCopyDataWire n i) &&
     x (localCopyFreshWire n i) then (1 : ℕ) else 0)
 
+/-- A Boolean choice between one and `e` is an affine function of the corresponding sign in
+`{1,-1}`. -/
 private theorem localCopyPhase_affine (b : Bool) (e : ℂ) :
     (if b then e else 1) = (1+e)/2 + (1-e)/2 *
       (-1 : ℂ) ^ (if b then (1 : ℕ) else 0) := by
   cases b <;> norm_num <;> ring
 
+/-- On a basis state with zero AND and parity scratch, computing parity, applying the controlled
+phase, and uncomputing restores that basis state up to its control dependent Bell sign
+phase. -/
 theorem localCopyPhaseUncompute_clean_basis (n : ℕ) (θ : ℝ)
     (x : Reg (3*n+2)) (ha : ∀ i, x (localCopyAndWire n i) = false)
     (hp : x (localCopyParityWire n) = false) :
@@ -77,10 +108,13 @@ theorem localCopyPhaseUncompute_clean_basis (n : ℕ) (θ : ℝ)
   simp only [ApplyGate, Matrix.mulVec_smul]
   rw [Matrix.mulVec_mulVec, hi, Matrix.one_mulVec]
 
+/-- The diagonal projector onto basis states whose AND scratch bits and parity scratch bit are
+all zero. -/
 noncomputable def localCopyCleanProjector (n : ℕ) : Matrix (Reg (3*n+2)) (Reg (3*n+2)) ℂ :=
   Matrix.diagonal (fun x => if (∀ i, x (localCopyAndWire n i) = false) ∧
     x (localCopyParityWire n) = false then 1 else 0)
 
+/-- The clean subspace projector acts as the identity on the image of the clean frame. -/
 theorem localCopyCleanProjector_frame (n : ℕ) :
     localCopyCleanProjector n * localCopyFrame n = localCopyFrame n := by
   ext x p
@@ -92,6 +126,8 @@ theorem localCopyCleanProjector_frame (n : ℕ) :
     simp [he,ha,hp]
   · simp [he]
 
+/-- A diagonal matrix depending only on the spectator registers commutes with every lifted
+product of data and fresh pair matrices. -/
 theorem localCopyPairLift_spectator_commute (n : ℕ)
     (A : Fin n → Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (d : Bool × (Reg n × Bool) → ℂ) :
@@ -107,6 +143,7 @@ theorem localCopyPairLift_spectator_commute (n : ℕ)
   · rw [if_neg h]
     simp
 
+/-- The Bell basis word commutes with the clean scratch projector. -/
 theorem localCopyBell_clean_commute (n : ℕ) :
     localCopyCleanProjector n * reflectionProgramMatrix (localCopyBellSteps n) =
       reflectionProgramMatrix (localCopyBellSteps n) * localCopyCleanProjector n := by
@@ -114,12 +151,16 @@ theorem localCopyBell_clean_commute (n : ℕ) :
   exact localCopyPairLift_spectator_commute n _
     (fun p => if (∀ i, p.2.1 i = false) ∧ p.2.2 = false then 1 else 0)
 
+/-- The diagonal phase determined by the control bit and Bell sign, equal to one when the
+control is false. -/
 noncomputable def localCopySpectralPhase (n : ℕ) (θ : ℝ) :
     Matrix (Reg (3*n+2)) (Reg (3*n+2)) ℂ :=
   Matrix.diagonal (fun x => if x (localCopyControlWire n) then
     (1 + Complex.exp (((2*θ : ℝ) : ℂ)*Complex.I))/2 +
     (1 - Complex.exp (((2*θ : ℝ) : ℂ)*Complex.I))/2 * localCopyBellSign n x else 1)
 
+/-- On the clean scratch subspace, the parity compute, phase, and uncompute word equals the Bell
+sign spectral phase. -/
 theorem localCopyPhaseUncompute_clean_projector (n : ℕ) (θ : ℝ) :
     (reflectionProgramMatrix (reflectionAdjoint (localCopyComputeAndParity n)) *
       reflectionProgramMatrix (localCopyControlledPhaseSteps n θ) *
@@ -145,16 +186,21 @@ theorem localCopyPhaseUncompute_clean_projector (n : ℕ) (θ : ℝ) :
   simpa only [ApplyGate,Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, mul_ite, mul_one, mul_zero,
     Finset.sum_ite_eq',Finset.mem_univ,if_true] using! congrFun (he y) x
 
+/-- The physical diagonal matrix whose entry depends only on the control wire through the
+function `a`. -/
 noncomputable def localCopyControlDiagonal (n : ℕ) (a : Bool → ℂ) :
     Matrix (Reg (3*n+2)) (Reg (3*n+2)) ℂ :=
   Matrix.diagonal (fun x => a (x (localCopyControlWire n)))
 
+/-- The Bell basis word commutes with every control dependent diagonal matrix. -/
 theorem localCopyBell_control_commute (n : ℕ) (a : Bool → ℂ) :
     localCopyControlDiagonal n a * reflectionProgramMatrix (localCopyBellSteps n) =
       reflectionProgramMatrix (localCopyBellSteps n) * localCopyControlDiagonal n a := by
   rw [localCopyBellSteps_eq_pairLift]
   exact localCopyPairLift_spectator_commute n _ (fun p => a p.1)
 
+/-- The spectral phase decomposes into a control dependent diagonal term and a second such term
+multiplied by the Bell sign diagonal. -/
 private theorem localCopySpectralPhase_decompose (n : ℕ) (θ : ℝ) :
     localCopySpectralPhase n θ =
       localCopyControlDiagonal n (fun b => if b then
@@ -170,6 +216,8 @@ private theorem localCopySpectralPhase_decompose (n : ℕ) (θ : ℝ) :
     cases x (localCopyControlWire n) <;> simp
   · simp [h]
 
+/-- Conjugating the spectral phase by the Bell basis matrix replaces the Bell sign diagonal with
+the physical register-swap matrix. -/
 theorem localCopyBell_spectral_conjugation (n : ℕ) (θ : ℝ) :
     reflectionProgramMatrix (localCopyBellSteps n) * localCopySpectralPhase n θ *
       (reflectionProgramMatrix (localCopyBellSteps n))ᴴ =
@@ -197,6 +245,7 @@ theorem localCopyBell_spectral_conjugation (n : ℕ) (θ : ℝ) :
   simp only [mul_assoc]
   rw [← mul_assoc B D Bᴴ,hconj]
 
+/-- The adjoint Bell basis matrix commutes with the clean scratch projector. -/
 theorem localCopyBell_adjoint_clean_commute (n : ℕ) :
     localCopyCleanProjector n * (reflectionProgramMatrix (localCopyBellSteps n))ᴴ =
       (reflectionProgramMatrix (localCopyBellSteps n))ᴴ * localCopyCleanProjector n := by
@@ -204,6 +253,8 @@ theorem localCopyBell_adjoint_clean_commute (n : ℕ) :
   exact localCopyPairLift_spectator_commute n _
     (fun p => if (∀ i, p.2.1 i = false) ∧ p.2.2 = false then 1 else 0)
 
+/-- After Bell basis conjugation and restriction to the clean frame, the parity compute, phase,
+and uncompute word can be replaced by its spectral-phase matrix. -/
 theorem localCopyBell_phase_clean_frame (n : ℕ) (θ : ℝ) :
     reflectionProgramMatrix (localCopyBellSteps n) *
       (reflectionProgramMatrix (reflectionAdjoint (localCopyComputeAndParity n)) *
@@ -229,6 +280,8 @@ theorem localCopyBell_phase_clean_frame (n : ℕ) (θ : ℝ) :
       rw [localCopyPhaseUncompute_clean_projector]
     _ = _ := by rw [Matrix.mul_assoc, hp]; simp only [Matrix.mul_assoc]; rfl
 
+/-- The rotation on the physical control wire is the control dependent diagonal with phase
+`exp(θ*I)` on the true branch and one on the false branch. -/
 theorem localCopyControlRz_matrix (n : ℕ) (θ : ℝ) :
     wireGate (3*n+2) (localCopyControlWire n) (Rz θ) =
       localCopyControlDiagonal n (fun b => if b then Complex.exp ((θ : ℂ)*Complex.I) else 1) := by
@@ -242,6 +295,8 @@ theorem localCopyControlRz_matrix (n : ℕ) (θ : ℝ) :
   rw [hw,he,localCopyPhaseLift_diagonal]
   rfl
 
+/-- Multiplying the symmetric and antisymmetric phase coefficients by `exp(-θ*I)` yields `cos θ`
+and `-I*sin θ`, respectively. -/
 private theorem localCopyPhase_coefficients (θ : ℝ) :
     Complex.exp (((-θ : ℝ) : ℂ)*Complex.I) *
         ((1+Complex.exp (((2*θ : ℝ) : ℂ)*Complex.I))/2) = (Real.cos θ : ℂ) ∧
@@ -266,10 +321,13 @@ private theorem localCopyPhase_coefficients (θ : ℝ) :
         Complex.exp (((-θ : ℝ) : ℂ)*Complex.I) * Complex.exp (((2*θ : ℝ) : ℂ)*Complex.I))/2 := by ring
       _ = _ := by rw [he]; simp only [Complex.ofReal_neg]; rw [hn,ht]; ring
 
+/-- The logical diagonal matrix depending only on the Boolean control, with both logical data
+registers as spectators. -/
 noncomputable def localCopyLogicalControlDiagonal (n : ℕ) (a : Bool → ℂ) :
     Matrix (Bool × (Fin (2^n) × Fin (2^n))) (Bool × (Fin (2^n) × Fin (2^n))) ℂ :=
   Matrix.diagonal (fun p => a p.1)
 
+/-- The clean frame intertwines physical and logical control dependent diagonal matrices. -/
 theorem localCopyControlDiagonal_frame (n : ℕ) (a : Bool → ℂ) :
     localCopyControlDiagonal n a * localCopyFrame n =
       localCopyFrame n * localCopyLogicalControlDiagonal n a := by
@@ -281,6 +339,8 @@ theorem localCopyControlDiagonal_frame (n : ℕ) (a : Bool → ℂ) :
     simp [h,hc]
   · simp [h]
 
+/-- Left multiplication by an involutive permutation matrix reindexes the rows by that
+permutation. -/
 private theorem localCopy_perm_mul {I J : Type} [Fintype I] [DecidableEq I]
     (σ : I → I) (hσ : Function.Involutive σ) (A : Matrix I J ℂ) (x : I) (p : J) :
     (permMatrix σ * A) x p = A (σ x) p := by
@@ -293,15 +353,21 @@ private theorem localCopy_perm_mul {I J : Type} [Fintype I] [DecidableEq I]
       rw [h,hσ]
   simp [Matrix.mul_apply,permMatrix,he]
 
+/-- Right multiplication by `permMatrix σ` reindexes columns by `σ`, for any function on the
+finite column index type. -/
 private theorem localCopy_mul_perm {I J : Type} [Fintype J] [DecidableEq J]
     (σ : J → J) (A : Matrix I J ℂ) (x : I) (p : J) :
     (A * permMatrix σ) x p = A x (σ p) := by
   simp [Matrix.mul_apply,permMatrix]
 
+/-- The logical permutation matrix exchanging the data and fresh registers while preserving the
+Boolean control. -/
 noncomputable def localCopyLogicalSwap (n : ℕ) :
     Matrix (Bool × (Fin (2^n) × Fin (2^n))) (Bool × (Fin (2^n) × Fin (2^n))) ℂ :=
   permMatrix (fun p => (p.1,p.2.swap))
 
+/-- The clean frame intertwines the physical data and fresh register swap with the corresponding
+logical swap. -/
 theorem localCopyRegisterSwap_frame (n : ℕ) :
     localCopyRegisterSwap n * localCopyFrame n = localCopyFrame n * localCopyLogicalSwap n := by
   have hs : Function.Involutive (localCopySwapBasis n) := by
@@ -320,6 +386,8 @@ theorem localCopyRegisterSwap_frame (n : ℕ) :
     simp [Prod.ext_iff,and_assoc,and_left_comm,and_comm]
   simp only [he]
 
+/-- The logical controlled partial swap decomposes into the identity and logical swap with the
+appropriate control dependent cosine and negative-imaginary sine coefficients. -/
 private theorem localCopyControlledSwap_decompose (n : ℕ) (θ : ℝ) :
     controlledSwapRawGate (2^n) θ =
       localCopyLogicalControlDiagonal n (fun b => if b then (Real.cos θ : ℂ) else 1) +
@@ -332,11 +400,15 @@ private theorem localCopyControlledSwap_decompose (n : ℕ) (θ : ℝ) :
       swapRegisterMatrix_apply,Prod.ext_iff,sub_eq_add_neg]
   split_ifs <;> ring
 
+/-- Multiplying two control dependent diagonal matrices multiplies their defining functions
+pointwise. -/
 private theorem localCopyControlDiagonal_mul (n : ℕ) (a b : Bool → ℂ) :
     localCopyControlDiagonal n a * localCopyControlDiagonal n b =
       localCopyControlDiagonal n (fun c => a c * b c) := by
   exact Matrix.diagonal_mul_diagonal _ _
 
+/-- After the final negative angle control rotation, the Bell-conjugated spectral phase is the
+physical swap polynomial with cosine and negative-imaginary sine coefficients. -/
 private theorem localCopyFinalPhase_polynomial (n : ℕ) (θ : ℝ) :
     wireGate (3*n+2) (localCopyControlWire n) (Rz (-θ)) *
       (reflectionProgramMatrix (localCopyBellSteps n) * localCopySpectralPhase n θ *
@@ -362,6 +434,8 @@ private theorem localCopyFinalPhase_polynomial (n : ℕ) (θ : ℝ) :
     · exact (localCopyPhase_coefficients θ).2
   rw [h0,h1]
 
+/-- The local controlled partial swap word implements the logical controlled partial swap
+through the clean frame for every register size and real angle. -/
 theorem local_controlled_partial_swap_clean_intertwining :
     ∀ (n : ℕ) (θ : ℝ), reflectionProgramMatrix (localControlledSwapSteps n θ) *
       localCopyFrame n = localCopyFrame n * controlledSwapRawGate (2^n) θ := by

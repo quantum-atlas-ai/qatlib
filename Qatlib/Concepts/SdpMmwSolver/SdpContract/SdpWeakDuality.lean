@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixWeights.WeightsCore
+
+/-!
+# Trace form of weak SDP duality
+
+`sdp_weak_duality_trace_bound` bounds the objective of a positive semidefinite primal feasible
+matrix by the cost of a nonnegative dual feasible vector. Dual feasibility is expressed by
+positive semidefiniteness of the matrix slack.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdp_weak_duality_trace_bound`: A positive semidefinite primal feasible operator has objective
+  at most the weighted cost of any nonnegative dual vector with positive semidefinite slack.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open Matrix
 open scoped Classical BigOperators MatrixOrder ComplexOrder
 
+/-- A positive semidefinite primal feasible operator has objective at most the weighted cost of
+any nonnegative dual vector with positive semidefinite slack. -/
 theorem sdp_weak_duality_trace_bound (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (b : Fin m → ℝ) (y : Fin m → ℝ) (X : Operator D)
     (hy : ∀ i, 0 ≤ y i) (hdual : ((∑ i, y i • A i)-Cv).PosSemidef)

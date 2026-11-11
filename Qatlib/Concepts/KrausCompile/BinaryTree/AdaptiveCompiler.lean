@@ -8,6 +8,28 @@ import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
 import Qatlib.Concepts.Execution.KnownKraus.KrausUnitaryDilation
 import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeExecution
 import QuantumInfo.ForMathlib.HermitianMat.Sqrt
+
+/-!
+# Adaptive binary compilation of Kraus families
+
+`compileTree` recursively factors a complete Kraus family into binary instruments, using unitary
+transport between matrices with equal Gram matrices. `compileFamily` pads an arbitrary finite
+family with zero operators and produces leaves preserving the original Kraus branches with
+exactly `Nat.clog 2 s` measurements. The constructions relate to finite Kraus implementations in
+[CaiEtAl2026].
+
+## Main statements
+
+* `actual_binary_instrument_implementation`: unitary realization with one auxiliary qubit.
+* `compiledLeaf_apply`: exact Kraus action at every indexed leaf.
+* `compileFamily_depth`: the measurement count after padding.
+
+## References
+
+* [Cai et al., 2026][CaiEtAl2026]
+* [Kraus, 1983][Kraus1983]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +47,7 @@ namespace Qatlib.Concepts.KrausCompile.BinaryTree
 
 noncomputable section
 
+/-- Matrices with equal Gram matrices induce equal inner products on all pairs of input vectors. -/
 theorem gram_equal_inner_action {H X : Type} [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] (V W : Matrix H X ℂ) (h : Vᴴ * V = Wᴴ * W)
     (a b : EuclideanSpace ℂ X) :
@@ -38,6 +61,8 @@ theorem gram_equal_inner_action {H X : Type} [Fintype H] [DecidableEq H]
 set_option maxHeartbeats 1000000 in
 set_option backward.isDefEq.respectTransparency true in
 
+/-- For two finite matrices with equal Gram matrices, there exists a unitary on the output space
+carrying the first matrix to the second. -/
 theorem gram_equal_actual_unitary_transport :
     ∀ (H X : Type) [Fintype H] [DecidableEq H] [Fintype X] [DecidableEq X]
       (V W : Matrix H X ℂ), Vᴴ * V = Wᴴ * W →
@@ -90,23 +115,30 @@ theorem gram_equal_actual_unitary_transport :
   rw [LinearIsometry.extend_apply (L.isometryOfInner hLis) ⟨v a, LinearMap.mem_range_self v a⟩]
   exact hL a _
 
+/-- The matrix of the Hermitian positive semidefinite square root of `R`. -/
 noncomputable def psdRoot {d : ℕ} (R : Operator d) (hR : R.PosSemidef) : Operator d :=
   (HermitianMat.sqrt (⟨R, hR.1⟩ : HermitianMat (Fin d) ℂ)).mat
 
+/-- The Gram matrix of `psdRoot R hR` is `R`. -/
 theorem psdRoot_gram {d : ℕ} (R : Operator d) (hR : R.PosSemidef) :
     (psdRoot R hR).conjTranspose * psdRoot R hR = R := by
   unfold psdRoot
   rw [HermitianMat.conjTranspose_mat]
   exact HermitianMat.sqrt_sq (HermitianMat.zero_le_iff.mpr hR)
 
+/-- Embeds `ρ` into the data-qubit space with the auxiliary qubit in the zero state. -/
 noncomputable def cleanQubitInput {d : ℕ} (ρ : Operator d) :
     Matrix (Fin d × Fin 2) (Fin d × Fin 2) ℂ :=
   fun x y => if x.2 = 0 ∧ y.2 = 0 then ρ x.1 y.1 else 0
 
+/-- The unnormalized data branch obtained by applying `W` to `cleanQubitInput ρ` and selecting
+qubit outcome `b`. -/
 noncomputable def measuredQubitBranch {d : ℕ}
     (W : Matrix (Fin d × Fin 2) (Fin d × Fin 2) ℂ) (b : Fin 2) (ρ : Operator d) :
     Operator d := fun i j => (W * cleanQubitInput ρ * W.conjTranspose) (i,b) (j,b)
 
+/-- If `W` realizes the binary Kraus action on pure inputs with a clean qubit, its measured
+branch on every matrix `ρ` equals `K b * ρ * (K b)ᴴ`. -/
 theorem binary_dilation_branch {d : ℕ} (K : Fin 2 → Operator d)
     (W : Matrix (Fin d × Fin 2) (Fin d × Fin 2) ℂ)
     (hact : ∀ ψ : QState (Fin d), ApplyGate W (TensorState ψ (Ket (0 : Fin 2))) =
@@ -124,6 +156,8 @@ theorem binary_dilation_branch {d : ℕ} (K : Fin 2 → Operator d)
   simp [hentry]
   rw [Finset.sum_comm]
 
+/-- Every complete binary Kraus family has a unitary realization on the data space and one
+auxiliary qubit whose measured branches equal its instrument branches. -/
 theorem actual_binary_instrument_implementation {d : ℕ} (K : Fin 2 → Operator d)
     (hK : ∑ b, (K b).conjTranspose * K b = 1) :
     ∃ W : Matrix (Fin d × Fin 2) (Fin d × Fin 2) ℂ,
@@ -132,6 +166,8 @@ theorem actual_binary_instrument_implementation {d : ℕ} (K : Fin 2 → Operato
   obtain ⟨W, hW, hact⟩ := kraus_unitary_dilation K hK 0
   exact ⟨W, hW, fun b ρ => (binary_dilation_branch K W hact b ρ).symm⟩
 
+/-- Factors a nonempty finite Kraus family as `K i = F i * B`, where the Gram matrix of `B` is
+the original Gram sum and `F` is a complete Kraus family. -/
 theorem group_factor_complete {d m : ℕ} (K : Fin m → Operator d) (seed : Fin m) :
     ∃ (B : Operator d) (F : Fin m → Operator d),
       B.conjTranspose * B = ∑ i, (K i).conjTranspose * K i ∧
@@ -172,6 +208,7 @@ theorem group_factor_complete {d m : ℕ} (K : Fin m → Operator d) (seed : Fin
   have h := congrArg (fun M => M (i,e) j) hUV
   simpa [F, V, W, Matrix.mul_apply, Fintype.sum_prod_type] using h
 
+/-- The quantum channel associated with a complete finite Kraus family. -/
 def familyChannel {d r : ℕ} (K : Fin r → Operator d) (hK : KrausComplete K) :
     QuantumChannel d d where
   map := krausMap K
@@ -182,41 +219,58 @@ def familyChannel {d r : ℕ} (K : Fin r → Operator d) (hK : KrausComplete K) 
     intro ρ
     simp only [krausMap, LinearMap.sum_apply, conjBranch_apply]) hK
 
+/-- The channel of a singleton Kraus family acts by conjugation with its sole Kraus operator. -/
 theorem singleton_map {d : ℕ} (K : Fin 1 → Operator d) (hK : KrausComplete K)
     (ρ : Operator d) :
     (familyChannel K hK).map ρ = K 0 * ρ * (K 0).conjTranspose := by
   simp [familyChannel, krausMap]
 
+/-- An equivalence splitting an index in a family of size `2^(n+1)` into a binary branch and an
+index of size `2^n`. -/
 def splitEquiv (n : ℕ) : Fin 2 × Fin (2 ^ n) ≃ Fin (2 ^ (n + 1)) :=
   finProdFinEquiv.trans (finCongr (by simp [pow_succ, Nat.mul_comm]))
 
+/-- A chosen common right factor whose Gram matrix equals the Gram sum of the nonempty family
+`K`. -/
 def groupB {d m : ℕ} (K : Fin m → Operator d) (seed : Fin m) : Operator d :=
   Classical.choose (group_factor_complete K seed)
 
+/-- A chosen complete Kraus family factoring `K` through the common right factor `groupB K
+seed`. -/
 def groupF {d m : ℕ} (K : Fin m → Operator d) (seed : Fin m) : Fin m → Operator d :=
   Classical.choose (Classical.choose_spec (group_factor_complete K seed))
 
+/-- The Gram matrix of the chosen group factor equals the sum of the original Kraus Gram
+matrices. -/
 theorem groupB_gram {d m : ℕ} (K : Fin m → Operator d) (seed : Fin m) :
     (groupB K seed).conjTranspose * groupB K seed = ∑ i, (K i).conjTranspose * K i :=
   (Classical.choose_spec (Classical.choose_spec (group_factor_complete K seed))).1
 
+/-- The chosen residual family `groupF K seed` is Kraus complete. -/
 theorem groupF_complete {d m : ℕ} (K : Fin m → Operator d) (seed : Fin m) :
     KrausComplete (groupF K seed) :=
   (Classical.choose_spec (Classical.choose_spec (group_factor_complete K seed))).2.1
 
+/-- Each original Kraus operator equals its chosen residual operator multiplied by the common
+group factor. -/
 theorem groupF_factor {d m : ℕ} (K : Fin m → Operator d) (seed : Fin m) (i : Fin m) :
     groupF K seed i * groupB K seed = K i :=
   (Classical.choose_spec (Classical.choose_spec (group_factor_complete K seed))).2.2 i
 
+/-- The zero index in the nonempty family `Fin (2 ^ n)`. -/
 def groupSeed (n : ℕ) : Fin (2 ^ n) := ⟨0, by positivity⟩
 
+/-- The common group factor for the half of `K` selected by binary branch `b`. -/
 def nodeB {d : ℕ} (n : ℕ) (K : Fin (2 ^ (n+1)) → Operator d) (b : Fin 2) : Operator d :=
   groupB (fun j => K (splitEquiv n (b,j))) (groupSeed n)
 
+/-- The complete residual Kraus family for the half of `K` selected by binary branch `b`. -/
 def nodeF {d : ℕ} (n : ℕ) (K : Fin (2 ^ (n+1)) → Operator d) (b : Fin 2) :
     Fin (2 ^ n) → Operator d :=
   groupF (fun j => K (splitEquiv n (b,j))) (groupSeed n)
 
+/-- Splitting a complete family into two groups produces a complete binary family of group
+factors. -/
 theorem node_complete {d : ℕ} (n : ℕ) (K : Fin (2 ^ (n+1)) → Operator d)
     (hK : KrausComplete K) : KrausComplete (nodeB n K) := by
   change ∑ b, (nodeB n K b).conjTranspose * nodeB n K b = 1
@@ -228,6 +282,8 @@ theorem node_complete {d : ℕ} (n : ℕ) (K : Fin (2 ^ (n+1)) → Operator d)
       (splitEquiv n).sum_comp (fun i => (K i).conjTranspose * K i)
   exact hs.trans hK
 
+/-- Recursively compiles a complete family of `2^n` Kraus operators into a depth-`n` binary
+measurement program with singleton channels at its leaves. -/
 def compileTree {d : ℕ} :
     (n : ℕ) → (K : Fin (2 ^ n) → Operator d) → KrausComplete K → Program d d
   | 0, K, hK => .halt (familyChannel K hK)
@@ -235,6 +291,8 @@ def compileTree {d : ℕ} :
       (fun b => compileTree n (nodeF n K b)
         (groupF_complete (fun j => K (splitEquiv n (b,j))) (groupSeed n)))
 
+/-- The leaf associated with an original Kraus index in the recursive binary compilation,
+including its branch map, measurement record, and measurement count. -/
 def compiledLeaf {d : ℕ} : (n : ℕ) → (K : Fin (2 ^ n) → Operator d) →
     (hK : KrausComplete K) → Fin (2 ^ n) → Leaf d d
   | 0, K, hK, _ => ⟨(familyChannel K hK).map, [], 0⟩
@@ -245,6 +303,7 @@ def compiledLeaf {d : ℕ} : (n : ℕ) → (K : Fin (2 ^ n) → Operator d) →
     ⟨t.map.comp ((Instrument.ofKraus (nodeB n K) (node_complete n K hK)).branch b.1),
       (2,b.1.val) :: t.record, t.measurements+1⟩
 
+/-- Every indexed `compiledLeaf` belongs to the leaves of the corresponding compiled tree. -/
 theorem compiledLeaf_mem {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     (hK : KrausComplete K) (i : Fin (2 ^ n)) :
     compiledLeaf n K hK i ∈ leaves (compileTree n K hK) := by
@@ -257,6 +316,8 @@ theorem compiledLeaf_mem {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     apply List.mem_map.mpr
     exact ⟨_, ih _ _ _, rfl⟩
 
+/-- The map at the leaf indexed by `i` is exactly conjugation by the original Kraus operator `K
+i`. -/
 theorem compiledLeaf_apply {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     (hK : KrausComplete K) (i : Fin (2 ^ n)) (ρ : Operator d) :
     (compiledLeaf n K hK i).map ρ = K i * ρ * (K i).conjTranspose := by
@@ -284,6 +345,8 @@ theorem compiledLeaf_apply {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     rw [← Matrix.mul_assoc, ← Matrix.mul_assoc, hfac, Matrix.mul_assoc,
       ← Matrix.conjTranspose_mul, hfac]
 
+/-- Every leaf of a compiled tree is equal to `compiledLeaf n K hK i` for some original index
+`i`. -/
 theorem leaves_compiledLeaf {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     (hK : KrausComplete K) (t : Leaf d d) :
     t ∈ leaves (compileTree n K hK) → ∃ i, t = compiledLeaf n K hK i := by
@@ -304,6 +367,8 @@ theorem leaves_compiledLeaf {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     obtain ⟨j, rfl⟩ := ih _ _ u hu
     exact ⟨splitEquiv n (b,j), by simp [compiledLeaf]⟩
 
+/-- Every leaf of the compilation of a complete family of size `2^n` records exactly `n`
+measurements. -/
 theorem compileTree_depth {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     (hK : KrausComplete K) :
     ∀ t ∈ leaves (compileTree n K hK), t.measurements = n := by
@@ -324,20 +389,26 @@ theorem compileTree_depth {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     obtain ⟨u, hu, rfl⟩ := htys
     simp only [ih _ _ u hu]
 
+/-- The finite-index equivalence induced by `s + (t - s) = t` when `s ≤ t`. -/
 def paddingEquiv {s t : ℕ} (h : s ≤ t) : Fin (s + (t-s)) ≃ Fin t :=
   finCongr (Nat.add_sub_of_le h)
 
+/-- Extends a finite operator family from size `s` to size `t` by assigning zero operators to
+the added indices. -/
 def padFamily {d s t : ℕ} (h : s ≤ t) (K : Fin s → Operator d) : Fin t → Operator d :=
   fun i => Fin.addCases K (fun _ => 0) ((paddingEquiv h).symm i)
 
+/-- Zero padding preserves every original family entry under the canonical index embedding. -/
 theorem padFamily_original {d s t : ℕ} (h : s ≤ t) (K : Fin s → Operator d)
     (i : Fin s) : padFamily h K (paddingEquiv h (Fin.castAdd (t-s) i)) = K i := by
   simp [padFamily]
 
+/-- Every added entry of the padded family is the zero operator. -/
 theorem padFamily_extra {d s t : ℕ} (h : s ≤ t) (K : Fin s → Operator d)
     (i : Fin (t-s)) : padFamily h K (paddingEquiv h (Fin.natAdd s i)) = 0 := by
   simp [padFamily]
 
+/-- Padding a Kraus-complete family with zero operators preserves Kraus completeness. -/
 theorem padFamily_complete {d s t : ℕ} (h : s ≤ t) (K : Fin s → Operator d)
     (hK : KrausComplete K) : KrausComplete (padFamily h K) := by
   change ∑ i, (padFamily h K i).conjTranspose * padFamily h K i = 1
@@ -347,14 +418,18 @@ theorem padFamily_complete {d s t : ℕ} (h : s ≤ t) (K : Fin s → Operator d
     Finset.sum_const_zero, add_zero]
   exact hK
 
+/-- Pads a complete finite Kraus family to size `2^(Nat.clog 2 s)` and compiles it into a binary
+measurement program. -/
 def compileFamily {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K) : Program d d :=
   compileTree (Nat.clog 2 s) (padFamily (Nat.le_pow_clog (by norm_num) s) K)
     (padFamily_complete _ K hK)
 
+/-- Every leaf of `compileFamily K hK` records exactly `Nat.clog 2 s` measurements. -/
 theorem compileFamily_depth {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K) :
     ∀ t ∈ leaves (compileFamily K hK), t.measurements = Nat.clog 2 s :=
   compileTree_depth _ _ _
 
+/-- Each original Kraus branch is realized exactly by some leaf of `compileFamily K hK`. -/
 theorem compileFamily_original {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (i : Fin s) : ∃ t ∈ leaves (compileFamily K hK),
       ∀ ρ, t.map ρ = K i * ρ * (K i).conjTranspose := by

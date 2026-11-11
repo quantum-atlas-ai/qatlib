@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedStat
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeRiskRoutingSubgoalQuan
+
+/-!
+# Rational readout value-at-risk bounds
+
+This module proves `NativeVaRFiniteRestricted` by combining rational CDF readout with finite
+quantile routing. The resulting approximate bracket has a failure bound proportional to the
+bisection depth, and each supported run obeys explicit readout-call and counted-circuit query
+budgets. This formalizes the finite precision bisection approach of [WoernerEgger2019].
+
+## Main statements
+
+* `riskNativeVaRFinite`: the finite rational readout accuracy and call-count contract.
+* `risk_native_var_support_calls`: a logarithmic bound on calls for every supported output.
+* `risk_native_var_query_budget`: a query bound including median repetitions and the
+  amplitude-estimation circuit cost.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -26,6 +47,9 @@ namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 
+/-- Finite rational CDF readout and bisection satisfy the approximate quantile-bracket failure
+bound and the support call-count bound. This implements the finite precision search
+associated with [Woerner and Egger, Section II][WoernerEgger2019]. -/
 theorem riskNativeVaRFinite : NativeVaRFiniteRestricted := by
   intro I _ _ A j loss xs q ε bits M r hA hM hxs hs hloss hq0 hq1 heps hwindow
   change Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
@@ -52,6 +76,8 @@ theorem riskNativeVaRFinite : NativeVaRFiniteRestricted := by
     (by exact_mod_cast heps.le) (by positivity) (riskCDF_monotone A j loss)
     (riskCDF_last A j loss xs hA hxs hs hloss) hsam).1
 
+/-- Every supported output of `riskNativeVaR` records at most `Nat.clog 2 xs.length + 1`
+bisection calls. -/
 theorem risk_native_var_support_calls {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q : ℚ)
     (bits M r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) :
@@ -61,6 +87,9 @@ theorem risk_native_var_support_calls {I : Type} [Fintype I] [DecidableEq I]
     (riskNativeRouting (fun t => riskNativeSample bits r (riskCDFLaw A j loss t M hA hM))
       xs q (Nat.clog 2 xs.length+1) 0 (xs.length-1)).2
 
+/-- For a supported native value-at-risk output, multiplying its call count by the median
+repetition count and the counted amplitude-estimation circuit cost is bounded by `(Nat.clog
+2 xs.length + 1) * (2*r + 1) * (M - 1)`. -/
 theorem risk_native_var_query_budget {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q t : ℚ)
     (bits M r : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M)

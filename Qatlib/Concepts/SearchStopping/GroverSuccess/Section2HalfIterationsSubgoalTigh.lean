@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoalStat
+
+/-!
+# Angle rounding for half-probability Grover search
+
+`half_budget_angle` chooses an iteration count whose rotated angle has sine square at least 1/2
+within the bound π/(8θ) + 1. `section2HalfIterationsSubgoal` transfers this trigonometric
+estimate to `GroverState`.
+
+For the mathematical background, see [Grover1997].
+
+## Main statements
+
+* `section2HalfIterationsSubgoal`: A marked fraction represented by 0 < θ < π/2 possesses a
+  Grover iteration count at most π/(8θ) + 1 giving success at least 1/2.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -12,6 +32,7 @@ namespace Qatlib.Concepts.SearchStopping.GroverSuccess
 
 open Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- The sine square is at least 1/2 throughout the interval from π/4 to π/2. -/
 private theorem sin_sq_half_first_window {x : ℝ}
     (hx : Real.pi / 4 ≤ x) (hx2 : x ≤ Real.pi / 2) : 1 / 2 ≤ Real.sin x ^ 2 := by
   have hsin : Real.sqrt 2 / 2 ≤ Real.sin x := by
@@ -22,6 +43,7 @@ private theorem sin_sq_half_first_window {x : ℝ}
   have hs := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
   nlinarith [Real.sqrt_nonneg 2]
 
+/-- The sine square is at least 1/2 throughout the interval from π/4 to 3π/4. -/
 theorem sin_sq_half_window {x : ℝ} (hx : Real.pi / 4 ≤ x) (hx3 : x ≤ 3 * Real.pi / 4) :
     1 / 2 ≤ Real.sin x ^ 2 := by
   by_cases hx2 : x ≤ Real.pi / 2
@@ -31,6 +53,7 @@ theorem sin_sq_half_window {x : ℝ} (hx : Real.pi / 4 ≤ x) (hx3 : x ≤ 3 * R
       (show Real.pi - x ≤ Real.pi / 2 by linarith)
     simpa using h
 
+/-- For 0 < θ < π/2, some natural k ≤ π/(8θ) + 1 satisfies sin²((2k + 1)θ) ≥ 1/2. -/
 theorem half_budget_angle (θ : ℝ) (hθ : 0 < θ) (hθupper : θ < Real.pi / 2) :
     ∃ k : ℕ, (k : ℝ) ≤ Real.pi / (8 * θ) + 1 ∧
       1 / 2 ≤ Real.sin ((2 * (k : ℝ) + 1) * θ)^2 := by
@@ -63,6 +86,8 @@ theorem half_budget_angle (θ : ℝ) (hθ : 0 < θ) (hθupper : θ < Real.pi / 2
       · simp only [Nat.cast_zero, mul_zero, zero_add, one_mul]
         exact sin_sq_half_window (by linarith) (by linarith [Real.pi_pos])
 
+/-- A marked fraction represented by 0 < θ < π/2 possesses a Grover iteration count at most
+π/(8θ) + 1 giving success at least 1/2. -/
 theorem section2HalfIterationsSubgoal : Section2HalfIterationsSubgoal := by
   intro I _ _ hN A θ hθ hθupper hangle
   have hs : Real.sin θ ≠ 0 := (Real.sin_pos_of_pos_of_lt_pi hθ (by linarith [Real.pi_pos])).ne'

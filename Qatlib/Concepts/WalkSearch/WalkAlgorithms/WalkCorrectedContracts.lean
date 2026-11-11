@@ -14,10 +14,29 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Nat.Log
 import Mathlib.Data.Nat.Sqrt
+
+/-!
+# Corrected graph-search contracts
+
+This module defines `triCheckAmpExtract` and `triCheckAmp`, which use repeated collision-search
+calls to extract a validated candidate while accumulating charges. The proposition
+`triCheckSpecCorrected` records the corresponding soundness, failure, and cost requirements.
+
+The contracts `theorem3WalkCorrected`, `theorem4WalkCorrected`, and `theorem5WalkCorrected`
+track positive solver constants; the latter two use least-power subset windows. These
+formulations support the quantum search bounds discussed in [Ambainis2005].
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- Tries up to `c₀` collision-search seeds for a fixed vertex, retains the first candidate
+passing the two incident-edge checks, and accumulates the charges of attempted calls. -/
 noncomputable def triCheckAmpExtract {n : ℕ} (adj : Fin n → Fin n → Bool) {m : ℕ}
     (e : Fin m → Fin n) (kcs : KCollisionSolver) (r' : ℕ)
     (subR : (Fin 2 → Fin m) → Bool) (v : Fin n) (c₀ : ℕ) (stape : ℕ → kcs.seed) :
@@ -32,6 +51,8 @@ noncomputable def triCheckAmpExtract {n : ℕ} (adj : Fin n → Fin n → Bool) 
             if adj v (e (t 0)) && adj v (e (t 1)) then (some t, q + qᵢ) else (none, q + qᵢ)
         | none => (none, q + qᵢ)) (none, 0)
 
+/-- Uses noisy search with repeated collision tests and then `triCheckAmpExtract` on the same
+seed tape to return a pair inside `U` together with its accumulated charge. -/
 noncomputable def triCheckAmp {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (ntape : ncs.seed) :
@@ -60,6 +81,8 @@ noncomputable def triCheckAmp {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Fi
       | none =>
           (none, ncs.cost marked test tcost n ntape + ex.2 + 2)
 
+/-- The specification of `triCheckAmp` under positive solver constants, requiring sound output,
+a failure-count bound scaled by `U.card + 1`, and a cost bound by twice `cCOf`. -/
 def triCheckSpecCorrected {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ) : Prop :=
   1 ≤ kcs.κ → 1 ≤ ncs.κ →
@@ -80,6 +103,9 @@ def triCheckSpecCorrected {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset
     (triCheckAmp adj U kcs ncs r' c₀ stape ntape).2 ≤
       (2 * cCOf kcs ncs n U.card r' c₀ : ℕ))
 
+/-- The graph-collision contract with a positive collision-solver constant, soundness, a
+finite-seed failure bound, and an explicit n^(2/3) cost estimate with a squared logarithmic
+factor. -/
 def theorem3WalkCorrected : Prop :=
   ∀ (n : ℕ), (hn : 0 < n) →
     ∀ (G : OGraph n) (f : Fin n → Bool) (kcs : KCollisionSolver), 1 ≤ kcs.κ →
@@ -96,9 +122,14 @@ def theorem3WalkCorrected : Prop :=
         ((gcAlg G f kcs r ρ).2 : ℝ) ≤
           (2 * kcs.κ : ℕ) * ((Nat.log 2 n + 2 : ℕ) ^ 2) * ((n : ℝ) ^ (2 / 3 : ℝ)))
 
+/-- The maximum of the collision, noisy-search, and safe Grover-search charge constants. -/
 def walkKappa (kcs : KCollisionSolver) (ncs : NoisySearch) (sgs : SafeGrover) : ℕ :=
   max kcs.κ (max ncs.κ sgs.κ)
 
+/-- The triangle-search contract for symmetric loopless adjacency with positive solver
+constants, least-power subset parameters, and `triCheckSpecCorrected`. It requires
+soundness, a finite-seed failure bound, and an n^(13/10) cost estimate including the cube of
+`walkKappa`. -/
 def theorem4WalkCorrected : Prop :=
   ∀ (n : ℕ), (hn : 0 < n) →
     ∀ (adj : Fin n → Fin n → Bool),
@@ -127,6 +158,9 @@ def theorem4WalkCorrected : Prop :=
           (2 ^ 16 : ℕ) * (walkKappa kcs ncs sgs) ^ 3 * ((Nat.log 2 n + 2 : ℕ) ^ 3) *
             ((n : ℝ) ^ (13 / 10 : ℝ)))
 
+/-- The subgraph candidate-search contract for `k ≥ 4`, using a least-power subset size and a
+positive collision-solver constant. It requires soundness, a finite-seed failure bound, and
+a cost estimate retaining that constant. -/
 def theorem5WalkCorrected : Prop :=
   ∀ (n k : ℕ), 4 ≤ k → (hn : 0 < n) →
     ∀ (H : OGraph k) (hv : Fin k),

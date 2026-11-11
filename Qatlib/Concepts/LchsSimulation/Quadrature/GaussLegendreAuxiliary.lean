@@ -17,6 +17,30 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Push
 import Mathlib.Tactic.Ring
+
+/-!
+# Polynomial tools for Gauss-Legendre quadrature
+
+The module develops polynomial differentiation and integration identities, Lagrange
+interpolation, and sign control from even root multiplicities. Counted-zero Rolle theorems
+provide the derivative-zero arguments needed for Gauss-Legendre remainder estimates. See
+[AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `lagrange_interpolation`: A polynomial of natural degree less than `Q` equals its Lagrange
+  interpolation sum at `Q` injectively indexed nodes.
+* `sign_of_even_rootMultiplicity`: If every root in `(a, b)` has even multiplicity, a real
+  polynomial is either nonnegative throughout that interval or nonpositive throughout it.
+* `counted_zero_rolle`: For finitely many distinct nodes indexed by `Fin s`, prescribed
+  derivative-zero multiplicities of total at least `m + 1` force a zero of the `m`-th derivative
+  of a function of class `C^m` on the closed interval.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,13 +50,16 @@ namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open Set MeasureTheory
 open scoped BigOperators
 
+/-- Evaluation of a real polynomial is continuous as a function on the real line. -/
 theorem continuous_eval (p : Polynomial ℝ) : Continuous (fun x : ℝ => p.eval x) :=
   p.differentiable.continuous
 
+/-- A real polynomial is interval integrable on every finite real interval. -/
 theorem intervalIntegrable_eval (p : Polynomial ℝ) (a b : ℝ) :
     IntervalIntegrable (fun x : ℝ => p.eval x) volume a b :=
   (continuous_eval p).intervalIntegrable a b
 
+/-- Evaluation of a real polynomial is differentiable to every specified order `n`. -/
 theorem contDiff_eval (n : WithTop ℕ∞) (p : Polynomial ℝ) :
     ContDiff ℝ n (fun x : ℝ => p.eval x) := by
   induction p using Polynomial.induction_on' with
@@ -40,10 +67,13 @@ theorem contDiff_eval (n : WithTop ℕ∞) (p : Polynomial ℝ) :
   | monomial m c =>
       simpa only [Polynomial.eval_monomial] using! contDiff_const.mul (contDiff_id.pow m)
 
+/-- The real derivative of polynomial evaluation is evaluation of the polynomial derivative. -/
 theorem deriv_eval (p : Polynomial ℝ) :
     deriv (fun x : ℝ => p.eval x) = fun x : ℝ => p.derivative.eval x :=
   funext fun _ => p.deriv
 
+/-- Iterating the real derivative operator `n` times on polynomial evaluation agrees with
+evaluating the `n`-fold polynomial derivative. -/
 theorem iterate_deriv_eval (n : ℕ) (p : Polynomial ℝ) :
     (deriv)^[n] (fun t : ℝ => p.eval t) = fun t : ℝ => (Polynomial.derivative^[n] p).eval t := by
   induction n generalizing p with
@@ -56,18 +86,26 @@ theorem iterate_deriv_eval (n : ℕ) (p : Polynomial ℝ) :
       exact congrArg (fun Q : Polynomial ℝ => fun t : ℝ => Q.eval t)
         (Function.iterate_succ_apply Polynomial.derivative n p).symm
 
+/-- The `n`-th iterated real derivative of a polynomial at `x` equals the evaluation of its
+`n`-fold polynomial derivative at `x`. -/
 theorem iteratedDeriv_eval (n : ℕ) (p : Polynomial ℝ) (x : ℝ) :
     iteratedDeriv n (fun t : ℝ => p.eval t) x = (Polynomial.derivative^[n] p).eval x := by
   rw [iteratedDeriv_eq_iterate, iterate_deriv_eval]
 
+/-- The `n`-th iterated derivative of a polynomial vanishes when its natural degree is less than
+`n`. -/
 theorem iteratedDeriv_eval_eq_zero {n : ℕ} {p : Polynomial ℝ} (h : p.natDegree < n) (x : ℝ) :
     iteratedDeriv n (fun t : ℝ => p.eval t) x = 0 := by
   rw [iteratedDeriv_eval, Polynomial.iterate_derivative_eq_zero h, Polynomial.eval_zero]
 
+/-- The interval integral of the evaluation of a polynomial product equals the integral of the
+product of the evaluations. -/
 theorem integral_eval_prod (p q : Polynomial ℝ) (a b : ℝ) :
     ∫ x in a..b, (p * q).eval x = ∫ x in a..b, p.eval x * q.eval x :=
   intervalIntegral.integral_congr fun _ _ => by rw [Polynomial.eval_mul]
 
+/-- The interval integral of a polynomial derivative equals the difference of the polynomial
+values at the endpoints. -/
 theorem integral_poly_derivative (p : Polynomial ℝ) (a b : ℝ) :
     ∫ x in a..b, p.derivative.eval x = p.eval b - p.eval a := by
   induction p using Polynomial.induction_on' with
@@ -85,6 +123,7 @@ theorem integral_poly_derivative (p : Polynomial ℝ) (a b : ℝ) :
       have hm : ((m : ℝ) + 1) ≠ 0 := by positivity
       field_simp
 
+/-- Integration by parts for the product of a polynomial derivative and another polynomial. -/
 theorem integral_poly_derivative_mul (p q : Polynomial ℝ) (a b : ℝ) :
     ∫ x in a..b, p.derivative.eval x * q.eval x =
       (p * q).eval b - (p * q).eval a - ∫ x in a..b, p.eval x * q.derivative.eval x := by
@@ -96,6 +135,8 @@ theorem integral_poly_derivative_mul (p q : Polynomial ℝ) (a b : ℝ) :
     integral_eval_prod p.derivative q a b, integral_eval_prod p q.derivative a b] at h1
   linarith
 
+/-- If all derivatives of `A` below order `n` vanish at both endpoints, integrating its `n`-th
+derivative against a polynomial transfers all `n` derivatives with sign `(-1)^n`. -/
 theorem integral_poly_iterate_parts (A : Polynomial ℝ) (n : ℕ) (gp : Polynomial ℝ) (a b : ℝ)
     (hb : ∀ k < n, (Polynomial.derivative^[k] A).eval a = 0 ∧
       (Polynomial.derivative^[k] A).eval b = 0) :
@@ -124,6 +165,8 @@ theorem integral_poly_iterate_parts (A : Polynomial ℝ) (n : ℕ) (gp : Polynom
       rw [hpow, neg_mul]
       exact key
 
+/-- A continuous nonnegative function on a nondegenerate closed interval has positive integral
+if it is positive at some point of that interval. -/
 theorem integral_pos_of_nonneg_of_pos_at {a b : ℝ} (hab : a < b) {g : ℝ → ℝ} (hg : Continuous g)
     (hnn : ∀ x ∈ Icc a b, 0 ≤ g x) {y : ℝ} (hy : y ∈ Icc a b) (hgy : 0 < g y) :
     0 < ∫ x in a..b, g x := by
@@ -184,6 +227,8 @@ theorem integral_pos_of_nonneg_of_pos_at {a b : ℝ} (hab : a < b) {g : ℝ → 
   rw [hsplit]
   linarith
 
+/-- For natural `m` and `n`, the integral of `t^m * (1 - t)^n` over `[0, 1]` is `m.factorial *
+n.factorial / (m + n + 1).factorial`. -/
 theorem integral_pow_mul_one_sub_pow (m n : ℕ) :
     (∫ t in (0 : ℝ)..1, t ^ m * (1 - t) ^ n) =
       ((m.factorial * n.factorial : ℝ) / ((m + n + 1).factorial : ℝ)) := by
@@ -262,6 +307,8 @@ theorem integral_pow_mul_one_sub_pow (m n : ℕ) :
       field_simp at key ⊢
       linear_combination key
 
+/-- A nonzero real polynomial of positive degree has derivative degree one less and derivative
+leading coefficient equal to its degree times its leading coefficient. -/
 theorem natDegree_derivative_eq {p : Polynomial ℝ} (hp : p ≠ 0) (hpos : 0 < p.natDegree) :
     p.derivative.natDegree = p.natDegree - 1 ∧
       p.derivative.leadingCoeff = (p.natDegree : ℝ) * p.leadingCoeff := by
@@ -283,6 +330,8 @@ theorem natDegree_derivative_eq {p : Polynomial ℝ} (hp : p ≠ 0) (hpos : 0 < 
     rw [hdeg]
   rw [h1, heq]
 
+/-- Differentiating a nonzero polynomial of natural degree `n` exactly `n` times gives the
+constant polynomial with value `n.factorial * p.leadingCoeff`. -/
 theorem iterate_derivative_eq_C {n : ℕ} {p : Polynomial ℝ} (hp : p ≠ 0)
     (hd : p.natDegree = n) :
     Polynomial.derivative^[n] p = Polynomial.C ((n.factorial : ℝ) * p.leadingCoeff) := by
@@ -308,10 +357,13 @@ theorem iterate_derivative_eq_C {n : ℕ} {p : Polynomial ℝ} (hp : p ≠ 0)
       push_cast
       ring
 
+/-- The Lagrange basis polynomial for index `i`, formed from the normalized linear factors
+associated with all other nodes. -/
 def lagrangeBasis {Q : ℕ} (node : Fin Q → ℝ) (i : Fin Q) : Polynomial ℝ :=
   Polynomial.C ((Finset.prod (Finset.univ.erase i) fun j => node i - node j)⁻¹) *
     Finset.prod (Finset.univ.erase i) fun j => Polynomial.X - Polynomial.C (node j)
 
+/-- For injective nodes, the Lagrange basis polynomial evaluates to one at its own node. -/
 theorem lagrangeBasis_eval_self {Q : ℕ} (node : Fin Q → ℝ) (hinj : Function.Injective node)
     (i : Fin Q) : (lagrangeBasis node i).eval (node i) = 1 := by
   have hne : Finset.prod (Finset.univ.erase i) (fun j => node i - node j) ≠ 0 := by
@@ -321,6 +373,7 @@ theorem lagrangeBasis_eval_self {Q : ℕ} (node : Fin Q → ℝ) (hinj : Functio
   simp only [Polynomial.eval_sub, Polynomial.eval_X, Polynomial.eval_C]
   exact inv_mul_cancel₀ hne
 
+/-- A Lagrange basis polynomial evaluates to zero at any node with a different index. -/
 theorem lagrangeBasis_eval_of_ne {Q : ℕ} (node : Fin Q → ℝ) {i j : Fin Q} (hij : j ≠ i) :
     (lagrangeBasis node i).eval (node j) = 0 := by
   have hmem : j ∈ Finset.univ.erase i := Finset.mem_erase.mpr ⟨hij, Finset.mem_univ j⟩
@@ -329,6 +382,7 @@ theorem lagrangeBasis_eval_of_ne {Q : ℕ} (node : Fin Q → ℝ) {i j : Fin Q} 
   exact Finset.prod_eq_zero hmem (by
     rw [Polynomial.eval_sub, Polynomial.eval_X, Polynomial.eval_C, sub_self])
 
+/-- The natural degree of a Lagrange basis polynomial on `Fin Q` is at most `Q - 1`. -/
 theorem natDegree_lagrangeBasis_le {Q : ℕ} (node : Fin Q → ℝ) (i : Fin Q) :
     (lagrangeBasis node i).natDegree ≤ Q - 1 := by
   have h2 : (Finset.prod (Finset.univ.erase i)
@@ -341,6 +395,8 @@ theorem natDegree_lagrangeBasis_le {Q : ℕ} (node : Fin Q → ℝ) (i : Fin Q) 
   refine Nat.le_trans (Polynomial.natDegree_mul_le.trans ?_) h2.le
   rw [Polynomial.natDegree_C, Nat.zero_add]
 
+/-- A polynomial of natural degree less than `Q` equals its Lagrange interpolation sum at `Q`
+injectively indexed nodes. -/
 theorem lagrange_interpolation {Q : ℕ} (node : Fin Q → ℝ) (hinj : Function.Injective node)
     (r : Polynomial ℝ) (hr : r.natDegree < Q) :
     r = ∑ i, Polynomial.C (r.eval (node i)) * lagrangeBasis node i := by
@@ -374,6 +430,8 @@ theorem lagrange_interpolation {Q : ℕ} (node : Fin Q → ℝ) (hinj : Function
   rw [sub_eq_zero] at hzero
   exact hzero
 
+/-- The root multiplicity in the product of the distinct factors `X - C ρ` is one for a root in
+the finite set and zero otherwise. -/
 theorem rootMultiplicity_prod_X_sub_C (F : Finset ℝ) (v : ℝ) :
     (Finset.prod F fun ρ => Polynomial.X - Polynomial.C ρ).rootMultiplicity v =
       if v ∈ F then 1 else 0 := by
@@ -398,6 +456,7 @@ theorem rootMultiplicity_prod_X_sub_C (F : Finset ℝ) (v : ℝ) :
         · simp [hv, hvm]
         · simp [hv, hvm]
 
+/-- Negating a real polynomial preserves its root multiplicity at every real point. -/
 theorem rootMultiplicity_neg (T : Polynomial ℝ) (ρ : ℝ) :
     (-T).rootMultiplicity ρ = T.rootMultiplicity ρ := by
   by_cases hT : T = 0
@@ -408,6 +467,7 @@ theorem rootMultiplicity_neg (T : Polynomial ℝ) (ρ : ℝ) :
     rw [hfac, Polynomial.rootMultiplicity_mul (mul_ne_zero (by simp) hT),
       Polynomial.rootMultiplicity_C, zero_add]
 
+/-- A continuous function nonnegative on `[u, z)` is nonnegative at `z` when `u < z`. -/
 theorem nonneg_of_Ico {u z : ℝ} {φ : ℝ → ℝ} (hc : Continuous φ) (huz : u < z)
     (h : ∀ t ∈ Ico u z, 0 ≤ φ t) : 0 ≤ φ z := by
   by_contra h0
@@ -427,6 +487,7 @@ theorem nonneg_of_Ico {u z : ℝ} {φ : ℝ → ℝ} (hc : Continuous φ) (huz :
   rw [Real.dist_eq, abs_lt] at hballz
   exact absurd (h s ⟨hs1, hs2⟩) (by linarith)
 
+/-- A continuous function nonnegative on `(u, z]` is nonnegative at `u` when `u < z`. -/
 theorem nonneg_of_Ioc {u z : ℝ} {φ : ℝ → ℝ} (hc : Continuous φ) (huz : u < z)
     (h : ∀ t ∈ Ioc u z, 0 ≤ φ t) : 0 ≤ φ u := by
   by_contra h0
@@ -446,6 +507,8 @@ theorem nonneg_of_Ioc {u z : ℝ} {φ : ℝ → ℝ} (hc : Continuous φ) (huz :
   rw [Real.dist_eq, abs_lt] at hballu
   exact absurd (h s ⟨hs2, hs1⟩) (by linarith)
 
+/-- A polynomial whose roots in `(a, b)` all have even multiplicity cannot take a positive value
+at `u` and a negative value at `v` there with `u ≤ v`. -/
 theorem sign_aux {a b u v : ℝ} {T : Polynomial ℝ}
     (hu : u ∈ Ioo a b) (hv : v ∈ Ioo a b) (hTu : 0 < T.eval u) (hTv : T.eval v < 0)
     (huv : u ≤ v) (hev : ∀ ρ ∈ Ioo a b, Even (T.rootMultiplicity ρ)) : False := by
@@ -576,6 +639,8 @@ theorem sign_aux {a b u v : ℝ} {T : Polynomial ℝ}
       exact (hUpos t habs).le
   exact absurd (le_csSup hSbd hz''S) (not_le.mpr hz''z)
 
+/-- If every root in `(a, b)` has even multiplicity, a real polynomial is either nonnegative
+throughout that interval or nonpositive throughout it. -/
 theorem sign_of_even_rootMultiplicity {a b : ℝ} (T : Polynomial ℝ)
     (hev : ∀ ρ ∈ Ioo a b, Even (T.rootMultiplicity ρ)) :
     (∀ x ∈ Ioo a b, 0 ≤ T.eval x) ∨ (∀ x ∈ Ioo a b, T.eval x ≤ 0) := by
@@ -587,6 +652,9 @@ theorem sign_of_even_rootMultiplicity {a b : ℝ} (T : Polynomial ℝ)
   · exact sign_aux (T := -T) hp hn (by simp [hpltn]) (by simp [hnlt]) hpn.le
       (fun ρ hρ => by rw [rootMultiplicity_neg]; exact hev ρ hρ)
 
+/-- If a function of class `C^m` has derivative zeros at distinct closed-interval nodes with
+positive prescribed multiplicities summing to at least `m + 1`, its `m`-th derivative
+vanishes somewhere on the interval. -/
 theorem counted_zero_rolle_aux : ∀ (m : ℕ) (ι : Type) [Fintype ι] (a b : ℝ) (f : ℝ → ℝ)
     (node : ι → ℝ) (mult : ι → ℕ), a ≤ b → Function.Injective node → (∀ i, node i ∈ Icc a b) →
     (∀ i, 1 ≤ mult i) → m + 1 ≤ ∑ i, mult i → ContDiff ℝ ((m : WithTop ℕ∞)) f →
@@ -770,6 +838,9 @@ theorem counted_zero_rolle_aux : ∀ (m : ℕ) (ι : Type) [Fintype ι] (a b : �
       hab hinj' hmem' h1' hsum' hgd hz'
     exact ⟨x, hxmem, by rw [iteratedDeriv_succ']; exact hx⟩
 
+/-- For finitely many distinct nodes indexed by `Fin s`, prescribed derivative-zero
+multiplicities of total at least `m + 1` force a zero of the `m`-th derivative of a function
+of class `C^m` on the closed interval. -/
 theorem counted_zero_rolle : ∀ (m s : ℕ) (a b : ℝ) (f : ℝ → ℝ) (node : Fin s → ℝ)
     (mult : Fin s → ℕ), a ≤ b → Function.Injective node → (∀ i, node i ∈ Icc a b) →
     (∀ i, 1 ≤ mult i) → m + 1 ≤ ∑ i, mult i → ContDiff ℝ ((m : WithTop ℕ∞)) f →

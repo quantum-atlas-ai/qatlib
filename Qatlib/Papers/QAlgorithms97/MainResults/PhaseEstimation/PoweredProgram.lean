@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QAlgorithms97.MainResults.InterferencePattern
 import Qatlib.Concepts.QftPreparation.LocalQft
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+/-!
+# An explicit powered phase-estimation program
+
+The instruction language `Instruction` separates controlled powers of a device matrix from known
+local QFT gates. The program `word` implements Hadamard preparation, the controlled powers, and
+an inverse QFT; its exact state and readout agree with the phase-estimation kernel discussed in
+[CleveEtAl1998].
+
+The resource counters treat each controlled power as one device call and count known local gates
+separately. Normalization is preserved when the device matrix is unitary.
+
+## Main statements
+
+* `word_resources`: exact device-call and local-gate counts.
+* `word_run`: the executed program produces the relabeled phase-estimation kernel.
+* `word_readout`: the register probabilities are squared kernel amplitudes.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,39 +46,53 @@ open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBrid
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 open Qatlib.Papers.QAlgorithms97.MainResults.InterferencePattern
 
+/-- A phase-estimation instruction consisting of either a controlled power indexed by a register
+bit or a known local QFT gate. -/
 inductive Instruction (m : ℕ) where
   | power (i : Fin m)
   | known (g : LocalQFTGate m)
 
+/-- The gate applying `U ^ (2 ^ (m - 1 - i.val))` conditionally on bit `i` of the phase
+register. -/
 def powerMatrix {I : Type} [Fintype I] [DecidableEq I] (m : ℕ) (U : Matrix I I ℂ) (i : Fin m) :
     Matrix (Reg m × I) (Reg m × I) ℂ :=
   conditionalGate (fun x => U ^ (if x i then 2 ^ (m - 1 - i.val) else 0))
 
+/-- The matrix interpretation of a powered-program instruction, using controlled device powers
+or a local gate tensored with the target identity. -/
 def instructionMatrix {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (U : Matrix I I ℂ) : Instruction m → Matrix (Reg m × I) (Reg m × I) ℂ
   | .power i => powerMatrix m U i
   | .known g => TensorGate (localGateMatrix g) 1
 
+/-- Execution of a list of instructions in order by applying their matrix interpretations to the
+state. -/
 def execute {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (U : Matrix I I ℂ) : List (Instruction m) → QState (Reg m × I) → QState (Reg m × I)
   | [], ψ => ψ
   | s :: ss, ψ => execute U ss (ApplyGate (instructionMatrix U s) ψ)
 
+/-- The number of controlled-power instructions in a program. -/
 def deviceCalls {m : ℕ} : List (Instruction m) → ℕ
   | [] => 0
   | .power _ :: ss => 1 + deviceCalls ss
   | .known _ :: ss => deviceCalls ss
 
+/-- The number of known local-gate instructions in a program. -/
 def localGates {m : ℕ} : List (Instruction m) → ℕ
   | [] => 0
   | .power _ :: ss => localGates ss
   | .known _ :: ss => 1 + localGates ss
 
+/-- The phase-estimation program with local Hadamards, one controlled power for each
+phase-register bit, and an adjoint local QFT program. -/
 def word (m : ℕ) : List (Instruction m) :=
   (localHadamard m).map Instruction.known ++
     (List.finRange m).map Instruction.power ++
       (localProgramAdjoint (localQFT m)).map Instruction.known
 
+/-- Executing a concatenation of instruction lists equals executing the first list followed by
+the second. -/
 theorem execute_append {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (U : Matrix I I ℂ) (ss tt : List (Instruction m)) (ψ : QState (Reg m × I)) :
     execute U (ss ++ tt) ψ = execute U tt (execute U ss ψ) := by
@@ -63,6 +100,7 @@ theorem execute_append {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
   | nil => rfl
   | cons s ss ih => exact ih _
 
+/-- If the device matrix is unitary, every instruction matrix is unitary. -/
 theorem instruction_unitary {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (s : Instruction m) :
     instructionMatrix U s ∈ Matrix.unitaryGroup (Reg m × I) ℂ := by
@@ -70,6 +108,7 @@ theorem instruction_unitary {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
   | power i => exact conditionalGate_unitary _ (fun _ => (Matrix.unitaryGroup I ℂ).pow_mem hU _)
   | known g => exact tensorGate_unitary (localGateMatrix_unitary g) (Matrix.unitaryGroup I ℂ).one_mem
 
+/-- Executing any instruction list with a unitary device matrix preserves normalization. -/
 theorem execute_normalized {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (ss : List (Instruction m))
     {ψ : QState (Reg m × I)} (hψ : Normalized ψ) : Normalized (execute U ss ψ) := by
@@ -77,6 +116,8 @@ theorem execute_normalized {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
   | nil => exact hψ
   | cons s ss ih => exact ih (normalized_applyGate (instruction_unitary hU s) hψ)
 
+/-- Executing only known local gates transforms the phase register by their program matrix and
+leaves the target register unchanged. -/
 theorem execute_local {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (U : Matrix I I ℂ) (gs : List (LocalQFTGate m)) (α : QState (Reg m)) (ψ : QState I) :
     execute U (gs.map Instruction.known) (TensorState α ψ) =
@@ -87,6 +128,8 @@ theorem execute_local {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     simp only [List.map_cons, execute, instructionMatrix, applyGate_tensorGate,
       applyGate_one, ih, localProgramMatrix_cons, applyGate_mul]
 
+/-- A controlled family acting by scalar eigenvalues on a common target state transfers those
+scalars to the control amplitudes. -/
 theorem conditional_scalar {X I : Type} [Fintype X] [DecidableEq X]
     [Fintype I] [DecidableEq I] (V : X → Matrix I I ℂ) (lam : X → ℂ)
     (ψ : QState I) (hψ : ∀ x, ApplyGate (V x) ψ = lam x • ψ) (α : QState X) :
@@ -106,9 +149,14 @@ theorem conditional_scalar {X I : Type} [Fintype X] [DecidableEq X]
   simp only [TensorState]
   ring
 
+/-- The sum of the binary place values whose listed control indices have true input bits,
+counting repeated indices as listed. -/
 def selectedWeight {m : ℕ} (x : Reg m) (js : List (Fin m)) : ℕ :=
   (js.map (fun j => if x j then 2 ^ (m - 1 - j.val) else 0)).sum
 
+/-- On a device eigenstate with eigenvalue `lam`, executing the listed controlled powers
+multiplies each control amplitude by `lam ^ selectedWeight x js` and leaves the target
+unchanged. -/
 theorem execute_powers {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (U : Matrix I I ℂ) (lam : ℂ) (ψ : QState I) (hψ : U.mulVec ψ = lam • ψ)
     (js : List (Fin m)) (α : QState (Reg m)) :
@@ -125,6 +173,8 @@ theorem execute_powers {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     simp only [selectedWeight, List.map_cons, List.sum_cons, pow_add]
     ring
 
+/-- The selected weight over every register index equals the natural-number label given by
+`bitVecEquiv`. -/
 theorem selectedWeight_all (m : ℕ) (x : Reg m) :
     selectedWeight x (List.finRange m) = (bitVecEquiv m x).val := by
   rw [bitVecEquiv_binary_msb_expansion]
@@ -133,6 +183,7 @@ theorem selectedWeight_all (m : ℕ) (x : Reg m) :
   intro i _
   cases x i <;> simp
 
+/-- Device-call and local-gate counts are additive under concatenation. -/
 theorem counters_append {m : ℕ} (ss tt : List (Instruction m)) :
     deviceCalls (ss ++ tt) = deviceCalls ss + deviceCalls tt ∧
       localGates (ss ++ tt) = localGates ss + localGates tt := by
@@ -140,18 +191,24 @@ theorem counters_append {m : ℕ} (ss tt : List (Instruction m)) :
   | nil => simp [deviceCalls, localGates]
   | cons s ss ih => cases s <;> simp [deviceCalls, localGates, ih.1, ih.2, Nat.add_assoc]
 
+/-- A list of known local instructions has no device calls and has one local gate per list
+entry. -/
 theorem counters_known {m : ℕ} (gs : List (LocalQFTGate m)) :
     deviceCalls (gs.map Instruction.known) = 0 ∧ localGates (gs.map Instruction.known) = gs.length := by
   induction gs with
   | nil => exact ⟨rfl,rfl⟩
   | cons g gs ih => simpa [deviceCalls, localGates, Nat.add_comm] using ih
 
+/-- A list of controlled-power instructions has one device call per entry and no known local
+gates. -/
 theorem counters_power {m : ℕ} (js : List (Fin m)) :
     deviceCalls (js.map Instruction.power) = js.length ∧ localGates (js.map Instruction.power) = 0 := by
   induction js with
   | nil => exact ⟨rfl,rfl⟩
   | cons j js ih => simp [deviceCalls, localGates, ih.1, ih.2, Nat.add_comm]
 
+/-- The phase-estimation word has `m` device calls and `m + (m + m * (m - 1) / 2 + m / 2)` known
+local gates. -/
 theorem word_resources (m : ℕ) :
     deviceCalls (word m) = m ∧
       localGates (word m) = m + (m + m * (m - 1) / 2 + m / 2) := by
@@ -165,6 +222,8 @@ theorem word_resources (m : ℕ) :
     List.length_reverse, hq]
   omega
 
+/-- The uniform state weighted by the eigenphase raised to each binary label equals the
+relabeled off-grid phase state. -/
 theorem accumulated_phase (m : ℕ) (φ : ℝ) :
     (fun x : Reg m => Complex.exp (2 * Real.pi * Complex.I * φ) ^ (bitVecEquiv m x).val *
       Uniform (Reg m) x) = relabelState (bitVecEquiv m).symm (offGridPhase (2 ^ m) φ) := by
@@ -176,10 +235,13 @@ theorem accumulated_phase (m : ℕ) (φ : ℝ) :
   push_cast
   ring
 
+/-- Relabeling a gate commutes with taking its conjugate transpose. -/
 theorem relabelGate_adjoint {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (e : X ≃ Y) (A : Matrix X X ℂ) :
     (relabelGate e A)ᴴ = relabelGate e (Aᴴ) := rfl
 
+/-- On a device eigenstate with phase `φ`, the powered program produces the relabeled kernel
+`qpeKernel (2 ^ m) φ` tensored with the unchanged eigenstate [CleveEtAl1998]. -/
 theorem word_run {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
     (U : Matrix I I ℂ) (φ : ℝ) (ψ : QState I)
     (hψ : U.mulVec ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ) :
@@ -194,6 +256,8 @@ theorem word_run {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
     relabelGate_adjoint, applyGate_relabelGate]
   rfl
 
+/-- For a normalized device eigenstate, each phase-register outcome has probability equal to the
+squared norm of the corresponding phase-estimation kernel amplitude. -/
 theorem word_readout {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
     (U : Matrix I I ℂ) (φ : ℝ) (ψ : QState I) (hn : Normalized ψ)
     (hψ : U.mulVec ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ) (z : Reg m) :

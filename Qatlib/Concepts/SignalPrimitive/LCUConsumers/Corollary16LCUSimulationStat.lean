@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
 import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+/-!
+# LCU Simulation Contract
+
+`Corollary16LCUSimulation` specifies Hamiltonian approximation for `H = ∑ j, w j • U j`, where
+the `U j` are Hermitian unitaries and the weights are nonnegative. In the setting of Corollary
+16 of [LowChuang2019], an `IsScaledPrepare` witness supplies the normalized LCU workspace.
+
+The contract asks for two adjoint-query words, exact query and gate counts, and an operator-norm
+error at most `ε` for the difference between their scaled compressed cosine-minus-i-sine
+response and `exp (-i t H)`. The common degree parameter is bounded linearly in `|t * ∑ j, w j|`
+and logarithmically in `1 / ε`.
+
+## Main statements
+
+* `Corollary16LCUSimulation` defines the quantified approximation and resource guarantee for `0
+  < ε < 1`.
+
+## References
+
+- [Low and Chuang, 2019][LowChuang2019], Corollary 16.
+-/
+
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 set_option warningAsError false
 
@@ -30,6 +53,10 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 
 namespace Qatlib.Concepts.SignalPrimitive.LCUConsumers
 
+/-- The simulation contract for a nonnegative combination of Hermitian unitaries with a scaled
+preparation witness. It requires cosine and sine words with explicit counts and a degree
+bound whose scaled compressed combination approximates the Hamiltonian exponential within
+`ε` for `0 < ε < 1`. -/
 def Corollary16LCUSimulation : Prop :=
   ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I],
     ∀ (U : J → Matrix I I ℂ), (∀ j, U j ∈ Matrix.unitaryGroup I ℂ) → (∀ j, (U j)ᴴ = U j) →

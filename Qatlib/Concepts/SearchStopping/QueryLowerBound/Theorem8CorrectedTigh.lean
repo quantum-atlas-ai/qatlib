@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem8CorrectedStat
+
+/-!
+# Corrected multiple-target quantum query lower bound
+
+Proves `theorem8Corrected` using the family hybrid bound and subset-incidence budget. The
+conclusion `Theorem8Corrected` retains natural-number division inside the square root before
+taking the integer floor. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `theorem8Corrected`: Establishes `Theorem8Corrected`, the floor query lower bound for
+  fixed-cardinality marked subsets with average success at least one half.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -13,6 +31,8 @@ namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 open scoped BigOperators
 universe u v
 
+/-- Establishes `Theorem8Corrected`, the floor query lower bound for fixed-cardinality marked
+subsets with average success at least one half. See [BoyerEtAl1998]. -/
 theorem theorem8Corrected : Theorem8Corrected.{u, v} := by
   intro C Y _ _ _ _ t ht htN U V f ψ hψ r hagree hsuccess
   let J := MarkedSubsets Y t

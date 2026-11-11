@@ -19,6 +19,35 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySourceOptimizers
+
+/-!
+# Semidefinite duality for weighted adversary bounds
+
+Relates cost-weighted nonnegative adversary matrices, minimax probability families, and positive
+semidefinite Gram certificates. `MinimaxGramFeasible` expresses the Gram constraints, while
+`MinimaxSdpPrimalFeasible` expresses the matrix-and-weight formulation; explicit transformations
+compare their objectives.
+
+An equality-constrained semidefinite program and a strictly feasible point establish
+`advAlphaR_eq_minimax`. The word-domain endpoint `adversary_minimax_word_complete` also supplies
+optimizers, formalizing the weighted adversary duality of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `minimaxGram_feasible_iff_value`: characterize a positive feasible Gram objective by the
+  minimax value.
+* `minimaxSdpPrimalValue_eq_source` and `minimaxSdpDualValue_eq_minimax`: identify the two SDP
+  values.
+* `advAlphaR_eq_minimax`: equality of weighted nonnegative adversary and minimax values.
+* `adversary_minimax_word_complete`: duality and simultaneous optimizer existence on Boolean
+  word domains.
+* `source_adversary_composition_upper`: a cost-weighted composition upper bound.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -49,6 +78,8 @@ variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 noncomputable section
 
+/-- A family of positive semidefinite real matrices with constant cost-weighted diagonal sum `t`
+and separating-coordinate sums at least one on different-output pairs. -/
 def MinimaxGramFeasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (t : ℝ) (Z : K → Matrix X X ℝ) : Prop :=
   (∀ i, (Z i).PosSemidef) ∧
@@ -58,6 +89,8 @@ end
 noncomputable section
 omit [Fintype X] [Fintype K] [DecidableEq K] in
 
+/-- Each entry of a real positive semidefinite matrix is bounded above by the square root of the
+product of its corresponding diagonal entries. -/
 theorem real_psd_entry_le_sqrt (Z : Matrix X X ℝ) (hZ : Z.PosSemidef) (x y : X) :
     Z x y ≤ Real.sqrt (Z x x * Z y y) := by
   let e : Fin 2 → X := ![x,y]
@@ -72,11 +105,14 @@ theorem real_psd_entry_le_sqrt (Z : Matrix X X ℝ) (hZ : Z.PosSemidef) (x y : X
 end
 noncomputable section
 
+/-- The coordinate matrix with entries `(t / alpha i) * Real.sqrt (p x i) * Real.sqrt (p y i)`. -/
 def minimaxRankOne (alpha : K → ℝ) (p : X → K → ℝ) (t : ℝ) (i : K) : Matrix X X ℝ :=
   fun x y => (t / alpha i) * (Real.sqrt (p x i) * Real.sqrt (p y i))
 end
 noncomputable section
 
+/-- With positive costs and positive `t`, a probability family whose different-output minimax
+terms are at least `1 / t` yields a feasible Gram family through `minimaxRankOne`. -/
 theorem minimaxRankOne_feasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (p : X → K → ℝ) (hp : IsProbabilityFamily p)
     (t : ℝ) (ht : 0 < t)
@@ -114,11 +150,14 @@ theorem minimaxRankOne_feasible (input : X → K → Bool) (f : X → Bool) (alp
 end
 noncomputable section
 
+/-- The family obtained by dividing each cost-weighted Gram diagonal entry by `t`. -/
 def minimaxGramProbability (alpha : K → ℝ) (t : ℝ) (Z : K → Matrix X X ℝ) : X → K → ℝ :=
   fun x i => alpha i * Z i x x / t
 end
 noncomputable section
 
+/-- With positive costs and positive objective, a feasible Gram family gives a probability
+family through its normalized diagonal entries. -/
 theorem minimaxGramProbability_family (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (t : ℝ) (ht : 0 < t) (Z : K → Matrix X X ℝ)
     (hZ : MinimaxGramFeasible input f alpha t Z) :
@@ -130,6 +169,8 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- The probability family extracted from a feasible Gram family with positive costs and
+objective has minimax term at least `1 / t` on different-output pairs. -/
 theorem minimaxGramProbability_pair (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (t : ℝ) (ht : 0 < t) (Z : K → Matrix X X ℝ)
     (hZ : MinimaxGramFeasible input f alpha t Z) (x y : X) (hxy : f x ≠ f y) :
@@ -163,6 +204,8 @@ theorem minimaxGramProbability_pair (input : X → K → Bool) (f : X → Bool) 
 end
 noncomputable section
 
+/-- For positive costs and positive `t`, Gram feasibility is equivalent to the existence of a
+probability family with different-output minimax terms at least `1 / t`. -/
 theorem minimaxGram_feasible_iff_probability (input : X → K → Bool) (f : X → Bool)
     (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i) (t : ℝ) (ht : 0 < t) :
     (∃ Z, MinimaxGramFeasible input f alpha t Z) ↔
@@ -191,6 +234,8 @@ variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 variable [DecidableEq X]
 noncomputable section
 
+/-- For a nonconstant output function and positive `t`, lower bounds `1 / t` on all
+different-output minimax terms imply witness value at most `ENNReal.ofReal t`. -/
 theorem minimaxWitnessValue_le_of_pair (input : X → K → Bool) (f : X → Bool)
     (alpha : K → ℝ) (p : X → K → ℝ) (t : ℝ) (ht : 0 < t)
     (hnc : ∃ x y, f x ≠ f y)
@@ -208,6 +253,8 @@ theorem minimaxWitnessValue_le_of_pair (input : X → K → Bool) (f : X → Boo
 end
 noncomputable section
 
+/-- With nonnegative costs and positive `t`, a minimax witness value at most `ENNReal.ofReal t`
+forces every different-output term to be at least `1 / t`. -/
 theorem pair_of_minimaxWitnessValue_le (input : X → K → Bool) (f : X → Bool)
     (alpha : K → ℝ) (ha : ∀ i, 0 ≤ alpha i) (p : X → K → ℝ) (t : ℝ) (ht : 0 < t)
     (hb : minimaxWitnessValue input f alpha p ≤ ENNReal.ofReal t)
@@ -230,6 +277,8 @@ theorem pair_of_minimaxWitnessValue_le (input : X → K → Bool) (f : X → Boo
 end
 noncomputable section
 
+/-- For a nonconstant function, positive costs, a nonempty coordinate type, and positive `t`, a
+feasible Gram family exists exactly when the minimax value is at most `ENNReal.ofReal t`. -/
 theorem minimaxGram_feasible_iff_value [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i)
     (hnc : ∃ x y, f x ≠ f y) (t : ℝ) (ht : 0 < t) :
@@ -247,6 +296,8 @@ theorem minimaxGram_feasible_iff_value [Nonempty K]
 end
 noncomputable section
 
+/-- For a nonconstant Boolean output function with a nonempty coordinate type, the minimax value
+is nonzero. -/
 theorem minimaxAlpha_ne_zero [Nonempty K] (input : X → K → Bool) (f : X → Bool)
     (alpha : K → ℝ) (hnc : ∃ x y, f x ≠ f y) : minimaxAlpha input f alpha ≠ 0 := by
   obtain ⟨p,hp⟩ := minimax_optimal_exists input f alpha hnc
@@ -255,6 +306,8 @@ theorem minimaxAlpha_ne_zero [Nonempty K] (input : X → K → Bool) (f : X → 
 end
 noncomputable section
 
+/-- For a nonconstant function with positive costs and finite minimax value, a Gram family
+attains its real-valued minimax objective and minimizes all positive feasible objectives. -/
 theorem minimaxGram_optimal_exists_of_finite [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i)
     (hnc : ∃ x y, f x ≠ f y) (hfin : minimaxAlpha input f alpha ≠ ⊤) :
@@ -272,10 +325,12 @@ theorem minimaxGram_optimal_exists_of_finite [Nonempty K]
 end
 noncomputable section
 
+/-- The real matrix equal to twice the all-ones matrix plus the identity. -/
 def minimaxGramStrictMatrix : Matrix X X ℝ := (2 : ℝ) • (fun _ _ => 1) + 1
 end
 noncomputable section
 
+/-- The matrix `minimaxGramStrictMatrix` is positive definite. -/
 theorem minimaxGramStrictMatrix_posDef : (minimaxGramStrictMatrix (X := X)).PosDef := by
   have h : (show Matrix X X ℝ from fun _ _ => 1).PosSemidef := by
     simpa only [Matrix.vecMulVec,Pi.star_apply,star_trivial,mul_one] using!
@@ -285,6 +340,9 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs, the constant Gram family `minimaxGramStrictMatrix` is positive
+definite, has weighted diagonal sum `3 * ∑ i, alpha i`, and has different-output separating
+sums strictly greater than one. -/
 theorem minimaxGram_strict_point (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (hobs : OutputObservable input f) :
     (∀ _ : K, (minimaxGramStrictMatrix (X := X)).PosDef) ∧
@@ -319,6 +377,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs, the constant strict Gram family is feasible at objective `3 * ∑ i,
+alpha i`. -/
 theorem minimaxGram_strict_feasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (hobs : OutputObservable input f) :
     MinimaxGramFeasible input f alpha (3 * ∑ i, alpha i)
@@ -328,6 +388,8 @@ theorem minimaxGram_strict_feasible (input : X → K → Bool) (f : X → Bool) 
 end
 noncomputable section
 
+/-- For a nonconstant function with positive costs and nonempty coordinate type, the minimax
+value is finite exactly when outputs are observable from the input encoding. -/
 theorem minimaxAlpha_finite_iff_observable [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i)
     (hnc : ∃ x y, f x ≠ f y) : minimaxAlpha input f alpha < ⊤ ↔ OutputObservable input f := by
@@ -353,6 +415,9 @@ theorem minimaxAlpha_finite_iff_observable [Nonempty K]
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs, positive costs, and nonempty coordinate
+type, a Gram family attains the minimax objective and minimizes all positive feasible
+objectives. -/
 theorem minimaxGram_optimal_exists [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i)
     (hnc : ∃ x y, f x ≠ f y) (hobs : OutputObservable input f) :
@@ -364,6 +429,9 @@ theorem minimaxGram_optimal_exists [Nonempty K]
 end
 noncomputable section
 
+/-- A probability weight and a symmetric entrywise nonnegative matrix vanishing on equal
+outputs, with each cost-weighted diagonal matrix minus the corresponding adversary filter
+positive semidefinite. -/
 def MinimaxSdpPrimalFeasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (w : X → ℝ) (A : Matrix X X ℝ) : Prop :=
   (∀ x, 0 ≤ w x) ∧ (∑ x, w x = 1) ∧ A.IsSymm ∧ (∀ x y, 0 ≤ A x y) ∧
@@ -373,6 +441,7 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- The trace of the product of two real positive semidefinite matrices is nonnegative. -/
 theorem real_psd_trace_mul_nonneg (A B : Matrix X X ℝ) (hA : A.PosSemidef)
     (hB : B.PosSemidef) : 0 ≤ Matrix.trace (A*B) := by
   let HA : HermitianMat X ℝ := ⟨A,hA.1⟩
@@ -384,6 +453,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- The sum of all entries of a feasible minimax primal matrix is bounded by every feasible Gram
+objective. -/
 theorem minimaxSdp_weak_duality (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (w : X → ℝ) (A : Matrix X X ℝ) (hA : MinimaxSdpPrimalFeasible input f alpha w A)
     (t : ℝ) (Z : K → Matrix X X ℝ) (hZ : MinimaxGramFeasible input f alpha t Z) :
@@ -433,6 +504,8 @@ theorem minimaxSdp_weak_duality (input : X → K → Bool) (f : X → Bool) (alp
     _ = t := by simp only [hZ.2.1,← Finset.sum_mul,hA.2.1,one_mul]
 end
 
+/-- The absolute real quadratic form of a matrix is bounded by its operator norm times the sum
+of squared vector entries. -/
 private theorem balancedReal_rayleigh_bound (A : Matrix X X ℝ) (v : X → ℝ) :
     |dotProduct v (A *ᵥ v)| ≤ ‖A‖ * ∑ x, (v x)^2 := by
   let u : EuclideanSpace ℝ X := WithLp.toLp 2 v
@@ -446,6 +519,8 @@ private theorem balancedReal_rayleigh_bound (A : Matrix X X ℝ) (v : X → ℝ)
     _ ≤ ‖u‖*(‖A‖*‖u‖) := mul_le_mul_of_nonneg_left (A.l2_opNorm_mulVec u) (norm_nonneg u)
     _ = _ := by rw [← EuclideanSpace.real_norm_sq_eq u]; ring
 
+/-- A Hermitian real matrix on a nonempty finite type possesses a unit vector whose quadratic
+form has absolute value equal to its operator norm. -/
 private theorem balancedReal_extreme [Nonempty X] (A : Matrix X X ℝ) (hA : A.IsHermitian) :
     ∃ v : X → ℝ, (∑ x, (v x)^2) = 1 ∧ |dotProduct v (A*ᵥv)| = ‖A‖ := by
   classical
@@ -473,6 +548,8 @@ private theorem balancedReal_extreme [Nonempty X] (A : Matrix X X ℝ) (hA : A.I
   have hs : dotProduct (v : X → ℝ) v = 1 := by simpa only [dotProduct, ← pow_two] using! hv
   rw [hs, smul_eq_mul, mul_one, ← hn, ← hnorm]
 
+/-- An entrywise nonnegative Hermitian real matrix on a nonempty finite type possesses a
+nonnegative unit vector whose quadratic form is at least its operator norm. -/
 private theorem balancedReal_nonnegative_extreme [Nonempty X] (A : Matrix X X ℝ)
     (hA : A.IsHermitian) (hnn : ∀ x y, 0 ≤ A x y) :
     ∃ δ : X → ℝ, (∀ x, 0 ≤ δ x) ∧ (∑ x, (δ x)^2) = 1 ∧
@@ -493,6 +570,7 @@ private theorem balancedReal_nonnegative_extreme [Nonempty X] (A : Matrix X X �
     exact le_of_eq (by ring)
 noncomputable section
 
+/-- If a real Hermitian matrix has norm at most `a`, then `a • 1 - G` is positive semidefinite. -/
 theorem real_norm_slack_psd (G : Matrix X X ℝ) (hG : G.IsHermitian) (a : ℝ) (ha : ‖G‖ ≤ a) :
     ((a : ℝ) • (1 : Matrix X X ℝ) - G).PosSemidef := by
   have hh : (a • (1 : Matrix X X ℝ) - G).IsHermitian := by
@@ -523,12 +601,16 @@ theorem real_norm_slack_psd (G : Matrix X X ℝ) (hG : G.IsHermitian) (a : ℝ) 
 end
 noncomputable section
 
+/-- The matrix obtained by multiplying each entry `G x y` by the two vector entries `v x` and `v
+y`. -/
 def sourceAdversaryBalance (G : Matrix X X ℝ) (v : X → ℝ) : Matrix X X ℝ :=
   fun x y => G x y * v x * v y
 end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- Balancing a feasible cost-weighted nonnegative adversary by a nonnegative unit vector yields
+a feasible minimax primal matrix with weights `(v x)^2`. -/
 theorem sourceAdversaryBalance_feasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (G : Matrix X X ℝ) (hG : CostAdversaryFeasible input f alpha G)
     (v : X → ℝ) (hv0 : ∀ x, 0 ≤ v x) (hv1 : ∑ x, (v x)^2 = 1) :
@@ -578,6 +660,8 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- Every nonzero feasible cost-weighted nonnegative adversary yields feasible minimax primal
+data whose entry sum is at least its operator norm. -/
 theorem sourceAdversary_primal_exists (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (G : Matrix X X ℝ) (hG : CostAdversaryFeasible input f alpha G) (hne : G ≠ 0) :
     ∃ w A, MinimaxSdpPrimalFeasible input f alpha w A ∧ ‖G‖ ≤ ∑ x, ∑ y, A x y := by
@@ -594,6 +678,8 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K] in
 
+/-- A zero diagonal entry of a real positive semidefinite matrix forces the entire corresponding
+row to vanish. -/
 theorem real_psd_zero_diagonal_row (Z : Matrix X X ℝ) (hZ : Z.PosSemidef)
     (x : X) (hx : Z x x = 0) (y : X) : Z x y = 0 := by
   let e : Fin 2 → X := ![x,y]
@@ -606,6 +692,8 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- For observable outputs, a zero weight in feasible minimax primal data forces the
+corresponding matrix row to vanish. -/
 theorem minimaxPrimal_zero_weight (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (hobs : OutputObservable input f) (w : X → ℝ) (A : Matrix X X ℝ)
     (hA : MinimaxSdpPrimalFeasible input f alpha w A) (x : X) (hx : w x = 0) (y : X) :
@@ -626,6 +714,8 @@ theorem minimaxPrimal_zero_weight (input : X → K → Bool) (f : X → Bool) (a
 end
 noncomputable section
 
+/-- An entrywise nonnegative Hermitian real matrix with positive semidefinite slack `a • 1 - G`
+and nonnegative `a` has norm at most `a`. -/
 theorem real_nonnegative_norm_le_of_slack (G : Matrix X X ℝ) (hG : G.IsHermitian)
     (hn : ∀ x y, 0 ≤ G x y) (a : ℝ) (ha : 0 ≤ a)
     (hs : (a • (1 : Matrix X X ℝ) - G).PosSemidef) : ‖G‖ ≤ a := by
@@ -655,12 +745,16 @@ theorem real_nonnegative_norm_le_of_slack (G : Matrix X X ℝ) (hG : G.IsHermiti
 end
 noncomputable section
 
+/-- The matrix formed by dividing `A x y` by `Real.sqrt (w x) * Real.sqrt (w y)`, using Lean's
+total division. -/
 def minimaxPrimalGamma (w : X → ℝ) (A : Matrix X X ℝ) : Matrix X X ℝ :=
   fun x y => A x y / (Real.sqrt (w x)*Real.sqrt (w y))
 end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- With nonnegative costs, normalizing feasible minimax primal data by square roots of the
+weights gives a feasible cost-weighted nonnegative adversary. -/
 theorem minimaxPrimalGamma_feasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 ≤ alpha i) (w : X → ℝ) (A : Matrix X X ℝ)
     (hA : MinimaxSdpPrimalFeasible input f alpha w A) :
@@ -738,6 +832,8 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- For observable outputs, the sum of the entries of a feasible minimax primal matrix is
+bounded by the norm of its normalized adversary matrix. -/
 theorem minimaxPrimalGamma_score (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (hobs : OutputObservable input f) (w : X → ℝ) (A : Matrix X X ℝ)
     (hA : MinimaxSdpPrimalFeasible input f alpha w A) :
@@ -772,12 +868,15 @@ theorem minimaxPrimalGamma_score (input : X → K → Bool) (f : X → Bool) (al
 end
 noncomputable section
 
+/-- The extended nonnegative supremum of the entry sums of feasible minimax primal matrices. -/
 def minimaxSdpPrimalValue (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) : ℝ≥0∞ :=
   ⨆ wa : {wa : (X → ℝ) × Matrix X X ℝ // MinimaxSdpPrimalFeasible input f alpha wa.1 wa.2},
     ENNReal.ofReal (∑ x, ∑ y, wa.val.2 x y)
 end
 noncomputable section
 
+/-- With positive costs, the norm of every feasible cost-weighted nonnegative adversary is
+bounded by `advAlphaR`. -/
 theorem costAdversary_norm_le_source (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (G : Matrix X X ℝ) (hG : CostAdversaryFeasible input f alpha G) :
     ENNReal.ofReal ‖G‖ ≤ advAlphaR input f alpha := by
@@ -788,6 +887,8 @@ theorem costAdversary_norm_le_source (input : X → K → Bool) (f : X → Bool)
 end
 noncomputable section
 
+/-- For observable outputs and positive costs, every feasible minimax primal entry sum is
+bounded by the real nonnegative adversary value. -/
 theorem minimaxSdp_score_le_source (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f)
     (w : X → ℝ) (A : Matrix X X ℝ) (hA : MinimaxSdpPrimalFeasible input f alpha w A) :
@@ -798,6 +899,8 @@ theorem minimaxSdp_score_le_source (input : X → K → Bool) (f : X → Bool) (
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs and positive costs, the minimax SDP
+primal value equals `advAlphaR`. -/
 theorem minimaxSdpPrimalValue_eq_source (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f) (hnc : ∃ x y, f x ≠ f y) :
     minimaxSdpPrimalValue input f alpha = advAlphaR input f alpha := by
@@ -812,6 +915,8 @@ theorem minimaxSdpPrimalValue_eq_source (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs and positive costs, feasible minimax
+primal data attain `advAlphaR` as their entry sum. -/
 theorem minimaxSdp_primal_optimal_exists (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f) (hnc : ∃ x y, f x ≠ f y) :
     ∃ w A, MinimaxSdpPrimalFeasible input f alpha w A ∧
@@ -824,12 +929,16 @@ theorem minimaxSdp_primal_optimal_exists (input : X → K → Bool) (f : X → B
 end
 noncomputable section
 
+/-- The extended nonnegative infimum of positive objectives possessing a feasible minimax Gram
+family. -/
 def minimaxSdpDualValue (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) : ℝ≥0∞ :=
   ⨅ zt : {zt : ℝ × (K → Matrix X X ℝ) // 0 < zt.1 ∧ MinimaxGramFeasible input f alpha zt.1 zt.2},
     ENNReal.ofReal zt.val.1
 end
 noncomputable section
 
+/-- For a nonconstant function with positive costs and nonempty coordinate type, the minimax SDP
+dual value equals `minimaxAlpha`. -/
 theorem minimaxSdpDualValue_eq_minimax [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i)
     (hnc : ∃ x y, f x ≠ f y) : minimaxSdpDualValue input f alpha = minimaxAlpha input f alpha := by
@@ -855,6 +964,7 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- The minimax SDP primal value is bounded by its dual value. -/
 theorem minimaxSdp_values_weak_duality (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) :
     minimaxSdpPrimalValue input f alpha ≤ minimaxSdpDualValue input f alpha := by
   apply le_iInf
@@ -881,20 +991,28 @@ open Qatlib.Concepts.DyadicFloor.FloorRounding
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 noncomputable section
+/-- The subtype of ordered input pairs having different Boolean outputs. -/
 abbrev AdversarySdpPairs (f : X → Bool) := {xy : X × X // f xy.1 ≠ f xy.2}
 end
 noncomputable section
+/-- The disjoint union of input-coordinate indices and different-output pair indices used by the
+equality SDP. -/
 abbrev AdversarySdpIndex (f : X → Bool) (K : Type) := (X × K) ⊕ AdversarySdpPairs f
 end
 noncomputable section
+/-- The disjoint union of input budget constraints and different-output pair constraints. -/
 abbrev AdversarySdpConstraints (f : X → Bool) := X ⊕ AdversarySdpPairs f
 end
 noncomputable section
+/-- The cost-weighted sum of real diagonal entries in the input-coordinate block associated with
+`x`. -/
 def adversarySdpBudget (f : X → Bool) (alpha : K → ℝ)
     (H : HermitianMat (AdversarySdpIndex f K) ℂ) (x : X) : ℝ :=
   ∑ i, alpha i * (H.mat (Sum.inl (x,i)) (Sum.inl (x,i))).re
 end
 noncomputable section
+/-- The sum of real separating-coordinate entries for a different-output pair, minus its
+diagonal slack entry. -/
 def adversarySdpPair (input : X → K → Bool) (f : X → Bool)
     (H : HermitianMat (AdversarySdpIndex f K) ℂ) (xy : AdversarySdpPairs f) : ℝ :=
   (∑ i, if input xy.val.1 i ≠ input xy.val.2 i then
@@ -903,6 +1021,8 @@ def adversarySdpPair (input : X → K → Bool) (f : X → Bool)
 end
 noncomputable section
 
+/-- The real continuous linear map recording budget differences from the reference input and the
+different-output pair expressions. -/
 def adversarySdpConstraint (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (x0 : X) :
     HermitianMat (AdversarySdpIndex f K) ℂ →L[ℝ] EuclideanSpace ℝ (AdversarySdpConstraints f) :=
   LinearMap.toContinuousLinearMap {
@@ -966,6 +1086,8 @@ def adversarySdpConstraint (input : X → K → Bool) (f : X → Bool) (alpha : 
 end
 noncomputable section
 
+/-- The equality-constrained SDP imposing equal input budgets and pair expressions equal to one,
+with primal objective the negative reference-input budget. -/
 def adversaryEqualityProgram (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (x0 : X) :
     Program (AdversarySdpIndex f K) (EuclideanSpace ℝ (AdversarySdpConstraints f)) where
   constraint := adversarySdpConstraint input f alpha x0
@@ -976,6 +1098,8 @@ def adversaryEqualityProgram (input : X → K → Bool) (f : X → Bool) (alpha 
 end
 noncomputable section
 
+/-- The entrywise real part of a complex positive semidefinite matrix is a real positive
+semidefinite matrix. -/
 theorem complex_psd_real_part {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hH : H.PosSemidef) : (H.map Complex.re).PosSemidef := by
   have hs : (H.map Complex.re).IsHermitian := by
@@ -994,6 +1118,8 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] [DecidableEq K] in
 
+/-- For a nonconstant function with positive costs, every feasible Gram objective is strictly
+positive. -/
 theorem minimaxGram_objective_pos (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ x y, f x ≠ f y)
     (t : ℝ) (Z : K → Matrix X X ℝ) (hZ : MinimaxGramFeasible input f alpha t Z) : 0 < t := by
@@ -1015,6 +1141,7 @@ theorem minimaxGram_objective_pos (input : X → K → Bool) (f : X → Bool) (a
 end
 noncomputable section
 
+/-- The equality SDP primal score is the negative budget at the reference input. -/
 theorem adversaryEquality_primalScore (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (H : HermitianMat (AdversarySdpIndex f K) ℂ) :
     (adversaryEqualityProgram input f alpha x0).primalScore H = -adversarySdpBudget f alpha H x0 := by
@@ -1025,6 +1152,8 @@ theorem adversaryEquality_primalScore (input : X → K → Bool) (f : X → Bool
 end
 noncomputable section
 
+/-- Equality SDP primal feasibility is equivalent to positive semidefiniteness, equal input
+budgets, and every different-output pair expression being one. -/
 theorem adversaryEquality_primal_iff (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (H : HermitianMat (AdversarySdpIndex f K) ℂ) :
     (adversaryEqualityProgram input f alpha x0).PrimalFeasible H ↔
@@ -1053,6 +1182,8 @@ theorem adversaryEquality_primal_iff (input : X → K → Bool) (f : X → Bool)
 end
 noncomputable section
 
+/-- A feasible equality SDP matrix yields a feasible real Gram family by taking real parts of
+its coordinate principal blocks. -/
 theorem adversaryEquality_to_gram (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (H : HermitianMat (AdversarySdpIndex f K) ℂ)
     (hH : (adversaryEqualityProgram input f alpha x0).PrimalFeasible H) :
@@ -1075,15 +1206,20 @@ theorem adversaryEquality_to_gram (input : X → K → Bool) (f : X → Bool) (a
 end
 noncomputable section
 
+/-- Embeds a real vector into coordinate block `i` of the equality SDP index type, setting all
+other entries to zero. -/
 def adversaryBlockVector (f : X → Bool) (i : K) (v : X → ℝ) : AdversarySdpIndex f K → ℂ :=
   Sum.elim (fun (x,j) => if j=i then (v x : ℂ) else 0) (fun _ => 0)
 end
 noncomputable section
+/-- The Hermitian outer-product matrix of the vector embedded in coordinate block `i`. -/
 def adversaryBlockRankOne (f : X → Bool) (i : K) (v : X → ℝ) : HermitianMat (AdversarySdpIndex f K) ℂ :=
   ⟨Matrix.vecMulVec (adversaryBlockVector f i v) (star (adversaryBlockVector f i v)),
     (Matrix.posSemidef_vecMulVec_self_star _).1⟩
 end
 noncomputable section
+/-- The Hermitian diagonal matrix carrying `r` on different-output pair indices and zero on
+input-coordinate indices. -/
 def adversarySlackDiagonal (f : X → Bool) (r : AdversarySdpPairs f → ℝ) :
     HermitianMat (AdversarySdpIndex f K) ℂ :=
   HermitianMat.diagonal ℂ (Sum.elim (fun _ => 0) r)
@@ -1091,6 +1227,7 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- Every block outer-product matrix is positive semidefinite in the Hermitian matrix order. -/
 theorem adversaryBlockRankOne_psd (f : X → Bool) (i : K) (v : X → ℝ) :
     0 ≤ adversaryBlockRankOne f i v :=
   HermitianMat.zero_le_iff.mpr (Matrix.posSemidef_vecMulVec_self_star _)
@@ -1098,6 +1235,7 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- The budget of a block outer-product matrix at `x` is `alpha i * (v x)^2`. -/
 theorem adversaryBlockRankOne_budget (f : X → Bool) (alpha : K → ℝ) (i : K) (v : X → ℝ) (x : X) :
     adversarySdpBudget f alpha (adversaryBlockRankOne f i v) x = alpha i*(v x)^2 := by
   unfold adversarySdpBudget
@@ -1114,6 +1252,8 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- The pair expression of a block outer-product matrix is the product of the two vector entries
+when coordinate `i` separates the pair, and zero otherwise. -/
 theorem adversaryBlockRankOne_pair (input : X → K → Bool) (f : X → Bool) (i : K) (v : X → ℝ)
     (xy : AdversarySdpPairs f) :
     adversarySdpPair input f (adversaryBlockRankOne f i v) xy =
@@ -1133,6 +1273,7 @@ end
 noncomputable section
 omit [Fintype X] [Fintype K] in
 
+/-- A slack diagonal matrix with nonnegative pair entries is positive semidefinite. -/
 theorem adversarySlackDiagonal_psd (f : X → Bool) (r : AdversarySdpPairs f → ℝ)
     (hr : ∀ xy, 0 ≤ r xy) : 0 ≤ adversarySlackDiagonal (K := K) f r := by
   apply HermitianMat.zero_le_iff.mpr
@@ -1145,6 +1286,7 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- A slack diagonal matrix contributes zero to every input budget. -/
 theorem adversarySlackDiagonal_budget (f : X → Bool) (alpha : K → ℝ)
     (r : AdversarySdpPairs f → ℝ) (x : X) :
     adversarySdpBudget f alpha (adversarySlackDiagonal f r) x = 0 := by
@@ -1153,6 +1295,8 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- The pair expression of a slack diagonal matrix is the negative of its corresponding slack
+entry. -/
 theorem adversarySlackDiagonal_pair (input : X → K → Bool) (f : X → Bool)
     (r : AdversarySdpPairs f → ℝ) (xy : AdversarySdpPairs f) :
     adversarySdpPair input f (adversarySlackDiagonal f r) xy = -r xy := by
@@ -1162,6 +1306,7 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- The input budget is additive in the Hermitian SDP matrix. -/
 theorem adversarySdpBudget_add (f : X → Bool) (alpha : K → ℝ)
     (H G : HermitianMat (AdversarySdpIndex f K) ℂ) (x : X) :
     adversarySdpBudget f alpha (H+G) x = adversarySdpBudget f alpha H x + adversarySdpBudget f alpha G x := by
@@ -1171,6 +1316,7 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] [DecidableEq K] in
 
+/-- The input budget commutes with real scalar multiplication of the Hermitian SDP matrix. -/
 theorem adversarySdpBudget_smul (f : X → Bool) (alpha : K → ℝ)
     (H : HermitianMat (AdversarySdpIndex f K) ℂ) (t : ℝ) (x : X) :
     adversarySdpBudget f alpha (t • H) x = t * adversarySdpBudget f alpha H x := by
@@ -1183,6 +1329,7 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- The input budget of a finite sum is the sum of the input budgets. -/
 theorem adversarySdpBudget_sum {J : Type} [Fintype J] (f : X → Bool) (alpha : K → ℝ)
     (H : J → HermitianMat (AdversarySdpIndex f K) ℂ) (x : X) :
     adversarySdpBudget f alpha (∑ j, H j) x = ∑ j, adversarySdpBudget f alpha (H j) x := by
@@ -1191,6 +1338,8 @@ theorem adversarySdpBudget_sum {J : Type} [Fintype J] (f : X → Bool) (alpha : 
 end
 noncomputable section
 
+/-- Expands the inner product of the equality SDP dual slack with a Hermitian matrix into
+budget-difference, pair-expression, and reference-budget contributions. -/
 theorem adversaryEquality_slack_pairing (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
     (H : HermitianMat (AdversarySdpIndex f K) ℂ) :
@@ -1209,6 +1358,8 @@ theorem adversaryEquality_slack_pairing (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- Evaluates the equality SDP dual slack on a block outer-product matrix as weighted squared
+vector entries and separating-coordinate vector products. -/
 theorem adversaryEquality_rankOne_slack (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) (i : K) (v : X → ℝ) :
     ⟪(adversaryEqualityProgram input f alpha x0).constraint.adjoint y -
@@ -1221,12 +1372,16 @@ theorem adversaryEquality_rankOne_slack (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- The sum of coordinate block outer products scaled by `c`, together with a pair-index slack
+diagonal. -/
 def adversaryLiftRankOne (f : X → Bool) (c : K → ℝ) (v : K → X → ℝ)
     (r : AdversarySdpPairs f → ℝ) : HermitianMat (AdversarySdpIndex f K) ℂ :=
   (∑ i, c i • adversaryBlockRankOne f i (v i)) + adversarySlackDiagonal f r
 end
 noncomputable section
 
+/-- A lifted sum of block outer products and slack diagonal is positive semidefinite when all
+coefficients and slack entries are nonnegative. -/
 theorem adversaryLiftRankOne_psd (f : X → Bool) (c : K → ℝ) (v : K → X → ℝ)
     (r : AdversarySdpPairs f → ℝ) (hc : ∀ i, 0 ≤ c i) (hr : ∀ xy, 0 ≤ r xy) :
     0 ≤ adversaryLiftRankOne f c v r := by
@@ -1236,6 +1391,7 @@ theorem adversaryLiftRankOne_psd (f : X → Bool) (c : K → ℝ) (v : K → X �
 end
 noncomputable section
 
+/-- The budget of a lifted matrix at `x` is `∑ i, c i * alpha i * (v i x)^2`. -/
 theorem adversaryLiftRankOne_budget (f : X → Bool) (alpha : K → ℝ) (c : K → ℝ) (v : K → X → ℝ)
     (r : AdversarySdpPairs f → ℝ) (x : X) :
     adversarySdpBudget f alpha (adversaryLiftRankOne f c v r) x = ∑ i, c i*alpha i*(v i x)^2 := by
@@ -1248,6 +1404,8 @@ theorem adversaryLiftRankOne_budget (f : X → Bool) (alpha : K → ℝ) (c : K 
 end
 noncomputable section
 
+/-- The pair expression of a lifted matrix is the weighted sum of separating-coordinate vector
+products minus the pair slack. -/
 theorem adversaryLiftRankOne_pair (input : X → K → Bool) (f : X → Bool) (x0 : X)
     (c : K → ℝ) (v : K → X → ℝ) (r : AdversarySdpPairs f → ℝ) (xy : AdversarySdpPairs f) :
     adversarySdpPair input f (adversaryLiftRankOne f c v r) xy =
@@ -1277,6 +1435,8 @@ theorem adversaryLiftRankOne_pair (input : X → K → Bool) (f : X → Bool) (x
 end
 noncomputable section
 
+/-- The equality SDP matrix formed from square roots of probability entries with coefficients `t
+/ alpha i` and slack `t * advMinimaxTerm - 1`. -/
 def adversaryProbabilityLift (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (p : X → K → ℝ) (t : ℝ) : HermitianMat (AdversarySdpIndex f K) ℂ :=
   adversaryLiftRankOne f (fun i => t/alpha i) (fun i x => Real.sqrt (p x i))
@@ -1284,6 +1444,8 @@ def adversaryProbabilityLift (input : X → K → Bool) (f : X → Bool) (alpha 
 end
 noncomputable section
 
+/-- With positive costs and a probability family, every input budget of the probability lift
+equals `t`. -/
 theorem adversaryProbabilityLift_budget (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (p : X → K → ℝ) (hp : IsProbabilityFamily p) (t : ℝ) (x : X) :
     adversarySdpBudget f alpha (adversaryProbabilityLift input f alpha p t) x = t := by
@@ -1297,6 +1459,8 @@ theorem adversaryProbabilityLift_budget (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- For a probability family, every different-output pair expression of the probability lift
+equals one. -/
 theorem adversaryProbabilityLift_pair (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (p : X → K → ℝ) (hp : IsProbabilityFamily p) (t : ℝ) (x0 : X) (xy : AdversarySdpPairs f) :
     adversarySdpPair input f (adversaryProbabilityLift input f alpha p t) xy = 1 := by
@@ -1317,6 +1481,8 @@ theorem adversaryProbabilityLift_pair (input : X → K → Bool) (f : X → Bool
 end
 noncomputable section
 
+/-- With positive costs and positive `t`, a probability family with different-output terms at
+least `1 / t` lifts to feasible equality SDP data of primal score `-t`. -/
 theorem adversaryProbabilityLift_feasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (p : X → K → ℝ) (hp : IsProbabilityFamily p)
     (t : ℝ) (ht : 0 < t) (x0 : X)
@@ -1338,6 +1504,7 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- The budget of the identity Hermitian matrix equals the sum of the coordinate costs. -/
 theorem adversarySdpBudget_one (f : X → Bool) (alpha : K → ℝ) (x : X) :
     adversarySdpBudget f alpha (1 : HermitianMat (AdversarySdpIndex f K) ℂ) x = ∑ i, alpha i := by
   simp [adversarySdpBudget,-HermitianMat.mat_apply]
@@ -1345,18 +1512,22 @@ end
 noncomputable section
 omit [Fintype X] in
 
+/-- Every different-output pair expression of the identity Hermitian matrix equals negative one. -/
 theorem adversarySdpPair_one (input : X → K → Bool) (f : X → Bool) (xy : AdversarySdpPairs f) :
     adversarySdpPair input f (1 : HermitianMat (AdversarySdpIndex f K) ℂ) xy = -1 := by
   have hh : xy.val.1 ≠ xy.val.2 := fun he => xy.property (congrArg f he)
   simp [adversarySdpPair,hh,-HermitianMat.mat_apply]
 end
 noncomputable section
+/-- The real-valued number of coordinates on which two encoded Boolean inputs differ. -/
 def adversaryDifferenceCount (input : X → K → Bool) (x y : X) : ℝ :=
   ∑ i, if input x i ≠ input y i then 1 else 0
 end
 noncomputable section
 omit [Fintype X] [DecidableEq X] [DecidableEq K] in
 
+/-- If outputs are observable from the input encoding, each different-output pair differs in at
+least one coordinate. -/
 theorem adversaryDifferenceCount_one_le (input : X → K → Bool) (f : X → Bool)
     (hobs : OutputObservable input f) (xy : AdversarySdpPairs f) :
     1 ≤ adversaryDifferenceCount input xy.val.1 xy.val.2 := by
@@ -1369,6 +1540,8 @@ theorem adversaryDifferenceCount_one_le (input : X → K → Bool) (f : X → Bo
 end
 noncomputable section
 
+/-- The identity plus a lifted block outer-product matrix with coefficient two and pair slack `2
+* adversaryDifferenceCount - 2`. -/
 def adversaryEqualityStrict (input : X → K → Bool) (f : X → Bool) :
     HermitianMat (AdversarySdpIndex f K) ℂ :=
   1 + adversaryLiftRankOne f (fun _ => 2) (fun _ _ => 1)
@@ -1376,6 +1549,7 @@ def adversaryEqualityStrict (input : X → K → Bool) (f : X → Bool) :
 end
 noncomputable section
 
+/-- For observable outputs, the equality SDP possesses a strictly feasible primal matrix. -/
 theorem adversaryEquality_primalSlater (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (hobs : OutputObservable input f) (x0 : X) :
     (adversaryEqualityProgram input f alpha x0).PrimalSlater := by
@@ -1416,20 +1590,27 @@ theorem adversaryEquality_primalSlater (input : X → K → Bool) (f : X → Boo
 end
 noncomputable section
 
+/-- The input component of a dual vector, corrected at the reference input so that the resulting
+weights sum to one. -/
 def adversaryDualWeight (f : X → Bool) (x0 : X)
     (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) (x : X) : ℝ :=
   y (Sum.inl x) + if x=x0 then 1-∑ z, y (Sum.inl z) else 0
 end
 noncomputable section
+/-- The dual coefficient of an ordered different-output pair, extended by zero to equal-output
+pairs. -/
 def adversaryDualPair (f : X → Bool) (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) (x z : X) : ℝ :=
   if h : f x ≠ f z then y (Sum.inr ⟨(x,z),h⟩) else 0
 end
 noncomputable section
+/-- The symmetric real matrix formed by negating the average of the two ordered dual pair
+coefficients. -/
 def adversaryDualMatrix (f : X → Bool) (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) : Matrix X X ℝ :=
   fun x z => -(adversaryDualPair f y x z + adversaryDualPair f y z x)/2
 end
 noncomputable section
 
+/-- The corrected dual weights sum to one. -/
 theorem adversaryDualWeight_sum (f : X → Bool) (x0 : X)
     (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) : ∑ x, adversaryDualWeight f x0 y x = 1 := by
   simp [adversaryDualWeight,Finset.sum_add_distrib]
@@ -1437,6 +1618,7 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] in
 
+/-- The real matrix extracted from the dual pair coefficients is symmetric. -/
 theorem adversaryDualMatrix_symm (f : X → Bool) (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) :
     (adversaryDualMatrix f y).IsSymm := by
   ext x z
@@ -1447,6 +1629,7 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] in
 
+/-- The extracted dual matrix vanishes on pairs with equal Boolean outputs. -/
 theorem adversaryDualMatrix_support (f : X → Bool) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
     (x z : X) (h : f x = f z) : adversaryDualMatrix f y x z = 0 := by
   simp [adversaryDualMatrix,adversaryDualPair,h]
@@ -1454,6 +1637,8 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- A sum over different-output pair indices equals the full double sum using the zero-extended
+dual pair coefficients. -/
 theorem adversaryDualPair_sum (f : X → Bool) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
     (F : X → X → ℝ) :
     (∑ xy : AdversarySdpPairs f, y (Sum.inr xy)*F xy.val.1 xy.val.2) =
@@ -1477,6 +1662,8 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- For a symmetric real kernel, pairing with the dual pair coefficients equals the negative
+entrywise pairing with the extracted dual matrix. -/
 theorem adversaryDualMatrix_pairing (f : X → Bool) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
     (F : X → X → ℝ) (hF : ∀ x z, F x z = F z x) :
     (∑ xy : AdversarySdpPairs f, y (Sum.inr xy)*F xy.val.1 xy.val.2) =
@@ -1507,6 +1694,8 @@ theorem adversaryDualMatrix_pairing (f : X → Bool) (y : EuclideanSpace ℝ (Ad
 end
 noncomputable section
 
+/-- Combining the dual budget-difference terms with the reference quadratic term yields the
+diagonal quadratic form of the corrected dual weights. -/
 theorem adversaryDualWeight_quadratic (f : X → Bool) (x0 : X)
     (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) (a : ℝ) (v : X → ℝ) :
     (∑ x, y (Sum.inl x)*(a*(v x)^2-a*(v x0)^2)) + a*(v x0)^2 =
@@ -1528,6 +1717,8 @@ theorem adversaryDualWeight_quadratic (f : X → Bool) (x0 : X)
 end
 noncomputable section
 
+/-- Pairing the equality SDP dual slack with a block outer product equals the quadratic form of
+the cost-weighted dual diagonal minus the filtered dual matrix. -/
 theorem adversaryEquality_dual_quadratic (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) (i : K) (v : X → ℝ) :
     ⟪(adversaryEqualityProgram input f alpha x0).constraint.adjoint y -
@@ -1562,6 +1753,8 @@ theorem adversaryEquality_dual_quadratic (input : X → K → Bool) (f : X → B
 end
 noncomputable section
 
+/-- Every coordinate slack matrix extracted from feasible equality SDP dual data is positive
+semidefinite. -/
 theorem adversaryEquality_dual_psd (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
     (hy : (adversaryEqualityProgram input f alpha x0).DualFeasible y) (i : K) :
@@ -1589,6 +1782,8 @@ theorem adversaryEquality_dual_psd (input : X → K → Bool) (f : X → Bool) (
 end
 noncomputable section
 
+/-- Every different-output pair coefficient of a feasible equality SDP dual vector is
+nonpositive. -/
 theorem adversaryEquality_dual_pair_nonpos (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
     (hy : (adversaryEqualityProgram input f alpha x0).DualFeasible y) (xy : AdversarySdpPairs f) :
@@ -1609,6 +1804,8 @@ theorem adversaryEquality_dual_pair_nonpos (input : X → K → Bool) (f : X →
 end
 noncomputable section
 
+/-- With positive costs and a nonempty coordinate type, feasible equality SDP dual data yield
+feasible minimax primal data through the corrected weights and extracted matrix. -/
 theorem adversaryEquality_dual_to_primal [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) (ha : ∀ i, 0 < alpha i)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f))
@@ -1636,6 +1833,7 @@ theorem adversaryEquality_dual_to_primal [Nonempty K]
 end
 noncomputable section
 
+/-- The equality SDP dual score is the negative sum of all entries of the extracted dual matrix. -/
 theorem adversaryEquality_dualScore (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (x0 : X) (y : EuclideanSpace ℝ (AdversarySdpConstraints f)) :
     (adversaryEqualityProgram input f alpha x0).dualScore y =
@@ -1648,6 +1846,7 @@ theorem adversaryEquality_dualScore (input : X → K → Bool) (f : X → Bool) 
 end
 noncomputable section
 
+/-- With nonnegative costs, the zero dual vector is feasible for the equality SDP. -/
 theorem adversaryEquality_zero_dual (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 ≤ alpha i) (x0 : X) :
     (adversaryEqualityProgram input f alpha x0).DualFeasible 0 := by
@@ -1681,6 +1880,8 @@ theorem adversaryEquality_zero_dual (input : X → K → Bool) (f : X → Bool) 
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs and positive costs, the real nonnegative
+adversary value equals the minimax value. -/
 theorem advAlphaR_eq_minimax_of_observable (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hobs : OutputObservable input f) (hnc : ∃ x z, f x ≠ f z) :
     advAlphaR input f alpha = minimaxAlpha input f alpha := by
@@ -1729,6 +1930,8 @@ end
 noncomputable section
 omit [DecidableEq X] in
 
+/-- With positive costs, two identically encoded inputs with different outputs force the minimax
+value to be infinite. -/
 theorem minimaxAlpha_infinite_of_collision (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (x z : X) (hxz : f x ≠ f z) (he : ∀ i, input x i = input z i) :
     minimaxAlpha input f alpha = ⊤ := by
@@ -1761,6 +1964,8 @@ theorem minimaxAlpha_infinite_of_collision (input : X → K → Bool) (f : X →
 end
 noncomputable section
 
+/-- For every nonconstant Boolean output function and positive coordinate costs, the real
+nonnegative adversary and minimax values are equal, as in [HoyerLeeSpalek2007]. -/
 theorem advAlphaR_eq_minimax (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ x z, f x ≠ f z) :
     advAlphaR input f alpha = minimaxAlpha input f alpha := by
@@ -1774,6 +1979,8 @@ theorem advAlphaR_eq_minimax (input : X → K → Bool) (f : X → Bool) (alpha 
 end
 noncomputable section
 
+/-- On a domain of Boolean words, a nonconstant function with positive coordinate costs has
+equal real nonnegative adversary and minimax values. -/
 theorem advAlphaR_word_eq_minimax (D : Set (K → Bool)) (f : D → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ x z, f x ≠ f z) :
     advAlphaR (fun x : D => x.val) f alpha = minimaxAlpha (fun x : D => x.val) f alpha :=
@@ -1781,6 +1988,10 @@ theorem advAlphaR_word_eq_minimax (D : Set (K → Bool)) (f : D → Bool) (alpha
 end
 noncomputable section
 
+/-- On a domain of Boolean words, a nonconstant function with positive costs has equal adversary
+and minimax values and possesses both an optimal nonzero nonnegative symmetric adversary
+matrix and an optimal probability family, strengthening [Hoyer, Lee, and Spalek, Theorem
+18][HoyerLeeSpalek2007] with optimizer existence. -/
 theorem adversary_minimax_word_complete (D : Set (K → Bool)) (f : D → Bool) (alpha : K → ℝ)
     (ha : ∀ i, 0 < alpha i) (hnc : ∃ x z, f x ≠ f z) :
     advAlphaR (fun x : D => x.val) f alpha = minimaxAlpha (fun x : D => x.val) f alpha ∧
@@ -1792,6 +2003,9 @@ theorem adversary_minimax_word_complete (D : Set (K → Bool)) (f : D → Bool) 
 end
 noncomputable section
 
+/-- For positive coordinate costs and nonconstant inner and composed functions, finite inner
+real nonnegative adversary values give costs under which the outer adversary value bounds
+the composed adversary value. -/
 theorem source_adversary_composition_upper {k : ℕ} [Nonempty (Fin k)]
     {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (Y i)] [∀ i, DecidableEq (Y i)]

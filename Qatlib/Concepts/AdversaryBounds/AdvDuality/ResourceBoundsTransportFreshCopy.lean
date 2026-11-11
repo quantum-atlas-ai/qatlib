@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+
+/-!
+# Transporting fresh-copy execution resources
+
+This module relates fresh-copy compilation and execution counts to resource ledgers for direct,
+local, numeric, two-species, and plain-composition consumers. It gives exact copy, partial-swap,
+discard, local-gate, and bit-query formulas, keeping the cost units explicit. Quantum circuit
+resource accounting is discussed in [NielsenChuang2010].
+
+The work ledger scales linearly under repetition, whereas positive repetition preserves peak
+fields. `freshPeak_transport` preserves the separate fresh-register and clean-qubit peaks under
+composition; the combined workspace field of `Account.ofFreshCost` does not universally preserve
+composition.
+
+## Main statements
+
+* `copyDriven_same_execution`: Direct compilation realizes the stated program resource counts.
+* `freshPeak_transport`: Separate fresh-copy peak fields preserve composition.
+* `workOf_repeat`: Work scales linearly under repetition.
+* `ofFreshCost_peakWorkspace_not_transported`: Combined workspace peaks fail universal
+  transport.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -27,12 +54,14 @@ set_option warningAsError false
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 noncomputable section
 
+/-- Every fresh-copy operation has equal partial-swap and copy counts. -/
 theorem stepCost_partialSwaps_eq_copies {n M : ℕ} (op : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Op n M) :
     (Qatlib.Concepts.FreshCopyExec.QpeConsumers.stepCost op).partialSwaps = (Qatlib.Concepts.FreshCopyExec.QpeConsumers.stepCost op).copies := by
   cases op <;> rfl
 end
 noncomputable section
 
+/-- A word of fresh-copy operations has equal total partial-swap and copy counts. -/
 theorem freshWordCost_partialSwaps_eq_copies {n M : ℕ} (ops : List (Qatlib.Concepts.FreshCopyExec.QpeConsumers.Op n M)) :
     (freshWordCost ops).partialSwaps = (freshWordCost ops).copies := by
   induction ops with
@@ -43,6 +72,8 @@ theorem freshWordCost_partialSwaps_eq_copies {n M : ℕ} (ops : List (Qatlib.Con
 end
 noncomputable section
 
+/-- A plain operation list uses one copy, partial swap, and discard per entry and no bit
+queries. -/
 theorem freshPlainCost_counts {D : ℕ} (ops : List (Operator D × ℝ)) :
     (freshPlainCost ops).copies = ops.length ∧
       (freshPlainCost ops).partialSwaps = ops.length ∧
@@ -64,6 +95,8 @@ theorem freshPlainCost_counts {D : ℕ} (ops : List (Operator D × ℝ)) :
 end
 noncomputable section
 
+/-- For `M ≥ 2` and `n > 0`, the copy-driven ledger has `(M - 1) * n` copies, partial swaps, and
+discards, and zero local gates and bit queries. -/
 theorem copyDrivenLedger_eq (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n) :
     copyDrivenLedger D M n = ⟨(M - 1) * n, (M - 1) * n, 0, (M - 1) * n, 0⟩ := by
   have h := copy_qpe_same_path_fresh_resource_counts D M n hM hn
@@ -71,6 +104,8 @@ theorem copyDrivenLedger_eq (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n) :
 end
 noncomputable section
 
+/-- For `M ≥ 2`, the local-copy ledger has `(M - 1) * s` copies and discards and `(36 * n + 7)`
+local gates per copy, with no partial swaps or bit queries. -/
 theorem localCopyLedger_eq (n M s : ℕ) (hM : 2 ≤ M) :
     localCopyLedger n M s = ⟨(M - 1) * s, 0, (M - 1) * s * (36 * n + 7), (M - 1) * s, 0⟩ := by
   obtain ⟨h1, _⟩ := localCopyQPEResources_eq n M s hM
@@ -78,6 +113,8 @@ theorem localCopyLedger_eq (n M s : ℕ) (hM : 2 ≤ M) :
 end
 noncomputable section
 
+/-- For `M > 0`, the numeric-copy ledger has `(M - 1) * 2 ^ b` copies and discards and `(36 * n
++ 4)` local gates per copy, with no partial swaps or bit queries. -/
 theorem numericCopyLedger_eq (n M b : ℕ) (hM : 0 < M) :
     numericCopyLedger n M b = ⟨(M - 1) * 2 ^ b, 0, (M - 1) * 2 ^ b * (36 * n + 4),
       (M - 1) * 2 ^ b, 0⟩ := by
@@ -88,12 +125,16 @@ theorem numericCopyLedger_eq (n M b : ℕ) (hM : 0 < M) :
 end
 noncomputable section
 
+/-- The two-species ledger has `2 * (M - 1) * n` copies, partial swaps, and discards, and no
+local gates or bit queries. -/
 theorem twoSpeciesLedger_eq (D M n : ℕ) :
     twoSpeciesLedger D M n = ⟨2 * (M - 1) * n, 2 * (M - 1) * n, 0, 2 * (M - 1) * n, 0⟩ := by
   simp [twoSpeciesLedger, FreshLedger.twoSpecies, twoSpeciesQPEResources]
 end
 noncomputable section
 
+/-- For positive `M`, the two-species ledger equals the ledger extracted from the counted phase
+circuit with repetition parameter `2 * n`. -/
 theorem twoSpecies_same_path (D M n : ℕ) (hM : 0 < M) :
     twoSpeciesLedger D M n =
       FreshLedger.twoSpecies
@@ -102,6 +143,8 @@ theorem twoSpecies_same_path (D M n : ℕ) (hM : 0 < M) :
 end
 noncomputable section
 
+/-- The plain-composition ledger has one copy, partial swap, and discard per angle and no local
+gates or bit queries. -/
 theorem plainCompositionLedger_eq (D : ℕ) (angles : List ℝ) :
     plainCompositionLedger D angles = ⟨angles.length, angles.length, 0, angles.length, 0⟩ := by
   have h := freshCopyResourceCounts_eq D angles
@@ -109,6 +152,8 @@ theorem plainCompositionLedger_eq (D : ℕ) (angles : List ℝ) :
 end
 noncomputable section
 
+/-- The copy, partial-swap, discard, and bit-query counts of direct compilation equal
+`copyQPEProgramResources n C`. -/
 theorem copyDriven_same_execution {n M : ℕ} (ρ : Operator (2 ^ n))
     (C : Circuit (Qatlib.Concepts.FreshCopyExec.QpeConsumers.Register n M)) :
     copyQPEProgramResources n C =
@@ -127,6 +172,8 @@ theorem copyDriven_same_execution {n M : ℕ} (ρ : Operator (2 ^ n))
 end
 noncomputable section
 
+/-- The local-copy resource ledger agrees with local compilation on copy, discard, and bit-query
+counts. -/
 theorem localCopy_same_execution {n M : ℕ} (s : ℕ) (ρ : Operator (2 ^ n))
     (C : Circuit (Qatlib.Concepts.FreshCopyExec.QpeConsumers.Register n M)) :
     (FreshLedger.local (localCopyQPEProgramResources n s C)).copies =
@@ -150,6 +197,8 @@ theorem localCopy_same_execution {n M : ℕ} (s : ℕ) (ρ : Operator (2 ^ n))
 end
 noncomputable section
 
+/-- The numeric-copy resource ledger agrees with numeric compilation on copy, discard, and
+bit-query counts. -/
 theorem numericCopy_same_execution {n M : ℕ} (b k : ℕ) (ρ : Operator (2 ^ n))
     (C : Circuit (Qatlib.Concepts.FreshCopyExec.QpeConsumers.Register n M)) :
     (FreshLedger.local (numericCopyResources n b C)).copies =
@@ -173,6 +222,8 @@ theorem numericCopy_same_execution {n M : ℕ} (b k : ℕ) (ρ : Operator (2 ^ n
 end
 noncomputable section
 
+/-- The copy, partial-swap, discard, and bit-query counts of two-species compilation equal
+`copyQPEProgramResources (2 * n) C`. -/
 theorem twoSpecies_same_execution {n M : ℕ} (ρ σ : Operator (2 ^ n))
     (C : Circuit (Qatlib.Concepts.FreshCopyExec.QpeConsumers.Register n M)) :
     copyQPEProgramResources (2 * n) C =
@@ -191,6 +242,8 @@ theorem twoSpecies_same_execution {n M : ℕ} (ρ σ : Operator (2 ^ n))
 end
 noncomputable section
 
+/-- The counts returned by plain execution with the given angles equal the fresh-copy resource
+counts for that angle list. -/
 theorem plainComposition_same_execution (D : ℕ) (ρ : Operator D) (angles : List ℝ)
     (X : Operator D) :
     freshCopyResourceCounts D angles =
@@ -206,6 +259,9 @@ theorem plainComposition_same_execution (D : ℕ) (ρ : Operator D) (angles : Li
 end
 noncomputable section
 
+/-- Conversion of a fresh ledger assigns bit queries to forward queries, local gates to basic
+gates, discards to classical bits, and the supplied macro and peak budgets to their account
+fields, with the remaining query and Hamiltonian counters zero. -/
 theorem freshLedger_account_ledgers (l : FreshLedger) (fm pf pc : ℕ) :
     (l.account fm pf pc).queries = l.bitQueries ∧
       (l.account fm pf pc).adjointQueries = 0 ∧
@@ -220,6 +276,8 @@ theorem freshLedger_account_ledgers (l : FreshLedger) (fm pf pc : ℕ) :
 end
 noncomputable section
 
+/-- The converted account depth is the sum of copies, partial swaps, local gates, supplied macro
+gates, discards, and bit queries. -/
 theorem freshLedger_account_depth (l : FreshLedger) (fm pf pc : ℕ) :
     (l.account fm pf pc).depth =
       l.copies + l.partialSwaps + l.localGates + fm + l.discards + l.bitQueries := by
@@ -227,6 +285,8 @@ theorem freshLedger_account_depth (l : FreshLedger) (fm pf pc : ℕ) :
 end
 noncomputable section
 
+/-- Converting fresh costs to accounts preserves the live-peak field under sequential
+composition. -/
 theorem ofFreshCost_livePeak_transported (a b : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) :
     (Account.ofFreshCost (Qatlib.Concepts.FreshCopyExec.QpeConsumers.seqCost a b)).livePeak =
       (Account.seq (Account.ofFreshCost a) (Account.ofFreshCost b)).livePeak := by
@@ -235,6 +295,8 @@ theorem ofFreshCost_livePeak_transported (a b : Qatlib.Concepts.FreshCopyExec.Qp
 end
 noncomputable section
 
+/-- Conversion of fresh costs to accounts fails to preserve the workspace-peak field under
+sequential composition for some pair of costs. -/
 theorem ofFreshCost_peakWorkspace_not_transported :
     ¬ (∀ a b : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost,
         (Account.ofFreshCost (Qatlib.Concepts.FreshCopyExec.QpeConsumers.seqCost a b)).peakWorkspace =
@@ -245,6 +307,8 @@ theorem ofFreshCost_peakWorkspace_not_transported :
 end
 noncomputable section
 
+/-- Extracting the separate fresh-register and clean-qubit peaks commutes with sequential
+composition of fresh costs. -/
 theorem freshPeak_transport (a b : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) :
     FreshPeak.ofCost (Qatlib.Concepts.FreshCopyExec.QpeConsumers.seqCost a b) =
       (FreshPeak.ofCost a).seq (FreshPeak.ofCost b) := by
@@ -252,6 +316,7 @@ theorem freshPeak_transport (a b : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Co
 end
 noncomputable section
 
+/-- The work ledger of `k` repetitions is the original work ledger multiplied by `k`. -/
 theorem workOf_repeat (a : Account) (k : ℕ) :
     workOf (Account.repeat a k) = (workOf a).smul k := by
   simp only [workOf, WorkLedger.smul, repeat_queries, repeat_adjointQueries,
@@ -260,6 +325,7 @@ theorem workOf_repeat (a : Account) (k : ℕ) :
 end
 noncomputable section
 
+/-- Repeating an account a positive number of times preserves its peak ledger. -/
 theorem peakOf_repeat_succ (a : Account) (k : ℕ) :
     peakOf (Account.repeat a (Nat.succ k)) = peakOf a := by
   induction k with
@@ -274,6 +340,7 @@ theorem peakOf_repeat_succ (a : Account) (k : ℕ) :
 end
 noncomputable section
 
+/-- The unified query count of `k` repetitions is `k` times the original unified query count. -/
 theorem queryCountOf_repeat (a : Account) (k : ℕ) :
     queryCountOf (Account.repeat a k) = k * queryCountOf a := by
   rw [queryCountOf, repeat_queries, repeat_adjointQueries]
@@ -281,6 +348,8 @@ theorem queryCountOf_repeat (a : Account) (k : ℕ) :
 end
 noncomputable section
 
+/-- A dynamic step's profile agrees with its singleton execution account on basic-gate and
+classical-bit counts. -/
 theorem profileOf_execution_verified (base : ℕ) (s : DynStep) :
     (profileOf s).basicGates = (account base [s]).basicGates ∧
       (profileOf s).classicalBits = (account base [s]).classicalBits := by
@@ -294,6 +363,8 @@ theorem profileOf_execution_verified (base : ℕ) (s : DynStep) :
 end
 noncomputable section
 
+/-- Splitting an account into work and peak ledgers preserves the public resource cost,
+combining forward and adjoint queries into its query field. -/
 theorem split_preserves_public_cost (a : Account) :
     (workOf a).queries + (workOf a).adjointQueries = a.toResourceCost.queries ∧
       (workOf a).macroGates = a.toResourceCost.macroGates ∧
@@ -306,6 +377,7 @@ theorem split_preserves_public_cost (a : Account) :
 end
 noncomputable section
 
+/-- The unified query count of a converted fresh ledger equals its bit-query count. -/
 theorem freshLedger_unified_query_count (l : FreshLedger) (fm pf pc : ℕ) :
     queryCountOf (l.account fm pf pc) = l.bitQueries := by
   have h := freshLedger_account_ledgers l fm pf pc
@@ -314,6 +386,8 @@ theorem freshLedger_unified_query_count (l : FreshLedger) (fm pf pc : ℕ) :
 end
 noncomputable section
 
+/-- For `M ≥ 2` and positive `s`, the local-copy ledger uses exactly `36 * n + 7` local gates
+per copy, so its local-gate count strictly exceeds its copy count. -/
 theorem uniform_reading_misreports_local (n M s : ℕ) (hM : 2 ≤ M) (hs : 0 < s) :
     (localCopyLedger n M s).localGates = (localCopyLedger n M s).copies * (36 * n + 7) ∧
       (localCopyLedger n M s).localGates > (localCopyLedger n M s).copies := by
@@ -331,6 +405,8 @@ theorem uniform_reading_misreports_local (n M s : ℕ) (hM : 2 ≤ M) (hs : 0 < 
 end
 noncomputable section
 
+/-- For `M ≥ 2`, the numeric-copy ledger uses exactly `36 * n + 4` local gates per copy, so its
+local-gate count strictly exceeds its copy count. -/
 theorem uniform_reading_misreports_numeric (n M b : ℕ) (hM : 2 ≤ M) :
     (numericCopyLedger n M b).localGates = (numericCopyLedger n M b).copies * (36 * n + 4) ∧
       (numericCopyLedger n M b).localGates > (numericCopyLedger n M b).copies := by
@@ -348,18 +424,23 @@ theorem uniform_reading_misreports_numeric (n M b : ℕ) (hM : 2 ≤ M) :
 end
 noncomputable section
 
+/-- The peak fresh-register count of sequentially composed fresh costs is the maximum of the two
+component peaks. -/
 theorem seqCost_peakFreshRegisters (a b : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) :
     (Qatlib.Concepts.FreshCopyExec.QpeConsumers.seqCost a b).peakFreshRegisters =
       max a.peakFreshRegisters b.peakFreshRegisters := rfl
 end
 noncomputable section
 
+/-- The peak clean-qubit count of sequentially composed fresh costs is the maximum of the two
+component peaks. -/
 theorem seqCost_peakCleanQubits (a b : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) :
     (Qatlib.Concepts.FreshCopyExec.QpeConsumers.seqCost a b).peakCleanQubits =
       max a.peakCleanQubits b.peakCleanQubits := rfl
 end
 noncomputable section
 
+/-- Positive repetition of a fresh cost preserves its peak fresh-register count. -/
 theorem repCost_peakFresh_succ (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) (k : ℕ) :
     (repCost c (k + 1)).peakFreshRegisters = c.peakFreshRegisters := by
   induction k with
@@ -373,6 +454,7 @@ theorem repCost_peakFresh_succ (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.C
 end
 noncomputable section
 
+/-- Positive repetition of a fresh cost preserves its peak clean-qubit count. -/
 theorem repCost_peakClean_succ (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) (k : ℕ) :
     (repCost c (k + 1)).peakCleanQubits = c.peakCleanQubits := by
   induction k with
@@ -386,6 +468,8 @@ theorem repCost_peakClean_succ (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.C
 end
 noncomputable section
 
+/-- Positive repetition of a fresh cost preserves both its peak fresh-register count and its
+peak clean-qubit count. -/
 theorem repCost_peak_succ (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) (k : ℕ) :
     (repCost c (k + 1)).peakFreshRegisters = c.peakFreshRegisters ∧
       (repCost c (k + 1)).peakCleanQubits = c.peakCleanQubits :=
@@ -393,6 +477,7 @@ theorem repCost_peak_succ (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) 
 end
 noncomputable section
 
+/-- Repeating a fresh cost `k` times multiplies its partial-swap count by `k`. -/
 theorem repCost_partialSwaps (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) (k : ℕ) :
     (repCost c k).partialSwaps = k * c.partialSwaps := by
   induction k with
@@ -404,6 +489,7 @@ theorem repCost_partialSwaps (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cos
 end
 noncomputable section
 
+/-- Repeating a fresh cost `k` times multiplies its local-gate count by `k`. -/
 theorem repCost_localGates (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost) (k : ℕ) :
     (repCost c k).localGates = k * c.localGates := by
   induction k with
@@ -415,6 +501,8 @@ theorem repCost_localGates (c : Qatlib.Concepts.FreshCopyExec.QpeConsumers.Cost)
 end
 noncomputable section
 
+/-- More than one repetition of a direct fresh-copy step consumes `s` copies but has peak
+fresh-register count one, so these counts differ. -/
 theorem fresh_copy_peak_not_copy_count (n M : ℕ) (ρ : Operator (2 ^ n)) (θ : ℝ)
     (s : ℕ) (hs : 1 < s) :
     (repCost (Qatlib.Concepts.FreshCopyExec.QpeConsumers.stepCost (@Qatlib.Concepts.FreshCopyExec.QpeConsumers.Op.direct n M ρ θ)) s).copies = s ∧
@@ -438,6 +526,8 @@ theorem fresh_copy_peak_not_copy_count (n M : ℕ) (ρ : Operator (2 ^ n)) (θ :
 end
 noncomputable section
 
+/-- The account of `s` direct fresh-copy steps has depth `3 * s` and live peak one for positive
+`s`, or zero when `s` is zero. -/
 theorem fresh_copy_account_sum_and_max (n M : ℕ) (ρ : Operator (2 ^ n)) (θ : ℝ)
     (s : ℕ) :
     (Account.ofFreshCost (repCost

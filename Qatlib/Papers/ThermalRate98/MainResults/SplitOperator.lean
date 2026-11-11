@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
 import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+/-!
+# Split propagation phases and Fourier resolution
+
+This module proves the scalar phase identities underlying the diagonal Fourier factorization of
+the split propagation kernel in [LidarWang1999]. Under the resolution relation, the two
+quadratic phases and the Fourier cross term combine into the displacement-squared phase.
+
+It also identifies the Fourier matrix entries and derives the base-two logarithmic register size
+from the resolution relation for a power-of-two dimension.
+
+## Main statements
+
+* `source_split_operator_phase_identity`: combines the quadratic and Fourier phases
+  algebraically.
+* `source_split_operator_kernel_factorization`: lifts the phase identity to complex
+  exponentials.
+* `source_qubit_count_log2`: recovers the register size from the resolution parameters.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +42,8 @@ namespace Qatlib.Papers.ThermalRate98.MainResults
 open Qatlib.Concepts.SpectralFilter.PhaseReadout (QFTMatrix primRoot
   qftMatrix_apply primRoot_zpow_eq_exp)
 
+/-- Each QFT matrix entry is the inverse square-root normalization times the positive Fourier
+phase for its two indices. -/
 theorem source_fourier_kernel_eq_qftMatrix (N : ℕ) (j j' : Fin N) :
     QFTMatrix N j j' =
       (Real.sqrt (N : ℝ) : ℂ)⁻¹ *
@@ -27,6 +53,9 @@ theorem source_fourier_kernel_eq_qftMatrix (N : ℕ) (j j' : Fin N) :
   push_cast
   ring
 
+/-- For nonzero dimension and time step satisfying the resolution relation, the two quadratic
+phases and Fourier cross term sum to the displacement-squared phase plus the potential
+phase. -/
 theorem source_split_operator_phase_identity
     (m Δx Δt N : ℝ) (hN : N ≠ 0) (hΔt : Δt ≠ 0)
     (hres : m * Δx ^ 2 / Δt = 2 * Real.pi / N)
@@ -50,6 +79,9 @@ theorem source_split_operator_phase_identity
   field_simp [hN, hΔt]
   ring
 
+/-- Under the nonzero dimension, nonzero time step, and resolution hypotheses, the product of
+the two quadratic phase exponentials and the Fourier phase equals the displacement-kernel
+phase exponential. -/
 theorem source_split_operator_kernel_factorization
     (m Δx Δt N : ℝ) (hN : N ≠ 0) (hΔt : Δt ≠ 0)
     (hres : m * Δx ^ 2 / Δt = 2 * Real.pi / N)
@@ -91,6 +123,9 @@ theorem source_split_operator_kernel_factorization
           (Complex.I * (-m * ((j : ℝ) - (j' : ℝ)) ^ 2 * Δx ^ 2 / (2 * Δt) + V * Δt)) := by
           rw [hsum]
 
+/-- For nonzero mass, grid spacing, and time step satisfying the power-of-two resolution
+relation, the base-two logarithm of `2 * π * Δt / (m * Δx²)` equals `ν`. See
+[LidarWang1999]. -/
 theorem source_qubit_count_log2
     (m Δx Δt : ℝ) (ν : ℕ) (hm : m ≠ 0) (hΔx : Δx ≠ 0) (hΔt : Δt ≠ 0)
     (hres : m * Δx ^ 2 / Δt = 2 * Real.pi / (2 : ℝ) ^ ν) :

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.DiscreteSim08.MainResults.Defs
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Three-stage fidelity error inequalities
+
+Scalar square-root inequalities combine three nonnegative error parameters. The product of the
+three factors `sqrt (1 - εi)` is bounded below by the factor for their total error, with a
+further specialization allocating `ε / 9` to each stage.
+
+This development follows [CleveEtAl2009].
+
+## Main statements
+
+* `fidelity_three_stage_composition`: a lower bound for a product of three square-root fidelity
+  factors.
+* `fidelity_error_divided_nine`: allocating `ε / 9` to each factor gives a product at least `1 -
+  ε`.
+
+## References
+
+* [Cleve et al., 2009][CleveEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +36,8 @@ noncomputable section
 
 namespace Qatlib.Papers.DiscreteSim08.MainResults
 
+/-- For three nonnegative errors with sum at most one, the product of their factors `sqrt (1 -
+εi)` is at least `sqrt (1 - (ε1 + ε2 + ε3))`. See [CleveEtAl2009]. -/
 theorem fidelity_three_stage_composition (ε1 ε2 ε3 : ℝ)
     (h1 : 0 ≤ ε1) (h2 : 0 ≤ ε2) (h3 : 0 ≤ ε3)
     (hsum : ε1 + ε2 + ε3 ≤ 1) :
@@ -31,6 +55,7 @@ theorem fidelity_three_stage_composition (ε1 ε2 ε3 : ℝ)
   nlinarith [mul_nonneg h1 h2, mul_nonneg h1 h3, mul_nonneg h2 h3,
     mul_nonneg (mul_nonneg h1 h2) h3]
 
+/-- For `0 ≤ ε ≤ 1`, the product of three copies of `sqrt (1 - ε / 9)` is at least `1 - ε`. -/
 theorem fidelity_error_divided_nine (ε : ℝ) (h0 : 0 ≤ ε) (h1 : ε ≤ 1) :
     1 - ε ≤ Real.sqrt (1 - ε / 9) * Real.sqrt (1 - ε / 9) * Real.sqrt (1 - ε / 9) := by
   have hcomp := fidelity_three_stage_composition (ε / 9) (ε / 9) (ε / 9)

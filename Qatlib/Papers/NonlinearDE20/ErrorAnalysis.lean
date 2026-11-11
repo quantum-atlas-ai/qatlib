@@ -9,6 +9,25 @@ import Mathlib.Data.Fintype.Pi
 import Mathlib.Data.Complex.Basic
 import Mathlib.Tactic
 
+/-!
+# Product marginals and conditional error accumulation
+
+Computes the first-system reduced matrix of an identical normalized product state, obtaining its
+single-factor outer product. Separately, scalar recurrence bounds propagate an assumed per-step
+error estimate to step-count and total-time budgets. See [LloydEtAl2020].
+
+## Main statements
+
+* `product_marginal_eq_outerProduct`: a normalized product state has the expected one-system
+  marginal.
+* `conditional_step_budget`: assumed one-step errors accumulate linearly in the number of steps.
+* `conditional_time_budget`: the bound can be expressed using TΔt = t.
+
+## References
+
+* [Lloyd et al., 2020][LloydEtAl2020]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,22 +37,30 @@ namespace Qatlib.Papers.NonlinearDE20.ErrorAnalysis.Conditional
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The coordinate amplitudes of the `n`-fold tensor power of `ψ`. -/
 def tensorPower (ψ : I → ℂ) (n : ℕ) : (Fin n → I) → ℂ :=
   fun v => ∏ j : Fin n, ψ (v j)
 
+/-- The product amplitude with one distinguished factor `ψ` and `n` further identical factors. -/
 def productState (ψ : I → ℂ) (n : ℕ) : I × (Fin n → I) → ℂ :=
   fun p => ψ p.1 * tensorPower ψ n p.2
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The product-state amplitude at `(a, r)` is `ψ a` times the product of the amplitudes at the
+remaining coordinates. -/
 theorem productState_apply (ψ : I → ℂ) (n : ℕ) (a : I) (r : Fin n → I) :
     productState ψ n (a, r) = ψ a * ∏ j : Fin n, ψ (r j) := rfl
 
+/-- The first-system reduced matrix entry obtained by summing the product of an amplitude and a
+conjugate amplitude over all remaining indices. -/
 def reducedFirst (n : ℕ) (Ψ : I × (Fin n → I) → ℂ) (a b : I) : ℂ :=
   ∑ r : Fin n → I, Ψ (a, r) * star (Ψ (b, r))
 
 omit [DecidableEq I] in
 
+/-- Summing the product of `g` over all length-`n` index tuples equals the `n`th power of the
+sum of `g`. -/
 theorem sum_prod_univ_pow (g : I → ℂ) (n : ℕ) :
     (∑ r : Fin n → I, ∏ j : Fin n, g (r j)) = (∑ i, g i) ^ n := by
   have h := Finset.prod_univ_sum (κ := fun _ : Fin n => I)
@@ -46,6 +73,8 @@ theorem sum_prod_univ_pow (g : I → ℂ) (n : ℕ) :
 
 omit [DecidableEq I] in
 
+/-- For a normalized factor `ψ`, the reduced first-system matrix of its identical product state
+has entry `ψ a * star (ψ b)`. See [LloydEtAl2020]. -/
 theorem product_marginal_eq_outerProduct (ψ : I → ℂ) (n : ℕ)
     (hψ : (∑ i, (Complex.normSq (ψ i) : ℂ)) = 1) (a b : I) :
     reducedFirst n (productState ψ n) a b = ψ a * star (ψ b) := by
@@ -73,6 +102,8 @@ theorem product_marginal_eq_outerProduct (ψ : I → ℂ) (n : ℕ)
     sum_prod_univ_pow (g := fun i => (Complex.normSq (ψ i) : ℂ)) n
   rw [hsum, hψ, one_pow, mul_one]
 
+/-- If an error sequence starts at zero and increases by at most `γ` at each of the first `T`
+steps, its value at `T` is at most `T * γ`. -/
 theorem accumulated_error_le (T : ℕ) {e : ℕ → ℝ} {γ : ℝ}
     (h0 : e 0 = 0) (hstep : ∀ k < T, e (k + 1) ≤ e k + γ) :
     e T ≤ (T : ℝ) * γ := by
@@ -87,6 +118,8 @@ theorem accumulated_error_le (T : ℕ) {e : ℕ → ℝ} {γ : ℝ}
         _ = ((T : ℝ) + 1) * γ := by ring
         _ = ((T + 1 : ℕ) : ℝ) * γ := by push_cast; ring
 
+/-- An error sequence starting at zero and satisfying the assumed increment bound `E2 * Δt ^ 2 *
+m ^ 2 / n` has total error at most `E2 * T * Δt ^ 2 * m ^ 2 / n`. -/
 theorem conditional_step_budget (T : ℕ) (E2 Δt m n : ℝ) (e : ℕ → ℝ)
     (h0 : e 0 = 0)
     (hstep : ∀ k < T, e (k + 1) ≤ e k + E2 * Δt ^ 2 * m ^ 2 / n) :
@@ -95,6 +128,8 @@ theorem conditional_step_budget (T : ℕ) (E2 Δt m n : ℝ) (e : ℕ → ℝ)
   calc e T ≤ (T : ℝ) * (E2 * Δt ^ 2 * m ^ 2 / n) := h
     _ = E2 * (T : ℝ) * Δt ^ 2 * m ^ 2 / n := by ring
 
+/-- Under the assumed per-step increment bound and `T * Δt = t`, the total error is at most `E2
+* t * Δt * m ^ 2 / n`. See [LloydEtAl2020]. -/
 theorem conditional_time_budget (T : ℕ) (E2 Δt t m n : ℝ) (e : ℕ → ℝ)
     (h0 : e 0 = 0)
     (hstep : ∀ k < T, e (k + 1) ≤ e k + E2 * Δt ^ 2 * m ^ 2 / n)

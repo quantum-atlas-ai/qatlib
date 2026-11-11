@@ -8,11 +8,33 @@ import Mathlib.Algebra.BigOperators.Field
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic.Module
+
+/-!
+# Resolvent identities for Grover interpolation
+
+This module develops algebraic identities for paired unitary resolvents and their symmetric
+factor. It also expands inverse overlaps in an eigenbasis and separates the fixed spectral pole
+from the remaining weighted terms.
+
+The mathematical background is developed in [Bhatia1997].
+
+## Main statements
+
+* `grover_paired_resolvent`: relates two resolvents to the inverse symmetric factor.
+* `grover_weighted_pole_split`: isolates the fixed-eigenvalue contribution.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Matrix
 namespace Qatlib.Concepts.WalkFind.GroverInterp
 
+/-- For a unitary matrix and reciprocal parameters `z` and `w`, the product of the two shifted
+factors with `star U` equals `U + star U - (z + w) • 1`. -/
 theorem grover_symmetric_factor (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (z w : ℂ)
     (hu : star U * U = 1) (hzw : w * z = 1) :
@@ -25,6 +47,8 @@ theorem grover_symmetric_factor (m : ℕ)
     smul_sub, smul_smul, hzw', one_smul, add_smul]
   module
 
+/-- Invertible resolvents at reciprocal parameters yield an invertible symmetric factor and an
+identity for their difference after multiplication by `U`. -/
 theorem grover_paired_resolvent (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (z w : ℂ)
     (hu : star U * U = 1) (hzw : w * z = 1)
@@ -68,6 +92,8 @@ theorem grover_paired_resolvent (m : ℕ)
     Matrix.mul_smul, Matrix.mul_one] at hi
   exact hi
 
+/-- The inverse quadratic form of `K` is the sum of squared eigenbasis coefficients divided by
+the corresponding eigenvalues. -/
 theorem grover_inverse_overlap_eigenbasis (m : ℕ)
     (K B : Matrix (Fin m) (Fin m) ℂ) (eig : Fin m → ℂ)
     (hB : B * star B = 1) (hK : IsUnit K)
@@ -123,6 +149,8 @@ theorem grover_inverse_overlap_eigenbasis (m : ℕ)
       dsimp only [c]
       ring
 
+/-- A unit-modulus eigenvalue `μ` of a unitary matrix induces eigenvalue `2 * (μ.re - c)` for `U
++ star U - 2 * c • 1`. -/
 theorem grover_symmetric_eigenvector (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (v : Fin m → ℂ) (μ : ℂ) (c : ℝ)
     (hu : star U * U = 1) (hμ : star μ * μ = 1)
@@ -144,6 +172,8 @@ theorem grover_symmetric_eigenvector (m : ℕ)
   rw [Matrix.sub_mulVec, Matrix.add_mulVec, Matrix.smul_mulVec,
     Matrix.one_mulVec, he, hadj, ← add_smul, ← sub_smul, hc]
 
+/-- Weights supported on fixed and nonfixed eigenvalues split the inverse-denominator sum into
+an explicit fixed pole and the remaining terms. -/
 theorem grover_weighted_pole_split (m : ℕ) (μ : Fin m → ℂ)
     (w s : Fin m → ℝ) (α c : ℝ)
     (hw : ∀ j, μ j = 1 → w j = 0) (hs : ∀ j, μ j ≠ 1 → s j = 0)
@@ -163,6 +193,8 @@ theorem grover_weighted_pole_split (m : ℕ) (μ : Fin m → ℂ)
     ← Finset.sum_div, hsum]
   ring
 
+/-- Weights supported on fixed and nonfixed eigenvalues split the squared inverse-denominator
+sum into a fixed pole and a nonfixed sum. -/
 theorem grover_weighted_pole_split_sq (m : ℕ) (μ : Fin m → ℂ)
     (w s : Fin m → ℝ) (α c : ℝ)
     (hw : ∀ j, μ j = 1 → w j = 0) (hs : ∀ j, μ j ≠ 1 → s j = 0)

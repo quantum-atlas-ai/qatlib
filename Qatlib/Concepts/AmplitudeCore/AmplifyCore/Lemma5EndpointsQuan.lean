@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5EndpointsStat
+
+/-!
+# General-phase amplitude amplification at the endpoints
+
+The phase-modified amplification iterate has explicit action on the good and
+bad components of a prepared unit vector. This proof includes success
+probabilities zero and one, where one component vanishes, and combines them
+with the interior case. The formulation uses a Hilbert basis and a closed good
+subspace, without assuming the Hilbert space is finite dimensional.
+
+The two-component identities come from [BrassardEtAl2002]; see
+[Brassard et al., Lemma 5][BrassardEtAl2002] for the general-phase formulas.
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -12,6 +25,7 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore
 
+/-- The generalized phase iterate maps the zero vector to zero. -/
 private lemma bhmt5_endpoint_iterate_zero {H : Type*} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : H ≃ₗᵢ[ℂ] H) (e₀ : H) (G : ClosedSubmodule ℂ H) (φ ϕ : ℝ) :
@@ -20,6 +34,8 @@ private lemma bhmt5_endpoint_iterate_zero {H : Type*} [NormedAddCommGroup H]
   simp only [amplitudeEstimationPhaseIterate, hp0, smul_zero, add_zero, map_zero,
     inner_zero_right, mul_zero, zero_smul, neg_zero]
 
+/-- The squared norm of the orthogonal projection of a unit vector onto a closed subspace is at
+most one. -/
 private lemma bhmt5_endpoint_norm_sq_le_one {H : Type*} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] [CompleteSpace H]
     (G : ClosedSubmodule ℂ H) (ψ : H) (hψ : ‖ψ‖ = 1) :
@@ -30,6 +46,8 @@ private lemma bhmt5_endpoint_norm_sq_le_one {H : Type*} [NormedAddCommGroup H]
   rw [pow_two]
   exact (mul_le_mul hn hn (norm_nonneg _) zero_le_one).trans_eq (mul_one 1)
 
+/-- The general-phase formulas of [Brassard et al., Lemma 5][BrassardEtAl2002]
+hold also when the good-component squared norm is zero or one. -/
 theorem lemma5_endpoints_unrestricted :
     ∀ (ι H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
       (basis : HilbertBasis ι ℂ H) (zeroIndex : ι)
@@ -174,6 +192,8 @@ theorem lemma5_endpoints_unrestricted :
     exact @zoo_amplitude_estimation_general_phase_action ι H _ _ _ basis zeroIndex A χ
       φ ϕ _hφ₀ _hφ₂π _hϕ₀ _hϕ₂π hpos hlt
 
+/-- The general phase component action satisfies `Lemma5EndpointsSpec.expected`, including zero
+and unit success probability. -/
 theorem lemma5_endpoints_unrestricted_contract :
     Lemma5EndpointsSpec.expected :=
   lemma5_endpoints_unrestricted

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSConsumers
 import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+
+/-!
+# Time-dependent LCHS windows and conditional outputs
+
+`timeDependentLchsWindowCutoff` and `timeDependentLchsWindowNodes` choose a finite quadrature
+with positive coefficient mass at most two and error at most `ε`. The compiled circuit then has
+conditional density error at most `4 * ε / τ`, weighted window success at least `1 / 8`, and
+explicit input and selection access counts under the output norm hypotheses.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `time_dependent_lchs_window_schedule_quadrature`: proves the computed quadrature guarantees.
+* `time_dependent_lchs_window_actual_conditional_output`: bounds conditional density error.
+* `time_dependent_lchs_window_success`: proves the finite-window success lower bound.
+* `time_dependent_lchs_window_actual_access_ledger`: records the compiled circuit access counts.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -31,13 +54,20 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The positive cutoff `max 1 (Nat.ceil (4 / (π * ε)))` for the time-dependent LCHS window
+schedule. -/
 noncomputable def timeDependentLchsWindowCutoff (ε : ℝ) : ℕ :=
   max 1 (Nat.ceil (4/(Real.pi*ε)))
 
+/-- The positive node count obtained by rounding the maximum of `4 * K` and `4 * K * Λ / ε`
+upward, where `K` is the prescribed window cutoff. -/
 noncomputable def timeDependentLchsWindowNodes (ε Λ : ℝ) : ℕ :=
   max 1 (Nat.ceil (max (4*(timeDependentLchsWindowCutoff ε : ℝ))
     (4*(timeDependentLchsWindowCutoff ε : ℝ)*Λ/ε)))
 
+/-- For positive `ε` and `Λ` bounding `2 / π + ∫ u in s..t, ‖L u‖`, the computed schedule has
+positive cutoff and node count, grid width at most `1 / 2`, coefficient mass in `(0, 2]`,
+and quadrature error at most `ε` [AnLiuLin2023]. -/
 theorem time_dependent_lchs_window_schedule_quadrature :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t ε Λ : ℝ), Continuous L → Continuous H →
@@ -91,6 +121,8 @@ theorem time_dependent_lchs_window_schedule_quadrature :
         (div_nonneg (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2) hKr.le) hNr.le))
     _ ≤ ε := by linarith
 
+/-- Each time-dependent LCHS window node gives a unitary ordered Hamiltonian propagator under
+the continuity and Hermiticity hypotheses. -/
 private theorem tdLchsWindow_unitary (I : Type) [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N : ℕ)
     (hL : Continuous L) (hH : Continuous H)
@@ -102,6 +134,8 @@ private theorem tdLchsWindow_unitary (I : Type) [Fintype I] [DecidableEq I]
     (by fun_prop)
     (fun u => (hHerm u).add ((hPSD u).isHermitian.smul (R := ℝ) (IsSelfAdjoint.all _))) s t
 
+/-- If the target output norm is at least `τ` and `ε ≤ τ / 2`, every positive-success compiled
+window output has normalized density trace norm error at most `4 * ε / τ` [AnLiuLin2023]. -/
 theorem time_dependent_lchs_window_actual_conditional_output :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t ε τ Λ : ℝ) (B : Matrix I I ℂ) (i₀ : I),
@@ -138,6 +172,9 @@ theorem time_dependent_lchs_window_actual_conditional_output :
     hs.2.2.2.1 (tdLchsWindow_unitary I L H s t K N hL hH hPSD hHerm)
     hB hε hτ hετ hτv hs.2.2.2.2.2).1 k
 
+/-- Under the window approximation hypotheses, the nonnegative iteration weights sum to one, the
+window has size at most `2 * α / τ + 1`, and weighted success is at least `1 / 8`
+[AnLiuLin2023]. -/
 theorem time_dependent_lchs_window_success :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t ε τ Λ : ℝ) (B : Matrix I I ℂ) (i₀ : I),
@@ -179,6 +216,9 @@ theorem time_dependent_lchs_window_success :
     hs.2.2.2.1 (tdLchsWindow_unitary I L H s t K N hL hH hPSD hHerm)
     hB hε hτ hετ hτv hs.2.2.2.2.2).2
 
+/-- The time-dependent compiled circuit is unitary with exact query, forward and backward input,
+selection, and word-length counts; every window index uses at most `2 * m + 1` input
+accesses and selection accesses [AnLiuLin2023]. -/
 theorem time_dependent_lchs_window_actual_access_ledger :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t ε τ Λ : ℝ) (B : Matrix I I ℂ) (i₀ : I),

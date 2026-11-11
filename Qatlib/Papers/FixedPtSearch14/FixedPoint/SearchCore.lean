@@ -16,6 +16,31 @@ import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+
+/-!
+# Relative estimation grids and search comparisons
+
+This module verifies the refined relative-estimation grid and resource interfaces used in the
+fixed-point-search development [YoderLowChuang2014]. It proves error and promise bounds, median
+witnesses, and the exact sinusoidal response of phase-mark amplitude amplification.
+
+The workspace-search results compare the implemented bit-kickback circuit with a lower-bound
+record, including matching access models and equal sensitivity parameters.
+
+## Main statements
+
+* `relative_ae_tight_relative_error`: Relative accuracy on the selected tight grid.
+* `phase_mark_peak_success`: Success at the floor-selected amplification peak.
+* `clause25_actual_program_is_a_bounded_error_decoder`: Success probability at least `2/3` for
+  the workspace decoder.
+* `clause25_actual_circuit_is_within_a_constant_of_optimal`: Query bounds for the actual
+  bit-model circuit.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -40,6 +65,7 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The tight relative grid has size at least two for `0 < a₀ ≤ 1` and `ε > 0`. -/
 theorem tight_relative_grid_two (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hε : 0 < ε) : 2 ≤ tightRelativeGrid a₀ ε := by
   have harg : 0 < tightGridArgument a₀ ε := by
@@ -64,6 +90,7 @@ theorem tight_relative_grid_two (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a�
   simp only [tightRelativeGrid]
   omega
 
+/-- The tight grid makes the relative sampling error at most `ε` for `0 < a₀ ≤ 1` and `ε > 0`. -/
 theorem tight_relative_grid_sampling_error (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hε : 0 < ε) :
     relativeAESamplingError (tightRelativeGrid a₀ ε) a₀ ≤ ε := by
@@ -112,6 +139,8 @@ theorem tight_relative_grid_sampling_error (a₀ ε : ℝ) (ha₀ : 0 < a₀) (h
   unfold relativeAESamplingError
   linarith
 
+/-- When the marked mass is at least `a₀ > 0`, ideal amplitude estimation on the tight grid has
+relative error at most `ε` with probability at least `8 / π²`. -/
 theorem relative_ae_tight_relative_error (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hε : 0 < ε) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -144,6 +173,8 @@ theorem relative_ae_tight_relative_error (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha�
     (fun z _ _ => (aeLaw (tightRelativeGrid a₀ ε) A j S hA hM2).nonneg z)
   exact hkey.2.trans hmass
 
+/-- For `M ≥ 4`, a record within the BHMT error window yields a refined promise bounded above by
+the true mass, provided the original promise is valid. -/
 theorem refined_promise_valid (M : ℕ) (hM : 4 ≤ M) (a₀ a : ℝ)
     (ha0 : 0 ≤ a) (ha1 : a ≤ 1) (ha : a₀ ≤ a) (z : Fin M)
     (hz : |aeEstimate M z - a|
@@ -195,11 +226,14 @@ theorem refined_promise_valid (M : ℕ) (hM : 4 ≤ M) (a₀ a : ℝ)
   simp only [refinedPromise]
   exact max_le ha (by linarith)
 
+/-- The refined promise is at least the original lower bound `a₀`. -/
 theorem refined_promise_monotone (M : ℕ) (a₀ : ℝ) (z : Fin M) :
     a₀ ≤ refinedPromise M a₀ z := by
   simp only [refinedPromise]
   exact le_max_left _ _
 
+/-- Increasing a positive lower bound within the unit interval cannot increase the tight
+relative grid size. -/
 theorem tight_grid_decreasing_in_promise (a₀ a₁ ε : ℝ) (ha₀ : 0 < a₀)
     (ha₀1 : a₀ ≤ 1) (ha₁ : 0 < a₁) (ha₁1 : a₁ ≤ 1) (hε : 0 < ε)
     (hle : a₀ ≤ a₁) :
@@ -243,6 +277,8 @@ theorem tight_grid_decreasing_in_promise (a₀ a₁ ε : ℝ) (ha₀ : 0 < a₀)
   simp only [tightRelativeGrid]
   omega
 
+/-- For positive `M`, the actual circuit has `M - 1` queries, `5 * (M - 1) + 3` gates, `2 * (M -
+1) + 1` input accesses, and `M - 1` source reflections. -/
 theorem ae_cost_ledger_actual (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     QueryCount (countedAECircuit M A j) = M - 1 ∧
     GateCount (countedAECircuit M A j) = 5 * (M - 1) + 3 ∧
@@ -250,6 +286,7 @@ theorem ae_cost_ledger_actual (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I
     aeSourceReflections (aeAccessWord (I := I) M) = M - 1 :=
   prepared_ae_access_ledger M hM A j
 
+/-- On the tight grid, the unified relative error is at most `ε + 2⁻ᵏ / a₀`. -/
 theorem relative_endpoint_unified_error (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hε : 0 < ε) (k : ℕ) :
     relativeAEError (tightRelativeGrid a₀ ε) k a₀ ≤ ε + ((2 : ℝ)⁻¹) ^ k / a₀ := by
@@ -258,6 +295,8 @@ theorem relative_endpoint_unified_error (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha�
   unfold relativeAEError
   linarith
 
+/-- If the decoding contribution is at most `ε / 2`, the tight-grid unified error is at most `3
+* ε / 2`. -/
 theorem relative_endpoint_decode_precision (a₀ ε : ℝ) (ha₀ : 0 < a₀) (ha₀1 : a₀ ≤ 1)
     (hε : 0 < ε) (k : ℕ) (hk : ((2 : ℝ)⁻¹) ^ k / a₀ ≤ ε / 2) :
     relativeAEError (tightRelativeGrid a₀ ε) k a₀ ≤ 3 * ε / 2 := by
@@ -267,6 +306,7 @@ theorem relative_endpoint_decode_precision (a₀ ε : ℝ) (ha₀ : 0 < a₀) (h
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Clipping about `μ` with positive radius `τ` gives absolute payoff at most `|μ| + τ`. -/
 theorem truncated_centred_payoff_bounded (f : I → ℝ) (μ τ : ℝ) (hτ : 0 < τ) (i : I) :
     |truncatedCentredPayoff f μ τ i| ≤ |μ| + τ := by
   have hc := Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip_bound τ (f i - μ) hτ.le
@@ -289,10 +329,13 @@ theorem truncated_centred_payoff_bounded (f : I → ℝ) (μ τ : ℝ) (hτ : 0 
         exact htri
     _ ≤ |μ| + τ := by linarith
 
+/-- A variance-only endpoint carries a nonnegative variance parameter and a positive scale. -/
 theorem variance_only_endpoint_scale (e : VarianceOnlyEndpoint) :
     0 ≤ e.V ∧ 0 < e.σ := by
   exact ⟨e.V_nonneg, e.σ_pos⟩
 
+/-- At a source value and two layer records, the signed-mean probability is the Born probability
+times the conditional positive and negative layer probabilities. -/
 theorem variance_only_actual_joint_law (I : Type) [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (σ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (x : I) (u v : LayerRecord k) :
@@ -303,22 +346,29 @@ theorem variance_only_actual_joint_law (I : Type) [Fintype I] [DecidableEq I]
 
 omit [Fintype I] in
 
+/-- A compiled amplitude-estimation round has one query and length `aeRoundLength`. -/
 theorem ae_round_is_atomic (M : ℕ) (A : Matrix I I ℂ) (j : I) (k : ℕ) :
     QueryCount (compiledRound M A j k) = 1 ∧
     (compiledRound M A j k).length = aeRoundLength :=
   compiledRound_single_query M A j k
 
+/-- For positive `M`, the counted circuit has `M - 1` queries and its access word has `M - 1`
+source reflections. -/
 theorem ae_program_interrupt_points (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     QueryCount (countedAECircuit M A j) = M - 1 ∧
     aeSourceReflections (aeAccessWord (I := I) M) = M - 1 := by
   have h := prepared_ae_access_ledger M hM A j
   exact ⟨h.1, h.2.2.2⟩
 
+/-- For positive `M`, every preparation matrix and initial basis label yield a counted circuit
+with `M - 1` queries. -/
 theorem ae_access_model_is_phase_mark (M : ℕ) (hM : 0 < M) :
     ∀ (A : Matrix I I ℂ) (j : I), QueryCount (countedAECircuit M A j) = M - 1 := by
   intro A j
   exact (prepared_ae_access_ledger M hM A j).1
 
+/-- If the median of `2 * r + 1` decoded estimates has error greater than a nonnegative `ε`, at
+least `r + 1` individual estimates have error greater than `ε`. -/
 theorem multi_layer_median_majority_witness (M k r : ℕ) (ω : Fin (2 * r + 1) → Fin M)
     (a ε : ℝ) (hε : 0 ≤ ε)
     (hmed : ε < |multiLayerMedian M k r ω - a|) :
@@ -327,6 +377,7 @@ theorem multi_layer_median_majority_witness (M k r : ℕ) (ω : Fin (2 * r + 1) 
   exact heterogeneous_sorted_median_majority_witness r
     (fun l => (nativeAEDecode M k (ω l) : ℝ)) a ε hε hmed
 
+/-- The readout list has one entry per layer and the assigned oracle cost is `L * (M - 1)`. -/
 theorem multi_layer_ledger_cost (M k L : ℕ) (ω : Fin L → Fin M) :
     (multiLayerReadout M k L ω).length = L ∧
     multiLayerOracleCalls L M = L * (M - 1) := by
@@ -334,6 +385,8 @@ theorem multi_layer_ledger_cost (M k L : ℕ) (ω : Fin L → Fin M) :
   · simp [multiLayerReadout]
   · rfl
 
+/-- For a unitary preparation with marked mass `sin² θ` and `0 < θ < π/2`, `k` phase-mark
+amplification rounds have success probability `sin² ((2k + 1)θ)`. -/
 theorem phase_mark_success_exact (A : Matrix I I ℂ) (j : I) (S : Finset I) (θ : ℝ) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (hp : MeasureProb (preparedAAState A j) S = (Real.sin θ) ^ 2) :
@@ -341,6 +394,8 @@ theorem phase_mark_success_exact (A : Matrix I I ℂ) (j : I) (S : Finset I) (θ
       = (Real.sin ((2 * (k : ℝ) + 1) * θ)) ^ 2 :=
   prepared_aa_born_success A j S θ k hA hθ0 hθ1 hp
 
+/-- For nonnegative `δ`, success probability at least `1 - δ` is equivalent to `|cos ((2k +
+1)θ)| ≤ √δ` under the stated preparation and angle hypotheses. -/
 theorem phase_mark_success_characterisation (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (θ : ℝ) (k : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hθ0 : 0 < θ)
     (hθ1 : θ < Real.pi / 2)
@@ -375,6 +430,7 @@ theorem phase_mark_success_characterisation (A : Matrix I I ℂ) (j : I) (S : Fi
       exact h1
   exact hstep.trans hstep2
 
+/-- For positive `θ`, the floor-selected peak rounds satisfy `4kθ ≤ π < 4(k + 1)θ`. -/
 theorem phase_mark_peak_rounds_bound (θ : ℝ) (hθ : 0 < θ) :
     4 * (phaseMarkPeakRounds θ : ℝ) * θ ≤ Real.pi ∧
     Real.pi < 4 * ((phaseMarkPeakRounds θ : ℝ) + 1) * θ := by
@@ -389,6 +445,8 @@ theorem phase_mark_peak_rounds_bound (θ : ℝ) (hθ : 0 < θ) :
   · have hmul := (div_lt_iff₀ hθ').1 h2
     linarith
 
+/-- At the floor-selected peak, phase-mark amplitude amplification succeeds with probability at
+least `1 - sin² θ` under the stated preparation and angle hypotheses. -/
 theorem phase_mark_peak_success (A : Matrix I I ℂ) (j : I) (S : Finset I) (θ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (hp : MeasureProb (preparedAAState A j) S = (Real.sin θ) ^ 2) :
@@ -430,9 +488,11 @@ theorem phase_mark_peak_success (A : Matrix I I ℂ) (j : I) (S : Finset I) (θ 
   rw [abs_le]
   exact ⟨hlow', hupp'⟩
 
+/-- The table-loading bit count is the number of rows times their width. -/
 theorem table_load_bits (t : DatabaseTable) :
     tableLoadBits t = t.rows * t.width := rfl
 
+/-- The scan ledger has bit cost `(2 * rows - 1) * width` and space count `width + rows`. -/
 theorem database_access_cost (t : DatabaseTable) :
     ComparisonLedger.bitCost (linearScanMinimum t).2 t.width
         = (2 * t.rows - 1) * t.width ∧
@@ -442,6 +502,8 @@ theorem database_access_cost (t : DatabaseTable) :
   · simp only [ComparisonLedger.spaceBits]
     rw [(linear_scan_ledger t).1]
 
+/-- For a table with at least one row, the table-loading bit count is bounded above by the
+scan-ledger bit cost. -/
 theorem table_load_dominates (t : DatabaseTable) (hrows : 1 ≤ t.rows) :
     tableLoadBits t ≤ ComparisonLedger.bitCost (linearScanMinimum t).2 t.width := by
   have h := (linear_scan_ledger t)
@@ -453,6 +515,7 @@ theorem table_load_dominates (t : DatabaseTable) (hrows : 1 ≤ t.rows) :
       _ = t.rows + (t.rows - 1) := by omega
   exact mul_le_mul_of_nonneg_right hkey2 (Nat.zero_le t.width)
 
+/-- The event where the workspace decoder returns `some x` is exactly the query fiber at `x`. -/
 theorem clause25_decoder_event_is_the_query_fiber {n : ℕ} {W : Type} [Fintype W]
     [DecidableEq W] (x : Reg n) :
     (Finset.univ : Finset ((Reg n × Bool) × W)).filter
@@ -460,6 +523,8 @@ theorem clause25_decoder_event_is_the_query_fiber {n : ℕ} {W : Type} [Fintype 
   ext p
   simp [workspaceDataDecoder, workspaceQueryFiber, Option.some.injEq]
 
+/-- For at least two data bits, the workspace Grover circuit decodes the unique marked string
+with probability at least `2/3`. -/
 theorem clause25_actual_program_is_a_bounded_error_decoder {n : ℕ} {W : Type} [Fintype W]
     [DecidableEq W] (w : W) (x : Reg n) (hn : 2 ≤ n) :
     MeasureProb
@@ -494,6 +559,8 @@ theorem clause25_actual_program_is_a_bounded_error_decoder {n : ℕ} {W : Type} 
         one_div_le_one_div_of_le (by norm_num) (by linarith)
       linarith
 
+/-- For at least three data bits, the data-register cardinality is at most `64` times the square
+of the implemented Grover query count. -/
 theorem clause25_actual_circuit_meets_the_lower_bound {n : ℕ} {W : Type} [Fintype W]
     [DecidableEq W] (w : W) (hn : 3 ≤ n) :
     (Fintype.card (Reg n) : ℝ) ≤
@@ -512,6 +579,8 @@ theorem clause25_actual_circuit_meets_the_lower_bound {n : ℕ} {W : Type} [Fint
   · intro x
     exact clause25_actual_program_is_a_bounded_error_decoder w x (by omega)
 
+/-- For at least three data bits, the actual Grover query count lies between the bit-model
+lower-bound record and `π * √N / 4`, where `N` is the data-register cardinality. -/
 theorem clause25_actual_circuit_is_within_a_constant_of_optimal {n : ℕ} {W : Type}
     [Fintype W] [DecidableEq W] (w : W) (hn : 3 ≤ n) :
     (bitModelMinimalComplexity (Fintype.card (Reg n))).queries ≤
@@ -537,17 +606,23 @@ theorem clause25_actual_circuit_is_within_a_constant_of_optimal {n : ℕ} {W : T
     linarith
   · exact hupper
 
+/-- The actual bit-model complexity record and its lower-bound record have matching access
+models. -/
 theorem clause25_the_comparison_is_well_formed (n : ℕ) :
     matchedModel (bitModelActualComplexity n).model
       (bitModelMinimalComplexity (Fintype.card (Reg n))).model := by
   simp [matchedModel, bitModelActualComplexity, minimalComplexityOf,
     bitModelProgramComplexity, bitModelMinimalComplexity]
 
+/-- The phase-mark complexity record and the actual bit-kickback complexity record have
+incompatible access models. -/
 theorem clause25_cross_model_comparison_is_not_well_formed (n : ℕ) (k : ℕ) (θ : ℝ) :
     ¬ matchedModel (phaseMarkComplexity k θ).model (bitModelActualComplexity n).model := by
   simp [matchedModel, phaseMarkComplexity, bitModelActualComplexity, minimalComplexityOf,
     bitModelProgramComplexity]
 
+/-- For at least two data bits, both the actual and lower-bound bit-model records have
+sensitivity `bitModelSensitivity` at the data-register cardinality. -/
 theorem clause25_both_records_carry_the_same_sensitivity (n : ℕ) (hn : 2 ≤ n) :
     (bitModelActualComplexity n).sensitivity = bitModelSensitivity (Fintype.card (Reg n)) ∧
     (bitModelMinimalComplexity (Fintype.card (Reg n))).sensitivity

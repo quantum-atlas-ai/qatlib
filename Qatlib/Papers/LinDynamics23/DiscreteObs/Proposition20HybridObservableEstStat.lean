@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasStat
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableEstDefs
+
+/-!
+# Hybrid observable estimation statement
+
+`Proposition20HybridObservableEstimation` specifies a coefficient-mass-scaled median-of-means
+estimator for the real reconstructed observable. It combines a deterministic bias allowance of
+`ε / 2` with explicit sample and group lower bounds to require failure probability at most `δ`.
+See [AnChildsLin2026] for the paper context.
+
+## Main statements
+
+* `Proposition20HybridObservableEstimation`: The proposition that the scaled hybrid
+  median-of-means estimator has error greater than `ε` with probability at most `δ`, given bias
+  at most `ε / 2`, group size at least `16 * γ ^ 4 * ‖O‖ ^ 2 / ε ^ 2`, and the stated
+  logarithmic number of groups.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +56,9 @@ variable {N : ℕ}
 
 end Estimation
 
+/-- The proposition that the scaled hybrid median-of-means estimator has error greater than `ε`
+with probability at most `δ`, given bias at most `ε / 2`, group size at least `16 * γ ^ 4 *
+‖O‖ ^ 2 / ε ^ 2`, and the stated logarithmic number of groups. -/
 def Proposition20HybridObservableEstimation : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (W : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (i₀ : I)

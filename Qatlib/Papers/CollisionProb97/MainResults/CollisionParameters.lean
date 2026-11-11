@@ -8,6 +8,32 @@ import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
 import Qatlib.Papers.CollisionProb97.MainResults.Theorem2RToOne
 import Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
 import Qatlib.Papers.CollisionProb97.MainResults.InputSelection
+
+/-!
+# Image-size parameters for collision finding
+
+This module rewrites the collision query bound in terms of the image cardinality and selects a
+concrete integer cube-root table size. The results apply to the regular collision algorithm of
+[BrassardHoyerTapp1998Collision].
+
+The theorem `cube_root_algorithm` supplies a nonempty selected table together with its exact
+cardinality and an explicit cube-root expected-cost bound.
+
+## Main statements
+
+* `image_card_quotient`: For a positive regular fiber size, the image cardinality is the domain
+  cardinality divided by `r` [BrassardHoyerTapp1998Collision].
+* `run_expected_image`: Bounds the expected collision cost by the table size plus `(1 + 4 *
+  SourcePhaseConstant l) * sqrt 2 * sqrt (|image F| / K.card)` [BrassardHoyerTapp1998Collision].
+* `cube_root_algorithm`: Selects a nonempty table of size `Nat.nthRoot 3 |image F|` and proves
+  the stated explicit expected-cost bound proportional to the real cube root of the image size,
+  as in [BrassardHoyerTapp1998Collision].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,11 +49,15 @@ variable {X R : Type} [Fintype X] [DecidableEq X] [Nonempty X]
 
 omit [Nonempty X] [AddCommGroup R] in
 
+/-- For a positive regular fiber size, the image cardinality is the domain cardinality divided
+by `r` [BrassardHoyerTapp1998Collision]. -/
 theorem image_card_quotient (F : X → R) (r : ℕ) (hr : 0 < r) (hF : RToOne F r) :
     (Finset.univ.image F).card = Fintype.card X/r := by
   rw [card_eq_image_card_mul F r hF]
   simp [hr.ne']
 
+/-- Bounds the expected collision cost by the table size plus `(1 + 4 * SourcePhaseConstant l) *
+sqrt 2 * sqrt (|image F| / K.card)` [BrassardHoyerTapp1998Collision]. -/
 theorem run_expected_image (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
     (K : Finset X) (hK : K.Nonempty) (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3) :
     expectedCost (CollisionExecution.run F r hr hF K hK l hl hl4) ≤
@@ -63,6 +93,9 @@ theorem run_expected_image (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F
       rw [Nat.cast_mul, Nat.cast_sub hr1, Nat.cast_one]
       simpa only [mul_assoc] using mul_le_mul_of_nonneg_left hs hg
 
+/-- Selects a nonempty table of size `Nat.nthRoot 3 |image F|` and proves the stated explicit
+expected-cost bound proportional to the real cube root of the image size, as in
+[BrassardHoyerTapp1998Collision]. -/
 theorem cube_root_algorithm (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
     (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3) :
     ∃ (K : Finset X) (hK : K.Nonempty),

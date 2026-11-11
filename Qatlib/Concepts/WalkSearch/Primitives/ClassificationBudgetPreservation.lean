@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetRun
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBounds
+
+/-!
+# Preservation under classification budgets
+
+Defines the worst-case reservation for a classification run and proves that a sufficient budget
+preserves its full result without timeout. In particular, the corrected source budget suffices
+when the complete scan's tests are correct, connecting query accounting with the graph-search
+setting of [Ambainis2005].
+
+## Main statements
+
+* `classifyScanBudgeted_preserves`: If the reservation of the ordinary scan fits the budget and
+  `n > 0`, the budgeted scan returns exactly the same classification result with `timedOut =
+  false`.
+* `classifyScanBudgeted_correct_execution`: With correct complete-scan tests and positive `n`,
+  `dLo`, and `τ`, the corrected classification budget yields the ordinary scan result without
+  timeout.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,9 +40,13 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The reserved query count for a classification run: its test count times `K * c`, plus its
+high-branch count times `n + neighborhoodFee n sgs`. -/
 def classificationReservation (sgs : SGSExecution) (K c : ℕ) (r : ClassificationRun n) : ℕ :=
   r.tests*K*c+r.highs*(n+neighborhoodFee n sgs)
 
+/-- If the reservation of the ordinary scan fits the budget and `n > 0`, the budgeted scan
+returns exactly the same classification result with `timedOut = false`. -/
 theorem classifyScanBudgeted_preserves (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) (budget : ℕ) (hn : 0<n)
@@ -73,6 +100,8 @@ theorem classifyScanBudgeted_preserves (G : UGraph n) (sgs : SGSExecution) (τ K
           rw [if_pos htest,if_neg hl,if_pos hhigh,ih _ _ hrest]
           simp only [if_neg hl]
 
+/-- For a complete scan with correct tests and positive `n`, `dLo`, and `τ`, its reservation is
+at most the corrected classification budget. -/
 theorem classifyScan_source_reservation (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (S : SymmetricPairSet n) (hn : 0<n) (hdLo : 0<dLo) (hτ : 0<τ)
@@ -88,6 +117,8 @@ theorem classifyScan_source_reservation (G : UGraph n) (sgs : SGSExecution) (τ 
   dsimp only [classificationReservation,classifyBudgetCorrected,neighborhoodFee] at *
   nlinarith
 
+/-- With correct complete-scan tests and positive `n`, `dLo`, and `τ`, the corrected
+classification budget yields the ordinary scan result without timeout. -/
 theorem classifyScanBudgeted_correct_execution (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (S : SymmetricPairSet n) (hn : 0<n) (hdLo : 0<dLo) (hτ : 0<τ)

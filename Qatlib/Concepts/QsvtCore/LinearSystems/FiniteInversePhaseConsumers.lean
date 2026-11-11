@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
+
+/-!
+# Solution states from finite inverse phase programs
+
+This module applies `finiteInverseWord` to minimum norm and least squares solution states. It
+proves exact zero output on the adjoint kernel and gives success, precision, and circuit count
+bounds for exact and noisy unitary oracle access. The mathematical background is developed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `computed_inverse_actual_minimum_norm_solver`: the exact oracle minimum norm solution
+  guarantee.
+* `computed_inverse_actual_least_squares_and_zero`: least squares output and zero overlap
+  behavior.
+* `computed_inverse_actual_noisy_solver`: the noisy oracle solution guarantee.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -39,6 +61,7 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomia
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For positive `n`, the square of the rational inverse scale is at least `1 / (16 * n)`. -/
 theorem nativeInverseScale_square_lower (n : ℕ) (hn : 0 < n) : 1/(16*(n:ℝ)) ≤ (nativeInverseScale n:ℝ)^2 := by
   have hc := (nativeInverseScale_bounds n hn).2.1
   have hs := pow_le_pow_left₀ (show 0 ≤ 1/(4*Real.sqrt (n:ℝ)) by positivity) hc 2
@@ -48,9 +71,13 @@ theorem nativeInverseScale_square_lower (n : ℕ) (hn : 0 < n) : 1/(16*(n:ℝ)) 
   rw [he] at hs
   exact hs
 
+/-- The precision `(1 / 2) ^ k` is positive and at most one for every natural `k`. -/
 theorem inverse_precision_interval (k : ℕ) : 0 < (1/2:ℝ)^k ∧ (1/2:ℝ)^k ≤ 1 :=
   ⟨by positivity,pow_le_one₀ (by norm_num) (by norm_num)⟩
 
+/-- Under a positive inverse gap and for a normalized input in the range, the finite inverse
+word yields solution state error at most `2⁻ᵏ`, success probability at least `1 / (64 * n)`,
+and the stated query and gate counts; see [GilyenSuLowWiebe2019]. -/
 theorem computed_inverse_actual_minimum_norm_solver : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (kappa k : ℕ) (b : QState O),
@@ -96,6 +123,8 @@ theorem computed_inverse_actual_minimum_norm_solver : ∀ (H I O : Type) [Fintyp
   rw [herr] at hspec
   exact hspec
 
+/-- The left singular columns factor as `A` times the right singular basis columns times the
+diagonal of reciprocal singular values. -/
 theorem inverse_left_columns_factor {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) : leftSingularColumns A = A*basisColumns (rightSingularBasis A)*
       Matrix.diagonal (fun i : Fin (Fintype.card I) => (matrixSingularValues A i:ℂ)⁻¹) := by
@@ -105,6 +134,7 @@ theorem inverse_left_columns_factor {I O : Type} [Fintype I] [DecidableEq I] [Fi
     (A.toEuclideanLin (rightSingularBasis A i)) o*(matrixSingularValues A i:ℂ)⁻¹
   simp only [PiLp.smul_apply,smul_eq_mul,mul_comm]
 
+/-- The adjoint of every odd singular transform of `A` vanishes on the kernel of `Aᴴ`. -/
 theorem inverse_odd_adjoint_kernel {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (f : ℝ → ℂ) (b : QState O) (hb : Aᴴ*ᵥb = 0) :
     (oddSingularTransform A f)ᴴ*ᵥb = 0 := by
@@ -112,6 +142,7 @@ theorem inverse_odd_adjoint_kernel {I O : Type} [Fintype I] [DecidableEq I] [Fin
   rw [inverse_left_columns_factor]
   simp only [Matrix.conjTranspose_mul,← Matrix.mulVec_mulVec,hb,Matrix.mulVec_zero]
 
+/-- Zero least squares overlap implies that the input lies in the kernel of `Aᴴ`. -/
 theorem inverse_overlap_zero_kernel {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (b : QState O) (ht : leastSquaresOverlap A b = 0) : Aᴴ*ᵥb = 0 := by
   have hx := (leastSquares_overlap_and_zero A b).2.1.mp ht
@@ -119,6 +150,8 @@ theorem inverse_overlap_zero_kernel {I O : Type} [Fintype I] [DecidableEq I] [Fi
   rw [hx,Matrix.mulVec_zero,zero_sub,Matrix.mulVec_neg] at hn
   exact neg_eq_zero.mp hn
 
+/-- On the kernel of `Aᴴ`, the computed finite inverse circuit has zero postselection vector and
+probability, and its postselection output is `none`. -/
 theorem computed_inverse_actual_kernel_zero
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -151,6 +184,9 @@ theorem computed_inverse_actual_kernel_zero
   · rw [postselectionOutput, hv]
     exact (conditionalState_eq_none_iff (0 : QState I)).mpr rfl
 
+/-- When `2⁻ᵏ < 2 * τ`, the finite inverse circuit produces a least squares solution state
+within `2⁻ᵏ / τ` with the stated probability bound; for zero overlap it has zero probability
+and no output. Here `τ` is the least squares overlap; see [GilyenSuLowWiebe2019]. -/
 theorem computed_inverse_actual_least_squares_and_zero : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (kappa k : ℕ) (b : QState O),
@@ -204,6 +240,9 @@ theorem computed_inverse_actual_least_squares_and_zero : ∀ (H I O : Type) [Fin
     exact (computed_inverse_actual_kernel_zero H I O A U L R kappa k b henc hkappa
       (inverse_overlap_zero_kernel A b ht)).2
 
+/-- Under the stated unitary oracle noise threshold, the finite inverse word gives a scaled
+pseudoinverse encoding and a minimum norm solution state within `(3 / 2) * 2⁻ᵏ`, with
+probability at least `1 / (256 * n)` and explicit counts; see [GilyenSuLowWiebe2019]. -/
 theorem computed_inverse_actual_noisy_solver : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U V : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (kappa k : ℕ) (b : QState O),

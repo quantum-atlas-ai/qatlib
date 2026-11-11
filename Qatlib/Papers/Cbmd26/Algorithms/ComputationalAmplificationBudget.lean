@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBridge
+
+/-!
+# Explicit budgets for computational amplification
+
+The predicate `BudgetedComputationalAmplificationResult` repackages computational workspace
+amplification using user-supplied input and data query budgets. Enlarging the established
+expected bounds also supplies per-choice bounds four times the respective budgets. These results
+support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `BudgetedComputationalAmplificationResult`: records amplification with budgets `R` and `Q`.
+* `computationalAmplificationResult_budget`: transfers an existing amplification result to
+  larger budgets.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,6 +69,9 @@ open scoped Matrix.Norms.L2Operator ENNReal
 variable {W Aux I : Type} [Fintype W] [DecidableEq W] [Fintype Aux] [DecidableEq Aux]
   [Fintype I] [DecidableEq I]
 
+/-- Records computational-event amplification with expected input and data query budgets `R` and
+`Q`, per-choice budgets `4 * R` and `4 * Q`, and the heralding and normalized output
+guarantees. -/
 def BudgetedComputationalAmplificationResult (e : W ≃ Aux × I) (a₀ : Aux)
     (O : Matrix W W ℂ) (cs : List (AdjointStep W)) (B : Matrix I I ℂ)
     (i₀ : I) (ψ : QState I) (target : Matrix I I ℂ) (ε η R Q : ℝ) : Prop :=
@@ -87,6 +110,8 @@ def BudgetedComputationalAmplificationResult (e : W ≃ Aux × I) (a₀ : Aux)
 
 omit [Fintype Aux] in
 
+/-- An existing computational amplification result satisfies the budgeted result whenever `R`
+and `Q` dominate its established query bounds. -/
 theorem computationalAmplificationResult_budget (e : W ≃ Aux × I) (a₀ : Aux)
     (O : Matrix W W ℂ) (cs : List (AdjointStep W)) (B : Matrix I I ℂ)
     (i₀ : I) (ψ : QState I) (target : Matrix I I ℂ) (ε η R Q : ℝ)

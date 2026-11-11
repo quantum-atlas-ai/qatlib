@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMatchingFlow05.SearchTools.Defs
+
+/-!
+# Resource inequalities for general matching
+
+This module supplies the cost aggregation inequalities associated with the general-matching
+analysis in Theorem 4 of [AmbainisSpalek2006]. Nonnegative degree, exploration, and blossom
+quantities with bounded sums control the even-vertex search expression.
+
+The remaining results multiply supplied per-path budgets by `n` to obtain adjacency-model and
+list-model bounds, using elementary square-root and real-power identities.
+
+## Main statements
+
+* `theorem4_evenVertexSearchCost`: a bound on the summed even-vertex search costs.
+* `theorem4_adjacency`: the total budget from an adjacency per-path bound.
+* `theorem4_list`: the total budget from a list per-path bound.
+
+## References
+
+* [Ambainis and Špalek, 2006][AmbainisSpalek2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,10 +38,12 @@ namespace Qatlib.Papers.QMatchingFlow05.BlossomMatch
 
 open Qatlib.Papers.QMatchingFlow05.SearchTools
 
+/-- For natural `n > 0`, the square root of `m / n` equals `√m / √n`. -/
 theorem sqrt_div_eq (n m : ℕ) (_hn : 0 < n) :
     Real.sqrt ((m : ℝ) / (n : ℝ)) = Real.sqrt (m : ℝ) / Real.sqrt (n : ℝ) :=
   Real.sqrt_div (Nat.cast_nonneg m) (n : ℝ)
 
+/-- For natural `n > 0`, one has `n * √(m / n) = √(n * m)`. -/
 theorem n_mul_sqrt_div (n m : ℕ) (hn : 0 < n) :
     (n : ℝ) * Real.sqrt ((m : ℝ) / (n : ℝ)) = Real.sqrt ((n : ℝ) * (m : ℝ)) := by
   have hn' : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hn
@@ -33,6 +57,7 @@ theorem n_mul_sqrt_div (n m : ℕ) (hn : 0 < n) :
         field_simp
     _ = Real.sqrt ((n : ℝ) * (m : ℝ)) := (Real.sqrt_mul hn'.le (m : ℝ)).symm
 
+/-- For natural `n`, one has `n * n ^ (3 / 2) = n ^ (5 / 2)`. -/
 theorem n_mul_rpow_three_halves (n : ℕ) :
     (n : ℝ) * (n : ℝ) ^ ((3 : ℝ) / 2) = (n : ℝ) ^ ((5 : ℝ) / 2) := by
   rcases Nat.eq_zero_or_pos n with h | h
@@ -45,6 +70,9 @@ theorem n_mul_rpow_three_halves (n : ℕ) :
           (Real.rpow_add hn (1 : ℝ) ((3 : ℝ) / 2)).symm
       _ = (n : ℝ) ^ ((5 : ℝ) / 2) := by norm_num
 
+/-- For nonnegative `c`, the stated cardinality and sum bounds on `dV`, `eV`, and `bV` bound the
+total even-vertex search expression by `C * c * √(n * m)` for some positive `C`. See
+[AmbainisSpalek2006]. -/
 theorem theorem4_evenVertexSearchCost (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (k n m : ℕ) (dV eV bV : Fin k → ℝ),
       k ≤ n → k ≤ m →
@@ -126,6 +154,9 @@ theorem theorem4_evenVertexSearchCost (c : ℝ) (hc : 0 ≤ c) :
         rw [hnm]
         nlinarith [mul_nonneg hc hR]
 
+/-- A nonnegative per-path cost bounded by `c * n ^ (3 / 2) * logFactor n` gives a total `n *
+perPath` bounded by `C * n ^ (5 / 2) * logFactor n` under the stated hypotheses. See
+[AmbainisSpalek2006]. -/
 theorem theorem4_adjacency (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n : ℕ) (perPath : ℝ), 2 ≤ n → 0 ≤ perPath →
       perPath ≤ c * (n : ℝ) ^ ((3 : ℝ) / 2) * logFactor n →
@@ -148,6 +179,9 @@ theorem theorem4_adjacency (c : ℝ) (hc : 0 ≤ c) :
     _ = c * (n : ℝ) ^ ((5 : ℝ) / 2) * logFactor n := hkey
     _ ≤ (c + 1) * (n : ℝ) ^ ((5 : ℝ) / 2) * logFactor n := by nlinarith [hpow, hc]
 
+/-- Under the stated size hypotheses, a per-path bound `c * n * (√(m / n) + logFactor n) *
+logFactor n` gives a total bound `C * n ^ 2 * (√(m / n) + logFactor n) * logFactor n`. See
+[AmbainisSpalek2006]. -/
 theorem theorem4_list (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n m : ℕ) (perPath : ℝ), 2 ≤ n → n ≤ m + 1 → 0 ≤ perPath →
       perPath ≤ c * ((n : ℝ) * (Real.sqrt ((m : ℝ) / (n : ℝ)) + logFactor n)) *

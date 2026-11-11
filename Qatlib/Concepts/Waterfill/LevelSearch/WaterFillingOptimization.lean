@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtLinearSolve.Waterfill
+
+/-!
+# Rational bisection for water-fill optimization
+
+This module computes rational water-fill energies and bisects a level bracket to approach a
+prescribed energy. It proves exact bracket widths and quantitative bounds for energy, fill
+increments, and normalized target overlap in the water-fill optimization setting of
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `computed_waterlevel_actual_bracket_and_work`: Verify the bisection bracket and its width.
+* `computed_waterlevel_fixed_energy_optimal_precision`: Bound the normalized overlap deficit at
+  the computed level.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,24 +41,31 @@ open Qatlib.Concepts.NativeNumerics.WaterFilling
 namespace Qatlib.Concepts.Waterfill.LevelSearch
 open scoped Classical BigOperators
 
+/-- The rational sum of squares of the filled coordinates at a given level. -/
 def computedWaterEnergy {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) : ℚ :=
   ∑ j, (waterFill π σ γ j)^2
 
+/-- The rational level one plus the sum of source-to-target ratios. -/
 def computedWaterHigh {m : ℕ} (π σ : Fin m → ℚ) : ℚ := 1+∑ j, π j/σ j
 
+/-- The interval obtained by repeatedly bisecting the initial level bracket according to whether
+the midpoint energy is below `q`. -/
 def computedWaterBracket {m : ℕ} (π σ : Fin m → ℚ) (q : ℚ) : ℕ → ℚ×ℚ
   | 0 => (0,computedWaterHigh π σ)
   | k+1 => let b := computedWaterBracket π σ q k
            let mid := (b.1+b.2)/2
            if computedWaterEnergy π σ mid < q then (mid,b.2) else (b.1,mid)
 
+/-- The upper endpoint of the rational bisection bracket after `k` steps. -/
 def computedWaterLevel {m : ℕ} (π σ : Fin m → ℚ) (q : ℚ) (k : ℕ) : ℚ :=
   (computedWaterBracket π σ q k).2
 
+/-- The real cast of the computed rational energy equals `waterMass`. -/
 theorem computedWaterEnergy_cast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     (computedWaterEnergy π σ γ : ℝ) = waterMass π σ γ := by
   simp [computedWaterEnergy, waterMass]
 
+/-- For nonnegative source and target, computed energy is monotone between nonnegative levels. -/
 theorem computedWaterEnergy_mono {m : ℕ} (π σ : Fin m → ℚ)
     (h : ∀ j, 0 ≤ π j ∧ 0 ≤ σ j) {a b : ℚ} (ha : 0 ≤ a) (hab : a ≤ b) :
     computedWaterEnergy π σ a ≤ computedWaterEnergy π σ b := by
@@ -49,6 +76,8 @@ theorem computedWaterEnergy_mono {m : ℕ} (π σ : Fin m → ℚ)
     min_le_min_left _ (mul_le_mul_of_nonneg_right hab (h j).2)
   nlinarith
 
+/-- For a nonnegative source and strictly positive target, `computedWaterHigh` is positive and
+its fill energy equals the full source energy. -/
 theorem computedWaterHigh_saturates {m : ℕ} (π σ : Fin m → ℚ)
     (h : ∀ j, 0 ≤ π j ∧ 0 < σ j) :
     0 < computedWaterHigh π σ ∧
@@ -64,6 +93,9 @@ theorem computedWaterHigh_saturates {m : ℕ} (π σ : Fin m → ℚ)
     (div_le_iff₀ (h j).2).mp (by unfold computedWaterHigh; linarith)
   rw [waterFill, min_eq_left hb]
 
+/-- For a feasible target energy, the `k`th bisection interval has nonnegative ordered
+endpoints, brackets the target energy, and has width `computedWaterHigh π σ / 2 ^ k`; see
+[OzolsRoettelerRoland2013]. -/
 theorem computed_waterlevel_actual_bracket_and_work
     (m k : ℕ) (π σ : Fin m → ℚ) (q : ℚ)
     (h : ∀ j, 0 ≤ π j ∧ 0 < σ j) (hq : 0 ≤ q) (hqmax : q ≤ ∑ j, (π j)^2) :
@@ -90,6 +122,8 @@ theorem computed_waterlevel_actual_bracket_and_work
       rw [pow_succ, div_mul_eq_div_div, ← hw]
       ring
 
+/-- With a nonnegative target, each filled-coordinate increment lies between zero and the level
+increment times its target coordinate. -/
 theorem computedWaterFill_increment {m : ℕ} (π σ : Fin m → ℚ)
     (hσ : ∀ j, 0 ≤ σ j) {a b : ℚ} (hab : a ≤ b) (j : Fin m) :
     0 ≤ waterFill π σ b j - waterFill π σ a j ∧
@@ -106,6 +140,8 @@ theorem computedWaterFill_increment {m : ℕ} (π σ : Fin m → ℚ)
     · rw [min_eq_right (le_of_not_ge hb)]
       constructor <;> linarith
 
+/-- For nonnegative source and target, the energy increment is at most twice the source-target
+overlap times the nonnegative level increment. -/
 theorem computedWaterEnergy_increment {m : ℕ} (π σ : Fin m → ℚ)
     (h : ∀ j, 0 ≤ π j ∧ 0 ≤ σ j) {a b : ℚ} (ha : 0 ≤ a) (hab : a ≤ b) :
     computedWaterEnergy π σ b - computedWaterEnergy π σ a ≤
@@ -125,6 +161,8 @@ theorem computedWaterEnergy_increment {m : ℕ} (π σ : Fin m → ℚ)
       nlinarith
     _ = _ := by rw [← Finset.sum_mul, ← Finset.mul_sum]
 
+/-- For a nonnegative target, the Euclidean norm of the fill increment is at most the level
+increment times the Euclidean norm of the target. -/
 theorem computedWaterFill_norm_increment {m : ℕ} (π σ : Fin m → ℚ)
     (hσ : ∀ j, 0 ≤ σ j) {a b : ℚ} (hab : a ≤ b) :
     ‖(WithLp.toLp 2 (fun j => (waterFill π σ b j : ℝ)) : EuclideanSpace ℝ (Fin m)) -
@@ -151,6 +189,8 @@ theorem computedWaterFill_norm_increment {m : ℕ} (π σ : Fin m → ℚ)
   change ‖x-y‖ ≤ ((b-a : ℚ) : ℝ)*‖s‖
   nlinarith [norm_nonneg (x-y)]
 
+/-- At a positive level, the water fill maximizes target overlap among nonnegative
+source-bounded vectors with no greater squared norm. -/
 theorem computedWaterFill_overlap_le {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ)
     (v : Fin m → ℝ) (hγ : 0 < γ)
     (hv : ∀ j, 0 ≤ v j ∧ v j ≤ (π j : ℝ))
@@ -172,6 +212,9 @@ theorem computedWaterFill_overlap_le {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ
   change (∑ j, (v j)^2) ≤ ∑ j, (waterFill π σ γ j : ℝ)^2 at he
   nlinarith
 
+/-- For a source-bounded vector of feasible positive energy `q`, its normalized target overlap
+exceeds that of the computed fill by at most `2 * (∑ j, σ j ^ 2) * computedWaterHigh π σ /
+(2 ^ k * √q)`, with rational quantities cast to the reals; see [OzolsRoettelerRoland2013]. -/
 theorem computed_waterlevel_fixed_energy_optimal_precision
     (m k : ℕ) (π σ : Fin m → ℚ) (q : ℚ) (v : Fin m → ℝ)
     (h : ∀ j, 0 ≤ π j ∧ 0 < σ j) (hq : 0 < q) (hqmax : q ≤ ∑ j, (π j)^2)

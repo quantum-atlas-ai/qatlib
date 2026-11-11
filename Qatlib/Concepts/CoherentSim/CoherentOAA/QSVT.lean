@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
+
+/-!
+# Phased alternating sequences for QSVT
+
+This module defines the phased alternating sequence of an oracle and its adjoint, with rotations
+about the two signal projectors. Its action on a signal pair is determined by the signal and
+residual response polynomials, following [GilyenSuLowWiebe2019].
+
+The parity of the phase-list length selects the source frame. Compression removes the residual
+term and gives the odd cross-frame and even same-frame singular-pair identities.
+
+## Main statements
+
+* `phasedAlternating_unitary`: unit phases and orthogonal signal projectors give a unitary
+  sequence.
+* `SignalPair.phased_response`: the full signal-pair action is the two-polynomial response.
+* `qsvt_odd`: odd sequences transform a supplied singular pair between frames.
+* `qsvt_even_left`: even sequences transform the left singular sector within its frame.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
@@ -23,15 +47,21 @@ open Qatlib
 open Qatlib
 variable {H K : Type*} [Fintype H] [DecidableEq H]
 
+/-- The recursive phased sequence alternating `U` and `Uᴴ`, exchanging the signal projectors at
+each step and ending with the base rotation. See [Gilyén et al., Definition
+15][GilyenSuLowWiebe2019]. -/
 noncomputable def phasedAlternating (U P Q : Matrix H H ℂ) (base : ℂ) :
     List ℂ → Matrix H H ℂ
   | [] => phaseRotation Q base
   | z :: zs => phaseRotation Q z * U * phasedAlternating Uᴴ Q P base zs
 
+/-- The parity-dependent source, equal to `l` for an empty list and exchanging `r` and `l` at
+each list step. -/
 def alternatingSource {α : Type*} (r l : α) : List ℂ → α
   | [] => l
   | _ :: zs => alternatingSource l r zs
 
+/-- The alternating source is `l` for even list length and `r` for odd list length. -/
 theorem alternatingSource_eq {α : Type*} (r l : α) (zs : List ℂ) :
     alternatingSource r l zs = if zs.length % 2 = 0 then l else r := by
   induction zs generalizing r l with
@@ -44,6 +74,8 @@ theorem alternatingSource_eq {α : Type*} (r l : α) (zs : List ℂ) :
     · have hs : (zs.length + 1) % 2 = 0 := by omega
       simp [List.length_cons, h, hs]
 
+/-- The phased alternating sequence is unitary when the oracle is unitary, the signal projectors
+are orthogonal, and every phase has unit modulus. -/
 theorem phasedAlternating_unitary {U P Q : Matrix H H ℂ}
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hP : IsOrthogonalProjector P)
     (hQ : IsOrthogonalProjector Q) {base : ℂ} (hb : IsPhase base)
@@ -57,6 +89,8 @@ theorem phasedAlternating_unitary {U P Q : Matrix H H ℂ}
         (phaseRotation_unitary hQ (hzs z (by simp))) hU)
       (ih (adjoint_unitary hU) hQ hP (fun w hw => hzs w (List.mem_cons_of_mem z hw)))
 
+/-- The phased sequence acts on its parity-selected signal source by the signal response times
+`l` plus the residual response times the left residual. -/
 theorem SignalPair.phased_response {U P Q : Matrix H H ℂ} {σ : ℂ}
     {r l : Matrix H K ℂ} (h : SignalPair U P Q σ r l) (base : ℂ) (zs : List ℂ) :
     phasedAlternating U P Q base zs * alternatingSource r l zs =
@@ -71,6 +105,8 @@ theorem SignalPair.phased_response {U P Q : Matrix H H ℂ} {σ : ℂ}
     have hs := h.step z ((responseP base zs).eval σ) ((responseQ base zs).eval σ)
     simpa [leftResidual, rightResidual, responseP_cons, responseQ_cons] using hs
 
+/-- Projection onto the left signal space removes the residual response and leaves the signal
+polynomial evaluated at `σ` times `l`. -/
 theorem SignalPair.projected_response {U P Q : Matrix H H ℂ} {σ : ℂ}
     {r l : Matrix H K ℂ} (h : SignalPair U P Q σ r l) (base : ℂ) (zs : List ℂ) :
     Q * phasedAlternating U P Q base zs * alternatingSource r l zs =
@@ -82,6 +118,8 @@ section Rectangular
 
 variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
+/-- For a supplied singular pair, left compression of the phased sequence acting on its
+parity-selected source equals the response polynomial at `σ` times `w`. -/
 theorem qsvt_singularPair {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {σ : ℂ}
@@ -94,6 +132,8 @@ theorem qsvt_singularPair {A : Matrix O I ℂ} {U : Matrix H H ℂ}
   have he := congrArg (fun M : Matrix H K ℂ => Lᴴ * M) hp
   simpa [rangeProjector, ← Matrix.mul_assoc, hL] using he
 
+/-- For odd phase-list length, cross-frame compression transforms the supplied singular pair by
+the response polynomial evaluated at `σ`. -/
 theorem qsvt_odd {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {σ : ℂ}
@@ -105,6 +145,8 @@ theorem qsvt_odd {A : Matrix O I ℂ} {U : Matrix H H ℂ}
   have he := qsvt_singularPair h hav haw base zs
   simpa [compress, Matrix.mul_assoc, alternatingSource_eq, hodd] using he
 
+/-- For even phase-list length, left-frame compression acts on the supplied left singular sector
+by the response polynomial evaluated at `σ`. -/
 theorem qsvt_even_left {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {σ : ℂ}
@@ -116,6 +158,8 @@ theorem qsvt_even_left {A : Matrix O I ℂ} {U : Matrix H H ℂ}
   have he := qsvt_singularPair h hav haw base zs
   simpa [compress, Matrix.mul_assoc, alternatingSource_eq, heven] using he
 
+/-- For even phase-list length, right-frame compression of the adjoint-oracle sequence acts on
+the supplied right singular sector by the response polynomial evaluated at `σ`. -/
 theorem qsvt_even_right {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {σ : ℂ}

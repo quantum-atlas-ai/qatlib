@@ -6,6 +6,36 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+
+/-!
+# Exact masses for the dyadic threshold producer
+
+This module proves the point masses of the uniform dyadic threshold producer and its bounded
+rejection process. `thresholdRunLaw_mass` identifies accepted outcomes by a geometric rejection
+factor and gives the remaining failure probability; the marginal results relate accepted indices
+to the uniform initialization law used by minimum search.
+
+The producer calculations support the initialization interface for the minimum-finding setting
+of [DurrHoyer1996]. Auxiliary finite-PMF identities express mapped and bound masses as finite
+real sums.
+
+## Main statements
+
+* `thresholdWords_ge`, `card_accepted`, and `card_rejected` count accepted and rejected dyadic
+  words for a positive table size.
+* `thresholdRoundLaw_some_mass` and `thresholdRoundLaw_none_mass` give the one-round
+  accepted-index and rejection masses.
+* `thresholdRunLaw_mass` gives the exact geometric accepted masses and the failure mass
+  `thresholdRejectProb N ^ r`.
+* `thresholdRunLaw_accepted_matches_frozen_initial` identifies each accepted-index marginal as
+  the total acceptance probability times its uniform initialization mass.
+- `thresholdRunLaw_total_mass` shows that the accepted and failed real masses sum to one.
+
+## References
+
+- [Dürr and Høyer, 1996][DurrHoyer1996]. *A quantum algorithm for finding the minimum*. 1996.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,29 +59,37 @@ open scoped ENNReal BigOperators Classical
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The real-valued point mass of a finite PMF at a specified outcome. -/
 noncomputable def realMass {α : Type*} [Fintype α] (p : PMF α) (a : α) : ℝ := (p a).toReal
 
+/-- The real mass of `true` under the fair-bit law is one half. -/
 theorem fairBitLaw_true : (fairBitLaw true).toReal = 1 / 2 := by
   rw [fairBitLaw, PMF.uniformOfFintype'_apply, ENNReal.toReal_inv _]
   simp [Fintype.card_bool]
 
+/-- The real mass of `false` under the fair-bit law is one half. -/
 theorem fairBitLaw_false : (fairBitLaw false).toReal = 1 / 2 := by
   rw [fairBitLaw, PMF.uniformOfFintype'_apply, ENNReal.toReal_inv _]
   simp [Fintype.card_bool]
 
+/-- Every `k`-bit word has real mass `1 / 2 ^ k` under `fairWordLaw k`. -/
 theorem fairWordLaw_toReal (k : ℕ) (w : Fin (2 ^ k)) :
     (fairWordLaw k w).toReal = 1 / (2 ^ k : ℝ) := by
   rw [fairWordLaw, PMF.uniformOfFintype'_apply, ENNReal.toReal_inv _]
   simp [Fintype.card_fin, one_div]
 
+/-- The threshold producer's word width equals the natural-number ceiling of `binaryLog N`. -/
 theorem thresholdWidth_eq (N : ℕ) : thresholdWidth N = Nat.ceil (binaryLog N) := rfl
 
+/-- The threshold word count is `2 ^ thresholdWidth N`. -/
 theorem thresholdWords_eq (N : ℕ) : thresholdWords N = 2 ^ thresholdWidth N := rfl
 
+/-- The threshold word count is positive for every `N`. -/
 theorem thresholdWords_pos (N : ℕ) : 0 < thresholdWords N := by
   unfold thresholdWords
   positivity
 
+/-- For positive `N`, the dyadic threshold word space contains at least `N` words. -/
 theorem thresholdWords_ge (N : ℕ) (hN : 0 < N) : N ≤ thresholdWords N := by
   have hlog2 : Real.log 2 > 0 := Real.log_pos (by norm_num)
   have hceil : binaryLog N ≤ (thresholdWidth N : ℝ) := by
@@ -81,6 +119,7 @@ theorem thresholdWords_ge (N : ℕ) (hN : 0 < N) : N ≤ thresholdWords N := by
     exact hexp
   exact_mod_cast hfinal
 
+/-- A word is accepted as index `i` exactly when its natural-number value equals `i.val`. -/
 theorem acceptThreshold_some_iff (N : ℕ) (w : Fin (thresholdWords N)) (i : Fin N) :
     acceptThreshold N w = some i ↔ w.val = i.val := by
   by_cases hw : w.val < N
@@ -100,13 +139,17 @@ theorem acceptThreshold_some_iff (N : ℕ) (w : Fin (thresholdWords N)) (i : Fin
       have hwlt : w.val < N := by have hi := i.isLt; rwa [← h] at hi
       exact absurd hwlt hw
 
+/-- Views an accepted dyadic word as an element of `Fin N` by retaining its value. -/
 def acceptedWord (N : ℕ) (_hN : 0 < N) :
     {w : Fin (thresholdWords N) // w.val < N} → Fin N := fun w => ⟨w.val, w.property⟩
 
+/-- Indexes a rejected dyadic word in `Fin (thresholdWords N - N)` by subtracting `N` from its
+value. -/
 def rejectedWord (N : ℕ) (_hN : 0 < N) :
     {w : Fin (thresholdWords N) // N ≤ w.val} → Fin (thresholdWords N - N) :=
   fun w => ⟨w.val - N, by omega⟩
 
+/-- For positive `N`, exactly `N` dyadic words have values below `N`. -/
 theorem card_accepted (N : ℕ) (hN : 0 < N) :
     Fintype.card {w : Fin (thresholdWords N) // w.val < N} = N := by
   have hNM : N ≤ thresholdWords N := thresholdWords_ge N hN
@@ -126,6 +169,7 @@ theorem card_accepted (N : ℕ) (hN : 0 < N) :
     Equiv.ofBijective (acceptedWord N hN) ⟨hinj, hsurj⟩
   rw [Fintype.card_congr e, Fintype.card_fin]
 
+/-- For positive `N`, exactly `thresholdWords N - N` dyadic words have values at least `N`. -/
 theorem card_rejected (N : ℕ) (hN : 0 < N) :
     Fintype.card {w : Fin (thresholdWords N) // N ≤ w.val} = thresholdWords N - N := by
   have hNM : N ≤ thresholdWords N := thresholdWords_ge N hN
@@ -150,18 +194,24 @@ theorem card_rejected (N : ℕ) (hN : 0 < N) :
     Equiv.ofBijective (rejectedWord N hN) ⟨hinj, hsurj⟩
   rw [Fintype.card_congr e, Fintype.card_fin]
 
+/-- Every accepted word has real mass `1 / 2 ^ thresholdWidth N` under the uniform word law. -/
 theorem accepted_word_mass (N : ℕ) (w : {w : Fin (thresholdWords N) // w.val < N}) :
     (fairWordLaw (thresholdWidth N) w.1).toReal = 1 / (2 ^ thresholdWidth N : ℝ) :=
   fairWordLaw_toReal _ _
 
+/-- Every rejected word has real mass `1 / 2 ^ thresholdWidth N` under the uniform word law. -/
 theorem rejected_word_mass (N : ℕ) (w : {w : Fin (thresholdWords N) // N ≤ w.val}) :
     (fairWordLaw (thresholdWidth N) w.1).toReal = 1 / (2 ^ thresholdWidth N : ℝ) :=
   fairWordLaw_toReal _ _
 
+/-- Each index has real mass `1 / N` under the minimum-search initialization law `iterationPMF N
+hN`. -/
 theorem threshold_matches_frozen_initial (N : ℕ) (hN : 0 < N) (i : Fin N) :
     (iterationPMF N hN i).toReal = 1 / (N : ℝ) := by
   simp [iterationPMF, PMF.uniformOfFintype'_apply, ENNReal.toReal_inv _]
 
+/-- For positive `N`, the ratio of rejected words to all threshold words is strictly less than
+one. -/
 theorem reject_prob_lt_one (N : ℕ) (hN : 0 < N) :
     ((thresholdWords N - N : ℕ) : ℝ) / (thresholdWords N : ℝ) < 1 := by
   have hNM : N ≤ thresholdWords N := thresholdWords_ge N hN
@@ -170,11 +220,14 @@ theorem reject_prob_lt_one (N : ℕ) (hN : 0 < N) :
   rw [div_lt_one hpos]
   exact_mod_cast hlt
 
+/-- An extended nonnegative real bounded above by one is finite. -/
 theorem ennreal_ne_top_of_le_one {x : ℝ≥0∞} (h : x ≤ 1) : x ≠ ∞ := by
   intro hx
   subst hx
   exact absurd (show (∞ : ℝ≥0∞) ≤ 1 from h) (not_le_of_gt ENNReal.one_lt_top)
 
+/-- On finite types, the real point mass of a bound PMF is the sum of the products of the input
+masses and conditional output masses. -/
 theorem bind_mass_real {α β : Type*} [Fintype α] [Fintype β] (p : PMF α) (f : α → PMF β)
     (b : β) :
     ((p.bind f) b).toReal = ∑ a, (p a).toReal * ((f a) b).toReal := by
@@ -192,6 +245,8 @@ theorem bind_mass_real {α β : Type*} [Fintype α] [Fintype β] (p : PMF α) (f
         _ = 1 := one_mul _
     exact ennreal_ne_top_of_le_one h3
 
+/-- On finite types, the real point mass of a mapped PMF is the sum of input masses weighted by
+the indicator of the target fiber. -/
 theorem map_mass_real {α β : Type*} [Fintype α] [Fintype β] (p : PMF α) (f : α → β) (b : β) :
     ((p.map f) b).toReal = ∑ a, (p a).toReal * (if b = f a then 1 else 0) := by
   rw [PMF.map_apply, tsum_fintype]
@@ -206,12 +261,16 @@ theorem map_mass_real {α β : Type*} [Fintype α] [Fintype β] (p : PMF α) (f 
     · exact ennreal_ne_top_of_le_one (by simpa [h] using! (PMF.coe_le_one p a))
     · simp [h]
 
+/-- A finite sum of the constant `c` over the elements satisfying a predicate equals the number
+of those elements times `c`. -/
 theorem sum_indicator_filter (α : Type*) [Fintype α] (p : α → Prop) [DecidablePred p] (c : ℝ) :
     (∑ a ∈ (Finset.univ : Finset α), (if p a then c else 0))
       = (Finset.univ.filter p).card * c := by
   rw [← Finset.sum_filter]
   rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- The real mass of a mapped uniform finite law equals the cardinality of the target fiber
+divided by the cardinality of the source type. -/
 theorem uniform_map_mass_real {α : Type*} [Fintype α] [Nonempty α] {β : Type*}
     (f : α → β) (b : β) :
     ((PMF.uniformOfFintype' α).map f b).toReal
@@ -237,6 +296,8 @@ theorem uniform_map_mass_real {α : Type*} [Fintype α] [Nonempty α] {β : Type
         simpa [h] using! (PMF.coe_le_one (PMF.uniformOfFintype' α) a))
     · simp [h]
 
+/-- The real mass obtained by mapping the producer word law equals the number of words mapped to
+the target divided by `thresholdWords N`. -/
 theorem producerWordLaw_map_mass (N : ℕ) {β : Type*} (f : Fin (thresholdWords N) → β) (b : β) :
     ((producerWordLaw N).map f b).toReal
       = (Finset.univ.filter (fun a : Fin (thresholdWords N) => b = f a)).card
@@ -247,6 +308,7 @@ theorem producerWordLaw_map_mass (N : ℕ) {β : Type*} (f : Fin (thresholdWords
   unfold producerWordLaw
   rwa [show Fintype.card (Fin (thresholdWords N)) = thresholdWords N from Fintype.card_fin _] at h
 
+/-- A dyadic word is rejected exactly when its value is at least `N`. -/
 theorem acceptThreshold_none_iff (N : ℕ) (w : Fin (thresholdWords N)) :
     none = acceptThreshold N w ↔ N ≤ w.val := by
   by_cases hlt : w.val < N
@@ -255,6 +317,7 @@ theorem acceptThreshold_none_iff (N : ℕ) (w : Fin (thresholdWords N)) :
   · have h : acceptThreshold N w = none := by simp [acceptThreshold, hlt]
     simp [h, Nat.not_lt.mp hlt]
 
+/-- For positive `N`, each accepted index has one-round real mass `1 / 2 ^ thresholdWidth N`. -/
 theorem thresholdRoundLaw_some_mass (N : ℕ) (hN : 0 < N) (i : Fin N) :
     ((thresholdRoundLaw N) (some i)).toReal = 1 / (2 ^ thresholdWidth N : ℝ) := by
   letI : Nonempty (Fin (thresholdWords N)) :=
@@ -309,6 +372,8 @@ theorem thresholdRoundLaw_some_mass (N : ℕ) (hN : 0 < N) (i : Fin N) :
         simpa [h] using! (PMF.coe_le_one (PMF.uniformOfFintype' (Fin (thresholdWords N))) a))
     · simp [h]
 
+/-- For positive `N`, one-round rejection has real mass `(thresholdWords N - N) / thresholdWords
+N`, with the subtraction taken in the natural numbers. -/
 theorem thresholdRoundLaw_none_mass (N : ℕ) (hN : 0 < N) :
     ((thresholdRoundLaw N) (none : Option (Fin N))).toReal
       = ((thresholdWords N - N : ℕ) : ℝ) / (thresholdWords N : ℝ) := by
@@ -358,14 +423,19 @@ theorem thresholdRoundLaw_none_mass (N : ℕ) (hN : 0 < N) :
         simpa [h] using! (PMF.coe_le_one (PMF.uniformOfFintype' (Fin (thresholdWords N))) a))
     · simp [h]
 
+/-- The continuation law after one threshold draw: acceptance produces an outcome with zero
+rejections, while rejection runs the remaining draws and increments accepted rejection
+counts. -/
 noncomputable def runContinuation {N r : ℕ} (o : Option (Fin N)) : PMF (ThresholdOutcome N (r + 1)) :=
   match o with
   | some i => PMF.pure (.accepted i ⟨0, by omega⟩)
   | none => (thresholdRunLaw N r).map (bumpOutcome)
 
+/-- The law with `r + 1` available draws binds one-round sampling to `runContinuation`. -/
 theorem thresholdRunLaw_eq_bind (N r : ℕ) :
     thresholdRunLaw N (r + 1) = (thresholdRoundLaw N).bind (runContinuation) := rfl
 
+/-- If incrementing an outcome yields failure, the original outcome was failure. -/
 theorem bumpOutcome_failed_preimage (N r : ℕ) (a : ThresholdOutcome N r)
     (h : (ThresholdOutcome.failed : ThresholdOutcome N (r + 1)) = bumpOutcome a) :
     a = (ThresholdOutcome.failed : ThresholdOutcome N r) := by
@@ -373,6 +443,7 @@ theorem bumpOutcome_failed_preimage (N r : ℕ) (a : ThresholdOutcome N r)
   | failed => rfl
   | accepted j m => simp [bumpOutcome] at h
 
+/-- Mapping `bumpOutcome` over a threshold run preserves the real mass of the failed outcome. -/
 theorem map_bump_failed (N r : ℕ) :
     (((thresholdRunLaw N r).map (bumpOutcome : ThresholdOutcome N r → ThresholdOutcome N (r + 1)))
         (ThresholdOutcome.failed : ThresholdOutcome N (r + 1))).toReal
@@ -413,6 +484,7 @@ theorem map_bump_failed (N r : ℕ) :
   rw [hcard]
   ring
 
+/-- No outcome mapped by `bumpOutcome` is an accepted outcome with zero rejections. -/
 theorem bumpOutcome_rejections_ne_zero (N r : ℕ) (a : ThresholdOutcome N r) (i : Fin N) :
     bumpOutcome a ≠ (ThresholdOutcome.accepted i ⟨0, by omega⟩ : ThresholdOutcome N (r + 1)) := by
   cases a with
@@ -426,6 +498,8 @@ theorem bumpOutcome_rejections_ne_zero (N r : ℕ) (a : ThresholdOutcome N r) (i
     simp only [bumpOutcome] at hval
     exact absurd hval (by omega)
 
+/-- An accepted outcome with index `i` and rejection count `k + 1` has the accepted outcome with
+index `i` and count `k` as its only possible preimage under `bumpOutcome`. -/
 theorem bumpOutcome_accepted_preimage (N r : ℕ) (i : Fin N) (k : Fin r) (a : ThresholdOutcome N r)
     (h : (ThresholdOutcome.accepted i ⟨k.val + 1, by omega⟩ : ThresholdOutcome N (r + 1))
         = bumpOutcome a) :
@@ -446,6 +520,8 @@ theorem bumpOutcome_accepted_preimage (N r : ℕ) (i : Fin N) (k : Fin r) (a : T
       omega
     simp only [hj, hmk]
 
+/-- After mapping `bumpOutcome` over a threshold run, an accepted outcome with zero rejections
+has real mass zero. -/
 theorem map_bump_zero_rejections (N r : ℕ) (i : Fin N) :
     (((thresholdRunLaw N r).map (bumpOutcome : ThresholdOutcome N r → ThresholdOutcome N (r + 1)))
         (ThresholdOutcome.accepted i ⟨0, by omega⟩ : ThresholdOutcome N (r + 1))).toReal = 0 := by
@@ -475,6 +551,8 @@ theorem map_bump_zero_rejections (N r : ℕ) (i : Fin N) :
   rw [hempty]
   simp
 
+/-- Mapping `bumpOutcome` shifts the real mass of an accepted outcome from rejection count `k`
+to count `k + 1` without changing its index. -/
 theorem map_bump_succ_rejections (N r : ℕ) (i : Fin N) (k : Fin r) :
     (((thresholdRunLaw N r).map (bumpOutcome : ThresholdOutcome N r → ThresholdOutcome N (r + 1)))
         (ThresholdOutcome.accepted i ⟨k.val + 1, by omega⟩ : ThresholdOutcome N (r + 1))).toReal
@@ -519,6 +597,8 @@ theorem map_bump_succ_rejections (N r : ℕ) (i : Fin N) (k : Fin r) :
   rw [hcard]
   ring
 
+/-- The real mass of a run outcome splits into the first-draw rejection contribution and the sum
+of the first-draw acceptance contributions. -/
 theorem thresholdRunLaw_mass_split (N r : ℕ) (o : ThresholdOutcome N (r + 1)) :
     ((thresholdRunLaw N (r + 1)) o).toReal
       = ((thresholdRoundLaw N) none).toReal * ((runContinuation none) o).toReal
@@ -531,6 +611,9 @@ theorem thresholdRunLaw_mass_split (N r : ℕ) (o : ThresholdOutcome N (r + 1)) 
     (Finset.mem_univ none)]
   ring
 
+/-- For positive `N`, acceptance of index `i` after `n` rejections has real mass
+`thresholdRejectProb N ^ n.val / 2 ^ thresholdWidth N`, and failure after `r` draws has mass
+`thresholdRejectProb N ^ r`. -/
 theorem thresholdRunLaw_mass (N : ℕ) (hN : 0 < N) (r : ℕ) :
     (∀ (i : Fin N) (n : Fin r),
       ((thresholdRunLaw N r) (ThresholdOutcome.accepted i n : ThresholdOutcome N r)).toReal
@@ -634,16 +717,22 @@ theorem thresholdRunLaw_mass (N : ℕ) (hN : 0 < N) (r : ℕ) :
         rw [pow_succ]
         ring
 
+/-- For positive `N`, the real mass of accepting index `i` after `n` rejections is
+`thresholdRejectProb N ^ n.val / 2 ^ thresholdWidth N`. -/
 theorem thresholdRunLaw_accepted_mass (N : ℕ) (hN : 0 < N) (r : ℕ) (i : Fin N) (n : Fin r) :
     ((thresholdRunLaw N r) (ThresholdOutcome.accepted i n : ThresholdOutcome N r)).toReal
       = thresholdRejectProb N ^ n.val * (1 / (2 ^ thresholdWidth N : ℝ)) :=
   (thresholdRunLaw_mass N hN r).1 i n
 
+/-- For positive `N`, the real probability of exhausting `r` draws without acceptance is
+`thresholdRejectProb N ^ r`. -/
 theorem thresholdRunLaw_failed_mass (N : ℕ) (hN : 0 < N) (r : ℕ) :
     ((thresholdRunLaw N r) (ThresholdOutcome.failed : ThresholdOutcome N r)).toReal
       = thresholdRejectProb N ^ r :=
   (thresholdRunLaw_mass N hN r).2
 
+/-- Multiplying the finite geometric sum `∑ n : Fin r, q ^ n.val` by `1 - q` gives `1 - q ^ r`
+for every real `q`. -/
 theorem sum_fin_pow (q : ℝ) (r : ℕ) :
     (1 - q) * (∑ n : Fin r, q ^ n.val) = 1 - q ^ r := by
   induction r with
@@ -667,6 +756,8 @@ theorem sum_fin_pow (q : ℝ) (r : ℕ) :
         _ = (1 - q) + q * (1 - q ^ r) := by rw [ih]
         _ = 1 - q ^ r * q := by ring
 
+/-- For positive `N`, one minus the rejection probability equals `N` times the mass of a single
+dyadic word. -/
 theorem one_sub_reject_prob (N : ℕ) (hN : 0 < N) :
     1 - thresholdRejectProb N = (N : ℝ) * (1 / (2 ^ thresholdWidth N : ℝ)) := by
   have hNM : N ≤ thresholdWords N := thresholdWords_ge N hN
@@ -681,6 +772,8 @@ theorem one_sub_reject_prob (N : ℕ) (hN : 0 < N) :
   field_simp
   ring
 
+/-- For positive `N`, the total mass of accepting a fixed index, summed over rejection counts
+and multiplied by `N`, equals `1 - thresholdRejectProb N ^ r`. -/
 theorem thresholdRunLaw_accepted_marginal (N : ℕ) (hN : 0 < N) (r : ℕ) (i : Fin N) :
     (∑ n : Fin r,
       ((thresholdRunLaw N r) (ThresholdOutcome.accepted i n : ThresholdOutcome N r)).toReal)
@@ -715,6 +808,8 @@ theorem thresholdRunLaw_accepted_marginal (N : ℕ) (hN : 0 < N) (r : ℕ) (i : 
       ring
     _ = 1 - thresholdRejectProb N ^ r := hgeom
 
+/-- For positive `N`, each accepted-index marginal equals the total acceptance probability times
+that index's mass under the uniform minimum-search initialization law. -/
 theorem thresholdRunLaw_accepted_matches_frozen_initial (N : ℕ) (hN : 0 < N)
     (r : ℕ) (i : Fin N) :
     (∑ n : Fin r,
@@ -729,6 +824,8 @@ theorem thresholdRunLaw_accepted_matches_frozen_initial (N : ℕ) (hN : 0 < N)
   rw [hmain]
   exact (eq_div_iff hNne).2 hmarg
 
+/-- For positive `N`, the total real mass of all accepted outcomes is `1 - thresholdRejectProb N
+^ r`. -/
 theorem thresholdRunLaw_accepted_total (N : ℕ) (hN : 0 < N) (r : ℕ) :
     (∑ i : Fin N, ∑ n : Fin r,
       ((thresholdRunLaw N r) (ThresholdOutcome.accepted i n : ThresholdOutcome N r)).toReal)
@@ -758,6 +855,8 @@ theorem thresholdRunLaw_accepted_total (N : ℕ) (hN : 0 < N) (r : ℕ) :
       rw [hsum]
       ring
 
+/-- For positive `N`, the sum of all accepted-outcome real masses and the failed-outcome real
+mass is one. -/
 theorem thresholdRunLaw_total_mass (N : ℕ) (hN : 0 < N) (r : ℕ) :
     (∑ i : Fin N, ∑ n : Fin r,
       ((thresholdRunLaw N r) (ThresholdOutcome.accepted i n : ThresholdOutcome N r)).toReal)

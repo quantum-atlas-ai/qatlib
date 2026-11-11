@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OrderedOpExp08.MainResults.TaylorRemainder
 
+/-!
+# Short-interval Suzuki error bounds
+
+Bounds Taylor remainders for exponential words and their recursively constructed Suzuki
+instances in the setting of [WiebeEtAl2010]. Smallness conditions on the step size turn
+exponential tail estimates into explicit power bounds.
+
+`theorem3_short_interval_error` compares the recursive word for a fixed skew-Hermitian generator
+list with the exponential of its sum.
+
+## Main statements
+
+* `lemma3_lts_remainder_bound`: bounds the midpoint-sampled word remainder under `LambdaSmooth`.
+* `theorem3_short_interval_error`: gives an error of degree `2 * k + 1` on a short interval.
+
+## References
+
+* [Wiebe et al., 2010][WiebeEtAl2010]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -20,11 +40,15 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 
+/-- The norm of the difference between a Suzuki exponential word and its series truncated after
+degree `2 * k`. -/
 def taylorRemainder {I : Type} [Fintype I] [DecidableEq I]
     (V : List (Matrix I I ℂ)) (t : ℝ) (k : ℕ) : ℝ :=
   ‖suzukiExponentialWord V t -
     ∑ n ∈ Finset.range (2 * k + 1), t ^ n • suzukiSeries V n‖
 
+/-- For `0 ≤ a ≤ 1 / 2`, the factorial tail expression `exp a * a ^ m / m!` is at most `2 * a ^
+m`. -/
 theorem exp_factorial_tail_le_two_mul_pow (a : ℝ) (m : ℕ)
     (ha0 : 0 ≤ a) (ha : a ≤ 1 / 2) :
     Real.exp a * a ^ m / (m.factorial : ℝ) ≤ 2 * a ^ m := by
@@ -53,6 +77,7 @@ theorem exp_factorial_tail_le_two_mul_pow (a : ℝ) (m : ℕ)
       mul_le_mul_of_nonneg_right hexp (by positivity)
     _ ≤ 2 * a ^ m := mul_le_mul_of_nonneg_left hdiv (by norm_num)
 
+/-- The sum of the list formed from a finite function equals the corresponding finite sum. -/
 theorem sum_ofFn_eq {m : ℕ} (g : Fin m → ℝ) :
     (List.ofFn g).sum = ∑ j, g j := by
   induction m with
@@ -60,6 +85,8 @@ theorem sum_ofFn_eq {m : ℕ} (g : Fin m → ℝ) :
   | succ n ih =>
     rw [List.ofFn_succ, List.sum_cons, ih, Fin.sum_univ_succ]
 
+/-- If `|t| * suzukiMass xs ≤ 1 / 2`, the Taylor remainder through degree `2 * k` is at most `2
+* (|t| * suzukiMass xs) ^ (2 * k + 1)` [WiebeEtAl2010]. -/
 theorem lemma3_remainder_bound {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) (k : ℕ)
     (hshort : |t| * suzukiMass xs ≤ 1 / 2) :
@@ -69,6 +96,8 @@ theorem lemma3_remainder_bound {I : Type} [Fintype I] [DecidableEq I]
   exact exp_factorial_tail_le_two_mul_pow _ _
     (mul_nonneg (abs_nonneg _) (general_trotter_mass_nonneg xs)) hshort
 
+/-- Under the stated smoothness and short-step hypotheses, bounds the midpoint-sampled Suzuki
+remainder by twice the `(2 * k + 1)`st power of `|dlam| * 3 ^ (k − 1) * Λ` [WiebeEtAl2010]. -/
 theorem lemma3_lts_remainder_bound {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (H : Fin m → ℝ → Matrix I I ℂ) (μ dlam Λ : ℝ) (k : ℕ)
     (_hk : 1 ≤ k) (hdlam : 0 ≤ dlam) (_hΛ : 0 ≤ Λ)
@@ -103,6 +132,9 @@ theorem lemma3_lts_remainder_bound {I : Type} [Fintype I] [DecidableEq I] {m : �
   refine (lemma3_remainder_bound _ _ k hshort').trans ?_
   exact mul_le_mul_of_nonneg_left (pow_le_pow_left₀ hnn hmono _) (by norm_num)
 
+/-- For skew-Hermitian generators and `k ≥ 1`, the stated short-step condition bounds the
+recursive Suzuki word's error against the exponential of the sum by four times the specified
+`(2 * k + 1)`st power [WiebeEtAl2010]. -/
 theorem theorem3_short_interval_error {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (hk : 1 ≤ k) (t : ℝ)
     (hhs : ∀ X ∈ hs, Xᴴ = -X)

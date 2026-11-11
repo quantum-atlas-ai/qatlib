@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedAccessDefs
+
+/-!
+# Paired sparse access and positive-operator access
+
+This module proves inverse-lookup and padding identities for legal sparse access tables and
+computes their permutation actions on basis states. It also records positivity and resource
+counts for purification and measurement access, together with the impossibility of uniformly
+identifying positive operators from a constant output. Sparse block encodings are treated in
+[GilyenSuLowWiebe2019].
+
+`WordCost` and `classicalBitCost` record the query, gate, and address-bit costs of the
+paired-access construction.
+
+## Main statements
+
+* `rowLookup_rowUnlookup`: A nonzero entry is recovered from its row slot.
+* `purification_access_realizable`: Purification produces a density operator with explicit word
+  counts.
+* `povm_measurement_bit_control`: Uniform measurement error yields an approximate block
+  encoding.
+* `encodingWord_ledger`: The encoding word uses one query of each access kind and two gate
+  steps.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -27,54 +55,65 @@ set_option autoImplicit false
 variable {I O : Type*} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 variable {sr sc : ℕ}
 
+/-- A legal row table cannot address a column at which the matrix entry is zero. -/
 theorem rowLookup_ne_of_entry_zero (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hz : D.entry i o = 0) (k : Fin sr) : D.rowPos i k ≠ .inl o := by
   intro hk
   exact (hD.rowLegal i k o hk) hz
 
+/-- A legal column table cannot address a row at which the matrix entry is zero. -/
 theorem colLookup_ne_of_entry_zero (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hz : D.entry i j = 0) (c : Fin sc) : D.colPos c j ≠ .inl i := by
   intro hc
   exact (hD.colLegal j c i hc) hz
 
+/-- Inverse row lookup returns `none` for a zero matrix entry. -/
 theorem rowUnlookup_eq_none (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hz : D.entry i o = 0) : rowUnlookup D hD i o = none := by
   simp [rowUnlookup, dif_pos hz]
 
+/-- Inverse row lookup of a nonzero entry returns its canonical row slot. -/
 theorem rowUnlookup_eq_some (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hne : D.entry i o ≠ 0) :
     rowUnlookup D hD i o = some (rowSlotOf D hD i o hne) := by
   simp [rowUnlookup, dif_neg hne]
 
+/-- Inverse column lookup returns `none` for a zero matrix entry. -/
 theorem colUnlookup_eq_none (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hz : D.entry i j = 0) : colUnlookup D hD j i = none := by
   simp [colUnlookup, dif_pos hz]
 
+/-- Inverse column lookup of a nonzero entry returns its canonical column slot. -/
 theorem colUnlookup_eq_some (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hne : D.entry i j ≠ 0) :
     colUnlookup D hD j i = some (colSlotOf D hD j i hne) := by
   simp [colUnlookup, dif_neg hne]
 
+/-- Looking up the canonical row slot of a nonzero entry returns its column address. -/
 theorem rowLookup_rowUnlookup (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hne : D.entry i o ≠ 0) :
     rowLookup D i (rowSlotOf D hD i o hne) = .inl o :=
   rowSlotOf_pos D hD i o hne
 
+/-- Looking up the canonical column slot of a nonzero entry returns its row address. -/
 theorem colLookup_colUnlookup (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hne : D.entry i j ≠ 0) :
     colLookup D j (colSlotOf D hD j i hne) = .inl i :=
   colSlotOf_pos D hD j i hne
 
+/-- Every row slot addressing a given nonzero entry equals its canonical row slot. -/
 theorem rowUnlookup_unique (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (hne : D.entry i o ≠ 0) (k : Fin sr) (hk : D.rowPos i k = .inl o) :
     k = rowSlotOf D hD i o hne :=
   rowSlotOf_unique D hD i o hne k hk
 
+/-- Every column slot addressing a given nonzero entry equals its canonical column slot. -/
 theorem colUnlookup_unique (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (hne : D.entry i j ≠ 0) (c : Fin sc) (hc : D.colPos c j = .inl i) :
     c = colSlotOf D hD j i hne :=
   colSlotOf_unique D hD j i hne c hc
 
+/-- A row slot returned as a padding address does not itself address any legal column. -/
 theorem rowLookup_padding_not_legal (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (k k' : Fin sr) (hk : D.rowPos i k = .inr k') :
     ¬ ∃ o : O, D.rowPos i k' = .inl o := by
@@ -83,6 +122,7 @@ theorem rowLookup_padding_not_legal (D : SparseAccess I O sr sc) (hD : SparseAcc
   rw [ho] at hrec
   exact absurd hrec (by simp)
 
+/-- The row-table image of a padding address is not legal. -/
 theorem rowLookup_padding_not_legal' (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (k k' : Fin sr) (hk : D.rowPos i k = .inr k') :
     ¬ (D.rowPos i k').IsLegal := by
@@ -91,6 +131,7 @@ theorem rowLookup_padding_not_legal' (D : SparseAccess I O sr sc) (hD : SparseAc
   | inl o => exact (rowLookup_padding_not_legal D hD i k k' hk) ⟨o, hpos⟩
   | inr c => simp [ColAddr.IsLegal, hpos] at hleg
 
+/-- A column slot returned as a padding address does not itself address any legal row. -/
 theorem colLookup_padding_not_legal (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (c c' : Fin sc) (hc : D.colPos c j = .inr c') :
     ¬ ∃ i : I, D.colPos c' j = .inl i := by
@@ -99,6 +140,7 @@ theorem colLookup_padding_not_legal (D : SparseAccess I O sr sc) (hD : SparseAcc
   rw [hi] at hfix
   exact absurd hfix (by simp)
 
+/-- The column-table image of a padding address is not legal. -/
 theorem colLookup_padding_not_legal' (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (c c' : Fin sc) (hc : D.colPos c j = .inr c') :
     ¬ (D.colPos c' j).IsLegal := by
@@ -107,14 +149,18 @@ theorem colLookup_padding_not_legal' (D : SparseAccess I O sr sc) (hD : SparseAc
   | inl i => exact (colLookup_padding_not_legal D hD j c c' hc) ⟨i, hpos⟩
   | inr c'' => simp [RowAddr.IsLegal, hpos] at hleg
 
+/-- The row-table permutation sends a slot address to the corresponding value of `rowPos`. -/
 theorem rowTable_apply_slot (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (k : Fin sr) : (rowTable D hD i) (.inr k) = D.rowPos i k := by
   rfl
 
+/-- The column-table permutation sends a slot address to the corresponding value of `colPos`. -/
 theorem colTable_apply_slot (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (c : Fin sc) : (colTable D hD j) (.inr c) = D.colPos c j := by
   rfl
 
+/-- The inverse row-table permutation sends an addressed column to the slot selected by
+`rowSlotOfAddr`. -/
 theorem rowTable_symm_apply_inl (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (h : ∃ kx : Fin sr, D.rowPos i kx = .inl o) :
     (rowTable D hD i).symm (.inl o) = .inr (rowSlotOfAddr D i o h) := by
@@ -125,6 +171,8 @@ theorem rowTable_symm_apply_inl (D : SparseAccess I O sr sc) (hD : SparseAccessL
   rw [h1] at h2
   exact h2
 
+/-- The inverse column-table permutation sends an addressed row to the slot selected by
+`colSlotOfAddr`. -/
 theorem colTable_symm_apply_inl (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (h : ∃ cx : Fin sc, D.colPos cx j = .inl i) :
     (colTable D hD j).symm (.inl i) = .inr (colSlotOfAddr D j i h) := by
@@ -135,16 +183,20 @@ theorem colTable_symm_apply_inl (D : SparseAccess I O sr sc) (hD : SparseAccessL
   rw [h1] at h2
   exact h2
 
+/-- The row-table permutation fixes every column address that is not addressed by a row slot. -/
 theorem rowTable_inl_of_unaddressed (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (i : I) (o : O) (h : ¬ (∃ kx : Fin sr, D.rowPos i kx = .inl o)) :
     (rowTable D hD i) (.inl o) = .inl o :=
   rowTableFun_inl_of_not D i o h
 
+/-- The column-table permutation fixes every row address that is not addressed by a column slot. -/
 theorem colTable_inl_of_unaddressed (D : SparseAccess I O sr sc) (hD : SparseAccessLegal D)
     (j : O) (i : I) (h : ¬ (∃ cx : Fin sc, D.colPos cx j = .inl i)) :
     (colTable D hD j) (.inl i) = .inl i :=
   colTableFun_inl_of_not D j i h
 
+/-- At the image of `y0` under an injective map, multiplying by its permutation matrix returns
+the input coordinate at `y0`. -/
 theorem permMatrix_mulVec_apply {J : Type*} [Fintype J] [DecidableEq J] (σ : J → J)
     (hσ : Function.Injective σ) (v : J → ℂ) (x : J) (y0 : J) (hy0 : σ y0 = x) :
     (permMatrix σ *ᵥ v) x = v y0 := by
@@ -157,6 +209,8 @@ theorem permMatrix_mulVec_apply {J : Type*} [Fintype J] [DecidableEq J] (σ : J 
         simp)
     _ = v y0 := by rw [if_pos hy0.symm]; simp
 
+/-- The cross-register block-diagonal matrix acts on a basis vector by the selected block and
+preserves the block and spectator indices. -/
 theorem blockDiagCross_mulVec_ket {A B C : Type*} [Fintype A] [DecidableEq A] [Fintype B]
     [DecidableEq B] [Fintype C] [DecidableEq C] (blk : A → Matrix B B ℂ) (b : B) (a : A)
     (c : C) (b' : B) (a' : A) (c' : C) :
@@ -183,6 +237,8 @@ theorem blockDiagCross_mulVec_ket {A B C : Type*} [Fintype A] [DecidableEq A] [F
       rw [hK]
       by_cases ha : a' = a <;> by_cases hc : c' = c <;> simp [ha, hc]
 
+/-- A block-diagonal matrix controlled by the first register applies its selected block to the
+second-register basis vector. -/
 theorem blockDiagFirst_mulVec_ket {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B]
     [DecidableEq B] (blk : A → Matrix B B ℂ) (a : A) (b : B) (a' : A) (b' : B) :
     (blockDiagFirst blk *ᵥ Ket (a, b)) (a', b') =
@@ -205,14 +261,20 @@ theorem blockDiagFirst_mulVec_ket {A B : Type*} [Fintype A] [DecidableEq A] [Fin
       rw [hK]
       by_cases ha : a' = a <;> simp [ha]
 
+/-- Row-slot preparation sends the designated column scratch basis state to the uniform row-slot
+state. -/
 theorem rowUniformPrep_mulVec_ket {O : Type*} [Fintype O] (sr : ℕ) (hsr : 0 < sr) :
     (rowUniformPrep (O := O) sr hsr) *ᵥ Ket (colScratch O sr hsr) = rowSlotUniform O sr :=
   complexPrepare_mulVec_ket _ _
 
+/-- Column-slot preparation sends the designated row scratch basis state to the uniform
+column-slot state. -/
 theorem colUniformPrep_mulVec_ket {I : Type*} [Fintype I] (sc : ℕ) (hsc : 0 < sc) :
     (colUniformPrep (I := I) sc hsc) *ᵥ Ket (rowScratch I sc hsc) = colSlotUniform I sc :=
   complexPrepare_mulVec_ket _ _
 
+/-- The access modes for a positive operator: purification access, copy access, a block oracle,
+or no access. -/
 inductive PositiveAccess where
 
   | purification
@@ -223,14 +285,17 @@ inductive PositiveAccess where
 
   | noAccess
 
+/-- The rank-one outer product of the basis state `Ket i` with itself. -/
 noncomputable def rankOneEffect (I : Type*) [Fintype I] [DecidableEq I] (i : I) :
     Matrix I I ℂ :=
   outerProduct (Ket i)
 
+/-- Every basis-state rank-one effect is positive semidefinite. -/
 theorem rankOneEffect_posSemidef (I : Type*) [Fintype I] [DecidableEq I] (i : I) :
     (rankOneEffect I i).PosSemidef :=
   outerProduct_posSemidef (Ket i)
 
+/-- Distinct basis indices determine distinct rank-one effects. -/
 theorem rankOneEffect_ne (I : Type*) [Fintype I] [DecidableEq I] (i j : I) (hij : i ≠ j) :
     rankOneEffect I i ≠ rankOneEffect I j := by
   intro h
@@ -244,6 +309,8 @@ theorem rankOneEffect_ne (I : Type*) [Fintype I] [DecidableEq I] (i j : I) (hij 
   simp only [rankOneEffect, outerProduct_apply, hK, hL] at h11
   norm_num at h11
 
+/-- If the index type has two distinct elements, no function can both recover every positive
+semidefinite matrix and have constant output on all such matrices. -/
 theorem noAccess_unidentifiable (I : Type*) [Fintype I] [DecidableEq I]
     (i j : I) (hij : i ≠ j) :
     ¬ ∃ (f : Matrix I I ℂ → Matrix I I ℂ),
@@ -259,6 +326,8 @@ theorem noAccess_unidentifiable (I : Type*) [Fintype I] [DecidableEq I]
       _ = rankOneEffect I i := hcorrect _ hD0
   exact hne h1.symm
 
+/-- A unitary-prepared purification gives a positive semidefinite density matrix of trace one;
+its purification word has query count two and gate count one. -/
 theorem purification_access_realizable {A I : Type*} [Fintype A] [DecidableEq A]
     [Fintype I] [DecidableEq I] (U : Matrix (A × I) (A × I) ℂ) (seed : A × I)
     (hU : U ∈ Matrix.unitaryGroup (A × I) ℂ) :
@@ -269,6 +338,8 @@ theorem purification_access_realizable {A I : Type*} [Fintype A] [DecidableEq A]
   have hp := purification_actual_positive_block_and_cost U seed hU
   exact ⟨hp.1, hp.2.1, hp.2.2.2.2.1, hp.2.2.2.2.2⟩
 
+/-- A unitary measurement produces an effect with positive semidefinite complement; its outcome
+word has query count two and gate count two. -/
 theorem povm_access_realizable {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (M : Matrix (J × I) (J × I) ℂ) (j0 : J) (S : Finset J)
     (hM : M ∈ Matrix.unitaryGroup (J × I) ℂ) :
@@ -279,6 +350,8 @@ theorem povm_access_realizable {J I : Type*} [Fintype J] [DecidableEq J]
   have hp := povm_actual_effect_block_and_cost M j0 S hM
   exact ⟨hp.1, hp.2.1, hp.2.2.2.2.1, hp.2.2.2.2.2⟩
 
+/-- A Hermitian operator whose normalized-state expectations approximate the measurement
+probabilities within `2 ^ (-b)` has a block encoding with scale one and that error. -/
 theorem povm_measurement_bit_control {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (M : Matrix (J × I) (J × I) ℂ) (j0 : J) (S : Finset J)
     (B : Matrix I I ℂ) (b : ℕ) (hM : M ∈ Matrix.unitaryGroup (J × I) ℂ)
@@ -290,6 +363,7 @@ theorem povm_measurement_bit_control {J I : Type*} [Fintype J] [DecidableEq J]
   exact povm_expectation_absolute_error_encoding M j0 S B ((2 : ℝ) ^ (-(b : ℝ))) hM hB
     (by positivity) herror
 
+/-- The row-query, column-query, value-query, and gate-step counts of a paired-access word. -/
 structure WordCost where
 
   rowQueries : ℕ
@@ -301,26 +375,32 @@ structure WordCost where
   gateCount : ℕ
   deriving DecidableEq, Repr
 
+/-- Counts the three kinds of oracle queries and the gate steps in a list of paired step kinds. -/
 def wordCost (steps : List PairedStepKind) : WordCost where
   rowQueries := rowQueryCount steps
   colQueries := colQueryCount steps
   valueQueries := valueQueryCount steps
   gateCount := gateStepCount steps
 
+/-- The encoding word uses one row query, one column query, one value query, and two gate steps. -/
 theorem encodingWord_ledger :
     wordCost encodingWordKinds =
       { rowQueries := 1, colQueries := 1, valueQueries := 1, gateCount := 2 } := by
   decide
 
+/-- The bit budget `Nat.log2 (Fintype.card O + sr) + 1` for the augmented column-address space. -/
 def colAddressBits (O : Type*) [Fintype O] (sr : ℕ) : ℕ :=
   Nat.log2 (Fintype.card O + sr) + 1
 
+/-- The bit budget `Nat.log2 (Fintype.card I + sc) + 1` for the augmented row-address space. -/
 def rowAddressBits (I : Type*) [Fintype I] (sc : ℕ) : ℕ :=
   Nat.log2 (Fintype.card I + sc) + 1
 
+/-- The sum of the bit budgets for the augmented column and row address spaces. -/
 def classicalBitCost (I O : Type*) [Fintype I] [Fintype O] (sr sc : ℕ) : ℕ :=
   colAddressBits O sr + rowAddressBits I sc
 
+/-- The classical bit cost is the sum of `colAddressBits` and `rowAddressBits`. -/
 theorem classicalBitCost_eq (I O : Type*) [Fintype I] [Fintype O] (sr sc : ℕ) :
     classicalBitCost I O sr sc = colAddressBits O sr + rowAddressBits I sc := rfl
 

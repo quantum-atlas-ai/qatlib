@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Tensor extension of linear maps
+
+This module proves algebraic laws for `tensorLeft`, which applies a linear map to the first
+matrix subsystem while retaining a finite reference system. It includes preservation of
+identity, composition, finite sums, scalar multiplication, and subtraction in the input. Tensor
+extensions of quantum maps are discussed in [Watrous2018].
+
+`tensorLeft_conjBranch` identifies the extension of conjugation by `M` with conjugation by `M ⊗
+1`. The trace-preservation theorem applies to arbitrary matrix inputs.
+
+## Main statements
+
+* `tensorLeft_comp`: extension respects composition.
+* `tensorLeft_conjBranch`: tensor extension of a conjugation map.
+* `tensorLeft_trace_map`: trace preservation survives a reference extension.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -22,17 +45,22 @@ set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.ReferenceError.RefTraceError
 
+/-- Extending the identity linear map to a reference subsystem leaves every input matrix
+unchanged. -/
 @[simp] theorem tensorLeft_id {D R : ℕ} (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft LinearMap.id ρ = ρ := by
   ext x y
   simp [tensorLeft]
 
+/-- Tensor extension of a composite linear map equals successive tensor extension of its
+factors. -/
 theorem tensorLeft_comp {D E F R : ℕ} (S : Operator E →ₗ[ℂ] Operator F)
     (T : Operator D →ₗ[ℂ] Operator E) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (S.comp T) ρ = tensorLeft S (tensorLeft T ρ) := by
   ext x y
   simp only [tensorLeft, LinearMap.comp_apply]
 
+/-- Tensor extension commutes with finite sums of linear maps. -/
 theorem tensorLeft_sum {J : Type} [Fintype J] {D E R : ℕ}
     (T : J → (Operator D →ₗ[ℂ] Operator E))
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
@@ -40,12 +68,14 @@ theorem tensorLeft_sum {J : Type} [Fintype J] {D E R : ℕ}
   ext x y
   simp [tensorLeft, Matrix.sum_apply, LinearMap.sum_apply]
 
+/-- Tensor extension commutes with complex scalar multiplication of a linear map. -/
 theorem tensorLeft_smul {D E R : ℕ} (c : ℂ) (T : Operator D →ₗ[ℂ] Operator E)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (c • T) ρ = c • tensorLeft T ρ := by
   ext x y
   simp [tensorLeft, LinearMap.smul_apply]
 
+/-- The tensor extension of a linear map preserves subtraction of input matrices. -/
 theorem tensorLeft_sub {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ρ σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft T (ρ - σ) = tensorLeft T ρ - tensorLeft T σ := by
@@ -64,10 +94,13 @@ theorem tensorLeft_sub {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
   rw [hlin]
   simp [tensorLeft, Matrix.sub_apply]
 
+/-- Summing against the equality indicator selects the term at the specified index. -/
 private lemma sum_ite_weight {R : ℕ} (X : Fin R → ℂ) (s : Fin R) :
     ∑ t : Fin R, (if s = t then (1 : ℂ) else 0) * X t = X s := by
   simp [Finset.sum_ite_eq]
 
+/-- Swapping the two variables in a double finite sum over the same index type leaves the sum
+unchanged. -/
 private lemma sum_pair_swap {ι : Type} [Fintype ι] (F : ι → ι → ℂ) :
     ∑ c, ∑ d, F c d = ∑ c, ∑ d, F d c := by
   calc ∑ c : ι, ∑ d : ι, F c d
@@ -77,6 +110,7 @@ private lemma sum_pair_swap {ι : Type} [Fintype ι] (F : ι → ι → ℂ) :
     _ = ∑ c : ι, ∑ d : ι, F d c :=
           Fintype.sum_prod_type (fun p : ι × ι => F p.2 p.1)
 
+/-- Extending conjugation by `M` to a reference system equals conjugation by `TensorGate M 1`. -/
 theorem tensorLeft_conjBranch {D R : ℕ} (M : Operator D)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (conjBranch M) ρ
@@ -147,6 +181,7 @@ theorem tensorLeft_conjBranch {D R : ℕ} (M : Operator D)
               M a y * ρ (y, s) (x, t) * (starRingEnd ℂ) (M b x))
   rw [hL, hR]
 
+/-- Tensor extension of a trace-preserving linear map preserves the trace of every input matrix. -/
 theorem tensorLeft_trace_map {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (hT : TracePreserving T) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     Matrix.trace (tensorLeft T ρ) = Matrix.trace ρ := by

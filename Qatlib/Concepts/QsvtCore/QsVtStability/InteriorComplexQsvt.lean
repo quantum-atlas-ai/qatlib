@@ -8,6 +8,32 @@ import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
 import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+
+/-!
+# Interior robustness of complex QSVT
+
+This module constructs pairs of projected unitary encodings with common frames from midpoint and
+difference data. Common row completions and paired frame rotations control the oracle distance
+inside the contraction region, supporting the interior robustness analysis of
+[GilyenSuLowWiebe2019].
+
+The resulting `interiorRate` bounds parity-dependent complex singular responses. The module also
+identifies actual odd-word corners and their query counts.
+
+## Main statements
+
+* `interior_common_projected_pair`: Construct common-frame encodings with a midpoint-dependent
+  distance bound.
+* `interior_complex_singular_response_stability`: Bound singular-response differences by
+  `interiorRate`.
+* `interior_complex_actual_word_corner_and_ledger`: Give the actual odd-word error and exact
+  query count.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -34,18 +60,22 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOr
 noncomputable local instance interiorMatrixCStar {J : Type} [Fintype J] [DecidableEq J] :
     CStarAlgebra (Matrix J J ℂ) where
 
+/-- The scalar primary response of a complex phase list evaluated on real inputs. -/
 noncomputable def interiorResponse (base : ℂ) (zs : List ℂ) : ℝ → ℂ :=
   fun x => (responseP base zs).eval (x : ℂ)
 
+/-- The interior perturbation rate `d * √(2 / (1 - ‖(A + B) / 2‖²)) * ‖A - B‖`. -/
 noncomputable def interiorRate {I O : Type} [Fintype I] [Fintype O]
     (A B : Matrix O I ℂ) (d : ℕ) : ℝ :=
   d * Real.sqrt (2 / (1 - ‖(2 : ℂ)⁻¹ • (A+B)‖^2)) * ‖A-B‖
 
+/-- The interior perturbation rate is nonnegative. -/
 theorem interiorRate_nonneg {I O : Type} [Fintype I] [Fintype O]
     (A B : Matrix O I ℂ) (d : ℕ) : 0 ≤ interiorRate A B d := by
   unfold interiorRate
   positivity
 
+/-- The interior gap condition bounds the weighted common-row budget by one. -/
 theorem interior_common_row_budget (m δ : ℝ) (hm : 0 ≤ m) (hmi : m < 1)
     (hδ : 0 ≤ δ) (hgap : δ + m ^ 2 ≤ 1) :
     (2 / (1 + m ^ 2)) * m ^ 2 + (2 / (1 - m ^ 2)) * (δ / 2) ^ 2 ≤ 1 := by
@@ -63,6 +93,8 @@ theorem interior_common_row_budget (m δ : ℝ) (hm : 0 ≤ m) (hmi : m < 1)
   apply (div_le_iff₀ (by positivity : 0 < (1 + m ^ 2) * 2)).mpr
   nlinarith [sq_nonneg (1 - m ^ 2)]
 
+/-- Compute the row Gram matrix of the concatenated blocks `M + D` and `t⁻¹ • M - t • D` for
+nonzero `t`. -/
 theorem interior_common_row_gram {I O : Type} [Fintype I] [Fintype O]
     (M D : Matrix O I ℂ) (t : ℝ) (ht : t ≠ 0) :
     let T := Matrix.fromCols (M + D) (t⁻¹ • M - t • D)
@@ -74,6 +106,7 @@ theorem interior_common_row_gram {I O : Type} [Fintype I] [Fintype O]
     Matrix.smul_mul, Matrix.mul_smul]
   match_scalars <;> field_simp <;> ring
 
+/-- The plus and minus common-row constructions have the same row Gram matrix for nonzero `t`. -/
 theorem interior_common_partner_gram {I O : Type} [Fintype I] [Fintype O]
     (M D : Matrix O I ℂ) (t : ℝ) (ht : t ≠ 0) :
     let T₀ := Matrix.fromCols (M + D) (t⁻¹ • M - t • D)
@@ -85,6 +118,7 @@ theorem interior_common_partner_gram {I O : Type} [Fintype I] [Fintype O]
     Matrix.neg_mul, Matrix.mul_neg, neg_neg] at h
   rw [interior_common_row_gram M D t ht, h]
 
+/-- The two completed common rows differ in norm by exactly `2 * √(1 + t²) * ‖D‖`. -/
 theorem interior_common_row_distance {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (M D : Matrix O I ℂ) (C : Matrix O O ℂ) (t : ℝ) :
     let T₀ := Matrix.fromCols (M + D) (Matrix.fromCols (t⁻¹ • M - t • D) C)
@@ -125,6 +159,8 @@ theorem interior_common_row_distance {I O : Type} [Fintype I] [Fintype O]
   rw [hsq, mul_pow, mul_pow, hs]
   ring
 
+/-- A weighted norm budget permits a common positive semidefinite block completing both rows to
+coisometries. -/
 theorem interior_common_row_completion {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (M D : Matrix O I ℂ) (t : ℝ) (ht : t ≠ 0)
     (hbudget : (1 + t⁻¹ ^ 2) * ‖M‖ ^ 2 + (1 + t ^ 2) * ‖D‖ ^ 2 ≤ 1) :
@@ -180,6 +216,8 @@ theorem interior_common_row_completion {I O : Type} [Fintype I] [Fintype O]
     rw [hCsq, ← add_assoc, he]
     exact add_sub_cancel _ _
 
+/-- For a skew-Hermitian contraction `K`, the matrices `√(1 + K * K) ± K` are unitary and differ
+in norm by `2 * ‖K‖`. -/
 theorem interior_skew_rotations {H : Type} [Fintype H] [DecidableEq H]
     (K : Matrix H H ℂ) (hK : Kᴴ = -K) (hn : ‖K‖ ≤ 1) :
     let S := CFC.sqrt (1 + K * K)
@@ -212,6 +250,8 @@ theorem interior_skew_rotations {H : Type} [Fintype H] [DecidableEq H]
   · have hd : (S + K) - (S - K) = (2 : ℝ) • K := by module
     rw [hd, norm_smul, Real.norm_of_nonneg (by norm_num)]
 
+/-- If an isometric frame is orthogonal to `Y`, the associated skew-Hermitian matrix has norm at
+most `‖Y‖`. -/
 private theorem interior_frame_skew_norm {H J : Type} [Fintype H] [Fintype J]
     [DecidableEq H] [DecidableEq J] (F Y : Matrix H J ℂ) (hF : IsIsometry F)
     (hFY : Fᴴ * Y = 0) : ‖Y * Fᴴ - F * Yᴴ‖ ≤ ‖Y‖ := by
@@ -274,6 +314,8 @@ private theorem interior_frame_skew_norm {H J : Type} [Fintype H] [Fintype J]
   rw [Matrix.l2_opNorm_conjTranspose_mul_self, ← pow_two] at hn
   exact (sq_le_sq₀ (norm_nonneg K) (norm_nonneg Y)).mp hn
 
+/-- A positive matrix commuting with a frame's range projector intertwines its square root
+through that frame. -/
 private theorem interior_sqrt_frame {H J : Type} [Fintype H] [Fintype J]
     [DecidableEq H] [DecidableEq J] (F : Matrix H J ℂ) (hF : IsIsometry F)
     (Q : Matrix H H ℂ) (hQ : 0 ≤ Q) (hc : Commute Q (F * Fᴴ)) :
@@ -297,6 +339,8 @@ private theorem interior_sqrt_frame {H J : Type} [Fintype H] [Fintype J]
     _ = (F * Fᴴ) * S * F := by rw [hSP]
     _ = F * (Fᴴ * S * F) := by simp only [Matrix.mul_assoc]
 
+/-- Orthogonal paired frames with complementary Gram matrices and `‖Y‖ < 1` arise from a common
+isometry under two unitaries separated by at most `2 * ‖Y‖`. -/
 theorem interior_paired_frame_rotations {H J : Type} [Fintype H] [Fintype J]
     [DecidableEq H] [DecidableEq J] (X Y : Matrix H J ℂ)
     (hgram : Xᴴ * X + Yᴴ * Y = 1) (hXY : Xᴴ * Y = 0) (hYn : ‖Y‖ < 1) :
@@ -379,6 +423,8 @@ theorem interior_paired_frame_rotations {H J : Type} [Fintype H] [Fintype J]
   · rw [hd]
     exact mul_le_mul_of_nonneg_left hKn (by norm_num)
 
+/-- A completed common row with a small difference block yields encodings of `M ± D` sharing
+frames, with oracle distance at most `2 * √(1 + t²) * ‖D‖`. -/
 private theorem interior_row_projected_pair {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (M D : Matrix O I ℂ) (C : Matrix O O ℂ)
     (t : ℝ) (ht : t ≠ 0)
@@ -454,6 +500,8 @@ private theorem interior_row_projected_pair {I O : Type} [Fintype I] [Fintype O]
   · rw [← Matrix.conjTranspose_sub, Matrix.l2_opNorm_conjTranspose]
     simpa only [hn, mul_assoc] using! hUV
 
+/-- Under the interior midpoint and gap conditions, `A` and `B` have encodings with common
+frames and oracle distance at most `√(2 / (1 - ‖(A + B) / 2‖²)) * ‖A - B‖`. -/
 theorem interior_common_projected_pair {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (A B : Matrix O I ℂ)
     (hm : ‖(2 : ℂ)⁻¹ • (A + B)‖ < 1)
@@ -518,6 +566,8 @@ theorem interior_common_projected_pair {I O : Type} [Fintype I] [Fintype O]
     ring
   simpa only [he] using! hd
 
+/-- For an exact encoding and an odd phase list, the compressed alternating word equals the odd
+singular response and the compiled query count is the list length. -/
 theorem interior_complex_actual_corner_and_query_count :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (B : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -531,6 +581,9 @@ theorem interior_complex_actual_corner_and_query_count :
   exact ⟨qsvt_odd_eq_oddSingularTransform hB base zs hodd,
     queryCount_compileQSVT _ _ _ _⟩
 
+/-- For contractions satisfying the strict midpoint and interior gap conditions, unit-phase
+singular responses differ by at most `interiorRate`, in the parity-appropriate transform
+[GilyenSuLowWiebe2019]. -/
 theorem interior_complex_singular_response_stability :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A B : Matrix O I ℂ) (base : ℂ) (zs : List ℂ),
@@ -574,6 +627,9 @@ theorem interior_complex_singular_response_stability :
     rw [← Matrix.conjTranspose_sub, Matrix.l2_opNorm_conjTranspose] at h
     exact h.trans hrate
 
+/-- An odd unit-phase word encoding `B` approximates the singular response of `A` within
+`interiorRate` under the interior conditions, with query count equal to list length
+[GilyenSuLowWiebe2019]. -/
 theorem interior_complex_actual_word_corner_and_ledger :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (U : Matrix H H ℂ)

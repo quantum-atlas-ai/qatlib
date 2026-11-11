@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestricted
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Classical query lower bound for parity-secret recovery
+
+This module counts the possible outputs of an adaptive Boolean query tree by its maximum number
+of queries. Applying the count to exact recovery of every parity secret yields the deterministic
+classical lower bound in the Bernstein–Vazirani setting [BernsteinVazirani1997].
+
+## Main statements
+
+* `bv_output_count_le`: a tree with maximum query count `T` has at most `2 ^ T` distinct
+  outputs.
+* `bv_classical_zero_error_lower_bound`: a tree recovering every `n`-bit secret requires at
+  least `n` queries on some path.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -16,10 +36,12 @@ namespace Qatlib.Concepts.UniformBqp.BvParityBound
 section
 variable {Q O : Type} [DecidableEq O]
 
+/-- The finite set of all output labels occurring at leaves of a Boolean query tree. -/
 def bvTreeOutputs : BoolQueryTree Q O → Finset O
   | .halt o => {o}
   | .ask _ l r => bvTreeOutputs l ∪ bvTreeOutputs r
 
+/-- The output produced by running a Boolean query tree belongs to its set `bvTreeOutputs`. -/
 theorem bv_run_mem_outputs (f : Q → Bool) (T : BoolQueryTree Q O) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run f T).1 ∈ bvTreeOutputs T := by
   induction T with
@@ -28,6 +50,8 @@ theorem bv_run_mem_outputs (f : Q → Bool) (T : BoolQueryTree Q O) :
       cases hf : f q <;> simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run,
           bvTreeOutputs, hf, hl, hr]
 
+/-- The number of distinct leaf outputs is at most two raised to the maximum query count of the
+tree. -/
 theorem bv_output_count_le (T : BoolQueryTree Q O) :
     (bvTreeOutputs T).card ≤ 2 ^ Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.MaxQueries T := by
   induction T with
@@ -47,6 +71,8 @@ theorem bv_output_count_le (T : BoolQueryTree Q O) :
 
 end
 
+/-- A deterministic Boolean query tree that recovers every `n`-bit parity secret has maximum
+query count at least `n`. -/
 theorem bv_classical_zero_error_lower_bound (n : ℕ)
     (T : BoolQueryTree (Reg n) (Reg n))
     (hT : ∀ k, (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run (bvCharBit k) T).1 = k) :

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoModelCorrected
+
+/-!
+# Specification of corrected Figure 2 rotations
+
+This module defines `PolyRotationFigTwoCorrected`, combining polynomial-angle reconstruction,
+basis-state circuit semantics, exact word length, and a polynomial gate bound.
+
+The polynomial payoff-rotation setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `PolyRotationFigTwoCorrected`: The proposition that the corrected Figure 2 program realizes
+  every polynomial angle of degree at most `k` on clean-work inputs, with the stated exact cost
+  and bound `31 * (k + 1) * n ^ (k + 1)` for `n ≥ 1`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +41,9 @@ namespace Qatlib.Concepts.RiskEstimation.PolyRotation
 
 open Matrix
 
+/-- The proposition that the corrected Figure 2 program realizes every polynomial angle of
+degree at most `k` on clean-work inputs, with the stated exact cost and bound `31 * (k + 1)
+* n ^ (k + 1)` for `n ≥ 1`. -/
 def PolyRotationFigTwoCorrected : Prop :=
   ∀ (n k : ℕ) (p : Polynomial ℝ), p.natDegree ≤ k →
     let g : Reg n → ℝ := fun y => p.eval (figTwoRegEval y : ℝ)

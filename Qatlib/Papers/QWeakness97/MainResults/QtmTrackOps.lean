@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+
+/-!
+# Adding an unchanged track to a quantum machine
+
+`addTrackRule` extends the tape alphabet of a finite-window quantum Turing machine by a second
+track and preserves the second component of every symbol it writes. `addTrackCfg` embeds a
+configuration by filling the added track with a fixed symbol `b0`, and `addTrackState`
+transports amplitudes to this embedded configuration space.
+
+The amplitude, evolution, and run identities give a finite-window realization of the
+unchanged-track construction in Lemma 4.6 of [BennettEtAl1997]. The extended rule also satisfies
+local wellformedness whenever the original rule does.
+
+## Main statements
+
+* `addTrack_stepAmplitude` preserves transition amplitudes on embedded configurations.
+* `addTrackRule_localWellformed` proves preservation of the local wellformedness conditions.
+* `addTrack_evolve_fun` and `addTrack_runSteps` show that embedding commutes with one step and
+  any finite run.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,14 +48,20 @@ variable {Q A B : Type*} [Fintype Q] [DecidableEq Q]
   [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
 variable {w : ℕ}
 
+/-- Extend a quantum machine rule to the product alphabet `A × B`, retaining the read symbol's
+second component in every nonzero transition. The added track's blank symbol is `b0`. -/
 def addTrackRule (R : QtmRule Q A) (b0 : B) : QtmRule Q (A × B) where
   blank := (R.blank, b0)
   start := R.start
   step q p d q' p' := if p'.2 = p.2 then R.step q p.1 d q' p'.1 else 0
 
+/-- Embed a configuration into the product alphabet by pairing every tape symbol with the fixed
+added-track symbol `b0`, leaving the state and head position unchanged. -/
 def addTrackCfg (b0 : B) (c : QtmCfg Q A w) : QtmCfg Q (A × B) w :=
   (c.1, c.2.1, fun i => (c.2.2 i, b0))
 
+/-- Adding the constant track is injective on configurations, since the original tape is
+recovered from the first component of every cell. -/
 theorem addTrackCfg_injective (b0 : B) :
     Function.Injective (addTrackCfg (Q := Q) (A := A) (B := B) (w := w) b0) := by
   intro c d h
@@ -42,6 +73,8 @@ theorem addTrackCfg_injective (b0 : B) :
   have := congrFun htp i
   simpa using congrArg Prod.fst this
 
+/-- Updating an embedded tape with `(a', b0)` is the same as updating the original tape with
+`a'` and then adding the constant track. -/
 theorem update_addTrack (b0 : B) (f : Fin w → A) (i : Fin w) (a' : A) :
     Function.update (fun j => (f j, b0)) i (a', b0)
       = fun j => (Function.update f i a' j, b0) := by
@@ -51,6 +84,8 @@ theorem update_addTrack (b0 : B) (f : Fin w → A) (i : Fin w) (a' : A) :
     simp [Function.update]
   · simp [Function.update, h]
 
+/-- Computing a transition target on a configuration with the constant added track gives the
+embedding of the original optional target. Boundary failure of the head move is preserved. -/
 theorem stepTarget_addTrack (b0 : B) (c : QtmCfg Q A w) (d : QtmMove)
     (q' : Q) (a' : A) :
     QtmRule.stepTarget (addTrackCfg b0 c) d q' (a', b0)
@@ -61,6 +96,8 @@ theorem stepTarget_addTrack (b0 : B) (c : QtmCfg Q A w) (d : QtmMove)
   · simp
     rw [update_addTrack b0 c.2.2 c.2.1 a']
 
+/-- A transition reaches a specified embedded configuration exactly when the corresponding
+original transition reaches the original configuration. -/
 theorem stepTarget_addTrack_eq_some (b0 : B) (c c' : QtmCfg Q A w)
     (d : QtmMove) (q' : Q) (a' : A) :
     QtmRule.stepTarget (addTrackCfg b0 c) d q' (a', b0) = some (addTrackCfg b0 c') ↔
@@ -76,6 +113,9 @@ theorem stepTarget_addTrack_eq_some (b0 : B) (c c' : QtmCfg Q A w)
   · intro h
     simp [h]
 
+/-- Adding the constant track preserves the one-step amplitude between every pair of embedded
+configurations. This is the transition-amplitude identity for the construction in Lemma 4.6
+of [BennettEtAl1997]. -/
 theorem addTrack_stepAmplitude (R : QtmRule Q A) (b0 : B) (w : ℕ)
     (c c' : QtmCfg Q A w) :
     (addTrackRule R b0).stepAmplitude w (addTrackCfg b0 c) (addTrackCfg b0 c')
@@ -104,6 +144,9 @@ theorem addTrack_stepAmplitude (R : QtmRule Q A) (b0 : B) (w : ℕ)
   · intro h
     exact absurd (Finset.mem_univ b0) h
 
+/-- A locally wellformed rule remains locally wellformed after adding a track that its
+transitions leave unchanged. This establishes wellformedness of the finite-window
+construction associated with Lemma 4.6 of [BennettEtAl1997]. -/
 theorem addTrackRule_localWellformed (R : QtmRule Q A) (h : R.LocalWellformed) (b0 : B) :
     (addTrackRule R b0).LocalWellformed := by
   obtain ⟨hn, hsc, hrs, hsl, hrl⟩ := h
@@ -172,9 +215,14 @@ theorem addTrackRule_localWellformed (R : QtmRule Q A) (h : R.LocalWellformed) (
       · simp [addTrackRule, h1, h2]
     · simp [addTrackRule, h1]
 
+/-- Embed a state in the product-alphabet configuration space by summing its amplitudes over
+preimages of the constant-track embedding. The resulting state is supported on
+configurations whose added track is constantly `b0`. -/
 def addTrackState (b0 : B) (ψ : QState (QtmCfg Q A w)) : QState (QtmCfg Q (A × B) w) :=
   fun d => ∑ c, if addTrackCfg b0 c = d then ψ c else 0
 
+/-- The embedded state has the original amplitude at each configuration obtained by adding the
+constant track. -/
 theorem addTrackState_apply (b0 : B) (ψ : QState (QtmCfg Q A w)) (c : QtmCfg Q A w) :
     addTrackState b0 ψ (addTrackCfg b0 c) = ψ c := by
   unfold addTrackState
@@ -187,12 +235,16 @@ theorem addTrackState_apply (b0 : B) (ψ : QState (QtmCfg Q A w)) (c : QtmCfg Q 
   · intro h
     exact absurd (Finset.mem_univ c) h
 
+/-- The embedded state has zero amplitude at every configuration outside the image of the
+constant-track embedding. -/
 theorem addTrackState_eq_zero (b0 : B) (ψ : QState (QtmCfg Q A w))
     (d : QtmCfg Q (A × B) w) (hd : ∀ c, addTrackCfg b0 c ≠ d) :
     addTrackState b0 ψ d = 0 := by
   unfold addTrackState
   exact Finset.sum_eq_zero fun c _ => by simp [hd c]
 
+/-- The extended rule has zero transition amplitude from an embedded configuration to any
+configuration outside the constant-track image. -/
 theorem addTrack_stepAmplitude_eq_zero (R : QtmRule Q A) (b0 : B) (w : ℕ)
     (c : QtmCfg Q A w) (d : QtmCfg Q (A × B) w)
     (hd : ∀ c', addTrackCfg b0 c' ≠ d) :
@@ -221,6 +273,8 @@ theorem addTrack_stepAmplitude_eq_zero (R : QtmRule Q A) (b0 : B) (w : ℕ)
     simp [hne]
   · simp [addTrackRule, hp]
 
+/-- One step of the extended rule preserves support on the constant-track image. Any state
+vanishing outside that image continues to vanish there after evolution. -/
 theorem addTrack_evolve_support (R : QtmRule Q A) (b0 : B) (w : ℕ)
     (ψ : QState (QtmCfg Q (A × B) w))
     (hψ : ∀ d, (∀ c, addTrackCfg b0 c ≠ d) → ψ d = 0)
@@ -235,6 +289,8 @@ theorem addTrack_evolve_support (R : QtmRule Q A) (b0 : B) (w : ℕ)
   · rw [hψ c (fun c' h => hc ⟨c', h⟩)]
     simp
 
+/-- Evolving the embedded state and evaluating at an embedded configuration gives the original
+evolution's amplitude at the corresponding original configuration. -/
 theorem addTrack_evolve (R : QtmRule Q A) (b0 : B) (w : ℕ)
     (ψ : QState (QtmCfg Q A w)) (c' : QtmCfg Q A w) :
     (addTrackRule R b0).evolve w (addTrackState b0 ψ) (addTrackCfg b0 c')
@@ -262,6 +318,8 @@ theorem addTrack_evolve (R : QtmRule Q A) (b0 : B) (w : ℕ)
   intro c _
   rw [addTrackState_apply, addTrack_stepAmplitude]
 
+/-- Adding the constant track commutes with a complete evolution step as an equality of states.
+This gives the one-step unchanged-track behavior of Lemma 4.6 of [BennettEtAl1997]. -/
 theorem addTrack_evolve_fun (R : QtmRule Q A) (b0 : B) (w : ℕ)
     (ψ : QState (QtmCfg Q A w)) :
     (addTrackRule R b0).evolve w (addTrackState b0 ψ)
@@ -274,6 +332,9 @@ theorem addTrack_evolve_fun (R : QtmRule Q A) (b0 : B) (w : ℕ)
     exact addTrack_evolve_support R b0 w (addTrackState b0 ψ)
       (fun d h => addTrackState_eq_zero b0 ψ d h) d (fun c h => hd ⟨c, h⟩)
 
+/-- For any finite number of steps, running the extended rule from an embedded state equals
+embedding the original run. This is the finite-run unchanged-track identity associated with
+Lemma 4.6 of [BennettEtAl1997]. -/
 theorem addTrack_runSteps (R : QtmRule Q A) (b0 : B) (w : ℕ) (t : ℕ)
     (ψ : QState (QtmCfg Q A w)) :
     (addTrackRule R b0).runSteps w t (addTrackState b0 ψ)
@@ -288,6 +349,9 @@ theorem addTrack_runSteps (R : QtmRule Q A) (b0 : B) (w : ℕ) (t : ℕ)
       = addTrackState b0 (R.evolve w (R.runSteps w t ψ))
     rw [ih, addTrack_evolve_fun]
 
+/-- After any finite run of the extended rule, the amplitude at an embedded configuration equals
+the original run's amplitude at the corresponding configuration. This is the pointwise
+finite-run form of Lemma 4.6 of [BennettEtAl1997]. -/
 theorem addTrack_runSteps_apply (R : QtmRule Q A) (b0 : B) (w : ℕ) (t : ℕ)
     (ψ : QState (QtmCfg Q A w)) (c' : QtmCfg Q A w) :
     (addTrackRule R b0).runSteps w t (addTrackState b0 ψ) (addTrackCfg b0 c')

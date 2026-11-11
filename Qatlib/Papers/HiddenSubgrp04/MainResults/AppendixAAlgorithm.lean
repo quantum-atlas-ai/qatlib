@@ -29,6 +29,34 @@ import Mathlib.Data.Nat.Log
 import Mathlib.Tactic
 import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
 import Qatlib.Papers.HiddenSubgrp04.MainResults.LemmaA15
+
+/-!
+# Statements and resource bounds for cyclic Fourier approximation
+
+This module defines propositions expressing Appendix A error estimates for cyclic Fourier
+approximation, including `theorem_A14Statement` and the four parts of Theorem A.17. It also
+defines the combined analytic bound `theoremA17ErrorBound`, the qubit count `qubitsUsed`, and
+the real expression `paperOperationComplexity`.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `theorem_A14Statement`: The proposition bounding the distance from `algOutput` to the tensor
+  product of `cyclicQFT u` and `garbageVec` by the sum of the two displayed analytic error
+  terms.
+* `theorem_A17_part1Statement`: The proposition that a normalized auxiliary vector exists whose
+  tensor product with `cyclicQFT u` is within ε of `algOutput`, under the supplied
+  combined-error and parameter hypotheses.
+* `theorem_A17_part2Statement`: The proposition asserting constants in the stated intervals and
+  power-of-two parameters L and M within the displayed factors of the target sizes, with
+  combined error at most ε√2 for every eligible N and ε.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -39,6 +67,9 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- The proposition bounding the ℓ² norm of the Fourier-weighted tail vectors by the displayed
+logarithmic and size-dependent error expression under the supplied parameter and
+normalization hypotheses. -/
 def lemma_A11Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
     (hL : 2 ≤ L) (hM : 16 * N ≤ M)
     (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
@@ -48,6 +79,8 @@ def lemma_A11Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
         Real.sqrt (22 * (Real.log (N : ℝ)) ^ 2 / (L : ℝ) +
           32 * (N : ℝ) ^ 2 / ((L : ℝ) * (M : ℝ)))
 
+/-- The proposition that the ℓ² distance between `Svec` and `Bvec` is at most πLN√3/M under the
+supplied size and power-of-two hypotheses. -/
 def lemma_A12Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
     (hL : 16 ≤ L) (hM : L * N ≤ M)
     (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
@@ -55,11 +88,15 @@ def lemma_A12Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
     l2 (fun k : Fin M => Svec L M N i.val k - Bvec L M N i.val k) ≤
       Real.pi * (L : ℝ) * (N : ℝ) / (M : ℝ) * Real.sqrt 3
 
+/-- The proposition that applying `DeltaVec` to `Svec` gives the tensor product of the i-th
+basis vector with `garbageVec` under the supplied parameter hypotheses. -/
 def lemma_A13Statement (L M N : ℕ) (hN : 13 ≤ N) (hL : 16 ≤ L) (hM : L * N ≤ M)
     (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b) (i : Fin N) : Prop :=
     DeltaVec M N (Svec L M N i.val) =
       tensorVec (fun j : Fin N => if j = i then 1 else 0) (garbageVec L M N)
 
+/-- The proposition bounding the distance from `algOutput` to the tensor product of `cyclicQFT
+u` and `garbageVec` by the sum of the two displayed analytic error terms. -/
 def theorem_A14Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
     (hL : 16 ≤ L) (hM : L * N ≤ M)
     (hLpow : ∃ a : ℕ, L = 2 ^ a) (hMpow : ∃ b : ℕ, M = 2 ^ b)
@@ -70,12 +107,16 @@ def theorem_A14Statement (L M N : ℕ) (hN : 13 ≤ N) (hNodd : Odd N)
             32 * (N : ℝ) ^ 2 / ((L : ℝ) * (M : ℝ))) +
         Real.pi * (L : ℝ) * (N : ℝ) / (M : ℝ) * Real.sqrt 3
 
+/-- The combined error expression consisting of the square-root tail bound and the term πLN√3/M. -/
 def theoremA17ErrorBound (L M N : ℕ) : ℝ :=
   (2 / Real.pi) *
       Real.sqrt (22 * (Real.log (N : ℝ)) ^ 2 / (L : ℝ) +
         32 * (N : ℝ) ^ 2 / ((L : ℝ) * (M : ℝ))) +
     Real.pi * (L : ℝ) * (N : ℝ) / (M : ℝ) * Real.sqrt 3
 
+/-- The proposition that a normalized auxiliary vector exists whose tensor product with
+`cyclicQFT u` is within ε of `algOutput`, under the supplied combined-error and parameter
+hypotheses. -/
 def theorem_A17_part1Statement (N : ℕ) (hNodd : Odd N) (hN : 13 ≤ N)
     (ε : ℝ) (hε0 : 0 < ε) (hε2 : ε ≤ Real.sqrt 2)
     (L M : ℕ) (hL16 : 16 ≤ L) (hM : L * N ≤ M)
@@ -86,6 +127,9 @@ def theorem_A17_part1Statement (N : ℕ) (hNodd : Odd N) (hN : 13 ≤ N)
       l2 ψ = 1 ∧
         l2 (fun p => algOutput L M N u p - tensorVec (cyclicQFT u) ψ p) ≤ ε
 
+/-- The proposition asserting constants in the stated intervals and power-of-two parameters L
+and M within the displayed factors of the target sizes, with combined error at most ε√2 for
+every eligible N and ε. -/
 def theorem_A17_part2Statement : Prop :=
     ∃ c1 c2 : ℝ,
       65 ≤ c1 ∧ c1 ≤ 2 * 65 ∧ 735 ≤ c2 ∧ c2 ≤ 2 * 735 ∧
@@ -99,18 +143,25 @@ def theorem_A17_part2Statement : Prop :=
               (M : ℝ) < 2 * (c2 * (N : ℝ) * Real.sqrt (N : ℝ) / ε ^ 3) ∧
               theoremA17ErrorBound L M N ≤ ε * Real.sqrt 2
 
+/-- The qubit count defined as the base-two natural ceiling logarithm of M plus two. -/
 def qubitsUsed (M : ℕ) : ℕ := Nat.clog 2 M + 2
 
+/-- The qubit count equals `Nat.clog 2 M + 2` by its definition. -/
 theorem theorem_A17_part3_qubits (M : ℕ) : qubitsUsed M = Nat.clog 2 M + 2 := rfl
 
+/-- The proposition that a power of two M ≥ 16 exists with qubit count at most the ceiling of
+12.53 + 3 log₂(√N/ε), for the supplied N and ε. -/
 def theorem_A17_part3_sufficient_qubitsStatement (N : ℕ) (hNodd : Odd N) (hN : 13 ≤ N)
     (ε : ℝ) (hε0 : 0 < ε) (hε2 : ε ≤ Real.sqrt 2) : Prop :=
     ∃ M : ℕ, (∃ b : ℕ, M = 2 ^ b) ∧ 16 ≤ M ∧
       qubitsUsed M ≤ Nat.ceil (12.53 + 3 * Real.logb 2 (Real.sqrt (N : ℝ) / ε))
 
+/-- The real expression log(M)(log(log(M)) + log(1/ε)) used for the operation-complexity scale. -/
 def paperOperationComplexity (M : ℕ) (ε : ℝ) : ℝ :=
   Real.log (M : ℝ) * (Real.log (Real.log (M : ℝ)) + Real.log (1 / ε))
 
+/-- The proposition that the supplied ℓ² closeness bound ε to a tensor product with normalized
+auxiliary vector yields `tvDist` at most 2ε + ε². -/
 def theorem_A17_part4Statement (N L M : ℕ) (ε : ℝ) (hε0 : 0 ≤ ε)
     (u : Fin N → ℂ) (ψ : Fin (2 * alphaNat M N + 1) → ℂ) (hψ : l2 ψ = 1)
     (hclose : l2 (fun p =>

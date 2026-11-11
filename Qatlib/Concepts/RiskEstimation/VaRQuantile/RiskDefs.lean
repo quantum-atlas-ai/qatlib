@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
 import Qatlib.Concepts.SqEstimation.HierarchicalSQ.NativeCoefficientChoice
+
+/-!
+# Finite quantum risk estimator definitions
+
+This module defines cumulative and truncated loss payoffs, their amplitude-estimation laws, and
+median-based risk estimators in the setting of [WoernerEgger2019]. `riskBisect` records the
+selected index and number of calls; `riskVaR` instantiates it with CDF estimates.
+
+`riskCVaR` follows the quantile search with cumulative-probability and numerator readouts,
+dividing the latter by a regularized denominator. Here `riskTailMean` is the normalized mean
+over losses at most the threshold.
+
+## Main statements
+
+* `riskCDF` and `riskTailMean`: cumulative probability and normalized truncated loss mean.
+* `riskMedianPMF`: the law of a median of repeated amplitude estimates.
+* `riskVaR` and `riskCVaR`: composed quantile and tail-mean estimator laws.
+* `risk_event_mono`: monotonicity of event probability under implication.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,22 +59,31 @@ namespace Papers.QuantumRiskAnalysis2018
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- The real-valued indicator payoff for a loss at most the threshold `t`. -/
 def riskCDFPayoff {I : Type} (loss : I  → ℚ) (t : ℚ) (i : I) : ℝ := if loss i ≤ t then 1 else 0
 
+/-- The rational loss payoff truncated to zero when the loss exceeds `t`. -/
 def riskTailPayoff {I : Type} (loss : I  → ℚ) (t : ℚ) (i : I) : ℚ :=
     if loss i ≤ t then loss i else 0
 
+/-- The Born-weighted sum of the indicator payoff for losses at most `t` in the prepared vector
+`A *ᵥ Ket j`. -/
 noncomputable def riskCDF {I : Type} [Fintype I] (A : Matrix I I ℂ) (j : I) (loss : I  → ℚ) (t : ℚ) : ℝ :=
   ∑ i, BornProb (A*ᵥ Ket j) i*riskCDFPayoff loss t i
 
+/-- The Born-weighted truncated loss sum divided by `riskCDF` at `t`. For a normalized
+preparation and positive denominator, this is the conditional mean of losses at most `t`. -/
 noncomputable def riskTailMean {I : Type} [Fintype I] (A : Matrix I I ℂ) (j : I) (loss : I  → ℚ) (t : ℚ) : ℝ :=
   (∑ i,BornProb (A*ᵥ Ket j) i*(riskTailPayoff loss t i:ℝ))/riskCDF A j loss t
 
+/-- The finite amplitude-estimation mean law for the indicator payoff of losses at most `t`. -/
 noncomputable def riskCDFLaw {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (loss : I  → ℚ) (t : ℚ) (M : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) : FinDist (Fin M) :=
   meanLaw M A j (riskCDFPayoff loss t) hA (fun i => by
     dsimp [riskCDFPayoff]; split <;> norm_num) hM
 
+/-- The finite amplitude-estimation mean law for the rational rotation approximation to the
+truncated loss payoff, with precision parameter `k`. -/
 noncomputable def riskNumeratorLaw {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (loss : I  → ℚ) (t : ℚ) (k M : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ)
     (hloss : ∀ i,0 ≤ loss i ∧loss i ≤ 1) (hM : 2 ≤ M) : FinDist (Fin M) :=
@@ -63,6 +96,8 @@ noncomputable def riskNumeratorLaw {I : Type} [Fintype I] [DecidableEq I] (A : M
         (rationalPayoffValue (riskTailPayoff loss t i) k:ℝ) ≤ 1
       exact ⟨by exact_mod_cast h.1,by exact_mod_cast h.2⟩) hM
 
+/-- The real-valued law of the median of `2*r + 1` independently drawn amplitude-estimation
+readouts from `p`. -/
 noncomputable def riskMedianPMF {M : ℕ} (p : FinDist (Fin M)) (r : ℕ) : PMF ℝ :=
   (closurePMF ({
     prob := p.probOf
@@ -70,6 +105,8 @@ noncomputable def riskMedianPMF {M : ℕ} (p : FinDist (Fin M)) (r : ℕ) : PMF 
     sum_one := p.sum_probOf (2*r+1)
     } : FinDist (Fin (2*r+1)  → Fin M))).map (meanMedian r M)
 
+/-- Fuel-limited probabilistic bisection of a rational threshold list using real-valued samples
+compared with `q`. The output records the selected index and the number of sampling calls. -/
 noncomputable def riskBisect (sample : ℚ  → PMF ℝ) (xs : List ℚ) (q : ℝ) : ℕ  → ℕ  → ℕ  → PMF (ℕ ×ℕ)
   | 0,lo,_ => PMF.pure (lo,0)
   | fuel+1,lo,hi => if hi ≤ lo then PMF.pure (lo,0) else
@@ -78,12 +115,17 @@ noncomputable def riskBisect (sample : ℚ  → PMF ℝ) (xs : List ℚ) (q : �
         (if q ≤ z then riskBisect sample xs q fuel lo mid else riskBisect sample xs q fuel (mid+1) hi).map
           (fun out => (out.1,out.2+1)))
 
+/-- The quantile-search law obtained by bisection with median CDF readouts and fuel `Nat.clog 2
+xs.length + 1`. -/
 noncomputable def riskVaR {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (loss : I  → ℚ) (xs : List ℚ) (q : ℝ) (M r : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ)
     (hM : 2 ≤ M) : PMF (ℕ ×ℕ) :=
   riskBisect (fun t => riskMedianPMF (riskCDFLaw A j loss t M hA hM) r) xs q
     (Nat.clog 2 xs.length+1) 0 (xs.length-1)
 
+/-- The law obtained by running `riskVaR` and then estimating the cumulative probability and
+truncated loss numerator at the selected threshold. It returns the index, the numerator
+estimate divided by `max eps phat`, and the total readout-call count. -/
 noncomputable def riskCVaR {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (loss : I  → ℚ) (xs : List ℚ) (q eps : ℝ) (k M r : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ)
     (hloss : ∀ i,0 ≤ loss i ∧loss i ≤ 1) (hM : 2 ≤ M) : PMF (ℕ ×ℝ ×ℕ) :=
@@ -100,6 +142,8 @@ open scoped Classical BigOperators ENNReal
 set_option autoImplicit false
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 
+/-- Pointwise implication between events gives the corresponding inequality between their
+probabilities under a PMF. -/
 theorem risk_event_mono {X : Type} (p : PMF X) {E F : X → Prop} (h : ∀ x, E x → F x) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p F := by
   classical

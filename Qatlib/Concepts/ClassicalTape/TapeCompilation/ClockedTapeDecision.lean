@@ -6,10 +6,39 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
 
+/-!
+# Clocked Turing machine decisions
+
+This module defines `tapeDecisionRun` and `tapeDecision`, which evaluate a deterministic
+`Turing.TM0.Machine` with a transition budget. A halting configuration reached within the budget
+yields its Boolean label under the supplied state classifier; otherwise the result is `none`.
+Halting is checked even at budget zero.
+
+The results characterize successful evaluation using `BitMachineAfter`, show that increasing the
+budget preserves a returned Boolean, and provide a corresponding `StateTransition.EvalsToInTime`
+witness. For background on classical computation, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `tapeDecisionRun_eq_some_iff`: a run returns `some b` exactly when a halting configuration
+  labeled `b` is reachable within the budget.
+* `clocked_tape_decision_halt_and_timeout`: the initialized evaluator returns `some b` exactly
+  when `BitMachineAfter` reaches a halting configuration labeled `b` within the budget.
+* `clocked_tape_decision_monotone_and_in_time`: a returned Boolean persists at larger budgets,
+  with a witness of evaluation to its halting configuration within the original budget.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 namespace Qatlib.Concepts.ClassicalTape.TapeCompilation
 
 variable {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
 
+/-- Runs `M` from the given configuration with a transition budget, returning the Boolean label
+under `accept` of a halting configuration reached within that budget. Returns `none` on
+timeout, checking for halting even when the budget is zero. -/
 def tapeDecisionRun (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ℕ → Turing.TM0.Cfg Γ Λ → Option Bool
   | 0, cfg => if Turing.TM0.step M cfg = none then some (accept cfg.q) else none
@@ -18,19 +47,26 @@ def tapeDecisionRun (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
       | none => some (accept cfg.q)
       | some cfg' => tapeDecisionRun M accept t cfg'
 
+/-- Evaluates `M` from `Turing.TM0.init input` with transition budget `t`. Returns the Boolean
+label under `accept` of a halting configuration reached within the budget, or `none` on
+timeout. -/
 def tapeDecision (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (input : List Γ) (t : ℕ) : Option Bool :=
   tapeDecisionRun M accept t (Turing.TM0.init input)
 
+/-- Binding `none` to an optional transition function yields `none`. -/
 private theorem flip_bind_none {σ : Type*} (f : σ → Option σ) :
     (flip bind f) (none : Option σ) = none := rfl
 
+/-- Iterating the map `flip bind f` any number of times preserves `none`. -/
 private theorem iterate_flip_bind_none {σ : Type*} (f : σ → Option σ) (k : ℕ) :
     (flip bind f)^[k] none = none := by
   induction k with
   | zero => rfl
   | succ k ih => rw [Function.iterate_succ_apply', ih]; exact flip_bind_none f
 
+/-- The configuration after `s` transitions equals the `s`-fold iterate of the optional step map
+starting at `some (Turing.TM0.init input)`. -/
 theorem bitMachineAfter_eq_iterate (M : Turing.TM0.Machine Γ Λ) (input : List Γ) (s : ℕ) :
     BitMachineAfter M input s =
       (flip bind (Turing.TM0.step M))^[s] (some (Turing.TM0.init input)) := by
@@ -40,6 +76,8 @@ theorem bitMachineAfter_eq_iterate (M : Turing.TM0.Machine Γ Λ) (input : List 
     rw [Function.iterate_succ_apply', ← ih]
     rfl
 
+/-- The clocked run returns `some b` exactly when a halting configuration whose state is labeled
+`b` by `accept` is reachable from `cfg` in at most `t` transitions. -/
 theorem tapeDecisionRun_eq_some_iff (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (t : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) (b : Bool) :
     tapeDecisionRun M accept t cfg = some b ↔
@@ -107,6 +145,8 @@ theorem tapeDecisionRun_eq_some_iff (M : Turing.TM0.Machine Γ Λ) (accept : Λ 
           rw [hstep] at hiter
           exact hiter
 
+/-- The initialized evaluator returns `some b` exactly when `BitMachineAfter M input s` is a
+halting configuration labeled `b` by `a` for some `s ≤ t`. -/
 theorem clocked_tape_decision_halt_and_timeout :
     ∀ (Γ Λ : Type) [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ)
       (a : Λ → Bool) (input : List Γ) (t : ℕ) (b : Bool),
@@ -117,6 +157,9 @@ theorem clocked_tape_decision_halt_and_timeout :
   intro Γ Λ _ _ M a input t b
   simp only [tapeDecision, tapeDecisionRun_eq_some_iff, bitMachineAfter_eq_iterate]
 
+/-- If evaluation returns `some b` with budget `t`, it returns the same result with any budget
+`u ≥ t`. There is also a halting configuration labeled `b` by `a` with a
+`StateTransition.EvalsToInTime` witness from the initial configuration within budget `t`. -/
 theorem clocked_tape_decision_monotone_and_in_time :
     ∀ (Γ Λ : Type) [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ)
       (a : Λ → Bool) (input : List Γ) (t u : ℕ) (b : Bool),

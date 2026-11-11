@@ -9,6 +9,30 @@ import Mathlib.LinearAlgebra.Lagrange
 import Mathlib.GroupTheory.Index
 import Mathlib.LinearAlgebra.Basis.VectorSpace
 import Mathlib.FieldTheory.Finite.GaloisField
+
+/-!
+# Independent binary hashes from finite-field polynomials
+
+This module constructs binary hash families by evaluating polynomials over a finite field and
+applying a surjective additive binary coordinate. Interpolation and uniform additive fibers
+prove exact independence on distinct inputs, yielding a family with `d * Nat.clog 2 (N + 1)`
+seed bits.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `sampledPolynomialEvaluation_surjective`: interpolates arbitrary values at at most `d`
+  distinct nodes.
+* `polynomialBinaryHash_independent`: proves the exact joint output probabilities.
+* `logarithmicSeedBinaryHash_exists`: constructs the binary hash family with the stated seed
+  count.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +44,8 @@ namespace Qatlib.Concepts.WalkFind.SearchAlgorithm
 
 open scoped BigOperators
 
+/-- The linear map evaluating the polynomial with the given `d` coefficients at the specified
+`m` field nodes. -/
 def sampledPolynomialEvaluation {K : Type*} [Field K] (d m : ℕ)
     (nodes : Fin m → K) : (Fin d → K) →ₗ[K] (Fin m → K) where
   toFun coefficients j := ((Polynomial.degreeLTEquiv K d).symm coefficients).val.eval (nodes j)
@@ -30,6 +56,8 @@ def sampledPolynomialEvaluation {K : Type*} [Field K] (d m : ℕ)
     ext j
     simp
 
+/-- Evaluation at `m` distinct nodes is surjective for polynomials with `d` coefficients when `m
+≤ d`. -/
 theorem sampledPolynomialEvaluation_surjective {K : Type*} [Field K]
     {d m : ℕ} (hmd : m ≤ d) (nodes : Fin m → K)
     (hinj : Function.Injective nodes) :
@@ -48,6 +76,8 @@ theorem sampledPolynomialEvaluation_surjective {K : Type*} [Field K]
   exact Lagrange.eval_interpolate_at_node values
     (fun _ _ _ _ h => hinj h) (Finset.mem_univ j)
 
+/-- Every fiber of a surjective additive homomorphism between the stated finite structures has
+uniform probability `1 / Fintype.card Y`. -/
 theorem uniformAdditiveFiberProbability
     {G Y : Type*} [AddGroup G] [Fintype G] [AddMonoid Y] [Fintype Y] [DecidableEq Y]
     (f : G →+ Y) (hsurj : Function.Surjective f) (y : Y) :
@@ -78,6 +108,8 @@ theorem uniformAdditiveFiberProbability
   field_simp [hG, hY]
   nlinarith [htotal]
 
+/-- Uniform polynomial coefficients give each prescribed value tuple at `m ≤ d` distinct
+finite-field nodes probability `1 / card(K)^m`. -/
 theorem sampledPolynomialEvaluation_uniform
     {K : Type*} [Field K] [Fintype K] [DecidableEq K] {d m : ℕ} (hmd : m ≤ d)
     (nodes : Fin m → K) (hinj : Function.Injective nodes) (values : Fin m → K) :
@@ -92,6 +124,8 @@ theorem sampledPolynomialEvaluation_uniform
       Fintype.card (Fin d → K) = 1 / (Fintype.card (Fin m → K) : ℝ) at h
   simpa only [Fintype.card_fun, Fintype.card_fin, Nat.cast_pow] using! h
 
+/-- The additive map obtained by evaluating a polynomial at the given nodes and applying the
+binary coordinate to each value. -/
 def sampledPolynomialBinaryEvaluation {K : Type*} [Field K] (d m : ℕ)
     (nodes : Fin m → K) (coordinate : K →+ ZMod 2) :
     (Fin d → K) →+ (Fin m → ZMod 2) where
@@ -99,6 +133,8 @@ def sampledPolynomialBinaryEvaluation {K : Type*} [Field K] (d m : ℕ)
   map_zero' := by ext j; simp
   map_add' a b := by ext j; simp
 
+/-- For `m ≤ d` distinct nodes and a surjective binary coordinate, the binary polynomial
+evaluation map is surjective. -/
 theorem sampledPolynomialBinaryEvaluation_surjective {K : Type*} [Field K]
     {d m : ℕ} (hmd : m ≤ d) (nodes : Fin m → K)
     (hinj : Function.Injective nodes) (coordinate : K →+ ZMod 2)
@@ -114,6 +150,8 @@ theorem sampledPolynomialBinaryEvaluation_surjective {K : Type*} [Field K]
   change coordinate (sampledPolynomialEvaluation d m nodes coefficients j) = values j
   rw [hcoefficients, hpreimages]
 
+/-- For `m ≤ d` distinct nodes and a surjective binary coordinate, every prescribed binary
+output tuple has probability `1 / 2^m` under uniform coefficients. -/
 theorem sampledPolynomialBinaryEvaluation_uniform
     {K : Type*} [Field K] [Fintype K] {d m : ℕ} (hmd : m ≤ d)
     (nodes : Fin m → K) (hinj : Function.Injective nodes)
@@ -128,6 +166,8 @@ theorem sampledPolynomialBinaryEvaluation_uniform
   simpa only [Fintype.card_fun, Fintype.card_fin, ZMod.card, Nat.cast_pow,
     Nat.cast_ofNat] using! h
 
+/-- Every field carrying an algebra structure over `ZMod 2` possesses a surjective additive map
+to `ZMod 2`. -/
 theorem fieldBinaryCoordinate_exists {K : Type*} [Field K] [Algebra (ZMod 2) K] :
     ∃ coordinate : K →+ ZMod 2, Function.Surjective coordinate := by
   have hinj : Function.Injective (Algebra.linearMap (ZMod 2) K) :=
@@ -139,6 +179,8 @@ theorem fieldBinaryCoordinate_exists {K : Type*} [Field K] [Algebra (ZMod 2) K] 
   refine ⟨algebraMap (ZMod 2) K value, ?_⟩
   exact congrArg (fun f : (ZMod 2) →ₗ[ZMod 2] (ZMod 2) => f value) hcoordinate
 
+/-- An equivalence from `Fin R` to a finite type transports seed event probability to the
+normalized count on that type. -/
 theorem eventProbability_reindex {R : ℕ} {G : Type*} [Fintype G]
     (encoding : Fin R ≃ G) (P : G → Prop) [DecidablePred P] :
     eventProbability (fun s => P (encoding s)) =
@@ -159,11 +201,15 @@ theorem eventProbability_reindex {R : ℕ} {G : Type*} [Fintype G]
     simp
   · exact_mod_cast hsize
 
+/-- The Boolean hash obtained by decoding a seed into polynomial coefficients, evaluating at the
+input node, and applying the binary coordinate and Boolean encoding. -/
 def polynomialBinaryHash {K : Type*} [Field K] {R N d : ℕ}
     (seeds : Fin R ≃ (Fin d → K)) (nodes : Fin N → K)
     (coordinate : K →+ ZMod 2) (bits : ZMod 2 ≃ Bool) : Fin R → Fin N → Bool :=
   fun s i => bits (coordinate (sampledPolynomialEvaluation d N nodes (seeds s) i))
 
+/-- With distinct nodes and a surjective binary coordinate, any prescribed outputs at `m ≤ d`
+distinct inputs occur with probability exactly `1 / 2^m`. -/
 theorem polynomialBinaryHash_independent {K : Type*} [Field K] [Fintype K]
     {R N d : ℕ} (seeds : Fin R ≃ (Fin d → K))
     (nodes : Fin N → K) (hnodes : Function.Injective nodes)
@@ -196,6 +242,8 @@ theorem polynomialBinaryHash_independent {K : Type*} [Field K] [Fintype K]
       simp only [Finset.mem_filter, Finset.mem_univ, true_and, hevent]
     _ = _ := (eventProbability_reindex seeds _).trans huniform
 
+/-- For `N ≥ 2`, there exists a binary `d`-wise independent hash family on `Fin N` with `2^(d *
+Nat.clog 2 (N + 1))` seeds [Ambainis2007ElementDistinctness]. -/
 theorem logarithmicSeedBinaryHash_exists (N d : ℕ) (hN : 2 ≤ N) :
     ∃ hash : Fin (2^(d * Nat.clog 2 (N+1))) → Fin N → Bool,
       ∀ m : ℕ, m ≤ d → ∀ i : Fin m → Fin N, Function.Injective i →

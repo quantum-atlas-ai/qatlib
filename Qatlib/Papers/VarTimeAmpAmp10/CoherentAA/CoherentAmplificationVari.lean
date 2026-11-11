@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationStat
 import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
+
+/-!
+# Probability bounds for coherent amplitude amplification
+
+This module proves the coherent amplification statement used in [Ambainis2012]. It bounds the
+marked probability of a unitary-prepared basis state, establishes the sine-window inequalities,
+and combines them with the exact prepared amplification formula.
+
+## Main statements
+
+* `vt_sin_window`: Bound the amplified sine-squared probability.
+* `coherentAmplificationWindow_proof`: Prove the exact prepared amplification formula and its
+  bounds.
+* `coherentAmplification_answer`: Establish `CoherentAmplification`.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,8 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.CoherentAA
 
 open Matrix
 
+/-- The probability of a marked set in a basis state prepared by a unitary matrix lies between
+zero and one. -/
 theorem vt_prepared_mass_bounds {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (hW : W ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) :
     0 ≤ MeasureProb (ApplyGate W (Ket j₀)) S ∧
@@ -32,6 +54,8 @@ theorem vt_prepared_mass_bounds {I : Type} [Fintype I] [DecidableEq I]
         (fun i _ _ => bornProb_nonneg _ i)
     _ = 1 := hn
 
+/-- For `0 ≤ θ ≤ π / 2`, `n ≥ 0`, and `a = sin² θ`, bound `sin²(nθ)` above by `min ((π² / 4) *
+n² * a) 1` and below by `(4 / π²) * n² * a` when `nθ ≤ π / 2`. -/
 theorem vt_sin_window (θ n a : ℝ) (hθ : 0 ≤ θ) (hθmax : θ ≤ Real.pi / 2)
     (hn : 0 ≤ n) (ha : Real.sin θ ^ 2 = a) :
     (n * θ ≤ Real.pi / 2 → (4 / Real.pi ^ 2) * n ^ 2 * a ≤ Real.sin (n * θ) ^ 2) ∧
@@ -67,6 +91,8 @@ theorem vt_sin_window (θ n a : ℝ) (hθ : 0 ≤ θ) (hθmax : θ ≤ Real.pi /
         _ = _ := by ring
     · exact Real.sin_sq_le_one _
 
+/-- Prepared amplitude amplification satisfies the exact success formula and both bounds
+specified by `coherentAmplificationWindow`. -/
 theorem coherentAmplificationWindow_proof : coherentAmplificationWindow := by
   intro I _ _ W hW j₀ S k
   (try dsimp only)
@@ -109,5 +135,6 @@ theorem coherentAmplificationWindow_proof : coherentAmplificationWindow := by
   · rw [he]
     exact (vt_sin_window θ (2 * (k : ℝ) + 1) a hθ0 hθ1 (by positivity) hsin).2
 
+/-- The coherent amplitude-amplification proposition holds [Ambainis2012]. -/
 theorem coherentAmplification_answer : CoherentAmplification := coherentAmplificationWindow_proof
 end Qatlib.Papers.VarTimeAmpAmp10.CoherentAA

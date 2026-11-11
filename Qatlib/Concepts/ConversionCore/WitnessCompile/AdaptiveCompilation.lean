@@ -11,6 +11,31 @@ import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemantic
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+
+/-!
+# Resource bounds for adaptive compilation
+
+Adaptive source computations can be purified and compiled into source words while retaining
+their branch records in an enlarged workspace. `sourceAdaptive_resource_compilation` bounds
+oracle calls and known gates and gives an exact simulation of the recorded output;
+`sourceAdaptive_resource_mixed_compilation` extends this identity to arbitrary input matrices.
+
+The module compares coherent and noncoherent adaptive costs with word query costs within a
+factor of two, in the state conversion setting of [LeeEtAl2011]. The retained-record example
+distinguishes a successful branch record from a fixed zero record.
+
+## Main statements
+
+* `sourceAdaptive_resource_compilation`: exact simulation with explicit resource bounds.
+* `sourceAdaptive_normalized_complexity_comparison`: comparison of adaptive and word costs.
+* `sourceAdaptive_resource_mixed_compilation`: simulation for arbitrary input matrices.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -38,6 +63,7 @@ set_option maxHeartbeats 300000 in
 set_option maxHeartbeats 1000000
 set_option maxRecDepth 4000
 noncomputable section
+/-- The adaptive computation obtained by reading a source word as a sequence of unary nodes. -/
 def sourceWordAdaptive {S : Type} : SourceWord S → SourceAdaptive S
   | [] => .finish
   | .inl U :: C => .known U (sourceWordAdaptive C)
@@ -45,6 +71,7 @@ def sourceWordAdaptive {S : Type} : SourceWord S → SourceAdaptive S
 end
 noncomputable section
 
+/-- Embedding a source word as an adaptive computation preserves its oracle-call count. -/
 theorem sourceWordAdaptive_calls {S : Type} (C : SourceWord S) :
     sourceAdaptiveCalls (sourceWordAdaptive C) = sourceWordCalls C := by
   induction C with
@@ -56,6 +83,7 @@ theorem sourceWordAdaptive_calls {S : Type} (C : SourceWord S) :
 end
 noncomputable section
 
+/-- The adaptive embedding of a legal source word is legal. -/
 theorem sourceWordAdaptive_legal {S : Type} [Fintype S] [DecidableEq S]
     (C : SourceWord S) (hC : sourceWordLegal C) :
     sourceAdaptiveLegal (sourceWordAdaptive C) := by
@@ -69,6 +97,8 @@ theorem sourceWordAdaptive_legal {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The adaptive embedding of a source word has the singleton branch list containing the word
+output. -/
 theorem sourceWordAdaptive_branches {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (C : SourceWord S) (ψ : QState S) :
     sourceAdaptiveBranches O (sourceWordAdaptive C) ψ = [sourceWordMatrix O C *ᵥ ψ] := by
@@ -80,6 +110,8 @@ theorem sourceWordAdaptive_branches {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The tree frame maps a zero-record clean state to the corresponding clean state in the larger
+workspace. -/
 theorem sourceTreeFrame_clean {H : Type} [Fintype H] [DecidableEq H]
     (n q r L R : ℕ) (hr : 0 < r) (hL : 0 < L) (hR : 0 < R)
     (_hsize : L*r ≤ R) (tag : Bool) (ψ : QState H) :
@@ -102,6 +134,8 @@ theorem sourceTreeFrame_clean {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- The tree frame preserves inner products when the larger workspace can encode all record and
+workspace pairs. -/
 theorem sourceTreeFrame_inner {H : Type} [Fintype H] [DecidableEq H]
     (n q r L R : ℕ) (hsize : L*r ≤ R)
     (ψ φ : QState (Fin L × SourceSpace n q H r)) :
@@ -112,6 +146,8 @@ theorem sourceTreeFrame_inner {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Coherent adaptive success means that every recorded output has real overlap at least `sqrt
+(1-ε)` with the zero-record clean target. -/
 def sourceAdaptiveCoherentSuccess {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (hr : 0<r) (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (ε : ℝ) (T : SourceAdaptive (SourceSpace n q H r)) : Prop :=
@@ -122,6 +158,8 @@ def sourceAdaptiveCoherentSuccess {X H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- A legal adaptive computation satisfying coherent success gives a coherent word query cost at
+most twice its adaptive call count. -/
 theorem sourceAdaptiveCoherentQ_le_twice_calls {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -143,9 +181,13 @@ theorem sourceAdaptiveCoherentQ_le_twice_calls {X H : Type} [Fintype X] [Decidab
   exact hSuccess x
 end
 noncomputable section
+/-- The address, value, tag, and workspace indices remaining after the payload is factored out
+of a source space. -/
 abbrev SourceGarbage (n q r : ℕ) := (Fin (n+1) × Fin (q+1)) × (Bool × Fin r)
 end
 noncomputable section
+/-- The encoding of a branch record and garbage index into a larger garbage space by packing the
+record into the workspace coordinate. -/
 def sourceRecordGarbageCode (n q r L R : ℕ) (hsize : L*r ≤ R) :
     Fin L × SourceGarbage n q r → SourceGarbage n q R :=
   fun p => (p.2.1,(p.2.2.1,⟨p.1.val*r+p.2.2.2.val,by
@@ -155,6 +197,7 @@ def sourceRecordGarbageCode (n q r L R : ℕ) (hsize : L*r ≤ R) :
 end
 noncomputable section
 
+/-- The record-and-garbage encoding is injective when `L*r ≤ R`. -/
 theorem sourceRecordGarbageCode_injective (n q r L R : ℕ) (hsize : L*r ≤ R) :
     Function.Injective (sourceRecordGarbageCode n q r L R hsize) := by
   intro a b he
@@ -169,11 +212,13 @@ theorem sourceRecordGarbageCode_injective (n q r L R : ℕ) (hsize : L*r ≤ R) 
   simpa only [fa,fb,Prod.ext_iff,and_true] using! hf
 end
 noncomputable section
+/-- The basis frame associated with `sourceRecordGarbageCode`. -/
 def sourceRecordGarbageFrame (n q r L R : ℕ) (hsize : L*r ≤ R) :=
   sourceBasisFrame (sourceRecordGarbageCode n q r L R hsize)
 end
 noncomputable section
 
+/-- The record-and-garbage frame preserves normalization. -/
 theorem sourceRecordGarbageFrame_normalized (n q r L R : ℕ) (hsize : L*r ≤ R)
     (ξ : QState (Fin L × SourceGarbage n q r)) (hξ : Normalized ξ) :
     Normalized (sourceRecordGarbageFrame n q r L R hsize *ᵥ ξ) := by
@@ -185,12 +230,15 @@ theorem sourceRecordGarbageFrame_normalized (n q r L R : ℕ) (hsize : L*r ≤ R
 end
 noncomputable section
 
+/-- The target state formed from payload `σ` and garbage `ξ`, with the branch record retained. -/
 def sourceAdaptiveGarbageTarget {H : Type} (n q r L : ℕ) (σ : QState H)
     (ξ : QState (Fin L × SourceGarbage n q r)) : QState (Fin L × SourceSpace n q H r) :=
   fun p => σ p.2.2.1.2 * ξ (p.1,(p.2.1,(p.2.2.1.1,p.2.2.2)))
 end
 noncomputable section
 
+/-- The tree frame maps an adaptive garbage target to the ordinary garbage target using the
+encoded record-and-garbage state. -/
 theorem sourceTreeFrame_garbage {H : Type} [Fintype H] [DecidableEq H]
     (n q r L R : ℕ) (hsize : L*r ≤ R) (σ : QState H)
     (ξ : QState (Fin L × SourceGarbage n q r)) :
@@ -219,6 +267,8 @@ theorem sourceTreeFrame_garbage {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Noncoherent adaptive success means that every input possesses a normalized
+record-and-garbage state giving target overlap norm at least `sqrt (1-ε)`. -/
 def sourceAdaptiveNoncoherentSuccess {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (hr : 0<r) (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (ε : ℝ) (T : SourceAdaptive (SourceSpace n q H r)) : Prop :=
@@ -230,6 +280,8 @@ def sourceAdaptiveNoncoherentSuccess {X H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- A legal adaptive computation satisfying noncoherent success gives a noncoherent word query
+cost at most twice its adaptive call count. -/
 theorem sourceAdaptiveNoncoherentQ_le_twice_calls {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -255,6 +307,7 @@ theorem sourceAdaptiveNoncoherentQ_le_twice_calls {X H : Type} [Fintype X] [Deci
 end
 noncomputable section
 
+/-- The adaptive embedding of a source word has exactly one leaf. -/
 theorem sourceWordAdaptive_leaves {S : Type} (C : SourceWord S) :
     sourceAdaptiveLeaves (sourceWordAdaptive C) = 1 := by
   induction C with
@@ -263,6 +316,8 @@ theorem sourceWordAdaptive_leaves {S : Type} (C : SourceWord S) :
 end
 noncomputable section
 
+/-- The recorded pure output of an embedded source word equals its word output at the system
+coordinate. -/
 theorem sourceWordAdaptive_pure {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (C : SourceWord S) (ψ : QState S)
     (p : Fin (max 1 (sourceAdaptiveLeaves (sourceWordAdaptive C))) × S) :
@@ -274,6 +329,8 @@ theorem sourceWordAdaptive_pure {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- A word satisfying the clean-target real-overlap bound satisfies coherent adaptive success
+after embedding. -/
 theorem sourceWordAdaptive_coherent_success {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (hr : 0<r) (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (ε : ℝ) (C : SourceWord (SourceSpace n q H r))
@@ -291,6 +348,8 @@ theorem sourceWordAdaptive_coherent_success {X H : Type} [Fintype H] [DecidableE
 end
 noncomputable section
 
+/-- A word satisfying the normalized garbage-target overlap bound satisfies noncoherent adaptive
+success after embedding. -/
 theorem sourceWordAdaptive_noncoherent_success {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (hr : 0<r) (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (ε : ℝ) (C : SourceWord (SourceSpace n q H r))
@@ -318,11 +377,13 @@ theorem sourceWordAdaptive_noncoherent_success {X H : Type} [Fintype H] [Decidab
   exact hs
 end
 noncomputable section
+/-- The number of known-matrix instructions in a source word. -/
 def sourceWordKnown {S : Type} (C : SourceWord S) : ℕ :=
   C.countP (fun s => match s with | .inl _ => true | .inr _ => false)
 end
 noncomputable section
 
+/-- Relabeling a source word preserves its number of known-matrix instructions. -/
 theorem sourceRelabelWord_known {I J : Type} [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (C : SourceWord I) :
     sourceWordKnown (sourceRelabelWord e C) = sourceWordKnown C := by
@@ -332,6 +393,8 @@ theorem sourceRelabelWord_known {I J : Type} [DecidableEq I] [DecidableEq J]
 end
 noncomputable section
 
+/-- The source word of a purification program has `1+2*P.layers.length` known-matrix
+instructions. -/
 theorem sourcePurificationProgramWord_known {S : Type} (P : SourcePurificationProgram S) :
     sourceWordKnown (sourcePurificationProgramWord P) = 1+2*P.layers.length := by
   rcases P with ⟨start,layers⟩
@@ -343,6 +406,10 @@ theorem sourcePurificationProgramWord_known {S : Type} (P : SourcePurificationPr
 end
 noncomputable section
 
+/-- Every legal adaptive computation compiles exactly into a legal word with at most twice as
+many oracle calls and at most one plus twice as many known gates. The enlarged workspace
+also supports an isometric record embedding and preserves branch probabilities and the
+output density. -/
 theorem sourceAdaptive_resource_compilation :
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1))
@@ -466,6 +533,7 @@ theorem sourceAdaptive_resource_compilation :
 end
 noncomputable section
 
+/-- Tracing out the record of the adaptive pure output gives the adaptive output density matrix. -/
 theorem source_adaptive_record_marginal {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (T : SourceAdaptive S) (ψ : QState S) :
     conversionRecordMarginal (sourceAdaptivePure O T ψ) = sourceAdaptiveDensity O T ψ := by
@@ -474,6 +542,8 @@ theorem source_adaptive_record_marginal {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The target expectation of the adaptive output density equals the sum of squared norms of the
+target projections of its recorded pure output. -/
 theorem source_adaptive_record_fidelity {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (T : SourceAdaptive S) (ψ σ : QState S) :
     Qatlib.Foundations.PureStateMath.Inner σ (sourceAdaptiveDensity O T ψ *ᵥ σ) =
@@ -481,6 +551,8 @@ theorem source_adaptive_record_fidelity {S : Type} [Fintype S] [DecidableEq S]
   rw [← source_adaptive_record_marginal, conversionRecordMarginal_fidelity]
 end
 noncomputable section
+/-- The infimum of oracle-call counts over legal adaptive computations satisfying coherent
+success, allowing arbitrary positive workspace size. -/
 def sourceAdaptiveCoherentCost {X H : Type} [Fintype H] [DecidableEq H]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) : ℝ≥0∞ :=
   ⨅ (r : ℕ) (hr : 0<r) (T : SourceAdaptive (SourceSpace n q H r))
@@ -488,6 +560,8 @@ def sourceAdaptiveCoherentCost {X H : Type} [Fintype H] [DecidableEq H]
     (sourceAdaptiveCalls T : ℝ≥0∞)
 end
 noncomputable section
+/-- The infimum of oracle-call counts over legal adaptive computations satisfying noncoherent
+success, allowing arbitrary positive workspace size. -/
 def sourceAdaptiveNoncoherentCost {X H : Type} [Fintype H] [DecidableEq H]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) : ℝ≥0∞ :=
   ⨅ (r : ℕ) (hr : 0<r) (T : SourceAdaptive (SourceSpace n q H r))
@@ -496,6 +570,7 @@ def sourceAdaptiveNoncoherentCost {X H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- The coherent adaptive cost is at most the coherent source-word query cost. -/
 theorem sourceAdaptiveCoherentCost_le_sourceCoherentQ {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -513,6 +588,7 @@ theorem sourceAdaptiveCoherentCost_le_sourceCoherentQ {X H : Type}
 end
 noncomputable section
 
+/-- The noncoherent adaptive cost is at most the noncoherent source-word query cost. -/
 theorem sourceAdaptiveNoncoherentCost_le_sourceNoncoherentQ {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -530,6 +606,8 @@ theorem sourceAdaptiveNoncoherentCost_le_sourceNoncoherentQ {X H : Type}
 end
 noncomputable section
 
+/-- For nonempty payload space, the coherent word query cost is at most twice the coherent
+adaptive cost. -/
 theorem sourceCoherentQ_le_twice_adaptiveCost {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -542,6 +620,8 @@ theorem sourceCoherentQ_le_twice_adaptiveCost {X H : Type}
 end
 noncomputable section
 
+/-- For nonempty payload space, the noncoherent word query cost is at most twice the noncoherent
+adaptive cost. -/
 theorem sourceNoncoherentQ_le_twice_adaptiveCost {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -553,11 +633,14 @@ theorem sourceNoncoherentQ_le_twice_adaptiveCost {X H : Type}
     sourceAdaptiveNoncoherentQ_le_twice_calls hr input ρ σ ε T hT hs
 end
 noncomputable section
+/-- The two-outcome adaptive computation with Kraus matrices zero and identity, retaining the
+outcome record. -/
 def sourceRetainedRecordTree (S : Type) [Fintype S] [DecidableEq S] : SourceAdaptive S :=
   .instrument 2 (fun i => if i = (1 : Fin 2) then 1 else 0) (fun _ => .finish)
 end
 noncomputable section
 
+/-- The retained-record computation is legal. -/
 theorem sourceRetainedRecordTree_legal (S : Type) [Fintype S] [DecidableEq S] :
     sourceAdaptiveLegal (sourceRetainedRecordTree S) := by
   constructor
@@ -566,12 +649,14 @@ theorem sourceRetainedRecordTree_legal (S : Type) [Fintype S] [DecidableEq S] :
 end
 noncomputable section
 
+/-- The retained-record computation uses no oracle calls. -/
 theorem sourceRetainedRecordTree_calls (S : Type) [Fintype S] [DecidableEq S] :
     sourceAdaptiveCalls (sourceRetainedRecordTree S) = 0 := by
   simp [sourceRetainedRecordTree,sourceAdaptiveCalls,List.ofFn_succ]
 end
 noncomputable section
 
+/-- The retained-record computation has branch states zero and the original input state. -/
 theorem sourceRetainedRecordTree_branches (S : Type) [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (ψ : QState S) :
     sourceAdaptiveBranches O (sourceRetainedRecordTree S) ψ = [0,ψ] := by
@@ -579,12 +664,15 @@ theorem sourceRetainedRecordTree_branches (S : Type) [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The retained-record computation has two leaves. -/
 theorem sourceRetainedRecordTree_leaves (S : Type) [Fintype S] [DecidableEq S] :
     sourceAdaptiveLeaves (sourceRetainedRecordTree S) = 2 := by
   simp [sourceRetainedRecordTree,sourceAdaptiveLeaves,List.ofFn_succ]
 end
 noncomputable section
 
+/-- The retained-record pure output equals the input on record one and vanishes on every other
+record. -/
 theorem sourceRetainedRecordTree_pure (S : Type) [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (ψ : QState S)
     (p : Fin (max 1 (sourceAdaptiveLeaves (sourceRetainedRecordTree S))) × S) :
@@ -599,6 +687,8 @@ theorem sourceRetainedRecordTree_pure (S : Type) [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Inner product with a basis record tensored with `ψ` equals the inner product of the
+corresponding record slice with `ψ`. -/
 theorem sourceInner_record_ket {R S : Type} [Fintype R] [DecidableEq R] [Fintype S]
     (v : QState (R × S)) (r : R) (ψ : QState S) :
     Qatlib.Foundations.PureStateMath.Inner v (TensorState (Qatlib.Foundations.PureStateMath.Ket r) ψ) = Qatlib.Foundations.PureStateMath.Inner (fun s => v (r,s)) ψ := by
@@ -608,6 +698,8 @@ theorem sourceInner_record_ket {R S : Type} [Fintype R] [DecidableEq R] [Fintype
 end
 noncomputable section
 
+/-- For normalized input, the retained-record output has overlap zero with record zero and
+overlap one with record one. -/
 theorem sourceRetainedRecordTree_overlap (S : Type) [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (ψ : QState S) (hψ : Normalized ψ) :
     Qatlib.Foundations.PureStateMath.Inner (sourceAdaptivePure O (sourceRetainedRecordTree S) ψ)
@@ -623,6 +715,7 @@ theorem sourceRetainedRecordTree_overlap (S : Type) [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Coherent and noncoherent source-word query costs vanish when the input index type is empty. -/
 theorem sourceWordCosts_empty_input {X H : Type} [Fintype X] [DecidableEq X]
     [IsEmpty X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -639,6 +732,7 @@ theorem sourceWordCosts_empty_input {X H : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Coherent and noncoherent adaptive query costs vanish when the input index type is empty. -/
 theorem sourceAdaptiveCosts_empty_input {X H : Type} [Fintype H] [DecidableEq H]
     [IsEmpty X] {n q : ℕ} (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (ε : ℝ) :
@@ -666,6 +760,9 @@ theorem sourceAdaptiveCosts_empty_input {X H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- For normalized initial states, coherent and noncoherent adaptive costs each lie between half
+the corresponding word query cost and that word query cost. This compares the computation
+models used in [Lee et al., Theorem 4.9][LeeEtAl2011]. -/
 theorem sourceAdaptive_normalized_complexity_comparison {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -696,11 +793,13 @@ theorem sourceAdaptive_normalized_complexity_comparison {X H : Type}
 end
 noncomputable section
 
+/-- The basis embedding that initializes the record register to zero. -/
 def sourceRecordInit {S : Type} [DecidableEq S] (L : ℕ) (hL : 0<L) :
     Matrix (Fin L × S) S ℂ := sourceBasisFrame (fun s => (⟨0,hL⟩,s))
 end
 noncomputable section
 
+/-- Applying `sourceRecordInit` tensors the input with the zero basis record. -/
 theorem sourceRecordInit_apply {S : Type} [Fintype S] [DecidableEq S]
     (L : ℕ) (hL : 0<L) (ψ : QState S) :
     sourceRecordInit L hL *ᵥ ψ = TensorState (Qatlib.Foundations.PureStateMath.Ket ⟨0,hL⟩) ψ := by
@@ -710,6 +809,9 @@ theorem sourceRecordInit_apply {S : Type} [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- Every legal adaptive computation possesses a resource-bounded word compilation whose matrix
+intertwines record initialization with the adaptive pure matrix. The same identity holds
+after conjugating any input matrix. -/
 theorem sourceAdaptive_resource_mixed_compilation :
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1))
@@ -751,6 +853,8 @@ theorem sourceAdaptive_resource_mixed_compilation :
 end
 noncomputable section
 
+/-- There exists a legal word on workspace size `2*r*(n+1)` with zero oracle calls and at most
+one known gate. -/
 theorem sourceRetainedRecordTree_compiled_resources {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1)) :

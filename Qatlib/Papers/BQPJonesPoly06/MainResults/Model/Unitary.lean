@@ -12,6 +12,29 @@ import Mathlib.Analysis.InnerProductSpace.LinearMap
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
 import Mathlib.Analysis.CStarAlgebra.Classes
+
+/-!
+# Unitary maps between unit vectors
+
+The constructions `lineToUnit` and `exists_unitary_apply_eq` extend an isometry between complex
+lines to a unitary map on a finite-dimensional inner product space. Scaling a subspace by a unit
+complex number preserves norms and permits a determinant correction on a one-dimensional
+subspace.
+
+The resulting `specialUnitary_sphere_transitive` supplies the unit-vector transport used in the
+bridge-lemma development of [AharonovArad2011].
+
+## Main statements
+
+* `scaleLine_det`: the determinant of a phase change on a line is that phase.
+* `specialUnitary_sphere_transitive`: special unitary transformations of a subspace of dimension
+  at least two act transitively on its unit sphere.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,11 +43,13 @@ namespace Qatlib.Papers.BQPJonesPoly06.MainResults.Model
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
 
+/-- The complex-linear map from the span of `u` to `E` sending `s` to `⟪u, s⟫ • v`. -/
 noncomputable def lineMap (u v : E) : (ℂ ∙ u) →ₗ[ℂ] E where
   toFun s := (inner ℂ u (s : E)) • v
   map_add' x y := by rw [Submodule.coe_add, inner_add_right, add_smul]
   map_smul' c x := by rw [SetLike.val_smul, inner_smul_right, RingHom.id_apply, smul_smul]
 
+/-- The linear isometry from the span of a unit vector `u` sending `u` to the unit vector `v`. -/
 noncomputable def lineToUnit (u v : E) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     (ℂ ∙ u) →ₗᵢ[ℂ] E where
   toLinearMap := lineMap u v
@@ -39,6 +64,8 @@ noncomputable def lineToUnit (u v : E) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     rw [hinner, norm_smul, hv, mul_one, ← Submodule.norm_coe]
     exact hnorm.symm
 
+/-- Any two unit vectors in a finite-dimensional complex inner product space are related by a
+linear isometry equivalence. -/
 theorem exists_unitary_apply_eq (u v : E) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     ∃ e : E ≃ₗᵢ[ℂ] E, e u = v := by
   refine ⟨(lineToUnit u v hu hv).extend.toLinearIsometryEquiv rfl, ?_⟩
@@ -55,15 +82,20 @@ theorem exists_unitary_apply_eq (u v : E) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) 
         LinearIsometry.extend_apply _ _
     _ = v := hval
 
+/-- The linear map multiplying the orthogonal projection onto `M` by `lam` and fixing the
+orthogonal component. -/
 noncomputable def scaleLine (M : Submodule ℂ E) (lam : ℂ) : E →ₗ[ℂ] E :=
   LinearMap.id + (lam - 1) • (M.starProjection : E →ₗ[ℂ] E)
 
+/-- Expresses `scaleLine` as the sum of the scaled projection onto `M` and the unchanged
+orthogonal component. -/
 theorem scaleLine_apply (M : Submodule ℂ E) (lam : ℂ) (x : E) :
     scaleLine M lam x = lam • M.starProjection x + (x - M.starProjection x) := by
   have h : scaleLine M lam x = x + (lam - 1) • M.starProjection x := rfl
   rw [h, sub_smul, one_smul]
   abel
 
+/-- The map `scaleLine M lam` fixes every vector orthogonal to `M`. -/
 theorem scaleLine_eq_self_of_mem_orthogonal (M : Submodule ℂ E) (lam : ℂ) {x : E}
     (hx : x ∈ Mᗮ) : scaleLine M lam x = x := by
   have h0 : M.orthogonalProjection x = 0 :=
@@ -74,6 +106,7 @@ theorem scaleLine_eq_self_of_mem_orthogonal (M : Submodule ℂ E) (lam : ℂ) {x
   rw [scaleLine_apply, h0']
   simp
 
+/-- Scaling the component in `M` by a complex number of norm one preserves the norm. -/
 theorem scaleLine_norm (M : Submodule ℂ E) {lam : ℂ} (hlam : ‖lam‖ = 1) (x : E) :
     ‖scaleLine M lam x‖ = ‖x‖ := by
   rw [scaleLine_apply]
@@ -99,18 +132,24 @@ theorem scaleLine_norm (M : Submodule ℂ E) {lam : ℂ} (hlam : ‖lam‖ = 1) 
   have hres := congrArg Real.sqrt h2'
   rwa [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (norm_nonneg _)] at hres
 
+/-- The linear isometry obtained by scaling `M` by a complex number of norm one and fixing its
+orthogonal complement. -/
 noncomputable def scaleLineIsometry (M : Submodule ℂ E) {lam : ℂ} (hlam : ‖lam‖ = 1) :
     E →ₗᵢ[ℂ] E where
   toLinearMap := scaleLine M lam
   norm_map' := scaleLine_norm M hlam
 
+/-- The linear isometry equivalence obtained from `scaleLineIsometry` in finite dimension. -/
 noncomputable def scaleLineEquiv (M : Submodule ℂ E) {lam : ℂ} (hlam : ‖lam‖ = 1) :
     E ≃ₗᵢ[ℂ] E :=
   (scaleLineIsometry M hlam).toLinearIsometryEquiv rfl
 
+/-- Evaluation of `scaleLineEquiv` agrees with the underlying map `scaleLine`. -/
 theorem scaleLineEquiv_apply (M : Submodule ℂ E) {lam : ℂ} (hlam : ‖lam‖ = 1) (x : E) :
     scaleLineEquiv M hlam x = scaleLine M lam x := rfl
 
+/-- Scaling a one-dimensional subspace by `lam` of norm one, while fixing its orthogonal
+complement, has determinant `lam`. -/
 theorem scaleLine_det (M : Submodule ℂ E) (hM : Module.finrank ℂ M = 1) {lam : ℂ}
     (hlam : ‖lam‖ = 1) :
     LinearMap.det ((scaleLineEquiv M hlam : E ≃ₗᵢ[ℂ] E) : E →ₗ[ℂ] E) = lam := by
@@ -159,11 +198,14 @@ theorem scaleLine_det (M : Submodule ℂ E) (hM : Module.finrank ℂ M = 1) {lam
           rw [LinearMap.det_prodMap, LinearMap.det_smul, LinearMap.det_id, hM, pow_one]
           simp
 
+/-- The equivalence `scaleLineEquiv M hlam` fixes every vector in the orthogonal complement of
+`M`. -/
 theorem scaleLineEquiv_apply_of_mem_orthogonal (M : Submodule ℂ E) {lam : ℂ}
     (hlam : ‖lam‖ = 1) {v : E} (hv : v ∈ Mᗮ) : scaleLineEquiv M hlam v = v := by
   rw [scaleLineEquiv_apply]
   exact scaleLine_eq_self_of_mem_orthogonal M lam hv
 
+/-- The determinant of a complex linear isometry equivalence in finite dimension has norm one. -/
 theorem norm_det_eq_one (f : E ≃ₗᵢ[ℂ] E) :
     ‖LinearMap.det (f : E →ₗ[ℂ] E)‖ = 1 := by
   let b := stdOrthonormalBasis ℂ E
@@ -190,6 +232,8 @@ theorem norm_det_eq_one (f : E ≃ₗᵢ[ℂ] E) :
 
 set_option maxHeartbeats 800000 in
 
+/-- In a complex subspace of dimension at least two, every unit vector has an orthogonal unit
+vector [AharonovArad2011]. -/
 theorem exists_unit_orthogonal {A : Submodule ℂ E} (hA : 2 ≤ Module.finrank ℂ A)
     {v : A} (hv : ‖v‖ = 1) : ∃ w : A, ‖w‖ = 1 ∧ inner ℂ w v = 0 := by
   have hvne : v ≠ 0 := by
@@ -211,6 +255,8 @@ theorem exists_unit_orthogonal {A : Submodule ℂ E} (hA : 2 ≤ Module.finrank 
     exact (Submodule.mem_orthogonal' (K := ℂ ∙ v) ((‖(w : A)‖)⁻¹ • w)).1 hmem v
       (Submodule.mem_span_singleton_self v)
 
+/-- Any two unit vectors in a complex subspace of dimension at least two are related by an
+element of `SpecialUnitary A`, as used in [AharonovArad2011, Lemma 6.1][AharonovArad2011]. -/
 theorem specialUnitary_sphere_transitive (A : Submodule ℂ E)
     (hA : 2 ≤ Module.finrank ℂ A) {u v : A} (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     ∃ T ∈ SpecialUnitary A, T (u : E) = (v : E) := by

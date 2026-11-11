@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
+
+/-!
+# Statement of source-constrained fidelity-level optimality
+
+`SourceFidelityLevelSubgoal` packages the existence and optimality statement for a water-filling
+profile with a prescribed fidelity threshold. Its hypotheses specify normalized nonnegative
+source and positive target profiles and tight, distinct bracket endpoints; its conclusion bounds
+the squared mass of every feasible source-box competitor. This is the profile optimization
+underlying quantum rejection sampling [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `SourceFidelityLevelSubgoal`: state existence of a fidelity level and its source-box mass
+  bound.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +34,9 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity
 
 open scoped BigOperators
 
+/-- The proposition that normalized source and target profiles with the specified tight
+nondegenerate bracket possess a water level for each allowed fidelity threshold, whose
+filled mass bounds every feasible source-box vector's squared norm. -/
 def SourceFidelityLevelSubgoal : Prop :=
   ∀ (m : ℕ) (π σ : Fin m → ℚ) (γlo γhi : ℝ),
     (∀ i, 0 ≤ π i) → (∀ i, 0 < σ i) →

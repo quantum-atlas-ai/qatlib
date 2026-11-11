@@ -8,6 +8,29 @@ import Qatlib.Concepts.WalkSearch.TwoLevelLower
 import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+/-!
+# Szegedy frames and the spectral rotation map
+
+This module defines the swapped frame `SzegedyIsometryB` and the real `SzegedyDiscriminant`, and
+identifies the cross Gram matrix of the two Szegedy frames with that discriminant. It expresses
+`SzegedyWalk` as the product of their range reflections.
+
+`twoReflection_rotation` constructs an orthonormal invariant plane from a normalized cross-Gram
+eigenvector. Its specialization `szegedy_spectral_map` transfers a discriminant eigenvalue `cos
+θ` to the walk's double-angle rotation action, as in [Szegedy2004].
+
+## Main statements
+
+* `szegedy_gram_eq_discriminant`: frame overlap equals the discriminant.
+* `szegedyWalk_eq_twoReflections`: reflection-product representation.
+* `szegedy_spectral_map`: the double-angle spectral rotation map.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -24,16 +47,20 @@ open Matrix
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The second Szegedy frame, obtained by applying the register swap to `SzegedyIsometry P`. -/
 noncomputable def SzegedyIsometryB (P : I → I → ℝ) : Matrix (I × I) I ℂ :=
   SwapGate * SzegedyIsometry P
 
+/-- Applying the register swap twice is the identity. -/
 theorem swapGate_mul_self :
     SwapGate * SwapGate = (1 : Matrix (I × I) (I × I) ℂ) :=
   permMatrix_mul_self Prod.swap_swap
 
+/-- The register swap matrix equals its adjoint. -/
 theorem swapGate_hermitian : (SwapGate : Matrix (I × I) (I × I) ℂ)ᴴ = SwapGate :=
   permMatrix_conjTranspose Prod.swap_swap
 
+/-- Left multiplication by the swap gate exchanges the two components of a row index. -/
 theorem swapGate_mul_apply (M : Matrix (I × I) I ℂ) (p : I × I) (y : I) :
     (SwapGate * M : Matrix (I × I) I ℂ) p y = M (Prod.swap p) y := by
   show (∑ r : I × I, (SwapGate : Matrix (I × I) (I × I) ℂ) p r * M r y) = _
@@ -46,9 +73,13 @@ theorem swapGate_mul_apply (M : Matrix (I × I) I ℂ) (p : I × I) (y : I) :
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
 
+/-- The Szegedy row frame has entry `sqrt (P x b)` when the first register equals its column
+index, and zero otherwise. -/
 theorem szegedyIsometry_apply_pair (P : I → I → ℝ) (a b : I) (x : I) :
     SzegedyIsometry P (a, b) x = if a = x then ((Real.sqrt (P x b) : ℂ)) else 0 := rfl
 
+/-- The swapped Szegedy frame has entry `sqrt (P y a)` when the second register equals its
+column index, and zero otherwise. -/
 theorem szegedyIsometryB_apply (P : I → I → ℝ) (a b : I) (y : I) :
     SzegedyIsometryB P (a, b) y = if b = y then ((Real.sqrt (P y a) : ℂ)) else 0 := by
   rw [SzegedyIsometryB]
@@ -56,6 +87,7 @@ theorem szegedyIsometryB_apply (P : I → I → ℝ) (a b : I) (y : I) :
   rw [swapGate_mul_apply]
   rfl
 
+/-- For a transition matrix, the swapped Szegedy frame has orthonormal columns. -/
 theorem szegedyIsometryB_conjTranspose_mul (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
     (SzegedyIsometryB P)ᴴ * SzegedyIsometryB P = 1 := by
   ext x y
@@ -85,12 +117,17 @@ theorem szegedyIsometryB_conjTranspose_mul (P : I → I → ℝ) (hP : IsTransit
         starRingEnd_ofReal, if_neg (fun h => hxy (hbx.symm.trans h)), mul_zero]
     · rw [szegedyIsometryB_apply, if_neg hbx, map_zero, zero_mul]
 
+/-- The real discriminant matrix with entries `sqrt (P x y * P y x)`. -/
 noncomputable def SzegedyDiscriminant (P : I → I → ℝ) : Matrix I I ℝ :=
   Matrix.of fun x y => Real.sqrt (P x y * P y x)
 
+/-- Evaluate an entry of the Szegedy discriminant as the square root of the product of the two
+opposite transition probabilities. -/
 theorem szegedyDiscriminant_apply (P : I → I → ℝ) (x y : I) :
     SzegedyDiscriminant P x y = Real.sqrt (P x y * P y x) := rfl
 
+/-- The cross Gram matrix of the two Szegedy frames is the complexification of the real
+discriminant. -/
 theorem szegedy_gram_eq_discriminant (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
     (SzegedyIsometry P)ᴴ * SzegedyIsometryB P
       = (SzegedyDiscriminant P).map Complex.ofReal := by
@@ -114,6 +151,7 @@ theorem szegedy_gram_eq_discriminant (P : I → I → ℝ) (hP : IsTransitionMat
   · intro hcon
     exact absurd (Finset.mem_univ x) hcon
 
+/-- The cross Gram matrix of the Szegedy frames is Hermitian for a transition matrix. -/
 theorem szegedy_gram_hermitian (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
     ((SzegedyIsometry P)ᴴ * SzegedyIsometryB P)ᴴ
       = (SzegedyIsometry P)ᴴ * SzegedyIsometryB P := by
@@ -123,6 +161,7 @@ theorem szegedy_gram_hermitian (P : I → I → ℝ) (hP : IsTransitionMatrix P)
   simp only [Matrix.map_apply, szegedyDiscriminant_apply, RCLike.star_def,
     starRingEnd_ofReal, mul_comm (P y x) (P x y)]
 
+/-- Conjugation by the swap gate exchanges the two components of both matrix indices. -/
 theorem swapGate_mul_mul_swapGate (X : Matrix (I × I) (I × I) ℂ) (p q : I × I) :
     ((SwapGate * X) * SwapGate : Matrix (I × I) (I × I) ℂ) p q
       = X (Prod.swap p) (Prod.swap q) := by
@@ -146,6 +185,8 @@ theorem swapGate_mul_mul_swapGate (X : Matrix (I × I) (I × I) ℂ) (p q : I ×
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
 
+/-- The Szegedy walk is the product of reflections about the ranges of its swapped and original
+frames [Szegedy2004]. -/
 theorem szegedyWalk_eq_twoReflections (P : I → I → ℝ) (hP : IsTransitionMatrix P) :
     SzegedyWalk P = ReflectionAbout (SzegedyIsometryB P * (SzegedyIsometryB P)ᴴ) *
       ReflectionAbout (SzegedyIsometry P * (SzegedyIsometry P)ᴴ) := by
@@ -164,6 +205,9 @@ theorem szegedyWalk_eq_twoReflections (P : I → I → ℝ) (hP : IsTransitionMa
       Matrix.smul_mul, swapGate_mul_self, hconj]
   rw [SzegedyWalk, hBR, SzegedyReflection]
 
+/-- A normalized eigenvector of a Hermitian cross Gram matrix with eigenvalue `cos θ` and
+nonzero `sin θ` yields an orthonormal two-dimensional frame on which the reflection product
+has the stated double-angle rotation action. -/
 theorem twoReflection_rotation {I K : Type*} [Fintype I] [DecidableEq I] [Fintype K]
     [DecidableEq K] (A B : Matrix K I ℂ) (hA : Aᴴ * A = 1) (hB : Bᴴ * B = 1)
     (hGram : (Aᴴ * B)ᴴ = Aᴴ * B)
@@ -288,6 +332,8 @@ theorem twoReflection_rotation {I K : Type*} [Fintype I] [DecidableEq I] [Fintyp
     module
   exact ⟨w₀, w₁, hw₀norm, hw₁norm, horth, walk₀, walk₁⟩
 
+/-- A real discriminant eigenvector at `cos θ` becomes an eigenvector of the complex cross Gram
+matrix with the same eigenvalue. -/
 theorem szegedyDiscriminant_mulVec_complex (P : I → I → ℝ) (hP : IsTransitionMatrix P)
     (v : I → ℝ) (θ : ℝ) (hvD : SzegedyDiscriminant P *ᵥ v = (Real.cos θ) • v) :
     ((SzegedyIsometry P)ᴴ * SzegedyIsometryB P) *ᵥ (fun x => ((v x : ℂ)))
@@ -303,6 +349,9 @@ theorem szegedyDiscriminant_mulVec_complex (P : I → I → ℝ) (hP : IsTransit
       = (SzegedyDiscriminant P *ᵥ v) x from rfl, hvD]
   simp [Pi.smul_apply, smul_eq_mul]
 
+/-- A normalized real discriminant eigenvector with eigenvalue `cos θ` and nonzero `sin θ` gives
+an orthonormal plane on which the Szegedy walk has the stated rotation action at angle `2 *
+θ` [Szegedy2004]. -/
 theorem szegedy_spectral_map (P : I → I → ℝ) (hP : IsTransitionMatrix P)
     (v : I → ℝ) (hv : ∑ i, v i ^ 2 = 1)
     (θ : ℝ) (hs : Real.sin θ ≠ 0)

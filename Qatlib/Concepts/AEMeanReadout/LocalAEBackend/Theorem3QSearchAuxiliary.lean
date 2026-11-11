@@ -14,6 +14,25 @@ import Mathlib.Probability.Distributions.Uniform
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+/-!
+# Finite quantum search rounds and loops
+
+This module defines a finite-horizon version of quantum search with unknown initial marked mass,
+following [BrassardEtAl2002]. Each `qSearchRound` tries the prepared state, then a uniformly
+chosen amplification depth from `qSearchWindow`; `qSearchLoop` stops on a marked output and
+accumulates two cost counters.
+
+## Main statements
+
+* `BHMTQSearch.qSearchRound`: one randomized search round with two cost counters.
+* `BHMTQSearch.qSearchLoop`: the search law for a finite number of rounds.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,9 +40,13 @@ open scoped ENNReal
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTQSearch
 
+/-- The positive search-window size given by the integer ceiling of `(6/5)^l`, with a lower
+bound of one. -/
 def qSearchWindow (l : ℕ) : ℕ :=
   max 1 ((6^l + 5^l - 1) / 5^l)
 
+/-- The law of one search round: test the prepared state, then on failure try a uniformly
+selected amplification depth, returning an optional marked label and two costs. -/
 noncomputable def qSearchRound {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (l : ℕ) : PMF (Option I × ℕ × ℕ) :=
@@ -40,6 +63,8 @@ noncomputable def qSearchRound {I : Type} [Fintype I] [DecidableEq I]
           PMF.pure (if st2.1.1 ∈ S then some st2.1.1 else none,
             2 + 2*j.val, 2 + j.val)
 
+/-- The finite-horizon search law starting at a round offset, stopping on success and adding the
+two cost counters on failure. -/
 noncomputable def qSearchLoop {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) :
     ℕ → ℕ → PMF (Option I × ℕ × ℕ)

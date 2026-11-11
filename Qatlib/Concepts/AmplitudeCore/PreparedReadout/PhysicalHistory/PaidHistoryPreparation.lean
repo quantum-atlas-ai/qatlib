@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockProjectorAccuracy
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalMultiSourceAE
 
+/-!
+# Paid purification and history-state initialization
+
+This module places a supplied purification unitary on the environment and system registers while
+keeping clock, projector ancilla, and simulator work registers explicit. `initialization`
+supplies the clock Hadamard and the six-gate signal-frame initialization.
+
+`initialization_on_state` identifies the resulting state with the framed logical history input.
+The construction uses standard unitary preparation and purification conventions
+[NielsenChuang2010].
+
+## Main statements
+
+* `preparation_on_seed`: the preparation port applies the supplied unitary to the
+  environment-system seed.
+* `initialization_resources`: initialization uses seven explicit gates and no oracle queries.
+* `initialization_on_state`: the initialized state agrees with the purified clock simulator
+  frame.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
 namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PaidHistoryPreparation
@@ -56,13 +80,19 @@ set_option warningAsError false
 
 variable {I E : Type} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 
+/-- The complete history register containing the projector ancilla, raw simulator, and
+purification environment. -/
 abbrev Whole (q a m : ℕ) (I E : Type) := Reg m × BinaryClockProjectorReadout.Raw q a I E
 noncomputable local instance executionDecidableEq (q a : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q (Reg a × I)) :=
   BinaryClockSingleCU.newDecidableEq q (Reg a × I)
 
+/-- The projector ancilla, clock, and simulator work registers initialized independently of the
+supplied purification. -/
 abbrev Known (q a m : ℕ) := Reg m × (Reg q × BinaryClockCoordinateFrame.Work a)
 
+/-- Rearrange the complete history register into known registers and the environment-system
+register. -/
 def prepEquiv (q a m : ℕ) : Whole q a m I E ≃ (Known q a m × (E × I)) where
   toFun x :=
     let y := BinaryClockCoordinateFrame.placement (I := I) (E := E) q a x.2
@@ -77,10 +107,14 @@ def prepEquiv (q a m : ℕ) : Whole q a m I E ≃ (Known q a m × (E × I)) wher
     rw [Equiv.symm_apply_apply]
   right_inv := by intro y; simp only [Equiv.apply_symm_apply]
 
+/-- Extend the supplied purification matrix by the known-register identity and transport it to
+the full history register. -/
 def preparationPort (q a m : ℕ) (P : Matrix (E × I) (E × I) ℂ) :
     Matrix (Whole q a m I E) (Whole q a m I E) ℂ :=
   relabelGate (prepEquiv q a m).symm (parallelOracle (J := Known q a m) P)
 
+/-- Extend a signal initialization matrix to the appropriate simulator work registers within the
+full history register. -/
 def simulatorGate (q a m : ℕ)
     (M : Matrix (BinaryClockSignalWord.SimulatorSpace (Reg a))
       (BinaryClockSignalWord.SimulatorSpace (Reg a)) ℂ) :
@@ -91,16 +125,21 @@ def simulatorGate (q a m : ℕ)
         (TensorGate (1 : Matrix Bool Bool ℂ) (TensorGate (1 : Matrix Bool Bool ℂ) M))))
       (1 : Matrix (E × I) (E × I) ℂ))
 
+/-- Apply the `q`-qubit Hadamard to the clock and the identity to every other history register. -/
 def clockGate (q a m : ℕ) : Matrix (Whole q a m I E) (Whole q a m I E) ℂ :=
   relabelGate (prepEquiv q a m).symm
     (TensorGate (TensorGate (1 : Matrix (Reg m) (Reg m) ℂ)
       (TensorGate (HadamardN q) (1 : Matrix (BinaryClockCoordinateFrame.Work a)
         (BinaryClockCoordinateFrame.Work a) ℂ))) (1 : Matrix (E × I) (E × I) ℂ))
 
+/-- The clock Hadamard followed in matrix product order by the lifted six-gate signal
+initialization word. -/
 def initialization (q a m : ℕ) : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Whole q a m I E)) :=
   [.gate (clockGate q a m)] ++
     phaseLiftWord (simulatorGate q a m) (BinaryClockSignalInitialization.word (H := Reg a))
 
+/-- Extending simulator initialization matrices to the full history register preserves
+multiplication. -/
 theorem simulatorGate_mul (q a m : ℕ) (M N : Matrix
     (BinaryClockSignalWord.SimulatorSpace (Reg a))
     (BinaryClockSignalWord.SimulatorSpace (Reg a)) ℂ) :
@@ -109,21 +148,28 @@ theorem simulatorGate_mul (q a m : ℕ) (M N : Matrix
   simp only [simulatorGate, ← CircuitRelabel.relabelGate_mul, tensorGate_mul,
     Matrix.one_mul]
 
+/-- Extending the identity simulator matrix gives the identity on the full history register. -/
 theorem simulatorGate_one (q a m : ℕ) :
     simulatorGate (I := I) (E := E) q a m 1 = 1 := by
   simp only [simulatorGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- The conjugate transpose of a relabeled matrix equals the relabeling of its conjugate
+transpose. -/
 private theorem relabel_adjoint {X Y : Type} (e : X ≃ Y) (M : Matrix X X ℂ) :
     (relabelGate e M)ᴴ = relabelGate e Mᴴ := by
   ext x y
   rfl
 
+/-- Extending a simulator initialization matrix to the full history register commutes with
+conjugate transpose. -/
 theorem simulatorGate_adjoint (q a m : ℕ) (M : Matrix
     (BinaryClockSignalWord.SimulatorSpace (Reg a))
     (BinaryClockSignalWord.SimulatorSpace (Reg a)) ℂ) :
     simulatorGate (I := I) (E := E) q a m Mᴴ = (simulatorGate q a m M)ᴴ := by
   simp only [simulatorGate, relabel_adjoint, tensorGate_conjTranspose, Matrix.conjTranspose_one]
 
+/-- The initialization word evaluates to the clock gate times the extended signal initialization
+matrix, independently of the oracle. -/
 theorem initialization_evaluate (q a m : ℕ)
     (V : Matrix (Whole q a m I E) (Whole q a m I E) ℂ) :
     Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate V (initialization q a m) = clockGate q a m *
@@ -137,14 +183,20 @@ theorem initialization_evaluate (q a m : ℕ)
   rw [hv, phaseLiftWord_evaluate _ (simulatorGate_one q a m)
     (simulatorGate_mul q a m) (simulatorGate_adjoint q a m)]
 
+/-- The known-register seed with zero projector and clock registers, five false flags, and zero
+encoding ancillas. -/
 def knownSeed (q a m : ℕ) : Known q a m :=
   (ZeroStr m,(ZeroStr q,(false,(false,(false,(false,(false,ZeroStr a)))))))
 
+/-- Place an environment-system basis label alongside `knownSeed` and convert it into full
+history coordinates. -/
 def seed (q a m : ℕ) (s : E × I) : Whole q a m I E :=
   (prepEquiv q a m).symm (knownSeed q a m,s)
 
 omit [Fintype I] [Fintype E] in
 
+/-- Relabeling the tensor product of the known basis seed and the supplied basis seed gives the
+full history basis seed. -/
 theorem seed_layout (q a m : ℕ) (s : E × I) :
     relabelState (prepEquiv q a m).symm
       (TensorState (Qatlib.Foundations.PureStateMath.Ket (knownSeed q a m))
@@ -159,6 +211,8 @@ theorem seed_layout (q a m : ℕ) (s : E × I) :
   simp only [hx]
   split_ifs <;> simp_all
 
+/-- The preparation port sends the full basis seed to the supplied prepared state tensored with
+the unchanged known-register seed. -/
 theorem preparation_on_seed (q a m : ℕ) (P : Matrix (E × I) (E × I) ℂ)
     (s : E × I) :
     preparationPort q a m P *ᵥ Qatlib.Foundations.PureStateMath.Ket (seed q a m s) =
@@ -181,11 +235,14 @@ theorem preparation_on_seed (q a m : ℕ) (P : Matrix (E × I) (E × I) ℂ)
       intro x _
       ring))
 
+/-- The preparation port is unitary whenever the supplied purification matrix is unitary. -/
 theorem preparationPort_unitary (q a m : ℕ) (P : Matrix (E × I) (E × I) ℂ)
     (hP : P ∈ Matrix.unitaryGroup (E × I) ℂ) :
     preparationPort q a m P ∈ Matrix.unitaryGroup (Whole q a m I E) ℂ :=
   (relabelGate_mem_unitaryGroup (prepEquiv q a m).symm _).2 (parallelOracle_unitary hP)
 
+/-- Extending a unitary signal initialization matrix to the full history register preserves
+unitarity. -/
 theorem simulatorGate_unitary (q a m : ℕ) (M : Matrix
     (BinaryClockSignalWord.SimulatorSpace (Reg a))
     (BinaryClockSignalWord.SimulatorSpace (Reg a)) ℂ)
@@ -198,12 +255,15 @@ theorem simulatorGate_unitary (q a m : ℕ) (M : Matrix
     simpa only [Matrix.star_eq_conjTranspose] using! Matrix.mem_unitaryGroup_iff'.mp hM
   rw [hm, simulatorGate_one]
 
+/-- The full-register clock Hadamard gate is unitary. -/
 theorem clockGate_unitary (q a m : ℕ) :
     clockGate (I := I) (E := E) q a m ∈ Matrix.unitaryGroup _ ℂ :=
   (relabelGate_mem_unitaryGroup (prepEquiv q a m).symm _).2
     (tensorGate_unitary (tensorGate_unitary (Submonoid.one_mem _)
       (tensorGate_unitary (hadamardN_unitary q) (Submonoid.one_mem _))) (Submonoid.one_mem _))
 
+/-- The history initialization word is well formed, makes no oracle queries, and contains
+exactly seven explicit gates. -/
 theorem initialization_resources (q a m : ℕ) :
     WellFormedAdjointCircuit (initialization (I := I) (E := E) q a m) ∧
       adjointQueryCount (initialization (I := I) (E := E) q a m) = 0 ∧
@@ -222,6 +282,8 @@ theorem initialization_resources (q a m : ℕ) :
       (phaseLiftWord_counts (simulatorGate q a m) _).2, h.2.2.2]
     rfl
 
+/-- The known-register initialization matrix, combining the clock Hadamard with the signal
+initialization and spectator identities. -/
 def knownMatrix (q a m : ℕ) : Matrix (Known q a m) (Known q a m) ℂ :=
   TensorGate (1 : Matrix (Reg m) (Reg m) ℂ)
     (TensorGate (HadamardN q) (TensorGate (1 : Matrix Bool Bool ℂ)
@@ -229,6 +291,8 @@ def knownMatrix (q a m : ℕ) : Matrix (Known q a m) (Known q a m) ℂ :=
         (Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate 1
           (BinaryClockSignalInitialization.word (H := Reg a))))))
 
+/-- The full initialization matrix is the transported tensor product of `knownMatrix` with the
+environment-system identity. -/
 theorem initialization_matrix (q a m : ℕ)
     (V : Matrix (Whole q a m I E) (Whole q a m I E) ℂ) :
     Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate V (initialization q a m) =
@@ -238,10 +302,13 @@ theorem initialization_matrix (q a m : ℕ)
   simp only [clockGate, simulatorGate, ← CircuitRelabel.relabelGate_mul,
     tensorGate_mul, Matrix.one_mul, Matrix.mul_one, knownMatrix]
 
+/-- The known-register state with zero projector ancilla, uniform clock, and work state `eta a`. -/
 def knownOutput (q a m : ℕ) : QState (Known q a m) := fun x =>
   Qatlib.Foundations.PureStateMath.Ket (ZeroStr m) x.1 *
     (Uniform (Reg q) x.2.1 * BinaryClockCoordinateFrame.eta a x.2.2)
 
+/-- The signal initialization column at the all-zero seed has amplitude `i/2` when the first
+flag and encoding ancillas vanish, and zero otherwise. -/
 theorem simulator_column (a : ℕ) (u b c : Bool) (anc : Reg a) :
     Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate 1
       (BinaryClockSignalInitialization.word (H := Reg a)) (u,(b,(c,anc)))
@@ -256,6 +323,7 @@ theorem simulator_column (a : ℕ) (u b c : Bool) (anc : Reg a) :
     Matrix.one_apply, ite_mul, mul_ite, BinaryClockCoordinateFrame.average_phase,
     ite_and] using! h
 
+/-- The known-register initialization matrix sends `knownSeed` to `knownOutput`. -/
 theorem knownMatrix_on_seed (q a m : ℕ) :
     knownMatrix q a m *ᵥ Qatlib.Foundations.PureStateMath.Ket (knownSeed q a m) =
       knownOutput q a m := by
@@ -273,6 +341,8 @@ theorem knownMatrix_on_seed (q a m : ℕ) :
     hc]
   split_ifs <;> simp_all
 
+/-- Initializing the known registers alongside any purification gives the zero projector ancilla
+tensored with the framed logical clock input. -/
 theorem initialization_on_state (q a m : ℕ) (ψ : QState (E × I))
     (V : Matrix (Whole q a m I E) (Whole q a m I E) ℂ) :
     Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate V (initialization q a m) *ᵥ
@@ -294,6 +364,7 @@ theorem initialization_on_state (q a m : ℕ) (ψ : QState (E × I))
   simp [relabelState, prepEquiv, BinaryClockCoordinateFrame.placement, TensorState,
     knownOutput, Qatlib.Foundations.PureStateMath.Ket, mul_assoc, mul_left_comm]
 
+/-- Applying a unitary preparation matrix to a basis seed gives a normalized purification. -/
 theorem prepared_normalized (P : Matrix (E × I) (E × I) ℂ)
     (hP : P ∈ Matrix.unitaryGroup (E × I) ℂ) (seed : E × I) :
     Normalized (P *ᵥ Qatlib.Foundations.PureStateMath.Ket seed) :=

@@ -62,6 +62,24 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Column sizes and effective chain couplings
+
+`columnSize` assigns binomial column sizes to the graph construction. The file proves their
+total size and the balance of edge counts between adjacent columns, then evaluates the
+corresponding normalized coupling as `sqrt (n * (N - n))`. See [ChristandlEtAl2004].
+
+## Main statements
+
+* `columnSize_sum`: the column sizes total `2 ^ (N - 1)`.
+* `column_edge_count`: adjacent columns give the same edge count.
+* `column_coupling`: the normalized edge count has a square root form.
+
+## References
+
+* [Christandl et al., 2004][ChristandlEtAl2004]
+-/
+
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
 
 open scoped BigOperators
@@ -72,14 +90,19 @@ set_option linter.unusedVariables false
 
 noncomputable section
 
+/-- The size of column `n`, defined as the binomial coefficient `choose (N - 1) (n - 1)`. -/
 def columnSize (N n : ℕ) : ℕ := Nat.choose (N - 1) (n - 1)
 
+/-- For positive `N`, the sizes of columns one through `N` sum to `2 ^ (N - 1)`. See
+[ChristandlEtAl2004]. -/
 theorem columnSize_sum (N : ℕ) (hN : 0 < N) :
     ∑ n ∈ Finset.range N, columnSize N (n + 1) = 2 ^ (N - 1) := by
   unfold columnSize
   simp only [Nat.add_sub_cancel]
   simpa [Nat.sub_add_cancel hN] using Nat.sum_range_choose (N - 1)
 
+/-- For `1 ≤ n < N`, counting adjacent-column edges from either side gives `columnSize N n * (N
+- n) = columnSize N (n + 1) * n` over the reals. See [ChristandlEtAl2004]. -/
 theorem column_edge_count (N n : ℕ) (hn : 1 ≤ n) (hnN : n < N) :
     (columnSize N n : ℝ) * ((N : ℝ) - n) =
       (columnSize N (n + 1) : ℝ) * (n : ℝ) := by
@@ -96,6 +119,8 @@ theorem column_edge_count (N n : ℕ) (hn : 1 ≤ n) (hnN : n < N) :
     exact h1
   linarith
 
+/-- For `1 ≤ n < N`, the edge count divided by the square root of the product of adjacent column
+sizes equals `sqrt (n * (N - n))`. See [ChristandlEtAl2004]. -/
 theorem column_coupling (N n : ℕ) (hn : 1 ≤ n) (hnN : n < N) :
     ((columnSize N n : ℝ) * ((N : ℝ) - n)) /
         Real.sqrt ((columnSize N n : ℝ) * (columnSize N (n + 1) : ℝ)) =

@@ -9,6 +9,25 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionAndNorm
+
+/-!
+# A cancellation example for rejection sampling
+
+This module instantiates linear-combination access with two Boolean-indexed input vectors and
+constant envelopes. Their sum vanishes at one coordinate, while the combined envelope remains
+nonzero; `sq_rejection_cancellation_actual_consumer` computes the resulting capped rejection law
+and expected cost. For background, see [ChiaEtAl2022].
+
+## Main statements
+
+* `sq_rejection_cancellation_actual_consumer`: gives geometric timeout, exact accepted-output
+  probabilities, and expected cost at most eight.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -19,33 +38,47 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The pair of Boolean-indexed complex input vectors used in the linear-combination
+cancellation example. -/
 noncomputable def sqClosureToyInputs (j b : Bool) : ℂ := if j && !b then -1 else 1
+/-- The constant complex envelope used for each input vector in the cancellation example. -/
 noncomputable def sqClosureToyEnvelope (_j _b : Bool) : ℂ := 1
 
+/-- The uniform finite distribution on Boolean proposal coordinates. -/
 noncomputable def sqClosureToySource : FinDist Bool where
   prob _ := 1/2
   nonneg _ := by norm_num
   sum_one := by norm_num [Fintype.sum_bool]
 
+/-- The deterministic Boolean acceptance distribution associated with a proposal coordinate. -/
 noncomputable def sqClosureToyCoin (b : Bool) : FinDist Bool where
   prob z := if z=b then 1 else 0
   nonneg z := by split_ifs <;> norm_num
   sum_one := by cases b <;> simp
 
+/-- Each input vector in the cancellation example satisfies `SQEnvelope` with its specified
+envelope. -/
 theorem sqClosureToyInputs_envelope (j : Bool) : SQEnvelope (sqClosureToyInputs j) (sqClosureToyEnvelope j) := by
   cases j <;> constructor
   all_goals first
     | norm_num [sqClosureToyInputs,sqClosureToyEnvelope,Fintype.sum_bool,Complex.normSq_apply]
     | (intro b;cases b <;> norm_num [sqClosureToyInputs,sqClosureToyEnvelope,Complex.normSq_apply])
 
+/-- The unit-coefficient sum of the two input vectors equals two at `true` and zero at `false`. -/
 theorem sqClosureToy_linear (b : Bool) :
     sqLinearValue (fun _ : Bool => (1 : ℂ)) sqClosureToyInputs b=if b then 2 else 0 := by
   cases b <;> simp [sqLinearValue,sqClosureToyInputs,Fintype.sum_bool]
 
+/-- The linear-combination envelope in the Boolean example equals two at both coordinates. -/
 theorem sqClosureToy_linearEnvelope (b : Bool) :
     sqLinearEnvelope (fun _ : Bool => (1 : ℂ)) sqClosureToyEnvelope b=2 := by
   norm_num [sqLinearEnvelope,sqClosureToyEnvelope,Fintype.sum_bool,Complex.normSq_apply]
 
+/-- The Boolean cancellation example has a two-query linear sum, constant envelope two, and a
+uniform proposal with deterministic acceptance of `true`. For every cap `B`, timeout has
+probability `(1/2)^B`, output `true` has the complementary probability, output `false` has
+probability zero, and expected cost is at most eight, illustrating [Chia et al., Lemma
+3.6][ChiaEtAl2022]. -/
 theorem sq_rejection_cancellation_actual_consumer : (∀ j : Bool,SQEnvelope (sqClosureToyInputs j) (sqClosureToyEnvelope j)) ∧
   (∀ b : Bool,sqLinearValue (fun _ : Bool=>(1:ℂ)) sqClosureToyInputs b= if b then 2 else 0) ∧
   (∀ b : Bool,sqLinearEnvelope (fun _ : Bool=>(1:ℂ)) sqClosureToyEnvelope b=2) ∧

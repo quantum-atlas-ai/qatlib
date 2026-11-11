@@ -43,6 +43,34 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
+
+/-!
+# Expected costs of source quantum search
+
+This module bounds the two cost ledgers of `sourceQSearchRound` and `sourceQSearchLoop` for the
+geometric search schedule. It uses the amplitude-amplification framework of [BrassardEtAl2002],
+with source depths starting at one, to control mature-round failure and sum the expected costs
+of all reached rounds.
+
+`sourceStopLedgerExpectation` expresses the resulting infinite cost series. Finite execution
+expectations converge to this series, and each ledger is bounded by 400 / √a when the initial
+marked probability a is positive.
+
+## Main statements
+
+* `sourceRound_fail_prob_le_three_quarters`: a mature source round fails with probability at
+  most 3/4.
+* `sourceQSearchLoop_ledger_expectation_unfold`: additive ledger expectations decompose over
+  reached rounds.
+* `sourceLoop_ledger1_expectation_le` and `sourceLoop_ledger2_expectation_le`: uniform bounds
+  for finite horizons.
+* `sourceStopLedgerExpectation_le`: the two bounds extend to the infinite cost series.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -74,12 +102,15 @@ open Filter
 open scoped Topology
 set_option warningAsError false
 
+/-- For M ≥ 1 and u ≥ 0, the product (1 − u)(3M − 1 + 4u) is at most 3M. -/
 private lemma source_failure_bound (u M : ℝ) (hM1 : 1 ≤ M) (hu0 : 0 ≤ u) :
     (1 - u) * (3 * M - 1 + 4 * u) ≤ 3 * M := by
   have hMu : 1 * u ≤ M * u := mul_le_mul_of_nonneg_right hM1 hu0
   have hsq : 0 ≤ (2 * u - 1 / 2) ^ 2 := sq_nonneg _
   nlinarith
 
+/-- A source search round has failure probability at most 3/4 when its window satisfies (M + 1)
+sin(2θ) ≥ 1 and the initial marked probability is sin² θ with 0 < θ < π/2. -/
 theorem sourceRound_fail_prob_le_three_quarters {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (θ : ℝ) (l : ℕ)
@@ -177,6 +208,9 @@ theorem sourceRound_fail_prob_le_three_quarters {I : Type} [Fintype I] [Decidabl
     nlinarith [hcore]
   linarith [hfail, hmain, hfinal]
 
+/-- The expected value of an additive ledger for a finite source loop is the sum of the round
+ledger expectations weighted by their reach probabilities, provided the ledger vanishes at
+the empty outcome. -/
 theorem sourceQSearchLoop_ledger_expectation_unfold {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (L : Option I × ℕ × ℕ → ℝ≥0∞)
@@ -197,6 +231,8 @@ theorem sourceQSearchLoop_ledger_expectation_unfold {I : Type} [Fintype I] [Deci
   rw [hidx]
   rfl
 
+/-- For an additive accumulator that vanishes at zero, finite execution and the truncated source
+loop have equal expected accumulated ledger values. -/
 theorem sourceRunFor_ledger_eq_sourceLoop {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (acc : ℕ → ℕ → ℕ)
@@ -213,12 +249,16 @@ theorem sourceRunFor_ledger_eq_sourceLoop {I : Type} [Fintype I] [DecidableEq I]
   simp only [sourceQSearchLoop]
   simp [hacc0]
 
+/-- The infinite sum of source-round ledger expectations weighted by the probability of reaching
+each round, with values in the extended nonnegative reals. -/
 noncomputable def sourceStopLedgerExpectation {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (L : Option I × ℕ × ℕ → ℝ≥0∞) : ℝ≥0∞ :=
   ∑' i, sourceReachMass A hA j₀ S i
     * Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (sourceQSearchRound A hA j₀ S (i + 1)) L
 
+/-- Expected accumulated ledger values of finite executions converge to
+`sourceStopLedgerExpectation` for an additive accumulator that vanishes at zero. -/
 theorem sourceStopLedgerExpectation_eq_limit {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (acc : ℕ → ℕ → ℕ)
@@ -260,6 +300,7 @@ theorem sourceStopLedgerExpectation_eq_limit {I : Type} [Fintype I] [DecidableEq
   rw [← ENNReal.hasSum_iff_tendsto_nat]
   exact ENNReal.summable.hasSum
 
+/-- Every natural power of the real number 6/5 is at least one. -/
 theorem sourceGeopow_ge_one (k : ℕ) : (1:ℝ) ≤ ((6/5:ℝ)^k) := by
   induction k with
   | zero => norm_num
@@ -268,6 +309,7 @@ theorem sourceGeopow_ge_one (k : ℕ) : (1:ℝ) ≤ ((6/5:ℝ)^k) := by
         _ ≤ ((6/5:ℝ)^k) * (6/5) := mul_le_mul ih (by norm_num) (by norm_num) (by norm_num)
         _ = (6/5:ℝ)^(k+1) := (pow_succ _ _).symm
 
+/-- Natural powers of the real number 6/5 are monotone in the exponent. -/
 theorem sourceGeopow_mono {a b : ℕ} (h : a ≤ b) : ((6/5:ℝ)^a) ≤ ((6/5:ℝ)^b) := by
   obtain ⟨d, hd⟩ := Nat.exists_eq_add_of_le h
   rw [hd, pow_add]
@@ -275,17 +317,21 @@ theorem sourceGeopow_mono {a b : ℕ} (h : a ≤ b) : ((6/5:ℝ)^a) ≤ ((6/5:�
     _ ≤ ((6/5:ℝ)^a) * ((6/5:ℝ)^d) := mul_le_mul_of_nonneg_left (sourceGeopow_ge_one d)
       (by positivity)
 
+/-- The natural-number ceiling quotient of 6^k by 5^k, multiplied by 5^k, is at least 6^k. -/
 theorem sourceWindow_raw_mul (k : ℕ) : (6:ℕ)^k ≤ 5^k * ((6^k + 5^k - 1) / 5^k) := by
   have h5 : (0:ℕ) < 5^k := Nat.pow_pos (by norm_num)
   have hd := Nat.div_add_mod (6^k + 5^k - 1) (5^k)
   have hmod : (6^k + 5^k - 1) % 5^k ≤ 5^k - 1 := Nat.le_pred_of_lt (Nat.mod_lt _ h5)
   omega
 
+/-- The real power (6/5)^k equals the quotient of the natural powers 6^k and 5^k cast to the
+reals. -/
 theorem sourceWindow_pow (k : ℕ) : ((6/5:ℝ)^k) = ((6^k:ℕ):ℝ)/((5^k:ℕ):ℝ) := by
   rw [div_pow]
   push_cast
   rfl
 
+/-- The geometric search window is the natural-number quotient (6^l + 5^l − 1) / 5^l. -/
 theorem sourceWindow_eq (l : ℕ) : qSearchWindow l = (6^l + 5^l - 1) / 5^l := by
   show max 1 ((6^l + 5^l - 1) / 5^l) = _
   have h5 : (0:ℕ) < 5^l := Nat.pow_pos (by norm_num)
@@ -295,6 +341,7 @@ theorem sourceWindow_eq (l : ℕ) : qSearchWindow l = (6^l + 5^l - 1) / 5^l := b
     omega
   omega
 
+/-- The search window at round l is at least the real geometric scale (6/5)^l. -/
 theorem sourceWindow_ge (l : ℕ) : ((6/5:ℝ)^l) ≤ (qSearchWindow l : ℝ) := by
   have h5 : (0:ℕ) < 5^l := Nat.pow_pos (by norm_num)
   have h5R : (0:ℝ) < ((5^l:ℕ):ℝ) := by exact_mod_cast h5
@@ -307,6 +354,7 @@ theorem sourceWindow_ge (l : ℕ) : ((6/5:ℝ)^l) ≤ (qSearchWindow l : ℝ) :=
   rw [sourceWindow_eq, sourceWindow_pow]
   exact hceil
 
+/-- The search window at round l is at most twice the real geometric scale (6/5)^l. -/
 theorem sourceWindow_le (l : ℕ) : (qSearchWindow l : ℝ) ≤ 2 * ((6/5:ℝ)^l) := by
   have h5R : (0:ℝ) < ((5^l:ℕ):ℝ) := by
     have : (0:ℕ) < 5^l := Nat.pow_pos (by norm_num)
@@ -327,6 +375,8 @@ theorem sourceWindow_le (l : ℕ) : (qSearchWindow l : ℝ) ≤ 2 * ((6/5:ℝ)^l
   have hge := sourceGeopow_ge_one l
   linarith
 
+/-- Every supported source-round outcome has first ledger at most 2 + 2M and second ledger at
+most 2 + M, where M is the round's search window. -/
 theorem sourceRound_ledger_shape {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (l : ℕ) (out : Option I × ℕ × ℕ)
@@ -360,6 +410,7 @@ theorem sourceRound_ledger_shape {I : Type} [Fintype I] [DecidableEq I]
     · show (2 + sourceDepth (qSearchWindow l) j : ℕ) ≤ 2 + qSearchWindow l
       omega
 
+/-- The expected first ledger of source round l is at most 6(6/5)^l. -/
 theorem sourceRound_ledger1_expectation_le (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (sourceQSearchRound A hA j₀ S l) (fun out => (out.2.1 : ℝ≥0∞))
@@ -382,6 +433,7 @@ theorem sourceRound_ledger1_expectation_le (A : Matrix I I ℂ)
     rw [hsplit]
     nlinarith
 
+/-- The expected second ledger of source round l is at most 4(6/5)^l. -/
 theorem sourceRound_ledger2_expectation_le (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (sourceQSearchRound A hA j₀ S l) (fun out => (out.2.2 : ℝ≥0∞))
@@ -404,6 +456,8 @@ theorem sourceRound_ledger2_expectation_le (A : Matrix I I ℂ)
     rw [hsplit]
     nlinarith
 
+/-- The event that a source round returns `none` has mass at most 3/4 under the stated
+amplitude-angle and mature-window hypotheses. -/
 theorem sourceFailMass_le_three_quarters {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (θ : ℝ) (l : ℕ)
@@ -461,6 +515,8 @@ theorem sourceFailMass_le_three_quarters {I : Type} [Fintype I] [DecidableEq I]
   rw [← hsub] at hle
   exact hle
 
+/-- A source loop with zero rounds has zero expected ledger value whenever the ledger vanishes
+at the empty outcome. -/
 theorem sourceLoop_ledger_expectation_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (L : Option I × ℕ × ℕ → ℝ≥0∞) (hL0 : L (none, 0, 0) = 0) (off : ℕ) :
@@ -469,6 +525,8 @@ theorem sourceLoop_ledger_expectation_zero {I : Type} [Fintype I] [DecidableEq I
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   exact hL0
 
+/-- An additive source-loop ledger is bounded by K(6/5)^(off + 1) when every round fails with
+probability at most 1/4 and the round costs and K satisfy the stated recurrence inequality. -/
 theorem sourceLoop_closed_quarter {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (L : Option I × ℕ × ℕ → ℝ≥0∞)
@@ -546,6 +604,8 @@ theorem sourceLoop_closed_quarter {I : Type} [Fintype I] [DecidableEq I]
             refine ENNReal.ofReal_le_ofReal ?_
             nlinarith [hfinal]
 
+/-- Starting in the mature region, an additive source-loop ledger is bounded by K(6/5)^(off + 1)
+under the round cost bound, failure bound 3/4, and stated recurrence inequality. -/
 theorem sourceLoop_closed_mature {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ls : ℕ)
@@ -626,6 +686,8 @@ theorem sourceLoop_closed_mature {I : Type} [Fintype I] [DecidableEq I]
             refine ENNReal.ofReal_le_ofReal ?_
             nlinarith [hfinal]
 
+/-- Before the mature threshold, the loop's expected ledger plus the stated geometric reserve is
+at most B(6/5)^ls, assuming the given cost, failure, mature-region, and coefficient bounds. -/
 theorem sourceLoop_closed_immature {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ls : ℕ)
@@ -774,6 +836,7 @@ theorem sourceLoop_closed_immature {I : Type} [Fintype I] [DecidableEq I]
                 have hxls : (0:ℝ) ≤ ((6/5:ℝ)^ls) := by positivity
                 nlinarith [mul_le_mul_of_nonneg_left hB hxls]
 
+/-- For every positive real s, some positive exponent k satisfies (6/5)^k s ≥ 1. -/
 theorem sourceExists_geometric_cross {s : ℝ} (hs : 0 < s) :
     ∃ k : ℕ, 1 ≤ k ∧ 1 ≤ ((6/5:ℝ)^k)*s := by
   have hgrowth : ∀ k : ℕ, 1 + (k:ℝ)/5 ≤ ((6/5:ℝ)^k) := by
@@ -812,6 +875,8 @@ theorem sourceExists_geometric_cross {s : ℝ} (hs : 0 < s) :
     _ ≤ ((6/5:ℝ)^(max 1 (Nat.ceil (5/s)))) * s :=
         mul_le_mul_of_nonneg_right hkey (le_of_lt hs)
 
+/-- For 0 < s ≤ 1, there is a positive threshold ls with (6/5)^ls s ≤ 6/5 such that (6/5)^l s ≥
+1 for every l ≥ ls. -/
 theorem sourceExists_crossing {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) :
     ∃ ls : ℕ, 1 ≤ ls ∧ ((6/5:ℝ)^ls)*s ≤ 6/5 ∧
       ∀ l : ℕ, ls ≤ l → 1 ≤ ((6/5:ℝ)^l)*s := by
@@ -844,6 +909,9 @@ theorem sourceExists_crossing {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) :
     calc (1:ℝ) ≤ ((6/5:ℝ)^(Nat.find hex))*s := (Nat.find_spec hex).2
       _ ≤ ((6/5:ℝ)^l)*s := mul_le_mul_of_nonneg_right hmono (le_of_lt hs0)
 
+/-- Under the stated additive-ledger, geometric cost, and coefficient hypotheses, every finite
+source loop has expected ledger at most 400/√a when its initial marked probability a is
+positive. -/
 theorem sourceLoop_ledger_expectation_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (L : Option I × ℕ × ℕ → ℝ≥0∞)
@@ -993,6 +1061,8 @@ theorem sourceLoop_ledger_expectation_le {I : Type} [Fintype I] [DecidableEq I]
     rw [hp]
     nlinarith [hKq400]
 
+/-- For positive initial marked probability a, the expected first ledger of every finite source
+loop is at most 400/√a. -/
 theorem sourceLoop_ledger1_expectation_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (T : ℕ) (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
@@ -1031,6 +1101,8 @@ theorem sourceLoop_ledger1_expectation_le {I : Type} [Fintype I] [DecidableEq I]
   · exact measureProb_nonneg _ _
   · exact measureProb_le_one ((prepared_aa_reflection_and_access A j₀ S hA).2.1) S
 
+/-- For positive initial marked probability a, the expected second ledger of every finite source
+loop is at most 400/√a. -/
 theorem sourceLoop_ledger2_expectation_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (T : ℕ) (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
@@ -1069,6 +1141,8 @@ theorem sourceLoop_ledger2_expectation_le {I : Type} [Fintype I] [DecidableEq I]
   · exact measureProb_nonneg _ _
   · exact measureProb_le_one ((prepared_aa_reflection_and_access A j₀ S hA).2.1) S
 
+/-- For positive initial marked probability a, both infinite source-search ledger expectation
+series are at most 400/√a. -/
 theorem sourceStopLedgerExpectation_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) :

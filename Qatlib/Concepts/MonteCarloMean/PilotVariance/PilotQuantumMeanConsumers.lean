@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
+
+/-!
+# Pilot-adaptive quantum mean records
+
+The dependent record type `PilotMeanRecord` combines a classical pilot sample with repeated
+signed quantum mean records at a pilot-selected precision. The definitions `pilotMeanMass`,
+`pilotMeanReadout`, and `pilotMeanResources` give the joint mass, median readout, and resource
+ledger.
+
+For bounded rational payoffs, the joint law is normalized and the error probability is at most
+2/(Nν²) + (8/9)^r under the stated pilot hypotheses. This composes variance certification with
+quantum mean estimation in the framework of [Montanaro2015].
+
+## Main statements
+
+* `pilotMeanMass_sum_one`: the dependent joint record masses sum to one.
+* `unknown_variance_pilot_actual_conditional_resource_ledger`: the resource vector is explicit
+  for each pilot record.
+* `unknown_variance_pilot_same_joint_quantum_mean_probability`: pilot and conditional quantum
+  errors share one joint-law bound.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian
@@ -19,10 +45,14 @@ set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option maxHeartbeats 2000000
 
+/-- A pilot observation record together with `2 * r + 1` signed mean records whose layer
+precision depends on that pilot record. -/
 abbrev PilotMeanRecord (I : Type) (N h r : ℕ) (f : I  → ℚ) (nu eps : ℚ) :=
   Σ omega : Fin N  → I,Fin (2*r+1)  → I ×
     (LayerRecord (pilotPrecision N h f nu eps omega) ×LayerRecord (pilotPrecision N h f nu eps omega))
 
+/-- The joint mass of a pilot record and its repeated conditional signed mean records at the
+pilot-selected scale and precision. -/
 noncomputable def pilotMeanMass {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (N h r : ℕ) (f : I  → ℚ) (nu eps : ℚ) (hA : A∈Matrix.unitaryGroup I ℂ)
     (z : PilotMeanRecord I N h r f nu eps) : ℝ :=
@@ -30,10 +60,14 @@ noncomputable def pilotMeanMass {I : Type} [Fintype I] [DecidableEq I] (A : Matr
     (signedMeanLaw (pilotPrecision N h f nu eps z.1) A j (fun i => (f i:ℝ))
       (pilotScale N h f nu z.1) hA).probOf z.2
 
+/-- The signed mean median readout evaluated with the scale and precision selected from the
+pilot observations. -/
 noncomputable def pilotMeanReadout {I : Type} (N h r : ℕ) (f : I  → ℚ) (nu eps : ℚ)
     (z : PilotMeanRecord I N h r f nu eps) : ℝ :=
   signedMeanMedian (pilotPrecision N h f nu eps z.1) r (fun i => (f i:ℝ)) (pilotScale N h f nu z.1) z.2
 
+/-- The conditional signed mean resource ledger with `N` additional pilot source preparations,
+measurements, and gates. -/
 noncomputable def pilotMeanResources {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (N h r : ℕ) (f : I  → ℚ) (nu eps : ℚ) (z : PilotMeanRecord I N h r f nu eps) : QuantumMeanResources :=
   let k := pilotPrecision N h f nu eps z.1
@@ -42,6 +76,8 @@ noncomputable def pilotMeanResources {I : Type} [Fintype I] [DecidableEq I] (A :
       (pilotScale N h f nu z.1)
   {v with sourcePreparations:=N+v.sourcePreparations,measurements:=N+v.measurements,gates:=N+v.gates}
 
+/-- For a unitary source preparation, the masses of all dependent pilot and conditional quantum
+mean records sum to one. -/
 theorem pilotMeanMass_sum_one {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (N h r : ℕ) (f : I → ℚ) (nu eps : ℚ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -58,6 +94,8 @@ theorem pilotMeanMass_sum_one {I : Type} [Fintype I] [DecidableEq I]
         (fun i => (f i : ℝ)) (pilotScale N h f nu omega) hA).sum_probOf (2*r+1), mul_one]
     _ = 1 := (signedMeanSource A j hA).sum_probOf N
 
+/-- For each pilot and quantum record, the full resource vector equals the stated expression in
+the selected precision, grid, and repetition counts, including the `N` pilot costs. -/
 theorem unknown_variance_pilot_actual_conditional_resource_ledger
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (N h r : ℕ)
     (f : I → ℚ) (nu eps : ℚ) (z : PilotMeanRecord I N h r f nu eps) :
@@ -71,6 +109,9 @@ theorem unknown_variance_pilot_actual_conditional_resource_ledger
   dsimp only [pilotMeanResources]
   rw [signed_centered_fresh_full_resources]
 
+/-- For bounded rational payoffs, positive `N` and `eps`, and 0 < nu ≤ 1/4, the joint record
+masses are nonnegative and normalized, with readout error probability at most 2/(N·nu²) +
+(8/9)^r. -/
 theorem unknown_variance_pilot_same_joint_quantum_mean_probability
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (N h r : ℕ)
     (f : I → ℚ) (nu eps : ℚ) (hA : A ∈ Matrix.unitaryGroup I ℂ)

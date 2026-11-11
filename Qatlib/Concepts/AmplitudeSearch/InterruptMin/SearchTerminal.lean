@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchClock
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchUniform
+
+/-!
+# Terminal traces for repeated quantum search
+
+This module assembles finite stopping-stage records into `TerminalTrace`, with mass
+`TerminalMass`, iteration cost `TerminalCost`, and output `TerminalOutput`. For a nonempty
+proper marked set and the exponential schedule, the terminal masses form a probability law
+supported on marked outputs, the output is uniform on the marked set, and the expected iteration
+cost is bounded by (9/2)√(N/|A|). These constructions formalize stopping behavior for the search
+setting of [BoyerEtAl1998].
+
+## Main statements
+
+* `search_terminal_law`: normalization, nonnegativity, and support of the terminal law.
+* `search_terminal_output`: the uniform marked-output marginal.
+* `search_terminal_cost`: a finite expected iteration cost with an explicit bound.
+* `search_budget_output_iff`: the budgeted output is present exactly when the terminal cost fits
+  the budget.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,17 +40,24 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 open scoped BigOperators
 
+/-- A terminal search trace consists of a stopping-stage index together with a terminal record
+for that stage. -/
 abbrev TerminalTrace (I : Type*) (sizes : ℕ → ℕ) := Σ n : ℕ, TerminalStage I sizes n
 
+/-- The mass of a terminal trace, obtained from `TerminalStageMass` at its stopping stage. -/
 noncomputable def TerminalMass {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (x : TerminalTrace I sizes) : ℝ :=
   TerminalStageMass A sizes x.1 x.2
 
+/-- The iteration cost of a terminal trace, as counted by `TerminalIterations`. -/
 def TerminalCost {I : Type*} (sizes : ℕ → ℕ) (x : TerminalTrace I sizes) : ℕ :=
   TerminalIterations sizes x.1 x.2
 
+/-- The output index recorded by a terminal search trace. -/
 def TerminalOutput {I : Type*} {sizes : ℕ → ℕ} (x : TerminalTrace I sizes) : I := x.2.2.2
 
+/-- A nonnegative real function on a countable dependent sum of finite types sums to q whenever
+the series of its finite fiber sums sums to q. -/
 theorem search_nonnegative_trace_sum {γ : ℕ → Type*} [∀ n, Fintype (γ n)]
     (f : (Σ n, γ n) → ℝ) (hf : ∀ x, 0 ≤ f x) (q : ℝ)
     (hrows : HasSum (fun n => ∑ x : γ n, f ⟨n,x⟩) q) : HasSum f q := by
@@ -35,6 +66,8 @@ theorem search_nonnegative_trace_sum {γ : ℕ → Type*} [∀ n, Fintype (γ n)
     ⟨fun n => (hfib n).summable, by simpa only [tsum_fintype] using hrows.summable⟩
   exact hrows.sigma_of_hasSum hfib hsummable
 
+/-- For a nonempty proper marked set, the exponential-schedule terminal masses sum to one, are
+nonnegative, and vanish on traces with unmarked output. -/
 theorem search_terminal_law {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     HasSum (TerminalMass A (ExponentialSizes (Fintype.card I))) 1 ∧
@@ -54,6 +87,8 @@ theorem search_terminal_law {I : Type*} [Fintype I] [DecidableEq I]
   simp_rw [(search_terminal_stage_law hN A _ hsizes _).2]
   exact search_all_density_termination A hA hproper
 
+/-- For a nonempty proper marked set, summing the exponential-schedule terminal mass over traces
+with output i gives 1/|A| when i is marked and zero otherwise. -/
 theorem search_terminal_output {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (i : I) :
     HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>
@@ -79,6 +114,8 @@ theorem search_terminal_output {I : Type*} [Fintype I] [DecidableEq I]
     simp_rw [hrow]
     exact search_final_output_uniform A hA hproper i
 
+/-- For a nonempty proper marked set, the terminal iteration cost has a finite nonnegative mean
+bounded by the retry-reach weighted mean-query sum and by (9/2)√(N/|A|). -/
 theorem search_terminal_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>
@@ -94,10 +131,14 @@ theorem search_terminal_cost {I : Type*} [Fintype I] [DecidableEq I]
     exact mul_nonneg ((search_terminal_law A hA hproper).2 x).1 (Nat.cast_nonneg _)
   · exact hq
 
+/-- Returns the terminal output when its iteration cost is within the budget, and returns `none`
+otherwise. -/
 def BudgetOutput {I : Type*} {sizes : ℕ → ℕ} (budget : ℕ)
     (x : TerminalTrace I sizes) : Option I :=
   if TerminalCost sizes x ≤ budget then some (TerminalOutput x) else none
 
+/-- The budgeted output equals the recorded terminal output exactly when the terminal iteration
+cost is at most the budget. -/
 theorem search_budget_output_iff {I : Type*} {sizes : ℕ → ℕ}
     (budget : ℕ) (x : TerminalTrace I sizes) :
     BudgetOutput budget x = some (TerminalOutput x) ↔ TerminalCost sizes x ≤ budget := by

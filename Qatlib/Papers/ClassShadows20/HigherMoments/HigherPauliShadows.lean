@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ClassShadows20.HigherMoments.CubicPauliShadows
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Data.List.FinRange
+
+/-!
+# Exact higher Pauli shadow kernels
+
+`higherQPauliEntry`, `higherQMatMul`, and `higherQLocalTrace` implement single-qubit snapshot
+products with Gaussian rational arithmetic. Tensor factorization identifies
+`higherShadowKernelQ` with the real trace kernel `higherShadowKernel`. Norm bounds give an
+explicit estimate depending on the qubit count and number of snapshots.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `higherShadowKernelQ_cast`: identifies the rational and real kernels.
+* `higher_pauli_actual_gaussian_rational_trace`: combines exact evaluation with a uniform kernel
+  bound.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,8 +47,11 @@ namespace Qatlib.Papers.ClassShadows20.HigherMoments
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Componentwise addition of Gaussian rationals represented as rational pairs. -/
 def higherGAdd (x y : ℚ×ℚ) : ℚ×ℚ := (x.1+y.1,x.2+y.2)
 
+/-- The Gaussian rational matrix entry of the single-qubit snapshot specified by a Pauli label
+and outcome. -/
 def higherQPauliEntry (a : Fin 3×Bool) (i j : Fin 2) : ℚ×ℚ :=
   let s := (3/2:ℚ)*cubicSign a.2
   let z : ℚ×ℚ := if a.1=0 then (if i≠j then 1 else 0,0)
@@ -34,31 +59,43 @@ def higherQPauliEntry (a : Fin 3×Bool) (i j : Fin 2) : ℚ×ℚ :=
     else (if i=j then if i=0 then 1 else -1 else 0,0)
   ((if i=j then 1/2 else 0)+s*z.1,s*z.2)
 
+/-- Multiplication of two-by-two matrices of Gaussian rationals using pair addition and
+multiplication. -/
 def higherQMatMul (A B : Matrix (Fin 2) (Fin 2) (ℚ×ℚ)) : Matrix (Fin 2) (Fin 2) (ℚ×ℚ) :=
   fun i j=>higherGAdd (gaussianRatMul (A i 0) (B 0 j)) (gaussianRatMul (A i 1) (B 1 j))
 
+/-- The Gaussian rational trace of the ordered product of single-qubit snapshots, with the
+identity as the initial product. -/
 def higherQLocalTrace (xs : List (Fin 3×Bool)) : ℚ×ℚ :=
   let U := xs.foldl (fun U a=>higherQMatMul U (higherQPauliEntry a))
     (fun i j=>(if i=j then 1 else 0,0))
   higherGAdd (U 0 0) (U 1 1)
 
+/-- The rational real part of the product of the local snapshot-product traces over all `n`
+qubits. -/
 def higherShadowKernelQ (n : ℕ) (xs : List (Fin n→Fin 3×Bool)) : ℚ :=
   ((List.finRange n).foldl (fun z i=>gaussianRatMul z (higherQLocalTrace (xs.map (fun x=>x i)))) (1,0)).1
 
+/-- The real trace of the ordered product of tensor Pauli snapshots, starting from the identity. -/
 noncomputable def higherShadowKernel (n : ℕ) (xs : List (Fin n→Fin 3×Bool)) : ℝ :=
   (Matrix.trace (xs.foldl (fun U x=>U*tensorPauliSnapshot n x) 1)).re
 
+/-- Conversion of Gaussian rational pairs to complex numbers preserves addition. -/
 private theorem higherGAdd_complex (x y : ℚ×ℚ) :
     cubicGaussianComplex (higherGAdd x y)=cubicGaussianComplex x+cubicGaussianComplex y := by
   simp only [higherGAdd,cubicGaussianComplex,Rat.cast_add]
   ring
 
+/-- A Pauli snapshot equals one half of the identity plus three halves of its signed Pauli
+matrix. -/
 private theorem higher_snapshot_form (a : Fin 3×Bool) :
     PauliShadow a.2 a.1=(1/2:ℂ) • (1:Operator 2)+
       ((3/2:ℂ)*(cubicSign a.2:ℂ)) • pauliMatrix a.1 := by
   cases a.2 <;> simp only
       [PauliShadow,PauliProjector,cubicSign,Bool.false_eq_true,if_false,if_true] <;> module
 
+/-- Converting a Gaussian rational snapshot entry to a complex number gives the corresponding
+`PauliShadow` entry. -/
 theorem higherQPauliEntry_complex (a : Fin 3×Bool) (i j : Fin 2) :
     cubicGaussianComplex (higherQPauliEntry a i j)=PauliShadow a.2 a.1 i j := by
   rw [higher_snapshot_form]
@@ -71,12 +108,16 @@ theorem higherQPauliEntry_complex (a : Fin 3×Bool) (i j : Fin 2) :
       smul_eq_mul,Complex.ext_iff,
       Complex.mul_re,Complex.mul_im]
 
+/-- Converting Gaussian rational matrix multiplication entrywise to complex numbers gives
+ordinary matrix multiplication. -/
 private theorem higherQMatMul_complex (A B : Matrix (Fin 2) (Fin 2) (ℚ×ℚ)) :
     (higherQMatMul A B).map cubicGaussianComplex=A.map cubicGaussianComplex*B.map cubicGaussianComplex := by
   ext i j
   simp only [Matrix.map_apply,higherQMatMul,higherGAdd_complex,gaussianRatMul_complex,
     Matrix.mul_apply,Fin.sum_univ_two]
 
+/-- Entrywise complex conversion commutes with a fold multiplying single-qubit snapshot
+matrices. -/
 private theorem higher_local_fold_complex (xs : List (Fin 3×Bool))
     (A : Matrix (Fin 2) (Fin 2) (ℚ×ℚ)) :
     (xs.foldl (fun U a=>higherQMatMul U (higherQPauliEntry a)) A).map cubicGaussianComplex=
@@ -90,6 +131,8 @@ private theorem higher_local_fold_complex (xs : List (Fin 3×Bool))
       exact higherQPauliEntry_complex a i j
     rw [he]
 
+/-- The Gaussian rational local trace converts to the trace of the corresponding complex
+snapshot product. -/
 theorem higherQLocalTrace_complex (xs : List (Fin 3×Bool)) :
     cubicGaussianComplex (higherQLocalTrace xs)=
       Matrix.trace (xs.foldl (fun U a=>U*PauliShadow a.2 a.1) 1) := by
@@ -106,6 +149,8 @@ theorem higherQLocalTrace_complex (xs : List (Fin 3×Bool)) :
   rw [he]
   simp [Matrix.trace,Fin.sum_univ_two]
 
+/-- A fold of tensor snapshot products factors into the tensor product of the local snapshot
+folds. -/
 private theorem higher_tensor_fold (n : ℕ) (xs : List (Fin n→Fin 3×Bool))
     (A : Fin n→Operator 2) :
     xs.foldl (fun U x=>U*tensorPauliSnapshot n x) (tensorPauliProduct n A)=
@@ -119,6 +164,8 @@ private theorem higher_tensor_fold (n : ℕ) (xs : List (Fin n→Fin 3×Bool))
     rw [tensorPauliProduct_mul,ih]
     rfl
 
+/-- Converting a Gaussian rational product fold gives the initial complex value times the
+product of the converted factors. -/
 private theorem higher_gaussian_fold {α : Type} (xs : List α) (f : α→ℚ×ℚ) (z : ℚ×ℚ) :
     cubicGaussianComplex (xs.foldl (fun z a=>gaussianRatMul z (f a)) z)=
       cubicGaussianComplex z*(xs.map (fun a=>cubicGaussianComplex (f a))).prod := by
@@ -126,6 +173,7 @@ private theorem higher_gaussian_fold {α : Type} (xs : List α) (f : α→ℚ×�
   | nil => simp
   | cons a xs ih => simp only [List.foldl_cons,ih,gaussianRatMul_complex,List.map_cons,List.prod_cons,mul_assoc]
 
+/-- Casting the rational higher shadow kernel to the reals gives the real trace kernel. -/
 theorem higherShadowKernelQ_cast (n : ℕ) (xs : List (Fin n→Fin 3×Bool)) :
     (higherShadowKernelQ n xs:ℝ)=higherShadowKernel n xs := by
   have he :=
@@ -141,6 +189,7 @@ theorem higherShadowKernelQ_cast (n : ℕ) (xs : List (Fin n→Fin 3×Bool)) :
   have hr := congrArg Complex.re he
   simpa [higherShadowKernelQ,cubicGaussianComplex] using hr
 
+/-- The norm of a single-qubit Pauli snapshot is at most two. -/
 private theorem higher_snapshot_norm (a : Fin 3×Bool) : ‖PauliShadow a.2 a.1‖≤(2:ℝ) := by
   have hu : pauliMatrix a.1∈unitaryGroup (Fin 2) ℂ := by
     rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose,pauliMatrix_conjTranspose,pauliMatrix_mul_self]
@@ -152,6 +201,8 @@ private theorem higher_snapshot_norm (a : Fin 3×Bool) : ‖PauliShadow a.2 a.1�
   cases b <;> norm_num [norm_smul,cubicSign] at hh ⊢ <;>
     nlinarith [l2_norm_one_le (I:=Fin 2)]
 
+/-- A product fold of single-qubit snapshots has norm at most the initial operator norm times
+`2^xs.length`. -/
 private theorem higher_local_fold_norm (xs : List (Fin 3×Bool)) (A : Operator 2) :
     ‖xs.foldl (fun U a=>U*PauliShadow a.2 a.1) A‖≤‖A‖*(2:ℝ)^xs.length := by
   induction xs generalizing A with
@@ -162,6 +213,7 @@ private theorem higher_local_fold_norm (xs : List (Fin 3×Bool)) (A : Operator 2
         (mul_le_mul_of_nonneg_left (higher_snapshot_norm a) (norm_nonneg A))) (by positivity))
     simpa only [List.foldl_cons,List.length_cons,pow_succ,mul_assoc,mul_comm,mul_left_comm] using hh
 
+/-- The norm of any entry of a two-by-two operator is at most its matrix norm. -/
 private theorem higher_entry_norm_le (A : Operator 2) (i j : Fin 2) : ‖A i j‖≤‖A‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖=1 := by
     have hs : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖^2=1 := by
@@ -177,6 +229,7 @@ private theorem higher_entry_norm_le (A : Operator 2) (i j : Fin 2) : ‖A i j�
   rw [he] at hi
   exact hi.trans hn
 
+/-- The norm of the trace of a local snapshot product is at most `2 * 2^xs.length`. -/
 private theorem higher_local_trace_bound (xs : List (Fin 3×Bool)) :
     ‖Matrix.trace (xs.foldl (fun U a=>U*PauliShadow a.2 a.1) 1)‖≤2*(2:ℝ)^xs.length := by
   let A := xs.foldl (fun U a=>U*PauliShadow a.2 a.1) (1:Operator 2)
@@ -189,6 +242,8 @@ private theorem higher_local_trace_bound (xs : List (Fin 3×Bool)) :
   change ‖Matrix.trace A‖≤_
   nlinarith
 
+/-- The rational kernel equals the real trace kernel after casting, and its absolute value is at
+most `2^n * 2^(n * xs.length)`. -/
 theorem higher_pauli_actual_gaussian_rational_trace :
     ∀ (n : ℕ) (xs : List (Fin n→Fin 3×Bool)),
     (higherShadowKernelQ n xs:ℝ)=higherShadowKernel n xs ∧

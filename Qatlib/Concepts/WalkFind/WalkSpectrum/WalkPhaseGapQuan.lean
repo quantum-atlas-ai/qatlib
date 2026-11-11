@@ -9,6 +9,29 @@ import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
 import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
 import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonSpectrumAux
 import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPopulationAux
+
+/-!
+# Phase gaps for the Johnson walk
+
+The module proves `WalkPhaseGap` by comparing Johnson-walk eigenvalues with ideal block phases
+and controlling the start-vector weight. It also lifts eigenvectors of powers to eigenvectors of
+the walk and bounds the amplified phases away from zero and π.
+
+The size estimates and the three-dimensional determinant calculation support the phase analysis
+and the large-overlap algorithm bound. See [Ambainis2007ElementDistinctness] for the
+mathematical background.
+
+## Main statements
+
+* `walkPhaseGap`: eigenvalue distance bounds from 1 and −1.
+* `jwWalk_powered_phase_gap`: a phase gap after the prescribed walk power.
+* `jwAlgorithm_large_overlap`: an iteration and amplitude bound.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
@@ -18,6 +41,7 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- Under the half-step size bounds, the Johnson walk preserves the Hermitian squared norm. -/
 theorem jwWalk_normSq (k N r : ℕ) (h1 : k ≤ N - r) (h2 : k ≤ r + 1)
     (v : Fin (2 * k + 1) → ℂ) :
     (star (jwWalk k N r *ᵥ v) ⬝ᵥ (jwWalk k N r *ᵥ v)) = star v ⬝ᵥ v := by
@@ -26,6 +50,8 @@ theorem jwWalk_normSq (k N r : ℕ) (h1 : k ≤ N - r) (h2 : k ≤ r + 1)
   rw [Matrix.star_mulVec, Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul, hu,
     Matrix.vecMul_one]
 
+/-- For `0 ≤ ε ≤ 1`, the squared distances of the ideal block phase from 1 and −1 are `4 * ε`
+and `4 * (1 - ε)`, respectively. -/
 theorem jwIdealBlockPhase_chords (ε : ℝ) (h0 : 0 ≤ ε) (h1 : ε ≤ 1) :
     Complex.normSq (jwIdealBlockPhase ε - 1) = 4*ε ∧
     Complex.normSq (jwIdealBlockPhase ε + 1) = 4*(1-ε) := by
@@ -33,9 +59,13 @@ theorem jwIdealBlockPhase_chords (ε : ℝ) (h0 : 0 ≤ ε) (h1 : ε ≤ 1) :
   constructor <;> simp [jwIdealBlockPhase, Complex.normSq_apply]
   all_goals nlinarith
 
+/-- The two-dimensional ideal block obtained by multiplying `jwD2 ε` by the diagonal signs 1 and
+−1. -/
 noncomputable def jwIdealBlock (ε : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.of (jwD2 ε) * Matrix.diagonal (fun b => if b then -1 else 1)
 
+/-- The vector with coordinates 1 and `-I` is an eigenvector of `jwIdealBlock ε` with eigenvalue
+`jwIdealBlockPhase ε`. -/
 theorem jwIdealBlock_eigen (ε : ℝ) :
     jwIdealBlock ε *ᵥ (fun b => if b then -Complex.I else 1) =
       jwIdealBlockPhase ε • (fun b => if b then -Complex.I else 1) := by
@@ -45,6 +75,8 @@ theorem jwIdealBlock_eigen (ε : ℝ) :
   all_goals ring_nf
   all_goals simp [Complex.I_sq]
 
+/-- Under the half-step size bounds, any Johnson-walk eigenvalue with a nonzero eigenvector has
+norm 1. -/
 theorem jwWalk_eigenvalue_unit_norm (k N r : ℕ) (h1 : k ≤ N-r) (h2 : k ≤ r+1)
     (μ : ℂ) (v : Fin (2*k+1) → ℂ) (heigen : jwWalk k N r *ᵥ v = μ • v)
     (hv : v ≠ 0) : ‖μ‖ = 1 := by
@@ -73,6 +105,7 @@ theorem jwWalk_eigenvalue_unit_norm (k N r : ℕ) (h1 : k ≤ N-r) (h2 : k ≤ r
   have hs : ‖μ‖^2 = 1 := by exact_mod_cast he
   nlinarith [norm_nonneg μ]
 
+/-- The stated population bound with `k ≥ 1` implies `k < N - r`. -/
 theorem jwWalk_size_physical (k N r : ℕ) (hk : 1 ≤ k)
     (hsize : (8 * Real.pi ^ 2 * (k ^ 3) * (r + 1) * (2 ^ (k + 4)) *
       (k + 1) * k : ℝ) ≤ N - r) : k < N - r := by
@@ -91,6 +124,7 @@ theorem jwWalk_size_physical (k N r : ℕ) (hk : 1 ≤ k)
   have hnat : k + r < N := by exact_mod_cast hreal
   omega
 
+/-- The stated population bound with `k ≥ 1` implies `2 * k * (r + 1) ≤ N`. -/
 theorem jwWalk_size_population (k N r : ℕ) (hk : 1 ≤ k)
     (hsize : (8 * Real.pi ^ 2 * (k ^ 3) * (r + 1) * (2 ^ (k + 4)) *
       (k + 1) * k : ℝ) ≤ N-r) : 2*k*(r+1) ≤ N := by
@@ -110,6 +144,8 @@ theorem jwWalk_size_population (k N r : ℕ) (hk : 1 ≤ k)
   have hreal : 2*(k : ℝ)*(r+1) ≤ N := by linarith [Nat.cast_nonneg (α := ℝ) r]
   exact_mod_cast hreal
 
+/-- The stated population bound implies the weaker estimate `512 * π² * k * (r + 1) ≤ N - r`
+needed to control the amplified phase error. -/
 theorem jwWalk_size_phase_error (k N r : ℕ) (hk : 1 ≤ k)
     (hsize : (8 * Real.pi ^ 2 * (k ^ 3) * (r + 1) * (2 ^ (k + 4)) *
       (k + 1) * k : ℝ) ≤ N-r) : (512*Real.pi^2*k*(r+1) : ℝ) ≤ N-r := by
@@ -128,6 +164,8 @@ theorem jwWalk_size_phase_error (k N r : ℕ) (hk : 1 ≤ k)
     _ ≤ 8*Real.pi^2*(k : ℝ)^3*(r+1)*(2 : ℝ)^(k+4)*(k+1)*k := by gcongr
     _ ≤ _ := hsize
 
+/-- Under the stated size assumptions, coordinate zero of `jwStart` is nonzero and carries at
+least half its squared Euclidean norm. -/
 theorem jwWalk_start_population (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hsize : (8 * Real.pi ^ 2 * (k ^ 3) * (r + 1) * (2 ^ (k + 4)) *
       (k + 1) * k : ℝ) ≤ N-r) :
@@ -158,6 +196,7 @@ theorem jwWalk_start_population (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     exact h
   exact ⟨hmass,hs0⟩
 
+/-- Establishes the eigenvalue gap bounds from 1 and −1 specified by `WalkPhaseGap`. -/
 theorem walkPhaseGap : WalkPhaseGap := by
   intro k N r hk hkr hr hsize μ v heigen horth hv
   have hkNr := jwWalk_size_physical k N r hk hsize
@@ -172,8 +211,13 @@ theorem walkPhaseGap : WalkPhaseGap := by
   · linarith
   · exact jwWalk_eigenvalue_gap_neg_one k N r hk hrN hkN hr μ v heigen hv
 
+/-- Establishes `WalkPhaseGap`, the Johnson-walk eigenvalue distance bounds under the stated
+size and start-orthogonality conditions. See [Ambainis2007ElementDistinctness]. -/
 theorem walkPhaseGap_answer : WalkPhaseGap := walkPhaseGap
 
+/-- Under the stated size conditions, a Johnson-walk eigenvalue with a nonzero eigenvector
+orthogonal to `jwStart` lies within `2 * sqrt 2 * sqrt (k / (N - r))` of an ideal block
+phase or its conjugate. -/
 theorem jwWalk_eigenvalue_localization (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (_hr : 2*k ≤ r+1)
     (hsize : (8 * Real.pi ^ 2 * (k ^ 3) * (r + 1) * (2 ^ (k + 4)) *
@@ -208,6 +252,9 @@ theorem jwWalk_eigenvalue_localization (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤
   refine ⟨j,?_⟩
   exact hj.imp (hbound _) (hbound _)
 
+/-- Under the stated size conditions, an eigenvalue `ν` of a walk power on a nonzero
+start-orthogonal vector equals `μ ^ t` for a walk eigenvalue `μ` with a nonzero
+start-orthogonal eigenvector. -/
 theorem jwWalk_powered_eigenvector_lift (k N r t : ℕ) (hk : 1 ≤ k)
     (hkr : k ≤ r) (_hr : 2 * k ≤ r + 1)
     (hsize : (8 * Real.pi ^ 2 * (k ^ 3) * (r + 1) * (2 ^ (k + 4)) *
@@ -223,6 +270,7 @@ theorem jwWalk_powered_eigenvector_lift (k N r t : ℕ) (hk : 1 ≤ k)
     (jwStart k N r) v ν ((walkUnitary k N r (by omega) (by omega)).2.2.1)
     (walkStartFixed k N r hk hkr hNr) heigen horth hv
 
+/-- For `1 ≤ k ≤ r`, the arc parameter `jwEpsArc k r` is strictly positive and at most 1. -/
 theorem jwEpsArc_bounds (k r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r) :
     0 < jwEpsArc k r ∧ jwEpsArc k r ≤ 1 := by
   have hkR : (1 : ℝ) ≤ k := by exact_mod_cast hk
@@ -247,6 +295,8 @@ theorem jwEpsArc_bounds (k r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r) :
   unfold jwEpsArc
   constructor <;> linarith
 
+/-- In the stated large-overlap regime, there is an iteration count bounded by `8 / (jwEpsArc *
+jwAlpha)` with marked amplitude at least `jwEpsArc³ / 1000` and the specified query bound. -/
 theorem jwAlgorithm_large_overlap (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hsize : (8*Real.pi^2*(k^3)*(r+1)*(2^(k+4))*(k+1)*k : ℝ) ≤ N-r)
     (I : Finset (Fin N)) (hI : I.card = k)
@@ -271,6 +321,8 @@ theorem jwAlgorithm_large_overlap (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     have hterm : 0 ≤ 16*(jwT2 k r : ℝ)/(jwEpsArc k r*jwAlpha k N r) := by positivity
     linarith
 
+/-- For `e` and `f` in `[0, 1]`, factors the displayed three-dimensional block determinant into
+`1 - μ` and `μ² - 2 * (1 - 2 * e - 2 * f + 2 * e * f) * μ + 1`. -/
 theorem jwThreeBlock_det_factor (e f : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
     (hf : 0 ≤ f) (hf1 : f ≤ 1) (μ : ℂ) :
     let a : ℂ := (1-2*e : ℝ)
@@ -295,6 +347,8 @@ theorem jwThreeBlock_det_factor (e f : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
   linear_combination (1+(-1+2*(f:ℂ))*μ)*hA +
     ((1-2*(e:ℂ))^2+4*(Real.sqrt (e-e*e) : ℂ)^2-(1-2*(e:ℂ))*μ)*hB
 
+/-- For `1 ≤ r < N`, factors `det (jwWalk 1 N r - μ • 1)` into `1 - μ` and the stated quadratic
+factor. -/
 theorem jwWalk_one_det_factor (N r : ℕ) (hr : 1 ≤ r) (hrN : r < N) (μ : ℂ) :
     Matrix.det (jwWalk 1 N r - μ • (1 : Matrix (Fin 3) (Fin 3) ℂ)) =
       (1-μ)*(μ^2-2*(1-2/(N-r)-2/(r+1)+2/((N-r)*(r+1)) : ℝ)*μ+1) := by
@@ -331,6 +385,8 @@ theorem jwWalk_one_det_factor (N r : ℕ) (hr : 1 ≤ r) (hrN : r < N) (μ : ℂ
   simp only [div_eq_mul_inv,_root_.mul_inv_rev]
   ring
 
+/-- Under the stated size conditions, a start-orthogonal Johnson-walk eigenvalue raised to `jwT2
+k r` has an angle in the prescribed closed arc that differs from π. -/
 theorem jwWalk_eigenphase_amplified (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hr : 2*k ≤ r+1)
     (hsize : (8*Real.pi^2*(k^3)*(r+1)*(2^(k+4))*(k+1)*k : ℝ) ≤ N-r)
@@ -432,6 +488,8 @@ theorem jwWalk_eigenphase_amplified (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
         Complex.exp_add]
       simp [Complex.exp_two_pi_mul_I]
 
+/-- Under the stated size conditions, an eigenvalue of the prescribed walk power with a nonzero
+start-orthogonal eigenvector has a phase in the specified arc and different from π. -/
 theorem jwWalk_powered_phase_gap (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hr : 2*k ≤ r+1)
     (hsize : (8*Real.pi^2*(k^3)*(r+1)*(2^(k+4))*(k+1)*k : ℝ) ≤ N-r)

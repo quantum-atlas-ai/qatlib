@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Finite mutual information bounds
+
+`finDistEntropy` and `finDistMixture` define entropy and mixing for finite distributions.
+`finDistCondMutualInfo` subtracts the mean component entropy from the mixture entropy. The
+module bounds this information quantity by outcome-wise probability variances divided by their
+positive mixture probabilities.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `finDistCondMutualInfo_le_variance_ratio`: gives the finite variance-ratio information bound.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
@@ -15,9 +34,12 @@ open scoped Classical BigOperators Real
 
 variable {C O X : Type*} [Fintype C] [Fintype O] [Fintype X]
 
+/-- The entropy of a finite distribution, computed with the natural logarithm through
+`Real.negMulLog`. -/
 noncomputable def finDistEntropy {X : Type*} [Fintype X] (p : FinDist X) : ℝ :=
   ∑ x, Real.negMulLog (p.prob x)
 
+/-- The finite outcome distribution obtained by mixing `q c` with weights `μ.prob c`. -/
 def finDistMixture (μ : FinDist C) (q : C → FinDist O) : FinDist O where
   prob o := ∑ c, μ.prob c * (q c).prob o
   nonneg o := Finset.sum_nonneg (fun c _ => mul_nonneg (μ.nonneg c) ((q c).nonneg o))
@@ -28,12 +50,18 @@ def finDistMixture (μ : FinDist C) (q : C → FinDist O) : FinDist O where
     rw [h, Finset.sum_congr rfl (fun c _ => by rw [(q c).sum_one, mul_one])]
     exact μ.sum_one
 
+/-- The probability of an outcome under the mixture is the weighted sum of its component
+probabilities. -/
 @[simp] theorem finDistMixture_prob (μ : FinDist C) (q : C → FinDist O) (o : O) :
     (finDistMixture μ q).prob o = ∑ c, μ.prob c * (q c).prob o := rfl
 
+/-- The mixture entropy minus the mean component entropy for the input distribution `μ` and
+conditional outcome laws `q`. -/
 noncomputable def finDistCondMutualInfo (μ : FinDist C) (q : C → FinDist O) : ℝ :=
   finDistEntropy (finDistMixture μ q) - ∑ c, μ.prob c * finDistEntropy (q c)
 
+/-- For positive `M` and nonnegative `t`, the quantity `-t * log M - t * (t - M) / M` is a lower
+bound for `Real.negMulLog t`. -/
 private theorem negMulLog_tangent (M t : ℝ) (hM : 0 < M) (ht : 0 ≤ t) :
     -t * Real.log M - t * (t - M) / M ≤ Real.negMulLog t := by
   rcases eq_or_lt_of_le ht with rfl | ht
@@ -50,6 +78,8 @@ private theorem negMulLog_tangent (M t : ℝ) (hM : 0 < M) (ht : 0 ≤ t) :
     show -t * Real.log M - t * (t - M) / M ≤ -t * Real.log t
     linarith
 
+/-- The mixture entropy gap is at most the sum, over outcomes of positive mixture probability,
+of the component probability variance divided by that mixture probability. -/
 theorem finDistCondMutualInfo_le_variance_ratio (μ : FinDist C) (q : C → FinDist O) :
     finDistCondMutualInfo μ q ≤
       ∑ o ∈ Finset.univ.filter (fun o => 0 < (finDistMixture μ q).prob o),

@@ -10,19 +10,48 @@ import Mathlib.Tactic.Ext
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 
+/-!
+# Coordinate projections and the quantum hybrid argument
+
+Defines `QueryProjection` and discrete `UnitaryEvolution`, then proves norm preservation and the
+complementary-projection mass identity. `hybrid_distance_bound` controls changes between
+evolutions that agree off selected query coordinates; `projection_distance_lower` and
+`query_fiber_mass` provide complementary lower-bound estimates. For the quantum-search analysis,
+see [BoyerEtAl1998].
+
+## Main statements
+
+* `hybrid_distance_bound`: If two stepwise isometric evolutions agree on basis vectors outside
+  `A n` before step `r`, their final distance is at most twice the sum of the reference
+  evolution's projected norms on those sets.
+* `projection_distance_lower`: For unit vectors `u` and `v`, twice the deficit `1 -
+  ‖QueryProjection A u‖ - ‖QueryProjection Aᶜ v‖` is bounded by `‖v - u‖ ^ 2`.
+* `query_fiber_mass`: The sum of squared projection norms over the fibers labeled `some y` is at
+  most the squared norm of the state.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 
 open scoped BigOperators
 
+/-- The coordinate projection that retains entries indexed by `A` and sets all other entries to
+zero. -/
 noncomputable def QueryProjection {C : Type*} [Fintype C] [DecidableEq C]
     (A : Finset C) (v : EuclideanSpace ℂ C) : EuclideanSpace ℂ C :=
   WithLp.toLp 2 (fun c => if c ∈ A then v c else 0)
 
+/-- The discrete evolution starting from `v` and applying the linear isometry equivalence `U n`
+at step `n`. -/
 def UnitaryEvolution {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     (U : ℕ → E ≃ₗᵢ[ℂ] E) (v : E) : ℕ → E
   | 0 => v
   | n + 1 => U n (UnitaryEvolution U v n)
 
+/-- Discrete evolution by linear isometry equivalences preserves the norm of the initial vector. -/
 theorem unitaryEvolution_norm {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     (U : ℕ → E ≃ₗᵢ[ℂ] E) (v : E) (n : ℕ) :
     ‖UnitaryEvolution U v n‖ = ‖v‖ := by
@@ -30,6 +59,8 @@ theorem unitaryEvolution_norm {E : Type*} [NormedAddCommGroup E] [InnerProductSp
   | zero => rfl
   | succ n ih => simpa [UnitaryEvolution] using ih
 
+/-- The squared norms of a coordinate projection and its complementary projection sum to the
+squared norm of the original vector. -/
 theorem queryProjection_complement_mass {C : Type*} [Fintype C] [DecidableEq C]
     (A : Finset C) (v : EuclideanSpace ℂ C) :
     ‖QueryProjection A v‖ ^ 2 + ‖QueryProjection Aᶜ v‖ ^ 2 = ‖v‖ ^ 2 := by
@@ -38,6 +69,9 @@ theorem queryProjection_complement_mass {C : Type*} [Fintype C] [DecidableEq C]
   intro c _
   by_cases hc : c ∈ A <;> simp [QueryProjection, hc]
 
+/-- If two stepwise isometric evolutions agree on basis vectors outside `A n` before step `r`,
+their final distance is at most twice the sum of the reference evolution's projected norms
+on those sets. -/
 theorem hybrid_distance_bound {C : Type*} [Fintype C] [DecidableEq C]
     (U V : ℕ → EuclideanSpace ℂ C ≃ₗᵢ[ℂ] EuclideanSpace ℂ C)
     (A : ℕ → Finset C) (v : EuclideanSpace ℂ C) (r : ℕ)
@@ -89,6 +123,8 @@ theorem hybrid_distance_bound {C : Type*} [Fintype C] [DecidableEq C]
           2 * ‖QueryProjection (A r) (UnitaryEvolution U v r)‖ := add_le_add hprev hstep
       _ = _ := by rw [Finset.sum_range_succ]; ring
 
+/-- For unit vectors `u` and `v`, twice the deficit `1 - ‖QueryProjection A u‖ -
+‖QueryProjection Aᶜ v‖` is bounded by `‖v - u‖ ^ 2`. -/
 theorem projection_distance_lower {C : Type*} [Fintype C] [DecidableEq C]
     (A : Finset C) (u v : EuclideanSpace ℂ C) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     2 * (1 - ‖QueryProjection A u‖ - ‖QueryProjection Aᶜ v‖) ≤ ‖v - u‖ ^ 2 := by
@@ -110,6 +146,8 @@ theorem projection_distance_lower {C : Type*} [Fintype C] [DecidableEq C]
     1 ^ 2 - 2 * (inner ℂ v u).re + 1 ^ 2
   linarith
 
+/-- The sum of squared projection norms over the fibers labeled `some y` is at most the squared
+norm of the state. -/
 theorem query_fiber_mass {C Y : Type*} [Fintype C] [DecidableEq C]
     [Fintype Y] [DecidableEq Y] (f : C → Option Y) (u : EuclideanSpace ℂ C) :
     (∑ y : Y, ‖QueryProjection (Finset.univ.filter (fun c => f c = some y)) u‖ ^ 2) ≤

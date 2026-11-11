@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QTeleport93.MainResults.ClassicalChannelBound.ChannelIdentity
+
+/-!
+# A general one way teleporter message bound
+
+`choiVector` is the unnormalized maximally entangled vector used to test recovery with a
+reference. The auxiliary identities compute its norm, projector expectation, and expectations
+against operators tensored with an identity.
+
+`exact_one_way_teleporter_messages` combines these identities with complete positivity,
+conditional quantum channels, and a common raw branch sum to prove that exact recovery of an `n`
+dimensional system needs at least `n * n` messages. This formalizes a general message counting
+consequence of the teleportation communication requirement in [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `choi_raw_family_sum` computes the sum of raw branches on the entangled test operator.
+* `choiVector_tensor_expectation` turns a tensor expectation into a trace.
+* `exact_one_way_teleporter_messages` proves the classical alphabet lower bound.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,14 +42,18 @@ open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 
+/-- The unnormalized maximally entangled vector with coefficient one on matching basis indices
+and zero elsewhere. -/
 noncomputable def choiVector (n : ℕ) : QState (Fin n × Fin n) :=
   fun p => if p.1 = p.2 then 1 else 0
 
+/-- The squared norm of the unnormalized maximally entangled vector in dimension `n` is `n`. -/
 theorem choiVector_inner (n : ℕ) :
     star (choiVector n) ⬝ᵥ choiVector n = (n : ℂ) := by
   classical
   simp [dotProduct, choiVector, Fintype.sum_prod_type]
 
+/-- The expectation of the outer product of `choiVector n` in that same vector is `n * n`. -/
 theorem choiVector_projector_expectation (n : ℕ) :
     star (choiVector n) ⬝ᵥ (outerProduct (choiVector n) *ᵥ choiVector n) =
       (n : ℂ) * n := by
@@ -34,6 +62,8 @@ theorem choiVector_projector_expectation (n : ℕ) :
     (star (choiVector n) ⬝ᵥ choiVector n) = _
   rw [choiVector_inner]
 
+/-- If the raw maps sum to the input trace times `σ`, their reference extensions on the Choi
+outer product sum to `σ` tensored with the identity. -/
 theorem choi_raw_family_sum {M : Type} [Fintype M] {n d : ℕ}
     (T : M → Operator n →ₗ[ℂ] Operator d) (σ : Operator d)
     (hns : ∀ A, ∑ m, T m A = Matrix.trace A • σ) :
@@ -48,6 +78,8 @@ theorem choi_raw_family_sum {M : Type} [Fintype M] {n d : ℕ}
     simp [Matrix.trace, outerProduct_apply, choiVector, mul_ite, eq_comm]
   simpa [Matrix.sum_apply, tensorLeft, ht, tensorGate_apply, Matrix.one_apply, mul_comm] using! he
 
+/-- Applying a complex linear map to the first factor of `σ` tensored with an identity gives its
+image of `σ` tensored with that identity. -/
 theorem tensorLeft_tensor_identity {d n r : ℕ}
     (S : Operator d →ₗ[ℂ] Operator n) (σ : Operator d) :
     tensorLeft S (TensorGate σ (1 : Operator r)) =
@@ -61,6 +93,8 @@ theorem tensorLeft_tensor_identity {d n r : ℕ}
     change S 0 i j = 0
     simp
 
+/-- The expectation of `A` tensored with the identity in the unnormalized maximally entangled
+vector equals the trace of `A`. -/
 theorem choiVector_tensor_expectation {n : ℕ} (A : Operator n) :
     star (choiVector n) ⬝ᵥ
       (TensorGate A (1 : Operator n) *ᵥ choiVector n) = Matrix.trace A := by
@@ -68,6 +102,9 @@ theorem choiVector_tensor_expectation {n : ℕ} (A : Operator n) :
   simp [dotProduct, Matrix.mulVec, choiVector, Fintype.sum_prod_type,
     tensorGate_apply, Matrix.one_apply, Matrix.trace, mul_ite, ite_mul]
 
+/-- Completely positive raw branches with a common trace one replacement sum and conditional
+quantum channels giving exact recovery require at least `n * n` messages
+[BennettEtAl1993Teleportation]. -/
 theorem exact_one_way_teleporter_messages
     {M : Type} [Fintype M] {n d : ℕ}
     (T : M → Operator n →ₗ[ℂ] Operator d)

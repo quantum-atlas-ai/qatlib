@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExecution
+
+/-!
+# Uniform binary multiplication machine
+
+This module derives explicit resource bounds for the multiplication stack program using the size
+parameter `inputSize`. It bounds source steps, program size, sweep factor, initial stack height,
+and both accumulated and maximum simulation clocks. These estimates support the classical
+arithmetic constructions discussed in [KitaevShenVyalyi2002].
+
+The theorem `uniform_mul_machine` produces one finite-state Turing machine and one positive
+constant that work for every pair of input words. On `mulInput x y`, the machine computes
+`mulAcc x y y.length` with a quartic time bound and a quadratic space bound in `inputSize x y`.
+
+## Main statements
+
+* `sourceSteps_bound`: at most `32 * (inputSize x y) ^ 2` source steps.
+* `program_nodes_le` and `sweep_factor_le`: program-size and sweep-factor bounds of five and
+  sixty-one.
+* `real_clocks`: quartic accumulated-clock and quadratic maximum-clock bounds.
+* `uniform_mul_machine`: a uniform machine with quartic time and quadratic space bounds.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,10 +53,13 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib
 
+/-- The size parameter `1 + x.length + y.length` for a pair of binary input words. -/
 def inputSize (x y : Bits) : ℕ := 1+x.length+y.length
 
+/-- The multiplication input size parameter is at least one. -/
 theorem size_pos (x y : Bits) : 1 ≤ inputSize x y := by simp [inputSize]; omega
 
+/-- The multiplication source-step count is at most `32 * (inputSize x y) ^ 2`. -/
 theorem sourceSteps_bound (x y : Bits) : sourceSteps x y ≤ 32*(inputSize x y)^2 := by
   let L := inputSize x y
   have hx : x.length ≤ L := by dsimp [L,inputSize]; omega
@@ -47,6 +76,7 @@ theorem sourceSteps_bound (x y : Bits) : sourceSteps x y ≤ 32*(inputSize x y)^
   dsimp [sourceSteps,L,inputSize] at *
   nlinarith
 
+/-- The multiplication stack program has `programNodes` at most five. -/
 theorem program_nodes_le : programNodes Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program ≤ 5 := by
   unfold programNodes
   apply Finset.sup_le
@@ -55,11 +85,13 @@ theorem program_nodes_le : programNodes Qatlib.Concepts.QueryComplexity.DegreeMe
   | multiply l => cases l <;> simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program,StackCall.stmt,mulProgram,stackNodes]
   | parse | payload | multiplier | clear | output => simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program,stackNodes]
 
+/-- The multiplication stack program has sweep factor at most sixty-one. -/
 theorem sweep_factor_le : sweepFactor Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program ≤ 61 := by
   have h := program_nodes_le
   unfold sweepFactor
   nlinarith
 
+/-- The initial multiplication configuration has stack height at most twice `inputSize x y`. -/
 theorem initial_height (x y : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (TM2.init (5 : Fin 6) (mulInput x y).reverse :
       TM2.Cfg (fun _ : Fin 6 => Bool) Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.Label MulVar).stk ≤ 2*inputSize x y := by
@@ -74,6 +106,8 @@ theorem initial_height (x y : Bits) :
   · simp only [TM2.init,Function.update_of_ne hi,List.length_nil]
     omega
 
+/-- The accumulated multiplication clock is at most `318176 * (inputSize x y) ^ 4`, and the
+maximum clock is at most `9943 * (inputSize x y) ^ 2`. -/
 theorem real_clocks (x y : Bits) :
     stackRunClock Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program (sourceSteps x y) (TM2.init (5 : Fin 6) (mulInput x y).reverse) ≤
         318176*(inputSize x y)^4 ∧
@@ -100,6 +134,9 @@ theorem real_clocks (x y : Bits) :
     have hmul := Nat.mul_le_mul hS hheight
     convert! hmul using 1; ring
 
+/-- There exist a single finite-state Turing machine and a positive constant `C` that compute
+`mulAcc x y y.length` from `mulInput x y` for all input words, with time bound `C *
+(inputSize x y) ^ 4` and space bound `C * (inputSize x y) ^ 2`. -/
 theorem uniform_mul_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ x y : Bits, Runs M (mulInput x y) (mulAcc x y y.length)

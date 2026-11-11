@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+
+/-!
+# Two-to-one collision counts and scalar budgets
+
+This module proves the candidate counts and scalar budget estimates associated with Theorem 1 of
+[BrassardHoyerTapp1998Collision]. For a table on which a two-to-one function is injective,
+`twoToOne_count_and_budget` gives one external collision candidate per record and bounds the
+proposed budget.
+
+The remaining results simplify the scalar expressions at an exact real cube-root choice of table
+size.
+
+## Main statements
+
+* `twoToOne_count_and_budget`: For a nonempty table on which a two-to-one function is injective,
+  establishes the candidate count, collision witnesses, a uniform scalar budget bound, and the
+  record count associated with Theorem 1 of [BrassardHoyerTapp1998Collision].
+* `twoToOne_real_cube_budget`: At an exact real cube-root table size, the proposed two-to-one
+  collision budget is at most `(groverCoefficient l + 2) * k`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +42,9 @@ open scoped BigOperators
 
 universe u
 
+/-- For a nonempty table on which a two-to-one function is injective, establishes the candidate
+count, collision witnesses, a uniform scalar budget bound, and the record count associated
+with Theorem 1 of [BrassardHoyerTapp1998Collision]. -/
 theorem twoToOne_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     ∃ C : ℝ, 0 < C ∧
       ∀ {X Y : Type u} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -50,6 +78,8 @@ theorem twoToOne_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     unfold proposedCollisionBudget
     nlinarith
 
+/-- If `k ≥ 1` and `k³ = N`, the scalar table-plus-search expression `k + sqrt (N / k)` equals
+`2 * k`. -/
 theorem twoToOne_cubeRoot {N k : ℝ} (hk : 1 ≤ k) (hcube : k ^ 3 = N) :
     k + Real.sqrt (N / k) = 2 * k := by
   have hkpos : 0 < k := lt_of_lt_of_le zero_lt_one hk
@@ -59,6 +89,8 @@ theorem twoToOne_cubeRoot {N k : ℝ} (hk : 1 ≤ k) (hcube : k ^ 3 = N) :
   rw [hNk, Real.sqrt_sq_eq_abs, abs_of_nonneg (by linarith)]
   ring
 
+/-- At an exact real cube-root table size, the proposed two-to-one collision budget is at most
+`(groverCoefficient l + 2) * k`. -/
 theorem twoToOne_real_cube_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3)
     {N k : ℝ} (hk : 1 ≤ k) (hcube : k ^ 3 = N) :
     proposedCollisionBudget (groverCoefficient l) N k k

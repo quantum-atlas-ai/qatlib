@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+
+/-!
+# Geometric retry receipts and paid cost
+
+This module analyzes repeated Boolean trials with distinct positive costs for successful and
+failed branches. It identifies the exact successful receipt mass at cost `n * bad + good` and
+proves that no other costs carry successful halt mass.
+
+The final theorem gives almost-sure termination and the expected paid cost when the success
+probability is positive. These operational cost formulas complement the randomized computation
+model in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `branch_cost_geometric_retry_exact_receipt`: the mass at each successful receipt is the
+  corresponding geometric trial probability.
+* `branchRetry_support`: every nonzero successful receipt has the prescribed arithmetic form.
+* `branch_cost_geometric_retry_expected_paid_cost`: positive success probability gives zero
+  nontermination mass and an exact expected cost.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -17,6 +42,8 @@ namespace Qatlib.Concepts.FairRandomBits.GeometricRetry
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- When both branch costs are positive, every nonzero retry transition pays at least one unit
+of cost. -/
 theorem branchRetry_positive (coin : PMF Bool) (good bad : ℕ) (hg : 0 < good) (hb : 0 < bad) :
     ∀ s cfg k, Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad s (cfg,k) ≠ 0 → 1 ≤ k := by
   intro s cfg k hm
@@ -27,6 +54,8 @@ theorem branchRetry_positive (coin : PMF Bool) (good bad : ℕ) (hg : 0 < good) 
   simp [Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext, PMF.map_apply, tsum_fintype,
     show (0:ℕ) ≠ good by omega, show (0:ℕ) ≠ bad by omega]
 
+/-- The halted point mass after `n + 1` steps splits into a failed trial followed by an `n`-step
+run and an immediate successful trial. -/
 theorem branchRetry_point (coin : PMF Bool) (good bad n k : ℕ) (o : Bool) :
     Qatlib.Concepts.StoppingCore.BranchCostCore.branchCostRun (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) (n+1) (.inr ()) (.inl o,k) =
       coin false * (if bad ≤ k then Qatlib.Concepts.StoppingCore.BranchCostCore.branchCostRun (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) n (.inr ()) (.inl o,k-bad) else 0) +
@@ -39,6 +68,7 @@ theorem branchRetry_point (coin : PMF Bool) (good bad n k : ℕ) (o : Bool) :
   by_cases ho : true=o <;> by_cases hk : good=k <;>
     simp [PMF.pure_apply, ho, hk, eq_comm, mul_ite, add_comm]
 
+/-- A successful halt has zero finite-run mass at every cost below the successful branch cost. -/
 theorem branchRetry_below_good (coin : PMF Bool) (good bad n k : ℕ) (hk : k < good) :
     Qatlib.Concepts.StoppingCore.BranchCostCore.branchCostRun (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) n (.inr ()) (.inl true,k)=0 := by
   induction n generalizing k with
@@ -51,12 +81,15 @@ theorem branchRetry_below_good (coin : PMF Bool) (good bad n k : ℕ) (hk : k < 
     · rw [if_pos hfit, ih (k-bad) (by omega), mul_zero]
     · simp [hfit]
 
+/-- The retry program never halts with Boolean output `false` in any finite run. -/
 theorem branchRetry_false (coin : PMF Bool) (good bad n k : ℕ) :
     Qatlib.Concepts.StoppingCore.BranchCostCore.branchCostRun (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) n (.inr ()) (.inl false,k)=0 := by
   induction n generalizing k with
   | zero => simp [Qatlib.Concepts.StoppingCore.BranchCostCore.branchCostRun, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret, PMF.pure_apply]
   | succ n ih => simp [branchRetry_point, ih]
 
+/-- The unbounded successful halt mass satisfies the recurrence obtained by separating an
+initial failure from immediate success. -/
 theorem branchRetry_halt_recursion (coin : PMF Bool) (good bad k : ℕ)
     (hg : 0 < good) (hb : 0 < bad) :
     Qatlib.Concepts.StoppingCore.BranchCostCore.branchHaltJoint (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) (.inr ()) true k =
@@ -77,6 +110,8 @@ theorem branchRetry_halt_recursion (coin : PMF Bool) (good bad k : ℕ)
       rfl
     · rw [if_neg hfit, if_neg hfit]
 
+/-- With positive branch costs, successful halt mass at cost `n * bad + good` is `(coin false) ^
+n * coin true`. -/
 theorem branch_cost_geometric_retry_exact_receipt :
     ∀ (coin : PMF Bool) (good bad : ℕ), 0 < good → 0 < bad → ∀ n : ℕ,
       Qatlib.Concepts.StoppingCore.BranchCostCore.branchHaltJoint (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) (.inr ()) true (n*bad+good) =
@@ -96,6 +131,8 @@ theorem branch_cost_geometric_retry_exact_receipt :
     rw [if_pos hfit, if_neg hne, he, ih, add_zero, pow_succ']
     ring
 
+/-- Every cost carrying nonzero successful halt mass equals `n * bad + good` for some natural
+number `n`. -/
 theorem branchRetry_support (coin : PMF Bool) (good bad : ℕ) (hg : 0 < good) (hb : 0 < bad)
     (k : ℕ) (hm : Qatlib.Concepts.StoppingCore.BranchCostCore.branchHaltJoint (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) (.inr ()) true k ≠ 0) :
     ∃ n : ℕ, k=n*bad+good := by
@@ -111,6 +148,8 @@ theorem branchRetry_support (coin : PMF Bool) (good bad : ℕ) (hg : 0 < good) (
       obtain ⟨n, hn⟩ := ih (k-bad) (by omega) hr
       exact ⟨n+1, by rw [Nat.add_mul, Nat.one_mul]; omega⟩
 
+/-- A weighted sum over successful receipt costs equals the geometric sum indexed by the number
+of failed trials. -/
 theorem branchRetry_tsum_receipts (coin : PMF Bool) (good bad : ℕ) (hg : 0 < good) (hb : 0 < bad)
     (w : ℕ → ℝ≥0∞) :
     (∑' k : ℕ, w k * Qatlib.Concepts.StoppingCore.BranchCostCore.branchHaltJoint (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) (.inr ()) true k) =
@@ -128,6 +167,8 @@ theorem branchRetry_tsum_receipts (coin : PMF Bool) (good bad : ℕ) (hg : 0 < g
   intro n
   rw [branch_cost_geometric_retry_exact_receipt coin good bad hg hb, mul_assoc]
 
+/-- The series `∑' t, q ^ t * (t + 1)` equals the square of `(1 - q)⁻¹` in the extended
+nonnegative reals. -/
 private theorem branchRetry_geom_succ_moment (q : ℝ≥0∞) :
     (∑' t : ℕ, q^t * (t+1 : ℝ≥0∞)) = (1-q)⁻¹ * (1-q)⁻¹ := by
   calc
@@ -151,6 +192,8 @@ private theorem branchRetry_geom_succ_moment (q : ℝ≥0∞) :
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.tsum_prod_type']
       simp only [ENNReal.tsum_mul_left, ENNReal.tsum_mul_right, ENNReal.tsum_geometric]
 
+/-- The series `∑' t, q ^ t * t` equals `q` times the square of `(1 - q)⁻¹` in the extended
+nonnegative reals. -/
 private theorem branchRetry_geom_nat_moment (q : ℝ≥0∞) :
     (∑' t : ℕ, q^t * (t : ℝ≥0∞)) = q * ((1-q)⁻¹ * (1-q)⁻¹) := by
   rw [tsum_eq_zero_add' ENNReal.summable]
@@ -158,6 +201,8 @@ private theorem branchRetry_geom_nat_moment (q : ℝ≥0∞) :
   simp_rw [mul_assoc]
   rw [ENNReal.tsum_mul_left, branchRetry_geom_succ_moment]
 
+/-- Positive branch costs and positive success probability give zero nontermination mass and
+expected paid cost `good + bad * coin false / coin true`. -/
 theorem branch_cost_geometric_retry_expected_paid_cost :
     ∀ (coin : PMF Bool) (good bad : ℕ), 0 < good → 0 < bad → 0 < coin true →
       Qatlib.Concepts.StoppingCore.BranchCostCore.generalNeverMass (branchClockNext (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad)) (branchClockEmbed (.inr ()))=0 ∧

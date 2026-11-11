@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+
+/-!
+# Specification of the trapezoidal source schedule
+
+`InhomogeneousTrapezoidSourceSchedule` specifies a cutoff, parameter node count, and time
+subdivision count from accuracy and regularity data. Its conclusion combines a parameter
+quadrature budget with source error at most `ε / 2` and an upper bound on the weighted norms of
+the sampled source vectors.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `InhomogeneousTrapezoidSourceSchedule`: records the schedule and its required estimates.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -28,6 +48,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that the prescribed cutoff, parameter grid, and positive time subdivision
+count meet the parameter error budget, source error `ε / 2`, and integrated-source-norm
+bound with correction `β * (t - s) ^ 2 / Mt`. -/
 def InhomogeneousTrapezoidSourceSchedule : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L L' H H' : ℝ → Matrix I I ℂ)
     (b b' b'' : ℝ → QState I) (s t ε Λ β β₂ lamL lamH lamLd lamHd bmax : ℝ),

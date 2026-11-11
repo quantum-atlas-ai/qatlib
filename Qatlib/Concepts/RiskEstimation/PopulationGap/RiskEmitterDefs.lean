@@ -16,6 +16,29 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.FiniteBitAccessDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.FiniteBitLedgerDefs
+
+/-!
+# Signed threshold emitter records
+
+This module records signed dyadic threshold loading, its integer numerator and greatest common
+divisor reduction, and the resulting rational readout decision. `riskEmitter` packages this data
+for threshold comparisons in the quantum risk setting of [WoernerEgger2019].
+
+The decision theorems prove that acceptance is sound for the original real threshold. Rejection
+of a readout that still lies below the real threshold can occur only within the dyadic loading
+error window.
+
+## Main statements
+
+* `riskEmitter_threshold_error`: strict dyadic loading error.
+* `riskEmitter_decision_sound`: acceptance implies the original threshold comparison.
+* `riskEmitter_decision_window`: localization of rejected values below the real threshold.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -49,6 +72,8 @@ open Qatlib.Concepts.RiskEstimation.PopulationGap (clause11 euclid_gcd_fuel)
 open Qatlib.Concepts.RiskEstimation.PopulationGap (shorBitLength euclidGcd euclidStepBound)
 open Qatlib.Concepts.RiskEstimation.PopulationGap (SpaceSchedule)
 
+/-- A rational threshold, its integer numerator, a natural reduction factor, and a Boolean
+comparison decision. -/
 structure RiskEmitterRecord where
 
   threshold : ℚ
@@ -59,26 +84,35 @@ structure RiskEmitterRecord where
 
   decision : Bool
 
+/-- Packages the loaded threshold and numerator, their greatest common divisor with `2 ^ k`, and
+the decision whether the readout is at most the loaded threshold. -/
 noncomputable def riskEmitter (k : ℕ) (t : ℝ) (readout : ℚ) : RiskEmitterRecord where
   threshold := loadReal k t
   numerator := loadNumerator k t
   reduction := Nat.gcd (loadNumerator k t).natAbs (2 ^ k)
   decision := decide (readout ≤ loadReal k t)
 
+/-- The emitter's threshold field equals `loadReal k t`. -/
 theorem riskEmitter_threshold (k : ℕ) (t : ℝ) (readout : ℚ) :
     (riskEmitter k t readout).threshold = loadReal k t := rfl
 
+/-- The emitter's threshold differs from the real threshold by strictly less than `(1 / 2) ^ k`. -/
 theorem riskEmitter_threshold_error (k : ℕ) (t : ℝ) (readout : ℚ) :
     |((riskEmitter k t readout).threshold : ℝ) - t| < (1/2 : ℝ)^k := by
   rw [riskEmitter_threshold]
   exact loadReal_error k t
 
+/-- The emitter's reduction field at zero readout is the greatest common divisor of the absolute
+loaded numerator and `2 ^ k`. -/
 theorem riskEmitter_reduction (k : ℕ) {t : ℝ} :
     (riskEmitter k t 0).reduction = Nat.gcd ((loadNumerator k t).natAbs) (2 ^ k) := rfl
 
+/-- The emitter's decision is exactly the Boolean comparison of the readout with the loaded
+threshold. -/
 theorem riskEmitter_decision (k : ℕ) (t : ℝ) (readout : ℚ) :
     (riskEmitter k t readout).decision = decide (readout ≤ loadReal k t) := rfl
 
+/-- A readout at most the loaded threshold is accepted by the emitter. -/
 theorem riskEmitter_decision_of_le_load (k : ℕ) {t : ℝ} (readout : ℚ)
     (hreadout : (readout : ℝ) ≤ (loadReal k t : ℝ)) :
     (riskEmitter k t readout).decision = true := by
@@ -86,6 +120,7 @@ theorem riskEmitter_decision_of_le_load (k : ℕ) {t : ℝ} (readout : ℚ)
   have hq : readout ≤ loadReal k t := (rat_le_iff _ _).mpr hreadout
   simp [hq]
 
+/-- An accepted readout is at most the original real threshold. -/
 theorem riskEmitter_decision_sound (k : ℕ) {t : ℝ} (readout : ℚ)
     (hdec : (riskEmitter k t readout).decision = true) :
     (readout : ℝ) ≤ t := by
@@ -97,6 +132,7 @@ theorem riskEmitter_decision_sound (k : ℕ) {t : ℝ} (readout : ℚ)
   have hq' : (readout : ℝ) ≤ (loadReal k t : ℝ) := (rat_le_iff _ _).mp hq
   exact le_trans hq' hle
 
+/-- A readout strictly above the original real threshold is rejected. -/
 theorem riskEmitter_decision_of_gt (k : ℕ) {t : ℝ} (readout : ℚ)
     (hreadout : (readout : ℝ) > t) :
     (riskEmitter k t readout).decision = false := by
@@ -107,6 +143,8 @@ theorem riskEmitter_decision_of_gt (k : ℕ) {t : ℝ} (readout : ℚ)
     exact (not_le_of_gt hreadout) (le_trans hc' (loadReal_le k t))
   simp [hq]
 
+/-- A rejected readout at most the original threshold lies strictly above the loaded threshold
+and less than `(1 / 2) ^ k` above it. -/
 theorem riskEmitter_decision_window (k : ℕ) {t : ℝ} (readout : ℚ)
     (hdec : (riskEmitter k t readout).decision = false)
     (hreadout : (readout : ℝ) ≤ t) :

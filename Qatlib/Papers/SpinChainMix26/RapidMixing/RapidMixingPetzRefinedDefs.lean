@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
+
+/-!
+# Block-length choice and Petz cost ledger
+
+This module supplies auxiliary definitions for the formalization of [Kim2026]. The block length
+`ellStar η` is the natural ceiling of `aEta η` plus one, and `PetzCostLedger` records update,
+preparation, inverse-preparation, angle-gate, and classical-bit counts.
+
+## Main definitions
+
+* `ellStar`: the chosen influence-dependent block length.
+* `petzCostLedger`: counts with one update and each preparation per block, and multiplicative
+  angle-gate and classical-bit totals.
+
+## References
+
+* [Kim, 2026][Kim2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzCoreDefs
@@ -19,8 +38,11 @@ set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The block length `Nat.ceil (aEta η) + 1`, chosen above the influence constant. -/
 noncomputable def ellStar (η : InfluenceProfile) : ℕ := Nat.ceil (aEta η) + 1
 
+/-- Natural-number counts of block updates, state preparations, inverse preparations, angle
+gates, and classical bits. -/
 structure PetzCostLedger where
 
   blockUpdates : ℕ
@@ -33,6 +55,8 @@ structure PetzCostLedger where
 
   classicalBits : ℕ
 
+/-- Constructs a ledger with one update and each preparation per block, scaling angle-gate and
+classical-bit counts by the number of blocks. -/
 noncomputable def petzCostLedger (blocks angleGates classicalBits : ℕ) : PetzCostLedger :=
   { blockUpdates := blocks
     statePreparations := blocks

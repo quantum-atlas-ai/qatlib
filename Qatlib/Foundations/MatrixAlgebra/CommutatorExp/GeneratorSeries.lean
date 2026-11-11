@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Hadamard
 import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
 import Mathlib.Analysis.Normed.Ring.InfiniteSum
+
+/-!
+# Power series for exponential-word generators
+
+`generatorCoefficient` recursively expresses exponential-word generator coefficients using
+iterated commutators. `operatorCoefficient` and `operatorGenerator` give
+continuous-linear-operator versions whose evaluation at one recovers the algebra-valued
+constructions.
+
+`operatorGenerator_series` proves absolute norm summability and the operator series identity,
+and `generator_hasSum` gives the corresponding algebra-valued expansion. Such series underpin
+product-formula estimates as in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `generatorCoefficient`: Commutator coefficients for the word generator.
+* `operatorGenerator_series`: Absolutely convergent operator expansion.
+* `generator_hasSum`: Power series for the algebra-valued generator.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -16,22 +40,29 @@ namespace Qatlib.Foundations.MatrixAlgebra.CommutatorExp
 variable {A : Type*} [NormedRing A] [NormedAlgebra ℝ A] [CompleteSpace A]
 local instance : NormedAlgebra ℚ (A →L[ℝ] A) := .restrictScalars ℚ ℝ _
 
+/-- The recursive power-series coefficient of the word generator, formed from factorial-weighted
+iterated commutators of each stage. -/
 def generatorCoefficient : List A → ℕ → A
   | [], _ => 0
   | K :: ks, n => (if n = 0 then K else 0) +
       ∑ ij ∈ Finset.antidiagonal n,
         ((ij.1.factorial : ℝ)⁻¹) • adIter K ij.1 (generatorCoefficient ks ij.2)
 
+/-- The continuous-linear-operator coefficient obtained recursively from powers of the
+commutator map and left multiplication. -/
 def operatorCoefficient : List A → ℕ → (A →L[ℝ] A)
   | [], _ => 0
   | K :: ks, n => (if n = 0 then left K else 0) +
       ∑ ij ∈ Finset.antidiagonal n,
         (((ij.1.factorial : ℝ)⁻¹) • adMap K ^ ij.1) * operatorCoefficient ks ij.2
 
+/-- The operator-valued word generator, recursively combining left multiplication with
+exponentials of commutator maps. -/
 def operatorGenerator : List A → ℝ → (A →L[ℝ] A)
   | [], _ => 0
   | K :: ks, t => left K + NormedSpace.exp (t • adMap K) * operatorGenerator ks t
 
+/-- Evaluating the operator-valued generator at one recovers the algebra-valued word generator. -/
 theorem operatorGenerator_one (ks : List A) (t : ℝ) :
     operatorGenerator ks t 1 = generator ks t := by
   induction ks with
@@ -41,6 +72,8 @@ theorem operatorGenerator_one (ks : List A) (t : ℝ) :
       ContinuousLinearMap.mul_apply, left_apply, mul_one, ih, exp_ad_apply]
 omit [CompleteSpace A] in
 
+/-- Evaluating an operator coefficient at one recovers the corresponding algebra-valued
+generator coefficient. -/
 theorem operatorCoefficient_one (ks : List A) (n : ℕ) :
     operatorCoefficient ks n 1 = generatorCoefficient ks n := by
   induction ks generalizing n with
@@ -51,6 +84,8 @@ theorem operatorCoefficient_one (ks : List A) (n : ℕ) :
       ContinuousLinearMap.smul_apply, adMap_pow_apply, ih]
     split_ifs <;> simp only [left_apply, mul_one, ContinuousLinearMap.zero_apply, zero_add]
 
+/-- The operator generator is the sum of its power series, whose term norms form a summable
+sequence for every real time. -/
 theorem operatorGenerator_series (ks : List A) (t : ℝ) :
     (Summable fun n : ℕ => ‖t^n • operatorCoefficient ks n‖) ∧
     HasSum (fun n : ℕ => t^n • operatorCoefficient ks n) (operatorGenerator ks t) := by
@@ -112,6 +147,8 @@ theorem operatorGenerator_series (ks : List A) (t : ℝ) :
     exact ⟨(hin.add hc).of_nonneg_of_le (fun n => norm_nonneg _) (fun n => norm_add_le _ _),
         hi.add hcs⟩
 
+/-- The factorial-weighted commutator coefficients define a power series summing to the
+exponential-word generator at every real time. -/
 theorem generator_hasSum (ks : List A) (t : ℝ) :
     HasSum (fun n : ℕ => t^n • generatorCoefficient ks n) (generator ks t) := by
   have h := (ContinuousLinearMap.apply ℝ A (1 : A)).hasSum (operatorGenerator_series ks t).2

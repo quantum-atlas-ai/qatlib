@@ -10,6 +10,34 @@ import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.FunProp
 import Mathlib.MeasureTheory.Function.L2Space
 import Mathlib.Probability.Moments.Variance
+
+/-!
+# Continuity limits for zero tests and clipping bounds
+
+This module proves that finite query circuits, including words with adjoint queries, depend
+continuously on a continuous oracle family. Consequently, a fixed finite circuit cannot have
+event probability at least `2/3` at parameter zero and at most `1/3` at every positive parameter
+up to one. This distinguishes finite zero tests from the growing search schedules used with
+amplitude amplification [BrassardEtAl2002].
+
+The module also bounds symmetric clipping and its integral bias for square-integrable random
+variables. The centered estimate expresses the bias bound through variance and the squared error
+of the chosen center, quantities relevant to quantum mean estimation [Montanaro2015].
+
+## Main statements
+
+* `fixed_budget_zero_test_impossible`: exclude a fixed-circuit zero test for the small-rotation
+  family.
+* `finite_adjoint_zero_test_impossible`: extend the continuity obstruction to finite
+  adjoint-query words.
+* `centeredClip_integral_bias`: bound centered clipping bias by a second-moment expression.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 
@@ -26,6 +54,8 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open MeasureTheory ProbabilityTheory
 open scoped Topology
 
+/-- Applying a continuously varying matrix to a continuously varying finite quantum state gives
+a continuous state family. -/
 theorem continuous_applyGate {X I : Type*} [TopologicalSpace X] [Fintype I] [DecidableEq I]
     (U : X → Matrix I I ℂ) (ψ : X → QState I) (hU : Continuous U) (hψ : Continuous ψ) :
     Continuous (fun x => ApplyGate (U x) (ψ x)) := by
@@ -34,6 +64,8 @@ theorem continuous_applyGate {X I : Type*} [TopologicalSpace X] [Fintype I] [Dec
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
   fun_prop
 
+/-- Executing a fixed finite query circuit depends continuously on a continuous oracle family
+and a continuous input-state family. -/
 theorem continuous_run {X I : Type*} [TopologicalSpace X] [Fintype I] [DecidableEq I]
     (U : X → Matrix I I ℂ) (hU : Continuous U) (C : Circuit I)
     (ψ : X → QState I) (hψ : Continuous ψ) : Continuous (fun x => Run (U x) C (ψ x)) := by
@@ -45,6 +77,8 @@ theorem continuous_run {X I : Type*} [TopologicalSpace X] [Fintype I] [Decidable
       exact ih (fun x => ApplyGate V (ψ x)) (continuous_applyGate _ _ continuous_const hψ)
     | query => exact ih (fun x => ApplyGate (U x) (ψ x)) (continuous_applyGate U ψ hU hψ)
 
+/-- For a fixed circuit, state, and measurement event, the output event mass is continuous in a
+continuously varying oracle. -/
 theorem continuous_output_mass {X I : Type*} [TopologicalSpace X] [Fintype I] [DecidableEq I]
     (U : X → Matrix I I ℂ) (hU : Continuous U) (C : Circuit I)
     (ψ : QState I) (S : Finset I) : Continuous (fun x => MeasureProb (Run (U x) C ψ) S) := by
@@ -52,6 +86,8 @@ theorem continuous_output_mass {X I : Type*} [TopologicalSpace X] [Fintype I] [D
   simp only [MeasureProb, BornProb]
   fun_prop
 
+/-- The matrix evaluated by a fixed finite adjoint-query word is continuous in a continuous
+oracle family. -/
 theorem continuous_evaluate {X I : Type*} [TopologicalSpace X] [Fintype I] [DecidableEq I]
     (U : X → Matrix I I ℂ) (hU : Continuous U) (cs : List (AdjointStep I)) :
     Continuous (fun x => evaluate (U x) cs) := by
@@ -60,6 +96,7 @@ theorem continuous_evaluate {X I : Type*} [TopologicalSpace X] [Fintype I] [Deci
   | cons c cs ih =>
     cases c <;> simp only [evaluate, instructionMatrix] <;> fun_prop
 
+/-- The two-dimensional small-rotation matrix depends continuously on its real angle. -/
 theorem continuous_smallRotation : Continuous smallRotation := by
   apply continuous_pi
   intro i
@@ -67,6 +104,7 @@ theorem continuous_smallRotation : Continuous smallRotation := by
   intro j
   fin_cases i <;> fin_cases j <;> dsimp [smallRotation] <;> fun_prop
 
+/-- The small-rotation matrix is unitary for every real angle. -/
 theorem smallRotation_unitary (θ : ℝ) : smallRotation θ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   have hs : (Real.cos θ : ℂ)^2 + (Real.sin θ : ℂ)^2 = 1 := by
     exact_mod_cast Real.cos_sq_add_sin_sq θ
@@ -77,21 +115,27 @@ theorem smallRotation_unitary (θ : ℝ) : smallRotation θ ∈ Matrix.unitaryGr
   all_goals simp only [← Complex.ofReal_cos, ← Complex.ofReal_sin, Complex.conj_ofReal]
   all_goals first | linear_combination hs | ring
 
+/-- The small rotation at angle zero is the identity matrix. -/
 theorem smallRotation_zero : smallRotation 0 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> norm_num [smallRotation, Matrix.one_apply]
 
+/-- Applying the small rotation to `Ket 0` gives measurement probability `sin² θ` at label one. -/
 theorem smallRotation_success (θ : ℝ) :
     MeasureProb (ApplyGate (smallRotation θ) (Ket 0)) {1} = (Real.sin θ)^2 := by
   simp [MeasureProb, BornProb, ApplyGate, Matrix.mulVec, dotProduct,
     Qatlib.Foundations.PureStateMath.Ket, smallRotation]
   simp only [← Complex.ofReal_sin, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- For `0 < θ ≤ 1`, the small-rotation output from `Ket 0` has strictly positive probability at
+label one. -/
 theorem smallRotation_success_pos (θ : ℝ) (hθ : 0 < θ) (hθ1 : θ ≤ 1) :
     0 < MeasureProb (ApplyGate (smallRotation θ) (Ket 0)) {1} := by
   rw [smallRotation_success]
   exact sq_pos_of_pos (Real.sin_pos_of_pos_of_lt_pi hθ (by linarith [Real.two_le_pi]))
 
+/-- No continuous real function can be at least `2/3` at zero and at most `1/3` throughout `(0,
+1]`. -/
 theorem continuous_zero_test_boundary (f : ℝ → ℝ) (hf : Continuous f)
     (hzero : 2/3 ≤ f 0)
     (hpositive : ∀ θ : ℝ, 0 < θ → θ ≤ 1 → f θ ≤ 1/3) : False := by
@@ -106,6 +150,8 @@ theorem continuous_zero_test_boundary (f : ℝ → ℝ) (hf : Continuous f)
   have hb : f 0 ≤ 1/3 := le_of_tendsto' (hf.continuousAt.tendsto.comp ht) hu
   linarith
 
+/-- No fixed finite circuit using the small-rotation oracle can have event probability at least
+`2/3` at zero and at most `1/3` at every angle in `(0, 1]`. -/
 theorem fixed_budget_zero_test_impossible (C : Circuit (Fin 2)) (ψ : QState (Fin 2))
     (S : Finset (Fin 2))
     (hzero : 2/3 ≤ MeasureProb (Run (smallRotation 0) C ψ) S)
@@ -114,6 +160,8 @@ theorem fixed_budget_zero_test_impossible (C : Circuit (Fin 2)) (ψ : QState (Fi
   continuous_zero_test_boundary _
     (continuous_output_mass _ continuous_smallRotation C ψ S) hzero hpositive
 
+/-- For a continuous oracle family, no fixed finite adjoint-query word can have event
+probability at least `2/3` at zero and at most `1/3` at every parameter in `(0, 1]`. -/
 theorem finite_adjoint_zero_test_impossible {I : Type*} [Fintype I] [DecidableEq I]
     (U : ℝ → Matrix I I ℂ) (hU : Continuous U) (cs : List (AdjointStep I))
     (ψ : QState I) (S : Finset I)
@@ -126,12 +174,14 @@ theorem finite_adjoint_zero_test_impossible {I : Type*} [Fintype I] [DecidableEq
   simp only [MeasureProb, BornProb]
   fun_prop
 
+/-- For nonnegative threshold `τ`, symmetric clipping has absolute value at most `τ`. -/
 theorem boundedClip_bound (τ x : ℝ) (hτ : 0 ≤ τ) : |boundedClip τ x| ≤ τ := by
   apply abs_le.mpr
   constructor
   · exact le_max_left _ _
   · exact max_le (by linarith) (min_le_left _ _)
 
+/-- For positive threshold `τ`, the pointwise clipping error is at most `x² / (4τ)`. -/
 theorem boundedClip_error (τ x : ℝ) (hτ : 0 < τ) :
     |x - boundedClip τ x| ≤ x^2 / (4*τ) := by
   unfold boundedClip
@@ -146,6 +196,8 @@ theorem boundedClip_error (τ x : ℝ) (hτ : 0 < τ) :
     · rw [min_eq_right (by linarith), max_eq_right (by linarith), sub_self, abs_zero]
       positivity
 
+/-- For a square-integrable real random variable and `τ > 0`, clipping changes its mean by at
+most its second moment divided by `4τ`. -/
 theorem boundedClip_integral_bias {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ] (X : Ω → ℝ) (hX : MemLp X 2 μ)
     (τ : ℝ) (hτ : 0 < τ) :
@@ -165,6 +217,8 @@ theorem boundedClip_integral_bias {Ω : Type*} [MeasurableSpace Ω]
         (fun ω => boundedClip_error τ (X ω) hτ)
     _ = _ := integral_div _ _
 
+/-- For a square-integrable real random variable and `τ > 0`, clipping around center `c` changes
+the mean by at most variance plus squared mean-center error, divided by `4τ`. -/
 theorem centeredClip_integral_bias {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ] (X : Ω → ℝ) (hX : MemLp X 2 μ)
     (c τ : ℝ) (hτ : 0 < τ) :

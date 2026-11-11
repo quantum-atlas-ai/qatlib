@@ -16,6 +16,30 @@ import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.Theorem46PrimeCaseRestrictedStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+/-!
+# Prime-case exact query lower bound
+
+This module proves `theorem46PrimeCaseRestricted`, the prime case of the exact query lower bound
+for nonconstant symmetric Boolean functions. If the input length is positive and one more than
+that length is prime, exact computation by a well-formed observed circuit from a normalized
+state requires at least half as many queries as input bits, as in [BealsEtAl2001].
+
+The proof uses parity-weighted polynomial cancellation, Hamming-weight fiber counts, and the
+congruence for binomial coefficients modulo the prime input length plus one.
+
+## Main statements
+
+* `low_degree_sum`: parity-weighted cube sums vanish below full degree.
+* `sum_by_weight`: symmetric Boolean sums regroup into binomially weighted layers.
+* `theorem46PrimeCaseRestricted`: exact observed query depth satisfies the prime-case lower
+  bound.
+
+## References
+
+* [Beals et al., 2001, Corollary 4.7][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -27,6 +51,8 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib
 open scoped BigOperators
 
+/-- If `n + 1` is prime, the binomial coefficient `n.choose k` equals `(-1) ^ k` modulo `n + 1`
+for `k ≤ n`. -/
 private theorem prime_choose (n : ℕ) (hp : Nat.Prime (n + 1)) (k : ℕ) (hk : k ≤ n) :
     (n.choose k : ZMod (n + 1)) = (-1) ^ k := by
   letI : Fact (Nat.Prime (n + 1)) := ⟨hp⟩
@@ -53,11 +79,14 @@ private theorem prime_choose (n : ℕ) (hp : Nat.Prime (n + 1)) (k : ℕ) (hk : 
             (-1 : ZMod (n + 1)) ^ k * -((k + 1 : ℕ) : ZMod (n + 1)) := hrec
         _ = (-1 : ZMod (n + 1)) ^ (k + 1) * (k + 1 : ℕ) := by rw [pow_succ]; ring
 
+/-- The product of the Boolean sign factors is minus one raised to the Hamming weight. -/
 private theorem sign_product {n : ℕ} (x : Fin n → Bool) :
     (∏ i, if x i = true then (-1 : ℝ) else 1) = (-1 : ℝ) ^ boolWeight x := by
   classical
   simp [Finset.prod_ite, boolWeight, boolSupp]
 
+/-- The parity-weighted Boolean-cube sum of a monomial vanishes when its support has cardinality
+less than the number of variables. -/
 private theorem missing_monomial_sum {n : ℕ} (d : Fin n →₀ ℕ)
     (hd : d.support.card < n) :
     (∑ x : Fin n → Bool, (-1 : ℝ) ^ boolWeight x *
@@ -84,6 +113,8 @@ private theorem missing_monomial_sum {n : ℕ} (d : Fin n →₀ ℕ)
     _ = _ := hprod
     _ = 0 := Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hdi])
 
+/-- The parity-weighted Boolean-cube sum of a real polynomial vanishes when its total degree is
+less than the number of variables. -/
 private theorem low_degree_sum {n : ℕ} (p : MvPolynomial (Fin n) ℝ)
     (hp : p.totalDegree < n) :
     (∑ x : Fin n → Bool, (-1 : ℝ) ^ boolWeight x *
@@ -110,6 +141,7 @@ private theorem low_degree_sum {n : ℕ} (p : MvPolynomial (Fin n) ℝ)
       ring
     _ = 0 := by rw [missing_monomial_sum d hdc, mul_zero]
 
+/-- The Hamming weight of a Boolean input, viewed as an index in `Fin (n + 1)`. -/
 private def weightIndex {n : ℕ} (x : Fin n → Bool) : Fin (n + 1) :=
   ⟨boolWeight x, by
     have h := Finset.card_le_card (Finset.filter_subset
@@ -117,6 +149,7 @@ private def weightIndex {n : ℕ} (x : Fin n → Bool) : Fin (n + 1) :=
     simp only [Finset.card_univ, Fintype.card_fin] at h
     exact Nat.lt_succ_of_le h⟩
 
+/-- The fiber of the Hamming-weight index at `k` has cardinality `n.choose k.val`. -/
 private theorem weightIndex_card {n : ℕ} (k : Fin (n + 1)) :
     Fintype.card {x : Fin n → Bool // weightIndex x = k} = n.choose k.val := by
   classical
@@ -126,6 +159,7 @@ private theorem weightIndex_card {n : ℕ} (k : Fin (n + 1)) :
   rw [Fintype.card_congr e]
   exact card_weight_eq_choose n (Fintype.card_fin n) k.val
 
+/-- Every index in `Fin (n + 1)` occurs as the Hamming weight of a Boolean input. -/
 private theorem weightIndex_surjective (n : ℕ) : Function.Surjective (@weightIndex n) := by
   classical
   intro k
@@ -135,6 +169,8 @@ private theorem weightIndex_surjective (n : ℕ) : Function.Surjective (@weightI
   obtain ⟨x⟩ := Fintype.card_pos_iff.mp hcard
   exact ⟨x.val, x.property⟩
 
+/-- Regroups a parity-weighted sum of a Hamming-weight-dependent Boolean function into
+binomially weighted Hamming layers. -/
 private theorem sum_by_weight {n : ℕ} (a : Fin (n + 1) → Bool) :
     (∑ x : Fin n → Bool, (-1 : ℝ) ^ boolWeight x *
       (if a (weightIndex x) = true then 1 else 0)) =
@@ -149,6 +185,9 @@ private theorem sum_by_weight {n : ℕ} (a : Fin (n + 1) → Bool) :
   intro k _
   ring
 
+/-- If `n + 1` is prime, a well-formed observed circuit exactly computing a nonconstant
+symmetric Boolean function from a normalized state satisfies `n ≤ 2 * observedQueryDepth P`.
+This is the prime case of [Beals et al., Corollary 4.7][BealsEtAl2001]. -/
 theorem theorem46PrimeCaseRestricted : Theorem46PrimeCaseRestricted := by
   classical
   intro n W _ _ _ P ψ f hn hP hψ hsym hnon hp hexact

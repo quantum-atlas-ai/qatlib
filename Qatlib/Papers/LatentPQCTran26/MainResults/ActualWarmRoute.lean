@@ -7,19 +7,48 @@ Authors: Qatlib Contributors
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.Analysis.Calculus.Gradient.Basic
 
+/-!
+# Explicit routing of warm-start mixtures
+
+`prior` places a reference measure and a training measure on separate summands, and `route` maps
+both summands to the parameter space. The pushforward is the corresponding weighted mixture; for
+probability inputs and mixture weight at most one, the tagged prior is a probability measure.
+The theorem `native_gradient_transfer` transfers a lower bound on the reference mean squared
+gradient. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `pushforward`: Pushing the tagged prior through `route` gives `lam • nu + (1 - lam) • train`.
+* `prior_isProbability`: The tagged prior of two probability measures is a probability measure
+  when `lam ≤ 1`.
+* `native_gradient_transfer`: Under the stated integrability and measurability hypotheses, the
+  routed mean squared gradient is at least `lam * mu0` whenever the reference mean is at least
+  `mu0`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 noncomputable section
 open MeasureTheory
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.ActualWarmRoute
 variable {Theta : Type*} [MeasurableSpace Theta]
 
+/-- The measure on two tagged copies of the parameter space obtained by weighting the reference
+measure by `lam` and the training measure by `1 - lam`. -/
 def prior (nu train : Measure Theta) (lam : NNReal) : Measure (Theta ⊕ Theta) :=
   lam • nu.map Sum.inl + (1-lam) • train.map Sum.inr
 
+/-- The routing map that forgets which of the two copies a parameter came from. -/
 def route : Theta ⊕ Theta → Theta := Sum.elim id id
 
+/-- The map that forgets the sum tag is measurable. -/
 theorem route_measurable : Measurable (route (Theta := Theta)) :=
   measurable_id.sumElim measurable_id
 
+/-- Pushing the tagged prior through `route` gives `lam • nu + (1 - lam) • train`
+[TranEtAl2026]. -/
 theorem pushforward (nu train : Measure Theta) (lam : NNReal) :
     (prior nu train lam).map route = lam • nu + (1-lam) • train := by
   rw [prior, Measure.map_add _ _ route_measurable,
@@ -29,6 +58,7 @@ theorem pushforward (nu train : Measure Theta) (lam : NNReal) :
     Measure.map_map route_measurable measurable_inr]
   simp [route,Function.comp_def]
 
+/-- The tagged prior of two probability measures is a probability measure when `lam ≤ 1`. -/
 theorem prior_isProbability (nu train : Measure Theta) [IsProbabilityMeasure nu]
     [IsProbabilityMeasure train] (lam : NNReal) (hlam : lam ≤ 1) :
     IsProbabilityMeasure (prior nu train lam) := by
@@ -41,6 +71,8 @@ theorem prior_isProbability (nu train : Measure Theta) [IsProbabilityMeasure nu]
   simp only [mul_one]
   exact_mod_cast h
 
+/-- Under the stated integrability and measurability hypotheses, the routed mean squared
+gradient is at least `lam * mu0` whenever the reference mean is at least `mu0`. -/
 theorem native_gradient_transfer
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
     [MeasurableSpace E] (nu train : Measure E) [IsProbabilityMeasure nu]

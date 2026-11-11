@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetBridge
+
+/-!
+# Payoff evaluation for finite-budget search
+
+This module defines `FiniteBudgetEval` for atomic search attempts with separate success and
+timeout payoffs. It proves normalization, payoff congruence on reachable budgets, first-attempt
+recurrences, and lower bounds from fitting terminal-trace rewards.
+
+The evaluator tracks iteration-plus-check costs for randomized search [BoyerEtAl1998].
+
+## Main statements
+
+* `search_finite_budget_eval_indicator`: Evaluating the indicators of a specified optional
+  output gives its finite-budget output mass.
+* `search_finite_budget_eval_dominates_terminal`: For nonnegative payoffs, the full reward sum
+  over terminal traces fitting the Boolean-query budget is bounded by the finite-budget
+  evaluator.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +36,8 @@ open Qatlib.Concepts.SearchStopping.UnknownCount
 namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open scoped BigOperators
 
+/-- The recursive real payoff evaluator for atomic budgeted search, with separate success and
+timeout payoffs. -/
 noncomputable def FiniteBudgetEval {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (stage budget : ℕ)
     (onSuccess : I → ℕ → ℝ) (onTimeout : ℕ → ℝ) : ℝ :=
@@ -24,6 +49,7 @@ noncomputable def FiniteBudgetEval {I : Type*} [Fintype I] [DecidableEq I]
     else onTimeout budget)
 termination_by budget
 
+/-- The finite-budget evaluator is nonnegative for nonnegative success and timeout payoffs. -/
 theorem search_finite_budget_eval_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ)
@@ -42,6 +68,7 @@ theorem search_finite_budget_eval_nonneg {I : Type*} [Fintype I] [DecidableEq I]
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
     · simpa only [dif_neg hc] using ht budget
 
+/-- The finite-budget evaluator sends constant-one success and timeout payoffs to one. -/
 theorem search_finite_budget_eval_one {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ) :
@@ -61,6 +88,8 @@ theorem search_finite_budget_eval_one {I : Type*} [Fintype I] [DecidableEq I]
         · simp [hc]
       _ = 1 := (search_joint_attempt_law hN A (sizes stage) (hsizes stage)).2.1
 
+/-- Evaluating the indicators of a specified optional output gives its finite-budget output
+mass. -/
 theorem search_finite_budget_eval_indicator {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (stage budget : ℕ) (out : Option I) :
     FiniteBudgetEval A sizes stage budget
@@ -80,6 +109,8 @@ theorem search_finite_budget_eval_indicator {I : Type*} [Fintype I] [DecidableEq
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
     · simp [hc]
 
+/-- Payoffs agreeing on success budgets below the initial budget and timeout budgets at most it
+give equal evaluations. -/
 theorem search_finite_budget_eval_congr {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (stage budget : ℕ)
     (s₁ s₂ : I → ℕ → ℝ) (t₁ t₂ : ℕ → ℝ)
@@ -105,6 +136,8 @@ theorem search_finite_budget_eval_congr {I : Type*} [Fintype I] [DecidableEq I]
     · simp only [dif_neg hc]
       exact ht budget le_rfl
 
+/-- Setting the success payoff to zero at remaining budgets at least the initial budget leaves
+the evaluation unchanged. -/
 theorem search_finite_budget_eval_success_support {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (stage budget : ℕ)
     (s : I → ℕ → ℝ) (t : ℕ → ℝ) :
@@ -116,6 +149,8 @@ theorem search_finite_budget_eval_success_support {I : Type*} [Fintype I] [Decid
   · intros
     rfl
 
+/-- Evaluation under the tail schedule equals evaluation under the original schedule at the next
+stage. -/
 theorem search_finite_budget_eval_shift {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (stage budget : ℕ)
     (s : I → ℕ → ℝ) (t : ℕ → ℝ) :
@@ -135,6 +170,8 @@ theorem search_finite_budget_eval_shift {I : Type*} [Fintype I] [DecidableEq I]
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
     · simp [hc]
 
+/-- The stage-`n` reward from successful terminal histories whose iteration-plus-check cost fits
+the budget. -/
 noncomputable def BudgetRewardRow {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget n : ℕ) (s : I → ℕ → ℝ) : ℝ :=
   ∑ h : TrialHistory sizes n, ∑ j : Fin (sizes n), ∑ i : I,
@@ -143,6 +180,8 @@ noncomputable def BudgetRewardRow {I : Type*} [Fintype I] [DecidableEq I]
         s i (budget-(HistoryIterations sizes n h + j.val + (n+1)))
     else 0
 
+/-- The stage-zero reward sums successful first-attempt payoffs over iteration-plus-check costs
+fitting the budget. -/
 theorem search_budget_reward_zero {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget : ℕ) (s : I → ℕ → ℝ) :
     BudgetRewardRow A sizes budget 0 s =
@@ -152,6 +191,8 @@ theorem search_budget_reward_zero {I : Type*} [Fintype I] [DecidableEq I]
     Fin.prod_univ_zero, one_mul, zero_add]
   simp
 
+/-- The next-stage reward factors through an affordable failed first attempt and a shifted
+residual-budget reward. -/
 theorem search_budget_reward_succ {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget n : ℕ) (s : I → ℕ → ℝ) :
     BudgetRewardRow A sizes budget (n+1) s =
@@ -194,10 +235,13 @@ theorem search_budget_reward_succ {I : Type*} [Fintype I] [DecidableEq I]
     intro i _
     rw [if_neg (by omega)]
 
+/-- The sum of budget-fitting success rewards over terminal stages below `depth`. -/
 noncomputable def BudgetRewardPrefix {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget depth : ℕ) (s : I → ℕ → ℝ) : ℝ :=
   ∑ n ∈ Finset.range depth, BudgetRewardRow A sizes budget n s
 
+/-- The reward-prefix recurrence splits into immediate successful payoffs and continuation after
+an affordable failure. -/
 theorem search_budget_reward_prefix_succ {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget depth : ℕ) (s : I → ℕ → ℝ) :
     BudgetRewardPrefix A sizes budget (depth+1) s =
@@ -217,6 +261,8 @@ theorem search_budget_reward_prefix_succ {I : Type*} [Fintype I] [DecidableEq I]
     ring
   · simp [hc]
 
+/-- The finite-budget evaluator splits over first attempts into affordable success or retry and
+unaffordable timeout. -/
 theorem search_finite_budget_eval_step {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget : ℕ) (s : I → ℕ → ℝ) (t : ℕ → ℝ) :
     FiniteBudgetEval A sizes 0 budget s t =
@@ -238,6 +284,8 @@ theorem search_finite_budget_eval_step {I : Type*} [Fintype I] [DecidableEq I]
   · simp only [dif_neg hc, if_neg hc]
     rw [Finset.sum_mul]
 
+/-- For nonnegative payoffs, every finite prefix of budget-fitting terminal rewards is bounded
+by the finite-budget evaluator. -/
 theorem search_budget_reward_prefix_le {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (budget depth : ℕ)
@@ -262,6 +310,8 @@ theorem search_budget_reward_prefix_le {I : Type*} [Fintype I] [DecidableEq I]
       exact Finset.sum_nonneg (fun out _ =>
         (search_joint_attempt_law hN A (sizes 0) (hsizes 0)).1 (j,out))
 
+/-- The payoff sum over stage-`n` terminal traces fitting the Boolean-query budget equals
+`BudgetRewardRow`. -/
 theorem search_budget_reward_terminal_row {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (budget n : ℕ) (s : I → ℕ → ℝ) :
     (∑ x : TerminalStage I sizes n,
@@ -271,6 +321,8 @@ theorem search_budget_reward_terminal_row {I : Type*} [Fintype I] [DecidableEq I
   simp only [TerminalBooleanQueries, TerminalCost, TerminalIterations, TerminalOutput,
     TerminalMass, TerminalStageMass, BudgetRewardRow, Fintype.sum_prod_type]
 
+/-- For nonnegative payoffs, the full reward sum over terminal traces fitting the Boolean-query
+budget is bounded by the finite-budget evaluator. -/
 theorem search_finite_budget_eval_dominates_terminal {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (budget : ℕ)

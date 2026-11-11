@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationStat
+
+/-!
+# Specification of Phi3 window simulation
+
+The proposition `QtmPhi3WindowSimulation` specifies exact compilation of finite-window QTM
+evolution into a Phi3 gate word. It requires a unitary circuit with zero queries, an explicit
+gate budget, normalized input and output states, and equality of encoded states and
+configuration Born probabilities.
+
+For background, see [Yao1993].
+
+## Main statements
+
+* `QtmPhi3WindowSimulation`: the quantified finite-window simulation specification.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,9 @@ open Qatlib.Concepts.WalkFind.SearchAlgorithm
 namespace Qatlib.Concepts.UniformBqp.Phi3Compile
 open Matrix
 
+/-- The specification that each local QTM with a sufficiently large binary cell code has a
+unitary Phi3 simulation with zero queries and the stated wire and gate bounds. It requires
+exact state transport, normalization, and equality of configuration Born probabilities. -/
 def QtmPhi3WindowSimulation : Prop :=
   ∀ (Q : Type) [Fintype Q] [DecidableEq Q] (A : Type) [Fintype A] [DecidableEq A]
     (M : LocalQTM Q A) (b n t : ℕ) (hb : Fintype.card (CellState Q A) ≤ 2^b),

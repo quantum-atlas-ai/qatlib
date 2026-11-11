@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+
+/-!
+# Rectangular Schur multiplier duality
+
+This module transfers filtered γ₂ duality through the rectangular lift. Norm preservation by
+`sourceRectLift_norm` and the corner identity `sourceRectLift_hadamard_corner` yield
+`rectangularSchurDuality`, including attainment of finite values and unbounded objectives for
+infinite values [LeeEtAl2011].
+
+## Main statements
+
+* `sourceRectLift_norm`: The rectangular lift preserves the operator norm.
+
+* `sourceRectDual_eq_lift`: The rectangular dual value equals the filtered γ₂ dual value of the
+  rectangular lifts.
+
+* `rectangularSchurDuality`: The rectangular filtered value equals its Schur multiplier dual,
+  with attainment for finite values and arbitrarily large feasible objectives for infinite
+  values [Lee et al., Lemma A.1][LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,18 +47,23 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The squared Euclidean norm of a vector on a sum type is the sum of the squared norms of its
+two components. -/
 theorem rectangularSumState_norm_sq {R S : Type} [Fintype R] [Fintype S]
     (a : QState R) (b : QState S) :
     ‖toEuclidean_fromVec (Sum.elim a b)‖^2 =
       ‖toEuclidean_fromVec a‖^2+‖toEuclidean_fromVec b‖^2 := by
   simp only [norm_toEuclidean_fromVec_sq, Fintype.sum_sum_type, Sum.elim_inl, Sum.elim_inr]
 
+/-- The rectangular lift maps a sum-indexed vector to the target matrix applied to its right
+component, with zero output in the right component. -/
 theorem sourceRectLift_mulVec {R S : Type} [Fintype R] [Fintype S]
     (A : Matrix R S ℂ) (v : QState (R ⊕ S)) :
     sourceRectLift A *ᵥ v = Sum.elim (A *ᵥ (v ∘ Sum.inr)) (fun _ => 0) := by
   ext z
   cases z <;> simp [sourceRectLift, Matrix.mulVec, dotProduct, Fintype.sum_sum_type]
 
+/-- The rectangular lift preserves the operator norm. -/
 theorem sourceRectLift_norm {R S : Type} [Fintype R] [DecidableEq R]
     [Fintype S] [DecidableEq S] (A : Matrix R S ℂ) : ‖sourceRectLift A‖ = ‖A‖ := by
   have houtput (v : QState (R ⊕ S)) :
@@ -75,20 +105,24 @@ theorem sourceRectLift_norm {R S : Type} [Fintype R] [DecidableEq R]
     rw [houtput, hright, hpad] at h
     exact h
 
+/-- The upper-right rectangular block of a matrix indexed by a sum type. -/
 def sourceRectCorner {R S : Type} (M : Matrix (R ⊕ S) (R ⊕ S) ℂ) : Matrix R S ℂ :=
   fun r s => M (.inl r) (.inr s)
 
+/-- Entrywise multiplying a rectangular lift uses only the upper-right block of the multiplier. -/
 theorem sourceRectLift_hadamard_corner {R S : Type}
     (A : Matrix R S ℂ) (M : Matrix (R ⊕ S) (R ⊕ S) ℂ) :
     sourceRectLift A ⊙ M = sourceRectLift (A ⊙ sourceRectCorner M) := by
   ext r s
   cases r <;> cases s <;> simp [sourceRectLift, sourceRectCorner, Matrix.hadamard_apply]
 
+/-- The rectangular lift preserves entrywise products. -/
 theorem sourceRectLift_hadamard {R S : Type} (A M : Matrix R S ℂ) :
     sourceRectLift A ⊙ sourceRectLift M = sourceRectLift (A ⊙ M) := by
   ext r s
   cases r <;> cases s <;> simp [sourceRectLift, Matrix.hadamard_apply]
 
+/-- The rectangular dual value equals the filtered γ₂ dual value of the rectangular lifts. -/
 theorem sourceRectDual_eq_lift {R S : Type} [Fintype R] [DecidableEq R]
     [Fintype S] [DecidableEq S] {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
     sourceRectDual A Z = filteredGamma2DualValue (sourceRectLift A) (fun j => sourceRectLift (Z j)) := by
@@ -113,6 +147,9 @@ theorem sourceRectDual_eq_lift {R S : Type} [Fintype R] [DecidableEq R]
     apply le_iSup_of_le ⟨sourceRectCorner M.val,hfilters⟩
     rw [sourceRectLift_hadamard_corner, sourceRectLift_norm]
 
+/-- The rectangular filtered value equals its Schur multiplier dual, with attainment for finite
+values and arbitrarily large feasible objectives for infinite values [Lee et al., Lemma
+A.1][LeeEtAl2011]. -/
 theorem rectangularSchurDuality :
     ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),

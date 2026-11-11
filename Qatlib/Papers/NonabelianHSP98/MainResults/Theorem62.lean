@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
+
+/-!
+# Transform of a normalized subgroup indicator
+
+`dft` is the unnormalized finite transform with kernel `chi (mu x y)`. For subgroups of
+cardinality at least four, `theorem_6_2` identifies the transform of the subgroup indicator
+divided by its cardinality with the indicator of `perpSub U`. This development accompanies
+[RoettelerBeth1998].
+
+## Main statements
+
+* `chi`: the complex sign character of `ZMod 2`.
+* `dft`: the transform defined by the binary pairing.
+* `theorem_6_2`: the normalized subgroup indicator transforms to its orthogonal-complement
+  indicator.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,12 +44,18 @@ attribute [local instance] Classical.propDecidable
 
 variable {n : ℕ}
 
+/-- The complex sign character on `ZMod 2`, reused from the vector counting model. -/
 noncomputable abbrev chi : ZMod 2 → ℂ :=
   Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting.chi
 
+/-- The unnormalized finite transform summing `chi (mu x y) * ψ x` over all wreath-product
+elements `x`. -/
 noncomputable def dft (ψ : Wreath n → ℂ) : Wreath n → ℂ :=
   fun y => ∑ x : Wreath n, chi (mu x y) * ψ x
 
+/-- For a subgroup with at least four elements, the transform of its indicator divided by its
+cardinality is the indicator of its orthogonal complement. This is Theorem 6.2 of
+[RoettelerBeth1998]. -/
 theorem theorem_6_2 (U : Subgroup (Wreath n)) (hcard : 4 ≤ Fintype.card U) :
     dft (fun x => if x ∈ U then ((Fintype.card U : ℂ)⁻¹) else 0)
       = fun y => if y ∈ perpSub U then 1 else 0 := by

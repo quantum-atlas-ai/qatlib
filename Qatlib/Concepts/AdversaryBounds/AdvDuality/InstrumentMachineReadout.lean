@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+/-!
+# Scalar Readout from Instrument Machine Records
+
+This module defines `instrumentMachineDecode`, a scalar readout obtained by replaying a finite
+outcome record and consulting the resulting halt instruction. It returns zero when replay does
+not produce a halted endpoint with a halt instruction. The interpretation of trace as branch
+mass is the standard one for quantum operations in [Watrous2018].
+
+For traces that actually halt, `instrumentMachineDecode_correct` identifies this readout with
+the supplied endpoint-dependent decoder. Nonnegativity of branch masses then bounds the halted
+machine mass in a scalar error window by the corresponding event mass of the unrolled circuit.
+
+## Main statements
+
+* `instrumentMachineHalted_instruction` identifies the halt instruction at a halted trace
+  endpoint.
+* `instrumentMachineDecode_correct` proves correctness of record-based scalar decoding on halted
+  traces.
+* `instrumentMachineHaltMass_le_unroll_scalar` bounds halted scalar-window mass by the unrolled
+  circuit event mass for positive semidefinite inputs.
+
+## References
+
+- [Watrous, 2018][Watrous2018], *The Theory of Quantum Information*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +43,8 @@ open Qatlib.Concepts.Execution.CircuitCompile
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open scoped ComplexOrder
 
+/-- The endpoint of a halted bounded machine trace carries a halt instruction whose Boolean
+value is the trace's acceptance value. -/
 theorem instrumentMachineHalted_instruction {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (t : InstrumentMachineTrace D C) (ht : t ∈ instrumentMachineTraces M O T c rho)
@@ -46,6 +75,9 @@ theorem instrumentMachineHalted_instruction {D : ℕ} {C : Type*}
       obtain ⟨u,hu,rfl⟩ := List.mem_map.mp ht
       exact ih (next o) _ u hu hhalt
 
+/-- Decode a scalar from an outcome record by replaying it and reading the endpoint's halt
+instruction. Return zero if replay fails, the endpoint is pending, or its instruction is not
+a halt. -/
 noncomputable def instrumentMachineDecode {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (T : ℕ) (c : C)
     (decode : C → Bool → List (ℕ×ℕ) → ℝ) (rec : List (ℕ×ℕ)) : ℝ :=
@@ -56,6 +88,8 @@ noncomputable def instrumentMachineDecode {D : ℕ} {C : Type*}
     | _ => 0
     else 0
 
+/-- On the outcome record of a halted machine trace, record-based decoding equals the supplied
+decoder evaluated at that trace's control endpoint, acceptance value, and outcomes. -/
 theorem instrumentMachineDecode_correct {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (decode : C → Bool → List (ℕ×ℕ) → ℝ)
@@ -68,6 +102,8 @@ theorem instrumentMachineDecode_correct {D : ℕ} {C : Type*}
   simp only [hhalt, ↓reduceIte]
   rw [instrumentMachineHalted_instruction M O T c rho t ht hhalt]
 
+/-- A pointwise inequality on the elements of a list yields the same inequality between the sums
+of the two mapped real-valued functions. -/
 private theorem readout_sum_map_mono {A : Type*} (xs : List A) (f g : A → ℝ)
     (h : ∀ x ∈ xs, f x ≤ g x) : (xs.map f).sum ≤ (xs.map g).sum := by
   induction xs with
@@ -76,6 +112,9 @@ private theorem readout_sum_map_mono {A : Type*} (xs : List A) (f g : A → ℝ)
     simp only [List.map_cons, List.sum_cons]
     exact add_le_add (h x (by simp)) (ih fun y hy => h y (by simp [hy]))
 
+/-- For a positive semidefinite input, the halted machine mass whose decoded value is within
+`epsilon` of `a` is bounded by the unrolled circuit mass in the same record-decoded scalar
+window. -/
 theorem instrumentMachineHaltMass_le_unroll_scalar {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) (decode : C → Bool → List (ℕ×ℕ) → ℝ) (a epsilon : ℝ) :

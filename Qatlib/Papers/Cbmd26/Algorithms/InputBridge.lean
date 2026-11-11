@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
 import Qatlib.Foundations.CbmdAnalysis.Core.Algebra
+
+/-!
+# Hermitian sample encodings from an original matrix oracle
+
+`oracleAdjointPair` combines an oracle with its adjoint. The coefficients `sampleCoefficients`
+and `firstOrderCoefficients` then construct block encodings of `L + s H` and `H + s L` from a
+block encoding of `L + i H`, with both normalization and error multiplied by `sqrt(1 + s²)`.
+These interfaces express the original-oracle sampling step in [WangEtAl2026].
+
+## Main statements
+
+* `blockEncoding_adjoint`: transports a block encoding through conjugate transpose.
+* `original_oracle_sample_blockEncoding`: encodes `L + s H` using the original oracle and its
+  adjoint.
+* `original_oracle_first_order_blockEncoding`: encodes `H + s L` for first-order dynamics.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -39,6 +60,8 @@ set_option autoImplicit false
 variable {W I O : Type*} [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 
+/-- Taking conjugate transposes gives a block encoding of `Aᴴ` by `Uᴴ`, exchanging the left and
+right frames and preserving the normalization and error. -/
 theorem blockEncoding_adjoint {A : Matrix O I ℂ} {U : Matrix W W ℂ}
     {L : Matrix W O ℂ} {R : Matrix W I ℂ} {α ε : ℝ}
     (h : BlockEncoding A U L R α ε) :
@@ -51,29 +74,39 @@ theorem blockEncoding_adjoint {A : Matrix O I ℂ} {U : Matrix W W ℂ}
   rw [heq, Matrix.l2_opNorm_conjTranspose]
   exact h.error_le
 
+/-- The Boolean family equal to `A` at false and to its conjugate transpose at true. -/
 def oracleAdjointPair {n : Type*} (A : Matrix n n ℂ) : Bool → Matrix n n ℂ :=
   fun b => if b then Aᴴ else A
 
+/-- The two complex coefficients `(1 - i s) / 2` and `(1 + i s) / 2` used to combine the
+original oracle and its adjoint. -/
 def sampleCoefficients (s : ℝ) : Bool → ℂ :=
   fun b => if b then (1 + Complex.I * (s : ℂ)) / 2
     else (1 - Complex.I * (s : ℂ)) / 2
 
+/-- The sum of the norms of the two sample coefficients is `Real.sqrt (1 + s ^ 2)`. -/
 theorem sample_coefficient_weight (s : ℝ) :
     (∑ b : Bool, ‖sampleCoefficients s b‖) = Real.sqrt (1 + s ^ 2) := by
   simpa [sampleCoefficients, Fintype.sum_bool, add_comm] using
     _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.original_oracle_coefficient_weight s
 
+/-- For positive `α`, the mass of the scaled sample coefficients is `α * Real.sqrt (1 + s ^ 2)`. -/
 theorem sample_scaled_coefficient_mass (s α : ℝ) (hα : 0 < α) :
     coefficientMass (scaledLCUCoefficients (sampleCoefficients s) (fun _ => α)) =
       α * Real.sqrt (1 + s ^ 2) := by
   rw [(scaled_lcu_coefficient_mass (sampleCoefficients s) (fun _ => α)
     (fun _ => hα)).1, ← Finset.sum_mul, sample_coefficient_weight, mul_comm]
 
+/-- The coefficient LCU matrix combining `U` and `Uᴴ` with the sample coefficients scaled by
+`α`. -/
 noncomputable def sampleInputUnitary (U : Matrix W W ℂ) (α s : ℝ) :
     Matrix (Bool × W) (Bool × W) ℂ :=
   coefficientLCUUnitary (scaledLCUCoefficients (sampleCoefficients s) (fun _ => α))
     (oracleAdjointPair U) false
 
+/-- For Hermitian `L` and `H`, a block encoding of `L + i H` yields a block encoding of `L + s
+H` through `sampleInputUnitary`. Both normalization and error are multiplied by `Real.sqrt
+(1 + s ^ 2)`. -/
 theorem original_oracle_sample_blockEncoding
     (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (U : Matrix W W ℂ) (R : Matrix W I ℂ) (α ε s : ℝ)
@@ -106,10 +139,13 @@ theorem original_oracle_sample_blockEncoding
   rw [hsum, hn α, hn ε] at h
   exact h
 
+/-- The two complex coefficients `(s - i) / 2` and `(s + i) / 2` used to encode `H + s L` from
+the original oracle and its adjoint. -/
 def firstOrderCoefficients (s : ℝ) : Bool → ℂ :=
   fun b => if b then ((s : ℂ) + Complex.I) / 2
     else ((s : ℂ) - Complex.I) / 2
 
+/-- The sum of the norms of the two first-order coefficients is `Real.sqrt (1 + s ^ 2)`. -/
 theorem first_order_coefficient_weight (s : ℝ) :
     (∑ b : Bool, ‖firstOrderCoefficients s b‖) = Real.sqrt (1 + s ^ 2) := by
   have hm : ((s : ℂ) - Complex.I) / 2 =
@@ -126,11 +162,16 @@ theorem first_order_coefficient_weight (s : ℝ) :
     ↓reduceIte, hm, hp, norm_mul, norm_neg, Complex.norm_I, one_mul]
   exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.original_oracle_coefficient_weight s
 
+/-- The coefficient LCU matrix combining `U` and `Uᴴ` with the first-order coefficients scaled
+by `α`. -/
 noncomputable def firstOrderInputUnitary (U : Matrix W W ℂ) (α s : ℝ) :
     Matrix (Bool × W) (Bool × W) ℂ :=
   coefficientLCUUnitary (scaledLCUCoefficients (firstOrderCoefficients s) (fun _ => α))
     (oracleAdjointPair U) false
 
+/-- For Hermitian `L` and `H`, a block encoding of `L + i H` yields a block encoding of `H + s
+L` through `firstOrderInputUnitary`. Both normalization and error are multiplied by
+`Real.sqrt (1 + s ^ 2)`. -/
 theorem original_oracle_first_order_blockEncoding
     (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (U : Matrix W W ℂ) (R : Matrix W I ℂ) (α ε s : ℝ)

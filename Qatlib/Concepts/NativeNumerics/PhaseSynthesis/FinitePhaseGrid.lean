@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
 import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+
+/-!
+# Finite rational phase grids and coefficient stability
+
+This module bounds the coefficient mass of quantum signal processing responses and their
+sensitivity to phase perturbations. It constructs finite Gaussian-rational phase tables with
+certified unit norm and coverage, for use in the polynomial transformation setting of
+[GilyenSuLowWiebe2019].
+
+The coefficient estimate uses `phaseConstant d = (d+1) * 3^d`. The actual dyadic table carries
+both an explicit covering error and a multiplication count.
+
+## Main statements
+
+* `response_coefficients_derived_lipschitz`: A coefficient error bound in terms of the maximum
+  phase perturbation.
+* `phaseTable_spec`: Power-table entries, length, and multiplication count.
+* `phase_grid_actual_cover_and_table_cost`: Unit phases with explicit coverage error and table
+  cost.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 
@@ -22,11 +47,14 @@ namespace Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.PhaseGeometry.Phase Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The sum of the norms of the nonzero coefficients of a complex polynomial. -/
 noncomputable def coeffMass (p : Polynomial ℂ) : ℝ := ∑ i ∈ p.support, ‖p.coeff i‖
 
+/-- The coefficient mass of a polynomial is nonnegative. -/
 theorem coeffMass_nonneg (p : Polynomial ℂ) : 0 ≤ coeffMass p :=
     Finset.sum_nonneg (fun _i _ => norm_nonneg _)
 
+/-- The coefficient mass can be summed over any finite set containing the polynomial's support. -/
 theorem coeffMass_expand (p : Polynomial ℂ) (s : Finset ℕ) (hs : p.support ⊆ s) :
     coeffMass p = ∑ i ∈ s, ‖p.coeff i‖ := by
   apply Finset.sum_subset hs
@@ -34,27 +62,35 @@ theorem coeffMass_expand (p : Polynomial ℂ) (s : Finset ℕ) (hs : p.support �
   have he : p.coeff i = 0 := by simpa only [Polynomial.mem_support_iff,not_not] using hn
   simp [he]
 
+/-- If `p.natDegree < n`, its coefficient mass is the sum of coefficient norms over
+`Finset.range n`. -/
 theorem coeffMass_range (p : Polynomial ℂ) (n : ℕ) (hn : p.natDegree < n) :
     coeffMass p = ∑ i ∈ Finset.range n, ‖p.coeff i‖ := coeffMass_expand p _ (Polynomial.supp_subset_range hn)
 
+/-- The zero polynomial has coefficient mass zero. -/
 @[simp] theorem coeffMass_zero : coeffMass (0:Polynomial ℂ) = 0 := by simp [coeffMass]
 
+/-- The coefficient mass of a constant polynomial equals the norm of its constant. -/
 @[simp] theorem coeffMass_C (z : ℂ) : coeffMass (C z) = ‖z‖ := by
   rw [coeffMass_range (C z) 1 (by simp)]
   simp
 
+/-- Negating a polynomial preserves its coefficient mass. -/
 @[simp] theorem coeffMass_neg (p : Polynomial ℂ) : coeffMass (-p) = coeffMass p := by
   simp [coeffMass]
 
+/-- The coefficient mass of a sum is at most the sum of the coefficient masses. -/
 theorem coeffMass_add_le (p q : Polynomial ℂ) : coeffMass (p+q) ≤ coeffMass p+coeffMass q := by
   rw [coeffMass_expand (p+q) (p.support ∪ q.support) Polynomial.support_add,
     coeffMass_expand p (p.support ∪ q.support) Finset.subset_union_left,
     coeffMass_expand q (p.support ∪ q.support) Finset.subset_union_right,← Finset.sum_add_distrib]
   exact Finset.sum_le_sum (fun i _ => by rw [Polynomial.coeff_add]; exact norm_add_le _ _)
 
+/-- The coefficient mass of a difference is at most the sum of the coefficient masses. -/
 theorem coeffMass_sub_le (p q : Polynomial ℂ) : coeffMass (p-q) ≤ coeffMass p+coeffMass q := by
   simpa only [sub_eq_add_neg,coeffMass_neg] using coeffMass_add_le p (-q)
 
+/-- Multiplication by a constant polynomial scales coefficient mass by the norm of the constant. -/
 theorem coeffMass_C_mul (z : ℂ) (p : Polynomial ℂ) : coeffMass (C z*p) = ‖z‖*coeffMass p := by
   have hs : (C z*p).support ⊆ p.support := by
     intro i hi
@@ -65,6 +101,7 @@ theorem coeffMass_C_mul (z : ℂ) (p : Polynomial ℂ) : coeffMass (C z*p) = ‖
   rw [coeffMass_expand (C z*p) p.support hs]
   simp only [Polynomial.coeff_C_mul,norm_mul,coeffMass,Finset.mul_sum]
 
+/-- Multiplication by `X` preserves coefficient mass. -/
 theorem coeffMass_X_mul (p : Polynomial ℂ) : coeffMass (X*p) = coeffMass p := by
   have hd : (X*p).natDegree < p.natDegree+2 := by
     have h := Polynomial.natDegree_mul_le (p:= (X:Polynomial ℂ)) (q:=p)
@@ -74,6 +111,8 @@ theorem coeffMass_X_mul (p : Polynomial ℂ) : coeffMass (X*p) = coeffMass p := 
   simp only [Polynomial.coeff_X_mul,Polynomial.coeff_X_mul_zero,norm_zero,add_zero]
   exact (coeffMass_range p (p.natDegree+1) (by omega)).symm
 
+/-- One unphased response update increases the sum of the two coefficient masses by at most a
+factor of three. -/
 theorem coeffMass_response_step (P Q : Polynomial ℂ) :
     coeffMass (X*P+(1-X^2)*Q)+coeffMass (P-X*Q) ≤ 3*(coeffMass P+coeffMass Q) := by
   have he : (1-X^2)*Q = Q-X*(X*Q) := by ring
@@ -85,15 +124,20 @@ theorem coeffMass_response_step (P Q : Polynomial ℂ) :
   have hn := coeffMass_nonneg P
   linarith
 
+/-- A response update with a unit phase increases the sum of coefficient masses by at most a
+factor of three. -/
 theorem coeffMass_response_phase_step (z : ℂ) (P Q : Polynomial ℂ) (hz : ‖z‖ = 1) :
     coeffMass (C z*(X*P+(1-X^2)*Q))+coeffMass (C (star z)*(P-X*Q)) ≤ 3*(coeffMass P+coeffMass Q) := by
   simpa only [coeffMass_C_mul,norm_star,hz,one_mul] using coeffMass_response_step P Q
 
+/-- A complex number satisfying `IsPhase` has norm one. -/
 theorem phase_norm_one (z : ℂ) (hz : IsPhase z) : ‖z‖ = 1 := by
   have hs := Qatlib.Concepts.TrotterFormula.SuzukiFourth.IsPhase.normSq hz
   rw [Complex.normSq_eq_norm_sq] at hs
   nlinarith [norm_nonneg z]
 
+/-- For unit base and phase entries, the total coefficient mass of the response pair is at most
+`3^zs.length`. -/
 theorem response_packet_mass (base : ℂ) (zs : List ℂ) (hb : IsPhase base) (hz : ∀ z ∈ zs,IsPhase z) :
     coeffMass (responseP base zs)+coeffMass (responseQ base zs) ≤ (3:ℝ)^zs.length := by
   induction zs with
@@ -105,6 +149,8 @@ theorem response_packet_mass (base : ℂ) (zs : List ℂ) (hb : IsPhase base) (h
     exact (coeffMass_response_phase_step z _ _ hhead).trans
       ((mul_le_mul_of_nonneg_left (ih ht) (by norm_num)).trans_eq (by simp [pow_succ]; ring))
 
+/-- The coefficient defect after one response update is bounded by three times the input defect
+plus the phase perturbation times three times the comparison pair's mass. -/
 theorem response_step_coeff_defect (z w : ℂ) (P Q R S : Polynomial ℂ) (hz : ‖z‖ = 1) :
     coeffMass (C z*(X*P+(1-X^2)*Q)-C w*(X*R+(1-X^2)*S))+
     coeffMass (C (star z)*(P-X*Q)-C (star w)*(R-X*S)) ≤
@@ -122,6 +168,8 @@ theorem response_step_coeff_defect (z w : ℂ) (P Q R S : Polynomial ℂ) (hz : 
   simp only [coeffMass_C_mul,norm_star,hz,one_mul] at hd
   nlinarith
 
+/-- Equal-length unit-phase packets with each phase and the base within `delta ≥ 0` have total
+coefficient defect at most `(zs.length+1) * 3^zs.length * delta`. -/
 theorem response_packet_coeff_defect (base other : ℂ) (zs ws : List ℂ) (delta : ℝ)
     (hlen : zs.length = ws.length) (_hb : IsPhase base) (ho : IsPhase other)
     (hz : ∀ z ∈ zs,IsPhase z) (hw : ∀ w ∈ ws,IsPhase w) (hd : 0 ≤ delta)
@@ -161,8 +209,12 @@ theorem response_packet_coeff_defect (base other : ℂ) (zs ws : List ℂ) (delt
       exact (hh.trans (add_le_add hfirst hsecond)).trans_eq
           (by simp only [List.length_cons,Nat.cast_add,Nat.cast_one,pow_succ]; ring)
 
+/-- The coefficient stability factor `(d+1) * 3^d` for a length-`d` response packet. -/
 def phaseConstant (d : ℕ) : ℕ := (d+1)*3^d
 
+/-- Two length-`d` unit-phase packets differing by at most `delta` entrywise and at the base
+have first-response coefficient error at most `phaseConstant d * delta` over indices zero
+through `d`. -/
 theorem response_coefficients_derived_lipschitz : ∀ (d : ℕ) (base other : ℂ) (zs ws : List ℂ) (delta : ℝ),
   zs.length=d → ws.length=d → IsPhase base → IsPhase other →
   (∀ z ∈ zs,IsPhase z) → (∀ w ∈ ws,IsPhase w) → 0 ≤ delta →
@@ -189,12 +241,18 @@ theorem response_coefficients_derived_lipschitz : ∀ (d : ℕ) (base other : �
   rw [he] at hj
   linarith
 
+/-- Builds the Gaussian-rational power sequence starting at `a`, returning `N` entries and a
+multiplication counter. -/
 def phaseTableLoop (z : GaussianRat) : ℕ → GaussianRat → List GaussianRat × ℕ
   | 0,_ => ([],0)
   | 1,a => ([a],0)
   | n+2,a => let r := phaseTableLoop z (n+1) (gmul a z); (a::r.1,r.2+1)
+/-- The Gaussian-rational table of the first `N` powers of `z`, starting with one, together with
+its multiplication count. -/
 def phaseTable (z : GaussianRat) (N : ℕ) := phaseTableLoop z N gone
 
+/-- The power-table loop returns `N` entries, uses `N-1` multiplications, and its entry at `j <
+N` represents `a * z^j` in ℂ. -/
 theorem phaseTableLoop_spec (z : GaussianRat) (N : ℕ) (a : GaussianRat) :
     (phaseTableLoop z N a).1.length = N ∧ (phaseTableLoop z N a).2 = N-1 ∧
     ∀ j < N,gaussianRatComplex ((phaseTableLoop z N a).1.getD j gone) =
@@ -221,11 +279,14 @@ theorem phaseTableLoop_spec (z : GaussianRat) (N : ℕ) (a : GaussianRat) :
           rw [List.getD_cons_succ,ht.2.2 j (by omega),complex_gmul,pow_succ]
           ring
 
+/-- The phase table has `N` entries, uses `N-1` multiplications, and its entry at `j < N`
+represents `z^j` in ℂ. -/
 theorem phaseTable_spec (z : GaussianRat) (N : ℕ) :
     (phaseTable z N).1.length = N ∧ (phaseTable z N).2 = N-1 ∧
     ∀ j < N,gaussianRatComplex ((phaseTable z N).1.getD j gone) = (gaussianRatComplex z)^j := by
   simpa only [phaseTable,complex_gone,one_mul] using phaseTableLoop_spec z N gone
 
+/-- For unit complex numbers within `eta`, their `j`th powers differ by at most `j * eta`. -/
 theorem phase_power_error (z w : ℂ) (eta : ℝ) (hz : ‖z‖ = 1) (hw : ‖w‖ = 1)
     (he : ‖z-w‖ ≤ eta) (j : ℕ) : ‖z^j-w^j‖ ≤ (j:ℝ)*eta := by
   induction j with
@@ -239,6 +300,7 @@ theorem phase_power_error (z w : ℂ) (eta : ℝ) (hz : ‖z‖ = 1) (hw : ‖w�
       _ ≤ eta+(j:ℝ)*eta := add_le_add he ih
       _ = _ := by push_cast; ring
 
+/-- Every unit complex number has an angular representative in `[0, 2*π)`. -/
 theorem phase_angle_representative (v : ℂ) (hv : ‖v‖ = 1) :
     ∃ t : ℝ, 0 ≤ t ∧ t < 2*Real.pi ∧ Complex.exp ((t:ℂ)*Complex.I) = v := by
   have he : Complex.exp ((Complex.arg v:ℂ)*Complex.I) = v := by
@@ -252,6 +314,8 @@ theorem phase_angle_representative (v : ℂ) (hv : ‖v‖ = 1) :
         Complex.exp_two_pi_mul_I,he,mul_one]
   · exact ⟨Complex.arg v,le_of_not_gt harg,(Complex.arg_le_pi v).trans_lt (by linarith [Real.pi_pos]),he⟩
 
+/-- For positive `N`, every unit complex number is within `8/N` of some power, with exponent
+less than `N`, of `exp (2*π*I/N)`. -/
 theorem phase_ideal_grid_cover (N : ℕ) (hN : 0 < N) (v : ℂ) (hv : ‖v‖ = 1) :
     ∃ j : ℕ,j < N ∧ ‖(Complex.exp (((2*Real.pi/(N:ℝ):ℝ):ℂ)*Complex.I))^j-v‖ ≤ 8/(N:ℝ) := by
   obtain ⟨t,ht0,htmax,ht⟩ := phase_angle_representative v hv
@@ -296,6 +360,8 @@ theorem phase_ideal_grid_cover (N : ℕ) (hN : 0 < N) (v : ℂ) (hv : ‖v‖ = 
     apply div_le_div_of_nonneg_right _ hNR.le
     linarith [Real.pi_lt_four]))
 
+/-- The actual dyadic phase table has `2^r` unit entries and uses `2^r-1` multiplications, and
+every unit phase is within `8 / 2^r + 2^r * 2^(-q)` of an entry. -/
 theorem phase_grid_actual_cover_and_table_cost : ∀ r q : ℕ,
   let N := 2^r
   let z := numericalDyadicPhase r false q

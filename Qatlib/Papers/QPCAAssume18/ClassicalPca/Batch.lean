@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualProtocol
+
+/-!
+# Batched classical PCA output access
+
+Defines one sketch record together with independent access-call records for all retained
+components. The predicates `pcaCallBad` and `pcaBatchBad` combine preprocessing and access
+failures, yielding simultaneous accuracy and access guarantees for the PCA algorithm of
+[Tang2021].
+
+## Main statements
+
+* `source_classical_pca_batch_failure`: Under the cutoff and positivity assumptions, the
+  allocated sketch and access budgets give batch failure mass at most `delta` [Tang2021].
+* `source_classical_pca_batch`: The batch has failure mass at most `delta`; every record outside
+  that failure event is correct, accessible, and successful for all access calls under the
+  stated cutoff and gap assumptions [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,14 +39,19 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 
+/-- Extracts the retained component index from an index for `k * Q` access calls. -/
 def pcaCallComponent {k Q : ℕ} (j : Fin (k*Q)) : Fin k := (finProdFinEquiv.symm j).1
 
+/-- The per-call confidence allocation `delta / (3 * k * max 1 Q)`. -/
 def pcaCallConfidence (k Q : ℕ) (delta : ℝ) : ℝ := delta/(3*(k:ℝ)*(max 1 Q:ℕ))
 
+/-- The record type containing norm-estimation batches and rejection trials for one PCA access
+call. -/
 abbrev PcaCallRecord (d q : ℕ) (K alpha : ℝ) :=
   (Fin (2*pcaNormRounds alpha+1)→Fin (pcaNormSamples (4*(q:ℝ)*K))→Fin d×Bool) ×
     (Fin (pcaRejectSamples q K alpha)→Fin d×Bool)
 
+/-- The norm and rejection protocol law for the retained component selected by the call index. -/
 def pcaCallLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k q Q : ℕ) (hkq : k≤q) (K alpha : ℝ)
     (z : (Fin q→Fin n) × (Fin q→Fin d)) (j : Fin (k*Q)) : FinDist (PcaCallRecord d q K alpha) :=
@@ -32,6 +59,8 @@ def pcaCallLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (pcaRetainedIndex hkq (pcaCallComponent j))) (pcaNormRounds alpha)
     (pcaNormSamples (4*(q:ℝ)*K)) (pcaRejectSamples q K alpha)
 
+/-- The failure predicate for one retained-component access call, combining norm-estimation
+error and rejection failure. -/
 def pcaCallBad {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k q Q : ℕ) (hkq : k≤q) (K alpha : ℝ)
     (z : (Fin q→Fin n) × (Fin q→Fin d)) (j : Fin (k*Q)) (record : PcaCallRecord d q K alpha) : Prop :=
@@ -43,16 +72,20 @@ def pcaCallBad {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   pcaProtocolBad energy envelopeEnergy q (pcaNormRounds alpha)
     (pcaNormSamples (4*(q:ℝ)*K)) (pcaRejectSamples q K alpha) record
 
+/-- The joint law of a PCA sketch record and conditionally independent access-call records. -/
 def pcaBatchLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k q Q : ℕ) (hkq : k≤q) (K alpha : ℝ) :
     FinDist (((Fin q→Fin n) × (Fin q→Fin d)) × (Fin (k*Q)→PcaCallRecord d q K alpha)) :=
   pcaJointLaw (pcaSketchLaw A hA hd q) (fun z => independentSampleLaw (pcaCallLaw A hA hd k q Q hkq K alpha z))
 
+/-- The batch failure predicate asserting Gram failure or failure of at least one access call. -/
 def pcaBatchBad {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k q Q : ℕ) (hkq : k≤q) (K alpha t : ℝ)
     (record : ((Fin q→Fin n) × (Fin q→Fin d)) × (Fin (k*Q)→PcaCallRecord d q K alpha)) : Prop :=
   pcaBadGram A hA hd q t record.1 ∨ ∃j,pcaCallBad A hA hd k q Q hkq K alpha record.1 j (record.2 j)
 
+/-- The sum of the `2 * alpha` failure allocations for all `k * Q` calls is at most `2 * delta /
+3`. -/
 theorem pca_call_budget (k Q : ℕ) (hk : 1≤k) (delta : ℝ) (hdelta : 0≤delta) :
     ((k*Q:ℕ):ℝ)*(2*pcaCallConfidence k Q delta)≤2*delta/3 := by
   have hkR : (0:ℝ)<k := by exact_mod_cast (show 0<k by omega)
@@ -67,6 +100,8 @@ theorem pca_call_budget (k Q : ℕ) (hk : 1≤k) (delta : ℝ) (hdelta : 0≤del
     _ ≤ (2*delta/3)*1 := mul_le_mul_of_nonneg_left hratio (by positivity)
     _ = _ := mul_one _
 
+/-- Under the cutoff and positivity assumptions, the allocated sketch and access budgets give
+batch failure mass at most `delta` [Tang2021]. -/
 theorem source_classical_pca_batch_failure {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k Q : ℕ) (hk : 1≤k) (hkn : k≤n) (hkd : k≤d)
     (sigma eta s v delta : ℝ) (hsigma : 0<sigma) (heta : 0<eta) (hs : 0<s) (hv : 0<v)
@@ -119,6 +154,8 @@ theorem source_classical_pca_batch_failure {n d : ℕ} (A : Matrix (Fin n) (Fin 
     (delta/3) (2*delta/3) (by positivity) hf hcond
   exact h.trans_eq (by ring)
 
+/-- With no retained components, record correctness and accessibility hold for every sketch
+record. -/
 theorem pca_empty_retained {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (s v K : ℝ)
     (z : (Fin q→Fin n)×(Fin q→Fin d)) :
@@ -126,6 +163,9 @@ theorem pca_empty_retained {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
       pcaRecordAccessible A hA hd 0 q (Nat.zero_le _) K z := by
   constructor <;> intro i <;> exact Fin.elim0 i
 
+/-- The batch has failure mass at most `delta`; every record outside that failure event is
+correct, accessible, and successful for all access calls under the stated cutoff and gap
+assumptions [Tang2021]. -/
 theorem source_classical_pca_batch {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k Q : ℕ) (hk : 1≤k) (hkn : k≤n) (hkd : k≤d)
     (sigma eta s v delta : ℝ) (hsigma : 0<sigma) (heta : 0<eta) (hs : 0<s)

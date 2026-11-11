@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.RejectSample11.MainResults.ReweightingApplicationsEffectiveDefs
 import Qatlib.Concepts.Waterfill.LevelFidelity.AccessReweighting
+
+/-!
+# Effective Fourier reweighting guarantees
+
+Specializes exact resampling to rational Fourier magnitudes and a flat target profile. Under
+normalization, positivity, and positive filled mass, the result identifies the clipped profile,
+gives conditional success and resource formulas, and shows that the output retains the supplied
+family of hidden states. See [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `gext4_complete`: combines clipping, conditional exact-word resource formulas, and
+  preservation of the hidden-state family.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -26,6 +45,11 @@ open Qatlib
 open Qatlib.Papers.RejectSample11.MainResults
 open scoped BigOperators ComplexOrder ENNReal
 
+/-- For normalized rational Fourier magnitudes and a positive normalized flat target with
+nonnegative level and positive filled mass, identifies the clipped profile and derives
+success and query/gate formulas from `ReweightingSuccess` of the exact word. A unitary
+preparation of the normalized hidden-state family yields an output with real reweighting
+coefficients on that same family [OzolsRoettelerRoland2013]. -/
 theorem gext4_complete :
     ∀ (n D : ℕ) (fHat : Fin (2 ^ n) → ℚ) (c : ℚ) (γ p : ℝ)
       (j₀ : Fin (2 ^ n) × Fin D),

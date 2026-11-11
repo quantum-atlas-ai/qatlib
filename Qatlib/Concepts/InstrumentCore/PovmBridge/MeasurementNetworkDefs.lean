@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+/-!
+# Binary projective POVMs
+
+This module proves that a Hermitian projection is nonnegative, equals its positive square root,
+and has an idempotent complement. These facts define `binaryProjectivePOVM`, whose effects are
+the projection and its complement.
+
+The construction supplies the POVM form of binary projective measurement in the standard
+finite-dimensional measurement formalism [Watrous2018].
+
+## Main definitions and statements
+
+* `hermitian_projection_half`: a Hermitian projection equals its square root.
+* `binaryProjectivePOVM`: the Boolean-outcome POVM associated with a projection.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -18,6 +39,7 @@ namespace Qatlib.Concepts.InstrumentCore.PovmBridge
 open Matrix
 open scoped ComplexOrder
 
+/-- A Hermitian idempotent equals its square root defined by real functional calculus. -/
 theorem hermitian_projection_half {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     (hP : P.mat * P.mat = P.mat) : P ^ (1 / 2 : ℝ) = P := by
   have heq : P.cfc (fun x => x * x) = P.cfc id := by
@@ -34,12 +56,14 @@ theorem hermitian_projection_half {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     exact (mul_eq_zero.mp hprod).imp id (fun h => sub_eq_zero.mp h)
   rcases hz with rfl | rfl <;> norm_num
 
+/-- A Hermitian idempotent is nonnegative. -/
 theorem hermitian_projection_nonneg {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     (hP : P.mat * P.mat = P.mat) : 0 ≤ P := by
   apply HermitianMat.zero_le_iff.mpr
   have h := Matrix.posSemidef_conjTranspose_mul_self P.mat
   simpa only [HermitianMat.conjTranspose_mat, hP] using h
 
+/-- The complement of a Hermitian idempotent is idempotent. -/
 theorem complement_projection {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     (hP : P.mat * P.mat = P.mat) :
     (1 - P).mat * (1 - P).mat = (1 - P).mat := by
@@ -48,6 +72,7 @@ theorem complement_projection {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     Matrix.one_mul, Matrix.one_mul, Matrix.mul_one, hP]
   abel
 
+/-- The Boolean-outcome POVM with effect `P` for `true` and effect `1 - P` for `false`. -/
 noncomputable def binaryProjectivePOVM {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     (hP : P.mat * P.mat = P.mat) : POVM Bool (Fin D) where
   mats o := if o then P else 1 - P

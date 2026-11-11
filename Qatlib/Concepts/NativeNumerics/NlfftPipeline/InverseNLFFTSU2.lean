@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
+
+/-!
+# Divide-and-conquer inverse nonlinear Fourier transform
+
+This module defines `inverseNLFFTSU2`, a recursive inverse transform returning a list of complex
+parameters, its nonlinear Fourier polynomial pair, and an operation count. For nonlinear Fourier
+transforms in the quantum signal processing setting, see [AlexisEtAl2026].
+
+Under `LayerStripExact`, the divide-and-conquer output agrees with sequential layer stripping.
+The counted work is bounded by `2048 * n * (Nat.clog 2 n + 5)^2` for positive `n`.
+
+## Main statements
+
+* `inverseNLFFTSU2_gammas`: The parameters and polynomial pair agree with sequential layer
+  stripping.
+* `inverseNLFFTSU2_operations`: An explicit bound of order `n * (log n)^2` on the operation
+  counter.
+
+## References
+
+* [Alexis et al., 2026][AlexisEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,16 +37,23 @@ open Polynomial
 
 set_option autoImplicit false
 
+/-- The size-dependent operation budget for a polynomial multiplication padded to the next power
+of two above `4*N`. -/
 def nlfftMulOps (N : ℕ) : ℕ :=
   let S := 2 ^ (Nat.clog 2 (4 * N))
   10 * S * (Nat.log2 S + 1)
 
+/-- The parameter list, nonlinear Fourier polynomial pair, and operation count returned by an
+inverse transform run. -/
 structure InverseNLFFTRunSU2 where
   gammas : List ℂ
   eta : Polynomial ℂ
   xi : Polynomial ℂ
   operations : ℕ
 
+/-- The divide-and-conquer inverse SU(2) nonlinear Fourier transform, recursively stripping a
+coefficient prefix, transforming the residual pair, and combining the resulting polynomial
+pairs. -/
 noncomputable def inverseNLFFTSU2 (A B : Polynomial ℂ) : ℕ → InverseNLFFTRunSU2
   | 0 => { gammas := [], eta := 1, xi := 0, operations := 0 }
   | 1 =>
@@ -46,6 +76,8 @@ noncomputable def inverseNLFFTSU2 (A B : Polynomial ℂ) : ℕ → InverseNLFFTR
     · simp_wf; omega
     · simp_wf; omega
 
+/-- For positive `x`, the base-two ceiling logarithm is at most the base-two floor logarithm
+plus one. -/
 private theorem clog_two_le_succ_log (x : ℕ) (_hx : 1 ≤ x) :
     Nat.clog 2 x ≤ Nat.log 2 x + 1 := by
   by_contra h
@@ -55,6 +87,7 @@ private theorem clog_two_le_succ_log (x : ℕ) (_hx : 1 ≤ x) :
   have h2 := Nat.lt_pow_succ_log_self (b := 2) (by decide) x
   omega
 
+/-- For positive `x`, the least power of two at least `x` is at most `2*x`. -/
 private theorem two_pow_clog_two_mul (x : ℕ) (hx : 1 ≤ x) :
     2 ^ Nat.clog 2 x ≤ 2 * x := by
   have hb2 : (1:ℕ) ≤ 2 := by decide
@@ -63,6 +96,8 @@ private theorem two_pow_clog_two_mul (x : ℕ) (hx : 1 ≤ x) :
     _ = 2 * 2 ^ Nat.log 2 x := by rw [pow_succ']
     _ ≤ 2 * x := Nat.mul_le_mul_left _ (Nat.pow_log_le_self 2 (by omega))
 
+/-- For `N ≥ 2`, the ceiling logarithm of the upper half-size plus one is at most the ceiling
+logarithm of `N`. -/
 private theorem clog_two_ceil_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = (N + 1) / 2) :
     Nat.clog 2 m + 1 ≤ Nat.clog 2 N := by
   have hc : N ≤ 2 ^ Nat.clog 2 N := Nat.le_pow_clog (b := 2) (by decide) N
@@ -82,6 +117,8 @@ private theorem clog_two_ceil_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = (N + 
     omega
   omega
 
+/-- For `N ≥ 2`, the ceiling logarithm of the lower half-size plus one is at most the ceiling
+logarithm of `N`. -/
 private theorem clog_two_floor_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = N / 2) :
     Nat.clog 2 m + 1 ≤ Nat.clog 2 N := by
   have hc : N ≤ 2 ^ Nat.clog 2 N := Nat.le_pow_clog (b := 2) (by decide) N
@@ -101,6 +138,8 @@ private theorem clog_two_floor_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = N / 
     omega
   omega
 
+/-- For positive `N`, the nonrecursive node budget `8 * nlfftMulOps N + 24*N` is at most `664 *
+N * (Nat.clog 2 N + 3)`. -/
 private theorem nodeOps_le (N : ℕ) (hN : 1 ≤ N) :
     8 * nlfftMulOps N + 24 * N ≤ 664 * N * (Nat.clog 2 N + 3) := by
   have hS : 2 ^ Nat.clog 2 (4 * N) ≤ 8 * N :=
@@ -128,6 +167,7 @@ private theorem nodeOps_le (N : ℕ) (hN : 1 ≤ N) :
         exact le_mul_of_one_le_right (Nat.zero_le _) (by omega)
     _ = 664 * N * (Nat.clog 2 N + 3) := by ring
 
+/-- The inverse transform returns exactly `n` complex parameters. -/
 theorem inverseNLFFTSU2_gammas_length (A B : Polynomial ℂ) (n : ℕ) :
     (inverseNLFFTSU2 A B n).gammas.length = n := by
   induction n using Nat.strong_induction_on generalizing A B with
@@ -147,6 +187,7 @@ theorem inverseNLFFTSU2_gammas_length (A B : Polynomial ℂ) (n : ℕ) :
         rw [List.length_append, ih _ (by omega), ih _ (by omega)]
         omega
 
+/-- Exactness for `n+1` sequential layer-stripping steps implies exactness for `n` steps. -/
 private theorem layerStripExact_succ_mono {A B : Polynomial ℂ} {n : ℕ}
     (hex : LayerStripExact A B (n + 1)) : LayerStripExact A B n := by
   induction n generalizing A B with
@@ -155,6 +196,7 @@ private theorem layerStripExact_succ_mono {A B : Polynomial ℂ} {n : ℕ}
     obtain ⟨h0, hex'⟩ := hex
     exact ⟨h0, ih hex'⟩
 
+/-- Exactness for `N` sequential layer-stripping steps implies exactness for every `m ≤ N`. -/
 theorem layerStripExact_of_le {A B : Polynomial ℂ} {m N : ℕ} (hmn : m ≤ N)
     (hex : LayerStripExact A B N) : LayerStripExact A B m := by
   induction N generalizing m with
@@ -169,6 +211,8 @@ theorem layerStripExact_of_le {A B : Polynomial ℂ} {m N : ℕ} (hmn : m ≤ N)
     · have hm2 : m ≤ N := by omega
       exact ih hm2 (layerStripExact_succ_mono hex)
 
+/-- After `m` steps of an exact `m+k`-step layer stripping, the residual polynomial pair is
+exact for another `k` steps. -/
 theorem layerStripExact_add {m : ℕ} {A B : Polynomial ℂ} (k : ℕ)
     (hex : LayerStripExact A B (m + k)) :
     LayerStripExact (layerStripSU2 A B m).finalA (layerStripSU2 A B m).finalB k := by
@@ -181,6 +225,8 @@ theorem layerStripExact_add {m : ℕ} {A B : Polynomial ℂ} (k : ℕ)
     obtain ⟨-, hex'⟩ := hex
     exact ih _ hex'
 
+/-- Agreement of the first `m` coefficients of both input polynomials transfers `m`-step
+layer-stripping exactness to the second pair. -/
 theorem layerStripExact_congr {A B A' B' : Polynomial ℂ} {m : ℕ}
     (h : ∀ i, i < m → A.coeff i = A'.coeff i ∧ B.coeff i = B'.coeff i)
     (hex : LayerStripExact A B m) : LayerStripExact A' B' m := by
@@ -204,6 +250,8 @@ theorem layerStripExact_congr {A B A' B' : Polynomial ℂ} {m : ℕ}
     · rw [h3f, h3g, coeff_smul, Polynomial.coeff_divX, coeff_sub, coeff_smul, coeff_smul,
         Polynomial.coeff_divX, coeff_sub, coeff_smul, hBi1, hAi1, hA0, hB0]
 
+/-- The parameters from `m+k` sequential stripping steps are the first `m` parameters followed
+by the `k` parameters stripped from the residual pair. -/
 theorem layerStripSU2_add_gammas (m k : ℕ) (A B : Polynomial ℂ) :
     (layerStripSU2 A B (m + k)).gammas
       = (layerStripSU2 A B m).gammas
@@ -223,6 +271,8 @@ theorem layerStripSU2_add_gammas (m k : ℕ) (A B : Polynomial ℂ) :
           (layerStripSU2 (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 m).finalB k).gammas
     rw [List.cons_append, ← ih k (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2]
 
+/-- Under `LayerStripExact A B n`, the inverse transform returns the sequential stripping
+parameters and their exact nonlinear Fourier polynomial pair. -/
 theorem inverseNLFFTSU2_gammas (A B : Polynomial ℂ) (n : ℕ) (hex : LayerStripExact A B n) :
     (inverseNLFFTSU2 A B n).gammas = (layerStripSU2 A B n).gammas
     ∧ (inverseNLFFTSU2 A B n).eta = (nlftSU2 (layerStripSU2 A B n).gammas).1
@@ -333,6 +383,8 @@ theorem inverseNLFFTSU2_gammas (A B : Polynomial ℂ) (n : ℕ) (hex : LayerStri
                 omega)),
             Nat.sub_add_cancel hm1]
 
+/-- For positive `n`, the inverse transform's operation count is at most `2048 * n * (Nat.clog 2
+n + 5)^2`. -/
 theorem inverseNLFFTSU2_operations (A B : Polynomial ℂ) (n : ℕ) (hn : 1 ≤ n) :
     (inverseNLFFTSU2 A B n).operations ≤ 2048 * n * (Nat.clog 2 n + 5) ^ 2 := by
   have hmain : ∀ N : ℕ, 1 ≤ N → (inverseNLFFTSU2 A B N).operations

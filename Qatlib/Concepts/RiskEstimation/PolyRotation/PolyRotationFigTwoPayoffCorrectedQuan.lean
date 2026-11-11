@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoPayoffCorrectedStat
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDepthCorrectedQuan
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Payoff semantics of corrected polynomial rotations
+
+This module proves `riskPolyRotationFigTwoPayoffCorrected`, identifying the corrected Figure 2
+program with payoff-rotation amplitudes on clean-work basis states when the payoff angle lies in
+`[0, π / 2]`.
+
+The polynomial payoff-rotation setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `riskPolyRotationFigTwoPayoffCorrected`: When the polynomial payoff angle lies in `[0, π /
+  2]`, the corrected program with the negated doubled angle has the same embedded amplitudes as
+  the corresponding squared-sine payoff rotation; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +47,9 @@ namespace Qatlib.Concepts.RiskEstimation.PolyRotation
 open Matrix Polynomial
 open scoped Classical BigOperators
 
+/-- When the polynomial payoff angle lies in `[0, π / 2]`, the corrected program with the
+negated doubled angle has the same embedded amplitudes as the corresponding squared-sine
+payoff rotation; see [WoernerEgger2019]. -/
 theorem riskPolyRotationFigTwoPayoffCorrected : PolyRotationFigTwoPayoffCorrected := by
   intro u n c fp x
   (try dsimp only)

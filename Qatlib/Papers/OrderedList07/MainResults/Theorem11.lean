@@ -11,6 +11,23 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.NormNum
 
+/-!
+# Stage-count and window estimates for ordered search
+
+Proves elementary stage-count, entropy-gap, and finite-window inequalities used in the
+ordered-search analysis of [BenOrHassidim2007]. The logarithmic estimates control the correction
+terms appearing in the two branches of the query-cost calculation.
+
+## Main statements
+
+* `stage_count_entropy_gap`: bounds the entropy-adjusted stage count.
+* `theorem11_second_branch_envelope`: combines logarithmic error terms into one upper bound.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +35,8 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.OrderedList07.MainResults
 
+/-- For `L ≥ 2 / 3` and `I > 0`, bounds the corrected stage count `L / (I * (1 − 1 / (3 * L)))`
+by `L / I + 2 / (3 * I)`. -/
 lemma stage_count_increment (L I : ℝ) (hL : 2 / 3 ≤ L) (hI : 0 < I) :
     L / (I * (1 - 1 / (3 * L))) ≤ L / I + 2 / (3 * I) := by
   have hL0 : 0 < L := by linarith
@@ -44,6 +63,7 @@ lemma stage_count_increment (L I : ℝ) (hL : 2 / 3 ≤ L) (hI : 0 < I) :
   rw [hstep, le_div_iff₀ h3L]
   nlinarith
 
+/-- For `0 < ε ≤ 1`, subtracting `log₂ (1 / ε)` from `L` gives a value at most `L`. -/
 lemma entropy_gap_le (L ε : ℝ) (hε0 : 0 < ε) (hε1 : ε ≤ 1) :
     L - Real.log (1 / ε) / Real.log 2 ≤ L := by
   have h2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -54,6 +74,8 @@ lemma entropy_gap_le (L ε : ℝ) (hε0 : 0 < ε) (hε1 : ε ≤ 1) :
     linarith
   linarith
 
+/-- For the stated positive parameters, the entropy-adjusted stage count is at most `L / I + 2 /
+(3 * I)` [BenOrHassidim2007]. -/
 lemma stage_count_entropy_gap (L I ε : ℝ) (hL : 2 / 3 ≤ L) (hI : 0 < I)
     (hε0 : 0 < ε) (hε1 : ε ≤ 1) :
     (L - Real.log (1 / ε) / Real.log 2) / (I * (1 - 1 / (3 * L)))
@@ -72,20 +94,25 @@ lemma stage_count_entropy_gap (L I ε : ℝ) (hL : 2 / 3 ≤ L) (hI : 0 < I)
           div_le_div_of_nonneg_right hgap hdenpos.le
     _ ≤ L / I + 2 / (3 * I) := stage_count_increment L I hL hI
 
+/-- The natural-number interval from `i − l` to `i + l` contains at most `2 * l + 1` elements. -/
 lemma window_card_le (i l : ℕ) :
     (Finset.Icc (i - l) (i + l)).card ≤ 2 * l + 1 := by
   have h : (Finset.Icc (i - l) (i + l)).card = (i + l) + 1 - (i - l) :=
     Nat.card_Icc (i - l) (i + l)
   omega
 
+/-- A positive window size `w` is at most `2 ^ (Nat.log 2 w + 1)`. -/
 lemma window_depth_le (w : ℕ) (_hw : 0 < w) :
     w ≤ 2 ^ (Nat.log 2 w + 1) := by
   have h := Nat.lt_pow_succ_log_self (b := 2) (by norm_num) w
   simpa [Nat.succ_eq_add_one] using le_of_lt h
 
+/-- The two comparisons of `δ` with `L ^ 3` cover all real parameter values. -/
 lemma theorem11_branch_exhaustive (L δ : ℝ) : δ ≤ L ^ 3 ∨ L ^ 3 ≤ δ :=
   le_total δ (L ^ 3)
 
+/-- For `L ≥ 1`, `I > 0`, and `0 < δ ≤ min 1 δ'`, replaces the error logarithm at `δ'` by that
+at `δ` and combines the correction terms into the stated envelope [BenOrHassidim2007]. -/
 lemma theorem11_second_branch_envelope (L I δ δ' c₁ : ℝ) (hL1 : 1 ≤ L) (hI : 0 < I)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hδ' : 0 < δ') (hδδ' : δ ≤ δ') (hc₁ : 0 ≤ c₁) :
     L / I + c₁ * (Real.log L / Real.log 2) * (Real.log (1 / δ') / Real.log 2) / I

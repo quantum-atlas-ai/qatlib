@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+
+/-!
+# Residual bounds for approximate matrix evolutions
+
+For a matrix function satisfying `Y' = R - A * Y`, `residual_identity` represents its deviation
+from the exact constant-generator evolution as an integral of the residual `R`. Contractive and
+exponentially damped estimates turn a uniform residual bound into a global error bound. For
+background, see [ReedSimon1980I].
+
+## Main statements
+
+* `residual_identity`: variation-of-constants formula for the residual.
+* `norm_residual_error_le`: integrated damping bound for the evolution error.
+
+## References
+
+* [Reed and Simon, 1980][ReedSimon1980I]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,8 @@ open Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- If `Y' = R - A * Y` and `R` is continuous, the error `Y t - evolution A t * Y 0` is the
+integral of `evolution A (t - s) * R s`. -/
 theorem residual_identity (A : Matrix I I ℂ) (Y R : ℝ → Matrix I I ℂ)
     (hY : ∀ s, HasDerivAt Y (R s - A * Y s) s) (hR : Continuous R) (t : ℝ) :
     Y t - evolution A t * Y 0 =
@@ -38,6 +59,8 @@ theorem residual_identity (A : Matrix I I ℂ) (Y R : ℝ → Matrix I I ℂ)
     ((hcE.mul hR).intervalIntegrable 0 t)
   simpa using! hi.symm
 
+/-- A residual bounded by `δ` on `[0, t]` gives error at most `damping γ t * δ` when the shifted
+generator has positive semidefinite Hermitian part. -/
 theorem norm_residual_error_le (A : Matrix I I ℂ) (γ δ : ℝ)
     (hA : ((A - γ • (1 : Matrix I I ℂ)) +
       (A - γ • (1 : Matrix I I ℂ))ᴴ).PosSemidef)
@@ -63,6 +86,8 @@ theorem norm_residual_error_le (A : Matrix I I ℂ) (γ δ : ℝ)
       simp only [sub_self, sub_zero]
       rw [integral_exp_neg_mul]
 
+/-- For a generator with positive semidefinite Hermitian part, a residual bounded by `δ` on `[0,
+t]` gives error at most `t * δ`. -/
 theorem norm_residual_error_le_time (A : Matrix I I ℂ)
     (hA : (A + Aᴴ).PosSemidef) (Y R : ℝ → Matrix I I ℂ)
     (hY : ∀ s, HasDerivAt Y (R s - A * Y s) s) (hR : Continuous R)

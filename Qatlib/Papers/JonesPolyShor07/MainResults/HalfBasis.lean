@@ -21,6 +21,24 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.LinearAlgebra.Matrix.Defs
 import Mathlib.Tactic
 
+/-!
+# Matrices acting on a prescribed coordinate subset
+
+`ActsOnSubset` requires a matrix to equal the identity outside a selected finite set and to have
+zero entries between that set and its complement. The module proves that the identity satisfies
+this condition and that the condition is closed under multiplication. See [ShorJordan2008].
+
+## Main statements
+
+* `actsOnSubset_one`: The identity matrix satisfies `ActsOnSubset S` for every finite subset S.
+* `actsOnSubset_mul`: The product of two matrices satisfying `ActsOnSubset S` also satisfies
+  `ActsOnSubset S`.
+
+## References
+
+* [Shor and Jordan, 2008][ShorJordan2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -28,11 +46,15 @@ namespace Qatlib.Papers.JonesPolyShor07.MainResults.HalfBasis
 
 open Matrix
 
+/-- The matrix equals the identity on the complement of S and has zero entries between S and its
+complement; see [ShorJordan2008]. -/
 def ActsOnSubset {m : ℕ} (S : Finset (Fin m)) (U : Matrix (Fin m) (Fin m) ℂ) : Prop :=
   (∀ i j, i ∉ S → j ∉ S → U i j = if i = j then 1 else 0) ∧
     (∀ i j, i ∉ S → j ∈ S → U i j = 0) ∧
       (∀ i j, i ∈ S → j ∉ S → U i j = 0)
 
+/-- The identity matrix satisfies `ActsOnSubset S` for every finite subset S; see
+[ShorJordan2008]. -/
 theorem actsOnSubset_one {m : ℕ} (S : Finset (Fin m)) :
     ActsOnSubset S (1 : Matrix (Fin m) (Fin m) ℂ) := by
   refine ⟨?_, ?_, ?_⟩
@@ -44,6 +66,8 @@ theorem actsOnSubset_one {m : ℕ} (S : Finset (Fin m)) :
     have hij : i ≠ j := fun h => hj (h ▸ hi)
     simp [hij]
 
+/-- The product of two matrices satisfying `ActsOnSubset S` also satisfies `ActsOnSubset S`; see
+[ShorJordan2008]. -/
 theorem actsOnSubset_mul {m : ℕ} {S : Finset (Fin m)} {U V : Matrix (Fin m) (Fin m) ℂ}
     (hU : ActsOnSubset S U) (hV : ActsOnSubset S V) : ActsOnSubset S (U * V) := by
   refine ⟨?_, ?_, ?_⟩

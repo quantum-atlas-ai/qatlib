@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.KnownCount.ObservedSearchLowerBoundStat
 import Qatlib.Concepts.SearchStopping.KnownCount.ObservedSearchConsumers
+
+/-!
+# Observed-query lower bound for decoded search
+
+`observedSearchLowerBound` bounds the number of searchable addresses by observed query depth
+when a time-dependent decoder succeeds with probability at least 2/3 for each singleton. It
+includes both the general bound with `max 1` and the bound n ≤ 64q² for n ≥ 2.
+
+For the mathematical background, see [BealsEtAl2001].
+
+## Main statements
+
+* `observedSearchLowerBound`: Well-formed observed singleton search with a normalized initial
+  state and decoding success at least 2/3 satisfies n ≤ max(1, 64q²), and n ≤ 64q² when n ≥ 2,
+  where q is observed query depth.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 open Qatlib
 open scoped Classical
 
+/-- Well-formed observed singleton search with a normalized initial state and decoding success
+at least 2/3 satisfies n ≤ max(1, 64q²), and n ≤ 64q² when n ≥ 2, where q is observed query
+depth. -/
 theorem observedSearchLowerBound : ObservedSearchLowerBound := by
   intro n W _ _ _ P ψ decode hP hψ hs
   by_cases hn : 2 ≤ n

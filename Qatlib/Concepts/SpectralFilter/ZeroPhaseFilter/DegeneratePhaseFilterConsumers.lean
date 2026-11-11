@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
 import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+
+/-!
+# Coherent reflection with degenerate targets
+
+This module bounds the counted coherent reflection error for an orthonormal eigenfamily whose
+target may contain several zero-phase vectors. It extends the phase-detection reflection
+construction of [MagniezNayakRolandSantha2011] to an explicitly selected target subspace.
+
+The three-dimensional example `degenerateThreeWalk` has a two-dimensional +1 eigenspace and one
+−1 eigenvector. One binary phase-detection round extracts the target components exactly and
+implements their coherent reflection.
+
+## Main statements
+
+* `degenerate_phase_actual_coherent_reflection_error`: reflection error controlled by phase gap
+  and nontarget mass.
+* `degenerateThreeWalk_branch`: exact removal of the third component.
+* `degenerate_phase_two_dimensional_target_actual_consumer`: explicit probability, reflection,
+  and detection costs.
+
+## References
+
+* [Magniez et al., 2011, Theorem 6][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -39,6 +64,10 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 
+/-- For a normalized orthonormal eigenstate combination with zero-phase target and gap `η`
+outside it, the counted reflection differs from the embedded target reflection by at most
+`2*(1/(2*M*η))^k` times the square root of the nontarget mass. See
+[MagniezNayakRolandSantha2011]. -/
 theorem degenerate_phase_actual_coherent_reflection_error
     (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
@@ -107,11 +136,15 @@ theorem degenerate_phase_actual_coherent_reflection_error
   norm_num only [Complex.norm_ofNat]
   nlinarith [hn]
 
+/-- The diagonal matrix with eigenvalues +1 on the first two coordinates and −1 on the third. -/
 noncomputable def degenerateThreeWalk : Matrix (Fin 3) (Fin 3) ℂ :=
   Matrix.diagonal (fun i => if i = 2 then -1 else 1)
 
+/-- The phase assignment zero on the first two coordinates and one half on the third. -/
 noncomputable def degenerateThreePhase (i : Fin 3) : ℝ := if i = 2 then 1 / 2 else 0
 
+/-- Each basis ket is an eigenvector of `degenerateThreeWalk` with the exponential eigenvalue
+specified by `degenerateThreePhase`. -/
 theorem degenerateThreeWalk_eigen (j : Fin 3) :
     degenerateThreeWalk *ᵥ Ket j =
       Complex.exp (2 * Real.pi * Complex.I * (degenerateThreePhase j : ℂ)) • Ket j := by
@@ -130,6 +163,8 @@ theorem degenerateThreeWalk_eigen (j : Fin 3) :
   · subst i; simp [Ket, Pi.smul_apply, smul_eq_mul]
   · simp [Ket, hi, Pi.smul_apply, smul_eq_mul]
 
+/-- The binary QPE zero-label kernel is one on the two zero-phase coordinates and zero on the
+half-phase coordinate. -/
 theorem degenerateThreePhase_kernel (j : Fin 3) :
     qpeKernel 2 (degenerateThreePhase j) (0 : Fin 2) = if j = 2 then 0 else 1 := by
   have hh : qpeKernel 2 (1 / 2) (0 : Fin 2) = 0 := by
@@ -142,6 +177,8 @@ theorem degenerateThreePhase_kernel (j : Fin 3) :
   · simpa only [degenerateThreePhase, if_pos hj] using hh
   · simpa only [degenerateThreePhase, if_neg hj] using hz
 
+/-- One binary detection round for `degenerateThreeWalk` preserves the first two amplitudes and
+sets the third to zero. -/
 theorem degenerateThreeWalk_branch (c : Fin 3 → ℂ) :
     degenerateZeroBranch degenerateThreeWalk 2 1 (by decide) c =
       (fun i => if i = 2 then 0 else c i) := by
@@ -161,6 +198,9 @@ theorem degenerateThreeWalk_branch (c : Fin 3 → ℂ) :
     by_cases hj : j = 2 <;> simp [hj, Ket, Ne.symm hji]
   · simp
 
+/-- For the uniform three-coordinate input, one binary detection round has zero-event
+probability `2/3` and retains exactly the first two components, while coherent reflection
+negates the third. The detection word uses one query and four gates. -/
 theorem degenerate_phase_two_dimensional_target_actual_consumer :
     let W : Matrix (Fin 3) (Fin 3) ℂ := Matrix.diagonal (fun i => if i = 2 then -1 else 1);
     let ψ : QState (Fin 3) := fun _ => (Real.sqrt 3 : ℂ)⁻¹;

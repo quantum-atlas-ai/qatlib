@@ -11,6 +11,25 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Off-diagonal entries from quadratic forms
+
+This module defines the bilinear and quadratic forms of a real matrix and the scaled sum and
+difference of two basis vectors. Bilinearity and symmetry give a polarization identity
+recovering an off-diagonal entry; powers of real Hermitian matrices remain Hermitian.
+
+These constructions accompany the results of [JanzingWocjan2006a].
+
+## Main statements
+
+* `offdiag_quadratic_identity`: recovers twice an off-diagonal entry from two quadratic forms.
+* `isHermitian_pow`: preserves Hermiticity under natural powers.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,20 +37,26 @@ open Finset
 
 namespace Qatlib.Papers.DiagPowerBQP06.MainResults.OffDiagonal
 
+/-- The real bilinear expression given by summing `v a * B a b * w b` over both matrix indices. -/
 def bilin {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (v w : Fin N → ℝ) : ℝ :=
   ∑ a, ∑ b, v a * B a b * w b
 
+/-- The quadratic form obtained by evaluating `bilin B` twice on the same vector. -/
 def quad {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (v : Fin N → ℝ) : ℝ :=
   bilin B v v
 
+/-- The standard basis vector equal to one at `i` and zero at the other indices. -/
 def basis {N : ℕ} (i : Fin N) : Fin N → ℝ := fun k => if k = i then 1 else 0
 
+/-- The sum of the basis vectors at `i` and `j`, scaled by the reciprocal of `sqrt 2`. -/
 def plusState {N : ℕ} (i j : Fin N) : Fin N → ℝ :=
   (Real.sqrt 2)⁻¹ • (basis i + basis j)
 
+/-- The difference of the basis vectors at `i` and `j`, scaled by the reciprocal of `sqrt 2`. -/
 def minusState {N : ℕ} (i j : Fin N) : Fin N → ℝ :=
   (Real.sqrt 2)⁻¹ • (basis i - basis j)
 
+/-- The matrix bilinear expression is additive in its first vector argument. -/
 theorem bilin_add_left {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
     (v w w' : Fin N → ℝ) :
     bilin B (v + w) w' = bilin B v w' + bilin B w w' := by
@@ -45,6 +70,7 @@ theorem bilin_add_left {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
   intro b _
   ring
 
+/-- The matrix bilinear expression is additive in its second vector argument. -/
 theorem bilin_add_right {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
     (v w w' : Fin N → ℝ) :
     bilin B v (w + w') = bilin B v w + bilin B v w' := by
@@ -58,6 +84,7 @@ theorem bilin_add_right {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
   intro b _
   ring
 
+/-- The matrix bilinear expression distributes over subtraction in its first vector argument. -/
 theorem bilin_sub_left {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
     (v w w' : Fin N → ℝ) :
     bilin B (v - w) w' = bilin B v w' - bilin B w w' := by
@@ -71,6 +98,7 @@ theorem bilin_sub_left {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
   intro b _
   ring
 
+/-- The matrix bilinear expression distributes over subtraction in its second vector argument. -/
 theorem bilin_sub_right {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
     (v w w' : Fin N → ℝ) :
     bilin B v (w - w') = bilin B v w - bilin B v w' := by
@@ -84,6 +112,7 @@ theorem bilin_sub_right {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
   intro b _
   ring
 
+/-- Scaling the first vector scales the bilinear expression by the same real scalar. -/
 theorem bilin_smul_left {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (c : ℝ)
     (v w : Fin N → ℝ) :
     bilin B (c • v) w = c * bilin B v w := by
@@ -97,6 +126,7 @@ theorem bilin_smul_left {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (c : ℝ)
   intro b _
   ring
 
+/-- Scaling the second vector scales the bilinear expression by the same real scalar. -/
 theorem bilin_smul_right {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (c : ℝ)
     (v w : Fin N → ℝ) :
     bilin B v (c • w) = c * bilin B v w := by
@@ -110,6 +140,8 @@ theorem bilin_smul_right {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (c : ℝ)
   intro b _
   ring
 
+/-- Evaluating the bilinear expression on two standard basis vectors gives the corresponding
+matrix entry. -/
 theorem bilin_basis_basis {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (i j : Fin N) :
     bilin B (basis i) (basis j) = B i j := by
   unfold bilin
@@ -125,6 +157,9 @@ theorem bilin_basis_basis {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ) (i j : Fin 
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 
+/-- For a real symmetric matrix and distinct indices, the plus-state quadratic form minus the
+minus-state quadratic form equals twice the corresponding matrix entry. See
+[JanzingWocjan2006a]. -/
 theorem offdiag_quadratic_identity {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
     (hB : B.IsHermitian) (i j : Fin N) (hij : i ≠ j) :
     quad B (plusState i j) - quad B (minusState i j) = 2 * B i j := by
@@ -158,6 +193,7 @@ theorem offdiag_quadratic_identity {N : ℕ} (B : Matrix (Fin N) (Fin N) ℝ)
   rw [hcc, hcc]
   ring
 
+/-- Every natural power of a real Hermitian matrix is Hermitian. See [JanzingWocjan2006a]. -/
 theorem isHermitian_pow {N : ℕ} (A : Matrix (Fin N) (Fin N) ℝ)
     (hA : A.IsHermitian) (m : ℕ) : (A ^ m).IsHermitian :=
   Matrix.isHermitian_iff_isSelfAdjoint.mpr

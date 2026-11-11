@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
 import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreAuxiliary
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Integrated threshold amplification bounds
+
+Integrating the complement of an even threshold polynomial gives an odd polynomial that
+approximates `γ * x` on a smaller interval while remaining bounded on `[-1, 1]`. The module
+proves primitive identities, scalar approximation estimates, and an explicit cutoff degree bound
+for this construction in the context of [GilyenSuLowWiebe2019]
+
+## Main statements
+
+* `polynomial_increment_bounds`: controls polynomial increments using derivative bounds.
+* `integratedThresholdPolynomial_scalar_bounds`: proves the global bound and inner approximation
+  estimate.
+* `integrated_threshold_amplifier`: packages oddness, degree, and approximation guarantees.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +41,7 @@ namespace Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Polynomial
 open scoped BigOperators
 
+/-- The derivative of the zero constant term polynomial primitive is the original polynomial. -/
 theorem thresholdIntegralPrimitive_derivative (p : Polynomial ℝ) :
     (thresholdIntegralPrimitive p).derivative = p := by
   unfold thresholdIntegralPrimitive
@@ -35,10 +57,12 @@ theorem thresholdIntegralPrimitive_derivative (p : Polynomial ℝ) :
       exact div_mul_cancel₀ _ (by positivity)
     _ = p := p.as_sum_range.symm
 
+/-- The polynomial primitive with zero constant term evaluates to zero at zero. -/
 @[simp] theorem thresholdIntegralPrimitive_eval_zero (p : Polynomial ℝ) :
     (thresholdIntegralPrimitive p).eval 0 = 0 := by
   simp [thresholdIntegralPrimitive, Polynomial.eval_finsetSum, Polynomial.eval_monomial]
 
+/-- Taking the polynomial primitive increases natural degree by at most one. -/
 theorem thresholdIntegralPrimitive_natDegree_le (p : Polynomial ℝ) :
     (thresholdIntegralPrimitive p).natDegree ≤ p.natDegree + 1 := by
   unfold thresholdIntegralPrimitive
@@ -48,6 +72,7 @@ theorem thresholdIntegralPrimitive_natDegree_le (p : Polynomial ℝ) :
     have := Finset.mem_range.mp hi
     omega)
 
+/-- The zero constant term primitive of an even polynomial evaluates as an odd function. -/
 theorem thresholdIntegralPrimitive_odd (p : Polynomial ℝ)
     (heven : p.comp (-Polynomial.X) = p) (x : ℝ) :
     (thresholdIntegralPrimitive p).eval (-x) = -(thresholdIntegralPrimitive p).eval x := by
@@ -67,6 +92,7 @@ theorem thresholdIntegralPrimitive_odd (p : Polynomial ℝ)
     Polynomial.eval_X, Polynomial.eval_zero] at h
   linarith
 
+/-- The integrated threshold polynomial has natural degree at most `2 * 3^k + 1`. -/
 theorem integratedThresholdPolynomial_natDegree_le (γ δ : ℝ) (k : ℕ) :
     (integratedThresholdPolynomial γ δ k).natDegree ≤ 2 * 3 ^ k + 1 := by
   have hwin := thresholdPolynomial_natDegree_le ((1 - δ / 2) / γ) k
@@ -75,6 +101,7 @@ theorem integratedThresholdPolynomial_natDegree_le (γ δ : ℝ) (k : ℕ) :
   exact (Polynomial.natDegree_C_mul_le _ _).trans
     ((thresholdIntegralPrimitive_natDegree_le _).trans (Nat.add_le_add_right hc 1))
 
+/-- The integrated threshold polynomial is odd under evaluation. -/
 theorem integratedThresholdPolynomial_odd (γ δ : ℝ) (k : ℕ) (x : ℝ) :
     (integratedThresholdPolynomial γ δ k).eval (-x) =
       -(integratedThresholdPolynomial γ δ k).eval x := by
@@ -85,15 +112,20 @@ theorem integratedThresholdPolynomial_odd (γ δ : ℝ) (k : ℕ) (x : ℝ) :
   simp only [integratedThresholdPolynomial, Polynomial.eval_C_mul, h]
   ring
 
+/-- The integrated threshold polynomial evaluates to zero at zero. -/
 @[simp] theorem integratedThresholdPolynomial_eval_zero (γ δ : ℝ) (k : ℕ) :
     (integratedThresholdPolynomial γ δ k).eval 0 = 0 := by
   simp [integratedThresholdPolynomial]
 
+/-- The derivative of the integrated threshold polynomial is `γ` times the complement of the
+threshold polynomial at `(1 - δ / 2) / γ`. -/
 theorem integratedThresholdPolynomial_derivative (γ δ : ℝ) (k : ℕ) :
     (integratedThresholdPolynomial γ δ k).derivative =
       Polynomial.C γ * (1 - thresholdPolynomial ((1 - δ / 2) / γ) k) := by
   simp [integratedThresholdPolynomial, thresholdIntegralPrimitive_derivative]
 
+/-- Under the stated parameter bounds, the integrated threshold cutoff achieves the required
+sign polynomial tolerance and degree at most `1 + 2048 * γ⁸ / δ⁴ * log (1 / tolerance)²`. -/
 theorem integratedThresholdCutoff_bounds (γ δ ε : ℝ)
     (hγ : 1 ≤ γ) (hδ : 0 < δ) (hδ1 : δ ≤ 1 / 2)
     (hε : 0 < ε) (_hε1 : ε ≤ 1 / 2) :
@@ -205,6 +237,8 @@ theorem integratedThresholdCutoff_bounds (γ δ ε : ℝ)
     rw [← hbudgeteq]
     linarith
 
+/-- If a polynomial derivative lies between `lo` and `hi` on `[a, b]` with `a ≤ b`, its
+increment lies between `lo * (b - a)` and `hi * (b - a)`. -/
 theorem polynomial_increment_bounds (p : Polynomial ℝ) (a b lo hi : ℝ)
     (hab : a ≤ b)
     (hder : ∀ x ∈ Set.Icc a b, lo ≤ p.derivative.eval x ∧ p.derivative.eval x ≤ hi) :
@@ -220,6 +254,9 @@ theorem polynomial_increment_bounds (p : Polynomial ℝ) (a b lo hi : ℝ)
   simp only [intervalIntegral.integral_const, smul_eq_mul] at hlo hhi
   constructor <;> nlinarith
 
+/-- If the sign polynomial error is within the integrated threshold tolerance, the amplifier has
+absolute value at most `1 - δ / 8` on `[-1, 1]` and approximates `γ * x` within `ε / 2`
+whenever `|x| ≤ (1 - δ) / γ`. -/
 theorem integratedThresholdPolynomial_scalar_bounds (γ δ ε : ℝ) (k : ℕ)
     (hγ : 1 ≤ γ) (hδ : 0 < δ) (hδ1 : δ ≤ 1 / 2)
     (hε : 0 < ε)
@@ -388,6 +425,9 @@ theorem integratedThresholdPolynomial_scalar_bounds (γ δ ε : ℝ) (k : ℕ)
       have he : p.eval (-x) - γ * (-x) = -(p.eval x - γ * x) := by rw [hodd]; ring
       simpa only [he, abs_neg] using hh
 
+/-- At the integrated threshold cutoff, the amplifier is odd, has the stated explicit degree
+bound, is bounded by `1 - δ / 8` on `[-1, 1]`, and approximates `γ * x` within `ε / 2` on
+`|x| ≤ (1 - δ) / γ`. -/
 theorem integrated_threshold_amplifier (γ δ ε : ℝ)
     (hγ : 1 ≤ γ) (hδ : 0 < δ) (hδ1 : δ ≤ 1 / 2)
     (hε : 0 < ε) (hε1 : ε ≤ 1 / 2) :

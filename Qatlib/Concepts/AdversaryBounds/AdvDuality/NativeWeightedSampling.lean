@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeWeightedSamplingDefs
+
+/-!
+# Native weighted sampling probabilities
+
+This module proves the endpoint probabilities and almost sure termination of the native fair-bit
+race. The laws `leftEvent` and `rightEvent` satisfy one-step averaging recurrences, their
+suprema give `leftMass` and `rightMass`, and `harmonic_affine` identifies the resulting
+probabilities as `b / (a + b)` and `a / (a + b)` when the total weight is positive.
+
+The native tape implementation places this sampler in the classical computation setting
+discussed in [KitaevShenVyalyi2002]. The probability formulas here are established from the
+concrete program semantics; `encoded_ledger` and `loaded_workspace` also record its step
+accounting and workspace size.
+
+## Main statements
+
+* `leftMass_eq_iSup` and `rightMass_eq_iSup` express terminal masses as suprema of bounded
+  executions.
+* `clause23_complete` gives both weighted outcome formulas and the zero-weight case.
+* `clause24_complete` proves zero nontermination mass and total halted mass one for positive
+  total weight.
+* `encoded_ledger` and `loaded_workspace` quantify execution steps and workspace cardinality.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,12 +57,14 @@ open Qatlib
 open Qatlib
 open scoped ENNReal
 
+/-- Prepending a tick to an execution result leaves its decoded race outcome unchanged. -/
 theorem of_prepend (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control)
     (e : NativeTape.Tick Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     RaceOutcome.of (NativeTape.Result.prepend e r) = RaceOutcome.of r := by
   simp [NativeTape.Result.prepend, RaceOutcome.of,
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output]
 
+/-- A result classified as a left outcome has halted. -/
 theorem of_eq_left_halted {r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control}
     (h : RaceOutcome.of r = .left) : r.stop = .halted := by
   have h2 : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r = some false := by
@@ -46,6 +76,7 @@ theorem of_eq_left_halted {r : NativeTape.Result Qatlib.Concepts.AdversaryBounds
   · exact hs
   · simp [hs] at h2
 
+/-- A result classified as a right outcome has halted. -/
 theorem of_eq_right_halted {r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control}
     (h : RaceOutcome.of r = .right) : r.stop = .halted := by
   have h2 : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r = some true := by
@@ -57,6 +88,8 @@ theorem of_eq_right_halted {r : NativeTape.Result Qatlib.Concepts.AdversaryBound
   · exact hs
   · simp [hs] at h2
 
+/-- For positive `a` and `b`, rewriting both distances as predecessor plus one preserves
+`positionTape a b`. -/
 theorem positionTape_interior (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape a b = Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape (a-1+1) (b-1+1) := by
   cases a with
@@ -66,6 +99,7 @@ theorem positionTape_interior (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     | zero => omega
     | succ b => rfl
 
+/-- The tape head reads an interior cell when both endpoint distances are positive. -/
 theorem head_cell (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     Turing.Tape.head (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape a b) = .cell := by
   have h := positionTape_interior a b ha hb
@@ -73,6 +107,8 @@ theorem head_cell (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   simp [Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape, Turing.Tape.mk₂, Turing.Tape.mk',
     Turing.ListBlank.head_mk]
 
+/-- The tape head reads the left endpoint marker at distance zero from the left endpoint and
+positive distance from the right endpoint. -/
 theorem head_left (b : ℕ) (hb : 0 < b) :
     Turing.Tape.head (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape 0 b) = .left := by
   obtain ⟨b', hb'⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
@@ -80,6 +116,8 @@ theorem head_left (b : ℕ) (hb : 0 < b) :
   simp [Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape, Turing.Tape.mk₂, Turing.Tape.mk',
     Turing.ListBlank.head_mk]
 
+/-- The tape head reads the right endpoint marker at distance zero from the right endpoint and
+positive distance from the left endpoint. -/
 theorem head_right (a : ℕ) (ha : 0 < a) :
     Turing.Tape.head (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape a 0) = .right := by
   obtain ⟨a', ha'⟩ : ∃ a', a = a' + 1 := ⟨a - 1, by omega⟩
@@ -87,6 +125,8 @@ theorem head_right (a : ℕ) (ha : 0 < a) :
   simp [Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape, Turing.Tape.mk₂, Turing.Tape.mk',
     Turing.ListBlank.head_mk]
 
+/-- From positive endpoint distances, a left move sends `loaded a b` to `loaded (a - 1) (b +
+1)`. -/
 theorem advance_left (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     NativeTape.advance (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) (.walk, .move .left) =
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded (a-1) (b+1) := by
@@ -97,6 +137,8 @@ theorem advance_left (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded, TM0StmtApply]
   rw [h, hp, hb2]
 
+/-- From positive endpoint distances, a right move sends `loaded a b` to `loaded (a + 1) (b -
+1)`. -/
 theorem advance_right (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     NativeTape.advance (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) (.walk, .move .right) =
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded (a+1) (b-1) := by
@@ -107,6 +149,9 @@ theorem advance_right (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded, TM0StmtApply]
   rw [h, hp, ha2]
 
+/-- At an interior position, the execution law with budget `n + 1` samples a uniform Boolean,
+moves in its direction, and continues with budget `n`. The initial configuration and sampled
+bit are prepended to each continuation result. -/
 theorem law_coin (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (n+1) (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) =
       (PMF.uniformOfFintype' Bool).bind fun bit =>
@@ -119,6 +164,8 @@ theorem law_coin (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   rw [hh]
   rfl
 
+/-- The bounded left-outcome event equals the sum of finished result masses weighted by
+`leftIndicator`. -/
 theorem leftEvent_eq_finished (n a b : ℕ) :
     leftEvent n a b =
       ∑' r, NativeTape.finishedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r *
@@ -136,6 +183,8 @@ theorem leftEvent_eq_finished (n a b : ℕ) :
       · rw [leftIndicator, if_neg ho]
     simp [h1]
 
+/-- The bounded right-outcome event equals the sum of finished result masses weighted by
+`rightIndicator`. -/
 theorem rightEvent_eq_finished (n a b : ℕ) :
     rightEvent n a b =
       ∑' r, NativeTape.finishedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r *
@@ -153,6 +202,8 @@ theorem rightEvent_eq_finished (n a b : ℕ) :
       · rw [rightIndicator, if_neg ho]
     simp [h1]
 
+/-- The eventual left-outcome mass is the supremum of the left-outcome events over all execution
+budgets. -/
 theorem leftMass_eq_iSup (a b : ℕ) :
     leftMass a b = ⨆ n, leftEvent n a b := by
   have hmono : ∀ r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control,
@@ -183,6 +234,8 @@ theorem leftMass_eq_iSup (a b : ℕ) :
   funext n
   exact (leftEvent_eq_finished n a b).symm
 
+/-- The eventual right-outcome mass is the supremum of the right-outcome events over all
+execution budgets. -/
 theorem rightMass_eq_iSup (a b : ℕ) :
     rightMass a b = ⨆ n, rightEvent n a b := by
   have hmono : ∀ r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control,
@@ -213,6 +266,7 @@ theorem rightMass_eq_iSup (a b : ℕ) :
   funext n
   exact (rightEvent_eq_finished n a b).symm
 
+/-- Increasing the execution budget cannot decrease the left-outcome event mass. -/
 theorem leftEvent_mono (n m a b : ℕ) (h : n ≤ m) : leftEvent n a b ≤ leftEvent m a b := by
   rw [leftEvent_eq_finished, leftEvent_eq_finished]
   exact ENNReal.tsum_le_tsum fun r =>
@@ -220,6 +274,7 @@ theorem leftEvent_mono (n m a b : ℕ) (h : n ≤ m) : leftEvent n a b ≤ leftE
       (NativeTape.finishedMass_mono Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r h)
       (leftIndicator r)
 
+/-- Increasing the execution budget cannot decrease the right-outcome event mass. -/
 theorem rightEvent_mono (n m a b : ℕ) (h : n ≤ m) :
     rightEvent n a b ≤ rightEvent m a b := by
   rw [rightEvent_eq_finished, rightEvent_eq_finished]
@@ -228,18 +283,22 @@ theorem rightEvent_mono (n m a b : ℕ) (h : n ≤ m) :
       (NativeTape.finishedMass_mono Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r h)
       (rightIndicator r)
 
+/-- Prepending a coin tick at `loaded a b` preserves the left-outcome indicator. -/
 theorem leftIndicator_prepend (a b : ℕ) (bit : Bool)
     (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     leftIndicator (NativeTape.Result.prepend (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b, some bit) r) =
       leftIndicator r := by
   simp [leftIndicator, of_prepend]
 
+/-- Prepending a coin tick at `loaded a b` preserves the right-outcome indicator. -/
 theorem rightIndicator_prepend (a b : ℕ) (bit : Bool)
     (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     rightIndicator (NativeTape.Result.prepend (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b, some bit) r) =
       rightIndicator r := by
   simp [rightIndicator, of_prepend]
 
+/-- Expectation under a bound probability law followed by a dependent map equals the
+corresponding iterated expectation. -/
 theorem expectation_bind_map {α β γ : Type} (p : PMF α) (q : α → PMF β) (f : α → β → γ)
     (g : γ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (p.bind (fun a => (q a).map (f a))) g =
@@ -250,6 +309,8 @@ theorem expectation_bind_map {α β γ : Type} (p : PMF α) (q : α → PMF β) 
   funext a
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
 
+/-- At positive endpoint distances, the left-outcome event with budget `n + 1` is the average of
+the two neighboring left-outcome events with budget `n`. -/
 theorem leftEvent_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     leftEvent (n+1) a b =
       (1/2 : ℝ≥0∞) * leftEvent n (a-1) (b+1) + (1/2 : ℝ≥0∞) * leftEvent n (a+1) (b-1) := by
@@ -294,6 +355,8 @@ theorem leftEvent_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     advance_right a b ha hb, advance_left a b ha hb]
   exact add_comm _ _
 
+/-- At positive endpoint distances, the right-outcome event with budget `n + 1` is the average
+of the two neighboring right-outcome events with budget `n`. -/
 theorem rightEvent_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     rightEvent (n+1) a b =
       (1/2 : ℝ≥0∞) * rightEvent n (a-1) (b+1) + (1/2 : ℝ≥0∞) * rightEvent n (a+1) (b-1) := by
@@ -338,6 +401,8 @@ theorem rightEvent_succ (n a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     advance_right a b ha hb, advance_left a b ha hb]
   exact add_comm _ _
 
+/-- The supremum of the pointwise sum of two monotone natural-indexed extended nonnegative real
+sequences is the sum of their suprema. -/
 theorem iSup_add_of_monotone {x y : ℕ → ℝ≥0∞} (hx : Monotone x) (hy : Monotone y) :
     (⨆ n, (x n + y n)) = (⨆ n, x n) + (⨆ n, y n) := by
   have key : ∀ n, (⨆ m, (x n + y m)) ≤ (⨆ k, (x k + y k)) := by
@@ -359,6 +424,8 @@ theorem iSup_add_of_monotone {x y : ℕ → ℝ≥0∞} (hx : Monotone x) (hy : 
     exact key n
   exact le_antisymm hA hB
 
+/-- Removing the initial term of a monotone natural-indexed extended nonnegative real sequence
+preserves its supremum. -/
 theorem iSup_shift {g : ℕ → ℝ≥0∞} (hg : Monotone g) :
     (⨆ n, g (n+1)) = ⨆ n, g n := by
   have h1 : (⨆ n, g (n+1)) ≤ (⨆ m, g m) := by
@@ -369,6 +436,8 @@ theorem iSup_shift {g : ℕ → ℝ≥0∞} (hg : Monotone g) :
     exact (hg (Nat.le_succ n)).trans (le_iSup (fun k => g (k+1)) n)
   exact le_antisymm (by simpa using h1) (by simpa using h2)
 
+/-- At positive endpoint distances, the eventual left-outcome mass is the average of the
+eventual left-outcome masses at the two neighboring positions. -/
 theorem leftMass_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     leftMass a b = (1/2 : ℝ≥0∞) * leftMass (a-1) (b+1) + (1/2 : ℝ≥0∞) * leftMass (a+1) (b-1) := by
   rw [leftMass_eq_iSup, leftMass_eq_iSup, leftMass_eq_iSup]
@@ -401,6 +470,8 @@ theorem leftMass_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     _ = (1/2 : ℝ≥0∞) * (⨆ n, leftEvent n (a-1) (b+1)) +
         (1/2 : ℝ≥0∞) * (⨆ n, leftEvent n (a+1) (b-1)) := mul_add _ _ _
 
+/-- At positive endpoint distances, the eventual right-outcome mass is the average of the
+eventual right-outcome masses at the two neighboring positions. -/
 theorem rightMass_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     rightMass a b = (1/2 : ℝ≥0∞) * rightMass (a-1) (b+1) + (1/2 : ℝ≥0∞) * rightMass (a+1) (b-1) := by
   rw [rightMass_eq_iSup, rightMass_eq_iSup, rightMass_eq_iSup]
@@ -433,23 +504,32 @@ theorem rightMass_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     _ = (1/2 : ℝ≥0∞) * (⨆ n, rightEvent n (a-1) (b+1)) +
         (1/2 : ℝ≥0∞) * (⨆ n, rightEvent n (a+1) (b-1)) := mul_add _ _ _
 
+/-- The control state of `loaded a b` is `walk`. -/
 theorem loaded_q (a b : ℕ) :
     (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b).q = .walk := rfl
 
+/-- The tape head of `loaded a b` is the head of `positionTape a b`. -/
 theorem loaded_head (a b : ℕ) :
     (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b).Tape.head = Turing.Tape.head (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape a b) := rfl
 
+/-- The halted result obtained by writing `out0` at the left endpoint, with no consumed bits and
+a single deterministic tick in its trace. -/
 def leftEndpointResult (b : ℕ) : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control :=
   ⟨⟨.done, (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape 0 b).write .out0⟩, [], .halted,
     [(Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded 0 b, none)]⟩
 
+/-- The halted result obtained by writing `out1` at the right endpoint, with no consumed bits
+and a single deterministic tick in its trace. -/
 def rightEndpointResult (a : ℕ) : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control :=
   ⟨⟨.done, (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.positionTape a 0).write .out1⟩, [], .halted,
     [(Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a 0, none)]⟩
 
+/-- The halted result at `loaded 0 0`, with no consumed bits and an empty trace. -/
 def degenerateResult : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control :=
   ⟨Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded 0 0, [], .halted, []⟩
 
+/-- For every budget, execution from control state `done` is concentrated on the unchanged
+halted configuration with empty bits and trace. -/
 theorem law_halted_cfg (m : ℕ) (T : Turing.Tape Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol) :
     NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program m ⟨.done, T⟩ =
       PMF.pure ⟨⟨.done, T⟩, [], .halted, []⟩ := by
@@ -461,6 +541,8 @@ theorem law_halted_cfg (m : ℕ) (T : Turing.Tape Qatlib.Concepts.AdversaryBound
       simp only [NativeTape.law,
           Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program]
 
+/-- With positive budget and positive right distance, execution from the left endpoint is
+concentrated on `leftEndpointResult b`. -/
 theorem law_left_endpoint (n b : ℕ) (hn : 0 < n) (hb : 0 < b) :
     NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded 0 b) =
       PMF.pure (leftEndpointResult b) := by
@@ -480,6 +562,8 @@ theorem law_left_endpoint (n b : ℕ) (hn : 0 < n) (hb : 0 < b) :
       rw [hadv, hhalt, PMF.pure_map]
       rfl
 
+/-- With positive budget and positive left distance, execution from the right endpoint is
+concentrated on `rightEndpointResult a`. -/
 theorem law_right_endpoint (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
     NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a 0) =
       PMF.pure (rightEndpointResult a) := by
@@ -499,6 +583,7 @@ theorem law_right_endpoint (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
       rw [hadv, hhalt, PMF.pure_map]
       rfl
 
+/-- For every budget, execution from `loaded 0 0` is concentrated on `degenerateResult`. -/
 theorem law_degenerate (n : ℕ) :
     NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded 0 0) =
       PMF.pure degenerateResult := by
@@ -516,6 +601,7 @@ theorem law_degenerate (n : ℕ) :
           Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program, loaded_q, loaded_head, hhead]
       rfl
 
+/-- For positive right distance, `leftEndpointResult b` decodes to the left race outcome. -/
 theorem of_leftEndpointResult (b : ℕ) (hb : 0 < b) :
     RaceOutcome.of (leftEndpointResult b) = .left := by
   have hs : (leftEndpointResult b).stop = .halted := rfl
@@ -528,6 +614,7 @@ theorem of_leftEndpointResult (b : ℕ) (hb : 0 < b) :
     rfl
   exact RaceOutcome.of_eq_left _ hout
 
+/-- For positive left distance, `rightEndpointResult a` decodes to the right race outcome. -/
 theorem of_rightEndpointResult (a : ℕ) (ha : 0 < a) :
     RaceOutcome.of (rightEndpointResult a) = .right := by
   have hs : (rightEndpointResult a).stop = .halted := rfl
@@ -540,6 +627,7 @@ theorem of_rightEndpointResult (a : ℕ) (ha : 0 < a) :
     rfl
   exact RaceOutcome.of_eq_right _ hout
 
+/-- The degenerate halted result has no decoded race outcome. -/
 theorem of_degenerateResult : RaceOutcome.of degenerateResult = .none := by
   have hs : degenerateResult.stop = .halted := rfl
   have hq : degenerateResult.cfg.q = .walk := rfl
@@ -549,6 +637,8 @@ theorem of_degenerateResult : RaceOutcome.of degenerateResult = .none := by
     rfl
   exact RaceOutcome.of_eq_none _ hout
 
+/-- The expectation of a function under a pure probability law is its value at the selected
+point. -/
 theorem expectation_pure {α : Type} (r : α) (f : α → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (PMF.pure r) f = f r := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
@@ -558,16 +648,19 @@ theorem expectation_pure {α : Type} (r : α) (f : α → ℝ≥0∞) :
     have h0 : (PMF.pure r) b = 0 := by simp [PMF.pure_apply, hb]
     simp [h0]
 
+/-- The left-outcome indicator is at most one for every execution result. -/
 theorem leftIndicator_le (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     leftIndicator r ≤ 1 := by
   unfold leftIndicator
   split <;> norm_num
 
+/-- The right-outcome indicator is at most one for every execution result. -/
 theorem rightIndicator_le (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     rightIndicator r ≤ 1 := by
   unfold rightIndicator
   split <;> norm_num
 
+/-- The left-outcome event mass is at most one for every budget and pair of endpoint distances. -/
 theorem leftEvent_le_one (n a b : ℕ) : leftEvent n a b ≤ 1 := by
   unfold leftEvent Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   calc ∑' r, (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) * leftIndicator r
@@ -578,6 +671,7 @@ theorem leftEvent_le_one (n a b : ℕ) : leftEvent n a b ≤ 1 := by
         rw [tsum_congr (fun r => by rw [mul_one])]
         exact (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)).tsum_coe
 
+/-- The right-outcome event mass is at most one for every budget and pair of endpoint distances. -/
 theorem rightEvent_le_one (n a b : ℕ) : rightEvent n a b ≤ 1 := by
   unfold rightEvent Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   calc ∑' r, (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) * rightIndicator r
@@ -588,6 +682,8 @@ theorem rightEvent_le_one (n a b : ℕ) : rightEvent n a b ≤ 1 := by
         rw [tsum_congr (fun r => by rw [mul_one])]
         exact (NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)).tsum_coe
 
+/-- At the right endpoint with positive left distance, the left-outcome event has zero mass
+under a zero execution budget. -/
 theorem leftEvent_zero_budget_right (a : ℕ) (ha : 0 < a) : leftEvent 0 a 0 = 0 := by
   unfold leftEvent
   have hlaw : NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program 0 (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a 0) =
@@ -598,6 +694,8 @@ theorem leftEvent_zero_budget_right (a : ℕ) (ha : 0 < a) : leftEvent 0 a 0 = 0
   simp [leftIndicator, RaceOutcome.of,
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output]
 
+/-- At the left endpoint with positive right distance, the right-outcome event has zero mass
+under a zero execution budget. -/
 theorem rightEvent_zero_budget_left (b : ℕ) (hb : 0 < b) : rightEvent 0 0 b = 0 := by
   unfold rightEvent
   have hlaw : NativeTape.law Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program 0 (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded 0 b) =
@@ -608,6 +706,8 @@ theorem rightEvent_zero_budget_left (b : ℕ) (hb : 0 < b) : rightEvent 0 0 b = 
   simp [rightIndicator, RaceOutcome.of,
       Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output]
 
+/-- At the left endpoint with positive right distance and positive budget, the left-outcome
+event has mass one. -/
 theorem leftEvent_zero_left (n b : ℕ) (hn : 0 < n) (hb : 0 < b) :
     leftEvent n 0 b = 1 := by
   unfold leftEvent
@@ -615,6 +715,8 @@ theorem leftEvent_zero_left (n b : ℕ) (hn : 0 < n) (hb : 0 < b) :
   rw [expectation_pure]
   simp [leftIndicator, of_leftEndpointResult b hb]
 
+/-- At the right endpoint with positive left distance and positive budget, the right-outcome
+event has mass one. -/
 theorem rightEvent_zero_right (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
     rightEvent n a 0 = 1 := by
   unfold rightEvent
@@ -622,6 +724,8 @@ theorem rightEvent_zero_right (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
   rw [expectation_pure]
   simp [rightIndicator, of_rightEndpointResult a ha]
 
+/-- At the right endpoint with positive left distance and positive budget, the left-outcome
+event has mass zero. -/
 theorem leftEvent_zero_right (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
     leftEvent n a 0 = 0 := by
   unfold leftEvent
@@ -629,6 +733,8 @@ theorem leftEvent_zero_right (n a : ℕ) (hn : 0 < n) (ha : 0 < a) :
   rw [expectation_pure]
   simp [leftIndicator, of_rightEndpointResult a ha]
 
+/-- At the left endpoint with positive right distance and positive budget, the right-outcome
+event has mass zero. -/
 theorem rightEvent_zero_left (n b : ℕ) (hn : 0 < n) (hb : 0 < b) :
     rightEvent n 0 b = 0 := by
   unfold rightEvent
@@ -636,26 +742,33 @@ theorem rightEvent_zero_left (n b : ℕ) (hn : 0 < n) (hb : 0 < b) :
   rw [expectation_pure]
   simp [rightIndicator, of_leftEndpointResult b hb]
 
+/-- For every budget, the left-outcome event has mass zero when both endpoint distances are
+zero. -/
 theorem leftEvent_degenerate (n : ℕ) : leftEvent n 0 0 = 0 := by
   unfold leftEvent
   rw [law_degenerate n]
   rw [expectation_pure]
   simp [leftIndicator, of_degenerateResult]
 
+/-- For every budget, the right-outcome event has mass zero when both endpoint distances are
+zero. -/
 theorem rightEvent_degenerate (n : ℕ) : rightEvent n 0 0 = 0 := by
   unfold rightEvent
   rw [law_degenerate n]
   rw [expectation_pure]
   simp [rightIndicator, of_degenerateResult]
 
+/-- The eventual left-outcome mass is at most one for every pair of endpoint distances. -/
 theorem leftMass_le_one (a b : ℕ) : leftMass a b ≤ 1 := by
   rw [leftMass_eq_iSup]
   exact iSup_le (fun n => leftEvent_le_one n a b)
 
+/-- The eventual right-outcome mass is at most one for every pair of endpoint distances. -/
 theorem rightMass_le_one (a b : ℕ) : rightMass a b ≤ 1 := by
   rw [rightMass_eq_iSup]
   exact iSup_le (fun n => rightEvent_le_one n a b)
 
+/-- At the left endpoint with positive right distance, the eventual left-outcome mass is one. -/
 theorem leftMass_zero_left (b : ℕ) (hb : 0 < b) : leftMass 0 b = 1 := by
   rw [leftMass_eq_iSup]
   refine le_antisymm ?_ ?_
@@ -666,6 +779,7 @@ theorem leftMass_zero_left (b : ℕ) (hb : 0 < b) : leftMass 0 b = 1 := by
     rw [h1] at hle
     exact hle
 
+/-- At the right endpoint with positive left distance, the eventual right-outcome mass is one. -/
 theorem rightMass_zero_right (a : ℕ) (ha : 0 < a) : rightMass a 0 = 1 := by
   rw [rightMass_eq_iSup]
   refine le_antisymm ?_ ?_
@@ -676,6 +790,7 @@ theorem rightMass_zero_right (a : ℕ) (ha : 0 < a) : rightMass a 0 = 1 := by
     rw [h1] at hle
     exact hle
 
+/-- At the right endpoint with positive left distance, the eventual left-outcome mass is zero. -/
 theorem leftMass_zero_right (a : ℕ) (ha : 0 < a) : leftMass a 0 = 0 := by
   rw [leftMass_eq_iSup]
   refine le_antisymm ?_ ?_
@@ -685,6 +800,7 @@ theorem leftMass_zero_right (a : ℕ) (ha : 0 < a) : leftMass a 0 = 0 := by
     | succ n => rw [leftEvent_zero_right (n+1) a (by omega) ha]
   · exact bot_le
 
+/-- At the left endpoint with positive right distance, the eventual right-outcome mass is zero. -/
 theorem rightMass_zero_left (b : ℕ) (hb : 0 < b) : rightMass 0 b = 0 := by
   rw [rightMass_eq_iSup]
   refine le_antisymm ?_ ?_
@@ -694,6 +810,7 @@ theorem rightMass_zero_left (b : ℕ) (hb : 0 < b) : rightMass 0 b = 0 := by
     | succ n => rw [rightEvent_zero_left (n+1) b (by omega) hb]
   · exact bot_le
 
+/-- The eventual left-outcome mass is zero when both endpoint distances are zero. -/
 theorem leftMass_degenerate : leftMass 0 0 = 0 := by
   rw [leftMass_eq_iSup]
   refine le_antisymm ?_ ?_
@@ -701,6 +818,7 @@ theorem leftMass_degenerate : leftMass 0 0 = 0 := by
     rw [leftEvent_degenerate n]
   · exact bot_le
 
+/-- The eventual right-outcome mass is zero when both endpoint distances are zero. -/
 theorem rightMass_degenerate : rightMass 0 0 = 0 := by
   rw [rightMass_eq_iSup]
   refine le_antisymm ?_ ?_
@@ -708,16 +826,24 @@ theorem rightMass_degenerate : rightMass 0 0 = 0 := by
     rw [rightEvent_degenerate n]
   · exact bot_le
 
+/-- The real-valued left-outcome probability, obtained by applying `ENNReal.toReal` to
+`leftMass`. -/
 noncomputable def leftProb (a b : ℕ) : ℝ := (leftMass a b).toReal
 
+/-- The real-valued right-outcome probability, obtained by applying `ENNReal.toReal` to
+`rightMass`. -/
 noncomputable def rightProb (a b : ℕ) : ℝ := (rightMass a b).toReal
 
+/-- The eventual left-outcome mass is finite for every pair of endpoint distances. -/
 theorem leftMass_ne_top (a b : ℕ) : leftMass a b ≠ ∞ :=
   ne_of_lt (lt_of_le_of_lt (leftMass_le_one a b) ENNReal.one_lt_top)
 
+/-- The eventual right-outcome mass is finite for every pair of endpoint distances. -/
 theorem rightMass_ne_top (a b : ℕ) : rightMass a b ≠ ∞ :=
   ne_of_lt (lt_of_le_of_lt (rightMass_le_one a b) ENNReal.one_lt_top)
 
+/-- At positive endpoint distances, the real left-outcome probability is the average of its
+values at the two neighboring positions. -/
 theorem leftProb_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     leftProb a b = (1/2 : ℝ) * leftProb (a-1) (b+1) + (1/2 : ℝ) * leftProb (a+1) (b-1) := by
   unfold leftProb
@@ -728,6 +854,8 @@ theorem leftProb_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   · exact ENNReal.mul_ne_top (by simp) (leftMass_ne_top (a-1) (b+1))
   · exact ENNReal.mul_ne_top (by simp) (leftMass_ne_top (a+1) (b-1))
 
+/-- At positive endpoint distances, the real right-outcome probability is the average of its
+values at the two neighboring positions. -/
 theorem rightProb_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     rightProb a b = (1/2 : ℝ) * rightProb (a-1) (b+1) + (1/2 : ℝ) * rightProb (a+1) (b-1) := by
   unfold rightProb
@@ -738,6 +866,9 @@ theorem rightProb_succ (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
   · exact ENNReal.mul_ne_top (by simp) (rightMass_ne_top (a-1) (b+1))
   · exact ENNReal.mul_ne_top (by simp) (rightMass_ne_top (a+1) (b-1))
 
+/-- A real sequence satisfying the discrete harmonic recurrence on the interior of a positive
+finite interval equals the affine interpolation of its endpoint values throughout that
+interval. -/
 theorem harmonic_affine {N : ℕ} (hN : 0 < N) (r : ℕ → ℝ) (c0 cN : ℝ)
     (h0 : r 0 = c0) (hN' : r N = cN)
     (hrec : ∀ i, 1 ≤ i → i < N → r (i-1) + r (i+1) = 2 * r i) :
@@ -798,6 +929,8 @@ theorem harmonic_affine {N : ℕ} (hN : 0 < N) (r : ℕ → ℝ) (c0 cN : ℝ)
   rw [hm, hd1, h0]
   field_simp <;> ring
 
+/-- For positive total endpoint distance, the left-outcome probability is `b / (a + b)` as a
+real number. -/
 theorem leftProb_eq (a b : ℕ) (hab : 0 < a + b) :
     leftProb a b = (b : ℝ) / (a + b : ℝ) := by
   have hN : 0 < a + b := hab
@@ -839,6 +972,8 @@ theorem leftProb_eq (a b : ℕ) (hab : 0 < a + b) :
   rw [hcast]
   field_simp <;> ring
 
+/-- For positive total endpoint distance, the right-outcome probability is `a / (a + b)` as a
+real number. -/
 theorem rightProb_eq (a b : ℕ) (hab : 0 < a + b) :
     rightProb a b = (a : ℝ) / (a + b : ℝ) := by
   have hN : 0 < a + b := hab
@@ -879,6 +1014,8 @@ theorem rightProb_eq (a b : ℕ) (hab : 0 < a + b) :
     exact_mod_cast (Nat.cast_add a b)
   rw [hcast]
 
+/-- For positive total weight, the left and right masses are `ENNReal.ofReal` of `b / (a + b)`
+and `a / (a + b)`, respectively. Both masses are zero when the total weight is zero. -/
 theorem clause23_complete : ∀ a b : ℕ,
     (0 < a + b →
       leftMass a b = ENNReal.ofReal ((b : ℝ) / (a + b : ℝ)) ∧
@@ -899,6 +1036,8 @@ theorem clause23_complete : ∀ a b : ℕ,
     subst h2
     exact ⟨leftMass_degenerate, rightMass_degenerate⟩
 
+/-- The eventual left and right outcome masses sum to one when the total endpoint distance is
+positive. -/
 theorem leftMass_add_rightMass (a b : ℕ) (hab : 0 < a + b) :
     leftMass a b + rightMass a b = 1 := by
   have htoReal : (leftMass a b + rightMass a b).toReal = 1 := by
@@ -915,6 +1054,7 @@ theorem leftMass_add_rightMass (a b : ℕ) (hab : 0 < a + b) :
     _ = ENNReal.ofReal 1 := by rw [htoReal]
     _ = 1 := by simp
 
+/-- The sum of the left and right outcome indicators is at most one for every result. -/
 theorem indicator_sum_le_one (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     leftIndicator r + rightIndicator r ≤ 1 := by
   by_cases h1 : RaceOutcome.of r = .left
@@ -931,6 +1071,8 @@ theorem indicator_sum_le_one (r : NativeTape.Result Qatlib.Concepts.AdversaryBou
     · rw [leftIndicator, if_neg h1, rightIndicator, if_neg h2]
       norm_num
 
+/-- Weighting a result's halted mass by the sum of its left and right outcome indicators cannot
+increase that mass. -/
 theorem haltedMass_pointwise (a b : ℕ)
     (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control) :
     NativeTape.haltedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r *
@@ -965,6 +1107,7 @@ theorem haltedMass_pointwise (a b : ℕ)
       (⨆ n : ℕ, NativeTape.finishedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r)
   exact iSup_le hge
 
+/-- The halted masses of all results sum to one when the total endpoint distance is positive. -/
 theorem haltedMass_sum_eq_one (a b : ℕ) (hab : 0 < a + b) :
     (∑' r, NativeTape.haltedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) = 1 := by
   have hsum : leftMass a b + rightMass a b ≤
@@ -985,6 +1128,8 @@ theorem haltedMass_sum_eq_one (a b : ℕ) (hab : 0 < a + b) :
   rw [leftMass_add_rightMass a b hab] at hsum
   exact le_antisymm hle hsum
 
+/-- For positive total endpoint distance, the nontermination mass is zero and the total halted
+mass is one. -/
 theorem clause24_complete : ∀ a b : ℕ, 0 < a + b →
     raceNeverMass a b = 0 ∧
     (∑' r, NativeTape.haltedMass Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b) r) = 1 := by
@@ -995,6 +1140,9 @@ theorem clause24_complete : ∀ a b : ℕ, 0 < a + b →
     simp
   · exact haltedMass_sum_eq_one a b hab
 
+/-- For positive encoded weights, execution with budget `A + 1 + n` uses `A + 1` steps plus its
+consumed bit count and one additional step exactly when the corresponding walk has an
+output. -/
 theorem encoded_ledger (A B n : ℕ) (ha : 0 < A) (hb : 0 < B) (bs : List Bool) :
     (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A+1+n) bs (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).steps =
       (A+1) + (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program (A+1+n) bs (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.input A B)).bits.length +
@@ -1003,19 +1151,24 @@ theorem encoded_ledger (A B n : ℕ) (ha : 0 < A) (hb : 0 < B) (bs : List Bool) 
   simpa [show (A - 1) + 2 = A + 1 by omega, show (A - 1) + 1 = A by omega,
     show (B - 1) + 1 = B by omega] using h
 
+/-- The workspace associated with a run from `loaded a b` has cardinality `a + b + 1`, for every
+budget and supplied bit list. -/
 theorem loaded_workspace (n a b : ℕ) (bs : List Bool) :
     (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.workspace a b
       (NativeTape.run Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.program n bs (Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.loaded a b)).trace).card = a + b + 1 := by
   exact Qatlib.Concepts.AdversaryBounds.AdvDuality.walk_workspace_card n bs a b
 
+/-- Every bounded left-outcome event mass is at most the eventual left-outcome mass. -/
 theorem leftEvent_le_leftMass (n a b : ℕ) : leftEvent n a b ≤ leftMass a b := by
   rw [leftMass_eq_iSup]
   exact le_iSup (fun m => leftEvent m a b) n
 
+/-- Every bounded right-outcome event mass is at most the eventual right-outcome mass. -/
 theorem rightEvent_le_rightMass (n a b : ℕ) : rightEvent n a b ≤ rightMass a b := by
   rw [rightMass_eq_iSup]
   exact le_iSup (fun m => rightEvent m a b) n
 
+/-- The left and right outcome masses sum to one for positive total endpoint distance. -/
 theorem outcome_sum_eq_one (a b : ℕ) (hab : 0 < a + b) :
     leftMass a b + rightMass a b = 1 :=
   leftMass_add_rightMass a b hab

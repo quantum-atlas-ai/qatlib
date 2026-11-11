@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.ValueKickback
+
+/-!
+# Smooth gradient readout from value-oracle phases
+
+`gradient_value_c2_same_record_consumer` transfers the smooth-function gradient bound to a
+finite value table whose phase approximates the scaled sampled function modulo integers. The
+resulting success bound combines grid tails, the Hessian-controlled remainder, and the
+phase-precision penalty. See [Jordan2005Gradient] for background.
+
+## Main statements
+
+* `gradient_value_c2_same_record_consumer`: Under the stated smoothness and phase-precision
+  hypotheses, the value-phase readout estimates every gradient coordinate within `w` with
+  probability at least `1 - 16 * d / (M * w) - Real.pi * M * H * h * d / 2 - 4 * Real.pi * δ`.
+  [Jordan2005Gradient]
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SignalPrimitive.GridGradient
@@ -20,6 +41,9 @@ namespace Qatlib.Concepts.GradientOracle.C2GradientAlg
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Under the stated smoothness and phase-precision hypotheses, the value-phase readout
+estimates every gradient coordinate within `w` with probability at least `1 - 16 * d / (M *
+w) - Real.pi * M * H * h * d / 2 - 4 * Real.pi * δ`. [Jordan2005Gradient] -/
 theorem gradient_value_c2_same_record_consumer :
     ∀ (d M Q : ℕ) (hM : 0 < M) [NeZero Q]
       (v : GradientGrid d M → ZMod Q) (f : EuclideanSpace ℝ (Fin d) → ℝ)

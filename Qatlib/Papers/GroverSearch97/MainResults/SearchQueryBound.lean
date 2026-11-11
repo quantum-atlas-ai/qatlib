@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalAfas
+
+/-!
+# A square root query upper bound for singleton search
+
+`section1_sqrtQueryBound` gives a fixed space query upper bound for singleton marked oracles on
+any finite search space with at least two elements. Some integer query budget achieves success
+at least one half and is bounded by `(π/4) * sqrt (Fintype.card I)`. See [Grover1997].
+
+## Main statements
+
+* `section1_sqrtQueryBound`: For any finite search space with at least two elements, some
+  integer query budget at most `(π/4) * sqrt (Fintype.card I)` achieves a fixed space singleton
+  search success bound of `1/2`.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +35,9 @@ open Qatlib.Concepts.SearchStopping.KnownCount
 
 namespace Qatlib.Papers.GroverSearch97.MainResults.SearchQueryBound
 
+/-- For any finite search space with at least two elements, some integer query budget at most
+`(π/4) * sqrt (Fintype.card I)` achieves a fixed space singleton search success bound of
+`1/2`. -/
 theorem section1_sqrtQueryBound (I : Type*) [Fintype I] [DecidableEq I]
     (hN : 2 ≤ Fintype.card I) :
     ∃ k : ℕ,

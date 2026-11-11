@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+
+/-!
+# Accumulation of dyadic phase errors
+
+This module bounds the difference between products of unit-modulus complex numbers by the sum of
+their individual errors. It applies this telescoping estimate to finite dyadic phase programs
+and their controlled versions, using the circuit error perspective of [NielsenChuang2010].
+
+The results `g1` and `g2` transport the scalar estimate to matrix error on `paddedNativeFrame`,
+retaining exact gate counts for the program and its adjoint.
+
+## Main statements
+
+* `product_error`: unit norm of the implemented product and the additive product-error bound.
+* `g1`: scalar phase implementation with frame error bounded by the sum of phase errors.
+* `g2`: the corresponding bound with control on an arbitrary data wire.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -17,6 +39,9 @@ namespace Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- For two families of unit-modulus complex numbers with entrywise errors bounded by `ε`, the
+first product has norm one and the difference of the products is bounded by the sum of `ε`
+over the finite set. -/
 theorem product_error {ι : Type*} [DecidableEq ι] (s : Finset ι)
     (u z : ι → ℂ) (ε : ι → ℝ)
     (hu : ∀ i, ‖u i‖ = 1) (hz : ∀ i, ‖z i‖ = 1)
@@ -39,6 +64,8 @@ theorem product_error {ι : Type*} [DecidableEq ι] (s : Finset ι)
           rw [norm_mul, norm_mul, ih.1, hz a, mul_one, one_mul]
         _ ≤ ε a + ∑ i ∈ s, ε i := add_le_add (he a) ih.2
 
+/-- The dyadic phase product differs from a product of unit-modulus targets by at most the sum
+of the individual phase-factor error bounds. -/
 theorem phase_product_error (m : ℕ) (ps : Fin m → ℕ × Bool)
     (z : Fin m → ℂ) (ε : Fin m → ℝ)
     (hz : ∀ i, ‖z i‖ = 1)
@@ -49,6 +76,9 @@ theorem phase_product_error (m : ℕ) (ps : Fin m → ℕ × Bool)
       (fun i => Complex.exp (dyadicPhaseAngle (ps i).1 (ps i).2 * Complex.I)) z ε
       (fun i => Complex.norm_exp_ofReal_mul_I _) hz he).2
 
+/-- For unit-modulus targets and nonnegative individual error bounds, the padded scalar phase
+program has frame error at most their sum. It is unitary, uses zero queries, and has `7 * m`
+gates in both forward and adjoint programs. -/
 theorem g1 :
     ∀ (n m : ℕ) (ps : Fin m → ℕ × Bool) (z : Fin m → ℂ) (ε : Fin m → ℝ),
       (∀ i, ‖z i‖ = 1) → (∀ i, 0 ≤ ε i) →
@@ -65,6 +95,9 @@ theorem g1 :
       (phase_product_error m ps z ε hz he),
     by simpa only [List.length_ofFn] using padded_scalar_sequence_cost n (List.ofFn ps)⟩
 
+/-- For unit-modulus targets and nonnegative individual error bounds, the padded phase program
+controlled by wire `a` has frame error at most their sum. It is unitary, uses zero queries,
+and has `7 * m` gates in both forward and adjoint programs. -/
 theorem g2 :
     ∀ (n m : ℕ) (a : Fin n) (ps : Fin m → ℕ × Bool) (z : Fin m → ℂ) (ε : Fin m → ℝ),
       (∀ i, ‖z i‖ = 1) → (∀ i, 0 ≤ ε i) →

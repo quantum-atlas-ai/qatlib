@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportStat
 import Qatlib.Concepts.WalkFind.UniqueCollision.SearchReadoutAux
 import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+
+/-!
+# Transport between Johnson-walk state spaces
+
+The module relates the full Johnson walk on subset-element states to its reduced type-space
+matrices. It counts type fibers, proves orthonormality of the normalized type vectors, and
+transports both diffusion half-steps and the marked phase flip.
+
+`jwTypeLift` extends the basis-vector transport identities to arbitrary reduced vectors, powers
+of the walk, and the complete iteration matrix. See [Ambainis2007ElementDistinctness] for the
+mathematical background.
+
+## Main statements
+
+* `jwWalkBig_type_transport`: transport on type basis vectors.
+* `walkTypeTransport_answer`: the type-transport proposition.
+* `jwRunMat_typeLift`: transport of complete iterations.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
@@ -16,6 +39,8 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- A state has type `(k, false)` exactly when its subset contains the marked set `I`, assuming
+`I.card = k`. -/
 theorem jwTypeOf_marked_iff {k N r : ℕ} (I : Finset (Fin N)) (hI : I.card = k)
     (p : JRState N r) : jwTypeOf I p = (k, false) ↔ I ⊆ p.1.1 := by
   constructor
@@ -40,6 +65,8 @@ theorem jwTypeOf_marked_iff {k N r : ℕ} (I : Finset (Fin N)) (hI : I.card = k)
       rw [he, hI]
     · simp [hnot]
 
+/-- The full marked phase flip negates the type vector exactly for type `(k, false)` and fixes
+the other type vectors. -/
 theorem jwFlipBig_type (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     (jt : Fin (2 * k + 1)) :
     jwFlipBig k N r I *ᵥ jwPsiBigAt k N r I jt =
@@ -54,6 +81,7 @@ theorem jwFlipBig_type (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     simp only [hmark]
   · simp [jwPsiBigAt, jwPsiBig, ht]
 
+/-- The unique index whose `jwPsiCoord` is `(k, false)` is the final index. -/
 private theorem good_coord_unique (k : ℕ) (i : Fin (2 * k + 1))
     (h : jwPsiCoord k i = (k, false)) : i = Fin.last (2 * k) := by
   have h1 := congrArg Prod.fst h
@@ -64,6 +92,7 @@ private theorem good_coord_unique (k : ℕ) (i : Fin (2 * k + 1))
   simp only [Fin.val_last]
   omega
 
+/-- The reduced marked flip is diagonal, with sign −1 on type `(k, false)` and sign 1 elsewhere. -/
 theorem jwFlipTilde_eq_diagonal (k : ℕ) :
     jwFlipTilde k = Matrix.diagonal
       (fun i => if jwPsiCoord k i = (k, false) then (-1 : ℂ) else 1) := by
@@ -76,6 +105,7 @@ theorem jwFlipTilde_eq_diagonal (k : ℕ) :
       exact hij ((good_coord_unique k i hi).trans (good_coord_unique k j hj).symm)
     simp [jwFlipTilde, hb, hij]
 
+/-- The full marked phase flip acts on type vectors with coefficients given by `jwFlipTilde`. -/
 theorem jwFlipBig_type_transport (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     (jt : Fin (2 * k + 1)) :
     jwFlipBig k N r I *ᵥ jwPsiBigAt k N r I jt =
@@ -83,6 +113,8 @@ theorem jwFlipBig_type_transport (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card
   rw [jwFlipBig_type k N r I hI jt, jwFlipTilde_eq_diagonal]
   simp [Matrix.diagonal_apply, ite_smul]
 
+/-- The equivalence inserting the distinguished outside element into the subset, with inverse
+given by erasing the distinguished inside element. -/
 def jwInsertEquiv (N r : ℕ) : JRState N r ≃ JRState' N r where
   toFun q := ⟨(insert q.1.2 q.1.1,q.1.2), by
     constructor
@@ -99,6 +131,7 @@ def jwInsertEquiv (N r : ℕ) : JRState N r ≃ JRState' N r where
     apply Subtype.ext
     simp only [Finset.insert_erase p.2.2]
 
+/-- The embedding matrix is the permutation matrix of `jwInsertEquiv`. -/
 theorem jwEmbedMat_equiv (N r : ℕ) (p : JRState' N r) (q : JRState N r) :
     jwEmbedMat N r p q = if p = jwInsertEquiv N r q then 1 else 0 := by
   have he : p = jwInsertEquiv N r q ↔ p.1 = (q.1.1 ∪ {q.1.2},q.1.2) := by
@@ -106,6 +139,7 @@ theorem jwEmbedMat_equiv (N r : ℕ) (p : JRState' N r) (q : JRState N r) :
     simp only [jwInsertEquiv, Equiv.coe_fn_mk, Finset.union_singleton]
   simp only [jwEmbedMat, Matrix.of_apply, he]
 
+/-- The dropping matrix is the permutation matrix of the inverse of `jwInsertEquiv`. -/
 theorem jwDropMat_equiv (N r : ℕ) (q : JRState N r) (p : JRState' N r) :
     jwDropMat N r q p = if q = (jwInsertEquiv N r).symm p then 1 else 0 := by
   have he : q = (jwInsertEquiv N r).symm p ↔ q.1 = (p.1.1.erase p.1.2,p.1.2) := by
@@ -113,6 +147,8 @@ theorem jwDropMat_equiv (N r : ℕ) (q : JRState N r) (p : JRState' N r) :
     rfl
   simp only [jwDropMat, Matrix.of_apply, he]
 
+/-- Applying the embedding matrix evaluates the input at the inverse image under
+`jwInsertEquiv`. -/
 theorem jwEmbedMat_mulVec (N r : ℕ) (v : JRState N r → ℂ) (p : JRState' N r) :
     (jwEmbedMat N r *ᵥ v) p = v ((jwInsertEquiv N r).symm p) := by
   simp only [Matrix.mulVec, dotProduct, jwEmbedMat_equiv, ite_mul, one_mul, zero_mul]
@@ -120,6 +156,7 @@ theorem jwEmbedMat_mulVec (N r : ℕ) (v : JRState N r → ℂ) (p : JRState' N 
     exact (jwInsertEquiv N r).symm_apply_eq.symm
   simp only [he, Finset.sum_ite_eq, Finset.mem_univ, if_true]
 
+/-- Applying the dropping matrix evaluates the input at its image under `jwInsertEquiv`. -/
 theorem jwDropMat_mulVec (N r : ℕ) (v : JRState' N r → ℂ) (q : JRState N r) :
     (jwDropMat N r *ᵥ v) q = v (jwInsertEquiv N r q) := by
   simp only [Matrix.mulVec, dotProduct, jwDropMat_equiv, ite_mul, one_mul, zero_mul]
@@ -127,6 +164,7 @@ theorem jwDropMat_mulVec (N r : ℕ) (v : JRState' N r → ℂ) (q : JRState N r
     exact (jwInsertEquiv N r).apply_eq_iff_eq_symm_apply.symm
   simp only [he, Finset.sum_ite_eq, Finset.mem_univ, if_true]
 
+/-- Dropping after embedding gives the identity matrix on `JRState`. -/
 theorem jwDropMat_mul_embed (N r : ℕ) : jwDropMat N r * jwEmbedMat N r = 1 := by
   apply Matrix.ext
   intro p q
@@ -134,6 +172,7 @@ theorem jwDropMat_mul_embed (N r : ℕ) : jwDropMat N r * jwEmbedMat N r = 1 := 
   rw [jwDropMat_mulVec, jwEmbedMat_equiv]
   simp [Matrix.one_apply]
 
+/-- The dropping matrix is the conjugate transpose of the embedding matrix. -/
 theorem jwDropMat_eq_embed_adjoint (N r : ℕ) : jwDropMat N r = (jwEmbedMat N r)ᴴ := by
   ext q p
   have he : q = (jwInsertEquiv N r).symm p ↔ p = jwInsertEquiv N r q := by
@@ -141,22 +180,26 @@ theorem jwDropMat_eq_embed_adjoint (N r : ℕ) : jwDropMat N r = (jwEmbedMat N r
     exact (jwInsertEquiv N r).symm_apply_eq
   simp [jwDropMat_equiv, Matrix.conjTranspose_apply, jwEmbedMat_equiv, he]
 
+/-- Embedding after dropping gives the identity matrix on `JRState'`. -/
 theorem jwEmbedMat_mul_drop (N r : ℕ) : jwEmbedMat N r * jwDropMat N r = 1 := by
   ext p q
   change (jwEmbedMat N r *ᵥ (fun t => jwDropMat N r t q)) p = _
   rw [jwEmbedMat_mulVec, jwDropMat_equiv]
   simp [Matrix.one_apply]
 
+/-- The embedding matrix preserves constant vectors. -/
 theorem jwEmbedMat_constant (N r : ℕ) (z : ℂ) :
     jwEmbedMat N r *ᵥ (fun _ => z) = fun _ => z := by
   funext p
   exact jwEmbedMat_mulVec N r (fun _ => z) p
 
+/-- The dropping matrix preserves constant vectors. -/
 theorem jwDropMat_constant (N r : ℕ) (z : ℂ) :
     jwDropMat N r *ᵥ (fun _ => z) = fun _ => z := by
   funext p
   exact jwDropMat_mulVec N r (fun _ => z) p
 
+/-- The fiber of states with a fixed subset in `JRState N r` has cardinality `N - r`. -/
 theorem jwOutsideFiber_card (N r : ℕ) (p : JRState N r) :
     Fintype.card {q : JRState N r // p.1.1 = q.1.1} = N-r := by
   let e : {q : JRState N r // p.1.1 = q.1.1} ≃ {y : Fin N // y ∉ p.1.1} :=
@@ -171,6 +214,7 @@ theorem jwOutsideFiber_card (N r : ℕ) (p : JRState N r) :
   rw [Fintype.card_congr e, Fintype.card_subtype_compl]
   simp [Fintype.card_coe, p.2.1]
 
+/-- The fiber of states with a fixed subset in `JRState' N r` has cardinality `r + 1`. -/
 theorem jwInsideFiber_card (N r : ℕ) (p : JRState' N r) :
     Fintype.card {q : JRState' N r // p.1.1 = q.1.1} = r+1 := by
   let e : {q : JRState' N r // p.1.1 = q.1.1} ≃ {y : Fin N // y ∈ p.1.1} :=
@@ -185,6 +229,7 @@ theorem jwInsideFiber_card (N r : ℕ) (p : JRState' N r) :
   rw [Fintype.card_congr e]
   simpa using p.2.1
 
+/-- Diffusion on fibers of common positive cardinality `d` fixes every constant vector. -/
 private theorem fiberDiffusion_constant {α β : Type} [Fintype α] [DecidableEq α]
     [DecidableEq β] (f : α → β) (d : ℕ) (hd : 0 < d)
     (hc : ∀ p, Fintype.card {q // f p = f q} = d) (z : ℂ) :
@@ -202,6 +247,7 @@ private theorem fiberDiffusion_constant {α β : Type} [Fintype α] [DecidableEq
   field_simp
   ring
 
+/-- For `r < N`, the first full-space diffusion fixes constant vectors. -/
 theorem jwBigDiff1_constant (N r : ℕ) (hr : r < N) (z : ℂ) :
     jwBigDiff1 N r *ᵥ (fun _ => z) = fun _ => z := by
   have he : jwBigDiff1 N r = Matrix.of (fun p q : JRState N r =>
@@ -217,6 +263,7 @@ theorem jwBigDiff1_constant (N r : ℕ) (hr : r < N) (z : ℂ) :
   exact fiberDiffusion_constant (fun p : JRState N r => p.1.1) (N-r) (by omega)
     (jwOutsideFiber_card N r) z
 
+/-- The second full-space diffusion fixes constant vectors. -/
 theorem jwBigDiff2_constant (N r : ℕ) (z : ℂ) :
     jwBigDiff2 N r *ᵥ (fun _ => z) = fun _ => z := by
   have he : jwBigDiff2 N r = Matrix.of (fun p q : JRState' N r =>
@@ -232,6 +279,7 @@ theorem jwBigDiff2_constant (N r : ℕ) (z : ℂ) :
   exact fiberDiffusion_constant (fun p : JRState' N r => p.1.1) (r+1) (by omega)
     (jwInsideFiber_card N r) z
 
+/-- For `r < N`, the full Johnson walk fixes its start vector. -/
 theorem jwWalkBig_start_fixed (N r : ℕ) (hr : r < N) :
     jwWalkBig N r *ᵥ jwStartBig N r = jwStartBig N r := by
   unfold jwWalkBig jwStartBig
@@ -239,6 +287,7 @@ theorem jwWalkBig_start_fixed (N r : ℕ) (hr : r < N) :
     jwBigDiff1_constant N r hr, jwEmbedMat_constant, jwBigDiff2_constant,
     jwDropMat_constant]
 
+/-- The number of subset-element states in `JRState N r` is `Nat.choose N r * (N - r)`. -/
 theorem jrState_card (N r : ℕ) :
     Fintype.card (JRState N r) = Nat.choose N r * (N-r) := by
   let e : JRState N r ≃
@@ -255,6 +304,7 @@ theorem jrState_card (N r : ℕ) :
   simp only [hc,Finset.sum_const,Finset.card_univ,nsmul_eq_mul,
     Fintype.card_finset_len,Fintype.card_fin,Nat.cast_id]
 
+/-- For `r < N`, the sum of squared coordinate norms of the full start vector is 1. -/
 theorem jwStartBig_normSq (N r : ℕ) (hr : r < N) :
     (∑ p : JRState N r, ‖jwStartBig N r p‖^2) = 1 := by
   have hc : 0 < Fintype.card (JRState N r) := by
@@ -266,6 +316,7 @@ theorem jwStartBig_normSq (N r : ℕ) (hr : r < N) :
     Real.sq_sqrt (le_of_lt hcR),Finset.sum_const,Finset.card_univ,nsmul_eq_mul]
   exact mul_one_div_cancel (ne_of_gt hcR)
 
+/-- Distinct reduced indices have distinct Johnson-walk type coordinates. -/
 theorem jwPsiCoord_injective (k : ℕ) : Function.Injective (jwPsiCoord k) := by
   intro i j h
   have hdiv := congrArg Prod.fst h
@@ -279,6 +330,7 @@ theorem jwPsiCoord_injective (k : ℕ) : Function.Injective (jwPsiCoord k) := by
   · have hj : j.val%2 ≠ 1 := by simpa [hi] using hmod'.symm
     omega
 
+/-- Type vectors with distinct reduced indices are orthogonal. -/
 theorem jwPsiBigAt_orthogonal (k N r : ℕ) (I : Finset (Fin N))
     (i j : Fin (2*k+1)) (hij : i ≠ j) :
     (∑ p : JRState N r, star (jwPsiBigAt k N r I i p) * jwPsiBigAt k N r I j p) = 0 := by
@@ -290,6 +342,7 @@ theorem jwPsiBigAt_orthogonal (k N r : ℕ) (I : Finset (Fin N))
     simp [jwPsiBigAt,jwPsiBig,hj]
   · simp [jwPsiBigAt,jwPsiBig,hi]
 
+/-- When `I.card = k`, the good-state vector is the type vector at the final index. -/
 theorem jwGoodVec_eq_typeLast (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = k) :
     jwGoodVec k N r I = jwPsiBigAt k N r I (Fin.last (2*k)) := by
   funext p
@@ -298,12 +351,15 @@ theorem jwGoodVec_eq_typeLast (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = 
   simp only [jwGoodVec,jwPsiBigAt,hcoord,jwPsiBig,
     jwTypeOf_marked_iff I hI p,decide_eq_true_eq]
 
+/-- The number of subsets of `I` with cardinality `j` is `Nat.choose I.card j`. -/
 private theorem subsetCard_count {N : ℕ} (I : Finset (Fin N)) (j : ℕ) :
     Fintype.card {A : Finset (Fin N) // A ⊆ I ∧ A.card = j} = Nat.choose I.card j := by
   have he : (Finset.univ.filter fun A : Finset (Fin N) => A ⊆ I ∧ A.card = j) =
       I.powersetCard j := by ext A; simp
   rw [Fintype.subtype_card, he, Finset.card_powersetCard]
 
+/-- For `j ≤ r`, the number of `r`-element subsets intersecting `I` in exactly `j` elements is
+`Nat.choose I.card j * Nat.choose (N - I.card) (r - j)`. -/
 private theorem intersectionSet_count {N r j : ℕ} (I : Finset (Fin N)) (hjr : j ≤ r) :
     Fintype.card {S : Finset (Fin N) // S.card = r ∧ (S ∩ I).card = j} =
       Nat.choose I.card j * Nat.choose (N - I.card) (r-j) := by
@@ -351,6 +407,7 @@ private theorem intersectionSet_count {N r j : ℕ} (I : Finset (Fin N)) (hjr : 
   rw [Fintype.card_congr e, Fintype.card_prod, subsetCard_count, subsetCard_count]
   simp [Finset.card_compl]
 
+/-- Counts the elements outside an `r`-element subset according to whether they belong to `I`. -/
 theorem jwOutsideTypeFiber_card (N r : ℕ) (I : Finset (Fin N))
     (S : Finset (Fin N)) (hS : S.card = r) (l : Bool) :
     Fintype.card {y : Fin N // y ∉ S ∧ decide (y ∈ I) = l} =
@@ -369,6 +426,8 @@ theorem jwOutsideTypeFiber_card (N r : ℕ) (I : Finset (Fin N))
   · rw [Fintype.subtype_card, htrue, Finset.card_sdiff]
     simp
 
+/-- When `I.card = k` and `j ≤ r`, the number of full states of type `(j, l)` equals `jwCnt k N
+r j l`. -/
 theorem jwTypeFiber_card (k N r j : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     (hjr : j ≤ r) (l : Bool) :
     Fintype.card {p : JRState N r // jwTypeOf I p = (j,l)} = jwCnt k N r j l := by
@@ -397,6 +456,8 @@ theorem jwTypeFiber_card (k N r j : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
   rw [intersectionSet_count I hjr, hI]
   rfl
 
+/-- Under `k ≤ r` and `k < N - r`, every reduced type coordinate has strictly positive
+population. -/
 theorem jwCnt_coord_pos (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (i : Fin (2*k+1)) : 0 < jwCnt k N r (jwPsiCoord k i).1 (jwPsiCoord k i).2 := by
   have hi := i.isLt
@@ -410,6 +471,8 @@ theorem jwCnt_coord_pos (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     omega
   · omega
 
+/-- Under the stated population conditions and `I.card = k`, each normalized type vector has
+squared norm 1. -/
 theorem jwPsiBigAt_normSq (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (i : Fin (2*k+1)) :
     (∑ p : JRState N r, ‖jwPsiBigAt k N r I i p‖^2) = 1 := by
@@ -433,6 +496,7 @@ theorem jwPsiBigAt_normSq (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   rw [Finset.sum_ite,Finset.sum_const_zero,add_zero,Finset.sum_const,nsmul_eq_mul,hcard]
   exact mul_one_div_cancel (ne_of_gt hc)
 
+/-- Under the stated population conditions, the type vectors form an orthonormal family. -/
 theorem jwPsiBigAt_inner (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (i j : Fin (2*k+1)) :
     (∑ p : JRState N r, star (jwPsiBigAt k N r I i p) * jwPsiBigAt k N r I j p) =
@@ -446,6 +510,7 @@ theorem jwPsiBigAt_inner (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   · rw [if_neg hij]
     exact jwPsiBigAt_orthogonal k N r I i j hij
 
+/-- When `I.card = k`, every full state has a type represented by a reduced coordinate. -/
 theorem jwTypeOf_exists_coord (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     (p : JRState N r) : ∃ i : Fin (2*k+1), jwTypeOf I p = jwPsiCoord k i := by
   let j := (p.1.1 ∩ I).card
@@ -464,6 +529,9 @@ theorem jwTypeOf_exists_coord (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = 
     simp only [jwTypeOf,hf]
     simp [jwPsiCoord,hp,j]
 
+/-- Under the stated population conditions, decomposes the full start vector in the normalized
+type vectors with coefficients from `jwStart` divided by the square root of the full state
+count. -/
 theorem jwStartBig_decompose_card (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) :
     jwStartBig N r = ∑ i : Fin (2*k+1),
@@ -485,6 +553,8 @@ theorem jwStartBig_decompose_card (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     simp [jwPsiBigAt,jwPsiBig,hj]
   · simp
 
+/-- The first full diffusion averages over the fixed-subset fiber with factor `2 / (N - r)` and
+subtracts the input coordinate. -/
 theorem jwBigDiff1_apply (N r : ℕ) (v : JRState N r → ℂ) (p : JRState N r) :
     (jwBigDiff1 N r *ᵥ v) p =
       (2 / ((N-r : ℕ) : ℂ)) * (∑ q : JRState N r, if p.1.1 = q.1.1 then v q else 0) - v p := by
@@ -502,6 +572,7 @@ theorem jwBigDiff1_apply (N r : ℕ) (v : JRState N r → ℂ) (p : JRState N r)
     mul_assoc,← Finset.mul_sum,ite_mul,one_mul,zero_mul,Finset.sum_ite_eq,
     Finset.mem_univ,if_true]
 
+/-- Counts full states with a prescribed type and the same subset as a fixed state. -/
 theorem jwFixedOutsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState N r)
     (j : ℕ) (l : Bool) :
     Fintype.card {q : JRState N r // p.1.1 = q.1.1 ∧ jwTypeOf I q = (j,l)} =
@@ -534,6 +605,8 @@ theorem jwFixedOutsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState N 
     have hj' : (q.1.1.1 ∩ I).card = j := by simpa only [jwTypeOf,hf] using h
     exact hj (q.2.1 ▸ hj')
 
+/-- Computes the first full diffusion on a type vector using the number of outside elements of
+each Boolean type. -/
 theorem jwBigDiff1_type_apply (k N r j : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     (l : Bool) (p : JRState N r) :
     (jwBigDiff1 N r *ᵥ jwPsiBig k N r I j l) p =
@@ -559,6 +632,8 @@ theorem jwBigDiff1_type_apply (k N r j : ℕ) (I : Finset (Fin N)) (hI : I.card 
   push_cast
   split_ifs <;> ring
 
+/-- Taking the inner product with a normalized type vector extracts its coefficient from a
+type-vector linear combination, under the stated population conditions. -/
 theorem jwPsiBigAt_inner_sum (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k)
     (v : Fin (2*k+1) → ℂ) (i : Fin (2*k+1)) :
@@ -578,6 +653,8 @@ theorem jwPsiBigAt_inner_sum (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
       simp_rw [jwPsiBigAt_inner k N r hkr hkNr I hI]
       simp
 
+/-- The first reduced half-step has `jwD2` entries within equal intersection-count types and
+zero entries between different counts. -/
 theorem jwStep1_entry_types (k N r : ℕ) (i j : Fin (2*k+1)) :
     jwStep1 k N r i j =
       if (jwPsiCoord k i).1 = (jwPsiCoord k j).1 then
@@ -590,6 +667,8 @@ theorem jwStep1_entry_types (k N r : ℕ) (i j : Fin (2*k+1)) :
     have hz : i.val%2 = 0 := by omega
     simp [jwStep1,jwPhiCoord,jwPsiCoord,hz,hdiv]
 
+/-- Evaluates a linear combination of type vectors at a state of a specified type as its
+coefficient divided by the square root of that type's population. -/
 theorem jwPsiBigAt_sum_apply (k N r : ℕ) (I : Finset (Fin N))
     (v : Fin (2*k+1) → ℂ) (p : JRState N r) (i : Fin (2*k+1))
     (hi : jwTypeOf I p = jwPsiCoord k i) :
@@ -604,9 +683,13 @@ theorem jwPsiBigAt_sum_apply (k N r : ℕ) (I : Finset (Fin N))
     simp [jwPsiBigAt,jwPsiBig,hj]
   · simp
 
+/-- The type of an inserted state, consisting of its subset's intersection cardinality with `I`
+and the distinguished element's membership in `I`. -/
 def jwTypeOfInserted {N r : ℕ} (I : Finset (Fin N)) (p : JRState' N r) : ℕ × Bool :=
   ((p.1.1 ∩ I).card,decide (p.1.2 ∈ I))
 
+/-- Inserting the distinguished element increases the intersection count by one exactly when
+that element belongs to `I`, and preserves its Boolean membership label. -/
 theorem jwTypeOfInserted_insert (N r : ℕ) (I : Finset (Fin N)) (p : JRState N r) :
     jwTypeOfInserted I (jwInsertEquiv N r p) =
       ((jwTypeOf I p).1 + if (jwTypeOf I p).2 then 1 else 0,(jwTypeOf I p).2) := by
@@ -620,6 +703,8 @@ theorem jwTypeOfInserted_insert (N r : ℕ) (I : Finset (Fin N)) (p : JRState N 
     simp only [jwTypeOfInserted,jwInsertEquiv,Equiv.coe_fn_mk,jwTypeOf,hf]
     simp [hp,he]
 
+/-- The inserted coordinate `jwPhiCoord` is obtained from `jwPsiCoord` by adding the Boolean
+membership indicator to the count. -/
 theorem jwPhiCoord_eq_psi (k : ℕ) (i : Fin (2*k+1)) :
     jwPhiCoord k i = ((jwPsiCoord k i).1 + if (jwPsiCoord k i).2 then 1 else 0,
       (jwPsiCoord k i).2) := by
@@ -633,6 +718,8 @@ theorem jwPhiCoord_eq_psi (k : ℕ) (i : Fin (2*k+1)) :
       omega
   · rfl
 
+/-- A state's inserted type equals `jwPhiCoord k i` exactly when its original type equals
+`jwPsiCoord k i`. -/
 theorem jwInsert_type_iff (k N r : ℕ) (I : Finset (Fin N)) (p : JRState N r)
     (i : Fin (2*k+1)) :
     jwTypeOfInserted I (jwInsertEquiv N r p) = jwPhiCoord k i ↔
@@ -646,6 +733,8 @@ theorem jwInsert_type_iff (k N r : ℕ) (I : Finset (Fin N)) (p : JRState N r)
   · rintro ⟨h1,h2⟩
     simp [h1,h2]
 
+/-- The embedded type vector is supported on its corresponding inserted type and has amplitude
+equal to the reciprocal square root of its original type population. -/
 theorem jwEmbedMat_type_apply (k N r : ℕ) (I : Finset (Fin N))
     (i : Fin (2*k+1)) (p : JRState' N r) :
     (jwEmbedMat N r *ᵥ jwPsiBigAt k N r I i) p =
@@ -657,6 +746,8 @@ theorem jwEmbedMat_type_apply (k N r : ℕ) (I : Finset (Fin N))
   simp only [jwPsiBigAt,jwPsiBig]
   simp only [Prod.mk.eta,← ht]
 
+/-- Counts the elements inside an `(r + 1)`-element subset according to whether they belong to
+`I`. -/
 theorem jwInsideTypeFiber_card (N r : ℕ) (I : Finset (Fin N))
     (T : Finset (Fin N)) (hT : T.card = r+1) (l : Bool) :
     Fintype.card {y : Fin N // y ∈ T ∧ decide (y ∈ I) = l} =
@@ -671,6 +762,8 @@ theorem jwInsideTypeFiber_card (N r : ℕ) (I : Finset (Fin N))
   · rw [Fintype.subtype_card,htrue]
     rfl
 
+/-- The second full diffusion averages over the fixed-subset fiber with factor `2 / (r + 1)` and
+subtracts the input coordinate. -/
 theorem jwBigDiff2_apply (N r : ℕ) (v : JRState' N r → ℂ) (p : JRState' N r) :
     (jwBigDiff2 N r *ᵥ v) p =
       (2 / ((r+1 : ℕ) : ℂ)) * (∑ q : JRState' N r, if p.1.1 = q.1.1 then v q else 0) - v p := by
@@ -688,6 +781,8 @@ theorem jwBigDiff2_apply (N r : ℕ) (v : JRState' N r → ℂ) (p : JRState' N 
     mul_assoc,← Finset.mul_sum,ite_mul,one_mul,zero_mul,Finset.sum_ite_eq,
     Finset.mem_univ,if_true]
 
+/-- Under the stated population conditions, the first full diffusion acts on type vectors with
+coefficients given by `jwStep1`. -/
 theorem jwBigDiff1_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (jt : Fin (2*k+1)) :
     jwBigDiff1 N r *ᵥ jwPsiBigAt k N r I jt =
@@ -758,6 +853,7 @@ theorem jwBigDiff1_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
       exact hj ((congrArg Prod.fst hi).symm.trans (congrArg Prod.fst h))
     simp [hpi,hj,jwPsiBig,htype]
 
+/-- Counts inserted states with a prescribed type and the same subset as a fixed inserted state. -/
 theorem jwFixedInsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState' N r)
     (j : ℕ) (l : Bool) :
     Fintype.card {q : JRState' N r // p.1.1 = q.1.1 ∧ jwTypeOfInserted I q = (j,l)} =
@@ -784,6 +880,8 @@ theorem jwFixedInsideType_card (N r : ℕ) (I : Finset (Fin N)) (p : JRState' N 
     have hj' : (q.1.1.1 ∩ I).card = j := congrArg Prod.fst q.2.2
     exact hj (q.2.1 ▸ hj')
 
+/-- The second reduced half-step has `jwD2` entries within equal inserted intersection counts
+and zero entries between different counts. -/
 theorem jwStep2_entry_types (k r : ℕ) (i j : Fin (2*k+1)) :
     jwStep2 k r i j =
       if (jwPhiCoord k i).1 = (jwPhiCoord k j).1 then
@@ -803,6 +901,8 @@ theorem jwStep2_entry_types (k r : ℕ) (i j : Fin (2*k+1)) :
     have hzj : j.val%2 = 0 := by omega
     simp [jwStep2,jwPsiCoord,jwPhiCoord,hzi,hzj,hdi]
 
+/-- Computes the second full diffusion on an embedded type vector from the inserted-type fiber
+count and its normalization. -/
 theorem jwBigDiff2_embed_type_apply (k N r : ℕ) (I : Finset (Fin N))
     (i : Fin (2*k+1)) (p : JRState' N r) :
     (jwBigDiff2 N r *ᵥ (jwEmbedMat N r *ᵥ jwPsiBigAt k N r I i)) p =
@@ -831,6 +931,8 @@ theorem jwBigDiff2_embed_type_apply (k N r : ℕ) (I : Finset (Fin N))
   push_cast
   split_ifs <;> ring
 
+/-- Under the stated population conditions, expresses a type population using inserted
+intersection counts, two binomial coefficients, and the appropriate inside-element count. -/
 theorem jwCnt_phi_population (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (i : Fin (2*k+1)) :
     jwCnt k N r (jwPsiCoord k i).1 (jwPsiCoord k i).2 =
@@ -849,6 +951,8 @@ theorem jwCnt_phi_population (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     rw [hfalse,hj,jwCnt_inserted_false k N r (jwPhiCoord k i).1 (by omega) hφ (le_of_lt hkNr)]
     simp [hb,hfalse]
 
+/-- Under the stated population conditions, embedding, applying the second full diffusion, and
+dropping acts on type vectors with coefficients given by `jwStep2`. -/
 theorem jwBigDiff2_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (jt : Fin (2*k+1)) :
     jwDropMat N r *ᵥ (jwBigDiff2 N r *ᵥ (jwEmbedMat N r *ᵥ jwPsiBigAt k N r I jt)) =
@@ -927,6 +1031,8 @@ theorem jwBigDiff2_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
       exact hj ((congrArg Prod.fst hin).symm.trans (congrArg Prod.fst h))
     simp [hpi,hj,htype]
 
+/-- Under the stated population conditions, the full Johnson walk acts on type vectors with
+coefficients given by `jwWalk`. -/
 theorem jwWalkBig_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (jt : Fin (2*k+1)) :
     jwWalkBig N r *ᵥ jwPsiBigAt k N r I jt =
@@ -944,15 +1050,21 @@ theorem jwWalkBig_type_transport (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   intro j _
   rw [mul_comm]
 
+/-- Establishes transport of the full walk and marked flip to the reduced type space in
+`WalkTypeTransport`. See [Ambainis2007ElementDistinctness]. -/
 theorem walkTypeTransport_answer : WalkTypeTransport := by
   intro k N r _ hkr hkNr I hI
   exact ⟨jwWalkBig_type_transport k N r hkr hkNr I hI,
     jwFlipBig_type_transport k N r I hI⟩
 
+/-- The linear combination of full type vectors with coefficients given by a reduced coordinate
+vector. -/
 noncomputable def jwTypeLift (k N r : ℕ) (I : Finset (Fin N))
     (v : Fin (2*k+1) → ℂ) : JRState N r → ℂ :=
   ∑ i : Fin (2*k+1), v i • jwPsiBigAt k N r I i
 
+/-- An operator identity on each vector of a finite family extends to every linear combination
+with coefficients transformed by the corresponding coefficient matrix. -/
 private theorem matrix_typeLift_transport {n m : Type} [Fintype n] [Fintype m]
     (A : Matrix m m ℂ) (B : Matrix n n ℂ) (P : n → m → ℂ)
     (h : ∀ j, A *ᵥ P j = ∑ i, B i j • P i) (v : n → ℂ) :
@@ -968,18 +1080,24 @@ private theorem matrix_typeLift_transport {n m : Type} [Fintype n] [Fintype m]
   intro j _
   rw [mul_comm]
 
+/-- Under the stated population conditions, applying the full Johnson walk to a lifted vector
+equals lifting the reduced walk's action. -/
 theorem jwWalkBig_typeLift (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (v : Fin (2*k+1) → ℂ) :
     jwWalkBig N r *ᵥ jwTypeLift k N r I v =
       jwTypeLift k N r I (jwWalk k N r *ᵥ v) :=
   matrix_typeLift_transport _ _ _ (jwWalkBig_type_transport k N r hkr hkNr I hI) v
 
+/-- When `I.card = k`, applying the full marked flip to a lifted vector equals lifting the
+reduced marked flip's action. -/
 theorem jwFlipBig_typeLift (k N r : ℕ) (I : Finset (Fin N)) (hI : I.card = k)
     (v : Fin (2*k+1) → ℂ) :
     jwFlipBig k N r I *ᵥ jwTypeLift k N r I v =
       jwTypeLift k N r I (jwFlipTilde k *ᵥ v) :=
   matrix_typeLift_transport _ _ _ (jwFlipBig_type_transport k N r I hI) v
 
+/-- Under the stated population conditions, every power of the full Johnson walk intertwines
+with the same power of the reduced walk through `jwTypeLift`. -/
 theorem jwWalkBig_pow_typeLift (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (t : ℕ) (v : Fin (2*k+1) → ℂ) :
     jwWalkBig N r ^ t *ᵥ jwTypeLift k N r I v =
@@ -990,6 +1108,8 @@ theorem jwWalkBig_pow_typeLift (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     rw [pow_succ',pow_succ',← Matrix.mulVec_mulVec,← Matrix.mulVec_mulVec,ih,
       jwWalkBig_typeLift k N r hkr hkNr I hI]
 
+/-- Under the stated population conditions, the full iteration matrix intertwines with repeated
+reduced walk powers and marked flips through `jwTypeLift`. -/
 theorem jwRunMat_typeLift (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (t1 t2 : ℕ) (v : Fin (2*k+1) → ℂ) :
     jwRunMat k N r t1 t2 I *ᵥ jwTypeLift k N r I v =

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Workspace Grover search circuits and costs
+
+This module lifts circuits to auxiliary workspaces and constructs `workspaceGroverCircuit` with
+an explicit bit oracle target preparation. For a unique marked `n` bit string with `n ≥ 2`, the
+chosen iteration count gives success at least 1 − 1/N using at most π√N/4 queries, with exact
+gate and prepared word accounting, following amplitude amplification in [BrassardEtAl2002].
+
+## Main statements
+
+* `run_workspaceLiftCircuit`: lifting preserves execution on tensor states.
+* `workspace_grover_bit_semantics_and_cost`: the bit oracle circuit implements phase oracle
+  amplification with exact costs.
+* `workspace_singleton_search_actual_upper`: the rounded Grover circuit achieves the singleton
+  search bound.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -44,26 +66,34 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- Lift a circuit step to an auxiliary workspace by tensoring each gate with the identity and
+preserving query steps. -/
 noncomputable def workspaceLiftStep (s : Step (I × Bool)) : Step ((I × Bool) × W) :=
   match s with
   | Step.gate U => Step.gate (TensorGate U (1 : Matrix W W ℂ))
   | Step.query => Step.query
 
+/-- Lift a circuit to an auxiliary workspace by applying `workspaceLiftStep` to each step. -/
 noncomputable def workspaceLiftCircuit (C : Circuit (I × Bool)) : Circuit ((I × Bool) × W) :=
   C.map workspaceLiftStep
 
+/-- Lifting an empty circuit gives the empty circuit. -/
 theorem workspaceLiftCircuit_nil :
     workspaceLiftCircuit ([] : Circuit (I × Bool)) = ([] : Circuit ((I × Bool) × W)) := rfl
 
+/-- Lifting a leading gate tensors that gate with the workspace identity and lifts the remaining
+circuit. -/
 theorem workspaceLiftCircuit_gate (U : Matrix (I × Bool) (I × Bool) ℂ)
     (C : Circuit (I × Bool)) :
     workspaceLiftCircuit (Step.gate U :: C)
       = Step.gate (TensorGate U (1 : Matrix W W ℂ)) :: workspaceLiftCircuit C := rfl
 
+/-- Lifting a leading query preserves the query and lifts the remaining circuit. -/
 theorem workspaceLiftCircuit_query (C : Circuit (I × Bool)) :
     workspaceLiftCircuit ((Step.query : Step (I × Bool)) :: C)
       = (Step.query : Step ((I × Bool) × W)) :: workspaceLiftCircuit C := rfl
 
+/-- Lifting a circuit to an auxiliary workspace preserves its query count. -/
 theorem queryCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     QueryCount (workspaceLiftCircuit (W := W) C) = QueryCount C := by
   induction C with
@@ -73,6 +103,7 @@ theorem queryCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     | gate U => rw [workspaceLiftCircuit_gate, queryCount_gate, queryCount_gate, ih]
     | query => rw [workspaceLiftCircuit_query, queryCount_query, queryCount_query, ih]
 
+/-- Lifting a circuit to an auxiliary workspace preserves its gate count. -/
 theorem gateCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     GateCount (workspaceLiftCircuit (W := W) C) = GateCount C := by
   induction C with
@@ -82,6 +113,7 @@ theorem gateCount_workspaceLiftCircuit (C : Circuit (I × Bool)) :
     | gate U => rw [workspaceLiftCircuit_gate, gateCount_gate, gateCount_gate, ih]
     | query => rw [workspaceLiftCircuit_query, gateCount_query, gateCount_query, ih]
 
+/-- Lifting a unitary circuit to an auxiliary workspace preserves unitarity. -/
 theorem isUnitaryCircuit_workspaceLiftCircuit {C : Circuit (I × Bool)}
     (hC : IsUnitaryCircuit C) : IsUnitaryCircuit (workspaceLiftCircuit (W := W) C) := by
   induction C with
@@ -96,6 +128,8 @@ theorem isUnitaryCircuit_workspaceLiftCircuit {C : Circuit (I × Bool)}
       rw [workspaceLiftCircuit_query, isUnitaryCircuit_query]
       exact ih ((isUnitaryCircuit_query C).mp hC)
 
+/-- On a tensor state, running the lifted circuit with the lifted oracle equals tensoring the
+original execution with the workspace state. -/
 theorem run_workspaceLiftCircuit (O : Matrix (I × Bool) (I × Bool) ℂ) (C : Circuit (I × Bool))
     (φ : QState (I × Bool)) (χ : QState W) :
     Run (TensorGate O (1 : Matrix W W ℂ)) (workspaceLiftCircuit (W := W) C)
@@ -118,12 +152,16 @@ theorem run_workspaceLiftCircuit (O : Matrix (I × Bool) (I × Bool) ℂ) (C : C
       rw [applyGate_tensorGate, applyGate_one]
       exact ih _
 
+/-- The Grover circuit on an `n` bit index with an auxiliary workspace, including preparation of
+the oracle target in `Minus`. -/
 noncomputable def workspaceGroverCircuit {W : Type} [Fintype W] [DecidableEq W] (n : ℕ)
     (k : ℕ) : Circuit ((Reg n × Bool) × W) :=
   [Step.gate (TensorGate (TensorGate 1 PauliX) (1 : Matrix W W ℂ)),
     Step.gate (TensorGate (TensorGate 1 Hadamard) (1 : Matrix W W ℂ))] ++
     workspaceLiftCircuit (W := W) (LiftCircuit (preparedAACircuit (HadamardN n) (ZeroStr n) k))
 
+/-- The workspace Grover circuit consists of two target preparation gates followed by the
+workspace lift of the prepared amplitude amplification circuit. -/
 theorem workspaceGroverCircuit_eq {W : Type} [Fintype W] [DecidableEq W] (n k : ℕ) :
     workspaceGroverCircuit (W := W) n k
       = [Step.gate (TensorGate (TensorGate 1 PauliX) (1 : Matrix W W ℂ)),
@@ -131,6 +169,8 @@ theorem workspaceGroverCircuit_eq {W : Type} [Fintype W] [DecidableEq W] (n k : 
         workspaceLiftCircuit (W := W)
           (LiftCircuit (preparedAACircuit (HadamardN n) (ZeroStr n) k)) := rfl
 
+/-- The two target preparation gates transform the initial workspace basis state into a tensor
+state with target `Minus`. -/
 theorem workspaceGroverCircuit_prepare {W : Type} [Fintype W] [DecidableEq W] (n : ℕ)
     (w : W) :
     ApplyGate (TensorGate (TensorGate 1 Hadamard) (1 : Matrix W W ℂ))
@@ -141,6 +181,9 @@ theorem workspaceGroverCircuit_prepare {W : Type} [Fintype W] [DecidableEq W] (n
   simp only [applyGate_tensorGate, applyGate_one, applyGate_pauliX_ket, Bool.not_false,
     applyGate_hadamard_ket_true]
 
+/-- The workspace Grover circuit is unitary, uses `k` queries and 3k + 3 gates, and implements
+the corresponding phase oracle amplitude amplification on the index register. See [Brassard
+et al., Theorem 2][BrassardEtAl2002]. -/
 theorem workspace_grover_bit_semantics_and_cost {W : Type} [Fintype W] [DecidableEq W]
     (n k : ℕ) (w : W) (f : Reg n → Bool) :
     IsUnitaryCircuit (workspaceGroverCircuit (W := W) n k) ∧
@@ -183,12 +226,18 @@ theorem workspace_grover_bit_semantics_and_cost {W : Type} [Fintype W] [Decidabl
       (TensorState (Ket (ZeroStr n)) Minus) (Ket w)).trans
     (by rw [run_liftCircuit_bitOracleOn])
 
+/-- The singleton search angle arcsin(√(1/N)), where N is the number of `n` bit strings. -/
 noncomputable def singletonSearchAngle (n : ℕ) : ℝ :=
   Real.arcsin (Real.sqrt (1 / (Fintype.card (Reg n) : ℝ)))
 
+/-- The number of singleton search iterations, obtained by taking the natural floor of π divided
+by four times `singletonSearchAngle n`. -/
 noncomputable def singletonSearchIterations (n : ℕ) : ℕ :=
   Nat.floor (Real.pi / (4 * singletonSearchAngle n))
 
+/-- For `n ≥ 2`, the singleton angle and chosen iteration count satisfy the angle rounding
+bound, the query bound π√N/4, and success at least 1 − 1/N. See [Brassard et al., Theorem
+2][BrassardEtAl2002]. -/
 theorem workspace_singleton_angle_and_rounding (n : ℕ) (hn : 2 ≤ n) :
     let N := (Fintype.card (Reg n) : ℝ)
     let θ := singletonSearchAngle n
@@ -273,6 +322,7 @@ theorem workspace_singleton_angle_and_rounding (n : ℕ) (hn : 2 ≤ n) :
     linarith
   exact ⟨hθ0, hθ1, hsin2, hgap, hkk, hsuccess⟩
 
+/-- The prepared marking reflection for a singleton equals the phase oracle marking that index. -/
 theorem preparedMark_singleton_eq_phaseOracle {I : Type} [Fintype I] [DecidableEq I]
     (x : I) :
     preparedMark {x} = PhaseOracle (fun y => decide (y = x)) := by
@@ -287,6 +337,8 @@ theorem preparedMark_singleton_eq_phaseOracle {I : Type} [Fintype I] [DecidableE
     · simp [hx]
   · simp [h]
 
+/-- A singleton has mass equal to the reciprocal of the number of basis states in the uniformly
+prepared amplitude amplification state. -/
 theorem preparedAAState_uniform_singleton_mass {n : ℕ} (x : Reg n) :
     MeasureProb (preparedAAState (HadamardN n) (ZeroStr n)) {x}
       = 1 / (Fintype.card (Reg n) : ℝ) := by
@@ -294,6 +346,8 @@ theorem preparedAAState_uniform_singleton_mass {n : ℕ} (x : Reg n) :
   rw [applyGate_hadamardN_ket_zero, measureProb_uniform, Finset.card_singleton,
     Nat.cast_one]
 
+/-- A workspace query fiber is the product of its singleton query index with all target and
+workspace values. -/
 theorem workspaceQueryFiber_eq_prod {I W : Type} [Fintype I] [DecidableEq I] [Fintype W]
     [DecidableEq W] (x : I) :
     workspaceQueryFiber (W := W) x
@@ -302,6 +356,9 @@ theorem workspaceQueryFiber_eq_prod {I W : Type} [Fintype I] [DecidableEq I] [Fi
   simp only [workspaceQueryFiber, Finset.mem_filter, Finset.mem_univ, Finset.mem_product,
     Finset.mem_singleton, and_true, true_and]
 
+/-- For `n ≥ 2`, the chosen workspace Grover circuit finds any singleton mark with probability
+at least 1 − 1/N using at most π√N/4 queries, with exact circuit and prepared word costs as
+stated. See [Brassard et al., Theorem 2][BrassardEtAl2002]. -/
 theorem workspace_singleton_search_actual_upper {W : Type} [Fintype W] [DecidableEq W]
     (n : ℕ) (w : W) (x : Reg n) (hn : 2 ≤ n) :
     let k := singletonSearchIterations n

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.DiamondQdrift.SignedBridge.RealCoefficientFairBitSubgoalStat
 import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+
+/-!
+# Finite coin qDRIFT for real coefficients
+
+This module proves `RealCoefficientFairBitSubgoal` by quantizing the coefficient magnitude law
+and sampling it with finite fair coin strings. The proof bounds the normalized law error,
+rejection bias, and analytic contribution, then combines them with signed terms in the qDRIFT
+framework of [Campbell2019].
+
+## Main statements
+
+* `quantized_weights_mass_and_l1`: mass and law error bounds for ceiling weights.
+* `realCoefficientFairBitSubgoal`: finite diamond approximation with circuit resource bounds.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,6 +48,8 @@ namespace Qatlib.Concepts.DiamondQdrift.SignedBridge
 open Matrix
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- Ceiling quantization of a finite probability law at positive scale `M` has total weight at
+least `M` and normalized law error at most `2 * L / M`. -/
 private theorem quantized_weights_mass_and_l1 (L M : ℕ) (p : Fin L → ℝ)
     (hp : ∀ j, 0 ≤ p j) (hsum : ∑ j, p j = 1) (hM : 0 < M) :
     let w := fun j => Nat.ceil ((M : ℝ)*p j)
@@ -78,6 +99,7 @@ private theorem quantized_weights_mass_and_l1 (L M : ℕ) (p : Fin L → ℝ)
     _ ≤ 2*(L : ℝ)/(W : ℝ) := div_le_div_of_nonneg_right (by linarith only [hWupper]) hWR.le
     _ ≤ 2*(L : ℝ)/M := div_le_div_of_nonneg_left (by positivity) hMR hWM
 
+/-- Every real `x` is at most twice the power of two selected by `Nat.log2 (Nat.ceil x + 1)`. -/
 private theorem log2_ceil_half_bound (x : ℝ) :
     x ≤ 2*((2 ^ Nat.log2 (Nat.ceil x+1) : ℕ) : ℝ) := by
   have hl := Nat.lt_pow_succ_log_self (by decide : 1 < 2) (Nat.ceil x+1)
@@ -87,6 +109,8 @@ private theorem log2_ceil_half_bound (x : ℝ) :
   have hc : (Nat.ceil x : ℝ) ≤ 2*((2 ^ Nat.log2 (Nat.ceil x+1) : ℕ) : ℝ) := by linarith only [hr]
   exact (Nat.le_ceil x).trans hc
 
+/-- Mixing a finite probability law with a point mass by a nonnegative parameter `α` gives total
+absolute probability difference at most `2 * α`. -/
 private theorem cap_law_l1 {J : Type} [Fintype J] [DecidableEq J]
     (d e : FinDist J) (j0 : J) (α : ℝ) (hα : 0 ≤ α)
     (he : ∀ j, e.prob j = (1-α)*d.prob j+α*(if j=j0 then 1 else 0)) :
@@ -103,6 +127,7 @@ private theorem cap_law_l1 {J : Type} [Fintype J] [DecidableEq J]
   simp
   ring
 
+/-- The selected fair coin rejection fuel bounds `2 * n * 2⁻ᴿ` by `2⁻ˢ / 2`. -/
 private theorem fair_fuel_inverse_budget (n s : ℕ) :
     2*(n : ℝ)*((2 : ℝ)⁻¹)^(fairQdriftFuel n s) ≤ ((2 : ℝ)⁻¹)^s/2 := by
   let c := Nat.clog 2 (max 1 n)
@@ -114,6 +139,8 @@ private theorem fair_fuel_inverse_budget (n s : ℕ) :
     _ ≤ 2*(2 : ℝ)^c*(((2 : ℝ)⁻¹)^s*((2 : ℝ)⁻¹)^c*((2 : ℝ)⁻¹)^2) := by gcongr
     _ = _ := by simp only [inv_pow]; field_simp
 
+/-- The chosen parameters are positive and bound analytic error by `ε / 3`, accumulated
+quantization error by `2 * ε / 3`, and rejection error by `ε / 6`. -/
 private theorem real_coefficient_budgets (L : ℕ) (lam t ε : ℝ) (hε : 0 < ε) :
     let n := realCoefQdriftSteps lam t ε
     let M : ℕ := 2^(realCoefQdriftBits L n ε)
@@ -154,6 +181,9 @@ private theorem real_coefficient_budgets (L : ℕ) (lam t ε : ℝ) (hε : 0 < �
   refine ⟨hn, hM, hanalytic, hquant, ?_⟩
   exact (fair_fuel_inverse_budget n s).trans (by linarith only [hsbudget])
 
+/-- For real coefficients of positive total magnitude and Hermitian contraction terms, the
+finite coin construction satisfies its law error, finite diamond tolerance, and branchwise
+circuit and sampling cost bounds [Campbell2019]. -/
 theorem realCoefficientFairBitSubgoal : RealCoefficientFairBitSubgoal := by
   intro L D a K t ε j0 hlam hK hε
   (try dsimp only)

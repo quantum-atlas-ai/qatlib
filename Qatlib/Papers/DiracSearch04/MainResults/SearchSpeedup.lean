@@ -11,6 +11,30 @@ import Mathlib.Data.Fin.SuccPred
 import Mathlib.Algebra.Order.Field.Basic
 import Mathlib.Tactic
 
+/-!
+# Conditional scaling bounds for Dirac search
+
+Finite momentum sums define `V0`, `U0`, and the energy, time, and success models for Dirac
+search. Bounds on `V0` imply explicit search-time and success estimates; the higher-dimensional
+and two-dimensional results retain their respective boundedness and logarithmic-growth
+hypotheses.
+
+This development follows [ChildsGoldstone2004a].
+
+## Main statements
+
+* `speedup_from_bounded_V0`: an upper bound for `V0` gives square-root search time and a
+  reciprocal success lower bound.
+* `dirac_search_d_gt_2`: uniformly bounded `V0` yields uniform square-root time and positive
+  success bounds.
+* `dirac_search_d2`: logarithmic growth of `V0` yields eventual time and scaled-success upper
+  bounds.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004a]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.DiracSearch04.MainResults
@@ -18,41 +42,55 @@ namespace Qatlib.Papers.DiracSearch04.MainResults
 open Finset
 open scoped BigOperators
 
+/-- The number `L ^ d` of sites in a d-dimensional lattice of side length `L`. -/
 def NSites (d L : ℕ) : ℕ := L ^ d
 
+/-- The momentum vector with coordinates `2 * π * m i / L`. -/
 noncomputable def kVec (d L : ℕ) (m : Fin d → Fin L) : Fin d → ℝ :=
   fun i => 2 * Real.pi * (m i : ℝ) / (L : ℝ)
 
+/-- The sum of the squared sines of the momentum coordinates. -/
 noncomputable def sSq (d : ℕ) (k : Fin d → ℝ) : ℝ :=
   ∑ i : Fin d, (Real.sin (k i)) ^ 2
 
+/-- Twice the sum of `1 - cos (k i)` over the momentum coordinates. -/
 noncomputable def cOf (d : ℕ) (k : Fin d → ℝ) : ℝ :=
   2 * ∑ i : Fin d, (1 - Real.cos (k i))
 
+/-- The energy magnitude `sqrt (ω ^ 2 * sSq d k + γ ^ 2 * (cOf d k) ^ 2)`. -/
 noncomputable def energyMag (d : ℕ) (ω γ : ℝ) (k : Fin d → ℝ) : ℝ :=
   Real.sqrt (ω ^ 2 * sSq d k + γ ^ 2 * (cOf d k) ^ 2)
 
+/-- The finite set of momentum indices having at least one nonzero coordinate. -/
 noncomputable def nonzeroMomentum (d L : ℕ) : Finset (Fin d → Fin L) :=
   Finset.univ.filter (fun m => ∃ i : Fin d, (m i).val ≠ 0)
 
+/-- The inverse-square energy sum over nonzero momenta, normalized by the number of lattice
+sites. -/
 noncomputable def V0 (d L : ℕ) (ω γ : ℝ) : ℝ :=
   (1 / (NSites d L : ℝ)) *
     (nonzeroMomentum d L).sum (fun m => 1 / (energyMag d ω γ (kVec d L m)) ^ 2)
 
+/-- The normalized sum of `γ * cOf` divided by the squared energy magnitude over nonzero
+momenta. -/
 noncomputable def U0 (d L : ℕ) (ω γ : ℝ) : ℝ :=
   (1 / (NSites d L : ℝ)) *
     (nonzeroMomentum d L).sum
       (fun m => (γ * cOf d (kVec d L m)) / (energyMag d ω γ (kVec d L m)) ^ 2)
 
+/-- The reciprocal square root of `V0` times the number of lattice sites. -/
 noncomputable def EpmMag (d L : ℕ) (ω γ : ℝ) : ℝ :=
   1 / Real.sqrt (V0 d L ω γ * (NSites d L : ℝ))
 
+/-- The search-time model `(π / 2) * sqrt (V0 * NSites)`. -/
 noncomputable def searchTime (d L : ℕ) (ω γ : ℝ) : ℝ :=
   Real.pi / 2 * Real.sqrt (V0 d L ω γ * (NSites d L : ℝ))
 
+/-- The success-probability model `1 / V0`. -/
 noncomputable def successProb (d L : ℕ) (ω γ : ℝ) : ℝ :=
   1 / V0 d L ω γ
 
+/-- The complex exponential at phase `-π / 2` equals `-i`. -/
 theorem exp_neg_I_pi_div_two :
     Complex.exp (-(Complex.I * ((Real.pi / 2 : ℝ) : ℂ))) = -Complex.I := by
   rw [show -(Complex.I * ((Real.pi / 2 : ℝ) : ℂ)) =
@@ -62,6 +100,7 @@ theorem exp_neg_I_pi_div_two :
     Real.cos_neg, Real.sin_neg, Real.cos_pi_div_two, Real.sin_pi_div_two]
   push_cast; ring
 
+/-- The complex exponential at phase `π / 2` equals `i`. -/
 theorem exp_I_pi_div_two :
     Complex.exp (Complex.I * ((Real.pi / 2 : ℝ) : ℂ)) = Complex.I := by
   rw [show Complex.I * ((Real.pi / 2 : ℝ) : ℂ) =
@@ -70,6 +109,8 @@ theorem exp_I_pi_div_two :
     Real.cos_pi_div_two, Real.sin_pi_div_two]
   push_cast; ring
 
+/-- For positive energy `E`, the negative evolution phase at time `π / (2 * E)` equals `-i`. See
+[ChildsGoldstone2004a]. -/
 theorem phase_half_turn_pos (E : ℝ) (hE : 0 < E) :
     Complex.exp (-(Complex.I * (E : ℂ) * ((Real.pi / (2 * E) : ℝ) : ℂ))) =
       -Complex.I := by
@@ -79,6 +120,7 @@ theorem phase_half_turn_pos (E : ℝ) (hE : 0 < E) :
     field_simp
   rw [mul_assoc, harg, exp_neg_I_pi_div_two]
 
+/-- For positive energy `E`, the positive evolution phase at time `π / (2 * E)` equals `i`. -/
 theorem phase_half_turn_neg (E : ℝ) (hE : 0 < E) :
     Complex.exp (Complex.I * (E : ℂ) * ((Real.pi / (2 * E) : ℝ) : ℂ)) =
       Complex.I := by
@@ -88,6 +130,8 @@ theorem phase_half_turn_neg (E : ℝ) (hE : 0 < E) :
     field_simp
   rw [mul_assoc, harg, exp_I_pi_div_two]
 
+/-- When `V0` and the site count are positive, the search-time model equals `π / (2 * EpmMag)`.
+See [ChildsGoldstone2004a]. -/
 theorem searchTime_eq_inverse_energy (d L : ℕ) (ω γ : ℝ)
     (hV : 0 < V0 d L ω γ) (hN : 0 < (NSites d L : ℝ)) :
     searchTime d L ω γ = Real.pi / (2 * EpmMag d L ω γ) := by
@@ -97,6 +141,8 @@ theorem searchTime_eq_inverse_energy (d L : ℕ) (ω γ : ℝ)
   rw [searchTime, EpmMag]
   field_simp
 
+/-- If `0 < V0 ≤ K` and the site count is positive, search time is at most `(π / 2 * sqrt K) *
+sqrt NSites` and the success model is at least `1 / K`. See [ChildsGoldstone2004a]. -/
 theorem speedup_from_bounded_V0
     (d L : ℕ) (ω γ : ℝ)
     (hV : 0 < V0 d L ω γ) (hN : 0 < (NSites d L : ℝ))
@@ -120,6 +166,8 @@ theorem speedup_from_bounded_V0
   · rw [successProb]
     exact one_div_le_one_div_of_le hV hVle
 
+/-- For positive dimension and positive `ω` and `γ`, the sum `V0` is positive when `L ≥ 2`. See
+[ChildsGoldstone2004a]. -/
 theorem V0_pos (d L : ℕ) (ω γ : ℝ) (hω : 0 < ω) (hγ : 0 < γ)
     (hL : 2 ≤ L) (hd : 0 < d) :
     0 < V0 d L ω γ := by
@@ -178,6 +226,9 @@ theorem V0_pos (d L : ℕ) (ω γ : ℝ) (hω : 0 < ω) (hγ : 0 < γ)
   unfold V0
   exact mul_pos (div_pos one_pos hNpos) hsumpos
 
+/-- In dimension at least three, a uniform positive upper bound on `V0` gives uniform
+square-root search-time bounds and positive success lower bounds for `L ≥ 2`. See
+[ChildsGoldstone2004a]. -/
 theorem dirac_search_d_gt_2 (d : ℕ) (hd : 3 ≤ d) (ω γ : ℝ)
     (hω : 0 < ω) (hγ : 0 < γ)
     (hK : ∃ K : ℝ, 0 < K ∧ ∀ L : ℕ, 1 ≤ L → V0 d L ω γ ≤ K) :
@@ -198,6 +249,10 @@ theorem dirac_search_d_gt_2 (d : ℕ) (hd : 3 ≤ d) (ω γ : ℝ)
       exact pow_pos (by exact_mod_cast hLpos : (0:ℝ) < (L:ℝ)) d
     exact speedup_from_bounded_V0 d L ω γ hVpos hNpos hKpos (hKb L (by omega))
 
+/-- If `V0` in dimension two differs from a positive multiple of `log NSites` by a uniformly
+bounded amount, search time is eventually bounded by a constant times `sqrt (NSites * log
+NSites)` and `successProb * log NSites` is eventually bounded above. See
+[ChildsGoldstone2004a]. -/
 theorem dirac_search_d2 (ω γ : ℝ)
     (hlog : ∃ c₀ C : ℝ, 0 < c₀ ∧ 0 < C ∧
       ∀ L : ℕ, 1 ≤ L →

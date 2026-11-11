@@ -14,6 +14,24 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Push
 
+/-!
+# Finite Markov bounds for QAM amplification
+
+This module proves counting forms of Markov’s inequality for nonnegative finite families. The
+lemmas convert average error at most one ninth into completeness or soundness thresholds holding
+on at least two thirds of the indices. See [MarriottWatrous2005].
+
+## Main statements
+
+* `card_gt_third_le`: bounds the number of values exceeding one third.
+* `qam_yes_amplification`: converts average rejection into a completeness threshold count.
+* `qam_no_amplification`: converts average acceptance into a soundness threshold count.
+
+## References
+
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 open Finset
 set_option autoImplicit false
 
@@ -23,6 +41,8 @@ noncomputable section
 
 variable {n : ℕ}
 
+/-- One third of the number of indices with value greater than one third is at most the sum of
+the nonnegative values. -/
 theorem sum_filter_gt_third_ge (f : Fin n → ℝ) (hf : ∀ i, 0 ≤ f i) :
     ((univ.filter (fun i => 1 / 3 < f i)).card : ℝ) * (1 / 3) ≤ ∑ i, f i := by
   have h₁ : ∑ i ∈ univ.filter (fun i => 1 / 3 < f i), (1 / 3 : ℝ) ≤
@@ -40,6 +60,8 @@ theorem sum_filter_gt_third_ge (f : Fin n → ℝ) (hf : ∀ i, 0 ≤ f i) :
     _ ≤ ∑ i ∈ univ.filter (fun i => 1 / 3 < f i), f i := h₁
     _ ≤ ∑ i, f i := h₂
 
+/-- If the sum of nonnegative values is at most `n / 9`, at most `n / 3` indices have value
+greater than one third. -/
 theorem card_gt_third_le (f : Fin n → ℝ) (hf : ∀ i, 0 ≤ f i)
     (havg : (∑ i, f i) ≤ (n : ℝ) * (1 / 9)) :
     ((univ.filter (fun i => 1 / 3 < f i)).card : ℝ) ≤ (n : ℝ) / 3 := by
@@ -48,6 +70,8 @@ theorem card_gt_third_le (f : Fin n → ℝ) (hf : ∀ i, 0 ≤ f i)
       (n : ℝ) * (1 / 9) := le_trans h havg
   nlinarith [hc]
 
+/-- If the sum of nonnegative values is at most `n / 9`, at least `2 * n / 3` indices have value
+at most one third. See [Marriott and Watrous, Proposition 4.3][MarriottWatrous2005]. -/
 theorem card_le_third_ge_two_thirds (f : Fin n → ℝ) (hf : ∀ i, 0 ≤ f i)
     (havg : (∑ i, f i) ≤ (n : ℝ) * (1 / 9)) :
     (2 * (n : ℝ) / 3) ≤ ((univ.filter (fun i => f i ≤ 1 / 3)).card : ℝ) := by
@@ -62,6 +86,9 @@ theorem card_le_third_ge_two_thirds (f : Fin n → ℝ) (hf : ∀ i, 0 ≤ f i)
     exact_mod_cast hst
   linarith
 
+/-- If every acceptance value is at most one and total rejection is at most `n / 9`, at least `2
+* n / 3` indices have acceptance at least two thirds. See [Marriott and Watrous, Proposition
+4.3][MarriottWatrous2005]. -/
 theorem qam_yes_amplification (mu : Fin n → ℝ) (_hmu : ∀ i, 0 ≤ mu i)
     (hmu1 : ∀ i, mu i ≤ 1) (havg : (∑ i, (1 - mu i)) ≤ (n : ℝ) * (1 / 9)) :
     (2 * (n : ℝ) / 3) ≤ ((univ.filter (fun i => 2 / 3 ≤ mu i)).card : ℝ) := by
@@ -75,6 +102,9 @@ theorem qam_yes_amplification (mu : Fin n → ℝ) (_hmu : ∀ i, 0 ≤ mu i)
   intro i _
   constructor <;> intro h <;> linarith
 
+/-- If acceptance values are nonnegative and their sum is at most `n / 9`, at least `2 * n / 3`
+indices have acceptance at most one third. See [Marriott and Watrous, Proposition
+4.3][MarriottWatrous2005]. -/
 theorem qam_no_amplification (mu : Fin n → ℝ) (hmu : ∀ i, 0 ≤ mu i)
     (havg : (∑ i, mu i) ≤ (n : ℝ) * (1 / 9)) :
     (2 * (n : ℝ) / 3) ≤ ((univ.filter (fun i => mu i ≤ 1 / 3)).card : ℝ) :=

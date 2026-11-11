@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.QuantumAccess.NativeCapabilityVocabulary
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+
+/-!
+# Residual native and walk-search contracts
+
+This module states native-realization existence requirements for search and collision interfaces
+and defines residual specifications for stored subgraphs, checker substitution, and
+subgraph-search numerical charges. These propositions separate the remaining requirements in a
+quantum-walk search development [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `SafeGroverNative`, `NoisySearchNative`, and `KCollisionNative`: realization existence at each
+  exponent at least three.
+* `StoredSubgraphSUC`: stored-edge and cost requirements.
+* `CheckerSubstitution` and `Th5Numeric`: combined checker and numerical charge specifications.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,16 +36,22 @@ namespace Qatlib.Concepts.WalkSearch.QuantumAccess
 open Qatlib.Concepts.WalkSearch.Primitives
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- For every failure exponent at least three, requires a `SafeGrover` capability with that
+exponent, positive fee constant, and native realization. -/
 def SafeGroverNative : Prop :=
   ∀ (cExp : ℕ), 3 ≤ cExp →
   ∃ (sgs : Qatlib.Concepts.WalkSearch.Primitives.SafeGrover),
     sgs.cExp = cExp ∧ 1 ≤ sgs.κ ∧ SafeGrover.NativeRealized sgs
 
+/-- For every failure exponent at least three, requires a noisy-search capability with that
+exponent, positive fee constant, and native realization. -/
 def NoisySearchNative : Prop :=
   ∀ (cExp : ℕ), 3 ≤ cExp →
   ∃ (ncs : NoisySearch),
     ncs.cExp = cExp ∧ 1 ≤ ncs.κ ∧ NoisySearch.NativeRealized ncs
 
+/-- For every failure exponent at least three, requires a collision solver with that exponent,
+positive fee constant, and native realization. -/
 def KCollisionNative : Prop :=
   ∀ (cExp : ℕ), 3 ≤ cExp →
   ∃ (kcs : KCollisionSolver),
@@ -37,6 +64,9 @@ namespace Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open Qatlib.Concepts.WalkSearch.Primitives
 
+/-- Requires a symmetric loopless stored edge set for every adjacency input and subset, with
+setup cost `U.card * U.card`, update cost `U.card`, zero check cost, and positive setup and
+update costs. -/
 def StoredSubgraphSUC : Prop :=
   ∀ (n : ℕ) (adj : Fin n → Fin n → Bool) (U : Finset (Fin n)),
     ∃ (D : Finset (Fin n × Fin n)),
@@ -47,6 +77,8 @@ def StoredSubgraphSUC : Prop :=
       (∃ s u c : ℕ, s = (U.card * U.card) ∧ u = U.card ∧ c = 0 ∧
         1 ≤ s ∧ 1 ≤ u)
 
+/-- The specification that suitable subset windows yield corrected checker behavior and the
+combined triangle algorithm's soundness, failure-count, and `n ^ (13 / 10)` charge bounds. -/
 def CheckerSubstitution : Prop :=
   ∀ (n : ℕ) (_hn : 0 < n) (adj : Fin n → Fin n → Bool),
     (∀ a b : Fin n, adj a b = adj b a) → (∀ a : Fin n, adj a a = false) →
@@ -79,6 +111,8 @@ def CheckerSubstitution : Prop :=
           (2 ^ 16 : ℕ) * (walkKappa kcs ncs sgs) ^ 3 *
             ((Nat.log 2 n + 2 : ℕ) ^ 3) * ((n : ℝ) ^ (13 / 10 : ℝ)))
 
+/-- Requires a positive constant bounding the subgraph algorithm's charge by `C * n ^ (2 - 2 /
+k)` at a least-power subset window whenever `qH ≤ C`. -/
 def Th5Numeric : Prop :=
   ∀ (k : ℕ) (_hk : 4 ≤ k) (kcs : KCollisionSolver), 1 ≤ kcs.κ →
   ∃ (C : ℝ), 0 < C ∧

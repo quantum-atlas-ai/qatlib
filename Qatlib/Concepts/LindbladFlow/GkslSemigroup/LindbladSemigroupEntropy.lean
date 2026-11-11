@@ -21,6 +21,31 @@ import Mathlib.Analysis.ODE.Gronwall
 import QuantumInfo.ForMathlib.HermitianMat.Inner
 import QuantumInfo.Entropy.DPI
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+
+/-!
+# Relative-entropy monotonicity for Lindblad evolution
+
+`lindbladCPTPMap` bundles nonnegative-time evolution as a completely positive trace-preserving
+map. `relativeEntropy_eq_qRelativeEnt` identifies the local real-valued trace formula with the
+real value of Physlib's quantum relative entropy when the reference density matrix is positive
+definite.
+
+Data processing then shows that relative entropy with respect to a full-rank stationary density
+operator does not increase under Lindblad evolution. The final theorem specializes this
+conclusion to `KMSNormalForm`, following the entropy monotonicity principle of [Lindblad1975].
+
+## Main statements
+
+* `relativeEntropy_eq_qRelativeEnt`: bridge the local and bundled entropy definitions.
+* `lindbladSemigroup_relativeEntropy_le`: prove monotonicity toward a stationary full-rank
+  reference.
+* `kmsNormalForm_relativeEntropy_le`: specialize monotonicity to KMS normal form.
+
+## References
+
+* [Lindblad, 1975][Lindblad1975]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
@@ -36,12 +61,16 @@ namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 open Filter
 open scoped Topology
 
+/-- The Lindblad evolution at nonnegative time, bundled as a completely positive
+trace-preserving map. -/
 noncomputable def lindbladCPTPMap {D : ℕ} (G : GKSL D) (t : ℝ) (ht : 0 ≤ t) :
     CPTPMap (Fin D) (Fin D) where
   toLinearMap := lindbladSemigroupMap G t ht
   cp := lindbladSemigroupMap_cp G t ht
   TP := trace_lindbladSemigroup G t
 
+/-- For density operators and a positive-definite reference, the local relative entropy equals
+the real value of Physlib's quantum relative entropy under the density-matrix equivalence. -/
 theorem relativeEntropy_eq_qRelativeEnt {D : ℕ} {σ ρ : Operator D}
     (hσ : IsDensityOperator σ) (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) :
     relativeEntropy σ ρ = (qRelativeEnt
@@ -58,6 +87,8 @@ theorem relativeEntropy_eq_qRelativeEnt {D : ℕ} {σ ρ : Operator D}
   simp only [qRelativeEnt, SandwichedRelRentropy, zero_lt_one, hk, ↓reduceIte]
   rfl
 
+/-- Relative entropy to a full-rank stationary density reference cannot increase under
+nonnegative-time Lindblad evolution [Lindblad1975]. -/
 theorem lindbladSemigroup_relativeEntropy_le {D : ℕ} (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hstationary : IsStationary G ρ)
     (hσ : IsDensityOperator σ) (t : ℝ) (ht : 0 ≤ t) :
@@ -87,6 +118,8 @@ theorem lindbladSemigroup_relativeEntropy_le {D : ℕ} (G : GKSL D) {ρ σ : Ope
     ← relativeEntropy_eq_qRelativeEnt hσ hρ hfull] at hr
   exact hr
 
+/-- Relative entropy to a reference in KMS normal form cannot increase under nonnegative-time
+Lindblad evolution. -/
 theorem kmsNormalForm_relativeEntropy_le {D : ℕ} (G : GKSL D) {ρ σ : Operator D}
     (hnormal : KMSNormalForm G ρ) (hσ : IsDensityOperator σ) (t : ℝ) (ht : 0 ≤ t) :
     relativeEntropy (lindbladSemigroup G t σ) ρ ≤ relativeEntropy σ ρ :=

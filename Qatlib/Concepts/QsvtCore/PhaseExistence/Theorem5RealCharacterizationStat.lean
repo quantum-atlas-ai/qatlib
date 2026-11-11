@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+/-!
+# Specification of real polynomial pair completion
+
+`Theorem5RealCharacterization` states an equivalence between a bounded real polynomial pair with
+the prescribed degree and parity and the existence of a complex `CompletedPair` with those real
+parts. The real-part conditions are expressed as identities involving coefficientwise
+conjugation. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Theorem5RealCharacterization`: the real-pair completion equivalence.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -17,6 +35,9 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
 open Polynomial
 
+/-- The assertion that real polynomial pairs satisfying the degree, parity, and weighted
+interval bound are precisely the real parts of complex completed pairs, as in [Gilyén et
+al., Theorem 5][GilyenSuLowWiebe2019]. -/
 def Theorem5RealCharacterization : Prop :=
   ∀ (k : ℕ) (Pt Qt : Polynomial ℝ),
     (Pt.degree ≤ (k : WithBot ℕ) ∧ Qt.degree < (k : WithBot ℕ) ∧

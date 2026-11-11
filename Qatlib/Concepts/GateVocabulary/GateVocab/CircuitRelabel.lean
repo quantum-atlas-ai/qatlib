@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Circuit relabeling
+
+`relabelCircuit` transports every gate in a query circuit along an equivalence of basis labels.
+The module proves compatibility with identity, inverse, composition, concatenation, and
+repetition.
+
+`run_relabelCircuit_readout` identifies the transported execution and measurement probabilities,
+while `relabelCircuit_legality_resources` preserves unitarity and all recorded circuit counts.
+These are finite basis-change identities for the circuit formalism of [NielsenChuang2010].
+
+## Main statements
+
+* `relabelCircuit_equivalence_laws`: gives identity, composition, and inverse laws.
+* `run_relabelCircuit_readout`: transports circuit execution and event probabilities.
+* `relabelCircuit_legality_resources`: preserves circuit legality, query count, gate count, and
+  size.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,34 +45,46 @@ set_option autoImplicit false
 
 variable {I J K : Type*}
 
+/-- Transports a gate step along a basis equivalence and leaves query steps unchanged. -/
 noncomputable def relabelStep (e : I ≃ J) : Step I → Step J
   | Step.gate U => Step.gate (relabelGate e U)
   | Step.query => Step.query
 
+/-- Relabels every step of a circuit along the given basis equivalence. -/
 noncomputable def relabelCircuit (e : I ≃ J) (C : Circuit I) : Circuit J :=
   C.map (relabelStep e)
 
+/-- Relabeling a gate step relabels its gate matrix. -/
 @[simp] theorem relabelStep_gate (e : I ≃ J) (U : Matrix I I ℂ) :
     relabelStep e (Step.gate U) = Step.gate (relabelGate e U) := rfl
 
+/-- Relabeling a query step leaves it a query step. -/
 @[simp] theorem relabelStep_query (e : I ≃ J) : relabelStep e Step.query = Step.query := rfl
 
+/-- Relabeling the empty circuit gives the empty circuit. -/
 @[simp] theorem relabelCircuit_nil (e : I ≃ J) : relabelCircuit e ([] : Circuit I) = [] := rfl
 
+/-- Relabeling a gate-prefixed circuit relabels the leading matrix and the remaining circuit. -/
 @[simp] theorem relabelCircuit_gate (e : I ≃ J) (U : Matrix I I ℂ) (C : Circuit I) :
     relabelCircuit e (Step.gate U :: C) = Step.gate (relabelGate e U) :: relabelCircuit e C := rfl
 
+/-- Relabeling a query-prefixed circuit preserves the leading query and relabels the remaining
+circuit. -/
 @[simp] theorem relabelCircuit_query (e : I ≃ J) (C : Circuit I) :
     relabelCircuit e (Step.query :: C) = Step.query :: relabelCircuit e C := rfl
 
+/-- Relabeling a matrix by the identity equivalence leaves it unchanged. -/
 theorem relabelGate_refl (U : Matrix I I ℂ) : relabelGate (Equiv.refl I) U = U :=
   Matrix.reindex_refl_refl U
 
+/-- Successive matrix relabelings equal relabeling by the composed equivalence. -/
 theorem relabelGate_trans (e : I ≃ J) (f : J ≃ K) (U : Matrix I I ℂ) :
     relabelGate f (relabelGate e U) = relabelGate (e.trans f) U := by
   ext i k
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Equiv.symm_trans_apply]
 
+/-- Relabeling a matrix and then relabeling by the inverse equivalence returns the original
+matrix. -/
 theorem relabelGate_symm (e : I ≃ J) (U : Matrix I I ℂ) :
     relabelGate e.symm (relabelGate e U) = U := by
   ext i j
@@ -56,28 +92,33 @@ theorem relabelGate_symm (e : I ≃ J) (U : Matrix I I ℂ) :
   rw [Matrix.submatrix_submatrix, Equiv.symm_symm]
   simp only [Matrix.submatrix_apply, Function.comp_apply, Equiv.symm_apply_apply]
 
+/-- Relabeling a circuit step by the identity equivalence leaves it unchanged. -/
 theorem relabelStep_refl (s : Step I) : relabelStep (Equiv.refl I) s = s := by
   cases s with
   | gate U => exact congrArg Step.gate (relabelGate_refl U)
   | query => rfl
 
+/-- Successive step relabelings equal relabeling by the composed equivalence. -/
 theorem relabelStep_trans (e : I ≃ J) (f : J ≃ K) (s : Step I) :
     relabelStep f (relabelStep e s) = relabelStep (e.trans f) s := by
   cases s with
   | gate U => exact congrArg Step.gate (relabelGate_trans e f U)
   | query => rfl
 
+/-- Relabeling a step and then relabeling by the inverse equivalence returns the original step. -/
 theorem relabelStep_symm (e : I ≃ J) (s : Step I) :
     relabelStep e.symm (relabelStep e s) = s := by
   cases s with
   | gate U => exact congrArg Step.gate (relabelGate_symm e U)
   | query => rfl
 
+/-- Circuit relabeling commutes with concatenation. -/
 theorem relabelCircuit_append (e : I ≃ J) (C D : Circuit I) :
     relabelCircuit e (C ++ D) = relabelCircuit e C ++ relabelCircuit e D := by
   show (C ++ D).map (relabelStep e) = C.map (relabelStep e) ++ D.map (relabelStep e)
   exact List.map_append
 
+/-- Circuit relabeling commutes with concatenation and with circuit repetition. -/
 theorem relabelCircuit_composition_laws (e : I ≃ J) (C D : Circuit I) (k : ℕ) :
     relabelCircuit e (C ++ D) = relabelCircuit e C ++ relabelCircuit e D ∧
       relabelCircuit e (RepeatCircuit C k) = RepeatCircuit (relabelCircuit e C) k := by
@@ -86,6 +127,7 @@ theorem relabelCircuit_composition_laws (e : I ≃ J) (C D : Circuit I) (k : ℕ
   | zero => simp [relabelCircuit, RepeatCircuit]
   | succ k ih => simp only [RepeatCircuit, relabelCircuit_append, ih, RepeatCircuit]
 
+/-- Circuit relabeling satisfies the identity, composition, and inverse equivalence laws. -/
 theorem relabelCircuit_equivalence_laws (e : I ≃ J) (f : J ≃ K) (C : Circuit I) :
     relabelCircuit (Equiv.refl I) C = C ∧
       relabelCircuit f (relabelCircuit e C) = relabelCircuit (e.trans f) C ∧
@@ -102,6 +144,9 @@ theorem relabelCircuit_equivalence_laws (e : I ≃ J) (f : J ≃ K) (C : Circuit
     | nil => rfl
     | cons s C ih => cases s <;> simp [ih, relabelGate_symm]
 
+/-- Relabeling the oracle, circuit, and initial state transports the final state by the same
+equivalence. Measurement probability is preserved when the event is transported along that
+equivalence. -/
 theorem run_relabelCircuit_readout {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (W : Matrix I I ℂ) (C : Circuit I) (ψ : QState I)
     (S : Finset I) :
@@ -125,11 +170,13 @@ theorem run_relabelCircuit_readout {I J : Type*} [Fintype I] [DecidableEq I] [Fi
 
 namespace CircuitRelabel
 
+/-- Relabeling square matrices preserves multiplication. -/
 theorem relabelGate_mul (e : I ≃ J) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M N : Matrix I I ℂ) :
     relabelGate e (M * N) = relabelGate e M * relabelGate e N :=
   Matrix.reindexAlgEquiv_mul ℂ ℂ e M N
 
+/-- Relabeling the identity matrix gives the identity matrix. -/
 theorem relabelGate_one {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) : relabelGate e (1 : Matrix I I ℂ) = 1 := by
   ext i j
@@ -141,6 +188,7 @@ theorem relabelGate_one {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [D
 
 end CircuitRelabel
 
+/-- A relabeled matrix is unitary exactly when the original matrix is unitary. -/
 theorem relabelGate_mem_unitaryGroup {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (U : Matrix I I ℂ) :
     relabelGate e U ∈ Matrix.unitaryGroup J ℂ ↔ U ∈ Matrix.unitaryGroup I ℂ := by
@@ -168,6 +216,7 @@ theorem relabelGate_mem_unitaryGroup {I J : Type*} [Fintype I] [DecidableEq I] [
       _ = relabelGate e 1 := by rw [h]
       _ = 1 := Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_one e
 
+/-- Relabeling preserves unitary-circuit legality, query count, gate count, and circuit size. -/
 theorem relabelCircuit_legality_resources {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (C : Circuit I) :
     (IsUnitaryCircuit (relabelCircuit e C) ↔ IsUnitaryCircuit C) ∧

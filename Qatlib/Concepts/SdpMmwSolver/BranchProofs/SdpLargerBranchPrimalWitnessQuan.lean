@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerBranchPrimalWitnessStat
+
+/-!
+# Primal witness for the larger branch
+
+`sdpLargerBranchPrimalWitness` constructs a positive semidefinite primal witness by rescaling a
+density operator satisfying the larger-branch separation condition. The witness satisfies all
+constraints, has trace at most R, and attains objective at least (1 − δ)α.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpLargerBranchPrimalWitness`: Under the larger-branch separation and parameter hypotheses,
+  there exists a positive semidefinite primal feasible operator of trace at most R and objective
+  at least (1 − δ)α. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 namespace Qatlib.Concepts.SdpMmwSolver.BranchProofs
@@ -13,6 +34,9 @@ open Matrix
 open scoped BigOperators ComplexOrder
 set_option warningAsError false
 
+/-- Under the larger-branch separation and parameter hypotheses, there exists a positive
+semidefinite primal feasible operator of trace at most R and objective at least (1 − δ)α.
+See [BrandaoSvore2017]. -/
 theorem sdpLargerBranchPrimalWitness : SdpLargerBranchPrimalWitness := by
   intro D m A Cv b sigma j0 alpha R delta eps ha hR hd hd1 he heb hb hA0 hb0 hs hsep
   let a : Fin m → ℝ := fun i => (Matrix.trace (A i * sigma)).re

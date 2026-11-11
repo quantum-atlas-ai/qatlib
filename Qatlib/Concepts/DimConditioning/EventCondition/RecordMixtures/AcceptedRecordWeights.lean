@@ -11,12 +11,33 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Real.Basic
 import Mathlib.Tactic.Linarith
 
+/-!
+# Acceptance weights and posterior budgets
+
+This module bounds acceptance for a finite joint law on records and a Boolean outcome.
+`acceptance` controls total accepted mass and bad accepted mass; `posterior_budget` normalizes
+the accepted weights and bounds their bad record contribution. These elementary conditioning
+estimates support the instrument framework of [Watrous2018].
+
+## Main statements
+
+* `acceptance`: acceptance at least `1 - ζ - δ` and bad accepted mass at most `ζ`.
+* `posterior_budget`: a normalized posterior with bad mass at most `ζ / (1 - ζ - δ)`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.DimConditioning.EventCondition.AcceptedRecordWeights
 open scoped Classical BigOperators
 
 variable {R : Type} [Fintype R] [DecidableEq R]
 
+/-- For a normalized nonnegative joint law, total bad record mass at most `ζ` and good record
+rejection fraction at most `δ` imply accepted mass at least `1 - ζ - δ` and bad accepted
+mass at most `ζ`. -/
 theorem acceptance (q : R × Bool → ℝ) (hq : ∀ z, 0 ≤ q z) (hs : ∑ z, q z=1)
     (good : Finset R) (ζ δ : ℝ) (hδ : 0 ≤ δ)
     (hbad : (∑ r : R, if r ∈ good then 0 else q (r,true)+q (r,false)) ≤ ζ)
@@ -46,6 +67,9 @@ theorem acceptance (q : R × Bool → ℝ) (hq : ∀ z, 0 ≤ q z) (hs : ∑ z, 
   by_cases hr : r ∈ good <;> simp [hr]
   linarith [hq (r,false)]
 
+/-- When `ζ` and `δ` are nonnegative with `ζ + δ < 1`, the accepted mass is positive, the
+accepted posterior sums to one, and its bad record mass is at most `ζ / (1 - ζ - δ)` under
+the stated mass bounds. -/
 theorem posterior_budget (q : R × Bool → ℝ) (hq : ∀ z, 0 ≤ q z) (hs : ∑ z, q z=1)
     (good : Finset R) (ζ δ : ℝ) (hζ : 0 ≤ ζ) (hδ : 0 ≤ δ) (hsmall : ζ+δ < 1)
     (hbad : (∑ r : R, if r ∈ good then 0 else q (r,true)+q (r,false)) ≤ ζ)

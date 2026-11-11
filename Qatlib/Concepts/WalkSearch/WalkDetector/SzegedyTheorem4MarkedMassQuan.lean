@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4MarkedMassStat
+
+/-!
+# Lower bound on nonempty marked mass
+
+`szegedyTheorem4MarkedMass` proves that a nonempty set selected by a Boolean predicate on `Fin
+n` has uniform marked fraction at least 1/n when n is positive. This supplies a marked-mass
+parameter for the quantum-walk detection framework of [Szegedy2004].
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +27,9 @@ open Qatlib.Concepts.WalkSearch.ProjectorCS
 namespace Qatlib.Concepts.WalkSearch.WalkDetector
 open scoped BigOperators
 
+/-- On `Fin n` with positive `n`, a Boolean predicate marking at least one element has marked
+fraction at least `1 / n`, supplying a marked-mass input for the detection framework of
+[Szegedy2004]. -/
 theorem szegedyTheorem4MarkedMass : SzegedyTheorem4MarkedMass := by
   classical
   intro n f hn ⟨i, hi⟩

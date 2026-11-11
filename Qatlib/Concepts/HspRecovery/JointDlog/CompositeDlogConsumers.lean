@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogDecoder
+
+/-!
+# Composite-order discrete logarithm examples modulo six
+
+Specializes cyclic discrete logarithm sampling and verified decoding to the generator one and
+logarithm two in `ZMod 6`. Gives an exact two-record success probability and a concrete record
+list with verified output and selected operation counts.
+
+Also counts resources for one and two prepared sampling runs. These examples instantiate
+discrete logarithm sampling and postprocessing in the composite-order setting of [Shor1997].
+
+## Main statements
+
+* `composite_dlog_mod_six_real_consumer`: computes success probability `5 / 9` and verifies a
+  concrete list.
+* `composite_dlog_mod_six_sampling_resources`: counts the queries and gate macros for one and
+  two sampling runs.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
 open Qatlib.Concepts.HspRecovery.Distinguisher
@@ -21,6 +44,9 @@ open Qatlib.Concepts.HspRecovery.Distinguisher
 open scoped Classical
 set_option warningAsError false
 
+/-- For the generator one and logarithm two in `ZMod 6`, two fresh records give verified
+recovery probability `5 / 9`. The records `[(2, 4), (5, 4)]` return two with two record
+reads and two verification additions, illustrating the postprocessing of [Shor1997]. -/
 theorem composite_dlog_mod_six_real_consumer :
     (cyclicDlogRecordDist 6 (1 : ZMod 6) 2).probEvent
       (fun ω : Fin 2 → ZMod 6 × ZMod 6 =>
@@ -42,6 +68,8 @@ theorem composite_dlog_mod_six_real_consumer :
   · decide +kernel
   · decide +kernel
 
+/-- The prepared modulus-six sampling circuit uses one query and two gate macros, while two
+concatenated copies use two queries and four gate macros. -/
 theorem composite_dlog_mod_six_sampling_resources :
     let cs := tableSamplingCircuit (R := ZMod 6) (cyclicDlogCharacters 6)
       (cyclicDlogSamplingPrepare 6)

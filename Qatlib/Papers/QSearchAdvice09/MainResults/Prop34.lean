@@ -96,6 +96,30 @@ import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 import Qatlib.Papers.QSearchAdvice09.MainResults.Basic
 import Qatlib.Papers.QSearchAdvice09.MainResults.PowSums
+
+/-!
+# Power-law advice bounds by probability branches
+
+This module splits the advice cost bound into probabilities above and below 1/n and compares
+both contributions with `crudeSqrtSum`. Power-sum estimates then give constant, logarithmic, and
+square-root big-O bounds and transfer them to eventually dominated nonnegative cost functions.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `powerLawTstarBound_le_crude`: For n ≥ 1, the power-law cost bound is at most 136 times
+  sumPow(k/2, n)/√(powerLawMass k n), plus 4/3.
+* `prop_3_4_case_sqrt`: For −1 ≤ k < 0, an eventually nonnegative function eventually dominated
+  by the stated nonnegative power-law bound is O(√n).
+* `prop_3_4_case_const`: For k < −2, an eventually nonnegative function eventually dominated by
+  the stated nonnegative power-law bound is O(1).
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -109,22 +133,27 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- The sum of square roots of power-law probabilities strictly greater than 1/n. -/
 def sqrtBranchSum (k : ℝ) (n : ℕ) : ℝ :=
   ∑ x : Fin n,
     if (1 : ℝ) / (n : ℝ) < powerLawProb k n x then Real.sqrt (powerLawProb k n x) else 0
 
+/-- The sum of power-law probabilities at most 1/n. -/
 def smallBranchSum (k : ℝ) (n : ℕ) : ℝ :=
   ∑ x : Fin n,
     if powerLawProb k n x ≤ (1 : ℝ) / (n : ℝ) then powerLawProb k n x else 0
 
+/-- The sum of square roots of all power-law probabilities. -/
 def crudeSqrtSum (k : ℝ) (n : ℕ) : ℝ :=
   ∑ x : Fin n, Real.sqrt (powerLawProb k n x)
 
+/-- The power-law normalizing mass equals `sumPow k n`. -/
 theorem powerLawMass_eq_sumPow (k : ℝ) (n : ℕ) :
     powerLawMass k n = sumPow k n := by
   unfold powerLawMass
   exact sum_Icc_one_eq_sumPow k n
 
+/-- For n ≥ 1, every power-law probability is nonnegative. -/
 theorem powerLawProb_nonneg (k : ℝ) (n : ℕ) (hn : 1 ≤ n) (x : Fin n) :
     0 ≤ powerLawProb k n x := by
   unfold powerLawProb
@@ -132,12 +161,15 @@ theorem powerLawProb_nonneg (k : ℝ) (n : ℕ) (hn : 1 ≤ n) (x : Fin n) :
   · exact Real.rpow_nonneg (by positivity) k
   · exact (powerLawMass_pos k n hn).le
 
+/-- The power-law cost bound is 83 times the square-root branch sum plus 53√n times the
+small-probability mass, plus 4/3. -/
 theorem powerLawTstarBound_eq (k : ℝ) (n : ℕ) :
     powerLawTstarBound k n
       = 83 * sqrtBranchSum k n + 53 * Real.sqrt (n : ℝ) * smallBranchSum k n + 4 / 3 := by
   unfold powerLawTstarBound sqrtBranchSum smallBranchSum
   rfl
 
+/-- Replacing √p by zero under any condition cannot increase it for nonnegative p. -/
 theorem if_sqrt_le_sqrt (c : Prop) [Decidable c] (p : ℝ) (_hp : 0 ≤ p) :
     (if c then Real.sqrt p else 0) ≤ Real.sqrt p := by
   by_cases h : c
@@ -145,6 +177,7 @@ theorem if_sqrt_le_sqrt (c : Prop) [Decidable c] (p : ℝ) (_hp : 0 ≤ p) :
   · rw [if_neg h]
     exact Real.sqrt_nonneg p
 
+/-- For n ≥ 1, the square-root branch sum is at most the sum over all probabilities. -/
 theorem sqrtBranchSum_le_crude (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     sqrtBranchSum k n ≤ crudeSqrtSum k n := by
   unfold sqrtBranchSum crudeSqrtSum
@@ -152,6 +185,7 @@ theorem sqrtBranchSum_le_crude (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
   intro x _
   exact if_sqrt_le_sqrt _ _ (powerLawProb_nonneg k n hn x)
 
+/-- For n ≥ 1 and 0 ≤ p ≤ 1/n, √n·p ≤ √p. -/
 theorem sqrtN_mul_le_sqrt {n : ℕ} (hn : 1 ≤ n) {p : ℝ} (hp0 : 0 ≤ p)
     (hp : p ≤ (1 : ℝ) / (n : ℝ)) : Real.sqrt (n : ℝ) * p ≤ Real.sqrt p := by
   rcases eq_or_lt_of_le hp0 with hzero | hpos
@@ -168,6 +202,8 @@ theorem sqrtN_mul_le_sqrt {n : ℕ} (hn : 1 ≤ n) {p : ℝ} (hp0 : 0 ≤ p)
   rw [← hEq]
   exact Real.sqrt_le_sqrt hle
 
+/-- For n ≥ 1, √n times the small-probability mass is at most the full square-root probability
+sum. -/
 theorem sqrtN_smallBranch_le_crude (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     Real.sqrt (n : ℝ) * smallBranchSum k n ≤ crudeSqrtSum k n := by
   unfold smallBranchSum crudeSqrtSum
@@ -181,6 +217,7 @@ theorem sqrtN_smallBranch_le_crude (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     simp only [mul_zero]
     exact Real.sqrt_nonneg _
 
+/-- For n ≥ 1, the full square-root probability sum equals sumPow(k/2, n)/√(powerLawMass k n). -/
 theorem crudeSqrtSum_eq (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     crudeSqrtSum k n = sumPow (k / 2) n / Real.sqrt (powerLawMass k n) := by
   have hMpos : 0 < powerLawMass k n := powerLawMass_pos k n hn
@@ -204,6 +241,8 @@ theorem crudeSqrtSum_eq (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
       (fun i : ℕ => (((i : ℝ) + 1) ^ (k / 2))) n)
   rw [hsum]
 
+/-- For n ≥ 1, the power-law cost bound is at most 136 times sumPow(k/2, n)/√(powerLawMass k n),
+plus 4/3 [Montanaro2011]. -/
 theorem powerLawTstarBound_le_crude (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     powerLawTstarBound k n
       ≤ 136 * (sumPow (k / 2) n / Real.sqrt (powerLawMass k n)) + 4 / 3 := by
@@ -228,6 +267,7 @@ theorem powerLawTstarBound_le_crude (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     _ = 136 * crudeSqrtSum k n + 4 / 3 := by ring
     _ = 136 * (sumPow (k / 2) n / Real.sqrt (powerLawMass k n)) + 4 / 3 := by rw [hc]
 
+/-- For n ≥ 1, the power-law cost bound is nonnegative. -/
 theorem powerLawTstarBound_nonneg (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
     0 ≤ powerLawTstarBound k n := by
   rw [powerLawTstarBound_eq]
@@ -248,6 +288,7 @@ theorem powerLawTstarBound_nonneg (k : ℝ) (n : ℕ) (hn : 1 ≤ n) :
   have h3 : 0 ≤ Real.sqrt (n : ℝ) := Real.sqrt_nonneg _
   nlinarith [h1, h2, h3]
 
+/-- For a negative exponent and n ≥ 1, the power sum is at least one. -/
 theorem one_le_sumPow_of_neg {k : ℝ} (_hk : k < 0) {n : ℕ} (hn : 1 ≤ n) :
     1 ≤ sumPow k n := by
   have hmem : 0 ∈ Finset.range n := by rw [Finset.mem_range]; omega
@@ -257,6 +298,7 @@ theorem one_le_sumPow_of_neg {k : ℝ} (_hk : k < 0) {n : ℕ} (hn : 1 ≤ n) :
   unfold sumPow
   simpa using! this
 
+/-- For k < −2, the ratio sumPow(k/2, n)/√(powerLawMass k n) is O(1) [Montanaro2011]. -/
 theorem crude_isBigO_one {k : ℝ} (hk : k < -2) :
     Asymptotics.IsBigO Filter.atTop
       (fun n : ℕ => sumPow (k / 2) n / Real.sqrt (powerLawMass k n))
@@ -284,6 +326,7 @@ theorem crude_isBigO_one {k : ℝ} (hk : k < -2) :
     _ = sumPow (k / 2) n := by rw [div_one]
     _ ≤ 1 / (-(k / 2 + 1) * 2 ^ (k / 2)) := hnum
 
+/-- For k < −2, the power-law cost bound is O(1). -/
 theorem tstarBound_isBigO_one {k : ℝ} (hk : k < -2) :
     Asymptotics.IsBigO Filter.atTop (fun n : ℕ => powerLawTstarBound k n)
       (fun _ : ℕ => (1 : ℝ)) := by
@@ -305,6 +348,7 @@ theorem tstarBound_isBigO_one {k : ℝ} (hk : k < -2) :
       ≤ 136 * (sumPow (k / 2) n / Real.sqrt (powerLawMass k n)) + 4 / 3 := hle
     _ ≤ 136 * c + 4 / 3 := by nlinarith [hb]
 
+/-- At k = −2, the ratio sumPow(k/2, n)/√(powerLawMass k n) is O(log n) [Montanaro2011]. -/
 theorem crude_isBigO_log :
     Asymptotics.IsBigO Filter.atTop
       (fun n : ℕ => sumPow ((-2 : ℝ) / 2) n / Real.sqrt (powerLawMass (-2) n))
@@ -337,6 +381,7 @@ theorem crude_isBigO_log :
     _ ≤ 1 + Real.log (n : ℝ) := hnum
     _ ≤ 2 * Real.log (n : ℝ) := by linarith
 
+/-- At k = −2, the power-law cost bound is O(log n). -/
 theorem tstarBound_isBigO_log :
     Asymptotics.IsBigO Filter.atTop (fun n : ℕ => powerLawTstarBound (-2) n)
       (fun n : ℕ => Real.log (n : ℝ)) := by
@@ -368,6 +413,7 @@ theorem tstarBound_isBigO_log :
     _ ≤ 136 * (c * Real.log (n : ℝ)) + 4 / 3 := by nlinarith [hb]
     _ ≤ (136 * c + 4 / 3) * Real.log (n : ℝ) := by nlinarith [hlog1']
 
+/-- For −1 < k < 0, the ratio sumPow(k/2, n)/√(powerLawMass k n) is O(√n) [Montanaro2011]. -/
 theorem crude_isBigO_sqrt_of_gt {k : ℝ} (hk1 : -1 < k) (hk0 : k < 0) :
     Asymptotics.IsBigO Filter.atTop
       (fun n : ℕ => sumPow (k / 2) n / Real.sqrt (powerLawMass k n))
@@ -453,6 +499,7 @@ theorem crude_isBigO_sqrt_of_gt {k : ℝ} (hk1 : -1 < k) (hk0 : k < 0) :
           field_simp
     _ = C * Real.sqrt (2 * (k + 1)) * Real.sqrt (n : ℝ) := by rw [hexp]
 
+/-- For −1 < k < 0, the power-law cost bound is O(√n). -/
 theorem tstarBound_isBigO_sqrt_of_gt {k : ℝ} (hk1 : -1 < k) (hk0 : k < 0) :
     Asymptotics.IsBigO Filter.atTop (fun n : ℕ => powerLawTstarBound k n)
       (fun n : ℕ => Real.sqrt (n : ℝ)) := by
@@ -479,6 +526,7 @@ theorem tstarBound_isBigO_sqrt_of_gt {k : ℝ} (hk1 : -1 < k) (hk0 : k < 0) :
     _ ≤ 136 * (c * Real.sqrt (n : ℝ)) + 4 / 3 := by nlinarith [hb]
     _ ≤ (136 * c + 4 / 3) * Real.sqrt (n : ℝ) := by nlinarith [hs1]
 
+/-- At k = −1, the ratio sumPow(k/2, n)/√(powerLawMass k n) is O(√n) [Montanaro2011]. -/
 theorem crude_isBigO_sqrt_neg_one :
     Asymptotics.IsBigO Filter.atTop
       (fun n : ℕ => sumPow ((-1 : ℝ) / 2) n / Real.sqrt (powerLawMass (-1) n))
@@ -525,6 +573,7 @@ theorem crude_isBigO_sqrt_neg_one :
     _ ≤ (2 ^ ((-1 : ℝ) / 2 + 1) / (((-1 : ℝ) / 2 + 1) * 2 ^ ((-1 : ℝ) / 2))) *
           Real.sqrt (n : ℝ) := hnum
 
+/-- At k = −1, the power-law cost bound is O(√n). -/
 theorem tstarBound_isBigO_sqrt_neg_one :
     Asymptotics.IsBigO Filter.atTop (fun n : ℕ => powerLawTstarBound (-1) n)
       (fun n : ℕ => Real.sqrt (n : ℝ)) := by
@@ -552,6 +601,8 @@ theorem tstarBound_isBigO_sqrt_neg_one :
     _ ≤ 136 * (c * Real.sqrt (n : ℝ)) + 4 / 3 := by nlinarith [hb]
     _ ≤ (136 * c + 4 / 3) * Real.sqrt (n : ℝ) := by nlinarith [hs1]
 
+/-- For −1 ≤ k < 0, an eventually nonnegative function eventually dominated by the stated
+nonnegative power-law bound is O(√n) [Montanaro2011]. -/
 theorem prop_3_4_case_sqrt (k : ℝ) (hk1 : -1 ≤ k) (hk0 : k < 0) (Tstar : ℕ → ℝ)
     (h_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ Tstar n)
     (h_bound_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ powerLawTstarBound k n)
@@ -564,6 +615,8 @@ theorem prop_3_4_case_sqrt (k : ℝ) (hk1 : -1 ≤ k) (hk0 : k < 0) (Tstar : ℕ
     exact hbase.trans tstarBound_isBigO_sqrt_neg_one
   · exact hbase.trans (tstarBound_isBigO_sqrt_of_gt hk hk0)
 
+/-- An eventually nonnegative function eventually dominated by the stated nonnegative power-law
+bound at k = −2 is O(log n) [Montanaro2011]. -/
 theorem prop_3_4_case_log (Tstar : ℕ → ℝ)
     (h_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ Tstar n)
     (h_bound_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ powerLawTstarBound (-2) n)
@@ -571,6 +624,8 @@ theorem prop_3_4_case_log (Tstar : ℕ → ℝ)
     Asymptotics.IsBigO Filter.atTop Tstar (fun n => Real.log (n : ℝ)) :=
   (isBigO_of_eventually_le h_nonneg h_bound_nonneg h_bound).trans tstarBound_isBigO_log
 
+/-- For k < −2, an eventually nonnegative function eventually dominated by the stated
+nonnegative power-law bound is O(1) [Montanaro2011]. -/
 theorem prop_3_4_case_const {k : ℝ} (hk : k < -2) (Tstar : ℕ → ℝ)
     (h_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ Tstar n)
     (h_bound_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ powerLawTstarBound k n)

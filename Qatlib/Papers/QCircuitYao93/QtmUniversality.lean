@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniform
+
+/-!
+# Acceptance of an all-cell QTM tour
+
+The module compares the acceptance mass of a finite-window all-cell tour with the output
+probability of `compositeCellCircuit V`. Under the stated tape layout and head-position
+assumptions, the tour after `n * (k + 1) + 1` steps reproduces the last output wire's acceptance
+probability. See [Yao1993].
+
+## Main statements
+
+* `composite_cell_tour_acceptance`: equates the tour acceptance mass with the composite circuit
+  output probability.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +40,10 @@ open Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniform
 
 set_option maxHeartbeats 2000000 in
 
+/-- For unitary cell gates and the stated initial tape layout, the all-cell QTM tour after `n *
+(k + 1) + 1` steps has acceptance mass equal to the composite circuit's last-wire acceptance
+probability. This is the composite-cell simulation statement associated with Theorem 3 of
+[Yao1993]. -/
 theorem composite_cell_tour_acceptance {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)

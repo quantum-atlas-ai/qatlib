@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+
+/-!
+# Amplitude semantics for Boolean oracle circuits
+
+Defines complex amplitude functions, phase oracles, and a Walsh-Hadamard transform with
+normalization `hnorm`. For even dimension the transform is involutive; gate lists `Program`
+carry evaluation semantics and an explicit oracle count. See [Roetteler2008].
+
+## Main statements
+
+* `hadamard_hadamard`: the transform is involutive in even dimension.
+* `Program.eval`: programs evaluate their gates in list order.
+* `Program.oracleCount`: the resource count is the number of phase-oracle gates.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,27 +36,37 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.QuantumDefs
 
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- Complex amplitude functions on the binary vector space of length `n`. -/
 abbrev State (n : ℕ) : Type := BVec n → ℂ
 
+/-- The complex normalization factor given by the reciprocal of `2 ^ (n / 2)`. -/
 def hnorm (n : ℕ) : ℂ := ((2 : ℂ) ^ (n / 2))⁻¹
 
+/-- The binary character transform of an amplitude function, scaled by `hnorm n`. -/
 def hadamard {n : ℕ} (ψ : State n) : State n :=
   fun y => hnorm n * ∑ x : BVec n, (eps (dot y x) : ℂ) * ψ x
 
+/-- The amplitude function equal to one at `u` and zero at every other vector. -/
 def basisState {n : ℕ} (u : BVec n) : State n :=
   fun x => if x = u then 1 else 0
 
+/-- The computational basis state at the zero binary vector. -/
 def initState (n : ℕ) : State n := basisState (n := n) 0
 
+/-- The operator multiplying each amplitude by the binary sign of the Boolean oracle value. -/
 def phaseOracle {n : ℕ} (f : BVec n → ZMod 2) (ψ : State n) : State n :=
   fun x => (eps (f x) : ℂ) * ψ x
 
+/-- The squared complex norm of the amplitude at `z`. -/
 def prob {n : ℕ} (ψ : State n) (z : BVec n) : ℝ := Complex.normSq (ψ z)
 
+/-- The binary dot product is symmetric. -/
 lemma dot_comm {n : ℕ} (a b : BVec n) : dot a b = dot b a := by
   simp only [dot]
   rw [dotProduct_comm]
 
+/-- The complex-valued sum of a binary character is `2 ^ n` for the zero vector and zero
+otherwise. -/
 lemma sum_eps_dot_c {n : ℕ} (v : BVec n) :
     ∑ x : BVec n, (eps (dot v x) : ℂ) = if v = 0 then (2 : ℂ) ^ n else 0 := by
   have h : (∑ x : BVec n, (eps (dot v x) : ℂ))
@@ -48,12 +77,15 @@ lemma sum_eps_dot_c {n : ℕ} (v : BVec n) :
   · simp [hv]
   · simp [hv]
 
+/-- Casting an integer Walsh coefficient to the complex numbers gives the corresponding sum of
+complex sign products. -/
 lemma walsh_cast {n : ℕ} (f : BVec n → ZMod 2) (w : BVec n) :
     ((walsh f w : ℤ) : ℂ)
       = ∑ x : BVec n, (eps (dot w x) : ℂ) * (eps (f x) : ℂ) := by
   rw [walsh, Int.cast_sum]
   exact Finset.sum_congr rfl (fun x _ => Int.cast_mul _ _)
 
+/-- For even `n`, the product of two complex powers `2 ^ (n / 2)` equals `2 ^ n`. -/
 lemma pow_half_mul_c {n : ℕ} (hn : Even n) :
     (2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ (n / 2) = (2 : ℂ) ^ n := by
   obtain ⟨k, hk⟩ := hn
@@ -61,6 +93,7 @@ lemma pow_half_mul_c {n : ℕ} (hn : Even n) :
   have hdiv : (k + k) / 2 = k := by omega
   rw [hdiv, ← pow_add]
 
+/-- For even `n`, the square of the Hadamard normalization factor times `2 ^ n` equals one. -/
 lemma hnorm_sq_mul {n : ℕ} (hn : Even n) : hnorm n * hnorm n * (2 : ℂ) ^ n = 1 := by
   have h2 : (2 : ℂ) ^ (n / 2) ≠ 0 := pow_ne_zero _ (by norm_num)
   have hsq : (2 : ℂ) ^ n = (2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ (n / 2) :=
@@ -73,6 +106,7 @@ lemma hnorm_sq_mul {n : ℕ} (hn : Even n) : hnorm n * hnorm n * (2 : ℂ) ^ n =
         * (((2 : ℂ) ^ (n / 2))⁻¹ * (2 : ℂ) ^ (n / 2)) from by ring]
   rw [inv_mul_cancel₀ h2, one_mul]
 
+/-- In even dimension, applying the Hadamard transform twice recovers every amplitude function. -/
 theorem hadamard_hadamard {n : ℕ} (hn : Even n) (ψ : State n) :
     hadamard (hadamard ψ) = ψ := by
   funext z
@@ -119,6 +153,7 @@ theorem hadamard_hadamard {n : ℕ} (hn : Even n) (ψ : State n) :
   · intro hmem
     simp at hmem
 
+/-- The Hadamard transform of the zero basis state is the constant amplitude function `hnorm n`. -/
 theorem hadamard_init (n : ℕ) : hadamard (initState n) = fun _ => hnorm n := by
   funext y
   simp only [hadamard, initState, basisState]
@@ -131,6 +166,8 @@ theorem hadamard_init (n : ℕ) : hadamard (initState n) = fun _ => hnorm n := b
       simp at hmem
   rw [h, mul_one]
 
+/-- In even dimension, the Hadamard transform of a constant amplitude is supported at zero, with
+value `2 ^ (n / 2) * v` there. -/
 theorem hadamard_const {n : ℕ} (hn : Even n) (v : ℂ) (y : BVec n) :
     hadamard (fun _ : BVec n => v) y
       = if y = 0 then (2 : ℂ) ^ (n / 2) * v else 0 := by
@@ -151,6 +188,7 @@ theorem hadamard_const {n : ℕ} (hn : Even n) (v : ℂ) (y : BVec n) :
   · rw [if_neg hy, if_neg hy]
     simp
 
+/-- The gate type consisting of a Hadamard transform or a phase oracle for a Boolean function. -/
 inductive Gate (n : ℕ) where
 
   | had : Gate n
@@ -159,21 +197,28 @@ inductive Gate (n : ℕ) where
 
 namespace Gate
 
+/-- The amplitude-function action of a gate, interpreted as a Hadamard transform or a phase
+oracle. -/
 def eval {n : ℕ} : Gate n → State n → State n
   | .had, ψ => hadamard ψ
   | .orcl f, ψ => phaseOracle f ψ
 
+/-- The Boolean indicator that a gate is a phase-oracle query. -/
 def isOracle {n : ℕ} : Gate n → Bool
   | .had => false
   | .orcl _ => true
 
 end Gate
 
+/-- Finite lists of gates acting on length-`n` binary amplitude functions. -/
 abbrev Program (n : ℕ) : Type := List (Gate n)
 
+/-- Evaluates a gate list on an initial amplitude function by applying its gates from left to
+right. -/
 def Program.eval {n : ℕ} (p : Program n) (ψ : State n) : State n :=
   p.foldl (fun ψ g => g.eval ψ) ψ
 
+/-- The number of phase-oracle gates in a program. -/
 def Program.oracleCount {n : ℕ} (p : Program n) : ℕ :=
   (p.filter Gate.isOracle).length
 

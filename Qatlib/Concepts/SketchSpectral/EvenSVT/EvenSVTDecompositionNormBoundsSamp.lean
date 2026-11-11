@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTDecompositionNormBoundsStat
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+
+/-!
+# Norm bounds for even SVT decompositions
+
+The module bounds the two-sketch Gram spectra and transfers scalar envelopes to operator-norm
+bounds for Hermitian matrix functions in the setting of [ChiaEtAl2022].
+`evenSVTDecompositionNormBounds` uses a Lipschitz hypothesis to obtain a finite envelope;
+`not_evenSVTDecompositionNormBounds` disproves the separately defined statement with no
+regularity hypothesis.
+
+## Main statements
+
+* `evenSVTDecompositionNormBounds`: Proves the even-SVT decomposition norm statement with its
+  spectral-band Lipschitz hypothesis and supplied-envelope conclusion. See [ChiaEtAl2022].
+* `even_svt_decomposition_supplied_envelope`: A supplied nonnegative envelope on the enlarged
+  squared-singular-value bands and zero bounds the operator norm of the outer sketch's matrix
+  function.
+* `not_evenSVTDecompositionNormBounds`: The unrestricted statement
+  `OriginalEvenSVTDecompositionNormBounds` is false.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SketchSpectral.SketchPerturb
@@ -25,6 +50,7 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A Frobenius bound `η` on the inner Gram error gives `‖Rᴴ * R‖ ≤ ‖Aᴴ * A‖ + η`. -/
 theorem sketch_inner_gram_op_norm_bound {K C RS : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] [Fintype RS] [DecidableEq RS]
     (A : Matrix K C ℂ) (R : Matrix RS C ℂ) (η : ℝ)
@@ -34,6 +60,8 @@ theorem sketch_inner_gram_op_norm_bound {K C RS : Type} [Fintype K] [DecidableEq
   rw [he]
   exact (norm_add_le _ _).trans (by linarith)
 
+/-- A nonnegative scalar bound on a function at every ordered eigenvalue bounds the operator
+norm of its Hermitian matrix function. -/
 theorem hermitian_function_op_norm_le_spectral_envelope {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hH : H.IsHermitian) (g : ℝ → ℂ) (B : ℝ) (hB : 0 ≤ B)
     (hg : ∀ i, ‖g (orderedHermitianValues hH i)‖ ≤ B) :
@@ -58,6 +86,8 @@ theorem hermitian_function_op_norm_le_spectral_envelope {I : Type} [Fintype I] [
     _ ≤ (1*B)*1 := by rw [Matrix.l2_opNorm_conjTranspose]; gcongr
     _ = B := by ring
 
+/-- The ordered eigenvalues of the outer sketch Gram matrix differ from the corresponding
+squared singular values of `A` by at most `2 * η₁ + 2 * η₂`. -/
 theorem two_sketch_outer_gram_spectral_band
     {K C RS CT : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
@@ -87,6 +117,8 @@ theorem two_sketch_outer_gram_spectral_band
     simpa only [zero_pow (by decide : (2 : ℕ) ≠ 0), sub_zero] using
       ho.trans (by linarith : η₂ ≤ 2*η₁ + 2*η₂)
 
+/-- A function that is Lipschitz on a finite union of bounded spectral bands is bounded there
+and at zero. -/
 theorem finite_band_envelope_of_lipschitz (n : ℕ) (s : ℕ → ℝ) (ρ L : ℝ)
     (g : ℝ → ℂ) (hρ : 0 ≤ ρ) (hL : 0 ≤ L)
     (hLip : ∀ x y : ℝ,
@@ -113,6 +145,8 @@ theorem finite_band_envelope_of_lipschitz (n : ℕ) (s : ℕ → ℝ) (ρ L : �
     linarith [norm_nonneg (g 0)]
   · linarith [mul_nonneg hL hρ]
 
+/-- A supplied nonnegative envelope on the enlarged squared-singular-value bands and zero bounds
+the operator norm of the outer sketch's matrix function. -/
 theorem even_svt_decomposition_supplied_envelope
     {K C RS CT : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
@@ -130,6 +164,8 @@ theorem even_svt_decomposition_supplied_envelope
   exact hg _ (Or.inl ⟨i.val, i.isLt,
     two_sketch_outer_gram_spectral_band A R T η₁ η₂ hη₁ hη₂ h₁ h₂ i⟩)
 
+/-- Proves the even-SVT decomposition norm statement with its spectral-band Lipschitz hypothesis
+and supplied-envelope conclusion. See [ChiaEtAl2022]. -/
 theorem evenSVTDecompositionNormBounds : EvenSVTDecompositionNormBounds := by
   intro K C RS CT _ _ _ _ _ _ _ _ A R T g η₁ η₂ L hη₁ hη₂ h₁ h₂ hL hLip
   have hρ : 0 ≤ 2*η₁+2*η₂ := by positivity
@@ -141,6 +177,8 @@ theorem evenSVTDecompositionNormBounds : EvenSVTDecompositionNormBounds := by
     fun B hB hg => even_svt_decomposition_supplied_envelope A R T g η₁ η₂ B
       hη₁ hη₂ h₁ h₂ hB hg⟩
 
+/-- A constant scalar function gives an outer sketch matrix function with operator norm at most
+the norm of that constant. -/
 theorem even_svt_constant_function_consumer
     {K C RS CT : Type} [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
@@ -154,6 +192,8 @@ theorem even_svt_constant_function_consumer
     η₁ η₂ 0 hη₁ hη₂ h₁ h₂ (le_refl 0) (by intros; simp)
   exact h.2.2 ‖z‖ (norm_nonneg _) (by intros; exact le_refl _)
 
+/-- The proposed decomposition norm statement that requires a finite spectral-band envelope for
+every scalar function without a regularity hypothesis. -/
 def OriginalEvenSVTDecompositionNormBounds : Prop :=
   ∀ (K C RS CT : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
@@ -172,6 +212,7 @@ def OriginalEvenSVTDecompositionNormBounds : Prop :=
       ‖Qatlib.Concepts.SpectralSketch.SpectrumPerturb.hermitianFunction ((R*T)*(R*T)ᴴ)
           (Matrix.isHermitian_mul_conjTranspose_self (R*T)) g‖ ≤ B
 
+/-- Every singular value of the zero `1 × 1` matrix is zero. -/
 private theorem zero_singular_value (i : ℕ) :
     matrixSingularValues (0 : Matrix (Fin 1) (Fin 1) ℂ) i = 0 := by
   apply le_antisymm _ (matrixSingularValues_nonneg _ _)
@@ -182,6 +223,7 @@ private theorem zero_singular_value (i : ℕ) :
   rw [hz, LinearMap.range_zero, finrank_bot]
   exact Nat.not_lt_zero i
 
+/-- The unrestricted statement `OriginalEvenSVTDecompositionNormBounds` is false. -/
 theorem not_evenSVTDecompositionNormBounds : ¬ OriginalEvenSVTDecompositionNormBounds := by
   intro h
   let g : ℝ → ℂ := fun x => ((x⁻¹ : ℝ) : ℂ)

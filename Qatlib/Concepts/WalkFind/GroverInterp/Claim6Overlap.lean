@@ -9,6 +9,27 @@ import Mathlib.Algebra.BigOperators.Pi
 import Mathlib.Analysis.Complex.Norm
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Cotangent
 import Mathlib.Data.Complex.BigOperators
+
+/-!
+# Overlap bounds for Grover interpolation
+
+This module develops the conjugate dot product `cdot` on finite complex vectors and the
+trigonometric estimates needed for the final overlap bound. `claim6` proves `Claim6Statement`,
+the spectral-expansion overlap statement associated with Claim 6 in the quantum-walk analysis.
+
+For background, see [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `cdot_self_eq`: the self-product is the sum of squared coordinate norms.
+* `cot_sq_le`: a phase gap bounds the squared half-angle cotangent.
+* `claim6`: the normalized endpoint overlap lower bound.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,26 +45,34 @@ set_option maxHeartbeats 2000000
 
 noncomputable section
 
+/-- The conjugate dot product on finite complex vectors, conjugate-linear in the first argument
+and linear in the second. -/
 def cdot {m : ℕ} (u v : Fin m → ℂ) : ℂ := ∑ i, star (u i) * v i
 
+/-- The star operation on complex numbers agrees with complex conjugation. -/
 lemma star_eq_conj (z : ℂ) : star z = starRingEnd ℂ z := rfl
 
+/-- The conjugate dot product with zero in the first argument is zero. -/
 @[simp] lemma cdot_zero_left {m : ℕ} (v : Fin m → ℂ) :
     cdot (0 : Fin m → ℂ) v = 0 := by
   simp [cdot]
 
+/-- The conjugate dot product with zero in the second argument is zero. -/
 @[simp] lemma cdot_zero_right {m : ℕ} (u : Fin m → ℂ) :
     cdot u (0 : Fin m → ℂ) = 0 := by
   simp [cdot]
 
+/-- The conjugate dot product distributes over addition in its first argument. -/
 lemma cdot_add_left {m : ℕ} (u₁ u₂ v : Fin m → ℂ) :
     cdot (u₁ + u₂) v = cdot u₁ v + cdot u₂ v := by
   simp only [cdot, Pi.add_apply, star_add, add_mul, Finset.sum_add_distrib]
 
+/-- The conjugate dot product distributes over addition in its second argument. -/
 lemma cdot_add_right {m : ℕ} (u v₁ v₂ : Fin m → ℂ) :
     cdot u (v₁ + v₂) = cdot u v₁ + cdot u v₂ := by
   simp only [cdot, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- A scalar in the first argument of `cdot` factors out as its complex conjugate. -/
 lemma cdot_smul_left {m : ℕ} (c : ℂ) (u v : Fin m → ℂ) :
     cdot (c • u) v = star c * cdot u v := by
   rw [cdot, cdot, Finset.mul_sum]
@@ -51,6 +80,7 @@ lemma cdot_smul_left {m : ℕ} (c : ℂ) (u v : Fin m → ℂ) :
   simp only [Pi.smul_apply, smul_eq_mul, star_mul]
   ring
 
+/-- A scalar in the second argument of `cdot` factors out unchanged. -/
 lemma cdot_smul_right {m : ℕ} (c : ℂ) (u v : Fin m → ℂ) :
     cdot u (c • v) = c * cdot u v := by
   rw [cdot, cdot, Finset.mul_sum]
@@ -58,10 +88,13 @@ lemma cdot_smul_right {m : ℕ} (c : ℂ) (u v : Fin m → ℂ) :
   simp only [Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- Scaling both arguments of `cdot` multiplies the product by the conjugate of the first scalar
+and the second scalar. -/
 lemma cdot_smul_smul {m : ℕ} (c d : ℂ) (u v : Fin m → ℂ) :
     cdot (c • u) (d • v) = star c * (d * cdot u v) := by
   rw [cdot_smul_left, cdot_smul_right]
 
+/-- The conjugate dot product distributes over a finite sum in its first argument. -/
 lemma cdot_sum_left {m : ℕ} {ι : Type*} [Fintype ι]
     (F : ι → Fin m → ℂ) (v : Fin m → ℂ) :
     cdot (∑ j, F j) v = ∑ j, cdot (F j) v := by
@@ -71,6 +104,7 @@ lemma cdot_sum_left {m : ℕ} {ι : Type*} [Fintype ι]
   simp only [cdot, star_sum, Finset.sum_mul]
   exact Finset.sum_comm
 
+/-- The conjugate dot product distributes over a finite sum in its second argument. -/
 lemma cdot_sum_right {m : ℕ} {ι : Type*} [Fintype ι]
     (u : Fin m → ℂ) (F : ι → Fin m → ℂ) :
     cdot u (∑ j, F j) = ∑ j, cdot u (F j) := by
@@ -80,12 +114,15 @@ lemma cdot_sum_right {m : ℕ} {ι : Type*} [Fintype ι]
   simp only [cdot, Finset.mul_sum]
   exact Finset.sum_comm
 
+/-- Swapping the arguments of `cdot` conjugates its value. -/
 lemma cdot_conj_symm {m : ℕ} (u v : Fin m → ℂ) :
     cdot u v = star (cdot v u) := by
   rw [cdot, cdot, star_sum]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [star_mul, star_star]
 
+/-- The conjugate dot product of a vector with itself equals the complex coercion of the sum of
+its squared coordinate norms. -/
 lemma cdot_self_eq {m : ℕ} (u : Fin m → ℂ) :
     cdot u u = ((∑ i, ‖u i‖ ^ 2 : ℝ) : ℂ) := by
   rw [cdot]
@@ -99,12 +136,15 @@ lemma cdot_self_eq {m : ℕ} (u : Fin m → ℂ) :
   simp only [h]
   rw [← Complex.ofReal_sum (s := Finset.univ) (f := fun i => ‖u i‖ ^ 2)]
 
+/-- When the sine is nonzero, one plus the squared cotangent equals the reciprocal squared sine. -/
 lemma cot_sq_add_one {x : ℝ} (hx : Real.sin x ≠ 0) :
     1 + Real.cot x ^ 2 = 1 / Real.sin x ^ 2 := by
   rw [Real.cot_eq_cos_div_sin]
   field_simp
   nlinarith [Real.sin_sq_add_cos_sq x]
 
+/-- For a phase between `ε` and `2 * pi - ε` with positive `ε`, its half-angle sine is at least
+`sin (ε / 2)`. -/
 lemma sin_half_mono {ε θ : ℝ} (hε : 0 < ε) (hεθ : ε ≤ θ)
     (hθ : θ ≤ 2 * Real.pi - ε) :
     Real.sin (ε / 2) ≤ Real.sin (θ / 2) := by
@@ -118,6 +158,9 @@ lemma sin_half_mono {ε θ : ℝ} (hε : 0 < ε) (hεθ : ε ≤ θ)
       Real.sin_le_sin_of_le_of_le_pi_div_two (by linarith) hsub_le hsub_ge
     rwa [Real.sin_pi_sub] at hmono
 
+/-- For a phase between `ε` and `2 * pi - ε` with positive `ε`, its squared half-angle cotangent
+is at most `cot (ε / 2)^2`. This is a phase-gap estimate used for Claim 6 of
+[Ambainis2007ElementDistinctness]. -/
 lemma cot_sq_le {ε θ : ℝ} (hε : 0 < ε) (hεθ : ε ≤ θ)
     (hθ : θ ≤ 2 * Real.pi - ε) :
     Real.cot (θ / 2) ^ 2 ≤ Real.cot (ε / 2) ^ 2 := by
@@ -136,6 +179,9 @@ lemma cot_sq_le {ε θ : ℝ} (hε : 0 < ε) (hεθ : ε ≤ θ)
   have hθcot := cot_sq_add_one (ne_of_gt hsinθ)
   linarith [hεcot, hθcot]
 
+/-- If `0 ≤ t ≤ 1`, `t ≤ S ≤ (1 + cot (ε / 2)^2) * t`, and `0 < ε ≤ pi`, then `min (t / 2) (t *
+ε / 4) ≤ t / sqrt S`. This is the scalar overlap estimate used for Claim 6 of
+[Ambainis2007ElementDistinctness]. -/
 lemma claim6_final {t S ε : ℝ} (hε : 0 < ε) (hεpi : ε ≤ Real.pi)
     (ht0 : 0 ≤ t) (ht1 : t ≤ 1) (hS0 : 0 ≤ S) (htS : t ≤ S)
     (hS : S ≤ (1 + Real.cot (ε / 2) ^ 2) * t) :
@@ -199,6 +245,9 @@ lemma claim6_final {t S ε : ℝ} (hε : 0 < ε) (hεpi : ε ≤ Real.pi)
   rw [heq2]
   exact mul_le_of_le_one_right ht0 hx
 
+/-- Establishes the normalized endpoint overlap bound in `Claim6Statement` from its orthonormal
+spectral expansion and phase-gap assumptions, corresponding to Claim 6 of
+[Ambainis2007ElementDistinctness]. -/
 theorem claim6 : Claim6Statement := by
   intro m l α ε start good a θ w hstart hgood hw horth hstartorth hstartre hare
     hstr hgoodexp hε hθ

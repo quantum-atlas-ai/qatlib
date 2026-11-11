@@ -8,6 +8,28 @@ import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.ForwardProgram
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmStat
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeAlgorithmContracts
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+
+/-!
+# Structural variable-time amplification
+
+This module constructs forward and backward structural words and amplitude-amplification rounds,
+with exact weighted costs and matrix semantics. It proves `variableTimeAlgorithm_answer` and
+records limitations of endpoint premises and of a model that charges arbitrary fixed unitaries
+zero stage time.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `vt_aa_word_cost`: exact weighted cost of an amplification word.
+* `vt_aa_word_matrix`: matrix semantics of repeated amplification rounds.
+* `variableTimeAlgorithm_answer`: the structural algorithm specification holds.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +52,8 @@ set_option maxHeartbeats 1200000
 
 noncomputable section
 
+/-- Under the stated stage condition, a running basis input cannot satisfy the positive endpoint
+success floor when there is at least one stage. -/
 theorem vt_endpoint_premises_impossible {C : Type} [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (hm : 1 ≤ stages.length)
@@ -41,6 +65,8 @@ theorem vt_endpoint_premises_impossible {C : Type} [Fintype C] [DecidableEq C]
   rw [vt_running_source_good_mass_zero stages hs j₀ hj] at hfloor
   linarith
 
+/-- Any unitary can be implemented as a single legal fixed-gate word with zero stage time in the
+`VtStep` model. -/
 theorem vt_any_unitary_free_word {C W : Type} [Fintype C] [DecidableEq C]
     [Fintype W] [DecidableEq W]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
@@ -58,37 +84,51 @@ section DeterministicEndpoint
 
 variable {W C : Type} [Fintype W] [DecidableEq W] [Fintype C] [DecidableEq C]
 
+/-- The structural word applying backward stage accesses in reverse order through the first `n`
+stages. -/
 def vtBackwardWord (n : ℕ) : List (StructuralVtStep W C) :=
   (List.range n).reverse.map StructuralVtStep.stageB
 
+/-- One structural amplification round: good reflection, backward stage word, source reflection,
+and forward stage word. -/
 def vtAARound (n : ℕ) : List (StructuralVtStep W C) :=
   StructuralVtStep.goodReflection ::
     (vtBackwardWord n ++ (StructuralVtStep.sourceReflection :: vtForwardWord n))
 
+/-- The forward preparation word followed by `k` structural amplification rounds. -/
 def vtAAWord (n k : ℕ) : List (StructuralVtStep W C) :=
   vtForwardWord n ++ (List.replicate k (vtAARound n)).flatten
 
+/-- The backward word for `n + 1` stages begins with backward access to stage `n`, followed by
+the backward word for `n` stages. -/
 theorem vt_backward_word_succ (n : ℕ) :
     vtBackwardWord (W := W) (C := C) (n+1)
       = StructuralVtStep.stageB n :: vtBackwardWord (W := W) (C := C) n := by
   simp [vtBackwardWord, List.range_succ]
 
+/-- Backward access to stage `j` has weighted time `2 ^ j`. -/
 theorem vt_stepTime_stageB (j : ℕ) :
     structuralStepTime (StructuralVtStep.stageB j : StructuralVtStep W C) = 2^j := rfl
 
+/-- The good-state reflection has zero structural weighted time. -/
 theorem vt_stepTime_goodReflection :
     structuralStepTime (StructuralVtStep.goodReflection : StructuralVtStep W C) = 0 := rfl
 
+/-- The source-state reflection has zero structural weighted time. -/
 theorem vt_stepTime_sourceReflection :
     structuralStepTime (StructuralVtStep.sourceReflection : StructuralVtStep W C) = 0 := rfl
 
+/-- The weighted time of a structural word is the time of its first step plus the time of its
+tail. -/
 theorem structuralWordTime_cons (s : StructuralVtStep W C) (w : List (StructuralVtStep W C)) :
     structuralWordTime (s :: w) = structuralStepTime s + structuralWordTime w := rfl
 
+/-- Structural weighted time is additive under word concatenation. -/
 theorem structuralWordTime_append (w₁ w₂ : List (StructuralVtStep W C)) :
     structuralWordTime (w₁ ++ w₂) = structuralWordTime w₁ + structuralWordTime w₂ := by
   simp only [structuralWordTime, List.map_append, List.sum_append]
 
+/-- The backward word through `n` stages has weighted time `2 ^ n - 1`. -/
 theorem vt_backward_word_cost (n : ℕ) :
     structuralWordTime (vtBackwardWord (W := W) (C := C) n) = 2^n-1 := by
   induction n with
@@ -98,6 +138,7 @@ theorem vt_backward_word_cost (n : ℕ) :
     rw [vt_backward_word_succ, structuralWordTime_cons, vt_stepTime_stageB, ih, pow_succ]
     omega
 
+/-- One amplification round through `n` stages has weighted time `2 * (2 ^ n - 1)`. -/
 theorem vt_round_cost (n : ℕ) :
     structuralWordTime (vtAARound (W := W) (C := C) n) = 2*(2^n-1) := by
   have hpos : 0 < 2^n := by positivity
@@ -106,6 +147,8 @@ theorem vt_round_cost (n : ℕ) :
     vt_backward_word_cost]
   omega
 
+/-- Preparation followed by `k` amplification rounds through `n` stages costs `(2 * k + 1) * (2
+^ n - 1)`. -/
 theorem vt_aa_word_cost (n k : ℕ) :
     structuralWordTime (vtAAWord (W := W) (C := C) n k) = (2*k+1)*(2^n-1) := by
   have hpos : 0 < 2^n := by positivity
@@ -121,6 +164,7 @@ theorem vt_aa_word_cost (n k : ℕ) :
   rw [vtAAWord, structuralWordTime_append, vt_forward_word_cost, hflat]
   ring
 
+/-- The backward word is legal when its prefix length does not exceed the number of stages. -/
 theorem vt_backward_word_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (n : ℕ) (hn : n ≤ stages.length) :
     StructuralWordLegal (W := W) stages (vtBackwardWord (W := W) (C := C) n) := by
@@ -129,6 +173,7 @@ theorem vt_backward_word_legal (stages : List (Matrix (VtSpace C) (VtSpace C) �
   simp only [List.mem_reverse, List.mem_range] at hj
   exact hj.trans_le hn
 
+/-- The amplification word is legal when its prefix length does not exceed the number of stages. -/
 theorem vt_aa_word_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (n : ℕ) (hn : n ≤ stages.length) (k : ℕ) :
     StructuralWordLegal (W := W) stages (vtAAWord (W := W) (C := C) n k) := by
@@ -146,6 +191,8 @@ theorem vt_aa_word_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
         · trivial
         · exact vt_forward_word_legal stages n hn s hsrest
 
+/-- The data-register matrix of a structural step, using stage matrices, their adjoints, and
+source or good reflections, and identity for the other constructors. -/
 def vtStepMatrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (j₀ : VtSpace C) :
     StructuralVtStep W C → Matrix (VtSpace C) (VtSpace C) ℂ
   | .stageF j => stages.getD j 0
@@ -154,16 +201,21 @@ def vtStepMatrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (j₀ : Vt
   | .sourceReflection => ReflectionAbout (outerProduct (Ket j₀))
   | _ => 1
 
+/-- The execution-order product of the data-register matrices of a structural word. -/
 def vtWordMatrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (j₀ : VtSpace C) :
     List (StructuralVtStep W C) → Matrix (VtSpace C) (VtSpace C) ℂ
   | [] => 1
   | s :: w => vtWordMatrix stages j₀ w * vtStepMatrix stages j₀ s
 
+/-- The condition that a structural step is a forward stage access, backward stage access, good
+reflection, or source reflection. -/
 def vtBasicStep (s : StructuralVtStep W C) : Prop :=
   match s with
   | .stageF _ | .stageB _ | .goodReflection | .sourceReflection => True
   | _ => False
 
+/-- A basic structural step acts by its data matrix tensored with identities on the workspace
+and Boolean registers. -/
 theorem vt_step_matrix_eq (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (s : StructuralVtStep W C)
     (hs : vtBasicStep s) :
@@ -183,6 +235,8 @@ theorem vt_step_matrix_eq (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
   | reachedReflection k => exact hs.elim
   | creachedReflection k => exact hs.elim
 
+/-- Applying a data gate tensored with two identities to a tensor state changes only the data
+factor. -/
 theorem applyGate_double_tensorGate (M : Matrix (VtSpace C) (VtSpace C) ℂ)
     (a : QState W) (b : QState Bool) (ψ : QState (VtSpace C)) :
     ApplyGate (TensorGate (1 : Matrix W W ℂ) (TensorGate (1 : Matrix Bool Bool ℂ) M))
@@ -190,6 +244,7 @@ theorem applyGate_double_tensorGate (M : Matrix (VtSpace C) (VtSpace C) ℂ)
   rw [applyGate_tensorGate, applyGate_tensorGate, applyGate_one, applyGate_one]
   rfl
 
+/-- Concatenating structural words multiplies their data matrices in reverse execution order. -/
 theorem vt_word_matrix_append (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (j₀ : VtSpace C) (w₁ w₂ : List (StructuralVtStep W C)) :
     vtWordMatrix stages j₀ (w₁ ++ w₂)
@@ -198,6 +253,8 @@ theorem vt_word_matrix_append (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ
   | nil => simp [vtWordMatrix]
   | cons s w ih => rw [List.cons_append, vtWordMatrix, vtWordMatrix, ih, ← Matrix.mul_assoc]
 
+/-- Running a word of basic structural steps preserves the initialized workspace and Boolean
+registers and applies the word's data matrix. -/
 theorem vt_basic_word_transport (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (w₀ : W)
     (w : List (StructuralVtStep W C)) (hw : ∀ s ∈ w, vtBasicStep s)
@@ -216,11 +273,13 @@ theorem vt_basic_word_transport (stages : List (Matrix (VtSpace C) (VtSpace C) �
     rw [hcomp, run_append, run_gate, run_nil, vt_step_matrix_eq stages history j₀ s hs,
       applyGate_double_tensorGate, ih hmem, vtWordMatrix, ← Matrix.mulVec_mulVec]
 
+/-- The matrix of a singleton structural word is its step matrix. -/
 theorem vt_word_matrix_singleton (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (j₀ : VtSpace C) (s : StructuralVtStep W C) :
     vtWordMatrix stages j₀ [s] = vtStepMatrix stages j₀ s := by
   simp [vtWordMatrix]
 
+/-- For a valid prefix length, the forward word's data matrix is `vtRunMatrix`. -/
 theorem vt_forward_word_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (j₀ : VtSpace C) (n : ℕ) (hn : n ≤ stages.length) :
     vtWordMatrix stages j₀ (vtForwardWord (W := W) n) = vtRunMatrix stages n := by
@@ -237,6 +296,8 @@ theorem vt_forward_word_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) �
     simp only [vtStepMatrix]
     exact List.getD_eq_getElem stages 0 hk
 
+/-- For a valid prefix length, the backward word's data matrix is the conjugate transpose of
+`vtRunMatrix`. -/
 theorem vt_backward_word_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (j₀ : VtSpace C) (n : ℕ) (hn : n ≤ stages.length) :
     vtWordMatrix stages j₀ (vtBackwardWord (W := W) (C := C) n) = (vtRunMatrix stages n)ᴴ := by
@@ -250,6 +311,8 @@ theorem vt_backward_word_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) �
     simp only [vtStepMatrix]
     rw [List.getD_eq_getElem stages 0 hk]
 
+/-- For a valid prefix length, one structural amplification round has matrix `preparedAAIterate`
+for the prefix and good set. -/
 theorem vt_round_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (j₀ : VtSpace C) (n : ℕ) (hn : n ≤ stages.length) :
     vtWordMatrix stages j₀ (vtAARound (W := W) (C := C) n)
@@ -263,6 +326,8 @@ theorem vt_round_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     vt_forward_word_matrix stages j₀ n hn, vt_backward_word_matrix stages j₀ n hn]
   simp only [Matrix.mul_assoc, vtStepMatrix, preparedAAIterate]
 
+/-- For a valid prefix length, the amplification word has matrix given by the `k`th power of the
+prepared amplification iterate followed by prefix preparation. -/
 theorem vt_aa_word_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (j₀ : VtSpace C) (n : ℕ) (hn : n ≤ stages.length) (k : ℕ) :
     vtWordMatrix stages j₀ (vtAAWord (W := W) (C := C) n k)
@@ -289,6 +354,8 @@ theorem vt_aa_word_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
       vt_forward_word_matrix stages j₀ n hn, vt_round_matrix stages j₀ n hn,
       hflatM, ← pow_succ]
 
+/-- Embedding a data state initializes the workspace to `w₀` and the Boolean register to `false`
+as tensor factors. -/
 theorem embedState_eq_tensor (w₀ : W) (χ : QState (VtSpace C)) :
     embedState w₀ χ = TensorState (Ket w₀) (TensorState (Ket false) χ) := by
   funext p
@@ -296,6 +363,8 @@ theorem embedState_eq_tensor (w₀ : W) (χ : QState (VtSpace C)) :
   by_cases h1 : p.1 = w₀ <;> by_cases h2 : p.2.1 = false <;>
     simp [h1, h2, Ket]
 
+/-- Embedding with fixed workspace and Boolean basis states preserves the measurement mass of
+any flag sector. -/
 theorem measureProb_tensor_embed_sector (w₀ : W) (φ : QState (VtSpace C)) (f : Fin 3) :
     MeasureProb (TensorState (Ket w₀) (TensorState (Ket false) φ))
         (Finset.univ.filter fun p : VtReg W C => p.2.2.1 = f) =
@@ -308,6 +377,8 @@ theorem measureProb_tensor_embed_sector (w₀ : W) (φ : QState (VtSpace C)) (f 
   rw [hset, measureProb_tensorState_right (normalized_ket w₀),
     measureProb_tensorState_right (normalized_ket false)]
 
+/-- Collapsing an embedded state to the good flag sector equals embedding its collapsed good
+component. -/
 theorem collapse_embed_sector (w₀ : W) (φ : QState (VtSpace C)) :
     Collapse (TensorState (Ket w₀) (TensorState (Ket false) φ))
         (Finset.univ.filter fun p : VtReg W C => p.2.2.1 = vtGoodFlag)
@@ -318,42 +389,49 @@ theorem collapse_embed_sector (w₀ : W) (φ : QState (VtSpace C)) :
   by_cases h1 : p.1 = w₀ <;> by_cases h2 : p.2.1 = false <;>
     by_cases h3 : p.2.2.1 = vtGoodFlag <;> simp [h1, h2, h3]
 
+/-- Collapse onto a fixed finite set distributes over linear combinations of states. -/
 theorem collapse_add_smul (c d : ℂ) (u v : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     Collapse (c • u + d • v) S = c • Collapse u S + d • Collapse v S := by
   funext i
   simp only [collapse_apply, Pi.add_apply, Pi.smul_apply, Pi.smul_apply]
   by_cases h : i ∈ S <;> simp [h]
 
+/-- Collapsing the difference between a state and its collapsed component gives zero. -/
 theorem collapse_sub_self (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     Collapse (ψ - Collapse ψ S) S = 0 := by
   funext i
   simp only [collapse_apply, Pi.sub_apply]
   by_cases h : i ∈ S <;> simp [h]
 
+/-- Collapsing a state twice onto the same finite set equals collapsing it once. -/
 theorem collapse_idem (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     Collapse (Collapse ψ S) S = Collapse ψ S := by
   funext i
   simp only [collapse_apply]
   by_cases h : i ∈ S <;> simp [h]
 
+/-- State embedding commutes with complex scalar multiplication. -/
 theorem embedState_smul (w₀ : W) (c : ℂ) (χ : QState (VtSpace C)) :
     embedState w₀ (c • χ) = c • embedState w₀ χ := by
   funext p
   simp only [embedState, Pi.smul_apply, smul_eq_mul]
   by_cases h : p.1 = w₀ ∧ p.2.1 = false <;> simp [h]
 
+/-- Every step in the forward word is a basic structural step. -/
 theorem vt_forward_word_basic (n : ℕ) :
     ∀ s ∈ vtForwardWord (W := W) (C := C) n, vtBasicStep s := by
   intro s hs
   obtain ⟨j, _, rfl⟩ := List.mem_map.mp hs
   trivial
 
+/-- Every step in the backward word is a basic structural step. -/
 theorem vt_backward_word_basic (n : ℕ) :
     ∀ s ∈ vtBackwardWord (W := W) (C := C) n, vtBasicStep s := by
   intro s hs
   obtain ⟨j, _, rfl⟩ := List.mem_map.mp hs
   trivial
 
+/-- Every step in an amplification round is a basic structural step. -/
 theorem vt_round_basic (n : ℕ) :
     ∀ s ∈ vtAARound (W := W) (C := C) n, vtBasicStep s := by
   intro s hs
@@ -365,6 +443,7 @@ theorem vt_round_basic (n : ℕ) :
     · trivial
     · exact vt_forward_word_basic n s hs
 
+/-- Every step in an amplification word is a basic structural step. -/
 theorem vt_aa_word_basic (n k : ℕ) :
     ∀ s ∈ vtAAWord (W := W) (C := C) n k, vtBasicStep s := by
   intro s hs
@@ -375,6 +454,7 @@ theorem vt_aa_word_basic (n k : ℕ) :
     subst hrw
     exact vt_round_basic n s hsr
 
+/-- For a probability in `[0, 1]`, its square root is at most the arcsine of that square root. -/
 theorem vt_sqrt_le_arcsin {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     Real.sqrt p ≤ Real.arcsin (Real.sqrt p) := by
   by_contra hlt
@@ -386,6 +466,7 @@ theorem vt_sqrt_le_arcsin {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
   rw [Real.sin_arcsin (by linarith) hs1] at hlt2
   exact not_lt_of_ge (Real.sin_le hs0) hlt2
 
+/-- The angle `arcsin (sqrt (2 / 5))` is at most `π / 4`. -/
 theorem vt_theta0_le_pi_div_four : Real.arcsin (Real.sqrt (2/5)) ≤ Real.pi / 4 := by
   have hm : Real.sqrt (2/5) ∈ Set.Icc (-1:ℝ) 1 :=
     ⟨by have := Real.sqrt_nonneg (2/5); linarith, by exact (Real.sqrt_le_one).mpr (by norm_num)⟩
@@ -396,6 +477,8 @@ theorem vt_theta0_le_pi_div_four : Real.arcsin (Real.sqrt (2/5)) ≤ Real.pi / 4
   rw [div_pow, Real.sq_sqrt (by norm_num)]
   norm_num
 
+/-- For nonnegative `θ₀`, sine is at least `sin θ₀` throughout the interval from `θ₀` to `π -
+θ₀`. -/
 theorem vt_sin_ge_of_arc {x θ₀ : ℝ} (hθ0 : 0 ≤ θ₀) (hx1 : θ₀ ≤ x) (hx2 : x ≤ Real.pi - θ₀) :
     Real.sin θ₀ ≤ Real.sin x := by
   rcases le_total x (Real.pi/2) with hx | hx
@@ -405,6 +488,8 @@ theorem vt_sin_ge_of_arc {x θ₀ : ℝ} (hθ0 : 0 ≤ θ₀) (hx1 : θ₀ ≤ x
         (by have := Real.pi_pos; linarith) (by linarith)
     rwa [Real.sin_pi_sub] at h1
 
+/-- The structural variable-time algorithm specification `VariableTimeAlgorithm` holds. See
+[Theorem 1][Ambainis2012]. -/
 theorem variableTimeAlgorithm_answer : VariableTimeAlgorithm := by
   intro C _iC _dC stages history hlegal hm j₀ hj hsup hΨ hstop hfloor
   classical

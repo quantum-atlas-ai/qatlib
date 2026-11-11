@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QSystemSim96.MainResults.ShortTimeStepFactorization
 import Qatlib.Concepts.QftPreparation.LocalQft
+
+/-!
+# Finite-grid simulation components
+
+This module collects finite-grid ingredients for the simulation construction of [Zalka1998].
+`manyParticle_state_space_card` counts configurations of several dyadic registers,
+`multiRegisterPhase` supplies diagonal phase unitaries, and
+`localQFT_implements_fourier_and_cost` records the actual local QFT matrix and resources.
+
+`finite_grid_simulation_components` packages these facts with the short-step factorization and
+unitarity theorem under the stated lattice compatibility and invertibility conditions.
+
+## Main statements
+
+* `manyParticle_state_space_card` gives `2 ^ (l * d)` configurations for `d` registers of `l`
+  bits.
+* `multiRegisterPhase_mem_unitaryGroup` proves unitarity of arbitrary real-valued diagonal
+  phases.
+* `localQFT_implements_fourier_and_cost` gives the relabeled Fourier matrix, exact gate count,
+  and zero query count.
+* `finite_grid_simulation_components` combines these results and a quadratic QFT gate bound.
+
+## References
+
+* [Zalka, 1998][Zalka1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,10 +50,14 @@ open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
 
 namespace Qatlib.Papers.QSystemSim96.MainResults
 
+/-- The configuration space of `d` registers, each taking values in `ZMod (2 ^ l)`, has
+cardinality `2 ^ (l * d)`. -/
 theorem manyParticle_state_space_card (d l : ℕ) :
     Fintype.card (Fin d → ZMod (2 ^ l)) = 2 ^ (l * d) := by
   rw [Fintype.card_fun, Fintype.card_fin, ZMod.card, ← pow_mul]
 
+/-- A diagonal complex matrix is unitary when each diagonal entry multiplied by its complex
+conjugate equals one. -/
 theorem diagonal_unitary_of_unit_modulus {ι : Type*} [Fintype ι] [DecidableEq ι]
     {d : ι → ℂ} (hd : ∀ i, d i * star (d i) = 1) :
     Matrix.diagonal d ∈ Matrix.unitaryGroup ι ℂ := by
@@ -39,9 +70,12 @@ theorem diagonal_unitary_of_unit_modulus {ι : Type*} [Fintype ι] [DecidableEq 
     exact hd i
   · rfl
 
+/-- The diagonal matrix whose entry at `x` is `exp (I * F x)` for the real-valued phase function
+`F`. -/
 def multiRegisterPhase {ι : Type*} [DecidableEq ι] (F : ι → ℝ) : Matrix ι ι ℂ :=
   Matrix.diagonal (fun x => Complex.exp (Complex.I * (F x : ℂ)))
 
+/-- Every diagonal phase matrix defined by a real-valued function is unitary. -/
 theorem multiRegisterPhase_mem_unitaryGroup {ι : Type*} [Fintype ι] [DecidableEq ι]
     (F : ι → ℝ) :
     multiRegisterPhase F ∈ Matrix.unitaryGroup ι ℂ := by
@@ -49,6 +83,8 @@ theorem multiRegisterPhase_mem_unitaryGroup {ι : Type*} [Fintype ι] [Decidable
   intro x
   exact exp_phase_mul_star (F x)
 
+/-- The actual local QFT has the Fourier matrix relabeled by `bitVecEquiv`, exactly `l + l * (l
+- 1) / 2 + l / 2` gates, and no queries. -/
 theorem localQFT_implements_fourier_and_cost (l : ℕ) :
     localProgramMatrix (localQFT l) =
         Qatlib.Foundations.PureStateMath.BornBridge.relabelGate
@@ -59,6 +95,7 @@ theorem localQFT_implements_fourier_and_cost (l : ℕ) :
       QueryCount (localProgramCircuit (localQFT l)) = 0 :=
   Qatlib.Concepts.QftPreparation.LocalQft.aqLocalQFT_actual_matrix_and_cost l
 
+/-- The exact local QFT gate-count expression is at most `(l + 1) ^ 2`. -/
 theorem localQFT_gate_count_le_square (l : ℕ) :
     l + l * (l - 1) / 2 + l / 2 ≤ (l + 1) ^ 2 := by
   have h1 : l * (l - 1) / 2 ≤ l * l / 2 :=
@@ -68,6 +105,9 @@ theorem localQFT_gate_count_le_square (l : ℕ) :
   have hexp : (l + 1) ^ 2 = l * l + 2 * l + 1 := by ring
   omega
 
+/-- Collects the configuration count, compatible short-step factorization and unitarity, exact
+local QFT matrix and resources, quadratic gate bound, and multiregister phase unitarity for
+the finite-grid construction of [Zalka1998]. -/
 theorem finite_grid_simulation_components (d l : ℕ) :
     Fintype.card (Fin d → ZMod (2 ^ l)) = 2 ^ (l * d) ∧
       (∀ (m Δx Δt : ℝ) (V : ZMod (2 ^ l) → ℝ) (A : ℕ),

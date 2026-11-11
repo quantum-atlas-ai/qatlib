@@ -10,6 +10,28 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.FieldSimp
+
+/-!
+# Matrix optimization width and sampling bounds
+
+This module proves payoff interval bounds, certificate objective estimates, and sampling
+identities for the SDP framework of [BrandaoSvore2017]. It states a corrected combined width
+result with `2 ≤ α` and bounds on rounds below `T`, and derives the width and separation
+estimates justified by the Step 2 acceptance test.
+
+## Main statements
+
+* `clause14_corrected_alpha2_bounded_rounds`: payoff and certificate bounds with explicit scale
+  and round restrictions.
+* `mixtureClause_fixed`: certificate sampling through the specified normalized mixture law.
+* `step2Accepted_width` and `step2Accepted_separation_lower`: bounds for accepted candidates.
+* `lemma2_rescale_objective_of_bridge`: an objective estimate transferred from a lifted problem.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.RationalScan.Step2Scan
 
@@ -29,21 +51,28 @@ open Matrix Qatlib.Concepts.RationalScan.Step2Scan
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 set_option warningAsError false
 
+/-- The sampled width equals the exact width plus the bridge slack. -/
 theorem widthSampled_eq (α R ε : ℝ) :
     widthSampled α R ε = widthExact α + widthBridgeSlack α R ε := by
   simp only [widthSampled, widthExact, widthBridgeSlack]
   ring
 
+/-- For nonnegative `α` and nonnegative sampling slack, the exact width is at most the sampled
+width. -/
 theorem widthExact_le_widthSampled (α R ε : ℝ) (hα : 0 ≤ α) (hslack : 0 ≤ 2 * R * ε) :
     widthExact α ≤ widthSampled α R ε := by
   have h := mul_le_mul_of_nonneg_left hslack hα
   simp only [widthSampled, widthExact] at *
   nlinarith
 
+/-- A bound by the sampled width is equivalent to the same bound by the exact width plus bridge
+slack. -/
 theorem widthSampled_iff (α R ε : ℝ) (c : ℝ) :
     c ≤ widthSampled α R ε ↔ c ≤ widthExact α + widthBridgeSlack α R ε := by
   rw [widthSampled_eq]
 
+/-- For Hermitian contraction data and positive `α`, a nonnegative round vector with mass at
+most `2*α-1` gives a Hermitian payoff between zero and identity. -/
 theorem payoffUnitInterval_of_mass (D m : ℕ) (A : Fin m → Operator D)
     (Cv : Operator D) (y : ℕ → Fin m → ℝ) (α : ℝ) (s : ℕ)
     (hD : 0 < D) (hα : 0 < α) (hA : ∀ i, (A i).IsHermitian ∧ ‖A i‖ ≤ 1)
@@ -93,6 +122,8 @@ theorem payoffUnitInterval_of_mass (D m : ℕ) (A : Fin m → Operator D)
     rw [hdiff]
     exact hupper.smul (by exact_mod_cast hscale)
 
+/-- Under the stated contraction and positivity assumptions, an exact-width objective bound with
+`α ≥ 1` places the round payoff between zero and identity. -/
 theorem payoffUnitInterval_of_exact_width (D m : ℕ) (A : Fin m → Operator D)
     (Cv : Operator D) (b : Fin m → ℝ) (y : ℕ → Fin m → ℝ) (α : ℝ) (s : ℕ)
     (hD : 0 < D) (hα : 0 < α) (hα1 : 1 ≤ α) (hA : ∀ i, (A i).IsHermitian ∧ ‖A i‖ ≤ 1)
@@ -107,6 +138,8 @@ theorem payoffUnitInterval_of_exact_width (D m : ℕ) (A : Fin m → Operator D)
     simpa only [mul_one] using! hsumle.trans hw
   exact payoffUnitInterval_of_mass D m A Cv y α s hD hα hA hCv hy (by linarith)
 
+/-- Under the stated contraction and positivity assumptions, a sampled-width bound places the
+payoff between zero and identity when `α ≥ 2` and `2*R*ε ≤ 1/2`. -/
 theorem payoffUnitInterval_of_sampled_width (D m : ℕ) (A : Fin m → Operator D)
     (Cv : Operator D) (b : Fin m → ℝ) (y : ℕ → Fin m → ℝ) (α R ε : ℝ) (s : ℕ)
     (hD : 0 < D) (hα : 0 < α) (hα2 : 2 ≤ α) (hA : ∀ i, (A i).IsHermitian ∧ ‖A i‖ ≤ 1)
@@ -124,6 +157,8 @@ theorem payoffUnitInterval_of_sampled_width (D m : ℕ) (A : Fin m → Operator 
     nlinarith
   exact payoffUnitInterval_of_mass D m A Cv y α s hD hα hA hCv hy hmass
 
+/-- When `b j₀ = R ≠ 0`, the dual certificate objective equals `δ*α/2` plus the average of the
+round objectives. -/
 theorem certificateObjective_dualCertificate (m : ℕ) (b : Fin m → ℝ) (δ α R : ℝ)
     (j₀ : Fin m) (y : ℕ → Fin m → ℝ) (T : ℕ) (_hT : 0 < T) (hR : R ≠ 0) (hbj : b j₀ = R) :
     certificateObjective m b (dualCertificate m δ α R j₀ y T) =
@@ -142,6 +177,8 @@ theorem certificateObjective_dualCertificate (m : ℕ) (b : Fin m → ℝ) (δ �
   rw [hcan]
   congr 1
 
+/-- If every round below positive `T` has objective at most the exact width, the dual
+certificate objective is at most `α*(1+δ/2)`, assuming `b j₀ = R ≠ 0`. -/
 theorem dualCertificate_obj_exact (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin m)
     (y : ℕ → Fin m → ℝ) (δ α R : ℝ) (hT : 0 < T) (hR : R ≠ 0) (hbj : b j₀ = R)
     (hy : ∀ t < T, certificateObjective m b (y t) ≤ widthExact α) :
@@ -161,6 +198,8 @@ theorem dualCertificate_obj_exact (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin m)
     linarith
   linarith
 
+/-- For nonnegative `α` and `δ`, exact-width round bounds give certificate objective at most
+`(1+δ)*α`, assuming positive `T` and `b j₀ = R ≠ 0`. -/
 theorem dualCertificate_obj_exact_le (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin m)
     (y : ℕ → Fin m → ℝ) (δ α R : ℝ) (hT : 0 < T) (hR : R ≠ 0) (hbj : b j₀ = R) (hα : 0 ≤ α)
     (hδ : 0 ≤ δ) (hy : ∀ t < T, certificateObjective m b (y t) ≤ widthExact α) :
@@ -168,6 +207,8 @@ theorem dualCertificate_obj_exact_le (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin
   have h := dualCertificate_obj_exact m T b j₀ y δ α R hT hR hbj hy
   nlinarith
 
+/-- Sampled-width bounds on rounds below positive `T` give certificate objective at most
+`α*(1+δ/2+2*R*ε)`, assuming `b j₀ = R ≠ 0`. -/
 theorem dualCertificate_obj_sampled (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin m)
     (y : ℕ → Fin m → ℝ) (δ α R ε : ℝ) (hT : 0 < T) (hR : R ≠ 0) (hbj : b j₀ = R)
     (hy : ∀ t < T, certificateObjective m b (y t) ≤ widthSampled α R ε) :
@@ -191,6 +232,8 @@ theorem dualCertificate_obj_sampled (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin 
   simp only [widthSampled] at hav
   linarith
 
+/-- For nonnegative `α` and `2*R*ε ≤ δ/2`, sampled-width round bounds give certificate objective
+at most `(1+δ)*α`, assuming positive `T` and `b j₀ = R ≠ 0`. -/
 theorem dualCertificate_obj_sampled_le (m T : ℕ) (b : Fin m → ℝ) (j₀ : Fin m)
     (y : ℕ → Fin m → ℝ) (δ α R ε : ℝ) (hT : 0 < T) (hR : R ≠ 0) (hbj : b j₀ = R) (hα : 0 ≤ α)
     (hslack : 2 * R * ε ≤ δ / 2)
@@ -199,6 +242,9 @@ theorem dualCertificate_obj_sampled_le (m T : ℕ) (b : Fin m → ℝ) (j₀ : F
   have h := dualCertificate_obj_sampled m T b j₀ y δ α R ε hT hR hbj hy
   nlinarith
 
+/-- With `α ≥ 2` and the stated instance, positivity, and slack hypotheses, exact and sampled
+widths satisfy the bridge identities. The corresponding round bounds imply payoff interval
+bounds for `s < T` and the stated dual certificate objective estimates. -/
 theorem clause14_corrected_alpha2_bounded_rounds :
     ∀ (D m T : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε : ℝ),
@@ -247,6 +293,10 @@ theorem clause14_corrected_alpha2_bounded_rounds :
     · exact dualCertificate_obj_sampled_le m T b j₀ y δ α R ε hT hRne hb0 hα.le
         hsmall2 hsamp
 
+/-- Under the stated density, contraction, and positivity assumptions, there exist a finite
+probability law, expectation estimates, and resource numbers satisfying
+`ExpectationEstimationBudget`, with simultaneous estimation success probability at least
+`1-p_e`. -/
 theorem expectationClause_valid :
     ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (ρ : Operator D)
       (n s : ℕ) (h p_e : ℝ),
@@ -294,6 +344,8 @@ theorem expectationClause_valid :
     rw [hval]
     linarith
 
+/-- For nonnegative rounds of positive mass and positive `T`, the specified mixture equals the
+normalized dual certificate distribution at every index. -/
 theorem mixtureLaw_eq_dualSampleDist (m T : ℕ) (y : ℕ → Fin m → ℝ) (j₀ : Fin m)
     (δ α R : ℝ) (hT : 0 < T) (hy : ∀ t < T, ∀ i, 0 ≤ y t i)
     (hround : ∀ t < T, 0 < ∑ i, y t i)
@@ -389,6 +441,9 @@ theorem mixtureLaw_eq_dualSampleDist (m T : ℕ) (y : ℕ → Fin m → ℝ) (j�
       · rw [zero_div]
   rw [hcert]
 
+/-- For positive parameters and nonnegative rounds of positive mass, a positive certificate
+scale gives a mixture sampling process for its own normalized distribution and a positive
+sampling ledger. -/
 theorem mixtureClause_fixed :
     ∀ (m T : ℕ) (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (δ α R : ℝ),
     0 < m → 0 < T → 0 < α → 0 < R → 0 < δ →
@@ -515,6 +570,8 @@ theorem mixtureClause_fixed :
   refine ⟨hproc, ?_⟩
   exact ⟨1, 1, 1, by norm_num, ⟨rfl, rfl⟩⟩
 
+/-- When the constraint index set is nonempty, the normalized exponential Step 2 law is a
+sampling law. -/
 theorem step2IdealLaw_isSamplingLaw (D m : ℕ) (A : Fin m → Operator D) (b : Fin m → ℝ)
     (ρ : Operator D) (κ R : ℝ) (γ k : ℕ) (hm : 0 < m) :
     IsSamplingLaw m (step2IdealLaw D m A b ρ κ R γ k) := by
@@ -532,6 +589,8 @@ theorem step2IdealLaw_isSamplingLaw (D m : ℕ) (A : Fin m → Operator D) (b : 
     rw [← Finset.sum_div]
     exact div_self hne
 
+/-- The one-based row-major index of a candidate is at most the number of pairs in the full
+grid. -/
 theorem step2PairIndex_le {γ Nmax : ℕ} (k : Fin γ) (N : Fin Nmax) :
     step2PairIndex k N ≤ γ * Nmax := by
   have hk : k.val + 1 ≤ γ := Nat.succ_le_of_lt k.isLt
@@ -550,6 +609,7 @@ theorem step2PairIndex_le {γ Nmax : ℕ} (k : Fin γ) (N : Fin Nmax) :
     _ = (k.val + 1) * Nmax := h2
     _ ≤ γ * Nmax := h3
 
+/-- Each candidate has a sample ledger whose pair count is its one-based row-major index. -/
 theorem step2SampleLedger_at (γ Nmax M L : ℕ) (k : Fin γ) (N : Fin Nmax) :
     ∃ pairs gibbsCopies qDraws stateCopies : ℕ,
       pairs = step2PairIndex k N ∧
@@ -558,6 +618,7 @@ theorem step2SampleLedger_at (γ Nmax M L : ℕ) (k : Fin γ) (N : Fin Nmax) :
     (M + 1) * L * step2PairIndex k N, rfl, ?_⟩
   exact ⟨step2PairIndex_le k N, rfl, rfl, rfl⟩
 
+/-- The full candidate grid has a sample ledger with pair count `γ*Nmax`. -/
 theorem step2SampleLedger_fullGrid (γ Nmax M L : ℕ) :
     ∃ pairs gibbsCopies qDraws stateCopies : ℕ,
       pairs = γ * Nmax ∧
@@ -565,6 +626,8 @@ theorem step2SampleLedger_fullGrid (γ Nmax M L : ℕ) :
   refine ⟨γ * Nmax, M * (γ * Nmax), M * (γ * Nmax), (M + 1) * L * (γ * Nmax), rfl, ?_⟩
   exact ⟨le_refl _, rfl, rfl, rfl⟩
 
+/-- An accepted candidate with positive mass at most `α` satisfies the sampled-width objective
+bound when the empirical objective error is at most `R*(κ+ν)` and the stated signs hold. -/
 theorem step2Accepted_width (m M : ℕ) (b : Fin m → ℝ)
     (estA : Fin m → ℝ) (estC : ℝ) (draws : Fin M → Fin m) (q : Fin m → ℝ)
     (κ R ν α : ℝ) (mass : ℝ)
@@ -596,6 +659,8 @@ theorem step2Accepted_width (m M : ℕ) (b : Fin m → ℝ)
   simp only [widthSampled]
   nlinarith
 
+/-- With positive mass, a sampling law, legal estimates, and the empirical estimate bound,
+acceptance gives separation at least `-(mass*(2*(κ+ν)+ν)+ν)`. -/
 theorem step2Accepted_separation_lower (D m M : ℕ) (A : Fin m → Operator D)
     (Cv : Operator D) (b : Fin m → ℝ) (ρ : Operator D)
     (estA : Fin m → ℝ) (estC : ℝ) (draws : Fin M → Fin m) (q : Fin m → ℝ)
@@ -666,6 +731,8 @@ theorem step2Accepted_separation_lower (D m M : ℕ) (A : Fin m → Operator D)
   rw [hy]
   linarith
 
+/-- A positive rescaling factor `α` transfers the normalized objective bound to the bound
+`(1+δ)*α`. -/
 theorem alphaRescaleAccuracy_of_pos (m : ℕ) (b sol : Fin m → ℝ) (α δ : ℝ)
     (hα : 0 < α) : alphaRescaleAccuracy m b sol α δ := by
   intro hscaled
@@ -680,6 +747,9 @@ theorem alphaRescaleAccuracy_of_pos (m : ℕ) (b sol : Fin m → ℝ) (α δ : �
   rw [hrew] at hscaled
   exact (div_le_iff₀ hα).mp hscaled
 
+/-- If the extra lifted coordinate and its objective coefficient are nonnegative, the lifted
+objective bound and the stated bridge imply an original-coordinate objective bound of
+`opt+δ`. -/
 theorem lemma2_rescale_objective_of_bridge (m : ℕ) (b : Fin m → ℝ) (R r δ opt optLift : ℝ)
     (yLift : Fin (m + 1) → ℝ) (hR : 0 ≤ R + 1) (hy : 0 ≤ yLift (Fin.last m))
     (hobj : lemma2LiftedObjective m b R yLift ≤ optLift + δ / r)

@@ -8,6 +8,33 @@ import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
 import Mathlib.Data.Fintype.CardEmbedding
 import Mathlib.Logic.Equiv.Fintype
+
+/-!
+# Finite permutation families and reversible implementations
+
+This module defines additive Feistel permutations, proves an obstruction to approximate
+independence for two rounds on two binary coordinates, and constructs finite reversible
+implementations of Boolean truth tables and arbitrary finite permutations. The circuit
+terminology follows [NielsenChuang2010].
+
+`allPermutationFamily` enumerates every permutation, giving exact tuple probabilities and
+approximate independence at every requested order.
+`efficientPermutationFamily_fullIndependence_endpoint` combines this enumeration with canonical
+binary encodings and explicit bounds on seed size, register width, and implementation length.
+
+## Main statements
+
+* `twoRoundFeistel_not_approxIndependent`: the two-round binary obstruction.
+* `canonicalFinitePermutation_clog_words`: exact forward and inverse implementations of any
+  finite permutation.
+* `efficientPermutationFamily_fullIndependence_endpoint`: a permutation family with full-order
+  independence and explicit resource bounds.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,25 +51,32 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.SearchAlgorithm
 
+/-- The additive Feistel permutation sending `(x, y)` to `(y, x + f y)`. -/
 def additiveFeistelRound {K : Type*} [AddGroup K] (f : K → K) : Equiv.Perm (K × K) where
   toFun z := (z.2, z.1 + f z.2)
   invFun z := (z.2 - f z.1, z.1)
   left_inv z := by simp
   right_inv z := by simp
 
+/-- The inverse additive Feistel round sends `z` to `(z.2 - f z.1, z.1)`. -/
 theorem additiveFeistelRound_symm_apply {K : Type*} [AddGroup K]
     (f : K → K) (z : K × K) :
     (additiveFeistelRound f).symm z = (z.2 - f z.1, z.1) := rfl
 
+/-- The permutation obtained by applying the additive Feistel rounds for `f` and then `g`. -/
 def twoRoundFeistel {K : Type*} [AddGroup K] (f g : K → K) : Equiv.Perm (K × K) :=
   (additiveFeistelRound f).trans (additiveFeistelRound g)
 
+/-- Two distinct inputs with the same right coordinate have distinct first output coordinates
+after two Feistel rounds. -/
 theorem twoRoundFeistel_sharedRight_obstruction {K : Type*} [AddGroup K]
     (f g : K → K) (x x' y : K) (hxx' : x ≠ x') :
     (twoRoundFeistel f g (x,y)).1 ≠ (twoRoundFeistel f g (x',y)).1 := by
   change x + f y ≠ x' + f y
   exact fun h => hxx' (add_right_cancel h)
 
+/-- Two inputs with distinct left coordinates and a common right coordinate cannot both map to
+outputs with the same first coordinate under two Feistel rounds. -/
 theorem twoRoundFeistel_impossibleAssignment {K : Type*} [AddGroup K]
     (f g : K → K) (x x' y u v v' : K) (hxx' : x ≠ x') :
     ¬(twoRoundFeistel f g (x,y) = (u,v) ∧
@@ -51,35 +85,47 @@ theorem twoRoundFeistel_impossibleAssignment {K : Type*} [AddGroup K]
   apply twoRoundFeistel_sharedRight_obstruction f g x x' y hxx'
   rw [hfirst, hsecond]
 
+/-- The composition of three additive Feistel rounds with round functions `f`, `g`, and `h`, in
+that order. -/
 def threeRoundFeistel {K : Type*} [AddGroup K] (f g h : K → K) : Equiv.Perm (K × K) :=
   ((additiveFeistelRound f).trans (additiveFeistelRound g)).trans (additiveFeistelRound h)
 
+/-- The explicit forward coordinate formula for three additive Feistel rounds. -/
 theorem threeRoundFeistel_apply {K : Type*} [AddGroup K]
     (f g h : K → K) (x y : K) :
     threeRoundFeistel f g h (x,y) =
       (y + g (x + f y), x + f y + h (y + g (x + f y))) := rfl
 
+/-- The explicit inverse coordinate formula for three additive Feistel rounds. -/
 theorem threeRoundFeistel_symm_apply {K : Type*} [AddGroup K]
     (f g h : K → K) (u v : K) :
     (threeRoundFeistel f g h).symm (u,v) =
       (v - h u - f (u - g (v - h u)), u - g (v - h u)) := rfl
 
+/-- The three-round Feistel permutation transported to `Fin q` through the equivalence
+`encoding`. -/
 def encodedThreeRoundFeistel {K : Type*} [AddGroup K] {q : ℕ}
     (encoding : Fin q ≃ K × K) (f g h : K → K) : Equiv.Perm (Fin q) :=
   (encoding.trans (threeRoundFeistel f g h)).trans encoding.symm
 
+/-- Encoding the output of the transported permutation agrees with applying the three-round
+Feistel permutation to the encoded input. -/
 theorem encodedThreeRoundFeistel_forward {K : Type*} [AddGroup K] {q : ℕ}
     (encoding : Fin q ≃ K × K) (f g h : K → K) (i : Fin q) :
     encoding (encodedThreeRoundFeistel encoding f g h i) =
       threeRoundFeistel f g h (encoding i) := by
   simp [encodedThreeRoundFeistel]
 
+/-- Encoding the output of the inverse transported permutation agrees with applying the inverse
+three-round Feistel permutation to the encoded input. -/
 theorem encodedThreeRoundFeistel_inverse {K : Type*} [AddGroup K] {q : ℕ}
     (encoding : Fin q ≃ K × K) (f g h : K → K) (i : Fin q) :
     encoding ((encodedThreeRoundFeistel encoding f g h).symm i) =
       (threeRoundFeistel f g h).symm (encoding i) := by
   simp [encodedThreeRoundFeistel]
 
+/-- No family of two-round Feistel permutations on two binary coordinates satisfies
+`ApproxIndependent 2 (1/2)` after transport through `encoding`. -/
 theorem twoRoundFeistel_not_approxIndependent {R : ℕ}
     (encoding : Fin 4 ≃ ZMod 2 × ZMod 2)
     (f g : Fin R → ZMod 2 → ZMod 2) :
@@ -117,15 +163,22 @@ theorem twoRoundFeistel_not_approxIndependent {R : ℕ}
 noncomputable section
 open scoped Classical
 
+/-- The `m`-bit pattern obtained by reading the register `x` at the control locations `c 0, …, c
+(m - 1)`. -/
 def finiteControlPattern {N : ℕ} (c : ℕ → Fin N) (m : ℕ) (x : Reg N) : Reg m :=
   fun i => x (c i.val)
 
+/-- Updating a location disjoint from the first `m` controls leaves the extracted control
+pattern unchanged. -/
 theorem finiteControlPattern_update {N : ℕ} (c : ℕ → Fin N) (m : ℕ)
     (t : Fin N) (hct : ∀ i < m, c i ≠ t) (x : Reg N) (v : Bool) :
     finiteControlPattern c m (Function.update x t v) = finiteControlPattern c m x := by
   ext i
   exact Function.update_of_ne (hct i.val i.isLt) _ _
 
+/-- Distinct control and workspace locations support a legal finite gate word that flips the
+target exactly when the control pattern belongs to `patterns`. Its length is at most
+`patterns.length * (62 * m + 1)`. -/
 theorem finitePatternListX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-2)))
     (hcw : ∀ i < m, ∀ j < m-2, c i ≠ w j)
@@ -166,6 +219,8 @@ theorem finitePatternListX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m :
       · simp [hx, hp]
       · simp [hx]
 
+/-- A Boolean function of `m` control bits can be XORed into a disjoint target by a legal finite
+gate word of length at most `2^m * (62 * m + 1)`, using the specified disjoint workspace. -/
 theorem finiteTruthTableX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-2)))
     (hcw : ∀ i < m, ∀ j < m-2, c i ≠ w j)
@@ -190,12 +245,17 @@ theorem finiteTruthTableX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : 
     apply Bool.eq_iff_iff.mpr
     simp [patterns]
 
+/-- The register update assigning `x t ^^ f (x c)` to location `c` and `x c` to location `t`. -/
 def booleanFeistelAction {N : ℕ} (c t : Fin N) (f : Bool → Bool) (x : Reg N) : Reg N :=
   Function.update (Function.update x c (x t ^^ f (x c))) t (x c)
 
+/-- The reverse register update assigning `x c ^^ f (x t)` to location `t` and `x t` to location
+`c`. -/
 def booleanFeistelInverse {N : ℕ} (c t : Fin N) (f : Bool → Bool) (x : Reg N) : Reg N :=
   Function.update (Function.update x t (x c ^^ f (x t))) c (x t)
 
+/-- On distinct locations `c` and `t`, `booleanFeistelInverse` is a left inverse of
+`booleanFeistelAction`. -/
 theorem booleanFeistel_leftInverse {N : ℕ} (c t : Fin N) (hct : c ≠ t)
     (f : Bool → Bool) : Function.LeftInverse
       (booleanFeistelInverse c t f) (booleanFeistelAction c t f) := by
@@ -209,6 +269,8 @@ theorem booleanFeistel_leftInverse {N : ℕ} (c t : Fin N) (hct : c ≠ t)
       simp [booleanFeistelAction, booleanFeistelInverse, hct, hct.symm]
     · simp [booleanFeistelAction, booleanFeistelInverse, hjc, hjt]
 
+/-- On distinct locations `c` and `t`, `booleanFeistelInverse` is a right inverse of
+`booleanFeistelAction`. -/
 theorem booleanFeistel_rightInverse {N : ℕ} (c t : Fin N) (hct : c ≠ t)
     (f : Bool → Bool) : Function.RightInverse
       (booleanFeistelInverse c t f) (booleanFeistelAction c t f) := by
@@ -222,6 +284,8 @@ theorem booleanFeistel_rightInverse {N : ℕ} (c t : Fin N) (hct : c ≠ t)
       simp [booleanFeistelAction, booleanFeistelInverse, hct.symm]
     · simp [booleanFeistelAction, booleanFeistelInverse, hjc, hjt]
 
+/-- A Boolean Feistel update on distinct locations has an exact legal finite gate implementation
+of length at most `315` on computational basis states. -/
 theorem booleanFeistel_word {N : ℕ} (c t : Fin N) (hct : c ≠ t) (f : Bool → Bool) :
     ∃ word : List FiniteGateCode, finiteWordLegal N word = true ∧ word.length ≤ 315 ∧
       ∀ x : Reg N, Run 1 (finiteCodeCircuit N word) (Qatlib.Foundations.PureStateMath.Ket x) =
@@ -262,6 +326,8 @@ theorem booleanFeistel_word {N : ℕ} (c t : Fin N) (hct : c ≠ t) (f : Bool �
         simp [booleanFeistelAction, hct, hct.symm]
       · simp [booleanFeistelAction, hjc, hjt]
 
+/-- A Boolean Feistel update and its inverse have exact legal finite gate implementations whose
+combined length is at most `630`. -/
 theorem booleanFeistel_forward_backward_words {N : ℕ} (c t : Fin N) (hct : c ≠ t)
     (f : Bool → Bool) :
     ∃ forward backward : List FiniteGateCode,
@@ -286,6 +352,8 @@ theorem booleanFeistel_forward_backward_words {N : ℕ} (c t : Fin N) (hct : c �
   rw [hsem, booleanFeistel_rightInverse c t hct f x] at hrun
   exact hrun
 
+/-- The register permutation given by a Boolean Feistel update on two distinct locations, with
+inverse `booleanFeistelInverse`. -/
 def booleanFeistelPerm {N : ℕ} (c t : Fin N) (hct : c ≠ t)
     (f : Bool → Bool) : Equiv.Perm (Reg N) where
   toFun := booleanFeistelAction c t f
@@ -295,6 +363,8 @@ def booleanFeistelPerm {N : ℕ} (c t : Fin N) (hct : c ≠ t)
 
 set_option backward.isDefEq.respectTransparency true in
 
+/-- There exists a permutation of `Fin 4` with legal forward and inverse two-bit implementations
+of combined length at most `630` in the canonical binary encoding. -/
 theorem canonicalFourFeistel_words (f : Bool → Bool) :
     ∃ (π : Equiv.Perm (Fin 4)) (forward backward : List FiniteGateCode),
       finiteWordLegal 2 forward = true ∧ finiteWordLegal 2 backward = true ∧
@@ -316,11 +386,14 @@ theorem canonicalFourFeistel_words (f : Bool → Bool) :
     simpa only [π, Equiv.symm_trans_apply, Equiv.symm_symm, Equiv.symm_apply_apply,
       action, booleanFeistelPerm, Equiv.coe_fn_symm_mk] using! hbackwardsem ((bitVecEquiv 2).symm i)
 
+/-- The concatenation of three `m`-bit registers `a`, `b`, and `work`, in that order. -/
 def tripleBinaryRegister (m : ℕ) (a b work : Reg m) : Reg (3*m) := fun i =>
   if ha : i.val < m then a ⟨i.val, ha⟩
   else if hb : i.val < 2*m then b ⟨i.val-m, by omega⟩
   else work ⟨i.val-2*m, by omega⟩
 
+/-- For positive `m`, a legal word of length at most `m * 2^m * (62 * m + 1)` XORs `f a` into
+the middle register while preserving the first and workspace registers. -/
 theorem finiteTruthTableVector_word (m : ℕ) (hm : 0 < m) (f : Reg m → Reg m) :
     ∃ word : List FiniteGateCode, finiteWordLegal (3*m) word = true ∧
       word.length ≤ m*2^m*(62*m+1) ∧
@@ -413,6 +486,8 @@ theorem finiteTruthTableVector_word (m : ℕ) (hm : 0 < m) (f : Reg m → Reg m)
   intro a b work
   simpa only [Finset.mem_univ, if_true] using! hsem a b work
 
+/-- A Boolean Feistel update with constant false round function swaps the `j`th bits of the
+first two blocks of `tripleBinaryRegister`. -/
 theorem tripleBinaryRegister_swap_bit (m : ℕ) (j : Fin m) (a b work : Reg m) :
     booleanFeistelAction (⟨j.val, by omega⟩ : Fin (3*m))
       (⟨m+j.val, by omega⟩ : Fin (3*m)) (fun _ => false) (tripleBinaryRegister m a b work) =
@@ -443,6 +518,8 @@ theorem tripleBinaryRegister_swap_bit (m : ℕ) (j : Fin m) (a b work : Reg m) :
           simp [booleanFeistelAction, tripleBinaryRegister, hia, hib, hne1, hne2, hnej]
         · simp [booleanFeistelAction, tripleBinaryRegister, hia, hib, hne1, hne2]
 
+/-- A legal finite gate word of length at most `315 * m` swaps the first two `m`-bit blocks
+while preserving the workspace block. -/
 theorem tripleBinaryRegister_swap_word (m : ℕ) :
     ∃ word : List FiniteGateCode, finiteWordLegal (3*m) word = true ∧
       word.length ≤ 315*m ∧ ∀ a b work : Reg m,
@@ -490,6 +567,9 @@ theorem tripleBinaryRegister_swap_word (m : ℕ) :
   intro a b work
   simpa only [Finset.mem_univ, if_true] using! hsem a b work
 
+/-- For positive `m`, any permutation of `m`-bit registers and its inverse have exact legal
+implementations using two zero-initialized auxiliary blocks. Their combined length is at
+most `4 * m * 2^m * (62 * m + 1) + 630 * m`. -/
 theorem binaryPermutation_truthTable_words (m : ℕ) (hm : 0 < m)
     (π : Equiv.Perm (Reg m)) :
     ∃ forward backward : List FiniteGateCode,
@@ -535,6 +615,8 @@ theorem binaryPermutation_truthTable_words (m : ℕ) (hm : 0 < m)
     rw [hsem, Equiv.apply_symm_apply] at hrun
     exact hrun
 
+/-- A uniformly chosen permutation maps any prescribed injective `m`-tuple of inputs to any
+prescribed injective `m`-tuple of outputs with probability `1 / q.descFactorial m`. -/
 theorem uniformAllPermutation_probability {q m : ℕ}
     (inputs outputs : Fin m → Fin q) (hi : Function.Injective inputs)
     (hj : Function.Injective outputs) :
@@ -605,9 +687,12 @@ theorem uniformAllPermutation_probability {q m : ℕ}
   field_simp [hG, hY]
   nlinarith [htotal]
 
+/-- An enumeration of all permutations of `Fin q` by seeds in `Fin q.factorial`. -/
 def allPermutationFamily (q : ℕ) : Fin q.factorial → Equiv.Perm (Fin q) :=
   (Fintype.equivFinOfCardEq (by simp [Fintype.card_perm])).symm
 
+/-- The enumerated permutation family realizes prescribed injective input and output tuples with
+probability `1 / q.descFactorial m`. -/
 theorem allPermutationFamily_probability {q m : ℕ}
     (inputs outputs : Fin m → Fin q) (hi : Function.Injective inputs)
     (hj : Function.Injective outputs) :
@@ -626,6 +711,8 @@ theorem allPermutationFamily_probability {q m : ℕ}
   norm_cast
   simpa only [Fintype.card_subtype, allPermutationFamily, encoding] using! hcard
 
+/-- For positive `t`, the family of all permutations satisfies `ApproxIndependent d (1 / t)` for
+every `d`. -/
 theorem allPermutationFamily_approxIndependent (q d t : ℕ) (ht : 0 < t) :
     ApproxIndependent d (1/(t : ℝ)) (allPermutationFamily q) := by
   intro m _ hmq inputs outputs hi hj
@@ -636,6 +723,8 @@ theorem allPermutationFamily_approxIndependent (q d t : ℕ) (ht : 0 < t) :
   have hnonneg : 0 ≤ (1/(t : ℝ)) := le_of_lt (one_div_pos.mpr htR)
   constructor <;> apply (div_le_div_iff_of_pos_right hden).mpr <;> linarith
 
+/-- For `q ≥ 1`, the binary ceiling logarithm of `q.factorial + 1` is at most `q * Nat.clog 2 (q
++ 1)`. -/
 theorem allPermutationFamily_seed_bound (q : ℕ) (hq : 1 ≤ q) :
     Nat.clog 2 (q.factorial+1) ≤ q*Nat.clog 2 (q+1) := by
   apply Nat.clog_le_of_le_pow
@@ -652,9 +741,12 @@ theorem allPermutationFamily_seed_bound (q : ℕ) (hq : 1 ≤ q) :
     _ ≤ (2^Nat.clog 2 (q+1))^q := Nat.pow_le_pow_left hqpow q
     _ = 2^(q*Nat.clog 2 (q+1)) := by rw [← pow_mul, Nat.mul_comm]
 
+/-- The register formed by prepending `h` false bits to the `m`-bit register `a`. -/
 def zeroPrefixBinaryRegister (h m : ℕ) (a : Reg m) : Reg (h+m) := fun i =>
   if hi : i.val < h then false else a ⟨i.val-h, by omega⟩
 
+/-- The encoded value of an `(n + 1)`-bit register is its last bit plus twice the encoded value
+of its first `n` bits. -/
 theorem bitVecEquiv_succ_value (n : ℕ) (a : Reg (n+1)) :
     ((bitVecEquiv (n+1)) a).val =
       (if a (Fin.last n) then 1 else 0) +
@@ -670,6 +762,7 @@ theorem bitVecEquiv_succ_value (n : ℕ) (a : Reg (n+1)) :
   rw [hcast (Nat.pow_succ 2 n).symm, hsplit]
   cases a (Fin.last n) <;> rfl
 
+/-- Prepending false bits preserves the natural-number value of a register under `bitVecEquiv`. -/
 theorem zeroPrefixBinaryRegister_value (h m : ℕ) (a : Reg m) :
     ((bitVecEquiv (h+m)) (zeroPrefixBinaryRegister h m a)).val =
       ((bitVecEquiv m) a).val := by
@@ -692,6 +785,8 @@ theorem zeroPrefixBinaryRegister_value (h m : ℕ) (a : Reg m) :
     change ((bitVecEquiv ((h+m)+1)) (zeroPrefixBinaryRegister h (m+1) a)).val = _
     rw [bitVecEquiv_succ_value (h+m), hlast, hinit, ih, bitVecEquiv_succ_value]
 
+/-- A Boolean Feistel update with constant false round function swaps the `j`th bits of the
+first and third blocks. -/
 theorem tripleBinaryRegister_outer_swap_bit (m : ℕ) (j : Fin m) (a b work : Reg m) :
     booleanFeistelAction (⟨j.val, by omega⟩ : Fin (3*m))
       (⟨2*m+j.val, by omega⟩ : Fin (3*m)) (fun _ => false) (tripleBinaryRegister m a b work) =
@@ -724,6 +819,8 @@ theorem tripleBinaryRegister_outer_swap_bit (m : ℕ) (j : Fin m) (a b work : Re
             omega
           simp [booleanFeistelAction, tripleBinaryRegister, hia, hib, hne1, hne2, hnej]
 
+/-- A legal finite gate word of length at most `315 * m` swaps the first and third blocks while
+preserving the middle block. -/
 theorem tripleBinaryRegister_outer_swap_word (m : ℕ) :
     ∃ word : List FiniteGateCode, finiteWordLegal (3*m) word = true ∧
       word.length ≤ 315*m ∧ ∀ a b work : Reg m,
@@ -770,6 +867,9 @@ theorem tripleBinaryRegister_outer_swap_word (m : ℕ) :
   intro a b work
   simpa only [Finset.mem_univ, if_true] using! hsem a b work
 
+/-- For positive `m`, any permutation and its inverse can act exactly on the third block with
+the first two blocks initialized and returned to zero. The legal forward and inverse words
+have combined length at most `4 * m * 2^m * (62 * m + 1) + 1890 * m`. -/
 theorem canonicalBlockPermutation_words (m : ℕ) (hm : 0 < m) (π : Equiv.Perm (Reg m)) :
     ∃ forward backward : List FiniteGateCode,
       finiteWordLegal (3*m) forward = true ∧ finiteWordLegal (3*m) backward = true ∧
@@ -801,11 +901,15 @@ theorem canonicalBlockPermutation_words (m : ℕ) (hm : 0 < m) (π : Equiv.Perm 
       (Run 1 (finiteCodeCircuit (3*m) backward) (Run 1 (finiteCodeCircuit (3*m) swap) _)) = _
     rw [hswapsem, hbackwardsem, hswapsem]
 
+/-- Transporting a register along an equality of widths preserves its encoded natural-number
+value. -/
 theorem bitVecEquiv_cast_value {n k : ℕ} (h : n = k) (a : Reg n) :
     ((bitVecEquiv k) (fun i => a (Fin.cast h.symm i))).val = ((bitVecEquiv n) a).val := by
   subst k
   rfl
 
+/-- The encoded value of three blocks with the first two blocks zero equals the encoded value of
+the third block. -/
 theorem canonicalTripleBinaryRegister_value (m : ℕ) (a : Reg m) :
     ((bitVecEquiv (3*m)) (tripleBinaryRegister m (fun _ => false) (fun _ => false) a)).val =
       ((bitVecEquiv m) a).val := by
@@ -822,6 +926,9 @@ theorem canonicalTripleBinaryRegister_value (m : ℕ) (a : Reg m) :
     · by_cases hi2 : i.val < 2*m <;> simp [hi, hi2]
   rw [hpad, zeroPrefixBinaryRegister_value]
 
+/-- If `q ≤ 2^m` and `m > 0`, every permutation of `Fin q` and its inverse have exact legal
+implementations on canonically encoded `3 * m`-bit registers, with combined length at most
+`4 * m * 2^m * (62 * m + 1) + 1890 * m`. -/
 theorem canonicalFinitePermutation_words (q m : ℕ) (hm : 0 < m) (hqm : q ≤ 2^m)
     (π : Equiv.Perm (Fin q)) :
     ∃ (hb : q ≤ 2^(3*m)) (forward backward : List FiniteGateCode),
@@ -861,6 +968,8 @@ theorem canonicalFinitePermutation_words (q m : ℕ) (hm : 0 < m) (hqm : q ≤ 2
   · intro i
     simpa only [hpaddedinv, hcanonical] using! hbackwardsem (encode i)
 
+/-- For `q ≥ 2`, every permutation of `Fin q` and its inverse have exact legal implementations
+at width `3 * Nat.clog 2 (q + 1)` with combined word length at most `10000 * (q + 1)^4`. -/
 theorem canonicalFinitePermutation_clog_words (q : ℕ) (hq : 2 ≤ q)
     (π : Equiv.Perm (Fin q)) :
     ∃ (hb : q ≤ 2^(3*Nat.clog 2 (q+1))) (forward backward : List FiniteGateCode),
@@ -893,6 +1002,10 @@ theorem canonicalFinitePermutation_clog_words (q : ℕ) (hq : 2 ≤ q)
     _ ≤ 10000*(q+1)^4 := by
       nlinarith [Nat.zero_le (q^4), Nat.zero_le (q^3), Nat.zero_le (q^2)]
 
+/-- There is a universal positive constant giving, for every `q ≥ 2` and `t ≥ 1`, a canonically
+encoded permutation family satisfying `ApproxIndependent q (1 / t)`. The family has legal
+exact forward and inverse words and satisfies the stated seed, width, and word-length
+bounds. -/
 theorem efficientPermutationFamily_fullIndependence_endpoint :
     ∃ C : ℝ, 0 < C ∧ ∀ q t : ℕ, 2 ≤ q → 1 ≤ t →
       ∃ (R b : ℕ) (π : Fin R → Equiv.Perm (Fin q))

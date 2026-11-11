@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
 import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundStat
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridDefs
+
+/-!
+# Specification of analytic grid approximation
+
+`AnalyticCentralDifferenceGridError` states a finite-grid error bound for a central-difference
+stencil applied to an analytic function with controlled coordinate derivatives. Its geometric
+threshold is the approximation input used in the gradient setting of
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `AnalyticCentralDifferenceGridError`: when `8*R*c*m*sqrt d < 1`, the exceptional grid count is
+  at most `M^d/1000`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
@@ -14,6 +33,9 @@ noncomputable section
 
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 
+/-- The proposition that analytic coordinate-derivative growth bounds control central-difference
+error outside at most a `1/1000` fraction of the grid, with threshold `T^(2*m+1)/(1-T)` for
+`T = 8*R*c*m*sqrt d < 1`. -/
 def AnalyticCentralDifferenceGridError : Prop :=
   ∀ (d m : ℕ), 0 < m → ∀ (R c : ℝ), 0 < R → 0 < c →
     ∀ f : EuclideanSpace ℝ (Fin d) → ℝ,

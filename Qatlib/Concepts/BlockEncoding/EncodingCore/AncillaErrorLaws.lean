@@ -8,6 +8,32 @@ import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.BlockEncoding.Basic
 import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Independent ancillas and block-encoding products
+
+`independentLiftLeft` and `independentLiftRight` extend two operators to separate ancilla
+registers sharing one data register. Their compressed product equals the product of the original
+compressions, and each lift preserves unitarity.
+
+`independent_ancilla_blockEncoding_product` propagates normalization and approximation errors
+through multiplication. `encodingProductCircuit` realizes the lifted product using two gates.
+
+For background, see [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `independent_ancilla_lift_laws`: combines isometry, unitarity, and exact compression
+  identities.
+* `independent_ancilla_blockEncoding_product`: gives scale `α * β` and error `β * ε + α * η + ε
+  * η`.
+* `encoding_product_run_cost`: verifies the circuit action and its two-gate, zero-query cost.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -33,30 +59,40 @@ set_option linter.unusedSectionVars false
 variable {J K I : Type*} [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
   [Fintype I] [DecidableEq I]
 
+/-- Lifts an operator on the first ancilla and data registers while acting as identity on the
+second ancilla. -/
 def independentLiftLeft (U : Matrix (J × I) (J × I) ℂ) : Matrix ((J × K) × I) ((J × K) × I) ℂ :=
   Matrix.of fun x y => U (x.1.1, x.2) (y.1.1, y.2) * (if x.1.2 = y.1.2 then 1 else 0)
 
+/-- Lifts an operator on the second ancilla and data registers while acting as identity on the
+first ancilla. -/
 def independentLiftRight (V : Matrix (K × I) (K × I) ℂ) : Matrix ((J × K) × I) ((J × K) × I) ℂ :=
   Matrix.of fun x y => (if x.1.1 = y.1.1 then 1 else 0) * V (x.1.2, x.2) (y.1.2, y.2)
 
+/-- Reorders the first ancilla, data, and second ancilla into the joint ancilla-data index type. -/
 private def liftLeftEquiv : (J × I) × K ≃ (J × K) × I where
   toFun x := ((x.1.1, x.2), x.1.2)
   invFun y := ((y.1.1, y.2), y.1.2)
   left_inv := fun _ => rfl
   right_inv := fun _ => rfl
 
+/-- Reassociates the first ancilla with the second-ancilla and data pair into the joint index
+type. -/
 private def liftRightEquiv : J × (K × I) ≃ (J × K) × I where
   toFun x := ((x.1, x.2.1), x.2.2)
   invFun y := (y.1.1, (y.1.2, y.2))
   left_inv := fun _ => rfl
   right_inv := fun _ => rfl
 
+/-- The left independent lift is a relabeled tensor product of `U` with identity. -/
 theorem independentLiftLeft_eq (U : Matrix (J × I) (J × I) ℂ) :
     independentLiftLeft U = relabelGate liftLeftEquiv (TensorGate U (1 : Matrix K K ℂ)) := rfl
 
+/-- The right independent lift is a relabeled tensor product of identity with `V`. -/
 theorem independentLiftRight_eq (V : Matrix (K × I) (K × I) ℂ) :
     independentLiftRight V = relabelGate liftRightEquiv (TensorGate (1 : Matrix J J ℂ) V) := rfl
 
+/-- Relabeling a unitary matrix along an equivalence preserves unitarity. -/
 theorem relabelGate_mem_unitary {S T : Type*} [Fintype S] [DecidableEq S] [Fintype T]
     [DecidableEq T] {U : Matrix S S ℂ} (hU : U ∈ Matrix.unitaryGroup S ℂ) (e : S ≃ T) :
     relabelGate e U ∈ Matrix.unitaryGroup T ℂ := by
@@ -81,6 +117,7 @@ theorem relabelGate_mem_unitary {S T : Type*} [Fintype S] [DecidableEq S] [Finty
   · rw [Matrix.star_eq_conjTranspose, hstar, ← hmul, hu', hone]
   · rw [Matrix.star_eq_conjTranspose, hstar, ← hmul, hu, hone]
 
+/-- The left independent lift of a unitary matrix is unitary. -/
 theorem independentLiftLeft_unitary {U : Matrix (J × I) (J × I) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (J × I) ℂ) :
     independentLiftLeft U ∈ Matrix.unitaryGroup ((J × K) × I) ℂ := by
@@ -88,6 +125,7 @@ theorem independentLiftLeft_unitary {U : Matrix (J × I) (J × I) ℂ}
   exact relabelGate_mem_unitary (tensorGate_unitary hU (Matrix.unitaryGroup K ℂ).one_mem)
     liftLeftEquiv
 
+/-- The right independent lift of a unitary matrix is unitary. -/
 theorem independentLiftRight_unitary {V : Matrix (K × I) (K × I) ℂ}
     (hV : V ∈ Matrix.unitaryGroup (K × I) ℂ) :
     independentLiftRight V ∈ Matrix.unitaryGroup ((J × K) × I) ℂ := by
@@ -95,6 +133,8 @@ theorem independentLiftRight_unitary {V : Matrix (K × I) (K × I) ℂ}
   exact relabelGate_mem_unitary (tensorGate_unitary (Matrix.unitaryGroup J ℂ).one_mem hV)
     liftRightEquiv
 
+/-- At fixed ancilla values, the matrix product of independent lifts reduces to the product sum
+over the shared data register. -/
 theorem independent_lift_mul_apply (j₀ : J) (k₀ : K) (U : Matrix (J × I) (J × I) ℂ)
     (V : Matrix (K × I) (K × I) ℂ) (i₁ i₂ : I) :
     ∑ z : (J × K) × I,
@@ -133,6 +173,8 @@ theorem independent_lift_mul_apply (j₀ : J) (k₀ : K) (U : Matrix (J × I) (J
           sum_fiber_mul_left (j₀, k₀)
             (fun p => ∑ t : I, U (j₀, i₁) (p.1, t) * V (p.2, t) (k₀, i₂))
 
+/-- Packages the fiber isometries, preservation of unitarity by independent lifts, and the
+identity expressing joint compression as a product of compressions. -/
 theorem independent_ancilla_lift_laws (j₀ : J) (k₀ : K)
     (U : Matrix (J × I) (J × I) ℂ) (V : Matrix (K × I) (K × I) ℂ) :
     IsIsometry (encodingFiber (I := I) j₀) ∧ IsIsometry (jointEncodingFiber (I := I) j₀ k₀) ∧
@@ -151,6 +193,7 @@ theorem independent_ancilla_lift_laws (j₀ : J) (k₀ : K)
     Matrix.mul_apply]
   simp only [compress_encodingFiber_eq]
 
+/-- The product of two compatible isometric matrices is isometric. -/
 theorem IsIsometry.mul {H M I : Type*} [Fintype H] [DecidableEq H] [Fintype M] [DecidableEq M]
     [Fintype I] [DecidableEq I] {P : Matrix H M ℂ} {L : Matrix M I ℂ}
     (hP : IsIsometry P) (hL : IsIsometry L) : IsIsometry (P * L) := by
@@ -163,6 +206,7 @@ theorem IsIsometry.mul {H M I : Type*} [Fintype H] [DecidableEq H] [Fintype M] [
   unfold IsIsometry at hL ⊢
   rw [e, hL]
 
+/-- Multiplication by an isometric matrix preserves the Euclidean norm of a state vector. -/
 theorem isometry_mulVec_norm {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
     [DecidableEq O]
     {L : Matrix H O ℂ} (hL : IsIsometry L) (v : QState O) :
@@ -176,6 +220,7 @@ theorem isometry_mulVec_norm {H O : Type*} [Fintype H] [DecidableEq H] [Fintype 
   rw [← Real.sqrt_sq (norm_nonneg (toEuclidean_fromVec (L *ᵥ v))),
     ← Real.sqrt_sq (norm_nonneg (toEuclidean_fromVec v)), h1]
 
+/-- The operator norm of an isometric matrix is at most one. -/
 theorem isometry_norm_le {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
     [DecidableEq O] {L : Matrix H O ℂ} (hL : IsIsometry L) : ‖L‖ ≤ 1 := by
   refine l2_opNorm_le_of_mulVec_le zero_le_one L fun v => ?_
@@ -184,6 +229,7 @@ theorem isometry_norm_le {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
 
 set_option maxHeartbeats 1000000 in
 
+/-- The compression of a unitary between isometric frames has operator norm at most one. -/
 theorem l2_norm_compress_le_one {H I O : Type*} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] [Fintype O] [DecidableEq O] {L : Matrix H O ℂ} {U : Matrix H H ℂ}
     {R : Matrix H I ℂ} (hL : IsIsometry L) (hU : U ∈ Matrix.unitaryGroup H ℂ)
@@ -210,6 +256,8 @@ theorem l2_norm_compress_le_one {H I O : Type*} [Fintype H] [DecidableEq H] [Fin
 
 set_option maxHeartbeats 1000000 in
 
+/-- Multiplying block encodings on independent ancillas gives a block encoding of `A * B` with
+scale `α * β` and error `β * ε + α * η + ε * η`. -/
 theorem independent_ancilla_blockEncoding_product (j₀ : J) (k₀ : K) (A B : Matrix I I ℂ)
     (U : Matrix (J × I) (J × I) ℂ) (V : Matrix (K × I) (K × I) ℂ) (α β ε η : ℝ)
     (h1 : BlockEncoding A U (encodingFiber j₀) (encodingFiber j₀) α ε)
@@ -266,10 +314,14 @@ theorem independent_ancilla_blockEncoding_product (j₀ : J) (k₀ : K) (A B : M
           (le_of_lt h1.normalization_pos)
     _ = β * ε + α * η + ε * η := by ring
 
+/-- The two-gate circuit applying the right independent lift first and the left independent lift
+second. -/
 def encodingProductCircuit (U : Matrix (J × I) (J × I) ℂ) (V : Matrix (K × I) (K × I) ℂ) :
     Circuit ((J × K) × I) :=
   [Step.gate (independentLiftRight V), Step.gate (independentLiftLeft U)]
 
+/-- The product circuit applies the product of the two lifts, uses zero queries and two gates,
+and is unitary when both original operators are unitary. -/
 theorem encoding_product_run_cost (U : Matrix (J × I) (J × I) ℂ) (V : Matrix (K × I) (K × I) ℂ)
     (ψ : QState ((J × K) × I)) :
     Run 1 (encodingProductCircuit U V) ψ

@@ -5,11 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.DenseZeroModeBoundaryStat
+
+/-!
+# Half-density restriction for the zero-frequency bound
+
+`denseZeroModeBoundary_answer` proves the zero-frequency trigonometric bound for positive marked
+density at most one half. It also exhibits density 3/4 as a counterexample to extending that
+bound without the density restriction in the setting of [Cornwell2014].
+
+## Main statements
+
+* `denseZeroModeBoundary_answer`: Proves the zero-mode bound under half-density and the explicit
+  N=4, T=3 counterexample with zero-mode value one and proposed upper bound 3/4; see
+  [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 
+/-- Proves the zero-mode bound under half-density and the explicit N=4, T=3 counterexample with
+zero-mode value one and proposed upper bound 3/4; see [Cornwell2014]. -/
 theorem denseZeroModeBoundary_answer : DenseZeroModeBoundary := by
   constructor
   · intro N hN T hhalf hT

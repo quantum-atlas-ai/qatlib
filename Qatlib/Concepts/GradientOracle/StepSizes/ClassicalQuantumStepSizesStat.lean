@@ -6,10 +6,29 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.Calculus.Taylor
 
+/-!
+# Specification of classical and quantum step sizes
+
+`ClassicalQuantumStepSizes` states endpoint-value stability, centered truncation error, and two
+algebraic choices of step length that match a target error. These are the quantitative
+comparison ingredients associated with [Jordan2005Gradient].
+
+## Main statements
+
+* `ClassicalQuantumStepSizes`: perturbation and truncation estimates together with classical and
+  quantum error-matching formulas.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.GradientOracle.StepSizes
 
+/-- The conjunction of a `2*δ/l` endpoint perturbation bound, a `D*l^2/24` centered truncation
+bound, and classical and quantum step choices whose error expressions equal `σ`. -/
 def ClassicalQuantumStepSizes : Prop :=
   (∀ (F1 F0 f1 f0 l δ : ℝ), 0 < l → 0 < δ → |F1 - f1| ≤ δ → |F0 - f0| ≤ δ →
       |(F1 - F0) / l - (f1 - f0) / l| ≤ 2 * δ / l) ∧

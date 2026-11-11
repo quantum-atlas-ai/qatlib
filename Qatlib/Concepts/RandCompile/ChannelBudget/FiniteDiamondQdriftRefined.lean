@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefinedDefs
+
+/-!
+# Refined qDRIFT precision and resource bounds
+
+This module proves evaluation and cost identities for `RatProgram`, certifies finite precision
+scans of dyadic lower reads, and bounds the combined simulation and fair-bit error expression.
+These estimates refine the resource bookkeeping used with qDRIFT [Campbell2019].
+
+The endpoint theorems collect the scan and storage guarantees, the error-budget balancing
+inequalities, and a conditional comparison of simulation and phase-estimation count expressions.
+
+## Main statements
+
+* `scanPrecision_bounds`: a successful scan gives a positive corrected tolerance and a bounded
+  stored time.
+* `fairBitBudget_at_tight_count`: upward rounding of the balancing value incurs at most `2⁻ᴿ`
+  extra budget.
+* `clause19_endpoint`, `clause20_endpoint`, `clause21_endpoint`: collect the refined guarantees.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -18,26 +42,38 @@ namespace Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefined
 open Matrix Qatlib
 open scoped BigOperators Classical ENNReal Matrix.Norms.L2Operator
 
+/-- Evaluating an addition node gives the sum of the evaluations of its two subprograms. -/
 theorem ratProgram_eval_add (a b : RatProgram) :
     RatProgram.eval (RatProgram.add a b) = RatProgram.eval a + RatProgram.eval b := rfl
 
+/-- Evaluating a multiplication node gives the product of the evaluations of its two
+subprograms. -/
 theorem ratProgram_eval_mul (a b : RatProgram) :
     RatProgram.eval (RatProgram.mul a b) = RatProgram.eval a * RatProgram.eval b := rfl
 
+/-- Evaluating a division node gives the quotient of the evaluations of its two subprograms. -/
 theorem ratProgram_eval_div (a b : RatProgram) :
     RatProgram.eval (RatProgram.div a b) = RatProgram.eval a / RatProgram.eval b := rfl
 
+/-- Evaluating a ceiling node gives the integer ceiling of the subprogram value, cast to a
+rational. -/
 theorem ratProgram_eval_ceil (a : RatProgram) :
     RatProgram.eval (RatProgram.ceil a) = Rat.ceil (RatProgram.eval a) := rfl
 
+/-- Evaluating a binary logarithm node gives the binary ceiling logarithm of the absolute
+numerator of the subprogram value. -/
 theorem ratProgram_eval_log2 (a : RatProgram) :
     RatProgram.eval (RatProgram.log2 a) =
       (Nat.clog 2 (RatProgram.eval a).num.natAbs : ℚ) := rfl
 
+/-- Evaluating a digit node rounds the subprogram value downward to the dyadic grid of precision
+`k`. -/
 theorem ratProgram_eval_digits (a : RatProgram) (k : ℕ) :
     RatProgram.eval (RatProgram.digits a k) =
       ((⌊RatProgram.eval a * (2 : ℚ) ^ k⌋ : ℤ) : ℚ) / (2 : ℚ) ^ k := rfl
 
+/-- The number of operation nodes in a rational program equals the total of its operation cost
+ledger. -/
 theorem ratProgram_nodes_cost (p : RatProgram) :
     RatProgram.nodes p = (RatProgram.cost p).total := by
   induction p with
@@ -61,11 +97,14 @@ theorem ratProgram_nodes_cost (p : RatProgram) :
       simp only [RatProgram.nodes, RatProgram.cost, RatCost.total, ih]
       omega
 
+/-- The bit-time allowance equals the total operation count multiplied by `(B + 2)²`. -/
 theorem ratCost_bitTime (c : RatCost) (B : ℕ) :
     c.bitTime B = c.total * (B + 2) * (B + 2) := rfl
 
+/-- The bit-space allowance equals `3 * (B + 2)`. -/
 theorem ratCost_bitSpace (c : RatCost) (B : ℕ) : c.bitSpace B = 3 * (B + 2) := rfl
 
+/-- The scan bit-length allowance bounds the dyadic-read space allowance. -/
 theorem scanRunBitLength_read {L : ℕ} {x : ℝ} {k : ℕ} :
     dyadicReadSpace x k ≤ scanRunBitLength L x k := by
   have hstep : dyadicReadSpace x k ≤
@@ -73,6 +112,7 @@ theorem scanRunBitLength_read {L : ℕ} {x : ℝ} {k : ℕ} :
     omega
   exact hstep
 
+/-- The scan bit-length allowance bounds the digit-table space allowance. -/
 theorem scanRunBitLength_table {L : ℕ} {x : ℝ} {k : ℕ} :
     digitTableSpace L x k ≤ scanRunBitLength L x k := by
   have hstep : digitTableSpace L x k ≤
@@ -80,6 +120,7 @@ theorem scanRunBitLength_table {L : ℕ} {x : ℝ} {k : ℕ} :
     omega
   exact hstep
 
+/-- A dyadic read's numerator magnitude plus `k + 1` is bounded by `dyadicReadSpace x k`. -/
 theorem dyadicRead_space {x : ℝ} {q : ℕ → ℚ} (h : DyadicRead x q) (k : ℕ)
     (m : ℤ) (hm : q k = m / ((2 : ℚ) ^ k)) :
     |m| + k + 1 ≤ dyadicReadSpace x k := by
@@ -88,6 +129,7 @@ theorem dyadicRead_space {x : ℝ} {q : ℕ → ℚ} (h : DyadicRead x q) (k : �
     omega
   exact hstep
 
+/-- A dyadic lower read's numerator magnitude plus `k + 1` is bounded by `dyadicReadSpace x k`. -/
 theorem dyadicLowerRead_space {x : ℝ} {q : ℕ → ℚ} (h : DyadicLowerRead x q) (k : ℕ)
     (m : ℤ) (hm : q k = m / ((2 : ℚ) ^ k)) :
     |m| + k + 1 ≤ dyadicReadSpace x k := by
@@ -96,6 +138,7 @@ theorem dyadicLowerRead_space {x : ℝ} {q : ℕ → ℚ} (h : DyadicLowerRead x
     omega
   exact hstep
 
+/-- Casting the rational reciprocal of `2^k` to the reals gives `(1 / 2)^k`. -/
 theorem one_div_pow_two_cast (k : ℕ) :
     ((1 / ((2 : ℚ) ^ k) : ℚ) : ℝ) = (1 / 2 : ℝ) ^ k := by
   have h : (1 / ((2 : ℚ) ^ k) : ℚ) = (1 / 2 : ℚ) ^ k := by
@@ -103,12 +146,15 @@ theorem one_div_pow_two_cast (k : ℕ) :
   rw [h, Rat.cast_pow]
   norm_num
 
+/-- Casting the corrected rational budget to the reals subtracts `(1 / 2)^k` from the read
+value. -/
 theorem correctedBudget_cast (eq : ℚ) (k : ℕ) :
     (correctedBudget eq k : ℝ) = (eq : ℝ) - (1 / 2 : ℝ) ^ k := by
   have h := one_div_pow_two_cast k
   simp only [correctedBudget]
   rw [Rat.cast_sub, h]
 
+/-- The corrected budget from a dyadic lower read is at most the underlying real parameter. -/
 theorem correctedBudget_lower_bound {x : ℝ} {q : ℕ → ℚ} (h : DyadicLowerRead x q)
     (k : ℕ) : (correctedBudget (q k) k : ℝ) ≤ x := by
   have h1 : (q k : ℝ) ≤ x := h.lower k
@@ -117,11 +163,15 @@ theorem correctedBudget_lower_bound {x : ℝ} {q : ℕ → ℚ} (h : DyadicLower
   rw [correctedBudget_cast]
   linarith
 
+/-- The scan certificate is true exactly when the corrected tolerance is positive and the
+rational time magnitude is at most `T`. -/
 theorem scanCert_iff {tq eq : ℚ} {T k : ℕ} :
     scanCert tq eq T k = true ↔
       0 < eq - 1 / ((2 : ℚ) ^ k) ∧ |tq| ≤ (T : ℚ) := by
   simp [scanCert]
 
+/-- If a list contains an element passing a Boolean test, then `List.find?` returns some
+element. -/
 theorem exists_find?_of_mem_true : ∀ (p : ℕ → Bool) (l : List ℕ),
     (∃ a ∈ l, p a = true) → ∃ a, l.find? p = some a := by
   intro p l
@@ -141,6 +191,7 @@ theorem exists_find?_of_mem_true : ∀ (p : ℕ → Bool) (l : List ℕ),
         · obtain ⟨a, ha'⟩ := ih ⟨a, ha, hpa⟩
           exact ⟨a, by simp [hb, ha']⟩
 
+/-- If some level within the fuel passes `scanCert`, the selected precision also passes it. -/
 theorem scanPrecision_certified : ∀ (fuel : ℕ) (tq eq : ℕ → ℚ) (T : ℕ),
     (∃ k, k ≤ fuel ∧ scanCert (tq k) (eq k) T k = true) →
     scanCert (tq (scanPrecision fuel tq eq T)) (eq (scanPrecision fuel tq eq T)) T
@@ -158,6 +209,7 @@ theorem scanPrecision_certified : ∀ (fuel : ℕ) (tq eq : ℕ → ℚ) (T : �
     List.find?_some (p := fun k => scanCert (tq k) (eq k) T k) hj
   exact hp
 
+/-- The selected scan precision is bounded by `max 1 fuel`. -/
 theorem scanPrecision_le : ∀ (fuel : ℕ) (tq eq : ℕ → ℚ) (T : ℕ),
     scanPrecision fuel tq eq T ≤ max 1 fuel := by
   intro fuel tq eq T
@@ -173,6 +225,8 @@ theorem scanPrecision_le : ∀ (fuel : ℕ) (tq eq : ℕ → ℚ) (T : ℕ),
       simp only [Option.getD_none]
       exact Nat.le_refl _
 
+/-- A successful scan of a dyadic lower tolerance stream gives a positive corrected budget below
+the true tolerance and a stored time magnitude at most `T`. -/
 theorem scanPrecision_bounds {eps : ℝ} {qeps qt : ℕ → ℚ}
     (heps : DyadicLowerRead eps qeps) (fuel : ℕ) (T : ℕ)
     (hex : ∃ k, k ≤ fuel ∧ scanCert (qt k) (qeps k) T k = true) :
@@ -188,6 +242,7 @@ theorem scanPrecision_bounds {eps : ℝ} {qeps qt : ℕ → ℚ}
   have h1 : |(qt (scanPrecision fuel qt qeps T) : ℚ)| ≤ (T : ℚ) := hc'.2
   exact_mod_cast h1
 
+/-- For every positive step count, the combined fair-bit budget is at least `fairBitBudgetMin`. -/
 theorem fairBitBudget_min : ∀ (W T R : ℕ) (n : ℕ), 0 < n →
     fairBitBudgetMin W T R ≤ fairBitBudget W T R n := by
   intro W T R n hn
@@ -228,6 +283,8 @@ theorem fairBitBudget_min : ∀ (W T R : ℕ) (n : ℕ), 0 < n →
   rw [Real.sqrt_sq hmin0, Real.sqrt_sq hbud0] at h3
   exact h3
 
+/-- For positive `W` and `T`, the budget at `tightFairBitCount` is at most `fairBitBudgetMin +
+2⁻ᴿ`. -/
 theorem fairBitBudget_at_tight_count : ∀ (W T R : ℕ) (_hW : 0 < W) (_hT : 0 < T),
     fairBitBudget W T R (tightFairBitCount W T R) ≤
       fairBitBudgetMin W T R + 1 / ((2 : ℝ) ^ R) := by
@@ -358,6 +415,8 @@ theorem fairBitBudget_at_tight_count : ∀ (W T R : ℕ) (_hW : 0 < W) (_hT : 0 
   rw [fairBitBudget, hmin, ← hsq]
   exact hmain
 
+/-- Under the stated parameter relation and comparison inequalities, the qDRIFT simulation count
+is at most the phase-estimation count expression. -/
 theorem tableIQdriftCount_le_peCount (lam t eps deltaE pf : ℝ)
     (hlam : 0 < lam) (hdelta : 0 < deltaE) (hpf : 0 < pf)
     (hbudget : eps = deltaE ^ 2 * pf ^ 2) (hcmp : 2 * t ^ 2 * pf ≤ 133)
@@ -380,6 +439,8 @@ theorem tableIQdriftCount_le_peCount (lam t eps deltaE pf : ℝ)
     exact Nat.succ_le_of_lt (by exact_mod_cast hlt)
   exact Nat.max_le.mpr ⟨hBceil, hceil⟩
 
+/-- Each phase-estimation chain error share equals its squared evolution time times the share at
+index zero. -/
 theorem peChainErrorShare_proportional (deltaE pf : ℝ) (j : ℕ) :
     peChainErrorShare deltaE pf j =
       (peChainTimes j) ^ 2 * peChainErrorShare deltaE pf 0 := by
@@ -387,6 +448,8 @@ theorem peChainErrorShare_proportional (deltaE pf : ℝ) (j : ℕ) :
   simp only [peChainTimes]
   ring
 
+/-- Collects successful-scan guarantees, dyadic numerator space bounds, rational-program node
+counts, and the bit-time and bit-space identities. -/
 theorem clause19_endpoint :
     (∀ (eps : ℝ) (qeps qt : ℕ → ℚ),
       (∀ k, ∃ m : ℤ, qeps k = m / ((2 : ℚ) ^ k)) →
@@ -426,6 +489,8 @@ theorem clause19_endpoint :
   · intro L x k
     exact ⟨scanRunBitLength_read, scanRunBitLength_table⟩
 
+/-- Collects the lower bound and rounded-choice upper bound for fair-bit budgets together with
+the protocol synthesis resource identities. -/
 theorem clause20_endpoint : ∀ (W T R : ℕ) (n : ℕ), 0 < n →
     fairBitBudgetMin W T R ≤ fairBitBudget W T R n ∧
     (∀ (W' T' R' : ℕ), 0 < W' → 0 < T' →
@@ -443,6 +508,8 @@ theorem clause20_endpoint : ∀ (W T R : ℕ) (n : ℕ), 0 < n →
   · intro m n
     exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-- Combines the conditional comparison of qDRIFT count expressions with proportional allocation
+of phase-estimation chain errors. -/
 theorem clause21_endpoint : ∀ (lam t eps deltaE pf : ℝ),
     0 < lam → 0 < eps → 0 < deltaE → 0 < pf →
     eps = deltaE ^ 2 * pf ^ 2 → 2 * t ^ 2 * pf ≤ 133 →

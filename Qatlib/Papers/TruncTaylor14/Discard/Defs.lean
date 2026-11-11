@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.ResetDiscard.TaylorDiscardSegment
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
+
+/-!
+# Taylor cutoff for reset-and-discard simulation
+
+This module selects the Taylor truncation cutoff for a simulation with `r` segments and
+precision index `k`. The definition `sourceDiscardCutoffKey` applies the factorial Taylor cutoff
+to the corresponding segment-dependent precision. See [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `sourceDiscardCutoffKey`: Cutoff selected from factorial Taylor precision.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +48,7 @@ set_option maxHeartbeats 800000
 
 namespace Qatlib.Papers.TruncTaylor14.DiscardCore
 
+/-- The factorial Taylor cutoff associated with `factorialTaylorPrecision r k`. -/
 def sourceDiscardCutoffKey (r k : ℕ) : ℕ :=
   factorialTaylorCutoff (factorialTaylorPrecision r k)
 end Qatlib.Papers.TruncTaylor14.DiscardCore

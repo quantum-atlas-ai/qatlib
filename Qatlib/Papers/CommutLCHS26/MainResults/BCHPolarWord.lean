@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLie
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarCoeff
+
+/-!
+# Combining scalar clone blocks in word series
+
+This module combines consecutive scalar multiples of a common generator inside formal
+exponential word series. Each block becomes one generator weighted by the sum of its scalar
+weights.
+
+The same identity holds for logarithm coefficients and for evaluation of cloned word logarithms,
+including dependent pair indexed clone families. These identities provide the clone reduction
+step for the polarization argument in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `wordSeries_smul_block`: combines scalar multiples of one generator.
+* `logCoefficient_clone_blocks`: preserves logarithm coefficients when clone blocks are
+  combined.
+* `evaluate_log_sigma_clones`: sums clone weights in the finite dependent pair formulation.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +43,7 @@ open BCHWordLie BCHWordLog BCHDynkin
 
 variable {A R : Type} [Ring A] [Algebra ℚ A] [CommRing R] [Algebra R A]
 
+/-- The formal exponential series of zero is one. -/
 theorem generatorSeries_zero : generatorSeries (0 : A) = 1 := by
   apply PowerSeries.ext
   intro n
@@ -26,14 +51,18 @@ theorem generatorSeries_zero : generatorSeries (0 : A) = 1 := by
 
 omit [Algebra ℚ A] in
 
+/-- Two scalar multiples of the same algebra element commute. -/
 theorem commute_smul_same (r s : R) (X : A) : Commute (r • X) (s • X) := by
   show (r • X) * (s • X) = (s • X) * (r • X)
   simp only [smul_mul_smul_comm, mul_comm r s]
 
+/-- The exponential word series of a concatenation is the product of the two word series. -/
 theorem wordSeries_append (xs ys : List A) :
     wordSeries (xs ++ ys) = wordSeries xs * wordSeries ys := by
   simp only [wordSeries, List.map_append, List.prod_append]
 
+/-- A word of scalar multiples of one generator has the same exponential series as that
+generator scaled by the sum of the scalars. -/
 theorem wordSeries_smul_block (X : A) (rs : List R) :
     wordSeries (rs.map (fun r => r • X)) = generatorSeries (rs.sum • X) := by
   induction rs with
@@ -42,6 +71,8 @@ theorem wordSeries_smul_block (X : A) (rs : List R) :
     change generatorSeries (r • X) * wordSeries (rs.map (fun s => s • X)) = _
     rw [ih, List.sum_cons, add_smul, generatorSeries_add _ _ (commute_smul_same _ _ _)]
 
+/-- Each consecutive block of scalar multiples of one generator can be replaced by that
+generator scaled by the block's scalar sum. -/
 theorem wordSeries_clone_blocks {ι σ : Type*} (xs : List ι) (positions : ι → List σ)
     (r : σ → R) (X : ι → A) :
     wordSeries (xs.flatMap (fun i => (positions i).map (fun j => r j • X i))) =
@@ -56,6 +87,8 @@ theorem wordSeries_clone_blocks {ι σ : Type*} (xs : List ι) (positions : ι �
     simpa only [List.map_map, Function.comp_def] using
       wordSeries_smul_block (X i) ((positions i).map r)
 
+/-- Combining consecutive scalar multiples of each generator into their summed scalar preserves
+all word logarithm coefficients. -/
 theorem logCoefficient_clone_blocks {ι σ : Type*} (xs : List ι) (positions : ι → List σ)
     (r : σ → R) (X : ι → A) (n : ℕ) :
     logCoefficient (wordSeries (xs.flatMap (fun i =>
@@ -64,6 +97,8 @@ theorem logCoefficient_clone_blocks {ι σ : Type*} (xs : List ι) (positions : 
           ((positions i).map r).sum • X i))) n := by
   rw [wordSeries_clone_blocks]
 
+/-- Evaluating a cloned word logarithm with compatible base labels equals evaluating the base
+word logarithm with each generator scaled by its total clone weight. -/
 theorem evaluate_log_clone_blocks {ι σ : Type} (xs : List ι) (positions : ι → List σ)
     (base : σ → ι) (hbase : ∀ i, ∀ j ∈ positions i, base j = i)
     (r : σ → R) (X : ι → A) (n : ℕ) :
@@ -81,6 +116,8 @@ theorem evaluate_log_clone_blocks {ι σ : Type} (xs : List ι) (positions : ι 
     exact List.map_congr_left fun j hj => by rw [hbase i j hj]
   rw [hlist, logCoefficient_clone_blocks]
 
+/-- For dependent pair indexed clones, evaluation of the cloned word logarithm combines clone
+weights by summing over each finite clone index. -/
 theorem evaluate_log_sigma_clones {ι : Type} (xs : List ι) (m : ι → ℕ)
     (r : (Σ i, Fin (m i)) → R) (X : ι → A) (n : ℕ) :
     evaluateWords (fun j : Σ i, Fin (m i) => r j • X j.1)

@@ -11,6 +11,29 @@ import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Fintype.Powerset
 import Mathlib.Data.Fintype.EquivFin
 import Mathlib.Logic.Equiv.Sum
+
+/-!
+# Counting modular subset sum fibers
+
+For a nonempty subset of coordinates, `card_fiber` counts each fiber of its modular sum as `N^(n
+- 1)`. Double counting gives `sum_countNonempty`; the module separately defines the proposition
+`noSubsetSum_prob_le_half` for the fraction of illegal inputs. See [Regev2004] for the paper
+context.
+
+## Main statements
+
+* `card_fiber`: For a nonempty subset of `Fin n`, the modular subset sum fiber over any target
+  has cardinality `N^(n - 1)`.
+* `sum_countNonempty`: The total number of nonempty subsets summing to a fixed target, summed
+  over all residue vectors, is `(2^n - 1) * N^(n - 1)`.
+* `noSubsetSum_prob_le_half`: The proposition that illegal subset sum inputs form at most half
+  of all residue-vector and target pairs, parameterized by the condition `8 * N < 2^r`.
+
+## References
+
+* [Regev, 2004][Regev2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,8 +45,10 @@ namespace Qatlib.Papers.QLattice03.MainResults
 
 variable {N : ℕ} [NeZero N]
 
+/-- The sum modulo `N` of the coordinates selected by the finite subset `B`. -/
 def ssum {n : ℕ} (B : Finset (Fin n)) (a : Fin n → ZMod N) : ZMod N := ∑ j ∈ B, a j
 
+/-- Adding `c` to coordinate `i` adds `c` to the subset sum exactly when `i` belongs to `B`. -/
 theorem sum_update_add {n : ℕ} (B : Finset (Fin n)) (a : Fin n → ZMod N) (i : Fin n)
     (c : ZMod N) :
     ∑ j ∈ B, Function.update a i (a i + c) j
@@ -40,6 +65,8 @@ theorem sum_update_add {n : ℕ} (B : Finset (Fin n)) (a : Fin n → ZMod N) (i 
   congr 1
   simpa using Finset.sum_ite_eq' (s := B) (a := i) (b := fun _ => c)
 
+/-- If `B` contains an index, the fiber of its subset sum over `t` has cardinality at most the
+fiber over `t + c`. -/
 theorem card_fiber_le_shift {n : ℕ} (B : Finset (Fin n)) {i : Fin n} (hi : i ∈ B)
     (t c : ZMod N) :
     Fintype.card {a : Fin n → ZMod N // ssum B a = t} ≤
@@ -69,6 +96,8 @@ theorem card_fiber_le_shift {n : ℕ} (B : Finset (Fin n)) {i : Fin n} (hi : i �
       rw [Function.update_of_ne hj, Function.update_of_ne hj] at h
       exact h
 
+/-- For a nonempty coordinate subset, every target fiber has the same cardinality as the zero
+fiber. -/
 theorem card_fiber_eq {n : ℕ} (B : Finset (Fin n)) (hB : B.Nonempty) (t : ZMod N) :
     Fintype.card {a : Fin n → ZMod N // ssum B a = t} =
       Fintype.card {a : Fin n → ZMod N // ssum B a = 0} := by
@@ -84,6 +113,7 @@ theorem card_fiber_eq {n : ℕ} (B : Finset (Fin n)) (hB : B.Nonempty) (t : ZMod
     rwa [zero_add] at h
   exact le_antisymm h1 h2
 
+/-- Summing the cardinalities of all target fibers gives the total input count `N^n`. -/
 theorem sum_card_fiber {n : ℕ} (B : Finset (Fin n)) :
     ∑ t : ZMod N, Fintype.card {a : Fin n → ZMod N // ssum B a = t} = N ^ n := by
   classical
@@ -91,6 +121,8 @@ theorem sum_card_fiber {n : ℕ} (B : Finset (Fin n)) :
   rw [Fintype.card_congr (Equiv.sigmaFiberEquiv (fun a : Fin n → ZMod N => ssum B a))]
   rw [Fintype.card_fun, ZMod.card, Fintype.card_fin]
 
+/-- For a nonempty subset of `Fin n`, the modular subset sum fiber over any target has
+cardinality `N^(n - 1)`. -/
 theorem card_fiber {n : ℕ} (B : Finset (Fin n)) (hB : B.Nonempty) (t : ZMod N) :
     Fintype.card {a : Fin n → ZMod N // ssum B a = t} = N ^ (n - 1) := by
   classical
@@ -115,6 +147,7 @@ theorem card_fiber {n : ℕ} (B : Finset (Fin n)) (hB : B.Nonempty) (t : ZMod N)
     Nat.eq_of_mul_eq_mul_left hN hsum
   exact (hconst t).trans hc
 
+/-- There are `2^n - 1` nonempty subsets of `Fin n`. -/
 theorem card_nonempty_finset (n : ℕ) :
     Fintype.card {B : Finset (Fin n) // B.Nonempty} = 2 ^ n - 1 := by
   classical
@@ -140,9 +173,11 @@ theorem card_nonempty_finset (n : ℕ) :
   rw [hempty, htotal] at hsplit
   omega
 
+/-- The number of nonempty coordinate subsets whose modular sum equals `t`. -/
 def countNonempty {n : ℕ} (a : Fin n → ZMod N) (t : ZMod N) : ℕ :=
   (Finset.univ.filter (fun B : Finset (Fin n) => B.Nonempty ∧ ssum B a = t)).card
 
+/-- A nonempty subset summing to `t` makes `countNonempty a t` positive. -/
 theorem countNonempty_pos_of_nonempty_subset {n : ℕ} {a : Fin n → ZMod N} {t : ZMod N}
     {B : Finset (Fin n)} (hB : B.Nonempty) (h : ssum B a = t) : 0 < countNonempty a t := by
   classical
@@ -150,6 +185,8 @@ theorem countNonempty_pos_of_nonempty_subset {n : ℕ} {a : Fin n → ZMod N} {t
   rw [Finset.card_pos]
   exact ⟨B, by simp [hB, h]⟩
 
+/-- The total number of nonempty subsets summing to a fixed target, summed over all residue
+vectors, is `(2^n - 1) * N^(n - 1)`. See [Regev2004]. -/
 theorem sum_countNonempty {n : ℕ} (t : ZMod N) :
     ∑ a : Fin n → ZMod N, countNonempty a t = (2 ^ n - 1) * N ^ (n - 1) := by
   classical
@@ -199,6 +236,8 @@ theorem sum_countNonempty {n : ℕ} (t : ZMod N) :
             (fun B => by simp)).symm
         rw [hcard, card_nonempty_finset n]
 
+/-- The proposition that illegal subset sum inputs form at most half of all residue-vector and
+target pairs, parameterized by the condition `8 * N < 2^r`. -/
 def noSubsetSum_prob_le_half (N r : ℕ) [NeZero N] (_hr : 8 * N < 2 ^ r) : Prop := by
   classical
   exact (Fintype.card {p : (Fin r → ZMod N) × ZMod N // ¬ SubsetSumLegal N r p.1 p.2} : ℝ) * 2

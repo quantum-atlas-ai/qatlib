@@ -9,6 +9,28 @@ import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModelsDefs
 import Qatlib.Concepts.QlsReadoutSpec.RectDilation
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Matrix.PosDef
+
+/-!
+# HHL input-model and budget witnesses
+
+The `clause20` results construct records satisfying the stated three-state filter,
+kernel-budget, and dyadic-quantization specifications, and verify the explicit backend and
+uniform-grid formulas. `clause21` packages pure-to-mixed transport, successor budget records,
+instrument-access accounting, and a normalized-vector perturbation bound for the HHL setting of
+[HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `clause20_qpeKernel`: a kernel record satisfies the defined accuracy and query-budget
+  conditions.
+* `clause20_realInputQuantization`: signed dyadic rounding gives the requested precision.
+* `clause21`: transport, budget, access, and normalization guarantees.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -43,6 +65,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator ComplexOrder
 
+/-- Packages pure-to-mixed branch guarantees, positivity of the reduced success gap, existence
+of successor budget records, instrument-access counts, and the normalization perturbation
+estimate. -/
 theorem clause21 :
 
   (∀ (O : Type) [Fintype O] (D E : ℕ) (J K : Instrument O D E)
@@ -136,6 +161,8 @@ theorem clause21 :
   · intro E _ _ x y η h1 h2
     exact Qatlib.Concepts.BlockEncoding.Postselection.normalize_error_of_gap h1 h2
 
+/-- For valid gap and error parameters, there exists a `ThreeStateFilterRun` recording them, the
+direction bound `2 * e / x`, and the stated mass and budget conditions. -/
 theorem clause20_threeStateFilterRun :
   (∀ (d θ e x : ℝ) (bits k : ℕ),
     0 < d → 0 ≤ e → 0 < x → e < x →
@@ -152,6 +179,8 @@ theorem clause20_threeStateFilterRun :
   simp [threeStateSelectedMass, threeStateWellMass, threeStateIllMass,
     sinEnvelopeFlagMass]
 
+/-- Under the positive gap and precision assumptions, the accuracy and query formulas hold and
+there exists a `QpeKernelProgram` satisfying `SolvesAt` with exactly those values. -/
 theorem clause20_qpeKernel :
   (∀ (d : ℝ) (k : ℕ),
     0 < d → d ≤ 1 / 4 → 1 ≤ k →
@@ -174,6 +203,8 @@ theorem clause20_qpeKernel :
   show _ ∧ _ ∧ _ ∧ _
   exact ⟨le_refl 2, hacc, le_refl _, le_refl _⟩
 
+/-- For `0 < d ≤ 1 / 4` and `k ≥ 1`, the defined near-optimal kernel query budget is strictly
+smaller than the uniform HHL grid size. -/
 theorem clause20_nearOptimalBelowUniformGrid :
   (∀ (d : ℝ) (k : ℕ),
     0 < d → d ≤ 1 / 4 → 1 ≤ k →
@@ -241,6 +272,8 @@ theorem clause20_nearOptimalBelowUniformGrid :
     lt_of_lt_of_le (lt_of_lt_of_le hmain (le_of_lt hkey)) (uniformHHLGrid_budget d k)
   exact_mod_cast hreal
 
+/-- For positive precision `k`, there exists a dyadic quantizer with `k` digits whose rounded
+output is within `(1 / 2)^k` of the input. -/
 theorem clause20_realInputQuantization :
   (∀ (x : ℝ) (k : ℕ),
     0 < k →
@@ -275,6 +308,8 @@ theorem clause20_realInputQuantization :
     rw [habs, hpow2]
     exact hbound
 
+/-- The explicit HHL backend budget has the stated gate, integer-bit, and peak-space formulas,
+and all three counts are positive. -/
 theorem clause20_backendLedger :
   (∀ (wires bits k : ℕ),
     (hhlBackendBudget wires bits k).elementaryGates
@@ -293,6 +328,8 @@ theorem clause20_backendLedger :
   · show 0 < (wires + 2) * (bits + k + 4)
     positivity
 
+/-- The uniform HHL grid has size at least two and meets the bound `4096 / (d^2 *
+uniformHHLAccuracy d k^4)`. -/
 theorem clause20_uniformGridAccount :
   (∀ (d : ℝ) (k : ℕ),
     2 ≤ uniformHHLGrid d k ∧

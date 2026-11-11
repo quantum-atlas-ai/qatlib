@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+
+/-!
+# Energy estimates for rounded history Hamiltonians
+
+This module constructs the exact circuit history `qmaExactHistory` and its uniform clock
+superposition `qmaHistoryState`. It proves normalization, boundary energy identities, support
+bounds, and entry bounds for the history Hamiltonian. A one-gate example in
+`clause2_counter_clause5` shows that the real dyadic predicate `qmaIsDyadic` cannot describe
+every rounded complex entry.
+
+The main soundness estimate `g2c2_clause2` bounds the energy of every normalized history vector
+using an acceptance bound for all legal normalized inputs. Its proof controls propagation
+residuals, initialization violations, and rounding errors, following the history-Hamiltonian
+method of [KempeKitaevRegev2006].
+
+## Main statements
+
+* `normalized_qmaHistoryState`: normalization of the uniform history of a normalized input.
+* `qmaEnergy_outTerm`: output energy equals rejection weight divided by the number of clock
+  positions.
+* `clause2_clause3` and `clause2_clause4`: declared support bounds and matrix entry bounds.
+* `g2c2_clause2`: a variational NO energy lower bound with an explicit rounding correction.
+* `clause2_counter_clause5`: failure of a universal real dyadic entry claim.
+
+## References
+
+* [Kempe, Kitaev and Regev, 2006][KempeKitaevRegev2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +52,7 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.QmaCompleteness.HistoryHam
 
+/-- A tensor gate entry is the product of the corresponding entries of its two factors. -/
 private theorem tensorGate_entry {I J : Type} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (U : Matrix I I ℂ) (V : Matrix J J ℂ) (p q : I × J) :
     TensorGate U V p q = U p.1 q.1 * V p.2 q.2 := by
@@ -30,6 +60,8 @@ private theorem tensorGate_entry {I J : Type} [Fintype I] [DecidableEq I] [Finty
   cases q
   exact tensorGate_apply U V _ _ _ _
 
+/-- The single-qubit circuit consisting of one T gate, with no initialized wires and output wire
+zero. -/
 private def counterC : QmaHistoryCircuit where
   qubits := 1
   gates := [FiniteGateCode.t 0]
@@ -37,20 +69,27 @@ private def counterC : QmaHistoryCircuit where
   initZeroWires := ∅
   outputWire := 0
 
+/-- The basis pair with final clock position and a true work bit in the one-gate counterexample. -/
 private def cP : Fin 2 × Reg 1 := ((0 : Fin 1).succ, fun _ => true)
 
+/-- The basis pair with initial clock position and a true work bit in the one-gate
+counterexample. -/
 private def cQ : Fin 2 × Reg 1 := ((0 : Fin 1).castSucc, fun _ => true)
 
+/-- The true-to-true entry of the T gate is `exp (π * I / 4)`. -/
 private theorem tGate_true_true :
     tGate true true = Complex.exp ((Real.pi / 4 : ℂ) * Complex.I) := by
   simp [tGate, Rz]
 
+/-- The rounded gate family of `counterC` at precision 70 is the constant family containing its
+rounded T gate. -/
 private theorem counter_U_fun :
     qmaRoundedGates counterC 70 = fun _ : Fin 1 => qmaRoundedGate 1 70 (FiniteGateCode.t 0) := by
   funext t
   rw [Fin.eq_zero t]
   rfl
 
+/-- The true-to-true entry of the encoded single-qubit T gate is `exp (π * I / 4)`. -/
 private theorem counter_gateEntry :
     finiteCodeMatrix 1 (FiniteGateCode.t 0) (fun _ => true) (fun _ => true)
       = Complex.exp ((Real.pi / 4 : ℂ) * Complex.I) := by
@@ -58,6 +97,8 @@ private theorem counter_gateEntry :
   rw [finiteCodeMatrix, dif_pos h01, wireGate_apply,
     if_pos (fun (k : Fin 1) (_ : k ≠ (⟨0, h01⟩ : Fin 1)) => rfl), tGate_true_true]
 
+/-- The selected propagation entry of the counterexample is minus one half of the rounded T
+phase. -/
 private theorem counter_propEntry :
     qmaPropTerm 1 1 (qmaRoundedGates counterC 70) 0 cP cQ
       = -(1 / 2 : ℂ) * qmaRoundC 70 (Complex.exp ((Real.pi / 4 : ℂ) * Complex.I)) := by
@@ -74,6 +115,7 @@ private theorem counter_propEntry :
     counter_gateEntry, zero_mul, mul_zero, one_mul, zero_add, sub_zero, mul_one]
   ring
 
+/-- The real and imaginary parts of the counterexample's T phase both equal `sqrt 2 / 2`. -/
 private theorem counter_exp_re_im :
     (Complex.exp ((Real.pi / 4 : ℂ) * Complex.I)).re = Real.sqrt 2 / 2 ∧
     (Complex.exp ((Real.pi / 4 : ℂ) * Complex.I)).im = Real.sqrt 2 / 2 := by
@@ -82,6 +124,8 @@ private theorem counter_exp_re_im :
       ring, Complex.exp_ofReal_mul_I, Real.cos_pi_div_four, Real.sin_pi_div_four]
   constructor <;> simp
 
+/-- The scaled T-phase component used in precision-70 rounding is at least one after adding one
+half. -/
 private theorem counter_floor_ge_one :
     (1 : ℝ) ≤ (Real.sqrt 2 / 2) * ((2 : ℝ) ^ 70) + 1 / 2 := by
   have h1 : (1 : ℝ) ≤ Real.sqrt 2 := by
@@ -102,6 +146,8 @@ private theorem counter_floor_ge_one :
           mul_le_mul_of_nonneg_left h2 (by norm_num : (0 : ℝ) ≤ 1 / 2)
   linarith
 
+/-- Expands the precision-70 rounded T phase using the common integer floor numerator for its
+real and imaginary parts. -/
 private theorem counter_round_val :
     qmaRoundC 70 (Complex.exp ((Real.pi / 4 : ℂ) * Complex.I))
       = (((Int.floor ((Real.sqrt 2 / 2) * ((2 : ℝ) ^ 70) + 1 / 2) : ℤ) : ℂ)
@@ -109,6 +155,8 @@ private theorem counter_round_val :
         / ((2 : ℂ) ^ 70) := by
   rw [qmaRoundC, counter_exp_re_im.1, counter_exp_re_im.2]
 
+/-- The imaginary part of minus twice a Gaussian integer is minus twice its imaginary integer
+component. -/
 private theorem im_neg2_mul (n₁ n₂ : ℤ) :
     Complex.im ((-2 : ℂ) * (((n₁ : ℤ) : ℂ) + Complex.I * ((n₂ : ℤ) : ℂ)))
       = -(2 : ℝ) * ((n₂ : ℤ) : ℝ) := by
@@ -119,9 +167,12 @@ private theorem im_neg2_mul (n₁ n₂ : ℤ) :
   simp only [Complex.add_im, Complex.mul_im, Complex.I_re, Complex.I_im]
   simp
 
+/-- An integer cast to the complex numbers has zero imaginary part. -/
 private theorem im_intCast_zero (num : ℤ) : Complex.im ((num : ℤ) : ℂ) = 0 := by
   simp
 
+/-- The rounded history terms do not universally have real dyadic entries at the proposed
+precision. -/
 theorem clause2_counter_clause5 :
     ¬ (∀ C : QmaHistoryCircuit,
         ∀ t ∈ qmaHistoryTerms C (qmaRoundedGates C (3 * (C.qubits + C.gates.length) + 64)),
@@ -198,6 +249,8 @@ theorem clause2_counter_clause5 :
 
 section Clause2Clause6
 
+/-- The rounded history term list has length at most the gate count plus the qubit count plus
+one. -/
 theorem clause2_clause6 :
     ∀ C : QmaHistoryCircuit,
       (qmaHistoryTerms C (qmaRoundedGates C (3 * (C.qubits + C.gates.length) + 64))).length
@@ -215,6 +268,8 @@ theorem clause2_clause6 :
 
 end Clause2Clause6
 
+/-- The conjunction of the two energy bounds, support bounds, entry bounds, real dyadic entry
+claim, and term-count bound fails as a universal statement over history circuits. -/
 theorem clause2_counter : ¬
     (∀ C : QmaHistoryCircuit,
       (∀ a : ℝ,
@@ -249,6 +304,7 @@ theorem clause2_counter : ¬
   exact clause2_counter_clause5 (fun C => (((h C).2).2).2.2.1)
 set_option linter.unusedSimpArgs false
 
+/-- Entrywise complex rounding sends zero to zero at every precision. -/
 theorem qmaRoundC_zero (b : ℕ) : qmaRoundC b 0 = 0 := by
   unfold qmaRoundC
   have h1 : (Int.floor ((0 : ℝ) * 2 ^ b + 1 / 2) : ℤ) = 0 := by norm_num
@@ -256,6 +312,8 @@ theorem qmaRoundC_zero (b : ℕ) : qmaRoundC b 0 = 0 := by
   push_cast
   simp
 
+/-- The norm of a rounded complex number is at most the sum of its absolute components plus
+`2⁻ᵇ`. -/
 theorem qmaRoundC_norm_le (b : ℕ) (z : ℂ) :
     ‖qmaRoundC b z‖ ≤ |z.re| + |z.im| + 1 / 2 ^ b := by
   have hre : ∀ x : ℝ, |(Int.floor (x + 1 / 2) : ℝ)| ≤ |x| + 1 / 2 := by
@@ -328,6 +386,8 @@ theorem qmaRoundC_norm_le (b : ℕ) (z : ℂ) :
   rw [hrew] at hnum'
   exact hnum'
 
+/-- At precision at least one, rounding a number with absolute component sum at most 3/2 gives
+norm at most two. -/
 theorem qmaRoundC_norm_le_two {b : ℕ} {z : ℂ} (hb : 1 ≤ b)
     (hz : |z.re| + |z.im| ≤ 3 / 2) : ‖qmaRoundC b z‖ ≤ 2 := by
   have h1 : (1 : ℝ) / 2 ^ b ≤ 1 / 2 := by
@@ -337,6 +397,7 @@ theorem qmaRoundC_norm_le_two {b : ℕ} {z : ℂ} (hb : 1 ≤ b)
   have := qmaRoundC_norm_le b z
   linarith
 
+/-- The successor and the unchanged embedding of a finite index into `Fin (m + 1)` are distinct. -/
 theorem fin_succ_ne_castSucc {m : ℕ} (i : Fin m) :
     (i.succ : Fin (m + 1)) ≠ i.castSucc := by
   intro h
@@ -344,6 +405,8 @@ theorem fin_succ_ne_castSucc {m : ℕ} (i : Fin m) :
   simp only [Fin.val_succ, Fin.val_castSucc] at this
   omega
 
+/-- Expands a propagation entry as the half-scaled sum of its two diagonal clock blocks and two
+negative transition blocks. -/
 theorem qmaPropTerm_apply (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (p q : Fin (m + 1) × Reg n) :
     qmaPropTerm n m U i p q
@@ -377,6 +440,8 @@ theorem qmaPropTerm_apply (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     simp only [qmaClockTerm, Matrix.of_apply, Matrix.conjTranspose_apply]
   rw [hexp, h1, h2, h3, h4]
 
+/-- A nonzero finite gate matrix entry has equal basis bits on every wire outside
+`qmaGateWires`. -/
 theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
     (h : finiteCodeMatrix n g x y ≠ 0) :
     ∀ j : Fin n, j ∉ qmaGateWires n g → x j = y j := by
@@ -485,6 +550,7 @@ theorem finiteCodeMatrix_agree {n : ℕ} (g : FiniteGateCode) (x y : Reg n)
       · rw [he]
       · exact absurd (by simp [he]) h
 
+/-- A nonzero rounded gate entry comes from a nonzero exact gate entry. -/
 theorem qmaRoundedGate_ne_zero {n : ℕ} (g : FiniteGateCode) (b : ℕ) (x y : Reg n)
     (h : qmaRoundedGate n b g x y ≠ 0) : finiteCodeMatrix n g x y ≠ 0 := by
   intro hh
@@ -493,6 +559,7 @@ theorem qmaRoundedGate_ne_zero {n : ℕ} (g : FiniteGateCode) (b : ℕ) (x y : R
     simp [qmaRoundedGate, Matrix.of_apply]
   rw [hform, hh, qmaRoundC_zero]
 
+/-- A nonzero rounded gate entry has equal basis bits outside the gate's listed wire support. -/
 theorem qmaRoundedGate_agree {n : ℕ} (g : FiniteGateCode) (b : ℕ) (x y : Reg n)
     (h : qmaRoundedGate n b g x y ≠ 0) :
     ∀ j : Fin n, j ∉ (qmaGateWires n g).toFinset → x j = y j := by
@@ -502,6 +569,7 @@ theorem qmaRoundedGate_agree {n : ℕ} (g : FiniteGateCode) (b : ℕ) (x y : Reg
   apply hj
   simpa [List.mem_toFinset] using! hj'
 
+/-- The sum of the absolute real and imaginary parts of a Hadamard entry is at most 3/2. -/
 theorem hadamard_entry_abs (a b : Bool) :
     |(Hadamard a b).re| + |(Hadamard a b).im| ≤ 3 / 2 := by
   have h1 : (1 : ℝ) ≤ Real.sqrt 2 := by
@@ -529,12 +597,14 @@ theorem hadamard_entry_abs (a b : Bool) :
     rw [abs_of_nonneg (inv_nonneg.mpr (Real.sqrt_nonneg _))]
     linarith
 
+/-- The square root of two is at most 3/2. -/
 theorem sqrt_two_le_three_halves : Real.sqrt 2 ≤ 3 / 2 := by
   rw [Real.sqrt_le_iff]
   constructor
   · norm_num
   · norm_num
 
+/-- The phase `exp (π * I / 4)` has real and imaginary parts equal to `sqrt 2 / 2`. -/
 theorem exp_pi_div_four_re_im :
     (Complex.exp ((Real.pi / 4 : ℂ) * Complex.I)).re = Real.sqrt 2 / 2 ∧
     (Complex.exp ((Real.pi / 4 : ℂ) * Complex.I)).im = Real.sqrt 2 / 2 := by
@@ -543,6 +613,7 @@ theorem exp_pi_div_four_re_im :
       ring, Complex.exp_ofReal_mul_I, Real.cos_pi_div_four, Real.sin_pi_div_four]
   constructor <;> simp
 
+/-- The phase `exp (-π * I / 4)` has real part `sqrt 2 / 2` and imaginary part `-sqrt 2 / 2`. -/
 theorem exp_neg_pi_div_four_re_im :
     (Complex.exp ((-(Real.pi / 4 : ℝ) : ℂ) * Complex.I)).re = Real.sqrt 2 / 2 ∧
     (Complex.exp ((-(Real.pi / 4 : ℝ) : ℂ) * Complex.I)).im = -(Real.sqrt 2 / 2) := by
@@ -550,6 +621,7 @@ theorem exp_neg_pi_div_four_re_im :
     Real.cos_pi_div_four, Real.sin_pi_div_four]
   constructor <;> simp
 
+/-- The sum of the absolute real and imaginary parts of a T gate entry is at most 3/2. -/
 theorem tGate_entry_abs (a b : Bool) :
     |(tGate a b).re| + |(tGate a b).im| ≤ 3 / 2 := by
   rcases a with _|_ <;> rcases b with _|_
@@ -568,6 +640,7 @@ theorem tGate_entry_abs (a b : Bool) :
     rw [hs]
     exact sqrt_two_le_three_halves
 
+/-- The sum of the absolute real and imaginary parts of an adjoint T gate entry is at most 3/2. -/
 theorem tGateAdj_entry_abs (a b : Bool) :
     |(tGateAdj a b).re| + |(tGateAdj a b).im| ≤ 3 / 2 := by
   rcases a with _|_ <;> rcases b with _|_
@@ -587,6 +660,7 @@ theorem tGateAdj_entry_abs (a b : Bool) :
     rw [hs]
     exact sqrt_two_le_three_halves
 
+/-- The sum of the absolute real and imaginary parts of a `permMatrix` entry is at most 3/2. -/
 theorem permMatrix_entry_abs {I : Type} [Fintype I] [DecidableEq I] (σ : I → I) (i j : I) :
     |((permMatrix σ : Matrix I I ℂ) i j).re| + |((permMatrix σ : Matrix I I ℂ) i j).im|
       ≤ 3 / 2 := by
@@ -597,10 +671,12 @@ theorem permMatrix_entry_abs {I : Type} [Fintype I] [DecidableEq I] (σ : I → 
   · rw [if_neg h]
     norm_num
 
+/-- Both zero and one have absolute component sum at most 3/2 in the complex numbers. -/
 theorem one_zero_entry_abs : (|(0 : ℂ).re| + |(0 : ℂ).im| ≤ 3 / 2) ∧
     (|(1 : ℂ).re| + |(1 : ℂ).im| ≤ 3 / 2) := by
   norm_num
 
+/-- Every encoded finite gate entry has absolute component sum at most 3/2. -/
 theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
     |(finiteCodeMatrix n g x y).re| + |(finiteCodeMatrix n g x y).im| ≤ 3 / 2 := by
   cases g with
@@ -703,6 +779,7 @@ theorem finiteCodeMatrix_entry_abs (n : ℕ) (g : FiniteGateCode) (x y : Reg n) 
       · rw [if_neg he]
         exact one_zero_entry_abs.1
 
+/-- Every rounded finite gate entry has norm at most two when the precision is at least one. -/
 theorem qmaRoundedGate_entry_norm_le_two {n : ℕ} (g : FiniteGateCode) (b : ℕ) (hb : 1 ≤ b)
     (x y : Reg n) : ‖qmaRoundedGate n b g x y‖ ≤ 2 := by
   have habs := finiteCodeMatrix_entry_abs n g x y
@@ -711,6 +788,8 @@ theorem qmaRoundedGate_entry_norm_le_two {n : ℕ} (g : FiniteGateCode) (b : ℕ
   rw [hform]
   exact qmaRoundC_norm_le_two hb habs
 
+/-- Gives a disjoint case formula for a propagation entry according to its two clock
+coordinates. -/
 theorem qmaPropTerm_entry (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (p q : Fin (m + 1) × Reg n) :
     qmaPropTerm n m U i p q =
@@ -737,6 +816,8 @@ theorem qmaPropTerm_entry (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
   · rw [qmaPropTerm_apply]
     simp [h1, h2, h3, h4]
 
+/-- A propagation term has the declared adjacent clock support and gate wire support when its
+gate matrix agrees outside those wires. -/
 theorem qmaPropTerm_actsOn (n m : ℕ) (g : FiniteGateCode)
     (U : Fin m → Matrix (Reg n) (Reg n) ℂ) (i : Fin m)
     (hU : ∀ x y : Reg n, U i x y ≠ 0 →
@@ -799,6 +880,8 @@ theorem qmaPropTerm_actsOn (n m : ℕ) (g : FiniteGateCode)
       exact (hU q.2 p.2 hU0' j hj).symm
   · exact absurd rfl hne
 
+/-- The two adjacent clock positions and the finite gate's wire set each have cardinality at
+most two. -/
 theorem qmaPropTerm_cards (n m : ℕ) (g : FiniteGateCode) (i : Fin m) :
     ({i.castSucc, i.succ} : Finset (Fin (m + 1))).card ≤ 2 ∧
     ((qmaGateWires n g).toFinset : Finset (Fin n)).card ≤ 2 := by
@@ -836,12 +919,16 @@ theorem qmaPropTerm_cards (n m : ℕ) (g : FiniteGateCode) (i : Fin m) :
         rw [hE]
         simp
 
+/-- An input penalty entry is the product of the initial clock indicators and the diagonal
+true-bit indicator on wire `j`. -/
 theorem qmaInTerm_entry (n m : ℕ) (j : Fin n) (p q : Fin (m + 1) × Reg n) :
     qmaInTerm n m j p q
       = Qatlib.Foundations.PureStateMath.Ket 0 p.1 * Qatlib.Foundations.PureStateMath.Ket 0 q.1 *
           (if p.2 = q.2 then (if p.2 j then (1 : ℂ) else 0) else 0) := by
   simp [qmaInTerm, tensorGate_entry, qmaClockTerm, Matrix.of_apply, Matrix.diagonal_apply]
 
+/-- An input penalty satisfies `qmaActsOn` with initial clock support and the singleton work
+support `{j}`. -/
 theorem qmaInTerm_actsOn (n m : ℕ) (j : Fin n) :
     qmaActsOn n m (qmaInTerm n m j) ({0} : Finset (Fin (m + 1))) ({j} : Finset (Fin n)) := by
   intro p q hne
@@ -874,16 +961,21 @@ theorem qmaInTerm_actsOn (n m : ℕ) (j : Fin n) :
   · intro k _
     exact congrFun he k
 
+/-- The singleton clock and work supports of an input penalty each have cardinality at most two. -/
 theorem qmaInTerm_cards (n m : ℕ) (j : Fin n) :
     ({0} : Finset (Fin (m + 1))).card ≤ 2 ∧ ({j} : Finset (Fin n)).card ≤ 2 := by
   simp
 
+/-- An output penalty entry is the product of the final clock indicators and the diagonal
+false-output indicator. -/
 theorem qmaOutTerm_entry (n m : ℕ) (out : Fin n) (p q : Fin (m + 1) × Reg n) :
     qmaOutTerm n m out p q
       = Qatlib.Foundations.PureStateMath.Ket (Fin.last m) p.1 * Qatlib.Foundations.PureStateMath.Ket (Fin.last m) q.1 *
           (if p.2 = q.2 then (if p.2 out then (0 : ℂ) else 1) else 0) := by
   simp [qmaOutTerm, tensorGate_entry, qmaClockTerm, Matrix.of_apply, Matrix.diagonal_apply]
 
+/-- An output penalty satisfies `qmaActsOn` with final clock support and the singleton output
+wire support. -/
 theorem qmaOutTerm_actsOn (n m : ℕ) (out : Fin n) :
     qmaActsOn n m (qmaOutTerm n m out) ({Fin.last m} : Finset (Fin (m + 1)))
       ({out} : Finset (Fin n)) := by
@@ -917,10 +1009,14 @@ theorem qmaOutTerm_actsOn (n m : ℕ) (out : Fin n) :
   · intro k _
     exact congrFun he k
 
+/-- The singleton clock and work supports of an output penalty each have cardinality at most
+two. -/
 theorem qmaOutTerm_cards (n m : ℕ) (out : Fin n) :
     ({Fin.last m} : Finset (Fin (m + 1))).card ≤ 2 ∧ ({out} : Finset (Fin n)).card ≤ 2 := by
   simp
 
+/-- Every rounded history term satisfies its declared support condition, with at most two clock
+positions and two work wires. -/
 theorem clause2_clause3 :
     ∀ C : QmaHistoryCircuit,
       ∀ t ∈ qmaHistoryTerms C (qmaRoundedGates C (3 * (C.qubits + C.gates.length) + 64)),
@@ -990,21 +1086,25 @@ theorem clause2_clause3 :
       (qmaOutTerm_cards C.qubits C.gates.length C.outputWire).1,
       (qmaOutTerm_cards C.qubits C.gates.length C.outputWire).2⟩
 
+/-- Every entry of the identity matrix on a qubit register has norm at most one. -/
 theorem one_entry_norm_le {n : ℕ} (x y : Reg n) :
     ‖(1 : Matrix (Reg n) (Reg n) ℂ) x y‖ ≤ 1 := by
   rw [Matrix.one_apply]
   split_ifs <;> norm_num
 
+/-- Every coefficient of a computational basis ket has norm at most one. -/
 theorem ket_norm_le_one {I : Type} [Fintype I] [DecidableEq I] (i j : I) : ‖Qatlib.Foundations.PureStateMath.Ket i j‖ ≤ 1 := by
   show ‖(if j = i then (1 : ℂ) else 0)‖ ≤ 1
   split_ifs <;> norm_num
 
+/-- A product of three complex numbers of norm at most one has norm at most one. -/
 theorem norm_prod3_le_one (a b c : ℂ) (ha : ‖a‖ ≤ 1) (hb : ‖b‖ ≤ 1) (hc : ‖c‖ ≤ 1) :
     ‖a * b * c‖ ≤ 1 := by
   rw [norm_mul, norm_mul]
   have h1 : ‖a‖ * ‖b‖ ≤ 1 := mul_le_one₀ ha (norm_nonneg b) hb
   exact mul_le_one₀ h1 (norm_nonneg c) hc
 
+/-- Multiplication by one half reduces a complex number of norm at most two to norm at most one. -/
 theorem half_mul_norm_le_one {z : ℂ} (hz : ‖z‖ ≤ 2) : ‖(1 / 2 : ℂ) * z‖ ≤ 1 := by
   have h12 : (1 / 2 : ℂ) = ((1 / 2 : ℝ) : ℂ) := by norm_num
   rw [h12, norm_mul, Complex.norm_real, Real.norm_eq_abs,
@@ -1012,6 +1112,8 @@ theorem half_mul_norm_le_one {z : ℂ} (hz : ‖z‖ ≤ 2) : ‖(1 / 2 : ℂ) *
   have h := mul_le_mul_of_nonneg_left hz (by norm_num : (0 : ℝ) ≤ 1 / 2)
   linarith
 
+/-- A propagation term has entries of norm at most one when its gate matrix entries have norm at
+most two. -/
 theorem qmaPropTerm_matrix_norm_le_one (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (hU : ∀ x y : Reg n, ‖U i x y‖ ≤ 2)
     (p q : Fin (m + 1) × Reg n) : ‖qmaPropTerm n m U i p q‖ ≤ 1 := by
@@ -1027,18 +1129,21 @@ theorem qmaPropTerm_matrix_norm_le_one (n m : ℕ) (U : Fin m → Matrix (Reg n)
     exact half_mul_norm_le_one (by rw [norm_star]; exact hU q.2 p.2)
   · norm_num
 
+/-- Every input penalty entry has norm at most one. -/
 theorem qmaInTerm_matrix_norm_le_one (n m : ℕ) (j : Fin n)
     (p q : Fin (m + 1) × Reg n) : ‖qmaInTerm n m j p q‖ ≤ 1 := by
   rw [qmaInTerm_entry]
   refine norm_prod3_le_one _ _ _ (ket_norm_le_one _ _) (ket_norm_le_one _ _) ?_
   split_ifs <;> norm_num
 
+/-- Every output penalty entry has norm at most one. -/
 theorem qmaOutTerm_matrix_norm_le_one (n m : ℕ) (out : Fin n)
     (p q : Fin (m + 1) × Reg n) : ‖qmaOutTerm n m out p q‖ ≤ 1 := by
   rw [qmaOutTerm_entry]
   refine norm_prod3_le_one _ _ _ (ket_norm_le_one _ _) (ket_norm_le_one _ _) ?_
   split_ifs <;> norm_num
 
+/-- Every entry of every history term at the prescribed rounding precision has norm at most one. -/
 theorem clause2_clause4 :
     ∀ C : QmaHistoryCircuit,
       ∀ t ∈ qmaHistoryTerms C (qmaRoundedGates C (3 * (C.qubits + C.gates.length) + 64)),
@@ -1088,6 +1193,7 @@ theorem clause2_clause4 :
     show ‖(qmaOutTerm C.qubits C.gates.length C.outputWire) p q‖ ≤ 1
     exact qmaOutTerm_matrix_norm_le_one C.qubits C.gates.length C.outputWire p q
 
+/-- Every prefix of a legal finite gate word is legal. -/
 theorem finiteWordLegal_take {n k : ℕ} {gs : List FiniteGateCode}
     (h : finiteWordLegal n gs = true) : finiteWordLegal n (gs.take k) = true := by
   simp only [finiteWordLegal] at h ⊢
@@ -1095,10 +1201,13 @@ theorem finiteWordLegal_take {n k : ℕ} {gs : List FiniteGateCode}
   intro x hx
   exact List.all_eq_true.mp h x (List.mem_of_mem_take hx)
 
+/-- The work state at each clock position obtained by applying the corresponding exact gate
+prefix to `φ`. -/
 noncomputable def qmaExactHistory (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
     Fin (C.gates.length + 1) → QState (Reg C.qubits) :=
   fun t => (finiteWordMatrix C.qubits (C.gates.take t.val)).mulVec φ
 
+/-- Every exact history slice of a normalized input state is normalized. -/
 theorem normalized_qmaExactHistory {C : QmaHistoryCircuit} {φ : QState (Reg C.qubits)}
     (hφ : Normalized φ) (t : Fin (C.gates.length + 1)) :
     Normalized (qmaExactHistory C φ t) := by
@@ -1111,10 +1220,14 @@ theorem normalized_qmaExactHistory {C : QmaHistoryCircuit} {φ : QState (Reg C.q
   show Normalized ((finiteWordMatrix C.qubits (C.gates.take t.val)).mulVec φ)
   exact h
 
+/-- The uniform clock superposition of the exact work history, scaled by the inverse square root
+of the number of clock positions. -/
 noncomputable def qmaHistoryState (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
     QState (Fin (C.gates.length + 1) × Reg C.qubits) :=
   fun p => (((Real.sqrt (C.gates.length + 1))⁻¹ : ℝ) : ℂ) * qmaExactHistory C φ p.1 p.2
 
+/-- The norm of a complex number is at most the sum of the absolute values of its real and
+imaginary parts. -/
 theorem norm_le_abs_re_add_abs_im (w : ℂ) : ‖w‖ ≤ |w.re| + |w.im| := by
   have hde : ‖((w.re : ℝ) : ℂ) + ((w.im : ℝ) : ℂ) * Complex.I‖ = ‖w‖ := by
     rw [Complex.re_add_im]
@@ -1127,6 +1240,8 @@ theorem norm_le_abs_re_add_abs_im (w : ℂ) : ‖w‖ ≤ |w.re| + |w.im| := by
         rw [Complex.norm_I]
         ring
 
+/-- The squared norm of a scaled history amplitude factors into the squared real scaling factor
+and the squared work amplitude norm. -/
 theorem norm_c_hist (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (t : Fin (C.gates.length + 1)) (y : Reg C.qubits) :
     ‖((((Real.sqrt (C.gates.length + 1))⁻¹ : ℝ) : ℂ) * qmaExactHistory C φ t y)‖ ^ 2
@@ -1134,6 +1249,7 @@ theorem norm_c_hist (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
   rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, mul_pow,
     abs_of_nonneg (inv_nonneg.mpr (Real.sqrt_nonneg _))]
 
+/-- The uniform history state of a normalized input is normalized. -/
 theorem normalized_qmaHistoryState {C : QmaHistoryCircuit} {φ : QState (Reg C.qubits)}
     (hφ : Normalized φ) : Normalized (qmaHistoryState C φ) := by
   have hnorm : ∀ t : Fin (C.gates.length + 1), Normalized (qmaExactHistory C φ t) :=
@@ -1174,6 +1290,7 @@ theorem normalized_qmaHistoryState {C : QmaHistoryCircuit} {φ : QState (Reg C.q
   push_cast
   field_simp
 
+/-- Matrix-vector multiplication distributes over addition of matrices. -/
 theorem mulVec_add {I : Type*} [Fintype I] (A B : Matrix I I ℂ) (v : I → ℂ) :
     (A + B) *ᵥ v = A *ᵥ v + B *ᵥ v := by
   ext i
@@ -1181,23 +1298,27 @@ theorem mulVec_add {I : Type*} [Fintype I] (A B : Matrix I I ℂ) (v : I → ℂ
   simp only [Matrix.add_apply, Pi.add_apply, add_mul]
   exact Finset.sum_add_distrib
 
+/-- The finite complex inner product is additive in its second argument. -/
 theorem inner_add_right {I : Type*} [Fintype I] (u v w : I → ℂ) :
     Qatlib.Foundations.PureStateMath.Inner u (v + w) = Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner u w := by
   unfold Qatlib.Foundations.PureStateMath.Inner
   show star u ⬝ᵥ (v + w) = star u ⬝ᵥ v + star u ⬝ᵥ w
   simp [dotProduct, Pi.add_apply, Finset.sum_add_distrib, mul_add]
 
+/-- The finite complex inner product with zero in its second argument vanishes. -/
 theorem inner_zero_right {I : Type*} [Fintype I] (u : I → ℂ) :
     Qatlib.Foundations.PureStateMath.Inner u 0 = 0 := by
   unfold Qatlib.Foundations.PureStateMath.Inner
   simp [dotProduct]
 
+/-- The energy quadratic form is additive in the matrix argument. -/
 theorem qmaEnergy_add {I : Type*} [Fintype I] (A B : Matrix I I ℂ) (η : QState I) :
     qmaEnergy (A + B) η = qmaEnergy A η + qmaEnergy B η := by
   unfold qmaEnergy
   rw [mulVec_add, inner_add_right]
   simp [Complex.add_re]
 
+/-- The zero matrix has zero energy on every state. -/
 theorem qmaEnergy_zero {I : Type*} [Fintype I] (η : QState I) :
     qmaEnergy (0 : Matrix I I ℂ) η = 0 := by
   unfold qmaEnergy
@@ -1207,6 +1328,8 @@ theorem qmaEnergy_zero {I : Type*} [Fintype I] (η : QState I) :
   rw [hz, inner_zero_right]
   simp
 
+/-- The energy of a list sum of history term matrices equals the sum of their individual
+energies. -/
 theorem qmaEnergy_foldr {n m : ℕ}
     (η : QState (Fin (m + 1) × Reg n)) :
     ∀ ts : List (QmaHistoryTerm n m),
@@ -1220,16 +1343,20 @@ theorem qmaEnergy_foldr {n m : ℕ}
     simp only [List.foldr_cons, List.map_cons, List.sum_cons]
     rw [qmaEnergy_add, ih]
 
+/-- A computational basis ket is one at its basis index and zero elsewhere. -/
 theorem ket_apply' {ι : Type*} [DecidableEq ι] (i p : ι) :
     Qatlib.Foundations.PureStateMath.Ket i p = if p = i then (1 : ℂ) else 0 := by
   unfold Qatlib.Foundations.PureStateMath.Ket
   simp
 
+/-- The exact history at time zero equals the initial work state. -/
 theorem qmaExactHistory_zero (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
     qmaExactHistory C φ ⟨0, by omega⟩ = φ := by
   unfold qmaExactHistory
   simp [finiteWordMatrix]
 
+/-- An input penalty retains precisely the initial-time amplitudes whose bit on wire `j` is
+true. -/
 theorem qmaInTerm_mulVec' (n m : ℕ) (j : Fin n)
     (η : QState (Fin (m + 1) × Reg n)) (p : Fin (m + 1) × Reg n) :
     (qmaInTerm n m j *ᵥ η) p
@@ -1277,6 +1404,7 @@ theorem qmaInTerm_mulVec' (n m : ℕ) (j : Fin n)
     rw [hp]
   · simp [hp1]
 
+/-- An initialized wire contributes zero input energy to the history state of a legal input. -/
 theorem qmaEnergy_inTerm_zero (C : QmaHistoryCircuit)
     (φ : QState (Reg C.qubits)) (j : Fin C.qubits)
     (hj : j ∈ C.initZeroWires) (hleg : QmaInitLegal C φ) :
@@ -1317,6 +1445,7 @@ theorem qmaEnergy_inTerm_zero (C : QmaHistoryCircuit)
   rw [Finset.sum_eq_zero (fun x _ => hsum x)]
   simp
 
+/-- An output penalty retains precisely the final-time amplitudes whose output bit is false. -/
 theorem qmaOutTerm_mulVec' (n m : ℕ) (out : Fin n)
     (η : QState (Fin (m + 1) × Reg n)) (p : Fin (m + 1) × Reg n) :
     (qmaOutTerm n m out *ᵥ η) p
@@ -1363,6 +1492,8 @@ theorem qmaOutTerm_mulVec' (n m : ℕ) (out : Fin n)
     rw [hp]
   · simp [hp1]
 
+/-- The final-clock history amplitude is the final exact work amplitude scaled by the inverse
+square root of the clock length. -/
 theorem qmaHistoryState_at_last (C : QmaHistoryCircuit)
     (φ : QState (Reg C.qubits)) (y : Reg C.qubits) :
     qmaHistoryState C φ (Fin.last C.gates.length, y)
@@ -1371,6 +1502,7 @@ theorem qmaHistoryState_at_last (C : QmaHistoryCircuit)
   unfold qmaHistoryState
   rfl
 
+/-- The last exact history slice equals the full gate word applied to the initial state. -/
 theorem qmaExactHistory_last (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
     qmaExactHistory C φ ⟨Fin.last C.gates.length, by omega⟩
       = (finiteWordMatrix C.qubits C.gates).mulVec φ := by
@@ -1382,25 +1514,32 @@ theorem qmaExactHistory_last (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)
     List.take_of_length_le (Nat.le_refl _)
   rw [h]
 
+/-- A basis outcome's Born weight equals the squared norm of its amplitude. -/
 theorem bornProb_eq_normSq {I : Type*} [Fintype I] (ψ : QState I) (i : I) :
     BornProb ψ i = ‖ψ i‖ ^ 2 := by
   unfold BornProb
   simp [Complex.normSq_eq_norm_sq]
 
+/-- The real part of a product of two real numbers cast to the complex numbers equals their real
+product. -/
 theorem ofReal_mul_re (a b : ℝ) :
     (((a : ℝ) : ℂ) * ((b : ℝ) : ℂ)).re = a * b := by
   rw [← Complex.ofReal_mul]
   simp
 
+/-- The real part of a power of a real number cast to the complex numbers equals its real power. -/
 theorem ofReal_pow_re (a : ℝ) (n : ℕ) :
     (((a : ℝ) : ℂ) ^ n).re = a ^ n := by
   rw [← Complex.ofReal_pow, Complex.ofReal_re]
 
+/-- For positive `N`, the square of the inverse square root of `N` equals `1 / N`. -/
 theorem inv_sqrt_sq (N : ℕ) (hN : 0 < N) :
     ((Real.sqrt N)⁻¹) ^ (2 : ℕ) = (1 / N : ℝ) := by
   rw [inv_pow, Real.sq_sqrt (by positivity)]
   field_simp
 
+/-- The real part of the clock normalization factor squared times `1 - S` equals `(1 - S) / (m +
+1)`. -/
 theorem qmaOutEnergy_algebra (m : ℕ) (S : ℝ) :
     ((((Real.sqrt (m + 1))⁻¹ : ℝ) : ℂ) ^ (2 : ℕ) * ((1 - S : ℝ) : ℂ)).re
       = (1 - S) / (m + 1) := by
@@ -1412,14 +1551,19 @@ theorem qmaOutEnergy_algebra (m : ℕ) (S : ℝ) :
   rw [h2, ← Complex.ofReal_mul, Complex.ofReal_re]
   ring
 
+/-- The product of a complex number's conjugate with itself is its squared norm cast to the
+complex numbers. -/
 theorem star_mul_self (ψ : ℂ) : star ψ * ψ = (↑(‖ψ‖ ^ 2) : ℂ) := by
   have h1 := (Complex.normSq_eq_conj_mul_self (z := ψ)).symm
   rw [Complex.normSq_eq_norm_sq] at h1
   exact h1
 
+/-- Complex conjugation fixes a real number cast to the complex numbers. -/
 theorem star_ofReal (r : ℝ) : star (r : ℂ) = r :=
   Complex.conj_ofReal r
 
+/-- The squared modulus of a real-scaled complex number factors into the square of the scalar
+and the squared modulus. -/
 theorem star_smul_self (r : ℝ) (ψ : ℂ) :
     star (((r : ℝ) : ℂ) * ψ) * (((r : ℝ) : ℂ) * ψ)
       = (((r : ℝ) : ℂ) ^ 2) * (↑(‖ψ‖ ^ 2) : ℂ) := by
@@ -1430,6 +1574,8 @@ set_option autoImplicit false
 set_option warningAsError false
 set_option linter.unusedSimpArgs false
 
+/-- The history circuit's acceptance weight is the sum of final-state Born weights over true
+output bits. -/
 theorem qmaHistoryAcceptProb_eq (C : QmaHistoryCircuit)
     (φ : QState (Reg C.qubits)) :
     qmaHistoryAcceptProb C φ
@@ -1443,12 +1589,15 @@ theorem qmaHistoryAcceptProb_eq (C : QmaHistoryCircuit)
   classical
   rw [Finset.sum_filter]
 
+/-- The Born weights of a normalized finite state sum to one. -/
 theorem sum_bornProb {I : Type*} [Fintype I] (ψ : QState I) (hψ : Normalized ψ) :
     ∑ y : I, BornProb ψ y = 1 := by
   unfold Normalized at hψ
   unfold BornProb
   exact hψ
 
+/-- For a normalized input, the history state's output energy is its rejection weight divided by
+the number of clock positions. -/
 theorem qmaEnergy_outTerm (C : QmaHistoryCircuit)
     (φ : QState (Reg C.qubits)) (hφ : Normalized φ) :
     qmaEnergy (qmaOutTerm C.qubits C.gates.length C.outputWire) (qmaHistoryState C φ)
@@ -1558,28 +1707,37 @@ open scoped BigOperators
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 800000
 
+/-- The sum of the squared norms of the coordinates of a finite complex vector. -/
 noncomputable def vn {ι : Type*} [Fintype ι] (v : ι → ℂ) : ℝ := ∑ i, ‖v i‖ ^ 2
 
+/-- The Euclidean norm of a finite complex vector, defined as `sqrt (vn v)`. -/
 noncomputable def nm {ι : Type*} [Fintype ι] (v : ι → ℂ) : ℝ := Real.sqrt (vn v)
 
+/-- The squared coordinate norm `vn v` is nonnegative. -/
 theorem vn_nonneg {ι : Type*} [Fintype ι] (v : ι → ℂ) : 0 ≤ vn v :=
   Finset.sum_nonneg (fun _ _ => by positivity)
 
+/-- The Euclidean norm `nm v` is nonnegative. -/
 theorem nm_nonneg {ι : Type*} [Fintype ι] (v : ι → ℂ) : 0 ≤ nm v :=
   Real.sqrt_nonneg _
 
+/-- The square of `nm v` equals `vn v`. -/
 theorem nm_sq {ι : Type*} [Fintype ι] (v : ι → ℂ) : nm v ^ 2 = vn v :=
   Real.sq_sqrt (vn_nonneg v)
 
+/-- The squared coordinate norm of the zero vector is zero. -/
 theorem vn_zero {ι : Type*} [Fintype ι] : vn (0 : ι → ℂ) = 0 := by
   simp [vn]
 
+/-- Scaling a vector by `c` multiplies its squared coordinate norm by `‖c‖²`. -/
 theorem vn_smul {ι : Type*} [Fintype ι] (c : ℂ) (v : ι → ℂ) :
     vn (fun i => c * v i) = ‖c‖ ^ 2 * vn v := by
   unfold vn
   simp only [norm_mul, mul_pow]
   rw [Finset.mul_sum]
 
+/-- The modulus of a finite complex inner product is at most the sum of the products of
+coordinate norms. -/
 theorem abs_cinner_le {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     ‖∑ i, star (a i) * b i‖ ≤ ∑ i, ‖a i‖ * ‖b i‖ := by
   have h := norm_sum_le (Finset.univ) (fun i : ι => star (a i) * b i)
@@ -1591,6 +1749,7 @@ theorem abs_cinner_le {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
   rw [← h3]
   simpa using! h
 
+/-- The square of the sum of coordinate norm products is bounded by `vn a * vn b`. -/
 theorem sum_norm_mul_le {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     (∑ i, ‖a i‖ * ‖b i‖) ^ 2 ≤ vn a * vn b := by
   have h := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ
@@ -1600,6 +1759,7 @@ theorem sum_norm_mul_le {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     simpa [mul_comm] using! h
   simpa [vn] using! h1
 
+/-- The real part of a finite complex inner product is at most `sqrt (vn a * vn b)`. -/
 theorem re_cinner_le {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     (∑ i, star (a i) * b i).re ≤ Real.sqrt (vn a * vn b) := by
   have h1 : (∑ i, star (a i) * b i).re ≤ ‖∑ i, star (a i) * b i‖ := Complex.re_le_norm _
@@ -1612,6 +1772,7 @@ theorem re_cinner_le {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     (Real.le_sqrt h4 h5).mpr h3
   linarith
 
+/-- Rounding a complex number at precision `b` changes it by norm at most `2⁻ᵇ`. -/
 theorem g13n_roundC_dist (b : ℕ) (z : ℂ) :
     ‖qmaRoundC b z - z‖ ≤ 1 / (2 : ℝ) ^ b := by
   have hpowb : (0 : ℝ) < 2 ^ b := pow_pos two_pos b
@@ -1700,17 +1861,22 @@ theorem g13n_roundC_dist (b : ℕ) (z : ℂ) :
         rw [hre, him]
     _ ≤ 1 / (2 : ℝ) ^ b := htot
 
+/-- Expands the energy quadratic form as the real part of a double sum over matrix entries. -/
 theorem qmaEnergy_entrywise {I : Type*} [Fintype I] (T : Matrix I I ℂ) (η : QState I) :
     qmaEnergy T η = (∑ p : I, ∑ q : I, star (η p) * (T p q * η q)).re := by
   unfold qmaEnergy Qatlib.Foundations.PureStateMath.Inner
   show (∑ p, star (η p) * (∑ q, T p q * η q)).re = _
   rw [Finset.sum_congr rfl (fun p _ => Finset.mul_sum _ _ _)]
 
+/-- Multiplying a complex number by its image under `starRingEnd` gives its squared norm cast to
+the complex numbers. -/
 theorem starRingEnd_mul_self (ψ : ℂ) : (starRingEnd ℂ) ψ * ψ = (↑(‖ψ‖ ^ 2) : ℂ) := by
   have h1 := (Complex.normSq_eq_conj_mul_self (z := ψ)).symm
   rw [Complex.normSq_eq_norm_sq] at h1
   exact h1
 
+/-- The output penalty energy is the squared amplitude mass at final time with a false output
+bit. -/
 theorem g13n_out_energy (n m : ℕ) (out : Fin n) (η : QState (Fin (m + 1) × Reg n)) :
     qmaEnergy (qmaOutTerm n m out) η
       = ∑ y : Reg n, if y out then (0 : ℝ) else ‖η (Fin.last m, y)‖ ^ 2 := by
@@ -1758,6 +1924,7 @@ theorem g13n_out_energy (n m : ℕ) (out : Fin n) (η : QState (Fin (m + 1) × R
     by_cases hy : y out <;> simp [hy]
   rw [Finset.sum_congr rfl (fun y _ => hterm y), ← Complex.ofReal_sum, Complex.ofReal_re]
 
+/-- The input penalty on wire `j` is the squared amplitude mass at time zero with that bit true. -/
 theorem g13n_in_energy (n m : ℕ) (j : Fin n) (η : QState (Fin (m + 1) × Reg n)) :
     qmaEnergy (qmaInTerm n m j) η
       = ∑ y : Reg n, if y j then ‖η ((0 : Fin (m + 1)), y)‖ ^ 2 else (0 : ℝ) := by
@@ -1803,9 +1970,11 @@ theorem g13n_in_energy (n m : ℕ) (j : Fin n) (η : QState (Fin (m + 1) × Reg 
     by_cases hy : y j <;> simp [hy]
   rw [Finset.sum_congr rfl (fun y _ => hterm y), ← Complex.ofReal_sum, Complex.ofReal_re]
 
+/-- The work-register slice of a joint clock and work state at clock position `t`. -/
 noncomputable def sl {n m : ℕ} (η : QState (Fin (m + 1) × Reg n)) (t : Fin (m + 1)) :
     QState (Reg n) := fun y => η (t, y)
 
+/-- A finite sum supported at the single index `a` equals `f a`. -/
 theorem g13n_sum_ite_fun {α : Type*} [Fintype α] [DecidableEq α] (a : α) (f : α → ℂ) :
     (∑ y : α, (if y = a then f y else (0 : ℂ))) = f a := by
   have h : ∀ y : α, (if y = a then f y else (0 : ℂ)) = if y = a then f a else (0 : ℂ) := by
@@ -1816,6 +1985,7 @@ theorem g13n_sum_ite_fun {α : Type*} [Fintype α] [DecidableEq α] (a : α) (f 
   rw [Finset.sum_congr rfl (fun y _ => h y), Finset.sum_ite_eq']
   simp
 
+/-- A finite sum with the condition `a = y` equals its single selected value `f a`. -/
 theorem g13n_sum_ite_left {α : Type*} [Fintype α] [DecidableEq α] (a : α) (f : α → ℂ) :
     (∑ y : α, (if a = y then f y else (0 : ℂ))) = f a := by
   have key : ∀ y : α, (if a = y then f y else (0 : ℂ)) = (if y = a then f y else (0 : ℂ)) := by
@@ -1825,6 +1995,7 @@ theorem g13n_sum_ite_left {α : Type*} [Fintype α] [DecidableEq α] (a : α) (f
     · rw [if_neg hy, if_neg (fun h => hy h.symm)]
   rw [Finset.sum_congr rfl (fun y _ => key y), g13n_sum_ite_fun]
 
+/-- A finite sum supported at two distinct indices equals the sum of the two assigned values. -/
 theorem g13n_sum_two {α : Type*} [Fintype α] [DecidableEq α] {a b : α} (hab : a ≠ b)
     (A B : ℂ) :
     (∑ t : α, (if t = a then A else if t = b then B else (0 : ℂ))) = A + B := by
@@ -1845,6 +2016,8 @@ theorem g13n_sum_two {α : Type*} [Fintype α] [DecidableEq α] {a b : α} (hab 
     Finset.sum_ite_eq', Finset.sum_ite_eq']
   simp
 
+/-- A propagation term acts only at its two adjacent clock slices, coupling them by the gate
+matrix and its adjoint. -/
 theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (η : QState (Fin (m + 1) × Reg n)) (p : Fin (m + 1) × Reg n) :
     (qmaPropTerm n m U i *ᵥ η) p
@@ -2110,6 +2283,8 @@ theorem g13n_prop_mulVec (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
         rw [Finset.sum_congr rfl (fun y _ => hterm y), Finset.sum_const, smul_zero]
       rw [Finset.sum_congr rfl (fun t _ => hsumt t), Finset.sum_const, smul_zero]
 
+/-- The cross term formed with an adjoint matrix is the complex conjugate of the corresponding
+forward cross term. -/
 theorem g13n_conj_cross (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) (a b : QState (Reg n)) :
     (∑ y : Reg n, star (b y) * (U ᴴ *ᵥ a) y)
       = star (∑ y : Reg n, star (a y) * (U *ᵥ b) y) := by
@@ -2138,6 +2313,8 @@ theorem g13n_conj_cross (n : ℕ) (U : Matrix (Reg n) (Reg n) ℂ) (a b : QState
   rw [hA, hB, Finset.sum_comm]
   try rfl
 
+/-- A propagation energy equals half the sum of adjacent slice squared norms minus the real
+forward cross term. -/
 theorem g13n_prop_energy (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (η : QState (Fin (m + 1) × Reg n)) :
     qmaEnergy (qmaPropTerm n m U i) η
@@ -2275,6 +2452,8 @@ theorem g13n_prop_energy (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     ring
   rw [hfold]
 
+/-- The squared norm of a vector difference is the sum of squared norms minus twice the real
+inner product. -/
 theorem g13n_vn_sub {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     vn (fun y => a y - b y) = vn a + vn b - 2 * (∑ y, star (a y) * (b y)).re := by
   have h : ∀ y : ι, ‖a y - b y‖ ^ 2 = ‖a y‖ ^ 2 + ‖b y‖ ^ 2
@@ -2312,6 +2491,8 @@ theorem g13n_vn_sub {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     rw [← Finset.mul_sum, ← Complex.re_sum]
   rw [hm]
 
+/-- A propagation energy is half the squared propagation residual plus half the change in
+squared norm under the gate. -/
 theorem g13n_prop_energy_residual (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (η : QState (Fin (m + 1) × Reg n)) :
     qmaEnergy (qmaPropTerm n m U i) η
@@ -2320,6 +2501,8 @@ theorem g13n_prop_energy_residual (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg
   rw [g13n_prop_energy, g13n_vn_sub]
   ring
 
+/-- The history Hamiltonian energy splits into the sum of propagation energies, input energies,
+and the output energy. -/
 theorem g13n_energy_split (C : QmaHistoryCircuit)
     (U : Fin C.gates.length → Matrix (Reg C.qubits) (Reg C.qubits) ℂ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
@@ -2347,6 +2530,8 @@ theorem g13n_energy_split (C : QmaHistoryCircuit)
     simp
   rw [hp, hin, hout]
 
+/-- The acceptance weight equals the squared amplitude mass of the exact final state on true
+output bits. -/
 theorem g13n_accept_eq (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
     qmaHistoryAcceptProb C φ
       = ∑ y : Reg C.qubits, if y C.outputWire then
@@ -2356,6 +2541,7 @@ theorem g13n_accept_eq (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
   intro y _
   by_cases hy : y C.outputWire <;> simp [hy, bornProb_eq_normSq]
 
+/-- The output penalty energy is the total final-slice mass minus its accepting mass. -/
 theorem g13n_out_energy_sub (n m : ℕ) (out : Fin n) (η : QState (Fin (m + 1) × Reg n)) :
     qmaEnergy (qmaOutTerm n m out) η
       = (∑ y : Reg n, ‖η (Fin.last m, y)‖ ^ 2)
@@ -2374,6 +2560,8 @@ theorem g13n_out_energy_sub (n m : ℕ) (out : Fin n) (η : QState (Fin (m + 1) 
     linarith
   rw [h]
 
+/-- The squared norm of a vector sum is the sum of squared norms plus twice the real inner
+product. -/
 theorem g13n2_vn_add {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     vn (fun y => a y + b y) = vn a + vn b + 2 * (∑ y, star (a y) * (b y)).re := by
   have hpt : ∀ y : ι, ‖a y + b y‖ ^ 2 = ‖a y‖ ^ 2 + ‖b y‖ ^ 2
@@ -2411,6 +2599,7 @@ theorem g13n2_vn_add {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     rw [← Finset.mul_sum, ← Complex.re_sum]
   rw [hm]
 
+/-- The Euclidean norm `nm` satisfies the triangle inequality. -/
 theorem g13n2_nm_add {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     nm (fun y => a y + b y) ≤ nm a + nm b := by
   have hre : (∑ y : ι, star (a y) * (b y)).re ≤ nm a * nm b := by
@@ -2430,6 +2619,7 @@ theorem g13n2_nm_add {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     _ ≤ Real.sqrt ((nm a + nm b) ^ 2) := Real.sqrt_le_sqrt hvn
     _ = nm a + nm b := Real.sqrt_sq hnn
 
+/-- Scaling a vector by `c` multiplies its Euclidean norm by `‖c‖`. -/
 theorem g13n2_nm_smul {ι : Type*} [Fintype ι] (c : ℂ) (v : ι → ℂ) :
     nm (fun y => c * v y) = ‖c‖ * nm v := by
   have h : vn (fun y => c * v y) = ‖c‖ ^ 2 * vn v := vn_smul c v
@@ -2439,6 +2629,8 @@ theorem g13n2_nm_smul {ι : Type*} [Fintype ι] (c : ℂ) (v : ι → ℂ) :
     rw [Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq (norm_nonneg c)]
   exact h1
 
+/-- A matrix with entries bounded by nonnegative `δ` increases `nm` by at most the index
+cardinality times `δ`. -/
 theorem g13n2_entrywise_op {ι : Type*} [Fintype ι] (A : Matrix ι ι ℂ) (v : ι → ℂ)
     (δ : ℝ) (hδ : 0 ≤ δ) (hA : ∀ x y : ι, ‖A x y‖ ≤ δ) :
     nm (A *ᵥ v) ≤ (Fintype.card ι) * δ * nm v := by
@@ -2518,6 +2710,7 @@ theorem g13n2_entrywise_op {ι : Type*} [Fintype ι] (A : Matrix ι ι ℂ) (v :
     _ = (Fintype.card ι) * δ * Real.sqrt (vn v) := by
         rw [Real.sqrt_sq hnn2]
 
+/-- A unitary matrix preserves the squared coordinate norm `vn`. -/
 theorem g13n2_unitary_vn {ι : Type*} [Fintype ι] [DecidableEq ι] {U : Matrix ι ι ℂ}
     (hU : U ∈ Matrix.unitaryGroup ι ℂ) (v : ι → ℂ) : vn (U *ᵥ v) = vn v := by
   have h := sum_normSq_mulVec_of_mem_unitaryGroup hU v
@@ -2530,17 +2723,20 @@ theorem g13n2_unitary_vn {ι : Type*} [Fintype ι] [DecidableEq ι] {U : Matrix 
   rw [← h2, ← h2]
   exact h
 
+/-- A unitary matrix preserves the Euclidean norm `nm`. -/
 theorem g13n2_unitary_nm {ι : Type*} [Fintype ι] [DecidableEq ι] {U : Matrix ι ι ℂ}
     (hU : U ∈ Matrix.unitaryGroup ι ℂ) (v : ι → ℂ) : nm (U *ᵥ v) = nm v := by
   unfold nm
   rw [g13n2_unitary_vn hU v]
 
+/-- Each rounded gate entry differs from the exact entry by norm at most `2⁻ᵇ`. -/
 theorem g13n2_round_gate_entry {n b : ℕ} (g : FiniteGateCode) (x y : Reg n) :
     ‖qmaRoundedGate n b g x y - finiteCodeMatrix n g x y‖ ≤ 1 / (2 : ℝ) ^ b := by
   have h : qmaRoundedGate n b g x y = qmaRoundC b (finiteCodeMatrix n g x y) := rfl
   rw [h]
   exact g13n_roundC_dist b (finiteCodeMatrix n g x y)
 
+/-- The action of `A` splits as the action of `B` plus the action of `A - B`. -/
 theorem g13n2_split_mulVec {ι : Type*} [Fintype ι] (A B : Matrix ι ι ℂ) (v : ι → ℂ) :
     A *ᵥ v = fun y => (B *ᵥ v) y + ((A - B) *ᵥ v) y := by
   have h1 : (B + (A - B) : Matrix ι ι ℂ) = A := add_sub_cancel B A
@@ -2549,13 +2745,17 @@ theorem g13n2_split_mulVec {ι : Type*} [Fintype ι] (A B : Matrix ι ι ℂ) (v
   funext y
   exact (congrFun h2 y).symm
 
+/-- The rounding error scale equal to the register cardinality times `2⁻ᵇ`. -/
 noncomputable def g13n2_kappa (n b : ℕ) : ℝ :=
   (Fintype.card (Reg n)) * (1 / (2 : ℝ) ^ b)
 
+/-- The rounding error scale `g13n2_kappa n b` is nonnegative. -/
 theorem g13n2_kappa_nonneg (n b : ℕ) : 0 ≤ g13n2_kappa n b := by
   unfold g13n2_kappa
   exact mul_nonneg (Nat.cast_nonneg _) (by positivity)
 
+/-- The difference between rounded and exact gate actions has norm at most `g13n2_kappa n b * nm
+v`. -/
 theorem g13n2_round_gate_vec (n b : ℕ) (g : FiniteGateCode) (v : QState (Reg n)) :
     nm ((qmaRoundedGate n b g - finiteCodeMatrix n g) *ᵥ v)
       ≤ g13n2_kappa n b * nm v := by
@@ -2569,6 +2769,7 @@ theorem g13n2_round_gate_vec (n b : ℕ) (g : FiniteGateCode) (v : QState (Reg n
   unfold g13n2_kappa at *
   linarith
 
+/-- A rounded legal gate increases vector norm by a factor at most `1 + g13n2_kappa n b`. -/
 theorem g13n2_round_gate_action (n b : ℕ) (g : FiniteGateCode)
     (hg : finiteCodeLegal n g = true) (v : QState (Reg n)) :
     nm (qmaRoundedGate n b g *ᵥ v) ≤ (1 + g13n2_kappa n b) * nm v := by
@@ -2596,6 +2797,8 @@ theorem g13n2_round_gate_action (n b : ℕ) (g : FiniteGateCode)
       _ = (1 + g13n2_kappa n b) * nm v := by ring
   exact h1
 
+/-- A rounded legal gate increases squared vector norm by a factor at most `(1 + g13n2_kappa n
+b)^2`. -/
 theorem g13n2_round_gate_vn (n b : ℕ) (g : FiniteGateCode)
     (hg : finiteCodeLegal n g = true) (v : QState (Reg n)) :
     vn (qmaRoundedGate n b g *ᵥ v) ≤ (1 + g13n2_kappa n b) ^ 2 * vn v := by
@@ -2609,11 +2812,14 @@ theorem g13n2_round_gate_vn (n b : ℕ) (g : FiniteGateCode)
   rw [mul_pow, nm_sq] at h2
   exact h2
 
+/-- The squared norm of a clock slice is the sum of squared joint-state amplitudes at that clock
+position. -/
 theorem g13n2_sl_vn {n m : ℕ} (η : QState (Fin (m + 1) × Reg n)) (t : Fin (m + 1)) :
     vn (sl η t) = ∑ y : Reg n, ‖η (t, y)‖ ^ 2 := by
   unfold vn sl
   rfl
 
+/-- The squared norms of all clock slices of a normalized joint state sum to one. -/
 theorem g13n2_sum_sl_vn {n m : ℕ} {η : QState (Fin (m + 1) × Reg n)} (hη : Normalized η) :
     ∑ t : Fin (m + 1), vn (sl η t) = 1 := by
   unfold Normalized at hη
@@ -2626,28 +2832,34 @@ theorem g13n2_sum_sl_vn {n m : ℕ} {η : QState (Fin (m + 1) × Reg n)} (hη : 
   rw [← h]
   exact hη
 
+/-- At an in-range position, `qmaGateAt` equals list indexing. -/
 theorem g13n2_qmaGateAt_eq (gs : List FiniteGateCode) {t : ℕ} (ht : t < gs.length) :
     qmaGateAt gs t = gs[t] := by
   unfold qmaGateAt
   have hdrop : gs.drop t = gs[t] :: gs.drop (t + 1) := List.drop_eq_getElem_cons ht
   rw [hdrop]
 
+/-- Every in-range gate of a legal finite gate word is legal. -/
 theorem g13n2_gateAt_legal {n : ℕ} {gs : List FiniteGateCode}
     (h : finiteWordLegal n gs = true) {t : ℕ} (ht : t < gs.length) :
     finiteCodeLegal n (qmaGateAt gs t) = true := by
   rw [g13n2_qmaGateAt_eq gs ht]
   exact List.all_eq_true.mp h _ (List.get_mem _ _)
 
+/-- Every in-range gate of a history circuit is legal on its work register. -/
 theorem g13n2_hist_gateAt_legal (C : QmaHistoryCircuit) {t : ℕ} (ht : t < C.gates.length) :
     finiteCodeLegal C.qubits (qmaGateAt C.gates t) = true :=
   g13n2_gateAt_legal C.legal ht
 
+/-- Every exact gate matrix of a history circuit is unitary. -/
 theorem g13n2_exactGate_unitary (C : QmaHistoryCircuit) (i : Fin C.gates.length) :
     qmaExactGates C i ∈ Matrix.unitaryGroup (Reg C.qubits) ℂ := by
   unfold qmaExactGates
   exact finiteCodeMatrix_unitary C.qubits (qmaGateAt C.gates i.val)
     (g13n2_hist_gateAt_legal C i.isLt)
 
+/-- For a normalized joint state, a uniform squared-norm growth bound yields a propagation
+energy lower bound by half the total squared residual minus `κ + κ² / 2`. -/
 theorem g13n2_prop_lower (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (η : QState (Fin (m + 1) × Reg n)) (hη : Normalized η) (κ : ℝ) (hκ : 0 ≤ κ)
     (hU : ∀ i : Fin m, vn (U i *ᵥ sl η i.castSucc) ≤ (1 + κ) ^ 2 * vn (sl η i.castSucc)) :
@@ -2691,6 +2903,8 @@ theorem g13n2_prop_lower (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     Finset.sum_nonneg (fun i _ => vn_nonneg _)
   nlinarith [hstep, hT, hR]
 
+/-- The rounded propagation energy of a normalized state is bounded below by half the total
+squared residual minus the prescribed `g13n2_kappa` correction. -/
 theorem g13n2_prop_lower_C (C : QmaHistoryCircuit) (η : QState (Fin (C.gates.length + 1) × Reg C.qubits))
     (hη : Normalized η) (b : ℕ) :
     (1 / 2 : ℝ) *
@@ -2717,6 +2931,9 @@ open Matrix
 open scoped BigOperators
 set_option maxHeartbeats 800000
 
+/-- Under the stated scale, normalization, and small-error assumptions, the combined residual
+and boundary expression is at least `(1 - 2 * ρ²) / (2^10 * ν^6)` when both individual
+contributions lie below that threshold. -/
 theorem g2c2_scale_core (ν ρ u d β s κ : ℝ)
     (hν : 1 ≤ ν) (hρ : 0 ≤ ρ) (hρ2 : ρ ^ 2 ≤ 1 / 2)
     (hu : 0 ≤ u) (hβ0 : 0 ≤ β) (hs0 : 0 ≤ s) (hκ0 : 0 ≤ κ)
@@ -2928,29 +3145,39 @@ open scoped BigOperators
 set_option maxHeartbeats 800000
 open scoped BigOperators Classical
 
+/-- Extends the clock slices to natural indices, returning the zero vector after the final clock
+position. -/
 noncomputable def g2c2_slN {n m : ℕ} (η : QState (Fin (m + 1) × Reg n)) (t : ℕ) : QState (Reg n) :=
   if h : t ≤ m then sl η ⟨t, by omega⟩ else 0
 
+/-- Extends a finite gate family to natural indices, returning the zero matrix outside its
+range. -/
 noncomputable def g2c2_gateN (n m : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ) (i : ℕ) :
     Matrix (Reg n) (Reg n) ℂ :=
   if h : i < m then U ⟨i, h⟩ else 0
 
+/-- The product of the first `t` naturally indexed gate matrices, with each new gate multiplying
+on the left. -/
 noncomputable def g2c2_prodN {n m : ℕ} (E : Fin m → Matrix (Reg n) (Reg n) ℂ) :
     ℕ → Matrix (Reg n) (Reg n) ℂ
   | 0 => 1
   | t + 1 => g2c2_gateN n m E t * g2c2_prodN E t
 
+/-- The natural-index gate extension agrees with the original family at an in-range index. -/
 theorem g2c2_gateN_eq {n m : ℕ} (U : Fin m → Matrix (Reg n) (Reg n) ℂ) (i : ℕ) (hi : i < m) :
     g2c2_gateN n m U i = U ⟨i, hi⟩ := by
   unfold g2c2_gateN
   rw [dif_pos hi]
 
+/-- The natural-index extension of a unitary gate family is unitary at each in-range index. -/
 theorem g2c2_gateN_unitary {n m : ℕ} (E : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (hE : ∀ i : Fin m, E i ∈ Matrix.unitaryGroup (Reg n) ℂ) {i : ℕ} (hi : i < m) :
     g2c2_gateN n m E i ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   rw [g2c2_gateN_eq _ _ hi]
   exact hE ⟨i, hi⟩
 
+/-- For unitary gates and `t ≤ m`, the distance from the gate-evolved initial vector is bounded
+by the sum of the step residual norms. -/
 theorem g2c2_telescope_N (n m : ℕ) (E : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (hE : ∀ i : Fin m, E i ∈ Matrix.unitaryGroup (Reg n) ℂ)
     (ψ : ℕ → QState (Reg n)) (t : ℕ) (ht : t ≤ m) :
@@ -3030,6 +3257,7 @@ theorem g2c2_telescope_N (n m : ℕ) (E : Fin m → Matrix (Reg n) (Reg n) ℂ)
       rw [add_comm, Finset.sum_range_succ]
     exact le_trans step1 (le_trans step2 (le_of_eq step3))
 
+/-- Appending one gate to a word multiplies its matrix on the left by the appended gate matrix. -/
 theorem g2c2_word_append_one (n : ℕ) (l : List FiniteGateCode) (g : FiniteGateCode) :
     finiteWordMatrix n (l ++ [g]) = finiteCodeMatrix n g * finiteWordMatrix n l := by
   induction l with
@@ -3045,11 +3273,15 @@ theorem g2c2_word_append_one (n : ℕ) (l : List FiniteGateCode) (g : FiniteGate
         = finiteCodeMatrix n g * finiteWordMatrix n (g' :: l')
     rw [finiteWordMatrix]
 
+/-- The matrix of a prefix of length `t + 1` is the next gate matrix times the matrix of the
+prefix of length `t`. -/
 theorem g2c2_word_succ (n : ℕ) (gs : List FiniteGateCode) (t : ℕ) (ht : t < gs.length) :
     finiteWordMatrix n (gs.take (t + 1))
       = finiteCodeMatrix n gs[t] * finiteWordMatrix n (gs.take t) := by
   rw [← List.take_concat_get' gs t ht, g2c2_word_append_one]
 
+/-- The distance of a clock slice from exact evolution is bounded by the sum of rounded
+propagation residuals plus the rounding scale times the sum of earlier slice norms. -/
 theorem g2c2_telescope_C (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     ∀ t : ℕ, t ≤ C.gates.length →
@@ -3194,11 +3426,15 @@ theorem g2c2_telescope_C (C : QmaHistoryCircuit) (b : ℕ)
       nlinarith
     exact le_trans hstep hfin
 
+/-- A work basis register violates initialization when at least one designated initially zero
+wire is true. -/
 def g2c2_illAt (C : QmaHistoryCircuit) (y : Reg C.qubits) : Prop :=
   ∃ j ∈ C.initZeroWires, y j = true
 
 open Classical in
 
+/-- The initial-slice mass violating initialization is at most the sum of all input penalty
+energies. -/
 theorem g2c2_in_mass (C : QmaHistoryCircuit)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     (∑ y : Reg C.qubits,
@@ -3228,6 +3464,8 @@ theorem g2c2_in_mass (C : QmaHistoryCircuit)
     exact Finset.sum_nonneg
       (fun k _ => by by_cases h : y k = true <;> simp [h, sq_nonneg])
 
+/-- Under the stated scale, normalization, and rounding bounds, `(1 - 2 * ρ²) / (2^10 * ν^6)` is
+at most the maximum of `u² / 2`, `β²`, and the combined boundary expression. -/
 theorem g2c2_scale_apply (ν ρ u d β s κ : ℝ)
     (hν : 1 ≤ ν) (hρ : 0 ≤ ρ) (hρ2 : ρ ^ 2 ≤ 1 / 2)
     (hu : 0 ≤ u) (hβ0 : 0 ≤ β) (hs0 : 0 ≤ s) (hκ0 : 0 ≤ κ)
@@ -3249,6 +3487,7 @@ theorem g2c2_scale_apply (ν ρ u d β s κ : ℝ)
         (le_trans (le_max_left (β ^ 2) _) (le_max_right _ (max (β ^ 2) _)))
   · exact le_trans (not_lt.mp h1) (le_max_left _ _)
 
+/-- The absolute difference of two Euclidean norms is at most the norm of the vector difference. -/
 theorem g2c2_nm_rev {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
     |nm a - nm b| ≤ nm (fun y => a y - b y) := by
   have hneg : ∀ v : ι → ℂ, nm (fun y => - v y) = nm v := by
@@ -3280,10 +3519,13 @@ theorem g2c2_nm_rev {ι : Type*} [Fintype ι] (a b : ι → ℂ) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- An `n`-qubit basis register has cardinality `2^n`. -/
 theorem g2c2_card_reg (n : ℕ) : Fintype.card (Reg n) = 2 ^ n := by
   have h1 : Fintype.card (Reg n) = Fintype.card (Fin n → Bool) := rfl
   rw [h1, Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
 
+/-- At precision `3 * (n + m) + 64`, the correction `κ + κ² / 2` is at most `qmaTiny (n + m +
+2)`. -/
 theorem g2c2_tiny_absorb (n m : ℕ) :
     g13n2_kappa n (3 * (n + m) + 64) + g13n2_kappa n (3 * (n + m) + 64) ^ 2 / 2
       ≤ qmaTiny (n + m + 2) := by
@@ -3340,17 +3582,23 @@ theorem g2c2_tiny_absorb (n m : ℕ) :
     nlinarith
   nlinarith
 
+/-- The Euclidean norm of the step residual between successive natural-index clock slices using
+the rounded gate family. -/
 noncomputable def g2c2_res (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) (i : ℕ) : ℝ :=
   nm (fun y => g2c2_slN η (i + 1) y
     - (g2c2_gateN C.qubits C.gates.length (qmaRoundedGates C b) i
         *ᵥ g2c2_slN η i) y)
 
+/-- At an index at most `m`, the natural-index slice equals the corresponding finite clock
+slice. -/
 theorem g2c2_slN_eq {n m : ℕ} (η : QState (Fin (m + 1) × Reg n)) {i : ℕ} (hi : i ≤ m) :
     g2c2_slN η i = sl η ⟨i, by omega⟩ := by
   unfold g2c2_slN
   rw [dif_pos hi]
 
+/-- The absolute sum of a real function over a finite set is at most the square root of the
+cardinality times the square root of the sum of squares. -/
 theorem g2c2_cs (s : Finset ℕ) (f : ℕ → ℝ) :
     |∑ i ∈ s, f i| ≤ Real.sqrt s.card * Real.sqrt (∑ i ∈ s, f i ^ 2) := by
   have hcs : (∑ i ∈ s, f i) ^ 2 ≤ (∑ i ∈ s, f i ^ 2) * s.card := by
@@ -3378,6 +3626,8 @@ theorem g2c2_cs (s : Finset ℕ) (f : ℕ → ℝ) :
   rw [h4] at h3
   linarith
 
+/-- For a normalized joint state, the distance of slice `t` from exact evolution is at most
+`sqrt t * (u + g13n2_kappa C.qubits b)` when `u` is the nonnegative total residual norm. -/
 theorem g2c2_dist_le (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) (hη : Normalized η)
     (u : ℝ) (hu : 0 ≤ u)
@@ -3463,6 +3713,8 @@ theorem g2c2_dist_le (C : QmaHistoryCircuit) (b : ℕ)
     nlinarith
   exact le_trans htel hsum
 
+/-- The final slice's distance from exact evolution is at most `sqrt (C.gates.length + 1) * (u +
+g13n2_kappa C.qubits b)` under the total residual norm assumptions. -/
 theorem g2c2_dist_C (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) (hη : Normalized η)
     (u : ℝ) (hu : 0 ≤ u)
@@ -3482,6 +3734,8 @@ theorem g2c2_dist_C (C : QmaHistoryCircuit) (b : ℕ)
     mul_le_mul_of_nonneg_right h2 (add_nonneg hu hκ)
   exact le_trans h h3
 
+/-- Normalization gives `1 ≤ (C.gates.length + 1) * (nm (g2c2_slN η 0) + sqrt (C.gates.length +
+1) * (u + g13n2_kappa C.qubits b))²` under the total residual norm assumptions. -/
 theorem g2c2_norm_C (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) (hη : Normalized η)
     (u : ℝ) (hu : 0 ≤ u)
@@ -3563,9 +3817,12 @@ theorem g2c2_norm_C (C : QmaHistoryCircuit) (b : ℕ)
 open Qatlib
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 
+/-- Retains the amplitudes whose designated output bit is true and sets the others to zero. -/
 noncomputable def g2c2_proj {n : ℕ} (out : Fin n) (v : QState (Reg n)) : QState (Reg n) :=
   fun y => if y out then v y else 0
 
+/-- The squared norm of the accepting projection equals the squared amplitude mass on true
+output bits. -/
 theorem g2c2_proj_vn {n : ℕ} (out : Fin n) (v : QState (Reg n)) :
     vn (g2c2_proj out v) = ∑ y : Reg n, if y out then ‖v y‖ ^ 2 else 0 := by
   unfold g2c2_proj vn
@@ -3573,6 +3830,7 @@ theorem g2c2_proj_vn {n : ℕ} (out : Fin n) (v : QState (Reg n)) :
   intro y _
   by_cases hy : y out <;> simp [hy]
 
+/-- The accepting projection does not increase the Euclidean norm. -/
 theorem g2c2_proj_le {n : ℕ} (out : Fin n) (v : QState (Reg n)) :
     nm (g2c2_proj out v) ≤ nm v := by
   have h1 : vn (g2c2_proj out v) ≤ vn v := by
@@ -3583,12 +3841,14 @@ theorem g2c2_proj_le {n : ℕ} (out : Fin n) (v : QState (Reg n)) :
   unfold nm
   exact Real.sqrt_le_sqrt h1
 
+/-- The accepting projection preserves addition of vectors. -/
 theorem g2c2_proj_add {n : ℕ} (out : Fin n) (a b : QState (Reg n)) :
     g2c2_proj out (a + b) = g2c2_proj out a + g2c2_proj out b := by
   funext y
   unfold g2c2_proj
   by_cases hy : y out <;> simp [hy]
 
+/-- The accepting projection commutes with complex scalar multiplication. -/
 theorem g2c2_proj_smul {n : ℕ} (out : Fin n) (c : ℂ) (v : QState (Reg n)) :
     g2c2_proj out (c • v) = c • g2c2_proj out v := by
   funext y
@@ -3597,18 +3857,22 @@ theorem g2c2_proj_smul {n : ℕ} (out : Fin n) (c : ℂ) (v : QState (Reg n)) :
 
 open Classical in
 
+/-- Retains precisely the amplitudes on basis registers that violate initialization. -/
 noncomputable def g2c2_illPart (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     QState (Reg C.qubits) :=
   fun y => if g2c2_illAt C y then v y else 0
 
 open Classical in
 
+/-- Retains precisely the amplitudes on basis registers that satisfy initialization. -/
 noncomputable def g2c2_legPart (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     QState (Reg C.qubits) :=
   fun y => if g2c2_illAt C y then 0 else v y
 
 open Classical in
 
+/-- The squared norm of the legal part equals the mass on basis registers satisfying
+initialization. -/
 theorem g2c2_legPart_vn (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     vn (g2c2_legPart C v)
       = ∑ y : Reg C.qubits, if g2c2_illAt C y then (0 : ℝ) else ‖v y‖ ^ 2 := by
@@ -3619,6 +3883,8 @@ theorem g2c2_legPart_vn (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
 
 open Classical in
 
+/-- The squared norm of the illegal part equals the mass on basis registers violating
+initialization. -/
 theorem g2c2_illPart_vn (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     vn (g2c2_illPart C v)
       = ∑ y : Reg C.qubits, if g2c2_illAt C y then ‖v y‖ ^ 2 else (0 : ℝ) := by
@@ -3629,6 +3895,7 @@ theorem g2c2_illPart_vn (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
 
 open Classical in
 
+/-- The legal and illegal parts sum to the original vector. -/
 theorem g2c2_leg_ill_add (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     (fun y => g2c2_legPart C v y + g2c2_illPart C v y) = v := by
   funext y
@@ -3637,6 +3904,7 @@ theorem g2c2_leg_ill_add (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
 
 open Classical in
 
+/-- The squared norms of the legal and illegal parts sum to the original squared norm. -/
 theorem g2c2_leg_ill_vn (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     vn (g2c2_legPart C v) + vn (g2c2_illPart C v) = vn v := by
   rw [g2c2_legPart_vn, g2c2_illPart_vn]
@@ -3648,6 +3916,7 @@ theorem g2c2_leg_ill_vn (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
 
 open Classical in
 
+/-- The legal part of every work vector satisfies `QmaInitLegal`. -/
 theorem g2c2_legPart_legal (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     QmaInitLegal C (g2c2_legPart C v) := by
   intro p hp
@@ -3662,15 +3931,19 @@ theorem g2c2_legPart_legal (C : QmaHistoryCircuit) (v : QState (Reg C.qubits)) :
     · exact absurd ⟨j, hj, hpj⟩ hy
     · exact Bool.eq_false_iff.mpr hpj
 
+/-- The natural-index slice at time zero evaluates to the initial-clock amplitude. -/
 theorem g2c2_slN_zero {n m : ℕ} (η : QState (Fin (m + 1) × Reg n)) (y : Reg n) :
     g2c2_slN η 0 y = η (0, y) := rfl
 
+/-- The natural-index slice at the gate count equals the final finite clock slice. -/
 theorem g2c2_slN_last (C : QmaHistoryCircuit)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     g2c2_slN η C.gates.length = sl η (Fin.last C.gates.length) := by
   rw [g2c2_slN_eq η (le_refl C.gates.length)]
   rfl
 
+/-- Every history circuit possesses a normalized work state satisfying its initialization
+condition. -/
 theorem g2c2_exists_legal (C : QmaHistoryCircuit) :
     ∃ φ : QState (Reg C.qubits), QmaInitLegal C φ ∧ Normalized φ := by
   classical
@@ -3683,25 +3956,31 @@ theorem g2c2_exists_legal (C : QmaHistoryCircuit) :
       simp [Qatlib.Foundations.PureStateMath.Ket, h]
     exact absurd h0 hp
 
+/-- The history circuit acceptance weight is nonnegative for every work state. -/
 theorem g2c2_accept_nonneg (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits)) :
     0 ≤ qmaHistoryAcceptProb C φ := by
   unfold qmaHistoryAcceptProb
   exact measureProb_nonneg _ _
 
+/-- The Euclidean distance between the final clock slice and the exact circuit applied to the
+initial slice. -/
 noncomputable def g2c2_dC (C : QmaHistoryCircuit)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) : ℝ :=
   nm (fun y => g2c2_slN η C.gates.length y
     - (finiteWordMatrix C.qubits C.gates *ᵥ g2c2_slN η 0) y)
 
+/-- The square root of the sum of squared rounded propagation residual norms. -/
 noncomputable def g2c2_u (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) : ℝ :=
   Real.sqrt (∑ i ∈ Finset.range C.gates.length, g2c2_res C b η i ^ 2)
 
+/-- The total propagation residual norm `g2c2_u C b η` is nonnegative. -/
 theorem g2c2_u_nonneg (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     0 ≤ g2c2_u C b η :=
   Real.sqrt_nonneg _
 
+/-- The square of the total residual norm equals the sum of squared step residual norms. -/
 theorem g2c2_u_sq (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     g2c2_u C b η ^ 2 = ∑ i ∈ Finset.range C.gates.length, g2c2_res C b η i ^ 2 :=
@@ -3709,11 +3988,13 @@ theorem g2c2_u_sq (C : QmaHistoryCircuit) (b : ℕ)
 
 open Classical in
 
+/-- The square root of the initial-slice mass violating the initialization condition. -/
 noncomputable def g2c2_beta (C : QmaHistoryCircuit)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) : ℝ :=
   Real.sqrt (∑ y : Reg C.qubits,
     if g2c2_illAt C y then ‖η ((0 : Fin (C.gates.length + 1)), y)‖ ^ 2 else (0 : ℝ))
 
+/-- The initialization violation norm `g2c2_beta C η` is nonnegative. -/
 theorem g2c2_beta_nonneg (C : QmaHistoryCircuit)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     0 ≤ g2c2_beta C η :=
@@ -3721,6 +4002,7 @@ theorem g2c2_beta_nonneg (C : QmaHistoryCircuit)
 
 open Classical in
 
+/-- The square of `g2c2_beta C η` equals the initial-slice mass violating initialization. -/
 theorem g2c2_beta_sq (C : QmaHistoryCircuit)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     g2c2_beta C η ^ 2 = ∑ y : Reg C.qubits,
@@ -3731,6 +4013,8 @@ theorem g2c2_beta_sq (C : QmaHistoryCircuit)
   · simp [hy]
   · simp [hy]
 
+/-- At an in-range step, the squared natural-index residual norm equals the squared coordinate
+norm of the finite-slice propagation residual. -/
 theorem g2c2_res_sq_eq (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) (i : Fin C.gates.length) :
     g2c2_res C b η i.val ^ 2
@@ -3749,6 +4033,8 @@ theorem g2c2_res_sq_eq (C : QmaHistoryCircuit) (b : ℕ)
     rw [g2c2_gateN_eq _ _ i.isLt]
   rw [h1, h2, h3]
 
+/-- Summing finite-slice squared propagation residuals equals the sum of squared natural-index
+residual norms over the gate range. -/
 theorem g2c2_res_sq_sum (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) :
     (∑ i : Fin C.gates.length,
@@ -3765,6 +4051,8 @@ theorem g2c2_res_sq_sum (C : QmaHistoryCircuit) (b : ℕ)
 
 open Classical in
 
+/-- Under the soundness and initialization mass assumptions, final accepting mass is at most
+`(sqrt ε * nm (g2c2_slN η 0) + β + g2c2_dC C η)²`. -/
 theorem g2c2_accept_mass (C : QmaHistoryCircuit) (ε : ℝ) (hε : 0 ≤ ε)
     (hsnd : ∀ φ : QState (Reg C.qubits), QmaInitLegal C φ → Normalized φ →
       qmaHistoryAcceptProb C φ ≤ ε)
@@ -3950,6 +4238,7 @@ open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
 open Qatlib
 
+/-- At the prescribed precision, the rounding scale is at most `1 / (2^10 * (m + 1)^3)`. -/
 theorem g2c2_kappa_le (n m : ℕ) :
     g13n2_kappa n (3 * (n + m) + 64) ≤ 1 / (2 ^ 10 * ((m + 1 : ℕ) : ℝ) ^ 3) := by
   have hcard : (Fintype.card (Reg n) : ℝ) = (2 : ℝ) ^ n := by
@@ -3997,6 +4286,8 @@ theorem g2c2_kappa_le (n m : ℕ) :
     linarith
   linarith
 
+/-- The stated normalization and small residual assumptions force the boundary difference `s -
+d` to be nonnegative. -/
 theorem g2c2_sd_nonneg (ν u d s κ : ℝ)
     (hν : 1 ≤ ν) (hu : 0 ≤ u) (hs0 : 0 ≤ s) (hκ0 : 0 ≤ κ)
     (hd : d ≤ ν * (u + κ))
@@ -4078,6 +4369,8 @@ theorem g2c2_sd_nonneg (ν u d s κ : ℝ)
 
 open Classical in
 
+/-- The rounded history energy is at least half the total squared residual minus the rounding
+correction, plus the initialization violation mass and final rejecting mass. -/
 theorem g2c2_energy_bound (C : QmaHistoryCircuit) (b : ℕ)
     (η : QState (Fin (C.gates.length + 1) × Reg C.qubits)) (hη : Normalized η) :
     (1 / 2 : ℝ) * (∑ i ∈ Finset.range C.gates.length, g2c2_res C b η i ^ 2)
@@ -4101,6 +4394,11 @@ theorem g2c2_energy_bound (C : QmaHistoryCircuit) (b : ℕ)
     exact hprop
   linarith
 
+/-- A soundness bound `ε` on all legal normalized inputs yields energy at least `(1 - 2 * ε) /
+(2^10 * (C.gates.length + 1)^3) - qmaTiny (C.qubits + C.gates.length + 2)` for every
+normalized vector of the prescribed rounded history Hamiltonian. This is a rounded
+variational form of the soundness direction in [Kempe et al., Lemma
+2][KempeKitaevRegev2006]. -/
 theorem g2c2_clause2 (C : QmaHistoryCircuit) (ε : ℝ)
     (hsnd : ∀ φ : QState (Reg C.qubits), QmaInitLegal C φ → Normalized φ →
       qmaHistoryAcceptProb C φ ≤ ε)
@@ -4281,6 +4579,8 @@ theorem g2c2_clause2 (C : QmaHistoryCircuit) (ε : ℝ)
           ≤ (1 / 2 : ℝ) * u ^ 2 := not_lt.mp h1
       linarith [hEbound, hβ_nn, hSm_nn, houtE, hout0, huge, htiny]
 
+/-- Packages the rounded history Hamiltonian's NO energy lower bound as an implication from a
+soundness bound on all legal normalized inputs. -/
 theorem g2c2_clause2_frozen (C : QmaHistoryCircuit) :
     (∀ ε : ℝ,
       (∀ φ : QState (Reg C.qubits), QmaInitLegal C φ → Normalized φ →

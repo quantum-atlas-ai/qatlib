@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+/-!
+# Scalar truncation budgets
+
+The module bounds finite sums of removed real coefficients by their absolute coefficient mass.
+It combines a uniform coefficient threshold with cardinality bounds to obtain an ε budget for
+the scalar truncation estimates in quantum chemistry. See [McCleanEtAl2014].
+
+## Main statements
+
+* `eigenvalue_shift_le_removed_sum`: bounds the absolute sum by the sum of absolute values.
+* `eigenvalue_shift_le_epsilon`: uses the threshold ε divided by the removed count.
+* `removed_sum_le_epsilon_of_m4`: uses an M⁴ upper bound on the removed count.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,10 +35,15 @@ open scoped BigOperators
 
 variable {ι : Type*}
 
+/-- The absolute value of a finite sum of removed real coefficients is at most the sum of their
+absolute values. This scalar triangle inequality supports the truncation estimate in Eqs.
+(22)–(24) of [McCleanEtAl2014]. -/
 theorem eigenvalue_shift_le_removed_sum (h : ι → ℝ) (Hrem : Finset ι) :
     |∑ i ∈ Hrem, h i| ≤ ∑ i ∈ Hrem, |h i| :=
   Finset.abs_sum_le_sum_abs h Hrem
 
+/-- If every removed coefficient has absolute value less than `δ`, their total absolute mass is
+at most the removed count times `δ`. -/
 theorem removed_sum_le_card_mul (h : ι → ℝ) (Hrem : Finset ι) {δ : ℝ}
     (hsmall : ∀ i ∈ Hrem, |h i| < δ) :
     ∑ i ∈ Hrem, |h i| ≤ (Hrem.card : ℝ) * δ := by
@@ -32,6 +56,8 @@ theorem removed_sum_le_card_mul (h : ι → ℝ) (Hrem : Finset ι) {δ : ℝ}
     _ = (Hrem.card : ℝ) * δ := by
           rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- For a nonempty removed set, a threshold at most `ε / Hrem.card` bounds the absolute
+coefficient sum by `ε`. -/
 theorem eigenvalue_shift_le_epsilon (h : ι → ℝ) (Hrem : Finset ι) {δ ε : ℝ}
     (hsmall : ∀ i ∈ Hrem, |h i| < δ) (hcard : 0 < Hrem.card)
     (hδeps : δ ≤ ε / (Hrem.card : ℝ)) :
@@ -46,6 +72,8 @@ theorem eigenvalue_shift_le_epsilon (h : ι → ℝ) (Hrem : Finset ι) {δ ε :
       _ = ε := by field_simp
   linarith
 
+/-- If at most `M ^ 4` coefficients are removed, `M` is positive, and the nonnegative threshold
+is at most `ε / (M : ℝ) ^ 4`, the removed absolute mass is at most `ε`. -/
 theorem removed_sum_le_epsilon_of_m4 (h : ι → ℝ) (Hrem : Finset ι) {δ ε : ℝ} {M : ℕ}
     (hsmall : ∀ i ∈ Hrem, |h i| < δ) (hcard : Hrem.card ≤ M ^ 4)
     (hδ0 : 0 ≤ δ) (hδM : δ ≤ ε / ((M : ℝ) ^ 4)) (hM : 0 < M) :

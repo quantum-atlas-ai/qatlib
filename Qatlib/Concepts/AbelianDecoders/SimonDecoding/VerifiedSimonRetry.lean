@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AbelianDecoders.SimonDecoding.SimonDecoderConsumers
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
 import Mathlib.Analysis.SpecificLimits.Basic
+
+/-!
+# Verified Simon trials and retry costs
+
+This module verifies decoded Simon candidates by oracle comparison and builds repeated trials
+with explicit sample histories. The results establish soundness, geometric stopping laws,
+expected query bounds, and bounds on the classical decoding work recorded by those histories.
+For background, see [Simon1997].
+
+## Main statements
+
+* `simon_verified_actual_trial_success_and_soundness`: Under the Simon promise, a verified trial
+  returns the secret with probability at least one half, returns no other candidate with
+  positive mass, and fails with probability at most one half. See [Simon1997].
+* `simon_verified_unbounded_expected_queries_and_cutoff`: Under the Simon promise, retries
+  terminate with the secret with total mass one, expected trial count at most two, expected
+  query bound `2 * (n + 3)`, and pending mass at most `(1/2)^K`. See [Simon1997].
+* `simon_verified_receipt_trace_coupling_and_classical_expected_work`: Under the Simon promise,
+  sample histories reproduce the retry execution law, their costs are bounded by block count,
+  and both bounded and supremum expected classical costs are at most `2 * simonBlockOpsBound n`.
+  See [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.HspRecovery.BackendAudit
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian
@@ -24,25 +51,36 @@ open Qatlib.Concepts.PauliClifford.ExactRank
 
 namespace Qatlib.Concepts.AbelianDecoders.SimonDecoding
 
+/-- Verify an optional Simon candidate by comparing its oracle value with the value at zero,
+returning `none` when the candidate is absent or the comparison fails. -/
 def simonVerifyCandidate {n : ℕ} {R : Type} [DecidableEq R]
     (f : BooleanVec n → R) : Option (Reg n) → Option (Reg n)
   | none => none
   | some t => if f (regBooleanEquiv n t) = f 0 then some t else none
 
+/-- The distribution obtained by verifying the decoded output of a Simon run with `n + 1`
+samples. -/
 noncomputable def simonVerifiedTrial {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) : PMF (Option (Reg n)) :=
   PMF.map (simonVerifyCandidate f) (simonDecodedRun f (n+1)).1
 
+/-- The retry kernel that halts with a verified candidate and returns to the unique pending
+state on failure. -/
 noncomputable def simonVerifiedRetryKernel {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) : Unit → PMF (Reg n ⊕ Unit) :=
   fun _ => PMF.map (fun x => match x with
     | none => Sum.inr ()
     | some t => Sum.inl t) (simonVerifiedTrial f)
 
+/-- A record of `n + 1` additive-character samples on `BooleanVec n`. -/
 abbrev SimonRetryRecord (n : ℕ) := Fin (n+1) → AddChar (BooleanVec n) ℂ
 
+/-- The polynomial bound `10 * ((n + 1) * n² + n³ + (n + 1) * n + n² + n + 1)` for the classical
+operations in one decoding block. -/
 def simonBlockOpsBound (n : ℕ) : ℕ := 10*((n+1)*n^2+n^3+(n+1)*n+n^2+n+1)
 
+/-- The bounded retry distribution retaining the optional verified output and the list of sample
+records used until success or exhaustion of the trial budget. -/
 noncomputable def simonVerifiedHistory {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) :
     ℕ → PMF (Option (Reg n) × List (SimonRetryRecord n))
@@ -54,13 +92,18 @@ noncomputable def simonVerifiedHistory {n : ℕ} {R : Type} [AddCommGroup R]
         | some t => PMF.pure (some t,[xs])
         | none => PMF.map (fun h => (h.1,xs::h.2)) (simonVerifiedHistory f T))
 
+/-- The sum of the recorded Simon decoding costs across a list of sample blocks. -/
 noncomputable def simonClassicalTraceCost {n : ℕ} (xs : List (SimonRetryRecord n)) : ℕ :=
   (xs.map (fun z => (decodeSimonWithCost (simonRecordBits z)).2)).sum
 
+/-- The supremum over trial budgets of the expected classical trace cost of the verified Simon
+history. -/
 noncomputable def simonClassicalExpectedLimit {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) : ℝ≥0∞ :=
   ⨆ T, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (PMF.map (fun h => (h.1,simonClassicalTraceCost h.2)) (simonVerifiedHistory f T))
 
+/-- Under the Simon promise and orthogonality of all sample rows to the secret, every verified
+decoded candidate equals that secret. See [Simon1997]. -/
 theorem simon_verified_candidate_supported_sound :
  ∀ (n m : ℕ) (R : Type) [DecidableEq R]
     (f : BooleanVec n → R) (s : Reg n) (rows : Fin m → Reg n),
@@ -86,6 +129,8 @@ theorem simon_verified_candidate_supported_sound :
         exact hz.trans hs0.symm
       · simpa only [zero_add] using he
 
+/-- Every sample record with nonzero mass under the fresh-sample distribution yields rows
+orthogonal to the promised Simon secret. -/
 theorem simon_actual_record_supported {n m : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (s : Reg n)
     (hf : BooleanSimonPromise f (regBooleanEquiv n s))
@@ -108,6 +153,9 @@ open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian Qatlib.Concepts.HspReco
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal Classical
 
+/-- Under the Simon promise, a verified trial returns the secret with probability at least one
+half, returns no other candidate with positive mass, and fails with probability at most one
+half. See [Simon1997]. -/
 theorem simon_verified_actual_trial_success_and_soundness :
  ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (s : Reg n),
@@ -157,6 +205,8 @@ theorem simon_verified_actual_trial_success_and_soundness :
   exact ENNReal.le_of_add_le_add_right (by simp : (1/2 : ℝ≥0∞) ≠ ⊤)
     (hle.trans_eq hh.symm)
 
+/-- A basis query computes the oracle value, the `n + 1` sample run has ledger `(n + 1, 2 * (n +
+1), n + 1)`, and each decoder cost satisfies the stated polynomial bound. See [Simon1997]. -/
 theorem simon_verified_actual_oracle_and_decoder_ledgers :
  ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (x : BooleanVec n),
@@ -171,6 +221,8 @@ theorem simon_verified_actual_oracle_and_decoder_ledgers :
   · intro rows
     exact (boolean_gaussian_actual_operation_bound rows).2.1
 
+/-- A bounded verified retry run unfolds into one verified trial followed by either immediate
+success of cost one or a recursive run charged one additional step. -/
 theorem simon_verified_runFor_succ {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (K : ℕ) :
     runFor (simonVerifiedRetryKernel f) (K+1) (Sum.inr ()) =
@@ -185,6 +237,8 @@ theorem simon_verified_runFor_succ {n : ℕ} {R : Type} [AddCommGroup R]
   | none => rfl
   | some t => simp only [runFor_halted, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- The pending mass after `K` verified trials is the `K`th power of the single-trial failure
+mass. -/
 theorem simon_verified_pending {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (K : ℕ) :
     generalPendingMass (simonVerifiedRetryKernel f) (Sum.inr ()) K =
@@ -207,6 +261,8 @@ theorem simon_verified_pending {n : ℕ} {R : Type} [AddCommGroup R]
         (Sum.inr ()) K = _
     rw [ih, pow_succ, mul_comm]
 
+/-- The mass of halting with candidate `t` at cost `j + 1` satisfies the recurrence combining a
+failed first trial and the possible immediate success at `j = 0`. -/
 theorem simon_verified_halt_point_succ {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (K j : ℕ) (t : Reg n) :
     runFor (simonVerifiedRetryKernel f) (K+1) (Sum.inr ()) (Sum.inl t,j+1) =
@@ -226,6 +282,9 @@ theorem simon_verified_halt_point_succ {n : ℕ} {R : Type} [AddCommGroup R]
       simp [PMF.pure_apply, hj]
   rw [he]
 
+/-- The pending mass after `K` trials is the failure mass to power `K`, and the joint mass of
+output `t` at trial `K + 1` is that power times the single-trial mass of `t`. See
+[Simon1997]. -/
 theorem simon_verified_actual_geometric_joint_law :
  ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (K : ℕ) (t : Reg n),
@@ -247,6 +306,9 @@ theorem simon_verified_actual_geometric_joint_law :
     rw [ih, pow_succ]
     ac_rfl
 
+/-- Under the Simon promise, retries terminate with the secret with total mass one, expected
+trial count at most two, expected query bound `2 * (n + 3)`, and pending mass at most
+`(1/2)^K`. See [Simon1997]. -/
 theorem simon_verified_unbounded_expected_queries_and_cutoff :
  ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (s : Reg n),
@@ -284,11 +346,15 @@ theorem simon_verified_unbounded_expected_queries_and_cutoff :
     _ ≤ ((n+3 : ℕ) : ℝ≥0∞)*2 := mul_le_mul_right htime _
     _ = _ := by push_cast; rw [mul_comm]
 
+/-- The Boolean-vector verification input corresponding to an optional candidate, using zero
+when the candidate is absent. -/
 def simonVerificationInput {n : ℕ} (candidate : Option (Reg n)) : BooleanVec n :=
   match candidate with
   | none => 0
   | some t => regBooleanEquiv n t
 
+/-- The two basis queries used for verification compute `f 0` and the oracle value of
+`simonVerificationInput candidate`. -/
 theorem simon_verified_two_basis_queries {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (candidate : Option (Reg n)) :
     Run (AddOracle f) ([.query] : Circuit (BooleanVec n × R)) (Qatlib.Foundations.PureStateMath.Ket (0,0)) = Qatlib.Foundations.PureStateMath.Ket (0,f 0) ∧
@@ -298,6 +364,8 @@ theorem simon_verified_two_basis_queries {n : ℕ} {R : Type} [AddCommGroup R]
   exact ⟨(simon_verified_actual_oracle_and_decoder_ledgers n R f 0).1,
     (simon_verified_actual_oracle_and_decoder_ledgers n R f (simonVerificationInput candidate)).1⟩
 
+/-- Adding the two verification queries to an `n + 1` sample run yields the complete block
+ledger `(n + 3, 2 * (n + 1), n + 3)`. -/
 theorem simon_verified_complete_block_ledger {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) :
     let q := QueryCount ([.query] : Circuit (BooleanVec n × R))
@@ -308,10 +376,14 @@ theorem simon_verified_complete_block_ledger {n : ℕ} {R : Type} [AddCommGroup 
   rw [(simon_actual_preparation_and_quantum_cost f (n+1)).2.2.2.2]
   rfl
 
+/-- Observe a verified history as its halted or pending state paired with the number of recorded
+sample blocks. -/
 def simonHistoryObserve {n : ℕ} (h : Option (Reg n) × List (SimonRetryRecord n)) :
     (Reg n ⊕ Unit) × ℕ :=
   ((match h.1 with | none => Sum.inr () | some t => Sum.inl t), h.2.length)
 
+/-- Mapping a bounded verified history through `simonHistoryObserve` gives exactly the bounded
+execution law of `simonVerifiedRetryKernel`. -/
 theorem simon_verified_history_coupling {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (T : ℕ) :
     PMF.map simonHistoryObserve (simonVerifiedHistory f T) =
@@ -333,6 +405,7 @@ theorem simon_verified_history_coupling {n : ℕ} {R : Type} [AddCommGroup R]
       funext h
       simp only [simonHistoryObserve, List.length_cons, Nat.add_comm]
 
+/-- Every history with nonzero mass under a trial budget `T` contains at most `T` sample blocks. -/
 theorem simon_verified_history_length {n : ℕ} {R : Type} [AddCommGroup R]
     [Fintype R] [DecidableEq R] (f : BooleanVec n → R) (T : ℕ) :
     ∀ h, simonVerifiedHistory f T h ≠ 0 → h.2.length ≤ T := by
@@ -356,6 +429,8 @@ theorem simon_verified_history_length {n : ℕ} {R : Type} [AddCommGroup R]
       have hb := ih h0 ((PMF.mem_support_iff _ _).mp hh0)
       simpa only [List.length_cons] using Nat.succ_le_succ hb
 
+/-- The total classical trace cost is at most `simonBlockOpsBound n` times the number of sample
+blocks. -/
 theorem simon_classical_trace_bound {n : ℕ} (xs : List (SimonRetryRecord n)) :
     simonClassicalTraceCost xs ≤ simonBlockOpsBound n * xs.length := by
   induction xs with
@@ -367,6 +442,9 @@ theorem simon_classical_trace_bound {n : ℕ} (xs : List (SimonRetryRecord n)) :
       _ ≤ simonBlockOpsBound n + simonBlockOpsBound n * rest.length := Nat.add_le_add hx ih
       _ = _ := by simp only [List.length_cons]; ring
 
+/-- Under the Simon promise, sample histories reproduce the retry execution law, their costs are
+bounded by block count, and both bounded and supremum expected classical costs are at most
+`2 * simonBlockOpsBound n`. See [Simon1997]. -/
 theorem simon_verified_receipt_trace_coupling_and_classical_expected_work :
 ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (s : Reg n),

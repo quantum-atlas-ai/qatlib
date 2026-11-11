@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Specification of stopped-stage transport
+
+`Clause4StoppedStageTransport` states equivalent ways for a unitary to fix an orthogonal
+projector and describes transport through legal clocked stages. It requires later stages to fix
+earlier stopped subspaces, suffixes to preserve earlier potential norms, and plain amplitudes to
+be nonincreasing.
+
+The stopped-clock formulation is motivated by variable-time amplification [Ambainis2012]. For
+controlled unitaries and stopped-stage transport, see [LowSu2026].
+
+## Main statements
+
+* `Clause4StoppedStageTransport`: Packages stopped-subspace and potential-transport properties.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +49,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The stopped-stage transport specification combines equivalent unitary fixed-subspace
+identities with preservation of earlier potential norms by legal suffix evolution and
+monotonicity of plain amplitudes. -/
 def Clause4StoppedStageTransport : Prop :=
   (∀ (H : Type) [Fintype H] [DecidableEq H] (P U : Matrix H H ℂ),
     IsOrthogonalProjector P → U ∈ Matrix.unitaryGroup H ℂ →

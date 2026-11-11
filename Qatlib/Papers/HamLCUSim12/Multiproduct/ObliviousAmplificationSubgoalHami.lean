@@ -8,6 +8,27 @@ import Qatlib.Papers.HamLCUSim12.Multiproduct.ObliviousAmplificationSubgoalStat
 import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
 import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+/-!
+# An auxiliary qubitization projection identity
+
+This module proves `obliviousAmplificationSubgoal` for an LCU of Hermitian unitaries with
+nonnegative prepared weights. On a normalized eigenstate with real eigenvalue x, the projection
+of the qubitization output onto the reference ancilla fiber is multiplied by 2x² − 1; the proof
+uses `qubitization_amplifies_fiber`. See [ChildsWiebe2012] for the multiproduct and
+linear-combination simulation framework.
+
+## Main statements
+
+* `obliviousAmplificationSubgoal`: For a prepared nonnegative LCU of Hermitian unitaries and a
+  normalized eigenstate with real eigenvalue x, the reference-fiber projection of the
+  qubitization output equals (2x² − 1) times the input tensor state.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
@@ -18,6 +39,9 @@ namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open Qatlib
 open Matrix
 
+/-- For a prepared nonnegative LCU of Hermitian unitaries and a normalized eigenstate with real
+eigenvalue x, the reference-fiber projection of the qubitization output equals (2x² − 1)
+times the input tensor state. -/
 theorem obliviousAmplificationSubgoal : ObliviousAmplificationSubgoal := by
   intro J I _ _ _ _ U hU hUherm w hw P j₀ hP ψ hψ x hx
   have hA : (∑ j, w j • U j)ᴴ = ∑ j, w j • U j := by

@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedStat
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection
+
+/-!
+# Restricted concise fitting from sampled coordinates
+
+This module proves `dataFitConciseSelectionRestricted` by combining computed parameter
+preparation, histogram selection bounds, selected-fit residual estimates, and amplitude
+estimation. The strengthened specification includes the prepared solution state and its
+properties as conclusions, along with the conditional selected-fit preparation and exact query
+ledgers, in the setting of [WiebeBraunLloyd2012].
+
+It also records `DataFitConciseSelectionLegacy` and proves its vacuous realization using the
+zero vector: the legacy implication makes preparation and solution-state properties premises of
+the downstream guarantees.
+
+## Main statements
+
+* `conciseFit_zero_not_solution_state`: exclusion of the zero vector as a solution state.
+* `dataFitConciseSelectionRestricted_vacuous`: the legacy implication is satisfied by a
+  zero-vector choice.
+* `dataFitConciseSelectionRestricted`: the strengthened preparation, selection, and fitting
+  guarantees.
+
+## References
+
+* [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -47,6 +74,9 @@ set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 set_option maxHeartbeats 3000000
 
+/-- The legacy concise-selection specification whose downstream guarantees are conditional on
+preparation and solution-state properties of an existentially chosen vector. This
+implication permits choosing a vector that fails those properties. -/
 def DataFitConciseSelectionLegacy : Prop :=
 ∀ (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
   (A : Matrix O I ℂ) (U B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O)
@@ -95,12 +125,16 @@ def DataFitConciseSelectionLegacy : Prop :=
       adjointQueryCount (fitProjectionWord (O:=O) (I:=I) κ_S k) =
         (2*M_ae-1)*(2*explicitInverseCutoff κ_S (k+2)))
 
+/-- The zero vector cannot be a least-squares solution state, for any design matrix, target, or
+error parameter. -/
 theorem conciseFit_zero_not_solution_state {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (η : ℝ) :
     ¬ IsLeastSquaresSolutionState A b (0 : QState I) η := by
   rintro ⟨x, _hx, _hx0, hzero, _herr⟩
   simp [Normalized] at hzero
 
+/-- The inverse of the real cast of the natural number zero is a lower bound for every positive
+singular value. -/
 theorem conciseFit_zero_kappa_gap {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) :
     ∀ i : Fin (Fintype.card I), 0 < matrixSingularValues A i →
@@ -108,6 +142,8 @@ theorem conciseFit_zero_kappa_gap {O I : Type} [Fintype O] [DecidableEq O]
   intro i hi
   simpa using! hi.le
 
+/-- The legacy concise-selection specification holds by choosing the zero vector, for which the
+conditional solution-state premise is false. -/
 theorem dataFitConciseSelectionRestricted_vacuous : DataFitConciseSelectionLegacy := by
   intro O I _ _ _ _ A U B j b U_S B_S j_S κ k κ_S M_ae R μ
     _henc _hB _hprep _hb _hκ _hgap _hsub _hμ _hμ1 _hM
@@ -117,6 +153,10 @@ theorem dataFitConciseSelectionRestricted_vacuous : DataFitConciseSelectionLegac
   rintro ⟨_hout, hstate⟩
   exact (conciseFit_zero_not_solution_state A b _ hstate).elim
 
+/-- The strengthened concise-selection specification holds, combining actual parameter-state
+preparation, histogram selection, selected-fit residual and tail bounds, conditional
+selected-parameter preparation, fit-quality estimation, and query counts. The fitting
+context is [WiebeBraunLloyd2012]. -/
 theorem dataFitConciseSelectionRestricted : DataFitConciseSelectionRestricted := by
   intro O I _ _ _ _ A U B j b U_S B_S j_S κ k κ_S M_ae R μ
     henc _hB _hprep hb hκ hκS hgap hsub hμ _hμ1 hM

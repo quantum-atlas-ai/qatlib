@@ -10,6 +10,26 @@ import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+
+/-!
+# Unitary dilation of a finite Kraus family
+
+A finite family satisfying the Kraus completeness relation defines an isometry into the system
+together with an outcome register. `kraus_unitary_dilation` extends this isometry to a unitary
+whose action on a fixed initialized register records each Kraus output coherently, as in
+[NielsenChuang2010].
+
+## Main statements
+
+* `krausDilationMatrix_gram`: completeness gives an identity Gram matrix.
+* `kraus_unitary_dilation`: a unitary realizes the Kraus isometry on the initialized ancilla
+  subspace.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -23,10 +43,14 @@ namespace Qatlib.Concepts.Execution.KnownKraus
 open Matrix
 open scoped BigOperators
 
+/-- The rectangular matrix that stacks the Kraus operators in a joint system and outcome
+register. -/
 private def krausDilationMatrix {d s : ℕ} (K : Fin s → Operator d) :
     Matrix (Fin d × Fin s) (Fin d) ℂ :=
   fun x j => K x.2 x.1 j
 
+/-- The stacked Kraus matrix has identity Gram matrix when the Kraus family satisfies
+completeness. -/
 private theorem krausDilationMatrix_gram {d s : ℕ} (K : Fin s → Operator d)
     (hK : ∑ a, (K a).conjTranspose * K a = 1) :
     (krausDilationMatrix K).conjTranspose * krausDilationMatrix K = 1 := by
@@ -41,6 +65,7 @@ private theorem krausDilationMatrix_gram {d s : ℕ} (K : Fin s → Operator d)
       simp only [Matrix.sum_apply]
     _ = (1 : Operator d) i j := congrFun (congrFun hK i) j
 
+/-- The complex linear isometry induced by the stacked matrix of a complete Kraus family. -/
 private noncomputable def krausDilationIsometry {d s : ℕ} (K : Fin s → Operator d)
     (hK : ∑ a, (K a).conjTranspose * K a = 1) :
     EuclideanSpace ℂ (Fin d) →ₗᵢ[ℂ] EuclideanSpace ℂ (Fin d × Fin s) :=
@@ -53,6 +78,8 @@ private noncomputable def krausDilationIsometry {d s : ℕ} (K : Fin s → Opera
     simp only [Qatlib.Foundations.PureStateMath.Inner, Matrix.star_mulVec, Matrix.dotProduct_mulVec,
       Matrix.vecMul_vecMul, krausDilationMatrix_gram K hK, Matrix.vecMul_one])
 
+/-- A complete finite square Kraus family can be realized coherently by a unitary on the system
+and an initialized outcome register [NielsenChuang2010]. -/
 theorem kraus_unitary_dilation {d s : ℕ} (K : Fin s → Operator d)
     (hK : ∑ a, (K a).conjTranspose * K a = 1) (zero : Fin s) :
     ∃ W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ,

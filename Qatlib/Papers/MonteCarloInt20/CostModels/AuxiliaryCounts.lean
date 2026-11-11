@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
+
+/-!
+# Auxiliary operation counts in nested amplitude estimation
+
+This module counts payoff rotations and sample-register Hadamard operations in the expanded
+nested amplitude-estimation words associated with [KanekoEtAl2020]. Neither tag occurs in an
+inner-family word, and each occurs once in a preparation word.
+
+Expansion through outer amplitude estimation multiplies the preparation count by the total
+number of forward and backward preparation accesses, yielding `2 * N - 1` for each tag.
+
+## Main statements
+
+* `inner_no_aux`: The inner word contains neither auxiliary tag.
+* `expanded_aux_counts`: Outer expansion scales auxiliary counts by preparation accesses.
+* `nested_aux_counts`: Each auxiliary tag occurs `2 * N - 1` times in the nested word.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,8 @@ open Qatlib.Concepts.AmplitudeCore.PreparedReadout
 
 namespace Qatlib.Papers.MonteCarloInt20.CostModels.AuxiliaryCounts
 
+/-- An inner-family word has zero occurrences of either the payoff-rotation tag or the
+sample-Hadamard tag. -/
 theorem inner_no_aux {I J : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (A : J → Matrix I I ℂ) (i₀ : I) (S : J → Finset I)
     (w : List (AEAccessStep (Inner M I))) (t : AccessTag)
@@ -35,6 +59,8 @@ theorem inner_no_aux {I J : Type} [Fintype I] [DecidableEq I]
   rw [h]
   simp
 
+/-- A preparation word has exactly one occurrence of each of the payoff-rotation and
+sample-Hadamard tags. -/
 theorem preparation_aux_counts {I : Type} [Fintype I] [DecidableEq I]
     (n M : ℕ) (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I) (D : ℝ) (g : ℝ → ℝ)
     (t : AccessTag) (ht : t=.payoffRotation ∨ t=.sampleHadamard) :
@@ -44,6 +70,8 @@ theorem preparation_aux_counts {I : Type} [Fintype I] [DecidableEq I]
   rw [hz]
   rcases ht with rfl | rfl <;> simp [accessCount]
 
+/-- For either auxiliary tag, expanding an outer access word multiplies its count in the
+preparation word by the total number of forward and backward accesses. -/
 theorem expanded_aux_counts {I : Type} [Fintype I] [DecidableEq I]
     (N : ℕ) (i₀ : I) (S : Finset I) (w : GateWord (Matrix I I ℂ))
     (a : List (AEAccessStep (Inner N I))) (t : AccessTag)
@@ -61,6 +89,8 @@ theorem expanded_aux_counts {I : Type} [Fintype I] [DecidableEq I]
       simp only [accessCount,List.map_cons,List.map_nil,List.sum_cons,List.sum_nil,
         if_neg hf,if_neg ho,zero_add,add_zero,Nat.add_mul,Nat.one_mul] at * <;> omega
 
+/-- For positive inner and outer sizes, each of the payoff-rotation and sample-Hadamard tags
+occurs exactly `2 * N - 1` times in the nested word. -/
 theorem nested_aux_counts {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I) (D : ℝ) (g : ℝ → ℝ)

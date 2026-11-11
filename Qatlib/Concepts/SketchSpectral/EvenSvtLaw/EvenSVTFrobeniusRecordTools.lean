@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSvtCore.EvenSVTFrobeniusCoreSamp
 import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+
+/-!
+# Spectral and probability tools for SVT records
+
+This module supplies eigenvalue-transfer and norm identities, exact sketch concentration, and a
+spectral-band form of the deterministic even-SVT error bound. `twoSketchRecordLaw` and
+`twoSketch_union_bound` combine row and conditional-column events for the actual-record analysis
+of [ChiaEtAl2022].
+
+## Main statements
+
+* `evenSVT_band_core`: Spectral-band consistency and Lipschitz hypotheses bound the two-sketch
+  even-SVT Frobenius error by `L * η₁ + (‖Aᴴ * A‖ + η₁) * (Lbar * η₂)`.
+* `twoSketchRecordLaw`: The joint finite law of independent row samples and column samples drawn
+  independently conditional on the row sequence.
+* `twoSketch_union_bound`: If a joint bad event implies a row event or a conditional-column
+  event, its probability is at most the sum of their uniform probability bounds.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -26,6 +49,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A real eigenvalue with a nonzero eigenvector of a Hermitian matrix occurs in its ordered
+spectrum. -/
 theorem eigenvalue_in_ordered_spectrum {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (lam : ℝ) (v : I → ℂ)
     (hv : A *ᵥ v = (lam : ℂ) • v) (hne : v ≠ 0) :
@@ -53,6 +78,7 @@ theorem eigenvalue_in_ordered_spectrum {I : Type} [Fintype I] [DecidableEq I]
   refine ⟨j, ?_⟩
   exact Complex.ofReal_injective (mul_right_cancel₀ hj hc)
 
+/-- Every outer Gram eigenvalue is either zero or an eigenvalue of the inner Gram matrix. -/
 theorem outer_gram_value {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (R : Matrix K C ℂ) (i : Fin (Fintype.card K)) :
     orderedHermitianValues (Matrix.isHermitian_mul_conjTranspose_self R) i = 0 ∨
@@ -85,6 +111,7 @@ theorem outer_gram_value {K C : Type} [Fintype K] [DecidableEq K]
       _ = Rᴴ *ᵥ ((R * Rᴴ) *ᵥ v) := by simp only [Matrix.mulVec_mulVec, Matrix.mul_assoc]
       _ = _ := by rw [hv, Matrix.mulVec_smul]
 
+/-- Conjugate transpose preserves the squared Frobenius energy. -/
 theorem sketchSquared_adjoint {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ) :
     sketchSquared Aᴴ = sketchSquared A := by
   simp only [sketchSquared, sketchRowSquared, Matrix.conjTranspose_apply,
@@ -93,6 +120,7 @@ theorem sketchSquared_adjoint {K C : Type} [Fintype K] [Fintype C] (A : Matrix K
 
 open scoped Matrix.Norms.Frobenius in
 
+/-- The spectral Frobenius norm equals the matrix Frobenius norm used by the sampling estimates. -/
 theorem spectralFrobenius_eq_sampling_norm {K C : Type} [Fintype K] [Fintype C]
     (A : Matrix K C ℂ) :
     spectralFrobenius A = ‖A‖ := by
@@ -100,6 +128,8 @@ theorem spectralFrobenius_eq_sampling_norm {K C : Type} [Fintype K] [Fintype C]
   simp only [spectralFrobenius, ← Real.sqrt_eq_rpow, Complex.normSq_eq_norm_sq]
   simp only [Real.rpow_two]
 
+/-- With exact row-energy sampling and positive sample size and source energy, every compact
+sketch has energy at most the source energy. -/
 theorem exact_sketch_energy_bound {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (q : FinDist K) (r : ℕ) (A : Matrix K C ℂ)
     (hr : 0 < r) (hA : 0 < sketchSquared A)
@@ -109,6 +139,8 @@ theorem exact_sketch_energy_bound {K C : Type} [Fintype K] [DecidableEq K]
     (by norm_num) hA (by intro k; simp only [one_mul, hq]; exact le_rfl)
   simpa only [one_mul] using! h.2.1 v
 
+/-- If an ordered outer Gram eigenvalue of `R` is zero, the eigenvalue at the same index for `R
+* T` is also zero. -/
 theorem outer_gram_zero_right_mul {K C D : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] [Fintype D] [DecidableEq D]
     (R : Matrix K C ℂ) (T : Matrix C D ℂ) (i : Fin (Fintype.card K))
@@ -132,6 +164,8 @@ theorem outer_gram_zero_right_mul {K C D : Type} [Fintype K] [DecidableEq K]
   have hh := (singular_gram_ordered (R * T)ᴴ).2 i
   simpa only [Matrix.conjTranspose_conjTranspose, hs', zero_pow (by decide : 2 ≠ 0)] using! hh
 
+/-- Exact row-energy sampling bounds the probability of Gram Frobenius error at least `√(8 * log
+(2 / δ) / r) * sketchSquared A` by `δ`. -/
 theorem exact_gram_tail {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (q : FinDist K) (r : ℕ) (A : Matrix K C ℂ) (δ : ℝ)
     (hr : 0 < r) (hA : 0 < sketchSquared A) (hδ : 0 < δ) (hδ1 : δ < 1)
@@ -160,6 +194,8 @@ theorem exact_gram_tail {K C : Type} [Fintype K] [DecidableEq K]
     ← spectralFrobenius_eq_sampling_norm] at ht
   exact ht
 
+/-- Subtracting `f 0` from the scalar function subtracts `(f 0) • 1` from its Hermitian matrix
+function. -/
 theorem hermitianFunction_shift {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f : ℝ → ℂ) :
     hermitianFunction A hA (fun x => f x - f 0) =
@@ -167,6 +203,8 @@ theorem hermitianFunction_shift {I : Type} [Fintype I] [DecidableEq I]
   unfold hermitianFunction
   rw [← spectralDiagonal_const (orderedHermitianBasis hA) (f 0), spectralDiagonal_sub]
 
+/-- Spectral-band consistency and Lipschitz hypotheses bound the two-sketch even-SVT Frobenius
+error by `L * η₁ + (‖Aᴴ * A‖ + η₁) * (Lbar * η₂)`. -/
 theorem evenSVT_band_core {K C RS CT : Type}
     [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
@@ -245,6 +283,8 @@ theorem evenSVT_band_core {K C RS CT : Type}
   rw [hermitianFunction_shift] at h
   convert! h using 1; abel
 
+/-- A single-sample event probability equals the sum of the distribution's masses over the
+event. -/
 theorem probEvent_single {X : Type} [Fintype X] [DecidableEq X] (q : FinDist X) (P : X → Prop) :
     q.probEvent (fun ω : Fin 1 → X => P (ω 0)) = ∑ x, if P x then q.prob x else 0 := by
   unfold Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent
@@ -254,6 +294,8 @@ theorem probEvent_single {X : Type} [Fintype X] [DecidableEq X] (q : FinDist X) 
   intro ω
   rfl
 
+/-- The joint finite law of independent row samples and column samples drawn independently
+conditional on the row sequence. -/
 noncomputable def twoSketchRecordLaw {K C : Type} [Fintype K] [Fintype C]
     (q : FinDist K) (r c : ℕ) (condQ : (Fin r → K) → FinDist C) :
     FinDist ((Fin r → K) × (Fin c → C)) where
@@ -264,6 +306,8 @@ noncomputable def twoSketchRecordLaw {K C : Type} [Fintype K] [Fintype C]
     simp only [Fintype.sum_prod_type, ← Finset.mul_sum,
         Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf, mul_one]
 
+/-- If a joint bad event implies a row event or a conditional-column event, its probability is
+at most the sum of their uniform probability bounds. -/
 theorem twoSketch_union_bound {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (q : FinDist K) (r c : ℕ)
     (condQ : (Fin r → K) → FinDist C)
@@ -309,6 +353,7 @@ theorem twoSketch_union_bound {K C : Type} [Fintype K] [DecidableEq K]
       (Finset.sum_le_sum fun v _ => mul_le_mul_of_nonneg_left (h₂ v) (hn v))
     _ = δ₁ + δ₂ := by rw [← Finset.sum_mul, q.sum_probOf r, one_mul]
 
+/-- A finite complex matrix with zero squared Frobenius energy is the zero matrix. -/
 theorem sketchSquared_zero_matrix {K C : Type} [Fintype K] [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (hA : sketchSquared A = 0) : A = 0 := by
   have hrow (k : K) : sketchRowSquared A k = 0 :=

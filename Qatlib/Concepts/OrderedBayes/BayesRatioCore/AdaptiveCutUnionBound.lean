@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingRightQuan
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingLeftQuan
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellCorrection
+
+/-!
+# Adaptive cut ratio and window union bounds
+
+Posterior ratio potentials yield finite run bounds for truth driven ordered search, both for the
+learner kernel and for a kernel that absorbs at a crossing in a finite pair set. Summing initial
+ratio weights gives `cutUnionBound`, and odds ratio powers calibrate this bound to any positive
+target, extending the adaptive learning analysis of [BenOrHassidim2007].
+
+Window counting finds a light cell before a heavy cell, reducing far heavy posterior events and
+selected halting events to pairwise ratio events. The results require the stated positive prior
+and total mass bounds, and apply at every finite fuel value.
+
+## Main statements
+
+* `cut_union_event_bound` and `learner_cut_union_event_bound`: bound finite unions of ratio
+  events.
+* `learner_far_heavy_window_bound`: bounds the probability of a heavy cell beyond the window.
+* `learner_haltCut_far_bound`: bounds a far selected halting cut.
+* `frontier1` and `frontier2`: collect the absorbing and learner estimates.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
@@ -25,9 +51,12 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch2007
 open scoped ENNReal BigOperators Classical
 
+/-- The ordering condition `j < v < u` or `u < v < j` on the truth index and an ordered pair. -/
 def crossSide {n : ℕ} (j u v : Fin n) : Prop :=
   ((j : ℕ) < (v : ℕ) ∧ (v : ℕ) < (u : ℕ)) ∨ ((u : ℕ) < (v : ℕ) ∧ (v : ℕ) < (j : ℕ))
 
+/-- The learner transition that first halts with the current posterior if any pair in `S`
+satisfies `R * a v ≤ a u`, and otherwise takes a truth driven learner step. -/
 noncomputable def unionAbsorbNext {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (S : Finset (Fin n × Fin n)) :
     (Fin n → ℝ) → PMF (Configuration (Fin n → ℝ) (Fin n → ℝ)) :=
@@ -35,6 +64,8 @@ noncomputable def unionAbsorbNext {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : �
     if ∃ pr ∈ S, R * a pr.2 ≤ a pr.1 then PMF.pure (Sum.inl a)
     else trueLearnerNext hn j p ε a
 
+/-- If some pair already crosses its ratio threshold, every supported result of a finite union
+absorbing run still has a crossing pair. -/
 theorem unionAbsorb_terminal {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (S : Finset (Fin n × Fin n)) (fuel : ℕ)
     (cfg : Configuration (Fin n → ℝ) (Fin n → ℝ))
@@ -68,6 +99,8 @@ theorem unionAbsorb_terminal {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
           obtain rfl := (PMF.mem_support_pure_iff _ _).mp hx
           exact habs
 
+/-- For `j < k < i`, a pair `(i, k)` in `S`, and `1 / 2 < p < 1`, the union absorbing step does
+not increase the expected ratio potential `i / k`. -/
 theorem unionAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
     (p ε R : ℝ) (S : Finset (Fin n × Fin n)) (hmem : (i, k) ∈ S)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hjk : (j : ℕ) < (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
@@ -84,6 +117,8 @@ theorem unionAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
         rw [crossingAbsorbNext, if_neg hpair]]
     exact crossingAbsorb_one_step_right hn j k i hp hp1 hjk hki a
 
+/-- For `u < v < j`, a pair `(u, v)` in `S`, and `1 / 2 < p < 1`, the union absorbing step does
+not increase the expected ratio potential `u / v`. -/
 theorem unionAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     (p ε R : ℝ) (S : Finset (Fin n × Fin n)) (hmem : (u, v) ∈ S)
     (hp : 1 / 2 < p) (hp1 : p < 1) (huv : (u : ℕ) < (v : ℕ)) (hvj : (v : ℕ) < (j : ℕ))
@@ -100,6 +135,8 @@ theorem unionAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
         rw [crossingAbsorbNext, if_neg hpair]]
     exact crossingAbsorb_one_step_left hn u v j hp hp1 huv hvj a
 
+/-- For `1 / 2 < p < 1`, a truth driven learner step preserves strictly positive posterior
+entries and total mass at most one throughout its support. -/
 theorem trueLearnerNext_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (a : Fin n → ℝ) (ha : truthInv a) :
     ∀ cfg ∈ (trueLearnerNext hn j p ε a).support, truthInv (configPosterior cfg) := by
@@ -120,6 +157,7 @@ theorem trueLearnerNext_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : �
     · exact ⟨hposF, updateFalse_sum_le a (stageTwoCut hn a ε) hp hp1 ha0 ha.2⟩
     · exact ⟨hposT, updateTrue_sum_le a (stageTwoCut hn a ε) hp hp1 ha0 ha.2⟩
 
+/-- For `1 / 2 < p < 1`, a union absorbing step preserves `truthInv` throughout its support. -/
 theorem unionAbsorb_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (S : Finset (Fin n × Fin n)) (hp : 1 / 2 < p) (hp1 : p < 1)
     (a : Fin n → ℝ) (ha : truthInv a) :
@@ -132,6 +170,9 @@ theorem unionAbsorb_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ
   · simp only [unionAbsorbNext, if_neg habs] at hcfg
     exact trueLearnerNext_support_inv hn j p ε hp hp1 a ha cfg hcfg
 
+/-- For `(i, k) ∈ S` with `j < k < i`, positive threshold `R`, and `1 / 2 < p < 1`, the crossing
+event after any finite union absorbing run has probability at most `ENNReal.ofReal ((a₀ i /
+a₀ k) / R)` for a positive prior of mass at most one. -/
 theorem union_pair_crossing_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
     (p ε R : ℝ) (S : Finset (Fin n × Fin n)) (hmem : (i, k) ∈ S)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
@@ -156,6 +197,9 @@ theorem union_pair_crossing_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
       = ENNReal.ofReal ((a₀ i / a₀ k) / R) from by
     rw [ratioPotential, configPosterior, Sum.elim_inr, id_eq, ENNReal.ofReal_div_of_pos hR]]
 
+/-- For `(u, v) ∈ S` with `u < v < j`, positive threshold `R`, and `1 / 2 < p < 1`, the crossing
+event after any finite union absorbing run has probability at most `ENNReal.ofReal ((a₀ u /
+a₀ v) / R)` for a positive prior of mass at most one. -/
 theorem union_pair_crossing_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     (p ε R : ℝ) (S : Finset (Fin n × Fin n)) (hmem : (u, v) ∈ S)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
@@ -180,6 +224,9 @@ theorem union_pair_crossing_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
       = ENNReal.ofReal ((a₀ u / a₀ v) / R) from by
     rw [ratioPotential, configPosterior, Sum.elim_inr, id_eq, ENNReal.ofReal_div_of_pos hR]]
 
+/-- For a pair in `S` satisfying `crossSide`, the ratio threshold event after any finite union
+absorbing run is bounded by the initial ratio divided by positive `R`, assuming `1 / 2 < p <
+1` and a positive prior of mass at most one. -/
 theorem union_pair_crossing {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     (p ε R : ℝ) (S : Finset (Fin n × Fin n)) (hmem : (u, v) ∈ S)
     (hside : crossSide j u v)
@@ -193,6 +240,8 @@ theorem union_pair_crossing {n : ℕ} (hn : 0 < n) (j u v : Fin n)
   · exact union_pair_crossing_right hn j v u p ε R S hmem hp hp1 hR hjv hvu a₀ hpos hsum fuel
   · exact union_pair_crossing_left hn j u v p ε R S hmem hp hp1 hR huv hvj a₀ hpos hsum fuel
 
+/-- The union absorbing kernel for a singleton pair is the corresponding pairwise crossing
+absorbing kernel. -/
 theorem singleton_unionAbsorbNext {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε R : ℝ) :
     (unionAbsorbNext hn j p ε R {(u, v)} : (Fin n → ℝ) → _) = crossingAbsorbNext hn j p ε R u v := by
   funext a
@@ -210,6 +259,9 @@ theorem singleton_unionAbsorbNext {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε R
   · simp only [unionAbsorbNext, crossingAbsorbNext, if_neg (fun hex => h (hmem_iff.mp hex)),
       if_neg h]
 
+/-- For `j < k < i`, the singleton union absorbing kernel has crossing probability at most the
+initial ratio `a₀ i / a₀ k` divided by positive `R`, at every fuel, under the noise and
+prior hypotheses. -/
 theorem union_pair_singleton_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
     (p ε R : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
     (hjk : (j : ℕ) < (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
@@ -221,6 +273,9 @@ theorem union_pair_singleton_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
   rw [singleton_unionAbsorbNext]
   exact zoo_bayes_truth_ratio_crossing_right n hn j k i p ε R a₀ hjk hki hp hp1 hR hpos hsum fuel
 
+/-- For `u < v < j`, the singleton union absorbing kernel has crossing probability at most the
+initial ratio `a₀ u / a₀ v` divided by positive `R`, at every fuel, under the noise and
+prior hypotheses. -/
 theorem union_pair_singleton_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     (p ε R : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
     (huv : (u : ℕ) < (v : ℕ)) (hvj : (v : ℕ) < (j : ℕ))
@@ -232,6 +287,7 @@ theorem union_pair_singleton_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
   rw [singleton_unionAbsorbNext]
   exact zoo_bayes_truth_ratio_crossing_left n hn u v j p ε R a₀ huv hvj hp hp1 hR hpos hsum fuel
 
+/-- The probability of a union of two events is at most the sum of their probabilities. -/
 theorem event_or_le {α : Type*} (μ : PMF α) (A B : α → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ (fun x => A x ∨ B x) ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ A + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ B := by
   classical
@@ -250,6 +306,8 @@ theorem event_or_le {α : Type*} (μ : PMF α) (A B : α → Prop) :
     · simp [hA, hB]
     · simp [hA, hB]
 
+/-- The probability of a union indexed by a finite set is at most the sum of the event
+probabilities. -/
 theorem event_finite_union_le {α ι : Type*} (μ : PMF α) (s : Finset ι) (Q : ι → α → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ (fun x => ∃ i ∈ s, Q i x) ≤ ∑ i ∈ s, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ (Q i) := by
   classical
@@ -286,18 +344,24 @@ theorem event_finite_union_le {α ι : Type*} (μ : PMF α) (s : Finset ι) (Q :
             add_le_add (le_refl _) ih
         _ = ∑ i ∈ insert a s, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ (Q i) := by rw [Finset.sum_insert ha]
 
+/-- The initial posterior ratio associated with an ordered pair. -/
 noncomputable def cutUnionWeight {n : ℕ} (a₀ : Fin n → ℝ) (pr : Fin n × Fin n) : ℝ :=
     a₀ pr.1 / a₀ pr.2
 
+/-- The sum of the initial ratios for pairs in `S`, divided by the common threshold `R`. -/
 noncomputable def cutUnionBound {n : ℕ} (S : Finset (Fin n × Fin n)) (a₀ : Fin n → ℝ) (R : ℝ) : ℝ :=
   (∑ pr ∈ S, cutUnionWeight a₀ pr) / R
 
+/-- For positive `R`, a sum of pair weights at most `δ * R` gives `cutUnionBound S a₀ R ≤ δ`. -/
 theorem cutUnionBound_le {n : ℕ} (S : Finset (Fin n × Fin n)) (a₀ : Fin n → ℝ) (R δ : ℝ)
     (hR : 0 < R) (hW : (∑ pr ∈ S, cutUnionWeight a₀ pr) ≤ δ * R) :
     cutUnionBound S a₀ R ≤ δ := by
   rw [cutUnionBound, div_le_iff₀ hR]
   exact hW
 
+/-- For pairs satisfying `crossSide`, positive `R`, and `1 / 2 < p < 1`, the probability of any
+crossing after a finite union absorbing run is at most `ENNReal.ofReal (cutUnionBound S a₀
+R)` for a positive prior of mass at most one. -/
 theorem cut_union_event_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (S : Finset (Fin n × Fin n)) (hside : ∀ pr ∈ S, crossSide j pr.1 pr.2)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
@@ -325,17 +389,21 @@ theorem cut_union_event_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     _ = ENNReal.ofReal (cutUnionBound S a₀ R) := by
         rw [cutUnionBound, Finset.sum_div]
 
+/-- The finite set of all ordered pairs satisfying `crossSide` for the truth index `j`. -/
 noncomputable def fullCrossPairs {n : ℕ} (j : Fin n) : Finset (Fin n × Fin n) :=
   Finset.univ.filter (fun pr => crossSide j pr.1 pr.2)
 
+/-- Every member of `fullCrossPairs j` satisfies `crossSide j`. -/
 theorem fullCrossPairs_side {n : ℕ} (j : Fin n) (pr : Fin n × Fin n)
     (hpr : pr ∈ fullCrossPairs j) : crossSide j pr.1 pr.2 := by
   rw [fullCrossPairs, Finset.mem_filter] at hpr
   exact hpr.2
 
+/-- The maximum of one and the natural ceiling of `log x / log (p / (1 - p))`. -/
 noncomputable def deviationExponent (p x : ℝ) : ℕ :=
   max 1 (Nat.ceil (Real.log x / Real.log (p / (1 - p))))
 
+/-- Every natural power of a real number at least one is at least one. -/
 theorem one_le_pow' {q : ℝ} (hq : 1 ≤ q) (r : ℕ) : 1 ≤ q ^ r := by
   induction r with
   | zero => norm_num
@@ -347,6 +415,8 @@ theorem one_le_pow' {q : ℝ} (hq : 1 ≤ q) (r : ℕ) : 1 ≤ q ^ r := by
         _ ≤ q * q ^ k := h1
         _ = q ^ (k + 1) := by ring
 
+/-- For `1 / 2 < p < 1` and positive `x`, the odds ratio raised to `deviationExponent p x` is at
+least `x`. -/
 theorem pow_deviationExponent_ge {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1)
     {x : ℝ} (hx : 0 < x) :
     x ≤ (p / (1 - p)) ^ (deviationExponent p x) := by
@@ -371,9 +441,13 @@ theorem pow_deviationExponent_ge {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1)
           (Real.rpow_le_rpow_left_iff hq1).mpr hceil
       _ = (p / (1 - p)) ^ deviationExponent p x := Real.rpow_natCast _ _
 
+/-- The union bound over all crossing pairs at threshold `(p / (1 - p))^r`. -/
 noncomputable def fullCutUnionBound {n : ℕ} (j : Fin n) (a₀ : Fin n → ℝ) (p : ℝ) (r : ℕ) : ℝ :=
   cutUnionBound (fullCrossPairs j) a₀ ((p / (1 - p)) ^ r)
 
+/-- For any positive `δ`, noise parameter `1 / 2 < p < 1`, and positive prior of mass at most
+one, a positive odds ratio exponent makes the full union absorbing crossing probability at
+most `ENNReal.ofReal δ` for every fuel. -/
 theorem cut_union_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε δ : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hδ : 0 < δ)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1) :
@@ -412,11 +486,15 @@ theorem cut_union_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε δ : ℝ)
             ((∑ pr ∈ fullCrossPairs j, cutUnionWeight a₀ pr) / δ)) :=
             mul_comm _ _
 
+/-- For `1 / 2 < p < 1`, the Bernoulli law defined using `truthAnswerProb` equals the ordered
+search answer law `answerPMF`. -/
 theorem run_answerPMF {n : ℕ} (j c : Fin n) {p : ℝ} (hp : 1 / 2 < p) (hp1 : p < 1) :
     (PMF.bernoulli (truthAnswerProb j c p)
         (clampProb_le (if (c : ℕ) ≤ (j : ℕ) then p else 1 - p))) =
     answerPMF ⟨p, by linarith, hp1⟩ j c := rfl
 
+/-- An implication between two events on the support of a probability mass function gives the
+corresponding inequality of event probabilities. -/
 theorem event_mono {α : Type*} (μ : PMF α) {E F : α → Prop}
     (h : ∀ x ∈ μ.support, E x → F x) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ E ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ F := by
@@ -434,6 +512,8 @@ theorem event_mono {α : Type*} (μ : PMF α) {E F : α → Prop}
   · rw [if_neg hx]
     simp
 
+/-- A length `l` window immediately preceding `u`, with `0 < l ≤ u`, contains an entry at most
+`1 / l` whenever the entries are nonnegative and sum to at most one. -/
 theorem window_light_cell_le {n : ℕ} (a : Fin n → ℝ) (u : Fin n) (l : ℕ) (hl : 0 < l)
     (hul : l ≤ (u : ℕ)) (ha0 : ∀ m, 0 ≤ a m) (hsum : (∑ m, a m) ≤ 1) :
     ∃ k : Fin n, ((u : ℕ) - l ≤ (k : ℕ) ∧ (k : ℕ) < (u : ℕ)) ∧ a k ≤ 1 / (l : ℝ) := by
@@ -472,15 +552,19 @@ theorem window_light_cell_le {n : ℕ} (a : Fin n → ℝ) (u : Fin n) (l : ℕ)
     exact Finset.filter_subset _ _
   linarith
 
+/-- The finite set of pairs `(u, v)` with `j < v < u` and `u - l ≤ v`. -/
 noncomputable def windowCrossPairs {n : ℕ} (j : Fin n) (l : ℕ) : Finset (Fin n × Fin n) :=
   Finset.univ.filter (fun pr =>
     (j : ℕ) < (pr.2 : ℕ) ∧ (pr.1 : ℕ) - l ≤ (pr.2 : ℕ) ∧ (pr.2 : ℕ) < (pr.1 : ℕ))
 
+/-- Every pair in `windowCrossPairs j l` satisfies `crossSide j`. -/
 theorem windowCrossPairs_side {n : ℕ} (j : Fin n) (l : ℕ) (pr : Fin n × Fin n)
     (hpr : pr ∈ windowCrossPairs j l) : crossSide j pr.1 pr.2 := by
   rw [windowCrossPairs, Finset.mem_filter] at hpr
   exact Or.inl ⟨hpr.2.1, hpr.2.2.2⟩
 
+/-- If `j + l < u`, `l > 0`, and a nonnegative vector of mass at most one has `b u ≥ ε > 0`,
+some `k` in the preceding window satisfies `j < k < u` and `(ε * l) * b k ≤ b u`. -/
 theorem far_heavy_window_crossing {n : ℕ} (j u : Fin n) (l : ℕ) (hl : 0 < l)
     (hju : (j : ℕ) + l < (u : ℕ)) {ε : ℝ} (hε : 0 < ε)
     (b : Fin n → ℝ) (hb0 : ∀ m, 0 ≤ b m) (hbsum : (∑ m, b m) ≤ 1) (hεu : ε ≤ b u) :
@@ -497,6 +581,8 @@ theorem far_heavy_window_crossing {n : ℕ} (j u : Fin n) (l : ℕ) (hl : 0 < l)
           rw [mul_assoc, mul_div_cancel₀ 1 hlR, mul_one]
       _ ≤ b u := hεu
 
+/-- For `1 / 2 < p < 1`, every supported result of a finite union absorbing run preserves
+`truthInv` from the initial configuration. -/
 theorem unionAbsorb_run_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (S : Finset (Fin n × Fin n)) (hp : 1 / 2 < p) (hp1 : p < 1)
     (cfg : Configuration (Fin n → ℝ) (Fin n → ℝ)) (hI : truthInv (configPosterior cfg))
@@ -532,6 +618,9 @@ theorem unionAbsorb_run_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
           obtain ⟨w, hw, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hx
           exact ih z hzI w hw
 
+/-- Under the stated noise and positive prior hypotheses, the union absorbing probability that
+some `u > j + l` has posterior at least positive `ε` is bounded by the window pair union
+bound at threshold `ε * l`. -/
 theorem far_heavy_window_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (l : ℕ) (hl : 0 < l)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1)
@@ -554,6 +643,9 @@ theorem far_heavy_window_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
   exact ⟨(u, k),
     Finset.mem_filter.mpr ⟨Finset.mem_univ _, ⟨hkj, hk1, hk2⟩⟩, hcross⟩
 
+/-- For any positive error target and positive window length, a positive odds ratio exponent
+makes the union absorbing probability of a cell beyond `j + l` reaching mass `(p / (1 -
+p))^r / l` at most that target for every fuel, under the noise and prior hypotheses. -/
 theorem far_heavy_window_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p δ : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hδ : 0 < δ) (l : ℕ) (hl : 0 < l)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1) :
@@ -593,6 +685,8 @@ theorem far_heavy_window_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p δ : 
             ((∑ pr ∈ windowCrossPairs j l, cutUnionWeight a₀ pr) / δ) :=
           mul_comm _ _
 
+/-- For `j < k < i` and `1 / 2 < p < 1`, the truth driven learner step does not increase the
+expected ratio potential `i / k`. -/
 theorem trueLearner_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hjk : (j : ℕ) < (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
     (a : Fin n → ℝ) :
@@ -636,6 +730,8 @@ theorem trueLearner_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) (p ε 
           (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p)) _ _ _
           (same_side_potential_le a _ i k p hside).1 (same_side_potential_le a _ i k p hside).2
 
+/-- For `u < v < j` and `1 / 2 < p < 1`, the truth driven learner step does not increase the
+expected ratio potential `u / v`. -/
 theorem trueLearner_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (huv : (u : ℕ) < (v : ℕ)) (hvj : (v : ℕ) < (j : ℕ))
     (a : Fin n → ℝ) :
@@ -687,6 +783,8 @@ theorem trueLearner_one_step_left {n : ℕ} (hn : 0 < n) (j u v : Fin n) (p ε :
           (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p)) _ _ _
           (same_side_potential_le a _ u v p hside).1 (same_side_potential_le a _ u v p hside).2
 
+/-- For `1 / 2 < p < 1`, every supported result of a finite truth driven learner run preserves
+`truthInv` from the initial configuration. -/
 theorem learner_run_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1)
     (cfg : Configuration (Fin n → ℝ) (Fin n → ℝ)) (hI : truthInv (configPosterior cfg))
@@ -721,6 +819,9 @@ theorem learner_run_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
           obtain ⟨w, hw, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hx
           exact ih z hzI w hw
 
+/-- For `j < k < i`, positive `R`, and `1 / 2 < p < 1`, the event `R * a k ≤ a i` after any
+finite truth driven run is bounded by the initial ratio `a₀ i / a₀ k` divided by `R`, for a
+positive prior of mass at most one. -/
 theorem learner_pair_crossing_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
     (p ε R : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
     (hjk : (j : ℕ) < (k : ℕ)) (hki : (k : ℕ) < (i : ℕ))
@@ -744,6 +845,9 @@ theorem learner_pair_crossing_right {n : ℕ} (hn : 0 < n) (j k i : Fin n)
       = ENNReal.ofReal ((a₀ i / a₀ k) / R) from by
     rw [ratioPotential, configPosterior, Sum.elim_inr, id_eq, ENNReal.ofReal_div_of_pos hR]]
 
+/-- For `u < v < j`, positive `R`, and `1 / 2 < p < 1`, the event `R * a v ≤ a u` after any
+finite truth driven run is bounded by the initial ratio `a₀ u / a₀ v` divided by `R`, for a
+positive prior of mass at most one. -/
 theorem learner_pair_crossing_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     (p ε R : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
     (huv : (u : ℕ) < (v : ℕ)) (hvj : (v : ℕ) < (j : ℕ))
@@ -767,6 +871,9 @@ theorem learner_pair_crossing_left {n : ℕ} (hn : 0 < n) (j u v : Fin n)
       = ENNReal.ofReal ((a₀ u / a₀ v) / R) from by
     rw [ratioPotential, configPosterior, Sum.elim_inr, id_eq, ENNReal.ofReal_div_of_pos hR]]
 
+/-- For a pair satisfying `crossSide`, the ratio threshold event after any finite truth driven
+learner run is bounded by the initial ratio divided by positive `R`, under the noise and
+prior hypotheses. -/
 theorem learner_pair_crossing {n : ℕ} (hn : 0 < n) (j u v : Fin n)
     (p ε R : ℝ) (hside : crossSide j u v)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
@@ -779,6 +886,9 @@ theorem learner_pair_crossing {n : ℕ} (hn : 0 < n) (j u v : Fin n)
   · exact learner_pair_crossing_right hn j v u p ε R hp hp1 hR hjv hvu a₀ hpos hsum fuel
   · exact learner_pair_crossing_left hn j u v p ε R hp hp1 hR huv hvj a₀ hpos hsum fuel
 
+/-- For pairs satisfying `crossSide`, the probability of any crossing after a finite truth
+driven run is bounded by `ENNReal.ofReal (cutUnionBound S a₀ R)`, under the noise, positive
+threshold, and prior hypotheses. -/
 theorem learner_cut_union_event_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : ℝ)
     (S : Finset (Fin n × Fin n)) (hside : ∀ pr ∈ S, crossSide j pr.1 pr.2)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hR : 0 < R)
@@ -806,6 +916,9 @@ theorem learner_cut_union_event_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R
     _ = ENNReal.ofReal (cutUnionBound S a₀ R) := by
         rw [cutUnionBound, Finset.sum_div]
 
+/-- Under the stated noise and prior hypotheses, the probability after a finite truth driven run
+that some `u > j + l` has posterior at least positive `ε` is bounded by the window pair
+union bound at threshold `ε * l`. -/
 theorem learner_far_heavy_window_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (l : ℕ) (hl : 0 < l)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1)
@@ -825,6 +938,7 @@ theorem learner_far_heavy_window_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε 
   exact ⟨(u, k),
     Finset.mem_filter.mpr ⟨Finset.mem_univ _, ⟨hkj, hk1, hk2⟩⟩, hcross⟩
 
+/-- If some posterior entry is at least `ε`, the entry chosen by `haltCut` is at least `ε`. -/
 theorem haltCut_heavy {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (ε : ℝ)
     (h : ∃ i : Fin n, ε ≤ a i) : ε ≤ a (haltCut hn a ε) := by
   have hne : (Finset.univ.filter fun i : Fin n => ε ≤ a i).Nonempty :=
@@ -832,6 +946,9 @@ theorem haltCut_heavy {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (ε : ℝ)
   rw [haltCut, dif_pos hne]
   exact (Finset.mem_filter.mp (Finset.min'_mem _ hne)).2
 
+/-- The probability of a halted truth driven configuration with an entry beyond `j + l` of mass
+at least `ε` is bounded by the window pair union bound at threshold `ε * l`, under the
+stated hypotheses. -/
 theorem learner_eps_halt_far_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (l : ℕ) (hl : 0 < l)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1)
@@ -843,6 +960,8 @@ theorem learner_eps_halt_far_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : �
   refine le_trans (event_mono _ (fun x _ hx => hx.2)) ?_
   exact learner_far_heavy_window_bound hn j p ε hp hp1 hε l hl a₀ hpos hsum fuel
 
+/-- The probability that some entry reaches `ε` and `haltCut` selects an index beyond `j + l` is
+bounded by the window pair union bound at threshold `ε * l`, under the stated hypotheses. -/
 theorem learner_haltCut_far_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (l : ℕ) (hl : 0 < l)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1)
@@ -855,11 +974,14 @@ theorem learner_haltCut_far_bound {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ
     (learner_far_heavy_window_bound hn j p ε hp hp1 hε l hl a₀ hpos hsum fuel)
   exact ⟨haltCut hn (configPosterior x.1) ε, hx.2, haltCut_heavy hn _ ε hx.1⟩
 
+/-- The finite set of pairs with first coordinate `u` and second coordinate in the length `l`
+window immediately preceding `u`. -/
 noncomputable def singleWindowPairs {n : ℕ} (u : Fin n) (l : ℕ) :
     Finset (Fin n × Fin n) :=
   Finset.univ.filter (fun pr =>
     pr.1 = u ∧ (u : ℕ) - l ≤ (pr.2 : ℕ) ∧ (pr.2 : ℕ) < (u : ℕ))
 
+/-- There are at most `l` pairs in `singleWindowPairs u l`. -/
 theorem singleWindowPairs_card_le {n : ℕ} (u : Fin n) (l : ℕ) :
     (singleWindowPairs u l).card ≤ l := by
   classical
@@ -884,6 +1006,7 @@ theorem singleWindowPairs_card_le {n : ℕ} (u : Fin n) (l : ℕ) :
   rw [Finset.card_range] at hle
   exact hle
 
+/-- If `j + l < u`, every pair in `singleWindowPairs u l` satisfies `crossSide j`. -/
 theorem singleWindowPairs_side {n : ℕ} (j u : Fin n) (l : ℕ)
     (hjul : (j : ℕ) + l < (u : ℕ)) (pr : Fin n × Fin n)
     (hpr : pr ∈ singleWindowPairs u l) : crossSide j pr.1 pr.2 := by
@@ -891,6 +1014,9 @@ theorem singleWindowPairs_side {n : ℕ} (j u : Fin n) (l : ℕ)
   rw [hpr.1]
   exact Or.inl ⟨by omega, hpr.2.2⟩
 
+/-- For fixed `u > j + l`, the probability after a finite truth driven run that its posterior
+reaches positive `ε` is bounded by the single window union bound at threshold `ε * l`, under
+the noise and prior hypotheses. -/
 theorem learner_far_heavy_single_bound {n : ℕ} (hn : 0 < n) (j u : Fin n) (l : ℕ)
     (hl : 0 < l) (hjul : (j : ℕ) + l < (u : ℕ))
     (p ε : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε)
@@ -909,6 +1035,9 @@ theorem learner_far_heavy_single_bound {n : ℕ} (hn : 0 < n) (j u : Fin n) (l :
     far_heavy_window_crossing j u l hl hjul hε (configPosterior x.1) hb0 hI.2 hεu
   exact ⟨(u, k), Finset.mem_filter.mpr ⟨Finset.mem_univ _, ⟨rfl, hk1, hk2⟩⟩, hcross⟩
 
+/-- For a constant positive prior of mass at most one and `u > j + l`, the probability that the
+posterior at `u` reaches positive `ε` after any finite truth driven run is at most
+`ENNReal.ofReal (1 / ε)`, under the noise hypotheses. -/
 theorem learner_far_heavy_single_uniform {n : ℕ} (hn : 0 < n) (j u : Fin n) (l : ℕ)
     (hl : 0 < l) (hjul : (j : ℕ) + l < (u : ℕ))
     (p ε : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε)
@@ -938,6 +1067,9 @@ theorem learner_far_heavy_single_uniform {n : ℕ} (hn : 0 < n) (j u : Fin n) (l
         rw [div_eq_div_iff (mul_ne_zero hε.ne' hlR) hε.ne', one_mul]
         ring
 
+/-- For any positive error target and positive window length, a positive odds ratio exponent
+makes the truth driven probability of a cell beyond `j + l` reaching mass `(p / (1 - p))^r /
+l` at most that target for every fuel, under the noise and prior hypotheses. -/
 theorem learner_far_heavy_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p δ : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hδ : 0 < δ) (l : ℕ) (hl : 0 < l)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1) :
@@ -977,6 +1109,9 @@ theorem learner_far_heavy_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p δ :
             ((∑ pr ∈ windowCrossPairs j l, cutUnionWeight a₀ pr) / δ) :=
             mul_comm _ _
 
+/-- Under the stated noise and prior hypotheses, packages the truth driven learner's pairwise
+and finite union ratio bounds, far heavy cell and halting bounds, single cell bounds, and
+calibration to any positive error target. -/
 theorem frontier2 {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (l : ℕ) (hl : 0 < l)
     (S : Finset (Fin n × Fin n)) (hside : ∀ pr ∈ S, crossSide j pr.1 pr.2)
@@ -1025,6 +1160,9 @@ theorem frontier2 {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
       learner_far_heavy_single_bound hn j u l hl hjul p ε hp hp1 hε a₀ hpos hsum fuel,
     fun δ hδ => learner_far_heavy_calibration hn j p δ hp hp1 hδ l hl a₀ hpos hsum⟩
 
+/-- Under the stated noise and prior hypotheses, packages pairwise and finite union ratio bounds
+for the union absorbing kernel together with full pair calibration to any positive error
+target. -/
 theorem frontier1 {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1)
     (S : Finset (Fin n × Fin n)) (hside : ∀ pr ∈ S, crossSide j pr.1 pr.2)

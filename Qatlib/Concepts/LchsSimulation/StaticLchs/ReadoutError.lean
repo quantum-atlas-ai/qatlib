@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Born readout error from oracle perturbations
+
+This module turns the circuit hybrid norm bound into an error bound for the Born probability of
+any finite measurement event. `measureProb_run_sub_le_queryCount` controls the probability
+change by twice the query count times the unitary oracle perturbation norm.
+
+The mathematical background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `measureProb_run_sub_le_queryCount`: bounds event-probability error directly.
+* `measureProb_run_sub_le_queryCount_of_le`: uses a supplied upper bound on the oracle error.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath.Reflection
 set_option warningAsError false
 
@@ -20,6 +40,8 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- For a normalized input and a unitary circuit, replacing a unitary oracle changes any
+finite-event Born probability by at most `2 * QueryCount C * ‖O - P‖`. -/
 theorem measureProb_run_sub_le_queryCount
     (O P : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) (E : Finset I)
     (hO : O ∈ Matrix.unitaryGroup I ℂ) (hP : P ∈ Matrix.unitaryGroup I ℂ)
@@ -37,6 +59,9 @@ theorem measureProb_run_sub_le_queryCount
       mul_le_mul_of_nonneg_left hhybrid (by norm_num)
     _ = 2 * (QueryCount C : ℝ) * ‖O - P‖ := by ring
 
+/-- If two unitary oracles differ in operator norm by at most `δ`, their finite-event Born
+probabilities differ by at most `2 * QueryCount C * δ` for a unitary circuit on a normalized
+input. -/
 theorem measureProb_run_sub_le_queryCount_of_le
     (O P : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) (E : Finset I) (δ : ℝ)
     (hO : O ∈ Matrix.unitaryGroup I ℂ) (hP : P ∈ Matrix.unitaryGroup I ℂ)

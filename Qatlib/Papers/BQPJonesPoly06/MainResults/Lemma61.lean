@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Lemma41
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Contraction
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Unitary
+
+/-!
+# Geometric steps in the bridge argument
+
+This module develops geometric ingredients for bridge approximation: preserved vectors,
+contracting projections, and decay of recurrent components. It constructs approximable maps
+placing prescribed unit vectors in complementary subspaces and a norm-preserving bridge form
+with a contracting coefficient. See [AharonovArad2011].
+
+## Main statements
+
+* `lemma61_preserved_vector`: finds a nonzero vector remaining in the larger complementary
+  subspace.
+* `lemma61_step_place`: moves two unit directions while keeping their coefficients.
+* `lemma61_bridge_normalized`: constructs an approximable normalized bridge form.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,16 +38,24 @@ open Model
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
 
+/-- For any vector `ψ`, some map approximable by the bridge generators fixes `ψ`. See [Aharonov
+and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem lemma61_vector_transitive_self (A B : Submodule ℂ E) (W : E ≃ₗᵢ[ℂ] E)
     (ψ : E) :
     ∃ T : E →L[ℂ] E, ApproximableBy (bridgeGenerators A B W) T ∧ T ψ = ψ :=
   ⟨1, ApproximableBy.id _, by simp⟩
 
+/-- When `B` is the orthogonal complement of the smaller subspace `A`, every linear isometric
+equivalence sends some nonzero vector of `B` back into `B`. See [Aharonov and Arad, Lemma
+6.1][AharonovArad2011]. -/
 theorem lemma61_preserved_vector {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (hAB : Module.finrank ℂ A < Module.finrank ℂ B) (W : E ≃ₗᵢ[ℂ] E) :
     ∃ v ∈ B, v ≠ 0 ∧ (W v : E) ∈ B :=
   exists_preserved_vector hBA hAB W
 
+/-- A bridge between orthogonal complementary subspaces has a unit vector in `A` whose projected
+image has norm less than one, and powers of that norm make any nonnegative real multiple
+arbitrarily small. See [Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem lemma61_contraction_geometric {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (W : E ≃ₗᵢ[ℂ] E) (hW : IsBridge A B W) :
     ∃ u ∈ A, ‖u‖ = 1 ∧ ‖A.starProjection (W u)‖ < 1 ∧
@@ -38,6 +67,8 @@ theorem lemma61_contraction_geometric {A B : Submodule ℂ E} (hBA : Aᗮ = B)
 
 omit [FiniteDimensional ℂ E] in
 
+/-- For a unit vector `u`, a scalar recurrence with multiplier of norm less than one makes `‖(x
+n) • u‖` arbitrarily small. See [Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem lemma61_A_component_decay (u : E) (hu : ‖u‖ = 1) (x : ℕ → ℂ) (a : ℂ)
     (hx : ∀ n, x (n + 1) = a * x n) (ha : ‖a‖ < 1) :
     ∀ ε : ℝ, 0 < ε → ∃ n : ℕ, ‖(x n) • u‖ < ε :=
@@ -45,11 +76,15 @@ theorem lemma61_A_component_decay (u : E) (hu : ‖u‖ = 1) (x : ℕ → ℂ) (
 
 omit [FiniteDimensional ℂ E] in
 
+/-- Under a scalar recurrence with multiplier of norm less than one, some vector `(x n) • u + β
+• v` lies within any prescribed positive tolerance of `β • v`. See [Aharonov and Arad, Lemma
+6.1][AharonovArad2011]. -/
 theorem lemma61_contraction_approach (u v : E) (hu : ‖u‖ = 1) (x : ℕ → ℂ) (a β : ℂ)
     (hx : ∀ n, x (n + 1) = a * x n) (ha : ‖a‖ < 1) :
     ∀ ε : ℝ, 0 < ε → ∃ n : ℕ, ‖(x n) • u + β • v - β • v‖ < ε :=
   contraction_approach_B u v hu x a β hx ha
 
+/-- A map in `SpecialUnitary A` fixes every vector in the orthogonal complement of `A`. -/
 theorem specialUnitary_fixes_orthogonal {A : Submodule ℂ E} {T : E →L[ℂ] E}
     (hT : T ∈ SpecialUnitary A) {x : E} (hx : x ∈ Aᗮ) : T x = x := by
   obtain ⟨U, _hU, hTx⟩ := hT
@@ -61,11 +96,16 @@ theorem specialUnitary_fixes_orthogonal {A : Submodule ℂ E} {T : E →L[ℂ] E
   rw [hTx, hP, hS]
   simp
 
+/-- Every map in `SpecialUnitary A` is approximable by the bridge generators associated with
+`A`, `B`, and `W`. -/
 theorem specialUnitary_approximable {A B : Submodule ℂ E} (W : E ≃ₗᵢ[ℂ] E)
     {T : E →L[ℂ] E} (hT : T ∈ SpecialUnitary A) :
     ApproximableBy (bridgeGenerators A B W) T :=
   ApproximableBy.of_mem (Or.inl (Or.inl hT))
 
+/-- For complementary subspaces of dimension at least two, an approximable map sends `α • u0 + β
+• v0` to `α • u1 + β • v1` for the specified unit vectors. See [Aharonov and Arad, Lemma
+6.1][AharonovArad2011]. -/
 theorem lemma61_step_place {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (hA : 2 ≤ Module.finrank ℂ A) (hB : 2 ≤ Module.finrank ℂ B)
     (W : E ≃ₗᵢ[ℂ] E) {u0 u1 : A} (hu0 : ‖u0‖ = 1) (hu1 : ‖u1‖ = 1)
@@ -89,6 +129,8 @@ theorem lemma61_step_place {A B : Submodule ℂ E} (hBA : Aᗮ = B)
   · rw [ContinuousLinearMap.comp_apply]
     simp only [map_add, map_smul, hTBval, hTBfix, hTAval, hTAfix]
 
+/-- A unit vector with nonzero inner product against a vector in the orthogonal complement of
+`A` has projection onto `A` of norm less than one. -/
 theorem contraction_factor_of_component {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (x : E) (hx1 : ‖x‖ = 1) {β : E} (hβB : β ∈ B) (hβne : inner ℂ x β ≠ 0) :
     ‖A.starProjection x‖ < 1 := by
@@ -116,6 +158,9 @@ theorem contraction_factor_of_component {A B : Submodule ℂ E} (hBA : Aᗮ = B)
   have hPsq : ‖A.starProjection x‖ ^ 2 < 1 := by nlinarith
   nlinarith [norm_nonneg (A.starProjection x)]
 
+/-- Given the bridge and complement hypotheses, construct an approximable norm-preserving map
+sending `v` into `B` and sending some unit vector `u` of `A` to `a • u + b • w`, where `‖a‖
+< 1` and `w` is a unit vector of `B`. See [Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem lemma61_bridge_normalized {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (hA : 2 ≤ Module.finrank ℂ A) (W : E ≃ₗᵢ[ℂ] E) (hW : IsBridge A B W)
     {v : E} (hWvB : (W v : E) ∈ B) :

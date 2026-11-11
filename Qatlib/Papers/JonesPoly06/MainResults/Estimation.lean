@@ -7,6 +7,18 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.JonesPoly06.MainResults.SamplingSigns
 import Qatlib.Papers.JonesPoly06.MainResults.ChernoffConcentration
 import Qatlib.Papers.JonesPoly06.MainResults.HadamardTest
+
+/-!
+# Sampling a Hadamard-test sign observable
+
+The four-outcome sign law has a zero-one indicator whose expectation is
+`(Re z + 1) / 2`. Its probabilities agree with the associated Born masses.
+For independent samples, the stated lower bound on sample count makes the
+probability of an indicator-mean error of at least `δ` no greater than one
+quarter. This is the scalar sampling component of Jones-polynomial estimation.
+
+The algorithmic source is [AharonovJonesLandau2009].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,25 +31,34 @@ open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 
 namespace Qatlib.Papers.JonesPoly06.MainResults
 
+/-- The [0, 1]-valued indicator obtained from `signX` by the affine transformation (x + 1)/2. -/
 def signIndicator : Fin 4 → ℝ := fun i => (signX i + 1) / 2
 
+/-- Every value of `signIndicator` lies in [0, 1]. -/
 theorem signIndicator_mem (i : Fin 4) : signIndicator i ∈ Set.Icc (0 : ℝ) 1 := by
   have h := signX_val i
   unfold signIndicator
   constructor <;> rcases h with h | h <;> rw [h] <;> norm_num
 
+/-- Under `signLaw z hz`, the expectation of `signIndicator` is (Re z + 1)/2; see
+[WocjanYard2006]. -/
 theorem expect_signIndicator (z : ℂ) (hz : z.re ^ 2 + z.im ^ 2 ≤ 1) :
     (signLaw z hz).expect signIndicator = (z.re + 1) / 2 := by
   unfold signIndicator
   simp only [FinDist.expect, signLaw, Fin.sum_univ_four, signX, signY]
   ring
 
+/-- The mass of each outcome under `signLaw` equals `bornMass` evaluated at its two signs; see
+[WocjanYard2006]. -/
 theorem signLaw_prob_eq_bornMass (z : ℂ) (hz : z.re ^ 2 + z.im ^ 2 ≤ 1)
     (i : Fin 4) :
     (signLaw z hz).prob i = bornMass z (signX i) (signY i) := by
   simp only [signLaw, bornMass, signX, signY]
   fin_cases i <;> norm_num <;> ring
 
+/-- A sufficient independent-sample budget bounds the sign-indicator mean's
+failure probability by one quarter, for the estimation framework of
+[Aharonov, Jones & Landau][AharonovJonesLandau2009]. -/
 theorem Theorem21_sampling (z : ℂ) (hz : z.re ^ 2 + z.im ^ 2 ≤ 1)
     (δ : ℝ) (hδ : 0 < δ) (M : ℕ) (hM : 0 < M)
     (hcount : 8 * Real.log 16 / δ ^ 2 ≤ (M : ℝ)) :

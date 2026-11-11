@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
 import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+/-!
+# Unitarity of sparse Hamiltonian oracles
+
+This module proves that the sparse value oracle `effectiveSparseOH` and the sparse location
+oracle `effectiveSparseOF` are unitary. Their definitions use reversible value XOR and location
+permutations, the sparse-oracle interfaces used in the setting of [LowWiebe2018].
+
+## Main statements
+
+* `effectiveSparseOH_unitary`: unitarity of the value oracle.
+* `effectiveSparseOF_unitary`: unitarity of the location oracle.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -17,6 +35,8 @@ namespace Qatlib.Concepts.InteractionEvo.EffCosts
 open Matrix
 set_option warningAsError false
 
+/-- The sparse value oracle is unitary for every supplied value table. This verifies one oracle
+interface used in the setting of [Low and Wiebe, Lemma 8][LowWiebe2018]. -/
 theorem effectiveSparseOH_unitary (p : EffectiveSparseParameters) (S : EffectiveSparseData p) :
     effectiveSparseOH p S ∈ Matrix.unitaryGroup (Reg (p.nd+2*p.ns+2*p.np)) ℂ := by
   let f : Reg (p.nd+2*p.ns+2*p.np) → Reg (p.nd+2*p.ns+2*p.np) := fun x =>
@@ -57,6 +77,7 @@ theorem effectiveSparseOH_unitary (p : EffectiveSparseParameters) (S : Effective
     · rw [hpre (f x) i (by omega),hpre x i (by omega)]
   exact permMatrix_unitary hi
 
+/-- The sparse location oracle is unitary for every supplied family of location permutations. -/
 theorem effectiveSparseOF_unitary (p : EffectiveSparseParameters) (S : EffectiveSparseData p) :
     effectiveSparseOF p S ∈ Matrix.unitaryGroup (Reg (p.nd+2*p.ns)) ℂ := by
   let r (x : Reg (p.nd+2*p.ns)) : Reg p.nd := fun i => x ⟨i.val,by omega⟩

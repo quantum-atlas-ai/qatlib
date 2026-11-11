@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux3
+
+/-!
+# Coordinatewise error propagation for Taylor evolution
+
+The scalar function `duhamelCoord` models exact forced evolution, while `conjSeq` models the
+Taylor recurrence in diagonal coordinates. Scalar step formulas and a discrete Gronwall estimate
+lead to `per_coordinate_error`. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorPoly_zero`: The exponential Taylor polynomial has value one at zero.
+* `per_coordinate_error`: Under the stated stability and factorial hypotheses, the coordinate
+  error after `j ≤ m` steps is at most `2.8 * j * (‖y n‖ + m*h*‖βc n‖) / (k+1)!`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,21 +36,26 @@ open Matrix
 open scoped Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The exponential Taylor polynomial has value one at zero. -/
 theorem taylorPoly_zero (k : ℕ) : taylorPoly k 0 = 1 := by
   rw [taylorPoly, Finset.sum_range_succ']
   simp
 
+/-- For `k ≥ 1`, the source Taylor polynomial has value one at zero. -/
 theorem taylorSrcPoly_zero {k : ℕ} (hk : 1 ≤ k) : taylorSrcPoly k 0 = 1 := by
   obtain ⟨n, rfl⟩ : ∃ n, k = n + 1 := ⟨k - 1, by omega⟩
   rw [taylorSrcPoly, Finset.sum_range_succ']
   simp
 
+/-- The scalar forced-evolution expression `exp(lam*t) * (yv + ∫ s in 0..t, exp(-lam*s) * βv)`. -/
 noncomputable def duhamelCoord (lam yv βv : ℂ) (t : ℝ) : ℂ :=
   Complex.exp (lam * t) * (yv + ∫ s in 0..t, Complex.exp (-(lam * s)) * βv)
 
+/-- The scalar forced-evolution expression at time zero equals its initial value `yv`. -/
 theorem duhamelCoord_zero (lam yv βv : ℂ) : duhamelCoord lam yv βv 0 = yv := by
   simp [duhamelCoord]
 
+/-- For zero scalar coefficient, `duhamelCoord` is the affine function `yv + t * βv`. -/
 theorem duhamelCoord_of_lam_zero {lam yv βv : ℂ} (hlam : lam = 0) (t : ℝ) :
     duhamelCoord lam yv βv t = yv + t * βv := by
   subst hlam
@@ -39,12 +63,15 @@ theorem duhamelCoord_of_lam_zero {lam yv βv : ℂ} (hlam : lam = 0) (t : ℝ) :
   rw [intervalIntegral.integral_const]
   simp
 
+/-- For zero scalar coefficient, advancing time by `h` adds `h * βv` to `duhamelCoord`. -/
 theorem duhamelCoord_step_lam_zero {lam yv βv : ℂ} (hlam : lam = 0) (h τ : ℝ) :
     duhamelCoord lam yv βv (τ + h) = duhamelCoord lam yv βv τ + h * βv := by
   rw [duhamelCoord_of_lam_zero hlam, duhamelCoord_of_lam_zero hlam]
   push_cast
   ring
 
+/-- For nonzero scalar coefficient, a time step multiplies the current value by `exp(lam*h)` and
+adds `βv * (exp(lam*h)-1) / lam`. -/
 theorem duhamelCoord_step {lam yv βv : ℂ} {h τ : ℝ} (hlam : lam ≠ 0) :
     duhamelCoord lam yv βv (τ + h) =
       Complex.exp (lam * h) * duhamelCoord lam yv βv τ
@@ -100,6 +127,7 @@ theorem duhamelCoord_step {lam yv βv : ℂ} {h τ : ℝ} (hlam : lam ≠ 0) :
     ← intervalIntegral.integral_add_adjacent_intervals (hint 0 τ) (hint τ (τ + h)), hmid, hE]
   linear_combination (βv * lam⁻¹) * hd
 
+/-- For `Re lam ≤ 0` and `t ≥ 0`, the scalar solution norm is at most `‖yv‖ + t * ‖βv‖`. -/
 theorem duhamelCoord_norm_le (lam yv βv : ℂ) (hre : lam.re ≤ 0) (t : ℝ) (ht : 0 ≤ t) :
     ‖duhamelCoord lam yv βv t‖ ≤ ‖yv‖ + t * ‖βv‖ := by
   have hint : IntervalIntegrable (fun s : ℝ => Complex.exp (-(lam * ↑s)) * βv)
@@ -152,6 +180,7 @@ theorem duhamelCoord_norm_le (lam yv βv : ℂ) (hre : lam.re ≤ 0) (t : ℝ) (
   rw [hspl]
   exact (norm_add_le _ _).trans (by linarith [hb1, hb2])
 
+/-- The exponential of `7 / 12` is at most `12 / 5`. -/
 theorem exp_seven_twelfths_le : Real.exp (7 / 12 : ℝ) ≤ 12 / 5 := by
   have h1 : (5 / 12 : ℝ) ≤ Real.exp (-(7 / 12 : ℝ)) := by
     have h2 := Real.add_one_le_exp (-(7 / 12 : ℝ))
@@ -163,6 +192,8 @@ theorem exp_seven_twelfths_le : Real.exp (7 / 12 : ℝ) ≤ 12 / 5 := by
         (inv_le_inv₀ (Real.exp_pos _) (by norm_num : (0 : ℝ) < 5 / 12)).mpr h1
     _ = 12 / 5 := by norm_num
 
+/-- Under the stated scalar recurrence and forcing bounds with `F ≥ 2*m`, the error satisfies `E
+j ≤ 2.8 * j * (u + m*v) / F` for `j ≤ m`. -/
 theorem scalar_gronwall (m : ℕ) (_hm : 0 < m) (F : ℝ) (hF0 : 0 < F) (hFm : (2 * m : ℝ) ≤ F)
     (u v : ℝ) (_hu : 0 ≤ u) (hv : 0 ≤ v)
     (E Φ : ℕ → ℝ) (hE0 : E 0 = 0) (_hEnn : ∀ j, 0 ≤ E j)
@@ -278,12 +309,16 @@ section Evolution
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- The sequence starting at `y` and advancing each diagonal coordinate with `taylorPoly`,
+together with the source contribution `h * βc * taylorSrcPoly`. -/
 noncomputable def conjSeq (k : ℕ) (h : ℝ) (D : Matrix N N ℂ) (y βc : QState N) :
     ℕ → QState N
   | 0 => y
   | j + 1 => fun n => taylorPoly k (↑h * D n n) * conjSeq k h D y βc j n
       + ↑h * βc n * taylorSrcPoly k (↑h * D n n)
 
+/-- For a diagonalizable system, consecutive V2 boundary blocks satisfy the diagonal-coordinate
+Taylor recurrence transported by `V`. -/
 theorem taylorV2_block_evolution (m k p : ℕ) (A V D : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p (h • A) *ᵥ x = taylorRHS m k p h x_in b)
@@ -383,6 +418,8 @@ theorem taylorV2_block_evolution (m k p : ℕ) (A V D : Matrix N N ℂ) (h : ℝ
     Finset.sum_add_distrib, hdata, hsrc, ← Matrix.mulVec_add]
   rfl
 
+/-- Each V2 time block equals `V` applied to `conjSeq` with the transformed initial state and
+forcing vector. -/
 theorem taylorV2_block_conj (m k p : ℕ) (A V D : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p (h • A) *ᵥ x = taylorRHS m k p h x_in b)
@@ -411,6 +448,8 @@ theorem taylorV2_block_conj (m k p : ℕ) (A V D : Matrix N N ℂ) (h : ℝ)
     rw [hstep, hih, Matrix.mulVec_mulVec, hV2, Matrix.one_mulVec]
     exact congrArg _ (funext fun n => rfl)
 
+/-- Under the stated diagonalization and inverse hypotheses, `‖h • A‖ ≤ 1` bounds every scaled
+diagonal entry `‖h * D n n‖` by one. -/
 theorem hA_eigen_norm_le (A V D : Matrix N N ℂ)
     (hA : A = V * D * V⁻¹) (_hV1 : V * V⁻¹ = 1) (hV2 : V⁻¹ * V = 1)
     (hd : ∀ i j : N, i ≠ j → D i j = 0) (h : ℝ) (_hh : 0 < h) (hnorm : ‖h • A‖ ≤ 1)
@@ -454,6 +493,8 @@ theorem hA_eigen_norm_le (A V D : Matrix N N ℂ)
 
 omit [Fintype N] [DecidableEq N] in
 
+/-- Under the stated stability and factorial hypotheses, the coordinate error after `j ≤ m`
+steps is at most `2.8 * j * (‖y n‖ + m*h*‖βc n‖) / (k+1)!`. -/
 theorem per_coordinate_error (m k : ℕ) (hk : 5 ≤ k) (hm : 0 < m)
     (hF : 2 * m ≤ Nat.factorial (k + 1)) (h : ℝ) (hh : 0 < h)
     (D : Matrix N N ℂ) (y βc : QState N) (n : N)

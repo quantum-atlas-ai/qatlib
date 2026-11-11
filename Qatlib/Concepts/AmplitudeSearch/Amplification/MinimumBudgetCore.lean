@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+
+/-!
+# Recursive minimum search with initialization costs
+
+This module defines `strictMarked` and the evaluator `minimumBudgetEvalWithInit`, which charges
+initialization before each BBHT call and recurses after a strict improvement. These definitions
+give finite-budget payoff semantics for the minimum-search procedure of [DurrHoyer1996].
+
+The evaluator preserves nonnegative payoffs, the constant payoff one, and pointwise payoff
+inequalities. Its minimum indicator `minimumBudgetSuccessWithInit` lies in the unit interval and
+equals one from an initial minimum.
+
+## Main statements
+
+* `minimumBudgetEvalWithInit`: evaluates terminal payoffs with an explicit initialization
+  charge.
+* `minimumBudgetEvalWithInit_mono`: compares ordered terminal payoffs.
+* `minimumBudgetSuccessWithInit_bounds`: bounds the success value between zero and one.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,9 +47,14 @@ open Qatlib.Concepts.SearchStopping.UnknownCount
 open Qatlib
 variable {N : ℕ} {α : Type*} [LinearOrder α]
 
+/-- The finite set of indices whose table values are strictly smaller than the current value. -/
 def strictMarked (T : Fin N → α) (current : Fin N) : Finset (Fin N) :=
   Finset.univ.filter (fun i => T i < T current)
 
+/-- Recursive payoff semantics for finite-budget minimum search, charging `initialization`
+before each BBHT call and continuing after a checked improvement with smaller remaining
+budget [DurrHoyer1996]. A singleton table or an unaffordable initialization returns the
+current terminal payoff. -/
 noncomputable def minimumBudgetEvalWithInit (T : Fin N → α) (initialization budget : ℕ)
     (current : Fin N) (payoff : Fin N → ℕ → ℝ) : ℝ :=
   if N = 1 then payoff current budget else
@@ -37,6 +67,8 @@ noncomputable def minimumBudgetEvalWithInit (T : Fin N → α) (initialization b
     else payoff current budget
 termination_by budget
 
+/-- Nonnegative terminal payoffs give a nonnegative evaluation with initialization charges on a
+nonempty table. -/
 theorem minimumBudgetEvalWithInit_nonneg (T : Fin N → α) (initialization : ℕ) (hN : 0 < N)
     (budget : ℕ) (current : Fin N) (payoff : Fin N → ℕ → ℝ)
     (hp : ∀ i r, 0 ≤ payoff i r) :
@@ -55,6 +87,8 @@ theorem minimumBudgetEvalWithInit_nonneg (T : Fin N → α) (initialization : �
       · exact fun r => hp current r
     · exact hp _ _
 
+/-- Payoffs agreeing at all remaining budgets at most the initial budget give equal evaluations
+with initialization charges. -/
 theorem minimumBudgetEvalWithInit_congr (T : Fin N → α) (initialization budget : ℕ)
     (current : Fin N) (f g : Fin N → ℕ → ℝ)
     (hfg : ∀ i r, r ≤ budget → f i r = g i r) :
@@ -80,6 +114,8 @@ theorem minimumBudgetEvalWithInit_congr (T : Fin N → α) (initialization budge
       · simp only [if_neg hpaid]
         exact hfg current budget le_rfl
 
+/-- The evaluator with initialization charges preserves the constant payoff one on a nonempty
+table. -/
 theorem minimumBudgetEvalWithInit_one (T : Fin N → α) (initialization : ℕ) (hN : 0 < N)
     (budget : ℕ) (current : Fin N) :
     minimumBudgetEvalWithInit T initialization budget current (fun _ _ => 1) = 1 := by
@@ -101,6 +137,8 @@ theorem minimumBudgetEvalWithInit_one (T : Fin N → α) (initialization : ℕ) 
           (search_exponential_schedule N hN).2.1 _ _
     · rfl
 
+/-- The finite-budget BBHT evaluator is monotone in both its successful and stopping
+continuation payoffs when the table and all schedule widths are positive. -/
 private theorem bbhtEval_mono {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k)
     (stage budget : ℕ) (f g : I → ℕ → ℝ) (s t : ℕ → ℝ)
@@ -108,6 +146,8 @@ private theorem bbhtEval_mono {I : Type*} [Fintype I] [DecidableEq I]
     FiniteBudgetEval A sizes stage budget f s ≤ FiniteBudgetEval A sizes stage budget g t :=
   search_finite_budget_eval_mono hN A sizes hsizes stage budget f g s t hfg hst
 
+/-- Pointwise ordered terminal payoffs give ordered evaluations with initialization charges on a
+nonempty table. -/
 theorem minimumBudgetEvalWithInit_mono (T : Fin N → α) (initialization : ℕ) (hN : 0 < N)
     (budget : ℕ) (current : Fin N) (f g : Fin N → ℕ → ℝ) (hfg : ∀ i r, f i r ≤ g i r) :
     minimumBudgetEvalWithInit T initialization budget current f ≤
@@ -133,6 +173,8 @@ theorem minimumBudgetEvalWithInit_mono (T : Fin N → α) (initialization : ℕ)
       · simp only [if_neg hpaid]
         exact hfg current budget
 
+/-- At zero budget, evaluation with any initialization charge returns the current payoff with
+zero remaining budget. -/
 theorem minimumBudgetEvalWithInit_zero (T : Fin N → α) (initialization : ℕ) (hN : 0 < N)
     (current : Fin N) (payoff : Fin N → ℕ → ℝ) :
     minimumBudgetEvalWithInit T initialization 0 current payoff = payoff current 0 := by
@@ -149,11 +191,15 @@ theorem minimumBudgetEvalWithInit_zero (T : Fin N → α) (initialization : ℕ)
     exact one_mul _
   · rfl
 
+/-- The minimum-search success value obtained by evaluating the global-minimum indicator with an
+explicit initialization charge. -/
 noncomputable def minimumBudgetSuccessWithInit (T : Fin N → α) (initialization budget : ℕ)
     (current : Fin N) : ℝ :=
   minimumBudgetEvalWithInit T initialization budget current
     (fun i _ => if ∀ j, T i ≤ T j then 1 else 0)
 
+/-- The success value with initialization charges lies in the unit interval for a nonempty
+table. -/
 theorem minimumBudgetSuccessWithInit_bounds (T : Fin N → α) (initialization : ℕ) (hN : 0 < N)
     (budget : ℕ) (current : Fin N) :
     0 ≤ minimumBudgetSuccessWithInit T initialization budget current ∧
@@ -168,6 +214,7 @@ theorem minimumBudgetSuccessWithInit_bounds (T : Fin N → α) (initialization :
           (fun _ _ => by split_ifs <;> norm_num)
       _ = 1 := minimumBudgetEvalWithInit_one T initialization hN budget current
 
+/-- An initial global minimum gives success value one with any budget and initialization charge. -/
 theorem minimumBudgetSuccessWithInit_of_minimum (T : Fin N → α) (initialization : ℕ) (hN : 0 < N)
     (budget : ℕ) (current : Fin N) (hmin : ∀ j, T current ≤ T j) :
     minimumBudgetSuccessWithInit T initialization budget current = 1 := by

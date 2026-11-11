@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.GlobalLower
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingSpectrum
+
+/-!
+# Upper and lower bounds for the minimum gap
+
+A moment condition bounds the spectral gap at s = A₁ / (1 + A₁) by 4 / √L, where L is the number
+of basis states. Bounded positive costs imply the moment condition when L ≥ 1 + 16R², and
+combining the crossing estimate with the global lower bound brackets the minimum interpolation
+gap [ZhouAnLiu2026].
+
+## Main statements
+
+* `minimumGap_crossing_upper`: The crossing estimate bounds the minimum gap by 4 / √L.
+* `actual_minimumGap_bounds`: The minimum gap lies between 1 / (8(R + 1)√L) and 4 / √L.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,8 @@ open scoped Classical Matrix Matrix.Norms.L2Operator
 open Qatlib.Papers.ProjectorQAOA26.StageStability
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- If there is a unique zero cost, all other costs lie in `[1, R]`, and `card I * ec3A2 ≥ 16`,
+the gap at `ec3A1 / (1 + ec3A1)` is at most `4 / sqrt (card I)`. -/
 theorem spectralGap_moment_upper (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (R : ℝ) (hR : 1≤R) (hE : ∀ i,i≠zero → 1≤E i ∧ E i≤R)
     (hL : 2≤Fintype.card I) (hlarge : 16≤(Fintype.card I:ℝ)*ec3A2 zero E) :
@@ -78,6 +99,8 @@ theorem spectralGap_moment_upper (E : I → ℝ) (zero : I) (hzero : E zero=0)
   rw [hg]
   exact (mul_le_mul_of_nonneg_left (by linarith [hlo.1,hhi.2] : hi-lo≤2*b) hs.le).trans hbound
 
+/-- If all costs outside the distinguished index lie in `[1, R]` and `card I ≥ 1 + 16 * R²`,
+then `card I * ec3A2 ≥ 16`. -/
 theorem moment_bracket_of_bounded_cost (E : I → ℝ) (zero : I)
     (R : ℝ) (hR : 1≤R) (hE : ∀ i,i≠zero → 1≤E i ∧ E i≤R)
     (hL : 2≤Fintype.card I) (hlarge : 1+16*R^2≤(Fintype.card I:ℝ)) :
@@ -91,6 +114,8 @@ theorem moment_bracket_of_bounded_cost (E : I → ℝ) (zero : I)
   have hp := mul_pos (show 0<16-(Fintype.card I:ℝ)*ec3A2 zero E by linarith) hR2
   nlinarith
 
+/-- For a unique zero cost and all other costs in `[1, R]`, the dimension bound `card I ≥ 1 + 16
+* R²` implies a minimum gap at most `4 / sqrt (card I)`. -/
 theorem minimumGap_crossing_upper (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (R : ℝ) (hR : 1≤R) (hE : ∀ i,i≠zero → 1≤E i ∧ E i≤R)
     (hL : 2≤Fintype.card I) (hlarge : 1+16*R^2≤(Fintype.card I:ℝ)) :
@@ -103,6 +128,8 @@ theorem minimumGap_crossing_upper (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (spectralGap_moment_upper E zero hzero R hR hE hL
       (moment_bracket_of_bounded_cost E zero R hR hE hL hlarge))
 
+/-- For a unique zero cost and remaining costs in `[1, R]`, with `card I ≥ 1 + 16 * R²`, the
+minimum gap lies between `1 / (8 * (R + 1) * sqrt (card I))` and `4 / sqrt (card I)`. -/
 theorem actual_minimumGap_bounds (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (R : ℝ) (hR : 1≤R) (hE : ∀ i,i≠zero → 1≤E i ∧ E i≤R)
     (hL : 2≤Fintype.card I) (hlarge : 1+16*R^2≤(Fintype.card I:ℝ)) :

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalStat
 import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestConcentrationSubgoalQuan
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+/-!
+# Accuracy of the Hadamard test phase estimator
+
+This module proves `EigenphaseEstimateSubgoal` for the paired Hadamard test sampling law of
+`eigenphaseSampleLaw`. It combines concentration of the two sample averages with a
+chord-distance bound for phase reconstruction, in the phase estimation setting of [Kitaev1995].
+
+The estimator achieves phase error at most `δ` modulo integers with failure probability at most
+`ε` when each half has at least `36 * log (4 / ε) / sin (π * δ)^2` samples.
+
+## Main statements
+
+* `sample_halves`: the two marginal laws of the sample record.
+* `arg_phase_good`: accurate cosine and sine estimates give an accurate phase modulo integers.
+* `eigenphaseEstimateSubgoal`: the estimator failure bound.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +42,8 @@ namespace Qatlib.Concepts.HspRecovery.KitaevReadout
 open Matrix
 open scoped BigOperators
 
+/-- Splits a Boolean record of length `s + s` into its first and second blocks of length `s`, as
+an equivalence. -/
 private def splitBits (s : ℕ) : (Fin (s + s) → Bool) ≃
     (Fin s → Bool) × (Fin s → Bool) where
   toFun ω := (fun j => ω (Fin.castAdd s j), fun j => ω (Fin.natAdd s j))
@@ -31,6 +55,8 @@ private def splitBits (s : ℕ) : (Fin (s + s) → Bool) ≃
   right_inv p := by
     apply Prod.ext <;> funext j <;> simp only [Fin.addCases_left, Fin.addCases_right]
 
+/-- The mass of a concatenated sample record factors into the independent Hadamard bit record
+masses at phases `φ` and `φ + 1/4`. -/
 private theorem sample_prob_split (φ : ℝ) (s : ℕ) (a b : Fin s → Bool) :
     (eigenphaseSampleLaw φ s).prob ((splitBits s).symm (a, b)) =
       (hadamardBitDist φ).probOf a * (hadamardBitDist (φ + 1 / 4)).probOf b := by
@@ -48,6 +74,8 @@ private theorem sample_prob_split (φ : ℝ) (s : ℕ) (a b : Fin s → Bool) :
     simp only [Fin.addCases_right]
     simp
 
+/-- The probability of an event on a single draw is the sum of the point masses over the
+elements satisfying that event. -/
 private theorem one_draw_event {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) [DecidablePred E] :
     p.probEvent (L := 1) (fun ω => E (ω 0)) =
@@ -57,6 +85,8 @@ private theorem one_draw_event {X : Type} [Fintype X] [DecidableEq X]
   simpa only [mul_ite, mul_one, mul_zero] using!
     p.expect_coord (L := 1) 0 (fun x => if E x then (1 : ℝ) else 0)
 
+/-- Each half of `eigenphaseSampleLaw φ s` has the corresponding independent Hadamard bit sample
+law, at phase `φ` for the first half and `φ + 1/4` for the second. -/
 private theorem sample_halves (φ : ℝ) (s : ℕ) (E F : (Fin s → Bool) → Prop)
     [DecidablePred E] [DecidablePred F] :
     (eigenphaseSampleLaw φ s).probEvent (L := 1)
@@ -105,6 +135,8 @@ private theorem sample_halves (φ : ℝ) (s : ℕ) (E F : (Fin s → Bool) → P
         Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf, one_mul]
     · simp [h]
 
+/-- For `0 < δ ≤ 1/2`, phase factors at chord distance less than `2 * sin (π * δ)` have phase
+difference at most `δ` modulo an integer. -/
 private theorem chord_mod_one (x y δ : ℝ) (hδ : 0 < δ) (hδhalf : δ ≤ 1 / 2)
     (hchord : ‖eigenPhase x - eigenPhase y‖ < 2 * Real.sin (Real.pi * δ)) :
     ∃ m : ℤ, |x - y + m| ≤ δ := by
@@ -164,6 +196,8 @@ private theorem chord_mod_one (x y δ : ℝ) (hδ : 0 < δ) (hδhalf : δ ≤ 1 
   refine ⟨-k, ?_⟩
   simpa [r] using! hrδ
 
+/-- If the cosine and sine estimates each have error at most `sin (π * δ) / 3`, their complex
+argument divided by `2π` estimates `φ` within `δ` modulo an integer, for `0 < δ ≤ 1/2`. -/
 private theorem arg_phase_good (a b φ δ : ℝ) (hδ : 0 < δ) (hδhalf : δ ≤ 1 / 2)
     (ha : |a - Real.cos (2 * Real.pi * φ)| ≤ Real.sin (Real.pi * δ) / 3)
     (hb : |b - Real.sin (2 * Real.pi * φ)| ≤ Real.sin (Real.pi * δ) / 3) :
@@ -210,6 +244,7 @@ private theorem arg_phase_good (a b φ δ : ℝ) (hδ : 0 < δ) (hδhalf : δ �
   rw [hα]
   linarith
 
+/-- The probability of a sample event is at most that of any event containing it. -/
 private theorem event_mono {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) {L : ℕ} (E F : (Fin L → X) → Prop)
     [DecidablePred E] [DecidablePred F] (h : ∀ ω, E ω → F ω) :
@@ -222,6 +257,7 @@ private theorem event_mono {X : Type} [Fintype X] [DecidableEq X]
   · intro ω _ _
     exact Finset.prod_nonneg (fun i _ => p.nonneg (ω i))
 
+/-- The probability of the union of two sample events is at most the sum of their probabilities. -/
 private theorem event_or_le {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) {L : ℕ} (E F : (Fin L → X) → Prop)
     [DecidablePred E] [DecidablePred F] :
@@ -235,6 +271,9 @@ private theorem event_or_le {X : Type} [Fintype X] [DecidableEq X]
   by_cases hE : E ω <;> by_cases hF : F ω <;> simp [hE, hF]
   linarith
 
+/-- The paired Hadamard test estimator satisfies `EigenphaseEstimateSubgoal`: the prescribed
+sample size bounds phase estimation failure modulo integers by `ε`, in the setting of
+[Kitaev1995]. -/
 theorem eigenphaseEstimateSubgoal : EigenphaseEstimateSubgoal := by
   classical
   intro δ ε hδ hδhalf hε hε1 _ _ _ _ _ φ _ s hsize

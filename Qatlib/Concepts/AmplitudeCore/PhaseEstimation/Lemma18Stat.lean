@@ -9,7 +9,26 @@ import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Complex.Basic
 
+/-!
+# Specification of the amplified Fourier sine bound
+
+`expected` states the geometric quotient identity and its `M^2` bound for a Fourier dimension
+`2^n`. The quotient is evaluated at positive progression length and period with a nonzero
+Fourier residue. See [Cornwell2014] for background.
+
+## Main statements
+
+* `expected`: The proposition equating the geometric quotient squared norm to its sine quotient
+  and bounding it by `M^2` under the nonzero residue hypotheses.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 namespace Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Spec
+/-- The proposition equating the geometric quotient squared norm to its sine quotient and
+bounding it by `M^2` under the nonzero residue hypotheses. -/
 def expected : Prop :=
   (∀ (n : ℕ),
   let N : ℕ := 2 ^ n;

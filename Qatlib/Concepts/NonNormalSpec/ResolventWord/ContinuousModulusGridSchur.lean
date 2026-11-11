@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Schur bounds for grid divided differences
+
+Finite factorizations of Schur kernels give operator norm estimates from row and column energy
+bounds. Integrating the factorizations `upperAlpha` and `upperBeta` expresses grid divided
+differences as upper and lower actions, with a bound controlled by `oddHarmonic`; see the matrix
+analysis background in [Bhatia1997]
+
+## Main statements
+
+* `factorKernel_norm_le`: bounds a factored Schur multiplier by its two energy bounds.
+* `gridDividedDifference_decomposition`: splits the grid multiplier into two integral actions.
+* `gridSchur_bound`: bounds the multiplier norm by twice the increment bound times
+  `oddHarmonic`.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -25,11 +46,14 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {I J K : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
   [Fintype K]
 
+/-- The matrix kernel whose entry at `(i, j)` is the finite sum of `a k i * b k j` over `k`. -/
 def factorKernel (a : K → I → ℂ) (b : K → J → ℂ) : Matrix I J ℂ :=
   fun i j => ∑ k,a k i*b k j
 
 omit [Fintype J] [DecidableEq J] [DecidableEq I] in
 
+/-- A uniform bound `R` on the coordinate energies of `a` bounds the total squared norm of the
+weighted vectors by `R * ‖u‖²`. -/
 theorem weighted_vector_energy (a : K → I → ℂ) (u : EuclideanSpace ℂ I) (R : ℝ)
     (ha : ∀ i,∑ k,‖a k i‖^2≤R) :
     (∑ k,‖(WithLp.toLp 2 (fun i => a k i*u i):EuclideanSpace ℂ I)‖^2)≤R*‖u‖^2 := by
@@ -49,6 +73,8 @@ theorem weighted_vector_energy (a : K → I → ℂ) (u : EuclideanSpace ℂ I) 
 
 omit [DecidableEq I] in
 
+/-- Expands the inner product for a factored Schur multiplier as a sum of inner products with
+diagonally weighted input and output vectors. -/
 theorem factorKernel_pairing (a : K → I → ℂ) (b : K → J → ℂ) (X : Matrix I J ℂ)
     (u : EuclideanSpace ℂ I) (v : EuclideanSpace ℂ J) :
     inner ℂ u ((factorKernel a b ⊙ X).toEuclideanLin v)=
@@ -68,6 +94,8 @@ theorem factorKernel_pairing (a : K → I → ℂ) (b : K → J → ℂ) (X : Ma
   intro j _
   ring
 
+/-- If the two factors have coordinate energy bounds `R` and `C`, their Schur action on `X` has
+norm at most `√R * √C * ‖X‖`. -/
 theorem factorKernel_norm_le (a : K → I → ℂ) (b : K → J → ℂ) (X : Matrix I J ℂ)
     (R C : ℝ)
     (ha : ∀ i,∑ k,‖a k i‖^2≤R) (hb : ∀ j,∑ k,‖b k j‖^2≤C) :
@@ -104,6 +132,8 @@ theorem factorKernel_norm_le (a : K → I → ℂ) (b : K → J → ℂ) (X : Ma
         (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
     _ = _ := by ring
 
+/-- Reindexes a finite sum supported on indices at least `r` as a sum over the first `n - r`
+indices. -/
 theorem sum_tail_shift {E : Type*} [AddCommMonoid E] (f : ℕ → E) (n r : ℕ) :
     (∑ k∈Finset.range n,if r≤k then f (k-r) else 0)=∑ q∈Finset.range (n-r),f q := by
   induction n with
@@ -115,6 +145,8 @@ theorem sum_tail_shift {E : Type*} [AddCommMonoid E] (f : ℕ → E) (n r : ℕ)
     · simp only [if_neg hr,Nat.sub_eq_zero_of_le (by omega : n≤r),
         Nat.sub_eq_zero_of_le (by omega : n+1≤r),Finset.range_zero,Finset.sum_empty,add_zero]
 
+/-- Reversing the first `r` indices of a sum over `n` terms gives the sum over `Finset.range r`,
+provided `r ≤ n`. -/
 theorem sum_prefix_reverse {E : Type*} [AddCommMonoid E] (f : ℕ → E) (n r : ℕ) (hr : r≤n) :
     (∑ k∈Finset.range n,if k<r then f (r-1-k) else 0)=∑ q∈Finset.range r,f q := by
   calc
@@ -129,19 +161,28 @@ theorem sum_prefix_reverse {E : Type*} [AddCommMonoid E] (f : ℕ → E) (n r : 
       rw [if_pos (Finset.mem_range.mp hk)]
     _ = _ := Finset.sum_range_reflect f r
 
+/-- The sum of the first `n` even powers of `t`, from exponent zero through `2 * (n - 1)` when
+`n` is positive. -/
 def evenPowerSum (n : ℕ) (t : ℝ) : ℝ := ∑ q∈Finset.range n,t^(2*q)
 
+/-- The finite even power sum is nonnegative for nonnegative `t`. -/
 theorem evenPowerSum_nonneg (n : ℕ) (t : ℝ) (ht : 0≤t) : 0≤evenPowerSum n t :=
   Finset.sum_nonneg (fun _ _ => pow_nonneg ht _)
 
+/-- The upper factor equal to `t` raised to the distance from `r i` to `k` when `r i ≤ k`, and
+zero otherwise. -/
 def upperAlpha (n : ℕ) (r : I → Fin (n+1)) (t : ℝ) (k : Fin n) (i : I) : ℂ :=
   if (r i).val≤k.val then (t^(k.val-(r i).val):ℝ) else 0
 
+/-- The upper factor equal to `d k` times `t` raised to the distance from `k + 1` to `c j` when
+`k < c j`, and zero otherwise. -/
 def upperBeta (n : ℕ) (c : J → Fin (n+1)) (d : Fin n → ℂ) (t : ℝ) (k : Fin n) (j : J) : ℂ :=
   if k.val<(c j).val then d k*(t^((c j).val-1-k.val):ℝ) else 0
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] [Fintype K] in
 
+/-- For nonnegative `t`, the squared norms of the upper alpha factor at each row sum to at most
+`evenPowerSum n t`. -/
 theorem upperAlpha_energy (n : ℕ) (r : I → Fin (n+1)) (t : ℝ) (ht : 0≤t) (i : I) :
     (∑ k : Fin n,‖upperAlpha n r t k i‖^2)≤evenPowerSum n t := by
   have he (k : Fin n) : ‖upperAlpha n r t k i‖^2=
@@ -160,6 +201,8 @@ theorem upperAlpha_energy (n : ℕ) (r : I → Fin (n+1)) (t : ℝ) (ht : 0≤t)
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] [Fintype K] in
 
+/-- If `‖d k‖ ≤ D` and `D` and `t` are nonnegative, the upper beta energy at each column is at
+most `D² * evenPowerSum n t`. -/
 theorem upperBeta_energy (n : ℕ) (c : J → Fin (n+1)) (d : Fin n → ℂ) (D : ℝ)
     (hD : 0≤D) (hd : ∀ k,‖d k‖≤D) (t : ℝ) (ht : 0≤t) (j : J) :
     (∑ k : Fin n,‖upperBeta n c d t k j‖^2)≤D^2*evenPowerSum n t := by
@@ -185,6 +228,8 @@ theorem upperBeta_energy (n : ℕ) (c : J → Fin (n+1)) (d : Fin n → ℂ) (D 
       (Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono (by have := (c j).isLt; omega))
         (fun _ _ _ => pow_nonneg ht _)) (sq_nonneg D)
 
+/-- The upper factored Schur action has norm at most `D * evenPowerSum n t * ‖X‖` when the
+coefficients are bounded by nonnegative `D` and `t ≥ 0`. -/
 theorem upperKernel_pointwise (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (D : ℝ) (hD : 0≤D) (hd : ∀ k,‖d k‖≤D)
     (t : ℝ) (ht : 0≤t) (X : Matrix I J ℂ) :
@@ -199,8 +244,10 @@ theorem upperKernel_pointwise (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+
   rw [mul_comm (Real.sqrt (evenPowerSum n t)) D,mul_assoc D,
     Real.mul_self_sqrt hS]
 
+/-- The sum of the reciprocals of the first `n` positive odd integers. -/
 def oddHarmonic (n : ℕ) : ℝ := ∑ q∈Finset.range n,1/(2*q+1:ℝ)
 
+/-- The odd harmonic sum is at most `1 + Real.log n`. -/
 theorem oddHarmonic_le (n : ℕ) : oddHarmonic n≤1+Real.log n := by
   apply (Finset.sum_le_sum (s := Finset.range n) (f := fun q : ℕ => (1:ℝ)/(2*q+1))
     (g := fun q : ℕ => (1:ℝ)/(q+1)) (fun q _ => ?_)).trans
@@ -209,6 +256,7 @@ theorem oddHarmonic_le (n : ℕ) : oddHarmonic n≤1+Real.log n := by
   have hq : (0:ℝ)≤q := Nat.cast_nonneg q
   nlinarith
 
+/-- Integrating the even power sum over `[0, 1]` gives the odd harmonic sum. -/
 theorem evenPowerSum_integral (n : ℕ) :
     (∫ t in (0:ℝ)..1,evenPowerSum n t)=oddHarmonic n := by
   unfold evenPowerSum oddHarmonic
@@ -218,10 +266,13 @@ theorem evenPowerSum_integral (n : ℕ) :
         (show Continuous (fun t : ℝ => t^(2*q)) from continuous_id.pow (2*q)).intervalIntegrable 0 1)
     _ = _ := Finset.sum_congr rfl (fun q _ => by simp [integral_pow])
 
+/-- The matrix integral over `[0, 1]` of the upper factored Schur action on `X`. -/
 def upperAction (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (X : Matrix I J ℂ) : Matrix I J ℂ :=
   ∫ t in (0:ℝ)..1,factorKernel (upperAlpha n r t) (upperBeta n c d t) ⊙ X
 
+/-- Coefficients bounded by nonnegative `D` give an upper integral action of norm at most `D *
+oddHarmonic n * ‖X‖`. -/
 theorem upperAction_norm (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (D : ℝ) (hD : 0≤D) (hd : ∀ k,‖d k‖≤D) (X : Matrix I J ℂ) :
     ‖upperAction n r c d X‖≤D*oddHarmonic n*‖X‖ := by
@@ -236,6 +287,7 @@ theorem upperAction_norm (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
   rw [intervalIntegral.integral_mul_const,intervalIntegral.integral_const_mul,evenPowerSum_integral]
 
 omit [DecidableEq I] [Fintype K] in
+/-- Evaluation at a fixed matrix entry as a continuous real linear map. -/
 def entryCLM (i : I) (j : J) : Matrix I J ℂ →L[ℝ] ℂ :=
   LinearMap.toContinuousLinearMap
     { toFun := fun A => A i j
@@ -244,12 +296,15 @@ def entryCLM (i : I) (j : J) : Matrix I J ℂ →L[ℝ] ℂ :=
 
 omit [DecidableEq I] [Fintype K] in
 
+/-- For an interval integrable matrix valued function, evaluation at an entry commutes with
+integration over `[0, 1]`. -/
 theorem integral_entry (F : ℝ → Matrix I J ℂ) (hF : IntervalIntegrable F volume 0 1)
     (i : I) (j : J) : (∫ t in (0:ℝ)..1,F t) i j=∫ t in (0:ℝ)..1,F t i j :=
   ((entryCLM i j).intervalIntegral_comp_comm hF).symm
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] [Fintype K] in
 
+/-- The integrand defining the upper action is continuous as a function of the real parameter. -/
 theorem upperAction_continuous (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (X : Matrix I J ℂ) :
     Continuous (fun t : ℝ => factorKernel (upperAlpha n r t) (upperBeta n c d t) ⊙ X) := by
@@ -266,6 +321,8 @@ theorem upperAction_continuous (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] [Fintype K] in
 
+/-- Each upper kernel entry is a single monomial times the coefficient sum between the row and
+column indices, and is zero unless the row index is smaller. -/
 theorem upperKernel_monomial (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (t : ℝ) (i : I) (j : J) :
     factorKernel (upperAlpha n r t) (upperBeta n c d t) i j =
@@ -297,6 +354,8 @@ theorem upperKernel_monomial (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1
 
 omit [DecidableEq I] in
 
+/-- Each upper action entry multiplies `X i j` by the average of the coefficients between the
+row and column indices, and is zero unless the row index is smaller. -/
 theorem upperAction_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (X : Matrix I J ℂ) (i : I) (j : J) :
     upperAction n r c d X i j =
@@ -318,8 +377,10 @@ theorem upperAction_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     ring
   · simp only [if_neg hrc,zero_mul,intervalIntegral.integral_zero]
 
+/-- The successive difference `z (k + 1) - z k` on the finite grid. -/
 def gridIncrement (n : ℕ) (z : ℕ → ℂ) (k : Fin n) : ℂ := z (k.val+1)-z k.val
 
+/-- Summing grid increments from `r` through `c - 1` telescopes to `z c - z r` when `r ≤ c ≤ n`. -/
 theorem gridIncrement_sum (n : ℕ) (z : ℕ → ℂ) (r c : ℕ) (hrc : r≤c) (hc : c≤n) :
     (∑ k : Fin n,if r≤k.val ∧ k.val<c then gridIncrement n z k else 0)=z c-z r := by
   simp only [gridIncrement]
@@ -334,6 +395,8 @@ theorem gridIncrement_sum (n : ℕ) (z : ℕ → ℂ) (r c : ℕ) (hrc : r≤c) 
 
 omit [DecidableEq I] in
 
+/-- For grid increments, the upper action multiplies each entry by the corresponding divided
+difference when the row index is smaller than the column index, and by zero otherwise. -/
 theorem upperAction_grid_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (z : ℕ → ℂ) (X : Matrix I J ℂ) (i : I) (j : J) :
     upperAction n r c (gridIncrement n z) X i j =
@@ -345,10 +408,14 @@ theorem upperAction_grid_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n
   · rw [if_pos hrc,if_pos hrc,gridIncrement_sum n z _ _ hrc.le (by have := (c j).isLt; omega)]
   · rw [if_neg hrc,if_neg hrc]
 
+/-- The matrix integral over `[0, 1]` of the factored Schur action with the beta and alpha
+factors exchanged. -/
 def lowerAction (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (X : Matrix I J ℂ) : Matrix I J ℂ :=
   ∫ t in (0:ℝ)..1,factorKernel (upperBeta n r d t) (upperAlpha n c t) ⊙ X
 
+/-- The lower factored Schur action has norm at most `D * evenPowerSum n t * ‖X‖` for
+coefficients bounded by nonnegative `D` and nonnegative `t`. -/
 theorem lowerKernel_pointwise (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (D : ℝ) (hD : 0≤D) (hd : ∀ k,‖d k‖≤D)
     (t : ℝ) (ht : 0≤t) (X : Matrix I J ℂ) :
@@ -360,6 +427,8 @@ theorem lowerKernel_pointwise (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+
   apply hh.trans_eq
   rw [Real.sqrt_mul (sq_nonneg D),Real.sqrt_sq hD,mul_assoc D,Real.mul_self_sqrt hS]
 
+/-- Coefficients bounded by nonnegative `D` give a lower integral action of norm at most `D *
+oddHarmonic n * ‖X‖`. -/
 theorem lowerAction_norm (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (D : ℝ) (hD : 0≤D) (hd : ∀ k,‖d k‖≤D) (X : Matrix I J ℂ) :
     ‖lowerAction n r c d X‖≤D*oddHarmonic n*‖X‖ := by
@@ -375,6 +444,7 @@ theorem lowerAction_norm (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] [Fintype K] in
 
+/-- The integrand defining the lower action is continuous as a function of the real parameter. -/
 theorem lowerAction_continuous (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (d : Fin n → ℂ) (X : Matrix I J ℂ) :
     Continuous (fun t : ℝ => factorKernel (upperBeta n r d t) (upperAlpha n c t) ⊙ X) := by
@@ -391,6 +461,8 @@ theorem lowerAction_continuous (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n
 
 omit [DecidableEq I] in
 
+/-- For grid increments, the lower action multiplies each entry by the corresponding divided
+difference when the column index is smaller than the row index, and by zero otherwise. -/
 theorem lowerAction_grid_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (z : ℕ → ℂ) (X : Matrix I J ℂ) (i : I) (j : J) :
     lowerAction n r c (gridIncrement n z) X i j =
@@ -412,6 +484,8 @@ theorem lowerAction_grid_apply (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n
       ring
     _ = _ := upperAction_grid_apply n c r z X.transpose j i
 
+/-- The matrix of divided differences of `z` at the chosen row and column grid indices, with
+zero entries at equal indices. -/
 def gridDividedDifference (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (z : ℕ → ℂ) : Matrix I J ℂ := fun i j =>
   if (r i).val=(c j).val then 0 else
@@ -419,6 +493,8 @@ def gridDividedDifference (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
 
 omit [DecidableEq I] in
 
+/-- The Schur action of the grid divided difference matrix is the sum of the upper and lower
+integral actions built from grid increments. -/
 theorem gridDividedDifference_decomposition (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (z : ℕ → ℂ) (X : Matrix I J ℂ) :
     gridDividedDifference n r c z ⊙ X=
@@ -438,6 +514,8 @@ theorem gridDividedDifference_decomposition (n : ℕ) (r : I → Fin (n+1)) (c :
       simp only [gridDividedDifference,if_neg hrc,if_pos hgt,if_neg hnot,zero_add]
       rw [Nat.cast_sub hgt.le]
 
+/-- If every grid increment has norm at most nonnegative `D`, the grid divided difference Schur
+action has norm at most `2 * D * oddHarmonic n * ‖X‖`. -/
 theorem gridSchur_bound (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (z : ℕ → ℂ) (D : ℝ) (hD : 0≤D) (hd : ∀ k,‖gridIncrement n z k‖≤D) (X : Matrix I J ℂ) :
     ‖gridDividedDifference n r c z ⊙ X‖≤2*D*oddHarmonic n*‖X‖ := by

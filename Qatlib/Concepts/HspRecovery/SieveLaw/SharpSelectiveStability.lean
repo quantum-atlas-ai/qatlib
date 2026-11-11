@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
 import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+
+/-!
+# Sharp stability of selective quantum operations
+
+For equal-trace positive inputs, this module controls a selected instrument output and its mass
+jointly, including arbitrary finite reference systems. The proofs use positive and negative
+parts of Hermitian matrices in the trace-norm framework of [Watrous2018].
+
+`sharp_selective_joint_stability` bounds normalized output distance by the input distance
+divided by the larger selected mass. A gap formulation also guarantees positivity of the
+perturbed output mass.
+
+## Main statements
+
+* `selective_joint_mass_budget`: a combined trace-norm and output-mass error bound.
+* `sharp_selective_joint_stability`: normalized stability with the larger output mass.
+* `sharp_selective_joint_stability_of_gap`: positivity and stability from a mass gap.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +42,7 @@ namespace Qatlib.Concepts.HspRecovery.SieveLaw
 open Matrix
 open scoped ComplexOrder
 
+/-- The positive part of a Hermitian matrix is positive semidefinite. -/
 private theorem positive_split_pos {I : Type} [Fintype I] [DecidableEq I]
     {X : Matrix I I ℂ} (hX : X.IsHermitian) :
     (Qatlib.Concepts.ReferenceError.DensityToRaw.HermitianSplit.posPart hX).PosSemidef := by
@@ -26,6 +50,8 @@ private theorem positive_split_pos {I : Type} [Fintype I] [DecidableEq I]
   intro i
   exact RCLike.ofReal_nonneg.mpr (le_max_right (hX.eigenvalues i) 0)
 
+/-- The negative part in the positive-minus-negative decomposition of a Hermitian matrix is
+positive semidefinite. -/
 private theorem positive_split_neg {I : Type} [Fintype I] [DecidableEq I]
     {X : Matrix I I ℂ} (hX : X.IsHermitian) :
     (Qatlib.Concepts.ReferenceError.DensityToRaw.HermitianSplit.negPart hX).PosSemidef := by
@@ -33,6 +59,8 @@ private theorem positive_split_neg {I : Type} [Fintype I] [DecidableEq I]
   intro i
   exact RCLike.ofReal_nonneg.mpr (le_max_right (-hX.eigenvalues i) 0)
 
+/-- A positive trace-non-increasing map sends a Hermitian input of zero real trace to an output
+whose trace norm plus absolute real trace is at most the input trace norm. -/
 theorem positive_tni_trace_zero_budget
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (T : Matrix I I ℂ →ₗ[ℂ] Matrix J J ℂ)
@@ -76,6 +104,8 @@ theorem positive_tni_trace_zero_budget
   · rw [abs_of_nonpos (sub_nonpos.mpr h)]
     linarith
 
+/-- For equal-trace positive inputs, selected reference-system outputs have trace-norm
+difference plus absolute mass difference at most the input trace-norm difference. -/
 theorem selective_joint_mass_budget
     {O : Type} [Fintype O] {D E R : ℕ} (J : Instrument O D E) (S : Finset O)
     (ρ τ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
@@ -109,6 +139,8 @@ theorem selective_joint_mass_budget
       Matrix.traceNorm (ρ - τ) at hh
   simpa only [tensorLeft_sub, Matrix.trace_sub, Complex.sub_re] using hh
 
+/-- For equal-trace positive inputs, the selected output masses differ by at most half the input
+trace-norm difference. -/
 theorem selective_joint_mass_error
     {O : Type} [Fintype O] {D E R : ℕ} (J : Instrument O D E) (S : Finset O)
     (ρ τ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
@@ -125,6 +157,9 @@ theorem selective_joint_mass_error
     exact (Complex.abs_re_le_norm _).trans (Matrix.abs_trace_le_traceNorm _)
   linarith
 
+/-- For equal-trace positive inputs and positive selected output masses, the normalized
+selected-output distance is at most the input trace-norm difference divided by the larger
+output mass, with a finite reference system included. -/
 theorem sharp_selective_joint_stability :
     ∀ (O : Type) [Fintype O] (D E R : ℕ) (J : Instrument O D E) (S : Finset O)
       (ρ τ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ),
@@ -147,6 +182,9 @@ theorem sharp_selective_joint_stability :
   exact hnorm.trans (div_le_div_of_nonneg_right
     (selective_joint_mass_budget J S ρ τ hρ hτ hequal) hmax)
 
+/-- For equal-trace positive inputs at distance at most `η ≥ 0`, a reference output mass greater
+than `η/2` ensures positive mass for the other output and normalized distance at most `η`
+divided by the reference mass. -/
 theorem sharp_selective_joint_stability_of_gap
     {O : Type} [Fintype O] {D E R : ℕ} (J : Instrument O D E) (S : Finset O)
     (ρ τ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (η : ℝ)

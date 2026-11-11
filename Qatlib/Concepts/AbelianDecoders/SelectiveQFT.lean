@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AbelianDecoders.FourierSupport.SparseFourierSupport
 import Qatlib.Foundations.InstrumentCore.Measurement.Basic
 import Qatlib.Foundations.BornMetrics.EventProbability
+
+/-!
+# Selective measurement followed by the quantum Fourier transform
+
+This module applies sparse Fourier support results to a state conditioned on a
+positive-probability measurement event. `selective_qft_circular_window_actual_readout` supplies
+a positive readout window and the one-gate circuit ledger, while the joint-weight identity
+relates normalized and unnormalized branches. For background, see [Cornwell2014].
+
+## Main statements
+
+* `selective_qft_circular_window_actual_readout`: For a normalized state and
+  positive-probability selection, each cyclic Fourier window of the conditioned support length
+  has positive readout probability; the QFT circuit uses one gate and no queries, and satisfies
+  the joint-weight identity.
+* `selective_qft_actual_support_product`: For a normalized state and positive-probability
+  selection `S`, `N` is at most `S.card` times the support size after applying the QFT to the
+  conditioned state.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +49,8 @@ namespace Qatlib.Concepts.AbelianDecoders.SelectiveQFT
 open Matrix
 open scoped Classical
 
+/-- Conditioning on a positive-probability event produces a nonzero state with positive support
+size at most the cardinality of the selected set. -/
 theorem selective_fourier_support {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) (hp : 0 < MeasureProb ψ S) :
     PostMeasure ψ S ≠ 0 ∧ 0 < (sparseFourierSupport (PostMeasure ψ S)).card ∧
@@ -37,6 +64,8 @@ theorem selective_fourier_support {I : Type*} [Fintype I] [DecidableEq I]
   by_contra hnot
   exact ((mem_sparseFourierSupport _ _).mp hx) (postMeasure_apply_of_not_mem ψ S hnot)
 
+/-- For a positive-probability selection, the selection probability times the subsequent readout
+weight after `U` equals the readout weight obtained from the unnormalized collapsed state. -/
 theorem selective_gate_joint_weight {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S W : Finset I) (U : Matrix I I ℂ)
     (hp : 0 < MeasureProb ψ S) :
@@ -52,6 +81,9 @@ theorem selective_gate_joint_weight {I : Type*} [Fintype I] [DecidableEq I]
   rw [← mul_assoc, mul_inv_cancel₀ hp.ne', one_mul]
   rfl
 
+/-- For a normalized state and positive-probability selection, each cyclic Fourier window of the
+conditioned support length has positive readout probability; the QFT circuit uses one gate
+and no queries, and satisfies the joint-weight identity. -/
 theorem selective_qft_circular_window_actual_readout :
     ∀ (N : ℕ) [NeZero N] (ψ : QState (ZMod N)) (S : Finset (ZMod N))
       (a : ZMod N), Normalized ψ → 0 < MeasureProb ψ S →
@@ -81,6 +113,8 @@ theorem selective_qft_circular_window_actual_readout :
   · simp only [run_gate, run_nil]
     exact selective_gate_joint_weight ψ S _ zmodQFTGate hp
 
+/-- For a normalized state and positive-probability selection `S`, `N` is at most `S.card` times
+the support size after applying the QFT to the conditioned state. -/
 theorem selective_qft_actual_support_product :
     ∀ (N : ℕ) [NeZero N] (ψ : QState (ZMod N)) (S : Finset (ZMod N)),
       Normalized ψ → 0 < MeasureProb ψ S →

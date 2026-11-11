@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# A trace norm bound for rank-one matrices
+
+This module bounds the trace norm of a complex outer product by the product of the Euclidean
+norms of its defining vectors. The auxiliary identities `rankOne_sum_star_self` and
+`rankOne_outer_pair_trace` express the trace quantities used in the bound. See [Bhatia1997] for
+background on matrix norms.
+
+## Main statements
+
+* `traceNorm_rankOne_le`: bounds the trace norm of `Matrix.vecMulVec u (star v)`.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.MixedFidelity.TraceNormRankBound
 open Qatlib
@@ -17,6 +35,8 @@ open scoped BigOperators
 
 set_option autoImplicit false
 
+/-- The sum of the conjugate products of a complex vector equals the real sum of its squared
+coordinate norms, embedded in ℂ. -/
 private theorem rankOne_sum_star_self
     {I : Type*} [Fintype I] (u : I → ℂ) :
     (∑ i, star (u i) * u i) = ((∑ i, Complex.normSq (u i) : ℝ) : ℂ) := by
@@ -26,6 +46,8 @@ private theorem rankOne_sum_star_self
   simpa only [Complex.star_def] using
     (Complex.normSq_eq_conj_mul_self (z := u i)).symm
 
+/-- The trace of the product of the outer products `u v†` and `w u†` equals the product of the
+coordinate inner products of `v` with `w` and of `u` with itself. -/
 private theorem rankOne_outer_pair_trace
     {I : Type*} [Fintype I] (u v w : I → ℂ) :
     (Matrix.vecMulVec u (star v) * Matrix.vecMulVec w (star u)).trace =
@@ -37,6 +59,8 @@ private theorem rankOne_outer_pair_trace
   intro i _
   ring
 
+/-- The trace norm of the outer product `u v†` is at most the product of the Euclidean norms of
+`u` and `v`. -/
 theorem traceNorm_rankOne_le {I : Type*} [Fintype I] [DecidableEq I]
     (u v : I → ℂ) :
     (Matrix.vecMulVec u (star v)).traceNorm ≤

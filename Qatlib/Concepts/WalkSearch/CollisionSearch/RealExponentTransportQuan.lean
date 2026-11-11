@@ -7,12 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportStat
 import Mathlib.Data.Nat.Cast.Order.Field
 import Mathlib.Tactic.Positivity
+
+/-!
+# Real-exponent transport for collision costs
+
+`collision_power_transport` bounds a natural-number quotient and exponent by their real-valued
+counterparts when `1 ≤ r ≤ n`. The module uses this inequality to prove `RealExponentTransport`
+for the charges supplied by a `KCollisionSolver`. See [Ambainis2005] for the mathematical
+background.
+
+## Main statements
+
+* `collision_power_transport`: comparison of natural and real powers.
+* `realExponentTransport_answer`: the real-exponent cost proposition.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkSearch.CollisionSearch
 
+/-- For `1 ≤ r ≤ n`, the real cast of the natural power `(n / r) ^ (k / 2)` is at most the real
+power `((n : ℝ) / r) ^ ((k : ℝ) / 2)`. -/
 theorem collision_power_transport (n k r : ℕ) (hr : 1 ≤ r) (hrn : r ≤ n) :
     (((n / r) ^ (k / 2) : ℕ) : ℝ) ≤ ((n : ℝ) / r) ^ ((k : ℝ) / 2) := by
   have hquot : 1 ≤ n / r := (Nat.le_div_iff_mul_le (by omega : 0 < r)).mpr (by simpa)
@@ -27,6 +48,8 @@ theorem collision_power_transport (n k r : ℕ) (hr : 1 ≤ r) (hrn : r ≤ n) :
     _ ≤ ((n : ℝ) / r) ^ ((k : ℝ) / 2) :=
       Real.rpow_le_rpow_of_exponent_le hbase Nat.cast_div_le
 
+/-- Establishes the real-exponent cost bound for a supplied collision solver in
+`RealExponentTransport`. -/
 theorem realExponentTransport_answer : RealExponentTransport := by
   intro kcs _hκ n k r s u c R ρ hr hrn
   have hcost := kcs.charges r R s u c ρ

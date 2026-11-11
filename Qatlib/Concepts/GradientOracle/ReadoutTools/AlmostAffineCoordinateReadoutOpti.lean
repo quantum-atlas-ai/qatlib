@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutStat
 import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportOpti
+
+/-!
+# Coordinate readout for almost-affine phases
+
+This module proves signed decoding and product-state marginal identities, then establishes
+`almostAffineCoordinateReadout`. Small phase error outside a small exceptional set yields a
+constant-probability coordinate estimate in the robust gradient setting of
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `signed_decode_third`: modular closeness implies signed real closeness in the stated range.
+* `almostAffineCoordinateReadout`: each coordinate is accurate within `4/2^n` with probability
+  at least `2/3`, using one query.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -25,6 +45,8 @@ open scoped Classical BigOperators
 
 namespace AlmostAffineCoordinateReadoutAux
 
+/-- If `|g| ≤ 1/3` and `w ≤ 1/8`, modular phase distance at most `w` from a grid value to `g`
+implies that its signed decoding differs from `g` by at most `w`. -/
 theorem signed_decode_third (M : ℕ) (hM : 0 < M) (z : Fin M)
     (g w : ℝ) (hg : |g| ≤ 1/3) (hw : w ≤ 1/8)
     (hgood : phaseDistance ((z.val:ℝ)/(M:ℝ)) g ≤ w) :
@@ -76,6 +98,7 @@ theorem signed_decode_third (M : ℕ) (hM : 0 < M) (z : Fin M)
       linarith
     · simpa [hn, a, sub_sub, add_comm] using! hgood
 
+/-- For positive grid size, every signed decoded grid value has absolute value at most `1/2`. -/
 theorem signedGridValue_abs_le (M : ℕ) (hM : 0 < M) (z : Fin M) :
     |signedGridValue M z| ≤ 1/2 := by
   have hMr : 0 < (M : ℝ) := by exact_mod_cast hM
@@ -97,6 +120,8 @@ theorem signedGridValue_abs_le (M : ℕ) (hM : 0 < M) (z : Fin M) :
       linarith
     exact abs_le.mpr ⟨by linarith, by linarith⟩
 
+/-- For normalized coordinate factors, the probability of a predicate on one coordinate of a
+product state equals the corresponding sum of squared amplitudes of that factor. -/
 theorem gridProductState_marginal {d M : ℕ} (v : Fin d → QState (Fin M))
     (hvn : ∀ k, ∑ y, ‖v k y‖^2 = 1) (j : Fin d) (P : Fin M → Prop) [DecidablePred P] :
     MeasureProb (gridProductState v) (Finset.univ.filter fun z => P (z j))
@@ -140,6 +165,9 @@ end AlmostAffineCoordinateReadoutAux
 open Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutAux
 set_option warningAsError false
 
+/-- Under the stated almost-affine phase and exceptional-set bounds, each signed coordinate
+estimate is within `4/2^n` of its target with probability at least `2/3`; the circuit is
+unitary with one query and `2*d` gates. See [GilyenArunachalamWiebe2019]. -/
 theorem almostAffineCoordinateReadout : AlmostAffineCoordinateReadout := by
   intro d n hN φ g c S hg hbad hgood
   refine ⟨?_, (gradient_coordinate_qft_word_unitarity d (2^n) hN).1,

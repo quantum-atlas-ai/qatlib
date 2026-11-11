@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Compiled QSVT with square-root encoding errors
+
+This module transports real polynomial singular transforms through approximate block encodings
+and the clean phase compiler. The error is `4 * d * √(ε / α)`, as in the square-root robustness
+setting of [GilyenSuLowWiebe2019], and the compiler retains exact instruction counts.
+
+For odd degree bounds, the same construction gives output-norm and normalized-state bounds
+whenever the error is smaller than the ideal output norm.
+
+## Main statements
+
+* `source_cpp_encoded_corner_root_error_of_response`: Bound the error for an already specified
+  real response list.
+* `source_cpp_encoded_corner_root_error`: Synthesize a length-controlled approximate encoding.
+* `source_cpp_root_error_actual_conditional_output`: Bound outputs of the compiled odd word.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -33,6 +56,9 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib
 open scoped Matrix.Norms.L2Operator
 
+/-- A given real response list yields the parity-appropriate compiled block encoding with error
+`4 * d * √(ε / α)` and exact instruction counts under the polynomial and contraction
+assumptions. -/
 theorem source_cpp_encoded_corner_root_error_of_response :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -69,6 +95,9 @@ theorem source_cpp_encoded_corner_root_error_of_response :
     simpa only [zero_add] using!
         (Qatlib.Concepts.BlockEncoding.ProjectedUnitaryEncoding.toBlockEncoding (heven he)).perturb hη ((hrob.2 he).trans hscale)
 
+/-- A bounded real polynomial with positive degree bound and matching parity has a compiled
+block encoding with error `4 * d * √(ε / α)` and exact instruction counts
+[GilyenSuLowWiebe2019]. -/
 theorem source_cpp_encoded_corner_root_error :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -91,6 +120,9 @@ theorem source_cpp_encoded_corner_root_error :
   exact ⟨Φ,hlen,source_cpp_encoded_corner_root_error_of_response
     H I O A U L R α ε p d Φ h hA hlen hre hp hpar hb⟩
 
+/-- For an odd degree bound, a compiled polynomial word has output squared norm at least `(τ -
+η) ^ 2` and normalized error at most `2 * η / τ` whenever `η = 4 * d * √(ε / α) < τ`
+[GilyenSuLowWiebe2019]. -/
 theorem source_cpp_root_error_actual_conditional_output :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

@@ -12,6 +12,28 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 
+/-!
+# Parity reduction and staggered cell pairs
+
+This module characterizes component-swap invariance of two-by-two matrices by equality of their
+opposite entries. It defines the trigonometric cell-pair matrix and a staggered pair
+construction, proving unitarity and the parity properties needed for the checkerboard evolution.
+See [Meyer1996a].
+
+## Main statements
+
+* `parity_iff_equal_entries`: A two-by-two matrix is invariant under component-swap conjugation
+  exactly when its diagonal entries agree and its off-diagonal entries agree.
+* `cellPairMatrix_mem_unitary`: The trigonometric cell-pair matrix is unitary for every real
+  angle.
+* `cellPair_staggered_mem_unitary`: Staggering the trigonometric cell-pair matrix with the
+  component swap gives a unitary matrix.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -22,6 +44,8 @@ open Qatlib.Concepts.QcaDynamics.ParityWeights
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- A symmetric two-by-two matrix is unitary when its coefficients have squared norms summing to
+one and vanishing symmetric conjugate cross term. See [Meyer1996a]. -/
 theorem unitary_sym_two (a b : ℂ)
     (h1 : a * star a + b * star b = 1)
     (h2 : a * star b + b * star a = 0) :
@@ -34,10 +58,13 @@ theorem unitary_sym_two (a b : ℂ)
     simp [Matrix.mul_apply, Fin.sum_univ_two, Matrix.star_apply]
   all_goals assumption
 
+/-- The component-swap matrix has zero diagonal and ones off the diagonal. -/
 lemma P2_eq_of : P2 = Matrix.of (fun i j : Fin 2 => if i = j then 0 else 1) := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [P2]
 
+/-- A two-by-two matrix is invariant under component-swap conjugation exactly when its diagonal
+entries agree and its off-diagonal entries agree. See [Meyer1996a]. -/
 theorem parity_iff_equal_entries (S : Matrix (Fin 2) (Fin 2) ℂ) :
     P2 * S * P2 = S ↔ S 0 0 = S 1 1 ∧ S 0 1 = S 1 0 := by
   constructor
@@ -53,15 +80,18 @@ theorem parity_iff_equal_entries (S : Matrix (Fin 2) (Fin 2) ℂ) :
     fin_cases i <;> fin_cases j <;>
       simp [Matrix.mul_apply, Fin.sum_univ_two, h00, h01]
 
+/-- The component-swap matrix is unitary. -/
 theorem P2_mem_unitary : P2 ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   have h1 : (0 : ℂ) * star 0 + (1 : ℂ) * star 1 = 1 := by simp
   have h2 : (0 : ℂ) * star 1 + (1 : ℂ) * star 0 = 0 := by simp
   simpa [P2] using unitary_sym_two (0 : ℂ) 1 h1 h2
 
+/-- The symmetric cell-pair matrix with diagonal `i * sin θ` and off-diagonal `cos θ`. -/
 def cellPairMatrix (θ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![I * (Real.sin θ : ℂ), (Real.cos θ : ℂ);
      (Real.cos θ : ℂ), I * (Real.sin θ : ℂ)]
 
+/-- The trigonometric cell-pair matrix is unitary for every real angle. See [Meyer1996a]. -/
 theorem cellPairMatrix_mem_unitary (θ : ℝ) :
     cellPairMatrix θ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   apply unitary_sym_two
@@ -105,18 +135,23 @@ theorem cellPairMatrix_mem_unitary (θ : ℝ) :
     rw [hsa, hc]
     ring
 
+/-- The trigonometric cell-pair matrix is invariant under component-swap conjugation. See
+[Meyer1996a]. -/
 theorem cellPairMatrix_parity (θ : ℝ) :
     P2 * cellPairMatrix θ * P2 = cellPairMatrix θ := by
   rw [parity_iff_equal_entries]
   constructor <;> simp [cellPairMatrix]
 
+/-- At angle zero, the cell-pair matrix is the component-swap matrix. See [Meyer1996a]. -/
 theorem cellPairMatrix_zero_theta : cellPairMatrix 0 = P2 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [cellPairMatrix, P2]
 
+/-- The product `U * (T * U * star T)` describing two staggered cell-pair factors. -/
 def staggeredPair (U T : Matrix (Fin 2) (Fin 2) ℂ) : Matrix (Fin 2) (Fin 2) ℂ :=
   U * (T * U * star T)
 
+/-- The staggered pair is unitary whenever both input matrices are unitary. See [Meyer1996a]. -/
 theorem staggeredPair_mem_unitary (U T : Matrix (Fin 2) (Fin 2) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ)
     (hT : T ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
@@ -128,6 +163,8 @@ theorem staggeredPair_mem_unitary (U T : Matrix (Fin 2) (Fin 2) ℂ)
   rw [h]
   exact Subtype.mem _
 
+/-- Staggering the trigonometric cell-pair matrix with the component swap gives a unitary
+matrix. See [Meyer1996a]. -/
 theorem cellPair_staggered_mem_unitary (θ : ℝ) :
     staggeredPair (cellPairMatrix θ) P2 ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   staggeredPair_mem_unitary _ _ (cellPairMatrix_mem_unitary θ) P2_mem_unitary

@@ -8,11 +8,33 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Order.Filter.AtTopBot.Basic
 import Mathlib.Tactic
 
+/-!
+# Transferring time witnesses under exact agreement
+
+This module transfers eventual amplitude witnesses between scalar families that agree on a
+sufficiently large polynomial time window. The theorem `exact_agreement_transfers_time_witness`
+preserves the inverse-power amplitude threshold while enlarging the time exponent.
+
+These constructions accompany the results of [FarhiGutmann1998].
+
+## Main statements
+
+* `exact_agreement_transfers_time_witness`: transfers eventual witnesses under eventual exact
+  agreement.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Filter
 namespace Qatlib.Papers.DecisionTrees97.MainResults
 
+/-- If two scalar families eventually agree at all nonnegative times below `n ^ A0`, an eventual
+witness below `n ^ A` transfers to the second family with time bound `n ^ A0` whenever `A ≤
+A0`. -/
 theorem exact_agreement_transfers_time_witness
     (a af : ℕ → ℝ → ℝ) (A B A0 : ℝ) (hAA0 : A ≤ A0)
     (hev : ∀ᶠ n : ℕ in atTop,

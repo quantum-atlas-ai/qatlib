@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ActualBalance
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+/-!
+# Physical projective readout for parity
+
+This module relates `projectorAcceptance` to projective branch mass and, for orthogonal
+projectors, to Born expectation. For normalized unitary executions it proves conservation and
+probability bounds, then derives the parity query lower bound and rigidity using
+`projectorCorrectness`. These results support the parity analysis of [FarhiEtAl1998].
+
+## Main statements
+
+* `physical_positive_bias_query_bound`: A normalized unitary circuit whose orthogonal-projector
+  readout has a uniform positive parity bias satisfies `n ≤ 2 * QueryCount C`.
+* `physical_half_rigidity`: Below the parity query threshold, correctness at least one half on
+  every input forces both complementary projector acceptance values to equal one half.
+
+## References
+
+* [Farhi et al., 1998][FarhiEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,8 @@ open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.InstrumentCore.Measurement
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
+/-- The source bit oracle tensored with the workspace identity is unitary. See [Farhi et al.,
+1998][FarhiEtAl1998]. -/
 theorem source_oracle_unitary {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (f : Fin n → Bool) :
     TensorGate (BitOracleOn f) (1 : Matrix W W ℂ) ∈
@@ -31,12 +54,14 @@ theorem source_oracle_unitary {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     cases h : f x <;> cases b <;> simp [BitFlip, h]
   · exact (Matrix.unitaryGroup W ℂ).one_mem
 
+/-- A unitary circuit with the source bit oracle preserves normalization of its initial state. -/
 theorem source_run_normalized {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ) (f : Fin n → Bool) :
     Normalized (Run (TensorGate (BitOracleOn f) 1) C ψ) :=
   hC.normalized_run (source_oracle_unitary f) hn
 
+/-- Projector acceptance is the true-branch mass of the final state for the matrix `P`. -/
 theorem projectorAcceptance_branch {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (P : Matrix (PolynomialWorkspace (Fin n) W) (PolynomialWorkspace (Fin n) W) ℂ)
@@ -44,6 +69,8 @@ theorem projectorAcceptance_branch {n : ℕ} {W : Type} [Fintype W] [DecidableEq
     projectorAcceptance C ψ P f =
       ProjectiveBranchMass P true (Run (TensorGate (BitOracleOn f) 1) C ψ) := rfl
 
+/-- For an orthogonal projector, acceptance equals the real part of its expectation in the final
+state. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem projectorAcceptance_expectation {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (P : Matrix (PolynomialWorkspace (Fin n) W) (PolynomialWorkspace (Fin n) W) ℂ)
@@ -60,6 +87,8 @@ theorem projectorAcceptance_expectation {n : ℕ} {W : Type} [Fintype W] [Decida
   rw [← hp, inner_self, ← Complex.ofReal_sum]
   rfl
 
+/-- For a normalized unitary execution, acceptance for an orthogonal projector and its
+complement sums to one. -/
 theorem projectorAcceptance_conservation {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ)
@@ -71,6 +100,8 @@ theorem projectorAcceptance_conservation {n : ℕ} {W : Type} [Fintype W] [Decid
   change projectorAcceptance C ψ (1 - P) f + projectorAcceptance C ψ P f = 1 at h
   linarith
 
+/-- For a normalized unitary execution and an orthogonal projector, acceptance lies in the
+interval from zero to one. -/
 theorem projectorAcceptance_range {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ)
@@ -82,12 +113,16 @@ theorem projectorAcceptance_range {n : ℕ} {W : Type} [Fintype W] [DecidableEq 
   have h := projectorAcceptance_conservation C hC ψ hn P hP f
   exact ⟨hp, by linarith⟩
 
+/-- The mass of the correct parity outcome, using `P` for even inputs and its complement for odd
+inputs. -/
 def projectorCorrectness {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (P : Matrix (PolynomialWorkspace (Fin n) W) (PolynomialWorkspace (Fin n) W) ℂ)
     (f : Fin n → Bool) : ℝ :=
   if parityOddB f then projectorAcceptance C ψ (1 - P) f else projectorAcceptance C ψ P f
 
+/-- For a normalized unitary execution and an orthogonal projector, correctness is one half plus
+the parity sign times centered acceptance. -/
 theorem projectorCorrectness_centered {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ)
@@ -99,6 +134,8 @@ theorem projectorCorrectness_centered {n : ℕ} {W : Type} [Fintype W] [Decidabl
   cases parityOddB f <;> simp only [Bool.false_eq_true, if_false, if_true, one_mul, neg_one_mul] <;>
     linarith
 
+/-- If `2 * QueryCount C < n`, the uniform average correctness of a normalized unitary circuit
+with orthogonal-projector readout is one half. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem projector_uniform_correct_half {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ)
@@ -111,6 +148,8 @@ theorem projector_uniform_correct_half {n : ℕ} {W : Type} [Fintype W] [Decidab
     Fintype.card_bool, Fintype.card_fin, nsmul_eq_mul, Nat.cast_pow, Nat.cast_ofNat]
   field_simp
 
+/-- A normalized unitary circuit whose orthogonal-projector readout has a uniform positive
+parity bias satisfies `n ≤ 2 * QueryCount C`. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem physical_positive_bias_query_bound {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ)
@@ -127,6 +166,9 @@ theorem physical_positive_bias_query_bound {n : ℕ} {W : Type} [Fintype W] [Dec
     have hc := projectorAcceptance_conservation C hC ψ hn P hP f
     linarith
 
+/-- Below the parity query threshold, correctness at least one half on every input forces both
+complementary projector acceptance values to equal one half. See [Farhi et al.,
+1998][FarhiEtAl1998]. -/
 theorem physical_half_rigidity {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (hC : IsUnitaryCircuit C)
     (ψ : QState (PolynomialWorkspace (Fin n) W)) (hn : Normalized ψ)
@@ -143,6 +185,8 @@ theorem physical_half_rigidity {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
   intro f
   exact ⟨hhalf f, by linarith [projectorAcceptance_conservation C hC ψ hn P hP f, hhalf f]⟩
 
+/-- Acceptance for the coordinate projector of `E` equals the measurement mass of `E` in the
+final state. -/
 theorem projectorAcceptance_event {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W)) (f : Fin n → Bool) :
@@ -150,6 +194,8 @@ theorem projectorAcceptance_event {n : ℕ} {W : Type} [Fintype W] [DecidableEq 
       MeasureProb (Run (TensorGate (BitOracleOn f) 1) C ψ) E := by
   exact sum_normSq_collapse _ _
 
+/-- The complement of a coordinate projector is the coordinate projector of the complementary
+event. -/
 theorem source_projector_compl {H : Type} [Fintype H] [DecidableEq H] (E : Finset H) :
     1 - Projector E = Projector (Finset.univ \ E) := by
   ext i j
@@ -158,6 +204,8 @@ theorem source_projector_compl {H : Type} [Fintype H] [DecidableEq H] (E : Finse
     by_cases hi : i ∈ E <;> simp [Projector, hi]
   · simp [Projector, h]
 
+/-- Correctness for the coordinate projector of `E` is the measurement mass of `E` on even
+inputs and of its complement on odd inputs. -/
 theorem projectorCorrectness_event {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W)) (f : Fin n → Bool) :

@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+/-!
+# Specification of rectangle polynomial approximation
+
+`Lemma29RectangleApproximation` specifies an even real polynomial bounded by one on `[-1, 1]`,
+near one in the inner band and near zero in the outer bands. It includes a degree bound of `3^k`
+and a quantitative bound on `2^k` in terms of gap and error. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Lemma29RectangleApproximation`: the even rectangle approximation specification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -14,6 +31,9 @@ namespace Qatlib.Concepts.QsvtCore.PolyApprox
 
 open Polynomial
 
+/-- The assertion that the stated parameter range yields an even polynomial with the rectangle
+band bounds, degree at most `3^k`, and the displayed bound on `2^k`; see [Gilyén et al.,
+Lemma 29][GilyenSuLowWiebe2019]. -/
 def Lemma29RectangleApproximation : Prop :=
   ∀ (δ' ε' t : ℝ), 0 < δ' → δ' ≤ 1/2 → 0 < ε' → ε' ≤ 1/2 →
     δ' ≤ t → t ≤ 1 - δ' →

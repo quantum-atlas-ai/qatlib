@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairWordSemanticsAmpl
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
+
+/-!
+# Amplitude identities for Haar pair readout
+
+This module computes the action of a Hadamard on each Boolean pair after a phase query. Equal
+input amplitudes within a pair cause the incorrect parity amplitude to vanish, and
+`haar_marked_correct_mass` transfers all marked-pair mass to the correct orientation in the
+setting of [Cornwell2014].
+
+## Main statements
+
+* `haar_wrong_amplitude`: When the two input amplitudes of a pair agree, a phase query followed
+  by a Hadamard gives zero amplitude in the orientation opposite to the pair parity.
+* `haar_pair_mass`: For equal input amplitudes within a pair, the correct parity outcome after
+  the phase query and Hadamard has probability equal to the sum of the pair's input
+  probabilities.
+* `haar_marked_correct_mass`: If every marked pair has equal input amplitudes and the same
+  parity b, the marked mass after phase querying and a Hadamard lies entirely in orientation b.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SearchStopping.KnownCount
@@ -21,6 +45,8 @@ open Qatlib.Concepts.SearchStopping.KnownCount Qatlib.Concepts.SearchStopping.Ga
 open scoped Classical BigOperators
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Applying the Hadamard on the Boolean register acts within each fixed pair-index fiber by the
+two-term Hadamard sum. -/
 theorem haar_pair_fiber (ψ : QState (I × Bool)) (i : I) (b : Bool) :
     (TensorGate (1 : Matrix I I ℂ) Hadamard *ᵥ ψ) (i,b) =
       ∑ c : Bool, Hadamard b c * ψ (i,c) := by
@@ -33,6 +59,8 @@ theorem haar_pair_fiber (ψ : QState (I × Bool)) (i : I) (b : Bool) :
     simp
   · simp
 
+/-- When the two input amplitudes of a pair agree, a phase query followed by a Hadamard gives
+zero amplitude in the orientation opposite to the pair parity. -/
 theorem haar_wrong_amplitude (ψ : QState (I × Bool)) (S : I × Bool → Bool)
     (i : I) (b : Bool) (heq : ψ (i,false) = ψ (i,true))
     (hb : (S (i,false) != S (i,true)) = b) :
@@ -45,6 +73,8 @@ theorem haar_wrong_amplitude (ψ : QState (I × Bool)) (S : I × Bool → Bool)
   cases h0 : S (i,false) <;> cases h1 : S (i,true) <;> cases b <;>
     simp [h0,h1] at hb ⊢ <;> simp [Hadamard, heq]
 
+/-- For equal input amplitudes within a pair, the correct parity outcome after the phase query
+and Hadamard has probability equal to the sum of the pair's input probabilities. -/
 theorem haar_pair_mass (ψ : QState (I × Bool)) (S : I × Bool → Bool)
     (i : I) (b : Bool) (heq : ψ (i,false) = ψ (i,true))
     (hb : (S (i,false) != S (i,true)) = b) :
@@ -77,15 +107,19 @@ theorem haar_pair_mass (ψ : QState (I × Bool)) (S : I × Bool → Bool)
     rw [hw] at hm
     simpa [γ, add_comm] using hm
 
+/-- The marked pair set is the Cartesian product of E with all Boolean orientations. -/
 theorem haar_pair_marked_eq (E : Finset I) :
     aqHaarPairMarked E = E ×ˢ (Finset.univ : Finset Bool) := by
   ext z
   simp [aqHaarPairMarked]
 
+/-- The marked pair set has cardinality twice the cardinality of E. -/
 theorem haar_pair_marked_card (E : Finset I) : (aqHaarPairMarked E).card = 2 * E.card := by
   rw [haar_pair_marked_eq, Finset.card_product]
   simp [Nat.mul_comm]
 
+/-- If every marked pair has equal input amplitudes and the same parity b, the marked mass after
+phase querying and a Hadamard lies entirely in orientation b. -/
 theorem haar_marked_correct_mass (ψ : QState (I × Bool)) (E : Finset I)
     (S : I × Bool → Bool) (b : Bool)
     (heq : ∀ i ∈ E, ψ (i,false) = ψ (i,true))

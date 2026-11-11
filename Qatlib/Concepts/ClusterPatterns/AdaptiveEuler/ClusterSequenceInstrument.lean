@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
 import Qatlib.Concepts.InstrumentSeq.SeqAssoc.InstrumentCoarseGrainLaws
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+/-!
+# Instruments for cluster gate sequences
+
+This module defines the ordered gate product `clusterSequenceUnitary` and the instrument
+`clusterSequenceInstrument` obtained by composing corrected cluster wire instruments. Outcome
+registers are assembled by `clusterSequenceOutcomeEquiv`, with the empty word represented by an
+identity instrument. The measurement-based computation setting is described in
+[RaussendorfBriegel2000].
+
+For unit-modulus phases, every branch is a uniform scalar multiple of conjugation by the
+sequence unitary. The resulting probability, forgotten channel, and conditional-state formulas
+describe the complete instrument on arbitrary input operators and density operators.
+
+## Main statements
+
+* `cluster_sequence_unitary_word_laws`: empty and cons product laws, together with unitarity for
+  unit-modulus phase words.
+* `cluster_sequence_instrument_probability_conditioning`: branch maps, outcome probabilities,
+  the forgotten channel, and conditional states.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,27 +52,35 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The ordered product of cluster `J` gates for a phase word, with the first list entry acting
+first. -/
 noncomputable def clusterSequenceUnitary : List ℂ → Operator 2
   | [] => 1
   | z :: zs => clusterSequenceUnitary zs * clusterJ z
 
+/-- The equivalence adjoining a leading Boolean outcome to a Boolean register. -/
 def clusterSequenceOutcomeEquiv (n : ℕ) : Bool × Reg n ≃ Reg (n + 1) :=
   Fin.consEquiv (fun _ : Fin (n + 1) => Bool)
 
+/-- Every zero-length Boolean register equals the zero string. -/
 theorem reg_zero_subsingleton (x : Reg 0) : x = ZeroStr 0 := by
   funext i
   exact i.elim0
 
+/-- The finite set of all zero-length Boolean registers is the singleton zero string. -/
 theorem finset_univ_reg_zero : (Finset.univ : Finset (Reg 0)) = {ZeroStr 0} := by
   ext x
   simp only [Finset.mem_univ, Finset.mem_singleton, true_iff]
   exact reg_zero_subsingleton x
 
+/-- The single-outcome identity instrument for an empty phase word. -/
 noncomputable def clusterSequenceEmptyInstrument : Instrument (Reg 0) 2 2 :=
   Instrument.ofKraus (fun _ : Reg 0 => (1 : Operator 2)) (by
     rw [finset_univ_reg_zero, Finset.sum_singleton]
     simp)
 
+/-- Compose the corrected cluster wire instruments for a unit-modulus phase word and collect
+their outcomes into one Boolean register. -/
 noncomputable def clusterSequenceInstrument :
     (zs : List ℂ) → (∀ z ∈ zs, ‖z‖ = 1) → Instrument (Reg zs.length) 2 2
   | [], _ => clusterSequenceEmptyInstrument
@@ -55,6 +89,8 @@ noncomputable def clusterSequenceInstrument :
         (clusterSequenceInstrument zs (fun w hw => hzs w (List.mem_cons_of_mem z hw)))).coarsen
         (clusterSequenceOutcomeEquiv zs.length)
 
+/-- The cluster sequence product obeys the empty and cons word laws and is unitary when every
+phase has unit norm. -/
 theorem cluster_sequence_unitary_word_laws :
     clusterSequenceUnitary [] = 1 ∧
       (∀ (z : ℂ) (zs : List ℂ), clusterSequenceUnitary (z :: zs) =
@@ -69,15 +105,23 @@ theorem cluster_sequence_unitary_word_laws :
     exact Submonoid.mul_mem _ (ih (fun w hw => hzs w (List.mem_cons_of_mem z hw)))
       (clusterJ_unitary (hzs z List.mem_cons_self))
 
+/-- Casting a real power of one half to the complex numbers agrees with taking the corresponding
+complex power. -/
 theorem half_pow_cast (n : ℕ) : (1 / 2 : ℂ) ^ n = (((1 / 2 : ℝ) ^ n : ℝ) : ℂ) := by
   push_cast
   norm_num
 
+/-- The unique branch of the empty sequence instrument acts as the identity on every input
+operator. -/
 theorem clusterSequenceEmptyInstrument_branch (ω : Reg 0) (ρ : Operator 2) :
     clusterSequenceEmptyInstrument.branch ω ρ = ρ := by
   show (1 : Operator 2) * ρ * (1 : Operator 2).conjTranspose = ρ
   simp
 
+/-- Each branch of a corrected cluster sequence instrument is `2⁻ⁿ` times conjugation by its
+sequence unitary, with probability `2⁻ⁿ` times the real input trace. Forgetting outcomes
+gives that conjugation, and every positive-probability conditional state of a density
+operator is its unitary image. -/
 theorem cluster_sequence_instrument_probability_conditioning :
     ∀ (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ρ : Operator 2) (ω : Reg zs.length),
       (clusterSequenceInstrument zs hzs).branch ω ρ =

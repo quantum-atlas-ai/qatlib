@@ -8,6 +8,28 @@ import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamilyTigh
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
 import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
 import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedClock
+
+/-!
+# Search and minimum bounds for string matching
+
+This module supplies the search and minimum estimates used for Corollary 1 of [RameshVinay2000].
+The results `corollary1_search` and `corollary1_minimum` combine the BBHT terminal law and
+amplified minimum search guarantees with an explicit majority repetition count, yielding scalar
+failure and logarithmic cost bounds.
+
+## Main statements
+
+* `bbht_uniform_contract`: Gives normalized uniform marked output and an expected Boolean query
+  bound.
+* `corollary1_search`: Combines uniform search output with majority failure and cost estimates.
+* `corollary1_minimum`: Combines amplified minimum success with majority failure and cost
+  estimates.
+
+## References
+
+* [Ramesh and Vinay, 2000][RameshVinay2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,12 +43,15 @@ open Qatlib.Concepts.QueryComplexity.Amplification
 
 namespace Qatlib.Papers.QStringMatch00.MainResults.Corollary1
 
+/-- The natural ceiling of 9 log(8S), used as the majority repetition parameter. -/
 def majorityReps (S : ℝ) : ℕ := Nat.ceil (9 * Real.log (8 * S))
 
+/-- The logarithm of 8/9 is at most −1/9. -/
 lemma log_eight_ninths_le : Real.log (8 / 9 : ℝ) ≤ -(1 / 9 : ℝ) := by
   have h := Real.log_le_sub_one_of_pos (by norm_num : (0 : ℝ) < 8 / 9)
   linarith
 
+/-- For S ≥ 1, raising 8/9 to the majority repetition parameter gives at most 1/(8S). -/
 lemma majorityReps_pow_bound (S : ℝ) (hS : 1 ≤ S) :
     (8 / 9 : ℝ) ^ majorityReps S ≤ 1 / (8 * S) := by
   have hS8 : (0 : ℝ) < 8 * S := by linarith
@@ -43,6 +68,7 @@ lemma majorityReps_pow_bound (S : ℝ) (hS : 1 ≤ S) :
     _ = 1 / (8 * S) := by
         rw [Real.exp_neg, Real.exp_log hS8, one_div]
 
+/-- For S ≥ 1, the odd majority size 2 `majorityReps` S + 1 is at most 21(log(8S) + 1). -/
 lemma majorityReps_linear (S : ℝ) (hS : 1 ≤ S) :
     2 * (majorityReps S : ℝ) + 1 ≤ 21 * (Real.log (8 * S) + 1) := by
   have hlog : 0 ≤ Real.log (8 * S) := Real.log_nonneg (by linarith)
@@ -51,6 +77,8 @@ lemma majorityReps_linear (S : ℝ) (hS : 1 ≤ S) :
     Nat.ceil_lt_add_one hnonneg
   nlinarith
 
+/-- For a nonempty marked set, the BBHT terminal mass sums to one, its output is uniform on
+marked addresses, and its expected Boolean query count is at most (29/2)√(N/|A|). -/
 theorem bbht_uniform_contract
     (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) (hA : 0 < A.card) :
     HasSum (TerminalMass A (SourceSizes N (6 / 5))) 1 ∧
@@ -75,6 +103,9 @@ theorem bbht_uniform_contract
   rw [hconst] at hqb
   simpa using! hqb
 
+/-- For t marked items among N addresses, gives uniform marked terminal output and a repetition
+count whose scalar majority error is at most 1/8, cost is at most 4800Q(log(64Q) + 1), and
+combined success lower bound is at least 3/4, where Q = (29/2)√(N/t). See [RameshVinay2000]. -/
 theorem corollary1_search
     (N t : ℕ) (hN : 0 < N) (ht : 1 ≤ t) (htN : t ≤ N)
     (A : Finset (Fin N)) (hA : A.card = t) :
@@ -145,6 +176,7 @@ theorem corollary1_search
       rwa [he] at hmul
     linarith
 
+/-- Fourfold amplified minimum search returns a minimum with probability at least 15/16. -/
 theorem dh_minimum_success
     (N : ℕ) (hN : 0 < N) (α : Type) [LinearOrder α] (T : Fin N → α) :
     ENNReal.ofReal (15 / 16 : ℝ) ≤
@@ -155,6 +187,7 @@ theorem dh_minimum_success
   rw [he] at h
   exact h.1
 
+/-- Four charged minimum search budgets are at most 4(4(45/2 + (112/5)/(log 2)²) + 1)√N. -/
 theorem dh_minimum_budget (N : ℕ) (hN : 0 < N) :
     (4 * (chargedBudget N) : ℝ) ≤
       4 * (4 * ((45 / 2 : ℝ) + (112 / 5 : ℝ) / (Real.log 2) ^ 2) + 1) * Real.sqrt N := by
@@ -162,6 +195,9 @@ theorem dh_minimum_budget (N : ℕ) (hN : 0 < N) :
   have hs : (0 : ℝ) ≤ Real.sqrt (N : ℝ) := Real.sqrt_nonneg _
   nlinarith
 
+/-- Gives a repetition count combining minimum success at least 15/16 with scalar majority error
+at most 1/8, the stated logarithmic cost bound, and combined success lower bound at least
+3/4. See [RameshVinay2000]. -/
 theorem corollary1_minimum
     (N : ℕ) (hN : 0 < N) (α : Type) [LinearOrder α] (T : Fin N → α) :
     ∃ r : ℕ,

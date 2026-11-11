@@ -8,6 +8,24 @@ import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
 import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalDefs
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Coherent acceptance-coin specification
+
+This module states the coherent acceptance-coin specification motivated by Eqs. (2)-(3) of
+[TemmeEtAl2011]. For every normalized proposal amplitude vector, it requires unitarity, the
+exact state after the controlled coin operation, and the Born mass of the accepting outcomes.
+
+## Main statements
+
+* `CoherentInstrumentSubgoal` packages the controlled-gate, amplitude, and acceptance-mass
+  conclusions for all finite energy tables.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011], *Quantum Metropolis Sampling*, Eqs. (2)-(3).
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
@@ -18,6 +36,9 @@ namespace Qatlib.Papers.QMetropolis11.AcceptanceCoin
 
 open Matrix
 
+/-- The proposition requiring unitarity, the exact accepting and rejecting output amplitudes,
+and the proposal-weighted acceptance probability for every normalized proposal vector. It
+specifies the coherent coin step of Eqs. (2)-(3) in [TemmeEtAl2011]. -/
 def CoherentInstrumentSubgoal : Prop :=
   ∀ (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) (x : Fin D → ℂ),
     (∑ k, ‖x k‖ ^ 2 = 1) →

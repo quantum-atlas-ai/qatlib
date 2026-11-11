@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Papers.ChemDynamics08.MainResults.Readout.ReactionReadout
+
+/-!
+# State-to-state readout
+
+`expandState` forms a finite linear combination of states. For an orthonormal family, the module
+recovers the expansion coefficients as inner products and identifies their squared norms as
+transition probabilities. It also supplies normalization and a scalar phase-estimation precision
+bound.
+
+These constructions support the treatment in [KassalEtAl2008].
+
+## Main statements
+
+* `state_to_state_probability`: identifies the squared transition amplitudes and their unit sum.
+* `normalized_expandState`: proves normalization from orthonormality and normalized
+  coefficients.
+
+## References
+
+* [Kassal et al., 2008][KassalEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,16 +39,20 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.ChemDynamics08.MainResults.Readout
 
+/-- The finite linear combination of the states `ξ v` with complex coefficients `α v`. -/
 noncomputable def expandState {X ι : Type*} [Fintype ι]
     (ξ : ι → QState X) (α : ι → ℂ) : QState X :=
   fun x => ∑ v, α v * ξ v x
 
+/-- The pointwise state expansion equals the sum of scalar multiples of the component states. -/
 theorem expandState_eq_sum_smul {X ι : Type*} [Fintype ι]
     (ξ : ι → QState X) (α : ι → ℂ) :
     expandState ξ α = ∑ v, α v • ξ v := by
   funext x
   simp [expandState, Finset.sum_apply]
 
+/-- Taking the inner product with a member of an orthonormal family recovers its coefficient in
+the expansion [KassalEtAl2008]. -/
 theorem inner_expandState {X ι : Type*} [Fintype X] [Fintype ι] [DecidableEq ι]
     (ξ : ι → QState X) (α : ι → ℂ)
     (horth : ∀ v w : ι, Inner (ξ v) (ξ w) = if v = w then 1 else 0) (w : ι) :
@@ -43,6 +69,8 @@ theorem inner_expandState {X ι : Type*} [Fintype X] [Fintype ι] [DecidableEq �
   · intro h
     exact absurd (Finset.mem_univ w) h
 
+/-- For orthonormal component states and coefficients of total squared norm one, the squared
+transition amplitudes equal the squared coefficient norms and sum to one [KassalEtAl2008]. -/
 theorem state_to_state_probability {X ι : Type*} [Fintype X] [Fintype ι] [DecidableEq ι]
     (ξ : ι → QState X) (α : ι → ℂ)
     (horth : ∀ v w : ι, Inner (ξ v) (ξ w) = if v = w then 1 else 0)
@@ -55,6 +83,8 @@ theorem state_to_state_probability {X ι : Type*} [Fintype X] [Fintype ι] [Deci
         Finset.sum_congr rfl fun v _ => by rw [inner_expandState ξ α horth v]
     _ = 1 := hα
 
+/-- An expansion in an orthonormal family is normalized when its coefficients have total squared
+norm one. -/
 theorem normalized_expandState {X ι : Type} [Fintype X] [Fintype ι]
     [DecidableEq X] [DecidableEq ι]
     (ξ : ι → QState X) (α : ι → ℂ)
@@ -72,6 +102,8 @@ theorem normalized_expandState {X ι : Type} [Fintype X] [Fintype ι]
   rw [expandState_eq_sum_smul]
   exact h.trans hα
 
+/-- For every positive tolerance, some positive integer `M` makes the scalar bound `2π / M + π²
+/ M²` at most that tolerance [KassalEtAl2008]. -/
 theorem state_to_state_phase_estimation_precision (eps : ℝ) (heps : 0 < eps) :
     ∃ M : ℕ, 0 < M ∧
       2 * Real.pi / (M : ℝ) + Real.pi ^ 2 / (M : ℝ) ^ 2 ≤ eps :=

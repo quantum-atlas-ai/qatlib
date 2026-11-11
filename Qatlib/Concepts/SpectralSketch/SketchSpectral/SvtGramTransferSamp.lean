@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferStat
+
+/-!
+# Functional calculus transfer between Gram matrices
+
+This module proves the functional-calculus identity specified by `SvtGramTransfer`, transporting
+a function of the row Gram matrix through a rectangular matrix to a weighted function of its
+column Gram matrix. The identity is used in the matrix-arithmetic framework of [ChiaEtAl2022].
+
+The auxiliary theorem `hermitianFunction_eigenvector` identifies the action of an arbitrary
+spectral function on a Hermitian eigenvector.
+
+## Main statements
+
+* `hermitianFunction_eigenvector`: spectral functions apply the scalar function to eigenvalues.
+* `svtGramTransfer_proof`: the adjoint Gram-transfer identity for arbitrary scalar functions.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -17,6 +39,8 @@ namespace Qatlib.Concepts.SpectralSketch.SketchSpectral
 open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- If `v` is an eigenvector of a Hermitian matrix with real eigenvalue `lam`, applying
+`hermitianFunction` with scalar function `f` sends `v` to `f lam • v`. -/
 theorem hermitianFunction_eigenvector {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f : ℝ → ℂ) (lam : ℝ) (v : I → ℂ)
     (hv : A *ᵥ v = (lam : ℂ) • v) :
@@ -52,6 +76,8 @@ theorem hermitianFunction_eigenvector {I : Type} [Fintype I] [DecidableEq I]
   rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, hdiag,
     Matrix.mulVec_smul, Matrix.mulVec_mulVec, basisColumns_mul_adjoint, Matrix.one_mulVec]
 
+/-- Establish `SvtGramTransfer`, the identity transporting functional calculus between the row
+and column Gram matrices through the rectangular matrix and its adjoint. -/
 theorem svtGramTransfer_proof : SvtGramTransfer := by
   intro K C _ _ _ _ R g
   let A : Matrix C C ℂ := Rᴴ * R

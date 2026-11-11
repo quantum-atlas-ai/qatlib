@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Legacy Clifford shadow contracts
+
+This module defines computational basis projectors and the legacy Clifford moment, channel, and
+norm propositions. `CliffordMomentHypothesis` uses forward conjugation in its trace weight and
+backward conjugation in its matrix output, while the legacy channel and norm contracts specify
+actual Born-weighted reconstruction statements. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `basisProjector`: a computational basis rank-one projector.
+* `CliffordMomentHypothesis`: the legacy mixed-orientation moment condition.
+* `CliffordBasisShadowChannelSubgoalLegacy` and `CliffordBasisShadowNormSubgoalLegacy`: legacy
+  target propositions.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,9 +39,12 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators
 
+/-- The rank-one computational basis projector with its only nonzero entry at `(b, b)`. -/
 def basisProjector {d : ℕ} (b : Fin d) : Operator d :=
   fun i j => if i = b ∧ j = b then (1 : ℂ) else 0
 
+/-- The legacy ensemble moment condition pairing traces against forward-conjugated pure states
+with backward-conjugated matrix outputs. -/
 def CliffordMomentHypothesis (d : ℕ) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d) : Prop :=
   ∀ Pp : Operator d, IsPureDensityOperator Pp → ∀ A : Operator d,
@@ -29,6 +53,8 @@ def CliffordMomentHypothesis (d : ℕ) (I : Type) [Fintype I] [DecidableEq I]
       ((Matrix.trace A).re / ((d : ℝ) * ((d : ℝ) + 1))) • 1 +
       (1 / ((d : ℝ) * ((d : ℝ) + 1))) • A
 
+/-- The legacy proposition asserting the actual basis channel formula and unbiased inverse
+reconstruction from `CliffordMomentHypothesis` and supportwise unitarity. -/
 def CliffordBasisShadowChannelSubgoalLegacy : Prop :=
   ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)
@@ -46,6 +72,8 @@ def CliffordBasisShadowChannelSubgoalLegacy : Prop :=
             ((Uf i)ᴴ * basisProjector b * Uf i) - 1))).re) =
         (Matrix.trace (Oo * ρ)).re)
 
+/-- The legacy proposition asserting the Born-weighted second-moment bound for traceless
+Hermitian observables from the displayed forward-conjugation third-moment condition. -/
 def CliffordBasisShadowNormSubgoalLegacy : Prop :=
   ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)

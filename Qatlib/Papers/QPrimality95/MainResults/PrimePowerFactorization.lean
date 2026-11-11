@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.OrderCounts
 import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.ExponentRecovery
 import Qatlib.Papers.QPrimality95.MainResults.ComplexityAssembly
+
+/-!
+# Prime-power extraction probabilities and cost bounds
+
+This module formalizes probability and cost estimates for the prime-power factorization step in
+[ChauLo1995]. For an odd prime power with exponent at least two,
+`appendix_b_exact_order_success` bounds the fraction of units whose multiplicative order gives
+the required extraction quotient.
+
+The module defines `primePowerCost`, combines assumed order-finding and extraction costs, and
+derives an averaged success bound from a lower bound on units with sufficiently divisible order.
+
+## Main statements
+
+* `appendix_b_exact_order_success`: For an odd prime `p` and `n ≥ 2`, at least two thirds of the
+  units modulo `p ^ n` satisfy `p ^ n / gcd (p ^ n) (orderOf m) = p`. This is the extraction
+  probability used in [Chau and Lo, Appendix B][ChauLo1995].
+* `prime_power_cost_sum_of_bounds`: If order-finding and extraction costs satisfy the stated
+  multiples of `primePowerCost` for `M ≥ 3`, with positive sum of constants, their sum has a
+  positive constant bound of the same form.
+* `primePower_averaged_success`: For an odd prime power with exponent at least two, a
+  nonnegative success function at least `1 - (1 / 2) ^ k` on units whose order is divisible by
+  `p ^ (n - 1)` has uniform average at least `(2 / 3) * (1 - (1 / 2) ^ k)`. This supplies the
+  averaging estimate for [Chau and Lo, Appendix B][ChauLo1995].
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +44,9 @@ noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.QPrimality95.MainResults
 
+/-- For an odd prime `p` and `n ≥ 2`, at least two thirds of the units modulo `p ^ n` satisfy `p
+^ n / gcd (p ^ n) (orderOf m) = p`. This is the extraction probability used in [Chau and Lo,
+Appendix B][ChauLo1995]. -/
 theorem appendix_b_exact_order_success (p n : ℕ) (hp : p.Prime)
     (hp2 : p ≠ 2) (hn : 2 ≤ n) :
     (2 : ℚ) / 3 ≤
@@ -22,10 +55,15 @@ theorem appendix_b_exact_order_success (p n : ℕ) (hp : p.Prime)
         (Nat.card (ZMod (p ^ n))ˣ : ℚ) :=
   Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.prime_power_extraction_probability p n hp hp2 hn
 
+/-- The real-valued expression `(log M)² * (log (log M))² * log (log (log M))` for prime-power
+subroutine costs. -/
 noncomputable def primePowerCost (M : ℕ) : ℝ :=
   (Real.log (M : ℝ)) ^ 2 * (Real.log (Real.log (M : ℝ))) ^ 2 *
     Real.log (Real.log (Real.log (M : ℝ)))
 
+/-- If order-finding and extraction costs satisfy the stated multiples of `primePowerCost` for
+`M ≥ 3`, with positive sum of constants, their sum has a positive constant bound of the same
+form. -/
 theorem prime_power_cost_sum_of_bounds
     (orderCost extractCost : ℕ → ℝ) (C1 C2 : ℝ)
     (hC : 0 < C1 + C2)
@@ -40,6 +78,10 @@ theorem prime_power_cost_sum_of_bounds
       add_le_add (horder M hM) (hextract M hM)
     _ = (C1 + C2) * primePowerCost M := by ring
 
+/-- For an odd prime power with exponent at least two, a nonnegative success function at least
+`1 - (1 / 2) ^ k` on units whose order is divisible by `p ^ (n - 1)` has uniform average at
+least `(2 / 3) * (1 - (1 / 2) ^ k)`. This supplies the averaging estimate for [Chau and Lo,
+Appendix B][ChauLo1995]. -/
 theorem primePower_averaged_success (p n k : ℕ) [NeZero (p ^ n)] (hp : p.Prime)
     (hp2 : p ≠ 2) (hn : 2 ≤ n) (s : (ZMod (p ^ n))ˣ → ℝ) (hs : ∀ u, 0 ≤ s u)
     (hgood : ∀ u : (ZMod (p ^ n))ˣ, p ^ (n - 1) ∣ orderOf u →

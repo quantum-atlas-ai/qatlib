@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.CausalSearch.Risk
 import Qatlib.Foundations.ProbabilityCore.FiniteBranch.FiniteDraw
+
+/-!
+# Initialized online minimum-finding runs
+
+`initializedRun` samples an initial candidate and runs the clocked minimum-finding controller
+after reserving the initialization fee. Its charge is bounded on every path, and joint row-law
+and rank hypotheses transfer the controller failure bound to `initializedRisk`.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `initializedRun_cap`: Every result of an initialized run has paid charge at most `B`.
+* `initializedRun_failure_le_risk`: Under the rank, joint oracle-row law, and fuel hypotheses,
+  with an affordable initialization fee, the mean failure indicator of the initialized
+  controller is bounded by `initializedRisk` for the induced rank distribution.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,8 @@ open Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
 open BiasedProcess
 variable {I : Type} [Fintype I]
 
+/-- Samples an initial candidate and runs `minimumCode` with the budget remaining after
+initialization, or returns the fallback with charge `B` if initialization is unaffordable. -/
 def initializedRun (cost : I → ℝ) (p : PMF I) (oracle : I → Code I (Option I))
     (fuel B initialFee : ℕ) (fallback : I) :
     Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree (Result I I) :=
@@ -27,6 +51,7 @@ def initializedRun (cost : I → ℝ) (p : PMF I) (oracle : I → Code I (Option
       (minimumCode oracle fuel current))).map (charge initialFee)
   else .pure ⟨none,B,fallback⟩
 
+/-- Every result of an initialized run has paid charge at most `B`. -/
 theorem initializedRun_cap (cost : I → ℝ) (p : PMF I) (oracle : I → Code I (Option I))
     (fuel B initialFee : ℕ) (fallback : I) :
     (initializedRun cost p oracle fuel B initialFee fallback).All (fun out => out.paid≤B) := by
@@ -40,6 +65,9 @@ theorem initializedRun_cap (cost : I → ℝ) (p : PMF I) (oracle : I → Code I
     omega
   · exact Nat.le_refl B
 
+/-- Under the rank, joint oracle-row law, and fuel hypotheses, with an affordable initialization
+fee, the mean failure indicator of the initialized controller is bounded by
+`initializedRisk` for the induced rank distribution. See [ShaydulinEtAl2024]. -/
 theorem initializedRun_failure_le_risk {L : ℕ} (cost : I → ℝ) (rank : I → Fin L)
     (hzero : ∀ i,(rank i).val=0 ↔ ∀ j,cost i≤cost j)
     (horder : ∀ i j,(rank i).val<(rank j).val ↔ cost i<cost j)

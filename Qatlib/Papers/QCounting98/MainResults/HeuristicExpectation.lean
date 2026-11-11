@@ -9,6 +9,27 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Expectations for repeated heuristic trials
+
+`classical_trial_tail_sum` evaluates the geometric tail sum for uniform random seeds.
+`heuristic_double_expectation` compares the average square-root trial scale with the square root
+of the average classical trial scale. The mathematical context is
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `classical_trial_tail_sum`: For `0 < h ≤ R`, the geometric tail series with failure
+  probability `1 - h/R` has sum `R/h`.
+* `heuristic_double_expectation`: For a finite probability distribution and positive
+  seed-success counts, the weighted mean of `sqrt (R/h)` is bounded by the square root of the
+  weighted mean of `R/h`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +37,8 @@ namespace Qatlib.Papers.QCounting98.MainResults.HeuristicExpectation
 
 open scoped BigOperators
 
+/-- For `0 < h ≤ R`, the geometric tail series with failure probability `1 - h/R` has sum `R/h`.
+See [BrassardHoyerTapp1998Counting]. -/
 theorem classical_trial_tail_sum (R h : ℕ) (hR : 0 < R) (hh : 0 < h) (hhR : h ≤ R) :
     HasSum (fun j : ℕ => (1 - (h : ℝ) / (R : ℝ)) ^ j) ((R : ℝ) / (h : ℝ)) := by
   have hR' : (0 : ℝ) < R := by exact_mod_cast hR
@@ -30,6 +53,9 @@ theorem classical_trial_tail_sum (R h : ℕ) (hR : 0 < R) (hh : 0 < h) (hhR : h 
   rw [hone] at hgeom
   rwa [inv_div] at hgeom
 
+/-- For a finite probability distribution and positive seed-success counts, the weighted mean of
+`sqrt (R/h)` is bounded by the square root of the weighted mean of `R/h`. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem heuristic_double_expectation {F : Type} [Fintype F]
     (P : F → ℝ) (R : ℕ) (h : F → ℕ)
     (hP : ∀ i, 0 ≤ P i) (hsum : ∑ i, P i = 1)

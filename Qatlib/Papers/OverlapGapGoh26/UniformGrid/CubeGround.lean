@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.SoftGround
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.ExplicitGrid
+
+/-!
+# Finite cube grids and smoothed ground energies
+
+A coordinate mesh in the Hilbert cube gives a finite minimum `gridMinimum` and its soft-minimum
+approximation `smoothGround`. Mesh error, entropy error, and a Gaussian rotation tail control
+these approximations to the ground-energy density in the tensor setting of [GohMuller2026].
+
+## Main statements
+
+* `gridMinimum_le_cubeOpt`: a norm bound controls the mesh approximation error.
+* `smoothGround_rotation_tail`: Gaussian rotation excursions of the smoothed energy satisfy a
+  quantitative tail bound.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,8 +42,10 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Path
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
 
+/-- The real grid coordinate `−1 + 2 * j / m` associated with `j : Fin (m + 1)`. -/
 def coordinate (m : ℕ) (j : Fin (m+1)) : ℝ := -1+2*((j:ℝ)/(m:ℝ))
 
+/-- For positive `m`, every grid coordinate lies in `[−1, 1]`. -/
 theorem coordinate_cube {m : ℕ} (hm : 0 < m) (j : Fin (m+1)) : coordinate m j∈Set.Icc (-1:ℝ) 1 := by
   have hm' : (0:ℝ)< m := by exact_mod_cast hm
   have hj : (j:ℝ)≤ m := by exact_mod_cast (show j.val≤ m by omega)
@@ -33,6 +54,7 @@ theorem coordinate_cube {m : ℕ} (hm : 0 < m) (j : Fin (m+1)) : coordinate m j�
   unfold coordinate
   constructor <;> linarith
 
+/-- For positive `m`, every point of `[−1, 1]` is within `2 / m` of a grid coordinate. -/
 theorem coordinate_cover {m : ℕ} (hm : 0 < m) (z : ℝ) (hz : z∈Set.Icc (-1:ℝ) 1) :
     ∃ j : Fin (m+1),|z-coordinate m j|≤2/(m:ℝ) := by
   have hτ : (z+1)/2∈Set.Icc (0:ℝ) 1 := by constructor <;> linarith [hz.1,hz.2]
@@ -43,13 +65,18 @@ theorem coordinate_cover {m : ℕ} (hm : 0 < m) (z : ℝ) (hz : z∈Set.Icc (-1:
   rw [he,abs_mul,abs_of_pos (by norm_num : (0:ℝ)<2)]
   exact (mul_le_mul_of_nonneg_left hclose (by norm_num : (0:ℝ)≤2)).trans_eq (by ring)
 
+/-- The cube configuration obtained by choosing a grid coordinate at each site. -/
 def cubeState {N : ℕ} (m : ℕ) (v : Fin N→Fin (m+1)) : Fin N→ℝ := fun i => coordinate m (v i)
 
+/-- For positive mesh resolution, every grid configuration belongs to the Hilbert cube. -/
 theorem cubeState_mem {N m : ℕ} (hm : 0 < m) (v : Fin N→Fin (m+1)) : cubeState m v∈hilbertCube N :=
   fun i => coordinate_cube hm (v i)
 
+/-- The number of grid labels for `N` sites is `(m + 1)^N`. -/
 theorem cubeState_card (N m : ℕ) : Fintype.card (Fin N→Fin (m+1))=(m+1)^N := by simp
 
+/-- Every Hilbert-cube configuration is within Euclidean distance `(2 / m) * sqrt N` of a grid
+configuration when `m` is positive. -/
 theorem cubeState_cover {N m : ℕ} (hm : 0 < m) (z : Fin N→ℝ) (hz : z∈hilbertCube N) :
     ∃ v : Fin N→Fin (m+1),
       ‖(WithLp.toLp 2 z : EuclideanSpace ℝ (Fin N))-WithLp.toLp 2 (cubeState m v)‖≤(2/(m:ℝ))*Real.sqrt (N:ℝ) := by
@@ -64,9 +91,11 @@ theorem cubeState_cover {N m : ℕ} (hm : 0 < m) (z : Fin N→ℝ) (hz : z∈hil
       simpa only [sq_abs] using! pow_le_pow_left₀ (abs_nonneg _) (hv i) 2
     _ = _ := by simp; ring
 
+/-- The minimum of `stateEnergy` over all cube grid configurations with resolution `m`. -/
 def gridMinimum {r N : ℕ} (m : ℕ) (x : Input r N) : ℝ :=
   finiteMin (fun v : Fin N→Fin (m+1) => stateEnergy (cubeState m v) x)
 
+/-- For positive `N` and `m`, the cube ground-energy density is at most the finite grid minimum. -/
 theorem cubeOpt_le_gridMinimum {r N m : ℕ} (hN : 0<N) (hm : 0 < m) (x : Input r N) :
     cubeOpt (sourceTensor (tensorCoords x).ofLp)/(N:ℝ)≤gridMinimum m x := by
   have hn : (0:ℝ)≤N := by exact_mod_cast hN.le
@@ -75,6 +104,8 @@ theorem cubeOpt_le_gridMinimum {r N m : ℕ} (hN : 0<N) (hm : 0 < m) (x : Input 
   intro v _
   exact div_le_div_of_nonneg_right (cubeOpt_le_energy _ _ (cubeState_mem hm v)) hn
 
+/-- For positive `r`, `N`, and `m`, the grid minimum exceeds the cube ground-energy density by
+at most `2 * K * (r + 1) / m` when `normScale x ≤ K`. -/
 theorem gridMinimum_le_cubeOpt {r N m : ℕ} (hr : 0<r) (hN : 0<N) (hm : 0 < m)
     (x : Input r N) (K : ℝ) (hK : normScale x≤K) :
     gridMinimum m x≤cubeOpt (sourceTensor (tensorCoords x).ofLp)/(N:ℝ)+2*K*((r+1:ℕ):ℝ)/(m:ℝ) := by
@@ -102,15 +133,19 @@ theorem gridMinimum_le_cubeOpt {r N m : ℕ} (hr : 0<r) (hN : 0<N) (hm : 0 < m)
   have hlo := (abs_le.mp hh).1
   linarith
 
+/-- The soft minimum of the cube grid energies with inverse-temperature parameter `β * N`. -/
 def smoothGround {r N : ℕ} (m : ℕ) (β : ℝ) (x : Input r N) : ℝ :=
   softEnergy (β*(N:ℝ)) (cubeState (N:=N) m) x
 
+/-- For positive `N` and `β`, the grid entropy divided by `β * N` equals `log (m + 1) / β`. -/
 theorem cube_entropy {N m : ℕ} (hN : 0<N) (β : ℝ) (hβ : 0<β) :
     Real.log (Fintype.card (Fin N→Fin (m+1)):ℝ)/(β*(N:ℝ))=Real.log (m+1:ℝ)/β := by
   have hn : (N:ℝ)≠0 := by exact_mod_cast Nat.ne_of_gt hN
   rw [cubeState_card,Nat.cast_pow,Real.log_pow,Nat.cast_add,Nat.cast_one]
   field_simp
 
+/-- For positive `N`, `m`, and `β`, the smoothed ground energy is bounded below by the cube
+ground-energy density minus `log (m + 1) / β`. -/
 theorem cubeOpt_entropy_le_smoothGround {r N m : ℕ} (hN : 0<N) (hm : 0 < m)
     (β : ℝ) (hβ : 0<β) (x : Input r N) :
     cubeOpt (sourceTensor (tensorCoords x).ofLp)/(N:ℝ)-Real.log (m+1:ℝ)/β≤ smoothGround m β x := by
@@ -120,6 +155,8 @@ theorem cubeOpt_entropy_le_smoothGround {r N m : ℕ} (hN : 0<N) (hm : 0 < m)
   rw [cube_entropy hN β hβ] at hs
   exact (sub_le_sub_right (cubeOpt_le_gridMinimum hN hm x) _).trans hs
 
+/-- Under the stated positivity and norm-scale bounds, the smoothed ground energy is at most the
+cube ground-energy density plus `2 * K * (r + 1) / m`. -/
 theorem smoothGround_le_cubeOpt {r N m : ℕ} (hr : 0<r) (hN : 0<N) (hm : 0 < m)
     (β : ℝ) (hβ : 0<β) (x : Input r N) (K : ℝ) (hK : normScale x≤K) :
     smoothGround m β x≤cubeOpt (sourceTensor (tensorCoords x).ofLp)/(N:ℝ)+2*K*((r+1:ℕ):ℝ)/(m:ℝ) := by
@@ -128,6 +165,8 @@ theorem smoothGround_le_cubeOpt {r N m : ℕ} (hr : 0<r) (hN : 0<N) (hm : 0 < m)
     (fun v : Fin N→Fin (m+1) => stateEnergy (cubeState m v) x)).trans
     (gridMinimum_le_cubeOpt hr hN hm x K hK)
 
+/-- For positive `N`, `m`, `β`, and `ε`, the probability of a Gaussian rotation excursion of
+`smoothGround` by at least `ε` is at most `π² / (4 * N * ε²)`. -/
 theorem smoothGround_rotation_tail {r N m : ℕ} (hN : 0<N) (hm : 0 < m)
     (β : ℝ) (hβ : 0<β) (ε : ℝ) (hε : 0<ε) :
     ((stdGaussian (Input r N)).prod (stdGaussian (Input r N))).real

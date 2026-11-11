@@ -7,14 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma10Stat
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Ampl
 
+/-!
+# Overlap of finite Fourier phase states
+
+`zoo_amplitude_estimation_phase_state_overlap` computes the squared overlap of two phase states
+from their circular distance. The proof reduces the inner product to a geometric exponential sum
+and evaluates its norm using a sine quotient. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `zoo_amplitude_estimation_phase_state_overlap`: For phases in `[0, 1)` and positive `M`,
+  squared overlap is one at zero circular distance and otherwise equals the normalized sine
+  quotient of [Brassard et al., Lemma 10][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 namespace Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
 open scoped BigOperators
 open ComplexConjugate
 
+/-- The sum of `exp (2 * π * I * x * y)` over `y : Fin M`. -/
 noncomputable def zoo_amplitude_estimation_phase_state_overlap_exp_sum (M : ℕ) (x : ℝ) : ℂ :=
   ∑ y : Fin M, Complex.exp (((2 * Real.pi * x * (y.val : ℝ) : ℝ) : ℂ) * Complex.I)
 
+/-- Conjugating a complex exponential with real phase negates that phase. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_conj_exp (θ : ℝ) :
     conj (Complex.exp (((θ : ℝ) : ℂ) * Complex.I))
       = Complex.exp ((((-θ : ℝ) : ℝ) : ℂ) * Complex.I) := by
@@ -23,6 +43,8 @@ lemma zoo_amplitude_estimation_phase_state_overlap_conj_exp (θ : ℝ) :
   push_cast
   ring
 
+/-- For positive `M`, the squared phase state overlap is the squared norm of the phase
+difference exponential sum divided by `M^2`. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_inner (M : ℕ) (ω₀ ω₁ : ℝ) (hM : 0 < M) :
     ‖inner ℂ (bhmtPhaseState M ω₀) (bhmtPhaseState M ω₁)‖ ^ 2
       = ‖zoo_amplitude_estimation_phase_state_overlap_exp_sum M (ω₁ - ω₀)‖ ^ 2
@@ -84,6 +106,8 @@ lemma zoo_amplitude_estimation_phase_state_overlap_inner (M : ℕ) (ω₀ ω₁ 
     abs_of_pos (div_pos (by norm_num) hMp), mul_pow]
   rw [div_pow, one_pow, one_div_mul_eq_div]
 
+/-- The circular phase distance is realized by an integer shift whose absolute displacement is
+at most `1 / 2`. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_distance (ω₀ ω₁ : ℝ) :
     ∃ k : ℤ,
       bhmtPhaseDistance ω₀ ω₁ = |ω₁ - ω₀ - (k : ℝ)| ∧ |ω₁ - ω₀ - (k : ℝ)| ≤ 1 / 2 := by
@@ -111,6 +135,7 @@ lemma zoo_amplitude_estimation_phase_state_overlap_distance (ω₀ ω₁ : ℝ) 
     ring
   exact le_antisymm (csInf_le hbd hmem) (le_csInf hne hlb)
 
+/-- Integer shifts of the phase leave the finite exponential sum unchanged. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_int_shift (M : ℕ) (x : ℝ) (k : ℤ) :
     zoo_amplitude_estimation_phase_state_overlap_exp_sum M x
       = zoo_amplitude_estimation_phase_state_overlap_exp_sum M (x - (k : ℝ)) := by
@@ -133,6 +158,7 @@ lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_int_shift (M : ℕ) (
     ring
   rw [hsplit, Complex.exp_add, hint, mul_one]
 
+/-- Replacing the phase by its absolute value preserves the squared norm of the exponential sum. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_norm_abs (M : ℕ) (x : ℝ) :
     ‖zoo_amplitude_estimation_phase_state_overlap_exp_sum M x‖ ^ 2
       = ‖zoo_amplitude_estimation_phase_state_overlap_exp_sum M |x|‖ ^ 2 := by
@@ -163,6 +189,7 @@ lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_norm_abs (M : ℕ) (x
         (map_sum (starRingEnd ℂ) _ _).symm]
     rw [Complex.norm_conj]
 
+/-- The zero phase exponential sum equals `M`. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_zero (M : ℕ) :
     zoo_amplitude_estimation_phase_state_overlap_exp_sum M 0 = (M : ℂ) := by
   rw [show zoo_amplitude_estimation_phase_state_overlap_exp_sum M 0
@@ -179,6 +206,8 @@ lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_zero (M : ℕ) :
   rw [Finset.sum_congr rfl (fun y _ => hterm y)]
   simp
 
+/-- For `0 < δ ≤ 1 / 2`, the squared norm of the exponential sum is `sin (π * M * δ)^2 / sin (π
+* δ)^2`. -/
 lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_sin (M : ℕ) (δ : ℝ)
     (hδ0 : 0 < δ) (hδhalf : δ ≤ 1 / 2) :
     ‖zoo_amplitude_estimation_phase_state_overlap_exp_sum M δ‖ ^ 2
@@ -230,6 +259,9 @@ lemma zoo_amplitude_estimation_phase_state_overlap_exp_sum_sin (M : ℕ) (δ : �
     show (2 * Real.pi * δ) / 2 = Real.pi * δ from by ring,
     mul_div_mul_left _ _ (by norm_num : ((4 : ℝ)) ≠ 0)]
 
+/-- For phases in `[0, 1)` and positive `M`, squared overlap is one at zero circular distance
+and otherwise equals the normalized sine quotient of [Brassard et al., Lemma
+10][BrassardEtAl2002]. -/
 theorem zoo_amplitude_estimation_phase_state_overlap :
     ∀ (M : ℕ) (ω₀ ω₁ : ℝ),
       0 < M →

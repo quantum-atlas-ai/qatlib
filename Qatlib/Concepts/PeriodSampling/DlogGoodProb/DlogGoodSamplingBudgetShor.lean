@@ -8,6 +8,25 @@ import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetStat
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityShor
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityShor
 import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+
+/-!
+# Sampling budgets for good discrete-logarithm outcomes
+
+Converts the good-output probability estimate into a bound for independent samples from the Born
+distribution. An indicator-variance estimate yields `dlogGoodSamplingBudget`: a single-sample
+probability of at least `1 / 480` and a one-half chance of collecting `t` good outputs in `1920
+* 20 * t` trials, in the setting of [Shor1997].
+
+## Main statements
+
+* `dlog_fresh_good_count_budget`: Bounds the probability of obtaining enough successes.
+* `dlogGoodSamplingBudget`: Establishes the Born-sampling budget contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +47,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open Qatlib
 open scoped Classical BigOperators
 
+/-- For the stated normalized discrete-logarithm state and modulus window, a single Born sample
+is good with probability at least `1 / 480`. -/
 theorem dlog_good_sampling_single (p q r : ℕ) [NeZero p] (g x : ZMod p)
     (hprime : Nat.Prime p) (hp : 3 ≤ p) (hx : x ≠ 0) (hpq : p < q)
     (hg : orderOf g = p - 1) (hr : x = g ^ r) (hq : q ≤ 2 * (p - 1))
@@ -37,6 +58,7 @@ theorem dlog_good_sampling_single (p q r : ℕ) [NeZero p] (g x : ZMod p)
   rw [dlog_probEvent_one (dlogBornLaw p q g x hnorm) (dlogGoodOutcome p q r)]
   exact (dlogGoodOutputProbability p q r g x hprime hp hx hpq hg hr).2.2 hq
 
+/-- The variance of an event indicator is at most its expectation. -/
 private theorem indicator_variance_le {X : Type} [Fintype X]
     (law : FinDist X) (E : X → Prop) [DecidablePred E] :
     law.variance (fun x => if E x then (1 : ℝ) else 0) ≤
@@ -60,6 +82,8 @@ private theorem indicator_variance_le {X : Type} [Fintype X]
   rw [hv]
   nlinarith [sq_nonneg μ]
 
+/-- If an event has single-sample mass at least `1 / 480`, then `1920 * 20 * t` independent
+samples contain at least `t` successes with probability at least one half. -/
 theorem dlog_fresh_good_count_budget {X : Type} [Fintype X] [DecidableEq X]
     (law : FinDist X) (E : X → Prop) [DecidablePred E]
     (hmass : 1/480 ≤ law.expect (fun x => if E x then (1 : ℝ) else 0)) (t : ℕ) :
@@ -125,6 +149,8 @@ theorem dlog_fresh_good_count_budget {X : Type} [Fintype X] [DecidableEq X]
   change law.probEvent (L := L) (fun ω => (t : ℝ) ≤ ∑ j, f (ω j)) ≥ 1/2
   linarith [hmono.trans hc']
 
+/-- Establishes the single-sample and repeated-sampling good-output budget for the
+discrete-logarithm state associated with [Shor1997]. -/
 theorem dlogGoodSamplingBudget : DlogGoodSamplingBudget := by
   intro p q r _ g x hprime hp hx hpq hg hr hq hnorm
   have hs := dlog_good_sampling_single p q r g x hprime hp hx hpq hg hr hq hnorm

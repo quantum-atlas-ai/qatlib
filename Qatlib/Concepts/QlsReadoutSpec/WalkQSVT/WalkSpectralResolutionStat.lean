@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.SpectralModels
+
+/-!
+# Walk spectral-resolution specification
+
+The proposition `Clause12WalkSpectralResolution` specifies the support projector, orthogonality,
+residual basis, and spectral resolution associated with a qubitized walk. Its hypotheses include
+a unitary oracle, isometric embedding, unitary eigenbasis of the compression, and the
+compressed-square identity. Related mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `Clause12WalkSpectralResolution`: The complete walk support and spectral-resolution assertion.
+
+## References
+
+* [Low and Su, 2026, Proposition 18 and Corollary 19][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +47,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The assertion specifying the orthogonal support, kernel, residual basis, normalized phase
+branches, and spectral resolution of a qubitized walk under the unitary compression and
+compressed-square hypotheses. -/
 def Clause12WalkSpectralResolution : Prop :=
   ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (U : Matrix H H ℂ) (G : Matrix H I ℂ) (S : Matrix I I ℂ) (lam : I → ℝ),

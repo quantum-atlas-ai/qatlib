@@ -14,6 +14,24 @@ import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 import Mathlib.Tactic.NoncommRing
 import Mathlib.Analysis.CStarAlgebra.Basic
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Lipschitz continuity of Hermitian evolution
+
+This module proves `HermitianEvolutionLipschitz`: replacing a finite Hermitian Hamiltonian by
+another changes its time evolution by at most the Hamiltonian distance times the absolute time.
+The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `hermitianEvolutionLipschitz_answer`: the operator norm perturbation estimate for Hermitian
+  evolution.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -25,6 +43,8 @@ open scoped Matrix.Norms.L2Operator
 
 set_option maxHeartbeats 1000000 in
 
+/-- Hermitian time evolution satisfies `‖HamiltonianEvolution H t - HamiltonianEvolution H' t‖ ≤
+|t| * ‖H - H'‖`, as in [Gilyén et al., Lemma 61][GilyenSuLowWiebe2019]. -/
 theorem hermitianEvolutionLipschitz_answer : HermitianEvolutionLipschitz := by
   intro I _ _ H H' hH hH' t
   have hcoe : ∀ s : ℝ, (Complex.ofReal s) = s • (1:ℂ) := by

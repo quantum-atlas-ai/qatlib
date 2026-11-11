@@ -8,12 +8,35 @@ import Qatlib.Papers.Trainability23.HaarAverages.HaarInfrastructure
 import Mathlib.Topology.Instances.Matrix
 import Mathlib.Topology.MetricSpace.ProperSpace
 import Mathlib.Topology.Algebra.Star
+
+/-!
+# Compactness of finite unitary matrix groups
+
+This module proves that the finite complex unitary matrix group is a compact subset of the
+matrix space. It is closed by the equation `A * star A = 1` and lies in the compact set of
+matrices whose entries have norm at most one.
+
+The resulting compact space instance supplies topological infrastructure for Haar averages in
+the trainability analysis of [RudolphEtAl2024].
+
+## Main statements
+
+* `isClosed_unitaryGroup`: proves closedness of the unitary matrix group.
+* `isCompact_entryBall`: proves compactness of the set with all entry norms bounded by one.
+* `isCompact_unitaryGroup`: proves compactness of the finite unitary matrix group.
+
+## References
+
+* [Rudolph et al., 2024][RudolphEtAl2024]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.Trainability23.HaarAverages
 
 open scoped BigOperators Matrix
 
+/-- The group of unitary complex matrices on a finite index type is closed in the matrix space. -/
 theorem isClosed_unitaryGroup (n : Type*) [Fintype n] [DecidableEq n] :
     IsClosed (Matrix.unitaryGroup n ℂ : Set (Matrix n n ℂ)) := by
   have h : (Matrix.unitaryGroup n ℂ : Set (Matrix n n ℂ)) = {A | A * star A = 1} := by
@@ -22,6 +45,8 @@ theorem isClosed_unitaryGroup (n : Type*) [Fintype n] [DecidableEq n] :
   rw [h]
   exact isClosed_eq (Continuous.matrix_mul continuous_id continuous_star) continuous_const
 
+/-- The set of complex matrices on a finite index type with every entry norm at most one is
+compact. -/
 theorem isCompact_entryBall (n : Type*) [Fintype n] [DecidableEq n] :
     IsCompact {A : Matrix n n ℂ | ∀ i j, ‖A i j‖ ≤ 1} := by
   have hS : IsCompact (Set.univ.pi fun _ : n => Set.univ.pi fun _ : n =>
@@ -42,6 +67,8 @@ theorem isCompact_entryBall (n : Type*) [Fintype n] [DecidableEq n] :
   rw [← hset]
   exact hS.image (by fun_prop)
 
+/-- The group of unitary complex matrices on a finite index type is compact as a subset of the
+matrix space. -/
 theorem isCompact_unitaryGroup (n : Type*) [Fintype n] [DecidableEq n] :
     IsCompact (Matrix.unitaryGroup n ℂ : Set (Matrix n n ℂ)) :=
   (isCompact_entryBall n).of_isClosed_subset (isClosed_unitaryGroup n)

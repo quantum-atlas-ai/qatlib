@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.NormStability
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LipschitzMoments
+
+/-!
+# Norm bounds for raw spin energy
+
+`rawSpin` and `rawEnergyDensity` evaluate the unclipped feedback dynamics and its source-tensor
+energy. Tensor and spin perturbation estimates combine into a joint input-and-seed bound, with
+an explicit constant depending on the reference tensor norm, for the dynamics of
+[GohMuller2026].
+
+## Main statements
+
+* `rawSpin_cube`: every raw spin readout has absolute value at most one.
+* `actual_raw_energy_difference`: raw energy densities obey a joint tensor-and-seed perturbation
+  bound.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,14 +41,18 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.RawEnergyNorm
 
+/-- The Euclidean vector of z-components of the raw feedback spins driven by the source tensor
+and the given seed. -/
 def rawSpin {r N : ℕ} (s : ℕ→ℝ) (T : ℕ)
     (G : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (seed : Fin N→ℝ) : EuclideanSpace ℝ (Fin N) :=
   WithLp.toLp 2 (fun i => feedbackState id (rowTensor (sourceTensor G.ofLp)) seed s T i 2)
 
+/-- The source-tensor energy of `rawSpin`, divided by the system size `N`. -/
 def rawEnergyDensity {r N : ℕ} (s : ℕ→ℝ) (T : ℕ)
     (G : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (seed : Fin N→ℝ) : ℝ :=
   tensorEnergy (sourceTensor G.ofLp) (rawSpin s T G seed).ofLp/(N:ℝ)
 
+/-- Every coordinate of `rawSpin` has absolute value at most one. -/
 theorem rawSpin_cube {r N : ℕ} (s : ℕ→ℝ) (T : ℕ)
     (G : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (seed : Fin N→ℝ) :
     ∀ i,|rawSpin s T G seed i|≤1 := by
@@ -37,6 +61,8 @@ theorem rawSpin_cube {r N : ℕ} (s : ℕ→ℝ) (T : ℕ)
   rw [actual_feedback_phi]
   exact Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Regularity.phi_abs_le_one s T _
 
+/-- For positive `N` and a unit-bounded spin vector, changing the source input from `G` to `D`
+changes energy density by at most `‖G − D‖ / sqrt N`. -/
 theorem source_energy_tensor_difference {r N : ℕ} (hN : 0<N)
     (G D : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (z : EuclideanSpace ℝ (Fin N))
     (hz : ∀ i,|z i|≤1) :
@@ -67,6 +93,8 @@ theorem source_energy_tensor_difference {r N : ℕ} (hN : 0<N)
   rw [Real.sqrt_div (sq_nonneg _),Real.sqrt_sq_eq_abs,abs_of_nonneg (norm_nonneg _)] at hh
   exact hh
 
+/-- For positive `r` and `N`, unit-bounded spins, and the stated scaled tensor-form norm bound,
+the energy-density difference is at most `K * (r + 1) / sqrt N` times the spin distance. -/
 theorem source_energy_spin_difference {r N : ℕ} (hr : 0<r) (hN : 0<N)
     (D : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (z w : EuclideanSpace ℝ (Fin N))
     (hz : ∀ i,|z i|≤1) (hw : ∀ i,|w i|≤1) (K : ℝ)
@@ -91,6 +119,9 @@ theorem source_energy_spin_difference {r N : ℕ} (hr : 0<r) (hN : 0<N)
     _ = (‖tensorForm (sourceTensor D.ofLp)‖*(Real.sqrt (N:ℝ))^(r-1))*((r+1:ℕ):ℝ)/Real.sqrt (N:ℝ) := by rw [hfactor]; ring
     _ ≤ _ := by gcongr
 
+/-- For positive `r` and `N`, a schedule in `[0, 1]`, and the stated reference tensor norm
+bound, raw energy-density differences are bounded by the displayed explicit constant times
+the sum of the tensor-input and seed distances. -/
 theorem actual_raw_energy_difference {r N T : ℕ} (hr : 0<r) (hN : 0<N)
     (s : ℕ→ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (G D : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (seed seed' : Fin N→ℝ) (K : ℝ)

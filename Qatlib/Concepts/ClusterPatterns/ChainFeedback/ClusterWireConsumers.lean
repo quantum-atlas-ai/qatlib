@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterWire
+
+/-!
+# Cluster wire examples with mixed states and references
+
+This module evaluates two-step cluster wires on a maximally mixed input and on inputs entangled
+with a reference. It specializes `clusterTwoActualBranchMap` to identity transport and to a
+logical square root of Pauli-X, illustrating the wire and rotation constructions of
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_two_identity_mixed_reference_consumer`: The phase-one wire preserves the maximally
+  mixed state and every joint operator after summing branches.
+* `cluster_square_root_x_actual_consumer`: The phases one and the imaginary unit give the
+  displayed square root of Pauli-X.
+* `cluster_square_root_x_bell_consumer`: The logical operation acts on one half of the
+  normalized Bell input and changes its joint density operator.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,10 +50,13 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The complex number one has norm one. -/
 theorem clusterOne_norm : ‖(1 : ℂ)‖ = 1 := by simp
 
+/-- The imaginary unit has norm one. -/
 theorem clusterI_norm : ‖Complex.I‖ = 1 := by simp
 
+/-- The phase matrix at parameter one is the identity. -/
 theorem clusterPhase_one : clusterPhase 1 = 1 := by
   unfold clusterPhase
   rw [← Matrix.diagonal_one]
@@ -38,16 +64,20 @@ theorem clusterPhase_one : clusterPhase 1 = 1 := by
   funext i
   fin_cases i <;> simp
 
+/-- The logical gate `clusterJ 1` is the Hadamard matrix in integer-indexed qubit coordinates. -/
 theorem clusterJ_one : clusterJ 1 = relabelGate boolEquivFin2 Hadamard := by
   unfold clusterJ
   rw [clusterPhase_one, Matrix.mul_one]
 
+/-- The logical gate `clusterJ 1` squares to the identity. -/
 theorem clusterJ_one_sq : clusterJ 1 * clusterJ 1 = 1 := by
   have hH2 : relabelGate boolEquivFin2 Hadamard * relabelGate boolEquivFin2 Hadamard = 1 := by
     rw [← teleportRelabelGate_mul, hadamard_mul_self, teleportRelabelGate_one]
   unfold clusterJ
   rw [clusterPhase_one, Matrix.mul_one, hH2]
 
+/-- Conjugating a pure-state outer product by a gate tensored with the identity gives the outer
+product of the transformed joint state. -/
 theorem tensorGate_outerProduct_conj {D R : ℕ} (M : Operator D)
     (ψ : QState (Fin D × Fin R)) :
     TensorGate M (1 : Operator R) * outerProduct ψ * (TensorGate M (1 : Operator R))ᴴ
@@ -56,6 +86,9 @@ theorem tensorGate_outerProduct_conj {D R : ℕ} (M : Operator D)
   rw [h1, matOuter_sandwich]
   rfl
 
+/-- The maximally mixed qubit state is a density operator and is not pure. Summing the two-step
+branches at phases one preserves it and preserves every joint operator with a finite
+reference; see [RaussendorfBriegel2000]. -/
 theorem cluster_two_identity_mixed_reference_consumer :
     IsDensityOperator ((1/2 : ℂ) • (1 : Operator 2)) ∧
       ¬ IsPureDensityOperator ((1/2 : ℂ) • (1 : Operator 2)) ∧
@@ -84,21 +117,26 @@ theorem cluster_two_identity_mixed_reference_consumer :
     have hT1 : TensorGate (1 : Operator 2) (1 : Operator r) = 1 := tensorGate_one
     rw [h, clusterJ_one_sq, hT1, Matrix.one_mul, conjTranspose_one, Matrix.mul_one]
 
+/-- The square of `1 + Complex.I` is `2 * Complex.I`. -/
 theorem complex_addI_sq : (1 + Complex.I) * (1 + Complex.I) = 2 * Complex.I := by
   rw [show (1 + Complex.I) * (1 + Complex.I)
       = 1 + Complex.I * 2 + Complex.I * Complex.I from by ring, Complex.I_mul_I]
   ring
 
+/-- The square of `1 - Complex.I` is `-2 * Complex.I`. -/
 theorem complex_subI_sq : (1 - Complex.I) * (1 - Complex.I) = -2 * Complex.I := by
   rw [show (1 - Complex.I) * (1 - Complex.I)
       = 1 - Complex.I * 2 + Complex.I * Complex.I from by ring, Complex.I_mul_I]
   ring
 
+/-- The product of `1 + Complex.I` and `1 - Complex.I` is two. -/
 theorem complex_addI_mul_subI : (1 + Complex.I) * (1 - Complex.I) = 2 := by
   rw [show (1 + Complex.I) * (1 - Complex.I)
       = 1 - Complex.I * Complex.I from by ring, Complex.I_mul_I]
   ring
 
+/-- The two-step logical gate at phases one and the imaginary unit has the displayed matrix with
+diagonal entries `(1 + Complex.I) / 2`. -/
 theorem clusterJ_I_mul_one : clusterJ Complex.I * clusterJ 1
       = (1/2 : ℂ) • !![1+Complex.I, 1-Complex.I; 1-Complex.I, 1+Complex.I] := by
   ext c i
@@ -106,6 +144,9 @@ theorem clusterJ_I_mul_one : clusterJ Complex.I * clusterJ 1
     simp [clusterJ_mul_entry 1 Complex.I, boolEquivFin2, Matrix.smul_apply, smul_eq_mul] <;>
     ring
 
+/-- The two-step logical gate at phases one and the imaginary unit squares to Pauli-X, and its
+branch sum sends the zero basis state to the displayed density matrix; see
+[RaussendorfBriegel2000]. -/
 theorem cluster_square_root_x_actual_consumer :
     clusterJ Complex.I * clusterJ 1
       = (1/2 : ℂ) • !![1+Complex.I, 1-Complex.I; 1-Complex.I, 1+Complex.I] ∧
@@ -131,9 +172,11 @@ theorem cluster_square_root_x_actual_consumer :
           Complex.conj_ofNat] <;>
       (ring_nf; norm_num)
 
+/-- The Bell input state on a qubit and a qubit reference. -/
 noncomputable def clusterWireBellInput : QState (Fin 2 × Fin 2) :=
   fun p => if p.1 = p.2 then ((Real.sqrt 2 : ℂ)⁻¹) else 0
 
+/-- The Bell input state `clusterWireBellInput` is normalized. -/
 theorem clusterWireBellInput_normalized : Normalized clusterWireBellInput := by
   have h0 : ‖(((Real.sqrt 2 : ℝ)⁻¹ : ℂ))‖ ^ 2 = 1 / 2 := by
     rw [← Complex.normSq_eq_norm_sq, Complex.normSq_inv, Complex.normSq_ofReal,
@@ -144,6 +187,9 @@ theorem clusterWireBellInput_normalized : Normalized clusterWireBellInput := by
   simp only [Fin.sum_univ_two, clusterWireBellInput]
   norm_num [h0]
 
+/-- On the normalized Bell input, the two-step branch sum is conjugation by the logical square
+root of Pauli-X on the first qubit, and it changes the joint density operator; see
+[RaussendorfBriegel2000]. -/
 theorem cluster_square_root_x_bell_consumer :
     Normalized clusterWireBellInput ∧
       (∑ o : Bool × Bool,

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ZetaCurve04.MainResults.Theorem1.NumeratorReconstruction
 import Qatlib.Papers.ZetaCurve04.MainResults.Cost
+
+/-!
+# Explicit zeta-numerator reconstruction from oracle data
+
+The interface `PowerSumOracle` supplies rational input sequences and a cost field. Choosing
+finite Newton-recursive coefficients and applying reciprocal extension defines `zetaNumerator`,
+whose degree and reciprocity are proved; a polynomial bound on the oracle cost yields the stated
+algorithm record for this reconstructed output.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `zetaNumerator`: The rational polynomial formed by reciprocal extension of the chosen finite
+  Newton coefficients.
+* `theorem1_zeta_numerator_explicit`: A polynomially bounded power-sum oracle yields an abstract
+  algorithm record returning the corresponding `zetaNumerator`, with a uniform polynomial cost
+  bound and success value at least `3 / 4`.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,19 +42,25 @@ namespace Qatlib.Papers.ZetaCurve04.MainResults.Theorem1
 
 open Qatlib.Papers.ZetaCurve04.MainResults.Defs
 
+/-- A record assigning a rational sequence and a natural cost to each curve descriptor. -/
 structure PowerSumOracle where
   sums : CurveDescriptor → ℕ → ℚ
   cost : CurveDescriptor → ℕ
 
+/-- Choose coefficients starting at one and satisfying the finite Newton recurrence with input
+`k * q ^ k * s k` through degree `g`. -/
 noncomputable def zetaNumeratorCoeffs (q g : ℕ) (s : ℕ → ℚ) : ℕ → ℚ :=
   Classical.choose (newtonRelation_exists_finite
     (fun k => (k : ℚ) * (q : ℚ) ^ k * s k) g)
 
+/-- The chosen numerator coefficient at degree zero is one. -/
 theorem zetaNumeratorCoeffs_zero (q g : ℕ) (s : ℕ → ℚ) :
     zetaNumeratorCoeffs q g s 0 = 1 :=
   (Classical.choose_spec (newtonRelation_exists_finite
     (fun k => (k : ℚ) * (q : ℚ) ^ k * s k) g)).1
 
+/-- The chosen coefficients satisfy the stated scaled Newton recurrence at every degree from one
+through `g`. -/
 theorem zetaNumeratorCoeffs_relation (q g : ℕ) (s : ℕ → ℚ) :
     ∀ n, 1 ≤ n → n ≤ g →
       (∑ i ∈ Finset.range n,
@@ -53,9 +83,13 @@ theorem zetaNumeratorCoeffs_relation (q g : ℕ) (s : ℕ → ℚ) :
   rw [← hsum]
   exact h
 
+/-- The rational polynomial formed by reciprocal extension of the chosen finite Newton
+coefficients. -/
 noncomputable def zetaNumerator (q g : ℕ) (s : ℕ → ℚ) : Polynomial ℚ :=
   numeratorPoly q g (zetaNumeratorCoeffs q g s)
 
+/-- For `i ≤ g`, the numerator coefficient at `g + i` is `q ^ i` times the coefficient at `g -
+i`. -/
 theorem zetaNumerator_reciprocity (q g : ℕ) (s : ℕ → ℚ) {i : ℕ} (hi : i ≤ g) :
     (zetaNumerator q g s).coeff (g + i) =
       (q : ℚ) ^ i * (zetaNumerator q g s).coeff (g - i) := by
@@ -64,14 +98,20 @@ theorem zetaNumerator_reciprocity (q g : ℕ) (s : ℕ → ℚ) {i : ℕ} (hi : 
     numeratorPoly_coeff (by omega : g - i ≤ 2 * g)]
   exact reciprocalExtend_spec hi
 
+/-- The natural degree of the reconstructed zeta numerator is at most `2 * g`. -/
 theorem zetaNumerator_natDegree_le (q g : ℕ) (s : ℕ → ℚ) :
     (zetaNumerator q g s).natDegree ≤ 2 * g :=
   numeratorPoly_natDegree_le q g _
 
+/-- Through degree `2 * g`, the numerator coefficients are the reciprocal extension of
+`zetaNumeratorCoeffs`. -/
 theorem zetaNumerator_coeff (q g : ℕ) (s : ℕ → ℚ) {k : ℕ} (hk : k ≤ 2 * g) :
     (zetaNumerator q g s).coeff k = reciprocalExtend q g (zetaNumeratorCoeffs q g s) k :=
   numeratorPoly_coeff hk
 
+/-- A polynomially bounded power-sum oracle yields an abstract algorithm record returning the
+corresponding `zetaNumerator`, with a uniform polynomial cost bound and success value at
+least `3 / 4`. See [Kedlaya2006]. -/
 theorem theorem1_zeta_numerator_explicit (O : PowerSumOracle)
     (hcost : ∃ c k : ℕ, ∀ d : CurveDescriptor,
       O.cost d ≤ c * (d.g + d.logq + 1) ^ k) :

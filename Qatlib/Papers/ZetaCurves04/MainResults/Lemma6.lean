@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+
+/-!
+# A lower bound for prime-divisor counts
+
+Bounds on proper divisors control the sums of ordinary and half powers appearing in the
+orbit-count identity. Combining these estimates with `PointCountWeil` gives
+`primeDivisorCount_lower_bound` for every positive extension degree.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `sum_pow_properDivisors_le`: For `q ≥ 2` and positive `e`, the sum of `q ^ i` over proper
+  divisors of `e` is at most `q ^ (e - 1)`.
+* `primeDivisorCount_lower_bound`: The point-count bounds and orbit-count identity imply the
+  prime-divisor lower bound `(q ^ e * (1 - q⁻¹) - 4 * g * halfPower q e) / e` for positive `e`
+  and `q ≥ 2`.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +40,7 @@ open Qatlib.Papers.ZetaCurves04.MainResults.Model
 
 namespace Qatlib.Papers.ZetaCurves04.MainResults.Lemma6
 
+/-- Removing `e` from its divisor finset gives its proper-divisor finset. -/
 theorem divisors_erase_self (e : ℕ) : e.divisors.erase e = e.properDivisors := by
   ext i
   rw [Finset.mem_erase, Nat.mem_divisors, Nat.mem_properDivisors]
@@ -26,11 +50,13 @@ theorem divisors_erase_self (e : ℕ) : e.divisors.erase e = e.properDivisors :=
   · rintro ⟨hdvd, hlt⟩
     exact ⟨ne_of_lt hlt, hdvd, by omega⟩
 
+/-- Every proper divisor of `e` is at most `e - 1`. -/
 theorem properDivisors_le_pred (e : ℕ) : ∀ i ∈ e.properDivisors, i ≤ e - 1 := by
   intro i hi
   have h := (Nat.mem_properDivisors.mp hi).2
   omega
 
+/-- Every proper divisor `i` of positive `e` satisfies `2 * i ≤ e`. -/
 theorem properDivisors_le_half {e : ℕ} (he : 1 ≤ e) :
     ∀ i ∈ e.properDivisors, 2 * i ≤ e := by
   intro i hi
@@ -41,6 +67,8 @@ theorem properDivisors_le_half {e : ℕ} (he : 1 ≤ e) :
   calc 2 * i = i * 2 := by ring
     _ ≤ i * j := Nat.mul_le_mul_left i hj
 
+/-- For `q ≥ 2` and positive `e`, the sum of `q ^ i` over proper divisors of `e` is at most `q ^
+(e - 1)`. See [Kedlaya2006]. -/
 theorem sum_pow_properDivisors_le (q e : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e) :
     (∑ i ∈ e.properDivisors, (q : ℝ) ^ i) ≤ (q : ℝ) ^ (e - 1) := by
   have hqR : (1 : ℝ) < (q : ℝ) := by exact_mod_cast hq
@@ -81,6 +109,8 @@ theorem sum_pow_properDivisors_le (q e : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e) :
         _ ≤ (q : ℝ) ^ (e - 1) := hqpow_le
     exact le_trans hs hbound
 
+/-- For `q ≥ 2` and positive `e`, the sum of `halfPower q i` over proper divisors of `e` is at
+most `halfPower q e`. See [Kedlaya2006]. -/
 theorem sum_halfPower_properDivisors_le (q e : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e) :
     (∑ i ∈ e.properDivisors, halfPower q i) ≤ halfPower q e := by
   have hpow : ∀ i, halfPower q i = (Real.sqrt (q : ℝ)) ^ i := halfPower_eq_sqrt_pow q
@@ -209,6 +239,8 @@ theorem sum_halfPower_properDivisors_le (q e : ℕ) (hq : 2 ≤ q) (he : 1 ≤ e
       _ = r ^ (2 * (e / 2)) := step3
       _ ≤ r ^ e := step4
 
+/-- The point-count bounds and orbit-count identity imply the prime-divisor lower bound `(q ^ e
+* (1 - q⁻¹) - 4 * g * halfPower q e) / e` for positive `e` and `q ≥ 2`. See [Kedlaya2006]. -/
 theorem primeDivisorCount_lower_bound (C : CurveData)
     (hWeil : PointCountWeil C) (hOrbit : OrbitCountIdentity C)
     (hq2 : 2 ≤ C.q) (e : ℕ) (he : 1 ≤ e) :

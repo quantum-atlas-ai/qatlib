@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhGeometry
+
+/-!
+# Asymptotic profiles for sinh quadrature
+
+This module controls the strip mass and Gaussian tails of the sinh-transformed LCHS kernel
+uniformly over bounded derivative orders and shifts. It derives finite quadrature error bounds
+and asymptotic node counts for the free-scale geometry studied in [AftabAnTrivisa2026].
+
+For fixed admissible strip width and scale `c = O(sqrt(log(1/ε)))`, `profile_rates` bounds the
+node count by `O(log(1/ε) log(log(1/ε)))` and the physical radius by `O(log(1/ε))`, provided the
+positive mesh and tail budgets are bounded below by constant multiples of `ε`.
+
+## Main statements
+
+* `uniform_mass_logs`: Uniform quadratic bounds for logarithms of the strip mass and tail
+  constant.
+* `kernel_profile_bounds`: Combines the selected finite-rule error with node-count and radius
+  estimates.
+* `width_growth_of_balanced_approx`: Transfers scale growth between comparable approximation
+  budgets.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -18,6 +44,8 @@ open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhGeometry
 
+/-- Factors `stripMass` into an explicit geometric prefactor, the scale `c`, and the exponential
+of `postExponent`, under the stated positivity assumptions. -/
 theorem mass_factor (n : ℕ) (b c d η β K : ℝ) (hc : 0 < c) (hη : 0 < η)
     (hcos : 0 < Real.cos (2 * β)) :
     stripMass n b c d η β K =
@@ -35,6 +63,8 @@ theorem mass_factor (n : ℕ) (b c d η β K : ℝ) (hc : 0 < c) (hη : 0 < η)
   rw [hs]
   field_simp
 
+/-- Bounds `postExponent` by an explicit affine function of `c ^ 2` when `η ≤ 2 * c`, the strip
+angle is below `π / 4`, and `|d| ≤ D`. -/
 theorem exponent_bound {c d η β K D : ℝ} (hc : 0 < c) (hη : 0 < η)
     (hηc : η ≤ 2 * c) (hβ : 0 ≤ β) (hβπ : β < Real.pi / 4)
     (hK : 0 ≤ K) (hd : |d| ≤ D) :
@@ -70,6 +100,8 @@ theorem exponent_bound {c d η β K D : ℝ} (hc : 0 < c) (hη : 0 < η)
   dsimp [G] at *
   nlinarith
 
+/-- The kernel prefactor is positive when `b` and `η` are positive and the strip angle satisfies
+the stated pole-separation conditions. -/
 theorem prefactor_pos (n : ℕ) {b η β : ℝ} (hb : 0 < b) (hη : 0 < η)
     (hβ : 0 ≤ β) (hβπ : β < Real.pi / 2) (hgap : η * Real.sin β < 1)
     (hbn : n = 0 ∨ η * Real.sin β < b) : 0 < kernelPrefactor n b η β := by
@@ -79,10 +111,14 @@ theorem prefactor_pos (n : ℕ) {b η β : ℝ} (hb : 0 < b) (hη : 0 < η)
   convert! mul_pos (show 0 < 2 * Real.pi by positivity) hD using 1
   ring
 
+/-- For positive `c`, the logarithm `Real.log c` is bounded above by `c ^ 2`. -/
 theorem log_c_le_sq {c : ℝ} (hc : 0 < c) : Real.log c ≤ c ^ 2 := by
   have h := Real.log_le_sub_one_of_pos hc
   nlinarith [sq_nonneg (c - 1 / 2)]
 
+/-- For fixed admissible parameters and `0 < c` with `η ≤ 2 * c`, the strip mass and tail
+constant are positive and their logarithms have common bounds `A + B * c ^ 2`, uniformly
+over `n ≤ N` and `|d| ≤ D`. -/
 theorem uniform_mass_logs (N : ℕ) (b η β K D : ℝ) (hb : 0 < b) (hη : 0 < η)
     (hβ : 0 ≤ β) (hβπ : β < Real.pi / 4) (hK : 0 ≤ K) (hD : 0 ≤ D)
     (hgap : η * Real.sin β < 1) (hNb : N = 0 ∨ η * Real.sin β < b) :
@@ -149,6 +185,7 @@ theorem uniform_mass_logs (N : ℕ) (b η β K D : ℝ) (hb : 0 < b) (hη : 0 < 
     dsimp [A]
     nlinarith [mul_nonneg (sub_nonneg.mpr hB1) (sq_nonneg c)]
 
+/-- If `x > 0` and `Real.log x ≤ R` with `R ≥ 0`, then `Real.log (1 + x) ≤ Real.log 2 + R`. -/
 theorem log_one_add_bound {x R : ℝ} (hx : 0 < x) (hR : 0 ≤ R)
     (hlog : Real.log x ≤ R) : Real.log (1 + x) ≤ Real.log 2 + R := by
   rcases le_total x 1 with h | h
@@ -158,6 +195,9 @@ theorem log_one_add_bound {x R : ℝ} (hx : 0 < x) (hR : 0 ≤ R)
     rw [Real.log_mul (by norm_num) hx.ne'] at hl
     linarith
 
+/-- Converts quadratic bounds for `Real.log M` and `Real.log C` into explicit bounds
+proportional to `log(1/ε)` for `meshLog` and `tailLog`, using the stated scale and budget
+inequalities. -/
 theorem logs_le_of_mass_logs {M C c ε εm εt A B U κm κt : ℝ}
     (hM : 0 < M) (hC : 0 < C) (hε : 0 < ε) (hA : 0 < A) (hB : 0 < B)
     (hU : 0 ≤ U) (hκm : 0 < κm) (hκt : 0 < κt)
@@ -203,6 +243,9 @@ theorem logs_le_of_mass_logs {M C c ε εm εt A B U κm κt : ℝ}
     · dsimp only [L] at *
       nlinarith
 
+/-- Under eventual admissibility, positive budgets bounded below in the Big-O sense by `ε`, and
+square-root logarithmic scale growth, both budget logarithms are eventually bounded by a
+common positive multiple of `log(1/ε)`. -/
 theorem eventual_profile_logs (N : ℕ) (b η β K D : ℝ) (hb : 0 < b) (hη : 0 < η)
     (hβ : 0 ≤ β) (hβπ : β < Real.pi / 4) (hK : 0 ≤ K) (hD : 0 ≤ D)
     (hgap : η * Real.sin β < 1) (hNb : N = 0 ∨ η * Real.sin β < b)
@@ -256,6 +299,8 @@ theorem eventual_profile_logs (N : ℕ) (b η β K D : ℝ) (hb : 0 < b) (hη : 
   · change Kt * _ ≤ _
     nlinarith [mul_nonneg hKm.le (show 0 ≤ Real.log (1 / ε) by linarith)]
 
+/-- If `u` is eventually nonnegative, `u = O(L)`, and `L` tends to infinity, then `log(1 + u) =
+O(log L)` along the same filter. -/
 theorem log_one_add_isBigO {α : Type*} {l : Filter α} {u L : α → ℝ}
     (hu : ∀ᶠ x in l, 0 ≤ u x) (hO : u =O[l] L) (hL : Tendsto L l atTop) :
     (fun x => Real.log (1 + u x)) =O[l] (fun x => Real.log (L x)) := by
@@ -283,6 +328,10 @@ theorem log_one_add_isBigO {α : Type*} {l : Filter α} {u L : α → ℝ}
       abs_of_nonneg (by linarith : 0 ≤ Real.log (L x))]
   nlinarith
 
+/-- For a fixed admissible sinh geometry and the stated budget and scale profiles, the selected
+node count is `O(log(1/ε) log(log(1/ε)))` and the physical radius is `O(log(1/ε))` as `ε`
+tends to zero from above. This gives the fixed-geometry profile estimates of
+[AftabAnTrivisa2026]. -/
 theorem profile_rates (N : ℕ) (b η β K D : ℝ) (hb : 0 < b) (hη : 0 < η)
     (hβ : 0 < β) (hβπ : β < Real.pi / 4) (hK : 0 ≤ K) (hD : 0 ≤ D)
     (hgap : η * Real.sin β < 1) (hNb : N = 0 ∨ η * Real.sin β < b)
@@ -362,6 +411,8 @@ theorem profile_rates (N : ℕ) (b η β K D : ℝ) (hb : 0 < b) (hη : 0 < η)
     hprod.add (by simpa only [Function.comp_def, id_eq] using! (isLittleO_const_id_atTop η).isBigO.comp_tendsto hLtop)
   exact ⟨hgeom.1.trans hshape, hgeom.2.trans hrad⟩
 
+/-- For positive `b` and `η`, there is an angle `β` strictly between zero and `π / 4` such that
+`η * Real.sin β < min 1 b`. -/
 theorem exists_fixed_width (b η : ℝ) (hb : 0 < b) (hη : 0 < η) :
     ∃ β : ℝ, 0 < β ∧ β < Real.pi / 4 ∧ η * Real.sin β < min 1 b := by
   let β := min (Real.pi / 8) (min 1 b / (2 * η))
@@ -383,6 +434,10 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- Chooses a positive strip angle below `π / 4` satisfying the pole-separation bound and lying
+below `analyticWidth` for every choice of kernel order, scale, shift, time, and matrices.
+This supplies a uniform strip width for the sinh quadrature analysis in
+[AftabAnTrivisa2026]. -/
 theorem exists_uniform_width (b η : ℝ) (hb : 0 < b) (hη : 0 < η) :
     ∃ β : ℝ, 0 < β ∧ β < Real.pi / 4 ∧ η * Real.sin β < min 1 b ∧
       ∀ (n : ℕ) (c d T : ℝ) (H L : Matrix ι ι ℂ),
@@ -392,6 +447,9 @@ theorem exists_uniform_width (b η : ℝ) (hb : 0 < b) (hη : 0 < η) :
   exact lt_width_of_gaps n hη hp.le (by linarith [Real.pi_pos]) b c d T H L
     (hg.trans_le (min_le_left _ _)) (Or.inr (hg.trans_le (min_le_right _ _)))
 
+/-- For eventually bounded orders and positive scales and budgets, the selected sinh rule
+eventually has positive step size and operator error at most `εm ε + εt ε`, under the stated
+matrix and strip conditions. -/
 theorem profile_selected_error [Nonempty ι] (N : ℕ) (b η β T : ℝ)
     (hb : 0 < b) (hη : 0 < η) (hβ : 0 < β) (hβπ : β < Real.pi / 4)
     (hgap : η * Real.sin β < 1) (hNb : N = 0 ∨ η * Real.sin β < b)
@@ -414,6 +472,9 @@ theorem profile_selected_error [Nonempty ι] (N : ℕ) (b η β T : ℝ)
   exact selected_error (n ε) b (c ε) (d ε) η β hb ha.2 hη hβ hβπ H L hH hL hT hm ht
     (lt_width_of_gaps (n ε) hη hβ.le (by linarith [Real.pi_pos]) b (c ε) (d ε) T H L hgap hbn)
 
+/-- Combines the eventual error bound for the selected sinh rule with `O(log(1/ε)
+log(log(1/ε)))` nodes and `O(log(1/ε))` physical radius under the stated profile hypotheses.
+See [AftabAnTrivisa2026]. -/
 theorem kernel_profile_bounds [Nonempty ι] (N : ℕ) (b η β T D : ℝ)
     (hb : 0 < b) (hη : 0 < η) (hβ : 0 < β) (hβπ : β < Real.pi / 4)
     (hD : 0 ≤ D) (hgap : η * Real.sin β < 1) (hNb : N = 0 ∨ η * Real.sin β < b)
@@ -443,6 +504,9 @@ theorem kernel_profile_bounds [Nonempty ι] (N : ℕ) (b η β T D : ℝ)
     hgap hNb n c d εm εt ha hmpos htpos hmO htO hcO
   exact ⟨herr, hcost⟩
 
+/-- If a positive approximation budget is asymptotically comparable to `ε`, then its square-root
+logarithm is `O(sqrt(log(1/ε)))` as `ε` tends to zero from above. This transfers the
+comparable-budget scale used in [AftabAnTrivisa2026]. -/
 theorem sqrt_log_comparable_budget (a : ℝ → ℝ)
     (ha : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < a ε)
     (hΘ : a =Θ[𝓝[>] 0] (fun ε : ℝ => ε)) :
@@ -467,6 +531,9 @@ theorem sqrt_log_comparable_budget (a : ℝ → ℝ)
   change (0 : ℝ) ≤ Real.log (1 / ε)
   linarith [hl.2.2.2]
 
+/-- Transfers a square-root logarithmic bound for `c` from an eventually positive budget
+comparable to `ε` to the reference budget `ε`. This supplies a scale conversion for the
+quadrature profiles in [AftabAnTrivisa2026]. -/
 theorem width_growth_of_balanced_approx (a c : ℝ → ℝ)
     (ha : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < a ε)
     (hΘ : a =Θ[𝓝[>] 0] (fun ε : ℝ => ε))

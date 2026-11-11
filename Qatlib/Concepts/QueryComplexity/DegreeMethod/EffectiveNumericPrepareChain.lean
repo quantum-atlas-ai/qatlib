@@ -7,6 +7,42 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffective
 import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+
+/-!
+# Certified square-root brackets and stack-machine rounds
+
+This module develops a constructive chain from rational square-root brackets to binary
+arithmetic and explicit stack-machine programs. The endpoints `output2.sqrtLo` and
+`output2.sqrtHi` enclose the square root under the stated positivity and range hypotheses, while
+`output2.widthPrecision` selects a depth giving width at most `1 / 2 ^ b`. Rational codecs and
+`output2.wordStep` connect bisection to conditional TM0 realization results.
+
+Integer bisection is refined into incremental accumulator updates and programs for addition,
+comparison, emission, copying, and a complete arithmetic round. The component programs have
+explicit clock and height bounds, and `output2.TrialRound.machine_mRound` identifies the round's
+scaled output values with the fields of the incremental update. These classical numerical
+constructions support finite-precision quantum computation; see [NielsenChuang2010] for general
+background on quantum computation.
+
+## Main statements
+
+* `output2.sqrtInterval_certified`: endpoint order, square inequalities, real square-root
+  enclosure, and exact bracket width.
+* `output2.bracket_machine_word_width`: TM0 realization at the chosen precision, conditional on
+  bounds for `output2.wordStep`.
+* `output2.sqrtInterval_intBisect`: representation of bracket endpoints by integer bisection.
+* `output2.TrialAdd.trialProgram` and `output2.TrialCompare.compare_receipt`: component machine
+  runs with explicit resource bounds.
+* `output2.TrialRound.round_run`: execution of a complete arithmetic round to its specified
+  final configuration.
+* `output2.TrialRound.machine_mRound`: agreement of the comparison bit and scaled output fields
+  with `output2.TrialEmit.mStep`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -42,22 +78,30 @@ open Turing
 
 namespace output2
 
+/-- Encode a rational number by its numerator and positive denominator as a `RatEnc`. -/
 def ratEnc (r : ℚ) : RatEnc := ⟨r.num, r.den, r.den_pos⟩
 
+/-- Decoding `ratEnc r` recovers the rational number `r`. -/
 @[simp] theorem ratEnc_toRat (r : ℚ) : (ratEnc r).toRat = r := by
   simp [ratEnc, RatEnc.toRat, Rat.num_div_den]
 
+/-- Return the pair of endpoints of the scaled square-root bracket after `k` bisections. -/
 def sqrtInterval (q S : ℚ) (k : ℕ) : ℚ × ℚ :=
   let b := Qatlib.Concepts.ScaledSqrt.SqrtBounds.bracket q S k
   (b.1, b.2.1)
 
+/-- Return the lower endpoint of `sqrtInterval q S k`. -/
 def sqrtLo (q S : ℚ) (k : ℕ) : ℚ := (sqrtInterval q S k).1
 
+/-- Return the upper endpoint of `sqrtInterval q S k`. -/
 def sqrtHi (q S : ℚ) (k : ℕ) : ℚ := (sqrtInterval q S k).2
 
+/-- Encode both endpoints of the square-root bracket as rational encodings. -/
 def bracketEnc (q S : ℚ) (k : ℕ) : RatEnc × RatEnc :=
   (ratEnc (sqrtLo q S k), ratEnc (sqrtHi q S k))
 
+/-- For positive `S` and `0 ≤ q ≤ S * S`, the endpoints lie in `[0, S]`, bracket `Real.sqrt q`,
+and have width `S / 2 ^ k`. Their squares bound `q` from below and above. -/
 theorem sqrtInterval_certified (q S : ℚ) (k : ℕ) (hS : 0 < S) (hq : 0 ≤ q)
     (hSq : q ≤ S * S) :
     0 ≤ sqrtLo q S k ∧ sqrtLo q S k ≤ sqrtHi q S k ∧ sqrtHi q S k ≤ S ∧
@@ -70,26 +114,36 @@ theorem sqrtInterval_certified (q S : ℚ) (k : ℕ) (hS : 0 < S) (hq : 0 ≤ q)
   obtain ⟨h1, h2, h3, h4, h5, h6, -, h8, h9⟩ := h
   exact ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩
 
+/-- Decoding the two components of `bracketEnc` gives `sqrtLo` and `sqrtHi`. -/
 theorem bracketEnc_decodes (q S : ℚ) (k : ℕ) :
     (bracketEnc q S k).1.toRat = sqrtLo q S k ∧
       (bracketEnc q S k).2.toRat = sqrtHi q S k := by
   exact ⟨ratEnc_toRat _, ratEnc_toRat _⟩
 
+/-- Encode a rational number as a sign bit followed by framed binary words for its absolute
+numerator and denominator. -/
 def encRatWord (r : ℚ) : Bits :=
   (if 0 ≤ r then [false] else [true]) ++
     framed (natBits r.num.natAbs) ++ framed (natBits r.den)
 
+/-- Concatenate the binary encodings of the lower and upper square-root bracket endpoints. -/
 def bracketWord (q S : ℚ) (k : ℕ) : Bits :=
   encRatWord (sqrtLo q S k) ++ encRatWord (sqrtHi q S k)
 
+/-- The bracket word is the concatenation of the encodings of the two decoded components of
+`bracketEnc`. -/
 theorem bracketWord_eq (q S : ℚ) (k : ℕ) :
     bracketWord q S k =
       encRatWord (bracketEnc q S k).1.toRat ++
         encRatWord (bracketEnc q S k).2.toRat := by
   simp [bracketWord, bracketEnc]
 
+/-- Choose `b + Nat.log2 S.num.natAbs + 1` bisections to control the bracket width relative to
+the scale `S`. -/
 def widthPrecision (S : ℚ) (b : ℕ) : ℕ := b + Nat.log2 S.num.natAbs + 1
 
+/-- For positive `S`, the precision chosen by `widthPrecision` makes `S / 2 ^ k` at most `1 / 2
+^ b`. -/
 theorem widthPrecision_spec (S : ℚ) (hS : 0 < S) (b : ℕ) :
     S / (2 : ℚ) ^ widthPrecision S b ≤ 1 / (2 : ℚ) ^ b := by
   have hnum_pos : 0 < S.num := Rat.num_pos.mpr hS
@@ -124,15 +178,21 @@ theorem widthPrecision_spec (S : ℚ) (hS : 0 < S) (b : ℕ) :
   rw [div_le_one (by positivity)]
   exact hbound
 
+/-- At scale two and target width one, zero bisections fail the width bound while one bisection
+satisfies it. -/
 theorem precision_term_is_needed :
     ¬ ((2 : ℚ) / (2 : ℚ) ^ 0 ≤ 1 / (2 : ℚ) ^ 0) ∧
       (2 : ℚ) / (2 : ℚ) ^ 1 ≤ 1 / (2 : ℚ) ^ 0 := by
   norm_num
 
+/-- Bisect a rational interval, choosing the upper half exactly when the square of its midpoint
+is at most `q`. -/
 def bisectStep (q : ℚ) (p : ℚ × ℚ) : ℚ × ℚ :=
   let m := (p.1 + p.2) / 2
   if m * m ≤ q then (m, p.2) else (p.1, m)
 
+/-- The endpoints of `rationalSqrtBracket q k` are obtained by iterating `bisectStep q` from
+`(0, 1)`. -/
 theorem rationalSqrtBracket_pair_eq_iterate (q : ℚ) (k : ℕ) :
     ((Qatlib.Concepts.MonteCarloMean.PayoffRotation.rationalSqrtBracket q k).1,
         (Qatlib.Concepts.MonteCarloMean.PayoffRotation.rationalSqrtBracket q k).2.1)
@@ -150,12 +210,15 @@ theorem rationalSqrtBracket_pair_eq_iterate (q : ℚ) (k : ℕ) :
       split_ifs <;> rfl
     rw [hstep, ih, Function.iterate_succ_apply']
 
+/-- The scaled square-root interval is `S` times the unit-interval bracket for `q / (S * S)`. -/
 theorem sqrtInterval_eq_scale (q S : ℚ) (k : ℕ) :
     sqrtInterval q S k =
       (S * (Qatlib.Concepts.MonteCarloMean.PayoffRotation.rationalSqrtBracket (q / (S * S)) k).1,
         S * (Qatlib.Concepts.MonteCarloMean.PayoffRotation.rationalSqrtBracket (q / (S * S)) k).2.1) := by
   rfl
 
+/-- If a word step has the stated time and space bounds and its `k`th iterate produces
+`bracketWord`, a TM0 machine produces that word with the displayed quadratic bounds. -/
 theorem bracket_machine_of_step (step : Bits → Bits) (tf sf : Bits → ℕ)
     (hstep : ComputesAt step tf sf) (init : Bits) (q S : ℚ) (k : ℕ)
     (hiter : (step^[k]) init = bracketWord q S k) :
@@ -176,6 +239,8 @@ theorem bracket_machine_of_step (step : Bits → Bits) (tf sf : Bits → ℕ)
   rw [hiter] at h
   exact h
 
+/-- Under the step-computability and iteration hypotheses, a TM0 machine produces the bracket at
+`widthPrecision S b` with the displayed bounds and width at most `1 / 2 ^ b`. -/
 theorem bracket_machine_width (step : Bits → Bits) (tf sf : Bits → ℕ)
     (hstep : ComputesAt step tf sf) (init : Bits) (q S : ℚ) (hS : 0 < S)
     (hq : 0 ≤ q) (hSq : q ≤ S * S) (b : ℕ)
@@ -205,6 +270,8 @@ theorem bracket_machine_width (step : Bits → Bits) (tf sf : Bits → ℕ)
   rw [hwidth]
   exact widthPrecision_spec S hS b
 
+/-- Parse a length-framed natural-number word, rejecting incomplete frames or unconsumed payload
+bits and returning the remaining suffix. -/
 def readFramedNat (w : Bits) : Option (ℕ × Bits) :=
   match Qatlib.Concepts.BitWordCompiler.CanonicalCodec.readNat w with
   | none => none
@@ -216,18 +283,21 @@ def readFramedNat (w : Bits) : Option (ℕ × Bits) :=
             if rest'.length = 0 then some (v, rest.drop len) else none
       else none
 
+/-- Taking the length of the first word from a concatenation recovers that word. -/
 theorem take_append_length (l rest : Bits) :
     (l ++ rest).take l.length = l := by
   induction l with
   | nil => rfl
   | cons a l ih => simp [ih]
 
+/-- Dropping the length of the first word from a concatenation recovers the suffix. -/
 theorem drop_append_length (l rest : Bits) :
     (l ++ rest).drop l.length = rest := by
   induction l with
   | nil => rfl
   | cons a l ih => simp [ih]
 
+/-- Parsing a framed `natBits n` recovers `n` and preserves the following suffix. -/
 theorem readFramedNat_natBits (n : ℕ) (rest : Bits) :
     readFramedNat (framed (natBits n) ++ rest) = some (n, rest) := by
   have hread : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.readNat (framed (natBits n) ++ rest)
@@ -247,6 +317,8 @@ theorem readFramedNat_natBits (n : ℕ) (rest : Bits) :
   simp only [if_true]
   simp
 
+/-- Decode a sign bit and two framed natural numbers as a rational and a suffix, rejecting a
+zero denominator or malformed input. -/
 def decRat (w : Bits) : Option (ℚ × Bits) :=
   match w with
   | [] => none
@@ -260,6 +332,7 @@ def decRat (w : Bits) : Option (ℚ × Bits) :=
               if d = 0 then none
               else some ((if b then -((n : ℚ) / (d : ℚ)) else (n : ℚ) / (d : ℚ)), r2)
 
+/-- The numerator of a nonnegative rational is nonnegative when cast to `ℚ`. -/
 theorem num_nonneg_of_nonneg (r : ℚ) (h : 0 ≤ r) : (0 : ℚ) ≤ (r.num : ℚ) := by
   have hdiv : (0 : ℚ) ≤ (r.num : ℚ) / (r.den : ℚ) := by
     rwa [Rat.num_div_den]
@@ -269,6 +342,7 @@ theorem num_nonneg_of_nonneg (r : ℚ) (h : 0 ≤ r) : (0 : ℚ) ≤ (r.num : �
   have : (r.num : ℚ) / (r.den : ℚ) < 0 := div_neg_of_neg_of_pos hlt hd
   linarith
 
+/-- The numerator of a negative rational is nonpositive when cast to `ℚ`. -/
 theorem num_nonpos_of_neg (r : ℚ) (h : ¬ 0 ≤ r) : (r.num : ℚ) ≤ 0 := by
   have hr : r < 0 := lt_of_not_ge h
   have hdiv : (r.num : ℚ) / (r.den : ℚ) < 0 := by
@@ -281,6 +355,8 @@ theorem num_nonpos_of_neg (r : ℚ) (h : ¬ 0 ≤ r) : (r.num : ℚ) ≤ 0 := by
     exact mul_neg_of_neg_of_pos hdiv hd
   exact le_of_lt hneg
 
+/-- For a nonnegative rational, the absolute numerator cast to `ℚ` equals its numerator cast to
+`ℚ`. -/
 theorem cast_natAbs_num_of_nonneg (r : ℚ) (h : 0 ≤ r) :
     ((r.num.natAbs : ℚ)) = (r.num : ℚ) := by
   have hnum : (0 : ℤ) ≤ r.num := by exact_mod_cast num_nonneg_of_nonneg r h
@@ -288,6 +364,8 @@ theorem cast_natAbs_num_of_nonneg (r : ℚ) (h : 0 ≤ r) :
   have hq := congrArg (fun z : ℤ => (z : ℚ)) hcast
   simpa using! hq
 
+/-- For a negative rational, the negative absolute numerator cast to `ℚ` equals its numerator
+cast to `ℚ`. -/
 theorem neg_cast_natAbs_num_of_neg (r : ℚ) (h : ¬ 0 ≤ r) :
     -(((r.num.natAbs : ℚ))) = (r.num : ℚ) := by
   have hnum : r.num ≤ 0 := by exact_mod_cast num_nonpos_of_neg r h
@@ -297,6 +375,7 @@ theorem neg_cast_natAbs_num_of_neg (r : ℚ) (h : ¬ 0 ≤ r) :
   rw [hq']
   ring
 
+/-- Decoding `encRatWord r` recovers `r` and leaves the appended suffix unchanged. -/
 theorem decRat_encRatWord (r : ℚ) (rest : Bits) :
     decRat (encRatWord r ++ rest) = some (r, rest) := by
   unfold encRatWord
@@ -310,9 +389,12 @@ theorem decRat_encRatWord (r : ℚ) (rest : Bits) :
     rw [show -((-(r.num : ℚ)) / (r.den : ℚ)) = r from by
       rw [← neg_div, neg_neg, Rat.num_div_den]]
 
+/-- Encode the radicand, scale, lower endpoint, and upper endpoint as four consecutive rational
+words. -/
 def stateWord (q S lo hi : ℚ) : Bits :=
   encRatWord q ++ (encRatWord S ++ (encRatWord lo ++ encRatWord hi))
 
+/-- Parse four consecutive rational words as a bisection state, returning the unused suffix. -/
 def readState (w : Bits) : Option (ℚ × ℚ × ℚ × ℚ × Bits) :=
   match decRat w with
   | none => none
@@ -327,10 +409,14 @@ def readState (w : Bits) : Option (ℚ × ℚ × ℚ × ℚ × Bits) :=
               | none => none
               | some (hi, r4) => some (q, S, lo, hi, r4)
 
+/-- Reading an encoded bisection state recovers all four rational components and the appended
+suffix. -/
 theorem readState_stateWord (q S lo hi : ℚ) (rest : Bits) :
     readState (stateWord q S lo hi ++ rest) = some (q, S, lo, hi, rest) := by
   simp only [stateWord, readState, decRat_encRatWord, List.append_assoc]
 
+/-- Apply one bisection to a decoded state and re-encode it with its suffix; return the input
+unchanged if parsing fails. -/
 def wordStep (w : Bits) : Bits :=
   match readState w with
   | none => w
@@ -338,11 +424,15 @@ def wordStep (w : Bits) : Bits :=
       let p := bisectStep q (lo, hi)
       stateWord q S p.1 p.2 ++ rest
 
+/-- On a valid encoded state, `wordStep` applies `bisectStep` to its endpoints and preserves the
+suffix. -/
 theorem wordStep_stateWord (q S lo hi : ℚ) (rest : Bits) :
     wordStep (stateWord q S lo hi ++ rest)
       = stateWord q S (bisectStep q (lo, hi)).1 (bisectStep q (lo, hi)).2 ++ rest := by
   simp only [wordStep, readState_stateWord]
 
+/-- For positive `S`, scaling both endpoints commutes with bisection when the radicand is scaled
+by `S * S`. -/
 theorem bisectStep_scaled (q S : ℚ) (hS : 0 < S) (p : ℚ × ℚ) :
     (S * (bisectStep (q / (S * S)) p).1, S * (bisectStep (q / (S * S)) p).2)
       = bisectStep (S * S * (q / (S * S))) (S * p.1, S * p.2) := by
@@ -370,6 +460,7 @@ theorem bisectStep_scaled (q S : ℚ) (hS : 0 < S) (p : ℚ × ℚ) :
       exact (mul_le_mul_iff_of_pos_left hSq).mp hc
     rw [if_neg h, if_neg h', hmid]
 
+/-- For positive `S`, iterating bisection from `(0, S)` yields `sqrtInterval q S k`. -/
 theorem bisectStep_iterate_scaled (q S : ℚ) (hS : 0 < S) (k : ℕ) :
     (bisectStep q)^[k] (0, S) = sqrtInterval q S k := by
   have hq : S * S * (q / (S * S)) = q := by field_simp [hS.ne']
@@ -390,6 +481,8 @@ theorem bisectStep_iterate_scaled (q S : ℚ) (hS : 0 < S) (k : ℕ) :
           (Qatlib.Concepts.MonteCarloMean.PayoffRotation.rationalSqrtBracket (q / (S * S)) k).2.1) from
     (rationalSqrtBracket_pair_eq_iterate (q / (S * S)) k).symm]
 
+/-- Iterating `wordStep` from the encoded interval `(0, S)` produces the encoded square-root
+bracket and preserves the suffix when `S` is positive. -/
 theorem wordStep_iterate (q S : ℚ) (hS : 0 < S) (k : ℕ) (rest : Bits) :
     (wordStep^[k]) (stateWord q S 0 S ++ rest)
       = stateWord q S (sqrtLo q S k) (sqrtHi q S k) ++ rest := by
@@ -409,6 +502,8 @@ theorem wordStep_iterate (q S : ℚ) (hS : 0 < S) (k : ℕ) (rest : Bits) :
       simpa [sqrtLo, sqrtHi, sqrtInterval] using! h1
     rw [hpair]
 
+/-- If `wordStep` has the stated time and space bounds, a TM0 machine computes the encoded state
+after `k` bisections with the displayed quadratic bounds. -/
 theorem bracket_machine_word (tf sf : Bits → ℕ)
     (hstep : ComputesAt wordStep tf sf) (q S : ℚ) (hS : 0 < S) (k : ℕ) :
     ∃ (qm : ℕ) (M : TM0.Machine (Option Bool) (Fin (qm + 1))) (C : ℕ), 0 < C ∧
@@ -433,15 +528,20 @@ theorem bracket_machine_word (tf sf : Bits → ℕ)
   rw [hi] at h
   simpa only [List.append_nil] using! h
 
+/-- Expand `stateWord` as the concatenation of its four rational encodings. -/
 theorem stateWord_suffix (q S lo hi : ℚ) :
     stateWord q S lo hi =
       encRatWord q ++ (encRatWord S ++ (encRatWord lo ++ encRatWord hi)) := rfl
 
+/-- The encoded square-root state consists of the radicand and scale encodings followed by
+`bracketWord`. -/
 theorem stateWord_suffix_bracketWord (q S : ℚ) (k : ℕ) :
     stateWord q S (sqrtLo q S k) (sqrtHi q S k)
       = encRatWord q ++ (encRatWord S ++ bracketWord q S k) := by
   simp [stateWord, bracketWord]
 
+/-- If `wordStep` has the stated time and space bounds, a TM0 machine computes the encoded
+bracket at `widthPrecision S b` with the displayed bounds and width at most `1 / 2 ^ b`. -/
 theorem bracket_machine_word_width (tf sf : Bits → ℕ)
     (hstep : ComputesAt wordStep tf sf) (q S : ℚ) (hS : 0 < S)
     (hq : 0 ≤ q) (hSq : q ≤ S * S) (b : ℕ) :
@@ -474,6 +574,8 @@ theorem bracket_machine_word_width (tf sf : Bits → ℕ)
   rw [hwidth]
   exact widthPrecision_spec S hS b
 
+/-- Collect the certified bracket, precision, encoding, bisection, and conditional TM0
+realization results for the rational-word construction. -/
 theorem frontier1 :
     (∀ (q S : ℚ) (k : ℕ), 0 < S → 0 ≤ q → q ≤ S * S →
       (bracketEnc q S k).1.toRat = sqrtLo q S k ∧
@@ -594,10 +696,14 @@ theorem frontier1 :
   · intro q S k
     exact stateWord_suffix_bracketWord q S k
 
+/-- Form the nonnegative numerator used to represent `q / (S * S)` when `q` is nonnegative and
+`S` is positive. -/
 def sqNum (q S : ℚ) : ℕ := q.num.natAbs * S.den * S.den
 
+/-- Form the natural-number denominator used to represent `q / (S * S)`. -/
 def sqDen (q S : ℚ) : ℕ := q.den * S.num.natAbs * S.num.natAbs
 
+/-- The denominator `sqDen q S` is positive whenever `S` is positive. -/
 theorem sqDen_pos (q S : ℚ) (hS : 0 < S) : 0 < sqDen q S := by
   have hd : 0 < q.den := q.den_pos
   have hn : 0 < S.num.natAbs := by
@@ -606,6 +712,7 @@ theorem sqDen_pos (q S : ℚ) (hS : 0 < S) : 0 < sqDen q S := by
   unfold sqDen
   exact Nat.mul_pos (Nat.mul_pos hd hn) hn
 
+/-- For nonnegative `q` and positive `S`, the ratio of `sqNum` to `sqDen` equals `q / (S * S)`. -/
 theorem sqNum_div_sqDen (q S : ℚ) (hq : 0 ≤ q) (hS : 0 < S) :
     (sqNum q S : ℚ) / (sqDen q S : ℚ) = q / (S * S) := by
   have hqn : ((q.num.natAbs : ℕ) : ℚ) = (q.num : ℚ) := cast_natAbs_num_of_nonneg q hq
@@ -632,21 +739,30 @@ theorem sqNum_div_sqDen (q S : ℚ) (hq : 0 ≤ q) (hS : 0 < S) :
     exact h2.ne'
   field_simp
 
+/-- Append a binary digit to `a`, choosing one exactly when the integer midpoint-square
+comparison succeeds at level `j`. -/
 def intStep (P Q j a : ℕ) : ℕ :=
   if (2 * a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P then 2 * a + 1 else 2 * a
 
+/-- Express `intStep` as twice the current integer plus the indicator of the midpoint-square
+comparison. -/
 theorem intStep_eq (P Q j a : ℕ) :
     intStep P Q j a
       = 2 * a + (if (2 * a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P then 1 else 0) := by
   unfold intStep
   split_ifs <;> omega
 
+/-- Iterate integer bisection for a specified number of steps from an initial level and integer
+endpoint. -/
 def intBisectFrom (P Q : ℕ) : ℕ → ℕ → ℕ → ℕ
   | 0, _, a => a
   | n + 1, j, a => intStep P Q (j + n) (intBisectFrom P Q n j a)
 
+/-- Run integer bisection from level zero and lower endpoint zero. -/
 def intBisect (P Q k : ℕ) : ℕ := intBisectFrom P Q k 0 0
 
+/-- For positive `Q`, the rational midpoint-square comparison for `P / Q` is equivalent to its
+denominator-cleared integer comparison. -/
 theorem test_iff (P Q j a : ℕ) (hQ : 0 < Q) :
     ((2 * (a : ℚ) + 1) / 2 ^ (j + 1)) * ((2 * (a : ℚ) + 1) / 2 ^ (j + 1))
         ≤ (P : ℚ) / (Q : ℚ) ↔
@@ -677,11 +793,14 @@ theorem test_iff (P Q j a : ℕ) (hQ : 0 < Q) :
       _ ≤ (2 : ℚ) ^ (2 * (j + 1)) * (P : ℚ) := h'
       _ = (P : ℚ) * (2 : ℚ) ^ (2 * (j + 1)) := by ring
 
+/-- Express `bisectStep` using a supplied midpoint equal to the average of the endpoints. -/
 theorem bisectStep_apply (X lo hi m : ℚ) (hm : m = (lo + hi) / 2) :
     bisectStep X (lo, hi) = if m * m ≤ X then (m, hi) else (lo, m) := by
   subst hm
   rfl
 
+/-- For positive `Q`, bisection of a dyadic interval is represented by `intStep` and the next
+dyadic denominator. -/
 theorem bisectStep_pair (P Q j a : ℕ) (hQ : 0 < Q) :
     bisectStep ((P : ℚ) / (Q : ℚ))
         (((a : ℚ) / 2 ^ j), (((a : ℚ) + 1) / 2 ^ j)) =
@@ -720,6 +839,8 @@ theorem bisectStep_pair (P Q j a : ℕ) (hQ : 0 < Q) :
       field_simp
     rw [hc2, hfac]
 
+/-- For positive `Q`, iterated rational bisection of a dyadic interval agrees with
+`intBisectFrom` at the resulting dyadic level. -/
 theorem bisectStep_iterate_int (P Q : ℕ) (hQ : 0 < Q) (n j a : ℕ) :
     (bisectStep ((P : ℚ) / (Q : ℚ)))^[n]
         (((a : ℚ) / 2 ^ j), (((a : ℚ) + 1) / 2 ^ j)) =
@@ -733,6 +854,8 @@ theorem bisectStep_iterate_int (P Q : ℕ) (hQ : 0 < Q) (n j a : ℕ) :
       show j + n + 1 = j + (n + 1) by omega]
     rfl
 
+/-- For positive `Q`, bisection from `(0, 1)` has endpoints `intBisect P Q k / 2 ^ k` and its
+successor divided by `2 ^ k`. -/
 theorem bisectStep_iterate_int_zero (P Q : ℕ) (hQ : 0 < Q) (k : ℕ) :
     (bisectStep ((P : ℚ) / (Q : ℚ)))^[k] (0, 1) =
       (((intBisect P Q k : ℕ) : ℚ) / 2 ^ k,
@@ -740,6 +863,8 @@ theorem bisectStep_iterate_int_zero (P Q : ℕ) (hQ : 0 < Q) (k : ℕ) :
   have h := bisectStep_iterate_int P Q hQ k 0 0
   simpa [intBisect] using! h
 
+/-- For nonnegative `q` and positive `S`, express `sqrtInterval` using `intBisect` with
+numerator `sqNum` and denominator `sqDen`. -/
 theorem sqrtInterval_intBisect (q S : ℚ) (hq : 0 ≤ q) (hS : 0 < S) (k : ℕ) :
     sqrtInterval q S k =
       (S * (((intBisect (sqNum q S) (sqDen q S) k : ℕ) : ℚ) / 2 ^ k),
@@ -759,17 +884,23 @@ theorem sqrtInterval_intBisect (q S : ℚ) (hq : 0 ≤ q) (hS : 0 < S) (k : ℕ)
         = (((intBisect (sqNum q S) (sqDen q S) k : ℕ) : ℚ) + 1) / 2 ^ k from
       congrArg Prod.snd hpair]
 
+/-- For nonnegative `q` and positive `S`, the lower bracket endpoint is `S` times the dyadic
+value of `intBisect`. -/
 theorem sqrtLo_eq_intBisect (q S : ℚ) (hq : 0 ≤ q) (hS : 0 < S) (k : ℕ) :
     sqrtLo q S k = S * (((intBisect (sqNum q S) (sqDen q S) k : ℕ) : ℚ) / 2 ^ k) := by
   have h := sqrtInterval_intBisect q S hq hS k
   exact congrArg Prod.fst h
 
+/-- For nonnegative `q` and positive `S`, the upper bracket endpoint is `S` times the dyadic
+value of the successor of `intBisect`. -/
 theorem sqrtHi_eq_intBisect (q S : ℚ) (hq : 0 ≤ q) (hS : 0 < S) (k : ℕ) :
     sqrtHi q S k =
       S * ((((intBisect (sqNum q S) (sqDen q S) k : ℕ) : ℚ) + 1) / 2 ^ k) := by
   have h := sqrtInterval_intBisect q S hq hS k
   exact congrArg Prod.snd h
 
+/-- Integer bisection preserves the strict dyadic size bound, increasing the level by the number
+of iterations. -/
 theorem intBisectFrom_lt (P Q : ℕ) :
     ∀ (n j a : ℕ), a < 2 ^ j → intBisectFrom P Q n j a < 2 ^ (j + n) := by
   intro n
@@ -786,11 +917,14 @@ theorem intBisectFrom_lt (P Q : ℕ) :
     unfold intStep
     split_ifs <;> omega
 
+/-- After `k` iterations from zero, `intBisect P Q k` is strictly less than `2 ^ k`. -/
 theorem intBisect_lt (P Q k : ℕ) : intBisect P Q k < 2 ^ k := by
   have h := intBisectFrom_lt P Q k 0 0 (by norm_num)
   rw [Nat.zero_add] at h
   exact h
 
+/-- One integer bisection step preserves the two square inequalities defining the bracket at the
+next dyadic level. -/
 theorem intStep_invariant (P Q j a : ℕ)
     (hlo : a ^ 2 * Q ≤ 2 ^ (2 * j) * P) (hhi : 2 ^ (2 * j) * P ≤ (a + 1) ^ 2 * Q) :
     (intStep P Q j a) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P ∧
@@ -811,6 +945,8 @@ theorem intStep_invariant (P Q j a : ℕ)
     · rw [hpow] at hnot ⊢
       exact le_of_lt hnot
 
+/-- Iterated integer bisection preserves the two square inequalities defining the bracket at the
+resulting dyadic level. -/
 theorem intBisectFrom_invariant (P Q : ℕ) :
     ∀ (n j a : ℕ), a ^ 2 * Q ≤ 2 ^ (2 * j) * P → 2 ^ (2 * j) * P ≤ (a + 1) ^ 2 * Q →
       (intBisectFrom P Q n j a) ^ 2 * Q ≤ 2 ^ (2 * (j + n)) * P ∧
@@ -829,6 +965,7 @@ theorem intBisectFrom_invariant (P Q : ℕ) :
     rw [show 2 * (j + (n + 1)) = 2 * ((j + n) + 1) by omega]
     exact hnext
 
+/-- When `P ≤ Q`, `intBisect` satisfies the lower and upper square inequalities at every level. -/
 theorem intBisect_invariant (P Q : ℕ) (hPQ : P ≤ Q) (k : ℕ) :
     (intBisect P Q k) ^ 2 * Q ≤ 2 ^ (2 * k) * P ∧
       2 ^ (2 * k) * P ≤ (intBisect P Q k + 1) ^ 2 * Q := by
@@ -844,6 +981,8 @@ theorem intBisect_invariant (P Q : ℕ) (hPQ : P ≤ Q) (k : ℕ) :
   rw [Nat.zero_add] at h
   exact h
 
+/-- Collect the integer representation of the rational bracket, midpoint-test equivalence, size
+bounds, and preserved square inequalities. -/
 theorem frontier3 :
     (∀ (q S : ℚ), 0 ≤ q → 0 < S → (sqNum q S : ℚ) / (sqDen q S : ℚ) = q / (S * S) ∧
       ∀ k : ℕ,
@@ -880,28 +1019,37 @@ theorem frontier3 :
   · intro P Q j a
     exact intStep_eq P Q j a
 
+/-- Double a natural number by addition. -/
 def dblNat (x : ℕ) : ℕ := x + x
 
+/-- Multiply a natural number by four using two doublings. -/
 def quadNat (x : ℕ) : ℕ := dblNat (dblNat x)
 
+/-- Doubling by addition equals multiplication by two. -/
 theorem dblNat_eq (x : ℕ) : dblNat x = 2 * x := by unfold dblNat; ring
 
+/-- Two successive doublings equal multiplication by four. -/
 theorem quadNat_eq (x : ℕ) : quadNat x = 4 * x := by
   unfold quadNat dblNat
   ring
 
+/-- Doubling equals the binary value of a one-bit left shift of `Nat.bits`. -/
 theorem dblNat_shiftLeft (n : ℕ) :
     dblNat n = binaryValue (shiftLeft n.bits 1) := by
   rw [dblNat_eq, shiftLeft_value,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
   norm_num
 
+/-- Multiplication by four equals the binary value of two successive one-bit left shifts of
+`Nat.bits`. -/
 theorem quadNat_shiftLeft (n : ℕ) :
     quadNat n = binaryValue (shiftLeft (shiftLeft n.bits 1) 1) := by
   rw [quadNat_eq, shiftLeft_value, shiftLeft_value,
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
   ring
 
+/-- Store the integer endpoint, its square and linear accumulators, and the scaled comparison
+threshold for incremental bisection. -/
 structure IncrState where
 
   a : ℕ
@@ -913,10 +1061,15 @@ structure IncrState where
   rhs : ℕ
   deriving DecidableEq, Repr
 
+/-- Compute the trial value `4 * s.sq + 4 * s.lin + Q` using doublings. -/
 def incrTrial (Q : ℕ) (s : IncrState) : ℕ := quadNat s.sq + quadNat s.lin + Q
 
+/-- Return one when the incremental trial value is at most the stored threshold, and zero
+otherwise. -/
 def incrBit (Q : ℕ) (s : IncrState) : ℕ := if incrTrial Q s ≤ s.rhs then 1 else 0
 
+/-- Update the integer endpoint and its accumulators according to `incrBit`, and multiply the
+threshold by four. -/
 def incrStep (Q : ℕ) (s : IncrState) : IncrState :=
   if incrBit Q s = 1 then
     { a := dblNat s.a + 1
@@ -929,12 +1082,16 @@ def incrStep (Q : ℕ) (s : IncrState) : IncrState :=
       lin := dblNat s.lin
       rhs := quadNat s.rhs }
 
+/-- Initialize incremental bisection with zero endpoint and accumulators and threshold `4 * P`. -/
 def incrInit (P : ℕ) : IncrState := ⟨0, 0, 0, quadNat P⟩
 
+/-- Apply the incremental bisection update a specified number of times. -/
 def incrIterate (Q : ℕ) : ℕ → IncrState → IncrState
   | 0, s => s
   | n + 1, s => incrStep Q (incrIterate Q n s)
 
+/-- When the square and linear accumulators represent `s.a ^ 2 * Q` and `s.a * Q`, the trial
+value is `(2 * s.a + 1) ^ 2 * Q`. -/
 theorem incrTrial_eq (Q : ℕ) (s : IncrState)
     (hsq : s.sq = s.a ^ 2 * Q) (hlin : s.lin = s.a * Q) :
     incrTrial Q s = (2 * s.a + 1) ^ 2 * Q := by
@@ -942,15 +1099,20 @@ theorem incrTrial_eq (Q : ℕ) (s : IncrState)
   rw [hsq, hlin]
   ring
 
+/-- The incremental decision bit equals one exactly when the trial value is at most the stored
+threshold. -/
 theorem incrBit_eq_one_iff (Q : ℕ) (s : IncrState) :
     incrBit Q s = 1 ↔ incrTrial Q s ≤ s.rhs := by
   unfold incrBit
   split_ifs <;> simp_all
 
+/-- The incremental decision bit differs from one exactly when the trial value exceeds the
+stored threshold. -/
 theorem incrBit_ne_one_iff (Q : ℕ) (s : IncrState) :
     incrBit Q s ≠ 1 ↔ ¬ incrTrial Q s ≤ s.rhs := by
   rw [ne_eq, incrBit_eq_one_iff]
 
+/-- Under the accumulator and threshold invariants, the updated endpoint agrees with `intStep`. -/
 theorem incrStep_a (P Q j : ℕ) (s : IncrState)
     (hsq : s.sq = s.a ^ 2 * Q) (hlin : s.lin = s.a * Q)
     (hrhs : s.rhs = 2 ^ (2 * (j + 1)) * P) :
@@ -966,6 +1128,7 @@ theorem incrStep_a (P Q j : ℕ) (s : IncrState)
       rwa [incrTrial_eq Q s hsq hlin, hrhs] at hc
     simp only [incrStep, if_neg h, dblNat_eq, if_neg hcond, Nat.add_zero]
 
+/-- The incremental update preserves the square and linear accumulator invariants. -/
 theorem incrStep_invariant (Q : ℕ) (s : IncrState)
     (hsq : s.sq = s.a ^ 2 * Q) (hlin : s.lin = s.a * Q) :
     (incrStep Q s).sq = (incrStep Q s).a ^ 2 * Q ∧
@@ -982,6 +1145,7 @@ theorem incrStep_invariant (Q : ℕ) (s : IncrState)
     · simp only [incrStep, if_neg h, hlin, dblNat_eq]
       ring
 
+/-- The incremental update advances the threshold from level `j + 1` to level `j + 2`. -/
 theorem incrStep_rhs (P Q j : ℕ) (s : IncrState)
     (hrhs : s.rhs = 2 ^ (2 * (j + 1)) * P) :
     (incrStep Q s).rhs = 2 ^ (2 * ((j + 1) + 1)) * P := by
@@ -997,6 +1161,8 @@ theorem incrStep_rhs (P Q j : ℕ) (s : IncrState)
     _ = (4 * 2 ^ (2 * (j + 1))) * P := by rw [Nat.mul_assoc]
     _ = 2 ^ (2 * ((j + 1) + 1)) * P := by rw [h4]
 
+/-- Under the initial accumulator and threshold invariants, incremental iteration agrees with
+`intBisectFrom` and preserves the accumulator formulas at the resulting level. -/
 theorem incrIterate_spec (P Q j : ℕ) (s : IncrState)
     (hsq : s.sq = s.a ^ 2 * Q) (hlin : s.lin = s.a * Q)
     (hrhs : s.rhs = 2 ^ (2 * (j + 1)) * P) :
@@ -1024,6 +1190,7 @@ theorem incrIterate_spec (P Q j : ℕ) (s : IncrState)
         rw [hstep_rhs]
         congr 1
 
+/-- Incremental iteration from `incrInit P` computes the endpoint `intBisect P Q k`. -/
 theorem incrIterate_intBisect (P Q k : ℕ) :
     (incrIterate Q k (incrInit P)).a = intBisect P Q k := by
   have hsq : (incrInit P).sq = (incrInit P).a ^ 2 * Q := by simp [incrInit]
@@ -1033,6 +1200,8 @@ theorem incrIterate_intBisect (P Q k : ℕ) :
   have h := incrIterate_spec P Q 0 (incrInit P) hsq hlin hrhs k
   simpa [intBisect] using! h.1
 
+/-- Incremental iteration from its initial state preserves the square, linear, and
+scaled-threshold formulas. -/
 theorem incrIterate_invariant (P Q k : ℕ) :
     (incrIterate Q k (incrInit P)).sq = (incrIterate Q k (incrInit P)).a ^ 2 * Q ∧
     (incrIterate Q k (incrInit P)).lin = (incrIterate Q k (incrInit P)).a * Q ∧
@@ -1045,6 +1214,8 @@ theorem incrIterate_invariant (P Q k : ℕ) :
   refine ⟨h.2.1, h.2.2.1, ?_⟩
   rw [h.2.2.2, show 0 + k + 1 = k + 1 by omega]
 
+/-- When `P ≤ Q`, the endpoint computed by incremental iteration satisfies both
+square-bracketing inequalities. -/
 theorem incrIterate_bracket (P Q k : ℕ) (hPQ : P ≤ Q) :
     (incrIterate Q k (incrInit P)).a ^ 2 * Q ≤ 2 ^ (2 * k) * P ∧
       2 ^ (2 * k) * P ≤ ((incrIterate Q k (incrInit P)).a + 1) ^ 2 * Q := by
@@ -1052,9 +1223,12 @@ theorem incrIterate_bracket (P Q k : ℕ) (hPQ : P ≤ Q) :
   rw [incrIterate_intBisect P Q k]
   exact h
 
+/-- Compute a binary word for the incremental trial value by shifting the square and linear
+words by two bits and adding `Q.bits`. -/
 def incrTrialBits (Q : ℕ) (s : IncrState) : Bits :=
   bitAdd (bitAdd (shiftLeft s.sq.bits 2) (shiftLeft s.lin.bits 2)) Q.bits
 
+/-- The binary value of `incrTrialBits` equals `incrTrial`. -/
 theorem incrTrialBits_value (Q : ℕ) (s : IncrState) :
     binaryValue (incrTrialBits Q s) = incrTrial Q s := by
   unfold incrTrialBits incrTrial quadNat dblNat
@@ -1064,9 +1238,12 @@ theorem incrTrialBits_value (Q : ℕ) (s : IncrState) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
   ring
 
+/-- Compute the updated endpoint word by shifting its binary expansion and adding the decision
+bit. -/
 def incrABits (Q : ℕ) (s : IncrState) : Bits :=
   bitAdd (shiftLeft s.a.bits 1) (if incrBit Q s = 1 then [true] else [])
 
+/-- The binary value of `incrABits` equals the endpoint field of `incrStep`. -/
 theorem incrABits_value (Q : ℕ) (s : IncrState) :
     binaryValue (incrABits Q s) = (incrStep Q s).a := by
   unfold incrABits
@@ -1081,9 +1258,12 @@ theorem incrABits_value (Q : ℕ) (s : IncrState) :
     simp only [binaryValue_nil, incrStep, if_neg h, dblNat_eq, Nat.add_zero]
     norm_num
 
+/-- Compute the updated linear accumulator word by doubling its binary expansion and
+conditionally adding `Q.bits`. -/
 def incrLinBits (Q : ℕ) (s : IncrState) : Bits :=
   bitAdd (shiftLeft s.lin.bits 1) (if incrBit Q s = 1 then Q.bits else [])
 
+/-- The binary value of `incrLinBits` equals the linear field of `incrStep`. -/
 theorem incrLinBits_value (Q : ℕ) (s : IncrState) :
     binaryValue (incrLinBits Q s) = (incrStep Q s).lin := by
   unfold incrLinBits
@@ -1100,6 +1280,8 @@ theorem incrLinBits_value (Q : ℕ) (s : IncrState) :
     simp only [binaryValue_nil, incrStep, if_neg h, dblNat_eq, Nat.add_zero]
     norm_num
 
+/-- Collect the incremental bisection invariants, agreement with integer bisection, and
+correctness of the binary arithmetic words. -/
 theorem frontier4 :
     (∀ (Q : ℕ) (s : IncrState), incrTrial Q s = quadNat s.sq + quadNat s.lin + Q) ∧
     (∀ (P Q k : ℕ), (incrIterate Q k (incrInit P)).a = intBisect P Q k) ∧
@@ -1123,19 +1305,25 @@ namespace TrialAdd
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- Interpret an optional Boolean as a natural-number bit, assigning zero to `none`. -/
 def bitOf : Option Bool → ℕ
   | none => 0
   | some b => if b then 1 else 0
 
+/-- Sum the three optional head bits and the incoming carry. -/
 def stepSum (c : ℕ) (a b d : Bits) : ℕ := bitOf a.head? + bitOf b.head? + bitOf d.head? + c
 
+/-- The natural-number value of an optional Boolean is at most one. -/
 theorem bitOf_le_one (o : Option Bool) : bitOf o ≤ 1 := by
   cases o with
   | none => simp [bitOf]
   | some b => cases b <;> simp [bitOf]
 
+/-- The length of a word's tail is its length minus one. -/
 theorem length_tail (l : Bits) : l.tail.length = l.length - 1 := List.length_tail
 
+/-- Unless all inputs and the carry are zero, consuming their heads and updating the carry
+strictly decreases the addition measure. -/
 theorem measure_decrease (c : ℕ) (a b d : Bits)
     (h : ¬ (a = [] ∧ b = [] ∧ d = [] ∧ c = 0)) :
     2 * (a.tail.length + b.tail.length + d.tail.length) + stepSum c a b d / 2 <
@@ -1177,6 +1365,8 @@ theorem measure_decrease (c : ℕ) (a b d : Bits)
       | cons x xs => simp
     omega
 
+/-- Store three optional input bits and two carry bits for the finite control of the trial
+adder. -/
 structure Local where
   oa : Option Bool
   ob : Option Bool
@@ -1187,63 +1377,85 @@ deriving DecidableEq, Fintype
 
 instance : Inhabited Local := ⟨⟨none, none, none, false, false⟩⟩
 
+/-- Decode the two carry bits of a local state as a natural number. -/
 def carryVal (v : Local) : ℕ := (if v.c0 then 1 else 0) + 2 * (if v.c1 then 1 else 0)
 
+/-- Sum the local input bits and the decoded carry. -/
 def Local.total (v : Local) : ℕ := bitOf v.oa + bitOf v.ob + bitOf v.od + carryVal v
 
+/-- Return the parity bit of the local addition total. -/
 def Local.outBit (v : Local) : Bool := decide (Local.total v % 2 = 1)
 
+/-- Return the low bit of the next carry obtained by halving the local total. -/
 def Local.nextC0 (v : Local) : Bool := decide (Local.total v / 2 % 2 = 1)
 
+/-- Return the Boolean test that the local total divided by four equals one. -/
 def Local.nextC1 (v : Local) : Bool := decide (Local.total v / 2 / 2 = 1)
 
+/-- Test whether all local input bits are absent and the local addition total is zero. -/
 def Local.stalled (v : Local) : Bool :=
   v.oa.isNone && v.ob.isNone && v.od.isNone && decide (Local.total v = 0)
 
+/-- Encode a natural carry using its parity and the test that its half equals one. -/
 def enc (c : ℕ) : Bool × Bool := (decide (c % 2 = 1), decide (c / 2 = 1))
 
+/-- Decode a pair of Boolean carry bits with weights one and two. -/
 def dec (p : Bool × Bool) : ℕ := (if p.1 then 1 else 0) + 2 * (if p.2 then 1 else 0)
 
+/-- Encoding and then decoding a carry at most two recovers that carry. -/
 theorem dec_enc {c : ℕ} (hc : c ≤ 2) : dec (enc c) = c := by
   unfold dec enc
   interval_cases c <;> rfl
 
+/-- A local state with carry bits from `enc c` has carry value `c` when `c ≤ 2`. -/
 theorem carryVal_enc {c : ℕ} (hc : c ≤ 2) (oa ob od : Option Bool) :
     carryVal ⟨oa, ob, od, (enc c).1, (enc c).2⟩ = c := by
   simp only [carryVal, enc, decide_eq_true_eq]
   interval_cases c <;> rfl
 
+/-- Arrange the three input words and output accumulator on four stacks for the trial adder. -/
 def store (os a b d : Bits) : Fin 4 → Bits :=
   fun i => if i = 0 then a else if i = 1 then b else if i = 2 then d else os
 
+/-- Stack `0` of `store` contains `a`. -/
 @[simp] theorem store_zero (os a b d : Bits) : store os a b d 0 = a := by simp [store]
 
+/-- Stack `1` of `store` contains `b`. -/
 @[simp] theorem store_one (os a b d : Bits) : store os a b d 1 = b := by simp [store]
 
+/-- Stack `2` of `store` contains `d`. -/
 @[simp] theorem store_two (os a b d : Bits) : store os a b d 2 = d := by simp [store]
 
+/-- Stack `3` of `store` contains `os`. -/
 @[simp] theorem store_three (os a b d : Bits) : store os a b d 3 = os := by simp [store]
 
+/-- Updating stack `0` of `store` replaces its `a` word and preserves the other stack entries. -/
 theorem store_update_zero (os a b d a' : Bits) :
     Function.update (store os a b d) 0 a' = store os a' b d := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `1` of `store` replaces its `b` word and preserves the other stack entries. -/
 theorem store_update_one (os a b d b' : Bits) :
     Function.update (store os a b d) 1 b' = store os a b' d := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `2` of `store` replaces its `d` word and preserves the other stack entries. -/
 theorem store_update_two (os a b d d' : Bits) :
     Function.update (store os a b d) 2 d' = store os a b d' := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `3` of `store` replaces its `os` word and preserves the other stack entries. -/
 theorem store_update_three (os a b d os' : Bits) :
     Function.update (store os a b d) 3 os' = store os' a b d := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Specify the shift, addition, and terminal control labels of the trial adder. -/
 inductive Label | shift | step | done deriving DecidableEq, Fintype
 
 instance : Inhabited Label := ⟨.step⟩
 
+/-- Define the four-stack program that shifts the first two inputs by two bits and adds all
+three inputs into the output stack. -/
 def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
   | .shift =>
     .push 0 (fun _ => false)
@@ -1262,12 +1474,17 @@ def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
                 (.goto (fun _ => .step)))))))
   | .done => .halt
 
+/-- Build an addition-loop configuration with the encoded carry, input words, and output
+accumulator. -/
 def cfg (c : ℕ) (os a b d : Bits) : TM2.Cfg (fun _ : Fin 4 => Bool) Label Local :=
   ⟨some .step, ⟨none, none, none, (enc c).1, (enc c).2⟩, store os a b d⟩
 
+/-- Build the initial trial-adder configuration with its three inputs and an empty output stack. -/
 def startCfg (a b d : Bits) : TM2.Cfg (fun _ : Fin 4 => Bool) Label Local :=
   ⟨some .shift, ⟨none, none, none, false, false⟩, store [] a b d⟩
 
+/-- The initial shift instruction prefixes two zero bits to each of the first two inputs and
+enters the addition loop with zero carry. -/
 theorem shift_step (a b d : Bits) :
     TM2.step program (startCfg a b d) =
       some (cfg 0 [] (false :: false :: a) (false :: false :: b) d) := by
@@ -1277,8 +1494,11 @@ theorem shift_step (a b d : Bits) :
   simp only [startCfg, cfg, TM2.step, program, TM2.stepAux, store_update_zero,
     store_update_one, store_zero, store_one, h1, h2]
 
+/-- Sum the three input head bits and the current carry. -/
 def total (c : ℕ) (a b d : Bits) : ℕ := bitOf a.head? + bitOf b.head? + bitOf d.head? + c
 
+/-- For carry at most two, the local stalled test holds exactly when all input words are empty
+and the carry is zero. -/
 theorem stalled_iff (c : ℕ) (a b d : Bits) (hc : c ≤ 2) :
     Local.stalled ⟨a.head?, b.head?, d.head?, (enc c).1, (enc c).2⟩ = true ↔
       (a = [] ∧ b = [] ∧ d = [] ∧ c = 0) := by
@@ -1295,6 +1515,8 @@ theorem stalled_iff (c : ℕ) (a b d : Bits) (hc : c ≤ 2) :
   · rintro ⟨rfl, rfl, rfl, rfl⟩
     simp [Local.stalled, Local.total, bitOf, carryVal, enc]
 
+/-- For carry at most two, describe one addition-machine step, including termination or emission
+of the parity bit with updated carry and tails. -/
 theorem step_cfg (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
     TM2.step program (cfg c os a b d) =
       some (if a = [] ∧ b = [] ∧ d = [] ∧ c = 0 then
@@ -1324,6 +1546,8 @@ theorem step_cfg (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
       store_three, hs, cond_false, Local.nextC0, Local.nextC1,
       Local.outBit, Local.total, hc0, total]
 
+/-- Compute the final output stack by repeatedly prepending sum bits while consuming the input
+words and carry. -/
 def outWord (c : ℕ) (os a b d : Bits) : Bits :=
   if a = [] ∧ b = [] ∧ d = [] ∧ c = 0 then os
   else outWord (stepSum c a b d / 2)
@@ -1331,12 +1555,14 @@ def outWord (c : ℕ) (os a b d : Bits) : Bits :=
 termination_by 2 * (a.length + b.length + d.length) + c
 decreasing_by exact measure_decrease c a b d ‹¬ (a = [] ∧ b = [] ∧ d = [] ∧ c = 0)›
 
+/-- Count the addition-loop steps, including the terminating step. -/
 def fuel (c : ℕ) (a b d : Bits) : ℕ :=
   if a = [] ∧ b = [] ∧ d = [] ∧ c = 0 then 1
   else 1 + fuel (stepSum c a b d / 2) a.tail b.tail d.tail
 termination_by 2 * (a.length + b.length + d.length) + c
 decreasing_by exact measure_decrease c a b d ‹¬ (a = [] ∧ b = [] ∧ d = [] ∧ c = 0)›
 
+/-- Decompose a binary word's value into its optional head bit plus twice the value of its tail. -/
 theorem binaryValue_head_tail (l : Bits) :
     binaryValue l = bitOf l.head? + 2 * binaryValue l.tail := by
   cases l with
@@ -1346,16 +1572,19 @@ theorem binaryValue_head_tail (l : Bits) :
     simp [bitOf]
     omega
 
+/-- The natural value of the Boolean parity test equals the remainder modulo two. -/
 theorem bitOf_decide_mod (s : ℕ) : bitOf (some (decide (s % 2 = 1))) = s % 2 := by
   have h2 : s % 2 = 0 ∨ s % 2 = 1 := Nat.mod_two_eq_zero_or_one s
   rcases h2 with h | h <;> simp [bitOf, h]
 
+/-- Emit the binary sum of three words and a carry in least-significant-bit-first order. -/
 def emit (c : ℕ) (a b d : Bits) : Bits :=
   if a = [] ∧ b = [] ∧ d = [] ∧ c = 0 then []
   else decide (stepSum c a b d % 2 = 1) :: emit (stepSum c a b d / 2) a.tail b.tail d.tail
 termination_by 2 * (a.length + b.length + d.length) + c
 decreasing_by exact measure_decrease c a b d ‹¬ (a = [] ∧ b = [] ∧ d = [] ∧ c = 0)›
 
+/-- The emitted word represents the sum of the three input values and the incoming carry. -/
 theorem emit_value (c : ℕ) (a b d : Bits) :
     binaryValue (emit c a b d) = binaryValue a + binaryValue b + binaryValue d + c := by
   induction c, a, b, d using emit.induct with
@@ -1378,6 +1607,8 @@ theorem emit_value (c : ℕ) (a b d : Bits) :
     rw [hif]
     omega
 
+/-- The final output stack is the reverse of the emitted sum followed by the initial output
+accumulator. -/
 theorem outWord_eq (c : ℕ) (os a b d : Bits) :
     outWord c os a b d = (emit c a b d).reverse ++ os := by
   induction c, os, a, b, d using outWord.induct with
@@ -1392,6 +1623,7 @@ theorem outWord_eq (c : ℕ) (os a b d : Bits) :
     rw [outWord.eq_def, if_neg h, ih, hem, List.reverse_cons, List.append_assoc,
       List.singleton_append]
 
+/-- Bound the addition fuel by twice the sum of input lengths plus the carry and one. -/
 theorem fuel_le (c : ℕ) (a b d : Bits) :
     fuel c a b d ≤ 2 * (a.length + b.length + d.length) + c + 1 := by
   induction c, a, b, d using fuel.induct with
@@ -1403,10 +1635,13 @@ theorem fuel_le (c : ℕ) (a b d : Bits) :
     have hdec := measure_decrease c a b d h
     omega
 
+/-- The low bit of the encoding of zero is false. -/
 theorem enc_zero_one : (enc 0).1 = false := by simp [enc]
 
+/-- The high bit of the encoding of zero is false. -/
 theorem enc_zero_two : (enc 0).2 = false := by simp [enc]
 
+/-- With carry at most two, the sum of three input bits and the carry is at most five. -/
 theorem sum_le_five {c : ℕ} (hc : c ≤ 2) (a b d : Bits) :
     stepSum c a b d ≤ 5 := by
   have h1 := bitOf_le_one a.head?
@@ -1415,6 +1650,8 @@ theorem sum_le_five {c : ℕ} (hc : c ≤ 2) (a b d : Bits) :
   unfold stepSum
   omega
 
+/-- With carry at most two, the addition machine halts after `fuel` steps with empty input
+stacks, zeroed local state, and output `outWord`. -/
 theorem run_fuel (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
     stackRun program (fuel c a b d) (cfg c os a b d) =
       some ⟨none, ⟨none, none, none, false, false⟩,
@@ -1449,6 +1686,7 @@ theorem run_fuel (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
     rw [hfuel, hout, Nat.one_add, stackRun, hstep, Option.bind_some]
     exact ih hc' (decide (stepSum c a b d % 2 = 1) :: os)
 
+/-- The trial-adder program has `programNodes` at most six. -/
 theorem program_nodes_le : programNodes program ≤ 6 := by
   unfold programNodes
   apply Finset.sup_le
@@ -1464,13 +1702,17 @@ theorem program_nodes_le : programNodes program ≤ 6 := by
     omega
   | done => simp [program, stackNodes]
 
+/-- The trial-adder program has sweep factor at most 85. -/
 theorem sweep_factor_le : sweepFactor program ≤ 85 := by
   have h := program_nodes_le
   unfold sweepFactor
   nlinarith
 
+/-- Count the initial shift step and all subsequent trial-addition steps. -/
 def totalTicks (a b d : Bits) : ℕ := 1 + fuel 0 (false :: false :: a) (false :: false :: b) d
 
+/-- Running the trial adder for `totalTicks` halts with the computed output stack and empty
+input stacks. -/
 theorem stackRun_start (a b d : Bits) :
     stackRun program (totalTicks a b d) (startCfg a b d) =
       some ⟨none, ⟨none, none, none, false, false⟩,
@@ -1480,6 +1722,7 @@ theorem stackRun_start (a b d : Bits) :
   rw [Nat.add_comm, stackRun, shift_step, Option.bind_some]
   exact h
 
+/-- The initial trial-adder stack height is bounded by the sum of its three input lengths. -/
 theorem initial_height (a b d : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (startCfg a b d).stk ≤ a.length + b.length + d.length := by
   unfold Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight startCfg store
@@ -1487,12 +1730,15 @@ theorem initial_height (a b d : Bits) :
   intro i _
   fin_cases i <;> simp <;> omega
 
+/-- Prefixing two zero bits to each of two inputs increases the sum of the three lengths by
+four. -/
 theorem shifted_length (a b d : Bits) :
     (false :: false :: a).length + (false :: false :: b).length + d.length
       = a.length + b.length + d.length + 4 := by
   simp only [List.length_cons]
   omega
 
+/-- Bound the full trial-adder step count by twice the total input length plus ten. -/
 theorem totalTicks_le (a b d : Bits) :
     totalTicks a b d ≤ 2 * (a.length + b.length + d.length + 4) + 2 := by
   have h := fuel_le 0 (false :: false :: a) (false :: false :: b) d
@@ -1500,6 +1746,8 @@ theorem totalTicks_le (a b d : Bits) :
   unfold totalTicks
   omega
 
+/-- Bound the trial adder's total clock quadratically and its maximum clock and stack height
+linearly in the total input length plus four. -/
 theorem machine_bounds (a b d : Bits) :
     stackRunClock program (totalTicks a b d) (startCfg a b d)
         ≤ 20000 * (a.length + b.length + d.length + 4) ^ 2 ∧
@@ -1543,18 +1791,23 @@ theorem machine_bounds (a b d : Bits) :
     exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.runMaxHeight_le program _ _).trans
       (hmul.trans hfin)
 
+/-- Prefixing two zero bits multiplies the binary value of a word by four. -/
 theorem shift_value (x : Bits) : binaryValue (false :: false :: x) = 4 * binaryValue x := by
   rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.ParseFramed.binaryValue_cons,
     Qatlib.Concepts.QueryComplexity.DegreeMethod.ParseFramed.binaryValue_cons]
   simp only [Bool.false_eq_true, if_false]
   ring
 
+/-- The trial-adder emission represents four times each of the first two input values plus the
+third input value. -/
 theorem emit_shift_value (a b d : Bits) :
     binaryValue (emit 0 (false :: false :: a) (false :: false :: b) d)
       = 4 * binaryValue a + 4 * binaryValue b + binaryValue d := by
   rw [emit_value, shift_value, shift_value]
   ring
 
+/-- On the binary accumulator fields of an incremental state, the trial-adder emission
+represents `incrTrial Q s`. -/
 theorem machine_incrTrial (Q : ℕ) (s : IncrState) :
     binaryValue (emit 0 (false :: false :: s.sq.bits) (false :: false :: s.lin.bits) Q.bits)
       = incrTrial Q s := by
@@ -1565,6 +1818,8 @@ theorem machine_incrTrial (Q : ℕ) (s : IncrState) :
   unfold incrTrial quadNat dblNat
   ring
 
+/-- The trial-adder program halts with the stated output and step count, computes the shifted
+sum, and satisfies the displayed clock and height bounds. -/
 theorem trialProgram (a b d : Bits) :
     ∃ ticks, stackRun program ticks (startCfg a b d) =
         some ⟨none, ⟨none, none, none, false, false⟩,
@@ -1588,22 +1843,28 @@ namespace TrialCompare
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- Decode two Boolean carry bits with weights one and two. -/
 def carryOf (c0 c1 : Bool) : ℕ := (if c0 then 1 else 0) + 2 * (if c1 then 1 else 0)
 
+/-- A carry encoded by two Boolean bits is at most three. -/
 theorem carryOf_le_three (c0 c1 : Bool) : carryOf c0 c1 ≤ 3 := by
   unfold carryOf
   cases c0 <;> cases c1 <;> simp
 
+/-- The decoded carry is zero exactly when both carry bits are false. -/
 theorem carryOf_eq_zero {c0 c1 : Bool} : carryOf c0 c1 = 0 ↔ c0 = false ∧ c1 = false := by
   unfold carryOf
   cases c0 <;> cases c1 <;> simp
 
+/-- Set the low carry bit exactly when the halved total equals one. -/
 def carryBit0 (t : ℕ) : Bool :=
   if t / 2 = 0 then false else if t / 2 = 1 then true else false
 
+/-- Compute the high carry bit, setting it exactly when the halved total is at least two. -/
 def carryBit1 (t : ℕ) : Bool :=
   if t / 2 = 0 then false else if t / 2 = 1 then false else true
 
+/-- The carry bits decode to the halved total truncated at two. -/
 theorem carryOf_bits (t : ℕ) : carryOf (carryBit0 t) (carryBit1 t) = min (t / 2) 2 := by
   unfold carryBit0 carryBit1 carryOf
   rcases Nat.lt_or_ge 2 (t / 2) with h | h
@@ -1613,8 +1874,12 @@ theorem carryOf_bits (t : ℕ) : carryOf (carryBit0 t) (carryBit1 t) = min (t / 
     simp [h0, h1, Nat.min_eq_right h2]
   · interval_cases h' : t / 2 <;> simp
 
+/-- Return the borrow test for subtracting a digit and incoming borrow from a right-hand-side
+digit. -/
 def borrowBit (r d w : ℕ) : Bool := decide (r < d + w)
 
+/-- Store four input words, two carry bits, and a borrow flag for simultaneous addition and
+comparison. -/
 structure CState where
 
   a : Bits
@@ -1632,51 +1897,67 @@ structure CState where
   w : Bool
 deriving DecidableEq, Repr
 
+/-- Decode the carry bits of a comparison state. -/
 def CState.cval (st : CState) : ℕ := carryOf st.c0 st.c1
 
+/-- Sum the first three head bits and the decoded carry of a comparison state. -/
 def CState.total (st : CState) : ℕ :=
   TrialAdd.bitOf st.a.head? + TrialAdd.bitOf st.b.head? + TrialAdd.bitOf st.d.head? +
     carryOf st.c0 st.c1
 
+/-- Sum the values of the first three input words and the decoded carry. -/
 def CState.value (st : CState) : ℕ :=
   binaryValue st.a + binaryValue st.b + binaryValue st.d + CState.cval st
 
+/-- Return the parity digit of the current comparison-state total. -/
 def CState.bit (st : CState) : ℕ := CState.total st % 2
 
+/-- Interpret the borrow flag as zero or one. -/
 def CState.wval (st : CState) : ℕ := if st.w then 1 else 0
 
+/-- Compute the next borrow flag by comparing the right-hand-side head bit with the sum digit
+and current borrow. -/
 def CState.nextW (st : CState) : Bool :=
   borrowBit (TrialAdd.bitOf st.r.head?) (CState.total st % 2) (CState.wval st)
 
+/-- Compute the two carry bits for the next comparison state. -/
 def CState.nextCarry (st : CState) : Bool × Bool :=
   (carryBit0 (CState.total st), carryBit1 (CState.total st))
 
+/-- Consume one bit from each input word and update the carry and borrow flags. -/
 def CState.step (st : CState) : CState :=
   ⟨st.a.tail, st.b.tail, st.d.tail, st.r.tail, (CState.nextCarry st).1,
     (CState.nextCarry st).2, CState.nextW st⟩
 
+/-- Express that all four input words are empty and both carry bits are false. -/
 abbrev CState.halted (st : CState) : Prop :=
   st.a = [] ∧ st.b = [] ∧ st.d = [] ∧ st.r = [] ∧ st.c0 = false ∧ st.c1 = false
 
+/-- Measure a comparison state by twice its total input length plus its carry value. -/
 def CState.measure (st : CState) : ℕ :=
   2 * (st.a.length + st.b.length + st.d.length + st.r.length) + CState.cval st
 
+/-- The comparison state's sum digit is at most one. -/
 theorem CState.bit_le_one (st : CState) : CState.bit st ≤ 1 := by
   rcases Nat.mod_two_eq_zero_or_one (CState.total st) with h | h <;> simp [CState.bit, h]
 
+/-- The natural-number value of the borrow flag is at most one. -/
 theorem CState.wval_le_one (st : CState) : CState.wval st ≤ 1 := by
   unfold CState.wval
   split_ifs <;> omega
 
+/-- After one comparison step, the carry is the halved total truncated at two. -/
 theorem CState.cval_step_val (st : CState) :
     CState.cval (CState.step st) = min (CState.total st / 2) 2 := by
   show carryOf (carryBit0 (CState.total st)) (carryBit1 (CState.total st)) = _
   exact carryOf_bits (CState.total st)
 
+/-- After one comparison step, the carry value is at most two. -/
 theorem CState.cval_step_le_two (st : CState) : CState.cval (CState.step st) ≤ 2 := by
   rw [CState.cval_step_val]
   exact Nat.min_le_right _ _
 
+/-- One comparison step increases the carry value by at most one. -/
 theorem CState.cval_step_le (st : CState) : CState.cval (CState.step st) ≤ CState.cval st + 1 := by
   have h1 := TrialAdd.bitOf_le_one st.a.head?
   have h2 := TrialAdd.bitOf_le_one st.b.head?
@@ -1686,6 +1967,7 @@ theorem CState.cval_step_le (st : CState) : CState.cval (CState.step st) ≤ CSt
   unfold CState.total CState.cval at *
   omega
 
+/-- For an incoming carry at most two, the next carry equals half the current total. -/
 theorem CState.cval_step_eq (st : CState) (h : CState.cval st ≤ 2) :
     CState.cval (CState.step st) = CState.total st / 2 := by
   have h1 := TrialAdd.bitOf_le_one st.a.head?
@@ -1695,16 +1977,19 @@ theorem CState.cval_step_eq (st : CState) (h : CState.cval st ≤ 2) :
   unfold CState.total CState.cval at *
   omega
 
+/-- Removing the head of a nonempty word strictly decreases its length. -/
 theorem length_tail_lt {l : Bits} (h : l ≠ []) : l.tail.length < l.length := by
   rw [TrialAdd.length_tail]
   cases l with
   | nil => exact absurd rfl h
   | cons x xs => simp
 
+/-- Removing a word's head does not increase its length. -/
 theorem length_tail_le (l : Bits) : l.tail.length ≤ l.length := by
   rw [TrialAdd.length_tail]
   exact Nat.sub_le _ _
 
+/-- A comparison step strictly decreases the state measure whenever the state has not halted. -/
 theorem CState.measure_step (st : CState) (h : ¬ CState.halted st) :
     (CState.step st).measure < st.measure := by
   unfold CState.halted at h
@@ -1754,16 +2039,19 @@ theorem CState.measure_step (st : CState) (h : ¬ CState.halted st) :
     have hc := CState.cval_step_le st
     omega
 
+/-- Iterate comparison steps until all input words and carry bits are exhausted. -/
 def CState.run (st : CState) : CState :=
   if CState.halted st then st else CState.run (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Count comparison-loop steps through the terminating test. -/
 def fuel (st : CState) : ℕ :=
   if CState.halted st then 1 else 1 + fuel (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Bound comparison fuel by twice the total input length plus the carry value and one. -/
 theorem fuel_le (st : CState) :
     fuel st ≤ 2 * (st.a.length + st.b.length + st.d.length + st.r.length) +
       CState.cval st + 1 := by
@@ -1779,6 +2067,8 @@ theorem fuel_le (st : CState) :
       CState.measure_step st h
     omega
 
+/-- Decompose the comparison state's value into its parity digit and twice the sum of the tail
+values and halved total. -/
 theorem CState.value_step_aux (st : CState) :
     CState.value st = CState.bit st + 2 * (binaryValue st.a.tail + binaryValue st.b.tail +
       binaryValue st.d.tail + CState.total st / 2) := by
@@ -1792,6 +2082,8 @@ theorem CState.value_step_aux (st : CState) :
     TrialAdd.bitOf st.d.head? + carryOf st.c0 st.c1) / 2 = q at hmod ⊢
   omega
 
+/-- For carry at most two, the current value is its parity digit plus twice the value after one
+comparison step. -/
 theorem CState.value_step (st : CState) (h : CState.cval st ≤ 2) :
     CState.value st = CState.bit st + 2 * CState.value (CState.step st) := by
   have hc : CState.cval (CState.step st) = CState.total st / 2 := CState.cval_step_eq st h
@@ -1800,6 +2092,8 @@ theorem CState.value_step (st : CState) (h : CState.cval st ≤ 2) :
   rw [hc]
   rfl
 
+/-- The next borrow value is the indicator that the right-hand-side head bit is smaller than the
+sum digit plus incoming borrow. -/
 theorem CState.wval_step (st : CState) :
     CState.wval (CState.step st) =
       (if TrialAdd.bitOf st.r.head? < CState.bit st + CState.wval st then 1 else 0) := by
@@ -1807,6 +2101,8 @@ theorem CState.wval_step (st : CState) :
   by_cases h : TrialAdd.bitOf st.r.head? < CState.total st % 2 + (if st.w then 1 else 0) <;>
     simp [h]
 
+/-- For carry at most two, the comparison inequality including the borrow is preserved by one
+comparison step. -/
 theorem CState.step_le_iff (st : CState) (h : CState.cval st ≤ 2) :
     CState.value st + CState.wval st ≤ binaryValue st.r ↔
       CState.value (CState.step st) + CState.wval (CState.step st) ≤
@@ -1826,6 +2122,8 @@ theorem CState.step_le_iff (st : CState) (h : CState.cval st ≤ 2) :
   · rw [if_neg hlt]
     constructor <;> intro hgoal <;> omega
 
+/-- For carry at most two, the comparison run halts and its final borrow is false exactly when
+the initial value plus borrow is at most the right-hand-side value. -/
 theorem CState.run_spec (st : CState) (h : CState.cval st ≤ 2) :
     (CState.run st).halted ∧
       ((CState.run st).w = false ↔ CState.value st + CState.wval st ≤ binaryValue st.r) := by
@@ -1850,10 +2148,13 @@ theorem CState.run_spec (st : CState) (h : CState.cval st ≤ 2) :
     rw [hspec]
     exact (CState.step_le_iff st h).symm
 
+/-- Specify the shift, comparison-loop, and output labels of the comparison machine. -/
 inductive Label | shift | step | done deriving DecidableEq, Fintype
 
 instance : Inhabited Label := ⟨.step⟩
 
+/-- Store four optional input bits, two carry bits, and a borrow flag in the comparison
+machine's finite control. -/
 structure Local where
 
   oa : Option Bool
@@ -1873,16 +2174,21 @@ deriving DecidableEq
 
 instance : Inhabited Local := ⟨⟨none, none, none, false, false, false, false⟩⟩
 
+/-- Sum the three optional addition bits and the local carry. -/
 def Local.total (v : Local) : ℕ :=
   TrialAdd.bitOf v.oa + TrialAdd.bitOf v.ob + TrialAdd.bitOf v.od + carryOf v.c0 v.c1
 
+/-- Clear the optional input bits and update the carry and borrow from their current values. -/
 def Local.next (v : Local) : Local :=
   ⟨none, none, none, none, carryBit0 (Local.total v), carryBit1 (Local.total v),
     borrowBit (TrialAdd.bitOf v.orr) (Local.total v % 2) (if v.w then 1 else 0)⟩
 
+/-- Test whether all four optional input bits are absent and the local addition total is zero. -/
 def Local.stalled (v : Local) : Bool :=
   v.oa.isNone && v.ob.isNone && v.od.isNone && v.orr.isNone && decide (Local.total v = 0)
 
+/-- Define the five-stack program that shifts the first two inputs, compares the sum of all
+three with the right-hand side, and emits the complemented borrow flag. -/
 def program : Label → TM2.Stmt (fun _ : Fin 5 => Bool) Label Local
   | .shift =>
     .push 0 (fun _ => false)
@@ -1902,51 +2208,68 @@ def program : Label → TM2.Stmt (fun _ : Fin 5 => Bool) Label Local
     .push 4 (fun v => !v.w)
       (.load (fun _ => ⟨none, none, none, false, false, false, false⟩) .halt)
 
+/-- Arrange the three addition inputs, right-hand side, and output accumulator on five stacks. -/
 def store (os a b d r : Bits) : Fin 5 → Bits :=
   fun i => if i = 0 then a else if i = 1 then b else if i = 2 then d else if i = 3 then r else os
 
+/-- Stack `0` of `store` contains `a`. -/
 @[simp] theorem store_zero (os a b d r : Bits) : store os a b d r 0 = a := by simp [store]
 
+/-- Stack `1` of `store` contains `b`. -/
 @[simp] theorem store_one (os a b d r : Bits) : store os a b d r 1 = b := by simp [store]
 
+/-- Stack `2` of `store` contains `d`. -/
 @[simp] theorem store_two (os a b d r : Bits) : store os a b d r 2 = d := by simp [store]
 
+/-- Stack `3` of `store` contains `r`. -/
 @[simp] theorem store_three (os a b d r : Bits) : store os a b d r 3 = r := by simp [store]
 
+/-- Stack `4` of `store` contains `os`. -/
 @[simp] theorem store_four (os a b d r : Bits) : store os a b d r 4 = os := by simp [store]
 
+/-- Updating stack `0` of `store` replaces its `a` word and preserves the other stack entries. -/
 theorem store_update_zero (os a b d r a' : Bits) :
     Function.update (store os a b d r) 0 a' = store os a' b d r := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `1` of `store` replaces its `b` word and preserves the other stack entries. -/
 theorem store_update_one (os a b d r b' : Bits) :
     Function.update (store os a b d r) 1 b' = store os a b' d r := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `2` of `store` replaces its `d` word and preserves the other stack entries. -/
 theorem store_update_two (os a b d r d' : Bits) :
     Function.update (store os a b d r) 2 d' = store os a b d' r := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `3` of `store` replaces its `r` word and preserves the other stack entries. -/
 theorem store_update_three (os a b d r r' : Bits) :
     Function.update (store os a b d r) 3 r' = store os a b d r' := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `4` of `store` replaces its `os` word and preserves the other stack entries. -/
 theorem store_update_four (os a b d r os' : Bits) :
     Function.update (store os a b d r) 4 os' = store os' a b d r := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Embed an abstract comparison state and an output accumulator in a machine-loop
+configuration. -/
 def cfg (st : CState) (os : Bits) : TM2.Cfg (fun _ : Fin 5 => Bool) Label Local :=
   ⟨some .step, ⟨none, none, none, none, st.c0, st.c1, st.w⟩, store os st.a st.b st.d st.r⟩
 
+/-- Build the initial shift configuration with four input words and an empty output stack. -/
 def shiftCfg (a b d r : Bits) : TM2.Cfg (fun _ : Fin 5 => Bool) Label Local :=
   ⟨some .shift, ⟨none, none, none, false, false, false, false⟩, store [] a b d r⟩
 
+/-- Use `shiftCfg` as the comparison machine's starting configuration. -/
 def startCfg (a b d r : Bits) : TM2.Cfg (fun _ : Fin 5 => Bool) Label Local :=
   shiftCfg a b d r
 
+/-- A Boolean that is not true is false. -/
 theorem bool_eq_false {b : Bool} (h : b ≠ true) : b = false := by
   cases b <;> simp_all
 
+/-- The local stalled test for a comparison state holds exactly when that state is halted. -/
 theorem stalled_iff (st : CState) :
     Local.stalled ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1, st.w⟩ = true ↔
       CState.halted st := by
@@ -1969,12 +2292,16 @@ theorem stalled_iff (st : CState) :
     simp only [ha, hb, hd, List.head?_nil, TrialAdd.bitOf, Nat.zero_add, hc0, hc1,
       carryOf, Bool.false_eq_true, if_false]
 
+/-- The shift step prefixes two zero bits to each of the first two inputs and initializes the
+comparison loop with zero carry and borrow. -/
 theorem shift_step (a b d r : Bits) :
     TM2.step program (shiftCfg a b d r) =
       some (cfg ⟨false :: false :: a, false :: false :: b, d, r, false, false, false⟩ []) := by
   simp only [TM2.step, program, shiftCfg, TM2.stepAux, cfg, store_zero, store_one,
     store_update_zero, store_update_one]
 
+/-- One comparison-machine step either enters the output phase for a halted state or implements
+`CState.step`. -/
 theorem step_cfg (st : CState) (os : Bits) :
     TM2.step program (cfg st os) =
       some (if CState.halted st then
@@ -1999,6 +2326,8 @@ theorem step_cfg (st : CState) (os : Bits) :
       store_three, hfalse, cond_false]
     rfl
 
+/-- Running the comparison loop for its fuel reaches the output label with empty input stacks
+and the flags of `CState.run`. -/
 theorem run_fuel (st : CState) (os : Bits) :
     stackRun program (fuel st) (cfg st os) =
       some ⟨some .done,
@@ -2023,6 +2352,8 @@ theorem run_fuel (st : CState) (os : Bits) :
     simp only [Option.bind_some]
     exact ih os
 
+/-- The output instruction pushes the complemented borrow flag and halts with cleared local
+state. -/
 theorem done_step (c0 c1 w : Bool) (os : Bits) :
     TM2.step program
         ⟨some .done, ⟨none, none, none, none, c0, c1, w⟩, store os [] [] [] []⟩ =
@@ -2032,20 +2363,26 @@ theorem done_step (c0 c1 w : Bool) (os : Bits) :
     simp only [program, TM2.step, TM2.stepAux, store_update_four, store_four, Bool.not_false,
       Bool.not_true]
 
+/-- Count the initial shift, comparison-loop steps, and final output instruction. -/
 def totalTicks (a b d r : Bits) : ℕ :=
   1 + (fuel ⟨false :: false :: a, false :: false :: b, d, r, false, false, false⟩ + 1)
 
+/-- One stack-machine step runs the comparison shift phase and initializes the abstract
+comparison state. -/
 theorem shift_run (a b d r : Bits) :
     stackRun program 1 (shiftCfg a b d r) =
       some (cfg ⟨false :: false :: a, false :: false :: b, d, r, false, false, false⟩ []) := by
   simp only [stackRun, shift_step, Option.bind_some]
 
+/-- One stack-machine step at the output label emits the complemented borrow flag and halts. -/
 theorem done_run (c0 c1 w : Bool) (os : Bits) :
     stackRun program 1 ⟨some .done, ⟨none, none, none, none, c0, c1, w⟩, store os [] [] [] []⟩ =
       some ⟨none, ⟨none, none, none, false, false, false, false⟩,
         store ((!w) :: os) [] [] [] []⟩ := by
   simp only [stackRun, done_step, Option.bind_some]
 
+/-- The complete comparison machine halts after `totalTicks` with a singleton output containing
+the complemented final borrow flag. -/
 theorem stackRun_start (a b d r : Bits) :
     stackRun program (totalTicks a b d r) (startCfg a b d r) =
       some ⟨none, ⟨none, none, none, false, false, false, false⟩,
@@ -2063,6 +2400,7 @@ theorem stackRun_start (a b d r : Bits) :
   simp only [Option.bind_some]
   exact hout
 
+/-- Bound the complete comparison step count by twice the total input length plus eleven. -/
 theorem fuel_start_le (a b d r : Bits) :
     totalTicks a b d r ≤ 2 * (a.length + b.length + d.length + r.length + 4) + 3 := by
   have h := fuel_le ⟨false :: false :: a, false :: false :: b, d, r, false, false, false⟩
@@ -2076,6 +2414,7 @@ theorem fuel_start_le (a b d r : Bits) :
   unfold totalTicks
   omega
 
+/-- The comparison program has `programNodes` at most four. -/
 theorem program_nodes_le : programNodes program ≤ 4 := by
   unfold programNodes
   apply Finset.sup_le
@@ -2094,11 +2433,13 @@ theorem program_nodes_le : programNodes program ≤ 4 := by
     repeat' rw [stackNodes]
     try omega
 
+/-- The comparison program has sweep factor at most 41. -/
 theorem sweep_factor_le : sweepFactor program ≤ 41 := by
   have h := program_nodes_le
   unfold sweepFactor
   nlinarith
 
+/-- The initial comparison-machine stack height is bounded by the sum of its four input lengths. -/
 theorem initial_height (a b d r : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (startCfg a b d r).stk ≤
       a.length + b.length + d.length + r.length := by
@@ -2107,6 +2448,8 @@ theorem initial_height (a b d r : Bits) :
   intro i _
   fin_cases i <;> simp <;> omega
 
+/-- Bound the comparison machine's total clock quadratically and its maximum clock and stack
+height linearly in the total input length plus four. -/
 theorem machine_bounds (a b d r : Bits) :
     stackRunClock program (totalTicks a b d r) (startCfg a b d r)
         ≤ 20000 * (a.length + b.length + d.length + r.length + 4) ^ 2 ∧
@@ -2151,6 +2494,8 @@ theorem machine_bounds (a b d r : Bits) :
     exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.runMaxHeight_le program _ _).trans
       (hmul.trans hfin)
 
+/-- The comparison machine halts at the stated step count, emits the complemented final borrow
+flag, and satisfies the displayed clock and height bounds. -/
 theorem compare_receipt (a b d r : Bits) :
     ∃ ticks, stackRun program ticks (startCfg a b d r) =
         some ⟨none, ⟨none, none, none, false, false, false, false⟩,
@@ -2166,6 +2511,8 @@ theorem compare_receipt (a b d r : Bits) :
   obtain ⟨hclock, hmax, hheight⟩ := machine_bounds a b d r
   exact ⟨totalTicks a b d r, stackRun_start a b d r, rfl, hclock, hmax, hheight⟩
 
+/-- On the binary incremental-state fields, the comparison run's complemented borrow equals the
+test that `incrBit Q s` is one. -/
 theorem machine_incrBit (Q : ℕ) (s : IncrState) :
     (!((CState.run ⟨false :: false :: s.sq.bits, false :: false :: s.lin.bits, Q.bits,
       s.rhs.bits, false, false, false⟩).w)) = decide (incrBit Q s = 1) := by
@@ -2208,45 +2555,59 @@ namespace TrialEmit
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open TrialCompare (CState fuel)
 
+/-- Emit the successive sum digits produced during the abstract comparison run. -/
 def emitT (st : CState) : Bits :=
   if CState.halted st then []
   else decide (CState.total st % 2 = 1) :: emitT (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Emit the successive bits of the first input during comparison, padding exhausted input with
+false. -/
 def emitS (st : CState) : Bits :=
   if CState.halted st then []
   else st.a.head?.getD false :: emitS (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Emit the successive bits of the second input during comparison, padding exhausted input with
+false. -/
 def emitL (st : CState) : Bits :=
   if CState.halted st then []
   else st.b.head?.getD false :: emitL (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Emit the successive bits of the third input during comparison, padding exhausted input with
+false. -/
 def emitQ (st : CState) : Bits :=
   if CState.halted st then []
   else st.d.head?.getD false :: emitQ (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Emit the successive right-hand-side bits during comparison, padding exhausted input with
+false. -/
 def emitR (st : CState) : Bits :=
   if CState.halted st then []
   else st.r.head?.getD false :: emitR (CState.step st)
 termination_by CState.measure st
 decreasing_by exact CState.measure_step st ‹¬ CState.halted st›
 
+/-- Prefix one zero bit to the emitted third input. -/
 def emitQ2 (st : CState) : Bits := false :: emitQ st
 
+/-- Prefix two zero bits to the emitted right-hand side. -/
 def emitR4 (st : CState) : Bits := false :: false :: emitR st
 
+/-- Interpreting an optional bit numerically agrees with interpreting its Boolean value after
+defaulting `none` to false. -/
 theorem bitOf_getD (o : Option Bool) : TrialAdd.bitOf o = bitNat (o.getD false) := by
   cases o with
   | none => rfl
   | some b => cases b <;> rfl
 
+/-- For carry at most two, the emitted sum digits represent the comparison state's value. -/
 theorem emitT_value (st : CState) (h : CState.cval st ≤ 2) :
     binaryValue (emitT st) = CState.value st := by
   revert h
@@ -2267,6 +2628,7 @@ theorem emitT_value (st : CState) (h : CState.cval st ≤ 2) :
     rw [hbit]
     ring
 
+/-- The emitted first-input word has the same binary value as the original first input. -/
 theorem emitS_value (st : CState) : binaryValue (emitS st) = binaryValue st.a := by
   induction st using emitS.induct with
   | case1 st hh =>
@@ -2280,6 +2642,7 @@ theorem emitS_value (st : CState) : binaryValue (emitS st) = binaryValue st.a :=
     rw [show (CState.step st).a = st.a.tail from rfl]
     omega
 
+/-- The emitted second-input word has the same binary value as the original second input. -/
 theorem emitL_value (st : CState) : binaryValue (emitL st) = binaryValue st.b := by
   induction st using emitL.induct with
   | case1 st hh =>
@@ -2293,6 +2656,7 @@ theorem emitL_value (st : CState) : binaryValue (emitL st) = binaryValue st.b :=
     rw [show (CState.step st).b = st.b.tail from rfl]
     omega
 
+/-- The emitted third-input word has the same binary value as the original third input. -/
 theorem emitQ_value (st : CState) : binaryValue (emitQ st) = binaryValue st.d := by
   induction st using emitQ.induct with
   | case1 st hh =>
@@ -2306,6 +2670,7 @@ theorem emitQ_value (st : CState) : binaryValue (emitQ st) = binaryValue st.d :=
     rw [show (CState.step st).d = st.d.tail from rfl]
     omega
 
+/-- The emitted right-hand-side word has the same binary value as the original right-hand side. -/
 theorem emitR_value (st : CState) : binaryValue (emitR st) = binaryValue st.r := by
   induction st using emitR.induct with
   | case1 st hh =>
@@ -2319,17 +2684,21 @@ theorem emitR_value (st : CState) : binaryValue (emitR st) = binaryValue st.r :=
     rw [show (CState.step st).r = st.r.tail from rfl]
     omega
 
+/-- The shifted third-input emission represents twice the third input's value. -/
 theorem emitQ2_value (st : CState) : binaryValue (emitQ2 st) = 2 * binaryValue st.d := by
   unfold emitQ2
   rw [binaryValue_cons', emitQ_value]
   simp [bitNat]
 
+/-- The shifted right-hand-side emission represents four times the right-hand side's value. -/
 theorem emitR4_value (st : CState) : binaryValue (emitR4 st) = 4 * binaryValue st.r := by
   unfold emitR4
   rw [binaryValue_cons', binaryValue_cons', emitR_value]
   simp [bitNat]
   ring
 
+/-- Store eight output words for the endpoint, emitted sum, copied inputs, shifted copies, and
+comparison result. -/
 structure Out where
 
   aa : Bits
@@ -2348,6 +2717,7 @@ structure Out where
 
   cmp : Bits
 
+/-- Arrange the five main words and seven auxiliary output words on twelve stacks. -/
 def store (sq lin q rhs aa t s l q2 r qc cm : Bits) : Fin 12 → Bits :=
   fun i =>
     if i = 0 then sq else if i = 1 then lin else if i = 2 then q else
@@ -2355,117 +2725,149 @@ def store (sq lin q rhs aa t s l q2 r qc cm : Bits) : Fin 12 → Bits :=
     if i = 6 then s else if i = 7 then l else if i = 8 then q2 else
     if i = 9 then r else if i = 10 then qc else cm
 
+/-- Stack `0` of `store` contains `sq`. -/
 @[simp] theorem store_zero (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 0 = sq := by simp [store]
 
+/-- Stack `1` of `store` contains `lin`. -/
 @[simp] theorem store_one (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 1 = lin := by simp [store]
 
+/-- Stack `2` of `store` contains `q`. -/
 @[simp] theorem store_two (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 2 = q := by simp [store]
 
+/-- Stack `3` of `store` contains `rhs`. -/
 @[simp] theorem store_three (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 3 = rhs := by simp [store]
 
+/-- Stack `4` of `store` contains `aa`. -/
 @[simp] theorem store_four (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 4 = aa := by simp [store]
 
+/-- Stack `5` of `store` contains `t`. -/
 @[simp] theorem store_five (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 5 = t := by simp [store]
 
+/-- Stack `6` of `store` contains `s`. -/
 @[simp] theorem store_six (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 6 = s := by simp [store]
 
+/-- Stack `7` of `store` contains `l`. -/
 @[simp] theorem store_seven (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 7 = l := by simp [store]
 
+/-- Stack `8` of `store` contains `q2`. -/
 @[simp] theorem store_eight (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 8 = q2 := by simp [store]
 
+/-- Stack `9` of `store` contains `r`. -/
 @[simp] theorem store_nine (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 9 = r := by simp [store]
 
+/-- Stack `10` of `store` contains `qc`. -/
 @[simp] theorem store_ten (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 10 = qc := by simp [store]
 
+/-- Stack `11` of `store` contains `cm`. -/
 @[simp] theorem store_eleven (sq lin q rhs aa t s l q2 r qc cm : Bits) :
     store sq lin q rhs aa t s l q2 r qc cm 11 = cm := by simp [store]
 
+/-- Updating stack `0` of `store` replaces its `sq` word and preserves the other stack entries. -/
 theorem store_update_zero (sq lin q rhs aa t s l q2 r qc cm sq' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 0 sq' =
       store sq' lin q rhs aa t s l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `1` of `store` replaces its `lin` word and preserves the other stack entries. -/
 theorem store_update_one (sq lin q rhs aa t s l q2 r qc cm lin' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 1 lin' =
       store sq lin' q rhs aa t s l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `2` of `store` replaces its `q` word and preserves the other stack entries. -/
 theorem store_update_two (sq lin q rhs aa t s l q2 r qc cm q' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 2 q' =
       store sq lin q' rhs aa t s l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `3` of `store` replaces its `rhs` word and preserves the other stack entries. -/
 theorem store_update_three (sq lin q rhs aa t s l q2 r qc cm rhs' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 3 rhs' =
       store sq lin q rhs' aa t s l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `4` of `store` replaces its `aa` word and preserves the other stack entries. -/
 theorem store_update_four (sq lin q rhs aa t s l q2 r qc cm aa' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 4 aa' =
       store sq lin q rhs aa' t s l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `5` of `store` replaces its `t` word and preserves the other stack entries. -/
 theorem store_update_five (sq lin q rhs aa t s l q2 r qc cm t' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 5 t' =
       store sq lin q rhs aa t' s l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `6` of `store` replaces its `s` word and preserves the other stack entries. -/
 theorem store_update_six (sq lin q rhs aa t s l q2 r qc cm s' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 6 s' =
       store sq lin q rhs aa t s' l q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `7` of `store` replaces its `l` word and preserves the other stack entries. -/
 theorem store_update_seven (sq lin q rhs aa t s l q2 r qc cm l' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 7 l' =
       store sq lin q rhs aa t s l' q2 r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `8` of `store` replaces its `q2` word and preserves the other stack entries. -/
 theorem store_update_eight (sq lin q rhs aa t s l q2 r qc cm q2' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 8 q2' =
       store sq lin q rhs aa t s l q2' r qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `9` of `store` replaces its `r` word and preserves the other stack entries. -/
 theorem store_update_nine (sq lin q rhs aa t s l q2 r qc cm r' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 9 r' =
       store sq lin q rhs aa t s l q2 r' qc cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `10` of `store` replaces its `qc` word and preserves the other stack entries. -/
 theorem store_update_ten (sq lin q rhs aa t s l q2 r qc cm qc' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 10 qc' =
       store sq lin q rhs aa t s l q2 r qc' cm := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `11` of `store` replaces its `cm` word and preserves the other stack entries. -/
 theorem store_update_eleven (sq lin q rhs aa t s l q2 r qc cm cm' : Bits) :
     Function.update (store sq lin q rhs aa t s l q2 r qc cm) 11 cm' =
       store sq lin q rhs aa t s l q2 r qc cm' := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Prepend the reversed comparison emissions to the corresponding output accumulators while
+preserving the endpoint and comparison words. -/
 def apply (st : CState) (o : Out) : Out :=
   ⟨o.aa, (emitT st).reverse ++ o.t, (emitS st).reverse ++ o.s, (emitL st).reverse ++ o.l,
     (emitQ st).reverse ++ o.q2, (emitR st).reverse ++ o.r, (emitQ st).reverse ++ o.qc,
     o.cmp⟩
 
+/-- Prepend one round of sum and input bits to the output accumulators, preserving the endpoint
+and comparison words. -/
 def stepOut (st : CState) (o : Out) : Out :=
   ⟨o.aa, decide (CState.total st % 2 = 1) :: o.t,
     st.a.head?.getD false :: o.s, st.b.head?.getD false :: o.l,
     st.d.head?.getD false :: o.q2, st.r.head?.getD false :: o.r,
     st.d.head?.getD false :: o.qc, o.cmp⟩
 
+/-- Specify the shift, comparison-and-emission, and final-output labels of the twelve-stack
+emission machine. -/
 inductive Label | shift | step | done deriving DecidableEq, Fintype
 
 instance : Inhabited Label := ⟨.step⟩
 
+/-- Define the twelve-stack program that shifts inputs, runs comparison while emitting copies
+and sum bits, and records the complemented borrow flag. -/
 def program : Label → TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local
   | .shift =>
     .push 0 (fun _ => false) (.push 0 (fun _ => false)
@@ -2491,19 +2893,29 @@ def program : Label → TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.
       (.push 11 (fun v => !v.w)
         (.load (fun _ => ⟨none, none, none, none, false, false, false⟩) .halt))
 
+/-- Embed a comparison state and its output accumulators in an emission-loop machine
+configuration. -/
 def cfg (st : CState) (o : Out) : TM2.Cfg (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   ⟨some .step, ⟨none, none, none, none, st.c0, st.c1, st.w⟩,
     store st.a st.b st.d st.r o.aa o.t o.s o.l o.q2 o.r o.qc o.cmp⟩
 
+/-- Build the initial emission-machine configuration from five main words and empty auxiliary
+stacks. -/
 def startCfg (sq lin q rhs aa : Bits) : TM2.Cfg (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   ⟨some .shift, ⟨none, none, none, none, false, false, false⟩,
     store sq lin q rhs aa [] [] [] [] [] [] []⟩
 
+/-- Initialize a comparison state by shifting the square word by two bits and the doubled-linear
+word by one bit, with zero carry and borrow. -/
 def st0 (sq lin2 q rhs : Bits) : CState :=
   ⟨false :: false :: sq, false :: lin2, q, rhs, false, false, false⟩
 
+/-- Initialize the output accumulators with the endpoint word and zero-bit prefixes for the
+shifted third input and right-hand side. -/
 def o0 (aa : Bits) : Out := ⟨aa, [], [], [], [false], [false, false], [], []⟩
 
+/-- The emission machine's initial shift step produces the configuration built from `st0` and
+`o0`. -/
 theorem shift_step (sq lin q rhs aa : Bits) :
     TM2.step program (startCfg sq lin q rhs aa) =
       some (cfg (st0 sq lin q rhs) (o0 aa)) := by
@@ -2511,6 +2923,8 @@ theorem shift_step (sq lin q rhs aa : Bits) :
     store_update_one, store_update_eight, store_update_nine, store_zero, store_one,
     store_eight, store_nine]
 
+/-- One emission-machine step either enters the final-output phase or implements a comparison
+step together with `stepOut`. -/
 theorem step_cfg (st : CState) (o : Out) :
     TM2.step program (cfg st o) =
       some (if CState.halted st then
@@ -2541,6 +2955,8 @@ theorem step_cfg (st : CState) (o : Out) :
       Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.total, CState.total, CState.step]
     rfl
 
+/-- The final-output instruction prepends the complemented borrow to the endpoint and comparison
+words, then halts with cleared local state. -/
 theorem done_step (c0 c1 w : Bool) (o : Out) :
     TM2.step program
         ⟨some .done, ⟨none, none, none, none, c0, c1, w⟩,
@@ -2551,6 +2967,8 @@ theorem done_step (c0 c1 w : Bool) (o : Out) :
     simp only [program, TM2.step, TM2.stepAux, store_update_four, store_update_eleven,
       store_four, store_eleven, Bool.not_false, Bool.not_true]
 
+/-- For a comparison state that has not halted, the complete accumulated output is unchanged by
+advancing the state and output accumulators together. -/
 theorem apply_step (st : CState) (o : Out) (h : ¬ CState.halted st) :
     apply st o = apply (CState.step st) (stepOut st o) := by
   unfold apply stepOut
@@ -2558,12 +2976,15 @@ theorem apply_step (st : CState) (o : Out) (h : ¬ CState.halted st) :
     emitQ.eq_def, if_neg h, emitR.eq_def, if_neg h]
   simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- A halted comparison state contributes no further emissions to the output accumulators. -/
 theorem apply_halted (st : CState) (o : Out) (h : CState.halted st) : apply st o = o := by
   unfold apply
   rw [emitT.eq_def, if_pos h, emitS.eq_def, if_pos h, emitL.eq_def, if_pos h,
     emitQ.eq_def, if_pos h, emitR.eq_def, if_pos h]
   simp only [List.reverse_nil, List.nil_append]
 
+/-- For carry at most two, running the emission loop for its comparison fuel reaches the
+final-output label with the accumulators computed by `apply`. -/
 theorem run_fuel (st : CState) (o : Out) (hc : CState.cval st ≤ 2) :
     stackRun program (fuel st) (cfg st o) =
       some ⟨some .done,
@@ -2591,24 +3012,32 @@ theorem run_fuel (st : CState) (o : Out) (hc : CState.cval st ≤ 2) :
     simp only [Option.bind_some]
     exact ih (stepOut st o) (CState.cval_step_le_two st)
 
+/-- Count the initial shift, comparison-and-emission steps, and final output step. -/
 def totalTicks (sq lin q rhs : Bits) : ℕ :=
   1 + (fuel (st0 sq lin q rhs) + 1)
 
+/-- One stack-machine step initializes the emission loop with `st0` and `o0`. -/
 theorem shift_run (sq lin q rhs aa : Bits) :
     stackRun program 1 (startCfg sq lin q rhs aa) =
       some (cfg (st0 sq lin q rhs) (o0 aa)) := by
   simp only [stackRun, shift_step, Option.bind_some]
 
+/-- Prepend the complemented final borrow flag to the endpoint and comparison output words. -/
 def doneOut (st : CState) (o : Out) : Out :=
   ⟨(!st.w) :: o.aa, o.t, o.s, o.l, o.q2, o.r, o.qc, (!st.w) :: o.cmp⟩
 
+/-- Compute the emission machine's final output words by applying all emissions and then
+recording the final comparison bit. -/
 def runOut (sq lin q rhs aa : Bits) : Out :=
   doneOut (CState.run (st0 sq lin q rhs)) (apply (st0 sq lin q rhs) (o0 aa))
 
+/-- The initial comparison state used by the emission machine has carry value at most two. -/
 theorem start_halted_holds (sq lin q rhs : Bits) :
     CState.cval (st0 sq lin q rhs) ≤ 2 := by
   simp [st0, CState.cval, TrialCompare.carryOf]
 
+/-- The emission loop from `st0` reaches the final-output label with empty input stacks and the
+accumulators computed by `apply`. -/
 theorem run_fuel_halted (sq lin q rhs : Bits) (o : Out) :
     stackRun program (fuel (st0 sq lin q rhs)) (cfg (st0 sq lin q rhs) o) =
       some ⟨some .done,
@@ -2624,6 +3053,8 @@ theorem run_fuel_halted (sq lin q rhs : Bits) (o : Out) :
     (CState.run_spec (st0 sq lin q rhs) (start_halted_holds sq lin q rhs)).1
   rw [h, ha, hb, hd, hr]
 
+/-- The emission machine halts after `totalTicks` with its eight output words given by `runOut`
+and empty input stacks. -/
 theorem stackRun_start (sq lin q rhs aa : Bits) :
     stackRun program (totalTicks sq lin q rhs) (startCfg sq lin q rhs aa) =
       some ⟨none, ⟨none, none, none, none, false, false, false⟩,
@@ -2641,6 +3072,8 @@ theorem stackRun_start (sq lin q rhs aa : Bits) :
   simp only [Option.bind_some]
   exact hdone
 
+/-- Bound the emission machine's full step count by twice the sum of its four arithmetic input
+lengths plus eleven. -/
 theorem fuel_start_le (sq lin q rhs : Bits) :
     totalTicks sq lin q rhs ≤ 2 * (sq.length + lin.length + q.length + rhs.length + 4) + 3 := by
   have h := TrialCompare.fuel_le (st0 sq lin q rhs)
@@ -2655,6 +3088,7 @@ theorem fuel_start_le (sq lin q rhs : Bits) :
   simp only [TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add] at h
   omega
 
+/-- The emission program has `programNodes` at most ten. -/
 theorem program_nodes_le : programNodes program ≤ 10 := by
   unfold programNodes
   apply Finset.sup_le
@@ -2673,11 +3107,14 @@ theorem program_nodes_le : programNodes program ≤ 10 := by
     repeat' rw [stackNodes]
     omega
 
+/-- The emission program has sweep factor at most 221. -/
 theorem sweep_factor_le : sweepFactor program ≤ 221 := by
   have h := program_nodes_le
   unfold sweepFactor
   nlinarith
 
+/-- The initial emission-machine stack height is bounded by the sum of its five main input
+lengths. -/
 theorem initial_height (sq lin q rhs aa : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (startCfg sq lin q rhs aa).stk ≤
       sq.length + lin.length + q.length + rhs.length + aa.length := by
@@ -2686,6 +3123,8 @@ theorem initial_height (sq lin q rhs aa : Bits) :
   intro i _
   fin_cases i <;> simp <;> omega
 
+/-- Bound the emission machine's total clock quadratically and its maximum clock and stack
+height linearly in the total main-input length plus four. -/
 theorem machine_bounds (sq lin q rhs aa : Bits) :
     stackRunClock program (totalTicks sq lin q rhs) (startCfg sq lin q rhs aa)
         ≤ 20000 * (sq.length + lin.length + q.length + rhs.length + aa.length + 4) ^ 2 ∧
@@ -2734,6 +3173,8 @@ theorem machine_bounds (sq lin q rhs aa : Bits) :
     exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.runMaxHeight_le program _ _).trans
       (hmul.trans hfin)
 
+/-- Store the endpoint, square accumulator, doubled linear accumulator, and threshold for the
+machine-oriented incremental bisection update. -/
 structure MState where
 
   a : ℕ
@@ -2745,33 +3186,48 @@ structure MState where
   rhs : ℕ
 deriving DecidableEq, Repr
 
+/-- Compute the machine-oriented trial value `4 * s.sq + 2 * s.lin2 + Q`. -/
 def mTrial (Q : ℕ) (s : MState) : ℕ := 4 * s.sq + 2 * s.lin2 + Q
 
+/-- Return one when the machine-oriented trial value is at most the stored threshold, and zero
+otherwise. -/
 def mBit (Q : ℕ) (s : MState) : ℕ := if mTrial Q s ≤ s.rhs then 1 else 0
 
+/-- Update the endpoint, square, and doubled linear accumulators according to `mBit`, and
+multiply the threshold by four. -/
 def mStep (Q : ℕ) (s : MState) : MState :=
   if mBit Q s = 1 then
     { a := 2 * s.a + 1, sq := mTrial Q s, lin2 := 2 * s.lin2 + 2 * Q, rhs := 4 * s.rhs }
   else
     { a := 2 * s.a, sq := 4 * s.sq, lin2 := 2 * s.lin2, rhs := 4 * s.rhs }
 
+/-- Initialize the machine-oriented incremental state with zero endpoint and accumulators and
+threshold `4 * P`. -/
 def mInit (P : ℕ) : MState := ⟨0, 0, 0, 4 * P⟩
 
+/-- Iterate the machine-oriented incremental update a specified number of times. -/
 def mIterate (Q : ℕ) : ℕ → MState → MState
   | 0, s => s
   | n + 1, s => mStep Q (mIterate Q n s)
 
+/-- The machine-oriented decision bit equals one exactly when its trial value is at most the
+threshold. -/
 theorem mBit_eq_one_iff (Q : ℕ) (s : MState) : mBit Q s = 1 ↔ mTrial Q s ≤ s.rhs := by
   unfold mBit
   split_ifs <;> simp_all
 
+/-- The machine-oriented decision bit differs from one exactly when its trial value exceeds the
+threshold. -/
 theorem mBit_ne_one_iff (Q : ℕ) (s : MState) : mBit Q s ≠ 1 ↔ ¬ mTrial Q s ≤ s.rhs := by
   rw [ne_eq, mBit_eq_one_iff]
 
+/-- Prefixing one zero bit doubles the binary value of a word. -/
 theorem shift_one_value (x : Bits) : binaryValue (false :: x) = 2 * binaryValue x := by
   rw [binaryValue_cons']
   simp [bitNat]
 
+/-- The value of `st0` is four times the square-word value plus twice the doubled-linear-word
+value plus the third input value. -/
 theorem st0_value (sq lin2 q rhs : Bits) :
     CState.value (st0 sq lin2 q rhs) =
       4 * binaryValue sq + 2 * binaryValue lin2 + binaryValue q := by
@@ -2780,39 +3236,47 @@ theorem st0_value (sq lin2 q rhs : Bits) :
   simp only [Bool.false_eq_true, if_false, Nat.zero_add]
   ring
 
+/-- The sum emitted from `st0` represents four times the square-word value plus twice the
+doubled-linear-word value plus the third input value. -/
 theorem emitT_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitT (st0 sq lin2 q rhs)) =
       4 * binaryValue sq + 2 * binaryValue lin2 + binaryValue q := by
   rw [emitT_value _ (start_halted_holds sq lin2 q rhs), st0_value]
 
+/-- The first input emitted from `st0` represents four times the square-word value. -/
 theorem emitS_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitS (st0 sq lin2 q rhs)) = 4 * binaryValue sq := by
   rw [emitS_value]
   show binaryValue (false :: false :: sq) = 4 * binaryValue sq
   exact TrialAdd.shift_value sq
 
+/-- The second input emitted from `st0` represents twice the doubled-linear-word value. -/
 theorem emitL_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitL (st0 sq lin2 q rhs)) = 2 * binaryValue lin2 := by
   rw [emitL_value]
   show binaryValue (false :: lin2) = 2 * binaryValue lin2
   exact shift_one_value lin2
 
+/-- The third input emitted from `st0` preserves the value of `q`. -/
 theorem emitQ_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitQ (st0 sq lin2 q rhs)) = binaryValue q := by
   rw [emitQ_value]
   rfl
 
+/-- The shifted third input emitted from `st0` represents twice the value of `q`. -/
 theorem emitQ2_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitQ2 (st0 sq lin2 q rhs)) = 2 * binaryValue q := by
   unfold emitQ2
   rw [binaryValue_cons', emitQ_st0]
   simp [bitNat]
 
+/-- The right-hand side emitted from `st0` preserves the value of `rhs`. -/
 theorem emitR_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitR (st0 sq lin2 q rhs)) = binaryValue rhs := by
   rw [emitR_value]
   rfl
 
+/-- The shifted right-hand side emitted from `st0` represents four times the value of `rhs`. -/
 theorem emitR4_st0 (sq lin2 q rhs : Bits) :
     binaryValue (emitR4 (st0 sq lin2 q rhs)) = 4 * binaryValue rhs := by
   unfold emitR4
@@ -2820,6 +3284,8 @@ theorem emitR4_st0 (sq lin2 q rhs : Bits) :
   simp [bitNat]
   ring
 
+/-- On the binary fields of an `MState`, the comparison run's complemented borrow equals the
+test that `mBit Q s` is one. -/
 theorem machine_mBit (Q : ℕ) (s : MState) :
     (!((CState.run (st0 s.sq.bits s.lin2.bits Q.bits s.rhs.bits)).w)) =
       decide (mBit Q s = 1) := by
@@ -2848,25 +3314,34 @@ theorem machine_mBit (Q : ℕ) (s : MState) :
         exact absurd (by have := hspec.2.mp hf; rwa [hval, hrval, hw0] at this) hle
     simp [h, hw]
 
+/-- The updated square field is the trial value when the decision bit is one and four times the
+previous square field otherwise. -/
 theorem mStep_sq (Q : ℕ) (s : MState) :
     (mStep Q s).sq = if mBit Q s = 1 then mTrial Q s else 4 * s.sq := by
   unfold mStep
   by_cases h : mBit Q s = 1 <;> simp [h]
 
+/-- The updated doubled-linear field is twice its previous value, with an additional `2 * Q`
+exactly when the decision bit is one. -/
 theorem mStep_lin2 (Q : ℕ) (s : MState) :
     (mStep Q s).lin2 = if mBit Q s = 1 then 2 * s.lin2 + 2 * Q else 2 * s.lin2 := by
   unfold mStep
   by_cases h : mBit Q s = 1 <;> simp [h]
 
+/-- The machine-oriented update multiplies the threshold field by four. -/
 theorem mStep_rhs_field (Q : ℕ) (s : MState) : (mStep Q s).rhs = 4 * s.rhs := by
   unfold mStep
   by_cases h : mBit Q s = 1 <;> simp [h]
 
+/-- The updated endpoint is twice the previous endpoint plus the indicator that the decision bit
+is one. -/
 theorem mStep_a_field (Q : ℕ) (s : MState) :
     (mStep Q s).a = 2 * s.a + (if mBit Q s = 1 then 1 else 0) := by
   unfold mStep
   by_cases h : mBit Q s = 1 <;> simp [h]
 
+/-- The emitted arithmetic words and the decision bit represent all four fields of `mStep`,
+using the stated conditional selection and addition for the accumulators. -/
 theorem machine_mStep (Q : ℕ) (s : MState) :
     (if (decide (mBit Q s = 1)) then
         binaryValue (emitT (st0 s.sq.bits s.lin2.bits Q.bits s.rhs.bits))
@@ -2892,12 +3367,16 @@ theorem machine_mStep (Q : ℕ) (s : MState) :
   · simp [h, mTrial, bitNat, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
   · simp [h, bitNat, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
 
+/-- Under the square and doubled-linear accumulator invariants, `mTrial Q s` equals `(2 * s.a +
+1) ^ 2 * Q`. -/
 theorem mTrial_eq (Q : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
     (hlin : s.lin2 = 2 * (s.a * Q)) : mTrial Q s = (2 * s.a + 1) ^ 2 * Q := by
   unfold mTrial
   rw [hsq, hlin]
   ring
 
+/-- Under the accumulator and threshold invariants, the endpoint field of `mStep` agrees with
+`intStep`. -/
 theorem mStep_a (P Q j : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
     (hlin : s.lin2 = 2 * (s.a * Q)) (hrhs : s.rhs = 2 ^ (2 * (j + 1)) * P) :
     (mStep Q s).a = intStep P Q j s.a := by
@@ -2913,6 +3392,7 @@ theorem mStep_a (P Q j : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
       rwa [mTrial_eq Q s hsq hlin, hrhs] at hc
     simp only [if_neg h, if_neg hcond, Nat.add_zero]
 
+/-- The machine-oriented update preserves the square and doubled-linear accumulator invariants. -/
 theorem mStep_invariant (Q : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
     (hlin : s.lin2 = 2 * (s.a * Q)) :
     (mStep Q s).sq = (mStep Q s).a ^ 2 * Q ∧
@@ -2927,6 +3407,8 @@ theorem mStep_invariant (Q : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
     rw [hsq, hlin]
     constructor <;> ring
 
+/-- The machine-oriented update advances the scaled threshold from level `j + 1` to level `j +
+2`. -/
 theorem mStep_rhs (P Q j : ℕ) (s : MState) (hrhs : s.rhs = 2 ^ (2 * (j + 1)) * P) :
     (mStep Q s).rhs = 2 ^ (2 * ((j + 1) + 1)) * P := by
   have h4 : (2 : ℕ) ^ (2 * ((j + 1) + 1)) = 4 * 2 ^ (2 * (j + 1)) := by
@@ -2938,6 +3420,8 @@ theorem mStep_rhs (P Q j : ℕ) (s : MState) (hrhs : s.rhs = 2 ^ (2 * (j + 1)) *
   rw [hfield, hrhs, h4]
   ring
 
+/-- Under the initial accumulator and threshold invariants, machine-oriented iteration agrees
+with `intBisectFrom` and preserves all accumulator formulas at the resulting level. -/
 theorem mIterate_spec (P Q j : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
     (hlin : s.lin2 = 2 * (s.a * Q)) (hrhs : s.rhs = 2 ^ (2 * (j + 1)) * P) :
     ∀ n : ℕ,
@@ -2964,6 +3448,7 @@ theorem mIterate_spec (P Q j : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
         rw [hstep_rhs]
         congr 1
 
+/-- Machine-oriented iteration from `mInit P` computes the endpoint `intBisect P Q k`. -/
 theorem mIterate_intBisect (P Q k : ℕ) :
     (mIterate Q k (mInit P)).a = intBisect P Q k := by
   have hsq : (mInit P).sq = (mInit P).a ^ 2 * Q := by simp [mInit]
@@ -2973,6 +3458,8 @@ theorem mIterate_intBisect (P Q k : ℕ) :
   have h := mIterate_spec P Q 0 (mInit P) hsq hlin hrhs k
   simpa [intBisect] using! h.1
 
+/-- Collect termination and output of the emission machine, correctness of its comparison bit,
+the endpoint update formula, and agreement of iteration with integer bisection. -/
 theorem frontier5 :
     (∀ (sq lin q rhs aa : Bits),
       stackRun program (totalTicks sq lin q rhs) (startCfg sq lin q rhs aa) =
@@ -2995,12 +3482,16 @@ namespace TrialCopy
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- Use one optional Boolean as the copy machine's local state. -/
 abbrev Local := Option Bool
 
+/-- Specify the copying and terminal labels of the two-stack copy machine. -/
 inductive Label | copy | done deriving DecidableEq, Fintype
 
 instance : Inhabited Label := ⟨.copy⟩
 
+/-- Define the two-stack program that pops each source bit onto the destination stack and then
+halts. -/
 def program : Label → TM2.Stmt (fun _ : Fin 2 => Bool) Label Local
   | .copy =>
     .pop 0 (fun _ b => b)
@@ -3008,26 +3499,36 @@ def program : Label → TM2.Stmt (fun _ : Fin 2 => Bool) Label Local
         (.push 1 (fun v => v.getD false) (.load (fun _ => none) (.goto (fun _ => .copy)))))
   | .done => .halt
 
+/-- Place the source word on stack zero and the destination word on stack one. -/
 def store (src dst : Bits) : Fin 2 → Bits
   | i => if i = 0 then src else dst
 
+/-- Stack `0` of `store` contains `src`. -/
 @[simp] theorem store_zero (src dst : Bits) : store src dst 0 = src := by simp [store]
 
+/-- Stack `1` of `store` contains `dst`. -/
 @[simp] theorem store_one (src dst : Bits) : store src dst 1 = dst := by simp [store]
 
+/-- Updating stack `0` of `store` replaces its `src` word and preserves the other stack entries. -/
 theorem store_update_zero (src dst src' : Bits) :
     Function.update (store src dst) 0 src' = store src' dst := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Updating stack `1` of `store` replaces its `dst` word and preserves the other stack entries. -/
 theorem store_update_one (src dst dst' : Bits) :
     Function.update (store src dst) 1 dst' = store src dst' := by
   funext i; fin_cases i <;> simp [store]
 
+/-- Build a copy-loop configuration with the given source and destination words and empty local
+state. -/
 def cfg (src dst : Bits) : TM2.Cfg (fun _ : Fin 2 => Bool) Label Local :=
   ⟨some .copy, none, store src dst⟩
 
+/-- Use the copy-loop configuration as the copying machine's initial configuration. -/
 def startCfg (src dst : Bits) : TM2.Cfg (fun _ : Fin 2 => Bool) Label Local := cfg src dst
 
+/-- A copy step moves the source head to the destination head and continues copying the
+remaining source. -/
 theorem step_cfg (b : Bool) (bs dst : Bits) :
     TM2.step program (cfg (b :: bs) dst) =
       some (cfg bs (b :: dst)) := by
@@ -3035,17 +3536,21 @@ theorem step_cfg (b : Bool) (bs dst : Bits) :
     store_zero, store_one, List.head?_cons, List.tail_cons, Option.isNone, Option.getD_some,
     cond_false]
 
+/-- An empty source makes the copy loop enter its terminal label with unchanged destination. -/
 theorem step_cfg_nil (dst : Bits) :
     TM2.step program (cfg [] dst) =
       some ⟨some .done, none, store [] dst⟩ := by
   simp only [TM2.step, program, cfg, TM2.stepAux, store_update_zero, store_zero,
     List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- The copy machine halts from its terminal label without changing the stacks. -/
 theorem step_cfg_done (dst : Bits) :
     TM2.step program ⟨some .done, none, store [] dst⟩ =
       some ⟨none, none, store [] dst⟩ := by
   simp only [TM2.step, program, TM2.stepAux]
 
+/-- After `src.length + 2` steps, the copy machine halts with empty source and `src.reverse ++
+dst` as destination. -/
 theorem run_fuel (src dst : Bits) :
     stackRun program (src.length + 2) (cfg src dst) =
       some ⟨none, none, store [] (src.reverse ++ dst)⟩ := by
@@ -3063,6 +3568,7 @@ theorem run_fuel (src dst : Bits) :
       rw [ih (b :: dst)]
       simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- The copy program has `programNodes` at most two. -/
 theorem program_nodes_le : programNodes program ≤ 2 := by
   unfold programNodes
   apply Finset.sup_le
@@ -3071,11 +3577,14 @@ theorem program_nodes_le : programNodes program ≤ 2 := by
   | copy => simp [program, stackNodes]
   | done => simp only [program, stackNodes]; omega
 
+/-- The copy program has sweep factor at most 13. -/
 theorem sweep_factor_le : sweepFactor program ≤ 13 := by
   have h := program_nodes_le
   unfold sweepFactor
   nlinarith
 
+/-- The initial copying stack height is bounded by the maximum of the source and destination
+lengths. -/
 theorem initial_height (src dst : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (startCfg src dst).stk ≤
       max src.length dst.length := by
@@ -3084,6 +3593,8 @@ theorem initial_height (src dst : Bits) :
   intro i _
   fin_cases i <;> simp
 
+/-- Bound the copying machine's total clock quadratically and its maximum clock and stack height
+linearly in the sum of the input lengths plus two. -/
 theorem machine_bounds (src dst : Bits) :
     stackRunClock program (src.length + 2) (startCfg src dst)
         ≤ 3000 * (src.length + dst.length + 2) ^ 2 ∧
@@ -3131,15 +3642,21 @@ theorem machine_bounds (src dst : Bits) :
     exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.runMaxHeight_le program _ _).trans
       (hmul.trans hfin)
 
+/-- Reversing the result of copying reverses the old destination and appends the original
+source. -/
 theorem copy_stack (src dst : Bits) :
     (src.reverse ++ dst).reverse = dst.reverse ++ src := by
   rw [List.reverse_append, List.reverse_reverse]
 
+/-- Copying into an empty destination and reversing the result preserves the source's binary
+value. -/
 theorem copy_value (src : Bits) :
     binaryValue ((src.reverse ++ []).reverse) = binaryValue src := by
   rw [copy_stack]
   simp
 
+/-- The copy machine halts with the reversed source prepended to the destination and satisfies
+the displayed total-clock, maximum-clock, and height bounds. -/
 theorem copy_receipt (src dst : Bits) :
     stackRun program (src.length + 2) (startCfg src dst) =
         some ⟨none, none, store [] (src.reverse ++ dst)⟩ ∧
@@ -3160,9 +3677,12 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
 open TrialCompare (CState fuel)
 
+/-- Provide a local comparison state with all optional bits absent and all carry and borrow
+flags false. -/
 abbrev resetLocal :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local := ⟨none, none, none, none, false, false, false⟩
 
+/-- Clear all optional input bits and carry flags while preserving the borrow flag. -/
 def clearBits (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   { v with
     oa := none
@@ -3172,6 +3692,8 @@ def clearBits (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumeric
     c0 := false
     c1 := false }
 
+/-- Specify the initialization, emission, copying, conditional-addition, and final-shift labels
+of the arithmetic-round program. -/
 inductive Label
 
   | init
@@ -3209,6 +3731,8 @@ inductive Label
 
 instance : Inhabited Label := ⟨.step⟩
 
+/-- Store seven output accumulators containing two linear copies, the square copy, shifted
+parameter and threshold words, and two parameter copies. -/
 structure Out where
   lA : Bits
   s : Bits
@@ -3218,30 +3742,40 @@ structure Out where
   qA : Bits
   qB : Bits
 
+/-- Prepend reversed comparison emissions to the seven arithmetic-round output accumulators. -/
 def apply (st : CState) (o : Out) : Out :=
   ⟨(TrialEmit.emitL st).reverse ++ o.lA, (TrialEmit.emitS st).reverse ++ o.s,
     (TrialEmit.emitL st).reverse ++ o.lB, (TrialEmit.emitQ st).reverse ++ o.q2,
     (TrialEmit.emitR st).reverse ++ o.r4, (TrialEmit.emitQ st).reverse ++ o.qA,
     (TrialEmit.emitQ st).reverse ++ o.qB⟩
 
+/-- Prepend the current comparison input bits to the corresponding seven arithmetic-round output
+accumulators. -/
 def stepOut (st : CState) (o : Out) : Out :=
   ⟨st.b.head?.getD false :: o.lA, st.a.head?.getD false :: o.s,
     st.b.head?.getD false :: o.lB, st.d.head?.getD false :: o.q2,
     st.r.head?.getD false :: o.r4, st.d.head?.getD false :: o.qA,
     st.d.head?.getD false :: o.qB⟩
 
+/-- Build an instruction that moves one source bit onto a destination stack, repeating at `self`
+or advancing to `next` when the source is empty. -/
 def copyStmt (self next : Label) (src dst : Fin 12) :
     TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   .pop src (fun v b => { v with oa := b })
     (.branch (fun v => v.oa.isNone) (.goto (fun _ => next))
       (.push dst (fun v => v.oa.getD false) (.goto (fun _ => self))))
 
+/-- Sum the first local input bit and carry, including the second and third input bits only when
+the borrow flag is false. -/
 def sum3 (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) : ℕ :=
   TrialAdd.bitOf v.oa + (if !v.w then TrialAdd.bitOf v.ob else 0) +
     (if !v.w then TrialAdd.bitOf v.od else 0) + TrialCompare.carryOf v.c0 v.c1
 
+/-- Return the parity bit of the conditional local sum. -/
 def sumBit (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) : Bool := decide (sum3 v % 2 = 1)
 
+/-- Clear the three addition input bits and update the carry bits from the conditional sum,
+preserving the other local fields. -/
 def sumNext (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   { v with
     oa := none
@@ -3250,6 +3784,8 @@ def sumNext (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPr
     c0 := TrialCompare.carryBit0 (sum3 v)
     c1 := TrialCompare.carryBit1 (sum3 v) }
 
+/-- Emit one set of copied input bits onto the seven auxiliary stacks, update comparison
+control, and return to the comparison loop. -/
 def emitStmt : TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   .push 5 (fun v => v.ob.getD false)
     (.push 6 (fun v => v.oa.getD false)
@@ -3260,6 +3796,8 @@ def emitStmt : TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComp
               (.push 11 (fun v => v.od.getD false)
                 (.load Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.next (.goto (fun _ => .step)))))))))
 
+/-- Build the conditional linear-addition instruction on stacks eight and six, emitting to stack
+seven and advancing to the linear shift when finished. -/
 def addLStmt : TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   .pop 8 (fun v b => { v with oa := b })
     (.pop 6 (fun v b => { v with ob := b })
@@ -3267,6 +3805,8 @@ def addLStmt : TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComp
         (.goto (fun _ => .cShiftL))
         (.push 7 (fun v => sumBit v) (.load sumNext (.goto (fun _ => .addLstep))))))
 
+/-- Build the conditional square-addition instruction on stacks nine, ten, and five, emitting to
+stack eleven and advancing to the square shift when finished. -/
 def addSStmt : TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   .pop 9 (fun v b => { v with oa := b })
     (.pop 10 (fun v b => { v with ob := b })
@@ -3275,6 +3815,8 @@ def addSStmt : TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComp
           (.goto (fun _ => .cShiftS))
           (.push 11 (fun v => sumBit v) (.load sumNext (.goto (fun _ => .addSstep)))))))
 
+/-- Define the twelve-stack arithmetic-round program, combining comparison, emission, word
+transfers, conditional additions, and final shifts. -/
 def program : Label → TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local
   | .init =>
     .push 8 (fun _ => false) (.push 9 (fun _ => false) (.push 9 (fun _ => false)
@@ -3311,27 +3853,39 @@ def program : Label → TM2.Stmt (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.
         (.push 0 (fun _ => false) (.push 0 (fun _ => false) (.halt)))
         (.push 0 (fun v => v.oa.getD false) (.goto (fun _ => .cShiftS))))
 
+/-- Embed a comparison state, endpoint word, and seven output accumulators in an
+arithmetic-round loop configuration. -/
 def cfg (st : CState) (aa : Bits) (o : Out) : TM2.Cfg (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   ⟨some .step, ⟨none, none, none, none, st.c0, st.c1, st.w⟩,
     TrialEmit.store st.a st.b st.d st.r aa o.lA o.s o.lB o.q2 o.r4 o.qA o.qB⟩
 
+/-- Build the initial arithmetic-round configuration from four arithmetic words and an endpoint
+word, with empty auxiliary stacks. -/
 def startCfg (s4 l2 q r aa : Bits) : TM2.Cfg (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   ⟨some .init, resetLocal, TrialEmit.store s4 l2 q r aa [] [] [] [] [] [] []⟩
 
+/-- Build the arithmetic round's abstract comparison state with the given input words and zero
+carry and borrow. -/
 def st0 (s4 l2 q r : Bits) : CState := ⟨s4, l2, q, r, false, false, false⟩
 
+/-- Initialize the round's seven output accumulators, including the zero-bit prefixes for the
+shifted parameter and threshold words. -/
 def o0 : Out := ⟨[], [], [], [false], [false, false], [], []⟩
 
+/-- The initialization instruction enters the comparison-and-emission loop with `st0` and `o0`. -/
 theorem init_step (s4 l2 q r aa : Bits) :
     TM2.step program (startCfg s4 l2 q r aa) = some (cfg (st0 s4 l2 q r) aa o0) := by
   simp only [TM2.step, program, startCfg, cfg, st0, o0, TM2.stepAux,
     TrialEmit.store_update_eight, TrialEmit.store_update_nine,
     TrialEmit.store_eight, TrialEmit.store_nine]
 
+/-- One stack-machine step performs arithmetic-round initialization. -/
 theorem init_run (s4 l2 q r aa : Bits) :
     stackRun program 1 (startCfg s4 l2 q r aa) = some (cfg (st0 s4 l2 q r) aa o0) := by
   simp only [stackRun, init_step, Option.bind_some]
 
+/-- One arithmetic-round comparison step either enters the comparison-output label or advances
+`CState` and the seven output accumulators. -/
 theorem step_cfg (st : CState) (aa : Bits) (o : Out) :
     TM2.step program (cfg st aa o) =
       some (if CState.halted st then
@@ -3366,6 +3920,8 @@ theorem step_cfg (st : CState) (aa : Bits) (o : Out) :
       CState.total, CState.nextCarry, CState.nextW, CState.step]
     rfl
 
+/-- For a comparison state that has not halted, advancing the state and output accumulators
+preserves their complete accumulated emissions. -/
 theorem apply_step (st : CState) (o : Out) (h : ¬ CState.halted st) :
     apply st o = apply (CState.step st) (stepOut st o) := by
   unfold apply stepOut
@@ -3375,6 +3931,8 @@ theorem apply_step (st : CState) (o : Out) (h : ¬ CState.halted st) :
     simp only [if_neg h]
   simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- A halted comparison state leaves the arithmetic-round output accumulators unchanged under
+`apply`. -/
 theorem apply_halted (st : CState) (o : Out) (h : CState.halted st) : apply st o = o := by
   unfold apply
   conv_lhs =>
@@ -3383,6 +3941,8 @@ theorem apply_halted (st : CState) (o : Out) (h : CState.halted st) : apply st o
     simp only [if_pos h]
   simp only [List.reverse_nil, List.nil_append]
 
+/-- With carry at most two, the round's comparison-and-emission loop reaches its output label
+after the comparison fuel, with outputs computed by `apply`. -/
 theorem run_fuel (st : CState) (aa : Bits) (o : Out) (hc : CState.cval st ≤ 2) :
     stackRun program (TrialCompare.fuel st) (cfg st aa o) =
       some ⟨some .done,
@@ -3412,6 +3972,8 @@ theorem run_fuel (st : CState) (aa : Bits) (o : Out) (hc : CState.cval st ≤ 2)
     simp only [Option.bind_some]
     exact ih aa (stepOut st o) (CState.cval_step_le_two st)
 
+/-- The comparison-output instruction appends the decision bit at the head of the endpoint word
+and enters the threshold-copy phase. -/
 theorem done_step (aa : Bits) (c0 c1 w : Bool) (o : Out) :
     TM2.step program
         ⟨some .done, ⟨none, none, none, none, c0, c1, w⟩,
@@ -3422,6 +3984,8 @@ theorem done_step (aa : Bits) (c0 c1 w : Bool) (o : Out) :
     simp only [program, TM2.step, TM2.stepAux, TrialEmit.store_update_four,
       TrialEmit.store_four, Bool.not_false, Bool.not_true]
 
+/-- One stack-machine step records the decision bit on the endpoint word and enters the
+threshold-copy phase. -/
 theorem done_run (aa : Bits) (c0 c1 w : Bool) (o : Out) :
     stackRun program 1
         ⟨some .done, ⟨none, none, none, none, c0, c1, w⟩,
@@ -3430,13 +3994,19 @@ theorem done_run (aa : Bits) (c0 c1 w : Bool) (o : Out) :
         TrialEmit.store [] [] [] [] ((!w) :: aa) o.lA o.s o.lB o.q2 o.r4 o.qA o.qB⟩ := by
   simp only [stackRun, done_step, Option.bind_some]
 
+/-- Run the abstract comparison state associated with the arithmetic round to completion. -/
 def runState (s4 l2 q r : Bits) : CState := CState.run (st0 s4 l2 q r)
 
+/-- Compute the seven accumulated output words of the arithmetic round's comparison-and-emission
+phase. -/
 def runOut (s4 l2 q r : Bits) : Out := apply (st0 s4 l2 q r) o0
 
+/-- The arithmetic round's initial comparison state has carry value at most two. -/
 theorem start_cval (s4 l2 q r : Bits) : CState.cval (st0 s4 l2 q r) ≤ 2 := by
   simp [st0, CState.cval, TrialCompare.carryOf]
 
+/-- The arithmetic round's initialization and emission phases reach `c4r` with the decision bit
+on the endpoint stack and outputs given by `runOut`. -/
 theorem emit_run (s4 l2 q r aa : Bits) :
     stackRun program (1 + (TrialCompare.fuel (st0 s4 l2 q r) + 1))
         (startCfg s4 l2 q r aa) =
@@ -3455,6 +4025,8 @@ theorem emit_run (s4 l2 q r aa : Bits) :
   rw [ha, hb, hd, hr]
   exact done_run aa _ _ _ _
 
+/-- Bound the step count of initialization and emission by twice the total arithmetic-input
+length plus five. -/
 theorem emit_fuel_le (s4 l2 q r : Bits) :
     1 + (TrialCompare.fuel (st0 s4 l2 q r) + 1) ≤
       2 * (s4.length + l2.length + q.length + r.length + 1) + 3 := by
@@ -3463,22 +4035,27 @@ theorem emit_fuel_le (s4 l2 q r : Bits) :
   simp only [TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add] at h
   omega
 
+/-- Each instruction of the arithmetic-round program has `stackNodes` at most eleven. -/
 theorem stackNodes_program (l : Label) : stackNodes (program l) ≤ 11 := by
   cases l <;>
     simp only [program, copyStmt, emitStmt, addLStmt, addSStmt, stackNodes] <;> omega
 
+/-- The arithmetic-round program has `programNodes` at most eleven. -/
 theorem program_nodes_le : programNodes program ≤ 11 := by
   unfold programNodes
   apply Finset.sup_le
   intro l _
   exact stackNodes_program l
 
+/-- The arithmetic-round program has sweep factor at most 265. -/
 theorem sweep_factor_le : sweepFactor program ≤ 265 := by
   have h := program_nodes_le
   have h0 : 0 ≤ programNodes program := Nat.zero_le _
   unfold sweepFactor
   nlinarith
 
+/-- The initial arithmetic-round stack height is bounded by the sum of its five main input
+lengths. -/
 theorem initial_height (s4 l2 q r aa : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (startCfg s4 l2 q r aa).stk ≤
       s4.length + l2.length + q.length + r.length + aa.length := by
@@ -3487,6 +4064,8 @@ theorem initial_height (s4 l2 q r aa : Bits) :
   intro i _
   fin_cases i <;> simp <;> omega
 
+/-- Bound the initialization-and-emission phase's total clock quadratically and its maximum
+clock and stack height linearly in the main-input length plus four. -/
 theorem emit_bounds (s4 l2 q r aa : Bits) :
     stackRunClock program (1 + (TrialCompare.fuel (st0 s4 l2 q r) + 1))
         (startCfg s4 l2 q r aa) ≤
@@ -3539,6 +4118,8 @@ theorem emit_bounds (s4 l2 q r aa : Bits) :
     exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.runMaxHeight_le program _ _).trans
       (hmul.trans hfin)
 
+/-- At `c4r`, a nonempty source on stack `9` transfers its head to stack `3` and remains at the
+same label. -/
 theorem c4r_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a10 a11 : Bits) :
     TM2.step program
@@ -3550,6 +4131,8 @@ theorem c4r_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.Deg
     TrialEmit.store_update_three, TrialEmit.store_nine, TrialEmit.store_three,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `c4r`, an empty source on stack `9` clears the local head bit and advances to `cQ`
+without changing the stacks. -/
 theorem c4r_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a8 a10 a11 : Bits) :
     TM2.step program
         ⟨some .c4r, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 [] a10 a11⟩ =
@@ -3558,6 +4141,8 @@ theorem c4r_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumer
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_nine,
     TrialEmit.store_nine, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `c4r` phase empties stack `9`, prepends `src.reverse` to
+stack `3`, and advances to `cQ`. -/
 theorem c4r_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a10 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3576,6 +4161,8 @@ theorem c4r_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.E
     rw [ih _ (b :: a3)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cQ`, a nonempty source on stack `10` transfers its head to stack `2` and remains at the
+same label. -/
 theorem cQ_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a11 : Bits) :
     TM2.step program
@@ -3586,6 +4173,8 @@ theorem cQ_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.Degr
     TrialEmit.store_update_two, TrialEmit.store_ten, TrialEmit.store_two,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cQ`, an empty source on stack `10` clears the local head bit and advances to `cS4`
+without changing the stacks. -/
 theorem cQ_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a11 : Bits) :
     TM2.step program
         ⟨some .cQ, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 [] a11⟩ =
@@ -3594,6 +4183,8 @@ theorem cQ_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumeri
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_ten,
     TrialEmit.store_ten, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `cQ` phase empties stack `10`, prepends `src.reverse` to
+stack `2`, and advances to `cS4`. -/
 theorem cQ_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3612,6 +4203,8 @@ theorem cQ_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.Ef
     rw [ih _ (b :: a2)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cS4`, a nonempty source on stack `6` transfers its head to stack `9` and remains at the
+same label. -/
 theorem cS4_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a7 a8 a9 a10 a11 : Bits) :
     TM2.step program
@@ -3622,6 +4215,8 @@ theorem cS4_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.Deg
     TrialEmit.store_update_nine, TrialEmit.store_six, TrialEmit.store_nine,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cS4`, an empty source on stack `6` clears the local head bit and advances to `c2Q`
+without changing the stacks. -/
 theorem cS4_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a7 a8 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .cS4, v, TrialEmit.store a0 a1 a2 a3 a4 a5 [] a7 a8 a9 a10 a11⟩ =
@@ -3630,6 +4225,8 @@ theorem cS4_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumer
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_six,
     TrialEmit.store_six, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `cS4` phase empties stack `6`, prepends `src.reverse` to
+stack `9`, and advances to `c2Q`. -/
 theorem cS4_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a7 a8 a9 a10 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3648,6 +4245,8 @@ theorem cS4_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.E
     rw [ih _ (b :: a9)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `c2Q`, a nonempty source on stack `8` transfers its head to stack `6` and remains at the
+same label. -/
 theorem c2Q_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a9 a10 a11 : Bits) :
     TM2.step program
@@ -3658,6 +4257,8 @@ theorem c2Q_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.Deg
     TrialEmit.store_update_six, TrialEmit.store_eight, TrialEmit.store_six,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `c2Q`, an empty source on stack `8` clears the local head bit and advances to `cL1`
+without changing the stacks. -/
 theorem c2Q_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .c2Q, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 [] a9 a10 a11⟩ =
@@ -3666,6 +4267,8 @@ theorem c2Q_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumer
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_eight,
     TrialEmit.store_eight, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `c2Q` phase empties stack `8`, prepends `src.reverse` to
+stack `6`, and advances to `cL1`. -/
 theorem c2Q_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a9 a10 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3684,6 +4287,8 @@ theorem c2Q_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.E
     rw [ih _ (b :: a6)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cL1`, a nonempty source on stack `5` transfers its head to stack `8` and remains at the
+same label. -/
 theorem cL1_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a6 a7 a8 a9 a10 a11 : Bits) :
     TM2.step program
@@ -3694,6 +4299,8 @@ theorem cL1_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.Deg
     TrialEmit.store_update_eight, TrialEmit.store_five, TrialEmit.store_eight,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cL1`, an empty source on stack `5` clears the local head bit and advances to `cL2`
+without changing the stacks. -/
 theorem cL1_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a6 a7 a8 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .cL1, v, TrialEmit.store a0 a1 a2 a3 a4 [] a6 a7 a8 a9 a10 a11⟩ =
@@ -3702,6 +4309,8 @@ theorem cL1_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumer
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_five,
     TrialEmit.store_five, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `cL1` phase empties stack `5`, prepends `src.reverse` to
+stack `8`, and advances to `cL2`. -/
 theorem cL1_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a6 a7 a8 a9 a10 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3720,6 +4329,8 @@ theorem cL1_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.E
     rw [ih _ (b :: a8)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cL2`, a nonempty source on stack `7` transfers its head to stack `10` and remains at the
+same label. -/
 theorem cL2_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a8 a9 a10 a11 : Bits) :
     TM2.step program
@@ -3730,6 +4341,8 @@ theorem cL2_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.Deg
     TrialEmit.store_update_ten, TrialEmit.store_seven, TrialEmit.store_ten,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cL2`, an empty source on stack `7` clears the local head bit and advances to `cQlow`
+without changing the stacks. -/
 theorem cL2_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a8 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .cL2, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 [] a8 a9 a10 a11⟩ =
@@ -3738,6 +4351,8 @@ theorem cL2_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumer
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_seven,
     TrialEmit.store_seven, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `cL2` phase empties stack `7`, prepends `src.reverse` to
+stack `10`, and advances to `cQlow`. -/
 theorem cL2_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a8 a9 a10 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3756,6 +4371,8 @@ theorem cL2_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.E
     rw [ih _ (b :: a10)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cQlow`, a nonempty source on stack `11` transfers its head to stack `5` and remains at
+the same label. -/
 theorem cQlow_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 : Bits) :
     TM2.step program
@@ -3766,6 +4383,8 @@ theorem cQlow_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.D
     TrialEmit.store_update_five, TrialEmit.store_eleven, TrialEmit.store_five,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cQlow`, an empty source on stack `11` clears the local head bit and advances to `addL`
+without changing the stacks. -/
 theorem cQlow_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 : Bits) :
     TM2.step program
         ⟨some .cQlow, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 []⟩ =
@@ -3774,6 +4393,8 @@ theorem cQlow_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNum
   simp only [program, copyStmt, TM2.step, TM2.stepAux, TrialEmit.store_update_eleven,
     TrialEmit.store_eleven, List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the `cQlow` phase empties stack `11`, prepends `src.reverse` to
+stack `5`, and advances to `addL`. -/
 theorem cQlow_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 : Bits) :
     stackRun program (src.length + 1)
@@ -3792,6 +4413,8 @@ theorem cQlow_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod
     rw [ih _ (b :: a5)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cShiftL`, a nonempty source on stack seven transfers its head to stack one and remains
+at the same label. -/
 theorem cShiftL_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a8 a9 a10 a11 : Bits) :
     TM2.step program
@@ -3802,6 +4425,7 @@ theorem cShiftL_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity
     TrialEmit.store_update_one, TrialEmit.store_seven, TrialEmit.store_one,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cShiftL`, an empty source prefixes one false bit to stack one and advances to `addS`. -/
 theorem cShiftL_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a8 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .cShiftL, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 [] a8 a9 a10 a11⟩ =
@@ -3811,6 +4435,8 @@ theorem cShiftL_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveN
     TrialEmit.store_update_one, TrialEmit.store_seven, TrialEmit.store_one,
     List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the linear-shift phase moves the reversed source onto stack one,
+prefixes a false bit, and advances to `addS`. -/
 theorem cShiftL_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a8 a9 a10 a11 : Bits) :
     stackRun program (src.length + 1)
@@ -3829,6 +4455,8 @@ theorem cShiftL_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMeth
     rw [ih _ (b :: a1)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- At `cShiftS`, a nonempty source on stack eleven transfers its head to stack zero and remains
+at the same label. -/
 theorem cShiftS_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 : Bits) :
     TM2.step program
@@ -3839,6 +4467,7 @@ theorem cShiftS_step (b : Bool) (bs : Bits) (v : Qatlib.Concepts.QueryComplexity
     TrialEmit.store_update_zero, TrialEmit.store_eleven, TrialEmit.store_zero,
     List.head?_cons, List.tail_cons, Option.getD_some, Option.isNone, cond]
 
+/-- At `cShiftS`, an empty source prefixes two false bits to stack zero and halts. -/
 theorem cShiftS_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 : Bits) :
     TM2.step program
         ⟨some .cShiftS, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 []⟩ =
@@ -3848,6 +4477,8 @@ theorem cShiftS_nil (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveN
     TrialEmit.store_update_zero, TrialEmit.store_eleven, TrialEmit.store_zero,
     List.head?_nil, List.tail_nil, Option.isNone, cond]
 
+/-- In `src.length + 1` steps, the square-shift phase moves the reversed source onto stack zero,
+prefixes two false bits, and halts. -/
 theorem cShiftS_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 : Bits) :
     stackRun program (src.length + 1)
@@ -3867,6 +4498,8 @@ theorem cShiftS_run (src : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMeth
     rw [ih _ (b :: a0)]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- Store three input words, a fixed conditional-addition flag, and two carry bits for the
+arithmetic round's abstract addition loop. -/
 structure AState where
   x : Bits
   y : Bits
@@ -3876,30 +4509,42 @@ structure AState where
   c1 : Bool
 deriving DecidableEq
 
+/-- Decode the two carry bits of an abstract conditional-addition state. -/
 def AState.cval (st : AState) : ℕ := TrialCompare.carryOf st.c0 st.c1
 
+/-- Sum the first input head and carry, including the second and third input heads only when the
+flag `w` is false. -/
 def AState.total (st : AState) : ℕ :=
   TrialAdd.bitOf st.x.head? + (if !st.w then TrialAdd.bitOf st.y.head? else 0) +
     (if !st.w then TrialAdd.bitOf st.z.head? else 0) + st.cval
 
+/-- Sum the first input value and carry, including the second and third input values only when
+the flag `w` is false. -/
 def AState.value (st : AState) : ℕ :=
   binaryValue st.x + (if !st.w then binaryValue st.y else 0) +
     (if !st.w then binaryValue st.z else 0) + st.cval
 
+/-- Return the parity digit of the conditional-addition total. -/
 def AState.bit (st : AState) : ℕ := st.total % 2
 
+/-- Return the Boolean parity bit of the conditional-addition total. -/
 def AState.outBit (st : AState) : Bool := decide (st.total % 2 = 1)
 
+/-- Consume the heads of all three input words, update the carry bits, and preserve the
+conditional-addition flag. -/
 def AState.next (st : AState) : AState :=
   ⟨st.x.tail, st.y.tail, st.z.tail, st.w,
     TrialCompare.carryBit0 st.total, TrialCompare.carryBit1 st.total⟩
 
+/-- Express that all three input words are empty and both carry bits are false. -/
 abbrev AState.halted (st : AState) : Prop :=
   st.x = [] ∧ st.y = [] ∧ st.z = [] ∧ st.c0 = false ∧ st.c1 = false
 
+/-- Measure a conditional-addition state by twice its total input length plus its decoded carry. -/
 def AState.measure (st : AState) : ℕ :=
   2 * (st.x.length + st.y.length + st.z.length) + st.cval
 
+/-- The conditional-addition total is at most three plus the incoming carry. -/
 theorem AState.total_le (st : AState) : st.total ≤ 3 + st.cval := by
   have h1 := TrialAdd.bitOf_le_one st.x.head?
   have h2 := TrialAdd.bitOf_le_one st.y.head?
@@ -3907,20 +4552,25 @@ theorem AState.total_le (st : AState) : st.total ≤ 3 + st.cval := by
   unfold AState.total
   split_ifs <;> omega
 
+/-- The next conditional-addition carry is the halved total truncated at two. -/
 theorem AState.cval_next (st : AState) : (AState.next st).cval = min (st.total / 2) 2 := by
   show TrialCompare.carryOf (TrialCompare.carryBit0 st.total) (TrialCompare.carryBit1 st.total) =
     min (st.total / 2) 2
   exact TrialCompare.carryOf_bits st.total
 
+/-- The carry after one conditional-addition step is at most two. -/
 theorem AState.cval_next_le_two (st : AState) : (AState.next st).cval ≤ 2 := by
   rw [AState.cval_next]
   exact Nat.min_le_right _ _
 
+/-- One conditional-addition step increases the carry by at most one. -/
 theorem AState.cval_next_le (st : AState) : (AState.next st).cval ≤ st.cval + 1 := by
   have h := AState.total_le st
   rw [AState.cval_next]
   omega
 
+/-- A conditional-addition step strictly decreases the state measure whenever the state has not
+halted. -/
 theorem AState.measure_step (st : AState) (h : ¬ st.halted) :
     (AState.next st).measure < st.measure := by
   unfold AState.halted at h
@@ -3988,16 +4638,19 @@ theorem AState.measure_step (st : AState) (h : ¬ st.halted) :
       2 * (st.x.length + st.y.length + st.z.length) + st.cval
     omega
 
+/-- Iterate conditional-addition steps until the input words and carry bits are exhausted. -/
 def AState.run (st : AState) : AState :=
   if st.halted then st else AState.run (AState.next st)
 termination_by st.measure
 decreasing_by exact AState.measure_step st ‹¬ st.halted›
 
+/-- Count conditional-addition loop steps, including the terminating test. -/
 def AState.fuel (st : AState) : ℕ :=
   if st.halted then 1 else 1 + AState.fuel (AState.next st)
 termination_by st.measure
 decreasing_by exact AState.measure_step st ‹¬ st.halted›
 
+/-- Bound conditional-addition fuel by twice the total input length plus the carry and one. -/
 theorem AState.fuel_le (st : AState) :
     st.fuel ≤ 2 * (st.x.length + st.y.length + st.z.length) + st.cval + 1 := by
   induction st using AState.fuel.induct with
@@ -4012,11 +4665,15 @@ theorem AState.fuel_le (st : AState) :
     unfold AState.measure at hdec
     omega
 
+/-- Emit the successive parity bits of the conditional-addition run in
+least-significant-bit-first order. -/
 def AState.emit (st : AState) : Bits :=
   if st.halted then [] else st.outBit :: AState.emit (AState.next st)
 termination_by st.measure
 decreasing_by exact AState.measure_step st ‹¬ st.halted›
 
+/-- For carry at most two, the state's value is its parity digit plus twice the value of the
+next state. -/
 theorem AState.value_step (st : AState) (hc : st.cval ≤ 2) :
     st.value = st.bit + 2 * (AState.next st).value := by
   have hcv : (AState.next st).cval = st.total / 2 := by
@@ -4051,6 +4708,7 @@ theorem AState.value_step (st : AState) (hc : st.cval ≤ 2) :
   ring_nf
   omega
 
+/-- For carry at most two, the conditional-addition run reaches a halted state with value zero. -/
 theorem AState.run_spec (st : AState) (hc : st.cval ≤ 2) :
     (AState.run st).halted ∧ (AState.run st).value = 0 := by
   induction st using AState.run.induct with
@@ -4063,6 +4721,7 @@ theorem AState.run_spec (st : AState) (hc : st.cval ≤ 2) :
     rw [AState.run.eq_def, if_neg h]
     exact ih (AState.cval_next_le_two st)
 
+/-- The conditional-addition run preserves the flag `w`. -/
 theorem AState.run_w (st : AState) : (AState.run st).w = st.w := by
   induction st using AState.run.induct with
   | case1 st h =>
@@ -4071,6 +4730,7 @@ theorem AState.run_w (st : AState) : (AState.run st).w = st.w := by
     rw [AState.run.eq_def, if_neg h, ih]
     rfl
 
+/-- For carry at most two, the emitted conditional-addition word represents the state's value. -/
 theorem AState.emit_value (st : AState) (hc : st.cval ≤ 2) :
     binaryValue st.emit = st.value := by
   induction st using AState.emit.induct with
@@ -4090,6 +4750,8 @@ theorem AState.emit_value (st : AState) (hc : st.cval ≤ 2) :
         simp [AState.outBit, hb]
     omega
 
+/-- With matching local carry and flag, an empty third input, and absent local third bit, the
+linear-addition instruction implements one `AState` step or enters the linear-shift phase. -/
 theorem addLstep_step (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (hz : st.z = [])
     (h0 : v.c0 = st.c0) (h1 : v.c1 = st.c1) (hw : v.w = st.w) (hvd : v.od = none)
     (a0 a1 a2 a3 a4 a5 a7 a9 a10 a11 : Bits) :
@@ -4115,6 +4777,8 @@ theorem addLstep_step (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeM
       sum3, sumBit, sumNext, TrialCompare.carryBit0, TrialCompare.carryBit1,
       TrialCompare.carryOf, TrialAdd.bitOf]
 
+/-- With matching local carry and flag, the square-addition instruction implements one `AState`
+step or enters the square-shift phase. -/
 theorem addSstep_step (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (h0 : v.c0 = st.c0) (h1 : v.c1 = st.c1) (hw : v.w = st.w)
     (a0 a1 a2 a3 a4 a6 a7 a8 a11 : Bits) :
@@ -4141,6 +4805,8 @@ theorem addSstep_step (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeM
       sum3, sumBit, sumNext, TrialCompare.carryBit0, TrialCompare.carryBit1,
       TrialCompare.carryOf, TrialAdd.bitOf]
 
+/-- With an empty third input and matching local control, the linear-addition loop runs for
+`AState.fuel` steps, prepends the reversed emission to stack seven, and enters `cShiftL`. -/
 theorem addLstep_run (st : AState) (hz : st.z = []) :
     ∀ (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a7 a9 a10 a11 : Bits),
       v.c0 = st.c0 → v.c1 = st.c1 → v.w = st.w → v.od = none →
@@ -4178,6 +4844,8 @@ theorem addLstep_run (st : AState) (hz : st.z = []) :
     rw [hrun, hemp]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- With matching local control, the square-addition loop runs for `AState.fuel` steps, prepends
+the reversed emission to stack eleven, and enters `cShiftS`. -/
 theorem addSstep_run (st : AState) :
     ∀ (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a6 a7 a8 a11 : Bits),
       v.c0 = st.c0 → v.c1 = st.c1 → v.w = st.w →
@@ -4213,6 +4881,8 @@ theorem addSstep_run (st : AState) :
     rw [hrun, hemp]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- The linear-addition initialization clears the optional input bits and carry flags, preserves
+`w`, and enters `addLstep` without changing stacks. -/
 theorem addL_load (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .addL, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11⟩ =
@@ -4221,6 +4891,8 @@ theorem addL_load (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNum
         TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11⟩ := by
   simp only [program, TM2.step, TM2.stepAux, clearBits]
 
+/-- The square-addition initialization clears the optional input bits and carry flags, preserves
+`w`, and enters `addSstep` without changing stacks. -/
 theorem addS_load (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 : Bits) :
     TM2.step program
         ⟨some .addS, v, TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11⟩ =
@@ -4229,6 +4901,8 @@ theorem addS_load (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNum
         TrialEmit.store a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11⟩ := by
   simp only [program, TM2.step, TM2.stepAux, clearBits]
 
+/-- With zero initial carry, matching flag, and empty third input, the linear-addition phase
+reaches `cShiftL` in `1 + AState.fuel st` steps with its reversed emission on stack seven. -/
 theorem addL_run (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local) (hz : st.z = [])
     (hc0 : st.c0 = false) (hc1 : st.c1 = false) (hw : v.w = st.w)
     (a0 a1 a2 a3 a4 a5 a7 a9 a10 a11 : Bits) :
@@ -4244,6 +4918,8 @@ theorem addL_run (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod
   rw [addLstep_run st hz ⟨none, none, none, none, false, false, v.w⟩
     a0 a1 a2 a3 a4 a5 a7 a9 a10 a11 hc0.symm hc1.symm hw rfl]
 
+/-- With zero initial carry and matching flag, the square-addition phase reaches `cShiftS` in `1
++ AState.fuel st` steps with its reversed emission on stack eleven. -/
 theorem addS_run (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local)
     (hc0 : st.c0 = false) (hc1 : st.c1 = false) (hw : v.w = st.w)
     (a0 a1 a2 a3 a4 a6 a7 a8 a11 : Bits) :
@@ -4258,22 +4934,35 @@ theorem addS_run (st : AState) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod
   rw [addSstep_run st ⟨none, none, none, none, false, false, v.w⟩
     a0 a1 a2 a3 a4 a6 a7 a8 a11 hc0.symm hc1.symm hw]
 
+/-- Select the first reversed linear-copy accumulator from the round's emitted outputs. -/
 abbrev outL (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).lA
+/-- Select the reversed square-copy accumulator from the round's emitted outputs. -/
 abbrev outS (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).s
+/-- Select the second reversed linear-copy accumulator from the round's emitted outputs. -/
 abbrev outB (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).lB
+/-- Select the reversed, one-bit-shifted parameter accumulator from the round's emitted outputs. -/
 abbrev outQ2 (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).q2
+/-- Select the reversed, two-bit-shifted threshold accumulator from the round's emitted outputs. -/
 abbrev outR4 (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).r4
+/-- Select the first reversed parameter-copy accumulator from the round's emitted outputs. -/
 abbrev outQA (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).qA
+/-- Select the second reversed parameter-copy accumulator from the round's emitted outputs. -/
 abbrev outQB (s4 l2 q r : Bits) : Bits := (runOut s4 l2 q r).qB
 
+/-- Build the linear-update addition state from the emitted linear and doubled-parameter words,
+with the comparison flag and zero carry. -/
 abbrev stL (s4 l2 q r : Bits) : AState :=
   ⟨(outL s4 l2 q r).reverse, (outQ2 s4 l2 q r).reverse, [],
     (runState s4 l2 q r).w, false, false⟩
 
+/-- Build the square-update addition state from the emitted square, linear, and parameter words,
+with the comparison flag and zero carry. -/
 abbrev stS (s4 l2 q r : Bits) : AState :=
   ⟨(outS s4 l2 q r).reverse, (outB s4 l2 q r).reverse,
     (outQB s4 l2 q r).reverse, (runState s4 l2 q r).w, false, false⟩
 
+/-- Specify the halted arithmetic-round configuration with shifted addition outputs, preserved
+parameter, quadrupled threshold, updated endpoint, and empty auxiliary stacks. -/
 abbrev roundCfg (s4 l2 q r aa : Bits) :
     TM2.Cfg (fun _ : Fin 12 => Bool) Label Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local :=
   ⟨none,
@@ -4286,6 +4975,8 @@ abbrev roundCfg (s4 l2 q r aa : Bits) :
       ((!(runState s4 l2 q r).w) :: aa)
       [] [] [] [] [] [] []⟩
 
+/-- Sum the initialization, comparison, copy, conditional-addition, and final-shift step counts
+for a complete arithmetic round. -/
 def roundFuel (s4 l2 q r : Bits) : ℕ :=
   1 + (TrialCompare.fuel (st0 s4 l2 q r) + 1) +
     ((outR4 s4 l2 q r).length + 1 +
@@ -4300,6 +4991,7 @@ def roundFuel (s4 l2 q r : Bits) : ℕ :=
                       ((1 + AState.fuel (stS s4 l2 q r)) +
                         ((AState.emit (stS s4 l2 q r)).reverse.length + 1)))))))))))
 
+/-- Running the arithmetic-round program for `roundFuel` steps reaches exactly `roundCfg`. -/
 theorem round_run (s4 l2 q r aa : Bits) :
     stackRun program (roundFuel s4 l2 q r) (startCfg s4 l2 q r aa) =
       some (roundCfg s4 l2 q r aa) := by
@@ -4346,34 +5038,45 @@ theorem round_run (s4 l2 q r aa : Bits) :
   (try dsimp only)
   simp only [List.reverse_reverse, List.append_nil]
 
+/-- Reversing the round's square-copy accumulator gives the abstract first-input emission. -/
 theorem outS_reverse (s4 l2 q r : Bits) :
     (outS s4 l2 q r).reverse = TrialEmit.emitS (st0 s4 l2 q r) := by
   simp [outS, runOut, apply, o0]
 
+/-- Reversing the first linear-copy accumulator gives the abstract second-input emission. -/
 theorem outL_reverse (s4 l2 q r : Bits) :
     (outL s4 l2 q r).reverse = TrialEmit.emitL (st0 s4 l2 q r) := by
   simp [outL, runOut, apply, o0]
 
+/-- Reversing the second linear-copy accumulator gives the abstract second-input emission. -/
 theorem outB_reverse (s4 l2 q r : Bits) :
     (outB s4 l2 q r).reverse = TrialEmit.emitL (st0 s4 l2 q r) := by
   simp [outB, runOut, apply, o0]
 
+/-- Reversing the shifted-parameter accumulator gives `TrialEmit.emitQ2` for the round's initial
+comparison state. -/
 theorem outQ2_reverse (s4 l2 q r : Bits) :
     (outQ2 s4 l2 q r).reverse = TrialEmit.emitQ2 (st0 s4 l2 q r) := by
   simp [outQ2, runOut, apply, o0, TrialEmit.emitQ2]
 
+/-- Reversing the shifted-threshold accumulator gives `TrialEmit.emitR4` for the round's initial
+comparison state. -/
 theorem outR4_reverse (s4 l2 q r : Bits) :
     (outR4 s4 l2 q r).reverse = TrialEmit.emitR4 (st0 s4 l2 q r) := by
   simp [outR4, runOut, apply, o0, TrialEmit.emitR4]
 
+/-- Reversing the first parameter-copy accumulator gives the abstract third-input emission. -/
 theorem outQA_reverse (s4 l2 q r : Bits) :
     (outQA s4 l2 q r).reverse = TrialEmit.emitQ (st0 s4 l2 q r) := by
   simp [outQA, runOut, apply, o0]
 
+/-- Reversing the second parameter-copy accumulator gives the abstract third-input emission. -/
 theorem outQB_reverse (s4 l2 q r : Bits) :
     (outQB s4 l2 q r).reverse = TrialEmit.emitQ (st0 s4 l2 q r) := by
   simp [outQB, runOut, apply, o0]
 
+/-- The square-update addition state represents the square input plus the linear and parameter
+inputs exactly when the comparison flag is false. -/
 theorem stS_value (s4 l2 q r : Bits) :
     (stS s4 l2 q r).value =
       binaryValue s4 + (if !(runState s4 l2 q r).w then
@@ -4392,6 +5095,8 @@ theorem stS_value (s4 l2 q r : Bits) :
     simp [hwf]
     ring
 
+/-- The linear-update addition state represents the linear input plus twice the parameter input
+exactly when the comparison flag is false. -/
 theorem stL_value (s4 l2 q r : Bits) :
     (stL s4 l2 q r).value =
       binaryValue l2 + (if !(runState s4 l2 q r).w then
@@ -4408,6 +5113,8 @@ theorem stL_value (s4 l2 q r : Bits) :
     binaryValue_nil]
   by_cases hw : (runState s4 l2 q r).w <;> simp [hw]
 
+/-- Compute the binary values of the five main output stacks: the shifted conditional square and
+linear sums, unchanged parameter, quadrupled threshold, and endpoint with its decision bit. -/
 theorem round_value (s4 l2 q r aa : Bits) :
     binaryValue ((roundCfg s4 l2 q r aa).stk 0) =
       4 * (binaryValue s4 +
@@ -4440,6 +5147,8 @@ theorem round_value (s4 l2 q r aa : Bits) :
     rw [binaryValue_cons']
     by_cases hw : (runState s4 l2 q r).w <;> simp [hw, bitNat]
 
+/-- The round's complemented final borrow flag is the Boolean test that the three input values
+sum to at most the right-hand-side value. -/
 theorem round_bit (s4 l2 q r : Bits) :
     (!((runState s4 l2 q r).w)) =
       decide (binaryValue s4 + binaryValue l2 + binaryValue q ≤ binaryValue r) := by
@@ -4459,6 +5168,9 @@ theorem round_bit (s4 l2 q r : Bits) :
       exact h (by have hle := hspec.2.mp hf; rwa [hval, hw0, Nat.add_zero] at hle)
     simp [hw, h]
 
+/-- On binary inputs for an `MState`, the round's comparison bit agrees with `mBit`, and its
+main outputs represent four times the updated square, twice the updated doubled-linear
+field, `Q`, the updated threshold, and the updated endpoint. -/
 theorem machine_mRound (Q : ℕ) (s : TrialEmit.MState) :
     (!((runState (Nat.bits (4 * s.sq)) (Nat.bits (2 * s.lin2)) (Nat.bits Q)
         (Nat.bits s.rhs)).w)) = decide (TrialEmit.mBit Q s = 1) ∧

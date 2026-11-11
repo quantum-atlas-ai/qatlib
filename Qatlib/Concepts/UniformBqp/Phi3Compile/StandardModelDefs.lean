@@ -12,6 +12,32 @@ import Mathlib.Computability.TuringMachine.Tape
 import Mathlib.Computability.TuringMachine.PostTuringMachine
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Uniform circuit and tape-machine specifications
+
+This module defines local QTM well-formedness conditions, bounded halting and emission
+predicates, and uniform simulation specifications. It also introduces circuit-based language
+predicates, closure statements, communication decision lists, and Boolean formula lower-bound
+statements.
+
+The oracle definitions give finite-window transition matrices, acceptance probabilities, and
+accumulated query mass. Each specification records its explicit quantifiers and resource bounds.
+
+For background, see [BernsteinVazirani1997].
+
+## Main statements
+
+* `QTMToUniformCircuitSpec`: window simulation together with polynomial gate-count emission.
+* `HeadStaySimulationSpec`: acceptance simulation with the stated circuit-size time bound.
+* `OracleQTM`: a local machine with query states and an answer map.
+* `oracleQueryMass`: total query-state mass over the execution steps.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -28,6 +54,8 @@ open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Concepts.UniformBqp.Phi3Compile
 open Qatlib.Concepts.UniformBqp.BvParityBound
 
+/-- The conjunction of local transition normalization, orthogonality for distinct source pairs,
+and the three specified cross-direction orthogonality conditions. -/
 def LocalQTMFiveConditions {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (M : LocalQTM Q A) : Prop :=
   (∀ q a, ∑ q' : Q, ∑ b : A, ∑ d : QtmMove, ‖M.step q a d q' b‖ ^ 2 = 1) ∧
@@ -44,6 +72,8 @@ def LocalQTMFiveConditions {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     ∑ q' : Q, M.step q₁ a₁ QtmMove.right q' c
       * star (M.step q₂ a₂ QtmMove.left q' d) = 0
 
+/-- Runs a tape machine for at most the given step budget, returning its terminal configuration
+if it halts within that budget. -/
 def TM0HaltRun {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1))) :
     ℕ → Turing.TM0.Cfg (Option Bool) (Fin (q + 1)) →
       Option (Turing.TM0.Cfg (Option Bool) (Fin (q + 1)))
@@ -53,6 +83,8 @@ def TM0HaltRun {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1))) :
       | none => some cfg
       | some cfg' => TM0HaltRun M t cfg'
 
+/-- The predicate that a tape machine halts within the stated polynomial source-length bound
+with the prescribed output on its right tape, padded by blanks. -/
 def TM0EmitsPoly {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (c d : ℕ) (src out : List Bool) : Prop :=
   ∃ (s : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (q + 1))),
@@ -61,6 +93,9 @@ def TM0EmitsPoly {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     Turing.TM0.step M cfg = none ∧
     ∀ i : ℕ, cfg.Tape.right₀.nth i = (out.map some).getD i none
 
+/-- The specification of exact unitary window circuits with zero queries and quadratic gate
+bounds, together with polynomial tape emission of gate-count words from the stated binary
+pair encoding. -/
 def QTMToUniformCircuitSpec : Prop :=
   ∀ (Q A : Type) [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
       (M : LocalQTM Q A), LocalQTMFiveConditions M →
@@ -82,6 +117,8 @@ def QTMToUniformCircuitSpec : Prop :=
         TM0EmitsPoly emitter c d (n.bits ++ [false] ++ t.bits)
           ((GateCount (build n t)).bits ++ [false]))
 
+/-- The predicate that every Boolean input yields a terminal configuration within the bound `c *
+length^k + c`. -/
 def HaltsWithinPolyTime {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (c k : ℕ) : Prop :=
   ∀ x : List Bool, ∃ (t : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (q + 1))),
@@ -89,6 +126,8 @@ def HaltsWithinPolyTime {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q 
     TM0HaltRun M t (Turing.TM0.init (x.map some)) = some cfg ∧
     Turing.TM0.step M cfg = none
 
+/-- The predicate that language membership is equivalent to reaching a designated accepting
+terminal label within a fixed polynomial bound. -/
 def InPolyTime (L : List Bool → Prop) : Prop :=
   ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (qacc : Fin (q + 1)) (c k : ℕ),
@@ -98,6 +137,8 @@ def InPolyTime (L : List Bool → Prop) : Prop :=
          TM0HaltRun M t (Turing.TM0.init (x.map some)) = some cfg ∧
          Turing.TM0.step M cfg = none ∧ cfg.q = qacc)
 
+/-- The uniform probability distribution on Boolean registers of width `m`, assigning mass `1 /
+2^m` to each register. -/
 noncomputable def uniformRegDist (m : ℕ) : FinDist (Reg m) where
   prob _ := 1 / (2 ^ m : ℝ)
   nonneg _ := by positivity
@@ -108,9 +149,12 @@ noncomputable def uniformRegDist (m : ℕ) : FinDist (Reg m) where
     push_cast
     rfl
 
+/-- Forms a register by placing the coin bits first and the Boolean input bits afterward. -/
 def regCoinInput {m : ℕ} (r : Reg m) (x : List Bool) : Reg (m + x.length) :=
   fun i => if h : i.val < m then r ⟨i.val, h⟩ else x.getD (i.val - m) false
 
+/-- The expected circuit acceptance probability over uniformly chosen coin registers prepended
+to the input. -/
 noncomputable def RandomAcceptProb (F : CircuitFamily) (coin : ℕ → ℕ) (x : List Bool)
     (hpos : 0 < coin x.length) : ℝ :=
   Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect (uniformRegDist (coin x.length)) (fun r =>
@@ -119,6 +163,8 @@ noncomputable def RandomAcceptProb (F : CircuitFamily) (coin : ℕ → ℕ) (x :
       (Ket (regCoinInput r x)))
       (Nat.lt_of_lt_of_le hpos (Nat.le_add_right (coin x.length) x.length)))
 
+/-- The circuit-family language predicate requiring polynomial emission of size words and
+acceptance probability at least two thirds on members and at most one third on nonmembers. -/
 def InBPP (L : List Bool → Prop) : Prop :=
   ∃ (F : CircuitFamily) (coin : ℕ → ℕ) (hcoin : ∀ m, 0 < coin m)
     (q c d : ℕ) (emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))),
@@ -128,11 +174,14 @@ def InBPP (L : List Bool → Prop) : Prop :=
       (L x → (2 / 3 : ℝ) ≤ RandomAcceptProb F coin x (hcoin x.length)) ∧
       (¬ L x → RandomAcceptProb F coin x (hcoin x.length) ≤ 1 / 3)
 
+/-- The conjunction of complement and binary intersection closure statements for `InPolyTime`. -/
 def PPClosureSpec : Prop :=
   (∀ L : List Bool → Prop, InPolyTime L → InPolyTime (fun x => ¬ L x)) ∧
   (∀ (L₁ L₂ : List Bool → Prop), InPolyTime L₁ → InPolyTime L₂ →
     InPolyTime (fun x => L₁ x ∧ L₂ x))
 
+/-- The conjunction of error reduction with the stated circuit-size bound and binary
+intersection closure for `InBPP`. -/
 def BPPClosureSpec : Prop :=
   (∀ (L : List Bool → Prop), InBPP L → ∀ ε : ℝ, 0 < ε →
     ∃ (F : CircuitFamily) (coin : ℕ → ℕ) (hcoin : ∀ m, 0 < coin m) (c k : ℕ),
@@ -143,11 +192,15 @@ def BPPClosureSpec : Prop :=
   (∀ (L₁ L₂ : List Bool → Prop), InBPP L₁ → InBPP L₂ →
     InBPP (fun x => L₁ x ∧ L₂ x))
 
+/-- The three gate labels H, T, and CNOT. -/
 inductive DLambdaGate where
   | H : DLambdaGate
   | T : DLambdaGate
   | CNOT : DLambdaGate
 
+/-- The specification that every unitary circuit has an acceptance-preserving local QTM
+simulation satisfying the five conditions, with positive window and time parameters and time
+at most `(Size C + 2)^6`. -/
 def HeadStaySimulationSpec : Prop :=
   ∀ (n : ℕ) (C : Circuit (Reg n)) (hn : 0 < n), IsUnitaryCircuit C →
     ∃ (Q : Type) (_ : Fintype Q) (_ : DecidableEq Q) (qacc : Q) (M : LocalQTM Q Bool)
@@ -159,49 +212,65 @@ def HeadStaySimulationSpec : Prop :=
             Ket (initWindowCfg (t := w) M n x)) c) =
         AcceptProb (Run (1 : Matrix (Reg n) (Reg n) ℂ) C (Ket x)) hn
 
+/-- A fixed list of queries selecting bits from two input registers, together with a Boolean
+verdict function on the answers. -/
 structure CommDecisionList (m : ℕ) where
 
   queries : List (Bool × Fin m)
 
   verdict : List Bool → Bool
 
+/-- Evaluates a communication decision list by collecting the selected input bits and applying
+its verdict function. -/
 def commListOutput {m : ℕ} (P : CommDecisionList m) (a b : Reg m) : Bool :=
   P.verdict (P.queries.map (fun q => if q.1 then a q.2 else b q.2))
 
+/-- The number of bit queries in a communication decision list. -/
 def commListCost {m : ℕ} (P : CommDecisionList m) : ℕ := P.queries.length
 
+/-- The statement that every fixed-query decision list deciding equality satisfies the given
+positive-constant lower bound involving two base-two logarithms. -/
 def CommunicationOmegaLogLogSpec : Prop :=
   ∃ c : ℕ, 0 < c ∧ ∀ (m : ℕ), 2 ≤ m →
     ∀ P : CommDecisionList m,
       (∀ a b : Reg m, commListOutput P a b = decide (a = b)) →
         c * Nat.log 2 (Nat.log 2 (2 ^ m)) ≤ commListCost P
 
+/-- Boolean formulas generated from variables, negation, conjunction, and disjunction. -/
 inductive BoolFormula (V : Type) where
   | var : V → BoolFormula V
   | not : BoolFormula V → BoolFormula V
   | and : BoolFormula V → BoolFormula V → BoolFormula V
   | or : BoolFormula V → BoolFormula V → BoolFormula V
 
+/-- Evaluates a Boolean formula under a Boolean assignment to its variables. -/
 def BoolFormula.eval {V : Type} (a : V → Bool) : BoolFormula V → Bool
   | .var v => a v
   | .not f => !f.eval a
   | .and f g => f.eval a && g.eval a
   | .or f g => f.eval a || g.eval a
 
+/-- Counts variable occurrences in a Boolean formula, adding at binary connectives and ignoring
+negation nodes. -/
 def BoolFormula.size {V : Type} : BoolFormula V → ℕ
   | .var _ => 1
   | .not f => f.size
   | .and f g => f.size + g.size
   | .or f g => f.size + g.size
 
+/-- The number of true bits in a Boolean register. -/
 def regWeight (n : ℕ) (x : Reg n) : ℕ := ∑ i, if x i then 1 else 0
 
+/-- The strict-majority predicate, true when twice the register weight exceeds its width. -/
 def regMajority (n : ℕ) (x : Reg n) : Bool := decide (n < 2 * regWeight n x)
 
+/-- The statement that every formula computing strict majority on `n` input bits has at least
+`n` variable occurrences. -/
 def MajorityFormulaLowerBoundSpec : Prop :=
   ∀ (n : ℕ) (F : BoolFormula (Fin n)), (∀ x : Reg n, F.eval x = regMajority n x) →
     n ≤ F.size
 
+/-- A local QTM equipped with a finite set of query states and a tape-symbol answer map. -/
 structure OracleQTM (Q A : Type) [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     where
 
@@ -211,6 +280,7 @@ structure OracleQTM (Q A : Type) [Fintype Q] [DecidableEq Q] [Fintype A] [Decida
 
   oracleAnswer : A → A
 
+/-- The finite-window transition matrix induced by a raw local transition-amplitude function. -/
 noncomputable def rawWindowStep {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {t : ℕ} (δ : Q → A → QtmMove → Q → A → ℂ) :
     Matrix (WindowCfg t Q A) (WindowCfg t Q A) ℂ :=
@@ -220,6 +290,8 @@ noncomputable def rawWindowStep {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintyp
           ∀ j : Fin (2 * t + 1), c'.tape j = if j = c.head then b else c.tape j
       then δ c.state (c.tape c.head) d q' b else 0
 
+/-- Uses the underlying transition rule outside query states and, in query states, replaces the
+scanned symbol by its oracle answer while keeping the state and head fixed. -/
 noncomputable def oracleDelta {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (O : OracleQTM Q A) : Q → A → QtmMove → Q → A → ℂ :=
   fun q a d q' b =>
@@ -227,11 +299,15 @@ noncomputable def oracleDelta {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype 
       (if d = QtmMove.stay ∧ q' = q ∧ b = O.oracleAnswer a then 1 else 0)
     else O.machine.step q a d q' b
 
+/-- The finite-window transition matrix determined by the oracle-modified local transition
+function. -/
 noncomputable def oracleWindowStep {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {t : ℕ} (O : OracleQTM Q A) :
     Matrix (WindowCfg t Q A) (WindowCfg t Q A) ℂ :=
   rawWindowStep (oracleDelta O)
 
+/-- The condition that ordinary states use the underlying rule and each query state has
+normalized outgoing amplitudes with amplitude one for its prescribed oracle update. -/
 def OracleExecutionCorrect {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (O : OracleQTM Q A) : Prop :=
   (∀ q a, q ∉ O.queryStates → ∀ d q' b,
@@ -240,6 +316,8 @@ def OracleExecutionCorrect {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     (∑ d : QtmMove, ∑ q' : Q, ∑ b : A, ‖oracleDelta O q a d q' b‖ ^ 2 = 1) ∧
       oracleDelta O q a QtmMove.stay q (O.oracleAnswer a) = 1)
 
+/-- The Born mass of configurations in the specified accepting state after the given number of
+oracle-window steps. -/
 noncomputable def oracleQtmAcceptProb {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] {w : ℕ} (O : OracleQTM Q A) (qacc : Q)
     (m steps : ℕ) (x : Fin m → A) : ℝ :=
@@ -247,6 +325,8 @@ noncomputable def oracleQtmAcceptProb {Q A : Type} [Fintype Q] [DecidableEq Q]
     BornProb ((oracleWindowStep (t := w) O) ^ steps *ᵥ
       Ket (initWindowCfg (t := w) O.machine m x)) c
 
+/-- The sum, over execution times before the step bound, of the Born mass in configurations
+whose states are query states. -/
 noncomputable def oracleQueryMass {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] {w : ℕ} (O : OracleQTM Q A) (m steps : ℕ)
     (x : Fin m → A) : ℝ :=
@@ -255,8 +335,14 @@ noncomputable def oracleQueryMass {Q A : Type} [Fintype Q] [DecidableEq Q]
       BornProb ((oracleWindowStep (t := w) O) ^ j *ᵥ
         Ket (initWindowCfg (t := w) O.machine m x)) c
 
+/-- The integer-valued Boolean character given by the product of minus-one factors at
+coordinates where both registers are true. -/
 def phaseChar {n : ℕ} (s g : Reg n) : ℤ := ∏ i : Fin n, if s i ∧ g i then (-1 : ℤ) else 1
 
+/-- The conjunction of the stated oracle separation, bit recovery, single-query-state
+simulation, phase-character computation, amplification, query-mass, clocking, and
+approximate halting specifications. It also includes complement and intersection closure for
+`InBQP`. -/
 def OracleTransportSpec : Prop :=
   ParityOracleSeparationRestricted ∧
   (∀ (n : ℕ), 0 < n → ∀ s : Reg n,

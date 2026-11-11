@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Survival tails and finite stopping costs
+
+This module defines `finiteSurvival` for a probability-mass-function transition system and
+relates finite stopping costs to survival probabilities. It proves that first-stop probabilities
+are successive survival differences and that expected truncated cost is the finite sum of
+survival tails.
+
+The event and expectation identities support a geometric bound when every transition continues
+with probability at most `q ≤ 1`. Such bounds provide cost estimates for finite truncations of
+randomized quantum search as studied in [BoyerEtAl1998].
+
+## Main statements
+
+* `finite_first_stop_mass`: first-stop mass as a survival difference.
+* `finite_stopping_cost_tail_sum`: the finite tail-sum identity for expected cost.
+* `finite_survival_geometric_bound`: geometric survival and truncated-cost bounds.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
@@ -22,10 +46,13 @@ variable {α β ι : Type}
 
 namespace CostedLaw
 
+/-- Pointwise equal functions have equal expectations under the same probability mass function. -/
 theorem expectation_congr {p : PMF α} {f g : α → ℝ≥0∞} (h : ∀ a, f a = g a) :
     expectation p f = expectation p g :=
   tsum_congr fun a => by rw [h a]
 
+/-- A pointwise inequality between extended nonnegative real functions gives the corresponding
+inequality between their expectations. -/
 theorem expectation_le_of_forall {p : PMF α} {f g : α → ℝ≥0∞} (h : ∀ a, f a ≤ g a) :
     expectation p f ≤ expectation p g := by
   show ∑' a, p a * f a ≤ ∑' a, p a * g a
@@ -35,39 +62,51 @@ theorem expectation_le_of_forall {p : PMF α} {f g : α → ℝ≥0∞} (h : ∀
   · exact (ENNReal.mul_le_mul_iff_right hp
         (fun h => absurd (PMF.coe_le_one p a) (by rw [h]; simp))).mpr (h a)
 
+/-- The probability of an event equals the expectation of its zero-one indicator. -/
 theorem event_eq (p : PMF α) (Q : α → Prop) :
     event p Q = expectation p fun x => if Q x then 1 else 0 := rfl
 
+/-- The probability of an event under `ret a` is the indicator of that event at the zero-cost
+output `(a, 0)`. -/
 theorem event_ret (a : α) (Q : α × ℕ → Prop) :
     event (ret a) Q = if Q (a, 0) then 1 else 0 := by
   show expectation (PMF.pure (a, 0)) (fun x => if Q x then 1 else 0) = _
   rw [expectation_pure]
 
+/-- An event containing the zero-cost output `(a, 0)` has probability one under `ret a`. -/
 theorem event_ret_one (a : α) {Q : α × ℕ → Prop} (h : Q (a, 0)) : event (ret a) Q = 1 := by
   rw [event_ret, if_pos h]
 
+/-- An event excluding the zero-cost output `(a, 0)` has probability zero under `ret a`. -/
 theorem event_ret_zero (a : α) {Q : α × ℕ → Prop} (h : ¬Q (a, 0)) : event (ret a) Q = 0 := by
   rw [event_ret, if_neg h]
 
+/-- The probability of an event after monadic binding equals the expectation of its conditional
+event probabilities. -/
 theorem event_bind_general (p : CostedLaw α) (g : α × ℕ → PMF (β × ℕ)) (Q : β × ℕ → Prop) :
     event (PMF.bind p g) Q = expectation p fun x => event (g x) Q := by
   rw [event_eq (PMF.bind p g) Q, expectation_bind]
   exact expectation_congr fun x => event_eq (g x) Q
 
+/-- The probability of an event under a mapped probability mass function equals the probability
+of its preimage. -/
 theorem event_map (p : PMF α) (g : α → β) (E : β → Prop) :
     event (PMF.map g p) E = event p fun x => E (g x) := by
   rw [event_eq (PMF.map g p) E, event_eq p fun x => E (g x), expectation_map]
 
+/-- Charging cost `n` transforms an event by adding `n` to the recorded cost. -/
 theorem event_charge_general (n : ℕ) (q : CostedLaw α) (Q : α × ℕ → Prop) :
     event (charge n q) Q = event q fun y => Q (y.1, n + y.2) := by
   rw [show charge n q = PMF.map (fun x => (x.1, n + x.2)) q from rfl, event_map]
 
+/-- The probability of any event under a probability mass function is at most one. -/
 theorem event_le_one (p : PMF α) (E : α → Prop) : event p E ≤ 1 := by
   show ∑' a, p a * (if E a then 1 else 0) ≤ 1
   calc ∑' a, p a * (if E a then 1 else 0) ≤ ∑' a, p a * 1 :=
         ENNReal.tsum_le_tsum fun a => by by_cases hE : E a <;> simp [hE]
     _ = 1 := by simp [PMF.tsum_coe]
 
+/-- Pointwise equivalent event predicates have equal probabilities. -/
 theorem event_congr {p : PMF α} {E E' : α → Prop} (h : ∀ a, E a ↔ E' a) :
     event p E = event p E' := by
   show ∑' a, p a * (if E a then 1 else 0) = ∑' a, p a * (if E' a then 1 else 0)
@@ -77,18 +116,21 @@ theorem event_congr {p : PMF α} {E E' : α → Prop} (h : ∀ a, E a ↔ E' a) 
     · have h2 : ¬E' a := fun hx => h1 ((h a).mpr hx)
       simp [h1, h2]
 
+/-- An event that holds for no outcome has probability zero. -/
 theorem event_zero (p : PMF α) (E : α → Prop) (h : ∀ a, ¬E a) : event p E = 0 := by
   have h0 : ∀ a, p a * (if E a then 1 else 0) = 0 := fun a => by rw [if_neg (h a), mul_zero]
   show ∑' a, p a * (if E a then 1 else 0) = 0
   rw [tsum_congr h0]
   exact tsum_zero
 
+/-- Multiplication by a constant in `ℝ≥0∞` commutes with expectation. -/
 theorem expectation_const_mul (p : PMF α) (c : ℝ≥0∞) (f : α → ℝ≥0∞) :
     expectation p (fun a => c * f a) = c * expectation p f := by
   show ∑' a, p a * (c * f a) = c * ∑' a, p a * f a
   rw [← ENNReal.tsum_mul_left]
   exact tsum_congr fun a => by ring
 
+/-- Expectation commutes with a finite sum of extended nonnegative real functions. -/
 theorem expectation_sum (p : PMF α) (s : Finset ι) (f : ι → α → ℝ≥0∞) :
     expectation p (fun a => ∑ i ∈ s, f i a) = ∑ i ∈ s, expectation p (f i) := by
   classical
@@ -103,6 +145,8 @@ theorem expectation_sum (p : PMF α) (s : Finset ι) (f : ι → α → ℝ≥0�
 
 end CostedLaw
 
+/-- The equivalence between a sum type and a Boolean-indexed dependent pair, with `false`
+selecting the left summand. -/
 private def sumSigmaEquivAux (α β : Type) :
     (α ⊕ β) ≃ ((b : Bool) × Bool.rec (motive := fun _ => Type) α β b) where
   toFun
@@ -118,6 +162,7 @@ private def sumSigmaEquivAux (α β : Type) :
     | ⟨false, x⟩ => rfl
     | ⟨true, x⟩ => rfl
 
+/-- An extended nonnegative real sum over a sum type splits into the sums over its two summands. -/
 theorem tsum_sum_type' {α β : Type} (F : α ⊕ β → ℝ≥0∞) :
     ∑' z : α ⊕ β, F z = (∑' a, F (Sum.inl a)) + ∑' b, F (Sum.inr b) := by
   have htrue : (∑' x : (Bool.rec (motive := fun _ => Type) α β true),
@@ -139,6 +184,8 @@ theorem tsum_sum_type' {α β : Type} (F : α ⊕ β → ℝ≥0∞) :
     exact ENNReal.summable.hasSum
   exact ((Equiv.hasSum_iff (sumSigmaEquivAux α β).symm).mp hs).tsum_eq
 
+/-- An extended nonnegative real sum over a product type equals the iterated sum over its two
+factors. -/
 theorem tsum_prod_type' {α β : Type} (F : α × β → ℝ≥0∞) :
     ∑' p : α × β, F p = ∑' a, ∑' b, F (a, b) :=
   Summable.tsum_prod' ENNReal.summable fun _ => ENNReal.summable
@@ -149,10 +196,12 @@ section Survival
 
 variable {S A : Type}
 
+/-- The probability that a configuration is still running after `n` steps of `runFor`. -/
 noncomputable def finiteSurvival (next : S → PMF (Configuration S A))
     (n : ℕ) (cfg : Configuration S A) : ℝ≥0∞ :=
   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next n cfg) fun x => ∃ s, x.1 = Sum.inr s
 
+/-- A running initial configuration survives zero steps with probability one. -/
 theorem finiteSurvival_zero_running (next : S → PMF (Configuration S A)) (s : S) :
     finiteSurvival next 0 (Sum.inr s) = 1 := by
   show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next 0 (Sum.inr s))
@@ -160,6 +209,7 @@ theorem finiteSurvival_zero_running (next : S → PMF (Configuration S A)) (s : 
   rw [runFor_zero]
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_ret_one _ ⟨s, rfl⟩
 
+/-- A halted initial configuration has survival probability zero at every finite horizon. -/
 theorem finiteSurvival_halted (next : S → PMF (Configuration S A)) (n : ℕ) (a : A) :
     finiteSurvival next n (Sum.inl a) = 0 := by
   show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next n (Sum.inl a))
@@ -167,10 +217,13 @@ theorem finiteSurvival_halted (next : S → PMF (Configuration S A)) (n : ℕ) (
   rw [runFor_halted]
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_ret_zero _ fun h => Exists.elim h fun t ht => Sum.inl_ne_inr ht
 
+/-- The finite-horizon survival probability is at most one. -/
 theorem finiteSurvival_le_one (next : S → PMF (Configuration S A)) (n : ℕ)
     (cfg : Configuration S A) : finiteSurvival next n cfg ≤ 1 :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one _ _
 
+/-- Survival for `j + 1` steps from a running state equals the expected `j`-step survival after
+one transition. -/
 theorem finiteSurvival_succ_running (next : S → PMF (Configuration S A)) (j : ℕ) (s : S) :
     finiteSurvival next (j + 1) (Sum.inr s) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (next s) fun cfg => finiteSurvival next j cfg := by
@@ -194,6 +247,7 @@ theorem finiteSurvival_succ_running (next : S → PMF (Configuration S A)) (j : 
     h1, h2, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr fun c => h3 c
 
+/-- Finite-horizon survival probability is nonincreasing in the number of steps. -/
 theorem finiteSurvival_succ_le (next : S → PMF (Configuration S A)) (n : ℕ)
     (cfg : Configuration S A) : finiteSurvival next (n + 1) cfg ≤ finiteSurvival next n cfg := by
   have h1 : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
@@ -234,6 +288,8 @@ theorem finiteSurvival_succ_le (next : S → PMF (Configuration S A)) (n : ℕ)
                   (by simp)
     _ = finiteSurvival next n cfg := rfl
 
+/-- Successive survival probabilities are nonincreasing and at most one, and halted
+configurations have zero survival probability. -/
 theorem finiteSurvival_bounds (next : S → PMF (Configuration S A))
     (cfg : Configuration S A) (n : ℕ) :
     finiteSurvival next (n + 1) cfg ≤ finiteSurvival next n cfg ∧
@@ -242,6 +298,8 @@ theorem finiteSurvival_bounds (next : S → PMF (Configuration S A))
   ⟨finiteSurvival_succ_le next n cfg, finiteSurvival_le_one next n cfg,
     fun a => finiteSurvival_halted next n a⟩
 
+/-- Starting from a running state, the probability of halting with recorded cost zero is zero
+for every finite fuel bound. -/
 theorem runFor_no_halt_at_cost_zero (next : S → PMF (Configuration S A))
     (fuel : ℕ) (t : S) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next fuel (Sum.inr t))
@@ -273,6 +331,8 @@ theorem runFor_no_halt_at_cost_zero (next : S → PMF (Configuration S A))
       exact (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr fun c => h2 c).trans
         (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const (next t) 0)
 
+/-- Within the fuel bound, the probability of halting at cost `j + 1` plus survival through `j +
+1` steps equals survival through `j` steps. -/
 private theorem first_stop_add_aux (next : S → PMF (Configuration S A)) :
     ∀ (fuel : ℕ) (s : S) (j : ℕ), j + 1 ≤ fuel →
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next fuel (Sum.inr s))
@@ -374,6 +434,8 @@ private theorem first_stop_add_aux (next : S → PMF (Configuration S A)) :
               exact htarget
             exact hgoal
 
+/-- For `1 ≤ k ≤ fuel`, the probability of halting at cost `k` plus survival through `k` steps
+equals survival through `k - 1` steps. -/
 theorem first_stop_mass_add (next : S → PMF (Configuration S A)) (fuel k : ℕ) (s : S)
     (hk : 1 ≤ k) (hkf : k ≤ fuel) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next fuel (Sum.inr s))
@@ -382,6 +444,8 @@ theorem first_stop_mass_add (next : S → PMF (Configuration S A)) (fuel k : ℕ
   obtain ⟨j, rfl⟩ : ∃ j, k = j + 1 := ⟨k - 1, by omega⟩
   exact first_stop_add_aux next fuel s j (by omega)
 
+/-- For `1 ≤ k ≤ fuel`, the probability of halting at cost `k` is the difference between the
+survival probabilities at `k - 1` and `k`. -/
 theorem finite_first_stop_mass (next : S → PMF (Configuration S A)) (s : S)
     (fuel k : ℕ) (h1 : 1 ≤ k) (hk : k ≤ fuel) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next fuel (Sum.inr s))
@@ -405,6 +469,8 @@ theorem finite_first_stop_mass (next : S → PMF (Configuration S A)) (s : S)
   rw [h] at hle1
   exact absurd hle1 (not_le.2 (by simp : (1 : ℝ≥0∞) < ⊤))
 
+/-- The expected cost of a finite run equals the sum of its survival probabilities at times
+strictly below the fuel bound. -/
 theorem finite_stopping_cost_tail_sum (next : S → PMF (Configuration S A))
     (cfg : Configuration S A) (fuel : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (runFor next fuel cfg)
@@ -442,6 +508,9 @@ theorem finite_stopping_cost_tail_sum (next : S → PMF (Configuration S A))
           rw [runFor, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost_bind, htick, hexp,
             Finset.sum_range_succ', finiteSurvival_zero_running, add_comm]
 
+/-- If every transition remains running with probability at most `q ≤ 1`, survival through
+`fuel` steps is at most `q^fuel`. The expected truncated cost is at most the corresponding
+finite geometric sum. -/
 theorem finite_survival_geometric_bound (next : S → PMF (Configuration S A))
     (s : S) (q : ℝ≥0∞) (fuel : ℕ) (hq : q ≤ 1)
     (hstep : ∀ t, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (next t) (fun cfg => ∃ u, cfg = Sum.inr u) ≤ q) :

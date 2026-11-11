@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockCoordinateFrame
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorHistoryBorn
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+
+/-!
+# Projector readout of a binary clock history
+
+This module applies a projector encoding to a purified binary clock simulation.
+`projectorTransport` inserts the projector ancilla, applies its unitary, and rearranges
+registers into `Result` coordinates.
+
+`actual` is the simulated output and `framedReference` uses exact midpoint evolution. Their
+distance controls the error between a projector measurement probability and the physical time
+integral, using the Born-rule framework of [NielsenChuang2010].
+
+## Main statements
+
+* `framedReference_eq`: the reference agrees with the ideal projector history on the augmented
+  purification.
+* `actual_integral_error`: the integral error is bounded by quadrature error plus simulation
+  error.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -59,7 +83,11 @@ open scoped Classical BigOperators Interval Kronecker Matrix.Norms.L2Operator
 
 variable {I E : Type} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 
+/-- The raw single controlled-oracle simulator register together with the purification
+environment. -/
 abbrev Raw (q a : ℕ) (I E : Type) := BinaryClockSingleCU.New q (Reg a × I) × E
+/-- The readout register containing the finite clock label, environment with simulator work, and
+projector ancilla with system. -/
 abbrev Result (q a m : ℕ) (I E : Type) :=
   Fin (2^q) × ((E × BinaryClockCoordinateFrame.Work a) × (Reg m × I))
 
@@ -67,6 +95,8 @@ noncomputable local instance executionDecidableEq (q a : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q (Reg a × I)) :=
   BinaryClockSingleCU.newDecidableEq q (Reg a × I)
 
+/-- A basis-fiber embedding places a state on the selected ancilla label and gives zero on every
+other label. -/
 theorem fiber_apply {X Y : Type} [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (a : X) (v : QState Y) (x : X × Y) :
     (encodingFiber a *ᵥ v) x = if x.1 = a then v x.2 else 0 := by
@@ -76,47 +106,61 @@ theorem fiber_apply {X Y : Type} [DecidableEq X] [Fintype Y] [DecidableEq Y]
   · simp only [encodingFiber, Matrix.of_apply, Matrix.mulVec, dotProduct, h, false_and,
       if_false, zero_mul, Finset.sum_const_zero]
 
+/-- Applying an isometry to a normalized state preserves normalization. -/
 theorem normalized_isometry_apply {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (F : Matrix X Y ℂ) (hF : IsIsometry F)
     (v : QState Y) (hv : Normalized v) : Normalized (F *ᵥ v) := by
   apply (normalized_iff_norm_toEuclidean_fromVec _).mpr
   rw [isometry_mulVec_norm hF, (normalized_iff_norm_toEuclidean_fromVec _).mp hv]
 
+/-- Move the purification environment past the system while retaining the clock coordinate. -/
 def logicalEquiv (q : ℕ) : (Reg q × (E × I)) ≃ ((Reg q × I) × E) where
   toFun x := ((x.1,x.2.2),x.2.1)
   invFun x := (x.1.1,(x.2,x.1.2))
   left_inv := by rintro ⟨z,r,i⟩; rfl
   right_inv := by rintro ⟨⟨z,i⟩,r⟩; rfl
 
+/-- Tensor a purification with the uniform binary clock state and rearrange it into logical
+simulator coordinates. -/
 noncomputable def logicalState (q : ℕ) (ψ : QState (E × I)) : QState ((Reg q × I) × E) :=
   relabelState (logicalEquiv (I := I) (E := E) q) (TensorState (Uniform (Reg q)) ψ)
 
 omit [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E] in
 
+/-- A logical history input amplitude factors as the uniform clock amplitude times the
+purification amplitude. -/
 theorem logicalState_apply (q : ℕ) (ψ : QState (E × I)) (z : Reg q) (i : I) (r : E) :
     logicalState q ψ ((z,i),r) = Uniform (Reg q) z * ψ (r,i) := rfl
 
+/-- The logical history input is normalized whenever the purification is normalized. -/
 theorem logicalState_normalized (q : ℕ) (ψ : QState (E × I)) (hψ : Normalized ψ) :
     Normalized (logicalState q ψ) :=
   normalized_relabelState _ (normalized_tensorState
     (normalized_uniform (I := Reg q) Fintype.card_pos) hψ)
 
+/-- Casting a rational midpoint time to the reals equals the real time scale times the real
+midpoint. -/
 theorem midpoint_time (q : ℕ) (T : ℚ) (j : Fin (2^q)) :
     ((T * Clock.rationalMidpoint (2^q) j : ℚ) : ℝ) =
       (T : ℝ) * Clock.midpoint (2^q) j := by
   simp only [Clock.rationalMidpoint, Clock.midpoint,
     Rat.cast_mul, Rat.cast_div, Rat.cast_add, Rat.cast_natCast, Rat.cast_one, Rat.cast_ofNat]
 
+/-- The uniform amplitude is unchanged when a binary clock string is converted to its finite
+clock label. -/
 theorem clock_uniform (q : ℕ) (z : Reg q) :
     Uniform (Reg q) z = Uniform (Fin (2^q)) (Clock.clockEquiv q z) := by
   simp only [Uniform, Fintype.card_congr (Clock.clockEquiv q)]
 
+/-- The real cast of a rational midpoint equals the corresponding real midpoint. -/
 theorem midpoint_cast (N : ℕ) (j : Fin N) :
     ((Clock.rationalMidpoint N j : ℚ) : ℝ) =
       Clock.midpoint N j := by
   simp only [Clock.rationalMidpoint, Clock.midpoint,
     Rat.cast_div, Rat.cast_add, Rat.cast_natCast, Rat.cast_one, Rat.cast_ofNat]
 
+/-- On each clock and environment slice, the purified target applies Hamiltonian evolution at
+that clock's midpoint time. -/
 theorem target_slice (q : ℕ) (H : Matrix I I ℂ) (T : ℚ)
     (Ψ : QState ((Reg q × I) × E)) (z : Reg q) (i : I) (r : E) :
     (BinaryClockPurifier.target (E := E) q H T *ᵥ Ψ) ((z,i),r) =
@@ -126,6 +170,8 @@ theorem target_slice (q : ℕ) (H : Matrix I I ℂ) (T : ℚ)
     Matrix.mulVec, dotProduct, Qatlib.Concepts.BlockEncoding.LCU.select,
     Fintype.sum_prod_type, Matrix.one_apply, mul_ite, ite_mul, Rat.cast_mul, midpoint_cast]
 
+/-- Rearrange the projector ancilla and raw simulator coordinates into the readout result
+coordinates. -/
 def outputEquiv (q a m : ℕ) :
     (Reg m × Raw q a I E) ≃ Result q a m I E where
   toFun x :=
@@ -145,24 +191,31 @@ def outputEquiv (q a m : ℕ) :
     rintro ⟨j,⟨ew,⟨anc,i⟩⟩⟩
     simp only [Equiv.apply_symm_apply]
 
+/-- The projector encoding acting on its ancilla and system, transported to raw simulator
+coordinates. -/
 noncomputable def projectorPort (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) :
     Matrix (Reg m × Raw q a I E) (Reg m × Raw q a I E) ℂ :=
   relabelGate (outputEquiv (I := I) (E := E) q a m).symm
     (parallelOracle (J := Fin (2^q))
       (parallelOracle (J := E × BinaryClockCoordinateFrame.Work a) UPi))
 
+/-- Transporting a unitary projector encoding to the raw simulator coordinates preserves
+unitarity. -/
 theorem projectorPort_unitary (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ)
     (hPi : UPi ∈ Matrix.unitaryGroup (Reg m × I) ℂ) :
     projectorPort (E := E) q a m UPi ∈ Matrix.unitaryGroup _ ℂ :=
   (relabelGate_mem_unitaryGroup (outputEquiv (I := I) (E := E) q a m).symm _).2
     (parallelOracle_unitary (parallelOracle_unitary hPi))
 
+/-- Insert the zero projector ancilla, apply the projector port, and relabel the resulting state
+into readout coordinates. -/
 noncomputable def projectorTransport (q a m : ℕ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (v : QState (Raw q a I E)) :
     QState (Result q a m I E) :=
   relabelState (outputEquiv q a m)
     (projectorPort q a m UPi *ᵥ (encodingFiber (ZeroStr m) *ᵥ v))
 
+/-- Projector transport preserves differences of input states. -/
 theorem transport_sub (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ)
     (v w : QState (Raw q a I E)) :
     projectorTransport q a m UPi v - projectorTransport q a m UPi w =
@@ -171,6 +224,7 @@ theorem transport_sub (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ)
   simp only [projectorTransport, relabelState, Function.comp_apply,
     Matrix.mulVec_sub, Pi.sub_apply]
 
+/-- Projector transport preserves the Euclidean norm when the projector encoding is unitary. -/
 theorem transport_norm (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ)
     (hPi : UPi ∈ Matrix.unitaryGroup (Reg m × I) ℂ) (v : QState (Raw q a I E)) :
     ‖toEuclidean_fromVec (projectorTransport q a m UPi v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -180,6 +234,8 @@ theorem transport_norm (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ
   rw [projectorTransport, norm_toEuclidean_relabelState, isometry_mulVec_norm hi,
     isometry_mulVec_norm (encodingFiber_isIsometry (I := Raw q a I E) (ZeroStr m))]
 
+/-- Projector transport equals the extended projector gate applied after insertion and
+relabeling of the zero ancilla. -/
 theorem transport_gate (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ)
     (v : QState (Raw q a I E)) :
     projectorTransport q a m UPi v =
@@ -197,6 +253,8 @@ theorem transport_gate (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ
     relabelState_relabelState e.symm v
   simpa only [hinv, projectorTransport, projectorPort, ApplyGate, e, P, φ] using! hh
 
+/-- Each readout slice is obtained by applying `UPi` to the corresponding raw-state slice
+embedded at the zero projector ancilla. -/
 theorem transport_slice (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ)
     (v : QState (Raw q a I E)) (j : Fin (2^q))
     (ew : E × BinaryClockCoordinateFrame.Work a) (b : Reg m) (i : I) :
@@ -218,6 +276,8 @@ theorem transport_slice (q a m : ℕ) (UPi : Matrix (Reg m × I) (Reg m × I) �
   rw [fiber_apply]
   rfl
 
+/-- The projector readout state produced by the purified physical-time simulator from the
+logical history input. -/
 noncomputable def actual (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (ψ : QState (E × I)) :
@@ -228,6 +288,8 @@ noncomputable def actual (q a m : ℕ) (α T : ℚ) (k : ℕ)
         (BinaryClockPurifier.initialFrame q (encodingFiber (I := I) (ZeroStr a)) *ᵥ
           logicalState q ψ))
 
+/-- The projector readout state obtained from exact physical midpoint evolution in the simulator
+frame. -/
 noncomputable def framedReference (q a m : ℕ) (H : Matrix I I ℂ) (T : ℚ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (ψ : QState (E × I)) :
     QState (Result q a m I E) :=
@@ -235,6 +297,8 @@ noncomputable def framedReference (q a m : ℕ) (H : Matrix I I ℂ) (T : ℚ)
     (BinaryClockPurifier.initialFrame q (encodingFiber (I := I) (ZeroStr a)) *ᵥ
       (BinaryClockPurifier.target q H T *ᵥ logicalState q ψ))
 
+/-- For a normalized purification, the actual and framed reference outputs differ in Euclidean
+norm by at most `(q+1)*2⁻ᵏ`. -/
 theorem full_output_error (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (H : Matrix I I ℂ) (hH : H.IsHermitian) (hα : 0 < α)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)
@@ -255,6 +319,8 @@ theorem full_output_error (q a m : ℕ) (α T : ℚ) (k : ℕ)
   rw [transport_sub, transport_norm q a m UPi hPi]
   exact hsim
 
+/-- The actual projector readout state is normalized under the stated unitary encoding and
+normalized purification assumptions. -/
 theorem actual_normalized (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (H : Matrix I I ℂ) (hH : H.IsHermitian)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)
@@ -276,6 +342,8 @@ theorem actual_normalized (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (encodingFiber_isIsometry (I := Raw q a I E) (ZeroStr m)) _ hs
   exact normalized_relabelState _ (normalized_applyGate (projectorPort_unitary q a m UPi hPi) hz)
 
+/-- The framed reference equals the ideal midpoint projector history state built from the
+augmented purification. -/
 theorem framedReference_eq (q a m : ℕ) (H : Matrix I I ℂ) (T : ℚ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (ψ : QState (E × I)) :
     framedReference q a m H T UPi ψ =
@@ -341,6 +409,8 @@ theorem framedReference_eq (q a m : ℕ) (H : Matrix I I ℂ) (T : ℚ)
   rw [hinput, Matrix.mulVec_smul]
   rfl
 
+/-- The physical projector integral differs from `T` times the actual zero-ancilla probability
+by at most `α*‖Pi‖*T²/(2*2^q) + 2*T*(q+1)*2⁻ᵏ` under the stated assumptions. -/
 theorem actual_integral_error (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (hα : 0 < α) (hT : 0 ≤ T) (H Pi : Matrix I I ℂ) (hH : H.IsHermitian)
     (U_H : Matrix (Reg a × I) (Reg a × I) ℂ)

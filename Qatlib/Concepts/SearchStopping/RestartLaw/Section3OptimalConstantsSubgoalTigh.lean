@@ -10,10 +10,31 @@ import Mathlib.Data.Real.StarOrdered
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
+
+/-!
+# Certified constants at the Grover restart root
+
+Proves `section3OptimalConstantsSubgoal`, enclosing the success coefficient between 0.8445 and
+0.8446, the iteration coefficient between 0.58278 and 0.58279, and the expected-cost coefficient
+between 0.69002 and 0.69003. The hypotheses identify the root through its equation and rational
+interval. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `section3OptimalConstantsSubgoal`: Establishes `Section3OptimalConstantsSubgoal`, the rational
+  success, iteration, and expected-cost enclosures at the specified restart root.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.SearchStopping.RestartLaw
 
+/-- Establishes `Section3OptimalConstantsSubgoal`, the rational success, iteration, and
+expected-cost enclosures at the specified restart root. -/
 theorem section3OptimalConstantsSubgoal : Section3OptimalConstantsSubgoal := by
   intro z hz hl hu
   have hz0 : 0 < z := by linarith

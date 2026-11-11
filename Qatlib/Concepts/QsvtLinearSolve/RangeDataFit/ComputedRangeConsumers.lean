@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeProjection
+
+/-!
+# Computed data-fitting quality and access costs
+
+This module turns computed range projection and inverse words into least-squares and
+ridge-regression guarantees. It relates measured projection probabilities to residual objectives
+and expands amplitude-estimation accesses into underlying oracle counts, using the QSVT
+framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `computed_data_fit_actual_quality`: A probability guarantee for estimating the least-squares
+  residual.
+* `computed_data_fit_actual_parameter`: Conditional preparation of a least-squares solution
+  state.
+* `ridge_fit_actual_quality_and_access`: Ridge-objective estimation together with exact expanded
+  access counts.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
@@ -42,6 +65,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For normalized input `b`, the squared least-squares residual equals one minus the squared
+least-squares overlap. -/
 theorem fit_minimum_residual_quality {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (hb : Normalized b) :
     ‖stateVector (A*ᵥleastSquaresVector A b-b)‖^2 = 1-(leastSquaresOverlap A b)^2 := by
@@ -49,6 +74,9 @@ theorem fit_minimum_residual_quality {O I : Type} [Fintype O] [DecidableEq O]
   rw [(normalized_iff_stateVector_norm b).mp hb, one_pow] at hh
   linarith
 
+/-- Under the encoding, preparation, and singular-value gap assumptions, amplitude estimation
+approximates the squared least-squares residual within `π / M + π² / M² + (1/2)^k` with
+probability at least `8 / π²`. -/
 theorem computed_data_fit_actual_quality
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (U B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O) (κ k M : ℕ)
@@ -92,6 +120,8 @@ theorem computed_data_fit_actual_quality
   · intro z _ _
     exact (aeLaw M P (false,j) (fitOutputEvent O I) hP hM).nonneg z
 
+/-- The computed inverse word has the stated exact query count and, when its accuracy is smaller
+than twice the overlap, produces a least-squares solution state with error `(1/2)^k / tau`. -/
 theorem computed_data_fit_actual_parameter
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (U : Matrix (O⊕I) (O⊕I) ℂ) (b : QState O) (κ k : ℕ)
@@ -111,6 +141,9 @@ theorem computed_data_fit_actual_parameter
       computed_full_inverse_actual_encoding_and_cost (O⊕I) I O A U fitLeft fitRight κ k henc hκ hgap
   exact ⟨fun ht => (hh.1 ht).2, hc.2.2.2.1⟩
 
+/-- Least squares on the ridge-augmented system minimizes the ridge objective for nonnegative
+`lam`. For normalized input, the minimum objective equals one minus the squared
+augmented-system overlap. -/
 theorem data_fit_ridge_objective_and_quality
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (b : QState O) (lam : ℝ) (hlam : 0≤lam) (hb : Normalized b) :
@@ -132,6 +165,7 @@ theorem data_fit_ridge_objective_and_quality
   · rw [← ridge_augmented_residual A b lam _ hlam]
     exact fit_minimum_residual_quality _ _ hy
 
+/-- The amplitude-estimation input access count is the sum of its forward and backward accesses. -/
 private theorem fit_ae_input_split {R : Type} (w : List (AEAccessStep R)) :
     aeInputAccesses w=aeForwardAccesses w+aeBackwardAccesses w := by
   induction w with
@@ -139,6 +173,8 @@ private theorem fit_ae_input_split {R : Type} (w : List (AEAccessStep R)) :
   | cons s w ih =>
     cases s <;> simp [aeInputAccesses, aeForwardAccesses, aeBackwardAccesses] at * <;> omega
 
+/-- For `M ≥ 2`, amplitude estimation uses `M` forward and `M - 1` backward accesses, yielding
+`(2 * M - 1) * (2 * explicitInverseCutoff κ (k + 2))` expanded projection-word queries. -/
 theorem data_fit_actual_expanded_ae_access_ledger
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (κ k M : ℕ) (_hκ : 0 < κ) (hM : 2≤M) :
@@ -164,6 +200,9 @@ theorem data_fit_actual_expanded_ae_access_ledger
   congr 1
   omega
 
+/-- Under the augmented encoding, preparation, and gap assumptions, the ridge objective is
+estimated within `π / M + π² / M² + (1/2)^k` with probability at least `8 / π²`. The theorem
+also records exact forward, backward, and expanded oracle access counts. -/
 theorem ridge_fit_actual_quality_and_access
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) (b : QState O) (lam : ℝ)

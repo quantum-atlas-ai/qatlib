@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixture
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Instruments for unitary mixtures and their composition
+
+This module realizes a unitary mixture as an instrument with Kraus operators `sqrt (d.prob j) •
+U j`. It identifies its branches, outcome probabilities, and forgotten channel, and proves that
+sequential independent mixtures correspond to products of the sampled unitaries. These
+constructions use the channel and instrument framework of [Watrous2018].
+
+## Main statements
+
+* `unitaryMixtureInstrument_spec`: branch, channel, and probability formulas.
+* `unitaryMixture_composition`: composition agrees with the independent-pair mixture.
+* `unitaryMixtureInstrument_seq_spec`: sequential branches and their probabilities.
+* `channelAmplification_unitaryMixture`: the finite-reference amplification formula.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -23,33 +44,40 @@ open scoped Kronecker
 
 set_option autoImplicit false
 
+/-- The complex cast of a real number is fixed by conjugation. -/
 private lemma star_real (r : ℝ) : star (r : ℂ) = (r : ℂ) := by
   simp [RCLike.star_def, Complex.conj_ofReal]
 
+/-- Two successive complex scalar actions on a matrix equal the action of the product scalar. -/
 private lemma smul_smul' {α : Type*} [Fintype α] (c d : ℂ) (M : Matrix α α ℂ) :
     c • (d • M) = (c * d) • M := by
   ext i j
   show c * (d * M i j) = c * d * M i j
   ring
 
+/-- A complex scalar multiplying the input factors out of matrix conjugation. -/
 private lemma smul_conj' {α : Type*} [Fintype α] (c : ℂ) (V Y : Matrix α α ℂ) :
     V * (c • Y) * Vᴴ = c • (V * Y * Vᴴ) := by
   simp only [Matrix.mul_smul, Matrix.smul_mul]
 
+/-- A complex scalar multiplying a conjugated matrix can be moved inside the conjugation. -/
 private lemma smul_conj {α : Type*} [Fintype α] (c : ℂ) (V Y : Matrix α α ℂ) :
     c • (V * Y * Vᴴ) = V * (c • Y) * Vᴴ :=
   (smul_conj' c V Y).symm
 
+/-- A finite sum of matrix scalar multiples equals the scalar multiple of the sum. -/
 private lemma fintype_smul_sum {J : Type*} [Fintype J] {α : Type*} [Fintype α] (c : ℂ)
     (f : J → Matrix α α ℂ) : (∑ j, c • f j) = c • (∑ j, f j) :=
   (Finset.smul_sum (s := Finset.univ)).symm
 
+/-- A sum over index pairs equals the iterated sum with the second index outermost. -/
 private lemma fintype_sum_pair_swap {J K : Type*} [Fintype J] [Fintype K] {D : ℕ}
     (f : J → K → Operator D) : (∑ x : J × K, f x.1 x.2) = ∑ k, ∑ j, f j k := by
   calc (∑ x : J × K, f x.1 x.2) = ∑ y : K × J, f y.2 y.1 :=
           Equiv.sum_comp (Equiv.prodComm J K) (fun y : K × J => f y.2 y.1)
     _ = ∑ k, ∑ j, f j k := Fintype.sum_prod_type' (fun k j => f j k)
 
+/-- A probability-weighted sum of copies of one matrix equals that matrix. -/
 theorem sum_weight_smul_one {J : Type*} [Fintype J] (d : FinDist J) {D : ℕ} (M : Operator D) :
     (∑ j, (d.prob j : ℂ) • M) = M := by
   have hsum : (∑ j, (d.prob j : ℂ)) = (1 : ℂ) := by
@@ -61,14 +89,19 @@ theorem sum_weight_smul_one {J : Type*} [Fintype J] (d : FinDist J) {D : ℕ} (M
     _ = 1 * M i k := by rw [hsum]
     _ = M i k := one_mul _
 
+/-- Scaling by the complex cast of a product of real numbers equals the corresponding successive
+scalar actions. -/
 private lemma ofReal_smul {α : Type*} [Fintype α] (p q : ℝ) (M : Matrix α α ℂ) :
     ((p * q : ℝ) : ℂ) • M = (q : ℂ) • ((p : ℂ) • M) := by
   rw [Complex.ofReal_mul, mul_comm, (smul_smul' _ _ _).symm]
 
+/-- The square of the complex cast of the square root of a probability equals the complex cast
+of that probability. -/
 private lemma real_sqrt_sq {J : Type*} [Fintype J] (d : FinDist J) (j : J) :
     (Real.sqrt (d.prob j) : ℂ) * (Real.sqrt (d.prob j) : ℂ) = (d.prob j : ℂ) := by
   rw [← Complex.ofReal_mul, ← pow_two, Real.sq_sqrt (d.nonneg j)]
 
+/-- Conjugation by a unitary matrix preserves trace. -/
 theorem trace_conjBranch {J : Type*} [Fintype J] [DecidableEq J] (d : FinDist J) {D : ℕ}
     (M : Operator D) (hM : M ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : Operator D) :
     Matrix.trace (M * ρ * Mᴴ) = Matrix.trace ρ := by
@@ -76,10 +109,13 @@ theorem trace_conjBranch {J : Type*} [Fintype J] [DecidableEq J] (d : FinDist J)
   unfold ChannelMixture at h
   rwa [sum_weight_smul_one d] at h
 
+/-- The branch operator `U j` scaled by the square root of its probability. -/
 noncomputable def unitaryMixtureKraus {J : Type*} [Fintype J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D) (j : J) : Operator D :=
   (Real.sqrt (d.prob j) : ℂ) • U j
 
+/-- Conjugation by a mixture Kraus operator equals the branch conjugation weighted by its
+probability. -/
 theorem unitaryMixtureKraus_conj {J : Type*} [Fintype J] {D : ℕ} (d : FinDist J)
     (U : J → Operator D) (ρ : Operator D) (j : J) :
     unitaryMixtureKraus d U j * ρ * (unitaryMixtureKraus d U j)ᴴ
@@ -89,6 +125,7 @@ theorem unitaryMixtureKraus_conj {J : Type*} [Fintype J] {D : ℕ} (d : FinDist 
     smul_smul']
   rw [mul_assoc, real_sqrt_sq]
 
+/-- For unitary branches, the mixture Kraus operators satisfy the completeness identity. -/
 theorem unitaryMixtureKraus_complete {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -108,11 +145,13 @@ theorem unitaryMixtureKraus_complete {J : Type*} [Fintype J] [DecidableEq J] {D 
     _ = ∑ j, (d.prob j : ℂ) • 1 := Finset.sum_congr rfl fun j _ => by rw [hU' j]
     _ = 1 := sum_weight_smul_one d (1 : Operator D)
 
+/-- The instrument formed from square-root-probability-scaled unitary branch operators. -/
 noncomputable def unitaryMixtureInstrument {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) : Instrument J D D :=
   Instrument.ofKraus (unitaryMixtureKraus d U) (unitaryMixtureKraus_complete d U hU)
 
+/-- Forgetting the mixture instrument outcome gives `ChannelMixture d U`. -/
 theorem unitaryMixture_forget {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ} (d : FinDist J)
     (U : J → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : Operator D) :
     (unitaryMixtureInstrument d U hU).forget.map ρ = ChannelMixture d U ρ := by
@@ -121,6 +160,8 @@ theorem unitaryMixture_forget {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ} 
     conjBranch_apply]
   exact Finset.sum_congr rfl fun j _ => unitaryMixtureKraus_conj d U ρ j
 
+/-- Each instrument branch is the probability-weighted unitary conjugation, the forgotten
+channel is the mixture, and the branch probability is `d.prob j*(Matrix.trace ρ).re`. -/
 theorem unitaryMixtureInstrument_spec {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : Operator D) (j : J) :
@@ -137,10 +178,13 @@ theorem unitaryMixtureInstrument_spec {J : Type*} [Fintype J] [DecidableEq J] {D
   rw [smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- Conjugation by `V*U` equals conjugation first by `U` and then by `V`. -/
 private lemma rebracket {D : ℕ} (V U ρ : Operator D) :
     (V * U) * ρ * (V * U)ᴴ = V * (U * ρ * Uᴴ) * Vᴴ := by
   simp only [Matrix.mul_assoc, Matrix.conjTranspose_mul]
 
+/-- The independent-pair mixture of products `V k*U j` equals applying the `U` mixture followed
+by the `V` mixture. -/
 private lemma mixture_pair {J K : Type*} [Fintype J] [DecidableEq J] [Fintype K]
     [DecidableEq K] {D : ℕ} (d : FinDist J) (e : FinDist K) (U : J → Operator D)
     (V : K → Operator D) (ρ : Operator D) :
@@ -193,6 +237,8 @@ private lemma mixture_pair {J K : Type*} [Fintype J] [DecidableEq J] [Fintype K]
           _ = (e.prob k : ℂ) • (V k * (∑ j, (d.prob j : ℂ) • (U j * ρ * (U j)ᴴ)) * (V k)ᴴ) := by
                 rw [hpush]
 
+/-- Composing two unitary mixtures equals the independent-pair mixture of their ordered
+products. The composition of the forgotten instrument channels has the same output. -/
 theorem unitaryMixture_composition {J K : Type*} [Fintype J] [DecidableEq J] [Fintype K]
     [DecidableEq K] {D : ℕ} (d : FinDist J) (e : FinDist K) (U : J → Operator D)
     (V : K → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -220,10 +266,12 @@ theorem unitaryMixture_composition {J K : Type*} [Fintype J] [DecidableEq J] [Fi
     _ = ChannelMixture (FinDist.independentPair d e) (fun jk => V jk.2 * U jk.1) ρ :=
         h1.symm
 
+/-- A branch of a sequential instrument applies the first branch and then the second branch. -/
 theorem Instrument.seq_branch_apply {O P : Type*} [Fintype O] [Fintype P] {D E F : ℕ}
     (I : Instrument O D E) (J : Instrument P E F) (o : O) (p : P) (ρ : Operator D) :
     (I.seq J).branch (o, p) ρ = J.branch p (I.branch o ρ) := rfl
 
+/-- The product of two unitary matrices is unitary. -/
 private lemma unitary_mul {D : ℕ} {M N : Operator D}
     (hM : M ∈ Matrix.unitaryGroup (Fin D) ℂ) (hN : N ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     M * N ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -237,6 +285,8 @@ private lemma unitary_mul {D : ℕ} {M N : Operator D}
     Matrix.mul_assoc (N)ᴴ (M)ᴴ (M * N), (Matrix.mul_assoc (M)ᴴ M N).symm, hM',
     Matrix.one_mul, hN']
 
+/-- A sequential mixture branch conjugates by `V k*U j` with weight `d.prob j*e.prob k`, and its
+outcome probability is that weight times the real trace of the input. -/
 theorem unitaryMixtureInstrument_seq_spec {J K : Type*} [Fintype J] [DecidableEq J] [Fintype K]
     [DecidableEq K] {D : ℕ} (d : FinDist J) (e : FinDist K) (U : J → Operator D)
     (V : K → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -264,6 +314,8 @@ theorem unitaryMixtureInstrument_seq_spec {J K : Type*} [Fintype J] [DecidableEq
   rw [smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- On a pure-state outer product, a sequential mixture branch yields the outer product of the
+state transformed by `V k*U j`, scaled by the product probability. -/
 theorem unitaryMixtureInstrument_seq_outerProduct {J K : Type*} [Fintype J] [DecidableEq J]
     [Fintype K] [DecidableEq K] {D : ℕ} (d : FinDist J) (e : FinDist K)
     (U : J → Operator D) (V : K → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -277,12 +329,16 @@ theorem unitaryMixtureInstrument_seq_outerProduct {J K : Type*} [Fintype J] [Dec
   rw [← conjBranch_outerProduct]
   rfl
 
+/-- A scalar on the right factor of an identity Kronecker product factors out of the tensor
+product. -/
 private lemma kron_smul {R D : ℕ} (c : ℂ) (M : Matrix (Fin D) (Fin D) ℂ) :
     (1 : Operator R) ⊗ₖ (c • M) = c • ((1 : Operator R) ⊗ₖ M) := by
   show Matrix.kroneckerMap (· * ·) (1 : Operator R) (c • M)
     = c • Matrix.kroneckerMap (· * ·) (1 : Operator R) M
   exact Matrix.kroneckerMap_smul_right (· * · : ℂ → ℂ → ℂ) c (fun _ _ => by ring) _ _
 
+/-- Scaling a conjugating matrix by a real number scales its conjugation map by the square of
+that number. -/
 private lemma conjMap_smul {α : Type*} [Fintype α] (c : ℝ) (M : Matrix α α ℂ)
     (A : Matrix α α ℂ) :
     MatrixMap.conj ((c : ℂ) • M) A = ((c : ℂ) * (c : ℂ)) • (M * A * Mᴴ) := by
@@ -290,6 +346,8 @@ private lemma conjMap_smul {α : Type*} [Fintype α] (c : ℝ) (M : Matrix α α
   simp only [Matrix.conjTranspose_smul, star_real, smul_mul, Matrix.mul_smul, smul_mul,
     smul_smul']
 
+/-- Finite reference amplification of the forgotten mixture instrument equals the
+probability-weighted conjugations by `TensorGate 1 (U j)`. -/
 theorem channelAmplification_unitaryMixture {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (R : ℕ)

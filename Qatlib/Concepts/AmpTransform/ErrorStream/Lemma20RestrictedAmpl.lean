@@ -13,12 +13,31 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20RestrictedStat
 
+/-!
+# Norm bound for a resonant signal and noise sum
+
+This module proves that a normalized sum of the resonant progression contribution and
+unit-modulus noise phases has squared norm at most one. `zoo_amplified_qft_lemma20` provides the
+restricted formulation of Lemma 20 of [Cornwell2014].
+
+## Main statements
+
+* `zoo_amplified_qft_lemma20`: The normalized resonant progression contribution plus the noise
+  phase sum has squared norm at most one under the stated progression and cardinality
+  assumptions; see [Cornwell, Lemma 20][Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 open Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20RestrictedSpec
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
 open scoped BigOperators
 
+/-- Every natural power of `amplifiedQFTOmega N` has complex norm one. -/
 theorem zoo_amplified_qft_lemma20_omega_norm (N k : ℕ) :
     ‖amplifiedQFTOmega N ^ k‖ = 1 := by
   have h : ‖amplifiedQFTOmega N‖ = 1 := by
@@ -30,12 +49,17 @@ theorem zoo_amplified_qft_lemma20_omega_norm (N k : ℕ) :
     exact Complex.norm_exp_ofReal_mul_I _
   rw [norm_pow, h, one_pow]
 
+/-- A finite sum of complex numbers of norm one has norm at most the cardinality of its index
+set. -/
 theorem zoo_amplified_qft_lemma20_norm_sum_le_card (G : Finset ℕ) (f : ℕ → ℂ)
     (hf : ∀ z ∈ G, ‖f z‖ = 1) : ‖∑ z ∈ G, f z‖ ≤ (G.card : ℝ) := by
   calc ‖∑ z ∈ G, f z‖ ≤ ∑ z ∈ G, ‖f z‖ := norm_sum_le G f
     _ = ∑ _z ∈ G, (1 : ℝ) := Finset.sum_congr rfl fun z hz => hf z hz
     _ = (G.card : ℝ) := by simp
 
+/-- The normalized resonant progression contribution plus the noise phase sum has squared norm
+at most one under the stated progression and cardinality assumptions; see [Cornwell, Lemma
+20][Cornwell2014]. -/
 theorem zoo_amplified_qft_lemma20 (n N M L T s P y : ℕ) (A G : Finset ℕ)
     (hN : N = 2 ^ n)
     (hA : A = (Finset.range M).image (fun r => s + r * P))

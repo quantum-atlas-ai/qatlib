@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutStat
+
+/-!
+# Specification of gradient median amplification
+
+`AlmostAffineVectorMedian` specifies independent repeated readout, simultaneous coordinate
+medians, and their circuit and comparison costs. It records both the geometric failure bound and
+a repetition count for a requested confidence, following the amplification framework of
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `AlmostAffineVectorMedian`: normalized fresh output, product masses, coordinatewise median
+  accuracy, and explicit implementation counts.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +45,10 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators
 
+/-- The proposition collecting product-state sampling, coordinatewise median accuracy with
+failure at most `d*(143/144)^r`, and circuit and comparison costs under the almost-affine
+hypotheses. It also states that `gradientMedianRepetitions` achieves any allowed confidence
+parameter `δ`. -/
 def AlmostAffineVectorMedian : Prop :=
   ∀ (d n : ℕ) (hN : 0 < 2^n) (φ : GradientGrid d (2^n) → ℝ)
     (g : Fin d → ℝ) (c : ℝ) (S : Finset (GradientGrid d (2^n))),

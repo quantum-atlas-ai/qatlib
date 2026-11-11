@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SignedWtEnum99.MainResults.Lemma10
+
+/-!
+# Preserving signed enumerators under the Lemma 10 reduction
+
+Independent initial columns make the transpose map injective, allowing multiplication by `H2ᵀ`
+to preserve a kernel constraint. Combining this with `lemma10` preserves the signed enumerator
+and, under a full unit-diagonal hypothesis, produces a square constraint matrix with unit
+diagonal. See [KnillLaflamme1999] for the source development.
+
+## Main statements
+
+* `qsen_eq_of_reduction`: preserves the enumerator when the initial columns are independent and
+  lower triangular parts agree.
+* `qsen_eq_of_lemma10`: obtains an enumerator-preserving replacement matrix.
+* `qsen_eq_of_lemma10_problem3`: produces the square unit-diagonal form used in Problem 3.
+
+## References
+
+* [Knill and Laflamme, 1999][KnillLaflamme1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +38,8 @@ namespace Qatlib.Papers.SignedWtEnum99.MainResults
 
 variable {n N : ℕ}
 
+/-- Multiplication by the transpose of a binary matrix is the linear combination of its rows
+with the vector entries as coefficients. -/
 lemma transpose_mulVec_eq_sum (H : Matrix (Fin n) (Fin N) (ZMod 2))
     (v : Fin n → ZMod 2) :
     Hᵀ *ᵥ v = ∑ i : Fin n, v i • (fun r : Fin N => H i r) := by
@@ -27,6 +50,7 @@ lemma transpose_mulVec_eq_sum (H : Matrix (Fin n) (Fin N) (ZMod 2))
   intro i _
   ring
 
+/-- If the first `n` columns of `H` are independent, then `Hᵀ *ᵥ v = 0` exactly when `v = 0`. -/
 lemma transpose_mulVec_eq_zero_iff (hn : n ≤ N) (H : Matrix (Fin n) (Fin N) (ZMod 2))
     (h : LinearIndependent (ZMod 2)
       (fun j : Fin n => fun i : Fin n => H i (Fin.castLE hn j)))
@@ -71,6 +95,8 @@ lemma transpose_mulVec_eq_zero_iff (hn : n ≤ N) (H : Matrix (Fin n) (Fin N) (Z
     rw [hv]
     exact Matrix.mulVec_zero _
 
+/-- If the first `n` columns of `H2` are independent, the matrices `H2ᵀ * H1` and `H1` have the
+same kernel. -/
 lemma transpose_mulVec_mulVec_eq_zero_iff (hn : n ≤ N)
     (H2 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (h : LinearIndependent (ZMod 2)
@@ -79,6 +105,8 @@ lemma transpose_mulVec_mulVec_eq_zero_iff (hn : n ≤ N)
   rw [← Matrix.mulVec_mulVec]
   exact transpose_mulVec_eq_zero_iff hn H2 h (H1 *ᵥ b)
 
+/-- Independent first `n` columns of `H2` and equality of the lower triangular phase parts imply
+equality of the reduced and original signed enumerators. -/
 theorem qsen_eq_of_reduction (hn : n ≤ N) (H0 H1 H2 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hind : LinearIndependent (ZMod 2)
       (fun j : Fin n => fun i : Fin n => H2 i (Fin.castLE hn j)))
@@ -98,6 +126,8 @@ theorem qsen_eq_of_reduction (hn : n ≤ N) (H0 H1 H2 : Matrix (Fin n) (Fin N) (
       hb ((transpose_mulVec_mulVec_eq_zero_iff hn H2 H1 hind b).mp hh)
     rw [if_neg hb2, if_neg hb]
 
+/-- Under the initial unit-diagonal pairing hypothesis, Lemma 10 supplies a matrix `H2` whose
+reduced signed enumerator equals the original one. See [KnillLaflamme1999]. -/
 theorem qsen_eq_of_lemma10 (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) (x y : ℤ) :
@@ -107,6 +137,9 @@ theorem qsen_eq_of_lemma10 (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 
   obtain ⟨H2, hind, hlw, _⟩ := lemma10 hn H0 H1 hdiag
   exact ⟨H2, qsen_eq_of_reduction hn H0 H1 H2 hind hlw x y⟩
 
+/-- If every diagonal entry of `H0ᵀ * H1` is one, there is a square matrix `A` with unit
+diagonal and `qsen A (lwtr A) x y` equal to the original enumerator. See
+[KnillLaflamme1999]. -/
 theorem qsen_eq_of_lemma10_problem3 (hn : n ≤ N)
     (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin N, (H0ᵀ * H1) i i = 1) (x y : ℤ) :

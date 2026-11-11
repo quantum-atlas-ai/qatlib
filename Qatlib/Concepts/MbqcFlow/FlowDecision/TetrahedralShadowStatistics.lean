@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowInstrument
 import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+
+/-!
+# Moments and concentration of tetrahedral shadows
+
+`tetraStatistic` converts tetrahedral records into unbiased observable estimates with second
+moments and variances bounded by nine times the squared spectral norm. Independent records are
+realized by product density operators and Kraus operators, so their product law agrees with the
+physical Born law.
+
+Chebyshev's inequality and a finite union bound give a simultaneous accuracy bound for sample
+means of a finite family of Hermitian observables. See [HuangKuengPreskill2020].
+
+## Main statements
+
+* `tetrahedral_observable_computed_second_moment_bound`: second-moment and variance bounds.
+* `tetra_fresh_actual_born`: realization of fresh record probabilities by product-state
+  measurements.
+* `tetrahedral_many_observable_actual_mean_bound`: joint concentration for observable sample
+  means.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -24,10 +49,13 @@ set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- Negation preserves the spectral norm of a qubit operator. -/
 theorem operatorSpectralNorm_neg (A : Operator 2) :
     OperatorSpectralNorm (-A) = OperatorSpectralNorm A := by
   rw [OperatorSpectralNorm, OperatorSpectralNorm, map_neg, norm_neg]
 
+/-- For a Hermitian qubit operator, its quadratic form is real and is at most the spectral norm
+times the vector's squared Euclidean norm. -/
 theorem re_dotProduct_mulVec_le (A : Operator 2) (hA : A.IsHermitian) (x : Fin 2 → ℂ) :
     (star x ⬝ᵥ (A *ᵥ x)).im = 0 ∧
       (star x ⬝ᵥ (A *ᵥ x)).re ≤ OperatorSpectralNorm A * (∑ i, ‖x i‖ ^ 2) := by
@@ -103,6 +131,8 @@ theorem re_dotProduct_mulVec_le (A : Operator 2) (hA : A.IsHermitian) (x : Fin 2
       ring
   exact Complex.conj_eq_iff_im.mp hconj
 
+/-- For a Hermitian qubit operator, its spectral norm times the identity minus the operator is
+positive semidefinite. -/
 theorem posSemidef_one_sub_of_isHermitian (A : Operator 2) (hA : A.IsHermitian) :
     (((OperatorSpectralNorm A : ℝ) : ℂ) • (1 : Operator 2) - A).PosSemidef := by
   have hherm : (((OperatorSpectralNorm A : ℝ) : ℂ) • (1 : Operator 2) - A).IsHermitian := by
@@ -132,6 +162,8 @@ theorem posSemidef_one_sub_of_isHermitian (A : Operator 2) (hA : A.IsHermitian) 
   · simp only [Complex.sub_im, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
     linarith
 
+/-- The absolute real trace of a Hermitian operator against an orthogonal projector is bounded
+by its spectral norm times the projector trace. -/
 theorem abs_trace_re_le_of_isOrthogonalProjector (A Q : Operator 2)
     (hA : A.IsHermitian) (hQ : Q.PosSemidef) (hQQ : Q * Q = Q) :
     |(Matrix.trace (A * Q)).re| ≤ OperatorSpectralNorm A * (Matrix.trace Q).re := by
@@ -195,9 +227,12 @@ theorem abs_trace_re_le_of_isOrthogonalProjector (A Q : Operator 2)
     linarith
   exact abs_le.mpr ⟨hlower, hupper⟩
 
+/-- The real trace of an observable against the tetrahedral snapshot for a given outcome. -/
 noncomputable def tetraStatistic (A : Operator 2) (a : Fin 4) : ℝ :=
   (Matrix.trace (A * tetraSnapshot a)).re
 
+/-- The tetrahedral statistic is the real snapshot pairing, and its expectation equals the
+observable's expectation in the input state. -/
 theorem tetrahedral_observable_unbiased (ρ A : Operator 2) (hρ : IsDensityOperator ρ)
     (_hA : A.IsHermitian) :
     (∀ a, tetraStatistic A a = (Matrix.trace (A * tetraSnapshot a)).re) ∧
@@ -223,6 +258,8 @@ theorem tetrahedral_observable_unbiased (ρ A : Operator 2) (hρ : IsDensityOper
   rw [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- For a Hermitian observable, both the second moment and the mean squared centered error are
+at most nine times its squared spectral norm. -/
 theorem tetrahedral_observable_computed_second_moment_bound (ρ A : Operator 2)
     (hρ : IsDensityOperator ρ) (hA : A.IsHermitian) :
     (tetraRecordLaw ρ hρ).expect (fun a => (tetraStatistic A a)^2)
@@ -313,30 +350,41 @@ theorem tetrahedral_observable_computed_second_moment_bound (ρ A : Operator 2)
   rw [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.variance_eq_expect_sq_sub]
   exact le_trans (sub_le_self _ (sq_nonneg _)) hmain
 
+/-- The product distribution of `m` independent tetrahedral records from the same density
+operator. -/
 noncomputable def tetraFreshLaw (ρ : Operator 2) (hρ : IsDensityOperator ρ) (m : ℕ) :
     FinDist (Fin m → Fin 4) :=
   independentSampleLaw (fun _ : Fin m => tetraRecordLaw ρ hρ)
 
+/-- The arithmetic mean of the tetrahedral observable statistics in a sample record. -/
 noncomputable def tetraSampleMean (A : Operator 2) (m : ℕ) (ω : Fin m → Fin 4) : ℝ :=
   Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (tetraStatistic A) ω
 
+/-- Fresh record probabilities factor into single-record probabilities, and the sample mean is
+the sum of its statistics divided by the sample count. -/
 theorem tetrahedral_fresh_same_record_product (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (m : ℕ) (ω : Fin m → Fin 4) :
     (tetraFreshLaw ρ hρ m).prob ω = ∏ j, (tetraRecordLaw ρ hρ).prob (ω j) ∧
       ∀ A, tetraSampleMean A m ω = (∑ j, tetraStatistic A (ω j))/(m:ℝ) :=
   ⟨rfl, fun _ => rfl⟩
 
+/-- The access-count triple `(m, m, m * K)` for fresh tetrahedral records and `K` observable
+evaluations per record. -/
 def tetraFreshAccessCounts (m K : ℕ) : ℕ × ℕ × ℕ := (m, m, m * K)
 
+/-- The fresh tetrahedral access-count triple is `(m, m, m * K)`. -/
 theorem tetra_fresh_access_counts (m K : ℕ) :
     tetraFreshAccessCounts m K = (m, m, m * K) := rfl
 
+/-- Reindexing both matrix indices by an equivalence preserves the trace. -/
 private theorem trace_submatrix_of_equiv_local {ι κ : Type*} [Fintype ι] [DecidableEq ι]
     [Fintype κ] [DecidableEq κ] (σ : ι ≃ κ) (M : Matrix κ κ ℂ) :
     Matrix.trace (M.submatrix σ σ) = Matrix.trace M := by
   show ∑ i, M (σ i) (σ i) = ∑ k, M k k
   exact Equiv.sum_comp σ (fun k => M k k)
 
+/-- A product-entry matrix on `n + 1` qubits splits as the first `n` factors tensored with the
+final factor, after register reindexing. -/
 private theorem prodEntryMatrix_succ_local {n : ℕ} (M : Fin (n + 1) → Operator 2) :
     (Matrix.of fun x y => ∏ i, (M i) (boolEquivFin2 (x i)) (boolEquivFin2 (y i)) :
         Matrix (Reg (n + 1)) (Reg (n + 1)) ℂ)
@@ -352,38 +400,48 @@ private theorem prodEntryMatrix_succ_local {n : ℕ} (M : Fin (n + 1) → Operat
     hfst, hfsty, hsnd, hsndy]
   rw [Fin.prod_univ_add, Fin.prod_univ_one]
 
+/-- The product of `n` copies of a qubit operator, indexed by Boolean registers. -/
 noncomputable def tetraProductDensity {n : ℕ} (ρ : Operator 2) :
     Matrix (Reg n) (Reg n) ℂ :=
   Matrix.of fun x y => ∏ i, ρ (boolEquivFin2 (x i)) (boolEquivFin2 (y i))
 
+/-- The tensor product of the single-qubit tetrahedral Kraus operators specified by a record. -/
 noncomputable def tetraProductRecordKraus {n : ℕ} (ρ : Operator 2) (ω : Fin n → Fin 4) :
     Matrix (Reg n) (Reg n) ℂ :=
   Matrix.of fun x y =>
     ∏ i, (tetraKraus (ω i)) (boolEquivFin2 (x i)) (boolEquivFin2 (y i))
 
+/-- The product density operator on zero qubits is the identity. -/
 private theorem tetraProductDensity_zero (ρ : Operator 2) :
     tetraProductDensity (n := 0) ρ = 1 := by
   ext x y
   rw [show x = y from Subsingleton.elim x y]
   simp [tetraProductDensity, Matrix.one_apply_eq]
 
+/-- The Kraus operator of an empty product record is the identity. -/
 private theorem tetraProductRecordKraus_zero (ρ : Operator 2) (ω : Fin 0 → Fin 4) :
     tetraProductRecordKraus ρ ω = 1 := by
   ext x y
   rw [show x = y from Subsingleton.elim x y]
   simp [tetraProductRecordKraus, Matrix.one_apply_eq]
 
+/-- The product density operator on `n + 1` qubits is the reindexed tensor product of the first
+`n` copies and the final copy. -/
 theorem tetraProductDensity_succ {n : ℕ} (ρ : Operator 2) :
     tetraProductDensity (n := n + 1) ρ
       = ((tetraProductDensity (n := n) ρ ⊗ₖ ρ)).submatrix (regProdEquiv n) (regProdEquiv n) :=
   prodEntryMatrix_succ_local (fun _ => ρ)
 
+/-- A product-record Kraus operator splits into the Kraus operator for its first `n` outcomes
+and the final single-qubit Kraus operator. -/
 theorem tetraProductRecordKraus_succ {n : ℕ} (ρ : Operator 2) (ω : Fin (n + 1) → Fin 4) :
     tetraProductRecordKraus ρ ω
       = ((tetraProductRecordKraus (n := n) ρ (fun i => ω (Fin.castAdd 1 i)) ⊗ₖ
           tetraKraus (ω (Fin.natAdd n 0)))).submatrix (regProdEquiv n) (regProdEquiv n) :=
   prodEntryMatrix_succ_local (fun i => tetraKraus (ω i))
 
+/-- The complex trace of a single tetrahedral branch equals its real Born probability embedded
+in ℂ. -/
 theorem trace_tetraRecord_single (σ : Operator 2) (hσ : IsDensityOperator σ) (a : Fin 4) :
     Matrix.trace (tetraKraus a * σ * (tetraKraus a)ᴴ)
       = (((tetraRecordLaw σ hσ).prob a : ℝ) : ℂ) := by
@@ -398,6 +456,7 @@ theorem trace_tetraRecord_single (σ : Operator 2) (hσ : IsDensityOperator σ) 
   · rw [him]
     rfl
 
+/-- The real trace of a product-record branch equals the independent fresh-record probability. -/
 theorem tetraProductRecordKraus_trace {n : ℕ} (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (ω : Fin n → Fin 4) :
     (Matrix.trace (tetraProductRecordKraus ρ ω * tetraProductDensity ρ
@@ -429,6 +488,8 @@ theorem tetraProductRecordKraus_trace {n : ℕ} (ρ : Operator 2) (hρ : IsDensi
       = ∏ i : Fin (n + 1), (tetraRecordLaw ρ hρ).prob (ω i)
     rw [Fin.prod_univ_add, Fin.prod_univ_one]
 
+/-- The tensor product of copies of a density operator is positive semidefinite and has trace
+one. -/
 theorem tetraProductDensity_isDensity {n : ℕ} (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     (tetraProductDensity (n := n) ρ).PosSemidef ∧
       Matrix.trace (tetraProductDensity (n := n) ρ) = 1 := by
@@ -443,6 +504,8 @@ theorem tetraProductDensity_isDensity {n : ℕ} (ρ : Operator 2) (hρ : IsDensi
     rw [trace_submatrix_of_equiv_local (regProdEquiv n) _, Matrix.trace_kronecker
       (tetraProductDensity (n := n) ρ) ρ, ih.2, hρ.2, mul_one]
 
+/-- The product input is a density operator, and its tetrahedral branch trace realizes the
+fresh-record product law. -/
 theorem tetra_fresh_actual_born {n : ℕ} (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (ω : Fin n → Fin 4) :
     (tetraProductDensity (n := n) ρ).PosSemidef ∧
@@ -452,6 +515,8 @@ theorem tetra_fresh_actual_born {n : ℕ} (ρ : Operator 2) (hρ : IsDensityOper
   ⟨(tetraProductDensity_isDensity ρ hρ).1, (tetraProductDensity_isDensity ρ hρ).2,
     tetraProductRecordKraus_trace ρ hρ ω⟩
 
+/-- For positive `ε`, the probability of deviation by at least `ε` from any center is at most
+the mean squared deviation divided by `ε ^ 2`. -/
 theorem chebyshev_single {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     (f : X → ℝ) (μ : ℝ) (ε : ℝ) (hε : 0 < ε) :
     (∑ ω ∈ Finset.univ.filter (fun ω => ε ≤ |f ω - μ|), p.prob ω)
@@ -475,6 +540,7 @@ theorem chebyshev_single {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     (Finset.filter_subset (fun ω => ε ≤ |f ω - μ|) (Finset.univ : Finset X))
     (fun ω _ _ => div_nonneg (mul_nonneg (p.nonneg ω) (sq_nonneg _)) (sq_nonneg ε))
 
+/-- The probability of a finite union of events is at most the sum of their probabilities. -/
 theorem union_bound_single {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) {Z : Type} [Fintype Z] (E : Z → X → Prop)
     [∀ z, DecidablePred (E z)] [DecidablePred (fun ω : X => ∃ z, E z ω)] :
@@ -514,6 +580,9 @@ theorem union_bound_single {X : Type*} [Fintype X] [DecidableEq X]
           exact Finset.sum_congr rfl fun ω _ => by
             rw [mul_ite, mul_one, mul_zero]]
 
+/-- For positive sample size and tolerance, the probability of any observable sample mean having
+error at least `ε` is bounded by the sum of nine times the squared spectral norms divided by
+`m * ε ^ 2`. -/
 theorem tetrahedral_many_observable_actual_mean_bound {Z : Type} [Fintype Z] [DecidableEq Z]
     (ρ : Operator 2) (hρ : IsDensityOperator ρ) (A : Z → Operator 2) (m : ℕ) (ε : ℝ)
     (hm : 0 < m) (hε : 0 < ε) (hA : ∀ z, (A z).IsHermitian) :

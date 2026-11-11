@@ -8,6 +8,29 @@ import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import Mathlib.Tactic.Ext
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Transport of finite probability distributions
+
+This module constructs pushforwards of finite distributions by summing masses over fibers and
+proves transport formulas for expectations and variances. It also represents these laws as `PMF`
+values and identifies the pushforward with `PMF.map`, supporting the finite sampling
+constructions in [ChiaEtAl2022].
+
+## Main statements
+
+* `exists_pushforward`: Every map between the finite types has a pushforward distribution whose
+  masses are sums over its fibers.
+* `expect_eq_of_pushforward`: Expectation under the stated pushforward law equals expectation of
+  the observable composed with the map.
+* `exists_pushforward_pmf`: Constructs finite and `PMF` pushforward representations
+  simultaneously, with compatible masses, `PMF.map`, and expectation transport.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
@@ -20,10 +43,12 @@ namespace FinDist
 
 variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
+/-- Summing a constant mass over the unique value equal to `f x` returns that mass. -/
 private theorem fiber_mass (f : X → Y) (c : ℝ) (x : X) :
     (∑ y, if f x = y then c else 0) = c := by
   rw [Finset.sum_ite_eq, if_pos (Finset.mem_univ (f x))]
 
+/-- Summing an observable over the unique value equal to `f x` returns its value at `f x`. -/
 private theorem fiber_sum (f : X → Y) (φ : Y → ℝ) (x : X) :
     (∑ y, if f x = y then φ y else 0) = φ (f x) := by
   have hsingle : (∑ y ∈ (Finset.univ : Finset Y), if f x = y then φ y else 0)
@@ -34,6 +59,7 @@ private theorem fiber_sum (f : X → Y) (φ : Y → ℝ) (x : X) :
       exact absurd (Finset.mem_univ (f x)) hcontra
   exact hsingle.trans (if_pos rfl)
 
+/-- A fiber-supported weighted sum evaluates to `c * g (f x)`. -/
 private theorem fiber_mass_mul (f : X → Y) (c : ℝ) (g : Y → ℝ) (x : X) :
     (∑ y, (if f x = y then c else 0) * g y) = c * g (f x) := by
   have hshift : ∀ y, (if f x = y then c else 0) * g y
@@ -45,6 +71,8 @@ private theorem fiber_mass_mul (f : X → Y) (c : ℝ) (g : Y → ℝ) (x : X) :
   rw [Finset.sum_congr rfl fun y _ => hshift y]
   exact fiber_sum f (fun y => c * g y) x
 
+/-- Every map between the finite types has a pushforward distribution whose masses are sums over
+its fibers. -/
 theorem exists_pushforward (p : FinDist X) (f : X → Y) :
     ∃ q : FinDist Y, ∀ y, q.prob y = ∑ x, if f x = y then p.prob x else 0 := by
   refine ⟨⟨fun y => ∑ x, if f x = y then p.prob x else 0, fun y => ?_, ?_⟩, fun y => rfl⟩
@@ -58,6 +86,8 @@ theorem exists_pushforward (p : FinDist X) (f : X → Y) :
     _ = ∑ x, p.prob x := Finset.sum_congr rfl fun x _ => fiber_mass f (p.prob x) x
     _ = 1 := p.sum_one
 
+/-- Expectation under the stated pushforward law equals expectation of the observable composed
+with the map. -/
 theorem expect_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y) (h : Y → ℝ)
     (hq : ∀ y, q.prob y = ∑ x, if f x = y then p.prob x else 0) :
     q.expect h = p.expect (fun x => h (f x)) := by
@@ -73,6 +103,8 @@ theorem expect_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y) (
         Finset.sum_congr rfl fun x _ => fiber_mass_mul f (p.prob x) h x
     _ = p.expect (fun x => h (f x)) := rfl
 
+/-- Variance under the stated pushforward law equals variance of the observable composed with
+the map. -/
 theorem variance_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y) (h : Y → ℝ)
     (hq : ∀ y, q.prob y = ∑ x, if f x = y then p.prob x else 0) :
     q.variance h = p.variance (fun x => h (f x)) := by
@@ -91,6 +123,8 @@ theorem variance_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y)
 
 omit [DecidableEq X] in
 
+/-- A finite real-valued probability distribution has a `PMF` representation obtained by
+applying `ENNReal.ofReal` to its masses. -/
 theorem exists_pmf (p : FinDist X) :
     ∃ μ : PMF X, ∀ x, μ x = ENNReal.ofReal (p.prob x) := by
   have hsum : (∑ x, ENNReal.ofReal (p.prob x)) = 1 := by
@@ -100,6 +134,8 @@ theorem exists_pmf (p : FinDist X) :
     exact hof.symm
   exact ⟨PMF.ofFintype (fun x => ENNReal.ofReal (p.prob x)) hsum, fun x => rfl⟩
 
+/-- Constructs finite and `PMF` pushforward representations simultaneously, with compatible
+masses, `PMF.map`, and expectation transport. -/
 theorem exists_pushforward_pmf (p : FinDist X) (f : X → Y) :
     ∃ q : FinDist Y, ∃ μ : PMF X, ∃ ν : PMF Y,
       (∀ y, q.prob y = ∑ x, if f x = y then p.prob x else 0) ∧

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedStat
+
+/-!
+# Restricted sparse-walk eigenphase decomposition
+
+This module proves `sparseWalkEigenphasesRestricted`, the eigenvector decomposition for a walk
+constructed from two isometries and a self-adjoint unitary swap. The resulting walk eigenvalues
+are expressed using the arcsine of a scaled eigenvalue of the encoded matrix. Background and
+related constructions are discussed in [LowChuang2017].
+
+## Main statements
+
+* `lcStarDot_eq_zero`: a vector with zero squared norm is zero.
+* `sparseWalkEigenphasesRestricted`: proves the restricted walk spectral statement.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,11 +46,14 @@ section Aux
 
 variable {W : Type} [Fintype W] [DecidableEq W]
 
+/-- The conjugate dot product of a finite complex vector with itself equals the complex cast of
+the sum of its squared coordinate norms. -/
 private theorem lcStarDot_self_eq (u : W → ℂ) :
     star u ⬝ᵥ u = ((∑ j, ‖u j‖ ^ 2 : ℝ) : ℂ) := by
   rw [show star u ⬝ᵥ u = Qatlib.Foundations.PureStateMath.Inner u u from rfl, Qatlib.Foundations.PureStateMath.inner_self,
     Complex.ofReal_sum]
 
+/-- A finite complex vector whose conjugate dot product with itself is zero is the zero vector. -/
 private theorem lcStarDot_eq_zero (f : W → ℂ) (h : star f ⬝ᵥ f = 0) : f = 0 := by
   rw [lcStarDot_self_eq] at h
   have hsum : ∑ j, ‖f j‖ ^ 2 = 0 := by
@@ -45,6 +67,8 @@ private theorem lcStarDot_eq_zero (f : W → ℂ) (h : star f ⬝ᵥ f = 0) : f 
 
 end Aux
 
+/-- Proves the restricted sparse-walk eigenphase statement, including normalized eigenvectors
+and the phase-weighted decomposition of the embedded input eigenvector [LowChuang2017]. -/
 theorem sparseWalkEigenphasesRestricted : SparseWalkEigenphasesRestricted := by
   intro I W _ _ _ _ H c hc hnorm L R S hL hR hLR hSu hSd hS2 hSL ψ hψ ev hev
   have hLd : L.conjTranspose * L = 1 := hL

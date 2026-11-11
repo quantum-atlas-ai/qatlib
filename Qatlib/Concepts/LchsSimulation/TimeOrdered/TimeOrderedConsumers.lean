@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 import Qatlib.Concepts.LchsSimulation.TimeOrdered.OrderedFrozenSegment
 
+/-!
+# Forced ordered evolution and sampled Hamiltonian programs
+
+`orderedForcedSolution` gives the Duhamel solution of a forced linear differential equation,
+with its derivative, uniqueness, and dissipative norm bound. `interactionGenerator` expresses
+the interaction picture. `sampledEvolutionWord` implements a left-sampled frozen-Hamiltonian
+product with an explicit error estimate and gate count. For the interaction-picture setting, see
+[Low and Wiebe, 2018][LowWiebe2018].
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `ordered_forced_solution_duhamel_and_bound`: collects the forced initial-value problem and
+  norm bound.
+* `ordered_interaction_picture_identity`: factors out the constant Hamiltonian evolution.
+* `ordered_sampled_program_error_and_cost`: gives error `L * T ^ 2 / (2 * N)` and exactly `N`
+  gates.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
@@ -22,23 +46,32 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The Duhamel expression consisting of homogeneous ordered evolution of the initial vector
+plus the integrated propagated source. -/
 noncomputable def orderedForcedSolution {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (s : ℝ) (v : QState I) (t : ℝ) : QState I :=
   orderedEvolution A s t *ᵥ v + ∫ u in s..t, orderedEvolution A u t *ᵥ b u
 
+/-- The interaction-picture perturbation obtained by conjugating `V t` with the constant
+Hamiltonian evolution. -/
 noncomputable def interactionGenerator {I : Type} [Fintype I] [DecidableEq I]
     (H₀ : Matrix I I ℂ) (V : ℝ → Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
   HamiltonianEvolution H₀ (-t) * V t * HamiltonianEvolution H₀ t
 
+/-- The circuit of `N` Hamiltonian gates, each evolving for `T / N` under the Hamiltonian
+sampled at its interval left endpoint. -/
 noncomputable def sampledEvolutionWord {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (T : ℝ) (N : ℕ) : Circuit I :=
   (List.range N).map (fun j => Step.gate (HamiltonianEvolution (H ((j:ℝ)*T/N)) (T/N)))
 
+/-- At its initial time, the forced ordered solution equals the initial vector. -/
 @[simp] theorem orderedForcedSolution_self {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (s : ℝ) (v : QState I) :
     orderedForcedSolution A b s v s = v := by
   simp [orderedForcedSolution]
 
+/-- The derivative of a matrix-vector product is the sum of the derivative matrix acting on the
+vector and the matrix acting on the derivative vector. -/
 private theorem ordered_mulVec_deriv {I : Type} [Fintype I] [DecidableEq I]
     {M : ℝ → Matrix I I ℂ} {v : ℝ → QState I} {M' : Matrix I I ℂ} {v' : QState I} {t : ℝ}
     (hM : HasDerivAt M M' t) (hv : HasDerivAt v v' t) :
@@ -50,11 +83,15 @@ private theorem ordered_mulVec_deriv {I : Type} [Fintype I] [DecidableEq I]
   simpa [Matrix.mulVec, dotProduct, Finset.sum_add_distrib] using!
     HasDerivAt.fun_sum (fun j (_ : j ∈ Finset.univ) => (hm j).mul (hvj j))
 
+/-- For a continuous generator, ordered evolution to a fixed endpoint is continuous in its
+starting time. -/
 private theorem ordered_start_continuous {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) :
     Continuous (fun u => orderedEvolution A u s) :=
   continuous_iff_continuousAt.mpr (fun u => (orderedEvolution_hasDerivAt_start A hA s u).continuousAt)
 
+/-- The forced solution factors into homogeneous ordered evolution applied to the initial vector
+plus the source integral transported back to the initial time. -/
 private theorem ordered_forced_factor {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (hA : Continuous A) (hb : Continuous b)
     (s : ℝ) (v : QState I) (t : ℝ) :
@@ -75,6 +112,8 @@ private theorem ordered_forced_factor {I : Type} [Fintype I] [DecidableEq I]
   rw [intervalIntegral.integral_congr (fun u _ => he u), L.intervalIntegral_comp_comm hi]
   rfl
 
+/-- For continuous generator and source, the forced ordered solution has derivative `-(A t *ᵥ u
+t) + b t`. -/
 theorem orderedForcedSolution_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (hA : Continuous A) (hb : Continuous b)
     (s : ℝ) (v : QState I) (t : ℝ) :
@@ -93,6 +132,8 @@ theorem orderedForcedSolution_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
   simp only [Matrix.neg_mulVec, Matrix.mulVec_mulVec]
   rw [orderedEvolution_cocycle A hA t s t, orderedEvolution_self, Matrix.one_mulVec]
 
+/-- Any global differentiable solution of the forced equation with initial value `v` at `s`
+equals `orderedForcedSolution A b s v`. -/
 theorem orderedForcedSolution_unique {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (hA : Continuous A) (hb : Continuous b)
     (s : ℝ) (v : QState I) (u : ℝ → QState I) (hu : u s = v)
@@ -118,6 +159,8 @@ theorem orderedForcedSolution_unique {I : Type} [Fintype I] [DecidableEq I]
     orderedEvolution_self, Matrix.one_mulVec, Matrix.mulVec_zero] at hh
   exact sub_eq_zero.mp hh
 
+/-- If the Hermitian part of the continuous generator is positive semidefinite, the forced
+solution norm is bounded by the initial norm plus the integral of the source norm. -/
 theorem orderedForcedSolution_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (hA : Continuous A) (hb : Continuous b)
     (hPSD : ∀ t, (A t + (A t)ᴴ).PosSemidef) (s t : ℝ) (hst : s ≤ t) (v : QState I) :
@@ -141,6 +184,9 @@ theorem orderedForcedSolution_norm_le {I : Type} [Fintype I] [DecidableEq I]
   · exact Filter.Eventually.of_forall (fun u hu => hnorm u hu.2 (b u))
   · exact (e.continuous.comp hb).norm.intervalIntegrable s t
 
+/-- For continuous coefficients, the Duhamel expression satisfies the forced initial-value
+problem uniquely and obeys the stated norm bound when the generator has positive
+semidefinite Hermitian part [AnLiuLin2023]. -/
 theorem ordered_forced_solution_duhamel_and_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : ℝ → Matrix I I ℂ)
       (b : ℝ → QState I) (s : ℝ) (v : QState I),
@@ -158,6 +204,8 @@ theorem ordered_forced_solution_duhamel_and_bound :
     orderedForcedSolution_unique A b hA hb s v,
     fun hp t ht => orderedForcedSolution_norm_le A b hA hb hp s t ht v⟩
 
+/-- The derivative of constant Hamiltonian evolution is left multiplication by `-(Complex.I •
+H)`. -/
 private theorem ordered_hamiltonian_deriv {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (t : ℝ) :
     HasDerivAt (HamiltonianEvolution H) (-(Complex.I • H * HamiltonianEvolution H t)) t := by
@@ -173,6 +221,8 @@ private theorem ordered_hamiltonian_deriv {I : Type} [Fintype I] [DecidableEq I]
   rw [he] at hd
   simpa [neg_smul, neg_mul] using! hd
 
+/-- Ordered evolution under a constant Hamiltonian equals its Hamiltonian evolution over the
+elapsed time `t - s`. -/
 theorem orderedEvolution_constant_hamiltonian {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (s t : ℝ) :
     orderedEvolution (fun _ => Complex.I • H) s t = HamiltonianEvolution H (t-s) := by
@@ -184,6 +234,9 @@ theorem orderedEvolution_constant_hamiltonian {I : Type} [Fintype I] [DecidableE
     s (by simp) hd (orderedEvolution_hasDerivAt _ continuous_const s)
   exact (congrFun he t).symm
 
+/-- For a constant Hermitian `H₀` and a continuous Hermitian perturbation, full ordered
+evolution factors into the `H₀` evolution and the ordered interaction-picture evolution
+[LowWiebe2018]. -/
 theorem ordered_interaction_picture_identity :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H₀ : Matrix I I ℂ)
       (V : ℝ → Matrix I I ℂ), H₀.IsHermitian → Continuous V →
@@ -219,6 +272,8 @@ theorem ordered_interaction_picture_identity :
     (orderedEvolution A 0) 0 (by simp [U]) hd (orderedEvolution_hasDerivAt A hA 0)
   exact (congrFun he t).symm
 
+/-- If Hamiltonian variation from the segment left endpoint is at most `L * (u - a)`, freezing
+it there incurs error at most `L * (b - a) ^ 2 / 2`. -/
 private theorem ordered_sampled_local_error {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (hH : Continuous H) (hHerm : ∀ u, (H u).IsHermitian)
     (a b L : ℝ) (hab : a ≤ b)
@@ -244,11 +299,15 @@ private theorem ordered_sampled_local_error {I : Type} [Fintype I] [DecidableEq 
         intervalIntegral.integral_const]
       ring
 
+/-- The chronologically composed product of frozen Hamiltonian evolutions at successive
+left-sampled times. -/
 private noncomputable def orderedSampledProduct {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (h : ℝ) : ℕ → Matrix I I ℂ
   | 0 => 1
   | n+1 => HamiltonianEvolution (H ((n:ℝ)*h)) h * orderedSampledProduct H h n
 
+/-- Execution of the left-sampled Hamiltonian gate list equals application of
+`orderedSampledProduct`. -/
 private theorem orderedSampledProduct_run {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (h : ℝ) (n : ℕ) (v : QState I) :
     Run 1 ((List.range n).map (fun j : ℕ => Step.gate (HamiltonianEvolution (H ((j:ℝ)*h)) h))) v =
@@ -259,6 +318,8 @@ private theorem orderedSampledProduct_run {I : Type} [Fintype I] [DecidableEq I]
     rw [List.range_succ, List.map_append, run_append, ih]
     simp [Run, ApplyGate, orderedSampledProduct, Matrix.mulVec_mulVec]
 
+/-- The sampled evolution word is the list of frozen Hamiltonian gates at the uniform
+left-sampled times. -/
 private theorem sampledEvolutionWord_eq_map {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (T : ℝ) (N : ℕ) : sampledEvolutionWord H T N =
       (List.range N).map (fun j : ℕ => Step.gate (HamiltonianEvolution (H ((j:ℝ)*T/N)) (T/N))) := by
@@ -266,6 +327,8 @@ private theorem sampledEvolutionWord_eq_map {I : Type} [Fintype I] [DecidableEq 
   rw [← List.map_eq_flatMap, List.map_map]
   rfl
 
+/-- For a Hermitian Hamiltonian, the sampled word is a unitary circuit with zero oracle queries
+and exactly `N` gates. -/
 theorem sampledEvolutionWord_unitary_counts {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (hHerm : ∀ u, (H u).IsHermitian) (T : ℝ) (N : ℕ) :
     IsUnitaryCircuit (sampledEvolutionWord H T N) ∧
@@ -286,6 +349,8 @@ theorem sampledEvolutionWord_unitary_counts {I : Type} [Fintype I] [DecidableEq 
     exact hamiltonianEvolution_unitary (hHerm _) _
   · simpa using! hg (List.range N)
 
+/-- For a continuous Hermitian Hamiltonian Lipschitz on `[0, T]`, the `N`-step frozen product
+has operator error at most `L * T ^ 2 / (2 * N)` for positive `N`. -/
 private theorem orderedSampledProduct_error {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (hH : Continuous H) (hHerm : ∀ u, (H u).IsHermitian)
     (T L : ℝ) (N : ℕ) (hT : 0 ≤ T) (hN : 0 < N)
@@ -347,6 +412,9 @@ private theorem orderedSampledProduct_error {I : Type} [Fintype I] [DecidableEq 
   dsimp [h]
   field_simp
 
+/-- For a continuous Hermitian Hamiltonian with Lipschitz constant `L` on `[0, T]`, the sampled
+program uses zero queries and `N` gates and has state error at most `L * T ^ 2 / (2 * N)`
+times the input norm [LowWiebe2018]. -/
 theorem ordered_sampled_program_error_and_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H : ℝ → Matrix I I ℂ)
       (T L : ℝ) (N : ℕ), Continuous H → (∀ u, (H u).IsHermitian) →

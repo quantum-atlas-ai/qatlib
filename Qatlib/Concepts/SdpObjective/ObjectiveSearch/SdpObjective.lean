@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
 import Qatlib.Concepts.SdpObjective.ObjectiveSearch.SdpObjectiveSearchDefs
+
+/-!
+# Objective bisection for the diamond norm SDP
+
+`searchLoop_spec` proves an invariant, interval contraction, and oracle-call bound for rational
+objective bisection. `g1` uses a Gaussian-rational Choi matrix to produce a true dual feasible
+point whose score is within ε of the common primal and dual optimum, which also represents
+`finiteDiamondNorm`.
+
+For the mathematical background, see [Watrous2018].
+
+## Main statements
+
+* `g1`: For a positive input dimension and a Gaussian-rational Choi matrix, `solve` returns a
+  dual feasible point within ε above the common primal and dual optimum representing
+  `finiteDiamondNorm`, with the stated trace length and separation-call bound.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
@@ -21,32 +43,43 @@ open Qatlib.Concepts.DyadicFloor.FloorRounding Qatlib.Concepts.SdpDuality.Strong
 open Qatlib.Concepts.SdpObjective.ObjectiveSearch
 open scoped BigOperators ComplexOrder
 
+/-- The per-call rational ellipsoid search budget determined by the diamond SDP coordinate
+dimension and its outer and inner radii. -/
 def searchBudget {D E : ℕ}
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational) (η : ℚ) : ℕ :=
   rationalEllipsoidSearchBudget (diamondDyadicWordCount D E)
     (diamondCoordinateOuterRadius J η) (diamondCoordinateInnerRadius J η)
 
+/-- Appending one objective-search result increases `calls` by the length of that result's
+ellipsoid trace. -/
 lemma calls_append {D E : ℕ} (s : SearchState D E) (mid : ℚ)
     (out : RationalEllipsoidRunResult (diamondDyadicWordCount D E))
     (lower upper : ℚ) (best : DiamondRationalCoordinates D E) :
     calls ⟨lower, upper, best, s.trace ++ [(mid, out)]⟩ = calls s + out.trace.length := by
   simp [calls, List.map_append, List.sum_append]
 
+/-- A feasible midpoint update halves the real width of the rational search interval. -/
 lemma width_feasible (lower upper : ℚ) :
     ((((lower + upper) / 2 - lower : ℚ) : ℝ)) = ((upper : ℝ) - lower) / 2 := by
   push_cast
   ring
 
+/-- An exhausted midpoint update gives half the previous interval width plus η. -/
 lemma width_exhausted (lower upper η : ℚ) :
     (((upper - ((lower + upper) / 2 - η) : ℚ) : ℝ)) = ((upper : ℝ) - lower) / 2 + (η : ℝ) := by
   push_cast
   ring
 
+/-- The objective-search invariant requiring feasibility of the stored dual point, a lower
+endpoint below α, and its score below the upper endpoint. -/
 structure LoopInv {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) (α : ℝ) (s : SearchState D E) : Prop where
   feasible : (diamondProgram T).DualFeasible (diamondRationalDecode s.best)
   lower_le : (s.lower : ℝ) ≤ α
   score_le : (diamondProgram T).dualScore (diamondRationalDecode s.best) ≤ (s.upper : ℝ)
 
+/-- Given the stated solver-outcome guarantees, `searchLoop` preserves `LoopInv`, bounds the
+interval width after n steps, appends exactly n trace entries, and uses at most n additional
+per-call budgets. -/
 lemma searchLoop_spec {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (J : Matrix (Fin E × Fin D) (Fin E × Fin D) GaussianRational)
     (hJ : gaussianRationalMatrix J = MatrixMap.choi_matrix T) {η : ℚ} (hη : 0 < η)
@@ -172,6 +205,9 @@ lemma searchLoop_spec {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
             gcongr
           _ = calls s + (n + 1) * searchBudget J η := by ring
 
+/-- For a positive input dimension and a Gaussian-rational Choi matrix, `solve` returns a dual
+feasible point within ε above the common primal and dual optimum representing
+`finiteDiamondNorm`, with the stated trace length and separation-call bound. -/
 theorem g1 :
     ∀ (D E : ℕ), 0 < D →
       ∀ (T : Operator D →ₗ[ℂ] Operator E)

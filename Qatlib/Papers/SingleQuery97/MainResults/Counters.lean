@@ -76,32 +76,60 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Counterexamples for the printed linear-code preparation
+
+The binary generator `generator = ![1,1]` is nonzero and spans an injectively encoded
+one-dimensional code, yet it is orthogonal to every codeword in that code. The associated
+unscaled amplitude `printedEncoded` has squared norm two, ruling out its preparation from a
+basis state by a matrix satisfying `star U * U = 1`. See [TerhalSmolin1998] for the source
+development.
+
+## Main statements
+
+* `printed_nondegeneracy_false`: refutes the stated code nondegeneracy condition for this
+  generator.
+* `printedEncoded_norm_sq`: computes the unscaled encoded amplitude norm.
+* `no_unitary_printed_preparation`: excludes the corresponding basis-state preparation.
+
+## References
+
+* [Terhal and Smolin, 1998][TerhalSmolin1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators Classical
 namespace Qatlib.Papers.SingleQuery97.MainResults.Counters
 
+/-- The binary length-two vector with both entries equal to one. -/
 def generator : Fin 2 → ZMod 2 := ![1,1]
 
+/-- Scalar multiplication of `generator` gives an injective encoding of a binary coefficient. -/
 theorem coefficient_injective :
     Function.Injective (fun a : ZMod 2 => fun i => a * generator i) := by
   intro a b hab
   have h := congrFun hab 0
   simpa only [generator, Matrix.cons_val_zero, mul_one] using h
 
+/-- The vector `generator` is nonzero. -/
 theorem generator_nonzero : generator ≠ 0 := by
   intro h
   have hz := congrFun h 0
   norm_num [generator] at hz
 
+/-- The singleton family consisting of `generator` is linearly independent over `ZMod 2`. See
+[TerhalSmolin1998]. -/
 theorem generator_linearIndependent :
     LinearIndependent (ZMod 2) (fun _ : Fin 1 => generator) := by
   rw [linearIndependent_unique_iff]
   exact generator_nonzero
 
+/-- The binary dot product of `generator` with itself is zero. -/
 theorem generator_self_dot : (∑ i : Fin 2, generator i * generator i) = 0 := by
   decide
 
+/-- Every scalar multiple of `generator` has zero dot product with `generator`. -/
 theorem code_dot_zero (a : ZMod 2) :
     (∑ i : Fin 2, (a * generator i) * generator i) = 0 := by
   have ht : (2 : ZMod 2) = 0 := by decide
@@ -110,6 +138,8 @@ theorem code_dot_zero (a : ZMod 2) :
          _ = 0 := by rw [ht,zero_mul]
   simpa [generator, Fin.sum_univ_two] using ha
 
+/-- The code spanned by `generator` fails the condition that a codeword orthogonal to all
+codewords must be zero. See [TerhalSmolin1998]. -/
 theorem printed_nondegeneracy_false :
     ¬ (∀ c ∈ Set.range (fun a : ZMod 2 => fun i => a * generator i),
       (∀ a : ZMod 2, (∑ i : Fin 2, c i * (a * generator i)) = 0) → c = 0) := by
@@ -120,21 +150,28 @@ theorem printed_nondegeneracy_false :
   · intro a
     simpa only [mul_comm (generator _)] using code_dot_zero a
 
+/-- The joint basis of a one-bit coefficient register and a two-bit encoded register. -/
 abbrev Basis := (Fin 1 → ZMod 2) × (Fin 2 → ZMod 2)
 
+/-- The unscaled amplitude equal to one on coefficient-encoding pairs and zero on all other
+joint basis elements. -/
 def printedEncoded (p : Basis) : ℂ :=
   if p.2 = (fun i => p.1 0 * generator i) then 1 else 0
 
+/-- The total squared norm of `printedEncoded` is two. -/
 theorem printedEncoded_norm_sq :
     (∑ p : Basis, star (printedEncoded p) * printedEncoded p) = (2 : ℂ) := by
   rw [Fintype.sum_prod_type]
   simp [printedEncoded]
 
+/-- The total squared norm of `printedEncoded` is not one. -/
 theorem printedEncoded_not_normalized :
     (∑ p : Basis, star (printedEncoded p) * printedEncoded p) ≠ (1 : ℂ) := by
   rw [printedEncoded_norm_sq]
   norm_num
 
+/-- If `star U * U = 1`, applying `U` to any basis vector cannot produce `printedEncoded`. See
+[TerhalSmolin1998]. -/
 theorem no_unitary_printed_preparation (U : Matrix Basis Basis ℂ)
     (hU : star U * U = 1) (b : Basis) :
     U.mulVec (Pi.single b 1) ≠ printedEncoded := by

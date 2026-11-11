@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedInstrument.ClockBridge.UnboundedInstrumentLoop
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+/-!
+# Expected Time and Geometric Bounds for Instrument Loops
+
+This module defines `loopExpectedTime` as the sum of the pending masses of a Boolean instrument
+loop. It derives finite-prefix lower bounds on this expectation and shows that positive
+nontermination mass forces infinite expected time. The treatment uses the trace and complete
+positivity framework for quantum operations described in [Watrous2018].
+
+A uniform contraction of the continuing branch gives geometric bounds on surviving trace, the
+Schatten one norm of the terminal truncation error, and expected time. The reference-system
+results express `tensorLeft` through `refBlock` and show that the terminal operation preserves
+the reference marginal under the same contraction hypothesis.
+
+## Main statements
+
+* `instrument_loop_expected_time_online_budget` bounds pending mass by expected time and detects
+  infinite expectation.
+* `instrument_loop_geometric_actual_trace_cutoff` gives truncation error at most `q ^ n`, zero
+  nontermination mass, and expected time at most `ENNReal.ofReal ((1 - q)⁻¹)`.
+* `instrument_loop_reference_cp_limit_and_marginal` proves convergence after adjoining a
+  reference system and preservation of its marginal.
+
+## References
+
+- [Watrous, 2018][Watrous2018], *The Theory of Quantum Information*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,12 +52,16 @@ set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
+/-- The extended nonnegative expected number of loop rounds, defined as the sum of all pending
+masses. -/
 noncomputable def loopExpectedTime {D : ℕ} (I : Instrument Bool D D) (ρ : Operator D) :
     ℝ≥0∞ :=
   ∑' k, loopPending I ρ k
 
 set_option maxHeartbeats 400000 in
 
+/-- For a density input, the expected time dominates `(n + 1) * loopPending I ρ n`. Positive
+nontermination mass forces this expected time to be infinite. -/
 theorem instrument_loop_expected_time_online_budget :
     ∀ (D : ℕ) (I : Instrument Bool D D) (ρ : Operator D) (hρ : IsDensityOperator ρ) (n : ℕ),
       loopExpectedTime I ρ = ∑' k : ℕ, loopPending I ρ k ∧
@@ -63,6 +95,8 @@ theorem instrument_loop_expected_time_online_budget :
       (b := loopExpectedTime I ρ) (ne_of_gt hpos) hE
     exact absurd (h1 n) (not_le.2 hn)
 
+/-- A uniform trace contraction coefficient for the continuing branch is nonnegative whenever a
+density input exists. -/
 private theorem geometric_q_nonneg {D : ℕ} (I : Instrument Bool D D) {q : ℝ}
     {ρ : Operator D} (hρ : IsDensityOperator ρ)
     (hcontr : ∀ X : Operator D, X.PosSemidef →
@@ -74,6 +108,8 @@ private theorem geometric_q_nonneg {D : ℕ} (I : Instrument Bool D D) {q : ℝ}
   rw [h1] at hq
   linarith
 
+/-- A nonnegative uniform trace contraction coefficient bounds the trace after `n` continuing
+steps by `q ^ n` times the initial trace for every positive semidefinite input. -/
 theorem loop_trace_geometric_psd {D : ℕ} (I : Instrument Bool D D) {q : ℝ}
     (hq0 : 0 ≤ q) {P : Operator D} (hP : P.PosSemidef)
     (hcontr : ∀ X : Operator D, X.PosSemidef →
@@ -92,6 +128,8 @@ theorem loop_trace_geometric_psd {D : ℕ} (I : Instrument Bool D D) {q : ℝ}
         _ = q ^ n * q * (Matrix.trace P).re := by ring
         _ = q ^ (n + 1) * (Matrix.trace P).re := by rw [pow_succ]
 
+/-- For a density input, uniform contraction of the continuing branch by a nonnegative factor
+`q` bounds the surviving trace after `n` steps by `q ^ n`. -/
 theorem loop_trace_geometric {D : ℕ} (I : Instrument Bool D D) {q : ℝ}
     {ρ : Operator D} (hρ : IsDensityOperator ρ) (hq0 : 0 ≤ q)
     (hcontr : ∀ X : Operator D, X.PosSemidef →
@@ -102,6 +140,8 @@ theorem loop_trace_geometric {D : ℕ} (I : Instrument Bool D D) {q : ℝ}
   intro n
   exact (h n).trans_eq (by rw [h1, mul_one])
 
+/-- Express the difference between the terminal loop map and its first `n` halting terms as the
+entrywise sum of the remaining halting terms. -/
 theorem terminal_sub_partial_eq_tsum {D : ℕ} (I : Instrument Bool D D) (X : Operator D)
     (n : ℕ) :
     loopTerminalMap I X - loopPartialMap I n X
@@ -114,6 +154,8 @@ theorem terminal_sub_partial_eq_tsum {D : ℕ} (I : Instrument Bool D D) (X : Op
   rw [← hsum, add_sub_cancel_left]
   exact tsum_congr fun k => by rw [Nat.add_comm]
 
+/-- The terminal loop output minus any finite partial output is positive semidefinite for a
+positive semidefinite input. -/
 theorem terminal_sub_partial_posSemidef {D : ℕ} (I : Instrument Bool D D)
     {X : Operator D} (hX : X.PosSemidef) (n : ℕ) :
     (loopTerminalMap I X - loopPartialMap I n X).PosSemidef := by
@@ -127,6 +169,7 @@ theorem terminal_sub_partial_posSemidef {D : ℕ} (I : Instrument Bool D D)
   exact posSemidef_of_tsum_entries (fun k => loopHaltAt_posSemidef I (k + n) hX)
     (fun i j => (summable_nat_add_iff n).mpr (loopHaltAt_entry_summable I X i j))
 
+/-- The Schatten one norm of a positive semidefinite operator equals the real part of its trace. -/
 theorem schattenOne_eq_re_trace {D : ℕ} {A : Operator D} (hA : A.PosSemidef) :
     SchattenOne A = (Matrix.trace A).re := by
   have h := Matrix.PosSemidef.traceNorm_eq_trace hA
@@ -134,6 +177,9 @@ theorem schattenOne_eq_re_trace {D : ℕ} {A : Operator D} (hA : A.PosSemidef) :
     simpa using congrArg Complex.re h
   rw [Qatlib.Foundations.PureStateMath.BornBridge.schattenOne_eq_physlib_traceNorm, hre]
 
+/-- If the continuing branch contracts positive traces by `0 ≤ q < 1`, a density input has
+Schatten one truncation error at most `q ^ n`, zero nontermination mass, and expected time
+at most `ENNReal.ofReal ((1 - q)⁻¹)`. -/
 theorem instrument_loop_geometric_actual_trace_cutoff :
     ∀ (D : ℕ) (I : Instrument Bool D D) (q : ℝ) (ρ : Operator D),
       0≤q → q<1 → IsDensityOperator ρ →
@@ -213,24 +259,34 @@ theorem instrument_loop_geometric_actual_trace_cutoff :
         tsum_geometric_of_abs_lt_one (by rwa [abs_of_nonneg hq0])]
     rw [hsum]
 
+/-- The system operator obtained by fixing the row and column reference indices of a bipartite
+matrix. -/
 @[reducible] def refBlock {D r : ℕ} (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (s t : Fin r) :
     Operator D := fun i j => X (i, s) (j, t)
 
+/-- Express the trace of a transformed reference block as the sum of the corresponding
+system-diagonal entries of `tensorLeft T X`. -/
 theorem tensorLeft_diag_trace {D r : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (s t : Fin r) :
     Matrix.trace (T (refBlock X s t)) = ∑ a : Fin D, tensorLeft T X (a, s) (a, t) := by
   simp [refBlock, Matrix.trace, tensorLeft]
 
+/-- Each entry of the reference marginal after applying `tensorLeft T` is the trace of `T`
+applied to the corresponding reference block. -/
 theorem partialTraceFirst_tensorLeft {D r : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (s t : Fin r) :
     partialTraceFirst (tensorLeft T X) s t = Matrix.trace (T (refBlock X s t)) := by
   simp [partialTraceFirst, Matrix.traceLeft, tensorLeft, refBlock, Matrix.trace]
 
+/-- Each entry of the partial trace over the first subsystem is the trace of the corresponding
+reference block. -/
 theorem partialTraceFirst_refBlock {D r : ℕ}
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (s t : Fin r) :
     partialTraceFirst X s t = Matrix.trace (refBlock X s t) := by
   simp [partialTraceFirst, Matrix.traceLeft, refBlock, Matrix.trace]
 
+/-- Pointwise convergence of linear maps on system operators implies convergence of their tensor
+extensions on each fixed bipartite matrix. -/
 theorem tendsto_tensorLeft_of {D r : ℕ} {F : ℕ → (Operator D →ₗ[ℂ] Operator D)}
     {T : Operator D →ₗ[ℂ] Operator D} (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
     (h : ∀ Y : Operator D, Filter.Tendsto (fun n => F n Y) Filter.atTop (nhds (T Y))) :
@@ -239,6 +295,8 @@ theorem tendsto_tensorLeft_of {D r : ℕ} {F : ℕ → (Operator D →ₗ[ℂ] O
   intro x y
   exact (tendsto_matrix_iff_entrywise.mp (h (fun i j => X (i, x.2) (j, y.2)))) x.1 y.1
 
+/-- For nonnegative finite families, the absolute sum of square roots of pairwise products is
+bounded by the product of the square roots of the two sums. -/
 private theorem abs_sum_le_sqrt_sums {D : ℕ} (u v : Fin D → ℝ)
     (hu : ∀ a, 0 ≤ u a) (hv : ∀ a, 0 ≤ v a) :
     |∑ a, Real.sqrt (u a * v a)| ≤ Real.sqrt (∑ a, u a) * Real.sqrt (∑ a, v a) := by
@@ -263,6 +321,8 @@ private theorem abs_sum_le_sqrt_sums {D : ℕ} (u v : Fin D → ℝ)
     _ = Real.sqrt (∑ a, u a) * Real.sqrt (∑ a, v a) :=
         Real.sqrt_mul huu (∑ a, v a)
 
+/-- Under uniform continuing-branch trace contraction, the trace of every reference block after
+`n` continuing steps has norm at most `q ^ n` for a normalized positive bipartite input. -/
 private theorem abs_trace_continue_refBlock {D r : ℕ} (I : Instrument Bool D D) {q : ℝ}
     (hq0 : 0 ≤ q) {X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ} (hX : X.PosSemidef)
     (htrX : Matrix.trace X = 1)
@@ -348,6 +408,9 @@ private theorem abs_trace_continue_refBlock {D r : ℕ} (I : Instrument Bool D D
               mul_le_mul hs1 hs2 (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
           _ = q ^ n := Real.mul_self_sqrt hqnn
 
+/-- For a normalized positive bipartite input and uniform continuing-branch contraction by `0 ≤
+q < 1`, the tensor-extended partial loop outputs converge to the tensor-extended terminal
+output. The terminal output has the same reference marginal as the input. -/
 theorem instrument_loop_reference_cp_limit_and_marginal :
     ∀ (D r : ℕ) (I : Instrument Bool D D) (q : ℝ)
       (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ), 0≤q → q<1 →

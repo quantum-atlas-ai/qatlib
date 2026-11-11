@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Sear
+
+/-!
+# Abstract MNRS search guarantee
+
+Specializes tolerant recursive amplification to error parameter `1 / 72` and proves
+`mnrs_search_theorem_three_abstract` [MagniezNayakRolandSantha2011]. The resulting contract
+gives zero success for zero marked mass, success at least `1 / 24` otherwise, and an explicit
+inverse-square-root cost estimate.
+
+## Main statements
+
+* `mnrs_search_theorem_three_abstract`: Establishes the abstract MNRS search contract at error
+  parameter `1 / 72`, including success at least `1 / 24` for nonzero marked mass and the stated
+  cost bounds [Magniez et al., Theorem 3][MagniezNayakRolandSantha2011].
+* `mnrs_order_form_cost`: Under the stopping-angle and reflection-cost comparisons, bounds the
+  cumulative geometric cost expression by `99 * (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * U +
+  C)`.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
@@ -15,12 +38,15 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 open scoped Real BigOperators
 
+/-- The natural logarithm of `72` is at most `5`. -/
 private theorem mnrs_log_seventy_two : Real.log 72 ≤ 5 := by
   apply (Real.log_le_iff_le_exp (by norm_num : (0 : ℝ) < 72)).mpr
   have hs := Real.sum_le_exp_of_nonneg (by norm_num : (0 : ℝ) ≤ 5) 6
   norm_num [Finset.sum_range_succ] at hs
   linarith only [hs]
 
+/-- Under the stopping-angle and reflection-cost comparisons, bounds the cumulative geometric
+cost expression by `99 * (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * U + C)`. -/
 theorem mnrs_order_form_cost (ε c₁ c₂ U C δ : ℝ) (tMax : ℕ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hc₁ : 0 ≤ c₁) (hc₂ : 0 ≤ c₂)
     (hmax : (3 : ℝ)^tMax*Real.arcsin (Real.sqrt ε) ≤ 3*π/4)
@@ -61,6 +87,9 @@ theorem mnrs_order_form_cost (ε c₁ c₂ U C δ : ℝ) (tMax : ℕ)
       simp only [div_eq_mul_inv] at hu hc hUδ ⊢
       nlinarith only [hu, hc]
 
+/-- Establishes the abstract MNRS search contract at error parameter `1 / 72`, including success
+at least `1 / 24` for nonzero marked mass and the stated cost bounds [Magniez et al.,
+Theorem 3][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_search_theorem_three_abstract : Theorem3 := by
   intro W _ _ _ Mr unmarkRefl hMneg hMid x₀ hx₀ ε hε hε1 hmass tMax R c₁ c₂ hc₁ hc₂
     costR costMark Rs hxRs hclose hRRs hfix hbound hcost hmark hwin hmin

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.SqrtApprox.ControlledWireNorm
 import Qatlib.Foundations.OperatorErrors.OperatorError
+
+/-!
+# Truncated square-root synthesis of multi-controlled gates
+
+This module develops the recursive controlled-gate construction underlying the approximation in
+[BarencoEtAl1995]. `elementary_recursive_step` adds a control while squaring the target gate,
+and `elementary_truncated_chain` iterates the construction along a coherent sequence of unitary
+square roots.
+
+## Main statements
+
+* `elementary_recursive_step`: controlled action of the recursive toggle sequence.
+* `elementary_truncated_chain`: a legal program with at most `(240 * (m + 1) + 20) * k` gates
+  and error bounded by `‖seq (j + k) - 1‖`.
+
+## References
+
+* [Barenco et al., 1995, Section 7][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +44,7 @@ namespace Qatlib.Concepts.CircuitImpl.SqrtApprox
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Boolean sequences agreeing on their first `m` entries have the same prefix conjunction. -/
 private theorem truncated_prefix_congr (a b : ℕ → Bool) (m : ℕ)
     (h : ∀ i < m, a i=b i) : noWorkPrefixAnd a m=noWorkPrefixAnd b m := by
   apply Bool.eq_iff_iff.mpr
@@ -32,6 +53,8 @@ private theorem truncated_prefix_congr (a b : ℕ → Bool) (m : ℕ)
   · rw [← h i hi]; exact hs i hi
   · rw [h i hi]; exact hs i hi
 
+/-- Combining an `m`-controlled `V` with the specified toggle sequence gives an `(m +
+1)`-controlled `V * V` on every target-wire state. -/
 theorem elementary_recursive_step (N m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hct : ∀ i < m, c i≠t) (hccl : ∀ i < m, c i≠c m) (hlast : c m≠t)
     (V : Matrix Bool Bool ℂ) (hV : V∈unitaryGroup Bool ℂ)
@@ -79,6 +102,9 @@ theorem elementary_recursive_step (N m : ℕ) (c : ℕ → Fin N) (t : Fin N)
   · rw [← applyGate_mul,show V*Vᴴ=1 from hV.2,applyGate_one]
   · rw [← applyGate_mul]
 
+/-- A coherent unitary square-root chain yields a legal program approximating the `m`-controlled
+`seq j`, with at most `(240 * (m + 1) + 20) * k` gates and operator-norm error at most `‖seq
+(j + k) - 1‖`. -/
 theorem elementary_truncated_chain {N : ℕ} (seq : ℕ → Matrix Bool Bool ℂ)
     (hu : ∀ j, seq j∈unitaryGroup Bool ℂ) (hs : ∀ j,seq (j+1)*seq (j+1)=seq j)
     (m k j : ℕ) (c : ℕ → Fin N) (t : Fin N)

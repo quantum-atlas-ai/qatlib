@@ -11,6 +11,28 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Algebra.Order.Floor.Semiring
 import Mathlib.Tactic
+
+/-!
+# Unknown-count search budgets for perceptron mistakes
+
+Specializes verified unknown-count marked-item search to confidence budgets used for perceptron
+mistake finding. The results bound worst-case prefix iterations, geometric retry failure, and
+the empty-marked-set branch for the search step in [WiebeKapoorSvore2016].
+
+## Main statements
+
+* `failure_and_iterations`: There is an initial stage count with the stated square-root
+  iteration budget such that reach mass for any nonempty marked set is at most `δ` at the chosen
+  cutoff and all later stages.
+* `parameter_budget`: At confidence `ε * γ^2`, empty marked sets yield failure mass one, while
+  nonempty marked sets have the stated square-root logarithmic iteration budget and reach-mass
+  bound at all later stages [WiebeKapoorSvore2016].
+
+## References
+
+* [Wiebe et al., 2016][WiebeKapoorSvore2016]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +44,9 @@ namespace Qatlib.Papers.QPerceptron16.MistakeSearch
 open Qatlib.Concepts.SearchStopping.UnknownCount
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
+/-- For a nonempty finite search domain, there is an initial stage count at most `6 * sqrt N`
+after which `k` further stages have prefix-iteration cost at most `(6 + k) * sqrt N` and
+nonempty marked-set reach mass at most `(3 / 4)^k`. -/
 theorem bbht_budget {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) :
     ∃ K : ℕ, (K : ℝ) ≤ 6 * Real.sqrt (Fintype.card I) ∧
@@ -33,8 +58,10 @@ theorem bbht_budget {I : Type*} [Fintype I] [DecidableEq I]
   dsimp only at h
   exact h.2.2.2
 
+/-- The retry count given by the natural ceiling of `log δ / log (3 / 4)`. -/
 def retryCount (δ : ℝ) : ℕ := Nat.ceil (Real.log δ / Real.log (3 / 4))
 
+/-- For `0 < δ ≤ 1`, the chosen retry count makes `(3 / 4)^retryCount δ` at most `δ`. -/
 theorem retryCount_failure (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     (3 / 4 : ℝ) ^ retryCount δ ≤ δ := by
   have hlog34neg : Real.log (3 / 4 : ℝ) < 0 :=
@@ -53,6 +80,8 @@ theorem retryCount_failure (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     exact mul_le_mul_of_nonpos_right hk hlog34neg.le
   exact (Real.log_le_log_iff hbase hδ0).mp hstep
 
+/-- There is an initial stage count with the stated square-root iteration budget such that reach
+mass for any nonempty marked set is at most `δ` at the chosen cutoff and all later stages. -/
 theorem failure_and_iterations
     {I : Type*} [Fintype I] [DecidableEq I] (hN : 0 < Fintype.card I)
     (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
@@ -70,6 +99,7 @@ theorem failure_and_iterations
     apply pow_le_pow_of_le_one (by norm_num) (by norm_num) (Nat.le_add_right _ j)
   exact h1.trans (h2.trans (retryCount_failure δ hδ0 hδ1))
 
+/-- The retry count is at most `log (1 / δ) / log (4 / 3) + 1` for `0 < δ ≤ 1`. -/
 theorem retryCount_le (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     (retryCount δ : ℝ) ≤ Real.log (1 / δ) / Real.log (4 / 3) + 1 := by
   have hlog34neg : Real.log (3 / 4 : ℝ) < 0 :=
@@ -89,6 +119,8 @@ theorem retryCount_le (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
   rw [retryCount, hquot]
   exact (le_of_lt hlt)
 
+/-- The retry-based iteration budget is bounded by the explicit constant times `sqrt N * (1 +
+log (1 / δ))`. -/
 theorem iteration_budget_asymptotic
     {N : ℕ} (_hN : 0 < N) (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (M : ℝ)
     (hM : M ≤ (6 + (retryCount δ : ℝ)) * Real.sqrt (N : ℝ)) :
@@ -127,6 +159,8 @@ theorem iteration_budget_asymptotic
         apply mul_le_mul_of_nonneg_right hsum hNnonneg
     _ = (7 + (Real.log (4 / 3))⁻¹) * Real.sqrt (N : ℝ) * (1 + Real.log (1 / δ)) := by ring
 
+/-- There is an initial stage count at most `6 * sqrt N` whose chosen retry prefix has the
+stated square-root logarithmic iteration bound. -/
 theorem parameter_budget_iteration_bound
     {I : Type*} [Fintype I] [DecidableEq I] (hN : 0 < Fintype.card I)
     (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
@@ -137,6 +171,8 @@ theorem parameter_budget_iteration_bound
   obtain ⟨K, hK, hcost, -⟩ := failure_and_iterations (I := I) hN δ hδ0 hδ1
   exact ⟨K, hK, iteration_budget_asymptotic hN δ hδ0 hδ1 _ hcost⟩
 
+/-- For an empty marked set, every finite-budget search has failure mass one and mass zero at
+every returned index. -/
 theorem empty_marked_branch
     {I : Type*} [Fintype I] [DecidableEq I] (hN : 0 < Fintype.card I) :
     (∀ stage budget : ℕ,
@@ -153,6 +189,9 @@ theorem empty_marked_branch
   have hnf := (hfin (∅ : Finset I) stage budget).2.2 i
   simpa using hnf (by simp)
 
+/-- At confidence `ε * γ^2`, empty marked sets yield failure mass one, while nonempty marked
+sets have the stated square-root logarithmic iteration budget and reach-mass bound at all
+later stages [WiebeKapoorSvore2016]. -/
 theorem parameter_budget
     {I : Type*} [Fintype I] [DecidableEq I] (hN : 0 < Fintype.card I)
     (ε γ : ℝ) (hε : 0 < ε) (hγ : 0 < γ) (hδ : ε * γ ^ 2 ≤ 1) :

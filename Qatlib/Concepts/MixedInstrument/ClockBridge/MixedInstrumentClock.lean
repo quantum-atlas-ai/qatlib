@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
 import Qatlib.Concepts.FairRandomBits.GeometricRetry
 import Qatlib.Concepts.MixedInstrument.ClockBridge.UnboundedInstrumentLoop
+
+/-!
+# Mixed-instrument clocks and completely positive limits
+
+This module defines costed instrument transitions and finite halting maps indexed by output and
+accumulated charge. It identifies their traces with execution event probabilities and proves
+stabilization at fixed charge when all branch prices are positive.
+
+The auxiliary `MixedClockSeries.cpSeriesLimit` constructs a completely positive limit from a
+trace-bounded series. It yields output-indexed unbounded halting maps whose total trace on a
+density operator is at most one. The instrument and completely positive map background is
+described in [Watrous2018].
+
+## Main statements
+
+* `mixed_instrument_finite_halt_cp_bridge`: relates finite halting maps to exact receipt
+  probabilities.
+* `mixed_instrument_positive_clock_stabilization`: proves stabilization at fixed charge.
+* `mixed_instrument_unbounded_output_cp_limit`: constructs unbounded output maps.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
@@ -24,24 +49,33 @@ namespace Qatlib.Concepts.MixedInstrument.ClockBridge
 open Matrix
 open scoped ComplexOrder Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The subtype of operators in dimension `D` that are density operators. -/
 abbrev ClockDensity (D : ℕ) := {ρ : Operator D // IsDensityOperator ρ}
 
+/-- The conditional density operator for outcome `l` when its probability is positive, with the
+input density operator used for zero-probability outcomes. -/
 noncomputable def clockConditional {L : Type} [Fintype L] {D : ℕ}
     (I : Instrument L D D) (ρ : ClockDensity D) (l : L) : ClockDensity D :=
   if h : 0 < instrumentProb I ρ.val l then
     ⟨I.conditionalState ρ.val l h,I.isDensityOperator_conditionalState ρ.property l h⟩ else ρ
 
+/-- The probability mass function of an instrument outcome, its conditional density operator,
+and its branch price at a classical state. -/
 noncomputable def mixedReceipt {C L : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (price : C→L→ℕ) (s : C×ClockDensity D) :
     PMF (L×ClockDensity D×ℕ) :=
   (instrumentPMF (I s.1) s.2.property).map (fun l => (l,clockConditional (I s.1) s.2 l,price s.1 l))
 
+/-- The costed transition law that routes an instrument outcome to a halting output or a new
+classical state while retaining the conditional density operator. -/
 noncomputable def mixedNext {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ) :
     C×ClockDensity D → PMF (((O×ClockDensity D)⊕(C×ClockDensity D))×ℕ) :=
   fun s => (mixedReceipt I price s).map (fun z =>
     ((dest s.1 z.1).map (fun o => (o,z.2.1)) (fun c => (c,z.2.1)),z.2.2))
 
+/-- The finite-fuel linear map for halting at output `o` with exact accumulated charge `k`,
+obtained by summing instrument branch compositions. -/
 noncomputable def mixedHaltMap {C L O : Type} [Fintype L] [DecidableEq O] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ) :
     ℕ→C→O→ℕ→(Operator D→ₗ[ℂ]Operator D)
@@ -53,6 +87,8 @@ noncomputable def mixedHaltMap {C L O : Type} [Fintype L] [DecidableEq O] {D : �
         | .inr c' => (mixedHaltMap I dest price n c' o (k-price c l)).comp ((I c).branch l)
       else 0
 
+/-- An instrument branch with zero outcome probability on a density operator has zero
+unnormalized output. -/
 theorem mixed_instrument_actual_receipt_and_state :
     ∀ (L : Type) [Fintype L] (D : ℕ) (I : Instrument L D D)
       (ρ : ClockDensity D) (l : L),
@@ -60,6 +96,8 @@ theorem mixed_instrument_actual_receipt_and_state :
   intro L _ D I ρ l h
   exact (instrumentProb_eq_zero_iff I ρ.property.1 l).mp h
 
+/-- With strictly positive branch prices, the halting map at exact charge `k` stabilizes once
+the fuel is at least `k`. -/
 theorem mixed_instrument_positive_clock_stabilization :
     ∀ (C L O : Type) [Fintype C] [Fintype L] [Fintype O] [DecidableEq O]
       (D : ℕ) (I : C → Instrument L D D) (dest : C → L → O ⊕ C)
@@ -94,6 +132,8 @@ theorem mixed_instrument_positive_clock_stabilization :
             ih (k + 1 - price c l) (by omega) k c' o (by omega)]
       · rfl
 
+/-- Under strictly positive branch prices, every transition of nonzero probability has charge at
+least one. -/
 theorem mixedNext_positive {C L O : Type} [Fintype L] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
     (hp : ∀ c l, 0 < price c l) :
@@ -109,6 +149,7 @@ theorem mixedNext_positive {C L O : Type} [Fintype L] {D : ℕ}
   rw [← hk]
   exact hp s.1 l
 
+/-- The zero linear map on operators is completely positive. -/
 private theorem mixed_cp_zero {D : ℕ} :
     CompletelyPositive (0 : Operator D →ₗ[ℂ] Operator D) := by
   intro r A _
@@ -118,6 +159,8 @@ private theorem mixed_cp_zero {D : ℕ} :
   rw [h]
   exact Matrix.PosSemidef.zero
 
+/-- Every finite-fuel halting map at a fixed output and charge is completely positive and trace
+non-increasing. -/
 theorem mixedHaltMap_cp_tni {C L O : Type} [Fintype L] [DecidableEq O] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
     (n : ℕ) (c : C) (o : O) (k : ℕ) :
@@ -164,6 +207,8 @@ theorem mixedHaltMap_cp_tni {C L O : Type} [Fintype L] [DecidableEq O] {D : ℕ}
       · simpa using hnn
     exact (Finset.sum_le_sum fun l _ => hb l).trans_eq (sum_instrumentProb (I c) A)
 
+/-- Adding charge `a` shifts an exact-charge event from `k` to `k - a` when `a ≤ k`, and gives
+zero mass otherwise. -/
 theorem mixed_event_charge {α : Type} (p : CostedLaw α) (a k : ℕ) (E : α → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge a p) (fun z => z.2 = k ∧ E z.1) =
       if a ≤ k then Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun z => z.2 = k-a ∧ E z.1) else 0 := by
@@ -186,6 +231,8 @@ theorem mixed_event_charge {α : Type} (p : CostedLaw α) (a k : ℕ) (E : α �
     intro z
     simp only [if_neg (show ¬ (a + z.2 = k ∧ E z.1) by omega), mul_zero]
 
+/-- Multiplying a conditional density operator by its outcome probability reconstructs the
+unnormalized instrument branch output. -/
 theorem clockConditional_reconstruct {L : Type} [Fintype L] {D : ℕ}
     (I : Instrument L D D) (ρ : ClockDensity D) (l : L) :
     (instrumentProb I ρ.val l : ℂ) • (clockConditional I ρ l).val = I.branch l ρ.val := by
@@ -201,6 +248,8 @@ theorem clockConditional_reconstruct {L : Type} [Fintype L] {D : ℕ}
     rw [h0, Complex.ofReal_zero, zero_smul,
       mixed_instrument_actual_receipt_and_state L D I ρ l h0]
 
+/-- The probability of halting at a fixed output and charge with `n + 1` fuel is the sum over
+first outcomes of their probabilities times the corresponding residual halting events. -/
 theorem mixedHaltEvent_succ {C L O : Type} [Fintype L] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
     (n k : ℕ) (c : C) (o : O) (ρ : ClockDensity D) :
@@ -240,6 +289,8 @@ theorem mixedHaltEvent_succ {C L O : Type} [Fintype L] {D : ℕ}
     | inr c' => rfl
   · rfl
 
+/-- The real trace of the finite halting map on a density operator, embedded in ℝ≥0∞, equals the
+corresponding exact-output, exact-charge event mass. -/
 theorem mixedHaltMap_event {C L O : Type} [Fintype L] [DecidableEq O] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
     (n k : ℕ) (c : C) (o : O) (ρ : ClockDensity D) :
@@ -296,6 +347,8 @@ theorem mixedHaltMap_event {C L O : Type} [Fintype L] [DecidableEq O] {D : ℕ}
         rw [smul_eq_mul, htrace, ENNReal.ofReal_mul (instrumentProb_nonneg (I c) ρ.property.1 l)]
     · simp
 
+/-- Finite halting maps are completely positive and trace non-increasing, and their traces
+recover the corresponding joint output and charge event probabilities. -/
 theorem mixed_instrument_finite_halt_cp_bridge :
     ∀ (C L O : Type) [Fintype C] [Fintype L] [Fintype O] [DecidableEq O]
       (D : ℕ) (I : C → Instrument L D D) (dest : C → L → O ⊕ C)
@@ -310,6 +363,8 @@ theorem mixed_instrument_finite_halt_cp_bridge :
     (mixedHaltMap_cp_tni I dest price n c o k).2,
     mixedHaltMap_event I dest price n k c o ρ⟩
 
+/-- With positive prices, the sum of halting traces over all outputs and charges below `N` is at
+most one on a density operator. -/
 theorem mixedHaltMap_density_partial_bound {C L O : Type} [Fintype C] [Fintype L]
     [Fintype O] [DecidableEq O] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
@@ -372,6 +427,8 @@ theorem mixedHaltMap_density_partial_bound {C L O : Type} [Fintype C] [Fintype L
   rw [← he] at hb
   exact (ENNReal.ofReal_le_one).mp hb
 
+/-- With positive prices, the sum of halting traces over all outputs and charges below `N` is at
+most the input trace for positive semidefinite inputs. -/
 theorem mixedHaltMap_partial_bound {C L O : Type} [Fintype C] [Fintype L]
     [Fintype O] [DecidableEq O] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
@@ -419,10 +476,14 @@ theorem mixedHaltMap_partial_bound {C L O : Type} [Fintype C] [Fintype L]
 
 namespace MixedClockSeries
 
+/-- The predicate that every finite partial sum of the output traces of `T` on a positive
+semidefinite input is bounded by that input's trace. -/
 def TraceSeriesBound {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D)) : Prop :=
   ∀ N (P : Operator D), P.PosSemidef →
     (∑ k ∈ Finset.range N, (Matrix.trace (T k P)).re) ≤ (Matrix.trace P).re
 
+/-- The norm of any entry of a positive semidefinite operator is bounded by the real part of its
+trace. -/
 private theorem posSemidef_abs_entry_le_trace {D : ℕ} {N : Operator D}
     (hN : N.PosSemidef) (i j : Fin D) :
     ‖N i j‖ ≤ (Matrix.trace N).re := by
@@ -452,14 +513,19 @@ private theorem posSemidef_abs_entry_le_trace {D : ℕ} {N : Operator D}
   calc ‖N i j‖ ≤ ((N i i).re + (N j j).re) / 2 := hmid
     _ ≤ (Matrix.trace N).re := by linarith
 
+/-- The coordinate vector that is one at `i` and zero at every other index. -/
 private def unitVector {D : ℕ} (i : Fin D) : Fin D → ℂ := Pi.single i 1
 
+/-- The outer product of `u` with its conjugate, forming a positive semidefinite
+rank-at-most-one operator. -/
 private noncomputable def psdUnitVec {D : ℕ} (u : Fin D → ℂ) : Operator D := vecMulVec u (star u)
 
+/-- The outer product `psdUnitVec u` is positive semidefinite. -/
 private theorem psdUnitVec_posSemidef {D : ℕ} (u : Fin D → ℂ) :
     (psdUnitVec u).PosSemidef :=
   Matrix.posSemidef_vecMulVec_self_star u
 
+/-- A coordinate of `unitVector p` is one when its index is `p` and zero otherwise. -/
 private theorem unitVector_apply {D : ℕ} (p a : Fin D) :
     unitVector p a = if p = a then (1 : ℂ) else 0 := by
   by_cases h : p = a
@@ -468,12 +534,15 @@ private theorem unitVector_apply {D : ℕ} (p a : Fin D) :
   · have h' : a ≠ p := fun he => h he.symm
     simp [unitVector, h, h']
 
+/-- The `(a, b)` entry of `psdUnitVec u` is `u a` times the conjugate of `u b`. -/
 private theorem psdUnitVec_apply {D : ℕ} (u : Fin D → ℂ) (a b : Fin D) :
     psdUnitVec u a b = u a * (starRingEnd ℂ) (u b) := rfl
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 800000 in
 
+/-- A matrix unit is a complex linear combination of four positive semidefinite outer products
+of coordinate vectors and their sums. -/
 private theorem matrixUnit_eq_pieces {D : ℕ} (p q : Fin D) :
     (Matrix.single p q (1 : ℂ) : Operator D) =
       (1 / 2 : ℂ) • psdUnitVec (unitVector p + unitVector q)
@@ -499,6 +568,7 @@ private theorem matrixUnit_eq_pieces {D : ℕ} (p q : Fin D) :
       refine Complex.ext ?_ ?_ <;> norm_num [Complex.add_re, Complex.mul_re,
         Complex.sub_re, Complex.add_im, Complex.mul_im, Complex.sub_im]
 
+/-- Every operator is the sum of its matrix units scaled by the corresponding entries. -/
 private theorem eq_sum_matrixUnit {D : ℕ} (X : Operator D) :
     X = ∑ p : Fin D, ∑ q : Fin D,
       ((X p q : ℂ) • (Matrix.single p q (1 : ℂ) : Operator D)) := by
@@ -516,6 +586,7 @@ private theorem eq_sum_matrixUnit {D : ℕ} (X : Operator D) :
     (fun hb => absurd (Finset.mem_univ b) hb)]
   simp
 
+/-- A finite sum of summable complex sequences is summable. -/
 private theorem summable_finset_sum' {ι : Type} (s : Finset ι) (f : ι → ℕ → ℂ)
     (h : ∀ p ∈ s, Summable (f p)) : Summable fun k => ∑ p ∈ s, f p k := by
   classical
@@ -526,6 +597,8 @@ private theorem summable_finset_sum' {ι : Type} (s : Finset ι) (f : ι → ℕ
       exact (h p (Finset.mem_insert_self p s)).add
         (ih fun q hq => h q (Finset.mem_insert_of_mem hq))
 
+/-- For a completely positive series satisfying `TraceSeriesBound`, each output entry is
+summable on positive semidefinite inputs. -/
 private theorem halt_entry_summable_psd {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T)
     {P : Operator D} (hP : P.PosSemidef) (i j : Fin D) :
@@ -539,6 +612,8 @@ private theorem halt_entry_summable_psd {D : ℕ} (T : ℕ → (Operator D →�
     exact hb n P hP
   exact Summable.of_norm (hseries.of_nonneg_of_le (fun k => norm_nonneg _) hbound)
 
+/-- For a completely positive series satisfying `TraceSeriesBound`, each output entry is
+summable on a scalar multiple of a matrix unit. -/
 private theorem halt_entry_summable_single {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T) (c : ℂ)
     (p q : Fin D) (i j : Fin D) :
@@ -590,6 +665,8 @@ private theorem halt_entry_summable_single {D : ℕ} (T : ℕ → (Operator D �
     ((halt_entry_summable_psd T hc hb (psdUnitVec_posSemidef _) i j).hasSum.mul_left _).summable
   exact ((((h1.add h2).sub h3).sub h4).hasSum.mul_left c).summable
 
+/-- For a completely positive series satisfying `TraceSeriesBound`, each output entry is
+summable on every operator. -/
 theorem cpSeries_entry_summable {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T) (X : Operator D)
     (i j : Fin D) : Summable fun k => T k X i j := by
@@ -603,6 +680,8 @@ theorem cpSeries_entry_summable {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] O
   refine summable_finset_sum' _ _ fun p _ =>
     summable_finset_sum' _ _ fun q _ => halt_entry_summable_single T hc hb _ p q i j
 
+/-- The complex-linear map obtained by summing a completely positive series entrywise under
+`TraceSeriesBound`. -/
 noncomputable def cpSeriesLimit {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T) :
     Operator D →ₗ[ℂ] Operator D where
@@ -622,11 +701,13 @@ noncomputable def cpSeriesLimit {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] O
     have hcomb := (hx.mul_left c).tsum_eq
     simpa [map_smul, Matrix.smul_apply, smul_eq_mul] using hcomb
 
+/-- Each entry of `cpSeriesLimit` equals the infinite sum of the corresponding output entries. -/
 theorem cpSeriesLimit_apply {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T) (X : Operator D)
     (i j : Fin D) :
     cpSeriesLimit T hc hb X i j = ∑' k, T k X i j := rfl
 
+/-- The series limit of the completely positive maps preserves positive semidefiniteness. -/
 theorem cpSeriesLimit_posSemidef {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T)
     {X : Operator D} (hX : X.PosSemidef) :
@@ -634,6 +715,8 @@ theorem cpSeriesLimit_posSemidef {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] 
   posSemidef_of_tsum_entries (fun k => (hc k).positive hX)
     (fun i j => cpSeries_entry_summable T hc hb X i j)
 
+/-- The finite partial sums of the completely positive series converge on every input to
+`cpSeriesLimit`. -/
 theorem cpSeriesLimit_tendsto {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T) (X : Operator D) :
     Filter.Tendsto (fun n => (∑ k ∈ Finset.range n, T k X)) Filter.atTop
@@ -647,6 +730,8 @@ theorem cpSeriesLimit_tendsto {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Ope
   rw [hEq]
   exact (cpSeries_entry_summable T hc hb X i j).hasSum.tendsto_sum_nat
 
+/-- The entrywise series limit of completely positive maps satisfying `TraceSeriesBound` is
+completely positive. -/
 theorem cpSeriesLimit_completelyPositive {D : ℕ} (T : ℕ → (Operator D →ₗ[ℂ] Operator D))
     (hc : ∀ k, CompletelyPositive (T k)) (hb : TraceSeriesBound T) :
     CompletelyPositive (cpSeriesLimit T hc hb) := by
@@ -668,6 +753,8 @@ theorem cpSeriesLimit_completelyPositive {D : ℕ} (T : ℕ → (Operator D →�
 
 end MixedClockSeries
 
+/-- With positive branch prices, the charge-indexed halting maps at a fixed output satisfy
+`MixedClockSeries.TraceSeriesBound`. -/
 theorem mixedHaltMap_series_bound {C L O : Type} [Fintype C] [Fintype L]
     [Fintype O] [DecidableEq O] {D : ℕ}
     (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ)
@@ -682,6 +769,9 @@ theorem mixedHaltMap_series_bound {C L O : Type} [Fintype C] [Fintype L]
   exact (RCLike.nonneg_iff.mp
     (((mixedHaltMap_cp_tni I dest price k c out k).1.positive hP).trace_nonneg)).1
 
+/-- With positive branch prices, there are output-indexed completely positive, trace
+non-increasing halting maps given on density operators by limits of charge partial sums.
+Their total output trace is at most one. -/
 theorem mixed_instrument_unbounded_output_cp_limit :
     ∀ (C L O : Type) [Fintype C] [Fintype L] [Fintype O] [DecidableEq O]
       (D : ℕ) (I : C → Instrument L D D) (dest : C → L → O ⊕ C)

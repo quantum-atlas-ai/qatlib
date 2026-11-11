@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
 import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxTransfer
 import Qatlib.Concepts.QsvtCore.PolyApprox.EvenIntervalSOS
+
+/-!
+# Real polynomial completion and sufficiency
+
+This module completes an even polynomial `A` and an odd polynomial `Qt` satisfying the weighted
+bound `A(x)^2 + (1 - x^2) * Qt(x)^2 ≤ 1` on `[-1, 1]`. The theorem `lcRealCompletion` expresses
+the remaining polynomial as `b^2 + (1 - X^2) * c^2`, with even `b`, odd `c`, and controlled
+degrees.
+
+The completed pair is then synthesized into complex response phases and transferred to the
+repository amplitude `lcRepoAmp`. The resulting theorem `achievableSufficiencyCore` supplies the
+polynomial sufficiency step for the quantum signal processing setting of [LowChuang2017], with
+positive even degree and explicit endpoint rotations.
+
+## Main statements
+
+* `map_eval_ofReal` relates complex evaluation of a mapped real polynomial to real evaluation.
+* `lcRealCompletion` constructs the parity-preserving weighted sum-of-squares completion.
+* `achievableSufficiencyCore` realizes the prescribed real and imaginary polynomial components
+  using `lcRepoAmp`.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,22 +54,29 @@ open Qatlib
 
 namespace Qatlib.Concepts.QspSimulation.Achievability
 
+/-- An even power `2 * m` of real `-1` equals one. -/
 private theorem neg_one_pow_even_real {m : ℕ} : (-1 : ℝ) ^ (2 * m) = 1 :=
   (even_two_mul m).neg_one_pow
 
+/-- An odd power `2 * m + 1` of real `-1` equals `-1`. -/
 private theorem neg_one_pow_odd_real {m : ℕ} : (-1 : ℝ) ^ (2 * m + 1) = -1 :=
   (odd_two_mul_add_one m).neg_one_pow
 
+/-- An even power `2 * m` of complex `-1` equals one. -/
 private theorem neg_one_pow_even_complex {m : ℕ} : (-1 : ℂ) ^ (2 * m) = 1 :=
   (even_two_mul m).neg_one_pow
 
+/-- An odd power `2 * m + 1` of complex `-1` equals `-1`. -/
 private theorem neg_one_pow_odd_complex {m : ℕ} : (-1 : ℂ) ^ (2 * m + 1) = -1 :=
   (odd_two_mul_add_one m).neg_one_pow
 
+/-- Composing a constant complex polynomial with any complex polynomial leaves the constant
+polynomial unchanged. -/
 theorem lcC_comp (z : ℂ) (p : Polynomial ℂ) :
     (Polynomial.C z).comp p = Polynomial.C z := by
   simp [Polynomial.comp]
 
+/-- Mapping a real polynomial to complex coefficients commutes with composition by `-X`. -/
 private theorem comp_negX_map_real (p : Polynomial ℝ) :
     (p.map Complex.ofRealHom).comp (-(X : Polynomial ℂ))
       = (p.comp (-(X : Polynomial ℝ))).map Complex.ofRealHom := by
@@ -52,12 +85,15 @@ private theorem comp_negX_map_real (p : Polynomial ℝ) :
     rw [Polynomial.map_neg, Polynomial.map_X]
   rw [← hX, ← Polynomial.map_comp]
 
+/-- Evaluating the complex coefficient map of a real polynomial at a real argument equals the
+complex embedding of its real evaluation. -/
 theorem map_eval_ofReal (p : Polynomial ℝ) (x : ℝ) :
     (p.map Complex.ofRealHom).eval ((x : ℝ) : ℂ) = ((p.eval x : ℝ) : ℂ) := by
   rw [Polynomial.eval_map,
     show ((x : ℝ) : ℂ) = Complex.ofRealHom x from rfl, Polynomial.eval₂_hom]
   exact Complex.ofRealHom_eq_coe (p.eval x)
 
+/-- A real polynomial mapped to complex coefficients is fixed by coefficientwise conjugation. -/
 private theorem conj_map_real (p : Polynomial ℝ) :
     conjugatePolynomial (p.map Complex.ofRealHom) = p.map Complex.ofRealHom := by
   have hring : (starRingEnd ℂ).comp Complex.ofRealHom = Complex.ofRealHom := by
@@ -66,16 +102,22 @@ private theorem conj_map_real (p : Polynomial ℝ) :
   simp only [conjugatePolynomial, Polynomial.map_map]
   rw [hring]
 
+/-- Applying `lcExp` to the argument of a unit-modulus complex number recovers that number. -/
 private theorem lcExp_arg_of_isPhase {z : ℂ}
     (hz : Qatlib.Concepts.PhaseGeometry.Phase.IsPhase z) : lcExp z.arg = z := by
   rw [lcExp_eq_anglePhase]
   exact Qatlib.Concepts.QsvtCore.QsVtMain.anglePhase_arg_of_isPhase hz
 
+/-- If a real polynomial has natural degree at most `n`, its square has natural degree at most
+`2 * n`. -/
 private theorem natDegree_sq_le {p : Polynomial ℝ} {n : ℕ} (h : p.natDegree ≤ n) :
     (p ^ 2).natDegree ≤ 2 * n := by
   have := Polynomial.natDegree_pow_le (p := p) (n := 2)
   omega
 
+/-- For positive even `d`, the stated parity, degree, and interval bounds complete `1 - A^2 - (1
+- X^2) * Qt^2` as `b^2 + (1 - X^2) * c^2`. The completion has even `b` of degree at most `d`
+and odd `c` that is zero or satisfies `c.degree + 1 ≤ d`. -/
 theorem lcRealCompletion (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d) (hp : 0 < d)
     (hAeven : A.comp (-X) = A) (hQtodd : Qt.comp (-X) = -Qt)
     (hAdeg : A.degree ≤ (d : WithBot ℕ)) (hQtdeg : Qt.degree < (d : WithBot ℕ))
@@ -146,6 +188,10 @@ theorem lcRealCompletion (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d) (hp : 0
     rwa [h1, Polynomial.C_neg, Polynomial.C_1, neg_one_mul] at h
   exact ⟨b, c, hsos, hbdeg, hcdeg, hbeven, hcoddd⟩
 
+/-- An even `A` and odd `Qt` satisfying the stated degree and weighted interval bounds are
+realized by `lcRepoAmp` with endpoint rotations and a phase list whose length plus one is
+`d`. The amplitude is `A(x) + Complex.I * sqrt (1 - x * x) * Qt(x)` on `[-1, 1]`,
+interpreted using `realEval`. -/
 theorem achievableSufficiencyCore (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d) (hp : 0 < d)
     (hAeven : A.comp (-X) = A) (hQtodd : Qt.comp (-X) = -Qt)
     (hAdeg : A.degree ≤ (d : WithBot ℕ)) (hQtdeg : Qt.degree < (d : WithBot ℕ))

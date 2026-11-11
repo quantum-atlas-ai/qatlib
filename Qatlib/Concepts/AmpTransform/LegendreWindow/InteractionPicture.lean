@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPictureDefs
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+/-!
+# Interaction-picture resource bounds and index sorting
+
+This module proves cutoff identities, segment and sparse-program resource counts, and
+failure-budget bounds for interaction-picture simulation, related to [LowWiebe2018]. It also
+verifies index swapping and comparison schedules, derives exact bitonic-network lengths and
+endpoint bounds, and shows both that the bitonic schedule can exceed the specified comparator
+budget and that a bare comparator is not injective.
+
+## Main statements
+
+* `ip25_sort_schedule_count_le_budget`: The generated index-sort schedule fits within
+  `ip25SortingComparators k`.
+* `clause26_endpoint`: Collects segment resource counts, error and failure budgets, the eventual
+  Dyson query-rate bound, auxiliary bit bounds, and exact logarithmic rate and cutoff
+  identities.
+* `ip25BitonicSort_exceeds_budget`: For m ≥ 5, the bitonic sort schedule on 2ᵐ positions exceeds
+  `ip25SortingComparators (2 ^ m)`.
+* `ip25_index_compare_not_injective`: The ascending compare operation on two-entry vectors with
+  values in `Fin 2` is not injective.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Qatlib.Concepts.InteractionEvo.EffCosts
@@ -35,20 +62,24 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The printed interaction-picture cutoff equals `ip25CorrectedCutoff`. -/
 theorem ip25_printed_cutoff_correction (ε : ℝ) :
     ipPrintedCutoff ε = ip25CorrectedCutoff ε := by
   rw [ipPrintedCutoff_simplified]
   rfl
 
+/-- The corrected cutoff is at least two for accuracies satisfying `ipPrintedRange`. -/
 theorem ip25_corrected_cutoff_ge_two (ε : ℝ) (h : ipPrintedRange ε) :
     2 ≤ ip25CorrectedCutoff ε := by
   rw [← ip25_printed_cutoff_correction]
   exact ipPrintedCutoff_ge_two ε h
 
+/-- The dyadic accuracy 2⁻ᵏ is strictly positive. -/
 theorem ip25_dyadic_accuracy_pos (k : ℕ) : 0 < ip25DyadicAccuracy k := by
   unfold ip25DyadicAccuracy
   positivity
 
+/-- The dyadic accuracy 2⁻ᵏ is at most one. -/
 theorem ip25_dyadic_accuracy_le_one (k : ℕ) : ip25DyadicAccuracy k ≤ 1 := by
   unfold ip25DyadicAccuracy
   have hpos : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
@@ -57,15 +88,20 @@ theorem ip25_dyadic_accuracy_le_one (k : ℕ) : ip25DyadicAccuracy k ≤ 1 := by
   have hinv : ((2 : ℝ) ^ k)⁻¹ ≤ 1 := (inv_le_one₀ hpos).mpr hone
   linarith
 
+/-- The closed-form grid size bounds both 16t²(χ+Λ²)2ᵏ and the square of the closed-form cutoff,
+assuming the first quantity is nonnegative. -/
 theorem ip25_grid_condition_at_dyadic (t Λ χ : ℝ) (k : ℕ)
     (h : 0 ≤ 16 * t ^ 2 * (χ + Λ ^ 2) * (2 : ℝ) ^ k) :
     ipSourceGridCondition t Λ χ k :=
   ipSourceGridCondition_holds t Λ χ k h
 
+/-- For 0 ≤ x ≤ log 2 and K = `ipClosedFormK k`, the truncation term 2x^(K+1)/(K+1)! is at most
+2⁻ᵏ/2. -/
 theorem ip25_truncation_tail (k : ℕ) (x : ℝ) (hx0 : 0 ≤ x) (hx : x ≤ Real.log 2) :
     ipTruncationTail k x :=
   ipTruncationTail_holds k x hx0 hx
 
+/-- Applying the index transposition exchanging i and j twice returns the original position. -/
 theorem ip25_index_transposition_involutive {k : ℕ} (i j : Fin k) (p : Fin k) :
     ip25IndexTransposition i j (ip25IndexTransposition i j p) = p := by
   by_cases hpi : p = i
@@ -89,6 +125,7 @@ theorem ip25_index_transposition_involutive {k : ℕ} (i j : Fin k) (p : Fin k) 
         simp [ip25IndexTransposition, hpi, hpj]
       simp only [h1]
 
+/-- The index transposition exchanging i and j is injective. -/
 theorem ip25_index_transposition_injective {k : ℕ} (i j : Fin k) :
     Function.Injective (ip25IndexTransposition i j) := by
   intro a b hab
@@ -96,10 +133,12 @@ theorem ip25_index_transposition_injective {k : ℕ} (i j : Fin k) :
   rw [ip25_index_transposition_involutive, ip25_index_transposition_involutive] at h
   exact h
 
+/-- Swapping positions i and j places the original value at j in position i. -/
 theorem ip25_index_swap_apply_i {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     ip25IndexSwap i j v i = v j := by
   simp [ip25IndexSwap, ip25IndexTransposition]
 
+/-- Swapping positions i and j places the original value at i in position j. -/
 theorem ip25_index_swap_apply_j {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     ip25IndexSwap i j v j = v i := by
   by_cases hji : j = i
@@ -107,19 +146,23 @@ theorem ip25_index_swap_apply_j {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) 
     simp [ip25IndexSwap, ip25IndexTransposition]
   · simp [ip25IndexSwap, ip25IndexTransposition, hji]
 
+/-- Swapping positions i and j preserves the value at every other position. -/
 theorem ip25_index_swap_apply_other {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M)
     (p : Fin k) (hpi : p ≠ i) (hpj : p ≠ j) :
     ip25IndexSwap i j v p = v p := by
   simp [ip25IndexSwap, ip25IndexTransposition, hpi, hpj]
 
+/-- Applying the same index swap twice restores the input vector. -/
 theorem ip25_index_swap_involutive {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     ip25IndexSwap i j (ip25IndexSwap i j v) = v := by
   funext p
   simp [ip25IndexSwap, ip25_index_transposition_involutive]
 
+/-- Swapping indices is precomposition with the corresponding index transposition. -/
 theorem ip25_index_swap_eq_transposition {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     ip25IndexSwap i j v = fun p => v (ip25IndexTransposition i j p) := rfl
 
+/-- The compare operation orders the values at positions i and j. -/
 theorem ip25_index_compare_order {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     (ip25IndexCompare i j v) i ≤ (ip25IndexCompare i j v) j := by
   by_cases h : v i ≤ v j
@@ -133,6 +176,7 @@ theorem ip25_index_compare_order {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M)
     rw [ip25_index_swap_apply_i, ip25_index_swap_apply_j]
     exact le_of_lt hne
 
+/-- The index compare operation is idempotent. -/
 theorem ip25_index_compare_idem {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     ip25IndexCompare i j (ip25IndexCompare i j v) = ip25IndexCompare i j v := by
   have hcond : (ip25IndexCompare i j v) i ≤ (ip25IndexCompare i j v) j :=
@@ -142,6 +186,8 @@ theorem ip25_index_compare_idem {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) 
     = ip25IndexCompare i j v
   rw [if_pos hcond]
 
+/-- For each input vector, the compare operation acts by an involutive permutation of its
+positions. -/
 theorem ip25_index_compare_is_permutation {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) :
     ∃ σ : Fin k → Fin k, (∀ p, σ (σ p) = p) ∧
       ip25IndexCompare i j v = fun p => v (σ p) := by
@@ -156,6 +202,7 @@ theorem ip25_index_compare_is_permutation {M k : ℕ} (i j : Fin k) (v : Fin k �
     · rw [show ip25IndexCompare i j v = ip25IndexSwap i j v by simp [ip25IndexCompare, h]]
       exact ip25_index_swap_eq_transposition i j v
 
+/-- Reversing the index vector twice restores the input vector. -/
 theorem ip25_index_reverse_involutive {M k : ℕ} (v : Fin k → Fin M) :
     ip25IndexReverse (ip25IndexReverse v) = v := by
   funext p
@@ -165,19 +212,23 @@ theorem ip25_index_reverse_involutive {M k : ℕ} (v : Fin k → Fin M) :
   show k - 1 - (k - 1 - p.val) = p.val
   omega
 
+/-- The reversal gate count `ip25ReverseGates k` equals k. -/
 theorem ip25_reverse_gates_eq_length (k : ℕ) : ip25ReverseGates k = k := rfl
 
+/-- The repeated-index cube decomposes into the injective-index cube and the collision cube. -/
 theorem ip25_repeated_cube_split {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M k : ℕ) :
     ipRepeatedCube H t M k = ipInjectiveCube H t M k + ipCollisionCube H t M k :=
   ipRepeatedCube_split H t M k
 
+/-- The sorted index list retains the original length k. -/
 theorem ip25_sorted_index_length (M k : ℕ) (v : Fin k → Fin M) :
     (ipSortedIndexList M k v).length = k := by
   have hperm := ipSortedIndexList_perm M k v
   rw [List.Perm.length_eq hperm]
   simp
 
+/-- The sorting comparator budget is at least the input length k. -/
 theorem ip25_sorting_budget_ge_length (k : ℕ) : k ≤ ip25SortingComparators k := by
   unfold ip25SortingComparators
   cases k with
@@ -189,37 +240,50 @@ theorem ip25_sorting_budget_ge_length (k : ℕ) : k ≤ ip25SortingComparators k
       calc (k + 1) = (k + 1) * 1 := by simp
         _ ≤ (k + 1) * (Nat.log2 (k + 1) + 1) := Nat.mul_le_mul_left _ h1
 
+/-- The segment gate count is twice `ipSegmentCopies p`. -/
 theorem ip26_segment_gate_count (p : EffectiveSegmentParameters) :
     2 * ipSegmentCopies p = ip26SegmentGateCount p := rfl
 
+/-- The total query count is the segment count times the number of copies per segment. -/
 theorem ip26_total_queries_exact (p : EffectiveSegmentParameters) :
     ipTotalQueries p = ipSegmentCount p * ipSegmentCopies p := rfl
 
+/-- The total gate count is the segment count times twice the local segment copy count. -/
 theorem ip26_total_gates_exact (p : EffectiveSegmentParameters) :
     ipTotalGates p = ipSegmentCount p * (ipSegmentCopies (effectiveLongLocal p) +
       ipSegmentCopies (effectiveLongLocal p)) := rfl
 
+/-- The total qubit count is the local segment width plus the ceiling binary logarithm of the
+segment count. -/
 theorem ip26_total_qubits_exact (p : EffectiveSegmentParameters) :
     ipTotalQubits p = ipSegmentWidth (effectiveLongLocal p) + Nat.clog 2 (ipSegmentCount p) := rfl
 
+/-- For L > 0, the sum of L equal segment error budgets equals the total budget ε. -/
 theorem ip26_segment_budget_sum (L : ℕ) (ε : ℝ) (hL : 0 < L) :
     (L : ℝ) * ipSegmentBudget L ε = ε :=
   ipSegmentBudget_total L ε hL
 
+/-- For 0 ≤ δ ≤ 1, the total failure bound is at most L times the per-segment failure bound. -/
 theorem ip26_total_failure_le (L : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) (hδ1 : δ ≤ 1) :
     ipTotalFailure L δ ≤ (L : ℝ) * ipPerSegmentFailure δ :=
   ipTotalFailure_le L δ hδ hδ1
 
+/-- The total failure bound is at most one whenever the linear per-segment failure budget is at
+most one. -/
 theorem ip26_total_failure_le_one (L : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) (hδ1 : δ ≤ 1)
     (hbudget : (L : ℝ) * ipPerSegmentFailure δ ≤ 1) :
     ipTotalFailure L δ ≤ 1 := by
   have h := ip26_total_failure_le L δ hδ hδ1
   linarith
 
+/-- The total query count equals the segment count times `ip26SegmentQueryRate` at the chosen
+precision. -/
 theorem ip26_actual_query_count (p : EffectiveSegmentParameters) :
     ipTotalQueries p = ipSegmentCount p * ip26SegmentQueryRate p.precision := by
   simp [ipTotalQueries, ipSegmentCount, ip26SegmentQueryRate, ipSegmentQueries, effectiveSegmentK]
 
+/-- For each segment parameter, the computed Dyson cutoff times the ceiling binary logarithm is
+eventually bounded by a constant times k+2, with the segment-count factor included. -/
 theorem ip26_query_rate_logloglog (p : EffectiveSegmentParameters) :
     ∃ C m0 : ℕ, ∀ k : ℕ, m0 ≤ k →
       (ipSegmentCount p * computedDysonCutoff (k + 8)) * Nat.clog 2 (k + 2)
@@ -232,6 +296,8 @@ theorem ip26_query_rate_logloglog (p : EffectiveSegmentParameters) :
     _ ≤ ipSegmentCount p * (C * (k + 2)) := Nat.mul_le_mul_left _ (hC k hk)
     _ = C * (k + 2) * ipSegmentCount p := by ring
 
+/-- The auxiliary bit rate is ⌈log₂ L⌉, suffices to encode L values, and is at most `Nat.log 2 L
++ 1`. -/
 theorem ip26_aux_bit_rate (L : ℕ) :
     ip26AuxBitRate L = Nat.clog 2 L ∧
       L ≤ 2 ^ (ip26AuxBitRate L) ∧ ip26AuxBitRate L ≤ Nat.log 2 L + 1 := by
@@ -243,14 +309,18 @@ theorem ip26_aux_bit_rate (L : ℕ) :
     rw [hexp] at hlt
     exact le_of_lt hlt
 
+/-- The total qubit count is the local segment width plus `ip26AuxBitRate` of the segment count. -/
 theorem ip26_actual_aux_bits (p : EffectiveSegmentParameters) :
     ipTotalQubits p = ipSegmentWidth (effectiveLongLocal p) + ip26AuxBitRate (ipSegmentCount p) := by
   simp [ipTotalQubits, ip26AuxBitRate]
 
+/-- The corrected cutoff is the natural ceiling of `ip26NonBinaryRate ε`. -/
 theorem ip26_rate_is_cutoff (ε : ℝ) :
     ip25CorrectedCutoff ε = Nat.ceil (ip26NonBinaryRate ε) := by
   rfl
 
+/-- For a positive nonbinary rate, the corrected cutoff lies between that rate and that rate
+plus one, with strict upper inequality. -/
 theorem ip26_rate_ceiling_bounds (ε : ℝ) (h : 0 < ip26NonBinaryRate ε) :
     ip26NonBinaryRate ε ≤ (ip25CorrectedCutoff ε : ℝ) ∧
       (ip25CorrectedCutoff ε : ℝ) < ip26NonBinaryRate ε + 1 := by
@@ -258,6 +328,7 @@ theorem ip26_rate_ceiling_bounds (ε : ℝ) (h : 0 < ip26NonBinaryRate ε) :
   rw [hceil]
   exact ⟨Nat.le_ceil _, Nat.ceil_lt_add_one h.le⟩
 
+/-- The nonbinary query rate is positive on `ipPrintedRange`. -/
 theorem ip26_rate_pos (ε : ℝ) (h : ipPrintedRange ε) :
     0 < ip26NonBinaryRate ε := by
   have hε : 0 < ε := h.1
@@ -279,6 +350,7 @@ theorem ip26_rate_pos (ε : ℝ) (h : ipPrintedRange ε) :
   simp only [ip26NonBinaryRate]
   exact div_pos hnum hden
 
+/-- The nonbinary query rate is greater than one on `ipPrintedRange`. -/
 theorem ip26_rate_gt_one (ε : ℝ) (h : ipPrintedRange ε) :
     1 < ip26NonBinaryRate ε := by
   have hpos := ip26_rate_pos ε h
@@ -287,6 +359,7 @@ theorem ip26_rate_gt_one (ε : ℝ) (h : ipPrintedRange ε) :
   obtain ⟨hle, hlt⟩ := ip26_rate_ceiling_bounds ε hpos
   linarith
 
+/-- For ε > 0, the nonbinary rate equals 2(log(1/ε)+log 2)/log(log(1/ε)+log 2). -/
 theorem ip26_rate_in_log_terms (ε : ℝ) (hε : 0 < ε) :
     ip26NonBinaryRate ε
       = 2 * (Real.log (1 / ε) + Real.log 2) / Real.log (Real.log (1 / ε) + Real.log 2) := by
@@ -297,6 +370,7 @@ theorem ip26_rate_in_log_terms (ε : ℝ) (hε : 0 < ε) :
   simp only [ip26NonBinaryRate]
   rw [hlog]
 
+/-- At dyadic accuracy 2⁻ᵏ, the nonbinary rate equals 2(k+1)log 2/log((k+1)log 2). -/
 theorem ip26_rate_dyadic (k : ℕ) :
     ip26NonBinaryRate (ip25DyadicAccuracy k)
       = 2 * ((k + 1) * Real.log 2) / Real.log ((k + 1) * Real.log 2) := by
@@ -310,6 +384,8 @@ theorem ip26_rate_dyadic (k : ℕ) :
   simp only [ip26NonBinaryRate]
   rw [hlog]
 
+/-- Collects the exact query and auxiliary-qubit counts and the dyadic nonbinary-rate and
+ceiling-cutoff identities. -/
 theorem ip26_rate_ledger (p : EffectiveSegmentParameters) :
     (ipTotalQueries p = ipSegmentCount p * ip26SegmentQueryRate p.precision) ∧
     (ipTotalQubits p = ipSegmentWidth (effectiveLongLocal p) + ip26AuxBitRate (ipSegmentCount p)) ∧
@@ -320,33 +396,42 @@ theorem ip26_rate_ledger (p : EffectiveSegmentParameters) :
   refine ⟨ip26_actual_query_count p, ip26_actual_aux_bits p, ip26_rate_dyadic p.precision, ?_⟩
   exact ip26_rate_is_cutoff _
 
+/-- The sparse program's step-list length equals `ip27SparseStepCount p`. -/
 theorem ip27_sparse_step_count (p : EffectiveSparseParameters) :
     (ipSparseProgram p).steps.length = ip27SparseStepCount p := by
   unfold ip27SparseStepCount ipSparseProgram
   rfl
 
+/-- The sparse program's width equals `ip27SparseWidth p`. -/
 theorem ip27_sparse_width (p : EffectiveSparseParameters) :
     (ipSparseProgram p).width = ip27SparseWidth p := by
   unfold ip27SparseWidth ipSparseProgram
   rfl
 
+/-- The sparse construction uses two queries. -/
 theorem ip27_sparse_queries (p : EffectiveSparseParameters) :
     ipSparseQueries p = 2 := rfl
 
+/-- Expands `ipLchsThreeFactor` into the two outer Hamiltonian evolutions and the middle ordered
+evolution of the interaction-picture generator. -/
 theorem ip27_three_factor_exact (L H : Matrix I I ℂ) (k t : ℝ) :
     ipLchsThreeFactor I L H k t
       = HamiltonianEvolution (k • L) t *
         orderedEvolution (fun u => Complex.I • interactionGenerator (k • L) (fun _ => H) u) 0 t *
         HamiltonianEvolution (-(k • L)) t := rfl
 
+/-- The sparse program's counted queries equal `ipSparseQueries p`. -/
 theorem ip27_program_query_count (p : EffectiveSparseParameters) :
     ip27ProgramQueries (ipSparseProgram p) = ipSparseQueries p := by
   simp [ip27ProgramQueries, ipSparseProgram, ipSparseQueries]
 
+/-- The diagonal-augmented program's step-list length equals `ip27DiagonalTotalGates p`. -/
 theorem ip27_diagonal_step_count (p : EffectiveSparseParameters) :
     (ip27DiagonalProgram p).steps.length = ip27DiagonalTotalGates p := by
   simp [ip27DiagonalProgram, ip27DiagonalTotalGates, ip27DiagonalGateCount]
 
+/-- Adding the diagonal phase steps preserves the sparse program's query count, and the diagonal
+contribution uses zero queries. -/
 theorem ip27_diagonal_queries (p : EffectiveSparseParameters) :
     ip27ProgramQueries (ip27DiagonalProgram p) = ip27ProgramQueries (ipSparseProgram p) ∧
       ip27DiagonalQueries p = 0 := by
@@ -354,10 +439,13 @@ theorem ip27_diagonal_queries (p : EffectiveSparseParameters) :
   · simp [ip27ProgramQueries, ip27DiagonalProgram, ipSparseProgram]
   · rfl
 
+/-- The diagonal-augmented program has the same width as the sparse program. -/
 theorem ip27_diagonal_width (p : EffectiveSparseParameters) :
     (ip27DiagonalProgram p).width = (ipSparseProgram p).width := by
   simp [ip27DiagonalProgram, ipSparseProgram]
 
+/-- With sufficient fuel, the merge runner returns the accumulated prefix followed by
+`List.merge` of the two input lists. -/
 theorem ip25_merge_run_eq_merge {α : Type} (le : α → α → Bool) (off : ℕ) :
     ∀ (fuel : ℕ) (res a b : List α), a.length + b.length ≤ fuel →
       (ip25MergeRun le off fuel res a b).1 = res ++ List.merge a b le := by
@@ -390,6 +478,8 @@ theorem ip25_merge_run_eq_merge {α : Type} (le : α → α → Bool) (off : ℕ
                   · simp only [List.length_cons] at h ⊢
                     omega
 
+/-- With sufficient fuel, the merge runner records at most the combined length of the two input
+lists in comparisons. -/
 theorem ip25_merge_run_count {α : Type} (le : α → α → Bool) (off : ℕ) :
     ∀ (fuel : ℕ) (res a b : List α), a.length + b.length ≤ fuel →
       (ip25MergeRun le off fuel res a b).2.length ≤ a.length + b.length := by
@@ -425,6 +515,7 @@ theorem ip25_merge_run_count {α : Type} (le : α → α → Bool) (off : ℕ) :
                   simp only [Prod.fst, Prod.snd, List.length_cons]
                   omega
 
+/-- With sufficient fuel, the sorting runner returns `List.mergeSort` of the input list. -/
 theorem ip25_sort_run_eq_mergeSort {α : Type} (le : α → α → Bool) :
     ∀ (off : ℕ) (fuel : ℕ) (xs : List α), xs.length ≤ fuel →
       (ip25SortRunAt le off fuel xs).1 = List.mergeSort xs le := by
@@ -459,11 +550,13 @@ theorem ip25_sort_run_eq_mergeSort {α : Type} (le : α → α → Bool) :
               · simp [List.mergeSort, List.MergeSort.Internal.splitInTwo, List.splitAt_eq]
               · rw [List.length_mergeSort, List.length_mergeSort]
 
+/-- The natural ceiling binary logarithm is monotone. -/
 theorem ip25_clog_mono {m n : ℕ} (h : m ≤ n) : Nat.clog 2 m ≤ Nat.clog 2 n := by
   refine Nat.clog_le_of_le_pow ?_
   have := Nat.le_pow_clog (by decide : 1 < 2) n
   omega
 
+/-- The natural ceiling binary logarithm is at most the binary floor logarithm plus one. -/
 theorem ip25_clog_le_log2 (n : ℕ) : Nat.clog 2 n ≤ Nat.log2 n + 1 := by
   refine Nat.clog_le_of_le_pow ?_
   have hlt := Nat.lt_pow_succ_log_self (by decide : 1 < 2) n
@@ -472,6 +565,8 @@ theorem ip25_clog_le_log2 (n : ℕ) : Nat.clog 2 n ≤ Nat.log2 n + 1 := by
   rw [Nat.pow_succ]
   omega
 
+/-- For n ≥ 2, the ceiling binary logarithm of ⌊(n+1)/2⌋ is at most the ceiling binary logarithm
+of n minus one. -/
 theorem ip25_clog_half (n : ℕ) (h : 2 ≤ n) :
     Nat.clog 2 ((n + 1) / 2) ≤ Nat.clog 2 n - 1 := by
   have hc : 1 ≤ Nat.clog 2 n := by
@@ -491,6 +586,8 @@ theorem ip25_clog_half (n : ℕ) (h : 2 ≤ n) :
   rw [htwo]
   omega
 
+/-- With sufficient fuel, the sorting runner records at most length times ceiling binary
+logarithm of length in comparisons. -/
 theorem ip25_sort_run_count {α : Type} (le : α → α → Bool) :
     ∀ (off : ℕ) (fuel : ℕ) (xs : List α), xs.length ≤ fuel →
       (ip25SortRunAt le off fuel xs).2.length ≤ xs.length * Nat.clog 2 xs.length := by
@@ -601,6 +698,8 @@ theorem ip25_sort_run_count {α : Type} (le : α → α → Bool) :
                       rw [Nat.mul_comm, Nat.mul_comm, ← Nat.add_mul, Nat.mul_comm]
                 _ ≤ n * Nat.clog 2 n := by rw [hid3]
 
+/-- Every position recorded by the merge runner is below the offset plus the total length of the
+accumulated prefix and input lists. -/
 theorem ip25_merge_run_positions_lt {α : Type} (le : α → α → Bool) (off : ℕ) :
     ∀ (fuel : ℕ) (res a b : List α),
       ∀ p ∈ (ip25MergeRun le off fuel res a b).2,
@@ -640,12 +739,14 @@ theorem ip25_merge_run_positions_lt {α : Type} (le : α → α → Bool) (off :
                     simp only [List.length_cons, List.length_nil, List.length_append] at hb ⊢
                     omega
 
+/-- Sorting the index vector with the comparison runner yields `ipSortedIndexList M k v`. -/
 theorem ip25_sort_run_eq_sorted_index_list {M k : ℕ} (v : Fin k → Fin M) :
     (ip25SortRun (fun a b => decide (a ≤ b)) 0 (List.ofFn v)).1 = ipSortedIndexList M k v := by
   have h := ip25_sort_run_eq_mergeSort (fun a b => decide (a ≤ b)) 0 (List.ofFn v).length
     (List.ofFn v) (by simp)
   simpa [ip25SortRun, ipSortedIndexList] using! h
 
+/-- The generated index-sort schedule fits within `ip25SortingComparators k`. -/
 theorem ip25_sort_schedule_count_le_budget {M k : ℕ} (v : Fin k → Fin M) :
     (ip25SortSchedule v).length ≤ ip25SortingComparators k := by
   have h := ip25_sort_run_count (fun a b => decide (a ≤ b)) 0 (List.ofFn v).length
@@ -657,12 +758,15 @@ theorem ip25_sort_schedule_count_le_budget {M k : ℕ} (v : Fin k → Fin M) :
   simp only [ip25SortingComparators]
   omega
 
+/-- The generated index-sort schedule has at most k · ⌈log₂ k⌉ comparisons. -/
 theorem ip25_sort_schedule_count_le_clog {M k : ℕ} (v : Fin k → Fin M) :
     (ip25SortSchedule v).length ≤ k * Nat.clog 2 k := by
   have h := ip25_sort_run_count (fun a b => decide (a ≤ b)) 0 (List.ofFn v).length
     (List.ofFn v) (by simp)
   simpa [ip25SortSchedule, ip25SortRun, List.length_ofFn] using! h
 
+/-- Collects the corrected cutoff and dyadic accuracy facts, index-operation identities,
+sorted-list length, and comparison-runner correctness and schedule bounds. -/
 theorem clause25_interactionPicture_endpoint :
     (∀ ε : ℝ, ipPrintedCutoff ε = ip25CorrectedCutoff ε) ∧
     (∀ ε : ℝ, ipPrintedRange ε → 2 ≤ ip25CorrectedCutoff ε) ∧
@@ -715,6 +819,8 @@ theorem clause25_interactionPicture_endpoint :
   · intro M k v
     exact ip25_sort_schedule_count_le_clog v
 
+/-- Collects segment resource counts, error and failure budgets, the eventual Dyson query-rate
+bound, auxiliary bit bounds, and exact logarithmic rate and cutoff identities. -/
 theorem clause26_endpoint :
     (∀ p : EffectiveSegmentParameters, 2 * ipSegmentCopies p = ip26SegmentGateCount p) ∧
     (∀ p : EffectiveSegmentParameters,
@@ -795,6 +901,7 @@ theorem clause26_endpoint :
   · intro p
     exact ip26_rate_is_cutoff _
 
+/-- Collects the sparse and diagonal-augmented programs' step counts, widths, and query counts. -/
 theorem clause27_endpoint :
     (∀ p : EffectiveSparseParameters,
       (ipSparseProgram p).steps.length = ip27SparseStepCount p) ∧
@@ -825,15 +932,18 @@ theorem clause27_endpoint :
   · intro p
     exact ip27_diagonal_width p
 
+/-- Twice 2ⁿ equals 2ⁿ⁺¹. -/
 private theorem ip25_two_pow' (n : ℕ) : 2 * 2 ^ n = 2 ^ (n + 1) := by
   rw [Nat.mul_comm, Nat.pow_succ]
 
+/-- For m > 0, 2ᵐ equals twice 2ᵐ⁻¹. -/
 private theorem ip25_two_pow (m : ℕ) (hm : 0 < m) : 2 ^ m = 2 ^ (m - 1) * 2 := by
   calc 2 ^ m = 2 ^ ((m - 1) + 1) := by
           congr 1
           omega
     _ = 2 ^ (m - 1) * 2 := Nat.pow_succ _ _
 
+/-- The bitonic merge schedule on 2ˢ positions has s · 2ˢ⁻¹ gates. -/
 theorem ip25BitonicMerge_length : ∀ (s : ℕ) (up : Bool),
     (ip25BitonicMerge s up).length = s * 2 ^ (s - 1) := by
   intro s
@@ -857,6 +967,7 @@ theorem ip25BitonicMerge_length : ∀ (s : ℕ) (up : Bool),
           _ = 2 ^ k + k * 2 ^ k := by rw [h3]
           _ = (k + 1) * 2 ^ k := by ring
 
+/-- For m ≥ 2, the directed bitonic sort schedule on 2ᵐ positions has 2ᵐ⁻²m(m+1) gates. -/
 theorem ip25BitonicSortDir_length : ∀ (m : ℕ) (up : Bool), 2 ≤ m →
     (ip25BitonicSortDir m up).length = 2 ^ (m - 2) * m * (m + 1) := by
   intro m
@@ -890,11 +1001,13 @@ theorem ip25BitonicSortDir_length : ∀ (m : ℕ) (up : Bool), 2 ≤ m →
           List.length_map, List.length_range]
         norm_num
 
+/-- For m ≥ 2, the bitonic sort schedule on 2ᵐ positions has 2ᵐ⁻²m(m+1) gates. -/
 theorem ip25BitonicSort_length : ∀ m : ℕ, 2 ≤ m →
     (ip25BitonicSort m).length = 2 ^ (m - 2) * m * (m + 1) := by
   intro m hm
   exact ip25BitonicSortDir_length m true hm
 
+/-- Both endpoints of every gate in a bitonic merge schedule lie below 2ˢ. -/
 theorem ip25BitonicMerge_positions_lt : ∀ (s : ℕ) (up : Bool),
     ∀ g ∈ ip25BitonicMerge s up, g.i < 2 ^ s ∧ g.j < 2 ^ s := by
   intro s
@@ -933,6 +1046,7 @@ theorem ip25BitonicMerge_positions_lt : ∀ (s : ℕ) (up : Bool),
           · show g'.j + 2 ^ k < 2 ^ (k + 1)
             omega
 
+/-- Both endpoints of every gate in a directed bitonic sort schedule lie below 2ᵐ. -/
 theorem ip25BitonicSortDir_positions_lt : ∀ (m : ℕ) (up : Bool) (g : Ip25BitonicGate),
     g ∈ ip25BitonicSortDir m up → g.i < 2 ^ m ∧ g.j < 2 ^ m := by
   intro m
@@ -965,11 +1079,13 @@ theorem ip25BitonicSortDir_positions_lt : ∀ (m : ℕ) (up : Bool) (g : Ip25Bit
           have hpow : 2 ^ (k + 1) = 2 * 2 ^ k := (ip25_two_pow' k).symm
           constructor <;> omega
 
+/-- Both endpoints of every gate in a bitonic sort schedule lie below 2ᵐ. -/
 theorem ip25BitonicSort_positions_lt : ∀ (m : ℕ) (g : Ip25BitonicGate),
     g ∈ ip25BitonicSort m → g.i < 2 ^ m ∧ g.j < 2 ^ m := by
   intro m g hg
   exact ip25BitonicSortDir_positions_lt m true g hg
 
+/-- Every bitonic merge gate has its first endpoint strictly below its second. -/
 theorem ip25BitonicMerge_gate_ordered : ∀ (s : ℕ) (up : Bool),
     ∀ g ∈ ip25BitonicMerge s up, g.i < g.j := by
   intro s
@@ -994,6 +1110,7 @@ theorem ip25BitonicMerge_gate_ordered : ∀ (s : ℕ) (up : Bool),
           show g'.i + 2 ^ k < g'.j + 2 ^ k
           omega
 
+/-- Every directed bitonic sort gate has its first endpoint strictly below its second. -/
 theorem ip25BitonicSortDir_gate_ordered : ∀ (m : ℕ) (up : Bool) (g : Ip25BitonicGate),
     g ∈ ip25BitonicSortDir m up → g.i < g.j := by
   intro m
@@ -1014,29 +1131,37 @@ theorem ip25BitonicSortDir_gate_ordered : ∀ (m : ℕ) (up : Bool) (g : Ip25Bit
           omega
         · exact ip25BitonicMerge_gate_ordered (k + 1) up g hg
 
+/-- Every bitonic sort gate has its first endpoint strictly below its second. -/
 theorem ip25BitonicSort_gate_ordered : ∀ (m : ℕ) (g : Ip25BitonicGate),
     g ∈ ip25BitonicSort m → g.i < g.j := by
   intro m g hg
   exact ip25BitonicSortDir_gate_ordered m true g hg
 
+/-- Applies an ascending or descending compare operation at a bitonic gate's bounded endpoints
+according to the gate direction. -/
 def ip25BitonicComparator {M m : ℕ} (g : Ip25BitonicGate)
     (hg : g.i < 2 ^ m ∧ g.j < 2 ^ m) (v : Fin (2 ^ m) → Fin M) :
     Fin (2 ^ m) → Fin M :=
   if g.up then ip25IndexCompare ⟨g.i, hg.1⟩ ⟨g.j, hg.2⟩ v
   else ip25IndexCompare ⟨g.j, hg.2⟩ ⟨g.i, hg.1⟩ v
 
+/-- An ascending bitonic comparator orders the first endpoint's value below or equal to the
+second endpoint's value. -/
 theorem ip25BitonicComparator_ascending {M m : ℕ} (g : Ip25BitonicGate)
     (hg : g.i < 2 ^ m ∧ g.j < 2 ^ m) (v : Fin (2 ^ m) → Fin M) (hup : g.up) :
     (ip25BitonicComparator g hg v) ⟨g.i, hg.1⟩ ≤ (ip25BitonicComparator g hg v) ⟨g.j, hg.2⟩ := by
   simp [ip25BitonicComparator, hup]
   exact ip25_index_compare_order _ _ _
 
+/-- A descending bitonic comparator orders the second endpoint's value below or equal to the
+first endpoint's value. -/
 theorem ip25BitonicComparator_descending {M m : ℕ} (g : Ip25BitonicGate)
     (hg : g.i < 2 ^ m ∧ g.j < 2 ^ m) (v : Fin (2 ^ m) → Fin M) (hup : ¬ g.up) :
     (ip25BitonicComparator g hg v) ⟨g.j, hg.2⟩ ≤ (ip25BitonicComparator g hg v) ⟨g.i, hg.1⟩ := by
   simp [ip25BitonicComparator, hup]
   exact ip25_index_compare_order _ _ _
 
+/-- For each input vector, a bitonic comparator acts by an involutive permutation of positions. -/
 theorem ip25BitonicComparator_is_permutation {M m : ℕ} (g : Ip25BitonicGate)
     (hg : g.i < 2 ^ m ∧ g.j < 2 ^ m) (v : Fin (2 ^ m) → Fin M) :
     ∃ σ : Fin (2 ^ m) → Fin (2 ^ m), (∀ p, σ (σ p) = p) ∧
@@ -1049,6 +1174,8 @@ theorem ip25BitonicComparator_is_permutation {M m : ℕ} (g : Ip25BitonicGate)
         = ip25IndexCompare ⟨g.j, hg.2⟩ ⟨g.i, hg.1⟩ v by simp [ip25BitonicComparator, hup]]
     exact ip25_index_compare_is_permutation _ _ _
 
+/-- For m ≥ 5, the bitonic sort schedule on 2ᵐ positions exceeds `ip25SortingComparators (2 ^
+m)`. -/
 theorem ip25BitonicSort_exceeds_budget (m : ℕ) (hm : 5 ≤ m) :
     (ip25BitonicSort m).length > ip25SortingComparators (2 ^ m) := by
   have hlen : (ip25BitonicSort m).length = 2 ^ (m - 2) * m * (m + 1) :=
@@ -1075,6 +1202,8 @@ theorem ip25BitonicSort_exceeds_budget (m : ℕ) (hm : 5 ≤ m) :
           (Nat.mul_lt_mul_right hpos).mpr hlt
     _ = 2 ^ m * (m + 1) := by rw [h2]; ring
 
+/-- Every gate of the bitonic sort schedule has strictly ordered endpoints within the input
+range. -/
 theorem ip25_bitonic_network_endpoint : ∀ (m : ℕ) (g : Ip25BitonicGate),
     g ∈ ip25BitonicSort m →
     g.i < g.j ∧ g.i < 2 ^ m ∧ g.j < 2 ^ m := by
@@ -1083,19 +1212,24 @@ theorem ip25_bitonic_network_endpoint : ∀ (m : ℕ) (g : Ip25BitonicGate),
   have hord := ip25BitonicSort_gate_ordered m g hg
   exact ⟨hord, hpos.1, hpos.2⟩
 
+/-- The proposition that neither endpoint of g' is an endpoint of g. -/
 def Ip25GatesAvoid (g g' : Ip25BitonicGate) : Prop :=
   g'.i ≠ g.i ∧ g'.i ≠ g.j ∧ g'.j ≠ g.i ∧ g'.j ≠ g.j
 
+/-- If `Ip25GatesAvoid g g'` holds, both endpoints of g' differ from the first endpoint of g. -/
 theorem ip25GatesAvoid_lower {g g' : Ip25BitonicGate} (h : Ip25GatesAvoid g g') :
     g'.i ≠ g.i ∧ g'.j ≠ g.i := ⟨h.1, h.2.2.1⟩
 
+/-- If `Ip25GatesAvoid g g'` holds, both endpoints of g' differ from the second endpoint of g. -/
 theorem ip25GatesAvoid_upper {g g' : Ip25BitonicGate} (h : Ip25GatesAvoid g g') :
     g'.i ≠ g.j ∧ g'.j ≠ g.j := ⟨h.2.1, h.2.2.2⟩
 
+/-- A Boolean comparator gate preserves any position distinct from both endpoints. -/
 theorem ip25BoolGate_apply_of_ne (g : Ip25BitonicGate) (v : ℕ → Bool) (j : ℕ)
     (h1 : g.i ≠ j) (h2 : g.j ≠ j) : ip25BoolGate g v j = v j := by
   simp [ip25BoolGate, Ne.symm h1, Ne.symm h2]
 
+/-- A Boolean gate sequence preserves every position that is untouched by all its gates. -/
 theorem ip25BoolRun_of_not_mem : ∀ (gs : List Ip25BitonicGate) (v : ℕ → Bool) (j : ℕ),
     (∀ g ∈ gs, g.i ≠ j ∧ g.j ≠ j) → ip25BoolRun gs v j = v j := by
   intro gs
@@ -1114,6 +1248,8 @@ theorem ip25BoolRun_of_not_mem : ∀ (gs : List Ip25BitonicGate) (v : ℕ → Bo
       exact ip25BoolGate_apply_of_ne g v j (hj g (List.mem_cons_self)).1
         (hj g (List.mem_cons_self)).2
 
+/-- Two Boolean inputs agreeing at a position untouched by every gate yield equal outputs at
+that position. -/
 theorem ip25BoolRun_congr : ∀ (gs : List Ip25BitonicGate) (v w : ℕ → Bool) (j : ℕ),
     (∀ g ∈ gs, g.i ≠ j ∧ g.j ≠ j) → v j = w j →
     ip25BoolRun gs v j = ip25BoolRun gs w j := by
@@ -1137,6 +1273,8 @@ theorem ip25BoolRun_congr : ∀ (gs : List Ip25BitonicGate) (v w : ℕ → Bool)
       rw [h1, h2]
       exact heq
 
+/-- If all surrounding gates avoid a given gate, its two final endpoint values are the original
+Boolean minimum and maximum in the order selected by its direction. -/
 theorem ip25BoolRun_get : ∀ (pre post : List Ip25BitonicGate) (v : ℕ → Bool)
     (g : Ip25BitonicGate),
     g.i ≠ g.j →
@@ -1175,6 +1313,7 @@ theorem ip25BoolRun_get : ∀ (pre post : List Ip25BitonicGate) (v : ℕ → Boo
       rw [h1, h2, e1, e2]
       constructor <;> rfl
 
+/-- Distinct gates in the Boolean half-cleaner schedule have disjoint endpoint sets. -/
 theorem ip25BoolHalfCleanerGates_disjoint (h : ℕ) :
     ∀ g ∈ ip25BoolHalfCleanerGates h, ∀ g' ∈ ip25BoolHalfCleanerGates h, g' ≠ g →
       g'.i ≠ g.i ∧ g'.i ≠ g.j ∧ g'.j ≠ g.i ∧ g'.j ≠ g.j := by
@@ -1206,6 +1345,8 @@ theorem ip25BoolHalfCleanerGates_disjoint (h : ℕ) :
       · omega
       · omega
 
+/-- The ascending compare operation on two-entry vectors with values in `Fin 2` is not
+injective. -/
 theorem ip25_index_compare_not_injective :
     ¬ Function.Injective (ip25IndexCompare (M := 2) (0 : Fin 2) 1) := by
   intro h

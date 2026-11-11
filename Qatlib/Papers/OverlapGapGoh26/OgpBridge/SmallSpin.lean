@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.DensityMargin
 import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.NormStability
+
+/-!
+# Ground energy bounds forced by overlap gaps
+
+`actual_gap_directions` constructs unit vectors with any prescribed inner product in `(0,1)`
+when the dimension is at least two. Small scaled copies of these directions show that an overlap
+gap near the cube minimum forces `cubeOpt A + m ≤ 0`; the density version bounds every
+interpolated cube minimum density by `-μ`. These geometric consequences clarify the overlap gap
+hypotheses used with [GohMuller2026].
+
+## Main statements
+
+* `instance_ogp_ground_ceiling`: For `N ≥ 2` and `0 < ν₁ < ν₂ < 1`, an overlap gap for cube
+  vectors within margin `m` of the minimum forces `cubeOpt A + m ≤ 0`.
+* `density_ogp_ground_bound`: For `N ≥ 2` and `0 < ν₁ < ν₂ < 1`, the density ensemble overlap
+  gap condition forces every interpolated cube minimum density to be at most `-μ`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,8 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Path
 
 namespace Qatlib.Papers.OverlapGapGoh26.OgpBridge.SmallSpin
 
+/-- For `N ≥ 2` and `0 < c < 1`, there exist two unit Euclidean vectors with real inner product
+`c`. -/
 theorem actual_gap_directions {N : ℕ} (hN : 2≤N) (c : ℝ) (hc0 : 0<c) (hc1 : c<1) :
     ∃ u v : EuclideanSpace ℝ (Fin N),‖u‖=1 ∧ ‖v‖=1 ∧ inner ℝ u v=c := by
   let i : Fin N := ⟨0,by omega⟩
@@ -37,9 +61,12 @@ theorem actual_gap_directions {N : ℕ} (hN : 2≤N) (c : ℝ) (hc0 : 0<c) (hc1 
   · simp only [u,v,inner_add_right,real_inner_smul_right,b.inner_eq_one,b.inner_eq_zero hij,
       mul_one,mul_zero,add_zero]
 
+/-- A tensor of positive order has zero energy at the zero spin vector. -/
 theorem tensorEnergy_zero {r N : ℕ} (A : Tensor (r+1) N) : tensorEnergy A (fun _ => 0)=0 := by
   simp [tensorEnergy]
 
+/-- For `N ≥ 2` and `0 < ν₁ < ν₂ < 1`, an overlap gap for cube vectors within margin `m` of the
+minimum forces `cubeOpt A + m ≤ 0`. -/
 theorem instance_ogp_ground_ceiling {r N : ℕ} (hN : 2≤N) (A : Tensor (r+1) N)
     (m ν₁ ν₂ : ℝ) (hlo : 0<ν₁) (hgap : ν₁<ν₂) (hhi : ν₂<1)
     (hogp : ∀ u v : EuclideanSpace ℝ (Fin N),u.ofLp∈hilbertCube N→v.ofLp∈hilbertCube N→
@@ -83,6 +110,8 @@ theorem instance_ogp_ground_ceiling {r N : ℕ} (hN : 2≤N) (A : Tensor (r+1) N
   rw [hvalue] at hbad
   rcases hbad with hbad|hbad <;> dsimp [c] at hbad <;> linarith
 
+/-- For `N ≥ 2` and `0 < ν₁ < ν₂ < 1`, the density ensemble overlap gap condition forces every
+interpolated cube minimum density to be at most `-μ`. See [GohMuller2026]. -/
 theorem density_ogp_ground_bound {r N : ℕ} (hN : 2≤N)
     (A B : Tensor (r+1) N) (μ ν₁ ν₂ : ℝ) (hlo : 0<ν₁) (hgap : ν₁<ν₂) (hhi : ν₂<1)
     (hogp : Qatlib.Papers.OverlapGapGoh26.OgpBridge.Density.densityEnsembleOGP A B μ ν₁ ν₂)

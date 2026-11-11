@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDotData
+
+/-!
+# Boolean graph data for a bilinear quotient
+
+This module composes signed dot products, multiplication, and division into
+`booleanWordBilinearQuotientProgram`. Sixteen signed input words encode a left vector, a 3 × 3
+matrix, a right vector, and a scalar; the program scales the bilinear form and divides by a
+scaled square of the scalar.
+
+The wire selections and word layouts provide data for a reversible implementation in the circuit
+framework of [NielsenChuang2010].
+
+## Main statements
+
+* `booleanWordBilinearForm`: defines the integer bilinear expression.
+* `booleanWordBilinearQuotientProgram`: assembles the Boolean graph.
+* `booleanWordBilinearQuotientValue`: decodes its signed output.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,16 +37,22 @@ namespace Qatlib.Concepts.MatrixAccess.RitzPipeline
 open scoped BigOperators
 set_option autoImplicit false
 
+/-- Pads a signed word from magnitude width w to width v, retaining its sign and using the
+supplied zero entry for new magnitude positions. -/
 def booleanSignedWordPadTo {α : Type*} (w v : ℕ) (hw : w ≤ v) (zero : α)
     (a : Fin (w+1) → α) : Fin (v+1) → α := fun j =>
   booleanSignedWordPad w (v-w) zero a ⟨j.val,by have := j.isLt; omega⟩
 
+/-- Shifts the magnitude entries of a signed word left by the specified number of positions,
+inserts the supplied zero entry, and retains the sign. -/
 def booleanSignedWordShift {α : Type*} (w shift : ℕ) (zero : α)
     (a : Fin (w+1) → α) : Fin (w+shift+1) → α := fun j =>
   if hlow : j.val < shift then zero
   else if hj : j.val < w+shift then a (Fin.castSucc ⟨j.val-shift,by omega⟩)
   else a (Fin.last w)
 
+/-- Concatenates three signed-pair selections into the input layout of a three-term signed dot
+product. -/
 def booleanSignedTripleSelect {α : Type*} (w : ℕ)
     (a b : Fin 3 → Fin (w+1) → α) : Fin (3*(2*w+2)) → α := fun j =>
   if hj : j.val < 2*w+2 then booleanSignedPairSelect w (a 0) (b 0) ⟨j.val,hj⟩
@@ -31,18 +60,25 @@ def booleanSignedTripleSelect {α : Type*} (w : ℕ)
     booleanSignedPairSelect w (a 1) (b 1) ⟨j.val-(2*w+2),by omega⟩
   else booleanSignedPairSelect w (a 2) (b 2) ⟨j.val-2*(2*w+2),by have := j.isLt; omega⟩
 
+/-- Selects the bits of one of sixteen signed input slots within a graph with n additional
+nodes. -/
 def booleanWordBilinearRaw (w n : ℕ) (slot : Fin 16) : Fin (w+1) → Fin (16*(w+1)+n) :=
   fun j => ⟨slot.val*(w+1)+j.val,by have hs := slot.isLt; have hj := j.isLt; nlinarith⟩
 
+/-- Maps a row and column of the three-by-three matrix to its input slot, starting at slot
+three. -/
 def booleanWordBilinearMatrixSlot (i j : Fin 3) : Fin 16 :=
   ⟨3+3*i.val+j.val,by have := i.isLt; have := j.isLt; omega⟩
 
+/-- Selects the left-vector and matrix-column word pairs for the specified column dot product. -/
 def booleanWordBilinearColumnInput (w n : ℕ) (j : Fin 3) :
     Fin (3*(2*w+2)) → Fin (16*(w+1)+n) :=
   booleanSignedTripleSelect w
     (fun i => booleanWordBilinearRaw w n ⟨i.val,by have := i.isLt; omega⟩)
     (fun i => booleanWordBilinearRaw w n (booleanWordBilinearMatrixSlot i j))
 
+/-- The word program computing all three dot products of the left vector with the matrix
+columns. -/
 def booleanWordBilinearColumns (w : ℕ) : BooleanDAGWord (16*(w+1)) (3*(2*w+3)) :=
   let M := 16*(w+1)
   let dot := booleanWordSignedDotProgram w
@@ -57,6 +93,8 @@ def booleanWordBilinearColumns (w : ℕ) : BooleanDAGWord (16*(w+1)) (3*(2*w+3))
         (p₁.output ⟨j.val-(2*w+3),by omega⟩)
     else p₂.output ⟨j.val-2*(2*w+3),by have := j.isLt; omega⟩),p₂.zero⟩
 
+/-- The word program computing the dot product of the three column results with the padded
+right-vector words. -/
 def booleanWordBilinearProgram (w : ℕ) : BooleanDAGWord (16*(w+1)) (2*(2*w+2)+3) :=
   let p := booleanWordBilinearColumns w
   let q := 2*w+2
@@ -67,8 +105,11 @@ def booleanWordBilinearProgram (w : ℕ) : BooleanDAGWord (16*(w+1)) (2*(2*w+2)+
       (booleanWordBilinearRaw w p.nodes ⟨12+i.val,by have := i.isLt; omega⟩)
   booleanDAGAppendWord p.graph (booleanSignedTripleSelect q left right) (booleanWordSignedDotProgram q)
 
+/-- The common quotient magnitude width b + d + 4w + 6. -/
 def booleanWordBilinearQuotientWidth (w b d : ℕ) : ℕ := b+d+4*w+6
 
+/-- The program computing a bilinear form, squaring the final input word, shifting and padding
+both quantities, and applying signed division. -/
 def booleanWordBilinearQuotientProgram (w b d : ℕ) :
     BooleanDAGWord (16*(w+1)) (booleanWordBilinearQuotientWidth w b d+3) :=
   let M := 16*(w+1)
@@ -95,26 +136,32 @@ def booleanWordBilinearQuotientProgram (w b d : ℕ) :
   ⟨final.nodes,final.graph,final.output,
     Fin.castLE (by change M+square.nodes ≤ M+(square.nodes+(booleanWordSignedDivProgram V).nodes); omega) square.zero⟩
 
+/-- Packs sixteen words of w magnitude bits and one sign bit into a single input register. -/
 def booleanWordBilinearInput (w : ℕ) (a : Fin 16 → Reg (w+1)) : Reg (16*(w+1)) := fun j =>
   a ⟨j.val/(w+1),by exact (Nat.div_lt_iff_lt_mul (by omega)).2 j.isLt⟩
     ⟨j.val%(w+1),Nat.mod_lt _ (by omega)⟩
 
+/-- The signed integer value encoded by the specified slot of a bilinear input register. -/
 def booleanWordBilinearInputValue (w : ℕ) (x : Reg (16*(w+1))) (s : Fin 16) : ℤ :=
   booleanWordSignedValue w
     (fun j => x (booleanWordBilinearRaw w 0 s j.castSucc))
     (x (booleanWordBilinearRaw w 0 s (Fin.last w)))
 
+/-- The three-dimensional integer bilinear form given by the left vector, matrix, and right
+vector stored in the input slots. -/
 def booleanWordBilinearForm (w : ℕ) (x : Reg (16*(w+1))) : ℤ :=
   ∑ j : Fin 3, (∑ i : Fin 3,
     booleanWordBilinearInputValue w x ⟨i.val,by have := i.isLt; omega⟩ *
       booleanWordBilinearInputValue w x (booleanWordBilinearMatrixSlot i j)) *
     booleanWordBilinearInputValue w x ⟨12+j.val,by have := j.isLt; omega⟩
 
+/-- The selected output word obtained by evaluating the bilinear quotient program. -/
 def booleanWordBilinearQuotientResult (w b d : ℕ) (x : Reg (16*(w+1))) :
     Reg (booleanWordBilinearQuotientWidth w b d+3) := fun j =>
   booleanDAGValue (booleanWordBilinearQuotientProgram w b d).graph x
     ((booleanWordBilinearQuotientProgram w b d).output j)
 
+/-- The signed integer decoded from the output word of the bilinear quotient program. -/
 def booleanWordBilinearQuotientValue (w b d : ℕ) (x : Reg (16*(w+1))) : ℤ :=
   let V := booleanWordBilinearQuotientWidth w b d
   booleanWordSignedValue (V+2)

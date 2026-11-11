@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
 import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+
+/-!
+# Statement of restricted expected-time Simon recovery
+
+Defines `ExpectedTimeRestricted` for verified recovery under the Boolean Simon promise. The
+predicate combines almost-sure exact recovery, a finite-fuel expected oracle-work bound, and a
+limiting classical-work bound for the restricted cost analysis of [Simon1997].
+
+## Main statements
+
+* `ExpectedTimeRestricted`: The restricted expected-cost recovery predicate, requiring
+  almost-sure exact recovery, expected oracle work at most `2 * ((n + 3) * Tf n)` for every
+  finite fuel, and limiting expected classical work at most `2 * simonBlockOpsBound n`
+  [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.ReductionCore
@@ -30,6 +50,9 @@ open Qatlib.Concepts.HspRecovery.Distinguisher
 open Qatlib
 open Qatlib
 
+/-- The restricted expected-cost recovery predicate, requiring almost-sure exact recovery,
+expected oracle work at most `2 * ((n + 3) * Tf n)` for every finite fuel, and limiting
+expected classical work at most `2 * simonBlockOpsBound n` [Simon1997]. -/
 def ExpectedTimeRestricted : Prop :=
   ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R] [DecidableEq R]
     (f : BooleanVec n → R) (s : Reg n) (Tf : ℕ → ℕ),

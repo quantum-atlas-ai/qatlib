@@ -9,6 +9,29 @@ import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Data.Nat.Choose.Central
+
+/-!
+# Taylor bias of polynomial payoff rotations
+
+This module proves a uniform remainder bound for the truncated arcsine series by studying
+normalized residuals and their derivatives. It transfers the remainder estimate to the
+squared-sine payoff in `riskPolyRotationTaylorBias`.
+
+The polynomial payoff-rotation setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `arcPartial_tail_bound`: For `|x| ≤ 1`, the arcsine partial-sum error is at most
+  `riskArcsinTail u * |x| ^ (2 * u + 3)`.
+* `riskPolyRotationTaylorBias`: For `0 < c ≤ 1` and `y ∈ [0, 1]`, the polynomial rotation
+  probability differs from its affine target by at most `riskArcsinTail u * c ^ (2 * u + 3) /
+  2`; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +44,8 @@ namespace Qatlib.Concepts.RiskEstimation.PolyRotation
 open Set
 open scoped Classical BigOperators Topology
 
+/-- If a continuous function vanishes at zero and its derivative divided by `x ^ n` is monotone
+on `(0, 1)`, then the function divided by `x ^ (n + 1)` is monotone there. -/
 private theorem quotient_power_monotone (n : ℕ) (f f' : ℝ → ℝ)
     (hc : ContinuousOn f (Ico 0 1)) (hzero : f 0 = 0)
     (hd : ∀ x ∈ Ioo 0 1, HasDerivAt f (f' x) x)
@@ -60,10 +85,14 @@ private theorem quotient_power_monotone (n : ℕ) (f f' : ℝ → ℝ)
       nlinarith
     exact div_nonneg hn (sq_nonneg _)
 
+/-- The normalized central-binomial coefficient `Nat.centralBinom j / 4 ^ j`. -/
 private noncomputable def rootCoeff (j : ℕ) : ℝ := (Nat.centralBinom j : ℝ) / 4 ^ j
 
+/-- The normalized central-binomial coefficient is nonnegative. -/
 private theorem rootCoeff_nonneg (j : ℕ) : 0 ≤ rootCoeff j := by unfold rootCoeff; positivity
 
+/-- The normalized coefficients satisfy `(2 * j + 2) * rootCoeff (j + 1) = (2 * j + 1) *
+rootCoeff j`. -/
 private theorem rootCoeff_recurrence (j : ℕ) :
     (2 * j + 2 : ℝ) * rootCoeff (j + 1) = (2 * j + 1) * rootCoeff j := by
   have h := congrArg (fun n : ℕ => (n : ℝ)) (Nat.succ_mul_centralBinom_succ j)
@@ -73,18 +102,22 @@ private theorem rootCoeff_recurrence (j : ℕ) :
   field_simp
   nlinarith
 
+/-- Multiplying the `j`th arcsine coefficient by `2 * j + 1` gives `rootCoeff j`. -/
 private theorem arcsinCoeff_derivative (j : ℕ) :
     (2 * j + 1 : ℝ) * riskArcsinCoeff j = rootCoeff j := by
   unfold riskArcsinCoeff rootCoeff
   rw [Nat.centralBinom_eq_two_mul_choose]
   field_simp
 
+/-- The odd arcsine-series partial sum through degree `2 * u + 1`. -/
 private noncomputable def arcPartial (u : ℕ) (x : ℝ) : ℝ :=
   ∑ j ∈ Finset.range (u + 1), riskArcsinCoeff j * x ^ (2 * j + 1)
 
+/-- The even inverse-square-root-series partial sum through degree `2 * u`. -/
 private noncomputable def rootPartial (u : ℕ) (x : ℝ) : ℝ :=
   ∑ j ∈ Finset.range (u + 1), rootCoeff j * x ^ (2 * j)
 
+/-- The derivative of the arcsine partial sum is the corresponding root partial sum. -/
 private theorem arcPartial_deriv (u : ℕ) (x : ℝ) :
     HasDerivAt (arcPartial u) (rootPartial u x) x := by
   have h := HasDerivAt.fun_sum (u := Finset.range (u + 1))
@@ -97,6 +130,8 @@ private theorem arcPartial_deriv (u : ℕ) (x : ℝ) :
   push_cast
   ring
 
+/-- The derivative of the root partial sum satisfies the stated identity after multiplication by
+`1 - x²`. -/
 private theorem rootPartial_deriv_equation (u : ℕ) (x : ℝ) :
     ∃ q : ℝ, HasDerivAt (rootPartial u) q x ∧
       (1 - x ^ 2) * q = x * rootPartial u x - (2 * u + 1) * rootCoeff u * x ^ (2 * u + 1) := by
@@ -129,6 +164,7 @@ private theorem rootPartial_deriv_equation (u : ℕ) (x : ℝ) :
       push_cast
       linear_combination he + x ^ (2 * u + 1) * hr - rootCoeff (u + 1) * hpow'
 
+/-- The root partial sum takes value one at zero. -/
 private theorem rootPartial_zero (u : ℕ) : rootPartial u 0 = 1 := by
   unfold rootPartial
   rw [Finset.sum_eq_single 0]
@@ -138,9 +174,11 @@ private theorem rootPartial_zero (u : ℕ) : rootPartial u 0 = 1 := by
     simp [zero_pow he]
   · simp
 
+/-- The square root of `1 - x²` is positive for `x ∈ (0, 1)`. -/
 private theorem density_pos (x : ℝ) (hx : x ∈ Ioo 0 1) : 0 < Real.sqrt (1 - x ^ 2) :=
   Real.sqrt_pos.mpr (by nlinarith [hx.1, hx.2])
 
+/-- On `(0, 1)`, the derivative of `sqrt (1 - x²)` is `-x / sqrt (1 - x²)`. -/
 private theorem density_deriv (x : ℝ) (hx : x ∈ Ioo 0 1) :
     HasDerivAt (fun t : ℝ => Real.sqrt (1 - t ^ 2)) (-x / Real.sqrt (1 - x ^ 2)) x := by
   have hD : 0 < 1 - x ^ 2 := by nlinarith [hx.1, hx.2]
@@ -151,6 +189,7 @@ private theorem density_deriv (x : ℝ) (hx : x ∈ Ioo 0 1) :
   all_goals field_simp [hS.ne']
   all_goals ring
 
+/-- The function `1 / sqrt (1 - x²)` is monotone on `(0, 1)`. -/
 private theorem inverse_density_monotone :
     MonotoneOn (fun x : ℝ => 1 / Real.sqrt (1 - x ^ 2)) (Ioo 0 1) := by
   intro x hx y hy hxy
@@ -158,31 +197,41 @@ private theorem inverse_density_monotone :
   apply Real.sqrt_le_sqrt
   nlinarith [hx.1, hy.1]
 
+/-- The residual `1 - sqrt (1 - x²) * rootPartial u x`. -/
 private noncomputable def rootResidual (u : ℕ) (x : ℝ) : ℝ :=
   1 - Real.sqrt (1 - x ^ 2) * rootPartial u x
 
+/-- The explicit slope `(2 * u + 1) * rootCoeff u * x ^ (2 * u + 1) / sqrt (1 - x²)` of the root
+residual on `(0, 1)`. -/
 private noncomputable def rootResidualSlope (u : ℕ) (x : ℝ) : ℝ :=
   (2 * u + 1 : ℝ) * rootCoeff u * x ^ (2 * u + 1) / Real.sqrt (1 - x ^ 2)
 
+/-- The difference between arcsine and its odd partial sum. -/
 private noncomputable def arcResidual (u : ℕ) (x : ℝ) : ℝ := Real.arcsin x - arcPartial u x
 
+/-- The explicit slope `rootResidual u x / sqrt (1 - x²)` of the arcsine residual on `(0, 1)`. -/
 private noncomputable def arcResidualSlope (u : ℕ) (x : ℝ) : ℝ :=
   rootResidual u x / Real.sqrt (1 - x ^ 2)
 
+/-- The root residual is continuous on the real line. -/
 private theorem rootResidual_continuous (u : ℕ) : Continuous (rootResidual u) := by
   unfold rootResidual rootPartial
   fun_prop
 
+/-- The arcsine residual is continuous on the real line. -/
 private theorem arcResidual_continuous (u : ℕ) : Continuous (arcResidual u) := by
   unfold arcResidual arcPartial
   fun_prop
 
+/-- The root residual vanishes at zero. -/
 private theorem rootResidual_zero (u : ℕ) : rootResidual u 0 = 0 := by
   simp [rootResidual, rootPartial_zero]
 
+/-- The arcsine residual vanishes at zero. -/
 private theorem arcResidual_zero (u : ℕ) : arcResidual u 0 = 0 := by
   simp [arcResidual, arcPartial]
 
+/-- The derivative of the root residual on `(0, 1)` equals `rootResidualSlope`. -/
 private theorem rootResidual_deriv (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) :
     HasDerivAt (rootResidual u) (rootResidualSlope u x) x := by
   obtain ⟨q, hq, he⟩ := rootPartial_deriv_equation u x
@@ -193,6 +242,7 @@ private theorem rootResidual_deriv (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) :
     field_simp [hS.ne']
     nlinarith [congrArg (fun t : ℝ => t * q) hs]
 
+/-- The derivative of the arcsine residual on `(0, 1)` equals `arcResidualSlope`. -/
 private theorem arcResidual_deriv (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) :
     HasDerivAt (arcResidual u) (arcResidualSlope u x) x := by
   have hS := density_pos x hx
@@ -200,6 +250,7 @@ private theorem arcResidual_deriv (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) :
   · dsimp [arcResidualSlope, rootResidual]
     field_simp [hS.ne']
 
+/-- The root residual slope divided by `x ^ (2 * u + 1)` is monotone on `(0, 1)`. -/
 private theorem rootSlope_ratio_monotone (u : ℕ) :
     MonotoneOn (fun x => rootResidualSlope u x / x ^ (2 * u + 1)) (Ioo 0 1) := by
   have he (x : ℝ) (hx : x ∈ Ioo 0 1) :
@@ -213,6 +264,7 @@ private theorem rootSlope_ratio_monotone (u : ℕ) :
   exact mul_le_mul_of_nonneg_left (inverse_density_monotone hx hy hxy)
     (mul_nonneg (by positivity) (rootCoeff_nonneg u))
 
+/-- The root residual divided by `x ^ (2 * u + 2)` is monotone on `(0, 1)`. -/
 private theorem rootResidual_ratio_monotone (u : ℕ) :
     MonotoneOn (fun x => rootResidual u x / x ^ (2 * u + 2)) (Ioo 0 1) := by
   simpa only [show 2 * u + 1 + 1 = 2 * u + 2 by omega] using!
@@ -220,6 +272,8 @@ private theorem rootResidual_ratio_monotone (u : ℕ) :
       (rootResidual_continuous u).continuousOn (rootResidual_zero u)
       (rootResidual_deriv u) (rootSlope_ratio_monotone u)
 
+/-- A function continuous on `[0, 1)`, vanishing at zero, and having nonnegative derivative on
+`(0, 1)` is nonnegative at every point of `(0, 1)`. -/
 private theorem primitive_nonneg (f f' : ℝ → ℝ) (hc : ContinuousOn f (Ico 0 1)) (hzero : f 0 = 0)
     (hd : ∀ x ∈ Ioo 0 1, HasDerivAt f (f' x) x)
     (hp : ∀ x ∈ Ioo 0 1, 0 ≤ f' x) (x : ℝ) (hx : x ∈ Ioo 0 1) : 0 ≤ f x := by
@@ -232,6 +286,7 @@ private theorem primitive_nonneg (f f' : ℝ → ℝ) (hc : ContinuousOn f (Ico 
   rw [← he]
   exact mul_nonneg hpt hx.1.le
 
+/-- The root residual is nonnegative on `(0, 1)`. -/
 private theorem rootResidual_nonneg (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) : 0 ≤ rootResidual u x :=
   primitive_nonneg (rootResidual u) (rootResidualSlope u) (rootResidual_continuous u).continuousOn
     (rootResidual_zero u) (rootResidual_deriv u)
@@ -241,6 +296,7 @@ private theorem rootResidual_nonneg (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) : 0
         (mul_nonneg (mul_nonneg (by positivity) (rootCoeff_nonneg u)) (pow_nonneg ht.1.le _))
         (density_pos t ht).le) x hx
 
+/-- The arcsine residual slope divided by `x ^ (2 * u + 2)` is monotone on `(0, 1)`. -/
 private theorem arcSlope_ratio_monotone (u : ℕ) :
     MonotoneOn (fun x => arcResidualSlope u x / x ^ (2 * u + 2)) (Ioo 0 1) := by
   intro x hx y hy hxy
@@ -252,6 +308,7 @@ private theorem arcSlope_ratio_monotone (u : ℕ) :
   simpa only [arcResidualSlope, div_eq_mul_inv, one_mul, mul_assoc, mul_comm, mul_left_comm] using!
       hh
 
+/-- The arcsine residual divided by `x ^ (2 * u + 3)` is monotone on `(0, 1)`. -/
 private theorem arcResidual_ratio_monotone (u : ℕ) :
     MonotoneOn (fun x => arcResidual u x / x ^ (2 * u + 3)) (Ioo 0 1) := by
   simpa only [show 2 * u + 2 + 1 = 2 * u + 3 by omega] using!
@@ -259,14 +316,17 @@ private theorem arcResidual_ratio_monotone (u : ℕ) :
       (arcResidual_continuous u).continuousOn (arcResidual_zero u)
       (arcResidual_deriv u) (arcSlope_ratio_monotone u)
 
+/-- The arcsine residual is nonnegative on `(0, 1)`. -/
 private theorem arcResidual_nonneg (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) : 0 ≤ arcResidual u x :=
   primitive_nonneg (arcResidual u) (arcResidualSlope u) (arcResidual_continuous u).continuousOn
     (arcResidual_zero u) (arcResidual_deriv u)
     (fun t ht => div_nonneg (rootResidual_nonneg u t ht) (density_pos t ht).le) x hx
 
+/-- The arcsine residual at one equals `riskArcsinTail u`. -/
 private theorem arcResidual_one (u : ℕ) : arcResidual u 1 = riskArcsinTail u := by
   simp [arcResidual, arcPartial, riskArcsinTail]
 
+/-- On `(0, 1)`, the normalized arcsine residual is bounded above by `riskArcsinTail u`. -/
 private theorem arcResidual_ratio_le_tail (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 1) :
     arcResidual u x / x ^ (2 * u + 3) ≤ riskArcsinTail u := by
   have hc : ContinuousAt (fun t : ℝ => arcResidual u t / t ^ (2 * u + 3)) 1 :=
@@ -281,11 +341,13 @@ private theorem arcResidual_ratio_le_tail (u : ℕ) (x : ℝ) (hx : x ∈ Ioo 0 
   filter_upwards [self_mem_nhdsWithin, hgt] with t ht1 hxt
   exact arcResidual_ratio_monotone u hx ⟨lt_of_lt_of_le hx.1 hxt, ht1⟩ hxt
 
+/-- The arcsine tail constant is nonnegative. -/
 theorem riskArcsinTail_nonneg (u : ℕ) : 0 ≤ riskArcsinTail u := by
   have hx : (1 / 2 : ℝ) ∈ Ioo 0 1 := by constructor <;> norm_num
   exact (div_nonneg (arcResidual_nonneg u _ hx) (by positivity)).trans
     (arcResidual_ratio_le_tail u _ hx)
 
+/-- The arcsine partial sum is an odd function. -/
 private theorem arcPartial_neg (u : ℕ) (x : ℝ) : arcPartial u (-x) = -arcPartial u x := by
   unfold arcPartial
   rw [← Finset.sum_neg_distrib]
@@ -295,6 +357,8 @@ private theorem arcPartial_neg (u : ℕ) (x : ℝ) : arcPartial u (-x) = -arcPar
   rw [ho.neg_pow]
   ring
 
+/-- For `x ∈ [0, 1]`, the arcsine partial-sum error is at most `riskArcsinTail u * x ^ (2 * u +
+3)`. -/
 private theorem arcPartial_tail_positive (u : ℕ) (x : ℝ) (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
     |arcPartial u x - Real.arcsin x| ≤ riskArcsinTail u * x ^ (2 * u + 3) := by
   by_cases hxz : x = 0
@@ -309,6 +373,8 @@ private theorem arcPartial_tail_positive (u : ℕ) (x : ℝ) (hx0 : 0 ≤ x) (hx
   rw [abs_sub_comm, ← arcResidual, abs_of_nonneg (arcResidual_nonneg u x hx)]
   exact (div_le_iff₀ (pow_pos hx.1 _)).mp (arcResidual_ratio_le_tail u x hx)
 
+/-- For `|x| ≤ 1`, the arcsine partial-sum error is at most `riskArcsinTail u * |x| ^ (2 * u +
+3)`. -/
 private theorem arcPartial_tail_bound (u : ℕ) (x : ℝ) (hx : |x| ≤ 1) :
     |arcPartial u x - Real.arcsin x| ≤ riskArcsinTail u * |x| ^ (2 * u + 3) := by
   by_cases hx0 : 0 ≤ x
@@ -320,12 +386,15 @@ private theorem arcPartial_tail_bound (u : ℕ) (x : ℝ) (hx : |x| ≤ 1) :
     rw [abs_of_neg hn]
     exact h
 
+/-- The shifted squared sine satisfies `sin (a + π / 4)² = (1 + sin (2 * a)) / 2`. -/
 private theorem sin_square_quarter_shift (a : ℝ) :
     Real.sin (a + Real.pi / 4) ^ 2 = (1 + Real.sin (2 * a)) / 2 := by
   rw [Real.sin_sq_eq_half_sub, show 2 * (a + Real.pi / 4) = 2 * a + Real.pi / 2 by ring,
     Real.cos_add_pi_div_two]
   ring
 
+/-- Twice the scaled payoff Taylor polynomial equals the arcsine partial sum at `2 * c * (y - 1
+/ 2)`. -/
 private theorem riskSinTaylor_arcPartial (u : ℕ) (c y : ℝ) :
     2 * (c * riskSinTaylor u c y) = arcPartial u (2 * c * (y - 1 / 2)) := by
   unfold riskSinTaylor arcPartial
@@ -338,6 +407,8 @@ private theorem riskSinTaylor_arcPartial (u : ℕ) (c y : ℝ) :
   field_simp
   ring
 
+/-- For `0 < c ≤ 1` and `y ∈ [0, 1]`, the polynomial rotation probability differs from its
+affine target by at most `riskArcsinTail u * c ^ (2 * u + 3) / 2`; see [WoernerEgger2019]. -/
 theorem riskPolyRotationTaylorBias : PolyRotationTaylorBias := by
   intro u c y hc hc1 hy0 hy1
   let w := 2 * c * (y - 1 / 2)

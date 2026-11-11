@@ -9,6 +9,33 @@ import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
 import Mathlib.Data.List.TakeWhile
 import Qatlib.Concepts.ClassicalTape.FairCoinTape
+
+/-!
+# Verified tape and stack copy and reset programs
+
+This module proves the operational behavior of the copy and reset machines defined in
+`ClassicalProbabilisticDefs`. Tape-content invariants track each write and head move, yielding
+halting configurations with the head returned to the input origin. The resulting explicit
+running times support tape-machine complexity arguments in the setting of [NielsenChuang2010].
+
+The module also bounds the reach of nonblank scratch cells, verifies analogous TM2 stack
+programs, and proves injectivity of three input encodings.
+
+## Main statements
+
+* `copy_final`: input copying terminates after `3 * input.length + 1` transitions with both
+  tracks populated.
+* `reset_final`: scratch reset terminates after `3 * inputWindow l + 1` transitions.
+* `scratch_head_reach`: initially blank scratch remains within distance `t` of the head after
+  `t` transitions.
+* `tm2Copy_run` and `tm2Reset_run`: exact bounded executions of the stack programs.
+* `g2`: bundled tape copy, reset, and scratch-reach guarantees.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
@@ -24,6 +51,8 @@ namespace Qatlib.Concepts.ClassicalTape.TapeCompilation
 
 open Turing
 
+/-- Indexing a mapped list returns the mapped entry within bounds and the target type's default
+value outside the list. -/
 theorem getI_map {α β : Type} [Inhabited α] [Inhabited β] (f : α → β) (l : List α) (x : ℕ) :
     (l.map f).getI x = if x < l.length then f (l.getI x) else default := by
   by_cases h : x < l.length
@@ -33,6 +62,7 @@ theorem getI_map {α β : Type} [Inhabited α] [Inhabited β] (f : α → β) (l
   · have h2 : (l.map f).length ≤ x := by simpa using h
     rw [if_neg h, List.getI_eq_default (l.map f) h2]
 
+/-- Two tapes are equal if their symbols agree at every integer offset from the head. -/
 theorem tape_ext {Γ : Type} [Inhabited Γ] {T₁ T₂ : Turing.Tape Γ}
     (h : ∀ i : ℤ, T₁.nth i = T₂.nth i) : T₁ = T₂ := by
   obtain ⟨a₁, l₁, r₁⟩ := T₁
@@ -46,6 +76,8 @@ theorem tape_ext {Γ : Type} [Inhabited Γ] {T₁ T₂ : Turing.Tape Γ}
     exact h (n + 1 : ℕ)
   rw [ha, hl, hr]
 
+/-- At a nonnegative offset, the initialized tape contains the corresponding input-list entry
+with default padding. -/
 theorem init_nth_ofNat {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     (l : List Γ) (i : ℕ) :
     (Turing.TM0.init l : Turing.TM0.Cfg Γ Λ).Tape.nth (Int.ofNat i) = l.getI i := by
@@ -54,12 +86,15 @@ theorem init_nth_ofNat {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
       = (Turing.Tape.mk' (ListBlank.mk ([] : List Γ)) (ListBlank.mk l)).nth (i : ℤ) := rfl
   rw [h2, h, Turing.ListBlank.nth_mk]
 
+/-- Every negative offset of the initialized tape contains the default symbol. -/
 theorem init_nth_negSucc {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     (l : List Γ) (n : ℕ) :
     (Turing.TM0.init l : Turing.TM0.Cfg Γ Λ).Tape.nth (Int.negSucc n) = default := by
   show (Turing.Tape.mk' (ListBlank.mk ([] : List Γ)) (ListBlank.mk l)).nth (Int.negSucc n) = _
   rfl
 
+/-- The initialized tape is default at negative offsets and otherwise reads the input list with
+default padding. -/
 theorem init_nth {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     (l : List Γ) (x : ℤ) :
     (Turing.TM0.init l : Turing.TM0.Cfg Γ Λ).Tape.nth x =
@@ -70,11 +105,15 @@ theorem init_nth {Γ : Type} [Inhabited Γ] {Λ : Type} [Inhabited Λ]
     simp [Int.toNat_natCast]
   | negSucc n => rw [init_nth_negSucc]; simp
 
+/-- Execute exactly the specified number of TM0 steps from a given configuration, propagating
+`none` after halting. -/
 def runFrom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ) :
     ℕ → Turing.TM0.Cfg Γ Λ → Option (Turing.TM0.Cfg Γ Λ)
   | 0, cfg => some cfg
   | t + 1, cfg => (runFrom M t cfg).bind (Turing.TM0.step M)
 
+/-- Exact-step execution from an input equals `runFrom` applied to its initialized
+configuration. -/
 theorem bitMachineAfter_eq_runFrom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (input : List Γ) (t : ℕ) :
     BitMachineAfter M input t = runFrom M t (Turing.TM0.init input) := by
@@ -82,6 +121,8 @@ theorem bitMachineAfter_eq_runFrom {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
   | zero => rfl
   | succ t ih => rw [BitMachineAfter, ih]; rfl
 
+/-- Execution for `a + b` steps factors into execution for `a` steps followed by `b` steps
+through optional binding. -/
 theorem runFrom_add {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ) :
     ∀ (a b : ℕ) (cfg : Turing.TM0.Cfg Γ Λ),
       runFrom M (a + b) cfg = (runFrom M a cfg).bind (runFrom M b) := by
@@ -97,18 +138,22 @@ theorem runFrom_add {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0
     rw [h1, ih, Option.bind_assoc]
     rfl
 
+/-- Executing one step from a configuration equals the TM0 step function. -/
 theorem runFrom_one {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ)
     (cfg : Turing.TM0.Cfg Γ Λ) :
     runFrom M 1 cfg = Turing.TM0.step M cfg := by
   rw [show (1 : ℕ) = 0 + 1 from rfl, runFrom_add]
   simp [runFrom]
 
+/-- Execution for `a + 1` steps is execution for `a` steps followed by one TM0 step. -/
 theorem runFrom_add1 {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ)
     (a : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
     runFrom M (a + 1) cfg = (runFrom M a cfg).bind (Turing.TM0.step M) := by
   rw [runFrom_add]
   rfl
 
+/-- The two-track encoding contains the input bit on track zero and a blank on track one within
+the input length, and is default beyond it. -/
 theorem twoTrackBitEncode_getI (input : List Bool) (x : ℕ) :
     (twoTrackBitEncode input).getI x =
       if x < input.length then (fun t => if t.val = 0 then some (input.getI x) else none)
@@ -116,34 +161,45 @@ theorem twoTrackBitEncode_getI (input : List Bool) (x : ℕ) :
   unfold twoTrackBitEncode tracksEncode
   rw [getI_map]
 
+/-- The both-track encoding contains the same input bit on both tracks within the input length,
+and is default beyond it. -/
 theorem bothTrackEncode_getI (input : List Bool) (x : ℕ) :
     (bothTrackEncode input).getI x =
       if x < input.length then (fun _ => some (input.getI x)) else default := by
   unfold bothTrackEncode
   rw [getI_map]
 
+/-- The tape-content invariant with both tracks populated before `pos`, the original input
+encoding thereafter, and blank negative positions. -/
 def copyContent (input : List Bool) (pos : ℕ) (x : ℤ) : Tracks 2 :=
   if x < 0 then default
   else if x < (pos : ℤ) then (fun _ => some (input.getI x.toNat))
   else (twoTrackBitEncode input).getI x.toNat
 
+/-- At copied-prefix length zero, the copy invariant is the initial two-track input tape. -/
 theorem copyContent_zero (input : List Bool) (x : ℤ) :
     copyContent input 0 x =
       if x < 0 then default else (twoTrackBitEncode input).getI x.toNat := by
   unfold copyContent
   split_ifs <;> first | rfl | omega
 
+/-- Before the copied-prefix boundary, the copy invariant is blank at negative positions and
+repeats the indexed input bit on both tracks otherwise. -/
 theorem copyContent_copied (input : List Bool) (pos : ℕ) {x : ℤ} (h : x < (pos : ℤ)) :
     copyContent input pos x =
       if x < 0 then default else (fun _ => some (input.getI x.toNat)) := by
   unfold copyContent
   split_ifs <;> first | rfl | omega
 
+/-- At or beyond the copied-prefix boundary, the copy invariant agrees with the original
+two-track encoding. -/
 theorem copyContent_uncopied (input : List Bool) (pos : ℕ) {x : ℤ} (h : (pos : ℤ) ≤ x) :
     copyContent input pos x = (twoTrackBitEncode input).getI x.toNat := by
   unfold copyContent
   split_ifs <;> first | rfl | omega
 
+/-- Increasing the copied-prefix length by one replaces only the boundary cell by its input bit
+on both tracks. -/
 theorem copyContent_succ (input : List Bool) (pos : ℕ) (x : ℤ) :
     copyContent input (pos + 1) x =
       if x = (pos : ℤ) then (fun _ => some (input.getI pos))
@@ -164,6 +220,7 @@ theorem copyContent_succ (input : List Bool) (pos : ℕ) (x : ℤ) :
       have h4 : ((pos + 1 : ℕ) : ℤ) ≤ x := by omega
       rw [copyContent_uncopied _ _ h3, copyContent_uncopied _ _ h4]
 
+/-- At prefix length `input.length`, the copy invariant is the initialized both-track encoding. -/
 theorem copyContent_end (input : List Bool) (x : ℤ) :
     copyContent input input.length x =
       if x < 0 then default else (bothTrackEncode input).getI x.toNat := by
@@ -183,18 +240,22 @@ theorem copyContent_end (input : List Bool) (x : ℤ) :
       rw [copyContent_uncopied input input.length h3, if_neg hx, twoTrackBitEncode_getI,
         bothTrackEncode_getI, if_neg h2, if_neg h2]
 
+/-- Before the input ends, the copy invariant's current boundary cell contains its input bit
+only on track zero. -/
 theorem copyContent_head (input : List Bool) (pos : ℕ) (hpos : pos < input.length) :
     copyContent input pos (pos : ℤ) =
       (fun t => if t.val = 0 then some (input.getI pos) else none) := by
   rw [copyContent_uncopied input pos (show (pos : ℤ) ≤ (pos : ℤ) from le_rfl),
     twoTrackBitEncode_getI, Int.toNat_natCast, if_pos hpos]
 
+/-- The cell immediately after the fully copied input is blank on both tracks. -/
 theorem copyContent_head_end (input : List Bool) :
     copyContent input input.length (input.length : ℤ) = (fun _ => none) := by
   rw [copyContent_uncopied input input.length (show (input.length : ℤ) ≤ (input.length : ℤ) from le_rfl),
     Int.toNat_natCast, twoTrackBitEncode_getI, if_neg (Nat.lt_irrefl input.length)]
   rfl
 
+/-- Writing the input bit to track one of an input-only cell places the same bit on both tracks. -/
 theorem copy_write_cell (input : List Bool) (pos : ℕ) :
     (fun t : Fin 2 => if t.val = 1 then some (input.getI pos)
       else (fun t => if t.val = 0 then some (input.getI pos) else none) t)
@@ -202,6 +263,8 @@ theorem copy_write_cell (input : List Bool) (pos : ℕ) :
   funext t
   fin_cases t <;> rfl
 
+/-- Under the copy invariant, the write phase copies the current input bit and enters the move
+phase without moving the head. -/
 theorem copy_step_cw {input : List Bool} {pos : ℕ} (hpos : pos < input.length)
     (cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl)
     (hq : cfg.q = CopyCtrl.cw pos)
@@ -234,6 +297,8 @@ theorem copy_step_cw {input : List Bool} {pos : ℕ} (hpos : pos < input.length)
       have h1 : ((pos : ℤ) + i) ≠ (pos : ℤ) := by omega
       rw [if_neg h1, hnth]
 
+/-- Under the copy invariant, the move phase advances the head right and enters the write phase
+for the next position. -/
 theorem copy_step_cm {input : List Bool} {pos : ℕ}
     (cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl)
     (hq : cfg.q = CopyCtrl.cm pos)
@@ -253,6 +318,8 @@ theorem copy_step_cm {input : List Bool} {pos : ℕ}
     congr 1
     omega
 
+/-- At the input boundary, the copy machine enters its return-home phase while preserving the
+completed tape. -/
 theorem copy_step_cw_end (input : List Bool)
     (cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl)
     (hq : cfg.q = CopyCtrl.cw input.length)
@@ -278,6 +345,8 @@ theorem copy_step_cw_end (input : List Bool)
       rw [Int.add_zero, copyContent_head_end]
     · rw [if_neg hi, hnth]
 
+/-- A return-home step moves the head one cell left and decreases the stored distance from the
+origin. -/
 theorem copy_step_ch {input : List Bool} {pos : ℕ}
     (cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl)
     (hq : cfg.q = CopyCtrl.ch (pos + 1))
@@ -297,6 +366,7 @@ theorem copy_step_ch {input : List Bool} {pos : ℕ}
     congr 1
     omega
 
+/-- The copy machine halts in the return-home state at position zero. -/
 theorem copy_step_ch0 (input : List Bool)
     (cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl)
     (hq : cfg.q = CopyCtrl.ch 0) :
@@ -304,6 +374,7 @@ theorem copy_step_ch0 (input : List Bool)
   rw [Qatlib.Concepts.ClassicalTape.FairCoinTape.TM0_step_eq_none, hq]
   rfl
 
+/-- The copy machine has a transition in the return-home state at position one. -/
 theorem copy_step_ch_ne_none
     (cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl)
     (hq : cfg.q = CopyCtrl.ch 1) :
@@ -315,6 +386,7 @@ theorem copy_step_ch_ne_none
   rw [h2] at h
   nomatch h
 
+/-- The initialized copy machine has a transition on every encoded Boolean input. -/
 theorem copy_init_step_ne_none (input : List Bool) :
     Turing.TM0.step copyMachineTable
       (Turing.TM0.init (twoTrackBitEncode input) : Turing.TM0.Cfg (Tracks 2) CopyCtrl) ≠ none := by
@@ -338,6 +410,8 @@ theorem copy_init_step_ne_none (input : List Bool) :
     rw [h2] at h
     nomatch h
 
+/-- After `2 * pos` steps, the copy machine reaches the write phase at `pos` with exactly that
+prefix copied. -/
 theorem copy_cw_reach (input : List Bool) :
     ∀ pos ≤ input.length, ∃ cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl,
       runFrom copyMachineTable (2 * pos) (Turing.TM0.init (twoTrackBitEncode input)) = some cfg ∧
@@ -360,6 +434,8 @@ theorem copy_cw_reach (input : List Bool) :
     rw [runFrom_add1, runFrom_add1, hr]
     simp [hs₁, hs₂]
 
+/-- After copying and `k` return steps, the machine is at distance `input.length - k` from the
+origin with the full input copied. -/
 theorem copy_ch_reach (input : List Bool) :
     ∀ k ≤ input.length, ∃ cfg : Turing.TM0.Cfg (Tracks 2) CopyCtrl,
       runFrom copyMachineTable (2 * input.length + 1 + k)
@@ -386,6 +462,8 @@ theorem copy_ch_reach (input : List Bool) :
       runFrom_add1, hr]
     simp [hs₁]
 
+/-- After `3 * input.length + 1` steps, the copy machine reaches a halting configuration whose
+tape is the initialized both-track encoding. -/
 theorem copy_final (input : List Bool) :
     ∃ final : Turing.TM0.Cfg (Tracks 2) CopyCtrl,
       BitMachineAfter copyMachineTable (twoTrackBitEncode input) (3 * input.length + 1) = some final ∧
@@ -412,6 +490,7 @@ theorem copy_final (input : List Bool) :
   intro i
   rw [hnth', copyContent_end, init_nth]
 
+/-- After `3 * input.length` steps, the copy machine still has a next transition. -/
 theorem copy_mid (input : List Bool) :
     ∃ mid : Turing.TM0.Cfg (Tracks 2) CopyCtrl,
       BitMachineAfter copyMachineTable (twoTrackBitEncode input) (3 * input.length) = some mid ∧
@@ -429,27 +508,36 @@ theorem copy_mid (input : List Bool) :
     rw [show (3 * input.length) = 2 * input.length + 1 + (input.length - 1) from by omega]
     exact hr
 
+/-- The tape-content invariant with scratch track one cleared before `pos`, the original symbols
+thereafter, and blank negative positions. -/
 def resetContent (l : List (Tracks 2)) (pos : ℕ) (x : ℤ) : Tracks 2 :=
   if x < 0 then default
   else if x < (pos : ℤ) then (fun t => if t.val = 1 then none else (l.getI x.toNat) t)
   else l.getI x.toNat
 
+/-- At processed-prefix length zero, the reset invariant is the initialized tape. -/
 theorem resetContent_zero (l : List (Tracks 2)) (x : ℤ) :
     resetContent l 0 x = if x < 0 then default else l.getI x.toNat := by
   unfold resetContent
   split_ifs <;> first | rfl | omega
 
+/-- Before the processed-prefix boundary, the reset invariant is blank at negative offsets and
+otherwise clears track one while preserving track zero. -/
 theorem resetContent_processed (l : List (Tracks 2)) (pos : ℕ) {x : ℤ} (h : x < (pos : ℤ)) :
     resetContent l pos x =
       if x < 0 then default else (fun t => if t.val = 1 then none else (l.getI x.toNat) t) := by
   unfold resetContent
   split_ifs <;> first | rfl | omega
 
+/-- At or beyond the processed-prefix boundary, the reset invariant agrees with the original
+list. -/
 theorem resetContent_unprocessed (l : List (Tracks 2)) (pos : ℕ) {x : ℤ} (h : (pos : ℤ) ≤ x) :
     resetContent l pos x = l.getI x.toNat := by
   unfold resetContent
   split_ifs <;> first | rfl | omega
 
+/-- Increasing the reset prefix by one clears track one at the boundary cell and preserves every
+other position. -/
 theorem resetContent_succ (l : List (Tracks 2)) (pos : ℕ) (x : ℤ) :
     resetContent l (pos + 1) x =
       if x = (pos : ℤ) then (fun t => if t.val = 1 then none else (l.getI pos) t)
@@ -472,6 +560,8 @@ theorem resetContent_succ (l : List (Tracks 2)) (pos : ℕ) (x : ℤ) :
       have h4 : ((pos + 1 : ℕ) : ℤ) ≤ x := by omega
       rw [resetContent_unprocessed _ _ h3, resetContent_unprocessed _ _ h4]
 
+/-- Default-padded indexing of an appended list selects the first list within its length and the
+shifted second list otherwise. -/
 theorem getI_append {α : Type} [Inhabited α] (A B : List α) (x : ℕ) :
     (A ++ B).getI x = if x < A.length then A.getI x else B.getI (x - A.length) := by
   by_cases h : x < A.length
@@ -490,10 +580,13 @@ theorem getI_append {α : Type} [Inhabited α] (A B : List α) (x : ℕ) :
         rw [List.length_append] at h4; omega
       rw [List.getI_eq_default _ h4, List.getI_eq_default _ h5]
 
+/-- The input window length is at most the tape-list length. -/
 theorem inputWindow_le (l : List (Tracks 2)) : inputWindow l ≤ l.length := by
   unfold inputWindow
   exact List.Sublist.length_le (List.takeWhile_sublist _)
 
+/-- Within the retained prefix, default-padded indexing of `takeWhile` agrees with indexing the
+original list. -/
 theorem takeWhile_getI {α : Type} [Inhabited α] (p : α → Bool) (l : List α) (i : ℕ)
     (h : i < (l.takeWhile p).length) : (l.takeWhile p).getI i = l.getI i := by
   have hde : l.takeWhile p ++ l.dropWhile p = l := List.takeWhile_append_dropWhile
@@ -501,6 +594,7 @@ theorem takeWhile_getI {α : Type} [Inhabited α] (p : α → Bool) (l : List α
     rw [getI_append, if_pos h]
   rw [h2, hde]
 
+/-- Every cell strictly inside the input window has a nonblank symbol on track zero. -/
 theorem inputWindow_getI (l : List (Tracks 2)) {i : ℕ} (h : i < inputWindow l) :
     ((l.getI i) 0).isSome = true := by
   unfold inputWindow at h
@@ -512,6 +606,7 @@ theorem inputWindow_getI (l : List (Tracks 2)) {i : ℕ} (h : i < inputWindow l)
   rw [takeWhile_getI _ _ _ h] at hp
   exact hp
 
+/-- Track zero is blank at the first position outside the input window. -/
 theorem inputWindow_getI_none (l : List (Tracks 2)) :
     ((l.getI (inputWindow l)) 0) = none := by
   have key : ¬ ((l.getI (inputWindow l)) 0).isSome = true := by
@@ -551,6 +646,8 @@ theorem inputWindow_getI_none (l : List (Tracks 2)) :
   | none => rfl
   | some b => exact absurd (by simp [hc]) key
 
+/-- The reset-window list clears track one exactly inside the input window and preserves all
+other entries. -/
 theorem resetWindowList_getI (l : List (Tracks 2)) (x : ℕ) :
     (resetWindowList l).getI x =
       if x < inputWindow l then (fun t => if t.val = 1 then none else (l.getI x) t)
@@ -590,6 +687,7 @@ theorem resetWindowList_getI (l : List (Tracks 2)) (x : ℕ) :
       exact happ2.symm
     rw [key, if_neg h]
 
+/-- At the full input-window length, the reset invariant is the initialized reset-window tape. -/
 theorem resetContent_end (l : List (Tracks 2)) (x : ℤ) :
     resetContent l (inputWindow l) x =
       if x < 0 then default else (resetWindowList l).getI x.toNat := by
@@ -609,6 +707,7 @@ theorem resetContent_end (l : List (Tracks 2)) (x : ℤ) :
       rw [resetContent_unprocessed l (inputWindow l) h3, if_neg hx,
         resetWindowList_getI, if_neg h2]
 
+/-- The input window of a both-track encoding has length equal to the Boolean input length. -/
 theorem inputWindow_bothTrack (input : List Bool) :
     inputWindow (bothTrackEncode input) = input.length := by
   have h2 : ∀ s ∈ bothTrackEncode input, (s 0).isSome = true := by
@@ -622,6 +721,8 @@ theorem inputWindow_bothTrack (input : List Bool) :
   unfold bothTrackEncode
   rw [List.length_map]
 
+/-- Clearing track one of a both-track encoded cell yields the corresponding input-only encoded
+cell, including default padding. -/
 theorem bothTrack_getI_blank (input : List Bool) (x : ℕ) :
     (fun t : Fin 2 => if t.val = 1 then none else ((bothTrackEncode input).getI x) t)
       = (twoTrackBitEncode input).getI x := by
@@ -638,6 +739,8 @@ theorem bothTrack_getI_blank (input : List Bool) (x : ℕ) :
     · rw [if_pos ht]; rfl
     · rw [if_neg ht]
 
+/-- Resetting the window of a both-track encoding gives the same default-padded entries as the
+input-only encoding. -/
 theorem resetWindowList_bothTrack (input : List Bool) (x : ℕ) :
     (resetWindowList (bothTrackEncode input)).getI x = (twoTrackBitEncode input).getI x := by
   rw [resetWindowList_getI, inputWindow_bothTrack]
@@ -646,6 +749,7 @@ theorem resetWindowList_bothTrack (input : List Bool) (x : ℕ) :
     exact bothTrack_getI_blank input x
   · rw [if_neg h, bothTrackEncode_getI, twoTrackBitEncode_getI, if_neg h, if_neg h]
 
+/-- Clearing track one twice has the same effect as clearing it once. -/
 theorem reset_write_cell (l : List (Tracks 2)) (pos : ℕ) :
     (fun t : Fin 2 => if t.val = 1 then none else
       (fun t => if t.val = 1 then none else (l.getI pos) t) t)
@@ -655,6 +759,8 @@ theorem reset_write_cell (l : List (Tracks 2)) (pos : ℕ) :
   have ht : t.val = 0 ∨ t.val = 1 := by omega
   rcases ht with ht | ht <;> simp [ht]
 
+/-- Under the reset invariant, the write phase clears the current scratch cell and enters the
+move phase. -/
 theorem reset_step_rw {l : List (Tracks 2)} {pos : ℕ} (hpos : pos < inputWindow l)
     (cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl)
     (hq : cfg.q = ResetCtrl.rw pos)
@@ -696,6 +802,8 @@ theorem reset_step_rw {l : List (Tracks 2)} {pos : ℕ} (hpos : pos < inputWindo
       have h1 : ((pos : ℤ) + i) ≠ (pos : ℤ) := by omega
       rw [if_neg h1, hnth]
 
+/-- Under the reset invariant, the move phase advances the head right and enters the write phase
+at the next position. -/
 theorem reset_step_rm {l : List (Tracks 2)} {pos : ℕ}
     (cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl)
     (hq : cfg.q = ResetCtrl.rm pos)
@@ -715,6 +823,8 @@ theorem reset_step_rm {l : List (Tracks 2)} {pos : ℕ}
     congr 1
     omega
 
+/-- At the input-window boundary, the reset machine enters its return-home phase while
+preserving the completed reset tape. -/
 theorem reset_step_rw_end (l : List (Tracks 2))
     (cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl)
     (hq : cfg.q = ResetCtrl.rw (inputWindow l))
@@ -755,6 +865,8 @@ theorem reset_step_rw_end (l : List (Tracks 2))
       rw [h3, hnth, Int.add_zero, h2]
     · rw [if_neg hi, hnth]
 
+/-- A reset return-home step moves the head left and decreases its stored distance from the
+origin. -/
 theorem reset_step_rh {l : List (Tracks 2)} {pos : ℕ}
     (cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl)
     (hq : cfg.q = ResetCtrl.rh (pos + 1))
@@ -775,6 +887,7 @@ theorem reset_step_rh {l : List (Tracks 2)} {pos : ℕ}
     congr 1
     omega
 
+/-- The reset machine halts in the return-home state at position zero. -/
 theorem reset_step_rh0 (l : List (Tracks 2))
     (cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl)
     (hq : cfg.q = ResetCtrl.rh 0) :
@@ -782,6 +895,8 @@ theorem reset_step_rh0 (l : List (Tracks 2))
   rw [Qatlib.Concepts.ClassicalTape.FairCoinTape.TM0_step_eq_none, hq]
   rfl
 
+/-- After `2 * pos` steps, the reset machine reaches the write phase at `pos` with the scratch
+prefix cleared. -/
 theorem reset_rw_reach (l : List (Tracks 2)) :
     ∀ pos ≤ inputWindow l, ∃ cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl,
       runFrom resetMachineTable (2 * pos) (Turing.TM0.init l) = some cfg ∧
@@ -804,6 +919,8 @@ theorem reset_rw_reach (l : List (Tracks 2)) :
     rw [runFrom_add1, runFrom_add1, hr]
     simp [hs₁, hs₂]
 
+/-- After clearing the window and `k` return steps, the reset machine is at distance
+`inputWindow l - k` with the reset tape unchanged. -/
 theorem reset_rh_reach (l : List (Tracks 2)) :
     ∀ k ≤ inputWindow l, ∃ cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl,
       runFrom resetMachineTable (2 * inputWindow l + 1 + k) (Turing.TM0.init l) = some cfg ∧
@@ -829,6 +946,8 @@ theorem reset_rh_reach (l : List (Tracks 2)) :
       runFrom_add1, hr]
     simp [hs₁]
 
+/-- After `2 * inputWindow l + 1 + inputWindow l` steps, the reset machine reaches a halting
+configuration with the reset tape aligned at the origin. -/
 theorem reset_run (l : List (Tracks 2)) :
     ∃ cfg : Turing.TM0.Cfg (Tracks 2) ResetCtrl,
       runFrom resetMachineTable (2 * inputWindow l + 1 + inputWindow l) (Turing.TM0.init l)
@@ -845,6 +964,8 @@ theorem reset_run (l : List (Tracks 2)) :
   have hz : (((0 : ℕ) : ℤ) + i) = i := by omega
   rw [hnth, h0, hz]
 
+/-- After `3 * inputWindow l + 1` steps, the reset machine reaches a halting configuration whose
+tape is the initialized reset-window list. -/
 theorem reset_final (l : List (Tracks 2)) :
     ∃ final : Turing.TM0.Cfg (Tracks 2) ResetCtrl,
       BitMachineAfter resetMachineTable l (3 * inputWindow l + 1) = some final ∧
@@ -860,6 +981,8 @@ theorem reset_final (l : List (Tracks 2)) :
     intro i
     rw [hnth, resetContent_end, init_nth]
 
+/-- Resetting the copied both-track input halts after `3 * input.length + 1` steps and restores
+the initialized input-only tape. -/
 theorem reset_roundtrip (input : List Bool) :
     ∃ final : Turing.TM0.Cfg (Tracks 2) ResetCtrl,
       BitMachineAfter resetMachineTable (bothTrackEncode input) (3 * input.length + 1) = some final ∧
@@ -879,18 +1002,23 @@ theorem reset_roundtrip (input : List Bool) :
     · rw [if_pos hx, if_pos hx]
     · rw [if_neg hx, if_neg hx, resetWindowList_bothTrack]
 
+/-- An integer with absolute value at most `t` also has absolute value at most `t + 1`. -/
 theorem abs_le_succ_of_abs_le {i : ℤ} {t : ℕ} (h : |i| ≤ t) : |i| ≤ t + 1 := by
   have h' : -(t : ℤ) ≤ i ∧ i ≤ (t : ℤ) := abs_le.mp h
   refine abs_le.mpr ⟨?_, ?_⟩ <;> omega
 
+/-- If `|i - 1| ≤ t`, then `|i| ≤ t + 1`. -/
 theorem abs_le_succ_of_abs_pred {i : ℤ} {t : ℕ} (h : |i - 1| ≤ t) : |i| ≤ t + 1 := by
   have h' : -(t : ℤ) ≤ i - 1 ∧ i - 1 ≤ (t : ℤ) := abs_le.mp h
   refine abs_le.mpr ⟨?_, ?_⟩ <;> omega
 
+/-- If `|i + 1| ≤ t`, then `|i| ≤ t + 1`. -/
 theorem abs_le_succ_of_abs_succ {i : ℤ} {t : ℕ} (h : |i + 1| ≤ t) : |i| ≤ t + 1 := by
   have h' : -(t : ℤ) ≤ i + 1 ∧ i + 1 ≤ (t : ℤ) := abs_le.mp h
   refine abs_le.mpr ⟨?_, ?_⟩ <;> omega
 
+/-- One tape instruction increases the maximum possible distance of a nonblank scratch cell from
+the head by at most one. -/
 theorem scratch_step_reach {t : ℕ} {Λ : Type} [Inhabited Λ]
     (T : Turing.Tape (Tracks 2)) (stmt : Turing.TM0.Stmt (Tracks 2))
     (H : ∀ j : ℤ, T.nth j 1 ≠ none → |j| ≤ t) :
@@ -916,6 +1044,8 @@ theorem scratch_step_reach {t : ℕ} {Λ : Type} [Inhabited Λ]
       rw [Tape.move_right_nth] at hi
       exact abs_le_succ_of_abs_succ (H (i + 1) hi)
 
+/-- If track one is initially blank, every nonblank scratch cell lies within distance `t` of the
+head after `t` successful machine steps. -/
 theorem scratch_head_reach :
     ∀ (Λ : Type) [Inhabited Λ] (M : Turing.TM0.Machine (Tracks 2) Λ)
       (l : List (Tracks 2)), (∀ s ∈ l, s 1 = none) →
@@ -956,6 +1086,8 @@ theorem scratch_head_reach :
       rw [hTape] at hi
       exact scratch_step_reach (Λ := Λ) cfg.Tape stmt ih' i hi
 
+/-- Bundle the exact tape-copy and reset executions, the copy machine's nontermination one step
+before its final configuration, the copy-reset round trip, and the scratch-reach bound. -/
 theorem g2 :
 
   (∀ input : List Bool,
@@ -996,23 +1128,29 @@ theorem g2 :
 
 open Turing
 
+/-- Assign the specified Boolean lists to the input, work, and auxiliary stacks. -/
 def copyStk (i w a : List Bool) : TM2Stack → List Bool
   | .input => i
   | .work => w
   | .aux => a
 
+/-- Updating the input component of `copyStk` replaces only its input list. -/
 theorem update_copyStk_input (i w a i' : List Bool) :
     Function.update (copyStk i w a) TM2Stack.input i' = copyStk i' w a := by
   funext k; cases k <;> rfl
 
+/-- Updating the work component of `copyStk` replaces only its work list. -/
 theorem update_copyStk_work (i w a w' : List Bool) :
     Function.update (copyStk i w a) TM2Stack.work w' = copyStk i w' a := by
   funext k; cases k <;> rfl
 
+/-- Updating the auxiliary component of `copyStk` replaces only its auxiliary list. -/
 theorem update_copyStk_aux (i w a a' : List Bool) :
     Function.update (copyStk i w a) TM2Stack.aux a' = copyStk i w a' := by
   funext k; cases k <;> rfl
 
+/-- The initial stack-copy configuration starts in the transfer phase with the input list and
+empty work and auxiliary stacks. -/
 theorem tm2InitCopy_eq (input : List Bool) :
     tm2InitCopy input = ⟨some .transfer, none, copyStk input [] []⟩ := by
   simp only [tm2InitCopy]
@@ -1020,6 +1158,8 @@ theorem tm2InitCopy_eq (input : List Bool) :
   funext k
   cases k <;> rfl
 
+/-- The initial stack-reset configuration starts in the clear phase with the specified input and
+work lists and an empty auxiliary stack. -/
 theorem tm2InitReset_eq (input work : List Bool) :
     tm2InitReset input work = ⟨some .clear, none, copyStk input work []⟩ := by
   simp only [tm2InitReset]
@@ -1027,6 +1167,8 @@ theorem tm2InitReset_eq (input work : List Bool) :
   funext k
   cases k <;> rfl
 
+/-- A positive-budget stack run returns the current configuration if the next step halts, and
+otherwise recurses on the successor with one less step. -/
 theorem tm2Run_succ {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
     (M : Λ → Turing.TM2.Stmt Γ Λ σ) (t : ℕ) (cfg : Turing.TM2.Cfg Γ Λ σ) :
     tm2Run M (t + 1) cfg =
@@ -1034,11 +1176,13 @@ theorem tm2Run_succ {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
       | none => some cfg
       | some cfg' => tm2Run M t cfg' := rfl
 
+/-- The bounded stack runner returns an already halted configuration unchanged for every budget. -/
 theorem tm2Run_halt {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
     (M : Λ → Turing.TM2.Stmt Γ Λ σ) (s : ℕ) (var : σ) (stk : ∀ k, List (Γ k)) :
     tm2Run M s ⟨none, var, stk⟩ = some ⟨none, var, stk⟩ := by
   cases s <;> rfl
 
+/-- A transfer step pops one input bit and pushes it onto the auxiliary stack. -/
 theorem tm2Copy_transfer (b : Bool) (rest acc work : List Bool) (v : Option Bool) :
     Turing.TM2.step tm2Copy
         ⟨some .transfer, v, copyStk (b :: rest) work acc⟩ =
@@ -1047,6 +1191,8 @@ theorem tm2Copy_transfer (b : Bool) (rest acc work : List Bool) (v : Option Bool
     update_copyStk_input, update_copyStk_aux, List.head?_cons, List.tail_cons,
     Option.isNone_some, cond_false, Option.getD_some]
 
+/-- When the input stack is empty, the copy program changes from the transfer phase to the
+restore phase. -/
 theorem tm2Copy_transfer_nil (acc work : List Bool) (v : Option Bool) :
     Turing.TM2.step tm2Copy
         ⟨some .transfer, v, copyStk [] work acc⟩ =
@@ -1054,6 +1200,7 @@ theorem tm2Copy_transfer_nil (acc work : List Bool) (v : Option Bool) :
   simp only [Turing.TM2.step, tm2Copy, Turing.TM2.stepAux, copyStk,
     update_copyStk_input, List.head?_nil, List.tail_nil, Option.isNone_none, cond_true]
 
+/-- A restore step pops one auxiliary bit and pushes it onto both the input and work stacks. -/
 theorem tm2Copy_restore (b : Bool) (rest inp work : List Bool) (v : Option Bool) :
     Turing.TM2.step tm2Copy
         ⟨some .restore, v, copyStk inp work (b :: rest)⟩ =
@@ -1062,6 +1209,7 @@ theorem tm2Copy_restore (b : Bool) (rest inp work : List Bool) (v : Option Bool)
     update_copyStk_aux, update_copyStk_work, update_copyStk_input,
     List.head?_cons, List.tail_cons, Option.isNone_some, cond_false, Option.getD_some]
 
+/-- When the auxiliary stack is empty, the restore phase enters the halted configuration. -/
 theorem tm2Copy_restore_nil (inp work : List Bool) (v : Option Bool) :
     Turing.TM2.step tm2Copy
         ⟨some .restore, v, copyStk inp work []⟩ =
@@ -1069,6 +1217,7 @@ theorem tm2Copy_restore_nil (inp work : List Bool) (v : Option Bool) :
   simp only [Turing.TM2.step, tm2Copy, Turing.TM2.stepAux, copyStk,
     update_copyStk_aux, List.head?_nil, List.tail_nil, Option.isNone_none, cond_true]
 
+/-- A reset step pops one work bit while preserving the input stack. -/
 theorem tm2Reset_clear (b : Bool) (rest input : List Bool) (v : Option Bool) :
     Turing.TM2.step tm2Reset
         ⟨some .clear, v, copyStk input (b :: rest) []⟩ =
@@ -1077,6 +1226,7 @@ theorem tm2Reset_clear (b : Bool) (rest input : List Bool) (v : Option Bool) :
     update_copyStk_work, List.head?_cons, List.tail_cons, Option.isNone_some,
     cond_false, Option.getD_some]
 
+/-- When the work stack is empty, the reset program enters the halted configuration. -/
 theorem tm2Reset_clear_nil (input : List Bool) (v : Option Bool) :
     Turing.TM2.step tm2Reset
         ⟨some .clear, v, copyStk input [] []⟩ =
@@ -1084,6 +1234,8 @@ theorem tm2Reset_clear_nil (input : List Bool) (v : Option Bool) :
   simp only [Turing.TM2.step, tm2Reset, Turing.TM2.stepAux, copyStk,
     update_copyStk_work, List.head?_nil, List.tail_nil, Option.isNone_none, cond_true]
 
+/-- The transfer phase consumes `input.length + 1` steps, moving the reversed input onto the
+auxiliary stack before any remaining-budget execution. -/
 theorem transfer_phase (input work acc : List Bool) (v : Option Bool) :
     ∀ (s : ℕ),
       tm2Run tm2Copy (s + input.length + 1) ⟨some .transfer, v, copyStk input work acc⟩ =
@@ -1103,6 +1255,8 @@ theorem transfer_phase (input work acc : List Bool) (v : Option Bool) :
     rw [ih]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- The restore phase consumes `aux.length + 1` steps, prepending the reversed auxiliary list to
+both input and work and then halting. -/
 theorem restore_phase (aux inp work : List Bool) (v : Option Bool) :
     ∀ (s : ℕ),
       tm2Run tm2Copy (s + aux.length + 1) ⟨some .restore, v, copyStk inp work aux⟩ =
@@ -1123,6 +1277,8 @@ theorem restore_phase (aux inp work : List Bool) (v : Option Bool) :
     rw [ih]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
+/-- The reset phase consumes `work.length + 1` steps to clear the work stack and halt while
+preserving the input. -/
 theorem reset_phase (input work : List Bool) (v : Option Bool) :
     ∀ (s : ℕ),
       tm2Run tm2Reset (s + work.length + 1) ⟨some .clear, v, copyStk input work []⟩ =
@@ -1140,6 +1296,8 @@ theorem reset_phase (input work : List Bool) (v : Option Bool) :
     show tm2Run tm2Reset (s + rest.length + 1) ⟨some .clear, some b, copyStk input rest []⟩ = _
     rw [ih]
 
+/-- The stack-copy program halts within the supplied `2 * input.length + 2` steps with both
+input and work equal to the original input and an empty auxiliary stack. -/
 theorem tm2Copy_run (input : List Bool) :
     tm2Run tm2Copy (2 * input.length + 2) (tm2InitCopy input) =
       some ⟨none, none, copyStk input input []⟩ := by
@@ -1153,6 +1311,8 @@ theorem tm2Copy_run (input : List Bool) :
   rw [tm2Run_halt]
   simp only [List.reverse_reverse, List.nil_append, List.append_nil]
 
+/-- The stack-reset program halts within the supplied `work.length + 1` steps with an empty work
+stack and the input unchanged. -/
 theorem tm2Reset_run (input work : List Bool) :
     tm2Run tm2Reset (work.length + 1) (tm2InitReset input work) =
       some ⟨none, none, copyStk input [] []⟩ := by
@@ -1163,11 +1323,13 @@ theorem tm2Reset_run (input work : List Bool) :
 
 open Turing
 
+/-- The standard optional-bit input encoding is injective. -/
 theorem standardBitEncode_injective : Function.Injective standardBitEncode := by
   intro a b h
   unfold standardBitEncode at h
   exact List.map_injective_iff.mpr (Option.some_injective Bool) h
 
+/-- The input-only two-track encoding is injective. -/
 theorem twoTrackBitEncode_injective : Function.Injective twoTrackBitEncode := by
   have hinj : Function.Injective
       (fun b : Bool => (fun t : Fin 2 => if t.val = 0 then some b else none)) := by
@@ -1179,6 +1341,7 @@ theorem twoTrackBitEncode_injective : Function.Injective twoTrackBitEncode := by
   unfold twoTrackBitEncode tracksEncode at h
   exact List.map_injective_iff.mpr hinj h
 
+/-- The pair-valued encoding with a terminal delimiter is injective. -/
 theorem delimitedPairEncode_injective : Function.Injective delimitedPairEncode := by
   have hinj : Function.Injective (fun x : Bool => (x, false)) := by
     intro x y hxy
@@ -1189,6 +1352,7 @@ theorem delimitedPairEncode_injective : Function.Injective delimitedPairEncode :
     List.append_cancel_right h
   exact List.map_injective_iff.mpr hinj h2
 
+/-- The delimited pair encoding has exactly one more entry than the input. -/
 theorem delimitedPairEncode_length (input : List Bool) :
     (delimitedPairEncode input).length = input.length + 1 := by
   simp [delimitedPairEncode]

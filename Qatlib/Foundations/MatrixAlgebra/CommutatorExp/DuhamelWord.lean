@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.WordIntegral
+
+/-!
+# Duhamel formula for exponential words
+
+`word_continuous` establishes continuity of finite exponential words. Differentiating the path
+`exp((t - s)K) * word ks s` yields the difference between the word generator and the reference
+generator `K`.
+
+Integrating this derivative gives `word_duhamel`, an exact integral formula for the error
+relative to `exp(tK)`. This is a foundation for product-formula error analysis such as
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `duhamel_path_derivative`: Derivative of the interpolating exponential-word path.
+* `word_duhamel`: Integral representation of the exponential-word error.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -12,9 +34,12 @@ noncomputable section
 namespace Qatlib.Foundations.MatrixAlgebra.CommutatorExp
 variable {A : Type*} [NormedRing A] [NormedAlgebra ℝ A] [CompleteSpace A]
 
+/-- A finite exponential word is continuous in its real time parameter. -/
 theorem word_continuous (ks : List A) : Continuous (word ks) :=
   continuous_iff_continuousAt.mpr (fun t => (word_hasDerivAt ks t).continuousAt)
 
+/-- The derivative at `s` of `exp((t - u)K) * word ks u` is `exp((t - s)K) * (generator ks s -
+K) * word ks s`. -/
 theorem duhamel_path_derivative (K : A) (ks : List A) (t s : ℝ) :
     HasDerivAt (fun u : ℝ => NormedSpace.exp ((t-u) • K)*word ks u)
       (NormedSpace.exp ((t-s) • K)*(generator ks s-K)*word ks s) s := by
@@ -25,6 +50,8 @@ theorem duhamel_path_derivative (K : A) (ks : List A) (t s : ℝ) :
   (try simp only [Function.comp_apply, zero_sub, neg_smul, one_smul, neg_mul])
   noncomm_ring
 
+/-- The difference between an exponential word and `exp(tK)` equals the interval integral of the
+propagated generator difference from zero to `t`. -/
 theorem word_duhamel (K : A) (ks : List A) (t : ℝ) :
     word ks t-NormedSpace.exp (t • K) =
       ∫ s in (0 : ℝ)..t, NormedSpace.exp ((t-s) • K)*(generator ks s-K)*word ks s := by

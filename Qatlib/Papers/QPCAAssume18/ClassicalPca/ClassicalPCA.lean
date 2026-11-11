@@ -9,6 +9,27 @@ import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionAndNorm
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Parameters and estimates for classical PCA
+
+Defines the effective sketch parameter, precision choice, and cost expressions for classical
+PCA. Elementary cutoff, gap, and error estimates are combined with singular-value perturbation
+and sketch-access bridges to support the analysis in [Tang2021].
+
+## Main statements
+
+* `source_theorem9_core_content`: The chosen precision simultaneously preserves three quarters
+  of the cutoff, bounds the shifted effective parameter by `16 / 9` of the original, and gives
+  the stated eigenvalue and vector errors [Tang2021].
+* `source_theorem9_algorithm5_cost`: The Algorithm 5 cost expression expands into the cubic-log
+  sketch term and squared-log interaction term [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,49 +39,68 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QPCAAssume18.ClassicalPca
 
+/-- The squared Frobenius energy, computed as the sum of squared magnitudes of all matrix
+entries. -/
 def frobeniusEnergy {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) : ℝ :=
   ∑ i, ∑ k, Complex.normSq (A i k)
 
+/-- The entrywise Frobenius energy equals `sketchSquared A`. -/
 theorem source_theorem9_frobenius_energy_eq {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) :
     frobeniusEnergy A = Qatlib.Concepts.SketchArith.SketchBuild.sketchSquared A := by
   unfold frobeniusEnergy Qatlib.Concepts.SketchArith.SketchBuild.sketchSquared
     Qatlib.Concepts.SketchArith.SketchBuild.sketchRowSquared
   rfl
 
+/-- The effective sketch parameter `normFSq / sigma^2`. -/
 def sketchParameter (normFSq sigma : ℝ) : ℝ := normFSq / sigma ^ 2
 
+/-- The logarithmic ratio `log (k / delta)`. -/
 def logRatio (k : ℕ) (delta : ℝ) : ℝ := Real.log ((k : ℝ) / delta)
 
+/-- The real-valued sketch dimension scale `K^4 / eps^2 * L`. -/
 def sketchDimensions (K eps L : ℝ) : ℝ := K ^ 4 / eps ^ 2 * L
 
+/-- The precision parameter given by the minimum of the eigenvalue-error, vector-error, and
+inverse-square-root cutoff constraints. -/
 def epsParameter (epsSigma epsV eta K : ℝ) : ℝ :=
   min (min ((1 / 10) * epsSigma * (K * Real.sqrt K)) (epsV ^ 2 * eta))
     ((1 / 4) * (Real.sqrt K)⁻¹)
 
+/-- The shifted singular value cutoff `sigma - eps * sqrt normFSq`. -/
 def sigmaPrime (sigma eps normFSq : ℝ) : ℝ := sigma - eps * Real.sqrt normFSq
 
+/-- The small-sketch algorithm cost scale `K^12 / eps^6 * L^3`. -/
 def algorithm2Cost (K eps L : ℝ) : ℝ := K ^ 12 / eps ^ 6 * L ^ 3
 
+/-- The sample-and-query interaction cost scale `T * K^8 / eps^4 * L^2`. -/
 def sqInteractionCost (T K eps L : ℝ) : ℝ := T * K ^ 8 / eps ^ 4 * L ^ 2
 
+/-- The sum of sketch computation and sample-and-query interaction costs at logarithmic scale
+`logRatio k delta`. -/
 def algorithm5Cost (T K eps : ℝ) (k : ℕ) (delta : ℝ) : ℝ :=
   algorithm2Cost K eps (logRatio k delta) + sqInteractionCost T K eps (logRatio k delta)
 
+/-- The vector norm-estimation cost scale `T * (sketchDimensions K eps L)^2 * K * (nu^2)⁻¹ * L`. -/
 def sqVectorNormCost (T K eps L nu : ℝ) : ℝ :=
   T * (sketchDimensions K eps L) ^ 2 * K * (nu ^ 2)⁻¹ * L
 
+/-- The chosen precision is bounded above by its eigenvalue-error branch. -/
 theorem source_theorem9_eps_le_sigma_branch (epsSigma epsV eta K : ℝ) :
     epsParameter epsSigma epsV eta K ≤ (1 / 10) * epsSigma * (K * Real.sqrt K) :=
   (min_le_left _ _).trans (min_le_left _ _)
 
+/-- The chosen precision is bounded above by `epsV^2 * eta`. -/
 theorem source_theorem9_eps_le_vector_branch (epsSigma epsV eta K : ℝ) :
     epsParameter epsSigma epsV eta K ≤ epsV ^ 2 * eta :=
   (min_le_left _ _).trans (min_le_right _ _)
 
+/-- The chosen precision is bounded above by one quarter of the inverse square root of `K`. -/
 theorem source_theorem9_eps_le_inv_sqrt_branch (epsSigma epsV eta K : ℝ) :
     epsParameter epsSigma epsV eta K ≤ (1 / 4) * (Real.sqrt K)⁻¹ :=
   min_le_right _ _
 
+/-- If `k * sigma^2` is at most the total energy and `sigma` is positive, then `k` is at most
+the effective sketch parameter. -/
 theorem source_theorem9_k_le_parameter (k : ℕ) (normFSq sigma : ℝ)
     (hsigma : 0 < sigma) (hE : (k : ℝ) * sigma ^ 2 ≤ normFSq) :
     (k : ℝ) ≤ sketchParameter normFSq sigma := by
@@ -68,6 +108,8 @@ theorem source_theorem9_k_le_parameter (k : ℕ) (normFSq sigma : ℝ)
   rw [le_div_iff₀ (by positivity : (0 : ℝ) < sigma ^ 2)]
   linarith
 
+/-- The inverse-square-root precision constraint and the energy identity imply that the shifted
+cutoff is at least `3 / 4 * sigma`. -/
 theorem source_theorem9_sigmaPrime_ge (sigma eps K normFSq : ℝ)
     (hsigma : 0 < sigma) (hK : 0 < K) (hnorm : normFSq = sigma ^ 2 * K)
     (heps : eps ≤ (1 / 4) * (Real.sqrt K)⁻¹) :
@@ -86,6 +128,8 @@ theorem source_theorem9_sigmaPrime_ge (sigma eps K normFSq : ℝ)
       _ = sigma / 4 := by rw [hcancel]; ring
   linarith
 
+/-- A shifted cutoff at least `3 / 4 * sigma` increases the effective sketch parameter by at
+most a factor `16 / 9`. -/
 theorem source_theorem9_parameter_prime_le (normFSq sigma eps : ℝ)
     (hsigma : 0 < sigma) (hnorm : 0 ≤ normFSq)
     (hprime : 3 / 4 * sigma ≤ sigmaPrime sigma eps normFSq) :
@@ -103,6 +147,8 @@ theorem source_theorem9_parameter_prime_le (normFSq sigma eps : ℝ)
         field_simp
         ring
 
+/-- The stated precision bound converts the scaled eigenvalue-error expression into `epsSigma *
+normFSq`. -/
 theorem source_theorem9_sigma_error_sum (eps epsSigma K normFSq : ℝ)
     (hK : 0 < K) (hnorm : 0 ≤ normFSq)
     (heps : eps ≤ epsSigma * (K * Real.sqrt K)) :
@@ -114,11 +160,14 @@ theorem source_theorem9_sigma_error_sum (eps epsSigma K normFSq : ℝ)
         mul_le_mul_of_nonneg_right heps hnorm
     _ = epsSigma * normFSq * (K * Real.sqrt K) := by ring
 
+/-- Every nonnegative summand is bounded above by an upper bound on the full finite sum. -/
 theorem source_theorem9_sigma_error_pointwise {ι : Type} [Fintype ι]
     (f : ι → ℝ) (B : ℝ) (hnonneg : ∀ i, 0 ≤ f i) (hsum : ∑ i, f i ≤ B) (i : ι) :
     f i ≤ B :=
   le_trans (Finset.single_le_sum (fun j _ => hnonneg j) (Finset.mem_univ i)) hsum
 
+/-- If `2 * epsSigma < eta`, twice the energy-scaled eigenvalue tolerance is strictly smaller
+than a gap at least `eta * normFSq`. -/
 theorem source_theorem9_gap_identification (epsSigma eta normFSq gap : ℝ)
     (hnorm : 0 < normFSq) (hgap : eta * normFSq ≤ gap) (heps : 2 * epsSigma < eta) :
     2 * (epsSigma * normFSq) < gap := by
@@ -126,6 +175,7 @@ theorem source_theorem9_gap_identification (epsSigma eta normFSq gap : ℝ)
     mul_lt_mul_of_pos_right heps hnorm
   nlinarith
 
+/-- A square-root residual bound and `eps ≤ epsV^2 * eta` imply vector error at most `epsV`. -/
 theorem source_theorem9_vector_error (epsV eta eps err : ℝ)
     (heta : 0 < eta) (hepsV : 0 ≤ epsV) (heps : eps ≤ epsV ^ 2 * eta)
     (h : err ≤ Real.sqrt (eps / eta)) :
@@ -137,6 +187,8 @@ theorem source_theorem9_vector_error (epsV eta eps err : ℝ)
     _ ≤ Real.sqrt (epsV ^ 2) := Real.sqrt_le_sqrt hratio
     _ = epsV := Real.sqrt_sq hepsV
 
+/-- The Algorithm 5 cost expression expands into the cubic-log sketch term and squared-log
+interaction term [Tang2021]. -/
 theorem source_theorem9_algorithm5_cost (T K eps : ℝ) (k : ℕ) (delta : ℝ) :
     algorithm5Cost T K eps k delta
       = K ^ 12 / eps ^ 6 * (logRatio k delta) ^ 3
@@ -144,6 +196,8 @@ theorem source_theorem9_algorithm5_cost (T K eps : ℝ) (k : ℕ) (delta : ℝ) 
   unfold algorithm5Cost algorithm2Cost sqInteractionCost
   rfl
 
+/-- The Algorithm 2 cost is monotone under the stated increase of the nonnegative sketch
+parameter, for positive precision and nonnegative logarithmic factor. -/
 theorem source_theorem9_algorithm2_cost_mono (K K' eps L : ℝ)
     (hK' : 0 ≤ K') (hle : K' ≤ 16 / 9 * K) (heps : 0 < eps) (hL : 0 ≤ L) :
     algorithm2Cost K' eps L ≤ algorithm2Cost (16 / 9 * K) eps L := by
@@ -153,6 +207,8 @@ theorem source_theorem9_algorithm2_cost_mono (K K' eps L : ℝ)
     div_le_div_of_nonneg_right h1 (by positivity)
   exact mul_le_mul_of_nonneg_right h2 (pow_nonneg hL 3)
 
+/-- At relative norm precision `1 / 100`, the vector norm cost simplifies to `10000 * T * K^9 /
+eps^4 * L^3` when `eps` is nonzero. -/
 theorem source_theorem9_sq_output_cost (T K eps L : ℝ) (heps : eps ≠ 0) :
     sqVectorNormCost T K eps L (1 / 100)
       = 10000 * (T * K ^ 9 / eps ^ 4 * L ^ 3) := by
@@ -165,6 +221,8 @@ section WeylBridge
 
 open scoped Matrix.Norms.L2Operator
 
+/-- Singular values satisfy the operator-norm Weyl bound and the squared Frobenius Mirsky bound
+for rectangular complex matrices. -/
 theorem source_theorem9_singular_weyl_mirsky (O I : Type) [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A B : Matrix O I ℂ) :
     (∀ i : ℕ, |Qatlib.Concepts.RandCompile.ChannelBudget.matrixSingularValues A i
@@ -178,6 +236,8 @@ theorem source_theorem9_singular_weyl_mirsky (O I : Type) [Fintype O] [Decidable
 
 end WeylBridge
 
+/-- The compact sketch builder returns its row-description list together with sample and query
+counts both equal to `r`. -/
 theorem source_theorem9_sketch_description {K : Type} [Fintype K]
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist K) (r : ℕ)
     (ω : Fin r → K) :
@@ -185,6 +245,7 @@ theorem source_theorem9_sketch_description {K : Type} [Fintype K]
       (List.ofFn (Qatlib.Concepts.SketchArith.SketchBuild.compactSketchData p r ω), r, r) :=
   Qatlib.Concepts.SketchArith.SketchBuild.compactSketchBuild_eq p r ω
 
+/-- A rejection run with `B` supplied trials has recorded cost at most `4 * B`. -/
 theorem source_theorem9_rejection_trials {I : Type} {B : ℕ} (omega : Fin B → I × Bool) :
     (Qatlib.Concepts.SqEstimation.RejectionSample.sqRejectRun omega).2 ≤ 4 * B :=
   Qatlib.Concepts.SqEstimation.RejectionSample.sqRejectRun_cost_le omega
@@ -193,6 +254,7 @@ section FrobeniusBridge
 
 open scoped Matrix.Norms.Frobenius
 
+/-- The squared Frobenius norm of a complex matrix equals `sketchSquared A`. -/
 theorem source_theorem9_frobenius_norm_sq {K C : Type} [Fintype K] [Fintype C]
     (A : Matrix K C ℂ) :
     ‖A‖ ^ 2 = Qatlib.Concepts.SketchArith.SketchBuild.sketchSquared A :=
@@ -200,12 +262,17 @@ theorem source_theorem9_frobenius_norm_sq {K C : Type} [Fintype K] [Fintype C]
 
 end FrobeniusBridge
 
+/-- Every nonnegative summand in the first `k` terms is bounded above by an upper bound on that
+partial sum. -/
 theorem source_theorem9_sigma_error_range (k : ℕ) (f : ℕ → ℝ) (B : ℝ)
     (hnonneg : ∀ i ∈ Finset.range k, 0 ≤ f i)
     (hsum : ∑ i ∈ Finset.range k, f i ≤ B) {i : ℕ} (hi : i ∈ Finset.range k) :
     f i ≤ B :=
   le_trans (Finset.single_le_sum hnonneg hi) hsum
 
+/-- The chosen precision simultaneously preserves three quarters of the cutoff, bounds the
+shifted effective parameter by `16 / 9` of the original, and gives the stated eigenvalue and
+vector errors [Tang2021]. -/
 theorem source_theorem9_core_content {k : ℕ} (f : ℕ → ℝ)
     (err sigma eps epsSigma epsV eta K normFSq : ℝ)
     (hsigma : 0 < sigma) (hK : 0 < K) (hnorm : 0 ≤ normFSq)

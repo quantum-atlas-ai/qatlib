@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSumBound
+
+/-!
+# Uniform second lattice-sum bound
+
+This module proves a bound independent of the side length for `latSum2 n d` in dimensions at
+least five. Reciprocal-fourth-power telescoping estimates supply the summation bounds used in
+the spatial search analysis of [ChildsGoldstone2004].
+
+## Main statements
+
+* `telescope4` and `dfour_le`: telescoping and decay estimates for reciprocal fourth powers.
+* `latSum2_le`: bounds the second lattice sum by `(4 * 3 ^ d + 1) / 256`.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,12 +35,18 @@ open Finset
 
 variable {d : ℕ}
 
+/-- The fourth power of the real reciprocal of a natural index, using the totalized reciprocal
+at zero. -/
 def gfour (s : ℕ) : ℝ := ((s : ℝ))⁻¹ ^ 4
 
+/-- The difference between consecutive values of the reciprocal-fourth-power function `gfour`. -/
 def dfour (s : ℕ) : ℝ := gfour s - gfour (s + 1)
 
+/-- The reciprocal-fourth-power function `gfour` is nonnegative at every natural index. -/
 theorem gfour_nonneg (s : ℕ) : 0 ≤ gfour s := by unfold gfour; positivity
 
+/-- For `r ≤ n`, summing `dfour` over the inclusive interval from `r` to `n` gives `gfour r -
+gfour (n + 1)`. -/
 theorem telescope4 {r n : ℕ} (hrn : r ≤ n) :
     ∑ s ∈ Finset.Icc r n, dfour s = gfour r - gfour (n + 1) := by
   have h := Finset.sum_Icc_sub (f := gfour) hrn
@@ -37,6 +61,7 @@ theorem telescope4 {r n : ℕ} (hrn : r ≤ n) :
     _ = -(gfour (n + 1) - gfour r) := by rw [h]
     _ = gfour r - gfour (n + 1) := by ring
 
+/-- For `s ≥ 1`, the reciprocal-fourth-power difference `dfour s` is at most `4 / (s : ℝ) ^ 5`. -/
 theorem dfour_le (s : ℕ) (hs : 1 ≤ s) : dfour s ≤ 4 / (s : ℝ) ^ 5 := by
   have hsR : (0:ℝ) < (s:ℝ) := by exact_mod_cast hs
   have h1 : (0:ℝ) < (s:ℝ) + 1 := by linarith
@@ -61,6 +86,8 @@ theorem dfour_le (s : ℕ) (hs : 1 ≤ s) : dfour s ≤ 4 / (s : ℝ) ^ 5 := by
       ≤ 4 * ((s:ℝ) + 1)^4 := hpoly
     _ = 4 * ((s:ℝ) + 1)^4 := rfl
 
+/-- For positive side length and dimension at least five, the second lattice sum is at most `(4
+* 3 ^ d + 1) / 256`, independently of the side length [ChildsGoldstone2004]. -/
 theorem latSum2_le {n d : ℕ} [NeZero n] [NeZero d] (hn : 0 < n) (hd : 5 ≤ d) :
     latSum2 n d ≤ (4 * 3 ^ d + 1) / 256 := by
   have hnR : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn

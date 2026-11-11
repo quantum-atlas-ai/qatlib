@@ -7,11 +7,37 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorStat
 import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOriginalContract
 import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceTaylor
+
+/-!
+# One-dimensional central-difference error and the step sign
+
+`centralDifferenceOneDimError` proves the exponential Taylor-remainder bound for nonnegative
+step size. The proof uses exactness on the Taylor polynomial and an absolute weighted power-sum
+estimate.
+
+`not_centralDifferenceOneDimError` refutes the legacy unrestricted-step contract: at a negative
+step, its ordered derivative-bound interval can be empty. See [GilyenArunachalamWiebe2019] for
+background.
+
+## Main statements
+
+* `not_centralDifferenceOneDimError`: The legacy error contract without a nonnegative-step
+  hypothesis is false, as witnessed by a cubic at a negative step.
+* `centralDifferenceOneDimError`: For nonnegative step `δ`, the stated smoothness and derivative
+  bound give central-difference error at most `exp (-(1 / 2) * m) * B * |δ| ^ (2 * m + 1)`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
 namespace Qatlib.Concepts.GradientOracle.DifferenceError
 
+/-- The legacy error contract without a nonnegative-step hypothesis is false, as witnessed by a
+cubic at a negative step. -/
 theorem not_centralDifferenceOneDimError : ¬CentralDifferenceOneDimErrorLegacy := by
   intro h
   have he := h 1 (by norm_num) (-1) 0 (fun x : ℝ => x ^ 3) (contDiff_id.pow 3) (by
@@ -22,6 +48,8 @@ theorem not_centralDifferenceOneDimError : ¬CentralDifferenceOneDimErrorLegacy 
   have hs : Finset.Ico (-1 : ℤ) 2 = {-1, 0, 1} := by decide
   norm_num [hs, centralDiffCoeff, deriv_pow_field] at he
 
+/-- For nonnegative step `δ`, the stated smoothness and derivative bound give central-difference
+error at most `exp (-(1 / 2) * m) * B * |δ| ^ (2 * m + 1)`. -/
 theorem centralDifferenceOneDimError : CentralDifferenceOneDimError := by
   intro m hm δ B hδ f hf hbound
   let S := Finset.Ico (-(m : ℤ)) ((m : ℤ)+1)

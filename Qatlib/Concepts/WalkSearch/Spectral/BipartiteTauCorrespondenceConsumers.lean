@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
 import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+
+/-!
+# Bipartite spectral correspondence consumers
+
+This module applies the bipartite source correspondence to prepared frame access and corrected
+marked walks. `bipartite_prepared_labeled_spectrum_consumer` combines a labeled eigenframe with
+exact access-program semantics and resource counts, while
+`corrected_marked_walk_bipartite_bridge` identifies the marked construction with a bipartite
+reflection walk.
+
+The resulting `corrected_marked_busy_labeled_spectrum` describes the spectrum on the combined
+frame range through endpoint sources and signed interior τ images, in the spectral framework of
+[Szegedy2004].
+
+## Main statements
+
+* `bipartite_prepared_labeled_spectrum_consumer`: labeled spectrum and compiled walk powers.
+* `corrected_marked_busy_labeled_spectrum`: labeled eigenframe for the corrected marked walk.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -35,6 +59,10 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- For two isometric frames and unitary preparations, construct an orthonormal eigenframe on
+their combined range with endpoint and signed interior source labels. The compiled access
+program realizes each walk power on this frame with zero queries, `4 * k` preparation steps,
+and `2 * k` other steps [Szegedy2004]. -/
 theorem bipartite_prepared_labeled_spectrum_consumer {H I J : Type}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (F : Matrix H I ℂ) (G : Matrix H J ℂ) (U V : Matrix H H ℂ)
@@ -80,6 +108,8 @@ theorem bipartite_prepared_labeled_spectrum_consumer {H I J : Type}
   refine ⟨m,X,z,hX,hXX,hWX,hm,hlabels,?_⟩
   exact bipartite_actual_spectral_access_program F G U V X z hF hG hU hV hWX
 
+/-- The reflection associated with a swapped frame is the conjugate of the original frame
+reflection by the swap gate. -/
 private theorem tau_swap_reflection_conj {I U : Type} [Fintype I] [DecidableEq I]
     [Fintype U] [DecidableEq U] (F : Matrix (I×I) U ℂ) :
     ReflectionAbout (((SwapGate : Matrix (I×I) (I×I) ℂ)*F)*
@@ -90,6 +120,9 @@ private theorem tau_swap_reflection_conj {I U : Type} [Fintype I] [DecidableEq I
     Matrix.smul_mul, Matrix.mul_one, swapGate_mul_self]
   rw [← Matrix.mul_assoc, ← Matrix.mul_assoc]
 
+/-- For a symmetric transition matrix, identify the corrected marked walk with the bipartite
+walk of the unmarked row frame and its swap, and identify the discriminant with the
+off-diagonal unmarked principal blocks. -/
 theorem corrected_marked_walk_bipartite_bridge :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (P : I→I→ℝ) (S : Finset I),
     IsTransitionMatrix P → (∀ i j, P i j = P j i) →
@@ -114,6 +147,9 @@ theorem corrected_marked_walk_bipartite_bridge :
       (((SwapGate : Matrix (I×I) (I×I) ℂ) * unmarkedRowFrame P S)ᴴ * unmarkedRowFrame P S) 0 = _
     rw [htop,hbottom]
 
+/-- For a symmetric transition matrix, construct an orthonormal eigenframe of the corrected
+marked walk on the combined frame range, with dimension equal to its rank and explicit
+endpoint and signed interior source labels [Szegedy2004]. -/
 theorem corrected_marked_busy_labeled_spectrum :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (P : I→I→ℝ) (S : Finset I),
     IsTransitionMatrix P → (∀ i j, P i j = P j i) →

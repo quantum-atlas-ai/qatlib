@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxWalkBranch
 import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Walk Branch Extraction and Error Bounds
+
+This module connects scalar QSP amplitudes to compressed sparse-walk simulation, in the setting
+of [LowChuang2017]. `lcPositiveEigenAngle` chooses a representative in `[0, 2 * π]`, and the
+angle lemmas relate both walk eigenphases to the same sine value, including the saturated
+endpoints.
+
+`lcSimWord_frame_action` expresses the compressed circuit on a balanced pair of walk
+eigenvectors through `lcPlusAmp`. Frame contraction and orthogonal-pair norm identities transfer
+scalar response errors to a state error; `lcOutput_guarantee` turns this into squared error at
+most `ε ^ 2` and output mass at least `1 - 2 * ε` when `ε ≤ 1 / 2`.
+
+## Main statements
+
+- `lcEigenAngles_sin` and `lcEigenAngles_saturated` identify the walk-angle branches.
+- `lcSimWord_frame_action` computes the compressed action on the balanced eigenvector pair.
+* `lcBalanced_error_bound` and `lcOutput_guarantee` establish the state and output-mass
+  estimates.
+
+## References
+
+- [Low and Chuang, 2017][LowChuang2017].
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,9 +61,12 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- The representative of `arcsin s` obtained by adding `2 * π` when it is negative, placing the
+angle in `[0, 2 * π]`. -/
 noncomputable def lcPositiveEigenAngle (s : ℝ) : ℝ :=
   if 0 ≤ Real.arcsin s then Real.arcsin s else Real.arcsin s + 2 * Real.pi
 
+/-- The chosen positive eigenangle lies in the closed interval `[0, 2 * π]` for every real `s`. -/
 theorem lcPositiveEigenAngle_mem (s : ℝ) :
     lcPositiveEigenAngle s ∈ Set.Icc 0 (2 * Real.pi) := by
   have h1 := Real.neg_pi_div_two_le_arcsin s
@@ -47,6 +76,7 @@ theorem lcPositiveEigenAngle_mem (s : ℝ) :
   · exact ⟨h, by linarith [Real.pi_pos]⟩
   · exact ⟨by linarith [Real.pi_pos], by linarith⟩
 
+/-- The complex phase of `lcPositiveEigenAngle s` equals the phase of `arcsin s`. -/
 theorem lcPositiveEigenAngle_phase (s : ℝ) :
     Complex.exp (Complex.I * (lcPositiveEigenAngle s : ℂ)) =
       Complex.exp (Complex.I * (Real.arcsin s : ℂ)) := by
@@ -57,6 +87,7 @@ theorem lcPositiveEigenAngle_phase (s : ℝ) :
       show Complex.I * ((2 * Real.pi : ℝ) : ℂ) = 2 * (Real.pi : ℂ) * Complex.I by push_cast; ring,
       Complex.exp_two_pi_mul_I, mul_one]
 
+/-- The phase of `π - arcsin s` is the negative of the phase of `-arcsin s`. -/
 theorem lcNegativeEigenAngle_phase (s : ℝ) :
     Complex.exp (Complex.I * ((Real.pi - Real.arcsin s : ℝ) : ℂ)) =
       -Complex.exp (Complex.I * (-(Real.arcsin s : ℂ))) := by
@@ -64,6 +95,7 @@ theorem lcNegativeEigenAngle_phase (s : ℝ) :
     show Complex.I * (Real.pi : ℂ) = (Real.pi : ℂ) * Complex.I by ring,
     Complex.exp_pi_mul_I, neg_one_mul, ← mul_neg]
 
+/-- When `|s| ≤ 1`, both `lcPositiveEigenAngle s` and `π - arcsin s` have sine equal to `s`. -/
 theorem lcEigenAngles_sin (s : ℝ) (hs : |s| ≤ 1) :
     Real.sin (lcPositiveEigenAngle s) = s ∧ Real.sin (Real.pi - Real.arcsin s) = s := by
   have h := Real.sin_arcsin (abs_le.mp hs).1 (abs_le.mp hs).2
@@ -74,6 +106,7 @@ theorem lcEigenAngles_sin (s : ℝ) (hs : |s| ≤ 1) :
     · rw [Real.sin_add_two_pi]; exact h
   · rw [Real.sin_pi_sub]; exact h
 
+/-- At `|s| = 1`, the two chosen walk eigenangles coincide. -/
 theorem lcEigenAngles_saturated (s : ℝ) (hs : |s| = 1) :
     lcPositiveEigenAngle s = Real.pi - Real.arcsin s := by
   rcases abs_eq (show (0 : ℝ) ≤ 1 by norm_num) |>.mp hs with h | h
@@ -87,6 +120,7 @@ theorem lcEigenAngles_saturated (s : ℝ) (hs : |s| = 1) :
 section Helpers
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The cross matrix `Lᴴ * R` of two isometries has operator norm at most one. -/
 theorem lcFrame_cross_norm (L R : Matrix W I ℂ) (hL : IsIsometry L) (hR : IsIsometry R) :
     ‖Lᴴ * R‖ ≤ 1 := by
   calc
@@ -96,6 +130,8 @@ theorem lcFrame_cross_norm (L R : Matrix W I ℂ) (hL : IsIsometry L) (hR : IsIs
       (norm_nonneg _) (by norm_num)
     _ = 1 := one_mul _
 
+/-- If `c • H` is a contraction and `ψ` is a normalized eigenvector of `H` with real eigenvalue
+`ev`, then `|c * ev| ≤ 1`. -/
 theorem lcFrame_eigen_bound (H : Matrix I I ℂ) (c : ℝ) (ψ : I → ℂ) (ev : ℝ)
     (hH : ‖(c : ℂ) • H‖ ≤ 1) (hψ : ∑ i, ‖ψ i‖ ^ 2 = 1)
     (hev : H *ᵥ ψ = (ev : ℂ) • ψ) : |c * ev| ≤ 1 := by
@@ -110,6 +146,7 @@ theorem lcFrame_eigen_bound (H : Matrix I I ℂ) (c : ℝ) (ψ : I → ℂ) (ev 
   rw [hval, hn, mul_one] at hh
   exact hh.trans hH
 
+/-- The adjoint of an isometry does not increase the Euclidean norm of a workspace vector. -/
 theorem lcFrame_adjoint_contraction (L : Matrix W I ℂ) (hL : IsIsometry L) (z : W → ℂ) :
     ‖toEuclidean_fromVec (Lᴴ *ᵥ z)‖ ≤ ‖toEuclidean_fromVec z‖ := by
   have hh := l2_norm_mulVec_fromVec_le Lᴴ z
@@ -117,6 +154,8 @@ theorem lcFrame_adjoint_contraction (L : Matrix W I ℂ) (hL : IsIsometry L) (z 
   exact hh.trans (by simpa only [one_mul] using!
     mul_le_mul_of_nonneg_right (isometry_norm_le hL) (norm_nonneg (toEuclidean_fromVec z)))
 
+/-- Applying `(lcPlusFrame L)ᴴ` to a product branch gives `Lᴴ *ᵥ w` scaled by `(a 0 + a 1) /
+sqrt 2`. -/
 theorem lcPlusFrame_adjoint_branch (L : Matrix W I ℂ) (a : Fin 2 → ℂ) (w : W → ℂ) :
     (lcPlusFrame L)ᴴ *ᵥ lcBranchVector a w =
       ((((Real.sqrt 2)⁻¹ : ℝ) : ℂ) * (a 0 + a 1)) • (Lᴴ *ᵥ w) := by
@@ -130,6 +169,8 @@ theorem lcPlusFrame_adjoint_branch (L : Matrix W I ℂ) (a : Fin 2 → ℂ) (w :
   intro j _
   ring
 
+/-- The overlap of a two-dimensional matrix between uniform ancilla vectors equals the `(0, 0)`
+entry of `lcHad * M * lcHad`. -/
 theorem lcPlusCorner_qubit (M : Matrix (Fin 2) (Fin 2) ℂ) :
     ((((Real.sqrt 2)⁻¹ : ℝ) : ℂ) *
       ((M *ᵥ (fun _ => (((Real.sqrt 2)⁻¹ : ℝ) : ℂ))) 0 +
@@ -140,6 +181,8 @@ theorem lcPlusCorner_qubit (M : Matrix (Fin 2) (Fin 2) ℂ) :
   norm_num
   ring
 
+/-- On a walk eigenvector of eigenphase `θ`, extraction of an even-length simulation word from
+the uniform ancilla branch gives `lcPlusAmp phis θ • (Lᴴ *ᵥ w)`. -/
 theorem lcSimWord_extracted_branch (L : Matrix W I ℂ) (V : Matrix W W ℂ)
     (w : W → ℂ) (θ : ℝ) (hV : V ∈ Matrix.unitaryGroup W ℂ)
     (hw : V *ᵥ w = Complex.exp (Complex.I * (θ : ℂ)) • w)
@@ -153,6 +196,8 @@ theorem lcSimWord_extracted_branch (L : Matrix W I ℂ) (V : Matrix W W ℂ)
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- For a fixed ancilla vector, the product-branch construction preserves addition of workspace
+vectors. -/
 theorem lcBranchVector_add (a : Fin 2 → ℂ) (u v : W → ℂ) :
     lcBranchVector a (u + v) = lcBranchVector a u + lcBranchVector a v := by
   funext i
@@ -160,12 +205,17 @@ theorem lcBranchVector_add (a : Fin 2 → ℂ) (u v : W → ℂ) :
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- For a fixed ancilla vector, the product-branch construction commutes with complex scalar
+multiplication of the workspace vector. -/
 theorem lcBranchVector_smul (a : Fin 2 → ℂ) (u : W → ℂ) (z : ℂ) :
     lcBranchVector a (z • u) = z • lcBranchVector a u := by
   funext i
   simp only [lcBranchVector, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- Computes the compressed even-length simulation word when `L *ᵥ ψ` is a balanced phased sum
+of two walk eigenvectors. Each eigenbranch is multiplied by its scalar amplitude `lcPlusAmp
+phis θ` before applying `Lᴴ`. -/
 theorem lcSimWord_frame_action (L : Matrix W I ℂ) (V : Matrix W W ℂ)
     (ψ : I → ℂ) (wp wm : W → ℂ) (ap am θp θm : ℝ)
     (hV : V ∈ Matrix.unitaryGroup W ℂ)
@@ -186,6 +236,8 @@ theorem lcSimWord_frame_action (L : Matrix W I ℂ) (V : Matrix W W ℂ)
     lcSimWord_extracted_branch L V wm θm hV hwm phis hlen]
   simp only [Matrix.mulVec_smul, Matrix.mulVec_add, smul_smul]
 
+/-- For orthogonal normalized vectors `wp` and `wm`, the squared Euclidean norm of `a • wp + b •
+wm` is `‖a‖ ^ 2 + ‖b‖ ^ 2`. -/
 theorem lcOrthogonal_normSq (wp wm : W → ℂ) (a b : ℂ)
     (hp : ∑ i, ‖wp i‖ ^ 2 = 1) (hm : ∑ i, ‖wm i‖ ^ 2 = 1)
     (ho : star wp ⬝ᵥ wm = 0) :
@@ -207,6 +259,8 @@ theorem lcOrthogonal_normSq (wp wm : W → ℂ) (a b : ℂ)
     zero_add, add_zero, Complex.add_re]
   simp only [Complex.star_def, Complex.mul_conj, Complex.normSq_eq_norm_sq, Complex.ofReal_re]
 
+/-- A balanced phased combination of two orthogonal normalized vectors has Euclidean norm at
+most `ε` when both scalar error coefficients have norm at most the nonnegative `ε`. -/
 theorem lcBalanced_error_bound (wp wm : W → ℂ) (ap am ε : ℝ) (a b : ℂ)
     (hp : ∑ i, ‖wp i‖ ^ 2 = 1) (hm : ∑ i, ‖wm i‖ ^ 2 = 1)
     (ho : star wp ⬝ᵥ wm = 0) (hε : 0 ≤ ε) (ha : ‖a‖ ≤ ε) (hb : ‖b‖ ≤ ε) :
@@ -236,6 +290,9 @@ theorem lcBalanced_error_bound (wp wm : W → ℂ) (ap am ε : ℝ) (a b : ℂ)
     ((Complex.exp (Complex.I * (ap : ℂ)) * a) • wp +
      (Complex.exp (Complex.I * (am : ℂ)) * b) • wm)))]
 
+/-- If an output vector is within Euclidean distance `ε` of a unit-modulus multiple of a
+normalized vector, with `0 ≤ ε ≤ 1 / 2`, then its squared coordinate error is at most `ε ^
+2` and its total squared norm is at least `1 - 2 * ε`. -/
 theorem lcOutput_guarantee (ψ y : I → ℂ) (e : ℂ) (ε : ℝ)
     (hψ : ∑ i, ‖ψ i‖ ^ 2 = 1) (he : ‖e‖ = 1) (hε : 0 ≤ ε) (hεhalf : ε ≤ 1 / 2)
     (herr : ‖toEuclidean_fromVec (y - e • ψ)‖ ≤ ε) :

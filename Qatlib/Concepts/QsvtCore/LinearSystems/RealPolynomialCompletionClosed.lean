@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
 import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+
+/-!
+# Completion of bounded real polynomials
+
+This module completes a real polynomial bounded by one on `[-1, 1]`, with the required degree
+and parity, into a complex QSP polynomial pair. Nonnegativity of `squareResidual` supplies the
+completion, and phase synthesis produces a response whose real part equals the given polynomial
+on every real input. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `exists_completedPair_of_bounded`: completion with the prescribed real part.
+* `exists_phases_of_bounded`: a unit phase sequence of the prescribed length realizing that real
+  part.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -21,6 +41,8 @@ namespace Qatlib.Concepts.QsvtCore.LinearSystems
 open Polynomial Qatlib.Concepts.QsvtCore.PolyApprox
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- A real polynomial of the stated parity bounded by one on `[-1, 1]` has nonnegative square
+residual on `[0, 1]`. -/
 theorem squareResidual_nonneg {p : Polynomial ℝ} {d : ℕ}
     (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
@@ -35,6 +57,9 @@ theorem squareResidual_nonneg {p : Polynomial ℝ} {d : ℕ}
   rcases abs_le.mp hs with ⟨hlo, hhi⟩
   nlinarith
 
+/-- A real polynomial of degree at most `d`, parity `d`, and absolute value at most one on `[-1,
+1]` extends to a completed complex pair whose first polynomial has that real part on the
+real axis. -/
 theorem exists_completedPair_of_bounded {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
@@ -45,6 +70,9 @@ theorem exists_completedPair_of_bounded {p : Polynomial ℝ} {d : ℕ}
     (squareResidual_nonneg hp hb) (squareResidual_degree_le hpdeg)
   exact exists_completedPair_of_rep hpdeg hp rep
 
+/-- A real polynomial of degree at most `d`, parity `d`, and absolute value at most one on `[-1,
+1]` is the real part of a unit phase response with list length `d`; see [Gilyén et al.,
+Corollary 18][GilyenSuLowWiebe2019]. -/
 theorem exists_phases_of_bounded {p : Polynomial ℝ} {d : ℕ}
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hp : HasRealParity d p)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :

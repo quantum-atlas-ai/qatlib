@@ -9,6 +9,32 @@ import Qatlib.Concepts.SpectralReadout.PhaseReadout.QmaCompletenessNoBound
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
 import Mathlib.Analysis.InnerProductSpace.Rayleigh
 import Mathlib.Analysis.Matrix.Hermitian
+
+/-!
+# Norm bounds and dyadic scaling for local terms
+
+This module converts local-table energy estimates into absolute quadratic bounds and
+operator-norm bounds for Hermitian matrices. It also bounds weighted clock-pair penalties and
+defines the power-of-two scale `scaleDen` that dominates both `32` and the clock weight `J`.
+
+Increasing the dyadic width scales a represented matrix by the corresponding inverse power of
+two. These estimates normalize the local terms used in the circuit-to-Hamiltonian framework of
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `local_table_abs`: Five-qubit terms with bounded entries have absolute energy at most `32 *
+  mass ψ`.
+* `l2norm_le_of_quadratic`: A uniform Hermitian quadratic bound controls the Euclidean operator
+  norm.
+* `scaleDen_bounds`: The chosen scale dominates the required constants with a linear size bound.
+* `scaled_quadratic_bound`: Dyadic scaling turns the quadratic bound into a bound by state mass.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TensorRegisters.RegisterModel
@@ -27,15 +53,18 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 noncomputable section
 
+/-- Negates both integer coefficient tables of a local term while preserving its support. -/
 def negTerm {N : ℕ} (t : IntegerLocalTerm N) : IntegerLocalTerm N :=
   ⟨t.support, fun u v => -t.re u v, fun u v => -t.im u v⟩
 
+/-- Negating both integer numerators negates their dyadic complex value. -/
 theorem dyadic_neg (b : ℕ) (r i : ℤ) :
     dyadicValue b (-r) (-i) = -dyadicValue b r i := by
   unfold dyadicValue
   push_cast
   ring
 
+/-- Interpreting the negated local term gives the negative of the original interpreted matrix. -/
 theorem value_negTerm {N : ℕ} (b : ℕ) (t : IntegerLocalTerm N) :
     value b (negTerm t) = -value b t := by
   ext x y
@@ -46,10 +75,13 @@ theorem value_negTerm {N : ℕ} (b : ℕ) (t : IntegerLocalTerm N) :
   rw [partitionLift_apply, partitionLift_apply]
   split_ifs <;> simp only [dyadic_neg, neg_zero]
 
+/-- Negating a matrix negates its energy on every state. -/
 theorem energy_neg {I : Type} [Fintype I] (H : Matrix I I ℂ) (ψ : QState I) :
     energy (-H) ψ = -energy H ψ := by
   simpa using energy_matrix_real_smul (-1) H ψ
 
+/-- A matrix represented by a term on at most five qubits with entry norms at most one has
+absolute energy at most `32 * mass ψ`. -/
 theorem local_table_abs {m n : ℕ} (b : ℕ) (t : IntegerLocalTerm (m+n))
     (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (ht : t.support.card ≤ 5)
@@ -68,6 +100,8 @@ theorem local_table_abs {m n : ℕ} (b : ℕ) (t : IntegerLocalTerm (m+n))
   rw [energy_neg] at hup
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
+/-- A matrix represented by a term on at most five qubits with entry norms at most one has
+absolute energy at most `32` on normalized states. -/
 theorem local_table_abs_normalized {m n : ℕ} (b : ℕ) (t : IntegerLocalTerm (m+n))
     (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ) (ht : t.support.card ≤ 5)
     (hv : value b t=Matrix.reindex (flattenEquiv m n).symm (flattenEquiv m n).symm H)
@@ -77,6 +111,8 @@ theorem local_table_abs_normalized {m n : ℕ} (b : ℕ) (t : IntegerLocalTerm (
   change mass ψ=1 at hψ
   simpa only [hψ, mul_one] using h
 
+/-- A clock-pair penalty weighted by a natural number `J` has energy between zero and `J * mass
+ψ`. -/
 theorem clockPair_energy_bounds {m n : ℕ} (J : ℕ) (i j : Fin m)
     (ψ : QState (Clock m×Reg n)) :
     0  ≤  energy ((J:ℂ) • TensorGate (pairPenalty i j)
@@ -124,6 +160,7 @@ theorem clockPair_energy_bounds {m n : ℕ} (J : ℕ) (i j : Fin m)
   exact ⟨mul_nonneg (Nat.cast_nonneg J) h0,
     mul_le_mul_of_nonneg_left h1 (Nat.cast_nonneg J)⟩
 
+/-- The absolute energy of the clock-pair penalty weighted by `J` is at most `J * mass ψ`. -/
 theorem clockPair_energy_abs {m n : ℕ} (J : ℕ) (i j : Fin m)
     (ψ : QState (Clock m×Reg n)) :
     |energy ((J:ℂ) • TensorGate (pairPenalty i j)
@@ -132,6 +169,8 @@ theorem clockPair_energy_abs {m n : ℕ} (J : ℕ) (i j : Fin m)
   rw [abs_of_nonneg h.1]
   exact h.2
 
+/-- A clock-pair penalty tensored with the work identity and weighted by a natural number is
+Hermitian. -/
 theorem clockPair_hermitian {m n : ℕ} (J : ℕ) (i j : Fin m) :
     Matrix.IsHermitian ((J:ℂ) • TensorGate (pairPenalty i j)
       (1:Matrix (Reg n) (Reg n) ℂ)) := by
@@ -141,6 +180,8 @@ theorem clockPair_hermitian {m n : ℕ} (J : ℕ) (i j : Fin m) :
     (pairPenalty_hermitian i j).eq, Matrix.conjTranspose_one]
   simp
 
+/-- A Hermitian matrix whose absolute energy is bounded by `B` times state mass has Euclidean
+operator norm at most the nonnegative constant `B`. -/
 theorem l2norm_le_of_quadratic {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hHerm : Matrix.IsHermitian H) (B : ℝ) (hB : 0 ≤ B)
     (hQuad : ∀ψ : QState I, |energy H ψ| ≤ B*mass ψ) :
@@ -169,9 +210,13 @@ theorem l2norm_le_of_quadratic {I : Type} [Fintype I] [DecidableEq I]
     have hm : mass (WithLp.ofLp x)=‖x‖^2 := (EuclideanSpace.norm_sq_eq x).symm
     simpa only [hm] using hQuad (WithLp.ofLp x)
 
+/-- The dyadic scaling exponent `Nat.log2 (32 + J) + 1`. -/
 def scaleBits (J : ℕ) : ℕ := (32+J).log2+1
+/-- The power-of-two scaling denominator `2^(scaleBits J)`. -/
 def scaleDen (J : ℕ) : ℕ := 2^(scaleBits J)
 
+/-- The scaling denominator dominates `32` and `J`, while both the denominator and its exponent
+are at most `2 * (32 + J)`. -/
 theorem scaleDen_bounds (J : ℕ) :
     32 ≤ scaleDen J ∧ J ≤ scaleDen J ∧ scaleDen J ≤ 2*(32+J) ∧
       scaleBits J ≤ 2*(32+J) := by
@@ -184,12 +229,15 @@ theorem scaleDen_bounds (J : ℕ) :
   have hq : scaleBits J < scaleDen J := Nat.lt_two_pow_self (n:=scaleBits J)
   omega
 
+/-- Increasing the dyadic width by `q` multiplies the represented complex value by `2^(-q)`. -/
 theorem dyadic_width_shift (b q : ℕ) (r i : ℤ) :
     dyadicValue (b+q) r i = ((2:ℂ)^q)⁻¹ * dyadicValue b r i := by
   unfold dyadicValue
   rw [pow_add]
   field_simp
 
+/-- Increasing the width of a local term by `q` scales its interpreted matrix by the inverse of
+`2^q`. -/
 theorem value_width_shift {N : ℕ} (b q : ℕ) (t : IntegerLocalTerm N) :
     value (b+q) t = (((2:ℝ)^q)⁻¹:ℂ) • value b t := by
   ext x y
@@ -200,6 +248,8 @@ theorem value_width_shift {N : ℕ} (b q : ℕ) (t : IntegerLocalTerm N) :
     rfl
   · simp
 
+/-- Scaling a matrix by `2^(-q)` bounds its absolute energy by state mass whenever its original
+quadratic bound is at most `2^q`. -/
 theorem scaled_quadratic_bound {I : Type} [Fintype I]
     (H : Matrix I I ℂ) (q : ℕ) (B : ℝ)
     (hB : B ≤ (2:ℝ)^q)

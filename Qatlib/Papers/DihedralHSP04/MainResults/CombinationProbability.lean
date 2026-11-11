@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DihedralHSP04.MainResults.CombinationCounting
+
+/-!
+# Joint distribution of mask labels
+
+`pairForm` records the labels of two masks simultaneously. Distinct nonzero masks give a
+surjective pair map with uniform fibers, yielding the product formula `uniformProb_pair_match`
+for joint label events.
+
+This development follows [Regev2004a].
+
+## Main statements
+
+* `pairForm_surjective`: distinct nonzero masks realize every pair of labels.
+* `pairForm_fiber_card`: each joint label fiber has cardinality `(2 ^ l) ^ (l + 2)`.
+* `uniformProb_pair_match`: joint matching has probability `2⁻ˡ · 2⁻ˡ`.
+
+## References
+
+* [Regev, 2004][Regev2004a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,16 +37,21 @@ namespace Qatlib.Papers.DihedralHSP04.MainResults
 
 open scoped BigOperators
 
+/-- The additive homomorphism recording the modular dot products with two masks. -/
 def pairForm (l : ℕ) (b₁ b₂ : Mask l) :
     SampleSpace l →+ ZMod (2 ^ l) × ZMod (2 ^ l) :=
   (linForm l b₁).prod (linForm l b₂)
 
+/-- Evaluating `pairForm` gives the pair of modular dot products. -/
 theorem pairForm_apply (l : ℕ) (b₁ b₂ : Mask l) (y : SampleSpace l) :
     pairForm l b₁ b₂ y = (dotMod l b₁ y, dotMod l b₂ y) := rfl
 
+/-- The sample supported at coordinate `j` with value `a` there. -/
 def unitLabel (l : ℕ) (j : Fin (l + 4)) (a : ZMod (2 ^ l)) : SampleSpace l :=
   Function.update (0 : SampleSpace l) j a
 
+/-- The dot product with a single-coordinate sample is `a` when the mask selects that coordinate
+and zero otherwise. -/
 theorem dotMod_unitLabel (l : ℕ) (b : Mask l) (j : Fin (l + 4))
     (a : ZMod (2 ^ l)) :
     dotMod l b (unitLabel l j a) = if b j then a else 0 := by
@@ -37,6 +63,8 @@ theorem dotMod_unitLabel (l : ℕ) (b : Mask l) (j : Fin (l + 4))
   · intro hjnot
     exact absurd (Finset.mem_univ j) hjnot
 
+/-- Evaluating the pair map on two distinct single-coordinate samples gives the two
+corresponding sums of selected values. -/
 theorem pairForm_unitLabels (l : ℕ) (b₁ b₂ : Mask l) {j k : Fin (l + 4)}
     (hjk : j ≠ k) (a c : ZMod (2 ^ l)) :
     pairForm l b₁ b₂ (unitLabel l j a + unitLabel l k c) =
@@ -49,6 +77,7 @@ theorem pairForm_unitLabels (l : ℕ) (b₁ b₂ : Mask l) {j k : Fin (l + 4)}
   rw [h₁, h₂, dotMod_unitLabel, dotMod_unitLabel, dotMod_unitLabel,
     dotMod_unitLabel]
 
+/-- The pair label map of two distinct nonzero masks is surjective. -/
 theorem pairForm_surjective {l : ℕ} {b₁ b₂ : Mask l}
     (h₁ : b₁ ≠ zeroMask l) (h₂ : b₂ ≠ zeroMask l) (hne : b₁ ≠ b₂) :
     Function.Surjective (pairForm l b₁ b₂) := by
@@ -100,10 +129,13 @@ theorem pairForm_surjective {l : ℕ} {b₁ b₂ : Mask l}
       · exact absurd ⟨j, hb1, hb2⟩ hP
       · rfl
 
+/-- The space of pairs of modular labels has cardinality `(2 ^ l) * (2 ^ l)`. -/
 theorem natCard_outcome_pair (l : ℕ) :
     Nat.card (ZMod (2 ^ l) × ZMod (2 ^ l)) = (2 ^ l) * (2 ^ l) := by
   rw [Nat.card_eq_fintype_card, Fintype.card_prod, ZMod.card]
 
+/-- Each joint label fiber for distinct nonzero masks has cardinality `(2 ^ l) ^ (l + 2)`. See
+[Regev2004a]. -/
 theorem pairForm_fiber_card {l : ℕ} {b₁ b₂ : Mask l}
     (h₁ : b₁ ≠ zeroMask l) (h₂ : b₂ ≠ zeroMask l) (hne : b₁ ≠ b₂)
     (z₁ z₂ : ZMod (2 ^ l)) :
@@ -151,14 +183,20 @@ theorem pairForm_fiber_card {l : ℕ} {b₁ b₂ : Mask l}
     exact Nat.eq_of_mul_eq_mul_left (by positivity) hmul
   rw [hleft, hsame, hright, hker]
 
+/-- The probability of a predicate under the uniform distribution on a finite type, expressed as
+a real cardinality ratio. -/
 noncomputable def uniformProb {Ω : Type*} [Fintype Ω] (p : Ω → Prop) : ℝ :=
   (Nat.card {x : Ω // p x} : ℝ) / (Nat.card Ω : ℝ)
 
+/-- Uniform probability equals the cardinality of the filtered universe divided by the
+cardinality of the ambient type. -/
 theorem uniformProb_eq_filter {Ω : Type*} [Fintype Ω] (p : Ω → Prop) [DecidablePred p] :
     uniformProb p = ((Finset.univ.filter p).card : ℝ) / (Nat.card Ω : ℝ) := by
   unfold uniformProb
   rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
 
+/-- For distinct nonzero masks, the probability of any specified pair of labels is the product
+of two factors `((2 : ℝ) ^ l)⁻¹`. See [Regev2004a]. -/
 theorem uniformProb_pair_match {l : ℕ} {b₁ b₂ : Mask l}
     (h₁ : b₁ ≠ zeroMask l) (h₂ : b₂ ≠ zeroMask l) (hne : b₁ ≠ b₂)
     (z₁ z₂ : ZMod (2 ^ l)) :

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.NoSignalCode.QuantumMessageCount
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+
+/-!
+# Message counting for local instrument codes
+
+Local unitary encoding on one subsystem preserves the other subsystem's marginal. With a
+complete local Kraus family, the resulting conditional operators therefore have a common sum
+independent of the encoded symbol.
+
+`local_instrument_exact_code_card_le` uses this property to bound the number of exactly decoded
+symbols by the number of classical instrument outcomes. This supplies a local instrument form of
+the communication obstruction discussed in [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `local_unitary_preserves_marginal` proves marginal invariance under a unitary on the traced
+  subsystem.
+* `local_instrument_exact_code_card_le` bounds exact code cardinality by the number of
+  instrument messages.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +43,8 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
 open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 
+/-- Conjugating a joint operator by a unitary on the second subsystem leaves its partial trace
+over that subsystem unchanged. -/
 theorem local_unitary_preserves_marginal {D E : ℕ}
     (U : Operator E) (hU : U ∈ Matrix.unitaryGroup (Fin E) ℂ)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
@@ -30,6 +56,9 @@ theorem local_unitary_preserves_marginal {D E : ℕ}
   simpa only [Fin.sum_univ_one] using!
     partialTrace_right_instrument (fun _i : Fin 1 => U) hc ρ
 
+/-- With a positive shared operator of normalized marginal, local unitary encoding, a complete
+`k` outcome Kraus family, and exact conditional POVM decoding, the source alphabet has at
+most `k` elements [BennettEtAl1993Teleportation]. -/
 theorem local_instrument_exact_code_card_le
     {X : Type} [Fintype X] [DecidableEq X] {D E k : ℕ} (x₀ : X)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ)

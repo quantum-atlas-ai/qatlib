@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceStat
 import Qatlib.Concepts.QsvtCore.PhaseExistence.ComplexPolynomial
+
+/-!
+# Complex QSP phase existence and minimality
+
+`corollary8ComplexPhaseExistence` constructs a real phase list whose source response is a
+prescribed complex polynomial satisfying the QSP degree, parity, and norm inequalities. The list
+length equals the polynomial's positive degree, and every other realizing list has at least that
+length and the same parity.
+
+The proof combines polynomial completion, phase synthesis, and terminal phase absorption to
+establish the formulation associated with Corollary 8 of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `complex_response_parity_unique`: shows that the parity index of a nonzero response polynomial
+  is unique modulo two.
+* `corollary8ComplexPhaseExistence`: constructs a realizing phase list and proves length
+  minimality and parity.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -22,6 +46,8 @@ open Polynomial Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- If a nonzero complex polynomial has response parity n and response parity d, then n and d
+agree modulo two. -/
 private theorem complex_response_parity_unique (P : Polynomial ℂ) (hp : P ≠ 0)
     (n d : ℕ) (hn : HasResponseParity n P) (hd : HasResponseParity d P) :
     n % 2 = d % 2 := by
@@ -36,6 +62,10 @@ private theorem complex_response_parity_unique (P : Polynomial ℂ) (hp : P ≠ 
   · norm_num [hn1, hd0] at hs
   · omega
 
+/-- Establishes `Corollary8ComplexPhaseExistence`: a complex polynomial satisfying the stated
+QSP conditions has a realizing real phase list of length equal to its positive degree. Every
+realizing list has at least this length and the same parity [Gilyén et al., Corollary
+8][GilyenSuLowWiebe2019]. -/
 theorem corollary8ComplexPhaseExistence : Corollary8ComplexPhaseExistence := by
   intro P d hd hdeg hpar hin hout himag
   have hP0 : P ≠ 0 := by intro h; simp [h] at hdeg; omega

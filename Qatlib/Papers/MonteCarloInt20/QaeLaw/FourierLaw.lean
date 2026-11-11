@@ -88,6 +88,29 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
+
+/-!
+# Finite Fourier laws for amplitude estimation
+
+`phaseMass` is the squared Fourier-kernel amplitude and `rawMass` averages the two reflected
+eigenphase branches of amplitude estimation. The module proves normalization, exact grid
+behavior, and the sine-quotient formula with its singular values filled in.
+
+`actual_prepared_qae_law` identifies the actual prepared readout with `rawMass` for interior
+amplitudes. Reflection symmetry then reduces expectations of sine-squared payoffs to a single
+phase branch. See [KanekoEtAl2020].
+
+## Main statements
+
+* `completedKernel_eq_mass`: the completed sine quotient equals the physical kernel mass.
+* `actual_prepared_qae_law`: equality with the actual prepared QAE readout.
+* `nonlinear_payoff_expectation`: equality of raw and single-branch payoff expectations.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -106,8 +129,11 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.Fourier
 
+/-- The squared norm of the finite Fourier phase-estimation kernel at outcome `k`. -/
 def phaseMass (M : ℕ) (θ : ℝ) (k : Fin M) : ℝ := ‖qpeKernel M θ k‖^2
 
+/-- For positive `M`, the QPE kernel equals the inverse-Fourier amplitude of the BHMT phase
+state. -/
 theorem kernel_eq_bhmt_amplitude (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     qpeKernel M θ k = ((bhmt11QFT M).conjTranspose.mulVec (bhmt11PhaseState M θ)) k := by
   rw [(offgrid_phase_kernel_formula M θ k hM).2.1,
@@ -119,29 +145,37 @@ theorem kernel_eq_bhmt_amplitude (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
   push_cast
   ring
 
+/-- The Fourier-kernel mass agrees with the BHMT phase-estimation outcome mass for positive `M`. -/
 theorem phaseMass_eq_bhmt (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     phaseMass M θ k = bhmt11OutcomeMass M θ k := by
   rw [phaseMass,kernel_eq_bhmt_amplitude M θ hM k]
   rfl
 
+/-- For positive `M`, the phase masses sum to one. -/
 theorem phaseMass_sum_one (M : ℕ) (θ : ℝ) (hM : 0 < M) :
     ∑ k : Fin M, phaseMass M θ k=1 := by
   simp_rw [phaseMass_eq_bhmt M θ hM]
   exact bhmt_phase_estimation_theorem11_normalization M θ hM
 
+/-- The finite probability distribution defined by the normalized phase-kernel masses. -/
 def phaseLaw (M : ℕ) (θ : ℝ) (hM : 0 < M) : FinDist (Fin M) where
   prob := phaseMass M θ
   nonneg _ := sq_nonneg _
   sum_one := phaseMass_sum_one M θ hM
 
+/-- A phase exactly on the Fourier grid produces unit mass at its grid index and zero mass
+elsewhere. See [KanekoEtAl2020]. -/
 theorem phaseMass_grid (M : ℕ) (hM : 0 < M) (j k : Fin M) :
     phaseMass M (j.val/(M:ℝ)) k = if k=j then 1 else 0 := by
   rw [phaseMass,(offgrid_phase_geometric_and_periodic M (j.val/(M:ℝ)) k hM).2.2 j]
   by_cases h : k=j <;> simp [Ket,h,eq_comm]
 
+/-- The equal mixture of phase-kernel masses for phases `θ` and `1-θ`. -/
 def rawMass (M : ℕ) (θ : ℝ) (k : Fin M) : ℝ :=
   (phaseMass M θ k+phaseMass M (1-θ) k)/2
 
+/-- The finite probability distribution obtained by mixing the two reflected phase branches
+equally. -/
 def rawLaw (M : ℕ) (θ : ℝ) (hM : 0 < M) : FinDist (Fin M) where
   prob := rawMass M θ
   nonneg k := div_nonneg (add_nonneg (sq_nonneg _) (sq_nonneg _)) (by norm_num)
@@ -152,6 +186,8 @@ def rawLaw (M : ℕ) (θ : ℝ) (hM : 0 < M) : FinDist (Fin M) where
       phaseMass_sum_one M (1-θ) hM]
     norm_num
 
+/-- For an interior prepared amplitude and `M ≥ 2`, the actual QAE outcome mass equals the equal
+mixture of its two phase branches. See [KanekoEtAl2020]. -/
 theorem actual_prepared_qae_law {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < 1/2)
@@ -167,6 +203,8 @@ theorem actual_prepared_qae_law {I : Type} [Fintype I] [DecidableEq I]
     simpa only [harg] using qpeKernel_int_add M (-θ) k 1
   simpa only [rawMass,phaseMass,hp] using h
 
+/-- The squared chord length from one to a complex phase is four times the corresponding squared
+sine. -/
 theorem phase_chord (t : ℝ) :
     ‖Complex.exp (2*Real.pi*Complex.I*t)-1‖^2=4*Real.sin (t*Real.pi)^2 := by
   have h := zoo_amplified_qft_lemma18_chord_sq (2*Real.pi*t)
@@ -175,6 +213,8 @@ theorem phase_chord (t : ℝ) :
   congr 2
   ring
 
+/-- The phase mass multiplied by the squared sine denominator satisfies the exact finite-kernel
+sine identity. -/
 theorem mass_sine_identity (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     (M:ℝ)^2*phaseMass M θ k*Real.sin ((θ-k.val/(M:ℝ))*Real.pi)^2 =
       Real.sin ((M:ℝ)*θ*Real.pi)^2 := by
@@ -188,6 +228,7 @@ theorem mass_sine_identity (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     4*Real.sin ((M:ℝ)*θ*Real.pi)^2 at h
   nlinarith
 
+/-- Away from a zero sine denominator, the phase mass equals the squared-sine quotient. -/
 theorem mass_quotient (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M)
     (hs : Real.sin ((θ-k.val/(M:ℝ))*Real.pi) ≠ 0) :
     phaseMass M θ k = Real.sin ((M:ℝ)*θ*Real.pi)^2 /
@@ -195,6 +236,7 @@ theorem mass_quotient (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M)
   apply (eq_div_iff (mul_ne_zero (pow_ne_zero 2 (by exact_mod_cast hM.ne')) (pow_ne_zero 2 hs))).mpr
   nlinarith [mass_sine_identity M θ hM k]
 
+/-- At a zero sine denominator, the phase mass is one. -/
 theorem mass_at_singularity (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M)
     (hs : Real.sin ((θ-k.val/(M:ℝ))*Real.pi)=0) : phaseMass M θ k=1 := by
   obtain ⟨n,hn⟩ := Real.sin_eq_zero_iff.mp hs
@@ -203,10 +245,12 @@ theorem mass_at_singularity (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M)
     (offgrid_phase_geometric_and_periodic M (k.val/(M:ℝ)) k hM).2.2 k]
   simp [Ket]
 
+/-- The sine-quotient kernel completed with value one at zero sine denominators. -/
 def completedKernel (M : ℕ) (θ : ℝ) (k : Fin M) : ℝ :=
   if Real.sin ((θ-k.val/(M:ℝ))*Real.pi)=0 then 1 else
   Real.sin ((M:ℝ)*θ*Real.pi)^2 / ((M:ℝ)^2*Real.sin ((θ-k.val/(M:ℝ))*Real.pi)^2)
 
+/-- For positive `M`, the completed sine-quotient kernel equals the phase mass at every outcome. -/
 theorem completedKernel_eq_mass (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     completedKernel M θ k=phaseMass M θ k := by
   unfold completedKernel
@@ -214,15 +258,19 @@ theorem completedKernel_eq_mass (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
   · exact (mass_at_singularity M θ hM k hs).symm
   · exact (mass_quotient M θ hM k hs).symm
 
+/-- Reflects a Fourier index modulo `M`, fixing zero and sending nonzero `k` to `M-k`. -/
 def reflect {M : ℕ} (k : Fin M) : Fin M :=
   if h : k.val=0 then k else ⟨M-k.val,by have := k.isLt; omega⟩
 
+/-- Reflection of Fourier indices is an involution. -/
 theorem reflect_involutive {M : ℕ} : Function.Involutive (reflect (M:=M)) := by
   intro k
   apply Fin.ext
   dsimp only [reflect]
   split_ifs <;> simp_all only <;> have := k.isLt <;> omega
 
+/-- The reflected grid coordinate is zero at index zero and otherwise one minus the original
+coordinate. -/
 theorem reflect_grid (M : ℕ) (hM : 0 < M) (k : Fin M) :
     (reflect k).val/(M:ℝ)=if k.val=0 then 0 else 1-k.val/(M:ℝ) := by
   have hm : (M:ℝ) ≠ 0 := by exact_mod_cast hM.ne'
@@ -232,12 +280,14 @@ theorem reflect_grid (M : ℕ) (hM : 0 < M) (k : Fin M) :
     rw [Nat.cast_sub (le_of_lt k.isLt)]
     field_simp
 
+/-- Negating the phase parameter preserves the squared norm of the finite exponential sum. -/
 theorem expSum_norm_neg (M : ℕ) (t : ℝ) :
     ‖bhmt_phase_estimation_theorem11_expSum M (-t)‖^2=
       ‖bhmt_phase_estimation_theorem11_expSum M t‖^2 := by
   rw [bhmt_phase_estimation_theorem11_expSum_abs M (-t),abs_neg,
     ← bhmt_phase_estimation_theorem11_expSum_abs M t]
 
+/-- Reflecting the phase from `θ` to `1-θ` is equivalent to reflecting the outcome index. -/
 theorem phaseMass_reflection (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     phaseMass M (1-θ) k=phaseMass M θ (reflect k) := by
   rw [phaseMass_eq_bhmt M (1-θ) hM,phaseMass_eq_bhmt M θ hM,
@@ -254,6 +304,8 @@ theorem phaseMass_reflection (M : ℕ) (θ : ℝ) (hM : 0 < M) (k : Fin M) :
     have he : 1-θ-k.val/(M:ℝ)=-(θ-(1-k.val/(M:ℝ))) := by ring
     rw [he,expSum_norm_neg]
 
+/-- A reflection-invariant readout has the same expectation under the raw two-branch law and the
+single phase law. -/
 theorem raw_expectation_eq_single (M : ℕ) (θ : ℝ) (hM : 0 < M) (h : Fin M → ℝ)
     (hh : ∀ k,h (reflect k)=h k) :
     ∑ k,rawMass M θ k*h k=∑ k,phaseMass M θ k*h k := by
@@ -271,6 +323,7 @@ theorem raw_expectation_eq_single (M : ℕ) (θ : ℝ) (hM : 0 < M) (h : Fin M �
       rw [← Finset.sum_div,Finset.sum_add_distrib]
     _ = _ := by rw [hs]; ring
 
+/-- The sine-squared readout is invariant under reflection of the Fourier index. -/
 theorem sinSquare_reflection (M : ℕ) (hM : 0 < M) (k : Fin M) :
     Real.sin ((reflect k).val/(M:ℝ)*Real.pi)^2=Real.sin (k.val/(M:ℝ)*Real.pi)^2 := by
   rw [reflect_grid M hM]
@@ -278,6 +331,8 @@ theorem sinSquare_reflection (M : ℕ) (hM : 0 < M) (k : Fin M) :
   · simp [hk]
   · rw [if_neg hk,sub_mul,one_mul,Real.sin_pi_sub]
 
+/-- Every payoff of the scaled sine-squared readout has the same expectation under the raw law
+and the single phase branch. See [KanekoEtAl2020]. -/
 theorem nonlinear_payoff_expectation (M : ℕ) (θ D : ℝ) (hM : 0 < M) (g : ℝ → ℝ) :
     ∑ k,rawMass M θ k*g (D*Real.sin (k.val/(M:ℝ)*Real.pi)^2)=
       ∑ k,phaseMass M θ k*g (D*Real.sin (k.val/(M:ℝ)*Real.pi)^2) := by

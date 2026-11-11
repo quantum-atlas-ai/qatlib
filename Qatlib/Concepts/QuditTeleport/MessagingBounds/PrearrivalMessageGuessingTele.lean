@@ -8,12 +8,36 @@ import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingSt
 import Mathlib.Data.Finset.Card
 import Mathlib.Logic.Function.Basic
 import Mathlib.Tactic.Linarith
+
+/-!
+# A prearrival Bell-message guessing bound
+
+`prearrivalMessageGuessing` proves that collapsing any pair of the four Bell outcomes produces a
+message value with probability at least one half under the uniform outcome law. The
+communication setting is teleportation [BennettEtAl1993Teleportation]; see also [Wilde2017] for
+the information-theoretic background.
+
+## Main statements
+
+* `prearrivalMessageGuessing`: A noninjective Bell-outcome encoding has a message value of
+  probability at least `1 / 2`, strictly exceeding `1 / 4`. See the communication argument in
+  [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+* [Wilde, 2017][Wilde2017]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QuditTeleport.MessagingBounds
 
+/-- A noninjective Bell-outcome encoding has a message value of probability at least `1 / 2`,
+strictly exceeding `1 / 4`. See the communication argument in
+[BennettEtAl1993Teleportation]. -/
 theorem prearrivalMessageGuessing : PrearrivalMessageGuessing := by
   classical
   intro κ _ _ m hm

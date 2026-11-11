@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedStat
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+/-!
+# Finite-precision CDF readout bounds
+
+This module proves a median tail bound for native amplitude-estimation decoding and applies it
+to `riskCDF`. The error window includes both amplitude-estimation error and the finite decoding
+precision.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `risk_native_median_tail`: If a single amplitude-estimation sample is within error `e` with
+  mass at least `8 / π²`, the native median exceeds error `e + 2⁻ᵇⁱᵗˢ` with probability at most
+  `(8 / 9) ^ r`.
+* `riskNativeCDFReadout`: The native CDF median readout satisfies its finite-precision error
+  bound with failure probability at most `(8 / 9) ^ r`; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -28,6 +51,8 @@ namespace Qatlib.Concepts.RiskEstimation.CDFEstimation
 open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 
+/-- If a single amplitude-estimation sample is within error `e` with mass at least `8 / π²`, the
+native median exceeds error `e + 2⁻ᵇⁱᵗˢ` with probability at most `(8 / 9) ^ r`. -/
 theorem risk_native_median_tail {M : ℕ} (p : FinDist (Fin M)) (bits r : ℕ) (μ e : ℝ)
     (he : 0 ≤ e)
     (hgood : 8/Real.pi^2 ≤ Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass p (fun z => |aeEstimate M z-μ| ≤ e)) :
@@ -60,6 +85,8 @@ theorem risk_native_median_tail {M : ℕ} (p : FinDist (Fin M)) (bits r : ℕ) (
   simpa only [risk_native_median_cast, Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass,
       FinDist.probEvent] using! hm
 
+/-- The native CDF median readout satisfies its finite-precision error bound with failure
+probability at most `(8 / 9) ^ r`; see [WoernerEgger2019]. -/
 theorem riskNativeCDFReadout : NativeCDFReadoutRestricted := by
   intro I _ _ A j loss t bits M r hA hM
   change Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event

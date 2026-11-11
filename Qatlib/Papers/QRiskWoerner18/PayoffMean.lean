@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+
+/-!
+# Payoff means from prepared distributions
+
+This module relates the Born probabilities of a state-preparation column to a finite
+distribution and identifies the marked payoff probability with `sourcePayoffMean`. It derives
+amplitude-estimation and median bounds for this mean and records the exact query, gate,
+preparation-access, and reflection counts.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `source_born_probability`: If the preparation column has entries √(p.prob i), its Born
+  probability at each basis index i is exactly p.prob i.
+* `source_payoff_probability_and_ae`: For a unitary preparation with the stated distribution
+  column and a payoff in [0, 1], payoff preparation is unitary and its marked probability equals
+  the payoff mean. Amplitude estimation lies within the stated mean-dependent error window with
+  probability at least 8/π².
+* `source_payoff_accesses`: For a unitary preparation and payoff in [0, 1], payoff preparation
+  is unitary and 2r + 1 repeated estimation circuits have exactly (2r + 1)(M − 1) queries and
+  (2r + 1)(5(M − 1) + 3) gates. The associated access word has 2(M − 1) + 1 input accesses and M
+  − 1 source reflections.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,11 +48,15 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QRiskWoerner18.PayoffMean
 
+/-- The zero basis index in the register of size 2ⁿ. -/
 def sourceZero (n : ℕ) : Fin (2 ^ n) := ⟨0, by positivity⟩
 
+/-- The expectation of a payoff function under the finite distribution p. -/
 noncomputable def sourcePayoffMean {n : ℕ} (p : FinDist (Fin (2 ^ n)))
     (f : Fin (2 ^ n) → ℝ) : ℝ := ∑ i, p.prob i * f i
 
+/-- If the preparation column has entries √(p.prob i), its Born probability at each basis index
+i is exactly p.prob i [WoernerEgger2019]. -/
 theorem source_born_probability (n : ℕ) (p : FinDist (Fin (2 ^ n)))
     (A : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (hcolumn : ∀ i, ApplyGate A (Ket (sourceZero n)) i = (Real.sqrt (p.prob i) : ℂ))
@@ -32,6 +65,10 @@ theorem source_born_probability (n : ℕ) (p : FinDist (Fin (2 ^ n)))
   rw [hcolumn i, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (Real.sqrt_nonneg _), Real.sq_sqrt (p.nonneg i)]
 
+/-- For a unitary preparation with the stated distribution column and a payoff in [0, 1], payoff
+preparation is unitary and its marked probability equals the payoff mean. Amplitude
+estimation lies within the stated mean-dependent error window with probability at least 8/π²
+[WoernerEgger2019]. -/
 theorem source_payoff_probability_and_ae (n M : ℕ) (hM : 2 ≤ M)
     (p : FinDist (Fin (2 ^ n))) (A : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (f : Fin (2 ^ n) → ℝ) (hA : A ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ)
@@ -52,6 +89,9 @@ theorem source_payoff_probability_and_ae (n M : ℕ) (hM : 2 ≤ M)
   · simpa only [sourcePayoffMean, hBorn] using!
       quantum_mean_actual_ae_accuracy M hM A (sourceZero n) f hA hf
 
+/-- For the stated unitary preparation and bounded payoff, the probability that the median of 2r
++ 1 estimates exceeds the amplitude-estimation error tolerance is at most 2^(2r + 1)(1 −
+8/π²)^(r + 1) [WoernerEgger2019]. -/
 theorem source_payoff_median (n M r : ℕ) (hM : 2 ≤ M)
     (p : FinDist (Fin (2 ^ n))) (A : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (f : Fin (2 ^ n) → ℝ) (hA : A ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ)
@@ -66,6 +106,10 @@ theorem source_payoff_median (n M r : ℕ) (hM : 2 ≤ M)
   simpa only [sourcePayoffMean, hBorn] using!
     quantum_mean_sorted_median_amplification M r hM A (sourceZero n) f hA hf
 
+/-- For a unitary preparation and payoff in [0, 1], payoff preparation is unitary and 2r + 1
+repeated estimation circuits have exactly (2r + 1)(M − 1) queries and (2r + 1)(5(M − 1) + 3)
+gates. The associated access word has 2(M − 1) + 1 input accesses and M − 1 source
+reflections [WoernerEgger2019]. -/
 theorem source_payoff_accesses (n M r : ℕ) (hM : 2 ≤ M)
     (A : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ) (f : Fin (2 ^ n) → ℝ)
     (hA : A ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ)

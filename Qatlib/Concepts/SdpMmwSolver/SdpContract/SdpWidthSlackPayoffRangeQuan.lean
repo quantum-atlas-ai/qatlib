@@ -10,6 +10,27 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Module
 import Mathlib.Tactic.Positivity
+
+/-!
+# Payoff range with corrected width slack
+
+`sdpWidthSlackPayoffRange` proves the retained payoff and certificate-cost bounds using response
+width α(1 + 2Rε). `not_sdpWidthSlackPayoffRange` refutes the original formulation with the
+larger sampled width budget.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpWidthSlackPayoffRange`: Under the retained response width α(1 + 2Rε) and the stated error
+  caps, normalized payoffs are Hermitian between zero and the identity and the certificate cost
+  is at most (1 + δ)α. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -24,6 +45,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 set_option warningAsError false
 
+/-- The original width-slack payoff-range contract with `sdpSampledWidthBudget α R ε ε` is
+false. -/
 theorem not_sdpWidthSlackPayoffRange : ¬ SdpWidthSlackPayoffRangeOriginalContract := by
   intro h
   have hf := h 1 1 (fun _ => 1) 0 (fun _ => 1) (fun _ _ => 4) 0
@@ -36,6 +59,9 @@ theorem not_sdpWidthSlackPayoffRange : ¬ SdpWidthSlackPayoffRangeOriginalContra
   have ho := hf.2
   norm_num [sdpDualCertificate, sdpDualCertRounds] at ho
 
+/-- Under the retained response width α(1 + 2Rε) and the stated error caps, normalized payoffs
+are Hermitian between zero and the identity and the certificate cost is at most (1 + δ)α.
+See [BrandaoSvore2017]. -/
 theorem sdpWidthSlackPayoffRange : SdpWidthSlackPayoffRange := by
   intro D m A Cv b y j₀ α R δ ε hD hα hα2 hR hδ hε hsmall hbudget hA hCv hb hA0 hb0 hy
   constructor

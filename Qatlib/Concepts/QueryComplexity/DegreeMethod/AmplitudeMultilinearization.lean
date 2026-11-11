@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+/-!
+# Multilinear polynomial representations of amplitudes
+
+This module replaces positive exponents by one in complex multivariate polynomials, preserving
+evaluation on Boolean points while controlling total degree. It uses this multilinearization to
+represent amplitudes of bit oracle circuits, as in the polynomial method [BealsEtAl2001].
+
+## Main statements
+
+* `clause19Multilinearize_eval`: multilinearization preserves Boolean evaluations.
+* `clause19Multilinearize_totalDegree_le`: multilinearization does not increase total degree.
+* `stageB_query_comparison_clause86`: each circuit amplitude has a multilinear representation of
+  degree at most the query count.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
@@ -15,10 +35,14 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open scoped Classical BigOperators
 
+/-- The complex multivariate polynomial obtained by replacing each positive monomial exponent by
+one and summing the resulting monomials. -/
 private noncomputable def clause19Multilinearize {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℂ) : MvPolynomial I ℂ :=
   ∑ d ∈ p.support, MvPolynomial.monomial (clampExponent d) (p.coeff d)
 
+/-- Clamping a natural exponent to zero or one preserves powers of a coordinate whose value is
+zero or one. -/
 private theorem clause19_boolPow_clamp {I : Type} [Fintype I] [DecidableEq I] (x : I → ℂ)
     (d : I →₀ ℕ) (i : I) (h : x i = 0 ∨ x i = 1) :
     x i ^ (clampExponent d i) = x i ^ d i := by
@@ -29,6 +53,7 @@ private theorem clause19_boolPow_clamp {I : Type} [Fintype I] [DecidableEq I] (x
     | inl hx => simp [hx, clampExponent_apply, hk]
     | inr hx => simp [hx, clampExponent_apply, hk]
 
+/-- Every coefficient with an exponent at least two vanishes in `clause19Multilinearize p`. -/
 private theorem clause19Multilinearize_coeff_eq_zero {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℂ) (d : I →₀ ℕ) (hd : ∃ i : I, 2 ≤ d i) :
     (clause19Multilinearize p).coeff d = 0 := by
@@ -44,6 +69,7 @@ private theorem clause19Multilinearize_coeff_eq_zero {I : Type} [Fintype I] [Dec
     omega
   · exact if_neg he
 
+/-- Multilinearizing a complex multivariate polynomial does not increase its total degree. -/
 private theorem clause19Multilinearize_totalDegree_le {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℂ) : (clause19Multilinearize p).totalDegree ≤ p.totalDegree := by
   classical
@@ -61,6 +87,8 @@ private theorem clause19Multilinearize_totalDegree_le {I : Type} [Fintype I] [De
   have h5 : d.sum (fun _ e => e) ≤ p.totalDegree := MvPolynomial.le_totalDegree hd
   omega
 
+/-- Multilinearization preserves evaluation at points with every coordinate equal to zero or
+one. -/
 private theorem clause19Multilinearize_eval {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℂ) (x : I → ℂ) (hx : ∀ i, x i = 0 ∨ x i = 1) :
     MvPolynomial.eval x (clause19Multilinearize p) = MvPolynomial.eval x p := by
@@ -73,6 +101,9 @@ private theorem clause19Multilinearize_eval {I : Type} [Fintype I] [DecidableEq 
   refine Finset.sum_congr rfl fun d _ => ?_
   simp only [MvPolynomial.eval_monomial, Finsupp.prod_pow, hpow]
 
+/-- Each output amplitude of a bit oracle circuit is represented on Boolean inputs by a complex
+multilinear polynomial of total degree at most `QueryCount C`. This is the amplitude form of
+the polynomial method [BealsEtAl2001]. -/
 theorem stageB_query_comparison_clause86 :
   ∀ (I W : Type) [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
       (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))

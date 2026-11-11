@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.BudgetPrefix.RecordedTrial
+
+/-!
+# Failure and overflow bounds for budgeted descent
+
+This module bounds budgeted trial failure by oracle failure and full-trace cost overflow.
+Markov's inequality and the weighted row-charge estimates yield `source_budget_half_failure`,
+combining a failure probability at most one half with a pathwise paid-budget bound for the
+resource analysis of [ShaydulinEtAl2024].
+
+## Main statements
+
+* `budget_failure_union`: The mean failure indicator of the budgeted trial is at most the sum of
+  the full descent's oracle-bad and cost-overflow indicator means.
+* `actual_overflow_bound`: For a positive budget, the full descent's overflow probability
+  expressed as an indicator mean is at most its mean full cost divided by the budget.
+* `source_budget_half_failure`: Under the stated weighted row-charge, oracle-failure,
+  initialization, and budget hypotheses, the budgeted trial outputs a nonzero rank with
+  probability at most one half and every trace pays at most `B`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,11 +40,16 @@ open Qatlib.Papers.QAOAScaling23.BiasedProcess
 open Qatlib.Papers.QAOAScaling23.WeightedCost
 open Qatlib.Papers.QAOAScaling23.FreshRepeat
 
+/-- The initial fee plus the trace's total paid charge, viewed as a real number. -/
 def fullCost (initialFee : ℕ) (tr : Trace) : ℝ := ((initialFee+paid tr : ℕ) : ℝ)
 
+/-- The real indicator that the full cost, including the initial fee, strictly exceeds budget
+`B`. -/
 def overflowIndicator (B initialFee : ℕ) (tr : Trace) : ℝ :=
   if (B:ℝ)<fullCost initialFee tr then 1 else 0
 
+/-- The mean failure indicator of the budgeted trial is at most the sum of the full descent's
+oracle-bad and cost-overflow indicator means. -/
 theorem budget_failure_union {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → Row r)
     (B initialFee : ℕ) :
     (budgetTrial p rows B initialFee).mean trialFailure ≤
@@ -48,6 +77,8 @@ theorem budget_failure_union {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → R
       have hout:=hcorrect hb hpaid
       simp [trialFailure,hout,badIndicator,hb,overflowIndicator,ho]
 
+/-- For a positive budget, the full descent's overflow probability expressed as an indicator
+mean is at most its mean full cost divided by the budget. -/
 theorem actual_overflow_bound {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → Row r)
     (B initialFee : ℕ) (hB : 0<B) :
     (initialized p rows).mean (overflowIndicator B initialFee)≤
@@ -63,6 +94,9 @@ theorem actual_overflow_bound {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → 
   rw [he]
   exact h
 
+/-- Under the stated weighted row-charge, oracle-failure, initialization, and budget hypotheses,
+the budgeted trial outputs a nonzero rank with probability at most one half and every trace
+pays at most `B`. -/
 theorem source_budget_half_failure {L : ℕ} (hL : 0<L) (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L,(p i).toReal=q i.val) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows)

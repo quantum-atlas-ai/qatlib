@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseHadamardTest
+
+/-!
+# Specification of the Hadamard test bit law
+
+`HadamardTestBitLawSubgoal` states the tensor-product output identity for a Hadamard test on an
+eigenvector and the associated ancilla Born probabilities. The cosine bit law is the basic phase
+readout primitive in [Kitaev1995].
+
+## Main statements
+
+* `HadamardTestBitLawSubgoal`: the eigenvector output identity and both ancilla probabilities.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -14,6 +31,8 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.HspRecovery.KitaevReadout
 
+/-- Specifies the Hadamard test output on an eigenvector as its tensor product with the
+phase-dependent ancilla state, together with both cosine-dependent Born probabilities. -/
 def HadamardTestBitLawSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ),
     (U *ᵥ ψ = eigenPhase φ • ψ) →

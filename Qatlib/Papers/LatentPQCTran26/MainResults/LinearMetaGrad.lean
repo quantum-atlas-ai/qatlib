@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.Calculus.ParametricIntegral
 import Mathlib.Analysis.Calculus.Gradient.Basic
 
+/-!
+# Population derivatives for linear decoders
+
+`populationLoss` averages a loss after a feature-dependent continuous linear decoder. Under
+boundedness, measurability, and differentiability hypotheses, its derivative is the integral of
+the sample derivatives. A common bias right inverse yields `bias_identity` and lower bounds on
+the bias and full derivative norms for outputs concentrated near a reference point. See
+[TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `populationLoss_hasFDerivAt`: Under the stated measurability, uniform boundedness, and
+  smoothness assumptions, the sample derivative is integrable and its integral is the Fréchet
+  derivative of `populationLoss`.
+* `bias_identity`: If `b` is a common right inverse for the decoders, the population derivative
+  composed with `b` is the mean output-space derivative, under the stated
+  differentiation-under-the-integral hypotheses.
+* `fullDerivative_lower_bound`: Under the stated regularity and concentration hypotheses, a
+  common bias right inverse of norm at most one gives a bias derivative norm at least `g -
+  Lambda * gamma` and at most the full population derivative norm.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 noncomputable section
 set_option maxHeartbeats 600000
 set_option linter.unusedSectionVars false
@@ -19,9 +45,12 @@ variable {E H P Z : Type*}
  [NormedAddCommGroup P] [NormedSpace ℝ P]
  [MeasurableSpace Z]
 
+/-- The integral of `L (T (h z) w)` over the latent measure `r`. -/
 def populationLoss (r : Measure Z) (h : Z → H) (T : H → P →L[ℝ] E)
     (L : E → ℝ) (w : P) : ℝ := ∫ z, L (T (h z) w) ∂r
 
+/-- Under the stated measurability, uniform boundedness, and smoothness assumptions, the sample
+derivative is integrable and its integral is the Fréchet derivative of `populationLoss`. -/
 theorem populationLoss_hasFDerivAt
     (r : Measure Z) [IsProbabilityMeasure r] (h : Z → H)
     (hh : AEStronglyMeasurable h r) (T : H → P →L[ℝ] E) (hT : Continuous T)
@@ -59,6 +88,9 @@ theorem populationLoss_hasFDerivAt
   exact ⟨Integrable.mono' (integrable_const (C * N))
     ((hcont w).comp_aestronglyMeasurable hh) (Filter.Eventually.of_forall (hbound w)),hresult⟩
 
+/-- If `b` is a common right inverse for the decoders, the population derivative composed with
+`b` is the mean output-space derivative, under the stated differentiation-under-the-integral
+hypotheses. -/
 theorem bias_identity
     (r : Measure Z) [IsProbabilityMeasure r] (h : Z → H)
     (hh : AEStronglyMeasurable h r) (T : H → P →L[ℝ] E) (hT : Continuous T)
@@ -83,6 +115,9 @@ theorem bias_identity
   rw [hb]
   rfl
 
+/-- If decoded outputs stay within `gamma` of `theta` and the loss derivative is
+`Lambda`-Lipschitz with `Lambda ≥ 0`, an integrable mean derivative has norm at least `g -
+Lambda * gamma` whenever `g ≤ ‖fderiv ℝ L theta‖`. -/
 theorem meanDerivative_lower_bound
     (r : Measure Z) [IsProbabilityMeasure r] (h : Z → H)
     (T : H → P →L[ℝ] E) (L : E → ℝ) (theta : E) (w : P)
@@ -108,6 +143,9 @@ theorem meanDerivative_lower_bound
     (fderiv ℝ L theta)
   linarith
 
+/-- Under the stated regularity and concentration hypotheses, a common bias right inverse of
+norm at most one gives a bias derivative norm at least `g - Lambda * gamma` and at most the
+full population derivative norm. -/
 theorem fullDerivative_lower_bound
     (r : Measure Z) [IsProbabilityMeasure r] (h : Z → H)
     (hh : AEStronglyMeasurable h r) (T : H → P →L[ℝ] E) (hT : Continuous T)
@@ -132,6 +170,8 @@ theorem fullDerivative_lower_bound
       (by simpa using (mul_le_mul_of_nonneg_left hbn
         (norm_nonneg (fderiv ℝ (populationLoss r h T L) w))))
 
+/-- The norm of the native gradient of a real function on a complete real inner-product space
+equals the norm of its Fréchet derivative. -/
 theorem nativeGradient_norm {V : Type*} [NormedAddCommGroup V]
     [InnerProductSpace ℝ V] [CompleteSpace V] (f : V → ℝ) (x : V) :
     ‖gradient f x‖ = ‖fderiv ℝ f x‖ := by

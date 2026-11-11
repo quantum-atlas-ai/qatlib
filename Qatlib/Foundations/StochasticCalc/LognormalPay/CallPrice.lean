@@ -8,6 +8,28 @@ import Qatlib.Foundations.StochasticCalc.LognormalPay.Defs
 import Mathlib.Probability.Distributions.Gaussian.Real
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+
+/-!
+# Gaussian evaluation of the Black-Scholes call price
+
+This module evaluates Gaussian tail integrals and exponentially tilted tails, then applies them
+to the lognormal terminal level. The exercise threshold `bsThreshold` relates the payoff region
+to `d1` and `d2`, yielding the expected call payoff and its discounted Black-Scholes expression.
+
+The mathematical background is discussed in [RebentrostGuptBromley2018].
+
+## Main statements
+
+* `integral_Ioi_gaussianPDFReal_exp`: evaluates an exponentially tilted Gaussian tail.
+* `call_expectation_gaussian`: gives the undiscounted call expectation under a Gaussian law.
+* `blackScholes_call_price`: gives the discounted call expectation for a random variable with
+  that law.
+
+## References
+
+* [Rebentrost et al., 2018][RebentrostGuptBromley2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,17 +42,21 @@ noncomputable section
 open MeasureTheory ProbabilityTheory Filter
 open scoped ProbabilityTheory BigOperators
 
+/-- The standard normal density `exp (-y ^ 2 / 2) / sqrt (2 * π)`. -/
 def stdpdf (y : ℝ) : ℝ := (1 / Real.sqrt (2 * Real.pi)) * Real.exp (-(y ^ 2) / 2)
 
+/-- The standard normal density is continuous. -/
 lemma continuous_stdpdf : Continuous stdpdf := by
   unfold stdpdf
   fun_prop
 
+/-- The standard normal density is an even function. -/
 lemma stdpdf_even : Function.Even stdpdf := by
   intro y
   unfold stdpdf
   rw [neg_sq]
 
+/-- The standard normal density is integrable with respect to Lebesgue measure. -/
 lemma integrable_stdpdf : Integrable stdpdf := by
   unfold stdpdf
   apply Integrable.const_mul
@@ -39,6 +65,7 @@ lemma integrable_stdpdf : Integrable stdpdf := by
   funext y
   ring_nf
 
+/-- The standard normal density integrates to one. -/
 lemma integral_stdpdf : ∫ y, stdpdf y = 1 := by
   unfold stdpdf
   rw [integral_const_mul]
@@ -52,11 +79,15 @@ lemma integral_stdpdf : ∫ y, stdpdf y = 1 := by
   rw [h']
   field_simp
 
+/-- The normal cumulative distribution function equals the integral of `stdpdf` over the closed
+lower half-line. -/
 lemma normalCDF_eq_setIntegral (x : ℝ) :
     normalCDF x = ∫ y in Set.Iic x, stdpdf y := by
   unfold normalCDF stdpdf
   rw [integral_const_mul]
 
+/-- Translating the argument of the standard normal density translates the lower endpoint of its
+upper-tail integral. -/
 lemma integral_Ioi_stdpdf_comp_sub (c a : ℝ) :
     ∫ y in Set.Ioi a, stdpdf (y - c) = ∫ u in Set.Ioi (a - c), stdpdf u := by
   have htend : Tendsto (fun x : ℝ => x - c) atTop atTop := by
@@ -69,6 +100,7 @@ lemma integral_Ioi_stdpdf_comp_sub (c a : ℝ) :
     (by simpa using (integrable_stdpdf.comp_sub_right c).integrableOn (s := Set.Ici a))
   simpa using h
 
+/-- The upper-tail integral of the standard normal density above `a` equals `normalCDF (-a)`. -/
 lemma integral_Ioi_stdpdf (a : ℝ) :
     ∫ y in Set.Ioi a, stdpdf y = normalCDF (-a) := by
   rw [normalCDF_eq_setIntegral]
@@ -90,6 +122,8 @@ lemma integral_Ioi_stdpdf (a : ℝ) :
     simpa using h
   rw [hcompl, hneg, hsplit]
 
+/-- The exponential tilt of the standard normal upper tail equals `exp (σ ^ 2 / 2) * normalCDF
+(σ - a)`. -/
 lemma integral_Ioi_stdpdf_exp (a σ : ℝ) :
     ∫ y in Set.Ioi a, stdpdf y * Real.exp (σ * y)
       = Real.exp (σ ^ 2 / 2) * normalCDF (σ - a) := by
@@ -117,6 +151,8 @@ lemma integral_Ioi_stdpdf_exp (a σ : ℝ) :
   rw [integral_Ioi_stdpdf]
   ring
 
+/-- Rescaling an upper-half-line integral by the inverse square root of positive `T` rescales
+its endpoint and introduces the factor `sqrt T`. -/
 lemma integral_Ioi_comp_inv_sqrt (f : ℝ → ℝ) (a : ℝ) {T : ℝ} (hT : 0 < T) :
     ∫ w in Set.Ioi a, f ((Real.sqrt T)⁻¹ * w)
       = Real.sqrt T * ∫ y in Set.Ioi (a / Real.sqrt T), f y := by
@@ -126,6 +162,8 @@ lemma integral_Ioi_comp_inv_sqrt (f : ℝ → ℝ) (a : ℝ) {T : ℝ} (hT : 0 <
   rw [h, smul_eq_mul]
   field_simp
 
+/-- The centered Gaussian density with positive variance `T` is the rescaled standard normal
+density. -/
 lemma gaussianPDFReal_eq_std {T : ℝ} (hT : 0 < T) (w : ℝ) :
     gaussianPDFReal 0 ⟨T, hT.le⟩ w = (1 / Real.sqrt T) * stdpdf (w / Real.sqrt T) := by
   unfold gaussianPDFReal stdpdf
@@ -141,6 +179,8 @@ lemma gaussianPDFReal_eq_std {T : ℝ} (hT : 0 < T) (w : ℝ) :
   simp only [sub_zero]
   field_simp
 
+/-- The centered Gaussian upper tail above `a` equals `normalCDF (-(a / sqrt T))` for positive
+`T`. -/
 lemma integral_Ioi_gaussianPDFReal {T : ℝ} (hT : 0 < T) (a : ℝ) :
     ∫ w in Set.Ioi a, gaussianPDFReal 0 ⟨T, hT.le⟩ w
       = normalCDF (-(a / Real.sqrt T)) := by
@@ -155,6 +195,8 @@ lemma integral_Ioi_gaussianPDFReal {T : ℝ} (hT : 0 < T) (a : ℝ) :
   rw [integral_Ioi_stdpdf]
   field_simp
 
+/-- Express an exponentially tilted centered Gaussian density in standardized coordinates for
+positive variance. -/
 lemma gaussianPDFReal_exp_eq_std {T : ℝ} (hT : 0 < T) (σ w : ℝ) :
     gaussianPDFReal 0 ⟨T, hT.le⟩ w * Real.exp (σ * w)
       = (1 / Real.sqrt T) *
@@ -165,6 +207,8 @@ lemma gaussianPDFReal_exp_eq_std {T : ℝ} (hT : 0 < T) (σ w : ℝ) :
   rw [harg]
   ring
 
+/-- For positive variance `T`, the exponentially tilted Gaussian upper tail equals `exp (σ ^ 2 *
+T / 2)` times the normal CDF at `σ * sqrt T - a / sqrt T`. -/
 lemma integral_Ioi_gaussianPDFReal_exp {T : ℝ} (hT : 0 < T) (a σ : ℝ) :
     ∫ w in Set.Ioi a, gaussianPDFReal 0 ⟨T, hT.le⟩ w * Real.exp (σ * w)
       = Real.exp (σ ^ 2 * T / 2) * normalCDF (σ * Real.sqrt T - a / Real.sqrt T) := by
@@ -183,6 +227,8 @@ lemma integral_Ioi_gaussianPDFReal_exp {T : ℝ} (hT : 0 < T) (a σ : ℝ) :
     rw [mul_pow, Real.sq_sqrt hT.le]]
   field_simp
 
+/-- A centered Gaussian density with positive variance remains integrable after multiplication
+by `exp (σ * w)`. -/
 lemma integrable_gaussianPDFReal_exp {T : ℝ} (hT : 0 < T) (σ : ℝ) :
     Integrable (fun w => gaussianPDFReal 0 ⟨T, hT.le⟩ w * Real.exp (σ * w)) := by
   have hpoint : ∀ w, gaussianPDFReal 0 ⟨T, hT.le⟩ w * Real.exp (σ * w)
@@ -201,9 +247,13 @@ lemma integrable_gaussianPDFReal_exp {T : ℝ} (hT : 0 < T) (σ : ℝ) :
   simp_rw [hpoint]
   exact (integrable_gaussianPDFReal (σ * T) ⟨T, hT.le⟩).const_mul _
 
+/-- The Gaussian input threshold `(log (K / S0) - (r - σ ^ 2 / 2) * T) / σ` for the call
+exercise region. -/
 def bsThreshold (S0 K r σ T : ℝ) : ℝ :=
   (Real.log (K / S0) - (r - σ ^ 2 / 2) * T) / σ
 
+/-- For positive initial level, strike, and volatility, the terminal level is at least the
+strike exactly when the Gaussian input is at least `bsThreshold`. -/
 lemma terminalLevel_ge_iff_threshold {S0 K r σ T w : ℝ} (hS0 : 0 < S0) (hK : 0 < K) (hσ : 0 < σ) :
     K ≤ terminalLevel S0 r σ w T ↔ bsThreshold S0 K r σ T ≤ w := by
   unfold terminalLevel bsThreshold
@@ -215,6 +265,7 @@ lemma terminalLevel_ge_iff_threshold {S0 K r σ T w : ℝ} (hS0 : 0 < S0) (hK : 
   rw [div_le_iff₀ hσ]
   constructor <;> intro h <;> linarith
 
+/-- For positive maturity, `d2` is the negative exercise threshold divided by `sqrt T`. -/
 lemma d2_eq_neg_threshold {S0 K r σ T : ℝ} (hT : 0 < T) :
     d2 S0 K r σ T = -(bsThreshold S0 K r σ T / Real.sqrt T) := by
   unfold d2 d1 bsThreshold
@@ -226,6 +277,8 @@ lemma d2_eq_neg_threshold {S0 K r σ T : ℝ} (hT : 0 < T) :
   rw [hlog, Real.sq_sqrt hT.le]
   ring
 
+/-- For positive maturity, `d1` equals the volatility shift `σ * sqrt T` minus the standardized
+exercise threshold. -/
 lemma d1_eq_tilt_threshold {S0 K r σ T : ℝ} (hT : 0 < T) :
     d1 S0 K r σ T = σ * Real.sqrt T - bsThreshold S0 K r σ T / Real.sqrt T := by
   unfold d1 bsThreshold
@@ -238,6 +291,8 @@ lemma d1_eq_tilt_threshold {S0 K r σ T : ℝ} (hT : 0 < T) :
   rw [hlog, Real.sq_sqrt hT.le]
   ring
 
+/-- For positive maturity, initial level, strike, and volatility, the Gaussian call expectation
+is `S0 * exp (r * T) * normalCDF d1 - K * normalCDF d2`. -/
 lemma call_expectation_gaussian {S0 K r σ T : ℝ}
     (hT : 0 < T) (hS0 : 0 < S0) (hK : 0 < K) (hσ : 0 < σ) :
     ∫ w, callPayoff K (terminalLevel S0 r σ w T) ∂(gaussianReal 0 ⟨T, hT.le⟩)
@@ -334,6 +389,9 @@ lemma call_expectation_gaussian {S0 K r σ T : ℝ}
 
 variable {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
 
+/-- Under the stated centered Gaussian law and positive maturity, initial level, strike, and
+volatility, the discounted call expectation is `S0 * normalCDF d1 - K * exp (-r * T) *
+normalCDF d2`. -/
 theorem blackScholes_call_price
     [IsProbabilityMeasure Q] {W : Ω → ℝ} {S0 K r σ T : ℝ}
     (hT : 0 < T) (hS0 : 0 < S0) (hK : 0 < K) (hσ : 0 < σ)

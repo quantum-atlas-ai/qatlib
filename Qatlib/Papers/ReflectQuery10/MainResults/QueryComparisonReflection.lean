@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ReflectQuery10.MainResults.QueryComparisonReflectionDefs
+
+/-!
+# Reflection-program query bounds
+
+Packages the two-reflection construction as existence statements for `SourceProgram`. A feasible
+dual witness gives a program meeting success threshold two thirds with explicit query and gate
+bounds; a separate finite-list statement compares the minimum successful query count with any
+successful member. See [Reichardt2011].
+
+## Main statements
+
+* `clause85_complete`: produces a unitary program with explicit resource bounds.
+* `thresholdGoal_complete`: combines existence with the finite-list minimum property.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -25,6 +44,9 @@ open scoped Classical BigOperators ENNReal
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- Given positive input length, a feasible dual witness, and `1 ≤ W`, there exist a positive
+auxiliary size and a unitary source program with at most `1000000 * Nat.ceil W` queries, at
+most `10000000 * Nat.ceil W` gates, and success threshold two thirds [Reichardt2011]. -/
 theorem clause85_complete (n m : ℕ) (hn : 0 < n)
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ) (W : ℝ)
     (hv : SourceDualFeasible input f v W) (hW : 1 ≤ W) :
@@ -47,6 +69,9 @@ theorem clause85_complete (n m : ℕ) (hn : 0 < n)
     hsucc x
   exact hx
 
+/-- Under the dual-feasibility hypotheses, a source program meets success threshold two thirds
+within the stated query bound. For any finite list with a successful member, its minimum
+successful query count is at most that member's count [Reichardt2011]. -/
 theorem thresholdGoal_complete (n m : ℕ) (hn : 0 < n)
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ) (W : ℝ)
     (hv : SourceDualFeasible input f v W) (hW : 1 ≤ W) :

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
 import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmStat
+
+/-!
+# Correctness and success bound for the dihedral sieve
+
+This module proves `DihedralSieveAlgorithm`, the explicit parity-output and resource
+specification associated with Algorithm 1 of [Kuperberg2005]. It identifies the ideal run's
+probability of returning the correct parity with the probability that the final list contains
+the distinguished label.
+
+## Main statements
+
+* `clause5_readout_hit`: successful readout is the indicator of distinguished-label membership.
+* `clause5_run_success_eq_hit`: the run's success probability is the corresponding hitting
+  probability.
+* `dihedralSieveAlgorithm`: no incorrect Boolean outputs, the stated success lower bound, and
+  the exact attached resource triple.
+
+## References
+
+* [Kuperberg, Algorithm 1 and Theorem 3.1][Kuperberg2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +40,8 @@ namespace Qatlib.Concepts.HspRecovery.SieveAlgorithm
 
 open Qatlib
 
+/-- The ideal readout's probability of returning the correct parity is one if the distinguished
+label is in the list and zero otherwise. -/
 private theorem clause5_readout_hit (n : ℕ) (s : ZMod (2 ^ n)) (L : List (ZMod (2 ^ n))) :
     idealReadout n s L (some (decide (s.val % 2 = 1)))
       = if ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) ∈ L then 1 else 0 := by
@@ -46,6 +70,8 @@ private theorem clause5_readout_hit (n : ℕ) (s : ZMod (2 ^ n)) (L : List (ZMod
       rw [hr, dihedralParityReadoutPure, PMF.pure_map, PMF.pure_apply, if_pos hmem]
       simp
 
+/-- The ideal run's correct-parity probability equals the total probability mass of final label
+lists containing the distinguished label. -/
 private theorem clause5_run_success_eq_hit (n m : ℕ) (s : ZMod (2 ^ n)) :
     (dihedralSieveRun n m s).1 (some (decide (s.val % 2 = 1)))
       = ∑' L : List (ZMod (2 ^ n)),
@@ -61,6 +87,10 @@ private theorem clause5_run_success_eq_hit (n m : ℕ) (s : ZMod (2 ^ n)) :
   · rw [if_pos hL, if_pos hL, mul_one]
   · rw [if_neg hL, if_neg hL, mul_zero]
 
+/-- The `DihedralSieveAlgorithm` specification holds: with the prescribed square-root window
+parameter, incorrect parity outputs have zero probability, correct parity satisfies the
+explicit lower bound, and the attached resource triple has the stated value. This supplies
+the finite-parameter guarantee for [Kuperberg, Algorithm 1][Kuperberg2005]. -/
 theorem dihedralSieveAlgorithm : DihedralSieveAlgorithm := by
   intro n hn S _ _ _ f s hf
   refine ⟨fun b hb =>

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Paid-word semantics specification
+
+The proposition `Clause1PaidWordSemantics` specifies unitarity, composition, adjoint, and
+accounting laws for legal words over unitary oracles. It also specifies normalized execution and
+the density-matrix properties of the unconditional output. Related mathematical background is
+given in [Watrous2018].
+
+## Main statements
+
+* `Clause1PaidWordSemantics`: The combined paid-word semantic contract.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +44,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The assertion collecting unitarity, concatenation, adjoint, legality, and call-count laws
+for paid words, together with normalized execution and positive semidefinite trace-one
+unconditional output densities for normalized inputs. -/
 def Clause1PaidWordSemantics : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (r slots : ℕ)
     (oracles : ℕ → Matrix H H ℂ) (C D : Word H r),

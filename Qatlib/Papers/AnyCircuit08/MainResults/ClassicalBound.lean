@@ -53,10 +53,31 @@ import Mathlib.Tactic.NormNum.Basic
 import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Positivity.Core
 
+/-!
+# Classical success bounds from transcript counts
+
+A deterministic transcript map can correctly identify no more secrets than there are
+transcripts. The module converts this counting fact into uniform success bounds and extends the
+inverse-power estimate to a finite convex combination of deterministic procedures
+[HallgrenHarrow2008].
+
+## Main statements
+
+* `card_correct_le_card_transcripts`: bounds the number of correctly identified secrets.
+* `classical_success_le_inv_pow`: derives the bound `1 / 2 ^ k`.
+* `randomized_success_le_inv_pow`: extends the bound to weighted random choices.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
 
+/-- The number of inputs correctly recovered by a transcript map and output map is at most the
+number of possible transcripts [HallgrenHarrow2008]. -/
 theorem card_correct_le_card_transcripts {A τ : Type*} [Fintype A] [DecidableEq A] [Fintype τ]
     (T : A → τ) (out : τ → A) :
     (Finset.univ.filter (fun a => out (T a) = a)).card ≤ Fintype.card τ := by
@@ -70,6 +91,8 @@ theorem card_correct_le_card_transcripts {A τ : Type*} [Fintype A] [DecidableEq
   have h1 := Fintype.card_le_of_injective (fun a : {a : A // out (T a) = a} => T a) hinj
   rwa [Fintype.card_subtype] at h1
 
+/-- If there are at most `2 ^ q` transcripts and the secret space is nonempty, the uniform
+success fraction is at most `2 ^ q / card A` [HallgrenHarrow2008]. -/
 theorem classical_success_prob_le {A τ : Type*} [Fintype A] [DecidableEq A] [Fintype τ]
     (T : A → τ) (out : τ → A) (q : ℕ) (hq : Fintype.card τ ≤ 2 ^ q)
     (hA : 0 < Fintype.card A) :
@@ -81,6 +104,8 @@ theorem classical_success_prob_le {A τ : Type*} [Fintype A] [DecidableEq A] [Fi
     exact_mod_cast h3
   exact div_le_div_of_nonneg_right h2 (by positivity)
 
+/-- If the secret space has size `2 ^ (q + k)` and there are at most `2 ^ q` transcripts, the
+uniform success fraction is at most `1 / 2 ^ k` [HallgrenHarrow2008]. -/
 theorem classical_success_le_inv_pow {A τ : Type*} [Fintype A] [DecidableEq A] [Fintype τ]
     (T : A → τ) (out : τ → A) (q k : ℕ) (hcard : Fintype.card A = 2 ^ (q + k))
     (hq : Fintype.card τ ≤ 2 ^ q) :
@@ -95,6 +120,9 @@ theorem classical_success_le_inv_pow {A τ : Type*} [Fintype A] [DecidableEq A] 
     field_simp
   rw [heq]
 
+/-- A convex combination of deterministic procedures with at most `2 ^ q` transcripts has
+uniform average success at most `1 / 2 ^ k` on a secret space of size `2 ^ (q + k)`
+[HallgrenHarrow2008]. -/
 theorem randomized_success_le_inv_pow {A τ ι : Type*} [Fintype A] [DecidableEq A] [Fintype τ]
     [Fintype ι] (T : ι → A → τ) (out : ι → τ → A) (w : ι → ℝ)
     (hw0 : ∀ i, 0 ≤ w i) (hw1 : (∑ i, w i) = 1)

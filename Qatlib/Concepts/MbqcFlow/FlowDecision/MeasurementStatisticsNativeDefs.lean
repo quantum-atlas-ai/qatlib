@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
+
+/-!
+# Native measurement statistics and rational processing
+
+Defines the independent two-outcome law `povmJointLaw`, independent and diagonal kernel means,
+higher moment effects, and the pairwise statistic `povmUStatistic`. It proves independence
+identities, unbiasedness of the pairwise statistic, and the relation between diagonal product
+bias and variance.
+
+The module also defines `NativeCampaign`, counted rational accumulation and insertion sorting,
+and the machine-dependent ledger `nativeLedger`. The reconstruction-statistic background is
+given by [HuangKuengPreskill2020].
+
+## Main statements
+
+* `povm_expect_UStatistic`: unbiasedness for at least two records.
+* `povm_expect_statistic_pow`: higher moments as trace pairings.
+* `nativeLedger_spec`: quantum counts, classical counts, and machine-cost formulas.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -30,6 +54,7 @@ set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 
+/-- A finite sum weighted by the equality indicator at `a` evaluates the summand at `a`. -/
 theorem sum_delta {α : Type} [Fintype α] [DecidableEq α] (a : α) (g : α → ℝ) :
     (∑ x : α, (if a = x then 1 else 0) * g x) = g a := by
   have hconv : ∀ x : α, (if a = x then 1 else 0) * g x = (if x = a then g x else 0) := by
@@ -42,6 +67,7 @@ theorem sum_delta {α : Type} [Fintype α] [DecidableEq α] (a : α) (g : α →
   rw [Finset.sum_ite_eq']
   simp
 
+/-- The product distribution of two independent outcomes from the same POVM record law. -/
 noncomputable def povmJointLaw (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) : FinDist (O × O) where
   prob o := (povmRecordLaw E ρ hρ).prob o.1 * (povmRecordLaw E ρ hρ).prob o.2
@@ -59,19 +85,24 @@ noncomputable def povmJointLaw (E : FinitePOVM O D) (ρ : Operator D)
       _ = 1 := by
             rw [← Finset.sum_mul, (povmRecordLaw E ρ hρ).sum_one, mul_one]
 
+/-- The probability of an outcome pair is the product of its marginal Born probabilities. -/
 theorem povmJointLaw_prob (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o₁ o₂ : O) :
     (povmJointLaw E ρ hρ).prob (o₁, o₂)
       = (povmRecordLaw E ρ hρ).prob o₁ * (povmRecordLaw E ρ hρ).prob o₂ := rfl
 
+/-- The mean of a two-outcome kernel under two independent POVM records. -/
 noncomputable def povmKernelMeanIndependent (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) : ℝ :=
   (povmJointLaw E ρ hρ).expect (fun o => h o.1 o.2)
 
+/-- The mean obtained by evaluating both kernel arguments on the same POVM record. -/
 noncomputable def povmKernelMeanDiagonal (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) : ℝ :=
   (povmRecordLaw E ρ hρ).expect (fun o => h o o)
 
+/-- The expectation of a product of separate functions under the joint law factors into their
+marginal expectations. -/
 theorem povmJointLaw_expect_separable (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (f g : O → ℝ) :
     (povmJointLaw E ρ hρ).expect (fun o => f o.1 * g o.2)
@@ -101,6 +132,8 @@ theorem povmJointLaw_expect_separable (E : FinitePOVM O D) (ρ : Operator D)
           rw [Finset.sum_mul]
     _ = _ := rfl
 
+/-- Two distinct coordinates of an independent sample have joint probability equal to the
+product of their prescribed-value probabilities. -/
 theorem probOf_two {n : ℕ} (p : FinDist O)
     (i j : Fin n) (hne : i ≠ j) (x y : O) :
     ∑ ω : Fin n → O, p.probOf ω * (if ω i = x then 1 else 0) * (if ω j = y then 1 else 0)
@@ -210,6 +243,8 @@ theorem probOf_two {n : ℕ} (p : FinDist O)
           rw [hsplit, hfi, hfj]
           ring
 
+/-- Evaluating both kernel arguments at one sample coordinate has expectation equal to the
+diagonal kernel mean. -/
 theorem povm_expect_one_record (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) {n : ℕ} (i : Fin n) :
     ∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * h (ω i) (ω i)
@@ -220,6 +255,8 @@ theorem povm_expect_one_record (E : FinitePOVM O D) (ρ : Operator D)
   rw [h1]
   rfl
 
+/-- Evaluating the kernel at two distinct sample coordinates has expectation equal to the
+independent kernel mean. -/
 theorem povm_expect_two_records (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) {n : ℕ} (i j : Fin n) (hne : i ≠ j) :
     ∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * h (ω i) (ω j)
@@ -286,16 +323,21 @@ theorem povm_expect_two_records (E : FinitePOVM O D) (ρ : Operator D)
               * (povmRecordLaw E ρ hρ).prob o.2) * h o.1 o.2) = _
           rw [Fintype.sum_prod_type]
 
+/-- The sum of POVM effects weighted by the `k`th powers of their real reconstruction
+statistics. -/
 noncomputable def povmMomentEffectK (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (A : Operator D) (k : ℕ) : Operator D :=
   ∑ o : O, (Complex.ofReal (povmStatistic E hM A o) ^ k) • E.effect o
 
+/-- The real part of the `k`th power of a complex-embedded real number is its real `k`th power. -/
 theorem re_ofReal_pow (x : ℝ) (k : ℕ) : (Complex.ofReal x ^ k).re = x ^ k := by
   calc
     (Complex.ofReal x ^ k).re = ((x ^ k : ℝ) : ℂ).re := by
       rw [show Complex.ofReal x ^ k = ((x ^ k : ℝ) : ℂ) from (Complex.ofReal_pow x k).symm]
     _ = x ^ k := Complex.ofReal_re _
 
+/-- The `k`th moment of a reconstruction statistic equals the real trace pairing of its `k`th
+moment effect with the density operator. -/
 theorem povm_expect_statistic_pow (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D) (k : ℕ) :
@@ -321,9 +363,13 @@ theorem povm_expect_statistic_pow (E : FinitePOVM O D)
   show ∑ o : O, (povmRecordLaw E ρ hρ).prob o * (povmStatistic E hM A o) ^ k = _
   rw [hreal, hcomplex]
 
+/-- The average of a two-outcome kernel over all ordered pairs of distinct sample indices, using
+denominator `n * (n - 1)`. -/
 noncomputable def povmUStatistic (h : O → O → ℝ) {n : ℕ} (ω : Fin n → O) : ℝ :=
   (∑ i : Fin n, ∑ j ∈ Finset.univ.erase i, h (ω i) (ω j)) / ((n : ℝ) * (n - 1))
 
+/-- With at least two samples, the pairwise U-statistic has expectation equal to the independent
+kernel mean. -/
 theorem povm_expect_UStatistic (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) {n : ℕ} (hn : 2 ≤ n) :
     ∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * povmUStatistic h ω
@@ -431,6 +477,8 @@ theorem povm_expect_UStatistic (E : FinitePOVM O D) (ρ : Operator D)
           have h3 : ((n : ℝ) * (n - 1)) ≠ 0 := hne
           rw [div_eq_mul_inv, mul_assoc, mul_inv_cancel₀ h3, mul_one]
 
+/-- Under the product law, a kernel evaluated twice on the first coordinate has expectation
+equal to the diagonal kernel mean. -/
 theorem povmJointLaw_expect_diagonal (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) :
     (povmJointLaw E ρ hρ).expect (fun o => h o.1 o.1)
@@ -455,6 +503,8 @@ theorem povmJointLaw_expect_diagonal (E : FinitePOVM O D) (ρ : Operator D)
           ring
     _ = _ := rfl
 
+/-- The diagonal kernel mean minus the independent kernel mean equals the product-law
+expectation of the corresponding pointwise difference. -/
 theorem povmKernelMean_bias (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) :
     povmKernelMeanDiagonal E ρ hρ h - povmKernelMeanIndependent E ρ hρ h
@@ -475,6 +525,8 @@ theorem povmKernelMean_bias (E : FinitePOVM O D) (ρ : Operator D)
   rw [h1.symm, h2]
   rfl
 
+/-- For the product of two reconstruction statistics, the independent kernel mean is the square
+of the statistic mean. -/
 theorem povmKernelMeanIndependent_product (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D)
     (hM : Function.Bijective (povmMeasurementMap E)) :
@@ -485,6 +537,8 @@ theorem povmKernelMeanIndependent_product (E : FinitePOVM O D) (ρ : Operator D)
   rw [povmJointLaw_expect_separable]
   ring
 
+/-- For the product kernel of a reconstruction statistic, the diagonal kernel mean is the
+statistic's second moment. -/
 theorem povmKernelMeanDiagonal_product (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D)
     (hM : Function.Bijective (povmMeasurementMap E)) :
@@ -495,6 +549,8 @@ theorem povmKernelMeanDiagonal_product (E : FinitePOVM O D) (ρ : Operator D)
   refine Finset.sum_congr rfl fun o _ => ?_
   ring
 
+/-- For the product kernel of a reconstruction statistic, diagonal bias equals the second moment
+minus the squared mean. -/
 theorem povmKernelMean_bias_variance (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D)
     (hM : Function.Bijective (povmMeasurementMap E)) :
@@ -506,6 +562,8 @@ theorem povmKernelMean_bias_variance (E : FinitePOVM O D) (ρ : Operator D)
         - (povmRecordLaw E ρ hρ).expect (povmStatistic E hM A) ^ 2 := by
   rw [povmKernelMeanDiagonal_product, povmKernelMeanIndependent_product]
 
+/-- A finite sum with a right equality-indicator factor evaluates its other factor at the
+selected index. -/
 theorem sum_delta_right {α : Type} [Fintype α] [DecidableEq α] (a : α) (g : α → ℝ) :
     (∑ x : α, g x * (if x = a then 1 else 0)) = g a := by
   have hconv : ∀ x : α, g x * (if x = a then 1 else 0) = (if x = a then g x else 0) := by
@@ -515,9 +573,11 @@ theorem sum_delta_right {α : Type} [Fintype α] [DecidableEq α] (a : α) (g : 
   rw [Finset.sum_ite_eq']
   simp
 
+/-- Flattens `K` blocks of `L` outcomes into a list in block order. -/
 def campaignFlatten {K L : ℕ} (ω : Fin K → Fin L → O) : List O :=
   (List.ofFn (fun k : Fin K => List.ofFn (ω k))).flatten
 
+/-- Flattening `K` blocks of `L` outcomes produces a list of length `K * L`. -/
 theorem campaignFlatten_length {K L : ℕ} (ω : Fin K → Fin L → O) :
     (campaignFlatten ω).length = K * L := by
   have h1 : (List.ofFn (fun k : Fin K => List.ofFn (ω k))).flatten.length
@@ -535,20 +595,26 @@ theorem campaignFlatten_length {K L : ℕ} (ω : Fin K → Fin L → O) :
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   simp
 
+/-- The ordered list of the three Pauli axes used by the native campaign. -/
 def nativeAxisTable : List (Fin 3) := [0, 1, 2]
 
+/-- Looks up a Pauli axis from its index in `nativeAxisTable`, with zero as the default. -/
 def nativeDrawnAxis (idx : Fin 3) : Fin 3 := nativeAxisTable.getD idx.val 0
 
+/-- The sequential-scan comparison count for a Pauli axis index. -/
 def nativeAxisDrawCost (idx : Fin 3) : ℕ := tableScanCost nativeAxisTable idx
 
+/-- Looking up a valid Pauli axis index returns that same index. -/
 theorem nativeDrawnAxis_apply (idx : Fin 3) : nativeDrawnAxis idx = idx := by
   rcases idx with ⟨i, hi⟩
   interval_cases i <;> simp [nativeDrawnAxis, nativeAxisTable]
 
+/-- An axis draw incurs at most the length of the Pauli axis table in comparisons. -/
 theorem nativeAxisDrawCost_le (idx : Fin 3) :
     nativeAxisDrawCost idx ≤ nativeAxisTable.length := by
   exact tableScanCost_le nativeAxisTable idx
 
+/-- The uniform distribution on the three Pauli axis indices. -/
 noncomputable def nativeUniformIndex : FinDist (Fin 3) where
   prob _ := 1 / 3
   nonneg := fun _ => by norm_num
@@ -556,6 +622,7 @@ noncomputable def nativeUniformIndex : FinDist (Fin 3) where
     simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
     norm_num
 
+/-- The distribution of the axis obtained by looking up a uniformly distributed axis index. -/
 noncomputable def nativeDrawnAxisLaw : FinDist (Fin 3) where
   prob a := ∑ idx : Fin 3, nativeUniformIndex.prob idx
       * (if nativeDrawnAxis idx = a then 1 else 0)
@@ -583,6 +650,7 @@ noncomputable def nativeDrawnAxisLaw : FinDist (Fin 3) where
     simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
     norm_num
 
+/-- Each drawn Pauli axis has probability one third. -/
 theorem nativeDrawnAxisLaw_prob (a : Fin 3) :
     (nativeDrawnAxisLaw.prob a) = 1 / 3 := by
   have key : ∀ b : Fin 3, (nativeDrawnAxisLaw.prob b) = 1 / 3 := by
@@ -602,39 +670,52 @@ theorem nativeDrawnAxisLaw_prob (a : Fin 3) :
         rw [sum_delta_right]
   exact key a
 
+/-- Selects the axis at the history length modulo three in the native axis table. -/
 def nativeSelectAxis (history : List (Fin 3 × Fin 2)) : Fin 3 :=
   nativeAxisTable.getD (history.length % 3) 0
 
+/-- The sequential-scan comparison count for the axis selected from a history. -/
 def nativeAxisSelectionCost (history : List (Fin 3 × Fin 2)) : ℕ :=
   tableScanCost nativeAxisTable (nativeSelectAxis history)
 
+/-- Selecting an axis from a history uses at most the axis-table length in comparisons. -/
 theorem nativeAxisSelectionCost_le (history : List (Fin 3 × Fin 2)) :
     nativeAxisSelectionCost history ≤ nativeAxisTable.length :=
   tableScanCost_le nativeAxisTable (nativeSelectAxis history)
 
+/-- A campaign of `K` blocks of `L` measurements, specified by a Pauli-axis index tape and
+binary basis labels. -/
 structure NativeCampaign (K L : ℕ) where
 
   axisTape : Fin K → Fin L → Fin 3
 
   basisLabels : Fin K → Fin L → Fin 2
 
+/-- Pairs each campaign's looked-up axis with its corresponding binary basis label. -/
 def NativeCampaign.records {K L : ℕ} (c : NativeCampaign K L) :
     Fin K → Fin L → (Fin 3 × Fin 2) :=
   fun k l => (nativeDrawnAxis (c.axisTape k l), c.basisLabels k l)
 
+/-- The prefix of the flattened record list preceding the specified block and within-block
+indices. -/
 def NativeCampaign.historyBefore {K L : ℕ} (c : NativeCampaign K L)
     (k : Fin K) (l : Fin L) : List (Fin 3 × Fin 2) :=
   (campaignFlatten c.records).take (k.val * L + l.val)
 
+/-- The rational payoff equal to one third for binary label zero and negative one third for the
+other label. -/
 def nativePayoff : (Fin 3 × Fin 2) → ℚ :=
   fun o => (1 / 3 : ℚ) * (if o.2 = 0 then 1 else -1)
 
+/-- Sums rational payoffs while counting one read and one addition per outcome. -/
 def nativeRationalFold (payoff : O → ℚ) : List O → ℚ × ℕ × ℕ
   | [] => (0, 0, 0)
   | o :: os =>
     let s := nativeRationalFold payoff os
     (payoff o + s.1, s.2.1 + 1, s.2.2 + 1)
 
+/-- The rational fold returns the payoff sum and read and addition counts equal to the list
+length. -/
 theorem nativeRationalFold_spec (payoff : O → ℚ) (os : List O) :
     (nativeRationalFold payoff os).1 = (os.map payoff).sum ∧
     (nativeRationalFold payoff os).2.1 = os.length ∧
@@ -643,11 +724,14 @@ theorem nativeRationalFold_spec (payoff : O → ℚ) (os : List O) :
   | nil => simp [nativeRationalFold]
   | cons o os ih => simp [nativeRationalFold, ih]
 
+/-- Inserts a rational number by sequential comparison and returns the resulting list and
+comparison count. -/
 def rationalInsertSortedCounted (x : ℚ) : List ℚ → List ℚ × ℕ
   | [] => ([x], 0)
   | y :: ys => if x ≤ y then (x :: y :: ys, 1)
     else let s := rationalInsertSortedCounted x ys; (y :: s.1, s.2 + 1)
 
+/-- Inserting into a rational list uses at most its length in comparisons. -/
 theorem rationalInsertSortedCounted_cost_le (x : ℚ) (l : List ℚ) :
     (rationalInsertSortedCounted x l).2 ≤ l.length := by
   induction l with
@@ -659,6 +743,7 @@ theorem rationalInsertSortedCounted_cost_le (x : ℚ) (l : List ℚ) :
     · show (rationalInsertSortedCounted x ys).2 + 1 ≤ ys.length + 1
       exact Nat.succ_le_succ ih
 
+/-- Insertion-sorts a rational list while accumulating comparison counts. -/
 def rationalInsertionSortCounted : List ℚ → List ℚ × ℕ
   | [] => ([], 0)
   | x :: xs =>
@@ -666,6 +751,7 @@ def rationalInsertionSortCounted : List ℚ → List ℚ × ℕ
     let t := rationalInsertSortedCounted x s.1
     (t.1, s.2 + t.2)
 
+/-- Inserting a rational value increases the list length by one. -/
 theorem rationalInsertSortedCounted_length (x : ℚ) (l : List ℚ) :
     (rationalInsertSortedCounted x l).1.length = l.length + 1 := by
   induction l with
@@ -676,6 +762,7 @@ theorem rationalInsertSortedCounted_length (x : ℚ) (l : List ℚ) :
     · simp
     · simp [ih]
 
+/-- Counted rational insertion sort preserves list length. -/
 theorem rationalInsertionSortCounted_length (l : List ℚ) :
     (rationalInsertionSortCounted l).1.length = l.length := by
   induction l with
@@ -686,6 +773,7 @@ theorem rationalInsertionSortCounted_length (l : List ℚ) :
     rw [h1, ih]
     simp
 
+/-- Counted rational insertion sort uses at most the square of the list length in comparisons. -/
 theorem rationalInsertionSortCounted_cost_le (l : List ℚ) :
     (rationalInsertionSortCounted l).2 ≤ l.length * l.length := by
   induction l with
@@ -707,6 +795,8 @@ theorem rationalInsertionSortCounted_cost_le (l : List ℚ) :
             have h3 : xs.length ≤ xs.length + 1 := Nat.le_succ _
             nlinarith [Nat.succ_le_succ h3]
 
+/-- Computes rational block means, sorts them, and selects index `K / 2`, defaulting to zero if
+absent, while counting reads, additions, and comparisons. -/
 def nativeRationalMedianOfMeansCounted (payoff : O → ℚ) {K L : ℕ}
     (ω : Fin K → Fin L → O) : ℚ × ℕ × ℕ × ℕ :=
   let groups := List.ofFn fun k : Fin K => nativeRationalFold payoff (List.ofFn (ω k))
@@ -715,6 +805,8 @@ def nativeRationalMedianOfMeansCounted (payoff : O → ℚ) {K L : ℕ}
   (sort.1.getD (K / 2) 0, (groups.map fun g => g.2.1).sum,
     (groups.map fun g => g.2.2).sum, sort.2)
 
+/-- Rational median-of-means processing uses `K * L` reads and additions and at most `K * K`
+comparisons. -/
 theorem nativeRationalMedianOfMeansCounted_spec (payoff : O → ℚ) {K L : ℕ}
     (ω : Fin K → Fin L → O) :
     (nativeRationalMedianOfMeansCounted payoff ω).2.1 = K * L ∧
@@ -777,6 +869,8 @@ theorem nativeRationalMedianOfMeansCounted_spec (payoff : O → ℚ) {K L : ℕ}
     rw [hm, List.sum_ofFn (M := ℕ)]
     exact hsumadds
 
+/-- Mapping a function with constant natural value `c` over a list gives a sum equal to `c`
+times the list length. -/
 theorem sum_map_const_nat {A : Type} (l : List A) (c : ℕ) (f : A → ℕ) (h : ∀ a, f a = c) :
     (l.map f).sum = c * l.length := by
   induction l with
@@ -785,6 +879,8 @@ theorem sum_map_const_nat {A : Type} (l : List A) (c : ℕ) (f : A → ℕ) (h :
     simp only [List.map_cons, List.sum_cons, h a, ih, List.length_cons]
     ring
 
+/-- Accumulates copy, gate, measurement, and query counts from the Pauli measurement leaves of a
+campaign. -/
 noncomputable def nativeQuantumCounts {K L : ℕ} (c : NativeCampaign K L) : ℕ × ℕ × ℕ × ℕ :=
   let flat := campaignFlatten c.records
   (flat.length,
@@ -792,6 +888,8 @@ noncomputable def nativeQuantumCounts {K L : ℕ} (c : NativeCampaign K L) : ℕ
     (flat.map (fun o => (ensembleAxisLeaf (pauliBasisMatrix o.1) o.2).measurements)).sum,
     (flat.map (fun o => (ensembleAxisLeaf (pauliBasisMatrix o.1) o.2).queries)).sum)
 
+/-- A `K` by `L` native campaign uses `K * L` copies and measurements, twice as many gates, and
+zero queries. -/
 theorem nativeQuantumCounts_spec {K L : ℕ} (c : NativeCampaign K L) :
     nativeQuantumCounts c = (K * L, 2 * (K * L), K * L, 0) := by
   have hlen : (campaignFlatten c.records).length = K * L :=
@@ -812,15 +910,20 @@ theorem nativeQuantumCounts_spec {K L : ℕ} (c : NativeCampaign K L) :
   rw [hlen]
   simp
 
+/-- Accumulates axis-draw and history-based axis-selection comparison costs while extending the
+history through a record list. -/
 noncomputable def nativeAxisCostAux (hist : List (Fin 3 × Fin 2)) :
     List (Fin 3 × Fin 2) → ℕ
   | [] => 0
   | o :: os => nativeAxisDrawCost o.1 + nativeAxisSelectionCost hist
       + nativeAxisCostAux (hist ++ [o]) os
 
+/-- The total axis comparison cost for the flattened campaign, starting from an empty history. -/
 noncomputable def nativeAxisCost {K L : ℕ} (c : NativeCampaign K L) : ℕ :=
   nativeAxisCostAux [] (campaignFlatten c.records)
 
+/-- Processing a record list costs at most its length times twice the axis-table length in axis
+comparisons. -/
 theorem nativeAxisCostAux_le (hist : List (Fin 3 × Fin 2)) (l : List (Fin 3 × Fin 2)) :
     nativeAxisCostAux hist l
       ≤ l.length * (nativeAxisTable.length + nativeAxisTable.length) := by
@@ -839,12 +942,16 @@ theorem nativeAxisCostAux_le (hist : List (Fin 3 × Fin 2)) (l : List (Fin 3 × 
       _ = (os.length + 1) * (nativeAxisTable.length + nativeAxisTable.length) := by ring
       _ = (o :: os).length * (nativeAxisTable.length + nativeAxisTable.length) := by simp
 
+/-- The native campaign's axis comparison cost is bounded by its record count times twice the
+axis-table length. -/
 theorem nativeAxisCost_le {K L : ℕ} (c : NativeCampaign K L) :
     nativeAxisCost c
       ≤ (campaignFlatten c.records).length
           * (nativeAxisTable.length + nativeAxisTable.length) :=
   nativeAxisCostAux_le [] (campaignFlatten c.records)
 
+/-- Machine parameters for the bit costs of axis draws, comparisons, memory addresses, words,
+additions, and stored records. -/
 structure NativeMachine where
 
   addressBits : ℕ
@@ -859,6 +966,8 @@ structure NativeMachine where
 
   recordBits : ℕ
 
+/-- A ledger of quantum and classical operation counts together with bit-time and peak-space
+costs. -/
 structure NativeLedger where
 
   copies : ℕ
@@ -887,6 +996,8 @@ structure NativeLedger where
 
   peakSpace : ℕ
 
+/-- Combines campaign measurement counts, axis-processing costs, rational statistic costs, and
+machine parameters into a native resource ledger. -/
 noncomputable def nativeLedger {K L : ℕ} (c : NativeCampaign K L) (m : NativeMachine) :
     NativeLedger :=
   let copies := (nativeQuantumCounts c).1
@@ -920,6 +1031,8 @@ noncomputable def nativeLedger {K L : ℕ} (c : NativeCampaign K L) (m : NativeM
     peakSpace := (campaignFlatten c.records).length * m.recordBits
         + K * m.wordBits + K * m.wordBits }
 
+/-- Gives exact quantum and classical counts, comparison bounds, and the bit-time and peak-space
+formulas for the native campaign ledger. -/
 theorem nativeLedger_spec {K L : ℕ} (c : NativeCampaign K L) (m : NativeMachine) :
     (nativeLedger c m).copies = K * L ∧
     (nativeLedger c m).gates = 2 * (K * L) ∧

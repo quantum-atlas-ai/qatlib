@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilityStat
 import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+
+/-!
+# Squared singular value bounds from two sketch Gram errors
+
+This module proves `SketchSingularValueStability`, a pointwise perturbation bound for squared
+singular values of two-stage sketches. Frobenius bounds `η₁` and `η₂` on the two Gram
+differences yield error at most 2η₁ + 2η₂ over the specified index range, in the setting of
+[ChiaEtAl2022].
+
+The proof relates both inner and outer Gram spectra to squared singular values using ordered
+Hermitian eigenvalues.
+
+## Main statements
+
+* `sketchSingularValueStability_inner`: a single inner Gram perturbation bound.
+* `sketchSingularValueStability_outer_gram`: the outer Gram eigenvalue identity.
+* `sketchSingularValueStability`: the combined two-stage bound.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -22,6 +45,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A Frobenius bound `η` on RᴴR - AᴴA bounds each squared singular value difference by `η` at
+indices below the number of columns. -/
 theorem sketchSingularValueStability_inner
     (K C RS : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] (A : Matrix K C ℂ) (R : Matrix RS C ℂ) (η : ℝ)
@@ -33,6 +58,8 @@ theorem sketchSingularValueStability_inner
   rw [(singular_gram_ordered R).2 j, (singular_gram_ordered A).2 j] at hw
   exact hw.trans ((spectral_operator_norm_le_frobenius _).trans hη)
 
+/-- A decreasing eigenvalue family with a corresponding orthonormal eigenbasis equals the
+canonical ordered Hermitian eigenvalue family. -/
 private theorem ordered_values_of_basis (I : Type) [Fintype I] [DecidableEq I]
     (T : Matrix I I ℂ) (hT : T.IsHermitian)
     (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ (EuclideanSpace ℂ I))
@@ -68,6 +95,8 @@ private theorem ordered_values_of_basis (I : Type) [Fintype I] [DecidableEq I]
   apply List.ofFn_inj.mp
   exact hs.symm
 
+/-- The ordered eigenvalues of AAᴴ are the squared singular values of `A`, indexed over its row
+dimension. -/
 theorem sketchSingularValueStability_outer_gram
     (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (A : Matrix O I ℂ) :
@@ -83,6 +112,9 @@ theorem sketchSingularValueStability_outer_gram
   · intro i
     simpa only [Complex.ofReal_pow] using leftGram_apply_leftSingularBasis A i
 
+/-- Two nonnegative Frobenius Gram error bounds `η₁` and `η₂` give squared singular value error
+at most 2η₁ + 2η₂ at the indices specified by `SketchSingularValueStability`. See
+[ChiaEtAl2022]. -/
 theorem sketchSingularValueStability : SketchSingularValueStability := by
   intro K C RS CT _ _ _ _ _ _ _ _ A R Cc η₁ η₂ hη₁ hη₂ h₁ h₂ i hi
   have hiRS : i < Fintype.card RS := lt_of_lt_of_le hi (min_le_left _ _)

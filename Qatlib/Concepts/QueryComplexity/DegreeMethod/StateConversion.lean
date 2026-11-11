@@ -9,6 +9,36 @@ import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
 import Mathlib.Analysis.Normed.Module.FiniteDimension
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
 import Mathlib.Analysis.Calculus.Deriv.Star
+
+/-!
+# Fractional queries and state-conversion certificates
+
+This module proves unitary and Gram-matrix identities for fractional Boolean phase queries and
+constructs filtered certificates for their Gram changes. It also relates record projections to
+target overlap and record marginals to matrix and Kraus actions, in the state-conversion
+framework of [LeeEtAl2011].
+
+The continuous-time lemmas bound filtered gamma-two values of integrals and supply tangent
+factorizations, absolute-continuity results, and inner-product differentiation identities.
+Record-block formulas express partial traces as sums of conjugations.
+
+## Main statements
+
+* `fractionalPhaseOracle_filteredCert`: a fractional query has a certificate of cost `Real.pi *
+  |lam|`.
+* `conversionRecord_noncoherent_iff`: achievable record overlap is characterized by the
+  projection norm.
+* `continuousConversion_filtered_integral`: uniform certificates bound the integrated matrix.
+* `continuousConversionTangent_cert`: local cancellation and mass bounds yield a tangent
+  certificate.
+* `conversionTraceRecord_frame`: partial tracing a framed conjugation gives its record-block
+  sum.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,18 +56,22 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix
 open scoped BigOperators Classical
 
+/-- The fractional phase of a false Boolean input is one. -/
 @[simp] theorem fractionalBooleanPhase_false (lam : ℝ) :
     fractionalBooleanPhase lam false = 1 := rfl
 
+/-- The fractional phase of a true Boolean input is `exp (i * pi * lam)`. -/
 @[simp] theorem fractionalBooleanPhase_true (lam : ℝ) :
     fractionalBooleanPhase lam true = Complex.exp (Complex.I * (Real.pi * lam : ℝ)) := rfl
 
+/-- Every fractional Boolean phase has complex norm one. -/
 @[simp] theorem fractionalBooleanPhase_norm (lam : ℝ) (b : Bool) :
     ‖fractionalBooleanPhase lam b‖ = 1 := by
   cases b
   · exact norm_one
   · exact Complex.norm_exp_I_mul_ofReal (Real.pi * lam)
 
+/-- The phase defect between two Boolean inputs has norm at most `Real.pi * |lam|`. -/
 theorem fractionalBooleanPhase_chord_bound (lam : ℝ) (a b : Bool) :
     ‖1 - star (fractionalBooleanPhase lam a) * fractionalBooleanPhase lam b‖ ≤
       Real.pi * |lam| := by
@@ -58,20 +92,26 @@ theorem fractionalBooleanPhase_chord_bound (lam : ℝ) (a b : Bool) :
     norm_num
     positivity
 
+/-- At an active query index, the padded query phase equals the fractional phase of the
+corresponding input bit. -/
 @[simp] theorem fractionalQueryPhase_active {n : ℕ} (input : Fin n → Bool)
     (lam : ℝ) (i : Fin n) :
     fractionalQueryPhase input lam i.castSucc = fractionalBooleanPhase lam (input i) := by
   simp [fractionalQueryPhase, i.isLt]
 
+/-- The padded query phase at the final idle index is one. -/
 @[simp] theorem fractionalQueryPhase_idle {n : ℕ} (input : Fin n → Bool) (lam : ℝ) :
     fractionalQueryPhase input lam (Fin.last n) = 1 := by
   simp [fractionalQueryPhase]
 
+/-- The fractional query phase has norm one at every active or idle index. -/
 @[simp] theorem fractionalQueryPhase_norm {n : ℕ} (input : Fin n → Bool)
     (lam : ℝ) (i : Fin (n + 1)) : ‖fractionalQueryPhase input lam i‖ = 1 := by
   unfold fractionalQueryPhase
   split <;> simp
 
+/-- Applying the diagonal fractional oracle multiplies each amplitude by the phase of its query
+index. -/
 @[simp] theorem fractionalPhaseOracle_apply {W : Type} [Fintype W] [DecidableEq W]
     {n : ℕ} (input : Fin n → Bool) (lam : ℝ)
     (ψ : QState ((Fin (n + 1) × Fin 2) × W)) (p : (Fin (n + 1) × Fin 2) × W) :
@@ -79,9 +119,12 @@ theorem fractionalBooleanPhase_chord_bound (lam : ℝ) (a b : Bool) :
       fractionalQueryPhase input lam p.1.1 * ψ p := by
   simp [fractionalPhaseOracle, Matrix.mulVec_diagonal]
 
+/-- The complex defect `1 - star (fractionalBooleanPhase lam a) * fractionalBooleanPhase lam b`
+between two Boolean phases. -/
 def fractionalPhaseDefect (lam : ℝ) (a b : Bool) : ℂ :=
   1 - star (fractionalBooleanPhase lam a) * fractionalBooleanPhase lam b
 
+/-- The fractional phase defect vanishes when the two Boolean inputs agree. -/
 @[simp] theorem fractionalPhaseDefect_self (lam : ℝ) (b : Bool) :
     fractionalPhaseDefect lam b b = 0 := by
   unfold fractionalPhaseDefect
@@ -89,22 +132,31 @@ def fractionalPhaseDefect (lam : ℝ) (a b : Bool) : ℂ :=
     Complex.normSq_eq_norm_sq, fractionalBooleanPhase_norm]
   norm_num
 
+/-- A Boolean-coordinate witness supported at `a`, with amplitude equal to the square root of
+`w`. -/
 private def phaseWitnessLeft (w : ℝ) (a k : Bool) : ℂ :=
   if k = a then (Real.sqrt w : ℂ) else 0
 
+/-- The fractional phase defect divided by the square root of `w`, viewed as a
+Boolean-coordinate witness. -/
 private def phaseWitnessRight (lam w : ℝ) (b k : Bool) : ℂ :=
   fractionalPhaseDefect lam k b / (Real.sqrt w : ℂ)
 
+/-- For positive `w`, the pairing of the left and right phase witnesses equals the fractional
+phase defect. -/
 private theorem phaseWitness_pair (lam w : ℝ) (hw : 0 < w) (a b : Bool) :
     (∑ k : Bool, star (phaseWitnessLeft w a k) * phaseWitnessRight lam w b k) =
       fractionalPhaseDefect lam a b := by
   have hs : (Real.sqrt w : ℂ) ≠ 0 := by exact_mod_cast (Real.sqrt_pos.mpr hw).ne'
   cases a <;> simp [phaseWitnessLeft, phaseWitnessRight] <;> field_simp
 
+/-- For nonnegative `w`, the sum of squared norms of the left phase witness is `w`. -/
 private theorem phaseWitness_left_mass (w : ℝ) (hw : 0 ≤ w) (a : Bool) :
     (∑ k : Bool, Complex.normSq (phaseWitnessLeft w a k)) = w := by
   cases a <;> simp [phaseWitnessLeft, Complex.normSq_ofReal, Real.mul_self_sqrt hw]
 
+/-- If `w` is positive and bounds `Real.pi * |lam|`, the squared mass of the right phase witness
+is at most `w`. -/
 private theorem phaseWitness_right_mass (lam w : ℝ) (hw : 0 < w)
     (hc : Real.pi * |lam| ≤ w) (b : Bool) :
     (∑ k : Bool, Complex.normSq (phaseWitnessRight lam w b k)) ≤ w := by
@@ -119,6 +171,7 @@ private theorem phaseWitness_right_mass (lam w : ℝ) (hw : 0 < w)
   · simpa [phaseWitnessRight] using! hbound true false
   · simpa [phaseWitnessRight] using! hbound false true
 
+/-- The diagonal fractional phase oracle is unitary. -/
 theorem fractionalPhaseOracle_unitary {W : Type} [Fintype W] [DecidableEq W]
     {n : ℕ} (input : Fin n → Bool) (lam : ℝ) :
     fractionalPhaseOracle (W := W) input lam ∈
@@ -133,6 +186,7 @@ theorem fractionalPhaseOracle_unitary {W : Type} [Fintype W] [DecidableEq W]
     norm_num
   simp only [Pi.star_apply, h, Matrix.diagonal_one]
 
+/-- At fractional parameter one, the padded phase equals the Boolean Gram-query sign. -/
 theorem fractionalQueryPhase_one {n : ℕ} (input : Fin n → Bool) (i : Fin (n + 1)) :
     fractionalQueryPhase input 1 i = gramQuerySign input i := by
   unfold fractionalQueryPhase gramQuerySign
@@ -141,6 +195,7 @@ theorem fractionalQueryPhase_one {n : ℕ} (input : Fin n → Bool) (i : Fin (n 
       Complex.exp_pi_mul_I]
   · rfl
 
+/-- The fractional bit frame preserves inner products. -/
 theorem fractionalBitFrame_inner {W : Type} [Fintype W] {n : ℕ}
     (ψ φ : QState ((Fin (n + 1) × Fin 2) × W)) :
     Qatlib.Foundations.PureStateMath.Inner (fractionalBitFrame ψ) (fractionalBitFrame φ) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
@@ -164,6 +219,8 @@ theorem fractionalBitFrame_inner {W : Type} [Fintype W] {n : ℕ}
       ring
     _ = _ := by rw [hm, mul_one]
 
+/-- The bit oracle on the padded input intertwines the fractional bit frame with the fractional
+phase oracle at parameter one. -/
 theorem fractionalBitFrame_single_query {W : Type} [Fintype W] [DecidableEq W]
     {n : ℕ} (input : Fin n → Bool)
     (ψ : QState ((Fin (n + 1) × Fin 2) × W)) :
@@ -182,6 +239,7 @@ theorem fractionalBitFrame_single_query {W : Type} [Fintype W] [DecidableEq W]
   · split <;> cases b <;> simp_all [Minus, Hadamard]
   · cases b <;> simp_all
 
+/-- Applying a fractional phase oracle preserves normalization of a state. -/
 theorem fractionalPhaseOracle_normalized {W : Type} [Fintype W] [DecidableEq W]
     {n : ℕ} (input : Fin n → Bool) (lam : ℝ)
     {ψ : QState ((Fin (n + 1) × Fin 2) × W)} (hψ : Normalized ψ) :
@@ -189,6 +247,8 @@ theorem fractionalPhaseOracle_normalized {W : Type} [Fintype W] [DecidableEq W]
   simpa only [Normalized, fractionalPhaseOracle_apply, norm_mul,
     fractionalQueryPhase_norm, one_mul] using! hψ
 
+/-- The change in the Gram matrix under a fractional oracle is the sum of active-index slice
+pairings weighted by their phase defects. -/
 private theorem fractionalPhaseOracle_gram_difference {X W : Type}
     [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam : ℝ)
@@ -213,6 +273,8 @@ private theorem fractionalPhaseOracle_gram_difference {X W : Type}
   intro w _
   ring
 
+/-- The total squared amplitude mass on active query indices is at most one for a normalized
+state. -/
 private theorem fractionalActive_mass {X W : Type} [Fintype W] {n : ℕ}
     (ρ : X → QState ((Fin (n + 1) × Fin 2) × W)) (x : X)
     (hρ : Normalized (ρ x)) :
@@ -228,6 +290,8 @@ private theorem fractionalActive_mass {X W : Type} [Fintype W] {n : ℕ}
       Complex.normSq_nonneg (ρ x ((Fin.last n, b), w))))
   linarith
 
+/-- Any positive bound on `Real.pi * |lam|` gives a filtered Gram certificate for the change
+caused by a fractional oracle on normalized states. -/
 private theorem fractionalPhaseOracle_cert_pos {X W : Type}
     [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam w : ℝ) (hw : 0 < w)
@@ -294,6 +358,7 @@ private theorem fractionalPhaseOracle_cert_pos {X W : Type}
     · simp [gramFilterDelta, h]
     · simp only [gramFilterDelta, h, if_false, one_mul, a]
 
+/-- The fractional phase oracle at parameter zero is the identity matrix. -/
 @[simp] theorem fractionalPhaseOracle_zero {W : Type} [DecidableEq W]
     {n : ℕ} (input : Fin n → Bool) : fractionalPhaseOracle (W := W) input 0 = 1 := by
   classical
@@ -306,6 +371,8 @@ private theorem fractionalPhaseOracle_cert_pos {X W : Type}
     split <;> simp only [he]
   simp only [fractionalPhaseOracle, hi, Matrix.diagonal_one]
 
+/-- The Gram-matrix change caused by a fractional oracle on normalized states has a filtered
+certificate of cost `Real.pi * |lam|`. -/
 theorem fractionalPhaseOracle_filteredCert {X W : Type}
     [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam : ℝ)
@@ -320,6 +387,8 @@ theorem fractionalPhaseOracle_filteredCert {X W : Type}
   · apply fractionalPhaseOracle_cert_pos input lam (Real.pi * |lam|) _ le_rfl ρ hρ
     exact mul_pos Real.pi_pos (abs_pos.mpr hz)
 
+/-- For nonnegative `lam`, the fractional-oracle Gram change has a filtered certificate of cost
+`lam * Real.pi * Real.sqrt 2`, in the state-conversion framework of [LeeEtAl2011]. -/
 theorem stageB_state_conversion_clause97 {X W : Type}
     [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam : ℝ) (hlam : 0 ≤ lam)
@@ -333,6 +402,8 @@ theorem stageB_state_conversion_clause97 {X W : Type}
     nlinarith [Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2), Real.sqrt_nonneg 2]
   nlinarith [mul_nonneg Real.pi_pos.le hlam]
 
+/-- Pairing a joint vector with a tensor-product target equals pairing its record projection
+with the record vector. -/
 theorem conversionRecordProjection_inner {R H : Type} [Fintype R] [Fintype H]
     (v : QState (R × H)) (σ : QState H) (ξ : QState R) :
     Qatlib.Foundations.PureStateMath.Inner v (TensorState ξ σ) = Qatlib.Foundations.PureStateMath.Inner (conversionRecordProjection v σ) ξ := by
@@ -346,6 +417,8 @@ theorem conversionRecordProjection_inner {R H : Type} [Fintype R] [Fintype H]
   intro h _
   ring
 
+/-- A normalized record vector achieving overlap at least `t` with a fixed system target exists
+exactly when the record projection has Euclidean norm at least `t`. -/
 theorem conversionRecord_noncoherent_iff {R H : Type}
     [Fintype R] [DecidableEq R] [Fintype H] (r0 : R)
     (v : QState (R × H)) (σ : QState H) (t : ℝ) :
@@ -391,6 +464,8 @@ theorem conversionRecord_noncoherent_iff {R H : Type}
     rw [he, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hdpos]
     exact ht
 
+/-- The quadratic form of the record marginal at a target vector equals the sum of squared norms
+of its record-projection coordinates. -/
 theorem conversionRecordMarginal_fidelity {R H : Type} [Fintype R] [Fintype H]
     (v : QState (R × H)) (σ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner σ (conversionRecordMarginal v *ᵥ σ) =
@@ -411,6 +486,7 @@ theorem conversionRecordMarginal_fidelity {R H : Type} [Fintype R] [Fintype H]
   intro h _
   ring
 
+/-- Embedding a word whose known matrices are unitary yields a legal continuous conversion word. -/
 theorem continuousConversionWord_legal {H : Type} [Fintype H] [DecidableEq H]
     (C : List (Matrix H H ℂ ⊕ Bool))
     (hC : ∀ s ∈ C, match s with
@@ -425,6 +501,7 @@ theorem continuousConversionWord_legal {H : Type} [Fintype H] [DecidableEq H]
     exact ⟨zero_le_one, fun _ _ => continuous_const.intervalIntegrable 0 1,
       fun _ _ => Matrix.isHermitian_zero⟩
 
+/-- The total duration of an embedded discrete word equals its number of query symbols. -/
 theorem continuousConversionWord_time {H : Type} (C : List (Matrix H H ℂ ⊕ Bool)) :
     continuousConversionTime (continuousConversionWord C) =
       (C.countP (fun s => match s with | .inl _ => false | .inr _ => true) : ℝ) := by
@@ -434,6 +511,8 @@ theorem continuousConversionWord_time {H : Type} (C : List (Matrix H H ℂ ⊕ B
     cases s <;> simp_all [continuousConversionTime, continuousConversionWord,
       List.map_map, Function.comp_def, add_comm]
 
+/-- If the positive and negative constant evolutions realize `O` and `Oᴴ`, the embedded word
+evaluates to the corresponding reverse-ordered discrete matrix product. -/
 theorem continuousConversionWord_matrix {H : Type} [Fintype H] [DecidableEq H]
     (L O : Matrix H H ℂ) (C : List (Matrix H H ℂ ⊕ Bool))
     (hf : continuousConversionEndpoint (fun _ => L) 1 = O)
@@ -449,6 +528,7 @@ theorem continuousConversionWord_matrix {H : Type} [Fintype H] [DecidableEq H]
   | inl U => rfl
   | inr adj => cases adj <;> simp [hf, hi]
 
+/-- Applying a matrix to every system slice conjugates the record marginal by that matrix. -/
 theorem conversionRecordMarginal_action {R H : Type} [Fintype R] [Fintype H]
     (M : Matrix H H ℂ) (v : QState (R × H)) :
     conversionRecordMarginal (fun p : R × H => (M *ᵥ (fun h => v (p.1,h))) p.2) =
@@ -468,6 +548,8 @@ theorem conversionRecordMarginal_action {R H : Type} [Fintype R] [Fintype H]
   intro r _
   ring
 
+/-- Recording the Kraus index yields a system marginal equal to the sum of the individual
+conjugated marginals. -/
 theorem conversionRecordKraus_marginal {K R H : Type}
     [Fintype K] [Fintype R] [Fintype H]
     (A : K → Matrix H H ℂ) (v : QState (R × H)) :
@@ -489,6 +571,8 @@ local instance continuousMatrixENormed (X : Type) [Fintype X] [DecidableEq X] :
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- An interval-integrable matrix family with filtered certificates of uniform nonnegative cost
+`C` has integrated filtered gamma-two value at most `C * T` for nonnegative `T`. -/
 theorem continuousConversion_filtered_integral {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (Z : Fin n → Matrix X X ℂ) (D : ℝ → Matrix X X ℂ)
     (T C : ℝ) (hT : 0 ≤ T) (hC : 0 ≤ C)
@@ -518,6 +602,8 @@ theorem continuousConversion_filtered_integral {X : Type} [Fintype X] [Decidable
 
 end ContinuousIntegral
 
+/-- The inner product of the Boolean-register tangent witnesses equals `i` times the difference
+of the mixed state-tangent pairings. -/
 theorem continuousConversionTangent_pair {X H : Type} [Fintype H] {n : ℕ}
     (ψ χ : X → Fin n → QState H) (j : Fin n) (x y : X) :
     Qatlib.Foundations.PureStateMath.Inner (continuousConversionTangentLeft ψ χ j x) (continuousConversionTangentRight ψ χ j y) =
@@ -529,12 +615,16 @@ theorem continuousConversionTangent_pair {X H : Type} [Fintype H] {n : ℕ}
   simp only [mul_assoc, ← Finset.mul_sum]
   ring
 
+/-- The squared mass of the left tangent witness is the sum of the squared masses of its state
+and tangent components. -/
 theorem continuousConversionTangent_left_mass {X H : Type} [Fintype H] {n : ℕ}
     (ψ χ : X → Fin n → QState H) (j : Fin n) (x : X) :
     (∑ p, Complex.normSq (continuousConversionTangentLeft ψ χ j x p)) =
       (∑ h, Complex.normSq (ψ x j h)) + ∑ h, Complex.normSq (χ x j h) := by
   simp [Fintype.sum_prod_type, continuousConversionTangentLeft, add_comm]
 
+/-- The squared mass of the right tangent witness is the sum of the squared masses of its state
+and tangent components. -/
 theorem continuousConversionTangent_right_mass {X H : Type} [Fintype H] {n : ℕ}
     (ψ χ : X → Fin n → QState H) (j : Fin n) (x : X) :
     (∑ p, Complex.normSq (continuousConversionTangentRight ψ χ j x p)) =
@@ -542,6 +632,8 @@ theorem continuousConversionTangent_right_mass {X H : Type} [Fintype H] {n : ℕ
   simp [Fintype.sum_prod_type, continuousConversionTangentRight,
     Complex.normSq_mul]
 
+/-- Under the stated mass and equal-input cancellation conditions, the continuous tangent matrix
+has a filtered Gram certificate of cost `P + Q`. -/
 theorem continuousConversionTangent_cert {X H A : Type} [Fintype H] [DecidableEq A]
     {n : ℕ} (input : X → Fin n → A) (ψ χ : X → Fin n → QState H) (P Q : ℝ)
     (hψ : ∀ x, (∑ j, ∑ h, Complex.normSq (ψ x j h)) ≤ P)
@@ -575,11 +667,14 @@ section ContinuousAnalytic
 open MeasureTheory Set Filter
 open scoped Topology
 
+/-- A constant function is absolutely continuous on every interval. -/
 theorem continuousConversion_ac_const {F : Type} [NormedAddCommGroup F] (c : F) (a b : ℝ) :
     AbsolutelyContinuousOnInterval (fun _ : ℝ => c) a b := by
   simpa [AbsolutelyContinuousOnInterval] using!
     (tendsto_const_nhds : Tendsto (fun _ : ℕ × (ℕ → ℝ × ℝ) => (0 : ℝ)) _ (𝓝 0))
 
+/-- For an absolutely continuous real function with the specified almost-everywhere derivative,
+the interval integral of that derivative equals the endpoint difference. -/
 theorem continuousConversion_real_ftc {f g : ℝ → ℝ} {a b : ℝ}
     (hf : AbsolutelyContinuousOnInterval f a b)
     (hd : ∀ᵐ t, t ∈ uIcc a b → HasDerivAt f (g t) t) :
@@ -591,6 +686,8 @@ theorem continuousConversion_real_ftc {f g : ℝ → ℝ} {a b : ℝ}
   · filter_upwards [hd] with t ht hmem
     exact (ht ⟨(min_le_right _ _).trans hmem.1.le, hmem.2.trans (le_max_left _ _)⟩).deriv.symm
 
+/-- For a complex function with absolutely continuous real and imaginary parts and an integrable
+almost-everywhere derivative, integrating the derivative gives the endpoint difference. -/
 theorem continuousConversion_complex_ftc {f g : ℝ → ℂ} {a b : ℝ}
     (hfRe : AbsolutelyContinuousOnInterval (fun t => (f t).re) a b)
     (hfIm : AbsolutelyContinuousOnInterval (fun t => (f t).im) a b)
@@ -611,6 +708,8 @@ theorem continuousConversion_complex_ftc {f g : ℝ → ℂ} {a b : ℝ}
     filter_upwards [hd] with t ht hmem
     exact Complex.imCLM.hasFDerivAt.comp_hasDerivAt t (ht hmem)
 
+/-- The real part of a constant plus an indefinite interval integral is absolutely continuous
+when the integrand is interval integrable. -/
 theorem continuousConversion_ac_re_integral {g : ℝ → ℂ} {a b : ℝ}
     (hg : IntervalIntegrable g volume a b) (c : ℂ) :
     AbsolutelyContinuousOnInterval (fun t => (c + ∫ s in a..t, g s).re) a b := by
@@ -637,6 +736,8 @@ theorem continuousConversion_ac_re_integral {g : ℝ → ℂ} {a b : ℝ}
     (Complex.reCLM.intervalIntegral_comp_comm (hsub _ h2)).symm
   rw [he1,he2]
 
+/-- The imaginary part of a constant plus an indefinite interval integral is absolutely
+continuous when the integrand is interval integrable. -/
 theorem continuousConversion_ac_im_integral {g : ℝ → ℂ} {a b : ℝ}
     (hg : IntervalIntegrable g volume a b) (c : ℂ) :
     AbsolutelyContinuousOnInterval (fun t => (c + ∫ s in a..t, g s).im) a b := by
@@ -663,6 +764,8 @@ theorem continuousConversion_ac_im_integral {g : ℝ → ℂ} {a b : ℝ}
     (Complex.imCLM.intervalIntegral_comp_comm (hsub _ h2)).symm
   rw [he1,he2]
 
+/-- Absolute continuity on an interval transfers to a function that agrees with the original
+function on the unoriented closed interval. -/
 theorem continuousConversion_ac_congr {F : Type} [NormedAddCommGroup F]
     {f g : ℝ → F} {a b : ℝ} (hf : AbsolutelyContinuousOnInterval f a b)
     (heq : EqOn g f (uIcc a b)) : AbsolutelyContinuousOnInterval g a b := by
@@ -677,6 +780,8 @@ theorem continuousConversion_ac_congr {F : Type} [NormedAddCommGroup F]
   obtain ⟨h1,h2⟩ := hE.1 i hi
   rw [heq h1,heq h2]
 
+/-- Derivatives of the real and imaginary parts combine into the corresponding complex
+derivative. -/
 theorem continuousConversion_complex_derivative {f : ℝ → ℂ} {g : ℂ} {t : ℝ}
     (hr : HasDerivAt (fun t => (f t).re) g.re t)
     (hi : HasDerivAt (fun t => (f t).im) g.im t) : HasDerivAt f g t := by
@@ -690,6 +795,8 @@ theorem continuousConversion_complex_derivative {f : ℝ → ℂ} {g : ℂ} {t :
   rw [he] at hd
   simpa only [Complex.ofRealCLM_apply, Complex.re_add_im] using! hd
 
+/-- An indefinite integral of an interval-integrable complex function has that function as its
+derivative almost everywhere on the unoriented interval. -/
 theorem continuousConversion_primitive_ae_deriv {g : ℝ → ℂ} {a b : ℝ}
     (hg : IntervalIntegrable g volume a b) (c : ℂ) :
     ∀ᵐ t, t ∈ uIcc a b → HasDerivAt (fun t => c + ∫ s in a..t, g s) (g t) t := by
@@ -726,6 +833,8 @@ theorem continuousConversion_primitive_ae_deriv {g : ℝ → ℂ} {a b : ℝ}
     (((hr ht a (by simp)).const_add c.re).congr_of_eventuallyEq heqRe)
     (((hi ht a (by simp)).const_add c.im).congr_of_eventuallyEq heqIm)
 
+/-- A Hermitian matrix can be moved between the two arguments of the finite-dimensional inner
+product. -/
 theorem continuousConversion_hermitian_pair {H : Type} [Fintype H] [DecidableEq H]
     (L : Matrix H H ℂ) (hL : L.IsHermitian) (ψ φ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (L *ᵥ ψ) φ = Qatlib.Foundations.PureStateMath.Inner ψ (L *ᵥ φ) := by
@@ -741,6 +850,7 @@ theorem continuousConversion_hermitian_pair {H : Type} [Fintype H] [DecidableEq 
   rw [hL.apply i j]
   ring
 
+/-- A finite sum of absolutely continuous real functions is absolutely continuous. -/
 theorem continuousConversion_ac_sum {I : Type} [Fintype I] {f : I → ℝ → ℝ} {a b : ℝ}
     (hf : ∀ i, AbsolutelyContinuousOnInterval (f i) a b) :
     AbsolutelyContinuousOnInterval (fun t => ∑ i, f i t) a b := by
@@ -752,6 +862,8 @@ theorem continuousConversion_ac_sum {I : Type} [Fintype I] {f : I → ℝ → �
       simpa only [Finset.sum_insert hi, Pi.add_apply] using! (hf i).add ih
   exact hh Finset.univ
 
+/-- The inner product of two vector-valued functions has absolutely continuous real and
+imaginary parts when all component parts do. -/
 theorem continuousConversion_inner_ac {H : Type} [Fintype H] {ψ φ : ℝ → QState H} {a b : ℝ}
     (hψ : ∀ i, AbsolutelyContinuousOnInterval (fun t => (ψ t i).re) a b ∧
       AbsolutelyContinuousOnInterval (fun t => (ψ t i).im) a b)
@@ -768,6 +880,8 @@ theorem continuousConversion_inner_ac {H : Type} [Fintype H] {ψ φ : ℝ → QS
       ((hψ i).1.mul (hφ i).2).sub ((hψ i).2.mul (hφ i).1))
     simpa [Qatlib.Foundations.PureStateMath.inner_apply,Complex.mul_im,Complex.add_im,sub_eq_add_neg,Finset.sum_add_distrib] using! hh
 
+/-- The derivative of an inner product of componentwise differentiable vectors is the sum of the
+two differentiated pairings. -/
 theorem continuousConversion_inner_deriv {H : Type} [Fintype H]
     {ψ φ : ℝ → QState H} {ψ' φ' : QState H} {t : ℝ}
     (hψ : ∀ i, HasDerivAt (fun t => ψ t i) (ψ' i) t)
@@ -777,22 +891,29 @@ theorem continuousConversion_inner_deriv {H : Type} [Fintype H]
   have hh := HasDerivAt.fun_sum (fun i (_ : i ∈ Finset.univ) => (hψ i).star.mul (hφ i))
   simpa only [Qatlib.Foundations.PureStateMath.inner_apply,starRingEnd_apply,Finset.sum_add_distrib] using! hh
 
+/-- Scalar multiplication in the first argument of the inner product produces the conjugate
+scalar. -/
 theorem continuousConversion_inner_smul_left {H : Type} [Fintype H]
     (a : ℂ) (ψ φ : QState H) : Qatlib.Foundations.PureStateMath.Inner (a • ψ) φ = star a * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   simp [Qatlib.Foundations.PureStateMath.inner_apply,Pi.smul_apply,map_mul,mul_assoc,Finset.mul_sum]
 
+/-- Scalar multiplication in the second argument of the inner product produces the scalar. -/
 theorem continuousConversion_inner_smul_right {H : Type} [Fintype H]
     (a : ℂ) (ψ φ : QState H) : Qatlib.Foundations.PureStateMath.Inner ψ (a • φ) = a * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   simp [Qatlib.Foundations.PureStateMath.inner_apply,Pi.smul_apply,mul_left_comm,Finset.mul_sum]
 
+/-- The inner product distributes over addition in its first argument. -/
 theorem continuousConversion_inner_add_left {H : Type} [Fintype H]
     (ψ φ ξ : QState H) : Qatlib.Foundations.PureStateMath.Inner (ψ + φ) ξ = Qatlib.Foundations.PureStateMath.Inner ψ ξ + Qatlib.Foundations.PureStateMath.Inner φ ξ := by
   simp [Qatlib.Foundations.PureStateMath.inner_apply,Pi.add_apply,map_add,add_mul,Finset.sum_add_distrib]
 
+/-- The inner product distributes over addition in its second argument. -/
 theorem continuousConversion_inner_add_right {H : Type} [Fintype H]
     (ψ φ ξ : QState H) : Qatlib.Foundations.PureStateMath.Inner ψ (φ + ξ) = Qatlib.Foundations.PureStateMath.Inner ψ φ + Qatlib.Foundations.PureStateMath.Inner ψ ξ := by
   simp [Qatlib.Foundations.PureStateMath.inner_apply,Pi.add_apply,mul_add,Finset.sum_add_distrib]
 
+/-- A common Hermitian driver cancels from the sum of the two evolution pairings, leaving only
+the mixed terms involving `χ` and `ξ`. -/
 theorem continuousConversion_driver_cancellation {H : Type} [Fintype H] [DecidableEq H]
     (K : Matrix H H ℂ) (hK : K.IsHermitian) (ψ φ χ ξ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner ((-Complex.I) • (K *ᵥ ψ + χ)) φ + Qatlib.Foundations.PureStateMath.Inner ψ ((-Complex.I) • (K *ᵥ φ + ξ)) =
@@ -803,6 +924,8 @@ theorem continuousConversion_driver_cancellation {H : Type} [Fintype H] [Decidab
   simp only [star_neg, RCLike.star_def,Complex.conj_I,neg_neg]
   ring
 
+/-- The inner product of two continuous vector-valued functions is continuous on their common
+domain. -/
 theorem continuousConversion_inner_continuousOn {H : Type} [Fintype H]
     {ψ φ : ℝ → QState H} {S : Set ℝ} (hψ : ContinuousOn ψ S) (hφ : ContinuousOn φ S) :
     ContinuousOn (fun t => Qatlib.Foundations.PureStateMath.Inner (ψ t) (φ t)) S := by
@@ -811,6 +934,8 @@ theorem continuousConversion_inner_continuousOn {H : Type} [Fintype H]
     ((continuous_apply i).comp_continuousOn hψ).star.mul
       ((continuous_apply i).comp_continuousOn hφ))
 
+/-- Matrix-vector multiplication of continuous matrix and vector functions is continuous on
+their common domain. -/
 theorem continuousConversion_mulVec_continuousOn {H : Type} [Fintype H]
     {A : ℝ → Matrix H H ℂ} {ψ : ℝ → QState H} {S : Set ℝ}
     (hA : ContinuousOn A S) (hψ : ContinuousOn ψ S) :
@@ -820,6 +945,8 @@ theorem continuousConversion_mulVec_continuousOn {H : Type} [Fintype H]
 
 end ContinuousAnalytic
 
+/-- Tracing out the record register after conjugation by a frame equals the sum of conjugations
+by its record blocks. -/
 theorem conversionTraceRecord_frame {R H S : Type} [Fintype R] [Fintype H] [Fintype S]
     (V : Matrix (R × H) S ℂ) (D : Matrix S S ℂ) :
     conversionTraceRecord (V*D*Vᴴ) =
@@ -827,6 +954,8 @@ theorem conversionTraceRecord_frame {R H S : Type} [Fintype R] [Fintype H] [Fint
   ext h k
   simp only [conversionTraceRecord,conversionRecordBlock,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.sum_apply]
 
+/-- Pulling a framed conjugation back through an isometry and tracing out the record register
+gives the sum of conjugations by the original frame blocks. -/
 theorem conversionTraceRecord_pullback {R H S W : Type} [Fintype R] [Fintype H]
     [Fintype S] [Fintype W] [DecidableEq R] [DecidableEq H]
     (F : Matrix W (R × H) ℂ) (hF : Fᴴ*F=1)

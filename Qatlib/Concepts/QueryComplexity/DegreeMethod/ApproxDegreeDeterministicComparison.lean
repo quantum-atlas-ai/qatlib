@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+
+/-!
+# Approximate degree and deterministic query complexity
+
+This module compares the one-third approximate degree of a total Boolean function with its
+deterministic decision tree complexity. Decision tree polynomials give one direction, while a
+block sensitivity bound yields a sixth-power upper bound in the other direction, following the
+polynomial method [BealsEtAl2001].
+
+The affine conversion `tunableGoalConverted` places an approximating polynomial in the interval
+from zero to one without increasing degree, at the cost of increasing its error to two-fifths.
+
+## Main statements
+
+* `tunableGoalApproxDegree_le_deterministic`: approximate degree is bounded by deterministic
+  query complexity.
+* `tunableGoalBlockSensitivity_le`: block sensitivity is at most six times the square of
+  approximate degree.
+* `stageB_query_comparison_clause74`: deterministic complexity is at most `216 * approxDegree f
+  ^ 6`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,11 +47,14 @@ open Qatlib.Concepts.QueryComplexity.DecisionTrees
 open Qatlib
 open scoped Classical
 
+/-- The real acceptance polynomial recursively associated with a Boolean decision tree. -/
 private noncomputable def tunableGoalTreePoly {n : ℕ} : BoolQueryTree (Fin n) Bool → MvPolynomial (Fin n) ℝ
   | .halt b => MvPolynomial.C (if b then (1 : ℝ) else 0)
   | .ask i onFalse onTrue =>
       (1 - MvPolynomial.X i) * tunableGoalTreePoly onFalse + MvPolynomial.X i * tunableGoalTreePoly onTrue
 
+/-- Evaluating the decision tree polynomial at a Boolean input gives the zero-one encoding of
+the tree output. -/
 private theorem tunableGoalTreePoly_eval {n : ℕ} (t : BoolQueryTree (Fin n) Bool) (x : Fin n → Bool) :
     MvPolynomial.eval (fun i => if x i then (1 : ℝ) else 0) (tunableGoalTreePoly t)
       = if (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run (fun i => x i) t).1 then (1 : ℝ) else 0 := by
@@ -45,6 +74,8 @@ private theorem tunableGoalTreePoly_eval {n : ℕ} (t : BoolQueryTree (Fin n) Bo
       simp [tunableGoalTreePoly, hx, MvPolynomial.eval_add, MvPolynomial.eval_mul,
         map_sub, map_one, MvPolynomial.eval_X, ihF, ihT]
 
+/-- The total degree of the decision tree polynomial is at most the maximum number of queries in
+the tree. -/
 private theorem tunableGoalTreePoly_totalDegree {n : ℕ} (t : BoolQueryTree (Fin n) Bool) :
     (tunableGoalTreePoly t).totalDegree ≤ t.MaxQueries := by
   induction t with
@@ -68,6 +99,8 @@ private theorem tunableGoalTreePoly_totalDegree {n : ℕ} (t : BoolQueryTree (Fi
     exact max_le (hmF.trans (Nat.add_le_add_left (ihF.trans (le_max_left _ _)) _))
       (hmT.trans (Nat.add_le_add_left (ihT.trans (le_max_right _ _)) _))
 
+/-- The decision tree that queries the listed coordinates, updates a base input with the
+answers, and applies `leaf` to the resulting input. -/
 private def tunableGoalTreeFrom {n : ℕ} (is : List (Fin n)) (base : Fin n → Bool)
     (leaf : (Fin n → Bool) → Bool) : BoolQueryTree (Fin n) Bool :=
   match is with
@@ -77,6 +110,8 @@ private def tunableGoalTreeFrom {n : ℕ} (is : List (Fin n)) (base : Fin n → 
         (tunableGoalTreeFrom rest (Function.update base i false) leaf)
         (tunableGoalTreeFrom rest (Function.update base i true) leaf)
 
+/-- Running `tunableGoalTreeFrom` applies `leaf` to the input using queried values on the listed
+coordinates and base values elsewhere. -/
 private theorem tunableGoalTreeFrom_run {n : ℕ} (is : List (Fin n)) (base x : Fin n → Bool)
     (leaf : (Fin n → Bool) → Bool) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run (fun i => x i) (tunableGoalTreeFrom is base leaf)).1
@@ -107,14 +142,18 @@ private theorem tunableGoalTreeFrom_run {n : ℕ} (is : List (Fin n)) (base x : 
       by_cases hj : j = i <;> by_cases hjr : j ∈ rest <;>
         simp [hj, hjr, hx, List.mem_cons, Function.update_apply]
 
+/-- The list of all coordinates of `Fin n` in their canonical order. -/
 private def tunableGoalFullList (n : ℕ) : List (Fin n) := List.ofFn (fun i => i)
 
+/-- Every coordinate belongs to `tunableGoalFullList n`. -/
 private theorem tunableGoalFullList_mem (n : ℕ) (j : Fin n) : j ∈ tunableGoalFullList n :=
   List.mem_ofFn.mpr ⟨j, rfl⟩
 
+/-- The decision tree computing `f` by querying every input coordinate. -/
 private def tunableGoalExactTree {n : ℕ} (f : (Fin n → Bool) → Bool) : BoolQueryTree (Fin n) Bool :=
   tunableGoalTreeFrom (tunableGoalFullList n) (fun _ => false) f
 
+/-- The full coordinate decision tree returns `f x` on every input `x`. -/
 private theorem tunableGoalExactTree_exact {n : ℕ} (f : (Fin n → Bool) → Bool) (x : Fin n → Bool) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run (fun i => x i) (tunableGoalExactTree f)).1 = f x := by
   rw [tunableGoalExactTree, tunableGoalTreeFrom_run]
@@ -122,16 +161,22 @@ private theorem tunableGoalExactTree_exact {n : ℕ} (f : (Fin n → Bool) → B
   funext j
   simp [tunableGoalFullList_mem n j]
 
+/-- The condition that a real polynomial approximates the zero-one encoding of `f` within
+one-third at every Boolean input. -/
 private def tunableGoalGood {n : ℕ} (f : (Fin n → Bool) → Bool) (p : MvPolynomial (Fin n) ℝ) : Prop :=
   ∀ g : Fin n → Bool,
     |MvPolynomial.eval (fun i => if g i then (1 : ℝ) else 0) p
       - (if f g then (1 : ℝ) else 0)| ≤ 1 / 3
 
+/-- The approximate degree is the infimum of total degrees of polynomials satisfying
+`tunableGoalGood`. -/
 private theorem tunableGoalApproxDegree_eq (n : ℕ) (f : (Fin n → Bool) → Bool) :
     approxDegree f
       = sInf ((fun p : MvPolynomial (Fin n) ℝ => p.totalDegree) '' {p | tunableGoalGood f p}) :=
   rfl
 
+/-- The set of total degrees of one-third approximating polynomials for a total Boolean function
+is nonempty. -/
 private theorem tunableGoalGood_nonempty (n : ℕ) (f : (Fin n → Bool) → Bool) :
     ((fun p : MvPolynomial (Fin n) ℝ => p.totalDegree) '' {p | tunableGoalGood f p}).Nonempty :=
   ⟨(tunableGoalTreePoly (tunableGoalExactTree f)).totalDegree,
@@ -139,6 +184,8 @@ private theorem tunableGoalGood_nonempty (n : ℕ) (f : (Fin n → Bool) → Boo
       rw [tunableGoalTreePoly_eval, tunableGoalExactTree_exact]
       simp, rfl⟩⟩
 
+/-- The approximate degree of a function is at most the maximum query count of any decision tree
+computing it exactly. -/
 private theorem tunableGoalApproxDegree_le_budget {n : ℕ} (f : (Fin n → Bool) → Bool)
     (t : BoolQueryTree (Fin n) Bool)
     (ht : ∀ x : Fin n → Bool, (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run (fun i => x i) t).1 = f x) :
@@ -154,6 +201,8 @@ private theorem tunableGoalApproxDegree_le_budget {n : ℕ} (f : (Fin n → Bool
   rw [← tunableGoalApproxDegree_eq] at hle
   exact hle.trans (tunableGoalTreePoly_totalDegree t)
 
+/-- The one-third approximate degree of a total Boolean function is at most its deterministic
+query complexity. -/
 private theorem tunableGoalApproxDegree_le_deterministic (n : ℕ) (f : (Fin n → Bool) → Bool) :
     approxDegree f ≤ deterministicQueryComplexity f := by
   have hne : (Set.range fun t : {t : BoolQueryTree (Fin n) Bool //
@@ -166,6 +215,8 @@ private theorem tunableGoalApproxDegree_le_deterministic (n : ℕ) (f : (Fin n �
   have htd' : t.MaxQueries = deterministicQueryComplexity f := htd
   exact (tunableGoalApproxDegree_le_budget f t ht).trans htd'.le
 
+/-- If `y` is within one-third of a zero-one value, then `(1 + 3 * y) / 5` lies in `[0, 1]` and
+is within two-fifths of that value. -/
 private theorem tunableGoalConvert_range {y fbar : ℝ} (hf : fbar = 0 ∨ fbar = 1)
     (h : |y - fbar| ≤ 1 / 3) :
     0 ≤ (1 + 3 * y) / 5 ∧ (1 + 3 * y) / 5 ≤ 1 ∧
@@ -175,15 +226,18 @@ private theorem tunableGoalConvert_range {y fbar : ℝ} (hf : fbar = 0 ∨ fbar 
   · refine ⟨?_, ?_, abs_le.mpr ⟨?_, ?_⟩⟩ <;> nlinarith
   · refine ⟨?_, ?_, abs_le.mpr ⟨?_, ?_⟩⟩ <;> nlinarith
 
+/-- The affine polynomial transformation `p ↦ 1 / 5 + (3 / 5) * p`. -/
 private noncomputable def tunableGoalConverted {n : ℕ} (p : MvPolynomial (Fin n) ℝ) : MvPolynomial (Fin n) ℝ :=
   MvPolynomial.C (1 / 5) + MvPolynomial.C (3 / 5) * p
 
+/-- At a Boolean input, the converted polynomial evaluates to `(1 + 3 * p.eval x) / 5`. -/
 private theorem tunableGoalConverted_eval {n : ℕ} (p : MvPolynomial (Fin n) ℝ) (x : Fin n → Bool) :
     MvPolynomial.eval (fun i => if x i then (1 : ℝ) else 0) (tunableGoalConverted p)
       = (1 + 3 * MvPolynomial.eval (fun i => if x i then (1 : ℝ) else 0) p) / 5 := by
   simp [tunableGoalConverted, MvPolynomial.eval_add, MvPolynomial.eval_mul, MvPolynomial.eval_C]
   ring
 
+/-- The affine conversion `tunableGoalConverted` does not increase total degree. -/
 private theorem tunableGoalConverted_totalDegree {n : ℕ} (p : MvPolynomial (Fin n) ℝ) :
     (tunableGoalConverted p).totalDegree ≤ p.totalDegree := by
   have hC : (MvPolynomial.C (3 / 5 : ℝ) : MvPolynomial (Fin n) ℝ).totalDegree = 0 :=
@@ -197,6 +251,7 @@ private theorem tunableGoalConverted_totalDegree {n : ℕ} (p : MvPolynomial (Fi
   rw [MvPolynomial.totalDegree_C] at hadd
   exact hadd.trans (max_le (Nat.zero_le _) hm)
 
+/-- The block sensitivity of a total Boolean function is at most `6 * approxDegree f ^ 2`. -/
 private theorem tunableGoalBlockSensitivity_le (n : ℕ) (f : (Fin n → Bool) → Bool) :
     blockSensitivity f ≤ 6 * approxDegree f ^ 2 := by
   obtain ⟨p, hp, hpd⟩ := (Set.mem_image (fun p : MvPolynomial (Fin n) ℝ => p.totalDegree)
@@ -236,6 +291,8 @@ private theorem tunableGoalBlockSensitivity_le (n : ℕ) (f : (Fin n → Bool) �
     linarith
   exact_mod_cast hbs
 
+/-- For every total Boolean function, approximate degree is at most deterministic query
+complexity, which is at most `216 * approxDegree f ^ 6` [BealsEtAl2001]. -/
 theorem stageB_query_comparison_clause74 :
   ∀ (n : ℕ) (f : (Fin n → Bool) → Bool),
     approxDegree f ≤ deterministicQueryComplexity f ∧

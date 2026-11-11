@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
 import Qatlib.Papers.WeighMatrix00.MainResults.Lemma1StateConstruction
+
+/-!
+# Weighing-matrix source-state procedures
+
+Normalized rows of a positive-weight weighing matrix have unit self-pairing and zero pairing for
+distinct rows. The record `WeighingProcedure` packages these amplitudes with the
+state-preparation query count and yields the numerical bound of
+`source_theorem1_weighingProcedure`.
+
+This development forms part of the formalization of [VanDam2002].
+
+## Main statements
+
+* `WeighingProcedure`: A record of a query count and normalized weighing-matrix row amplitudes,
+  with normalization and orthogonality proofs.
+* `source_theorem1_weighingProcedure`: A positive-weight weighing matrix with `k ≤ n` possesses
+  a procedure with at most `ceil (π / 4 * sqrt (n / k)) + 1` calls, and at most one call when `k
+  = n`.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +39,8 @@ namespace Qatlib.Papers.WeighMatrix00.MainResults
 
 open scoped BigOperators
 
+/-- A record of a query count and normalized weighing-matrix row amplitudes, with normalization
+and orthogonality proofs. -/
 structure WeighingProcedure {n k : ℕ} (M : WeighingMatrix n k) where
 
   oracleCalls : ℕ
@@ -31,6 +57,7 @@ namespace WeighingProcedure
 
 variable {n k : ℕ} {M : WeighingMatrix n k}
 
+/-- For positive weight, distinct rows scaled by `sqrt k` have zero bilinear amplitude pairing. -/
 theorem sourceStates_orthogonal (hk : 0 < k) (s r : Fin n) (hsr : s ≠ r) :
     ∑ i : Fin n, ((M.mat s i : ℂ) / (Real.sqrt (k : ℝ) : ℂ)) *
       ((M.mat r i : ℂ) / (Real.sqrt (k : ℝ) : ℂ)) = 0 := by
@@ -54,6 +81,7 @@ theorem sourceStates_orthogonal (hk : 0 < k) (s r : Fin n) (hsr : s ≠ r) :
   rw [hz]
   simp
 
+/-- For positive weight, each row scaled by `sqrt k` has bilinear self-pairing one. -/
 theorem sourceStates_norm (hk : 0 < k) (s : Fin n) :
     ∑ i : Fin n, ((M.mat s i : ℂ) / (Real.sqrt (k : ℝ) : ℂ)) *
       ((M.mat s i : ℂ) / (Real.sqrt (k : ℝ) : ℂ)) = 1 := by
@@ -79,6 +107,7 @@ theorem sourceStates_norm (hk : 0 < k) (s : Fin n) :
   rw [hsq]
   exact div_self (by exact_mod_cast hk.ne')
 
+/-- The weighing procedure using normalized rows and `statePreparationCalls n k` oracle calls. -/
 def sourceProcedure (hk : 0 < k) : WeighingProcedure M where
   oracleCalls := statePreparationCalls n k
   amplitude := fun s i => (M.mat s i : ℂ) / (Real.sqrt (k : ℝ) : ℂ)
@@ -88,6 +117,8 @@ def sourceProcedure (hk : 0 < k) : WeighingProcedure M where
 
 end WeighingProcedure
 
+/-- A positive-weight weighing matrix with `k ≤ n` possesses a procedure with at most `ceil (π /
+4 * sqrt (n / k)) + 1` calls, and at most one call when `k = n`. See [VanDam2002]. -/
 theorem source_theorem1_weighingProcedure {n k : ℕ} (M : WeighingMatrix n k)
     (hk : 0 < k) (hkn : k ≤ n) :
     ∃ P : WeighingProcedure M,

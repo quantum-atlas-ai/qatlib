@@ -9,6 +9,26 @@ import Qatlib.Papers.TuraevViro10.MainResults.ApproximationGuarantee
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
 import Mathlib.Tactic
+
+/-!
+# Finite-sample guarantees for Hadamard readout
+
+This module bounds the sampling errors of two Boolean Hadamard-test readouts using indicator
+variance, Chebyshev bounds, and a union bound. It converts simultaneous readout accuracy to WRT
+and Turaev–Viro error bounds and proves a scaled invariant estimate with success probability at
+least `1 - δ` for a supplied readout law. See [AlagicEtAl2010].
+
+## Main statements
+
+* `readout_success`: Simultaneous accuracy of the two empirical readout means.
+* `wrt_error_le`: Complex invariant error from componentwise amplitude error.
+* `algorithm_guarantee`: Finite-sample scaled Turaev–Viro estimate.
+
+## References
+
+* [Alagic et al., 2010][AlagicEtAl2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,14 +43,18 @@ open Qatlib.Papers.TuraevViro10.MainResults.ApproximationGuarantee
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.AmplitudeCore.InvFreeSampling
 
+/-- The real-valued indicator of the first Boolean readout bit. -/
 def reBit : Bool × Bool → ℝ := fun b => if b.1 then 1 else 0
 
+/-- The real-valued indicator of the second Boolean readout bit. -/
 def imBit : Bool × Bool → ℝ := fun b => if b.2 then 1 else 0
 
+/-- Every function taking only values zero and one lies pointwise between zero and one. -/
 theorem bit_mem_Icc {Ω : Type*} (f : Ω → ℝ) (hf : ∀ x, f x = 0 ∨ f x = 1) (x : Ω) :
     0 ≤ f x ∧ f x ≤ 1 := by
   rcases hf x with h | h <;> simp [h]
 
+/-- The variance of a zero-one-valued function under a finite distribution is at most `1/4`. -/
 theorem variance_indicator_le {Ω : Type} [Fintype Ω] [DecidableEq Ω]
     (p : FinDist Ω) (f : Ω → ℝ) (hf : ∀ x, f x = 0 ∨ f x = 1) :
     p.variance f ≤ 1 / 4 := by
@@ -42,6 +66,8 @@ theorem variance_indicator_le {Ω : Type} [Fintype Ω] [DecidableEq Ω]
   rw [hsq]
   nlinarith [sq_nonneg (p.expect f - 1 / 2)]
 
+/-- For `L > 0` and `ε > 0`, the probability that an indicator sample mean differs from its
+expectation by more than `ε` is at most `1 / (4 L ε²)`. -/
 theorem chebyshev_indicator {Ω : Type} [Fintype Ω] [DecidableEq Ω]
     (p : FinDist Ω) (f : Ω → ℝ) (hf : ∀ x, f x = 0 ∨ f x = 1) {L : ℕ} (hL : 0 < L)
     (ε : ℝ) (hε : 0 < ε) :
@@ -58,6 +84,8 @@ theorem chebyshev_indicator {Ω : Type} [Fintype Ω] [DecidableEq Ω]
     _ = 1 / (4 * (L : ℝ) * ε ^ 2) := by
         field_simp
 
+/-- The probability of the union of two events is at most the sum of their probabilities under
+the finite sample law. -/
 theorem probEvent_or_le {Ω : Type*} [Fintype Ω] [DecidableEq Ω] (p : FinDist Ω) {L : ℕ}
     (E F : (Fin L → Ω) → Prop) [DecidablePred E] [DecidablePred F] :
     p.probEvent (L := L) (fun ω => E ω ∨ F ω) ≤
@@ -77,17 +105,22 @@ theorem probEvent_or_le {Ω : Type*} [Fintype Ω] [DecidableEq Ω] (p : FinDist 
     _ = (∑ ω : Fin L → Ω, (if E ω then p.probOf ω else 0)) +
         ∑ ω : Fin L → Ω, (if F ω then p.probOf ω else 0) := Finset.sum_add_distrib
 
+/-- The sample count `max 1 ⌈1 / (2 ε² δ)⌉₊` used for simultaneous Hadamard readout. -/
 noncomputable def hadamardShots (ε δ : ℝ) : ℕ := max 1 (Nat.ceil (1 / (2 * ε ^ 2 * δ)))
 
+/-- The selected Hadamard sample count is positive. -/
 theorem hadamardShots_pos (ε δ : ℝ) : 0 < hadamardShots ε δ :=
   lt_of_lt_of_le (by decide : 0 < (1 : ℕ)) (Nat.le_max_left 1 _)
 
+/-- The selected Hadamard sample count, viewed as a real number, is at least `1 / (2 ε² δ)`. -/
 theorem hadamardShots_lower (ε δ : ℝ) :
     1 / (2 * ε ^ 2 * δ) ≤ (hadamardShots ε δ : ℝ) := by
   have hc : 1 / (2 * ε ^ 2 * δ) ≤ (Nat.ceil (1 / (2 * ε ^ 2 * δ)) : ℝ) := Nat.le_ceil _
   have hm : Nat.ceil (1 / (2 * ε ^ 2 * δ)) ≤ hadamardShots ε δ := Nat.le_max_right 1 _
   exact hc.trans (Nat.cast_le.mpr hm)
 
+/-- For positive `ε` and `δ`, the probability that either empirical bit mean differs from its
+expectation by more than `ε` is at most `δ` at the selected sample count. -/
 theorem readout_fail_le (p : FinDist (Bool × Bool)) (ε δ : ℝ) (hε : 0 < ε) (hδ : 0 < δ) :
     p.probEvent (L := hadamardShots ε δ)
         (fun ω => ε < |FinDist.avg reBit ω - p.expect reBit| ∨
@@ -126,6 +159,8 @@ theorem readout_fail_le (p : FinDist (Bool × Bool)) (ε δ : ℝ) (hε : 0 < ε
     exact hbase
   exact hunion.trans ((add_le_add hre him).trans hsum)
 
+/-- For positive `ε` and `δ`, both empirical bit means are within `ε` of their expectations with
+probability at least `1 - δ` at the selected sample count. See [AlagicEtAl2010]. -/
 theorem readout_success (p : FinDist (Bool × Bool)) (ε δ : ℝ) (hε : 0 < ε) (hδ : 0 < δ) :
     1 - δ ≤ p.probEvent (L := hadamardShots ε δ)
       (fun ω => |FinDist.avg reBit ω - p.expect reBit| ≤ ε ∧
@@ -153,6 +188,7 @@ theorem readout_success (p : FinDist (Bool × Bool)) (ε δ : ℝ) (hε : 0 < ε
       · exact absurd hc.2 (not_le.mpr h)
   linarith [hcompl]
 
+/-- The mean of a nonempty finite sample of values in `[0, 1]` also lies in `[0, 1]`. -/
 theorem avg_mem_Icc {Ω : Type*} [Fintype Ω] [DecidableEq Ω] {L : ℕ} (hL : 0 < L)
     (f : Ω → ℝ) (h0 : ∀ x, 0 ≤ f x) (h1 : ∀ x, f x ≤ 1) (ω : Fin L → Ω) :
     FinDist.avg f ω ∈ Set.Icc (0 : ℝ) 1 := by
@@ -168,6 +204,8 @@ theorem avg_mem_Icc {Ω : Type*} [Fintype Ω] [DecidableEq Ω] {L : ℕ} (hL : 0
   · rw [div_le_iff₀ hLR]
     simpa using hsum1
 
+/-- For an amplitude of norm at most one and component estimates bounded in absolute value by
+one, componentwise error at most `ε` gives squared-modulus error at most `4 ε`. -/
 theorem modulusSq_error_le {a : ℂ} {x y ε : ℝ}
     (hx : |x - a.re| ≤ ε) (hy : |y - a.im| ≤ ε) (ha : ‖a‖ ≤ 1)
     (hbx : |x| ≤ 1) (hby : |y| ≤ 1) :
@@ -203,12 +241,16 @@ theorem modulusSq_error_le {a : ℂ} {x y ε : ℝ}
   rw [hsplit]
   exact (abs_add_le _ _).trans ((add_le_add hx' hy').trans (by linarith))
 
+/-- For genus at least one, normalized-invariant error at most `4 ε` scales to invariant error
+at most `D ^ (2 * (g - 1)) * 4 ε`. -/
 theorem tv_error_le {P ι : Type*} [Fintype P] (M : TuraevViroModel P ι) {g : ℕ}
     (hg : 1 ≤ g) (x : ι) {est ε : ℝ}
     (h : |est - M.normalizedTvInvariant g x| ≤ 4 * ε) :
     |M.D ^ (2 * (g - 1)) * est - M.tvInvariant g x| ≤ M.D ^ (2 * (g - 1)) * (4 * ε) :=
   tvEstimate_error_le M hg x est (4 * ε) h
 
+/-- Componentwise amplitude errors at most `ε` give WRT error at most `D ^ (g - 1) * 2 ε` after
+scaling. See [AlagicEtAl2010]. -/
 theorem wrt_error_le {P ι : Type*} [Fintype P] (M : TuraevViroModel P ι) (g : ℕ) (x : ι)
     {xr yi ε : ℝ} (hxr : |xr - (M.amplitude g x).re| ≤ ε)
     (hyi : |yi - (M.amplitude g x).im| ≤ ε) :
@@ -224,6 +266,9 @@ theorem wrt_error_le {P ι : Type*} [Fintype P] (M : TuraevViroModel P ι) (g : 
     linarith
   exact wrtScaled_error_le M g x (2 * ε) hclose
 
+/-- For genus at least one and positive `ε` and `δ`, a readout law with the stated amplitude
+means yields scaled Turaev–Viro error at most `D ^ (2 * (g - 1)) * 4 ε` with probability at
+least `1 - δ` using `hadamardShots (ε / 2) δ` samples. See [AlagicEtAl2010]. -/
 theorem algorithm_guarantee {P ι : Type*} [Fintype P] (M : TuraevViroModel P ι)
     {g : ℕ} (hg : 1 ≤ g) (x : ι) (ε δ : ℝ) (hε : 0 < ε) (hδ : 0 < δ)
     (p : FinDist (Bool × Bool))

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixAlgebra.ParamWord.ActualContract
+
+/-!
+# Physical product formulas for exponential circuits
+
+`matrix_paramWord_eq_prod` identifies the recursively defined matrix word with an ordered list
+product. `exponentialWord_eq_source` specializes this to the circuit product of `exp(-iθⱼGⱼ)Wⱼ`
+factors used in [TranEtAl2026].
+
+Hermitian generators and unitary fixed gates make this product unitary, so `wordState_norm_eq`
+proves exact norm preservation for every input state.
+
+## Main statements
+
+* `exponentialWord_eq_source`: Literal ordered exponential circuit product.
+* `exponentialWord_unitary`: Unitarity of the complete circuit word.
+* `wordState_norm_eq`: Exact preservation of the input-state norm.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1400000
@@ -20,6 +42,8 @@ local instance : NormedAlgebra ℝ (Matrix I I ℂ) := NormedAlgebra.restrictSca
 
 omit [Nonempty I] in
 
+/-- A recursive matrix word equals the list product of its parameter-evaluated factors in the
+same order. -/
 theorem matrix_paramWord_eq_prod {K : ℕ} (F : Fin K→EuclideanSpace ℝ (Fin K)→Matrix I I ℂ)
     (js : List (Fin K)) (θ : EuclideanSpace ℝ (Fin K)) :
     paramWord F js θ=(js.map (fun j => F j θ)).prod := by
@@ -29,6 +53,8 @@ theorem matrix_paramWord_eq_prod {K : ℕ} (F : Fin K→EuclideanSpace ℝ (Fin 
 
 omit [Nonempty I] in
 
+/-- The exponential word equals the ordered product of `exp(-i * θ j * G j) * W j` over the
+finite parameter indices, matching the circuit form in [Tran et al., Lemma 5][TranEtAl2026]. -/
 theorem exponentialWord_eq_source {K : ℕ} (G W : Fin K→Matrix I I ℂ)
     (θ : EuclideanSpace ℝ (Fin K)) :
     exponentialWord G W θ=
@@ -45,6 +71,7 @@ theorem exponentialWord_eq_source {K : ℕ} (G W : Fin K→Matrix I I ℂ)
 
 omit [Nonempty I] in
 
+/-- An exponential word with Hermitian generators and unitary fixed gates is unitary. -/
 theorem exponentialWord_unitary {K : ℕ} (G W : Fin K→Matrix I I ℂ)
     (hG : ∀j,(G j).IsHermitian) (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ)
     (θ : EuclideanSpace ℝ (Fin K)) : exponentialWord G W θ∈unitary (Matrix I I ℂ) := by
@@ -56,6 +83,8 @@ theorem exponentialWord_unitary {K : ℕ} (G W : Fin K→Matrix I I ℂ)
 
 omit [Nonempty I] in
 
+/-- An exponential word with Hermitian generators and unitary fixed gates preserves the norm of
+every input state. -/
 theorem wordState_norm_eq {K : ℕ} (G W : Fin K→Matrix I I ℂ) (ψ : EuclideanSpace ℂ I)
     (hG : ∀j,(G j).IsHermitian) (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ)
     (θ : EuclideanSpace ℝ (Fin K)) : ‖wordState G W ψ θ‖=‖ψ‖ := by

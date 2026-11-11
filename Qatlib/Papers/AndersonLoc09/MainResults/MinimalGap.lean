@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AndersonLoc09.MainResults.Defs
 
+/-!
+# Exact identities for the minimal-gap expression
+
+This module rewrites real powers of `A * lambdaStar N f2` as the exponential gap expression,
+including the specialization `n = vAlpha α * N`. It also bounds the reciprocal squared gap from
+below under an explicit logarithmic condition [AltshulerKroviRoland2010].
+
+## Main statements
+
+* `minimal_gap_eq9`: proves the exact exponential identity underlying Equation (9).
+* `adiabatic_time_ge_exp`: derives a reciprocal-square lower bound from a logarithmic condition.
+
+## References
+
+* [Altshuler et al., 2010][AltshulerKroviRoland2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -13,6 +30,8 @@ namespace Qatlib.Papers.AndersonLoc09.MainResults
 
 open Real
 
+/-- For positive `A`, `f2`, and `N`, the real power `(A * lambdaStar N f2) ^ n` equals `exp (-(n
+/ 8) * log (N / N0 A f2))`, the expression in Equation (9) [AltshulerKroviRoland2010]. -/
 theorem minimal_gap_eq9 (A f2 N n : ℝ) (hA : 0 < A) (hf2 : 0 < f2) (hN : 0 < N) :
     Real.rpow (A * lambdaStar N f2) n
       = Real.exp (-(n / 8) * Real.log (N / N0 A f2)) := by
@@ -51,6 +70,8 @@ theorem minimal_gap_eq9 (A f2 N n : ℝ) (hA : 0 < A) (hf2 : 0 < f2) (hN : 0 < N
   congr 1
   ring
 
+/-- For positive `A`, `f2`, and `N`, substituting exponent `vAlpha α * N` into the threshold
+power gives the corresponding `gapFormula` [AltshulerKroviRoland2010]. -/
 theorem minimal_gap_eq9_vAlpha (A f2 α N : ℝ) (hA : 0 < A) (hf2 : 0 < f2)
     (hN : 0 < N) :
     Real.rpow (A * lambdaStar N f2) (vAlpha α * N)
@@ -58,6 +79,8 @@ theorem minimal_gap_eq9_vAlpha (A f2 α N : ℝ) (hA : 0 < A) (hf2 : 0 < f2)
   rw [minimal_gap_eq9 A f2 N (vAlpha α * N) hA hf2 hN]
   rfl
 
+/-- For positive `N0`, `v`, and `N`, the condition `1 ≤ (v / 4) * log (N / N0)` implies that the
+reciprocal squared gap formula is at least `exp N` [AltshulerKroviRoland2010]. -/
 theorem adiabatic_time_ge_exp (N0 v N : ℝ) (hN0 : 0 < N0) (hv : 0 < v) (hN : 0 < N)
     (hcond : 1 ≤ (v / 4) * Real.log (N / N0)) :
     Real.exp N ≤ 1 / (gapFormula (v * N) N N0) ^ 2 := by

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalStat
 import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairSharpVariance
+
+/-!
+# Proof of the sharp quadratic Pauli variance bounds
+
+This module proves `PauliQuadraticVarianceSharpSubgoal` using the support-sensitive Pauli pair
+variance bounds. It also handles the zero-qubit case by showing that both variances vanish,
+completing the variance input to quadratic shadow estimates [HuangKuengPreskill2020].
+
+## Main statements
+
+* `pauliQuadraticVarianceSharp_zero_qubits`: both pair variances vanish on zero qubits.
+* `pauliQuadraticVarianceSharpSubgoal`: the full sharp variance statement.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +40,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- For a zero-qubit density operator, the conditional and kernel variances of every Pauli pair
+shadow kernel are zero. -/
 theorem pauliQuadraticVarianceSharp_zero_qubits (q : ℕ) (ww : Fin q → pauliPairWord 0)
     (c : Fin q → ℚ) (ρ : Operator (2^0)) (hρ : IsDensityOperator ρ) :
     let p := tensorPauliLaw 0 ρ hρ
@@ -45,6 +65,8 @@ theorem pauliQuadraticVarianceSharp_zero_qubits (q : ℕ) (ww : Fin q → pauliP
   · simp only [pairKernelVariance, hk, hμ, sub_self, zero_pow (by decide : 2 ≠ 0),
       mul_zero, Finset.sum_const_zero]
 
+/-- The sharp quadratic Pauli variance proposition holds for all supported rational Pauli pair
+observables satisfying the norm lower bound. -/
 theorem pauliQuadraticVarianceSharpSubgoal : PauliQuadraticVarianceSharpSubgoal := by
   intro n q ww c S₁ S₂ ρ hρ hs hn
   exact pauli_pair_sharp_variances n q ww c S₁ S₂ ρ hρ hs hn

@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
+
+/-!
+# Precision allocation for finite nested estimation
+
+This module bounds the finite inner bias budget and the outer amplitude-estimation window by
+explicit inverse-resolution expressions. These estimates give sufficient inner and outer
+resolutions for absolute and relative accuracy in the finite Monte Carlo model associated with
+[KanekoEtAl2020].
+
+`allocated_relative_accuracy` requires a positive finite target and allocates absolute tolerance
+as the target times the requested relative tolerance.
+
+## Main statements
+
+* `budget_bound`: replaces sample-dependent derivatives by a uniform bound.
+* `outerWindow_bound`: bounds the outer window by `(π + π²) / N`.
+* `allocated_accuracy`: gives an absolute-error guarantee from explicit resolution bounds.
+* `allocated_relative_accuracy`: gives the corresponding relative-error guarantee.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +44,8 @@ open Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
 
 namespace Qatlib.Papers.MonteCarloInt20.MainResults.Allocation
 
+/-- For positive `M`, a uniform bound `L` on the derivative magnitudes at all scaled term means
+bounds `finiteBudget` by `(L * |D| + K * D ^ 2) / M`. -/
 theorem budget_bound {n s d p : ℕ} (M : ℕ) (hM : 0 < M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (code : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1))
@@ -39,6 +65,8 @@ theorem budget_bound {n s d p : ℕ} (M : ℕ) (hM : 0 < M)
       have hs : (2:ℝ)^s ≠ 0 := pow_ne_zero _ (by norm_num)
       field_simp
 
+/-- For `M ≥ 2`, if all sampled payoff values lie in `[0, 1]`, then `finiteMean` lies in `[0,
+1]`. -/
 theorem finiteMean_bounds {n s d p : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (code : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (D : ℝ) (g : ℝ → ℝ)
@@ -68,6 +96,7 @@ theorem finiteMean_bounds {n s d p : ℕ} (M : ℕ) (hM : 2 ≤ M)
         mul_le_mul_of_nonneg_left (Finset.sum_le_sum (fun j _ => (hb j).2)) (by positivity)
       _ = 1 := by simp [Reg]
 
+/-- For `N ≥ 1` and `μ ∈ [0, 1]`, the outer estimation window is at most `(π + π²) / N`. -/
 theorem outerWindow_bound (N : ℕ) (hN : 1 ≤ N) (μ : ℝ) (hμ : μ ∈ Set.Icc (0:ℝ) 1) :
     outerWindow N μ ≤ (Real.pi+Real.pi^2)/(N:ℝ) := by
   have hn : (1:ℝ) ≤ N := by exact_mod_cast hN
@@ -85,6 +114,10 @@ theorem outerWindow_bound (N : ℕ) (hN : 1 ≤ N) (μ : ℝ) (hμ : μ ∈ Set.
       gcongr
     _ = _ := by ring
 
+/-- Under the stated finite-model smoothness and range hypotheses, positive coordinate width,
+and even `M ≥ 2`, the bounds `M ≥ 2 * (L * |D| + K * D ^ 2) / ε` and `N ≥ 2 * (π + π²) / ε`
+with `N ≥ 2` give absolute error at most positive `ε` with probability at least `8 / π²`
+[KanekoEtAl2020]. -/
 theorem allocated_accuracy {n s d p : ℕ} (hd : 0 < d)
     (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N) (hEven : 2 ∣ M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
@@ -119,6 +152,10 @@ theorem allocated_accuracy {n s d p : ℕ} (hd : 0 < d)
   · intro z _ _
     exact (finiteLaw M N hM hN a c seed code D g hrange).nonneg z
 
+/-- For a positive finite target, the stated smoothness and range hypotheses, and valid even
+inner and outer resolutions, allocating both resolution bounds using `εrel * finiteTarget a
+c seed code D g` gives relative error at most positive `εrel` with probability at least `8 /
+π²` [KanekoEtAl2020]. -/
 theorem allocated_relative_accuracy {n s d p : ℕ} (hd : 0 < d)
     (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N) (hEven : 2 ∣ M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem12K2WindowQuan
+
+/-!
+# Quantum counting windows from amplitude estimation
+
+This module specializes amplitude estimation to the uniform state prepared by `QFTMatrix N`.
+Scaling the amplitude estimate by `N` gives an estimate of `S.card` with the counting error
+radius `2πk√(t(N - t))/M + π²k²N/M²`, as in [BrassardEtAl2002].
+
+For positive `N`, grid size `M ≥ 2`, and `k ≥ 2`, the counting window has probability at least
+`1 - 1 / (2 * (k - 1))`. The result is packaged through `Theorem13K2WindowSpec.expected`.
+
+## Main statements
+
+* `bhmt_counting_k2_window`: the counting window probability bound.
+* `bhmt_counting_k2_window_contract`: the counting specification realized by that bound.
+
+## References
+
+* [Brassard et al., Theorem 13][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,9 @@ open Matrix
 open scoped Classical
 set_option autoImplicit false
 
+/-- For positive `N`, `M ≥ 2`, and `k ≥ 2`, uniform-preparation counting estimates `t = S.card`
+within `2πk√(t(N - t))/M + π²k²N/M²` with probability at least `1 - 1 / (2 * (k - 1))`
+[Brassard et al., Theorem 13][BrassardEtAl2002]. -/
 theorem bhmt_counting_k2_window (N M : ℕ) (S : Finset (Fin N)) (hN : 0 < N)
     (hM : 2 ≤ M) (k : ℕ) (hk : 2 ≤ k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -64,6 +88,8 @@ theorem bhmt_counting_k2_window (N M : ℕ) (S : Finset (Fin N)) (hN : 0 < N)
   · intro z _ _
     exact (aeLaw M (QFTMatrix N) ⟨0,hN⟩ S (qftMatrix_unitary hN) hM).nonneg z
 
+/-- The counting window bound for `k ≥ 2` satisfies `Theorem13K2WindowSpec.expected`
+[BrassardEtAl2002]. -/
 theorem bhmt_counting_k2_window_contract :
     Theorem13K2WindowSpec.expected :=
   bhmt_counting_k2_window

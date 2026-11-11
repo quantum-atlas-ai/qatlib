@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PaperQsvtEndpoint
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+
+/-!
+# Definitions for the QSVT application endpoint
+
+This module defines the Dolph window polynomial `paperApplicationWindow` and the proposition
+`PaperEndpointNext` for the QSVT applications of [GilyenSuLowWiebe2019]. The proposition
+combines odd word accounting, flat center window bounds, and perturbation control for polynomial
+functions of Hermitian contractions.
+
+## Main statements
+
+* `paperApplicationWindow`: Selects the Dolph polynomial at the prescribed degree.
+* `PaperEndpointNext`: Specifies the three application endpoint requirements.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
@@ -26,10 +45,13 @@ open scoped Classical BigOperators
 
 open Qatlib
 
+/-- The Dolph window polynomial at the degree chosen from accuracy ε and width δ. -/
 noncomputable def paperApplicationWindow (ε δ : ℝ) : Polynomial ℝ :=
   Qatlib.Concepts.QsvtCore.ApproxToolkit.dolphWindowPolynomial ε
     (Qatlib.Concepts.QsvtCore.ApproxToolkit.dolphWindowDegree ε δ)
 
+/-- The conjunction of odd word resource ledger equality, flat center bounds for the application
+window, and polynomial functional calculus robustness for Hermitian contractions. -/
 def PaperEndpointNext : Prop :=
   (∀ (Φ : List ℝ),
       Qatlib.Concepts.QsvtCore.PhaseExistence.paperLedger

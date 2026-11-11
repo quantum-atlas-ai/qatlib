@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CollisionProb97.MainResults.PairImageRetry
 import Mathlib.Tactic
+
+/-!
+# Building tables with distinct image values
+
+This module constructs `Records F n`, lists of accurate function records with pairwise distinct
+values. The costed construction `build` repeatedly samples a new image value, implementing the
+table stage of the regular claw algorithm in [BrassardHoyerTapp1998Collision].
+
+The expected query cost is the sum of `stageMean` over the stages and lies between `k` and `2 *
+k` under the half-image constraint.
+
+## Main statements
+
+* `Records`: A list of `n` input-value pairs whose values are pairwise distinct and agree with
+  evaluation of `F`.
+* `build_expected`: The expected cost of building `n` records is the sum of `stageMean F j` over
+  `j < n` [BrassardHoyerTapp1998Collision].
+* `build_query_bounds`: Building `k` distinct-image records has expected query cost between `k`
+  and `2 * k` under the half-image constraint [BrassardHoyerTapp1998Collision].
+* `build_records`: Every supported collection produced by `build` has length `k`, distinct
+  accurate values, and a value set of cardinality `k`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,31 +44,39 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 namespace Qatlib.Papers.CollisionProb97.MainResults.DistinctImageTable
 variable {X R : Type} [Fintype X] [Nonempty X] [Nonempty R] [DecidableEq R]
 
+/-- A list of `n` input-value pairs whose values are pairwise distinct and agree with evaluation
+of `F`. -/
 structure Records (F : X → R) (n : ℕ) where
   entries : List (X × R)
   length_eq : entries.length = n
   distinct : (entries.map Prod.snd).Nodup
   accurate : ∀ p ∈ entries, p.2 = F p.1
 
+/-- The finite set of values stored in a collection of accurate distinct-image records. -/
 def values {F : X → R} {n : ℕ} (s : Records F n) : Finset R :=
   (s.entries.map Prod.snd).toFinset
 
 omit [Fintype X] [Nonempty X] [Nonempty R] in
 
+/-- A collection of `n` distinct-image records stores exactly `n` values. -/
 theorem values_card {F : X → R} {n : ℕ} (s : Records F n) : (values s).card = n := by
   rw [values, List.toFinset_card_of_nodup s.distinct, List.length_map, s.length_eq]
 
 omit [Nonempty X] [Nonempty R] in
 
+/-- Every stored value belongs to the image of `F`. -/
 theorem values_subset {F : X → R} {n : ℕ} (s : Records F n) :
     values s ⊆ Finset.univ.image F := by
   intro z hz
   obtain ⟨p, hp, he⟩ := List.mem_map.mp (List.mem_toFinset.mp hz)
   exact Finset.mem_image.mpr ⟨p.1, Finset.mem_univ _, he ▸ s.accurate p hp |>.symm⟩
 
+/-- The collection containing no records. -/
 def empty (F : X → R) : Records F 0 :=
   ⟨[], rfl, List.nodup_nil, by simp⟩
 
+/-- Prepends an accurate record with a previously unused value, producing `n + 1` distinct-image
+records. -/
 def insert {F : X → R} {n : ℕ} (s : Records F n) (p : X × R)
     (hp : PairImageRetry.Valid F (values s) p) : Records F (n+1) where
   entries := p :: s.entries
@@ -53,10 +88,14 @@ def insert {F : X → R} {n : ℕ} (s : Records F n) (p : X × R)
     · simpa only [he] using hp.1
     · exact s.accurate q hq
 
+/-- The extended nonnegative scalar `|image F| / (|image F| - n)` for the expected cost of
+obtaining the next new value. -/
 def stageMean (F : X → R) (n : ℕ) : ℝ≥0∞ :=
   ENNReal.ofReal (((Finset.univ.image F).card : ℝ) /
     (((Finset.univ.image F).card - n : ℕ) : ℝ))
 
+/-- The costed law extending a record collection by retrying until an accurate record with a new
+value is obtained. -/
 def extend (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r)
     {n : ℕ} (hhalf : 2*n ≤ (Finset.univ.image F).card) (s : Records F n) :
@@ -65,6 +104,8 @@ def extend (F : X → R) (r : ℕ) (hr : 0 < r)
     insert s z.1 (PairImageRetry.returning_valid F r hr hF (values s) (values_subset s)
       (by simpa only [values_card] using hhalf) z.1 z.2 hz)
 
+/-- Extending `n` records has expected cost `stageMean F n`, at most two under the half-image
+constraint. -/
 theorem extend_expected (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r)
     {n : ℕ} (hhalf : 2*n ≤ (Finset.univ.image F).card) (s : Records F n) :
@@ -75,6 +116,8 @@ theorem extend_expected (F : X → R) (r : ℕ) (hr : 0 < r)
     PairImageRetry.returning_expected F r hr hF (values s) (values_subset s)
       (by simpa only [values_card] using hhalf)
 
+/-- Every supported extension is obtained by prepending a record supported by the new-image
+retry law, with the same cost. -/
 theorem extend_support (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r)
     {n : ℕ} (hhalf : 2*n ≤ (Finset.univ.image F).card) (s : Records F n)
@@ -87,6 +130,8 @@ theorem extend_support (F : X → R) (r : ℕ) (hr : 0 < r)
   · rw [ht]
     rfl
 
+/-- The costed construction of `n` accurate records with distinct values by successive new-image
+retries, under the half-image constraint. -/
 def build (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r) :
     (n : ℕ) → 2*n ≤ (Finset.univ.image F).card → CostedLaw (Records F n)
@@ -94,6 +139,8 @@ def build (F : X → R) (r : ℕ) (hr : 0 < r)
   | n+1, hn => CostedLaw.bind (build F r hr hF n (by omega))
       (extend F r hr hF (by omega))
 
+/-- The expected cost of building `n` records is the sum of `stageMean F j` over `j < n`
+[BrassardHoyerTapp1998Collision]. -/
 theorem build_expected (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r)
     (n : ℕ) (hn : 2*n ≤ (Finset.univ.image F).card) :
@@ -111,6 +158,7 @@ theorem build_expected (F : X → R) (r : ℕ) (hr : 0 < r)
 
 omit [Nonempty R] in
 
+/-- Under the half-image constraint, the scalar stage mean lies between one and two. -/
 theorem stageMean_bounds (F : X → R) (n : ℕ)
     (hn : 2*n ≤ (Finset.univ.image F).card) : 1 ≤ stageMean F n ∧ stageMean F n ≤ 2 := by
   let m := (Finset.univ.image F).card
@@ -133,6 +181,8 @@ theorem stageMean_bounds (F : X → R) (n : ℕ)
   · simpa only [stageMean, ENNReal.ofReal_one] using ENNReal.ofReal_le_ofReal hdiv.1
   · simpa only [stageMean, ENNReal.ofReal_ofNat] using ENNReal.ofReal_le_ofReal hdiv.2
 
+/-- Building `k` distinct-image records has expected query cost between `k` and `2 * k` under
+the half-image constraint [BrassardHoyerTapp1998Collision]. -/
 theorem build_query_bounds (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r)
     (k : ℕ) (hk : 2*k ≤ (Finset.univ.image F).card) :
@@ -153,6 +203,8 @@ theorem build_query_bounds (F : X → R) (r : ℕ) (hr : 0 < r)
         exact (stageMean_bounds F j (by have := Finset.mem_range.mp hj; omega)).2
       _ = 2*k := by simp [mul_comm]
 
+/-- Every supported collection produced by `build` has length `k`, distinct accurate values, and
+a value set of cardinality `k`. -/
 theorem build_records (F : X → R) (r : ℕ) (hr : 0 < r)
     (hF : ∀ y ∈ Finset.univ.image F, (Finset.univ.filter (fun x => F x = y)).card = r)
     (k : ℕ) (hk : 2*k ≤ (Finset.univ.image F).card)

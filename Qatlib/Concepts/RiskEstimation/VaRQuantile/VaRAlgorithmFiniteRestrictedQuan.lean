@@ -8,6 +8,27 @@ import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedSt
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+/-!
+# Finite value-at-risk bisection accuracy
+
+This module proves the approximate quantile-bracket guarantee for `riskVaR` by combining median
+CDF readout with finite routing. It also establishes monotonicity along sorted threshold indices
+and normalization at the last threshold when the list contains all losses. These results
+formalize the bisection analysis of [WoernerEgger2019].
+
+## Main statements
+
+* `riskCDF_indices`: monotonicity of cumulative probability along a sorted list.
+* `riskCDF_last`: the last threshold has cumulative probability one.
+* `riskVaRAlgorithmFinite`: establish the depth-weighted failure bound for the approximate
+  quantile bracket.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -24,6 +45,8 @@ open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 set_option autoImplicit false
 
+/-- The cumulative risk probability is nondecreasing along valid indices of a sorted threshold
+list. -/
 theorem riskCDF_indices {I : Type} [Fintype I] (A : Matrix I I ℂ) (j : I) (loss : I → ℚ)
     (xs : List ℚ) (hs : xs.SortedLE) (u v : ℕ) (hu : u < xs.length) (hv : v < xs.length) (huv : u ≤ v) :
     riskCDF A j loss (xs.getD u 0) ≤ riskCDF A j loss (xs.getD v 0) := by
@@ -31,6 +54,8 @@ theorem riskCDF_indices {I : Type} [Fintype I] (A : Matrix I I ℂ) (j : I) (los
   rw [List.getD_eq_getElem xs 0 hu, List.getD_eq_getElem xs 0 hv]
   exact hs.getElem_le_getElem_of_le huv
 
+/-- For a unitary preparation, the last entry of a nonempty sorted list containing every loss
+has cumulative probability one. -/
 theorem riskCDF_last {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hxs : xs ≠ []) (hs : xs.SortedLE) (hloss : ∀ i, loss i ∈ xs) :
@@ -46,6 +71,10 @@ theorem riskCDF_last {I : Type} [Fintype I] [DecidableEq I]
   simp only [riskCDFPayoff, if_pos (hb _), mul_one]
   exact bornProb_sum_eq_one (normalized_applyGate hA (normalized_ket j))
 
+/-- If the readout window fits within the tolerance, `riskVaR` violates the approximate quantile
+bracket with probability at most the search depth times `(8/9)^r`. This establishes the
+finite bisection guarantee associated with [Woerner and Egger, Section
+II][WoernerEgger2019]. -/
 theorem riskVaRAlgorithmFinite : VaRAlgorithmFiniteRestricted := by
   intro I _ _ A j loss xs q eps M r hA hM hxs hs hloss hq0 hq1 heps hwindow
   have hsam : ∀ t, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (riskMedianPMF (riskCDFLaw A j loss t M hA hM) r)

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.EffectiveNearOptimalSignWindow
+
+/-!
+# Explicit mesh and tail budgets
+
+This module selects a trapezoidal mesh step and Gaussian truncation radius from separate
+positive error budgets for the LCHS integral in [AftabAnTrivisa2026]. The quantities `meshLog`
+and `tailLog` determine `meshStep` and `tailRadius`, with explicit bounds for the resulting node
+count and rounded radius.
+
+The scalar tail constant controls both the continuous coefficient tail and the operator
+truncation error. `selected_error_le` combines the chosen mesh and radius into a finite
+quadrature error bound.
+
+## Main statements
+
+* `mesh_budget`: The selected mesh step meets the mesh error budget.
+* `tail_budget`: The selected Gaussian radius meets the tail error budget.
+* `selected_error_le`: The selected finite rule has error at most the sum of the budgets.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -16,9 +40,11 @@ open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 open Qatlib.Concepts.QsvtCore.ApproxToolkit (erf one_sub_erf_eq one_sub_erf_le)
 
+/-- The Gaussian tail prefactor `c / sqrt π * ((b + 1) / b) ^ n * exp(d - 1 / (4 * c ^ 2))`. -/
 def tailConstant (n : ℕ) (b c d : ℝ) : ℝ :=
   c / Real.sqrt Real.pi * ((b + 1) / b) ^ n * Real.exp (d - 1 / (4 * c ^ 2))
 
+/-- At zero strip displacement and growth parameter, `mass` equals `tailConstant`. -/
 theorem mass_zero (n : ℕ) (b c d : ℝ) : mass n b c d 0 0 = tailConstant n b c d := by
   unfold mass tailConstant
   rw [div_pow]
@@ -27,9 +53,12 @@ theorem mass_zero (n : ℕ) (b c d : ℝ) : mass n b c d 0 0 = tailConstant n b 
   congr 1
   ring
 
+/-- The Gaussian tail constant is positive when `b` and `c` are positive. -/
 theorem tailConstant_pos (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c) :
     0 < tailConstant n b c d := by unfold tailConstant; positivity
 
+/-- Evaluates the Gaussian integral over `x > R` as `c * sqrt π * (1 - erf(R / (2 * c)))` for
+positive `c` and `R`. -/
 theorem gaussian_tail_erfc {c R : ℝ} (hc : 0 < c) (hR : 0 < R) :
     (∫ x in Ioi R, Real.exp (-x ^ 2 / (4 * c ^ 2))) =
       c * Real.sqrt Real.pi * (1 - erf (R / (2 * c))) := by
@@ -46,6 +75,8 @@ theorem gaussian_tail_erfc {c R : ℝ} (hc : 0 < c) (hR : 0 < R) :
   rw [one_sub_erf_eq _ (div_pos hR (by positivity)), hs]
   field_simp [hc.ne', (Real.sqrt_pos.mpr Real.pi_pos).ne']
 
+/-- For positive `b`, `c`, and `R`, bounds the continuous coefficient tail by `tailConstant`
+times the complementary error function at `R / (2 * c)`. -/
 theorem continuousTail_le_erfc (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {R : ℝ} (hR : 0 < R) :
     continuousTail n b c d R ≤ tailConstant n b c d * (1 - erf (R / (2 * c))) := by
@@ -67,6 +98,8 @@ theorem continuousTail_le_erfc (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
       ring
     _ = _ := by rw [amplitude_mul_gaussian, mass_zero]
 
+/-- The strip mass is positive for positive `b` and `c` when `ρ < 1` and either `n = 0` or `ρ <
+b`. -/
 theorem mass_pos (n : ℕ) (b c d ρ K : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hρ : ρ < 1) (hbn : n = 0 ∨ ρ < b) : 0 < mass n b c d ρ K := by
   have hpow : 0 < (b - ρ) ^ n := by
@@ -77,25 +110,33 @@ theorem mass_pos (n : ℕ) (b c d ρ K : ℝ) (hb : 0 < b) (hc : 0 < c)
   have hd : 0 < 1 - ρ := sub_pos.mpr hρ
   positivity
 
+/-- The logarithmic mesh-budget factor `log(1 + 2 * M / ε)`. -/
 def meshLog (M ε : ℝ) : ℝ := Real.log (1 + 2 * M / ε)
 
+/-- The tail-budget factor `max 1 (log(C / ε))`. -/
 def tailLog (C ε : ℝ) : ℝ := max 1 (Real.log (C / ε))
 
+/-- The mesh step obtained by taking the minimum of `1`, `2 * c`, and `2 * π * ρ / meshLog M ε`. -/
 def meshStep (c ρ M ε : ℝ) : ℝ := min 1 (min (2 * c) (2 * Real.pi * ρ / meshLog M ε))
 
+/-- The Gaussian truncation radius `2 * c * sqrt(tailLog C ε)`. -/
 def tailRadius (c C ε : ℝ) : ℝ := 2 * c * Real.sqrt (tailLog C ε)
 
+/-- The logarithmic mesh-budget factor is positive when `M` and `ε` are positive. -/
 theorem meshLog_pos {M ε : ℝ} (hM : 0 < M) (hε : 0 < ε) : 0 < meshLog M ε := by
   apply Real.log_pos
   have hp : 0 < 2 * M / ε := by positivity
   linarith
 
+/-- The selected mesh step is positive when `c`, `ρ`, `M`, and `ε` are positive. -/
 theorem meshStep_pos {c ρ M ε : ℝ} (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hε : 0 < ε) : 0 < meshStep c ρ M ε := by
   have hl := meshLog_pos hM hε
   unfold meshStep
   positivity
 
+/-- A positive step at most `2 * π * ρ / meshLog M ε` makes the exponential mesh-error
+expression at most the positive budget `ε`, when `M > 0`. -/
 theorem mesh_budget_of_step {ρ M ε h : ℝ} (hM : 0 < M) (hε : 0 < ε)
     (hh : 0 < h) (hs : h ≤ 2 * Real.pi * ρ / meshLog M ε) :
     2 * M / (Real.exp (2 * Real.pi * ρ / h) - 1) ≤ ε := by
@@ -117,12 +158,15 @@ theorem mesh_budget_of_step {ρ M ε h : ℝ} (hM : 0 < M) (hε : 0 < ε)
   rw [mul_add, mul_one, heps] at hmul
   nlinarith
 
+/-- For positive `c`, `ρ`, `M`, and `ε`, the selected step makes `2 * M / (exp(2 * π * ρ /
+meshStep) - 1)` at most `ε`. -/
 theorem mesh_budget {c ρ M ε : ℝ} (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hε : 0 < ε) :
     2 * M / (Real.exp (2 * Real.pi * ρ / meshStep c ρ M ε) - 1) ≤ ε := by
   exact mesh_budget_of_step hM hε (meshStep_pos hc hρ hM hε)
     ((min_le_right _ _).trans (min_le_right _ _))
 
+/-- For `u ≥ 1`, the complementary error function `1 - erf u` is bounded by `exp(-u ^ 2)`. -/
 theorem erfc_le_exp {u : ℝ} (hu : 1 ≤ u) : 1 - erf u ≤ Real.exp (-u ^ 2) := by
   have hp : 1 ≤ Real.sqrt Real.pi := by
     have hpi : (1 : ℝ) ≤ Real.pi := by linarith [Real.pi_gt_three]
@@ -130,6 +174,7 @@ theorem erfc_le_exp {u : ℝ} (hu : 1 ≤ u) : 1 - erf u ≤ Real.exp (-u ^ 2) :
   have hd : 1 ≤ u * Real.sqrt Real.pi := by nlinarith
   exact (one_sub_erf_le u (by linarith)).trans (div_le_self (Real.exp_pos _).le hd)
 
+/-- For positive `C` and `ε`, the selected tail logarithm ensures `C * exp(-tailLog C ε) ≤ ε`. -/
 theorem exp_tailLog_budget {C ε : ℝ} (hC : 0 < C) (hε : 0 < ε) :
     C * Real.exp (-tailLog C ε) ≤ ε := by
   have he : Real.exp (-tailLog C ε) ≤ (C / ε)⁻¹ := by
@@ -141,6 +186,8 @@ theorem exp_tailLog_budget {C ε : ℝ} (hC : 0 < C) (hε : 0 < ε) :
   have hi : C * (C / ε)⁻¹ = ε := by field_simp
   simpa only [hi] using! hm
 
+/-- For positive `c`, `C`, and `ε`, the complementary-error-function tail at `tailRadius c C ε`
+is at most `ε` after multiplication by `C`. -/
 theorem tail_budget {c C ε : ℝ} (hc : 0 < c) (hC : 0 < C) (hε : 0 < ε) :
     C * (1 - erf (tailRadius c C ε / (2 * c))) ≤ ε := by
   have hl : 1 ≤ tailLog C ε := le_max_left _ _
@@ -153,6 +200,8 @@ theorem tail_budget {c C ε : ℝ} (hc : 0 < c) (hC : 0 < C) (hε : 0 < ε) :
   rw [Real.sq_sqrt (by linarith : 0 ≤ tailLog C ε)]
   exact exp_tailLog_budget hC hε
 
+/-- Bounds the reciprocal selected step by `1 + 1 / (2 * c) + meshLog M ε / (2 * π * ρ)` for
+positive parameters. -/
 theorem inv_meshStep_le {c ρ M ε : ℝ} (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hε : 0 < ε) :
     1 / meshStep c ρ M ε ≤ 1 + 1 / (2 * c) + meshLog M ε / (2 * Real.pi * ρ) := by
@@ -173,6 +222,8 @@ theorem inv_meshStep_le {c ρ M ε : ℝ} (hc : 0 < c) (hρ : 0 < ρ)
       rw [hi]
       linarith
 
+/-- For nonnegative `R` and positive `h`, the rounded symmetric lattice contains at most `2 * R
+/ h + 3` nodes. -/
 theorem node_count_le {R h : ℝ} (hR : 0 ≤ R) (hh : 0 < h) :
     ((Finset.Icc (-(cutoff R h : ℤ)) (cutoff R h)).card : ℝ) ≤ 2 * R / h + 3 := by
   have hn : (cutoff R h : ℝ) < R / h + 1 := Nat.ceil_lt_add_one (div_nonneg hR hh.le)
@@ -181,6 +232,9 @@ theorem node_count_le {R h : ℝ} (hR : 0 ≤ R) (hh : 0 < h) :
   rw [mul_div_assoc]
   linarith
 
+/-- Bounds the number of nodes selected by `tailRadius` and `meshStep` explicitly in terms of
+the mesh and tail logarithms, under the stated positivity hypotheses. This gives the node
+estimate associated with [Aftab et al., Corollary 4.15][AftabAnTrivisa2026]. -/
 theorem budget_node_count (c ρ M C εm εt : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hεm : 0 < εm) :
     ((Finset.Icc (-(cutoff (tailRadius c C εt) (meshStep c ρ M εm) : ℤ))
@@ -208,6 +262,8 @@ theorem budget_node_count (c ρ M C εm εt : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
     (show 0 ≤ (c / ρ) * Real.sqrt (tailLog C εt) * meshLog M εm by positivity)
   nlinarith [Real.sqrt_nonneg (tailLog C εt)]
 
+/-- For positive `c`, the selected mesh step is at most `2 * π` times `min 1 (min (2 * c) (ρ /
+meshLog M ε))`. -/
 theorem meshStep_le_scaled_min {c ρ M ε : ℝ} (hc : 0 < c) :
     meshStep c ρ M ε ≤ 2 * Real.pi * min 1 (min (2 * c) (ρ / meshLog M ε)) := by
   have hp : 1 ≤ 2 * Real.pi := by linarith [Real.pi_gt_three]
@@ -225,6 +281,9 @@ theorem meshStep_le_scaled_min {c ρ M ε : ℝ} (hc : 0 < c) :
       convert! hs using 1
       ring
 
+/-- Bounds the rounded radius selected by the mesh and tail budgets by the stated expression in
+`c`, `ρ`, `meshLog`, and `tailLog`. This gives the radius estimate associated with [Aftab et
+al., Corollary 4.15][AftabAnTrivisa2026]. -/
 theorem budget_radius (c ρ M C εm εt : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hεm : 0 < εm) :
     radius (tailRadius c C εt) (meshStep c ρ M εm) ≤
@@ -246,6 +305,10 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- For positive `b`, `c`, and radius, the operator truncation error is bounded by
+`tailConstant` times the complementary error function under the stated matrix assumptions.
+This is the truncation estimate associated with [Aftab et al., Lemma
+3.6][AftabAnTrivisa2026]. -/
 theorem operator_error_le_erfc (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T R : ℝ} (hT : 0 ≤ T) (hR : 0 < R) :
@@ -254,11 +317,16 @@ theorem operator_error_le_erfc (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
   (operatorTruncationError_le n b c d hb hc H L hH hL hT hR.le).trans
     (continuousTail_le_erfc n b c d hb hc hR)
 
+/-- The selected Gaussian tail radius is positive for positive `c`, regardless of `C` and `ε`. -/
 theorem tailRadius_pos (c C ε : ℝ) (hc : 0 < c) : 0 < tailRadius c C ε := by
   have hl : 0 < tailLog C ε := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) (le_max_left _ _)
   unfold tailRadius
   positivity
 
+/-- For admissible positive parameters, Hermitian `H`, positive semidefinite `L`, and
+nonnegative time, the finite trapezoidal rule selected from positive mesh and tail budgets
+has error at most their sum. This gives an explicit budget selection for
+[AftabAnTrivisa2026]. -/
 theorem selected_error_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ εm εt : ℝ} (hT : 0 ≤ T) (hρ₀ : 0 < ρ) (hρ : ρ < 1)

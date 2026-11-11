@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.WeightedVisits
 import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Composition
+
+/-!
+# Visit-weighted expected descent charges
+
+`rowCharge` assigns each rank its mean outgoing charge, and `earned` sums a reward over the
+states of a trace. The expected paid charge of initialized descent is the sum of row charges
+weighted by their rank-visit probabilities `q j / prefixSum q (j + 1)` under the stated row law.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `descend_paid_reward`: The mean paid charge of descent equals its mean accumulated state
+  reward for reward function `rowCharge rows`.
+* `initialized_paid_formula`: Under the rank-distribution and row-law hypotheses with positive
+  optimal mass and nonnegative weights, initialized descent has mean paid charge equal to the
+  sum of row charges times `q j / prefixSum q (j + 1)`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,12 +38,16 @@ open scoped Classical
 open Qatlib.Foundations.ProbabilityCore.FiniteBranch
 open Qatlib.Papers.QAOAScaling23.BiasedProcess
 
+/-- The mean outgoing row charge at rank `r + 1`, with charge zero at rank zero. -/
 def rowCharge (rows : (r : ℕ) → Row r) : ℕ → ℝ
   | 0 => 0
   | r+1 => ∑ a, ((rows r).law a).toReal * ((rows r).charge a : ℝ)
 
+/-- The sum of the state rewards `c` over all states recorded in a trace. -/
 def earned (c : ℕ → ℝ) (tr : Trace) : ℝ := (tr.states.map c).sum
 
+/-- The mean paid charge of descent equals its mean accumulated state reward for reward function
+`rowCharge rows`. -/
 theorem descend_paid_reward (rows : (r : ℕ) → Row r) (r : ℕ) :
     (descend rows r).mean (fun tr => (paid tr:ℝ))=
       (descend rows r).mean (earned (rowCharge rows)) := by
@@ -49,6 +76,8 @@ theorem descend_paid_reward (rows : (r : ℕ) → Row r) (r : ℕ) :
       simp only [mul_add,Finset.sum_add_distrib,← Finset.sum_mul,Tree.weights_sum,one_mul,rowCharge]
       rfl
 
+/-- For a list of ranks below `L`, the sum of its rewards equals the sum over ranks below `L` of
+each reward times its occurrence count. -/
 theorem reward_count_identity (xs : List ℕ) (c : ℕ → ℝ) (L : ℕ)
     (hxs : ∀ j∈xs,j<L) :
     (xs.map c).sum=∑ j ∈ Finset.range L, c j*(xs.count j:ℝ) := by
@@ -66,6 +95,9 @@ theorem reward_count_identity (xs : List ℕ) (c : ℕ → ℝ) (L : ℕ)
     simp_rw [h,Finset.sum_add_distrib]
     simp [hx]
 
+/-- Under the rank-distribution and row-law hypotheses with positive optimal mass and
+nonnegative weights, initialized descent has mean paid charge equal to the sum of row
+charges times `q j / prefixSum q (j + 1)`. -/
 theorem initialized_paid_formula {L : ℕ} (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L,(p i).toReal=q i.val) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows) :

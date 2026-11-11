@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputationDefs
+
+/-!
+# Quantized matrices and frame resource bounds
+
+This module bounds entrywise, Frobenius, operator, and spectral errors for rational
+approximations of matrices, including symmetrization of Hermitian inputs. The spectral
+perturbation estimates use the matrix analysis framework of [Bhatia1997].
+
+It also defines a resource ledger for `FrameData` and proves the corresponding symbolic gate
+counts, ancilla counts, time costs, and budget equivalence.
+
+## Main statements
+
+* `tunableGoal_frobenius_error` and `tunableGoal_operator_error`: bound quantization errors.
+* `tunableGoal_same_word_margin`: preserves a positive eigenvalue gap above the error threshold.
+* `tunableGoal_endpoint` and `optGoal_endpoint`: collect the approximation and frame ledger
+  statements.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation
@@ -20,30 +43,39 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The real precision unit `ratUnitR p` is nonnegative. -/
 theorem ratUnitR_nonneg (p : ℕ) : 0 ≤ ratUnitR p := by
   unfold ratUnitR
   positivity
 
+/-- Complex conjugation preserves the norm. -/
 theorem norm_star (z : ℂ) : ‖star z‖ = ‖z‖ := by
   rw [Complex.star_def, Complex.norm_def, Complex.norm_def]
   congr 1
   simp
 
+/-- Complex conjugation distributes over subtraction. -/
 theorem star_sub (a b : ℂ) : star (a - b) = star a - star b := by
   rw [Complex.star_def, map_sub, starRingEnd_apply]
 
+/-- The finite record containing the rational approximation at precision `p`, the error value
+`ratUnitR p`, and the bit count `p`. -/
 noncomputable def quantise (x : CauchyReal) (p : ℕ) : FiniteReal where
   value := x.approx p
   error := ratUnitR p
   bits := p
 
+/-- The complex matrix obtained by casting each rational approximation entry at precision `p`. -/
 noncomputable def quantiseMatrix (A : CauchyComplexMatrix I) (p : ℕ) :
     Matrix I I ℂ :=
   fun i j => (A.approx p i j : ℚ)
 
+/-- The Hermitian symmetrization `(1 / 2 : ℂ) • (M + Mᴴ)`. -/
 noncomputable def sym (M : Matrix I I ℂ) : Matrix I I ℂ :=
   (1 / 2 : ℂ) • (M + Mᴴ)
 
+/-- Quantizing at `digitsFor k` gives error at most `ratUnitR k`, with the recorded bit count
+and value equal to the chosen precision and approximation. -/
 theorem tunableGoal_digits (x : CauchyReal) (k : ℕ) :
     (quantise x (digitsFor k)).error ≤ ratUnitR k ∧
     (quantise x (digitsFor k)).bits = digitsFor k ∧
@@ -64,10 +96,14 @@ theorem tunableGoal_digits (x : CauchyReal) (k : ℕ) :
       _ = (1 : ℝ) / (2 : ℝ) ^ k := by ring
   exact hmain
 
+/-- Every entry of the quantized matrix differs from the corresponding original entry by at most
+`ratUnitR p`. -/
 theorem tunableGoal_entry_error (A : CauchyComplexMatrix I) (p : ℕ) (i j : I) :
     ‖quantiseMatrix A p i j - A.data i j‖ ≤ ratUnitR p :=
   A.error p i j
 
+/-- If every entry norm is at most `ratUnitR p`, the Frobenius norm is at most `Fintype.card I *
+ratUnitR p`. -/
 theorem tunableGoal_frobenius_of_entrywise (M : Matrix I I ℂ) (p : ℕ)
     (h : ∀ i j, ‖M i j‖ ≤ ratUnitR p) :
     spectralFrobenius M ≤ (Fintype.card I : ℝ) * ratUnitR p := by
@@ -91,14 +127,20 @@ theorem tunableGoal_frobenius_of_entrywise (M : Matrix I I ℂ) (p : ℕ)
     mul_nonneg (Nat.cast_nonneg _) (ratUnitR_nonneg p)
   nlinarith
 
+/-- The Frobenius error of matrix quantization is at most the matrix dimension times `ratUnitR
+p`. -/
 theorem tunableGoal_frobenius_error (A : CauchyComplexMatrix I) (p : ℕ) :
     spectralFrobenius (quantiseMatrix A p - A.data) ≤ (Fintype.card I : ℝ) * ratUnitR p :=
   tunableGoal_frobenius_of_entrywise _ p fun i j => tunableGoal_entry_error A p i j
 
+/-- The operator norm error of matrix quantization is at most the matrix dimension times
+`ratUnitR p`. -/
 theorem tunableGoal_operator_error (A : CauchyComplexMatrix I) (p : ℕ) :
     ‖quantiseMatrix A p - A.data‖ ≤ (Fintype.card I : ℝ) * ratUnitR p :=
   le_trans (spectral_operator_norm_le_frobenius _) (tunableGoal_frobenius_error A p)
 
+/-- For a Hermitian input, the symmetrization error is the average of the quantization error and
+its conjugate transpose. -/
 theorem tunableGoal_sym_error_key (A : CauchyComplexMatrix I) (p : ℕ)
     (hA : A.data.IsHermitian) :
     sym (quantiseMatrix A p) - A.data
@@ -113,6 +155,8 @@ theorem tunableGoal_sym_error_key (A : CauchyComplexMatrix I) (p : ℕ)
   rw [hAij]
   ring
 
+/-- Symmetrizing a quantized Hermitian matrix preserves the dimension-scaled operator error
+bound and the entrywise precision bound. -/
 theorem tunableGoal_sym_error (A : CauchyComplexMatrix I) (p : ℕ)
     (hA : A.data.IsHermitian) :
     ‖sym (quantiseMatrix A p) - A.data‖ ≤ (Fintype.card I : ℝ) * ratUnitR p ∧
@@ -156,6 +200,8 @@ theorem tunableGoal_sym_error (A : CauchyComplexMatrix I) (p : ℕ)
         spectral_operator_norm_le_frobenius _
     _ ≤ (Fintype.card I : ℝ) * ratUnitR p := hfro
 
+/-- The sum of squared ordered eigenvalue errors after Hermitian symmetrization is at most the
+square of the dimension-scaled precision bound. -/
 theorem tunableGoal_gram_error (A : CauchyComplexMatrix I) (p : ℕ)
     (hA : A.data.IsHermitian) (hÃ : (sym (quantiseMatrix A p)).IsHermitian) :
     (∑ i : Fin (Fintype.card I), (orderedHermitianValues hA i
@@ -196,6 +242,8 @@ theorem tunableGoal_gram_error (A : CauchyComplexMatrix I) (p : ℕ)
     simpa [Matrix.norm_conjTranspose] using hhw
   exact le_trans hhw' hsq
 
+/-- The original ordered eigenvalue gap minus the symmetrized approximation's gap is at most
+twice the dimension-scaled precision bound. -/
 theorem tunableGoal_spectral_gap (A : CauchyComplexMatrix I) (p : ℕ)
     (hA : A.data.IsHermitian) (hÃ : (sym (quantiseMatrix A p)).IsHermitian)
     (i j : Fin (Fintype.card I)) :
@@ -218,6 +266,8 @@ theorem tunableGoal_spectral_gap (A : CauchyComplexMatrix I) (p : ℕ)
     (tunableGoal_sym_error A p hA).1
   linarith
 
+/-- An original ordered eigenvalue gap larger than twice the dimension-scaled precision remains
+positive after symmetrized quantization, with the stated one-sided gap error bound. -/
 theorem tunableGoal_same_word_margin (A : CauchyComplexMatrix I) (p : ℕ)
     (hA : A.data.IsHermitian) (hÃ : (sym (quantiseMatrix A p)).IsHermitian)
     (i j : Fin (Fintype.card I))
@@ -236,6 +286,7 @@ theorem tunableGoal_same_word_margin (A : CauchyComplexMatrix I) (p : ℕ)
   rw [h1]
   linarith
 
+/-- The matrix read cost is `D * D * p` and is at most `D * D * (p + 1)`. -/
 theorem tunableGoal_read_cost (D p : ℕ) :
     matrixReadBits D p = D * D * p ∧
     matrixReadBits D p ≤ D * D * (p + 1) := by
@@ -244,22 +295,28 @@ theorem tunableGoal_read_cost (D p : ℕ) :
   · simp only [matrixReadBits]
     nlinarith
 
+/-- The complex matrix obtained by casting the rational Gram entries in `FrameData`. -/
 def FrameData.gramMatrix
     {m : ℕ} (F : FrameData m) : Matrix (Fin m) (Fin m) ℂ :=
   fun i j => (F.gram i j : ℚ)
 
+/-- The prescribed polar correction time cost `F.entries * F.entries`. -/
 def FrameData.polarCorrectionBitTime
     {m : ℕ} (F : FrameData m) : ℕ := F.entries * F.entries
 
+/-- The sum of the frame read time and polar correction time costs. -/
 def FrameData.totalBitTime
     {m : ℕ} (F : FrameData m) : ℕ :=
   F.readBitTime + (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.polarCorrectionBitTime F)
 
+/-- The condition that the recorded defect and total time fit the specified error and time
+budgets. -/
 def FrameData.implementable
     {m : ℕ} (F : FrameData m) (errorBudget : ℝ)
     (bitTimeBudget : ℕ) : Prop :=
   (F.defect : ℝ) ≤ errorBudget ∧ (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.totalBitTime F) ≤ bitTimeBudget
 
+/-- Every gate in the frame preparation word belongs to the fixed list `FrameGateSet.all`. -/
 theorem optGoal_fixed_gate_table {m : ℕ} (F : FrameData m) :
     ∀ g ∈ F.prepareWord, g ∈ FrameGateSet.all := by
   intro g hg
@@ -271,33 +328,44 @@ theorem optGoal_fixed_gate_table {m : ℕ} (F : FrameData m) :
     aesop
   simpa only [FrameGateSet.all, List.mem_cons, List.not_mem_nil, or_false] using hdisj
 
+/-- The frame preparation word has length `F.entries + 5`. -/
 theorem optGoal_gate_count {m : ℕ} (F : FrameData m) :
     F.prepareWord.length = F.entries + 5 := by
   simp only [FrameData.prepareWord, List.length_append, List.length_replicate,
     List.length_cons, List.length_nil, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
 
+/-- The recorded frame ancilla count is `F.entries + 1`. -/
 theorem optGoal_ancillas {m : ℕ} (F : FrameData m) : F.ancillas = F.entries + 1 := by
   rfl
 
+/-- The total frame time cost equals `F.entries + F.entries * F.entries`. -/
 theorem optGoal_read_bit_time {m : ℕ} (F : FrameData m) :
     (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.totalBitTime F) = F.entries + F.entries * F.entries := by
   rfl
 
+/-- A supplied Gram defect certificate gives the same operator norm bound by the recorded
+defect. -/
 theorem optGoal_operator_error {m : ℕ} (F : FrameData m)
     (hcert : ‖(1 : Matrix (Fin m) (Fin m) ℂ) - (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.gramMatrix F)‖ ≤ (F.defect : ℝ)) :
     ‖(1 : Matrix (Fin m) (Fin m) ℂ) - (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.gramMatrix F)‖ ≤ (F.defect : ℝ) :=
   hcert
 
+/-- The recorded frame defect is nonnegative both as a rational number and after casting to the
+reals. -/
 theorem optGoal_success_budget {m : ℕ} (F : FrameData m) :
     0 ≤ (F.defect : ℝ) ∧ 0 ≤ F.defect := by
   exact ⟨by exact_mod_cast F.defect_nonneg, F.defect_nonneg⟩
 
+/-- Frame implementability is equivalent to the recorded defect and total time satisfying their
+respective budgets. -/
 theorem optGoal_implementability {m : ℕ} (F : FrameData m) (errorBudget : ℝ)
     (bitTimeBudget : ℕ) :
     (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.implementable F) errorBudget bitTimeBudget ↔
       ((F.defect : ℝ) ≤ errorBudget ∧ (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.totalBitTime F) ≤ bitTimeBudget) := by
   rfl
 
+/-- Collect the quantization precision, entrywise, Frobenius, operator, symmetrization,
+eigenvalue, gap, and read cost guarantees. -/
 theorem tunableGoal_endpoint :
     (∀ (x : CauchyReal) (k : ℕ),
       (quantise x (digitsFor k)).error ≤ ratUnitR k ∧
@@ -336,6 +404,8 @@ theorem tunableGoal_endpoint :
     fun A p hA => (tunableGoal_sym_error A p hA).1, tunableGoal_gram_error, tunableGoal_spectral_gap,
     tunableGoal_same_word_margin, tunableGoal_read_cost⟩
 
+/-- Collect the fixed gate list, word length, ancilla count, time cost, defect certificate,
+nonnegativity, and budget equivalence for frame data. -/
 theorem optGoal_endpoint :
     (∀ {m : ℕ} (F : FrameData m), ∀ g ∈ F.prepareWord, g ∈ FrameGateSet.all) ∧
     (∀ {m : ℕ} (F : FrameData m), F.prepareWord.length = F.entries + 5) ∧

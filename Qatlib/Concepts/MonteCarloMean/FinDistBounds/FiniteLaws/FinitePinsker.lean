@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 
+/-!
+# Pinsker bounds for finite distributions
+
+This module proves the variational lower bound for finite relative entropy and derives `pinsker`
+for strictly positive probability masses. It then bounds the sum of testing errors for one
+observation and for independent sample records. Relative entropy and distinguishability are
+treated in [Watrous2018].
+
+## Main statements
+
+* `pinsker`: twice the squared total variation is bounded by relative entropy.
+* `records_testing`: relative entropy controls testing errors for independent records.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinitePinsker
 open FiniteInformationDivergence
@@ -16,6 +34,8 @@ variable {X : Type} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
 
+/-- For strictly positive finite laws, an exponential-moment bound under `q` gives the lower
+bound `p.expect g - c` on their relative entropy. -/
 theorem variational_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) (g : X → ℝ) (c : ℝ)
     (hmgf : q.expect (fun x => Real.exp (g x)) ≤ Real.exp c) :
@@ -43,6 +63,8 @@ theorem variational_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fi
 
 omit [DecidableEq X] in
 
+/-- The difference of the two masses on the event where `p` dominates `q` equals their total
+variation distance. -/
 theorem positive_event_tv (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) :
     (∑ x with q.prob x ≤ p.prob x, p.prob x) -
       (∑ x with q.prob x ≤ p.prob x, q.prob x) = tv p q := by
@@ -66,6 +88,8 @@ theorem positive_event_tv (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fi
   simp only [Finset.sum_filter, he, tv, ha]
   ring
 
+/-- Pinsker inequality for strictly positive finite distributions: twice the squared total
+variation distance is at most their relative entropy. -/
 theorem pinsker (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) : 2*tv p q^2 ≤ kl p q := by
   let f : X → ℝ := fun x => if q.prob x ≤ p.prob x then 1 else 0
@@ -93,6 +117,8 @@ theorem pinsker (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (
   dsimp [t] at hv
   nlinarith
 
+/-- For strictly positive finite laws, every Boolean test has error sum at least one minus the
+square root of half their relative entropy. -/
 theorem testing_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) (f : X → Bool) :
     1-Real.sqrt (kl p q/2) ≤ errorSum p q f := by
@@ -102,6 +128,8 @@ theorem testing_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDis
   have htv : tv p q ≤ Real.sqrt (kl p q/2) := by nlinarith [Real.sqrt_nonneg (kl p q/2)]
   linarith [errorSum_lower p q f]
 
+/-- Every Boolean test on `n` independent observations has error sum at least one minus the
+square root of `n` times half the single-observation relative entropy. -/
 theorem records_testing (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (hp : ∀ x, 0 < p.prob x)
     (hq : ∀ x, 0 < q.prob x) (n : ℕ) (f : (Fin n → X) → Bool) :
     1-Real.sqrt ((n : ℝ)*kl p q/2) ≤ errorSum (records p n) (records q n) f := by

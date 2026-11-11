@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.RetainedBound.ProjectedDefect
+
+/-!
+# Duhamel integrals for retained product-formula error
+
+This module proves continuity of the defect and Duhamel kernel and defines `sandwichMap` to pass
+energy projections through the integral. It derives retained-error bounds in both generator and
+Hamiltonian conventions for the analysis in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_retained_duhamel`: Expresses the error between two spectral cutoffs as a projected
+  Duhamel integral.
+* `actual_source_retained_integral`: Bounds retained error using the Hamiltonian defect and
+  product-word leakage.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,9 +41,11 @@ open Qatlib.Foundations.MatrixAlgebra.CommutatorExp
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- The generator defect of a fixed product word is continuous in time. -/
 theorem actual_defect_continuous (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M)) :
     Continuous (defect h stages) := (generator_continuous _).sub continuous_const
 
+/-- For fixed final time, the Duhamel kernel is continuous in the integration variable. -/
 theorem actual_kernel_continuous (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M)) (t : ℝ) :
     Continuous (fun s : ℝ => evolve h.total (t-s)*defect h stages s*approximate h stages s) := by
   have hU : Continuous (fun s : ℝ => evolve h.total (t-s)) := by
@@ -31,13 +53,19 @@ theorem actual_kernel_continuous (h : Hamiltonian N R M k d J) (stages : List (�
       (exp_time_continuous (totalGenerator h)).comp (continuous_const.sub continuous_id)
   exact (hU.mul (actual_defect_continuous h stages)).mul (word_continuous _)
 
+/-- The real continuous linear map sending `A` to its product with the low-energy projector at
+`Λ` on the left and at `Δ` on the right. -/
 def sandwichMap (h : Hamiltonian N R M k d J) (Δ Λ : ℝ) :
     Matrix (Register N) (Register N) ℂ →L[ℝ] Matrix (Register N) (Register N) ℂ :=
   (right (low h.total h.total_hermitian Δ)).comp (left (low h.total h.total_hermitian Λ))
 
+/-- Evaluating `sandwichMap` gives the matrix product with the output and input low-energy
+projectors. -/
 theorem sandwichMap_apply (h : Hamiltonian N R M k d J) (Δ Λ : ℝ) (A : Matrix (Register N) (Register N) ℂ) :
     sandwichMap h Δ Λ A=low h.total h.total_hermitian Λ*A*low h.total h.total_hermitian Δ := rfl
 
+/-- The product-formula error between the two energy cutoffs equals the integral of the
+correspondingly projected Duhamel kernel. -/
 theorem actual_retained_duhamel (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (t Δ Λ : ℝ) :
     low h.total h.total_hermitian Λ*(approximate h stages t-evolve h.total t)*low h.total h.total_hermitian Δ =
@@ -50,6 +78,8 @@ theorem actual_retained_duhamel (h : Hamiltonian N R M k d J)
   rw [actual_duhamel]
   exact hi.symm
 
+/-- For nonnegative time, retained error is bounded by the integral of the compressed generator
+defect norm plus the integral of the defect norm times leakage. -/
 theorem actual_retained_integral_bound (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (t Δ Λ : ℝ) (ht : 0 ≤ t) :
     ‖low h.total h.total_hermitian Λ*(approximate h stages t-evolve h.total t)*low h.total h.total_hermitian Δ‖ ≤
@@ -78,6 +108,8 @@ theorem actual_retained_integral_bound (h : Hamiltonian N R M k d J)
         ((hfirst.add hsecond).intervalIntegrable 0 t) (fun s _ => actual_retained_kernel_bound h stages t s Δ Λ)
     _ = _ := intervalIntegral.integral_add (hfirst.intervalIntegrable 0 t) (hsecond.intervalIntegrable 0 t)
 
+/-- Compressing the generator defect and the Hamiltonian defect at the same cutoff gives equal
+operator norms. -/
 theorem actual_compressed_defect_norm (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (s Λ : ℝ) :
     ‖low h.total h.total_hermitian Λ*defect h stages s*low h.total h.total_hermitian Λ‖ =
@@ -85,6 +117,8 @@ theorem actual_compressed_defect_norm (h : Hamiltonian N R M k d J)
   rw [actual_defect_phase h stages s, mul_smul_comm, smul_mul_assoc, norm_smul, norm_neg,
       Complex.norm_I, one_mul]
 
+/-- For nonnegative time, retained error is bounded by the compressed Hamiltonian defect
+integral plus the Hamiltonian defect norm weighted by product-word leakage. -/
 theorem actual_source_retained_integral (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (t Δ Λ : ℝ) (ht : 0 ≤ t) :
     ‖low h.total h.total_hermitian Λ*(approximate h stages t-evolve h.total t)*low h.total h.total_hermitian Δ‖ ≤

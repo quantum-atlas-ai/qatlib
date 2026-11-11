@@ -10,6 +10,28 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 
+/-!
+# Gauss-sum phases and approximation error
+
+For a nontrivial multiplicative character and a primitive additive character, the Gauss sum has
+magnitude equal to the square root of the field cardinality. The phase `gaussPhase` gives its
+polar expression, and `gaussSum_approx_error` controls the effect of phase error;
+`gaussPhaseCost` records the associated numerical cost expression.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `gaussSum_norm`: The Gauss sum of a nontrivial multiplicative character and a primitive
+  additive character has norm equal to the square root of the field cardinality.
+* `gaussSum_approx_error`: A phase estimate within one radian gives Gauss-sum error at most
+  twice the square root of the field cardinality times the absolute phase error.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,6 +39,8 @@ namespace Qatlib.Papers.WeightEnum07.GaussRecovery
 
 variable {F : Type*} [Field F] [Fintype F]
 
+/-- The squared norm of a Gauss sum for a nontrivial multiplicative character and a primitive
+additive character equals the field cardinality. -/
 theorem gaussSum_normSq {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : AddChar F ℂ}
     (hψ : AddChar.IsPrimitive ψ) :
     Complex.normSq (gaussSum χ ψ) = (Fintype.card F : ℝ) := by
@@ -27,6 +51,8 @@ theorem gaussSum_normSq {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : AddChar F �
     simpa [Complex.star_def, mul_comm] using h
   exact_mod_cast hnorm
 
+/-- The Gauss sum of a nontrivial multiplicative character and a primitive additive character
+has norm equal to the square root of the field cardinality. See [GeraciVanBussel2007]. -/
 theorem gaussSum_norm {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : AddChar F ℂ}
     (hψ : AddChar.IsPrimitive ψ) :
     ‖gaussSum χ ψ‖ = Real.sqrt (Fintype.card F) := by
@@ -36,8 +62,11 @@ theorem gaussSum_norm {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : AddChar F ℂ}
         (Real.sqrt_sq (norm_nonneg (gaussSum χ ψ))).symm
     _ = Real.sqrt (Fintype.card F) := by rw [hsq]
 
+/-- The principal argument of the Gauss sum. -/
 def gaussPhase (χ : MulChar F ℂ) (ψ : AddChar F ℂ) : ℝ := Complex.arg (gaussSum χ ψ)
 
+/-- Express the Gauss sum as the square root of the field cardinality times the exponential of
+its phase multiplied by `Complex.I`. -/
 theorem gaussSum_eq_norm_mul_exp {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : AddChar F ℂ}
     (hψ : AddChar.IsPrimitive ψ) :
     gaussSum χ ψ = ((Real.sqrt (Fintype.card F) : ℝ) : ℂ) *
@@ -53,8 +82,12 @@ theorem gaussSum_eq_norm_mul_exp {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : Add
         congr 1
         rw [mul_comm]
 
+/-- The cost expression `(1 / ε) * (log Q) ^ 2` for Gauss-phase precision `ε`. See
+[GeraciVanBussel2007]. -/
 def gaussPhaseCost (ε : ℝ) (Q : ℕ) : ℝ := (1 / ε) * (Real.log Q) ^ 2
 
+/-- A phase estimate within one radian gives Gauss-sum error at most twice the square root of
+the field cardinality times the absolute phase error. See [GeraciVanBussel2007]. -/
 theorem gaussSum_approx_error {χ : MulChar F ℂ} (hχ : χ ≠ 1) {ψ : AddChar F ℂ}
     (hψ : AddChar.IsPrimitive ψ) {γhat : ℝ} (hε : |γhat - gaussPhase χ ψ| ≤ 1) :
     ‖((Real.sqrt (Fintype.card F) : ℝ) : ℂ) * Complex.exp (Complex.I * γhat) -

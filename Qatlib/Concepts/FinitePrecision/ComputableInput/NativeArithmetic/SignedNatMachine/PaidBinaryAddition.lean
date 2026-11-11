@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Binary addition with explicit stack costs
+
+`columns` aligns two binary words by padding missing bits with false. `records` encodes the
+resulting columns, and `program` processes them using the full-adder functions `digit` and
+`carry`.
+
+`digits_value` proves the arithmetic meaning of the output. The source execution and clock
+lemmas yield `raw_machine` and `raw_adder`, with quadratic bounds in the total operand length.
+
+## Main statements
+
+* `digits_value` and `output_value`: correctness of the binary sum.
+* `source_run` and `source_clock`: source execution and its cost.
+* `raw_adder`: a finite-state tape implementation with quadratic resource bounds.
+
+For background on classical computation and resource bounds, see [KitaevShenVyalyi2002].
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,40 +39,58 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.PaidBinaryAddition
 
+/-- A pair of Boolean operand bits forming one binary addition column. -/
 abbrev Column := Bool × Bool
+/-- Three Boolean registers holding the carry and the two current operand bits. -/
 abbrev Local := Bool × Bool × Bool
 
+/-- The sum bit of a binary full adder, computed as the exclusive-or of the two operand bits and
+incoming carry. -/
 def digit (a b c : Bool) : Bool := xor (xor a b) c
+/-- The outgoing carry of a binary full adder, true exactly when at least two input bits are
+true. -/
 def carry (a b c : Bool) : Bool := (a && b) || (a && c) || (b && c)
 
+/-- Encode each addition column as a true marker followed by its two bits, ending the sequence
+with a false marker. -/
 def records : List Column → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | [] => [false]
   | (a, b) :: rest => true :: a :: b :: records rest
 
+/-- Compute sum digits from addition columns and an incoming carry, appending a final true bit
+when needed. -/
 def digits : Bool → List Column → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | c, [] => if c then [true] else []
   | c, (a, b) :: rest => digit a b c :: digits (carry a b c) rest
 
+/-- Align two binary words into columns, padding either exhausted operand with false bits. -/
 def columns : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits → List Column
   | [], b => b.map (fun y => (false, y))
   | a, [] => a.map (fun x => (x, false))
   | a :: as, b :: bs => (a, b) :: columns as bs
 
+/-- The reversed record encoding of the aligned operand columns. -/
 def input (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits := (records (columns a b)).reverse
+/-- The binary sum word obtained by processing the aligned columns with initial carry false. -/
 def output (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits := digits false (columns a b)
 
+/-- The record encoding of `xs` has length `3 * xs.length + 1`. -/
 theorem records_length (xs : List Column) : (records xs).length = 3 * xs.length + 1 := by
   induction xs with
   | nil => rfl
   | cons p xs ih => cases p; simp only [records, List.length_cons, ih]; omega
 
+/-- Processing `xs` produces at most `xs.length + 1` output bits, including a possible final
+carry. -/
 theorem digits_length (xs : List Column) (c : Bool) : (digits c xs).length ≤ xs.length + 1 := by
   induction xs generalizing c with
   | nil => cases c <;> decide
   | cons p xs ih => cases p; simp only [digits, List.length_cons]; exact Nat.add_le_add_right (ih _) 1
 
+/-- The value of the sum digits equals the values of the two column projections plus the
+incoming carry interpreted as zero or one. -/
 theorem digits_value (xs : List Column) (c : Bool) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (digits c xs) = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (xs.map Prod.fst) + Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (xs.map Prod.snd) + if c then 1 else 0 := by
   induction xs generalizing c with
@@ -62,11 +104,14 @@ theorem digits_value (xs : List Column) (c : Bool) :
     rw [h]
     cases a <;> cases b <;> cases c <;> simp [digit, carry] <;> omega
 
+/-- A word consisting entirely of false bits has binary value zero. -/
 private theorem false_value (xs : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (xs.map (fun _ => false)) = 0 := by
   induction xs with
   | nil => rfl
   | cons a xs ih => simpa [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue] using ih
 
+/-- The two projections of the aligned columns retain the binary values of the original
+operands. -/
 theorem columns_values (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue ((columns a b).map Prod.fst) = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue a ∧
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue ((columns a b).map Prod.snd) = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue b := by
@@ -89,6 +134,7 @@ theorem columns_values (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
       exact ⟨congrArg (fun z => 2 * z + if x then 1 else 0) h.1,
         congrArg (fun z => 2 * z + if y then 1 else 0) h.2⟩
 
+/-- The number of aligned columns is at most the sum of the operand lengths. -/
 theorem columns_length (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (columns a b).length ≤ a.length + b.length := by
   induction a generalizing b with
   | nil => simp [columns]
@@ -97,10 +143,13 @@ theorem columns_length (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
     | nil => simp [columns]
     | cons y ys => simp only [columns, List.length_cons]; have h := ih ys; omega
 
+/-- The binary value of `output a b` equals the sum of the binary values of `a` and `b`. -/
 theorem output_value (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (output a b) = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue a + Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue b := by
   rw [output, digits_value, (columns_values a b).1, (columns_values a b).2]
   rfl
 
+/-- The one-label stack program that consumes encoded addition columns, pushes sum digits, and
+halts after handling the final carry. -/
 def program (_ : Fin 1) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 1) Local :=
   .pop 0 (fun v flag => (v.1, flag.getD false, v.2.2))
     (.branch (fun v => v.2.1)
@@ -112,26 +161,33 @@ def program (_ : Fin 1) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 1) Local :=
         (.push 1 (fun _ => true) (.load (fun _ => default) .halt))
         (.load (fun _ => default) .halt)))
 
+/-- Updating input stack zero in a two-stack state preserves the output stack. -/
 private theorem pair_input (a b c : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair a b) 0 c = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair c b := by
   funext k
   fin_cases k <;> simp [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair, Fin.ext_iff]
 
+/-- Updating output stack one in a two-stack state preserves the input stack. -/
 private theorem pair_output (a b c : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair a b) 1 c = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair a c := by
   funext k
   fin_cases k <;> simp [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair, Fin.ext_iff]
 
+/-- One marked column is consumed in a machine step, pushing its sum digit and replacing the
+incoming carry by the outgoing carry. -/
 theorem column_step (a b c : Bool) (rest out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some 0, (c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair (true :: a :: b :: rest) out⟩ =
       some ⟨some 0, (carry a b c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair rest (digit a b c :: out)⟩ := by
   simp [TM2.step, program, TM2.stepAux]
 
+/-- The terminating false marker is consumed and the machine halts after pushing any final
+carry. -/
 theorem stop_step (c : Bool) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some 0, (c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair [false] out⟩ =
       some ⟨none, default, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair [] (if c then true :: out else out)⟩ := by
   cases c <;> simp [TM2.step, program, TM2.stepAux]
 
+/-- A column step has stack-clock cost `6 * rest.length + 2 * out.length + 19`. -/
 theorem column_clock (a b c : Bool) (rest out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1
       ⟨some 0, (c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair (true :: a :: b :: rest) out⟩ =
@@ -140,6 +196,7 @@ theorem column_clock (a b c : Bool) (rest out : Qatlib.Concepts.BitWordCompiler.
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackClock, TM2.step, program, TM2.stepAux]
   omega
 
+/-- The terminating step has stack-clock cost at most `2 * out.length + 7`. -/
 theorem stop_clock (c : Bool) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1 ⟨some 0, (c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair [false] out⟩ ≤
       2 * out.length + 7 := by
@@ -147,6 +204,8 @@ theorem stop_clock (c : Bool) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCo
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackClock, TM2.step, program, TM2.stepAux]
   all_goals omega
 
+/-- Processing the records of `xs` takes `xs.length + 1` steps and halts with the reversed
+computed digits prepended to `out`. -/
 theorem source_run (xs : List Column) (c : Bool) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRun program (xs.length + 1)
       ⟨some 0, (c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair (records xs) out⟩ =
@@ -163,6 +222,8 @@ theorem source_run (xs : List Column) (c : Bool) (out : Qatlib.Concepts.BitWordC
     rw [column_step, Option.bind_some, ih]
     simp [digits, List.reverse_cons, List.append_assoc]
 
+/-- The stack-clock cost of processing `xs` is at most `20 * (xs.length + 1) * (xs.length +
+out.length + 1)`. -/
 theorem source_clock (xs : List Column) (c : Bool) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program (xs.length + 1)
       ⟨some 0, (c, false, false), Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair (records xs) out⟩ ≤
@@ -181,6 +242,8 @@ theorem source_clock (xs : List Column) (c : Bool) (out : Qatlib.Concepts.BitWor
     rw [records_length]
     nlinarith only [h]
 
+/-- Initialization on the record word gives the initial control label, default registers, the
+record input, and an empty output stack. -/
 private theorem init_eq (xs : List Column) :
     TM2.init (0 : Fin 2) (records xs) =
       (⟨some 0, default, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair (records xs) []⟩ : TM2.Cfg (fun _ : Fin 2 => Bool) (Fin 1) Local) := by
@@ -192,11 +255,14 @@ private theorem init_eq (xs : List Column) :
     TM2.Cfg (fun _ : Fin 2 => Bool) (Fin 1) Local) = _
   rw [hs]
 
+/-- A two-stack state with empty input is the all-empty state updated only at output stack one. -/
 private theorem final_eq (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair [] bits = Function.update (fun _ => []) (1 : Fin 2) bits := by
   funext k
   fin_cases k <;> simp [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackPair, Fin.ext_iff]
 
+/-- There is a finite-state tape machine mapping `input a b` to `output a b`, with a uniform
+positive quadratic bound for both resources in `Runs`. -/
 theorem raw_machine :
     ∃ (q c : ℕ) (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))), 0 < c ∧ ∀ a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs M (input a b) (output a b)
@@ -243,6 +309,9 @@ theorem raw_machine :
     exact (Nat.mul_le_mul_left C hz).trans_eq (by ring)
   exact Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.runs_mono hraw hb hb
 
+/-- There is a finite-state tape machine producing the binary sum from encoded operand columns,
+with quadratic bounds for both resources in `Runs` and output length at most `a.length +
+b.length + 1`. -/
 theorem raw_adder :
     ∃ (q c : ℕ) (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))), 0 < c ∧ ∀ a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits,
       ∃ result : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits,

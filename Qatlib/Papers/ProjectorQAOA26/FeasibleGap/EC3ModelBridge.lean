@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
 import Qatlib.Papers.ProjectorQAOA26.StageStability.EC3FeasibleGap
+
+/-!
+# EC3 tensor states and feasible Hamiltonian compression
+
+The amplitude function `ec3TensorAmplitude` is the product of uniform one-hot triple amplitudes
+and uniform free-bit amplitudes. It is normalized, vanishes outside the feasible set, and
+restricts to `uniformReference`; the resulting physical Hamiltonian has the specified feasible
+compression and zero matrix entries from feasible states to infeasible states.
+
+The squared clause penalty `ec3ClauseEnergy` takes values zero, one, and four. Its clause sums
+identify satisfying assignments, give the bounded positive costs required for the spectral
+analysis under unique satisfiability, and agree with the full source cost on the feasible set
+[ZhouAnLiu2026].
+
+## Main statements
+
+* `ec3TensorAmplitude_normalized`: The tensor amplitude function has norm one.
+* `ec3PhysicalHamiltonian_compress`: The feasible submatrix is the abstract interpolation
+  Hamiltonian.
+* `ec3Cost_unique_bounds`: Unique satisfiability gives one zero cost and all remaining feasible
+  costs in [1, 4r].
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,11 +42,15 @@ namespace Qatlib.Papers.ProjectorQAOA26.FeasibleGap
 open scoped Classical Matrix BigOperators
 open Qatlib.Papers.ProjectorQAOA26.StageStability
 
+/-- The product amplitude of uniform satisfying one-hot states on the `m` triples and uniform
+states on the `f` free bits. -/
 def ec3TensorAmplitude (m f : ℕ) (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool) : ℂ :=
   (((∏ c : Fin m, if ec3SatB (fun j => g (Sum.inl (c,j))) = true
       then (1/Real.sqrt 3 : ℝ) else 0) *
     ∏ _k : Fin f, (1/Real.sqrt 2 : ℝ)) : ℝ)
 
+/-- On feasible assignments, the tensor amplitude equals the uniform feasible reference
+amplitude. -/
 theorem ec3TensorAmplitude_feasible (m f : ℕ) (g : EC3Feasible m f) :
     ec3TensorAmplitude m f g.1 = uniformReference g := by
   have hcard : (Fintype.card (EC3Feasible m f):ℝ)=(3:ℝ)^m*(2:ℝ)^f := by
@@ -39,6 +70,7 @@ theorem ec3TensorAmplitude_feasible (m f : ℕ) (g : EC3Feasible m f) :
   simp only [g.2,ite_true,Finset.prod_const,Finset.card_univ,Fintype.card_fin]
   exact congrArg Complex.ofReal hamp
 
+/-- The tensor amplitude is zero when an assignment violates a prescribed disjoint triple. -/
 theorem ec3TensorAmplitude_outside (m f : ℕ) (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool)
     (hg : ¬∀ c : Fin m, ec3SatB (fun j => g (Sum.inl (c,j)))=true) :
     ec3TensorAmplitude m f g=0 := by
@@ -49,6 +81,7 @@ theorem ec3TensorAmplitude_outside (m f : ℕ) (g : ((Fin m × Fin 3) ⊕ Fin f)
     simp [hc]
   simp only [ec3TensorAmplitude,hp,zero_mul,Complex.ofReal_zero]
 
+/-- The EC3 tensor amplitude function has `l2norm` equal to one [ZhouAnLiu2026]. -/
 theorem ec3TensorAmplitude_normalized (m f : ℕ) : l2norm (ec3TensorAmplitude m f)=1 := by
   letI : Nonempty (EC3Feasible m f) :=
     ⟨(ec3FeasibleEquiv m f).symm ((fun _ => 0),(fun _ => false))⟩
@@ -70,16 +103,22 @@ theorem ec3TensorAmplitude_normalized (m f : ℕ) : l2norm (ec3TensorAmplitude m
   unfold l2norm
   rw [← ht,Real.sqrt_one]
 
+/-- The rank-one matrix of the tensor amplitude restricts on feasible assignments to the
+rank-one matrix of `uniformReference`. -/
 theorem ec3Tensor_projector_restrict (m f : ℕ) (x y : EC3Feasible m f) :
     rankOne (ec3TensorAmplitude m f) x.1 y.1 = rankOne uniformReference x y := by
   simp only [rankOne,Matrix.vecMulVec_apply,Pi.star_apply,
     ec3TensorAmplitude_feasible m f x,ec3TensorAmplitude_feasible m f y]
 
+/-- The full assignment-space interpolation between the complementary tensor-state projector and
+a diagonal real cost. -/
 def ec3PhysicalHamiltonian (m f : ℕ)
     (C : (((Fin m × Fin 3) ⊕ Fin f) → Bool) → ℝ) (s : ℝ) :
     Matrix ((((Fin m × Fin 3) ⊕ Fin f) → Bool)) ((((Fin m × Fin 3) ⊕ Fin f) → Bool)) ℂ :=
   (1-s) • (1-rankOne (ec3TensorAmplitude m f)) + s • Matrix.diagonal (fun g => (C g:ℂ))
 
+/-- The feasible submatrix of the physical Hamiltonian equals the abstract Hamiltonian with the
+cost restricted to feasible assignments [ZhouAnLiu2026]. -/
 theorem ec3PhysicalHamiltonian_compress (m f : ℕ)
     (C : (((Fin m × Fin 3) ⊕ Fin f) → Bool) → ℝ) (s : ℝ) :
     (ec3PhysicalHamiltonian m f C s).submatrix
@@ -91,6 +130,8 @@ theorem ec3PhysicalHamiltonian_compress (m f : ℕ)
     learnedGenerator,costOperator,Matrix.one_apply,Matrix.diagonal_apply,Subtype.val_inj]
   split_ifs <;> first | rfl | contradiction
 
+/-- A physical Hamiltonian entry from a feasible assignment to an assignment violating a
+prescribed triple is zero. -/
 theorem ec3PhysicalHamiltonian_no_leak (m f : ℕ)
     (C : (((Fin m × Fin 3) ⊕ Fin f) → Bool) → ℝ) (s : ℝ)
     (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool)
@@ -100,11 +141,14 @@ theorem ec3PhysicalHamiltonian_no_leak (m f : ℕ)
   simp [ec3PhysicalHamiltonian,rankOne,Matrix.vecMulVec_apply,
     ec3TensorAmplitude_outside m f g hg,hne]
 
+/-- The squared penalty `(number of true bits - 1)²` for a three-bit exact-cover clause. -/
 def ec3ClauseEnergy (v : Fin 3 → Bool) : ℝ :=
   ((∑ j : Fin 3, if v j then (1:ℝ) else 0)-1)^2
 
+/-- The EC3 clause energy is nonnegative. -/
 theorem ec3ClauseEnergy_nonneg (v : Fin 3 → Bool) : 0≤ec3ClauseEnergy v := sq_nonneg _
 
+/-- The EC3 clause energy is one of zero, one, or four. -/
 theorem ec3ClauseEnergy_cases (v : Fin 3 → Bool) :
     ec3ClauseEnergy v=0 ∨ ec3ClauseEnergy v=1 ∨ ec3ClauseEnergy v=4 := by
   unfold ec3ClauseEnergy
@@ -112,6 +156,7 @@ theorem ec3ClauseEnergy_cases (v : Fin 3 → Bool) :
   cases h0 : v 0 <;> cases h1 : v 1 <;> cases h2 : v 2 <;>
     norm_num [h0,h1,h2]
 
+/-- A clause has zero energy if and only if it satisfies the exact-cover predicate. -/
 theorem ec3ClauseEnergy_zero_iff (v : Fin 3 → Bool) :
     ec3ClauseEnergy v=0 ↔ ec3SatB v=true := by
   unfold ec3ClauseEnergy
@@ -119,11 +164,13 @@ theorem ec3ClauseEnergy_zero_iff (v : Fin 3 → Bool) :
   cases h0 : v 0 <;> cases h1 : v 1 <;> cases h2 : v 2 <;>
     norm_num [ec3SatB,h0,h1,h2]
 
+/-- The sum of EC3 clause energies over the supplied `r` clauses. -/
 def ec3Cost {m f : ℕ} (r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f))
     (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool) : ℝ :=
   ∑ c : Fin r,ec3ClauseEnergy (fun j => g (clauses c j))
 
+/-- The summed EC3 cost is zero if and only if every supplied clause is satisfied. -/
 theorem ec3Cost_zero_iff {m f : ℕ} (r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f))
     (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool) :
@@ -132,6 +179,7 @@ theorem ec3Cost_zero_iff {m f : ℕ} (r : ℕ)
   rw [Finset.sum_eq_zero_iff_of_nonneg (fun c _ => ec3ClauseEnergy_nonneg (fun j => g (clauses c j)))]
   simp only [Finset.mem_univ,forall_true_left,ec3ClauseEnergy_zero_iff]
 
+/-- The summed energy of `r` EC3 clauses is at most `4 * r`. -/
 theorem ec3Cost_le {m f : ℕ} (r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f))
     (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool) : ec3Cost r clauses g≤4*(r:ℝ) := by
@@ -141,6 +189,8 @@ theorem ec3Cost_le {m f : ℕ} (r : ℕ)
          rcases ec3ClauseEnergy_cases (fun j => g (clauses c j)) with h|h|h <;> linarith
        _ = 4*(r:ℝ) := by simp [mul_comm]
 
+/-- If `zero` is the unique feasible assignment satisfying all supplied clauses, its cost is
+zero and every other feasible assignment has cost between one and `4 * r` [ZhouAnLiu2026]. -/
 theorem ec3Cost_unique_bounds {m f : ℕ} (r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f)) (zero : EC3Feasible m f)
     (hunique : ∀ g : EC3Feasible m f,
@@ -166,11 +216,14 @@ theorem ec3Cost_unique_bounds {m f : ℕ} (r : ℕ)
       (Finset.mem_univ c)
   exact ⟨he1.trans hs,ec3Cost_le r clauses g.1⟩
 
+/-- The total EC3 cost including both the prescribed disjoint triple clauses and the supplied
+additional clauses. -/
 def ec3TotalCost (m f r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f))
     (g : ((Fin m × Fin 3) ⊕ Fin f) → Bool) : ℝ :=
   (∑ c : Fin m,ec3ClauseEnergy (fun j => g (Sum.inl (c,j)))) + ec3Cost r clauses g
 
+/-- On feasible assignments, the total cost equals the cost of the supplied additional clauses. -/
 theorem ec3TotalCost_feasible (m f r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f)) (g : EC3Feasible m f) :
     ec3TotalCost m f r clauses g.1 = ec3Cost r clauses g.1 := by
@@ -180,6 +233,8 @@ theorem ec3TotalCost_feasible (m f r : ℕ)
     exact (ec3ClauseEnergy_zero_iff _).mpr (g.2 c)
   simp only [ec3TotalCost,hr,zero_add]
 
+/-- The feasible compression of the physical Hamiltonian with the full EC3 cost is the abstract
+interpolation using only the additional-clause cost. -/
 theorem ec3FullSource_compress (m f r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f)) (s : ℝ) :
     (ec3PhysicalHamiltonian m f (ec3TotalCost m f r clauses) s).submatrix

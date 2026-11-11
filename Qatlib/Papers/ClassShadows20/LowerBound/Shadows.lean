@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ClassShadows20.LowerBound.ShadowsDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.GibbsMetropolisDefs
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductRecordInformation
+
+/-!
+# Finite shadow lower bound ingredients
+
+The module supplies a twenty-four-member qubit moment ensemble and constructs a rank-`r`
+coordinate projector capturing at least `r/d` of a density operator. It proves positivity and
+trace identities for projector codes and combines assumed rotation moments with successful
+decoding to obtain a finite measurement lower bound. It also refutes a universal one-sided error
+claim for `dyadicRat`.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `clause7_conjunct5`: constructs a projector with the required trace overlap.
+* `clause7_conjunct6`: derives a demand-versus-allowance inequality from decoding and moment
+  hypotheses.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -36,6 +59,8 @@ open Qatlib.Concepts.ShadowModels.ShadowChannel.HuangKuengPreskill2020
 open Qatlib
 open Matrix
 
+/-- The claim that every real input has `dyadicRat` error in the half-open interval from zero to
+`2^(-k)` is false. -/
 theorem clause6_quantization_conjunct_refutable :
     ¬ (∀ (k : ℕ) (t : ℝ),
         0 ≤ (t : ℝ) - ((Qatlib.Concepts.RiskEstimation.PopulationGap.dyadicRat k t : ℚ) : ℝ) ∧
@@ -54,6 +79,8 @@ theorem clause6_quantization_conjunct_refutable :
 open scoped BigOperators ComplexOrder
 set_option warningAsError false
 
+/-- There exists a family of twenty-four qubit unitaries whose uniform average has the stated
+first moment and second moment for Hermitian test operators. -/
 theorem clause7_conjunct2 :
     ∃ f : Fin 24 → Operator 2,
       (∀ i, f i ∈ Matrix.unitaryGroup (Fin 2) ℂ) ∧
@@ -68,6 +95,7 @@ theorem clause7_conjunct2 :
               (Matrix.trace (A * B)).re) / 6) :=
   qubit_conjugation_two_design_exists
 
+/-- The real trace of a product of positive semidefinite operators is nonnegative. -/
 private theorem trace_mul_re_nonneg {D : ℕ} (A B : Operator D)
     (hA : A.PosSemidef) (hB : B.PosSemidef) :
     0 ≤ (Matrix.trace (A * B)).re := by
@@ -77,6 +105,8 @@ private theorem trace_mul_re_nonneg {D : ℕ} (A B : Operator D)
   rw [HermitianMat.inner_eq_re_trace] at h
   exact h
 
+/-- A positive semidefinite operator has real trace of its square at most the square of its real
+trace. -/
 private theorem trace_sq_le_trace_sq' {D : ℕ} (A : Operator D) (hA : A.PosSemidef) :
     (Matrix.trace (A * A)).re ≤ (Matrix.trace A).re ^ 2 := by
   have hA' : (0 : HermitianMat (Fin D) ℂ) ≤ ⟨A, hA.1⟩ := HermitianMat.zero_le_iff.mpr hA
@@ -84,6 +114,8 @@ private theorem trace_sq_le_trace_sq' {D : ℕ} (A : Operator D) (hA : A.PosSemi
   rw [HermitianMat.inner_eq_re_trace] at h
   exact h.trans_eq (pow_two _).symm
 
+/-- For `r > 0`, the number of `r`-element subsets of `Fin d` containing a fixed index is `(d -
+1).choose (r - 1)`. -/
 private lemma powersetCard_mem_card (d r : ℕ) (i : Fin d) (hr : 0 < r) :
     (((Finset.univ : Finset (Fin d)).powersetCard r).filter (fun S => i ∈ S)).card =
       (d - 1).choose (r - 1) := by
@@ -99,6 +131,8 @@ private lemma powersetCard_mem_card (d r : ℕ) (i : Fin d) (hr : 0 < r) :
       (by rw [Finset.card_singleton]; omega),
     Finset.card_univ, Fintype.card_fin, Finset.card_singleton]
 
+/-- Summing coordinate sums over all `r`-element subsets counts each coordinate `(d - 1).choose
+(r - 1)` times when `r > 0`. -/
 private lemma powersetCard_sum_eq (d r : ℕ) (x : Fin d → ℝ) (hr : 0 < r) :
     (∑ S ∈ (Finset.univ : Finset (Fin d)).powersetCard r, ∑ i ∈ S, x i)
       = ((d - 1).choose (r - 1) : ℝ) * ∑ i, x i := by
@@ -122,15 +156,18 @@ private lemma powersetCard_sum_eq (d r : ℕ) (x : Fin d → ℝ) (hr : 0 < r) :
   rw [← Finset.sum_mul]
   ring
 
+/-- The diagonal coordinate projector associated with a finite set of indices. -/
 private def coordProj {d : ℕ} (S : Finset (Fin d)) : Operator d :=
   Matrix.diagonal (fun i => if i ∈ S then (1 : ℂ) else 0)
 
+/-- A coordinate projector is Hermitian. -/
 private lemma coordProj_isHermitian {d : ℕ} (S : Finset (Fin d)) :
     (coordProj S).IsHermitian := by
   apply Matrix.isHermitian_diagonal_of_self_adjoint
   funext i
   by_cases hi : i ∈ S <;> simp [hi]
 
+/-- A coordinate projector is idempotent. -/
 private lemma coordProj_mul_self {d : ℕ} (S : Finset (Fin d)) :
     coordProj S * coordProj S = coordProj S := by
   have hmul := Matrix.diagonal_mul_diagonal
@@ -141,6 +178,8 @@ private lemma coordProj_mul_self {d : ℕ} (S : Finset (Fin d)) :
   refine congrArg Matrix.diagonal (funext fun i => ?_)
   by_cases hi : i ∈ S <;> simp [hi]
 
+/-- The trace of a coordinate projector is the cardinality of its index set, cast to the complex
+numbers. -/
 private lemma coordProj_trace {d : ℕ} (S : Finset (Fin d)) :
     Matrix.trace (coordProj S) = ((S.card : ℕ) : ℂ) := by
   show Matrix.trace (Matrix.diagonal (fun i => if i ∈ S then (1 : ℂ) else 0)) = _
@@ -151,6 +190,8 @@ private lemma coordProj_trace {d : ℕ} (S : Finset (Fin d)) :
     rw [Finset.sum_const, nsmul_one]
   exact h
 
+/-- The real trace pairing with a coordinate projector equals the sum of the selected real
+diagonal entries. -/
 private lemma coordProj_trace_mul {d : ℕ} (S : Finset (Fin d)) (ρ : Operator d) :
     (Matrix.trace (coordProj S * ρ)).re = ∑ i ∈ S, (ρ i i).re := by
   have hkey : ∀ i : Fin d,
@@ -172,6 +213,8 @@ private lemma coordProj_trace_mul {d : ℕ} (S : Finset (Fin d)) (ρ : Operator 
     rw [show (Finset.univ.filter (fun i : Fin d => i ∈ S)) = S from by ext i; simp]
   exact h
 
+/-- For a density operator and `0 < r ≤ d`, there exists a Hermitian idempotent of trace `r`
+whose real trace pairing with the state is at least `r / d`. -/
 theorem clause7_conjunct5 (d r : ℕ) (ρ : Operator d)
     (hr : 0 < r) (hrd : r ≤ d) (hρ : IsDensityOperator ρ) :
     ∃ P : Operator d,
@@ -233,17 +276,22 @@ theorem clause7_conjunct5 (d r : ℕ) (ρ : Operator d)
   rw [← hSmem.2]
   exact (hQprop S).2.2.1
 
+/-- Taking the trace commutes with real scalar multiplication after casting the scalar to the
+complex numbers. -/
 private lemma trace_real_smul {D : ℕ} (c : ℝ) (A : Operator D) :
     Matrix.trace (c • A) = (c : ℂ) * Matrix.trace A := by
   rw [Matrix.trace_smul]
   exact Complex.real_smul
 
+/-- A Hermitian idempotent operator is positive semidefinite. -/
 private lemma idem_hermitian_posSemidef {D : ℕ} (Q : Operator D)
     (hherm : Q.IsHermitian) (hsq : Q * Q = Q) : Q.PosSemidef := by
   have hEq : Q = Q.conjTranspose * Q := by rw [hherm, hsq]
   rw [hEq]
   exact Matrix.posSemidef_conjTranspose_mul_self _
 
+/-- A code operator formed from a positive semidefinite operator is positive semidefinite when
+`0 ≤ α ≤ 1`. -/
 private lemma lemma8CodeState_posSemidef {d r : ℕ} (Q : Operator d)
     (hQpsd : Q.PosSemidef) (α : ℝ) (hα0 : 0 ≤ α) (hα1 : α ≤ 1) :
     (lemma8CodeState d r α Q).PosSemidef := by
@@ -253,6 +301,7 @@ private lemma lemma8CodeState_posSemidef {d r : ℕ} (Q : Operator d)
       (div_nonneg (by linarith) (by positivity)))
     (Matrix.PosSemidef.smul hQpsd (by positivity))
 
+/-- For positive `d` and `r`, an operator of trace `r` yields a code operator of trace one. -/
 private lemma lemma8CodeState_trace_one {d r : ℕ} (Q : Operator d)
     (hQtr : Matrix.trace Q = ((r : ℕ) : ℂ)) (α : ℝ) (hd : 0 < d) (hr : 0 < r) :
     Matrix.trace (lemma8CodeState d r α Q) = 1 := by
@@ -268,10 +317,14 @@ private lemma lemma8CodeState_trace_one {d r : ℕ} (Q : Operator d)
   push_cast
   ring
 
+/-- Conjugates the state by `Uf i` when `μ.prob i` is positive and otherwise returns the input
+state. -/
 private noncomputable def gatedState {d : ℕ} {I : Type} [Fintype I]
     (μ : FinDist I) (Uf : I → Operator d) (ρ : Operator d) (i : I) : Operator d :=
   if 0 < μ.prob i then (Uf i * ρ * (Uf i)ᴴ) else ρ
 
+/-- Under the stated dimension, rank, and purity-parameter relation, replacing `t2 ≤ t²` bounds
+the second-moment expression by `(t/d)² * (1 + α²(d-r)/(r(d+1)))`. -/
 private theorem theorem5_second_moment_bound (d r : ℕ) (α s t t2 : ℝ)
     (hd : 2 ≤ d) (hr : 0 < r) (hrd : r ≤ d) (hα : 0 < α)
     (hs : s = (1 - α ^ 2) / (d : ℝ) + α ^ 2 / (r : ℝ))
@@ -321,6 +374,10 @@ private theorem theorem5_second_moment_bound (d r : ℕ) (α s t t2 : ℝ)
   field_simp
   nlinarith [hpoly, hDP2, hT2]
 
+/-- For the specified finite POVM, projector codes, rotation moments, and uniformly successful
+decoder, `theorem5WrapperDemand M δ` is at most `N * theorem5WrapperAllowance d r α`. This
+is the finite decoding implication associated with [Huang et al., Theorem
+5][HuangKuengPreskill2020]. -/
 theorem clause7_conjunct6 :
     ∀ (d r M N : ℕ) (O I : Type) [Fintype O] [DecidableEq O]
       [Fintype I] [DecidableEq I]

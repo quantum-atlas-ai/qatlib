@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5AltAux
+
+/-!
+# Scalar inverses and diagonal Taylor systems
+
+The matrices `scalarKernelMatrix` and `scalarInverseMatrix` package the scalar kernel and its
+explicit solution. For diagonal `D`, the V2 Taylor matrix splits into scalar blocks, and
+`taylorV2InvDiag` supplies its inverse. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `scalarKernelMatrix`: The finite scalar Taylor matrix obtained by restricting
+  `scalarKernelEntry` to the system labels.
+* `taylorV2InvDiag_eq_inv`: For diagonal `D` and `m > 0`, `taylorV2InvDiag` equals the inverse
+  of the V2 Taylor matrix.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -14,14 +34,20 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The finite scalar Taylor matrix obtained by restricting `scalarKernelEntry` to the system
+labels. -/
 noncomputable def scalarKernelMatrix (m k p : ℕ) (z : ℂ) :
     Matrix (Fin (m * (k + 1) + p + 1)) (Fin (m * (k + 1) + p + 1)) ℂ :=
   fun r c => scalarKernelEntry m k z r.val c.val
 
+/-- The matrix whose columns are the explicit scalar solutions for the coordinate right-hand
+sides. -/
 noncomputable def scalarInverseMatrix (m k p : ℕ) (z : ℂ) :
     Matrix (Fin (m * (k + 1) + p + 1)) (Fin (m * (k + 1) + p + 1)) ℂ :=
   fun r c => scalarSolve m k p z (Pi.single c.val 1) r.val
 
+/-- For `m > 0`, multiplying the scalar kernel matrix by its explicit inverse matrix gives the
+identity. -/
 theorem scalarKernelMatrix_mul_inverse (m k p : ℕ) (z : ℂ) (hm : 0 < m) :
     scalarKernelMatrix m k p z * scalarInverseMatrix m k p z = 1 := by
   classical
@@ -39,6 +65,8 @@ theorem scalarKernelMatrix_mul_inverse (m k p : ℕ) (z : ℂ) (hm : 0 < m) :
   rw [hs]
   simp [Matrix.one_apply, Pi.single_apply, Fin.ext_iff]
 
+/-- For `m > 0`, the explicit scalar inverse matrix equals the matrix inverse of
+`scalarKernelMatrix`. -/
 theorem scalarInverseMatrix_eq_inv (m k p : ℕ) (z : ℂ) (hm : 0 < m) :
     scalarInverseMatrix m k p z = (scalarKernelMatrix m k p z)⁻¹ :=
   (Matrix.inv_eq_right_inv (scalarKernelMatrix_mul_inverse m k p z hm)).symm
@@ -47,6 +75,8 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [Fintype N] in
 
+/-- For diagonal `D`, each V2 Taylor entry is the scalar kernel for the corresponding diagonal
+entry when the state indices agree, and zero otherwise. -/
 theorem taylorStepMatrixV2_diag_entry (m k p : ℕ) (D : Matrix N N ℂ)
     (hd : ∀ i j : N, i ≠ j → D i j = 0)
     (r c : Fin (m * (k + 1) + p + 1) × N) :
@@ -60,12 +90,15 @@ theorem taylorStepMatrixV2_diag_entry (m k p : ℕ) (D : Matrix N N ℂ)
     simp [taylorStepMatrixV2, scalarKernelEntry, Prod.ext_iff, Fin.ext_iff]
   · simp [taylorStepMatrixV2, he, hd rn cn he, Prod.ext_iff]
 
+/-- The matrix formed from the scalar inverse blocks associated with the diagonal entries of
+`D`. -/
 noncomputable def taylorV2InvDiag (m k p : ℕ) (D : Matrix N N ℂ) :
     Matrix (Fin (m * (k + 1) + p + 1) × N) (Fin (m * (k + 1) + p + 1) × N) ℂ :=
   Matrix.blockDiagonal (fun n : N => scalarInverseMatrix m k p (D n n))
 
 omit [Fintype N] in
 
+/-- For diagonal `D`, the V2 Taylor matrix is block diagonal with scalar Taylor kernel blocks. -/
 theorem taylorStepMatrixV2_blockDiagonal (m k p : ℕ) (D : Matrix N N ℂ)
     (hd : ∀ i j : N, i ≠ j → D i j = 0) :
     taylorStepMatrixV2 m k p D =
@@ -74,6 +107,7 @@ theorem taylorStepMatrixV2_blockDiagonal (m k p : ℕ) (D : Matrix N N ℂ)
   rw [taylorStepMatrixV2_diag_entry m k p D hd, Matrix.blockDiagonal_apply]
   rfl
 
+/-- For diagonal `D` and `m > 0`, `taylorV2InvDiag` is a right inverse of the V2 Taylor matrix. -/
 theorem taylorV2_diag_mul_inv (m k p : ℕ) (D : Matrix N N ℂ) (hm : 0 < m)
     (hd : ∀ i j : N, i ≠ j → D i j = 0) :
     taylorStepMatrixV2 m k p D * taylorV2InvDiag m k p D = 1 := by
@@ -84,6 +118,7 @@ theorem taylorV2_diag_mul_inv (m k p : ℕ) (D : Matrix N N ℂ) (hm : 0 < m)
   simp only [Matrix.blockDiagonal_apply, Matrix.one_apply, Prod.ext_iff]
   split_ifs <;> simp_all
 
+/-- For diagonal `D` and `m > 0`, `taylorV2InvDiag` equals the inverse of the V2 Taylor matrix. -/
 theorem taylorV2InvDiag_eq_inv (m k p : ℕ) (D : Matrix N N ℂ) (hm : 0 < m)
     (hd : ∀ i j : N, i ≠ j → D i j = 0) :
     taylorV2InvDiag m k p D = (taylorStepMatrixV2 m k p D)⁻¹ :=

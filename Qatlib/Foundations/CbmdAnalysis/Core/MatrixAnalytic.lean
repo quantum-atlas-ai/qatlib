@@ -10,6 +10,29 @@ import Mathlib.RingTheory.Polynomial.Pochhammer
 import Qatlib.Foundations.CbmdAnalysis.Core.Contour
 import Qatlib.Foundations.CbmdAnalysis.Core.FiniteResidue
 
+/-!
+# Entire matrix series and finite contour identities
+
+This module proves analyticity of affine exponentials and of scalar-coefficient power series in
+a complex Banach algebra when successive coefficient norm ratios tend to zero. It applies this
+criterion to the Bessel, wave, and Airy series, with `airySeriesCoefficient` supplying the Airy
+coefficients.
+
+Finite simple-pole circle identities specialize to each analytic family, including matrix
+exponentials. These results supply the analytic functional calculus used by contour-based matrix
+decomposition [WangEtAl2026].
+
+## Main statements
+
+* `scalarSeries_analytic_of_ratio_zero`: gives an entire power-series criterion.
+* `airy_series_affine_analytic`: proves analyticity of the affine Airy family.
+* `matrix_propagator_cbmd_circle`: evaluates the two-pole matrix exponential integral.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -26,6 +49,8 @@ section BanachAlgebra
 
 variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
 
+/-- In a complex Banach algebra, the function `w ↦ exp (s • (L + w • H))` is analytic at every
+complex point. -/
 theorem exp_affine_analytic (L H : E) (s z : ℂ) :
     AnalyticAt ℂ (fun w : ℂ => NormedSpace.exp (s • (L + w • H))) z := by
   have ha : AnalyticAt ℂ (fun w : ℂ => L + w • H) z :=
@@ -34,12 +59,16 @@ theorem exp_affine_analytic (L H : E) (s z : ℂ) :
     (f := fun w : ℂ => s • (L + w • H))
     (ha.const_smul (c := s))
 
+/-- The affine exponential family is complex differentiable on any set and continuous on its
+closure. -/
 theorem exp_affine_diffContOnCl (L H : E) (s : ℂ) (S : Set ℂ) :
     DiffContOnCl ℂ (fun w : ℂ => NormedSpace.exp (s • (L + w • H))) S := by
   apply Differentiable.diffContOnCl
   intro z
   exact (exp_affine_analytic L H s z).differentiableAt
 
+/-- For a circle enclosing `i` and zero, the normalized integral of the affine exponential
+against `i / ((z - i) z)` equals its value at `i` minus its value at zero [WangEtAl2026]. -/
 theorem exp_affine_cbmd_circle (L H : E) (s c : ℂ) (R : ℝ)
     (hi : I ∈ ball c R) (hzero : (0 : ℂ) ∈ ball c R) :
     (2 * Real.pi * I : ℂ)⁻¹ •
@@ -49,6 +78,8 @@ theorem exp_affine_cbmd_circle (L H : E) (s c : ℂ) (R : ℝ)
   simpa only [zero_smul, add_zero] using
     cbmd_linear_regulator_circle (exp_affine_diffContOnCl L H s (ball c R)) hi hzero
 
+/-- If scalar coefficients are eventually nonzero and their successive norm ratios tend to zero,
+the series `∑ c n • A ^ n` is summable for every element of a complex Banach algebra. -/
 theorem scalarSeries_summable_of_ratio_zero (c : ℕ → ℂ)
     (hc : ∀ᶠ n in atTop, c n ≠ 0)
     (hratio : Tendsto (fun n => ‖c n.succ‖ / ‖c n‖) atTop (𝓝 0)) (A : E) :
@@ -62,6 +93,8 @@ theorem scalarSeries_summable_of_ratio_zero (c : ℕ → ℂ)
   simpa only [p, FormalMultilinearSeries.ofScalars_apply_eq] using
     (p.hasSum hm).summable
 
+/-- If scalar coefficients are eventually nonzero and their successive norm ratios tend to zero,
+their algebra-valued power-series sum is analytic at every algebra element. -/
 theorem scalarSeries_analytic_of_ratio_zero (c : ℕ → ℂ)
     (hc : ∀ᶠ n in atTop, c n ≠ 0)
     (hratio : Tendsto (fun n => ‖c n.succ‖ / ‖c n‖) atTop (𝓝 0)) (A : E) :
@@ -77,6 +110,8 @@ theorem scalarSeries_analytic_of_ratio_zero (c : ℕ → ℂ)
   change AnalyticAt ℂ (FormalMultilinearSeries.ofScalarsSum c) A at hh
   simpa only [FormalMultilinearSeries.ofScalarsSum_eq_tsum] using hh
 
+/-- Under eventual nonvanishing and a zero limit for successive coefficient norm ratios, the
+power series evaluated at `s • (L + w • H)` is analytic in `w` everywhere. -/
 theorem scalarSeries_affine_analytic_of_ratio_zero (c : ℕ → ℂ)
     (hc : ∀ᶠ n in atTop, c n ≠ 0)
     (hratio : Tendsto (fun n => ‖c n.succ‖ / ‖c n‖) atTop (𝓝 0))
@@ -87,6 +122,8 @@ theorem scalarSeries_affine_analytic_of_ratio_zero (c : ℕ → ℂ)
   exact (scalarSeries_analytic_of_ratio_zero c hc hratio (s • (L + z • H))).comp
     (f := fun w : ℂ => s • (L + w • H)) (ha.const_smul (c := s))
 
+/-- The successive norm ratio of squared reciprocal factorial coefficients equals `((n +
+1)⁻¹)²`. -/
 private theorem factorial_square_ratio (n : ℕ) :
     ‖(((n + 1).factorial : ℂ)⁻¹) ^ 2‖ / ‖((n.factorial : ℂ)⁻¹) ^ 2‖ =
       (((n : ℝ) + 1)⁻¹) ^ 2 := by
@@ -96,6 +133,7 @@ private theorem factorial_square_ratio (n : ℕ) :
   have hn : (n : ℝ) + 1 ≠ 0 := by positivity
   field_simp
 
+/-- The successive norm ratios of squared reciprocal factorial coefficients tend to zero. -/
 private theorem factorial_square_ratio_tendsto :
     Tendsto (fun n : ℕ => ‖((n.succ.factorial : ℂ)⁻¹) ^ 2‖ /
       ‖((n.factorial : ℂ)⁻¹) ^ 2‖) atTop (𝓝 0) := by
@@ -104,6 +142,7 @@ private theorem factorial_square_ratio_tendsto :
     simpa only [one_div] using (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ))
   simpa using ht.pow 2
 
+/-- The Bessel series with coefficients `(n!)⁻²` evaluated at `(-(t²) / 4) • A` is summable. -/
 theorem bessel_series_summable (A : E) (t : ℂ) :
     Summable (fun n : ℕ => ((n.factorial : ℂ)⁻¹) ^ 2 •
       ((-(t ^ 2) / 4) • A) ^ n) := by
@@ -112,6 +151,8 @@ theorem bessel_series_summable (A : E) (t : ℂ) :
   exact Filter.Eventually.of_forall (fun n => pow_ne_zero _
     (inv_ne_zero (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n))))
 
+/-- The Bessel series evaluated at `(-(t²) / 4) • (L + w • H)` is analytic in the affine
+parameter at every complex point. -/
 theorem bessel_series_affine_analytic (L H : E) (t z : ℂ) :
     AnalyticAt ℂ (fun w : ℂ => ∑' n : ℕ, ((n.factorial : ℂ)⁻¹) ^ 2 •
       ((-(t ^ 2) / 4) • (L + w • H)) ^ n) z := by
@@ -120,6 +161,7 @@ theorem bessel_series_affine_analytic (L H : E) (t z : ℂ) :
   exact Filter.Eventually.of_forall (fun n => pow_ne_zero _
     (inv_ne_zero (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n))))
 
+/-- The successive norm ratio of reciprocal even factorials equals `((2n + 2) * (2n + 1))⁻¹`. -/
 private theorem even_factorial_ratio (n : ℕ) :
     ‖(((2 * (n + 1)).factorial : ℂ)⁻¹)‖ / ‖(((2 * n).factorial : ℂ)⁻¹)‖ =
       ((2 * (n : ℝ) + 2) * (2 * (n : ℝ) + 1))⁻¹ := by
@@ -137,6 +179,7 @@ private theorem even_factorial_ratio (n : ℕ) :
   have h2 : 2 * (n : ℝ) + 2 ≠ 0 := by positivity
   field_simp
 
+/-- The successive norm ratios of reciprocal even factorial coefficients tend to zero. -/
 private theorem even_factorial_ratio_tendsto :
     Tendsto (fun n : ℕ => ‖(((2 * n.succ).factorial : ℂ)⁻¹)‖ /
       ‖(((2 * n).factorial : ℂ)⁻¹)‖) atTop (𝓝 0) := by
@@ -148,6 +191,7 @@ private theorem even_factorial_ratio_tendsto :
   have h2 := tendsto_atTop_add_const_right atTop (2 : ℝ) hm
   exact tendsto_inv_atTop_zero.comp (h2.atTop_mul_atTop₀ h1)
 
+/-- The wave series with coefficients `((2n)!)⁻¹` evaluated at `-(t²) • A` is summable. -/
 theorem wave_series_summable (A : E) (t : ℂ) :
     Summable (fun n : ℕ => (((2 * n).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ n) := by
   apply scalarSeries_summable_of_ratio_zero
@@ -155,6 +199,8 @@ theorem wave_series_summable (A : E) (t : ℂ) :
   exact Filter.Eventually.of_forall (fun n =>
     inv_ne_zero (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (2 * n))))
 
+/-- The wave series evaluated at `-(t²) • (L + w • H)` is analytic in the affine parameter at
+every complex point. -/
 theorem wave_series_affine_analytic (L H : E) (t z : ℂ) :
     AnalyticAt ℂ (fun w : ℂ => ∑' n : ℕ, (((2 * n).factorial : ℂ)⁻¹) •
       (-(t ^ 2) • (L + w • H)) ^ n) z := by
@@ -163,18 +209,24 @@ theorem wave_series_affine_analytic (L H : E) (t z : ℂ) :
   exact Filter.Eventually.of_forall (fun n =>
     inv_ne_zero (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero (2 * n))))
 
+/-- The real Airy series coefficient `(9ⁿ * n! * (2/3)ₙ)⁻¹`, where `(2/3)ₙ` is the ascending
+Pochhammer product. -/
 def airySeriesCoefficient (n : ℕ) : ℝ :=
   ((9 : ℝ) ^ n * (n.factorial : ℝ) * (ascPochhammer ℝ n).eval (2 / 3))⁻¹
 
+/-- The zeroth Airy series coefficient is one. -/
 @[simp] theorem airySeriesCoefficient_zero : airySeriesCoefficient 0 = 1 := by
   simp [airySeriesCoefficient]
 
+/-- Every Airy series coefficient is strictly positive. -/
 theorem airySeriesCoefficient_pos (n : ℕ) : 0 < airySeriesCoefficient n := by
   have hp := ascPochhammer_pos n (2 / 3 : ℝ) (by norm_num)
   have hf : (0 : ℝ) < (n.factorial : ℝ) := by exact_mod_cast Nat.factorial_pos n
   unfold airySeriesCoefficient
   positivity
 
+/-- The next Airy series coefficient is the current coefficient divided by `(3n + 3) * (3n +
+2)`. -/
 theorem airySeriesCoefficient_step (n : ℕ) :
     airySeriesCoefficient (n + 1) =
       airySeriesCoefficient n / ((3 * (n : ℝ) + 3) * (3 * (n : ℝ) + 2)) := by
@@ -190,6 +242,8 @@ theorem airySeriesCoefficient_step (n : ℕ) :
   field_simp
   ring
 
+/-- The successive norm ratio of the complex-cast Airy coefficients equals `((3n + 3) * (3n +
+2))⁻¹`. -/
 private theorem airy_coefficient_ratio (n : ℕ) :
     ‖(airySeriesCoefficient (n + 1) : ℂ)‖ / ‖(airySeriesCoefficient n : ℂ)‖ =
       ((3 * (n : ℝ) + 3) * (3 * (n : ℝ) + 2))⁻¹ := by
@@ -201,6 +255,7 @@ private theorem airy_coefficient_ratio (n : ℕ) :
   have h2 : 3 * (n : ℝ) + 2 ≠ 0 := by positivity
   field_simp
 
+/-- The successive norm ratios of the complex-cast Airy coefficients tend to zero. -/
 private theorem airy_coefficient_ratio_tendsto :
     Tendsto (fun n : ℕ => ‖(airySeriesCoefficient n.succ : ℂ)‖ /
       ‖(airySeriesCoefficient n : ℂ)‖) atTop (𝓝 0) := by
@@ -212,6 +267,8 @@ private theorem airy_coefficient_ratio_tendsto :
   have h2 := tendsto_atTop_add_const_right atTop (2 : ℝ) hm
   exact tendsto_inv_atTop_zero.comp (h3.atTop_mul_atTop₀ h2)
 
+/-- The Airy series with coefficients `airySeriesCoefficient n` evaluated at `-(t³) • A` is
+summable. -/
 theorem airy_series_summable (A : E) (t : ℂ) :
     Summable (fun n : ℕ => (airySeriesCoefficient n : ℂ) • (-(t ^ 3) • A) ^ n) := by
   apply scalarSeries_summable_of_ratio_zero
@@ -219,6 +276,8 @@ theorem airy_series_summable (A : E) (t : ℂ) :
   exact Filter.Eventually.of_forall (fun n =>
     Complex.ofReal_ne_zero.mpr (ne_of_gt (airySeriesCoefficient_pos n)))
 
+/-- The Airy series evaluated at `-(t³) • (L + w • H)` is analytic in the affine parameter at
+every complex point. -/
 theorem airy_series_affine_analytic (L H : E) (t z : ℂ) :
     AnalyticAt ℂ (fun w : ℂ => ∑' n : ℕ, (airySeriesCoefficient n : ℂ) •
       (-(t ^ 3) • (L + w • H)) ^ n) z := by
@@ -227,6 +286,9 @@ theorem airy_series_affine_analytic (L H : E) (t z : ℂ) :
   exact Filter.Eventually.of_forall (fun n =>
     Complex.ofReal_ne_zero.mpr (ne_of_gt (airySeriesCoefficient_pos n)))
 
+/-- For distinct poles enclosed by a circle, the normalized pole-product integral of the affine
+exponential equals its value at the distinguished pole plus the explicitly weighted values
+at the other poles [WangEtAl2026]. -/
 theorem exp_affine_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℂ) (hp : Set.InjOn p s) (i₀ : ι) (hi₀ : i₀ ∈ s)
     (L H : E) (u c : ℂ) (R : ℝ) (hinside : ∀ i ∈ s, p i ∈ ball c R) :
@@ -240,6 +302,9 @@ theorem exp_affine_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
   exact cbmd_finite_polynomial_regulator_circle s p hp i₀ hi₀
     (exp_affine_diffContOnCl L H u (ball c R)) hinside
 
+/-- For distinct poles enclosed by a circle, the normalized pole-product integral of the affine
+Bessel series equals its value at the distinguished pole plus the explicitly weighted values
+at the other poles [WangEtAl2026]. -/
 theorem bessel_series_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℂ) (hp : Set.InjOn p s) (i₀ : ι) (hi₀ : i₀ ∈ s)
     (L H : E) (t c : ℂ) (R : ℝ) (hinside : ∀ i ∈ s, p i ∈ ball c R) :
@@ -255,6 +320,9 @@ theorem bessel_series_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
     (Differentiable.diffContOnCl
       (fun z => (bessel_series_affine_analytic L H t z).differentiableAt)) hinside
 
+/-- For distinct poles enclosed by a circle, the normalized pole-product integral of the affine
+wave series equals its value at the distinguished pole plus the explicitly weighted values
+at the other poles [WangEtAl2026]. -/
 theorem wave_series_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℂ) (hp : Set.InjOn p s) (i₀ : ι) (hi₀ : i₀ ∈ s)
     (L H : E) (t c : ℂ) (R : ℝ) (hinside : ∀ i ∈ s, p i ∈ ball c R) :
@@ -270,6 +338,9 @@ theorem wave_series_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
     (Differentiable.diffContOnCl
       (fun z => (wave_series_affine_analytic L H t z).differentiableAt)) hinside
 
+/-- For distinct poles enclosed by a circle, the normalized pole-product integral of the affine
+Airy series equals its value at the distinguished pole plus the explicitly weighted values
+at the other poles [WangEtAl2026]. -/
 theorem airy_series_cbmd_finite_circle {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℂ) (hp : Set.InjOn p s) (i₀ : ι) (hi₀ : i₀ ∈ s)
     (L H : E) (t c : ℂ) (R : ℝ) (hinside : ∀ i ∈ s, p i ∈ ball c R) :
@@ -293,11 +364,15 @@ open scoped Matrix.Norms.L2Operator
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- The matrix exponential `exp (-t • (L + w • H))` is analytic in the complex parameter at
+every point for every real `t`. -/
 theorem matrix_propagator_analytic (L H : Matrix n n ℂ) (t : ℝ) (z : ℂ) :
     AnalyticAt ℂ
       (fun w : ℂ => NormedSpace.exp ((-(t : ℂ)) • (L + w • H))) z :=
   exp_affine_analytic L H (-(t : ℂ)) z
 
+/-- For a circle enclosing `i` and zero, the normalized two-pole integral of the matrix
+exponential equals `exp (-t • (L + i H)) - exp (-t • L)` [WangEtAl2026]. -/
 theorem matrix_propagator_cbmd_circle (L H : Matrix n n ℂ) (t : ℝ) (c : ℂ) (R : ℝ)
     (hi : I ∈ ball c R) (hzero : (0 : ℂ) ∈ ball c R) :
     (2 * Real.pi * I : ℂ)⁻¹ •

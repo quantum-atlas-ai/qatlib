@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
 import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+
+/-!
+# Counted oblivious amplification
+
+`oblivious_half_isometry_counted_wellFormed` realizes exact oblivious amplification of a
+half-scaled isometry by a well-formed adjoint circuit. It records both the projected encoding
+and the full action on the input frame, together with exact resource counts, as in the
+amplification step of [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `oblivious_half_isometry_counted_wellFormed`: Exact amplification using three queries and four
+  gates.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -24,6 +43,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/-- A projected unitary encoding of half an isometry yields a well-formed circuit that encodes
+the full isometry and acts exactly on the input frame. The circuit uses three queries and
+four gates. See [BerryEtAl2015Taylor]. -/
 theorem oblivious_half_isometry_counted_wellFormed {V : Matrix O I ℂ}
     {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding ((1 / 2 : ℂ) • V) U L R) (hV : IsIsometry V) :

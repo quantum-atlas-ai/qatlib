@@ -5,12 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Stat
+
+/-!
+# Unitary sum specification for time dependent segments
+
+`Equation28UnitarySum` specifies a finite unitary decomposition of `equation28Segment` for
+Hamiltonians given by nonnegative combinations of fixed unitaries. Its total coefficient weight
+is bounded above by a truncated exponential series and below by one.
+
+The mathematical context is discussed in [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `Equation28UnitarySum`: The positive unitary decomposition statement and its coefficient
+  weight bounds.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
 
 namespace Qatlib.Concepts.CoherentSim.TimeDependent
 
+/-- The statement that a grid segment built from a Hamiltonian with nonnegative unitary
+coefficients possesses a finite positive unitary representation whose total weight is
+between one and ∑ k ≤ K, (Λτ)^k/k!. -/
 def Equation28UnitarySum : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L : ℕ)
     (α : Fin L → ℝ → ℝ) (Hl : Fin L → Matrix I I ℂ) (H : ℝ → Matrix I I ℂ)

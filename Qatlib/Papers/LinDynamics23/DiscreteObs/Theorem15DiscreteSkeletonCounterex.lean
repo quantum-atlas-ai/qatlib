@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindowConsumers
+
+/-!
+# Counterexample to an incomplete discrete LCHS contract
+
+`Theorem15DiscreteSkeletonV1` records a proposed circuit and amplification statement without a
+hypothesis relating the reconstructed vector to the target. The coefficients
+`cancellingCoefficients` have positive mass but cancel exactly, giving zero success probability
+at every iteration and refuting that contract in `theorem15DiscreteSkeleton_counterexample`. See
+[AnChildsLin2026] for the paper context.
+
+## Main statements
+
+* `cancelling_success`: For the cancelling coefficient pair with identity summands and
+  preparation, the marked success probability is zero at every amplification iteration.
+* `theorem15DiscreteSkeleton_counterexample`: The proposition `Theorem15DiscreteSkeletonV1` is
+  false.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -27,6 +49,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The earlier discrete skeleton proposition specifying output error, compilation counts, and a
+randomized amplification success bound without a reconstruction-closeness hypothesis. -/
 def Theorem15DiscreteSkeletonV1 : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (i₀ : I) (E : Matrix I I ℂ)
@@ -69,11 +93,15 @@ def Theorem15DiscreteSkeletonV1 : Prop :=
                     (staticLchsCompile c V B j₀ i₀ j.val)
                     (Ket (j₀, i₀))) S))
 
+/-- The two coefficients one and negative one used in the cancelling reconstruction example. -/
 private def cancellingCoefficients (j : Fin 2) : ℂ := if j = 0 then 1 else -1
 
+/-- The coefficient mass of the cancelling pair is two. -/
 private theorem cancelling_mass : coefficientMass cancellingCoefficients = 2 := by
   norm_num [coefficientMass, cancellingCoefficients, Fin.sum_univ_two]
 
+/-- For the cancelling coefficient pair with identity summands and preparation, the marked
+success probability is zero at every amplification iteration. -/
 private theorem cancelling_success (k : ℕ) :
     let S := Finset.univ.filter (fun x : Fin 2 × Fin 1 => x.1 = 0)
     MeasureProb (Run (preparedMark S)
@@ -90,6 +118,7 @@ private theorem cancelling_success (k : ℕ) :
   norm_num [Fin.sum_univ_two, cancellingCoefficients, cancelling_mass, Matrix.add_mulVec,
     MeasureProb, BornProb]
 
+/-- The proposition `Theorem15DiscreteSkeletonV1` is false. -/
 theorem theorem15DiscreteSkeleton_counterexample : ¬ Theorem15DiscreteSkeletonV1 := by
   intro h
   have hn : ‖toEuclidean_fromVec (Ket (0 : Fin 1))‖ = 1 :=

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Finite distributions for distribution testing
+
+`Dist` is the finite probability model used for distribution testing. The module defines the L1
+distance `l1`, the collision inner product `inner`, the uniform distribution, sample statistics,
+and conditioning away from a finite set. It proves elementary distance and variance bounds,
+including `prop2_inner_lower` for a distribution separated from uniformity.
+
+The mathematical setting follows [BravyiHarrowHassidim2011].
+
+## Main statements
+
+* `prop2_inner_lower`: nonuniformity gives a lower bound on the collision inner product.
+* `l1_renormalizeOff_le`: removing a set changes the distribution by at most twice its mass.
+
+## References
+
+* [Bravyi et al., 2011][BravyiHarrowHassidim2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,14 +41,19 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.DistTesting09.MainResults.Defs
 
+/-- Probability distributions on the finite set `Fin N`. -/
 abbrev Dist (N : ℕ) := FinDist (Fin N)
 
 variable {N : ℕ}
 
+/-- The L1 distance between the probability mass functions of `p` and `q`. -/
 def l1 (p q : Dist N) : ℝ := ∑ i, |p.prob i - q.prob i|
 
+/-- The collision inner product, given by the sum of the products of corresponding
+probabilities. -/
 def inner (p q : Dist N) : ℝ := ∑ i, p.prob i * q.prob i
 
+/-- The uniform probability distribution on `Fin N` for nonzero `N`. -/
 def uniform (N : ℕ) [NeZero N] : Dist N where
   prob _ := (N : ℝ)⁻¹
   nonneg _ := by positivity
@@ -35,26 +61,34 @@ def uniform (N : ℕ) [NeZero N] : Dist N where
     simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
     exact mul_inv_cancel₀ (Nat.cast_ne_zero.mpr (NeZero.ne N))
 
+/-- The condition that `p` has L1 distance at least `ε` from the uniform distribution. -/
 def nonuniform [NeZero N] (ε : ℝ) (p : Dist N) : Prop := ε ≤ l1 p (uniform N)
 
+/-- Every outcome of the uniform distribution has probability `N⁻¹`. -/
 @[simp] theorem uniform_prob [NeZero N] (i : Fin N) : (uniform N).prob i = (N : ℝ)⁻¹ := rfl
 
+/-- The L1 distance between two finite distributions is nonnegative. -/
 theorem l1_nonneg (p q : Dist N) : 0 ≤ l1 p q :=
   Finset.sum_nonneg fun _ _ => abs_nonneg _
 
+/-- The collision inner product of two finite distributions is nonnegative. -/
 theorem inner_nonneg (p q : Dist N) : 0 ≤ inner p q :=
   Finset.sum_nonneg fun i _ => mul_nonneg (p.nonneg i) (q.nonneg i)
 
+/-- The self collision inner product of a finite distribution is nonnegative. -/
 theorem inner_self_nonneg (p : Dist N) : 0 ≤ inner p p :=
   inner_nonneg p p
 
+/-- The L1 distance from a distribution to itself is zero. -/
 theorem l1_self (p : Dist N) : l1 p p = 0 := by
   simp [l1]
 
+/-- The L1 distance is symmetric in its arguments. -/
 theorem l1_comm (p q : Dist N) : l1 p q = l1 q p := by
   unfold l1
   exact Finset.sum_congr rfl fun i _ => abs_sub_comm _ _
 
+/-- The L1 distance satisfies the triangle inequality. -/
 theorem l1_triangle (p q r : Dist N) : l1 p r ≤ l1 p q + l1 q r := by
   unfold l1
   calc ∑ i, |p.prob i - r.prob i|
@@ -65,6 +99,7 @@ theorem l1_triangle (p q r : Dist N) : l1 p r ≤ l1 p q + l1 q r := by
     _ = (∑ i, |p.prob i - q.prob i|) + ∑ i, |q.prob i - r.prob i| :=
         Finset.sum_add_distrib
 
+/-- The square of the sum of absolute values is at most `N` times the sum of squares. -/
 theorem sum_abs_sq_le_card_mul_sum_sq (d : Fin N → ℝ) :
     (∑ i, |d i|) ^ 2 ≤ (N : ℝ) * ∑ i, (d i) ^ 2 := by
   have h := Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ : Finset (Fin N))
@@ -72,6 +107,8 @@ theorem sum_abs_sq_le_card_mul_sum_sq (d : Fin N → ℝ) :
   simpa only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
     one_mul, one_pow, mul_assoc, sq_abs] using! h
 
+/-- The squared Euclidean deviation of a distribution from uniformity is its self collision
+inner product minus `N⁻¹`. -/
 theorem sum_sq_sub_uniform [NeZero N] (p : Dist N) :
     ∑ i, (p.prob i - (N : ℝ)⁻¹) ^ 2 = inner p p - (N : ℝ)⁻¹ := by
   set c : ℝ := (N : ℝ)⁻¹ with hc
@@ -90,6 +127,8 @@ theorem sum_sq_sub_uniform [NeZero N] (p : Dist N) :
   field_simp
   ring
 
+/-- For nonnegative `ε`, an `ε`-nonuniform distribution has self collision inner product at
+least `(1 + ε²) / N`. See [Bravyi et al., 2011, Proposition 2][BravyiHarrowHassidim2011]. -/
 theorem prop2_inner_lower [NeZero N] (ε : ℝ) (p : Dist N) (hε : 0 ≤ ε)
     (hnu : nonuniform ε p) :
     (1 + ε ^ 2) / (N : ℝ) ≤ inner p p := by
@@ -113,27 +152,38 @@ theorem prop2_inner_lower [NeZero N] (ε : ℝ) (p : Dist N) (hε : 0 ≤ ε)
 
 variable {M : ℕ}
 
+/-- The sum of the probabilities assigned by `p` to the sampled outcomes, counting repetitions. -/
 def sampleSum (p : Dist N) (S : Fin M → Fin N) : ℝ := ∑ a, p.prob (S a)
 
+/-- The finite set of distinct outcomes occurring in the sample tuple `S`. -/
 def supportOf (S : Fin M → Fin N) : Finset (Fin N) := Finset.univ.image S
 
+/-- The probability mass assigned by `q` to the finite set `A`. -/
 def collisionProb (q : Dist N) (A : Finset (Fin N)) : ℝ := ∑ i ∈ A, q.prob i
 
+/-- The set of outcomes whose probability exceeds `1 / (2 * M²)`. -/
 def bigSet (p : Dist N) (M : ℕ) : Finset (Fin N) :=
   Finset.univ.filter fun i => (1 : ℝ) / (2 * (M : ℝ) ^ 2) < p.prob i
 
+/-- The total probability mass of the outcomes in `bigSet p M`. -/
 def wBig (p : Dist N) (M : ℕ) : ℝ := ∑ i ∈ bigSet p M, p.prob i
 
+/-- The condition that every outcome has probability at most `1 / (2 * M²)`. -/
 def noBigElements (p : Dist N) (M : ℕ) : Prop :=
   ∀ i, p.prob i ≤ (1 : ℝ) / (2 * (M : ℝ) ^ 2)
 
+/-- The probability that the sample sum of `M` independent samples from `p` is at least
+`threshold`. -/
 def probSampleSumGe (p : Dist N) (M : ℕ) (threshold : ℝ) : ℝ :=
   p.probEvent (L := M) fun S => threshold ≤ sampleSum p S
 
+/-- The event mass of the independent product of copies of `p` equals the corresponding sample
+event probability. -/
 theorem eventMass_independent_const (p : Dist N) (F : (Fin M → Fin N) → Prop)
     [DecidablePred F] :
     eventMass (independent (fun _ : Fin M => p)) F = p.probEvent (L := M) F := rfl
 
+/-- The probability of the complement of a sample event is one minus its probability. -/
 theorem probEvent_compl (p : Dist N) (E : (Fin M → Fin N) → Prop) [DecidablePred E] :
     p.probEvent (L := M) (fun S => ¬ E S) = 1 - p.probEvent (L := M) E := by
   have hsplit : (∑ S ∈ Finset.univ.filter E, p.probOf S)
@@ -143,6 +193,7 @@ theorem probEvent_compl (p : Dist N) (E : (Fin M → Fin N) → Prop) [Decidable
   simp only [FinDist.probEvent]
   linarith
 
+/-- Every sample event has probability at most one. -/
 theorem probEvent_le_one (p : Dist N) (E : (Fin M → Fin N) → Prop) [DecidablePred E] :
     p.probEvent (L := M) E ≤ 1 := by
   have h := probEvent_compl (M := M) p E
@@ -150,6 +201,8 @@ theorem probEvent_le_one (p : Dist N) (E : (Fin M → Fin N) → Prop) [Decidabl
     Finset.sum_nonneg fun S _ => Finset.prod_nonneg fun i _ => p.nonneg _
   linarith
 
+/-- An implication between sample events yields the corresponding inequality between their
+probabilities. -/
 theorem probEvent_mono (p : Dist N) (E F : (Fin M → Fin N) → Prop)
     [DecidablePred E] [DecidablePred F] (h : ∀ S, E S → F S) :
     p.probEvent (L := M) E ≤ p.probEvent (L := M) F := by
@@ -159,6 +212,7 @@ theorem probEvent_mono (p : Dist N) (E F : (Fin M → Fin N) → Prop)
     exact ⟨hS.1, h S hS.2⟩
   · intro S _ _; exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- A uniform upper bound on point probabilities also bounds the self collision inner product. -/
 theorem inner_self_le_max (p : Dist N) (C : ℝ) (h : ∀ i, p.prob i ≤ C) :
     inner p p ≤ C := by
   have hterm : ∀ i : Fin N, p.prob i * p.prob i ≤ C * p.prob i := by
@@ -169,12 +223,16 @@ theorem inner_self_le_max (p : Dist N) (C : ℝ) (h : ∀ i, p.prob i ≤ C) :
     _ = C * ∑ i, p.prob i := (Finset.mul_sum _ _ _).symm
     _ = C := by rw [p.sum_one, mul_one]
 
+/-- If `p` has no big elements, its self collision inner product is at most `1 / (2 * M²)`. -/
 theorem inner_self_le_of_noBig (p : Dist N) (M : ℕ) (hnb : noBigElements p M) :
     inner p p ≤ (1 : ℝ) / (2 * (M : ℝ) ^ 2) :=
   inner_self_le_max p _ hnb
 
+/-- The probability mass assigned by `p` to the finite set `B`. -/
 def massOf (p : Dist N) (B : Finset (Fin N)) : ℝ := ∑ i ∈ B, p.prob i
 
+/-- The distribution obtained by setting the mass on `B` to zero and renormalizing its
+complement, assuming `B` has mass less than one. -/
 def renormalizeOff (p : Dist N) (B : Finset (Fin N)) (h : massOf p B < 1) : Dist N where
   prob i := if i ∈ B then 0 else p.prob i / (1 - massOf p B)
   nonneg i := by
@@ -206,6 +264,7 @@ def renormalizeOff (p : Dist N) (B : Finset (Fin N)) (h : massOf p B < 1) : Dist
     rw [hfilter, hcompl]
     exact inv_mul_cancel₀ (by linarith : (1 - massOf p B) ≠ 0)
 
+/-- Conditioning away from `B` changes `p` in L1 distance by at most twice the mass of `B`. -/
 theorem l1_renormalizeOff_le (p : Dist N) (B : Finset (Fin N)) (h : massOf p B < 1) :
     l1 p (renormalizeOff p B h) ≤ 2 * massOf p B := by
   suffices hmain : l1 p (renormalizeOff p B h) = 2 * massOf p B by rw [hmain]
@@ -263,6 +322,7 @@ theorem l1_renormalizeOff_le (p : Dist N) (B : Finset (Fin N)) (h : massOf p B <
         field_simp
     _ = 2 * massOf p B := by ring
 
+/-- The expectation of the indicator of `B` equals the probability mass of `B`. -/
 theorem expect_indicator (p : Dist N) (B : Finset (Fin N)) :
     p.expect (fun x => if x ∈ B then (1 : ℝ) else 0) = ∑ x ∈ B, p.prob x := by
   simp only [FinDist.expect]
@@ -271,9 +331,11 @@ theorem expect_indicator (p : Dist N) (B : Finset (Fin N)) :
     Finset.sum_congr rfl fun x _ => by by_cases h : x ∈ B <;> simp [h]]
   rw [← Finset.sum_filter, Finset.filter_mem_eq_inter, Finset.univ_inter]
 
+/-- The number of coordinates of the sample tuple that lie in `B`, viewed as a real number. -/
 def hitCount {M : ℕ} (B : Finset (Fin N)) (ω : Fin M → Fin N) : ℝ :=
   ∑ a, if ω a ∈ B then (1 : ℝ) else 0
 
+/-- The variance of the indicator of `B` is at most the probability mass of `B`. -/
 theorem indicator_variance_le (p : Dist N) (B : Finset (Fin N)) :
     p.variance (fun x => if x ∈ B then (1 : ℝ) else 0) ≤ ∑ x ∈ B, p.prob x := by
   have hw0 : 0 ≤ ∑ x ∈ B, p.prob x := Finset.sum_nonneg fun x _ => p.nonneg x
@@ -286,6 +348,8 @@ theorem indicator_variance_le (p : Dist N) (B : Finset (Fin N)) :
   rw [hsq, expect_indicator]
   nlinarith [sq_nonneg (∑ x ∈ B, p.prob x), hw0]
 
+/-- If all point probabilities are at most `C`, the variance of the sampled point probability is
+at most `C * inner p p`. -/
 theorem variance_id_le (p : Dist N) (C : ℝ) (hC : ∀ i, p.prob i ≤ C) :
     p.variance p.prob ≤ C * inner p p := by
   rw [FinDist.variance_eq_expect_sq_sub]

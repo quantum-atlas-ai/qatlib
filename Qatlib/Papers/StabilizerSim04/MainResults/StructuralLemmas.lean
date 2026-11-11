@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StabilizerSim04.MainResults.Basic
+
+/-!
+# Standard Pauli generators and the all-zero stabilizer
+
+This module identifies the standard tableau rows with the single-site Pauli elements and proves
+that they generate all Pauli words up to phase. It characterizes the elements fixing the
+all-zero state, proves exact generation by the standard Z tableau, and counts these stabilizers,
+supplying structural ingredients for [AaronsonGottesman2004].
+
+## Main statements
+
+* `standard_projective_pauli_generation`: the combined standard rows generate every Pauli word
+  up to phase.
+* `standard_stabilizer_generates_ket_zero`: the standard Z rows generate exactly the fixing
+  Pauli elements.
+* `stabilizerCount_ketZero`: the all-zero state has `2 ^ n` fixing Pauli elements.
+
+## References
+
+* [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,17 +42,22 @@ open Qatlib.Foundations.PureStateMath
 open Matrix
 open scoped Classical BigOperators
 
+/-- The zero-phase Pauli element acting as X at qubit `i` and as the identity elsewhere. -/
 def XAt {n : ℕ} (i : Fin n) : PauliElem n :=
   ⟨fun k => if k = i then Pauli1.X else Pauli1.I, 0⟩
 
+/-- The word of `XAt i` has X at `i` and the identity elsewhere. -/
 @[simp] theorem XAt_word {n : ℕ} (i : Fin n) :
     (XAt i).word = fun k => if k = i then Pauli1.X else Pauli1.I := rfl
 
+/-- The word of `ZAt i` has Z at `i` and the identity elsewhere. -/
 @[simp] theorem ZAt_word {n : ℕ} (i : Fin n) :
     (ZAt i).word = fun k => if k = i then Pauli1.Z else Pauli1.I := rfl
 
+/-- The phase of `XAt i` equals zero. -/
 @[simp] theorem XAt_phase {n : ℕ} (i : Fin n) : (XAt i).phase = 0 := rfl
 
+/-- Decoding the standard destabilizer row at `i` yields `XAt i`. -/
 theorem standardDestabilizer_decode (n : ℕ) (i : Fin n) :
     (standardDestabilizer n i).decode = XAt i := by
   apply pauli_ext
@@ -38,6 +65,7 @@ theorem standardDestabilizer_decode (n : ℕ) (i : Fin n) :
     by_cases h : k = i <;> simp [standardDestabilizer, Row.decode, XAt, letter, h]
   · rfl
 
+/-- Decoding the standard stabilizer row at `i` yields `ZAt i`. -/
 theorem standardStabilizer_decode (n : ℕ) (i : Fin n) :
     (standardStabilizer n i).decode = ZAt i := by
   apply pauli_ext
@@ -45,27 +73,33 @@ theorem standardStabilizer_decode (n : ℕ) (i : Fin n) :
     by_cases h : k = i <;> simp [standardStabilizer, Row.decode, ZAt, letter, h]
   · rfl
 
+/-- The list of all single-site X generators followed by all single-site Z generators. -/
 def standardGenList (n : ℕ) : List (PauliElem n) :=
   (List.finRange n).flatMap (fun i => [XAt i, ZAt i])
 
+/-- Every single-site X element belongs to `standardGenList n`. -/
 theorem XAt_mem_standardGenList {n : ℕ} (i : Fin n) : XAt i ∈ standardGenList n := by
   refine List.mem_flatMap.mpr ⟨i, List.mem_finRange i, ?_⟩
   simp
 
+/-- Every single-site Z element belongs to `standardGenList n`. -/
 theorem ZAt_mem_standardGenList {n : ℕ} (i : Fin n) : ZAt i ∈ standardGenList n := by
   refine List.mem_flatMap.mpr ⟨i, List.mem_finRange i, ?_⟩
   simp
 
+/-- Every single-site X element occurs among the standard destabilizer generators. -/
 theorem XAt_mem_tableauDestabilizer {n : ℕ} (i : Fin n) :
     XAt i ∈ tableauGenerators (standardDestabilizer n) := by
   rw [tableauGenerators]
   exact List.mem_map.mpr ⟨i, List.mem_finRange i, standardDestabilizer_decode n i⟩
 
+/-- Every single-site Z element occurs among the standard stabilizer generators. -/
 theorem ZAt_mem_tableauStabilizer {n : ℕ} (i : Fin n) :
     ZAt i ∈ tableauGenerators (standardStabilizer n) := by
   rw [tableauGenerators]
   exact List.mem_map.mpr ⟨i, List.mem_finRange i, standardStabilizer_decode n i⟩
 
+/-- Membership in `standardGenList n` is equivalent to being a single-site X or Z element. -/
 theorem mem_standardGenList_iff {n : ℕ} {g : PauliElem n} :
     g ∈ standardGenList n ↔
       ∃ i : Fin n, g = XAt i ∨ g = ZAt i := by
@@ -78,6 +112,8 @@ theorem mem_standardGenList_iff {n : ℕ} {g : PauliElem n} :
     · exact XAt_mem_standardGenList i
     · exact ZAt_mem_standardGenList i
 
+/-- Every standard generator belongs to the concatenated standard destabilizer and stabilizer
+generator lists. -/
 theorem standardGenList_mem_tableauGenerators {n : ℕ} {g : PauliElem n}
     (hg : g ∈ standardGenList n) :
     g ∈ tableauGenerators (standardDestabilizer n) ++
@@ -86,12 +122,15 @@ theorem standardGenList_mem_tableauGenerators {n : ℕ} {g : PauliElem n}
   · exact List.mem_append_left _ (XAt_mem_tableauDestabilizer i)
   · exact List.mem_append_right _ (ZAt_mem_tableauStabilizer i)
 
+/-- The list of single-site X and Z factors representing a Pauli letter at `i` up to phase. -/
 def letterList {n : ℕ} (i : Fin n) : Pauli1 → List (PauliElem n)
   | Pauli1.I => []
   | Pauli1.X => [XAt i]
   | Pauli1.Y => [XAt i, ZAt i]
   | Pauli1.Z => [ZAt i]
 
+/-- Multiplying by the factors for a letter changes the Pauli word by that letter at `i` and
+leaves other sites unchanged. -/
 theorem foldl_letterList_word {n : ℕ} (q : PauliElem n) (i : Fin n) (a : Pauli1) :
     ((letterList i a).foldl PauliElem.mul q).word =
       fun k => pauliMul1 (q.word k) (if k = i then a else Pauli1.I) := by
@@ -111,6 +150,8 @@ theorem foldl_letterList_word {n : ℕ} (q : PauliElem n) (i : Fin n) (a : Pauli
       by_cases h : k = i <;>
         simp [letterList, ZAt, PauliElem.mul, h, pauliMul1_right_I]
 
+/-- A Pauli word supported in a finite set can be obtained, up to phase, by a product of
+standard generators. -/
 theorem exists_word_gen (n : ℕ) :
     ∀ (S : Finset (Fin n)) (w : PauliWord n), (∀ i, i ∉ S → w i = Pauli1.I) →
       ∃ l : List (PauliElem n),
@@ -175,6 +216,8 @@ theorem exists_word_gen (n : ℕ) :
         · simp [hw'def, hk, pauliMul1_I]
         · simp [hw'def, hk, pauliMul1_right_I]
 
+/-- The group generated by the standard destabilizer and stabilizer rows contains an element
+with any prescribed Pauli word [AaronsonGottesman2004]. -/
 theorem standard_projective_pauli_generation (n : ℕ) (p : PauliElem n) :
     ∃ q ∈ generatedGroup (tableauGenerators (standardDestabilizer n) ++
         tableauGenerators (standardStabilizer n)), q.word = p.word := by
@@ -188,6 +231,7 @@ theorem standard_projective_pauli_generation (n : ℕ) (p : PauliElem n) :
   intro g hg
   exact standardGenList_mem_tableauGenerators (hmem g hg)
 
+/-- A single-site Z operator fixes the all-zero state. -/
 theorem ZAt_fixes_ketZero {n : ℕ} (i : Fin n) :
     op (ZAt i) *ᵥ KetZero n = KetZero n := by
   have h := op_ZI_stabilizes_ket_zero (n := n)
@@ -196,6 +240,8 @@ theorem ZAt_fixes_ketZero {n : ℕ} (i : Fin n) :
       by_cases hk : k = i <;> simp [hk])
   simpa [ZAt, KetZero] using! h
 
+/-- A product of single-site Z elements, starting from an element fixing the all-zero state,
+also fixes that state. -/
 theorem foldl_mul_fixes_ketZero {n : ℕ} (l : List (PauliElem n))
     (h : ∀ g ∈ l, ∃ i : Fin n, g = ZAt i) (q : PauliElem n)
     (hq : op q *ᵥ KetZero n = KetZero n) :
@@ -213,6 +259,8 @@ theorem foldl_mul_fixes_ketZero {n : ℕ} (l : List (PauliElem n))
         (PauliElem.mul q g) hq'
       simpa using! htail
 
+/-- A Pauli element fixing the all-zero state has only Z and identity letters and has phase
+zero. -/
 theorem fixes_ketZero_data {n : ℕ} {p : PauliElem n}
     (h : op p *ᵥ KetZero n = KetZero n) :
     (∀ k, p.word k = Pauli1.Z ∨ p.word k = Pauli1.I) ∧ p.phase = 0 := by
@@ -255,6 +303,8 @@ theorem fixes_ketZero_data {n : ℕ} {p : PauliElem n}
       _ = 0 := by rw [hval]; simp
   exact ⟨hword, hphase⟩
 
+/-- A word equal to Z on a finite set and to the identity elsewhere is exactly a product of
+single-site Z elements with phase zero. -/
 theorem exists_zproduct (n : ℕ) :
     ∀ (S : Finset (Fin n)) (w : PauliWord n),
       (∀ i, i ∉ S → w i = Pauli1.I) →
@@ -312,6 +362,8 @@ theorem exists_zproduct (n : ℕ) :
             · simp [hia, pauliMulPhase_right_I]
           simp [PauliElem.mul, ZAt, hzero]
 
+/-- The standard stabilizer tableau generates exactly the Pauli elements fixing the all-zero
+state [AaronsonGottesman2004]. -/
 theorem standard_stabilizer_generates_ket_zero (n : ℕ) :
     GeneratesStabilizer (standardStabilizer n) (KetZero n) := by
   intro p
@@ -351,9 +403,11 @@ theorem standard_stabilizer_generates_ket_zero (n : ℕ) :
       exact ⟨i, hi.symm.trans (standardStabilizer_decode n i)⟩
     · rw [op_one, Matrix.one_mulVec]
 
+/-- The zero-phase Pauli element applying Z exactly at the qubits selected by the Boolean mask. -/
 def zMaskPauli {n : ℕ} (φ : Fin n → Bool) : PauliElem n :=
   ⟨fun i => if φ i then Pauli1.Z else Pauli1.I, 0⟩
 
+/-- Every masked product of Z operators fixes the all-zero state. -/
 theorem zMaskPauli_fixes {n : ℕ} (φ : Fin n → Bool) :
     op (zMaskPauli φ) *ᵥ KetZero n = KetZero n := by
   have h := op_ZI_stabilizes_ket_zero (n := n)
@@ -362,6 +416,7 @@ theorem zMaskPauli_fixes {n : ℕ} (φ : Fin n → Bool) :
       by_cases hk : φ k <;> simp [hk])
   simpa [zMaskPauli, KetZero] using! h
 
+/-- Exactly `2 ^ n` Pauli elements fix the all-zero state [AaronsonGottesman2004]. -/
 theorem stabilizerCount_ketZero (n : ℕ) :
     StabilizerCountEq (KetZero n) (2 ^ n) := by
   unfold StabilizerCountEq

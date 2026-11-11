@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridFiniteStreamDefs
+
+/-!
+# Hybrid execution on a shared finite bit stream
+
+This module relates path records and hybrid stream execution, showing that the consumed coin
+lists are prefixes of the supplied stream. It proves that resuming native execution or supplying
+more bits agrees with executing the combined input, and identifies the associated resource
+ledgers and terminal joint law. See [NielsenChuang2010] for the quantum computation framework.
+
+## Main statements
+
+* `execStream_coins_prefix`: identifies the consumed coin prefix.
+* `schedule_resume_eq_whole`: combines native fuel budgets.
+* `scheduleTerminalLaw_eq_jointLaw`: identifies terminal and joint laws.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -29,6 +49,8 @@ open scoped ENNReal
 variable {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
 variable {D : ℕ} {A V : Type}
 
+/-- Recording a gate or query step applies the corresponding operator to the path record and
+adds its gate or query count. -/
 theorem record_step_eq {D : ℕ} {A : Type} (O : Operator D) {p : HybridProgram D A}
     (s : Step (Fin D)) (h : HybridProgram.Path p) :
     ((HybridProgram.Path.step s h).record O) = match s with
@@ -36,33 +58,43 @@ theorem record_step_eq {D : ℕ} {A : Type} (O : Operator D) {p : HybridProgram 
       | .query => (h.record O).quantum O 1 0 0 [] := by
   cases s <;> rfl
 
+/-- Adding a gate or query step to a path leaves its recorded coin list unchanged. -/
 theorem record_step_coins {D : ℕ} {A : Type} (O : Operator D) {p : HybridProgram D A}
     (s : Step (Fin D)) (h : HybridProgram.Path p) :
     ((HybridProgram.Path.step s h).record O).coins = (h.record O).coins := by
   cases s <;> rfl
 
+/-- Recording the false branch of a random-bit choice prepends a false coin to the continuation
+record. -/
 theorem record_bitFalse_eq {D : ℕ} {A : Type} (O : Operator D) {p q : HybridProgram D A}
     (h : HybridProgram.Path p) :
     ((HybridProgram.Path.bitFalse (p := p) (q := q) h).record O) = (h.record O).coin false := rfl
 
+/-- The coin list of a false-branch path is `false` followed by the continuation's coin list. -/
 theorem record_bitFalse_coins {D : ℕ} {A : Type} (O : Operator D) {p q : HybridProgram D A}
     (h : HybridProgram.Path p) :
     ((HybridProgram.Path.bitFalse (p := p) (q := q) h).record O).coins
       = false :: (h.record O).coins := rfl
 
+/-- Recording the true branch of a random-bit choice prepends a true coin to the continuation
+record. -/
 theorem record_bitTrue_eq {D : ℕ} {A : Type} (O : Operator D) {p q : HybridProgram D A}
     (h : HybridProgram.Path q) :
     ((HybridProgram.Path.bitTrue (p := p) (q := q) h).record O) = (h.record O).coin true := rfl
 
+/-- The coin list of a true-branch path is `true` followed by the continuation's coin list. -/
 theorem record_bitTrue_coins {D : ℕ} {A : Type} (O : Operator D) {p q : HybridProgram D A}
     (h : HybridProgram.Path q) :
     ((HybridProgram.Path.bitTrue (p := p) (q := q) h).record O).coins
       = true :: (h.record O).coins := rfl
 
+/-- Mapping an option successively by `f` and `g` equals mapping it by their composition. -/
 theorem map_map_option {α β γ : Type} (f : α → β) (g : β → γ) (o : Option α) :
     (o.map f).map g = o.map (fun x => g (f x)) := by
   cases o <;> rfl
 
+/-- If `streamPath` returns a path, the coins in its record form a prefix of the supplied bit
+stream. -/
 theorem streamPath_coins_prefix {D : ℕ} {A : Type} (O : Operator D) :
     ∀ (p : HybridProgram D A) (bs : List Bool) (h : HybridProgram.Path p),
       streamPath p bs = some h → ∃ rest, bs = (h.record O).coins ++ rest := by
@@ -144,6 +176,8 @@ theorem streamPath_coins_prefix {D : ℕ} {A : Type} (O : Operator D) :
       rw [this] at hh
       cases hh
 
+/-- If stream execution returns a leaf, its recorded coins form a prefix of the supplied bit
+stream. -/
 theorem execStream_coins_prefix {D : ℕ} {A : Type} (O : Operator D) :
     ∀ (p : HybridProgram D A) (bs : List Bool) (t : HybridLeaf D A),
       execStream O p bs = some t → ∃ rest, bs = t.coins ++ rest := by
@@ -218,6 +252,7 @@ theorem execStream_coins_prefix {D : ℕ} {A : Type} (O : Operator D) :
       intro bs t h
       simp [execStream] at h
 
+/-- For a coin-only hybrid program, executing a leaf's own coin list returns that leaf. -/
 theorem execStream_of_leaf {D : ℕ} {A : Type} (O : Operator D) :
     ∀ (p : HybridProgram D A) (t : HybridLeaf D A),
       CoinOnly p → t ∈ p.leaves O → execStream O p t.coins = some t := by
@@ -301,6 +336,7 @@ theorem execStream_of_leaf {D : ℕ} {A : Type} (O : Operator D) :
       intro t hc ht
       simp [CoinOnly] at hc
 
+/-- If `streamPath` returns a path, stream execution returns that path's record. -/
 theorem execStream_of_streamPath {D : ℕ} {A : Type} (O : Operator D) :
     ∀ (p : HybridProgram D A) (bs : List Bool) (h : HybridProgram.Path p),
       streamPath p bs = some h → execStream O p bs = some (h.record O) := by
@@ -385,12 +421,15 @@ theorem execStream_of_streamPath {D : ℕ} {A : Type} (O : Operator D) :
       rw [hthis] at hh
       cases hh
 
+/-- Equal native execution results produce equal schedules. -/
 theorem scheduleOf_congr {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) {r r' : NativeTape.Result Γ Λ}
     (h : r = r') : scheduleOf c O r = scheduleOf c O r' := by
   cases h
   rfl
 
+/-- Resuming a schedule with extra native fuel equals scheduling from the start with the
+combined fuel budget. -/
 theorem schedule_resume_eq_whole {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) (extra : ℕ) :
     scheduleResume c O extra = schedule { c with budget := c.budget + extra } O := by
@@ -399,6 +438,7 @@ theorem schedule_resume_eq_whole {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D
   simp only [ReturnCall.native] at h ⊢
   exact h.symm
 
+/-- Supplying more bits to a schedule equals scheduling from the start with those bits appended. -/
 theorem schedule_supply_eq_whole {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) (more : List Bool) :
     scheduleSupply c O more = schedule { c with bits := c.bits ++ more } O := by
@@ -407,12 +447,15 @@ theorem schedule_supply_eq_whole {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D
   simp only [ReturnCall.native] at h ⊢
   exact h.symm
 
+/-- The original bit stream splits into the native execution's consumed bits followed by its
+unread bits. -/
 theorem schedule_stream_account {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) :
     c.bits = c.native.bits ++ c.native.unread := by
   simpa [ReturnCall.native] using
     (NativeTape.run_account c.program c.budget c.bits c.config)
 
+/-- Two returned values and leaves for the same scheduled native result agree. -/
 theorem scheduleOf_returned_unique {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) (r : NativeTape.Result Γ Λ) {v v' : V}
     {t t' : HybridLeaf D A} (h1 : scheduleOf c O r = .returned r v t)
@@ -421,6 +464,8 @@ theorem scheduleOf_returned_unique {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] 
   cases h2
   exact ⟨rfl, rfl⟩
 
+/-- A returned schedule decodes the native result to `v` and executes the continuation on the
+unread bits to obtain `t`. -/
 theorem scheduleOf_returned_exec {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) (r : NativeTape.Result Γ Λ) (v : V)
     (t : HybridLeaf D A) (h : scheduleOf c O r = .returned r v t) :
@@ -449,6 +494,8 @@ theorem scheduleOf_returned_exec {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D
           rw [← congrArg c.next hv, ← congrArg some ht]
           exact he
 
+/-- A returned schedule splits its input stream into the native consumed bits, the
+continuation's recorded coins, and a remaining suffix. -/
 theorem schedule_returned_one_stream {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) (v : V) (t : HybridLeaf D A)
     (h : schedule c O = .returned c.native v t) :
@@ -459,6 +506,8 @@ theorem schedule_returned_one_stream {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ
   rw [schedule_stream_account c, hrest]
   exact (List.append_assoc _ _ _).symm
 
+/-- A pending native schedule records its native steps, bits, CPU time, and peak space, has
+quantum space `D`, and has zero quantum counts and communication. -/
 theorem scheduleLedger_pending {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D)
     (h : schedule c O = .pendingNative c.native) :
@@ -478,6 +527,8 @@ theorem scheduleLedger_pending {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D :
   rw [hledger]
   simp [runClocks, HybridCounts.zero]
 
+/-- A returned schedule records the leaf's quantum counts, the decoded value's communication
+width, the native resource ledger, and quantum space `D`. -/
 theorem scheduleLedger_returned {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D) (v : V) (t : HybridLeaf D A)
     (h : schedule c O = .returned c.native v t) :
@@ -497,6 +548,8 @@ theorem scheduleLedger_returned {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D 
   rw [hledger]
   simp [runClocks]
 
+/-- Adding extra fuel in `scheduleLawFuel` gives the schedule law at the sum of the two fuel
+budgets. -/
 theorem scheduleLawFuel_eq {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
@@ -551,6 +604,7 @@ theorem scheduleLawFuel_eq {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ
   funext r
   exact key r
 
+/-- The terminal schedule law equals the corresponding joint law. -/
 theorem scheduleTerminalLaw_eq_jointLaw {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     {D : ℕ} {A V : Type} (c : ReturnCall Γ Λ D A V) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)

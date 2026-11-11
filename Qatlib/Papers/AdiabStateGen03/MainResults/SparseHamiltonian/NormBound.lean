@@ -7,6 +7,23 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Mathlib.Analysis.Normed.Ring.Basic
 
+/-!
+# Entry bounds from the Hamiltonian operator norm
+
+This module proves `norm_entry_le`, which bounds the magnitude of every entry of a Hamiltonian
+matrix by its Euclidean operator norm. This estimate supplies an elementary norm comparison for
+sparse Hamiltonian constructions. The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `norm_entry_le`: The magnitude of every Hamiltonian matrix entry is at most the Euclidean
+  operator norm of the matrix.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,6 +36,8 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- The magnitude of every Hamiltonian matrix entry is at most the Euclidean operator norm of
+the matrix [AharonovTaShma2007]. -/
 theorem norm_entry_le (H : Ham n) (i j : Dim n) : ‖H i j‖ ≤ ‖H‖ := by
   set x : State n := EuclideanSpace.single j 1 with hxdef
   have hx : ‖x‖ = 1 := by simp [hxdef]

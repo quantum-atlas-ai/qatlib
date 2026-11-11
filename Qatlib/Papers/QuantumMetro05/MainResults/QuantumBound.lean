@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QuantumMetro05.MainResults.Source
+
+/-!
+# Ultimate metrology precision
+
+This module bounds the variance of a sum of bounded generator values by the square of the total
+spectral spread. Under a Cramér–Rao hypothesis this gives the ultimate precision inequality, and
+a balanced two point law realizes the extremal variance. See [GiovannettiLloydMaccone2006].
+
+## Main statements
+
+* `variance_le_Nspread_sq`: If all `N` generator values lie in `[a, b]`, the variance of their
+  sum is at most `(N * spectralSpread a b) ^ 2`.
+* `qc_qq_error_bound`: For `N > 0`, positive `ν`, and generator values in `[a, b]`, the assumed
+  Cramér–Rao inequality implies error at least `1 / (√ν * N * (b - a))`.
+* `eq4_max_variance`: The balanced two point law on values `N * a` and `N * b` has variance `(N
+  * spectralSpread a b) ^ 2`.
+
+## References
+
+* [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,8 @@ namespace Qatlib.Papers.QuantumMetro05.MainResults.QuantumBound
 
 open Qatlib.Papers.QuantumMetro05.MainResults.Source
 
+/-- If all `N` generator values lie in `[a, b]`, the variance of their sum is at most `(N *
+spectralSpread a b) ^ 2`. See [GiovannettiLloydMaccone2006]. -/
 theorem variance_le_Nspread_sq {X : Type} [Fintype X] [DecidableEq X]
     {N : ℕ} (p : FinDist X) (f : Fin N → X → ℝ) {a b : ℝ}
     (ha : ∀ j x, a ≤ f j x) (hb : ∀ j x, f j x ≤ b) :
@@ -31,6 +55,9 @@ theorem variance_le_Nspread_sq {X : Type} [Fintype X] [DecidableEq X]
     rw [spectralSpread_def, spectralSpread_def]; ring
   rwa [hs] at h
 
+/-- For `N > 0`, positive `ν`, and generator values in `[a, b]`, the assumed Cramér–Rao
+inequality implies error at least `1 / (√ν * N * (b - a))`. See
+[GiovannettiLloydMaccone2006]. -/
 theorem qc_qq_error_bound {X : Type} [Fintype X] [DecidableEq X]
     {N : ℕ} (hN : 0 < N) (p : FinDist X) (f : Fin N → X → ℝ) {a b ν δφ : ℝ}
     (hν : 0 < ν) (hab : a < b) (ha : ∀ j x, a ≤ f j x) (hb : ∀ j x, f j x ≤ b)
@@ -64,12 +91,16 @@ theorem qc_qq_error_bound {X : Type} [Fintype X] [DecidableEq X]
     rw [hden2]
   rwa [hden] at hmain
 
+/-- The balanced two point law on values `N * a` and `N * b` has variance `(N * spectralSpread a
+b) ^ 2`. See [GiovannettiLloydMaccone2006]. -/
 theorem eq4_max_variance {N : ℕ} (a b : ℝ) :
     twoPointLaw.variance (twoPointValue ((N : ℝ) * a) ((N : ℝ) * b))
       = ((N : ℝ) * spectralSpread a b) ^ 2 := by
   rw [twoPointLaw_variance, spectralSpread_def, spectralSpread_def]
   ring
 
+/-- Saturation of the Cramér–Rao expression at spread `N * spectralSpread a b` gives error
+exactly `1 / (√ν * N * (b - a))`. See [GiovannettiLloydMaccone2006]. -/
 theorem eq4_attains_error_bound {N : ℕ} {a b ν δφ : ℝ}
     (hν : 0 < ν) (hab : a < b)
     (hcr : δφ * ((N : ℝ) * spectralSpread a b) = 1 / (2 * Real.sqrt ν)) :

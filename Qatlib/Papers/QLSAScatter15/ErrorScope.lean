@@ -33,15 +33,40 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Absolute error for a difference of probabilities
+
+This module examines the error in a difference of two perturbed probabilities. It gives a
+concrete failure of a proposed relative difference bound and proves the absolute bound `eps * (p
++ q)` from the individual relative error bounds. See [SchererEtAl2017] for the paper context.
+
+## Main statements
+
+* `relative_difference_counterexample`: Perturbing two copies of 1/2 to 101/200 and 99/200
+  respects 1% individual relative error, but their difference violates the displayed relative
+  error bound for the zero reference difference.
+* `difference_absolute_bound`: Individual bounds `|p′ - p| ≤ eps * p` and `|q′ - q| ≤ eps * q`
+  imply absolute difference error at most `eps * (p + q)`.
+
+## References
+
+* [Scherer et al., 2017][SchererEtAl2017]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Papers.QLSAScatter15.ErrorScope
 
+/-- Perturbing two copies of 1/2 to 101/200 and 99/200 respects 1% individual relative error,
+but their difference violates the displayed relative error bound for the zero reference
+difference. See [SchererEtAl2017]. -/
 theorem relative_difference_counterexample :
     |(101/200:ℝ)-1/2| ≤ (1/100)*(1/2) ∧
     |(99/200:ℝ)-1/2| ≤ (1/100)*(1/2) ∧
     |((101/200:ℝ)-99/200)-((1/2:ℝ)-1/2)| >
       3*(1/100)*|(1/2:ℝ)-1/2| := by norm_num
 
+/-- Individual bounds `|p′ - p| ≤ eps * p` and `|q′ - q| ≤ eps * q` imply absolute difference
+error at most `eps * (p + q)`. See [SchererEtAl2017]. -/
 theorem difference_absolute_bound (p q p' q' eps : ℝ)
     (hp : |p'-p| ≤ eps*p) (hq : |q'-q| ≤ eps*q) :
     |(p'-q')-(p-q)| ≤ eps*(p+q) := by

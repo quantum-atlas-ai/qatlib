@@ -17,6 +17,29 @@ import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+/-!
+# A certified four-bit adversary witness
+
+Verifies a rational matrix certificate for `fourBitGamma`, the adversary witness for
+`ambainisSorted4`. Explicit factorizations of `1 - A.transpose * A` establish the required
+filter norm bounds, while a constant row sum supplies a lower bound on the witness norm.
+
+The resulting `ambainis_four_bit_printed_bound` formalizes the numerical lower bound associated
+with the four-bit example in [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `four_filter_certificate`: exact rational factorization of each filter residual.
+* `fourBitGamma_filter_le`: every coordinate filter has operator norm at most one.
+* `fourBitGamma_norm_lower`: witness norm at least `2513526 / 1000005`.
+* `ambainis_four_bit_printed_bound`: negative-weight adversary value at least `2.5135`.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -39,8 +62,11 @@ variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000
+/-- The rational four-bit witness matrix with entries retained only where the inputs differ at
+coordinate `i`. -/
 private def fourFilterQ (i : Fin 4) : Matrix FourBitWord FourBitWord ℚ := fun x y =>
   if x i = y i then 0 else fourBitQ x y
+/-- The rational coefficient table used to assemble the matrices `fourL`. -/
 private def fourLCoeff : ℕ → ℚ
   | 2 => (-249064929734976327 / 1109158497044169197)
   | 3 => (-249064929734976327 / 614572268504478062)
@@ -57,6 +83,8 @@ private def fourLCoeff : ℕ → ℚ
   | 14 => (97490506070730507 / 614572268504478062)
   | 1 => 1
   | _ => 0
+/-- The lookup tag selecting a coefficient of the rational factor `fourL` from a coordinate and
+two encoded inputs. -/
 private def fourLTag (i x y : ℕ) : ℕ :=
   if x = y then 1 else match i, x, y with
   | 0, 1, 0 => 5
@@ -156,8 +184,10 @@ private def fourLTag (i x y : ℕ) : ℕ :=
   | 3, 15, 3 => 3
   | 3, 15, 7 => 4
   | _, _, _ => 0
+/-- The rational matrix factor assembled from `fourLCoeff` and `fourLTag` for coordinate `i`. -/
 private def fourL (i : Fin 4) : Matrix FourBitWord FourBitWord ℚ := fun x y =>
   fourLCoeff (fourLTag i.val (fourBitCode x) (fourBitCode y))
+/-- The rational coefficient table used to assemble the diagonal weights `fourD`. -/
 private def fourDCoeff : ℕ → ℚ
   | 0 => (1109158497044169197 / 94225605337986506577225)
   | 1 => (12996661669026520756780856 / 1109169588656868601118074229925)
@@ -172,6 +202,7 @@ private def fourDCoeff : ℕ → ℚ
   | 10 => (87458577142 / 1000010000025)
   | 11 => (959828090586434864 / 43729725864978942214275)
   | _ => 0
+/-- The lookup tag selecting a diagonal weight from a coordinate and an encoded four-bit input. -/
 private def fourDTag : ℕ → ℕ → ℕ
   | 0, 0 => 9
   | 0, 1 => 3
@@ -238,28 +269,38 @@ private def fourDTag : ℕ → ℕ → ℕ
   | 3, 14 => 2
   | 3, 15 => 2
   | _, _ => 0
+/-- The rational diagonal weight assigned to an input in the residual factorization for
+coordinate `i`. -/
 private def fourD (i : Fin 4) (x : FourBitWord) : ℚ :=
   fourDCoeff (fourDTag i.val (fourBitCode x))
 
+/-- Every row of the integer four-bit witness has sum `2513526`. -/
 private theorem four_integer_rows : ∀ x : FourBitWord, (∑ y : FourBitWord, fourBitInteger x y) = 2513526 := by
   decide +kernel
 
+/-- The integer four-bit witness matrix is symmetric. -/
 private theorem four_integer_symmetric : ∀ x y : FourBitWord, fourBitInteger x y = fourBitInteger y x := by
   decide +kernel
 
+/-- The integer four-bit witness vanishes whenever `ambainisSorted4` has equal values on its two
+inputs. -/
 private theorem four_integer_support : ∀ x y : FourBitWord,
     ambainisSorted4 x = ambainisSorted4 y → fourBitInteger x y = 0 := by
   decide +kernel
 
+/-- All diagonal weights in the four-bit residual certificates are nonnegative. -/
 private theorem four_D_nonneg : ∀ i : Fin 4, ∀ x : FourBitWord, 0 ≤ fourD i x := by
   decide +kernel
 
+/-- Each rational filter residual `1 - A.transpose * A` equals `fourL i * Matrix.diagonal (fourD
+i) * (fourL i).transpose` entrywise. -/
 private theorem four_filter_certificate : ∀ i : Fin 4, ∀ x y : FourBitWord,
     (1 - (fourFilterQ i).transpose * fourFilterQ i) x y =
       (fourL i * Matrix.diagonal (fourD i) * (fourL i).transpose) x y := by
   decide +kernel
 noncomputable section
 
+/-- A complex matrix has operator norm at most one if `1 - Aᴴ * A` is positive semidefinite. -/
 theorem norm_le_one_of_residual_psd {H : Type} [Fintype H] [DecidableEq H] (A : Matrix H H ℂ)
     (h : (1 - Aᴴ * A).PosSemidef) : ‖A‖ ≤ 1 := by
   change ‖Matrix.toEuclideanCLM (n := H) (𝕜 := ℂ) A‖ ≤ 1
@@ -280,6 +321,7 @@ theorem norm_le_one_of_residual_psd {H : Type} [Fintype H] [DecidableEq H] (A : 
 end
 noncomputable section
 
+/-- The complex four-bit adversary witness `fourBitGamma` is Hermitian. -/
 theorem fourBitGamma_hermitian : fourBitGamma.IsHermitian := by
   ext x y
   simp only [Matrix.conjTranspose_apply, fourBitGamma, fourBitQ]
@@ -288,12 +330,14 @@ theorem fourBitGamma_hermitian : fourBitGamma.IsHermitian := by
 end
 noncomputable section
 
+/-- The four-bit adversary witness vanishes on pairs having the same value of `ambainisSorted4`. -/
 theorem fourBitGamma_support (x y : FourBitWord) (h : ambainisSorted4 x = ambainisSorted4 y) :
     fourBitGamma x y = 0 := by
   simp [fourBitGamma, fourBitQ, four_integer_support x y h]
 end
 noncomputable section
 
+/-- Every coordinate filter of `fourBitGamma` has operator norm at most one. -/
 theorem fourBitGamma_filter_le (i : Fin 4) :
     ‖genAdvFilter (fun w : FourBitWord => w) fourBitGamma i‖ ≤ 1 := by
   let f : ℚ →+* ℂ := Rat.castHom ℂ
@@ -330,6 +374,7 @@ theorem fourBitGamma_filter_le (i : Fin 4) :
 end
 noncomputable section
 
+/-- Every row of `fourBitGamma` sums to `2513526 / 1000005`. -/
 theorem fourBitGamma_row_sum (x : FourBitWord) :
     (∑ y, fourBitGamma x y) = (2513526 / 1000005 : ℂ) := by
   have hr : (∑ y, fourBitQ x y) = (2513526 / 1000005 : ℚ) := by
@@ -343,6 +388,7 @@ theorem fourBitGamma_row_sum (x : FourBitWord) :
 end
 noncomputable section
 
+/-- The operator norm of `fourBitGamma` is at least `2513526 / 1000005`. -/
 theorem fourBitGamma_norm_lower : (2513526 / 1000005 : ℝ) ≤ ‖fourBitGamma‖ := by
   let v : QState FourBitWord := fun _ => 1
   have hv : toEuclidean_fromVec v ≠ 0 := by
@@ -364,6 +410,8 @@ theorem fourBitGamma_norm_lower : (2513526 / 1000005 : ℝ) ≤ ‖fourBitGamma�
 end
 noncomputable section
 
+/-- The negative-weight adversary value of `ambainisSorted4` is at least `2.5135`, giving the
+four-bit bound of [Hoyer, Lee, and Spalek, Theorem 20][HoyerLeeSpalek2007]. -/
 theorem ambainis_four_bit_printed_bound :
     ENNReal.ofReal (25135 / 10000 : ℝ) ≤ advPmValue (fun w : FourBitWord => w) ambainisSorted4 := by
   have hG0 : fourBitGamma ≠ 0 := by

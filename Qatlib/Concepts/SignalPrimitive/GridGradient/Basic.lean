@@ -12,6 +12,33 @@ import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
 import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 import Mathlib.Analysis.Calculus.ContDiff.Deriv
 import Mathlib.Analysis.PSeries
+
+/-!
+# Finite Grid Gradient Readout
+
+`GradientGrid` and `gradientWord` implement coordinate Fourier transforms, one diagonal phase
+query, and inverse Fourier transforms for numerical gradient readout in the setting of
+[Jordan2005Gradient]. The resource count treats each coordinate Fourier transform as one gate,
+giving one phase query and `2 * d` gates.
+
+Affine phases yield products of `qpeKernel` states, with exact basis-state readout at grid
+frequencies. Kernel tails and phase perturbation bounds give a joint window probability of at
+least `1 - 16*d/(M*w) - 4*pi*B` when the phase differs from its affine target by at most `B`;
+`signedGridValue` converts sufficiently small circular windows into real-coordinate errors.
+
+## Main statements
+
+- `gradient_coordinate_qft_word_unitarity` establishes circuit unitarity and resource counts.
+- `gradient_affine_actual_exact_readout` identifies exact affine readout.
+- `gradient_offgrid_joint_window` bounds the joint off-grid window probability.
+- `gradient_actual_phase_error_transport` transfers that bound through phase error.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient], *Fast Quantum Algorithm for Numerical Gradient
+  Estimation*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,25 +58,40 @@ open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 namespace Qatlib.Concepts.SignalPrimitive.GridGradient
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
+/-- The finite `d`-coordinate grid with `M` labels per coordinate, represented by functions `Fin
+d → Fin M`. -/
 abbrev GradientGrid (d M : ℕ) := Fin d→Fin M
+/-- The Fourier transform on coordinate `j`, acting as the identity on all other grid
+coordinates. -/
 noncomputable def coordinateQFT (d M : ℕ) (j : Fin d) :
     Matrix (GradientGrid d M) (GradientGrid d M) ℂ :=
   fun x y => if ∀ i : Fin d,i≠j → x i=y i then QFTMatrix M (x j) (y j) else 0
+/-- The diagonal grid oracle whose entry at `x` is `exp (2*pi*I*φ x)`. -/
 noncomputable def gradientPhase (d M : ℕ) (φ : GradientGrid d M→ℝ) :
     Matrix (GradientGrid d M) (GradientGrid d M) ℂ :=
   Matrix.diagonal (fun x => Complex.exp (2*Real.pi*Complex.I*(φ x:ℂ)))
+/-- The circuit word applying one coordinate Fourier transform for each coordinate of
+`GradientGrid d M`. -/
 noncomputable def gradientQFTWord (d M : ℕ) : Circuit (GradientGrid d M) :=
   List.ofFn (fun j : Fin d => Step.gate (coordinateQFT d M j))
+/-- The gradient circuit word consisting of coordinate Fourier transforms, one phase-oracle
+query, and their adjoints in reverse order. -/
 noncomputable def gradientWord (d M : ℕ) : Circuit (GradientGrid d M) :=
   gradientQFTWord d M ++ [.query] ++
     (gradientQFTWord d M).reverse.map (fun s => match s with
       | .gate U => .gate Uᴴ | .query => .query)
+/-- The all-zero grid label, defined when `M` is positive. -/
 def gradientZero (d M : ℕ) (hM : 0 < M) : GradientGrid d M := fun _ => ⟨0,hM⟩
+/-- The output state obtained by running `gradientWord` with phase oracle `gradientPhase d M φ`
+on the all-zero basis state. -/
 noncomputable def gradientReadout (d M : ℕ) (hM : 0 < M) (φ : GradientGrid d M→ℝ) :
     QState (GradientGrid d M) := Run (gradientPhase d M φ) (gradientWord d M) (Ket (gradientZero d M hM))
+/-- Decodes `z/M` as a signed real coordinate, retaining it when `2*z.val ≤ M` and subtracting
+one otherwise. -/
 noncomputable def signedGridValue (M : ℕ) (z : Fin M) : ℝ :=
   if 2*z.val≤M then (z.val:ℝ)/M else (z.val:ℝ)/M-1
 
+/-- Each coordinate Fourier transform is unitary when the grid size `M` is positive. -/
 theorem coordinateQFT_unitary (d M : ℕ) (j : Fin d) (hM : 0 < M) :
     coordinateQFT d M j ∈ Matrix.unitaryGroup (GradientGrid d M) ℂ := by
   let e := Equiv.funSplitAt j (Fin M)
@@ -70,6 +112,8 @@ theorem coordinateQFT_unitary (d M : ℕ) (j : Fin d) (hM : 0 < M) :
   exact unitaryGroup_reindex e.symm
     (tensorGate_unitary (qftMatrix_unitary hM) (Matrix.unitaryGroup _ ℂ).one_mem)
 
+/-- A list containing only gate steps has zero oracle queries and gate count equal to its
+length. -/
 private theorem gradient_gate_list_resources {I : Type} [Fintype I] [DecidableEq I]
     (gs : List (Matrix I I ℂ)) :
     QueryCount (gs.map Step.gate) = 0 ∧ GateCount (gs.map Step.gate) = gs.length := by
@@ -77,6 +121,9 @@ private theorem gradient_gate_list_resources {I : Type} [Fintype I] [DecidableEq
   | nil => simp
   | cons U gs ih => simp [ih]
 
+/-- For positive `M`, the finite-grid gradient word has unitary gates, exactly one phase-oracle
+query, and `2*d` coordinate Fourier gates, realizing the single-query circuit structure of
+[Jordan2005Gradient]. -/
 theorem gradient_coordinate_qft_word_unitarity (d M : ℕ) (hM : 0 < M) :
     IsUnitaryCircuit (gradientWord d M) ∧ QueryCount (gradientWord d M) = 1 ∧
       GateCount (gradientWord d M) = 2*d := by
@@ -118,10 +165,14 @@ theorem gradient_coordinate_qft_word_unitarity (d M : ℕ) (hM : 0 < M) :
       List.length_map, List.length_reverse, hlen]
     omega
 
+/-- Lifts a matrix on `Fin M` to coordinate `j` of the grid while preserving every other
+coordinate. -/
 noncomputable def coordinateGridGate (d M : ℕ) (j : Fin d)
     (U : Matrix (Fin M) (Fin M) ℂ) : Matrix (GradientGrid d M) (GradientGrid d M) ℂ :=
   fun x y => if ∀ i : Fin d, i ≠ j → x i = y i then U (x j) (y j) else 0
 
+/-- Applying a lifted coordinate gate sums over replacements of coordinate `j`, weighted by the
+corresponding row of `U`. -/
 theorem coordinateGridGate_apply (d M : ℕ) (j : Fin d)
     (U : Matrix (Fin M) (Fin M) ℂ) (ψ : QState (GradientGrid d M))
     (x : GradientGrid d M) :
@@ -153,12 +204,15 @@ theorem coordinateGridGate_apply (d M : ℕ) (j : Fin d)
     simp [Ne.symm hr]
   · simp
 
+/-- The amplitude after a coordinate Fourier transform is the Fourier-weighted sum of amplitudes
+obtained by varying that coordinate. -/
 theorem coordinateQFT_apply (d M : ℕ) (j : Fin d) (ψ : QState (GradientGrid d M))
     (x : GradientGrid d M) :
     ApplyGate (coordinateQFT d M j) ψ x =
       ∑ a : Fin M, QFTMatrix M (x j) a * ψ (Function.update x j a) :=
   coordinateGridGate_apply d M j (QFTMatrix M) ψ x
 
+/-- Taking the conjugate transpose commutes with lifting a matrix to a grid coordinate. -/
 theorem coordinateGridGate_adjoint (d M : ℕ) (j : Fin d)
     (U : Matrix (Fin M) (Fin M) ℂ) :
     (coordinateGridGate d M j U)ᴴ = coordinateGridGate d M j Uᴴ := by
@@ -169,9 +223,13 @@ theorem coordinateGridGate_adjoint (d M : ℕ) (j : Fin d)
   simp only [Matrix.conjTranspose_apply, coordinateGridGate, hh]
   split_ifs <;> simp
 
+/-- The grid state whose amplitude is the product of the supplied one-coordinate state
+amplitudes. -/
 def gridProductState {d M : ℕ} (v : Fin d → QState (Fin M)) : QState (GradientGrid d M) :=
   fun x => ∏ i, v i (x i)
 
+/-- A lifted coordinate gate maps a product state to the product state with only its `j`th
+factor transformed by `U`. -/
 theorem coordinateGridGate_productState (d M : ℕ) (j : Fin d)
     (U : Matrix (Fin M) (Fin M) ℂ) (v : Fin d → QState (Fin M)) :
     ApplyGate (coordinateGridGate d M j U) (gridProductState v) =
@@ -198,11 +256,15 @@ theorem coordinateGridGate_productState (d M : ℕ) (j : Fin d)
   intro i hi
   rw [Function.update_of_ne (Finset.ne_of_mem_erase hi)]
 
+/-- A coordinate Fourier transform changes only the corresponding factor of a grid product
+state. -/
 theorem coordinateQFT_productState (d M : ℕ) (j : Fin d) (v : Fin d → QState (Fin M)) :
     ApplyGate (coordinateQFT d M j) (gridProductState v) =
       gridProductState (Function.update v j (ApplyGate (QFTMatrix M) (v j))) :=
   coordinateGridGate_productState d M j (QFTMatrix M) v
 
+/-- The adjoint coordinate Fourier transform changes only the corresponding product-state factor
+by the adjoint Fourier matrix. -/
 theorem coordinateQFT_adjoint_productState (d M : ℕ) (j : Fin d)
     (v : Fin d → QState (Fin M)) :
     ApplyGate (coordinateQFT d M j)ᴴ (gridProductState v) =
@@ -210,6 +272,8 @@ theorem coordinateQFT_adjoint_productState (d M : ℕ) (j : Fin d)
   change ApplyGate (coordinateGridGate d M j (QFTMatrix M))ᴴ _ = _
   rw [coordinateGridGate_adjoint, coordinateGridGate_productState]
 
+/-- Running Fourier gates on a duplicate-free coordinate list transforms exactly those
+product-state factors indexed by the list. -/
 theorem run_coordinateQFT_list (d M : ℕ) (O : Matrix (GradientGrid d M) (GradientGrid d M) ℂ)
     (js : List (Fin d)) (hjs : js.Nodup) (v : Fin d → QState (Fin M)) :
     Run O (js.map (fun j => Step.gate (coordinateQFT d M j))) (gridProductState v) =
@@ -229,6 +293,8 @@ theorem run_coordinateQFT_list (d M : ℕ) (O : Matrix (GradientGrid d M) (Gradi
       · subst i; simp [hi]
       · simp [hi, hij]
 
+/-- Running adjoint Fourier gates on a duplicate-free coordinate list applies the adjoint
+Fourier matrix exactly to the listed product-state factors. -/
 theorem run_coordinateQFT_adjoint_list (d M : ℕ) (O : Matrix (GradientGrid d M) (GradientGrid d M) ℂ)
     (js : List (Fin d)) (hjs : js.Nodup) (v : Fin d → QState (Fin M)) :
     Run O (js.map (fun j => Step.gate (coordinateQFT d M j)ᴴ)) (gridProductState v) =
@@ -248,6 +314,8 @@ theorem run_coordinateQFT_adjoint_list (d M : ℕ) (O : Matrix (GradientGrid d M
       · subst i; simp [hi]
       · simp [hi, hij]
 
+/-- Running the complete coordinate Fourier word transforms every factor of a grid product state
+by `QFTMatrix M`. -/
 theorem run_gradientQFTWord_product (d M : ℕ)
     (O : Matrix (GradientGrid d M) (GradientGrid d M) ℂ) (v : Fin d → QState (Fin M)) :
     Run O (gradientQFTWord d M) (gridProductState v) =
@@ -257,6 +325,8 @@ theorem run_gradientQFTWord_product (d M : ℕ)
   rw [hw, run_coordinateQFT_list d M O _ (List.nodup_finRange d)]
   simp
 
+/-- The product of the coordinate basis states associated with `q` is the grid basis state `Ket
+q`. -/
 theorem gridProductState_ket {d M : ℕ} (q : GradientGrid d M) :
     gridProductState (fun j => Ket (q j)) = Ket q := by
   funext x
@@ -272,6 +342,7 @@ theorem gridProductState_ket {d M : ℕ} (q : GradientGrid d M) :
       Finset.prod_eq_zero (Finset.mem_univ i) (by simp [Ket, hi])
     simpa [gridProductState, Ket, h] using! hz
 
+/-- Circuit execution commutes with complex scalar multiplication of the input state. -/
 private theorem gradient_run_smul {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (C : Circuit I) (a : ℂ) (ψ : QState I) :
     Run O C (a • ψ) = a • Run O C ψ := by
@@ -280,6 +351,8 @@ private theorem gradient_run_smul {I : Type} [Fintype I] [DecidableEq I]
   | cons s C ih =>
     cases s <;> simp only [Run, ApplyGate, Matrix.mulVec_smul, ih]
 
+/-- Running a list of unitary gates followed by their adjoints in reverse order restores the
+input state. -/
 private theorem gradient_run_inverse {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (gs : List (Matrix I I ℂ))
     (hgs : ∀ U ∈ gs, U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
@@ -296,6 +369,8 @@ private theorem gradient_run_inverse {I : Type} [Fintype I] [DecidableEq I]
     rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hU
     rw [hU, applyGate_one]
 
+/-- The Fourier transform of a basis state has amplitude `1/sqrt M` times the character `exp
+(2*pi*I*q*x/M)`. -/
 private theorem gradient_qft_ket (M : ℕ) (q x : Fin M) :
     ApplyGate (QFTMatrix M) (Ket q) x =
       (Real.sqrt (M : ℝ) : ℂ)⁻¹ *
@@ -306,6 +381,8 @@ private theorem gradient_qft_ket (M : ℕ) (q x : Fin M) :
   push_cast
   ring
 
+/-- For an affine phase with coordinate slopes `g`, the actual gradient readout is the product
+of `qpeKernel M (g j)` states multiplied by the constant global phase. -/
 theorem gradient_offgrid_actual_readout (d M : ℕ) (hM : 0 < M)
     (g : Fin d → ℝ) (c : ℝ) :
     gradientReadout d M hM (fun x => c+∑ j : Fin d, g j*(x j).val) =
@@ -349,6 +426,7 @@ theorem gradient_offgrid_actual_readout (d M : ℕ) (hM : 0 < M)
   simp only [List.mem_reverse, List.mem_finRange, if_true]
   rfl
 
+/-- Circular phase distance is symmetric in its two arguments. -/
 theorem gradient_phaseDistance_comm (x y : ℝ) : phaseDistance x y = phaseDistance y x := by
   have h (a b : ℝ) : phaseDistance a b ≤ phaseDistance b a := by
     calc
@@ -360,6 +438,8 @@ theorem gradient_phaseDistance_comm (x y : ℝ) : phaseDistance x y = phaseDista
         rw [he, abs_neg]
   exact le_antisymm (h x y) (h y x)
 
+/-- For an affine phase, the probability that every coordinate lies in its circular window
+factors into the corresponding one-coordinate kernel probabilities. -/
 theorem gradient_offgrid_window_product (d M : ℕ) (hM : 0 < M)
     (g : Fin d → ℝ) (c w : ℝ) :
     MeasureProb (gradientReadout d M hM (fun x => c+∑ j : Fin d, g j*(x j).val))
@@ -380,6 +460,9 @@ theorem gradient_offgrid_window_product (d M : ℕ) (hM : 0 < M)
     norm_exp_two_pi_I, one_mul, gridProductState, norm_prod, ← Finset.prod_pow]
   exact (Finset.prod_univ_sum t (fun j y => ‖qpeKernel M (g j) y‖^2)).symm
 
+/-- An affine phase whose coordinate frequencies lie exactly on the grid yields `Ket q` up to
+the constant global phase, giving the exact finite-grid readout case of
+[Jordan2005Gradient]. -/
 theorem gradient_affine_actual_exact_readout (d M : ℕ) (hM : 0 < M)
     (q : GradientGrid d M) (c : ℝ) :
     gradientReadout d M hM (fun x => c+∑ j : Fin d,(q j).val*(x j).val/(M:ℝ)) =
@@ -420,6 +503,8 @@ theorem gradient_affine_actual_exact_readout (d M : ℕ) (hM : 0 < M)
   obtain ⟨j, rfl⟩ := List.mem_ofFn.mp hU
   exact coordinateQFT_unitary d M j hM
 
+/-- For `M ≥ 2` and window width `w ≥ 1/64`, the kernel probability outside the circular window
+is at most `16/(M*w)`. -/
 theorem gradient_phase_kernel_tail_wide (M : ℕ) (φ w : ℝ) (hM : 2 ≤ M)
     (hw : 0 < w) (hwide : 1/64 ≤ w) :
     (∑ y ∈ Finset.univ.filter (fun y : Fin M =>
@@ -441,6 +526,8 @@ theorem gradient_phase_kernel_tail_wide (M : ℕ) (φ w : ℝ) (hM : 2 ≤ M)
     rw [hs, Finset.sum_empty]
     positivity
 
+/-- For positive `M` and `w` with `M*w ≤ 16`, the kernel probability outside the circular window
+is at most `16/(M*w)`. -/
 theorem gradient_phase_kernel_tail_small_budget (M : ℕ) (φ w : ℝ) (hM : 0 < M)
     (hw : 0 < w) (hbudget : (M : ℝ)*w ≤ 16) :
     (∑ y ∈ Finset.univ.filter (fun y : Fin M =>
@@ -456,6 +543,9 @@ theorem gradient_phase_kernel_tail_small_budget (M : ℕ) (φ w : ℝ) (hM : 0 <
       _ = 1 := uniform_qpeKernel_normalized M φ hM
   exact ht.trans ((le_div_iff₀ (mul_pos hMr hw)).mpr (by simpa using! hbudget))
 
+/-- If bad grid labels have injective integer distance bins within one of their scaled phase
+distances and `M*w > 16`, their total kernel mass is at most the reciprocal of `floor
+(M*w/2)`. -/
 private theorem gradient_kernel_tail_injective (M : ℕ) (φ w : ℝ) (hM : 0 < M)
     (hw : 0 < w) (hbudget : 16 < (M:ℝ)*w) (s : Finset (Fin M)) (p : Fin M → ℕ)
     (hinj : Set.InjOn p s)
@@ -503,6 +593,8 @@ private theorem gradient_kernel_tail_injective (M : ℕ) (φ w : ℝ) (hM : 0 < 
     _ ≤ (L:ℝ)⁻¹-(N:ℝ)⁻¹ := sum_Ioc_inv_sq_le_sub hL (le_max_left _ _)
     _ ≤ (L:ℝ)⁻¹ := sub_le_self _ (by positivity)
 
+/-- For positive grid size and window width, the kernel probability outside the circular window
+is at most `16/(M*w)`. -/
 theorem gradient_phase_kernel_tail (M : ℕ) (φ w : ℝ) (hM : 0 < M) (hw : 0 < w) :
     (∑ y ∈ Finset.univ.filter (fun y : Fin M =>
       w < phaseDistance φ ((y.val:ℝ)/(M:ℝ))), ‖qpeKernel M φ y‖^2) ≤
@@ -600,6 +692,8 @@ theorem gradient_phase_kernel_tail (M : ℕ) (φ w : ℝ) (hM : 0 < M) (hw : 0 <
       apply (div_le_div_iff₀ hLpos (mul_pos hMr hw)).mpr
       linarith
 
+/-- A finite product of numbers in `[0, 1]` is at least one minus the sum of their deficits from
+one. -/
 private theorem gradient_product_lower {I : Type} [DecidableEq I]
     (p : I → ℝ) (s : Finset I) (hp0 : ∀ i ∈ s, 0 ≤ p i) (hp1 : ∀ i ∈ s, p i ≤ 1) :
     1-(∑ i ∈ s, (1-p i)) ≤ ∏ i ∈ s, p i := by
@@ -616,6 +710,8 @@ private theorem gradient_product_lower {I : Type} [DecidableEq I]
     have hm := mul_le_mul_of_nonneg_left hih h0
     nlinarith [mul_nonneg (sub_nonneg.mpr h1) hs0]
 
+/-- For an affine phase, `M ≥ 2`, and positive `w`, the joint circular window has probability at
+least `1 - 16*d/(M*w)`. -/
 theorem gradient_offgrid_joint_window (d M : ℕ) (hM : 0 < M)
     (g : Fin d → ℝ) (c w : ℝ) (_hM2 : 2 ≤ M) (hw : 0 < w) :
     MeasureProb (gradientReadout d M hM (fun x => c+∑ j : Fin d, g j*(x j).val))
@@ -646,6 +742,7 @@ theorem gradient_offgrid_joint_window (d M : ℕ) (hM : 0 < M)
   exact (sub_le_sub_left hsum 1).trans
     (gradient_product_lower p Finset.univ (fun j _ => hp0 j) (fun j _ => hp1 j))
 
+/-- Every real-valued grid phase defines a unitary diagonal matrix. -/
 theorem gradientPhase_unitary (d M : ℕ) (φ : GradientGrid d M → ℝ) :
     gradientPhase d M φ ∈ Matrix.unitaryGroup (GradientGrid d M) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, gradientPhase,
@@ -657,6 +754,8 @@ theorem gradientPhase_unitary (d M : ℕ) (φ : GradientGrid d M → ℝ) :
   rw [norm_exp_two_pi_I]
   norm_num
 
+/-- A uniform pointwise phase error at most nonnegative `B` gives operator norm error at most
+`2*pi*B` between the diagonal phase matrices. -/
 theorem gradientPhase_sub_norm_le (d M : ℕ) (φ ψ : GradientGrid d M → ℝ)
     (B : ℝ) (hB : 0 ≤ B) (herror : ∀ z, |φ z - ψ z| ≤ B) :
     ‖gradientPhase d M φ - gradientPhase d M ψ‖ ≤ 2*Real.pi*B := by
@@ -672,6 +771,8 @@ theorem gradientPhase_sub_norm_le (d M : ℕ) (φ ψ : GradientGrid d M → ℝ)
       rw [← mul_sub, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 2*Real.pi)]
     _ ≤ 2*Real.pi*B := mul_le_mul_of_nonneg_left (herror z) (by positivity)
 
+/-- A uniform phase error at most nonnegative `B` changes the probability of any
+gradient-readout event by at most `4*pi*B`. -/
 theorem gradient_actual_phase_event_error (d M : ℕ) (hM : 0 < M)
     (φ ψ : GradientGrid d M → ℝ) (B : ℝ) (hB : 0 ≤ B)
     (herror : ∀ z, |φ z-ψ z| ≤ B) (S : Finset (GradientGrid d M)) :
@@ -686,6 +787,9 @@ theorem gradient_actual_phase_event_error (d M : ℕ) (hM : 0 < M)
   simpa only [Nat.cast_one, mul_one,
     show 2*(2*Real.pi*B) = 4*Real.pi*B by ring] using! h
 
+/-- If the phase is uniformly within nonnegative `B` of an affine target, its joint circular
+gradient window has probability at least `1 - 16*d/(M*w) - 4*pi*B` for `M ≥ 2` and positive
+`w`. -/
 theorem gradient_actual_phase_error_transport (d M : ℕ) (hM : 0 < M)
     (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
     (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -701,6 +805,8 @@ theorem gradient_actual_phase_error_transport (d M : ℕ) (hM : 0 < M)
   have hi := gradient_offgrid_joint_window d M hM g c w hM2 hw
   linarith [(abs_le.mp he).1]
 
+/-- When `|g| ≤ 1/4` and `w ≤ 1/8`, circular window membership implies signed decoding error
+`|signedGridValue M z - g| ≤ w`. -/
 theorem gradient_signed_decode_window (M : ℕ) (hM : 0 < M) (z : Fin M)
     (g w : ℝ) (hg : |g| ≤ 1/4) (hw : w ≤ 1/8)
     (hgood : phaseDistance ((z.val:ℝ)/(M:ℝ)) g ≤ w) :

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.Complex.Exponential
+
+/-!
+# Scalar dispersion phases in the first Brillouin zone
+
+`firstBZ` specifies the half-open first Brillouin zone and `dispersionPhase` scales momentum by
+the lattice spacing and CFL parameter. For a CFL parameter strictly between zero and one, a
+vanishing sine of this phase forces zero momentum; further statements specialize this conclusion
+to half-CFL phases.
+
+This development follows [FillionGourdeauMacLeanLaflamme2017].
+
+## Main statements
+
+* `scalar_phase_zero_of_lt_one`: a zero sine phase in the specified zone forces zero momentum.
+* `eigenvalue_half_eq_one_iff`: the half-CFL complex phase equals one exactly at zero momentum.
+
+## References
+
+* [Fillion-Gourdeau et al., 2017][FillionGourdeauMacLeanLaflamme2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,10 +38,14 @@ namespace Qatlib.Papers.DiracEquation16.Dispersion
 
 open Real
 
+/-- The first Brillouin-zone condition `-(π / ℓ) < p ∧ p ≤ π / ℓ`. -/
 def firstBZ (ℓ p : ℝ) : Prop := -(Real.pi / ℓ) < p ∧ p ≤ Real.pi / ℓ
 
+/-- The scalar dispersion phase `Nstar * ℓ * p`. -/
 def dispersionPhase (Nstar ℓ p : ℝ) : ℝ := Nstar * ℓ * p
 
+/-- For positive lattice spacing and `0 < Nstar < 1`, momentum in the first Brillouin zone gives
+a phase strictly between `-π` and `π`. -/
 theorem phase_lt_pi_of_lt_one {Nstar ℓ p : ℝ} (hℓ : 0 < ℓ)
     (hN0 : 0 < Nstar) (hN1 : Nstar < 1) (hp : firstBZ ℓ p) :
     -Real.pi < dispersionPhase Nstar ℓ p ∧ dispersionPhase Nstar ℓ p < Real.pi := by
@@ -42,6 +67,8 @@ theorem phase_lt_pi_of_lt_one {Nstar ℓ p : ℝ} (hℓ : 0 < ℓ)
     have hlt : Nstar * Real.pi < Real.pi := by nlinarith [Real.pi_pos]
     nlinarith
 
+/-- For positive lattice spacing and `0 < Nstar < 1`, a vanishing sine of the dispersion phase
+in the first Brillouin zone forces `p = 0`. -/
 theorem scalar_phase_zero_of_lt_one {Nstar ℓ p : ℝ} (hℓ : 0 < ℓ)
     (hN0 : 0 < Nstar) (hN1 : Nstar < 1) (hp : firstBZ ℓ p)
     (hzero : Real.sin (dispersionPhase Nstar ℓ p) = 0) : p = 0 := by
@@ -53,10 +80,13 @@ theorem scalar_phase_zero_of_lt_one {Nstar ℓ p : ℝ} (hℓ : 0 < ℓ)
   have hNe : Nstar * ℓ ≠ 0 := by positivity
   exact (mul_eq_zero.1 hphase).resolve_left hNe
 
+/-- At half CFL, a vanishing sine of the phase in the first Brillouin zone forces zero momentum. -/
 theorem scalar_phase_half_zero (ℓ p : ℝ) (hℓ : 0 < ℓ) (hp : firstBZ ℓ p)
     (hzero : Real.sin (dispersionPhase (1 / 2) ℓ p) = 0) : p = 0 := by
   exact scalar_phase_zero_of_lt_one hℓ (by norm_num) (by norm_num) hp hzero
 
+/-- For positive lattice spacing and momentum in the first Brillouin zone, the half-CFL phase
+vanishes exactly when the momentum vanishes. -/
 theorem dispersionPhase_half_eq_zero_iff (ℓ p : ℝ) (hℓ : 0 < ℓ) (hp : firstBZ ℓ p) :
     dispersionPhase (1 / 2) ℓ p = 0 ↔ p = 0 := by
   constructor
@@ -69,6 +99,8 @@ theorem dispersionPhase_half_eq_zero_iff (ℓ p : ℝ) (hℓ : 0 < ℓ) (hp : fi
     unfold dispersionPhase
     ring
 
+/-- If `px = 0` and `py` lies in the first Brillouin zone, a vanishing sine of the half-CFL
+phase of `sqrt (px ^ 2 + py ^ 2)` forces `py = 0`. -/
 theorem scalar_abs_phase_zero (ℓ px py : ℝ) (hℓ : 0 < ℓ) (hpx : px = 0)
     (hpy : firstBZ ℓ py)
     (hzero : Real.sin (dispersionPhase (1 / 2) ℓ (Real.sqrt (px ^ 2 + py ^ 2))) = 0) :
@@ -91,6 +123,8 @@ theorem scalar_abs_phase_zero (ℓ px py : ℝ) (hℓ : 0 < ℓ) (hpx : px = 0)
     exact ⟨by linarith, hpy2⟩
   exact abs_eq_zero.1 (scalar_phase_half_zero ℓ |py| hℓ ⟨hb1, hb2⟩ hzero)
 
+/-- For positive lattice spacing and momentum in the first Brillouin zone, the complex
+exponential of the half-CFL phase equals one exactly when `p = 0`. -/
 theorem eigenvalue_half_eq_one_iff (ℓ p : ℝ) (hℓ : 0 < ℓ) (hp : firstBZ ℓ p) :
     Complex.exp (Complex.I * (dispersionPhase (1 / 2) ℓ p : ℂ)) = 1 ↔ p = 0 := by
   constructor

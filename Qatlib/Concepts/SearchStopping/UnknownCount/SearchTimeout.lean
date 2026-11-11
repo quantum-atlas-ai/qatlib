@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBoundary
+
+/-!
+# Uniform timeout bounds for unknown-count search
+
+Defines `WorstPrefixIterations`, a deterministic upper bound on the Grover iterations in any
+history of a given length. For the factor `6 / 5` schedule, `search_uniform_timeout` bounds the
+residual reach probability by `(3 / 4) ^ k`, and `search_uniform_query_timeout` includes
+verification-query costs. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `search_uniform_timeout`: On a nonempty search space, there is `K ≤ 6 * Real.sqrt
+  (Fintype.card I)` such that every `K + k` stage prefix costs at most `(6 + k) * Real.sqrt
+  (Fintype.card I)` iterations and has reach probability at most `(3 / 4) ^ k` for every
+  nonempty marked set.
+* `search_timeout_error_tendsto`: The geometric timeout-error bound `(3 / 4) ^ k` converges to
+  zero as `k` tends to infinity.
+* `search_uniform_query_timeout`: On a nonempty search space, a common stage offset gives
+  Boolean-query prefix cost at most `(12 + 2 * k) * Real.sqrt (Fintype.card I)` and reach
+  probability at most `(3 / 4) ^ k` for every nonempty marked set.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,9 +42,12 @@ namespace Qatlib.Concepts.SearchStopping.UnknownCount
 open scoped BigOperators
 open Filter
 
+/-- The sum of the largest available iteration count `sizes s - 1` over the first `n` stages. -/
 def WorstPrefixIterations (sizes : ℕ → ℕ) (n : ℕ) : ℕ :=
   ∑ s ∈ Finset.range n, (sizes s - 1)
 
+/-- The Grover iteration count of any trial history is at most `WorstPrefixIterations` for its
+stage count. -/
 theorem search_history_worst_bound (sizes : ℕ → ℕ) (n : ℕ) (h : TrialHistory sizes n) :
     HistoryIterations sizes n h ≤ WorstPrefixIterations sizes n := by
   unfold HistoryIterations WorstPrefixIterations
@@ -28,6 +57,8 @@ theorem search_history_worst_bound (sizes : ℕ → ℕ) (n : ℕ) (h : TrialHis
   have hk := (h k).isLt
   omega
 
+/-- For positive `N`, the largest integer sampled from the exponential stage range is at most
+its real-valued width. -/
 theorem search_largest_sample_le_width (N s : ℕ) (hN : 0 < N) :
     ((ExponentialSizes N s - 1 : ℕ) : ℝ) ≤ ExponentialWidth N s := by
   have hs := (search_exponential_schedule N hN).2.1 s
@@ -39,6 +70,8 @@ theorem search_largest_sample_le_width (N s : ℕ) (hN : 0 < N) :
   change (Nat.ceil (ExponentialWidth N s) : ℝ) - 1 ≤ _
   linarith
 
+/-- If the exponential scale at stage `K` is at most `(6 / 5) * Real.sqrt N`, the worst
+iteration prefix through `K + k` stages is at most `(6 + k) * Real.sqrt N`. -/
 theorem search_worst_prefix_cap (N K k : ℕ) (hN : 0 < N)
     (hK : (6/5 : ℝ)^K ≤ (6/5) * Real.sqrt N) :
     (WorstPrefixIterations (ExponentialSizes N) (K+k) : ℝ) ≤
@@ -67,6 +100,9 @@ theorem search_worst_prefix_cap (N K k : ℕ) (hN : 0 < N)
   push_cast
   nlinarith
 
+/-- On a nonempty search space, there is `K ≤ 6 * Real.sqrt (Fintype.card I)` such that every `K
++ k` stage prefix costs at most `(6 + k) * Real.sqrt (Fintype.card I)` iterations and has
+reach probability at most `(3 / 4) ^ k` for every nonempty marked set. -/
 theorem search_uniform_timeout {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) :
     ∃ K : ℕ, (K : ℝ) ≤ 6 * Real.sqrt (Fintype.card I) ∧ ∀ k : ℕ,
@@ -115,10 +151,13 @@ theorem search_uniform_timeout {I : Type*} [Fintype I] [DecidableEq I]
       simp [hk]
     · positivity
 
+/-- The geometric timeout-error bound `(3 / 4) ^ k` converges to zero as `k` tends to infinity. -/
 theorem search_timeout_error_tendsto :
     Tendsto (fun k : ℕ => (3/4 : ℝ)^k) atTop (nhds 0) :=
   tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
 
+/-- On a nonempty search space, the retry output mass at every unmarked address is zero at every
+stage, for any schedule. -/
 theorem search_no_false_positive {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (n : ℕ) (i : I) (hi : i ∉ A) : RetryOutputMass A sizes n i = 0 := by
@@ -128,6 +167,9 @@ theorem search_no_false_positive {I : Type*} [Fintype I] [DecidableEq I]
   simp_rw [hz]
   simp
 
+/-- On a nonempty search space, a common stage offset gives Boolean-query prefix cost at most
+`(12 + 2 * k) * Real.sqrt (Fintype.card I)` and reach probability at most `(3 / 4) ^ k` for
+every nonempty marked set. -/
 theorem search_uniform_query_timeout {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) :
     ∃ K : ℕ, ∀ k : ℕ,

@@ -10,6 +10,33 @@ import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
 import Mathlib.Algebra.Group.Submonoid.BigOperators
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Fourth-order Suzuki product formulas
+
+This module defines the fifteen-factor Suzuki word `suzuki4Word` and its repeated application
+`suzuki4Run` for two matrix Hamiltonians. The coefficient `suzukiP` gives the symmetric
+composition of five Strang steps described in [Suzuki1990].
+
+The coefficient series `suzukiSeries` supplies norm bounds and Taylor remainders for matrix
+exponential words. Matching its coefficients through degree four yields local and repeated-step
+error estimates for Hermitian inputs, in the setting of product-formula error analysis
+[ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `suzuki4Generators_first_five_coefficients`: equality with the exponential coefficients
+  through degree four.
+* `suzuki_fourth_order_local_error`: a fifth-order local error bound with constant 100.
+* `suzuki_fourth_order_actual_word_and_cost`: unitarity, a factor count of `15 * r`, and an
+  error bound proportional to `r⁻⁴`.
+
+## References
+
+* [Suzuki, 1990][Suzuki1990]
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -34,21 +61,29 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The Suzuki composition coefficient `1 / (4 - 4^(1/3))` used to cancel the cubic error term. -/
 noncomputable def suzukiP : ℝ := (4 - (4 : ℝ)^(1/3 : ℝ))⁻¹
 
+/-- The three-factor Strang word consisting of evolution under `A` for time `t / 2`, under `B`
+for time `t`, and under `A` for time `t / 2`. -/
 noncomputable def suzukiStrangWord {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) : List (Matrix I I ℂ) :=
   [hamiltonianEvolution A (t/2),hamiltonianEvolution B t,hamiltonianEvolution A (t/2)]
 
+/-- The fifteen-factor fourth-order Suzuki word formed from four Strang steps of duration
+`suzukiP * t` and a central step of duration `(1 - 4 * suzukiP) * t`. -/
 noncomputable def suzuki4Word {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) : List (Matrix I I ℂ) :=
   let w := suzukiStrangWord A B (suzukiP*t)
   w++w++suzukiStrangWord A B ((1-4*suzukiP)*t)++w++w
 
+/-- The matrix product obtained by concatenating `r` copies of `suzuki4Word A B (t / r)`. -/
 noncomputable def suzuki4Run {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) : Matrix I I ℂ :=
   ((List.replicate r (suzuki4Word A B (t/r))).flatten).prod
 
+/-- The Suzuki coefficient lies strictly between zero and one half and satisfies the cubic
+cancellation identity `4 * suzukiP^3 + (1 - 4 * suzukiP)^3 = 0`. -/
 theorem suzukiP_order_conditions : 0 < suzukiP ∧ suzukiP < 1 / 2 ∧
     4 * suzukiP ^ 3 + (1 - 4 * suzukiP) ^ 3 = 0 := by
   let c := (4 : ℝ) ^ (1 / 3 : ℝ)
@@ -75,6 +110,8 @@ theorem suzukiP_order_conditions : 0 < suzukiP ∧ suzukiP < 1 / 2 ∧
     field_simp
     nlinarith
 
+/-- The coefficient of degree `n` in the exponential word determined by a list of matrices,
+defined recursively by convolution of exponential-series coefficients. -/
 noncomputable def suzukiSeries {I : Type} [Fintype I] [DecidableEq I] :
     List (Matrix I I ℂ) → ℕ → Matrix I I ℂ
   | [], 0 => 1
@@ -82,27 +119,34 @@ noncomputable def suzukiSeries {I : Type} [Fintype I] [DecidableEq I] :
   | X :: xs, n => ∑ kl ∈ Finset.HasAntidiagonal.antidiagonal n,
       (((kl.1.factorial : ℝ)⁻¹) • X ^ kl.1) * suzukiSeries xs kl.2
 
+/-- The constant coefficient of every matrix exponential word is the identity matrix. -/
 @[simp] theorem suzukiSeries_zero {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) : suzukiSeries xs 0 = 1 := by
   induction xs with
   | nil => rfl
   | cons X xs ih => simp [suzukiSeries, ih]
 
+/-- Every positive-degree coefficient of the empty exponential word is zero. -/
 @[simp] theorem suzukiSeries_nil_succ {I : Type} [Fintype I] [DecidableEq I] (n : ℕ) :
     suzukiSeries ([] : List (Matrix I I ℂ)) (n + 1) = 0 := rfl
 
+/-- Prepending `X` adds `X` to the degree-one coefficient of the exponential word. -/
 @[simp] theorem suzukiSeries_cons_one {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) :
     suzukiSeries (X :: xs) 1 = suzukiSeries xs 1 + X := by
   rw [suzukiSeries, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
   norm_num [Finset.sum_range_succ]
 
+/-- The degree-two coefficient after prepending `X` is the sum of the old degree-two
+coefficient, `X` times the old degree-one coefficient, and `X² / 2`. -/
 @[simp] theorem suzukiSeries_cons_two {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) :
     suzukiSeries (X :: xs) 2 = suzukiSeries xs 2 + X * suzukiSeries xs 1 + (1 / 2 : ℝ) • X ^ 2 := by
   rw [suzukiSeries, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
   norm_num [Finset.sum_range_succ, Nat.factorial]
 
+/-- The degree-three coefficient after prepending `X` is the convolution of the remaining word
+coefficients with `1`, `X`, `X² / 2`, and `X³ / 6`. -/
 @[simp] theorem suzukiSeries_cons_three {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) :
     suzukiSeries (X :: xs) 3 = suzukiSeries xs 3 + X * suzukiSeries xs 2 +
@@ -110,6 +154,8 @@ noncomputable def suzukiSeries {I : Type} [Fintype I] [DecidableEq I] :
   rw [suzukiSeries, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
   norm_num [Finset.sum_range_succ, Nat.factorial]
 
+/-- The degree-four coefficient after prepending `X` is the convolution of the remaining word
+coefficients with the exponential coefficients of `X` through `X⁴ / 24`. -/
 @[simp] theorem suzukiSeries_cons_four {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) :
     suzukiSeries (X :: xs) 4 = suzukiSeries xs 4 + X * suzukiSeries xs 3 +
@@ -118,12 +164,16 @@ noncomputable def suzukiSeries {I : Type} [Fintype I] [DecidableEq I] :
   rw [suzukiSeries, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
   norm_num [Finset.sum_range_succ, Nat.factorial]
 
+/-- The list of fifteen scaled copies of `X` and `Y` whose exponential word realizes the
+symmetric fourth-order Suzuki composition. -/
 noncomputable def suzuki4Generators {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) : List (Matrix I I ℂ) :=
   let w := [(suzukiP / 2) • X, suzukiP • Y, (suzukiP / 2) • X]
   w ++ w ++ [((1 - 4 * suzukiP) / 2) • X, (1 - 4 * suzukiP) • Y,
     ((1 - 4 * suzukiP) / 2) • X] ++ w ++ w
 
+/-- The degree-`n` convolution of the scalar exponential coefficients for `a` and `b` equals `(a
++ b)^n / n!`. -/
 private theorem suzuki_scalar_convolution (a b : ℝ) (n : ℕ) :
     (∑ kl ∈ Finset.HasAntidiagonal.antidiagonal n,
       (a ^ kl.1 / (kl.1.factorial : ℝ)) * (b ^ kl.2 / (kl.2.factorial : ℝ))) =
@@ -136,6 +186,7 @@ private theorem suzuki_scalar_convolution (a b : ℝ) (n : ℕ) :
   rw [smul_eq_mul]
   field_simp [Nat.factorial_ne_zero]
 
+/-- The operator norm of `X^n` is at most `‖X‖^n`, including the zeroth power. -/
 private theorem suzuki_norm_pow_le {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (n : ℕ) : ‖X ^ n‖ ≤ ‖X‖ ^ n := by
   induction n with
@@ -146,15 +197,18 @@ private theorem suzuki_norm_pow_le {I : Type} [Fintype I] [DecidableEq I]
     rw [pow_succ, pow_succ]
     exact (norm_mul_le _ _).trans (mul_le_mul_of_nonneg_right ih (norm_nonneg X))
 
+/-- The sum of the operator norms of the matrices in an exponential-word generator list. -/
 noncomputable def suzukiMass {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) : ℝ := (xs.map norm).sum
 
+/-- The sum of generator norms `suzukiMass xs` is nonnegative. -/
 private theorem suzukiMass_nonneg {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) : 0 ≤ suzukiMass xs := by
   unfold suzukiMass
   exact List.sum_nonneg
       (fun x hx => by obtain ⟨Y, _, rfl⟩ := List.mem_map.mp hx; exact norm_nonneg Y)
 
+/-- The norm of the degree-`n` exponential-word coefficient is at most `suzukiMass xs ^ n / n!`. -/
 theorem suzukiSeries_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (n : ℕ) :
     ‖suzukiSeries xs n‖ ≤ suzukiMass xs ^ n / (n.factorial : ℝ) := by
@@ -182,6 +236,8 @@ theorem suzukiSeries_norm_le {I : Type} [Fintype I] [DecidableEq I]
           (norm_nonneg _) (by positivity))
       _ = _ := by rw [suzuki_scalar_convolution]; simp [suzukiMass]
 
+/-- The norm of the degree-`n` series term at real time `t` is at most `(|t| * suzukiMass xs)^n
+/ n!`. -/
 private theorem suzukiSeries_term_norm {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) (n : ℕ) :
     ‖t ^ n • suzukiSeries xs n‖ ≤ (|t| * suzukiMass xs) ^ n / (n.factorial : ℝ) := by
@@ -191,6 +247,8 @@ private theorem suzukiSeries_term_norm {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left (suzukiSeries_norm_le xs n) (by positivity)
     _ = _ := by rw [mul_pow]; ring
 
+/-- The norms of the time-scaled exponential-word coefficients form a summable series for every
+real time. -/
 private theorem suzukiSeries_norm_summable {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) :
     Summable (fun n => ‖t ^ n • suzukiSeries xs n‖) := by
@@ -199,10 +257,13 @@ private theorem suzukiSeries_norm_summable {I : Type} [Fintype I] [DecidableEq I
       (NormedSpace.exp_series_hasSum_exp' (𝕂 := ℝ) (|t| * suzukiMass xs)).summable
   exact h.of_nonneg_of_le (fun _ => norm_nonneg _) (suzukiSeries_term_norm xs t)
 
+/-- The ordered product of the matrix exponentials `exp (t • X)` for the generators `X` in `xs`. -/
 noncomputable def suzukiExponentialWord {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) : Matrix I I ℂ :=
   (xs.map (fun X => NormedSpace.exp (t • X))).prod
 
+/-- The coefficient series of an exponential word sums to `suzukiExponentialWord xs t` at every
+real time `t`. -/
 theorem suzukiSeries_hasSum {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) :
     HasSum (fun n => t ^ n • suzukiSeries xs n) (suzukiExponentialWord xs t) := by
@@ -236,11 +297,14 @@ theorem suzukiSeries_hasSum {I : Type} [Fintype I] [DecidableEq I]
       congr 1
       ring
 
+/-- The real exponential `Real.exp a` is the sum of the series with terms `a^n / n!`. -/
 private theorem suzuki_real_exp_hasSum (a : ℝ) :
     HasSum (fun n : ℕ => a ^ n / (n.factorial : ℝ)) (Real.exp a) := by
   simpa only [smul_eq_mul, inv_mul_eq_div, ← Real.exp_eq_exp_ℝ] using!
     NormedSpace.exp_series_hasSum_exp' (𝕂 := ℝ) a
 
+/-- For nonnegative `a`, the exponential-series tail starting at degree `m` is summable and
+bounded by `a^m / m! * Real.exp a`. -/
 private theorem suzuki_scalar_tail (a : ℝ) (ha : 0 ≤ a) (m : ℕ) :
     Summable (fun n : ℕ => a ^ (n + m) / ((n + m).factorial : ℝ)) ∧
     (∑' n : ℕ, a ^ (n + m) / ((n + m).factorial : ℝ)) ≤
@@ -258,6 +322,8 @@ private theorem suzuki_scalar_tail (a : ℝ) (ha : 0 ≤ a) (m : ℕ) :
     hg.summable.of_nonneg_of_le (fun _ => by positivity) hterm
   exact ⟨hs, (hs.tsum_le_tsum hterm hg.summable).trans_eq hg.tsum_eq⟩
 
+/-- Truncating the exponential-word series after degree four incurs an error of at most `exp
+(|t| * suzukiMass xs) * (|t| * suzukiMass xs)^5 / 120`. -/
 theorem suzukiSeries_taylor_error {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) :
     ‖suzukiExponentialWord xs t - ∑ n ∈ Finset.range 5, t ^ n • suzukiSeries xs n‖ ≤
@@ -285,6 +351,8 @@ theorem suzukiSeries_taylor_error {I : Type} [Fintype I] [DecidableEq I]
     _ ≤ a ^ 5 / (Nat.factorial 5 : ℝ) * Real.exp a := hb
     _ = _ := by norm_num [Nat.factorial]; ring
 
+/-- The sum of generator norms in the fourth-order Suzuki composition is at most `3 * (‖X‖ +
+‖Y‖)`. -/
 theorem suzuki4Generators_mass {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) : suzukiMass (suzuki4Generators X Y) ≤ 3 * (‖X‖ + ‖Y‖) := by
   obtain ⟨hp, hhalf, hc⟩ := suzukiP_order_conditions
@@ -300,6 +368,8 @@ theorem suzuki4Generators_mass {I : Type} [Fintype I] [DecidableEq I]
   rw [he]
   exact mul_le_mul_of_nonneg_right (by linarith) (add_nonneg (norm_nonneg X) (norm_nonneg Y))
 
+/-- Exponentiating the scaled generator `c • ((-Complex.I) • A)` at time `t` gives Hamiltonian
+evolution under `A` for time `c * t`. -/
 private theorem suzuki_evolution_generator {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (c t : ℝ) :
     NormedSpace.exp (t • (c • ((-Complex.I) • A))) = hamiltonianEvolution A (c * t) := by
@@ -309,6 +379,8 @@ private theorem suzuki_evolution_generator {I : Type} [Fintype I] [DecidableEq I
   simp [Matrix.smul_apply, Complex.real_smul]
   ring
 
+/-- The exponential word of the Suzuki generators `(-Complex.I) • A` and `(-Complex.I) • B`
+equals the product of `suzuki4Word A B t`. -/
 theorem suzuki4Generators_actual_word {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) :
     suzukiExponentialWord (suzuki4Generators ((-Complex.I) • A) ((-Complex.I) • B)) t =
@@ -317,6 +389,8 @@ theorem suzuki4Generators_actual_word {I : Type} [Fintype I] [DecidableEq I]
     List.map_append, List.map_cons, List.map_nil, suzuki_evolution_generator,
     div_mul_eq_mul_div]
 
+/-- The product of the fourth-order Suzuki word is unitary when both input matrices are
+Hermitian. -/
 private theorem suzuki_word_unitary {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (hA : A.IsHermitian) (hB : B.IsHermitian) :
     (suzuki4Word A B t).prod ∈ Matrix.unitaryGroup I ℂ := by
@@ -333,10 +407,13 @@ private theorem suzuki_word_unitary {I : Type} [Fintype I] [DecidableEq I]
     aesop
   exact (Matrix.unitaryGroup I ℂ).list_prod_mem hword
 
+/-- The empty exponential word has identity coefficient in degree zero and zero coefficient in
+every other degree. -/
 private theorem suzukiSeries_nil {I : Type} [Fintype I] [DecidableEq I] (n : ℕ) :
     suzukiSeries ([] : List (Matrix I I ℂ)) n = if n = 0 then 1 else 0 := by
   cases n <;> simp [suzukiSeries]
 
+/-- The degree-`n` coefficient of a singleton exponential word is `X^n / n!`. -/
 theorem suzukiSeries_singleton {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (n : ℕ) :
     suzukiSeries (X :: []) n = ((n.factorial : ℝ)⁻¹) • X ^ n := by
@@ -355,6 +432,7 @@ theorem suzukiSeries_singleton {I : Type} [Fintype I] [DecidableEq I]
     simp only [suzukiSeries_nil, if_neg hl, Matrix.mul_zero]
   · simp
 
+/-- The real exponential of any `a ≤ 2` is bounded above by nine. -/
 private theorem suzuki_real_exp_le_nine (a : ℝ) (ha : a ≤ 2) : Real.exp a ≤ 9 := by
   have he : Real.exp 2 = (Real.exp 1) ^ 2 := by
     rw [show (2 : ℝ) = 1 + 1 by norm_num, Real.exp_add, pow_two]
@@ -362,11 +440,15 @@ private theorem suzuki_real_exp_le_nine (a : ℝ) (ha : a ≤ 2) : Real.exp a �
   rw [he]
   nlinarith [Real.exp_one_lt_three, Real.exp_pos 1]
 
+/-- The concatenated Suzuki run equals the `r`th power of the single-word product at time `t /
+r`. -/
 theorem suzuki4Run_eq_power {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) :
     suzuki4Run A B t r = (suzuki4Word A B (t / r)).prod ^ r := by
   simp [suzuki4Run, List.prod_flatten]
 
+/-- For Hermitian `A` and `B`, the repeated Suzuki run is unitary and its concatenated word
+contains exactly `15 * r` factors. -/
 theorem suzuki4Run_unitary_and_length {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) (hA : A.IsHermitian) (hB : B.IsHermitian) :
     suzuki4Run A B t r ∈ Matrix.unitaryGroup I ℂ ∧
@@ -378,6 +460,8 @@ theorem suzuki4Run_unitary_and_length {I : Type} [Fintype I] [DecidableEq I]
 
 set_option maxHeartbeats 40000000 in
 
+/-- The Suzuki generator word and the exponential of `X + Y` have identical coefficients in
+every degree below five. -/
 theorem suzuki4Generators_first_five_coefficients {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (n : ℕ) (hn : n < 5) :
     suzukiSeries (suzuki4Generators X Y) n = ((n.factorial : ℝ)⁻¹) • (X + Y) ^ n := by
@@ -396,6 +480,8 @@ theorem suzuki4Generators_first_five_coefficients {I : Type} [Fintype I] [Decida
   all_goals try simp only [hp3]
   all_goals ring
 
+/-- The difference between the Suzuki exponential word and `exp (t • (X + Y))` is bounded by the
+sum of their fifth-order exponential Taylor remainder bounds. -/
 theorem suzuki4Generators_taylor_error {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (t : ℝ) :
     ‖suzukiExponentialWord (suzuki4Generators X Y) t - NormedSpace.exp (t • (X + Y))‖ ≤
@@ -421,6 +507,9 @@ theorem suzuki4Generators_taylor_error {I : Type} [Fintype I] [DecidableEq I]
   rw [he]
   exact (norm_sub_le _ _).trans ((add_le_add hf hg).trans_eq (by ring))
 
+/-- For Hermitian `A` and `B`, the fourth-order Suzuki word approximates evolution under `A + B`
+with operator-norm error at most `100 * (‖A‖ + ‖B‖)^5 * |t|^5`. See [ChildsEtAl2021Trotter]
+for the product-formula error framework. -/
 theorem suzuki_fourth_order_local_error :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ) (t : ℝ),
       A.IsHermitian → B.IsHermitian →
@@ -475,6 +564,9 @@ theorem suzuki_fourth_order_local_error :
       pow_le_pow_left₀ (by norm_num) (not_le.mp hx).le 5
     exact (norm_sub_le _ _).trans (by nlinarith)
 
+/-- For Hermitian `A` and `B` and positive `r`, the repeated Suzuki word is unitary, contains
+`15 * r` factors, and has error at most `100 * (‖A‖ + ‖B‖)^5 * |t|^5 / r^4`. See
+[ChildsEtAl2021Trotter] for the product-formula error framework. -/
 theorem suzuki_fourth_order_actual_word_and_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
       (t : ℝ) (r : ℕ), A.IsHermitian → B.IsHermitian → 0 < r →

@@ -8,6 +8,37 @@ import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefinedDefs
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessVerifier
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessCounterexamples
+
+/-!
+# Refined history bounds and injective Hamiltonian encodings
+
+This module proves `qmaClause2TwoWay` for every history circuit, combining the YES history-state
+construction, the NO variational bound, support bounds, entry bounds, complex dyadic precision,
+and term counts. These estimates refine the circuit-to-Hamiltonian analysis of
+[KempeKitaevRegev2006]. It also proves diagonal matrix identities for the amplification
+operators and their `MwWitnessPreserving` predicates, within the framework associated with
+[MarriottWatrous2005].
+
+The serialization proofs establish that natural, integer, list, and term encodings can be
+separated from arbitrary appended suffixes. They yield injectivity of `qmaClause3ToBits` and
+disjointness of the corresponding YES and NO predicates. The final results connect
+`qmaClause3VerifierCircuit` to the original verifier's initial state, acceptance weight, and
+gate-count bound.
+
+## Main statements
+
+* `clause2Aux_twoWay`: the combined refined specification for rounded history Hamiltonians.
+* `clause3Aux_toBits_injective`: injectivity of the refined Hamiltonian serialization.
+* `clause3Aux_yes_no_disjoint`: disjointness of the serialized energy promises.
+* `clause3Aux_historyAcceptProb_eq`: preservation of the verifier acceptance weight by its
+  history circuit.
+
+## References
+
+* [Kempe, Kitaev and Regev, 2006][KempeKitaevRegev2006]
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
@@ -26,26 +57,32 @@ open scoped Classical BigOperators
 open Qatlib
 open Matrix
 
+/-- Every off-diagonal entry of `mwGoodProjector p` vanishes. -/
 theorem mwGoodProjector_offdiag (p : WitnessVerifierProgram)
     (u u' : Reg (programQubits p)) (hne : u ≠ u') : mwGoodProjector p u u' = 0 := by
   simp [mwGoodProjector, hne]
 
+/-- The diagonal of `mwGoodProjector p` is the indicator of the program's output event. -/
 theorem mwGoodProjector_diag (p : WitnessVerifierProgram) (u : Reg (programQubits p)) :
     mwGoodProjector p u u = if u ∈ programOutputEvent p then 1 else 0 := by
   by_cases ho : u ∈ programOutputEvent p
   · simp [mwGoodProjector, ho]
   · simp [mwGoodProjector, ho]
 
+/-- Every off-diagonal entry of `mwRound p` vanishes. -/
 theorem mwRound_offdiag (p : WitnessVerifierProgram)
     (u u' : Reg (programQubits p)) (hne : u ≠ u') : mwRound p u u' = 0 := by
   simp [mwRound, hne]
 
+/-- The diagonal of `mwRound p` is zero on the output event and one outside it. -/
 theorem mwRound_diag (p : WitnessVerifierProgram) (u : Reg (programQubits p)) :
     mwRound p u u = if u ∈ programOutputEvent p then 0 else 1 := by
   by_cases ho : u ∈ programOutputEvent p
   · simp [mwRound, ho]
   · simp [mwRound, ho]
 
+/-- The good projector satisfies the diagonal and off-diagonal conditions in
+`MwTwoProjectionsOrthogonal`. -/
 theorem mwTwoProjectionsOrthogonal (p : WitnessVerifierProgram) :
     MwTwoProjectionsOrthogonal p := by
   refine ⟨?_, ?_⟩
@@ -54,6 +91,8 @@ theorem mwTwoProjectionsOrthogonal (p : WitnessVerifierProgram) :
   · intro u u' hne
     exact mwGoodProjector_offdiag p u u' hne
 
+/-- Every nonzero entry of `mwRound p` equals its row's diagonal entry, as required by
+`MwWitnessPreserving`. -/
 theorem mwRound_preserves_witness (p : WitnessVerifierProgram) :
     MwWitnessPreserving p (mwRound p) := by
   intro u u' h
@@ -63,6 +102,8 @@ theorem mwRound_preserves_witness (p : WitnessVerifierProgram) :
     rw [hz] at h
     exact (h rfl).elim
 
+/-- Every nonzero entry of `mwGoodProjector p` equals its row's diagonal entry, as required by
+`MwWitnessPreserving`. -/
 theorem mwGoodProjector_preserves_witness (p : WitnessVerifierProgram) :
     MwWitnessPreserving p (mwGoodProjector p) := by
   intro u u' h
@@ -72,6 +113,7 @@ theorem mwGoodProjector_preserves_witness (p : WitnessVerifierProgram) :
     rw [hz] at h
     exact (h rfl).elim
 
+/-- The verification wire count is at most the total program qubit count. -/
 theorem mwVerificationWires_le (p : WitnessVerifierProgram) :
     mwVerificationWires p ≤ programQubits p := by
   unfold mwVerificationWires
@@ -82,16 +124,20 @@ theorem mwVerificationWires_le (p : WitnessVerifierProgram) :
 
 section Clause2Helpers
 
+/-- Matrix-vector multiplication commutes with complex scalar multiplication of the vector. -/
 theorem clause2Aux_mulVec_smul {ι : Type*} [Fintype ι] (A : Matrix ι ι ℂ) (c : ℂ) (v : ι → ℂ) :
     A *ᵥ (fun y => c * v y) = fun y => c * (A *ᵥ v) y := by
   have h := Matrix.mulVec_smul A c v
   simpa only [Pi.smul_def, smul_eq_mul] using h
 
+/-- At an in-range position, `qmaGateAt` returns the corresponding list element. -/
 theorem clause2Aux_qmaGateAt_getElem (gs : List FiniteGateCode) (t : ℕ) (h : t < gs.length) :
     qmaGateAt gs t = gs[t] := by
   unfold qmaGateAt
   rw [List.drop_eq_getElem_cons h]
 
+/-- Appending a gate to a finite word multiplies the word matrix on the left by that gate's
+matrix. -/
 theorem clause2Aux_finiteWordMatrix_append (n : ℕ) (l : List FiniteGateCode) (g : FiniteGateCode) :
     finiteWordMatrix n (l ++ [g]) = finiteCodeMatrix n g * finiteWordMatrix n l := by
   induction l with
@@ -107,11 +153,14 @@ theorem clause2Aux_finiteWordMatrix_append (n : ℕ) (l : List FiniteGateCode) (
 
 end Clause2Helpers
 
+/-- Each slice of the uniform history state is its exact work history slice scaled by the
+inverse square root of the clock length. -/
 theorem clause2Aux_history_slice (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (t : Fin (C.gates.length + 1)) (y : Reg C.qubits) :
     sl (qmaHistoryState C φ) t y
       = (((Real.sqrt (C.gates.length + 1))⁻¹ : ℝ) : ℂ) * qmaExactHistory C φ t y := rfl
 
+/-- Successive exact history slices are related by the corresponding exact gate matrix. -/
 theorem clause2Aux_exact_history_step (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (i : Fin C.gates.length) :
     qmaExactHistory C φ i.succ
@@ -134,6 +183,7 @@ theorem clause2Aux_exact_history_step (C : QmaHistoryCircuit) (φ : QState (Reg 
     rw [hget]
   rw [hL, hR, hG, htake, clause2Aux_finiteWordMatrix_append, Matrix.mulVec_mulVec]
 
+/-- Applying `A - B` to a vector is the negation of applying `B - A`. -/
 theorem clause2Aux_mulVec_sub_neg {ι : Type*} [Fintype ι] (A B : Matrix ι ι ℂ) (v : ι → ℂ) :
     (A - B) *ᵥ v = -((B - A) *ᵥ v) := by
   have h1 : (A - B) *ᵥ v = A *ᵥ v - B *ᵥ v := by
@@ -143,6 +193,7 @@ theorem clause2Aux_mulVec_sub_neg {ι : Type*} [Fintype ι] (A B : Matrix ι ι 
   rw [h1, h2]
   ring
 
+/-- Reversing a matrix difference leaves the norm of its action on a vector unchanged. -/
 theorem clause2Aux_nm_sub_neg {ι : Type*} [Fintype ι] (A B : Matrix ι ι ℂ) (v : ι → ℂ) :
     nm ((A - B) *ᵥ v) = nm ((B - A) *ᵥ v) := by
   have h1 : (A - B) *ᵥ v = -((B - A) *ᵥ v) := clause2Aux_mulVec_sub_neg A B v
@@ -156,6 +207,8 @@ theorem clause2Aux_nm_sub_neg {ι : Type*} [Fintype ι] (A B : Matrix ι ι ℂ)
     rw [Pi.neg_apply, norm_neg]
   exact h2
 
+/-- When the rounding scale is at most one, a rounded legal gate preserves at least `(1 -
+g13n2_kappa n b)^2` times the input squared norm. -/
 theorem clause2Aux_rounded_gate_vn_lower (n b : ℕ) (g : FiniteGateCode)
     (hg : finiteCodeLegal n g = true) (v : QState (Reg n))
     (hκ : g13n2_kappa n b ≤ 1) :
@@ -196,6 +249,7 @@ theorem clause2Aux_rounded_gate_vn_lower (n b : ℕ) (g : FiniteGateCode)
   rw [nm_sq, nm_sq] at hsq
   exact hsq
 
+/-- The rounding scale at `qmaClause2Bits C` is at most one. -/
 theorem clause2Aux_kappa_le_one (C : QmaHistoryCircuit) :
     g13n2_kappa C.qubits (qmaClause2Bits C) ≤ 1 := by
   have h := g2c2_tiny_absorb C.qubits C.gates.length
@@ -211,6 +265,8 @@ theorem clause2Aux_kappa_le_one (C : QmaHistoryCircuit) :
     positivity
   linarith
 
+/-- For a normalized input and rounding scale at most one, each rounded propagation energy of
+its history state is at most the rounding scale divided by the clock length. -/
 theorem clause2Aux_prop_energy_le (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (hφ : Normalized φ) (b : ℕ) (i : Fin C.gates.length)
     (hκ : g13n2_kappa C.qubits b ≤ 1) :
@@ -358,6 +414,8 @@ theorem clause2Aux_prop_energy_le (C : QmaHistoryCircuit) (φ : QState (Reg C.qu
               - (1 - κ) ^ 2 / (C.gates.length + 1 : ℝ)) := by linarith
       _ = g13n2_kappa C.qubits b / (C.gates.length + 1) := by ring
 
+/-- Every initialization wire contributes zero input energy to the history state of a legal
+input. -/
 theorem clause2Aux_in_energy_zero (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (hlegal : QmaInitLegal C φ) (j : Fin C.qubits) (hj : j ∈ C.initZeroWires) :
     qmaEnergy (qmaInTerm C.qubits C.gates.length j) (qmaHistoryState C φ) = 0 := by
@@ -381,6 +439,8 @@ theorem clause2Aux_in_energy_zero (C : QmaHistoryCircuit) (φ : QState (Reg C.qu
     norm_num
   · rw [if_neg hy]
 
+/-- For a normalized input, the history state's output energy equals its rejection weight
+divided by the clock length. -/
 theorem clause2Aux_out_energy_eq (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (hφ : Normalized φ) :
     qmaEnergy (qmaOutTerm C.qubits C.gates.length C.outputWire) (qmaHistoryState C φ)
@@ -457,6 +517,8 @@ theorem clause2Aux_out_energy_eq (C : QmaHistoryCircuit) (φ : QState (Reg C.qub
   rw [htot, hacc]
   ring
 
+/-- The rounded history energy of a legal normalized input's history state is bounded by
+`qmaClause2YesBound` at its acceptance weight. -/
 theorem clause2Aux_history_state_energy_le (C : QmaHistoryCircuit) (φ : QState (Reg C.qubits))
     (hφ : Normalized φ) (hlegal : QmaInitLegal C φ) :
     qmaEnergy (qmaHistoryHamiltonian C (qmaRoundedGates C (qmaClause2Bits C)))
@@ -512,6 +574,7 @@ theorem clause2Aux_history_state_energy_le (C : QmaHistoryCircuit) (φ : QState 
   rw [hin, hout, qmaClause2YesBound]
   nlinarith [h1, ht]
 
+/-- Complex conjugation commutes with negation. -/
 theorem clause2Aux_star_neg (x : ℂ) : star (-x) = -star x := by
   have h : star (x + -x) = star x + star (-x) := by rw [star_add]
   have h2 : star (x + -x) = star (0 : ℂ) := by rw [add_neg_cancel]
@@ -522,6 +585,7 @@ theorem clause2Aux_star_neg (x : ℂ) : star (-x) = -star x := by
     _ = (0 - star x) := by rw [h]
     _ = -star x := by ring
 
+/-- Complex conjugation fixes integers cast to the complex numbers. -/
 theorem clause2Aux_star_intCast (a : ℤ) : star (a : ℂ) = a := by
   cases a with
   | ofNat n =>
@@ -531,19 +595,24 @@ theorem clause2Aux_star_intCast (a : ℤ) : star (a : ℂ) = a := by
     have hcast : ((Int.negSucc n : ℤ) : ℂ) = -((n + 1 : ℕ) : ℂ) := by simp
     rw [hcast, clause2Aux_star_neg, RCLike.star_def, Complex.conj_natCast]
 
+/-- Complex conjugation fixes each natural power of two. -/
 theorem clause2Aux_star_pow_two (w : ℕ) : star ((2 : ℂ) ^ w) = (2 : ℂ) ^ w := by
   have e : ((2 : ℂ) ^ w) = ((2 ^ w : ℕ) : ℂ) := (Nat.cast_pow 2 w).symm
   rw [e, RCLike.star_def, Complex.conj_natCast, ← e]
 
+/-- Zero satisfies the complex dyadic predicate at every precision. -/
 theorem clause2Aux_isDyadicC_zero (w : ℕ) : qmaIsDyadicC w (0 : ℂ) := by
   refine ⟨0, 0, ?_⟩
   simp
 
+/-- One satisfies the complex dyadic predicate at every precision. -/
 theorem clause2Aux_isDyadicC_one (w : ℕ) : qmaIsDyadicC w (1 : ℂ) := by
   refine ⟨(2 ^ w : ℕ), 0, ?_⟩
   rw [Nat.cast_pow, mul_one]
   simp
 
+/-- A complex number equal to zero or one satisfies the complex dyadic predicate at every
+precision. -/
 theorem clause2Aux_isDyadicC_of_zero_one {b : ℕ} {z : ℂ} (hz : z = 0 ∨ z = 1) :
     qmaIsDyadicC b z := by
   rcases hz with h | h
@@ -552,6 +621,8 @@ theorem clause2Aux_isDyadicC_of_zero_one {b : ℕ} {z : ℂ} (hz : z = 0 ∨ z =
   · rw [h]
     exact clause2Aux_isDyadicC_one b
 
+/-- A product of three complex numbers each equal to zero or one is complex dyadic at every
+precision. -/
 theorem clause2Aux_isDyadicC_mul_zero_one {b : ℕ} {x y z : ℂ}
     (hx : x = 0 ∨ x = 1) (hy : y = 0 ∨ y = 1) (hz : z = 0 ∨ z = 1) :
     qmaIsDyadicC b (x * y * z) := by
@@ -581,6 +652,7 @@ theorem clause2Aux_isDyadicC_mul_zero_one {b : ℕ} {x y z : ℂ}
     ring_nf
     exact clause2Aux_isDyadicC_one b
 
+/-- Negation preserves the complex dyadic predicate at a fixed precision. -/
 theorem clause2Aux_isDyadicC_neg {w : ℕ} {z : ℂ} (hz : qmaIsDyadicC w z) :
     qmaIsDyadicC w (-z) := by
   obtain ⟨a, c, h⟩ := hz
@@ -591,6 +663,7 @@ theorem clause2Aux_isDyadicC_neg {w : ℕ} {z : ℂ} (hz : qmaIsDyadicC w z) :
     ring
   rw [mul_neg, ← hn, ← h]
 
+/-- Complex conjugation preserves the complex dyadic predicate at a fixed precision. -/
 theorem clause2Aux_isDyadicC_star {w : ℕ} {z : ℂ} (hz : qmaIsDyadicC w z) :
     qmaIsDyadicC w (star z) := by
   obtain ⟨a, c, h⟩ := hz
@@ -606,6 +679,7 @@ theorem clause2Aux_isDyadicC_star {w : ℕ} {z : ℂ} (hz : qmaIsDyadicC w z) :
     rw [star_mul', clause2Aux_star_pow_two]
   rw [← hsm, h, hstar]
 
+/-- Multiplying a complex dyadic number by one half increases its precision parameter by one. -/
 theorem clause2Aux_isDyadicC_half {w : ℕ} {z : ℂ} (hz : qmaIsDyadicC w z) :
     qmaIsDyadicC (w + 1) ((1 / 2 : ℂ) * z) := by
   obtain ⟨a, c, h⟩ := hz
@@ -616,6 +690,7 @@ theorem clause2Aux_isDyadicC_half {w : ℕ} {z : ℂ} (hz : qmaIsDyadicC w z) :
       _ = (2 : ℂ) ^ w * z := by ring
       _ = (a : ℂ) + Complex.I * (c : ℂ) := h
 
+/-- Rounding at precision `b` produces a complex dyadic number at precision `b`. -/
 theorem clause2Aux_roundC_isDyadicC (b : ℕ) (z : ℂ) : qmaIsDyadicC b (qmaRoundC b z) := by
   refine ⟨Int.floor (z.re * 2 ^ b + 1 / 2), Int.floor (z.im * 2 ^ b + 1 / 2), ?_⟩
   show ((2 : ℂ) ^ b) * qmaRoundC b z
@@ -628,17 +703,21 @@ theorem clause2Aux_roundC_isDyadicC (b : ℕ) (z : ℂ) : qmaIsDyadicC b (qmaRou
     exact_mod_cast pow_ne_zero b (by norm_num : (2 : ℕ) ≠ 0)
   field_simp
 
+/-- Every rounded gate entry is complex dyadic at the rounding precision. -/
 theorem clause2Aux_roundedGate_isDyadicC (n b : ℕ) (g : FiniteGateCode) (x y : Reg n) :
     qmaIsDyadicC b (qmaRoundedGate n b g x y) := by
   show qmaIsDyadicC b (qmaRoundC b (finiteCodeMatrix n g x y))
   exact clause2Aux_roundC_isDyadicC b (finiteCodeMatrix n g x y)
 
+/-- Every entry in a history circuit's rounded gate family is complex dyadic at precision `b`. -/
 theorem clause2Aux_roundedGates_isDyadicC (C : QmaHistoryCircuit) (b : ℕ)
     (j : Fin C.gates.length) (x y : Reg C.qubits) :
     qmaIsDyadicC b (qmaRoundedGates C b j x y) := by
   show qmaIsDyadicC b (qmaRoundedGate C.qubits b (qmaGateAt C.gates j.val) x y)
   exact clause2Aux_roundedGate_isDyadicC C.qubits b (qmaGateAt C.gates j.val) x y
 
+/-- Propagation entries are complex dyadic at precision `b + 1` when all gate entries are
+complex dyadic at precision `b`. -/
 theorem clause2Aux_propTerm_isDyadicC (n m b : ℕ) (U : Fin m → Matrix (Reg n) (Reg n) ℂ)
     (i : Fin m) (p q : Fin (m + 1) × Reg n)
     (hU : ∀ j : Fin m, ∀ x y : Reg n, qmaIsDyadicC b (U j x y)) :
@@ -668,6 +747,7 @@ theorem clause2Aux_propTerm_isDyadicC (n m b : ℕ) (U : Fin m → Matrix (Reg n
   rw [if_neg c1, if_neg c2, if_neg c3, if_neg c4]
   exact clause2Aux_isDyadicC_zero (b + 1)
 
+/-- Every input penalty entry is complex dyadic at every precision. -/
 theorem clause2Aux_inTerm_isDyadicC (n m b : ℕ) (j : Fin n) (p q : Fin (m + 1) × Reg n) :
     qmaIsDyadicC b (qmaInTerm n m j p q) := by
   rw [qmaInTerm_entry]
@@ -695,6 +775,7 @@ theorem clause2Aux_inTerm_isDyadicC (n m b : ℕ) (j : Fin n) (p q : Fin (m + 1)
       rw [if_neg h]
   exact clause2Aux_isDyadicC_mul_zero_one h1 h2 h3
 
+/-- Every output penalty entry is complex dyadic at every precision. -/
 theorem clause2Aux_outTerm_isDyadicC (n m b : ℕ) (out : Fin n) (p q : Fin (m + 1) × Reg n) :
     qmaIsDyadicC b (qmaOutTerm n m out p q) := by
   rw [qmaOutTerm_entry]
@@ -722,6 +803,8 @@ theorem clause2Aux_outTerm_isDyadicC (n m b : ℕ) (out : Fin n) (p q : Fin (m +
       rw [if_neg h]
   exact clause2Aux_isDyadicC_mul_zero_one h1 h2 h3
 
+/-- If the rounded gate entries are complex dyadic at precision `b`, every rounded history term
+entry is complex dyadic at precision `b + 1`. -/
 theorem clause2Aux_terms_isDyadicC (C : QmaHistoryCircuit) (b : ℕ)
     (hU : ∀ j : Fin C.gates.length, ∀ x y : Reg C.qubits,
       qmaIsDyadicC b (qmaRoundedGates C b j x y)) :
@@ -750,6 +833,7 @@ theorem clause2Aux_terms_isDyadicC (C : QmaHistoryCircuit) (b : ℕ)
     cases hout
     exact clause2Aux_outTerm_isDyadicC C.qubits C.gates.length (b + 1) C.outputWire p q
 
+/-- The YES energy bound decreases as the acceptance threshold increases. -/
 theorem clause2Aux_yesBound_mono (C : QmaHistoryCircuit) {a a' : ℝ} (h : a ≤ a') :
     qmaClause2YesBound C a' ≤ qmaClause2YesBound C a := by
   unfold qmaClause2YesBound
@@ -759,6 +843,9 @@ theorem clause2Aux_yesBound_mono (C : QmaHistoryCircuit) {a a' : ℝ} (h : a ≤
     exact mul_le_mul_of_nonneg_right h3 (by positivity)
   linarith
 
+/-- A legal normalized input with acceptance weight at least `a` yields a normalized history
+vector of rounded energy at most `qmaClause2YesBound C a`. This is the rounded variational
+completeness direction corresponding to [Kempe et al., Lemma 2][KempeKitaevRegev2006]. -/
 theorem clause2Aux_yes_clause (C : QmaHistoryCircuit) (a : ℝ)
     (h : ∃ φ : QState (Reg C.qubits), QmaInitLegal C φ ∧ Normalized φ ∧
       a ≤ qmaHistoryAcceptProb C φ) :
@@ -771,6 +858,8 @@ theorem clause2Aux_yes_clause (C : QmaHistoryCircuit) (a : ℝ)
   have hmono := clause2Aux_yesBound_mono C hacc
   linarith
 
+/-- A soundness bound `ε` on all legal normalized inputs gives energy at least
+`qmaClause2NoBound C ε` for every normalized history vector. -/
 theorem clause2Aux_no_clause (C : QmaHistoryCircuit) (ε : ℝ)
     (hsnd : ∀ φ : QState (Reg C.qubits), QmaInitLegal C φ → Normalized φ →
       qmaHistoryAcceptProb C φ ≤ ε) :
@@ -782,6 +871,8 @@ theorem clause2Aux_no_clause (C : QmaHistoryCircuit) (ε : ℝ)
   unfold qmaClause2NoBound
   exact h
 
+/-- Every history term at the prescribed rounding precision satisfies its declared supports,
+each of cardinality at most two. -/
 theorem clause2Aux_locality_clause (C : QmaHistoryCircuit)
     (t : QmaHistoryTerm C.qubits C.gates.length)
     (ht : t ∈ qmaHistoryTerms C (qmaRoundedGates C (qmaClause2Bits C))) :
@@ -793,6 +884,8 @@ theorem clause2Aux_locality_clause (C : QmaHistoryCircuit)
     exact ht
   exact clause2_clause3 C t ht'
 
+/-- Every matrix entry of a history term at the prescribed rounding precision has norm at most
+one. -/
 theorem clause2Aux_norm_clause (C : QmaHistoryCircuit)
     (t : QmaHistoryTerm C.qubits C.gates.length)
     (ht : t ∈ qmaHistoryTerms C (qmaRoundedGates C (qmaClause2Bits C)))
@@ -804,6 +897,8 @@ theorem clause2Aux_norm_clause (C : QmaHistoryCircuit)
     exact ht
   exact clause2_clause4 C t ht' p q
 
+/-- Every history term entry at the prescribed rounding precision is complex dyadic at precision
+`qmaClause2Bits C + 1`. -/
 theorem clause2Aux_dyadic_clause (C : QmaHistoryCircuit)
     (t : QmaHistoryTerm C.qubits C.gates.length)
     (ht : t ∈ qmaHistoryTerms C (qmaRoundedGates C (qmaClause2Bits C)))
@@ -812,6 +907,8 @@ theorem clause2Aux_dyadic_clause (C : QmaHistoryCircuit)
   exact clause2Aux_terms_isDyadicC C (qmaClause2Bits C)
     (fun j x y => clause2Aux_roundedGates_isDyadicC C (qmaClause2Bits C) j x y) t ht p q
 
+/-- The number of history terms at the prescribed precision is at most the gate count plus the
+qubit count plus one. -/
 theorem clause2Aux_term_count_clause (C : QmaHistoryCircuit) :
     (qmaHistoryTerms C (qmaRoundedGates C (qmaClause2Bits C))).length
       ≤ C.gates.length + C.qubits + 1 := by
@@ -821,6 +918,8 @@ theorem clause2Aux_term_count_clause (C : QmaHistoryCircuit) :
       ≤ C.gates.length + C.qubits + 1
   exact h
 
+/-- Every history circuit satisfies the combined rounded energy, support, entry, dyadic
+precision, and term-count specification `qmaClause2TwoWay`. -/
 theorem clause2Aux_twoWay (C : QmaHistoryCircuit) : qmaClause2TwoWay C := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro a h
@@ -835,12 +934,16 @@ theorem clause2Aux_twoWay (C : QmaHistoryCircuit) : qmaClause2TwoWay C := by
     exact clause2Aux_dyadic_clause C t ht p q
   · exact clause2Aux_term_count_clause C
 
+/-- The unary length prefix for zero is the singleton false bit. -/
 @[simp] theorem qmaClause3GammaBits_zero : qmaClause3GammaBits 0 = [false] := rfl
 
+/-- The unary length prefix for `v + 1` is a true bit followed by the prefix for `v`. -/
 @[simp] theorem qmaClause3GammaBits_succ (v : ℕ) :
     qmaClause3GammaBits (v + 1) = true :: qmaClause3GammaBits v := by
   simp [qmaClause3GammaBits, List.replicate_succ]
 
+/-- Equal concatenations beginning with unary length prefixes have equal encoded lengths,
+regardless of their suffixes. -/
 theorem clause3Aux_gammaBits_injective (a b : ℕ) (s t : List Bool)
     (h : qmaClause3GammaBits a ++ s = qmaClause3GammaBits b ++ t) : a = b := by
   induction a generalizing b with
@@ -861,12 +964,14 @@ theorem clause3Aux_gammaBits_injective (a b : ℕ) (s t : List Bool)
           have := ih b h'
           omega
 
+/-- The fixed-width natural encoding has exactly the requested number of bits. -/
 theorem clause3Aux_natBits_length : ∀ (w v : ℕ), (qmaClause3NatBits w v).length = w := by
   intro w
   induction w with
   | zero => intro v; rfl
   | succ w ih => intro v; simp [qmaClause3NatBits, ih]
 
+/-- The width-`w` natural encoding is injective on numbers smaller than `2^w`. -/
 theorem clause3Aux_natBits_injective : ∀ (w : ℕ) {v v' : ℕ}, v < 2 ^ w → v' < 2 ^ w →
     qmaClause3NatBits w v = qmaClause3NatBits w v' → v = v' := by
   intro w
@@ -905,8 +1010,10 @@ theorem clause3Aux_natBits_injective : ∀ (w : ℕ) {v v' : ℕ}, v < 2 ^ w →
       have h2 := Nat.mod_add_div v' 2
       omega
 
+/-- Every natural number fits in `v.log2 + 1` binary digits. -/
 theorem clause3Aux_encNat_width_lt (v : ℕ) : v < 2 ^ (v.log2 + 1) := Nat.lt_log2_self
 
+/-- Equal length-prefixed natural encodings represent equal natural numbers. -/
 theorem clause3Aux_encNat_injective (v v' : ℕ) (h : qmaClause3EncNat v = qmaClause3EncNat v') : v = v' := by
   have h' : qmaClause3GammaBits (v.log2 + 1) ++ qmaClause3NatBits (v.log2 + 1) v
       = qmaClause3GammaBits (v'.log2 + 1) ++ qmaClause3NatBits (v'.log2 + 1) v' := h
@@ -922,6 +1029,8 @@ theorem clause3Aux_encNat_injective (v v' : ℕ) (h : qmaClause3EncNat v = qmaCl
   have h4 := clause3Aux_natBits_injective (v.log2 + 1) (clause3Aux_encNat_width_lt v) h3 hbits
   omega
 
+/-- Equality of concatenations with equal-length initial lists forces equality of both the
+initial lists and their suffixes. -/
 theorem clause3Aux_append_inj_of_length_eq {α : Type} {l₁ l₂ : List α} {s t : List α}
     (hlen : l₁.length = l₂.length) (h : l₁ ++ s = l₂ ++ t) : l₁ = l₂ ∧ s = t := by
   induction l₁ generalizing l₂ with
@@ -940,6 +1049,8 @@ theorem clause3Aux_append_inj_of_length_eq {α : Type} {l₁ l₂ : List α} {s 
           obtain ⟨heq, hst⟩ := ih hlen' htail
           exact ⟨by simp [heq, hab], hst⟩
 
+/-- Equal concatenations beginning with natural encodings determine both the encoded natural
+number and the remaining suffix. -/
 theorem clause3Aux_encNat_selfDelimiting (v v' : ℕ) (s t : List Bool)
     (h : qmaClause3EncNat v ++ s = qmaClause3EncNat v' ++ t) : v = v' ∧ s = t := by
   have h' : qmaClause3GammaBits (v.log2 + 1) ++ (qmaClause3NatBits (v.log2 + 1) v ++ s)
@@ -961,6 +1072,8 @@ theorem clause3Aux_encNat_selfDelimiting (v v' : ℕ) (s t : List Bool)
     (clause3Aux_encNat_width_lt v) (by rw [hw]; exact clause3Aux_encNat_width_lt v') hb
   exact ⟨hv, hst⟩
 
+/-- For element encodings separable from arbitrary suffixes, equal concatenations of equally
+many encoded elements determine both element lists and suffixes. -/
 theorem clause3Aux_flatten_pieces {α : Type} {f : α → List Bool}
     (hf : ∀ a b (s t : List Bool), f a ++ s = f b ++ t → a = b ∧ s = t) :
     ∀ (xs ys : List α) (s t : List Bool), xs.length = ys.length →
@@ -989,6 +1102,8 @@ theorem clause3Aux_flatten_pieces {α : Type} {f : α → List Bool}
           obtain ⟨hlist, hst⟩ := ih ys' s t hlen' hrest
           refine ⟨by simp [hxy, hlist], hst⟩
 
+/-- A length-prefixed list encoding can be separated from arbitrary suffixes whenever its
+element encoding has that property. -/
 theorem clause3Aux_encList_selfDelimiting {α : Type} {f : α → List Bool}
     (hf : ∀ a b (s t : List Bool), f a ++ s = f b ++ t → a = b ∧ s = t) :
     ∀ (xs ys : List α) (s t : List Bool),
@@ -1007,6 +1122,8 @@ theorem clause3Aux_encList_selfDelimiting {α : Type} {f : α → List Bool}
     exact List.append_cancel_left h2
   exact clause3Aux_flatten_pieces hf xs ys s t hlen hrest
 
+/-- The length-prefixed list encoding is injective when its element encoding can be separated
+from arbitrary suffixes. -/
 theorem clause3Aux_encList_injective {α : Type} {f : α → List Bool}
     (hf : ∀ a b (s t : List Bool), f a ++ s = f b ++ t → a = b ∧ s = t) :
     ∀ (xs ys : List α), qmaClause3EncList f xs = qmaClause3EncList f ys → xs = ys := by
@@ -1014,6 +1131,7 @@ theorem clause3Aux_encList_injective {α : Type} {f : α → List Bool}
   obtain ⟨rfl, _⟩ := clause3Aux_encList_selfDelimiting hf xs ys [] [] (by simpa using h)
   exact rfl
 
+/-- Integers with the same nonnegativity bit and the same natural absolute value are equal. -/
 theorem clause3Aux_int_eq_of_natAbs_eq {v v' : ℤ} (hsign : decide (0 ≤ v) = decide (0 ≤ v'))
     (hab : v.natAbs = v'.natAbs) : v = v' := by
   by_cases h : 0 ≤ v
@@ -1045,6 +1163,8 @@ theorem clause3Aux_int_eq_of_natAbs_eq {v v' : ℤ} (hsign : decide (0 ≤ v) = 
     rw [hneg, hneg']
     exact congrArg Neg.neg (congrArg (fun n : ℕ => (n : ℤ)) hab)
 
+/-- Equal concatenations beginning with integer encodings determine both the encoded integer and
+the remaining suffix. -/
 theorem clause3Aux_encInt_selfDelimiting (v v' : ℤ) (s t : List Bool)
     (h : qmaClause3EncInt v ++ s = qmaClause3EncInt v' ++ t) : v = v' ∧ s = t := by
   have h' : decide (0 ≤ v) :: qmaClause3EncNat v.natAbs ++ s
@@ -1055,10 +1175,12 @@ theorem clause3Aux_encInt_selfDelimiting (v v' : ℤ) (s t : List Bool)
   obtain ⟨hab, hst⟩ := clause3Aux_encNat_selfDelimiting v.natAbs v'.natAbs s t hnat
   exact ⟨clause3Aux_int_eq_of_natAbs_eq hsign hab, hst⟩
 
+/-- Equal integer encodings represent equal integers. -/
 theorem clause3Aux_encInt_injective (v v' : ℤ) (h : qmaClause3EncInt v = qmaClause3EncInt v') : v = v' := by
   obtain ⟨rfl, _⟩ := clause3Aux_encInt_selfDelimiting v v' [] [] (by simpa using h)
   exact rfl
 
+/-- Every pair of indices in `Fin d` occurs in `lhIndexPairs d`. -/
 theorem clause3Aux_lhIndexPairs_mem (d : ℕ) (p q : Fin d) : (p, q) ∈ lhIndexPairs d := by
   simp only [lhIndexPairs, List.mem_flatMap]
   refine ⟨⟨p.val, p.isLt⟩, ?_, ?_⟩
@@ -1066,6 +1188,8 @@ theorem clause3Aux_lhIndexPairs_mem (d : ℕ) (p q : Fin d) : (p, q) ∈ lhIndex
   · simp only [List.mem_map]
     exact ⟨⟨q.val, q.isLt⟩, List.mem_finRange q, rfl⟩
 
+/-- Equal concatenations beginning with term encodings determine equal wire counts, wire lists,
+entry lists, and remaining suffixes. -/
 theorem clause3Aux_encTerm_split {N : ℕ} {t t' : LhTerm N} (s u : List Bool)
     (h : qmaClause3EncTerm t ++ s = qmaClause3EncTerm t' ++ u) :
     (t.wires.length = t'.wires.length) ∧ (t.wires = t'.wires) ∧
@@ -1084,6 +1208,7 @@ theorem clause3Aux_encTerm_split {N : ℕ} {t t' : LhTerm N} (s u : List Bool)
     (qmaClause3TermEntries t) (qmaClause3TermEntries t') _ _ hrest2
   exact ⟨hlen, hwires, hentries, hsu⟩
 
+/-- Local terms with equal wire lists and equal flattened numerator entry lists are equal. -/
 theorem clause3Aux_encTerm_eq_of_split {N : ℕ} {t t' : LhTerm N}
     (hwires : t.wires = t'.wires)
     (hentries : qmaClause3TermEntries t = qmaClause3TermEntries t') : t = t' := by
@@ -1116,16 +1241,21 @@ theorem clause3Aux_encTerm_eq_of_split {N : ℕ} {t t' : LhTerm N}
           subst him'
           rfl
 
+/-- Equal local term encodings represent equal local terms. -/
 theorem clause3Aux_encTerm_injective {N : ℕ} {t t' : LhTerm N}
     (h : qmaClause3EncTerm t = qmaClause3EncTerm t') : t = t' := by
   obtain ⟨-, hwires, hentries, -⟩ := clause3Aux_encTerm_split [] [] (by simpa using h)
   exact clause3Aux_encTerm_eq_of_split hwires hentries
 
+/-- Equal concatenations beginning with local term encodings determine both the term and the
+remaining suffix. -/
 theorem clause3Aux_encTerm_selfDelimiting {N : ℕ} {t t' : LhTerm N} (s u : List Bool)
     (h : qmaClause3EncTerm t ++ s = qmaClause3EncTerm t' ++ u) : t = t' ∧ s = u := by
   obtain ⟨-, hwires, hentries, hsu⟩ := clause3Aux_encTerm_split s u h
   exact ⟨clause3Aux_encTerm_eq_of_split hwires hentries, hsu⟩
 
+/-- The refined bit serialization `qmaClause3ToBits` is injective on local Hamiltonian
+encodings. -/
 theorem clause3Aux_toBits_injective {E E' : LhEncoding}
     (h : qmaClause3ToBits E = qmaClause3ToBits E') : E = E' := by
   cases E with
@@ -1147,6 +1277,8 @@ theorem clause3Aux_toBits_injective {E E' : LhEncoding}
           subst w'
           rfl
 
+/-- No bit string satisfies both the refined YES and NO local Hamiltonian predicates at the same
+locality bound. -/
 theorem clause3Aux_yes_no_disjoint (k : ℕ) (x : List Bool) :
     ¬ (qmaClause3YesBits k x ∧ qmaClause3NoBits k x) := by
   rintro ⟨⟨E, hx, hloc, hherm, hyes⟩, ⟨E', hx', hloc', hherm', hno⟩⟩
@@ -1163,15 +1295,20 @@ theorem clause3Aux_yes_no_disjoint (k : ℕ) (x : List Bool) :
     linarith
   linarith
 
+/-- The refined serialization distinguishes the fixed encodings `clause3E1` and `clause3E2`. -/
 theorem clause3Aux_frozen_collision_separated : qmaClause3ToBits clause3E1 ≠ qmaClause3ToBits clause3E2 := by
   decide
 
+/-- The extracted output bit is the register bit at position `w + a`. -/
 theorem clause3Aux_outputBit_index (w a : ℕ) (p : Reg (w + a + 1)) :
     qmaOutputBit w a p = p (Fin.natAdd (w + a) 0) := rfl
 
+/-- Ancilla bit `j` is the full-register bit at the position offset by the witness width `w`. -/
 theorem clause3Aux_ancillaBit_index (w a : ℕ) (p : Reg (w + a + 1)) (j : Fin a) :
     qmaAncillaBits w a p j = p (Fin.castAdd 1 (Fin.natAdd w j)) := rfl
 
+/-- The register splitting equivalence equals the pair of extracted witness and ancilla blocks
+together with the singleton output register. -/
 theorem clause3Aux_regSplit (w a : ℕ) (p : Reg (w + a + 1)) :
     qmaRegSplit w a p
       = ((qmaWitnessBits w a p, qmaAncillaBits w a p), fun _ : Fin 1 => qmaOutputBit w a p) := by
@@ -1186,6 +1323,8 @@ theorem clause3Aux_regSplit (w a : ℕ) (p : Reg (w + a + 1)) :
     rw [hj]
     rfl
 
+/-- The designated verifier output wire is the finite index immediately after the witness and
+ancilla blocks. -/
 theorem clause3Aux_outWire_eq (V : QmaVerifier) (x : List Bool) :
     (qmaClause3OutWire V x : Fin (qmaRegisterSize V x.length))
       = Fin.natAdd (V.witnessQubits x.length + V.auxQubits x.length) 0 := by
@@ -1194,6 +1333,8 @@ theorem clause3Aux_outWire_eq (V : QmaVerifier) (x : List Bool) :
     = (V.witnessQubits x.length + V.auxQubits x.length) + 0
   omega
 
+/-- An initialized verifier amplitude is the witness amplitude times the indicators of zero
+ancillas and a false output bit. -/
 theorem clause3Aux_initState_shape (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w + a + 1)) :
     qmaInitialState w a ψ p
       = ψ (qmaWitnessBits w a p)
@@ -1218,12 +1359,14 @@ theorem clause3Aux_initState_shape (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w
   simp only [tensorState_apply]
   rw [hket1, hket2]
 
+/-- An initialized verifier amplitude vanishes when its ancilla block is nonzero. -/
 theorem clause3Aux_initState_zero_ancilla (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w + a + 1))
     (h : qmaAncillaBits w a p ≠ ZeroStr a) : qmaInitialState w a ψ p = 0 := by
   rw [clause3Aux_initState_shape]
   rw [if_neg h]
   ring
 
+/-- An initialized verifier amplitude vanishes when its output bit is true. -/
 theorem clause3Aux_initState_zero_output (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w + a + 1))
     (h : qmaOutputBit w a p = true) : qmaInitialState w a ψ p = 0 := by
   rw [clause3Aux_initState_shape]
@@ -1236,6 +1379,7 @@ theorem clause3Aux_initState_zero_output (w a : ℕ) (ψ : QState (Reg w)) (p : 
   · rw [if_neg h1, if_neg hne]
     ring
 
+/-- Every ancilla bit of a basis register with nonzero initialized verifier amplitude is false. -/
 theorem clause3Aux_initState_support_aux (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w + a + 1))
     (j : Fin (w + a + 1)) (hjaux : w ≤ j.val ∧ j.val < w + a)
     (hp : qmaInitialState w a ψ p ≠ 0) : p j = false := by
@@ -1253,6 +1397,7 @@ theorem clause3Aux_initState_support_aux (w a : ℕ) (ψ : QState (Reg w)) (p : 
   have hzz := hz j'
   rwa [clause3Aux_ancillaBit_index] at hzz
 
+/-- The output bit of a basis register with nonzero initialized verifier amplitude is false. -/
 theorem clause3Aux_initState_support_out (w a : ℕ) (ψ : QState (Reg w)) (p : Reg (w + a + 1))
     (j : Fin (w + a + 1)) (hjout : j.val = w + a)
     (hp : qmaInitialState w a ψ p ≠ 0) : p j = false := by
@@ -1269,6 +1414,8 @@ theorem clause3Aux_initState_support_out (w a : ℕ) (ψ : QState (Reg w)) (p : 
   rw [← (clause3Aux_outputBit_index w a p)]
   exact hout
 
+/-- The verifier's initialized witness state satisfies the initialization condition of
+`qmaClause3VerifierCircuit`. -/
 theorem clause3Aux_initLegal_verifierInitial (V : QmaVerifier) (x : List Bool)
     (ψ : QState (Reg (V.witnessQubits x.length))) :
     QmaInitLegal (qmaClause3VerifierCircuit V x)
@@ -1285,6 +1432,8 @@ theorem clause3Aux_initLegal_verifierInitial (V : QmaVerifier) (x : List Bool)
     exact clause3Aux_initState_support_out (V.witnessQubits x.length) (V.auxQubits x.length) ψ p j
       hjval hp
 
+/-- The history circuit built from a verifier has acceptance weight equal to the original
+verifier's acceptance weight on its initialized witness state. -/
 theorem clause3Aux_historyAcceptProb_eq (V : QmaVerifier) (x : List Bool)
     (ψ : QState (Reg (V.witnessQubits x.length))) :
     qmaHistoryAcceptProb (qmaClause3VerifierCircuit V x)
@@ -1316,6 +1465,8 @@ theorem clause3Aux_historyAcceptProb_eq (V : QmaVerifier) (x : List Bool)
         (finiteCodeCircuit (qmaRegisterSize V x.length) (V.program x))
         (qmaInitialState (V.witnessQubits x.length) (V.auxQubits x.length) ψ)) S) h1
 
+/-- For each input, the verifier history circuit's gate count is bounded by `c * x.length^k + c`
+for some natural numbers `c` and `k`. -/
 theorem clause3Aux_verifierCircuit_gates_le (V : QmaVerifier) (x : List Bool) :
     ∃ c k : ℕ, (qmaClause3VerifierCircuit V x).gates.length ≤ c * x.length ^ k + c := by
   obtain ⟨c, k, hk⟩ := V.sizeBound

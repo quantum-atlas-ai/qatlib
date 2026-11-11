@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ExactSimon97.MainResults.BasisGenerators
+
+/-!
+# Generator cardinality bounds for binary submodules
+
+Finite-dimensional linear algebra bounds an independent family in `BoolVec n` by `n`. The module
+uses this bound to produce a finite generating set of size at most `n` for any binary submodule.
+The development follows [BrassardHoyer1997].
+
+## Main statements
+
+* `linIndep_card_le`: bounds an independent family's size by the ambient dimension.
+* `theorem5_generating_set_card_le`: provides a generating set with at most `n` elements.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,12 +34,16 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- An independent family of `k` vectors in the binary vector space of dimension `n` satisfies
+`k ≤ n`. See [BrassardHoyer1997]. -/
 theorem linIndep_card_le {n k : ℕ} (v : Fin k → BoolVec n) (hv : LinIndep v) :
     k ≤ n := by
   have hk := hv.fintype_card_le_finrank
   rw [Module.finrank_fin_fun] at hk
   simpa using hk
 
+/-- Every submodule of `BoolVec n` has a finite generating set of cardinality at most `n`, all
+of whose elements lie in the submodule. See [BrassardHoyer1997]. -/
 theorem theorem5_generating_set_card_le {n : ℕ}
     (H0 : Submodule (ZMod 2) (BoolVec n)) :
     ∃ Y : Finset (BoolVec n), Y.card ≤ n ∧

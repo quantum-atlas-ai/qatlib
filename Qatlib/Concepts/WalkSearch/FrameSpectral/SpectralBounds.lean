@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralDefs
+
+/-!
+# Spectral bounds and the absorbing walk bridge
+
+This module proves bundled spectral reflection, amplification, sine envelope, band filtering,
+and postselection estimates. It also compares the absorbing Szegedy walk with
+`correctedMarkedWalk` on states vanishing at marked diagonal coordinates.
+
+The bridge `lemma3_absorbing_corrected_walk_bridge` holds for every natural power. It transfers
+the threshold event estimate to the absorbing walk and supplies
+`walk_spectral_clause38_full_endpoint_v2`. The quantum walk spectral framework is developed in
+[Szegedy2004].
+
+## Main statements
+
+* `walk_spectral_clause6`: The basic walk spectral and phase reflection bundle.
+* `lemma3_absorbing_corrected_walk_bridge`: Equality of all walk powers on the trap complement.
+* `walk_spectral_clause38_full_endpoint_v2`: The full absorbing walk threshold guarantee.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,6 +93,8 @@ open Qatlib
 open Qatlib.Concepts.HspRecovery.KitaevReadout
 open scoped Classical BigOperators
 
+/-- Establishes `WalkSpectralClause6Prop`, combining reversible stationary states, Szegedy walk
+unitarity and rotation planes, approximate phase reflection, and circuit accounting. -/
 theorem walk_spectral_clause6 : WalkSpectralClause6Prop := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro I _ _ P hP π hπ hrev
@@ -90,6 +116,8 @@ theorem walk_spectral_clause6 : WalkSpectralClause6Prop := by
   · intro M k t hM
     exact phase_search_fresh_access_ledger M k t hM
 
+/-- Establishes `WalkSpectralClause32Prop`, combining local amplification, its cost estimate,
+approximate phase search success, norm preservation, and the search ledger. -/
 theorem walk_spectral_clause32 : WalkSpectralClause32Prop := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · exact mnrs_search_theorem_three_abstract
@@ -102,6 +130,8 @@ theorem walk_spectral_clause32 : WalkSpectralClause32Prop := by
   · intro M k t hM
     exact phase_search_fresh_access_ledger M k t hM
 
+/-- Establishes `WalkSpectralClause33Prop`, collecting sine envelope preparation and tail bounds
+with circuit and query estimates. -/
 theorem walk_spectral_clause33 : WalkSpectralClause33Prop := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro M hM
@@ -117,6 +147,8 @@ theorem walk_spectral_clause33 : WalkSpectralClause33Prop := by
   · intro M hM d k hk
     exact sin_envelope_aa_query_budget M hM d k hk
 
+/-- Establishes `WalkSpectralTunableQueryProp`, collecting phase band classification, filtering
+and reflection errors, postselection bounds, and reflection circuit counts. -/
 theorem walk_spectral_tunableGoal : WalkSpectralTunableQueryProp := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro J _ _ M bands phi eta hM heta heta1 hphi hbands hmargin
@@ -132,6 +164,8 @@ theorem walk_spectral_tunableGoal : WalkSpectralTunableQueryProp := by
   · intro I _ _ M S hM
     exact multiband_actual_word_forward_inverse_ledger I M S hM
 
+/-- Establishes `WalkSpectralOptimizedTunableProp`, combining perturbation and postselection
+bounds for band filtering with norm and isometry properties of basis columns. -/
 theorem walk_spectral_optGoal : WalkSpectralOptimizedTunableProp := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro I _ _ M hM S U W psi hU hW hpsi
@@ -143,6 +177,8 @@ theorem walk_spectral_optGoal : WalkSpectralOptimizedTunableProp := by
   · intro I J _ _ _ _ b
     exact basisColumns_adjoint_mul b
 
+/-- Establishes `WalkSpectralClause36Prop`, giving selective probability and normalized branch
+stability bounds in trace norm, including an arbitrary reference system. -/
 theorem walk_spectral_clause36 : WalkSpectralClause36Prop := by
   refine ⟨?_, ?_, ?_⟩
   · intro O _ D E R J S ρ τ hρ hτ hequal
@@ -152,6 +188,8 @@ theorem walk_spectral_clause36 : WalkSpectralClause36Prop := by
   · intro O _ D E R J S ρ τ η hρ hτ hequal hη hdiff hgap
     exact sharp_selective_joint_stability_of_gap J S ρ τ η hρ hτ hequal hη hdiff hgap
 
+/-- Establishes `WalkSpectralClause37Prop`, giving degenerate zero phase detection and
+postselection estimates together with the eigenstate kernel expansions. -/
 theorem walk_spectral_clause37 : WalkSpectralClause37Prop := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro I J _ _ _ _ W M k hM v c φ T η hW hη hv hc he ht hg
@@ -163,10 +201,13 @@ theorem walk_spectral_clause37 : WalkSpectralClause37Prop := by
   · intro I J _ _ _ _ W M k hM v c φ he
     exact degenerate_phase_actual_spectral_packet I J W M k hM v c φ he
 
+/-- Matrix multiplication acts on a vector by successive matrix actions. -/
 private theorem mulVec_mulVec' {A B C : Type} [Fintype B] [Fintype C]
     (M : Matrix A B ℂ) (N : Matrix B C ℂ) (v : C → ℂ) :
     (M * N) *ᵥ v = M *ᵥ (N *ᵥ v) := (Matrix.mulVec_mulVec v M N).symm
 
+/-- The Szegedy frame projector acts on each row by the weighted sum determined by the square
+roots of transition entries. -/
 private theorem szegedyFrameProjector_apply {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (z : QState (I × I)) (x y : I) :
     ((SzegedyIsometry P * (SzegedyIsometry P)ᴴ) *ᵥ z) (x, y) =
@@ -191,6 +232,8 @@ private theorem szegedyFrameProjector_apply {I : Type} [Fintype I] [DecidableEq 
   · intro hcon
     exact absurd (Finset.mem_univ x) hcon
 
+/-- Each coordinate of the adjoint unmarked row frame is the square-root transition weighted sum
+over the corresponding row. -/
 private theorem unmarkedFrame_conjTranspose_apply {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (z : QState (I × I)) (i : Unmarked I S) :
     ((unmarkedRowFrame P S)ᴴ *ᵥ z) i =
@@ -204,6 +247,8 @@ private theorem unmarkedFrame_conjTranspose_apply {I : Type} [Fintype I] [Decida
   · intro hcon
     exact absurd (Finset.mem_univ i.1) hcon
 
+/-- The unmarked frame projector applies the Szegedy row projection on unmarked rows and
+vanishes on marked rows. -/
 private theorem unmarkedFrameProjector_apply {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (z : QState (I × I)) (x y : I) :
     ((unmarkedRowFrame P S * (unmarkedRowFrame P S)ᴴ) *ᵥ z) (x, y) =
@@ -224,6 +269,8 @@ private theorem unmarkedFrameProjector_apply {I : Type} [Fintype I] [DecidableEq
   · intro hcon
     exact absurd (Finset.mem_univ x) hcon
 
+/-- The square root of an absorbing kernel entry equals the original square root on unmarked
+rows and a diagonal indicator on marked rows. -/
 private theorem absorbingKernel_sqrt {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (x y : I) :
     (Real.sqrt (absorbingKernel P S x y) : ℂ) =
@@ -234,6 +281,8 @@ private theorem absorbingKernel_sqrt {I : Type} [Fintype I] [DecidableEq I]
     · simp [absorbingKernel, hx, hy]
   · simp [absorbingKernel, hx]
 
+/-- On the trap complement, the absorbing frame projector applies the original row projection on
+unmarked rows and vanishes on marked rows. -/
 private theorem absorbingFrameProjector_apply {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (z : QState (I × I))
     (hz : lemma3TrapComplement S z) (x y : I) :
@@ -270,6 +319,7 @@ private theorem absorbingFrameProjector_apply {I : Type} [Fintype I] [DecidableE
     · rw [if_neg h, hsum]
       simp
 
+/-- The absorbing frame projector and the unmarked frame projector agree on the trap complement. -/
 private theorem absorbingFrame_eq_unmarkedFrame_on_trap {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (z : QState (I × I)) (hz : lemma3TrapComplement S z) :
     ((SzegedyIsometry (absorbingKernel P S) *
@@ -280,6 +330,8 @@ private theorem absorbingFrame_eq_unmarkedFrame_on_trap {I : Type} [Fintype I] [
   exact (absorbingFrameProjector_apply P S z hz x y).trans
     (unmarkedFrameProjector_apply P S z x y).symm
 
+/-- The absorbing Szegedy reflection and the reflection about the unmarked frame projector agree
+on the trap complement. -/
 private theorem absorbingReflection_eq_unmarkedReflection_on_trap {I : Type} [Fintype I]
     [DecidableEq I] (P : I → I → ℝ) (S : Finset I) (z : QState (I × I))
     (hz : lemma3TrapComplement S z) :
@@ -288,6 +340,7 @@ private theorem absorbingReflection_eq_unmarkedReflection_on_trap {I : Type} [Fi
   rw [SzegedyReflection, reflectionAbout_mulVec, reflectionAbout_mulVec]
   rw [absorbingFrame_eq_unmarkedFrame_on_trap P S z hz]
 
+/-- The swap gate preserves vanishing on marked diagonal coordinates. -/
 private theorem trapComplement_swapGate {I : Type} [Fintype I] [DecidableEq I] (S : Finset I)
     (w : QState (I × I)) (hw : lemma3TrapComplement S w) :
     lemma3TrapComplement S (SwapGate *ᵥ w) := by
@@ -295,12 +348,15 @@ private theorem trapComplement_swapGate {I : Type} [Fintype I] [DecidableEq I] (
   rw [applyGate_swapGate]
   exact hw i hi
 
+/-- The unmarked frame projector has zero output at every marked diagonal coordinate. -/
 private theorem trapComplement_unmarkedFrameProjector {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (w : QState (I × I)) (j : I) (hj : j ∈ S) :
     ((unmarkedRowFrame P S * (unmarkedRowFrame P S)ᴴ) *ᵥ w) (j, j) = 0 := by
   rw [unmarkedFrameProjector_apply P S w j j]
   simp [hj]
 
+/-- Reflection about `M` preserves the trap complement for a state whose image under `M`
+vanishes at every marked diagonal coordinate. -/
 private theorem trapComplement_reflection {I : Type} [Fintype I] [DecidableEq I] (S : Finset I)
     (M : Matrix (I × I) (I × I) ℂ) (w : QState (I × I)) (hw : lemma3TrapComplement S w)
     (hM : ∀ j ∈ S, (M *ᵥ w) (j, j) = 0) :
@@ -311,6 +367,7 @@ private theorem trapComplement_reflection {I : Type} [Fintype I] [DecidableEq I]
   rw [hM j hj]
   simp [hw j hj]
 
+/-- The corrected marked walk preserves the trap complement. -/
 private theorem correctedWalk_preserves_trapComplement {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (w : QState (I × I)) (hw : lemma3TrapComplement S w) :
     lemma3TrapComplement S ((correctedMarkedWalk P S) *ᵥ w) := by
@@ -336,6 +393,8 @@ private theorem correctedWalk_preserves_trapComplement {I : Type} [Fintype I] [D
   rw [mulVec_mulVec', mulVec_mulVec', mulVec_mulVec']
   exact h4
 
+/-- The absorbing Szegedy walk and the corrected marked walk agree on any state in the trap
+complement. -/
 private theorem absorbingWalk_step_eq_correctedWalk_step {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (w : QState (I × I)) (hw : lemma3TrapComplement S w) :
     (lemma3AbsorbingWalk P S) *ᵥ w = (correctedMarkedWalk P S) *ᵥ w := by
@@ -365,6 +424,8 @@ private theorem absorbingWalk_step_eq_correctedWalk_step {I : Type} [Fintype I] 
     _ = (correctedMarkedWalk P S) *ᵥ w := by
         rw [correctedMarkedWalk, mulVec_mulVec', mulVec_mulVec', mulVec_mulVec']
 
+/-- Every natural power of the absorbing walk preserves the trap complement and agrees there
+with the same power of the corrected marked walk. -/
 theorem lemma3_absorbing_corrected_walk_bridge {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (z : QState (I × I)) (hz : lemma3TrapComplement S z) :
     ∀ K : ℕ, lemma3TrapComplement S ((lemma3AbsorbingWalk P S) ^ K *ᵥ z) ∧
@@ -390,6 +451,8 @@ theorem lemma3_absorbing_corrected_walk_bridge {I : Type} [Fintype I] [Decidable
         exact correctedWalk_preserves_trapComplement P S _ hw'
       · rw [pow_succ', mulVec_mulVec', hzK, hstep, pow_succ', mulVec_mulVec']
 
+/-- Establishes `WalkSpectralClause38Prop`, combining the busy random power estimate, absorbing
+kernel properties, walk length bounds, and the threshold event count. -/
 theorem walk_spectral_clause38 : WalkSpectralClause38Prop := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro I _ _ _ P S δ L hδ hδ1 hP hp hL
@@ -405,6 +468,8 @@ theorem walk_spectral_clause38 : WalkSpectralClause38Prop := by
   · intro I _ _ _ P S δ L hδ hδ1 hgap ha hL
     exact lemma3_threshold_event P S δ L hδ hδ1 hgap ha hL
 
+/-- The absorbing walk and corrected marked walk have identical threshold mass on the unmarked
+initial state for every sampling length. -/
 theorem lemma3_absorbing_threshold_mass_eq {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (L : ℕ) :
     lemma3ThresholdMass (lemma3AbsorbingWalk P S) (detectionUnmarkedInitial P S) L =
@@ -444,6 +509,8 @@ theorem lemma3_absorbing_threshold_mass_eq {I : Type} [Fintype I] [DecidableEq I
   unfold lemma3ThresholdMass
   rw [hfilter]
 
+/-- Establishes `WalkSpectralClause38FullEndpoint`, including equality of walk powers on the
+trap complement and threshold mass at least `1 / 6` for both walks [Szegedy2004]. -/
 theorem walk_spectral_clause38_full_endpoint_v2 : WalkSpectralClause38FullEndpoint := by
   intro I _ _ _ P S δ hδ hδ1 hgap ha ha1
   (try dsimp only)
@@ -482,6 +549,8 @@ theorem walk_spectral_clause38_full_endpoint_v2 : WalkSpectralClause38FullEndpoi
   · rw [lemma3_absorbing_threshold_mass_eq P S (lemma3Length δ (markedFraction S))]
     exact hmass
 
+/-- Establishes `WalkSpectralClause39Prop`, combining the eigenphase estimation subgoal, exact
+controlled powers on root-of-unity eigenstates, and the sampling failure bound. -/
 theorem walk_spectral_clause39 : WalkSpectralClause39Prop := by
   refine ⟨?_, ?_, ?_⟩
   · exact eigenphaseEstimateSubgoal

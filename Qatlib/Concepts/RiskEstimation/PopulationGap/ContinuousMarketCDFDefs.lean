@@ -15,6 +15,29 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.ExactVaRProgramDefs
+
+/-!
+# Real-valued market CDFs and truncation
+
+This module defines population and empirical CDFs for a finite market with real-valued losses.
+It proves a sampling bound, describes how capping losses changes the CDF and tail mass, and
+evaluates a two-atom example.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `marketCDF_sampling_bound`: For `N > 0` and `ν > 0`, the probability of empirical CDF error
+  greater than `ν` is at most `1 / (4 * N * ν²)`.
+* `truncated_CDF_eq_below`: Capping losses at `T` preserves the CDF at every threshold strictly
+  below `T`.
+* `market_tail_gap`: The complement of the CDF at `T` is the strict upper-tail mass above `T`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -48,39 +71,48 @@ variable {n N : ℕ}
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
+/-- The population CDF of real-valued losses under a finite market distribution. -/
 noncomputable def marketCDF {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (t : ℝ) : ℝ :=
   ∑ a, p.prob a * (if loss a ≤ t then 1 else 0)
 
+/-- The empirical CDF of real-valued losses, given by the fraction of the `N` samples at or
+below the threshold. -/
 noncomputable def marketEmpiricalCDF {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (t : ℝ) : ℝ :=
   (∑ k, if loss (ω k) ≤ t then 1 else 0) / N
 
+/-- The real-valued indicator of the event that loss is at most the threshold. -/
 noncomputable def marketIndicator {n : ℕ} (loss : Option (Fin n) → ℝ) (t : ℝ)
     (a : Option (Fin n)) : ℝ := if loss a ≤ t then 1 else 0
 
+/-- The market threshold indicator takes only the values zero and one. -/
 theorem marketIndicator_mem {n : ℕ} (loss : Option (Fin n) → ℝ) (t : ℝ)
     (a : Option (Fin n)) : marketIndicator loss t a = 0 ∨ marketIndicator loss t a = 1 := by
   unfold marketIndicator
   split_ifs <;> norm_num
 
+/-- The market threshold indicator is at most one. -/
 theorem marketIndicator_le_one {n : ℕ} (loss : Option (Fin n) → ℝ) (t : ℝ)
     (a : Option (Fin n)) : marketIndicator loss t a ≤ 1 := by
   unfold marketIndicator
   split_ifs <;> norm_num
 
+/-- The market CDF is the expectation of its threshold indicator. -/
 theorem marketCDF_eq_expect {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (t : ℝ) :
     marketCDF p loss t = p.expect (marketIndicator loss t) := by
   unfold marketCDF FinDist.expect
   rfl
 
+/-- The empirical market CDF is the sample average of its threshold indicator. -/
 theorem marketEmpiricalCDF_eq_avg {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (t : ℝ) :
     marketEmpiricalCDF ω loss t = FinDist.avg (marketIndicator loss t) ω := by
   unfold marketEmpiricalCDF FinDist.avg
   rfl
 
+/-- The variance of the market threshold indicator is at most one quarter. -/
 theorem marketIndicator_variance {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (t : ℝ) :
     p.variance (marketIndicator loss t) ≤ 1/4 := by
@@ -107,6 +139,8 @@ theorem marketIndicator_variance {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [hv]
   nlinarith [sq_nonneg (μ-1/2)]
 
+/-- For `N > 0` and `ν > 0`, the probability of empirical CDF error greater than `ν` is at most
+`1 / (4 * N * ν²)`. -/
 theorem marketCDF_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (t : ℝ) (ν : ℝ) (hN : 0 < N) (hν : 0 < ν) :
     FinDist.probEvent (L := N) p (fun ω : Fin N → Option (Fin n) =>
@@ -121,9 +155,11 @@ theorem marketCDF_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
       div_le_div_of_nonneg_right (marketIndicator_variance p loss t) hd.le
     _ = _ := by ring
 
+/-- The loss capped above at `T`, defined pointwise by `min (loss a) T`. -/
 noncomputable def truncatedLoss {n : ℕ} (loss : Option (Fin n) → ℝ) (T : ℝ)
     (a : Option (Fin n)) : ℝ := min (loss a) T
 
+/-- Capping losses at `T` preserves the CDF at every threshold strictly below `T`. -/
 theorem truncated_CDF_eq_below {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (T t : ℝ) (ht : t < T) :
     marketCDF p (truncatedLoss loss T) t = marketCDF p loss t := by
@@ -140,6 +176,7 @@ theorem truncated_CDF_eq_below {n : ℕ} (p : FinDist (Option (Fin n)))
       exact lt_min (lt_of_not_ge ha) ht
     rw [if_neg (not_le_of_gt hpos), if_neg ha]
 
+/-- The CDF of losses capped at `T` is one at every threshold at least `T`. -/
 theorem truncated_CDF_eq_one_above {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (T t : ℝ) (ht : T ≤ t) :
     marketCDF p (truncatedLoss loss T) t = 1 := by
@@ -162,6 +199,7 @@ theorem truncated_CDF_eq_one_above {n : ℕ} (p : FinDist (Option (Fin n)))
           ring
         _ = 1 := p.sum_one
 
+/-- The CDF mass at `T` plus the strict upper-tail mass above `T` equals one. -/
 theorem market_tail_mass {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (T : ℝ) :
     marketCDF p loss T + (∑ a, p.prob a * (if T < loss a then 1 else 0)) = 1 := by
@@ -198,6 +236,7 @@ theorem market_tail_mass {n : ℕ} (p : FinDist (Option (Fin n)))
   unfold marketCDF
   exact hmain
 
+/-- The complement of the CDF at `T` is the strict upper-tail mass above `T`. -/
 theorem market_tail_gap {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (T : ℝ) :
     1 - marketCDF p loss T = ∑ a, p.prob a * (if T < loss a then 1 else 0) := by
@@ -215,6 +254,7 @@ theorem market_tail_gap {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [hA]
   ring
 
+/-- The CDF at the cap equals one minus the strict upper-tail mass of the original losses. -/
 theorem market_cdf_at_cap_eq_one_sub_tail {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (T : ℝ) :
     marketCDF p loss T = 1 - (∑ a, p.prob a * (if T < loss a then 1 else 0)) := by
@@ -231,14 +271,17 @@ theorem market_cdf_at_cap_eq_one_sub_tail {n : ℕ} (p : FinDist (Option (Fin n)
                 - (∑ a, p.prob a * (if T < loss a then 1 else 0)) := by ring
           _ = 1 - (∑ a, p.prob a * (if T < loss a then 1 else 0)) := by rw [h]
 
+/-- The capped-loss CDF equals one at the cap. -/
 theorem truncated_CDF_at_cap_one {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (T : ℝ) :
     marketCDF p (truncatedLoss loss T) T = 1 :=
   truncated_CDF_eq_one_above p loss T T (le_refl T)
 
+/-- The two-atom example loss, equal to one half at `some 1` and zero elsewhere. -/
 noncomputable def continuousTwoAtomLoss (x : Option (Fin 2)) : ℝ :=
   if x = some 1 then (1/2 : ℝ) else 0
 
+/-- For the two-atom population with weight `a`, the real-loss CDF at zero is `a`. -/
 theorem continuousTwoAtom_cdf_zero (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     marketCDF (twoAtomPop a ha0 ha1) continuousTwoAtomLoss 0 = a := by
   have hprob : (twoAtomPop a ha0 ha1).prob = twoAtomProb a := rfl
@@ -251,6 +294,7 @@ theorem continuousTwoAtom_cdf_zero (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
   rw [h, h2]
   simp [twoAtomProb, continuousTwoAtomLoss]
 
+/-- The real-loss two-atom CDF at one half is one. -/
 theorem continuousTwoAtom_cdf_half (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     marketCDF (twoAtomPop a ha0 ha1) continuousTwoAtomLoss (1/2) = 1 := by
   have hprob : (twoAtomPop a ha0 ha1).prob = twoAtomProb a := rfl
@@ -263,6 +307,7 @@ theorem continuousTwoAtom_cdf_half (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
   rw [h, h2]
   simp [twoAtomProb, continuousTwoAtomLoss]
 
+/-- For the two-atom population with weight `a`, the real-loss CDF at one quarter is `a`. -/
 theorem continuousTwoAtom_cdf_quarter (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     marketCDF (twoAtomPop a ha0 ha1) continuousTwoAtomLoss (1/4) = a := by
   have hprob : (twoAtomPop a ha0 ha1).prob = twoAtomProb a := rfl
@@ -286,6 +331,7 @@ theorem continuousTwoAtom_cdf_quarter (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) 
   simp only [hl0, hnl1, if_true, if_false]
   ring
 
+/-- At every threshold strictly below one half, the real-loss two-atom CDF is at most `a`. -/
 theorem continuousTwoAtom_cdf_le {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
     {s : ℝ} (hs : s < 1/2) :
     marketCDF (twoAtomPop a ha0 ha1) continuousTwoAtomLoss s ≤ a := by

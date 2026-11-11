@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.StandardModel.WindowSim.Theorem2QtmCircuitSimulationQuan
+
+/-!
+# Polynomial-time window simulation by circuits
+
+`corollary2_polynomial_size_circuit` specializes finite-window QTM simulation to the time bound
+`c * (n + 1) ^ k`. For positive parameters, it produces a unitary circuit with no queries, a
+quadratic gate bound in the simulation time, and exact agreement on encoded states and basis
+probabilities. See [Yao1993].
+
+## Main statements
+
+* `corollary2_polynomial_size_circuit`: constructs a circuit of at most twice the square of the
+  time bound.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +37,10 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Foundations.PureStateMath
 
+/-- For positive `n`, `c`, and `k`, the time-`c * (n + 1) ^ k` window evolution is simulated
+exactly by a unitary circuit with no queries and at most `2 * (c * (n + 1) ^ k) ^ 2` gates,
+preserving encoded basis probabilities. This is the polynomial-time specialization
+associated with the corollary after Theorem 2 of [Yao1993]. -/
 theorem corollary2_polynomial_size_circuit {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : LocalQTM Q A) (n c k : ℕ) (hn : 0 < n)
     (hc : 0 < c) (hk : 0 < k) :

@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseRefinedDefs
+
+/-!
+# Noise and resource bounds for amplified Fourier recovery
+
+This module verifies noise envelope and candidate recovery results for amplified Fourier
+transforms, with background in [Cornwell2014]. It treats the single marked item envelope
+separately, bounds the actual independent noise average, and records the failure of the original
+envelope bridge. Fixed noise ambiguity examples accompany fresh noise consistency and failure
+bounds.
+
+The module also connects finite fair bit tapes to Bernoulli streams, including exact dyadic
+probabilities and convergence, and records verification, density counting, Haar preparation, and
+local QFT resource formulas.
+
+## Main statements
+
+* `clause23_endpoint_holds`: envelope bounds, single item behavior, and bridge refutation.
+* `aqNext_fixed_record_two_planted`: distinct planted periods can share a verified fixed record.
+* `aqNext_effective_stream_tendsto`: finite tape stream probabilities converge to Bernoulli
+  probabilities.
+* `aqNextPublicDensityCounting_actual`: exact cardinality readout probability and circuit
+  counts.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -41,6 +69,7 @@ open Qatlib
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- For `L ≠ -1`, the envelope at `M = 1` equals the single marked item slice. -/
 theorem aqNext_m1_envelope_identity (N : ℕ) (L : ℝ) (hL : L ≠ -1) :
     aqEnvelope (N : ℝ) 1 L = aqM1Slice (N : ℝ) L := by
   have hne : L + 1 ≠ 0 := by
@@ -55,6 +84,7 @@ theorem aqNext_m1_envelope_identity (N : ℕ) (L : ℝ) (hL : L ≠ -1) :
     apply (div_eq_div_iff hne2 hz).mpr
     ring
 
+/-- On the open single item window, the full envelope equals `aqM1Slice`. -/
 theorem aqNext_envelope_m1_on_open_window {N : ℕ} (hN : 0 < N) {L : ℝ}
     (h : aqM1Window N L) :
     aqEnvelope (N : ℝ) 1 L = aqM1Slice (N : ℝ) L := by
@@ -63,6 +93,7 @@ theorem aqNext_envelope_m1_on_open_window {N : ℕ} (hN : 0 < N) {L : ℝ}
     exact (lt_irrefl (-1 : ℝ)) (hc ▸ h.1)
   exact aqNext_m1_envelope_identity N L hL
 
+/-- For positive `N`, the single item envelope slice is strictly increasing on its open window. -/
 theorem aqNext_m1_envelope_strictly_increasing {N : ℕ} (hN : 0 < N) {L₁ L₂ : ℝ}
     (h₁ : aqM1Window N L₁) (h₂ : aqM1Window N L₂) (hlt : L₁ < L₂) :
     aqM1Slice (N : ℝ) L₁ < aqM1Slice (N : ℝ) L₂ := by
@@ -74,6 +105,7 @@ theorem aqNext_m1_envelope_strictly_increasing {N : ℕ} (hN : 0 < N) {L₁ L₂
   unfold aqM1Slice
   exact one_div_lt_one_div_of_lt hpos₂ hlt'
 
+/-- On the open single item window, the envelope slice is strictly greater than `1 / N`. -/
 theorem aqNext_m1_envelope_gt_inv_N {N : ℕ} (hN : 0 < N) {L : ℝ}
     (h : aqM1Window N L) :
     (1 : ℝ) / N < aqM1Slice (N : ℝ) L := by
@@ -86,6 +118,8 @@ theorem aqNext_m1_envelope_gt_inv_N {N : ℕ} (hN : 0 < N) {L : ℝ}
   unfold aqM1Slice
   exact one_div_lt_one_div_of_lt hpos hlt
 
+/-- Every point in the open single item window has another point with strictly smaller envelope
+value. -/
 theorem aqNext_m1_envelope_no_optimal {N : ℕ} (hN : 0 < N) {L : ℝ}
     (h : aqM1Window N L) :
     ∃ L', aqM1Window N L' ∧ aqM1Slice (N : ℝ) L' < aqM1Slice (N : ℝ) L := by
@@ -101,6 +135,8 @@ theorem aqNext_m1_envelope_no_optimal {N : ℕ} (hN : 0 < N) {L : ℝ}
       (L₁ := L - (L + 1) / 2) (L₂ := L)
       ⟨by linarith, by linarith [h.2]⟩ h hlt
 
+/-- For `N > 1` and `0 ≤ L < N - 1`, the single item slice is at least `1 / (N - 1)`, with
+equality exactly at `L = 0`. -/
 theorem aqNext_m1_envelope_physical_minimum {N : ℕ} (hN : 1 < N) {L : ℝ}
     (hL : 0 ≤ L) (hL' : L < (N : ℝ) - 1) :
     (1 : ℝ) / ((N : ℝ) - 1) ≤ aqM1Slice (N : ℝ) L ∧
@@ -125,10 +161,13 @@ theorem aqNext_m1_envelope_physical_minimum {N : ℕ} (hN : 1 < N) {L : ℝ}
       unfold aqM1Slice
       rw [show (N : ℝ) - 0 - 1 = N - 1 by ring]
 
+/-- The proposition `ExpectedNoiseEnvelopeBridgeOriginal` is false. -/
 theorem aqNext_envelope_bridge_refuted :
     ¬ Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeOriginal :=
   Qatlib.Concepts.AmpTransform.NoiseEnvelope.expectedNoiseEnvelopeBridge_false
 
+/-- The normalized independent uniform noise average, weighted by the tangent and gain factors,
+is bounded by `aqEnvelope` under the stated size and norm hypotheses. -/
 theorem aqNext_actual_iid_average_bounded (N M L : ℕ) [NeZero N] (y : ZMod N) (c : ℂ)
     (hy : y ≠ 0) (hM : 1 ≤ M) (hsize : M + L < N) (hc : ‖c‖ ≤ (M : ℝ)) :
     (((N : ℝ) ^ L)⁻¹ * (∑ ω : Fin L → ZMod N,
@@ -139,6 +178,8 @@ theorem aqNext_actual_iid_average_bounded (N M L : ℕ) [NeZero N] (y : ZMod N) 
     N M L y c hy hM hsize hc
   simpa [aqEnvelope] using! h
 
+/-- Establishes `clause23_endpoint`, combining envelope minimization, the independent noise
+average bound, single item behavior, and refutation of the original bridge. -/
 theorem clause23_endpoint_holds : clause23_endpoint := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro M N hM hN L hL1 hL2
@@ -158,6 +199,8 @@ theorem clause23_endpoint_holds : clause23_endpoint := by
     exact aqNext_m1_envelope_no_optimal hN h
   · exact aqNext_envelope_bridge_refuted
 
+/-- At the single item endpoint with an empty noise set, the squared Fourier phase norm is one;
+this is a special case of the Lemma 20 expression in [Cornwell2014]. -/
 theorem aq_lemma20_T1_endpoint {n N s P y : ℕ} (hN : N = 2 ^ n) (hy : y < N) (hy0 : y ≠ 0) :
     ‖(1 : ℂ) / (1 : ℂ) * amplifiedQFTOmega N ^ (s * y) +
       (1 : ℂ) / (1 : ℂ) * (∑ z ∈ (∅ : Finset ℕ), amplifiedQFTOmega N ^ (z * y))‖ ^ 2 = 1 := by
@@ -166,6 +209,8 @@ theorem aq_lemma20_T1_endpoint {n N s P y : ℕ} (hN : N = 2 ^ n) (hy : y < N) (
     zoo_amplified_qft_lemma20_omega_norm N (s * y)
   simp only [hsum, add_zero, div_one, norm_one, one_mul, hnorm, one_pow]
 
+/-- The squared normalized Fourier phase expression is at most one under the stated progression,
+disjointness, cyclicity, and dense regime hypotheses. -/
 theorem aq_lemma20_dense_regime {n N M L T s P y : ℕ} (A G : Finset ℕ)
     (hN : N = 2 ^ n) (hA : A = (Finset.range M).image (fun r => s + r * P))
     (hA_sub : A ⊆ Finset.range N) (hG_sub : G ⊆ Finset.range N) (hA_card : A.card = M)
@@ -176,17 +221,21 @@ theorem aq_lemma20_dense_regime {n N M L T s P y : ℕ} (A G : Finset ℕ)
   zoo_amplified_qft_lemma20 n N M L T s P y A G hN hA hA_sub hG_sub hA_card hG_card hdisj
     hT hTpos hy hy0 hcyc
 
+/-- When the comparison likelihood is nonzero, the success ratio is the quotient of the two
+candidate likelihoods. -/
 theorem aq_successRatio_eq_div {N s M P P' : ℕ} (p : ℝ) (obs : Finset (Fin N))
     (hne : aqCandidateLikelihood N s M P' p obs ≠ 0) :
     aqSuccessRatio N s M P P' p obs =
       aqCandidateLikelihood N s M P p obs / aqCandidateLikelihood N s M P' p obs := by
   simp [aqSuccessRatio, hne]
 
+/-- The success ratio is zero when the comparison candidate has zero likelihood. -/
 theorem aq_successRatio_of_refuted {N s M P P' : ℕ} (p : ℝ) (obs : Finset (Fin N))
     (hz : aqCandidateLikelihood N s M P' p obs = 0) :
     aqSuccessRatio N s M P P' p obs = 0 := by
   simp [aqSuccessRatio, hz]
 
+/-- For a noise parameter in `[0, 1]`, the success ratio is nonnegative. -/
 theorem aq_successRatio_nonneg {N s M P P' : ℕ} (p : ℝ) (obs : Finset (Fin N))
     (hp : 0 ≤ p) (hp1 : p ≤ 1) :
     0 ≤ aqSuccessRatio N s M P P' p obs := by
@@ -209,6 +258,7 @@ theorem aq_successRatio_nonneg {N s M P P' : ℕ} (p : ℝ) (obs : Finset (Fin N
       div_nonneg hP (le_of_lt hP')
     simpa [aqSuccessRatio, hne] using! hdiv
 
+/-- The amplification angle increases with the marked count when `0 < M ≤ L` and `2 * L ≤ N`. -/
 theorem aqAngle_mono {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (hLN : 2 * L ≤ N) :
     aqAngle N M ≤ aqAngle N L := by
   have hNR : (0 : ℝ) < N := by exact_mod_cast hN
@@ -222,6 +272,8 @@ theorem aqAngle_mono {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (hL
     linarith
   exact Real.arcsin_le_arcsin hsq
 
+/-- The amplification round count decreases with the marked count when `0 < M ≤ L` and `2 * L ≤
+N`. -/
 theorem aqRounds_anti {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (hLN : 2 * L ≤ N) :
     aqRounds N M ≥ aqRounds N L := by
   have hθ := aqAngle_mono hN hM hML hLN
@@ -234,6 +286,8 @@ theorem aqRounds_anti {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L) (h
     gcongr
   exact Nat.floor_mono h1
 
+/-- Under the stated sparse regime hypotheses, the layer round count is at most the public
+count, and adding the round saving recovers the public count. -/
 theorem aq_layer_round_le_public {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : M ≤ L)
     (hLN : 2 * L ≤ N) :
     aqLayerRoundCount N M L ≤ aqPublicRoundCount N M ∧
@@ -244,11 +298,14 @@ theorem aq_layer_round_le_public {N M L : ℕ} (hN : 0 < N) (hM : 0 < M) (hML : 
   · unfold aqRoundSaving aqPublicRoundCount aqLayerRoundCount
     omega
 
+/-- The cyclic verification procedure records cost at most three. -/
 theorem aqNextCyclicVerify_cost (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M q : ℕ) :
     (aqNextCyclicVerify N hN h s M q).2 ≤ 3 := by
   unfold aqNextCyclicVerify
   split <;> simp
 
+/-- With at least two planted progression points, positive period, and `M * P ≤ N`, the
+specified marked oracle passes cyclic verification with cost three. -/
 theorem aqNextCyclicVerify_true (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M P : ℕ)
     (hM : 2 ≤ M) (hP : 0 < P) (hMP : M * P ≤ N) (G : Finset (Fin N))
     (hmark : ∀ x, h x = decide (x ∈ ((Finset.range M).image (fun r : ℕ =>
@@ -265,6 +322,8 @@ theorem aqNextCyclicVerify_true (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M
   simp only [one_mul] at h1
   simp [aqNextCyclicVerify, hP, hM, hMP, hz, h1, hlast]
 
+/-- The public density readout returns the exact marked set cardinality with probability at
+least `8 / π^2`; its circuit has `32 * N - 1` queries and `5 * (32 * N - 1) + 3` gates. -/
 theorem aqNextPublicDensityCounting_actual (N : ℕ) (hN : 0 < N) (C : Finset (Fin N)) :
     8 / Real.pi ^ 2 ≤
       ∑ z ∈ Finset.univ.filter (fun z : Fin (32 * N) => aqNextPublicDensityReadout N z = C.card),
@@ -313,6 +372,8 @@ theorem aqNextPublicDensityCounting_actual (N : ℕ) (hN : 0 < N) (C : Finset (F
   · intro z _ _
     exact (aeLaw (32 * N) (QFTMatrix N) ⟨0, hN⟩ C (qftMatrix_unitary hN) (by omega)).nonneg z
 
+/-- Combines successful cyclic verification at cost three with the exact query and gate counts
+of the public density counting circuit. -/
 theorem aq_unknown_M_recovery_cost {N : ℕ} (hN : 0 < N) (h : Fin N → Bool) (s M P : ℕ)
     (hM : 2 ≤ M) (hP : 0 < P) (hMP : M * P ≤ N) (G : Finset (Fin N))
     (hmark : ∀ x, h x = decide (x ∈ ((Finset.range M).image (fun r : ℕ =>
@@ -327,11 +388,14 @@ theorem aq_unknown_M_recovery_cost {N : ℕ} (hN : 0 < N) (h : Fin N → Bool) (
   exact ⟨aqNextCyclicVerify_true N hN h s M P hM hP hMP G hmark,
     aqNextCyclicVerify_cost N hN h s M P, hq, hg⟩
 
+/-- For positive `n`, the dyadic Haar preparation is unitary and maps its seed basis state to
+the uniform state. -/
 theorem aq_haar_dyadic_preparation (n : ℕ) (hn : 0 < n) :
     haarDyadicPreparation n ∈ Matrix.unitaryGroup (Reg (n - 1) × Bool) ℂ ∧
       haarDyadicPreparation n *ᵥ Ket (haarDyadicSeed n) = Uniform (Reg (n - 1) × Bool) :=
   haarDyadicPreparation_spec n
 
+/-- The prepared Haar pair word uses `j` data queries, one input query, and `j + 2` fixed gates. -/
 theorem aq_haar_pair_ledger (n : ℕ) (hn : 0 < n) (j : ℕ) :
     preparedDataQueries (aqHaarPairWord (haarDyadicPreparation n) (haarDyadicSeed n) j) = j ∧
       preparedInputQueries (aqHaarPairWord (haarDyadicPreparation n) (haarDyadicSeed n) j) = 1 ∧
@@ -341,6 +405,8 @@ theorem aq_haar_pair_ledger (n : ℕ) (hn : 0 < n) (j : ℕ) :
     (haarDyadicSeed n) hspec hprep j
   exact ⟨hw.2.1, hw.2.2.1, hw.2.2.2.1⟩
 
+/-- The amplification schedule is the floor of `π / (4 * aqAngle N M)`, and its squared sine
+factor is at most one. -/
 theorem aq_haar_and_amplified_share_schedule (N M : ℕ) (hN : 0 < N) (hM : 0 < M)
     (hMN : 2 * M ≤ N) :
     aqRounds N M = Nat.floor (Real.pi / (4 * aqAngle N M)) ∧
@@ -348,6 +414,9 @@ theorem aq_haar_and_amplified_share_schedule (N M : ℕ) (hN : 0 < N) (hM : 0 < 
   refine ⟨rfl, ?_⟩
   exact Real.sin_sq_le_one _
 
+/-- The bounded fair label sampler assigns equal mass to each label, has rejection mass at most
+`2^(-fuel)`, expected bit cost at most `2 * Nat.clog 2 C`, and bounded cost `fuel * Nat.clog
+2 C`. -/
 theorem aq_fair_sampler_ledger (C fuel : ℕ) (hC : 0 < C) :
     (∀ j : Fin C, CostedLaw.event (aqFairLabelSampler C fuel)
       (fun z => z.1 = Sum.inl j) =
@@ -359,6 +428,8 @@ theorem aq_fair_sampler_ledger (C fuel : ℕ) (hC : 0 < C) :
     CostedLaw.BoundedBy (aqFairLabelSampler C fuel) (fuel * Nat.clog 2 C) :=
   aqFairLabelSampler_distribution_and_bits C fuel hC
 
+/-- The local QFT has the relabeled Fourier matrix, `n + n * (n - 1) / 2 + n / 2` gates, and
+zero queries. -/
 theorem aq_local_qft_cost (n : ℕ) :
     localProgramMatrix (localQFT n) =
       relabelGate (bitVecEquiv n).symm (QFTMatrix (2 ^ n)) ∧
@@ -366,34 +437,45 @@ theorem aq_local_qft_cost (n : ℕ) :
     QueryCount (localProgramCircuit (localQFT n)) = 0 :=
   aqLocalQFT_actual_matrix_and_cost n
 
+/-- The fair bit ledger is `N * k`, while verification records `N * t` oracle accesses and `N *
+k + t` classical work. -/
 theorem aq_fair_bit_ledger (N t k : ℕ) :
     aqFairBitLedger N k = N * k ∧
       (aqVerifyCost N t k).oracleAccesses = N * t ∧
       (aqVerifyCost N t k).classicalWork = N * k + t := by
   simp [aqFairBitLedger, aqVerifyCost, aqFreshPassCost]
 
+/-- No deterministic map from a fixed number of fair bits to three labels has equally sized
+fibers. -/
 theorem aq_fair_sampler_needs_rejection (k : ℕ) :
     ¬ ∃ f : Fin (2 ^ k) → Fin 3, ∀ x y : Fin 3,
       (Finset.univ.filter (fun b => f b = x)).card =
         (Finset.univ.filter (fun b => f b = y)).card :=
   three_label_bounded_fair_bits_impossible k
 
+/-- For `M ≥ 2` and positive `N`, the envelope is minimized at `aqMinL M N` throughout `-M < L <
+N - M`. -/
 theorem aq_envelope_minimised_at_MinL {M N : ℕ} (hM : 2 ≤ M) (hN : 0 < N) (L : ℝ)
     (hL1 : -(M : ℝ) < L) (hL2 : L < (N : ℝ) - (M : ℝ)) :
     aqEnvelope N M (aqMinL M N) ≤ aqEnvelope N M L := by
   have h := errorExpectationMinimizedAtMinL M N hM hN
   simpa [aqEnvelope, aqMinL] using! h L hL1 hL2
 
+/-- The sum of the Fourier phases vanishes when the frequency is nonzero modulo positive `N`. -/
 theorem aq_geometric_sum_zero {N y : ℕ} (hN : 0 < N) (hne : y % N ≠ 0) :
     ∑ z ∈ Finset.range N, aqPhase N z y = 0 :=
   errorStreamGeometricSumZero N y hN hne
 
+/-- The probability that a fresh Bernoulli noise stream leaves a candidate consistent equals `p`
+raised to the candidate separation. -/
 theorem aqNext_consistency_mass (N s M P P' : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
     (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
       (if aqCandidateConsistent N s M P' (aqFreshMarked N s M P σ) then 1 else 0))
       = p ^ (aqCandidateSeparation N s M P P') :=
   aq_fresh_consistency_probability N s M P P' p hp hp1
 
+/-- The fresh failure mass is bounded by the sum of `pmax` raised to each false candidate's
+separation, when `0 ≤ p ≤ pmax < 1`. -/
 theorem aqNext_failure_mass_le {N s M P : ℕ} {cands : Finset ℕ} {p pmax : ℝ} (hp : 0 ≤ p)
     (hp1 : p ≤ pmax) (hmax : pmax < 1) :
     aqFreshFailureMass N s M P cands p hp (le_trans hp1 hmax.le) ≤
@@ -460,6 +542,8 @@ theorem aqNext_failure_mass_le {N s M P : ℕ} {cands : Finset ℕ} {p pmax : �
         rw [aqNext_consistency_mass N s M P P' p hp hp1']
         exact pow_le_pow_left₀ hp hp1 _
 
+/-- A candidate returned by the disambiguation fold belongs to the scanned list or equals the
+initial candidate; with no initial candidate it belongs to the list. -/
 private theorem aqNext_disambiguate_fold_mem {N s M : ℕ} (p : ℝ) (obs : Finset (Fin N)) :
     ∀ (l : List ℕ) (best : Option ℕ) (Q : ℕ),
       l.foldl (fun best P => aqDisambiguateStep N s M p obs best P) best = some Q →
@@ -511,6 +595,7 @@ private theorem aqNext_disambiguate_fold_mem {N s M : ℕ} (p : ℝ) (obs : Fins
         · exact Or.inl (List.mem_cons_of_mem x hl)
         · exact Or.inr hq
 
+/-- Every candidate returned by fresh disambiguation belongs to the compatible candidate set. -/
 theorem aqNext_disambiguation_output_sound {N s M : ℕ} (cands : Finset ℕ) (p : ℝ)
     (obs : Finset (Fin N)) (Q : ℕ)
     (hQ : aqFreshDisambiguate N s M cands p obs = some Q) :
@@ -523,6 +608,8 @@ theorem aqNext_disambiguation_output_sound {N s M : ℕ} (cands : Finset ℕ) (p
   have h1 : Q ∈ (aqFreshCompatible N s M cands obs).toList := hmem.1 rfl
   exact (Finset.mem_toList.mp h1)
 
+/-- The observation set `{0, 1, 2}` in `Fin 8` is consistent with both periods one and two for
+offset zero and length two. -/
 theorem aqNext_fixed_noise_ambiguous_concrete :
     aqCandidateConsistent 8 0 2 1 ({0, 1, 2} : Finset (Fin 8)) ∧
       aqCandidateConsistent 8 0 2 2 ({0, 1, 2} : Finset (Fin 8)) := by
@@ -551,6 +638,7 @@ theorem aqNext_fixed_noise_ambiguous_concrete :
       have hx2 : x = (2 : Fin 8) := Fin.ext hxv
       simp [hx2]
 
+/-- There exist two distinct candidate periods consistent with the same fixed observation set. -/
 theorem aqNext_fixed_noise_ambiguous :
     ∃ (N s M P P' : ℕ) (obs : Finset (Fin N)),
       P ≠ P' ∧ aqCandidateConsistent N s M P obs ∧
@@ -558,6 +646,7 @@ theorem aqNext_fixed_noise_ambiguous :
   ⟨8, 0, 2, 1, 2, ({0, 1, 2} : Finset (Fin 8)), by norm_num,
     aqNext_fixed_noise_ambiguous_concrete.1, aqNext_fixed_noise_ambiguous_concrete.2⟩
 
+/-- The separation of the concrete period one and period two candidates is one. -/
 theorem aqNext_fixed_noise_separation_one :
     aqCandidateSeparation 8 0 2 1 2 = 1 := by
   rw [aqCandidateSeparation]
@@ -583,6 +672,8 @@ theorem aqNext_fixed_noise_separation_one :
       have hval' : (2 : ℕ) = 0 + r * 1 := by simpa using! hval
       omega
 
+/-- Positive candidate separation and `0 ≤ p < 1` give strictly positive fresh rejection
+probability `1 - p^separation`. -/
 theorem aqNext_fresh_separates {N s M P P' : ℕ} {p : ℝ} (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (hp1' : p < 1) (hsep : 0 < aqCandidateSeparation N s M P P') :
     0 < 1 - p ^ (aqCandidateSeparation N s M P P') := by
@@ -605,6 +696,8 @@ theorem aqNext_fresh_separates {N s M P P' : ℕ} {p : ℝ} (hp : 0 ≤ p) (hp1 
   have hlt : p ^ aqCandidateSeparation N s M P P' < 1 := lt_of_le_of_lt hle hp1'
   linarith
 
+/-- The same run cost is the sum of the continued fraction and three access verification cost
+and the fresh pass cost. -/
 theorem aqNext_same_run_cost_eq (N t k : ℕ) :
     aqSameRunCost N t k =
       ({ oracleAccesses := 3
@@ -614,6 +707,8 @@ theorem aqNext_same_run_cost_eq (N t k : ℕ) :
         (aqFreshPassCost N t k) := by
   simp [aqSameRunCost, aqFreshPassCost, aqExecutionCost.add]
 
+/-- A fixed noise record is true exactly on the union of the planted progression and the noise
+set. -/
 theorem aqNext_fixed_noise_record_mem {N s M P : ℕ} {G : Finset (Fin N)} {x : Fin N} :
     aqNextFixedNoiseRecord N s M P G x = true ↔
       x ∈ aqProgressionSet N s M P ∪ G := by
@@ -638,6 +733,8 @@ theorem aqNext_fixed_noise_record_mem {N s M P : ℕ} {G : Finset (Fin N)} {x : 
     · exact Or.inl (hmem.mpr (hprog.mpr h1))
     · exact Or.inr h2
 
+/-- A positive candidate passes verification when its three required positions lie in range and
+are marked. -/
 private theorem aqNext_verify_of_marks {N : ℕ} (f : Fin N → Bool) (s M q : ℕ)
     (h : 0 < q ∧ s < N ∧ s + q < N ∧ s + (M - 1) * q < N)
     (h0 : f ⟨s, h.2.1⟩ = true) (h1 : f ⟨s + q, h.2.2.1⟩ = true)
@@ -647,6 +744,7 @@ private theorem aqNext_verify_of_marks {N : ℕ} (f : Fin N → Bool) (s M q : �
   rw [dif_pos h]
   simp [h0, h1, h2]
 
+/-- Every in range planted progression point is marked by the fixed noise record. -/
 private theorem aqNext_planted_marked {N s M P : ℕ} {G : Finset (Fin N)} {x : Fin N}
     (v : ℕ) (hv : x.val = v) (hx : ∃ r < M, v = s + r * P) :
     aqNextFixedNoiseRecord N s M P G x = true := by
@@ -654,6 +752,8 @@ private theorem aqNext_planted_marked {N s M P : ℕ} {G : Finset (Fin N)} {x : 
   obtain ⟨r, hr, hval⟩ := hx
   exact Or.inl ⟨r, hr, hv.trans hval⟩
 
+/-- When `M, P ≥ 2` and the planted progression lies in range, its period passes fixed record
+verification. -/
 private theorem aqNext_planted_verified {N s M P : ℕ} {G : Finset (Fin N)}
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N) :
     (aqNextVerify (aqNextFixedNoiseRecord N s M P G) s M P).1 = true := by
@@ -666,6 +766,8 @@ private theorem aqNext_planted_verified {N s M P : ℕ} {G : Finset (Fin N)}
   · exact aqNext_planted_marked (s + P) rfl ⟨1, by omega, by simp⟩
   · exact aqNext_planted_marked (s + (M - 1) * P) rfl ⟨M - 1, by omega, by simp⟩
 
+/-- A good Fourier window sample makes the recovery attempt return the planted period under the
+stated range and separation bounds. -/
 theorem aqNext_attempt_true_period_hit {N : ℕ} (s M P B : ℕ) (G : Finset (Fin N))
     (y : Fin N) (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N)
     (hPB : P ≤ B) (hsepB : 2 * B ^ 2 < N) (hy : y ∈ aqGoodWindow N P) :
@@ -679,6 +781,7 @@ theorem aqNext_attempt_true_period_hit {N : ℕ} (s M P B : ℕ) (G : Finset (Fi
   rw [ha]
   simp [hver]
 
+/-- Every value returned by a recovery attempt passes the fixed record verification check. -/
 theorem aqNext_attempt_output_verified {N : ℕ} (s M P B : ℕ) (G : Finset (Fin N))
     (y : Fin N) (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s + (M - 1) * P < N)
     (hPB : P ≤ B) (hsepB : 2 * B ^ 2 < N) (q : ℕ)
@@ -696,6 +799,8 @@ theorem aqNext_attempt_output_verified {N : ℕ} (s M P B : ℕ) (G : Finset (Fi
       exact hv
     · simp at hq
 
+/-- A recovery attempt uses at most three verification accesses and `cfDepth N + 1` decoding
+steps, with the stated triangular generation work. -/
 theorem aqNext_attempt_cost {N : ℕ} (s M P B : ℕ) (G : Finset (Fin N)) (y : Fin N) :
     (aqNextAttempt (aqNextFixedNoiseRecord N s M P G) s M B y).2.1 ≤ 3 ∧
       (aqNextAttempt (aqNextFixedNoiseRecord N s M P G) s M B y).2.2.1 ≤ cfDepth N + 1 ∧
@@ -721,6 +826,7 @@ theorem aqNext_attempt_cost {N : ℕ} (s M P B : ℕ) (G : Finset (Fin N)) (y : 
     (try dsimp only)
     split <;> exact hg
 
+/-- The points zero and one are marked in the concrete period one fixed noise record. -/
 private theorem aqNext_period_one_marked (x : Fin 8) (hx : x.val = 0 ∨ x.val = 1) :
     aqNextFixedNoiseRecord 8 0 2 1 ({0, 1, 2} : Finset (Fin 8)) x = true := by
   simp only [aqNextFixedNoiseRecord, aqNextProgressionMember, decide_eq_true_eq]
@@ -728,6 +834,7 @@ private theorem aqNext_period_one_marked (x : Fin 8) (hx : x.val = 0 ∨ x.val =
   · exact Or.inl ⟨0, by omega, by simp [h0]⟩
   · exact Or.inl ⟨1, by omega, by simp [h1]⟩
 
+/-- The points zero and two are marked in the concrete period two fixed noise record. -/
 private theorem aqNext_period_two_marked (x : Fin 8) (hx : x.val = 0 ∨ x.val = 2) :
     aqNextFixedNoiseRecord 8 0 2 2 ({0, 1, 2} : Finset (Fin 8)) x = true := by
   simp only [aqNextFixedNoiseRecord, aqNextProgressionMember, decide_eq_true_eq]
@@ -735,6 +842,8 @@ private theorem aqNext_period_two_marked (x : Fin 8) (hx : x.val = 0 ∨ x.val =
   · exact Or.inl ⟨0, by omega, by simp [h0]⟩
   · exact Or.inl ⟨1, by omega, by simp [h1]⟩
 
+/-- The concrete periods one and two produce identical fixed noise records, and each passes its
+corresponding verification check. -/
 theorem aqNext_fixed_record_two_planted_concrete :
     (∀ x : Fin 8, aqNextFixedNoiseRecord 8 0 2 1 ({0, 1, 2} : Finset (Fin 8)) x = true ↔
         aqNextFixedNoiseRecord 8 0 2 2 ({0, 1, 2} : Finset (Fin 8)) x = true) ∧
@@ -792,6 +901,8 @@ theorem aqNext_fixed_record_two_planted_concrete :
     · exact aqNext_period_two_marked _ (Or.inr rfl)
     · exact aqNext_period_two_marked _ (Or.inr rfl)
 
+/-- Two distinct planted periods can produce identical fixed noise records while both pass
+verification. -/
 theorem aqNext_fixed_record_two_planted :
     ∃ (N s M P P' : ℕ) (G : Finset (Fin N)),
       P ≠ P' ∧
@@ -804,6 +915,7 @@ theorem aqNext_fixed_record_two_planted :
     aqNext_fixed_record_two_planted_concrete.2.1,
     aqNext_fixed_record_two_planted_concrete.2.2⟩
 
+/-- The selected Bernoulli tape set has cardinality `a` when `a ≤ 2^k`. -/
 theorem aqNext_tapes_card (k a : ℕ) (ha : a ≤ 2 ^ k) :
     (aqNextBernoulliTapes k a ha).card = a := by
   have hcard : (aqNextBernoulliTapes k a ha).card = (Finset.univ : Finset (Fin a)).card := by
@@ -816,10 +928,12 @@ theorem aqNext_tapes_card (k a : ℕ) (ha : a ≤ 2 ^ k) :
   rw [hcard, Finset.card_univ]
   simp
 
+/-- The Bernoulli draw is true exactly on the selected tape set. -/
 theorem aqNext_draw_iff (k a : ℕ) (ha : a ≤ 2 ^ k) (tape : Reg k) :
     aqNextBernoulliDraw k a ha tape = true ↔ tape ∈ aqNextBernoulliTapes k a ha := by
   simp [aqNextBernoulliDraw]
 
+/-- Exactly `a` tapes of length `k` make the Bernoulli draw true. -/
 theorem aqNext_marked_count (k a : ℕ) (ha : a ≤ 2 ^ k) :
     (∑ tape : Reg k, (if aqNextBernoulliDraw k a ha tape = true then 1 else 0)) = a := by
   have hcard : (∑ tape : Reg k, (if aqNextBernoulliDraw k a ha tape = true then 1 else 0))
@@ -838,6 +952,7 @@ theorem aqNext_marked_count (k a : ℕ) (ha : a ≤ 2 ^ k) :
       _ = (aqNextBernoulliTapes k a ha).card := by rw [hfilter]
   rw [hcard, aqNext_tapes_card k a ha]
 
+/-- The effective probability of a true Bernoulli draw equals its dyadic parameter. -/
 theorem aqNext_effective_site_prob (k a : ℕ) (ha : a ≤ 2 ^ k) :
     aqNextEffectiveSiteProb k a ha = aqNextEffectiveParameter k a := by
   unfold aqNextEffectiveSiteProb aqNextEffectiveParameter
@@ -859,6 +974,7 @@ theorem aqNext_effective_site_prob (k a : ℕ) (ha : a ≤ 2 ^ k) :
     rw [hsum, ← Finset.mul_sum, hcountR]
   rw [hmain, div_eq_mul_inv, mul_comm]
 
+/-- The probability of a false Bernoulli draw is one minus the effective true probability. -/
 theorem aqNext_site_indicator_complement (k a : ℕ) (ha : a ≤ 2 ^ k) :
     (∑ tape : Reg k, (uniformFairTapeLaw k).prob tape *
         (if aqNextBernoulliDraw k a ha tape = false then 1 else 0))
@@ -888,6 +1004,8 @@ theorem aqNext_site_indicator_complement (k a : ℕ) (ha : a ≤ 2 ^ k) :
       unfold aqNextEffectiveSiteProb
       rfl
 
+/-- The expectation of a product of site functions under the Bernoulli stream law factors into
+the product of the site expectations. -/
 theorem aqNext_bernoulli_stream_independent (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (g : Fin N → Bool → ℝ) :
     (∑ σ : Fin N → Bool, (aqNextBernoulliStreamLaw N p hp hp1).prob σ * ∏ i, g i (σ i))
@@ -895,6 +1013,8 @@ theorem aqNext_bernoulli_stream_independent (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (
   unfold aqNextBernoulliStreamLaw
   exact FinDist.expect_prod (aqNextBernoulliSiteLaw p hp hp1) g
 
+/-- The effective tape stream probability factors into Bernoulli site weights at the effective
+dyadic parameter. -/
 theorem aqNext_effective_stream_prob (N k a : ℕ) (ha : a ≤ 2 ^ k) (σ : Fin N → Bool) :
     aqNextEffectiveStreamProb N k a ha σ
       = ∏ i : Fin N, (if σ i then aqNextEffectiveParameter k a
@@ -967,6 +1087,8 @@ theorem aqNext_effective_stream_prob (N k a : ℕ) (ha : a ≤ 2 ^ k) (σ : Fin 
         intro i _
         exact hsite i
 
+/-- The Bernoulli stream probability is the product of `p` at true sites and `1 - p` at false
+sites. -/
 theorem aqNext_bernoulli_stream_prob (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (σ : Fin N → Bool) :
     (aqNextBernoulliStreamLaw N p hp hp1).prob σ
@@ -974,6 +1096,7 @@ theorem aqNext_bernoulli_stream_prob (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p
   unfold aqNextBernoulliStreamLaw aqNextBernoulliSiteLaw
   simp [FinDist.probOf]
 
+/-- The effective dyadic parameter lies in `[0, 1]` when `a ≤ 2^k`. -/
 theorem aqNext_effective_parameter_range (k a : ℕ) (ha : a ≤ 2 ^ k) :
     0 ≤ aqNextEffectiveParameter k a ∧ aqNextEffectiveParameter k a ≤ 1 := by
   have h2k : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
@@ -985,6 +1108,8 @@ theorem aqNext_effective_parameter_range (k a : ℕ) (ha : a ≤ 2 ^ k) :
     have h : (a : ℝ) ≤ (2 ^ k : ℝ) := by exact_mod_cast ha
     simpa using! h
 
+/-- The effective tape stream has exactly the Bernoulli stream probabilities at its effective
+dyadic parameter. -/
 theorem aqNext_effective_stream_eq_bernoulli (N k a : ℕ) (ha : a ≤ 2 ^ k) (σ : Fin N → Bool) :
     aqNextEffectiveStreamProb N k a ha σ
       = (aqNextBernoulliStreamLaw N (aqNextEffectiveParameter k a)
@@ -994,10 +1119,13 @@ theorem aqNext_effective_stream_eq_bernoulli (N k a : ℕ) (ha : a ≤ 2 ^ k) (�
   unfold aqNextBernoulliStreamLaw aqNextBernoulliSiteLaw
   simp [FinDist.probOf]
 
+/-- For `p ∈ [0, 1]`, the Bernoulli threshold at precision `k` is at most `2^k`. -/
 theorem aqNext_threshold_le (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     aqNextBernoulliThreshold k p ≤ 2 ^ k :=
   aqNextThresholdFits k p hp0 hp1
 
+/-- The dyadic threshold parameter is at most `p` and differs from it by strictly less than
+`2^(-k)`. -/
 theorem aqNext_effective_parameter_bounds (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k ≤ p ∧
       p < (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k + 1 / (2 : ℝ) ^ k := by
@@ -1016,6 +1144,8 @@ theorem aqNext_effective_parameter_bounds (k : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (h
     apply (lt_div_iff₀ h2k).2
     exact hlt
 
+/-- For `p ∈ [0, 1]`, the dyadic threshold parameters converge to `p` as the precision
+increases. -/
 theorem aqNext_effective_parameter_tendsto (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     Filter.Tendsto (fun k => (aqNextBernoulliThreshold k p : ℝ) / (2 : ℝ) ^ k)
       Filter.atTop (nhds p) := by
@@ -1037,6 +1167,8 @@ theorem aqNext_effective_parameter_tendsto (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p �
   have h2 := (tendsto_const_nhds : Filter.Tendsto (fun _ : ℕ => p) Filter.atTop (nhds p)).sub h1
   simpa [sub_sub_cancel, sub_zero] using! h2
 
+/-- For each fixed Boolean stream, its effective tape probability converges to the Bernoulli
+probability at `p`. -/
 theorem aqNext_effective_stream_tendsto (N : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (σ : Fin N → Bool) :
     Filter.Tendsto (fun k => aqNextEffectiveStreamProb N k (aqNextBernoulliThreshold k p)
@@ -1080,6 +1212,7 @@ theorem aqNext_effective_stream_tendsto (N : ℕ) (p : ℝ) (hp0 : 0 ≤ p) (hp1
   rw [hstream, hlaw]
   exact hprod
 
+/-- The precision `k` threshold of the dyadic parameter `a / 2^k` is exactly `a`. -/
 theorem aqNext_effective_exact_of_dyadic (k a : ℕ) (ha : a ≤ 2 ^ k) :
     aqNextBernoulliThreshold k ((a : ℝ) / (2 : ℝ) ^ k) = a := by
   have h2k : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
@@ -1088,17 +1221,21 @@ theorem aqNext_effective_exact_of_dyadic (k a : ℕ) (ha : a ≤ 2 ^ k) :
   rw [aqNextBernoulliThreshold, heq]
   exact Nat.floor_natCast a
 
+/-- A dyadic parameter with natural numerator is nonnegative. -/
 theorem aqNext_dyadic_nonneg (k a : ℕ) : 0 ≤ (a : ℝ) / (2 : ℝ) ^ k := by
   apply div_nonneg
   · exact_mod_cast Nat.zero_le a
   · positivity
 
+/-- The dyadic parameter `a / 2^k` is at most one when `a ≤ 2^k`. -/
 theorem aqNext_dyadic_le_one (k a : ℕ) (ha : a ≤ 2 ^ k) : (a : ℝ) / (2 : ℝ) ^ k ≤ 1 := by
   have h2k : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
   apply (div_le_iff₀ h2k).2
   have h : (a : ℝ) ≤ (2 ^ k : ℝ) := by exact_mod_cast ha
   simpa using! h
 
+/-- For the dyadic parameter `a / 2^k`, effective tape stream probabilities equal the
+corresponding Bernoulli stream probabilities exactly. -/
 theorem aqNext_effective_stream_exact_of_dyadic (N k a : ℕ) (ha : a ≤ 2 ^ k)
     (σ : Fin N → Bool) :
     aqNextEffectiveStreamProb N k a ha σ
@@ -1117,12 +1254,16 @@ theorem aqNext_effective_stream_exact_of_dyadic (N k a : ℕ) (ha : a ≤ 2 ^ k)
   rw [h1, h2]
   simp [aqNextEffectiveParameter]
 
+/-- The Bernoulli bit cost plus `t` equals the classical work of a fresh pass. -/
 theorem aqNext_bit_cost_eq_fresh_pass (N t k : ℕ) :
     aqNextBernoulliBitCost N k + t = (aqNextFreshPassCost N t k).classicalWork := rfl
 
+/-- The classical work of a fresh pass is the Bernoulli bit cost plus `t`. -/
 theorem aqNext_fresh_pass_cost_eq (N t k : ℕ) :
     (aqNextFreshPassCost N t k).classicalWork = aqNextBernoulliBitCost N k + t := rfl
 
+/-- Establishes `clause24_endpoint`, covering the single item identity and the dense regime
+bound for the Lemma 20 Fourier expression in [Cornwell2014]. -/
 theorem clause24_endpoint_holds : clause24_endpoint := by
   refine ⟨?_, ?_⟩
   · intro n N s y hN hy hy0
@@ -1132,6 +1273,8 @@ theorem clause24_endpoint_holds : clause24_endpoint := by
     exact aq_lemma20_dense_regime A G hN hA hA_sub hG_sub hA_card hG_card hdisj hT hTpos
       hy hy0 hcyc hdense
 
+/-- Establishes `clause26_endpoint`, combining fresh noise disambiguation, fixed record
+ambiguity, verified recovery costs, and finite bit Bernoulli realization and convergence. -/
 theorem clause26_endpoint_holds : clause26_endpoint := by
   classical
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
@@ -1198,6 +1341,8 @@ theorem clause26_endpoint_holds : clause26_endpoint := by
   · intro N t k
     exact aqNext_bit_cost_eq_fresh_pass N t k
 
+/-- Establishes `clause27_endpoint`, specifying the likelihood quotient, its zero denominator
+convention, and nonnegativity of the success ratio. -/
 theorem clause27_endpoint_holds : clause27_endpoint := by
   refine ⟨?_, ?_, ?_⟩
   · intro N s M P P' p obs
@@ -1211,6 +1356,8 @@ theorem clause27_endpoint_holds : clause27_endpoint := by
   · intro N s M P P' p obs hp hp1
     exact aq_successRatio_nonneg p obs hp hp1
 
+/-- Establishes `clause28_endpoint`, combining angle monotonicity, round count monotonicity, and
+the layer saving identity. -/
 theorem clause28_endpoint_holds : clause28_endpoint := by
   refine ⟨?_, ?_, ?_⟩
   · intro N M hN hM hMN
@@ -1220,6 +1367,8 @@ theorem clause28_endpoint_holds : clause28_endpoint := by
   · intro N M L hN hM hML hLN
     exact aq_layer_round_le_public hN hM hML hLN
 
+/-- Establishes `clause29_endpoint`, combining cyclic verification guarantees with exact public
+density counting probabilities and resource counts. -/
 theorem clause29_endpoint_holds : clause29_endpoint := by
   refine ⟨?_, ?_, ?_⟩
   · intro N hN h s M P G hM hP hMP hmark
@@ -1230,6 +1379,8 @@ theorem clause29_endpoint_holds : clause29_endpoint := by
   · intro N hN C
     exact aqNextPublicDensityCounting_actual N hN C
 
+/-- Establishes `clause30_endpoint`, combining dyadic Haar preparation, the Haar pair resource
+ledger, and the amplification schedule. -/
 theorem clause30_endpoint_holds : clause30_endpoint := by
   refine ⟨?_, ?_, ?_⟩
   · intro n hn
@@ -1239,6 +1390,8 @@ theorem clause30_endpoint_holds : clause30_endpoint := by
   · intro N M hN hM hMN
     exact aq_haar_and_amplified_share_schedule N M hN hM hMN
 
+/-- Establishes `clause31_endpoint`, combining local QFT resource counts, the fair bit ledger,
+and the obstruction to uniform three label sampling from a fixed bit budget. -/
 theorem clause31_endpoint_holds : clause31_endpoint := by
   refine ⟨?_, ?_, ?_⟩
   · intro n
@@ -1248,6 +1401,8 @@ theorem clause31_endpoint_holds : clause31_endpoint := by
   · intro k
     exact aq_fair_sampler_needs_rejection k
 
+/-- Establishes `clause32_endpoint`, combining envelope minimization with vanishing nontrivial
+geometric phase sums. -/
 theorem clause32_endpoint_holds : clause32_endpoint := by
   refine ⟨?_, ?_⟩
   · intro M N hM hN L hL1 hL2

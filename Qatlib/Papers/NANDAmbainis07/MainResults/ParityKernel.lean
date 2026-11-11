@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Mathlib.Tactic
 
+/-!
+# Parity vanishing in a weighted kernel
+
+This module isolates a finite weighted parity structure `TreeHamiltonian` with a height
+condition that supports induction. It supplies an abstract form of the odd-depth kernel
+vanishing argument associated with Lemma 11 in [Ambainis2007].
+
+## Main statements
+
+* `TreeHamiltonian` records symmetric complex weights, zero diagonal, parity crossing, and a
+  descending-height neighbor condition.
+* `odd_amplitudes_vanish` proves that a vector in the weighted kernel vanishes at every vertex
+  whose parity is `false`.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -13,6 +32,9 @@ namespace Qatlib.Papers.NANDAmbainis07.MainResults
 
 open scoped BigOperators
 
+/-- A finite weighted parity structure with symmetric complex weights, zero diagonal, and
+weights only between opposite parities. Each false-parity vertex has a true-parity neighbor
+whose other weighted neighbors have smaller height. -/
 structure TreeHamiltonian (V : Type*) [Fintype V] [DecidableEq V] where
 
   par : V → Bool
@@ -31,6 +53,9 @@ structure TreeHamiltonian (V : Type*) [Fintype V] [DecidableEq V] where
     ∃ c, par c = true ∧ wt c u ≠ 0 ∧
       ∀ w, w ≠ u → wt c w ≠ 0 → ht w < ht u
 
+/-- A vector satisfying all weighted kernel equations for `TreeHamiltonian` vanishes at every
+vertex whose parity is `false`. This is an abstract parity-vanishing statement corresponding
+to [Ambainis, Lemma 11][Ambainis2007]. -/
 theorem odd_amplitudes_vanish {V : Type*} [Fintype V] [DecidableEq V]
     (G : TreeHamiltonian V) (α : V → ℂ)
     (hker : ∀ u, ∑ v, G.wt u v * α v = 0) :

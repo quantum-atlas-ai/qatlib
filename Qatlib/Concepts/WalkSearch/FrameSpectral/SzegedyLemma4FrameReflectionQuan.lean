@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionStat
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
 import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+/-!
+# Projection and reflection for orthonormal frames
+
+The theorem `szegedyLemma4FrameReflection` proves that the outer product sum of an orthonormal
+frame is an orthogonal projector. It computes its action and the associated reflection on frame
+vectors and on states orthogonal to every frame vector. The quantum walk spectral framework is
+developed in [Szegedy2004].
+
+## Main statements
+
+* `szegedyLemma4FrameReflection`: Projector and reflection actions for an orthonormal frame.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +40,9 @@ open Qatlib.Foundations.PureStateMath.Reflection
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- For an orthonormal frame, its outer product sum is an orthogonal projector fixing the frame
+vectors and annihilating their orthogonal complement. The associated reflection fixes the
+frame vectors and negates the orthogonal complement [Szegedy, Lemma 4][Szegedy2004]. -/
 theorem szegedyLemma4FrameReflection : SzegedyLemma4FrameReflection := by
   intro H ι _ _ _ _ v h
   let V : Matrix H ι ℂ := fun x i => v i x

@@ -12,6 +12,31 @@ import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProd
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Mathlib.Logic.Equiv.Bool
+
+/-!
+# Function evaluation from the general adversary bound
+
+The general adversary value and bounded-error function evaluation query complexity bound one
+another up to a universal constant. The lower bound controls adversary progress along actual
+source words, while the upper bound compiles state conversion into a function evaluation
+algorithm.
+
+Boolean cuts reduce general output alphabets to two-outcome measurements, and the zero-adversary
+case yields a zero-query word. `functionEvaluationAdversaryAlgorithm` establishes the
+characterization and explicit real-budget construction corresponding to [LeeEtAl2011].
+
+## Main statements
+
+* `sourceAdversary_le_functionQ`: the adversary lower bound with factor 80.
+* `sourceFunction_word_from_conversion`: a function evaluation word from a real-budget
+  conversion bound.
+* `functionEvaluationAdversaryAlgorithm`: the universal characterization and construction.
+
+## References
+
+* [Lee et al., 2011, Theorem 1.1][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -35,6 +60,8 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The difference of adversary progress values equals the real quadratic form of the adversary
+matrix Schur-multiplied by the difference of Gram matrices. -/
 theorem sourceAdversary_gram_progress {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] (G : Matrix X X ℂ) (weight : QState X) (ψ φ : X → QState H) :
     advProgress G weight ψ-advProgress G weight φ=
@@ -52,6 +79,8 @@ theorem sourceAdversary_gram_progress {X H : Type} [Fintype X] [DecidableEq X]
   intro h _
   ring
 
+/-- For a filter-normalized matrix and normalized weights and input states, a legal source word
+changes adversary progress by at most twice its oracle-call count. -/
 theorem sourceWord_adversary_progress_bound {X S : Type}
     [Fintype X] [DecidableEq X] [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (C : SourceWord ((Fin (n+1) × Fin (q+1)) × S))
@@ -78,6 +107,9 @@ theorem sourceWord_adversary_progress_bound {X S : Type}
     _ = ‖G ⊙ A‖ := by rw [hw1]; simp
     _ ≤ _ := hnorm
 
+/-- For a feasible Hermitian Boolean adversary matrix, any legal word computing the Boolean
+function by the specified measurement with success at least `2/3` has adversary norm at most
+40 times its oracle-call count. -/
 theorem sourceBoolean_actual_word_lower {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (G : Matrix X X ℂ) (hG : G.IsHermitian)
@@ -113,9 +145,11 @@ theorem sourceBoolean_actual_word_lower {X H : Type}
   change |lam-advProgress G weight out| ≤ _ at hDiff
   nlinarith
 
+/-- The matrix retaining `G x y` exactly when the Boolean labels of `x` and `y` differ. -/
 def sourceBooleanCut {X : Type} (G : Matrix X X ℂ) (f : X → Bool) : Matrix X X ℂ :=
   G ⊙ gramFunctionEvaluationMatrix f
 
+/-- Taking a Boolean cut does not increase the matrix operator norm. -/
 theorem sourceBooleanCut_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (G : Matrix X X ℂ) (f : X → Bool) : ‖sourceBooleanCut G f‖ ≤ ‖G‖ := by
   let yes := Finset.univ.filter (fun x => f x=true)
@@ -133,12 +167,14 @@ theorem sourceBooleanCut_norm_le {X : Type} [Fintype X] [DecidableEq X]
   rw [he,sourceRowColumnDisjoint_norm_add _ _ hd]
   exact max_le (sourceRectMask_norm_le yes no G) (sourceRectMask_norm_le no yes G)
 
+/-- A Boolean cut of a Hermitian matrix is Hermitian. -/
 theorem sourceBooleanCut_isHermitian {X : Type} (G : Matrix X X ℂ) (hG : G.IsHermitian)
     (f : X → Bool) : (sourceBooleanCut G f).IsHermitian := by
   ext x y
   simp only [Matrix.conjTranspose_apply,sourceBooleanCut,Matrix.hadamard_apply,star_mul,hG.apply]
   by_cases he : f x=f y <;> simp [gramFunctionEvaluationMatrix,he,eq_comm]
 
+/-- Taking a Boolean cut commutes with Schur multiplication by an input-difference filter. -/
 theorem sourceBooleanCut_filter {X : Type} {n q : ℕ}
     (G : Matrix X X ℂ) (f : X → Bool) (input : X → Fin n → Fin (q+1)) (j : Fin n) :
     sourceBooleanCut G f ⊙ sourceAlphabetDelta input j=sourceBooleanCut (G ⊙ sourceAlphabetDelta input j) f := by
@@ -146,6 +182,8 @@ theorem sourceBooleanCut_filter {X : Type} {n q : ℕ}
   simp only [sourceBooleanCut,Matrix.hadamard_apply]
   ring
 
+/-- If `G` vanishes on equal-output pairs, twice the sum of its Boolean output cuts equals the
+number of Boolean output maps times `G`. -/
 theorem sourceBooleanCut_average {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (G : Matrix X X ℂ) (f : X → E)
     (hz : ∀ x y, f x=f y → G x y=0) :
@@ -170,6 +208,8 @@ theorem sourceBooleanCut_average {X E : Type} [Fintype X] [DecidableEq X]
   push_cast
   linear_combination hs
 
+/-- If `G` vanishes on equal-output pairs, some Boolean output cut has norm at least half the
+norm of `G`. -/
 theorem sourceBooleanCut_large {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (G : Matrix X X ℂ) (f : X → E)
     (hz : ∀ x y, f x=f y → G x y=0) :
@@ -188,6 +228,8 @@ theorem sourceBooleanCut_large {X E : Type} [Fintype X] [DecidableEq X]
       _ = _ := by simp
   nlinarith
 
+/-- A feasible Hermitian function adversary matrix has norm at most 80 times the oracle-call
+count of any legal word evaluating the function with success at least `2/3`. -/
 theorem sourceFunction_actual_word_lower {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (f : X → E) (G : Matrix X X ℂ)
@@ -231,6 +273,8 @@ theorem sourceFunction_actual_word_lower {X E : Type}
     (sourceClean_normalized n q r hr false _ (normalized_ket none)) C hC M hSuccess'
   nlinarith
 
+/-- The general adversary value is at most 80 times the call count of any legal source word
+evaluating the function with success at least `2/3`. -/
 theorem sourceAdversary_actual_word_lower {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (f : X → E)
@@ -248,6 +292,8 @@ theorem sourceAdversary_actual_word_lower {X E : Type}
     ENNReal.ofReal ‖G.val‖ ≤ ENNReal.ofReal (80*sourceWordCalls C) := ENNReal.ofReal_le_ofReal hh
     _ = _ := by rw [ENNReal.ofReal_mul (by norm_num : (0 : ℝ)≤80),ENNReal.ofReal_natCast]; norm_num
 
+/-- The general adversary value is at most 80 times the bounded-error source function query
+complexity. -/
 theorem sourceAdversary_le_functionQ {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) :
@@ -263,6 +309,7 @@ theorem sourceAdversary_le_functionQ {X E : Type}
   rw [hb]
   exact sourceAdversary_actual_word_lower hr input f C hC hSuccess
 
+/-- A nonconstant function has general adversary value at least one. -/
 theorem sourceAdversary_ge_one_of_nonconstant {X E : Type}
     [Fintype X] [DecidableEq X] [DecidableEq E] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E)
@@ -319,6 +366,8 @@ theorem sourceAdversary_ge_one_of_nonconstant {X E : Type}
       unfold sourceAdversary
       exact le_iSup_of_le ⟨G,hG,hreal,hzero,hf⟩ le_rfl
 
+/-- A constant function possesses a legal zero-query evaluation word with success probability at
+least `2/3`. -/
 theorem sourceFunction_free_word_of_constant {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) (hc : ∀ x y, f x=f y) :
@@ -361,6 +410,7 @@ theorem sourceFunction_free_word_of_constant {X E : Type}
       rw [hp]
       norm_num
 
+/-- A constant function has zero source function query complexity. -/
 theorem sourceFunctionQ_zero_of_constant {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) (hc : ∀ x y, f x=f y) :
@@ -371,6 +421,8 @@ theorem sourceFunctionQ_zero_of_constant {X E : Type}
   refine ⟨r,hr,C,?_,hC,hSuccess⟩
   simp [hcalls]
 
+/-- A function with zero general adversary value possesses a legal zero-query evaluation word
+with success probability at least `2/3`. -/
 theorem sourceFunction_free_word_of_zero_adversary {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E)
@@ -386,6 +438,8 @@ theorem sourceFunction_free_word_of_zero_adversary {X E : Type}
   rw [hz] at hh
   norm_num at hh
 
+/-- Real overlap at least `sqrt (1-1/3)` with the clean target labeled `some e` implies
+probability at least `2/3` of measuring that payload label. -/
 theorem sourceFunction_measure_of_overlap {E : Type} [Fintype E] [DecidableEq E]
     {n q r : ℕ} (hr : 0<r) (e : E) (out : QState (SourceSpace n q (Option E) r))
     (h : (∑ p, star (out p)*sourceClean n q r hr true (Ket (some e)) p).re ≥
@@ -402,6 +456,8 @@ theorem sourceFunction_measure_of_overlap {E : Type} [Fintype E] [DecidableEq E]
     nlinarith [Real.sq_sqrt (by norm_num : (0 : ℝ)≤1-1/3),Real.sqrt_nonneg (1-(1/3 : ℝ))]
   exact hp.trans (Finset.single_le_sum (fun p _ => sq_nonneg ‖out p‖) (by simp [t]))
 
+/-- The difference between the constant blank-state Gram matrix and the function-labeled
+basis-state Gram matrix is the function evaluation matrix. -/
 theorem sourceFunction_gram_difference {X E : Type} [Fintype E] [DecidableEq E]
     (f : X → E) :
     gramStateMatrix (fun _ : X => Ket (none : Option E))-
@@ -409,6 +465,9 @@ theorem sourceFunction_gram_difference {X E : Type} [Fintype E] [DecidableEq E]
   ext x y
   by_cases he : f x=f y <;> simp [gramStateMatrix,gramFunctionEvaluationMatrix,Qatlib.Foundations.PureStateMath.Inner,dotProduct,Ket,he,eq_comm]
 
+ /-- A real-budget conversion algorithm with positive constant `c` yields, for adversary budget
+ `W ≥ 0`, a legal function evaluation word using at most `100*c*W` oracle calls and
+ succeeding with probability at least `2/3`. -/
  theorem sourceFunction_word_from_conversion {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q : ℕ}
     (c : ℕ) (hc : 0<c)
@@ -470,6 +529,8 @@ theorem sourceFunction_gram_difference {X E : Type} [Fintype E] [DecidableEq E]
   push_cast
   nlinarith [mul_nonneg (show (0 : ℝ)≤c by positivity) (mul_nonneg hW (sub_nonneg.mpr hlog))]
 
+/-- The real-budget state conversion algorithm implies the universal adversary characterization
+and budgeted construction for function evaluation. -/
 theorem functionEvaluationAdversaryAlgorithm_of_conversion
     (h15 : RealBudgetConversionAlgorithm) : FunctionEvaluationAdversaryAlgorithm := by
   obtain ⟨c,hc,h15⟩ := h15
@@ -507,6 +568,9 @@ theorem functionEvaluationAdversaryAlgorithm_of_conversion
     have hh := hrange.trans (Nat.le_ceil (((100*c+80 : ℕ) : ℝ)*W))
     exact_mod_cast hh
 
+/-- The general adversary value characterizes bounded-error function evaluation query complexity
+up to a universal positive constant and yields legal budgeted evaluation words. This is the
+characterization of [Lee et al., Theorem 1.1][LeeEtAl2011]. -/
 theorem functionEvaluationAdversaryAlgorithm : FunctionEvaluationAdversaryAlgorithm :=
   functionEvaluationAdversaryAlgorithm_of_conversion realBudgetConversionAlgorithm
 

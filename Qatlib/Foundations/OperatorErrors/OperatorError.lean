@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# Operator-norm error propagation for matrix products
+
+Develops perturbation bounds in the matrix norm induced by the Euclidean norm. Products and
+powers of contractions accumulate at most the sum of the factor errors.
+
+The cubic map `X ↦ X * X.conjTranspose * X` is bounded in terms of perturbations of `X`,
+including explicit estimates near a unitary matrix and for scaled linear-cubic combinations. See
+[Bhatia1997] for related background.
+
+## Main statements
+
+* `l2_norm_list_prod_sub_prod_le`: For a list of pairs of contractions, the Euclidean
+  operator-norm distance between the two ordered products is at most the sum of the distances
+  between paired factors.
+* `l2_norm_scaled_cubic_sub_unitary_le`: If `‖X - U‖ ≤ ε` for unitary `U`, then `‖a • X - b • (X
+  * X.conjTranspose * X) - U‖ ≤ (‖a‖ + ‖b‖ * (3 + 3 * ε + ε²)) * ε + ‖a - b - 1‖` in Euclidean
+  operator norm.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,11 +42,14 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The identity matrix has Euclidean operator norm at most one, including when the index type
+is empty. -/
 theorem l2_norm_one_le : ‖(1 : Matrix I I ℂ)‖ ≤ 1 := by
   rcases subsingleton_or_nontrivial (Matrix I I ℂ) with h | h
   · simp [Subsingleton.elim (1 : Matrix I I ℂ) 0]
   · exact CStarRing.norm_one.le
 
+/-- Every unitary matrix has Euclidean operator norm at most one. -/
 theorem l2_norm_unitary_le_one {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     ‖U‖ ≤ 1 := by
   rcases subsingleton_or_nontrivial (Matrix I I ℂ) with h | h
@@ -30,6 +58,8 @@ theorem l2_norm_unitary_le_one {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGr
 
 omit [DecidableEq I] in
 
+/-- For compatible rectangular matrices, `‖A * B - C * D‖ ≤ ‖A - C‖ * ‖B‖ + ‖C‖ * ‖B - D‖` in
+the Euclidean operator norm. -/
 theorem l2_norm_rect_mul_sub_mul_le {J K : Type*} [Fintype J] [DecidableEq J]
     [Fintype K] [DecidableEq K] (A C : Matrix I J ℂ) (B D : Matrix J K ℂ) :
     ‖A * B - C * D‖ ≤ ‖A - C‖ * ‖B‖ + ‖C‖ * ‖B - D‖ := by
@@ -40,10 +70,14 @@ theorem l2_norm_rect_mul_sub_mul_le {J K : Type*} [Fintype J] [DecidableEq J]
   exact (norm_add_le _ _).trans
     (add_le_add (Matrix.l2_opNorm_mul _ _) (Matrix.l2_opNorm_mul _ _))
 
+/-- The Euclidean operator-norm difference of two square-matrix products is bounded by `‖A - C‖
+* ‖B‖ + ‖C‖ * ‖B - D‖`. -/
 theorem l2_norm_mul_sub_mul_le (A B C D : Matrix I I ℂ) :
     ‖A * B - C * D‖ ≤ ‖A - C‖ * ‖B‖ + ‖C‖ * ‖B - D‖ :=
   l2_norm_rect_mul_sub_mul_le A C B D
 
+/-- Multiplication on both sides by matrices of Euclidean operator norm at most one does not
+increase the norm of the middle matrix. -/
 theorem l2_norm_sandwich_le (X Y Z : Matrix I I ℂ)
     (hX : ‖X‖ ≤ 1) (hZ : ‖Z‖ ≤ 1) : ‖X * Y * Z‖ ≤ ‖Y‖ := by
   calc
@@ -52,6 +86,8 @@ theorem l2_norm_sandwich_le (X Y Z : Matrix I I ℂ)
     _ ≤ 1 * ‖Y‖ * 1 := by gcongr
     _ = _ := by ring
 
+/-- A finite list product of matrices with Euclidean operator norm at most one also has norm at
+most one. -/
 theorem l2_norm_list_prod_le_one (A : List (Matrix I I ℂ))
     (hA : ∀ a ∈ A, ‖a‖ ≤ 1) : ‖A.prod‖ ≤ 1 := by
   induction A with
@@ -62,6 +98,8 @@ theorem l2_norm_list_prod_le_one (A : List (Matrix I I ℂ))
     exact (norm_mul_le _ _).trans
       (by simpa using mul_le_mul (hA a List.mem_cons_self) ht (norm_nonneg _) zero_le_one)
 
+/-- For a list of pairs of contractions, the Euclidean operator-norm distance between the two
+ordered products is at most the sum of the distances between paired factors. -/
 theorem l2_norm_list_prod_sub_prod_le (pairs : List (Matrix I I ℂ × Matrix I I ℂ))
     (hp : ∀ p ∈ pairs, ‖p.1‖ ≤ 1 ∧ ‖p.2‖ ≤ 1) :
     ‖(pairs.map Prod.fst).prod - (pairs.map Prod.snd).prod‖ ≤
@@ -84,6 +122,8 @@ theorem l2_norm_list_prod_sub_prod_le (pairs : List (Matrix I I ℂ × Matrix I 
       (norm_nonneg ((pairs.map Prod.fst).prod - (pairs.map Prod.snd).prod))
     nlinarith [ih ht]
 
+/-- Every natural power of a matrix with Euclidean operator norm at most one has norm at most
+one. -/
 theorem l2_norm_pow_le_one (U : Matrix I I ℂ) (hU : ‖U‖ ≤ 1) (r : ℕ) :
     ‖U ^ r‖ ≤ 1 := by
   have h := l2_norm_list_prod_le_one (List.replicate r U) (by
@@ -92,6 +132,8 @@ theorem l2_norm_pow_le_one (U : Matrix I I ℂ) (hU : ‖U‖ ≤ 1) (r : ℕ) :
     exact hU)
   simpa only [List.prod_replicate] using h
 
+/-- For contractions `U` and `V`, the Euclidean operator-norm distance between their `r`th
+powers is at most `r * ‖U - V‖`. -/
 theorem l2_norm_pow_sub_pow_le (U V : Matrix I I ℂ)
     (hU : ‖U‖ ≤ 1) (hV : ‖V‖ ≤ 1) (r : ℕ) :
     ‖U ^ r - V ^ r‖ ≤ (r : ℝ) * ‖U - V‖ := by
@@ -102,6 +144,8 @@ theorem l2_norm_pow_sub_pow_le (U V : Matrix I I ℂ)
   simpa only [List.map_replicate, List.prod_replicate, List.sum_replicate,
     nsmul_eq_mul] using h
 
+/-- For two `Fin n`-indexed families of contractions, the distance between their ordered
+products is at most the sum of their pointwise Euclidean operator-norm distances. -/
 theorem l2_norm_prod_sub_prod_le {n : ℕ} (A B : Fin n → Matrix I I ℂ)
     (hA : ∀ i, ‖A i‖ ≤ 1) (hB : ∀ i, ‖B i‖ ≤ 1) :
     ‖(List.ofFn A).prod - (List.ofFn B).prod‖ ≤ ∑ i, ‖A i - B i‖ := by
@@ -111,6 +155,8 @@ theorem l2_norm_prod_sub_prod_le {n : ℕ} (A B : Fin n → Matrix I I ℂ)
     exact ⟨hA i, hB i⟩)
   simpa only [List.map_ofFn, Function.comp_def, List.sum_ofFn] using h
 
+/-- For matrices assigned to a list of labels and contractive at each listed label, the distance
+between the two ordered products is at most the sum of the listed factor distances. -/
 theorem l2_norm_list_map_prod_sub_prod_le {α : Type*} (cs : List α)
     (A B : α → Matrix I I ℂ)
     (hA : ∀ c ∈ cs, ‖A c‖ ≤ 1) (hB : ∀ c ∈ cs, ‖B c‖ ≤ 1) :
@@ -121,6 +167,8 @@ theorem l2_norm_list_map_prod_sub_prod_le {α : Type*} (cs : List α)
     exact ⟨hA c hc, hB c hc⟩)
   simpa only [List.map_map, Function.comp_def] using h
 
+/-- For two contractive matrix families whose distance at each listed label is at most `ε`, the
+distance between their ordered products is at most the list length times `ε`. -/
 theorem l2_norm_list_map_prod_sub_prod_le_of_le {α : Type*} (cs : List α)
     (A B : α → Matrix I I ℂ) (ε : ℝ)
     (hA : ∀ c ∈ cs, ‖A c‖ ≤ 1) (hB : ∀ c ∈ cs, ‖B c‖ ≤ 1)
@@ -137,6 +185,8 @@ theorem l2_norm_list_map_prod_sub_prod_le_of_le {α : Type*} (cs : List α)
     have hh := hε c List.mem_cons_self
     nlinarith
 
+/-- The Euclidean operator-norm difference between `X * X.conjTranspose * X` and `Y *
+Y.conjTranspose * Y` is at most `(‖X‖² + ‖X‖ * ‖Y‖ + ‖Y‖²) * ‖X - Y‖`. -/
 theorem l2_norm_cubic_sub_cubic_le (X Y : Matrix I I ℂ) :
     ‖X * X.conjTranspose * X - Y * Y.conjTranspose * Y‖ ≤
       (‖X‖ ^ 2 + ‖X‖ * ‖Y‖ + ‖Y‖ ^ 2) * ‖X - Y‖ := by
@@ -158,6 +208,8 @@ theorem l2_norm_cubic_sub_cubic_le (X Y : Matrix I I ℂ) :
         Matrix.l2_opNorm_conjTranspose, Matrix.l2_opNorm_conjTranspose]
       ring
 
+/-- For unitary `U`, the distance from `X * X.conjTranspose * X` to `U` is at most `(‖X‖² + ‖X‖
++ 1) * ‖X - U‖` in Euclidean operator norm. -/
 theorem l2_norm_cubic_sub_unitary_le (X U : Matrix I I ℂ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     ‖X * X.conjTranspose * X - U‖ ≤ (‖X‖ ^ 2 + ‖X‖ + 1) * ‖X - U‖ := by
@@ -172,12 +224,16 @@ theorem l2_norm_cubic_sub_unitary_le (X U : Matrix I I ℂ)
       mul_le_mul_of_nonneg_left hu (norm_nonneg X)]
   exact h.trans (mul_le_mul_of_nonneg_right hpoly (norm_nonneg _))
 
+/-- If `X` is within Euclidean operator-norm distance `ε` of a unitary matrix, then `‖X‖ ≤ 1 +
+ε`. -/
 theorem l2_norm_le_one_add_error {X U : Matrix I I ℂ} {ε : ℝ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hε : ‖X - U‖ ≤ ε) : ‖X‖ ≤ 1 + ε := by
   have h := norm_add_le (X - U) U
   rw [sub_add_cancel] at h
   linarith [l2_norm_unitary_le_one hU]
 
+/-- If `X` is within Euclidean operator-norm distance `ε` of unitary `U`, its cubic expression
+is within `(3 + 3 * ε + ε²) * ε` of `U`. -/
 theorem l2_norm_cubic_sub_unitary_of_error {X U : Matrix I I ℂ} {ε : ℝ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hε : ‖X - U‖ ≤ ε) :
     ‖X * X.conjTranspose * X - U‖ ≤ (3 + 3 * ε + ε ^ 2) * ε := by
@@ -188,6 +244,8 @@ theorem l2_norm_cubic_sub_unitary_of_error {X U : Matrix I I ℂ} {ε : ℝ}
   refine (l2_norm_cubic_sub_unitary_le X U hU).trans ?_
   exact mul_le_mul hpoly hε (norm_nonneg _) (by positivity)
 
+/-- If `‖X - U‖ ≤ ε` for unitary `U`, then `‖a • X - b • (X * X.conjTranspose * X) - U‖ ≤ (‖a‖ +
+‖b‖ * (3 + 3 * ε + ε²)) * ε + ‖a - b - 1‖` in Euclidean operator norm. -/
 theorem l2_norm_scaled_cubic_sub_unitary_le {X U : Matrix I I ℂ} {ε : ℝ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (hε : ‖X - U‖ ≤ ε) (a b : ℂ) :
     ‖a • X - b • (X * X.conjTranspose * X) - U‖ ≤

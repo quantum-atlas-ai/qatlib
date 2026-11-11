@@ -8,6 +8,28 @@ import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalControlledSwap
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyCleanFrame
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+
+/-!
+# Local Controlled-Copy Channel Bridge
+
+The map `localControlledCopyRawMap` explicitly initializes clean scratch, runs the local
+controlled partial swap word, and traces out both scratch and the fresh copy. It realizes the
+controlled fresh copy evolution underlying [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `localCopyFrame_actual_scratch_discard` proves that tracing out initialized scratch recovers
+  the logical operator.
+* `localControlledCopyRawMap_eq` identifies the local implementation with the direct
+  controlled-copy map.
+* `local_controlled_copy_actual_discard_and_reference_bridge` lifts this equality to flattened
+  channel maps and arbitrary finite reference extensions.
+
+## References
+
+- [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +45,8 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- The controlled-copy map obtained by adjoining a fresh copy of `ρ`, embedding clean scratch,
+applying the local controlled partial swap, and tracing out scratch and the fresh copy. -/
 noncomputable def localControlledCopyRawMap (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ)
     (X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ) :
     Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ :=
@@ -31,6 +55,8 @@ noncomputable def localControlledCopyRawMap (n : ℕ) (ρ : Operator (2^n)) (θ 
   traceRightB (Matrix.traceRight
     (relabelGate (localCopySplit n) (U * (F * tensorCopyB ρ X * Fᴴ) * Uᴴ)))
 
+/-- The complex-linear map packaging `localControlledCopyRawMap` on the Boolean control and data
+register. -/
 noncomputable def localControlledCopyRawLinearMap (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ) :
     MatrixMap (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ where
   toFun := localControlledCopyRawMap n ρ θ
@@ -59,12 +85,15 @@ noncomputable def localControlledCopyRawLinearMap (n : ℕ) (ρ : Operator (2^n)
     ext x y
     simp [traceRightB, Finset.mul_sum]
 
+/-- The local controlled-copy linear map transported to the flattened register `Fin (2*(2^n))`. -/
 noncomputable def localControlledCopyChannelMap (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ) :
     MatrixMap (Fin (2*(2^n))) (Fin (2*(2^n))) ℂ :=
   (relabelLM (controlDataEquiv (2^n))).comp
     ((localControlledCopyRawLinearMap n ρ θ).comp
       (relabelLM (controlDataEquiv (2^n)).symm))
 
+/-- Flattening the input before applying the local channel map agrees with applying the raw
+local map and then flattening its output. -/
 theorem localControlledCopyChannelMap_relabel (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ)
     (X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ) :
     localControlledCopyChannelMap n ρ θ (relabelGate (controlDataEquiv (2^n)) X) =
@@ -77,6 +106,8 @@ theorem localControlledCopyChannelMap_relabel (n : ℕ) (ρ : Operator (2^n)) (�
   rw [hx]
   rfl
 
+/-- Embedding any logical operator with the clean frame and tracing out the scratch register
+recovers that operator. -/
 theorem localCopyFrame_actual_scratch_discard (n : ℕ)
     (Y : Matrix (Bool × (Fin (2^n) × Fin (2^n))) (Bool × (Fin (2^n) × Fin (2^n))) ℂ) :
     Matrix.traceRight (relabelGate (localCopySplit n) (localCopyFrame n * Y * (localCopyFrame n)ᴴ)) = Y := by
@@ -92,6 +123,8 @@ theorem localCopyFrame_actual_scratch_discard (n : ℕ)
   simp only [Matrix.traceRight,Matrix.of_apply,he,and_self]
   simp
 
+/-- The explicit local controlled-copy construction, including both discards, equals the direct
+controlled-copy map on every input operator. -/
 theorem localControlledCopyRawMap_eq (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ)
     (X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ) :
     localControlledCopyRawMap n ρ θ X = controlledCopyRawMap ρ θ X := by
@@ -109,6 +142,8 @@ theorem localControlledCopyRawMap_eq (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ)
     rw [hh]
   rw [he,localCopyFrame_actual_scratch_discard]
 
+/-- The local and direct controlled-copy maps agree on raw and flattened registers. Their
+extensions by the identity on every finite reference register also agree. -/
 theorem local_controlled_copy_actual_discard_and_reference_bridge :
     ∀ (n : ℕ) (ρ : Operator (2^n)) (θ : ℝ),
       (∀ X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ,

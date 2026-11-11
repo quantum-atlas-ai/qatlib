@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic
+
+/-!
+# Precision accumulation with an initial discrepancy
+
+The module proves error accumulation for complex linear isometries, retaining the initial
+discrepancy as an explicit term. With a common initial state, the estimate reduces to the usual
+`T * ε` bound.
+
+An explicit unit complex phase gives normalized counterexamples when the initial states are
+allowed to differ. `native_shift_precision_counter` realizes this phenomenon on finitely
+supported native QTM states. See [BernsteinVazirani1997].
+
+## Main statements
+
+* `precision_with_initial_error`: bounds final error by the initial discrepancy plus Tε.
+* `precision_common_initial`: recovers the common-initial-state bound.
+* `native_shift_precision_counter`: constructs a native shift example violating the bound with
+  the initial discrepancy omitted.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +38,9 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QComplexity97.MachineDefs
 
+/-- For an isometry `U`, the stated one-step deviations give final error at most `‖φt 0 - φ 0‖ +
+T * ε`. This makes the initial discrepancy explicit in the accumulation estimate associated
+with Theorem 3.4.1 of [BernsteinVazirani1997]. -/
 theorem precision_with_initial_error {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℂ E] (U : E →ₗᵢ[ℂ] E) (φ φt : ℕ → E) (ε : ℝ) (T : ℕ)
     (hstep : ∀ i, i < T → φ (i+1) = U (φt i))
@@ -36,6 +63,9 @@ theorem precision_with_initial_error {E : Type*} [NormedAddCommGroup E]
       _ ≤ ‖φt 0 - φ 0‖ + (T:ℝ)*ε + ε := by rw [U.norm_map]; linarith
       _ = ‖φt 0 - φ 0‖ + ((T+1:ℕ):ℝ)*ε := by push_cast; ring
 
+/-- With a common initial state, the stated deviations from isometric evolution accumulate to at
+most `T * ε` after `T` steps. This is the common-initial-state form of Theorem 3.4.1 of
+[BernsteinVazirani1997]. -/
 theorem precision_common_initial {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℂ E] (U : E →ₗᵢ[ℂ] E) (φ φt : ℕ → E) (ε : ℝ) (T : ℕ)
     (h0 : φt 0 = φ 0)
@@ -45,24 +75,32 @@ theorem precision_common_initial {E : Type*} [NormedAddCommGroup E]
   simpa only [h0, sub_self, norm_zero, zero_add] using
     precision_with_initial_error U φ φt ε T hstep hdev
 
+/-- The complex phase `(63 / 65 : ℝ) + (16 / 65 : ℝ) * Complex.I` used in the precision
+counterexample. -/
 private def smallPhase : ℂ := (63/65 : ℝ) + (16/65 : ℝ) * Complex.I
 
+/-- The complex number `smallPhase` has norm one. -/
 private theorem smallPhase_norm : ‖smallPhase‖ = 1 := by
   rw [Complex.norm_def]
   norm_num [smallPhase, Complex.normSq]
 
+/-- The distance between one and `smallPhase` is at most `1 / 4`. -/
 private theorem smallPhase_step : ‖1-smallPhase‖ ≤ (1/4:ℝ) := by
   have hs : Complex.normSq (1-smallPhase) = (4/65:ℝ) := by
     norm_num [smallPhase, Complex.normSq]
   rw [Complex.norm_def,hs]
   exact Real.sqrt_le_iff.mpr ⟨by norm_num, by norm_num⟩
 
+/-- The distance between `smallPhase ^ 2` and one is strictly greater than `1 / 4`. -/
 private theorem smallPhase_twice : (1/4:ℝ) < ‖smallPhase^2-1‖ := by
   have hs : Complex.normSq (smallPhase^2-1) = (32/65:ℝ)^2 := by
     norm_num [smallPhase, Complex.normSq, pow_two, Complex.mul_re, Complex.mul_im]
   rw [Complex.norm_def,hs,Real.sqrt_sq (by norm_num : (0:ℝ)≤32/65)]
   norm_num
 
+/-- Given the stated unit vector and scalar-stable predicate, there are normalized sequences
+satisfying that predicate and the one-step deviation bound `1 / 4` whose final error exceeds
+`1 / 4`. This construction allows a nonzero initial discrepancy. -/
 theorem precision_positive_time_counter {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℂ E] (U : E →ₗᵢ[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1)
     (P : E → Prop) (hP : ∀ (z : ℂ) (v : E), P v → P (z • v))
@@ -106,6 +144,10 @@ theorem precision_positive_time_counter {E : Type*} [NormedAddCommGroup E]
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- A native right-shift isometry possesses finitely supported normalized sequences satisfying
+the stated one-step deviations of at most `1 / 4`, while the final error exceeds `1 / 4`.
+This demonstrates the role of a common initial state in the estimate associated with Theorem
+3.4.1 of [BernsteinVazirani1997]. -/
 theorem native_shift_precision_counter :
     ∃ U : State Bool Unit () ≃ₗᵢ[ℂ] State Bool Unit (),
       (∀ c, U (ket c) = (shiftRule Bool Unit () .right).column c) ∧

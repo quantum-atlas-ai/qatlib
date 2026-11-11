@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+
+/-!
+# Basic matrix-power estimates
+
+Entrywise nonnegativity is preserved by matrix powers and gives a nonnegative ratio `ExpectedMu`
+when its denominator is positive. The eigenvector identity for powers also shows that this ratio
+is exact when the all-ones vector has a nonzero eigenvalue. See [BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `pow_entry_nonneg`: powers preserve entrywise nonnegativity.
+* `mulVec_pow_eigen`: powers raise an eigenvalue to the same power.
+* `expectedMu_eq_of_uniform`: an all-ones eigenvector makes `ExpectedMu` exact.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,8 @@ namespace Qatlib.Papers.StoquasticHam06.MainResults.Lemma5
 
 open Matrix
 
+/-- Every natural power of an entrywise nonnegative real matrix is entrywise nonnegative. See
+[BravyiEtAl2008Stoquastic]. -/
 theorem pow_entry_nonneg {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : Matrix ι ι ℝ) (L : ℕ) (hG : ∀ x y, 0 ≤ G x y) :
     ∀ x y, 0 ≤ (G ^ L) x y := by
@@ -28,6 +49,8 @@ theorem pow_entry_nonneg {ι : Type*} [Fintype ι] [DecidableEq ι]
       rw [pow_succ, Matrix.mul_apply]
       exact Finset.sum_nonneg (fun z _ => mul_nonneg (ih x z) (hG z y))
 
+/-- For an entrywise nonnegative matrix, `ExpectedMu G L` is nonnegative whenever its
+denominator is positive. See [BravyiEtAl2008Stoquastic]. -/
 theorem expectedMu_nonneg {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : Matrix ι ι ℝ) (L : ℕ) (hG : ∀ x y, 0 ≤ G x y)
     (hden : 0 < ∑ x, ∑ y, (G ^ L) x y) :
@@ -38,6 +61,8 @@ theorem expectedMu_nonneg {ι : Type*} [Fintype ι] [DecidableEq ι]
       Finset.sum_nonneg (fun y _ => pow_entry_nonneg G (L + 1) hG x y)))
     hden.le
 
+/-- If `G *ᵥ v = mu • v`, then `(G ^ L) *ᵥ v = (mu ^ L) • v` for every natural `L`. See
+[BravyiEtAl2008Stoquastic]. -/
 theorem mulVec_pow_eigen {ι : Type*} [Fintype ι] [DecidableEq ι]
     (G : Matrix ι ι ℝ) (v : ι → ℝ) (mu : ℝ) (hv : G.mulVec v = mu • v) :
     ∀ L : ℕ, (G ^ L).mulVec v = (mu ^ L) • v := by
@@ -47,6 +72,8 @@ theorem mulVec_pow_eigen {ι : Type*} [Fintype ι] [DecidableEq ι]
   | succ L ih =>
       rw [pow_succ, ← Matrix.mulVec_mulVec, hv, Matrix.mulVec_smul, ih, smul_smul, pow_succ']
 
+/-- If the all-ones vector is an eigenvector with nonzero eigenvalue `mu0` on a nonempty index
+type, then `ExpectedMu G L = mu0` for every `L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem expectedMu_eq_of_uniform {ι : Type*} [Fintype ι] [DecidableEq ι]
     [Nonempty ι] (G : Matrix ι ι ℝ) (mu0 : ℝ) (hmu0 : mu0 ≠ 0)
     (h1 : G.mulVec (fun _ => (1 : ℝ)) = mu0 • (fun _ => (1 : ℝ))) :

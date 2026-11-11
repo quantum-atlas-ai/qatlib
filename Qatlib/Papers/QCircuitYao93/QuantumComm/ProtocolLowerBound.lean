@@ -9,6 +9,29 @@ import Mathlib.Data.Fintype.Pigeonhole
 import Mathlib.Algebra.Order.Floor.Semiring
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+/-!
+# Quantized Gram features for protocol lower bounds
+
+The module defines a weight-threshold protocol model through the squared norm of a sum of tensor
+states. It discretizes the real and imaginary parts of one family's Gram matrix, then bounds
+changes in acceptance mass when two inputs have equal features.
+
+A feature collision among the `onesWord` inputs contradicts the stated acceptance gap when the
+feature space is too small, yielding `theorem4_no_cheap_protocol`. See [Yao1993].
+
+## Main statements
+
+* `feature_gram_close`: controls Gram entries for equal features.
+* `acceptProb_close`: transfers Gram control to acceptance mass.
+* `theorem4_no_cheap_protocol`: rules out the stated combination of small feature space and
+  acceptance gap.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,11 +44,14 @@ open scoped BigOperators
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.QCircuitYao93.QuantumComm.GramAcceptance
 
+/-- The number of true entries in a finite Boolean word. -/
 def wordWeight {m : ℕ} (x : Fin m → Bool) : ℕ :=
   (Finset.univ.filter fun i => x i = true).card
 
+/-- The length-`m` Boolean word whose entry at index `i` is true exactly when `i < k`. -/
 def onesWord (m k : ℕ) : Fin m → Bool := fun i => decide (i.val < k)
 
+/-- If `k ≤ m`, the word `onesWord m k` has weight `k`. -/
 theorem wordWeight_onesWord (m k : ℕ) (hk : k ≤ m) :
     wordWeight (onesWord m k) = k := by
   classical
@@ -46,17 +72,21 @@ theorem wordWeight_onesWord (m k : ℕ) (hk : k ≤ m) :
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] {n k l : ℕ}
 
+/-- The total squared amplitude of `∑ ε, TensorState (a x ε) (b y ε)`. -/
 def acceptProb (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool)) (x y : Fin n → Bool) : ℝ :=
   ∑ p : (Fin k → Bool) × (Fin l → Bool),
     ‖(∑ ε, TensorState (a x ε) (b y ε)) p‖ ^ 2
 
+/-- The acceptance-mass expression equals the real part of the double sum of products of the two
+families' Gram entries. -/
 theorem acceptProb_gram (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool)) (x y : Fin n → Bool) :
     acceptProb a b x y =
       (∑ ε, ∑ ε', Inner (a x ε) (a x ε') * Inner (b y ε) (b y ε')).re :=
   lemma3_acceptance_mass (fun ε => a x ε) (fun ε => b y ε)
 
+/-- The complex inner product of two normalized finite state vectors has norm at most one. -/
 theorem abs_inner_le_one {I : Type} [Fintype I] [DecidableEq I] {ψ φ : QState I}
     (hψ : ∑ i, ‖ψ i‖ ^ 2 = 1) (hφ : ∑ i, ‖φ i‖ ^ 2 = 1) :
     ‖Inner ψ φ‖ ≤ 1 := by
@@ -74,16 +104,22 @@ theorem abs_inner_le_one {I : Type} [Fintype I] [DecidableEq I] {ψ φ : QState 
     Finset.sum_nonneg fun i _ => mul_nonneg (norm_nonneg _) (norm_nonneg _)
   nlinarith
 
+/-- The absolute real part of the inner product of two normalized finite state vectors is at
+most one. -/
 theorem abs_re_inner_le_one {I : Type} [Fintype I] [DecidableEq I] {ψ φ : QState I}
     (hψ : ∑ i, ‖ψ i‖ ^ 2 = 1) (hφ : ∑ i, ‖φ i‖ ^ 2 = 1) :
     |(Inner ψ φ).re| ≤ 1 :=
   (Complex.abs_re_le_norm _).trans (abs_inner_le_one hψ hφ)
 
+/-- The absolute imaginary part of the inner product of two normalized finite state vectors is
+at most one. -/
 theorem abs_im_inner_le_one {I : Type} [Fintype I] [DecidableEq I] {ψ φ : QState I}
     (hψ : ∑ i, ‖ψ i‖ ^ 2 = 1) (hφ : ∑ i, ‖φ i‖ ^ 2 = 1) :
     |(Inner ψ φ).im| ≤ 1 :=
   (Complex.abs_im_le_norm _).trans (abs_inner_le_one hψ hφ)
 
+/-- The norm of a complex number is at most the sum of the absolute values of its real and
+imaginary parts. -/
 theorem norm_le_abs_re_add_abs_im (z : ℂ) : ‖z‖ ≤ |z.re| + |z.im| := by
   calc ‖z‖ = ‖(z.re : ℂ) + (z.im : ℂ) * Complex.I‖ := by
         rw [Complex.re_add_im]
@@ -92,6 +128,8 @@ theorem norm_le_abs_re_add_abs_im (z : ℂ) : ‖z‖ ≤ |z.re| + |z.im| := by
         rw [norm_mul, Complex.norm_I, mul_one]
         simp
 
+/-- The finite grid index obtained by taking the natural floor of `(u + 1) * L ^ 3`, with the
+hypotheses ensuring that it lies in `Fin (2 * M + 1)`. -/
 def gridFin (M : ℕ) (L : ℝ) (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (u : ℝ) (hu : |u| ≤ 1) : Fin (2 * M + 1) :=
   ⟨⌊(u + 1) * L ^ 3⌋₊, by
@@ -111,6 +149,7 @@ def gridFin (M : ℕ) (L : ℝ) (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     rw [h3] at h2
     omega⟩
 
+/-- Two numbers in `[-1, 1]` with the same grid index differ by strictly less than `1 / L ^ 3`. -/
 theorem gridFin_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     {u v : ℝ} (hu : |u| ≤ 1) (hv : |v| ≤ 1)
     (h : gridFin M L hLpos hLM u hu = gridFin M L hLpos hLM v hv) :
@@ -142,9 +181,12 @@ theorem gridFin_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : 
   rw [lt_div_iff₀ hL3]
   exact hdiff
 
+/-- The pair of finite tables used to encode quantized real and imaginary Gram entries indexed
+by `ι × ι`. -/
 abbrev FeatureSpace (M : ℕ) (ι : Type) :=
   (ι × ι → Fin (2 * M + 1)) × (ι × ι → Fin (2 * M + 1))
 
+/-- The quantized real and imaginary parts of the Gram matrix of the normalized family `b y`. -/
 def feature (M : ℕ) (L : ℝ) (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool))
     (hb : ∀ y ε, ∑ i, ‖b y ε i‖ ^ 2 = 1) (y : Fin n → Bool) : FeatureSpace M ι :=
@@ -153,6 +195,7 @@ def feature (M : ℕ) (L : ℝ) (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
    fun p => gridFin M L hLpos hLM (Inner (b y p.1) (b y p.2)).im
       (abs_im_inner_le_one (hb y p.1) (hb y p.2)))
 
+/-- The feature space has cardinality `(2 * M + 1) ^ (2 * Fintype.card ι * Fintype.card ι)`. -/
 theorem card_featureSpace (M : ℕ) :
     Fintype.card (FeatureSpace M ι) =
       (2 * M + 1) ^ (2 * Fintype.card ι * Fintype.card ι) := by
@@ -163,6 +206,8 @@ theorem card_featureSpace (M : ℕ) :
   congr 1
   ring
 
+/-- Inputs with equal features have corresponding Gram entries at complex distance at most `2 /
+L ^ 3`. This is the discretization estimate used in the proof of Theorem 4 of [Yao1993]. -/
 theorem feature_gram_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool))
     (hb : ∀ y ε, ∑ i, ‖b y ε i‖ ^ 2 = 1)
@@ -184,6 +229,8 @@ theorem feature_gram_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ 
   have hsum : (1 : ℝ) / L ^ 3 + 1 / L ^ 3 = 2 / L ^ 3 := by ring
   linarith [hnorm, hre'.le, him'.le]
 
+/-- Equal features for `y` and `y'` bound the difference of acceptance masses at any `x` by
+`(Fintype.card ι : ℝ) ^ 2 * (2 / L ^ 3)`, assuming the stated normalizations. -/
 theorem acceptProb_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool))
@@ -241,6 +288,8 @@ theorem acceptProb_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M
         simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
         ring
 
+/-- If the feature space has fewer than `n + 1` elements, two distinct prefix-one words have
+equal features. This is the collision step in the proof of Theorem 4 of [Yao1993]. -/
 theorem exists_feature_collision {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool))
     (hb : ∀ y ε, ∑ i, ‖b y ε i‖ ^ 2 = 1)
@@ -256,6 +305,9 @@ theorem exists_feature_collision {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 
       (fun k : Fin (n + 1) => feature M L hLpos hLM b hb (onesWord n k.val)) hlt
   exact ⟨k₁, k₂, hne, heq⟩
 
+/-- The stated normalized families cannot simultaneously satisfy the weight-threshold acceptance
+gap, a feature space smaller than `n + 1`, and `6 * (Fintype.card ι : ℝ) ^ 2 < L ^ 3`. This
+is the contradiction underlying the protocol lower bound in Theorem 4 of [Yao1993]. -/
 theorem theorem4_no_cheap_protocol {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
     (b : (Fin n → Bool) → ι → QState (Fin l → Bool))

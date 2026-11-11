@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
+
+/-!
+# Corrected cluster histories and resource counts
+
+This module derives operator and resource consequences of deferred Pauli correction for the
+cluster measurement scheme of [RaussendorfBriegel2000]. It combines the history formulas with
+the terminal correction cost and extends corrected branches to an arbitrary finite reference
+register.
+
+For a legal network, the uncorrected history maps are completely positive, and summing their
+terminally corrected outputs gives conjugation by `networkLogicalMatrix`. The path ledger
+records queries, gates, measurements, and message bits for each valid history.
+
+## Main statements
+
+* `deferred_pauli_actual_path_ledger`: compute the cost of a valid history including its
+  terminal correction.
+* `deferred_pauli_corrected_history_entangled_reference`: extend the corrected branch formula to
+  a reference register.
+* `deferredHistoryBranch_cp`: prove complete positivity of each uncorrected history branch.
+* `deferred_pauli_physical_branches_and_forget_consumer`: sum corrected histories to recover the
+  logical action.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -20,6 +48,9 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 
+/-- For a legal network and valid history starting from the zero frame, the cost is zero
+queries, `4 * u + 9 * c` gates plus the final frame correction cost, and `u + 2 * c`
+measurements and message bits, where `u` and `c` are the wire and CZ counts. -/
 theorem deferred_pauli_actual_path_ledger :
     ∀ (n : ℕ) (gs : List (ClusterNetworkGate n))
       (hist : Fin gs.length → Bool × Bool), networkLegal gs →
@@ -33,6 +64,11 @@ theorem deferred_pauli_actual_path_ledger :
   simp only [deferredPathCost, deferredRawPathCost_eq gs hist _ hgs hh,
     frameCorrectionSteps_length]
 
+/-- For a legal network, amplification of a terminally corrected history branch to any finite
+reference register equals the weighted conjugation by identity on that register tensored
+with the logical matrix for valid histories, and zero otherwise. This extends the branch
+identity for the measurement scheme of [RaussendorfBriegel2000] to arbitrary reference
+operators. -/
 theorem deferred_pauli_corrected_history_entangled_reference :
     ∀ (n : ℕ) (gs : List (ClusterNetworkGate n)) (hist : Fin gs.length → Bool × Bool),
       networkLegal gs → let F := finalPauliFrame gs hist (zeroPauliFrame n);
@@ -59,6 +95,8 @@ theorem deferred_pauli_corrected_history_entangled_reference :
   · rw [if_neg hv, if_neg hv]
     rfl
 
+/-- Every deferred history branch of a legal network starting from the zero Pauli frame is
+completely positive. -/
 theorem deferredHistoryBranch_cp {n : ℕ} (gs : List (ClusterNetworkGate n))
     (hgs : networkLegal gs) (hist : Fin gs.length → Bool × Bool) :
     CompletelyPositive (deferredHistoryBranch gs hist (zeroPauliFrame n)) := by
@@ -78,6 +116,10 @@ theorem deferredHistoryBranch_cp {n : ℕ} (gs : List (ClusterNetworkGate n))
   · rw [if_neg hv]
     exact networkCP_zero
 
+/-- For a legal network, all zero-frame deferred history branches are completely positive, and
+summing their terminally corrected outputs gives conjugation by the logical matrix on every
+input operator. This recovers the logical action of the measurement scheme of
+[RaussendorfBriegel2000]. -/
 theorem deferred_pauli_physical_branches_and_forget_consumer :
     ∀ (n : ℕ) (gs : List (ClusterNetworkGate n)), networkLegal gs →
       (∀ hist : Fin gs.length → Bool × Bool,

@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityLevelSubgoalQuan
+
+/-!
+# Exact water-level resampling circuits
+
+`resamplingExactSchedule` tunes an amplitude-amplification angle and scale to reach the selected
+branch exactly. `resamplingPaidWord_actual` verifies the expanded circuit and its source-query,
+data-query, and fixed-gate counts; `resamplingExactOutput_actual` identifies the normalized
+clipped-fill output, its target overlap, and its query bound.
+
+This construction formalizes ingredients of quantum rejection sampling
+[OzolsRoettelerRoland2013] in the setting of [Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -30,33 +43,49 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The natural ceiling of `π / (4 * arcsin β) - 1 / 2`, used as the number of exact
+amplitude-amplification rounds. -/
 def resamplingExactRounds (β : ℝ) : ℕ :=
   Nat.ceil (Real.pi / (4 * Real.arcsin β) - 1 / 2)
 
+/-- The angle `π / (2 * (2 * resamplingExactRounds β + 1))` that makes the total amplification
+angle equal to `π / 2`. -/
 def resamplingExactAngle (β : ℝ) : ℝ :=
   Real.pi / (2 * (2 * (resamplingExactRounds β : ℝ) + 1))
 
+/-- The scale `sin (resamplingExactAngle β) / β` applied to the initial selected amplitude. -/
 def resamplingExactScale (β : ℝ) : ℝ := Real.sin (resamplingExactAngle β) / β
 
+/-- The clipped-fill amplitude divided by the source amplitude, with value zero at a zero source
+coordinate. -/
 def resamplingLevelRatio {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ) (i : Fin m) : ℝ :=
   if π i = 0 then 0 else levelFill π σ γ i / (π i : ℝ)
 
+/-- The coin payoff rotation with probability parameter equal to the square of the scaled
+fill-to-source ratio at each source coordinate. -/
 def resamplingLevelFilter {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ) :
     Matrix ((Fin m × Fin D) × Bool) ((Fin m × Fin D) × Bool) ℂ :=
   payoffRotation (fun p => (a * resamplingLevelRatio π σ γ p.1) ^ 2)
 
+/-- Extends the source-preparation matrix by the identity on the Boolean coin register. -/
 def resamplingEmbeddedOracle {m D : ℕ}
     (U : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) :=
   TensorGate U (1 : Matrix Bool Bool ℂ)
 
+/-- The source preparation followed by the scaled water-level coin filter, expressed as a matrix
+product. -/
 def resamplingLevelPrepare {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (U : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) :=
   resamplingLevelFilter π σ γ a * resamplingEmbeddedOracle U
 
+/-- The permutation matrix that flips the Boolean coin and leaves the source and ancillary
+registers unchanged. -/
 def resamplingCoinSwap (m D : ℕ) :
     Matrix ((Fin m × Fin D) × Bool) ((Fin m × Fin D) × Bool) ℂ :=
   fun x y => if x.1 = y.1 ∧ x.2 = !y.2 then 1 else 0
 
+/-- Expands a prepared instruction into source-oracle calls and known filter or marking gates,
+using adjoints for backward instructions. Ordinary fixed gates are retained unchanged. -/
 def resamplingExpandStep {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ) :
     PreparedStep ((Fin m × Fin D) × Bool) → List (PreparedStep ((Fin m × Fin D) × Bool))
   | .prepareForward => [.gate (resamplingLevelFilter π σ γ a), .prepareForward]
@@ -65,25 +94,37 @@ def resamplingExpandStep {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ) :
   | .dataBackward => [.gate (preparedMark (waterEvent m D))ᴴ]
   | .gate V => [.gate V]
 
+/-- Expands the prepared amplitude-amplification word for `t` rounds and adds a coin swap so
+that the selected output lies in the false-coin branch. -/
 def resamplingPaidWord {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (j₀ : Fin m × Fin D) (t : ℕ) : List (PreparedStep ((Fin m × Fin D) × Bool)) :=
   .gate (resamplingCoinSwap m D) ::
     ((preparedAAWord (j₀, false) t).map (resamplingExpandStep π σ γ a)).flatten
 
+/-- The paid resampling word with scale and round count chosen from the square root of the
+clipped-fill mass. -/
 def resamplingExactWord {m D : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     (j₀ : Fin m × Fin D) : List (PreparedStep ((Fin m × Fin D) × Bool)) :=
   let β := Real.sqrt (levelMass π σ γ)
   resamplingPaidWord π σ γ (resamplingExactScale β) j₀ (resamplingExactRounds β)
 
+/-- The state obtained by evaluating the exact resampling word with the embedded source oracle
+and applying it to the starting basis state with false coin. -/
 def resamplingExactOutput {m D : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     (U : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j₀ : Fin m × Fin D) :=
   ApplyGate (evaluatePrepared 1 (resamplingEmbeddedOracle U)
     (resamplingExactWord π σ γ j₀)) (Ket (j₀, false))
 
+/-- Combines real weights with an ancillary state family in the false-coin branch, assigning
+zero amplitude to the true-coin branch. -/
 def resamplingFamily {m D : ℕ} (v : Fin m → ℝ) (ξ : Fin m → QState (Fin D)) :
     QState ((Fin m × Fin D) × Bool) :=
   fun p => if p.2 then 0 else (v p.1.1 : ℂ) * ξ p.1.1 p.1.2
 
+/-- For `0 < β ≤ 1`, proves a scale in `[1/2, 1]`, a positive angle at most `π/2`, the exact
+total-angle identity, and the query estimate `2 * rounds + 1 ≤ π / (2 * β) + 2`; see
+[OzolsRoettelerRoland2013] for the quantum rejection-sampling context. At `β = 1`, the
+schedule uses zero rounds and scale one. -/
 theorem resamplingExactSchedule :
   ∀ β : ℝ, 0 < β → β ≤ 1 →
     1 / 2 ≤ resamplingExactScale β ∧ resamplingExactScale β ≤ 1 ∧
@@ -203,6 +244,8 @@ theorem resamplingExactSchedule :
   · unfold resamplingExactScale
     exact (div_mul_cancel₀ _ hβ.ne').symm
 
+/-- For nonnegative tables and level, proves that each fill-to-source ratio lies in `[0, 1]` and
+recovers the clipped fill when multiplied by the source amplitude. -/
 theorem resamplingLevelRatio_bounds {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     (h : ∀ i, 0 ≤ π i ∧ 0 ≤ σ i) (hγ : 0 ≤ γ) (i : Fin m) :
     0 ≤ resamplingLevelRatio π σ γ i ∧ resamplingLevelRatio π σ γ i ≤ 1 ∧
@@ -222,6 +265,8 @@ theorem resamplingLevelRatio_bounds {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     refine ⟨div_nonneg hfill hp, (div_le_one hpos).mpr hle, ?_⟩
     field_simp
 
+/-- The scaled water-level filter is unitary when the tables and level are nonnegative and the
+scale lies in `[0, 1]`. -/
 theorem resamplingLevelFilter_unitary {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (h : ∀ i, 0 ≤ π i ∧ 0 ≤ σ i) (hγ : 0 ≤ γ) (ha : 0 ≤ a) (ha1 : a ≤ 1) :
     resamplingLevelFilter (D := D) π σ γ a ∈ Matrix.unitaryGroup _ ℂ := by
@@ -235,6 +280,8 @@ theorem resamplingLevelFilter_unitary {m D : ℕ} (π σ : Fin m → ℚ) (γ a 
       _ ≤ 1 := by simpa using! ha1
   exact ⟨sq_nonneg _,by nlinarith⟩
 
+/-- For normalized ancillary states, the squared norm of the weighted true-coin family is the
+sum of the squared real weights. -/
 theorem resamplingSelected_normSq (m D : ℕ) (w : Fin m → ℝ)
     (ξ : Fin m → QState (Fin D)) (hξ : ∀ i, Normalized (ξ i)) :
     (∑ p : ((Fin m × Fin D) × Bool), Complex.normSq
@@ -246,6 +293,10 @@ theorem resamplingSelected_normSq (m D : ℕ) (w : Fin m → ℝ)
   simp_rw [← Finset.mul_sum,hnorm,mul_one]
   simp only [pow_two]
 
+/-- Proves unitarity of the filter and the filtered source preparation under nonnegative input
+and scale bounds; see [OzolsRoettelerRoland2013] for the quantum rejection-sampling context.
+The marked collapse has amplitudes `a * levelFill` times the ancillary states, and its
+probability is `a^2 * levelMass`. -/
 theorem resamplingLevelPrepare_actual :
   ∀ (m D : ℕ) (π σ : Fin m → ℚ) (γ a : ℝ),
     (∀ i, 0 ≤ π i ∧ 0 ≤ σ i) → 0 ≤ γ → 0 ≤ a → a ≤ 1 →
@@ -302,6 +353,7 @@ theorem resamplingLevelPrepare_actual :
         resamplingSelected_normSq m D (fun i => a*levelFill π σ γ i) ξ hξ
     _ = _ := by simp only [mul_pow,levelMass,Finset.mul_sum]
 
+/-- The Boolean coin-swap matrix is unitary for every source and ancillary dimension. -/
 theorem resamplingCoinSwap_unitary (m D : ℕ) :
     resamplingCoinSwap m D ∈ Matrix.unitaryGroup _ ℂ := by
   have he : resamplingCoinSwap m D = permMatrix
@@ -311,6 +363,9 @@ theorem resamplingCoinSwap_unitary (m D : ℕ) :
   rw [he]
   exact permMatrix_unitary (by intro p; simp)
 
+/-- Expanding a prepared word preserves its input-query count and removes all data queries. Its
+fixed-gate count becomes the original fixed-gate count plus the original input- and
+data-query counts. -/
 theorem resamplingExpanded_counts {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (cs : List (PreparedStep ((Fin m × Fin D) × Bool))) :
     preparedInputQueries ((cs.map (resamplingExpandStep π σ γ a)).flatten) = preparedInputQueries cs ∧
@@ -327,6 +382,8 @@ theorem resamplingExpanded_counts {m D : ℕ} (π σ : Fin m → ℚ) (γ a : �
     cases c <;> simp [resamplingExpandStep,preparedInputQueries,preparedDataQueries,
       preparedFixedGates,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
 
+/-- Evaluating the expanded word with the embedded source oracle equals evaluating the original
+word with the water-event marking matrix and filtered source preparation. -/
 theorem resamplingExpanded_evaluate {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (U : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ)
     (cs : List (PreparedStep ((Fin m × Fin D) × Bool))) :
@@ -340,6 +397,8 @@ theorem resamplingExpanded_evaluate {m D : ℕ} (π σ : Fin m → ℚ) (γ a : 
     cases c <;> simp [resamplingExpandStep,evaluatePrepared,preparedInstruction,
       resamplingLevelPrepare,Matrix.conjTranspose_mul,Matrix.mul_assoc]
 
+/-- Expansion preserves prepared-circuit validity when the inserted filter and water-event
+marking matrices are unitary. -/
 theorem resamplingExpanded_valid {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (hf : resamplingLevelFilter (D := D) π σ γ a ∈ Matrix.unitaryGroup _ ℂ)
     (hm : preparedMark (waterEvent m D) ∈ Matrix.unitaryGroup _ ℂ)
@@ -373,6 +432,10 @@ theorem resamplingExpanded_valid {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ
     · trivial
     · exact Qatlib.Concepts.Execution.WorkspaceCP.adjoint_unitary hf
 
+/-- Verifies the paid word and gives exactly `2 * t + 1` source queries, zero data queries, and
+`4 * t + 2` fixed gates; see [OzolsRoettelerRoland2013] for the quantum rejection-sampling
+context. Its evaluated matrix is the prepared amplitude-amplification matrix followed by the
+coin swap. -/
 theorem resamplingPaidWord_actual :
   ∀ (m D : ℕ) (π σ : Fin m → ℚ) (γ a : ℝ) (j₀ : Fin m × Fin D) (t : ℕ),
     (∀ i, 0 ≤ π i ∧ 0 ≤ σ i) → 0 ≤ γ → 0 ≤ a → a ≤ 1 →
@@ -407,6 +470,7 @@ theorem resamplingPaidWord_actual :
       congrArg (resamplingCoinSwap m D * ·) (resamplingExpanded_evaluate π σ γ a U
         (preparedAAWord (j₀,false) t))
 
+/-- Collapsing a normalized state onto an event of probability one leaves the state unchanged. -/
 private theorem resamplingFullCollapse {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) (hψ : Normalized ψ) (hS : MeasureProb ψ S = 1) :
     Collapse ψ S = ψ := by
@@ -423,6 +487,8 @@ private theorem resamplingFullCollapse {I : Type*} [Fintype I] [DecidableEq I]
       exact norm_eq_zero.mp (by nlinarith [norm_nonneg (ψ i)])
     simp [collapse_apply,hi,hz]
 
+/-- Applying the coin swap evaluates the original state at the same source and ancillary indices
+with the Boolean coin negated. -/
 theorem resamplingCoinSwap_apply (m D : ℕ) (ψ : QState ((Fin m × Fin D) × Bool))
     (p : (Fin m × Fin D) × Bool) :
     ApplyGate (resamplingCoinSwap m D) ψ p = ψ (p.1,!p.2) := by
@@ -433,6 +499,8 @@ theorem resamplingCoinSwap_apply (m D : ℕ) (ψ : QState ((Fin m × Fin D) × B
   rw [he]
   exact applyGate_permMatrix (by intro p; simp) ψ p
 
+/-- For normalized ancillary states, the inner product of two weighted resampling families is
+the real dot product of their weights, cast to the complex numbers. -/
 theorem resamplingFamily_inner (m D : ℕ) (v w : Fin m → ℝ)
     (ξ : Fin m → QState (Fin D)) (hξ : ∀ i, Normalized (ξ i)) :
     Inner (resamplingFamily v ξ) (resamplingFamily w ξ) =
@@ -451,6 +519,8 @@ theorem resamplingFamily_inner (m D : ℕ) (v w : Fin m → ℝ)
     _ = (v i : ℂ)*(w i : ℂ) := by
       rw [← inner_apply,inner_self_eq_one (hξ i),mul_one]
 
+/-- The clipped-fill mass is at most one when the source table has squared norm one and the
+tables and level are nonnegative. -/
 theorem resamplingLevelMass_le_one {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     (h : ∀ i, 0 ≤ π i ∧ 0 ≤ σ i) (hγ : 0 ≤ γ)
     (hπ : (∑ i, (π i : ℝ)^2) = 1) : levelMass π σ γ ≤ 1 := by
@@ -465,6 +535,7 @@ theorem resamplingLevelMass_le_one {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
       nlinarith
     _ = 1 := hπ
 
+/-- The state inner product is linear in scalar multiplication of its second argument. -/
 private theorem resamplingInner_smul_right {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (ψ φ : QState I) :
     Inner ψ (c • φ) = c * Inner ψ φ := by
   rw [inner_apply,inner_apply]
@@ -474,6 +545,9 @@ private theorem resamplingInner_smul_right {I : Type*} [Fintype I] [DecidableEq 
   intro i _
   ring
 
+/-- When the initial selected probability is `sin(α)^2` and `(2 * t + 1) * α = π/2`, the
+amplified state equals the selected collapse scaled by `1 / sin α`. The statement includes
+the endpoint angle `α = π/2`. -/
 private theorem resamplingExactAAState {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (α : ℝ) (t : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hα : 0 < α) (hα1 : α ≤ Real.pi/2)
@@ -496,6 +570,11 @@ private theorem resamplingExactAAState {I : Type} [Fintype I] [DecidableEq I]
     simp only [pow_zero,one_smul,Real.sin_pi_div_two,div_one,Complex.ofReal_one]
     exact (resamplingFullCollapse _ S (normalized_applyGate hA (normalized_ket j₀)) hm).symm
 
+/-- Identifies the exact output as the clipped-fill family normalized by the square root of its
+positive mass, and proves normalization, zero true-coin probability, and squared target
+overlap `levelDot^2 / levelMass`; see [OzolsRoettelerRoland2013] for the quantum
+rejection-sampling context. It also gives the exact source and fixed-gate counts, zero data
+queries, and the source-query upper bound `π / (2 * sqrt(levelMass)) + 2`. -/
 theorem resamplingExactOutput_actual :
 ∀ (m D : ℕ) (π σ : Fin m → ℚ) (γ : ℝ),
     (∀ i, 0 ≤ π i ∧ 0 ≤ σ i) → 0 ≤ γ →

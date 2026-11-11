@@ -8,6 +8,27 @@ import Qatlib.Papers.ElemDistinct00.MainResults.Defs
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Generic claw finding cost expressions
+
+This module analyzes the scalar success and cost expressions for the generic claw finding
+method. It relates the round count to the inverse square root of `clawSuccessProb`, simplifies
+the total cost, and evaluates `clawCost` at the choices `sqrt M` and `N`. Choosing the smaller
+of these gives the piecewise bound in `clawCost_min_bound`.
+
+The mathematical setting follows [BuhrmanEtAl2005].
+
+## Main statements
+
+* `clawTotal_eq`: the total expression equals `sqrt 2` times `clawCost`.
+* `clawCost_min_bound`: the piecewise cost bound for `min N (sqrt M)`.
+
+## References
+
+* [Buhrman et al., 2005][BuhrmanEtAl2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,27 +37,38 @@ noncomputable section
 
 namespace Qatlib.Papers.ElemDistinct00.MainResults.Claw
 
+/-- The scalar success probability expression `L³ / (2 * N * M)`. -/
 def clawSuccessProb (N M L : ℝ) : ℝ := L ^ 3 / (2 * N * M)
 
+/-- The round count expression `sqrt (2 * N * M / L³)`. -/
 def clawRounds (N M L : ℝ) : ℝ := Real.sqrt (2 * N * M / L ^ 3)
 
+/-- The per-round comparison cost expression `L * log L`. -/
 def clawRoundCost (L : ℝ) : ℝ := L * Real.log L
 
+/-- The product of the round count and per-round cost expressions. -/
 def clawTotal (N M L : ℝ) : ℝ := clawRounds N M L * clawRoundCost L
 
+/-- The simplified cost expression `sqrt (N * M / L) * log L`. -/
 def clawCost (N M L : ℝ) : ℝ := Real.sqrt (N * M / L) * Real.log L
 
+/-- For positive `N` and `M`, the product `(L / N) * (L² / M) * (1/2)` equals `clawSuccessProb N
+M L`. See [Buhrman et al., 2005, Theorem 2][BuhrmanEtAl2005]. -/
 theorem clawSuccessProb_arith {N M L : ℝ} (hN : 0 < N) (hM : 0 < M) :
     (L / N) * (L ^ 2 / M) * (1 / 2) = clawSuccessProb N M L := by
   unfold clawSuccessProb
   field_simp
 
+/-- For positive `N`, `M`, and `L`, the round count equals the square root of the reciprocal
+success probability expression. -/
 theorem clawRounds_eq_inv_sqrt {N M L : ℝ} (hN : 0 < N) (hM : 0 < M) (hL : 0 < L) :
     clawRounds N M L = Real.sqrt (1 / clawSuccessProb N M L) := by
   unfold clawRounds clawSuccessProb
   congr 1
   field_simp
 
+/-- For nonnegative `N`, `M`, and `L`, the product `sqrt (N * M / L³) * L` equals `sqrt (N * M /
+L)`. -/
 theorem sqrt_div_cube_mul {N M L : ℝ} (hN : 0 ≤ N) (hM : 0 ≤ M) (hL : 0 ≤ L) :
     Real.sqrt (N * M / L ^ 3) * L = Real.sqrt (N * M / L) := by
   rcases eq_or_lt_of_le hL with rfl | hLpos
@@ -51,6 +83,8 @@ theorem sqrt_div_cube_mul {N M L : ℝ} (hN : 0 ≤ N) (hM : 0 ≤ M) (hL : 0 �
           congr 1
           field_simp
 
+/-- For positive `N`, `M`, and `L`, the total cost expression equals `sqrt 2 * clawCost N M L`.
+See [Buhrman et al., 2005, Theorem 2][BuhrmanEtAl2005]. -/
 theorem clawTotal_eq {N M L : ℝ} (hN : 0 < N) (hM : 0 < M) (hL : 0 < L) :
     clawTotal N M L = Real.sqrt 2 * clawCost N M L := by
   unfold clawTotal clawRounds clawRoundCost clawCost
@@ -65,12 +99,15 @@ theorem clawTotal_eq {N M L : ℝ} (hN : 0 < N) (hM : 0 < M) (hL : 0 < L) :
       = Real.sqrt 2 * (Real.sqrt (N * M / L ^ 3) * L) * Real.log L := by ring
     _ = Real.sqrt 2 * (Real.sqrt (N * M / L) * Real.log L) := by rw [hstep]; ring
 
+/-- For nonnegative `M`, the square root of `sqrt M` equals the real quarter power of `M`. -/
 theorem sqrt_sqrt_eq_rpow_quarter {M : ℝ} (hM : 0 ≤ M) :
     Real.sqrt (Real.sqrt M) = M ^ (1 / 4 : ℝ) := by
   rw [Real.sqrt_eq_rpow, Real.sqrt_eq_rpow, ← Real.rpow_mul hM]
   congr 1
   norm_num
 
+/-- For nonnegative `N` and positive `M`, choosing `L = sqrt M` gives `sqrt N * M^(1/4) * log
+(sqrt M)`. -/
 theorem clawCost_sqrtM_eq {N M : ℝ} (hN : 0 ≤ N) (hM : 0 < M) :
     clawCost N M (Real.sqrt M)
       = Real.sqrt N * M ^ (1 / 4 : ℝ) * Real.log (Real.sqrt M) := by
@@ -80,6 +117,8 @@ theorem clawCost_sqrtM_eq {N M : ℝ} (hN : 0 ≤ N) (hM : 0 < M) :
     rw [mul_div_assoc, Real.div_sqrt]
   rw [h1, Real.sqrt_mul hN, sqrt_sqrt_eq_rpow_quarter hM0]
 
+/-- For `N ≥ 1` and `1 ≤ M ≤ N²`, choosing `L = sqrt M` gives cost at most `sqrt N * M^(1/4) *
+log N`. -/
 theorem clawCost_sqrtM_le {N M : ℝ} (hN : 1 ≤ N) (hM : 1 ≤ M) (hMN : M ≤ N ^ 2) :
     clawCost N M (Real.sqrt M) ≤ Real.sqrt N * M ^ (1 / 4 : ℝ) * Real.log N := by
   have hNpos : (0 : ℝ) < N := by linarith
@@ -92,22 +131,27 @@ theorem clawCost_sqrtM_le {N M : ℝ} (hN : 1 ≤ N) (hM : 1 ≤ M) (hMN : M ≤
     mul_nonneg (Real.sqrt_nonneg _) (Real.rpow_nonneg hMpos.le _)
   exact mul_le_mul_of_nonneg_left hlog hnonneg
 
+/-- For positive `N` and nonnegative `M`, choosing `L = N` gives cost `sqrt M * log N`. -/
 theorem clawCost_N_eq {N M : ℝ} (hN : 0 < N) (hM : 0 ≤ M) :
     clawCost N M N = Real.sqrt M * Real.log N := by
   unfold clawCost
   rw [show N * M / N = M by field_simp]
 
+/-- If `N ≥ 1` and `M ≤ N²`, the minimum of `N` and `sqrt M` equals `sqrt M`. -/
 theorem min_eq_sqrtM {N M : ℝ} (hN : 1 ≤ N) (h : M ≤ N ^ 2) :
     min N (Real.sqrt M) = Real.sqrt M := by
   apply min_eq_right
   exact (Real.sqrt_le_left (by linarith : (0 : ℝ) ≤ N)).mpr h
 
+/-- If `N ≥ 1` and `N² < M`, the minimum of `N` and `sqrt M` equals `N`. -/
 theorem min_eq_N {N M : ℝ} (hN : 1 ≤ N) (h : N ^ 2 < M) :
     min N (Real.sqrt M) = N := by
   apply min_eq_left
   rw [← Real.sqrt_sq (by linarith : (0 : ℝ) ≤ N)]
   exact Real.sqrt_le_sqrt h.le
 
+/-- For `N, M ≥ 1`, choosing `L = min N (sqrt M)` gives the stated piecewise bound, with
+branches at `M ≤ N²`. See [Buhrman et al., 2005, Theorem 2][BuhrmanEtAl2005]. -/
 theorem clawCost_min_bound {N M : ℝ} (hN : 1 ≤ N) (hM : 1 ≤ M) :
     clawCost N M (min N (Real.sqrt M))
       ≤ (if M ≤ N ^ 2 then Real.sqrt N * M ^ (1 / 4 : ℝ) * Real.log N

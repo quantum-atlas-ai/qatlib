@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.SieveLaw.PaidAdjointCompilationData
 import Lean.Elab.Tactic.Omega
+
+/-!
+# Semantics and costs of paid adjoint compilation
+
+This module verifies `paidAdjointCircuit` and `paidAdjointPipeline`: oracle instructions are
+replaced by a concrete body circuit or its reverse, and fixed instructions are compiled
+separately. In the circuit framework of [NielsenChuang2010], reversing a unitary body implements
+its conjugate transpose.
+
+The resulting circuits have zero oracle-query count and explicit gate costs. The main
+specifications also record allowed gate sets, unitarity, reverse semantics, and end-to-end
+measurement behavior.
+
+## Main statements
+
+* `paid_adjoint_actual_backend_cost`: compiled-word semantics, exact costs, and inverse
+  execution.
+* `paid_adjoint_end_to_end_cost`: the corresponding specification including setup and output
+  circuits.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -28,6 +53,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Reversing a unitary circuit compilation of a unitary matrix implements its conjugate
+transpose under `Run 1`. -/
 theorem gate_compilation_actual_reverse_semantics
     {O : Matrix I I ℂ} (body : GateCompilation O)
     (hO : O ∈ Matrix.unitaryGroup I ℂ)
@@ -40,6 +67,8 @@ theorem gate_compilation_actual_reverse_semantics
   rw [body.semantics, ← applyGate_mul, hOO, applyGate_one] at h
   exact h
 
+/-- Compiling a prepended adjoint instruction appends its compiled circuit after the compiled
+remaining word. -/
 private theorem paid_adj_cons
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (step : AdjointStep I) (word : List (AdjointStep I)) :
@@ -48,6 +77,7 @@ private theorem paid_adj_cons
   simp only [paidAdjointCircuit, List.reverse_cons, List.flatMap_append,
     List.flatMap_cons, List.flatMap_nil, List.append_nil]
 
+/-- Each paid adjoint instruction compiles to a circuit with zero oracle queries. -/
 theorem paid_adjoint_step_query_free
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (step : AdjointStep I) :
@@ -57,6 +87,7 @@ theorem paid_adjoint_step_query_free
   | forward => exact body.query_free
   | backward => exact (queryCount_reverseCircuit body.circuit).trans body.query_free
 
+/-- Every paid adjoint word compiles to a circuit with zero oracle queries. -/
 theorem paid_adjoint_compiler_query_free
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (word : List (AdjointStep I)) :
@@ -67,6 +98,8 @@ theorem paid_adjoint_compiler_query_free
     rw [paid_adj_cons, queryCount_append, ih,
       paid_adjoint_step_query_free body compiler step, Nat.zero_add]
 
+/-- Given a unitary oracle and unitary body compilation, a compiled paid adjoint step acts by
+its instruction matrix. -/
 private theorem paid_adj_step_semantics
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (hO : O ∈ Matrix.unitaryGroup I ℂ)
@@ -78,6 +111,8 @@ private theorem paid_adj_step_semantics
   | forward => exact body.semantics 1 ψ
   | backward => exact gate_compilation_actual_reverse_semantics body hO hbody ψ
 
+/-- Given a unitary oracle and unitary body compilation, the compiled adjoint word acts by
+`evaluate O word`. -/
 theorem paid_adjoint_compiler_semantics
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (hO : O ∈ Matrix.unitaryGroup I ℂ)
@@ -92,6 +127,8 @@ theorem paid_adjoint_compiler_semantics
     rw [← applyGate_mul]
     rfl
 
+/-- The compiled word's gate count is the fixed-gate compilation cost plus the adjoint query
+count times the body circuit's gate count. -/
 theorem paid_adjoint_compiler_gate_count
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (word : List (AdjointStep I)) :
@@ -119,6 +156,7 @@ theorem paid_adjoint_compiler_gate_count
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Reversing a circuit over `G` produces a circuit over the conjugate-transpose image of `G`. -/
 theorem paid_reverse_circuit_uses_dagger
     (G : Set (Matrix I I ℂ)) (C : Circuit I) (hC : Circuit.UsesGateSet G C) :
     Circuit.UsesGateSet (paidDaggerGateSet G) (ReverseCircuit C) := by
@@ -132,6 +170,8 @@ theorem paid_reverse_circuit_uses_dagger
     exact ⟨V, hC V hmem, he⟩
   | query => cases heq
 
+/-- If the body and the fixed-instruction compilations use `G`, the paid adjoint circuit uses `G
+∪ paidDaggerGateSet G`. -/
 theorem paid_adjoint_compiler_uses_gate_set
     {O : Matrix I I ℂ} (body : GateCompilation O) (compiler : GateCompiler I)
     (word : List (AdjointStep I)) (G : Set (Matrix I I ℂ))
@@ -156,6 +196,8 @@ theorem paid_adjoint_compiler_uses_gate_set
       intro U hU
       exact Or.inr (paid_reverse_circuit_uses_dagger G body.circuit hbody U hU)
 
+/-- Adding conjugate transposes to a set of unitary matrices preserves unitarity of every
+allowed gate. -/
 theorem paid_backend_gate_set_unitary
     (G : Set (Matrix I I ℂ))
     (hG : ∀ U, U ∈ G → U ∈ Matrix.unitaryGroup I ℂ) :
@@ -166,6 +208,9 @@ theorem paid_backend_gate_set_unitary
   · obtain ⟨V, hV, rfl⟩ := hU
     exact conjTranspose_mem_unitaryGroup (hG V hV)
 
+/-- Under the unitary gate-set and compilation hypotheses, paid adjoint compilation implements
+the evaluated word with zero oracle queries and the exact stated gate cost. Its reverse
+implements the conjugate transpose with the same cost and undoes the compiled circuit. -/
 theorem paid_adjoint_actual_backend_cost
     (I : Type) [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (body : GateCompilation O) (compiler : GateCompiler I)
@@ -214,12 +259,17 @@ theorem paid_adjoint_actual_backend_cost
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Enlarging an allowed gate set preserves a circuit's gate-set membership property. -/
 private theorem usesGateSet_mono
     {G G' : Set (Matrix I I ℂ)} {C : Circuit I}
     (hss : G ⊆ G') (h : Circuit.UsesGateSet G C) :
     Circuit.UsesGateSet G' C :=
   fun U hU => hss (h U hU)
 
+/-- With unitary allowed gates and query-free setup and output circuits, the paid pipeline
+implements setup, word evaluation, and output with zero oracle queries and the stated exact
+gate count. It preserves the corresponding measurement probabilities, uses the gate set
+enlarged by conjugate transposes, and is undone by its reverse. -/
 theorem paid_adjoint_end_to_end_cost
     (I : Type) [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (body : GateCompilation O) (compiler : GateCompiler I)

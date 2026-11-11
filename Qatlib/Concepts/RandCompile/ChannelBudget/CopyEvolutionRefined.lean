@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolutionDefs
+
+/-!
+# Refined copy-evolution endpoints
+
+This module augments copy-evolution endpoint specifications with injectivity of the backend
+encoding, the exact phase-estimation basis size, and a loading-description cost bound. It also
+exposes the off-grid instrument and repeated-copy sampling guarantees as separate statements.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `walkGoal_endpoint`: the loading endpoint with refined resource guarantees.
+* `clause16_endpoint`: the self-tomography endpoint with explicit branch and sampling
+  properties.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
@@ -24,15 +45,19 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option linter.unusedVariables false
 
+/-- The backend-alphabet encoding into source codes is injective. -/
 theorem walkGoal_backend_faithful : Function.Injective BackendAlphabet.toSourceCode := by
   intro a b h
   cases a <;> cases b <;> simp_all [BackendAlphabet.toSourceCode]
 
+/-- The label, Boolean, and system product basis has cardinality `qpePeakSpace D M`. -/
 theorem walkGoal_peak_space (D M : ℕ) :
     Fintype.card (Fin M × (Bool × Fin D)) = qpePeakSpace D M := by
   simp only [Fintype.card_prod, Fintype.card_fin, Fintype.card_bool, qpePeakSpace]
   ring
 
+/-- The total source-description bit length of the loading program is at least its `n * b`
+per-instruction loading bit costs. -/
 theorem walkGoal_bit_time (n b a aw t m ml : ℕ) :
     (n * b) * copyEvolutionLoadingBitCost a aw t m ml ≤
       sourceBitTime (copyEvolutionLoadingProgram n b a aw t m ml) := by
@@ -43,6 +68,8 @@ theorem walkGoal_bit_time (n b a aw t m ml : ℕ) :
     List.sum_replicate]
   exact mul_le_mul_of_nonneg_left hdesc (by positivity)
 
+/-- A nonnegative spectral decomposition of a density operator identifies ideal copy-QPE blocks
+with positive semidefinite off-grid branches of nonnegative mass. -/
 theorem clause16_offgrid_instrument :
     ∀ (D M : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ),
     0 < M → IsDensityOperator ρ → V ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -57,6 +84,8 @@ theorem clause16_offgrid_instrument :
     D M ρ V eig hM hρ hV hs heig
   exact ⟨h.1, h.2.1, h.2.2⟩
 
+/-- The repeated-copy label law has total mass one and the prescribed original-law marginal at
+every coordinate. -/
 theorem clause16_mcopy_sampling (M m : ℕ) (p : LabelLaw M) :
     (∑ t : Fin m → Fin M, mCopyLaw M m p t = 1) ∧
     (∀ (j : Fin m) (z : Fin M),
@@ -64,6 +93,8 @@ theorem clause16_mcopy_sampling (M m : ℕ) (p : LabelLaw M) :
   have h := (Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution.clause16_endpoint).2.1 M m p
   exact ⟨h.1, h.2⟩
 
+/-- Combines `walkGoalEndpointSpec` with backend-encoding injectivity, the exact
+phase-estimation basis size, and the loading-description cost bound. -/
 theorem walkGoal_endpoint :
     Qatlib.Concepts.CopyEvolution.SelfTomography.walkGoalEndpointSpec ∧
     Function.Injective BackendAlphabet.toSourceCode ∧
@@ -78,6 +109,8 @@ theorem walkGoal_endpoint :
   · intro n b a aw t m ml
     exact walkGoal_bit_time n b a aw t m ml
 
+/-- Combines `clause16EndpointSpec` with explicit off-grid branch identification, positivity,
+and repeated-copy sampling normalization and marginals. -/
 theorem clause16_endpoint :
     Qatlib.Concepts.CopyEvolution.SelfTomography.clause16EndpointSpec ∧
     (∀ (D M : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ),

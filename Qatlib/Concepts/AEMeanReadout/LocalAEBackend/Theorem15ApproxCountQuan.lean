@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+
+/-!
+# Success probability of Basic Approx Count
+
+This module proves the correctness guarantee for Basic Approx Count in [BrassardEtAl2002]. For
+an empty marked set the procedure outputs zero with probability one; for a nonempty marked set
+and `0 < ε ≤ 1`, its rounded output has relative error at most `ε` with probability at least `2
+/ 3`, under the stated final-grid size hypothesis.
+
+The proof bounds zero-label probabilities at small grids, factors the mass of zero-observation
+prefixes, and shows that a sufficiently late stopping index provides adequate final precision.
+These estimates connect the finite loop-record model to `Theorem15ApproxCountSpec.expected`.
+
+## Main statements
+
+* `basicApproxCount_prefix_zero_lower`: a lower bound on the mass of a sufficiently short
+  zero-observation prefix.
+* `bhmt_basic_approx_count_zero`: exact output zero for an empty marked set.
+* `bhmt_basic_approx_count_positive`: relative-error success mass at least `2 / 3` for a
+  nonempty marked set.
+* `bhmt_basic_approx_count_success`: the complete correctness specification.
+
+## References
+
+* [Brassard et al., Theorem 15][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +47,7 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Matrix
 open scoped Classical BigOperators
 
+/-- The product weights of all finite Basic Approx Count loop records sum to one. -/
 theorem basicApproxCountPrefixWeight_sum {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) :
     (∑ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
       basicApproxCountPrefixWeight hN S ω) = 1 := by
@@ -34,6 +62,8 @@ theorem basicApproxCountPrefixWeight_sum {N : ℕ} (hN : 0 < N) (S : Finset (Fin
   rw [Finset.prod_congr rfl (fun l _ => (basicApproxCountLoopLaw hN S l).sum_one)]
   simp
 
+/-- For an empty marked set and a final grid of size at least two, the conditional probability
+of final output zero equals one. -/
 theorem basicApproxCountFinalZero_eq_one {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : S.card = 0) (ε : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
@@ -59,6 +89,8 @@ theorem basicApproxCountFinalZero_eq_one {N : ℕ} (hN : 0 < N) (S : Finset (Fin
     exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _) (fun y _ _ => p.nonneg y)
   exact le_antisymm hupp hlow
 
+/-- For an empty marked set, averaging the conditional zero-output probability over loop records
+gives total mass one [Brassard et al., Theorem 15][BrassardEtAl2002]. -/
 theorem bhmt_basic_approx_count_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : S.card = 0)
     (ε : ℝ) (hω : ∀ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
       2 ≤ basicApproxCountFinalM ε (basicApproxCountStop N ω)) :
@@ -67,6 +99,8 @@ theorem bhmt_basic_approx_count_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   simp only [basicApproxCountFinalZero_eq_one hN S hS, mul_one]
   exact basicApproxCountPrefixWeight_sum hN S
 
+/-- If a real estimate is within `ε * t / 3` of a natural count `t` and `ε > 0`, rounding it to
+an integer gives error at most `ε * t`. -/
 theorem basicApproxCount_round_relative (t : ℕ) (ε x : ℝ) (hε : 0 < ε)
     (hx : |x - (t : ℝ)| ≤ ε * t / 3) :
     |((⌊x + 1 / 2⌋ : ℤ) : ℝ) - t| ≤ ε * t := by
@@ -89,6 +123,8 @@ theorem basicApproxCount_round_relative (t : ℕ) (ε x : ℝ) (hε : 0 < ε)
     simp
     positivity
 
+/-- For a nonempty marked set and `0 < ε ≤ 1`, the stated final-grid precision condition gives
+conditional relative-error success mass at least `8 / π²`. -/
 theorem basicApproxCountFinalGood_of_precision {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : 0 < S.card) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
@@ -143,6 +179,7 @@ theorem basicApproxCountFinalGood_of_precision {N : ℕ} (hN : 0 < N) (S : Finse
   · intro y _ _
     exact (basicApproxCountFinalLaw hN S ε ω hω).nonneg y
 
+/-- For positive `N`, two to the loop cap is at least `2 * √N`. -/
 theorem basicApproxCountLoopCap_power (N : ℕ) (hN : 0 < N) :
     2 * Real.sqrt (N : ℝ) ≤ (2 : ℝ) ^ basicApproxCountLoopCap N := by
   have hNr : (0 : ℝ) < N := by exact_mod_cast hN
@@ -153,6 +190,7 @@ theorem basicApproxCountLoopCap_power (N : ℕ) (hN : 0 < N) :
   simpa only [Real.rpow_logb (by norm_num : (0 : ℝ) < 2) (by norm_num : (2 : ℝ) ≠ 1) hp,
     Real.rpow_natCast] using! h
 
+/-- The Basic Approx Count stopping index is positive for positive `N`. -/
 theorem basicApproxCountStop_pos (N : ℕ) (hN : 0 < N)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) :
     0 < basicApproxCountStop N ω := by
@@ -169,6 +207,8 @@ theorem basicApproxCountStop_pos (N : ℕ) (hN : 0 < N)
   · omega
   · exact hcap
 
+/-- For positive `M` and nonzero phase `φ`, the squared zero-label phase-estimation kernel norm
+is at least `sin (π * M * φ)² / (π * M * φ)²`. -/
 theorem basicApproxCount_kernel_zero_lower (M : ℕ) (hM : 0 < M) (φ : ℝ) (hφ : φ ≠ 0) :
     (Real.sin (Real.pi * M * φ) / (Real.pi * M * φ)) ^ 2 ≤
       ‖qpeKernel M φ ⟨0, hM⟩‖ ^ 2 := by
@@ -182,6 +222,8 @@ theorem basicApproxCount_kernel_zero_lower (M : ℕ) (hM : 0 < M) (φ : ℝ) (h�
     ring
   · ring
 
+/-- Under the stated phase relation and small-grid condition `M * θ ≤ 1 / 5`, a loop record's
+zero-label probability is at least `1 - (M * θ)² / 2`. -/
 theorem basicApproxCount_loop_zero_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (ha : (S.card : ℝ) / N = Real.sin θ ^ 2)
@@ -226,6 +268,8 @@ theorem basicApproxCount_loop_zero_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin
   rw [hdist]
   nlinarith
 
+/-- For factors in `[0, 1]`, their finite product is at least one minus the sum of their
+deficits from one. -/
 theorem basicApproxCount_product_defect {X : Type*} [DecidableEq X]
     (s : Finset X) (p : X → ℝ) (hp0 : ∀ x ∈ s, 0 ≤ p x) (hp1 : ∀ x ∈ s, p x ≤ 1) :
     1 - ∑ x ∈ s, (1 - p x) ≤ ∏ x ∈ s, p x := by
@@ -243,11 +287,13 @@ theorem basicApproxCount_product_defect {X : Type*} [DecidableEq X]
     have hpa1 := hp1 a (Finset.mem_insert_self _ _)
     nlinarith
 
+/-- The loop-law probability mass of labels whose observed scaled amplitude estimate is zero. -/
 private noncomputable def loopZeroMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (l : Fin (basicApproxCountLoopCap N)) : ℝ :=
   ∑ z : Fin (2 * 2 ^ l.val),
     if (N : ℝ) * aeEstimate (2 * 2 ^ l.val) z = 0 then (basicApproxCountLoopLaw hN S l).prob z else 0
 
+/-- The zero-observation mass of each loop law lies between zero and one. -/
 private theorem loopZeroMass_bounds {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (l : Fin (basicApproxCountLoopCap N)) : 0 ≤ loopZeroMass hN S l ∧ loopZeroMass hN S l ≤ 1 := by
   let p := basicApproxCountLoopLaw hN S l
@@ -258,6 +304,7 @@ private theorem loopZeroMass_bounds {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     intro z _
     split_ifs <;> first | exact le_rfl | exact p.nonneg z
 
+/-- The zero-observation mass of a loop law is at least the probability of its zero label. -/
 private theorem loopZeroMass_ge_label_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (l : Fin (basicApproxCountLoopCap N)) :
     (basicApproxCountLoopLaw hN S l).prob ⟨0, by positivity⟩ ≤ loopZeroMass hN S l := by
@@ -271,10 +318,13 @@ private theorem loopZeroMass_ge_label_zero {N : ℕ} (hN : 0 < N) (S : Finset (F
     (show (⟨0, by positivity⟩ : Fin (2 * 2 ^ l.val)) ∈ Finset.univ by simp)
   simpa only [if_pos hz] using! h
 
+/-- The condition that every loop observation with index below `n` is zero. -/
 private noncomputable def prefixZero (N n : ℕ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) : Prop :=
   ∀ l : Fin (basicApproxCountLoopCap N), l.val < n → basicApproxCountObserved N ω l = 0
 
+/-- The product-weight mass of zero observations below `n` factors into the corresponding loop
+zero-observation masses. -/
 theorem basicApproxCount_prefix_zero_factor {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (n : ℕ) :
     (∑ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
       if prefixZero N n ω then basicApproxCountPrefixWeight hN S ω else 0) =
@@ -308,6 +358,8 @@ theorem basicApproxCount_prefix_zero_factor {N : ℕ} (hN : 0 < N) (S : Finset (
     have hsum := (basicApproxCountLoopLaw hN S l).sum_one
     simpa [q, hl] using! hsum
 
+/-- A finite-index sum restricted to indices below `n ≤ L` equals the natural prefix sum over
+`Finset.range n`. -/
 private theorem fin_prefix_sum (L n : ℕ) (hn : n ≤ L) (f : ℕ → ℝ) :
     (∑ l : Fin L, if l.val < n then f l.val else 0) = ∑ l ∈ Finset.range n, f l := by
   change (∑ l : Fin L, (fun k : ℕ => if k < n then f k else 0) l.val) = _
@@ -318,6 +370,7 @@ private theorem fin_prefix_sum (L n : ℕ) (hn : n ≤ L) (f : ℕ → ℝ) :
     omega
   rw [he]
 
+/-- The sum of squared phase scales `(2 * 2^l * θ)²` for `l < n` is at most `2 * (2^n * θ)²`. -/
 private theorem sum_doubling_squares (n : ℕ) (θ : ℝ) :
     (∑ l ∈ Finset.range n, ((2 * 2 ^ l : ℝ) * θ) ^ 2) ≤ 2 * ((2 : ℝ) ^ n * θ) ^ 2 := by
   induction n with
@@ -326,6 +379,8 @@ private theorem sum_doubling_squares (n : ℕ) (θ : ℝ) :
     rw [Finset.sum_range_succ, pow_succ (2 : ℝ) n]
     nlinarith [sq_nonneg ((2 : ℝ) ^ n * θ)]
 
+/-- Under the stated phase relation, a prefix satisfying `2^n * θ ≤ 1 / 5` has zero-observation
+mass at least `7 / 8`. -/
 theorem basicApproxCount_prefix_zero_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (ha : (S.card : ℝ) / N = Real.sin θ ^ 2)
@@ -368,6 +423,8 @@ theorem basicApproxCount_prefix_zero_lower {N : ℕ} (hN : 0 < N) (S : Finset (F
   change (7 / 8 : ℝ) ≤ ∏ l, p l
   nlinarith
 
+/-- If all observations below `n` vanish and `n + 1` is within the loop cap, the stopping index
+is at least `n + 1`. -/
 theorem basicApproxCountStop_of_prefix {N n : ℕ} (hn : n + 1 ≤ basicApproxCountLoopCap N)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hz : prefixZero N n ω) : n + 1 ≤ basicApproxCountStop N ω := by
@@ -382,6 +439,8 @@ theorem basicApproxCountStop_of_prefix {N n : ℕ} (hn : n + 1 ≤ basicApproxCo
     omega
   · exact hn
 
+/-- The stated angle bound and stopping threshold `2^stop * θ ≥ 1 / 5` imply sufficient
+final-grid precision for the relative-error estimate. -/
 theorem basicApproxCount_precision_of_stop {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε θ : ℝ) (hε : 0 < ε) (hθ : 0 < θ)
     (hangle : θ * Real.sqrt (N : ℝ) ≤ Real.pi / 2 * Real.sqrt (S.card : ℝ))
@@ -406,6 +465,8 @@ theorem basicApproxCount_precision_of_stop {N : ℕ} (hN : 0 < N) (S : Finset (F
       Real.pi * (ε * (M : ℝ) * Real.sqrt (S.card : ℝ)) := by nlinarith
   exact le_of_mul_le_mul_left hh Real.pi_pos
 
+/-- For a nonempty marked set, there exists `θ ∈ (0, π / 2]` with marked fraction `sin θ²` and
+the displayed lower and upper bounds on `θ * √N`. -/
 theorem basicApproxCount_angle {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 < S.card) :
     ∃ θ : ℝ, 0 < θ ∧ θ ≤ Real.pi / 2 ∧ (S.card : ℝ) / N = Real.sin θ ^ 2 ∧
       1 ≤ θ * Real.sqrt (N : ℝ) ∧
@@ -440,6 +501,8 @@ theorem basicApproxCount_angle {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS :
     have hh := mul_le_mul_of_nonneg_right hj' (Real.sqrt_nonneg (N : ℝ))
     simpa only [mul_assoc, he] using! hh
 
+/-- For the stated positive angle and square-root lower bound, a doubling scale crosses `1 / 5`
+before the loop cap, with the previous scale below the threshold unless its index is zero. -/
 theorem basicApproxCount_threshold (N : ℕ) (hN : 0 < N) (θ : ℝ)
     (hθ : 0 < θ) (hroot : 1 ≤ θ * Real.sqrt (N : ℝ)) :
     ∃ n : ℕ, n + 1 ≤ basicApproxCountLoopCap N ∧
@@ -472,6 +535,9 @@ theorem basicApproxCount_threshold (N : ℕ) (hN : 0 < N) (θ : ℝ)
     rw [he] at hh
     exact le_of_not_gt hh
 
+/-- For a nonempty marked set, `0 < ε ≤ 1`, and final grids of size at least two, the total
+relative-error success mass is at least `2 / 3` [Brassard et al., Theorem
+15][BrassardEtAl2002]. -/
 theorem bhmt_basic_approx_count_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : 0 < S.card) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hω : ∀ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
@@ -523,6 +589,9 @@ theorem bhmt_basic_approx_count_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin
     nlinarith
   exact hconst.trans (hmass'.trans hsum)
 
+/-- Basic Approx Count satisfies the specification of exact zero output in the empty case and
+relative-error success mass at least `2 / 3` in the positive-count case [Brassard et al.,
+Theorem 15][BrassardEtAl2002]. -/
 theorem bhmt_basic_approx_count_success :
     Theorem15ApproxCountSpec.expected := by
   intro N S hN ε hε hε1 hω
@@ -532,6 +601,8 @@ theorem bhmt_basic_approx_count_success :
   · intro hS
     exact bhmt_basic_approx_count_positive hN S hS ε hε hε1 hω
 
+/-- The Basic Approx Count correctness theorem realizes `Theorem15ApproxCountSpec.expected`
+[BrassardEtAl2002]. -/
 theorem bhmt_basic_approx_count_success_contract :
     Theorem15ApproxCountSpec.expected :=
   bhmt_basic_approx_count_success

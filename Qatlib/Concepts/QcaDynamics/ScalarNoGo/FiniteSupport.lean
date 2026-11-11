@@ -9,6 +9,24 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Finsupp.Basic
 import Mathlib.Data.Finset.Max
 
+/-!
+# Finite support scalar unitarity on the integers
+
+Defines autocorrelation and the delta autocorrelation condition `IsBandedUnitary` for finitely
+supported complex weights on the integers. The theorem `noGo_lemma` shows that such weights
+consist of a single coefficient of norm one, expressing the scalar obstruction of [Meyer1996].
+
+## Main statements
+
+* `autocorr`: defines the finite autocorrelation sum.
+* `IsBandedUnitary`: requires delta autocorrelation.
+* `noGo_lemma`: characterizes the weights as a phase times a singleton.
+
+## References
+
+* [Meyer, 1996][Meyer1996]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,12 +34,18 @@ open Complex
 
 namespace Qatlib.Concepts.QcaDynamics.ScalarNoGo
 
+/-- The autocorrelation of finitely supported integer weights at displacement `d`, summing `w (m
++ d) * star (w m)` over the support. -/
 def autocorr (w : ℤ →₀ ℂ) (d : ℤ) : ℂ :=
   ∑ m ∈ w.support, w (m + d) * star (w m)
 
+/-- The condition that the autocorrelation of finitely supported integer weights is one at zero
+and zero at every nonzero displacement. -/
 def IsBandedUnitary (w : ℤ →₀ ℂ) : Prop :=
   ∀ d : ℤ, autocorr w d = if d = 0 then 1 else 0
 
+/-- Finitely supported integer weights satisfying `IsBandedUnitary` equal a singleton weight
+multiplied by a complex scalar of norm one; see [Meyer1996]. -/
 theorem noGo_lemma (w : ℤ →₀ ℂ) (h : IsBandedUnitary w) :
     ∃ (k : ℤ) (c : ℂ), ‖c‖ = 1 ∧ w = c • Finsupp.single k 1 := by
 

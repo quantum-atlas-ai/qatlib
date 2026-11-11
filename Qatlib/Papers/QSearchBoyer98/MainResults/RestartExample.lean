@@ -10,6 +10,32 @@ import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoal
 import Qatlib.Concepts.SearchStopping.PaidRestart.Section3StrictImprovementSubgoalTigh
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceiptTigh
 import Mathlib.Tactic
+
+/-!
+# Certified restart constants and a finite search example
+
+This module certifies rational windows around a solution of tan(z/2) = z and its associated
+success, iteration, and expected-cost coefficients. It also records the zero-iteration profile
+and verifies an actual 596-iteration restart experiment with one marked item among 2²⁰
+possibilities, including the additional verification query.
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `pinned_restart_constants`: There exists a root of tan(z/2) = z between 2.33112 and 2.33113
+  whose success, iteration, and expected-cost coefficients lie in the stated rational windows.
+  Its expected-cost coefficient lies strictly between 0.87(π/4) and 0.88(π/4).
+* `printed_restart_actual_receipt`: For one marked item in a space of size 2²⁰, the unitary
+  596-iteration bit-search circuit followed by verification costs 597 queries per attempt, never
+  fails to terminate, and has expected paid time 597/p and expected iteration charge 596/p. The
+  bounds 705 < 596/p < 804 and 597/p < 804 hold for its Grover success probability p.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 open scoped Classical BigOperators ENNReal
@@ -26,6 +52,9 @@ namespace Qatlib.Papers.QSearchBoyer98.MainResults
 
 noncomputable section
 
+/-- There exists a root of tan(z/2) = z between 2.33112 and 2.33113 whose success, iteration,
+and expected-cost coefficients lie in the stated rational windows. Its expected-cost
+coefficient lies strictly between 0.87(π/4) and 0.88(π/4) [BoyerEtAl1998]. -/
 theorem pinned_restart_constants : ∃ z : ℝ,
     Real.tan (z/2)=z ∧ 233112/100000 < z ∧ z < 233113/100000 ∧
     8445/10000 < Real.sin (z/2)^2 ∧ Real.sin (z/2)^2 < 8446/10000 ∧
@@ -37,9 +66,14 @@ theorem pinned_restart_constants : ∃ z : ℝ,
   exact ⟨z,hz.1,hz.2.1,hz.2.2,
     section3OptimalConstantsSubgoal z hz.1 hz.2.1 hz.2.2⟩
 
+/-- The real-valued restart expected-iteration expression at zero iterations is zero. -/
 theorem zero_iteration_profile (θ : ℝ) : restartExpectedIterations θ 0=0 := by
   simp [restartExpectedIterations]
 
+/-- For one marked item in a space of size 2²⁰, the unitary 596-iteration bit-search circuit
+followed by verification costs 597 queries per attempt, never fails to terminate, and has
+expected paid time 597/p and expected iteration charge 596/p. The bounds 705 < 596/p < 804
+and 597/p < 804 hold for its Grover success probability p [BoyerEtAl1998]. -/
 theorem printed_restart_actual_receipt (I : Type) [Fintype I] [DecidableEq I]
     (hN : Fintype.card I=2^20) (A : Finset I) (hA : A.card=1) :
     ∃ hC : IsUnitaryCircuit (bbhtBitSearchCircuit (1:Matrix I I ℂ) (Uniform I) 596),

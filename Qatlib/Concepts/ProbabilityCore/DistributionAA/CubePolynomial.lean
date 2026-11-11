@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
 
+/-!
+# Cube expectation polynomials and noise derivatives
+
+The module evaluates multilinear cube functions under coordinate dependent product weights and
+expresses these expectations as univariate polynomials. Affine coordinate probabilities preserve
+the original degree bound.
+
+`cubeNoisePolynomial` varies selected coordinates from a fixed input, and its expectation
+derivative at zero is the sum of the corresponding flip differences. This construction supplies
+the derivative estimates used with the polynomial method of [BealsEtAl2001].
+
+## Main statements
+
+* `cube_expectation_polynomial_eval`: evaluation agrees with weighted cube expectation.
+* `cube_expectation_polynomial_degree_le`: affine coordinate substitution preserves the degree
+  bound.
+* `cube_noise_expectation_derivative`: the derivative equals a sum of coordinate flip changes.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
@@ -14,12 +37,17 @@ namespace Qatlib.Concepts.ProbabilityCore.DistributionAA
 open Polynomial
 open scoped Classical BigOperators
 
+/-- The product of the zero and one encodings of coordinates belonging to `S`. -/
 def cubeMonomial {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) : ℝ :=
   ∏ i ∈ S, if x i then (1 : ℝ) else 0
 
+/-- The product Boolean weight with a separate real true coordinate parameter `q i` at each
+coordinate. -/
 def cubeCoordinateWeight {n : ℕ} (q : Fin n → ℝ) (x : Fin n → Bool) : ℝ :=
   ∏ i, if x i then q i else 1-q i
 
+/-- Coordinate product weights form a cube probability weight when every parameter lies in `[0,
+1]`. -/
 theorem cube_coordinate_weight_normalized {n : ℕ} (q : Fin n → ℝ)
     (hq : ∀ i, q i ∈ Set.Icc 0 1) : CubeWeight n (cubeCoordinateWeight q) := by
   constructor
@@ -33,6 +61,8 @@ theorem cube_coordinate_weight_normalized {n : ℕ} (q : Fin n → ℝ)
         (Fintype.prod_sum (fun (i : Fin n) (b : Bool) => if b then q i else 1-q i)).symm
       _ = 1 := by simp
 
+/-- The coordinate weighted expectation of a cube monomial is the product of its coordinate
+parameters. -/
 theorem cube_coordinate_monomial_expect {n : ℕ} (q : Fin n → ℝ) (S : Finset (Fin n)) :
     cubeExpect n (cubeCoordinateWeight q) (cubeMonomial S) = ∏ i ∈ S, q i := by
   let h := fun (i : Fin n) (b : Bool) =>
@@ -48,10 +78,14 @@ theorem cube_coordinate_monomial_expect {n : ℕ} (q : Fin n → ℝ) (S : Finse
     by_cases his : i ∈ S <;> simp [his]
   simp only [hi, Finset.prod_ite_mem_eq]
 
+/-- The univariate polynomial obtained by substituting coordinate polynomials into a cube
+monomial expansion. -/
 def cubeExpectationPolynomial {n : ℕ} (c : Finset (Fin n) → ℝ)
     (q : Fin n → Polynomial ℝ) : Polynomial ℝ :=
   ∑ S : Finset (Fin n), Polynomial.C (c S)*∏ i ∈ S, q i
 
+/-- Evaluating the substituted expectation polynomial gives cube expectation with the evaluated
+coordinate parameters. -/
 theorem cube_expectation_polynomial_eval {n : ℕ} {f : (Fin n → Bool) → ℝ}
     (c : Finset (Fin n) → ℝ) (hf : ∀ x, f x = ∑ S, c S*cubeMonomial S x)
     (q : Fin n → Polynomial ℝ) (t : ℝ) :
@@ -70,6 +104,8 @@ theorem cube_expectation_polynomial_eval {n : ℕ} {f : (Fin n → Bool) → ℝ
     _ = c S*∑ x, cubeCoordinateWeight (fun i => (q i).eval t) x*cubeMonomial S x := by rw [← he]; rfl
     _ = _ := by rw [Finset.mul_sum]; apply Finset.sum_congr rfl; intro x _; ring
 
+/-- If coefficients vanish above set size `d` and all coordinate polynomials have degree at most
+one, the expectation polynomial has degree at most `d`. -/
 theorem cube_expectation_polynomial_degree_le {n d : ℕ} (c : Finset (Fin n) → ℝ)
     (q : Fin n → Polynomial ℝ) (hc : ∀ S, d < S.card → c S = 0)
     (hq : ∀ i, (q i).natDegree ≤ 1) : (cubeExpectationPolynomial c q).natDegree ≤ d := by
@@ -86,6 +122,8 @@ theorem cube_expectation_polynomial_degree_le {n d : ℕ} (c : Finset (Fin n) �
     simp only [Polynomial.natDegree_C, zero_add] at hm
     exact hm.trans (hp.trans (Nat.le_of_not_gt hs))
 
+/-- The expectation of a function valued in `[0, 1]` remains in `[0, 1]` under a cube
+probability weight. -/
 theorem cube_expect_range {n : ℕ} {w : (Fin n → Bool) → ℝ} (hw : CubeWeight n w)
     {f : (Fin n → Bool) → ℝ} (hf : ∀ x, f x ∈ Set.Icc 0 1) : cubeExpect n w f ∈ Set.Icc 0 1 := by
   constructor
@@ -94,10 +132,13 @@ theorem cube_expect_range {n : ℕ} {w : (Fin n → Bool) → ℝ} (hw : CubeWei
       _ ≤ ∑ x, w x*1 := Finset.sum_le_sum fun x _ => mul_le_mul_of_nonneg_left (hf x).2 (hw.1 x)
       _ = 1 := by simp only [mul_one]; exact hw.2
 
+/-- The affine coordinate probability for flipping selected coordinates of `x`, with unselected
+coordinates fixed. -/
 def cubeNoisePolynomial {n : ℕ} (x : Fin n → Bool) (A : Finset (Fin n)) (i : Fin n) : Polynomial ℝ :=
   if i ∈ A then (if x i then 1-Polynomial.X else Polynomial.X)
   else Polynomial.C (if x i then (1 : ℝ) else 0)
 
+/-- Each coordinate noise polynomial has degree at most one. -/
 theorem cube_noise_polynomial_degree {n : ℕ} (x : Fin n → Bool) (A : Finset (Fin n)) (i : Fin n) :
     (cubeNoisePolynomial x A i).natDegree ≤ 1 := by
   unfold cubeNoisePolynomial
@@ -107,22 +148,29 @@ theorem cube_noise_polynomial_degree {n : ℕ} (x : Fin n → Bool) (A : Finset 
   · simp
   · simp
 
+/-- At zero noise, the coordinate polynomial equals the zero and one encoding of the original
+input bit. -/
 theorem cube_noise_polynomial_eval_zero {n : ℕ} (x : Fin n → Bool) (A : Finset (Fin n)) (i : Fin n) :
     (cubeNoisePolynomial x A i).eval 0 = if x i then (1 : ℝ) else 0 := by
   unfold cubeNoisePolynomial
   split_ifs <;> simp_all
 
+/-- For a noise parameter in `[0, 1]`, each coordinate noise polynomial evaluates in `[0, 1]`. -/
 theorem cube_noise_polynomial_eval_range {n : ℕ} (x : Fin n → Bool) (A : Finset (Fin n))
     (i : Fin n) {t : ℝ} (ht : t ∈ Set.Icc 0 1) : (cubeNoisePolynomial x A i).eval t ∈ Set.Icc 0 1 := by
   unfold cubeNoisePolynomial
   split_ifs <;> simp_all
 
+/-- The derivative at zero is `1 - 2 * x i` on selected coordinates, using the zero and one
+encoding, and zero elsewhere. -/
 theorem cube_noise_polynomial_derivative {n : ℕ} (x : Fin n → Bool) (A : Finset (Fin n)) (i : Fin n) :
     (cubeNoisePolynomial x A i).derivative.eval 0 =
       if i ∈ A then 1-2*(if x i then (1 : ℝ) else 0) else 0 := by
   unfold cubeNoisePolynomial
   split_ifs <;> norm_num [*]
 
+/-- Flipping a coordinate changes a cube monomial only when that coordinate belongs to its set,
+with the change given by the remaining monomial times the signed bit difference. -/
 theorem cube_monomial_flip_difference {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) (i : Fin n) :
     cubeMonomial S (cubeFlip x i)-cubeMonomial S x =
       if i ∈ S then (1-2*(if x i then (1 : ℝ) else 0))*cubeMonomial (S.erase i) x else 0 := by
@@ -147,6 +195,8 @@ theorem cube_monomial_flip_difference {n : ℕ} (S : Finset (Fin n)) (x : Fin n 
       simp [cubeFlip, hji]
     rw [he, sub_self]
 
+/-- The derivative at zero of a product of coordinate noise polynomials equals the sum of the
+selected coordinate flip changes of the corresponding cube monomial. -/
 theorem cube_noise_product_derivative {n : ℕ} (x : Fin n → Bool) (A S : Finset (Fin n)) :
     (∏ i ∈ S, cubeNoisePolynomial x A i).derivative.eval 0 =
       ∑ i ∈ A, (cubeMonomial S (cubeFlip x i)-cubeMonomial S x) := by
@@ -164,6 +214,8 @@ theorem cube_noise_product_derivative {n : ℕ} (x : Fin n → Bool) (A S : Fins
   intro i _
   ring
 
+/-- The derivative at zero of the noise expectation polynomial equals the sum over selected
+coordinates of `f (cubeFlip x i) - f x`. -/
 theorem cube_noise_expectation_derivative {n : ℕ} {f : (Fin n → Bool) → ℝ}
     (c : Finset (Fin n) → ℝ) (hf : ∀ x, f x = ∑ S, c S*cubeMonomial S x)
     (x : Fin n → Bool) (A : Finset (Fin n)) :

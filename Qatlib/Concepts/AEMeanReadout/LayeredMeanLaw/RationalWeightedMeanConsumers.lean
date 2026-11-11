@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalPreparedLCU
 import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
+
+/-!
+# Amplitude estimation of rationally weighted means
+
+This module transports the rational weight preparation error to Born probabilities and bounded
+weighted means. `rational_weight_actual_ae_original_mean` combines weight and payoff
+approximations with the amplitude estimation guarantee of [BrassardEtAl2002] to estimate the
+original normalized rational weighted mean.
+
+## Main statements
+
+* `rational_weight_mean_bias`: bounds weight preparation bias by `64*n/2^k`.
+* `rational_weight_actual_ae_original_mean`: gives success mass at least `8/π²` with explicit
+  estimation and numerical errors.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -33,6 +53,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- For unitary matrices `P` and `Q`, their event probabilities on the same basis input differ
+by at most `2*‖P-Q‖`. -/
 theorem weight_unitary_event_error {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (hP : P ∈ Matrix.unitaryGroup H ℂ)
     (hQ : Q ∈ Matrix.unitaryGroup H ℂ) (j : H) (S : Finset H) :
@@ -45,6 +67,8 @@ theorem weight_unitary_event_error {H : Type} [Fintype H] [DecidableEq H]
   rw [(normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket j), mul_one] at hv
   exact h.trans (mul_le_mul_of_nonneg_left hv (by norm_num))
 
+/-- For nonnegative weights of positive total mass, each target Born probability equals the
+corresponding normalized weight. -/
 theorem weight_target_born {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (hZ : 0 < rationalWeightMass w) (a : Option (Fin n)) :
     BornProb (rationalWeightTarget w) a = ((w a/rationalWeightMass w : ℚ) : ℝ) := by
@@ -52,6 +76,8 @@ theorem weight_target_born {n : ℕ} (w : Option (Fin n) → ℚ)
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _)]
   exact Real.sq_sqrt (by exact_mod_cast div_nonneg (hw a) hZ.le)
 
+/-- For a rational payoff in `[0, 1]`, rational weight preparation changes the normalized
+weighted mean by at most `64*n/2^k`. -/
 theorem rational_weight_mean_bias {n : ℕ} (w f : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (hZ : 0 < rationalWeightMass w)
     (hf : ∀ a, 0 ≤ f a ∧ f a ≤ 1) (k : ℕ) :
@@ -84,6 +110,9 @@ theorem rational_weight_mean_bias {n : ℕ} (w f : Option (Fin n) → ℚ)
       _ = _ := one_mul _
   exact (mul_le_mul_of_nonneg_left hd (by norm_num)).trans_eq (by ring)
 
+/-- The rational weight and payoff preparation is unitary, and amplitude estimation approximates
+the original weighted mean within `π/M + π²/M² + 64*(n+1)/2^k` with probability at least
+`8/π²` [BrassardEtAl2002]. -/
 theorem rational_weight_actual_ae_original_mean : ∀ (n k M : ℕ)
     (w f : Option (Fin n) → ℚ), (∀ a, 0 ≤ w a) → 0 < rationalWeightMass w →
     (∀ a, 0 ≤ f a ∧ f a ≤ 1) → 2 ≤ M →

@@ -9,6 +9,26 @@ import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Tactic.Ext
 import Mathlib.Tactic.Ring
 import Qatlib.Foundations.PureStateMath.Tensor
+
+/-!
+# Prepare-select-unprepare linear combinations
+
+`IsPrepare` specifies a unitary preparing square roots of real weights. `LCUWorkspace`
+conjugates controlled selection by this preparation, and `lcu_corner_apply` identifies its
+designated ancilla corner with the weighted sum acting on a system state.
+
+The mathematical background is described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `select_unitary`: unitarity of controlled selection.
+* `lcu_corner_apply`: the prepared workspace corner applies the weighted sum.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -23,6 +43,7 @@ open Matrix
 
 variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- Applying a matrix to the basis vector at `j₀` extracts column `j₀`. -/
 theorem mulVec_ket_apply (A : Matrix J J ℂ) (j₀ j : J) : (A *ᵥ Ket j₀) j = A j j₀ := by
   simp only [Matrix.mulVec, dotProduct, Ket]
   rw [Finset.sum_eq_single j₀]
@@ -32,6 +53,7 @@ theorem mulVec_ket_apply (A : Matrix J J ℂ) (j₀ j : J) : (A *ᵥ Ket j₀) j
   · intro hcon
     exact absurd (Finset.mem_univ j₀) hcon
 
+/-- A tensor product gate acts on a tensor product state by applying each factor separately. -/
 theorem mulVec_tensorGate (A : Matrix J J ℂ) (B : Matrix I I ℂ) (φ : QState J)
     (ψ : QState I) :
     TensorGate A B *ᵥ TensorState φ ψ = TensorState (A *ᵥ φ) (B *ᵥ ψ) := by
@@ -46,9 +68,11 @@ theorem mulVec_tensorGate (A : Matrix J J ℂ) (B : Matrix I I ℂ) (φ : QState
     exact Finset.sum_congr rfl fun j _ => by ring
   rw [Finset.sum_congr rfl (fun x1 _ => key x1), Finset.sum_mul]
 
+/-- The controlled matrix applying `U j` on the system for ancilla label `j`. -/
 noncomputable def Select (U : J → Matrix I I ℂ) : Matrix (J × I) (J × I) ℂ :=
   Matrix.of fun p q => if p.1 = q.1 then U q.1 p.2 q.2 else 0
 
+/-- The controlled matrix `Select U` is unitary if each `U j` is unitary. -/
 theorem select_unitary (U : J → Matrix I I ℂ) (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ) :
     Select U ∈ Matrix.unitaryGroup (J × I) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -80,13 +104,18 @@ theorem select_unitary (U : J → Matrix I I ℂ) (hU : ∀ j, U j ∈ Matrix.un
       · simp [hma, h]
       · simp [hma]
 
+/-- The condition that `P` is unitary and sends the chosen basis state to the square roots of
+the weights `w`. -/
 def IsPrepare (P : Matrix J J ℂ) (w : J → ℝ) (j₀ : J) : Prop :=
   P ∈ Matrix.unitaryGroup J ℂ ∧ P *ᵥ Ket j₀ = fun j => ((Real.sqrt (w j) : ℂ))
 
+/-- The workspace matrix applying preparation, controlled selection, and inverse preparation. -/
 noncomputable def LCUWorkspace (U : J → Matrix I I ℂ) (P : Matrix J J ℂ) :
     Matrix (J × I) (J × I) ℂ :=
   TensorGate Pᴴ 1 * (Select U * TensorGate P 1)
 
+/-- For nonnegative weights prepared by `P`, the designated ancilla component of `LCUWorkspace U
+P` equals the weighted matrix sum applied to `ψ`. See [GilyenSuLowWiebe2019]. -/
 theorem lcu_corner_apply (U : J → Matrix I I ℂ) {w : J → ℝ} (hw : ∀ j, 0 ≤ w j)
     {P : Matrix J J ℂ} {j₀ : J} (hP : IsPrepare P w j₀) (ψ : QState I) :
     (fun i' => (LCUWorkspace U P *ᵥ TensorState (Ket j₀) ψ) (j₀, i'))

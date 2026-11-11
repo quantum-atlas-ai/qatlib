@@ -14,6 +14,31 @@ import Mathlib.Analysis.Calculus.Deriv.Add
 import Mathlib.Analysis.Calculus.Deriv.Comp
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Tactic
+
+/-!
+# Bloch-symbol identities and branch derivatives
+
+This module proves trace, determinant, and zero-momentum eigenvector identities for the
+one-dimensional Bloch symbol in [BoghosianTaylor1998]. It factors the characteristic
+discriminant and identifies the mass-based coefficient with `dispersionCoeff`.
+
+For a supplied differentiable root branch through `(a + b)²`, the first derivative at zero
+vanishes. Under the stated second-derivative hypotheses, `second_order_coefficient` computes
+that derivative and `smooth_branch_relative_quadratic` gives the normalized quadratic
+coefficient; these results assume the branch and its differentiability.
+
+## Main statements
+
+* `symbolMatrix_det`: the determinant is the momentum-independent value `(a² - b²)²`.
+* `smooth_branch_derivative`: the first derivative of the supplied branch vanishes at zero.
+* `second_order_coefficient`: the second derivative is `-2 * (a / b) * (a + b)²`.
+* `smooth_branch_relative_quadratic`: the normalized quadratic coefficient is `-(a / b)`.
+
+## References
+
+* [Boghosian and Taylor, 1998][BoghosianTaylor1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,6 +51,7 @@ open Qatlib.Papers.QMechSim97.MainResults.Defs
 open Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
 open Complex
 
+/-- For real `x`, the sum of `exp(ix)` and `exp(-ix)` is `2 * cos x`. -/
 theorem exp_add_neg (x : ℝ) :
     Complex.exp (x * I) + Complex.exp (-(x * I)) = 2 * (Real.cos x : ℂ) := by
   have hx : -(x * I) = ((-x : ℝ) : ℂ) * I := by push_cast; ring
@@ -34,26 +60,32 @@ theorem exp_add_neg (x : ℝ) :
   push_cast
   ring
 
+/-- For real `x`, the sum of `exp(2ix)` and `exp(-2ix)` is `2 * cos (2 * x)`. -/
 theorem exp_two_add_neg (x : ℝ) :
     Complex.exp (2 * x * I) + Complex.exp (-(2 * x) * I) =
       2 * (Real.cos (2 * x) : ℂ) := by
   have h := exp_add_neg (2 * x)
   simpa [mul_assoc] using h
 
+/-- For real `x`, the product of `exp(2ix)` and `exp(-2ix)` is one. -/
 theorem exp_two_mul_neg (x : ℝ) :
     Complex.exp (2 * x * I) * Complex.exp (-(2 * x) * I) = 1 := by
   rw [← Complex.exp_add]
   have h : 2 * x * I + (-(2 * x) * I) = 0 := by ring
   rw [h, Complex.exp_zero]
 
+/-- The half-trace expression `b ^ 2 + a ^ 2 * cos (2 * x)` for the Bloch symbol. -/
 def traceHalf (a b : ℂ) (x : ℝ) : ℂ := b ^ 2 + a ^ 2 * (Real.cos (2 * x) : ℂ)
 
+/-- At zero momentum, the Bloch symbol has diagonal entries `b ^ 2 + a ^ 2` and off-diagonal
+entries `2 * a * b`. -/
 theorem symbolMatrix_zero (a b : ℂ) :
     symbolMatrix a b 0 = !![b ^ 2 + a ^ 2, 2 * (a * b); 2 * (a * b), b ^ 2 + a ^ 2] := by
   simp only [symbolMatrix]
   norm_num
   ring
 
+/-- The trace of the Bloch symbol is twice `traceHalf a b x`. See [BoghosianTaylor1998]. -/
 theorem symbolMatrix_trace (a b : ℂ) (x : ℝ) :
     Matrix.trace (symbolMatrix a b x) = 2 * traceHalf a b x := by
   have h := exp_two_add_neg x
@@ -63,6 +95,8 @@ theorem symbolMatrix_trace (a b : ℂ) (x : ℝ) :
   unfold traceHalf
   linear_combination (a ^ 2) * h
 
+/-- The determinant of the Bloch symbol is `(a ^ 2 - b ^ 2) ^ 2` for every real momentum. See
+[BoghosianTaylor1998]. -/
 theorem symbolMatrix_det (a b : ℂ) (x : ℝ) :
     (symbolMatrix a b x).det = (a ^ 2 - b ^ 2) ^ 2 := by
   have h3 : Complex.exp (2 * x * I) * Complex.exp (-(2 * x) * I) = 1 := exp_two_mul_neg x
@@ -83,6 +117,8 @@ theorem symbolMatrix_det (a b : ℂ) (x : ℝ) :
     Matrix.cons_val_one, Matrix.cons_val_fin_one]
   linear_combination (a ^ 4) * h3 - (a ^ 2 * b ^ 2) * hs
 
+/-- At zero momentum, the vector `(1, 1)` is scaled by `(a + b) ^ 2` under the Bloch symbol. See
+[BoghosianTaylor1998]. -/
 theorem symbol_zero_eigenValue (a b : ℂ) :
     (symbolMatrix a b 0).mulVec ![1, 1] = ((a + b) ^ 2) • ![1, 1] := by
   rw [symbolMatrix_zero]
@@ -90,6 +126,8 @@ theorem symbol_zero_eigenValue (a b : ℂ) :
   fin_cases i <;>
     simp [Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;> ring
 
+/-- At zero momentum, the vector `(1, -1)` is scaled by `(a - b) ^ 2` under the Bloch symbol.
+See [BoghosianTaylor1998]. -/
 theorem symbol_zero_eigenValue_minus (a b : ℂ) :
     (symbolMatrix a b 0).mulVec ![1, -1] = ((a - b) ^ 2) • ![1, -1] := by
   rw [symbolMatrix_zero]
@@ -97,6 +135,8 @@ theorem symbol_zero_eigenValue_minus (a b : ℂ) :
   fin_cases i <;>
     simp [Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;> ring
 
+/-- The characteristic discriminant factors as `a ^ 2 * cos(x) ^ 2 * (4 * b ^ 2 + 2 * a ^ 2 *
+(cos(2 * x) - 1))`. See [BoghosianTaylor1998]. -/
 theorem discriminant_eq_radicand (a b : ℂ) (x : ℝ) :
     traceHalf a b x ^ 2 - (a ^ 2 - b ^ 2) ^ 2 =
       a ^ 2 * (Real.cos x : ℂ) ^ 2 * (4 * b ^ 2 + 2 * a ^ 2 * ((Real.cos (2 * x) : ℂ) - 1)) := by
@@ -106,10 +146,14 @@ theorem discriminant_eq_radicand (a b : ℂ) (x : ℝ) :
   rw [hc]
   ring
 
+/-- If `a + b ≠ 0`, dividing `(a + b) ^ 2` by itself gives one. See [BoghosianTaylor1998]. -/
 theorem reducedBranch_at_zero (a b : ℂ) (hab : a + b ≠ 0) :
     (a + b) ^ 2 / (a + b) ^ 2 = 1 :=
   div_self (pow_ne_zero 2 hab)
 
+/-- For nonzero `a` and `b`, any differentiable branch satisfying the characteristic equation
+near zero and taking value `(a + b) ^ 2` there has derivative zero at zero. See
+[BoghosianTaylor1998]. -/
 theorem smooth_branch_derivative (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
     (lam : ℝ → ℂ) (l : ℂ) (hlam0 : lam 0 = (a + b) ^ 2)
     (hroot : ∀ᶠ x in nhds 0, (lam x) ^ 2 - 2 * traceHalf a b x * (lam x) + (a ^ 2 - b ^ 2) ^ 2 = 0)
@@ -160,10 +204,14 @@ theorem smooth_branch_derivative (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
     mul_ne_zero (mul_ne_zero (by norm_num) ha) hb
   exact (mul_eq_zero.mp hl).resolve_left h4ab
 
+/-- For nonzero `a` and `b`, the Schrödinger coefficient of `particleMass1D a b` equals
+`dispersionCoeff a b`. See [BoghosianTaylor1998]. -/
 theorem dispersion_of_mass (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) :
     schrodingerCoeff (particleMass1D a b) = dispersionCoeff a b :=
   schrodingerCoeff_mass a b ha hb
 
+/-- For nonzero `a` and `b`, the two zero-momentum vector relations, determinant, trace,
+discriminant factorization, and mass-coefficient identity hold simultaneously. -/
 theorem bloch_branch_fragments (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) (x : ℝ) :
     (symbolMatrix a b 0).mulVec ![1, 1] = ((a + b) ^ 2) • ![1, 1] ∧
     (symbolMatrix a b 0).mulVec ![1, -1] = ((a - b) ^ 2) • ![1, -1] ∧
@@ -177,12 +225,16 @@ theorem bloch_branch_fragments (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) (x : �
     symbolMatrix_det a b x, symbolMatrix_trace a b x,
     discriminant_eq_radicand a b x, dispersion_of_mass a b ha hb⟩
 
+/-- The function `traceHalf a b`, named for the derivative calculations. -/
 def Q (a b : ℂ) (x : ℝ) : ℂ := traceHalf a b x
 
+/-- The first-derivative expression `-2 * a ^ 2 * sin (2 * x)` for `Q a b`. -/
 def Q1 (a : ℂ) (_b : ℂ) (x : ℝ) : ℂ := -(2 : ℂ) * a ^ 2 * (Real.sin (2 * x) : ℂ)
 
+/-- The derivative expression `-4 * a ^ 2 * cos (2 * x)` for `Q1 a b`. -/
 def Q1d (a : ℂ) (_b : ℂ) (x : ℝ) : ℂ := -(4 : ℂ) * a ^ 2 * (Real.cos (2 * x) : ℂ)
 
+/-- The function `Q a b` has derivative `Q1 a b x` at each real `x`. -/
 theorem Q_hasDerivAt (a b : ℂ) (x : ℝ) : HasDerivAt (Q a b) (Q1 a b x) x := by
   unfold Q Q1 traceHalf
   have h2 : HasDerivAt (fun x : ℝ => (2 : ℝ) * x) 2 x := by
@@ -199,6 +251,7 @@ theorem Q_hasDerivAt (a b : ℂ) (x : ℝ) : HasDerivAt (Q a b) (Q1 a b x) x := 
   convert! h using 1
   push_cast; ring
 
+/-- The function `Q1 a b` has derivative `Q1d a b x` at each real `x`. -/
 theorem Q1_hasDerivAt (a b : ℂ) (x : ℝ) : HasDerivAt (Q1 a b) (Q1d a b x) x := by
   unfold Q1 Q1d
   have h2 : HasDerivAt (fun x : ℝ => (2 : ℝ) * x) 2 x := by
@@ -214,6 +267,9 @@ theorem Q1_hasDerivAt (a b : ℂ) (x : ℝ) : HasDerivAt (Q1 a b) (Q1d a b x) x 
   convert! h using 1
   push_cast; ring
 
+/-- For nonzero `a` and `b`, a branch through `(a + b) ^ 2` satisfying the stated characteristic
+and differentiability hypotheses has second derivative `-2 * (a / b) * (a + b) ^ 2` at zero.
+See [BoghosianTaylor1998]. -/
 theorem second_order_coefficient (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
     (lam : ℝ → ℂ) (l2 : ℂ)
     (hlam0 : lam 0 = (a + b) ^ 2)
@@ -304,6 +360,9 @@ theorem second_order_coefficient (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
     _ = -2 * (a / b) * (a + b) ^ 2 := by
       field_simp [ha, hb]; ring
 
+/-- Under the stated branch and second-derivative hypotheses, with `a`, `b`, and `a + b`
+nonzero, the normalized coefficient `(l2 / 2) / (a + b) ^ 2` equals `-(a / b)`. See
+[BoghosianTaylor1998]. -/
 theorem smooth_branch_relative_quadratic (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0)
     (lam : ℝ → ℂ) (l2 : ℂ)
     (hlam0 : lam 0 = (a + b) ^ 2)
@@ -319,18 +378,24 @@ theorem smooth_branch_relative_quadratic (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 
   have hsq : (a + b) ^ 2 ≠ 0 := pow_ne_zero 2 hab
   field_simp [hb, hsq]
 
+/-- The half-trace at zero momentum is `a ^ 2 + b ^ 2`. -/
 theorem traceHalf_zero (a b : ℂ) : traceHalf a b 0 = a ^ 2 + b ^ 2 := by
   unfold traceHalf; simp; ring
 
+/-- The characteristic discriminant at zero momentum is `4 * a ^ 2 * b ^ 2`. -/
 theorem discriminant_at_zero (a b : ℂ) :
     traceHalf a b 0 ^ 2 - (a ^ 2 - b ^ 2) ^ 2 = 4 * a ^ 2 * b ^ 2 := by
   rw [traceHalf_zero]; ring
 
+/-- For nonzero `a` and `b`, the characteristic discriminant at zero momentum is nonzero. See
+[BoghosianTaylor1998]. -/
 theorem discriminant_at_zero_ne_zero (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) :
     traceHalf a b 0 ^ 2 - (a ^ 2 - b ^ 2) ^ 2 ≠ 0 := by
   rw [discriminant_at_zero]
   exact mul_ne_zero (mul_ne_zero (by norm_num) (pow_ne_zero 2 ha)) (pow_ne_zero 2 hb)
 
+/-- For nonzero `a` and `b`, the characteristic-polynomial derivative at the root `(a + b) ^ 2`
+and zero momentum is nonzero. See [BoghosianTaylor1998]. -/
 theorem branch_simple_root (a b : ℂ) (ha : a ≠ 0) (hb : b ≠ 0) :
     2 * (a + b) ^ 2 - 2 * traceHalf a b 0 ≠ 0 := by
   rw [traceHalf_zero]

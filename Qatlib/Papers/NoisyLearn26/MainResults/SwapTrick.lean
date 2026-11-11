@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
 import Mathlib.LinearAlgebra.Matrix.Trace
+
+/-!
+# Partial swap and the finite matrix trace identity
+
+Defines a partial trace over `C`, the permutation `swapEquiv` exchanging the two `I`
+coordinates, and its matrix `swapOp`. The theorem `swap_trick` identifies the trace against the
+two-copy matrix `kron ρ` with the trace of the square of `partialTrace ρ`. See
+[CotlerGongKannan2025] for the surrounding analysis.
+
+## Main statements
+
+* `swapEquiv`: The permutation exchanging the two `I` coordinates and retaining each `C`
+  coordinate in place.
+* `swap_trick`: For any matrix `ρ`, the trace of `swapOp * kron ρ` equals the trace of
+  `partialTrace ρ * partialTrace ρ`.
+
+## References
+
+* [Cotler et al., 2025][CotlerGongKannan2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,33 +39,43 @@ open scoped BigOperators
 
 variable {I C : Type*} [Fintype I] [DecidableEq I] [Fintype C] [DecidableEq C]
 
+/-- The partial trace of a matrix over the `C` coordinate, with entries `∑ c, ρ (i, c) (j, c)`. -/
 def partialTrace (ρ : Matrix (I × C) (I × C) ℂ) : Matrix I I ℂ :=
   fun i j => ∑ c : C, ρ (i, c) (j, c)
 
+/-- The permutation exchanging the two `I` coordinates and retaining each `C` coordinate in
+place. -/
 def swapEquiv : ((I × C) × (I × C)) ≃ ((I × C) × (I × C)) where
   toFun x := ((x.2.1, x.1.2), (x.1.1, x.2.2))
   invFun x := ((x.2.1, x.1.2), (x.1.1, x.2.2))
   left_inv := by rintro ⟨⟨i1, c1⟩, ⟨i2, c2⟩⟩; rfl
   right_inv := by rintro ⟨⟨i1, c1⟩, ⟨i2, c2⟩⟩; rfl
 
+/-- Applying the partial-swap permutation twice returns the original pair. -/
 @[simp] theorem swapEquiv_swapEquiv (x : (I × C) × (I × C)) :
     swapEquiv (swapEquiv x) = x := by
   rcases x with ⟨⟨i1, c1⟩, ⟨i2, c2⟩⟩
   rfl
 
+/-- The permutation matrix implementing `swapEquiv`. -/
 def swapOp : Matrix ((I × C) × (I × C)) ((I × C) × (I × C)) ℂ :=
   fun x y => if x = swapEquiv y then 1 else 0
 
+/-- The two-copy tensor-product matrix with entries `ρ x.1 y.1 * ρ x.2 y.2`. -/
 def kron (ρ : Matrix (I × C) (I × C) ℂ) :
     Matrix ((I × C) × (I × C)) ((I × C) × (I × C)) ℂ :=
   fun x y => ρ x.1 y.1 * ρ x.2 y.2
 
+/-- The first output pair of `swapEquiv ((i1, c1), (i2, c2))` is `(i2, c1)`. -/
 theorem swapEquiv_fst (i1 i2 : I) (c1 c2 : C) :
     (swapEquiv ((i1, c1), (i2, c2))).1 = (i2, c1) := rfl
 
+/-- The second output pair of `swapEquiv ((i1, c1), (i2, c2))` is `(i1, c2)`. -/
 theorem swapEquiv_snd (i1 i2 : I) (c1 c2 : C) :
     (swapEquiv ((i1, c1), (i2, c2))).2 = (i1, c2) := rfl
 
+/-- For any matrix `ρ`, the trace of `swapOp * kron ρ` equals the trace of `partialTrace ρ *
+partialTrace ρ` [CotlerGongKannan2025]. -/
 theorem swap_trick (ρ : Matrix (I × C) (I × C) ℂ) :
     Matrix.trace (swapOp (I := I) (C := C) * kron ρ) =
       Matrix.trace (partialTrace ρ * partialTrace ρ) := by

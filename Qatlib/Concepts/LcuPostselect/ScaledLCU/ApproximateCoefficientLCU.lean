@@ -9,6 +9,33 @@ import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+/-!
+# Approximate scaled LCU and fixed-point postselection
+
+`scaledLCUCoefficients` incorporates the normalization of each input block encoding into its
+complex coefficient. `scaled_approximate_lcu_encoding` combines encodings with shared frames,
+with normalization and error given by coefficient-weighted sums, as in the block-encoding
+calculus of [GilyenSuLowWiebe2019].
+
+`LCUFixedPoint.word` implements the recursive phase-shift construction of [Grover2005]. Its
+failure probability is raised to `3^r`, and the decoded conditional output is preserved up to a
+global phase; the module records exact query and fixed-gate counts and relative output-error
+bounds.
+
+## Main statements
+
+* `scaled_approximate_lcu_encoding`: combine approximate block encodings with complex weights.
+* `lcu_postselection_amplification`: certify recursive amplification and its costs.
+* `lcu_relative_postselected_output_error`: control normalized output error up to phase.
+* `scaled_lcu_fixed_point_consumer`: specialize amplification to the scaled LCU circuit.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+* [Grover, 2005][Grover2005]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
@@ -41,11 +68,14 @@ set_option linter.unusedSectionVars false
 variable {J H O I : Type*} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
   [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- Rescales each complex coefficient `c j` by the real block-encoding normalization `α j`. -/
 def scaledLCUCoefficients [Fintype J] (c : J → ℂ) (α : J → ℝ) : J → ℂ :=
   fun j => c j * (α j : ℂ)
 
 omit [DecidableEq J] [DecidableEq H] [DecidableEq O] [DecidableEq I] in
 
+/-- For positive normalizations, the rescaled coefficient mass is `∑ j, ‖c j‖ * α j`, and it
+vanishes exactly when every coefficient vanishes. -/
 theorem scaled_lcu_coefficient_mass (c : J → ℂ) (α : J → ℝ)
     (hα : ∀ j, 0 < α j) :
     coefficientMass (scaledLCUCoefficients c α) = ∑ j, ‖c j‖ * α j ∧
@@ -70,9 +100,11 @@ theorem scaled_lcu_coefficient_mass (c : J → ℂ) (α : J → ℝ)
     rw [hmass]
     exact Finset.sum_eq_zero fun j _ => by rw [hc j, norm_zero, zero_mul]
 
+/-- Embeds the frame `L` into the label sector `j₀` of the product space. -/
 def tagFrame (j₀ : J) (L : Matrix H O ℂ) : Matrix (J × H) O ℂ :=
   Matrix.of fun p i => (if p.1 = j₀ then 1 else 0) * L p.2 i
 
+/-- Expresses the tagged frame as basis-state preparation followed by `L`. -/
 theorem tagFrame_eq (j₀ : J) (L : Matrix H O ℂ) :
     tagFrame j₀ L = prepareLift (Qatlib.Foundations.PureStateMath.Ket j₀) * L := by
   ext p i
@@ -85,18 +117,21 @@ theorem tagFrame_eq (j₀ : J) (L : Matrix H O ℂ) :
     simp [hne, prepareLift]
   · simp
 
+/-- Tagging an isometric frame preserves its isometry property. -/
 theorem tagFrame_isIsometry (j₀ : J) (L : Matrix H O ℂ) (hL : IsIsometry L) :
     IsIsometry (tagFrame j₀ L) := by
   rw [tagFrame_eq]
   exact IsIsometry.mul (prepareLift_isIsometry (I := H) (Qatlib.Foundations.PureStateMath.Ket j₀)
     (by simp [Qatlib.Foundations.PureStateMath.Ket])) hL
 
+/-- Tagging the identity frame gives the encoding fiber at `j₀`. -/
 theorem tagFrame_one (j₀ : J) :
     tagFrame j₀ (1 : Matrix H H ℂ) = encodingFiber (I := H) j₀ := by
   ext p i
   by_cases h : p.2 = i <;> by_cases h2 : p.1 = j₀ <;>
     simp [tagFrame, encodingFiber, h, h2, Matrix.one_apply]
 
+/-- Factors compression between tagged frames through the basis-label preparation lifts. -/
 theorem compress_tagFrame (j₀ : J) (L : Matrix H O ℂ) (M : Matrix (J × H) (J × H) ℂ)
     (R : Matrix H I ℂ) :
     compress (tagFrame j₀ L) M (tagFrame j₀ R)
@@ -115,6 +150,8 @@ theorem compress_tagFrame (j₀ : J) (L : Matrix H O ℂ) (M : Matrix (J × H) (
     _ = (Lᴴ * ((PLᴴ * M) * PL)) * R := by
         rw [Matrix.mul_assoc Lᴴ ((PLᴴ * M) * PL) R]
 
+/-- Combines approximate block encodings into an encoding of `∑ j, c j • A j`, with
+normalization `∑ j, ‖c j‖ * α j` and error `∑ j, ‖c j‖ * ε j` [GilyenSuLowWiebe2019]. -/
 theorem scaled_approximate_lcu_encoding (j₀ : J) (A : J → Matrix O I ℂ)
     (U : J → Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (c : J → ℂ) (α ε : J → ℝ)
     (henc : ∀ j, BlockEncoding (A j) (U j) L R (α j) (ε j))
@@ -173,6 +210,8 @@ theorem scaled_approximate_lcu_encoding (j₀ : J) (A : J → Matrix O I ℂ)
 
 omit [DecidableEq J] in
 
+/-- When all coefficients vanish, orthogonal Boolean tags give an exact encoding of the zero sum
+using the identity unitary. -/
 theorem zero_scaled_lcu_encoding (A : J → Matrix O I ℂ) (c : J → ℂ) (L : Matrix H O ℂ)
     (R : Matrix H I ℂ) (hc : ∀ j, c j = 0) (hL : IsIsometry L) (hR : IsIsometry R) :
     BlockEncoding (∑ j, c j • A j) (1 : Matrix (Bool × H) (Bool × H) ℂ)
@@ -190,10 +229,14 @@ theorem zero_scaled_lcu_encoding (A : J → Matrix O I ℂ) (c : J → ℂ) (L :
     tagFrame_isIsometry true R hR, by norm_num, le_rfl, ?_⟩
   rw [hsum, hcomp, smul_zero, sub_zero, norm_zero]
 
+/-- The prepare-select-unprepare circuit for the coefficient-weighted LCU construction. -/
 noncomputable def scaledLCUCircuit (d : J → ℂ) (j₀ : J) : Circuit (J × I) :=
   [Step.gate (prepareRegister (coefficientPrepare d j₀)), Step.query,
     Step.gate ((prepareRegister (coefficientPrepare d j₀))ᴴ)]
 
+/-- The scaled LCU circuit evaluates to `coefficientLCUUnitary`, uses one oracle query and two
+fixed gates, and is unitary when the coefficient mass is positive and all selected matrices
+are unitary. -/
 theorem scaled_lcu_run_and_cost (j₀ : J) (d : J → ℂ) (U : J → Matrix I I ℂ)
     (ψ : QState (J × I)) :
     Run (select (phaseAbsorbed d U)) (scaledLCUCircuit d j₀) ψ
@@ -225,11 +268,16 @@ open Qatlib
 open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- The phase `1 / 2 + i * √3 / 2` used in fixed-point amplification. -/
 def omega : ℂ := ⟨1 / 2, Real.sqrt 3 / 2⟩
 
+/-- The matrix `1 + (omega - 1) • P`, which applies the phase `omega` on the range of a
+projector. -/
 def phase {H : Type*} [Fintype H] [DecidableEq H] (P : Matrix H H ℂ) : Matrix H H ℂ :=
   1 + (omega - 1) • P
 
+/-- Reverses a prepared instruction by taking the adjoint of a fixed gate or swapping its
+forward and backward query. -/
 def inverseStep {H : Type*} : PreparedStep H → PreparedStep H
   | .gate V => .gate Vᴴ
   | .dataForward => .dataBackward
@@ -237,9 +285,13 @@ def inverseStep {H : Type*} : PreparedStep H → PreparedStep H
   | .prepareForward => .prepareBackward
   | .prepareBackward => .prepareForward
 
+/-- Forms the formal inverse of a prepared word by reversing its instructions and inverting each
+step. -/
 def inverseWord {H : Type*} (cs : List (PreparedStep H)) : List (PreparedStep H) :=
   cs.reverse.map inverseStep
 
+/-- The recursive fixed-point amplification word, starting from `preparedTrial` and inserting
+source and target phase shifts [Grover2005]. -/
 def word {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
     (L : Matrix H O ℂ) (j₀ : H) (cs : List (AdjointStep H)) : ℕ → List (PreparedStep H)
   | 0 => preparedTrial cs
@@ -248,6 +300,7 @@ def word {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
       z ++ [.gate (phase (outerProduct (Qatlib.Foundations.PureStateMath.Ket j₀)))] ++ inverseWord z ++
         [.gate (phase (rangeProjector L))] ++ z
 
+/-- The phase `omega` has conjugate product equal to one. -/
 theorem omega_star_mul : star omega * omega = 1 := by
   have hs := Real.sq_sqrt (show (0 : ℝ) ≤ 3 by norm_num)
   apply Complex.ext
@@ -256,6 +309,7 @@ theorem omega_star_mul : star omega * omega = 1 := by
   · simp [omega, Complex.mul_im]
     ring
 
+/-- The fixed-point phase satisfies `(omega - 1)^2 = -omega`. -/
 theorem omega_sub_sq : (omega - 1) ^ 2 = -omega := by
   have hs := Real.sq_sqrt (show (0 : ℝ) ≤ 3 by norm_num)
   apply Complex.ext
@@ -264,6 +318,7 @@ theorem omega_sub_sq : (omega - 1) ^ 2 = -omega := by
   · simp [omega, pow_two, Complex.mul_im]
     ring
 
+/-- The phase shift of an orthogonal projector is unitary. -/
 theorem phase_unitary {H : Type*} [Fintype H] [DecidableEq H]
     {P : Matrix H H ℂ} (hP : IsOrthogonalProjector P) :
     phase P ∈ Matrix.unitaryGroup H ℂ := by
@@ -281,6 +336,7 @@ theorem phase_unitary {H : Type*} [Fintype H] [DecidableEq H]
     _ = 1 + (star (omega-1) + (omega-1) + star (omega-1)*(omega-1)) • P := by module
     _ = 1 := by rw [hc]; simp
 
+/-- Evaluating an inverse word gives the conjugate transpose of the original evaluation. -/
 theorem inverseWord_evaluate {H : Type*} [Fintype H] [DecidableEq H]
     (V B : Matrix H H ℂ) (cs : List (PreparedStep H)) :
     evaluatePrepared V B (inverseWord cs) = (evaluatePrepared V B cs)ᴴ := by
@@ -295,6 +351,7 @@ theorem inverseWord_evaluate {H : Type*} [Fintype H] [DecidableEq H]
     rw [ih, Matrix.mul_one]
     cases c <;> simp [inverseStep, preparedInstruction]
 
+/-- Formal inversion preserves validity of a prepared circuit. -/
 theorem inverseWord_valid {H : Type*} [Fintype H] [DecidableEq H]
     {cs : List (PreparedStep H)} (hcs : PreparedCircuitValid cs) :
     PreparedCircuitValid (inverseWord cs) := by
@@ -304,6 +361,8 @@ theorem inverseWord_valid {H : Type*} [Fintype H] [DecidableEq H]
   cases d <;> simp only [inverseStep, PreparedInstructionValid] at *
   exact adjoint_unitary hv
 
+/-- Evaluating the next amplification stage gives the current unitary, source phase, adjoint,
+target phase, and current unitary in that order. -/
 theorem word_evaluate_succ {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
     (V B : Matrix H H ℂ) (L : Matrix H O ℂ) (j₀ : H) (cs : List (AdjointStep H)) (r : ℕ) :
     evaluatePrepared V B (word L j₀ cs (r+1)) =
@@ -313,18 +372,22 @@ theorem word_evaluate_succ {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
   simp [word, evaluatePrepared_append, evaluatePrepared, preparedInstruction,
     inverseWord_evaluate, Matrix.mul_assoc]
 
+/-- Data-query counts add under concatenation of prepared words. -/
 @[simp] theorem data_append {H : Type*} (cs ds : List (PreparedStep H)) :
     preparedDataQueries (cs++ds) = preparedDataQueries cs + preparedDataQueries ds :=
   (preparedCounts_append cs ds).1
 
+/-- Input-preparation query counts add under concatenation of prepared words. -/
 @[simp] theorem input_append {H : Type*} (cs ds : List (PreparedStep H)) :
     preparedInputQueries (cs++ds) = preparedInputQueries cs + preparedInputQueries ds :=
   (preparedCounts_append cs ds).2.1
 
+/-- Fixed-gate counts add under concatenation of prepared words. -/
 @[simp] theorem gates_append {H : Type*} (cs ds : List (PreparedStep H)) :
     preparedFixedGates (cs++ds) = preparedFixedGates cs + preparedFixedGates ds :=
   (preparedCounts_append cs ds).2.2
 
+/-- Formal inversion preserves data-query, input-query, and fixed-gate counts. -/
 theorem inverseWord_counts {H : Type*} (cs : List (PreparedStep H)) :
     preparedDataQueries (inverseWord cs) = preparedDataQueries cs ∧
     preparedInputQueries (inverseWord cs) = preparedInputQueries cs ∧
@@ -338,6 +401,8 @@ theorem inverseWord_counts {H : Type*} (cs : List (PreparedStep H)) :
     simp only [data_append, input_append, gates_append, ih.1, ih.2.1, ih.2.2]
     cases c <;> simp [inverseStep, preparedDataQueries, preparedInputQueries, preparedFixedGates]
 
+/-- At stage `r`, amplification uses `3^r` times the base data queries, `3^r` input queries, and
+`3^r` times the base fixed gates plus `3^r - 1`. -/
 theorem word_counts {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
     (L : Matrix H O ℂ) (j₀ : H) (cs : List (AdjointStep H)) (r : ℕ) :
     preparedDataQueries (word L j₀ cs r) = 3^r * adjointQueryCount cs ∧
@@ -359,6 +424,8 @@ theorem word_counts {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O]
       rw [hg]
       omega
 
+/-- An isometric target frame and unitary fixed gates make every amplification stage a valid
+prepared circuit. -/
 theorem word_valid {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O] [DecidableEq O]
     (L : Matrix H O ℂ) (j₀ : H) (cs : List (AdjointStep H))
     (hL : IsIsometry L) (hcs : ∀ G, AdjointStep.gate G ∈ cs → G ∈ Matrix.unitaryGroup H ℂ)
@@ -382,6 +449,8 @@ variable {H : Type*} [Fintype H] [DecidableEq H]
 
 omit [DecidableEq H] in
 
+/-- Conjugating an outer product by `W` gives the outer product of the vector transformed by
+`W`. -/
 theorem outerProduct_conj (W : Matrix H H ℂ) (a : QState H) :
     W * outerProduct a * Wᴴ = outerProduct (W *ᵥ a) := by
   ext i j
@@ -394,18 +463,22 @@ theorem outerProduct_conj (W : Matrix H H ℂ) (a : QState H) :
   conv_rhs => rw [star_mul]
   ring
 
+/-- Expands the action of a projector phase as the original vector plus `(omega - 1)` times its
+projected component. -/
 theorem phase_action (P : Matrix H H ℂ) (a : QState H) :
     phase P *ᵥ a = a + (omega-1) • (P *ᵥ a) := by
   simp [phase, Matrix.add_mulVec, Matrix.smul_mulVec]
 
 omit [DecidableEq H] in
 
+/-- The pure-state inner product is additive in its second argument. -/
 theorem inner_add_right (a b c : QState H) :
     Qatlib.Foundations.PureStateMath.Inner a (b+c) = Qatlib.Foundations.PureStateMath.Inner a b + Qatlib.Foundations.PureStateMath.Inner a c := by
   simp [Qatlib.Foundations.PureStateMath.Inner, dotProduct, mul_add, Finset.sum_add_distrib]
 
 omit [DecidableEq H] in
 
+/-- The pure-state inner product is complex-linear in its second argument. -/
 theorem inner_smul_right (a b : QState H) (z : ℂ) :
     Qatlib.Foundations.PureStateMath.Inner a (z • b) = z * Qatlib.Foundations.PureStateMath.Inner a b := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.star_apply, Pi.smul_apply,
@@ -413,6 +486,8 @@ theorem inner_smul_right (a b : QState H) (z : ℂ) :
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun _ _ => by ring
 
+/-- The inner product of a vector with its orthogonal projection equals the corresponding
+projective branch mass. -/
 theorem inner_projector_mass {P : Matrix H H ℂ} (hP : IsOrthogonalProjector P) (a : QState H) :
     Qatlib.Foundations.PureStateMath.Inner a (P *ᵥ a) = (ProjectiveBranchMass P true a : ℂ) := by
   have hPP : Pᴴ * P = P := by rw [show Pᴴ = P from hP.2]; exact hP.1
@@ -423,9 +498,12 @@ theorem inner_projector_mass {P : Matrix H H ℂ} (hP : IsOrthogonalProjector P)
   rw [← hi, Qatlib.Foundations.PureStateMath.inner_self, ← Complex.ofReal_sum]
   rfl
 
+/-- One fixed-point amplification step built from `W`, its adjoint, and source and target phase
+shifts. -/
 def step (W P : Matrix H H ℂ) (j₀ : H) : Matrix H H ℂ :=
   W * phase (outerProduct (Qatlib.Foundations.PureStateMath.Ket j₀)) * Wᴴ * phase P * W
 
+/-- A fixed-point step is unitary when `W` is unitary and `P` is an orthogonal projector. -/
 theorem step_unitary {W P : Matrix H H ℂ} (j₀ : H)
     (hW : W ∈ Matrix.unitaryGroup H ℂ) (hP : IsOrthogonalProjector P) :
     step W P j₀ ∈ Matrix.unitaryGroup H ℂ := by
@@ -436,6 +514,8 @@ theorem step_unitary {W P : Matrix H H ℂ} (j₀ : H)
           (phase_unitary (isOrthogonalProjector_outerProduct (normalized_ket j₀))))
         (adjoint_unitary hW)) (phase_unitary hP)) hW
 
+/-- Expresses the amplified state as `omega * (1 - p)` times the initial state plus `omega - 1`
+times its target projection, where `p` is the initial success mass. -/
 theorem step_action {W P : Matrix H H ℂ} (j₀ : H)
     (hW : W ∈ Matrix.unitaryGroup H ℂ) (hP : IsOrthogonalProjector P) :
     let a := W *ᵥ Qatlib.Foundations.PureStateMath.Ket j₀
@@ -468,14 +548,18 @@ theorem step_action {W P : Matrix H H ℂ} (j₀ : H)
     _ = (1 + (omega-1)*(1+(omega-1)*(p : ℂ))) • a + (omega-1) • (P *ᵥ a) := by module
     _ = _ := by rw [hcoeff]
 
+/-- The scalar `omega * (2 - p) - 1` multiplying the successful component after one
+amplification step. -/
 def goodCoeff (p : ℝ) : ℂ := omega * (2 - (p : ℂ)) - 1
 
+/-- The squared norm of `omega` is one. -/
 theorem omega_norm_sq : ‖omega‖ ^ 2 = 1 := by
   rw [← Complex.normSq_eq_norm_sq]
   have hs := Real.sq_sqrt (show (0 : ℝ) ≤ 3 by norm_num)
   simp [omega, Complex.normSq_apply]
   nlinarith
 
+/-- The successful-component multiplier `goodCoeff p` is nonzero for every real `p`. -/
 theorem goodCoeff_ne_zero (p : ℝ) : goodCoeff p ≠ 0 := by
   have hs := Real.sq_sqrt (show (0 : ℝ) ≤ 3 by norm_num)
   have hc : Complex.normSq (goodCoeff p) = p^2 - 3*p + 3 := by
@@ -487,6 +571,8 @@ theorem goodCoeff_ne_zero (p : ℝ) : goodCoeff p ≠ 0 := by
   rw [hz, Complex.normSq_zero] at hc
   nlinarith [sq_nonneg (p - 3/2)]
 
+/-- The successful component after one amplification step is `goodCoeff p` times its initial
+value. -/
 theorem step_good {W P : Matrix H H ℂ} (j₀ : H)
     (hW : W ∈ Matrix.unitaryGroup H ℂ) (hP : IsOrthogonalProjector P) :
     P *ᵥ (step W P j₀ *ᵥ Qatlib.Foundations.PureStateMath.Ket j₀) =
@@ -497,6 +583,7 @@ theorem step_good {W P : Matrix H H ℂ} (j₀ : H)
   simp only [Matrix.mulVec_add, Matrix.mulVec_smul, hid, goodCoeff]
   module
 
+/-- The unsuccessful component after one amplification step is multiplied by `omega * (1 - p)`. -/
 theorem step_bad {W P : Matrix H H ℂ} (j₀ : H)
     (hW : W ∈ Matrix.unitaryGroup H ℂ) (hP : IsOrthogonalProjector P) :
     (1-P) *ᵥ (step W P j₀ *ᵥ Qatlib.Foundations.PureStateMath.Ket j₀) =
@@ -509,6 +596,7 @@ theorem step_bad {W P : Matrix H H ℂ} (j₀ : H)
   rw [step_action j₀ hW hP]
   simp only [Matrix.mulVec_add, Matrix.mulVec_smul, hid, smul_zero, add_zero]
 
+/-- One fixed-point step cubes the failure probability [Grover2005]. -/
 theorem step_failure {W P : Matrix H H ℂ} (j₀ : H)
     (hW : W ∈ Matrix.unitaryGroup H ℂ) (hP : IsOrthogonalProjector P) :
     1 - ProjectiveBranchMass P true (step W P j₀ *ᵥ Qatlib.Foundations.PureStateMath.Ket j₀) =
@@ -544,6 +632,7 @@ theorem step_failure {W P : Matrix H H ℂ} (j₀ : H)
 
 end Geometry
 
+/-- For `0 < b ≤ 1` and positive tolerance `η`, some stage satisfies `(1 - b^2)^(3^r) ≤ η`. -/
 theorem exists_stage (b η : ℝ) (hb : 0 < b) (hb1 : b ≤ 1) (hη : 0 < η) :
     ∃ r : ℕ, (1-b^2)^(3^r) ≤ η := by
   have hq0 : 0 ≤ 1-b^2 := by nlinarith
@@ -562,6 +651,8 @@ theorem exists_stage (b η : ℝ) (hb : 0 < b) (hb1 : b ≤ 1) (hη : 0 < η) :
 section Iteration
 variable {H O : Type*} [Fintype H] [DecidableEq H] [Fintype O] [DecidableEq O]
 
+/-- Decoding through an isometric target frame multiplies the initial decoded vector by
+`goodCoeff p` after one amplification step. -/
 theorem step_decoded {W : Matrix H H ℂ} (L : Matrix H O ℂ) (j₀ : H)
     (hW : W ∈ Matrix.unitaryGroup H ℂ) (hL : IsIsometry L) :
     Lᴴ *ᵥ (step W (rangeProjector L) j₀ *ᵥ Qatlib.Foundations.PureStateMath.Ket j₀) =
@@ -575,6 +666,8 @@ theorem step_decoded {W : Matrix H H ℂ} (L : Matrix H O ℂ) (j₀ : H)
     (step_good j₀ hW (rangeProjector_isOrthogonalProjector hL))
   simpa only [hv, Matrix.mulVec_smul] using hg
 
+/-- After `r` valid amplification stages, the failure probability is the initial failure
+probability raised to `3^r`. -/
 theorem word_failure (V B : Matrix H H ℂ) (L : Matrix H O ℂ) (j₀ : H)
     (cs : List (AdjointStep H)) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (hB : B ∈ Matrix.unitaryGroup H ℂ) (hL : IsIsometry L)
@@ -593,6 +686,7 @@ theorem word_failure (V B : Matrix H H ℂ) (L : Matrix H O ℂ) (j₀ : H)
     rw [step_failure j₀ hW (rangeProjector_isOrthogonalProjector hL), ih,
       ← pow_mul, pow_succ]
 
+/-- Every amplification stage preserves the decoded vector up to a nonzero complex scalar. -/
 theorem word_decoded_scalar (V B : Matrix H H ℂ) (L : Matrix H O ℂ) (j₀ : H)
     (cs : List (AdjointStep H)) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (hB : B ∈ Matrix.unitaryGroup H ℂ) (hL : IsIsometry L)
@@ -626,6 +720,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseG
 open scoped Matrix.Norms.L2Operator
 universe u v w
 
+/-- Provides fixed-point stage existence, a block-encoding lower bound on initial success, exact
+circuit costs, and failure probability `(1 - p)^(3^r)` [Grover2005]. -/
 theorem lcu_postselection_amplification :
 (∀ (b η : ℝ), 0 < b → b ≤ 1 → 0 < η → η < 1 →
     ∃ r : ℕ, (1 - b ^ 2) ^ (3 ^ r) ≤ η) ∧
@@ -693,6 +789,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- Conditioning a nonzero scalar multiple of a nonzero vector gives its normalized state up to
+a unit-modulus scalar, which can be removed by conjugate phase correction. -/
 theorem conditional_scalar {I : Type*} [Fintype I] [DecidableEq I]
     (c : ℂ) (x : QState I) (hc : c ≠ 0) (hx : x ≠ 0) :
     ∃ (y : QState I) (z : ℂ), ConditionalState (c • x) = some y ∧
@@ -732,6 +830,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseG
 open scoped Matrix.Norms.L2Operator
 universe u v w
 
+/-- Bounds the relative unnormalized output error and the normalized output error by `δ / ‖Aψ‖`
+and `2 * δ / ‖Aψ‖`, respectively, with the latter preserved under amplification after phase
+correction. -/
 theorem lcu_relative_postselected_output_error :
 ∀ {H : Type u} {I : Type v} {O : Type w}
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
@@ -826,6 +927,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open scoped Matrix.Norms.L2Operator
 
+/-- Packages circuit validity, success probability at least `1 - η`, unnormalized error bounds,
+and phase-corrected normalized output accuracy for an amplification stage. -/
 def Result {H I O : Type*} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (V B : Matrix H H ℂ) (cs : List (AdjointStep H))
     (A : Matrix O I ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -843,6 +946,8 @@ def Result {H I O : Type*} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq 
     ‖stateVector ((star z) • φr) - NormedSpace.normalize (stateVector (A *ᵥ ψ))‖ ≤
       2*δ / ‖stateVector (A *ᵥ ψ)‖
 
+/-- A positive lower bound on the initial success amplitude and a strict output-error gap yield
+a stage satisfying `Result`, with exact data, input, and fixed-gate counts. -/
 theorem result_of_lower {H I O : Type*} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (V B : Matrix H H ℂ) (cs : List (AdjointStep H))
     (A : Matrix O I ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -886,11 +991,16 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open scoped Matrix.Norms.L2Operator
 
+/-- The adjoint-query word consisting of coefficient unpreparation, one forward query, and
+coefficient preparation. -/
 def scaledLCUAdjointWord {J H : Type*} [Fintype J] [DecidableEq J] [Fintype H]
     [DecidableEq H] (d : J → ℂ) (j₀ : J) : List (AdjointStep (J×H)) :=
   [.gate (prepareRegister (coefficientPrepare d j₀))ᴴ, .forward,
     .gate (prepareRegister (coefficientPrepare d j₀))]
 
+/-- Under the output-gap and success-amplitude lower bounds, scaled LCU has an amplified stage
+satisfying `LCUFixedPoint.Result`, with `3^r` data queries, `3^r` input queries, and `3 *
+3^r - 1` fixed gates. -/
 theorem scaled_lcu_fixed_point_consumer {J H I O : Type*}
     [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]

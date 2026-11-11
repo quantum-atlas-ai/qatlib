@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LeafReify
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.WeightedVisits
+
+/-!
+# Completing partial oracle outputs to descent rows
+
+This module completes optional rank outputs by sampling a target rank after failure while
+retaining the original outcome and fee. The resulting row preserves the original marginal,
+charge, and bad-event means, and has the desired next-rank marginal under a local output law,
+supporting the process construction for [ShaydulinEtAl2024].
+
+## Main statements
+
+* `completion_snd`: If successful outputs have masses proportional to the target law, the
+  completed rank marginal equals that target law.
+* `row_next_marginal`: Under the local proportional-output law, the next-rank marginal of the
+  completed row equals the target law.
+* `row_charge_mean`: The completed row has the same mean charge as the original fee
+  distribution.
+* `row_good_output`: At a good completed-row outcome, the original output is present and equals
+  the row's recorded next rank.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,12 +42,16 @@ open Qatlib.Foundations.ProbabilityCore.FiniteBranch
 open Qatlib.Papers.QAOAScaling23.BiasedProcess
 namespace Qatlib.Papers.QAOAScaling23.BiasedProcess.Completion
 
+/-- The tree that samples an original outcome and retains its returned rank, sampling a fresh
+target rank only when the output is absent. -/
 def completion {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (target : PMF (Fin (r+1))) : Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree (Fin K×Fin (r+1)) :=
   .sample K p (fun a=> match output a with
     | some j=>.pure (a,j)
     | none=>.sample (r+1) target (fun j=>.pure (a,j)))
 
+/-- The descent row obtained from completion leaves, with the original fee and a bad flag
+indicating an absent original output. -/
 def row {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1))) : Row r where
   outcomes := Fintype.card (Tree.Leaves (completion p output target))
@@ -31,6 +60,7 @@ def row {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
   charge a := fee (Tree.indexedLeafValue (completion p output target) a).1
   bad a := (output (Tree.indexedLeafValue (completion p output target) a).1).isNone
 
+/-- Completion preserves the probability law of the original outcome. -/
 theorem completion_fst {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (target : PMF (Fin (r+1))) : (completion p output target).law.map Prod.fst=p := by
   rw [completion,Tree.law,PMF.map_bind]
@@ -41,6 +71,7 @@ theorem completion_fst {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (F
   simp_rw [h]
   exact PMF.bind_pure p
 
+/-- The total masses of present and absent optional outputs sum to one. -/
 theorem masses_sum {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1))) :
     (∑a,if (output a).isSome then p a else 0)+(∑a,if (output a).isNone then p a else 0)=1 := by
   rw [← Finset.sum_add_distrib]
@@ -49,6 +80,8 @@ theorem masses_sum {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (
   simp_rw [h]
   simpa only [tsum_fintype] using p.tsum_coe
 
+/-- The completed rank probability is its original success mass plus the total failure mass
+times the target probability. -/
 theorem completion_snd_point {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (target : PMF (Fin (r+1))) (j : Fin (r+1)) :
     ((completion p output target).law.map Prod.snd) j=
@@ -63,6 +96,8 @@ theorem completion_snd_point {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Opt
     · subst k; simp [Tree.law,PMF.pure_map]
     · simp [Tree.law,PMF.pure_map,PMF.pure_apply,hk,Ne.symm hk]
 
+/-- If successful outputs have masses proportional to the target law, the completed rank
+marginal equals that target law. -/
 theorem completion_snd {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (target : PMF (Fin (r+1)))
     (hlocal : ∀j,(∑a,if output a=some j then p a else 0)=
@@ -71,6 +106,8 @@ theorem completion_snd {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (F
   ext j
   rw [completion_snd_point,hlocal,← add_mul,masses_sum,one_mul]
 
+/-- For a finite pushforward law, summing the real masses over a fiber gives the real mass of
+its image point. -/
 theorem finite_real_marginal {A B : Type} [Fintype A] [Fintype B] [DecidableEq B] (p : PMF A) (q : PMF B)
     (f : A→B) (h : p.map f=q) (b : B) :
     (∑a,if f a=b then (p a).toReal else 0)=(q b).toReal := by
@@ -87,6 +124,8 @@ theorem finite_real_marginal {A B : Type} [Fintype A] [Fintype B] [DecidableEq B
   intro a _
   split_ifs <;> simp
 
+/-- For finite probability mass functions, a pushforward identity preserves the mean of every
+real-valued function on the target. -/
 theorem finite_mean_marginal {A B : Type} [Fintype A] [Fintype B] [DecidableEq B] (p : PMF A) (q : PMF B)
     (f : A→B) (h : p.map f=q) (g : B→ℝ) :
     (∑a,(p a).toReal*g (f a))=∑b,(q b).toReal*g b := by
@@ -98,6 +137,8 @@ theorem finite_mean_marginal {A B : Type} [Fintype A] [Fintype B] [DecidableEq B
   intro b _
   rw [← Finset.sum_mul,finite_real_marginal p q f h b]
 
+/-- Under the local proportional-output law, the next-rank marginal of the completed row equals
+the target law. -/
 theorem row_next_marginal {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1)))
     (hlocal : ∀j,(∑a,if output a=some j then p a else 0)=
@@ -107,6 +148,8 @@ theorem row_next_marginal {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option
     (Prod.snd ∘Tree.indexedLeafValue (completion p output target))=target
   rw [← PMF.map_comp,Tree.indexedLeafLaw_value,completion_snd p output target hlocal]
 
+/-- Under the local proportional-output law, the real next-rank fiber mass equals the target
+probability converted to a real number. -/
 theorem row_next_real {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1)))
     (hlocal : ∀j,(∑a,if output a=some j then p a else 0)=
@@ -115,6 +158,8 @@ theorem row_next_real {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fi
       (target j).toReal :=
   finite_real_marginal _ _ _ (row_next_marginal p output fee target hlocal) j
 
+/-- Mapping completed row outcomes to their original indices recovers the original probability
+mass function. -/
 theorem row_original_marginal {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1))) :
     (row p output fee target).law.map
@@ -123,12 +168,15 @@ theorem row_original_marginal {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Op
     (Prod.fst ∘Tree.indexedLeafValue (completion p output target))=p
   rw [← PMF.map_comp,Tree.indexedLeafLaw_value,completion_fst]
 
+/-- The completed row has the same mean charge as the original fee distribution. -/
 theorem row_charge_mean {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1))) :
     (∑a,((row p output fee target).law a).toReal*((row p output fee target).charge a:ℝ))=
       ∑a,(p a).toReal*(fee a:ℝ) :=
   finite_mean_marginal _ _ _ (row_original_marginal p output fee target) (fun a=>(fee a:ℝ))
 
+/-- The completed row's mean bad indicator equals the original probability of an absent output,
+expressed as a real weighted sum. -/
 theorem row_bad_mean {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1))) :
     (∑a,((row p output fee target).law a).toReal*(if (row p output fee target).bad a then 1 else 0))=
@@ -136,12 +184,16 @@ theorem row_bad_mean {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin
   finite_mean_marginal _ _ _ (row_original_marginal p output fee target)
     (fun a=>if (output a).isNone then 1 else 0)
 
+/-- A property holding at every leaf of a finite-branch tree holds for the value of any
+specified leaf. -/
 theorem leafValue_all {A : Type} (t : Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree A)
     (P : A→Prop) (h : t.All P) (l : Tree.Leaves t) : P (Tree.leafValue t l) := by
   induction t with
   | pure a => exact h
   | sample m p c ih => exact ih l.1 (h l.1) l.2
 
+/-- At a good completed-row outcome, the original output is present and equals the row's
+recorded next rank. -/
 theorem row_good_output {r K : ℕ} (p : PMF (Fin K)) (output : Fin K→Option (Fin (r+1)))
     (fee : Fin K→ℕ) (target : PMF (Fin (r+1)))
     (a : Fin (row p output fee target).outcomes) (hgood : (row p output fee target).bad a=false) :

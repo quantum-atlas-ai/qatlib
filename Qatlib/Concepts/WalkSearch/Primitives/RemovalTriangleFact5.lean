@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleFact5
+
+/-!
+# Triangle counting along an edge-removal order
+
+`fact5_removal` bounds the triangle count using common-neighbor counts in successive suffixes of
+a duplicate-free edge list. This is the removal-order counterpart of incremental counting, a
+combinatorial ingredient for graph subset-search reductions [ChildsEisenberg2003].
+
+## Main statements
+
+* `fact5_removal`: at most `n.choose 2 * τ` triangles under the suffix bound.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
@@ -12,6 +29,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 
+/-- If a duplicate-free listing of `T` has at most `τ` common neighbors for each edge in its
+remaining suffix, then `triCount T ≤ n.choose 2 * τ`. -/
 theorem fact5_removal (n τ : ℕ) (T : Finset (Fin n×Fin n)) (l : List (Fin n×Fin n))
     (hT : ∀ p,p∈T↔p∈l) (hN : l.Nodup)
     (hc : ∀ i,(h : i<l.length)→tOf (l.drop i).toFinset l[i].1 l[i].2≤τ) :

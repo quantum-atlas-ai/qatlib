@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+
+/-!
+# Resource ledgers for rational heat baths
+
+`rationalHeatBathCoins` and `rationalHeatBathComparisons` total the classical costs recorded by
+a finite sampling history. The observed heat-bath program has zero queries, one gate, and one
+measurement on every leaf.
+
+The module also identifies positive integer weights as Gibbs weights for logarithmic energies
+and bounds expected classical sampling costs. See [TemmeEtAl2011] for background.
+
+## Main statements
+
+* `rational_heat_bath_actual_leaf_and_classical_ledgers`: The quantum leaf costs are fixed,
+  while any supported history of `m` cutoff-`R` samples uses at most `m * Nat.clog 2
+  (weightTotal w) * R` bits and `m * N * R` comparisons.
+* `rationalHeatBath_expected_classical_costs`: With positive total weight, the cutoff sampler
+  has expected bit cost at most twice the ceiling binary logarithm of the total weight and
+  expected comparison cost at most `2 * N`.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,14 +43,20 @@ open scoped Classical BigOperators ComplexOrder ENNReal
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
+/-- A rejection-sampler configuration, containing either an accepted label or pending costs,
+together with its execution cost. -/
 abbrev HeatBathSamplerRecord (N : ℕ) := ((Fin N × ℕ × ℕ) ⊕ (ℕ × ℕ)) × ℕ
 
+/-- The sum of the recorded random-bit costs over a heat-bath sampling history. -/
 def rationalHeatBathCoins {N : ℕ} (w : Fin N → ℕ) (R m : ℕ)
     (hist : Fin m → HeatBathSamplerRecord N) : ℕ := ∑ k, rejectionBits (hist k).1
 
+/-- The sum of the recorded comparison costs over a heat-bath sampling history. -/
 def rationalHeatBathComparisons {N : ℕ} (w : Fin N → ℕ) (R m : ℕ)
     (hist : Fin m → HeatBathSamplerRecord N) : ℕ := ∑ k, rejectionComparisons (hist k).1
 
+/-- Strictly positive integer weights define the Gibbs density for energies `-Real.log (w j)` at
+inverse temperature one. -/
 theorem rational_heat_bath_gibbs_integer_weight_identification :
     ∀ (N : ℕ) (hN : 0 < N) (w : Fin N → ℕ) (hW : 0 < weightTotal w),
       (∀ j, 0 < w j) → rationalHeatBathDensity w hW =
@@ -39,6 +70,7 @@ theorem rational_heat_bath_gibbs_integer_weight_identification :
     simp [weightTotal]
   simp only [rationalHeatBathDensity, diagonalGibbsDensity, diagonalGibbsDist, hexp, hpart]
 
+/-- Every observed heat-bath leaf uses zero oracle queries, one gate, and one measurement. -/
 theorem rationalHeatBath_leaf_cost {N : ℕ} (c : Option (Fin N))
     (l : Fin (observedLeafCount (rationalHeatBathProgram c))) :
     (observedLeaf 1 (rationalHeatBathProgram c) l).queries = 0 ∧
@@ -51,6 +83,8 @@ theorem rationalHeatBath_leaf_cost {N : ℕ} (c : Option (Fin N))
   rw [← hi]
   exact ⟨rfl, rfl, rfl⟩
 
+/-- The quantum leaf costs are fixed, while any supported history of `m` cutoff-`R` samples uses
+at most `m * Nat.clog 2 (weightTotal w) * R` bits and `m * N * R` comparisons. -/
 theorem rational_heat_bath_actual_leaf_and_classical_ledgers :
     ∀ (N R m : ℕ) (w : Fin N → ℕ) (hW : 0 < weightTotal w)
       (c : Option (Fin N)) (l : Fin (observedLeafCount (rationalHeatBathProgram c))),
@@ -76,6 +110,8 @@ theorem rational_heat_bath_actual_leaf_and_classical_ledgers :
         Finset.sum_le_sum (fun k _ => (hb (hist k) (hh k)).2)
       _ = _ := by simp [Nat.mul_assoc]
 
+/-- With positive total weight, the cutoff sampler has expected bit cost at most twice the
+ceiling binary logarithm of the total weight and expected comparison cost at most `2 * N`. -/
 theorem rationalHeatBath_expected_classical_costs {N : ℕ} (w : Fin N → ℕ)
     (hW : 0 < weightTotal w) (R : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (rationalRejectionRun w (Nat.clog 2 (weightTotal w)) R)

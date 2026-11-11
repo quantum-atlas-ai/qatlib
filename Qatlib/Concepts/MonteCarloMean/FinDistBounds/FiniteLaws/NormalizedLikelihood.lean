@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.RationalTableProducer
+
+/-!
+# Normalization followed by rational likelihood decoding
+
+The program `run` normalizes a family of rational tables and then performs counted
+maximum-likelihood decoding. It combines normalization success, probability-table legality,
+total variation transport of risk, and bounds on the total arithmetic cost. These finite
+inference estimates use the statistical framework discussed in [Watrous2018].
+
+## Main statements
+
+* `family_success`: sufficiently accurate approximate tables can all be normalized.
+* `program_support_risk`: support-based decoding risk and gate bounds hold for the composed
+  program.
+* `program_log_risk`: log-likelihood separation gives transported exponential risk bounds.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,34 +39,47 @@ open scoped BigOperators
 
 variable {c m n : ℕ}
 
+/-- The candidate-by-outcome rational table extracted from a vector of normalization results. -/
 def table (r : Vector (Result m) (c + 1)) (j : Fin (c + 1)) (i : Fin m) : ℚ :=
   r[j.val].values[i.val]
 
+/-- An input table entry divided by the sum of all entries in its candidate row. -/
 def referenceValue (a : Vector (Vector ℚ m) (c + 1)) (j : Fin (c + 1)) (i : Fin m) : ℚ :=
   a[j.val][i.val] / (∑ k : Fin m, a[j.val][k.val])
 
+/-- The sum of the arithmetic gate counts recorded by the normalization results for all
+candidates. -/
 def normalizationCharge (r : Vector (Result m) (c + 1)) : ℕ :=
   (List.ofFn fun j : Fin (c + 1) => r[j.val].gates).sum
 
+/-- Normalize the candidate tables and decode a record, returning the selection and the combined
+normalization and decoding charge when normalization succeeds. -/
 def run (a : Vector (Vector ℚ m) (c + 1)) (w : Fin n → Fin m) :
     Option (Selection (Fin (c + 1)) × ℕ) :=
   (normalizeFamily a).map fun r =>
     let selected := decode (table r) w
     (selected, normalizationCharge r + selected.gates)
 
+/-- The width cap B + 1 + m(B + 1) used for normalized rational table entries. -/
 def outputWidth (m B : ℕ) : ℕ := B + (1 + m * (B + 1))
 
+/-- The combined normalization and likelihood-decoding gate cap for `c + 1` tables with `m`
+outcomes, record length `n`, and input width bound `B`. -/
 def totalGateCap (c m n B : ℕ) : ℕ :=
   (c + 1) * (m * (binomialRatAddGateCap (1 + m * (B + 1)) +
     binomialRatOpGateCap (outputWidth m B))) +
   (c + 1) * (2 * (n * binomialRatOpGateCap (1 + n * outputWidth m B)) +
     24 * (1 + n * outputWidth m B) ^ 2 + 20 * (1 + n * outputWidth m B))
 
+/-- Successful family normalization expands `run` into rational likelihood decoding with the sum
+of normalization and selection costs. -/
 theorem run_eq (a : Vector (Vector ℚ m) (c + 1)) (r : Vector (Result m) (c + 1))
     (hr : normalizeFamily a = some r) (w : Fin n → Fin m) :
     run a w = some (decode (table r) w, normalizationCharge r + (decode (table r) w).gates) := by
   simp only [run, hr, Option.map_some]
 
+/-- Every successfully normalized table entry equals the corresponding raw entry divided by its
+row total. -/
 theorem table_reference (a : Vector (Vector ℚ m) (c + 1)) (r : Vector (Result m) (c + 1))
     (hr : normalizeFamily a = some r) (j : Fin (c + 1)) (i : Fin m) :
     table r j i = referenceValue a j i :=
@@ -54,6 +88,8 @@ theorem table_reference (a : Vector (Vector ℚ m) (c + 1)) (r : Vector (Result 
 section Theory
 open scoped Classical
 
+/-- If every raw entry approximates a probability mass within `eps` and m·eps < 1, normalization
+succeeds for the entire family. -/
 theorem family_success (a : Vector (Vector ℚ m) (c + 1))
     (actual : Fin (c + 1) → FinDist (Fin m)) (eps : ℝ)
     (herr : ∀ j : Fin (c + 1), ∀ i : Fin m,
@@ -69,6 +105,8 @@ theorem family_success (a : Vector (Vector ℚ m) (c + 1))
     simp only [Vector.getElem_map, sum_value, List.sum_ofFn]
     exact (RationalTableProducer.raw_total_positive a[j.val] (actual j) eps (herr j) hsmall).ne'
 
+/-- Successful normalization of nonnegative tables sufficiently close to probability laws
+produces nonnegative rows with total mass one. -/
 theorem family_legality (a : Vector (Vector ℚ m) (c + 1))
     (r : Vector (Result m) (c + 1)) (hr : normalizeFamily a = some r)
     (ha : ∀ j : Fin (c + 1), ∀ i : Fin m, 0 ≤ a[j.val][i.val])
@@ -82,6 +120,8 @@ theorem family_legality (a : Vector (Vector ℚ m) (c + 1))
     (RationalTableProducer.raw_total_positive a[j.val] (actual j) eps (herr j) hsmall)
   exact ⟨fun j => (h j).1, fun j => (h j).2⟩
 
+/-- Uniform input width bounds give the stated sum of rational addition and operation caps for
+family normalization. -/
 theorem normalization_charge_bound (a : Vector (Vector ℚ m) (c + 1))
     (r : Vector (Result m) (c + 1)) (hr : normalizeFamily a = some r)
     (B : ℕ) (hB : ∀ j : Fin (c + 1), ∀ i : Fin m, width a[j.val][i.val] ≤ B) :
@@ -95,6 +135,8 @@ theorem normalization_charge_bound (a : Vector (Vector ℚ m) (c + 1))
         (normalizeFamily_column a r hr j) B (hB j)).2
     _ = _ := by simp
 
+/-- Every successful execution has total charge at most `totalGateCap` under the uniform input
+width bound. -/
 theorem run_gate_bound (a : Vector (Vector ℚ m) (c + 1))
     (r : Vector (Result m) (c + 1)) (hr : normalizeFamily a = some r)
     (B : ℕ) (hB : ∀ j : Fin (c + 1), ∀ i : Fin m, width a[j.val][i.val] ≤ B)
@@ -109,6 +151,8 @@ theorem run_gate_bound (a : Vector (Vector ℚ m) (c + 1))
   subst out
   exact Nat.add_le_add hn hd
 
+/-- Nonnegative approximate tables with m·eps < 1 yield legal normalized laws, support-based
+decoding risk plus n·m·eps, and the stated total gate cap. -/
 theorem program_support_risk (a : Vector (Vector ℚ m) (c + 1))
     (ha : ∀ j : Fin (c + 1), ∀ i : Fin m, 0 ≤ a[j.val][i.val])
     (actual : Fin (c + 1) → FinDist (Fin m)) (eps : ℝ)
@@ -141,6 +185,8 @@ theorem program_support_risk (a : Vector (Vector ℚ m) (c + 1))
     simp only [Option.map_some, ne_eq, Option.some.injEq]
   simpa only [he] using risk
 
+/-- For positive approximate tables with the stated log-likelihood ranges and mean gaps, the
+composed program has exponential decoding risk plus n·m·eps and bounded total charge. -/
 theorem program_log_risk (a : Vector (Vector ℚ m) (c + 1))
     (ha : ∀ j : Fin (c + 1), ∀ i : Fin m, 0 < a[j.val][i.val])
     (actual : Fin (c + 1) → FinDist (Fin m)) (eps : ℝ)

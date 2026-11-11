@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SemidirectHSP05.MainResults.MatrixSumCount.AppendixB
 import Qatlib.Papers.SemidirectHSP05.MainResults.SuccessProbability.Lemma2
+
+/-!
+# A constant success bound for the vector-space case
+
+This module combines the matrix sum concentration bound with the pretty good measurement
+estimate to prove `theorem6_success_ge_sixteenth`. The result is the constant success
+probability ingredient associated with Theorem 6 of [BaconChildsVanDam2005].
+
+## Main statements
+
+* `theorem6_success_ge_sixteenth`: The matrix sum solution multiplicities give pretty good
+  measurement success at least 1/16 for prime p.
+
+## References
+
+* [Bacon et al., 2005][BaconChildsVanDam2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +33,9 @@ namespace Qatlib.Papers.SemidirectHSP05.MainResults
 
 open scoped Classical BigOperators
 
+/-- For prime `p`, the pretty good measurement expression built from the r-dimensional matrix
+sum solution counts is at least `1/16`. This supplies the success probability bound used for
+Theorem 6 of [BaconChildsVanDam2005]. -/
 theorem theorem6_success_ge_sixteenth (p r : ℕ) (hp : p.Prime) [NeZero p] :
     (1 / 16 : ℝ) ≤
       SuccessProbability.pgmSuccess p r

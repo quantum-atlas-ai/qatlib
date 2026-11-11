@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.IsingPart03.MainResults.KauffmanQ2
+
+/-!
+# Two-state Kauffman and weight-enumerator equivalences
+
+This module separates the two-state Potts partition function into an Ising partition sum and an
+exponential prefactor. It also proves the inverse parameter identities and, given the stated
+partition-function representation and a nonzero prefactor, the two-way scalar conversion to a
+quadratically signed weight enumerator used in Proposition 2 of [Lidar2004].
+
+## Main statements
+
+* `potts_q2_partition_separates`: factors the two-state Potts partition sum.
+* `kauffman_q2_lambda_not_real`: shows that parameters equal to `I` or `-I` have nonzero
+  imaginary part.
+* `source_prop2_q2_equivalent`: gives both directions of the scalar conversion under its
+  explicit hypotheses.
+
+## References
+
+* [Lidar, 2004][Lidar2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,8 @@ variable {V E : Type*} [Fintype V] [Fintype E] [DecidableEq V] [DecidableEq E]
 
 omit [DecidableEq E] in
 
+/-- The two-state Potts partition function equals the Ising spin-product partition sum with
+couplings `K / 2`, multiplied by `exp (∑ e, K e / 2)`. See [Lidar2004]. -/
 theorem potts_q2_partition_separates (ends : E → V × V) (K : E → ℂ) :
     (∑ s : V → Fin 2,
         ∏ e : E, Complex.exp (K e * (if s (ends e).1 = s (ends e).2 then (1 : ℂ) else 0)))
@@ -37,6 +61,8 @@ theorem potts_q2_partition_separates (ends : E → V × V) (K : E → ℂ) :
       (fun e _ => potts_two_state_weight (K e) (s (ends e).1) (s (ends e).2))
   rw [Finset.sum_congr rfl (fun s _ => hpoint s), ← Finset.mul_sum]
 
+/-- The fractional-linear transformation `lam = (z - 1) / (z + 1)` is inverted by `(1 + lam) /
+(1 - lam)` when `z ≠ -1`. -/
 theorem kauffman_lambda_inverse (z lam : ℂ) (hz : z ≠ -1)
     (hlam : lam = (z - 1) / (z + 1)) :
     (1 + lam) / (1 - lam) = z := by
@@ -53,6 +79,7 @@ theorem kauffman_lambda_inverse (z lam : ℂ) (hz : z ≠ -1)
   field_simp [hz1, h2]
   ring
 
+/-- The inverse fractional-linear factor at `I` equals `I`. -/
 theorem kauffman_q2_inverse_factor_pos :
     (1 + Complex.I) / (1 - Complex.I) = Complex.I := by
   have h2 : (1 : ℂ) - Complex.I ≠ 0 := by
@@ -62,6 +89,7 @@ theorem kauffman_q2_inverse_factor_pos :
   rw [div_eq_iff h2]
   linear_combination Complex.I_mul_I
 
+/-- The inverse fractional-linear factor at `-I` equals `-I`. -/
 theorem kauffman_q2_inverse_factor_neg :
     (1 + (-Complex.I)) / (1 - (-Complex.I)) = -Complex.I := by
   have h2 : (1 : ℂ) - (-Complex.I) ≠ 0 := by
@@ -71,6 +99,7 @@ theorem kauffman_q2_inverse_factor_neg :
   rw [div_eq_iff h2]
   linear_combination Complex.I_mul_I
 
+/-- A parameter equal to `I` or `-I` has square `-1`. -/
 theorem kauffman_q2_lambda_sq (lam : ℂ) (h : lam = Complex.I ∨ lam = -Complex.I) :
     lam ^ 2 = -1 := by
   rcases h with h | h
@@ -79,17 +108,23 @@ theorem kauffman_q2_lambda_sq (lam : ℂ) (h : lam = Complex.I ∨ lam = -Comple
     rw [show (-Complex.I) * (-Complex.I) = Complex.I * Complex.I by ring]
     rw [Complex.I_mul_I]
 
+/-- A parameter equal to `I` or `-I` has nonzero imaginary part. See [Lidar2004]. -/
 theorem kauffman_q2_lambda_not_real (lam : ℂ) (h : lam = Complex.I ∨ lam = -Complex.I) :
     lam.im ≠ 0 := by
   rcases h with h | h
   · rw [h, Complex.I_im]; norm_num
   · rw [h, Complex.neg_im, Complex.I_im]; norm_num
 
+/-- Under the stated nonzero and two-state Kauffman parameter conditions with `b = ±1`, the
+transformed parameter has square `-1`. -/
 theorem kauffman_q2_lambda_sq_of_params (A : ℂ) (b : ℤ) (hA : A ≠ 0)
     (hq : (A ^ 2 + (A ^ 2)⁻¹) ^ 2 = 2) (hb : b = 1 ∨ b = -1) :
     (((-(A ^ (-(4 * b))) - 1) / (-(A ^ (-(4 * b))) + 1)) ^ 2 = -1) :=
   kauffman_q2_lambda_sq _ (kauffman_q2_lambda_complex A b hA hq hb)
 
+/-- Given the partition representation and normalization hypotheses, `Kvalue` and the
+incidence-matrix weight enumerator determine each other by the stated nonzero scalar
+prefactor, as in [Lidar, Proposition 2][Lidar2004]. -/
 theorem source_prop2_q2_equivalent (ends : E → V × V)
     (hLoop : ∀ e, (ends e).1 ≠ (ends e).2) (w : E → ZMod 2)
     (Θ μ c E0 Kvalue lam : ℂ)

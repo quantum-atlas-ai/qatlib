@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+/-!
+# Empirical weights and preparation counts
+
+`empiricalWeight` assigns each optional finite label its sample count as a rational weight. The
+module computes its total mass and the comparison and adjoint-gate counts of the associated
+`empiricalPrepare` construction.
+
+The recursive counter `empiricalNativeCounts` returns all label counts together with exact
+sample and comparison totals. The preparation of amplitudes from classical distribution data is
+discussed in [GroverRudolph2002].
+
+## Main statements
+
+* `empirical_native_weights_and_work`: empirical weights have mass `N` and the stated
+  preparation resource counts.
+* `empiricalNativeCounts_correct`: the native counter computes label multiplicities and exact
+  work totals.
+
+## References
+
+* [Grover and Rudolph, 2002][GroverRudolph2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -21,17 +45,23 @@ open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The unnormalized empirical weight of a label, given by its multiplicity in the sample list
+as a rational number. -/
 def empiricalWeight {n N : ℕ} (ω : Fin N→Option (Fin n)) (a : Option (Fin n)) : ℚ :=
   ((List.ofFn ω).count a:ℚ)
 
+/-- The rational-weight preparation associated with the empirical label counts and the chosen
+bit precision. -/
 noncomputable def empiricalPrepare {n N : ℕ} (ω : Fin N→Option (Fin n)) (bits : ℕ) :=
   rationalWeightPrepare (empiricalWeight ω) bits
 
+/-- Every empirical label weight is nonnegative. -/
 theorem empiricalWeight_nonneg {n N : ℕ} (ω : Fin N → Option (Fin n))
     (a : Option (Fin n)) : 0 ≤ empiricalWeight ω a := by
   unfold empiricalWeight
   positivity
 
+/-- Summing a function against label multiplicities equals summing it over the original list. -/
 theorem empirical_count_sum {α : Type} [Fintype α] [BEq α] [LawfulBEq α]
     (xs : List α) (f : α → ℚ) :
     (∑ a, (xs.count a : ℚ) * f a) = (xs.map f).sum := by
@@ -49,6 +79,8 @@ theorem empirical_count_sum {α : Type} [Fintype α] [BEq α] [LawfulBEq α]
     simp only [add_mul, he, Finset.sum_add_distrib, Finset.sum_ite_eq', Finset.mem_univ, if_true]
     rw [ih, add_comm]
 
+/-- Empirical weights are nonnegative with total mass `N`; their preparation uses `2 * n * bits`
+comparisons and `n` adjoint gates. -/
 theorem empirical_native_weights_and_work : ∀ (n N bits : ℕ) (ω : Fin N → Option (Fin n)),
     (∀ a, 0 ≤ empiricalWeight ω a) ∧ rationalWeightMass (empiricalWeight ω) = (N : ℚ) ∧
     rationalWeightComparisons (empiricalWeight ω) bits = 2*n*bits ∧
@@ -61,6 +93,8 @@ theorem empirical_native_weights_and_work : ∀ (n N bits : ℕ) (ω : Fin N →
   simpa [rationalWeightMass, empiricalWeight, List.map_const', Function.comp_def,
       List.ofFn_const] using h
 
+/-- Count every optional label while recording the number of samples processed and the number of
+label comparisons. -/
 def empiricalNativeCounts {n : ℕ} : List (Option (Fin n)) →
     List (Option (Fin n) × ℕ) × ℕ × ℕ
   | [] => ((none :: List.ofFn (fun i : Fin n => some i)).map (fun a => (a,0)), 0, 0)
@@ -68,6 +102,8 @@ def empiricalNativeCounts {n : ℕ} : List (Option (Fin n)) →
     let z := empiricalNativeCounts xs
     (z.1.map (fun b => (b.1, b.2 + if a=b.1 then 1 else 0)), z.2.1+1, z.2.2+z.1.length)
 
+/-- The native counter returns all label multiplicities, the list length, and exactly `(n + 1) *
+xs.length` comparisons. -/
 theorem empiricalNativeCounts_correct {n : ℕ} (xs : List (Option (Fin n))) :
     (empiricalNativeCounts xs).1 =
       (none :: List.ofFn (fun i : Fin n => some i)).map (fun a => (a,xs.count a)) ∧
@@ -82,6 +118,8 @@ theorem empiricalNativeCounts_correct {n : ℕ} (xs : List (Option (Fin n))) :
     · simp [empiricalNativeCounts, ih.2.1]
     · simp [empiricalNativeCounts, ih.1, ih.2.2, Nat.mul_add, Nat.mul_one, add_comm]
 
+/-- On `List.ofFn ω`, the native counts reproduce the empirical rational weights and record `N`
+samples and `(n + 1) * N` comparisons. -/
 theorem empiricalNativeCounts_weight {n N : ℕ} (ω : Fin N → Option (Fin n)) :
     (empiricalNativeCounts (List.ofFn ω)).1.map (fun z => (z.1,(z.2 : ℚ))) =
       (none :: List.ofFn (fun i : Fin n => some i)).map (fun a => (a,empiricalWeight ω a)) ∧

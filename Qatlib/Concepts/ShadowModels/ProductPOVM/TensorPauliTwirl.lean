@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
 import QuantumInfo.Measurements.POVM
+
+/-!
+# Tensor Pauli twirling
+
+This module establishes entrywise completeness identities for single-qubit Pauli matrices and
+their tensor products. These identities give `tensor_pauli_twirl`, which expresses the sum of
+all Pauli conjugates of a matrix as a scalar identity determined by its trace. See
+[NielsenChuang2010] for background.
+
+## Main statements
+
+* `tensor_pauli_completeness`: entrywise completeness of tensor Pauli operators.
+* `tensor_pauli_twirl`: the unnormalized Pauli twirl formula.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,8 @@ open Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 
+/-- The sum of products of single-qubit Pauli entries and conjugate entries equals twice the
+product of the corresponding Kronecker deltas. -/
 theorem one_qubit_completeness (r t u v : Bool) :
     (∑ p : Pauli1,P1 p r u*star (P1 p t v))=
       (2:ℂ)*(if r=t then 1 else 0)*(if u=v then 1 else 0) := by
@@ -28,6 +49,8 @@ theorem one_qubit_completeness (r t u v : Bool) :
   rw [hu]
   cases r <;> cases t <;> cases u <;> cases v <;> simp [P1] <;> norm_num
 
+/-- The entrywise completeness sum for `n`-qubit Pauli words equals `2^n` times the product of
+the row and column Kronecker deltas. -/
 theorem tensor_pauli_completeness (n : ℕ) (r t u v : Reg n) :
     (∑ w : PauliWord n,pauliWordOp n w r u*star (pauliWordOp n w t v))=
       (2:ℂ)^n*(if r=t then 1 else 0)*(if u=v then 1 else 0) := by
@@ -55,6 +78,8 @@ theorem tensor_pauli_completeness (n : ℕ) (r t u v : Reg n) :
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     simp [hi]
 
+/-- Summing all Pauli conjugates of a matrix gives the identity scaled by `2^n` times its trace,
+providing the twirl identity used for attainability in [XuEtAl2026]. -/
 theorem tensor_pauli_twirl (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) :
     (∑ w : PauliWord n,pauliWordOp n w*A*(pauliWordOp n w)ᴴ)=
       ((2:ℂ)^n*A.trace) • (1 : Matrix (Reg n) (Reg n) ℂ) := by

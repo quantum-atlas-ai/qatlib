@@ -6,6 +6,41 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajorityVocabulary
 import Mathlib.Computability.Partrec
+
+/-!
+# Finite-tape majority compilation
+
+This module verifies finite-tape majority amplification for Boolean-output fair-coin
+`Turing.TM0` machines. The correctness proofs connect machine serialization, input copying,
+separate work tracks, return-to-home routines, and binary-tape simulation to the distribution of
+`2 * r + 1` independent source runs.
+
+`finite_tape_majority_compilation` supplies a single total computable compiler independent of
+the source polynomial bound. For source codes with common halting pairs and a uniform polynomial
+coin budget, the compiled code has common halting pairs, polynomial bounds on all coin paths,
+and exactly the independent-majority output probabilities for both Boolean targets. For
+background on probabilistic computation and error reduction, see [NielsenChuang2010].
+
+## Main statements
+
+* `table_encode` and `encodeMachine_run`: decoding an encoded machine preserves its transition
+  table and execution.
+* `markerCopy_run` and `markerReset_run`: copying and resetting the work component have explicit
+  transition counts.
+* `uniform_majority_bound`: a target probability of at least `2 / 3` yields majority success at
+  least `1 - (8 / 9) ^ r`.
+* `rawMajorityCode_polynomial`: compilation preserves the independent-majority distribution
+  within a uniform polynomial budget.
+* `primrec_rawMajorityCode`: the compiler is primitive recursive in the source code and
+  repetition parameter.
+* `finite_tape_majority_compilation`: a computable compiler combines totality, transition
+  bounds, exact output probabilities, and the majority success bound.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,16 +57,19 @@ open scoped BigOperators Classical
 
 set_option maxHeartbeats 2000000 in
 
+/-- The index of a symbol in `Option Bool` is less than three. -/
 theorem symbolIndex_lt (a : Option Bool) : symbolIndex a < 3 := by
   cases a with
   | none => decide
   | some b => cases b <;> decide
 
+/-- Decoding the index of a tape symbol recovers that symbol. -/
 theorem decodeSymbol_symbolIndex (a : Option Bool) : decodeSymbol (symbolIndex a) = a := by
   cases a with
   | none => rfl
   | some b => cases b <;> rfl
 
+/-- The index of a Boolean tape instruction is less than five. -/
 theorem actionIndex_lt (stmt : Turing.TM0.Stmt (Option Bool)) : actionIndex stmt < 5 := by
   cases stmt with
   | move d => cases d <;> decide
@@ -39,6 +77,8 @@ theorem actionIndex_lt (stmt : Turing.TM0.Stmt (Option Bool)) : actionIndex stmt
     | none => decide
     | some b => cases b <;> decide
 
+/-- Decoding an encoded optional transition recovers the transition, including its control label
+and instruction. -/
 theorem decodeTransition_encode {Q : ℕ}
     (p : Option (Fin (Q + 1) × Turing.TM0.Stmt (Option Bool))) :
     decodeTransition Q (encodeTransition p) = p := by
@@ -59,21 +99,28 @@ theorem decodeTransition_encode {Q : ℕ}
       | none => rfl
       | some b => cases b <;> rfl
 
+/-- The control-size parameter recovered from `encodeMachine Q M a` is `Q`. -/
 @[simp] theorem controlSize_encode (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) : controlSize (encodeMachine Q M a) = Q := rfl
 
+/-- Encoding a machine with control labels `Fin (Q + 1)` produces a code of length `1 + 7 * (Q +
+1)`. -/
 theorem encodeMachine_length (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) : (encodeMachine Q M a).length = 1 + 7 * (Q + 1) := by
   simp [encodeMachine]
   omega
 
+/-- The transition-row index for a coin, control label, and tape symbol is less than `6 * (Q +
+1)`. -/
 theorem rowIndex_lt (Q : ℕ) (c : Bool) (q : Fin (Q + 1)) (a : Option Bool) :
     rowIndex Q c q a < 6 * (Q + 1) := by
   have hs := symbolIndex_lt a
   cases c <;> simp only [rowIndex, Bool.toNat, cond_false, cond_true] <;> omega
 
+/-- The row index determines its coin, control label, and tape symbol through the specified
+threshold, quotient, and remainder operations. -/
 theorem rowIndex_coordinates (Q : ℕ) (c : Bool) (q : Fin (Q + 1)) (a : Option Bool) :
     decide (3 * (Q + 1) ≤ rowIndex Q c q a) = c ∧
     (rowIndex Q c q a / 3) % (Q + 1) = q.val ∧
@@ -92,6 +139,7 @@ theorem rowIndex_coordinates (Q : ℕ) (c : Bool) (q : Fin (Q + 1)) (a : Option 
     cases c <;> simp [Nat.mod_eq_of_lt q.isLt]
   · rw [hm, decodeSymbol_symbolIndex]
 
+/-- The readout of an encoded machine at `q` equals the original readout `a q`. -/
 theorem readout_encode (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (q : Fin (Q + 1)) :
@@ -104,6 +152,7 @@ theorem readout_encode (Q : ℕ)
   simp only [List.getElem_ofFn]
   cases a q <;> rfl
 
+/-- The transition table decoded from an encoded machine equals the original table. -/
 theorem table_encode (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) : table (encodeMachine Q M a) = M := by
@@ -125,16 +174,20 @@ theorem table_encode (Q : ℕ)
       Fin (Q + 1)) = q := Fin.ext hq
   rw [hc, hfin, hs, decodeTransition_encode]
 
+/-- The readout function decoded from an encoded machine equals its original readout function. -/
 theorem readout_encode_eq (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) : readout (encodeMachine Q M a) = a :=
   funext (readout_encode Q M a)
 
+/-- Relabeling the control states of both a machine and a configuration preserves `coinHalt`. -/
 theorem relabel_coinHalt {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
     (e : Λ ≃ Λ') (M : Bool → Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     coinHalt (relabelTable e M) (relabelCfg e cfg) = coinHalt M cfg := by
   simp [coinHalt, relabelTable, relabelCfg]
 
+/-- A machine step commutes with relabeling control states by an equivalence, with the resulting
+optional configuration mapped by `relabelCfg`. -/
 theorem relabel_step {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
     (e : Λ ≃ Λ') (M : Bool → Turing.TM0.Machine Γ Λ) (c : Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -143,6 +196,8 @@ theorem relabel_step {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabite
   simp only [TM0_step_apply, relabelCfg, relabelTable, Equiv.symm_apply_apply,
     Option.map_map, Function.comp_def]
 
+/-- Relabeling control states and transporting the readout preserves the output and coin-read
+count of a run from a configuration. -/
 theorem relabel_runAux {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
     (e : Λ ≃ Λ') (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool)
     (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -161,6 +216,7 @@ theorem relabel_runAux {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabi
       | none => simp [relabelCfg]
       | some cfg' => simp only [Option.map_some, ih]
 
+/-- Relabeling control states preserves the transition count of a run from a configuration. -/
 theorem relabel_transitionsAux {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
     (e : Λ ≃ Λ') (M : Bool → Turing.TM0.Machine Γ Λ)
     (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -177,6 +233,8 @@ theorem relabel_transitionsAux {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ]
       | none => rfl
       | some cfg' => simp only [Option.map_some, ih]
 
+/-- A control-state equivalence preserving the default state preserves the output, coin-read
+count, and transition count of runs on the same input and coin tape. -/
 theorem relabel_run {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
     (e : Λ ≃ Λ') (he : e default = default)
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool)
@@ -192,20 +250,25 @@ theorem relabel_run {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited
   · simpa only [coinTapeTransitionCount, hi] using!
       relabel_transitionsAux e M coins (Turing.TM0.init input)
 
+/-- The number of true bits in a list is at most its length. -/
 theorem trueCount_le_length (coins : List Bool) : trueCount coins ≤ coins.length := by
   induction coins with
   | nil => simp
   | cons c cs ih => cases c <;> simp_all [Bool.toNat] <;> omega
 
+/-- The two coin branches of the tally machine halt on exactly the same state-symbol pairs. -/
 theorem tallyTable_commonHalt (N : ℕ) (q : TallyState N) (a : Option Bool) :
     (tallyTable N false q a = none) ↔ (tallyTable N true q a = none) := by
   simp only [tallyTable]
   split <;> simp
 
+/-- The tally machine halts exactly when its processed-bit counter has reached `N`. -/
 theorem tally_coinHalt (N : ℕ) (q : TallyState N) (T : Turing.Tape (Option Bool)) :
     coinHalt (tallyTable N) ⟨q, T⟩ = decide (N ≤ q.1.val) := by
   by_cases h : q.1.val < N <;> simp [coinHalt, tallyTable, h, Nat.not_le.mpr, Nat.le_of_not_gt]
 
+/-- Before `N` bits have been processed, a tally step increments the processed-bit counter and
+adds the current coin to the true-bit counter, capped at `N`, without changing the tape. -/
 theorem tally_step (N : ℕ) (q : TallyState N) (T : Turing.Tape (Option Bool))
     (c : Bool) (h : q.1.val < N) :
     Turing.TM0.step (tallyTable N c) ⟨q, T⟩ =
@@ -214,6 +277,10 @@ theorem tally_step (N : ℕ) (q : TallyState N) (T : Turing.Tape (Option Bool))
   rw [TM0_step_apply]
   simp [tallyTable, h, TM0StmtApply, Turing.Tape.write_self]
 
+/-- If the supplied prefix completes the tally to `N` and the initial true-bit count does not
+exceed the processed-bit count, the machine returns whether the final true-bit count exceeds
+`N / 2`. It reads and executes exactly as many steps as the prefix length, regardless of the
+extra suffix. -/
 theorem tally_run_prefix (N : ℕ) (coins extra : List Bool)
     (q : TallyState N) (T : Turing.Tape (Option Bool))
     (hfinish : q.1.val + coins.length = N) (hcount : q.2.val ≤ q.1.val) :
@@ -254,6 +321,8 @@ theorem tally_run_prefix (N : ℕ) (coins extra : List Bool)
       change coinTapeTransitionCountAux (tallyTable N) (cs ++ extra) ⟨q', T⟩ + 1 = _
       rw [hl, List.length_cons]
 
+/-- The tally machine returns the strict majority bit of `coins` after exactly `coins.length`
+coin reads and transitions, independently of the input and extra coin suffix. -/
 theorem tally_run (coins extra : List Bool) (input : List (Option Bool)) :
     coinTapeRun (tallyTable coins.length) (tallyAccept coins.length) input (coins ++ extra) =
       (some (decide (coins.length / 2 < trueCount coins)), coins.length) ∧
@@ -262,6 +331,8 @@ theorem tally_run (coins extra : List Bool) (input : List (Option Bool)) :
     tally_run_prefix coins.length coins extra ((0, 0) : TallyState coins.length)
       (Turing.Tape.mk₁ input) (by simp) (by simp)
 
+/-- If the available coins cannot complete the tally to `N`, the run returns no output and uses
+every available coin in one transition. -/
 theorem tally_run_pending (N : ℕ) (coins : List Bool) (q : TallyState N)
     (T : Turing.Tape (Option Bool)) (hshort : q.1.val + coins.length < N) :
     coinTapeRunAux (tallyTable N) (tallyAccept N) coins ⟨q, T⟩ = (none, coins.length) ∧
@@ -292,6 +363,8 @@ theorem tally_run_pending (N : ℕ) (coins : List Bool) (q : TallyState N)
       change coinTapeTransitionCountAux (tallyTable N) cs ⟨q', T⟩ + 1 = _
       rw [hl, List.length_cons]
 
+/-- With at least `N` coins, the tally machine returns the strict majority of the first `N` bits
+and uses exactly `N` reads and transitions. -/
 theorem tally_run_sufficient (N : ℕ) (coins : List Bool) (input : List (Option Bool))
     (hlen : N ≤ coins.length) :
     coinTapeRun (tallyTable N) (tallyAccept N) input coins =
@@ -301,9 +374,11 @@ theorem tally_run_sufficient (N : ℕ) (coins : List Bool) (input : List (Option
   rw [List.length_take, Nat.min_eq_left hlen, List.take_append_drop] at h
   exact h
 
+/-- The tally machine has `(N + 1) ^ 2` control states. -/
 theorem tally_state_card (N : ℕ) : Fintype.card (TallyState N) = (N + 1) ^ 2 := by
   simp [TallyState, pow_two]
 
+/-- Counting true bits in `List.ofFn w` equals `MajorityCount w`. -/
 theorem trueCount_ofFn {N : ℕ} (w : Fin N → Bool) :
     trueCount (List.ofFn w) = MajorityCount w := by
   simp only [trueCount, List.map_ofFn, List.sum_ofFn, MajorityCount]
@@ -313,6 +388,8 @@ theorem trueCount_ofFn {N : ℕ} (w : Fin N → Bool) :
   change (w j).toNat = _
   cases w j <;> rfl
 
+/-- On a coin prefix `List.ofFn w`, the tally machine returns `MajorityBit w` after exactly `N`
+reads and transitions, independently of the input and extra suffix. -/
 theorem tally_run_ofFn {N : ℕ} (w : Fin N → Bool) (extra : List Bool)
     (input : List (Option Bool)) :
     coinTapeRun (tallyTable N) (tallyAccept N) input (List.ofFn w ++ extra) =
@@ -322,6 +399,8 @@ theorem tally_run_ofFn {N : ℕ} (w : Fin N → Bool) (extra : List Bool)
   rw [List.length_ofFn] at h
   simpa only [trueCount_ofFn, MajorityBit] using! h
 
+/-- The fair-tape probability that the tally machine returns `target` equals the fraction of
+length-`N` Boolean words with majority bit `target`. -/
 theorem tally_fair_mass (N : ℕ) (input : List (Option Bool)) (target : Bool) :
     fairTapeSuccess (tallyTable N) (tallyAccept N) input N target =
       (∑ w : Fin N → Bool, if MajorityBit w = target then (1 : ℝ) else 0) / 2 ^ N := by
@@ -334,6 +413,8 @@ theorem tally_fair_mass (N : ℕ) (input : List (Option Bool)) (target : Bool) :
   rw [h]
   simp
 
+/-- For `2 * r + 1` votes, the majority equals `target` exactly when more than `r` votes equal
+`target`. -/
 theorem majorityBit_eq_target_iff (r : ℕ) (w : Fin (2 * r + 1) → Bool) (target : Bool) :
     MajorityBit w = target ↔ r < (Finset.univ.filter fun j => w j = target).card := by
   cases target with
@@ -350,6 +431,8 @@ theorem majorityBit_eq_target_iff (r : ℕ) (w : Fin (2 * r + 1) → Bool) (targ
     unfold MajorityCount
     omega
 
+/-- The probability of a finite event under a product of `N` uniform states is its indicator sum
+divided by the `N`th power of the alphabet cardinality. -/
 theorem uniform_product_event {I : Type*} [Fintype I] [DecidableEq I]
     (N : ℕ) (E : Finset (Fin N → I)) :
     MeasureProb (PiTensorState fun _ : Fin N => Uniform I) E =
@@ -360,6 +443,8 @@ theorem uniform_product_event {I : Type*} [Fintype I] [DecidableEq I]
   rw [← Finset.sum_filter]
   simp [div_eq_mul_inv]
 
+/-- If a uniform vote equals `target` with probability at least `2 / 3`, the majority of `2 * r
++ 1` independent uniform votes equals `target` with probability at least `1 - (8 / 9) ^ r`. -/
 theorem uniform_majority_bound {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I]
     (r : ℕ) (vote : I → Bool) (target : Bool)
     (hgood : (2 / 3 : ℝ) ≤
@@ -397,6 +482,8 @@ theorem uniform_majority_bound {I : Type*} [Fintype I] [DecidableEq I] [Nonempty
   rw [hE] at hsum
   linarith
 
+/-- For a run with an output, testing whether that output is `some true` equals `target` exactly
+when the output is `some target`. -/
 theorem source_vote_eq_target {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ)
     (coins : List Bool) (target : Bool)
@@ -407,10 +494,13 @@ theorem source_vote_eq_target {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   | none => exact (ht h).elim
   | some b => cases b <;> cases target <;> simp
 
+/-- The zero tally state is mapped to the zero native control label. -/
 theorem tallyLabels_zero (N : ℕ) : tallyLabels N (0, 0) = 0 := by
   apply Fin.ext
   simp [tallyLabels, finProdFinEquiv]
 
+/-- The tally machine with native control labels returns `MajorityBit w` after exactly `N` reads
+and transitions on `List.ofFn w ++ extra`. -/
 theorem native_tally_run {N : ℕ} (w : Fin N → Bool) (extra : List Bool)
     (input : List (Option Bool)) :
     coinTapeRun (nativeTallyTable N) (nativeTallyAccept N) input (List.ofFn w ++ extra) =
@@ -421,6 +511,8 @@ theorem native_tally_run {N : ℕ} (w : Fin N → Bool) (extra : List Bool)
   exact ⟨h.1.trans (tally_run_ofFn w extra input).1,
     h.2.trans (tally_run_ofFn w extra input).2⟩
 
+/-- The machine decoded from `tallyCode N` returns `MajorityBit w` after exactly `N` reads and
+transitions on `List.ofFn w ++ extra`. -/
 theorem tallyCode_run {N : ℕ} (w : Fin N → Bool) (extra : List Bool)
     (input : List (Option Bool)) :
     coinTapeRun (table (tallyCode N)) (readout (tallyCode N)) input
@@ -428,6 +520,8 @@ theorem tallyCode_run {N : ℕ} (w : Fin N → Bool) (extra : List Bool)
     coinTapeTransitionCount (table (tallyCode N)) input (List.ofFn w ++ extra) = N := by
   simpa only [tallyCode, table_encode, readout_encode_eq] using! native_tally_run w extra input
 
+/-- Encoding and then decoding a machine preserves its output, coin-read count, and transition
+count on every input and coin tape. -/
 theorem encodeMachine_run (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (input : List (Option Bool)) (coins : List Bool) :
@@ -438,10 +532,13 @@ theorem encodeMachine_run (Q : ℕ)
   simp only [table_encode, readout_encode_eq]
   exact ⟨trivial, trivial⟩
 
+/-- The code of the tally machine has length `1 + 7 * (N + 1) ^ 2`. -/
 theorem tallyCode_length (N : ℕ) : (tallyCode N).length = 1 + 7 * (N + 1) ^ 2 := by
   rw [tallyCode, encodeMachine_length]
   ring
 
+/-- With at least `N` coins, `tallyCode N` returns the strict majority of the first `N` bits
+after exactly `N` reads and transitions. -/
 theorem tallyCode_run_sufficient (N : ℕ) (coins : List Bool) (input : List (Option Bool))
     (hlen : N ≤ coins.length) :
     coinTapeRun (table (tallyCode N)) (readout (tallyCode N)) input coins =
@@ -453,6 +550,7 @@ theorem tallyCode_run_sufficient (N : ℕ) (coins : List Bool) (input : List (Op
   have hr := tally_run_sufficient N coins input hlen
   exact ⟨h.1.trans hr.1, h.2.trans hr.2⟩
 
+/-- The tally code is total on any input at every coin budget `t` with `N ≤ t`. -/
 theorem tallyCode_totalAt (N t : ℕ) (input : List Bool) (hNt : N ≤ t) :
     totalAt (tallyCode N) input t := by
   intro ω
@@ -461,6 +559,7 @@ theorem tallyCode_totalAt (N t : ℕ) (input : List Bool) (hNt : N ≤ t) :
   rw [h]
   simp
 
+/-- The tally code has the same halting state-symbol pairs in both coin branches. -/
 theorem tallyCode_commonHalt (N : ℕ) : commonHalt (tallyCode N) := by
   unfold commonHalt
   simp only [tallyCode, table_encode, nativeTallyTable, relabelTable]
@@ -468,6 +567,9 @@ theorem tallyCode_commonHalt (N : ℕ) : commonHalt (tallyCode N) := by
   exact Option.map_eq_none_iff.trans
     ((tallyTable_commonHalt N ((tallyLabels N).symm q) a).trans Option.map_eq_none_iff.symm)
 
+/-- A deterministic run reaching a halting configuration in `t` transitions yields its final
+readout in the coin-tape semantics whenever at least `t` coins are available. The run uses
+exactly `t` reads and transitions. -/
 theorem runFrom_coin_constant {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (t : ℕ)
     (cfg final : Turing.TM0.Cfg Γ Λ) (coins : List Bool)
@@ -507,8 +609,11 @@ theorem runFrom_coin_constant {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
       · simp only [coinTapeTransitionCountAux, hc, Bool.false_eq_true, ↓reduceIte, hs]
         rw [htrans]
 
+/-- The default marker cell has blank input and work components and a false home marker. -/
 @[simp] theorem markerCell_default : (default : MarkerCell) = (none, none, false) := rfl
 
+/-- On a cell with a nonblank input component, two copy-machine transitions apply `fillCell`,
+move the cell onto the left list, and return to control state `1`. -/
 theorem markerCopy_pair (left rest : List MarkerCell) (s : MarkerCell)
     (hs : s.1.isSome = true) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerCopyTable 2
@@ -518,6 +623,8 @@ theorem markerCopy_pair (left rest : List MarkerCell) (s : MarkerCell)
     TM0StmtApply, Turing.Tape.mk₂, Turing.Tape.mk', Turing.Tape.write, Turing.Tape.move,
     Turing.ListBlank.head_mk, Turing.ListBlank.tail_mk]
 
+/-- The copy machine sweeps a list of cells with nonblank input components in twice their
+length, placing their filled versions in reverse order on the left of the head. -/
 theorem markerCopy_sweep (cells left : List MarkerCell)
     (hs : ∀ s ∈ cells, s.1.isSome = true) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerCopyTable (2 * cells.length)
@@ -534,11 +641,15 @@ theorem markerCopy_sweep (cells left : List MarkerCell)
     rw [ih (fillCell s :: left) hrest]
     simp [List.reverse_cons, List.append_assoc]
 
+/-- Replacing a list by its default head followed by its tail preserves its `Turing.ListBlank`
+representation. -/
 private theorem blank_head_tail {Γ : Type*} [Inhabited Γ] (right : List Γ) :
     Turing.ListBlank.mk (right.headI :: right.tail) = Turing.ListBlank.mk right := by
   simpa only [Turing.ListBlank.head_mk, Turing.ListBlank.tail_mk,
     Turing.ListBlank.cons_mk] using! Turing.ListBlank.cons_head_tail (Turing.ListBlank.mk right)
 
+/-- If the intervening cells and current head carry no home marker, the copy machine returns
+across those cells to `home` in `cells.length + 1` transitions. -/
 theorem markerCopy_return (cells right : List MarkerCell) (home : MarkerCell)
     (hhead : right.headI.2.2 = false)
     (hcells : ∀ s ∈ cells, s.2.2 = false) :
@@ -567,6 +678,8 @@ theorem markerCopy_return (cells right : List MarkerCell) (home : MarkerCell)
     rw [ih (s :: right) (by simpa using! hs) hrest]
     simp [List.reverse_cons, List.append_assoc]
 
+/-- The marker-copy machine reaches `markerCopyResult input` in halting state `4` after `3 *
+input.length + 3` transitions. -/
 theorem markerCopy_run (input : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerCopyTable (3 * input.length + 3)
         (Turing.TM0.init (markerInput input)) = some ⟨4, markerCopyResult input⟩ ∧
@@ -630,6 +743,8 @@ theorem markerCopy_run (input : List Bool) :
       rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hfinal, hout]
   · simp [TM0_step_apply, markerCopyTable]
 
+/-- With a sufficiently long coin tape, the marker-copy machine returns true and uses exactly `3
+* input.length + 3` coin reads and transitions. -/
 theorem markerCopy_coin_run (input : List Bool) (coins : List Bool)
     (hlen : 3 * input.length + 3 ≤ coins.length) :
     coinTapeRun (fun _ => markerCopyTable) markerCopyAccept (markerInput input) coins =
@@ -640,6 +755,8 @@ theorem markerCopy_coin_run (input : List Bool) (coins : List Bool)
   exact runFrom_coin_constant markerCopyTable markerCopyAccept (3 * input.length + 3)
     (Turing.TM0.init (markerInput input)) ⟨4, markerCopyResult input⟩ coins h.1 h.2 hlen
 
+/-- On a cell with a nonblank input component, two reset-machine transitions apply `eraseCell`,
+move the cell onto the left list, and return to control state `1`. -/
 theorem markerReset_pair (left rest : List MarkerCell) (s : MarkerCell)
     (hs : s.1.isSome = true) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerResetTable 2
@@ -649,6 +766,8 @@ theorem markerReset_pair (left rest : List MarkerCell) (s : MarkerCell)
     TM0StmtApply, Turing.Tape.mk₂, Turing.Tape.mk', Turing.Tape.write, Turing.Tape.move,
     Turing.ListBlank.head_mk, Turing.ListBlank.tail_mk]
 
+/-- The reset machine sweeps a list of cells with nonblank input components in twice their
+length, placing their erased versions in reverse order on the left of the head. -/
 theorem markerReset_sweep (cells left : List MarkerCell)
     (hs : ∀ s ∈ cells, s.1.isSome = true) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerResetTable (2 * cells.length)
@@ -665,6 +784,8 @@ theorem markerReset_sweep (cells left : List MarkerCell)
     rw [ih (eraseCell s :: left) hrest]
     simp [List.reverse_cons, List.append_assoc]
 
+/-- If the intervening cells and current head carry no home marker, the reset machine returns
+across those cells to `home` in `cells.length + 1` transitions. -/
 theorem markerReset_return (cells right : List MarkerCell) (home : MarkerCell)
     (hhead : right.headI.2.2 = false)
     (hcells : ∀ s ∈ cells, s.2.2 = false) :
@@ -693,6 +814,8 @@ theorem markerReset_return (cells right : List MarkerCell) (home : MarkerCell)
     rw [ih (s :: right) (by simpa using! hs) hrest]
     simp [List.reverse_cons, List.append_assoc]
 
+/-- The marker-reset machine reaches `markerResetResult input` in halting state `4` after `3 *
+input.length + 3` transitions. -/
 theorem markerReset_run (input : List (Bool × Option Bool)) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerResetTable (3 * input.length + 3)
         (Turing.TM0.init (markerResetInput input)) = some ⟨4, markerResetResult input⟩ ∧
@@ -756,6 +879,8 @@ theorem markerReset_run (input : List (Bool × Option Bool)) :
       rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hfinal, hout]
   · simp [TM0_step_apply, markerResetTable]
 
+/-- With a sufficiently long coin tape, the marker-reset machine returns true and uses exactly
+`3 * input.length + 3` coin reads and transitions. -/
 theorem markerReset_coin_run (input : List (Bool × Option Bool)) (coins : List Bool)
     (hlen : 3 * input.length + 3 ≤ coins.length) :
     coinTapeRun (fun _ => markerResetTable) markerResetAccept (markerResetInput input) coins =
@@ -766,6 +891,8 @@ theorem markerReset_coin_run (input : List (Bool × Option Bool)) (coins : List 
   exact runFrom_coin_constant markerResetTable markerResetAccept (3 * input.length + 3)
     (Turing.TM0.init (markerResetInput input)) ⟨4, markerResetResult input⟩ coins h.1 h.2 hlen
 
+/-- A map of control labels that preserves successful steps transports every successful `t`-step
+run to a successful run of the target machine with the mapped final configuration. -/
 theorem runFrom_map_success {Γ Λ Μ : Type} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M : Turing.TM0.Machine Γ Λ) (M' : Turing.TM0.Machine Γ Μ) (f : Λ → Μ)
     (hstep : ∀ cfg cfg', Turing.TM0.step M cfg = some cfg' →
@@ -790,6 +917,8 @@ theorem runFrom_map_success {Γ Λ Μ : Type} [Inhabited Γ] [Inhabited Λ] [Inh
       simp only [Option.bind_some]
       exact ih next hr
 
+/-- A successful step of the first machine is preserved in the left control branch of
+`sequenceTable`. -/
 theorem sequence_left_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (M₂ : Turing.TM0.Machine Γ Μ)
     (cfg next : Turing.TM0.Cfg Γ Λ) (hs : Turing.TM0.step M₁ cfg = some next) :
@@ -802,6 +931,8 @@ theorem sequence_left_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inh
     cases hs
     simp [TM0_step_apply, sequenceTable, mapCfg, ht]
 
+/-- In the right control branch, a step of `sequenceTable` is the corresponding step of the
+second machine with its control label embedded by `Sum.inr`. -/
 theorem sequence_right_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (M₂ : Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Μ) :
@@ -809,6 +940,8 @@ theorem sequence_right_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [In
       (Turing.TM0.step M₂ cfg).map (mapCfg Sum.inr) := by
   simp only [TM0_step_apply, sequenceTable, mapCfg, Option.map_map, Function.comp_def]
 
+/-- When the first machine halts, `sequenceTable` takes one transition to the default control
+state of the second machine while preserving the tape. -/
 theorem sequence_dispatch {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (M₂ : Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Λ) (hh : Turing.TM0.step M₁ cfg = none) :
@@ -817,6 +950,9 @@ theorem sequence_dispatch {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inha
   have ht := (TM0_step_eq_none M₁ cfg).mp hh
   simp [TM0_step_apply, sequenceTable, mapCfg, ht, TM0StmtApply]
 
+/-- Two runs of lengths `t₁` and `t₂` ending in halting configurations compose through
+`sequenceTable` in `t₁ + 1 + t₂` transitions. The composite run halts at the embedded final
+configuration of the second machine. -/
 theorem sequence_run {Γ Λ Μ : Type} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (M₂ : Turing.TM0.Machine Γ Μ)
     (t₁ t₂ : ℕ) (cfg final₁ : Turing.TM0.Cfg Γ Λ) (final₂ : Turing.TM0.Cfg Γ Μ)
@@ -842,6 +978,8 @@ theorem sequence_run {Γ Λ Μ : Type} [Inhabited Γ] [Inhabited Λ] [Inhabited 
   · rw [sequence_right_step, hh₂]
     rfl
 
+/-- Configurations with the same optional next step have equal `runFrom` results for every
+positive number of steps. -/
 theorem runFrom_eq_of_step_eq {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (t : ℕ) (cfg₁ cfg₂ : Turing.TM0.Cfg Γ Λ)
     (hs : Turing.TM0.step M cfg₁ = Turing.TM0.step M cfg₂) :
@@ -851,6 +989,8 @@ theorem runFrom_eq_of_step_eq {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one,
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
 
+/-- Starting from `markerCopyResult input`, the reset machine reaches `markerErasedResult input`
+in halting state `4` after `3 * input.length + 3` transitions. -/
 theorem markerReset_after_copy (input : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerResetTable (3 * input.length + 3)
         ⟨0, markerCopyResult input⟩ = some ⟨4, markerErasedResult input⟩ ∧
@@ -876,6 +1016,8 @@ theorem markerReset_after_copy (input : List Bool) :
       (markerReset_run (input.map fun b => (b, some b))).1
   · simp [TM0_step_apply, markerResetTable]
 
+/-- The combined copy-reset machine reaches `markerErasedResult input` in halting state `9`
+after `6 * input.length + 7` transitions. -/
 theorem markerCopyReset_run (input : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom markerCopyResetTable (6 * input.length + 7)
         (Turing.TM0.init (markerInput input)) = some ⟨9, markerErasedResult input⟩ ∧
@@ -914,6 +1056,8 @@ theorem markerCopyReset_run (input : List Bool) :
     rw [hlast] at hs
     exact hs
 
+/-- With a sufficiently long coin tape, the combined copy-reset machine returns true after
+exactly `6 * input.length + 7` reads and transitions. -/
 theorem markerCopyReset_coin_run (input : List Bool) (coins : List Bool)
     (hlen : 6 * input.length + 7 ≤ coins.length) :
     coinTapeRun (fun _ => markerCopyResetTable) markerCopyResetAccept (markerInput input) coins =
@@ -924,6 +1068,8 @@ theorem markerCopyReset_coin_run (input : List Bool) (coins : List Bool)
   exact runFrom_coin_constant markerCopyResetTable markerCopyResetAccept (6 * input.length + 7)
     (Turing.TM0.init (markerInput input)) ⟨9, markerErasedResult input⟩ coins h.1 h.2 hlen
 
+/-- A run on `front ++ suffix` returns `b` after exactly `front.length` reads if and only if the
+run on `front` alone does so. -/
 theorem run_exact_prefix_iff {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) (front suffix : List Bool) (b : Bool) :
@@ -936,6 +1082,9 @@ theorem run_exact_prefix_iff {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   · intro h
     exact coinTapeRunAux_append M a front cfg b front.length h suffix
 
+/-- The uniform probability of returning `b` after exactly `k` prefix reads and satisfying a
+predicate on the length-`m` suffix factors into the stopping probability on the prefix and
+the predicate probability on the suffix. -/
 theorem stopped_prefix_suffix_mass {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) (k m : ℕ) (b : Bool)
@@ -967,6 +1116,8 @@ theorem stopped_prefix_suffix_mass {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
       by_cases hv : P v <;> simp [hu, hv]
   rw [hs, pow_add, mul_div_mul_comm]
 
+/-- Applying the readout to the stopped configuration recovers the output and read count of
+`coinTapeRunAux`, and its transition field equals `coinTapeTransitionCountAux`. -/
 theorem coinConfigRunAux_readout {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool)
     (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -989,6 +1140,8 @@ theorem coinConfigRunAux_readout {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
         rw [← ho, ht]
         exact ⟨rfl, rfl⟩
 
+/-- Appending coins after a configuration run has stopped leaves its stopped configuration, read
+count, and transition count unchanged. -/
 theorem coinConfigRunAux_append {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (coins extra : List Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) (hstop : (coinConfigRunAux M coins cfg).stopped ≠ none) :
@@ -1008,6 +1161,8 @@ theorem coinConfigRunAux_append {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
           simpa only [coinConfigRunAux, hc, hs] using! hstop
         simp only [List.cons_append, coinConfigRunAux, hc, hs, ih next hn]
 
+/-- If both coin branches have the same halting pairs, a halted step in either branch implies
+`coinHalt` is true. -/
 theorem step_none_common_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ)
     (hcommon : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -1022,6 +1177,8 @@ theorem step_none_common_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     have ht' := (hcommon cfg.q cfg.Tape.head).mpr ht
     simp [coinHalt, ht, ht']
 
+/-- When both coin branches have the same halting pairs, a configuration run has equal read and
+transition counts, and every stopped final configuration satisfies `coinHalt`. -/
 theorem coinConfigRunAux_commonHalt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ)
     (hcommon : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -1055,6 +1212,7 @@ theorem coinConfigRunAux_commonHalt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ
         simp only [coinConfigRunAux, hc, hs]
         exact ⟨congrArg Nat.succ hl, hf⟩
 
+/-- The read count of a configuration run is at most the available coin-tape length. -/
 theorem coinConfigRunAux_reads_le {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     (coinConfigRunAux M coins cfg).reads ≤ coins.length := by
@@ -1063,6 +1221,8 @@ theorem coinConfigRunAux_reads_le {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   rw [h]
   exact coinTapeRunAux_snd_le M (fun _ => false) coins cfg
 
+/-- A stopped configuration run is unchanged when its coin tape is truncated to the number of
+coins it read. -/
 theorem coinConfigRunAux_take {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (hstop : (coinConfigRunAux M coins cfg).stopped ≠ none) :
@@ -1080,12 +1240,15 @@ theorem coinConfigRunAux_take {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
           simpa only [coinConfigRunAux, hc, hs] using! hstop
         simp [coinConfigRunAux, hc, hs, ih next hn]
 
+/-- In the right control branch of a sequential coin machine, `coinHalt` equals that of the
+second machine. -/
 theorem sequence_coinHalt_right {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Μ) :
     coinHalt (sequenceCoinTable M₁ M₂) (mapCfg Sum.inr cfg) = coinHalt M₂ cfg := by
   simp [coinHalt, sequenceCoinTable, sequenceTable, mapCfg]
 
+/-- A sequential coin machine never satisfies `coinHalt` in its left control branch. -/
 theorem sequence_coinHalt_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -1094,6 +1257,9 @@ theorem sequence_coinHalt_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] 
     cases ht : M₁ true cfg.q cfg.Tape.head <;>
       simp [coinHalt, sequenceCoinTable, sequenceTable, mapCfg, hf, ht]
 
+/-- Running a sequential coin machine from its right branch gives the second machine's
+configuration run with final labels embedded by `Sum.inr` and unchanged read and transition
+counts. -/
 theorem sequence_coinConfig_right {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Μ) :
@@ -1114,6 +1280,7 @@ theorem sequence_coinConfig_right {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited �
       | none => rfl
       | some next => simp [ih]
 
+/-- If `coinHalt` is true, a step in either coin branch returns no next configuration. -/
 theorem coinHalt_step_none {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (hc : coinHalt M cfg = true) (c : Bool) : Turing.TM0.step (M c) cfg = none := by
@@ -1123,6 +1290,7 @@ theorem coinHalt_step_none {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   | false => exact (TM0_step_eq_none _ _).mpr ht.1
   | true => exact (TM0_step_eq_none _ _).mpr ht.2
 
+/-- The sequential coin machine has common halting pairs whenever its second machine does. -/
 theorem sequenceCoinTable_commonHalt {Γ Λ Μ : Type*} [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (hc : ∀ q s, (M₂ false q s = none) ↔ (M₂ true q s = none)) :
@@ -1136,6 +1304,10 @@ theorem sequenceCoinTable_commonHalt {Γ Λ Μ : Type*} [Inhabited Λ] [Inhabite
   | inr q =>
     exact Option.map_eq_none_iff.trans ((hc q s).trans Option.map_eq_none_iff.symm)
 
+/-- If the first machine has common halting pairs and stops after reading the entire prefix,
+sequential execution on that prefix, one switching coin, and a tail matches the second
+machine on the tail from the first machine's final tape. Its read and transition counts
+increase by `front.length + 1`. -/
 theorem sequence_coinConfig_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (hcommon : ∀ q s, (M₁ false q s = none) ↔ (M₁ true q s = none))
@@ -1194,6 +1366,8 @@ theorem sequence_coinConfig_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ
           · rw [ht]
             omega
 
+/-- A stopped configuration run of a coin-independent machine corresponds to a deterministic run
+using its recorded number of transitions. -/
 theorem coinConfigRunAux_const_trace {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (coins : List Bool) (cfg final : Turing.TM0.Cfg Γ Λ)
     (hstop : (coinConfigRunAux (fun _ => M) coins cfg).stopped = some final) :
@@ -1226,6 +1400,9 @@ theorem coinConfigRunAux_const_trace {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ
           Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
         exact ht
 
+/-- A deterministic `t`-step run ending at a halting configuration is reproduced by the
+configuration coin runner when at least `t` coins are available, with exactly `t` reads and
+transitions. -/
 theorem coinConfigRunAux_const {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (t : ℕ) (cfg final : Turing.TM0.Cfg Γ Λ)
     (coins : List Bool) (hr : Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom M t cfg = some final)
@@ -1257,6 +1434,9 @@ theorem coinConfigRunAux_const {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     subst actual
     exact ⟨rfl, hread, htrans⟩
 
+/-- Sequencing marker copying before a coin machine runs that machine on the copied tape using
+the remaining tail, with final labels embedded by `Sum.inr`. Copying and dispatch add `3 *
+input.length + 4` reads and transitions. -/
 theorem markerCopy_then_coin_source {Μ : Type*} [Inhabited Μ]
     (M : Bool → Turing.TM0.Machine MarkerCell Μ) (input : List Bool)
     (front : Fin (3 * input.length + 3) → Bool) (switch : Bool) (tail : List Bool) :
@@ -1276,6 +1456,8 @@ theorem markerCopy_then_coin_source {Μ : Type*} [Inhabited Μ]
     ⟨4, markerCopyResult input⟩ hp.1 (by simpa only [List.length_ofFn] using! hp.2.1)
   simpa only [List.length_ofFn, Nat.add_assoc, Nat.reduceAdd] using! h
 
+/-- Projecting a step of `liftWorkTable` onto the work tape gives the corresponding
+source-machine step. -/
 theorem liftWork_step {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (cfg : Turing.TM0.Cfg MarkerCell Λ) :
@@ -1297,11 +1479,15 @@ theorem liftWork_step {Λ : Type*} [Inhabited Λ]
     | move d => simp [workCfg, TM0StmtApply, Turing.Tape.map_move]
     | write b => simp [workCfg, TM0StmtApply, workMap]
 
+/-- The lifted work machine satisfies `coinHalt` exactly when the source machine does on the
+projected configuration. -/
 theorem liftWork_coinHalt {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (cfg : Turing.TM0.Cfg MarkerCell Λ) :
     coinHalt (liftWorkTable M) cfg = coinHalt M (workCfg cfg) := by
   simp [coinHalt, liftWorkTable, workCfg, workMap]
 
+/-- The lifted work machine and the source machine on the projected configuration have equal
+output, read count, and transition count. -/
 theorem liftWork_coin_run {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (coins : List Bool) (cfg : Turing.TM0.Cfg MarkerCell Λ) :
@@ -1332,6 +1518,8 @@ theorem liftWork_coin_run {Λ : Type*} [Inhabited Λ]
         rw [ho, ht]
         exact ⟨rfl, rfl⟩
 
+/-- The work-tape projection of `markerCopyResult input` is the tape initialized with `input.map
+some`. -/
 theorem markerCopyResult_work (input : List Bool) :
     (markerCopyResult input).map workMap = Turing.Tape.mk₁ (input.map some) := by
   unfold markerCopyResult
@@ -1341,6 +1529,8 @@ theorem markerCopyResult_work (input : List Bool) :
   rw [Turing.Tape.write_self, Turing.Tape.map_mk₁]
   simp [workMap, Function.comp_def]
 
+/-- Lifting a machine onto the work component preserves common halting pairs between its two
+coin branches. -/
 theorem liftWork_commonHalt {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -1348,10 +1538,13 @@ theorem liftWork_commonHalt {Λ : Type*} [Inhabited Λ]
   intro q s
   exact Option.map_eq_none_iff.trans ((hc q s.2.1).trans Option.map_eq_none_iff.symm)
 
+/-- The preparation-label equivalence maps the initial copy label to zero. -/
 theorem prepareLabels_zero (Q : ℕ) : prepareLabels Q (.inl 0) = 0 := by
   apply Fin.ext
   simp [prepareLabels, finSumFinEquiv]
 
+/-- Embedding and relabeling the initial marker-input configuration for preparation yields the
+native initial configuration on the same marker input. -/
 theorem prepare_initial (Q : ℕ) (input : List Bool) :
     relabelCfg (prepareLabels Q) (mapCfg Sum.inl (Turing.TM0.init (markerInput input))) =
       Turing.TM0.init (markerInput input) := by
@@ -1360,6 +1553,8 @@ theorem prepare_initial (Q : ℕ) (input : List Bool) :
   rw [prepareLabels_zero]
   rfl
 
+/-- A prepared run has the same output as the source run on the tail after its copy prefix and
+switching coin. It adds `3 * input.length + 4` reads and transitions. -/
 theorem prepare_coin_run (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (input : List Bool)
@@ -1412,6 +1607,7 @@ theorem prepare_coin_run (Q : ℕ)
     rw [hlabelCount, hseqCount, hw.2]
     rfl
 
+/-- Preparing a coin machine preserves common halting pairs between its two coin branches. -/
 theorem prepare_commonHalt (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -1421,6 +1617,8 @@ theorem prepare_commonHalt (Q : ℕ)
     (liftWork_commonHalt M hc) ((prepareLabels Q).symm q) s
   exact Option.map_eq_none_iff.trans (h.trans Option.map_eq_none_iff.symm)
 
+/-- The list corresponding to `prepareCoinWords` is the copy-prefix list followed by the
+switching bit and the source coin list. -/
 theorem prepareCoinWords_ofFn (input : List Bool) (t : ℕ)
     (p : (Fin (3 * input.length + 3) → Bool) × Bool × (Fin t → Bool)) :
     List.ofFn (prepareCoinWords input t p) =
@@ -1429,6 +1627,8 @@ theorem prepareCoinWords_ofFn (input : List Bool) (t : ℕ)
   rw [List.ofFn_fin_append, List.ofFn_succ (f := Fin.cons p.2.1 p.2.2)]
   rfl
 
+/-- At a coin budget including the copy and dispatch overhead, preparation preserves the source
+machine's fair-tape success probability for either target. -/
 theorem prepare_fair_mass (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (input : List Bool) (t : ℕ) (target : Bool) :
@@ -1458,6 +1658,8 @@ theorem prepare_fair_mass (Q : ℕ)
   have ht : (2 : ℝ) ^ t ≠ 0 := pow_ne_zero _ (by norm_num)
   field_simp [hk, ht]
 
+/-- On a word assembled by `prepareCoinWords`, the prepared machine has the same output as the
+source machine using its source-word component. -/
 theorem prepare_word_output (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (input : List Bool) (t : ℕ)
@@ -1468,6 +1670,8 @@ theorem prepare_word_output (Q : ℕ)
   rw [prepareCoinWords_ofFn, (prepare_coin_run Q M a input p.1 p.2.1 (List.ofFn p.2.2)).1]
   rfl
 
+/-- Totality of the source machine at budget `t` is equivalent to totality of the prepared
+machine at budget `(3 * input.length + 3) + (t + 1)` on the corresponding marker input. -/
 theorem prepare_totality_iff (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (input : List Bool) (t : ℕ) :
@@ -1486,6 +1690,8 @@ theorem prepare_totality_iff (Q : ℕ)
     rw [prepare_word_output] at h
     exact h
 
+/-- If every length-`N` coin word produces an output, every word of any greater length also
+produces an output. -/
 theorem coinTape_totality_monotone {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ) (N : ℕ)
     (hN : ∀ w : Fin N → Bool, (coinTapeRun M a input (List.ofFn w)).1 ≠ none)
@@ -1511,6 +1717,8 @@ theorem coinTape_totality_monotone {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     rw [hword, ha]
     simp
 
+/-- Once every length-`N` coin word produces an output, increasing the coin budget preserves the
+fair-tape success probability for either target. -/
 theorem fairTapeSuccess_of_total {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ) (N : ℕ)
     (hN : ∀ w : Fin N → Bool, (coinTapeRun M a input (List.ofFn w)).1 ≠ none)
@@ -1520,6 +1728,8 @@ theorem fairTapeSuccess_of_total {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   intro t ht w
   exact Option.isSome_iff_ne_none.mpr (coinTape_totality_monotone M a input N hN t ht w)
 
+/-- The copy and dispatch overhead added to `c * n ^ k + c` is bounded by `(2 * c + 7) * n ^ (2
+* (k + 1)) + (2 * c + 7)`. -/
 theorem prepare_poly_bound (c k n : ℕ) :
     (3 * n + 3) + (c * n ^ k + c + 1) ≤
       (2 * c + 7) * n ^ (2 * (k + 1)) + (2 * c + 7) := by
@@ -1535,6 +1745,10 @@ theorem prepare_poly_bound (c k n : ℕ) :
     have hm := Nat.mul_le_mul_right (n ^ (2 * (k + 1))) (show c + 3 ≤ 2 * c + 7 by omega)
     nlinarith [Nat.mul_le_mul_left c hp, Nat.mul_le_mul_left 3 hl]
 
+/-- A source machine with common halting pairs and totality at budget `c * n ^ k + c` has a
+prepared machine with common halting pairs and a positive-coefficient budget `d * n ^ (2 *
+(k + 1)) + d`. At that budget all coin paths produce an output within the transition bound
+and preserve both target success probabilities. -/
 theorem prepare_polynomial (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (c k : ℕ)
@@ -1575,9 +1789,12 @@ theorem prepare_polynomial (Q : ℕ)
     exact (fairTapeSuccess_of_total (prepareCoinTable Q M) (prepareAccept Q a)
       (markerInput input) N hn B hnb target).trans (prepare_fair_mass Q M a input T target)
 
+/-- The majority bit of a single vote is that vote. -/
 theorem majorityBit_one (w : Fin 1 → Bool) : MajorityBit w = w 0 := by
   cases h : w 0 <;> simp [MajorityBit, MajorityCount, Finset.filter_singleton, h]
 
+/-- If every source coin word produces an output, majority mass with repetition parameter zero
+equals the source fair-tape success probability. -/
 theorem independentMajorityMass_zero {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ)
     (t : ℕ) (target : Bool)
@@ -1593,15 +1810,20 @@ theorem independentMajorityMass_zero {Γ Λ : Type*} [Inhabited Γ] [Inhabited �
   simp only [Equiv.funUnique_apply, Fin.default_eq_zero, h]
   (try rfl)
 
+/-- A bit in a fresh coin block is the bit at the corresponding index under `finProdFinEquiv`. -/
 @[simp] theorem freshBlocks_apply (N t : ℕ) (coins : Fin (N * t) → Bool)
     (j : Fin N) (i : Fin t) :
     freshBlocks N t coins j i = coins (finProdFinEquiv (j, i)) := rfl
 
+/-- Distinct block indices give distinct flattened coin positions, regardless of the positions
+chosen within those blocks. -/
 theorem freshBlocks_disjoint {N t : ℕ} {j k : Fin N} (hjk : j ≠ k) (i l : Fin t) :
     finProdFinEquiv (j, i) ≠ finProdFinEquiv (k, l) := by
   intro h
   exact hjk (congrArg Prod.fst (finProdFinEquiv.injective h))
 
+/-- The independent majority mass equals the uniform fraction of flattened coin words whose `2 *
+r + 1` block runs produce the target majority of their true-output tests. -/
 theorem independentMajorityMass_flat {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ)
     (t r : ℕ) (target : Bool) :
@@ -1617,6 +1839,9 @@ theorem independentMajorityMass_flat {Γ Λ : Type*} [Inhabited Γ] [Inhabited �
     (∑ coins, f (freshBlocks (2 * r + 1) t coins)) / 2 ^ ((2 * r + 1) * t)
   rw [(freshBlocks (2 * r + 1) t).sum_comp, Nat.mul_comm t (2 * r + 1)]
 
+/-- If all source paths at budget `t` produce outputs and the target success probability is at
+least `2 / 3`, the majority of `2 * r + 1` independent runs succeeds with probability at
+least `1 - (8 / 9) ^ r`. -/
 theorem independentMajorityMass_ge {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ)
     (t r : ℕ) (target : Bool)
@@ -1639,28 +1864,36 @@ theorem independentMajorityMass_ge {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   simpa only [independentMajorityMass, Fintype.card_fun, Fintype.card_bool,
     Fintype.card_fin, Nat.cast_pow, Nat.cast_ofNat, ← pow_mul] using! h
 
+/-- Moving the tape head left preserves `HomeAt` with the offset decreased by one. -/
 theorem homeAt_move_left (T : Turing.Tape MarkerCell) (off : ℤ) (h : HomeAt T off) :
     HomeAt (T.move .left) (off - 1) := by
   intro i
   rw [Turing.Tape.move_left_nth, h]
   rw [show i - 1 + off = i + (off - 1) by omega]
 
+/-- Moving the tape head right preserves `HomeAt` with the offset increased by one. -/
 theorem homeAt_move_right (T : Turing.Tape MarkerCell) (off : ℤ) (h : HomeAt T off) :
     HomeAt (T.move .right) (off + 1) := by
   intro i
   rw [Turing.Tape.move_right_nth, h]
   rw [show i + 1 + off = i + (off + 1) by omega]
 
+/-- The homing machine halts when the current cell carries the home marker. -/
 theorem markerHome_step_home (q : HomeState) (T : Turing.Tape MarkerCell)
     (h : T.head.2.2 = true) : Turing.TM0.step markerHomeTable ⟨q, T⟩ = none := by
   simp [TM0_step_apply, markerHomeTable, h]
 
+/-- Away from the home marker, the homing machine moves in `homeDirection left` while preserving
+its direction and output bits. -/
 theorem markerHome_step_away (left bit : Bool) (T : Turing.Tape MarkerCell)
     (h : T.head.2.2 = false) :
     Turing.TM0.step markerHomeTable ⟨(left, bit), T⟩ =
       some ⟨(left, bit), T.move (homeDirection left)⟩ := by
   simp [TM0_step_apply, markerHomeTable, h, TM0StmtApply]
 
+/-- From offset `homeDistance left n`, the homing machine reaches a halting tape with home
+offset zero in `n` transitions, preserving its control bits. The final tape cells are given
+by the stated shift of the original tape. -/
 theorem markerHome_run (left bit : Bool) (n : ℕ) (T : Turing.Tape MarkerCell)
     (h : HomeAt T (homeDistance left n)) :
     ∃ final : Turing.Tape MarkerCell,
@@ -1705,6 +1938,9 @@ theorem markerHome_run (left bit : Bool) (n : ℕ) (T : Turing.Tape MarkerCell)
         congr 1
         omega
 
+/-- With at least `n` coins and initial offset `homeDistance left n`, the homing runner returns
+the stored bit after exactly `n` reads and transitions. A tape at home offset zero exists
+with cells given by the corresponding shift. -/
 theorem markerHome_coin_run (left bit : Bool) (n : ℕ) (T : Turing.Tape MarkerCell)
     (h : HomeAt T (homeDistance left n)) (coins : List Bool) (hlen : n ≤ coins.length) :
     ∃ final : Turing.Tape MarkerCell, HomeAt final 0 ∧
@@ -1717,9 +1953,11 @@ theorem markerHome_coin_run (left bit : Bool) (n : ℕ) (T : Turing.Tape MarkerC
     ⟨(left, bit), final⟩ coins hr halt hlen
   exact ⟨final, hh, data, hc⟩
 
+/-- Under `HomeAt T off`, the head carries the home marker exactly when `off = 0`. -/
 theorem homeAt_head (T : Turing.Tape MarkerCell) (off : ℤ) (h : HomeAt T off) :
     T.head.2.2 = decide (off = 0) := by simpa using! h 0
 
+/-- Writing only the work component of the head cell preserves the home-offset invariant. -/
 theorem homeAt_write_work (T : Turing.Tape MarkerCell) (off : ℤ) (b : Option Bool)
     (h : HomeAt T off) : HomeAt (T.write (T.head.1, b, T.head.2.2)) off := by
   intro i
@@ -1730,6 +1968,7 @@ theorem homeAt_write_work (T : Turing.Tape MarkerCell) (off : ℤ) (b : Option B
   · rw [if_neg hi]
     exact h i
 
+/-- Updating the side flag for a left move preserves `SideAt` at the decremented offset. -/
 theorem sideAt_move_left (left : Bool) (off : ℤ) (h : SideAt left off) :
     SideAt (sideAfterMove left (decide (off = 0)) .left) (off - 1) := by
   by_cases hz : off = 0
@@ -1739,6 +1978,7 @@ theorem sideAt_move_left (left : Bool) (off : ℤ) (h : SideAt left off) :
     rw [hf]
     exact ⟨fun hl => h.1 (by omega), fun hr => h.2 (by omega)⟩
 
+/-- Updating the side flag for a right move preserves `SideAt` at the incremented offset. -/
 theorem sideAt_move_right (left : Bool) (off : ℤ) (h : SideAt left off) :
     SideAt (sideAfterMove left (decide (off = 0)) .right) (off + 1) := by
   by_cases hz : off = 0
@@ -1748,6 +1988,7 @@ theorem sideAt_move_right (left : Bool) (off : ℤ) (h : SideAt left off) :
     rw [hf]
     exact ⟨fun hl => h.1 (by omega), fun hr => h.2 (by omega)⟩
 
+/-- The tape produced by marker copying has home offset zero. -/
 theorem markerCopyResult_home (input : List Bool) : HomeAt (markerCopyResult input) 0 := by
   intro i
   unfold markerCopyResult
@@ -1766,6 +2007,8 @@ theorem markerCopyResult_home (input : List Bool) : HomeAt (markerCopyResult inp
     rw [hm]
     simp [hi]
 
+/-- A successful side-tracking work step preserves the home and side invariants at some new
+offset whose absolute value is at most the original absolute offset plus one. -/
 theorem sideWork_step_invariant {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (cfg next : Turing.TM0.Cfg MarkerCell (Λ × Bool)) (off : ℤ)
@@ -1805,6 +2048,8 @@ theorem sideWork_step_invariant {Λ : Type*} [Inhabited Λ]
           exact sideAt_move_right cfg.q.2 off hs
         · simpa using! Int.natAbs_add_le off 1
 
+/-- A stopped side-tracking work run preserves the home and side invariants at a final offset
+whose absolute value is bounded by the initial absolute offset plus the transition count. -/
 theorem sideWork_coin_invariant {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (coins : List Bool)
     (cfg final : Turing.TM0.Cfg MarkerCell (Λ × Bool)) (off : ℤ)
@@ -1841,6 +2086,8 @@ theorem sideWork_coin_invariant {Λ : Type*} [Inhabited Λ]
         simp only [coinConfigRunAux, hc, Bool.false_eq_true, ↓reduceIte, ht]
         omega
 
+/-- A side flag satisfying `SideAt left off` represents the offset as `homeDistance left
+off.natAbs`. -/
 theorem sideAt_distance (left : Bool) (off : ℤ) (h : SideAt left off) :
     off = homeDistance left off.natAbs := by
   cases left with
@@ -1857,6 +2104,9 @@ theorem sideAt_distance (left : Bool) (off : ℤ) (h : SideAt left off) :
       cases hf
     simp [homeDistance, abs_of_nonpos hn]
 
+/-- After a side-tracking work run stops on a copied input, the homing machine can return to
+offset zero in at most the work run's transition count. It halts with the source readout
+retained and the final tape shifted by the homing distance. -/
 theorem sideWork_homing_run {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (input : List Bool)
     (coins : List Bool) (final : Turing.TM0.Cfg MarkerCell (Λ × Bool))
@@ -1878,6 +2128,7 @@ theorem sideWork_homing_run {Λ : Type} [Inhabited Λ]
       markerHome_run final.q.2 (a final.q.1) off.natAbs final.Tape hh
   exact ⟨off.natAbs, home, by simpa using! hd, hr, hm, halt, data⟩
 
+/-- Projecting a side-tracking work step gives the corresponding step of the source machine. -/
 theorem sideWork_step {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (cfg : Turing.TM0.Cfg MarkerCell (Λ × Bool)) :
@@ -1899,11 +2150,15 @@ theorem sideWork_step {Λ : Type*} [Inhabited Λ]
     | move d => simp [sideWorkCfg, TM0StmtApply, Turing.Tape.map_move]
     | write b => simp [sideWorkCfg, TM0StmtApply, workMap]
 
+/-- The side-tracking work machine satisfies `coinHalt` exactly when the source machine does on
+the projected configuration. -/
 theorem sideWork_coinHalt {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (cfg : Turing.TM0.Cfg MarkerCell (Λ × Bool)) :
     coinHalt (sideWorkTable M) cfg = coinHalt M (sideWorkCfg cfg) := by
   simp [coinHalt, sideWorkTable, sideWorkCfg, workMap]
 
+/-- Projecting the side-tracking work configuration preserves the source run's output, coin-read
+count, and transition count. -/
 theorem sideWork_coin_run {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (coins : List Bool) (cfg : Turing.TM0.Cfg MarkerCell (Λ × Bool)) :
@@ -1934,6 +2189,8 @@ theorem sideWork_coin_run {Λ : Type*} [Inhabited Λ]
         rw [ho, ht]
         exact ⟨rfl, rfl⟩
 
+/-- Adding side tracking to the work machine preserves common halting pairs between its coin
+branches. -/
 theorem sideWork_commonHalt {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -1941,6 +2198,8 @@ theorem sideWork_commonHalt {Λ : Type*} [Inhabited Λ]
   intro q s
   exact Option.map_eq_none_iff.trans ((hc q.1 s.2.1).trans Option.map_eq_none_iff.symm)
 
+/-- Starting the side-tracking work machine on `markerCopyResult input` reproduces the source
+run on `input.map some`, with the same output, read count, and transition count. -/
 theorem sideWork_prepared_run {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (input : List Bool) (coins : List Bool) :
@@ -1955,6 +2214,7 @@ theorem sideWork_prepared_run {Λ : Type*} [Inhabited Λ]
   rw [hc] at h
   exact h
 
+/-- A successful step of the first machine is preserved in the left branch of `dispatchTable`. -/
 theorem dispatch_left_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Turing.TM0.Machine Γ Μ)
     (cfg next : Turing.TM0.Cfg Γ Λ) (hs : Turing.TM0.step M₁ cfg = some next) :
@@ -1967,6 +2227,8 @@ theorem dispatch_left_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inh
     cases hs
     simp [TM0_step_apply, dispatchTable, mapCfg, ht]
 
+/-- In the right branch, `dispatchTable` follows the second machine with resulting control
+labels embedded by `Sum.inr`. -/
 theorem dispatch_right_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Μ) :
@@ -1974,6 +2236,8 @@ theorem dispatch_right_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [In
       (Turing.TM0.step M₂ cfg).map (mapCfg Sum.inr) := by
   simp only [TM0_step_apply, dispatchTable, mapCfg, Option.map_map, Function.comp_def]
 
+/-- When the first machine halts, dispatch takes one transition to `nextLabel cfg.q` in the
+second machine, preserving the tape. -/
 theorem dispatch_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Λ) (hh : Turing.TM0.step M₁ cfg = none) :
@@ -1982,12 +2246,15 @@ theorem dispatch_step {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabite
   have ht := (TM0_step_eq_none M₁ cfg).mp hh
   simp [TM0_step_apply, dispatchTable, mapCfg, ht, TM0StmtApply]
 
+/-- In the right control branch, the dispatch coin machine has the same `coinHalt` value as its
+second machine. -/
 theorem dispatch_coinHalt_right {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Μ) :
     coinHalt (dispatchCoinTable M₁ nextLabel M₂) (mapCfg Sum.inr cfg) = coinHalt M₂ cfg := by
   simp [coinHalt, dispatchCoinTable, dispatchTable, mapCfg]
 
+/-- The dispatch coin machine never satisfies `coinHalt` in its left control branch. -/
 theorem dispatch_coinHalt_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -1996,6 +2263,8 @@ theorem dispatch_coinHalt_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] 
     cases ht : M₁ true cfg.q cfg.Tape.head <;>
       simp [coinHalt, dispatchCoinTable, dispatchTable, mapCfg, hf, ht]
 
+/-- A dispatch-machine configuration run starting in the right branch is the second machine's
+run with final labels embedded by `Sum.inr` and unchanged read and transition counts. -/
 theorem dispatch_coinConfig_right {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Μ) :
@@ -2016,6 +2285,7 @@ theorem dispatch_coinConfig_right {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited �
       | none => rfl
       | some next => simp [ih]
 
+/-- The dispatch coin machine has common halting pairs whenever its second machine does. -/
 theorem dispatchCoinTable_commonHalt {Γ Λ Μ : Type*} [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (hc : ∀ q s, (M₂ false q s = none) ↔ (M₂ true q s = none)) :
@@ -2029,6 +2299,10 @@ theorem dispatchCoinTable_commonHalt {Γ Λ Μ : Type*} [Inhabited Λ] [Inhabite
   | inr q =>
     exact Option.map_eq_none_iff.trans ((hc q s).trans Option.map_eq_none_iff.symm)
 
+/-- If the first machine has common halting pairs and stops after reading the entire prefix,
+dispatch on that prefix, one switching coin, and a tail matches the second machine started
+at `nextLabel final.q` on the final tape. Read and transition counts increase by
+`front.length + 1`. -/
 theorem dispatch_coinConfig_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Μ]
     (M₁ : Bool → Turing.TM0.Machine Γ Λ) (nextLabel : Λ → Μ) (M₂ : Bool → Turing.TM0.Machine Γ Μ)
     (hcommon : ∀ q s, (M₁ false q s = none) ↔ (M₁ true q s = none))
@@ -2088,12 +2362,19 @@ theorem dispatch_coinConfig_left {Γ Λ Μ : Type*} [Inhabited Γ] [Inhabited Λ
           · rw [ht]
             omega
 
+/-- The two coin branches of `homingCoinTable M a` halt at exactly the same state and symbol
+pairs, regardless of the source machine's halting behavior. -/
 theorem homingCoinTable_commonHalt {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) :
     ∀ q s, (homingCoinTable M a false q s = none) ↔
       (homingCoinTable M a true q s = none) :=
   dispatchCoinTable_commonHalt _ _ _ (fun _ _ => Iff.rfl)
 
+/-- If the source branches share their halting condition and the side work simulation stops
+after reading all of `front`, there is a homing length `n <= front.length` that works for
+every tail of length at least `n`. After `front`, one dispatch coin, and `n` homing coins,
+the run stops at home with the final side flag and source output, using exactly
+`front.length + 1 + n` reads and transitions. -/
 theorem homing_coinConfig_run {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2138,6 +2419,10 @@ theorem homing_coinConfig_run {Λ : Type} [Inhabited Λ]
   rw [hs]
   rfl
 
+/-- If the source branches share their halting condition, the side work simulation stops on the
+first `t` coins, and at least `2 * t + 1` coins are available, the homing machine stops with
+its head at home and the same source output. It uses at most `2 * t + 1` reads, with one
+transition per read, and retains the final side flag in its homing state. -/
 theorem homing_coinConfig_budget {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2188,6 +2473,8 @@ theorem homing_coinConfig_budget {Λ : Type} [Inhabited Λ]
     · (try dsimp only)
       rw [hr, ht]
 
+/-- Relabeling states by an equivalence commutes with `coinConfigRunAux`: the stopped
+configuration is relabeled, while the read and transition counts are unchanged. -/
 theorem relabel_coinConfig {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
     (e : Λ ≃ Λ') (M : Bool → Turing.TM0.Machine Γ Λ) (coins : List Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -2207,16 +2494,23 @@ theorem relabel_coinConfig {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [In
       | none => rfl
       | some next => simp [ih]
 
+/-- The homing state encoding sends the initial source state `Sum.inl (0, false)` to label zero. -/
 theorem homingLabels_zero (Q : ℕ) : homingLabels Q (.inl (0, false)) = 0 := by
   apply Fin.ext
   simp [homingLabels, Equiv.prodCongr, finTwoEquiv, finProdFinEquiv, finSumFinEquiv]
 
+/-- Relabeling a homing configuration in state `Sum.inl (0, false)` produces state zero and
+preserves its tape. -/
 theorem nativeHoming_initial (Q : ℕ) (T : Turing.Tape MarkerCell) :
     relabelCfg (homingLabels Q)
       (⟨Sum.inl (0, false), T⟩ : Turing.TM0.Cfg MarkerCell
         (Sum (Fin (Q + 1) × Bool) HomeState)) = ⟨0, T⟩ := by
   simp [relabelCfg, homingLabels_zero]
 
+/-- If the source branches share their halting condition and the side work simulation stops
+within the first `t` coins, any coin list of length at least `2 * t + 1` makes the native
+homing machine stop at home with the same output. Its final state encodes the side flag and
+source readout, and its equal read and transition counts are at most `2 * t + 1`. -/
 theorem nativeHoming_coinConfig_budget (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2249,6 +2543,8 @@ theorem nativeHoming_coinConfig_budget (Q : ℕ)
   · rw [hs]
     simp [relabelCfg, nativeHomingAccept, homingAccept]
 
+/-- The false and true coin branches of the native homing machine have the same halting
+condition at every state and tape symbol. -/
 theorem nativeHoming_commonHalt (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     ∀ q s, (nativeHomingCoinTable Q M a false q s = none) ↔
@@ -2257,6 +2553,10 @@ theorem nativeHoming_commonHalt (Q : ℕ)
   have h := homingCoinTable_commonHalt M a ((homingLabels Q).symm q) s
   exact Option.map_eq_none_iff.trans (h.trans Option.map_eq_none_iff.symm)
 
+/-- Assuming common source halting, if the source returns an output on `coins.take t` and
+`coins.length >= 2 * t + 1`, native homing from the copied input returns that same output.
+The native run stops at home with at most `2 * t + 1` reads and an equal number of
+transitions. -/
 theorem nativeHoming_source_output (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2297,10 +2597,14 @@ theorem nativeHoming_source_output (Q : ℕ)
     · exact hn.symm.trans (ho.trans hout)
     · exact ⟨homingLabels Q (.inr (final.q.2, a final.q.1)), home, hm, hstop, hr, ht⟩
 
+/-- The preparation and homing state encoding maps the initial preparation state `Sum.inl 0` to
+label zero. -/
 theorem prepareHomingLabels_zero (Q : ℕ) : prepareHomingLabels Q (.inl 0) = 0 := by
   apply Fin.ext
   simp [prepareHomingLabels, finSumFinEquiv]
 
+/-- Embedding the initial marker input configuration into the preparation phase and relabeling
+it gives the initial native configuration on the same input. -/
 theorem prepareHoming_initial (Q : ℕ) (input : List Bool) :
     relabelCfg (prepareHomingLabels Q)
       (mapCfg Sum.inl (Turing.TM0.init (markerInput input))) =
@@ -2310,6 +2614,8 @@ theorem prepareHoming_initial (Q : ℕ) (input : List Bool) :
   rw [prepareHomingLabels_zero]
   rfl
 
+/-- The preparation and homing machine has identical halting conditions for its two coin
+branches at every state and symbol. -/
 theorem prepareHoming_commonHalt (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     ∀ q s, (prepareHomingCoinTable Q M a false q s = none) ↔
@@ -2319,6 +2625,10 @@ theorem prepareHoming_commonHalt (Q : ℕ)
     (nativeHoming_commonHalt Q M a) ((prepareHomingLabels Q).symm q) s
   exact Option.map_eq_none_iff.trans (h.trans Option.map_eq_none_iff.symm)
 
+/-- Assuming common source halting, a preparation prefix of `3 * input.length + 3` coins, one
+dispatch coin, and a tail of length at least `2 * t + 1` reproduce the source output on
+`tail.take t` whenever that output exists. The compiled run stops at home using at most `3 *
+input.length + 2 * t + 5` reads and the same number of transitions. -/
 theorem prepareHoming_source_output (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2389,6 +2699,9 @@ theorem prepareHoming_source_output (Q : ℕ)
     · (try dsimp only)
       rw [htrans, hread, ht]
 
+/-- Converting `homingCoinWords input t p` to a list concatenates the preparation word, the
+dispatch bit, the source word of length `t`, and the homing padding word of length `t + 1`
+in that order. -/
 theorem homingCoinWords_ofFn (input : List Bool) (t : ℕ)
     (p : (Fin (3 * input.length + 3) → Bool) × Bool ×
       ((Fin t → Bool) × (Fin (t + 1) → Bool))) :
@@ -2400,6 +2713,9 @@ theorem homingCoinWords_ofFn (input : List Bool) (t : ℕ)
   rw [show List.ofFn (appendCoinWords t (t + 1) p.2.2) =
     List.ofFn p.2.2.1 ++ List.ofFn p.2.2.2 from List.ofFn_fin_append _ _]
 
+/-- If the source has common halting and returns an output for every length `t` coin word, the
+preparation and homing run on `homingCoinWords input t p` returns exactly the source output
+on the length `t` component of `p`. -/
 theorem prepareHoming_word_output (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2418,6 +2734,9 @@ theorem prepareHoming_word_output (Q : ℕ)
   rw [htake] at h
   exact h
 
+/-- Under common source halting and totality for all length `t` coin words, preparation and
+homing preserve the fair probability of either target output. The compiled budget is `3 *
+input.length + 2 * t + 5` coins, compared with `t` coins for the source. -/
 theorem prepareHoming_fair_mass (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2453,6 +2772,9 @@ theorem prepareHoming_fair_mass (Q : ℕ)
   have he : (2 : ℝ) ^ (t + 1) ≠ 0 := pow_ne_zero _ (by norm_num)
   field_simp [hk, ht', he]
 
+/-- If the source has common halting and returns an output on every length `t` coin word, the
+preparation and homing machine returns an output on every word of length `3 * input.length +
+2 * t + 5`. -/
 theorem prepareHoming_total (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2467,12 +2789,18 @@ theorem prepareHoming_total (Q : ℕ)
   rw [h]
   exact ht _
 
+/-- For natural `c`, `k`, and `n`, the preparation and homing budget `3 * n + 2 * (c * n ^ k +
+c) + 5` is at most `(4 * c + 9) * n ^ (2 * (k + 1)) + (4 * c + 9)`. -/
 theorem prepareHoming_poly_bound (c k n : ℕ) :
     (3 * n + 3) + (((c * n ^ k + c) + ((c * n ^ k + c) + 1)) + 1) ≤
       (4 * c + 9) * n ^ (2 * (k + 1)) + (4 * c + 9) := by
   have h := prepare_poly_bound (2 * c) k n
   nlinarith [Nat.zero_le (n ^ (2 * (k + 1)))]
 
+/-- If the source has common halting and is total on every input of length `n` with `c * n ^ k +
+c` coins, some positive `d` bounds preparation and homing by `B = d * n ^ (2 * (k + 1)) +
+d`. The compiled machine has common halting, returns an output for every length `B` word
+with at most `B` transitions, and preserves both target probabilities at the source budget. -/
 theorem prepareHoming_polynomial (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (c k : ℕ)
@@ -2513,6 +2841,8 @@ theorem prepareHoming_polynomial (Q : ℕ)
       (markerInput input) N hn B hnb target).trans
         (prepareHoming_fair_mass Q M a hc input T target (htotal input))
 
+/-- Moving a tape protected relative to `initial` at offset `off` one cell left preserves
+protection at offset `off - 1`. -/
 theorem protectedAt_move_left (initial T : Turing.Tape MarkerCell) (off : ℤ)
     (h : ProtectedAt initial T off) : ProtectedAt initial (T.move .left) (off - 1) := by
   refine ⟨homeAt_move_left T off h.1, ?_⟩
@@ -2521,6 +2851,8 @@ theorem protectedAt_move_left (initial T : Turing.Tape MarkerCell) (off : ℤ)
   congr 2
   omega
 
+/-- Moving a tape protected relative to `initial` at offset `off` one cell right preserves
+protection at offset `off + 1`. -/
 theorem protectedAt_move_right (initial T : Turing.Tape MarkerCell) (off : ℤ)
     (h : ProtectedAt initial T off) : ProtectedAt initial (T.move .right) (off + 1) := by
   refine ⟨homeAt_move_right T off h.1, ?_⟩
@@ -2529,6 +2861,8 @@ theorem protectedAt_move_right (initial T : Turing.Tape MarkerCell) (off : ℤ)
   congr 2
   omega
 
+/-- Replacing only the current cell's work symbol preserves the input track and home marker
+protection at the same offset. -/
 theorem protectedAt_write_work (initial T : Turing.Tape MarkerCell) (off : ℤ)
     (b : Option Bool) (h : ProtectedAt initial T off) :
     ProtectedAt initial (T.write (T.head.1, b, T.head.2.2)) off := by
@@ -2541,6 +2875,8 @@ theorem protectedAt_write_work (initial T : Turing.Tape MarkerCell) (off : ℤ)
     simpa using! h.2 0
   · simpa only [hi, ↓reduceIte] using! h.2 i
 
+/-- Every successful side work simulation step from a tape protected relative to `initial`
+produces a tape protected relative to `initial` at some offset. -/
 theorem sideWork_step_protected {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (cfg next : Turing.TM0.Cfg MarkerCell (Λ × Bool))
@@ -2570,6 +2906,8 @@ theorem sideWork_step_protected {Λ : Type*} [Inhabited Λ]
       | left => exact ⟨off - 1, protectedAt_move_left initial cfg.Tape off h⟩
       | right => exact ⟨off + 1, protectedAt_move_right initial cfg.Tape off h⟩
 
+/-- If a side work coin run starts with protection relative to `initial` at some offset and
+stops, its final tape is protected relative to `initial` at some offset as well. -/
 theorem sideWork_coin_protected {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (coins : List Bool)
     (cfg final : Turing.TM0.Cfg MarkerCell (Λ × Bool))
@@ -2603,6 +2941,8 @@ theorem sideWork_coin_protected {Λ : Type*} [Inhabited Λ]
         obtain ⟨off', h'⟩ := sideWork_step_protected M c cfg next initial off h ht
         exact ih next off' h' hn
 
+/-- A tape can satisfy `HomeAt` at only one offset: two offsets locating its unique home marker
+must be equal. -/
 theorem homeAt_offset_unique (T : Turing.Tape MarkerCell) (off off' : ℤ)
     (h : HomeAt T off) (h' : HomeAt T off') : off = off' := by
   have hh := h (-off)
@@ -2611,6 +2951,10 @@ theorem homeAt_offset_unique (T : Turing.Tape MarkerCell) (off off' : ℤ)
   have he : -off + off' = 0 := by simpa using! hh'.symm
   omega
 
+/-- After a side work run stops on copied input, `markerHomeTable` reaches a halted tape
+protected at offset zero within at most the number of side work transitions, preserving the
+side flag and source readout. For its homing length `n`, the resulting cell at index `i`
+equals the stopped tape's cell at `i - homeDistance final.q.2 n`. -/
 theorem sideWork_homing_protected_run {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (input : List Bool)
     (coins : List Bool) (final : Turing.TM0.Cfg MarkerCell (Λ × Bool))
@@ -2643,15 +2987,20 @@ theorem sideWork_homing_protected_run {Λ : Type} [Inhabited Λ]
   congr 2
   omega
 
+/-- Focusing track `j` after writing a marker cell through `writeTrack j` recovers exactly the
+written cell. -/
 theorem focusTrack_writeTrack {N : ℕ} (j : Fin N) (s : TrackCell N) (b : MarkerCell) :
     focusTrack j (writeTrack j s b) = b := by
   obtain ⟨b₁, b₂, b₃⟩ := b
   simp [focusTrack, writeTrack]
 
+/-- Writing through track `j` leaves the work symbol of every distinct track `k` unchanged. -/
 theorem writeTrack_other {N : ℕ} (j k : Fin N) (h : k ≠ j)
     (s : TrackCell N) (b : MarkerCell) : (writeTrack j s b).2.1 k = s.2.1 k := by
   simp [writeTrack, h]
 
+/-- Focusing the optional result of one lifted track step equals taking the corresponding source
+step on the focused configuration, including agreement when the step halts. -/
 theorem track_step {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
     (M : Bool → Turing.TM0.Machine MarkerCell Λ) (c : Bool)
     (cfg : Turing.TM0.Cfg (TrackCell N) Λ) :
@@ -2673,12 +3022,16 @@ theorem track_step {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
     | move d => simp [focusTrackCfg, TM0StmtApply, Turing.Tape.map_move]
     | write b => simp [focusTrackCfg, TM0StmtApply, Turing.Tape.map_write, focusTrack_writeTrack]
 
+/-- The lifted machine's common coin halting test on a multitrack configuration equals the
+source machine's test on its focused track. -/
 theorem track_coinHalt {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
     (M : Bool → Turing.TM0.Machine MarkerCell Λ)
     (cfg : Turing.TM0.Cfg (TrackCell N) Λ) :
     coinHalt (trackTable j M) cfg = coinHalt M (focusTrackCfg j cfg) := by
   simp [coinHalt, trackTable, focusTrackCfg]
 
+/-- A lifted track run projects to the source run on the focused configuration: their stopped
+configurations agree after focusing, and their read and transition counts are equal. -/
 theorem track_coinConfig {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
     (M : Bool → Turing.TM0.Machine MarkerCell Λ) (coins : List Bool)
     (cfg : Turing.TM0.Cfg (TrackCell N) Λ) :
@@ -2707,11 +3060,15 @@ theorem track_coinConfig {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
             hsource]
         exact ⟨ho, by omega, by omega⟩
 
+/-- Focusing any work track of the initial multitrack input tape gives the initial marker input
+tape. -/
 theorem tracksInput_focus {N : ℕ} (j : Fin N) (input : List Bool) :
     (Turing.Tape.mk₁ (tracksInput N input)).map (focusTrack j) =
       Turing.Tape.mk₁ (markerInput input) := by
   simp [tracksInput, markerInput, Turing.Tape.map_mk₁, List.map_map, focusTrack, Function.comp_def]
 
+/-- A configuration predicate preserved by every successful step of either coin branch also
+holds at every stopped result of a coin run that starts with the predicate. -/
 theorem coinConfigRunAux_invariant {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (P : Turing.TM0.Cfg Γ Λ → Prop)
     (hstep : ∀ c cfg next, P cfg → Turing.TM0.step (M c) cfg = some next → P next)
@@ -2742,6 +3099,8 @@ theorem coinConfigRunAux_invariant {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
           simpa only [coinConfigRunAux, hc, ↓reduceIte, ht] using! hstop
         exact ih next (hstep c cfg next hp ht) hn
 
+/-- Moving the tape in either direction preserves the property that every work symbol on track
+`k` is blank. -/
 theorem blankTrack_move {N : ℕ} (k : Fin N) (T : Turing.Tape (TrackCell N))
     (d : Turing.Dir) (h : BlankTrack k T) : BlankTrack k (T.move d) := by
   intro i
@@ -2749,6 +3108,7 @@ theorem blankTrack_move {N : ℕ} (k : Fin N) (T : Turing.Tape (TrackCell N))
   | left => rw [Turing.Tape.move_left_nth]; exact h _
   | right => rw [Turing.Tape.move_right_nth]; exact h _
 
+/-- Writing a marker cell through track `j` preserves blankness of a distinct track `k`. -/
 theorem blankTrack_write_other {N : ℕ} (j k : Fin N) (hkj : k ≠ j)
     (T : Turing.Tape (TrackCell N)) (b : MarkerCell) (h : BlankTrack k T) :
     BlankTrack k (T.write (writeTrack j T.head b)) := by
@@ -2759,6 +3119,8 @@ theorem blankTrack_write_other {N : ℕ} (j k : Fin N) (hkj : k ≠ j)
     simpa [writeTrack, hkj] using! h 0
   · simpa only [hi, ↓reduceIte] using! h i
 
+/-- A successful step of a machine lifted to track `j` preserves blankness of every distinct
+track `k` that was blank before the step. -/
 theorem track_step_blank_other {N : ℕ} {Λ : Type*} [Inhabited Λ] (j k : Fin N)
     (hkj : k ≠ j) (M : Bool → Turing.TM0.Machine MarkerCell Λ) (c : Bool)
     (cfg next : Turing.TM0.Cfg (TrackCell N) Λ) (h : BlankTrack k cfg.Tape)
@@ -2782,6 +3144,7 @@ theorem track_step_blank_other {N : ℕ} {Λ : Type*} [Inhabited Λ] (j k : Fin 
       cases hs
       exact blankTrack_move k cfg.Tape d h
 
+/-- A stopped coin run lifted to track `j` leaves every other initially blank work track blank. -/
 theorem track_coin_blank_other {N : ℕ} {Λ : Type*} [Inhabited Λ] (j k : Fin N)
     (hkj : k ≠ j) (M : Bool → Turing.TM0.Machine MarkerCell Λ) (coins : List Bool)
     (cfg final : Turing.TM0.Cfg (TrackCell N) Λ) (h : BlankTrack k cfg.Tape)
@@ -2790,6 +3153,8 @@ theorem track_coin_blank_other {N : ℕ} {Λ : Type*} [Inhabited Λ] (j k : Fin 
   coinConfigRunAux_invariant (trackTable j M) (fun cfg => BlankTrack k cfg.Tape)
     (track_step_blank_other j k hkj M) coins cfg final h hstop
 
+/-- Every work track is blank at every integer tape position in the initial multitrack input
+tape. -/
 theorem tracksInput_blank {N : ℕ} (j : Fin N) (input : List Bool) :
     BlankTrack j (Turing.Tape.mk₁ (tracksInput N input)) := by
   intro i
@@ -2803,6 +3168,8 @@ theorem tracksInput_blank {N : ℕ} (j : Fin N) (input : List Bool) :
     rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.getI_map]
     split_ifs <;> rfl
 
+/-- Lifting a machine to a work track preserves its output and coin read count when compared
+with running on the focused configuration, and also preserves its transition count. -/
 theorem track_coin_run {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
     (M : Bool → Turing.TM0.Machine MarkerCell Λ) (a : Λ → Bool)
     (coins : List Bool) (cfg : Turing.TM0.Cfg (TrackCell N) Λ) :
@@ -2818,6 +3185,8 @@ theorem track_coin_run {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
   · rw [← hw.2, ← hs.2]
     exact h.2.2
 
+/-- If the source's two coin branches have the same halting condition, lifting it to a work
+track preserves that condition. -/
 theorem track_commonHalt {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
     (M : Bool → Turing.TM0.Machine MarkerCell Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -2825,17 +3194,23 @@ theorem track_commonHalt {N : ℕ} {Λ : Type*} [Inhabited Λ] (j : Fin N)
   intro q s
   exact Option.map_eq_none_iff.trans ((hc q (focusTrack j s)).trans Option.map_eq_none_iff.symm)
 
+/-- Focusing any work track in the initial multitrack configuration gives the initial marker
+input configuration, with the same initial control state. -/
 theorem tracksInput_initial {N : ℕ} {Λ : Type*} [Inhabited Λ]
     (j : Fin N) (input : List Bool) :
     focusTrackCfg j (Turing.TM0.init (tracksInput N input) : Turing.TM0.Cfg (TrackCell N) Λ) =
       Turing.TM0.init (markerInput input) := by
   simp [focusTrackCfg, Turing.TM0.init, tracksInput_focus]
 
+/-- The alphabet with one input symbol, `N` work symbols, and a home bit contains exactly `6 * 3
+^ N` cells. -/
 theorem trackCell_card (N : ℕ) : Fintype.card (TrackCell N) = 6 * 3 ^ N := by
   simp only [TrackCell, Fintype.card_prod, Fintype.card_option, Fintype.card_bool,
     Fintype.card_fun, Fintype.card_fin]
   ring
 
+/-- A round run on track `j` of the initial multitrack input has the same output, coin read
+count, and transition count as preparation and homing on the marker input. -/
 theorem trackRound_run {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (coins : List Bool) :
@@ -2848,6 +3223,11 @@ theorem trackRound_run {N : ℕ} (j : Fin N) (Q : ℕ)
   rw [tracksInput_initial] at h
   exact h
 
+/-- With common source halting, a preparation prefix of length `3 * input.length + 3`, one
+dispatch coin, and at least `2 * t + 1` tail coins reproduce any source output on `tail.take
+t` in a round on track `j`. The round stops at home in the focused view, leaves all other
+tracks blank, and uses at most `3 * input.length + 2 * t + 5` reads with an equal transition
+count. -/
 theorem trackRound_source_output {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2897,12 +3277,16 @@ theorem trackRound_source_output {N : ℕ} (j : Fin N) (Q : ℕ)
         rw [htrans, hread]
         exact ht
 
+/-- The first marker copy step is identical whether the initial input tape already has its home
+marker set or starts as the unmarked marker input. -/
 theorem markerCopy_marked_first (input : List Bool) :
     Turing.TM0.step markerCopyTable ⟨0, markedInputTape input⟩ =
       Turing.TM0.step markerCopyTable (Turing.TM0.init (markerInput input)) := by
   simp [TM0_step_apply, markerCopyTable, markedInputTape, Turing.TM0.init, TM0StmtApply]
   rfl
 
+/-- Sequencing marker copying before any marker machine gives identical stopped results and
+counts from marked and unmarked initial input tapes, for every coin list. -/
 theorem copySequence_marked_start {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine MarkerCell Λ) (input : List Bool) (coins : List Bool) :
     coinConfigRunAux (sequenceCoinTable (fun _ => markerCopyTable) M) coins
@@ -2925,6 +3309,8 @@ theorem copySequence_marked_start {Λ : Type*} [Inhabited Λ]
     simp only [coinConfigRunAux, sequence_coinHalt_left, Bool.false_eq_true, ↓reduceIte]
     rw [hl, hr]
 
+/-- Preparation and homing have identical `coinConfigRunAux` results from state zero on the
+marked input tape and from the ordinary initial marker input configuration. -/
 theorem prepareHoming_marked_start (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (coins : List Bool) :
@@ -2946,6 +3332,8 @@ theorem prepareHoming_marked_start (Q : ℕ)
   rw [hs] at hm
   exact hm.trans hu.symm
 
+/-- Every successful homing machine step preserves protection of the input track and home marker
+relative to the initial tape at some offset. -/
 theorem homing_step_protected {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (c : Bool)
     (cfg next : Turing.TM0.Cfg MarkerCell (Sum (Λ × Bool) HomeState))
@@ -2983,6 +3371,8 @@ theorem homing_step_protected {Λ : Type*} [Inhabited Λ]
       | left => exact ⟨off - 1, by simpa only [hdir] using! protectedAt_move_left initial T off hp⟩
       | right => exact ⟨off + 1, by simpa only [hdir] using! protectedAt_move_right initial T off hp⟩
 
+/-- Whenever the homing machine passes its common coin halting test, the current tape cell
+carries a true home marker. -/
 theorem homing_halt_at_home {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (cfg : Turing.TM0.Cfg MarkerCell (Sum (Λ × Bool) HomeState))
@@ -2999,6 +3389,8 @@ theorem homing_halt_at_home {Λ : Type*} [Inhabited Λ]
     by_contra hn
     simp [coinHalt, homingCoinTable, dispatchCoinTable, dispatchTable, markerHomeTable, hn] at hh
 
+/-- Any stopped homing coin run beginning in the source phase on copied input preserves the
+original input track and has its home marker at the current head position. -/
 theorem homing_coin_protected {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (input : List Bool)
     (coins : List Bool) (final : Turing.TM0.Cfg MarkerCell (Sum (Λ × Bool) HomeState))
@@ -3022,6 +3414,8 @@ theorem homing_coin_protected {Λ : Type*} [Inhabited Λ]
   have hz : off = 0 := by simpa using! hm.symm
   simpa only [hz] using! hp
 
+/-- Any stopped native homing run from state zero on copied input has a final tape protected
+relative to the copied input at offset zero. -/
 theorem nativeHoming_coin_protected (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (coins : List Bool)
@@ -3050,6 +3444,9 @@ theorem nativeHoming_coin_protected (Q : ℕ)
     rw [htape]
     exact hp
 
+/-- If preparation and homing stop on a word consisting of a `3 * input.length + 3` preparation
+prefix, one dispatch coin, and an arbitrary tail, the final tape preserves the input track
+and is at home. -/
 theorem prepareHoming_coin_protected (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (front : Fin (3 * input.length + 3) → Bool) (switch : Bool)
@@ -3082,6 +3479,8 @@ theorem prepareHoming_coin_protected (Q : ℕ)
     rw [htape]
     exact nativeHoming_coin_protected Q M a input tail src hc
 
+/-- Mapping a tape by a pointed alphabet map applies that map to the cell at every integer
+index. -/
 theorem mapTape_nth {Γ Γ' : Type*} [Inhabited Γ] [Inhabited Γ']
     (f : Turing.PointedMap Γ Γ') (T : Turing.Tape Γ) (i : ℤ) :
     (T.map f).nth i = f (T.nth i) := by
@@ -3089,6 +3488,7 @@ theorem mapTape_nth {Γ Γ' : Type*} [Inhabited Γ] [Inhabited Γ']
   | ofNat n => cases n <;> simp [Turing.Tape.nth, Turing.Tape.map, Turing.ListBlank.nth_map]
   | negSucc n => simp [Turing.Tape.nth, Turing.Tape.map, Turing.ListBlank.nth_map]
 
+/-- The marked input tape has its unique true home marker at index zero. -/
 theorem markedInputTape_home (input : List Bool) : HomeAt (markedInputTape input) 0 := by
   intro i
   unfold markedInputTape
@@ -3106,6 +3506,7 @@ theorem markedInputTape_home (input : List Bool) : HomeAt (markedInputTape input
     rw [hm]
     simp [hi]
 
+/-- The work component of the ordinary marker input tape is blank at every integer index. -/
 theorem markerInput_work_blank (input : List Bool) (i : ℤ) :
     ((Turing.Tape.mk₁ (markerInput input)).nth i).2.1 = none := by
   change ((Turing.TM0.init (markerInput input) : Turing.TM0.Cfg MarkerCell (Fin 1)).Tape.nth i).2.1 = none
@@ -3115,6 +3516,8 @@ theorem markerInput_work_blank (input : List Bool) (i : ℤ) :
   · rw [markerInput, Qatlib.Concepts.ClassicalTape.TapeCompilation.getI_map]
     split_ifs <;> rfl
 
+/-- Setting the initial home marker leaves the marked input tape's work component blank at every
+integer index. -/
 theorem markedInput_work_blank (input : List Bool) (i : ℤ) :
     ((markedInputTape input).nth i).2.1 = none := by
   unfold markedInputTape
@@ -3124,6 +3527,8 @@ theorem markedInput_work_blank (input : List Bool) (i : ℤ) :
     simpa using! markerInput_work_blank input 0
   · simpa only [hi, ↓reduceIte] using! markerInput_work_blank input i
 
+/-- The marked input tape and copied input result have identical input components at every
+integer tape index. -/
 theorem markedInput_copy_input (input : List Bool) (i : ℤ) :
     ((markedInputTape input).nth i).1 = ((markerCopyResult input).nth i).1 := by
   let f : Turing.PointedMap MarkerCell (Option Bool) := ⟨Prod.fst, rfl⟩
@@ -3151,6 +3556,8 @@ theorem markedInput_copy_input (input : List Bool) (i : ℤ) :
   have hn := congrArg (fun T : Turing.Tape (Option Bool) => T.nth i) (hm.trans hc.symm)
   simpa only [mapTape_nth, f] using! hn
 
+/-- If one focused track is protected relative to the copied input at offset zero, focusing any
+blank work track gives exactly the marked input tape. -/
 theorem blankTrack_fresh_view {N : ℕ} (j k : Fin N) (input : List Bool)
     (T : Turing.Tape (TrackCell N))
     (hp : ProtectedAt (markerCopyResult input) (T.map (focusTrack j)) 0)
@@ -3170,6 +3577,9 @@ theorem blankTrack_fresh_view {N : ℕ} (j k : Fin N) (input : List Bool)
       simp only [Int.add_zero] at hm
       exact hh.trans hm.symm
 
+/-- If track `j` initially views either the ordinary marker input tape or the marked input tape,
+its round from state zero projects to preparation and homing on the ordinary marker input.
+Stopped configurations agree after focusing, and read and transition counts agree exactly. -/
 theorem trackRound_fresh_project {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (T : Turing.Tape (TrackCell N)) (coins : List Bool)
@@ -3191,6 +3601,12 @@ theorem trackRound_fresh_project {N : ℕ} (j : Fin N) (Q : ℕ)
   · rw [hf, prepareHoming_marked_start] at h
     exact h
 
+/-- For a fresh track viewing marked or unmarked input, common source halting and a source
+output on the first `t` tail coins yield a stopped round with that output after a
+preparation prefix, a dispatch coin, and a tail of length at least `2 * t + 1`. The final
+focused tape is protected at home, every other initially blank track remains blank and views
+marked input, and equal read and transition counts are at most `3 * input.length + 2 * t +
+5`. -/
 theorem trackRound_fresh_execution {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -3247,10 +3663,14 @@ theorem trackRound_fresh_execution {N : ℕ} (j : Fin N) (Q : ℕ)
       rw [htrans, hread]
       exact ht
 
+/-- Below the bound `N`, `boundedSucc N` increments the underlying natural value by exactly one. -/
 theorem boundedSucc_val (N : ℕ) (q : Fin (N + 1)) (h : q.val < N) :
     (boundedSucc N q).val = q.val + 1 := by
   simp [boundedSucc, min_eq_left (by omega : q.val + 1 ≤ N)]
 
+/-- If the round index is below `N` and the true vote count is at most that index, `roundsNext`
+increments the round index by one and adds the current round's Boolean readout to the vote
+count. The updated vote count remains at most the updated round index. -/
 theorem roundsNext_values (N Q : ℕ) (q : RoundsState N Q)
     (hj : q.1.val < N) (hc : q.2.1.val ≤ q.1.val) :
     (roundsNext N Q q).1.val = q.1.val + 1 ∧
@@ -3261,6 +3681,8 @@ theorem roundsNext_values (N Q : ℕ) (q : RoundsState N Q)
   cases hv : prepareHomingAccept Q q.2.2 <;>
     simp [boundedSucc_val N q.2.1 hcount] <;> omega
 
+/-- The rounds table has no transition exactly when its completed round index equals `N`,
+independently of the coin, tape symbol, and internal round state. -/
 theorem roundsTable_halt_iff (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (c : Bool) (q : RoundsState N Q) (s : TrackCell N) :
@@ -3271,6 +3693,8 @@ theorem roundsTable_halt_iff (N Q : ℕ)
   · have he : q.1.val = N := by have h := q.1.isLt; omega
     simp [roundsTable, he]
 
+/-- The rounds table has identical halting conditions for the false and true coin branches at
+every state and tape symbol. -/
 theorem roundsTable_commonHalt (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     ∀ q s, (roundsTable N Q M a false q s = none) ↔ (roundsTable N Q M a true q s = none) := by
@@ -3279,10 +3703,13 @@ theorem roundsTable_commonHalt (N Q : ℕ)
 
 set_option backward.isDefEq.respectTransparency true in
 
+/-- The rounds state encoding sends the initial triple `(0, 0, 0)` to label zero. -/
 theorem roundsLabels_zero (N Q : ℕ) : roundsLabels N Q (0, 0, 0) = 0 := by
   apply Fin.ext
   simp [roundsLabels, finProdFinEquiv, Equiv.prodCongr]
 
+/-- Relabeling the initial rounds configuration by `roundsLabels N Q` gives the initial native
+configuration on the same multitrack input. -/
 theorem rounds_initial (N Q : ℕ) (input : List Bool) :
     relabelCfg (roundsLabels N Q) (Turing.TM0.init (tracksInput N input)) =
       Turing.TM0.init (tracksInput N input) := by
@@ -3291,6 +3718,8 @@ theorem rounds_initial (N Q : ℕ) (input : List Bool) :
   rw [roundsLabels_zero]
   rfl
 
+/-- Relabeling the rounds machine to native finite labels preserves the output, coin read count,
+and transition count on every coin list and initial multitrack input. -/
 theorem nativeRounds_run (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (coins : List Bool) :
@@ -3305,12 +3734,16 @@ theorem nativeRounds_run (N Q : ℕ)
   rw [rounds_initial] at hr ht
   exact ⟨hr, ht⟩
 
+/-- A round lifted to any work track has the same halting condition for both coin branches, for
+every source machine and readout. -/
 theorem trackRound_commonHalt {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     ∀ q s, (trackRoundTable j Q M a false q s = none) ↔
       (trackRoundTable j Q M a true q s = none) :=
   track_commonHalt j _ (prepareHoming_commonHalt Q M a)
 
+/-- The rounds machine's common coin halting test is false whenever its round index is below
+`N`, including when the current internal round has finished. -/
 theorem rounds_coinHalt_active (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (j count : Fin (N + 1)) (hj : j.val < N)
@@ -3324,6 +3757,9 @@ theorem rounds_coinHalt_active (N Q : ℕ)
   | none => exact (hf ht).elim
   | some p => rfl
 
+/-- While the round index `j` is below `N`, every successful step of round `j` lifts to the same
+tape and internal state update in the rounds machine, leaving the round index and vote count
+unchanged. -/
 theorem rounds_step_success (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (j count : Fin (N + 1)) (hj : j.val < N) (c : Bool)
@@ -3338,6 +3774,8 @@ theorem rounds_step_success (N Q : ℕ)
     cases hs
     simp [TM0_step_apply, roundsTable, roundsCfg, hj, ht]
 
+/-- When an active track round has no transition for the chosen coin, the rounds machine
+performs a dispatch step to `roundsNext` and preserves the tape. -/
 theorem rounds_step_dispatch (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (j count : Fin (N + 1)) (hj : j.val < N) (c : Bool)
@@ -3348,6 +3786,10 @@ theorem rounds_step_dispatch (N Q : ℕ)
   have ht := (TM0_step_eq_none _ cfg).mp hh
   simp [TM0_step_apply, roundsTable, roundsCfg, hj, ht, TM0StmtApply]
 
+/-- If an active round stops after reading all of `front`, the rounds run on `front ++ switch ::
+tail` has the same stopped result as the tail run starting from `roundsNext` on the round's
+final tape. The prefix and dispatch add exactly `front.length + 1` to both reads and
+transitions. -/
 theorem rounds_coinConfig_stage (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (j count : Fin (N + 1)) (hj : j.val < N)
@@ -3398,11 +3840,17 @@ theorem rounds_coinConfig_stage (N Q : ℕ)
         · rw [ht]
           omega
 
+/-- Every Boolean list of length `n` is `List.ofFn w` for some Boolean word indexed by `Fin n`. -/
 theorem boolWord_of_length (l : List Bool) (n : ℕ) (h : l.length = n) :
     ∃ w : Fin n → Bool, List.ofFn w = l := by
   subst n
   exact ⟨l.get, List.ofFn_get l⟩
 
+/-- Assuming common source halting and totality on all length `t` words, a round on a fresh
+marked or unmarked track stops whenever at least `3 * input.length + 2 * t + 5` coins are
+available, using at most that many reads and an equal number of transitions. Its focused
+final tape is protected at home, and every other initially blank track remains blank and
+views the marked input tape. -/
 theorem trackRound_fresh_budget {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -3440,6 +3888,8 @@ theorem trackRound_fresh_budget {N : ℕ} (j : Fin N) (Q : ℕ)
     obtain ⟨final, hs, _, hp, hfresh, hr, ht'⟩ := h
     exact ⟨final, hs, hp, hfresh, hr, ht'⟩
 
+/-- A track whose focused tape equals either the ordinary marker input or the marked input has
+blank work symbols everywhere. -/
 theorem fresh_view_blank {N : ℕ} (j : Fin N) (input : List Bool) (T : Turing.Tape (TrackCell N))
     (hf : T.map (focusTrack j) = Turing.Tape.mk₁ (markerInput input) ∨
       T.map (focusTrack j) = markedInputTape input) : BlankTrack j T := by
@@ -3452,6 +3902,10 @@ theorem fresh_view_blank {N : ℕ} (j : Fin N) (input : List Bool) (T : Turing.T
     simp only [mapTape_nth, focusTrack] at h
     exact h.trans (markedInput_work_blank input i)
 
+/-- Suppose the source has common halting and is total on length `t` words, `count <= j`, `j +
+fuel = N`, and every track from `j` onward views marked or unmarked input. With at least
+`fuel * (3 * input.length + 2 * t + 6)` coins, the remaining rounds stop at round index `N`,
+using at most that many reads and an equal number of transitions. -/
 theorem rounds_total_from (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -3536,6 +3990,10 @@ theorem rounds_total_from (N Q : ℕ)
       · (try dsimp only)
         rw [hstageTransitions, hstageReads, htr]
 
+/-- If the source has common halting and is total on all length `t` words, the rounds machine on
+the initial multitrack input stops at round index `N` with any coin list of length at least
+`N * (3 * input.length + 2 * t + 6)`. Its read count is bounded by that quantity and equals
+its transition count. -/
 theorem rounds_total (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -3550,6 +4008,8 @@ theorem rounds_total (N Q : ℕ)
     (Turing.Tape.mk₁ (tracksInput N input)) (by intro k _; exact Or.inl (tracksInput_focus k input)) coins hlen
   simpa only [roundsCfg, Turing.TM0.init, Fin.default_eq_zero] using! h
 
+/-- The native rounds machine has the same halting condition for both coin branches at every
+state and tape symbol. -/
 theorem nativeRounds_commonHalt (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     ∀ q s, (nativeRoundsTable N Q M a false q s = none) ↔
@@ -3558,6 +4018,9 @@ theorem nativeRounds_commonHalt (N Q : ℕ)
   have h := roundsTable_commonHalt N Q M a ((roundsLabels N Q).symm q) s
   exact Option.map_eq_none_iff.trans (h.trans Option.map_eq_none_iff.symm)
 
+/-- Under common source halting and totality on all length `t` words, the native rounds machine
+returns an output whenever at least `N * (3 * input.length + 2 * t + 6)` coins are
+available. Its read count is at most that budget and equals its transition count. -/
 theorem nativeRounds_total (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -3581,6 +4044,8 @@ theorem nativeRounds_total (N Q : ℕ)
   rw [← hreadout, ← hledger, hs]
   exact ⟨Option.some_ne_none _, hr, ht'⟩
 
+/-- For natural `N`, `c`, `k`, and `n`, the round budget `N * (3 * n + 2 * (c * n ^ k + c) + 6)`
+is at most `d * n ^ (2 * (k + 1)) + d` for `d = N * (4 * c + 10) + 1`. -/
 theorem rounds_poly_bound (N c k n : ℕ) :
     N * (3 * n + 2 * (c * n ^ k + c) + 6) ≤
       (N * (4 * c + 10) + 1) * n ^ (2 * (k + 1)) + (N * (4 * c + 10) + 1) := by
@@ -3593,6 +4058,10 @@ theorem rounds_poly_bound (N c k n : ℕ) :
     _ = (N * (4 * c + 10)) * n ^ (2 * (k + 1)) + N * (4 * c + 10) := by ring
     _ ≤ _ := by nlinarith [Nat.zero_le (n ^ (2 * (k + 1)))]
 
+/-- If the source has common halting and is total with `c * n ^ k + c` coins on every input of
+length `n`, there is a positive `d` giving native rounds the budget `B = d * n ^ (2 * (k +
+1)) + d`. The native machine has common halting, returns an output on every length `B` word,
+and takes at most `B` transitions. -/
 theorem nativeRounds_polynomial (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (c k : ℕ)
@@ -3623,12 +4092,16 @@ theorem nativeRounds_polynomial (N Q : ℕ)
     have hw := hrun w
     exact hw.2.2.le.trans (hw.2.1.trans hb)
 
+/-- With zero coin budget, the fair configuration value is the payoff of the current
+configuration if both branches halt there, and zero otherwise. -/
 theorem fairCfgValue_zero {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (g : Turing.TM0.Cfg Γ Λ → ℝ)
     (cfg : Turing.TM0.Cfg Γ Λ) :
     fairCfgValue M g 0 cfg = if coinHalt M cfg then g cfg else 0 := by
   by_cases hc : coinHalt M cfg = true <;> simp [fairCfgValue, stoppedValue, coinConfigRunAux, hc]
 
+/-- At a configuration where the common coin halting test is true, the fair configuration value
+equals the current payoff for every coin budget. -/
 theorem fairCfgValue_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (g : Turing.TM0.Cfg Γ Λ → ℝ)
     (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) (hc : coinHalt M cfg = true) :
@@ -3637,6 +4110,9 @@ theorem fairCfgValue_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     cases coins <;> simp [stoppedValue, coinConfigRunAux, hc]
   simp [fairCfgValue, hr]
 
+/-- At a configuration that does not pass the common coin halting test, the fair value for `n +
+1` coins is the average of the two branch values. Each successful branch uses the
+successor's value for `n` coins, while a branch with no step uses the current payoff. -/
 theorem fairCfgValue_succ_live {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (g : Turing.TM0.Cfg Γ Λ → ℝ)
     (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) (hc : coinHalt M cfg ≠ true) :
@@ -3659,6 +4135,8 @@ theorem fairCfgValue_succ_live {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     simp only [Option.elim_none, Option.elim_some] <;>
     simp [pow_succ] <;> field_simp <;> ring
 
+/-- If every word of length `n + 1` stops from `cfg`, then every word of length `n` stops from
+any successor reached by a successful single coin step from `cfg`. -/
 theorem coinConfig_total_next {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (n : ℕ)
     (cfg next : Turing.TM0.Cfg Γ Λ) (c : Bool) (hs : Turing.TM0.step (M c) cfg = some next)
@@ -3674,6 +4152,9 @@ theorem coinConfig_total_next {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     rw [List.ofFn_succ]; rfl
   simpa only [hw, coinConfigRunAux, hc, ↓reduceIte, hs] using! h
 
+/-- Suppose both coins send a live configuration to the same successor, whose fair value is
+`value` for every budget at least `D`. The original configuration then has fair value
+`value` at every budget `t + 1 + D`. -/
 theorem fairCfgValue_dispatch {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (K : Bool → Turing.TM0.Machine Γ Λ) (h : Turing.TM0.Cfg Γ Λ → ℝ)
     (cfg next : Turing.TM0.Cfg Γ Λ) (D : ℕ) (value : ℝ)
@@ -3688,6 +4169,11 @@ theorem fairCfgValue_dispatch {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   rw [hcont t]
   ring
 
+/-- Let a live embedding into `K` preserve the steps of a source with common halting on a step
+invariant `P`, and dispatch each halted source configuration to a continuation whose value
+equals its source payoff for every budget at least `D`. If the source is total on length `t`
+words from a configuration satisfying `P`, the embedded run's fair value with `t + 1 + D`
+coins equals the source's fair value with `t` coins. -/
 theorem fairCfgValue_bind
     {Γ Λ Δ Μ : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Δ] [Inhabited Μ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (K : Bool → Turing.TM0.Machine Δ Μ)
@@ -3737,6 +4223,8 @@ theorem fairCfgValue_bind
           simp only [Option.elim_some]
           rw [hf', ht']
 
+/-- Executing the exact coin steps of `front ++ tail` equals executing `front` and then binding
+its optional result to the exact steps of `tail`. -/
 theorem coinStepsAux_append {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (front tail : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) :
     coinStepsAux M (front ++ tail) cfg = (coinStepsAux M front cfg).bind (coinStepsAux M tail) := by
@@ -3748,6 +4236,9 @@ theorem coinStepsAux_append {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     | none => rfl
     | some next => exact ih next
 
+/-- If exact execution of all coins reaches a configuration where both branches halt,
+`coinConfigRunAux` stops at that configuration. Both its read count and transition count
+equal the coin list length. -/
 theorem coinStepsAux_stopped {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (coins : List Bool)
     (cfg final : Turing.TM0.Cfg Γ Λ) (hr : coinStepsAux M coins cfg = some final)
@@ -3774,6 +4265,8 @@ theorem coinStepsAux_stopped {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
       simp only [coinConfigRunAux, hc, Bool.false_eq_true, ↓reduceIte, hs, List.length_cons]
       exact ⟨ho, congrArg Nat.succ hread, congrArg Nat.succ htrans⟩
 
+/-- Every stopped preparation and homing run on the ordinary marker input preserves the input
+track and places the unique home marker at the head, for any coin list. -/
 theorem prepareHoming_any_protected (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (coins : List Bool) (final : Turing.TM0.Cfg MarkerCell (Fin (2 * Q + 11)))
@@ -3798,6 +4291,9 @@ theorem prepareHoming_any_protected (Q : ℕ)
     rw [hsplit] at hs
     exact prepareHoming_coin_protected Q M a input front switch tail final hs
 
+/-- Every stopped round from a track viewing marked or unmarked input has a focused final tape
+protected relative to the copied input at offset zero. Each other initially blank track
+remains blank and its final focused tape is exactly the marked input tape. -/
 theorem trackRound_fresh_stopped {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List Bool) (T : Turing.Tape (TrackCell N))
@@ -3820,6 +4316,8 @@ theorem trackRound_fresh_stopped {N : ℕ} (j : Fin N) (Q : ℕ)
       track_coin_blank_other j k hkj (prepareHomingCoinTable Q M a) coins ⟨0, T⟩ final hb hstop
   exact ⟨hk, blankTrack_fresh_view j k input final.Tape hprotected hk⟩
 
+/-- A payoff depending only on a Boolean readout decomposes into its false value times the fair
+false output mass plus its true value times the fair true output mass. -/
 theorem fairCfgValue_bool {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (f : Bool → ℝ)
     (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -3838,6 +4336,8 @@ theorem fairCfgValue_bool {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum]
   ring
 
+/-- The fair value of the indicator that the stopped readout equals `target` is the number of
+length `n` coin words returning `some target`, divided by `2 ^ n`. -/
 theorem fairCfgValue_success {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (target : Bool)
     (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) :
@@ -3853,12 +4353,17 @@ theorem fairCfgValue_success {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   rw [← hp]
   cases hs : (coinConfigRunAux M (List.ofFn w) cfg).stopped <;> simp [stoppedValue, hs]
 
+/-- At the initial configuration, the fair value of the target readout indicator is exactly
+`fairTapeSuccess` for the same input, target, and coin budget. -/
 theorem fairCfgValue_initial {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (target : Bool)
     (n : ℕ) (input : List Γ) :
     fairCfgValue M (fun c => if a c.q = target then 1 else 0) n (Turing.TM0.init input) =
       fairTapeSuccess M a input n target := fairCfgValue_success M a target n _
 
+/-- If a track views marked or unmarked input and the source has common halting and is total on
+length `t` words, the track round's target output mass at budget `3 * input.length + 2 * t +
+5` equals the source's target success probability at budget `t`. -/
 theorem trackRound_fresh_mass {N : ℕ} (j : Fin N) (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -3895,6 +4400,11 @@ theorem trackRound_fresh_mass {N : ℕ} (j : Fin N) (Q : ℕ)
   rw [hclock]
   exact prepareHoming_fair_mass Q M a hc input t target ht
 
+/-- Assume common source halting, totality on length `t` words, `count <= j`, `j + fuel = N`,
+and fresh marked or unmarked views on every remaining track. At any budget `B >= fuel * (3 *
+input.length + 2 * t + 6)`, the rounds machine's target output mass equals
+`remainingVoteMass` for `fuel` votes starting at `count`, with false and true weights given
+by the source's length `t` success probabilities. -/
 theorem rounds_mass_from (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -4000,11 +4510,16 @@ theorem rounds_mass_from (N Q : ℕ)
     simp only [remainingVoteMass, f, Bool.toNat_false, Bool.toNat_true, Nat.add_zero]
     ring
 
+/-- With no remaining votes, the uniform vote mass is one exactly when the current count's
+strict majority test `N / 2 < count` equals the target, and zero otherwise. -/
 theorem uniformVotesMass_zero {I : Type*} [Fintype I] (N : ℕ) (vote : I → Bool)
     (target : Bool) (count : ℕ) : uniformVotesMass N vote target 0 count =
       if decide (N / 2 < count) = target then 1 else 0 := by
   simp [uniformVotesMass]
 
+/-- For a nonempty finite sample type, the uniform mass for `fuel + 1` votes splits by the first
+vote. The false vote proportion weights the remaining mass at `count`, and the true vote
+proportion weights it at `count + 1`. -/
 theorem uniformVotesMass_succ {I : Type*} [Fintype I] [Nonempty I]
     (N : ℕ) (vote : I → Bool) (target : Bool) (fuel count : ℕ) :
     uniformVotesMass N vote target (fuel + 1) count =
@@ -4033,6 +4548,9 @@ theorem uniformVotesMass_succ {I : Type*} [Fintype I] [Nonempty I]
   have hcard : (Fintype.card I : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   field_simp
 
+/-- Uniform vote mass over a nonempty finite sample type equals `remainingVoteMass` with false
+and true weights given by their respective proportions in that type, for every remaining
+vote count and initial tally. -/
 theorem uniformVotesMass_eq_remaining {I : Type*} [Fintype I] [Nonempty I]
     (N : ℕ) (vote : I → Bool) (target : Bool) (fuel count : ℕ) :
     uniformVotesMass N vote target fuel count =
@@ -4042,6 +4560,9 @@ theorem uniformVotesMass_eq_remaining {I : Type*} [Fintype I] [Nonempty I]
   | zero => exact uniformVotesMass_zero N vote target count
   | succ fuel ih => rw [uniformVotesMass_succ, ih count, ih (count + 1)]; rfl
 
+/-- The independent majority mass is the uniform vote mass of `2 * r + 1` independent length `t`
+coin words, starting with count zero. A word votes true exactly when its source run returns
+`some true`. -/
 theorem independentMajorityMass_uniform {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ)
     (t r : ℕ) (target : Bool) :
@@ -4053,6 +4574,9 @@ theorem independentMajorityMass_uniform {Γ Λ : Type*} [Inhabited Γ] [Inhabite
   simp only [Nat.zero_add, trueCount_ofFn, MajorityBit, Fintype.card_fun,
     Fintype.card_bool, Fintype.card_fin, Nat.cast_pow, Nat.cast_ofNat, ← pow_mul]
 
+/-- If the source returns an output on every length `t` coin word, its independent majority mass
+equals `remainingVoteMass` for `2 * r + 1` votes starting at zero, weighted by its false and
+true success probabilities at budget `t`. -/
 theorem independentMajorityMass_recurrence {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (a : Λ → Bool) (input : List Γ)
     (t r : ℕ) (target : Bool)
@@ -4073,6 +4597,9 @@ theorem independentMajorityMass_recurrence {Γ Λ : Type*} [Inhabited Γ] [Inhab
     simp only [source_vote_eq_target M a input (List.ofFn w) b (ht w)]
   rw [hp false, hp true]
 
+/-- If the source has common halting and is total on length `t` words, the native machine with
+`2 * r + 1` rounds has exactly the independent majority target mass of the source. This
+holds at every budget `B >= (2 * r + 1) * (3 * input.length + 2 * t + 6)`. -/
 theorem nativeRounds_fair_mass (r Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -4101,6 +4628,10 @@ theorem nativeRounds_fair_mass (r Q : ℕ)
   exact hn.trans
       (hi.trans (independentMajorityMass_recurrence M a (input.map some) t r target ht).symm)
 
+/-- If the source has common halting, is total on length `t` words, and succeeds on `target`
+with probability at least `2 / 3`, its `2 * r + 1` native rounds succeed with probability at
+least `1 - (8 / 9) ^ r`. The compiled budget may be any `B >= (2 * r + 1) * (3 *
+input.length + 2 * t + 6)`. -/
 theorem nativeRounds_amplification (r Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -4114,6 +4645,11 @@ theorem nativeRounds_amplification (r Q : ℕ)
   rw [nativeRounds_fair_mass r Q M a hc input t ht B hB target]
   exact independentMajorityMass_ge M a (input.map some) t r target ht hp
 
+/-- For a source with common halting and totality at `T = c * n ^ k + c`, some positive `d`
+makes `2 * r + 1` native rounds total with at most `B = d * n ^ (2 * (k + 1)) + d`
+transitions on every length `B` word, retaining common halting. At that budget each target
+probability equals the independent majority mass at source budget `T`, and source success at
+least `2 / 3` gives compiled success at least `1 - (8 / 9) ^ r`. -/
 theorem nativeRounds_majority_polynomial (r Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (a : Fin (Q + 1) → Bool) (c k : ℕ)
@@ -4156,18 +4692,23 @@ theorem nativeRounds_majority_polynomial (r Q : ℕ)
   · intro target hp
     exact nativeRounds_amplification r Q M a hc input T (htotal input) B hb target hp
 
+/-- Encoding a multitrack cell as a bit block produces exactly `N + 3` symbols. -/
 theorem bitBlock_length (N : ℕ) (s : TrackCell N) : (bitBlock N s).length = N + 3 := by
   simp [bitBlock]
 
+/-- The default multitrack cell encodes as `N + 3` blank symbols. -/
 theorem bitBlock_default (N : ℕ) : bitBlock N default = List.replicate (N + 3) none := by
   change none :: (List.ofFn (fun _ : Fin N => (none : Option Bool)) ++ List.replicate 2 none) =
     none :: List.replicate (N + 2) none
   rw [List.ofFn_const, ← List.replicate_add]
 
+/-- Expanding an input into blocks of width `N + 3` gives length `input.length * (N + 3)`. -/
 theorem expandedInput_length (N : ℕ) (input : List Bool) :
     (expandedInput N input).length = input.length * (N + 3) := by
   simp [expandedInput]
 
+/-- Pushing the raw input symbol at index `N + 2 + k`, with blank padding beyond the input, into
+the window at `k` gives the window at `k + 1`. -/
 theorem expandWindow_push (N : ℕ) (raw : List Bool) (k : ℕ) :
     expandQueuePush (expandWindow N raw k) ((raw.map some).getD (N + 2 + k) none) =
       expandWindow N raw (k + 1) := by
@@ -4182,6 +4723,7 @@ theorem expandWindow_push (N : ℕ) (raw : List Bool) (k : ℕ) :
     congr 1
     omega
 
+/-- When `k < raw.length`, the first symbol of the expansion window at `k` is `some raw[k]`. -/
 theorem expandWindow_zero (N : ℕ) (raw : List Bool) (k : ℕ) (hk : k < raw.length) :
     expandWindow N raw k 0 = some raw[k] := by
   unfold expandWindow
@@ -4189,6 +4731,7 @@ theorem expandWindow_zero (N : ℕ) (raw : List Bool) (k : ℕ) (hk : k < raw.le
   rw [List.getD_eq_getElem _ _ (by simpa using! hk)]
   simp
 
+/-- The expansion window at the end of the raw input contains only blank symbols. -/
 theorem expandWindow_end (N : ℕ) (raw : List Bool) :
     ∀ i, expandWindow N raw raw.length i = none := by
   intro i
@@ -4196,6 +4739,8 @@ theorem expandWindow_end (N : ℕ) (raw : List Bool) :
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by simp)]
   rfl
 
+/-- The shifting tape's head at progress `k` reads the raw symbol at index `N + 2 + k`,
+interpreted as blank when that index is beyond the input. -/
 theorem expandShiftTape_head (N : ℕ) (pre : List (Option Bool)) (raw : List Bool) (k : ℕ) :
     (expandShiftTape N pre raw k).head = (raw.map some).getD (N + 2 + k) none := by
   change (((raw.map some).drop (N + 2 + k)).headI) = _
@@ -4203,9 +4748,13 @@ theorem expandShiftTape_head (N : ℕ) (pre : List (Option Bool)) (raw : List Bo
   rw [h, List.headD_eq_getD, List.getD_eq_getElem?_getD, List.getElem?_drop, Nat.add_zero,
     List.getD_eq_getElem?_getD]
 
+/-- Writing `b` at the head of `Tape.mk' L R` and moving right yields left list `L.cons b` and
+right list `R.tail`. -/
 theorem tape_write_move_right {Γ : Type*} [Inhabited Γ] (b : Γ) (L R : Turing.ListBlank Γ) :
     ((Turing.Tape.mk' L R).write b).move .right = Turing.Tape.mk' (L.cons b) R.tail := rfl
 
+/-- While `k < raw.length`, writing the first symbol of the expansion window and moving right
+advances the shifting tape from progress `k` to `k + 1`. -/
 theorem expandShiftTape_write_move (N : ℕ) (pre : List (Option Bool)) (raw : List Bool) (k : ℕ)
     (hk : k < raw.length) :
     ((expandShiftTape N pre raw k).write (expandWindow N raw k 0)).move .right =
@@ -4217,6 +4766,8 @@ theorem expandShiftTape_write_move (N : ℕ) (pre : List (Option Bool)) (raw : L
     expandWindow_zero N raw k hk, List.getElem_map]
   congr 2
 
+/-- Before the raw input ends, two expansion machine steps advance the shifting configuration
+from index `k` to `k + 1`. -/
 theorem expandShift_two_steps (N : ℕ) (first : Bool) (pre : List (Option Bool))
     (raw : List Bool) (k : ℕ) (hk : k < raw.length) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) 2 (expandShiftCfg N first pre raw k) =
@@ -4247,6 +4798,8 @@ theorem expandShift_two_steps (N : ℕ) (first : Bool) (pre : List (Option Bool)
     rfl
   exact hm
 
+/-- If `k + fuel = raw.length`, running `2 * fuel` steps from the shifting configuration at `k`
+reaches the shifting configuration at the end of the raw input. -/
 theorem expandShift_run_to_end (N : ℕ) (first : Bool) (pre : List (Option Bool))
     (raw : List Bool) (fuel k : ℕ) (hk : k + fuel = raw.length) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (2 * fuel) (expandShiftCfg N first pre raw k) =
@@ -4262,6 +4815,8 @@ theorem expandShift_run_to_end (N : ℕ) (first : Bool) (pre : List (Option Bool
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, expandShift_two_steps N first pre raw k hlt]
     exact ih (k + 1) (by omega)
 
+/-- At the end of shifting, the tape has left list `(raw.map some).reverse ++ pre.reverse` and a
+blank right list. -/
 theorem expandShift_end_tape (N : ℕ) (pre : List (Option Bool)) (raw : List Bool) :
     expandShiftTape N pre raw raw.length =
       Turing.Tape.mk' (Turing.ListBlank.mk ((raw.map some).reverse ++ pre.reverse))
@@ -4269,6 +4824,8 @@ theorem expandShift_end_tape (N : ℕ) (pre : List (Option Bool)) (raw : List Bo
   unfold expandShiftTape
   rw [List.take_of_length_le (by simp), List.drop_eq_nil_of_le (by simp)]
 
+/-- From the shifting configuration at the end of the raw input, one expansion step enters phase
+five with index zero, preserves the first flag and final window, and moves the head left. -/
 theorem expandShift_stop_step (N : ℕ) (first : Bool) (pre : List (Option Bool)) (raw : List Bool) :
     Turing.TM0.step (expandInputTable N) (expandShiftCfg N first pre raw raw.length) =
       some ⟨(5, first, 0, expandWindow N raw raw.length),
@@ -4278,15 +4835,23 @@ theorem expandShift_stop_step (N : ℕ) (first : Bool) (pre : List (Option Bool)
     rfl
   simp [TM0_step_apply, expandShiftCfg, expandInputTable, expandWindow_end, hh, TM0StmtApply]
 
+/-- An input cell containing `b` with blank work tracks and no home marker encodes as `some b`
+followed by `N + 2` blanks. -/
 theorem bitBlock_input (N : ℕ) (b : Bool) :
     bitBlock N (some b, fun _ => none, false) = some b :: List.replicate (N + 2) none := by
   change some b :: (List.ofFn (fun _ : Fin N => (none : Option Bool)) ++ List.replicate 2 none) = _
   rw [List.ofFn_const, ← List.replicate_add]
 
+/-- Concatenating the bit block encodings of the initial multitrack input cells gives exactly
+`expandedInput N input`. -/
 theorem tracksInput_bitBlocks (N : ℕ) (input : List Bool) :
     (tracksInput N input).flatMap (bitBlock N) = expandedInput N input := by
   simp [tracksInput, expandedInput, List.flatMap_map, bitBlock_input]
 
+/-- Scanning left in phase five across `leftData` and stepping right from the separating blank
+takes `leftData.length + 1` steps, entering phase six with the first flag cleared and the
+queue unchanged. The final tape has left list `none :: preRev` and right list
+`leftData.reverse.map some` prepended to `R`. -/
 theorem expandBack_run (N : ℕ) (first : Bool) (fifo : ExpandQueue N)
     (leftData : List Bool) (preRev : List (Option Bool)) (R : Turing.ListBlank (Option Bool)) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (leftData.length + 1)
@@ -4318,23 +4883,32 @@ theorem expandBack_run (N : ℕ) (first : Bool) (fifo : ExpandQueue N)
     simpa only [Option.bind_some, List.reverse_cons, List.map_append, List.map_cons, List.map_nil,
       Turing.ListBlank.append_assoc, Turing.ListBlank.append] using! ih (R.cons (some b))
 
+/-- The list of slots inserted during expansion has length `N + 2`, for either value of the
+first flag. -/
 theorem insertSlots_length (N : ℕ) (first : Bool) : (insertSlots N first).length = N + 2 := by
   simp [insertSlots]
 
+/-- At any index `i < N + 2`, the inserted slot is `some true` exactly when the first flag is
+true and `i = N`; all other inserted slots are blank. -/
 theorem insertSlots_getElem (N : ℕ) (first : Bool) (i : ℕ) (hi : i < N + 2) :
     (insertSlots N first)[i]'(by simpa only [insertSlots_length] using! hi) =
       if first && decide (i = N) then some true else none := by
   unfold insertSlots
   rw [List.getElem_ofFn]
 
+/-- Before any gathering steps, the expansion capture queue is entirely blank. -/
 theorem expandCapture_zero (N : ℕ) (raw : List Bool) : expandCapture N raw 0 = fun _ => none := by
   funext j
   simp [expandCapture]
 
+/-- After capturing `N + 2` symbols, the capture queue equals the initial expansion window of
+the raw input. -/
 theorem expandCapture_end (N : ℕ) (raw : List Bool) : expandCapture N raw (N + 2) = expandWindow N raw 0 := by
   funext j
   simp [expandCapture, expandWindow]
 
+/-- For `i < N + 2`, updating capture position `i` with the raw input's symbol there, or blank
+beyond its length, advances the capture queue from progress `i` to `i + 1`. -/
 theorem expandCapture_update (N : ℕ) (raw : List Bool) (i : ℕ) (hi : i < N + 2) :
     Function.update (expandCapture N raw i) (⟨i, hi⟩ : Fin (N + 2)) ((raw.map some).getD i none) =
       expandCapture N raw (i + 1) := by
@@ -4348,6 +4922,8 @@ theorem expandCapture_update (N : ℕ) (raw : List Bool) (i : ℕ) (hi : i < N +
     have he : (j.val < i + 1) ↔ j.val < i := by omega
     simp only [expandCapture, he]
 
+/-- At gathering progress `i`, the tape head contains the raw input symbol at index `i`, padded
+by blank beyond the input length. -/
 theorem expandGatherTape_head (N : ℕ) (first : Bool) (pre : List (Option Bool)) (raw : List Bool) (i : ℕ) :
     (expandGatherTape N first pre raw i).head = (raw.map some).getD i none := by
   change (((raw.map some).drop i).headI) = _
@@ -4355,6 +4931,9 @@ theorem expandGatherTape_head (N : ℕ) (first : Bool) (pre : List (Option Bool)
   rw [h, List.headD_eq_getD, List.getD_eq_getElem?_getD, List.getElem?_drop, Nat.add_zero,
     List.getD_eq_getElem?_getD]
 
+/-- For `i < N + 2`, writing the designated inserted slot and moving right advances the
+gathering tape to progress `i + 1`. The slot is `some true` only when the first flag is true
+and `i = N`, and is blank otherwise. -/
 theorem expandGatherTape_write_move (N : ℕ) (first : Bool) (pre : List (Option Bool))
     (raw : List Bool) (i : ℕ) (hi : i < N + 2) :
     ((expandGatherTape N first pre raw i).write
@@ -4367,6 +4946,8 @@ theorem expandGatherTape_write_move (N : ℕ) (first : Bool) (pre : List (Option
       insertSlots_getElem N first i hi]
   rfl
 
+/-- At any gathering index below `N + 2`, two expansion machine steps advance the gathering
+configuration by one index. -/
 theorem expandGather_two_steps (N : ℕ) (first : Bool) (pre : List (Option Bool)) (raw : List Bool)
     (i : Fin (N + 3)) (hi : i.val < N + 2) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) 2 (expandGatherCfg N first pre raw i) =
@@ -4393,6 +4974,8 @@ theorem expandGather_two_steps (N : ℕ) (first : Bool) (pre : List (Option Bool
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
   exact hm
 
+/-- The gathering configuration at index `N + 2` is the initial shifting configuration with
+`insertSlots N first` appended to the processed prefix. -/
 theorem expandGather_end_cfg (N : ℕ) (first : Bool) (pre : List (Option Bool)) (raw : List Bool) :
     expandGatherCfg N first pre raw ⟨N + 2, by omega⟩ =
       expandShiftCfg N first (pre ++ insertSlots N first) raw 0 := by
@@ -4402,6 +4985,8 @@ theorem expandGather_end_cfg (N : ℕ) (first : Bool) (pre : List (Option Bool))
   simp [expandGatherCfg, expandGatherTape, expandShiftCfg, expandShiftTape, expandCapture_end,
     ht, List.reverse_append]
 
+/-- If `i.val + fuel = N + 2`, running `2 * fuel` steps from gathering index `i` reaches the
+initial shifting configuration with all `N + 2` inserted slots appended to the prefix. -/
 theorem expandGather_run_to_end (N : ℕ) (first : Bool) (pre : List (Option Bool)) (raw : List Bool)
     (fuel : ℕ) (i : Fin (N + 3)) (hi : i.val + fuel = N + 2) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (2 * fuel) (expandGatherCfg N first pre raw i) =
@@ -4420,6 +5005,7 @@ theorem expandGather_run_to_end (N : ℕ) (first : Bool) (pre : List (Option Boo
     change i.val + 1 + fuel = N + 2
     omega
 
+/-- The insertion slots consist of their first `N + 1` symbols followed by one blank separator. -/
 theorem insertSlots_separator (N : ℕ) (first : Bool) :
     insertSlots N first = (insertSlots N first).take (N + 1) ++ [none] := by
   have hlt : N + 1 < (insertSlots N first).length := by rw [insertSlots_length]; omega
@@ -4429,6 +5015,8 @@ theorem insertSlots_separator (N : ℕ) (first : Bool) :
   rw [← hlast, ← List.take_succ_eq_append_getElem hlt]
   exact (List.take_of_length_le (by rw [insertSlots_length])).symm
 
+/-- Starting from shift counter zero with prefix `preBody ++ [none]`, the expansion machine
+reaches the corresponding check configuration in exactly `3 * raw.length + 2` steps. -/
 theorem expandShift_back_run (N : ℕ) (first : Bool) (preBody : List (Option Bool)) (raw : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (3 * raw.length + 2)
       (expandShiftCfg N first (preBody ++ [none]) raw 0) =
@@ -4456,6 +5044,9 @@ theorem expandShift_back_run (N : ℕ) (first : Bool) (preBody : List (Option Bo
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, expandShift_stop_step]
   simpa only [Option.bind_some, List.length_reverse] using! hb
 
+/-- Starting from gather counter zero, inserting the slots after `pre` and returning to the
+check configuration takes exactly `2 * (N + 2) + (3 * raw.length + 2)` steps. The remaining
+raw input is unchanged. -/
 theorem expandInsert_from_gather (N : ℕ) (first : Bool) (pre : List (Option Bool)) (raw : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (2 * (N + 2) + (3 * raw.length + 2))
       (expandGatherCfg N first pre raw 0) = some (expandCheckCfg N (pre ++ insertSlots N first) raw) := by
@@ -4470,9 +5061,13 @@ theorem expandInsert_from_gather (N : ℕ) (first : Bool) (pre : List (Option Bo
   rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, hg]
   exact hb
 
+/-- Without the first-block marker, the insertion slots are exactly `N + 2` blanks. -/
 theorem insertSlots_false (N : ℕ) : insertSlots N false = List.replicate (N + 2) none := by
   simp [insertSlots, List.replicate_succ]
 
+/-- Processing the next raw bit `b` appends `some b` and `N + 2` blanks to the processed prefix,
+leaving `raw` unprocessed. This reaches the next check configuration in exactly `2 * (N + 2)
++ 3 * raw.length + 3` steps. -/
 theorem expandProcess_one (N : ℕ) (pre : List (Option Bool)) (b : Bool) (raw : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (2 * (N + 2) + 3 * raw.length + 3)
       (expandCheckCfg N pre (b :: raw)) =
@@ -4487,6 +5082,9 @@ theorem expandProcess_one (N : ℕ) (pre : List (Option Bool)) (b : Bool) (raw :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
   simpa only [Option.bind_some, List.append_assoc, List.singleton_append] using! hg
 
+/-- From a check configuration with processed prefix `pre`, processing all of `raw` takes
+`expandProcessTime N raw.length` steps and appends `expandedInput N raw` to that prefix,
+with no raw bits remaining. -/
 theorem expandProcess_all (N : ℕ) (raw : List Bool) (pre : List (Option Bool)) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (expandProcessTime N raw.length)
       (expandCheckCfg N pre raw) = some (expandCheckCfg N (pre ++ expandedInput N raw) []) := by
@@ -4500,6 +5098,7 @@ theorem expandProcess_all (N : ℕ) (raw : List Bool) (pre : List (Option Bool))
     simpa only [Option.bind_some, expandedInput, List.flatMap_cons, List.append_assoc] using!
       ih (pre ++ some b :: List.replicate (N + 2) none)
 
+/-- The exact processing time satisfies `2 * expandProcessTime N n = n * (4 * N + 11 + 3 * n)`. -/
 theorem expandProcessTime_exact (N n : ℕ) :
     2 * expandProcessTime N n = n * (4 * N + 11 + 3 * n) := by
   induction n with
@@ -4508,6 +5107,8 @@ theorem expandProcessTime_exact (N n : ℕ) :
     simp only [expandProcessTime]
     nlinarith
 
+/-- On nonempty raw input `b :: raw`, the first expansion step enters gather counter zero with
+processed prefix `[some b]` and the first-block marker enabled. -/
 theorem expandRaw_first_step (N : ℕ) (b : Bool) (raw : List Bool) :
     Turing.TM0.step (expandInputTable N) (Turing.TM0.init ((b :: raw).map some)) =
       some (expandGatherCfg N true [some b] raw 0) := by
@@ -4515,6 +5116,9 @@ theorem expandRaw_first_step (N : ℕ) (b : Bool) (raw : List Bool) :
   simp [TM0_step_apply, Turing.TM0.init, expandInputTable, expandGatherCfg, expandGatherTape,
     expandCapture_zero, TM0StmtApply, Turing.Tape.mk₁, Turing.Tape.mk₂, hz, Turing.Tape.move_right_mk']
 
+/-- On nonempty raw input `b :: raw`, the expansion machine reaches the check configuration
+containing `markedExpandedInput N b raw` and no remaining raw bits after `expandProcessTime
+N (b :: raw).length` steps. -/
 theorem expandRaw_processed (N : ℕ) (b : Bool) (raw : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (expandProcessTime N (b :: raw).length)
       (Turing.TM0.init ((b :: raw).map some)) =
@@ -4531,18 +5135,24 @@ theorem expandRaw_processed (N : ℕ) (b : Bool) (raw : List Bool) :
   rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, hg]
   simpa only [Option.bind_some, markedExpandedInput, List.singleton_append] using! hp
 
+/-- The expansion machine halts immediately on the empty initial tape. -/
 theorem expandRaw_empty (N : ℕ) :
     Turing.TM0.step (expandInputTable N) (Turing.TM0.init []) = none := by
   rfl
 
+/-- The expansion queue consisting entirely of blanks has label zero. -/
 theorem expandQueueLabels_zero (N : ℕ) : expandQueueLabels N (fun _ => none) = 0 := by
   apply Fin.ext
   simp [expandQueueLabels, optionBoolFin, symbolIndex]
 
+/-- The expansion state with phase zero, false marker flag, zero counter, and blank queue has
+label zero. -/
 theorem expandLabels_zero (N : ℕ) : expandLabels N (0, false, 0, fun _ => none) = 0 := by
   apply Fin.ext
   simp [expandLabels, expandQueueLabels_zero, finProdFinEquiv, Equiv.prodCongr, finTwoEquiv]
 
+/-- Relabeling the expansion machine by finite numeric states preserves its output, coin-read
+count, and transition count on every input and coin list, using the constant false readout. -/
 theorem nativeExpand_run (N : ℕ) (input : List (Option Bool)) (coins : List Bool) :
     coinTapeRun (fun _ => nativeExpandTable N) (fun _ => false) input coins =
       coinTapeRun (fun _ => expandInputTable N) (fun _ => false) input coins ∧
@@ -4552,6 +5162,8 @@ theorem nativeExpand_run (N : ℕ) (input : List (Option Bool)) (coins : List Bo
     simpa only [Fin.default_eq_zero] using! expandLabels_zero N
   exact relabel_run (expandLabels N) hz (fun _ => expandInputTable N) (fun _ => false) coins input
 
+/-- Decoding `expandCode N` preserves the output, coin-read count, and transition count of the
+expansion machine with constant false readout on every input and coin list. -/
 theorem expandCode_run (N : ℕ) (input : List (Option Bool)) (coins : List Bool) :
     coinTapeRun (table (expandCode N)) (readout (expandCode N)) input coins =
       coinTapeRun (fun _ => expandInputTable N) (fun _ => false) input coins ∧
@@ -4562,6 +5174,9 @@ theorem expandCode_run (N : ℕ) (input : List (Option Bool)) (coins : List Bool
       (fun _ => false) input coins
   exact ⟨h.1.trans (nativeExpand_run N input coins).1, h.2.trans (nativeExpand_run N input coins).2⟩
 
+/-- The numeric-state expansion machine processes nonempty raw input in `expandProcessTime N (b
+:: raw).length` steps, reaching the relabeled check configuration with the marked expanded
+input and no unprocessed bits. -/
 theorem nativeExpand_raw_processed (N : ℕ) (b : Bool) (raw : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (nativeExpandTable N) (expandProcessTime N (b :: raw).length)
       (Turing.TM0.init ((b :: raw).map some)) =
@@ -4584,6 +5199,8 @@ theorem nativeExpand_raw_processed (N : ℕ) (b : Bool) (raw : List Bool) :
   rw [hi] at h
   exact h
 
+/-- For `0 < n < N + 3`, expansion phase 9 with counter `n` moves left exactly `n` cells in `n`
+steps and enters phase 8 with counter zero, preserving the queue. -/
 theorem expandJump_run (N : ℕ) (n : ℕ) (hn : 0 < n) (hb : n < N + 3)
     (fifo : ExpandQueue N) (T : Turing.Tape (Option Bool)) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) n ⟨(9, false, ⟨n, hb⟩, fifo), T⟩ =
@@ -4605,6 +5222,8 @@ theorem expandJump_run (N : ℕ) (n : ℕ) (hn : 0 < n) (hb : n < N + 3)
         Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
       simpa only [Option.bind_some, Function.iterate_succ_apply] using! ht
 
+/-- For `0 < n < N + 3`, expansion phase 10 with counter `n` moves left exactly `n` cells in `n`
+steps and enters phase 11 with counter zero, preserving the queue. -/
 theorem expandOrigin_run (N : ℕ) (n : ℕ) (hn : 0 < n) (hb : n < N + 3)
     (fifo : ExpandQueue N) (T : Turing.Tape (Option Bool)) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) n ⟨(10, false, ⟨n, hb⟩, fifo), T⟩ =
@@ -4626,6 +5245,8 @@ theorem expandOrigin_run (N : ℕ) (n : ℕ) (hn : 0 < n) (hb : n < N + 3)
         Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
       simpa only [Option.bind_some, Function.iterate_succ_apply] using! ht
 
+/-- Moving right across the finite prefix `l` of a tape transfers `l.reverse` to its left half
+and leaves the original right remainder under the head after exactly `l.length` moves. -/
 theorem tape_right_append {Γ : Type*} [Inhabited Γ] (l : List Γ) (L R : Turing.ListBlank Γ) :
     (Turing.Tape.move .right)^[l.length] (Turing.Tape.mk' L (Turing.ListBlank.append l R)) =
       Turing.Tape.mk' (Turing.ListBlank.append l.reverse L) R := by
@@ -4636,6 +5257,7 @@ theorem tape_right_append {Γ : Type*} [Inhabited Γ] (l : List Γ) (L R : Turin
       Turing.Tape.move_right_mk', Turing.ListBlank.head_cons, Turing.ListBlank.tail_cons,
       List.reverse_cons, Turing.ListBlank.append_assoc] using! ih (L.cons b)
 
+/-- Moving a tape right `n` times and then left `n` times restores the original tape. -/
 theorem tape_left_right_iterate {Γ : Type*} [Inhabited Γ] (n : ℕ) (T : Turing.Tape Γ) :
     (Turing.Tape.move .left)^[n] ((Turing.Tape.move .right)^[n] T) = T := by
   induction n generalizing T with
@@ -4644,12 +5266,15 @@ theorem tape_left_right_iterate {Γ : Type*} [Inhabited Γ] (n : ℕ) (T : Turin
     rw [Function.iterate_succ_apply, Function.iterate_succ_apply', Turing.Tape.move_right_left]
     exact ih T
 
+/-- Moving left `d` times from `tapeAt l (n + d)` gives `tapeAt l n`. -/
 theorem tapeAt_back (l : List (Option Bool)) (n d : ℕ) :
     (Turing.Tape.move .left)^[d] (tapeAt l (n + d)) = tapeAt l n := by
   unfold tapeAt
   rw [Nat.add_comm n d, Function.iterate_add_apply]
   exact tape_left_right_iterate d _
 
+/-- The symbol under the head of `tapeAt l n` is the `n`th list entry, with blank as the
+out-of-range default. -/
 theorem tapeAt_head (l : List (Option Bool)) (n : ℕ) : (tapeAt l n).head = l.getD n none := by
   unfold tapeAt
   rw [Turing.Tape.move_right_n_head]
@@ -4659,6 +5284,8 @@ theorem tapeAt_head (l : List (Option Bool)) (n : ℕ) : (tapeAt l n).head = l.g
   simp only [Int.toNat_natCast, List.getI_eq_getElem?_getD, List.getD_eq_getElem?_getD]
   rfl
 
+/-- At position `left.length` in `left ++ right`, the tape has left half `left.reverse` and
+right half `right`. -/
 theorem tapeAt_append (left right : List (Option Bool)) :
     tapeAt (left ++ right) left.length =
       Turing.Tape.mk' (Turing.ListBlank.mk left.reverse) (Turing.ListBlank.mk right) := by
@@ -4666,10 +5293,13 @@ theorem tapeAt_append (left right : List (Option Bool)) :
   simpa only [Turing.ListBlank.append_mk, List.append_nil, Turing.Tape.mk₁, Turing.Tape.mk₂] using!
       h
 
+/-- At the end of a finite tape list `l`, the left half is represented by `l.reverse` and the
+right half is blank. -/
 theorem tapeAt_end (l : List (Option Bool)) :
     tapeAt l l.length = Turing.Tape.mk' (Turing.ListBlank.mk l.reverse) (Turing.ListBlank.mk []) := by
   simpa only [List.append_nil] using! tapeAt_append l []
 
+/-- The first `N` symbols of the marked insertion slots are blank. -/
 theorem insertSlots_true_prefix (N : ℕ) :
     (insertSlots N true).take N = List.replicate N none := by
   apply List.ext_getElem
@@ -4680,6 +5310,8 @@ theorem insertSlots_true_prefix (N : ℕ) :
     rw [insertSlots_getElem N true i (by omega)]
     simp [show i ≠ N by omega]
 
+/-- The marked insertion slots are exactly `N` blanks followed by `some true` and a blank
+separator. -/
 theorem insertSlots_true (N : ℕ) :
     insertSlots N true = List.replicate N none ++ [some true, none] := by
   have hn : N < (insertSlots N true).length := by rw [insertSlots_length]; omega
@@ -4691,6 +5323,8 @@ theorem insertSlots_true (N : ℕ) :
   rw [hp] at hs
   simpa only [List.append_assoc, List.singleton_append] using! hs
 
+/-- Every home position `j * (N + 3) + (N + 1)` of the unmarked expanded input is blank,
+including positions beyond the list under blank-default lookup. -/
 theorem expandedInput_home (N : ℕ) (raw : List Bool) (j : ℕ) :
     (expandedInput N raw).getD (j * (N + 3) + (N + 1)) none = none := by
   induction raw generalizing j with
@@ -4712,6 +5346,8 @@ theorem expandedInput_home (N : ℕ) (raw : List Bool) (j : ℕ) :
       rw [hn]
       exact ih j
 
+/-- At home position `j * (N + 3) + (N + 1)`, the marked expanded input contains `some true`
+exactly when `j = 0`, and blank otherwise. -/
 theorem markedExpandedInput_home (N : ℕ) (b : Bool) (raw : List Bool) (j : ℕ) :
     (markedExpandedInput N b raw).getD (j * (N + 3) + (N + 1)) none =
       if j = 0 then some true else none := by
@@ -4733,14 +5369,20 @@ theorem markedExpandedInput_home (N : ℕ) (b : Bool) (raw : List Bool) (j : ℕ
     rw [hn, expandedInput_home]
     simp
 
+/-- The marked expanded input starts with `some b`, `N` blanks, a true marker, and a blank
+separator, followed by `expandedInput N raw`. -/
 theorem markedExpandedInput_layout (N : ℕ) (b : Bool) (raw : List Bool) :
     markedExpandedInput N b raw = (some b :: List.replicate N none) ++ some true :: none :: expandedInput N raw := by
   simp [markedExpandedInput, insertSlots_true, List.append_assoc]
 
+/-- The expanded input for `b :: raw` starts with `some b` and `N + 2` blanks, followed by
+`expandedInput N raw`. -/
 theorem expandedInput_layout (N : ℕ) (b : Bool) (raw : List Bool) :
     expandedInput N (b :: raw) = (some b :: List.replicate N none) ++ none :: none :: expandedInput N raw := by
   simp [expandedInput, List.replicate_add, List.append_assoc]
 
+/-- Writing blank at position `N + 1` of the marked expanded input produces the unmarked
+expanded tape at the same head position. -/
 theorem expandedInput_clear_marker (N : ℕ) (b : Bool) (raw : List Bool) :
     (tapeAt (markedExpandedInput N b raw) (N + 1)).write none =
       tapeAt (expandedInput N (b :: raw)) (N + 1) := by
@@ -4759,6 +5401,9 @@ theorem expandedInput_clear_marker (N : ℕ) (b : Bool) (raw : List Bool) :
   rw [hm, hc]
   rfl
 
+/-- From phase 8 at the first marker position `N + 1`, the expansion machine clears the marker
+and returns to the origin of the unmarked expanded tape in `N + 2` steps. It ends in phase
+11 with the queue preserved. -/
 theorem expandClear_origin_run (N : ℕ) (b : Bool) (raw : List Bool) (fifo : ExpandQueue N) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (N + 2)
       ⟨(8, false, 0, fifo), tapeAt (markedExpandedInput N b raw) (N + 1)⟩ =
@@ -4784,6 +5429,8 @@ theorem expandClear_origin_run (N : ℕ) (b : Bool) (raw : List Bool) (fifo : Ex
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
   simpa only [Option.bind_some, expandedInput_clear_marker] using! ho
 
+/-- From the home position of block `j + 1`, phase 8 reaches the home position of block `j` in
+exactly `N + 3` steps, preserving the marked tape, phase, and queue. -/
 theorem expandHome_previous (N : ℕ) (b : Bool) (raw : List Bool) (j : ℕ) (fifo : ExpandQueue N) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (N + 3)
       ⟨(8, false, 0, fifo), tapeAt (markedExpandedInput N b raw) ((j + 1) * (N + 3) + (N + 1))⟩ =
@@ -4810,6 +5457,9 @@ theorem expandHome_previous (N : ℕ) (b : Bool) (raw : List Bool) (j : ℕ) (fi
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hs]
   exact hj
 
+/-- Starting in phase 8 at block `j`'s home position, the machine finds and clears the first
+marker and returns to the unmarked expanded tape's origin in `j * (N + 3) + (N + 2)` steps,
+ending in phase 11 with the queue preserved. -/
 theorem expandHome_scan (N : ℕ) (b : Bool) (raw : List Bool) (j : ℕ) (fifo : ExpandQueue N) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (j * (N + 3) + (N + 2))
       ⟨(8, false, 0, fifo), tapeAt (markedExpandedInput N b raw) (j * (N + 3) + (N + 1))⟩ =
@@ -4821,12 +5471,16 @@ theorem expandHome_scan (N : ℕ) (b : Bool) (raw : List Bool) (j : ℕ) (fifo :
     rw [Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, expandHome_previous]
     exact ih
 
+/-- The marked expanded input for `b :: raw` has length `(raw.length + 1) * (N + 3)`. -/
 theorem markedExpandedInput_length (N : ℕ) (b : Bool) (raw : List Bool) :
     (markedExpandedInput N b raw).length = (raw.length + 1) * (N + 3) := by
   simp only [markedExpandedInput, List.length_append, List.length_cons, insertSlots_length,
       expandedInput_length]
   ring
 
+/-- After all nonempty raw input has been processed, returning from the check configuration
+takes `(raw.length + 1) * (N + 3) + 1` steps. The resulting configuration is phase 11 at the
+unmarked expanded tape's origin with a blank queue. -/
 theorem expandRaw_return (N : ℕ) (b : Bool) (raw : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) ((raw.length + 1) * (N + 3) + 1)
       (expandCheckCfg N (markedExpandedInput N b raw) []) =
@@ -4862,6 +5516,8 @@ theorem expandRaw_return (N : ℕ) (b : Bool) (raw : List Bool) :
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one, hm]
   simpa only [Option.bind_some, hback] using! hscan
 
+/-- On any raw Boolean input, the expansion machine reaches a halting configuration at the
+origin of `expandedInput N input` after exactly `expandTime N input.length` steps. -/
 theorem expandRaw_run (N : ℕ) (input : List Bool) :
     ∃ q : ExpandState N,
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (expandInputTable N) (expandTime N input.length)
@@ -4883,12 +5539,16 @@ theorem expandRaw_run (N : ℕ) (input : List Bool) :
       exact hr
     · simp [TM0_step_apply, expandInputTable]
 
+/-- For nonempty input of length `n + 1`, the exact expansion time satisfies `2 * expandTime N
+(n + 1) = (n + 1) * (6 * N + 17 + 3 * (n + 1)) + 2`. -/
 theorem expandTime_exact (N n : ℕ) :
     2 * expandTime N (n + 1) = (n + 1) * (6 * N + 17 + 3 * (n + 1)) + 2 := by
   have h := expandProcessTime_exact N (n + 1)
   simp only [expandTime]
   nlinarith
 
+/-- Expansion time is bounded by `(3 * N + 13) * n ^ 2 + (3 * N + 13)` for every input length
+`n`. -/
 theorem expandTime_poly_bound (N n : ℕ) :
     expandTime N n ≤ (3 * N + 13) * n ^ 2 + (3 * N + 13) := by
   cases n with
@@ -4899,6 +5559,9 @@ theorem expandTime_poly_bound (N n : ℕ) :
     have hm := Nat.mul_le_mul_left (6 * N + 17) hn
     nlinarith [Nat.zero_le ((n + 1) ^ 2)]
 
+/-- Given at least `expandTime N input.length` coins, the expansion machine with constant false
+readout returns `some false`. Its coin-read and transition counts are both exactly
+`expandTime N input.length`. -/
 theorem expandRaw_coin_run (N : ℕ) (input : List Bool) (coins : List Bool)
     (hlen : expandTime N input.length ≤ coins.length) :
     coinTapeRun (fun _ => expandInputTable N) (fun _ => false) (input.map some) coins =
@@ -4909,6 +5572,8 @@ theorem expandRaw_coin_run (N : ℕ) (input : List Bool) (coins : List Bool)
   exact runFrom_coin_constant (expandInputTable N) (fun _ => false) (expandTime N input.length)
     (Turing.TM0.init (input.map some)) ⟨q, Turing.Tape.mk₁ (expandedInput N input)⟩ coins hr hh hlen
 
+/-- Given at least `expandTime N input.length` coins, `expandCode N` returns `some false` with
+coin-read and transition counts both exactly `expandTime N input.length`. -/
 theorem expandCode_coin_run (N : ℕ) (input : List Bool) (coins : List Bool)
     (hlen : expandTime N input.length ≤ coins.length) :
     coinTapeRun (table (expandCode N)) (readout (expandCode N)) (input.map some) coins =
@@ -4919,6 +5584,9 @@ theorem expandCode_coin_run (N : ℕ) (input : List Bool) (coins : List Bool)
   have hr := expandRaw_coin_run N input coins hlen
   exact ⟨h.1.trans hr.1, h.2.trans hr.2⟩
 
+/-- For each `N`, a positive coefficient `c` gives budget `B = c * input.length ^ 2 + c` on
+every input. Every length-`B` coin word makes `expandCode N` return `some false` after
+exactly `expandTime N input.length` coin reads, with at most `B` transitions. -/
 theorem expandCode_polynomial (N : ℕ) :
     ∃ c : ℕ, 0 < c ∧ ∀ input : List Bool,
       let B := c * input.length ^ 2 + c
@@ -4934,6 +5602,9 @@ theorem expandCode_polynomial (N : ℕ) :
   have h := expandCode_coin_run N input (List.ofFn w) (by simpa using! hb)
   exact ⟨h.1, h.2.le.trans hb⟩
 
+/-- The numeric-state expansion machine reaches a halting configuration at the origin of
+`expandedInput N input` after exactly `expandTime N input.length` steps on any raw Boolean
+input. -/
 theorem nativeExpand_full_run (N : ℕ) (input : List Bool) :
     ∃ q : Fin (expandControlMax N + 1),
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (nativeExpandTable N) (expandTime N input.length)
@@ -4960,6 +5631,8 @@ theorem nativeExpand_full_run (N : ℕ) (input : List Bool) :
   rw [hh] at hs
   exact ⟨expandLabels N q, h, hs⟩
 
+/-- The false-coin transition table decoded from `expandCode N` reaches a halting configuration
+at the origin of `expandedInput N input` after exactly `expandTime N input.length` steps. -/
 theorem expandCode_full_run (N : ℕ) (input : List Bool) :
     ∃ q : Fin (controlSize (expandCode N) + 1),
       Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (table (expandCode N) false) (expandTime N input.length)
@@ -4967,12 +5640,17 @@ theorem expandCode_full_run (N : ℕ) (input : List Bool) :
       Turing.TM0.step (table (expandCode N) false) ⟨q, Turing.Tape.mk₁ (expandedInput N input)⟩ = none := by
   simpa only [expandCode, table_encode] using! nativeExpand_full_run N input
 
+/-- The two coin branches of `expandCode N` have identical halting conditions at every state and
+tape symbol. -/
 theorem expandCode_commonHalt (N : ℕ) : commonHalt (expandCode N) := by
   unfold commonHalt
   simp only [expandCode, table_encode]
   intro q s
   exact True.intro
 
+/-- With at least `expandTime N input.length` coins, the configuration run of `expandCode N`
+stops at the origin of the expanded tape. Its coin-read and transition counts are both
+exactly `expandTime N input.length`. -/
 theorem expandCode_stopped (N : ℕ) (input : List Bool) (coins : List Bool)
     (hlen : expandTime N input.length ≤ coins.length) :
     ∃ q : Fin (controlSize (expandCode N) + 1),
@@ -4984,6 +5662,10 @@ theorem expandCode_stopped (N : ℕ) (input : List Bool) (coins : List Bool)
     (Turing.TM0.init (input.map some)) ⟨q, Turing.Tape.mk₁ (expandedInput N input)⟩ coins hr hh hlen
   simpa only [expandCode, table_encode] using! Exists.intro q h
 
+/-- Sequencing `expandCode N` before `M` uses an arbitrary prefix of `expandTime N input.length`
+coins and one switch coin, then runs `M` from its default state on the expanded input with
+`tail`. The stopped configuration is embedded into the right summand, and both counts
+increase by `expandTime N input.length + 1`. -/
 theorem expandCode_then_coin_source {Λ : Type*} [Inhabited Λ]
     (N : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (input : List Bool)
     (front : Fin (expandTime N input.length) → Bool) (switch : Bool) (tail : List Bool) :
@@ -4999,6 +5681,10 @@ theorem expandCode_then_coin_source {Λ : Type*} [Inhabited Λ]
     ⟨q, Turing.Tape.mk₁ (expandedInput N input)⟩ hs (by simpa only [List.length_ofFn] using! hr)
   simpa only [List.length_ofFn] using! h
 
+/-- For any real-valued configuration observable `g` on `M`, sequencing expansion before `M`
+preserves its fair value after adding `expandTime N input.length + 1` to the budget. The
+expansion-phase states have value zero, and the continuation starts at its default state on
+`expandedInput N input`. -/
 theorem expandCode_fair_value {Λ : Type*} [Inhabited Λ]
     (N : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) Λ)
     (g : Turing.TM0.Cfg (Option Bool) Λ → ℝ) (input : List Bool) (D : ℕ) :
@@ -5043,10 +5729,14 @@ theorem expandCode_fair_value {Λ : Type*} [Inhabited Λ]
   have hD : (2 : ℝ) ^ D ≠ 0 := pow_ne_zero _ (by norm_num)
   field_simp [hT, hD]
 
+/-- Encoding a list-backed tape half concatenates the bit blocks of its cells, reversing each
+block exactly when `rev` is true. -/
 @[simp] theorem bitHalf_mk (N : ℕ) (rev : Bool) (l : List (TrackCell N)) :
     bitHalf N rev (Turing.ListBlank.mk l) =
       Turing.ListBlank.mk (l.flatMap fun s => if rev then (bitBlock N s).reverse else bitBlock N s) := rfl
 
+/-- Encoding a cell prepended to a tape half prepends that cell's bit block to the encoded
+remainder, reversing the block exactly when `rev` is true. -/
 @[simp] theorem bitHalf_cons (N : ℕ) (rev : Bool) (s : TrackCell N)
     (l : Turing.ListBlank (TrackCell N)) :
     bitHalf N rev (l.cons s) = Turing.ListBlank.append
@@ -5054,6 +5744,8 @@ theorem expandCode_fair_value {Λ : Type*} [Inhabited Λ]
   induction l using Turing.ListBlank.induction_on
   simp only [Turing.ListBlank.cons_mk, bitHalf_mk, List.flatMap_cons, Turing.ListBlank.append_mk]
 
+/-- Encoding a tape given by left and right halves encodes the left half with reversed blocks
+and the right half with forward blocks. -/
 theorem bitTape_mk' (N : ℕ) (L R : Turing.ListBlank (TrackCell N)) :
     bitTape N (Turing.Tape.mk' L R) =
       Turing.Tape.mk' (bitHalf N true L) (bitHalf N false R) := by
@@ -5065,10 +5757,14 @@ theorem bitTape_mk' (N : ℕ) (L R : Turing.ListBlank (TrackCell N)) :
   rw [Turing.ListBlank.cons_head_tail] at h
   rw [← h]
 
+/-- Encoding the initial tape of a track-cell list gives the initial bit tape obtained by
+concatenating its cell blocks. -/
 theorem bitTape_mk₁ (N : ℕ) (input : List (TrackCell N)) :
     bitTape N (Turing.Tape.mk₁ input) = Turing.Tape.mk₁ (input.flatMap (bitBlock N)) := by
   simp [Turing.Tape.mk₁, Turing.Tape.mk₂, bitTape_mk']
 
+/-- Moving right `N + 3` positions on an encoded tape is equivalent to encoding one right move
+of the track-cell tape. -/
 theorem bitTape_move_right (N : ℕ) (T : Turing.Tape (TrackCell N)) :
     (Turing.Tape.move .right)^[N + 3] (bitTape N T) = bitTape N (T.move .right) := by
   have h := tape_right_append (bitBlock N T.head) (bitHalf N true T.left) (bitHalf N false T.right)
@@ -5081,17 +5777,21 @@ theorem bitTape_move_right (N : ℕ) (T : Turing.Tape (TrackCell N)) :
   rw [Turing.ListBlank.cons_head_tail] at hr
   rw [← hr]
 
+/-- Moving left `N + 3` positions on an encoded tape is equivalent to encoding one left move of
+the track-cell tape. -/
 theorem bitTape_move_left (N : ℕ) (T : Turing.Tape (TrackCell N)) :
     (Turing.Tape.move .left)^[N + 3] (bitTape N T) = bitTape N (T.move .left) := by
   have h := congrArg ((Turing.Tape.move .left)^[N + 3]) (bitTape_move_right N (T.move .left))
   rw [tape_left_right_iterate, Turing.Tape.move_left_right] at h
   exact h.symm
 
+/-- A cell's bit block is its `N + 2` buffer symbols followed by one blank separator. -/
 theorem cellBuffer_block (N : ℕ) (s : TrackCell N) :
     List.ofFn (cellBuffer N s) ++ [none] = bitBlock N s := by
   rw [cellBuffer, List.ofFn_cons, List.ofFn_succ']
   simp [bitBlock, List.concat_eq_append]
 
+/-- Decoding the buffer of a track cell recovers the original cell. -/
 theorem bufferCell_cellBuffer (N : ℕ) (s : TrackCell N) : bufferCell N (cellBuffer N s) = s := by
   rcases s with ⟨i, w, h⟩
   apply Prod.ext
@@ -5101,11 +5801,15 @@ theorem bufferCell_cellBuffer (N : ℕ) (s : TrackCell N) : bufferCell N (cellBu
       simp [bufferCell, cellBuffer]
     · cases h <;> simp [bufferCell, cellBuffer]
 
+/-- For `i < l.length`, the `i`th symbol of a finite list prepended to a blank-padded list is
+`l.getI i`, independently of the remainder. -/
 theorem bitHalf_append_nth {Γ : Type*} [Inhabited Γ] (l : List Γ) (R : Turing.ListBlank Γ)
     (i : ℕ) (hi : i < l.length) : (Turing.ListBlank.append l R).nth i = l.getI i := by
   induction R using Turing.ListBlank.induction_on
   simp only [Turing.ListBlank.append_mk, Turing.ListBlank.nth_mk, List.getI_append _ _ _ hi]
 
+/-- Reading the buffer at the origin of an encoded tape gives the cell buffer of the source
+tape's head symbol. -/
 theorem tapeBuffer_bitTape (N : ℕ) (T : Turing.Tape (TrackCell N)) :
     tapeBuffer N (bitTape N T) = cellBuffer N T.head := by
   funext j
@@ -5117,6 +5821,8 @@ theorem tapeBuffer_bitTape (N : ℕ) (T : Turing.Tape (TrackCell N)) :
   rw [List.getI_append _ _ _ hj, List.getI_eq_getElem _ hj]
   simp only [List.getElem_ofFn]
 
+/-- The symbol `N + 2` positions to the right of an encoded tape's head is the blank block
+separator. -/
 theorem bitTape_separator (N : ℕ) (T : Turing.Tape (TrackCell N)) :
     (bitTape N T).nth ((N + 2 : ℕ) : ℤ) = none := by
   unfold bitTape
@@ -5124,14 +5830,18 @@ theorem bitTape_separator (N : ℕ) (T : Turing.Tape (TrackCell N)) :
   rw [← cellBuffer_block]
   simp [List.getI_eq_getElem?_getD]
 
+/-- Capturing zero symbols from a tape gives the entirely blank bit buffer. -/
 @[simp] theorem bitCapture_zero (N : ℕ) (T : Turing.Tape (Option Bool)) :
     bitCapture N T 0 = fun _ => none := by funext j; simp [bitCapture]
 
+/-- Capturing `N + 2` symbols from a tape gives its complete bit buffer. -/
 @[simp] theorem bitCapture_full (N : ℕ) (T : Turing.Tape (Option Bool)) :
     bitCapture N T (N + 2) = tapeBuffer N T := by
   funext j
   simp [bitCapture, tapeBuffer, j.isLt]
 
+/-- For `i < N + 2`, updating the capture of the first `i` symbols with the tape symbol at `i`
+gives the capture of the first `i + 1` symbols. -/
 theorem bitCapture_update (N : ℕ) (T : Turing.Tape (Option Bool)) (i : Fin (N + 2)) :
     Function.update (bitCapture N T i.val) i (T.nth (i.val : ℤ)) = bitCapture N T (i.val + 1) := by
   funext j
@@ -5143,6 +5853,8 @@ theorem bitCapture_update (N : ℕ) (T : Turing.Tape (Option Bool)) (i : Fin (N 
     simp only [bitCapture]
     split_ifs <;> first | rfl | omega
 
+/-- Before fetch index `N + 2`, one simulator step advances the fetch index by one and captures
+the next tape symbol, independently of the coin value. -/
 theorem bitFetch_step {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ)
     (T : Turing.Tape (Option Bool)) (c : Bool) (i : Fin (N + 3)) (hi : i.val < N + 2) :
@@ -5156,6 +5868,8 @@ theorem bitFetch_step {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   split_ifs <;> simp_all [Function.iterate_succ_apply', Fin.ext_iff]
   omega
 
+/-- A coin list with `i.val + coins.length = N + 2` advances the fetch configuration from index
+`i` to index `N + 2`, completing the buffer capture. -/
 theorem bitFetch_steps_to_end {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (T : Turing.Tape (Option Bool))
     (coins : List Bool) (i : Fin (N + 3)) (hk : i.val + coins.length = N + 2) :
@@ -5172,6 +5886,9 @@ theorem bitFetch_steps_to_end {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     exact ih ⟨i.val + 1,
         by omega⟩ (by simp only [List.length_cons] at hk; simpa only [Fin.val_mk] using! (by omega : i.val + 1 + cs.length = N + 2))
 
+/-- For a nonempty coin list of length less than `3 * (N + 2) + 1`, fetch-return phase 1 with
+that countdown moves left once per coin. It ends in ready phase 2 with counter zero and the
+same source state and buffer. -/
 theorem bitFetchReturn_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (buf : BitBuffer N)
     (coins : List Bool) (hn : 0 < coins.length) (hb : coins.length < 3 * (N + 2) + 1)
@@ -5193,6 +5910,9 @@ theorem bitFetchReturn_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
       simpa only [Option.bind_some, List.length_cons, Function.iterate_succ_apply] using!
         ih (by simp) (by simp only [List.length_cons] at hb ⊢; omega) (T.move .left)
 
+/-- Two coin lists of length `N + 2` capture the tape buffer and return the head to its starting
+position. The simulator moves from fetch phase 0 with blank buffer to ready phase 2 with
+counter zero. -/
 theorem bitFetch_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (T : Turing.Tape (Option Bool))
     (front back : List Bool) (hf : front.length = N + 2) (hb : back.length = N + 2) :
@@ -5208,6 +5928,8 @@ theorem bitFetch_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
       hb, tape_left_right_iterate] using! hr
   simpa [bitFetchCfg] using! hs
 
+/-- On an encoded source tape, fetch and return lists each of length `N + 2` transform phase 0
+with blank buffer into `bitReady N cfg`. -/
 theorem bitFetch_ready_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (cfg : Turing.TM0.Cfg (TrackCell N) Λ)
     (front back : List Bool) (hf : front.length = N + 2) (hb : back.length = N + 2) :
@@ -5216,6 +5938,9 @@ theorem bitFetch_ready_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   simpa only [tapeBuffer_bitTape, bitReady] using!
       bitFetch_steps N M cfg.q (bitTape N cfg.Tape) front back hf hb
 
+/-- In ready phase 2, a simulator transition is absent exactly when the source transition is
+absent on the cell decoded from the buffer, independently of the bit under the simulator
+head and its counter. -/
 theorem bitSim_ready_isNone {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (i : Fin (3 * (N + 2) + 1)) (buf : BitBuffer N) (c : Bool) (s : Option Bool) :
     (bitSimTable N M c (2, q, i, buf) s).isNone = (M c q (bufferCell N buf)).isNone := by
@@ -5227,11 +5952,15 @@ theorem bitSim_ready_isNone {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     | move d => cases d <;> simp [bitSimTable, h]
     | write v => simp [bitSimTable, h]
 
+/-- The simulator's ready encoding of a configuration has exactly the same coin-halting test as
+the source configuration. -/
 theorem bitReady_coinHalt {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (cfg : Turing.TM0.Cfg (TrackCell N) Λ) :
     coinHalt (bitSimTable N M) (bitReady N cfg) = coinHalt M cfg := by
   simp only [coinHalt, bitReady, bitSim_ready_isNone, bufferCell_cellBuffer]
 
+/-- If the source machine's two coin branches have identical halting conditions, the bit
+simulator's two branches also have identical halting conditions at every state and symbol. -/
 theorem bitSim_commonHalt {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -5244,6 +5973,8 @@ theorem bitSim_commonHalt {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     bitSim_ready_isNone N M q i buf false s, bitSim_ready_isNone N M q i buf true s]
   simpa only [Option.isNone_iff_eq_none] using! hc q (bufferCell N buf)
 
+/-- From the initial encoded input tape, two coin lists each of length `N + 2` prepare the ready
+encoding of the source initial configuration. -/
 theorem bitSim_initial_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (input : List (TrackCell N))
     (front back : List Bool) (hf : front.length = N + 2) (hb : back.length = N + 2) :
@@ -5252,6 +5983,9 @@ theorem bitSim_initial_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   have h := bitFetch_ready_steps N M (Turing.TM0.init input) front back hf hb
   simpa only [Turing.TM0.init, bitTape_mk₁, Fin.default_eq_zero] using! h
 
+/-- If the source initial configuration is coin-halting, two preparation lists each of length `N
++ 2` make the simulator stop at its ready encoding. Both coin-read and transition counts are
+exactly `2 * (N + 2)`. -/
 theorem bitSim_initial_stopped {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (input : List (TrackCell N))
     (hc : coinHalt M (Turing.TM0.init input) = true)
@@ -5265,6 +5999,8 @@ theorem bitSim_initial_stopped {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ
     (bitSim_initial_steps N M input front back hf hb) (by rw [bitReady_coinHalt]; exact hc)
   simpa only [List.length_append, hf, hb, two_mul] using! h
 
+/-- For `i < N + 2`, writing the `i`th new buffer symbol and moving right advances the partially
+rewritten tape from write index `i` to `i + 1`. -/
 theorem bitWriteTape_write_move (N : ℕ) (new old : BitBuffer N)
     (L R : Turing.ListBlank (Option Bool)) (i : ℕ) (hi : i < N + 2) :
     ((bitWriteTape N new old L R i).write (new ⟨i, hi⟩)).move .right =
@@ -5278,6 +6014,8 @@ theorem bitWriteTape_write_move (N : ℕ) (new old : BitBuffer N)
   simp only [List.reverse_append, List.reverse_singleton, List.getElem_ofFn,
     Turing.ListBlank.append_assoc, Turing.ListBlank.append]
 
+/-- Before write index `N + 2`, two simulator steps write the next new buffer symbol and advance
+to the next write configuration, independently of both coins. -/
 theorem bitWrite_two_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (new old : BitBuffer N)
     (L R : Turing.ListBlank (Option Bool)) (i : Fin (N + 3)) (hi : i.val < N + 2) (c d : Bool) :
@@ -5296,6 +6034,8 @@ theorem bitWrite_two_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     · exact bitWriteTape_write_move N new old L R i.val hi
   simp only [coinStepsAux, hs, Option.bind_some, hm]
 
+/-- If `i.val + fuel = N + 2`, any list of `2 * fuel` coins completes the remaining buffer
+writes from index `i` and reaches write index `N + 2`. -/
 theorem bitWrite_steps_to_end {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (new old : BitBuffer N)
     (L R : Turing.ListBlank (Option Bool)) (fuel : ℕ) (i : Fin (N + 3))
@@ -5321,6 +6061,9 @@ theorem bitWrite_steps_to_end {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
         rw [coinStepsAux_append, bitWrite_two_steps N M q new old L R i hic c d]
         exact ih ⟨i.val + 1, by omega⟩ (by simp; omega) ds hl
 
+/-- For a nonempty coin list of length less than `3 * (N + 2) + 1`, write-return phase 8 with
+that countdown moves left once per coin. It ends in fetch phase 0 with zero counter and
+blank buffer, preserving the source state. -/
 theorem bitWriteReturn_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (buf : BitBuffer N)
     (coins : List Bool) (hn : 0 < coins.length) (hb : coins.length < 3 * (N + 2) + 1)
@@ -5342,6 +6085,9 @@ theorem bitWriteReturn_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
       simpa only [Option.bind_some, List.length_cons, Function.iterate_succ_apply] using!
         ih (by simp) (by simp only [List.length_cons] at hb ⊢; omega) (T.move .left)
 
+/-- For a nonempty coin list of length less than `3 * (N + 2) + 1`, padding phase 6 with that
+countdown consumes the list without changing the tape. It ends in fetch phase 0 with zero
+counter and blank buffer, preserving the source state. -/
 theorem bitPad_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (buf : BitBuffer N)
     (coins : List Bool) (hn : 0 < coins.length) (hb : coins.length < 3 * (N + 2) + 1)
@@ -5362,6 +6108,9 @@ theorem bitPad_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
       rw [coinStepsAux, hs]
       exact ih (by simp) (by simp only [List.length_cons] at hb ⊢; omega)
 
+/-- For a nonempty coin list of length less than `3 * (N + 2) + 1`, the movement phase with that
+countdown moves once per coin in direction `dir`. It then enters padding phase 6 with
+counter `2 * (N + 2) - 1`, preserving the source state and buffer. -/
 theorem bitMove_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (buf : BitBuffer N) (dir : Turing.Dir)
     (coins : List Bool) (hn : 0 < coins.length) (hb : coins.length < 3 * (N + 2) + 1)
@@ -5386,6 +6135,9 @@ theorem bitMove_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
       simpa only [Option.bind_some, List.length_cons, Function.iterate_succ_apply] using!
         ih (by simp) (by simp only [List.length_cons] at hb ⊢; omega) (T.move dir)
 
+/-- From write phase 5 with the buffer of `v`, `2 * (N + 2)` write coins and `N + 2` return
+coins replace the encoded head cell by `v`. The result is fetch phase 0 on `bitTape N
+(T.write v)` with blank buffer and zero counter. -/
 theorem bitWrite_block_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (T : Turing.Tape (TrackCell N))
     (v : TrackCell N) (writes back : List Bool)
@@ -5422,6 +6174,9 @@ theorem bitWrite_block_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   rw [coinStepsAux_append, ← hstart, ha, hend]
   simpa only [Option.bind_some, hb, tape_left_right_iterate] using! hr
 
+/-- A movement list of length `N + 3` followed by `2 * (N + 2) - 1` padding coins simulates one
+source tape move in direction `dir`. It ends in fetch phase 0 on the encoded moved tape with
+zero counter and blank buffer. -/
 theorem bitMove_block_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (buf : BitBuffer N)
     (T : Turing.Tape (TrackCell N)) (dir : Turing.Dir) (moves pad : List Bool)
@@ -5444,6 +6199,9 @@ theorem bitMove_block_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   rw [ha']
   simpa only [Option.bind_some, hp] using! hr
 
+/-- Any list of `3 * (N + 2)` coins executes an encoded cell write from phase 5 with the buffer
+of `v`, ending in fetch phase 0 on `bitTape N (T.write v)` with zero counter and blank
+buffer. -/
 theorem bitWrite_exec_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (T : Turing.Tape (TrackCell N))
     (v : TrackCell N) (coins : List Bool) (hlen : coins.length = 3 * (N + 2)) :
@@ -5453,6 +6211,9 @@ theorem bitWrite_exec_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (by rw [List.length_take, hlen]; omega) (by rw [List.length_drop, hlen]; omega)
   simpa only [List.take_append_drop] using! h
 
+/-- Any list of `3 * (N + 2)` coins executes an encoded source move from the directional
+movement phase with counter `N + 3`. It ends in fetch phase 0 on `bitTape N (T.move dir)`
+with zero counter and blank buffer. -/
 theorem bitMove_exec_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (buf : BitBuffer N)
     (T : Turing.Tape (TrackCell N)) (dir : Turing.Dir) (coins : List Bool)
@@ -5464,6 +6225,9 @@ theorem bitMove_exec_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (by rw [List.length_take, hlen]; omega) (by rw [List.length_drop, hlen]; omega)
   simpa only [List.take_append_drop] using! h
 
+/-- A source transition selected by coin `c` is simulated from one ready configuration to the
+next using `c`, `3 * (N + 2)` execution coins, and two fetch lists each of length `N + 2`.
+The resulting source state is `q` and its tape is updated by `stmt`. -/
 theorem bitSim_macro_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (cfg : Turing.TM0.Cfg (TrackCell N) Λ)
     (q : Λ) (stmt : Turing.TM0.Stmt (TrackCell N)) (c : Bool)
@@ -5489,6 +6253,9 @@ theorem bitSim_macro_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
         bitWrite_exec_steps N M q cfg.Tape v exec he]
     exact bitFetch_ready_steps N M ⟨q, cfg.Tape.write v⟩ front back hf hb
 
+/-- If the source transition selected by `c` reaches a coin-halting configuration, its simulator
+macro stops at the ready encoding of that configuration. With the prescribed execution and
+fetch lengths, both counts are exactly `5 * (N + 2) + 1`. -/
 theorem bitSim_macro_stopped {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (cfg : Turing.TM0.Cfg (TrackCell N) Λ)
     (q : Λ) (stmt : Turing.TM0.Stmt (TrackCell N)) (c : Bool)
@@ -5508,10 +6275,15 @@ theorem bitSim_macro_stopped {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     omega
   simpa only [hl] using! h
 
+/-- The bit simulator's phase-zero state with source state zero, counter zero, and blank buffer
+has numeric label zero. -/
 theorem bitSimLabels_zero (N Q : ℕ) : bitSimLabels N Q (0, 0, 0, fun _ => none) = 0 := by
   apply Fin.ext
   simp [bitSimLabels, expandQueueLabels_zero, finProdFinEquiv, Equiv.prodCongr]
 
+/-- Relabeling the bit simulator by finite numeric states preserves its output, coin-read count,
+and transition count for every input and coin list, using the corresponding source-state
+readout. -/
 theorem nativeBitSim_run (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List (Option Bool)) (coins : List Bool) :
@@ -5523,6 +6295,9 @@ theorem nativeBitSim_run (N Q : ℕ)
     simpa only [Fin.default_eq_zero] using! bitSimLabels_zero N Q
   exact relabel_run (bitSimLabels N Q) hz (bitSimTable N M) (fun q => a q.2.1) coins input
 
+/-- Decoding `bitSimCode N Q M a` preserves the bit simulator's output, coin-read count, and
+transition count for every input and coin list, with readout `a` on its source-state
+component. -/
 theorem bitSimCode_run (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (input : List (Option Bool)) (coins : List Bool) :
@@ -5535,6 +6310,8 @@ theorem bitSimCode_run (N Q : ℕ)
   exact ⟨h.1.trans (nativeBitSim_run N Q M a input coins).1,
     h.2.trans (nativeBitSim_run N Q M a input coins).2⟩
 
+/-- If the source machine's two coin branches have identical halting conditions, the
+numeric-state bit simulator's two branches have identical halting conditions as well. -/
 theorem nativeBitSim_commonHalt (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1)))
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -5543,12 +6320,17 @@ theorem nativeBitSim_commonHalt (N Q : ℕ)
   simpa only [nativeBitSimTable, relabelTable, Option.map_eq_none_iff] using!
     bitSim_commonHalt N M hc ((bitSimLabels N Q).symm q) s
 
+/-- Encoding a source machine with identical halting conditions in its two coin branches
+produces `bitSimCode N Q M a` with the same common-halting property. -/
 theorem bitSimCode_commonHalt (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) : commonHalt (bitSimCode N Q M a) := by
   unfold commonHalt
   simpa only [bitSimCode, table_encode] using! nativeBitSim_commonHalt N Q M hc
 
+/-- If every step prescribed by `front` succeeds from `cfg` to `next`, running `front ++ tail`
+has the same stopped configuration as running `tail` from `next`. Its coin-read and
+transition counts each increase by `front.length`. -/
 theorem coinConfigRunAux_of_steps {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (front tail : List Bool)
     (cfg next : Turing.TM0.Cfg Γ Λ) (hs : coinStepsAux M front cfg = some next) :
@@ -5577,11 +6359,16 @@ theorem coinConfigRunAux_of_steps {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
           List.length_cons]
       exact ⟨h.1, by rw [h.2.1]; omega, by rw [h.2.2]; omega⟩
 
+/-- Starting from a coin-halting configuration returns that stopped configuration with zero coin
+reads and zero transitions for any supplied coin list. -/
 theorem coinConfigRunAux_halted {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (hc : coinHalt M cfg = true) : coinConfigRunAux M coins cfg = ⟨some cfg, 0, 0⟩ := by
   cases coins <;> simp [coinConfigRunAux, hc]
 
+/-- A word of length `bitMicroWidth N` simulates the source transition selected by its first
+coin, taking the ready encoding of `cfg` to the ready encoding of the resulting state and
+tape. -/
 theorem bitSim_macro_word {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (cfg : Turing.TM0.Cfg (TrackCell N) Λ)
     (q : Λ) (stmt : Turing.TM0.Stmt (TrackCell N)) (w : Fin (bitMicroWidth N) → Bool)
@@ -5603,6 +6390,10 @@ theorem bitSim_macro_word {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   rw [hw]
   simpa only [List.take_append_drop] using! h
 
+/-- For a source machine with common halting conditions, running micro-coin blocks from a ready
+encoding maps the source stopped configuration through `bitReady N`. Both simulator counts
+equal `bitMicroWidth N` times the corresponding source counts, with source coins taken from
+the first position of each block. -/
 theorem bitSim_run_blocks {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -5644,6 +6435,8 @@ theorem bitSim_run_blocks {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
         · rw [hi.2.1, List.length_ofFn, Nat.mul_add, Nat.mul_one]
         · rw [hi.2.2, List.length_ofFn, Nat.mul_add, Nat.mul_one]
 
+/-- Flattening `t` indexed micro-coin blocks gives the coin list obtained by applying the
+inverse `freshBlocks` equivalence to the block function. -/
 theorem bitMicroCoins_ofFn (N t : ℕ) (w : Fin t → Fin (bitMicroWidth N) → Bool) :
     bitMicroCoins N (List.ofFn w) = List.ofFn ((freshBlocks t (bitMicroWidth N)).symm w) := by
   rw [List.ofFn_mul]
@@ -5656,10 +6449,15 @@ theorem bitMicroCoins_ofFn (N t : ℕ) (w : Fin t → Fin (bitMicroWidth N) → 
   have h := congrFun (congrFun ((freshBlocks t (bitMicroWidth N)).apply_symm_apply w) i) j
   simpa only [freshBlocks_apply, finProdFinEquiv, Nat.mul_comm, Nat.add_comm] using! h.symm
 
+/-- The source coin list associated with indexed micro-coin blocks consists of the first coin of
+each block, in index order. -/
 theorem bitSourceCoins_ofFn (N t : ℕ) (w : Fin t → Fin (bitMicroWidth N) → Bool) :
     bitSourceCoins N (List.ofFn w) = List.ofFn (fun j => w j ⟨0, by unfold bitMicroWidth; omega⟩) := by
   simp only [bitSourceCoins, List.map_ofFn, Function.comp_def]
 
+/-- For a source machine with common halting conditions, the simulator's fair value of the
+target-output indicator from `bitReady N cfg` at budget `t * bitMicroWidth N` equals the
+source value from `cfg` at budget `t`. -/
 theorem bitSim_fair_ready {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -5700,6 +6498,8 @@ theorem bitSim_fair_ready {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   have ht : (2 : ℝ) ^ t ≠ 0 := pow_ne_zero _ (by norm_num)
   field_simp [hd, ht]
 
+/-- Any preparation coin list of length `2 * (N + 2)` takes the simulator's initial encoded
+input to the ready encoding of the source initial configuration. -/
 theorem bitSim_initial_prefix_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (input : List (TrackCell N))
     (prep : List Bool) (hp : prep.length = 2 * (N + 2)) :
@@ -5709,6 +6509,10 @@ theorem bitSim_initial_prefix_steps {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N 
     (by rw [List.length_take, hp]; omega) (by rw [List.length_drop, hp]; omega)
   simpa only [List.take_append_drop] using! h
 
+/-- For a source machine with common halting conditions, a preparation prefix of length `2 * (N
++ 2)` followed by micro-coin blocks gives the source's optional stopped configuration mapped
+by `bitReady N`. Each simulator count is `2 * (N + 2)` plus `bitMicroWidth N` times the
+corresponding source count. -/
 theorem bitSim_initial_run {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) (input : List (TrackCell N))
@@ -5728,12 +6532,17 @@ theorem bitSim_initial_run {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   rw [hpre.1, hpre.2.1, hpre.2.2]
   exact ⟨hrun.1, by rw [hrun.2.1, hp, Nat.add_comm], by rw [hrun.2.2, hp, Nat.add_comm]⟩
 
+/-- Enumerating an initial simulator coin word gives its preparation prefix followed by the
+flattened indexed micro-coin blocks. -/
 theorem bitInitialWords_ofFn (N t : ℕ)
     (p : (Fin (2 * (N + 2)) → Bool) × (Fin t → Fin (bitMicroWidth N) → Bool)) :
     List.ofFn (bitInitialWords N t p) = List.ofFn p.1 ++ bitMicroCoins N (List.ofFn p.2) := by
   change List.ofFn (Fin.append p.1 ((freshBlocks t (bitMicroWidth N)).symm p.2)) = _
   rw [List.ofFn_fin_append, bitMicroCoins_ofFn]
 
+/-- If every length-`P` coin word takes `init` to the same configuration `next` through
+successful steps, the fair configuration value at budget `P + D` from `init` equals the
+value at budget `D` from `next`. -/
 theorem fairCfgValue_of_steps {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (K : Bool → Turing.TM0.Machine Γ Λ) (g : Turing.TM0.Cfg Γ Λ → ℝ)
     (init next : Turing.TM0.Cfg Γ Λ) (P D : ℕ)
@@ -5756,6 +6565,9 @@ theorem fairCfgValue_of_steps {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   have hD : (2 : ℝ) ^ D ≠ 0 := pow_ne_zero _ (by norm_num)
   field_simp [hP, hD]
 
+/-- For a source machine with common halting conditions, simulation on the block-encoded input
+preserves each target's fair success mass when budget `t` becomes `2 * (N + 2) + t *
+bitMicroWidth N`. -/
 theorem bitSim_fair_initial {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -5768,6 +6580,10 @@ theorem bitSim_fair_initial {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   · intro w
     exact bitSim_initial_prefix_steps N M input (List.ofFn w) (by rw [List.length_ofFn])
 
+/-- With common source halting conditions and a preparation prefix of length `2 * (N + 2)`, the
+simulator returns the same optional output as the source run on the first coins of the
+micro-blocks. Its coin-read and transition counts are each the corresponding source count
+multiplied by `bitMicroWidth N`, plus `2 * (N + 2)`. -/
 theorem bitSim_initial_output {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) (input : List (TrackCell N))
@@ -5791,6 +6607,9 @@ theorem bitSim_initial_output {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   · change coinTapeTransitionCountAux _ _ _ = _ + _ * coinTapeTransitionCountAux _ _ _
     rw [← hsim.2, ← hsrc.2, hr.2.2]
 
+/-- If a source machine with common halting conditions returns an output for every length-`t`
+coin word on `input`, its bit simulator returns an output for every word of length `2 * (N +
+2) + t * bitMicroWidth N` on the encoded input. -/
 theorem bitSim_total_at {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) (input : List (TrackCell N))
@@ -5808,6 +6627,8 @@ theorem bitSim_total_at {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
   rw [hw, hr]
   exact ht (fun j => p.2 j ⟨0, by unfold bitMicroWidth; omega⟩)
 
+/-- For a machine with identical halting conditions in both coin branches, the transition count
+on any input is at most the number of supplied coins. -/
 theorem coinTapeTransitionCount_le_budget {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -5818,6 +6639,10 @@ theorem coinTapeTransitionCount_le_budget {Γ Λ : Type*} [Inhabited Γ] [Inhabi
   change _ = coinTapeTransitionCount M input coins at hp
   exact hp.symm.le.trans (h.le.trans hr)
 
+/-- If the source has common halting conditions and returns an output on every length-`t` coin
+word, any budget `B >= 2 * (N + 2) + t * bitMicroWidth N` makes its bit simulator total on
+the encoded input with at most `B` transitions on every path. For each target, its fair
+success mass equals the source mass at budget `t`. -/
 theorem bitSim_full_budget {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) (input : List (TrackCell N))
@@ -5839,6 +6664,10 @@ theorem bitSim_full_budget {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     exact (fairTapeSuccess_of_total _ _ _ _ ht' B hB target).trans
         (bitSim_fair_initial N M a hc input t target)
 
+/-- If the source has common halting conditions and returns an output on every length-`t` coin
+word, any budget `B >= 2 * (N + 2) + t * bitMicroWidth N` makes `bitSimCode N Q M a` total
+on the encoded input with at most `B` transitions per path. Each target's fair success mass
+equals the source mass at budget `t`. -/
 theorem bitSimCode_full_budget (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none)) (input : List (TrackCell N))
@@ -5871,10 +6700,18 @@ theorem bitSimCode_full_budget (N Q : ℕ)
       rw [(bitSimCode_run N Q M a _ _).1]
     exact he.trans (hm target)
 
+/-- The encoded majority machine has identical halting conditions in its two coin branches for
+every source code and repetition parameter `r`. -/
 theorem encodedMajorityCode_commonHalt (code : Code) (r : ℕ) : commonHalt (encodedMajorityCode code r) := by
   exact bitSimCode_commonHalt (2 * r + 1) (roundsControlMax (2 * r + 1) (controlSize code)) _ _
     (nativeRounds_commonHalt (2 * r + 1) (controlSize code) (table code) (readout code))
 
+/-- Writing `N = 2 * r + 1` and `n = input.length`, if the source has common halting conditions
+and is total at coin budget `t`, every `B >= 2 * (N + 2) + N * (3 * n + 2 * t + 6) *
+bitMicroWidth N` makes the encoded majority machine return an output on expanded input for
+every length-`B` coin word with at most `B` transitions. For either Boolean target its
+success mass equals `independentMajorityMass` at source budget `t`, and is at least `1 - (8
+/ 9) ^ r` whenever the source target mass is at least `2 / 3`. -/
 theorem encodedMajorityCode_budget (code : Code) (r : ℕ) (hc : commonHalt code)
     (input : List Bool) (t : ℕ)
     (ht : ∀ w : Fin t → Bool, (coinTapeRun (table code) (readout code) (input.map some) (List.ofFn w)).1 ≠ none)
@@ -5915,6 +6752,12 @@ theorem encodedMajorityCode_budget (code : Code) (r : ℕ) (hc : commonHalt code
         nativeRounds_fair_mass r Q (table code) (readout code) hc input t ht W (by rfl)]
     exact independentMajorityMass_ge (table code) (readout code) (input.map some) t r target ht hp
 
+/-- If the source has common halting conditions and is total on every input at coin budget `T =
+c * input.length ^ k + c`, there is a positive `d` such that its encoded majority machine
+returns an output on expanded input for every length-`B` coin word and uses at most `B`
+transitions, where `B = d * input.length ^ (2 * (k + 1)) + d`. For either Boolean target its
+success mass at `B` equals `independentMajorityMass` at `T`, and is at least `1 - (8 / 9) ^
+r` when its source mass is at least `2 / 3`. -/
 theorem encodedMajorityCode_polynomial (code : Code) (r c k : ℕ) (hc : commonHalt code)
     (htotal : ∀ input : List Bool, ∀ w : Fin (c * input.length ^ k + c) → Bool,
       (coinTapeRun (table code) (readout code) (input.map some) (List.ofFn w)).1 ≠ none) :
@@ -5947,11 +6790,14 @@ theorem encodedMajorityCode_polynomial (code : Code) (r c k : ℕ) (hc : commonH
   dsimp only [D]
   nlinarith [Nat.zero_le (2 * (N + 2) * input.length ^ (2 * (k + 1)))]
 
+/-- The sequence relabeling sends the expansion component's state zero to numeric state zero. -/
 theorem expandedSequenceLabels_zero (N : ℕ) (next : Code) :
     expandedSequenceLabels N next (.inl 0) = 0 := by
   apply Fin.ext
   simp [expandedSequenceLabels, finSumFinEquiv]
 
+/-- Embedding the initial raw-input configuration into the expansion component and relabeling it
+gives the ordinary initial configuration on the same tape. -/
 theorem expandedSequence_initial (N : ℕ) (next : Code) (input : List Bool) :
     relabelCfg (expandedSequenceLabels N next) (mapCfg Sum.inl (Turing.TM0.init (input.map some))) =
       Turing.TM0.init (input.map some) := by
@@ -5960,6 +6806,10 @@ theorem expandedSequence_initial (N : ℕ) (next : Code) (input : List Bool) :
   rw [expandedSequenceLabels_zero]
   rfl
 
+/-- An expansion prefix of `expandTime N input.length` coins and one switch coin let the
+expansion sequence run `next` on `expandedInput N input` using exactly `tail`. The optional
+output is preserved, and both coin-read and transition counts increase by `expandTime N
+input.length + 1`. -/
 theorem expandedSequence_run (N : ℕ) (next : Code) (input : List Bool)
     (front : Fin (expandTime N input.length) → Bool) (switch : Bool) (tail : List Bool) :
     coinTapeRun (expandedSequenceTable N next) (expandedSequenceAccept N next) (input.map some)
@@ -6008,6 +6858,10 @@ theorem expandedSequence_run (N : ℕ) (next : Code) (input : List Bool)
     rw [ht, hseqCount]
     rfl
 
+/-- After an arbitrary expansion prefix of `expandTime N input.length` coins and one switch
+coin, `expandThenCode N next` has the same optional output as `next` on expanded input using
+`tail`. Its coin-read and transition counts are those of the continuation plus `expandTime N
+input.length + 1`. -/
 theorem expandThenCode_run (N : ℕ) (next : Code) (input : List Bool)
     (front : Fin (expandTime N input.length) → Bool) (switch : Bool) (tail : List Bool) :
     coinTapeRun (table (expandThenCode N next)) (readout (expandThenCode N next)) (input.map some)
@@ -6022,25 +6876,36 @@ theorem expandThenCode_run (N : ℕ) (next : Code) (input : List Bool)
   have hr := expandedSequence_run N next input front switch tail
   exact ⟨h.1.trans hr.1, h.2.trans hr.2⟩
 
+/-- If `next` has common halting conditions, the two coin branches of the expansion sequence
+table have identical halting conditions at every state and symbol. -/
 theorem expandedSequence_commonHalt (N : ℕ) (next : Code) (hc : commonHalt next) :
     ∀ q s, (expandedSequenceTable N next false q s = none) ↔ (expandedSequenceTable N next true q s = none) := by
   intro q s
   simpa only [expandedSequenceTable, relabelTable, Option.map_eq_none_iff] using!
     sequenceCoinTable_commonHalt (table (expandCode N)) (table next) hc ((expandedSequenceLabels N next).symm q) s
 
+/-- Prepending input expansion to a code with common halting conditions preserves that property
+in `expandThenCode N next`. -/
 theorem expandThenCode_commonHalt (N : ℕ) (next : Code) (hc : commonHalt next) : commonHalt (expandThenCode N next) := by
   unfold commonHalt
   simpa only [expandThenCode, table_encode] using! expandedSequence_commonHalt N next hc
 
+/-- The majority machine operating directly on raw input has identical halting conditions in
+both coin branches for every source code and repetition parameter. -/
 theorem rawMajorityCode_commonHalt (code : Code) (r : ℕ) : commonHalt (rawMajorityCode code r) :=
   expandThenCode_commonHalt (2 * r + 1) (encodedMajorityCode code r) (encodedMajorityCode_commonHalt code r)
 
+/-- Enumerating the coin word constructed by `expandThenWords` gives the expansion prefix, then
+the switch coin, then the continuation word. -/
 theorem expandThenWords_ofFn (N : ℕ) (input : List Bool) (D : ℕ)
     (p : (Fin (expandTime N input.length) → Bool) × Bool × (Fin D → Bool)) :
     List.ofFn (expandThenWords N input D p) = List.ofFn p.1 ++ p.2.1 :: List.ofFn p.2.2 := by
   change List.ofFn (Fin.append p.1 (Fin.cons p.2.1 p.2.2)) = _
   rw [List.ofFn_fin_append, List.ofFn_cons]
 
+/-- Each target's fair success mass for `expandThenCode N next` on raw input at budget
+`expandTime N input.length + (D + 1)` equals its mass for `next` on expanded input at budget
+`D`. -/
 theorem expandThenCode_fair_mass (N : ℕ) (next : Code) (input : List Bool) (D : ℕ) (target : Bool) :
     fairTapeSuccess (table (expandThenCode N next)) (readout (expandThenCode N next)) (input.map some)
       (expandTime N input.length + (D + 1)) target =
@@ -6072,6 +6937,9 @@ theorem expandThenCode_fair_mass (N : ℕ) (next : Code) (input : List Bool) (D 
   have hd : (2 : ℝ) ^ D ≠ 0 := pow_ne_zero _ (by norm_num)
   field_simp [he, hd]
 
+/-- If `next` returns an output on expanded input for every length-`D` coin word,
+`expandThenCode N next` returns an output on raw input for every word of length `expandTime
+N input.length + (D + 1)`. -/
 theorem expandThenCode_total_at (N : ℕ) (next : Code) (input : List Bool) (D : ℕ)
     (ht : ∀ w : Fin D → Bool, (coinTapeRun (table next) (readout next) (expandedInput N input) (List.ofFn w)).1 ≠ none) :
     ∀ w : Fin (expandTime N input.length + (D + 1)) → Bool,
@@ -6084,6 +6952,10 @@ theorem expandThenCode_total_at (N : ℕ) (next : Code) (input : List Bool) (D :
   rw [hw, (expandThenCode_run N next input p.1 p.2.1 (List.ofFn p.2.2)).1]
   exact ht p.2.2
 
+/-- If `next` has common halting conditions and is total on expanded input at budget `D`, every
+`B >= expandTime N input.length + (D + 1)` makes `expandThenCode N next` total on raw input
+with at most `B` transitions per path. Each target's fair success mass equals the
+continuation's mass at budget `D`. -/
 theorem expandThenCode_full_budget (N : ℕ) (next : Code) (hc : commonHalt next)
     (input : List Bool) (D : ℕ)
     (ht : ∀ w : Fin D → Bool, (coinTapeRun (table next) (readout next) (expandedInput N input) (List.ofFn w)).1 ≠ none)
@@ -6104,6 +6976,8 @@ theorem expandThenCode_full_budget (N : ℕ) (next : Code) (hc : commonHalt next
     exact (fairTapeSuccess_of_total _ _ _ _ ht' B hB target).trans
         (expandThenCode_fair_mass N next input D target)
 
+/-- Adding expansion time and one switch step to `d * n ^ (2 * (k + 1)) + d` is bounded by the
+same polynomial shape with coefficient `d + (3 * N + 13) + 1`. -/
 theorem expandThenCode_poly_bound (N d k n : ℕ) :
     expandTime N n + ((d * n ^ (2 * (k + 1)) + d) + 1) ≤
       (d + (3 * N + 13) + 1) * n ^ (2 * (k + 1)) + (d + (3 * N + 13) + 1) := by
@@ -6116,6 +6990,12 @@ theorem expandThenCode_poly_bound (N d k n : ℕ) :
   have hm := Nat.mul_le_mul_left (3 * N + 13) hp
   nlinarith [Nat.zero_le (n ^ (2 * (k + 1)))]
 
+/-- If the source has common halting conditions and is total at coin budget `T = c *
+input.length ^ k + c` on every input, there is a positive `d` such that `rawMajorityCode
+code r` has common halting conditions and returns an output on every length-`B` coin word
+with at most `B` transitions, where `B = d * input.length ^ (2 * (k + 1)) + d`. For either
+Boolean target its success mass at `B` equals `independentMajorityMass` at `T` and is at
+least `1 - (8 / 9) ^ r` whenever its source mass is at least `2 / 3`. -/
 theorem rawMajorityCode_polynomial (code : Code) (r c k : ℕ) (hc : commonHalt code)
     (htotal : ∀ input : List Bool, ∀ w : Fin (c * input.length ^ k + c) → Bool,
       (coinTapeRun (table code) (readout code) (input.map some) (List.ofFn w)).1 ≠ none) :
@@ -6151,6 +7031,8 @@ theorem rawMajorityCode_polynomial (code : Code) (r c k : ℕ) (hc : commonHalt 
   · intro target hp
     exact (hbit.2.2.2 target hp).trans (hr.2.2 target).symm.le
 
+/-- Tabulating `row` over the first `n` natural numbers gives the list obtained by enumerating
+`row i.val` over `Fin n`. -/
 theorem codeTabulate_eq_ofFn (n : ℕ) (row : ℕ → ℕ) :
     codeTabulate n row = List.ofFn (fun i : Fin n => row i.val) := by
   apply List.ext_getElem
@@ -6158,6 +7040,9 @@ theorem codeTabulate_eq_ofFn (n : ℕ) (row : ℕ → ℕ) :
   · intro i hi hj
     simp only [codeTabulate, List.getElem_map, List.getElem_range, List.getElem_ofFn]
 
+/-- Machine encoding equals `codeEnumerate` with control bound `Q`, readout `a` applied to `q %
+(Q + 1)`, and transition row `i` obtained by encoding the source transition at coin `decide
+(3 * (Q + 1) ≤ i)`, state `i / 3 % (Q + 1)`, and symbol `decodeSymbol (i % 3)`. -/
 theorem encodeMachine_eq_codeEnumerate (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     encodeMachine Q M a = codeEnumerate Q
@@ -6173,9 +7058,12 @@ theorem encodeMachine_eq_codeEnumerate (Q : ℕ)
     simp only [Nat.mod_eq_of_lt q.isLt]
   · rfl
 
+/-- Extracting the control-size parameter from a machine code is primitive recursive. -/
 theorem primrec_controlSize : Primrec controlSize := by
   exact (Primrec.list_getD 0).comp Primrec.id (Primrec.const 0)
 
+/-- Reading output bit `q` as the oddness of code entry `1 + q`, with missing entries defaulting
+to zero, is primitive recursive jointly in the code and natural state index. -/
 theorem primrec_readoutNat : Primrec₂ (fun (code : Code) (q : ℕ) => code.getD (1 + q) 0 % 2 == 1) := by
   change Primrec (fun p : Code × ℕ => p.1.getD (1 + p.2) 0 % 2 == 1)
   have hidx : Primrec (fun p : Code × ℕ => 1 + p.2) :=
@@ -6184,10 +7072,16 @@ theorem primrec_readoutNat : Primrec₂ (fun (code : Code) (q : ℕ) => code.get
       (Primrec.list_getD 0).comp Primrec.fst hidx
   exact Primrec.beq.comp (Primrec.nat_mod.comp hget (Primrec.const 2)) (Primrec.const 1)
 
+/-- Tabulating a parameterized row function to a parameterized bound is primitive recursive when
+the bound and row function are primitive recursive and the parameter type is primitive
+codable. -/
 theorem primrec_codeTabulate {α : Type*} [Primcodable α] {bound : α → ℕ} {row : α → ℕ → ℕ}
     (hb : Primrec bound) (hr : Primrec₂ row) : Primrec (fun p => codeTabulate (bound p) (row p)) := by
   exact Primrec.list_map (Primrec.list_range.comp hb) hr
 
+/-- Constructing a machine code by `codeEnumerate` is primitive recursive when its control
+bound, output bits, and transition rows are primitive recursive functions of a
+primitive-codable parameter. -/
 theorem primrec_codeEnumerate {α : Type*} [Primcodable α] {bound : α → ℕ}
     {output : α → ℕ → Bool} {row : α → ℕ → ℕ}
     (hb : Primrec bound) (ho : Primrec₂ output) (hr : Primrec₂ row) :
@@ -6199,8 +7093,11 @@ theorem primrec_codeEnumerate {α : Type*} [Primcodable α] {bound : α → ℕ}
   have ht := primrec_codeTabulate hs hr
   exact Primrec.list_cons.comp hb (Primrec.list_append.comp ha ht)
 
+/-- Natural-number exponentiation is primitive recursive jointly in the base and exponent. -/
 theorem primrec_natPow : Primrec₂ (fun n k : ℕ => n ^ k) := Primrec₂.unpaired'.mp Nat.Primrec.pow
 
+/-- The expansion machine's maximum numeric control label is a primitive recursive function of
+`N`. -/
 theorem primrec_expandControlMax : Primrec expandControlMax := by
   have hp :=
       primrec_natPow.comp (Primrec.const 3) (Primrec.nat_add.comp Primrec.id (Primrec.const 2))
@@ -6208,6 +7105,8 @@ theorem primrec_expandControlMax : Primrec expandControlMax := by
   exact Primrec.nat_sub.comp (Primrec.nat_mul.comp (Primrec.const 12)
     (Primrec.nat_mul.comp (Primrec.const 2) hm)) (Primrec.const 1)
 
+/-- The repeated-run machine's maximum numeric control label is primitive recursive jointly in
+the number of rounds `N` and source control parameter `Q`. -/
 theorem primrec_roundsControlMax : Primrec₂ roundsControlMax := by
   change Primrec (fun p : ℕ × ℕ => roundsControlMax p.1 p.2)
   have hn : Primrec (fun p : ℕ × ℕ => p.1 + 1) := Primrec.nat_add.comp Primrec.fst (Primrec.const 1)
@@ -6216,6 +7115,8 @@ theorem primrec_roundsControlMax : Primrec₂ roundsControlMax := by
   exact Primrec.nat_sub.comp (Primrec.nat_mul.comp hn (Primrec.nat_mul.comp hn hq))
       (Primrec.const 1)
 
+/-- The maximum control label of the bit simulator is primitive recursive in the track count `N`
+and source control bound `Q`. -/
 theorem primrec_bitSimControlMax : Primrec₂ bitSimControlMax := by
   change Primrec (fun p : ℕ × ℕ => bitSimControlMax p.1 p.2)
   have hn : Primrec (fun p : ℕ × ℕ => p.1 + 2) := Primrec.nat_add.comp Primrec.fst (Primrec.const 2)
@@ -6225,6 +7126,8 @@ theorem primrec_bitSimControlMax : Primrec₂ bitSimControlMax := by
   exact Primrec.nat_sub.comp (Primrec.nat_mul.comp (Primrec.const 9)
     (Primrec.nat_mul.comp hq (Primrec.nat_mul.comp hi hp))) (Primrec.const 1)
 
+/-- The expansion-then-continuation machine is nonhalting in its initial configuration on every
+Boolean input, for any track count and continuation code. -/
 theorem expandedSequence_initial_live (N : ℕ) (next : Code) (input : List Bool) :
     coinHalt (expandedSequenceTable N next) (Turing.TM0.init (input.map some)) = false := by
   rw [← expandedSequence_initial N next input]
@@ -6233,6 +7136,8 @@ theorem expandedSequence_initial_live (N : ℕ) (next : Code) (input : List Bool
     (mapCfg Sum.inl (Turing.TM0.init (input.map some)))).trans
       (sequence_coinHalt_left (table (expandCode N)) (table next) (Turing.TM0.init (input.map some)))
 
+/-- With an empty coin word, `expandThenCode N next` on any Boolean input returns `(none, 0)`
+and performs zero transitions. -/
 theorem expandThenCode_initial_pending (N : ℕ) (next : Code) (input : List Bool) :
     coinTapeRun (table (expandThenCode N next)) (readout (expandThenCode N next)) (input.map some) [] = (none, 0) ∧
       coinTapeTransitionCount (table (expandThenCode N next)) (input.map some) [] = 0 := by
@@ -6242,6 +7147,8 @@ theorem expandThenCode_initial_pending (N : ℕ) (next : Code) (input : List Boo
   simp only [coinTapeRun, coinTapeRunAux, expandedSequence_initial_live, Bool.false_eq_true,
       ↓reduceIte]
 
+/-- For `N = 2 * r + 1`, the raw majority code has maximum control label `expandControlMax N +
+bitSimControlMax N (roundsControlMax N (controlSize code)) + 1`. -/
 theorem rawMajorityCode_controlSize (code : Code) (r : ℕ) :
     controlSize (rawMajorityCode code r) =
       expandControlMax (2 * r + 1) +
@@ -6249,6 +7156,8 @@ theorem rawMajorityCode_controlSize (code : Code) (r : ℕ) :
   simp only [rawMajorityCode, expandThenCode, controlSize_encode, expandedSequenceMax,
     expandCode, encodedMajorityCode, bitSimCode]
 
+/-- The maximum control label of `rawMajorityCode code r` is primitive recursive in the source
+code and amplification parameter. -/
 theorem primrec_rawMajorityCode_controlSize : Primrec₂ (fun (code : Code) (r : ℕ) => controlSize (rawMajorityCode code r)) := by
   change Primrec (fun p : Code × ℕ => controlSize (rawMajorityCode p.1 p.2))
   have hn : Primrec (fun p : Code × ℕ => 2 * p.2 + 1) :=
@@ -6260,16 +7169,22 @@ theorem primrec_rawMajorityCode_controlSize : Primrec₂ (fun (code : Code) (r :
   exact (Primrec.nat_add.comp (Primrec.nat_add.comp he hb) (Primrec.const 1)).of_eq
     (fun p => (rawMajorityCode_controlSize p.1 p.2).symm)
 
+/-- Decoding a rounds label `q` recovers its success count as `q.val % ((N + 1) * (2 * Q + 11))
+/ (2 * Q + 11)`. -/
 theorem roundsLabels_count_nat (N Q : ℕ) (q : Fin (roundsControlMax N Q + 1)) :
     ((roundsLabels N Q).symm q).2.1.val = q.val % ((N + 1) * (2 * Q + 11)) / (2 * Q + 11) := by
   rfl
 
+/-- With `S = (3 * (N + 2) + 1) * 3 ^ (N + 2)`, decoding a bit-simulator label `q` recovers its
+source control label as `q.val % ((Q + 1) * S) / S`. -/
 theorem bitSimLabels_source_nat (N Q : ℕ) (q : Fin (bitSimControlMax N Q + 1)) :
     ((bitSimLabels N Q).symm q).2.1.val =
       q.val % ((Q + 1) * ((3 * (N + 2) + 1) * 3 ^ (N + 2))) /
         ((3 * (N + 2) + 1) * 3 ^ (N + 2)) := by
   rfl
 
+/-- The native readout of a bit simulator for the `N`-round machine with source control bound
+`Q` equals `bitMajorityOutputNat N Q` at the numeric control label. -/
 theorem nativeBitSimAccept_rounds_nat (N Q : ℕ)
     (q : Fin (bitSimControlMax N (roundsControlMax N Q) + 1)) :
     nativeBitSimAccept N (roundsControlMax N Q) (nativeRoundsAccept N Q) q = bitMajorityOutputNat N Q q.val := by
@@ -6277,12 +7192,17 @@ theorem nativeBitSimAccept_rounds_nat (N Q : ℕ)
   rw [roundsLabels_count_nat, bitSimLabels_source_nat]
   rfl
 
+/-- The readout of `encodedMajorityCode code r` at control label `q` is `bitMajorityOutputNat (2
+* r + 1) (controlSize code) q.val`. -/
 theorem encodedMajorityCode_readout_nat (code : Code) (r : ℕ)
     (q : Fin (controlSize (encodedMajorityCode code r) + 1)) :
     readout (encodedMajorityCode code r) q = bitMajorityOutputNat (2 * r + 1) (controlSize code) q.val := by
   simpa only [encodedMajorityCode, bitSimCode, readout_encode_eq] using!
     nativeBitSimAccept_rounds_nat (2 * r + 1) (controlSize code) q
 
+/-- The expansion-then-continuation readout is false below the expansion block size `controlSize
+(expandCode N) + 1`. Above that block it uses the continuation readout after subtracting the
+block size and reducing modulo `controlSize next + 1`. -/
 theorem expandedSequenceAccept_nat (N : ℕ) (next : Code)
     (q : Fin (expandedSequenceMax N next + 1)) :
     expandedSequenceAccept N next q =
@@ -6305,6 +7225,8 @@ theorem expandedSequenceAccept_nat (N : ℕ) (next : Code)
     apply Fin.ext
     simp only [hv, Nat.add_sub_cancel_left, Nat.mod_eq_of_lt a.isLt]
 
+/-- The readout of the raw majority code at any valid control label equals `rawMajorityOutputNat
+code r` at that label's natural-number value. -/
 theorem rawMajorityCode_readout_nat (code : Code) (r : ℕ)
     (q : Fin (controlSize (rawMajorityCode code r) + 1)) :
     readout (rawMajorityCode code r) q = rawMajorityOutputNat code r q.val := by
@@ -6319,6 +7241,8 @@ theorem rawMajorityCode_readout_nat (code : Code) (r : ℕ)
     omega
   simp only [rawMajorityOutputNat, Nat.mod_eq_of_lt hq]
 
+/-- The arithmetic majority readout `bitMajorityOutputNat N Q q` is primitive recursive jointly
+in the track count, source control bound, and numeric control label. -/
 theorem primrec_bitMajorityOutputNat :
     Primrec (fun p : ℕ × ℕ × ℕ => bitMajorityOutputNat p.1 p.2.1 p.2.2) := by
   have hn : Primrec (fun p : ℕ × ℕ × ℕ => p.1) := Primrec.fst
@@ -6336,6 +7260,8 @@ theorem primrec_bitMajorityOutputNat :
     (Primrec.nat_mod.comp hwide (Primrec.nat_mul.comp (Primrec.nat_add.comp hn (Primrec.const 1)) hprog)) hprog
   exact (Primrec.nat_lt.comp (Primrec.nat_div.comp hn (Primrec.const 2)) hcount).decide
 
+/-- The numeric readout `rawMajorityOutputNat code r q` is primitive recursive jointly in the
+source code, amplification parameter, and control label. -/
 theorem primrec_rawMajorityOutputNat :
     Primrec (fun p : Code × ℕ × ℕ => rawMajorityOutputNat p.1 p.2.1 p.2.2) := by
   have hr : Primrec (fun p : Code × ℕ × ℕ => p.2.1) := Primrec.fst.comp Primrec.snd
@@ -6351,6 +7277,8 @@ theorem primrec_rawMajorityOutputNat :
   have ho := primrec_bitMajorityOutputNat.comp (hn.pair (hQ.pair hbit))
   exact Primrec.ite (Primrec.nat_lt.comp hl he) (Primrec.const false) ho
 
+/-- Reducing a label modulo `controlSize (rawMajorityCode code r) + 1` leaves the arithmetic
+raw-majority readout unchanged. -/
 theorem rawMajorityOutputNat_mod (code : Code) (r q : ℕ) :
     rawMajorityOutputNat code r (q % (controlSize (rawMajorityCode code r) + 1)) =
       rawMajorityOutputNat code r q := by
@@ -6362,11 +7290,16 @@ theorem rawMajorityOutputNat_mod (code : Code) (r q : ℕ) :
   rw [hs]
   simp only [rawMajorityOutputNat, Nat.mod_mod]
 
+/-- Reading the raw majority code at `q` reduced modulo its number of control states gives
+`rawMajorityOutputNat code r q`. -/
 theorem rawMajorityCode_readout_mod (code : Code) (r q : ℕ) :
     readout (rawMajorityCode code r) ⟨q % (controlSize (rawMajorityCode code r) + 1), Nat.mod_lt _ (by omega)⟩ =
       rawMajorityOutputNat code r q := by
   rw [rawMajorityCode_readout_nat, rawMajorityOutputNat_mod]
 
+/-- The raw majority code's readout, with a natural-number label reduced modulo its number of
+control states, is primitive recursive jointly in the code, amplification parameter, and
+label. -/
 theorem primrec_rawMajorityCode_readout :
     Primrec (fun p : Code × ℕ × ℕ =>
       readout (rawMajorityCode p.1 p.2.1)
@@ -6374,11 +7307,16 @@ theorem primrec_rawMajorityCode_readout :
   exact primrec_rawMajorityOutputNat.of_eq
       (fun p => (rawMajorityCode_readout_mod p.1 p.2.1 p.2.2).symm)
 
+/-- The first `Q + 2` entries of `encodeMachine Q M a` consist of `Q` followed by the `Q + 1`
+readout bits of `a`, converted to natural numbers. -/
 theorem encodeMachine_header (Q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     (encodeMachine Q M a).take (Q + 2) = Q :: List.ofFn (fun q => (a q).toNat) := by
   simp [encodeMachine, show Q + 2 = (Q + 1) + 1 by omega]
 
+/-- The raw majority code's header consists of its maximum control label followed by the numeric
+readout bits `rawMajorityOutputNat code r q` for all control labels in order. The header has
+`controlSize (rawMajorityCode code r) + 2` entries. -/
 theorem rawMajorityCode_header (code : Code) (r : ℕ) :
     (rawMajorityCode code r).take (controlSize (rawMajorityCode code r) + 2) =
       controlSize (rawMajorityCode code r) ::
@@ -6399,6 +7337,8 @@ theorem rawMajorityCode_header (code : Code) (r : ℕ) :
   simpa only [rawMajorityCode, expandThenCode, readout_encode_eq] using!
       rawMajorityCode_readout_nat code r q
 
+/-- Extracting the full control-size-and-readout header of `rawMajorityCode code r` is primitive
+recursive in the source code and amplification parameter. -/
 theorem primrec_rawMajorityCode_header :
     Primrec₂ (fun (code : Code) (r : ℕ) =>
       (rawMajorityCode code r).take (controlSize (rawMajorityCode code r) + 2)) := by
@@ -6414,21 +7354,29 @@ theorem primrec_rawMajorityCode_header :
   exact (Primrec.list_cons.comp primrec_rawMajorityCode_controlSize (primrec_codeTabulate hb ho)).of_eq
     (fun p => (rawMajorityCode_header p.1 p.2).symm)
 
+/-- The queue label is the base-three sum `sum i, symbolIndex (q i) * 3 ^ i.val` over the `N +
+2` queue positions. -/
 theorem expandQueueLabels_nat (N : ℕ) (q : ExpandQueue N) :
     (expandQueueLabels N q).val = ∑ i : Fin (N + 2), symbolIndex (q i) * 3 ^ i.val := by
   rfl
 
+/-- Decoding a queue label recovers at position `i` the symbol whose index is the base-three
+digit `queueDigitNat q.val i.val`. -/
 theorem expandQueueLabels_digit (N : ℕ) (q : Fin (3 ^ (N + 2))) (i : Fin (N + 2)) :
     symbolIndex (((expandQueueLabels N).symm q) i) = queueDigitNat q.val i.val := by
   have h := congrArg Fin.val (optionBoolFin.apply_symm_apply
     (finFunctionFinEquiv.symm q i))
   exact h
 
+/-- The base-three digit at position `i` of an encoded expansion queue equals `symbolIndex (q
+i)`. -/
 theorem expandQueueLabels_digit_encode (N : ℕ) (q : ExpandQueue N) (i : Fin (N + 2)) :
     queueDigitNat (expandQueueLabels N q).val i.val = symbolIndex (q i) := by
   rw [← expandQueueLabels_digit]
   simp only [Equiv.symm_apply_apply]
 
+/-- Replacing queue position `i` by symbol `s` changes its numeric label by `queueUpdateNat`
+with digit `symbolIndex s`. -/
 theorem expandQueueLabels_update (N : ℕ) (q : ExpandQueue N) (i : Fin (N + 2)) (s : Option Bool) :
     (expandQueueLabels N (Function.update q i s)).val =
       queueUpdateNat (expandQueueLabels N q).val i.val (symbolIndex s) := by
@@ -6446,6 +7394,8 @@ theorem expandQueueLabels_update (N : ℕ) (q : ExpandQueue N) (i : Fin (N + 2))
   have hij : j ≠ i := (Finset.mem_erase.mp hj).1
   simp only [Function.update_of_ne hij]
 
+/-- Dividing an expansion queue label by three removes its first symbol and gives the base-three
+encoding of its remaining `N + 1` symbols. -/
 theorem expandQueueLabels_tail (N : ℕ) (q : ExpandQueue N) :
     (expandQueueLabels N q).val / 3 =
       ∑ i : Fin (N + 1), symbolIndex (q i.succ) * 3 ^ i.val := by
@@ -6464,6 +7414,8 @@ theorem expandQueueLabels_tail (N : ℕ) (q : ExpandQueue N) :
     | some b => cases b <;> decide
   rw [Nat.div_eq_of_lt hlt, Nat.zero_add]
 
+/-- Encoding `expandQueuePush q s` agrees with `queuePushNat N` applied to the queue label and
+the new symbol index. -/
 theorem expandQueueLabels_push (N : ℕ) (q : ExpandQueue N) (s : Option Bool) :
     (expandQueueLabels N (expandQueuePush q s)).val =
       queuePushNat N (expandQueueLabels N q).val (symbolIndex s) := by
@@ -6472,11 +7424,15 @@ theorem expandQueueLabels_push (N : ℕ) (q : ExpandQueue N) (s : Option Bool) :
   simp only [expandQueuePush, Fin.snoc_castSucc, Fin.snoc_last, Fin.val_castSucc, Fin.val_last]
   rfl
 
+/-- Extracting a base-three digit with `queueDigitNat` is primitive recursive in the numeric
+queue label and digit position. -/
 theorem primrec_queueDigitNat : Primrec₂ queueDigitNat := by
   change Primrec (fun p : ℕ × ℕ => queueDigitNat p.1 p.2)
   exact Primrec.nat_mod.comp
     (Primrec.nat_div.comp Primrec.fst (primrec_natPow.comp (Primrec.const 3) Primrec.snd)) (Primrec.const 3)
 
+/-- Replacing a digit with `queueUpdateNat` is primitive recursive jointly in the numeric label,
+position, and replacement digit. -/
 theorem primrec_queueUpdateNat : Primrec (fun p : ℕ × ℕ × ℕ => queueUpdateNat p.1 p.2.1 p.2.2) := by
   have hl : Primrec (fun p : ℕ × ℕ × ℕ => p.1) := Primrec.fst
   have hi : Primrec (fun p : ℕ × ℕ × ℕ => p.2.1) := Primrec.fst.comp Primrec.snd
@@ -6485,6 +7441,8 @@ theorem primrec_queueUpdateNat : Primrec (fun p : ℕ × ℕ × ℕ => queueUpda
   have hold := Primrec.nat_mul.comp (primrec_queueDigitNat.comp hl hi) hp
   exact Primrec.nat_add.comp (Primrec.nat_sub.comp hl hold) (Primrec.nat_mul.comp hd hp)
 
+/-- The numeric queue push operation is primitive recursive jointly in the track count, queue
+label, and appended digit. -/
 theorem primrec_queuePushNat : Primrec (fun p : ℕ × ℕ × ℕ => queuePushNat p.1 p.2.1 p.2.2) := by
   have hn : Primrec (fun p : ℕ × ℕ × ℕ => p.1) := Primrec.fst
   have hl : Primrec (fun p : ℕ × ℕ × ℕ => p.2.1) := Primrec.fst.comp Primrec.snd
@@ -6493,12 +7451,16 @@ theorem primrec_queuePushNat : Primrec (fun p : ℕ × ℕ × ℕ => queuePushNa
     (Primrec.nat_mul.comp hd (primrec_natPow.comp (Primrec.const 3)
       (Primrec.nat_add.comp hn (Primrec.const 1))))
 
+/-- Encoding an expansion state agrees with `expandLabelNat` applied to its phase, first-block
+flag, index, and encoded queue. -/
 theorem expandLabels_nat (N : ℕ) (q : ExpandState N) :
     (expandLabels N q).val = expandLabelNat N q.1.val q.2.1.toNat q.2.2.1.val
       (expandQueueLabels N q.2.2.2).val := by
   rcases q with ⟨p, b, i, fifo⟩
   cases b <;> rfl
 
+/-- An expansion queue has numeric label zero exactly when all of its `N + 2` positions contain
+the blank symbol `none`. -/
 theorem expandQueueLabels_blank_iff (N : ℕ) (q : ExpandQueue N) :
     (expandQueueLabels N q).val = 0 ↔ ∀ i, q i = none := by
   constructor
@@ -6514,6 +7476,7 @@ theorem expandQueueLabels_blank_iff (N : ℕ) (q : ExpandQueue N) :
     rw [he, expandQueueLabels_zero]
     rfl
 
+/-- The action index of writing symbol `s` is `2 + symbolIndex s`. -/
 theorem actionIndex_write (s : Option Bool) : actionIndex (.write s) = 2 + symbolIndex s := by
   cases s with
   | none => rfl
@@ -6521,6 +7484,8 @@ theorem actionIndex_write (s : Option Bool) : actionIndex (.write s) = 2 + symbo
 
 set_option maxHeartbeats 1000000 in
 
+/-- Encoding the transition of `expandInputTable` after relabeling its destination state equals
+`expandStepNat` on the state's numeric coordinates and the scanned symbol index. -/
 theorem expandInputTable_record (N : ℕ) (q : ExpandState N) (s : Option Bool) :
     encodeTransition ((expandInputTable N q s).map
       (fun p => (expandLabels N p.1, p.2))) =
@@ -6561,6 +7526,8 @@ theorem expandInputTable_record (N : ℕ) (q : ExpandState N) (s : Option Bool) 
     all_goals try dsimp [actionIndex, symbolIndex]
     all_goals simp_all [symbolIndex]
 
+/-- On any primitive-codable domain, applying `expandLabelNat` to primitive recursive track
+count, phase, first-block flag, index, and queue-label functions is primitive recursive. -/
 theorem primrec_expandLabelNat_comp {α : Type*} [Primcodable α]
     {n phase first i fifo : α → ℕ} (hn : Primrec n) (hp : Primrec phase)
     (hf : Primrec first) (hi : Primrec i) (hq : Primrec fifo) :
@@ -6571,6 +7538,9 @@ theorem primrec_expandLabelNat_comp {α : Type*} [Primcodable α]
     (Primrec.nat_add.comp (Primrec.nat_add.comp hq (Primrec.nat_mul.comp hpow hi)) (Primrec.nat_mul.comp hblock hf))
     (Primrec.nat_mul.comp (Primrec.nat_mul.comp (Primrec.const 2) hblock) hp)
 
+/-- On any primitive-codable domain, the numeric expansion transition is primitive recursive
+when its track count, phase, first-block flag, index, queue, and symbol coordinates are
+primitive recursive. -/
 theorem primrec_expandStepNat_comp {α : Type*} [Primcodable α]
     {n phase first i fifo s : α → ℕ} (hn : Primrec n) (hp : Primrec phase)
     (hf : Primrec first) (hi : Primrec i) (hq : Primrec fifo) (hs : Primrec s) :
@@ -6633,26 +7603,35 @@ theorem primrec_expandStepNat_comp {α : Type*} [Primcodable α]
         (he (Primrec.const 11) (Primrec.const 0) (Primrec.const 0) hq (Primrec.const 0)))
       (Primrec.const 0)))))))))))
 
+/-- Decoding expansion label `q` recovers its phase as `q.val / (2 * ((N + 3) * 3 ^ (N + 2)))`. -/
 theorem expandLabels_phase_nat (N : ℕ) (q : Fin (expandControlMax N + 1)) :
     ((expandLabels N).symm q).1.val = q.val / (2 * ((N + 3) * 3 ^ (N + 2))) := by
   rfl
 
+/-- With `B = (N + 3) * 3 ^ (N + 2)`, the first-block flag of decoded expansion label `q`,
+converted to a natural number, is `q.val % (2 * B) / B`. -/
 theorem expandLabels_first_nat (N : ℕ) (q : Fin (expandControlMax N + 1)) :
     ((expandLabels N).symm q).2.1.toNat =
       q.val % (2 * ((N + 3) * 3 ^ (N + 2))) / ((N + 3) * 3 ^ (N + 2)) := by
   have h (j : Fin 2) : (finTwoEquiv j).toNat = j.val := by fin_cases j <;> rfl
   exact h _
 
+/-- With `P = 3 ^ (N + 2)` and `B = (N + 3) * P`, the index of decoded expansion label `q` is
+`q.val % (2 * B) % B / P`. -/
 theorem expandLabels_index_nat (N : ℕ) (q : Fin (expandControlMax N + 1)) :
     ((expandLabels N).symm q).2.2.1.val =
       q.val % (2 * ((N + 3) * 3 ^ (N + 2))) % ((N + 3) * 3 ^ (N + 2)) / 3 ^ (N + 2) := by
   rfl
 
+/-- With `P = 3 ^ (N + 2)` and `B = (N + 3) * P`, the queue encoding of decoded expansion label
+`q` is `q.val % (2 * B) % B % P`. -/
 theorem expandLabels_queue_nat (N : ℕ) (q : Fin (expandControlMax N + 1)) :
     (expandQueueLabels N (((expandLabels N).symm q).2.2.2)).val =
       q.val % (2 * ((N + 3) * 3 ^ (N + 2))) % ((N + 3) * 3 ^ (N + 2)) % 3 ^ (N + 2) := by
   exact congrArg Fin.val ((expandQueueLabels N).apply_symm_apply _)
 
+/-- The numeric expansion transition row `expandRowNat N row` is primitive recursive in the
+track count and row index. -/
 theorem primrec_expandRowNat : Primrec₂ expandRowNat := by
   change Primrec (fun p : ℕ × ℕ => expandRowNat p.1 p.2)
   have hn : Primrec (fun p : ℕ × ℕ => p.1) := Primrec.fst
@@ -6668,6 +7647,8 @@ theorem primrec_expandRowNat : Primrec₂ expandRowNat := by
     (Primrec.nat_div.comp hrest hblock) (Primrec.nat_div.comp hlow hslots)
     (Primrec.nat_mod.comp hlow hslots) (Primrec.nat_mod.comp hr (Primrec.const 3))
 
+/-- Serializing a native expansion transition at control label `row / 3 % (expandControlMax N +
+1)` and symbol `decodeSymbol (row % 3)` gives `expandRowNat N row`. -/
 theorem nativeExpandTable_row_nat (N row : ℕ) :
     encodeTransition (nativeExpandTable N
       ⟨row / 3 % (expandControlMax N + 1), Nat.mod_lt _ (by omega)⟩ (decodeSymbol (row % 3))) =
@@ -6680,6 +7661,8 @@ theorem nativeExpandTable_row_nat (N row : ℕ) :
     expandLabels_queue_nat, hd]
   rfl
 
+/-- The expansion code is obtained by `codeEnumerate` with maximum label `expandControlMax N`, a
+constantly false readout, and transition rows `expandRowNat N`. -/
 theorem expandCode_eq_codeEnumerate (N : ℕ) :
     expandCode N = codeEnumerate (expandControlMax N) (fun _ => false) (expandRowNat N) := by
   rw [expandCode, encodeMachine_eq_codeEnumerate]
@@ -6687,22 +7670,28 @@ theorem expandCode_eq_codeEnumerate (N : ℕ) :
   funext row
   exact nativeExpandTable_row_nat N row
 
+/-- Constructing the input-expansion code from its track count is primitive recursive. -/
 theorem primrec_expandCode : Primrec expandCode := by
   have ho : Primrec₂ (fun (_ _ : ℕ) => false) := Primrec.const false
   exact (primrec_codeEnumerate primrec_expandControlMax ho primrec_expandRowNat).of_eq
     (fun N => (expandCode_eq_codeEnumerate N).symm)
 
+/-- Decoding an action number and taking its action index reduces that number modulo five. -/
 theorem actionIndex_decodeAction (n : ℕ) : actionIndex (decodeAction n) = n % 5 := by
   unfold decodeAction
   have h : n % 5 < 5 := Nat.mod_lt _ (by omega)
   interval_cases he : n % 5 <;> rfl
 
+/-- Decoding a numeric transition with control bound `Q` and encoding it again yields
+`normalizeTransitionNat Q record`. -/
 theorem encodeTransition_decodeTransition (Q record : ℕ) :
     encodeTransition (decodeTransition Q record) = normalizeTransitionNat Q record := by
   cases record with
   | zero => rfl
   | succ n => simp [decodeTransition, encodeTransition, normalizeTransitionNat, actionIndex_decodeAction]
 
+/-- The numeric source row equals the encoded source-table transition with control label reduced
+modulo `controlSize code + 1` and symbol index reduced modulo three. -/
 theorem sourceRowNat_table (code : Code) (coin : Bool) (q s : ℕ) :
     encodeTransition (table code coin ⟨q % (controlSize code + 1), Nat.mod_lt _ (by omega)⟩
       (decodeSymbol (s % 3))) = sourceRowNat code coin q s := by
@@ -6711,14 +7700,21 @@ theorem sourceRowNat_table (code : Code) (coin : Bool) (q s : ℕ) :
   simp only [table, rowIndex, hs, encodeTransition_decodeTransition, sourceRowNat]
   simp only [Nat.add_assoc]
 
+/-- Embedding an expansion control label in the left block of the sequenced machine preserves
+its natural-number value. -/
 theorem expandedSequenceLabels_inl_val (N : ℕ) (next : Code)
     (q : Fin (controlSize (expandCode N) + 1)) :
     (expandedSequenceLabels N next (.inl q)).val = q.val := by rfl
 
+/-- Embedding a continuation control label in the sequenced machine adds the expansion block
+size `expandControlMax N + 1`. -/
 theorem expandedSequenceLabels_inr_val (N : ℕ) (next : Code)
     (q : Fin (controlSize next + 1)) :
     (expandedSequenceLabels N next (.inr q)).val = expandControlMax N + 1 + q.val := by rfl
 
+/-- In the expansion block, nonzero transition records are unchanged by sequencing. A zero
+expansion record becomes `5 * (expandControlMax N + 1) + (2 + symbolIndex s) + 1`,
+transferring to the continuation's initial label while writing back the scanned symbol. -/
 theorem expandedSequenceTable_left_record (N : ℕ) (next : Code) (coin : Bool)
     (q : Fin (controlSize (expandCode N) + 1)) (s : Option Bool) :
     encodeTransition (expandedSequenceTable N next coin (expandedSequenceLabels N next (.inl q)) s) =
@@ -6738,6 +7734,9 @@ theorem expandedSequenceTable_left_record (N : ℕ) (next : Code) (coin : Bool)
     rcases p with ⟨q', action⟩
     simp [encodeTransition, expandedSequenceLabels_inl_val]
 
+/-- In the continuation block, a halting transition remains encoded by zero. Every nonzero
+continuation transition record is increased by `5 * (expandControlMax N + 1)` to account for
+the expansion-state offset. -/
 theorem expandedSequenceTable_right_record (N : ℕ) (next : Code) (coin : Bool)
     (q : Fin (controlSize next + 1)) (s : Option Bool) :
     encodeTransition (expandedSequenceTable N next coin (expandedSequenceLabels N next (.inr q)) s) =
@@ -6754,6 +7753,8 @@ theorem expandedSequenceTable_right_record (N : ℕ) (next : Code) (coin : Bool)
     rw [if_neg hn]
     omega
 
+/-- The encoded native expansion transition at control label `q` and symbol `s` is `expandRowNat
+N (3 * q.val + symbolIndex s)`. -/
 theorem nativeExpandTable_record_nat (N : ℕ) (q : Fin (expandControlMax N + 1)) (s : Option Bool) :
     encodeTransition (nativeExpandTable N q s) = expandRowNat N (3 * q.val + symbolIndex s) := by
   have hs : symbolIndex s < 3 := (optionBoolFin s).isLt
@@ -6762,11 +7763,16 @@ theorem nativeExpandTable_record_nat (N : ℕ) (q : Fin (expandControlMax N + 1)
   simpa only [hdiv, Nat.mod_eq_of_lt q.isLt, hmod, decodeSymbol_symbolIndex] using!
     nativeExpandTable_row_nat N (3 * q.val + symbolIndex s)
 
+/-- The sequenced machine's number of control states is the sum of the expansion block size
+`expandControlMax N + 1` and the continuation block size `controlSize next + 1`. -/
 theorem expandedSequenceMax_size (N : ℕ) (next : Code) :
     expandedSequenceMax N next + 1 = (expandControlMax N + 1) + (controlSize next + 1) := by
   simp only [expandedSequenceMax, expandCode, controlSize_encode]
   omega
 
+/-- The encoded sequenced-table transition obtained by decoding a numeric row's coin, control
+label, and symbol equals `expandThenRowNat N next row`. The coin is true exactly when `3 *
+(expandedSequenceMax N next + 1) <= row`. -/
 theorem expandedSequenceTable_row_nat (N : ℕ) (next : Code) (row : ℕ) :
     encodeTransition (expandedSequenceTable N next (decide (3 * (expandedSequenceMax N next + 1) ≤ row))
       ⟨row / 3 % (expandedSequenceMax N next + 1), Nat.mod_lt _ (by omega)⟩ (decodeSymbol (row % 3))) =
@@ -6802,12 +7808,17 @@ theorem expandedSequenceTable_row_nat (N : ℕ) (next : Code) (row : ℕ) :
     simp only [expandThenRowNat, ← expandedSequenceMax_size, hv, ha, ↓reduceIte,
         Nat.add_sub_cancel_left]
 
+/-- The sequenced-machine readout at a natural-number label reduced modulo its number of control
+states equals `expandThenOutputNat N next q`. -/
 theorem expandedSequenceAccept_serializer_nat (N : ℕ) (next : Code) (q : ℕ) :
     expandedSequenceAccept N next
       ⟨q % (expandedSequenceMax N next + 1), Nat.mod_lt _ (by omega)⟩ = expandThenOutputNat N next q := by
   rw [expandedSequenceAccept_nat]
   simp only [expandCode, controlSize_encode, expandedSequenceMax_size, expandThenOutputNat, readout]
 
+/-- The expansion-then-continuation code is `codeEnumerate` with maximum label
+`expandedSequenceMax N next`, readout `expandThenOutputNat N next`, and rows
+`expandThenRowNat N next`. -/
 theorem expandThenCode_eq_codeEnumerate (N : ℕ) (next : Code) :
     expandThenCode N next = codeEnumerate (expandedSequenceMax N next)
       (expandThenOutputNat N next) (expandThenRowNat N next) := by
@@ -6818,6 +7829,8 @@ theorem expandThenCode_eq_codeEnumerate (N : ℕ) (next : Code) :
   · funext row
     exact expandedSequenceTable_row_nat N next row
 
+/-- Transition-record normalization is primitive recursive jointly in the control bound and
+numeric record. -/
 theorem primrec_normalizeTransitionNat : Primrec₂ normalizeTransitionNat := by
   change Primrec (fun p : ℕ × ℕ => normalizeTransitionNat p.1 p.2)
   have hsub : Primrec (fun p : ℕ × ℕ => p.2 - 1) :=
@@ -6828,6 +7841,8 @@ theorem primrec_normalizeTransitionNat : Primrec₂ normalizeTransitionNat := by
     (Primrec.nat_add.comp (Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 5) hlabel)
       (Primrec.nat_mod.comp hsub (Primrec.const 5))) (Primrec.const 1))
 
+/-- On a primitive-codable domain, the numeric source row is primitive recursive when the source
+code, coin, control label, and symbol index are primitive recursive functions. -/
 theorem primrec_sourceRowNat_comp {α : Type*} [Primcodable α]
     {code : α → Code} {coin : α → Bool} {q s : α → ℕ}
     (hc : Primrec code) (hb : Primrec coin) (hq : Primrec q) (hs : Primrec s) :
@@ -6842,6 +7857,9 @@ theorem primrec_sourceRowNat_comp {α : Type*} [Primcodable α]
     (Primrec.nat_mod.comp hs (Primrec.const 3))
   exact primrec_normalizeTransitionNat.comp hQ ((Primrec.list_getD 0).comp hc hidx)
 
+/-- On a primitive-codable domain, the arithmetic expansion-then-continuation readout is
+primitive recursive when the track count, continuation code, and control label are primitive
+recursive functions. -/
 theorem primrec_expandThenOutputNat_comp {α : Type*} [Primcodable α]
     {n : α → ℕ} {code : α → Code} {q : α → ℕ}
     (hn : Primrec n) (hc : Primrec code) (hq : Primrec q) :
@@ -6855,6 +7873,9 @@ theorem primrec_expandThenOutputNat_comp {α : Type*} [Primcodable α]
     (Primrec.const 2)) (Primrec.const 1)
   exact Primrec.ite (Primrec.nat_lt.comp hlabel he) (Primrec.const false) hout
 
+/-- On a primitive-codable domain, the numeric expansion-then-continuation transition row is
+primitive recursive when the track count, continuation code, and row index are primitive
+recursive functions. -/
 theorem primrec_expandThenRowNat_comp {α : Type*} [Primcodable α]
     {n : α → ℕ} {code : α → Code} {row : α → ℕ}
     (hn : Primrec n) (hc : Primrec code) (hr : Primrec row) :
@@ -6875,6 +7896,8 @@ theorem primrec_expandThenRowNat_comp {α : Type*} [Primcodable α]
     (Primrec.ite (Primrec.eq.comp hright (Primrec.const 0)) (Primrec.const 0)
       (Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 5) he) hright))
 
+/-- The maximum control label of the expansion-then-continuation machine is primitive recursive
+in the track count and continuation code. -/
 theorem primrec_expandedSequenceMax : Primrec₂ expandedSequenceMax := by
   change Primrec (fun p : ℕ × Code => expandedSequenceMax p.1 p.2)
   have hn : Primrec (fun p : ℕ × Code => expandControlMax p.1) :=
@@ -6883,6 +7906,8 @@ theorem primrec_expandedSequenceMax : Primrec₂ expandedSequenceMax := by
   exact (Primrec.nat_add.comp (Primrec.nat_add.comp hn hc) (Primrec.const 1)).of_eq (fun p => by
     simp only [expandedSequenceMax, expandCode, controlSize_encode])
 
+/-- Constructing the expansion-then-continuation code is primitive recursive in the track count
+and continuation code. -/
 theorem primrec_expandThenCode : Primrec₂ expandThenCode := by
   change Primrec (fun p : ℕ × Code => expandThenCode p.1 p.2)
   have ho : Primrec₂ (fun (p : ℕ × Code) (q : ℕ) => expandThenOutputNat p.1 p.2 q) :=
@@ -6892,6 +7917,9 @@ theorem primrec_expandThenCode : Primrec₂ expandThenCode := by
   exact (primrec_codeEnumerate primrec_expandedSequenceMax ho hr).of_eq
     (fun p => (expandThenCode_eq_codeEnumerate p.1 p.2).symm)
 
+/-- Converting a bit buffer to a track cell and back preserves every coordinate except that the
+last coordinate becomes `some true` exactly when it was `some true`, and becomes `none`
+otherwise. -/
 theorem cellBuffer_bufferCell (N : ℕ) (f : BitBuffer N) :
     cellBuffer N (bufferCell N f) = Function.update f (Fin.last (N + 1))
       (if f (Fin.last (N + 1)) == some true then some true else none) := by
@@ -6902,6 +7930,8 @@ theorem cellBuffer_bufferCell (N : ℕ) (f : BitBuffer N) :
     · simp [cellBuffer, bufferCell]
     · simp [cellBuffer, bufferCell]
 
+/-- The numeric encoding of a buffer converted to a track cell and back is `canonicalBufferNat
+N` applied to the original buffer encoding. -/
 theorem cellBuffer_bufferCell_nat (N : ℕ) (f : BitBuffer N) :
     (expandQueueLabels N (cellBuffer N (bufferCell N f))).val =
       canonicalBufferNat N (expandQueueLabels N f).val := by
@@ -6915,6 +7945,7 @@ theorem cellBuffer_bufferCell_nat (N : ℕ) (f : BitBuffer N) :
   | none => rfl
   | some b => cases b <;> rfl
 
+/-- Canonicalizing a numeric buffer is primitive recursive in the track count and buffer label. -/
 theorem primrec_canonicalBufferNat : Primrec₂ canonicalBufferNat := by
   change Primrec (fun p : ℕ × ℕ => canonicalBufferNat p.1 p.2)
   have hlast : Primrec (fun p : ℕ × ℕ => p.1 + 1) :=
@@ -6924,11 +7955,14 @@ theorem primrec_canonicalBufferNat : Primrec₂ canonicalBufferNat := by
       Primrec.ite (Primrec.eq.comp hd (Primrec.const 2)) (Primrec.const 2) (Primrec.const 0)
   exact primrec_queueUpdateNat.comp (Primrec.snd.pair (hlast.pair hhome))
 
+/-- The numeric buffer encoding of any track cell is fixed by `canonicalBufferNat N`. -/
 theorem canonicalBufferNat_cellBuffer (N : ℕ) (s : TrackCell N) :
     canonicalBufferNat N (expandQueueLabels N (cellBuffer N s)).val =
       (expandQueueLabels N (cellBuffer N s)).val := by
   simpa only [bufferCell_cellBuffer] using! (cellBuffer_bufferCell_nat N (cellBuffer N s)).symm
 
+/-- Canonicalization preserves the bound `3 ^ (N + 2)` for any numeric buffer label below that
+bound. -/
 theorem canonicalBufferNat_lt (N : ℕ) (q : Fin (3 ^ (N + 2))) :
     canonicalBufferNat N q.val < 3 ^ (N + 2) := by
   have h := cellBuffer_bufferCell_nat N ((expandQueueLabels N).symm q)
@@ -6936,11 +7970,15 @@ theorem canonicalBufferNat_lt (N : ℕ) (q : Fin (3 ^ (N + 2))) :
   rw [← h]
   exact (expandQueueLabels N (cellBuffer N (bufferCell N ((expandQueueLabels N).symm q)))).isLt
 
+/-- Canonicalizing the numeric encoding of a bit buffer twice gives the same result as
+canonicalizing it once. -/
 theorem canonicalBufferNat_idempotent (N : ℕ) (f : BitBuffer N) :
     canonicalBufferNat N (canonicalBufferNat N (expandQueueLabels N f).val) =
       canonicalBufferNat N (expandQueueLabels N f).val := by
   rw [← cellBuffer_bufferCell_nat, canonicalBufferNat_cellBuffer]
 
+/-- For a buffer label below `3 ^ (N + 2)`, canonicalizing the label before decoding does not
+change the resulting track cell. -/
 theorem bufferCell_canonicalBufferNat (N : ℕ) (q : Fin (3 ^ (N + 2))) :
     bufferCell N ((expandQueueLabels N).symm
       ⟨canonicalBufferNat N q.val, canonicalBufferNat_lt N q⟩) =
@@ -6953,6 +7991,9 @@ theorem bufferCell_canonicalBufferNat (N : ℕ) (q : Fin (3 ^ (N + 2))) :
     rw [Equiv.apply_symm_apply, cellBuffer_bufferCell_nat, Equiv.apply_symm_apply]
   rw [h, bufferCell_cellBuffer]
 
+/-- At simulator phase two, for every source state, simulator index, coin, and scanned symbol,
+the simulator transition is absent exactly when the source transition on the canonically
+decoded buffer is absent. -/
 theorem bitSim_ready_canonical_isNone {Λ : Type*} [Fintype Λ] [Inhabited Λ] (N : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) Λ) (q : Λ) (i : Fin (3 * (N + 2) + 1))
     (buf : Fin (3 ^ (N + 2))) (c : Bool) (s : Option Bool) :
@@ -6961,25 +8002,36 @@ theorem bitSim_ready_canonical_isNone {Λ : Type*} [Fintype Λ] [Inhabited Λ] (
         ⟨canonicalBufferNat N buf.val, canonicalBufferNat_lt N buf⟩))).isNone := by
   rw [bitSim_ready_isNone, bufferCell_canonicalBufferNat]
 
+/-- Encoding a bit-simulator state agrees with `bitSimLabelNat` on its phase, source control
+label, index, and numeric buffer encoding. -/
 theorem bitSimLabels_nat (N Q : ℕ) (q : BitSimState N (Fin (Q + 1))) :
     (bitSimLabels N Q q).val = bitSimLabelNat N Q q.1.val q.2.1.val q.2.2.1.val
       (expandQueueLabels N q.2.2.2).val := by rfl
 
+/-- With `S = (3 * (N + 2) + 1) * 3 ^ (N + 2)`, the phase of decoded bit-simulator label `q` is
+`q.val / ((Q + 1) * S)`. -/
 theorem bitSimLabels_phase_nat (N Q : ℕ) (q : Fin (bitSimControlMax N Q + 1)) :
     ((bitSimLabels N Q).symm q).1.val =
       q.val / ((Q + 1) * ((3 * (N + 2) + 1) * 3 ^ (N + 2))) := by rfl
 
+/-- With `P = 3 ^ (N + 2)` and `S = (3 * (N + 2) + 1) * P`, the index of decoded bit-simulator
+label `q` is `q.val % ((Q + 1) * S) % S / P`. -/
 theorem bitSimLabels_index_nat (N Q : ℕ) (q : Fin (bitSimControlMax N Q + 1)) :
     ((bitSimLabels N Q).symm q).2.2.1.val =
       q.val % ((Q + 1) * ((3 * (N + 2) + 1) * 3 ^ (N + 2))) %
         ((3 * (N + 2) + 1) * 3 ^ (N + 2)) / 3 ^ (N + 2) := by rfl
 
+/-- With `P = 3 ^ (N + 2)` and `S = (3 * (N + 2) + 1) * P`, the encoded buffer of decoded
+bit-simulator label `q` is `q.val % ((Q + 1) * S) % S % P`. -/
 theorem bitSimLabels_buffer_nat (N Q : ℕ) (q : Fin (bitSimControlMax N Q + 1)) :
     (expandQueueLabels N (((bitSimLabels N Q).symm q).2.2.2)).val =
       q.val % ((Q + 1) * ((3 * (N + 2) + 1) * 3 ^ (N + 2))) %
         ((3 * (N + 2) + 1) * 3 ^ (N + 2)) % 3 ^ (N + 2) := by
   exact congrArg Fin.val ((expandQueueLabels N).apply_symm_apply _)
 
+/-- On a primitive-codable domain, the numeric bit-simulator label is primitive recursive when
+the track count, source control bound, phase, source label, index, and buffer are primitive
+recursive functions. -/
 theorem primrec_bitSimLabelNat_comp {α : Type*} [Primcodable α]
     {n Q phase wide i buffer : α → ℕ} (hn : Primrec n) (hQ : Primrec Q)
     (hp : Primrec phase) (hw : Primrec wide) (hi : Primrec i) (hb : Primrec buffer) :
@@ -6992,11 +8044,14 @@ theorem primrec_bitSimLabelNat_comp {α : Type*} [Primcodable α]
     (Primrec.nat_add.comp hb (Primrec.nat_mul.comp hpow hi)) (Primrec.nat_mul.comp hstride hw))
     (Primrec.nat_mul.comp (Primrec.nat_mul.comp (Primrec.nat_add.comp hQ (Primrec.const 1)) hstride) hp)
 
+/-- The stride `wideRecordStride N` used for wide transition records is strictly positive for
+every track count. -/
 theorem wideRecordStride_pos (N : ℕ) : 0 < wideRecordStride N := by
   have h : 0 < 3 ^ (N + 2) := pow_pos (by decide) _
   unfold wideRecordStride
   omega
 
+/-- Every wide-tape action has numeric code strictly below `wideRecordStride N`. -/
 theorem wideActionNat_lt (N : ℕ) (action : Turing.TM0.Stmt (TrackCell N)) :
     wideActionNat N action < wideRecordStride N := by
   have hp : 0 < 3 ^ (N + 2) := pow_pos (by decide) _
@@ -7007,6 +8062,7 @@ theorem wideActionNat_lt (N : ℕ) (action : Turing.TM0.Stmt (TrackCell N)) :
     simp only [wideActionNat, wideRecordStride]
     omega
 
+/-- A wide transition record has numeric encoding zero exactly when the transition is absent. -/
 theorem wideRecordNat_eq_zero_iff (N Q : ℕ)
     (record : Option (Fin (Q + 1) × Turing.TM0.Stmt (TrackCell N))) :
     wideRecordNat N record = 0 ↔ record = none := by
@@ -7014,21 +8070,29 @@ theorem wideRecordNat_eq_zero_iff (N Q : ℕ)
   | none => simp only [wideRecordNat]
   | some p => rcases p with ⟨q, action⟩; simp [wideRecordNat]
 
+/-- Subtracting one from a nonhalting wide transition record and dividing by `wideRecordStride
+N` recovers its destination control label `q.val`. -/
 theorem wideRecordNat_source (N Q : ℕ) (q : Fin (Q + 1)) (action : Turing.TM0.Stmt (TrackCell N)) :
     (wideRecordNat N (some (q, action)) - 1) / wideRecordStride N = q.val := by
   simp only [wideRecordNat, Nat.add_sub_cancel]
   rw [Nat.add_comm, Nat.add_mul_div_left _ _ (wideRecordStride_pos N),
     Nat.div_eq_of_lt (wideActionNat_lt N action), Nat.zero_add]
 
+/-- Subtracting one from a nonhalting wide transition record and reducing modulo
+`wideRecordStride N` recovers its wide action code. -/
 theorem wideRecordNat_action (N Q : ℕ) (q : Fin (Q + 1)) (action : Turing.TM0.Stmt (TrackCell N)) :
     (wideRecordNat N (some (q, action)) - 1) % wideRecordStride N = wideActionNat N action := by
   simp only [wideRecordNat, Nat.add_sub_cancel, Nat.mul_add_mod,
     Nat.mod_eq_of_lt (wideActionNat_lt N action)]
 
+/-- The stride for wide transition records is primitive recursive in the track count. -/
 theorem primrec_wideRecordStride : Primrec wideRecordStride := by
   exact Primrec.nat_add.comp (primrec_natPow.comp (Primrec.const 3)
     (Primrec.nat_add.comp Primrec.id (Primrec.const 2))) (Primrec.const 2)
 
+/-- At simulator phase two, serializing the relabeled simulator transition gives `bitSimStepNat`
+on the source label, index, encoded buffer, scanned symbol, and encoded source transition on
+the decoded track cell. -/
 theorem bitSimTable_ready_record_nat (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1)))
     (coin : Bool) (q : Fin (Q + 1)) (i : Fin (3 * (N + 2) + 1))
@@ -7056,6 +8120,9 @@ theorem bitSimTable_ready_record_nat (N Q : ℕ)
 
 set_option maxHeartbeats 1600000 in
 
+/-- In every simulator phase, serializing the relabeled transition agrees with `bitSimStepNat`
+on the state's numeric coordinates, scanned symbol index, and wide record of the source
+transition on the decoded buffer. -/
 theorem bitSimTable_record_nat (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1)))
     (coin : Bool) (q : BitSimState N (Fin (Q + 1))) (s : Option Bool) :
@@ -7082,6 +8149,8 @@ theorem bitSimTable_record_nat (N Q : ℕ)
       all_goals try dsimp [actionIndex]
       all_goals simp_all
 
+/-- Evaluating `wideTableNat` at a valid source control label and an encoded bit buffer gives
+the wide record of the source transition on that buffer's decoded track cell. -/
 theorem wideTableNat_actual (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1)))
     (coin : Bool) (q : Fin (Q + 1)) (buf : BitBuffer N) :
@@ -7093,6 +8162,9 @@ theorem wideTableNat_actual (N Q : ℕ)
       (M coin q (bufferCell N ((expandQueueLabels N).symm (expandQueueLabels N buf)))) = _
   rw [Equiv.symm_apply_apply]
 
+/-- Serializing the native bit-simulator transition decoded from numeric row `row` gives
+`bitSimRowNat N Q (wideTableNat N Q M) row`. The decoded coin is true exactly when `3 *
+(bitSimControlMax N Q + 1) <= row`. -/
 theorem nativeBitSimTable_row_nat (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1))) (row : ℕ) :
     encodeTransition (nativeBitSimTable N Q M (decide (3 * (bitSimControlMax N Q + 1) ≤ row))
@@ -7111,6 +8183,9 @@ theorem nativeBitSimTable_row_nat (N Q : ℕ)
       bitSimLabels_buffer_nat, hs]
   rfl
 
+/-- The bit-simulator code is `codeEnumerate` with maximum label `bitSimControlMax N Q`, native
+readout on labels reduced modulo its state count, and numeric rows `bitSimRowNat N Q
+(wideTableNat N Q M)`. -/
 theorem bitSimCode_eq_codeEnumerate (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1))) (a : Fin (Q + 1) → Bool) :
     bitSimCode N Q M a = codeEnumerate (bitSimControlMax N Q)
@@ -7122,6 +8197,9 @@ theorem bitSimCode_eq_codeEnumerate (N Q : ℕ)
   funext row
   exact nativeBitSimTable_row_nat N Q M row
 
+/-- On a primitive-codable domain, the numeric bit-simulator step is primitive recursive when
+all eight arguments, from track count and source control bound through scanned symbol and
+source record, are primitive recursive functions. -/
 theorem primrec_bitSimStepNat_comp {α : Type*} [Primcodable α]
     {n Q phase wide i buffer symbol record : α → ℕ}
     (hn : Primrec n) (hQ : Primrec Q) (hp : Primrec phase) (hw : Primrec wide)
@@ -7189,6 +8267,10 @@ theorem primrec_bitSimStepNat_comp {α : Type*} [Primcodable α]
     (Primrec.ite (Primrec.eq.comp hp (Primrec.const 7)) h7
     (Primrec.ite (Primrec.eq.comp hp (Primrec.const 8)) h8 (Primrec.const 0)))))))))
 
+/-- On a primitive-codable domain, the numeric bit-simulator row is primitive recursive when the
+track count, source control bound, and row index are primitive recursive and the
+source-record function is jointly primitive recursive in the parameter, coin, source label,
+and buffer. -/
 theorem primrec_bitSimRowNat_comp {α : Type*} [Primcodable α]
     {n Q row : α → ℕ} {source : α → Bool → ℕ → ℕ → ℕ}
     (hn : Primrec n) (hQ : Primrec Q) (hr : Primrec row)
@@ -7210,6 +8292,8 @@ theorem primrec_bitSimRowNat_comp {α : Type*} [Primcodable α]
   exact primrec_bitSimStepNat_comp hn hQ (Primrec.nat_div.comp hlabel hfull) hwide
     (Primrec.nat_div.comp hinner hpow) hbuffer (Primrec.nat_mod.comp hr (Primrec.const 3)) hrecord
 
+/-- For a numeric buffer label below `3 ^ (N + 2)`, canonicalizing the label does not change
+`wideTableNat`, for any coin and natural-number source label. -/
 theorem wideTableNat_canonical (N Q : ℕ)
     (M : Bool → Turing.TM0.Machine (TrackCell N) (Fin (Q + 1)))
     (coin : Bool) (wide : ℕ) (buffer : Fin (3 ^ (N + 2))) :
@@ -7222,6 +8306,9 @@ theorem wideTableNat_canonical (N Q : ℕ)
     wideRecordNat N (M coin _ (bufferCell N ((expandQueueLabels N).symm buffer)))
   rw [bufferCell_canonicalBufferNat]
 
+/-- For the wide machine that stays in the same control state and writes back its cell, the
+numeric record is `wideRecordStride N * (wide % (Q + 1)) + 2 + canonicalBufferNat N (buffer
+% 3 ^ (N + 2)) + 1`. -/
 theorem wideTableNat_write_back (N Q : ℕ) (coin : Bool) (wide buffer : ℕ) :
     wideTableNat N Q (fun _ q cell => some (q, .write cell)) coin wide buffer =
       wideRecordStride N * (wide % (Q + 1)) +
@@ -7229,6 +8316,10 @@ theorem wideTableNat_write_back (N Q : ℕ) (coin : Bool) (wide buffer : ℕ) :
   simp only [wideTableNat, wideRecordNat, wideActionNat, cellBuffer_bufferCell_nat]
   rw [Equiv.apply_symm_apply]
 
+/-- On a primitive-codable domain, the numeric table of the cell-write-back machine is primitive
+recursive when the track count, control bound, source label, and buffer are primitive
+recursive functions. The coin function may be arbitrary because this machine ignores its
+coin. -/
 theorem primrec_wideTableNat_write_back_comp {α : Type*} [Primcodable α]
     {n Q wide buffer : α → ℕ} {coin : α → Bool}
     (hn : Primrec n) (hQ : Primrec Q) (hw : Primrec wide) (hb : Primrec buffer) :
@@ -7242,6 +8333,9 @@ theorem primrec_wideTableNat_write_back_comp {α : Type*} [Primcodable α]
     (Primrec.nat_add.comp (Primrec.const 2) hbuf)) (Primrec.const 1)).of_eq
       (fun x => (wideTableNat_write_back (n x) (Q x) (coin x) (wide x) (buffer x)).symm)
 
+/-- Writing marker cell `b` to track `j` updates buffer coordinates zero, `j + 1`, and `N + 1`
+to its input symbol, work symbol, and home marker, respectively. The home marker is encoded
+by `some true` when set and `none` otherwise. -/
 theorem cellBuffer_writeTrack (N : ℕ) (j : Fin N) (s : TrackCell N) (b : MarkerCell) :
     cellBuffer N (writeTrack j s b) =
       Function.update (Function.update (Function.update (cellBuffer N s) 0 b.1)
@@ -7263,6 +8357,9 @@ theorem cellBuffer_writeTrack (N : ℕ) (j : Fin N) (s : TrackCell N) (b : Marke
       simp [cellBuffer, writeTrack, Function.update_of_ne hj]
     · simp [cellBuffer, writeTrack, Function.update_apply]
 
+/-- The numeric buffer encoding after writing marker cell `b` to track `j` equals
+`trackWriteBufferNat` on the original encoding, the two symbol indices, and home digit two
+or zero according to the marker flag. -/
 theorem cellBuffer_writeTrack_nat (N : ℕ) (j : Fin N) (s : TrackCell N) (b : MarkerCell) :
     (expandQueueLabels N (cellBuffer N (writeTrack j s b))).val =
       trackWriteBufferNat N j.val (expandQueueLabels N (cellBuffer N s)).val
@@ -7272,34 +8369,48 @@ theorem cellBuffer_writeTrack_nat (N : ℕ) (j : Fin N) (s : TrackCell N) (b : M
   unfold trackWriteBufferNat
   cases b.2.2 <;> rfl
 
+/-- Digit zero of a track cell's numeric buffer encoding is the index of its input symbol. -/
 theorem cellBuffer_input_digit (N : ℕ) (s : TrackCell N) :
     queueDigitNat (expandQueueLabels N (cellBuffer N s)).val 0 = symbolIndex s.1 := by
   simpa only [cellBuffer, Fin.cons_zero] using!
     expandQueueLabels_digit_encode N (cellBuffer N s) (0 : Fin (N + 2))
 
+/-- Digit `j.val + 1` of a track cell's numeric buffer encoding is the index of work-track `j`'s
+symbol. -/
 theorem cellBuffer_work_digit (N : ℕ) (s : TrackCell N) (j : Fin N) :
     queueDigitNat (expandQueueLabels N (cellBuffer N s)).val (j.val + 1) = symbolIndex (s.2.1 j) := by
   simpa only [cellBuffer, Fin.val_succ, Fin.val_castSucc, Fin.cons_succ, Fin.snoc_castSucc] using!
     expandQueueLabels_digit_encode N (cellBuffer N s) j.castSucc.succ
 
+/-- Digit `N + 1` of a track cell's numeric buffer encoding is two when its home marker is set
+and zero otherwise. -/
 theorem cellBuffer_home_digit (N : ℕ) (s : TrackCell N) :
     queueDigitNat (expandQueueLabels N (cellBuffer N s)).val (N + 1) = if s.2.2 then 2 else 0 := by
   have h := expandQueueLabels_digit_encode N (cellBuffer N s) (Fin.last (N + 1))
   cases hb : s.2.2 <;> simpa [cellBuffer, hb, symbolIndex] using! h
 
+/-- Encoding a rounds state agrees with `roundsLabelNat N Q` on its round index, success count,
+and program label. -/
 theorem roundsLabels_nat (N Q : ℕ) (q : RoundsState N Q) :
     (roundsLabels N Q q).val = roundsLabelNat N Q q.1.val q.2.1.val q.2.2.val := by rfl
 
+/-- The round index of decoded rounds label `q` is `q.val / ((N + 1) * (2 * Q + 11))`. -/
 theorem roundsLabels_round_nat (N Q : ℕ) (q : Fin (roundsControlMax N Q + 1)) :
     ((roundsLabels N Q).symm q).1.val = q.val / ((N + 1) * (2 * Q + 11)) := by rfl
 
+/-- The program label of decoded rounds label `q` is `q.val % ((N + 1) * (2 * Q + 11)) % (2 * Q
++ 11)`. -/
 theorem roundsLabels_prog_nat (N Q : ℕ) (q : Fin (roundsControlMax N Q + 1)) :
     ((roundsLabels N Q).symm q).2.2.val = q.val % ((N + 1) * (2 * Q + 11)) % (2 * Q + 11) := by rfl
 
+/-- Writing a track cell's own focused marker cell back to the same track leaves the track cell
+unchanged. -/
 theorem writeTrack_focusTrack (N : ℕ) (j : Fin N) (s : TrackCell N) : writeTrack j s (focusTrack j s) = s := by
   rcases s with ⟨input, work, home⟩
   simp [writeTrack, focusTrack]
 
+/-- Updating a track cell's numeric buffer with its current input symbol, work-track `j` symbol,
+and home digit leaves the encoding unchanged. -/
 theorem trackWriteBufferNat_same (N : ℕ) (j : Fin N) (s : TrackCell N) :
     trackWriteBufferNat N j.val (expandQueueLabels N (cellBuffer N s)).val
       (symbolIndex s.1) (symbolIndex (s.2.1 j)) (if s.2.2 then 2 else 0) =
@@ -7308,15 +8419,22 @@ theorem trackWriteBufferNat_same (N : ℕ) (j : Fin N) (s : TrackCell N) :
   rw [writeTrack_focusTrack] at h
   exact h.symm
 
+/-- A preparation-phase label among the first five states keeps its natural-number value under
+`prepareHomingLabels Q`. -/
 theorem prepareHomingLabels_inl_val (Q : ℕ) (q : Fin 5) :
     (prepareHomingLabels Q (.inl q)).val = q.val := by rfl
 
+/-- Embedding a homing label with `prepareHomingLabels Q` adds the five preparation states to
+its natural-number value. -/
 theorem prepareHomingLabels_inr_val (Q : ℕ) (q : Fin (2 * Q + 6)) :
     (prepareHomingLabels Q (.inr q)).val = 5 + q.val := by rfl
 
+/-- The homing encoding of source state `q` and side flag is `side.toNat + 2 * q.val`. -/
 theorem homingLabels_inl_val (Q : ℕ) (q : Fin (Q + 1)) (side : Bool) :
     (homingLabels Q (.inl (q, side))).val = side.toNat + 2 * q.val := by cases side <;> rfl
 
+/-- The homing encoding of a return state with side and output flags is `2 * (Q + 1) +
+output.toNat + 2 * side.toNat`. -/
 theorem homingLabels_inr_val (Q : ℕ) (side output : Bool) :
     (homingLabels Q (.inr (side, output))).val = 2 * (Q + 1) + (output.toNat + 2 * side.toNat) := by
   have h : (homingLabels Q (.inr (side, output))).val =
@@ -7327,6 +8445,9 @@ theorem homingLabels_inr_val (Q : ℕ) (side output : Bool) :
 
 set_option maxHeartbeats 1200000 in
 
+/-- In any of the five copy-preparation states, the wide record of the track-round transition
+equals `trackRoundRowNat N j.val code coin q.val` applied to the track cell's numeric buffer
+encoding. -/
 theorem trackRoundTable_copy_record_nat (N : ℕ) (j : Fin N) (code : Code) (coin : Bool)
     (q : Fin 5) (s : TrackCell N) :
     wideRecordNat N (trackRoundTable j (controlSize code) (table code) (readout code) coin
@@ -7369,6 +8490,9 @@ theorem trackRoundTable_copy_record_nat (N : ℕ) (j : Fin N) (code : Code) (coi
 
 set_option maxHeartbeats 1200000 in
 
+/-- In a homing return state with side and output flags, the track-round transition's wide
+record agrees with `trackRoundRowNat` at program label `5 + 2 * (controlSize code + 1) +
+output.toNat + 2 * side.toNat` and the encoded cell buffer. -/
 theorem trackRoundTable_home_record_nat (N : ℕ) (j : Fin N) (code : Code) (coin : Bool)
     (side output : Bool) (s : TrackCell N) :
     wideRecordNat N (trackRoundTable j (controlSize code) (table code) (readout code) coin
@@ -7393,18 +8517,24 @@ theorem trackRoundTable_home_record_nat (N : ℕ) (j : Fin N) (code : Code) (coi
   all_goals simp_all
   all_goals split_ifs <;> omega
 
+/-- At a valid source control label and a genuine tape-symbol index, `sourceRowNat` is exactly
+the encoded transition of the source code's table. -/
 theorem sourceRowNat_actual (code : Code) (coin : Bool)
     (q : Fin (controlSize code + 1)) (s : Option Bool) :
     sourceRowNat code coin q.val (symbolIndex s) = encodeTransition (table code coin q s) := by
   simpa only [Nat.mod_eq_of_lt q.isLt, Nat.mod_eq_of_lt (symbolIndex_lt s), decodeSymbol_symbolIndex] using!
     (sourceRowNat_table code coin q.val (symbolIndex s)).symm
 
+/-- Subtracting one from the encoding of a present transition and dividing by five recovers its
+destination control label `q.val`. -/
 theorem encodeTransition_source {Q : ℕ} (q : Fin (Q + 1)) (action : Turing.TM0.Stmt (Option Bool)) :
     (encodeTransition (some (q, action)) - 1) / 5 = q.val := by
   have h := actionIndex_lt action
   simp only [encodeTransition, Nat.add_sub_cancel]
   omega
 
+/-- Subtracting one from the encoding of a present transition and reducing modulo five recovers
+its action index. -/
 theorem encodeTransition_action {Q : ℕ} (q : Fin (Q + 1)) (action : Turing.TM0.Stmt (Option Bool)) :
     (encodeTransition (some (q, action)) - 1) % 5 = actionIndex action := by
   have h := actionIndex_lt action
@@ -7413,6 +8543,9 @@ theorem encodeTransition_action {Q : ℕ} (q : Fin (Q + 1)) (action : Turing.TM0
 
 set_option maxHeartbeats 2000000 in
 
+/-- In a simulated source state `q` with side flag, the track-round transition's wide record
+agrees with `trackRoundRowNat` at program label `5 + side.toNat + 2 * q.val` and the encoded
+cell buffer. -/
 theorem trackRoundTable_source_record_nat (N : ℕ) (j : Fin N) (code : Code) (coin : Bool)
     (q : Fin (controlSize code + 1)) (side : Bool) (s : TrackCell N) :
     wideRecordNat N (trackRoundTable j (controlSize code) (table code) (readout code) coin
@@ -7476,12 +8609,16 @@ theorem trackRoundTable_source_record_nat (N : ℕ) (j : Fin N) (code : Code) (c
       all_goals simp_all [actionIndex_write]
       all_goals split_ifs <;> omega
 
+/-- For every numeric buffer below `3 ^ (N + 2)`, applying `canonicalBufferNat N` twice is the
+same as applying it once. -/
 theorem canonicalBufferNat_idempotent_nat (N buffer : ℕ) (hb : buffer < 3 ^ (N + 2)) :
     canonicalBufferNat N (canonicalBufferNat N buffer) = canonicalBufferNat N buffer := by
   have h := canonicalBufferNat_idempotent N ((expandQueueLabels N).symm ⟨buffer, hb⟩)
   rw [Equiv.apply_symm_apply] at h
   exact h
 
+/-- For a buffer below `3 ^ (N + 2)`, canonicalization leaves `trackRoundRowNat` unchanged, for
+arbitrary natural-number track and program indices, source code, and coin. -/
 theorem trackRoundRowNat_canonical (N j : ℕ) (code : Code) (coin : Bool) (prog buffer : ℕ)
     (hb : buffer < 3 ^ (N + 2)) :
     trackRoundRowNat N j code coin prog (canonicalBufferNat N buffer) =
@@ -7489,6 +8626,8 @@ theorem trackRoundRowNat_canonical (N j : ℕ) (code : Code) (coin : Bool) (prog
   unfold trackRoundRowNat
   rw [canonicalBufferNat_idempotent_nat N buffer hb]
 
+/-- For a buffer below `3 ^ (N + 2)`, canonicalization leaves `roundsStepNat` unchanged for
+every source code, coin, round index, success count, and program label. -/
 theorem roundsStepNat_canonical (N : ℕ) (code : Code) (coin : Bool) (round count prog buffer : ℕ)
     (hb : buffer < 3 ^ (N + 2)) :
     roundsStepNat N code coin round count prog (canonicalBufferNat N buffer) =
@@ -7497,6 +8636,9 @@ theorem roundsStepNat_canonical (N : ℕ) (code : Code) (coin : Bool) (round cou
   rw [trackRoundRowNat_canonical N round code coin prog buffer hb,
     canonicalBufferNat_idempotent_nat N buffer hb]
 
+/-- At every valid track-round program label, the transition's wide record equals
+`trackRoundRowNat` evaluated at the track index, source code, coin, numeric program label,
+and encoded cell buffer. -/
 theorem trackRoundTable_record_nat (N : ℕ) (j : Fin N) (code : Code) (coin : Bool)
     (q : Fin (2 * controlSize code + 11)) (s : TrackCell N) :
     wideRecordNat N (trackRoundTable j (controlSize code) (table code) (readout code) coin q s) =
@@ -7526,6 +8668,8 @@ theorem trackRoundTable_record_nat (N : ℕ) (j : Fin N) (code : Code) (coin : B
       rw [prepareHomingLabels_inr_val, homingLabels_inr_val]
       exact trackRoundTable_home_record_nat N j code coin side output s
 
+/-- The preparation-and-homing readout at control label `q` equals the arithmetic readout
+`prepareHomingOutputNat Q q.val`. -/
 theorem prepareHomingAccept_nat (Q : ℕ) (q : Fin (2 * Q + 11)) :
     prepareHomingAccept Q q = prepareHomingOutputNat Q q.val := by
   generalize he : (prepareHomingLabels Q).symm q = z
@@ -7560,6 +8704,9 @@ theorem prepareHomingAccept_nat (Q : ℕ) (q : Fin (2 * Q + 11)) :
         prepareHomingLabels_inr_val, homingLabels_inr_val, prepareHomingOutputNat, hp, decide_true, Bool.true_and, hs]
       cases side <;> cases output <;> rfl
 
+/-- Encoding a rounds-table transition after relabeling its destination agrees with
+`roundsStepNat` evaluated at the round index, success count, program label, and encoded cell
+buffer. -/
 theorem roundsTable_record_nat (N : ℕ) (code : Code) (coin : Bool)
     (q : RoundsState N (controlSize code)) (s : TrackCell N) :
     wideRecordNat N ((roundsTable N (controlSize code) (table code) (readout code) coin q s).map
@@ -7588,6 +8735,8 @@ theorem roundsTable_record_nat (N : ℕ) (code : Code) (coin : Bool)
   · simp only [roundsTable, hj, ↓reduceDIte, Option.map_none, wideRecordNat, roundsStepNat,
       ↓reduceIte]
 
+/-- For all natural-number control and buffer labels, the numeric wide table of the native
+rounds machine equals `roundsRowNat N code coin`. -/
 theorem nativeRoundsTable_row_nat (N : ℕ) (code : Code) (coin : Bool) (wide buffer : ℕ) :
     wideTableNat N (roundsControlMax N (controlSize code))
       (nativeRoundsTable N (controlSize code) (table code) (readout code)) coin wide buffer =
@@ -7601,6 +8750,9 @@ theorem nativeRoundsTable_row_nat (N : ℕ) (code : Code) (coin : Bool) (wide bu
   apply roundsStepNat_canonical
   exact Nat.mod_lt _ (pow_pos (by decide) _)
 
+/-- On a primitive-codable domain, updating the numeric track buffer is primitive recursive when
+the track count, track index, buffer, input digit, work digit, and home digit are primitive
+recursive functions. -/
 theorem primrec_trackWriteBufferNat_comp {α : Type*} [Primcodable α]
     {n j buffer input work home : α → ℕ}
     (hn : Primrec n) (hj : Primrec j) (hb : Primrec buffer) (hi : Primrec input)
@@ -7612,6 +8764,9 @@ theorem primrec_trackWriteBufferNat_comp {α : Type*} [Primcodable α]
   exact primrec_queueUpdateNat.comp
       (hwork.pair ((Primrec.nat_add.comp hn (Primrec.const 1)).pair hh))
 
+/-- On a primitive-codable domain, the numeric rounds-state label is primitive recursive when
+the track count, source control bound, round index, success count, and program label are
+primitive recursive functions. -/
 theorem primrec_roundsLabelNat_comp {α : Type*} [Primcodable α]
     {n Q round count prog : α → ℕ}
     (hn : Primrec n) (hQ : Primrec Q) (hr : Primrec round) (hc : Primrec count) (hp : Primrec prog) :
@@ -7620,6 +8775,9 @@ theorem primrec_roundsLabelNat_comp {α : Type*} [Primcodable α]
   exact Primrec.nat_add.comp (Primrec.nat_add.comp hp (Primrec.nat_mul.comp hsize hc))
     (Primrec.nat_mul.comp (Primrec.nat_mul.comp (Primrec.nat_add.comp hn (Primrec.const 1)) hsize) hr)
 
+/-- On a primitive-codable domain, the numeric track-round transition is primitive recursive
+when its track count, track index, source code, coin, program label, and buffer are
+primitive recursive functions. -/
 theorem primrec_trackRoundRowNat_comp {α : Type*} [Primcodable α]
     {n j prog buffer : α → ℕ} {code : α → Code} {coin : α → Bool}
     (hn : Primrec n) (hj : Primrec j) (hc : Primrec code) (hb : Primrec coin)
@@ -7679,6 +8837,8 @@ theorem primrec_trackRoundRowNat_comp {α : Type*} [Primcodable α]
     (Primrec.ite (Primrec.eq.comp hp (Primrec.const 4)) h4
       (Primrec.ite (Primrec.nat_lt.comp hH hbase) hsourceStep hhomeStep)))))
 
+/-- On a primitive-codable domain, the arithmetic preparation-and-homing readout is primitive
+recursive when the source control bound and program label are primitive recursive functions. -/
 theorem primrec_prepareHomingOutputNat_comp {α : Type*} [Primcodable α]
     {Q prog : α → ℕ} (hQ : Primrec Q) (hp : Primrec prog) :
     Primrec (fun x => prepareHomingOutputNat (Q x) (prog x)) := by
@@ -7687,6 +8847,9 @@ theorem primrec_prepareHomingOutputNat_comp {α : Type*} [Primcodable α]
   exact Primrec.and.comp (Primrec.nat_le.comp hbase hp).decide
     (Primrec.beq.comp (Primrec.nat_mod.comp (Primrec.nat_sub.comp hp hbase) (Primrec.const 2)) (Primrec.const 1))
 
+/-- On a primitive-codable domain, the numeric rounds step is primitive recursive when its track
+count, source code, coin, round index, success count, program label, and buffer are
+primitive recursive functions. -/
 theorem primrec_roundsStepNat_comp {α : Type*} [Primcodable α]
     {n round count prog buffer : α → ℕ} {code : α → Code} {coin : α → Bool}
     (hn : Primrec n) (hc : Primrec code) (hb : Primrec coin)
@@ -7709,6 +8872,8 @@ theorem primrec_roundsStepNat_comp {α : Type*} [Primcodable α]
   exact Primrec.ite (Primrec.nat_lt.comp hr hn)
     (Primrec.ite (Primrec.eq.comp hrecord (Primrec.const 0)) hdispatch hlive) (Primrec.const 0)
 
+/-- On a primitive-codable domain, the numeric rounds row is primitive recursive when the track
+count, source code, coin, wide control label, and buffer are primitive recursive functions. -/
 theorem primrec_roundsRowNat_comp {α : Type*} [Primcodable α]
     {n wide buffer : α → ℕ} {code : α → Code} {coin : α → Bool}
     (hn : Primrec n) (hc : Primrec code) (hb : Primrec coin) (hw : Primrec wide) (hbuf : Primrec buffer) :
@@ -7724,6 +8889,9 @@ theorem primrec_roundsRowNat_comp {α : Type*} [Primcodable α]
   exact primrec_roundsStepNat_comp hn hc hb (Primrec.nat_div.comp hlabel hblock)
     (Primrec.nat_div.comp hrest hsize) (Primrec.nat_mod.comp hrest hsize) hbuffer
 
+/-- For `N = 2 * r + 1`, the encoded majority code is `codeEnumerate` with maximum label
+`bitSimControlMax N (roundsControlMax N (controlSize code))`, output
+`encodedMajorityOutputNat code r`, and rows `encodedMajorityRowNat code r`. -/
 theorem encodedMajorityCode_eq_codeEnumerate (code : Code) (r : ℕ) :
     encodedMajorityCode code r = codeEnumerate
       (bitSimControlMax (2 * r + 1) (roundsControlMax (2 * r + 1) (controlSize code)))
@@ -7738,6 +8906,8 @@ theorem encodedMajorityCode_eq_codeEnumerate (code : Code) (r : ℕ) :
   rw [hs]
   rfl
 
+/-- Constructing the encoded majority code is primitive recursive in the source code and
+amplification parameter. -/
 theorem primrec_encodedMajorityCode : Primrec₂ encodedMajorityCode := by
   change Primrec (fun p : Code × ℕ => encodedMajorityCode p.1 p.2)
   have hn : Primrec (fun p : Code × ℕ => 2 * p.2 + 1) :=
@@ -7767,14 +8937,25 @@ theorem primrec_encodedMajorityCode : Primrec₂ encodedMajorityCode := by
   exact (primrec_codeEnumerate hb ho hr).of_eq
       (fun p => (encodedMajorityCode_eq_codeEnumerate p.1 p.2).symm)
 
+/-- Constructing the raw-input majority code, including input expansion and the encoded majority
+simulation, is primitive recursive in the source code and amplification parameter. -/
 theorem primrec_rawMajorityCode : Primrec₂ rawMajorityCode := by
   change Primrec (fun p : Code × ℕ => rawMajorityCode p.1 p.2)
   have hn : Primrec (fun p : Code × ℕ => 2 * p.2 + 1) :=
     Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 2) Primrec.snd) (Primrec.const 1)
   exact primrec_expandThenCode.comp hn primrec_encodedMajorityCode
 
+/-- The raw-input majority compiler is computable jointly in the source code and amplification
+parameter. -/
 theorem computable_rawMajorityCode : Computable₂ rawMajorityCode := primrec_rawMajorityCode.to_comp
 
+/-- A single computable compiler, independent of the polynomial-bound witnesses `c` and `k`,
+sends each source with coin-independent halting and totality on every `T = c * n ^ k +
+c`-bit coin word to a compiled machine with coin-independent halting that, for each `r`, is
+total on every `B = d * n ^ (2 * (k + 1)) + d`-bit word and uses at most `B` transitions,
+for some positive `d` independent of the input of length `n`. Its fair target-success mass
+equals that of the majority of `2 * r + 1` independent source runs with budget `T`, and
+source success at least `2 / 3` implies compiled success at least `1 - (8 / 9) ^ r`. -/
 theorem finite_tape_majority_compilation :
     ∃ compile : Code → ℕ → Code, Computable₂ compile ∧
       ∀ (code : Code) (r c k : ℕ), commonHalt code →

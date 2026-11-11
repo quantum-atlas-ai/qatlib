@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux4
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Stat
+
+/-!
+# Taylor history approximation of the ODE solution
+
+`theorem6V2` proves `Theorem6V2`, the factorially decreasing error estimate for the time blocks
+of a V2 Taylor-system solution. Coordinatewise estimates are combined in the Euclidean state
+norm and transported through the diagonalizing basis. See [BerryEtAl2017ODE] for the paper's
+setting.
+
+## Main statements
+
+* `theorem6V2`: Under the hypotheses of `Theorem6V2`, each time block `j ≤ m` approximates the
+  reference solution at time `j*h` with error at most `2.8 * (‖V‖ * ‖V⁻¹‖) * j * (‖x_in‖₂ +
+  m*h*‖b‖₂) / (k+1)!`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -18,6 +38,9 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Under the hypotheses of `Theorem6V2`, each time block `j ≤ m` approximates the reference
+solution at time `j*h` with error at most `2.8 * (‖V‖ * ‖V⁻¹‖) * j * (‖x_in‖₂ + m*h*‖b‖₂) /
+(k+1)!`. See [BerryEtAl2017ODE]. -/
 theorem theorem6V2 : Theorem6V2 := by
   intro N _ _ m k p A V D h x_in b x hm hk _hp hFfac hh hd hA hV1 hV2 hdre hnormA hx j hjm
   classical

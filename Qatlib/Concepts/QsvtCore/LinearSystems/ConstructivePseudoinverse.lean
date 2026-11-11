@@ -9,6 +9,27 @@ import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
 import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
 import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
 import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+
+/-!
+# Constructive QSVT pseudoinverse encoding
+
+This module normalizes reciprocal polynomials, obtains phase sequences for their real parts, and
+constructs a counted QSVT encoding of a scaled matrix pseudoinverse. The output theorem gives
+postselection probability and minimum norm solution state guarantees for normalized right hand
+sides in the matrix range. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `exists_inverse_phases`: phases realizing the scaled reciprocal response.
+* `constructivePseudoinverse_counted_encoding`: a pseudoinverse encoding with explicit query and
+  gate counts.
+* `constructivePseudoinverse_counted_output`: postselection and solution state guarantees.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,17 +56,23 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Topology Matrix.Norms.L2Operator
 
+/-- The effective singular value gap `min δ 1` used in reciprocal approximation. -/
 def inverseEffectiveGap (δ : ℝ) : ℝ := min δ 1
 
+/-- The reciprocal normalization factor `(2 * √n)⁻¹` for the inverse response. -/
 noncomputable def inverseScale (n : ℕ) : ℝ := (2 * Real.sqrt (n : ℝ))⁻¹
 
+/-- The reciprocal polynomial multiplied by `√n` inverse so that it is bounded on the unit
+interval when `n` is positive. -/
 noncomputable def normalizedInversePolynomial (n : ℕ) : Polynomial ℝ :=
   C ((Real.sqrt (n : ℝ))⁻¹) * reciprocalPolynomial n
 
+/-- The inverse normalization factor is positive for positive `n`. -/
 theorem inverseScale_pos {n : ℕ} (hn : 0 < n) : 0 < inverseScale n := by
   unfold inverseScale
   exact inv_pos.mpr (mul_pos (by norm_num) (Real.sqrt_pos.mpr (Nat.cast_pos.mpr hn)))
 
+/-- For positive `n`, one quarter of the square of the inverse scale equals `1 / (16 * n)`. -/
 theorem inverseScale_sq_div_four {n : ℕ} (hn : 0 < n) :
     inverseScale n ^ 2 / 4 = 1 / (16 * (n : ℝ)) := by
   have hn0 : (n : ℝ) ≠ 0 := ne_of_gt (Nat.cast_pos.mpr hn)
@@ -54,6 +81,8 @@ theorem inverseScale_sq_div_four {n : ℕ} (hn : 0 < n) :
   field_simp
   ring
 
+/-- Half the normalized inverse polynomial equals the reciprocal polynomial scaled by
+`inverseScale n` at every real argument. -/
 theorem normalizedInversePolynomial_half_eval (n : ℕ) (x : ℝ) :
     (normalizedInversePolynomial n).eval x / 2 =
       inverseScale n * (reciprocalPolynomial n).eval x := by
@@ -61,6 +90,8 @@ theorem normalizedInversePolynomial_half_eval (n : ℕ) (x : ℝ) :
     inverseScale, _root_.mul_inv_rev, div_eq_mul_inv]
   ring
 
+/-- For positive `n`, the normalized inverse polynomial has absolute value at most one on `[-1,
+1]`. -/
 theorem normalizedInversePolynomial_bounded {n : ℕ} (hn : 0 < n) {x : ℝ}
     (hx : x ∈ Set.Icc (-1) 1) : |(normalizedInversePolynomial n).eval x| ≤ 1 := by
   have hs : 0 < Real.sqrt (n : ℝ) := Real.sqrt_pos.mpr (Nat.cast_pos.mpr hn)
@@ -72,16 +103,20 @@ theorem normalizedInversePolynomial_bounded {n : ℕ} (hn : 0 < n) {x : ℝ}
         (inv_nonneg.mpr hs.le)
     _ = 1 := inv_mul_cancel₀ hs.ne'
 
+/-- For positive `n`, the normalized inverse polynomial has natural degree `2 * n - 1`. -/
 theorem normalizedInversePolynomial_natDegree {n : ℕ} (hn : 0 < n) :
     (normalizedInversePolynomial n).natDegree = 2 * n - 1 := by
   have hs : 0 < Real.sqrt (n : ℝ) := Real.sqrt_pos.mpr (Nat.cast_pos.mpr hn)
   rw [normalizedInversePolynomial, Polynomial.natDegree_C_mul (inv_ne_zero hs.ne'),
     reciprocalPolynomial_natDegree hn]
 
+/-- Composing the normalized inverse polynomial with `-X` negates it. -/
 theorem normalizedInversePolynomial_comp_neg_X (n : ℕ) :
     (normalizedInversePolynomial n).comp (-X) = -normalizedInversePolynomial n := by
   simp [normalizedInversePolynomial, reciprocalPolynomial_comp_neg_X]
 
+/-- For positive gap and tolerance, some positive reciprocal truncation index has error at most
+half the tolerance at the effective gap. -/
 theorem exists_inverse_cutoff {δ η : ℝ} (hδ : 0 < δ) (hη : 0 < η) :
     ∃ n : ℕ, 0 < n ∧ reciprocalError (inverseEffectiveGap δ) n ≤ η / 2 := by
   have hd : 0 < inverseEffectiveGap δ := lt_min hδ (by norm_num)
@@ -91,6 +126,7 @@ theorem exists_inverse_cutoff {δ η : ℝ} (hδ : 0 < δ) (hη : 0 < η) :
   obtain ⟨N, hN⟩ := Filter.eventually_atTop.mp he
   refine ⟨max N 1, by omega, (hN _ (le_max_left _ _)).le⟩
 
+/-- For positive `n`, the normalized inverse polynomial has real parity `2 * n - 1`. -/
 theorem normalizedInversePolynomial_parity {n : ℕ} (hn : 0 < n) :
     Qatlib.Concepts.QspSimulation.Achievability.HasRealParity (2 * n - 1) (normalizedInversePolynomial n) := by
   have ho : Odd (2 * n - 1) := ⟨n - 1, by omega⟩
@@ -98,6 +134,8 @@ theorem normalizedInversePolynomial_parity {n : ℕ} (hn : 0 < n) :
   rw [normalizedInversePolynomial_comp_neg_X, ho.neg_one_pow]
   simp
 
+/-- For positive `n`, there are unit phases with sequence length `2 * n - 1` whose response real
+part is the reciprocal polynomial scaled by `inverseScale n`. -/
 theorem exists_inverse_phases {n : ℕ} (hn : 0 < n) :
     ∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧
       zs.length = 2 * n - 1 ∧
@@ -121,6 +159,8 @@ variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
 
 omit [Fintype I] [Fintype O] in
 
+/-- A projected unitary encoding lifts to the doubled average circuit with the corresponding
+average frames. -/
 theorem projectedEncoding_average_lift {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ} (h : ProjectedUnitaryEncoding A U L R) :
     ProjectedUnitaryEncoding A (averageCircuit U U) (averageFrame L) (averageFrame R) := by
@@ -131,6 +171,8 @@ theorem projectedEncoding_average_lift {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     ring
   rwa [hA] at he
 
+/-- Uniform error `ε` for the real response on positive singular values gives a block encoding
+of `c` times the pseudoinverse by the adjoint real part QSVT circuit. -/
 theorem realPart_pseudoinverse_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -153,6 +195,9 @@ theorem realPart_pseudoinverse_approximation
       ((Qatlib.Concepts.BlockEncoding.ProjectedUnitaryEncoding.toBlockEncoding he).perturb hε herr)
   simpa only [zero_add, inverseTransform_adjoint] using hpert
 
+/-- A positive singular value gap yields a scaled pseudoinverse block encoding with error
+`inverseScale n * η / 2`, `2 * n - 1` queries, and `2 * n` gates for a suitable positive
+`n`. -/
 theorem constructivePseudoinverse_counted_encoding
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {δ η : ℝ} (hδ : 0 < δ)
@@ -200,6 +245,9 @@ theorem constructivePseudoinverse_counted_encoding
     rw [evaluate_adjointCircuit, evaluate_compileRealPartQSVT]
     exact hW
 
+/-- For tolerance at most one, a counted scaled pseudoinverse circuit postselects a minimum norm
+solution state within tolerance `η` for every normalized input in the range, with
+probability at least `1 / (16 * n)`. -/
 theorem constructivePseudoinverse_counted_output
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {δ η : ℝ} (hδ : 0 < δ)

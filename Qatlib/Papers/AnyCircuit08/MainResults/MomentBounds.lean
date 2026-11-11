@@ -6,12 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AnyCircuit08.MainResults.Basic
 
+/-!
+# Weighted moment inequalities
+
+This module proves a weighted first-, second-, and fourth-moment inequality for finite
+nonnegative families, together with its square-root form. It also records that some value of a
+function on a nonempty finite set is at least any lower bound for its uniform average
+[HallgrenHarrow2008].
+
+## Main statements
+
+* `weighted_l1_ge_of_fourth_moment`: relates the weighted first, second, and fourth moments.
+* `weighted_l1_ge_sqrt`: gives the square-root form of the inequality.
+* `exists_ge_of_average_ge`: extracts a point from a lower bound on the average.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
 
 open scoped BigOperators
 
+/-- For nonnegative weights and values, the cube of the weighted second moment is at most the
+square of the weighted first moment times the weighted fourth moment [HallgrenHarrow2008]. -/
 theorem weighted_l1_ge_of_fourth_moment {X : Type} [Fintype X] (p Y : X → ℝ)
     (hp : ∀ x, 0 ≤ p x) (hY : ∀ x, 0 ≤ Y x) :
     (∑ x, p x * Y x ^ 2) ^ 3
@@ -131,6 +152,9 @@ theorem weighted_l1_ge_of_fourth_moment {X : Type} [Fintype X] (p Y : X → ℝ)
     have hfin : A ^ 3 ≤ B ^ 2 * D := le_of_mul_le_mul_left hkey hApos
     simpa only [← hAdef, ← hBdef, ← hDdef] using hfin
 
+/-- For nonnegative weights and values, the weighted second moment times its square root is at
+most the weighted first moment times the square root of the weighted fourth moment
+[HallgrenHarrow2008]. -/
 theorem weighted_l1_ge_sqrt {X : Type} [Fintype X] (p Y : X → ℝ)
     (hp : ∀ x, 0 ≤ p x) (hY : ∀ x, 0 ≤ Y x) :
     (∑ x, p x * Y x ^ 2) * Real.sqrt (∑ x, p x * Y x ^ 2)
@@ -152,6 +176,8 @@ theorem weighted_l1_ge_sqrt {X : Type} [Fintype X] (p Y : X → ℝ)
     rw [Real.sqrt_mul (sq_nonneg B) D, Real.sqrt_sq hBnn]
   rwa [hA3, hBD] at hsq
 
+/-- If the uniform average of a real-valued function on a nonempty finite type is at least `c`,
+then some value of the function is at least `c` [HallgrenHarrow2008]. -/
 theorem exists_ge_of_average_ge {X : Type} [Fintype X] (hX : 0 < Fintype.card X)
     (f : X → ℝ) {c : ℝ}
     (h : c ≤ (∑ x, f x) / (Fintype.card X : ℝ)) : ∃ x, c ≤ f x := by

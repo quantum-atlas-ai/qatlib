@@ -9,6 +9,26 @@ import Mathlib.Order.Preorder.Finite
 import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 import Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
 import Qatlib.Papers.UnitaryDigraph.MainResults.Permutation
+
+/-!
+# Looped paths, cycles, and directed-tree obstructions
+
+This module establishes cases of Proposition 2 of [Severini2003]: looped paths with at least
+three vertices, cycles with at least five vertices, and finite nonempty directed trees do not
+support unitary matrices. The arguments use outgoing quadrangularity or a vertex with no
+outgoing neighbors and extend to permutation-equivalent digraphs.
+
+## Main statements
+
+* `proposition2_pathLoops`: The looped-path obstruction.
+* `proposition2_nCycle`: The cycle obstruction for at least five vertices.
+* `proposition2_directedTree`: The finite nonempty directed-tree obstruction.
+
+## References
+
+* [Severini, 2003][Severini2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +43,8 @@ open Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
 open Qatlib.Papers.UnitaryDigraph.MainResults.Permutation
 open Qatlib.Papers.UnitaryDigraph.MainResults.Defs.Digraph
 
+/-- For `n ≥ 3`, vertices zero and two of `nPathLoops n` have exactly vertex one as a common
+outgoing neighbor. -/
 theorem nPathLoops_inter {n : ℕ} (hn : 3 ≤ n) :
     ((nPathLoops n).outNbrs ⟨0, by omega⟩ ∩ (nPathLoops n).outNbrs ⟨2, by omega⟩)
       = ({⟨1, by omega⟩} : Set (Fin n)) := by
@@ -37,6 +59,7 @@ theorem nPathLoops_inter {n : ℕ} (hn : 3 ≤ n) :
   · rintro hj
     constructor <;> simp [hj]
 
+/-- For `n ≥ 3`, the looped path fails outgoing quadrangularity. -/
 theorem nPathLoops_not_outQuadrangular {n : ℕ} (hn : 3 ≤ n) :
     ¬ OutQuadrangular (nPathLoops n) := by
   intro h
@@ -49,27 +72,34 @@ theorem nPathLoops_not_outQuadrangular {n : ℕ} (hn : 3 ≤ n) :
     simp at this
   exact h ⟨0, by omega⟩ ⟨2, by omega⟩ hne hcard
 
+/-- For `n ≥ 3`, the looped path is not a unitary digraph [Severini2003]. -/
 theorem nPathLoops_not_unitary {n : ℕ} (hn : 3 ≤ n) : ¬ IsUnitaryDigraph (nPathLoops n) :=
   fun hU => nPathLoops_not_outQuadrangular hn (outQuadrangular_of_isUnitaryDigraph _ hU)
 
+/-- A digraph permutation equivalent to a looped path on at least three vertices is not unitary
+[Severini2003]. -/
 theorem proposition2_pathLoops {V : Type} [Fintype V] [DecidableEq V]
     (D : Defs.Digraph V) (n : ℕ)
     (hn : 3 ≤ n) (h : PermEquivalentTo D (nPathLoops n)) : ¬ IsUnitaryDigraph D := by
   intro hUD
   exact nPathLoops_not_unitary hn ((lemma2 h).mp hUD)
 
+/-- For `m < n`, the successor of `m` is zero modulo `n` exactly when `m + 1 = n`. -/
 theorem modSucc_eq_zero_iff {n m : ℕ} (hm : m < n) : (m + 1) % n = 0 ↔ m + 1 = n := by
   have hle : m + 1 ≤ n := by omega
   rcases Nat.lt_or_eq_of_le hle with hlt | heq
   · rw [Nat.mod_eq_of_lt hlt]; omega
   · exact ⟨fun _ => heq, fun h => by rw [h, Nat.mod_self]⟩
 
+/-- For `n ≥ 3` and `m < n`, the successor of `m` is two modulo `n` exactly when `m = 1`. -/
 theorem modSucc_eq_two_iff {n m : ℕ} (hn : 3 ≤ n) (hm : m < n) : (m + 1) % n = 2 ↔ m = 1 := by
   have hle : m + 1 ≤ n := by omega
   rcases Nat.lt_or_eq_of_le hle with hlt | heq
   · rw [Nat.mod_eq_of_lt hlt]; omega
   · rw [heq, Nat.mod_self]; omega
 
+/-- For `n ≥ 5`, vertices zero and two of `nCycle n` have exactly vertex one as a common
+outgoing neighbor. -/
 theorem nCycle_inter {n : ℕ} (hn : 5 ≤ n) :
     ((nCycle n).outNbrs ⟨0, by omega⟩ ∩ (nCycle n).outNbrs ⟨2, by omega⟩)
       = ({⟨1, by omega⟩} : Set (Fin n)) := by
@@ -91,6 +121,7 @@ theorem nCycle_inter {n : ℕ} (hn : 5 ≤ n) :
   · intro h
     exact ⟨Or.inl h, Or.inr h⟩
 
+/-- For `n ≥ 5`, `nCycle n` fails outgoing quadrangularity. -/
 theorem nCycle_not_outQuadrangular {n : ℕ} (hn : 5 ≤ n) : ¬ OutQuadrangular (nCycle n) := by
   intro h
   have hcard : ((nCycle n).outNbrs ⟨0, by omega⟩ ∩
@@ -102,14 +133,18 @@ theorem nCycle_not_outQuadrangular {n : ℕ} (hn : 5 ≤ n) : ¬ OutQuadrangular
     simp at this
   exact h ⟨0, by omega⟩ ⟨2, by omega⟩ hne hcard
 
+/-- For `n ≥ 5`, `nCycle n` is not a unitary digraph [Severini2003]. -/
 theorem nCycle_not_unitary {n : ℕ} (hn : 5 ≤ n) : ¬ IsUnitaryDigraph (nCycle n) :=
   fun hU => nCycle_not_outQuadrangular hn (outQuadrangular_of_isUnitaryDigraph _ hU)
 
+/-- A digraph permutation equivalent to `nCycle n` with `n ≥ 5` is not unitary [Severini2003]. -/
 theorem proposition2_nCycle {V : Type} [Fintype V] [DecidableEq V] (D : Defs.Digraph V) (n : ℕ)
     (hn : 5 ≤ n) (h : PermEquivalentTo D (nCycle n)) : ¬ IsUnitaryDigraph D := by
   intro hUD
   exact nCycle_not_unitary hn ((lemma2 h).mp hUD)
 
+/-- A finite nonempty digraph in which every vertex has an outgoing neighbor has a directed
+cycle. -/
 theorem hasDirectedCycle_of_forall_outNbrs_nonempty {V : Type} [Fintype V] [DecidableEq V]
     [Nonempty V] (D : Defs.Digraph V) (hne : ∀ v, (D.outNbrs v).Nonempty) :
     HasDirectedCycle D := by
@@ -153,12 +188,14 @@ theorem hasDirectedCycle_of_forall_outNbrs_nonempty {V : Type} [Fintype V] [Deci
     exact hf (f^[k.val] (seq a))
   exact ⟨Function.minimalPeriod f (seq a), hm, c, hc_inj, hc_adj⟩
 
+/-- A finite nonempty directed tree has a vertex with empty outgoing neighborhood. -/
 theorem exists_outNbrs_empty_of_isDirectedTree {V : Type} [Fintype V] [DecidableEq V]
     [Nonempty V] (D : Defs.Digraph V) (h : IsDirectedTree D) : ∃ v, D.outNbrs v = ∅ := by
   by_contra hcon
   push Not at hcon
   exact h (hasDirectedCycle_of_forall_outNbrs_nonempty D fun v => hcon v)
 
+/-- A finite nonempty directed tree is not a unitary digraph [Severini2003]. -/
 theorem directedTree_not_unitary {V : Type} [Fintype V] [DecidableEq V] [Nonempty V]
     (D : Defs.Digraph V) (h : IsDirectedTree D) : ¬ IsUnitaryDigraph D := by
   intro hU
@@ -168,6 +205,8 @@ theorem directedTree_not_unitary {V : Type} [Fintype V] [DecidableEq V] [Nonempt
   obtain ⟨w, hw⟩ := h'
   exact hw
 
+/-- A digraph permutation equivalent to a finite nonempty directed tree is not unitary
+[Severini2003]. -/
 theorem proposition2_directedTree {V W : Type} [Fintype V] [DecidableEq V]
     [Fintype W] [DecidableEq W] [Nonempty W] (D : Defs.Digraph V) (D₀ : Defs.Digraph W)
     (h : PermEquivalentTo D D₀) (htree : IsDirectedTree D₀) : ¬ IsUnitaryDigraph D := by

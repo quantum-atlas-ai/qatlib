@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.GraphModelMath.SrgQuotient.Defs
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
+/-!
+# Euclidean normalization of strongly regular graph cells
+
+This module computes the Euclidean norm of the three-cell embedding in a strongly regular graph,
+weighting the cell amplitudes by the cell sizes. The map `unscale` divides the neighbor and
+nonneighbor coordinates by the square roots of those sizes.
+
+The resulting `normalizedEmbed` preserves the Euclidean norm when both nontrivial cell sizes are
+positive. This gives the normalized physical cell coordinates used in [JanmarkMeyerWong2014].
+
+## Main statements
+
+* `embed_norm_sq`: The squared Euclidean norm of the embedded vector is `‖z 0‖² + k * ‖z 1‖² +
+  (n-k-1) * ‖z 2‖²` for a strongly regular graph.
+* `normalized_isometry`: For a strongly regular graph with positive neighbor and nonneighbor
+  cell sizes, the normalized cell embedding preserves the Euclidean norm, realizing the
+  normalized coordinates used in [JanmarkMeyerWong2014].
+
+## References
+
+* [Janmark et al., 2014][JanmarkMeyerWong2014]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Foundations.GraphModelMath.SrgQuotient
 open Matrix
@@ -15,6 +38,8 @@ variable (G : SimpleGraph V) [DecidableRel G.Adj] (w : V)
 
 omit [DecidableEq V] in
 
+/-- In a strongly regular graph of degree `k`, summing a constant `a` over the neighbors of the
+marked vertex gives `k * a`. -/
 theorem sum_near {n k l m : ℕ} (h : G.IsSRGWith n k l m) (a : ℝ) :
     (∑ v : V, if G.Adj v w then a else 0) = k * a := by
   have he : Finset.univ.filter (fun v => G.Adj v w) = G.neighborFinset w := by
@@ -23,12 +48,16 @@ theorem sum_near {n k l m : ℕ} (h : G.IsSRGWith n k l m) (a : ℝ) :
     SimpleGraph.card_neighborFinset_eq_degree, h.regular.degree_eq]
   simp
 
+/-- In a strongly regular graph, summing a constant over vertices distinct from and nonadjacent
+to the marked vertex gives `(n-k-1) * a`. -/
 theorem sum_far {n k l m : ℕ} (h : G.IsSRGWith n k l m) (a : ℝ) :
     (∑ v : V, if v ≠ w ∧ ¬ G.Adj v w then a else 0) = ((n-k-1 : ℕ) : ℝ) * a := by
   simpa only [SimpleGraph.compl_adj] using sum_near Gᶜ w h.compl a
 
 omit [Fintype V] in
 
+/-- The squared pointwise norm of the embedded vector splits into the three disjoint cell
+contributions. -/
 theorem embed_mass_point (z : Fin 3 → ℂ) (v : V) :
     ‖embed G w z v‖ ^ 2 =
       (if v = w then ‖z 0‖^2 else 0) +
@@ -38,6 +67,8 @@ theorem embed_mass_point (z : Fin 3 → ℂ) (v : V) :
   · subst v; simp [embed, marked, near, far]
   · by_cases ha : G.Adj v w <;> simp [embed, marked, near, far, hv, ha]
 
+/-- The squared Euclidean norm of the embedded vector is `‖z 0‖² + k * ‖z 1‖² + (n-k-1) * ‖z
+2‖²` for a strongly regular graph. -/
 theorem embed_norm_sq {n k l m : ℕ} (h : G.IsSRGWith n k l m)
     (z : Fin 3 → ℂ) :
     ‖(WithLp.toLp 2 (embed G w z) : EuclideanSpace ℂ V)‖^2 =
@@ -47,12 +78,19 @@ theorem embed_norm_sq {n k l m : ℕ} (h : G.IsSRGWith n k l m)
   rw [sum_near G w h, sum_far G w h]
   simp
 
+/-- Divide the neighbor and nonneighbor coordinates by `√k` and `√b`, leaving the marked
+coordinate unchanged. -/
 noncomputable def unscale (k b : ℕ) (z : Fin 3 → ℂ) : Fin 3 → ℂ :=
   ![z 0, z 1 / (Real.sqrt k : ℂ), z 2 / (Real.sqrt b : ℂ)]
 
+/-- The Euclidean vertex vector obtained by unscaling the three cell coefficients and applying
+the cell embedding. -/
 noncomputable def normalizedEmbed (k b : ℕ) (z : Fin 3 → ℂ) : EuclideanSpace ℂ V :=
   WithLp.toLp 2 (embed G w (unscale k b z))
 
+/-- For a strongly regular graph with positive neighbor and nonneighbor cell sizes, the
+normalized cell embedding preserves the Euclidean norm, realizing the normalized coordinates
+used in [JanmarkMeyerWong2014]. -/
 theorem normalized_isometry {n k l m : ℕ} (h : G.IsSRGWith n k l m)
     (hk : 0 < k) (hb : 0 < n-k-1) (z : Fin 3 → ℂ) :
     ‖normalizedEmbed G w k (n-k-1) z‖ = ‖(WithLp.toLp 2 z : EuclideanSpace ℂ (Fin 3))‖ := by

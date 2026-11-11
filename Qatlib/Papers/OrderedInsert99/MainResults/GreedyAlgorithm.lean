@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+
+/-!
+# Monotonicity and fixed points of the greedy update
+
+The scalar update `greedyProbStep` squares the average of the square roots of `P + (c i)^2`. For
+positive `N` and nonnegative `P`, the update cannot decrease `P`, and zero correction data leave
+it unchanged. These identities formalize the greedy-step monotonicity and fixed-point
+calculation of [FarhiEtAl1999].
+
+## Main statements
+
+* `greedyProbStep_mono`: For positive `N` and nonnegative `P`, the greedy update is at least `P`
+  for every correction vector.
+* `greedyProbStep_zero_cot`: For positive `N` and nonnegative `P`, zero correction values leave
+  the greedy update equal to `P`.
+* `greedy_prob_monotone_and_fixed`: For positive `N`, the greedy update does not decrease any
+  nonnegative input for arbitrary correction data, fixes one for zero corrections, and fixes
+  every nonnegative input for zero corrections.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,14 +39,18 @@ namespace Qatlib.Papers.OrderedInsert99.MainResults
 
 open scoped BigOperators
 
+/-- The square of the average of `sqrt (P + (c i)^2)` over the `N` correction values. -/
 noncomputable def greedyProbStep (N : ℕ) (P : ℝ) (c : Fin N → ℝ) : ℝ :=
   ((1 / (N : ℝ)) * ∑ i : Fin N, Real.sqrt (P + (c i) ^ 2)) ^ 2
 
+/-- The greedy scalar update is nonnegative. -/
 theorem greedyProbStep_nonneg (N : ℕ) (P : ℝ) (c : Fin N → ℝ) :
     0 ≤ greedyProbStep N P c := by
   unfold greedyProbStep
   positivity
 
+/-- For positive `N` and nonnegative `P`, the greedy update is at least `P` for every correction
+vector. -/
 theorem greedyProbStep_mono (N : ℕ) (hN : 0 < N) (P : ℝ) (hP : 0 ≤ P)
     (c : Fin N → ℝ) : P ≤ greedyProbStep N P c := by
   have hNpos : (0 : ℝ) < N := by exact_mod_cast hN
@@ -43,6 +71,8 @@ theorem greedyProbStep_mono (N : ℕ) (hN : 0 < N) (P : ℝ) (hP : 0 ≤ P)
     _ ≤ ((1 / (N : ℝ)) * ∑ i : Fin N, Real.sqrt (P + (c i) ^ 2)) ^ 2 :=
         pow_le_pow_left₀ (Real.sqrt_nonneg P) hstep 2
 
+/-- For positive `N` and nonnegative `P`, zero correction values leave the greedy update equal
+to `P`. -/
 theorem greedyProbStep_zero_cot (N : ℕ) (hN : 0 < N) (P : ℝ) (hP : 0 ≤ P) :
     greedyProbStep N P (fun _ => 0) = P := by
   have hsum :
@@ -55,6 +85,9 @@ theorem greedyProbStep_zero_cot (N : ℕ) (hN : 0 < N) (P : ℝ) (hP : 0 ≤ P) 
     field_simp
   rw [h, Real.sq_sqrt hP]
 
+/-- For positive `N`, the greedy update does not decrease any nonnegative input for arbitrary
+correction data, fixes one for zero corrections, and fixes every nonnegative input for zero
+corrections [FarhiEtAl1999]. -/
 theorem greedy_prob_monotone_and_fixed (N : ℕ) (hN : 0 < N) :
     (∀ P : ℝ, 0 ≤ P → ∀ c : Fin N → ℝ, P ≤ greedyProbStep N P c) ∧
       greedyProbStep N 1 (fun _ => 0) = 1 ∧

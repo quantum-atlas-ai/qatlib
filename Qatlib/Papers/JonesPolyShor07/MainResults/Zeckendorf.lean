@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.FibonacciStrings
+
+/-!
+# Finite Zeckendorf encoding of Fibonacci strings
+
+`fibStringValue` gives a bijection from length-m Boolean strings with no adjacent true entries
+to natural numbers below `Nat.fib (m + 2)`. The equivalence `zeckendorfEquiv` packages this
+encoding and yields the exact cardinality of `FibString m`. See [ShorJordan2008].
+
+## Main statements
+
+* `zeckendorfEquiv`: The equivalence between length-m Fibonacci strings and natural numbers
+  below `Nat.fib (m + 2)` induced by their weighted values.
+* `fibString_card`: There are exactly `Nat.fib (m + 2)` Fibonacci strings of length m.
+
+## References
+
+* [Shor and Jordan, 2008][ShorJordan2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,15 +33,20 @@ namespace Qatlib.Papers.JonesPolyShor07.MainResults.Zeckendorf
 
 open Definitions
 
+/-- The conjunction of the Fibonacci-value range bound, injectivity on length-m lists with no
+adjacent true entries, and representation of every value below `Nat.fib (m + 2)`. -/
 private def Good (m : ℕ) : Prop :=
   (∀ l : List Bool, l.length = m → NoAdjList l → zList l < Nat.fib (m + 2)) ∧
   (∀ l₁ l₂ : List Bool, l₁.length = m → l₂.length = m →
       NoAdjList l₁ → NoAdjList l₂ → zList l₁ = zList l₂ → l₁ = l₂) ∧
   (∀ v : ℕ, v < Nat.fib (m + 2) → ∃ l : List Bool, l.length = m ∧ NoAdjList l ∧ zList l = v)
 
+/-- The third Fibonacci number is two. -/
 lemma fib_three : Nat.fib 3 = 2 := by
   have := Nat.fib_add_two (n := 1); simpa using this
 
+/-- For every length m, Fibonacci-weighted lists with no adjacent true entries satisfy the
+range, uniqueness, and existence properties collected in `Good m`. -/
 private theorem good : ∀ m, Good m := by
   intro m
   induction m using Nat.strong_induction_on with
@@ -204,9 +228,12 @@ private theorem good : ∀ m, Good m := by
             rw [hlen, zList_false_cons, hz]
             exact Nat.add_sub_of_le hle
 
+/-- The value of a length-m Fibonacci string is less than `Nat.fib (m + 2)`. -/
 theorem fibStringValue_lt (m : ℕ) (s : FibString m) : fibStringValue s < Nat.fib (m + 2) :=
   (good m).1 s.1 s.2.1 s.2.2
 
+/-- The Fibonacci-value map from `FibString m` to `Fin (Nat.fib (m + 2))` is bijective; see
+[ShorJordan2008]. -/
 theorem fibStringValue_bijective (m : ℕ) :
     Function.Bijective
       (fun s : FibString m => (⟨fibStringValue s, fibStringValue_lt m s⟩ : Fin (Nat.fib (m + 2)))) := by
@@ -223,15 +250,20 @@ theorem fibStringValue_bijective (m : ℕ) :
     apply Fin.ext
     simp [fibStringValue, hz]
 
+/-- The equivalence between length-m Fibonacci strings and natural numbers below `Nat.fib (m +
+2)` induced by their weighted values; see [ShorJordan2008]. -/
 noncomputable def zeckendorfEquiv (m : ℕ) : FibString m ≃ Fin (Nat.fib (m + 2)) :=
   Equiv.ofBijective _ (fibStringValue_bijective m)
 
 noncomputable instance fibStringFintype (m : ℕ) : Fintype (FibString m) :=
   Fintype.ofEquiv (Fin (Nat.fib (m + 2))) (zeckendorfEquiv m).symm
 
+/-- There are exactly `Nat.fib (m + 2)` Fibonacci strings of length m; see [ShorJordan2008]. -/
 theorem fibString_card (m : ℕ) : Fintype.card (FibString m) = Nat.fib (m + 2) := by
   rw [Fintype.card_congr (zeckendorfEquiv m), Fintype.card_fin]
 
+/-- The Fibonacci-value encoding of length-n Fibonacci strings is a bijection onto `Fin (Nat.fib
+(n + 2))`; see [ShorJordan2008]. -/
 theorem prop4_zeckendorf (n : ℕ) :
     Function.Bijective
       (fun s : FibString n => (⟨fibStringValue s, fibStringValue_lt n s⟩ : Fin (Nat.fib (n + 2)))) :=

@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FreshFallback.BitScanLedger.CountedFreshFallbackDefs
+
+/-!
+# Counted fresh-string fallback
+
+This module proves correctness and bit-read bounds for the explicit comparisons and history
+scans used by `runFallback`. The implementation returns the same fresh string as
+`samplerFallback` and records both bit reads and binary-prefix generator visits.
+
+The finite classical searches support oracle-circuit resource analysis in the computational
+setting of [KitaevShenVyalyi2002]. A history shorter than the binary alphabet guarantees that
+fallback returns an unused string.
+
+## Main statements
+
+* `compare_and_membership_correct`: proves word equality and membership tests with their read
+  bounds.
+* `firstFreshScan_correct_and_reads`: identifies the first fresh candidate and bounds its scan
+  cost.
+* `runFallback_correct_and_budget`: combines semantic correctness, both ledgers, and existence
+  of a fresh result.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +42,8 @@ namespace Qatlib.Concepts.FreshFallback.BitScanLedger
 
 open Qatlib.Concepts.FreshFallback.BitScanLedger
 
+/-- The bit comparator returns true exactly when the two words agree at every listed address,
+and records exactly twice the address-list length in reads. -/
 theorem compareBits_correct {n : ℕ} (x y : Reg n) (addresses : List (Fin n)) :
     ((compareBits x y addresses).1 = true ↔ ∀ i ∈ addresses, x i = y i) ∧
       (compareBits x y addresses).2 = 2 * addresses.length := by
@@ -26,6 +54,8 @@ theorem compareBits_correct {n : ℕ} (x y : Reg n) (addresses : List (Fin n)) :
     · simp [compareBits, Bool.and_eq_true, ih.1]
     · simp [compareBits, ih.2, Nat.mul_add, Nat.add_comm]
 
+/-- The full-word comparator returns true exactly when its two words are equal and records
+exactly `2 * n` bit reads. -/
 theorem compareWord_correct {n : ℕ} (x y : Reg n) :
     ((compareWord x y).1 = true ↔ x = y) ∧ (compareWord x y).2 = 2 * n := by
   have h := compareBits_correct x y (List.finRange n)
@@ -33,6 +63,8 @@ theorem compareWord_correct {n : ℕ} (x y : Reg n) :
   · simpa [compareWord, funext_iff] using h.1
   · simpa [compareWord] using h.2
 
+/-- The history membership scan returns true exactly on members and uses at most `2 * n *
+hist.length` bit reads. -/
 theorem memberScan_correct {n : ℕ} (x : Reg n) (hist : List (Reg n)) :
     ((memberScan x hist).1 = true ↔ x ∈ hist) ∧
       (memberScan x hist).2 ≤ 2 * n * hist.length := by
@@ -56,6 +88,8 @@ theorem memberScan_correct {n : ℕ} (x : Reg n) (hist : List (Reg n)) :
           List.length_cons]
         nlinarith [ih.2]
 
+/-- Packages correctness and read counts for full-word comparison and history membership
+scanning. -/
 theorem compare_and_membership_correct :
     ∀ (n : ℕ) (x y : Reg n),
       ((compareWord x y).1 = true ↔ x = y) ∧ (compareWord x y).2 = 2 * n ∧
@@ -66,6 +100,8 @@ theorem compare_and_membership_correct :
   exact ⟨(compareWord_correct x y).1, (compareWord_correct x y).2,
     memberScan_correct x⟩
 
+/-- The fresh-candidate scan returns the first candidate absent from the history and uses at
+most `2 * n * hist.length * candidates.length` bit reads. -/
 theorem firstFreshScan_correct_and_reads :
     ∀ (n : ℕ) (hist candidates : List (Reg n)),
       (firstFreshScan hist candidates).1 = candidates.find? (fun x => decide (x ∉ hist)) ∧
@@ -90,6 +126,8 @@ theorem firstFreshScan_correct_and_reads :
           List.length_cons]
         nlinarith [hm.2]
 
+/-- If the history has length less than `2^n`, the binary-alphabet fresh-string search cannot
+return `none`. -/
 theorem firstFresh_ne_none_of_length_lt (n : ℕ) (hist : List (Reg n))
     (hlen : hist.length < 2 ^ n) : firstFresh n hist ≠ none := by
   intro hnone
@@ -99,6 +137,9 @@ theorem firstFresh_ne_none_of_length_lt (n : ℕ) (hist : List (Reg n))
   rw [binaryAlphabet_length] at hcard
   omega
 
+/-- The counted fallback agrees with `samplerFallback`, uses at most `2 * n * L * (L + 2)` bit
+reads and `(2 * n + 1) * (L + 1) + 1` generator visits, where `L = hist.length`. If `L <
+2^n`, it returns a string absent from the history. -/
 theorem runFallback_correct_and_budget :
     ∀ (n : ℕ) (hist : List (Reg n)) (x : Reg n),
       (runFallback n hist x).1.1 = samplerFallback n hist x ∧

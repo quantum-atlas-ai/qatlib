@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurve04.MainResults.Defs
+
+/-!
+# Class-number interfaces and polynomial costs
+
+This module combines polynomial bounds for generator and order-finding costs and records the
+squared consequence of the curve-size condition. Its existence statements construct abstract
+`ClassNumberAlgorithm` records, including one whose output is the supplied class-number
+sequence.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `proposition11_cost_decomposition`: The sum of polynomially bounded generator and
+  order-finding cost functions is polynomially bounded.
+* `proposition11_class_number_explicit`: Given polynomially bounded generator and order costs,
+  there exists a class-number algorithm record returning `C.classNumber n`, with a uniform
+  polynomial cost bound and success value at least `3 / 4`.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,10 +41,14 @@ namespace Qatlib.Papers.ZetaCurve04.MainResults.Proposition11
 
 open Qatlib.Papers.ZetaCurve04.MainResults.Defs
 
+/-- A constant multiple of a fixed power of `a + b + n + 1` is polynomially bounded in three
+variables. -/
 theorem polyBoundedThree_const_mul (c k : ℕ) :
     PolyBoundedThree (fun a b n => c * (a + b + n + 1) ^ k) :=
   ⟨c, k, fun _ _ _ => le_refl _⟩
 
+/-- The pointwise sum of two polynomially bounded three-variable costs is polynomially bounded.
+See [Kedlaya2006]. -/
 theorem polyBoundedThree_add {f g : ℕ → ℕ → ℕ → ℕ}
     (hf : PolyBoundedThree f) (hg : PolyBoundedThree g) :
     PolyBoundedThree (fun a b n => f a b n + g a b n) := by
@@ -42,12 +70,17 @@ theorem polyBoundedThree_add {f g : ℕ → ℕ → ℕ → ℕ}
         Nat.add_le_add b1 b2
     _ = (c1 + c2) * (a + b + n + 1) ^ (k1 + k2) := by rw [Nat.add_mul]
 
+/-- The sum of polynomially bounded generator and order-finding cost functions is polynomially
+bounded. See [Kedlaya2006]. -/
 theorem proposition11_cost_decomposition
     (genCost ordCost : ℕ → ℕ → ℕ → ℕ)
     (hgen : PolyBoundedThree genCost) (hord : PolyBoundedThree ordCost) :
     PolyBoundedThree (fun a b n => genCost a b n + ordCost a b n) :=
   polyBoundedThree_add hgen hord
 
+/-- Under the curve-size hypothesis, there exists an abstract class-number algorithm record with
+success value at least `3 / 4` and the stated polynomial cost bound at the specified input.
+See [Kedlaya2006]. -/
 theorem proposition11_class_number (desc : CurveDescriptor) (e : ℕ)
     (_hsmall : 16 * (desc.g : ℝ) < halfPower desc.q e) :
     ∃ A : ClassNumberAlgorithm,
@@ -63,6 +96,8 @@ namespace Qatlib.Papers.ZetaCurve04.MainResults.Proposition11
 
 open Qatlib.Papers.ZetaCurve04.MainResults.Defs
 
+/-- Squaring `16 * g < halfPower q e` gives `256 * g ^ 2 < q ^ e` for positive `q`. See
+[Kedlaya2006]. -/
 theorem sixteen_g_sq_lt (q g e : ℕ) (hq : 0 < q)
     (h : 16 * (g : ℝ) < halfPower q e) :
     256 * (g : ℝ) ^ 2 < (q : ℝ) ^ e := by
@@ -74,6 +109,9 @@ theorem sixteen_g_sq_lt (q g e : ℕ) (hq : 0 < q)
   rw [Real.sq_sqrt (by positivity)] at hsq
   nlinarith
 
+/-- Given polynomially bounded generator and order costs, there exists a class-number algorithm
+record returning `C.classNumber n`, with a uniform polynomial cost bound and success value
+at least `3 / 4`. See [Kedlaya2006]. -/
 theorem proposition11_class_number_explicit
     (C : CurveData) (genCost ordCost : ℕ → ℕ → ℕ → ℕ)
     (hgen : PolyBoundedThree genCost) (hord : PolyBoundedThree ordCost) :

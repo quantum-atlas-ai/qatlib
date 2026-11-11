@@ -9,6 +9,28 @@ import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundBeal
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+/-!
+# Claw lower bounds from Boolean search
+
+This module proves circuit relabeling identities and uses a singleton first domain to relate
+claw finding to Boolean search. It derives an exact query lower bound of `M` and a bounded error
+lower bound of `sqrt M / 8` for `M ≥ 6`, with hypotheses expressed by the claw algorithm
+contracts.
+
+The mathematical setting follows [BuhrmanEtAl2005].
+
+## Main statements
+
+* `run_map`: circuit execution commutes with relabeling.
+* `claw_qe_lower_at_one`: exact singleton-domain claw finding needs at least `M` queries.
+* `claw_q2_lower_at_one`: the corresponding bounded error square root lower bound.
+
+## References
+
+* [Buhrman et al., 2005][BuhrmanEtAl2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,10 +48,13 @@ namespace Qatlib.Papers.ElemDistinct00.MainResults.Claw
 
 variable {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
 
+/-- Relabels gate indices along an equivalence and leaves query steps unchanged. -/
 def stepMap (e : A ≃ B) : Step A → Step B
   | Step.gate U => Step.gate (relabelGate e U)
   | Step.query => Step.query
 
+/-- Relabeling the oracle, circuit, and initial state relabels the final circuit state by the
+same equivalence. -/
 theorem run_map (e : A ≃ B) (O : Matrix A A ℂ) (C : Circuit A) (ψ : QState A) :
     Run (relabelGate e O) (C.map (stepMap e)) (relabelState e ψ)
       = relabelState e (Run O C ψ) := by
@@ -52,6 +77,7 @@ theorem run_map (e : A ≃ B) (O : Matrix A A ℂ) (C : Circuit A) (ψ : QState 
 
 omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
 
+/-- Relabeling circuit steps preserves the query count. -/
 theorem queryCount_map (e : A ≃ B) (C : Circuit A) :
     QueryCount (C.map (stepMap e)) = QueryCount C := by
   induction C with
@@ -61,6 +87,7 @@ theorem queryCount_map (e : A ≃ B) (C : Circuit A) :
     | gate U => simp only [List.map_cons, stepMap, QueryCount, ih]
     | query => simp only [List.map_cons, stepMap, QueryCount, ih]
 
+/-- Relabeling a unitary circuit along an equivalence preserves circuit unitarity. -/
 theorem isUnitary_map (e : A ≃ B) (C : Circuit A) (h : IsUnitaryCircuit C) :
     IsUnitaryCircuit (C.map (stepMap e)) := by
   induction C with
@@ -79,6 +106,7 @@ theorem isUnitary_map (e : A ≃ B) (C : Circuit A) (h : IsUnitaryCircuit C) :
         exact (isUnitaryCircuit_gate _ _).mpr
           ⟨Qatlib.Concepts.BlockEncoding.StateBlockEncoding.unitaryGroup_reindex e hU, ih hC⟩
 
+/-- The equivalence from `Fin 1 × Fin M` to `Fin M` that discards the unique first coordinate. -/
 def e1 (M : ℕ) : Fin 1 × Fin M ≃ Fin M where
   toFun p := p.2
   invFun y := (0, y)
@@ -87,10 +115,14 @@ def e1 (M : ℕ) : Fin 1 × Fin M ≃ Fin M where
     exact Subsingleton.elim _ _
   right_inv _ := rfl
 
+/-- The workspace equivalence removing the singleton component of the comparison index while
+retaining the Boolean and work registers. -/
 def we (M : ℕ) (W : Type) :
     ((Fin 1 × Fin M) × Bool) × W ≃ (Fin M × Bool) × W :=
   Equiv.prodCongr (Equiv.prodCongr (e1 M) (Equiv.refl Bool)) (Equiv.refl W)
 
+/-- Relabeling a workspace bit oracle along an index equivalence converts the pulled back
+Boolean function oracle to the original function oracle. -/
 theorem relabel_bitOracle {ι κ W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype κ] [DecidableEq κ] [Fintype W] [DecidableEq W]
     (e : ι ≃ κ) (f : κ → Bool) :
@@ -123,6 +155,8 @@ theorem relabel_bitOracle {ι κ W : Type} [Fintype ι] [DecidableEq ι]
       exact Prod.ext_iff.mpr ⟨by rw [h1], h2⟩
   exact if_congr hiff rfl rfl
 
+/-- For a normalized state, an event disjoint from an event of probability one has probability
+zero. -/
 theorem measureProb_eq_zero_of_disjoint {Ω : Type*} [Fintype Ω] [DecidableEq Ω]
     {ψ : QState Ω} {S N : Finset Ω} (hN : Normalized ψ) (hdisj : Disjoint S N)
     (hS : MeasureProb ψ S = 1) : MeasureProb ψ N = 0 := by
@@ -137,12 +171,16 @@ theorem measureProb_eq_zero_of_disjoint {Ω : Type*} [Fintype Ω] [DecidableEq �
   have hnonneg := measureProb_nonneg ψ N
   linarith
 
+/-- Comparing the constant integer one with the integer encoding of a Boolean function returns
+that Boolean function value. -/
 theorem comparisonBit_const_one {M : ℕ} (g : Fin M → Bool) (p : Fin 1 × Fin M) :
     comparisonBit (fun _ : Fin 1 => (1 : ℤ)) (fun y => if g y then (1 : ℤ) else 0) p
       = g p.2 := by
   unfold comparisonBit
   by_cases h : g p.2 <;> simp [h]
 
+/-- The constant integer one function has a claw with a Boolean indicator function exactly when
+the Boolean function is true somewhere. -/
 theorem hasClaw_const_one {M : ℕ} (g : Fin M → Bool) :
     HasClaw (fun _ : Fin 1 => (1 : ℤ)) (fun y => if g y then (1 : ℤ) else 0)
       ↔ ∃ y, g y = true := by
@@ -154,6 +192,8 @@ theorem hasClaw_const_one {M : ℕ} (g : Fin M → Bool) :
   · rintro ⟨y, hy⟩
     exact ⟨0, y, by simp [hy]⟩
 
+/-- For positive `M`, a singleton-domain claw algorithm that is exact on both claw and no-claw
+inputs uses at least `M` queries. -/
 theorem exact_claw_lower {M : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (A : ClawAlgorithm (Fin 1) (Fin M) ℤ W) (hM : 0 < M)
     (hExact : ∀ (f : Fin 1 → ℤ) (g : Fin M → ℤ), HasClaw f g →
@@ -239,6 +279,8 @@ theorem exact_claw_lower {M : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (by simpa using hM) hno hpos
   simpa [C', queryCount_map] using hcard
 
+/-- For `M ≥ 6`, a singleton-domain claw algorithm succeeding with probability at least two
+thirds on every claw input satisfies `M ≤ 64 * QueryCount A.circuit²`. -/
 theorem q2_claw_lower_at_one {M : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (A : ClawAlgorithm (Fin 1) (Fin M) ℤ W) (hM6 : 6 ≤ M)
     (hB : ∀ (f : Fin 1 → ℤ) (g : Fin M → ℤ), HasClaw f g →
@@ -313,6 +355,7 @@ theorem q2_claw_lower_at_one {M : ℕ} {W : Type} [Fintype W] [DecidableEq W]
   have h := workspace_search_query_lower_bound C' ψ' decode hC' hψ' hcard hmark
   simpa [C', QueryCount, queryCount_map] using h
 
+/-- For nonnegative `Q`, the inequality `M ≤ 64 * Q²` implies `sqrt M / 8 ≤ Q`. -/
 theorem sqrt_div_eight_le_of_sq (M : ℕ) {Q : ℝ} (hQ : 0 ≤ Q)
     (h : (M : ℝ) ≤ 64 * Q ^ 2) : Real.sqrt (M : ℝ) / 8 ≤ Q := by
   have hsq : Real.sqrt (M : ℝ) ≤ Real.sqrt (64 * Q ^ 2) := Real.sqrt_le_sqrt h
@@ -322,12 +365,16 @@ theorem sqrt_div_eight_le_of_sq (M : ℕ) {Q : ℝ} (hQ : 0 ≤ Q)
   rw [h8, Real.sqrt_sq hQ] at hsq
   linarith
 
+/-- An exact singleton-domain claw algorithm uses at least `M` queries when `M` is positive. See
+[Buhrman et al., 2005, Theorem 2][BuhrmanEtAl2005]. -/
 theorem claw_qe_lower_at_one {M : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (A : ClawAlgorithm (Fin 1) (Fin M) ℤ W) (hE : ClawExact A) (hM : 0 < M) :
     (M : ℝ) ≤ (QueryCount A.circuit : ℝ) := by
   have h := exact_claw_lower A hM hE.1 hE.2
   exact_mod_cast h
 
+/-- A bounded error singleton-domain claw algorithm uses at least `sqrt M / 8` queries when `M ≥
+6`. See [Buhrman et al., 2005, Theorem 2][BuhrmanEtAl2005]. -/
 theorem claw_q2_lower_at_one {M : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (A : ClawAlgorithm (Fin 1) (Fin M) ℤ W) (hB : ClawBoundedError A) (hM6 : 6 ≤ M) :
     Real.sqrt (M : ℝ) / 8 ≤ (QueryCount A.circuit : ℝ) :=

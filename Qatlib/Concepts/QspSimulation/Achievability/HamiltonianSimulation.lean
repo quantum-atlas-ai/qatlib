@@ -8,6 +8,40 @@ import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximatio
 import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
 import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
 import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+
+/-!
+# Hamiltonian simulation from polynomial phases
+
+This module constructs Hamiltonian simulation block encodings from a same-frame projected
+unitary encoding of a Hermitian matrix. The polynomial transformation step uses
+`phasedAlternating` and `responseP`, while `realPartQSVT` extracts real polynomial responses.
+This connects the quantum signal processing approach to Hamiltonian simulation [LowChuang2017]
+with the projected encoding viewpoint of quantum singular value transformation
+[GilyenSuLowWiebe2019].
+
+The scaled Taylor polynomials `hamiltonianCosine` and `hamiltonianSine` are synthesized
+separately and combined in `hamiltonianCircuit`, with two applications of `averageFrame`. The
+resulting exact Taylor encoding has scale one eighth; convergence of the matrix Taylor
+approximation yields `hamiltonianSimulation_exists`, with normalization factor `8` and arbitrary
+positive error.
+
+## Main statements
+
+* `hermitian_qsvt_compress` identifies the compressed phased circuit with polynomial evaluation
+  at the Hermitian matrix.
+* `hamiltonianTaylor_phases` produces cosine and sine phase lists of lengths `2 * n` and `2 * n
+  + 1`.
+* `hamiltonianTaylor_projectedEncoding` constructs an exact projected encoding of the scaled
+  Taylor polynomial.
+* `hamiltonianSimulation_exists` produces a block encoding of `hamiltonianEvolution` at any
+  positive precision.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+* [Gilyen, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -33,6 +67,8 @@ open scoped Matrix.Norms.L2Operator
 section SameFrame
 variable {H I : Type*} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
 
+/-- For a same-frame projected unitary encoding of a Hermitian matrix `A`, compressing the
+phased alternating circuit gives `responseP` evaluated at `A`. -/
 theorem hermitian_qsvt_compress {A : Matrix I I ℂ} {U : Matrix H H ℂ}
     {F : Matrix H I ℂ} (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
     (base : ℂ) (zs : List ℂ) :
@@ -43,6 +79,8 @@ theorem hermitian_qsvt_compress {A : Matrix I I ℂ} {U : Matrix H H ℂ}
     (w := (1 : Matrix I I ℂ)) (by simp) (by simp [ha]) base zs
   simpa [compress, Matrix.mul_assoc, alternatingSource_eq] using he
 
+/-- Unit-modulus base and list phases turn the phased alternating circuit into a projected
+unitary encoding of `aeval A (responseP base zs)` when `A` is Hermitian. -/
 theorem hermitian_qsvt_projectedEncoding {A : Matrix I I ℂ} {U : Matrix H H ℂ}
     {F : Matrix H I ℂ} (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
     {base : ℂ} (hb : IsPhase base) (zs : List ℂ) (hzs : ∀ z ∈ zs, IsPhase z) :
@@ -53,6 +91,8 @@ theorem hermitian_qsvt_projectedEncoding {A : Matrix I I ℂ} {U : Matrix H H �
     (rangeProjector_isOrthogonalProjector h.left_isometry) hb zs hzs,
     h.left_isometry, h.left_isometry, hermitian_qsvt_compress hA h base zs⟩
 
+/-- For a Hermitian encoded matrix, `realPartQSVT` encodes the real-part response polynomial
+evaluated at that matrix, using `averageFrame F` on both sides. -/
 theorem hermitian_realPart_projectedEncoding {A : Matrix I I ℂ} {U : Matrix H H ℂ}
     {F : Matrix H I ℂ} (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
     {base : ℂ} (hb : IsPhase base) (zs : List ℂ) (hzs : ∀ z ∈ zs, IsPhase z) :
@@ -66,6 +106,8 @@ theorem hermitian_realPart_projectedEncoding {A : Matrix I I ℂ} {U : Matrix H 
 
 omit [Fintype I] in
 
+/-- Multiplying both an encoded matrix and its encoding unitary by the same unit-modulus scalar
+preserves the projected unitary encoding with its original frames. -/
 theorem hamiltonian_phase_projectedEncoding {B : Matrix I I ℂ} {V : Matrix H H ℂ}
     {F : Matrix H I ℂ} (h : ProjectedUnitaryEncoding B V F F)
     {z : ℂ} (hz : IsPhase z) : ProjectedUnitaryEncoding (z • B) (z • V) F F := by
@@ -75,6 +117,8 @@ theorem hamiltonian_phase_projectedEncoding {B : Matrix I I ℂ} {V : Matrix H H
 
 end SameFrame
 
+/-- If a response polynomial plus its coefficientwise conjugate equals twice a mapped real
+polynomial, its `realPartPolynomial` is that mapped polynomial. -/
 theorem hamiltonian_realPart_of_completion {p : Polynomial ℝ} {base : ℂ} {zs : List ℂ}
     (hp : responseP base zs + Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.conjugatePolynomial (responseP base zs) =
       C (2 : ℂ) * p.map Complex.ofRealHom) :
@@ -84,12 +128,19 @@ theorem hamiltonian_realPart_of_completion {p : Polynomial ℝ} {base : ℂ} {zs
   rw [hp, Polynomial.smul_eq_C_mul, ← mul_assoc, ← C_mul]
   norm_num
 
+/-- The cosine Taylor polynomial multiplied by the constant `1 / 4`, used as the real cosine
+response in the Hamiltonian circuit. -/
 noncomputable def hamiltonianCosine (t : ℝ) (n : ℕ) : Polynomial ℝ :=
   C (1 / 4) * cosineTaylorPolynomial t n
 
+/-- The sine Taylor polynomial multiplied by the constant `1 / 4`, used as the real sine
+response in the Hamiltonian circuit. -/
 noncomputable def hamiltonianSine (t : ℝ) (n : ℕ) : Polynomial ℝ :=
   C (1 / 4) * sineTaylorPolynomial t n
 
+/-- Under the stated time-degree and Taylor-error bounds, there are unit-modulus cosine and sine
+phase lists of lengths `2 * n` and `2 * n + 1`. Their real-part responses are the mapped
+polynomials `hamiltonianCosine t n` and `hamiltonianSine t n`. -/
 theorem hamiltonianTaylor_phases (t : ℝ) (n : ℕ)
     (hn : 2 * |t| ≤ (n : ℝ) + 1) (hE : exponentialTaylorError t n < 1) :
     ∃ (bc : ℂ) (zc : List ℂ) (bs : ℂ) (zs : List ℂ),
@@ -116,6 +167,8 @@ theorem hamiltonianTaylor_phases (t : ℝ) (n : ℕ)
   exact ⟨bc, zc, bs, zs, hbc, hzc, hlc, hbs, hzs, hls,
     hamiltonian_realPart_of_completion hpc, hamiltonian_realPart_of_completion hps⟩
 
+/-- Decomposes the complex exponential Taylor polynomial as the mapped cosine Taylor polynomial
+minus `Complex.I` times the mapped sine Taylor polynomial. -/
 theorem exponentialTaylorPolynomial_eq_trig (t : ℝ) (n : ℕ) :
     exponentialTaylorPolynomial t n =
       (cosineTaylorPolynomial t n).map Complex.ofRealHom -
@@ -131,15 +184,22 @@ theorem exponentialTaylorPolynomial_eq_trig (t : ℝ) (n : ℕ) :
 section Construction
 variable {H I : Type*} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
 
+/-- The averaging circuit combining the cosine `realPartQSVT` circuit with `-Complex.I` times
+the sine `realPartQSVT` circuit. -/
 noncomputable def hamiltonianCircuit (U : Matrix H H ℂ) (F : Matrix H I ℂ)
     (bc : ℂ) (zc : List ℂ) (bs : ℂ) (zs : List ℂ) :
     Matrix (Bool × (Bool × H)) (Bool × (Bool × H)) ℂ :=
   averageCircuit (realPartQSVT U (rangeProjector F) (rangeProjector F) bc zc)
     ((-Complex.I) • realPartQSVT U (rangeProjector F) (rangeProjector F) bs zs)
 
+/-- The frame obtained by applying `averageFrame` twice to `F`, matching the two Boolean
+registers of `hamiltonianCircuit`. -/
 noncomputable def hamiltonianFrame (F : Matrix H I ℂ) : Matrix (Bool × (Bool × H)) I ℂ :=
   averageFrame (averageFrame F)
 
+/-- The average of the scaled cosine polynomial evaluated at `A` and `-Complex.I` times the
+scaled sine polynomial evaluated at `A` equals one eighth of the exponential Taylor
+polynomial evaluated at `A`. -/
 private theorem hamiltonian_trig_matrix (A : Matrix I I ℂ) (t : ℝ) (n : ℕ) :
     (2 : ℂ)⁻¹ • (aeval A ((hamiltonianCosine t n).map Complex.ofRealHom) +
       (-Complex.I) • aeval A ((hamiltonianSine t n).map Complex.ofRealHom)) =
@@ -151,6 +211,9 @@ private theorem hamiltonian_trig_matrix (A : Matrix I I ℂ) (t : ℝ) (n : ℕ)
   norm_num
   module
 
+/-- For a same-frame encoding of a Hermitian matrix and the stated Taylor bounds, suitable
+cosine and sine phases make `hamiltonianCircuit` a projected unitary encoding of one eighth
+of the matrix Taylor polynomial. The phase lists have lengths `2 * n` and `2 * n + 1`. -/
 theorem hamiltonianTaylor_projectedEncoding
     {A : Matrix I I ℂ} {U : Matrix H H ℂ} {F : Matrix H I ℂ}
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)
@@ -171,6 +234,10 @@ theorem hamiltonianTaylor_projectedEncoding
   rw [hamiltonian_trig_matrix] at hout
   exact ⟨bc, zc, bs, zs, hbc, hzc, hlc, hbs, hzs, hls, hout⟩
 
+/-- For every positive `ε`, a same-frame projected unitary encoding of a Hermitian matrix yields
+a `hamiltonianCircuit` block encoding of `hamiltonianEvolution A t` with normalization `8`
+and error `ε`. The construction supplies unit-modulus cosine and sine phase lists of lengths
+`2 * n` and `2 * n + 1` for some `n`. -/
 theorem hamiltonianSimulation_exists
     {A : Matrix I I ℂ} {U : Matrix H H ℂ} {F : Matrix H I ℂ}
     (hA : A.IsHermitian) (h : ProjectedUnitaryEncoding A U F F)

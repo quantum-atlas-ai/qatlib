@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PairingModel01.MainResults.Defs
+
+/-!
+# Short-time splitting of pairing evolution
+
+`shortTimeProduct` splits the free and interaction evolutions of the pairing Hamiltonian. The
+module proves unitarity and a quadratic commutator error bound, giving a quantitative version of
+the short-time formula in Equation 2 of [WuByrdLidar2002].
+
+## Main statements
+
+* `eq2_paper_form`: the short-time product has error at most half the commutator norm times
+  `τ²`.
+* `shortTimeProduct_mem_unitaryGroup`: the split evolution is unitary.
+
+## References
+
+* [Wu et al., 2002][WuByrdLidar2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +39,13 @@ open Qatlib.Foundations.PureStateMath
   (Operator HamiltonianEvolution hamiltonianEvolution_unitary)
 open Qatlib.Concepts.TrotterFormula.LieStrang (pfComm pfLie)
 
+/-- The product of free and interaction Hamiltonian evolutions, each for time `τ`. -/
 noncomputable def shortTimeProduct (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → Fin N → ℝ) (τ : ℝ) :
     Operator (2 ^ N) :=
   HamiltonianEvolution (pairingH0 N ε) τ * HamiltonianEvolution (pairingHI N V) τ
 
+/-- The split free and interaction evolutions differ from the full pairing evolution by at most
+`τ² / 2` times the commutator norm. See [WuByrdLidar2002]. -/
 theorem eq2_short_time_step (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → Fin N → ℝ) (τ : ℝ) :
     ‖HamiltonianEvolution (pairingH0 N ε) τ * HamiltonianEvolution (pairingHI N V) τ
         - HamiltonianEvolution (pairingHp N ε V) τ‖
@@ -39,11 +61,15 @@ theorem eq2_short_time_step (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → Fin N 
   unfold pairingHp
   simpa [pfLie] using! h'
 
+/-- The error of `shortTimeProduct` relative to the full pairing evolution is at most `τ² / 2`
+times the commutator norm. See [WuByrdLidar2002]. -/
 theorem eq2_paper_form (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → Fin N → ℝ) (τ : ℝ) :
     ‖shortTimeProduct N ε V τ - HamiltonianEvolution (pairingHp N ε V) τ‖
       ≤ τ ^ 2 / 2 * ‖pfComm (pairingH0 N ε) (pairingHI N V)‖ := by
   simpa [shortTimeProduct] using! eq2_short_time_step N ε V τ
 
+/-- For every real step size, the short-time product error is at most `(‖pfComm (pairingH0 N ε)
+(pairingHI N V)‖ / 2 + 1) * τ²`. See [WuByrdLidar2002]. -/
 theorem eq2_error_bound_quadratic (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → Fin N → ℝ) :
     ∀ τ : ℝ, ‖shortTimeProduct N ε V τ - HamiltonianEvolution (pairingHp N ε V) τ‖
       ≤ (‖pfComm (pairingH0 N ε) (pairingHI N V)‖ / 2 + 1) * τ ^ 2 := by
@@ -53,6 +79,7 @@ theorem eq2_error_bound_quadratic (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → 
   have hc : (0 : ℝ) ≤ ‖pfComm (pairingH0 N ε) (pairingHI N V)‖ := norm_nonneg _
   nlinarith [h, hsq, hc]
 
+/-- The short-time product belongs to the unitary group. See [WuByrdLidar2002]. -/
 theorem shortTimeProduct_mem_unitaryGroup (N : ℕ) (ε : Fin N → ℝ) (V : Fin N → Fin N → ℝ)
     (τ : ℝ) : shortTimeProduct N ε V τ ∈ Matrix.unitaryGroup (Fin (2 ^ N)) ℂ :=
   mul_mem (hamiltonianEvolution_unitary (pairingH0_isHermitian N ε) τ)

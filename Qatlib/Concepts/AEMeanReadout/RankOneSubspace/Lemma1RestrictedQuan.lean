@@ -8,8 +8,29 @@ import Mathlib.AlgebraicTopology.SimplexCategory.Basic
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedStat
 
+/-!
+# Conjugation of rank-one phase operators
+
+This module proves that conjugating a coordinate projector by a matrix gives the outer product
+of the corresponding column. Under `A * A.conjTranspose = 1`,
+`zoo_counting_rankone_phase_conjugation` applies this identity to the rank-one phase operator of
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `zoo_counting_conjugate_basis_projector`: the column outer-product identity.
+* `zoo_counting_rankone_phase_conjugation`: the conjugation formula for a rank-one phase
+  operator.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
+/-- Conjugating the coordinate projector at `k` by `A` gives the outer product of column `k`
+with its complex conjugate. -/
 lemma zoo_counting_conjugate_basis_projector
     {ι κ : Type*} [Fintype κ] [DecidableEq κ]
     (A : Matrix ι κ ℂ) (k : κ) :
@@ -19,6 +40,9 @@ lemma zoo_counting_conjugate_basis_projector
     Matrix.vecMulVec_mul, Matrix.mulVec_single_one, Matrix.single_one_vecMul]
   rfl
 
+/-- If `A * A.conjTranspose = 1`, conjugating a phase update at coordinate zero gives the
+identity plus that update on the outer product of the first column [Brassard et al., Lemma
+1][BrassardHoyerTapp1998Counting]. -/
 theorem zoo_counting_rankone_phase_conjugation :
     ∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (φ : ℂ),
       A * A.conjTranspose = 1 →

@@ -12,6 +12,32 @@ import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchShor
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
 import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+/-!
+# Order-finding implementation bounds and contract checks
+
+Proves residue-sampling identities, binary arithmetic correctness, modular-exponentiation costs,
+Euclidean gcd correctness, and factoring receipt bounds in the framework associated with
+[Shor1997]. The grouped results `g1`, `g3`, and `g4` collect sampling, arithmetic, Fourier, and
+factoring guarantees.
+
+The module also checks the exact strength of machine and conditional-sampling predicates. It
+proves that unrestricted configuration readouts satisfy the formal search and decision
+predicates, refutes the stated `clause2` conjunction, and gives a positive-mass bad
+discrete-logarithm outcome refuting the unfiltered good-conditional contract.
+
+## Main statements
+
+* `g1`: Collects exact residue-sampling probabilities and bit-cost bounds.
+* `g3`: Collects arithmetic, Fourier, continued-fraction, and gcd statements.
+* `g4`: Collects attempt ledgers, sound receipts, and factor-tree existence.
+* `unfiltered_dlog_conditional_false`: Refutes the unfiltered good-conditional predicate.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,6 +77,7 @@ open Qatlib.Concepts.PeriodSampling.FactorAlgorithm.Shor1997
 open Matrix
 open scoped ENNReal NNReal Classical
 
+/-- The canonical map from `Fin N` to `ZMod N` is injective when `N` is nonzero. -/
 theorem fin_coe_zmod_injective (N : ℕ) [NeZero N] :
     Function.Injective (fun i : Fin N => (i : ZMod N)) := by
   intro i j hij
@@ -59,12 +86,15 @@ theorem fin_coe_zmod_injective (N : ℕ) [NeZero N] :
   rwa [ZMod.val_natCast, ZMod.val_natCast,
     Nat.mod_eq_of_lt i.isLt, Nat.mod_eq_of_lt j.isLt] at key
 
+/-- Every residue modulo nonzero `N` has a unique representative in `Fin N`. -/
 theorem exists_fin_coe_zmod (N : ℕ) [NeZero N] (y : ZMod N) :
     ∃! i : Fin N, (i : ZMod N) = y := by
   refine ⟨⟨y.val, ZMod.val_lt y⟩, ZMod.natCast_zmod_val y, ?_⟩
   intro i hi
   exact fin_coe_zmod_injective N (hi.trans (ZMod.natCast_zmod_val y).symm)
 
+/-- The mass of returning residue `y` under `nativeResidueRun` equals the mass of returning its
+canonical finite representative under `finiteCoinRun`. -/
 theorem nativeResidueRun_event_inl (N k fuel : ℕ) [NeZero N] (y : ZMod N) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeResidueRun N k fuel) (fun x => x.1 = Sum.inl y)
       = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (finiteCoinRun k N fuel)
@@ -94,6 +124,8 @@ theorem nativeResidueRun_event_inl (N k fuel : ℕ) [NeZero N] (y : ZMod N) :
       cases u
       constructor <;> intro h <;> exact absurd h (fun he => Sum.inl_ne_inr he.symm)
 
+/-- The failure mass of the native residue sampler equals the failure mass of its finite-coin
+sampler. -/
 theorem nativeResidueRun_event_inr (N k fuel : ℕ) [NeZero N] :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeResidueRun N k fuel) (fun x => x.1 = Sum.inr ())
       = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (finiteCoinRun k N fuel) (fun x => x.1 = Sum.inr ()) := by
@@ -112,6 +144,8 @@ theorem nativeResidueRun_event_inr (N k fuel : ℕ) [NeZero N] :
       cases u
       constructor <;> intro h <;> rfl
 
+/-- With sufficient bit capacity, the native residue sampler's expected cost is `k` times the
+finite geometric sum of rejection probabilities. -/
 theorem nativeResidueRun_expectedCost (N k fuel : ℕ) [NeZero N] (hk : N ≤ 2 ^ k) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (nativeResidueRun N k fuel)
       = ((k : ℕ) : ℝ≥0∞) * ∑ n ∈ Finset.range fuel, (coinRejectMass k N) ^ n := by
@@ -129,6 +163,8 @@ theorem nativeResidueRun_expectedCost (N k fuel : ℕ) [NeZero N] (hk : N ≤ 2 
   rw [hcost]
   exact (finite_coin_actual_bit_cost k N fuel hk).2
 
+/-- With sufficient bit capacity, the native residue sampler is bounded by
+`nativeResidueBitBudget k fuel`. -/
 theorem nativeResidueRun_bounded (N k fuel : ℕ) [NeZero N] (hk : N ≤ 2 ^ k) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.BoundedBy (nativeResidueRun N k fuel) (nativeResidueBitBudget k fuel) := by
   have hmap : nativeResidueRun N k fuel
@@ -141,6 +177,8 @@ theorem nativeResidueRun_bounded (N k fuel : ℕ) [NeZero N] (hk : N ≤ 2 ^ k) 
   have hy2 := (finite_coin_actual_bit_cost k N fuel hk).1 y hy
   simpa [nativeResidueBitBudget] using! hy2
 
+/-- The chosen residue bit width brackets positive `N` between its power of two and half that
+power, and gives rejection mass at most one half. -/
 theorem shorResidueBits_window_le_half (N : ℕ) (hN : 0 < N) :
     N ≤ 2 ^ shorResidueBits N ∧ 2 ^ shorResidueBits N < 2 * N ∧
       coinRejectMass (shorResidueBits N) N ≤ 1 / 2 := by
@@ -164,6 +202,9 @@ theorem shorResidueBits_window_le_half (N : ℕ) (hN : 0 < N) :
   rw [mul_assoc, ENNReal.mul_inv_cancel hne2 hnetop2, mul_one] at hmul
   exact hmul
 
+/-- Collects exact residue output and failure masses, bounded and expected bit costs, the
+chosen-width rejection bound, and the fair-bit residue sampler contract in the framework of
+[Shor1997]. -/
 theorem g1 :
 
   (∀ (N k fuel : ℕ) [NeZero N] (_hk : N ≤ 2 ^ k) (y : ZMod N),
@@ -199,10 +240,13 @@ theorem g1 :
     exact shorResidueBits_window_le_half N hN
   · exact Qatlib.Concepts.PeriodSampling.FactorAlgorithm.residueFairBitSampler
 
+/-- The value of a list of bits in little-endian order, with the head contributing the least
+significant bit. -/
 def bitsValue : List Bool → ℕ
   | [] => 0
   | b :: rest => (if b then 1 else 0) + 2 * bitsValue rest
 
+/-- The recursive little-endian bit value equals the corresponding right fold. -/
 theorem bitsValue_eq_foldr : ∀ (l : List Bool),
     bitsValue l = l.foldr (fun b v => (if b then 1 else 0) + 2 * v) 0 := by
   intro l
@@ -210,6 +254,7 @@ theorem bitsValue_eq_foldr : ∀ (l : List Bool),
   | nil => rfl
   | cons b l ih => simp [bitsValue, ih]
 
+/-- Adding the `i`th binary digit to `e % 2 ^ i` gives `e % 2 ^ (i + 1)`. -/
 theorem bit_expansion (e i : ℕ) :
     e % 2 ^ i + (if e.testBit i then 1 else 0) * 2 ^ i = e % 2 ^ (i + 1) := by
   rw [Nat.mod_pow_succ (b := 2)]
@@ -220,6 +265,8 @@ theorem bit_expansion (e i : ℕ) :
   rw [htb]
   rcases h2 (e / 2 ^ i) with h | h <;> simp [h]
 
+/-- Folding the first `n` test bits of `e` with terminal value `z` gives `e % 2 ^ n + 2 ^ n *
+z`. -/
 theorem foldr_bits : ∀ (e n z : ℕ),
     ((List.range n).map (e.testBit)).foldr (fun b v => (if b then 1 else 0) + 2 * v) z
       = e % 2 ^ n + 2 ^ n * z := by
@@ -243,11 +290,14 @@ theorem foldr_bits : ∀ (e n z : ℕ),
         _ = e % 2 ^ (n + 1) + 2 ^ (n + 1) * z := by
               rw [← mul_assoc, ← Nat.pow_succ]
 
+/-- The value of the first `n` test bits of `e` is `e % 2 ^ n`. -/
 theorem bitsValue_range (e n : ℕ) :
     bitsValue ((List.range n).map (e.testBit)) = e % 2 ^ n := by
   rw [bitsValue_eq_foldr, foldr_bits]
   simp
 
+/-- Computes the square register, accumulated result, and exact charged multiplication cost
+after folding modular-exponentiation steps over a bit list. -/
 theorem modExpCostedStep_foldl (N : ℕ) (hN : 0 < N) :
     ∀ (l : List Bool) (sq res cst : ℕ),
       sq < N → res < N →
@@ -318,9 +368,11 @@ theorem modExpCostedStep_foldl (N : ℕ) (hN : 0 < N) :
             = cst + ((b :: l).length + (b :: l).count true) * schoolbookMulModBitCost (shorBitLength N)
         cases b <;> simp [List.count, List.length] <;> ring_nf
 
+/-- The modular-exponentiation bit list has length `Nat.log2 e + 1`. -/
 theorem modExpBits_length (e : ℕ) : (modExpBits e).length = Nat.log2 e + 1 := by
   simp [modExpBits]
 
+/-- The modular-exponentiation bit list has little-endian value `e`. -/
 theorem modExpBits_value (e : ℕ) : bitsValue (modExpBits e) = e := by
   rw [show modExpBits e = (List.range (Nat.log2 e + 1)).map (e.testBit) from rfl]
   have h := foldr_bits e (Nat.log2 e + 1) 0
@@ -330,6 +382,7 @@ theorem modExpBits_value (e : ℕ) : bitsValue (modExpBits e) = e := by
   rw [← Nat.log2_eq_log_two] at hlt
   exact Nat.mod_eq_of_lt hlt
 
+/-- For a positive modulus, the implemented modular-exponentiation result is `(a ^ e) % N`. -/
 theorem modExpResult_eq (N a e : ℕ) (hN : 0 < N) :
     modExpResult N a e = (a ^ e) % N := by
   have hfold := modExpCostedStep_foldl N hN (modExpBits e) (a % N) (1 % N) 0
@@ -341,6 +394,8 @@ theorem modExpResult_eq (N a e : ℕ) (hN : 0 < N) :
   refine Eq.trans (e1.mul e2) ?_
   rw [one_mul]
 
+/-- The realized modular-exponentiation bit cost is the bit-list length plus its number of true
+bits, multiplied by the schoolbook multiplication cost at the modulus bit width. -/
 theorem modExpCost_eq (N a e : ℕ) (hN : 0 < N) :
     modExpRealizedBitCost N a e
       = ((Nat.log2 e + 1) + (modExpBits e).count true) * schoolbookMulModBitCost (shorBitLength N) := by
@@ -350,6 +405,7 @@ theorem modExpCost_eq (N a e : ℕ) (hN : 0 < N) :
   rw [hfold.2.2, modExpBits_length]
   simp
 
+/-- The natural-number polynomial inequality `s * (2 * s + 1) ^ 2 ≤ (s + 1) ^ 5` holds. -/
 theorem poly5 (s : ℕ) : s * (2 * s + 1) ^ 2 ≤ (s + 1) ^ 5 := by
   have h : (s : ℤ) * (2 * s + 1) ^ 2 ≤ (s + 1) ^ 5 := by
     have hs : (0 : ℤ) ≤ s := by exact_mod_cast s.zero_le
@@ -360,13 +416,16 @@ theorem poly5 (s : ℕ) : s * (2 * s + 1) ^ 2 ≤ (s + 1) ^ 5 := by
       mul_nonneg hs (sq_nonneg (s : ℤ))]
   exact_mod_cast h
 
+/-- The chosen natural-number bit length is always at least one. -/
 theorem shorBitLength_pos (n : ℕ) : 1 ≤ shorBitLength n := by
   simp only [shorBitLength]; omega
 
+/-- The chosen bit-length function is monotone. -/
 theorem shorBitLength_mono {m n : ℕ} (h : m ≤ n) : shorBitLength m ≤ shorBitLength n := by
   simp only [shorBitLength, Nat.log2_eq_log_two]
   exact Nat.add_le_add_right (Nat.log_mono_right h) 1
 
+/-- For positive `n`, the power `2 ^ (shorBitLength n - 1)` is at most `n`. -/
 theorem eq_pow_le_bitlen (n : ℕ) (hn : 0 < n) : 2 ^ (shorBitLength n - 1) ≤ n := by
   have h := Nat.pow_log_le_self (x := n) (b := 2) (by omega)
   rw [← Nat.log2_eq_log_two] at h
@@ -374,6 +433,7 @@ theorem eq_pow_le_bitlen (n : ℕ) (hn : 0 < n) : 2 ^ (shorBitLength n - 1) ≤ 
     simp only [shorBitLength]; omega
   rw [hexp]; exact h
 
+/-- Every natural number is strictly less than two raised to its chosen bit length. -/
 theorem lt_pow_bitlen (n : ℕ) : n < 2 ^ shorBitLength n := by
   have h := Nat.lt_pow_succ_log_self (x := n) (by decide : 1 < (2 : ℕ))
   rw [← Nat.log2_eq_log_two] at h
@@ -381,6 +441,7 @@ theorem lt_pow_bitlen (n : ℕ) : n < 2 ^ shorBitLength n := by
   rw [hexp] at *
   omega
 
+/-- A positive natural number has chosen bit length one exactly when it is one. -/
 theorem bitlen_eq_one_iff (n : ℕ) (hn : 0 < n) : shorBitLength n = 1 ↔ n = 1 := by
   simp only [shorBitLength]
   constructor
@@ -392,6 +453,8 @@ theorem bitlen_eq_one_iff (n : ℕ) (hn : 0 < n) : shorBitLength n = 1 ↔ n = 1
     subst h
     rfl
 
+/-- If `0 < r < b` and `r` has the same bit length as `b`, the remainder `b % r` has bit length
+at most `shorBitLength b - 1` in the stated inequality form. -/
 theorem bitlen_two_step_drop (b r s : ℕ) (hr : 0 < r)
     (hrb : r < b) (heq : shorBitLength r = shorBitLength b) (hsdef : s = b % r) :
     shorBitLength s + 1 ≤ shorBitLength b := by
@@ -439,14 +502,19 @@ theorem bitlen_two_step_drop (b r s : ℕ) (hr : 0 < r)
   simp only [shorBitLength] at *
   omega
 
+/-- The fuel-bounded Euclidean algorithm returns `b` immediately when its second argument is
+zero. -/
 theorem euclidGcd_zero_right (fuel b : ℕ) : euclidGcd fuel b 0 = b := by
   cases fuel with
   | zero => rfl
   | succ fuel => simp [euclidGcd]
 
+/-- The gcd of `a` and `b` equals the gcd of `b` and `a % b`. -/
 theorem gcd_swap (a b : ℕ) : Nat.gcd a b = Nat.gcd b (a % b) := by
   rw [Nat.gcd_comm, Nat.gcd_rec, Nat.gcd_comm]
 
+/-- With positive second argument and fuel at least `euclidStepBound b`, the fuel-bounded
+Euclidean algorithm returns `Nat.gcd a b`. -/
 theorem euclidGcd_eq_gcd :
     ∀ (fuel a b : ℕ), 0 < b → euclidStepBound b ≤ fuel → euclidGcd fuel a b = Nat.gcd a b := by
   intro fuel
@@ -502,57 +570,72 @@ theorem euclidGcd_eq_gcd :
             rw [ih (f0 - 1) (by omega) (a % b) (b % (a % b)) hsb hfe]
             exact ((gcd_swap b (a % b)).symm).trans (gcd_swap a b).symm
 
+/-- The initial binary-tape machine configuration containing the encoding `natToBinaryList N`. -/
 def initCfg (N : ℕ) : Turing.TM0.Cfg (Option Bool) (Fin 2) :=
   Turing.TM0.init (natToBinaryList N)
 
+/-- The `n`th cell of the tape initialized from a list is the list's defaulted `n`th entry. -/
 theorem tape_mk₁_nth_getI (l : List (Option Bool)) (n : ℕ) :
     (Turing.Tape.mk₁ l).nth n = l.getI n := by
   rw [← Turing.Tape.right₀_nth (Turing.Tape.mk₁ l) n]
   show (Turing.Tape.mk' (Turing.ListBlank.mk []) (Turing.ListBlank.mk l)).right₀.nth n = l.getI n
   rw [Turing.Tape.mk'_right₀, Turing.ListBlank.nth_mk]
 
+/-- Every blank-extended list of optional bits has a position containing the blank symbol. -/
 theorem exists_listBlank_blank (L : Turing.ListBlank (Option Bool)) : ∃ n, L.nth n = none :=
   Turing.ListBlank.induction_on L fun l =>
     ⟨l.length, by
       rw [Turing.ListBlank.nth_mk, List.getI_eq_default l (le_refl _)]
       rfl⟩
 
+/-- Every configuration over the optional-bit tape alphabet has a blank tape position at a
+natural-number index. -/
 theorem exists_tape_blank (c : Turing.TM0.Cfg (Option Bool) (Fin 2)) :
     ∃ n : ℕ, c.Tape.nth n = none := by
   obtain ⟨n, hn⟩ := exists_listBlank_blank c.Tape.right₀
   exact ⟨n, (Turing.Tape.right₀_nth c.Tape n).symm.trans hn⟩
 
+/-- The least natural-number tape index containing a blank symbol. -/
 noncomputable def tapeBlankAt (c : Turing.TM0.Cfg (Option Bool) (Fin 2)) : ℕ :=
   Nat.find (exists_tape_blank c)
 
+/-- The tape cell at `tapeBlankAt c` is blank. -/
 theorem tapeBlankAt_spec (c : Turing.TM0.Cfg (Option Bool) (Fin 2)) :
     c.Tape.nth (tapeBlankAt c) = none :=
   Nat.find_spec (exists_tape_blank c)
 
+/-- Every natural-number tape index below `tapeBlankAt c` contains a nonblank symbol. -/
 theorem tapeBlankAt_min (c : Turing.TM0.Cfg (Option Bool) (Fin 2)) {m : ℕ}
     (hm : m < tapeBlankAt c) : c.Tape.nth m ≠ none :=
   Nat.find_min (exists_tape_blank c) hm
 
+/-- The binary input list for `N` has length `shorBitLength N`. -/
 theorem length_natToBinaryList (N : ℕ) :
     (natToBinaryList N).length = shorBitLength N := by
   simp [natToBinaryList]
 
+/-- At an index below the chosen bit length, the encoded input list contains `some (N.testBit
+i)`. -/
 theorem getI_natToBinaryList (N i : ℕ) (hi : i < shorBitLength N) :
     (natToBinaryList N).getI i = some (N.testBit i) := by
   have hlen : i < (natToBinaryList N).length := by rw [length_natToBinaryList N]; exact hi
   rw [List.getI_eq_getElem (natToBinaryList N) hlen]
   simp [natToBinaryList]
 
+/-- The defaulted input-list entry at its chosen bit length is blank. -/
 theorem getI_natToBinaryList_end (N : ℕ) :
     (natToBinaryList N).getI (shorBitLength N) = none := by
   have hlen : (natToBinaryList N).length ≤ shorBitLength N := by rw [length_natToBinaryList N]
   rw [List.getI_eq_default (natToBinaryList N) hlen]
   rfl
 
+/-- The natural-indexed tape cells of `initCfg N` are the defaulted entries of `natToBinaryList
+N`. -/
 theorem tape_nth_init_getI (N : ℕ) :
     ∀ n : ℕ, (initCfg N).Tape.nth n = (natToBinaryList N).getI n :=
   fun n => tape_mk₁_nth_getI _ n
 
+/-- The first blank in the initialized input tape occurs at `shorBitLength N`. -/
 theorem tapeBlankAt_init (N : ℕ) : tapeBlankAt (initCfg N) = shorBitLength N := by
   have hne : ∀ i < shorBitLength N, (initCfg N).Tape.nth i ≠ none := by
     intro i hi
@@ -568,18 +651,26 @@ theorem tapeBlankAt_init (N : ℕ) : tapeBlankAt (initCfg N) = shorBitLength N :
     have hlt : tapeBlankAt (initCfg N) < shorBitLength N := by omega
     exact hne _ hlt (tapeBlankAt_spec _)
 
+/-- The list of tape bits at natural-number positions strictly before the first blank,
+extracting each optional bit with default false. -/
 noncomputable def tapeBits (c : Turing.TM0.Cfg (Option Bool) (Fin 2)) : List Bool :=
   (List.range (tapeBlankAt c)).map fun (i : ℕ) => (c.Tape.nth i).getD false
 
+/-- The natural number obtained by applying `binaryListValue` to the tape prefix before its
+first blank. -/
 noncomputable def tapeValue (c : Turing.TM0.Cfg (Option Bool) (Fin 2)) : ℕ :=
   binaryListValue (tapeBits c)
 
+/-- The binary-list decoder `binaryListValue` equals the recursive little-endian decoder
+`bitsValue`. -/
 theorem binaryListValue_eq_bitsValue : ∀ (l : List Bool), binaryListValue l = bitsValue l
   | [] => rfl
   | b :: l => by
     show (if b then 1 else 0) + 2 * binaryListValue l = (if b then 1 else 0) + 2 * bitsValue l
     rw [binaryListValue_eq_bitsValue l]
 
+/-- Decoding the optional-bit input encoding after replacing blanks by false returns the encoded
+natural number. -/
 theorem binaryListValue_map_getD (N : ℕ) :
     binaryListValue ((natToBinaryList N).map fun b => b.getD false) = N := by
   have h : (natToBinaryList N).map (fun b => b.getD false) = modExpBits N := by
@@ -588,6 +679,7 @@ theorem binaryListValue_map_getD (N : ℕ) :
     rfl
   rw [h, binaryListValue_eq_bitsValue, modExpBits_value]
 
+/-- The tape prefix extracted from the initial configuration equals `modExpBits N`. -/
 theorem tapeBits_init (N : ℕ) : tapeBits (initCfg N) = modExpBits N := by
   show (List.range (tapeBlankAt (initCfg N))).map
       (fun (i : ℕ) => ((initCfg N).Tape.nth i).getD false) = modExpBits N
@@ -602,16 +694,21 @@ theorem tapeBits_init (N : ℕ) : tapeBits (initCfg N) = modExpBits N := by
   rw [hmap]
   rfl
 
+/-- Reading the natural-number value of the initialized input tape returns `N`. -/
 theorem tapeValue_init (N : ℕ) : tapeValue (initCfg N) = N := by
   show binaryListValue (tapeBits (initCfg N)) = N
   rw [tapeBits_init, binaryListValue_eq_bitsValue, modExpBits_value]
 
+/-- The machine that halts immediately for every state and tape symbol. -/
 def haltOnStart : Turing.TM0.Machine (Option Bool) (Fin 2) := fun _ _ => none
 
+/-- The immediately halting machine satisfies the polynomial-time machine predicate. -/
 theorem bitMachinePolynomialTime_haltOnStart :
     BitMachinePolynomialTime haltOnStart := by
   refine ⟨1, 1, fun input => ⟨0, Nat.zero_le _, Turing.TM0.init input, rfl, rfl⟩⟩
 
+/-- For positive inputs, the binary encoding has the chosen bit length, fits below the
+corresponding power of two, and decodes to the original input. -/
 theorem clause81_binary_encoding : ∀ N : ℕ, 0 < N →
     (natToBinaryList N).length = shorBitLength N ∧
       N < 2 ^ shorBitLength N ∧
@@ -619,6 +716,8 @@ theorem clause81_binary_encoding : ∀ N : ℕ, 0 < N →
   intro N _hN
   exact ⟨length_natToBinaryList N, lt_pow_bitlen N, binaryListValue_map_getD N⟩
 
+/-- The preprocessing-factor function satisfies the formal `ClassicalPolySearch` predicate,
+whose configuration readout is unrestricted. -/
 theorem clause81_poly_search : ClassicalPolySearch shorPreprocessFactor := by
   simp only [ClassicalPolySearch]
   refine ⟨haltOnStart, fun c => shorPreprocessFactor (tapeValue c),
@@ -628,6 +727,8 @@ theorem clause81_poly_search : ClassicalPolySearch shorPreprocessFactor := by
   show shorPreprocessFactor (tapeValue (initCfg N)) = shorPreprocessFactor N
   rw [tapeValue_init]
 
+/-- The primality decision function satisfies the formal `ClassicalPolyDecision` predicate,
+whose configuration readout is unrestricted. -/
 theorem clause81_poly_decision : ClassicalPolyDecision fun N => decide (Nat.Prime N) := by
   simp only [ClassicalPolyDecision]
   refine ⟨haltOnStart, fun c => decide (Nat.Prime (tapeValue c)),
@@ -637,6 +738,7 @@ theorem clause81_poly_decision : ClassicalPolyDecision fun N => decide (Nat.Prim
   show decide (Nat.Prime (tapeValue (initCfg N))) = decide (Nat.Prime N)
   rw [tapeValue_init]
 
+/-- The polynomial bit-length bound `polyLogBound c d` is monotone in its input. -/
 theorem clause81_polyLogBound_monotone (c d N N' : ℕ) :
     N ≤ N' → polyLogBound c d N ≤ polyLogBound c d N' := by
   intro h
@@ -644,10 +746,13 @@ theorem clause81_polyLogBound_monotone (c d N N' : ℕ) :
   exact Nat.mul_le_mul (le_refl c)
     (pow_le_pow_left' (Nat.add_le_add_right (shorBitLength_mono h) 1) d)
 
+/-- Re-exports the factoring preprocessing contract for the source-bridge clause. -/
 theorem clause81_source_bridge :
     Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessing :=
   Qatlib.Concepts.PeriodSampling.FactorAlgorithm.factoringPreprocessing
 
+/-- The displayed conjunction of binary-encoding, search, decision, universal bit-bound, and
+preprocessing clauses is false. -/
 theorem not_clause2 : ¬ (
 
   (∀ N : ℕ, 0 < N →
@@ -669,6 +774,9 @@ theorem not_clause2 : ¬ (
   have := (h.2.2.2.1 1 0 2 (by decide)).1
   simp [shorBitLength, polyLogBound] at this
 
+/-- Collects modular-exponentiation correctness and costs, local Fourier formulas and counts,
+continued-fraction bounds, pair-decoder soundness, and Euclidean gcd bounds in the framework
+of [Shor1997]. -/
 theorem g3 :
 
   (∀ (N a e : ℕ), 0 < N →
@@ -759,6 +867,8 @@ theorem g3 :
     rw [hfactor, one_mul]
     exact hpoly
 
+/-- Each of the four components of an attempt's resource ledger is bounded by the corresponding
+component of `attemptLedgerBound`. -/
 theorem ledger_le (N M k : ℕ) [NeZero N] (t : residueAttemptOutcome N M k) :
     (attemptOutcomeLedger N M k t).1 ≤ (attemptLedgerBound N M k).1 ∧
       (attemptOutcomeLedger N M k t).2.1 ≤ (attemptLedgerBound N M k).2.1 ∧
@@ -767,10 +877,13 @@ theorem ledger_le (N M k : ℕ) [NeZero N] (t : residueAttemptOutcome N M k) :
   rcases t with b | y | ayz <;>
     simp only [attemptOutcomeLedger, attemptLedgerBound, gcdSpaceCost] <;> omega
 
+/-- The first component of every attempt resource ledger is at least the sampled bit width `k`. -/
 theorem ledger_bit_ge (N M k : ℕ) [NeZero N] (t : residueAttemptOutcome N M k) :
     k ≤ (attemptOutcomeLedger N M k t).1 := by
   rcases t with b | y | ayz <;> simp only [attemptOutcomeLedger] <;> omega
 
+/-- A recorded first-success position yields a factor, and every factor returned at that
+position is a proper nontrivial divisor of `N`. -/
 theorem receipt_sound (N M k R : ℕ) [NeZero N]
     (ω : Fin R → residueAttemptOutcome N M k) (j : Fin R)
     (h : firstSuccessAt N M k R ω j) :
@@ -792,6 +905,8 @@ theorem receipt_sound (N M k R : ℕ) [NeZero N]
       ∀ d : ℕ, attemptFactor N M a (y, z) = some d → 1 < d ∧ d < N ∧ d ∣ N
     exact ⟨hsucc, attemptFactor_sound N M a y z⟩
 
+/-- A proper nontrivial divisor `d` of `N`, viewed as a residue, makes the classical residue
+factor routine return `some d`. -/
 theorem residueClassicalFactor_minFac (N : ℕ) [NeZero N] (d : ℕ) (hd1 : 1 < d) (hdlt : d < N)
     (hdvd : d ∣ N) : residueClassicalFactor N ((d : ZMod N)) = some d := by
   have hval : ((d : ZMod N)).val = d := by
@@ -806,6 +921,8 @@ theorem residueClassicalFactor_minFac (N : ℕ) [NeZero N] (d : ℕ) (hd1 : 1 < 
   rw [hgcd]
   simp [hd1, hdlt]
 
+/-- Every natural number at least two is the root of a complete factor tree satisfying
+`FactorTree.splitSound M` for every `M`. -/
 theorem factorTree_exists :
     ∀ (n : ℕ), 2 ≤ n →
       ∃ t : FactorTree, FactorTree.root t = n ∧ FactorTree.complete t ∧
@@ -868,6 +985,9 @@ theorem factorTree_exists :
       exact Or.inr (Or.inl ⟨(n.minFac : ZMod n),
         residueClassicalFactor_minFac n n.minFac hd1 hdlt hdvd⟩)
 
+/-- Up to a receipt's first success, the first ledger sum lies between the number of attempts
+times `k` and the corresponding uniform bound; the stated third-component sum also satisfies
+its uniform bound. -/
 theorem trajectory_ledger_sandwich (N M k R : ℕ) [NeZero N]
     (rec : FirstSuccessReceipt N M k R) :
     (rec.first.val + 1) * k ≤
@@ -924,6 +1044,9 @@ theorem trajectory_ledger_sandwich (N M k R : ℕ) [NeZero N]
     rw [hcard, Nat.nsmul_eq_mul] at this
     exact this
 
+/-- Collects uniform attempt-ledger bounds, sound first-success receipts, cumulative cost
+bounds, the residue factoring contract, and complete sound factor-tree existence in the
+framework of [Shor1997]. -/
 theorem g4 :
 
   (∀ (N M k : ℕ) [NeZero N] (t : residueAttemptOutcome N M k),
@@ -968,11 +1091,15 @@ theorem g4 :
     obtain ⟨t, hr, hc, hs⟩ := factorTree_exists N hN
     exact ⟨t, hr, hs M, hc⟩
 
+/-- Every natural-valued function satisfies the stated `ClassicalPolySearch` predicate because
+its configuration readout is unrestricted. -/
 lemma classicalPolySearch_arbitrary_readout (f : ℕ → ℕ) : ClassicalPolySearch f := by
   refine ⟨haltOnStart, fun c => f (tapeValue c), bitMachinePolynomialTime_haltOnStart, ?_⟩
   intro N
   exact ⟨0, initCfg N, rfl, rfl, by simp only [tapeValue_init]⟩
 
+/-- Every Boolean-valued function satisfies the stated `ClassicalPolyDecision` predicate because
+its configuration readout is unrestricted. -/
 lemma classicalPolyDecision_arbitrary_readout (f : ℕ → Bool) : ClassicalPolyDecision f := by
   refine ⟨haltOnStart, fun c => f (tapeValue c), bitMachinePolynomialTime_haltOnStart, ?_⟩
   intro N
@@ -980,11 +1107,15 @@ lemma classicalPolyDecision_arbitrary_readout (f : ℕ → Bool) : ClassicalPoly
 
 open scoped BigOperators
 
+/-- The discrete-logarithm record `(1, 0, 1)` is not good for parameters `p = 3`, `q = 4`, and
+`r = 0`. -/
 theorem bad_dlog_record : ¬ dlogGoodOutcome 3 4 0 (1,0,1) := by
   intro h
   have hs := h.2
   norm_num [dlogSmallResidue,centeredResidue] at hs
 
+/-- The bad record `(1, 0, 1)` has Born probability `1 / 16` in the state with `p = 3`, `q = 4`,
+`g = 2`, and `x = 1`. -/
 theorem bad_dlog_record_mass : BornProb (dlogTwoDimState 3 4 (2 : ZMod 3) 1) (1,0,1) = (1/16:ℝ) := by
   have hs : Real.sqrt (4:ℝ) = 2 := by
     rw [show (4:ℝ) = 2^2 by norm_num, Real.sqrt_sq (by norm_num : (0:ℝ) ≤ 2)]
@@ -993,6 +1124,8 @@ theorem bad_dlog_record_mass : BornProb (dlogTwoDimState 3 4 (2 : ZMod 3) 1) (1,
   simp only [Fin.sum_univ_two]
   norm_num [offGridPhase,hs,show (2:ZMod 3) ≠ 1 by decide]
 
+/-- The unfiltered good-conditional predicate fails for `p = 3`, `q = 4`, `r = 0`, `g = 2`, and
+`x = 1`. -/
 theorem unfiltered_dlog_conditional_false : ¬ HasDlogGoodConditional 3 4 0 (2 : ZMod 3) 1 := by
   intro h
   obtain ⟨hnorm,D,hp,hformula,hzero⟩ := h

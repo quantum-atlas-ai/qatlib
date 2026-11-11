@@ -9,6 +9,27 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+/-!
+# Spectral gaps and Szegedy rotation
+
+This module compares the classical spectral gap `1 - lambda1` with the angle `arccos lambda1`
+and bounds the associated reciprocal-angle step scale. The resulting scalar inequalities exhibit
+inverse-square-root gap dependence in the setting of [SommaEtAl2008].
+
+The theorem `szegedyWalk_rotation_bridge` separately realizes a normalized discriminant
+eigenvector as an orthonormal two-dimensional walk subspace with rotation angle `2θ`.
+
+## Main statements
+
+* `main_result_qsa_quadratic_speedup`: the gap positivity and reciprocal-angle comparisons.
+* `szegedyWalk_rotation_bridge`: an explicit two-dimensional rotation for the Szegedy walk.
+
+## References
+
+* [Somma et al., 2008][SommaEtAl2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,14 +42,20 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.QAnnealing08.MainResults.SzegedyPhaseGap
 
+/-- The scalar classical spectral gap `1 - lambda1`. -/
 def classicalSpectralGap (lambda1 : ℝ) : ℝ := 1 - lambda1
 
+/-- The angle `Real.arccos lambda1` associated with the spectral parameter. -/
 noncomputable def phaseGap (lambda1 : ℝ) : ℝ := Real.arccos lambda1
 
+/-- The reciprocal-gap scalar step scale. -/
 noncomputable def classicalAnnealingSteps (delta : ℝ) : ℝ := 1 / delta
 
+/-- The reciprocal of the angle `phaseGap lambda1`. -/
 noncomputable def qsaWalkSteps (lambda1 : ℝ) : ℝ := 1 / phaseGap lambda1
 
+/-- For `lambda1` in `[-1, 1]`, the classical gap is at most half the square of its arccosine
+angle [SommaEtAl2008]. -/
 theorem spectralGap_le_half_phaseGap_sq (lambda1 : ℝ)
     (h1 : -1 ≤ lambda1) (h2 : lambda1 ≤ 1) :
     classicalSpectralGap lambda1 ≤ (phaseGap lambda1) ^ 2 / 2 := by
@@ -38,6 +65,8 @@ theorem spectralGap_le_half_phaseGap_sq (lambda1 : ℝ)
     Real.one_sub_sq_div_two_le_cos (x := Real.arccos lambda1)
   nlinarith [hcos, hbound]
 
+/-- For `lambda1` in `[-1, 1]`, the phase-gap angle is at least the square root of twice the
+classical gap. -/
 theorem phaseGap_ge_sqrt_two_delta (lambda1 : ℝ)
     (h1 : -1 ≤ lambda1) (h2 : lambda1 ≤ 1) :
     Real.sqrt (2 * classicalSpectralGap lambda1) ≤ phaseGap lambda1 := by
@@ -46,6 +75,8 @@ theorem phaseGap_ge_sqrt_two_delta (lambda1 : ℝ)
   have hle := spectralGap_le_half_phaseGap_sq lambda1 h1 h2
   linarith
 
+/-- For `0 ≤ lambda1 < 1`, the phase-gap angle lies between the square root of twice the
+classical gap and `π / 2` [SommaEtAl2008]. -/
 theorem phaseGap_mem_window (lambda1 : ℝ) (h0 : 0 ≤ lambda1) (h1 : lambda1 < 1) :
     Real.sqrt (2 * classicalSpectralGap lambda1) ≤ phaseGap lambda1 ∧
     phaseGap lambda1 ≤ Real.pi / 2 := by
@@ -54,6 +85,8 @@ theorem phaseGap_mem_window (lambda1 : ℝ) (h0 : 0 ≤ lambda1) (h1 : lambda1 <
   unfold phaseGap
   exact Real.arccos_le_pi_div_two.2 h0
 
+/-- For `-1 ≤ lambda1 < 1`, the reciprocal-angle step scale is at most the reciprocal square
+root of twice the classical gap [SommaEtAl2008]. -/
 theorem qsa_step_bound (lambda1 : ℝ) (h1 : -1 ≤ lambda1) (h2lt : lambda1 < 1) :
     qsaWalkSteps lambda1 ≤ 1 / Real.sqrt (2 * classicalSpectralGap lambda1) := by
   have hδ : 0 < classicalSpectralGap lambda1 := by
@@ -64,6 +97,8 @@ theorem qsa_step_bound (lambda1 : ℝ) (h1 : -1 ≤ lambda1) (h2lt : lambda1 < 1
   unfold qsaWalkSteps
   exact one_div_le_one_div_of_le hpos hge
 
+/-- For `-1 ≤ lambda1 < 1`, the square of the reciprocal-angle step scale is at most half the
+classical reciprocal-gap scale [SommaEtAl2008]. -/
 theorem qsa_quadratic_improvement (lambda1 : ℝ) (h1 : -1 ≤ lambda1) (h2lt : lambda1 < 1) :
     (qsaWalkSteps lambda1) ^ 2 ≤
       classicalAnnealingSteps (classicalSpectralGap lambda1) / 2 := by
@@ -83,6 +118,9 @@ theorem qsa_quadratic_improvement (lambda1 : ℝ) (h1 : -1 ≤ lambda1) (h2lt : 
   have hne : classicalSpectralGap lambda1 ≠ 0 := ne_of_gt hδ
   field_simp
 
+/-- For `-1 ≤ lambda1 < 1`, the classical gap is positive, and the reciprocal-angle step scale
+obeys both the inverse-square-root bound and the stated squared-scale comparison
+[SommaEtAl2008]. -/
 theorem main_result_qsa_quadratic_speedup (lambda1 : ℝ) (h1 : -1 ≤ lambda1)
     (h2lt : lambda1 < 1) :
     0 < classicalSpectralGap lambda1 ∧
@@ -93,6 +131,9 @@ theorem main_result_qsa_quadratic_speedup (lambda1 : ℝ) (h1 : -1 ≤ lambda1)
   unfold classicalSpectralGap
   linarith
 
+/-- A normalized discriminant eigenvector with eigenvalue `cos θ` and nonzero `sin θ` yields two
+normalized orthogonal states on which the Szegedy walk acts by the displayed rotation
+through `2θ` [SommaEtAl2008]. -/
 theorem szegedyWalk_rotation_bridge
     {I : Type*} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (hP : IsTransitionMatrix P)

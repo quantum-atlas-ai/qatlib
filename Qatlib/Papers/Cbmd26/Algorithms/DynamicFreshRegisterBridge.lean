@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicTimeOracleBridge
 import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
 import Qatlib.Papers.Cbmd26.Algorithms.ComputationalWorkspaceBridge
+
+/-!
+# Register layouts for fresh dynamic circuits
+
+Defines the register types and basis equivalences connecting fresh-query circuits with dynamic
+sample and original-oracle workspaces. It transports evaluations and costs through
+`dynamicFreshReindexedWord` and identifies `dynamicFreshFinalFrame` with a computational ancilla
+frame. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicFreshReindexedWord_evaluate`: transports fresh-word semantics.
+* `dynamicFreshFinalFrame_computational`: identifies the final frame as a computational event
+  frame.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +72,10 @@ namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Abbreviates the sample ancilla as two Boolean registers together with the original ancilla. -/
 abbrev DynamicSampleAnc (Anc : Type) := Bool × (Bool × Anc)
+/-- Reassociates the sample ancilla and system register into two Boolean registers followed by
+the original ancilla-system pair. -/
 def sampleAncillaEquiv (Anc I : Type) :
     DynamicSampleAnc Anc × I ≃ Bool × (Bool × (Anc × I)) where
   toFun := fun ⟨⟨p,c,a⟩,i⟩ => (p,c,a,i)
@@ -60,11 +83,15 @@ def sampleAncillaEquiv (Anc I : Type) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Abbreviates the stored Taylor label and fresh signal registers. -/
 abbrev DynamicFreshStored (Anc J : Type) (K : ℕ) :=
   TaylorWordLabel J K × FreshSignals (DynamicSampleAnc Anc) K
+/-- Abbreviates the frequency-labelled Taylor and fresh-query workspace. -/
 abbrev DynamicFreshSpace (F Anc J I : Type) (K : ℕ) :=
   F × (TaylorWordLabel J K × FreshQueryWorkspace (DynamicSampleAnc Anc) J I K)
 
+/-- Rearranges the stored labels and dynamic sample workspace into the frequency-labelled
+fresh-query layout. -/
 def dynamicFreshWorkspaceEquiv (F Anc J I : Type) (K : ℕ) :
     DynamicFreshStored Anc J K × DynamicSampleWorkspace (F × J) (Anc × I) ≃
       DynamicFreshSpace F Anc J I K where
@@ -94,6 +121,8 @@ local instance cbmdDynamicFreshRegisterBridgeInstance5 (Anc J : Type) (K : ℕ) 
 
 omit [Fintype F] [Fintype Anc] [Fintype J] [Fintype I] in
 
+/-- Reindexing the selected fresh primitive source gives the stored-register spectator lift of
+the controlled frequency-time selected sample source. -/
 theorem dynamicFreshSource_reindex (K : ℕ)
     (V : F → J → Matrix (Bool × (Bool × (Anc × I))) (Bool × (Bool × (Anc × I))) ℂ) :
     (select (fun f => parallelOracle (J := TaylorWordLabel J K)
@@ -109,12 +138,15 @@ theorem dynamicFreshSource_reindex (K : ℕ)
     simp [dynamicFreshWorkspaceEquiv, sampleAncillaEquiv, freshPrimitiveQuery,
       parallelOracle, controlOracle, select, hf, ht, hs, hj, Matrix.one_apply, and_assoc]
 
+/-- Reindexes a fresh dynamic word to the stored-label and dynamic sample layout. -/
 def dynamicFreshReindexedWord (K : ℕ)
     (cs : List (AdjointStep (DynamicFreshSpace F Anc J I K))) :
     List (AdjointStep (DynamicFreshStored Anc J K ×
       DynamicSampleWorkspace (F × J) (Anc × I))) :=
   reindexAdjointWord (dynamicFreshWorkspaceEquiv F Anc J I K) cs
 
+/-- Evaluation of the reindexed word against the stored-register dynamic sample source equals
+reindexing the original selected fresh evaluation. -/
 theorem dynamicFreshReindexedWord_evaluate (K : ℕ)
     (V : F → J → Matrix (Bool × (Bool × (Anc × I))) (Bool × (Bool × (Anc × I))) ℂ)
     (cs : List (AdjointStep (DynamicFreshSpace F Anc J I K))) :
@@ -130,20 +162,25 @@ theorem dynamicFreshReindexedWord_evaluate (K : ℕ)
 omit [Fintype F] [DecidableEq F] [Fintype Anc] [DecidableEq Anc]
   [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I] in
 
+/-- Reindexing a fresh dynamic word preserves its query and gate counts. -/
 theorem dynamicFreshReindexedWord_cost (K : ℕ)
     (cs : List (AdjointStep (DynamicFreshSpace F Anc J I K))) :
     adjointQueryCount (dynamicFreshReindexedWord K cs) = adjointQueryCount cs ∧
     adjointGateCount (dynamicFreshReindexedWord K cs) = adjointGateCount cs :=
   reindexAdjointWord_cost _ _
 
+/-- Reindexing a well-formed fresh dynamic word preserves well-formedness. -/
 theorem dynamicFreshReindexedWord_wellFormed (K : ℕ)
     (cs : List (AdjointStep (DynamicFreshSpace F Anc J I K)))
     (hcs : WellFormedAdjointCircuit cs) :
     WellFormedAdjointCircuit (dynamicFreshReindexedWord K cs) :=
   reindexAdjointWord_wellFormed _ hcs
 
+/-- Abbreviates the final controlled original-oracle workspace, including frequency, time,
+ancilla, and system registers. -/
 abbrev DynamicFreshFinalSpace (F Anc J I : Type) (K : ℕ) :=
   Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × (Anc × I)))
+/-- Abbreviates the auxiliary registers of the final fresh dynamic workspace. -/
 abbrev DynamicFreshAux (F Anc J : Type) (K : ℕ) :=
   Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × Anc))
 
@@ -151,6 +188,8 @@ local instance cbmdDynamicFreshRegisterBridgeInstance6 (F Anc J : Type) (K : ℕ
     [DecidableEq J] : DecidableEq (DynamicFreshAux F Anc J K) :=
   inferInstanceAs (DecidableEq (Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × Anc))))
 
+/-- Separates the final fresh dynamic workspace into its auxiliary registers and system
+register. -/
 def dynamicFreshFinalEquiv (F Anc J I : Type) (K : ℕ) :
     DynamicFreshFinalSpace F Anc J I K ≃ DynamicFreshAux F Anc J K × I where
   toFun := fun ⟨b,⟨l,f⟩,j,a,i⟩ => ((b,(l,f),j,a),i)
@@ -158,10 +197,14 @@ def dynamicFreshFinalEquiv (F Anc J I : Type) (K : ℕ) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Defines the clean auxiliary label with empty Taylor word, zero fresh signals, false control
+bits, and the specified frequency, time, and ancilla labels. -/
 def dynamicFreshCleanAux (f₀ : F) (j₀ : J) (a₀ : Anc) (K : ℕ) :
     DynamicFreshAux F Anc J K :=
   (false,(((taylorEmptyLabel J K, freshSignalsZero (false,false,a₀) K),false,false,false),f₀),j₀,a₀)
 
+/-- Transports the clean fresh-word frame through the original-oracle and time-workspace
+register equivalences. -/
 def dynamicFreshFinalFrame (f₀ : F) (j₀ : J) (a₀ : Anc) (K : ℕ) :
     Matrix (DynamicFreshFinalSpace F Anc J I K) I ℂ :=
   reindexFrame (dynamicTimeWorkspaceEquiv (DynamicFreshStored Anc J K) F J (Anc × I))
@@ -173,6 +216,8 @@ def dynamicFreshFinalFrame (f₀ : F) (j₀ : J) (a₀ : Anc) (K : ℕ) :
 
 omit [Fintype J] in
 
+/-- The fresh-word frame entry is one exactly at its clean signal, control, oracle-label,
+ancilla, and system basis tuple, and zero elsewhere. -/
 private theorem freshWordFrame_entry (j₀ : J) (a₀ : Anc) (K : ℕ)
     (x : FreshQueryWorkspace Anc J I K) (i : I) :
     freshWordFrame j₀ a₀ K x i =
@@ -183,6 +228,8 @@ private theorem freshWordFrame_entry (j₀ : J) (a₀ : Anc) (K : ℕ)
 
 omit [Fintype F] [Fintype J] in
 
+/-- The final fresh dynamic frame equals the computational workspace frame at the clean
+auxiliary label. -/
 theorem dynamicFreshFinalFrame_computational (f₀ : F) (j₀ : J) (a₀ : Anc) (K : ℕ) :
     dynamicFreshFinalFrame (I := I) f₀ j₀ a₀ K =
       computationalWorkspaceFrame (dynamicFreshFinalEquiv F Anc J I K)

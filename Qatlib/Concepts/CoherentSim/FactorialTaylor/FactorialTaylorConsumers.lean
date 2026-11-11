@@ -9,6 +9,27 @@ import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
 import Qatlib.Concepts.OperatorErrors.Robustness
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Factorial Taylor simulation consumers
+
+`factorialTaylorWord` repeats amplified Taylor segments using a cutoff selected by a factorial
+tail bound. The module establishes coherent simulation accuracy, the costs of the word and its
+adjoint, and stability under unitary oracle perturbations, developing the truncated Taylor
+method [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `factorial_taylor_actual_simulation_and_paid_inverse`: Coherent simulation with forward and
+  adjoint resource counts.
+* `factorial_taylor_same_program_oracle_noise`: Simulation accuracy with perturbed summand
+  oracles.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 open Qatlib.Concepts.OperatorErrors.Robustness
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -47,6 +68,8 @@ set_option maxHeartbeats 800000
 attribute [local irreducible] factorialTaylorCutoff factorialTaylorPrecision
 set_option linter.unusedSectionVars false
 
+/-- The repeated coherently amplified Taylor circuit with segment count `taylorSegments` and a
+factorially chosen truncation cutoff. -/
 noncomputable def factorialTaylorWord {J I : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (h : J → ℝ) (j₀ : J) (t : ℝ) (Λ T k : ℕ) :=
   let s := taylorSegments Λ T
@@ -56,6 +79,8 @@ noncomputable def factorialTaylorWord {J I : Type} [Fintype J] [DecidableEq J]
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The factorial Taylor word uses `3 * s * K` queries and `s * (6 * K + 13)` gates for the
+selected segment count and cutoff. -/
 theorem factorialTaylor_word_counts (h : J → ℝ) (j0 : J)
     (t : ℝ) (Λ T k : ℕ) :
     let s := taylorSegments Λ T
@@ -81,6 +106,8 @@ theorem factorialTaylor_word_counts (h : J → ℝ) (j0 : J)
   rw [rqc, rgc, eqc, egc, hq, hg, bqc, bgc]
   constructor <;> ring
 
+/-- The coefficient mass times the absolute segment duration is at most `1 / 2` under the
+supplied coefficient and time bounds. -/
 private theorem factorialTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)
     (hΛ : (∑ j, |h j|) ≤ Λ) (hT : |t| ≤ T) :
     (∑ j, |h j|) * |t / (taylorSegments Λ T : ℝ)| ≤ 1 / 2 := by
@@ -93,6 +120,8 @@ private theorem factorialTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : 
     mul_le_mul hΛ hT (abs_nonneg _) (Nat.cast_nonneg _)
   linarith
 
+/-- Repeating exact Hamiltonian evolution for duration `t / s` a positive number `s` of times
+gives evolution for duration `t`. -/
 private theorem factorialTaylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : ℕ) (hs : 0 < s) :
     (hamiltonianEvolution H (t / s)) ^ s = hamiltonianEvolution H t := by
   have hp : ∀ n : ℕ, (hamiltonianEvolution H (t / s)) ^ n =
@@ -112,6 +141,9 @@ private theorem factorialTaylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : 
   have hs0 : (s : ℝ) ≠ 0 := by exact_mod_cast hs.ne'
   rw [mul_div_cancel₀ _ hs0]
 
+/-- For Hermitian unitary summands, the factorial Taylor word is well formed and approximates
+the embedded evolution with relative vector error at most `2⁻ᵏ`. It and its adjoint have the
+displayed query and gate counts. See [BerryEtAl2015Taylor]. -/
 theorem factorial_taylor_actual_simulation_and_paid_inverse :
   ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (h : J → ℝ) (U : J → Matrix I I ℂ) (j₀ : J) (t : ℝ) (Λ T k : ℕ),
@@ -168,6 +200,7 @@ theorem factorial_taylor_actual_simulation_and_paid_inverse :
   exact herr.trans
       (mul_le_mul_of_nonneg_right (factorial_taylor_tail_and_coherent_precision.2 s k) (norm_nonneg _))
 
+/-- A uniform nonnegative norm bound on the blocks bounds the norm of their SELECT operator. -/
 theorem factorialTaylor_select_norm_le (A : J → Matrix I I ℂ) (δ : ℝ)
     (hδ : 0 ≤ δ) (hA : ∀ j, ‖A j‖ ≤ δ) : ‖select A‖ ≤ δ := by
   apply l2_opNorm_le_of_mulVec_le hδ
@@ -190,6 +223,8 @@ theorem factorialTaylor_select_norm_le (A : J → Matrix I I ℂ) (δ : ℝ)
   apply (sq_le_sq₀ (norm_nonneg _) (mul_nonneg hδ (norm_nonneg _))).mp
   simpa only [mul_pow] using! hs
 
+/-- A uniform norm perturbation of the summand operators bounds the corresponding Taylor-query
+perturbation by the same amount. -/
 theorem factorialTaylor_query_noise (U V : J → Matrix I I ℂ) (K : ℕ) (δ : ℝ)
     (hδ : 0 ≤ δ) (hUV : ∀ j, ‖U j-V j‖ ≤ δ) :
     ‖taylorQuery V K-taylorQuery U K‖ ≤ δ := by
@@ -212,6 +247,8 @@ theorem factorialTaylor_query_noise (U V : J → Matrix I I ℂ) (K : ℕ) (δ :
   exact (mul_le_mul (matrix_one_norm_le) (factorialTaylor_select_norm_le A δ hδ hA)
     (norm_nonneg _) (by norm_num : (0:ℝ) ≤ 1)).trans_eq (one_mul _)
 
+/-- Replacing the summand oracles by unitary operators within `δ` gives relative vector error at
+most `2⁻ᵏ + 3 * s * K * δ` for the same factorial Taylor program. See [BerryEtAl2015Taylor]. -/
 theorem factorial_taylor_same_program_oracle_noise :
   ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (h : J → ℝ) (U V : J → Matrix I I ℂ) (j₀ : J) (t δ : ℝ) (Λ T k : ℕ),

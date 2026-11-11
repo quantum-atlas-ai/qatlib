@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Weighted Gram-state readout
+
+This module defines `gramState`, the bipartite vector recording a state label together with its
+real-weighted component state. `gramColumn` uses conjugated component amplitudes, and
+`gramMatrix` is its adjoint-product Gram matrix, matching the first-register reduced operator.
+
+For normalized component states and nonnegative weights whose squares sum to one,
+`gramFirstRegisterDensity` proves normalization of the bipartite vector, identifies its reduced
+matrix, and establishes the density-operator property. This supplies a Gram-state construction
+associated with quantum principal component analysis [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `gramColumn`: the weighted conjugate-column matrix.
+* `gramMatrix`: its adjoint-product Gram matrix.
+* `gramFirstRegisterDensity`: normalization and the first-register density identity.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,15 +43,23 @@ open Qatlib.Foundations.PureStateMath
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- The matrix whose `i`th column is the complex conjugate of `ψ i`, multiplied by the real
+weight `w i`. -/
 noncomputable def gramColumn {r d : ℕ} (ψ : Fin r → QState (Fin d)) (w : Fin r → ℝ) :
     Matrix (Fin d) (Fin r) ℂ := fun x i => (w i : ℂ) * (starRingEnd ℂ) (ψ i x)
 
+/-- The weighted Gram matrix `(gramColumn ψ w)ᴴ * gramColumn ψ w`. -/
 noncomputable def gramMatrix {r d : ℕ} (ψ : Fin r → QState (Fin d)) (w : Fin r → ℝ) :
     Operator r := (gramColumn ψ w)ᴴ * gramColumn ψ w
 
+/-- The bipartite vector with amplitudes `w i * ψ i x`, recording a state label in the first
+register. -/
 noncomputable def gramState {r d : ℕ} (ψ : Fin r → QState (Fin d)) (w : Fin r → ℝ) :
     QState (Fin r × Fin d) := fun p => (w p.1 : ℂ) * ψ p.1 p.2
 
+/-- For normalized component states and nonnegative weights with squared sum one, `gramState` is
+normalized and its first-register reduced density matrix is `gramMatrix ψ w`. This gives the
+Gram-state construction used in [LloydMohseniRebentrost2014]. -/
 theorem gramFirstRegisterDensity :
   ∀ (r d : ℕ) (ψ : Fin r → QState (Fin d)), (∀ i, Normalized (ψ i)) →
     ∀ (w : Fin r → ℝ), (∀ i, 0 ≤ w i) → (∑ i, (w i) ^ 2 = 1) →

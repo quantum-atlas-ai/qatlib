@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ElemGates95.BorrowedAnd.Section7.BorrowedNetworks
+
+/-!
+# Explicit four-block controlled NOT construction
+
+This module instantiates the four-block composition of Lemma 7.3 in [BarencoEtAl1995] with
+actual legal elementary-gate lists. `noWorkPrefixAnd_add` and `noWorkPrefixAnd_head` split the
+control conjunction so that the two programs supplied to `lemma7_3_composition` have the
+required predicates.
+
+For `n >= 5` and `2 <= m <= n - 3`, `lemma7_3_actual` constructs programs with `m` and `n - m -
+1` controls in an ambient register satisfying the stated distinctness assumptions. Their
+four-block concatenation toggles the target by all `n - 2` listed controls, restores the
+borrowed wire, and comes with explicit elementary-gate bounds and query-count information.
+
+## Main statements
+
+* `noWorkPrefixAnd_add` separates a conjunction into consecutive segments.
+* `noWorkPrefixAnd_head` separates a distinguished first control.
+* `lemma7_3_actual` constructs the two legal programs and proves the semantics and accounting of
+  their four-block concatenation.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemma 7.3.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +46,8 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Papers.ElemGates95.BorrowedAnd.Section7
 
+/-- The conjunction of the first `m + k` Boolean values is the conjunction of the first `m`
+values and the following `k` values. -/
 theorem noWorkPrefixAnd_add (c : ℕ → Bool) (m k : ℕ) :
     noWorkPrefixAnd c (m + k) =
       (noWorkPrefixAnd c m && noWorkPrefixAnd (fun i => c (m + i)) k) := by
@@ -35,6 +63,8 @@ theorem noWorkPrefixAnd_add (c : ℕ → Bool) (m k : ℕ) :
     rw [h1, ih, h2]
     exact Bool.and_assoc _ _ _
 
+/-- The conjunction of a distinguished head wire followed by `k` control wires equals the head
+value conjoined with the conjunction of those `k` controls. -/
 theorem noWorkPrefixAnd_head {N : ℕ} (h : Fin N) (c : ℕ → Fin N) (x : Reg N) (k : ℕ) :
     noWorkPrefixAnd (fun i => x (if i = 0 then h else c (i - 1))) (k + 1) =
       (x h && noWorkPrefixAnd (fun i => x (c i)) k) := by
@@ -51,6 +81,11 @@ theorem noWorkPrefixAnd_head {N : ℕ} (h : Fin N) (c : ℕ → Fin N) (x : Reg 
     rw [noWorkPrefixAnd_succ]
     exact Bool.and_assoc _ _ _
 
+/-- For `n >= 5`, `2 <= m <= n - 3`, and the stated distinct wire layout, constructs legal
+programs with `m` and `n - m - 1` controls whose four-block concatenation toggles the target
+by all `n - 2` controls and restores every other wire. This concrete form of Lemma 7.3 in
+[BarencoEtAl1995] includes the displayed bounds for the two program lengths, zero queries,
+and equality of compiled gate count with list length. -/
 theorem lemma7_3_actual {N n m : ℕ} (c : ℕ → Fin N) (s t : Fin N)
     (hn : 5 ≤ n) (hm2 : 2 ≤ m) (hm : m ≤ n - 3)
     (hc : Set.InjOn c (Set.Iio (n - 2)))

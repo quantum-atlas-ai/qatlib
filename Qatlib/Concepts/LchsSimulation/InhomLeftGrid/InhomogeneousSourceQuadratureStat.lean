@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindowConsumers
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureDefs
+
+/-!
+# Left-grid source quadrature specification
+
+`InhomogeneousSourceQuadrature` states a quantitative approximation bound for `inhSourceSum`
+relative to `inhSourceResponse`. It combines a first-order time-grid error with the cutoff and
+grid errors of the Cauchy-weighted LCHS representation. See [AnLiuLin2023] for the mathematical
+setting.
+
+## Main statements
+
+* `InhomogeneousSourceQuadrature`: The source quadrature specification combining the left-grid
+  error `(t - s) * inhStep Mt s t * ((lamL + lamH) * bmax + β) / 2` with the stated LCHS cutoff
+  and grid error.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -33,6 +53,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 end InhomogeneousLchsDefinitions
 
+/-- The source quadrature specification combining the left-grid error `(t - s) * inhStep Mt s t
+* ((lamL + lamH) * bmax + β) / 2` with the stated LCHS cutoff and grid error. -/
 def InhomogeneousSourceQuadrature : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b b' : ℝ → QState I)
     (s t : ℝ) (K N Mt : ℕ) (β lamL lamH bmax : ℝ),

@@ -8,6 +8,26 @@ import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartExpectedSubgoalS
 import Mathlib.Analysis.SpecificLimits.Normed
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Geometric expectations for Grover restarts
+
+Proves `geometric_restart_expectation` for a real cost and a success probability in `(0, 1]`.
+Applying the formula to Grover measurement probabilities establishes
+`section3RestartExpectedSubgoal`. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `geometric_restart_expectation`: For `0 < p ≤ 1` and any real cost `c`, the sum of `(r + 1) *
+  c` against the geometric first-success weights `(1 - p) ^ r * p` equals `c / p`.
+* `section3RestartExpectedSubgoal`: Establishes `Section3RestartExpectedSubgoal`, evaluating the
+  expected Grover iteration cost of fixed-length restarts.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.SearchStopping.RestartLaw
 
 open Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- For `0 < p ≤ 1` and any real cost `c`, the sum of `(r + 1) * c` against the geometric
+first-success weights `(1 - p) ^ r * p` equals `c / p`. -/
 theorem geometric_restart_expectation (p c : ℝ) (hp : 0 < p) (hp1 : p ≤ 1) :
     (∑' r : ℕ, ((r + 1 : ℕ) : ℝ) * c * ((1 - p)^r * p)) = c / p := by
   have hr : ‖1 - p‖ < 1 := by
@@ -32,6 +54,8 @@ theorem geometric_restart_expectation (p c : ℝ) (hp : 0 < p) (hp1 : p ≤ 1) :
   rw [heq, hscaled.tsum_eq]
   field_simp
 
+/-- Establishes `Section3RestartExpectedSubgoal`, evaluating the expected Grover iteration cost
+of fixed-length restarts. -/
 theorem section3RestartExpectedSubgoal : Section3RestartExpectedSubgoal := by
   intro I _ _ hN A θ j hθ hθupper hangle hp
   have hs : Real.sin θ ≠ 0 := (Real.sin_pos_of_pos_of_lt_pi hθ (by linarith [Real.pi_pos])).ne'

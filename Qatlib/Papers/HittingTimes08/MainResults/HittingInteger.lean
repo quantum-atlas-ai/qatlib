@@ -8,6 +8,27 @@ import Qatlib.Papers.HittingTimes08.MainResults.HittingSpectrum
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+
+/-!
+# Integer hitting times and spectral quantiles
+
+This module defines `HittingLaw.hittingInt` as the least natural time at which the cosine
+survival sum is at most a prescribed positive error. Trigonometric and exponential bounds
+compare this time with spectral quantiles, giving the two estimates associated with Theorem 2.2
+of [MagniezEtAl2008].
+
+## Main statements
+
+* `tendsto_survival`: proves that survival tends to zero when all phases are at most `π / 2`.
+* `theorem_2_2_first`: bounds integer hitting time by a rounded logarithmic multiple of a
+  quantile.
+* `theorem_2_2_second`: bounds a quantile by integer hitting time at a smaller error.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,12 +42,14 @@ namespace HittingLaw
 
 variable {J : Type*} [Fintype J]
 
+/-- The half-angle identity `2 * sin (θ / 2) ^ 2 = 1 - cos θ`. -/
 theorem two_mul_sin_sq (θ : ℝ) : 2 * Real.sin (θ / 2) ^ 2 = 1 - Real.cos θ := by
   have h := Real.cos_two_mul_eq_one_sub (x := θ / 2)
   have harg : 2 * (θ / 2) = θ := by ring
   rw [harg] at h
   linarith
 
+/-- For `0 ≤ θ ≤ π / 2`, the quantity `1 - cos θ` is at least `θ ^ 2 / 4`. -/
 theorem one_sub_cos_ge (θ : ℝ) (h0 : 0 ≤ θ) (h1 : θ ≤ Real.pi / 2) :
     θ ^ 2 / 4 ≤ 1 - Real.cos θ := by
   rcases eq_or_lt_of_le h0 with rfl | hθ
@@ -54,14 +77,17 @@ theorem one_sub_cos_ge (θ : ℝ) (h0 : 0 ≤ θ) (h1 : θ ≤ Real.pi / 2) :
     rw [hy]; exact two_mul_sin_sq θ
   nlinarith [hmain, hsq, hy]
 
+/-- For every real `θ`, the quantity `1 - cos θ` is at most `θ ^ 2 / 2`. -/
 theorem one_sub_cos_le (θ : ℝ) : 1 - Real.cos θ ≤ θ ^ 2 / 2 := by
   have := Real.one_sub_sq_div_two_le_cos (x := θ)
   linarith
 
+/-- Every phase `L.theta j` associated with a positive hitting-law value is positive. -/
 theorem theta_pos (L : HittingLaw J) (j : J) : 0 < L.theta j := by
   rw [theta]
   exact one_div_pos.mpr (Real.sqrt_pos.mpr (L.val_pos j))
 
+/-- If `L.theta j ≤ π / 2`, its cosine belongs to `[0, 1)`. -/
 theorem cos_nonneg_lt_one (L : HittingLaw J) (j : J) (hθ1 : L.theta j ≤ Real.pi / 2) :
     0 ≤ Real.cos (L.theta j) ∧ Real.cos (L.theta j) < 1 := by
   have hθ0 : 0 < L.theta j := L.theta_pos j
@@ -71,11 +97,13 @@ theorem cos_nonneg_lt_one (L : HittingLaw J) (j : J) (hθ1 : L.theta j ≤ Real.
     le_rfl hθ1 hθ0
   simpa using h
 
+/-- The square of the phase `L.theta j` is the reciprocal of `L.val j`. -/
 theorem theta_sq (L : HittingLaw J) (j : J) :
     L.theta j ^ 2 = 1 / L.val j := by
   have hv : 0 < L.val j := L.val_pos j
   rw [theta, div_pow, one_pow, Real.sq_sqrt hv.le]
 
+/-- A hitting-law value whose phase is at most `π / 2` is strictly greater than `1 / 4`. -/
 theorem val_ge_of_theta_le (L : HittingLaw J) (j : J) (hθ1 : L.theta j ≤ Real.pi / 2) :
     (1 : ℝ) / 4 < L.val j := by
   have hv : 0 < L.val j := L.val_pos j
@@ -95,6 +123,8 @@ theorem val_ge_of_theta_le (L : HittingLaw J) (j : J) (hθ1 : L.theta j ≤ Real
     nlinarith
   linarith
 
+/-- If all phases are at most `π / 2`, the survival sum tends to zero as the natural time tends
+to infinity. -/
 theorem tendsto_survival (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2) :
     Filter.Tendsto (fun k : ℕ => L.survival k) Filter.atTop (nhds 0) := by
   have hterm : ∀ j : J,
@@ -109,25 +139,32 @@ theorem tendsto_survival (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi
     tendsto_finsetSum _ fun j _ => (hterm j).const_mul (L.mass j)
   simpa [survival] using hsum
 
+/-- If all phases are at most `π / 2`, some natural time has survival at most any prescribed
+positive `ε`. -/
 theorem exists_survival_le (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2)
     {ε : ℝ} (hε : 0 < ε) : ∃ k, L.survival k ≤ ε := by
   have h := (L.tendsto_survival hθ1).eventually (isOpen_Iio.mem_nhds hε)
   obtain ⟨k, hk⟩ := Filter.eventually_atTop.mp h
   exact ⟨k, (hk k le_rfl).le⟩
 
+/-- The least natural time at which survival is at most the positive tolerance `ε`, assuming all
+phases are at most `π / 2`. -/
 def hittingInt (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2)
     {ε : ℝ} (hε : 0 < ε) : ℕ :=
   Nat.find (L.exists_survival_le hθ1 hε)
 
+/-- Survival at `hittingInt` is at most the prescribed tolerance `ε`. -/
 theorem hittingInt_spec (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2)
     {ε : ℝ} (hε : 0 < ε) : L.survival (L.hittingInt hθ1 hε) ≤ ε :=
   Nat.find_spec (L.exists_survival_le hθ1 hε)
 
+/-- Any natural time with survival at most `ε` is at least `hittingInt`. -/
 theorem hittingInt_min (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2)
     {ε : ℝ} (hε : 0 < ε) {k : ℕ} (hk : L.survival k ≤ ε) :
     L.hittingInt hθ1 hε ≤ k :=
   Nat.find_min' (L.exists_survival_le hθ1 hε) hk
 
+/-- When all phases are at most `π / 2`, survival is nonincreasing in natural time. -/
 theorem survival_antitone (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2)
     {k k' : ℕ} (h : k ≤ k') : L.survival k' ≤ L.survival k := by
   unfold survival
@@ -135,6 +172,7 @@ theorem survival_antitone (L : HittingLaw J) (hθ1 : ∀ j, L.theta j ≤ Real.p
   obtain ⟨h0, h1⟩ := L.cos_nonneg_lt_one j (hθ1 j)
   exact mul_le_mul_of_nonneg_left (pow_le_pow_of_le_one h0 h1.le h) (L.mass_nonneg j)
 
+/-- For `0 ≤ x ≤ 1`, the power `(1 - x) ^ n` is at most `exp (-n * x)`. -/
 theorem one_sub_pow_le_exp (x : ℝ) (_hx0 : 0 ≤ x) (hx1 : x ≤ 1) (n : ℕ) :
     (1 - x) ^ n ≤ Real.exp (-(n : ℝ) * x) := by
   have hbase : 0 ≤ 1 - x := by linarith
@@ -145,6 +183,7 @@ theorem one_sub_pow_le_exp (x : ℝ) (_hx0 : 0 ≤ x) (hx1 : x ≤ 1) (n : ℕ) 
     exact congrArg Real.exp (by ring)
   linarith [hp, he]
 
+/-- For `0 ≤ x ≤ 1` and `n * x ≤ 1 / 2`, the power `(1 - x) ^ n` is at least `1 / 2`. -/
 theorem one_sub_pow_ge_half (x : ℝ) (_hx0 : 0 ≤ x) (hx1 : x ≤ 1) (n : ℕ)
     (hx : (n : ℝ) * x ≤ 1 / 2) : (1 / 2 : ℝ) ≤ (1 - x) ^ n := by
   have hbern := one_add_mul_le_pow (a := -x) (by linarith) n
@@ -154,6 +193,9 @@ theorem one_sub_pow_ge_half (x : ℝ) (_hx0 : 0 ≤ x) (hx1 : x ≤ 1) (n : ℕ)
   rw [hbase] at hbern
   linarith
 
+/-- With phases at most `π / 2`, total mass at most one, and `ε > 0`, integer hitting time is at
+most the natural ceiling of `4 * log (2 / ε) * L.quantile (ε / 2)`. This is the first
+comparison in [Magniez et al., Theorem 2.2][MagniezEtAl2008]. -/
 theorem theorem_2_2_first (L : HittingLaw J)
     (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2)
     (hTot : L.totalMass ≤ 1) {ε : ℝ} (hε0 : 0 < ε) :
@@ -248,6 +290,9 @@ theorem theorem_2_2_first (L : HittingLaw J)
         _ = ε / 2 := one_mul _
   linarith [hA, hB]
 
+/-- With phases at most `π / 2` and `ε > 0`, the `ε`-quantile is at most the integer hitting
+time for tolerance `ε / 3`. This is the second comparison in [Magniez et al., Theorem
+2.2][MagniezEtAl2008]. -/
 theorem theorem_2_2_second (L : HittingLaw J)
     (hθ1 : ∀ j, L.theta j ≤ Real.pi / 2) {ε : ℝ} (hε0 : 0 < ε) :
     L.quantile ε ≤ (L.hittingInt hθ1 (by linarith : (0 : ℝ) < ε / 3) : ℝ) := by

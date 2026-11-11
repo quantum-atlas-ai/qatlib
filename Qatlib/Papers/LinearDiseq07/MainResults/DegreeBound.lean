@@ -41,6 +41,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.LinearDiseq07.MainResults.HyperplanePolynomial
+
+/-!
+# Degree bounds for digit disequation polynomials
+
+The geometric-sum identities `geomSum_mul_sub_one` and `dvd_pow_sub_one` provide the arithmetic
+needed to rewrite `lemma7Degree`. The resulting sum formula yields bounds by the largest summand
+and by `(2 * p) ^ k * k` for `p ≥ 2` and positive `k`. See [Ivanyos2008] for the paper context.
+
+## Main statements
+
+* `lemma7Degree_eq_mul_sum`: For `p ≥ 2`, `lemma7Degree p k` equals `(p - 1)` times the sum of
+  the first `k` powers of `2 * p - 2`.
+* `lemma7Degree_le`: For `p ≥ 2` and `k ≥ 1`, `lemma7Degree p k` is at most `(p - 1) * k * (2 *
+  p - 2) ^ (k - 1)`.
+* `lemma7Degree_le_pow`: For `p ≥ 2` and `k ≥ 1`, `lemma7Degree p k` is at most `(2 * p) ^ k *
+  k`.
+
+## References
+
+* [Ivanyos, 2008][Ivanyos2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -49,6 +71,7 @@ noncomputable section
 
 namespace Qatlib.Papers.LinearDiseq07.MainResults
 
+/-- For natural `x ≥ 1`, multiplying the first `k` powers' sum by `x - 1` gives `x ^ k - 1`. -/
 theorem geomSum_mul_sub_one (x : ℕ) (hx : 1 ≤ x) (k : ℕ) :
     (x - 1) * ∑ i ∈ Finset.range k, x ^ i = x ^ k - 1 := by
   induction k with
@@ -62,9 +85,12 @@ theorem geomSum_mul_sub_one (x : ℕ) (hx : 1 ≤ x) (k : ℕ) :
       Nat.pow_le_pow_right (by omega : 0 < x) (by omega : n ≤ n + 1)
     omega
 
+/-- For natural `x ≥ 1`, the number `x - 1` divides `x ^ k - 1`. -/
 theorem dvd_pow_sub_one (x : ℕ) (hx : 1 ≤ x) (k : ℕ) : x - 1 ∣ x ^ k - 1 :=
   ⟨∑ i ∈ Finset.range k, x ^ i, (geomSum_mul_sub_one x hx k).symm⟩
 
+/-- For `p ≥ 2`, `lemma7Degree p k` equals `(p - 1)` times the sum of the first `k` powers of `2
+* p - 2` [Ivanyos, Theorem 1][Ivanyos2008]. -/
 theorem lemma7Degree_eq_mul_sum (p k : ℕ) (hp : 2 ≤ p) :
     lemma7Degree p k = (p - 1) * ∑ i ∈ Finset.range k, (2 * p - 2) ^ i := by
   have hx : 1 ≤ 2 * p - 2 := by omega
@@ -81,6 +107,8 @@ theorem lemma7Degree_eq_mul_sum (p k : ℕ) (hp : 2 ≤ p) :
   unfold lemma7Degree
   rw [Nat.mul_div_assoc (p - 1) hdvd, hdiv]
 
+/-- For `p ≥ 2` and `k ≥ 1`, `lemma7Degree p k` is at most `(p - 1) * k * (2 * p - 2) ^ (k -
+1)`. -/
 theorem lemma7Degree_le (p k : ℕ) (hp : 2 ≤ p) (hk : 1 ≤ k) :
     lemma7Degree p k ≤ (p - 1) * k * (2 * p - 2) ^ (k - 1) := by
   rw [lemma7Degree_eq_mul_sum p k hp]
@@ -99,6 +127,8 @@ theorem lemma7Degree_le (p k : ℕ) (hp : 2 ≤ p) (hk : 1 ≤ k) :
       ≤ (p - 1) * (k * (2 * p - 2) ^ (k - 1)) := Nat.mul_le_mul_left _ hsum
     _ = (p - 1) * k * (2 * p - 2) ^ (k - 1) := by ring
 
+/-- For `p ≥ 2` and `k ≥ 1`, `lemma7Degree p k` is at most `(2 * p) ^ k * k` [Ivanyos, Theorem
+1][Ivanyos2008]. -/
 theorem lemma7Degree_le_pow (p k : ℕ) (hp : 2 ≤ p) (hk : 1 ≤ k) :
     lemma7Degree p k ≤ (2 * p) ^ k * k := by
   refine (lemma7Degree_le p k hp hk).trans ?_

@@ -10,6 +10,35 @@ import Qatlib.Concepts.QueryWordCore.AdjointCircuits
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Counted HHL words and clean-branch stability
+
+This module expresses finite-grid HHL preparation, phase estimation, reciprocal flag rotation,
+and uncomputation as an adjoint-step word. It relates the evaluated word to the grid circuit and
+identifies its unnormalized clean branch with a scaled matrix-pseudoinverse action, following
+the inverse-eigenvalue construction of [HarrowHassidimLloyd2009].
+
+The module also proves exact query and gate counts and a perturbation bound linear in the query
+count. In particular, the clean branch changes by at most `2 * (M - 1) * δ` when the unitary
+data oracle changes by operator norm at most `δ`, under the stated preparation and rotation
+hypotheses.
+
+## Main statements
+
+* `counted_hhl_actual_word_and_access_counts`: well-formedness, `2 * (M - 1)` queries, and `4 *
+  (M - 1) + 6` gates.
+* `countedHHLWord_apply`: agreement of word evaluation with the grid HHL circuit.
+* `counted_hhl_exact_grid_clean_branch`: the exact scaled pseudoinverse branch on the spectral
+  grid.
+* `norm_evaluate_sub_evaluate_le`: the query-count perturbation bound for adjoint words.
+* `counted_hhl_unitary_oracle_clean_branch_noise`: the resulting clean-branch error bound.
+
+## References
+
+* [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -48,22 +77,27 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- Embed a circuit step into adjoint-step syntax, preserving gates and turning each oracle
+query into a forward query. -/
 def stepToAdjoint {I : Type*} : Step I → AdjointStep I
   | .gate U => .gate U
   | .query => .forward
 
+/-- Embedding a circuit into adjoint-step syntax preserves its oracle query count. -/
 theorem adjointQueryCount_map_stepToAdjoint {I : Type*} (C : Circuit I) :
     adjointQueryCount (C.map stepToAdjoint) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [stepToAdjoint, adjointQueryCount, QueryCount, ih]
 
+/-- Embedding a circuit into adjoint-step syntax preserves its gate count. -/
 theorem adjointGateCount_map_stepToAdjoint {I : Type*} (C : Circuit I) :
     adjointGateCount (C.map stepToAdjoint) = GateCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [stepToAdjoint, adjointGateCount, GateCount, ih]
 
+/-- Reversing an adjoint-step list preserves its query count. -/
 theorem adjointQueryCount_reverse {I : Type*} (cs : List (AdjointStep I)) :
     adjointQueryCount cs.reverse = adjointQueryCount cs := by
   induction cs with
@@ -72,6 +106,7 @@ theorem adjointQueryCount_reverse {I : Type*} (cs : List (AdjointStep I)) :
     rw [List.reverse_cons, adjointQueryCount_append, ih]
     cases c <;> simp [adjointQueryCount]
 
+/-- Reversing an adjoint-step list preserves its gate count. -/
 theorem adjointGateCount_reverse {I : Type*} (cs : List (AdjointStep I)) :
     adjointGateCount cs.reverse = adjointGateCount cs := by
   induction cs with
@@ -80,6 +115,7 @@ theorem adjointGateCount_reverse {I : Type*} (cs : List (AdjointStep I)) :
     rw [List.reverse_cons, adjointGateCount_append, ih]
     cases c <;> simp [adjointGateCount]
 
+/-- Embedding and reversing a unitary circuit produces a well-formed adjoint circuit. -/
 theorem wellFormedAdjointCircuit_stepToAdjoint_reverse {I : Type*} [Fintype I] [DecidableEq I]
     (C : Circuit I) (hC : IsUnitaryCircuit C) :
     WellFormedAdjointCircuit ((C.map stepToAdjoint).reverse) := by
@@ -92,6 +128,8 @@ theorem wellFormedAdjointCircuit_stepToAdjoint_reverse {I : Type*} [Fintype I] [
       exact hte ▸ hC _ ht
   | query => simp [stepToAdjoint] at hte
 
+/-- Running a circuit equals applying the matrix obtained by evaluating its reversed
+adjoint-step embedding. -/
 theorem run_eq_evaluate {I : Type*} [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) :
     ∀ (C : Circuit I) (ψ : QState I),
     Run O C ψ = ApplyGate (evaluate O ((C.map stepToAdjoint).reverse)) ψ := by
@@ -119,12 +157,16 @@ theorem run_eq_evaluate {I : Type*} [Fintype I] [DecidableEq I] (O : Matrix I I 
         simp only [evaluate, instructionMatrix, stepToAdjoint]
         rw [key, mul_one]
 
+/-- The register equivalence moving an extra Boolean sector register between the phase register
+and the flag-data pair. -/
 def countedHHLSectorEquiv (D M : ℕ) :
     Bool × (Fin M × (Bool × Fin D)) ≃ Fin M × (Bool × (Bool × Fin D)) :=
   (Equiv.prodComm Bool (Fin M × (Bool × Fin D))).trans
     ((Equiv.prodAssoc (Fin M) (Bool × Fin D) Bool).trans
       (Equiv.prodCongr (Equiv.refl (Fin M)) (Equiv.prodComm (Bool × Fin D) Bool)))
 
+/-- The phase-flag embedding is the relabelling of the state tensored with an extra sector qubit
+in `Ket false`. -/
 theorem phaseFlagEmbed_eq_sector (D M : ℕ) (φ : QState (Fin M × (Bool × Fin D))) :
     phaseFlagEmbed (I := Bool × Fin D) M φ
       = relabelState (countedHHLSectorEquiv D M) (TensorState (Ket false) φ) := by
@@ -133,11 +175,14 @@ theorem phaseFlagEmbed_eq_sector (D M : ℕ) (φ : QState (Fin M × (Bool × Fin
   cases s <;>
     simp [phaseFlagEmbed, relabelState, countedHHLSectorEquiv, TensorState, Ket]
 
+/-- Lift a gate to the counted HHL registers by tensoring with the identity on the extra sector
+qubit and relabelling. -/
 noncomputable def countedHHLLiftGate {D M : ℕ}
     (G : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
     Matrix (Fin M × (Bool × (Bool × Fin D))) (Fin M × (Bool × (Bool × Fin D))) ℂ :=
   relabelGate (countedHHLSectorEquiv D M) (TensorGate (1 : Matrix Bool Bool ℂ) G)
 
+/-- Lifting a unitary gate to the counted HHL registers preserves unitarity. -/
 theorem countedHHLLiftGate_unitary {D M : ℕ}
     {G : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ}
     (hG : G ∈ Matrix.unitaryGroup (Fin M × (Bool × Fin D)) ℂ) :
@@ -145,6 +190,8 @@ theorem countedHHLLiftGate_unitary {D M : ℕ}
       ∈ Matrix.unitaryGroup (Fin M × (Bool × (Bool × Fin D))) ℂ :=
   (relabelGate_mem_unitaryGroup _ _).2 (tensorGate_unitary (Submonoid.one_mem _) hG)
 
+/-- A lifted gate acts on a phase-flag embedded state by embedding the result of the original
+gate. -/
 theorem countedHHLLiftGate_apply {D M : ℕ}
     (G : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
     (φ : QState (Fin M × (Bool × Fin D))) :
@@ -153,11 +200,14 @@ theorem countedHHLLiftGate_apply {D M : ℕ}
   rw [countedHHLLiftGate, phaseFlagEmbed_eq_sector, applyGate_relabelGate, applyGate_tensorGate,
     applyGate_one, ← phaseFlagEmbed_eq_sector]
 
+/-- The controlled data oracle on the counted HHL registers, acting trivially on the phase
+register and the original flag qubit. -/
 noncomputable def countedHHLOracleLift {D M : ℕ} (U : Operator D) :
     Matrix (Fin M × (Bool × (Bool × Fin D))) (Fin M × (Bool × (Bool × Fin D))) ℂ :=
   TensorGate (1 : Matrix (Fin M) (Fin M) ℂ)
     (controlOracle (TensorGate (1 : Matrix Bool Bool ℂ) U))
 
+/-- The counted HHL oracle lift of a unitary data operator is unitary. -/
 theorem countedHHLOracleLift_unitary {D M : ℕ} {U : Operator D}
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     countedHHLOracleLift (D := D) (M := M) U
@@ -165,16 +215,21 @@ theorem countedHHLOracleLift_unitary {D M : ℕ} {U : Operator D}
   tensorGate_unitary (Submonoid.one_mem _)
     (controlOracle_unitary (tensorGate_unitary (Submonoid.one_mem _) hU))
 
+/-- The adjoint-step word obtained by embedding and reversing the counted phase-estimation
+circuit. -/
 noncomputable def countedQPEWord (D M : ℕ) :
     List (AdjointStep (Fin M × (Bool × (Bool × Fin D)))) :=
   ((countedPhaseCircuit (I := Bool × Fin D) M).map stepToAdjoint).reverse
 
+/-- For positive phase-register size, the counted phase-estimation word is well formed. -/
 theorem countedQPEWord_wellFormed (D M : ℕ) (hM : 0 < M) :
     WellFormedAdjointCircuit (countedQPEWord D M) :=
   wellFormedAdjointCircuit_stepToAdjoint_reverse _
     (counted_offgrid_qpe_clean_flag (I := Bool × Fin D) M hM
       (1 : Matrix (Bool × Fin D) (Bool × Fin D) ℂ) 0).2.2.2
 
+/-- For positive `M`, the counted phase-estimation word has `M - 1` queries and `2 * (M - 1) +
+2` gates. -/
 theorem countedQPEWord_counts (D M : ℕ) (hM : 0 < M) :
     adjointQueryCount (countedQPEWord D M) = M - 1 ∧
       adjointGateCount (countedQPEWord D M) = 2 * (M - 1) + 2 := by
@@ -186,11 +241,14 @@ theorem countedQPEWord_counts (D M : ℕ) (hM : 0 < M) :
   · rw [countedQPEWord, adjointGateCount_reverse, adjointGateCount_map_stepToAdjoint]
     exact h.2.2.1
 
+/-- The preparation gate applying `B` to the data register and identities to the phase and flag
+registers. -/
 noncomputable def countedHHLPrepMain {D M : ℕ} (B : Operator D) :
     Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ :=
   relabelGate (gridHHLPhaseData (D := D) (M := M))
     (TensorGate (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ) B) (1 : Matrix Bool Bool ℂ))
 
+/-- The HHL preparation gate is unitary whenever the data preparation operator `B` is unitary. -/
 theorem countedHHLPrepMain_unitary {D M : ℕ} {B : Operator D}
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     countedHHLPrepMain (D := D) (M := M) B
@@ -198,6 +256,8 @@ theorem countedHHLPrepMain_unitary {D M : ℕ} {B : Operator D}
   (relabelGate_mem_unitaryGroup _ _).2
     (tensorGate_unitary (tensorGate_unitary (Submonoid.one_mem _) hB) (Submonoid.one_mem _))
 
+/-- The HHL preparation gate applies `B` to `Ket j` while preserving the zero phase state and
+false flag. -/
 theorem countedHHLPrepMain_apply {D M : ℕ} (hM : 0 < M) (B : Operator D) (j : Fin D) :
     ApplyGate (countedHHLPrepMain (D := D) (M := M) B)
         (TensorState (Ket (⟨0, hM⟩ : Fin M)) (TensorState (Ket false) (Ket j)))
@@ -212,11 +272,14 @@ theorem countedHHLPrepMain_apply {D M : ℕ} (hM : 0 < M) (B : Operator D) (j : 
   rw [countedHHLPrepMain, hprod (Ket j), applyGate_relabelGate, applyGate_tensorGate,
     applyGate_tensorGate, applyGate_one, applyGate_one, hprod]
 
+/-- The adjoint-step word encoding data preparation, phase estimation, the reciprocal flag
+rotation, and phase uncomputation. -/
 noncomputable def countedHHLWord {D : ℕ} (M : ℕ) (c : ℝ) (B : Operator D) :
     List (AdjointStep (Fin M × (Bool × (Bool × Fin D)))) :=
   adjointCircuit (countedQPEWord D M) ++ [.gate (countedHHLLiftGate (gridHHLFlag (D := D) c))] ++
     countedQPEWord D M ++ [.gate (countedHHLLiftGate (countedHHLPrepMain (D := D) (M := M) B))]
 
+/-- For positive `M`, the counted HHL word uses exactly `2 * (M - 1)` oracle queries. -/
 theorem countedHHLWord_queryCount {D : ℕ} (M : ℕ) (c : ℝ) (B : Operator D) (hM : 0 < M) :
     adjointQueryCount (countedHHLWord (D := D) M c B) = 2 * (M - 1) := by
   rw [countedHHLWord, adjointQueryCount_append, adjointQueryCount_append,
@@ -225,6 +288,7 @@ theorem countedHHLWord_queryCount {D : ℕ} (M : ℕ) (c : ℝ) (B : Operator D)
   simp only [adjointQueryCount]
   omega
 
+/-- For positive `M`, the counted HHL word contains exactly `4 * (M - 1) + 6` gates. -/
 theorem countedHHLWord_gateCount {D : ℕ} (M : ℕ) (c : ℝ) (B : Operator D) (hM : 0 < M) :
     adjointGateCount (countedHHLWord (D := D) M c B) = 4 * (M - 1) + 6 := by
   rw [countedHHLWord, adjointGateCount_append, adjointGateCount_append,
@@ -233,6 +297,8 @@ theorem countedHHLWord_gateCount {D : ℕ} (M : ℕ) (c : ℝ) (B : Operator D) 
   simp only [adjointGateCount]
   omega
 
+/-- For `2 ≤ M`, unitary preparation, and `0 ≤ c ≤ 1 / M`, the counted HHL word is well formed
+with `2 * (M - 1)` queries and `4 * (M - 1) + 6` gates. -/
 theorem counted_hhl_actual_word_and_access_counts :
     ∀ (D M : ℕ) (c : ℝ) (B : Operator D), 2 ≤ M → B ∈ Matrix.unitaryGroup (Fin D) ℂ →
       0 ≤ c → c ≤ 1 / (M : ℝ) →
@@ -250,6 +316,8 @@ theorem counted_hhl_actual_word_and_access_counts :
   exact ⟨⟨⟨hwf.adjointCircuit, countedHHLLiftGate_unitary (gridHHLFlag_unitary c hrot)⟩, hwf⟩,
     countedHHLLiftGate_unitary (countedHHLPrepMain_unitary hB)⟩
 
+/-- The unnormalized data branch of the evaluated HHL word with phase zero, sector false, and
+flag true, defined as zero when `M = 0`. -/
 noncomputable def countedHHLCleanBranch {D : ℕ} (U : Operator D) (M : ℕ) (c : ℝ)
     (B : Operator D) (j : Fin D) : QState (Fin D) :=
   fun i =>
@@ -260,6 +328,8 @@ noncomputable def countedHHLCleanBranch {D : ℕ} (U : Operator D) (M : ℕ) (c 
         ((⟨0, hM⟩ : Fin M), (false, (true, i)))
     else 0
 
+/-- A phase-only gate on the counted registers equals the lift of the corresponding phase-only
+gate on the original registers. -/
 theorem countedHHL_phaseLift_eq (D M : ℕ) (Q : Matrix (Fin M) (Fin M) ℂ) :
     TensorGate Q (1 : Matrix (Bool × (Bool × Fin D)) (Bool × (Bool × Fin D)) ℂ)
       = countedHHLLiftGate (D := D) (M := M) (TensorGate Q
@@ -278,6 +348,7 @@ theorem countedHHL_phaseLift_eq (D M : ℕ) (Q : Matrix (Fin M) (Fin M) ℂ) :
     · simp [hrest]
   · simp [hss]
 
+/-- Applying a phase-only gate commutes with the phase-flag embedding. -/
 theorem countedHHL_phaseLift_apply (D M : ℕ) (Q : Matrix (Fin M) (Fin M) ℂ)
     (φ : QState (Fin M × (Bool × Fin D))) :
     ApplyGate (TensorGate Q (1 : Matrix (Bool × (Bool × Fin D)) (Bool × (Bool × Fin D)) ℂ))
@@ -287,6 +358,8 @@ theorem countedHHL_phaseLift_apply (D M : ℕ) (Q : Matrix (Fin M) (Fin M) ℂ)
   rw [countedHHL_phaseLift_eq]
   exact countedHHLLiftGate_apply _ _
 
+/-- The grid HHL Fourier lift is the tensor product of the given phase matrix with the identity
+on flag and data. -/
 theorem gridHHLFourier_eq (D M : ℕ) (Q : Matrix (Fin M) (Fin M) ℂ) :
     gridHHLFourier (D := D) (M := M) Q
       = TensorGate Q (1 : Matrix (Bool × Fin D) (Bool × Fin D) ℂ) := by
@@ -304,6 +377,8 @@ theorem gridHHLFourier_eq (D M : ℕ) (Q : Matrix (Fin M) (Fin M) ℂ) :
     · simp [hi]
   · simp [hf]
 
+/-- Tensoring a data operator with the Boolean identity applies that operator independently in
+each Boolean sector. -/
 theorem tensorGate_one_mulVec {D : ℕ} (W : Operator D) (ξ : QState (Bool × Fin D))
     (f : Bool) (i : Fin D) :
     (TensorGate (1 : Matrix Bool Bool ℂ) W *ᵥ ξ) (f, i)
@@ -319,6 +394,8 @@ theorem tensorGate_one_mulVec {D : ℕ} (W : Operator D) (ξ : QState (Bool × F
   · intro h
     exact absurd (Finset.mem_univ f) h
 
+/-- Powers of a data operator tensored with the Boolean identity are obtained by tensoring its
+powers with that identity. -/
 theorem tensorGate_one_pow {D : ℕ} (W : Operator D) (k : ℕ) :
     (TensorGate (1 : Matrix Bool Bool ℂ) W) ^ k
       = TensorGate (1 : Matrix Bool Bool ℂ) (W ^ k) := by
@@ -328,6 +405,8 @@ theorem tensorGate_one_pow {D : ℕ} (W : Operator D) (k : ℕ) :
     rw [pow_succ, ih, tensorGate_mul, pow_succ]
     simp
 
+/-- In phase sector `a`, the grid HHL power gate applies `U ^ a.val` to the data slice and
+preserves the flag. -/
 theorem gridHHLPowers_mulVec {D M : ℕ} (U : Operator D)
     (φ : QState (Fin M × (Bool × Fin D))) (a : Fin M) (f : Bool) (i : Fin D) :
     (gridHHLPowers (D := D) (M := M) U *ᵥ φ) (a, (f, i))
@@ -361,6 +440,8 @@ theorem gridHHLPowers_mulVec {D M : ℕ} (U : Operator D)
   · intro h
     exact absurd (Finset.mem_univ a) h
 
+/-- The counted phase-estimation circuit with the lifted oracle acts on embedded states as the
+embedded grid HHL phase-estimation block. -/
 theorem countedPhaseCircuit_run_eq (D M : ℕ) (hM : 0 < M) (U : Operator D)
     (φ : QState (Fin M × (Bool × Fin D))) :
     Run (countedHHLOracleLift (D := D) (M := M) U) (countedPhaseCircuit (I := Bool × Fin D) M)
@@ -401,6 +482,8 @@ theorem countedPhaseCircuit_run_eq (D M : ℕ) (hM : 0 < M) (U : Operator D)
   simp only [gridHHLQPEBlock, Run]
   rw [gridHHLFourier_eq, gridHHLFourier_eq]
 
+/-- Evaluating the counted phase-estimation word on an embedded state reproduces the embedded
+grid HHL phase-estimation block. -/
 theorem countedQPEWord_apply (D M : ℕ) (hM : 0 < M) (U : Operator D)
     (φ : QState (Fin M × (Bool × Fin D))) :
     ApplyGate (evaluate (countedHHLOracleLift (D := D) (M := M) U) (countedQPEWord D M))
@@ -409,15 +492,20 @@ theorem countedQPEWord_apply (D M : ℕ) (hM : 0 < M) (U : Operator D)
   rw [countedQPEWord, ← run_eq_evaluate]
   exact countedPhaseCircuit_run_eq D M hM U φ
 
+/-- Applying `Y` and then `X` to a state equals applying their matrix product `X * Y`. -/
 theorem applyGate_comp {I : Type*} [Fintype I] [DecidableEq I] (X Y : Matrix I I ℂ)
     (v : QState I) : ApplyGate X (ApplyGate Y v) = ApplyGate (X * Y) v :=
   Matrix.mulVec_mulVec v X Y
 
+/-- The grid HHL phase-estimation matrix formed by conjugating the controlled-power gate with
+the lifted Fourier matrix. -/
 noncomputable def gridHHLBlockOp {D M : ℕ} (U : Operator D) :
     Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ :=
   gridHHLFourier (D := D) (QFTMatrix M)ᴴ * (gridHHLPowers (D := D) (M := M) U *
     gridHHLFourier (D := D) (QFTMatrix M))
 
+/-- For positive phase-register size and unitary `U`, the grid HHL phase-estimation matrix is
+unitary. -/
 theorem gridHHLBlockOp_unitary {D M : ℕ} (hM : 0 < M) (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     gridHHLBlockOp (D := D) (M := M) U
@@ -427,10 +515,13 @@ theorem gridHHLBlockOp_unitary {D M : ℕ} (hM : 0 < M) (U : Operator D)
     ((Matrix.unitaryGroup _ ℂ).mul_mem (gridHHLPowers_unitary U hU)
       (gridHHLFourier_unitary _ (qftMatrix_unitary hM)))
 
+/-- Taking the conjugate transpose commutes with the grid HHL Fourier lift. -/
 theorem gridHHLFourier_conjTranspose {D M : ℕ} (Q : Matrix (Fin M) (Fin M) ℂ) :
     (gridHHLFourier (D := D) (M := M) Q)ᴴ = gridHHLFourier (D := D) (M := M) Qᴴ := by
   rw [gridHHLFourier_eq, tensorGate_conjTranspose, one_conjTranspose, gridHHLFourier_eq]
 
+/-- Running the grid HHL phase-estimation block equals multiplying the state by `gridHHLBlockOp
+U`. -/
 theorem run_qpeBlock_eq {D M : ℕ} (U : Operator D) (φ : QState (Fin M × (Bool × Fin D))) :
     Run 1 (gridHHLQPEBlock (D := D) (M := M) U) φ
       = (gridHHLBlockOp (D := D) (M := M) U) *ᵥ φ := by
@@ -438,6 +529,8 @@ theorem run_qpeBlock_eq {D M : ℕ} (U : Operator D) (φ : QState (Fin M × (Boo
   rw [applyGate_comp, applyGate_comp, Matrix.mul_assoc]
   rfl
 
+/-- Running the inverse grid HHL phase-estimation block equals multiplying by the conjugate
+transpose of `gridHHLBlockOp U`. -/
 theorem run_qpeBlockInv_eq {D M : ℕ} (U : Operator D) (χ : QState (Fin M × (Bool × Fin D))) :
     Run 1 (gridHHLQPEBlockInv (D := D) (M := M) U) χ
       = ((gridHHLBlockOp (D := D) (M := M) U)ᴴ) *ᵥ χ := by
@@ -451,6 +544,8 @@ theorem run_qpeBlockInv_eq {D M : ℕ} (U : Operator D) (χ : QState (Fin M × (
   rw [applyGate_comp, applyGate_comp, hstar, Matrix.mul_assoc]
   rfl
 
+/-- For a unitary oracle and positive phase-register size, the adjoint of the counted
+phase-estimation matrix reproduces the embedded inverse grid block. -/
 theorem countedQPEWord_apply_adjoint (D M : ℕ) (hM : 0 < M) (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (χ : QState (Fin M × (Bool × Fin D))) :
     ApplyGate (evaluate (countedHHLOracleLift (D := D) (M := M) U) (countedQPEWord D M))ᴴ
@@ -486,6 +581,9 @@ theorem countedQPEWord_apply_adjoint (D M : ℕ) (hM : 0 < M) (U : Operator D)
         rw [hFstar, applyGate_one]
   rw [run_qpeBlockInv_eq]
 
+/-- For a unitary oracle and positive phase-register size, the evaluated HHL word on its
+embedded basis input equals the embedded preparation, phase-estimation, flag-rotation, and
+uncomputation output. -/
 theorem countedHHLWord_apply (D M : ℕ) (hM : 0 < M) (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (c : ℝ) (B : Operator D) (j : Fin D) :
     ApplyGate (evaluate (countedHHLOracleLift (D := D) (M := M) U) (countedHHLWord M c B))
@@ -513,6 +611,8 @@ theorem countedHHLWord_apply (D M : ℕ) (hM : 0 < M) (U : Operator D)
   rw [countedQPEWord_apply_adjoint D M hM U hU _]
   rw [run_append, run_append, run_gate, run_nil]
 
+/-- The explicit counted HHL basis input equals the phase-flag embedding of the original phase,
+flag, and data input. -/
 theorem countedHHLBranchInput_eq (D M : ℕ) (hM : 0 < M) (j : Fin D) :
     TensorState (Ket (⟨0, hM⟩ : Fin M))
         (TensorState (Ket false) (TensorState (Ket false) (Ket j)))
@@ -522,6 +622,10 @@ theorem countedHHLBranchInput_eq (D M : ℕ) (hM : 0 < M) (j : Fin D) :
   obtain ⟨a, s, f, i⟩ := p
   cases s <;> simp [phaseFlagEmbed, TensorState, Ket]
 
+/-- For `2 ≤ M`, unitary eigenbasis and preparation matrices, and `0 ≤ c ≤ 1 / M`, the
+exact-grid clean HHL branch equals `c` times the matrix pseudoinverse applied to the
+prepared input. This realizes the inverse-eigenvalue construction of [Harrow, Hassidim, and
+Lloyd, 2009][HarrowHassidimLloyd2009]. -/
 theorem counted_hhl_exact_grid_clean_branch :
     ∀ (D M : ℕ) (label : Fin D → Fin M) (V B : Operator D) (j : Fin D) (c : ℝ),
       2 ≤ M → V ∈ Matrix.unitaryGroup (Fin D) ℂ → B ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -555,6 +659,8 @@ theorem counted_hhl_exact_grid_clean_branch :
   rw [hval]
   simp
 
+/-- A controlled oracle applies `Z` in the true control sector and leaves the false sector
+unchanged. -/
 theorem controlOracle_mulVec {I : Type*} [Fintype I] [DecidableEq I] (Z : Matrix I I ℂ)
     (ψ : QState (Bool × I)) (b : Bool) (i : I) :
     (controlOracle Z *ᵥ ψ) (b, i)
@@ -569,6 +675,8 @@ theorem controlOracle_mulVec {I : Type*} [Fintype I] [DecidableEq I] (Z : Matrix
   · intro h
     exact absurd (Finset.mem_univ b) h
 
+/-- The difference of two controlled oracles applies their data-operator difference in the true
+sector and vanishes in the false sector. -/
 theorem controlOracle_sub_mulVec {I : Type*} [Fintype I] [DecidableEq I] (W W' : Matrix I I ℂ)
     (ψ : QState (Bool × I)) (b : Bool) (i : I) :
     ((controlOracle W - controlOracle W') *ᵥ ψ) (b, i)
@@ -578,11 +686,14 @@ theorem controlOracle_sub_mulVec {I : Type*} [Fintype I] [DecidableEq I] (W W' :
   rw [controlOracle_mulVec, controlOracle_mulVec]
   cases b <;> simp [Matrix.sub_mulVec]
 
+/-- Squaring preserves an inequality between nonnegative real numbers. -/
 private theorem sq_le_sq_of_nonneg' {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (h : a ≤ b) :
     a ^ 2 ≤ b ^ 2 := by
   rw [sq_le_sq, abs_of_nonneg ha, abs_of_nonneg hb]
   exact h
 
+/-- Adding a Boolean control does not increase the operator norm of the difference between two
+operators. -/
 theorem norm_controlOracle_sub {I : Type*} [Fintype I] [DecidableEq I] (W W' : Matrix I I ℂ) :
     ‖controlOracle W - controlOracle W'‖ ≤ ‖W - W'‖ := by
   refine l2_opNorm_le_of_mulVec_le (norm_nonneg _) _ fun ψ => ?_
@@ -634,6 +745,8 @@ theorem norm_controlOracle_sub {I : Type*} [Fintype I] [DecidableEq I] (W W' : M
     _ = ‖W - W'‖ * ‖toEuclidean_fromVec ψ‖ :=
         Real.sqrt_sq (mul_nonneg (norm_nonneg _) (norm_nonneg _))
 
+/-- For positive `M`, lifting two data operators to the counted HHL oracle registers does not
+increase their operator-norm distance. -/
 theorem norm_oracleLift_sub (D M : ℕ) (hM : 0 < M) (U V : Operator D) :
     ‖countedHHLOracleLift (D := D) (M := M) U - countedHHLOracleLift (D := D) (M := M) V‖
       ≤ ‖U - V‖ := by
@@ -655,6 +768,7 @@ theorem norm_oracleLift_sub (D M : ℕ) (hM : 0 < M) (U V : Operator D) :
   rw [h1, l2_norm_tensorGate, l2_norm_one_eq, one_mul]
   exact hinner
 
+/-- Every computational basis ket has Euclidean norm one. -/
 theorem norm_toEuclidean_fromVec_ket {I : Type*} [Fintype I] [DecidableEq I] (i : I) :
     ‖toEuclidean_fromVec (Ket i)‖ = 1 := by
   have hsq : ‖toEuclidean_fromVec (Ket i)‖ ^ 2 = 1 := by
@@ -667,6 +781,7 @@ theorem norm_toEuclidean_fromVec_ket {I : Type*} [Fintype I] [DecidableEq I] (i 
   have hnn : 0 ≤ ‖toEuclidean_fromVec (Ket i)‖ := norm_nonneg _
   nlinarith [hnn]
 
+/-- The tensor-product basis input of the counted HHL program has Euclidean norm one. -/
 theorem norm_countedHHLBranchInput (D M : ℕ) (hM : 0 < M) (j : Fin D) :
     ‖toEuclidean_fromVec (TensorState (Ket (⟨0, hM⟩ : Fin M))
         (TensorState (Ket false) (TensorState (Ket false) (Ket j))))‖ = 1 := by
@@ -675,6 +790,8 @@ theorem norm_countedHHLBranchInput (D M : ℕ) (hM : 0 < M) (j : Fin D) :
     norm_toEuclidean_fromVec_ket]
   norm_num
 
+/-- Appending unitary operators at distance at most `ε` increases a state-error budget of `n *
+ε` times the input norm to at most `(n + 1) * ε` times that norm. -/
 theorem norm_query_step_le {I : Type*} [Fintype I] [DecidableEq I]
     {X Y EO EP : Matrix I I ℂ}
     (hX : X ∈ Matrix.unitaryGroup I ℂ) (hY : Y ∈ Matrix.unitaryGroup I ℂ)
@@ -710,6 +827,8 @@ theorem norm_query_step_le {I : Type*} [Fintype I] [DecidableEq I]
             (norm_nonneg (toEuclidean_fromVec ψ))) (n * ε * ‖toEuclidean_fromVec ψ‖)
     _ = (n + 1) * ε * ‖toEuclidean_fromVec ψ‖ := by ring
 
+/-- For unitary oracles and a well-formed adjoint word, the output distance is bounded by the
+query count times the oracle distance times the input norm. -/
 theorem norm_evaluate_sub_evaluate_le {I : Type*} [Fintype I] [DecidableEq I]
     (O P : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (hP : P ∈ Matrix.unitaryGroup I ℂ) (cs : List (AdjointStep I))
@@ -749,12 +868,16 @@ theorem norm_evaluate_sub_evaluate_le {I : Type*} [Fintype I] [DecidableEq I]
       exact norm_query_step_le (mem_unitaryGroup_adjoint hO) (mem_unitaryGroup_adjoint hP)
         (hcs'.evaluate_unitary hO) (hcs'.evaluate_unitary hP) ψ (norm_nonneg _) hXY (hih ψ)
 
+/-- For `2 ≤ M`, unitary `B`, and `0 ≤ c ≤ 1 / M`, the counted HHL word is a well-formed adjoint
+circuit. -/
 theorem countedHHLWord_wellFormed {D : ℕ} (M : ℕ) (c : ℝ) (B : Operator D)
     (hM : 2 ≤ M) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (hc0 : 0 ≤ c)
     (hc1 : c ≤ 1 / (M : ℝ)) :
     WellFormedAdjointCircuit (countedHHLWord (D := D) M c B) :=
   (counted_hhl_actual_word_and_access_counts D M c B hM hB hc0 hc1).1
 
+/-- Extracting the branch with phase zero, sector false, and flag true does not increase the
+Euclidean norm. -/
 theorem branchExtract_norm_le {D M : ℕ} (hM : 0 < M)
     (w : QState (Fin M × (Bool × (Bool × Fin D)))) :
     ‖stateVector (fun i => w ((⟨0, hM⟩ : Fin M), (false, (true, i))))‖
@@ -780,6 +903,8 @@ theorem branchExtract_norm_le {D M : ℕ} (hM : 0 < M)
     _ ≤ Real.sqrt (‖toEuclidean_fromVec w‖ ^ 2) := Real.sqrt_le_sqrt hsq
     _ = ‖toEuclidean_fromVec w‖ := Real.sqrt_sq (norm_nonneg _)
 
+/-- For `2 ≤ M`, unitary oracles and preparation, and `0 ≤ c ≤ 1 / M`, oracle distance at most
+`δ` gives clean-branch distance at most `2 * (M - 1) * δ`. -/
 theorem counted_hhl_unitary_oracle_clean_branch_noise :
     ∀ (D M : ℕ) (U V B : Operator D) (j : Fin D) (c δ : ℝ),
       2 ≤ M → U ∈ Matrix.unitaryGroup (Fin D) ℂ → V ∈ Matrix.unitaryGroup (Fin D) ℂ →

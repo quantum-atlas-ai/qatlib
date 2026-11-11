@@ -10,6 +10,27 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.GroupTheory.FiniteAbelian.Duality
 import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
 import Mathlib.Analysis.Complex.Polynomial.Basic
+
+/-!
+# Sample identification and finite abelian characters
+
+`SampleEfficientIdentification` specifies a logarithmic-in-confidence sample bound for
+identifying a finite family of distributions. The module proves this property for the stated
+Borel measurement law and separately proves separation by finite abelian characters, two
+ingredients in the setting of [DenneyMooreRussell2008].
+
+## Main statements
+
+* `borel_hsp_efficient`: the prescribed measurement law supports sample-efficient
+  identification.
+* `characters_separate_points`: complex multiplicative characters distinguish distinct finite
+  abelian group elements.
+
+## References
+
+* [Denney et al., 2008][DenneyMooreRussell2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,9 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Papers.PSL2ConjStab08.MainResults.BorelAffineSolvability
 
+/-- The property that some positive constant bounds the number of independent samples by `C *
+(log (1 / δ) + 1)` while allowing identification of every parameter with probability at
+least `1 − δ`. -/
 def SampleEfficientIdentification {X : Type*} [Fintype X] [DecidableEq X]
     (law : X → FinDist X) : Prop :=
   ∃ C : ℝ, 0 < C ∧ ∀ δ : ℝ, 0 < δ → δ < 1 →
@@ -26,6 +50,9 @@ def SampleEfficientIdentification {X : Type*} [Fintype X] [DecidableEq X]
       ∃ identify : (Fin n → X) → X,
         ∀ x : X, 1 - δ ≤ (law x).probEvent (fun ω => identify ω = x)
 
+/-- For `m + 1 ≥ 3`, the finite measurement law with mass `1 − 1 / (m + 1)` at the parameter and
+equal remaining masses possesses `SampleEfficientIdentification`. See
+[DenneyMooreRussell2008]. -/
 theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
     (law : Fin (m + 1) → FinDist (Fin (m + 1)))
     (hlaw : ∀ b ℓ : Fin (m + 1), (law b).prob ℓ =
@@ -252,6 +279,8 @@ theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
         rw [FinDist.sum_probOf]
       linarith [hcompl, hfail]
 
+/-- Distinct elements of a finite commutative group are separated by a multiplicative character
+with values in the nonzero complex numbers. See [DenneyMooreRussell2008]. -/
 theorem characters_separate_points (A : Type*) [CommGroup A] [Fintype A]
     [DecidableEq A] :
     ∀ a b : A, a ≠ b → ∃ χ : A →* ℂˣ, χ a ≠ χ b := by

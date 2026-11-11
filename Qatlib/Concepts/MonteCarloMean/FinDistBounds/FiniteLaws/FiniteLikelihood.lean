@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Finite likelihood support bounds
+
+This module computes the probability that all independent observations lie in a prescribed set.
+`support_bound` applies this identity to bound likelihood comparison by the mass of the
+competing support, and `decoder_error_bound` sums such bounds over incorrect candidates. These
+are elementary finite decision estimates in the statistical framework of [Helstrom1976].
+
+## Main statements
+
+* `all_samples_mass`: The probability that all `k` independent observations satisfy `A` is the
+  `k`th power of its one sample probability.
+* `support_bound`: The probability under `p` that a `k` sample record has likelihood no larger
+  than under `q` is at most the `k`th power of the `p` mass on the support of `q`.
+* `decoder_error_bound`: If each incorrect decoder output has likelihood at least the `p`
+  likelihood of the record, its error probability is at most the sum of the competing support
+  mass powers.
+
+## References
+
+* [Helstrom, 1976][Helstrom1976]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLikelihood
 open scoped BigOperators
@@ -14,6 +37,8 @@ variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
 
+/-- Inclusion of decidable sample record events implies an inequality between their
+probabilities. -/
 private theorem event_mono (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) {k : ℕ}
     (E F : (Fin k → X) → Prop) [DecidablePred E] [DecidablePred F] (h : ∀ w, E w → F w) :
     p.probEvent E ≤ p.probEvent F := by
@@ -23,6 +48,8 @@ private theorem event_mono (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fin
   · intro w _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- The probability that all `k` independent observations satisfy `A` is the `k`th power of its
+one sample probability. -/
 theorem all_samples_mass (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (k : ℕ) (A : X → Prop) [DecidablePred A] :
     p.probEvent (fun w : Fin k → X => ∀ i, A (w i)) =
       (∑ x with A x, p.prob x) ^ k := by
@@ -38,6 +65,8 @@ theorem all_samples_mass (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDi
   simpa only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent, Finset.sum_filter, mul_ite, mul_one, mul_zero,
     ite_mul, one_mul, zero_mul] using h
 
+/-- The probability under `p` that a `k` sample record has likelihood no larger than under `q`
+is at most the `k`th power of the `p` mass on the support of `q`. -/
 theorem support_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (k : ℕ) :
     p.probEvent (fun w : Fin k → X => p.probOf w ≤ q.probOf w) ≤
       (∑ x with q.prob x ≠ 0, p.prob x) ^ k := by
@@ -64,6 +93,8 @@ theorem support_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDis
       · exact hpos.le
       · exact le_refl _
 
+/-- If each incorrect decoder output has likelihood at least the `p` likelihood of the record,
+its error probability is at most the sum of the competing support mass powers. -/
 theorem decoder_error_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) {k m : ℕ}
     (q : Fin m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (truth : Fin m) (decode : (Fin k → X) → Fin m)
     (hdecode : ∀ w, decode w ≠ truth → p.probOf w ≤ (q (decode w)).probOf w) :

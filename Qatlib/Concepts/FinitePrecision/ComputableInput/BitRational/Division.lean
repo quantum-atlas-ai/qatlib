@@ -6,14 +6,43 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Comparison
 
+/-!
+# Correctness and bounds for binary long division
+
+This module verifies fixed-width subtraction and Boolean-list long division. The subtraction
+invariant tracks the output value and final carry; for nonnegative differences, the routine
+returns the exact difference with final carry true. Binary arithmetic provides computational
+primitives in the framework of [KitaevShenVyalyi2002].
+
+For a divisor with positive decoded value, `binomial_bit_divmod` identifies the returned
+quotient and remainder with natural division and modulus. Output lengths, processed columns, and
+gate counts are bounded explicitly, with at most `11 * xs.length * (xs.length + ds.length)`
+gates.
+
+## Main statements
+
+* `binomial_bit_subtract`: exact nonnegative subtraction returns `k` bits and costs `6 * k`
+  gates.
+* `division_semantics`: long division satisfies the quotient-remainder identity and strict
+  remainder bound.
+* `binomial_bit_divmod`: combines quotient and remainder correctness with length, column, and
+  gate bounds.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- The value of a Boolean list is its defaulted head bit plus twice the value of its tail. -/
 private theorem value_head (xs : List Bool) :
     binomialBitValue xs = (xs.headD false).toNat+2*binomialBitValue xs.tail := by
   cases xs <;> rfl
 
+/-- The natural value of a Boolean list is strictly less than two raised to its length. -/
 private theorem value_lt (xs : List Bool) : binomialBitValue xs < 2^xs.length := by
   induction xs with
   | nil => simp [binomialBitValue]
@@ -21,11 +50,15 @@ private theorem value_lt (xs : List Bool) : binomialBitValue xs < 2^xs.length :=
     cases b <;> simp only [binomialBitValue,Bool.toNat_false,Bool.toNat_true,
       List.length_cons,pow_succ] <;> omega
 
+/-- The full-adder cell with complemented second input satisfies the single-bit subtraction
+identity including its carry. -/
 private theorem subtract_cell (x y c : Bool) :
     (binomialFullAdder x (!y) c).1.toNat+2*(binomialFullAdder x (!y) c).2.toNat+y.toNat =
       x.toNat+1+c.toNat := by
   cases x <;> cases y <;> cases c <;> decide
 
+/-- For inputs fitting in `k` bits, subtraction satisfies the value identity including the final
+carry, returns exactly `k` output bits, and costs `6 * k` gates. -/
 private theorem subtract_spec (k : ℕ) (xs ys : List Bool) (c : Bool)
     (hx : xs.length ≤ k) (hy : ys.length ≤ k) :
     let r := binomialBitSubtract k xs ys c
@@ -58,6 +91,9 @@ private theorem subtract_spec (k : ℕ) (xs ys : List Bool) (c : Bool)
     · change r.1.1.length+1 = _; omega
     · change 6+r.2 = _; omega
 
+/-- For `k`-bit inputs whose decoded second value is at most the first, subtraction with initial
+carry true returns the exact difference, final carry true, `k` output bits, and cost `6 *
+k`. -/
 theorem binomial_bit_subtract (k : ℕ) (xs ys : List Bool)
     (hx : xs.length ≤ k) (hy : ys.length ≤ k) (h : binomialBitValue ys ≤ binomialBitValue xs) :
     let r := binomialBitSubtract k xs ys true
@@ -78,6 +114,8 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- For a positive decoded divisor, long division satisfies the quotient-remainder identity and
+returns a remainder smaller than the divisor. -/
 private theorem division_semantics (ds xs : List Bool) (hd : 0 < binomialBitValue ds) :
     let r := binomialBitDivmod ds xs
     binomialBitValue xs = binomialBitValue r.quotient*binomialBitValue ds+binomialBitValue r.remainder ∧
@@ -123,6 +161,9 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- Long division returns a quotient of dividend length, a remainder of length at most the sum
+of input lengths, one column per dividend bit, and at most `11 * xs.length * (xs.length +
+ds.length)` gates. -/
 private theorem division_bounds (ds xs : List Bool) :
     let r := binomialBitDivmod ds xs
     r.quotient.length = xs.length ∧ r.remainder.length ≤ xs.length+ds.length ∧
@@ -160,6 +201,9 @@ private theorem division_bounds (ds xs : List Bool) :
       refine ⟨by omega,by omega,by omega,?_⟩
       nlinarith [ih.2.2.2]
 
+/-- For a positive decoded divisor, long division returns the natural quotient and remainder,
+with the stated quotient and remainder length bounds, one column per dividend bit, and at
+most `11 * xs.length * (xs.length + ds.length)` gates. -/
 theorem binomial_bit_divmod (ds xs : List Bool) (hd : 0 < binomialBitValue ds) :
     let r := binomialBitDivmod ds xs
     binomialBitValue r.quotient = binomialBitValue xs/binomialBitValue ds ∧

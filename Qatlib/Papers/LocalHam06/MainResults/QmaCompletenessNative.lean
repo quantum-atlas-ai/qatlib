@@ -8,6 +8,29 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessGates
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeLocality
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
+
+/-!
+# Semantics of native gate coefficients
+
+The interpretation `taggedValue` connects symbolic gate entries to their complex matrix values.
+The module identifies rounded integer coefficients with rounded gates and proves that
+`propagationTerm_value` is the flattened physical propagation operator. See
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `rawTag_sound`: Interpreting `rawTag` gives the matrix entry specified by the finite gate
+  code.
+* `rawCoeff_interpret`: The dyadic interpretation of `rawCoeff` equals the corresponding entry
+  of `qmaRoundedGate`.
+* `propagationTerm_value`: The value of a propagation term at width `b + 1` is the physical
+  propagation matrix reindexed by the flattening equivalence.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -23,14 +46,18 @@ open Qatlib
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- The complex value of a symbolic tag, obtained by interpreting its real and imaginary atoms. -/
 noncomputable def taggedValue (p : Tag) : ℂ := cartesian p.1 p.2
 
+/-- The zero tag has complex value zero. -/
 theorem zeroTag_sound : taggedValue zeroTag = 0 := by
   simp [taggedValue, zeroTag, cartesian, atomVal]
 
+/-- The unit tag has complex value one. -/
 theorem oneTag_sound : taggedValue oneTag = 1 := by
   simp [taggedValue, oneTag, cartesian, atomVal]
 
+/-- The identity tag evaluates to the corresponding entry of the identity matrix. -/
 theorem identityTag_sound {n : ℕ} (x y : Reg n) :
     taggedValue (identityTag x y) = (1 : Matrix (Reg n) (Reg n) ℂ) x y := by
   by_cases h : x = y
@@ -39,14 +66,17 @@ theorem identityTag_sound {n : ℕ} (x y : Reg n) :
   · have hb : ¬ regEq x y = true := fun hh => h ((regEq_true_iff x y).mp hh)
     simp [identityTag, hb, h, zeroTag_sound]
 
+/-- A symbolic Hadamard cell evaluates to the corresponding Hadamard matrix entry. -/
 theorem hCell_sound (a c : Bool) : taggedValue (hCell a c) = Hadamard a c := by
   cases a <;> cases c <;>
     simp [taggedValue, hCell, cartesian, atomVal, Hadamard]
 
+/-- A symbolic Pauli X cell evaluates to the corresponding Pauli X matrix entry. -/
 theorem xCell_sound (a c : Bool) : taggedValue (xCell a c) = PauliX a c := by
   cases a <;> cases c <;>
     simp [taggedValue, xCell, oneTag, zeroTag, cartesian, atomVal, PauliX, permMatrix]
 
+/-- The real number `sqrt 2 / 2` equals the reciprocal of `sqrt 2`. -/
 theorem sqrt_two_div_two_eq_inv : Real.sqrt 2 / 2 = (Real.sqrt 2)⁻¹ := by
   have hs : Real.sqrt (2 : ℝ) ≠ 0 :=
     ne_of_gt (Real.sqrt_pos.mpr (by norm_num))
@@ -55,6 +85,7 @@ theorem sqrt_two_div_two_eq_inv : Real.sqrt 2 / 2 = (Real.sqrt 2)⁻¹ := by
   have hh := Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 2)
   nlinarith
 
+/-- A symbolic T cell evaluates to the corresponding entry of `tGate`. -/
 theorem tCell_sound (a c : Bool) : taggedValue (tCell a c) = tGate a c := by
   cases a <;> cases c <;>
     simp [taggedValue, tCell, oneTag, zeroTag, cartesian, atomVal, tGate, Rz]
@@ -62,6 +93,7 @@ theorem tCell_sound (a c : Bool) : taggedValue (tCell a c) = tGate a c := by
   · simpa using! exp_pi_div_four_re_im.1.symm
   · simpa using! exp_pi_div_four_re_im.2.symm
 
+/-- A symbolic adjoint T cell evaluates to the corresponding entry of `tGateAdj`. -/
 theorem tdgCell_sound (a c : Bool) : taggedValue (tdgCell a c) = tGateAdj a c := by
   cases a <;> cases c <;>
     simp [taggedValue, tdgCell, oneTag, zeroTag, cartesian, atomVal, tGateAdj, Rz]
@@ -69,6 +101,8 @@ theorem tdgCell_sound (a c : Bool) : taggedValue (tdgCell a c) = tGateAdj a c :=
   · simpa using! exp_neg_pi_div_four_re_im.1.symm
   · simpa [sqrt_two_div_two_eq_inv] using! exp_neg_pi_div_four_re_im.2.symm
 
+/-- Interpreting a one-wire tag gives the entry of the embedded gate when the wire is in range,
+and the identity entry otherwise. -/
 theorem oneWireTag_sound (n w : ℕ) (cell : Bool → Bool → Tag)
     (U : Matrix Bool Bool ℂ)
     (hc : ∀ a c : Bool, taggedValue (cell a c) = U a c) (x y : Reg n) :
@@ -88,6 +122,7 @@ theorem oneWireTag_sound (n w : ℕ) (cell : Bool → Bool → Tag)
   · simp only [oneWireTag, dif_neg hw]
     exact identityTag_sound x y
 
+/-- Interpreting `rawTag` gives the matrix entry specified by the finite gate code. -/
 theorem rawTag_sound (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
     taggedValue (rawTag n g x y) = finiteCodeMatrix n g x y := by
   cases g with
@@ -116,6 +151,7 @@ theorem rawTag_sound (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       · simp only [rawTag, finiteCodeMatrix, dif_neg h]
         exact identityTag_sound x y
 
+/-- Rounding the complex value of two atoms gives the dyadic value of their integer numerators. -/
 theorem round_atoms (b : ℕ) (a c : Atom) :
     qmaRoundC b (cartesian a c) =
       dyadicValue b (atomNumerator b a) (atomNumerator b c) := by
@@ -125,6 +161,7 @@ theorem round_atoms (b : ℕ) (a c : Atom) :
       atomNumerator b c := by simpa [cartesian] using! floor_atom b c
   simp only [qmaRoundC, dyadicValue, hr, hi]
 
+/-- The dyadic interpretation of `rawCoeff` equals the corresponding entry of `qmaRoundedGate`. -/
 theorem rawCoeff_interpret (n b : ℕ) (g : FiniteGateCode) (x y : Reg n) :
     dyadicValue b (rawCoeff n b g x y).1 (rawCoeff n b g x y).2 =
       qmaRoundedGate n b g x y := by
@@ -142,6 +179,8 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open scoped Classical
 
+/-- At width `b + 1`, the dyadic propagation coefficients evaluate to the physical propagation
+matrix entries for the rounded gate. -/
 theorem propagationCoeff_interpret {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateCode)
     (p q : Clock m×Reg n) :
     dyadicValue (b+1) (propagationCoeff n b i g p q).1
@@ -184,6 +223,8 @@ theorem propagationCoeff_interpret {m : ℕ} (n b : ℕ) (i : Fin m) (g : Finite
     Matrix.add_apply,tensorGate_apply,Matrix.conjTranspose_apply,star_mul,Complex.star_def]
   ring
 
+/-- The value of a propagation term at width `b + 1` is the physical propagation matrix
+reindexed by the flattening equivalence. -/
 theorem propagationTerm_value {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateCode) :
     value (b+1) (propagationTerm n b i g)=
       Matrix.reindex (flattenEquiv m n).symm (flattenEquiv m n).symm

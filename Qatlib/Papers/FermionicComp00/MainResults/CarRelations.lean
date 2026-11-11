@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
 import Mathlib.Algebra.Algebra.Subalgebra.Basic
+
+/-!
+# Canonical anticommutation relations
+
+`source_car_relations` collects the mixed, annihilation, and creation anticommutation relations
+for the Jordan-Wigner matrices on an `m`-mode register.
+
+These constructions belong to the formalization of [BravyiKitaev2002].
+
+## Main statements
+
+* `source_car_relations`: packages the three canonical anticommutation identities.
+
+## References
+
+* [Bravyi and Kitaev, 2002][BravyiKitaev2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,9 @@ open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 
 namespace Qatlib.Papers.FermionicComp00.MainResults.CarRelations
 
+/-- The creation and annihilation matrices satisfy the canonical anticommutation relations:
+mixed anticommutators are the Kronecker delta times the identity, and same-type
+anticommutators vanish. [BravyiKitaev2002] -/
 theorem source_car_relations (m : ℕ) :
     (∀ j k : Fin m,
         annihilation j * creation k + creation k * annihilation j

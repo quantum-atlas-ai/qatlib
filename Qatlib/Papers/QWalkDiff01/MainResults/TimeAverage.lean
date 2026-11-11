@@ -10,6 +10,28 @@ import Mathlib.Analysis.Normed.Group.Continuity
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.Tactic
 import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
+
+/-!
+# Continuous time averages of spectral probabilities
+
+The finite spectral amplitude `spectralAmplitude` and its real probability expansion
+`eigenTransitionProb` model continuous time evolution. Oscillatory cross terms vanish under time
+averaging when the energies are distinct, identifying the limit with `limitingDistribution` as
+used in [ChildsFarhiGutmann2002].
+
+## Main statements
+
+* `normSq_spectralAmplitude`: identifies the probability expansion with the squared amplitude
+  norm.
+* `timeAverage_limitingDistribution`: proves convergence to the spectral limiting distribution.
+* `timeAverage_rightRoot_lower_bound`: combines convergence with the endpoint-overlap lower
+  bound.
+
+## References
+
+* [Childs et al., 2002][ChildsFarhiGutmann2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,12 +45,18 @@ namespace Qatlib.Papers.QWalkDiff01.MainResults
 
 variable {ι : Type*} [Fintype ι]
 
+/-- The finite spectral amplitude `∑ r, A r * exp(-i * E r * t)` for real coefficients and
+energies. -/
 def spectralAmplitude (A E : ι → ℝ) (t : ℝ) : ℂ :=
   ∑ r, (A r : ℂ) * Complex.exp (-(((E r * t : ℝ)) : ℂ) * Complex.I)
 
+/-- The real double-sum probability expansion with coefficients `A r * A s` and phases `cos ((E
+r - E s) * t)`. -/
 def eigenTransitionProb (A E : ι → ℝ) (t : ℝ) : ℝ :=
   ∑ r, ∑ s, A r * A s * Real.cos ((E r - E s) * t)
 
+/-- The product of one spectral phase and the conjugate of another is the exponential of their
+energy difference. -/
 theorem exp_mul_conj_exp (a b t : ℝ) :
     Complex.exp (-(((a * t : ℝ)) : ℂ) * Complex.I) *
         conj (Complex.exp (-(((b * t : ℝ)) : ℂ) * Complex.I)) =
@@ -43,6 +71,8 @@ theorem exp_mul_conj_exp (a b t : ℝ) :
   push_cast
   ring
 
+/-- The real part of a spectral phase times a conjugate spectral phase is the cosine of the
+energy difference times time. -/
 theorem exp_mul_conj_exp_re (a b t : ℝ) :
     (Complex.exp (-(((a * t : ℝ)) : ℂ) * Complex.I) *
         conj (Complex.exp (-(((b * t : ℝ)) : ℂ) * Complex.I))).re =
@@ -51,6 +81,7 @@ theorem exp_mul_conj_exp_re (a b t : ℝ) :
   have harg : ((b - a) * t : ℝ) = -((a - b) * t) := by ring
   rw [harg, Complex.exp_ofReal_mul_I_re, Real.cos_neg]
 
+/-- The squared norm of `spectralAmplitude` equals `eigenTransitionProb`. -/
 theorem normSq_spectralAmplitude (A E : ι → ℝ) (t : ℝ) :
     ‖spectralAmplitude A E t‖ ^ 2 = eigenTransitionProb A E t := by
   have hre : (spectralAmplitude A E t * conj (spectralAmplitude A E t)).re =
@@ -72,12 +103,15 @@ theorem normSq_spectralAmplitude (A E : ι → ℝ) (t : ℝ) :
     ring]
   rw [Complex.re_ofReal_mul, exp_mul_conj_exp_re]
 
+/-- For nonzero frequency `ω`, the integral of `cos (ω * t)` from zero to `T` is `sin (ω * T) /
+ω`. -/
 theorem intervalIntegral_cos_mul (ω T : ℝ) (hω : ω ≠ 0) :
     ∫ t in (0 : ℝ)..T, Real.cos (ω * t) = Real.sin (ω * T) / ω := by
   rw [intervalIntegral.integral_comp_mul_left (f := Real.cos) (a := 0) (b := T) (c := ω) hω,
     integral_cos]
   simp [smul_eq_mul, div_eq_mul_inv, mul_comm]
 
+/-- The time average of `cos (ω * t)` tends to one for zero frequency and zero otherwise. -/
 theorem tendsto_avg_cos (ω : ℝ) :
     Tendsto (fun T : ℝ => (1 / T) * ∫ t in (0 : ℝ)..T, Real.cos (ω * t)) atTop
       (𝓝 (if ω = 0 then 1 else 0)) := by
@@ -118,6 +152,8 @@ theorem tendsto_avg_cos (ω : ℝ) :
       simpa using (tendsto_inv_atTop_zero (𝕜 := ℝ)).norm
     simpa using (tendsto_const_nhds (x := (1 : ℝ) / |ω|)).mul hinv
 
+/-- With pairwise distinct energies, the time average of the spectral transition probability
+tends to the sum of squared coefficients. -/
 theorem tendsto_timeAverage_eigenTransitionProb (A E : ι → ℝ)
     (hE : ∀ r s : ι, E r = E s → r = s) :
     Tendsto (fun T : ℝ => (1 / T) * ∫ t in (0 : ℝ)..T, eigenTransitionProb A E t) atTop
@@ -177,6 +213,8 @@ theorem tendsto_timeAverage_eigenTransitionProb (A E : ι → ℝ)
   rw [hval] at hsum
   exact hsum
 
+/-- For pairwise distinct energies, the time-averaged transition probability between `a` and `c`
+converges to their spectral limiting distribution, as in [ChildsFarhiGutmann2002]. -/
 theorem timeAverage_limitingDistribution (n : ℕ) {E : Type*}
     [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     (basis : OrthonormalBasis (Fin (2 * n + 1)) ℝ E) (a c : E)
@@ -194,6 +232,8 @@ theorem timeAverage_limitingDistribution (n : ℕ) {E : Type*}
   rw [hsum] at hmain
   exact hmain
 
+/-- For distinct energies and a unit source with equal-magnitude endpoint overlaps, the time
+average converges to `limitingDistribution`, which is at least `1 / (2 * n + 1)`. -/
 theorem timeAverage_rightRoot_lower_bound (n : ℕ) {E : Type*}
     [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     (basis : OrthonormalBasis (Fin (2 * n + 1)) ℝ E) (a c : E) (ha : ‖a‖ = 1)

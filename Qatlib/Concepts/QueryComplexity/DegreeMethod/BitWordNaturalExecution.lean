@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Exact execution counts for canonical natural number words
+
+This module proves exact stack machine execution formulas for reading and re-emitting canonical
+natural number bit words. The unary prefix and binary field are handled separately, then
+combined into complete executions for `program` and the read-and-emit program. These explicit
+machine semantics complement the computational models discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `canonical_execution_exact`: the canonical natural number reader halts after `2 *
+  n.bits.length + 3` steps.
+* `NatReadEmit.canonical_execution_exact`: the read-and-emit machine halts after `7 *
+  n.bits.length + 10` steps.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
@@ -18,6 +39,8 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- After `n + 1` steps, the unary prefix reader consumes `n` true bits and the false delimiter,
+enters the field state, and adds `n` markers. -/
 private theorem unary_exact (n : ℕ) (rest markers output : Bits) (v : Local) :
     Stacks.stackRun program (n+1)
       ⟨some .unary,v,Parsing.triple
@@ -32,6 +55,8 @@ private theorem unary_exact (n : ℕ) (rest markers output : Bits) (v : Local) :
     simp only [List.replicate_succ,List.cons_append,unary_step,Option.bind_some]
     simpa only [Parsing.marker_cons] using hh
 
+/-- After `bits.length + 1` steps, the field reader reaches `fieldFinish` from the given bit
+field and matching marker stack. -/
 private theorem field_exact (bits rest output : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1)
       ⟨some .field,v,Parsing.triple
@@ -52,6 +77,9 @@ private theorem field_exact (bits rest output : Bits) (v : Local) :
       field_step,Option.bind_some,fieldFinish]
     exact hh
 
+/-- The canonical natural number reader consumes `natBits n`, preserves the remaining input, and
+halts after `2 * n.bits.length + 3` steps with the reversed binary digits prepended to the
+output stack. -/
 theorem canonical_execution_exact (n : ℕ) (rest output : Bits) (v : Local) :
     Stacks.stackRun program (2*n.bits.length+3)
       ⟨some .unary,v,Parsing.triple (natBits n++rest) [] output⟩ =
@@ -84,6 +112,9 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.NatReadEmit
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The natural number read-and-emit machine consumes `natBits n` and halts after `7 *
+n.bits.length + 10` steps, storing the binary digits and prepending the reversed canonical
+word to the output stack. -/
 theorem canonical_execution_exact (n : ℕ) (tail out : Bits) (v : Local) :
     Stacks.stackRun program (7*n.bits.length+10)
       ⟨some (.read .unary),v,store (natBits n++tail) [] [] [] [] out⟩ =

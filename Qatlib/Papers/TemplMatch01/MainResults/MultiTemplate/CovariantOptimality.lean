@@ -12,6 +12,30 @@ import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.LinearAlgebra.Matrix.PosDef
+
+/-!
+# Covariant optimality conditions for multiple templates
+
+Constructs the covariant score matrices `gammaWm` and square root measurement effects `gammaSrm`
+for the multiple-template problem of [SasakiCarliniJozsa2001]. When `N < M`, their summed
+products form the diagonal matrix `gammaD`.
+
+The decomposition of `gammaD - gammaW0` into nonnegative multiples of outer products establishes
+positive semidefiniteness, while `gammaD_isHermitian` supplies the Hermitian condition. The
+final identity identifies `gammaW0` with the score matrix `wZero`.
+
+## Main statements
+
+* `Gamma_eq_gammaD`: computes the summed score-effect products for `N < M`.
+* `gammaD_sub_gammaW0`: expresses the difference as a weighted sum of outer products.
+* `posSemidef_gammaD_sub_gammaW0`: proves positivity of the score-matrix difference.
+* `gammaW0_eq_wZero`: identifies the two seed score matrices.
+
+## References
+
+* [Sasaki et al., 2001][SasakiCarliniJozsa2001]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate
@@ -23,8 +47,10 @@ set_option autoImplicit false
 
 noncomputable section
 
+/-- The complex phase `exp (2πi / M)` used for the cyclic template symmetry. -/
 def zeta (M : ℕ) : ℂ := Complex.exp (2 * (Real.pi / M : ℝ) * Complex.I)
 
+/-- For positive `M`, the phase `zeta M` is a primitive `M`th root of unity. -/
 theorem zeta_isPrimitiveRoot (M : ℕ) (hM : 0 < M) : IsPrimitiveRoot (zeta M) M := by
   have h := Complex.isPrimitiveRoot_exp M (Nat.pos_iff_ne_zero.mp hM)
   unfold zeta
@@ -32,10 +58,12 @@ theorem zeta_isPrimitiveRoot (M : ℕ) (hM : 0 < M) : IsPrimitiveRoot (zeta M) M
   push_cast
   ring
 
+/-- The phase `zeta M` is nonzero for every natural number `M`. -/
 theorem zeta_ne_zero (M : ℕ) : zeta M ≠ 0 := fun h => by
   unfold zeta at h
   exact Complex.exp_ne_zero _ h
 
+/-- The complex phase `zeta M` has norm one. -/
 theorem norm_zeta (M : ℕ) : ‖zeta M‖ = 1 := by
   unfold zeta
   rw [Complex.norm_exp]
@@ -44,6 +72,7 @@ theorem norm_zeta (M : ℕ) : ‖zeta M‖ = 1 := by
   rw [hre]
   simp
 
+/-- Complex conjugation of a natural power of `zeta M` equals its multiplicative inverse. -/
 theorem conj_zeta_pow_eq_inv (M a : ℕ) : (starRingEnd ℂ) (zeta M ^ a) = (zeta M ^ a)⁻¹ := by
   have h2 : ((Complex.normSq (zeta M ^ a) : ℝ) : ℂ)
       = (starRingEnd ℂ) (zeta M ^ a) * (zeta M ^ a) := Complex.normSq_eq_conj_mul_self
@@ -53,6 +82,8 @@ theorem conj_zeta_pow_eq_inv (M a : ℕ) : (starRingEnd ℂ) (zeta M ^ a) = (zet
   have hmul : (starRingEnd ℂ) (zeta M ^ a) * (zeta M ^ a) = 1 := by rw [← h2, h1]
   exact eq_inv_of_mul_eq_one_left hmul
 
+/-- The sum of `M` consecutive powers with integer frequency `d` vanishes when `zeta M` is
+primitive and `M` does not divide `d`. -/
 theorem geom_zeta_of_not_dvd (M : ℕ) (_hM : 0 < M) (hζ : IsPrimitiveRoot (zeta M) M)
     (d : ℤ) (hd : ¬ ((M : ℤ) ∣ d)) : ∑ m ∈ range M, (zeta M) ^ ((m : ℤ) * d) = 0 := by
   have hxd : zeta M ^ d ≠ 1 := fun h => hd ((hζ.zpow_eq_one_iff_dvd d).mp h)
@@ -71,24 +102,36 @@ theorem geom_zeta_of_not_dvd (M : ℕ) (_hM : 0 < M) (hζ : IsPrimitiveRoot (zet
 
 variable (N M : ℕ)
 
+/-- The normalized square root coefficient coupling consecutive indices in the seed score
+matrix. -/
 def acoeff (k : ℕ) : ℝ := Real.sqrt ((N - k) * (k + 1)) / (N + 2)
 
+/-- The seed score matrix consisting of a scaled identity and weighted entries between
+consecutive indices. -/
 def gammaW0 : Matrix (Fin (N+1)) (Fin (N+1)) ℂ :=
   ((2 * (N + 1) : ℕ) : ℂ)⁻¹ •
     (1 + (∑ k : Fin N, (acoeff N k : ℂ) •
       (Matrix.single (Fin.succ k) (Fin.castSucc k) 1 + Matrix.single (Fin.castSucc k) (Fin.succ k) 1)))
 
+/-- The diagonal phase matrix with entries `zeta M ^ (m * k)` implementing the cyclic template
+action. -/
 def gammaV (m : ℕ) : Matrix (Fin (N+1)) (Fin (N+1)) ℂ :=
   Matrix.diagonal (fun k : Fin (N+1) => zeta M ^ (m * k.1))
 
+/-- The score matrix obtained by conjugating `gammaW0` by the diagonal phase matrix `gammaV`. -/
 def gammaWm (m : ℕ) : Matrix (Fin (N+1)) (Fin (N+1)) ℂ :=
   gammaV N M m * gammaW0 N * (gammaV N M m).conjTranspose
 
+/-- The measurement vector whose `k`th coordinate is `zeta M ^ (m * k)` divided by `√M`. -/
 def gammaMu (m : ℕ) : Fin (N+1) → ℂ := fun k => (Real.sqrt M : ℂ)⁻¹ * zeta M ^ (m * k.1)
 
+/-- The outer product of `gammaMu` with its conjugate, defining a square root measurement
+effect. -/
 def gammaSrm (m : ℕ) : Matrix (Fin (N+1)) (Fin (N+1)) ℂ :=
   Matrix.vecMulVec (gammaMu N M m) (star (gammaMu N M m))
 
+/-- Each entry of the covariant score matrix is the corresponding seed entry multiplied by its
+row phase and conjugate column phase. -/
 lemma gammaWm_apply (m : ℕ) (i j : Fin (N+1)) :
     gammaWm N M m i j
       = zeta M ^ (m * i.1) * gammaW0 N i j * (starRingEnd ℂ) (zeta M ^ (m * j.1)) := by
@@ -97,6 +140,7 @@ lemma gammaWm_apply (m : ℕ) (i j : Fin (N+1)) :
   rw [Matrix.mul_diagonal, Matrix.diagonal_mul]
   simp
 
+/-- The square of the inverse complex cast of `√M` equals the inverse complex cast of `M`. -/
 lemma sqrt_inv_sq (M : ℕ) : ((Real.sqrt M : ℂ))⁻¹ * ((Real.sqrt M : ℂ))⁻¹ = (M : ℂ)⁻¹ := by
   have hsq : ((Real.sqrt M : ℂ)) * ((Real.sqrt M : ℂ)) = (M : ℂ) := by
     rw [← Complex.ofReal_mul]
@@ -104,9 +148,11 @@ lemma sqrt_inv_sq (M : ℕ) : ((Real.sqrt M : ℂ))⁻¹ * ((Real.sqrt M : ℂ))
     exact Real.mul_self_sqrt (Nat.cast_nonneg M)
   rw [← mul_inv, hsq]
 
+/-- Evaluates a coordinate of the covariant measurement vector as its normalized phase. -/
 lemma gammaMu_apply (m : ℕ) (k : Fin (N+1)) :
     gammaMu N M m k = (Real.sqrt M : ℂ)⁻¹ * zeta M ^ (m * k.1) := rfl
 
+/-- Evaluates a coordinate of the conjugate measurement vector using the inverse phase. -/
 lemma gammaMu_star (m : ℕ) (j : Fin (N+1)) :
     star (gammaMu N M m) j = (Real.sqrt M : ℂ)⁻¹ * (zeta M ^ (m * j.1))⁻¹ := by
   unfold gammaMu
@@ -118,6 +164,8 @@ lemma gammaMu_star (m : ℕ) (j : Fin (N+1)) :
   congr 1
   simp
 
+/-- For positive `M`, each entry of `gammaWm * gammaSrm` is the seed row sum multiplied by the
+relative phase and `M⁻¹`. -/
 lemma mulPi_apply (hM : 0 < M) (m : ℕ) (i j : Fin (N+1)) :
     (gammaWm N M m * gammaSrm N M m) i j
       = (M : ℂ)⁻¹ * (zeta M ^ (m * i.1) * (zeta M ^ (m * j.1))⁻¹) * (∑ p, gammaW0 N i p) := by
@@ -140,11 +188,15 @@ lemma mulPi_apply (hM : 0 < M) (m : ℕ) (i j : Fin (N+1)) :
   push_cast
   ring
 
+/-- Expresses the relative phase at index `m` as the `m`th power of the relative phase at index
+one. -/
 lemma phase_pow (m : ℕ) (i j : Fin (N+1)) :
     zeta M ^ (m * i.1) * (zeta M ^ (m * j.1))⁻¹
       = (zeta M ^ i.1 * (zeta M ^ j.1)⁻¹) ^ m := by
   rw [mul_comm m i.1, mul_comm m j.1, pow_mul, pow_mul, ← inv_pow, ← mul_pow]
 
+/-- For `N < M` and primitive `zeta M`, summing the score-effect products gives the seed row sum
+on the diagonal and zero off the diagonal. -/
 theorem Gamma_apply (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta M) M)
     (i j : Fin (N+1)) :
     (∑ m ∈ range M, (gammaWm N M m * gammaSrm N M m) i j)
@@ -187,17 +239,22 @@ theorem Gamma_apply (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta M) M
     rw [if_neg hij, hsum0]
     simp
 
+/-- The diagonal matrix obtained from the scaled identity by adding the two endpoint
+contributions of each coefficient `acoeff`. -/
 def gammaD (N : ℕ) : Matrix (Fin (N+1)) (Fin (N+1)) ℂ :=
   ((2 * (N + 1) : ℕ) : ℂ)⁻¹ •
     (1 + ∑ k : Fin N, (acoeff N k : ℂ) •
       (Matrix.single (Fin.castSucc k) (Fin.castSucc k) 1 + Matrix.single (Fin.succ k) (Fin.succ k) 1))
 
+/-- The difference of the standard basis vectors at consecutive positions `k` and `k + 1`. -/
 def vvec (N : ℕ) (k : Fin N) : Fin (N+1) → ℂ :=
   fun i => (if i = Fin.castSucc k then (1:ℂ) else 0) - (if i = Fin.succ k then (1:ℂ) else 0)
 
+/-- Every coordinate of the adjacent basis difference `vvec` is fixed by complex conjugation. -/
 lemma star_vvec (N : ℕ) (k : Fin N) (i : Fin (N+1)) : star (vvec N k i) = vvec N k i := by
   simp [vvec]
 
+/-- Expands the outer product of an adjacent basis difference into its four matrix units. -/
 lemma vecMulVec_vvec (N : ℕ) (k : Fin N) :
     Matrix.vecMulVec (vvec N k) (star (vvec N k))
       = Matrix.single (Fin.castSucc k) (Fin.castSucc k) 1
@@ -211,6 +268,8 @@ lemma vecMulVec_vvec (N : ℕ) (k : Fin N) :
     by_cases h3 : Fin.castSucc k = j <;> by_cases h4 : Fin.succ k = j <;>
     simp_all [eq_comm]
 
+/-- Expresses `gammaD - gammaW0` as a scaled sum of outer products of adjacent basis
+differences, weighted by `acoeff`. See [SasakiCarliniJozsa2001]. -/
 theorem gammaD_sub_gammaW0 (N : ℕ) :
     gammaD N - gammaW0 N = ((2 * (N + 1) : ℕ) : ℂ)⁻¹ •
       ∑ k : Fin N, (acoeff N k : ℂ) • Matrix.vecMulVec (vvec N k) (star (vvec N k)) := by
@@ -224,6 +283,8 @@ theorem gammaD_sub_gammaW0 (N : ℕ) :
   congr 1
   abel
 
+/-- Expands an entry of `gammaW0` into its diagonal identity contribution and weighted
+consecutive-index contributions. -/
 lemma gammaW0_apply (i j : Fin (N+1)) :
     gammaW0 N i j = ((2 * (N + 1) : ℕ) : ℂ)⁻¹ *
       ((if i = j then (1 : ℂ) else 0) +
@@ -235,6 +296,7 @@ lemma gammaW0_apply (i j : Fin (N+1)) :
     Matrix.single_apply, smul_eq_mul, mul_add, mul_ite, mul_one, mul_zero,
     Finset.sum_add_distrib]
 
+/-- Summing the column index of a matrix-unit indicator leaves the indicator for its row index. -/
 lemma sum_ite_row (a b : Fin (N+1)) (i : Fin (N+1)) :
     (∑ p : Fin (N+1), (if a = i ∧ b = p then (1 : ℂ) else 0))
       = if a = i then (1 : ℂ) else 0 := by
@@ -247,6 +309,8 @@ lemma sum_ite_row (a b : Fin (N+1)) (i : Fin (N+1)) :
     intro p _
     simp [ha]
 
+/-- Computes a row sum of `gammaW0` from the identity term and the coefficients incident to that
+row. -/
 lemma gammaW0_rowsum (i : Fin (N+1)) :
     (∑ p, gammaW0 N i p) = ((2 * (N + 1) : ℕ) : ℂ)⁻¹ *
       (1 + ∑ k : Fin N, (acoeff N k : ℂ) *
@@ -267,6 +331,8 @@ lemma gammaW0_rowsum (i : Fin (N+1)) :
     sum_ite_row N (Fin.succ k) (Fin.castSucc k) i,
     sum_ite_row N (Fin.castSucc k) (Fin.succ k) i]
 
+/-- Expands an entry of `gammaD` into its identity term and weighted diagonal endpoint
+contributions. -/
 lemma gammaD_apply (i j : Fin (N+1)) :
     gammaD N i j = ((2 * (N + 1) : ℕ) : ℂ)⁻¹ *
       ((if i = j then (1 : ℂ) else 0) +
@@ -278,6 +344,8 @@ lemma gammaD_apply (i j : Fin (N+1)) :
     Matrix.single_apply, smul_eq_mul, mul_add, mul_ite, mul_one, mul_zero,
     Finset.sum_add_distrib]
 
+/-- For positive `M` with `N < M` and primitive `zeta M`, the sum of the covariant score-effect
+products equals `gammaD`. See [SasakiCarliniJozsa2001]. -/
 theorem Gamma_eq_gammaD (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta M) M) :
     (∑ m ∈ range M, gammaWm N M m * gammaSrm N M m) = gammaD N := by
   ext i j
@@ -304,10 +372,13 @@ theorem Gamma_eq_gammaD (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta 
       simp [h1, h2]
     rw [hz, add_zero, mul_zero]
 
+/-- The coefficient `acoeff N k` is nonnegative for each `k : Fin N`. -/
 lemma acoeff_nonneg (k : Fin N) : 0 ≤ acoeff N k := by
   unfold acoeff
   positivity
 
+/-- The difference between the diagonal matrix `gammaD` and the seed score matrix `gammaW0` is
+positive semidefinite. See [SasakiCarliniJozsa2001]. -/
 theorem posSemidef_gammaD_sub_gammaW0 (N : ℕ) : (gammaD N - gammaW0 N).PosSemidef := by
   rw [gammaD_sub_gammaW0]
   refine Matrix.PosSemidef.smul ?_ ?_
@@ -317,16 +388,20 @@ theorem posSemidef_gammaD_sub_gammaW0 (N : ℕ) : (gammaD N - gammaW0 N).PosSemi
       (by exact_mod_cast (acoeff_nonneg N k))
   · positivity
 
+/-- Complex conjugation fixes an indicator taking values zero and one. -/
 lemma star_ite_one (P : Prop) [Decidable P] :
     star ((if P then (1 : ℂ) else 0)) = (if P then (1 : ℂ) else 0) := by
   split_ifs <;> simp
 
+/-- Complex conjugation fixes the complex cast of a real number. -/
 lemma star_ofReal (r : ℝ) : star ((r : ℂ)) = (r : ℂ) := by
   simp
 
+/-- Complex conjugation fixes the inverse of the complex cast of a natural number. -/
 lemma star_inv_natCast (n : ℕ) : star (((n : ℕ) : ℂ)⁻¹) = (((n : ℕ) : ℂ)⁻¹) := by
   rw [star_inv₀, star_natCast]
 
+/-- The diagonal matrix `gammaD N` is Hermitian. See [SasakiCarliniJozsa2001]. -/
 theorem gammaD_isHermitian (N : ℕ) : (gammaD N).IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro i j
@@ -343,6 +418,8 @@ theorem gammaD_isHermitian (N : ℕ) : (gammaD N).IsHermitian := by
     simp only [and_comm]
     ring
 
+/-- Applying the phase matrix `gammaV` to the constant vector with value `1 / √M` produces
+`gammaMu`. See [SasakiCarliniJozsa2001]. -/
 theorem gammaMu_eq_mulVec (m : ℕ) :
     gammaV N M m *ᵥ (fun _ : Fin (N+1) => (Real.sqrt M : ℂ)⁻¹) = gammaMu N M m := by
   ext k
@@ -354,9 +431,13 @@ theorem gammaMu_eq_mulVec (m : ℕ) :
   · intro hk
     simp at hk
 
+/-- Rewrites `overlap N k` as the square root of the natural-number product `(N - k) * (k + 1)`
+cast to the reals. -/
 lemma overlap_eq (N : ℕ) (k : Fin N) :
     overlap N k = Real.sqrt (((N - (k : ℕ)) * ((k : ℕ) + 1) : ℕ) : ℝ) := rfl
 
+/-- Identifies the scaled coefficient `acoeff` with the corresponding scaled overlap used in
+`wZero`. -/
 lemma acoeff_mul_eq (N : ℕ) (k : Fin N) :
     ((2 * (N + 1) : ℕ) : ℂ)⁻¹ * (acoeff N k : ℂ)
       = ((2 * ((N:ℝ)+1) * ((N:ℝ)+2) : ℝ)⁻¹ : ℂ) * ((overlap N k : ℝ) : ℂ) := by
@@ -374,6 +455,8 @@ lemma acoeff_mul_eq (N : ℕ) (k : Fin N) :
   push_cast
   field_simp
 
+/-- Expands each entry of `wZero` into its scaled identity entry and weighted adjacent matrix
+entries. -/
 lemma wZero_apply (N : ℕ) (i j : Fin (N+1)) :
     wZero N i j = ((2 * ((N:ℝ)+1) : ℝ)⁻¹ : ℂ) * (if i = j then (1:ℂ) else 0) +
       ((2 * ((N:ℝ)+1) * ((N:ℝ)+2) : ℝ)⁻¹ : ℂ) *
@@ -385,6 +468,7 @@ lemma wZero_apply (N : ℕ) (i j : Fin (N+1)) :
     Matrix.single_apply, smul_eq_mul, mul_add, mul_ite, mul_one, mul_zero,
     Finset.mul_sum]
 
+/-- The seed score matrices `gammaW0 N` and `wZero N` are equal. See [SasakiCarliniJozsa2001]. -/
 theorem gammaW0_eq_wZero (N : ℕ) : gammaW0 N = wZero N := by
   ext i j
   rw [gammaW0_apply, wZero_apply]

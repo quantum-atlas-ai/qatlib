@@ -9,6 +9,28 @@ import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
 import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Paired state preparation for block encodings
+
+`pairedBody` combines two preparation matrices with a controlled selection matrix, and
+`pairedCircuit` realizes this product as three gates. Compression through `pairedFrame` gives a
+bilinear combination of the selected blocks; the error theorem tracks both coefficient and
+component encoding errors.
+
+The mathematical background is described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `paired_gram_actual_encoding`: cross-Gram encoding from two preparation unitaries.
+* `paired_prepare_actual_corner_and_word`: compressed corner, circuit action, and gate counts.
+* `paired_prepare_absolute_error_corrected`: absolute error bound for the combined encoding.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -32,17 +54,25 @@ local notation:70 A " ⬝ₘ " B => @HMul.hMul _ _ _ Matrix.instHMulOfFintypeOfM
 variable {J K I H : Type*} [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
   [Fintype I] [DecidableEq I] [Fintype H] [DecidableEq H]
 
+/-- The embedding fixing the preparation label at `j0` and the block ancilla at `k0`. -/
 noncomputable def pairedFrame (j0 : J) (k0 : K) : Matrix (J × (K × I)) I ℂ :=
   prepareLift (I := K × I) (Qatlib.Foundations.PureStateMath.Ket j0) * encodingFiber k0
+/-- The matrix product applying right preparation, controlled selection, and the adjoint of left
+preparation. -/
 noncomputable def pairedBody (PL PR : Matrix J J ℂ)
     (U : J → Matrix (K × I) (K × I) ℂ) : Matrix (J × (K × I)) (J × (K × I)) ℂ :=
   TensorGate PLᴴ (1 : Matrix (K × I) (K × I) ℂ) * select U *
     TensorGate PR (1 : Matrix (K × I) (K × I) ℂ)
+/-- The three-gate circuit applying right preparation, selection, and inverse left preparation
+in order. -/
 noncomputable def pairedCircuit (PL PR : Matrix J J ℂ)
     (U : J → Matrix (K × I) (K × I) ℂ) : Circuit (J × (K × I)) :=
   [Step.gate (TensorGate PR (1 : Matrix (K × I) (K × I) ℂ)), Step.gate (select U),
    Step.gate (TensorGate PLᴴ (1 : Matrix (K × I) (K × I) ℂ))]
 
+/-- Two unitaries acting on a common isometric frame encode their cross-Gram matrix through `ULᴴ
+* UR`; the corresponding circuit has two gates and the stated action. See [Gilyén et al.,
+Lemma 47][GilyenSuLowWiebe2019]. -/
 theorem paired_gram_actual_encoding : ∀ (F : Matrix H I ℂ) (UL UR : Matrix H H ℂ),
     IsIsometry F → UL ∈ Matrix.unitaryGroup H ℂ → UR ∈ Matrix.unitaryGroup H ℂ →
     ProjectedUnitaryEncoding
@@ -61,6 +91,9 @@ theorem paired_gram_actual_encoding : ∀ (F : Matrix H I ℂ) (UL UR : Matrix H
   · intro psi
     simp only [run_gate, run_nil, ApplyGate, Matrix.mulVec_mulVec]
 
+/-- The selected columns of two unitary preparation matrices have squared norm one, and their
+entrywise conjugate products have total absolute value at most one. See
+[GilyenSuLowWiebe2019]. -/
 theorem paired_prepare_columns_l1_bound : ∀ (PL PR : Matrix J J ℂ) (j0 : J),
     PL ∈ Matrix.unitaryGroup J ℂ → PR ∈ Matrix.unitaryGroup J ℂ →
     (∑ j, star (PL j j0)*PL j j0 = 1) ∧
@@ -82,14 +115,18 @@ theorem paired_prepare_columns_l1_bound : ∀ (PL PR : Matrix J J ℂ) (j0 : J),
   rw [hsq PL hPL,hsq PR hPR] at h
   nlinarith [Finset.sum_nonneg (fun j (_ : j ∈ Finset.univ) => mul_nonneg (norm_nonneg (PL j j0)) (norm_nonneg (PR j j0)))]
 
+/-- The paired frame is the tagged embedding of the block encoding fiber. -/
 theorem pairedFrame_eq_tagFrame (j0 : J) (k0 : K) :
     pairedFrame (I := I) j0 k0 = tagFrame j0 (encodingFiber k0) := by
   exact (tagFrame_eq j0 (encodingFiber k0)).symm
 
+/-- The frame fixing both ancilla labels is an isometry. -/
 theorem pairedFrame_isometry (j0 : J) (k0 : K) : IsIsometry (pairedFrame (I := I) j0 k0) := by
   rw [pairedFrame_eq_tagFrame]
   exact tagFrame_isIsometry j0 _ (encodingFiber_isIsometry k0)
 
+/-- Applying `P` on the preparation register sends the lifted basis vector to the lift of column
+`j0` of `P`. -/
 theorem paired_column_action (P : Matrix J J ℂ) (j0 : J) :
     (TensorGate P (1 : Matrix (K×I) (K×I) ℂ) ⬝ₘ prepareLift (Qatlib.Foundations.PureStateMath.Ket j0)) =
       prepareLift (fun j => P j j0) := by
@@ -101,6 +138,8 @@ theorem paired_column_action (P : Matrix J J ℂ) (j0 : J) :
   rw [hket] at h
   exact h
 
+/-- Compressing the paired preparation product to label `j0` yields the bilinear LCU of the
+corresponding preparation columns. -/
 theorem pairedBody_corner (PL PR : Matrix J J ℂ) (U : J → Matrix (K×I) (K×I) ℂ) (j0 : J) :
     compress (prepareLift (Qatlib.Foundations.PureStateMath.Ket j0)) (pairedBody PL PR U) (prepareLift (Qatlib.Foundations.PureStateMath.Ket j0)) =
       lcuBilinearMatrix (fun j => PL j j0) (fun j => PR j j0) U := by
@@ -110,6 +149,8 @@ theorem pairedBody_corner (PL PR : Matrix J J ℂ) (U : J → Matrix (K×I) (K×
     simp [compress, pairedBody, tensorGate_conjTranspose, Matrix.mul_assoc]
   rw [he,paired_column_action,paired_column_action,prepare_select_compress_bilinear]
 
+/-- The paired preparation product is unitary when both preparation matrices and every selected
+matrix are unitary. -/
 theorem pairedBody_unitary (PL PR : Matrix J J ℂ) (U : J → Matrix (K×I) (K×I) ℂ)
     (hPL : PL ∈ Matrix.unitaryGroup J ℂ) (hPR : PR ∈ Matrix.unitaryGroup J ℂ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (K×I) ℂ) :
@@ -118,6 +159,9 @@ theorem pairedBody_unitary (PL PR : Matrix J J ℂ) (U : J → Matrix (K×I) (K�
     ((Matrix.unitaryGroup _ ℂ).mul_mem (tensorGate_unitary (adjoint_unitary hPL) (by simp))
       (select_unitary U hU)) (tensorGate_unitary hPR (by simp))
 
+/-- Unitary preparation and selection give an isometric frame and the stated bilinear compressed
+corner, realized by a unitary circuit with three gates and zero queries. See [Gilyén et al.,
+Lemma 52][GilyenSuLowWiebe2019]. -/
 theorem paired_prepare_actual_corner_and_word : ∀ (PL PR : Matrix J J ℂ)
     (U : J → Matrix (K×I) (K×I) ℂ) (j0 : J) (k0 : K),
     PL ∈ Matrix.unitaryGroup J ℂ → PR ∈ Matrix.unitaryGroup J ℂ →
@@ -145,6 +189,9 @@ theorem paired_prepare_actual_corner_and_word : ∀ (PL PR : Matrix J J ℂ)
   · intro psi
     simp [pairedCircuit,pairedBody,ApplyGate,Matrix.mulVec_mulVec,Matrix.mul_assoc]
 
+/-- Combining encodings of scale `alpha` with a preparation pair of scale `beta` gives scale
+`alpha * beta` and absolute error `alpha * eps1 + beta * eps2` under the stated coefficient
+bounds. See [GilyenSuLowWiebe2019]. -/
 theorem paired_prepare_absolute_error_corrected : ∀ (PL PR : Matrix J J ℂ)
     (U : J → Matrix (K×I) (K×I) ℂ) (A : J → Matrix I I ℂ) (y : J → ℂ)
     (j0 : J) (k0 : K) (alpha beta eps1 eps2 : ℝ),

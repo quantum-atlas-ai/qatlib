@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabLimit07.MainResults.Definitions
 
+/-!
+# Walsh character and coupling bounds
+
+Proves orthogonality and norm bounds for `walshChar`, together with cardinality identities for
+the partition `qBlock`. These estimates bound a weighted coupling sum by the size of a block
+complement and bound a sum of imaginary amplitude products for normalized vectors. See
+[IoannouMosca2008].
+
+## Main statements
+
+* `walshChar_sum`: Summing the character gives the register cardinality on the diagonal and zero
+  elsewhere.
+* `coupling_bound`: A block coupling sum is controlled by `maxF` and the complement cardinality.
+* `im_inner_sum_le_sqrt`: A normalized amplitude vector gives a square-root cardinality bound.
+
+## References
+
+* [Ioannou and Mosca, 2008][IoannouMosca2008]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -18,6 +38,7 @@ open scoped BigOperators Matrix
 
 variable {n : ℕ}
 
+/-- Every Walsh character value has complex norm one. -/
 theorem walshChar_norm (z x y : Reg n) : ‖walshChar z x y‖ = 1 := by
   unfold walshChar
   rw [norm_prod]
@@ -25,6 +46,7 @@ theorem walshChar_norm (z x y : Reg n) : ‖walshChar z x y‖ = 1 := by
   intro i _
   split_ifs <;> simp
 
+/-- The sum of `walshChar z x y` over `z` is `2 ^ n` when `x = y` and zero otherwise. -/
 theorem walshChar_sum (x y : Reg n) :
     (∑ z : Reg n, walshChar z x y) = if x = y then ((2 : ℕ) ^ n : ℂ) else 0 := by
   have hcongr : (∑ z : Reg n, walshChar z x y)
@@ -55,6 +77,8 @@ theorem walshChar_sum (x y : Reg n) :
     ring
   · rw [if_neg (fun h => hxy (hiff.mp h)), if_neg hxy]
 
+/-- The real cardinalities of the `qBlock` fibers sum to the number `2 ^ n` of register
+configurations. -/
 theorem sum_qBlock_card {q : ℕ} (qIdx : Reg n → Fin (q + 1)) :
     (∑ k : Fin (q + 1), ((qBlock qIdx k).card : ℝ)) = ((2 : ℕ) ^ n : ℝ) := by
   have hfib := Finset.card_eq_sum_card_fiberwise (s := (Finset.univ : Finset (Reg n)))
@@ -68,6 +92,7 @@ theorem sum_qBlock_card {q : ℕ} (qIdx : Reg n → Fin (q + 1)) :
     _ = ((2 ^ n : ℕ) : ℝ) := by rw [hsum]
     _ = ((2 : ℕ) ^ n : ℝ) := by norm_num
 
+/-- The norm of a Walsh character sum over a block is at most the cardinality of that block. -/
 theorem walshChar_block_sum_norm_le {q : ℕ} (qIdx : Reg n → Fin (q + 1))
     (k : Fin (q + 1)) (x y : Reg n) :
     ‖∑ z ∈ qBlock qIdx k, walshChar z x y‖ ≤ ((qBlock qIdx k).card : ℝ) := by
@@ -80,6 +105,8 @@ theorem walshChar_block_sum_norm_le {q : ℕ} (qIdx : Reg n → Fin (q + 1))
         rw [walshChar_norm]
     _ = ((qBlock qIdx k).card : ℝ) := by simp
 
+/-- For nonnegative monotone energy values bounded by `maxF`, the weighted character coupling is
+bounded by `maxF` times the complement cardinality of block `K`. -/
 theorem coupling_bound {q : ℕ} (F : Fin (q + 1) → ℝ)
     (qIdx : Reg n → Fin (q + 1)) (K : Fin (q + 1))
     (hmono : ∀ a b : Fin (q + 1), a ≤ b → F a ≤ F b)
@@ -134,6 +161,8 @@ theorem coupling_bound {q : ℕ} (F : Fin (q + 1) → ℝ)
         ≤ ∑ k, (if k = K then 0 else maxF * ((qBlock qIdx k).card : ℝ)) := hsum_le
     _ = maxF * (((2 : ℕ) ^ n : ℝ) - ((qBlock qIdx K).card : ℝ)) := hErase
 
+/-- For normalized amplitudes, the sum of absolute imaginary parts of `γ w * conj (γ y)` is at
+most the square root of the register cardinality. -/
 theorem im_inner_sum_le_sqrt {γ : Reg n → ℂ} (hγ : Normalized γ) (w : Reg n) :
     (∑ y : Reg n, |(γ w * (starRingEnd ℂ) (γ y)).im|) ≤ Real.sqrt (((2 : ℕ) ^ n : ℝ)) := by
   have hterm_sq : ∀ y : Reg n, ‖γ y‖ ^ 2 ≤ 1 := by

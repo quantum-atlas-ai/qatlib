@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonStat
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayQuan
+
+/-!
+# Classical stopping comparison
+
+The module proves the initial and recursive identities for `absorbingLaw` and zero detection for
+an empty marked set. It combines these with absorbing-mass decay to establish
+`SzegedyClassicalStopComparison`. See [Szegedy2004] for the mathematical background.
+
+## Main statements
+
+* `szegedyClassicalStopComparison`: the classical stopping guarantee.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.ProjectorCS
@@ -14,15 +31,20 @@ namespace Qatlib.Concepts.WalkSearch.ClassicalStop
 open Matrix
 open scoped Classical BigOperators
 
+/-- At time zero, the absorbing law is the uniform law. -/
 private theorem absorbingLaw_zero {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) :
     absorbingLaw P S 0 = fun _ => 1 / (Fintype.card I : ℝ) := by simp [absorbingLaw]
 
+/-- The absorbing law at time `K + 1` is obtained by applying `stepAbsorbingLaw` to the law at
+time `K`. -/
 private theorem absorbingLaw_succ {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (K : ℕ) :
     absorbingLaw P S (K + 1) = stepAbsorbingLaw P S (absorbingLaw P S K) := by
   exact Function.iterate_succ_apply' _ _ _
 
+/-- For a symmetric kernel with row sums 1, classical detection with an empty marked set has
+success zero at every time. -/
 private theorem empty_detection {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (hrow : ∀ i, (∑ j, P i j) = 1) (hsym : ∀ i j, P i j = P j i) (K : ℕ) :
     classicalDetectSuccess P ∅ K = 0 := by
@@ -46,6 +68,8 @@ private theorem empty_detection {I : Type} [Fintype I] [DecidableEq I] [Nonempty
   field_simp [hn]
   ring
 
+/-- Establishes the classical stopping proposition, including the success lower bound `1 / 32`
+after at least `1000 / (δ * ε)` steps under the stated hypotheses. See [Szegedy2004]. -/
 theorem szegedyClassicalStopComparison : SzegedyClassicalStopComparison := by
   intro I _ _ _ P S δ ε hδ hδ1 hP hε hεp
   constructor

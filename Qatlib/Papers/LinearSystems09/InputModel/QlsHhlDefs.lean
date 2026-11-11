@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModels
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Auxiliary HHL input-model bounds
+
+The declarations in this module supply elementary dilation, signed-filter, storage, and
+preparation facts for the input model of [HarrowHassidimLloyd2009]. They define explicit error
+and cost scales and establish the identities and monotonicity bounds assembled by the
+input-model interface theorems.
+
+## Main statements
+
+* `qlsScaledDilation_block_content`: Lists the four blocks of the quarter-scaled dilation.
+* `signed_hVector_normalized`: Proves normalization for a consistent signed filter.
+* `totalAngleBits_poly`: Bounds the preparation angle-bit count.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.LocalMachine.LocalTransport
@@ -25,6 +45,7 @@ open Qatlib
 open Qatlib.Concepts.HhlErrorBridge.FilterStability
 open scoped Classical Matrix.Norms.L2Operator BigOperators
 
+/-- The scaled rectangular dilation is Hermitian. -/
 theorem qlsScaledDilation_isHermitian {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℂ) :
     (qlsScaledDilation A).IsHermitian := by
   show (qlsScaledDilation A)ᴴ = qlsScaledDilation A
@@ -36,6 +57,7 @@ theorem qlsScaledDilation_isHermitian {m n : ℕ} (A : Matrix (Fin m) (Fin n) �
   · simp [Matrix.fromBlocks_apply₂₁]
   · simp [Matrix.fromBlocks_apply₂₂]
 
+/-- The scaled dilation equals one quarter of the Hermitian dilation. -/
 theorem qlsScaledDilation_eq_quarter_hermitianDilation {m n : ℕ}
     (A : Matrix (Fin m) (Fin n) ℂ) :
     qlsScaledDilation A = (1 / 4 : ℂ) • hermitianDilation A := by
@@ -50,6 +72,8 @@ theorem qlsScaledDilation_eq_quarter_hermitianDilation {m n : ℕ}
   · simp [qlsScaledDilation, hermitianDilation, Matrix.fromBlocks_apply₂₂,
       Matrix.smul_apply]
 
+/-- The scaled dilation has zero diagonal blocks and off-diagonal entries `A i j / 4` and their
+complex conjugates. -/
 theorem qlsScaledDilation_block_content {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℂ) :
     (∀ (i i' : Fin m), qlsScaledDilation A (Sum.inl i) (Sum.inl i') = 0) ∧
       (∀ (i : Fin m) (j : Fin n),
@@ -69,21 +93,27 @@ theorem qlsScaledDilation_block_content {m n : ℕ} (A : Matrix (Fin m) (Fin n) 
   · intro j j'
     simp [qlsScaledDilation, Matrix.fromBlocks_apply₂₂]
 
+/-- Every rectangular system with right-hand side `b` possesses dilation-reduction data whose
+matrix and right-hand side are `A` and `b` and which satisfies `ReducesAt`. -/
 theorem qlsDilation_reduces {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     ∃ R : Qatlib.Concepts.QlsReadoutSpec.RectDilation.DilationReduction O I,
       R.A = A ∧ R.b = b ∧ R.ReducesAt :=
   Qatlib.Concepts.QlsReadoutSpec.RectDilation.rectangular_dilation_reduction O I A b
 
+/-- The optional least-squares direction is `none` when the least-squares vector is zero. -/
 theorem leastSquaresDirection_none_of_zero_vector {O I : Type} [Fintype O]
     [DecidableEq O] [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O)
     (h : leastSquaresVector A b = 0) : leastSquaresDirection A b = none := by
   unfold leastSquaresDirection
   rw [if_pos h]
 
+/-- The sum of the squared real filter amplitudes `filterF` and `filterG`. -/
 def signedKernelMass (F : SignedSinEnvelopeFilter) (d θ : ℝ) : ℝ :=
   F.filterF d θ ^ 2 + F.filterG d θ ^ 2
 
+/-- For a consistent signed filter and positive `d`, the kernel mass is even in the spectral
+parameter. -/
 theorem signedKernelMass_even (F : SignedSinEnvelopeFilter)
     (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d) :
     signedKernelMass F d θ = signedKernelMass F d (-θ) := by
@@ -93,6 +123,8 @@ theorem signedKernelMass_even (F : SignedSinEnvelopeFilter)
   rw [hFodd, hFeven]
   ring
 
+/-- For nonnegative spectral parameter and positive `d`, a consistent signed filter has the same
+kernel mass as the unsigned sine-envelope filter. -/
 theorem signedKernelMass_eq_unsigned (F : SignedSinEnvelopeFilter)
     (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d) (hθ : 0 ≤ θ) :
     signedKernelMass F d θ =
@@ -101,6 +133,7 @@ theorem signedKernelMass_eq_unsigned (F : SignedSinEnvelopeFilter)
   unfold signedKernelMass
   rw [h.1, h.2]
 
+/-- For a consistent signed filter and positive `d`, the kernel mass is at most one. -/
 theorem signedKernelMass_le_one (F : SignedSinEnvelopeFilter)
     (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d) :
     signedKernelMass F d θ ≤ 1 := by
@@ -108,11 +141,15 @@ theorem signedKernelMass_le_one (F : SignedSinEnvelopeFilter)
   unfold signedKernelMass at h
   exact h
 
+/-- At zero spectral parameter, a consistent signed filter with positive `d` has flags zero and
+one half. -/
 theorem signedFilter_zeroMode_flag (F : SignedSinEnvelopeFilter)
     (hF : F.Consistent) (d : ℝ) (hd : 0 < d) :
     F.filterF d 0 = 0 ∧ F.filterG d 0 = 1 / 2 := by
   exact hF.2.2.1 d hd
 
+/-- For a consistent signed filter with positive `d`, the sum of squared norms of the three
+`hVector` components is one. -/
 theorem signed_hVector_normalized (F : SignedSinEnvelopeFilter)
     (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d) :
     ∑ s : Fin 3, ‖F.hVector d θ s‖ ^ 2 = 1 := by
@@ -129,34 +166,44 @@ theorem signed_hVector_normalized (F : SignedSinEnvelopeFilter)
   rw [hsum, Real.sq_sqrt hnonneg]
   ring
 
+/-- The binary length bound `q.log2 + 1` for the denominator parameter. -/
 def denominatorBits (q : ℕ) : ℕ := q.log2 + 1
 
+/-- The denominator parameter is strictly less than two raised to `denominatorBits q`. -/
 theorem denominatorBits_spec (q : ℕ) : q < 2 ^ denominatorBits q := by
   exact Nat.lt_log2_self
 
+/-- The table storage count `M * q`. -/
 def tableStorageBits (M q : ℕ) : ℕ := M * q
 
+/-- The table storage count is monotone when both `M` and `q` increase. -/
 theorem tableStorageBits_mono (M M' q q' : ℕ) (hM : M ≤ M') (hq : q ≤ q') :
     tableStorageBits M q ≤ tableStorageBits M' q' := by
   simp only [tableStorageBits]
   calc M * q ≤ M' * q := Nat.mul_le_mul hM (Nat.le_refl q)
     _ ≤ M' * q' := Nat.mul_le_mul_left M' hq
 
+/-- The sum of the phase, rotation, table, and access error contributions. -/
 def qlsErrorBudget (phase rotation table access : ℝ) : ℝ :=
   phase + rotation + table + access
 
+/-- The total error budget equals the sum of its four arguments. -/
 theorem qlsErrorBudget_sum (a b c d : ℝ) :
     qlsErrorBudget a b c d = a + b + c + d := by
   simp [qlsErrorBudget]
 
+/-- The total error budget is monotone in its first argument. -/
 theorem qlsErrorBudget_mono (a a' b c d : ℝ) (h : a ≤ a') :
     qlsErrorBudget a b c d ≤ qlsErrorBudget a' b c d := by
   simp only [qlsErrorBudget]
   linarith
 
+/-- The sine-envelope amplitude `sin (π * (τ + 1 / 2) / M)`. -/
 noncomputable def envelopeAmplitude (M : ℕ) (τ : Fin M) : ℝ :=
   Real.sin (Real.pi * ((τ.val : ℝ) + 1 / 2) / (M : ℝ))
 
+/-- For positive `M`, the envelope amplitude is invariant under reflection of its index about
+the grid midpoint. -/
 theorem envelopeAmplitude_symmetry (M : ℕ) (hM : 0 < M) (τ : Fin M) :
     envelopeAmplitude M τ =
       envelopeAmplitude M ⟨M - 1 - τ.val, by omega⟩ := by
@@ -187,6 +234,8 @@ theorem envelopeAmplitude_symmetry (M : ℕ) (hM : 0 < M) (τ : Fin M) :
   congr 1
   linarith [harg]
 
+/-- A pointwise amplitude error at most nonnegative `δ` implies a Euclidean error at most `sqrt
+M * δ`. -/
 theorem amplitude_perturbation_l2 (M : ℕ) (ψ χ : QState (Fin M)) {δ : ℝ}
     (hδ : 0 ≤ δ) (h : ∀ τ, ‖χ τ - ψ τ‖ ≤ δ) :
     Real.sqrt (∑ τ : Fin M, ‖χ τ - ψ τ‖ ^ 2) ≤ Real.sqrt (M : ℝ) * δ := by
@@ -207,28 +256,36 @@ theorem amplitude_perturbation_l2 (M : ℕ) (ψ χ : QState (Fin M)) {δ : ℝ}
   rw [hT]
   exact Real.sqrt_le_sqrt hkey
 
+/-- The number `M.log2 + 1` of bisection stages. -/
 def bisectionStages (M : ℕ) : ℕ := M.log2 + 1
 
+/-- The per-stage angle precision `k + bisectionStages M + 1`. -/
 def stageAngleBits (M k : ℕ) : ℕ := k + bisectionStages M + 1
 
+/-- The total angle-bit count, given by the number of stages times the bits per stage. -/
 def totalAngleBits (M k : ℕ) : ℕ := bisectionStages M * stageAngleBits M k
 
+/-- The total angle-bit count is at most `(M.log2 + 1) * (k + M.log2 + 2)`. -/
 theorem totalAngleBits_poly (M k : ℕ) :
     totalAngleBits M k ≤ (M.log2 + 1) * (k + M.log2 + 2) := by
   simp only [totalAngleBits, stageAngleBits, bisectionStages]
   have h1 : k + (M.log2 + 1) + 1 ≤ k + M.log2 + 2 := by omega
   exact Nat.mul_le_mul_left _ h1
 
+/-- The emitter uses `M.log2 + 1` bisection stages. -/
 theorem emitter_stage_count (M : ℕ) : bisectionStages M = M.log2 + 1 := rfl
 
+/-- The natural-number source runtime scale `κ * T_B + κ^2 * s^2 * logN * epsInv`. -/
 def qlsSourceScale (κ T_B s logN epsInv : ℕ) : ℕ :=
   κ * T_B + κ ^ 2 * s ^ 2 * logN * epsInv
 
+/-- The source runtime scale is monotone in the state-preparation cost `T_B`. -/
 theorem qlsSourceScale_mono_prep (κ T_B T_B' s logN epsInv : ℕ) (h : T_B ≤ T_B') :
     qlsSourceScale κ T_B s logN epsInv ≤ qlsSourceScale κ T_B' s logN epsInv := by
   simp only [qlsSourceScale]
   exact Nat.add_le_add_right (Nat.mul_le_mul_left κ h) _
 
+/-- The source runtime scale is monotone in the inverse-precision parameter `epsInv`. -/
 theorem qlsSourceScale_mono_eps (κ T_B s logN epsInv epsInv' : ℕ)
     (h : epsInv ≤ epsInv') :
     qlsSourceScale κ T_B s logN epsInv ≤ qlsSourceScale κ T_B s logN epsInv' := by
@@ -237,6 +294,7 @@ theorem qlsSourceScale_mono_eps (κ T_B s logN epsInv epsInv' : ℕ)
     Nat.mul_le_mul_left _ h
   exact Nat.add_le_add_left hmul _
 
+/-- The synthesis access correction factor is at least one. -/
 theorem qlsSynthAccessCorrection_bound (M k : ℕ) :
     qlsSynthAccessFactor M k ≥ 1 := by
   unfold qlsSynthAccessFactor
@@ -245,19 +303,26 @@ theorem qlsSynthAccessCorrection_bound (M k : ℕ) :
     linarith
   exact one_le_pow₀ this
 
+/-- The natural-number birthday scale `2^(n / 2 + 1)`, with natural-number division in the
+exponent. -/
 def simonBirthdayBound (n : ℕ) : ℕ := 2 ^ (n / 2 + 1)
 
+/-- The birthday scale is at least `2^(n / 2)`. -/
 theorem simonBirthdayBound_ge (n : ℕ) : 2 ^ (n / 2) ≤ simonBirthdayBound n := by
   simp only [simonBirthdayBound]
   exact Nat.pow_le_pow_right (by omega : 0 < 2) (by omega : n / 2 ≤ n / 2 + 1)
 
+/-- The reduced exponent `3 * α * n + 4 * β * n` in the Simon comparison. -/
 def simonReducedExponent (α β n : ℝ) : ℝ := 3 * α * n + 4 * β * n
 
+/-- The reduced Simon exponent factors as `(3 * α + 4 * β) * n`. -/
 theorem simonReducedExponent_eq (α β n : ℝ) :
     simonReducedExponent α β n = (3 * α + 4 * β) * n := by
   simp [simonReducedExponent]
   ring
 
+/-- When `3 * α + 4 * β < 1 / 2` and `n > 0`, the reduced exponential rate is strictly below
+`exp ((n / 2) * log 2)` [HarrowHassidimLloyd2009]. -/
 theorem simon_reduction_below_birthday (α β n : ℝ) (h : 3 * α + 4 * β < 1 / 2)
     (hn : 0 < n) :
     Real.exp ((simonReducedExponent α β n) * Real.log 2)

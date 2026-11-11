@@ -18,6 +18,30 @@ import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+
+/-!
+# Instrument progress bounds and minimax composition
+
+Bounds final adversary progress using a successful quantum instrument and proves compactness and
+continuity results for finite probability families. These give existence of optimal
+cost-weighted minimax witnesses.
+
+`composeMinimaxWitness` combines outer and inner probability families, leading to an upper bound
+for the minimax value of a composed Boolean function. This develops the adversary composition
+viewpoint of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `instrument_final_progress`: bound final progress in terms of error and witness norm.
+* `minimax_optimal_exists`: attain the minimax value by a probability family.
+* `minimax_composition_upper`: bound the composed minimax value by the outer value with inner
+  costs.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -43,6 +67,9 @@ variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
 noncomputable section
 
+/-- If a quantum instrument identifies each normalized state with error at most `eps ∈ [0,
+1/2]`, the absolute adversary progress is at most `(2 * Real.sqrt (eps * (1 - eps)) + 2 *
+eps) * ‖G‖` for a normalized weight and a Hermitian witness vanishing on equal outputs. -/
 theorem instrument_final_progress {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] {D E : ℕ}
     (I : Instrument Y D E) (G : Matrix X X ℂ) (f : X → Y) (eps : ℝ)
@@ -59,6 +86,8 @@ theorem instrument_final_progress {X Y : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Composing an outer probability family with probability families for each inner problem
+yields a probability family. -/
 theorem composed_probability_family {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (g : ∀ i, X i → Bool) (pf : (Fin k → Bool) → Fin k → ℝ)
@@ -75,6 +104,8 @@ theorem composed_probability_family {k : ℕ} {X : Fin k → Type} {n : Fin k �
 end
 noncomputable section
 
+/-- The minimax term of a composed witness is the sum of the inner terms weighted by geometric
+means of the corresponding outer probabilities. -/
 theorem composed_minimax_term {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (gin : ∀ i, X i → Fin (n i) → Bool) (g : ∀ i, X i → Bool)
@@ -103,6 +134,8 @@ theorem composed_minimax_term {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
 end
 noncomputable section
 
+/-- If each inner minimax term on different outputs is at least `1 / beta i`, then the outer
+term on the block outputs is bounded by the composed term. -/
 theorem composed_minimax_term_lower {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (gin : ∀ i, X i → Fin (n i) → Bool) (g : ∀ i, X i → Bool)
@@ -134,6 +167,7 @@ theorem composed_minimax_term_lower {k : ℕ} {X : Fin k → Type} {n : Fin k �
 end
 noncomputable section
 
+/-- The set of finite real-valued probability families is closed. -/
 theorem probability_family_closed {X K : Type} [Fintype X] [Fintype K] [DecidableEq K] :
     IsClosed {p : X → K → ℝ | IsProbabilityFamily p} := by
   have ha : IsClosed {p : X → K → ℝ | ∀ x i, 0 ≤ p x i} := by
@@ -148,6 +182,7 @@ theorem probability_family_closed {X K : Type} [Fintype X] [Fintype K] [Decidabl
 end
 noncomputable section
 
+/-- The set of finite real-valued probability families is compact. -/
 theorem probability_family_compact {X K : Type} [Fintype X] [Fintype K] [DecidableEq K] :
     IsCompact {p : X → K → ℝ | IsProbabilityFamily p} := by
   apply (isCompact_Icc (a := (0 : X → K → ℝ)) (b := 1)).of_isClosed_subset probability_family_closed
@@ -159,6 +194,8 @@ theorem probability_family_compact {X K : Type} [Fintype X] [Fintype K] [Decidab
 end
 noncomputable section
 
+/-- For a fixed input pair and cost function, the minimax term depends continuously on the
+probability family. -/
 theorem minimax_pair_continuous {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
     (input : X → K → Bool) (alpha : K → ℝ) (x y : X) :
     Continuous (fun p : X → K → ℝ => advMinimaxTerm input alpha p x y) := by
@@ -176,6 +213,8 @@ theorem minimax_pair_continuous {X K : Type} [Fintype X] [Fintype K] [DecidableE
 end
 noncomputable section
 
+/-- For a nonconstant Boolean function with a nonempty finite coordinate type, an optimal
+minimax probability family exists. -/
 theorem minimax_optimal_exists {X K : Type} [Fintype X] [DecidableEq X]
     [Fintype K] [DecidableEq K] [Nonempty K]
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
@@ -210,6 +249,7 @@ theorem minimax_optimal_exists {X K : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- The minimax value is bounded above by the value of every probability-family witness. -/
 theorem minimax_value_le_witness {X K : Type} [Fintype X] [DecidableEq X]
     [Fintype K] [DecidableEq K] (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (p : X → K → ℝ) (hp : IsProbabilityFamily p) :
@@ -219,6 +259,8 @@ theorem minimax_value_le_witness {X K : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Under the stated inner denominator bounds and nonnegative coordinate costs, the composed
+witness value is at most the outer witness value. -/
 theorem composed_minimax_witness_bound {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (gin : ∀ i, X i → Fin (n i) → Bool) (g : ∀ i, X i → Bool)
@@ -248,6 +290,8 @@ theorem composed_minimax_witness_bound {k : ℕ} {X : Fin k → Type} {n : Fin k
 end
 noncomputable section
 
+/-- A witness value equal to `ENNReal.ofReal beta` with nonnegative costs and `beta` forces each
+different-output pair's minimax term to be at least `1 / beta`. -/
 theorem optimal_minimax_denominator {X K : Type} [Fintype X] [DecidableEq X]
     [Fintype K] [DecidableEq K] (input : X → K → Bool) (f : X → Bool)
     (alpha : K → ℝ) (p : X → K → ℝ) (beta : ℝ)
@@ -283,6 +327,8 @@ set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000
 noncomputable section
 
+/-- For nonconstant inner and composed functions with nonnegative costs, the composed minimax
+value is bounded by the outer minimax value whose costs are the finite inner minimax values. -/
 theorem minimax_composition_upper {k : ℕ} [Nonempty (Fin k)]
     {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)] [∀ i, Nonempty (Fin (n i))]

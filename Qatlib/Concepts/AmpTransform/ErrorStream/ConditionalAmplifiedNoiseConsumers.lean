@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Conditional noise means for actual amplified QFT circuits
+
+`conditionalAmplifiedQFTCircuit` performs prepared amplitude amplification followed by the QFT.
+At nonzero frequency, `conditional_amplified_qft_born` expresses its Born probability using
+`conditionalAmplifiedGain` and the marked-set Fourier sum.
+
+The conditional-noise results combine this identity with exact complement moments and record
+unitarity and circuit costs. For a subgroup-coset signal, the resulting formula separates
+frequencies by membership in the annihilator.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `conditional_amplified_qft_born`: the actual nonzero-frequency probability formula.
+* `conditional_noise_actual_amplified_qft`: fixed-cardinality conditional Born means.
+* `conditional_periodic_noise_actual_qft`: the subgroup-coset specialization.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -22,17 +47,23 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open Matrix
 open scoped Classical BigOperators
 
+/-- The prepared amplitude-amplification circuit with `k` rounds followed by a QFT on `ZMod N`. -/
 def conditionalAmplifiedQFTCircuit (N k : ℕ) [NeZero N] : Circuit (ZMod N) :=
   preparedAACircuit (zmodQFTGate (N := N)) 0 k ++ [.gate zmodQFTGate]
 
+/-- The difference of the marked and unmarked amplification coefficients, `sin ((2 * k + 1) * θ)
+/ sin θ - cos ((2 * k + 1) * θ) / cos θ`. -/
 def conditionalAmplifiedGain (k : ℕ) (θ : ℝ) : ℝ :=
   Real.sin ((2*(k : ℝ)+1)*θ)/Real.sin θ -
     Real.cos ((2*(k : ℝ)+1)*θ)/Real.cos θ
 
+/-- The QFT-prepared state from `Ket 0` has constant amplitude equal to the inverse square root
+of `N`. -/
 private theorem conditional_uniform_entry (N : ℕ) [NeZero N] (x : ZMod N) :
     preparedAAState (zmodQFTGate (N := N)) 0 x = (Real.sqrt (N : ℝ) : ℂ)⁻¹ := by
   simp [preparedAAState, ApplyGate, Matrix.mulVec, dotProduct, Ket, zmodQFTGate_apply]
 
+/-- The prepared uniform state assigns probability `S.card / N` to the set `S`. -/
 private theorem conditional_uniform_mass (N : ℕ) [NeZero N] (S : Finset (ZMod N)) :
     MeasureProb (preparedAAState (zmodQFTGate (N := N)) 0) S = (S.card : ℝ)/N := by
   simp only [MeasureProb, BornProb, conditional_uniform_entry, norm_inv,
@@ -40,6 +71,8 @@ private theorem conditional_uniform_mass (N : ℕ) [NeZero N] (S : Finset (ZMod 
     Real.sq_sqrt (Nat.cast_nonneg N), Finset.sum_const, nsmul_eq_mul]
   ring
 
+/-- The QFT of the unnormalized restriction of the prepared uniform state to `S` has amplitude
+`N⁻¹ * distinctNoiseFourier S y`. -/
 private theorem conditional_qft_selected (N : ℕ) [NeZero N]
     (S : Finset (ZMod N)) (y : ZMod N) :
     ApplyGate zmodQFTGate (Collapse (preparedAAState (zmodQFTGate (N := N)) 0) S) y =
@@ -60,12 +93,14 @@ private theorem conditional_qft_selected (N : ℕ) [NeZero N]
   rw [Finset.sum_ite_mem_eq, ← Finset.mul_sum]
   rfl
 
+/-- The Fourier sum over all of `ZMod N` vanishes at every nonzero frequency. -/
 theorem conditional_full_fourier_zero (N : ℕ) [NeZero N] (y : ZMod N) (hy : y ≠ 0) :
     distinctNoiseFourier Finset.univ y = 0 := by
   unfold distinctNoiseFourier
   simp_rw [mul_comm _ y]
   rw [sum_stdAddChar_mul, if_neg hy]
 
+/-- At a nonzero frequency, the QFT of the prepared uniform state has amplitude zero. -/
 private theorem conditional_qft_uniform_zero (N : ℕ) [NeZero N]
     (y : ZMod N) (hy : y ≠ 0) :
     ApplyGate zmodQFTGate (preparedAAState (zmodQFTGate (N := N)) 0) y = 0 := by
@@ -74,6 +109,9 @@ private theorem conditional_qft_uniform_zero (N : ℕ) [NeZero N]
     ext x; simp [collapse_apply]
   rw [← hc, conditional_qft_selected, conditional_full_fourier_zero N y hy, mul_zero]
 
+/-- For a nonzero frequency and a marked-density angle in `(0, π / 2)`, the actual amplified-QFT
+Born probability equals the squared amplification gain times the marked Fourier squared norm
+divided by `N ^ 2`. -/
 theorem conditional_amplified_qft_born (N k : ℕ) [NeZero N]
     (B : Finset (ZMod N)) (y : ZMod N) (θ : ℝ) (hy : y ≠ 0)
     (hθ : 0 < θ) (hθp : θ < Real.pi/2)
@@ -99,6 +137,9 @@ theorem conditional_amplified_qft_born (N k : ℕ) [NeZero N]
   rw [BornProb, ha, norm_mul, norm_div, Complex.norm_real, Complex.norm_natCast,
     mul_pow, div_pow, Real.norm_eq_abs, sq_abs]
 
+/-- For feasible fixed-cardinality complement noise with nonsaturated positive marked size,
+establish circuit unitarity and costs and the exact nonzero-frequency mean Born probability
+from the mixed Fourier moment; see [Cornwell, Section 3.4.4][Cornwell2014]. -/
 theorem conditional_noise_actual_amplified_qft :
     ∀ (N L k : ℕ) [NeZero N] (A : Finset (ZMod N)) (y : ZMod N) (θ : ℝ),
       let C := Finset.univ \ A
@@ -145,6 +186,8 @@ theorem conditional_noise_actual_amplified_qft :
   rw [he, conditionalNoiseMean_mul_left, hmoment]
   rfl
 
+/-- At a nonzero frequency, the Fourier sum of the complement of `A` is the negative of the
+Fourier sum of `A`. -/
 theorem conditional_complement_fourier (N : ℕ) [NeZero N]
     (A : Finset (ZMod N)) (y : ZMod N) (hy : y ≠ 0) :
     distinctNoiseFourier (Finset.univ \ A) y = -distinctNoiseFourier A y := by
@@ -156,10 +199,12 @@ theorem conditional_complement_fourier (N : ℕ) [NeZero N]
     exact conditional_full_fourier_zero N y hy
   exact eq_neg_of_add_eq_zero_right hs
 
+/-- The finite coset `s + H` of an additive subgroup of `ZMod N`. -/
 def conditionalPeriodicSignal {N : ℕ} [NeZero N]
     (H : AddSubgroup (ZMod N)) [Fintype H] (s : ZMod N) : Finset (ZMod N) :=
   Finset.univ.image (fun h : H => s+(h : ZMod N))
 
+/-- The periodic signal coset has cardinality `Fintype.card H`. -/
 theorem conditional_periodic_signal_card {N : ℕ} [NeZero N]
     (H : AddSubgroup (ZMod N)) [Fintype H] (s : ZMod N) :
     (conditionalPeriodicSignal H s).card = Fintype.card H := by
@@ -168,6 +213,8 @@ theorem conditional_periodic_signal_card {N : ℕ} [NeZero N]
   · intro x y h
     exact Subtype.ext (add_left_cancel h)
 
+/-- The squared Fourier norm of a subgroup coset is the squared subgroup cardinality on its
+annihilator and zero elsewhere. -/
 theorem conditional_periodic_signal_fourier {N : ℕ} [NeZero N]
     (H : AddSubgroup (ZMod N)) [Fintype H] (s y : ZMod N) :
     ‖distinctNoiseFourier (conditionalPeriodicSignal H s) y‖^2 =
@@ -185,6 +232,9 @@ theorem conditional_periodic_signal_fourier {N : ℕ} [NeZero N]
   · simp only [hf, if_pos hy, norm_mul, norm_stdAddChar, one_mul, Complex.norm_natCast]
   · simp [hf, hy]
 
+/-- For a subgroup-coset signal and feasible complement noise, compute the conditional
+amplified-QFT mean Born probability by annihilator membership, with circuit and disjointness
+guarantees under the stated density-angle assumptions; see [Cornwell2014]. -/
 theorem conditional_periodic_noise_actual_qft (N L k : ℕ) [NeZero N]
     (H : AddSubgroup (ZMod N)) [Fintype H] (s y : ZMod N) (θ : ℝ)
     (hC : 2 ≤ (Finset.univ \ conditionalPeriodicSignal H s).card)

@@ -29,12 +29,33 @@ import Mathlib.Data.Nat.Basic
 import Mathlib.Order.Defs.PartialOrder
 import Mathlib.Tactic
 
+/-!
+# Counting invariant weight values
+
+For a free action of a finite group, an invariant weight function has at most one distinct value
+per orbit. The module specializes this counting inequality to cardinalities q^k - 1 = nN, giving
+an upper bound of N on the number of distinct weight values [GeraciLidar2008].
+
+## Main statements
+
+* `proposition1_weight_count`: The number of weight values times the group size is at most the
+  acted-on set size.
+* `proposition1_irreducible_cyclic_code`: The parameter relation bounds the number of weight
+  values by N.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.MainResults.WeightSpectrum
 
 open scoped BigOperators
 
+/-- For a free finite group action and an invariant weight function, the number of distinct
+weights times the group cardinality is at most the set cardinality [GeraciLidar2008]. -/
 theorem proposition1_weight_count
     {X G : Type*} [Fintype X] [DecidableEq X] [Group G] [Fintype G]
     [MulAction G X]
@@ -82,6 +103,8 @@ theorem proposition1_weight_count
         Finset.sum_le_sum hfib
     _ = Fintype.card X := by rw [← hsum]
 
+/-- If a free action has group cardinality `n`, set cardinality `q ^ k - 1 = n * N`, and
+invariant weight, then at most `N` distinct weights occur [GeraciLidar2008]. -/
 theorem proposition1_irreducible_cyclic_code
     {X G : Type*} [Fintype X] [DecidableEq X] [Group G] [Fintype G]
     [MulAction G X]

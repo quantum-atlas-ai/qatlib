@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityRefined
+
+/-!
+# QCMA dephasing verifier construction
+
+This module constructs `dephaseProgram` by appending one ancilla for each witness bit and
+prefixing the verifier with controlled-NOT instructions. The resulting `copyUpdate` XORs the
+witness into the appended register, providing the coherent copying step used for
+computational-basis dephasing. This gate construction follows the standard account in
+[NielsenChuang2010].
+
+The register operations `wireTake`, `wireDrop`, and `wireGlue` identify the enlarged register
+with its original and appended parts. Matrix embedding lemmas show that the original
+instructions preserve the appended part, while permutation-matrix identities describe the
+copying prefix.
+
+## Main statements
+
+* `instrMatrixProd_embed` expresses a legal instruction sequence on enlarged registers as the
+  original matrix with an identity action on the appended register.
+* `copyMatrix_eq` identifies the copying prefix with the matrix of `copyUpdate`, and
+  `copyUpdate_involutive` proves that this update is its own inverse.
+* `programMatrix_dephase_split` factors the transformed verifier matrix into the original
+  instruction sequence at the enlarged width and the copying matrix.
+- `copyUpdate_toDephase` gives the explicit XOR action on a split register.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,22 +57,30 @@ open Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
 open Qatlib
 open Matrix
 
+/-- Restrict a register of width `q + n` to its first `q` wires. -/
 def wireTake {q n : ℕ} (z : Reg (q + n)) : Reg q := fun i => z (Fin.castAdd n i)
 
+/-- Restrict a register of width `q + n` to its final `n` wires, with indices starting at zero
+in the resulting register. -/
 def wireDrop {q n : ℕ} (z : Reg (q + n)) : Reg n := fun i => z (Fin.natAdd q i)
 
+/-- Concatenate a `q`-wire register and an `n`-wire register into a register of width `q + n`. -/
 def wireGlue {q n : ℕ} (y : Reg q) (c : Reg n) : Reg (q + n) := Fin.append y c
 
+/-- Taking the first block of `wireGlue y c` recovers `y`. -/
 theorem wireGlue_take {q n : ℕ} (y : Reg q) (c : Reg n) :
     wireTake (wireGlue y c) = y := by
   funext i
   simp [wireGlue, wireTake, Fin.append_left]
 
+/-- Taking the final block of `wireGlue y c` recovers `c`. -/
 theorem wireGlue_drop {q n : ℕ} (y : Reg q) (c : Reg n) :
     wireDrop (wireGlue y c) = c := by
   funext i
   simp [wireGlue, wireDrop, Fin.append_right]
 
+/-- Every wire of a register of width `q + n` belongs either to the first `q` wires or to the
+final `n` wires. -/
 theorem wire_cases {q n : ℕ} (k : Fin (q + n)) :
     (∃ i : Fin q, k = Fin.castAdd n i) ∨ (∃ j : Fin n, k = Fin.natAdd q j) := by
   rcases Nat.lt_or_ge k.val q with h | h
@@ -51,10 +89,13 @@ theorem wire_cases {q n : ℕ} (k : Fin (q + n)) :
     simp only [Fin.val_natAdd]
     omega
 
+/-- Equality of two indices embedded into the first block by `Fin.castAdd` implies equality of
+the original indices. -/
 theorem castAdd_inj' {q n : ℕ} {i j : Fin q} (h : Fin.castAdd n i = Fin.castAdd n j) :
     i = j :=
   Fin.ext (by simpa using congrArg Fin.val h)
 
+/-- Concatenating the first and final blocks of a register reconstructs the original register. -/
 theorem wireTake_drop {q n : ℕ} (z : Reg (q + n)) :
     wireGlue (wireTake z) (wireDrop z) = z := by
   funext k
@@ -63,16 +104,20 @@ theorem wireTake_drop {q n : ℕ} (z : Reg (q + n)) :
   · simp [wireGlue, wireTake, Fin.append_left]
   · simp [wireGlue, wireDrop, Fin.append_right]
 
+/-- Equality of concatenated registers implies equality of both corresponding blocks. -/
 theorem wireGlue_inj {q n : ℕ} {y y' : Reg q} {c c' : Reg n}
     (h : wireGlue y c = wireGlue y' c') : y = y' ∧ c = c' := by
   refine ⟨?_, ?_⟩
   · rw [← wireGlue_take y c, ← wireGlue_take y' c', h]
   · rw [← wireGlue_drop y c, ← wireGlue_drop y' c', h]
 
+/-- Two concatenated registers are equal exactly when both corresponding blocks are equal. -/
 theorem wireGlue_eq {q n : ℕ} {y y' : Reg q} {c c' : Reg n} :
     wireGlue y c = wireGlue y' c' ↔ y = y' ∧ c = c' :=
   ⟨wireGlue_inj, fun ⟨hy, hc⟩ => by rw [hy, hc]⟩
 
+/-- Updating a wire in the first block of a concatenated register is the same as updating that
+block before concatenation. -/
 theorem update_glue_left {q n : ℕ} (y : Reg q) (c : Reg n) (t : Fin q) (v : Bool) :
     Function.update (wireGlue y c) (Fin.castAdd n t) v
       = wireGlue (Function.update y t v) c := by
@@ -92,12 +137,16 @@ theorem update_glue_left {q n : ℕ} (y : Reg q) (c : Reg n) (t : Fin q) (v : Bo
       omega
     simp [wireGlue, Fin.append_right, hne]
 
+/-- Identify pairs of registers of widths `q` and `n` with registers of width `q + n` by
+concatenation and block restriction. -/
 def regGlueEquiv (q n : ℕ) : (Reg q × Reg n) ≃ Reg (q + n) where
   toFun yc := wireGlue yc.1 yc.2
   invFun z := (wireTake z, wireDrop z)
   left_inv yc := Prod.ext (wireGlue_take yc.1 yc.2) (wireGlue_drop yc.1 yc.2)
   right_inv z := wireTake_drop z
 
+/-- Rewrite a complex-valued sum over registers of width `q + n` as an iterated sum over their
+two blocks. -/
 theorem sum_wireGlue {q n : ℕ} (f : Reg (q + n) → ℂ) :
     ∑ z : Reg (q + n), f z = ∑ y : Reg q, ∑ c : Reg n, f (wireGlue y c) := by
   classical
@@ -108,6 +157,8 @@ theorem sum_wireGlue {q n : ℕ} (f : Reg (q + n) → ℂ) :
       rw [wireTake_drop])]
   rw [Fintype.sum_prod_type]
 
+/-- An index in the final block cannot equal an index in the first block of a register of width
+`q + n`. -/
 theorem natAdd_ne_castAdd {q n : ℕ} (j : Fin n) (i : Fin q) :
     Fin.natAdd q j ≠ Fin.castAdd n i := by
   intro h
@@ -115,6 +166,8 @@ theorem natAdd_ne_castAdd {q n : ℕ} (j : Fin n) (i : Fin q) :
   simp only [Fin.val_natAdd, Fin.val_castAdd] at hv
   omega
 
+/-- A single-qubit gate on an original wire has its original matrix entry when the appended
+registers agree, and zero otherwise. -/
 theorem wireGate_embed {q n : ℕ} (w : ℕ) (hw : w < q) (U : Matrix Bool Bool ℂ)
     (za zb : Reg (q + n)) :
     wireGate (q + n) ⟨w, by omega⟩ U za zb
@@ -153,9 +206,13 @@ theorem wireGate_embed {q n : ℕ} (w : ℕ) (hw : w < q) (U : Matrix Bool Bool 
       exact hdrop (funext_iff.mpr h)
     rw [if_neg (fun h => hd' (hcond.mp h).2)]
 
+/-- The matrix entry for a basis map `σ` is one exactly when the row index equals `σ` applied to
+the column index, and zero otherwise. -/
 theorem permMatrix_apply {I : Type*} (σ : I → I) (i j : I) :
     permMatrix σ i j = if i = σ j then (1 : ℂ) else 0 := rfl
 
+/-- Updating an original wire using only the original register gives the original update matrix
+entry when the appended registers agree, and zero otherwise. -/
 theorem permUpdateGate_embed {q n : ℕ} (t : ℕ) (ht : t < q) (val : Reg q → Bool)
     (za zb : Reg (q + n)) :
     permMatrix (fun x : Reg (q + n) => Function.update x ⟨t, by omega⟩ (val (wireTake x))) za zb
@@ -180,6 +237,8 @@ theorem permUpdateGate_embed {q n : ℕ} (t : ℕ) (ht : t < q) (val : Reg q →
     · rw [if_neg (fun h => htake h.1), if_pos hdrop, if_neg htake]
   · rw [if_neg (fun h => hdrop h.2), if_neg hdrop]
 
+/-- A controlled-NOT gate whose control and target are original wires has its original matrix
+entry when the appended registers agree, and zero otherwise. -/
 theorem cnotGate_embed {q n : ℕ} (c t : ℕ) (hc : c < q) (ht : t < q)
     (za zb : Reg (q + n)) :
     cnotGate (q + n) ⟨c, by omega⟩ ⟨t, by omega⟩ za zb
@@ -187,10 +246,14 @@ theorem cnotGate_embed {q n : ℕ} (c t : ℕ) (hc : c < q) (ht : t < q)
         then cnotGate q ⟨c, hc⟩ ⟨t, ht⟩ (wireTake za) (wireTake zb) else 0 := by
   exact permUpdateGate_embed t ht (fun y : Reg q => y ⟨t, ht⟩ ^^ y ⟨c, hc⟩) za zb
 
+/-- Reading addresses lying in the first `q` wires gives the same result before and after
+restricting a register to those wires. -/
 theorem readAddress_take {q n : ℕ} (addresses : List ℕ) (haddrq : ∀ a ∈ addresses, a < q)
     (x : Reg (q + n)) (haddrn : ∀ a ∈ addresses, a < q + n) :
     readAddress (wireTake x) addresses haddrq = readAddress x addresses haddrn := rfl
 
+/-- A legal XOR oracle query using only original wires has its original matrix entry when the
+appended registers agree, and zero otherwise. -/
 theorem xorQueryMatrix_embed (A : ClassicalOracle) {q n : ℕ} (addresses : List ℕ) (target : ℕ)
     (hlegq : target < q ∧ (∀ a ∈ addresses, a < q) ∧ target ∉ addresses ∧ addresses.Nodup)
     (za zb : Reg (q + n)) :
@@ -219,6 +282,7 @@ theorem xorQueryMatrix_embed (A : ClassicalOracle) {q n : ℕ} (addresses : List
       (readAddress y addresses hlegq.2.1)) za zb]
   rfl
 
+/-- A finite gate code legal at width `q` remains legal after appending `n` wires. -/
 theorem finiteCodeLegal_mono {q n : ℕ} (gate : FiniteGateCode)
     (h : finiteCodeLegal q gate = true) : finiteCodeLegal (q + n) gate = true := by
   cases gate with
@@ -231,6 +295,7 @@ theorem finiteCodeLegal_mono {q n : ℕ} (gate : FiniteGateCode)
       have hct : c < q ∧ t < q ∧ c ≠ t := by simpa using h
       exact decide_eq_true (by omega)
 
+/-- A witness instruction legal at width `q` remains legal after appending `n` wires. -/
 theorem instructionLegal_mono {q n : ℕ} (instr : WitnessInstruction)
     (h : instructionLegal q instr) : instructionLegal (q + n) instr := by
   match instr with
@@ -239,6 +304,8 @@ theorem instructionLegal_mono {q n : ℕ} (instr : WitnessInstruction)
       obtain ⟨h1, h2, h3, h4⟩ := h
       exact ⟨by omega, fun a ha => by have := h2 a ha; omega, h3, h4⟩
 
+/-- A witness instruction legal on the original register has its original matrix entry when the
+appended registers agree, and zero otherwise. -/
 theorem instructionMatrix_embed (A : ClassicalOracle) {q n : ℕ} (instr : WitnessInstruction)
     (hlegal : instructionLegal q instr) (za zb : Reg (q + n)) :
     instructionMatrix A (q + n) instr za zb
@@ -278,6 +345,8 @@ theorem instructionMatrix_embed (A : ClassicalOracle) {q n : ℕ} (instr : Witne
       obtain ⟨h1, h2, h3, h4⟩ := hlegal
       exact xorQueryMatrix_embed A addresses target ⟨h1, h2, h3, h4⟩ za zb
 
+/-- A sequence of instructions legal on the original register has its original product matrix
+entry when the appended registers agree, and zero otherwise. -/
 theorem instrMatrixProd_embed (A : ClassicalOracle) {q n : ℕ} (l : List WitnessInstruction)
     (hlegal : ∀ i ∈ l, instructionLegal q i) (za zb : Reg (q + n)) :
     ((l.map (instructionMatrix A (q + n))).reverse.prod) za zb
@@ -347,11 +416,14 @@ theorem instrMatrixProd_embed (A : ClassicalOracle) {q n : ℕ} (l : List Witnes
             if_neg (fun h => hdrop (hk.trans h)), mul_zero]
         · rw [if_neg hk, zero_mul]
 
+/-- The matrix associated with the identity basis map is the identity matrix. -/
 theorem permMatrix_id_eq_one {I : Type*} [Fintype I] [DecidableEq I] :
     permMatrix (id : I → I) = 1 := by
   ext i j
   by_cases h : i = j <;> simp [permMatrix, h, Matrix.one_apply]
 
+/-- Multiplying the matrices associated with two basis maps gives the matrix of their
+composition in the same order. -/
 theorem permMatrix_comp {I : Type*} [Fintype I] [DecidableEq I] (f g : I → I) :
     permMatrix f * permMatrix g = permMatrix (f ∘ g) := by
   ext i j
@@ -368,6 +440,8 @@ theorem permMatrix_comp {I : Type*} [Fintype I] [DecidableEq I] (f g : I → I) 
   rw [Finset.sum_congr rfl (fun k _ => hterm k), Finset.sum_ite_eq']
   simp
 
+/-- Conjugating a matrix by the matrix of an involutive basis map applies that map to both entry
+indices. -/
 theorem permMatrix_conj_apply {I : Type*} [Fintype I] [DecidableEq I] (P : I → I)
     (hP : Function.Involutive P) (ρ : Matrix I I ℂ) (k l : I) :
     (permMatrix P * ρ * (permMatrix P)ᴴ) k l = ρ (P k) (P l) := by
@@ -401,18 +475,26 @@ theorem permMatrix_conj_apply {I : Type*} [Fintype I] [DecidableEq I] (P : I →
     if_pos ((hP l).symm : l = P (P l))]
   simp
 
+/-- Define the controlled-NOT instruction from witness wire `i` to the corresponding ancilla
+appended after the original program register. -/
 def copyInstruction (p : WitnessVerifierProgram) (i : Fin p.witnessBits) :
     WitnessInstruction :=
   WitnessInstruction.fixed (FiniteGateCode.cx (witnessWire p i).val (programQubits p + i.val))
 
+/-- List the copying instructions for witness indices below `m` in descending index order,
+assuming `m` does not exceed the witness width. -/
 def copyInstrs (p : WitnessVerifierProgram) :
     (m : ℕ) → m ≤ p.witnessBits → List WitnessInstruction
   | 0, _ => []
   | m + 1, hm => copyInstruction p ⟨m, hm⟩ :: copyInstrs p m (Nat.le_of_lt hm)
 
+/-- List all controlled-NOT instructions that XOR the witness bits into the corresponding
+appended ancillas. -/
 def copyInstructions (p : WitnessVerifierProgram) : List WitnessInstruction :=
   copyInstrs p p.witnessBits (Nat.le_refl p.witnessBits)
 
+/-- Add one ancilla per witness bit and prefix the original verifier instructions with
+`copyInstructions`, preserving the witness width, input width, and output wire. -/
 def dephaseProgram (p : WitnessVerifierProgram) : WitnessVerifierProgram where
   witnessBits := p.witnessBits
   inputBits := p.inputBits
@@ -420,14 +502,20 @@ def dephaseProgram (p : WitnessVerifierProgram) : WitnessVerifierProgram where
   outputWire := p.outputWire
   instructions := copyInstructions p ++ p.instructions
 
+/-- The transformed verifier has the original number of qubits plus one qubit for each witness
+bit. -/
 theorem dephase_qubits (p : WitnessVerifierProgram) :
     programQubits (dephaseProgram p) = programQubits p + p.witnessBits := by
   simp only [programQubits, dephaseProgram]
   omega
 
+/-- The transformed instruction list consists of the copying prefix followed by the original
+verifier instructions. -/
 theorem dephaseProgram_instructions (p : WitnessVerifierProgram) :
     (dephaseProgram p).instructions = copyInstructions p ++ p.instructions := rfl
 
+/-- Update the appended ancilla for witness index `i` by XORing it with that witness bit,
+leaving every other wire unchanged. -/
 def copySingleUpdate (p : WitnessVerifierProgram) (i : Fin p.witnessBits) :
     Reg (programQubits (dephaseProgram p)) → Reg (programQubits (dephaseProgram p)) :=
   fun z => Function.update z
@@ -436,6 +524,8 @@ def copySingleUpdate (p : WitnessVerifierProgram) (i : Fin p.witnessBits) :
       ^^ z (Fin.cast (dephase_qubits p).symm
         (Fin.castAdd p.witnessBits (witnessWire p i))))
 
+/-- The matrix of one copying instruction is the matrix associated with its basis-register
+update `copySingleUpdate`. -/
 theorem instructionMatrix_copyInstruction (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (i : Fin p.witnessBits) :
     instructionMatrix A (programQubits (dephaseProgram p)) (copyInstruction p i)
@@ -455,12 +545,16 @@ theorem instructionMatrix_copyInstruction (A : ClassicalOracle) (p : WitnessVeri
   simp only [cnotGate]
   rfl
 
+/-- Compose the copying updates for witness indices below `m` in the execution order of
+`copyInstrs`. -/
 def copyComp (p : WitnessVerifierProgram) :
     (m : ℕ) → m ≤ p.witnessBits →
     Reg (programQubits (dephaseProgram p)) → Reg (programQubits (dephaseProgram p))
   | 0, _ => id
   | m + 1, hm => copyComp p m (Nat.le_of_lt hm) ∘ copySingleUpdate p ⟨m, hm⟩
 
+/-- The product matrix of the first `m` copying instructions is the matrix associated with their
+composite basis update `copyComp`. -/
 theorem copyInstrs_permMatrix (A : ClassicalOracle) (p : WitnessVerifierProgram) :
     ∀ (m : ℕ) (hm : m ≤ p.witnessBits),
     ((copyInstrs p m hm).map (instructionMatrix A (programQubits (dephaseProgram p)))).reverse.prod
@@ -475,6 +569,7 @@ theorem copyInstrs_permMatrix (A : ClassicalOracle) (p : WitnessVerifierProgram)
     rw [ih (Nat.le_of_lt hm), instructionMatrix_copyInstruction, permMatrix_comp]
     rfl
 
+/-- Embed witness index `j` as the wire with the same numerical index in the enlarged register. -/
 def copySrcWire (p : WitnessVerifierProgram) (j : Fin p.witnessBits) :
     Fin (programQubits (dephaseProgram p)) :=
   ⟨(j : ℕ), by
@@ -483,9 +578,12 @@ def copySrcWire (p : WitnessVerifierProgram) (j : Fin p.witnessBits) :
     have hw : p.witnessBits ≤ programQubits p := by simp only [programQubits]; omega
     omega⟩
 
+/-- The source wire corresponding to witness index `j` has numerical index `j`. -/
 theorem copySrcWire_val (p : WitnessVerifierProgram) (j : Fin p.witnessBits) :
     (copySrcWire p j : ℕ) = (j : ℕ) := rfl
 
+/-- Associate each appended wire with its corresponding witness source wire, and associate each
+original wire with itself. -/
 def copySrcOf (p : WitnessVerifierProgram) (t : Fin (programQubits (dephaseProgram p))) :
     Fin (programQubits (dephaseProgram p)) :=
   if h : (t : ℕ) < programQubits p then t
@@ -494,6 +592,7 @@ def copySrcOf (p : WitnessVerifierProgram) (t : Fin (programQubits (dephaseProgr
     have ht := t.isLt
     omega⟩
 
+/-- The source assignment fixes every wire lying in the original program register. -/
 theorem copySrcOf_of_lt (p : WitnessVerifierProgram)
     {t : Fin (programQubits (dephaseProgram p))} (ht : (t : ℕ) < programQubits p) :
     copySrcOf p t = t := by
@@ -504,12 +603,15 @@ theorem copySrcOf_of_lt (p : WitnessVerifierProgram)
         omega⟩) = t
   rw [dif_pos ht]
 
+/-- For an appended wire, the source index is its numerical index minus the original program
+width. -/
 theorem copySrcOf_val (p : WitnessVerifierProgram)
     {t : Fin (programQubits (dephaseProgram p))} (ht : ¬((t : ℕ) < programQubits p)) :
     (copySrcOf p t : ℕ) = (t : ℕ) - programQubits p := by
   simp only [copySrcOf, dif_neg ht]
   rfl
 
+/-- The source of every appended wire lies within the original program register. -/
 theorem copySrcOf_lt (p : WitnessVerifierProgram)
     {t : Fin (programQubits (dephaseProgram p))} (ht : ¬((t : ℕ) < programQubits p)) :
     (copySrcOf p t : ℕ) < programQubits p := by
@@ -521,11 +623,15 @@ theorem copySrcOf_lt (p : WitnessVerifierProgram)
   rw [copySrcOf_val p ht]
   omega
 
+/-- Keep the original register fixed and XOR each appended wire with its corresponding witness
+source bit. -/
 def copyUpdate (p : WitnessVerifierProgram) (z : Reg (programQubits (dephaseProgram p))) :
     Reg (programQubits (dephaseProgram p)) :=
   fun k => if (k : ℕ) < programQubits p then z k
     else z (copySrcOf p k) ^^ z k
 
+/-- XOR the first `m` appended wires with their corresponding witness bits, leaving all other
+wires unchanged. -/
 def partialCopy (p : WitnessVerifierProgram) (m : ℕ) (_hm : m ≤ p.witnessBits)
     (z : Reg (programQubits (dephaseProgram p))) :
     Reg (programQubits (dephaseProgram p)) :=
@@ -534,6 +640,8 @@ def partialCopy (p : WitnessVerifierProgram) (m : ℕ) (_hm : m ≤ p.witnessBit
       z (copySrcOf p k) ^^ z k
     else z k
 
+/-- On every basis register, the composite of the copying updates below `m` equals the explicit
+partial XOR update `partialCopy`. -/
 theorem copyComp_eq_partialCopy (p : WitnessVerifierProgram) :
     ∀ (m : ℕ) (hm : m ≤ p.witnessBits) (z : Reg (programQubits (dephaseProgram p))),
     copyComp p m hm z = partialCopy p m hm z := by
@@ -624,6 +732,8 @@ theorem copyComp_eq_partialCopy (p : WitnessVerifierProgram) :
             if_neg (hkTval k (by omega)),
             dif_neg (by omega : ¬((k : ℕ) - programQubits p < m + 1))]
 
+/-- Applying the partial copying update to all witness positions gives `copyUpdate` on every
+basis register. -/
 theorem partialCopy_full (p : WitnessVerifierProgram)
     (z : Reg (programQubits (dephaseProgram p))) :
     partialCopy p p.witnessBits (Nat.le_refl p.witnessBits) z = copyUpdate p z := by
@@ -635,22 +745,28 @@ theorem partialCopy_full (p : WitnessVerifierProgram)
     have hjlt : (k : ℕ) - programQubits p < p.witnessBits := by omega
     simp only [partialCopy, copyUpdate, dif_neg hk, if_neg hk, dif_pos hjlt]
 
+/-- The composite copying map for indices below `m` equals `partialCopy` as a function on basis
+registers. -/
 theorem copyComp_eq_partialCopy' (p : WitnessVerifierProgram) (m : ℕ) (hm : m ≤ p.witnessBits) :
     copyComp p m hm = partialCopy p m hm := by
   funext z
   exact copyComp_eq_partialCopy p m hm z
 
+/-- The full partial copying map equals `copyUpdate` as a function on basis registers. -/
 theorem partialCopy_full' (p : WitnessVerifierProgram) :
     partialCopy p p.witnessBits (Nat.le_refl p.witnessBits) = copyUpdate p := by
   funext z
   exact partialCopy_full p z
 
+/-- The product matrix of the complete copying prefix is the matrix associated with
+`copyUpdate`. -/
 theorem copyMatrix_eq (A : ClassicalOracle) (p : WitnessVerifierProgram) :
     ((copyInstructions p).map (instructionMatrix A (programQubits (dephaseProgram p)))).reverse.prod
       = permMatrix (copyUpdate p) := by
   rw [copyInstructions, copyInstrs_permMatrix A p p.witnessBits (Nat.le_refl p.witnessBits),
     copyComp_eq_partialCopy' p p.witnessBits (Nat.le_refl p.witnessBits), partialCopy_full' p]
 
+/-- The full copying update leaves every original program wire unchanged. -/
 theorem copyUpdate_front (p : WitnessVerifierProgram)
     (z : Reg (programQubits (dephaseProgram p))) {t : Fin (programQubits (dephaseProgram p))}
     (ht : (t : ℕ) < programQubits p) : copyUpdate p z t = z t := by
@@ -660,6 +776,8 @@ theorem copyUpdate_front (p : WitnessVerifierProgram)
   · rfl
   · next h => exact absurd ht h
 
+/-- At an appended wire, the full copying update returns the XOR of its witness source bit and
+its previous bit. -/
 theorem copyUpdate_back (p : WitnessVerifierProgram)
     (z : Reg (programQubits (dephaseProgram p))) {t : Fin (programQubits (dephaseProgram p))}
     (ht : ¬((t : ℕ) < programQubits p)) :
@@ -670,6 +788,7 @@ theorem copyUpdate_back (p : WitnessVerifierProgram)
   · next h => exact absurd h ht
   · rfl
 
+/-- Applying the full copying update twice restores the original basis register. -/
 theorem copyUpdate_involutive (p : WitnessVerifierProgram) :
     Function.Involutive (copyUpdate p) := by
   intro z
@@ -681,6 +800,8 @@ theorem copyUpdate_involutive (p : WitnessVerifierProgram) :
     rw [copyUpdate_back p z hk]
     rw [← Bool.xor_assoc, Bool.xor_self, Bool.false_xor]
 
+/-- Rewrite a sum over concatenated registers as an iterated sum over the two blocks for any
+additive commutative monoid of values. -/
 theorem sum_wireGlue_gen {q n : ℕ} {M : Type*} [AddCommMonoid M] (f : Reg (q + n) → M) :
     ∑ z : Reg (q + n), f z = ∑ y : Reg q, ∑ c : Reg n, f (wireGlue y c) := by
   classical
@@ -691,14 +812,20 @@ theorem sum_wireGlue_gen {q n : ℕ} {M : Type*} [AddCommMonoid M] (f : Reg (q +
       rw [wireTake_drop])]
   rw [Fintype.sum_prod_type]
 
+/-- Reindex a register of width `programQubits p + p.witnessBits` as a register of the
+transformed program using `dephase_qubits`. -/
 def toDephase (p : WitnessVerifierProgram) (z : Reg (programQubits p + p.witnessBits)) :
     Reg (programQubits (dephaseProgram p)) :=
   fun k => z (Fin.cast (dephase_qubits p) k)
 
+/-- Reindex a register of the transformed program as a register of width `programQubits p +
+p.witnessBits` using `dephase_qubits`. -/
 def ofDephase (p : WitnessVerifierProgram) (z : Reg (programQubits (dephaseProgram p))) :
     Reg (programQubits p + p.witnessBits) :=
   fun k => z (Fin.cast (dephase_qubits p).symm k)
 
+/-- Converting a transformed-program register with `ofDephase` and then `toDephase` recovers
+that register. -/
 theorem toDephase_ofDephase (p : WitnessVerifierProgram)
     (z : Reg (programQubits (dephaseProgram p))) :
     toDephase p (ofDephase p z) = z := by
@@ -706,6 +833,8 @@ theorem toDephase_ofDephase (p : WitnessVerifierProgram)
   simp only [toDephase, ofDephase]
   exact congrArg z (Fin.ext rfl)
 
+/-- Converting a register with `toDephase` and then `ofDephase` recovers the register of the
+explicit summed width. -/
 theorem ofDephase_toDephase (p : WitnessVerifierProgram)
     (z : Reg (programQubits p + p.witnessBits)) :
     ofDephase p (toDephase p z) = z := by
@@ -713,13 +842,19 @@ theorem ofDephase_toDephase (p : WitnessVerifierProgram)
   simp only [toDephase, ofDephase]
   exact congrArg z (Fin.ext rfl)
 
+/-- Identify the transformed program's basis registers with registers of the explicit width
+`programQubits p + p.witnessBits`. -/
 def dephaseRegEquiv (p : WitnessVerifierProgram) :
     Reg (programQubits (dephaseProgram p)) ≃ Reg (programQubits p + p.witnessBits) :=
   ⟨ofDephase p, toDephase p, toDephase_ofDephase p, ofDephase_toDephase p⟩
 
+/-- Casting an index below `q` along `q' = q + w` agrees with embedding it into the first block
+by `Fin.castAdd`. -/
 theorem cast_eq_castAdd {q q' w : ℕ} (h : q' = q + w) {k : Fin q'} (hk : (k : ℕ) < q) :
     Fin.cast h k = Fin.castAdd w ⟨(k : ℕ), hk⟩ := Fin.ext rfl
 
+/-- Casting an index at least `q` along `q' = q + w` agrees with embedding its offset into the
+final block by `Fin.natAdd`. -/
 theorem cast_eq_natAdd {q q' w : ℕ} (h : q' = q + w) {k : Fin q'} (hk : ¬((k : ℕ) < q)) :
     Fin.cast h k = Fin.natAdd q ⟨(k : ℕ) - q, by omega⟩ := by
   apply Fin.ext
@@ -728,6 +863,8 @@ theorem cast_eq_natAdd {q q' w : ℕ} (h : q' = q + w) {k : Fin q'} (hk : ¬((k 
   show (k : ℕ) = q + ((k : ℕ) - q)
   omega
 
+/-- Instruction matrix entries are unchanged by reindexing registers along an equality of their
+widths. -/
 theorem instructionMatrix_width (A : ClassicalOracle) {q q' : ℕ} (h : q' = q)
     (instr : WitnessInstruction) (za zb : Reg q) :
     instructionMatrix A q' instr (fun k => za (Fin.cast h k)) (fun k => zb (Fin.cast h k))
@@ -735,6 +872,8 @@ theorem instructionMatrix_width (A : ClassicalOracle) {q q' : ℕ} (h : q' = q)
   subst h
   rfl
 
+/-- The product matrix entries of an instruction sequence are unchanged by reindexing registers
+along an equality of their widths. -/
 theorem instrMatrixProd_width (A : ClassicalOracle) {q q' : ℕ} (h : q' = q)
     (l : List WitnessInstruction) (za zb : Reg q) :
     ((l.map (instructionMatrix A q')).reverse.prod)
@@ -743,6 +882,8 @@ theorem instrMatrixProd_width (A : ClassicalOracle) {q q' : ℕ} (h : q' = q)
   subst h
   rfl
 
+/-- Factor the transformed verifier matrix as the original instruction product at the enlarged
+width multiplied by the copying matrix. -/
 theorem programMatrix_dephase_split (A : ClassicalOracle) (p : WitnessVerifierProgram) :
     programMatrix A (dephaseProgram p)
       = ((p.instructions.map (instructionMatrix A (programQubits (dephaseProgram p)))).reverse.prod
@@ -750,6 +891,8 @@ theorem programMatrix_dephase_split (A : ClassicalOracle) (p : WitnessVerifierPr
   simp only [programMatrix, dephaseProgram_instructions]
   rw [List.map_append, List.reverse_append, List.prod_append, copyMatrix_eq]
 
+/-- For a legal verifier, the original instructions at the enlarged width have the original
+program matrix entry when the appended register values agree, and zero otherwise. -/
 theorem dephaseOrigProd_entry (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (y y' : Reg (programQubits p))
     (c c' : Reg p.witnessBits) :
@@ -767,6 +910,8 @@ theorem dephaseOrigProd_entry (A : ClassicalOracle) (p : WitnessVerifierProgram)
     instrMatrixProd_embed A p.instructions hlegal.2 (wireGlue y c) (wireGlue y' c')]
   simp only [wireGlue_drop, wireGlue_take, programMatrix]
 
+/-- On a split register, `copyUpdate` preserves the original block and XORs each bit of the
+appended block with the corresponding witness bit. -/
 theorem copyUpdate_toDephase (p : WitnessVerifierProgram) (a : Reg (programQubits p))
     (b : Reg p.witnessBits) :
     copyUpdate p (toDephase p (wireGlue a b))

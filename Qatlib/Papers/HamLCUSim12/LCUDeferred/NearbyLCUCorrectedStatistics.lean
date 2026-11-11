@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedAlgebra
+
+/-!
+# Norm bounds for nearby weighted states
+
+`nearbyLCUMean` is a finite real-weighted sum in a complex inner product space. The module
+expands its squared norm in terms of pairwise inner products and bounds the norm loss of convex
+combinations of nearby unit vectors, providing estimates for the LCU analysis of
+[ChildsWiebe2012].
+
+`nearby_signed_mix_norm_sq` expresses the squared norm of a signed mixture using the two
+component norms and the norm of their sum.
+
+## Main statements
+
+* `nearbyLCUMean_loss_le`: bounds convex-mean norm loss by half the squared pairwise distance
+  bound.
+* `nearbyLCUMean_norm_le_one`: bounds a convex combination of unit vectors by one.
+* `nearby_signed_mix_norm_sq`: gives the signed-mixture norm identity.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -14,14 +38,19 @@ namespace Qatlib.Papers.HamLCUSim12.LCUDeferred
 open scoped ComplexConjugate
 variable {J E : Type*} [Fintype J] [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- The finite sum of the vectors `v j` with real coefficients `α j`, viewed as complex scalars. -/
 def nearbyLCUMean (α : J→ℝ) (v : J→E) : E := ∑ j,(α j:ℂ) • v j
 
+/-- The real part of the inner product of two real-scaled vectors is the product of their
+scalars times the real part of the original inner product. -/
 private theorem inner_real_weights (p q : ℝ) (A B : E) :
     (inner ℂ ((p:ℂ) • A) ((q:ℂ) • B)).re=p*q*(inner ℂ A B).re := by
   rw [inner_smul_left (𝕜 := ℂ),inner_smul_right (𝕜 := ℂ)]
   simp [Complex.mul_re]
   ring
 
+/-- The squared norm of a real-weighted mean is the double sum of coefficient products times
+real pairwise inner products. -/
 theorem nearbyLCUMean_norm_sq (α : J→ℝ) (v : J→E) :
     ‖nearbyLCUMean α v‖^2=∑ i : J,∑ j : J,α i*α j*(inner ℂ (v i) (v j)).re := by
   rw [norm_sq_eq_re_inner (𝕜 := ℂ)]
@@ -35,6 +64,8 @@ theorem nearbyLCUMean_norm_sq (α : J→ℝ) (v : J→E) :
   intro j _
   exact inner_real_weights (α i) (α j) (v i) (v j)
 
+/-- A convex combination of unit vectors whose pairwise squared distances are at most `Δ ^ 2`
+has squared-norm loss at most `Δ ^ 2 / 2`. -/
 theorem nearbyLCUMean_loss_le (α : J→ℝ) (v : J→E) (Δ : ℝ)
     (hα : ∀ j,0≤α j) (hsum : ∑ j,α j=1) (hv : ∀ j,‖v j‖=1)
     (hΔ : ∀ i j,‖v i-v j‖^2≤Δ^2) : 1-‖nearbyLCUMean α v‖^2≤Δ^2/2 := by
@@ -54,6 +85,7 @@ theorem nearbyLCUMean_loss_le (α : J→ℝ) (v : J→E) (Δ : ℝ)
   rw [hw,← nearbyLCUMean_norm_sq] at hh
   linarith
 
+/-- A convex combination of unit vectors has norm at most one. -/
 theorem nearbyLCUMean_norm_le_one (α : J→ℝ) (v : J→E)
     (hα : ∀ j,0≤α j) (hsum : ∑ j,α j=1) (hv : ∀ j,‖v j‖=1) : ‖nearbyLCUMean α v‖≤1 := by
   unfold nearbyLCUMean
@@ -61,6 +93,8 @@ theorem nearbyLCUMean_norm_le_one (α : J→ℝ) (v : J→E)
     _=1 := by
       simp only [norm_smul,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg (hα _),hv,mul_one];exact hsum
 
+/-- When `p + q = 1`, the squared norm of `p • A - q • B` equals `p * ‖A‖ ^ 2 + q * ‖B‖ ^ 2 - p
+* q * ‖A + B‖ ^ 2`. -/
 theorem nearby_signed_mix_norm_sq (p q : ℝ) (hpq : p+q=1) (A B : E) :
     ‖(p:ℂ) • A-(q:ℂ) • B‖^2 =
       p*‖A‖^2+q*‖B‖^2-p*q*‖A+B‖^2 := by

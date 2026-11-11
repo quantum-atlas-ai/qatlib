@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairResampling
+
+/-!
+# Two-coordinate slices and invalid repairs
+
+Defines `pairSlice` by varying two coordinates of a tuple and evaluating zero-extended
+injective-tuple amplitudes. Row and column resampling become coordinate replacement sums; if the
+resulting tuple is noninjective, `pairSlice_invalid_output` proves that at least one resampling
+output vanishes. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `pairSlice_entry`: For distinct coordinates, the zero-extended entry of a pair slice equals
+  the zero-extended tuple amplitude after the two specified updates, including when the
+  replacement labels coincide.
+* `pairSlice_invalid_output`: For distinct coordinates, if the tuple produced by a distinct
+  label pair is noninjective, at least one of the column- and row-resampling outputs at that
+  pair is zero.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +41,8 @@ namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 omit [Fintype I] [Fintype L] in
 
+/-- For distinct coordinates with different values, if updating either coordinate separately can
+make a tuple injective, then the original tuple is injective. -/
 theorem injective_of_two_repairs (f : I → L) (i j : I) (hij : i ≠ j) (hne : f i ≠ f j)
     (a b : L) (ha : Function.Injective (Function.update f i a))
     (hb : Function.Injective (Function.update f j b)) : Function.Injective f := by
@@ -40,6 +65,8 @@ theorem injective_of_two_repairs (f : I → L) (i j : I) (hij : i ≠ j) (hne : 
       simpa only [Function.update_of_ne hri,Function.update_of_ne hsi] using hrs
 omit [Fintype I] [Fintype L] in
 
+/-- For a noninjective tuple with distinct values at two distinct coordinates, either no update
+of the first coordinate is injective or no update of the second coordinate is injective. -/
 theorem invalid_repairs (f : I → L) (i j : I) (hij : i ≠ j) (hne : f i ≠ f j)
     (hf : ¬ Function.Injective f) :
     (∀ a,¬ Function.Injective (Function.update f i a)) ∨
@@ -49,10 +76,15 @@ theorem invalid_repairs (f : I → L) (i j : I) (hij : i ≠ j) (hne : f i ≠ f
     exact Or.inr (fun b hb => hf (injective_of_two_repairs f i j hij hne a b ha hb))
   · exact Or.inl (by simpa using h)
 
+/-- The amplitude function on distinct label pairs obtained by updating two coordinates of `f`
+and evaluating the zero extension of `v`. -/
 def pairSlice (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) : EuclideanSpace ℂ (Pair L) :=
   WithLp.toLp 2 (fun p => extend v (Function.update (Function.update f i p.val.1) j p.val.2))
 omit [Fintype L] in
 
+/-- For distinct coordinates, the zero-extended entry of a pair slice equals the zero-extended
+tuple amplitude after the two specified updates, including when the replacement labels
+coincide. -/
 theorem pairSlice_entry (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) (x y : L) :
     entry (pairSlice v f i j) x y=extend v (Function.update (Function.update f i x) j y) := by
   by_cases hxy : x ≠ y
@@ -66,16 +98,22 @@ theorem pairSlice_entry (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I)
       simp [Function.update_of_ne hij,he]
     simp [entry,hxy,extend,hn]
 
+/-- For distinct coordinates, column resampling of a pair slice is the sum over all replacement
+labels at the first coordinate with the second replacement fixed. -/
 theorem pairSlice_R (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) (p : Pair L) :
     R (pairSlice v f i j) p=∑ x : L,extend v (Function.update (Function.update f i x) j p.val.2) := by
   change (∑ x : L,entry (pairSlice v f i j) x p.val.2)=_
   simp_rw [pairSlice_entry v f i j hij]
 
+/-- For distinct coordinates, row resampling of a pair slice is the sum over all replacement
+labels at the second coordinate with the first replacement fixed. -/
 theorem pairSlice_S (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) (p : Pair L) :
     S (pairSlice v f i j) p=∑ y : L,extend v (Function.update (Function.update f i p.val.1) j y) := by
   change (∑ y : L,entry (pairSlice v f i j) p.val.1 y)=_
   simp_rw [pairSlice_entry v f i j hij]
 
+/-- For distinct coordinates, if the tuple produced by a distinct label pair is noninjective, at
+least one of the column- and row-resampling outputs at that pair is zero. -/
 theorem pairSlice_invalid_output (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j)
     (p : Pair L) (hf : ¬ Function.Injective (Function.update (Function.update f i p.val.1) j p.val.2)) :
     R (pairSlice v f i j) p=0 ∨ S (pairSlice v f i j) p=0 := by

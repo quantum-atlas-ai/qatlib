@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.DiscreteSim08.MainResults.Defs
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Fractional Boolean queries and controlled simulation
+
+The fractional Boolean phase is decomposed into a global phase and a linear combination of the
+identity phase and Boolean sign. The normalization `controlledSimulationNorm` then gives
+explicit scalar success and failure estimates for angles between zero and `π / 2`.
+
+This development follows [CleveEtAl2009].
+
+## Main statements
+
+* `fractionalQuery_decomposition`: the normalized fractional phase decomposition.
+* `controlledSimulation_success_probability`: the reciprocal squared normalization is at least
+  `1 - θ`.
+* `controlledSimulation_failure_probability`: the failure expression is at most `θ`.
+
+## References
+
+* [Cleve et al., 2009][CleveEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +39,8 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.DiscreteSim08.MainResults
 
+/-- The Boolean phase `exp (-iθ)` on true inputs and one on false inputs decomposes into a
+global phase `exp (-iθ / 2)` times a cosine and Boolean-sign sine combination. -/
 theorem fractionalQuery_decomposition_booleanPhase (θ : ℝ) (b : Bool) :
     (if b then Complex.exp (-(Complex.I * (θ : ℂ))) else 1) =
       Complex.exp (-(Complex.I * ((θ / 2 : ℝ) : ℂ))) *
@@ -50,6 +74,8 @@ theorem fractionalQuery_decomposition_booleanPhase (θ : ℝ) (b : Bool) :
     rw [show -(Complex.I * ((θ / 2 : ℝ) : ℂ)) + ((-(θ / 2) : ℝ) : ℂ) * Complex.I
           = -(Complex.I * (θ : ℂ)) by push_cast; ring]
 
+/-- The fractional Boolean phase at parameter `-θ / π` equals `exp (-iθ)` for true inputs and
+one for false inputs. -/
 theorem fractionalBooleanPhase_neg_div_pi (θ : ℝ) (b : Bool) :
     fractionalBooleanPhase (-(θ / Real.pi)) b =
       (if b then Complex.exp (-(Complex.I * (θ : ℂ))) else 1) := by
@@ -61,6 +87,8 @@ theorem fractionalBooleanPhase_neg_div_pi (θ : ℝ) (b : Bool) :
     push_cast
     field_simp
 
+/-- The fractional Boolean phase at `-θ / π` equals `exp (-iθ / 2) * (cos (θ / 2) + i * sin (θ /
+2) * s)`, where `s` is minus one for true inputs and one for false inputs. -/
 theorem fractionalQuery_decomposition (θ : ℝ) (b : Bool) :
     fractionalBooleanPhase (-(θ / Real.pi)) b =
       Complex.exp (-(Complex.I * ((θ / 2 : ℝ) : ℂ))) *
@@ -68,9 +96,11 @@ theorem fractionalQuery_decomposition (θ : ℝ) (b : Bool) :
           ((Real.sin (θ / 2) : ℝ) : ℂ) * Complex.I * (if b then -1 else 1)) := by
   rw [fractionalBooleanPhase_neg_div_pi, fractionalQuery_decomposition_booleanPhase]
 
+/-- The scalar normalization `cos (θ / 2) + sin (θ / 2)` for controlled simulation. -/
 noncomputable def controlledSimulationNorm (θ : ℝ) : ℝ :=
   Real.cos (θ / 2) + Real.sin (θ / 2)
 
+/-- The reciprocal squared controlled-simulation normalization equals `1 / (1 + sin θ)`. -/
 theorem controlledSimulation_success_eq (θ : ℝ) :
     1 / (controlledSimulationNorm θ) ^ 2 = 1 / (1 + Real.sin θ) := by
   unfold controlledSimulationNorm
@@ -81,6 +111,8 @@ theorem controlledSimulation_success_eq (θ : ℝ) :
     nlinarith [Real.sin_sq_add_cos_sq (θ / 2), h2]
   rw [hsq]
 
+/-- For `0 ≤ θ ≤ π / 2`, the reciprocal squared controlled-simulation normalization is at least
+`1 - θ`. See [CleveEtAl2009]. -/
 theorem controlledSimulation_success_probability (θ : ℝ) (h0 : 0 ≤ θ)
     (h1 : θ ≤ Real.pi / 2) :
     1 - θ ≤ 1 / (controlledSimulationNorm θ) ^ 2 := by
@@ -103,6 +135,7 @@ theorem controlledSimulation_success_probability (θ : ℝ) (h0 : 0 ≤ θ)
   have hsin_le : Real.sin θ ≤ θ := Real.sin_le h0
   nlinarith [mul_nonneg h0 hsin0]
 
+/-- For `0 ≤ θ ≤ π / 2`, the failure expression `sin θ / (1 + sin θ)` is at most `θ`. -/
 theorem controlledSimulation_failure_probability (θ : ℝ) (h0 : 0 ≤ θ)
     (h1 : θ ≤ Real.pi / 2) :
     Real.sin θ / (1 + Real.sin θ) ≤ θ := by

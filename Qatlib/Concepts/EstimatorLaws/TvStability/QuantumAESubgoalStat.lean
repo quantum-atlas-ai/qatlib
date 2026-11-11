@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+/-!
+# Exact-grid amplitude-estimation contract
+
+States exact-grid phase readout for the normalized complex eigenstate of an orthonormal
+two-dimensional rotation plane. The proposition isolates the exact readout and squared-sine
+decoding properties used in amplitude-estimation arguments such as those in [Montanaro2015].
+
+## Main statements
+
+* `QuantumAESubgoal` requires a unitary rotation action, an angle exactly on the `M`-point grid,
+  and concludes exact phase-register output together with squared-sine decoding.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -14,6 +32,9 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 namespace Qatlib.Concepts.EstimatorLaws.TvStability
 
+/-- The proposition requiring exact phase-estimation output on `(ψ₀ + i ψ₁) / sqrt 2` when a
+unitary rotates the orthonormal plane by `2 * θ` and that angle lies on the `M`-point grid.
+It also specifies that the decoded squared sine equals `sin² θ`. -/
 def QuantumAESubgoal : Prop :=
   ∀ (M : ℕ) (I : Type) [Fintype I] [DecidableEq I] (W : Matrix I I ℂ),
     W ∈ Matrix.unitaryGroup I ℂ → 0 < M →

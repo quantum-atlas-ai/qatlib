@@ -8,9 +8,35 @@ import Mathlib.Data.Fintype.Powerset
 import Mathlib.Data.Nat.Choose.Basic
 import Lean.Elab.Tactic.Omega
 
+/-!
+# Centered binomial fiber counts
+
+This module counts subsets with a prescribed difference between their intersections with two
+disjoint sets of equal size. It defines `cbdFirstHalf` and `cbdSecondHalf` for a canonical split
+of `Fin (2 * η)`, and identifies both signed difference fibers with `Nat.choose (2 * η) (η +
+v)`. Such counting identities describe finite bit string sampling, a basic probability
+construction in [NielsenChuang2010].
+
+## Main statements
+
+* `cbd_split_fiber_card`: For disjoint sets `A` and `B` of cardinality `η`, the number of
+  subsets of their union satisfying `card (T ∩ A) = card (T ∩ B) + v` is `Nat.choose (2 * η) (η
+  + v)`.
+* `cbd_split_fiber_fin`: The subsets whose first half count exceeds their second half count by
+  `v` form a type of cardinality `Nat.choose (2 * η) (η + v)`.
+* `cbd_split_fiber_symm`: The subsets whose second half count exceeds their first half count by
+  `v` form a type of cardinality `Nat.choose (2 * η) (η + v)`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.CenteredBinomialFibers
 
+/-- For disjoint sets `A` and `B` of cardinality `η`, the number of subsets of their union
+satisfying `card (T ∩ A) = card (T ∩ B) + v` is `Nat.choose (2 * η) (η + v)`. -/
 theorem cbd_split_fiber_card {α : Type} [DecidableEq α] {η : ℕ} (A B : Finset α)
     (hAB : Disjoint A B) (hA : A.card = η) (hB : B.card = η) (v : ℕ) :
     (((A ∪ B).powerset.filter
@@ -169,12 +195,16 @@ theorem cbd_split_fiber_card {α : Type} [DecidableEq α] {η : ℕ} (A B : Fins
   congr 1
   omega
 
+/-- The first `η` indices of `Fin (2 * η)`, obtained by embedding all indices of `Fin η`. -/
 def cbdFirstHalf (η : ℕ) : Finset (Fin (2 * η)) :=
   Finset.map (Fin.castLEEmb (show η ≤ 2 * η by omega)) Finset.univ
 
+/-- The complement of `cbdFirstHalf η` in `Fin (2 * η)`. -/
 def cbdSecondHalf (η : ℕ) : Finset (Fin (2 * η)) :=
   Finset.univ \ cbdFirstHalf η
 
+/-- For a partition of `Fin (2 * η)` into equal halves `A` and `B`, the subtype of subsets with
+intersection count difference `v` has cardinality `Nat.choose (2 * η) (η + v)`. -/
 private theorem split_fiber_subtype_card {η : ℕ} (A B : Finset (Fin (2 * η)))
     (hAB : Disjoint A B) (hA : A.card = η) (hB : B.card = η)
     (hAU : A ∪ B = Finset.univ) (v : ℕ) :
@@ -195,6 +225,8 @@ private theorem split_fiber_subtype_card {η : ℕ} (A B : Finset (Fin (2 * η))
   rw [Fintype.card_congr e, Fintype.card_coe, hsplit]
   exact hgen
 
+/-- The subsets whose first half count exceeds their second half count by `v` form a type of
+cardinality `Nat.choose (2 * η) (η + v)`. -/
 theorem cbd_split_fiber_fin (η v : ℕ) :
     Fintype.card {T : Finset (Fin (2 * η)) //
         (T ∩ cbdFirstHalf η).card = (T ∩ cbdSecondHalf η).card + v}
@@ -215,6 +247,8 @@ theorem cbd_split_fiber_fin (η v : ℕ) :
     · exact Finset.mem_union_right _ (Finset.mem_sdiff.mpr ⟨Finset.mem_univ i, hi⟩)
   exact split_fiber_subtype_card _ _ hDisj hFH hSH hUnion v
 
+/-- The subsets whose second half count exceeds their first half count by `v` form a type of
+cardinality `Nat.choose (2 * η) (η + v)`. -/
 theorem cbd_split_fiber_symm (η v : ℕ) :
     Fintype.card {T : Finset (Fin (2 * η)) //
         (T ∩ cbdSecondHalf η).card = (T ∩ cbdFirstHalf η).card + v}

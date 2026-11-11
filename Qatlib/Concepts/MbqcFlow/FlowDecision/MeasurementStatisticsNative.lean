@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNativeDefs
+
+/-!
+# Independent measurement statistics and campaign costs
+
+Collects the independent-outcome moment identities and the operation bounds for
+`NativeCampaign`. The theorem `clause6_complete` combines product-law factorization, unbiased
+pairwise U-statistics, higher statistic moments, and the variance interpretation of diagonal
+bias.
+
+The theorem `thresholdGoal_complete` gives quantum operation counts and machine-dependent time
+and space formulas for the counted Pauli campaign. The measurement-statistic setting is related
+to [HuangKuengPreskill2020].
+
+## Main statements
+
+* `clause6_complete`: joint-law, moment, and pairwise-statistic identities.
+* `thresholdGoal_complete`: campaign counts and bit-cost formulas.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,6 +50,9 @@ set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 
+/-- For at least two samples, collects product-law factorization, independent and diagonal
+kernel expectations, pairwise U-statistic unbiasedness, higher moment identities, and the
+variance formula for diagonal product bias. -/
 theorem clause6_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeasurementMap E))
     (ρ : Operator D) (hρ : IsDensityOperator ρ) (A : Operator D) (h : O → O → ℝ)
     {n : ℕ} (hn : 2 ≤ n) :
@@ -75,6 +101,8 @@ theorem clause6_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeas
     exact povm_expect_statistic_pow E hM ρ hρ A k
   · exact povmKernelMean_bias_variance E ρ hρ A hM
 
+/-- Collects the exact quantum and classical counts, comparison bounds, and machine-dependent
+bit-time and peak-space formulas of a native Pauli campaign. -/
 theorem thresholdGoal_complete {K L : ℕ} (c : NativeCampaign K L) (m : NativeMachine) :
 
     (nativeLedger c m).copies = K * L ∧

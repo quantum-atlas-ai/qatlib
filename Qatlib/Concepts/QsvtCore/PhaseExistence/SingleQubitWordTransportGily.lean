@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportStat
+
+/-!
+# Reflection word response entries
+
+`singleQubitWordTransport` proves the two entry formulas in `SingleQubitWordTransport` for the
+reflection-based signal-processing word. The upper entry is `sourcePhaseResponse`, while the
+lower entry is the lower response polynomial multiplied by `sqrt (1 - x^2)`. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `singleQubitWordTransport`: identify the first column of the reflection word.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -17,6 +35,9 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Matrix Polynomial Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- For signals in `[-1, 1]`, the first column of the reflection word is given by
+`sourcePhaseResponse` and the square-root-weighted lower response polynomial, as in [Gilyén
+et al., Corollary 8][GilyenSuLowWiebe2019]. -/
 theorem singleQubitWordTransport : SingleQubitWordTransport := by
   intro Φ x hx
   have hs : (Real.sqrt (1 - x ^ 2) : ℂ) ^ 2 = 1 - (x : ℂ) ^ 2 := by

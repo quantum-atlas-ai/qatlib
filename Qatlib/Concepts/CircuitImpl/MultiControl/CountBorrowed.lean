@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountCompressedLadders
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliFrames
+
+/-!
+# Borrowed-work conjunction words and relative signs
+
+`sourceBorrowedExact` and `sourceBorrowedRelative` combine a compressed dirty-prefix ladder with
+framed exact or relative Toffoli words. Their basis-state theorems implement a
+conjunction-controlled target toggle under explicit layout and wire-separation hypotheses,
+supporting the multi-control decompositions of [BarencoEtAl1995].
+
+The relative construction carries the explicit sign `sourceBorrowedSign`, whose square is one.
+The module also proves legality and avoidance of unused wires.
+
+## Main statements
+
+* `sourceBorrowedExact_ket`: Exact conjunction-toggle action on basis states.
+* `sourceBorrowedRelative_ket`: Conjunction-toggle action with its accumulated sign.
+* `sourceBorrowedSign_sq`: The accumulated sign squares to one.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,16 +46,22 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators
 
+/-- The exact borrowed-work word alternating a framed Toffoli, the compressed prefix ladder, the
+adjoint framed Toffoli, and the same ladder. -/
 def sourceBorrowedExact {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) : List (ReflectionGate N) :=
   let g := sourceToffoliFramed (c (r+1)) (w (r-1)) t;
   let F := sourcePrefixCompressed c w r;
   g ++ F ++ reflectionAdjoint g ++ F
 
+/-- The relative borrowed-work word formed by two repetitions of a relative Toffoli followed by
+the compressed prefix ladder. -/
 def sourceBorrowedRelative {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) : List (ReflectionGate N) :=
   let g := sourceRelativeToffoliSteps (c (r+1)) (w (r-1)) t;
   let F := sourcePrefixCompressed c w r;
   g ++ F ++ g ++ F
 
+/-- The product of the four relative signs accumulated along the basis-state path of
+`sourceBorrowedRelative`. -/
 def sourceBorrowedSign {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) (x : Reg N) : ℂ :=
   let a := c (r+1);
   let b := w (r-1);
@@ -41,6 +70,9 @@ def sourceBorrowedSign {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) (x 
   sourceRelativeSign a b t x * sourcePrefixSign c w r q *
     sourceRelativeSign a b t y * sourcePrefixSign c w r (noWorkToffoliUpdate a b t y)
 
+/-- Under the dirty-prefix layout and wire separation hypotheses, the alternating pair of
+Toffoli updates and prefix transforms toggles only the target by the conjunction of the
+first `r + 2` controls. -/
 private theorem old_boolean_result {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -58,6 +90,9 @@ private theorem old_boolean_result {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (
   rw [ht, noWorkDirtyPrefixSteps_ket c w r h, ht, noWorkDirtyPrefixSteps_ket c w r h] at hb
   exact hb
 
+/-- For a valid dirty-prefix layout with the stated wire separations, the exact borrowed-work
+word toggles the target by the conjunction of `r + 2` control bits and restores every other
+bit. -/
 theorem sourceBorrowedExact_ket {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -93,6 +128,9 @@ theorem sourceBorrowedExact_ket {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r :
   rw [hq, hy, sourcePrefixSign_return c w r h x, one_smul]
   exact old_boolean_result c w t r hr h hlast hc hw x
 
+/-- For a valid dirty-prefix layout with the stated wire separations, the relative borrowed-work
+word performs the conjunction-controlled target toggle with scalar factor
+`sourceBorrowedSign`. -/
 theorem sourceBorrowedRelative_ket {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -116,6 +154,7 @@ theorem sourceBorrowedRelative_ket {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (
   rw [old_boolean_result c w t r hr h hlast hc hw x]
   simp only [sourceBorrowedSign, mul_assoc]
 
+/-- The square of the accumulated borrowed-work sign is one. -/
 theorem sourceBorrowedSign_sq {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) (x : Reg N) :
     sourceBorrowedSign c w t r x * sourceBorrowedSign c w t r x = 1 := by
   dsimp only [sourceBorrowedSign]
@@ -123,6 +162,8 @@ theorem sourceBorrowedSign_sq {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : �
   rw [sourceRelativeSign_sq, sourcePrefixSign_sq, sourceRelativeSign_sq, sourcePrefixSign_sq]
   norm_num
 
+/-- The relative borrowed-work word is legal for a nonempty valid prefix layout whose control
+and work wires avoid the target. -/
 theorem sourceBorrowedRelative_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hc : ∀ i < r+2, c i ≠ t) (hw : ∀ j < r, w j ≠ t) :
@@ -133,6 +174,8 @@ theorem sourceBorrowedRelative_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N)
   simp only [sourceBorrowedRelative, reflectionLegal_append]
   exact ⟨⟨⟨hg,hF⟩,hg⟩,hF⟩
 
+/-- The exact borrowed-work word is legal under the nonempty prefix layout and the stated
+control, work, and target separation hypotheses. -/
 theorem sourceBorrowedExact_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -145,6 +188,8 @@ theorem sourceBorrowedExact_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r
   simp only [sourceBorrowedExact, reflectionLegal_append]
   exact ⟨⟨⟨hg,hF⟩,hga⟩,hF⟩
 
+/-- Every gate of the relative borrowed-work word avoids any wire outside its control wires,
+work wires, and target. -/
 theorem sourceBorrowedRelative_avoids {N : ℕ} (c w : ℕ → Fin N) (s z : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (hc : ∀ i < r+2, z ≠ c i) (hw : ∀ j < r, z ≠ w j) (hs : z ≠ s) :
     ∀ g ∈ sourceBorrowedRelative c w s r, z ∉ reflectionGateWires g := by

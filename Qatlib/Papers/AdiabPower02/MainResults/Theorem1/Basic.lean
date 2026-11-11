@@ -8,6 +8,25 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Analysis.Complex.Order
 import Mathlib.Tactic
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+/-!
+# Linear adiabatic paths and product-formula step counts
+
+Defines the time-scaled linear path `adiabaticPath` and proves its endpoint identities. For a
+finite Hermitian family with bounded commutator sum, `product_formula_step_bound` chooses a
+positive number of product-formula steps achieving a prescribed positive error tolerance. See
+[VanDamMoscaVazirani2001].
+
+## Main statements
+
+* `adiabaticPath_end`: The path reaches the final Hamiltonian at nonzero total time.
+* `product_formula_step_bound`: Provides an explicit upper bound on a sufficient step count.
+
+## References
+
+* [van Dam et al., 2001][VanDamMoscaVazirani2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,14 +44,17 @@ namespace Theorem1
 open Qatlib.Concepts.TrotterFormula.LieStrang
 open Qatlib.Foundations.PureStateMath
 
+/-- The time-scaled affine Hamiltonian path `t ↦ (1 - t / T) • H₀ + (t / T) • H_f`. -/
 def adiabaticPath {I : Type} [Fintype I] [DecidableEq I]
     (H₀ H_f : Matrix I I ℂ) (T : ℝ) : ℝ → Matrix I I ℂ :=
   fun t => (1 - t / T) • H₀ + (t / T) • H_f
 
+/-- The affine adiabatic path starts at `H₀` at time zero. -/
 @[simp] lemma adiabaticPath_zero {I : Type} [Fintype I] [DecidableEq I]
     (H₀ H_f : Matrix I I ℂ) (T : ℝ) : adiabaticPath H₀ H_f T 0 = H₀ := by
   simp [adiabaticPath]
 
+/-- For nonzero total time `T`, the affine adiabatic path equals `H_f` at time `T`. -/
 lemma adiabaticPath_end {I : Type} [Fintype I] [DecidableEq I]
     (H₀ H_f : Matrix I I ℂ) {T : ℝ} (hT : T ≠ 0) :
     adiabaticPath H₀ H_f T T = H_f := by
@@ -40,6 +62,9 @@ lemma adiabaticPath_end {I : Type} [Fintype I] [DecidableEq I]
   rw [div_self hT]
   simp
 
+/-- For positive `t`, `K`, and `ε`, a Hermitian family with commutator sum at most `K` has a
+positive step count at most `t ^ 2 * K / (2 * ε) + 2` giving product-formula error at most
+`ε` [VanDamMoscaVazirani2001]. -/
 theorem product_formula_step_bound
     {D m : ℕ} (H : Fin m → Operator D) (t K ε : ℝ)
     (hH : ∀ j, (H j).IsHermitian)

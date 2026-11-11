@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition3Presentation
 import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+
+/-!
+# Finite power descriptions of cyclic subgroups
+
+The module derives positive periods for normal-form elements of the shift semidirect product and
+uses them to enumerate generated cyclic subgroups. `proposition4_cyclic_subgroup` gives two
+finite power ranges according to whether `p ^ r` divides the left exponent and the right
+exponent is nonzero. See [ChiKimLee2006] for the mathematical setting.
+
+## Main statements
+
+* `zpowers_eq_range_of_pow_eq_one`: enumerates a cyclic subgroup using any positive period.
+* `proposition4_cyclic_subgroup`: specializes this enumeration to the two arithmetic branches of
+  a normal-form element.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,7 @@ open SemidirectProduct
 
 variable {p r : ℕ}
 
+/-- For prime `p`, `2 * p ^ r` divides `a * (2 * p ^ r / Nat.gcd a (2 * p ^ r))`. -/
 lemma dvd_mul_div_gcd (hp : p.Prime) (a : ℕ) :
     2 * p ^ r ∣ a * (2 * p ^ r / Nat.gcd a (2 * p ^ r)) := by
   have hNpos : 0 < 2 * p ^ r := Nat.mul_pos (by norm_num) (pow_pos hp.pos r)
@@ -32,6 +53,7 @@ lemma dvd_mul_div_gcd (hp : p.Prime) (a : ℕ) :
   rw [hdiv, hd, hc]
   exact ⟨d, by ring⟩
 
+/-- For prime `p`, `2 * p ^ r` divides `a * (2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r))`. -/
 lemma dvd_mul_div_gcd_mul_p (hp : p.Prime) (a : ℕ) :
     2 * p ^ r ∣ a * (2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r)) := by
   have h2p : 2 * p ^ (r + 1) = p * (2 * p ^ r) := by
@@ -43,6 +65,7 @@ lemma dvd_mul_div_gcd_mul_p (hp : p.Prime) (a : ℕ) :
   rw [heq]
   exact dvd_mul_of_dvd_right h2 p
 
+/-- The integer `p` divides `2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r)`. -/
 lemma p_dvd_div_gcd_mul_p (a : ℕ) :
     p ∣ 2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r) := by
   have h2p : 2 * p ^ (r + 1) = p * (2 * p ^ r) := by
@@ -50,6 +73,8 @@ lemma p_dvd_div_gcd_mul_p (a : ℕ) :
   rw [h2p, Nat.mul_div_assoc p (Nat.gcd_dvd_right a (2 * p ^ r))]
   exact dvd_mul_right p _
 
+/-- For prime `p` and `r ≥ 1`, if `p ^ r` does not divide `a`, then `p` divides `2 * p ^ r /
+Nat.gcd a (2 * p ^ r)`. -/
 lemma p_dvd_div_gcd {a : ℕ} (hp : p.Prime) (hr : 1 ≤ r) (hpr : ¬ p ^ r ∣ a) :
     p ∣ 2 * p ^ r / Nat.gcd a (2 * p ^ r) := by
   have hNpos : 0 < 2 * p ^ r := Nat.mul_pos (by norm_num) (pow_pos hp.pos r)
@@ -66,6 +91,7 @@ lemma p_dvd_div_gcd {a : ℕ} (hp : p.Prime) (hr : 1 ≤ r) (hpr : ¬ p ^ r ∣ 
   rw [hdiv]
   exact dvd_mul_right p _
 
+/-- For prime `p`, the quotient `2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r)` is positive. -/
 lemma pos_div_gcd_mul_p (hp : p.Prime) (a : ℕ) :
     0 < 2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r) := by
   have hNpos : 0 < 2 * p ^ r := Nat.mul_pos (by norm_num) (pow_pos hp.pos r)
@@ -80,6 +106,7 @@ lemma pos_div_gcd_mul_p (hp : p.Prime) (a : ℕ) :
   rw [hdiv]
   exact Nat.mul_pos hp.pos hcpos
 
+/-- For prime `p`, the quotient `2 * p ^ r / Nat.gcd a (2 * p ^ r)` is positive. -/
 lemma pos_div_gcd (hp : p.Prime) (a : ℕ) :
     0 < 2 * p ^ r / Nat.gcd a (2 * p ^ r) :=
   Nat.div_pos
@@ -87,6 +114,8 @@ lemma pos_div_gcd (hp : p.Prime) (a : ℕ) :
       (Nat.gcd_dvd_right a _))
     (Nat.gcd_pos_of_pos_right a (Nat.mul_pos (by norm_num) (pow_pos hp.pos r)))
 
+/-- Under the shift-action hypothesis, a mixed element has `N`th power one if `p` divides `b *
+N` and `2 * p ^ r` divides `a * N`. -/
 lemma pow_genX_mul_genY_eq_one (hp : p.Prime) (hr : 2 ≤ r)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r))))
     (hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr) {a b N : ℕ}
@@ -99,6 +128,8 @@ lemma pow_genX_mul_genY_eq_one (hp : p.Prime) (hr : 2 ≤ r)
     exact Nat.dvd_trans hx (dvd_mul_right (a * N) _)
   rw [hY, hX, mul_one]
 
+/-- Under the shift-action hypothesis, the mixed element raised to `2 * p ^ (r + 1) / Nat.gcd a
+(2 * p ^ r)` is one. -/
 lemma pow_eq_one_branch1 {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r))))
     (hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr) (a b : ℕ) :
@@ -108,6 +139,8 @@ lemma pow_eq_one_branch1 {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
   · exact dvd_mul_of_dvd_right (p_dvd_div_gcd_mul_p a) b
   · exact dvd_mul_div_gcd_mul_p hp a
 
+/-- Under the shift-action hypothesis and `p ^ r` not dividing `a`, the mixed element raised to
+`2 * p ^ r / Nat.gcd a (2 * p ^ r)` is one. -/
 lemma pow_eq_one_branch2 {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r))))
     (hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr) {a b : ℕ}
@@ -118,6 +151,8 @@ lemma pow_eq_one_branch2 {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
   · exact dvd_mul_of_dvd_right (p_dvd_div_gcd hp (by omega) hpr) b
   · exact dvd_mul_div_gcd hp a
 
+/-- For prime `p`, the element `genX ^ a * genY ^ 0` raised to `2 * p ^ r / Nat.gcd a (2 * p ^
+r)` is one. -/
 lemma pow_eq_one_branch2_zero {p r : ℕ} (hp : p.Prime)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r)))) (a : ℕ) :
     (genX p r φ ^ a * genY p r φ ^ 0) ^
@@ -125,6 +160,8 @@ lemma pow_eq_one_branch2_zero {p r : ℕ} (hp : p.Prime)
   rw [pow_zero, mul_one, ← pow_mul, genX_pow_eq_one_iff]
   exact dvd_mul_div_gcd hp a
 
+/-- If `g ^ N = 1` for positive `N`, the subgroup generated by `g` consists of its natural
+powers with exponents strictly below `N`. -/
 lemma zpowers_eq_range_of_pow_eq_one {G : Type*} [Group G] (g : G) {N : ℕ} (hN : 0 < N)
     (h : g ^ N = 1) :
     (Subgroup.zpowers g : Set G) = {x | ∃ i : ℕ, i < N ∧ x = g ^ i} := by
@@ -145,6 +182,9 @@ lemma zpowers_eq_range_of_pow_eq_one {G : Type*} [Group G] (g : G) {N : ℕ} (hN
     rw [Subgroup.mem_zpowers_iff]
     exact ⟨(i : ℤ), zpow_natCast g i⟩
 
+/-- For prime `p`, `r ≥ 2`, the shift action, and bounded representatives, the cyclic subgroup
+of a mixed element is enumerated by powers through one less than the specified quotient in
+each arithmetic branch. See [Chi et al., 2006, Proposition 4][ChiKimLee2006]. -/
 theorem proposition4_cyclic_subgroup
     {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r))))

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.DysonCoefficients
+
+/-!
+# Collected Dyson expansions for repeated formulas
+
+This module collects Dyson coefficients across positive depths into `orderCoefficient` and
+bounds them with `orderProfile`. Under odd-coefficient control, the repeated product formula has
+an exact inverse-even-power expansion plus a Dyson remainder, supporting the multi-product
+cancellation analysis in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `prefix_hasSum`: sums the collected coefficients to a finite Dyson prefix.
+* `positive_hasSum`: removes the vanishing constant coefficient.
+* `repetition_series`: combines the expansion with a remainder bound.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -19,6 +39,8 @@ open Qatlib.Concepts.TrotterFormula.RecursiveSuzuki
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 set_option warningAsError false
 
+/-- Shifting a convergent series by l places and filling the initial positions with zero
+preserves its sum. -/
 theorem shift_hasSum {E : Type} [NormedAddCommGroup E] (f : ℕ → E) (x : E)
     (hf : HasSum f x) (l : ℕ) : HasSum (fun k => if l ≤ k then f (k - l) else 0) x := by
   let g := fun k => if l ≤ k then f (k - l) else 0
@@ -36,14 +58,19 @@ theorem shift_hasSum {E : Type} [NormedAddCommGroup E] (f : ℕ → E) (x : E)
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The sum of depth-j coefficients contributing to inverse-power index k, over positive depths
+below p. -/
 def orderCoefficient (xs : List (Matrix I I ℂ)) (t : ℝ) (p k : ℕ) : Matrix I I ℂ :=
   ∑ j ∈ Finset.range (p - 1),
     if j + 1 ≤ k then powerCoefficient xs t (j + 1) (k - (j + 1)) else 0
 
+/-- The sum of the corresponding factorial-scaled mass profiles over positive Dyson depths below
+p. -/
 def orderProfile (xs : List (Matrix I I ℂ)) (t : ℝ) (p k : ℕ) : ℝ :=
   ∑ j ∈ Finset.range (p - 1),
     if j + 1 ≤ k then massProfile xs t (j + 1) (k - (j + 1)) / ((j + 1).factorial : ℝ) else 0
 
+/-- The collected coefficient at inverse-power index zero vanishes. -/
 theorem orderCoefficient_zero (xs : List (Matrix I I ℂ)) (t : ℝ) (p : ℕ) :
     orderCoefficient xs t p 0 = 0 := by
   unfold orderCoefficient
@@ -51,6 +78,8 @@ theorem orderCoefficient_zero (xs : List (Matrix I I ℂ)) (t : ℝ) (p : ℕ) :
   intro j _
   exact if_neg (by omega)
 
+/-- For Hermitian generators, the norm of each collected coefficient is bounded by its order
+profile. -/
 theorem orderCoefficient_norm (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (t : ℝ) (p k : ℕ) : ‖orderCoefficient xs t p k‖ ≤ orderProfile xs t p k := by
   unfold orderCoefficient orderProfile
@@ -62,6 +91,8 @@ theorem orderCoefficient_norm (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, 
     exact powerCoefficient_norm xs hxs t (j + 1) (k - (j + 1))
   · simp only [if_neg hj, norm_zero, le_refl]
 
+/-- Under odd-coefficient control, a shifted inverse-even-power coefficient series sums to its
+fixed-depth Dyson term. -/
 theorem shifted_depth_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q)
     (t : ℝ) (ht : |t| ≤ r) (l : ℕ) :
@@ -75,6 +106,8 @@ theorem shifted_depth_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, A
   · simp only [if_pos hk, Nat.sub_add_cancel hk]
   · simp only [if_neg hk, smul_zero]
 
+/-- The inverse-even-power series of collected coefficients sums to the Dyson terms of positive
+depths below p. -/
 theorem prefix_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q)
     (t : ℝ) (ht : |t| ≤ r) (p : ℕ) :
@@ -85,6 +118,7 @@ theorem prefix_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A
     (fun j _ => shifted_depth_hasSum xs hxs r J hc q hq t ht (j + 1))
   simpa only [orderCoefficient, Finset.smul_sum] using! h
 
+/-- The collected Dyson prefix is the sum of the series indexed by positive inverse-even powers. -/
 theorem positive_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q)
     (t : ℝ) (ht : |t| ≤ r) (p : ℕ) :
@@ -96,6 +130,9 @@ theorem positive_hasSum (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ =
   simpa only [Finset.sum_range_one, orderCoefficient_zero, smul_zero, add_zero] using!
     prefix_hasSum xs hxs r J hc q hq t ht p
 
+/-- For Hermitian generators under odd-coefficient control, the repeated formula equals the
+target exponential plus the collected coefficient series and a Dyson remainder with the
+stated mass-profile bound. -/
 theorem repetition_series (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : ℕ) (hq : 0 < q)
     (t : ℝ) (ht : |t| ≤ r) (p : ℕ) (hp : 0 < p) :

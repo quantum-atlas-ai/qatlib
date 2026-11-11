@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.EstimatorLaws.MergedEstimator.Lemma18TransportContracts
 import Qatlib.Concepts.AmplitudeSearch.NativeMean
+
+/-!
+# Restricted signed-estimator transport contract
+
+States the restricted signed rational-estimator stability property associated with Lemma 18 of
+[Montanaro2015]. Its hypotheses compare payoff-value laws of two unitary preparations and bound
+the variance under the second preparation; the proposition itself supplies no proof.
+
+## Main statements
+
+* `MontanaroLemma18RestrictedSubgoal` specifies a median failure bound at error `9 * σ * 2⁻ᵏ`,
+  with intrinsic failure `(143 / 144)^r` and explicit perturbation terms.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +40,9 @@ namespace Qatlib.Concepts.EstimatorLaws.MergedEstimator
 
 open Qatlib
 
+/-- The proposition requiring the restricted Lemma 18 stability bound of [Montanaro2015] for the
+native signed rational median estimator. It assumes `k ≥ 4`, positive `σ`, payoff-value L1
+distance at most `2 * γ`, and variance at most `σ²` under the second preparation. -/
 def MontanaroLemma18RestrictedSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A₁ A₂ : Matrix I I ℂ) (j : I)
     (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ),

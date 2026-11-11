@@ -9,6 +9,35 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
 import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Hermitian Polynomial Transform Stability
+
+`hermitianResponseWord` specializes real-part quantum singular value transformation to Hermitian
+matrix polynomial evaluation, using the polynomial framework of [GilyenSuLowWiebe2019]. Odd and
+even parity select the appropriate block of the Hermitian dilation, and a projected unitary
+encoding places the input spectrum in `[-1, 1]`.
+
+One phase sequence realizes the same bounded polynomial for two Hermitian inputs sharing a
+frame. A scalar Lipschitz bound gives a `spectralFrobenius` perturbation estimate for their
+compressed circuit outputs; a positive output-norm gap then yields perturbed postselection
+probability and normalized-output bounds. The word uses `d` adjoint queries and `d + 1` gates.
+
+## Main statements
+
+* `hermitian_dilation_polynomial_odd` and `hermitian_dilation_polynomial_even` identify the
+  dilation blocks.
+- `hermitianResponseWord_counts` gives the circuit resource counts.
+* `hermitian_same_word_actual_qsvt_frobenius_stability` gives the shared-word transform and
+  perturbation bound.
+- `hermitian_same_word_actual_perturbed_postselection` transfers stability to postselection.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019], *Quantum singular value transformation and
+  beyond: exponential improvements for quantum matrix arithmetics*.
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
@@ -35,11 +64,15 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Compiles a real-part QSVT response word using the frame range projector, swapping forward
+and backward queries when `d` is even. -/
 noncomputable def hermitianResponseWord {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     (F : Matrix H I ℂ) (d : ℕ) (base : ℂ) (zs : List ℂ) : List (AdjointStep (Bool×H)) :=
   if d%2=1 then compileRealPartQSVT (rangeProjector F) (rangeProjector F) base zs
   else (compileRealPartQSVT (rangeProjector F) (rangeProjector F) base zs).map swapQueries
 
+/-- A polynomial with odd real parity factors as `X * q.comp (X^2)` for some real polynomial
+`q`. -/
 theorem hermitian_odd_polynomial_factor {p : Polynomial ℝ} {d : ℕ}
     (hp : HasRealParity d p) (hd : d%2=1) :
     ∃ q : Polynomial ℝ,p=X*q.comp (X^2) := by
@@ -63,6 +96,9 @@ theorem hermitian_odd_polynomial_factor {p : Polynomial ℝ} {d : ℕ}
   rw [comp_square_contract_of_even heven]
   exact hdiv.symm
 
+/-- For a Hermitian matrix and an odd-parity real polynomial, the upper-right block of the
+polynomial evaluated on the Hermitian dilation equals the polynomial evaluated on the
+matrix. -/
 theorem hermitian_dilation_polynomial_odd {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (p : Polynomial ℝ) (d : ℕ)
     (hp : HasRealParity d p) (hd : d%2=1) :
@@ -79,6 +115,9 @@ theorem hermitian_dilation_polynomial_odd {I : Type} [Fintype I] [DecidableEq I]
     Polynomial.aeval_mul,Polynomial.aeval_X,Polynomial.aeval_comp,Polynomial.aeval_X_pow,
     ha,pow_two]
 
+/-- For a Hermitian matrix and an even-parity real polynomial, the lower-right block of the
+polynomial evaluated on the Hermitian dilation equals the polynomial evaluated on the
+matrix. -/
 theorem hermitian_dilation_polynomial_even {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (p : Polynomial ℝ) (d : ℕ)
     (hp : HasRealParity d p) (hd : d%2=0) :
@@ -97,6 +136,8 @@ theorem hermitian_dilation_polynomial_even {I : Type} [Fintype I] [DecidableEq I
   simp only [Matrix.toBlocks_fromBlocks₂₂,evenSingularPolynomial,Polynomial.aeval_comp,
     Polynomial.aeval_X_pow,Polynomial.aeval_mul,Polynomial.aeval_X,ha,pow_two]
 
+/-- Every ordered eigenvalue of a Hermitian matrix with a projected unitary encoding lies in
+`[-1, 1]`. -/
 theorem hermitian_encoding_spectrum_interval {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (hA : A.IsHermitian)
     (U : Matrix H H ℂ) (F : Matrix H I ℂ) (h : ProjectedUnitaryEncoding A U F F)
@@ -111,6 +152,8 @@ theorem hermitian_encoding_spectrum_interval {H I : Type} [Fintype H] [Decidable
     mul_one,mul_one,Complex.norm_real,Real.norm_eq_abs] at hv
   exact abs_le.mp (hv.trans hn)
 
+/-- If the phase list has length `d`, the Hermitian response word has `d` adjoint queries and `d
++ 1` gates. -/
 theorem hermitianResponseWord_counts {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     (F : Matrix H I ℂ) (d : ℕ) (base : ℂ) (zs : List ℂ) (hn : zs.length=d) :
     adjointQueryCount (hermitianResponseWord F d base zs)=d ∧
@@ -121,6 +164,11 @@ theorem hermitianResponseWord_counts {H I : Type} [Fintype H] [DecidableEq H] [F
   · simpa only [hn] using h
   · simpa only [adjointQueryCount_swapQueries,adjointGateCount_swapQueries,hn] using h
 
+/-- For two Hermitian inputs encoded with the same frame, a real polynomial of degree at most
+`d`, bounded by one on `[-1, 1]` and with matching parity, has one phase word encoding its
+evaluation on both inputs with `d` queries and `d + 1` gates. If the polynomial is
+`L`-Lipschitz on `[-1, 1]`, the compressed outputs differ in spectral Frobenius norm by at
+most `L*spectralFrobenius (A-B)`. -/
 theorem hermitian_same_word_actual_qsvt_frobenius_stability : ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ)
     (p : Polynomial ℝ) (d : ℕ) (L : ℝ),
@@ -177,6 +225,10 @@ theorem hermitian_same_word_actual_qsvt_frobenius_stability : ∀ (H I : Type) [
       hLip _ (hermitian_encoding_spectrum_interval A hA U F hAU i)
         _ (hermitian_encoding_spectrum_interval B hB V F hBV j)
 
+/-- Under the shared-frame polynomial hypotheses, let `T = p(A)` and `η = L*spectralFrobenius
+(A-B)` for normalized input `ψ`; if `η < ‖Tψ‖`, the circuit using the encoding of `B` has
+postselection probability at least `(‖Tψ‖-η)^2`. Its normalized output approximates the
+normalized application of `T` with error `2*η/‖Tψ‖`, using `d` queries and `d + 1` gates. -/
 theorem hermitian_same_word_actual_perturbed_postselection : ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ)
     (p : Polynomial ℝ) (d : ℕ) (L : ℝ) (ψ : QState I),

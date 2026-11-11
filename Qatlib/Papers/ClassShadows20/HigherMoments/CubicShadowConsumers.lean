@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClassShadows20.HigherMoments.CubicPauliShadows
+
+/-!
+# Exact cubic shadow evaluation
+
+`cubicKernelRat` and `cubicURatCounted` evaluate the cubic shadow estimator with rational
+arithmetic while counting local products and record triples. The module relates these
+computations to the real estimator and gives a four-dimensional mixed-state example with cubic
+moment `5/32`.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `cubic_shadow_rational_fold_and_actual_resources`: identifies the rational estimator and exact
+  record and operation counts.
+* `cubic_shadow_genuine_four_dimensional_mixed_consumer`: specializes unbiased estimation to an
+  explicit mixed state.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,23 +44,30 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder
 set_option autoImplicit false
 
+/-- The rational real part of the product of the local Gaussian rational cubic traces. -/
 def cubicKernelRat {n : ℕ} (a b c : Fin n → Fin 3 × Bool) : ℚ :=
   ((List.ofFn (fun i => cubicLocalRat (a i) (b i) (c i))).foldl gaussianRatMul (1,0)).1
 
+/-- The rational cubic kernel together with a counter for its local Gaussian rational products. -/
 def cubicKernelRatCounted {n : ℕ} (a b c : Fin n → Fin 3 × Bool) : ℚ × ℕ :=
   let z := (List.ofFn (fun i => cubicLocalRat (a i) (b i) (c i))).foldl
     (fun z v => (gaussianRatMul z.1 v,z.2+1)) ((1,0),0)
   (z.1.1,z.2)
 
+/-- The rational cubic U-statistic with counters for the number of record triples and local
+products evaluated. -/
 def cubicURatCounted {n m : ℕ} (ω : Fin m → Fin n → Fin 3 × Bool) : ℚ × ℕ × ℕ :=
   let a := (tripleIndexList m).foldl (fun a t =>
     let v := cubicKernelRatCounted (ω t.1) (ω t.2.1) (ω t.2.2)
     (a.1+v.1,a.2.1+1,a.2.2+v.2)) (0,0,0)
   (a.1/(m.choose 3:ℚ),a.2.1,a.2.2)
 
+/-- The four-dimensional diagonal operator with diagonal entries `1/2`, `1/4`, `1/4`, and zero. -/
 noncomputable def cubicMixedTwo : Operator 4 :=
   Matrix.diagonal ![(1/2:ℂ),1/4,1/4,0]
 
+/-- Converting a fold of Gaussian rational multiplications to complex numbers gives the initial
+value times the product of the converted factors. -/
 private theorem cubic_gaussian_fold (vs : List (ℚ × ℚ)) (a : ℚ × ℚ) :
     cubicGaussianComplex (vs.foldl gaussianRatMul a) =
       cubicGaussianComplex a*(vs.map cubicGaussianComplex).prod := by
@@ -45,6 +75,8 @@ private theorem cubic_gaussian_fold (vs : List (ℚ × ℚ)) (a : ℚ × ℚ) :
   | nil => simp
   | cons v vs ih => simp only [List.foldl_cons,ih,gaussianRatMul_complex,List.map_cons,List.prod_cons]; ring
 
+/-- A fold of counted Gaussian rational products returns the uncounted product and increments
+its counter by the list length. -/
 private theorem cubic_local_count_fold (vs : List (ℚ × ℚ)) (a : (ℚ × ℚ) × ℕ) :
     vs.foldl (fun z v => (gaussianRatMul z.1 v,z.2+1)) a =
       (vs.foldl gaussianRatMul a.1,a.2+vs.length) := by
@@ -52,10 +84,12 @@ private theorem cubic_local_count_fold (vs : List (ℚ × ℚ)) (a : (ℚ × ℚ
   | nil => rfl
   | cons v vs ih => simp [ih,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
 
+/-- The counted rational kernel returns `cubicKernelRat` and exactly `n` local products. -/
 theorem cubicKernelRatCounted_spec {n : ℕ} (a b c : Fin n → Fin 3 × Bool) :
     cubicKernelRatCounted a b c = (cubicKernelRat a b c,n) := by
   simp [cubicKernelRatCounted,cubic_local_count_fold,cubicKernelRat]
 
+/-- The rational cubic kernel, cast to the reals, equals the cubic shadow kernel. -/
 theorem cubicKernelRat_real {n : ℕ} (a b c : Fin n → Fin 3 × Bool) :
     (cubicKernelRat a b c : ℝ) = cubicShadowKernel n a b c := by
   have he := cubic_gaussian_fold (List.ofFn (fun i => cubicLocalRat (a i) (b i) (c i))) (1,0)
@@ -70,6 +104,8 @@ theorem cubicKernelRat_real {n : ℕ} (a b c : Fin n → Fin 3 × Bool) :
   have hr := congrArg Complex.re ht
   simpa [cubicShadowKernel,cubicKernelRat,cubicGaussianComplex] using hr.symm
 
+/-- The triple fold accumulates the sum of rational values, the list length, and the sum of the
+supplied local operation counts. -/
 private theorem cubic_triple_count_fold {T : Type} (f : T → ℚ × ℕ)
     (ts : List T) (a : ℚ × ℕ × ℕ) :
     ts.foldl (fun a t => let v := f t; (a.1+v.1,a.2.1+1,a.2.2+v.2)) a =
@@ -79,6 +115,9 @@ private theorem cubic_triple_count_fold {T : Type} (f : T → ℚ × ℕ)
   | nil => simp
   | cons t ts ih => simp [ih,add_assoc,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
 
+/-- The counted rational estimator equals the real cubic U-statistic and evaluates `m.choose 3`
+triples and `n * (m.choose 3)` local products. The fresh-record resource tuple is
+`((2*r+1)*m, 2*n*((2*r+1)*m), n*((2*r+1)*m), 0)`. -/
 theorem cubic_shadow_rational_fold_and_actual_resources (n m r : ℕ)
     (ω : Fin m → Fin n → Fin 3 × Bool)
     (W : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) :
@@ -101,6 +140,7 @@ theorem cubic_shadow_rational_fold_and_actual_resources (n m r : ℕ)
   | nil => simp
   | cons t ts ih => simp only [List.map_cons,List.sum_cons,Rat.cast_add,cubicKernelRat_real,ih]
 
+/-- The explicit diagonal operator `cubicMixedTwo` is a density operator. -/
 theorem cubicMixedTwo_density : IsDensityOperator cubicMixedTwo := by
   constructor
   · rw [cubicMixedTwo,Matrix.posSemidef_diagonal_iff]
@@ -108,10 +148,13 @@ theorem cubicMixedTwo_density : IsDensityOperator cubicMixedTwo := by
     fin_cases i <;> norm_num [Complex.nonneg_iff]
   · norm_num [cubicMixedTwo,Matrix.trace_diagonal,Fin.sum_univ_succ]
 
+/-- The real trace of the cube of `cubicMixedTwo` is `5/32`. -/
 theorem cubicMixedTwo_trace_cube : (Matrix.trace (cubicMixedTwo^3)).re = 5/32 := by
   norm_num [cubicMixedTwo,pow_succ,Matrix.diagonal_mul_diagonal,Matrix.trace_diagonal,
     Fin.sum_univ_succ]
 
+/-- The explicit operator is a density operator with cubic moment `5/32`, and its cubic shadow
+U-statistic has that expectation for every sample size at least three. -/
 theorem cubic_shadow_genuine_four_dimensional_mixed_consumer :
     IsDensityOperator cubicMixedTwo ∧
     (Matrix.trace (cubicMixedTwo^3)).re=5/32 ∧

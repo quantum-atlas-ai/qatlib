@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualSketch
+
+/-!
+# Column sampling from actual PCA sketches
+
+Builds column access for the sampled-row sketch used in the classical PCA construction of
+[Tang2021]. Cached row energies and explicit column entry reads recover the sketch energies,
+while a mixture of original-row coordinate laws has the same probabilities as `pcaColumnLaw`.
+
+## Main statements
+
+* `pcaColumnMixture_entry`: A sketch row's energy times the original row's coordinate
+  probability equals the squared modulus of the corresponding sketch entry.
+* `pcaColumnMixture_probability`: The row-mixture construction and `pcaColumnLaw` assign the
+  same probability to each column.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,8 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 
+/-- The squared-modulus coordinate distribution of a positive-energy row of `A`, with
+`pcaPointLaw` as the fallback for a zero-energy row. -/
 def pcaRawCoordinateLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hd : 0 < d) (i : Fin n) : FinDist (Fin d) :=
   if h : 0 < sketchRowSquared A i then {
@@ -28,10 +50,13 @@ def pcaRawCoordinateLaw {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
       exact div_self h.ne'
   } else pcaPointLaw hd
 
+/-- The energy of a sampled row computed from its cached rescaling factor and the corresponding
+original row energy. -/
 def pcaCachedRowEnergy {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) (t : Fin q) : ℝ :=
   ((compactSketchData (pcaRowLaw A hA) q rows t).2) ^ 2 * sketchRowSquared A (rows t)
 
+/-- The cached row energy equals the actual energy of the corresponding row of `pcaRowSketch`. -/
 theorem pcaCachedRowEnergy_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) (t : Fin q) :
     pcaCachedRowEnergy A hA q rows t = sketchRowSquared (pcaRowSketch A hA q rows) t := by
@@ -39,21 +64,27 @@ theorem pcaCachedRowEnergy_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     compactSketchEntry, compactSketchData, Complex.normSq_mul, Complex.normSq_ofReal, ← Finset.mul_sum]
   ring
 
+/-- The sum of the cached energies of the sampled sketch rows. -/
 def pcaCachedTotalEnergy {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) : ℝ :=
   ∑ t, pcaCachedRowEnergy A hA q rows t
 
+/-- The cached total energy equals the squared Frobenius norm of the actual row sketch. -/
 theorem pcaCachedTotalEnergy_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) :
     pcaCachedTotalEnergy A hA q rows = sketchSquared (pcaRowSketch A hA q rows) := by
   simp only [pcaCachedTotalEnergy, pcaCachedRowEnergy_spec, sketchSquared]
 
+/-- The column energy computed by reading each compact sketch entry, together with the
+accumulated entry-read count. -/
 def pcaColumnEnergyRead {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) (j : Fin d) : ℝ × ℕ :=
   let points :=
       List.ofFn fun t => compactSketchEntry (compactSketchData (pcaRowLaw A hA) q rows) A t j
   ((points.map fun z => Complex.normSq z.1).sum, (points.map Prod.snd).sum)
 
+/-- The column-energy read returns the corresponding row energy of the adjoint sketch and has
+entry-read count `q`. -/
 theorem pcaColumnEnergyRead_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (q : ℕ) (rows : Fin q → Fin n) (j : Fin d) :
     (pcaColumnEnergyRead A hA q rows j).1 = sketchRowSquared (pcaRowSketch A hA q rows)ᴴ j ∧
@@ -64,6 +95,8 @@ theorem pcaColumnEnergyRead_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
       pcaRowSketch, compactSketched]
   · simp [pcaColumnEnergyRead, compactSketchEntry, Function.comp_def, List.sum_ofFn]
 
+/-- The coordinate law obtained by sampling a sketch row by energy and then a coordinate from
+its original row, with `pcaPointLaw` as the zero-energy fallback. -/
 def pcaColumnMixture {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) (rows : Fin q → Fin n) : FinDist (Fin d) :=
   if hR : 0 < sketchSquared (pcaRowSketch A hA q rows) then {
@@ -77,6 +110,8 @@ def pcaColumnMixture {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
         (pcaRowLaw _ hR).sum_one]
   } else pcaPointLaw hd
 
+/-- A sketch row's energy times the original row's coordinate probability equals the squared
+modulus of the corresponding sketch entry. -/
 theorem pcaColumnMixture_entry {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) (rows : Fin q → Fin n)
     (t : Fin q) (j : Fin d) :
@@ -97,6 +132,7 @@ theorem pcaColumnMixture_entry {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     have hz := sketchRowSquared_eq_zero_entry A (rows t) hzero j
     simp only [pcaCachedRowEnergy, hzero, mul_zero, zero_mul, hz, Complex.normSq_zero]
 
+/-- The row-mixture construction and `pcaColumnLaw` assign the same probability to each column. -/
 theorem pcaColumnMixture_probability {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) (rows : Fin q → Fin n) (j : Fin d) :
     (pcaColumnMixture A hA hd q rows).prob j = (pcaColumnLaw A hA hd q rows).prob j := by

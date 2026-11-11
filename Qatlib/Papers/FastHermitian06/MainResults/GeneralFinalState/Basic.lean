@@ -8,6 +8,26 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Qatlib.Papers.FastHermitian06.MainResults.Defs
+
+/-!
+# General two-level Hamiltonian parameters
+
+`H4` defines a general two-level matrix with traceless part `sigmaNGen` and squared-gap
+expression `omegaSqGen`. Its scalar-square identity gives a dimensionless hyperbolic constraint;
+explicit solutions show that the associated time parameter can have arbitrarily small absolute
+value. See [BenderEtAl2007].
+
+## Main statements
+
+* `sigmaNGen_sq`: the traceless part squares to `omegaSqGen / 4` times the identity.
+* `laurent_small_T`: constructs small time parameters on the hyperbola.
+* `small_T_leading_Z`: realizes these parameters at angle `π / 3` with squared gap one.
+
+## References
+
+* [Bender et al., 2007][BenderEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,32 +41,41 @@ namespace Qatlib.Papers.FastHermitian06.MainResults.GeneralFinalState
 
 open Qatlib.Papers.FastHermitian06.MainResults.Defs
 
+/-- The squared-gap expression `4 * z^2 / sin(γ)^2 - 4 * y^2 / cos(γ)^2`. -/
 def omegaSqGen (y z γ : ℝ) : ℝ :=
   4 * z ^ 2 / (Real.sin γ) ^ 2 - 4 * y ^ 2 / (Real.cos γ) ^ 2
 
+/-- The two-level matrix with diagonal entries `x ± (z + I * y)` and common off-diagonal entry
+`z / tan γ - I * y * tan γ`. -/
 def H4 (x y z γ : ℝ) : Mat2 :=
   !![ ((x : ℂ) + (z : ℂ) + (y : ℂ) * Complex.I),
       ((z / Real.tan γ : ℝ) : ℂ) - ((y * Real.tan γ : ℝ) : ℂ) * Complex.I;
       ((z / Real.tan γ : ℝ) : ℂ) - ((y * Real.tan γ : ℝ) : ℂ) * Complex.I,
       ((x : ℂ) - (z : ℂ) - (y : ℂ) * Complex.I) ]
 
+/-- The real parity matrix with rows `(sin γ, cos γ)` and `(cos γ, -sin γ)`. -/
 def parityGamma (γ : ℝ) : Mat2 :=
   !![(Real.sin γ : ℂ), (Real.cos γ : ℂ); (Real.cos γ : ℂ), -(Real.sin γ : ℂ)]
 
+/-- The matrix transformation `P * conjT M * P` for a specified matrix `P`. -/
 def PTg (P M : Mat2) : Mat2 := P * conjT M * P
 
+/-- The traceless part of `H4 x y z γ`, independent of `x`. -/
 def sigmaNGen (y z γ : ℝ) : Mat2 :=
   !![ ((z : ℂ) + (y : ℂ) * Complex.I),
       ((z / Real.tan γ : ℝ) : ℂ) - ((y * Real.tan γ : ℝ) : ℂ) * Complex.I;
       ((z / Real.tan γ : ℝ) : ℂ) - ((y * Real.tan γ : ℝ) : ℂ) * Complex.I,
       -((z : ℂ) + (y : ℂ) * Complex.I) ]
 
+/-- Decomposes `H4` into `x` times the identity and `sigmaNGen`. -/
 theorem H4_decomp (x y z γ : ℝ) :
     H4 x y z γ = (x : ℂ) • (1 : Mat2) + sigmaNGen y z γ := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [H4, sigmaNGen, Matrix.smul_apply] <;> ring
 
+/-- When both `sin γ` and `cos γ` are nonzero, the square of `sigmaNGen` is `omegaSqGen / 4`
+times the identity. -/
 theorem sigmaNGen_sq (y z γ : ℝ) (hsin : Real.sin γ ≠ 0)
     (hcos : Real.cos γ ≠ 0) :
     sigmaNGen y z γ * sigmaNGen y z γ = (omegaSqGen y z γ / 4) • (1 : Mat2) := by
@@ -68,6 +97,8 @@ theorem sigmaNGen_sq (y z γ : ℝ) (hsin : Real.sin γ ≠ 0)
     linear_combination (z ^ 2 * Real.cos γ ^ 2 - y ^ 2 * Real.sin γ ^ 2)
       * Real.sin_sq_add_cos_sq γ
 
+/-- The dimensionless parameters determined by a positive gap satisfy `1 = Z^2 - Y^2 * (1 / cos
+γ)^2`. -/
 theorem dimensionless_hyperbolic_constraint (y z γ ω Z Y : ℝ) (hω : 0 < ω)
     (hsin : Real.sin γ ≠ 0) (hcos : Real.cos γ ≠ 0)
     (hωsq : ω ^ 2 = omegaSqGen y z γ)
@@ -84,6 +115,8 @@ theorem dimensionless_hyperbolic_constraint (y z γ ω Z Y : ℝ) (hω : 0 < ω)
   field_simp [ne_of_gt hω, hsin, hcos]
   linear_combination hkey
 
+/-- The hyperbola `1 = Z^2 - 4 * Y^2` has positive `Z` coordinates exceeding any prescribed
+lower bound. -/
 theorem hyperbolic_constraint_unbounded (Z₀ : ℝ) :
     ∃ Z Y : ℝ, Z₀ ≤ Z ∧ 0 < Z ∧ 1 = Z ^ 2 - 4 * Y ^ 2 := by
   set k : ℝ := max Z₀ 0 with hk
@@ -103,6 +136,8 @@ theorem hyperbolic_constraint_unbounded (Z₀ : ℝ) :
     rw [hsq]
     ring
 
+/-- For nonzero `u` and positive `ε`, the hyperbola has a point with `T = -u / Z`, `|T| < ε`,
+and `Z > |u| / ε`. -/
 theorem laurent_small_T (u : ℝ) (hu : u ≠ 0) (ε : ℝ) (hε : 0 < ε) :
     ∃ Z Y T : ℝ, 0 < Z ∧ 1 = Z ^ 2 - 4 * Y ^ 2 ∧
       T = -u / Z ∧ |T| < ε ∧ |u| / ε < Z := by
@@ -127,6 +162,8 @@ theorem laurent_small_T (u : ℝ) (hu : u ≠ 0) (ε : ℝ) (hε : 0 < ε) :
     rw [div_lt_iff₀ hZpos]
     linarith
 
+/-- For nonzero `u` and positive `ε`, constructs parameters at angle `π / 3` with squared gap
+one and the stated small-time and lower-bound relations. -/
 theorem small_T_leading_Z (u : ℝ) (hu : u ≠ 0) (ε : ℝ) (hε : 0 < ε) :
     ∃ _x y z t T : ℝ,
       0 < z ∧

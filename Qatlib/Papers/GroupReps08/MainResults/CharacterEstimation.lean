@@ -9,6 +9,24 @@ import Mathlib.Algebra.BigOperators.Field
 import Mathlib.Analysis.Normed.Group.Basic
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Uniform sampling for normalized character estimates
+
+This module defines the uniform finite law and proves sampling bounds for a real function whose
+sum equals a supplied character value. With the explicit identity and pointwise bound assumed,
+`normalized_character_sample_bound` gives the normalized-character estimate used in
+[Jordan2008a].
+
+## Main statements
+
+* `normalized_character_expectation`: the uniform expectation of a character summand.
+* `normalized_character_sample_bound`: a `4 / (L * ε^2)` deviation bound.
+
+## References
+
+* [Jordan, 2008][Jordan2008a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,6 +38,7 @@ namespace Qatlib.Papers.GroupReps08.MainResults.CharacterEstimation
 
 variable {Λ : Type*} [Fintype Λ] [Nonempty Λ]
 
+/-- The uniform probability distribution on a finite nonempty type [Jordan2008a]. -/
 def uniformLaw (Λ : Type*) [Fintype Λ] [Nonempty Λ] : FinDist Λ where
   prob _ := (Fintype.card Λ : ℝ)⁻¹
   nonneg _ := by positivity
@@ -29,12 +48,16 @@ def uniformLaw (Λ : Type*) [Fintype Λ] [Nonempty Λ] : FinDist Λ where
       exact_mod_cast (Fintype.card_ne_zero : Fintype.card Λ ≠ 0)
     field_simp
 
+/-- If `χ` is the sum of `W`, the uniform expectation of `W` equals `χ` divided by the
+cardinality of the sample space [Jordan2008a]. -/
 theorem normalized_character_expectation (W : Λ → ℝ) (χ : ℝ)
     (hRoichman : χ = ∑ x, W x) :
     (uniformLaw Λ).expect W = χ / (Fintype.card Λ : ℝ) := by
   show (∑ x, (Fintype.card Λ : ℝ)⁻¹ * W x) = χ / (Fintype.card Λ : ℝ)
   rw [← Finset.mul_sum, ← hRoichman, div_eq_inv_mul]
 
+/-- A real function bounded in absolute value by one has uniform expectation bounded in absolute
+value by one [Jordan2008a]. -/
 theorem abs_expect_le_one (W : Λ → ℝ) (hf : ∀ x, |W x| ≤ 1) :
     |(uniformLaw Λ).expect W| ≤ 1 := by
   show |∑ x, (Fintype.card Λ : ℝ)⁻¹ * W x| ≤ 1
@@ -53,6 +76,8 @@ theorem abs_expect_le_one (W : Λ → ℝ) (hf : ∀ x, |W x| ≤ 1) :
             exact_mod_cast (Fintype.card_ne_zero : Fintype.card Λ ≠ 0)
           field_simp
 
+/-- A real function bounded in absolute value by one has uniform variance at most four
+[Jordan2008a]. -/
 theorem uniform_variance_le_four (W : Λ → ℝ) (hf : ∀ x, |W x| ≤ 1) :
     (uniformLaw Λ).variance W ≤ 4 := by
   have hμ := abs_expect_le_one W hf
@@ -77,6 +102,9 @@ theorem uniform_variance_le_four (W : Λ → ℝ) (hf : ∀ x, |W x| ≤ 1) :
             exact_mod_cast (Fintype.card_ne_zero : Fintype.card Λ ≠ 0)
           field_simp
 
+/-- Given the character-sum identity and `|W| ≤ 1`, the probability that the average of `L > 0`
+uniform samples differs from the normalized character by more than positive `ε` is at most
+`4 / (L * ε^2)` [Jordan2008a]. -/
 theorem normalized_character_sample_bound [DecidableEq Λ] (W : Λ → ℝ) (χ : ℝ)
     (hRoichman : χ = ∑ x, W x) (hf : ∀ x, |W x| ≤ 1)
     (L : ℕ) (hL : 0 < L) (ε : ℝ) (hε : 0 < ε) :

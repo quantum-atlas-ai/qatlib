@@ -8,14 +8,36 @@ import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
 
+/-!
+# Encoding a phase as a real mean
+
+The function `phaseMean` encodes a real angle θ as (1 - cos(θ / 2)) / 2. This module proves
+error bounds, a global Lipschitz estimate, and symmetry and periodicity identities for this
+trigonometric encoding; quantum phase and amplitude encodings are discussed in
+[NielsenChuang2010].
+
+## Main statements
+
+* `phaseMean_lipschitz`: The encoding is globally Lipschitz with constant 1/4.
+* `phaseMean_error_restricted`: A guarded interval yields a sharper cosine error bound.
+* `phaseMean_not_injective`: The encoding is not injective on the real line.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 namespace Qatlib.Foundations.PhaseGeometry.AngleEncoding
 
 set_option autoImplicit false
 
 noncomputable section
 
+/-- The real mean (1 - cos(θ / 2)) / 2 associated with a phase angle `θ`. -/
 def phaseMean (θ : ℝ) : ℝ := (1 - Real.cos (θ / 2)) / 2
 
+/-- If `θhat` lies in [0, π), `0 < ε ≤ 1`, and `|θhat - θ| ≤ ε`, the mean error is at most
+`|Real.cos ((θhat + ε) / 2) - Real.cos (θhat / 2)|`. -/
 theorem phaseMean_error_le
     {θhat θ ε : ℝ}
     (hclose : |θhat - θ| ≤ ε) (h0 : 0 ≤ θhat) (hpi : θhat < Real.pi)
@@ -139,6 +161,8 @@ theorem phaseMean_error_le
   rw [hL, hR]
   exact mul_le_mul hB hA (abs_nonneg _) (by linarith [hsinw.le])
 
+/-- The difference of two encoded means is at most one quarter of the difference of their angles
+in absolute value. -/
 theorem phaseMean_lipschitz (a b : ℝ) : |phaseMean a - phaseMean b| ≤ |a - b| / 4 := by
   have h := Real.abs_cos_sub_cos_le (a/2) (b/2)
   have hdiff : phaseMean a - phaseMean b = -(Real.cos (a/2) - Real.cos (b/2)) / 2 := by
@@ -147,6 +171,8 @@ theorem phaseMean_lipschitz (a b : ℝ) : |phaseMean a - phaseMean b| ≤ |a - b
   rw [show a/2-b/2=(a-b)/2 by ring, abs_div, abs_two] at h
   linarith
 
+/-- For nonnegative `θ` and `θhat` with `θhat ≤ π - 2ε`, `0 < ε ≤ 1`, and `|θhat - θ| ≤ ε`, the
+mean error is at most half the forward cosine difference. -/
 theorem phaseMean_error_restricted {θhat θ ε : ℝ}
     (hθ : 0 ≤ θ) (hclose : |θhat - θ| ≤ ε) (h0 : 0 ≤ θhat)
     (hguard : θhat ≤ Real.pi - 2 * ε) (hε0 : 0 < ε) (_hε1 : ε ≤ 1) :
@@ -182,19 +208,23 @@ theorem phaseMean_error_restricted {θhat θ ε : ℝ}
   simp only [abs_mul, abs_neg, abs_two, abs_of_nonneg hsw, abs_of_nonneg hsinε]
   nlinarith [mul_le_mul hsu hsv (abs_nonneg _) hsw]
 
+/-- Negating the phase leaves `phaseMean` unchanged. -/
 theorem phaseMean_neg (θ : ℝ) : phaseMean (-θ) = phaseMean θ := by
   simp [phaseMean, neg_div, Real.cos_neg]
 
+/-- Adding 4π to the phase leaves `phaseMean` unchanged. -/
 theorem phaseMean_period (θ : ℝ) : phaseMean (θ + 4 * Real.pi) = phaseMean θ := by
   unfold phaseMean
   rw [show (θ + 4 * Real.pi)/2 = θ/2 + 2*Real.pi by ring, Real.cos_add_two_pi]
 
+/-- Replacing `θ` by `2 * Real.pi - θ` complements the encoded mean. -/
 theorem phaseMean_complement (θ : ℝ) :
     phaseMean (2 * Real.pi - θ) = 1 - phaseMean θ := by
   unfold phaseMean
   rw [show (2 * Real.pi - θ)/2 = Real.pi - θ/2 by ring, Real.cos_pi_sub]
   ring
 
+/-- The function `phaseMean` is not injective. -/
 theorem phaseMean_not_injective : ¬Function.Injective phaseMean := by
   intro h
   have he := h (phaseMean_period 0)

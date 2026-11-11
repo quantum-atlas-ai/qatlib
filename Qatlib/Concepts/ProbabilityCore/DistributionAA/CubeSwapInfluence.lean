@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+
+/-!
+# Swap energy controlled by flip influences
+
+The module bounds the expected squared change under a coordinate swap by twice the sum of the
+two coordinate flip influences under `nuWeight`. The proof uses slice symmetry and the two flip
+path between an input and its swap.
+
+This estimate supplies a variance comparison tool for Boolean cube functions in the polynomial
+query setting of [BealsEtAl2001].
+
+## Main statements
+
+* `cube_swap_influence_le`: swap energy is at most twice the sum of the two flip influences for
+  `0 < p < 1`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 open Qatlib.Concepts.ProbabilityCore.DistributionAA
 
 set_option autoImplicit false
@@ -13,6 +34,8 @@ noncomputable section
 namespace Qatlib.Concepts.ProbabilityCore.DistributionAA
 open scoped Classical BigOperators
 
+/-- For `0 < p < 1`, the expected squared change under swapping coordinates `i` and `j` on the
+selected slice is at most twice the sum of their flip influences. -/
 theorem cube_swap_influence_le {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     {f : (Fin n → Bool) → ℝ} (i j : Fin n) :
     cubeExpect n (nuWeight p n) (fun x => (f x-f (cubeSwap x i j))^2) ≤

@@ -86,6 +86,27 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.CertQuery09.MainResults.Source.SpectralBound
 import Qatlib.Papers.CertQuery09.MainResults.Source.QueryLowerSum
+
+/-!
+# An explicit two-level adversary matrix
+
+This module represents Boolean matrices having one all-true row and exactly one false entry in
+every other row. Adjacency between representatives gives a symmetric nonnegative adversary
+matrix for identifying the distinguished row, as used in the two-level certification analysis of
+[AmbainisEtAl2009].
+
+## Main statements
+
+* `gammaRep_opNorm`: computes the matrix norm as `d * (d - 1)`.
+* `gammaRep_advDenom_le`: bounds each query-filtered operator norm by `d`.
+* `two_level_advValue_ge`: proves the adversary-value lower bound `d - 1` when the ratio set is
+  bounded above.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,16 +120,23 @@ open scoped Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.CertQuery09.MainResults.Source
 
+/-- The promise that a Boolean `d × d` matrix has exactly one all-true row and exactly one false
+entry in each remaining row. -/
 def TwoLevelPromise (d : ℕ) (x : Fin d → Fin d → Bool) : Prop :=
   (∃! j : Fin d, ∀ i : Fin d, x j i = true) ∧
     (∀ j : Fin d, ¬ (∀ i : Fin d, x j i = true) → ∃! i : Fin d, x j i = false)
 
+/-- A distinguished row and a position function fixing that row, with other positions encoding
+the unique false entry of each remaining row. -/
 abbrev TwoLevelRep (d : ℕ) : Type := { q : Fin d × (Fin d → Fin d) // q.2 q.1 = q.1 }
 
+/-- The distinguished row of a two-level representative. -/
 def repRow {d : ℕ} (p : TwoLevelRep d) : Fin d := p.1.1
 
+/-- The stored column-position function of a two-level representative. -/
 def repPos {d : ℕ} (p : TwoLevelRep d) : Fin d → Fin d := p.1.2
 
+/-- The stored position at the distinguished row equals that row's index. -/
 theorem repPos_row {d : ℕ} (p : TwoLevelRep d) : repPos p (repRow p) = repRow p := p.2
 
 instance twoLevelRepFintype (d : ℕ) : Fintype (TwoLevelRep d) := by
@@ -116,21 +144,30 @@ instance twoLevelRepFintype (d : ℕ) : Fintype (TwoLevelRep d) := by
 
 instance twoLevelRepDecEq (d : ℕ) : DecidableEq (TwoLevelRep d) := Classical.decEq _
 
+/-- The Boolean matrix represented by `p`, with an all-true distinguished row and a single false
+entry at the stored position of every other row. -/
 def repMat {d : ℕ} (p : TwoLevelRep d) : Fin d → Fin d → Bool :=
   fun r c => if r = repRow p then true else decide (repPos p r ≠ c)
 
+/-- The output function returning the representative's distinguished row. -/
 def repFun {d : ℕ} (p : TwoLevelRep d) : Fin d := repRow p
 
+/-- The represented matrix viewed as Boolean input access indexed by a row-column pair. -/
 def repBitsPair {d : ℕ} (p : TwoLevelRep d) : Fin d × Fin d → Bool :=
   fun rc => repMat p rc.1 rc.2
 
+/-- The represented matrix flattened to Boolean input access on `Fin (d * d)` using
+`finProdFinEquiv`. -/
 def repBits (d : ℕ) : TwoLevelRep d → Fin (d * d) → Bool :=
   fun p i => repBitsPair p (finProdFinEquiv.symm i)
 
+/-- The flattened bit at the encoding of `(r, c)` equals the represented matrix entry at row `r`
+and column `c`. -/
 theorem repBits_finProdFinEquiv {d : ℕ} (p : TwoLevelRep d) (r c : Fin d) :
     repBits d p (finProdFinEquiv (r, c)) = repMat p r c := by
   simp [repBits, repBitsPair]
 
+/-- A represented matrix has exactly one all-true row. -/
 theorem repMat_unique_true {d : ℕ} (p : TwoLevelRep d) :
     ∃! j : Fin d, ∀ i : Fin d, repMat p j i = true := by
   classical
@@ -141,6 +178,7 @@ theorem repMat_unique_true {d : ℕ} (p : TwoLevelRep d) :
     have h := hj (repPos p j)
     simp [repMat, hne] at h
 
+/-- Every row of a represented matrix that is not all true has exactly one false entry. -/
 theorem repMat_unique_false {d : ℕ} (p : TwoLevelRep d) (j : Fin d)
     (hj : ¬ ∀ i : Fin d, repMat p j i = true) :
     ∃! i : Fin d, repMat p j i = false := by
@@ -156,20 +194,26 @@ theorem repMat_unique_false {d : ℕ} (p : TwoLevelRep d) (j : Fin d)
   simp only [decide_eq_false_iff_not, not_not] at hc
   exact hc.symm
 
+/-- Every represented matrix satisfies the two-level promise. -/
 theorem repMat_promise {d : ℕ} (p : TwoLevelRep d) : TwoLevelPromise d (repMat p) :=
   ⟨repMat_unique_true p, fun j hj => repMat_unique_false p j hj⟩
 
+/-- Adjacency of representatives with different distinguished rows and identical stored
+positions on all rows other than those two. -/
 def repAdj {d : ℕ} (p q : TwoLevelRep d) : Prop :=
   repRow p ≠ repRow q ∧ ∀ r : Fin d, r ≠ repRow p → r ≠ repRow q → repPos p r = repPos q r
 
+/-- Representative adjacency is symmetric. -/
 theorem repAdj_comm {d : ℕ} {p q : TwoLevelRep d} (h : repAdj p q) : repAdj q p := by
   obtain ⟨hne, hagree⟩ := h
   exact ⟨hne.symm, fun r hrq hrp => (hagree r hrp hrq).symm⟩
 
+/-- The real zero-one matrix indicating adjacency of two-level representatives. -/
 def gammaRep {d : ℕ} : Matrix (TwoLevelRep d) (TwoLevelRep d) ℝ := by
   classical
   exact fun p q => if repAdj p q then 1 else 0
 
+/-- The representative adjacency matrix is symmetric. -/
 theorem gammaRep_symm {d : ℕ} : ∀ p q, gammaRep (d := d) p q = gammaRep q p := by
   classical
   intro p q
@@ -178,12 +222,15 @@ theorem gammaRep_symm {d : ℕ} : ∀ p q, gammaRep (d := d) p q = gammaRep q p 
   · rw [if_pos h, if_pos (repAdj_comm h)]
   · rw [if_neg h, if_neg (fun h' => h (repAdj_comm h'))]
 
+/-- Every entry of the representative adjacency matrix is nonnegative. -/
 theorem gammaRep_nonneg {d : ℕ} : ∀ p q, 0 ≤ gammaRep (d := d) p q := by
   classical
   intro p q
   unfold gammaRep
   by_cases h : repAdj p q <;> simp [h]
 
+/-- The representative adjacency matrix vanishes between representatives with the same output
+row. -/
 theorem gammaRep_eq_zero {d : ℕ} : ∀ p q, repFun p = repFun q → gammaRep (d := d) p q = 0 := by
   classical
   intro p q h
@@ -192,6 +239,8 @@ theorem gammaRep_eq_zero {d : ℕ} : ∀ p q, repFun p = repFun q → gammaRep (
   intro hadj
   exact hadj.1 h
 
+/-- A neighbor of `p` is uniquely determined by its distinguished row and its stored position at
+`p`'s distinguished row. -/
 theorem repAdj_determined {d : ℕ} {p q q' : TwoLevelRep d}
     (hq : repAdj p q) (hq' : repAdj p q')
     (hr : repRow q = repRow q') (hp : repPos q (repRow p) = repPos q' (repRow p)) :
@@ -209,6 +258,8 @@ theorem repAdj_determined {d : ℕ} {p q q' : TwoLevelRep d}
         rw [← hag r hr1 hr2, hag' r hr1 h2]
   exact Subtype.ext (Prod.ext hr hpos)
 
+/-- If adjacent representatives differ at column `c` of `p`'s distinguished row, the neighbor's
+stored position in that row is `c`. -/
 theorem repAdj_pos_of_diff {d : ℕ} {p q : TwoLevelRep d} (hq : repAdj p q) (c : Fin d)
     (h : repMat p (repRow p) c ≠ repMat q (repRow p) c) :
     repPos q (repRow p) = c := by
@@ -222,10 +273,13 @@ theorem repAdj_pos_of_diff {d : ℕ} {p q : TwoLevelRep d} (hq : repAdj p q) (c 
   simp only [repMat, if_neg hne, decide_eq_false_iff_not, not_not] at h2
   exact h2
 
+/-- The representative with distinguished row `j`, stored position `c` at the old distinguished
+row when distinct from `j`, and all other nondistinguished positions inherited from `p`. -/
 def repRebuild {d : ℕ} (p : TwoLevelRep d) (j : Fin d) (c : Fin d) : TwoLevelRep d :=
   ⟨(j, fun r => if r = j then r else if r = repRow p then c else repPos p r),
     by simp⟩
 
+/-- Rebuilding at a row different from `p`'s distinguished row produces a neighbor of `p`. -/
 theorem repRebuild_adj {d : ℕ} (p : TwoLevelRep d) (j : Fin d) (c : Fin d)
     (hj : j ≠ repRow p) : repAdj p (repRebuild p j c) := by
   refine ⟨?_, ?_⟩
@@ -238,6 +292,8 @@ theorem repRebuild_adj {d : ℕ} (p : TwoLevelRep d) (j : Fin d) (c : Fin d)
     show repPos p r = repPos (repRebuild p j c) r
     simp only [repRebuild, repPos, hrj', if_false, hrp]
 
+/-- The equivalence between neighbors of `p` and pairs consisting of a different distinguished
+row and an arbitrary stored column at `p`'s distinguished row. -/
 def neighbourEquiv {d : ℕ} (p : TwoLevelRep d) :
     {q : TwoLevelRep d // repAdj p q} ≃ ({j : Fin d // j ≠ repRow p} × Fin d) where
   toFun q := (⟨repRow q.1, fun h => q.2.1 h.symm⟩, repPos q.1 (repRow p))
@@ -259,6 +315,7 @@ def neighbourEquiv {d : ℕ} (p : TwoLevelRep d) :
     · show repPos (repRebuild p j c) (repRow p) = c
       simp [repRebuild, repPos, Ne.symm hj]
 
+/-- Every two-level representative has exactly `(d - 1) * d` neighbors. -/
 theorem card_neighbours {d : ℕ} (p : TwoLevelRep d) :
     (Finset.univ.filter (fun q : TwoLevelRep d => repAdj p q)).card = (d - 1) * d := by
   classical
@@ -293,6 +350,7 @@ theorem card_neighbours {d : ℕ} (p : TwoLevelRep d) :
       · rfl
       · simp [repRebuild, repPos, Ne.symm hj]
 
+/-- Every row of the representative adjacency matrix sums to `d * (d - 1)`. -/
 theorem gammaRep_row_sum {d : ℕ} (p : TwoLevelRep d) :
     ∑ q, gammaRep (d := d) p q = ((d * (d - 1) : ℕ) : ℝ) := by
   classical
@@ -306,6 +364,8 @@ theorem gammaRep_row_sum {d : ℕ} (p : TwoLevelRep d) :
     simp
   rw [h1, card_neighbours p, Nat.mul_comm (d - 1) d]
 
+/-- If adjacent representatives differ in a row other than `p`'s distinguished row, that row is
+the neighbor's distinguished row. -/
 theorem repRow_eq_of_diff {d : ℕ} {p q : TwoLevelRep d} (hq : repAdj p q) {r c : Fin d}
     (hr : r ≠ repRow p) (hdiff : repMat p r c ≠ repMat q r c) : repRow q = r := by
   classical
@@ -315,6 +375,7 @@ theorem repRow_eq_of_diff {d : ℕ} {p q : TwoLevelRep d} (hq : repAdj p q) {r c
   simp only [repMat, if_neg hr, if_neg hrq]
   rw [hq.2 r hr hrq]
 
+/-- At most `d` neighbors of any representative differ from it at a specified matrix entry. -/
 theorem filter_diff_card_le {d : ℕ} (p : TwoLevelRep d) (r c : Fin d) :
     (Finset.univ.filter (fun q : TwoLevelRep d => repAdj p q ∧ repMat p r c ≠ repMat q r c)).card
       ≤ d := by
@@ -356,12 +417,16 @@ theorem filter_diff_card_le {d : ℕ} (p : TwoLevelRep d) (r c : Fin d) :
     rw [Finset.card_univ, Fintype.card_fin] at hle
     exact hle
 
+/-- For `d ≥ 1`, the Euclidean operator norm of the representative adjacency matrix equals `d *
+(d - 1)`. -/
 theorem gammaRep_opNorm {d : ℕ} (hd : 1 ≤ d) :
     ‖gammaRep (d := d)‖ = ((d * (d - 1) : ℕ) : ℝ) := by
   haveI : Nonempty (TwoLevelRep d) :=
     ⟨⟨(⟨0, hd⟩, fun _ => ⟨0, hd⟩), rfl⟩⟩
   exact l2_opNorm_eq_of_regular gammaRep gammaRep_nonneg gammaRep_symm gammaRep_row_sum
 
+/-- The query-filtered representative adjacency entry is one exactly for adjacent
+representatives differing at the queried bit, and zero otherwise. -/
 theorem hadamard_gammaRep {d : ℕ} (p q : TwoLevelRep d) (i : Fin (d * d)) :
     (gammaRep ⊙ diffMatrix (repBits d) i) p q
       = if repAdj p q ∧ repBits d p i ≠ repBits d q i then (1 : ℝ) else 0 := by
@@ -370,6 +435,8 @@ theorem hadamard_gammaRep {d : ℕ} (p q : TwoLevelRep d) (i : Fin (d * d)) :
   by_cases h1 : repAdj p q <;> by_cases h2 : repBits d p i = repBits d q i <;>
     simp [h1, h2]
 
+/-- Every row sum of the representative adjacency matrix filtered at a query position is at most
+`d`. -/
 theorem hadamard_row_sum_le {d : ℕ} (p : TwoLevelRep d) (i : Fin (d * d)) :
     ∑ q, (gammaRep ⊙ diffMatrix (repBits d) i) p q ≤ (d : ℝ) := by
   classical
@@ -388,6 +455,8 @@ theorem hadamard_row_sum_le {d : ℕ} (p : TwoLevelRep d) (i : Fin (d * d)) :
   rw [hsum]
   exact_mod_cast filter_diff_card_le p rc.1 rc.2
 
+/-- For positive input length, the representative adjacency matrix's adversary denominator is at
+most `d`. -/
 theorem gammaRep_advDenom_le {d : ℕ} (hn : 0 < d * d) :
     advDenom (repBits d) hn (gammaRep (d := d)) ≤ (d : ℝ) := by
   classical
@@ -398,6 +467,8 @@ theorem gammaRep_advDenom_le {d : ℕ} (hn : 0 < d * d) :
   · exact mul_nonneg (gammaRep_nonneg p q) (by unfold diffMatrix; split <;> norm_num)
   · exact hadamard_symm gammaRep _ gammaRep_symm (fun x y => diffMatrix_symm _ _ x y) p q
 
+/-- For `d ≥ 2`, the representative adjacency matrix's adversary denominator is strictly
+positive. -/
 theorem gammaRep_advDenom_pos {d : ℕ} (hd : 2 ≤ d) (hn : 0 < d * d) :
     0 < advDenom (repBits d) hn (gammaRep (d := d)) := by
   classical
@@ -441,6 +512,7 @@ theorem gammaRep_advDenom_pos {d : ℕ} (hd : 2 ≤ d) (hn : 0 < d * d) :
   rw [Finset.lt_sup'_iff ⟨⟨0, hn⟩, Finset.mem_univ _⟩]
   exact ⟨i, Finset.mem_univ _, hpos_norm⟩
 
+/-- For `d ≥ 2`, there exist adjacent two-level representatives. -/
 theorem exists_repAdj {d : ℕ} (hd : 2 ≤ d) : ∃ p q : TwoLevelRep d, repAdj p q := by
   classical
   let p : TwoLevelRep d := ⟨(⟨0, by omega⟩, fun _ => ⟨0, by omega⟩), rfl⟩
@@ -454,6 +526,7 @@ theorem exists_repAdj {d : ℕ} (hd : 2 ≤ d) : ∃ p q : TwoLevelRep d, repAdj
     exact absurd h1 (by norm_num)
   exact ⟨p, repRebuild p j ⟨0, by omega⟩, repRebuild_adj p j ⟨0, by omega⟩ hj⟩
 
+/-- For `d ≥ 2`, the representative adjacency matrix is nonzero. -/
 theorem gammaRep_ne_zero {d : ℕ} (hd : 2 ≤ d) : gammaRep (d := d) ≠ 0 := by
   classical
   obtain ⟨p, q, hpq⟩ := exists_repAdj hd
@@ -463,15 +536,21 @@ theorem gammaRep_ne_zero {d : ℕ} (hd : 2 ≤ d) : gammaRep (d := d) ≠ 0 := b
   rw [if_pos hpq] at h1
   exact one_ne_zero h1
 
+/-- For `d ≥ 2`, the representative adjacency matrix is an adversary matrix for the
+distinguished-row output function. -/
 theorem gammaRep_isAdversary {d : ℕ} (hd : 2 ≤ d) :
     IsAdversaryMatrix (repFun (d := d)) (gammaRep (d := d)) :=
   ⟨gammaRep_ne_zero hd, gammaRep_symm, gammaRep_nonneg, gammaRep_eq_zero⟩
 
+/-- For `d ≥ 2`, the explicit representative matrix's norm ratio belongs to the adversary-ratio
+set for the distinguished-row problem. -/
 theorem two_level_advRatio_mem {d : ℕ} (hd : 2 ≤ d) (hn : 0 < d * d) :
     ‖gammaRep (d := d)‖ / advDenom (repBits d) hn (gammaRep (d := d))
       ∈ advRatios (repBits d) hn (repFun (d := d)) :=
   ⟨gammaRep, gammaRep_isAdversary hd, rfl⟩
 
+/-- For `d ≥ 2`, the explicit representative adjacency matrix has adversary ratio at least `d -
+1`. -/
 theorem two_level_adv_ratio_ge {d : ℕ} (hd : 2 ≤ d) (hn : 0 < d * d) :
     (d : ℝ) - 1 ≤ ‖gammaRep (d := d)‖ / advDenom (repBits d) hn (gammaRep (d := d)) := by
   have hden : 0 < advDenom (repBits d) hn (gammaRep (d := d)) :=
@@ -490,6 +569,9 @@ theorem two_level_adv_ratio_ge {d : ℕ} (hd : 2 ≤ d) (hn : 0 < d * d) :
         ring
     _ = ‖gammaRep (d := d)‖ := hop.symm
 
+/-- For `d ≥ 2`, boundedness above of the distinguished-row adversary-ratio set implies an
+adversary value of at least `d - 1`. This is the explicit two-level lower bound used in the
+certification analysis of [AmbainisEtAl2009]. -/
 theorem two_level_advValue_ge {d : ℕ} (hd : 2 ≤ d) (hn : 0 < d * d)
     (hbdd : BddAbove (advRatios (repBits d) hn (repFun (d := d)))) :
     (d : ℝ) - 1 ≤ advValue (repBits d) hn (repFun (d := d)) := by

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabBounds06.MainResults.NormBounds
+
+/-!
+# Sharp norm bounds for the twiddle operation
+
+Matrix action on Euclidean space is related to adjoints, orthogonal decompositions, and operator
+norms. These identities give the off-diagonal block estimate `norm_le_of_offdiag_blocks` and the
+sharp spectral-band twiddle bound of [JansenRuskaiSeiler2007], with dependence `sqrt(m) / g`.
+
+## Main statements
+
+* `norm_le_of_offdiag_blocks`: a common bound on the off-diagonal blocks bounds the whole
+  matrix.
+* `twiddle_norm_sharp`: the norm of a twiddled matrix is at most `sqrt(m) * ‖X‖ / g`.
+* `twiddle_twiddle_norm`: a second twiddle operation has bound `m * ‖X‖ / g²`.
+
+## References
+
+* [Jansen et al., 2007][JansenRuskaiSeiler2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,39 +35,49 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 namespace Qatlib.Papers.AdiabBounds06.MainResults
 variable {n : ℕ}
 
+/-- The zero matrix sends every Euclidean vector to zero under `applyMat`. -/
 lemma applyMat_zero (x : EuclideanSpace ℂ (Fin n)) : applyMat 0 x = 0 := by
   simp [applyMat]
 
+/-- The identity matrix acts as the identity under `applyMat`. -/
 lemma applyMat_one (x : EuclideanSpace ℂ (Fin n)) : applyMat 1 x = x := by
   simp [applyMat]
 
+/-- The action of a sum of matrices is the sum of their actions. -/
 lemma applyMat_add (A B : Matrix (Fin n) (Fin n) ℂ) (x : EuclideanSpace ℂ (Fin n)) :
     applyMat (A + B) x = applyMat A x + applyMat B x := by
   simp [applyMat, Matrix.add_mulVec, WithLp.toLp_add]
 
+/-- Negating a matrix negates its action on a vector. -/
 lemma applyMat_neg (A : Matrix (Fin n) (Fin n) ℂ) (x : EuclideanSpace ℂ (Fin n)) :
     applyMat (-A) x = -applyMat A x := by
   simp [applyMat, Matrix.neg_mulVec, WithLp.toLp_neg]
 
+/-- The action of a matrix product is the composition of the two matrix actions. -/
 lemma applyMat_mul (A B : Matrix (Fin n) (Fin n) ℂ) (x : EuclideanSpace ℂ (Fin n)) :
     applyMat (A * B) x = applyMat A (applyMat B x) := by
   simp [applyMat, Matrix.mulVec_mulVec]
 
+/-- The action of a finite sum of matrices is the finite sum of their actions. -/
 lemma applyMat_sum {ι : Type*} (s : Finset ι) (f : ι → Matrix (Fin n) (Fin n) ℂ)
     (x : EuclideanSpace ℂ (Fin n)) :
     applyMat (∑ i ∈ s, f i) x = ∑ i ∈ s, applyMat (f i) x := by
   simp [applyMat, Matrix.sum_mulVec]
 
+/-- Matrix action satisfies the operator norm bound `‖applyMat A x‖ ≤ ‖A‖ * ‖x‖`. -/
 lemma applyMat_norm_le (A : Matrix (Fin n) (Fin n) ℂ) (x : EuclideanSpace ℂ (Fin n)) :
     ‖applyMat A x‖ ≤ ‖A‖ * ‖x‖ :=
   Matrix.l2_opNorm_mulVec A x
 
+/-- The continuous linear map associated with a matrix acts by `applyMat`. -/
 lemma clm_applyMat (B : Matrix (Fin n) (Fin n) ℂ) (z : EuclideanSpace ℂ (Fin n)) :
     (Matrix.toEuclideanCLM (𝕜 := ℂ) B) z = applyMat B z := by
   conv_lhs => rw [← WithLp.toLp_ofLp 2 z]
   rw [Matrix.toEuclideanCLM_toLp]
   rfl
 
+/-- The continuous linear map of the conjugate transpose is the adjoint of the continuous linear
+map of the matrix. -/
 lemma clm_conjTranspose (A : Matrix (Fin n) (Fin n) ℂ) :
     Matrix.toEuclideanCLM (𝕜 := ℂ) Aᴴ
       = ContinuousLinearMap.adjoint (Matrix.toEuclideanCLM (𝕜 := ℂ) A) := by
@@ -56,16 +86,20 @@ lemma clm_conjTranspose (A : Matrix (Fin n) (Fin n) ℂ) :
     _ = ContinuousLinearMap.adjoint (Matrix.toEuclideanCLM (𝕜 := ℂ) A) :=
         ContinuousLinearMap.star_eq_adjoint _
 
+/-- A matrix can be moved across the inner product by taking its conjugate transpose. -/
 lemma inner_applyMat_adj (A : Matrix (Fin n) (Fin n) ℂ) (x y : EuclideanSpace ℂ (Fin n)) :
     inner ℂ (applyMat A x) y = inner ℂ x (applyMat Aᴴ y) := by
   rw [← clm_applyMat A x, ← clm_applyMat Aᴴ y, clm_conjTranspose]
   exact (ContinuousLinearMap.adjoint_inner_right (Matrix.toEuclideanCLM (𝕜 := ℂ) A) x y).symm
 
+/-- The inner product of `A u` and `A' w` equals the inner product of `u` and `(Aᴴ * A') w`. -/
 lemma inner_applyMat_mul (A A' : Matrix (Fin n) (Fin n) ℂ)
     (u w : EuclideanSpace ℂ (Fin n)) :
     inner ℂ (applyMat A u) (applyMat A' w) = inner ℂ u (applyMat (Aᴴ * A') w) := by
   rw [inner_applyMat_adj, ← applyMat_mul]
 
+/-- An orthogonal projection and its complement decompose the squared norm of a vector into the
+sum of the two squared projected norms. -/
 lemma proj_decomp_norm_sq {P : Matrix (Fin n) (Fin n) ℂ} (hP : IsProj P)
     (x : EuclideanSpace ℂ (Fin n)) :
     ‖x‖^2 = ‖applyMat P x‖^2 + ‖applyMat (1 - P) x‖^2 := by
@@ -83,6 +117,8 @@ lemma proj_decomp_norm_sq {P : Matrix (Fin n) (Fin n) ℂ} (hP : IsProj P)
   rw [hsplit] at h
   simpa [pow_two] using! h
 
+/-- The squared norm of a finite sum of pairwise orthogonal vectors equals the sum of their
+squared norms. -/
 lemma norm_sum_sq_of_orth {ι' : Type*} (s : Finset ι')
     (v : ι' → EuclideanSpace ℂ (Fin n))
     (h : ∀ j ∈ s, ∀ k ∈ s, j ≠ k → inner ℂ (v j) (v k) = 0) :
@@ -104,6 +140,8 @@ lemma norm_sum_sq_of_orth {ι' : Type*} (s : Finset ι')
   · intro hj'
     exact absurd hj hj'
 
+/-- If the diagonal blocks relative to an orthogonal projection vanish and both off-diagonal
+blocks have norm at most `M`, the whole matrix has norm at most `M`. -/
 theorem norm_le_of_offdiag_blocks {P A : Matrix (Fin n) (Fin n) ℂ} (hP : IsProj P)
     (hPAP : P * A * P = 0) (hQAQ : (1 - P) * A * (1 - P) = 0) (M : ℝ)
     (h1 : ‖P * A * (1 - P)‖ ≤ M) (h2 : ‖(1 - P) * A * P‖ ≤ M) :
@@ -181,11 +219,15 @@ theorem norm_le_of_offdiag_blocks {P A : Matrix (Fin n) (Fin n) ℂ} (hP : IsPro
   rw [clm_applyMat]
   exact hpoint x
 
+/-- Matrix action commutes with summation over a finite index type. -/
 lemma applyMat_sum' {ι : Type*} [Fintype ι] (f : ι → Matrix (Fin n) (Fin n) ℂ)
     (x : EuclideanSpace ℂ (Fin n)) :
     applyMat (∑ i, f i) x = ∑ i, applyMat (f i) x := by
   simpa using! applyMat_sum (Finset.univ) f x
 
+/-- The squared norm of the left resolvent sum acting on `x` is bounded by `m * ‖X‖² / g²` times
+the squared norm of the complementary projection of `x`, under the stated support and norm
+bounds. -/
 lemma left_block_sq {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) (S : Fin D.m → Matrix (Fin n) (Fin n) ℂ)
     (hSQ : ∀ j, S j * (1 - D.P) = S j) (hSbd : ∀ j, ‖S j‖ ≤ 1 / D.g)
@@ -255,6 +297,8 @@ lemma left_block_sq {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
         have hg0 : D.g ≠ 0 := ne_of_gt D.hg
         field_simp
 
+/-- The left resolvent sum has operator norm at most `sqrt(m) * ‖X‖ / g` when each resolvent
+factor has complementary right support and norm at most `1 / g`. -/
 lemma left_block_norm {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) (S : Fin D.m → Matrix (Fin n) (Fin n) ℂ)
     (hSQ : ∀ j, S j * (1 - D.P) = S j) (hSbd : ∀ j, ‖S j‖ ≤ 1 / D.g) :
@@ -290,12 +334,14 @@ lemma left_block_norm {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     _ = M * ‖x‖ := by
         rw [Real.sqrt_mul (sq_nonneg M), Real.sqrt_sq hM0, Real.sqrt_sq (norm_nonneg x)]
 
+/-- The block `P * twiddle X * (1 - P)` has norm at most `sqrt(m) * ‖X‖ / g`. -/
 lemma P_block_norm_le {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) :
     ‖D.P * D.twiddle X * (1 - D.P)‖ ≤ Real.sqrt (D.m : ℝ) * ‖X‖ / D.g := by
   rw [D.P_twiddle_Q X]
   exact left_block_norm D X D.Rhat (fun j => D.Rhat_right j) (fun j => D.Rhat_bound j)
 
+/-- The block `(1 - P) * twiddle X * P` has norm at most `sqrt(m) * ‖X‖ / g`. -/
 lemma Q_block_norm_le {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) :
     ‖(1 - D.P) * D.twiddle X * D.P‖ ≤ Real.sqrt (D.m : ℝ) * ‖X‖ / D.g := by
@@ -323,12 +369,16 @@ lemma Q_block_norm_le {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
   rw [Matrix.l2_opNorm_conjTranspose X] at hb
   exact hb
 
+/-- The spectral-band twiddle operation satisfies `‖D.twiddle X‖ ≤ sqrt(m) * ‖X‖ / g`. See
+[JansenRuskaiSeiler2007]. -/
 theorem twiddle_norm_sharp {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) :
     ‖D.twiddle X‖ ≤ Real.sqrt (D.m : ℝ) * ‖X‖ / D.g :=
   norm_le_of_offdiag_blocks D.P_proj (D.P_twiddle_P X) (D.Q_twiddle_Q X) _
     (P_block_norm_le D X) (Q_block_norm_le D X)
 
+/-- Applying the twiddle operation twice gives the bound `‖D.twiddle (D.twiddle X)‖ ≤ m * ‖X‖ /
+g²`. See [JansenRuskaiSeiler2007]. -/
 theorem twiddle_twiddle_norm {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) :
     ‖D.twiddle (D.twiddle X)‖ ≤ (D.m : ℝ) * ‖X‖ / D.g^2 := by

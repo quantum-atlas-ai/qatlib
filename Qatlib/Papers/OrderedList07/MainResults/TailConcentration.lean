@@ -9,6 +9,24 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Tail bounds from ordered-search cost estimates
+
+Defines the mean, lower-threshold, and exceptional-probability expressions used in the tail
+estimate of [BenOrHassidim2007]. `source_lemma2_9_tail` applies a generalized Markov bound to a
+nonnegative query cost with the stated expectation and lower-tail hypotheses.
+
+## Main statements
+
+* `source_lemma2_9_tail`: bounds the probability of exceeding the corrected mean threshold by `1
+  / χ`.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +40,7 @@ open scoped ENNReal
 
 namespace Qatlib.Papers.OrderedList07.MainResults
 
+/-- For `L ≥ 4`, twice the base-two logarithm of `L` is at most `L`. -/
 lemma two_mul_logb_two_le (L : ℝ) (hL : 4 ≤ L) :
     2 * (Real.log L / Real.log 2) ≤ L := by
   have h2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -45,17 +64,25 @@ lemma two_mul_logb_two_le (L : ℝ) (hL : 4 ≤ L) :
     mul_nonneg (by linarith) (by linarith)
   nlinarith [hsplit, hlog, h4, h2, hlt, hL, hp]
 
+/-- The mean-cost expression `log₂ n / queryInfo p` with the prescribed logarithmic error
+correction. -/
 noncomputable def tailMean (n : ℕ) (p c₁ δ : ℝ) : ℝ :=
   Real.log n / Real.log 2 / queryInfo p
     + c₁ * (Real.log (Real.log n / Real.log 2) / Real.log 2)
         * (Real.log (1 / δ) / Real.log 2) / queryInfo p
 
+/-- The lower-cost threshold obtained by subtracting `2 * log₂ (log₂ n) / queryInfo p` from the
+leading cost. -/
 noncomputable def tailLower (n : ℕ) (p : ℝ) : ℝ :=
   Real.log n / Real.log 2 / queryInfo p
     - 2 * (Real.log (Real.log n / Real.log 2) / Real.log 2) / queryInfo p
 
+/-- The exceptional-probability parameter `2 / log₂ n`. -/
 noncomputable def tailBeta (n : ℕ) : ℝ := 2 / (Real.log n / Real.log 2)
 
+/-- Under the stated parameter, mean-cost, and lower-tail hypotheses, the probability that `Q`
+exceeds `tailMean + χ * (tailMean − tailLower + tailBeta * tailLower)` is at most `1 / χ`
+[BenOrHassidim2007]. -/
 theorem source_lemma2_9_tail
     {α : Type} (μ : PMF α) (Q : α → ℝ)
     (n : ℕ) (hn : 16 ≤ n) (p δ c₁ χ : ℝ)

@@ -10,11 +10,36 @@ import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
 
+/-!
+# Restricted coherent uncomputation error
+
+Proves `coherentUncomputeRestrictedBound`, an operator norm estimate for a
+compute-controlled-action-uncompute composition restricted by a finite sum of input blocks. The
+hypotheses include contractions, an inverse relation, commutation, a Pythagorean block bound,
+and relative squared computation errors.
+
+The resulting error is at most `2 * Real.sqrt (Fintype.card Ω * ε)`, supporting coherent use of
+approximate computations in the setting of [Kitaev1995].
+
+## Main statements
+
+* `coherentUncomputeRestrictedBound`: Under the inverse, contraction, commutation,
+  controlled-action, and input-block squared-error hypotheses, the operator norm error of
+  restricted coherent uncomputation is at most `2 * Real.sqrt (Fintype.card Ω * ε)`.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Foundations.CoherentCompute.ProjectedError
 
+/-- Under the inverse, contraction, commutation, controlled-action, and input-block
+squared-error hypotheses, the operator norm error of restricted coherent uncomputation is at
+most `2 * Real.sqrt (Fintype.card Ω * ε)`. -/
 theorem coherentUncomputeRestrictedBound
     {E Ω Θ : Type} [NormedAddCommGroup E] [NormedSpace ℂ E] [Fintype Ω]
     (U V T : E →L[ℂ] E) (P : Ω → E →L[ℂ] E) (Q : Θ → E →L[ℂ] E)

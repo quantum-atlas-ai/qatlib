@@ -10,6 +10,28 @@ import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Tactic
 
+/-!
+# Stability of sine-envelope HHL filters
+
+This module defines the success and secondary sine-envelope filters, their three-level flag
+vector, and combined flag mass. The estimates support the filter regularity argument in
+[HarrowHassidimLloyd2009].
+
+The flag vector is normalized for positive threshold `d` and globally `1/d`-Lipschitz. A further
+relative estimate bounds the squared change of the two filter amplitudes by the original flag
+mass.
+
+## Main statements
+
+* `sin_envelope_h_normalized`: normalization of the flag vector.
+* `sin_envelope_h_lipschitz`: the global Euclidean Lipschitz estimate.
+* `sin_envelope_filter_stability_global`: relative squared stability of the two filters.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 open Qatlib.Foundations.PureStateMath
@@ -17,27 +39,37 @@ namespace Qatlib.Concepts.HhlErrorBridge.FilterStability
 open Matrix
 open scoped Real
 
+/-- The squared Euclidean norm of a three-coordinate state equals the sum of its squared
+coordinate norms. -/
 private theorem norm_toLp_sq (v : QState (Fin 3)) :
     ‖WithLp.toLp 2 v‖ ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   rw [EuclideanSpace.norm_sq_eq]
 
+/-- For positive `d`, the success filter is zero below `d`, follows a half-sine ramp between `d`
+and `2*d`, and equals `d/θ` above `2*d`. -/
 noncomputable def sinEnvelopeFilterF (d θ : ℝ) : ℝ :=
   if 2 * d ≤ θ then d / θ
   else if d ≤ θ then (1 / 2) * Real.sin (Real.pi / 2 * (θ - d) / d) else 0
 
+/-- For positive `d`, the secondary filter is `1/2` below `d`, follows a half-cosine ramp
+between `d` and `2*d`, and is zero above `2*d`. -/
 noncomputable def sinEnvelopeFilterG (d θ : ℝ) : ℝ :=
   if 2 * d ≤ θ then 0
   else if d ≤ θ then (1 / 2) * Real.cos (Real.pi / 2 * (θ - d) / d) else 1 / 2
 
+/-- The three-level flag vector has the two filter amplitudes and a residual amplitude given by
+the square root of their complementary squared mass. -/
 noncomputable def sinEnvelopeHVector (d θ : ℝ) : QState (Fin 3) :=
   fun s =>
     if s = 0 then
       (Real.sqrt (1 - sinEnvelopeFilterF d θ ^ 2 - sinEnvelopeFilterG d θ ^ 2) : ℂ)
     else if s = 1 then (sinEnvelopeFilterF d θ : ℂ) else (sinEnvelopeFilterG d θ : ℂ)
 
+/-- The combined flag mass is the sum of the squared success and secondary filter amplitudes. -/
 noncomputable def sinEnvelopeFlagMass (d θ : ℝ) : ℝ :=
   sinEnvelopeFilterF d θ ^ 2 + sinEnvelopeFilterG d θ ^ 2
 
+/-- For positive `d`, the combined flag mass is at most `1/4`. See [HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_filter_bounded (d θ : ℝ) (hd : 0 < d) :
     sinEnvelopeFlagMass d θ ≤ 1 / 4 := by
   unfold sinEnvelopeFlagMass sinEnvelopeFilterF sinEnvelopeFilterG
@@ -49,6 +81,8 @@ theorem sin_envelope_filter_bounded (d θ : ℝ) (hd : 0 < d) :
   · nlinarith [Real.sin_sq_add_cos_sq (Real.pi / 2 * (θ - d) / d)]
   · norm_num
 
+/-- The filters take the stated values at `2*d`, `d`, zero, and `-1/4`, and have values `d/θ`
+and zero throughout `θ ≥ 2*d` for positive `d`. See [HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_filter_branch_values (d : ℝ) (hd : 0 < d) :
     sinEnvelopeFilterF d (2 * d) = 1 / 2 ∧ sinEnvelopeFilterG d (2 * d) = 0 ∧
       sinEnvelopeFilterF d d = 0 ∧ sinEnvelopeFilterG d d = 1 / 2 ∧
@@ -66,6 +100,8 @@ theorem sin_envelope_filter_branch_values (d : ℝ) (hd : 0 < d) :
   intro θ hθ
   simp [not_lt_of_ge hθ]
 
+/-- For positive `d`, the squared coordinate norms of the three-level flag vector sum to one.
+See [HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_h_normalized (d θ : ℝ) (hd : 0 < d) :
     ∑ s : Fin 3, ‖sinEnvelopeHVector d θ s‖ ^ 2 = 1 := by
   have hbound := sin_envelope_filter_bounded d θ hd
@@ -75,6 +111,7 @@ theorem sin_envelope_h_normalized (d θ : ℝ) (hd : 0 < d) :
   simp [Fin.sum_univ_succ, sinEnvelopeHVector, Complex.norm_real,
     Real.norm_eq_abs, sq_abs, Real.sq_sqrt hrad]
 
+/-- For positive `d`, both filter amplitudes are nonnegative. -/
 theorem sin_envelope_filter_nonnegative (d θ : ℝ) (hd : 0 < d) :
     0 ≤ sinEnvelopeFilterF d θ ∧ 0 ≤ sinEnvelopeFilterG d θ := by
   unfold sinEnvelopeFilterF sinEnvelopeFilterG
@@ -90,6 +127,8 @@ theorem sin_envelope_filter_nonnegative (d θ : ℝ) (hd : 0 < d) :
       mul_nonneg (by norm_num) (Real.cos_nonneg_of_mem_Icc ⟨by linarith [Real.pi_pos], hb⟩)⟩
   · norm_num
 
+/-- On the ramp interval `[d, 2*d]` with positive `d`, the success and secondary filters equal
+the stated half-sine and half-cosine expressions. -/
 private theorem sin_envelope_ramp_values (d θ : ℝ) (hd : 0 < d)
     (hl : d ≤ θ) (hu : θ ≤ 2*d) :
     sinEnvelopeFilterF d θ = (1/2) * Real.sin (Real.pi/2*(θ-d)/d) ∧
@@ -105,6 +144,7 @@ private theorem sin_envelope_ramp_values (d θ : ℝ) (hd : 0 < d)
       exact he (le_antisymm hu hh)
     simp [sinEnvelopeFilterF, sinEnvelopeFilterG, hw, hl]
 
+/-- The residual flag amplitude equals `sqrt (3/4)` on the ramp interval for positive `d`. -/
 private theorem sin_envelope_ramp_nothing (d θ : ℝ) (hd : 0 < d)
     (hl : d ≤ θ) (hu : θ ≤ 2*d) :
     sinEnvelopeHVector d θ 0 = (Real.sqrt (3/4) : ℂ) := by
@@ -114,6 +154,8 @@ private theorem sin_envelope_ramp_nothing (d θ : ℝ) (hd : 0 < d)
     nlinarith [Real.sin_sq_add_cos_sq (Real.pi/2*(θ-d)/d)]
   simp [sinEnvelopeHVector, hm]
 
+/-- For positive `d` and phases in `[d, 2*d]`, the Euclidean distance of flag vectors is at most
+`π/(4*d)` times the absolute phase difference. -/
 theorem sin_envelope_h_ramp_lipschitz (d θ₁ θ₂ : ℝ) (hd : 0 < d)
     (h₁ : d ≤ θ₁) (h₁' : θ₁ ≤ 2*d) (h₂ : d ≤ θ₂) (h₂' : θ₂ ≤ 2*d) :
     ‖WithLp.toLp 2 (sinEnvelopeHVector d θ₁ - sinEnvelopeHVector d θ₂)‖ ≤
@@ -152,6 +194,8 @@ theorem sin_envelope_h_ramp_lipschitz (d θ₁ θ₂ : ℝ) (hd : 0 < d)
   have hr : 0 ≤ (Real.pi/(4*d))*|θ₁-θ₂| := by positivity
   nlinarith
 
+/-- For `2*d ≤ x ≤ y` and positive `d`, the Euclidean distance of the flag vectors is at most
+`(y-x)/d`. -/
 theorem sin_envelope_h_well_lipschitz (d x y : ℝ) (hd : 0 < d)
     (hx : 2*d ≤ x) (hxy : x ≤ y) :
     ‖WithLp.toLp 2 (sinEnvelopeHVector d x - sinEnvelopeHVector d y)‖ ≤
@@ -202,6 +246,7 @@ theorem sin_envelope_h_well_lipschitz (d x y : ℝ) (hd : 0 < d)
   have hnn : 0 ≤ (y-x)/(4*d) := by positivity
   linarith
 
+/-- The flag vector is constant for phases at most `d` when `d > 0`. -/
 private theorem sin_envelope_h_low (d x : ℝ) (hd : 0 < d) (hx : x ≤ d) :
     sinEnvelopeHVector d x = sinEnvelopeHVector d d := by
   by_cases he : x = d
@@ -212,6 +257,8 @@ private theorem sin_envelope_h_low (d x : ℝ) (hd : 0 < d) (hx : x ≤ d) :
     ext s
     simp [sinEnvelopeHVector, sinEnvelopeFilterF, sinEnvelopeFilterG, hxd, hxd2, hdd2]
 
+/-- The Euclidean distance between flag vectors satisfies the triangle inequality through any
+intermediate phase. -/
 private theorem sin_envelope_h_triangle (d x z y : ℝ) :
     ‖WithLp.toLp 2 (sinEnvelopeHVector d x - sinEnvelopeHVector d y)‖ ≤
       ‖WithLp.toLp 2 (sinEnvelopeHVector d x - sinEnvelopeHVector d z)‖ +
@@ -224,6 +271,8 @@ private theorem sin_envelope_h_triangle (d x z y : ℝ) :
       simp [WithLp.toLp]
     _ ≤ _ := norm_add_le _ _
 
+/-- On the ordered ramp interval, the Euclidean distance of flag vectors is at most `(y-x)/d`
+for positive `d`. -/
 private theorem sin_envelope_h_ramp_coarse (d x y : ℝ) (hd : 0 < d)
     (hx : d ≤ x) (hxy : x ≤ y) (hy : y ≤ 2*d) :
     ‖WithLp.toLp 2 (sinEnvelopeHVector d x - sinEnvelopeHVector d y)‖ ≤
@@ -236,6 +285,8 @@ private theorem sin_envelope_h_ramp_coarse (d x y : ℝ) (hd : 0 < d)
   have hp' := hp.trans (mul_le_mul_of_nonneg_right hcoef (abs_nonneg (x-y)))
   rwa [abs_of_nonpos (by linarith), neg_sub] at hp'
 
+/-- For ordered phases `x ≤ y` and positive `d`, the Euclidean distance of flag vectors is at
+most `(y-x)/d`. -/
 private theorem sin_envelope_h_ordered_lipschitz (d x y : ℝ) (hd : 0 < d) (hxy : x ≤ y) :
     ‖WithLp.toLp 2 (sinEnvelopeHVector d x - sinEnvelopeHVector d y)‖ ≤
       (1/d)*(y-x) := by
@@ -262,6 +313,8 @@ private theorem sin_envelope_h_ordered_lipschitz (d x y : ℝ) (hd : 0 < d) (hxy
         have ht := sin_envelope_h_triangle d d (2*d) y
         nlinarith
 
+/-- For positive `d`, the flag-vector map is globally `1/d`-Lipschitz in Euclidean norm. See
+[Harrow et al., Lemma 2][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_h_lipschitz (d θ₁ θ₂ : ℝ) (hd : 0 < d) :
     Real.sqrt (∑ s : Fin 3, ‖(sinEnvelopeHVector d θ₁ - sinEnvelopeHVector d θ₂) s‖^2) ≤
       (1/d)*|θ₁-θ₂| := by
@@ -279,6 +332,7 @@ theorem sin_envelope_h_lipschitz (d θ₁ θ₂ : ℝ) (hd : 0 < d) :
     rw [hn, abs_of_nonneg (by linarith)]
     exact hp
 
+/-- The sum of the squared changes of the two filters is at most `(x-y)^2/d^2` for positive `d`. -/
 private theorem sin_envelope_fg_lipschitz_sq (d x y : ℝ) (hd : 0 < d) :
     (sinEnvelopeFilterF d x-sinEnvelopeFilterF d y)^2 +
       (sinEnvelopeFilterG d x-sinEnvelopeFilterG d y)^2 ≤ (1/d)^2*(x-y)^2 := by
@@ -292,6 +346,7 @@ private theorem sin_envelope_fg_lipschitz_sq (d x y : ℝ) (hd : 0 < d) :
   nlinarith [sq_nonneg (Real.sqrt (1-sinEnvelopeFilterF d x^2-sinEnvelopeFilterG d x^2) -
     Real.sqrt (1-sinEnvelopeFilterF d y^2-sinEnvelopeFilterG d y^2))]
 
+/-- For positive `d` and `x ≤ 2*d`, the squared filter amplitudes sum to `1/4`. -/
 private theorem sin_envelope_low_mass (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) :
     sinEnvelopeFilterF d x^2+sinEnvelopeFilterG d x^2 = (1/4 : ℝ) := by
   by_cases he : x = 2*d
@@ -305,6 +360,8 @@ private theorem sin_envelope_low_mass (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) 
     · nlinarith [Real.sin_sq_add_cos_sq (Real.pi/2*(x-d)/d)]
     · norm_num
 
+/-- For positive `d`, the sum of the squared filter changes is at most
+`2*π^2*(1/(2*d))^2*(x-y)^2` times the combined flag mass at `x`. -/
 theorem sin_envelope_filter_stability_global (d x y : ℝ) (hd : 0 < d) :
     (sinEnvelopeFilterF d x-sinEnvelopeFilterF d y)^2 +
       (sinEnvelopeFilterG d x-sinEnvelopeFilterG d y)^2 ≤

@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+
+/-!
+# Hadamard examples of quantum mean estimation
+
+This module specializes signed and relative-variance quantum mean estimators to the uniform
+Boolean distribution prepared by a Hadamard gate. `signed_offset_hadamard_actual_consumer`
+treats the payoff with values 99 and 101, while `relative_variance_hadamard_actual_consumer`
+treats the payoff with values 0 and 2. These examples instantiate the bounded-variance and
+relative-error mean-estimation settings of Theorems 5 and 6 in [Montanaro2015].
+
+The access-ledger theorems compute the corresponding source preparations, layer copies,
+measurements, forward and inverse accesses, queries, and gates.
+`signed_offset_hadamard_fresh_access_ledger` also records the scaling for an odd number of fresh
+repetitions.
+
+## Main statements
+
+* `signed_offset_hadamard_actual_consumer`: a mean-100, variance-one example.
+* `relative_variance_hadamard_actual_consumer`: a nonnegative mean-one example.
+* `signed_offset_hadamard_fresh_access_ledger`: resources for fresh repetitions.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015], *Quantum speedup of Monte Carlo methods*.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -20,6 +46,7 @@ open scoped Classical BigOperators
 set_option warningAsError false
 set_option autoImplicit false
 
+/-- Measuring the Hadamard image of `Ket false` gives each Boolean outcome probability `1 / 2`. -/
 theorem signedMean_hadamard_born (i : Bool) : BornProb (ApplyGate Hadamard (Ket false)) i=1/2 := by
   have hs : ApplyGate Hadamard (Ket false) i=((Real.sqrt 2 : ℂ))⁻¹ := by
     rw [applyGate_eq_mulVec_ket, hadamard_apply_false]
@@ -29,10 +56,16 @@ theorem signedMean_hadamard_born (i : Bool) : BornProb (ApplyGate Hadamard (Ket 
     Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   norm_num
 
+/-- The Boolean payoff with value 99 at `false` and 101 at `true`. -/
 def signedOffsetPayoff : Bool → ℝ := fun b => if b then 101 else 99
 
+/-- The Boolean payoff with value zero at `false` and two at `true`. -/
 def relativeHadamardPayoff : Bool → ℝ := fun b => if b then 2 else 0
 
+/-- For `k ≥ 4`, the Hadamard payoff with values 99 and 101 has mean 100 and variance one, and
+its signed mean estimate is within `8 * (1 / 2)^k` of 100 with probability at least `2 / 3`.
+This is a concrete instance of the bounded-variance mean-estimation setting of Theorem 5 in
+[Montanaro2015]. -/
 theorem signed_offset_hadamard_actual_consumer (k : ℕ) (hk : 4 ≤ k) :
     let f : Bool → ℝ := fun b => if b then 101 else 99
     let σ : ℝ := 1
@@ -52,6 +85,10 @@ theorem signed_offset_hadamard_actual_consumer (k : ℕ) (hk : 4 ≤ k) :
   rw [hμ] at hg
   simpa only [mul_one] using! hg (by rw [hv]; norm_num)
 
+/-- For `k ≥ 4` and the stated nonnegativity hypothesis, the Hadamard payoff with values zero
+and two has mean one, and its relative mean estimate is within `3 * Real.sqrt 2 * (1 / 2)^k`
+of one with probability at least `2 / 3`. This is a concrete instance of the relative-error
+mean-estimation setting of Theorem 6 in [Montanaro2015]. -/
 theorem relative_variance_hadamard_actual_consumer (k : ℕ)
     (hf : ∀ i : Bool, 0 ≤ (if i then 2 else 0 : ℝ)) (hk : 4 ≤ k) :
     let f : Bool → ℝ := fun i => if i then 2 else 0
@@ -70,6 +107,9 @@ theorem relative_variance_hadamard_actual_consumer (k : ℕ)
   simpa only [Nat.cast_one, one_add_one_eq_two, mul_one] using!
     hg (by norm_num) (by rw [hv]; norm_num)
 
+/-- The exact resource ledger of the signed Hadamard mean estimator, with one source preparation
+and `2 * q` layer copies for `q = (k + 2) * (2 * layerRepetitions k + 1)`. The remaining
+fields give its measurement, access, query, and gate counts. -/
 theorem signed_offset_hadamard_access_ledger (k : ℕ) (x : Bool) :
     let q := (k+2)*(2*layerRepetitions k+1)
     signedMeanResources k Hadamard false x signedOffsetPayoff 1 =
@@ -77,6 +117,8 @@ theorem signed_offset_hadamard_access_ledger (k : ℕ) (x : Bool) :
         1+2*q*(5*(layerGrid k-1)+3)⟩ :=
   signed_centered_full_resources k Hadamard false x signedOffsetPayoff 1
 
+/-- The resource ledger for `2 * r + 1` fresh repetitions of the signed Hadamard mean estimator
+is the single-run ledger multiplied componentwise by `2 * r + 1`. -/
 theorem signed_offset_hadamard_fresh_access_ledger (k r : ℕ) (x : Fin (2*r+1) → Bool) :
     let q := (k+2)*(2*layerRepetitions k+1)
     let m := 2*r+1
@@ -85,6 +127,9 @@ theorem signed_offset_hadamard_fresh_access_ledger (k r : ℕ) (x : Fin (2*r+1) 
         m*(2*q*(layerGrid k-1)),m*(1+2*q*(5*(layerGrid k-1)+3))⟩ :=
   signed_centered_fresh_full_resources k r Hadamard false x signedOffsetPayoff 1
 
+/-- The exact resource ledger of the relative-variance Hadamard mean estimator with parameter
+one, including 32 source preparations and the stated layered measurement, access, query, and
+gate counts. -/
 theorem relative_variance_hadamard_access_ledger (k : ℕ) (ω : Fin 32 → Bool) :
     let q := (k+2)*(2*layerRepetitions k+1)
     relativeMeanResources 1 k Hadamard false relativeHadamardPayoff ω =

@@ -9,6 +9,32 @@ import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Euler
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+
+/-!
+# Counterexamples for Euler-pattern clauses
+
+This module proves counterexamples to proposed gate-realization and angle-rounding clauses for
+the present `mpEulerPattern` definitions. The argument uses exact rounding at precision three
+and the conjugation-fixed predicate `IsRealC`, then compares an Euler branch on the matrix unit
+`e01` with the complex phase of the T gate.
+
+The measurement-calculus setting is described in [DanosKashefiPanangaden2007]. The
+counterexamples here concern the specific formal definitions and quantified clauses used in this
+development.
+
+## Main statements
+
+* `clause7_counter_clause8`: Refutes the universal conjunction of rounded unitary branch
+  semantics and the stated approximation bound.
+* `euler_kraus_real`: Every Euler Kraus entry satisfies `IsRealC` under the present definitions.
+* `clause7_counter_clause7`: Refutes simultaneous realization of all four listed one-qubit gates
+  by uniformly weighted Euler branches.
+
+## References
+
+* [Danos et al., 2007][DanosKashefiPanangaden2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
@@ -37,6 +63,7 @@ open scoped BigOperators Classical
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 
+/-- Rounding the angle `Real.pi / 4` at precision three leaves it unchanged. -/
 theorem mpRoundedAngle_3_pi_div_four : mpRoundedAngle 3 (Real.pi / 4) = Real.pi / 4 := by
   unfold mpRoundedAngle
   have hpi : Real.pi ≠ 0 := Real.pi_ne_zero
@@ -52,6 +79,7 @@ theorem mpRoundedAngle_3_pi_div_four : mpRoundedAngle 3 (Real.pi / 4) = Real.pi 
   field_simp [hpi]
   ring
 
+/-- Rounding zero at precision three gives zero. -/
 theorem mpRoundedAngle_3_zero : mpRoundedAngle 3 0 = 0 := by
   unfold mpRoundedAngle
   have hinner : (0 * (2 ^ (3 : ℕ)) / (2 * Real.pi) + 1 / 2 : ℝ) = 1 / 2 := by
@@ -61,6 +89,8 @@ theorem mpRoundedAngle_3_zero : mpRoundedAngle 3 0 = 0 := by
     Int.floor_eq_on_Ico 0 (1 / 2) ⟨by norm_num, by norm_num⟩
   rw [hfloor, Int.cast_zero, mul_zero, zero_div]
 
+/-- Rounding every entry of `theta (Real.pi / 4)` at precision three leaves the angle vector
+unchanged. -/
 theorem euler_round3 :
     (fun j : Fin 5 => mpRoundedAngle 3 (Qatlib.Concepts.ClusterPatterns.CnotPatterns.theta (Real.pi / 4) j))
       = Qatlib.Concepts.ClusterPatterns.CnotPatterns.theta (Real.pi / 4) := by
@@ -72,6 +102,8 @@ theorem euler_round3 :
   · have hz : Qatlib.Concepts.ClusterPatterns.CnotPatterns.theta (Real.pi / 4) j = 0 := by simp [Qatlib.Concepts.ClusterPatterns.CnotPatterns.theta, hj]
     rw [hz, mpRoundedAngle_3_zero]
 
+/-- The universal claim combining unitary branch semantics for every rounded Euler pattern with
+the stated entrywise approximation bound is false for the present definitions. -/
 theorem clause7_counter_clause8 :
     ¬ (∀ (θ : Fin 5 → ℝ) (b : ℕ), 1 ≤ b →
         ∃ V : Matrix (Fin 2) (Fin 2) ℂ,
@@ -139,54 +171,69 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 
+/-- The predicate that a complex number is fixed by conjugation. -/
 def IsRealC (c : ℂ) : Prop := star c = c
 
+/-- Every real number embedded in the complex numbers satisfies `IsRealC`. -/
 theorem isRealC_ofReal (r : ℝ) : IsRealC ((r : ℝ) : ℂ) := Complex.conj_ofReal _
 
+/-- Zero satisfies `IsRealC`. -/
 theorem isRealC_zero : IsRealC (0 : ℂ) := by simp [IsRealC]
 
+/-- One satisfies `IsRealC`. -/
 theorem isRealC_one : IsRealC (1 : ℂ) := by simp [IsRealC]
 
+/-- Negation preserves `IsRealC`. -/
 theorem isRealC_neg {a : ℂ} (ha : IsRealC a) : IsRealC (-a) := by
   simp only [IsRealC] at ha ⊢
   rw [star_neg, ha]
 
+/-- Addition preserves `IsRealC`. -/
 theorem isRealC_add {a b : ℂ} (ha : IsRealC a) (hb : IsRealC b) : IsRealC (a + b) := by
   simp only [IsRealC] at ha ⊢
   rw [star_add, ha, hb]
 
+/-- Multiplication preserves `IsRealC`. -/
 theorem isRealC_mul {a b : ℂ} (ha : IsRealC a) (hb : IsRealC b) : IsRealC (a * b) := by
   simp only [IsRealC] at ha ⊢
   rw [star_mul', ha, hb]
 
+/-- Conjugation preserves `IsRealC`. -/
 theorem isRealC_star {a : ℂ} (ha : IsRealC a) : IsRealC (star a) := by
   simp only [IsRealC] at ha ⊢
   rw [star_star, ha]
 
+/-- Inversion preserves `IsRealC`. -/
 theorem isRealC_inv {a : ℂ} (ha : IsRealC a) : IsRealC a⁻¹ := by
   simp only [IsRealC] at ha ⊢
   rw [star_inv₀, ha]
 
+/-- A finite sum of complex numbers satisfying `IsRealC` also satisfies `IsRealC`. -/
 theorem isRealC_sum {ι : Type*} {s : Finset ι} {f : ι → ℂ}
     (h : ∀ i ∈ s, IsRealC (f i)) : IsRealC (∑ i ∈ s, f i) := by
   simp only [IsRealC] at h ⊢
   rw [star_sum]
   exact Finset.sum_congr rfl (fun i hi => h i hi)
 
+/-- A finite product of complex numbers satisfying `IsRealC` also satisfies `IsRealC`. -/
 theorem isRealC_prod {ι : Type*} {s : Finset ι} {f : ι → ℂ}
     (h : ∀ i ∈ s, IsRealC (f i)) : IsRealC (∏ i ∈ s, f i) := by
   simp only [IsRealC] at h ⊢
   rw [star_prod]
   exact Finset.prod_congr rfl (fun i hi => h i hi)
 
+/-- Every entry of `mpSVector α o` satisfies `IsRealC` for the present measurement-vector
+definition. -/
 theorem isRealC_sv (α : ℝ) (o b : Bool) : IsRealC (mpSVector α o b) := by
   rw [sv_eq_ofReal]
   exact isRealC_ofReal _
 
+/-- Every conjugated entry of `mpSVector α o` satisfies `IsRealC`. -/
 theorem isRealC_star_sv (α : ℝ) (o b : Bool) : IsRealC (star (mpSVector α o b)) := by
   rw [star_sv]
   exact isRealC_sv α o b
 
+/-- Every Boolean phase sign satisfies `IsRealC`. -/
 theorem isRealC_bitPhase (b : Bool) : IsRealC (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b) := by
   rcases b with rfl | rfl
   · show IsRealC (1 : ℂ)
@@ -194,18 +241,24 @@ theorem isRealC_bitPhase (b : Bool) : IsRealC (Qatlib.Concepts.MbqcFlow.FlowDeci
   · show IsRealC (-1 : ℂ)
     exact isRealC_neg isRealC_one
 
+/-- The Euler resource phase satisfies `IsRealC` at every register. -/
 theorem eulerPhase_real (x : Reg 6) : IsRealC (eulerPhase x) := by
   unfold eulerPhase
   repeat' apply isRealC_mul
   all_goals exact isRealC_bitPhase _
 
+/-- The Euler pattern's entangler is independent of its angle vector. -/
 theorem euler_ent_shape (θ θ' : Fin 5 → ℝ) :
     (mpEulerPattern θ).entangler = (mpEulerPattern θ').entangler := rfl
 
+/-- The Euler pattern's loading matrix with the uniform resource is independent of its angle
+vector. -/
 theorem euler_load_shape (θ θ' : Fin 5 → ℝ) :
     mpLoadMatrix (mpEulerPattern θ) (Uniform (Reg 5))
       = mpLoadMatrix (mpEulerPattern θ') (Uniform (Reg 5)) := rfl
 
+/-- The Euler entangler followed by loading has the resource phase divided by `√32` when the
+input bit matches, and zero otherwise. -/
 theorem euler_EL_gen (θ : Fin 5 → ℝ) (d : Reg 6) (y : Reg 1) :
     ((mpEulerPattern θ).entangler
         * mpLoadMatrix (mpEulerPattern θ) (Uniform (Reg 5))) d y
@@ -213,6 +266,7 @@ theorem euler_EL_gen (θ : Fin 5 → ℝ) (d : Reg 6) (y : Reg 1) :
   rw [euler_ent_shape θ (theta 0), euler_load_shape θ (theta 0)]
   exact euler_EL 0 d y
 
+/-- The integer-indexed core entry is `corePre` evaluated at the decoded input register. -/
 theorem core_eq_gen {n w m : ℕ} (P : MpPattern n w m)
     (resource : QState (Reg (w + m - n))) (s : Fin w → Bool)
     (xp : Fin (2 ^ m)) (yp : Fin (2 ^ n)) :
@@ -220,6 +274,7 @@ theorem core_eq_gen {n w m : ℕ} (P : MpPattern n w m)
   simp only [core, Matrix.reindex_apply, Matrix.submatrix_apply, Equiv.refl_symm,
     Equiv.refl_apply]
 
+/-- Every entry of the Euler pattern's `corePre` satisfies `IsRealC`. -/
 theorem euler_corePre_real (θ : Fin 5 → ℝ) (s : Fin 5 → Bool) (xp : Fin 2) (y : Reg 1) :
     IsRealC (corePre (mpEulerPattern θ) (Uniform (Reg 5)) s xp y) := by
   unfold corePre
@@ -256,17 +311,20 @@ theorem euler_corePre_real (θ : Fin 5 → ℝ) (s : Fin 5 → Bool) (xp : Fin 2
       · rw [if_neg h]
         exact isRealC_zero
 
+/-- Every entry of the Euler pattern's integer-indexed core satisfies `IsRealC`. -/
 theorem euler_core_real (θ : Fin 5 → ℝ) (s : Fin 5 → Bool) (xp yp : Fin 2) :
     IsRealC (core (mpEulerPattern θ) (Uniform (Reg 5)) s xp yp) := by
   rw [core_eq_gen]
   exact euler_corePre_real θ s xp _
 
+/-- The product of Euler measurement-vector entries satisfies `IsRealC`. -/
 theorem euler_v_real (θ : Fin 5 → ℝ) (s z : Fin 5 → Bool) :
     IsRealC (∏ j : Fin 5, mpSVector (mpAdaptiveAngle (mpEulerPattern θ) s j) (s j) (z j)) := by
   apply isRealC_prod
   intro j _
   exact isRealC_sv _ _ _
 
+/-- Every entry of an Euler pattern Kraus matrix satisfies `IsRealC`. -/
 theorem euler_kraus_real (θ : Fin 5 → ℝ) (s z : Fin 5 → Bool) (i j : Fin 2) :
     IsRealC (mpPatternKraus (mpEulerPattern θ) (Uniform (Reg 5)) s z i j) := by
   rw [kraus_eq_smul_core, Matrix.smul_apply, smul_eq_mul]
@@ -274,10 +332,13 @@ theorem euler_kraus_real (θ : Fin 5 → ℝ) (s z : Fin 5 → Bool) (i j : Fin 
   · exact euler_v_real θ s z
   · exact euler_core_real θ s i j
 
+/-- The two-dimensional matrix unit with its sole nonzero entry at row zero and column one. -/
 def e01 : Matrix (Fin 2) (Fin 2) ℂ := Matrix.of fun i j => if i = 0 ∧ j = 1 then (1 : ℂ) else 0
 
+/-- The matrix unit `e01` equals one at `(0, 1)` and zero elsewhere. -/
 theorem e01_apply (i j : Fin 2) : e01 i j = if i = 0 ∧ j = 1 then (1 : ℂ) else 0 := rfl
 
+/-- Row zero of `e01` equals one exactly at column one. -/
 theorem e01_0j (j : Fin 2) : e01 0 j = if j = 1 then (1 : ℂ) else 0 := by
   rw [e01_apply]
   by_cases hj : j = 1
@@ -285,10 +346,12 @@ theorem e01_0j (j : Fin 2) : e01 0 j = if j = 1 then (1 : ℂ) else 0 := by
     simp
   · simp [hj]
 
+/-- Row one of `e01` is zero. -/
 theorem e01_1j (j : Fin 2) : e01 1 j = 0 := by
   rw [e01_apply]
   simp
 
+/-- The `(0, 1)` entry of `A * e01 * Aᴴ` is `A 0 0 * star (A 1 1)`. -/
 theorem mul_e01_conj (A : Matrix (Fin 2) (Fin 2) ℂ) :
     (A * e01 * A.conjTranspose) 0 1 = A 0 0 * star (A 1 1) := by
   have hleft : ∀ i j : Fin 2, (A * e01) i j = if j = 1 then A i 0 else 0 := by
@@ -302,6 +365,8 @@ theorem mul_e01_conj (A : Matrix (Fin 2) (Fin 2) ℂ) :
     Matrix.conjTranspose_apply, Matrix.conjTranspose_apply]
   simp
 
+/-- The Euler branch at history `s0`, applied to `e01`, has `(0, 1)` entry equal to the sum of
+the corresponding diagonal Kraus-entry products. -/
 theorem euler_channel_e01_01 (θ : Fin 5 → ℝ) :
     ((∑ z : Fin 5 → Bool,
         (mpPatternKraus (mpEulerPattern θ) (Uniform (Reg 5)) s0 z) * e01
@@ -314,6 +379,8 @@ theorem euler_channel_e01_01 (θ : Fin 5 → ℝ) :
   intro z _
   exact mul_e01_conj _
 
+/-- The `(0, 1)` entry of the Euler branch at history `s0`, applied to `e01`, satisfies
+`IsRealC`. -/
 theorem euler_channel_e01_real (θ : Fin 5 → ℝ) :
     IsRealC ((∑ z : Fin 5 → Bool,
         (mpPatternKraus (mpEulerPattern θ) (Uniform (Reg 5)) s0 z) * e01
@@ -325,6 +392,7 @@ theorem euler_channel_e01_real (θ : Fin 5 → ℝ) :
   · exact euler_kraus_real θ s0 z 0 0
   · exact isRealC_star (euler_kraus_real θ s0 z 1 1)
 
+/-- The encoded one-qubit T gate has the entries of `tGate` at the decoded Boolean indices. -/
 theorem mpFin1Gate_t_apply (i j : Fin 2) :
     mpFin1Gate (FiniteGateCode.t 0) i j
       = tGate ((bitVecEquiv 1).symm i 0) ((bitVecEquiv 1).symm j 0) := by
@@ -333,23 +401,29 @@ theorem mpFin1Gate_t_apply (i j : Fin 2) :
   rw [if_pos (by intro k hk; fin_cases k; exact absurd rfl hk)]
   simp only [Fin.fin_one_eq_zero]
 
+/-- The `(0, 0)` entry of the encoded T gate is one. -/
 theorem mpFin1Gate_t_00 : mpFin1Gate (FiniteGateCode.t 0) 0 0 = 1 := by
   rw [mpFin1Gate_t_apply]
   rw [show ((bitVecEquiv 1).symm 0 : Reg 1) 0 = false from (bitVec1_symm).2.1]
   simp [tGate, Rz]
 
+/-- The `(1, 1)` entry of the encoded T gate is `exp(iπ/4)`. -/
 theorem mpFin1Gate_t_11 : mpFin1Gate (FiniteGateCode.t 0) 1 1
     = Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I) := by
   rw [mpFin1Gate_t_apply]
   rw [show ((bitVecEquiv 1).symm 1 : Reg 1) 0 = true from (bitVec1_symm).2.2]
   simp [tGate, Rz]
 
+/-- Conjugating `e01` by `c • T` gives `(0, 1)` entry equal to `c * star c` times the
+corresponding diagonal-entry product of `T`. -/
 theorem conj_smul_e01 (c : ℂ) (T : Matrix (Fin 2) (Fin 2) ℂ) :
     ((c • T) * e01 * (c • T).conjTranspose) 0 1
       = (c * star c) * (T 0 0 * star (T 1 1)) := by
   rw [Matrix.conjTranspose_smul, smul_mul_assoc, smul_mul_smul, Matrix.smul_apply, smul_eq_mul,
     mul_e01_conj]
 
+/-- A complex exponential with purely imaginary real-angle exponent times its conjugate equals
+one. -/
 theorem exp_mul_I_star (φ : ℝ) :
     Complex.exp ((φ : ℂ) * Complex.I) * star (Complex.exp ((φ : ℂ) * Complex.I)) = 1 := by
   rw [mul_comm]
@@ -357,8 +431,10 @@ theorem exp_mul_I_star (φ : ℝ) :
     Complex.norm_exp_ofReal_mul_I]
   norm_num
 
+/-- Conjugating an embedded real number leaves it unchanged. -/
 theorem star_ofReal' (r : ℝ) : star (((r : ℝ) : ℂ)) = ((r : ℝ) : ℂ) := Complex.conj_ofReal _
 
+/-- The conjugate of `exp(iπ/4)` differs from `exp(iπ/4)`. -/
 theorem star_exp_pi4_ne :
     star (Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I))
       ≠ Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I) := by
@@ -367,6 +443,8 @@ theorem star_exp_pi4_ne :
     Complex.exp_ofReal_mul_I_im, Real.sin_pi_div_four] at h
   norm_num at h
 
+/-- The present Euler pattern cannot realize all four listed one-qubit gates by uniformly
+weighted unitary branches, even allowing a global phase. -/
 theorem clause7_counter_clause7 :
     ¬ (∀ g : FiniteGateCode,
         (g = FiniteGateCode.h 0 ∨ g = FiniteGateCode.x 0

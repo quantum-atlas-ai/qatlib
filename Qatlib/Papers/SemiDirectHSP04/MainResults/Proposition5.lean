@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
 import Mathlib.GroupTheory.SpecificGroups.Cyclic
 import Mathlib.GroupTheory.OrderOfElement
+
+/-!
+# Isomorphic cyclic semidirect products from equal-order units
+
+The action calculations express powers of `unitMulAut` and evaluate `cyclicAction` using natural
+residue representatives. `prop5_isomorphic_of_same_order` then identifies semidirect products
+defined by units of the same prime order modulo an odd prime power. See [InuiLeGall2007] for the
+mathematical setting.
+
+## Main statements
+
+* `prop5_isomorphic_of_same_order`: produces an isomorphism between the two unit-defined
+  semidirect products.
+
+## References
+
+* [Inui and Le Gall, 2007][InuiLeGall2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,11 +35,14 @@ namespace Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition5
 
 open Qatlib.Papers.SemiDirectHSP04.MainResults.Model
 
+/-- The `k`th power of multiplication by `u` is multiplication by `u ^ k`. -/
 theorem unitMulAut_pow (n k : ℕ) (u : (ZMod n)ˣ) :
     (unitMulAut n u) ^ k = unitMulAut n (u ^ k) := by
   change (unitMulAutHom n u) ^ k = unitMulAutHom n (u ^ k)
   rw [← map_pow]
 
+/-- The `k`th automorphism power multiplies the underlying additive coordinate by the residue `u
+^ k`. -/
 theorem unitMulAut_pow_apply (n k : ℕ) (u : (ZMod n)ˣ) (a : Cyc n) :
     ((unitMulAut n u) ^ k) a
       = Multiplicative.ofAdd ((u : ZMod n) ^ k * Multiplicative.toAdd a) := by
@@ -28,6 +50,8 @@ theorem unitMulAut_pow_apply (n k : ℕ) (u : (ZMod n)ˣ) (a : Cyc n) :
   conv_lhs => rw [show a = Multiplicative.ofAdd (Multiplicative.toAdd a) from rfl]
   rw [unitMulAut_apply, Units.val_pow_eq_pow_val]
 
+/-- For nonzero `q`, the cyclic action at `h` multiplies by `u` raised to the natural
+representative of `h`. -/
 theorem cyclicAction_apply (q n : ℕ) [NeZero q] (u : (ZMod n)ˣ) (hu : u ^ q = 1)
     (h : Cyc q) (a : Cyc n) :
     cyclicAction q n u hu h a
@@ -46,11 +70,15 @@ theorem cyclicAction_apply (q n : ℕ) [NeZero q] (u : (ZMod n)ˣ) (hu : u ^ q =
   rw [← ofMul_zpow, zpow_natCast]
   exact unitMulAut_pow_apply n _ u a
 
+/-- If `u ^ q = 1`, natural exponents congruent modulo `q` give equal powers of `u`. -/
 theorem unit_pow_eq_pow_of_modEq (n q a b : ℕ) (u : (ZMod n)ˣ) (hu : u ^ q = 1)
     (h : a ≡ b [MOD q]) : u ^ a = u ^ b := by
   rw [pow_eq_pow_iff_modEq]
   exact h.of_dvd (orderOf_dvd_of_pow_eq_one hu)
 
+/-- For odd prime `p`, prime `q`, and `r ≥ 1`, two units modulo `p ^ r` of order `q` define
+isomorphic cyclic semidirect products. See [Inui and Le Gall, 2007, Proposition
+5][InuiLeGall2007]. -/
 theorem prop5_isomorphic_of_same_order
     (p q r : ℕ) (hp : p.Prime) (hp2 : p ≠ 2) (hq : q.Prime) (hr : 1 ≤ r)
     (u v : (ZMod (p ^ r))ˣ) (hu : u ^ q = 1) (hv : v ^ q = 1)

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+
+/-!
+# Exact two-mode resonance bounds
+
+This module evaluates Hamiltonian evolution on a scaled difference of eigenvectors with energies
+`1 + δp` and `1 - δm`. At time `Real.pi / (δp + δm)`, the difference becomes their sum up to a
+phase, giving amplitude and squared-amplitude lower bounds used for the search lemma of
+[ChakrabortyEtAl2016].
+
+## Main statements
+
+* `resonant_symmetric_evolution`: exact difference-to-sum evolution.
+* `resonant_sharp_probability`: squared-amplitude lower bound from lower bounds on both
+  overlaps.
+* `resonant_sharp_gap_probability`: specialization to `spectralGapParam c`.
+
+## References
+
+* [Chakraborty et al., 2016][ChakrabortyEtAl2016]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,9 @@ namespace Qatlib.Papers.SpatialWalk15.MainResults.Lemma1SharpResonance
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- For eigenvectors at energies `1 + δp` and `1 - δm` with positive shifts, evolution for time
+`Real.pi / (δp + δm)` maps their difference scaled by `1 / Real.sqrt 2` to their similarly
+scaled sum times the upper-mode phase [ChakrabortyEtAl2016]. -/
 theorem resonant_symmetric_evolution (H : Matrix I I ℂ) (up um : QState I)
     (δp δm : ℝ) (hp : 0 < δp) (hm : 0 < δm)
     (hup : H *ᵥ up = ((1+δp : ℝ) : ℂ) • up)
@@ -44,6 +68,9 @@ theorem resonant_symmetric_evolution (H : Matrix I I ℂ) (up um : QState I)
     rw [neg_smul, sub_neg_eq_add, smul_add]
   rw [hstep, smul_smul, smul_smul, mul_comm]
 
+/-- At the resonant time, the transition-amplitude norm from the scaled eigenvector difference
+is `‖rp + rm‖ / Real.sqrt 2` when the marked-state overlaps with the two eigenvectors are
+the real numbers `rp` and `rm`. -/
 theorem resonant_symmetric_amplitude (H : Matrix I I ℂ) (w up um : QState I)
     (δp δm rp rm : ℝ) (hp : 0 < δp) (hm : 0 < δm)
     (hup : H *ᵥ up = ((1+δp : ℝ) : ℂ) • up)
@@ -66,6 +93,9 @@ theorem resonant_symmetric_amplitude (H : Matrix I I ℂ) (w up um : QState I)
     rw [← Complex.ofReal_add, Complex.norm_real, Real.norm_eq_abs]
   rw [norm_mul, norm_mul, hPnorm, hcnorm, hsum, one_mul]
 
+/-- If both real marked-state overlaps are at least a nonnegative `r`, the resonant
+transition-amplitude norm from the eigenvector difference scaled by `1 / Real.sqrt 2` is at
+least `Real.sqrt 2 * r`. -/
 theorem resonant_sharp_amplitude (H : Matrix I I ℂ) (w up um : QState I)
     (δp δm r rp rm : ℝ) (hp : 0 < δp) (hm : 0 < δm) (hr : 0 ≤ r)
     (hup : H *ᵥ up = ((1+δp : ℝ) : ℂ) • up)
@@ -89,6 +119,9 @@ theorem resonant_sharp_amplitude (H : Matrix I I ℂ) (w up um : QState I)
   have hfac : (0 : ℝ) ≤ (Real.sqrt 2)⁻¹ := by positivity
   exact mul_le_mul_of_nonneg_left (by linarith) hfac
 
+/-- If both real marked-state overlaps are at least a nonnegative `r`, the squared resonant
+transition-amplitude norm from the eigenvector difference scaled by `1 / Real.sqrt 2` is at
+least `2 * r ^ 2`. -/
 theorem resonant_sharp_probability (H : Matrix I I ℂ) (w up um : QState I)
     (δp δm r rp rm : ℝ) (hp : 0 < δp) (hm : 0 < δm) (hr : 0 ≤ r)
     (hup : H *ᵥ up = ((1+δp : ℝ) : ℂ) • up)
@@ -112,6 +145,9 @@ theorem resonant_sharp_probability (H : Matrix I I ℂ) (w up um : QState I)
   rw [hsq] at hsquare
   simpa only [pow_two] using hsquare
 
+/-- If `spectralGapParam c` is nonnegative and both real marked-state overlaps are at least its
+half-square-root `Real.sqrt (spectralGapParam c / 2)`, the squared resonant amplitude is at
+least `spectralGapParam c` [ChakrabortyEtAl2016]. -/
 theorem resonant_sharp_gap_probability (H : Matrix I I ℂ) (w up um : QState I)
     (c δp δm rp rm : ℝ) (hp : 0 < δp) (hm : 0 < δm)
     (hν : 0 ≤ spectralGapParam c)

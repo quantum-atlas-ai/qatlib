@@ -20,15 +20,19 @@ In your Lean 4 project's `lakefile.toml` (using the matching [`lean-toolchain`](
 [[require]]
 name = "Qatlib"
 git = "https://github.com/quantum-atlas-ai/qatlib.git"
-rev = "v4.35.0"
+rev = "main" # Track the latest theorems (recommended); or pin to "v4.35.0" for the initial toolchain baseline
 ```
 
-From your project root, fetch the dependencies and all three layers of prebuilt caches (`Mathlib`, `Physlib`, and `Qatlib`) so you do not have to compile `Qatlib` from source:
+From your project root, lock the current commit in `lake-manifest.json` and fetch all three layers of prebuilt caches (`Mathlib`, `Physlib`, and `Qatlib`) so you do not have to compile `Qatlib` from source:
 
 ```bash
 lake update
 lake exe get_cache
 ```
+
+> **How version locking and cache updates work**:
+> - Setting `rev = "main"` fetches the latest theorems on `main` when you run `lake update` and records the exact commit SHA in `lake-manifest.json`; if you prefer to freeze at the initial toolchain release snapshot, set `rev = "v4.35.0"`.
+> - `lake update` only updates source checkouts and `lake-manifest.json`—it **does not automatically fetch prebuilt caches**. Whenever you run `lake update` (or `lake update Qatlib`), follow it with `lake exe get_cache`.
 
 Then import `Qatlib` or the specific modules you need in your `.lean` files (prefer importing specific submodules in large projects to keep your import closure minimal):
 
@@ -79,7 +83,7 @@ lake test
 1. **Open the repository root folder**:
    After installing the official [Lean 4 extension](https://marketplace.visualstudio.com/items?itemName=leanprover.lean4), always open the top-level `qatlib` directory via **File → Open Folder** (do not open a subdirectory such as `Qatlib/Papers` directly, or Lake will not find `lakefile.toml` and `lean-toolchain`).
 2. **Go-to-Definition and hover support**:
-   [`lakefile.toml`](../lakefile.toml) enables `enableArtifactCache = true` and `restoreAllArtifacts = true`. After running `lake exe get_cache`, `lean --server` reuses the cached `.olean` and `.ilean` files directly without recompiling imported modules in the background.
+   After running `lake exe get_cache`, `lean --server` reuses the prebuilt `.olean` and `.ilean` artifacts from the local Lake cache directly without recompiling imported modules in the background.
 3. **Troubleshooting**:
    - If you encounter stale or mismatched `.olean` errors after switching branches, re-run `lake exe get_cache`.
    - To reset local build outputs completely, run `lake clean` followed by `lake exe get_cache && lake build`.

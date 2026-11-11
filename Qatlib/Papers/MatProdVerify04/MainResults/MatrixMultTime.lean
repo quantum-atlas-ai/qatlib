@@ -8,6 +8,23 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic
 
+/-!
+# Square root sums in matrix multiplication costs
+
+The module proves finite sum estimates used to aggregate Grover search costs. `grover_sum_le`
+follows from a telescoping square root bound, while `sum_sqrt_le_sqrt_mul_sum` controls a sum of
+square roots by the total mass. The paper context is [BuhrmanSpalek2006].
+
+## Main statements
+
+* `grover_row_time`: bounds the accumulated search cost within a row.
+* `sum_sqrt_le_sqrt_mul_sum`: finite square root sum inequality.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,6 +32,8 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Finset
 
+/-- For positive integer `j`, bounds `1 / sqrt j` by twice the difference `sqrt j - sqrt (j -
+1)`. See [BuhrmanSpalek2006]. -/
 theorem inv_sqrt_le_two_diff {j : ℕ} (hj : 0 < j) :
     1 / Real.sqrt (j : ℝ) ≤ 2 * (Real.sqrt (j : ℝ) - Real.sqrt ((j - 1 : ℕ) : ℝ)) := by
   have hjR : (0 : ℝ) < (j : ℝ) := by exact_mod_cast hj
@@ -41,6 +60,7 @@ theorem inv_sqrt_le_two_diff {j : ℕ} (hj : 0 < j) :
     linarith
   linarith
 
+/-- The sum of `1 / sqrt (i + 1)` for `i < r` is at most `2 * sqrt r`. See [BuhrmanSpalek2006]. -/
 theorem grover_sum_le (r : ℕ) :
     (∑ i ∈ Finset.range r, 1 / Real.sqrt ((i : ℝ) + 1)) ≤ 2 * Real.sqrt (r : ℝ) := by
   have hterm : ∀ i ∈ Finset.range r,
@@ -60,6 +80,8 @@ theorem grover_sum_le (r : ℕ) :
         simpa using Finset.sum_range_sub (fun i : ℕ => Real.sqrt (i : ℝ)) r
     _ = 2 * Real.sqrt (r : ℝ) := by simp
 
+/-- For nonnegative `n` and `m`, the sum of the costs `sqrt (n / (i + 1)) * m` over `i < r` is
+at most `2 * sqrt (n * r) * m`. See [BuhrmanSpalek2006]. -/
 theorem grover_row_time {n m : ℝ} (hn : 0 ≤ n) (hm : 0 ≤ m) (r : ℕ) :
     (∑ i ∈ Finset.range r, Real.sqrt (n / ((i : ℝ) + 1)) * m)
       ≤ 2 * Real.sqrt (n * r) * m := by
@@ -85,6 +107,8 @@ theorem grover_row_time {n m : ℝ} (hn : 0 ≤ n) (hm : 0 ≤ m) (r : ℕ) :
         rw [Real.sqrt_mul hn]
         ring
 
+/-- For nonnegative `f`, the sum of `sqrt (f i)` over `i < r` is at most the square root of `r`
+times the sum of `f` over the same range. See [BuhrmanSpalek2006]. -/
 theorem sum_sqrt_le_sqrt_mul_sum {r : ℕ} {f : ℕ → ℝ} (hf : ∀ i, 0 ≤ f i) :
     (∑ i ∈ Finset.range r, Real.sqrt (f i))
       ≤ Real.sqrt ((r : ℝ) * ∑ i ∈ Finset.range r, f i) := by

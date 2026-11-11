@@ -12,6 +12,32 @@ import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Matrix.PosDef
 import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
 import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+
+/-!
+# Finite Stinespring dilations and unitary completion
+
+This module constructs a `StinespringDilation` from a complete Kraus family and proves that
+tracing out the environment reproduces the channel on arbitrary finite reference systems
+[Stinespring1955]. It extends isometric columns to a unitary after padding the environment and
+matching the total dimensions.
+
+The final theorem gives a bounded-environment dilation for every bundled quantum channel,
+together with identity-channel and nonunitary reset-channel examples.
+
+## Main statements
+
+* `stinespring_of_kraus`: stacking a complete Kraus family gives a reference-compatible
+  isometric dilation.
+* `cleanEnv_of_isometry`: an isometry has a clean-environment unitary completion under the
+  stated dimension condition.
+* `g2`: bounded dilations, clean unitary completions, and explicit channel examples.
+
+## References
+
+* [Stinespring, 1955][Stinespring1955]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -28,6 +54,8 @@ variable {D E : ℕ}
 
 namespace Qatlib.Concepts.ChannelTheory.Stinespring
 
+/-- An orthonormal family of matrix columns extends to a square unitary whose specified columns
+agree with the original family. -/
 theorem exists_unitary_extend_cols {ι : Type} [Fintype ι] [DecidableEq ι] {d : ℕ}
     (W : Matrix ι (Fin d) ℂ) (emb : Fin d → ι) (hemb : Function.Injective emb)
     (hW : W.conjTranspose * W = 1) :
@@ -77,6 +105,8 @@ theorem exists_unitary_extend_cols {ι : Type} [Fintype ι] [DecidableEq ι] {d 
         = ⇑(b (emb j)) x := rfl
     rw [hcol, hb (emb j) hj, hvapp j]
 
+/-- A sum over `Fin dOut` restricted to indices below `env` equals the corresponding sum over
+`Fin env` when `env ≤ dOut`. -/
 theorem sum_fin_lt {env dOut : ℕ} (henv : env ≤ dOut) {β : Type} [AddCommMonoid β]
     (G : (k : Fin dOut) → k.val < env → β) :
     (∑ k : Fin dOut, if hk : k.val < env then G k hk else 0)
@@ -102,18 +132,25 @@ theorem sum_fin_lt {env dOut : ℕ} (henv : env ≤ dOut) {β : Type} [AddCommMo
   · intro k _
     exact (dif_pos k.isLt).symm
 
+/-- The matrix obtained by extending the environment rows of `V` by zero to dimension `dOut`. -/
 noncomputable def padV {D E env dOut : ℕ} (_henv : env ≤ dOut)
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) : Matrix (Fin E × Fin dOut) (Fin D) ℂ :=
   fun x j => if hx : x.2.val < env then V (x.1, ⟨x.2.val, hx⟩) j else 0
 
+/-- A padded matrix agrees with `V` below the original environment dimension and is zero on the
+remaining rows. -/
 theorem padV_apply {D E env dOut : ℕ} (henv : env ≤ dOut)
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) (x : Fin E × Fin dOut) (j : Fin D) :
     padV henv V x j = if hx : x.2.val < env then V (x.1, ⟨x.2.val, hx⟩) j else 0 := rfl
 
+/-- The padded environment vector agrees with the original vector below its environment
+dimension and is zero elsewhere. -/
 theorem envPad_apply {E env dOut : ℕ} (henv : env ≤ dOut)
     (w : Fin E × Fin env → ℂ) (x : Fin E × Fin dOut) :
     envPad henv w x = if hx : x.2.val < env then w (x.1, ⟨x.2.val, hx⟩) else 0 := rfl
 
+/-- Multiplying by the padded matrix equals padding the result of multiplication by the original
+matrix. -/
 theorem padV_mulVec {D E env dOut : ℕ} (henv : env ≤ dOut)
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) (ψ : Fin D → ℂ) :
     padV henv V *ᵥ ψ = envPad henv (V *ᵥ ψ) := by
@@ -133,6 +170,7 @@ theorem padV_mulVec {D E env dOut : ℕ} (henv : env ≤ dOut)
       rw [envPad_apply, dif_neg hx]
     rw [show (∑ j, padV henv V x j * ψ j) = 0 by simp [h1], h2]
 
+/-- Padding the environment rows by zero preserves the Gram matrix `Vᴴ * V`. -/
 theorem padV_conjTranspose_mul {D E env dOut : ℕ} (henv : env ≤ dOut)
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) :
     (padV henv V).conjTranspose * padV henv V = V.conjTranspose * V := by
@@ -151,6 +189,8 @@ theorem padV_conjTranspose_mul {D E env dOut : ℕ} (henv : env ≤ dOut)
   simp only [hterm]
   exact sum_fin_lt henv (fun k hk => star (V (a, ⟨k.val, hk⟩) i) * V (a, ⟨k.val, hk⟩) j)
 
+/-- An entry of `K * A * Kᴴ` is the double sum of the corresponding Kraus entries, input
+entries, and conjugate Kraus entries. -/
 theorem kraus_mul_apply {D E : ℕ} (K : Matrix (Fin E) (Fin D) ℂ) (A : Operator D)
     (a b : Fin E) :
     (K * A * K.conjTranspose) a b
@@ -161,6 +201,8 @@ theorem kraus_mul_apply {D E : ℕ} (K : Matrix (Fin E) (Fin D) ℂ) (A : Operat
   simp only [h1]
   rw [Finset.sum_comm]
 
+/-- Stacking a complete Kraus representation along its Kraus index gives a Stinespring dilation
+with that environment dimension [Stinespring1955]. -/
 theorem stinespring_of_kraus {D E n : ℕ} {T : Operator D →ₗ[ℂ] Operator E}
     (K : Fin n → Matrix (Fin E) (Fin D) ℂ) (hK : KrausForm T K) (hC : KrausComplete K) :
     StinespringDilation T n (fun x j => K x.2 x.1 j) := by
@@ -189,6 +231,8 @@ theorem stinespring_of_kraus {D E n : ℕ} {T : Operator D →ₗ[ℂ] Operator 
     rw [Matrix.sum_apply]
     simp only [hterm]
 
+/-- An isometry with zero environment dimension possesses a clean-environment unitary
+completion. -/
 theorem cleanEnv_zero_env {D E env : ℕ}
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) (hV : V.conjTranspose * V = 1)
     (henv : env = 0) : CleanEnvUnitaryCompletion V := by
@@ -214,6 +258,7 @@ theorem cleanEnv_zero_env {D E env : ℕ}
   · ext i j; exact Fin.elim0 i.2
   · intro ψ; funext x; exact Fin.elim0 x.2
 
+/-- An isometry with zero output dimension possesses a clean-environment unitary completion. -/
 theorem cleanEnv_zero_out {D E env : ℕ}
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) (hV : V.conjTranspose * V = 1)
     (hE : E = 0) : CleanEnvUnitaryCompletion V := by
@@ -239,6 +284,7 @@ theorem cleanEnv_zero_out {D E env : ℕ}
   · ext i j; exact Fin.elim0 i.1
   · intro ψ; funext x; exact Fin.elim0 x.1
 
+/-- An isometry with positive input dimension possesses a clean-environment unitary completion. -/
 theorem cleanEnv_pos_dim {D E env : ℕ}
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) (hV : V.conjTranspose * V = 1)
     (hD : 0 < D) : CleanEnvUnitaryCompletion V := by
@@ -321,6 +367,8 @@ theorem cleanEnv_pos_dim {D E env : ℕ}
     rw [← padV_mulVec hdOut V ψ]
     rfl
 
+/-- An isometry possesses a clean-environment unitary completion if its input dimension is
+positive or its environment or output dimension is zero. -/
 theorem cleanEnv_of_isometry {D E env : ℕ}
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ) (hV : V.conjTranspose * V = 1)
     (hok : 0 < D ∨ env = 0 ∨ E = 0) : CleanEnvUnitaryCompletion V := by
@@ -329,6 +377,7 @@ theorem cleanEnv_of_isometry {D E env : ℕ}
   · exact cleanEnv_zero_env V hV h
   · exact cleanEnv_zero_out V hV hE
 
+/-- The qubit matrix unit at `(0, 0)` is the diagonal matrix with entries one and zero. -/
 theorem matrixUnit_zero_zero_eq_diagonal :
     matrixUnit (D := 2) 0 0 = Matrix.diagonal ![1, 0] := by
   ext i j
@@ -337,6 +386,10 @@ theorem matrixUnit_zero_zero_eq_diagonal :
 
 set_option maxHeartbeats 800000
 
+/-- Every quantum channel possesses a Stinespring dilation with environment dimension at most `D
+* E` and a clean-environment unitary completion [Stinespring1955]. The theorem also supplies
+identity dilations and a qubit reset channel that cannot be realized by system-only unitary
+conjugation. -/
 theorem g2 :
     (∀ (D E : ℕ) (T : QuantumChannel D E),
       ∃ (env : ℕ) (V : Matrix (Fin E × Fin env) (Fin D) ℂ),

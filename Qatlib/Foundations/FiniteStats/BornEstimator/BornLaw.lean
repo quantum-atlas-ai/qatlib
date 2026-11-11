@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.FiniteStats.BornEstimator.FiniteLaw
 import QuantumInfo.Measurements.POVM
+
+/-!
+# Born laws and unbiased inclusion-weighted scores
+
+This module describes finite joint-measurement schemes through `JointScheme`, recording
+contexts, POVMs, signs, and observable marginals. The function `bornLaw` combines context
+weights with Born probabilities, and `inclusion` records the weight of contexts containing an
+observable.
+
+The sign moments yield the unbiasedness of inverse-inclusion scores and a variance bound in
+terms of their inclusion weights. This is the finite estimator framework relevant to
+[XuEtAl2026].
+
+## Main statements
+
+* `JointScheme`: A family of context POVMs with real outcome signs whose squares indicate
+  context membership and whose signed marginals recover the selected Hermitian observables.
+* `born_score_unbiased`: If every inclusion weight is nonzero, the inverse-inclusion score has
+  mean equal to the corresponding linear combination of observable expectations.
+* `born_score_variance_le`: For nonnegative normalized context weights and positive inclusion
+  weights, the inverse-inclusion score variance is at most the square of the sum of `|c i| /
+  √(inclusion M q i)`.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +43,8 @@ open scoped Classical BigOperators RealInnerProductSpace
 variable {V K Ω d : Type*} [Fintype V] [DecidableEq V] [Fintype K]
   [Fintype Ω] [Fintype d] [DecidableEq d]
 
+/-- A family of context POVMs with real outcome signs whose squares indicate context membership
+and whose signed marginals recover the selected Hermitian observables. -/
 structure JointScheme (S : V → HermitianMat d ℂ) where
   context : K → Finset V
   measurement : K → POVM Ω d
@@ -22,21 +52,26 @@ structure JointScheme (S : V → HermitianMat d ℂ) where
   sign_sq : ∀ k i s,(sign k i s)^2=if i∈context k then 1 else 0
   marginal : ∀ k i,(∑ s,sign k i s • (measurement k).mats s)=if i∈context k then S i else 0
 
+/-- The total context weight of contexts containing observable `i`. -/
 def inclusion {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (i : V) : ℝ := ∑ k,q k*(if i∈M.context k then 1 else 0)
 
+/-- The joint weight of a context and an outcome, given by its context weight times the POVM
+Born probability in `ρ`. -/
 def bornLaw {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (ρ : MState d) (ω : K×Ω) : ℝ :=
   q ω.1*(((M.measurement ω.1).measure ρ) ω.2 : ℝ)
 
 omit [Fintype V] [Fintype K] in
 
+/-- Nonnegative context weights give nonnegative joint Born weights. -/
 theorem bornLaw_nonneg {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (hq : ∀ k,0 ≤ q k) (ρ : MState d) (ω : K×Ω) :
     0 ≤ bornLaw M q ρ ω := mul_nonneg (hq ω.1) (((M.measurement ω.1).measure ρ) ω.2).property.1
 
 omit [Fintype V] in
 
+/-- Context weights summing to one give joint Born weights summing to one. -/
 theorem bornLaw_normalized {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (hq : ∑ k,q k=1) (ρ : MState d) : ∑ ω,bornLaw M q ρ ω=1 := by
   unfold bornLaw
@@ -46,6 +81,8 @@ theorem bornLaw_normalized {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K
 
 omit [Fintype V] in
 
+/-- The second moment of an observable's outcome sign under the joint Born weights equals its
+inclusion weight. -/
 theorem born_sign_second {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (ρ : MState d) (i : V) :
     second (bornLaw M q ρ) (fun ω => M.sign ω.1 i ω.2)=inclusion M q i := by
@@ -55,6 +92,8 @@ theorem born_sign_second {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) 
 
 omit [Fintype V] in
 
+/-- The mean of an observable's outcome sign equals its inclusion weight times its expectation
+in `ρ`. -/
 theorem born_sign_mean {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (ρ : MState d) (i : V) :
     mean (bornLaw M q ρ) (fun ω => M.sign ω.1 i ω.2)=inclusion M q i*ρ.exp_val (S i) := by
@@ -78,12 +117,17 @@ theorem born_sign_mean {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (�
   intro k _
   ring
 
+/-- If every inclusion weight is nonzero, the inverse-inclusion score has mean equal to the
+corresponding linear combination of observable expectations. -/
 theorem born_score_unbiased {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (ρ : MState d) (c : V → ℝ) (hp : ∀ i,inclusion M q i≠0) :
     mean (bornLaw M q ρ) (fun ω => ∑ i,c i*M.sign ω.1 i ω.2/inclusion M q i)=
       ∑ i,c i*ρ.exp_val (S i) :=
   mean_score _ _ _ _ _ hp (born_sign_mean M q ρ)
 
+/-- For nonnegative normalized context weights and positive inclusion weights, the
+inverse-inclusion score variance is at most the square of the sum of `|c i| / √(inclusion M
+q i)`. -/
 theorem born_score_variance_le {S : V → HermitianMat d ℂ} (M : JointScheme (K:=K) (Ω:=Ω) S)
     (q : K → ℝ) (hq : ∀ k,0 ≤ q k) (hn : ∑ k,q k=1) (ρ : MState d)
     (c : V → ℝ) (hp : ∀ i,0 < inclusion M q i) :

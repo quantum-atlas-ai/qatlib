@@ -32,6 +32,24 @@ import Mathlib.Tactic.FieldSimp.Lemmas
 import Mathlib.Tactic.NormNum.Basic
 import Mathlib.Tactic.Positivity.Core
 
+/-!
+# Scalar quantum SVM runtime models
+
+Defines scalar models for copy-step error accumulation, eigenvalue precision, evolution time,
+and repeated runtime. Algebraic identities and monotonicity estimates make the cutoff and
+precision dependence explicit. See [RebentrostMohseniLloyd2014].
+
+## Main statements
+
+* `modeledStepCount_achieves_epsilon`: evaluates the accumulated error at the modeled step
+  count.
+* `modeledRepeatedRunTime_kappa`: expresses repeated runtime using the spectral cutoff.
+
+## References
+
+* [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 
@@ -39,31 +57,44 @@ noncomputable section
 
 namespace Qatlib.Papers.QuantumSVM13.CostModels
 
+/-- The accumulated-error model `T * (t0 / T) ^ 2` for `T` equal evolution steps. -/
 noncomputable def modeledStepAccumulatedError (t0 T : ℝ) : ℝ := T * (t0 / T) ^ 2
 
+/-- The real-valued step-count model `t0 ^ 2 / ε`. -/
 noncomputable def modeledStepCount (t0 ε : ℝ) : ℝ := t0 ^ 2 / ε
 
+/-- The relative eigenvalue-error model `1 / (t0 * lam)`. -/
 noncomputable def modeledRelativeEigenvalueError (t0 lam : ℝ) : ℝ := 1 / (t0 * lam)
 
+/-- The effective condition-number model `1 / εK` for cutoff `εK`. -/
 noncomputable def modeledEffectiveConditionNumber (εK : ℝ) : ℝ := 1 / εK
 
+/-- The total evolution-time model `κ / ε`. -/
 noncomputable def modeledTotalEvolutionTime (κ ε : ℝ) : ℝ := κ / ε
 
+/-- The single-run runtime model `t0 ^ 2 / ε * Real.log (M * N)`. -/
 noncomputable def modeledRunTime (t0 ε M N : ℝ) : ℝ := t0 ^ 2 / ε * Real.log (M * N)
 
+/-- The repeated runtime model obtained by multiplying `κ ^ 2 / ε ^ 3 * Real.log (M * N)` by
+`κ`. -/
 noncomputable def modeledRepeatedRunTime (κ ε M N : ℝ) : ℝ :=
   κ * (κ ^ 2 / ε ^ 3 * Real.log (M * N))
 
+/-- For nonzero step parameter `T`, the accumulated-error model simplifies to `t0 ^ 2 / T`. -/
 theorem modeledStepAccumulatedError_eq (t0 T : ℝ) (hT : T ≠ 0) :
     modeledStepAccumulatedError t0 T = t0 ^ 2 / T := by
   unfold modeledStepAccumulatedError
   field_simp
 
+/-- For nonzero `t0` and `ε`, evaluating the accumulated-error model at `modeledStepCount t0 ε`
+gives exactly `ε` [RebentrostMohseniLloyd2014]. -/
 theorem modeledStepCount_achieves_epsilon (t0 ε : ℝ) (ht0 : t0 ≠ 0) (hε : ε ≠ 0) :
     modeledStepAccumulatedError t0 (modeledStepCount t0 ε) = ε := by
   unfold modeledStepAccumulatedError modeledStepCount
   field_simp
 
+/-- For positive time and cutoff, replacing an eigenvalue above the cutoff by the cutoff can
+only increase the modeled relative error. -/
 theorem modeledRelativeEigenvalueError_mono (t0 lam εK : ℝ) (ht0 : 0 < t0) (hεK : 0 < εK)
     (hlam : εK ≤ lam) :
     modeledRelativeEigenvalueError t0 lam ≤ modeledRelativeEigenvalueError t0 εK := by
@@ -72,6 +103,8 @@ theorem modeledRelativeEigenvalueError_mono (t0 lam εK : ℝ) (ht0 : 0 < t0) (h
   have h2 : t0 * εK ≤ t0 * lam := by exact mul_le_mul_of_nonneg_left hlam ht0.le
   exact one_div_le_one_div_of_le h1 h2
 
+/-- For positive cutoff and precision and an eigenvalue at least the cutoff, time `1 / (εK * ε)`
+gives modeled relative error at most `ε`. -/
 theorem modeledRelativeEigenvalueError_le (lam εK ε : ℝ) (hεK : 0 < εK) (hε : 0 < ε)
     (hlam : εK ≤ lam) :
     modeledRelativeEigenvalueError (1 / (εK * ε)) lam ≤ ε := by
@@ -83,22 +116,30 @@ theorem modeledRelativeEigenvalueError_le (lam εK ε : ℝ) (hεK : 0 < εK) (h
   rw [hval] at hmono
   exact hmono
 
+/-- At the effective condition number `1 / εK`, the modeled total evolution time is `1 / (εK *
+ε)`. -/
 theorem modeledTotalEvolutionTime_eq (εK ε : ℝ) :
     modeledTotalEvolutionTime (modeledEffectiveConditionNumber εK) ε = 1 / (εK * ε) := by
   unfold modeledTotalEvolutionTime modeledEffectiveConditionNumber
   rw [div_div]
 
+/-- For nonzero precision, substituting the modeled total evolution time gives single-run
+runtime `κ ^ 2 / ε ^ 3 * Real.log (M * N)`. -/
 theorem modeledRunTime_eq (κ ε M N : ℝ) (hε : ε ≠ 0) :
     modeledRunTime (modeledTotalEvolutionTime κ ε) ε M N
       = κ ^ 2 / ε ^ 3 * Real.log (M * N) := by
   unfold modeledRunTime modeledTotalEvolutionTime
   field_simp
 
+/-- For nonzero condition-number and precision parameters, the repeated runtime model simplifies
+to `κ ^ 3 / ε ^ 3 * Real.log (M * N)` [RebentrostMohseniLloyd2014]. -/
 theorem modeledRepeatedRunTime_eq (κ ε M N : ℝ) (_hκ : κ ≠ 0) (hε : ε ≠ 0) :
     modeledRepeatedRunTime κ ε M N = κ ^ 3 / ε ^ 3 * Real.log (M * N) := by
   unfold modeledRepeatedRunTime
   field_simp
 
+/-- For nonzero cutoff and precision, the repeated runtime model is `1 / (εK ^ 3 * ε ^ 3) *
+Real.log (M * N)` [RebentrostMohseniLloyd2014]. -/
 theorem modeledRepeatedRunTime_kappa (εK ε M N : ℝ) (hεK : εK ≠ 0) (hε : ε ≠ 0) :
     modeledRepeatedRunTime (modeledEffectiveConditionNumber εK) ε M N
       = 1 / (εK ^ 3 * ε ^ 3) * Real.log (M * N) := by

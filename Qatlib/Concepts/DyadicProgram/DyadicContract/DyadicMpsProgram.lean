@@ -8,6 +8,30 @@ import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Linarith
 import Qatlib.Concepts.DyadicProgram.DyadicContract.DyadicMpsProgramDefs
+
+/-!
+# Correctness and bounds for dyadic matrix contractions
+
+This module proves that Gaussian integer row contraction decodes to ordinary complex matrix
+multiplication. `decode_standard_scalar` identifies the scalar output with the zero-boundary
+entry of `standardMatrixWord`, providing an arithmetic implementation of the open-boundary
+contraction used for MPS; see [Schollwock2011] for the tensor-network setting.
+
+`g2` gives exact multiplication and addition counts for the counted program. `g3` bounds both
+integer output components and supplies a power-of-two envelope using the binary ceiling
+logarithm of twice the bond dimension.
+
+## Main statements
+
+* `decode_standard_scalar`: agreement of decoded scalar contraction with the matrix product.
+* `g2`: exact counts of `4 * As.length * D ^ 2` for each arithmetic counter.
+* `g3`: component magnitude and width bounds for bounded inputs.
+
+## References
+
+* [Schollwöck, 2011][Schollwock2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,24 +40,32 @@ namespace Qatlib.Concepts.DyadicProgram.DyadicContract
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Embed a Gaussian integer pair as a complex number without dyadic scaling. -/
 private def enc (z : GI) : ℂ := (z.1 : ℂ) + (z.2 : ℂ) * Complex.I
 
+/-- Dyadic decoding equals the unscaled complex embedding divided by `2 ^ p`. -/
 private theorem decode_eq (p : ℕ) (z : GI) : decode p z = enc z / (2:ℂ)^p := rfl
 
+/-- The complex embedding preserves Gaussian integer addition. -/
 private theorem enc_add (x y : GI) : enc (add x y) = enc x + enc y := by
   simp only [enc, add, Int.cast_add]
   ring
 
+/-- The complex embedding preserves Gaussian integer multiplication. -/
 private theorem enc_mul (x y : GI) : enc (mul x y) = enc x * enc y := by
   simp only [enc, mul, Int.cast_add, Int.cast_sub, Int.cast_mul]
   linear_combination -((x.2 : ℂ) * (y.2 : ℂ)) * Complex.I_sq
 
+/-- Embedding a left-folded Gaussian integer sum gives the embedded initial value plus the sum
+of the embedded list entries. -/
 private theorem enc_fold (xs : List GI) (z : GI) :
     enc (xs.foldl add z) = enc z + (xs.map enc).sum := by
   induction xs generalizing z with
   | nil => simp
   | cons x xs ih => simp [ih, enc_add, add_assoc]
 
+/-- Decoding a Gaussian integer row update at precision `q + p` equals multiplication of the row
+decoded at `q` by the matrix decoded at `p`. -/
 private theorem decode_row {D : ℕ} (q p : ℕ) (v : Fin D → GI)
     (A : Matrix (Fin D) (Fin D) GI) :
     (fun j => decode (q+p) (row v A j)) =
@@ -49,16 +81,22 @@ private theorem decode_row {D : ℕ} (q p : ℕ) (v : Fin D → GI)
   intro i _
   ring
 
+/-- The initial row decoded at precision zero is the zero-indexed row of the complex identity
+matrix. -/
 private theorem decode_initial {D : ℕ} (hD : 0 < D) :
     (fun j => decode 0 (initial D j)) = (1 : Matrix (Fin D) (Fin D) ℂ) ⟨0,hD⟩ := by
   funext j
   by_cases hj : j.val = 0 <;>
     simp [decode, initial, hj, Matrix.one_apply, Fin.ext_iff, eq_comm]
 
+/-- The ordered product of the complex matrices obtained by decoding each list entry at
+precision `p`. -/
 noncomputable def standardMatrixWord {D : ℕ} (p : ℕ)
     (As : List (Matrix (Fin D) (Fin D) GI)) : Matrix (Fin D) (Fin D) ℂ :=
   List.prod (α := Matrix (Fin D) (Fin D) ℂ) (As.map fun A i j => decode p (A i j))
 
+/-- Decoding successive Gaussian integer row updates at the accumulated precision equals
+multiplication by the decoded matrix product. -/
 private theorem decode_fold {D : ℕ} (p q : ℕ)
     (As : List (Matrix (Fin D) (Fin D) GI)) (v : Fin D → GI) :
     (fun j => decode (q+p*As.length) (As.foldl row v j)) =
@@ -71,6 +109,8 @@ private theorem decode_fold {D : ℕ} (p q : ℕ)
     rw [ih, decode_row, Matrix.vecMul_vecMul]
     rfl
 
+/-- The scalar program decoded at precision `p * As.length` is the `(0, 0)` entry of the decoded
+matrix product, and the empty scalar contraction equals `(1, 0)`. -/
 theorem decode_standard_scalar : ∀ (D p : ℕ) (hD : 0<D) (As : List (Matrix (Fin D) (Fin D) GI)),
     decode (p*As.length) (scalar hD As)=standardMatrixWord p As ⟨0,hD⟩ ⟨0,hD⟩ ∧
     scalar hD []=(1,0) := by
@@ -81,6 +121,8 @@ theorem decode_standard_scalar : ∀ (D p : ℕ) (hD : 0<D) (As : List (Matrix (
     simpa [scalar, run, Matrix.vecMul, dotProduct, Matrix.one_apply] using congrFun h ⟨0,hD⟩
   · simp [scalar, run, initial]
 
+/-- The counted dot-product fold computes the corresponding Gaussian integer sum and increases
+each arithmetic counter by four times the list length. -/
 private theorem dot_count_fold (xs : List (GI × GI)) (s : Counted GI) :
     let t := xs.foldl (fun s xy =>
       (⟨add s.value (mul xy.1 xy.2), s.muls+4, s.adds+4⟩ : Counted GI)) s
@@ -92,6 +134,8 @@ private theorem dot_count_fold (xs : List (GI × GI)) (s : Counted GI) :
     simpa [List.foldl_cons, Nat.mul_add, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
       ih (⟨add s.value (mul x.1 x.2), s.muls+4, s.adds+4⟩ : Counted GI)
 
+/-- A counted dot product agrees with `dot` and uses exactly `4 * D` integer multiplications and
+additions. -/
 private theorem dot_count {D : ℕ} (v : Fin D → GI)
     (A : Matrix (Fin D) (Fin D) GI) (j : Fin D) :
     (dotCounted v A j).value = dot v A j ∧
@@ -99,6 +143,8 @@ private theorem dot_count {D : ℕ} (v : Fin D → GI)
   simpa [dotCounted, dot, List.map_ofFn] using!
     dot_count_fold (List.ofFn fun i : Fin D => (v i,A i j)) ⟨(0,0),0,0⟩
 
+/-- A counted row update agrees with `row` and uses exactly `4 * D ^ 2` integer multiplications
+and additions. -/
 private theorem row_count {D : ℕ} (v : Fin D → GI)
     (A : Matrix (Fin D) (Fin D) GI) :
     (rowCounted v A).value = row v A ∧
@@ -112,6 +158,8 @@ private theorem row_count {D : ℕ} (v : Fin D → GI)
     · simp [rowCounted, List.map_ofFn, List.sum_ofFn, (dot_count v A _).2.2]
       ring
 
+/-- A counted fold agrees with the row-update fold and adds exactly `4 * As.length * D ^ 2` to
+each arithmetic counter. -/
 private theorem run_count_fold {D : ℕ} (As : List (Matrix (Fin D) (Fin D) GI))
     (s : Counted (Fin D → GI)) :
     let t := As.foldl (fun s A => let t := rowCounted s.value A
@@ -127,19 +175,26 @@ private theorem run_count_fold {D : ℕ} (As : List (Matrix (Fin D) (Fin D) GI))
       ih (⟨(rowCounted s.value A).value,s.muls+(rowCounted s.value A).muls,
         s.adds+(rowCounted s.value A).adds⟩ : Counted (Fin D → GI))
 
+/-- The counted matrix-chain program returns `run As` with exactly `4 * As.length * D ^ 2`
+integer multiplications and additions. -/
 theorem g2 : ∀ (D : ℕ) (As : List (Matrix (Fin D) (Fin D) GI)),
     (runCounted As).value=run As ∧
     (runCounted As).muls=4*As.length*D^2 ∧ (runCounted As).adds=4*As.length*D^2 := by
   intro D As
   simpa [runCounted, run] using run_count_fold As ⟨initial D,0,0⟩
 
+/-- The condition that both components of a Gaussian integer have natural absolute value at most
+`B`. -/
 private def Bounded (B : ℕ) (z : GI) : Prop := z.1.natAbs ≤ B ∧ z.2.natAbs ≤ B
 
+/-- Adding Gaussian integers with component bounds `B` and `C` gives component bound `B + C`. -/
 private theorem bound_add {B C : ℕ} {x y : GI} (hx : Bounded B x) (hy : Bounded C y) :
     Bounded (B+C) (add x y) := by
   exact ⟨(Int.natAbs_add_le _ _).trans (Nat.add_le_add hx.1 hy.1),
     (Int.natAbs_add_le _ _).trans (Nat.add_le_add hx.2 hy.2)⟩
 
+/-- Multiplying Gaussian integers with component bounds `B` and `C` gives component bound `2 * B
+* C`. -/
 private theorem bound_mul {B C : ℕ} {x y : GI} (hx : Bounded B x) (hy : Bounded C y) :
     Bounded (2*B*C) (mul x y) := by
   constructor
@@ -150,6 +205,8 @@ private theorem bound_mul {B C : ℕ} {x y : GI} (hx : Bounded B x) (hy : Bounde
       simp only [Int.natAbs_mul]
       nlinarith [Nat.mul_le_mul hx.1 hy.2, Nat.mul_le_mul hx.2 hy.1])
 
+/-- A folded sum with initial component bound `B` and summand bound `C` has component bound `B +
+xs.length * C`. -/
 private theorem bound_fold {B C : ℕ} (xs : List GI) (z : GI)
     (hz : Bounded B z) (hx : ∀ x ∈ xs, Bounded C x) :
     Bounded (B+xs.length*C) (xs.foldl add z) := by
@@ -160,6 +217,8 @@ private theorem bound_fold {B C : ℕ} (xs : List GI) (z : GI)
       (fun y hy => hx y (by simp [hy]))
     simpa [Nat.add_mul, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using h
 
+/-- A row update with vector bound `B` and matrix-entry bound `C` has component bound `B * (2 *
+D * C)`. -/
 private theorem bound_row {D B C : ℕ} (v : Fin D → GI)
     (A : Matrix (Fin D) (Fin D) GI) (hv : ∀ j, Bounded B (v j))
     (hA : ∀ i j, Bounded C (A i j)) (j : Fin D) :
@@ -173,6 +232,8 @@ private theorem bound_row {D B C : ℕ} (v : Fin D → GI)
   simp only [List.length_ofFn, Nat.zero_add]
   ring
 
+/-- Repeated row updates through uniformly bounded matrices have component bound `B * (2 * D *
+C) ^ As.length`. -/
 private theorem bound_run_fold {D B C : ℕ}
     (As : List (Matrix (Fin D) (Fin D) GI)) (v : Fin D → GI)
     (hv : ∀ j, Bounded B (v j)) (hA : ∀ A ∈ As, ∀ i j, Bounded C (A i j)) :
@@ -184,6 +245,9 @@ private theorem bound_run_fold {D B C : ℕ}
       (fun A h => hA A (by simp [h]))
     simpa [pow_succ, Nat.mul_assoc, Nat.mul_comm, Nat.mul_left_comm] using h
 
+/-- If every input matrix component has absolute value at most `2 ^ b`, each output component is
+bounded by `(2 * D) ^ As.length * 2 ^ (b * As.length)` and by the stated power-of-two width
+envelope. -/
 theorem g3 : ∀ (D b : ℕ) (_hD : 0<D) (As : List (Matrix (Fin D) (Fin D) GI)),
     (∀ A∈As, ∀ i j, (A i j).1.natAbs ≤ 2^b ∧ (A i j).2.natAbs ≤ 2^b) →
     ∀ j, (run As j).1.natAbs ≤ (2*D)^As.length*2^(b*As.length) ∧

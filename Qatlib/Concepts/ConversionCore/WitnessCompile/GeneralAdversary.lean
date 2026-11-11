@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ConversionCore.WitnessCompile.GeneralAdversaryDefs
 import Qatlib.Concepts.ConversionCore.AdversaryValue.GeneralAdversaryValueIdentQuan
 import Qatlib.Concepts.ConversionCore.AdversaryValue.GeneralAdversaryValueIdentStat
+
+/-!
+# General adversary and execution accounting
+
+`clause21` bundles general adversary value identification with probability-mass conservation, a
+cost-overflow bound, and existence statements for the accompanying computation models. The
+concrete examples include a zero-round alphabet computation, a finite-cost sequence of costed
+laws, and an already halted configuration with zero nontermination mass.
+
+The adversary component belongs to the state conversion framework of [LeeEtAl2011]; the other
+statements supply execution and resource bookkeeping.
+
+## Main statements
+
+* `trivial_alphabet_adaptive`: a zero-round computation satisfying parameter positivity.
+* `zeno_unit_run` and `zero_tail`: elementary cost and tail examples.
+* `clause21`: the combined identification and accounting statement.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
@@ -29,12 +52,16 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib.Concepts.ConversionCore.AdversaryValue Qatlib.Concepts.ConversionCore.WitnessCompile
 open scoped Classical ENNReal
 
+/-- For positive coordinate count and state dimension, there exists an alphabet-adaptive object
+satisfying `AlphabetAdaptive.Correct`. -/
 theorem trivial_alphabet_adaptive (n D : ℕ) (O : Type) [Fintype O]
     (hn : 0 < n) (hD : 0 < D) :
     ∃ s : AlphabetAdaptive O n D, AlphabetAdaptive.Correct s := by
   refine ⟨⟨0, (fun x : Fin 0 => nomatch x), 1⟩, ?_⟩
   exact ⟨by norm_num, hn, hD⟩
 
+/-- There exists a state sequence whose costed step laws have nonempty supports and finite total
+expected cost, as required by `ZenoRun`. -/
 theorem zeno_unit_run :
     ∃ (S : Type) (step : S → CostedLaw S) (s : ℕ → S), ZenoRun step s := by
   refine ⟨Unit, fun _ => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (), fun _ => (), ?_⟩
@@ -48,6 +75,8 @@ theorem zeno_unit_run :
     rw [hsum]
     exact bot_lt_top
 
+/-- For every extended nonnegative tolerance, there exists a singleton-state unbounded adversary
+and a configuration whose nontermination mass is at most that tolerance. -/
 theorem zero_tail :
     ∀ tol : ℝ≥0∞,
       ∃ (u : UnboundedAdversary (Fin 1) (Fin 1))
@@ -78,6 +107,9 @@ theorem zero_tail :
   rw [h0]
   exact bot_le
 
+/-- General adversary value identification holds together with unbounded-execution mass
+identities, the overflow-cost bound, and the stated existence results for adaptive objects,
+finite-cost sequences, tail bounds, resource records, and polynomial-time machine families. -/
 theorem clause21 :
 
   (∀ (n D : ℕ) (O : Type) [Fintype O], 0 < n → 0 < D →

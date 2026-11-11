@@ -77,38 +77,72 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Zify
 
+/-!
+# Promise models for Jones approximation reductions
+
+This module defines braid words, Jones-value functions, scaling factors, and promise problems
+used in the Jones approximation development. `PolyReduction` records a map with a polynomial
+output-size bound and preservation of legal yes and no instances.
+
+The predicates `BQPHard`, `InBQP`, and `SharpPHard` are defined by reductions between these
+explicit model problems. The module also provides Boolean CNF evaluation and
+satisfying-assignment counts for the counting-gap source problem. See [AharonovArad2011].
+
+## Main statements
+
+* `PolyReduction`: maps promise instances with a polynomial size bound.
+* `jonesPromise`: the additive-scale Jones gap promise.
+* `mulJonesPromise`: the multiplicative-scale Jones gap promise.
+* `sharpGapProblem`: the satisfying-assignment gap source.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.BQPJonesPoly06.MainResults.Model
 
 open Complex
 
+/-- A signed braid generator, represented by a natural generator index and a Boolean sign. -/
 abbrev SignedGen := ℕ × Bool
 
+/-- A braid word on `n` strands, stored as a list of signed generators without a bundled
+legality condition. -/
 structure BraidWord (n : ℕ) where
 
   crossings : List SignedGen
 
 namespace BraidWord
 
+/-- The number of crossings in a braid word, given by its list length. -/
 def numCrossings {n : ℕ} (b : BraidWord n) : ℕ := b.crossings.length
 
+/-- Every crossing generator index `g.1` satisfies `g.1 + 1 < n`. -/
 def Legal {n : ℕ} (b : BraidWord n) : Prop := ∀ g ∈ b.crossings, g.1 + 1 < n
 
 end BraidWord
 
+/-- A plat-closure datum consisting of its underlying braid word. -/
 structure PlatClosure (n : ℕ) where
 
   braid : BraidWord n
 
+/-- A complex-valued function on braid words with `n` strands. -/
 abbrev JonesValue (n : ℕ) := BraidWord n → ℂ
 
+/-- The complex number `exp (2 * Real.pi * Complex.I / k)`. -/
 noncomputable def rootOfUnity (k : ℕ) : ℂ :=
   Complex.exp (2 * Real.pi * Complex.I / k)
 
+/-- The real scale `(2 * cos (Real.pi / k)) ^ (n / 2 - 1)`, using natural-number division and
+subtraction in the exponent. -/
 noncomputable def deltaScale (k n : ℕ) : ℝ :=
   (2 * Real.cos (Real.pi / k)) ^ (n / 2 - 1)
 
+/-- The Jones scale `deltaScale k n` is positive when `2 < k`. -/
 theorem deltaScale_pos {k n : ℕ} (hk : 2 < k) : 0 < deltaScale k n := by
   unfold deltaScale
   have hk0 : (0 : ℝ) < k := by exact_mod_cast Nat.lt_trans (by norm_num) hk
@@ -120,6 +154,8 @@ theorem deltaScale_pos {k n : ℕ} (hk : 2 < k) : 0 < deltaScale k n := by
     Real.cos_pos_of_mem_Ioo ⟨by linarith [Real.pi_pos], harg⟩
   exact pow_pos (by linarith) _
 
+/-- A promise problem with an input-size function, a legality predicate, and yes and no
+predicates disjoint on legal inputs. -/
 structure PromisedProblem (α : Type*) where
 
   size : α → ℕ
@@ -132,6 +168,8 @@ structure PromisedProblem (α : Type*) where
 
   disjoint : ∀ a, legal a → ¬ (yes a ∧ no a)
 
+/-- A map between promise problems with a polynomial output-size bound that preserves legal yes
+and no instances. -/
 structure PolyReduction {α β : Type*} (P : PromisedProblem α) (Q : PromisedProblem β) where
 
   map : α → β
@@ -146,6 +184,7 @@ structure PolyReduction {α β : Type*} (P : PromisedProblem α) (Q : PromisedPr
 
   maps_no : ∀ a, P.legal a → P.no a → Q.legal (map a) ∧ Q.no (map a)
 
+/-- A circuit-gap datum recording qubit count, gate count, and a real amplitude. -/
 structure CircuitGap where
 
   qubits : ℕ
@@ -154,8 +193,11 @@ structure CircuitGap where
 
   amplitude : ℝ
 
+/-- The size of a circuit-gap datum is its qubit count plus its gate count. -/
 def CircuitGap.size (C : CircuitGap) : ℕ := C.qubits + C.gateCount
 
+/-- The circuit-gap promise with all inputs legal, yes amplitudes at most `lo`, and no
+amplitudes at least `hi`, where `lo < hi`. -/
 def circuitGapProblemWith (lo hi : ℝ) (h : lo < hi) : PromisedProblem CircuitGap where
   size := CircuitGap.size
   legal := fun _ => True
@@ -165,23 +207,32 @@ def circuitGapProblemWith (lo hi : ℝ) (h : lo < hi) : PromisedProblem CircuitG
     intro C _ hc
     linarith [hc.1, hc.2]
 
+/-- The circuit-gap promise with yes threshold one third and no threshold two thirds. -/
 noncomputable def circuitGapProblem : PromisedProblem CircuitGap :=
   circuitGapProblemWith (1 / 3) (2 / 3) (by norm_num)
 
+/-- The circuit-gap promise with yes threshold one twentieth and no threshold nineteen
+twentieths. -/
 noncomputable def circuitGapAmplified : PromisedProblem CircuitGap :=
   circuitGapProblemWith (1 / 20) (19 / 20) (by norm_num)
 
+/-- The amplified circuit-gap problem has a `PolyReduction` to `P`. -/
 def BQPHard {α : Type*} (P : PromisedProblem α) : Prop :=
   Nonempty (PolyReduction circuitGapAmplified P)
 
+/-- The promise problem `P` has a `PolyReduction` to the standard circuit-gap problem. -/
 def InBQP {α : Type*} (P : PromisedProblem α) : Prop :=
   Nonempty (PolyReduction P circuitGapProblem)
 
+/-- The conjunction of the model predicates `BQPHard P` and `InBQP P`. -/
 def BQPComplete {α : Type*} (P : PromisedProblem α) : Prop :=
   BQPHard P ∧ InBQP P
 
+/-- The function `f` is bounded by `C * (n + 1) ^ d` for some natural constants `C` and `d`. -/
 def PolyBound (f : ℕ → ℕ) : Prop := ∃ C d : ℕ, ∀ n, f n ≤ C * (n + 1) ^ d
 
+/-- The Jones promise with positive scale `Δ`, crossing-count size, yes norms at most `Δ / 10`,
+and no norms at least `9 * Δ / 10`. -/
 noncomputable def jonesPromise (n : ℕ) (V : JonesValue n) (Δ : ℝ) :
     PromisedProblem (BraidWord n) where
   size := fun b => b.numCrossings
@@ -194,14 +245,18 @@ noncomputable def jonesPromise (n : ℕ) (V : JonesValue n) (Δ : ℝ) :
     have h2 := h.2
     nlinarith [norm_nonneg (V b), hΔ]
 
+/-- A multiplicative Jones instance consisting of a braid word and a real scale. -/
 structure MulInstance (n : ℕ) where
 
   braid : BraidWord n
 
   scale : ℝ
 
+/-- The size of a multiplicative Jones instance is the crossing count of its braid. -/
 def MulInstance.size {n : ℕ} (a : MulInstance n) : ℕ := a.braid.numCrossings
 
+/-- The multiplicative Jones promise with legal conditions `1 < c` and positive instance scale,
+separating norms at most the scale from norms at least `c` times the scale. -/
 noncomputable def mulJonesPromise (n : ℕ) (V : JonesValue n) (c : ℝ) :
     PromisedProblem (MulInstance n) where
   size := MulInstance.size
@@ -216,29 +271,40 @@ noncomputable def mulJonesPromise (n : ℕ) (V : JonesValue n) (c : ℝ) :
     have h2 := h.2
     nlinarith
 
+/-- A Boolean CNF formula represented by a variable count and a list of clauses of indexed
+signed literals. -/
 structure CNF where
 
   vars : ℕ
 
   clauses : List (List (ℕ × Bool))
 
+/-- Evaluate a signed literal, using the assignment directly for sign true and its negation for
+sign false. -/
 def evalLit (σ : ℕ → Bool) (l : ℕ × Bool) : Bool :=
   match l.2 with
   | true => σ l.1
   | false => !σ l.1
 
+/-- Evaluate a clause as the disjunction of its literal values. -/
 def clauseSat (σ : ℕ → Bool) (cl : List (ℕ × Bool)) : Bool :=
   cl.any (evalLit σ)
 
+/-- Evaluate a CNF formula as the conjunction of its clause values. -/
 def cnfSat (σ : ℕ → Bool) (φ : CNF) : Bool :=
   φ.clauses.all (clauseSat σ)
 
+/-- Count satisfying assignments on the declared finite variable set, extending each assignment
+by false outside that set. -/
 noncomputable def satCount (φ : CNF) : ℕ :=
   (Finset.univ.filter (fun σ : Fin φ.vars → Bool =>
     cnfSat (fun i => if h : i < φ.vars then σ ⟨i, h⟩ else false) φ = true)).card
 
+/-- The size of a CNF formula is its variable count plus its number of clauses. -/
 def CNF.size (φ : CNF) : ℕ := φ.vars + φ.clauses.length
 
+/-- The legal-variable CNF promise separating satisfying fractions at least two thirds from
+fractions at most one third. -/
 noncomputable def sharpGapProblem : PromisedProblem CNF where
   size := CNF.size
   legal := fun φ => ∀ l ∈ φ.clauses.flatten, l.1 < φ.vars
@@ -249,6 +315,7 @@ noncomputable def sharpGapProblem : PromisedProblem CNF where
     have hpow : 0 < 2 ^ φ.vars := pow_pos (by norm_num) _
     linarith [h.1, h.2]
 
+/-- The counting-gap source problem `sharpGapProblem` has a `PolyReduction` to `P`. -/
 def SharpPHard {α : Type*} (P : PromisedProblem α) : Prop :=
   Nonempty (PolyReduction sharpGapProblem P)
 

@@ -7,8 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Tactic
 
+/-!
+# A binomial estimate for failure-history counts
+
+This module proves a binomial-coefficient ratio identity and the counting bound used in Appendix
+A.1 of [SattathArad2015]. For `g ≥ 2` and `t ≥ 1`, increasing the top argument of `choose (g *
+t) t` by `m` costs at most a factor `2 ^ m`.
+
+## Main statements
+
+* `choose_ratio`: Relates consecutive top arguments of binomial coefficients.
+* `choose_add_mul_le`: Bounds `choose (m + g * t) t` by `2 ^ m * choose (g * t) t`.
+
+## References
+
+* [Sattath and Arad, 2015][SattathArad2015]
+-/
+
 namespace Qatlib.Papers.CommutingLLL13.MainResults.BinomialBound
 
+/-- For natural `N ≥ 1` and `t`, the binomial coefficients satisfy `N * choose (N - 1) t = (N -
+t) * choose N t`, using natural subtraction. -/
 theorem choose_ratio (N t : ℕ) (hN : 1 ≤ N) :
     N * (N - 1).choose t = (N - t) * N.choose t := by
   have h1 : N.choose (t + 1) * (t + 1) = N.choose t * (N - t) :=
@@ -19,6 +38,8 @@ theorem choose_ratio (N t : ℕ) (hN : 1 ≤ N) :
   rw [h2, h1]
   ring
 
+/-- For natural `g ≥ 2` and `t ≥ 1`, `choose (m + g * t) t ≤ 2 ^ m * choose (g * t) t`. This is
+the counting estimate of [Sattath and Arad, Appendix A.1][SattathArad2015]. -/
 theorem choose_add_mul_le (m g t : ℕ) (hg : 2 ≤ g) (ht : 1 ≤ t) :
     (m + g * t).choose t ≤ 2 ^ m * (g * t).choose t := by
   induction m with

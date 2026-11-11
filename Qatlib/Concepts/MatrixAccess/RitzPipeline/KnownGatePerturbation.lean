@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.KnownGateApproximationData
 import Qatlib.Concepts.OperatorErrors.Robustness
+
+/-!
+# Error accumulation for known-gate replacements
+
+This module transports adjoint-circuit properties through `replaceKnownGates`. Under
+`KnownGateApproximation`, replacement error accumulates linearly in the number of known gates,
+and a projected unitary encoding becomes an approximate block encoding. The underlying circuit
+error estimate is standard in [NielsenChuang2010].
+
+## Main statements
+
+* `replaceKnownGates_wellFormed`: replacement gates give a well-formed circuit.
+* `evaluate_known_gate_error`: total operator-norm error is bounded by gate count times local
+  error.
+* `known_gate_block_encoding`: the same error bound applies after isometric compression.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -22,6 +43,7 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- Replacing known gates preserves the number of forward and backward oracle queries. -/
 @[simp] theorem replaceKnownGates_queryCount {H : Type*}
     (f : Matrix H H ℂ → Matrix H H ℂ) (cs : List (AdjointStep H)) :
     adjointQueryCount (replaceKnownGates f cs) = adjointQueryCount cs := by
@@ -29,6 +51,7 @@ open scoped Matrix.Norms.L2Operator
   | nil => rfl
   | cons c cs ih => cases c <;> simp_all [replaceKnownGates, replaceKnownInstruction, adjointQueryCount]
 
+/-- Replacing known gates preserves the number of known gate instructions. -/
 @[simp] theorem replaceKnownGates_gateCount {H : Type*}
     (f : Matrix H H ℂ → Matrix H H ℂ) (cs : List (AdjointStep H)) :
     adjointGateCount (replaceKnownGates f cs) = adjointGateCount cs := by
@@ -38,6 +61,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- A replacement satisfying `KnownGateApproximation` produces a well-formed adjoint circuit. -/
 theorem replaceKnownGates_wellFormed (cs : List (AdjointStep H))
     (f : Matrix H H ℂ → Matrix H H ℂ) (η : ℝ) (hf : KnownGateApproximation cs f η) :
     WellFormedAdjointCircuit (replaceKnownGates f cs) := by
@@ -58,6 +82,8 @@ theorem replaceKnownGates_wellFormed (cs : List (AdjointStep H))
       simpa only [replaceKnownGates, List.map_cons, replaceKnownInstruction,
         WellFormedAdjointCircuit.backward_cons_iff] using hi
 
+/-- For a well-formed circuit and unitary oracle, replacing each known gate within error `η`
+changes the evaluated matrix by at most the known gate count times `η`. -/
 theorem evaluate_known_gate_error (cs : List (AdjointStep H))
     (f : Matrix H H ℂ → Matrix H H ℂ) (η : ℝ) (U : Matrix H H ℂ)
     (hcs : WellFormedAdjointCircuit cs) (hU : U ∈ Matrix.unitaryGroup H ℂ)
@@ -95,6 +121,9 @@ theorem evaluate_known_gate_error (cs : List (AdjointStep H))
         instructionMatrix, adjointGateCount, sub_self, norm_zero, add_zero] using hh.trans
           (by simpa using hi)
 
+/-- Replacing the known gates of a projected unitary encoding yields a block encoding with
+normalization one and error at most the known gate count times the nonnegative local error
+`η`. -/
 theorem known_gate_block_encoding {I O : Type*} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (cs : List (AdjointStep H))
     (f : Matrix H H ℂ → Matrix H H ℂ) (η : ℝ) (U : Matrix H H ℂ)

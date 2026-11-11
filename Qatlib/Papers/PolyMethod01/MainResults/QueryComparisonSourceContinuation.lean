@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.PolyMethod01.MainResults.QueryComparisonSourceContinuationDefs
 import Mathlib.Tactic.Linarith
+
+/-!
+# Query comparisons and deterministic search
+
+This module develops execution and depth bounds for deterministic search trees, including
+correctness and optimal depth of sequential scanning. It also packages polynomial
+symmetrization, comparisons between quantum success conventions, and deterministic OR and
+all-false depth bounds. These results accompany the polynomial-method analysis in
+[BealsEtAl2001].
+
+## Main statements
+
+* `clause64_complete`: Permutation averaging agrees with layer averaging on every valid weight,
+  and the layer averages are represented by a univariate polynomial whose degree is at most the
+  original total degree.
+* `clause67_complete`: For the four stated success conventions, each minimum bounds every
+  eligible program's query count; the exact minimum is attained, the success, bounded, and exact
+  minima are ordered, and exact degree is at most twice the exact minimum.
+* `clause71_or_transport`: For a nonempty finite input type, both the minimum correct-search
+  depth and the maximum depth of any correct deterministic OR tree are at least the number of
+  coordinates.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -26,6 +53,8 @@ open scoped Classical BigOperators ENNReal
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- Changing an input at a coordinate not queried during its execution preserves the query
+tree's output. -/
 theorem run_eq_of_not_queried {I : Type} [DecidableEq I] {Output : Type}
     (t : BoolQueryTree I Output) (g g' : I → Bool) (i : I)
     (hi : i ∉ queriedSet t g) (hagree : ∀ j, j ≠ i → g j = g' j) :
@@ -55,6 +84,7 @@ theorem run_eq_of_not_queried {I : Type} [DecidableEq I] {Output : Type}
         intro hmem
         exact hi (Finset.mem_insert_of_mem hmem)
 
+/-- The number of distinct addresses queried in an execution is at most its query count. -/
 theorem card_queriedSet_le_run {I : Type} [DecidableEq I] {Output : Type}
     (t : BoolQueryTree I Output) (g : I → Bool) :
     Finset.card (queriedSet t g) ≤ (BoolQueryTree.Run g t).2 := by
@@ -82,6 +112,8 @@ theorem card_queriedSet_le_run {I : Type} [DecidableEq I] {Output : Type}
           ≤ (BoolQueryTree.Run g onFalse).2 + 1
         omega
 
+/-- A natural number lies in a search class's depth set exactly when it is the maximum query
+count of a tree in the class that is correct on every input. -/
 theorem mem_zeroErrorSearch_depthSet {I : Type} [Fintype I] [DecidableEq I]
     {M : ZeroErrorSearchClass I} {n : ℕ} :
     n ∈ M.depthSet ↔
@@ -98,6 +130,7 @@ theorem mem_zeroErrorSearch_depthSet {I : Type} [Fintype I] [DecidableEq I]
     rw [decide_eq_true_eq]
     exact hcorrect
 
+/-- A search tree correct on every input queries every coordinate on the all-false input. -/
 theorem searchTree_queries_every_coordinate {I : Type} [Fintype I] [DecidableEq I]
     (t : SearchTree I) (hcorrect : ∀ g : I → Bool, SearchTreeCorrect t g) :
     ∀ i : I, i ∈ queriedSet t (fun _ => false) := by
@@ -117,6 +150,8 @@ theorem searchTree_queries_every_coordinate {I : Type} [Fintype I] [DecidableEq 
   rw [hout0] at hout
   exact absurd hout.symm houti
 
+/-- A search tree correct on every input has maximum query count at least the number of input
+coordinates. -/
 theorem searchTree_depth_ge {I : Type} [Fintype I] [DecidableEq I] (t : SearchTree I)
     (hcorrect : ∀ g : I → Bool, SearchTreeCorrect t g) :
     Fintype.card I ≤ BoolQueryTree.MaxQueries t := by
@@ -131,6 +166,8 @@ theorem searchTree_depth_ge {I : Type} [Fintype I] [DecidableEq I] (t : SearchTr
     _ ≤ (BoolQueryTree.Run (fun _ => false) t).2 := card_queriedSet_le_run t _
     _ ≤ BoolQueryTree.MaxQueries t := BoolQueryTree.run_queries_le _ t
 
+/-- Sequential search on a list returns `none` exactly when all listed input coordinates are
+false. -/
 theorem searchScanTree_none {I : Type} [DecidableEq I] (l : List I) (g : I → Bool) :
     (BoolQueryTree.Run g (searchScanTree l)).1 = none ↔ ∀ i ∈ l, g i = false := by
   induction l with
@@ -143,6 +180,7 @@ theorem searchScanTree_none {I : Type} [DecidableEq I] (l : List I) (g : I → B
         rw [searchScanTree, BoolQueryTree.Run]
         simp [hgi', ih]
 
+/-- If sequential search returns `some j`, then the input at `j` is true. -/
 theorem searchScanTree_some {I : Type} [DecidableEq I] (l : List I) (g : I → Bool)
     (j : I) (hj : (BoolQueryTree.Run g (searchScanTree l)).1 = some j) :
     g j = true := by
@@ -171,6 +209,8 @@ theorem searchScanTree_some {I : Type} [DecidableEq I] (l : List I) (g : I → B
         rw [hmain] at hj
         exact ih hj
 
+/-- The sequential search tree satisfies the search-correctness predicate for its list of
+coordinates. -/
 theorem searchScanTree_correctOn {I : Type} [DecidableEq I] (l : List I) (g : I → Bool) :
     SearchTreeCorrectOn l (searchScanTree l) g := by
   refine ⟨searchScanTree_none l g, ?_⟩
@@ -182,6 +222,8 @@ theorem searchScanTree_correctOn {I : Type} [DecidableEq I] (l : List I) (g : I 
     | none => exact absurd hh hn
     | some k => exact ⟨k, rfl, searchScanTree_some l g k hh⟩
 
+/-- Scanning a list containing all coordinates gives a search tree correct on every Boolean
+input. -/
 theorem searchScanTree_correct_all {I : Type} [Fintype I] [DecidableEq I] :
     ∀ g : I → Bool, SearchTreeCorrect (searchScanTree (allElements I)) g := by
   intro g
@@ -196,6 +238,7 @@ theorem searchScanTree_correct_all {I : Type} [Fintype I] [DecidableEq I] :
     obtain ⟨j, hj, hgj⟩ := hsome i (allElements_mem I i) hi
     exact ⟨j, hj, hgj⟩
 
+/-- The maximum query count of a sequential search tree equals the length of its scan list. -/
 theorem searchScanTree_maxQueries {I : Type} (l : List I) :
     BoolQueryTree.MaxQueries (searchScanTree l) = l.length := by
   induction l with
@@ -204,6 +247,8 @@ theorem searchScanTree_maxQueries {I : Type} (l : List I) :
       have hih := ih
       simp [searchScanTree, BoolQueryTree.MaxQueries, hih, Nat.add_comm]
 
+/-- The minimum correct-tree depth of a search class with nonempty depth set is at least the
+number of coordinates. -/
 theorem zeroErrorSearchMin_depth {I : Type} [Fintype I] [DecidableEq I]
     (M : ZeroErrorSearchClass I) (h : ∃ n, n ∈ M.depthSet) :
     Fintype.card I ≤ M.minDepth h := by
@@ -214,6 +259,8 @@ theorem zeroErrorSearchMin_depth {I : Type} [Fintype I] [DecidableEq I]
   rw [← hcnt]
   exact hdeg
 
+/-- The class consisting of the full sequential scan has minimum correct-tree depth equal to the
+number of coordinates. -/
 theorem zeroErrorSearchMin_depth_scan {I : Type} [Fintype I] [DecidableEq I] :
     ZeroErrorSearchClass.minDepth (scanSearchClass (allElements I))
       (by
@@ -241,6 +288,9 @@ theorem zeroErrorSearchMin_depth_scan {I : Type} [Fintype I] [DecidableEq I] :
     finsetMinNat_le (s := (scanSearchClass (allElements I)).depthSet) (h := hne) hmem
   exact le_antisymm hle hlower
 
+/-- Permutation averaging agrees with layer averaging on every valid weight, and the layer
+averages are represented by a univariate polynomial whose degree is at most the original
+total degree. -/
 theorem clause64_complete :
     ∀ (n : ℕ) (p : MvPolynomial (Fin n) ℝ),
       (∀ k : ℕ, k ≤ n → Qatlib.Concepts.QueryComplexity.DegreeMethod.permLayerAverage n p k
@@ -250,16 +300,22 @@ theorem clause64_complete :
             ∀ k : ℕ, k ≤ n → Qatlib.Concepts.QueryComplexity.DegreeMethod.layerAverage p k = Polynomial.eval (k : ℝ) q :=
   Qatlib.Concepts.QueryComplexity.DegreeMethod.clause64_complete
 
+/-- Permutation averaging agrees with layer averaging at weight `n`. -/
 theorem clause64_empty_layer (n : ℕ) (p : MvPolynomial (Fin n) ℝ) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.permLayerAverage n p n
       = Qatlib.Concepts.QueryComplexity.DegreeMethod.layerAverage p n :=
   (Qatlib.Concepts.QueryComplexity.DegreeMethod.clause64_complete n p).1 n (Nat.le_refl n)
 
+/-- Permutation averaging and layer averaging agree for the unique weight of a zero-variable
+polynomial. -/
 theorem clause64_zero_variables (p : MvPolynomial (Fin 0) ℝ) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.permLayerAverage 0 p 0
       = Qatlib.Concepts.QueryComplexity.DegreeMethod.layerAverage p 0 :=
   (Qatlib.Concepts.QueryComplexity.DegreeMethod.clause64_complete 0 p).1 0 (Nat.le_refl 0)
 
+/-- For the four stated success conventions, each minimum bounds every eligible program's query
+count; the exact minimum is attained, the success, bounded, and exact minima are ordered,
+and exact degree is at most twice the exact minimum. -/
 theorem clause67_complete (M : MachineClass I W) (f : (I → Bool) → Bool)
     (hE : ∃ n, n ∈ ConventionCountSet M .exact f)
     (hB : ∃ n, n ∈ ConventionCountSet M .bounded f)
@@ -302,6 +358,7 @@ theorem clause67_complete (M : MachineClass I W) (f : (I → Bool) → Bool)
     rw [← conventionMin_exact_eq M f hE] at hdeg
     exact hdeg
 
+/-- Scanning all coordinates with the OR query tree computes `orFunction` on every input. -/
 theorem orScanTree_correct_all {I : Type} [Fintype I] [DecidableEq I] (g : I → Bool) :
     (BoolQueryTree.Run g (orScanTree (allElements I))).1 = orFunction g := by
   have h1 := orScanTree_run (allElements I) g
@@ -324,6 +381,8 @@ theorem orScanTree_correct_all {I : Type} [Fintype I] [DecidableEq I] (g : I →
       | false => rfl
     rw [hor, hout]
 
+/-- For a nonempty finite input type, every deterministic query tree computing OR has maximum
+query count at least the number of coordinates. -/
 theorem zeroErrorDepth_or_lower {I : Type} [Fintype I] [DecidableEq I]
     (hcard : 0 < Fintype.card I) (t : BoolQueryTree I Bool)
     (h : ∀ g, (BoolQueryTree.Run g t).1 = orFunction g) :
@@ -332,10 +391,13 @@ theorem zeroErrorDepth_or_lower {I : Type} [Fintype I] [DecidableEq I]
   rw [clause70_complete hcard] at hdeg
   exact hdeg
 
+/-- The OR scan over all coordinates has maximum query count equal to the number of coordinates. -/
 theorem zeroErrorDepth_or_upper {I : Type} [Fintype I] [DecidableEq I] :
     BoolQueryTree.MaxQueries (orScanTree (allElements I)) = Fintype.card I := by
   rw [orScanTree_maxQueries, allElements_length]
 
+/-- For a nonempty input type, a classical machine class containing the full OR scan has OR
+minimum depth equal to the number of coordinates. -/
 theorem zeroErrorDepth_or_min {I : Type} [Fintype I] [DecidableEq I]
     (hcard : 0 < Fintype.card I) (M : ClassicalMachineClass I)
     (hscan : orScanTree (allElements I) ∈ M.trees)
@@ -363,6 +425,8 @@ theorem zeroErrorDepth_or_min {I : Type} [Fintype I] [DecidableEq I]
     finsetMinNat_le (s := M.depthSet orFunction) (h := h) hupper
   exact le_antisymm hle hlower
 
+/-- Every deterministic query tree computing the all-false predicate `andFunction` has maximum
+query count at least the number of coordinates. -/
 theorem zeroErrorDepth_and_lower {I : Type} [Fintype I] [DecidableEq I]
     (t : BoolQueryTree I Bool) (h : ∀ g, (BoolQueryTree.Run g t).1 = andFunction g) :
     Fintype.card I ≤ BoolQueryTree.MaxQueries t := by
@@ -393,11 +457,14 @@ theorem zeroErrorDepth_and_lower {I : Type} [Fintype I] [DecidableEq I]
     _ ≤ (BoolQueryTree.Run (fun _ => false) t).2 := card_queriedSet_le_run t _
     _ ≤ BoolQueryTree.MaxQueries t := BoolQueryTree.run_queries_le _ t
 
+/-- A search class with nonempty correct-tree depth set has minimum depth at least the number of
+input coordinates. -/
 theorem clause71_complete {I : Type} [Fintype I] [DecidableEq I]
     (M : ZeroErrorSearchClass I) (h : ∃ n, n ∈ M.depthSet) :
     Fintype.card I ≤ M.minDepth h :=
   zeroErrorSearchMin_depth M h
 
+/-- The full-scan search class has minimum depth equal to the number of input coordinates. -/
 theorem clause71_scan_upper {I : Type} [Fintype I] [DecidableEq I] :
     ZeroErrorSearchClass.minDepth (scanSearchClass (allElements I))
       (by
@@ -409,6 +476,8 @@ theorem clause71_scan_upper {I : Type} [Fintype I] [DecidableEq I] :
       Fintype.card I :=
   zeroErrorSearchMin_depth_scan
 
+/-- For a nonempty finite input type, both the minimum correct-search depth and the maximum
+depth of any correct deterministic OR tree are at least the number of coordinates. -/
 theorem clause71_or_transport {I : Type} [Fintype I] [DecidableEq I]
     (M : ZeroErrorSearchClass I) (h : ∃ n, n ∈ M.depthSet)
     (hcard : 0 < Fintype.card I) :

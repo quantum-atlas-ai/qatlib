@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+/-!
+# Lemma 10 exact phase arithmetic
+
+This module proves the exact phase power identities `lemma10_phase_power` and
+`lemma10_phase_power_neg` and bounds a step count specified by an inverse sine formula. Given an
+odd integer satisfying that formula, `lemma10_exact_pi_over_two` packages the exact angle
+`Real.pi / 2`, both phase powers, and the scalar step bound.
+
+These conditional identities support the exact phase analysis of Lemma 10 in [BerryChilds2012].
+
+## Main statements
+
+* `lemma10_phase_power` and `lemma10_phase_power_neg` give the conditional exact phase
+  identities.
+* `lemma10_exact_pi_over_two` collects the identities and step bound for a supplied odd integer
+  witness.
+
+## References
+
+* [Berry and Childs, 2012][BerryChilds2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +44,8 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Inhabited ι] {D L : ℕ}
 
+/-- If `d * θ = Real.pi / 2`, then the natural power `(exp (θ * I)) ^ d` equals `I`. See [Berry
+and Childs, Lemma 10][BerryChilds2012]. -/
 theorem lemma10_phase_power {θ : ℝ} {d : ℕ} (hd : (d : ℝ) * θ = Real.pi / 2) :
     (Complex.exp (θ * Complex.I)) ^ d = Complex.I := by
   rw [← Complex.exp_nat_mul]
@@ -33,11 +58,15 @@ theorem lemma10_phase_power {θ : ℝ} {d : ℕ} (hd : (d : ℝ) * θ = Real.pi 
     ring
   rw [harg, Complex.exp_pi_div_two_mul_I]
 
+/-- If `d * θ = Real.pi / 2` and `d` is odd, then `(-exp (θ * I)) ^ d` equals `-I`. See [Berry
+and Childs, Lemma 10][BerryChilds2012]. -/
 theorem lemma10_phase_power_neg {θ : ℝ} {d : ℕ} (hd : (d : ℝ) * θ = Real.pi / 2)
     (hodd : Odd d) :
     (-Complex.exp (θ * Complex.I)) ^ d = -Complex.I := by
   rw [Odd.neg_pow hodd, lemma10_phase_power hd]
 
+/-- For nonzero `arcsin (ε / Λ1)`, a natural step count equal to `Real.pi / (2 * arcsin (ε /
+Λ1))` satisfies the exact angle identity. -/
 theorem lemma10_d_mul_arcsin {ε Λ1 : ℝ} {d : ℕ}
     (harc : Real.arcsin (ε / Λ1) ≠ 0)
     (hd : (d : ℝ) = Real.pi / (2 * Real.arcsin (ε / Λ1))) :
@@ -45,6 +74,8 @@ theorem lemma10_d_mul_arcsin {ε Λ1 : ℝ} {d : ℕ}
   rw [hd]
   field_simp
 
+/-- For `0 < x ≤ 1`, the inverse sine satisfies `x ≤ arcsin x`. See [Berry and Childs, Lemma
+10][BerryChilds2012]. -/
 theorem lemma10_arcsin_ge_self {x : ℝ} (hx0 : 0 < x) (hx1 : x ≤ 1) :
     x ≤ Real.arcsin x := by
   have hsin : Real.sin x ≤ x := Real.sin_le hx0.le
@@ -54,6 +85,8 @@ theorem lemma10_arcsin_ge_self {x : ℝ} (hx0 : 0 < x) (hx1 : x ≤ 1) :
   have hsinarc : Real.arcsin (Real.sin x) = x := Real.arcsin_sin hxneg hxπ
   linarith
 
+/-- For positive `ε ≤ Λ1`, a step count equal to `Real.pi / (2 * arcsin (ε / Λ1))` is at most
+`(Real.pi / 2) * (Λ1 / ε)`. See [Berry and Childs, Lemma 10][BerryChilds2012]. -/
 theorem lemma10_steps_le {ε Λ1 : ℝ} {d : ℕ} (hε0 : 0 < ε) (hΛ1 : 0 < Λ1) (hεΛ : ε ≤ Λ1)
     (hd : (d : ℝ) = Real.pi / (2 * Real.arcsin (ε / Λ1))) :
     (d : ℝ) ≤ (Real.pi / 2) * (Λ1 / ε) := by
@@ -76,6 +109,10 @@ theorem lemma10_steps_le {ε Λ1 : ℝ} {d : ℕ} (hε0 : 0 < ε) (hΛ1 : 0 < Λ
       _ ≤ (Real.pi / 2 * (Λ1 / ε)) * (2 * Real.arcsin (ε / Λ1)) := hmono
   exact hkey
 
+/-- Under the stated black box hypotheses and the existence of an odd integer satisfying the
+prescribed inverse sine formula, obtain that integer with exact phase powers `I` and `-I`
+and the step bound `(Real.pi / 2) * (Λ1 / ε)`. This is the conditional phase arithmetic for
+Lemma 10 of [BerryChilds2012]. -/
 theorem lemma10_exact_pi_over_two
     (BB : BlackBox ι D L) {Λ1 ε : ℝ}
     (hsp : IsColumnSparse BB.H D)

@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
+
+/-!
+# Exact interrogation of finite alphabet inputs
+
+This module constructs `alphabetInterrogationRound` and `alphabetInterrogationList`, which read
+specified coordinates of an input into a storage register using additive oracle queries. The
+construction is an elementary query circuit in the model described in [NielsenChuang2010].
+
+For positive input length, the resulting unitary circuit recovers the entire input with
+probability one using exactly `n` queries and at most `3 * n + 1` gates.
+
+## Main statements
+
+* `alphabetInterrogationList_run`: distinct queried coordinates are written into initially zero
+  storage cells.
+* `alphabetInterrogationList_resources`: records unitarity and resource counts.
+* `alphabet_interrogation_actual_output_and_counts`: constructs a complete exact interrogation
+  circuit.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,10 +42,13 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The basis permutation exchanging addresses `j` and `i` while preserving response and storage
+registers. -/
 noncomputable def alphabetAddressSwap {n a : ℕ} (j i : Fin n) :
     Equiv.Perm ((Fin n × ZMod a) × (Fin n → ZMod a)) :=
   (Equiv.swap j i).prodCongr (Equiv.refl (ZMod a)) |>.prodCongr (Equiv.refl _)
 
+/-- The basis permutation exchanging the response symbol with storage cell `i`. -/
 noncomputable def alphabetStoreSwap {n a : ℕ} (i : Fin n) :
     Equiv.Perm ((Fin n × ZMod a) × (Fin n → ZMod a)) where
   toFun p := ((p.1.1, p.2 i), Function.update p.2 i p.1.2)
@@ -29,16 +56,20 @@ noncomputable def alphabetStoreSwap {n a : ℕ} (i : Fin n) :
   left_inv p := by ext k <;> simp [Function.update_idem]
   right_inv p := by ext k <;> simp [Function.update_idem]
 
+/-- A single interrogation round that swaps in address `i`, queries the input, exchanges the
+response with storage cell `i`, and restores the address. -/
 noncomputable def alphabetInterrogationRound {n a : ℕ} [NeZero a] (j i : Fin n) :
     Circuit ((Fin n × ZMod a) × (Fin n → ZMod a)) :=
   [Step.gate (permMatrix (alphabetAddressSwap j i)), Step.query,
     Step.gate (permMatrix (alphabetStoreSwap i)), Step.gate (permMatrix (alphabetAddressSwap j i))]
 
+/-- The circuit formed by concatenating interrogation rounds for the coordinates in a list. -/
 noncomputable def alphabetInterrogationList {n a : ℕ} [NeZero a] (j : Fin n) :
     List (Fin n) → Circuit ((Fin n × ZMod a) × (Fin n → ZMod a))
   | [] => []
   | i :: is => alphabetInterrogationRound j i ++ alphabetInterrogationList j is
 
+/-- Interrogating an appended coordinate list concatenates the two corresponding circuits. -/
 theorem alphabetInterrogationList_append {n a : ℕ} [NeZero a] (j : Fin n)
     (xs ys : List (Fin n)) :
     alphabetInterrogationList (a:=a) j (xs ++ ys) =
@@ -47,17 +78,21 @@ theorem alphabetInterrogationList_append {n a : ℕ} [NeZero a] (j : Fin n)
   | nil => rfl
   | cons i xs ih => simp only [List.cons_append, alphabetInterrogationList, ih, List.append_assoc]
 
+/-- A permutation matrix sends the basis state at `j` to the basis state at its image. -/
 private theorem alphabet_perm_ket {I : Type} [Fintype I] [DecidableEq I]
     (e : Equiv.Perm I) (j : I) : permMatrix e *ᵥ Qatlib.Foundations.PureStateMath.Ket j = Qatlib.Foundations.PureStateMath.Ket (e j) := by
   ext x
   simp [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, permMatrix]
 
+/-- Every gate in a single alphabet interrogation round is unitary. -/
 private theorem alphabet_round_unitary {n a : ℕ} [NeZero a] (j i : Fin n) :
     IsUnitaryCircuit (alphabetInterrogationRound (a:=a) j i) := by
   have hA := permMatrix_unitary_of_injective (alphabetAddressSwap (a:=a) j i).injective
   have hS := permMatrix_unitary_of_injective (alphabetStoreSwap (a:=a) i).injective
   simp [alphabetInterrogationRound, hA, hS]
 
+/-- If storage cell `i` starts at zero, one interrogation round writes `x i` into that cell and
+restores the address and zero response. -/
 private theorem alphabet_round_run {n a : ℕ} [NeZero a] (j i : Fin n)
     (x s : Fin n → ZMod a) (hi : s i = 0) :
     Run (alphabetOracle x) (alphabetInterrogationRound j i) (Qatlib.Foundations.PureStateMath.Ket ((j, 0), s)) =
@@ -76,6 +111,8 @@ private theorem alphabet_round_run {n a : ℕ} [NeZero a] (j i : Fin n)
   rw [alphabet_perm_ket]
   simp [alphabetAddressSwap, Equiv.prodCongr, Prod.map]
 
+/-- Interrogating a list of distinct coordinates writes the input into those initially zero
+storage cells and preserves all other storage values. -/
 theorem alphabetInterrogationList_run {n a : ℕ} [NeZero a] (j : Fin n)
     (is : List (Fin n)) (hn : is.Nodup) (x s : Fin n → ZMod a)
     (hz : ∀ i ∈ is, s i = 0) :
@@ -96,6 +133,8 @@ theorem alphabetInterrogationList_run {n a : ℕ} [NeZero a] (j : Fin n)
     · subst k; simp [hnot]
     · simp [hki, Function.update]
 
+/-- An interrogation list gives a unitary circuit with one query and three gates per listed
+coordinate. -/
 theorem alphabetInterrogationList_resources {n a : ℕ} [NeZero a] (j : Fin n) (is : List (Fin n)) :
     IsUnitaryCircuit (alphabetInterrogationList (a:=a) j is) ∧
     QueryCount (alphabetInterrogationList (a:=a) j is) = is.length ∧
@@ -107,6 +146,8 @@ theorem alphabetInterrogationList_resources {n a : ℕ} [NeZero a] (j : Fin n) (
     · simp [alphabetInterrogationList, alphabetInterrogationRound, QueryCount, ih.2.1]
     · simp [alphabetInterrogationList, alphabetInterrogationRound, GateCount, ih.2.2]; omega
 
+/-- For `n > 0`, there is a unitary circuit recovering every alphabet input with probability one
+using `n` queries and at most `3 * n + 1` gates. -/
 theorem alphabet_interrogation_actual_output_and_counts (n a : ℕ) [NeZero a] (hn : 0 < n) :
     ∃ (C : Circuit ((Fin n × ZMod a) × (Fin n → ZMod a)))
       (j : (Fin n × ZMod a) × (Fin n → ZMod a)),

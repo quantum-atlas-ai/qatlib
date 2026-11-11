@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeExt
+
+/-!
+# Stopped histories and paid cost moments
+
+This module decomposes the success mass of a coherent variable-time frame into newly stopped
+branches and a final running branch. It defines the paid prefix receipts and their first and
+second moments, and compares these moments with the stopping-time budgets.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `runSuccess_stopHistory_split`: decomposition of the final success mass.
+* `receiptSecondMoment_le_max_mul_mean`: second moment bounded by the full receipt times the
+  mean.
+* `frontier1`: combined history, receipt, and moment identities.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
@@ -41,18 +63,21 @@ set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 
+/-- The state inner product is additive in its first argument. -/
 private theorem inner_add_left' (ψ φ χ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (ψ + φ) χ = Qatlib.Foundations.PureStateMath.Inner ψ χ + Qatlib.Foundations.PureStateMath.Inner φ χ := by
   rw [Qatlib.Foundations.PureStateMath.inner_apply, Qatlib.Foundations.PureStateMath.inner_apply,
     Qatlib.Foundations.PureStateMath.inner_apply]
   simp [Pi.add_apply, map_add, add_mul, Finset.sum_add_distrib]
 
+/-- The state inner product is additive in its second argument. -/
 private theorem inner_add_right' (ψ φ χ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner ψ (φ + χ) = Qatlib.Foundations.PureStateMath.Inner ψ φ + Qatlib.Foundations.PureStateMath.Inner ψ χ := by
   rw [Qatlib.Foundations.PureStateMath.inner_apply, Qatlib.Foundations.PureStateMath.inner_apply,
     Qatlib.Foundations.PureStateMath.inner_apply]
   simp [Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- The total measurement mass equals the real part of the state's inner product with itself. -/
 private theorem measureProb_eq_re_inner (φ : QState H) :
     MeasureProb φ Finset.univ = (Qatlib.Foundations.PureStateMath.Inner φ φ).re := by
   rw [Qatlib.Foundations.PureStateMath.inner_self, Complex.re_sum]
@@ -60,6 +85,8 @@ private theorem measureProb_eq_re_inner (φ : QState H) :
     = ∑ x ∈ Finset.univ, ((‖φ x‖ ^ 2 : ℝ) : ℂ).re
   exact Finset.sum_congr rfl fun x _ => (Complex.ofReal_re _).symm
 
+/-- The total measurement mass of two mutually orthogonal states is the sum of their individual
+masses. -/
 private theorem measureProb_add_of_inner (x y : QState H)
     (hxy : Qatlib.Foundations.PureStateMath.Inner x y = 0) (hyx : Qatlib.Foundations.PureStateMath.Inner y x = 0) :
     MeasureProb (x + y) Finset.univ
@@ -71,6 +98,7 @@ private theorem measureProb_add_of_inner (x y : QState H)
   rw [measureProb_eq_re_inner (x + y), hexp, Complex.add_re,
     measureProb_eq_re_inner x, measureProb_eq_re_inner y]
 
+/-- The complement of an orthogonal projector is an orthogonal projector. -/
 private theorem one_sub_proj_orth (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) :
     IsOrthogonalProjector (1 - P) := by
   have hstarP : Pᴴ = P := by simpa only [Matrix.star_eq_conjTranspose] using! hP.2
@@ -84,6 +112,8 @@ private theorem one_sub_proj_orth (P : Matrix H H ℂ) (hP : IsOrthogonalProject
   · show (1 - P)ᴴ = 1 - P
     rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_one, hstarP]
 
+/-- Applying a target projector that commutes with two orthogonal branch projectors preserves
+orthogonality between the branches. -/
 private theorem inner_target_orth_branches (T P Q : Matrix H H ℂ)
     (hT : IsOrthogonalProjector T) (hP : IsOrthogonalProjector P)
     (hQ : IsOrthogonalProjector Q) (hPQ : P * Q = 0)
@@ -101,6 +131,7 @@ private theorem inner_target_orth_branches (T P Q : Matrix H H ℂ)
   rw [Matrix.star_mulVec, Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul, hAB]
   simp
 
+/-- A newly stopped branch is contained in every strictly later stopping projector. -/
 private theorem freshStop_mul_stopAt_ge (f : CoherentVtFrame H m) {j n : ℕ}
     (hj : j < m) (hn : n < m) (hjn : j < n) :
     f.freshStop ⟨j, hj⟩ * f.stopAt ⟨n, hn⟩ = f.freshStop ⟨j, hj⟩ := by
@@ -126,6 +157,8 @@ private theorem freshStop_mul_stopAt_ge (f : CoherentVtFrame H m) {j n : ℕ}
   rw [Matrix.conjTranspose_mul, hfresh, hstopn] at hstar
   exact hstar
 
+/-- Projecting the current stage operation onto its newly stopped branch agrees with projecting
+the current round. -/
 private theorem freshStop_mul_stageOp (f : CoherentVtFrame H m) (j : Fin m) :
     f.freshStop j * f.stageOp j = f.freshStop j * f.round j := by
   have h0 : f.freshStop j * f.stopAt j = 0 := (f.freshStop_orthogonal j).2
@@ -135,6 +168,8 @@ private theorem freshStop_mul_stageOp (f : CoherentVtFrame H m) (j : Fin m) :
       = f.freshStop j * f.round j
   rw [Matrix.mul_add, h0, zero_add, ← Matrix.mul_assoc, h1]
 
+/-- A later stage operation acts as the identity after projection onto an earlier newly stopped
+branch. -/
 private theorem freshStop_mul_stageOp_later (f : CoherentVtFrame H m) {j n : ℕ}
     (hj : j < m) (hn : n < m) (hjn : j < n) :
     f.freshStop ⟨j, hj⟩ * f.stageOp ⟨n, hn⟩ = f.freshStop ⟨j, hj⟩ := by
@@ -145,6 +180,8 @@ private theorem freshStop_mul_stageOp_later (f : CoherentVtFrame H m) {j n : ℕ
       = f.freshStop ⟨j, hj⟩
   rw [Matrix.mul_add, hnest, ← Matrix.mul_assoc, h0, zero_mul, add_zero]
 
+/-- For finite stage indices in increasing order, the earlier newly stopped projector absorbs
+the later stage operation. -/
 private theorem freshStop_mul_stageOp_later' (f : CoherentVtFrame H m) (j k : Fin m)
     (hjk : j.val < k.val) :
     f.freshStop j * f.stageOp k = f.freshStop j := by
@@ -154,6 +191,8 @@ private theorem freshStop_mul_stageOp_later' (f : CoherentVtFrame H m) (j k : Fi
   show f.freshStop j * (f.stopAt k + (1 - f.stopAt k) * f.round k) = f.freshStop j
   rw [Matrix.mul_add, hnest, ← Matrix.mul_assoc, h0, zero_mul, add_zero]
 
+/-- The component newly stopped at stage `j` remains equal to its value immediately after that
+round throughout all later stages. -/
 theorem freshStop_stageState_frozen (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     ∀ (n : ℕ) (hjn : j.val < n) (hn : n ≤ m),
       ApplyGate (f.freshStop j) (f.stageState ψ n hn)
@@ -178,22 +217,30 @@ theorem freshStop_stageState_frozen (f : CoherentVtFrame H m) (ψ : QState H) (j
       freshStop_mul_stageOp_later' f j ⟨k, Nat.lt_of_succ_le hb⟩ (by show ↑j < k; omega)]
     exact ih (by omega)
 
+/-- The target measurement mass in the branch newly stopped at stage `j`, evaluated immediately
+after its round. -/
 def freshStopSuccess (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) : ℝ :=
   MeasureProb (ApplyGate (f.target * f.freshStop j)
     (ApplyGate (f.round j) (f.stageState ψ j.val (by omega)))) Finset.univ
 
+/-- The target measurement mass in the branch still running after all stages. -/
 def runningStopSuccess (f : CoherentVtFrame H m) (ψ : QState H) : ℝ :=
   MeasureProb (ApplyGate (f.target * (1 - f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩))
     (f.stageState ψ m (by omega))) Finset.univ
 
+/-- The newly stopped success mass at a natural-number stage index, extended by zero outside the
+stage range. -/
 def freshStopSuccessAt (f : CoherentVtFrame H m) (ψ : QState H) (j : ℕ) : ℝ :=
   if hj : j < m then freshStopSuccess f ψ ⟨j, hj⟩ else 0
 
+/-- At a valid stage index, the zero-extended success mass equals `freshStopSuccess`. -/
 theorem freshStopSuccessAt_of_lt (f : CoherentVtFrame H m) (ψ : QState H) {j : ℕ}
     (hj : j < m) :
     freshStopSuccessAt f ψ j = freshStopSuccess f ψ ⟨j, hj⟩ := by
   simp [freshStopSuccessAt, hj]
 
+/-- At any valid prefix length, the stopped target mass is the sum of the newly stopped success
+masses in that prefix. -/
 private theorem stoppedSuccess_sum (f : CoherentVtFrame H m) (ψ : QState H) :
     ∀ (n : ℕ) (hn : n ≤ m),
       MeasureProb (ApplyGate (f.target * f.stop ⟨n, Nat.lt_succ_of_le hn⟩)
@@ -279,6 +326,8 @@ private theorem stoppedSuccess_sum (f : CoherentVtFrame H m) (ψ : QState H) :
         = freshStopSuccess f ψ ⟨n, by omega⟩ := rfl
     rw [hM2]
 
+/-- The final success mass splits into the sum of newly stopped success masses and the final
+running success mass. -/
 theorem runSuccess_stopHistory_split (f : CoherentVtFrame H m) (ψ : QState H) :
     f.runSuccess ψ = (∑ j : Fin m, freshStopSuccess f ψ j) + runningStopSuccess f ψ := by
   have hTP : f.target * f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩
@@ -347,24 +396,30 @@ theorem runSuccess_stopHistory_split (f : CoherentVtFrame H m) (ψ : QState H) :
   rw [stoppedSuccess_sum f ψ m (le_refl m), hconv]
   rfl
 
+/-- The weighted oracle cost of the paid prefix ending immediately after stage `j`, with stage
+weights `2 ^ i`. -/
 def paidStopReceipt (f : CoherentVtFrame H m) (j : Fin m) : ℕ :=
   Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost (fun i => 2 ^ i) (paidPrefix f (j.val + 1) (by omega))
 
+/-- The paid receipt through stage `j` equals `2 ^ (j.val + 1) - 1`. -/
 theorem paidStopReceipt_eq (f : CoherentVtFrame H m) (j : Fin m) :
     paidStopReceipt f j = 2 ^ (j.val + 1) - 1 := by
   have h := paidPrefix_accessPrice f (j.val + 1) (by omega)
   unfold paidStopReceipt at *
   omega
 
+/-- The weighted oracle cost of the full paid prefix, with stage weights `2 ^ i`. -/
 def paidFullReceipt (f : CoherentVtFrame H m) : ℕ :=
   Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost (fun i => 2 ^ i) (paidPrefix f m (by omega))
 
+/-- The full paid receipt equals `2 ^ m - 1`. -/
 theorem paidFullReceipt_eq (f : CoherentVtFrame H m) :
     paidFullReceipt f = 2 ^ m - 1 := by
   have h := paidPrefix_accessPrice f m (by omega)
   unfold paidFullReceipt at *
   omega
 
+/-- Every stage's paid receipt is at most the full paid receipt. -/
 theorem paidStopReceipt_le_full (f : CoherentVtFrame H m) (j : Fin m) :
     paidStopReceipt f j ≤ paidFullReceipt f := by
   rw [paidStopReceipt_eq, paidFullReceipt_eq]
@@ -372,6 +427,7 @@ theorem paidStopReceipt_le_full (f : CoherentVtFrame H m) (j : Fin m) :
     pow_le_pow_right' (a := (2 : ℕ)) (by norm_num) (by omega)
   omega
 
+/-- The paid receipt through a stage is bounded by that stage's stopping time. -/
 theorem paidReceipt_le_stopTime (f : CoherentVtFrame H m) (j : Fin m) :
     (paidStopReceipt f j : ℝ) ≤ stopTime j.val := by
   have h1 : (1 : ℕ) ≤ 2 ^ (j.val + 1) := Nat.one_le_two_pow
@@ -384,6 +440,7 @@ theorem paidReceipt_le_stopTime (f : CoherentVtFrame H m) (j : Fin m) :
   unfold stopTime
   linarith
 
+/-- The full paid receipt is bounded by the maximum stopping time. -/
 theorem paidFullReceipt_le_maxStopTime (f : CoherentVtFrame H m) :
     (paidFullReceipt f : ℝ) ≤ maxStopTime m := by
   have h1 : (1 : ℕ) ≤ 2 ^ m := Nat.one_le_two_pow
@@ -396,6 +453,7 @@ theorem paidFullReceipt_le_maxStopTime (f : CoherentVtFrame H m) :
   unfold maxStopTime
   linarith
 
+/-- The full paid receipt equals the maximum stopping time minus one. -/
 theorem paidFullReceipt_eq_maxStopTime_sub_one (f : CoherentVtFrame H m) :
     (paidFullReceipt f : ℝ) = maxStopTime m - 1 := by
   have h1 : (1 : ℕ) ≤ 2 ^ m := Nat.one_le_two_pow
@@ -403,6 +461,9 @@ theorem paidFullReceipt_eq_maxStopTime_sub_one (f : CoherentVtFrame H m) :
   push_cast
   ring
 
+/-- The paid prefix recovers the newly stopped mass with weighted cost `2 ^ (j.val + 1) - 1` and
+gate count `4 * (j.val + 1)`. It is legal and makes exactly one forward call to each
+included slot and no other directed calls. -/
 theorem paid_fresh_receipt (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     MeasureProb (ApplyGate (f.freshStop j) (payload (Qatlib.Concepts.QlsReadoutSpec.Amplification.run (by decide : 0 < 2)
         (baseOracles f) (paidPrefix f (j.val + 1) (by omega)) ψ))) Finset.univ
@@ -419,17 +480,21 @@ theorem paid_fresh_receipt (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m)
   have h := paidPrefix_accessPrice f (j.val + 1) (by omega)
   omega
 
+/-- The total measurement mass in the branch still running at the end of the coherent execution. -/
 def runningStopMass (f : CoherentVtFrame H m) (ψ : QState H) : ℝ :=
   MeasureProb (ApplyGate (1 - f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩)
     (f.stageState ψ m (by omega))) Finset.univ
 
+/-- The final running mass is nonnegative. -/
 theorem runningStopMass_nonneg (f : CoherentVtFrame H m) (ψ : QState H) :
     0 ≤ runningStopMass f ψ := measureProb_nonneg _ _
 
+/-- The final running mass equals the input's total mass minus the sum of newly stopped masses. -/
 theorem runningStopMass_eq (f : CoherentVtFrame H m) (ψ : QState H) :
     runningStopMass f ψ = MeasureProb ψ Finset.univ - ∑ j : Fin m, f.freshStopMass ψ j :=
   f.runningMass_eq_one_sub_sum ψ
 
+/-- A complete final stopping projector leaves zero running mass for a normalized input. -/
 theorem runningStopMass_zero (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ) :
     runningStopMass f ψ = 0 := by
@@ -437,37 +502,48 @@ theorem runningStopMass_zero (f : CoherentVtFrame H m) (ψ : QState H)
     measureProb_univ hnorm]
   ring
 
+/-- The sum of each stopping receipt weighted by its newly stopped mass, including the full
+receipt weighted by the final running mass. -/
 def receiptStopMean (f : CoherentVtFrame H m) (ψ : QState H) : ℝ :=
   ∑ j : Fin m, (paidStopReceipt f j : ℝ) * f.freshStopMass ψ j
     + (paidFullReceipt f : ℝ) * runningStopMass f ψ
 
+/-- The sum of squared stopping receipts weighted by their branch masses, including the squared
+full receipt for the final running branch. -/
 def receiptSecondMoment (f : CoherentVtFrame H m) (ψ : QState H) : ℝ :=
   ∑ j : Fin m, ((paidStopReceipt f j : ℝ)) ^ 2 * f.freshStopMass ψ j
     + ((paidFullReceipt f : ℝ)) ^ 2 * runningStopMass f ψ
 
+/-- The first paid receipt moment is nonnegative. -/
 theorem receiptStopMean_nonneg (f : CoherentVtFrame H m) (ψ : QState H) :
     0 ≤ receiptStopMean f ψ := by
   refine add_nonneg (Finset.sum_nonneg fun j _ => ?_) ?_
   · exact mul_nonneg (Nat.cast_nonneg _) (f.freshStopMass_nonneg ψ j)
   · exact mul_nonneg (Nat.cast_nonneg _) (runningStopMass_nonneg f ψ)
 
+/-- The second paid receipt moment is nonnegative. -/
 theorem receiptSecondMoment_nonneg (f : CoherentVtFrame H m) (ψ : QState H) :
     0 ≤ receiptSecondMoment f ψ := by
   refine add_nonneg (Finset.sum_nonneg fun j _ => ?_) ?_
   · exact mul_nonneg (sq_nonneg _) (f.freshStopMass_nonneg ψ j)
   · exact mul_nonneg (sq_nonneg _) (runningStopMass_nonneg f ψ)
 
+/-- For complete stopping and normalized input, the receipt mean is the sum over newly stopped
+branches alone. -/
 theorem receiptStopMean_complete (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ) :
     receiptStopMean f ψ = ∑ j : Fin m, (paidStopReceipt f j : ℝ) * f.freshStopMass ψ j := by
   rw [receiptStopMean, runningStopMass_zero f ψ hcomplete hnorm, mul_zero, add_zero]
 
+/-- For complete stopping and normalized input, the second receipt moment is the sum over newly
+stopped branches alone. -/
 theorem receiptSecondMoment_complete (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ) :
     receiptSecondMoment f ψ
       = ∑ j : Fin m, ((paidStopReceipt f j : ℝ)) ^ 2 * f.freshStopMass ψ j := by
   rw [receiptSecondMoment, runningStopMass_zero f ψ hcomplete hnorm, mul_zero, add_zero]
 
+/-- The second receipt moment is at most the full paid receipt times the first receipt moment. -/
 theorem receiptSecondMoment_le_max_mul_mean (f : CoherentVtFrame H m) (ψ : QState H) :
     receiptSecondMoment f ψ ≤ (paidFullReceipt f : ℝ) * receiptStopMean f ψ := by
   have hq : ∀ j : Fin m, 0 ≤ f.freshStopMass ψ j := fun j => f.freshStopMass_nonneg ψ j
@@ -505,6 +581,8 @@ theorem receiptSecondMoment_le_max_mul_mean (f : CoherentVtFrame H m) (ψ : QSta
   simp only [receiptSecondMoment, receiptStopMean]
   nlinarith [hsum, hrun2]
 
+/-- For complete stopping and normalized input, the second receipt moment is bounded by the
+stopping-time second moment. -/
 theorem receiptSecondMoment_le_stopSecondMoment (f : CoherentVtFrame H m)
     (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ) :
@@ -530,6 +608,8 @@ theorem receiptSecondMoment_le_stopSecondMoment (f : CoherentVtFrame H m)
         Finset.sum_le_sum fun j _ => hle j
     _ = stopSecondMoment m (fun j => f.freshStopMass ψ j) := rfl
 
+/-- For complete stopping and normalized input, the second receipt moment is at most the maximum
+stopping time times the average stopping time. -/
 theorem receiptSecondMoment_le_max_mul_average (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ) :
     receiptSecondMoment f ψ
@@ -539,6 +619,8 @@ theorem receiptSecondMoment_le_max_mul_average (f : CoherentVtFrame H m) (ψ : Q
       (fun j => f.freshStopMass_nonneg ψ j)
       (le_of_eq (f.freshStopMass_total_eq_one ψ hcomplete hnorm)))
 
+/-- For complete stopping and normalized input, dividing the second receipt moment by a positive
+success parameter is bounded by `meanSquareBound`. -/
 theorem nonadaptive_receipt_budget (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ)
     (p : ℝ) (hp : 0 < p) :
@@ -550,6 +632,8 @@ theorem nonadaptive_receipt_budget (f : CoherentVtFrame H m) (ψ : QState H)
     (le_of_eq (f.freshStopMass_total_eq_one ψ hcomplete hnorm)) p hp
   exact (div_le_div_of_nonneg_right h1 (le_of_lt hp)).trans h2
 
+/-- Under the stated complete-stopping, normalization, accuracy, and maximum-time assumptions,
+the scaled second receipt moment is bounded by `adaptiveMeanSquareBound`. -/
 theorem adaptive_receipt_budget (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1) (hnorm : Normalized ψ)
     (p : ℝ) (hp : 0 < p) (c qhat : ℝ) (hacc : estimateAccurate c p qhat)
@@ -562,6 +646,8 @@ theorem adaptive_receipt_budget (f : CoherentVtFrame H m) (ψ : QState H)
     (le_of_eq (f.freshStopMass_total_eq_one ψ hcomplete hnorm)) p hp c qhat hacc B hB
   exact (div_le_div_of_nonneg_right h1 (le_of_lt hp)).trans h2
 
+/-- Combines the success-history decomposition, legal paid prefix receipts, the second-moment
+inequality, and the exact full receipt formulas. -/
 theorem frontier1 (f : CoherentVtFrame H m) (ψ : QState H) :
     f.runSuccess ψ = (∑ j : Fin m, freshStopSuccess f ψ j) + runningStopSuccess f ψ ∧
     (∀ j : Fin m,

@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+
+/-!
+# Correctness of the three-qubit cluster wire
+
+The wire pattern uses the path with edges `(0, 1)` and `(1, 2)`, two zero-angle measurements,
+and output Pauli corrections. Its corrected core is the identity matrix multiplied by a Boolean
+sign and `1 / 2`.
+
+For every two-bit measurement history, summing over the auxiliary readout yields the map sending
+an operator to one quarter of itself. Summing the four histories therefore preserves trace,
+giving an explicit cluster-wire calculation in the measurement-only setting of
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `Clause18Wire.wire_ent_diag` and `Clause18Wire.wire_EL` compute the entangler and loaded
+  amplitudes.
+* `Clause18Wire1a.wire_core` identifies the corrected core as a scalar multiple of the identity.
+* `clause7_clause1a` computes the corrected branch map as multiplication by `1 / 4`.
+* `clause7_clause1c_wire` proves trace preservation after summing all measurement histories.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
@@ -27,21 +53,26 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 
+/-- Both adaptive measurement angles of the wire pattern are zero for every measurement history. -/
 theorem wire_angle (s : Fin 2 → Bool) (j : Fin 2) :
     mpAdaptiveAngle mpWirePattern s j = 0 := by
   simp only [mpAdaptiveAngle, mpWirePattern, mpParity_empty]
   norm_num
 
+/-- A zero-angle measurement-vector coordinate is the complex embedding of a Boolean sign
+divided by `Real.sqrt 2`. -/
 theorem sv_zero (o b : Bool) :
     mpSVector 0 o b = (((if b then (if o then (-1 : ℝ) else 1) else 1) / Real.sqrt 2 : ℝ) : ℂ) := by
   simp only [mpSVector, Complex.ofReal_zero, Complex.exp_zero]
   rcases b with rfl | rfl <;> rcases o with rfl | rfl <;>
     simp [Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_neg]
 
+/-- Every zero-angle measurement-vector coordinate is unchanged by complex conjugation. -/
 theorem sv_zero_real (o b : Bool) : star (mpSVector 0 o b) = mpSVector 0 o b := by
   rw [sv_zero]
   exact Complex.conj_ofReal _
 
+/-- The product of a zero-angle measurement-vector coordinate and its conjugate is one half. -/
 theorem sv_zero_sq (o b : Bool) :
     mpSVector 0 o b * star (mpSVector 0 o b) = (1 / 2 : ℂ) := by
   rw [sv_zero_real, sv_zero]
@@ -53,17 +84,24 @@ theorem sv_zero_sq (o b : Bool) :
     cases b <;> cases o <;> simp [div_mul_div_comm, hsq, hinv]
   rw [← Complex.ofReal_mul, h, Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_ofNat]
 
+/-- A measurement-vector coordinate of the wire pattern is the corresponding zero-angle
+coordinate. -/
 theorem wire_sv (s : Fin 2 → Bool) (j : Fin 2) (b : Bool) :
     mpSVector (mpAdaptiveAngle mpWirePattern s j) (s j) b = mpSVector 0 (s j) b := by
   rw [wire_angle]
+/-- Defines the three-vertex path with edges `(0, 1)` and `(1, 2)`. -/
 def wireE : Finset (Fin 3 × Fin 3) := {(0, 1), (1, 2)}
 
+/-- The wire-pattern entangler equals the frame matrix multiplied by the controlled-Z matrix for
+`wireE`. -/
 theorem wire_entangler :
     mpWirePattern.entangler
       = Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix wireE * Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix wireE := by
   simp only [mpWirePattern]
   exact Qatlib.Concepts.MbqcFlow.FlowDecision.sourcePulse_eq_frame_cz _
 
+/-- The diagonal frame entry for the wire is the product of the Boolean signs on coordinates one
+and two. -/
 theorem wire_frame (x : Reg 3) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix wireE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2) := by
@@ -75,6 +113,8 @@ theorem wire_frame (x : Reg 3) :
   rw [h0, h1, h2]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- The diagonal controlled-Z entry for the wire is the product of the Boolean signs of the two
+adjacent-bit conjunctions. -/
 theorem wire_cz (x : Reg 3) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix wireE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2) := by
@@ -82,12 +122,15 @@ theorem wire_cz (x : Reg 3) :
   rw [wireE, Finset.prod_pair (by decide : ((0, 1) : Fin 3 × Fin 3) ≠ (1, 2))]
   simp only [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- Every amplitude of the uniform two-qubit register state is one half. -/
 theorem uniform2 (x : Reg 2) : Uniform (Reg 2) x = (1 / 2 : ℂ) := by
   show ((Real.sqrt (Fintype.card (Reg 2)) : ℝ) : ℂ)⁻¹ = 1 / 2
   have h4 : Real.sqrt 4 = 2 := by rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
   rw [card_reg]
   norm_num [h4]
 
+/-- The wire load matrix has entry one half when the first register bit matches the input bit,
+and zero otherwise. -/
 theorem wire_load (d : Reg 3) (y : Reg 1) :
     mpLoadMatrix mpWirePattern (Uniform (Reg 2)) d y
       = if d 0 = y 0 then (1 / 2 : ℂ) else 0 := by
@@ -108,6 +151,8 @@ theorem wire_load (d : Reg 3) (y : Reg 1) :
       exact hh
     rw [if_neg h0]
 
+/-- The wire entangler is diagonal, with each diagonal entry equal to the product of its frame
+signs and its two adjacent-bit controlled-Z signs. -/
 theorem wire_ent_diag (x y : Reg 3) :
     mpWirePattern.entangler x y
       = if x = y then
@@ -135,6 +180,8 @@ theorem wire_ent_diag (x y : Reg 3) :
     · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
         if_neg (Ne.symm hk), zero_mul]
 
+/-- The entangler-load product has the wire's diagonal phase multiplied by one half when the
+input bit matches coordinate zero, and is zero otherwise. -/
 theorem wire_EL (d : Reg 3) (y : Reg 1) :
     (mpWirePattern.entangler * mpLoadMatrix mpWirePattern (Uniform (Reg 2))) d y
       = if d 0 = y 0 then
@@ -160,28 +207,36 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns Qatlib.Concepts.ClusterPattern
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 
+/-- Constructs a three-bit register with coordinates `a0`, `a1`, and `a2`, in that order. -/
 def pin3 (a0 a1 a2 : Bool) : Reg 3 := fun t =>
   if (t : ℕ) = 0 then a0 else if (t : ℕ) = 1 then a1 else a2
 
+/-- Coordinate zero of `pin3 a0 a1 a2` is `a0`. -/
 @[simp] theorem pin3_0 (a0 a1 a2 : Bool) : pin3 a0 a1 a2 0 = a0 := rfl
 
+/-- Coordinate one of `pin3 a0 a1 a2` is `a1`. -/
 @[simp] theorem pin3_1 (a0 a1 a2 : Bool) : pin3 a0 a1 a2 1 = a1 := rfl
 
+/-- Coordinate two of `pin3 a0 a1 a2` is `a2`. -/
 @[simp] theorem pin3_2 (a0 a1 a2 : Bool) : pin3 a0 a1 a2 2 = a2 := rfl
 
+/-- Every three-bit register equals the register assembled by `pin3` from its three coordinates. -/
 theorem reg3_eq_pin3 (x : Reg 3) : x = pin3 (x 0) (x 1) (x 2) := by
   funext t
   fin_cases t <;> rfl
 
+/-- The Boolean sign of an XOR is the product of the signs of its two arguments. -/
 theorem bitPhase_xor (a b : Bool) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (xor a b)
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase a * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase b := by
   cases a <;> cases b <;> simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase, Bool.xor]
 
+/-- Negating a Boolean argument negates its complex Boolean sign. -/
 theorem bitPhase_not (a : Bool) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!a) = -Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase a := by
   cases a <;> simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- A one-bit register encodes to `xp` exactly when its bit equals the bit decoded from `xp`. -/
 theorem bitCond (xp : Fin 2) (y : Reg 1) :
     ((bitVecEquiv 1) y = xp) ↔ (y 0 = ((bitVecEquiv 1).symm xp) 0) := by
   constructor
@@ -199,6 +254,8 @@ theorem bitCond (xp : Fin 2) (y : Reg 1) :
     rw [hy]
     exact Equiv.apply_symm_apply (bitVecEquiv 1) xp
 
+/-- The wire's output-bit constraint is equivalent to the equality between coordinate two and
+its single corrected output bit. -/
 theorem delta_iff (s : Fin 2 → Bool) (xp : Fin 2) (c : Reg 3) :
     (∀ v : Fin 1, c (Fin.natAdd 2 v) = mpOutBit mpWirePattern s xp v)
       ↔ (c 2 = mpOutBit mpWirePattern s xp 0) := by
@@ -210,11 +267,15 @@ theorem delta_iff (s : Fin 2 → Bool) (xp : Fin 2) (c : Reg 3) :
     fin_cases v
     simpa using h
 
+/-- Defines the wire core's summand as the product of conjugate measurement coordinates, the
+corrected-output constraint, and the entangler-load entry. -/
 noncomputable def wireSummand (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) : Reg 3 → ℂ := fun c =>
   (∏ j : Fin 2, star (mpSVector 0 (s j) (c (Fin.castLE (by omega : 2 ≤ 2 + 1) j))))
     * (if ∀ v : Fin 1, c (Fin.natAdd 2 v) = mpOutBit mpWirePattern s xp v then (1 : ℂ) else 0)
     * (mpWirePattern.entangler * mpLoadMatrix mpWirePattern (Uniform (Reg 2))) c y
 
+/-- The wire core entry is its Z-correction sign multiplied by the sum of `wireSummand` over
+three-bit registers. -/
 theorem wire_corePre_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
     corePre mpWirePattern (Uniform (Reg 2)) s xp y
       = (if mpWirePattern.zCorr 0 s && mpOutBit mpWirePattern s xp 0 then (-1 : ℂ) else 1)
@@ -223,6 +284,8 @@ theorem wire_corePre_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
   rw [Fin.prod_univ_one]
   simp only [wire_sv]
 
+/-- Expands the wire summand into zero-angle measurement coordinates, the fixed output-bit
+constraint, and the explicit loaded entangler phase. -/
 theorem wire_summand_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) (c : Reg 3) :
     wireSummand s xp y c
       = (∏ j : Fin 2, star (mpSVector 0 (s j) (c (Fin.castLE (by omega : 2 ≤ 2 + 1) j))))
@@ -237,6 +300,8 @@ theorem wire_summand_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) (c : Reg 3
   rw [wire_EL]
   simp only [delta_iff]
 
+/-- The wire-summand sum reduces to the two registers with the prescribed input and corrected
+output bits and either value of the middle bit. -/
 theorem wire_sum_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
     ∑ c : Reg 3, wireSummand s xp y c
       = wireSummand s xp y (pin3 (y 0) false (mpOutBit mpWirePattern s xp 0))
@@ -269,22 +334,30 @@ theorem wire_sum_eq (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
         rw [if_neg h2, mul_zero, zero_mul]
     · rw [if_neg h0, mul_zero]
 
+/-- The real square root of two multiplied by itself is two. -/
 theorem hsq : (Real.sqrt 2) * (Real.sqrt 2) = 2 := Real.mul_self_sqrt (by norm_num)
 
+/-- The product of two inverse real square roots of two is the inverse of two. -/
 theorem hinv : (Real.sqrt 2 : ℝ)⁻¹ * (Real.sqrt 2 : ℝ)⁻¹ = (2 : ℝ)⁻¹ := by
   rw [← mul_inv, hsq]
 
+/-- The product of two inverse complex embeddings of the real square root of two is the inverse
+of two. -/
 theorem hcinv : ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ = (2 : ℂ)⁻¹ := by
   have h : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = 2 := by
     rw [← Complex.ofReal_mul, hsq, Complex.ofReal_ofNat]
   rw [← mul_inv, h]
 
+/-- The product of the two conjugate zero-angle measurement coordinates equals the product of
+the factors at coordinates zero and one. -/
 theorem prod_star_sv (s : Fin 2 → Bool) (c : Reg 3) :
     (∏ j : Fin 2, star (mpSVector 0 (s j) (c (Fin.castLE (by omega : 2 ≤ 2 + 1) j))))
       = star (mpSVector 0 (s 0) (c 0)) * star (mpSVector 0 (s 1) (c 1)) := by
   rw [Fin.prod_univ_two]
   rfl
 
+/-- Evaluates the wire summand with middle bit false as two conjugate measurement coordinates
+multiplied by one half and the corrected output's Boolean sign. -/
 theorem wire_summand_pin3_false (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
     wireSummand s xp y (pin3 (y 0) false (mpOutBit mpWirePattern s xp 0))
       = star (mpSVector 0 (s 0) (y 0)) * star (mpSVector 0 (s 1) false)
@@ -293,6 +366,8 @@ theorem wire_summand_pin3_false (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
   simp only [pin3_0, pin3_1, pin3_2, if_true, and_false, false_and]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- Evaluates the wire summand with middle bit true as two conjugate measurement coordinates
+multiplied by one half and the frame and adjacent-bit Boolean signs. -/
 theorem wire_summand_pin3_true (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
     wireSummand s xp y (pin3 (y 0) true (mpOutBit mpWirePattern s xp 0))
       = star (mpSVector 0 (s 0) (y 0)) * star (mpSVector 0 (s 1) true)
@@ -305,6 +380,8 @@ theorem wire_summand_pin3_true (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
   simp only [pin3_0, pin3_1, pin3_2, if_true, and_true, true_and]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- The wire core entry is the history-dependent Boolean sign divided by two when the input
+register encodes to the output index, and is zero otherwise. -/
 theorem wire_corePre (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
     corePre mpWirePattern (Uniform (Reg 2)) s xp y
       = if (bitVecEquiv 1) y = xp then
@@ -330,6 +407,7 @@ theorem wire_corePre (s : Fin 2 → Bool) (xp : Fin 2) (y : Reg 1) :
       mul_neg, neg_mul, neg_neg, one_mul, mul_one]
   all_goals norm_num
 
+/-- The corrected wire core is the identity matrix multiplied by `bitPhase (s 0 && !(s 1)) / 2`. -/
 theorem wire_core (s : Fin 2 → Bool) :
     core mpWirePattern (Uniform (Reg 2)) s
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (s 0 && !(s 1)) / 2 : ℂ) • 1 := by
@@ -342,6 +420,8 @@ theorem wire_core (s : Fin 2 → Bool) :
     rw [if_pos rfl, if_pos rfl, mul_one]
   · rw [if_neg (Ne.symm h), if_neg h, mul_zero]
 
+/-- Conjugating any two-dimensional operator by the corrected wire core multiplies it by one
+quarter. -/
 theorem wire_core_conj (s : Fin 2 → Bool) (ρ : Operator 2) :
     core mpWirePattern (Uniform (Reg 2)) s * ρ
         * (core mpWirePattern (Uniform (Reg 2)) s).conjTranspose
@@ -365,6 +445,8 @@ theorem wire_core_conj (s : Fin 2 → Bool) (ρ : Operator 2) :
     norm_num
   rw [h3]
 
+/-- The sum over auxiliary readouts of the squared magnitudes of the wire's
+measurement-coordinate products is one. -/
 theorem sv_sum (s : Fin 2 → Bool) :
     ∑ z : Fin 2 → Bool,
       (∏ j : Fin 2, mpSVector (mpAdaptiveAngle mpWirePattern s j) (s j) (z j))
@@ -384,6 +466,8 @@ theorem sv_sum (s : Fin 2 → Bool) :
   rw [card_reg]
   norm_num
 
+/-- For every wire measurement history, summing its Kraus conjugations over the auxiliary
+readout multiplies any two-dimensional operator by one quarter. -/
 theorem clause7_clause1a : ∀ (s : Fin 2 → Bool) (ρ : Operator 2),
     ∑ z : Fin 2 → Bool,
         (mpPatternKraus mpWirePattern (Uniform (Reg 2)) s z) * ρ
@@ -408,6 +492,8 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns Qatlib.Concepts.ClusterPattern
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 
+/-- For every wire measurement history, summing its Kraus conjugations over the auxiliary
+readout multiplies any two-dimensional operator by one quarter. -/
 theorem clause7_clause1a : ∀ (s : Fin 2 → Bool) (ρ : Operator 2),
     ∑ z : Fin 2 → Bool,
         (mpPatternKraus mpWirePattern (Uniform (Reg 2)) s z) * ρ
@@ -424,6 +510,7 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 
+/-- The sum of all wire-pattern branches preserves the trace of every two-dimensional operator. -/
 theorem clause7_clause1c_wire (A : Operator 2) :
     Matrix.trace (∑ s : Fin 2 → Bool,
         mpPatternBranch mpWirePattern (Uniform (Reg 2)) s A) = Matrix.trace A := by

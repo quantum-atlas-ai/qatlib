@@ -12,6 +12,31 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveCompilation
+
+/-!
+# Decoding adaptive records and fixed-error conversion
+
+A known unitary decoder may act on the retained record and system before coherent adaptive
+success is tested. `sourceAdaptive_decoded_resource_compilation` incorporates such a decoder
+into a source word while preserving the query bound; a record-swap example clears a nonzero
+retained record.
+
+The module compares decoded adaptive and word costs and turns output-overlap guarantees into
+smoothed filtered Gram bounds. Explicit constants then yield discrete complexity bounds at error
+`1/3`, following the state conversion approach of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceAdaptive_decoded_resource_compilation`: compilation including a unitary decoder.
+* `sourceAdaptiveDecoded_normalized_comparison`: comparison with coherent word cost.
+* `sourceCoherent_fixed_third_from_output` and `sourceNoncoherent_fixed_third_from_output`:
+  fixed-error output bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -48,6 +73,8 @@ set_option maxHeartbeats 1000000 in
 set_option backward.isDefEq.respectTransparency false in
 noncomputable section
 
+/-- Decoded coherent success requires real overlap at least `sqrt (1-ε)` with the zero-record
+clean target after applying the specified decoder to the recorded output. -/
 def sourceAdaptiveDecodedCoherentSuccess {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (hr : 0<r) (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (ε : ℝ) (T : SourceAdaptive (SourceSpace n q H r))
@@ -60,6 +87,9 @@ def sourceAdaptiveDecodedCoherentSuccess {X H : Type} [Fintype H] [DecidableEq H
 end
 noncomputable section
 
+/-- A legal adaptive computation followed by a unitary decoder compiles exactly to a legal
+source word using at most twice its oracle calls and at most two plus twice its call count
+in known gates. -/
 theorem sourceAdaptive_decoded_resource_compilation :
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1))
@@ -108,6 +138,8 @@ theorem sourceAdaptive_decoded_resource_compilation :
 end
 noncomputable section
 
+/-- A legal adaptive computation with a unitary decoder satisfying coherent success bounds
+coherent word complexity by twice its adaptive call count. -/
 theorem sourceAdaptiveDecodedCoherentQ_le_twice_calls {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ} (hr : 0<r)
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -132,6 +164,8 @@ theorem sourceAdaptiveDecodedCoherentQ_le_twice_calls {X H : Type} [Fintype X] [
   exact hSuccess x
 end
 noncomputable section
+/-- The infimum of adaptive oracle-call counts over legal computations with a unitary decoder
+achieving coherent success, allowing arbitrary positive workspace size. -/
 def sourceAdaptiveDecodedCoherentCost {X H : Type} [Fintype H] [DecidableEq H]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) : ℝ≥0∞ :=
   ⨅ (r : ℕ) (hr : 0<r) (T : SourceAdaptive (SourceSpace n q H r))
@@ -144,6 +178,7 @@ def sourceAdaptiveDecodedCoherentCost {X H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Decoded coherent adaptive cost is at most coherent source-word query complexity. -/
 theorem sourceAdaptiveDecodedCoherentCost_le_sourceCoherentQ {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -166,6 +201,8 @@ theorem sourceAdaptiveDecodedCoherentCost_le_sourceCoherentQ {X H : Type}
 end
 noncomputable section
 
+/-- For nonempty payload space, coherent source-word query complexity is at most twice decoded
+coherent adaptive cost. -/
 theorem sourceCoherentQ_le_twice_decodedAdaptiveCost {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -179,6 +216,7 @@ theorem sourceCoherentQ_le_twice_decodedAdaptiveCost {X H : Type}
 end
 noncomputable section
 
+/-- The equivalence swapping record labels zero and one while preserving the system coordinate. -/
 def sourceRetainedRecordSwapEquiv (S : Type) [Fintype S] [DecidableEq S] :
     (Fin (max 1 (sourceAdaptiveLeaves (sourceRetainedRecordTree S))) × S) ≃
       (Fin (max 1 (sourceAdaptiveLeaves (sourceRetainedRecordTree S))) × S) :=
@@ -186,17 +224,21 @@ def sourceRetainedRecordSwapEquiv (S : Type) [Fintype S] [DecidableEq S] :
     ⟨1,by simp [sourceRetainedRecordTree_leaves]⟩).prodCongr (Equiv.refl S)
 end
 noncomputable section
+/-- The permutation matrix implementing `sourceRetainedRecordSwapEquiv`. -/
 def sourceRetainedRecordSwap (S : Type) [Fintype S] [DecidableEq S] :=
   permMatrix (sourceRetainedRecordSwapEquiv S)
 end
 noncomputable section
 
+/-- The retained-record swap matrix is unitary. -/
 theorem sourceRetainedRecordSwap_unitary (S : Type) [Fintype S] [DecidableEq S] :
     sourceRetainedRecordSwap S ∈ Matrix.unitaryGroup _ ℂ :=
   permMatrix_unitary_of_injective (Equiv.injective _)
 end
 noncomputable section
 
+/-- The retained-record swap sends the recorded output of the retained-record tree to the zero
+record tensored with the input. -/
 theorem sourceRetainedRecordSwap_clear (S : Type) [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (ψ : QState S) :
     sourceRetainedRecordSwap S *ᵥ sourceAdaptivePure O (sourceRetainedRecordTree S) ψ =
@@ -215,6 +257,8 @@ theorem sourceRetainedRecordSwap_clear (S : Type) [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- For normalized input, the decoded retained-record output has overlap one with the zero
+record tensored with the input. -/
 theorem sourceRetainedRecordSwap_overlap (S : Type) [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (ψ : QState S) (hψ : Normalized ψ) :
     Qatlib.Foundations.PureStateMath.Inner (sourceRetainedRecordSwap S *ᵥ sourceAdaptivePure O (sourceRetainedRecordTree S) ψ)
@@ -225,12 +269,17 @@ theorem sourceRetainedRecordSwap_overlap (S : Type) [Fintype S] [DecidableEq S]
 end
 noncomputable section
 
+/-- The adaptive conversion tree applying `sourceFlipDataGate n q r 1` before the
+retained-record tree. -/
 def sourceRetainedRecordConversionTree {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) : SourceAdaptive (SourceSpace n q H r) :=
   .known (sourceFlipDataGate n q r 1) (sourceRetainedRecordTree (SourceSpace n q H r))
 end
 noncomputable section
 
+/-- The retained-record conversion tree is legal, uses zero oracle calls, and achieves
+zero-error decoded coherent conversion from each normalized state to itself using the
+unitary record swap. -/
 theorem sourceRetainedRecordConversion_decoded {X H : Type} [Fintype H] [DecidableEq H]
     {n q r : ℕ} (hr : 0<r) (input : X → Fin n → Fin (q+1))
     (ρ : X → QState H) (hρ : ∀ x,Normalized (ρ x)) :
@@ -254,6 +303,8 @@ theorem sourceRetainedRecordConversion_decoded {X H : Type} [Fintype H] [Decidab
 end
 noncomputable section
 
+/-- For normalized initial states, decoded coherent adaptive cost lies between half the coherent
+word query cost and that word query cost. -/
 theorem sourceAdaptiveDecoded_normalized_comparison {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -277,6 +328,8 @@ theorem sourceAdaptiveDecoded_normalized_comparison {X H : Type}
 end
 noncomputable section
 
+/-- A normalized output family satisfying coherent error `δ` bounds `sourceQDelta` at smoothing
+radius `η` by its filtered Gram change, provided `0 ≤ δ ≤ 1` and `2*sqrt (2*δ) ≤ η`. -/
 theorem sourceCoherent_raw_from_output {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q r : ℕ}
     (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -301,6 +354,9 @@ theorem sourceCoherent_raw_from_output {X H : Type}
 end
 noncomputable section
 
+/-- A normalized output family satisfying noncoherent error `δ` bounds `sourceQNoncoherentDelta`
+at smoothing radius `η` by its filtered Gram change, provided `0 ≤ δ ≤ 1` and `2*sqrt (2*δ)
+≤ η`. -/
 theorem sourceNoncoherent_raw_from_output {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q r : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -343,6 +399,8 @@ theorem sourceNoncoherent_raw_from_output {X H : Type}
 end
 noncomputable section
 
+/-- For normalized state families and nonempty payload space, coherent query complexity at error
+`1/3` is at most `309237645312` times `sourceQDelta` at radius `(1/3)^4/16`. -/
 theorem sourceCoherent_fixed_third_raw_upper {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -366,6 +424,9 @@ theorem sourceCoherent_fixed_third_raw_upper {X H : Type}
 end
 noncomputable section
 
+/-- For normalized state families and nonempty payload space, noncoherent query complexity at
+error `1/3` is at most `309237645312` times `sourceQNoncoherentDelta` at radius
+`(1/3)^4/16`. -/
 theorem sourceNoncoherent_fixed_third_raw_upper {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -389,6 +450,7 @@ theorem sourceNoncoherent_fixed_third_raw_upper {X H : Type}
 end
 noncomputable section
 
+/-- The overlap-error radius `2*sqrt (2/13436928)` is at most `(1/3)^4/16`. -/
 theorem source_fixed_error_radius :
     (2:ℝ)*Real.sqrt (2*(1/13436928)) ≤ (1/3:ℝ)^4/16 := by
   rw [show (2*(1/13436928):ℝ)=(1/2592:ℝ)^2 by norm_num,Real.sqrt_sq_eq_abs]
@@ -396,6 +458,8 @@ theorem source_fixed_error_radius :
 end
 noncomputable section
 
+/-- A normalized output family achieving coherent error `1/13436928` bounds coherent query
+complexity at error `1/3` by `309237645312` times its filtered Gram change. -/
 theorem sourceCoherent_fixed_third_from_output {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ}
     (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -411,6 +475,8 @@ theorem sourceCoherent_fixed_third_from_output {X H : Type}
 end
 noncomputable section
 
+/-- A normalized output family achieving noncoherent error `1/13436928` bounds noncoherent query
+complexity at error `1/3` by `309237645312` times its filtered Gram change. -/
 theorem sourceNoncoherent_fixed_third_from_output {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H] {n q r : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)

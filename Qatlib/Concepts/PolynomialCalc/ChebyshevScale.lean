@@ -7,29 +7,59 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
 import Mathlib.Tactic
 
+/-!
+# Scaled Chebyshev filter polynomials
+
+`filterPolynomial` rescales a Chebyshev polynomial using `hyperbolicScale`, with `bandWidth`
+describing its central suppression interval. `DefinedParity` and `AdmissibleFilter` specify
+parity, root location, normalization, and suppression conditions for polynomial filters,
+following the Chebyshev filtering setting of [YoderLowChuang2014].
+
+## Main statements
+
+* `abs_T_le_T_of_abs_le`: Chebyshev values on a symmetric interval are bounded by the value at
+  its positive outer endpoint.
+* `eval_T_band_const`: the scaling point gives Chebyshev value `1 / ε`.
+* `filter_interval_max`: the normalized filter has supremum absolute value one on `[-1, 1]`.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Concepts.PolynomialCalc.ChebyshevScale
 
+/-- The hyperbolic scaling function `cosh (y * arcosh x)`. -/
 def hyperbolicScale (y x : ℝ) : ℝ := Real.cosh (y*Real.arcosh x)
 
+/-- The relative width `(c - 1) / c`, where `c` is the hyperbolic scaling point for parameters
+`ε` and `k`. -/
 def bandWidth (ε : ℝ) (k : ℕ) : ℝ :=
   (hyperbolicScale ((k : ℝ))⁻¹ (1/ε)-1)/hyperbolicScale ((k : ℝ))⁻¹ (1/ε)
 
+/-- The real polynomial is either even or odd as a function on the real numbers. -/
 def DefinedParity (p : Polynomial ℝ) : Prop :=
   (∀ x : ℝ,p.eval (-x)=p.eval x) ∨ (∀ x : ℝ,p.eval (-x)= -p.eval x)
 
+/-- A polynomial with defined parity, all real roots strictly between `-1` and `1`, value one at
+`1`, and absolute value at most `ε` on the prescribed central band. -/
 def AdmissibleFilter (ε : ℝ) (k : ℕ) (p : Polynomial ℝ) : Prop :=
   DefinedParity p ∧ (∀ x : ℝ,p.IsRoot x → -1<x ∧ x<1) ∧ p.eval 1=1 ∧
     (∀ x : ℝ,-1+bandWidth ε k≤x → x≤1-bandWidth ε k → |p.eval x|≤ε)
 
+/-- The degree-`k` Chebyshev polynomial composed with the hyperbolic scaling of its argument and
+multiplied by `ε`. -/
 def filterPolynomial (ε : ℝ) (k : ℕ) : Polynomial ℝ :=
   Polynomial.C ε*(Polynomial.Chebyshev.T ℝ (k : ℤ)).comp
     (Polynomial.C (hyperbolicScale ((k : ℝ))⁻¹ (1/ε))*Polynomial.X)
 
+/-- The real evaluation function of the scaled Chebyshev filter polynomial. -/
 def filterValue (ε : ℝ) (k : ℕ) : ℝ → ℝ := (filterPolynomial ε k).eval
 
+/-- An integer-indexed Chebyshev polynomial has absolute value at most one on `[-1, 1]`. -/
 lemma abs_T_le_one_of_abs_le_one (n : ℤ) (y : ℝ) (hy : |y| ≤ 1) :
     |(Polynomial.Chebyshev.T ℝ n).eval y| ≤ 1 := by
   have hcos : (Polynomial.Chebyshev.T ℝ n).eval y
@@ -40,6 +70,8 @@ lemma abs_T_le_one_of_abs_le_one (n : ℤ) (y : ℝ) (hy : |y| ≤ 1) :
   rw [hcos]
   exact Real.abs_cos_le_one _
 
+/-- For nonnegative index and `1 ≤ y ≤ c`, the absolute Chebyshev value at `y` is bounded by the
+value at `c`. -/
 lemma abs_T_le_T_of_one_le (n : ℤ) (hn : 0 ≤ n) {c y : ℝ}
     (hc : 1 ≤ c) (hy : 1 ≤ y) (hyc : y ≤ c) :
     |(Polynomial.Chebyshev.T ℝ n).eval y| ≤ (Polynomial.Chebyshev.T ℝ n).eval c := by
@@ -64,6 +96,8 @@ lemma abs_T_le_T_of_one_le (n : ℤ) (hn : 0 ≤ n) {c y : ℝ}
     abs_of_nonneg t1, abs_of_nonneg t2]
   exact mul_le_mul_of_nonneg_left hyarc hnn
 
+/-- For nonnegative index and `1 ≤ c`, Chebyshev absolute values on `[-c, c]` are bounded by the
+value at `c`. -/
 lemma abs_T_le_T_of_abs_le (n : ℤ) (hn : 0 ≤ n) {c y : ℝ}
     (hc : 1 ≤ c) (hy : |y| ≤ c) :
     |(Polynomial.Chebyshev.T ℝ n).eval y| ≤ (Polynomial.Chebyshev.T ℝ n).eval c := by
@@ -95,12 +129,15 @@ lemma abs_T_le_T_of_abs_le (n : ℤ) (hn : 0 ≤ n) {c y : ℝ}
       rw [hev]
       exact abs_T_le_T_of_one_le n hn hc hy1 hnyc
 
+/-- Evaluating the filter gives `ε` times the Chebyshev value at the hyperbolically scaled
+argument. -/
 lemma chebPoly_eval (ε : ℝ) (d : ℕ) (x : ℝ) :
     (filterPolynomial ε d).eval x
       = ε * (Polynomial.Chebyshev.T ℝ (d : ℤ)).eval (hyperbolicScale ((d : ℝ))⁻¹ (1 / ε) * x) := by
   rw [filterPolynomial, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_comp,
     Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_X]
 
+/-- For nonzero degree and `0 < ε ≤ 1`, the Chebyshev value at the scaling point equals `1 / ε`. -/
 lemma eval_T_band_const (ε : ℝ) (d : ℕ) (hd : d ≠ 0) (hε0 : 0 < ε) (hε1 : ε ≤ 1) :
     (Polynomial.Chebyshev.T ℝ (d : ℤ)).eval (hyperbolicScale ((d : ℝ))⁻¹ (1 / ε)) = 1 / ε := by
   have hu : (1 : ℝ) ≤ 1 / ε := by
@@ -112,6 +149,8 @@ lemma eval_T_band_const (ε : ℝ) (d : ℕ) (hd : d ≠ 0) (hε0 : 0 < ε) (hε
   have h := Polynomial.Chebyshev.T_real_cosh (((d : ℝ))⁻¹ * Real.arcosh (1 / ε)) (d : ℤ)
   rw [← hc, h, ← mul_assoc, hdcast, mul_inv_cancel₀ hdn, one_mul, Real.cosh_arcosh hu]
 
+/-- For positive degree and `0 < ε ≤ 1`, the supremum of the filter's absolute value on `[-1,
+1]` is one. -/
 theorem filter_interval_max (ε : ℝ) (d : ℕ) (hε0 : 0<ε) (hε1 : ε≤1) (hd : 1≤d) :
     sSup (Set.range (fun x : {x : ℝ // |x|≤1} => |filterValue ε d x.1|))=1 := by
 

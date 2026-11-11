@@ -9,6 +9,30 @@ import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+
+/-!
+# Expected iteration bounds for exponential search
+
+This module bounds the reach-weighted iteration cost of the exponential search schedule.
+Geometric-sum estimates and the failure-weighted density bound yield a uniform bound on
+`RetryPhasePrefixCost` and convergence of the full expected-cost series.
+
+The estimate is `(9 / 2) * √(card I / card A)` for a nonempty proper marked set, in the
+randomized search setting of [BoyerEtAl1998].
+
+## Main statements
+
+* `search_phase_prefix_bound`: For a nonempty proper marked set, every retry phase prefix cost
+  is at most `(9 / 2) * √(card I / card A)`.
+* `search_expected_grover_iterations`: For a nonempty proper marked set, the reach-weighted mean
+  iteration costs sum to a nonnegative value at most `(9 / 2) * √(card I / card A)`
+  [BoyerEtAl1998].
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.SearchStopping.UnknownCount
@@ -18,10 +42,13 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open scoped BigOperators
 open Qatlib
 
+/-- The sum of reach-weighted mean iteration costs over stages below `n`. -/
 noncomputable def RetryPhasePrefixCost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (n : ℕ) : ℝ :=
   ∑ s ∈ Finset.range n, RetryReach A sizes s * MeanQueries I (sizes s)
 
+/-- Bounds the first `n` powers of `6 / 5` by `5 * (6 / 5)^n` and the first `n` powers of `9 /
+10` by ten. -/
 theorem search_geometric_sums (n : ℕ) :
     (∑ k ∈ Finset.range n, (6/5 : ℝ)^k) ≤ 5 * (6/5 : ℝ)^n ∧
     (∑ k ∈ Finset.range n, (9/10 : ℝ)^k) ≤ 10 := by
@@ -37,6 +64,8 @@ theorem search_geometric_sums (n : ℕ) :
   have hp : 0 ≤ (9/10 : ℝ)^n := by positivity
   nlinarith [htail n]
 
+/-- The initial exponential attempt has size one, zero mean iterations, one mean checked query,
+and failure probability one minus the marked density. -/
 theorem search_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ExponentialSizes (Fintype.card I) 0 = 1 ∧ MeanQueries I 1 = 0 ∧
@@ -58,6 +87,8 @@ theorem search_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     simpa using hdensity
   rw [hP]
 
+/-- The mean iteration count at exponential stage `s` is nonnegative and at most `(6 / 5)^s /
+2`. -/
 theorem search_phase_mean_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (s : ℕ) :
     0 ≤ MeanQueries I (ExponentialSizes (Fintype.card I) s) ∧
@@ -77,6 +108,8 @@ theorem search_phase_mean_bound {I : Type*} [Fintype I] [DecidableEq I]
   change (Nat.ceil (ExponentialWidth (Fintype.card I) s) : ℝ) < _ at hceil
   constructor <;> dsimp [ExponentialSizes] at * <;> linarith
 
+/-- When `sin² θ = t / N` with positive `N`, `t` and `0 < θ < π / 2`, bounds `(1 - t / N) / sin
+(2θ)` by `√(N / t) / 2`. -/
 theorem search_failure_weighted_scale (N t θ : ℝ) (_hN : 0 < N) (_ht : 0 < t)
     (hθ0 : 0 < θ) (hθp : θ < Real.pi / 2) (hdensity : (Real.sin θ)^2 = t/N) :
     (1-t/N) * (1 / Real.sin (2*θ)) ≤ Real.sqrt (N/t) / 2 := by
@@ -93,6 +126,8 @@ theorem search_failure_weighted_scale (N t θ : ℝ) (_hN : 0 < N) (_ht : 0 < t)
     _ ≤ 1 / (2*Real.sin θ) := div_le_div_of_nonneg_right (Real.cos_le_one θ) (by positivity)
     _ = _ := by rw [hroot]; ring
 
+/-- For a nonempty proper marked set, every retry phase prefix cost is at most `(9 / 2) * √(card
+I / card A)`. -/
 theorem search_phase_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (n : ℕ) :
     RetryPhasePrefixCost A (ExponentialSizes (Fintype.card I)) n ≤
@@ -180,6 +215,8 @@ theorem search_phase_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
       nlinarith [mul_le_mul_of_nonneg_left hLhi hδ]
     _ ≤ _ := by dsimp [δ]; nlinarith [hscale]
 
+/-- For a nonempty proper marked set, the reach-weighted mean iteration costs sum to a
+nonnegative value at most `(9 / 2) * √(card I / card A)` [BoyerEtAl1998]. -/
 theorem search_expected_grover_iterations {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (fun s => RetryReach A (ExponentialSizes (Fintype.card I)) s *

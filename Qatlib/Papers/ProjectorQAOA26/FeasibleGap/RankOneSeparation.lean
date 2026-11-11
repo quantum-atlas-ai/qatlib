@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RootSeparation
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RayleighBounds
+
+/-!
+# Separation of the lowest rank-one eigenvalues
+
+For a diagonal cost with exactly one zero and all other entries at least one, a positive
+rank-one perturbation has its two lowest ordered eigenvalues on opposite sides of zero. The
+module proves a lower bound of 1 / (2√L) on their separation, uniformly over the positive
+perturbation parameter [ZhouAnLiu2026].
+
+## Main statements
+
+* `rankOne_lowest_signs`: The lowest eigenvalue is negative and the next is positive.
+* `rankOne_gap_lower`: Their difference is at least 1 / (2√L).
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,7 @@ open scoped Classical Matrix Matrix.Norms.L2Operator
 open Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- At an index of zero cost, the real diagonal entry of the rank-one operator is `-a / card I`. -/
 theorem rankOne_zero_diagonal (E : I → ℝ) (zero : I) (hzero : E zero=0) (a : ℝ) :
     ((rankOneOperator E a) zero zero).re= -a/(Fintype.card I:ℝ) := by
   simp only [rankOneOperator,diagonalMinusRankOne,Matrix.sub_apply,Matrix.diagonal_apply_eq,
@@ -23,6 +43,8 @@ theorem rankOne_zero_diagonal (E : I → ℝ) (zero : I) (hzero : E zero=0) (a :
   rw [uniformReference_weight zero]
   simp [hzero,div_eq_mul_inv]
 
+/-- For positive `a`, a unique zero cost, and all remaining costs at least one, the lowest
+rank-one eigenvalue is negative and the second-lowest is positive. -/
 theorem rankOne_lowest_signs (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (hL : 2≤Fintype.card I) (a : ℝ) (ha : 0<a) :
     (rankOneOperator_hermitian E a).eigenvalues₀ ⟨Fintype.card I-1,by omega⟩<0 ∧
@@ -61,6 +83,8 @@ theorem rankOne_lowest_signs (E : I → ℝ) (zero : I) (hzero : E zero=0)
       omega
   exact ⟨hneg,hpos⟩
 
+/-- For positive `a`, a unique zero cost, and all remaining costs at least one, the two lowest
+ordered eigenvalues differ by at least `1 / (2 * sqrt (card I))`. -/
 theorem rankOne_gap_lower (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (hL : 2≤Fintype.card I) (a : ℝ) (ha : 0<a) :
     1/(2*Real.sqrt (Fintype.card I:ℝ))≤

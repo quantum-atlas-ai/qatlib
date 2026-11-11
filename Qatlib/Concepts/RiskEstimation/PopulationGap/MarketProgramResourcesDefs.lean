@@ -16,6 +16,31 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantizationDefs
+
+/-!
+# Market grid scan resource accounting
+
+This module records sample counts, table scans, comparisons, amplitude estimation records,
+queries, and gates for a finite market threshold scan. `marketProgramResources` expresses each
+cost in terms of the number of visited thresholds and median repetitions in the quantum risk
+setting of [WoernerEgger2019].
+
+The accounting identities are combined with a finite grid sampling bound by
+`marketGrid_cost_accuracy`.
+
+## Main statements
+
+* `marketTableRead_eq_empiricalCDF`: a threshold count equals sample size times the empirical
+  CDF.
+* `marketProgram_quantum_charges`: forward, backward, query, and gate counts.
+* `marketGrid_cost_accuracy`: resource identities and a uniform sampling error probability
+  bound.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -48,10 +73,13 @@ variable {n N : ℕ}
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
+/-- Counts sample records whose loss is at most the threshold `t`. -/
 noncomputable def marketTableRead {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (t : ℝ) : ℕ :=
   ∑ k, if loss (ω k) ≤ t then 1 else 0
 
+/-- For positive sample size, the threshold count equals the empirical CDF multiplied by the
+sample size. -/
 theorem marketTableRead_eq_empiricalCDF {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (t : ℝ) (hN : 0 < N) :
     (marketTableRead ω loss t : ℝ) = marketEmpiricalCDF ω loss t * (N : ℝ) := by
@@ -59,16 +87,20 @@ theorem marketTableRead_eq_empiricalCDF {n N : ℕ} (ω : Fin N → Option (Fin 
   push_cast
   field_simp
 
+/-- The number of grid thresholds scanned, defined as one plus the recorded crossing index
+capped at `iT + 1`. -/
 noncomputable def marketGridScan {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) : ℕ :=
   min (marketGridRecordIndex ω loss Δ q iT + 1) (iT + 1)
 
+/-- A grid scan visits at most `iT + 1` thresholds. -/
 theorem marketGridScan_le {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     marketGridScan ω loss Δ q iT ≤ iT + 1 := by
   unfold marketGridScan
   exact min_le_right _ _
 
+/-- If the recorded crossing index lies within the grid, the scan count is that index plus one. -/
 theorem marketGridScan_eq_of_reached {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ)
     (h : marketGridRecordIndex ω loss Δ q iT ≤ iT) :
@@ -76,6 +108,8 @@ theorem marketGridScan_eq_of_reached {n N : ℕ} (ω : Fin N → Option (Fin n))
   unfold marketGridScan
   exact Nat.min_eq_left (Nat.succ_le_succ h)
 
+/-- Counts samples, table reads, record comparisons, amplitude estimation records, queries, and
+gates. -/
 structure MarketProgramResources where
 
   samples : ℕ
@@ -90,6 +124,8 @@ structure MarketProgramResources where
 
   gates : ℕ
 
+/-- The resource ledger for the recorded grid scan, using `2 * r + 1` amplitude estimation
+records per visited threshold. -/
 noncomputable def marketProgramResources {n N : ℕ} (M r : ℕ)
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q : ℝ)
     (iT : ℕ) : MarketProgramResources :=
@@ -97,32 +133,39 @@ noncomputable def marketProgramResources {n N : ℕ} (M r : ℕ)
   ⟨N, reads, reads * N, reads * (2*r+1), reads * (2*r+1) * (M-1),
     reads * (2*r+1) * (5*(M-1)+3)⟩
 
+/-- The resource ledger's table read count equals `marketGridScan`. -/
 theorem marketProgramResources_reads {n N : ℕ} (M r : ℕ)
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     (marketProgramResources M r ω loss Δ q iT).tableReads
       = marketGridScan ω loss Δ q iT := rfl
 
+/-- The record comparison count equals the number of table reads times the sample count. -/
 theorem marketProgramResources_comparisons {n N : ℕ} (M r : ℕ)
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     (marketProgramResources M r ω loss Δ q iT).recordComparisons
       = (marketProgramResources M r ω loss Δ q iT).tableReads
         * (marketProgramResources M r ω loss Δ q iT).samples := rfl
 
+/-- The amplitude estimation record count is the table read count multiplied by `2 * r + 1`. -/
 theorem marketProgramResources_ae {n N : ℕ} (M r : ℕ)
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     (marketProgramResources M r ω loss Δ q iT).aeRecords
       = (marketProgramResources M r ω loss Δ q iT).tableReads * (2*r+1) := rfl
 
+/-- The query count is the amplitude estimation record count multiplied by `M - 1`. -/
 theorem marketProgramResources_queries {n N : ℕ} (M r : ℕ)
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     (marketProgramResources M r ω loss Δ q iT).queries
       = (marketProgramResources M r ω loss Δ q iT).aeRecords * (M-1) := rfl
 
+/-- The gate count is the amplitude estimation record count multiplied by `5 * (M - 1) + 3`. -/
 theorem marketProgramResources_gates {n N : ℕ} (M r : ℕ)
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     (marketProgramResources M r ω loss Δ q iT).gates
       = (marketProgramResources M r ω loss Δ q iT).aeRecords * (5*(M-1)+3) := rfl
 
+/-- For `M ≥ 2`, gives exact forward and backward access, query, and gate counts for all median
+repetitions across the grid scan. -/
 theorem marketProgram_quantum_charges {n N : ℕ}
     (B : Matrix (Option (Fin n)) (Option (Fin n)) ℂ) (j : Option (Fin n))
     (M r : ℕ) (hM : 2 ≤ M)
@@ -139,6 +182,8 @@ theorem marketProgram_quantum_charges {n N : ℕ}
       = marketGridScan ω loss Δ q iT * (2*r+1) * (5*(M-1)+3) := by
   exact risk_native_readout_charges B j M r (marketGridScan ω loss Δ q iT) hM
 
+/-- Combines sample and comparison accounting with a scan bound and grid CDF failure probability
+at most `(iT + 1) / (4 * N * ν ^ 2)`. -/
 theorem marketGrid_cost_accuracy {n N : ℕ} (p : FinDist (Option (Fin n)))
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ ν : ℝ) (iT : ℕ)
     (M r : ℕ) (hN : 0 < N) (hν : 0 < ν) :

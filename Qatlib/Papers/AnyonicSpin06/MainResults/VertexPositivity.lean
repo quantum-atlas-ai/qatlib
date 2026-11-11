@@ -12,6 +12,26 @@ import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.NormNum
 
+/-!
+# Positivity of modified vertex factors
+
+This module defines real quantum integers, quantum factorials, the theta expression `ThetaHat`,
+and the modified fourth-root factor `vertexFactor`. Positivity in the range `m + n + p ≤ r - 2`
+and cancellation of the signs in the product of three `DeltaRoot` values give the fourth-power
+formulas for the vertex factor [KauffmanLomonaco2006].
+
+## Main statements
+
+* `quantumInt_pos`: proves positivity below the root index.
+* `ThetaHat_pos`: proves positivity of the theta expression in the admissible range.
+* `vertexFactor_pos`: proves strict positivity of the modified factor.
+* `vertexFactor_pow_four_quantumInt`: expresses its fourth power using quantum integers.
+
+## References
+
+* [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -20,37 +40,49 @@ open Finset
 
 namespace Qatlib.Papers.AnyonicSpin06.MainResults.VertexPositivity
 
+/-- For a natural number `r ≥ 2`, the truncated-subtraction identity `r - 2 + 1 = r - 1` holds. -/
 lemma sub_two_add_one {r : ℕ} (hr : 2 ≤ r) : r - 2 + 1 = r - 1 := by
   obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hr
   simp [Nat.add_comm]
 
+/-- A natural number at most `r - 2` is also at most `r - 1`. -/
 lemma le_r_sub_one_of_le_sub_two {a r : ℕ} (h : a ≤ r - 2) : a ≤ r - 1 :=
   le_trans h (Nat.sub_le_sub_left (by norm_num : 1 ≤ 2) r)
 
+/-- If `a ≤ s ≤ r - 2` and `r ≥ 2`, then `a + 1 ≤ r - 1`. -/
 lemma succ_le_r_sub_one {a s r : ℕ} (ha : a ≤ s) (h : s ≤ r - 2) (hr : 2 ≤ r) :
     a + 1 ≤ r - 1 := by
   have h1 : a ≤ r - 2 := le_trans ha h
   have h2 : a + 1 ≤ r - 2 + 1 := Nat.succ_le_succ h1
   simpa [sub_two_add_one hr] using h2
 
+/-- The real quantum integer `sin (n * π / r) / sin (π / r)`. -/
 def quantumInt (r n : ℕ) : ℝ :=
   Real.sin ((n : ℝ) * Real.pi / (r : ℝ)) / Real.sin (Real.pi / (r : ℝ))
 
+/-- The signed quantum integer `(-1) ^ n * quantumInt r (n + 1)`. -/
 def DeltaRoot (r n : ℕ) : ℝ :=
   (-1 : ℝ) ^ n * quantumInt r (n + 1)
 
+/-- The product of the real quantum integers from one through `n`, with the empty product equal
+to one. -/
 def qfac (r n : ℕ) : ℝ :=
   ∏ i ∈ Finset.range n, quantumInt r (i + 1)
 
+/-- The quotient of `qfac r (m + n + p + 1) * qfac r n * qfac r m * qfac r p` by `qfac r (m + n)
+* qfac r (n + p) * qfac r (p + m)`. -/
 def ThetaHat (r m n p : ℕ) : ℝ :=
   qfac r (m + n + p + 1) * qfac r n * qfac r m * qfac r p /
     (qfac r (m + n) * qfac r (n + p) * qfac r (p + m))
 
+/-- The iterated real square root of the quotient of the product of `DeltaRoot` at `m + p`, `m +
+n`, and `n + p` by `ThetaHat r m n p`. -/
 def vertexFactor (r m n p : ℕ) : ℝ :=
   Real.sqrt (Real.sqrt
     (DeltaRoot r (m + p) * DeltaRoot r (m + n) * DeltaRoot r (n + p) /
       ThetaHat r m n p))
 
+/-- For `r ≥ 2` and `1 ≤ n ≤ r - 1`, the real quantum integer `quantumInt r n` is positive. -/
 theorem quantumInt_pos {r n : ℕ} (hr : 2 ≤ r) (hn0 : 1 ≤ n) (hnr : n ≤ r - 1) :
     0 < quantumInt r n := by
   have hrR : (0 : ℝ) < (r : ℝ) := by positivity
@@ -77,6 +109,7 @@ theorem quantumInt_pos {r n : ℕ} (hr : 2 ≤ r) (hn0 : 1 ≤ n) (hnr : n ≤ r
       nlinarith [h]
   exact div_pos hnum hden
 
+/-- For positive `r`, the quantum integer `quantumInt r r` equals zero. -/
 theorem quantumInt_self_eq_zero {r : ℕ} (hr : 0 < r) : quantumInt r r = 0 := by
   unfold quantumInt
   have hrR : (0 : ℝ) < (r : ℝ) := by exact_mod_cast hr
@@ -84,6 +117,7 @@ theorem quantumInt_self_eq_zero {r : ℕ} (hr : 0 < r) : quantumInt r r = 0 := b
   rw [h, Real.sin_pi]
   simp
 
+/-- For `r ≥ 2` and `n ≤ r - 1`, the quantum factorial `qfac r n` is positive. -/
 theorem qfac_pos {r n : ℕ} (hr : 2 ≤ r) (hn : n ≤ r - 1) : 0 < qfac r n := by
   unfold qfac
   apply Finset.prod_pos
@@ -92,6 +126,7 @@ theorem qfac_pos {r n : ℕ} (hr : 2 ≤ r) (hn : n ≤ r - 1) : 0 < qfac r n :=
   have hi1 : i + 1 ≤ n := Nat.succ_le_of_lt hi'
   exact quantumInt_pos hr (Nat.succ_le_succ (Nat.zero_le i)) (le_trans hi1 hn)
 
+/-- For `r ≥ 2` and `m + n + p ≤ r - 2`, the theta expression `ThetaHat r m n p` is positive. -/
 theorem ThetaHat_pos {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2) :
     0 < ThetaHat r m n p := by
   unfold ThetaHat
@@ -124,6 +159,8 @@ theorem ThetaHat_pos {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2) :
   have h7 : 0 < qfac r (p + m) := qfac_pos hr (le_trans hpm_le hsum_le)
   positivity
 
+/-- The product of `DeltaRoot` at `m + p`, `m + n`, and `n + p` equals the product of quantum
+integers at the corresponding successor indices. -/
 theorem DeltaRoot_prod_eq {r m n p : ℕ} :
     DeltaRoot r (m + p) * DeltaRoot r (m + n) * DeltaRoot r (n + p)
       = quantumInt r (m + p + 1) * quantumInt r (m + n + 1)
@@ -143,6 +180,8 @@ theorem DeltaRoot_prod_eq {r m n p : ℕ} :
             * quantumInt r (n + p + 1)) by ring]
   rw [hsign, one_mul]
 
+/-- For `r ≥ 2` and `m + n + p ≤ r - 2`, the modified vertex factor is strictly positive
+[KauffmanLomonaco2006]. -/
 theorem vertexFactor_pos {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2) :
     0 < vertexFactor r m n p := by
   unfold vertexFactor
@@ -163,6 +202,8 @@ theorem vertexFactor_pos {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2
     exact div_pos (by positivity) (ThetaHat_pos hr h)
   exact Real.sqrt_pos.mpr (Real.sqrt_pos.mpr hq)
 
+/-- In the admissible range `r ≥ 2` and `m + n + p ≤ r - 2`, the fourth power of the vertex
+factor equals the product of the three `DeltaRoot` values divided by `ThetaHat`. -/
 theorem vertexFactor_pow_four {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ r - 2) :
     vertexFactor r m n p ^ 4
       = DeltaRoot r (m + p) * DeltaRoot r (m + n) * DeltaRoot r (n + p)
@@ -194,6 +235,9 @@ theorem vertexFactor_pow_four {r m n p : ℕ} (hr : 2 ≤ r) (h : m + n + p ≤ 
           * DeltaRoot r (n + p) / ThetaHat r m n p)) ^ 2) ^ 2 by ring]
   rw [Real.sq_sqrt hs, Real.sq_sqrt hq]
 
+/-- In the admissible range `r ≥ 2` and `m + n + p ≤ r - 2`, the fourth power of the vertex
+factor equals the product of quantum integers at `m + p + 1`, `m + n + 1`, and `n + p + 1`,
+divided by `ThetaHat` [KauffmanLomonaco2006]. -/
 theorem vertexFactor_pow_four_quantumInt {r m n p : ℕ} (hr : 2 ≤ r)
     (h : m + n + p ≤ r - 2) :
     vertexFactor r m n p ^ 4

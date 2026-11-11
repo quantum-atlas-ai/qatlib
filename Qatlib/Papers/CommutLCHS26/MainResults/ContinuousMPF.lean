@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF
 import Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 import Mathlib.MeasureTheory.Function.LocallyIntegrable
+
+/-!
+# Continuous-window multi-product error bounds
+
+This module transfers pointwise multi-product error certificates to weighted operator integrals
+on finite real windows, for the continuous Hamiltonian combinations of [AftabAnTrivisa2026].
+Repeated-step bounds retain the factor (1 + η)^(r - 1), and bounded nonnegative profiles yield
+estimates in terms of their weighted integrals.
+
+Continuity lemmas for exponential words, coefficients, masses, and certificates establish
+integrability for concrete word families, including repeated Strang words and the
+rational-Gaussian kernel.
+
+## Main statements
+
+* `one_step_profile_from_words`: integrates a local word-family profile bound.
+* `full_time_profile_from_words`: gives integrated full-time error bounds.
+* `kernel_window_from_coefficients`: specializes coefficient certificates to the kernel weight.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +52,9 @@ local instance : ContinuousENorm (Matrix I I ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 local instance : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
 
+/-- For unitary targets and pointwise error bounds η, the weighted integral of the r-th power
+error is bounded by r times the integral of ‖f‖η(1 + η)^(r - 1), assuming this scalar
+function is integrable. -/
 theorem integral_power_error (C V : ℝ → Matrix I I ℂ) (f : ℝ → ℂ)
     (η : ℝ → ℝ) (R : ℝ) (r : ℕ)
     (hV : ∀ k ∈ Icc (-R) R, V k ∈ Matrix.unitaryGroup I ℂ)
@@ -42,12 +69,16 @@ theorem integral_power_error (C V : ℝ → Matrix I I ℂ) (f : ℝ → ℂ)
   exact (mul_le_mul_of_nonneg_left (power_error (C k) (V k) (hV k hk)
     (η k) (he k hk) r) (norm_nonneg _)).trans_eq (by ring)
 
+/-- Continuous matrix families and an integrable scalar weight yield an integrable weighted
+difference of their r-th powers on a finite window. -/
 theorem error_integrable (C V : ℝ → Matrix I I ℂ) (f : ℝ → ℂ) (R : ℝ) (r : ℕ)
     (hC : ContinuousOn C (Icc (-R) R)) (hV : ContinuousOn V (Icc (-R) R))
     (hf : IntegrableOn f (Icc (-R) R)) :
     IntegrableOn (fun k => f k • (C k ^ r - V k ^ r)) (Icc (-R) R) :=
   hf.smul_continuousOn ((hC.pow r).sub (hV.pow r)) isCompact_Icc
 
+/-- An integrable scalar weight times a measurable nonnegative bounded profile is integrable on
+the finite window. -/
 theorem profile_integrable (f : ℝ → ℂ) (Φ : ℝ → ℝ) (R B : ℝ)
     (hf : IntegrableOn f (Icc (-R) R))
     (hm : AEStronglyMeasurable Φ (volume.restrict (Icc (-R) R)))
@@ -58,6 +89,8 @@ theorem profile_integrable (f : ℝ → ℂ) (Φ : ℝ → ℝ) (R B : ℝ)
   filter_upwards [ae_restrict_mem measurableSet_Icc] with k hk
   simpa only [Real.norm_eq_abs, abs_of_nonneg (hn k hk)] using! hb k hk
 
+/-- A pointwise local error profile integrates to the sum of its weighted profile contribution
+and its weighted constant remainder. -/
 theorem one_step_profile
     (C : ℝ → ℝ → Matrix I I ℂ) (Z : ℝ → Matrix I I ℂ)
     (f : ℝ → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap s : ℝ) (m : ℕ)
@@ -81,6 +114,9 @@ theorem one_step_profile
   simpa only [integral_add (hΦ.const_mul _) (hf.norm.mul_const _),
     integral_const_mul, integral_mul_const] using! h
 
+/-- Under the local profile and integrability hypotheses, the full-time integral error is
+bounded by r times the integral of ‖f‖η(1 + η)^(r - 1) [Aftab et al., Proposition
+3.14][AftabAnTrivisa2026]. -/
 theorem full_time_chain
     (C : ℝ → ℝ → Matrix I I ℂ) (Z : ℝ → Matrix I I ℂ)
     (f : ℝ → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap T : ℝ) (m r : ℕ)
@@ -102,6 +138,8 @@ theorem full_time_chain
       (fun k hk => general_trotter_exp_unitary _ _ (hZ k hk))
       (fun k hk => hlocal k (abs_le.mpr hk) _ (div_pos hT hrpos) hstep) hi
 
+/-- A bounded nonnegative local profile gives both an integrated repeated-step bound and a bound
+using the supremum local error and weighted profile mass. -/
 theorem full_time_profile
     (C : ℝ → ℝ → Matrix I I ℂ) (Z : ℝ → Matrix I I ℂ)
     (f : ℝ → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap T B : ℝ) (m r : ℕ)
@@ -179,6 +217,8 @@ theorem full_time_profile
       rw [integral_mul_const, hsum]; ring
     _ = _ := by rw [hscale]; ring
 
+/-- An exponential word built from continuous parameter-dependent generators depends
+continuously on the parameter. -/
 theorem word_continuous (ws : List (ℝ → Matrix I I ℂ))
     (hw : ∀ X ∈ ws, Continuous X) (t : ℝ) :
     Continuous (fun k => suzukiExponentialWord (ws.map (fun X => X k)) t) := by
@@ -189,6 +229,8 @@ theorem word_continuous (ws : List (ℝ → Matrix I I ℂ))
     exact (NormedSpace.exp_continuous.comp ((hw X (by simp)).const_smul t)).mul
       (ih (fun Y hY => hw Y (by simp [hY])))
 
+/-- A finite weighted multi-product of continuous generator families is continuous in the
+parameter. -/
 theorem multiProduct_continuous (ws : J → List (ℝ → Matrix I I ℂ)) (a : J → ℝ)
     (hw : ∀ j X, X ∈ ws j → Continuous X) (t : ℝ) :
     Continuous (fun k => multiProduct (fun j => (ws j).map (fun X => X k)) a t) := by
@@ -196,6 +238,8 @@ theorem multiProduct_continuous (ws : J → List (ℝ → Matrix I I ℂ)) (a : 
   intro j _
   exact (word_continuous (ws j) (hw j) t).const_smul (a j)
 
+/-- Continuous generator words give an integrable one-step weighted error satisfying the stated
+integrated local profile bound [Aftab et al., Lemma 3.13][AftabAnTrivisa2026]. -/
 theorem one_step_profile_from_words
     (ws : J → List (ℝ → Matrix I I ℂ)) (a : J → ℝ) (Z : ℝ → Matrix I I ℂ)
     (f : ℝ → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap s : ℝ) (m : ℕ)
@@ -216,6 +260,9 @@ theorem one_step_profile_from_words
     (multiProduct_continuous ws a hw s).continuousOn
     (NormedSpace.exp_continuous.comp (hZ.const_smul s)).continuousOn hf
 
+/-- Continuous generator words with the stated bounded profile yield an integrable full-time
+error and both repeated-step profile bounds [Aftab et al., Proposition
+3.14][AftabAnTrivisa2026]. -/
 theorem full_time_profile_from_words
     (ws : J → List (ℝ → Matrix I I ℂ)) (a : J → ℝ) (Z : ℝ → Matrix I I ℂ)
     (f : ℝ → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap T B : ℝ) (m r : ℕ)
@@ -248,6 +295,8 @@ theorem full_time_profile_from_words
     (multiProduct_continuous ws a hw (T / r)).continuousOn
     (NormedSpace.exp_continuous.comp (hZ.const_smul (T / r))).continuousOn hf
 
+/-- Each coefficient of an exponential word is continuous in a parameter when its generators are
+continuous. -/
 theorem series_continuous (ws : List (ℝ → Matrix I I ℂ))
     (hw : ∀ X ∈ ws, Continuous X) (n : ℕ) :
     Continuous (fun k => suzukiSeries (ws.map (fun X => X k)) n) := by
@@ -262,6 +311,8 @@ theorem series_continuous (ws : List (ℝ → Matrix I I ℂ))
       ih (fun Y hY => hw Y (by simp [hY])) p.2
     fun_prop
 
+/-- The generator norm mass is continuous in the parameter for a list of continuous generator
+families. -/
 theorem mass_continuous (ws : List (ℝ → Matrix I I ℂ))
     (hw : ∀ X ∈ ws, Continuous X) :
     Continuous (fun k => suzukiMass (ws.map (fun X => X k))) := by
@@ -271,6 +322,8 @@ theorem mass_continuous (ws : List (ℝ → Matrix I I ℂ))
     simp only [List.map_cons, suzukiMass, List.sum_cons]
     exact (hw X (by simp)).norm.add (ih (fun Y hY => hw Y (by simp [hY])))
 
+/-- The local coefficient error certificate is continuous when all word generators and the
+target generator are continuous. -/
 theorem certificate_continuous (ws : J → List (ℝ → Matrix I I ℂ)) (a : J → ℝ)
     (Z : ℝ → Matrix I I ℂ) (hw : ∀ j X, X ∈ ws j → Continuous X)
     (hZ : Continuous Z) (t : ℝ) (d : ℕ) :
@@ -294,6 +347,8 @@ theorem certificate_continuous (ws : J → List (ℝ → Matrix I I ℂ)) (a : J
       fun_prop
   · fun_prop
 
+/-- The coefficient certificate yields integrability of the full-time weighted error and an
+integrated rη(1 + η)^(r - 1) bound. -/
 theorem window_from_coefficients (ws : J → List (ℝ → Matrix I I ℂ)) (a : J → ℝ)
     (Z : ℝ → Matrix I I ℂ) (f : ℝ → ℂ) (R T : ℝ) (d r : ℕ)
     (hw : ∀ j X, X ∈ ws j → Continuous X) (hZ : Continuous Z)
@@ -321,18 +376,24 @@ theorem window_from_coefficients (ws : J → List (ℝ → Matrix I I ℂ)) (a :
   simpa only [target_power _ T r hr] using!
     And.intro (error_integrable _ _ f R r hC.continuousOn hV.continuousOn hf) h
 
+/-- The list of parameter-dependent generators for q repeated Strang steps, with X scaled by
+1/(2q) and Y by 1/q. -/
 def strangFamily (X Y : ℝ → Matrix I I ℂ) (q : ℕ) : List (ℝ → Matrix I I ℂ) :=
   (List.replicate q [fun k => (1 / (2 * (q : ℝ))) • X k,
     fun k => (1 / (q : ℝ)) • Y k, fun k => (1 / (2 * (q : ℝ))) • X k]).flatten
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Evaluating a Strang generator family at a parameter gives the repeated Strang word for the
+evaluated generators. -/
 theorem strangFamily_at (X Y : ℝ → Matrix I I ℂ) (q : ℕ) (k : ℝ) :
     (strangFamily X Y q).map (fun F => F k) = strangRepeats (X k) (Y k) q := by
   simp [strangFamily, strangRepeats, List.map_flatten, List.map_replicate]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Every generator in a Strang family is continuous when both input matrix families are
+continuous. -/
 theorem strangFamily_continuous (X Y : ℝ → Matrix I I ℂ) (q : ℕ)
     (hX : Continuous X) (hY : Continuous Y) :
     ∀ F ∈ strangFamily X Y q, Continuous F := by
@@ -346,6 +407,8 @@ theorem strangFamily_continuous (X Y : ℝ → Matrix I I ℂ) (q : ℕ)
   · fun_prop
   · fun_prop
 
+/-- For b > 0, the rational-Gaussian kernel coefficient is integrable on every finite real
+window. -/
 theorem kernel_window_integrable (n : ℕ) (b c d R : ℝ) (hb : 0 < b) :
     IntegrableOn (fun k : ℝ => KernelStrip.coefficient n b c d (k : ℂ)) (Icc (-R) R) := by
   have hf : Continuous (fun k : ℝ => KernelStrip.coefficient n b c d (k : ℂ)) := by
@@ -356,6 +419,8 @@ theorem kernel_window_integrable (n : ℕ) (b c d R : ℝ) (hb : 0 < b) :
         (by fun_prop : ContinuousAt (fun x : ℝ => (x : ℂ)) k))
   exact hf.continuousOn.integrableOn_Icc
 
+/-- For b > 0 and continuous generator words, the kernel-weighted full-time error is integrable
+and bounded by the integral of its repeated-step coefficient certificate. -/
 theorem kernel_window_from_coefficients
     (ws : J → List (ℝ → Matrix I I ℂ)) (a : J → ℝ) (Z : ℝ → Matrix I I ℂ)
     (n : ℕ) (b c d R T : ℝ) (order r : ℕ) (hb : 0 < b)

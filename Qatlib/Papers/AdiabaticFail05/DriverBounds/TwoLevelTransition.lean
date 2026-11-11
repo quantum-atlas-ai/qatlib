@@ -9,6 +9,30 @@ import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
 import Mathlib.Tactic
+
+/-!
+# Oscillatory bounds for two-level transitions
+
+This module bounds a transition amplitude given by an oscillatory integral under explicit
+differentiability, integrability, and norm hypotheses. The theorem `two_level_amplitude_bound`
+gives a bound proportional to `1 / T`, and `two_level_transition_probability_bound` squares it
+to bound the transition probability. The mathematical context is
+[FarhiGoldstoneGutmannNagaj2008].
+
+## Main statements
+
+* `two_level_amplitude_bound`: Under the stated oscillatory-integral identity,
+  differentiability, integrability, and uniform norm bounds, the final transition amplitude
+  satisfies `‖c1 θbar‖ ≤ (2 * F + θbar * (F ^ 2 + D)) / T` for positive `T`.
+* `two_level_transition_probability_bound`: Under the stated oscillatory-integral and regularity
+  hypotheses, the final transition probability satisfies `‖c1 θbar‖ ^ 2 ≤ ((2 * F + θbar * (F ^
+  2 + D)) / T) ^ 2` for positive `T`.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmannNagaj2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +43,9 @@ namespace Qatlib.Papers.AdiabaticFail05.DriverBounds
 
 open intervalIntegral MeasureTheory
 
+/-- Under the stated oscillatory-integral identity, differentiability, integrability, and
+uniform norm bounds, the final transition amplitude satisfies `‖c1 θbar‖ ≤ (2 * F + θbar *
+(F ^ 2 + D)) / T` for positive `T` [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem two_level_amplitude_bound
     (c0 c1 f : ℝ → ℂ) (T θbar F D : ℝ)
     (hT : 0 < T) (hθ : 0 ≤ θbar) (hF : 0 ≤ F) (_hD : 0 ≤ D)
@@ -189,6 +216,9 @@ theorem two_level_amplitude_bound
   rw [le_div_iff₀ hT]
   linarith [hmain]
 
+/-- Under the stated oscillatory-integral and regularity hypotheses, the final transition
+probability satisfies `‖c1 θbar‖ ^ 2 ≤ ((2 * F + θbar * (F ^ 2 + D)) / T) ^ 2` for positive
+`T` [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem two_level_transition_probability_bound
     (c0 c1 f : ℝ → ℂ) (T θbar F D : ℝ)
     (hT : 0 < T) (hθ : 0 ≤ θbar) (hF : 0 ≤ F) (hD : 0 ≤ D)

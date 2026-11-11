@@ -11,6 +11,30 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraAbs
 import Qatlib.Papers.QLearningGeom03.MainResults.AmplitudeAmplification
 import Qatlib.Papers.QLearningGeom03.MainResults.ShipSine
+
+/-!
+# Spectral and query bounds for battleship learning
+
+This module derives sine formulas for the eigenvalues of the normalized battleship matrix and
+estimates their mean absolute value `bsS`. It proves an explicit O(√N) amplification query bound
+when 4(2r + 1) ≤ N and a lower bound proportional to √N/(1 + log N) for amplification reaching
+success probability at least 1/2 under the stated size assumptions.
+
+The final results characterize equivalence of battleship value oracles by two boundary queries.
+These statements develop the battleship analysis of [HunzikerEtAl2003].
+
+## Main statements
+
+* `smallship_queries`: An explicit upper bound proportional to √N.
+* `bsS_le`: An upper bound on the mean absolute eigenvalue.
+* `bigship_queries_lower`: A lower bound for amplification achieving success at least 1/2.
+* `equiv_oracle_iff`: Two boundary values characterize equivalence of value oracles.
+
+## References
+
+* [Hunziker et al., 2003][HunzikerEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,9 +47,12 @@ open scoped Matrix
 
 variable {N : ℕ} [NeZero N]
 
+/-- The normalized battleship phase coefficient vector `epsBS r` divided by √N. -/
 noncomputable def bsCoeff (r : ℕ) : ZMod N → ℂ :=
   fun k => (((Real.sqrt N : ℝ) : ℂ))⁻¹ * epsBS (N := N) r k
 
+/-- A Fourier eigenvalue of `bsCoeff r` is 1/√N times the corresponding Fourier coefficient of
+the unnormalized battleship phase. -/
 lemma eigen_bsCoeff (r : ℕ) (j : ZMod N) :
     eigen (bsCoeff (N := N) r) j
       = (((Real.sqrt N : ℝ) : ℂ))⁻¹
@@ -34,12 +61,14 @@ lemma eigen_bsCoeff (r : ℕ) (j : ZMod N) :
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun x _ => by ring
 
+/-- A nonzero cyclic frequency gives a positive angle π j/N. -/
 lemma bs_theta_pos {j : ZMod N} (hj : j ≠ 0) :
     0 < Real.pi * (j.val : ℝ) / (N : ℝ) := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
   have hjval : 0 < j.val := Nat.pos_of_ne_zero ((ZMod.val_ne_zero j).mpr hj)
   positivity
 
+/-- The angle π j/N associated with a cyclic frequency is strictly less than π. -/
 lemma bs_theta_lt_pi (j : ZMod N) :
     Real.pi * (j.val : ℝ) / (N : ℝ) < Real.pi := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
@@ -49,10 +78,13 @@ lemma bs_theta_lt_pi (j : ZMod N) :
         exact mul_lt_mul_of_pos_left hlt Real.pi_pos
     _ = Real.pi := by field_simp
 
+/-- The sine of π j/N is nonzero at a nonzero cyclic frequency. -/
 lemma bs_theta_sin_ne_zero {j : ZMod N} (hj : j ≠ 0) :
     Real.sin (Real.pi * (j.val : ℝ) / (N : ℝ)) ≠ 0 := by
   exact ne_of_gt (Real.sin_pos_of_pos_of_lt_pi (bs_theta_pos hj) (bs_theta_lt_pi j))
 
+/-- For 2r + 1 ≤ N and j ≠ 0, the normalized battleship eigenvalue is -2/√N times sin((2r +
+1)πj/N)/sin(πj/N), as used in [Hunziker et al., Theorem 6.1][HunzikerEtAl2003]. -/
 theorem bs_eigenvalue_sine {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j ≠ 0) :
     eigen (bsCoeff (N := N) r) j
       = -(((Real.sqrt N : ℝ) : ℂ))⁻¹ * 2
@@ -62,6 +94,7 @@ theorem bs_eigenvalue_sine {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j 
   rw [eigen_bsCoeff, bs_eigenvalue, if_neg hj, bs_window_sine h hj (bs_theta_sin_ne_zero hj)]
   ring
 
+/-- If 2r + 1 ≤ N, the zero-frequency battleship eigenvalue is (N - 2(2r + 1))/√N. -/
 theorem bs_eigenvalue_zero {r : ℕ} (h : 2 * r + 1 ≤ N) :
     eigen (bsCoeff (N := N) r) 0
       = ((((N : ℝ) - 2 * ((2 * r + 1 : ℕ) : ℝ)) / Real.sqrt N : ℝ) : ℂ) := by
@@ -71,6 +104,8 @@ theorem bs_eigenvalue_zero {r : ℕ} (h : 2 * r + 1 ≤ N) :
     push_cast
     ring]
 
+/-- If 2(2r + 1) ≤ N, the absolute zero-frequency battleship eigenvalue is (N - 2(2r + 1))/√N,
+as used in [HunzikerEtAl2003]. -/
 theorem absEigen_bs_zero {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) :
     absEigen (bsCoeff (N := N) r) 0
       = ((N : ℝ) - 2 * ((2 * r + 1 : ℕ) : ℝ)) / Real.sqrt N := by
@@ -86,6 +121,8 @@ theorem absEigen_bs_zero {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) :
   unfold absEigen
   rw [bs_eigenvalue_zero (by omega), Complex.norm_real, Real.norm_of_nonneg hnonneg]
 
+/-- At a nonzero frequency and for 2r + 1 ≤ N, the absolute battleship eigenvalue is 2/√N times
+the absolute sine quotient, as used in [HunzikerEtAl2003]. -/
 theorem absEigen_bs_sine {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j ≠ 0) :
     absEigen (bsCoeff (N := N) r) j
       = (2 / Real.sqrt N)
@@ -106,14 +143,19 @@ theorem absEigen_bs_sine {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j �
   rw [Complex.norm_real, Real.norm_eq_abs, abs_mul, abs_neg]
   rw [abs_of_pos (by positivity : (0 : ℝ) < 2 / Real.sqrt N)]
 
+/-- The mean of the absolute Fourier eigenvalues of the normalized battleship coefficient
+vector. -/
 noncomputable def bsS (r : ℕ) : ℝ :=
   ((N : ℝ))⁻¹ * ∑ j : ZMod N, absEigen (bsCoeff (N := N) r) j
 
+/-- The mean absolute battleship eigenvalue is nonnegative. -/
 lemma bsS_nonneg (r : ℕ) : 0 ≤ bsS (N := N) r := by
   unfold bsS
   apply mul_nonneg (by positivity)
   exact Finset.sum_nonneg fun j _ => absEigen_nonneg _ _
 
+/-- The common diagonal entry at zero of the battleship spectral absolute-value matrix is the
+complex embedding of `bsS r`. -/
 theorem absGroupAlgebra_diag_bs (r : ℕ) :
     absGroupAlgebra (bsCoeff (N := N) r) 0 0 = ((bsS (N := N) r : ℝ) : ℂ) := by
   rw [absGroupAlgebra_diag]
@@ -121,6 +163,8 @@ theorem absGroupAlgebra_diag_bs (r : ℕ) :
   push_cast
   ring
 
+/-- If 4(2r + 1) ≤ N, the mean absolute battleship eigenvalue is at least 1/(2√N), as used in
+[Hunziker et al., Theorem 6.1][HunzikerEtAl2003]. -/
 theorem bsS_ge {r : ℕ} (h : 4 * (2 * r + 1) ≤ N) :
     (2 * Real.sqrt N)⁻¹ ≤ bsS (N := N) r := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
@@ -155,8 +199,11 @@ theorem bsS_ge {r : ℕ} (h : 4 * (2 * r + 1) ≤ N) :
         mul_le_mul_of_nonneg_left hsingle (by positivity)
     _ = bsS (N := N) r := rfl
 
+/-- The amplification angle given by arcsin of the minimum of `bsS r` and 1. -/
 noncomputable def bsTheta (r : ℕ) : ℝ := Real.arcsin (min (bsS (N := N) r) 1)
 
+/-- If 4(2r + 1) ≤ N, the chosen amplification query count is at most 2(π/2 + 1)√N. This gives
+the upper bound associated with [Hunziker et al., Theorem 6.1][HunzikerEtAl2003]. -/
 theorem smallship_queries {r : ℕ} (h : 4 * (2 * r + 1) ≤ N) :
     2 * amplIters (bsTheta (N := N) r) + 1 ≤ 2 * (Real.pi / 2 + 1) * Real.sqrt N := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
@@ -198,9 +245,11 @@ theorem smallship_queries {r : ℕ} (h : 4 * (2 * r + 1) ≤ N) :
       nlinarith
     linarith
 
+/-- The reciprocal of sin(πj/N), used to bound the nonzero battleship eigenvalues. -/
 noncomputable def bsCsc (j : ℕ) : ℝ :=
   (Real.sin (Real.pi * (j : ℝ) / (N : ℝ)))⁻¹
 
+/-- For 1 ≤ j < N, sin(πj/N) is at least 2 min(j, N - j)/N. -/
 lemma sin_bs_ge {j : ℕ} (hj1 : 1 ≤ j) (hjN : j < N) :
     2 * ((min j (N - j) : ℕ) : ℝ) / (N : ℝ)
       ≤ Real.sin (Real.pi * (j : ℝ) / (N : ℝ)) := by
@@ -238,6 +287,7 @@ lemma sin_bs_ge {j : ℕ} (hj1 : 1 ≤ j) (hjN : j < N) :
       _ = 2 / Real.pi * (Real.pi - Real.pi * (j : ℝ) / (N : ℝ)) := by rw [harg]
       _ ≤ Real.sin (Real.pi * (j : ℝ) / (N : ℝ)) := hjordan
 
+/-- For 1 ≤ j < N, `bsCsc j` is bounded by N/2 times the sum of the reciprocals of j and N - j. -/
 lemma csc_le_pair {j : ℕ} (hj1 : 1 ≤ j) (hjN : j < N) :
     bsCsc (N := N) j
       ≤ (N : ℝ) / 2 * ((j : ℝ)⁻¹ + ((N - j : ℕ) : ℝ)⁻¹) := by
@@ -280,6 +330,7 @@ lemma csc_le_pair {j : ℕ} (hj1 : 1 ≤ j) (hjN : j < N) :
           apply mul_le_mul_of_nonneg_left _ (by positivity)
           linarith
 
+/-- For N ≥ 2, the sum of 1/j + 1/(N - j) over 1 ≤ j < N is at most 2(1 + log N). -/
 lemma sum_pair_le {N : ℕ} [NeZero N] (hN2 : 2 ≤ N) :
     ∑ j ∈ Finset.Ico 1 N, ((j : ℝ)⁻¹ + ((N - j : ℕ) : ℝ)⁻¹)
       ≤ 2 * (1 + Real.log N) := by
@@ -307,6 +358,7 @@ lemma sum_pair_le {N : ℕ} [NeZero N] (hN2 : 2 ≤ N) :
     _ = 2 * ((harmonic (N - 1) : ℚ) : ℝ) := by rw [hS2, hS1]; ring
     _ ≤ 2 * (1 + Real.log N) := by linarith
 
+/-- For N ≥ 2, the sum of `bsCsc j` over 1 ≤ j < N is at most N(1 + log N). -/
 lemma bs_csc_sum_le {N : ℕ} [NeZero N] (hN2 : 2 ≤ N) :
     ∑ j ∈ Finset.Ico 1 N, bsCsc (N := N) j ≤ (N : ℝ) * (1 + Real.log N) := by
   calc ∑ j ∈ Finset.Ico 1 N, bsCsc (N := N) j
@@ -322,6 +374,8 @@ lemma bs_csc_sum_le {N : ℕ} [NeZero N] (hN2 : 2 ≤ N) :
         apply mul_le_mul_of_nonneg_left (sum_pair_le hN2) (by positivity)
     _ = (N : ℝ) * (1 + Real.log N) := by ring
 
+/-- For 2r + 1 ≤ N and j ≠ 0, the absolute battleship eigenvalue is at most 2/√N times `bsCsc
+j.val`. -/
 lemma absEigen_le_csc {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j ≠ 0) :
     absEigen (bsCoeff (N := N) r) j ≤ (2 / Real.sqrt N) * bsCsc (N := N) j.val := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
@@ -359,6 +413,8 @@ lemma absEigen_le_csc {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j ≠ 0
         mul_le_mul_of_nonneg_left hratio (by positivity)
     _ = (2 / Real.sqrt N) * bsCsc (N := N) j.val := rfl
 
+/-- A sum over the nonzero residues of `ZMod N` equals the sum over the natural representatives
+from 1 through N - 1. -/
 lemma sum_erase_zero_eq {M : Type} [AddCommMonoid M] (f : ZMod N → M) :
     ∑ j ∈ Finset.univ.erase (0 : ZMod N), f j
       = ∑ k ∈ Finset.Ico 1 N, f ((k : ℕ) : ZMod N) := by
@@ -380,6 +436,8 @@ lemma sum_erase_zero_eq {M : Type} [AddCommMonoid M] (f : ZMod N → M) :
   · intro j _
     rw [ZMod.natCast_zmod_val]
 
+/-- If 2(2r + 1) ≤ N and N ≥ 2, the sum of the absolute battleship eigenvalues is at most √N +
+(2/√N)N(1 + log N). -/
 lemma absEigen_sum_le {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) (hN2 : 2 ≤ N) :
     ∑ j : ZMod N, absEigen (bsCoeff (N := N) r) j
       ≤ Real.sqrt N + (2 / Real.sqrt N) * ((N : ℝ) * (1 + Real.log N)) := by
@@ -420,6 +478,8 @@ lemma absEigen_sum_le {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) (hN2 : 2 ≤ N) :
   rw [← hsplit]
   linarith
 
+/-- If 2(2r + 1) ≤ N and N ≥ 2, the mean absolute battleship eigenvalue is at most 3(1 + log
+N)/√N, as used in [HunzikerEtAl2003]. -/
 theorem bsS_le {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) (hN2 : 2 ≤ N) :
     bsS (N := N) r ≤ 3 * (1 + Real.log N) / Real.sqrt N := by
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
@@ -439,6 +499,7 @@ theorem bsS_le {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) (hN2 : 2 ≤ N) :
         apply div_le_div_of_nonneg_right _ hsqrt.le
         linarith
 
+/-- For θ ≥ 0, the amplification success probability is at most ((2m + 1)θ)². -/
 lemma successProb_le_sq {θ : ℝ} (hθ0 : 0 ≤ θ) (m : ℕ) :
     successProb θ m ≤ ((((2 * m + 1 : ℕ) : ℝ)) * θ) ^ 2 := by
   unfold successProb
@@ -455,6 +516,8 @@ lemma successProb_le_sq {θ : ℝ} (hθ0 : 0 ≤ θ) (m : ℕ) :
     have hx2 : (1 : ℝ) ≤ x ^ 2 := by nlinarith
     linarith
 
+/-- For s = sin θ with s > 0 and 0 < θ ≤ π/2, success probability at least 1/2 requires 2m + 1 ≥
+√2/(πs). This is the amplification lower-bound estimate used in [HunzikerEtAl2003]. -/
 theorem bigship_iterations_lower {s θ : ℝ} (hs : 0 < s) (hθeq : Real.sin θ = s)
     (hθ0 : 0 < θ) (hθ2 : θ ≤ Real.pi / 2) {m : ℕ}
     (hsucc : 1 / 2 ≤ successProb θ m) :
@@ -489,6 +552,8 @@ theorem bigship_iterations_lower {s θ : ℝ} (hs : 0 < s) (hθeq : Real.sin θ 
   calc (1 / Real.sqrt 2) / (Real.pi / 2 * s) ≤ (((2 * m + 1 : ℕ) : ℝ)) := this
     _ = 2 * (m : ℝ) + 1 := by push_cast; ring
 
+/-- If 2(2r + 1) ≤ N and N ≥ 2, amplification with success probability at least 1/2 requires 2m
++ 1 ≥ (√2/π)√N/(3(1 + log N)), as in the battleship analysis of [HunzikerEtAl2003]. -/
 theorem bigship_queries_lower {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) (hN2 : 2 ≤ N)
     {m : ℕ} (hsucc : 1 / 2 ≤ successProb (bsTheta (N := N) r) m) :
     (Real.sqrt 2 / Real.pi) * Real.sqrt N / (3 * (1 + Real.log N)) ≤ 2 * (m : ℝ) + 1 := by
@@ -539,9 +604,13 @@ theorem bigship_queries_lower {r : ℕ} (h : 2 * (2 * r + 1) ≤ N) (hN2 : 2 ≤
         mul_le_mul_of_nonneg_left hinv hconst.le
     _ ≤ 2 * (m : ℝ) + 1 := hiter'
 
+/-- The battleship value oracle, equal to 1 when `a - x` lies in the ship window and 0
+otherwise. -/
 noncomputable def bsValue (r : ℕ) (a x : ZMod N) : ℂ :=
   if a - x ∈ shipWindow (N := N) r then 1 else 0
 
+/-- A residue lies in the ship window exactly when it equals t - r for some natural number t ≤
+2r. -/
 lemma mem_shipWindow_iff {r : ℕ} (k : ZMod N) :
     k ∈ shipWindow (N := N) r
       ↔ ∃ t : ℕ, t ≤ 2 * r ∧ k = ((t : ℕ) : ZMod N) - ((r : ℕ) : ZMod N) := by
@@ -553,6 +622,8 @@ lemma mem_shipWindow_iff {r : ℕ} (k : ZMod N) :
   · rintro ⟨t, ht, rfl⟩
     exact ⟨t, Finset.mem_range.mpr (Nat.lt_succ_iff.mpr ht), rfl⟩
 
+/-- If 2r + 1 ≤ N, equal shifted residues with natural parameters at most 2r have equal
+parameters. -/
 lemma shipWindow_shift_inj {r : ℕ} (h : 2 * r + 1 ≤ N) {t t' : ℕ}
     (ht : t ≤ 2 * r) (ht' : t' ≤ 2 * r)
     (heq : ((t : ℕ) : ZMod N) - ((r : ℕ) : ZMod N)
@@ -563,11 +634,13 @@ lemma shipWindow_shift_inj {r : ℕ} (h : 2 * r + 1 ≤ N) {t t' : ℕ}
   have hmod := (ZMod.natCast_eq_natCast_iff t t' N).mp hcast
   exact Nat.ModEq.eq_of_lt_of_lt hmod (by omega) (by omega)
 
+/-- The left endpoint -r belongs to the cyclic ship window. -/
 lemma neg_r_mem_window (r : ℕ) :
     -((r : ℕ) : ZMod N) ∈ shipWindow (N := N) r := by
   rw [mem_shipWindow_iff]
   exact ⟨0, by omega, by simp⟩
 
+/-- If 2r + 1 < N, the residue -(r + 1) does not belong to the ship window. -/
 lemma neg_succ_r_not_mem_window {r : ℕ} (h : 2 * r + 1 < N) :
     -(((r + 1 : ℕ)) : ZMod N) ∉ shipWindow (N := N) r := by
   rw [mem_shipWindow_iff]
@@ -585,6 +658,9 @@ lemma neg_succ_r_not_mem_window {r : ℕ} (h : 2 * r + 1 < N) :
   have hdvd : N ∣ t + 1 := (ZMod.natCast_eq_zero_iff (t + 1) N).mp hcast
   exact absurd (Nat.le_of_dvd hpos hdvd) (by omega)
 
+/-- If 2r + 1 < N, two battleship value oracles agree everywhere exactly when the second oracle
+takes values 1 and 0 at the two stated boundary queries. This is the oracle-equivalence
+criterion used in [HunzikerEtAl2003]. -/
 theorem equiv_oracle_iff {r : ℕ} (h : 2 * r + 1 < N) (a a' : ZMod N) :
     (∀ x, bsValue (N := N) r a' x = bsValue (N := N) r a x)
       ↔ bsValue (N := N) r a' (a + ((r : ℕ) : ZMod N)) = 1

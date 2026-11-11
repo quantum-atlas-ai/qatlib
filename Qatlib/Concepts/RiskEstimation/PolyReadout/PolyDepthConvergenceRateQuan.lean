@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyDepthConvergenceRateStat
+
+/-!
+# Polynomial readout convergence rates
+
+This module bounds the arcsine truncation tail by its zero-order value and proves
+`riskPolyDepthConvergenceRate`. The result chooses rotation scale, amplitude-estimation size,
+and decoding precision to achieve a prescribed readout error.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `riskPolyDepthConvergenceRate`: For every order `u` and `0 < ε ≤ 1`, polynomial readout
+  parameters achieve error at most `ε` with `M ≤ 8 * π * ε ^ (-(2 * u + 3) / (2 * u + 2))`; see
+  [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -12,6 +33,7 @@ namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 
 open scoped BigOperators
 
+/-- The arcsine tail at any truncation order is at most `π / 2 - 1`. -/
 theorem riskArcsinTail_le_zero_order (u : ℕ) : riskArcsinTail u ≤ Real.pi / 2 - 1 := by
   have hp (j : ℕ) : 0 ≤ riskArcsinCoeff j := by unfold riskArcsinCoeff; positivity
   have hs := Finset.single_le_sum (fun j (_ : j ∈ Finset.range (u + 1)) => hp j)
@@ -20,6 +42,8 @@ theorem riskArcsinTail_le_zero_order (u : ℕ) : riskArcsinTail u ≤ Real.pi / 
   unfold riskArcsinTail
   linarith
 
+/-- For every order `u` and `0 < ε ≤ 1`, polynomial readout parameters achieve error at most `ε`
+with `M ≤ 8 * π * ε ^ (-(2 * u + 3) / (2 * u + 2))`; see [WoernerEgger2019]. -/
 theorem riskPolyDepthConvergenceRate : PolyDepthConvergenceRate := by
   intro u ε hε hε1
   let α : ℝ := 1 / (2 * u + 2)

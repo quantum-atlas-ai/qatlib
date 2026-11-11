@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+
+/-!
+# Smooth nonlinear QAE payoff bounds
+
+This module bounds the first-order Taylor remainder of a differentiable payoff whose derivative
+is Lipschitz. Combining this quadratic remainder with the QAE bias and second moment gives
+`smooth_payoff_error`, an explicit `1/M` bound for the scaled nonlinear payoff. See
+[KanekoEtAl2020].
+
+## Main statements
+
+* `quadratic_remainder`: a quadratic Taylor-remainder estimate.
+* `smooth_payoff_error`: raw-law payoff error bounded by derivative and curvature terms.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +33,8 @@ open scoped BigOperators Classical
 open Qatlib.Papers.MonteCarloInt20.QaeLaw.Fourier Qatlib.Papers.MonteCarloInt20.QaeLaw.Payoff
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.Smooth
 
+/-- For a differentiable function with `K`-Lipschitz derivative, the absolute first-order Taylor
+remainder at `a` is at most `K*(x-a)^2`. See [KanekoEtAl2020]. -/
 theorem quadratic_remainder (g gp : ℝ → ℝ) (K : NNReal)
     (hg : ∀ x,HasDerivAt g (gp x) x) (hgp : LipschitzWith K gp) (a x : ℝ) :
     |g x-g a-gp a*(x-a)| ≤ (K:ℝ)*(x-a)^2 := by
@@ -33,10 +54,14 @@ theorem quadratic_remainder (g gp : ℝ → ℝ) (K : NNReal)
     rw [mul_assoc,← pow_two,sq_abs]
   simpa only [R,sub_self,mul_zero,sub_zero,Real.norm_eq_abs,he] using! h
 
+/-- Subtracting a constant from a phase-law expectation equals the expectation of the centered
+readout. -/
 theorem centered_expectation (M : ℕ) (θ : ℝ) (hM : 0 < M) (h : Fin M → ℝ) (a : ℝ) :
     (∑ k,phaseMass M θ k*h k)-a=∑ k,phaseMass M θ k*(h k-a) := by
   simp only [mul_sub,Finset.sum_sub_distrib,← Finset.sum_mul,phaseMass_sum_one M θ hM,one_mul]
 
+/-- A payoff with `K`-Lipschitz derivative has raw QAE error at most `(|gp (D*target
+θ)|*|D|+K*D^2)/M` for positive `M`. -/
 theorem smooth_payoff_error (M : ℕ) (θ D : ℝ) (hM : 0 < M)
     (g gp : ℝ → ℝ) (K : NNReal)
     (hg : ∀ x,HasDerivAt g (gp x) x) (hgp : LipschitzWith K gp) :

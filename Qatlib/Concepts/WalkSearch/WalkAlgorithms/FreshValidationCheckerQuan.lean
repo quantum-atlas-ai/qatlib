@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerStat
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerBudget
+
+/-!
+# Fresh validation checker guarantee
+
+This module proves `FreshValidationChecker` by combining the soundness and budget results for
+`triCheckFresh`. Its failure analysis splits unsuccessful runs into noisy-search failures and
+failures of amplified extraction after a vertex has been selected.
+
+The finite-tape counting bounds yield the combined inverse-power failure estimate, while
+`fresh_cost_le` supplies the cost guarantee. These are checker components for the quantum-walk
+search framework [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `freshValidationChecker_answer`: the complete fresh-checker specification.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +35,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- Establish the fresh validation checker contract by combining witness soundness, a
+finite-seed failure bound for search and fresh extraction, and the total checker cost bound. -/
 theorem freshValidationChecker_answer : FreshValidationChecker := by
   intro n adj U kcs ncs r' c₀ hκk hκn
   refine ⟨fun stape ntape => triCheckFresh_sound adj U kcs ncs r' c₀ stape ntape, ?_,

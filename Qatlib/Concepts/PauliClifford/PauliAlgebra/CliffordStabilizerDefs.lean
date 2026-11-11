@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsConsumers
+
+/-!
+# Binary Pauli rows and tableaux
+
+This module defines the binary `Row` representation of Pauli elements, its encoding and decoding
+maps, and Clifford row updates with phase corrections. A `Tableau` is an indexed row family, and
+`run` applies a gate list in order, following the binary stabilizer setting of
+[DehaeneDeMoor2003].
+
+The subspace `codeSpace` consists of vectors fixed by all decoded row operators. The canonical
+`zeroTableau` supplies the single-qubit Z generators of the all-zero basis state.
+
+## Main statements
+
+* `Row.mul`: Row multiplication combines XOR coordinates with Pauli phases.
+* `Row.update`: The binary update for a Clifford gate.
+* `codeSpace`: The common fixed subspace of the decoded row operators.
+
+## References
+
+* [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -17,12 +40,14 @@ namespace Qatlib.Concepts.PauliClifford.PauliAlgebra
 open Qatlib.Concepts.PauliClifford.PauliAlgebra
 open Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs Matrix
 
+/-- A Pauli tableau row consisting of binary X and Z registers and a phase exponent modulo four. -/
 @[ext] structure Row (n : ℕ) where
   x : Reg n
   z : Reg n
   phase : Phase4
   deriving DecidableEq
 
+/-- The Pauli letter represented by a pair of X and Z bits. -/
 def letter (x z : Bool) : Pauli1 :=
   match x, z with
   | false, false => .I
@@ -30,28 +55,36 @@ def letter (x z : Bool) : Pauli1 :=
   | true, true => .Y
   | false, true => .Z
 
+/-- The Pauli element represented by a tableau row. -/
 def Row.decode {n : ℕ} (r : Row n) : PauliElem n :=
   ⟨fun k => letter (r.x k) (r.z k), r.phase⟩
 
+/-- The X bit of a Pauli letter, true precisely for X and Y. -/
 def bitX : Pauli1 → Bool
   | .X | .Y => true
   | .I | .Z => false
 
+/-- The Z bit of a Pauli letter, true precisely for Y and Z. -/
 def bitZ : Pauli1 → Bool
   | .Y | .Z => true
   | .I | .X => false
 
+/-- The tableau row encoding a Pauli element's X and Z bits and global phase. -/
 def encode {n : ℕ} (p : PauliElem n) : Row n :=
   ⟨fun k => bitX (p.word k), fun k => bitZ (p.word k), p.phase⟩
 
+/-- The bit list consisting of a row's X register, Z register, and two phase bits. -/
 def Row.bits {n : ℕ} (r : Row n) : List Bool :=
   List.ofFn r.x ++ List.ofFn r.z ++ [r.phase.val.testBit 0, r.phase.val.testBit 1]
 
+/-- The row product formed by XOR of the X and Z registers and addition of the Pauli phase
+contributions. -/
 def Row.mul {n : ℕ} (r s : Row n) : Row n :=
   ⟨fun k => xor (r.x k) (s.x k), fun k => xor (r.z k) (s.z k),
     r.phase + s.phase + ∑ k, pauliMulPhase (letter (r.x k) (r.z k))
       (letter (s.x k) (s.z k))⟩
 
+/-- The binary row update for a Clifford gate, including its phase correction. -/
 def Row.update {n : ℕ} (g : CliffordGate n) (r : Row n) : Row n :=
   match g with
   | .H i => ⟨Function.update r.x i (r.z i), Function.update r.z i (r.x i),
@@ -62,20 +95,26 @@ def Row.update {n : ℕ} (g : CliffordGate n) (r : Row n) : Row n :=
       Function.update r.z i (xor (r.z i) (r.z j)),
       r.phase + if r.x i && r.z j && !(xor (r.x j) (r.z i)) then 2 else 0⟩
 
+/-- An indexed family of m Pauli rows on n qubits. -/
 abbrev Tableau (n m : ℕ) := Fin m → Row n
 
+/-- The concatenation of the bit encodings of all tableau rows. -/
 def tableauBits {n m : ℕ} (t : Tableau n m) : List Bool :=
   (List.ofFn t).flatMap Row.bits
 
+/-- The tableau obtained by applying a Clifford row update to every row. -/
 def update {n m : ℕ} (g : CliffordGate n) (t : Tableau n m) : Tableau n m :=
   fun a => (t a).update g
 
+/-- The tableau obtained by applying a list of Clifford gates in order. -/
 def run {n m : ℕ} (gs : List (CliffordGate n)) (t : Tableau n m) : Tableau n m :=
   gs.foldl (fun s g => update g s) t
 
+/-- The tableau of single-qubit Z generators stabilizing the all-zero computational basis state. -/
 def zeroTableau (n : ℕ) : Tableau n n :=
   fun i => ⟨fun _ => false, fun k => decide (k = i), 0⟩
 
+/-- The complex subspace of states fixed by every decoded tableau row operator. -/
 noncomputable def codeSpace {n m : ℕ} (t : Tableau n m) :
     Submodule ℂ (QState (Reg n)) where
   carrier := {ψ | ∀ a, op (t a).decode *ᵥ ψ = ψ}

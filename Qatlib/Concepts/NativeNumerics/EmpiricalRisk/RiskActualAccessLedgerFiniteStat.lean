@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+/-!
+# Specification of the finite risk access ledger
+
+This module defines `RiskActualAccessLedgerFiniteSubgoal`, combining a probability-zero bound
+for excessive CVaR calls with exact preparation-access, oracle-query, and gate counts. The
+specification separates the risk algorithm of [WoernerEgger2019] from the resource counts for
+its amplitude-estimation primitive [BrassardEtAl2002].
+
+## Main statements
+
+* `RiskActualAccessLedgerFiniteSubgoal`: for nonempty threshold lists, the CVaR call count stays
+  within `Nat.clog 2 xs.length + 3` almost surely; the associated amplitude-estimation word has
+  `M` forward accesses, `M - 1` backward accesses and queries, and `5 * (M - 1) + 3` gates.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -22,6 +43,9 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition combining the zero probability of exceeding the CVaR call budget for
+nonempty threshold lists with exact counts of `M` forward accesses, `M - 1` backward
+accesses and queries, and `5 * (M - 1) + 3` gates. -/
 def RiskActualAccessLedgerFiniteSubgoal : Prop :=
 ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
   (loss : I  → ℚ) (xs : List ℚ) (q eps : ℝ) (k M r : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ)

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.TensorNetwork08.MainResults.Lemma56
+
+/-!
+# Normalized partition value of the delta network
+
+Derives the partition-function normalization in Lemma 5.8 of [AradLandau2010] from an assumed
+identification of the delta-network value with `consistentDeltaSum`. The connectivity and
+nonempty-vertex hypotheses are those used for the difference-model partition identity.
+
+The first result states the equality after multiplication by the color cardinality. The second
+solves for the network value when that cardinality is nonzero as a complex number.
+
+## Main statements
+
+* `lemma5_8_delta_network_evaluates`: relates the network value to the partition function by a
+  cardinality factor.
+* `lemma5_8_delta_network_eq_inv`: solves for the network value using the inverse cardinality.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Lemma58
@@ -16,6 +38,9 @@ open Qatlib.Papers.TensorNetwork08.MainResults.Lemma56
 
 variable {V E C : Type*} [Fintype V] [Fintype E] [Fintype C]
 
+/-- If the delta-network value equals the consistent-label sum, then under the stated
+connectivity hypothesis its product with the color cardinality equals the difference-model
+partition function. See [AradLandau2010]. -/
 theorem lemma5_8_delta_network_evaluates
     [AddCommGroup C] [DecidableEq C] [Nonempty V]
     (src dst : E → V) (h : E → C → ℂ) (β : ℂ)
@@ -29,6 +54,9 @@ theorem lemma5_8_delta_network_evaluates
   rw [hnet]
   exact (lemma5_6_difference_model_partition src dst h β hconn).symm
 
+/-- Under the connectivity hypothesis and the identification with the consistent-label sum, a
+nonzero complex color cardinality gives the network value as its inverse times the
+difference-model partition function. See [AradLandau2010]. -/
 theorem lemma5_8_delta_network_eq_inv
     [AddCommGroup C] [DecidableEq C] [Nonempty V]
     (src dst : E → V) (h : E → C → ℂ) (β : ℂ)

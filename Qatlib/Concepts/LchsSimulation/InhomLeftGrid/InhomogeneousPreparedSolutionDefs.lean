@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindowConsumers
 import Mathlib.Logic.Equiv.Fin.Basic
+
+/-!
+# Unified coefficients and propagators for forced LCHS
+
+`inhUnifiedCoeff` and `inhUnifiedUnitary` combine the homogeneous LCHS terms and source
+quadrature terms into a family indexed by `Fin (N + N * Mt)`. Source terms include their sampled
+norms and the preparation correction `P l * Bᴴ`. See [AnLiuLin2023] for the mathematical
+setting.
+
+## Main statements
+
+* `inhUnifiedCoeff`: The unified LCHS coefficient, using static coefficients for homogeneous
+  indices and step-size and source-norm weighted coefficients for source indices.
+* `inhUnifiedUnitary`: The unified propagator family, using homogeneous ordered evolutions on
+  the first block and source evolutions composed with `P l * Bᴴ` on the second block.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -31,6 +52,8 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 namespace Qatlib.Concepts.LchsSimulation.InhomLeftGrid
 
+/-- The unified LCHS coefficient, using static coefficients for homogeneous indices and
+step-size and source-norm weighted coefficients for source indices. -/
 noncomputable def inhUnifiedCoeff (b : ℝ → QState I) (s t : ℝ)
     (K N Mt : ℕ) (x : Fin (N + N * Mt)) : ℂ :=
   if hx : (x : ℕ) < N then staticLchsCoeff K N ⟨x.val, hx⟩
@@ -40,6 +63,8 @@ noncomputable def inhUnifiedCoeff (b : ℝ → QState I) (s t : ℝ)
     (inhStep Mt s t : ℂ) * staticLchsCoeff K N p.1 *
       (‖toEuclidean_fromVec (b (inhNode Mt s t p.2))‖ : ℂ)
 
+/-- The unified propagator family, using homogeneous ordered evolutions on the first block and
+source evolutions composed with `P l * Bᴴ` on the second block. -/
 noncomputable def inhUnifiedUnitary (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N Mt : ℕ)
     (B : Matrix I I ℂ) (P : Fin Mt → Matrix I I ℂ) (x : Fin (N + N * Mt)) :
     Matrix I I ℂ :=

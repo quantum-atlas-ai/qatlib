@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.GeneratorTail
 import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.PolynomialGrowth
+
+/-!
+# Weighted product-word and leakage bounds
+
+This module defines `growthCoefficient` and its integrated form `stepExponent` for a product
+word with lower-order cancellation. It bounds the weighted interaction generator and weighted
+word, obtaining exponential leakage across energy cutoffs for the analysis in
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_weighted_word_bound`: Bounds the weighted word norm by `exp stepExponent`.
+* `actual_product_word_leakage`: Combines the weighted bound with exponential energy-gap decay.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,13 +42,18 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- The uniform generator-growth coefficient with numerator `L * (2 * J) * timeBudget stages *
+(2 * J * k * d * timeBudget stages) ^ p` and the small-step geometric denominator. -/
 def growthCoefficient (L k d : ℕ) (J : ℝ) (stages : List (ℝ × Fin M)) (p : ℕ) (s : ℝ) : ℝ :=
   ((L : ℝ)*(2*J)*timeBudget stages)*(2*J*k*d*timeBudget stages)^p /
     (1-2*J*k*d*timeBudget stages*s)
 
+/-- The integrated growth majorant `growthCoefficient * s ^ (p + 1) / (p + 1)`. -/
 def stepExponent (L k d : ℕ) (J : ℝ) (stages : List (ℝ × Fin M)) (p : ℕ) (s : ℝ) : ℝ :=
   growthCoefficient L k d J stages p s * s^(p+1)/(p+1)
 
+/-- The relative propagator and the product word have equal weighted operator norms for every
+real weight and time. -/
 theorem actual_relative_weighted_norm (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (lam t : ℝ) :
     ‖weighted h.total (relative h stages t) lam‖ = ‖weighted h.total (approximate h stages t) lam‖ := by
@@ -40,6 +64,8 @@ theorem actual_relative_weighted_norm (h : Hamiltonian N R M k d J)
   rw [he, weighted_mul, weighted_exact_evolve]
   exact CStarRing.norm_mem_unitary_mul _ (evolve_unitary _ h.total_hermitian (-t))
 
+/-- With lower-order cancellation through order `p - 1` and the stated small-step condition, the
+weighted interaction-generator norm on `0 ≤ t ≤ s` is at most `growthCoefficient * t ^ p`. -/
 theorem actual_uniform_generator_bound (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
@@ -63,6 +89,8 @@ theorem actual_uniform_generator_bound (h : Hamiltonian N R M k d J)
       div_le_div_of_nonneg_left (by dsimp [D]; positivity) (by linarith) (by nlinarith)
     _ = _ := by dsimp [growthCoefficient, C, D]; ring
 
+/-- For nonnegative small steps and positive order with lower-order cancellation, the weighted
+product-word norm is at most `exp (stepExponent L k d J stages p s)`. -/
 theorem actual_weighted_word_bound (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
@@ -89,6 +117,9 @@ theorem actual_weighted_word_bound (h : Hamiltonian N R M k d J)
     hf.continuousOn (fun t _ => (hder t).hasDerivWithinAt) h0 hbound s ⟨hs, le_rfl⟩
   simpa only [one_mul, f, actual_relative_weighted_norm, stepExponent] using hb
 
+/-- Under the locality, cancellation, and small-step hypotheses, leakage from the input cutoff
+`Δ` to above `Λ` is at most `exp (-(Λ - Δ) / (2 * J * k * d) + stepExponent L k d J stages p
+s)`. -/
 theorem actual_product_word_leakage (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))

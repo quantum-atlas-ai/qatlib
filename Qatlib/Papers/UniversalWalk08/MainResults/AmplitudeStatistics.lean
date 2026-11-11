@@ -8,12 +8,31 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.Data.Complex.Basic
 import Mathlib.Tactic.FieldSimp
 
+/-!
+# Conditioned statistics of proportional amplitudes
+
+This module shows that a common nonzero amplitude factor cancels from normalized squared
+amplitudes. The theorem `conditioned_statistics_of_proportional` supplies the algebraic step
+relating walk output statistics to circuit statistics in [Childs2009].
+
+## Main statements
+
+* `conditioned_statistics_of_proportional`: Proportional amplitude families have identical
+  conditioned distributions.
+
+## References
+
+* [Childs, 2009][Childs2009]
+-/
+
 namespace Qatlib.Papers.UniversalWalk08.MainResults.AmplitudeStatistics
 
 open scoped BigOperators
 
 set_option autoImplicit false
 
+/-- Amplitude families differing by a common nonzero complex factor have the same normalized
+squared amplitudes, provided the reference total squared amplitude is nonzero [Childs2009]. -/
 theorem conditioned_statistics_of_proportional {ι : Type*} [Fintype ι]
     (a b : ι → ℂ) (c : ℂ) (hc : c ≠ 0)
     (hprop : ∀ s, a s = c * b s)

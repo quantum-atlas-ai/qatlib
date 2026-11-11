@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleSet
 import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
+
+/-!
+# Finite auxiliary-regulator contour identities
+
+This module assembles the target pole, auxiliary poles, and a finite real lattice into
+`auxPoleSet`. It defines the weighted samples `auxSample`, their symmetric finite sum
+`auxLCUSum`, and the auxiliary residue correction. The finite circle identity is the
+residue-theoretic input to the sampling series of [WangEtAl2026].
+
+## Main statements
+
+* `auxContourDenominator_disk_zeros`: characterizes the zeros inside a half-grid disk.
+* `auxPoleSet_sum`: splits a sum into the target, auxiliary, and lattice contributions.
+* `auxContour_circle_identity_normalized`: evaluates the normalized integral as the target minus
+  the finite sample sum plus the auxiliary correction.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -16,10 +37,14 @@ namespace CBMD
 open Metric Complex
 open scoped BigOperators Topology
 
+/-- The finite union of the target pole `-I`, the auxiliary pole set, and the real lattice poles
+indexed from `-n` through `n`. -/
 noncomputable def auxPoleSet (s : Finset ℂ) (a : ℝ) (n : ℕ) : Finset ℂ := by
   classical
   exact insert (-Complex.I) (s ∪ integerRealPoleSet a n)
 
+/-- Membership in `auxPoleSet` means being the target pole, an auxiliary pole, or a lattice pole
+with index between `-n` and `n`. -/
 theorem mem_auxPoleSet_iff (s : Finset ℂ) (a : ℝ) (n : ℕ) (z : ℂ) :
     z ∈ auxPoleSet s a n ↔ z = -Complex.I ∨ z ∈ s ∨
       ∃ k ∈ Finset.Icc (-(n : ℤ)) n, z = (((k : ℝ) / a : ℝ) : ℂ) := by
@@ -27,6 +52,8 @@ theorem mem_auxPoleSet_iff (s : Finset ℂ) (a : ℝ) (n : ℕ) (z : ℂ) :
   simp only [auxPoleSet, integerRealPoleSet, Finset.mem_insert, Finset.mem_union, Finset.mem_image]
   aesop
 
+/-- If the half-grid radius exceeds one and all auxiliary pole norms, every pole in `auxPoleSet`
+lies inside the corresponding open disk. -/
 theorem auxPoleSet_inside (s : Finset ℂ) {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : 1 < ((n : ℝ) + 1 / 2) / a)
     (hsInside : ∀ p ∈ s, ‖p‖ < ((n : ℝ) + 1 / 2) / a) :
@@ -40,6 +67,8 @@ theorem auxPoleSet_inside (s : Finset ℂ) {a : ℝ} (ha : 0 < a) (n : ℕ)
   · subst z
     exact lattice_norm_lt_halfgrid ha n k hk
 
+/-- For positive `a` and an auxiliary set excluding `-I`, the zeros of the auxiliary contour
+denominator in the closed half-grid disk are exactly `auxPoleSet`. -/
 theorem auxContourDenominator_disk_zeros (s : Finset ℂ) (hs : -Complex.I ∉ s)
     {a : ℝ} (ha : 0 < a) (n : ℕ) (z : ℂ)
     (hz : z ∈ closedBall (0 : ℂ) (((n : ℝ) + 1 / 2) / a)) :
@@ -58,6 +87,8 @@ theorem auxContourDenominator_disk_zeros (s : Finset ℂ) (hs : -Complex.I ∉ s
     · exact Or.inr (Or.inl hp)
     · exact Or.inr (Or.inr ⟨k, hlat⟩)
 
+/-- When the target and auxiliary poles lie strictly inside the half-grid disk, the auxiliary
+contour denominator is nonzero on its boundary sphere. -/
 theorem auxContourDenominator_sphere_ne_zero (s : Finset ℂ) (hs : -Complex.I ∉ s)
     {a : ℝ} (ha : 0 < a) (n : ℕ) (hR : 1 < ((n : ℝ) + 1 / 2) / a)
     (hsInside : ∀ p ∈ s, ‖p‖ < ((n : ℝ) + 1 / 2) / a)
@@ -72,6 +103,8 @@ theorem auxContourDenominator_sphere_ne_zero (s : Finset ℂ) (hs : -Complex.I �
     simpa only [Metric.mem_ball, dist_zero_right] using! hinside
   linarith
 
+/-- An auxiliary set avoiding every real lattice point is disjoint from the finite real pole
+set. -/
 theorem auxPoleSet_aux_real_disjoint (s : Finset ℂ) (a : ℝ)
     (hsLattice : ∀ p ∈ s, ∀ k : ℤ, p ≠ (((k : ℝ) / a : ℝ) : ℂ)) (n : ℕ) :
     Disjoint s (integerRealPoleSet a n) := by
@@ -81,6 +114,8 @@ theorem auxPoleSet_aux_real_disjoint (s : Finset ℂ) (a : ℝ)
   obtain ⟨k, _, hk⟩ := Finset.mem_image.mp hz
   exact hsLattice z hs k hk.symm
 
+/-- If the auxiliary set excludes `-I`, the target pole belongs to neither that set nor the
+finite real lattice pole set. -/
 theorem auxPoleSet_target_not_mem (s : Finset ℂ) (hs : -Complex.I ∉ s) (a : ℝ) (n : ℕ) :
     -Complex.I ∉ s ∪ integerRealPoleSet a n := by
   classical
@@ -91,6 +126,8 @@ theorem auxPoleSet_target_not_mem (s : Finset ℂ) (hs : -Complex.I ∉ s) (a : 
     have hi := congrArg Complex.im hk
     norm_num at hi
 
+/-- Under the pole separation hypotheses and `a > 0`, a sum over `auxPoleSet` splits into the
+target value, the auxiliary pole sum, and the integer-indexed finite lattice sum. -/
 theorem auxPoleSet_sum {M : Type*} [AddCommMonoid M] (s : Finset ℂ) (hs : -Complex.I ∉ s)
     {a : ℝ} (ha : 0 < a)
     (hsLattice : ∀ p ∈ s, ∀ k : ℤ, p ≠ (((k : ℝ) / a : ℝ) : ℂ))
@@ -108,17 +145,23 @@ theorem auxPoleSet_sum {M : Type*} [AddCommMonoid M] (s : Finset ℂ) (hs : -Com
 section Numerator
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- The value of `U` at the real lattice point `k / a`, weighted by `auxWeight s a k`. -/
 noncomputable def auxSample (s : Finset ℂ) (a : ℝ) (U : ℂ → E) (k : ℤ) : E :=
   auxWeight s a k • U (((k : ℝ) / a : ℝ) : ℂ)
 
+/-- The sum of the auxiliary weighted samples over integer indices from `-n` through `n`. -/
 noncomputable def auxLCUSum (s : Finset ℂ) (a : ℝ) (n : ℕ) (U : ℂ → E) : E :=
   ∑ k ∈ Finset.Icc (-(n : ℤ)) n, auxSample s a U k
 
+/-- The finite sum of numerator values at auxiliary poles weighted by `auxResidueCoefficient`. -/
 noncomputable def auxiliaryCorrection (s : Finset ℂ) (a : ℝ) (U : ℂ → E) : E :=
   ∑ p ∈ s, auxResidueCoefficient s a p • U p
 
 variable [CompleteSpace E]
 
+/-- For a complex differentiable numerator and separated poles inside the half-grid circle, the
+auxiliary contour integral is `2πI` times the target value minus the finite sample sum plus
+the auxiliary correction. -/
 theorem auxContour_circle_identity (s : Finset ℂ) (hs : -Complex.I ∉ s)
     {a : ℝ} (ha : 0 < a)
     (hsLattice : ∀ p ∈ s, ∀ k : ℤ, p ≠ (((k : ℝ) / a : ℝ) : ℂ)) (n : ℕ)
@@ -169,6 +212,8 @@ theorem auxContour_circle_identity (s : Finset ℂ) (hs : -Complex.I ∉ s)
   unfold auxLCUSum auxSample auxiliaryCorrection
   abel
 
+/-- Dividing the auxiliary circle integral by `2πI` gives `U (-I) - auxLCUSum s a n U +
+auxiliaryCorrection s a U` under the stated pole and analyticity hypotheses. -/
 theorem auxContour_circle_identity_normalized (s : Finset ℂ) (hs : -Complex.I ∉ s)
     {a : ℝ} (ha : 0 < a)
     (hsLattice : ∀ p ∈ s, ∀ k : ℤ, p ≠ (((k : ℝ) / a : ℝ) : ℂ)) (n : ℕ)

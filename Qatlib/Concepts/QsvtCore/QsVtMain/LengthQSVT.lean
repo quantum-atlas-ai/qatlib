@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
 import Mathlib.Analysis.SpecialFunctions.Complex.Arg
 import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+
+/-!
+# Length-controlled real QSVT compilation
+
+This module constructs real phase representations of prescribed positive length for bounded real
+polynomials with matching degree bound and parity. The response `sourcePhaseResponse` and the
+conjugate-angle family `sourceRealFamily` connect polynomial synthesis with the real-part QSVT
+construction of [GilyenSuLowWiebe2019].
+
+The compiled word `sourceRealWord` encodes the odd or right singular transform according to
+parity, using the averaged clean frames and an exact instruction count.
+
+## Main statements
+
+* `source_length_real_phase_existence`: Synthesize a real response with prescribed positive
+  length.
+* `source_cpp_real_singular_transform_of_response`: Turn a response identity into a compiled
+  singular-transform encoding.
+* `source_length_cpp_real_singular_transform`: Combine phase existence, encoding, and exact
+  instruction counts.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -32,9 +58,12 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomial
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- The primary polynomial response of a real-angle list with base phase one. -/
 noncomputable def sourcePhaseResponse (Φ : List ℝ) : Polynomial ℂ :=
   responseP 1 (Φ.map anglePhase)
 
+/-- Both response polynomials are linear in the base phase through multiplication by a constant
+polynomial. -/
 private theorem response_base_linear (base : ℂ) (zs : List ℂ) :
     responseP base zs = C base * responseP 1 zs ∧
     responseQ base zs = C base * responseQ 1 zs := by
@@ -44,6 +73,7 @@ private theorem response_base_linear (base : ℂ) (zs : List ℂ) :
     simp only [responseP_cons, responseQ_cons, ih.1, ih.2]
     constructor <;> ring
 
+/-- A unit complex phase is the phase of its complex argument. -/
 theorem anglePhase_arg_of_isPhase {z : ℂ} (hz : IsPhase z) :
     anglePhase z.arg = z := by
   have hn : ‖z‖ = 1 := by
@@ -54,6 +84,8 @@ theorem anglePhase_arg_of_isPhase {z : ℂ} (hz : IsPhase z) :
   have h0 : z ≠ 0 := by intro h; simp [h] at hn
   apply Complex.ext <;> simp [anglePhase, Complex.cos_arg h0, Complex.sin_arg, hn]
 
+/-- A real polynomial bounded by one on `[-1, 1]`, with degree at most a positive `d` and parity
+`d`, has a real phase representation of length `d` [GilyenSuLowWiebe2019]. -/
 theorem source_length_real_phase_existence : ∀ (p : Polynomial ℝ) (d : ℕ), 0 < d →
   p.degree ≤ (d : WithBot ℕ) → HasRealParity d p →
   (∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) →
@@ -92,26 +124,33 @@ theorem source_length_real_phase_existence : ∀ (p : Polynomial ℝ) (d : ℕ),
       ring
     simpa only [sourcePhaseResponse,hmap,he] using hre x
 
+/-- The Boolean-indexed phase family pairing each angle with its negative. -/
 def sourceRealFamily (Φ : List ℝ) : List (Bool→ℝ) :=
   Φ.map (fun φ b=>if b then -φ else φ)
 
+/-- The compiled word implementing the two conjugate phase branches, with the oracle convention
+chosen by list parity. -/
 noncomputable def sourceRealWord {H : Type} [Fintype H] [DecidableEq H]
     (U P Q : Matrix H H ℂ) (Φ : List ℝ) : Matrix (Bool×(Bool×H)) (Bool×(Bool×H)) ℂ :=
   if Φ.length%2=1 then cppEvaluate U P Q (cppCompile (sourceRealFamily Φ))
   else cppEvaluate U Q P ((cppCompile (sourceRealFamily Φ)).map cppSwapData)
 
+/-- The averaged clean-ancilla frame associated to a data frame. -/
 noncomputable def sourceAverageClean {H I : Type} [Fintype H] (F : Matrix H I ℂ) :
     Matrix (Bool×(Bool×H)) I ℂ := averageFrame (cppCleanFrame F)
 
+/-- Rectangular matrix multiplication with an explicit finite intermediate index. -/
 private noncomputable abbrev sourceMul {M N K : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) : Matrix M K ℂ :=
   @HMul.hMul (Matrix M N ℂ) (Matrix N K ℂ) (Matrix M K ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 
+/-- Associativity of the explicitly instantiated rectangular matrix product. -/
 private theorem sourceMul_assoc {M N K L : Type} [Fintype N] [Fintype K]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) (C : Matrix K L ℂ) :
     sourceMul (sourceMul A B) C = sourceMul A (sourceMul B C) := Matrix.mul_assoc A B C
 
+/-- Adjoining a clean Boolean ancilla preserves the isometry property of a frame. -/
 theorem cppCleanFrame_isIsometry {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] {F : Matrix H I ℂ} (hF : IsIsometry F) : IsIsometry (cppCleanFrame F) := by
   have he : cppCleanFrame F = flagFrame F := by
@@ -119,6 +158,7 @@ theorem cppCleanFrame_isIsometry {H I : Type} [Fintype H] [DecidableEq H]
   rw [he]
   exact flagFrame_isIsometry hF
 
+/-- The clean embedding for an indexed family is an isometry. -/
 private theorem source_family_isometry {J H : Type} [Fintype J] [DecidableEq J]
     [Fintype H] [DecidableEq H] : IsIsometry (cppFamilyClean (J:=J) (H:=H)) := by
   unfold IsIsometry
@@ -134,6 +174,8 @@ private theorem source_family_isometry {J H : Type} [Fintype J] [DecidableEq J]
   · simp [cppFamilyClean, Matrix.mul_apply, Matrix.conjTranspose_apply,
       Fintype.sum_prod_type, Matrix.one_apply, mul_ite, hj, Ne.symm hj]
 
+/-- The averaged clean frame factors through the family clean embedding and the averaged
+original frame. -/
 private theorem source_average_clean {H I : Type} [Fintype H] [DecidableEq H]
     (F : Matrix H I ℂ) :
     sourceAverageClean F = sourceMul (cppFamilyClean (J:=Bool) (H:=H)) (averageFrame F) := by
@@ -142,6 +184,8 @@ private theorem source_average_clean {H I : Type} [Fintype H] [DecidableEq H]
     sourceMul,Matrix.mul_apply,prepareLift,Fintype.sum_prod_type,
     Matrix.one_apply,ite_mul,mul_ite]
 
+/-- A unitary intertwining the clean family embedding with an encoded operator inherits the
+encoding on averaged clean frames. -/
 private theorem source_clean_encoding {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     {A : Matrix O I ℂ} {V : Matrix (Bool×(Bool×H)) (Bool×(Bool×H)) ℂ}
@@ -176,19 +220,25 @@ private theorem source_clean_encoding {H I O : Type} [Fintype H] [DecidableEq H]
     rw [hK']
     simpa [sourceMul,compress,Matrix.mul_assoc] using hW.encoded
 
+/-- The phase of a negative angle is the conjugate phase. -/
 private theorem source_angle_neg (φ : ℝ) : anglePhase (-φ) = star (anglePhase φ) := by
   apply Complex.ext <;> simp [anglePhase]
 
+/-- The Boolean branches of `sourceRealFamily` produce the original phase list and its
+conjugate. -/
 private theorem source_family_map (Φ : List ℝ) (b : Bool) :
     (sourceRealFamily Φ).map (fun f => anglePhase (f b)) =
       if b then (Φ.map anglePhase).map star else Φ.map anglePhase := by
   cases b <;> simp [sourceRealFamily,List.map_map,source_angle_neg,Function.comp_def]
 
+/-- The selected family of alternating words for the two opposite-angle branches. -/
 private noncomputable def sourceBranches {H : Type} [Fintype H] [DecidableEq H]
     (U P Q : Matrix H H ℂ) (Φ : List ℝ) : Matrix (Bool×H) (Bool×H) ℂ :=
   select (fun b => phasedAlternating U P Q 1
     ((sourceRealFamily Φ).map (fun f => anglePhase (f b))))
 
+/-- The two selected phase branches equal the average circuit of the conjugate and original
+alternating words. -/
 private theorem source_branches_eq {H : Type} [Fintype H] [DecidableEq H]
     (U P Q : Matrix H H ℂ) (Φ : List ℝ) :
     sourceBranches U P Q Φ = averageCircuit
@@ -198,6 +248,7 @@ private theorem source_branches_eq {H : Type} [Fintype H] [DecidableEq H]
   congr 1; funext b
   cases b <;> simp [source_family_map]
 
+/-- An encoding by `realPartQSVT` is also an encoding by the selected opposite-angle branches. -/
 private theorem source_branches_encoding {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     {A : Matrix O I ℂ} {U P Q : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
@@ -221,6 +272,8 @@ private theorem source_branches_encoding {H I O : Type} [Fintype H] [DecidableEq
     rw [averageCircuit_compress,add_comm]
     exact he
 
+/-- A real response identity gives the parity-appropriate singular transform through the
+compiled clean word, together with its exact instruction counts. -/
 theorem source_cpp_real_singular_transform_of_response : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] [Fintype O] [DecidableEq O] (A : Matrix O I ℂ)
     (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -264,6 +317,9 @@ theorem source_cpp_real_singular_transform_of_response : ∀ (H I O : Type) [Fin
     exact source_clean_encoding hu hact hbranch
   · simpa [sourceRealFamily] using cppCompile_counts (sourceRealFamily Φ)
 
+/-- Every bounded real polynomial with degree at most a positive `d` and parity `d` has a
+length-`d` compiled singular-transform encoding with exact instruction counts
+[GilyenSuLowWiebe2019]. -/
 theorem source_length_cpp_real_singular_transform : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] [Fintype O] [DecidableEq O] (A : Matrix O I ℂ)
     (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)

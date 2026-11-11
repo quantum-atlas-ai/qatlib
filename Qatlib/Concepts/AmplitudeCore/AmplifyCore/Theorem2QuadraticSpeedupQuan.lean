@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupStat
+
+/-!
+# Grover rotation and quadratic amplification
+
+`quantum_amplitude_amplification_theorem2` proves the success lower bound after the prescribed
+number of Grover iterations. The module derives the rotation law, its orthonormal eigenvectors,
+the exact success probability, and the zero and unit probability endpoint formulas. See
+[BrassardEtAl2002] for background.
+
+## Main statements
+
+* `quantum_amplitude_amplification_theorem2_rotation`: For an interior success angle, `j` Grover
+  steps multiply the good and bad components by the sine and cosine ratios at angle `(2 * j + 1)
+  * θ`. See [BrassardEtAl2002].
+* `quantum_amplitude_amplification_theorem2`: For positive initial success probability `a = sin
+  θ^2`, taking `floor (π / (4 * θ))` Grover steps gives success probability at least `max (1 -
+  a) a`, as in [Brassard et al., Theorem 2][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
@@ -16,6 +39,7 @@ namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore
 section
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- The Grover step preserves complex linear combinations. -/
 lemma quantum_amplitude_amplification_theorem2_step_combination
     (A : E ≃ₗᵢ[ℂ] E) (e₀ : E) (P : E →L[ℂ] E)
     (z t : ℂ) (v w : E) :
@@ -24,10 +48,13 @@ lemma quantum_amplitude_amplification_theorem2_step_combination
     inner_add_right, inner_sub_right, inner_smul_right]
   module
 
+/-- The vector `(u + σ * I • w) / sqrt 2` used to diagonalize a two dimensional Grover rotation. -/
 noncomputable def quantum_amplitude_amplification_theorem2_eigenvector
     (u w : E) (σ : ℂ) : E :=
   (↑(1 / Real.sqrt 2) : ℂ) • (u + (σ * Complex.I) • w)
 
+/-- For orthonormal `u` and `w`, the vectors with parameters `1` and `-1` form an orthonormal
+pair. -/
 lemma quantum_amplitude_amplification_theorem2_eigenvector_orthonormal
     (u w : E) (hu : inner ℂ u u = 1) (hw : inner ℂ w w = 1)
     (huw : inner ℂ u w = 0) :
@@ -56,6 +83,8 @@ lemma quantum_amplitude_amplification_theorem2_eigenvector_orthonormal
       (quantum_amplitude_amplification_theorem2_eigenvector u w _) = _
   all_goals rw [hinner]; norm_num
 
+/-- Expresses a sine and cosine combination of `u` and `w` in the two complex rotation
+eigenvectors. -/
 lemma quantum_amplitude_amplification_theorem2_eigenbasis_expansion
     (u w : E) (α : ℝ) :
     (↑(Real.sin α) : ℂ) • u + (↑(Real.cos α) : ℂ) • w =
@@ -73,6 +102,8 @@ lemma quantum_amplitude_amplification_theorem2_eigenbasis_expansion
     quantum_amplitude_amplification_theorem2_eigenvector]
   match_scalars <;> field_simp <;> ring_nf <;> norm_num [Complex.I_sq, h2] <;> ring
 
+/-- The stated rotation action on `u` and `w` gives eigenvalues `exp (2 * θ * I)` and `exp (-2 *
+θ * I)` on the corresponding complex combinations. -/
 lemma quantum_amplitude_amplification_theorem2_eigenvectors_of_rotation
     (A : E ≃ₗᵢ[ℂ] E) (e₀ : E) (P : E →L[ℂ] E) (u w : E) (θ : ℝ)
     (hu : step A e₀ P u = (↑(Real.cos (2 * θ)) : ℂ) • u -
@@ -96,6 +127,8 @@ lemma quantum_amplitude_amplification_theorem2_eigenvectors_of_rotation
 
 variable [CompleteSpace E] {S : Set ℤ}
 
+/-- The Grover step has the standard coefficient action on the good and bad parts of the
+prepared state. See [Itakura2005]. -/
 lemma quantum_amplitude_amplification_theorem2_component_actions
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) :
@@ -110,6 +143,8 @@ lemma quantum_amplitude_amplification_theorem2_component_actions
   simpa only [goodProjection, step, zeroSign, norm_sq_eq_re_inner (𝕜 := ℂ)] using!
     bhmt_amplitude_amplification_lemma1 S hzero E basis χ A
 
+/-- The good projection of a linear combination of the good and bad components retains only the
+good coefficient. -/
 lemma quantum_amplitude_amplification_theorem2_projection_combination
     (basis : HilbertBasis S ℂ E) (χ : ℤ → Bool) (ψ : E) (z t : ℂ) :
     let P := goodProjection basis χ
@@ -120,6 +155,8 @@ lemma quantum_amplitude_amplification_theorem2_projection_combination
       (Submodule.starProjection_apply_mem _ ψ)
   simp only [map_add, map_smul, map_sub, hp, sub_self, smul_zero, add_zero]
 
+/-- For an interior success angle, `j` Grover steps multiply the good and bad components by the
+sine and cosine ratios at angle `(2 * j + 1) * θ`. See [BrassardEtAl2002]. -/
 lemma quantum_amplitude_amplification_theorem2_rotation
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -162,6 +199,8 @@ lemma quantum_amplitude_amplification_theorem2_rotation
     dsimp [a, ψ, P, e₀] at *
     module
 
+/-- For an interior success angle, the good component after `j` Grover steps has squared norm
+`sin ((2 * j + 1) * θ)^2`. See [BrassardEtAl2002]. -/
 lemma quantum_amplitude_amplification_theorem2_success_sq
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -180,6 +219,8 @@ lemma quantum_amplitude_amplification_theorem2_success_sq
     (Real.sin_pos_of_pos_of_lt_pi hθ0 (by linarith [Real.pi_pos]))
   exact div_mul_cancel₀ _ (pow_ne_zero 2 hs)
 
+/-- The prepared state has unit norm, its good and bad parts are orthogonal, and their squared
+norms sum to one. -/
 lemma quantum_amplitude_amplification_theorem2_component_geometry
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) :
@@ -200,6 +241,8 @@ lemma quantum_amplitude_amplification_theorem2_component_geometry
   rw [add_sub_cancel, hn] at h
   linarith
 
+/-- For `0 < θ < π / 2` and `sin θ^2 = a`, the nonnegative square roots of `a` and `1 - a` are
+`sin θ` and `cos θ`. See [BrassardEtAl2002]. -/
 lemma quantum_amplitude_amplification_theorem2_square_roots
     {θ a : ℝ} (hθ0 : 0 < θ) (hθπ : θ < Real.pi / 2)
     (ha : Real.sin θ ^ 2 = a) :
@@ -210,6 +253,8 @@ lemma quantum_amplitude_amplification_theorem2_square_roots
     nlinarith [Real.sin_sq_add_cos_sq θ]
   exact ⟨by rw [← ha, Real.sqrt_sq hs.le], by rw [← hcsq, Real.sqrt_sq hc.le]⟩
 
+/-- Dividing the good and bad components by `sin θ` and `cos θ` yields an orthonormal pair under
+the interior angle hypotheses. -/
 lemma quantum_amplitude_amplification_theorem2_normalized_components
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -244,6 +289,7 @@ lemma quantum_amplitude_amplification_theorem2_normalized_components
   · change inner ℂ (P ψ) (ψ - P ψ) = 0 at hi
     simp only [u, w, inner_smul_left, inner_smul_right, hi, mul_zero]
 
+/-- The Grover step rotates the normalized good and bad components through angle `2 * θ`. -/
 lemma quantum_amplitude_amplification_theorem2_normalized_actions
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -298,6 +344,8 @@ lemma quantum_amplitude_amplification_theorem2_normalized_actions
       ring
     · ring
 
+/-- The normalized component combinations give an orthonormal pair of eigenvectors with
+eigenvalues `exp (±2 * θ * I)`. -/
 lemma quantum_amplitude_amplification_theorem2_diagonalization
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -325,6 +373,8 @@ lemma quantum_amplitude_amplification_theorem2_diagonalization
   exact ⟨quantum_amplitude_amplification_theorem2_eigenvector_orthonormal _ _ hu hw huw,
     quantum_amplitude_amplification_theorem2_eigenvectors_of_rotation A e₀ P _ _ θ hqu hqw⟩
 
+/-- The prepared state after `j` Grover steps has the stated complex exponential expansion in
+the two rotation eigenvectors. -/
 lemma quantum_amplitude_amplification_theorem2_exponential_state
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -352,6 +402,8 @@ lemma quantum_amplitude_amplification_theorem2_exponential_state
   push_cast
   module
 
+/-- For an interior success angle, every Grover iterate of the prepared state has squared norm
+one. -/
 lemma quantum_amplitude_amplification_theorem2_iterate_norm_sq
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)
@@ -379,6 +431,8 @@ lemma quantum_amplitude_amplification_theorem2_iterate_norm_sq
     div_mul_cancel₀ _ (pow_ne_zero 2 hc)]
   exact Real.sin_sq_add_cos_sq _
 
+/-- When the initial success probability is zero, every Grover iterate fixes the prepared state
+and has zero good component. See [BrassardEtAl2002]. -/
 lemma quantum_amplitude_amplification_theorem2_zero_endpoint
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool)
@@ -401,6 +455,8 @@ lemma quantum_amplitude_amplification_theorem2_zero_endpoint
   have hj := Function.iterate_fixed hfix j
   exact ⟨hj, by rw [hj]; exact ha⟩
 
+/-- When the initial success probability is one, `j` Grover steps multiply the state by `(-1)^j`
+and preserve success probability one. See [BrassardEtAl2002]. -/
 lemma quantum_amplitude_amplification_theorem2_one_endpoint
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool)
@@ -440,6 +496,9 @@ lemma quantum_amplitude_amplification_theorem2_one_endpoint
 
 end
 
+/-- For positive initial success probability `a = sin θ^2`, taking `floor (π / (4 * θ))` Grover
+steps gives success probability at least `max (1 - a) a`, as in [Brassard et al., Theorem
+2][BrassardEtAl2002]. -/
 theorem quantum_amplitude_amplification_theorem2 :
     ∀ (E : Type*) [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E]
     (S : Set ℤ) (hzero : (0 : ℤ) ∈ S)

@@ -8,6 +8,29 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma24Stat
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedQuan
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma22Quan
+
+/-!
+# Expected stage bound for the Bayesian learner
+
+This module proves the uniform-prior learner stage bound from the ordered search analysis of
+[BenOrHassidim2007]. It combines posterior invariants and entropy drift with
+`zoo_bayes_survival_drift_budget`, which bounds the sum of survival probabilities by an initial
+potential.
+
+The proof also handles immediate termination when a cell already reaches the threshold. The
+resulting stage count includes the transition that detects termination.
+
+## Main statements
+
+* `zoo_bayes_immediate_halt_stages`: an initially heavy cell gives exactly one expected stage.
+* `zoo_bayes_survival_drift_budget`: a general potential bound for discrete stopping processes.
+* `zoo_bayes_learner_expected_stages`: the bound log₂(n)/`queryInfo p` + 2/(3 `queryInfo p`).
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.4][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
@@ -20,10 +43,14 @@ namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
 open scoped ENNReal NNReal BigOperators
 
+/-- If some prior mass is at least ε, `learnerNext` is the point mass at the halted output
+selected by `haltCut`. -/
 theorem zoo_bayes_immediate_halt {n : ℕ} (hn : 0 < n) (p ε : ℝ) (a : Fin n → ℝ)
     (ha : ∃ i, ε ≤ a i) : learnerNext hn p ε a = PMF.pure (Sum.inl (haltCut hn a ε)) := by
   simp [learnerNext, ha]
 
+/-- If some initial prior mass is at least ε, the learner's expected number of stages is exactly
+one. -/
 theorem zoo_bayes_immediate_halt_stages {n : ℕ} (hn : 0 < n) (p ε : ℝ) (a : Fin n → ℝ)
     (ha : ∃ i, ε ≤ a i) : learnerExpectedStages hn p ε a = 1 := by
   have hstep := zoo_bayes_immediate_halt hn p ε a ha
@@ -37,12 +64,17 @@ theorem zoo_bayes_immediate_halt_stages {n : ℕ} (hn : 0 < n) (p ε : ℝ) (a :
     | succ t => exact hs t)]
   exact finiteSurvival_zero_running _ _
 
+/-- For the uniform prior on n > 0 cells and ε ≤ 1/n, the learner's expected number of stages is
+exactly one. -/
 theorem zoo_bayes_uniform_immediate_stages {n : ℕ} (hn : 0 < n) (p ε : ℝ)
     (hε : ε ≤ 1 / (n : ℝ)) :
     learnerExpectedStages hn p ε (uniformPosterior (n := n)) = 1 := by
   apply zoo_bayes_immediate_halt_stages
   exact ⟨⟨0, hn⟩, hε⟩
 
+/-- If running transitions preserve P and decrease a nonnegative extended-real potential by at
+least δ in expectation, then δ times the sum of survival probabilities from a state
+satisfying P is at most its initial potential. -/
 theorem zoo_bayes_survival_drift_budget {S A : Type}
     (next : S → PMF (RandomizedExecution.Configuration S A))
     (P : S → Prop) (V : S → ℝ≥0∞) (δ : ℝ≥0∞)
@@ -84,12 +116,15 @@ theorem zoo_bayes_survival_drift_budget {S A : Type}
   rw [← Finset.mul_sum]
   exact hpref fuel s hs
 
+/-- For 1/2 < p < 1, the query information `queryInfo p` is at most one. -/
 theorem zoo_bayes_queryInfo_le_one (p : ℝ) (hp : 1 / 2 < p) (hp1 : p < 1) : queryInfo p ≤ 1 := by
   rw [zoo_bayes_queryInfo_natural]
   have hb := Real.binEntropy_nonneg (show 0 ≤ p by linarith) hp1.le
   have hq : 0 ≤ Real.binEntropy p / Real.log 2 := div_nonneg hb (Real.log_pos (by norm_num)).le
   linarith
 
+/-- For n ≥ 2, 1/2 < p < 1, positive `queryInfo p`, and ε ≤ 1/n, the uniform-prior learner
+satisfies the expected-stage bound log₂(n)/`queryInfo p` + 2/(3 `queryInfo p`). -/
 theorem zoo_bayes_initially_heavy_bound (n : ℕ) (p ε : ℝ) (hn2 : 2 ≤ n)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hI : 0 < queryInfo p) (hε : ε ≤ 1 / (n : ℝ)) :
     learnerExpectedStages (lt_of_lt_of_le zero_lt_two hn2) p ε (uniformPosterior (n := n)) ≤
@@ -105,9 +140,12 @@ theorem zoo_bayes_initially_heavy_bound (n : ℕ) (p ε : ℝ) (hn2 : 2 ≤ n)
   have hb : 1 ≤ (Real.log n / Real.log 2) / queryInfo p + 2 / (3 * queryInfo p) := by linarith
   simpa using ENNReal.ofReal_le_ofReal hb
 
+/-- The property that a finite real prior has nonnegative weights summing to one, with each
+weight at most 1/2. -/
 private def validPosterior {n : ℕ} (a : Fin n → ℝ) : Prop :=
   (∀ i, 0 ≤ a i) ∧ (∑ i, a i) = 1 ∧ (∀ i, a i ≤ 1 / 2)
 
+/-- A prior satisfying `validPosterior` has base-two entropy at least one. -/
 private theorem valid_entropy_one {n : ℕ} (a : Fin n → ℝ) (ha : validPosterior a) : 1 ≤ entropy a := by
   have h : (∑ i : Fin n, a i * (Real.log (a i) / Real.log 2)) ≤
       ∑ i : Fin n, a i * (Real.log (1 / 2) / Real.log 2) := Finset.sum_le_sum fun (i : Fin n) _ =>
@@ -121,6 +159,7 @@ private theorem valid_entropy_one {n : ℕ} (a : Fin n → ℝ) (ha : validPoste
   unfold entropy
   linarith
 
+/-- The uniform prior on n ≥ 2 cells satisfies `validPosterior`. -/
 private theorem valid_uniform (n : ℕ) (hn2 : 2 ≤ n) : validPosterior (uniformPosterior (n := n)) := by
   have hn0 : (0 : ℝ) < n := by exact_mod_cast lt_of_lt_of_le zero_lt_two hn2
   have hnR : (2 : ℝ) ≤ n := by exact_mod_cast hn2
@@ -132,12 +171,15 @@ private theorem valid_uniform (n : ℕ) (hn2 : 2 ≤ n) : validPosterior (unifor
     apply (div_le_iff₀ hn0).2
     nlinarith
 
+/-- The base-two entropy of the uniform prior on n > 0 cells is log₂ n. -/
 private theorem uniform_entropy (n : ℕ) (hn : 0 < n) :
     entropy (uniformPosterior (n := n)) = Real.log n / Real.log 2 := by
   have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast hn.ne'
   simp [entropy, uniformPosterior, hn0]
   field_simp
 
+/-- For a valid prior with every weight below ε and 0 < ε ≤ 1/2, the prefix mass at
+`stageTwoCut` lies in [1/2 - ε, 1/2). -/
 private theorem selected_cut_band {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (ε : ℝ)
     (ha : validPosterior a) (hε : 0 < ε) (hεhalf : ε ≤ 1 / 2)
     (hsmall : ∀ i, a i < ε) :
@@ -161,6 +203,8 @@ private theorem selected_cut_band {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (ε
     exact Finset.min'_mem _ _
   exact (Finset.mem_filter.mp hmem).2
 
+/-- If a valid prior has every weight below ε ≤ 1/6 and the cut's prefix mass lies in [1/2 - ε,
+1/2), then both posterior updates satisfy `validPosterior` for 1/2 < p < 1. -/
 private theorem bounded_posteriors {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p ε : ℝ)
     (ha : validPosterior a) (hp : 1 / 2 < p) (hp1 : p < 1) (hε : ε ≤ 1 / 6)
     (hsmall : ∀ j, a j < ε)
@@ -189,6 +233,8 @@ private theorem bounded_posteriors {n : ℕ} (a : Fin n → ℝ) (i : Fin n) (p 
     apply (div_le_iff₀ hT).2
     split_ifs <;> nlinarith [(hnum j).1, (hnum j).2]
 
+/-- For 1/2 < p < 1 and 0 < ε ≤ 1/6, every running successor with nonzero transition probability
+from a valid prior is again a valid prior. -/
 private theorem learner_preserves_valid {n : ℕ} (hn : 0 < n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (hε6 : ε ≤ 1 / 6) :
     ∀ a, validPosterior a → ∀ a', learnerNext hn p ε a (Sum.inr a') ≠ 0 → validPosterior a' := by
@@ -220,6 +266,9 @@ private theorem learner_preserves_valid {n : ℕ} (hn : 0 < n) (p ε : ℝ)
       · exact hupdates.2
     exact (Sum.inr.inj heq) ▸ hvalid
 
+/-- For a valid prior with no weight reaching ε and 1/2 < p < 1, the expected successor entropy,
+assigning zero to halted outputs, equals the answer-probability-weighted sum of the two
+updated entropies, embedded in `ENNReal`. -/
 private theorem learner_entropy_expectation {n : ℕ} (hn : 0 < n) (a : Fin n → ℝ) (p ε : ℝ)
     (ha : validPosterior a) (hp : 1 / 2 < p) (hp1 : p < 1) (hheavy : ¬∃ i, ε ≤ a i) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (learnerNext hn p ε a)
@@ -256,6 +305,9 @@ private theorem learner_entropy_expectation {n : ℕ} (hn : 0 < n) (a : Fin n �
   congr 1
   ring
 
+/-- Under the stated dimension, noise, and threshold bounds with positive `queryInfo p`, the
+expected successor entropy with halted outputs valued at zero, plus `queryInfo p` times 1 -
+1/(3 log₂ n), is at most the current entropy of a valid prior, as an `ENNReal` inequality. -/
 private theorem learner_entropy_drift (n : ℕ) (p ε : ℝ) (hn2 : 2 ≤ n)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε)
     (hcap : ε ≤ Real.sqrt (1 / (24 * (Real.log n / Real.log 2)))) (hI : 0 < queryInfo p) :
@@ -310,6 +362,7 @@ private theorem learner_entropy_drift (n : ℕ) (p ε : ℝ) (hn2 : 2 ≤ n)
     rw [learner_entropy_expectation _ a p ε ha hp hp1 hheavy, ← ENNReal.ofReal_add hδ0 hmean]
     exact ENNReal.ofReal_le_ofReal (by simpa [add_assoc] using hreal)
 
+/-- If n ≥ 2 and 1/6 < ε ≤ √(1/(24 log₂ n)), then n = 2. -/
 private theorem large_threshold_two (n : ℕ) (ε : ℝ) (hn2 : 2 ≤ n) (hε : 0 < ε)
     (hcap : ε ≤ Real.sqrt (1 / (24 * (Real.log n / Real.log 2))))
     (hlarge : 1 / 6 < ε) : n = 2 := by
@@ -329,6 +382,9 @@ private theorem large_threshold_two (n : ℕ) (ε : ℝ) (hn2 : 2 ≤ n) (hε : 
   have hs := Real.sq_sqrt (by positivity : 0 ≤ 1 / (24 * (Real.log n / Real.log 2)))
   nlinarith [Real.sqrt_nonneg (1 / (24 * (Real.log n / Real.log 2)))]
 
+/-- Proves `Lemma2_4`: under its dimension, noise, and threshold hypotheses, the uniform-prior
+learner has expected stage count at most log₂(n)/`queryInfo p` + 2/(3 `queryInfo p`) [Ben-Or
+and Hassidim, Lemma 2.4][BenOrHassidim2007]. -/
 theorem zoo_bayes_learner_expected_stages : Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma2_4 := by
   intro n p ε hn2 hp hp1 hε hcap hI
   by_cases hε6 : ε ≤ 1 / 6

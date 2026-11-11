@@ -7,6 +7,39 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireConsumers
 import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+/-!
+# Counted execution of cluster sequences
+
+This module constructs `clusterSequenceProgram`, an observed circuit that prepares a path
+resource and executes a list of single-qubit phase measurements with Pauli feedback.
+Boolean-register matrices and their integer-indexed relabelings connect the physical circuit to
+the logical product `clusterSequenceUnitary`, in the one-way computation setting of
+[RaussendorfBriegel2000].
+
+The generated leaves record the full outcome history and exact gate, query, and measurement
+counts. For unit-norm phase parameters, their amplitudes yield uniformly weighted logical
+conjugation maps after tracing out measured wires, including joint outputs with any finite
+reference system and composition under concatenation.
+
+## Main statements
+
+* `cluster_sequence_actual_resource_preparation`: Resource preparation is isometric and uses `2
+  * n` gates with zero queries.
+* `cluster_sequence_actual_program_and_feedback_cost`: Outcome registers enumerate accepted
+  leaves with exact execution costs.
+* `cluster_sequence_actual_leaf_full_amplitude`: Each leaf has the logical matrix amplitudes on
+  its outcome register.
+* `cluster_sequence_actual_branch_instrument_bridge`: Physical branch maps agree with the
+  abstract sequence instrument.
+* `cluster_sequence_append_actual_compilation`: Concatenated phase sequences compose their
+  logical unitaries and branch maps.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -36,12 +69,14 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- Matrix application commutes with scalar multiplication of the input state. -/
 theorem applyGate_smul' {I : Type*} [Fintype I] (U : Matrix I I ℂ) (c : ℂ) (ψ : QState I) :
     U *ᵥ (c • ψ) = c • (U *ᵥ ψ) := by
   funext r
   simp only [Matrix.mulVec, dotProduct, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   exact Finset.sum_congr rfl fun k _ => by ring
 
+/-- Gate application preserves addition of states. -/
 theorem applyGate_add' {I : Type*} [Fintype I] (U : Matrix I I ℂ) (ψ φ : QState I) :
     ApplyGate U (ψ + φ) = ApplyGate U ψ + ApplyGate U φ := by
   funext r
@@ -49,6 +84,7 @@ theorem applyGate_add' {I : Type*} [Fintype I] (U : Matrix I I ℂ) (ψ φ : QSt
   rw [← Finset.sum_add_distrib]
   exact Finset.sum_congr rfl fun k _ => by ring
 
+/-- Multiplying a matrix by the basis ket at `i` selects its `i`th column. -/
 theorem applyGate_ket_col {I J : Type*} [Fintype I] [Fintype J] [DecidableEq J]
     (M : Matrix I J ℂ) (i : J) : M *ᵥ Qatlib.Foundations.PureStateMath.Ket i = fun r => M r i := by
   funext r
@@ -57,11 +93,15 @@ theorem applyGate_ket_col {I J : Type*} [Fintype I] [Fintype J] [DecidableEq J]
     (h (Finset.mem_univ i)).elim)]
   rw [if_pos rfl, mul_one]
 
+/-- Every Boolean-indexed state is the linear combination of the two basis kets with its
+amplitudes as coefficients. -/
 theorem qstate_bool_decomp (χ : QState Bool) :
     χ = χ false • Qatlib.Foundations.PureStateMath.Ket false + χ true • Qatlib.Foundations.PureStateMath.Ket true := by
   funext r
   cases r <;> simp [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The integer encoding of a register separates into its final bit and twice the encoding of
+the preceding bits. -/
 theorem bitVecEquiv_succ_val (n : ℕ) (x : Reg (n + 1)) :
     (bitVecEquiv (n + 1) x).val =
       (boolEquivFin2 (x (Fin.last n))).val +
@@ -72,6 +112,7 @@ theorem bitVecEquiv_succ_val (n : ℕ) (x : Reg (n + 1)) :
   rw [h1]
   rfl
 
+/-- The register encoding is the binary expansion with wire zero as the most significant bit. -/
 theorem bitVecEquiv_val_msb (n : ℕ) (x : Reg n) :
     (bitVecEquiv n x).val = ∑ j : Fin n, (boolEquivFin2 (x j)).val * 2 ^ (n - 1 - j.val) := by
   induction n with
@@ -91,6 +132,7 @@ theorem bitVecEquiv_val_msb (n : ℕ) (x : Reg n) :
       rw [Fin.val_last, h0]
       simp
 
+/-- Prepending a bit adds its value times `2 ^ n` to the encoding of the remaining register. -/
 theorem bitVecEquiv_cons_val (n : ℕ) (b : Bool) (ω : Reg n) :
     (bitVecEquiv (n + 1) (Fin.cons b ω)).val =
       (boolEquivFin2 b).val * 2 ^ n + (bitVecEquiv n ω).val := by
@@ -102,16 +144,21 @@ theorem bitVecEquiv_cons_val (n : ℕ) (b : Bool) (ω : Reg n) :
     have hexp : n + 1 - 1 - (j.val + 1) = n - 1 - j.val := by omega
     rw [hexp]
 
+/-- The matrix applying `U` to wire `j` and leaving every other wire unchanged. -/
 noncomputable def clusterSeqOneBitB (n : ℕ) (j : Fin (n + 1)) (U : Matrix Bool Bool ℂ) :
     Matrix (Reg (n + 1)) (Reg (n + 1)) ℂ :=
   Matrix.of fun x y => if (∀ k : Fin (n + 1), k ≠ j → x k = y k) then U (x j) (y j) else 0
 
+/-- The controlled-Z matrix on the adjacent wires `j` and `j + 1` of a Boolean register. -/
 noncomputable def clusterSeqCzB (n : ℕ) (j : Fin n) : Matrix (Reg (n + 1)) (Reg (n + 1)) ℂ :=
   Matrix.diagonal fun x => if x (Fin.castSucc j) && x (Fin.succ j) then (-1 : ℂ) else 1
 
+/-- The equivalence inserting a distinguished Boolean at wire `j` into the remaining register. -/
 def clusterSeqDropEquiv (n : ℕ) (j : Fin (n + 1)) : Bool × Reg n ≃ Reg (n + 1) :=
   Fin.insertNthEquiv (fun _ : Fin (n + 1) => Bool) j
 
+/-- A gate on wire `j` is the relabeling of `U` tensored with the identity on the remaining
+wires. -/
 theorem clusterSeqOneBitB_eq_tensor (n : ℕ) (j : Fin (n + 1)) (U : Matrix Bool Bool ℂ) :
     clusterSeqOneBitB n j U =
       relabelGate (clusterSeqDropEquiv n j) (TensorGate U (1 : Matrix (Reg n) (Reg n) ℂ)) := by
@@ -142,27 +189,32 @@ theorem clusterSeqOneBitB_eq_tensor (n : ℕ) (j : Fin (n + 1)) (U : Matrix Bool
       exact hne hcon
     rw [if_neg htail, mul_zero]
 
+/-- Embedding a unitary single-qubit matrix at wire `j` preserves unitarity. -/
 theorem clusterSeqOneBitB_unitary (n : ℕ) (j : Fin (n + 1)) {U : Matrix Bool Bool ℂ}
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     clusterSeqOneBitB n j U ∈ Matrix.unitaryGroup (Reg (n + 1)) ℂ := by
   rw [clusterSeqOneBitB_eq_tensor]
   exact (relabelGate_mem_unitaryGroup _ _).mpr (tensorGate_unitary hU (Submonoid.one_mem _))
 
+/-- The controlled-Z matrix on adjacent register wires is unitary. -/
 theorem clusterSeqCzB_unitary (n : ℕ) (j : Fin n) :
     clusterSeqCzB n j ∈ Matrix.unitaryGroup (Reg (n + 1)) ℂ := by
   unfold clusterSeqCzB
   refine diagonal_mem_unitaryGroup _ fun x => ?_
   cases x (Fin.castSucc j) <;> cases x (Fin.succ j) <;> simp
 
+/-- Embedding the identity on a single wire gives the identity on the entire register. -/
 theorem clusterSeqOneBitB_one (n : ℕ) (j : Fin (n + 1)) :
     clusterSeqOneBitB n j (1 : Matrix Bool Bool ℂ) = 1 := by
   rw [clusterSeqOneBitB_eq_tensor, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- Embedding single-qubit matrices at a fixed wire preserves matrix multiplication. -/
 theorem clusterSeqOneBitB_mul (n : ℕ) (j : Fin (n + 1)) (U V : Matrix Bool Bool ℂ) :
     clusterSeqOneBitB n j U * clusterSeqOneBitB n j V = clusterSeqOneBitB n j (U * V) := by
   rw [clusterSeqOneBitB_eq_tensor, clusterSeqOneBitB_eq_tensor, clusterSeqOneBitB_eq_tensor,
     ← teleportRelabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- Single-qubit matrices embedded on distinct wires commute. -/
 theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
     (U V : Matrix Bool Bool ℂ) :
     clusterSeqOneBitB n j U * clusterSeqOneBitB n k V =
@@ -255,6 +307,8 @@ theorem clusterSeqOneBitB_commute (n : ℕ) (j k : Fin (n + 1)) (hjk : j ≠ k)
   · rw [if_pos hC, if_pos hC, mul_comm]
   · rw [if_neg hC, if_neg hC, mul_zero, mul_zero]
 
+/-- A diagonal matrix whose entries are unchanged by varying wire `k` commutes with every gate
+on that wire. -/
 theorem clusterSeqDiagonal_oneBitB_commute (n : ℕ) (k : Fin (n + 1)) (d : Reg (n + 1) → ℂ)
     (hd : ∀ x y : Reg (n + 1), (∀ l : Fin (n + 1), l ≠ k → x l = y l) → d x = d y)
     (V : Matrix Bool Bool ℂ) :
@@ -271,6 +325,8 @@ theorem clusterSeqDiagonal_oneBitB_commute (n : ℕ) (k : Fin (n + 1)) (d : Reg 
   · rw [if_pos hoff, hd x y hoff, mul_comm]
   · rw [if_neg hoff, mul_zero, zero_mul]
 
+/-- Embedding a diagonal single-qubit matrix gives the diagonal function obtained by reading
+wire `j`. -/
 theorem clusterSeqOneBitB_diagonal (n : ℕ) (j : Fin (n + 1)) (f : Bool → ℂ) :
     clusterSeqOneBitB n j (Matrix.diagonal f) = Matrix.diagonal (fun x => f (x j)) := by
   ext x y
@@ -290,20 +346,24 @@ theorem clusterSeqOneBitB_diagonal (n : ℕ) (j : Fin (n + 1)) (f : Bool → ℂ
       rw [if_pos hoff, if_neg hne]
     · rw [if_neg hoff]
 
+/-- The extension of a register operator by an identity on a new leading wire. -/
 noncomputable def clusterSeqShiftOp (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) :
     Matrix (Reg (m + 2)) (Reg (m + 2)) ℂ :=
   relabelGate (Fin.consEquiv (fun _ : Fin (m + 2) => Bool)) (TensorGate (1 : Matrix Bool Bool ℂ) W)
 
+/-- Extending operators by a leading identity preserves multiplication. -/
 theorem clusterSeqShiftOp_mul (m : ℕ) (A B : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) :
     clusterSeqShiftOp m (A * B) = clusterSeqShiftOp m A * clusterSeqShiftOp m B := by
   unfold clusterSeqShiftOp
   rw [← teleportRelabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- Extending the identity by a leading wire gives the identity. -/
 theorem clusterSeqShiftOp_one (m : ℕ) :
     clusterSeqShiftOp m (1 : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) = 1 := by
   unfold clusterSeqShiftOp
   rw [tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- Extending a unitary operator by a leading identity preserves unitarity. -/
 theorem clusterSeqShiftOp_unitary (m : ℕ) {W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ}
     (hW : W ∈ Matrix.unitaryGroup (Reg (m + 1)) ℂ) :
     clusterSeqShiftOp m W ∈ Matrix.unitaryGroup (Reg (m + 2)) ℂ := by
@@ -311,6 +371,8 @@ theorem clusterSeqShiftOp_unitary (m : ℕ) {W : Matrix (Reg (m + 1)) (Reg (m + 
   exact (relabelGate_mem_unitaryGroup _ _).mpr
     (tensorGate_unitary (Submonoid.one_mem _) hW)
 
+/-- An extended operator has a Kronecker delta on the leading bits and the original matrix entry
+on the tails. -/
 theorem clusterSeqShiftOp_entry (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ)
     (x y : Reg (m + 2)) :
     clusterSeqShiftOp m W x y =
@@ -318,6 +380,8 @@ theorem clusterSeqShiftOp_entry (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)
   show (TensorGate (1 : Matrix Bool Bool ℂ) W) (x 0, Fin.tail x) (y 0, Fin.tail y) = _
   rw [tensorGate_apply, Matrix.one_apply]
 
+/-- A gate on wire zero is the relabeled tensor product of that gate with the identity on the
+tail. -/
 theorem clusterSeqOneBitB_zero_eq (m : ℕ) (U : Matrix Bool Bool ℂ) :
     clusterSeqOneBitB (m + 1) (0 : Fin (m + 2)) U =
       relabelGate (Fin.consEquiv (fun _ : Fin (m + 2) => Bool))
@@ -326,6 +390,7 @@ theorem clusterSeqOneBitB_zero_eq (m : ℕ) (U : Matrix Bool Bool ℂ) :
   unfold clusterSeqDropEquiv
   rw [Fin.insertNthEquiv_zero]
 
+/-- Extending an embedded single-qubit gate moves its wire index to `j.succ`. -/
 theorem clusterSeqShiftOp_oneBitB (m : ℕ) (j : Fin (m + 1)) (U : Matrix Bool Bool ℂ) :
     clusterSeqShiftOp m (clusterSeqOneBitB m j U) =
       clusterSeqOneBitB (m + 1) j.succ U := by
@@ -350,6 +415,7 @@ theorem clusterSeqShiftOp_oneBitB (m : ℕ) (j : Fin (m + 1)) (U : Matrix Bool B
     · rw [if_neg h0, zero_mul]
     · rw [if_neg htail, mul_zero]
 
+/-- A gate on the leading wire commutes with every operator extended from the tail. -/
 theorem clusterSeqOneBitB_zero_mul_shiftOp (m : ℕ) (U : Matrix Bool Bool ℂ)
     (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) :
     clusterSeqOneBitB (m + 1) (0 : Fin (m + 2)) U * clusterSeqShiftOp m W =
@@ -359,24 +425,32 @@ theorem clusterSeqOneBitB_zero_mul_shiftOp (m : ℕ) (U : Matrix Bool Bool ℂ)
   rw [← teleportRelabelGate_mul, ← teleportRelabelGate_mul, tensorGate_mul, tensorGate_mul,
     Matrix.mul_one, Matrix.one_mul, Matrix.mul_one, Matrix.one_mul]
 
+/-- The register containing the bit encoded by `i` at wire zero and zero at every other wire. -/
 def clusterSeqBasisVec (n : ℕ) (i : Fin 2) : Reg (n + 1) :=
   fun j => if j.val = 0 then boolEquivFin2.symm i else false
 
+/-- The leading bit of `clusterSeqBasisVec n i` is the Boolean corresponding to `i`. -/
 theorem clusterSeqBasisVec_zero (n : ℕ) (i : Fin 2) :
     clusterSeqBasisVec n i 0 = boolEquivFin2.symm i := by
   simp [clusterSeqBasisVec]
 
+/-- Every tail bit of `clusterSeqBasisVec n i` is false. -/
 theorem clusterSeqBasisVec_succ (n : ℕ) (i : Fin 2) (j : Fin n) :
     clusterSeqBasisVec n i j.succ = false := by
   simp [clusterSeqBasisVec, Fin.val_succ]
 
+/-- The input frame embedding a qubit into wire zero with all remaining wires initialized to
+zero. -/
 def clusterSeqInitialFrameB (n : ℕ) : Matrix (Reg (n + 1)) (Fin 2) ℂ :=
   Matrix.of fun x i => if x = clusterSeqBasisVec n i then 1 else 0
 
+/-- The input frame in integer-indexed coordinates, embedding a qubit with zero ancillas. -/
 def clusterSequenceInitialFrame (n : ℕ) : Matrix (Fin (2 ^ (n + 1))) (Fin 2) ℂ :=
   Matrix.of fun r i =>
     if r = bitVecEquiv (n + 1) (clusterSeqBasisVec n i) then 1 else 0
 
+/-- Integer-indexed initial-frame entries agree with Boolean-register entries under
+`bitVecEquiv`. -/
 theorem clusterSequenceInitialFrame_entry (n : ℕ) (r : Fin (2 ^ (n + 1))) (i : Fin 2) :
     clusterSequenceInitialFrame n r i =
       clusterSeqInitialFrameB n ((bitVecEquiv (n + 1)).symm r) i := by
@@ -392,6 +466,7 @@ theorem clusterSequenceInitialFrame_entry (n : ℕ) (r : Fin (2 ^ (n + 1))) (i :
       exact h ((Equiv.symm_apply_eq (bitVecEquiv (n + 1))).mp hc)
     rw [if_neg h']
 
+/-- The two registers used as columns of the initial frame are distinct. -/
 theorem clusterSeqBasisVec_injective (n : ℕ) :
     Function.Injective (clusterSeqBasisVec n) := by
   intro i j hij
@@ -399,6 +474,7 @@ theorem clusterSeqBasisVec_injective (n : ℕ) :
   rw [clusterSeqBasisVec_zero, clusterSeqBasisVec_zero] at h0
   exact boolEquivFin2.symm.injective h0
 
+/-- The Boolean-register initial frame is an isometry. -/
 theorem clusterSeqInitialFrameB_isometry (n : ℕ) :
     IsIsometry (clusterSeqInitialFrameB n) := by
   have hInj := clusterSeqBasisVec_injective n
@@ -430,6 +506,7 @@ theorem clusterSeqInitialFrameB_isometry (n : ℕ) :
       exact (Matrix.one_apply_ne hij).symm
   exact h
 
+/-- The integer-indexed initial frame is an isometry. -/
 theorem clusterSequenceInitialFrame_isometry (n : ℕ) :
     IsIsometry (clusterSequenceInitialFrame n) := by
   have hInj : Function.Injective (fun i : Fin 2 => bitVecEquiv (n + 1) (clusterSeqBasisVec n i)) :=
@@ -463,6 +540,7 @@ theorem clusterSequenceInitialFrame_isometry (n : ℕ) :
       exact (Matrix.one_apply_ne hij).symm
   exact h
 
+/-- Applying the initial frame tensors the input qubit with the all-zero tail register. -/
 theorem clusterSeqInitialFrameB_mulVec (n : ℕ) (φ : QState (Fin 2)) :
     clusterSeqInitialFrameB n *ᵥ φ =
       relabelState (Fin.consEquiv (fun _ : Fin (n + 1) => Bool))
@@ -510,6 +588,8 @@ theorem clusterSeqInitialFrameB_mulVec (n : ℕ) (φ : QState (Fin 2)) :
       exact hk
     rw [if_neg hne, zero_mul]
 
+/-- Applying the integer-indexed initial frame relabels the corresponding Boolean-register
+state. -/
 theorem clusterSequenceInitialFrame_mulVec (n : ℕ) (ψ : QState (Fin 2)) :
     clusterSequenceInitialFrame n *ᵥ ψ =
       relabelState (bitVecEquiv (n + 1)) (clusterSeqInitialFrameB n *ᵥ ψ) := by
@@ -517,12 +597,15 @@ theorem clusterSequenceInitialFrame_mulVec (n : ℕ) (ψ : QState (Fin 2)) :
   simp only [Matrix.mulVec, dotProduct, clusterSequenceInitialFrame_entry, relabelState,
     Function.comp_apply]
 
+/-- The matrix product of the gate steps of a circuit, ignoring query steps. -/
 noncomputable def clusterSeqCircuitGate {I : Type*} [Fintype I] [DecidableEq I] :
     Circuit I → Matrix I I ℂ
   | [] => 1
   | Step.gate U :: C => clusterSeqCircuitGate C * U
   | Step.query :: C => clusterSeqCircuitGate C
 
+/-- The gate matrix of a concatenated circuit is the second circuit's matrix times the first
+circuit's matrix. -/
 theorem clusterSeqCircuitGate_append {I : Type*} [Fintype I] [DecidableEq I] (C D : Circuit I) :
     clusterSeqCircuitGate (C ++ D) =
       clusterSeqCircuitGate D * clusterSeqCircuitGate C := by
@@ -538,6 +621,7 @@ theorem clusterSeqCircuitGate_append {I : Type*} [Fintype I] [DecidableEq I] (C 
       rw [ih, Matrix.mul_assoc]
     | query => exact ih
 
+/-- A circuit with zero queries acts by its gate matrix, independently of the oracle. -/
 theorem run_clusterSeqCircuitGate {I : Type*} [Fintype I] [DecidableEq I] (oracle : Matrix I I ℂ)
     (C : Circuit I) (hC : QueryCount C = 0) (ψ : QState I) :
     Run oracle C ψ = ApplyGate (clusterSeqCircuitGate C) ψ := by
@@ -554,6 +638,7 @@ theorem run_clusterSeqCircuitGate {I : Type*} [Fintype I] [DecidableEq I] (oracl
       have hC' : QueryCount C + 1 = 0 := hC
       exact absurd hC' (Nat.succ_ne_zero _)
 
+/-- The gate matrix of a unitary circuit is unitary. -/
 theorem clusterSeqCircuitGate_unitary {I : Type*} [Fintype I] [DecidableEq I] (C : Circuit I)
     (hC : IsUnitaryCircuit C) : clusterSeqCircuitGate C ∈ Matrix.unitaryGroup I ℂ := by
   induction C with
@@ -567,6 +652,7 @@ theorem clusterSeqCircuitGate_unitary {I : Type*} [Fintype I] [DecidableEq I] (C
     | query =>
       exact ih (fun V hV => hC V (List.mem_cons_of_mem _ hV))
 
+/-- Taking a circuit's gate matrix commutes with relabeling its state space. -/
 theorem clusterSeqCircuitGate_relabel {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (C : Circuit I) :
     clusterSeqCircuitGate (relabelCircuit e C) = relabelGate e (clusterSeqCircuitGate C) := by
@@ -582,6 +668,7 @@ theorem clusterSeqCircuitGate_relabel {I J : Type*} [Fintype I] [DecidableEq I] 
       rw [ih, ← CircuitRelabel.relabelGate_mul]
     | query => exact ih
 
+/-- A matrix commuting with every gate in a circuit commutes with the circuit's gate matrix. -/
 theorem clusterSeqCircuitGate_commute {I : Type*} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (C : Circuit I)
     (hC : ∀ U : Matrix I I ℂ, Step.gate U ∈ C → A * U = U * A) :
     A * clusterSeqCircuitGate C = clusterSeqCircuitGate C * A := by
@@ -599,14 +686,19 @@ theorem clusterSeqCircuitGate_commute {I : Type*} [Fintype I] [DecidableEq I] (A
       show A * clusterSeqCircuitGate C = clusterSeqCircuitGate C * A
       exact ih (fun V hV => hC V (List.mem_cons_of_mem _ hV))
 
+/-- The circuit step obtained by extending gates to a new leading wire and retaining query
+steps. -/
 noncomputable def clusterSeqShiftStep (m : ℕ) : Step (Reg (m + 1)) → Step (Reg (m + 2))
   | Step.gate U => Step.gate (clusterSeqShiftOp m U)
   | Step.query => Step.query
 
+/-- The circuit obtained by extending every step to a register with a new leading wire. -/
 noncomputable def clusterSeqShiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))) :
     Circuit (Reg (m + 2)) :=
   C.map (clusterSeqShiftStep m)
 
+/-- The gate matrix of a shifted circuit is the leading-identity extension of its original gate
+matrix. -/
 theorem clusterSeqCircuitGate_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))) :
     clusterSeqCircuitGate (clusterSeqShiftCircuitB m C) =
       clusterSeqShiftOp m (clusterSeqCircuitGate C) := by
@@ -625,6 +717,7 @@ theorem clusterSeqCircuitGate_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))
         clusterSeqShiftOp m (clusterSeqCircuitGate C)
       exact ih
 
+/-- Shifting a circuit to a larger register preserves its gate count. -/
 theorem gateCount_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))) :
     GateCount (clusterSeqShiftCircuitB m C) = GateCount C := by
   induction C with
@@ -639,6 +732,7 @@ theorem gateCount_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))) :
       show GateCount (Step.query :: clusterSeqShiftCircuitB m C) = GateCount (Step.query :: C)
       exact ih
 
+/-- Shifting a circuit to a larger register preserves its query count. -/
 theorem queryCount_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))) :
     QueryCount (clusterSeqShiftCircuitB m C) = QueryCount C := by
   induction C with
@@ -653,6 +747,7 @@ theorem queryCount_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1))) :
       show QueryCount (Step.query :: clusterSeqShiftCircuitB m C) = QueryCount (Step.query :: C)
       rw [queryCount_query, queryCount_query, ih]
 
+/-- A list of `m` gate steps has gate count `m`. -/
 theorem gateCount_ofFn_gate {I : Type*} [Fintype I] [DecidableEq I] (m : ℕ) (G : Fin m → Matrix I I ℂ) :
     GateCount (List.ofFn fun j => Step.gate (G j)) = m := by
   have h : ∀ L : List (Fin m), GateCount (L.map (fun j => Step.gate (G j))) = L.length := by
@@ -662,6 +757,7 @@ theorem gateCount_ofFn_gate {I : Type*} [Fintype I] [DecidableEq I] (m : ℕ) (G
     | cons a L ih => rw [List.map_cons, gateCount_gate, ih, List.length_cons]
   rw [List.ofFn_eq_map, h, List.length_finRange]
 
+/-- A list consisting entirely of gate steps has zero query count. -/
 theorem queryCount_ofFn_gate {I : Type*} [Fintype I] [DecidableEq I] (m : ℕ) (G : Fin m → Matrix I I ℂ) :
     QueryCount (List.ofFn fun j => Step.gate (G j)) = 0 := by
   have h : ∀ L : List (Fin m), QueryCount (L.map (fun j => Step.gate (G j))) = 0 := by
@@ -671,6 +767,7 @@ theorem queryCount_ofFn_gate {I : Type*} [Fintype I] [DecidableEq I] (m : ℕ) (
     | cons a L ih => rw [List.map_cons, queryCount_gate, ih]
   rw [List.ofFn_eq_map, h]
 
+/-- Extending a diagonal operator gives the diagonal function evaluated on the register tail. -/
 theorem clusterSeqShiftOp_diagonal (m : ℕ) (d : Reg (m + 1) → ℂ) :
     clusterSeqShiftOp m (Matrix.diagonal d) = Matrix.diagonal (fun x => d (Fin.tail x)) := by
   ext x y
@@ -686,20 +783,27 @@ theorem clusterSeqShiftOp_diagonal (m : ℕ) (d : Reg (m + 1) → ℂ) :
       rw [if_neg ht, mul_zero]
     · rw [if_neg h0, zero_mul]
 
+/-- Extending an adjacent controlled-Z gate shifts both of its wires by one. -/
 theorem clusterSeqShiftOp_czB (m : ℕ) (j : Fin m) :
     clusterSeqShiftOp m (clusterSeqCzB m j) = clusterSeqCzB (m + 1) j.succ := by
   rw [clusterSeqCzB, clusterSeqShiftOp_diagonal, clusterSeqCzB]
   congr 1
 
+/-- The circuit applying Hadamard gates to the `n` ancilla wires. -/
 noncomputable def clusterSeqResourceHB (n : ℕ) : Circuit (Reg (n + 1)) :=
   List.ofFn fun j : Fin n => Step.gate (clusterSeqOneBitB n j.succ Hadamard)
 
+/-- The circuit applying controlled-Z gates to the `n` adjacent pairs of a path. -/
 noncomputable def clusterSeqResourceCzB (n : ℕ) : Circuit (Reg (n + 1)) :=
   List.ofFn fun j : Fin n => Step.gate (clusterSeqCzB n j)
 
+/-- The resource preparation circuit consisting of ancilla Hadamard gates followed by path
+controlled-Z gates. -/
 noncomputable def clusterSeqResourceCircuitB (n : ℕ) : Circuit (Reg (n + 1)) :=
   clusterSeqResourceHB n ++ clusterSeqResourceCzB n
 
+/-- The ancilla Hadamard circuit splits into the first ancilla gate followed by the shifted
+smaller circuit. -/
 theorem clusterSeqResourceHB_succ (n : ℕ) :
     clusterSeqResourceHB (n + 1) =
       Step.gate (clusterSeqOneBitB (n + 1) (0 : Fin (n + 1)).succ Hadamard) ::
@@ -717,6 +821,8 @@ theorem clusterSeqResourceHB_succ (n : ℕ) :
     Step.gate (clusterSeqShiftOp n (clusterSeqOneBitB n j.succ Hadamard))
   rw [clusterSeqShiftOp_oneBitB]
 
+/-- The path controlled-Z circuit splits into its first edge gate followed by the shifted
+smaller circuit. -/
 theorem clusterSeqResourceCzB_succ (n : ℕ) :
     clusterSeqResourceCzB (n + 1) =
       Step.gate (clusterSeqCzB (n + 1) (0 : Fin (n + 1))) ::
@@ -733,6 +839,7 @@ theorem clusterSeqResourceCzB_succ (n : ℕ) :
     Step.gate (clusterSeqShiftOp n (clusterSeqCzB n j))
   rw [clusterSeqShiftOp_czB]
 
+/-- The resource preparation circuit uses exactly `2 * n` gates. -/
 theorem gateCount_resourceCircuitB (n : ℕ) :
     GateCount (clusterSeqResourceCircuitB n) = 2 * n := by
   show GateCount ((List.ofFn fun j : Fin n => Step.gate (clusterSeqOneBitB n j.succ Hadamard)) ++
@@ -740,12 +847,14 @@ theorem gateCount_resourceCircuitB (n : ℕ) :
   rw [gateCount_append, gateCount_ofFn_gate, gateCount_ofFn_gate]
   ring
 
+/-- The resource preparation circuit makes no oracle queries. -/
 theorem queryCount_resourceCircuitB (n : ℕ) :
     QueryCount (clusterSeqResourceCircuitB n) = 0 := by
   show QueryCount ((List.ofFn fun j : Fin n => Step.gate (clusterSeqOneBitB n j.succ Hadamard)) ++
     (List.ofFn fun j : Fin n => Step.gate (clusterSeqCzB n j))) = 0
   rw [queryCount_append, queryCount_ofFn_gate, queryCount_ofFn_gate]
 
+/-- The resource preparation circuit is unitary. -/
 theorem isUnitaryCircuit_resourceCircuitB (n : ℕ) :
     IsUnitaryCircuit (clusterSeqResourceCircuitB n) := by
   intro U hU
@@ -762,6 +871,7 @@ theorem isUnitaryCircuit_resourceCircuitB (n : ℕ) :
     rw [← hj]
     exact clusterSeqCzB_unitary n j
 
+/-- Shifting a unitary circuit to a register with a new leading wire preserves unitarity. -/
 theorem isUnitaryCircuit_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1)))
     (hC : IsUnitaryCircuit C) : IsUnitaryCircuit (clusterSeqShiftCircuitB m C) := by
   intro U hU
@@ -776,13 +886,17 @@ theorem isUnitaryCircuit_shiftCircuitB (m : ℕ) (C : Circuit (Reg (m + 1)))
     rw [← hsg]
     exact clusterSeqShiftOp_unitary m (hC V hs)
 
+/-- The gate matrix of the Boolean-register resource preparation circuit. -/
 noncomputable def clusterSeqResourceGateB (n : ℕ) : Matrix (Reg (n + 1)) (Reg (n + 1)) ℂ :=
   clusterSeqCircuitGate (clusterSeqResourceCircuitB n)
 
+/-- The Boolean-register resource preparation matrix is unitary. -/
 theorem clusterSeqResourceGateB_unitary (n : ℕ) :
     clusterSeqResourceGateB n ∈ Matrix.unitaryGroup (Reg (n + 1)) ℂ :=
   clusterSeqCircuitGate_unitary _ (isUnitaryCircuit_resourceCircuitB n)
 
+/-- The first controlled-Z edge commutes with the shifted Hadamard circuit on the later
+ancillas. -/
 theorem clusterSeqCzB_zero_mul_shiftHB (n : ℕ) :
     clusterSeqCzB (n + 1) (0 : Fin (n + 1)) *
         clusterSeqShiftOp n (clusterSeqCircuitGate (clusterSeqResourceHB n)) =
@@ -820,11 +934,14 @@ theorem clusterSeqCzB_zero_mul_shiftHB (n : ℕ) :
     simp [Fin.val_succ] at hv
   rw [h0, h1]
 
+/-- Two adjacent matrix products can be regrouped when their middle factors commute. -/
 theorem clusterSeqMatShuffle {I : Type*} [Fintype I] (A B c d : Matrix I I ℂ)
     (h : c * B = B * c) : (A * c) * (B * d) = (A * B) * (c * d) := by
   rw [Matrix.mul_assoc A c, ← Matrix.mul_assoc c B d, h, Matrix.mul_assoc B c d,
     ← Matrix.mul_assoc A B (c * d)]
 
+/-- The resource preparation matrix factors into a shifted smaller resource matrix, the first
+controlled-Z gate, and the first ancilla Hadamard. -/
 theorem clusterSeqResourceGateB_succ (n : ℕ) :
     clusterSeqResourceGateB (n + 1) =
       clusterSeqShiftOp n (clusterSeqResourceGateB n) *
@@ -843,15 +960,20 @@ theorem clusterSeqResourceGateB_succ (n : ℕ) :
     ← clusterSeqShiftOp_mul, ← clusterSeqCircuitGate_append, Matrix.mul_assoc]
   rfl
 
+/-- The resource preparation circuit relabeled to integer-indexed coordinates. -/
 noncomputable def clusterSequenceResourceCircuit (n : ℕ) : Circuit (Fin (2 ^ (n + 1))) :=
   relabelCircuit (bitVecEquiv (n + 1)) (clusterSeqResourceCircuitB n)
 
+/-- The resource preparation matrix in integer-indexed coordinates. -/
 noncomputable def clusterSequenceResourceGate (n : ℕ) : Operator (2 ^ (n + 1)) :=
   clusterSeqCircuitGate (clusterSequenceResourceCircuit n)
 
+/-- The frame obtained by applying resource preparation to the initial input frame. -/
 noncomputable def clusterSequencePreparedFrame (n : ℕ) : Matrix (Fin (2 ^ (n + 1))) (Fin 2) ℂ :=
   clusterSequenceResourceGate n * clusterSequenceInitialFrame n
 
+/-- The integer-indexed resource matrix is the relabeling of the Boolean-register resource
+matrix. -/
 theorem clusterSequenceResourceGate_eq_relabel (n : ℕ) :
     clusterSequenceResourceGate n =
       relabelGate (bitVecEquiv (n + 1)) (clusterSeqResourceGateB n) := by
@@ -860,6 +982,8 @@ theorem clusterSequenceResourceGate_eq_relabel (n : ℕ) :
   rw [clusterSeqCircuitGate_relabel]
   rfl
 
+/-- Resource preparation maps the isometric input frame to an isometric prepared frame using a
+unitary circuit with `2 * n` gates and zero queries. -/
 theorem cluster_sequence_actual_resource_preparation :
     ∀ (n : ℕ),
       Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (clusterSequenceInitialFrame n) ∧
@@ -905,42 +1029,53 @@ theorem cluster_sequence_actual_resource_preparation :
       clusterSequencePreparedFrame n *ᵥ ψ
     simp only [clusterSequencePreparedFrame, Matrix.mulVec_mulVec]
 
+/-- The binary measurement label reading the leading wire of an integer-encoded register. -/
 def clusterSeqLabelFin (m : ℕ) : Fin (2 ^ (m + 1)) → Fin 2 :=
   fun r => boolEquivFin2 ((bitVecEquiv (m + 1)).symm r 0)
 
+/-- The matrix applying `U` to wire `j` in integer-indexed register coordinates. -/
 noncomputable def clusterSeqOneBitFin (m : ℕ) (j : Fin (m + 1)) (U : Matrix Bool Bool ℂ) :
     Operator (2 ^ (m + 1)) :=
   relabelGate (bitVecEquiv (m + 1)) (clusterSeqOneBitB m j U)
 
+/-- Embedding a unitary single-qubit matrix in integer-indexed coordinates preserves unitarity. -/
 theorem clusterSeqOneBitFin_unitary (m : ℕ) (j : Fin (m + 1)) (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     clusterSeqOneBitFin m j U ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 1))) ℂ :=
   (relabelGate_mem_unitaryGroup _ _).mpr (clusterSeqOneBitB_unitary m j hU)
 
+/-- The Boolean-indexed diagonal matrix with entries `1` and `z`. -/
 noncomputable def clusterSeqPhaseB (z : ℂ) : Matrix Bool Bool ℂ :=
   Matrix.diagonal fun a : Bool => if a then z else 1
 
+/-- The phase matrix is unitary when `z` has norm one. -/
 theorem clusterSeqPhaseB_unitary {z : ℂ} (hz : ‖z‖ = 1) :
     clusterSeqPhaseB z ∈ Matrix.unitaryGroup Bool ℂ :=
   diagonal_mem_unitaryGroup _ fun a => by cases a <;> simp [hz]
 
+/-- The phase matrix `diag(1, z)` embedded at the leading wire in integer-indexed coordinates. -/
 noncomputable def clusterSeqPhaseFin (m : ℕ) (z : ℂ) : Operator (2 ^ (m + 1)) :=
   clusterSeqOneBitFin m 0 (clusterSeqPhaseB z)
 
+/-- The embedded leading-wire phase matrix is unitary when `z` has norm one. -/
 theorem clusterSeqPhaseFin_unitary {z : ℂ} (hz : ‖z‖ = 1) (m : ℕ) :
     clusterSeqPhaseFin m z ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 1))) ℂ :=
   clusterSeqOneBitFin_unitary m 0 _ (clusterSeqPhaseB_unitary hz)
 
+/-- The Hadamard matrix embedded at the leading wire in integer-indexed coordinates. -/
 noncomputable def clusterSeqHFin (m : ℕ) : Operator (2 ^ (m + 1)) :=
   clusterSeqOneBitFin m 0 Hadamard
 
+/-- The embedded leading-wire Hadamard matrix is unitary. -/
 theorem clusterSeqHFin_unitary (m : ℕ) :
     clusterSeqHFin m ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 1))) ℂ :=
   clusterSeqOneBitFin_unitary m 0 _ hadamard_unitary
 
+/-- The conditional Pauli-X correction on wire one controlled by the binary outcome `k`. -/
 noncomputable def clusterSeqXFin (m : ℕ) (hm : 0 < m) (k : Fin 2) : Operator (2 ^ (m + 1)) :=
   clusterSeqOneBitFin m ⟨1, by omega⟩ (if boolEquivFin2.symm k then PauliX else 1)
 
+/-- The conditional Pauli-X correction on wire one is unitary. -/
 theorem clusterSeqXFin_unitary (m : ℕ) (hm : 0 < m) (k : Fin 2) :
     clusterSeqXFin m hm k ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 1))) ℂ := by
   unfold clusterSeqXFin
@@ -951,9 +1086,11 @@ theorem clusterSeqXFin_unitary (m : ℕ) (hm : 0 < m) (k : Fin 2) :
   · simp only [if_neg hk]
     exact Submonoid.one_mem _
 
+/-- The conditional Pauli-Z correction on wire two controlled by the binary outcome `k`. -/
 noncomputable def clusterSeqZFin (m : ℕ) (hm : 1 < m) (k : Fin 2) : Operator (2 ^ (m + 1)) :=
   clusterSeqOneBitFin m ⟨2, by omega⟩ (if boolEquivFin2.symm k then PauliZ else 1)
 
+/-- The conditional Pauli-Z correction on wire two is unitary. -/
 theorem clusterSeqZFin_unitary (m : ℕ) (hm : 1 < m) (k : Fin 2) :
     clusterSeqZFin m hm k ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 1))) ℂ := by
   unfold clusterSeqZFin
@@ -964,15 +1101,19 @@ theorem clusterSeqZFin_unitary (m : ℕ) (hm : 1 < m) (k : Fin 2) :
   · simp only [if_neg hk]
     exact Submonoid.one_mem _
 
+/-- The extension of an integer-indexed operator by an identity on a new leading wire. -/
 noncomputable def clusterSeqShiftGateFin (m : ℕ) (U : Operator (2 ^ (m + 1))) :
     Operator (2 ^ (m + 2)) :=
   relabelGate (bitVecEquiv (m + 2))
     (clusterSeqShiftOp m (relabelGate (bitVecEquiv (m + 1)).symm U))
 
+/-- The measurement label obtained by applying `l` to the tail of the decoded register. -/
 def clusterSeqShiftLabelFin (m : ℕ) {k : ℕ} (l : Fin (2 ^ (m + 1)) → Fin k) :
     Fin (2 ^ (m + 2)) → Fin k :=
   fun r => l (bitVecEquiv (m + 1) (Fin.tail ((bitVecEquiv (m + 2)).symm r)))
 
+/-- The observed circuit obtained by extending gates and projectors to the tail and shifting
+measurement labels. -/
 noncomputable def clusterSeqShiftObservedFin (m : ℕ) :
     ObservedCircuit (Fin (2 ^ (m + 1))) → ObservedCircuit (Fin (2 ^ (m + 2)))
   | .halt b => .halt b
@@ -986,23 +1127,28 @@ noncomputable def clusterSeqShiftObservedFin (m : ℕ) :
       .project (clusterSeqShiftGateFin m P)
         (clusterSeqShiftObservedFin m onFalse) (clusterSeqShiftObservedFin m onTrue)
 
+/-- Extending an integer-indexed relabeled operator agrees with relabeling its Boolean-register
+extension. -/
 theorem clusterSeqShiftGateFin_relabel (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) :
     clusterSeqShiftGateFin m (relabelGate (bitVecEquiv (m + 1)) W)
       = relabelGate (bitVecEquiv (m + 2)) (clusterSeqShiftOp m W) := by
   unfold clusterSeqShiftGateFin
   rw [relabelGate_relabelGate]
 
+/-- Extending integer-indexed operators by a leading identity preserves multiplication. -/
 theorem clusterSeqShiftGateFin_mul (m : ℕ) (A B : Operator (2 ^ (m + 1))) :
     clusterSeqShiftGateFin m (A * B) = clusterSeqShiftGateFin m A * clusterSeqShiftGateFin m B := by
   unfold clusterSeqShiftGateFin
   rw [CircuitRelabel.relabelGate_mul, clusterSeqShiftOp_mul,
     ← CircuitRelabel.relabelGate_mul]
 
+/-- Extending the integer-indexed identity gives the identity. -/
 theorem clusterSeqShiftGateFin_one (m : ℕ) :
     clusterSeqShiftGateFin m 1 = 1 := by
   unfold clusterSeqShiftGateFin
   rw [CircuitRelabel.relabelGate_one, clusterSeqShiftOp_one, CircuitRelabel.relabelGate_one]
 
+/-- Extending a unitary integer-indexed operator preserves unitarity. -/
 theorem clusterSeqShiftGateFin_unitary (m : ℕ) {U : Operator (2 ^ (m + 1))}
     (hU : U ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 1))) ℂ) :
     clusterSeqShiftGateFin m U ∈ Matrix.unitaryGroup (Fin (2 ^ (m + 2))) ℂ := by
@@ -1010,6 +1156,7 @@ theorem clusterSeqShiftGateFin_unitary (m : ℕ) {U : Operator (2 ^ (m + 1))}
   exact (relabelGate_mem_unitaryGroup _ _).mpr
     (clusterSeqShiftOp_unitary m ((relabelGate_mem_unitaryGroup _ _).mpr hU))
 
+/-- Shifting the leading-wire measurement label reads wire one of the larger register. -/
 theorem clusterSeqShiftLabelFin_labelFin (m : ℕ) (r : Fin (2 ^ (m + 2))) :
     clusterSeqShiftLabelFin m (clusterSeqLabelFin m) r
       = boolEquivFin2 ((bitVecEquiv (m + 2)).symm r (Fin.succ (0 : Fin (m + 1)))) := by
@@ -1017,6 +1164,7 @@ theorem clusterSeqShiftLabelFin_labelFin (m : ℕ) (r : Fin (2 ^ (m + 2))) :
   rw [Equiv.symm_apply_apply]
   rfl
 
+/-- Extending a label projector gives the projector for the shifted label. -/
 theorem clusterSeqShiftGateFin_projector (m : ℕ) {k : ℕ} (l : Fin (2 ^ (m + 1)) → Fin k)
     (o : Fin k) :
     clusterSeqShiftGateFin m (Projector (Finset.univ.filter (fun r => l r = o)))
@@ -1046,22 +1194,27 @@ theorem clusterSeqShiftGateFin_projector (m : ℕ) {k : ℕ} (l : Fin (2 ^ (m + 
         mul_zero, if_neg (fun h : r = r' => hrr' h.symm)]
     · rw [if_neg h0, zero_mul, if_neg (fun h : r = r' => hrr' h.symm)]
 
+/-- Pointwise equal finite functions produce equal lists under `List.ofFn`. -/
 theorem clusterSeqOfFn_congr {α : Type*} {n : ℕ} {f g : Fin n → α} (h : ∀ i, f i = g i) :
     List.ofFn f = List.ofFn g := by
   rw [List.ofFn_eq_map, List.ofFn_eq_map]
   exact List.map_congr_left (fun a _ => h a)
 
+/-- The list enumerating a function on `Fin 1` consists of its value at zero. -/
 theorem clusterSeqOfFn_fin1 {α : Type*} (f : Fin 1 → α) : List.ofFn f = [f 0] := by
   have h0 : List.ofFn (fun i : Fin 0 => f i.succ) = [] :=
     List.eq_nil_of_length_eq_zero (by simp)
   rw [List.ofFn_succ, h0]
 
+/-- The list enumerating a function on `Fin 2` consists of its values at zero and one. -/
 theorem clusterSeqOfFn_fin2 {α : Type*} (f : Fin 2 → α) : List.ofFn f = [f 0, f 1] := by
   have h0 : List.ofFn (fun i : Fin 0 => f i.succ.succ) = [] :=
     List.eq_nil_of_length_eq_zero (by simp)
   rw [List.ofFn_succ, List.ofFn_succ, h0]
   rfl
 
+/-- An enumeration of two equal-sized finite blocks is the concatenation of their separate
+enumerations. -/
 theorem clusterSeqOfFn_append {α : Type*} (k : ℕ) (F : Fin (2 ^ k + 2 ^ k) → α) :
     List.ofFn F =
       List.ofFn (fun i : Fin (2 ^ k) => F (Fin.castAdd (2 ^ k) i)) ++
@@ -1098,6 +1251,7 @@ theorem clusterSeqOfFn_append {α : Type*} (k : ℕ) (F : Fin (2 ^ k + 2 ^ k) �
     rw [hl2]
     omega
 
+/-- Encoding a one-bit register agrees with `boolEquivFin2` on its sole bit. -/
 theorem clusterSeqBitVec_one (x : Reg 1) : bitVecEquiv 1 x = boolEquivFin2 (x 0) := by
   have h := bitVecEquiv_succ_val 0 x
   simp only [bitVecEquiv_zero, mul_zero, add_zero, Fin.val_zero] at h
@@ -1106,10 +1260,12 @@ theorem clusterSeqBitVec_one (x : Reg 1) : bitVecEquiv 1 x = boolEquivFin2 (x 0)
   ext
   simpa using! h.symm
 
+/-- Decoding a one-bit integer index and reading its leading label recovers the index. -/
 theorem clusterSeqBitVec_one_label (i : Fin 2) :
     boolEquivFin2 ((bitVecEquiv 1).symm i 0) = i := by
   rw [← clusterSeqBitVec_one ((bitVecEquiv 1).symm i), Equiv.apply_symm_apply]
 
+/-- Decoding an index in the lower half prepends a false bit to the decoded smaller index. -/
 theorem clusterSeqBitVec_symm_castAdd (k : ℕ) (i : Fin (2 ^ k))
     (h : 2 ^ k + 2 ^ k = 2 ^ (k + 1)) :
     (bitVecEquiv (k + 1)).symm (Fin.cast h (Fin.castAdd (2 ^ k) i))
@@ -1122,6 +1278,7 @@ theorem clusterSeqBitVec_symm_castAdd (k : ℕ) (i : Fin (2 ^ k))
   simp
   rfl
 
+/-- Decoding an index in the upper half prepends a true bit to the decoded smaller index. -/
 theorem clusterSeqBitVec_symm_natAdd (k : ℕ) (i : Fin (2 ^ k))
     (h : 2 ^ k + 2 ^ k = 2 ^ (k + 1)) :
     (bitVecEquiv (k + 1)).symm (Fin.cast h (Fin.natAdd (2 ^ k) i))
@@ -1134,6 +1291,7 @@ theorem clusterSeqBitVec_symm_natAdd (k : ℕ) (i : Fin (2 ^ k))
   simp
   rfl
 
+/-- An integer below `2 ^ k` decodes to a false leading bit and its `k`-bit encoding. -/
 theorem clusterSeqBitVec_symm_low (k : ℕ) (v : ℕ) (h1 : v < 2 ^ (k + 1)) (h2 : v < 2 ^ k) :
     (bitVecEquiv (k + 1)).symm ⟨v, h1⟩
       = Fin.cons false ((bitVecEquiv k).symm ⟨v, h2⟩) := by
@@ -1145,6 +1303,7 @@ theorem clusterSeqBitVec_symm_low (k : ℕ) (v : ℕ) (h1 : v < 2 ^ (k + 1)) (h2
   simp
   rfl
 
+/-- An integer at least `2 ^ k` decodes to a true leading bit and the encoding of its offset. -/
 theorem clusterSeqBitVec_symm_high (k : ℕ) (v : ℕ) (h1 : v < 2 ^ (k + 1))
     (hge : 2 ^ k ≤ v) :
     (bitVecEquiv (k + 1)).symm ⟨v, h1⟩
@@ -1161,12 +1320,14 @@ theorem clusterSeqBitVec_symm_high (k : ℕ) (v : ℕ) (h1 : v < 2 ^ (k + 1))
   have hp : 2 ^ (k + 1) = 2 ^ k + 2 ^ k := by rw [← Nat.mul_two, ← Nat.pow_succ]
   omega
 
+/-- Relabeling matrices preserves subtraction. -/
 theorem clusterSeqRelabelGate_sub {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (A B : Matrix I I ℂ) :
     relabelGate e (A - B) = relabelGate e A - relabelGate e B := by
   ext i j
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sub_apply]
 
+/-- Extending Boolean-register operators by a leading identity preserves subtraction. -/
 theorem clusterSeqShiftOp_sub (m : ℕ) (A B : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ) :
     clusterSeqShiftOp m (A - B) = clusterSeqShiftOp m A - clusterSeqShiftOp m B := by
   ext x y
@@ -1176,11 +1337,14 @@ theorem clusterSeqShiftOp_sub (m : ℕ) (A B : Matrix (Reg (m + 1)) (Reg (m + 1)
   rw [Matrix.sub_apply, h, hA, hB, Matrix.sub_apply]
   by_cases hc : x 0 = y 0 <;> ring
 
+/-- Extending integer-indexed operators by a leading identity preserves subtraction. -/
 theorem clusterSeqShiftGateFin_sub (m : ℕ) (A B : Operator (2 ^ (m + 1))) :
     clusterSeqShiftGateFin m (A - B) = clusterSeqShiftGateFin m A - clusterSeqShiftGateFin m B := by
   unfold clusterSeqShiftGateFin
   rw [clusterSeqRelabelGate_sub, clusterSeqShiftOp_sub, clusterSeqRelabelGate_sub]
 
+/-- The Kraus leaf obtained by extending its operator while retaining its acceptance flag,
+costs, and outcomes. -/
 noncomputable def clusterSeqShiftLeaf (m : ℕ) (L : ObservedKrausLeaf (2 ^ (m + 1))) :
     ObservedKrausLeaf (2 ^ (m + 2)) where
   operator := clusterSeqShiftGateFin m L.operator
@@ -1190,12 +1354,15 @@ noncomputable def clusterSeqShiftLeaf (m : ℕ) (L : ObservedKrausLeaf (2 ^ (m +
   measurements := L.measurements
   outcomes := L.outcomes
 
+/-- Shifting a leaf commutes with prepending an operator and its associated cost and outcome
+data. -/
 theorem clusterSeqShiftLeaf_prepend (m : ℕ) (U : Operator (2 ^ (m + 1))) (q g c : ℕ)
     (outcomes : List (ℕ × ℕ)) (L : ObservedKrausLeaf (2 ^ (m + 1))) :
     ObservedKrausLeaf.prepend (clusterSeqShiftGateFin m U) q g c outcomes (clusterSeqShiftLeaf m L)
       = clusterSeqShiftLeaf m (ObservedKrausLeaf.prepend U q g c outcomes L) := by
   simp only [ObservedKrausLeaf.prepend, clusterSeqShiftLeaf, clusterSeqShiftGateFin_mul]
 
+/-- Shifting a leaf commutes with prepending a query evaluated at the identity oracle. -/
 theorem clusterSeqShiftLeaf_prepend_query (m : ℕ)
     (L : ObservedKrausLeaf (2 ^ (m + 1))) :
     ObservedKrausLeaf.prepend (1 : Operator (2 ^ (m + 2))) 1 0 0 []
@@ -1203,6 +1370,8 @@ theorem clusterSeqShiftLeaf_prepend_query (m : ℕ)
       = clusterSeqShiftLeaf m (ObservedKrausLeaf.prepend (1 : Operator (2 ^ (m + 1))) 1 0 0 [] L) := by
   simp only [ObservedKrausLeaf.prepend, clusterSeqShiftLeaf, Matrix.mul_one]
 
+/-- Shifting a leaf commutes with prepending the projector and outcome record for a label
+measurement. -/
 theorem clusterSeqShiftLeaf_prepend_projector (m : ℕ) {k : ℕ} (l : Fin (2 ^ (m + 1)) → Fin k)
     (o : Fin k) (L : ObservedKrausLeaf (2 ^ (m + 1))) :
     ObservedKrausLeaf.prepend
@@ -1214,6 +1383,8 @@ theorem clusterSeqShiftLeaf_prepend_projector (m : ℕ) {k : ℕ} (l : Fin (2 ^ 
   rw [← clusterSeqShiftGateFin_projector]
   simp only [ObservedKrausLeaf.prepend, clusterSeqShiftLeaf, clusterSeqShiftGateFin_mul]
 
+/-- At the identity oracle, the leaves of a shifted observed circuit are exactly its original
+leaves with extended operators. -/
 theorem observedKrausLeaves_shiftObservedFin (m : ℕ) :
     ∀ P : ObservedCircuit (Fin (2 ^ (m + 1))),
       observedKrausLeaves 1 (clusterSeqShiftObservedFin m P)
@@ -1249,12 +1420,16 @@ theorem observedKrausLeaves_shiftObservedFin (m : ℕ) :
       exact clusterSeqShiftLeaf_prepend m (1 - P) 0 0 1 [(2, 0)] L
     · exact List.map_congr_left (fun L _ => clusterSeqShiftLeaf_prepend m P 0 0 1 [(2, 1)] L)
 
+/-- The full circuit matrix, multiplying both gate matrices and the supplied oracle at query
+steps. -/
 noncomputable def clusterSeqFullGate {I : Type*} [Fintype I] [DecidableEq I]
     (oracle : Matrix I I ℂ) : Circuit I → Matrix I I ℂ
   | [] => 1
   | Step.gate U :: C => clusterSeqFullGate oracle C * U
   | Step.query :: C => clusterSeqFullGate oracle C * oracle
 
+/-- At the identity oracle, the full circuit matrix equals the matrix obtained by ignoring
+queries. -/
 theorem clusterSeqFullGate_one {I : Type*} [Fintype I] [DecidableEq I] (C : Circuit I) :
     clusterSeqFullGate (1 : Matrix I I ℂ) C = clusterSeqCircuitGate C := by
   induction C with
@@ -1264,12 +1439,15 @@ theorem clusterSeqFullGate_one {I : Type*} [Fintype I] [DecidableEq I] (C : Circ
     | gate U => rw [clusterSeqFullGate, ih, clusterSeqCircuitGate]
     | query => rw [clusterSeqFullGate, ih, Matrix.mul_one, clusterSeqCircuitGate]
 
+/-- The observed circuit obtained by prepending all steps of an ordinary circuit. -/
 noncomputable def clusterSeqPrependSteps {D : ℕ} (oracle : Operator D) :
     Circuit (Fin D) → ObservedCircuit (Fin D) → ObservedCircuit (Fin D)
   | [], P => P
   | Step.gate U :: C, P => .step (.gate U) (clusterSeqPrependSteps oracle C P)
   | Step.query :: C, P => .step .query (clusterSeqPrependSteps oracle C P)
 
+/-- Prepending circuit steps prepends their full matrix and query and gate counts to every Kraus
+leaf. -/
 theorem observedKrausLeaves_prependSteps {D : ℕ} (oracle : Operator D) (C : Circuit (Fin D))
     (P : ObservedCircuit (Fin D)) :
     observedKrausLeaves oracle (clusterSeqPrependSteps oracle C P)
@@ -1306,6 +1484,8 @@ theorem observedKrausLeaves_prependSteps {D : ℕ} (oracle : Operator D) (C : Ci
         simp only [ObservedKrausLeaf.prepend, Matrix.mul_assoc, Nat.add_assoc, Nat.add_zero,
           List.nil_append]
 
+/-- The sequential observed measurement loop for a list of phase parameters, with conditional
+Pauli corrections. -/
 noncomputable def clusterSeqLoopFin :
     (zs : List ℂ) → ObservedCircuit (Fin (2 ^ (zs.length + 1)))
   | [] => .halt true
@@ -1320,6 +1500,7 @@ noncomputable def clusterSeqLoopFin :
             (.step (.gate (clusterSeqZFin _ (by simp only [List.length_cons]; omega) k))
               (clusterSeqShiftObservedFin _ (clusterSeqLoopFin (w :: ws)))))))
 
+/-- The Kraus leaf and execution data of the sequential loop for a specified outcome register. -/
 noncomputable def clusterSeqLoopLeafGen :
     (zs : List ℂ) → Reg zs.length → ObservedKrausLeaf (2 ^ (zs.length + 1))
   | [], _ => ⟨1, true, 0, 0, 0, []⟩
@@ -1345,6 +1526,7 @@ noncomputable def clusterSeqLoopLeafGen :
         (clusterSeqLoopLeafGen (w :: ws) (Fin.tail ω)).measurements + 1,
         (2, (boolEquivFin2 (ω 0)).val) :: (clusterSeqLoopLeafGen (w :: ws) (Fin.tail ω)).outcomes⟩
 
+/-- Shifting an observed circuit preserves its number of leaves. -/
 theorem observedLeafCount_shiftObservedFin (m : ℕ) :
     ∀ P : ObservedCircuit (Fin (2 ^ (m + 1))),
       observedLeafCount (clusterSeqShiftObservedFin m P) = observedLeafCount P := by
@@ -1362,6 +1544,7 @@ theorem observedLeafCount_shiftObservedFin (m : ℕ) :
       = observedLeafCount onFalse + observedLeafCount onTrue
     rw [ihFalse, ihTrue]
 
+/-- The sequential loop has exactly `2 ^ zs.length` leaves. -/
 theorem observedLeafCount_loopFin (zs : List ℂ) :
     observedLeafCount (clusterSeqLoopFin zs) = 2 ^ zs.length := by
   induction zs with
@@ -1389,6 +1572,7 @@ theorem observedLeafCount_loopFin (zs : List ℂ) :
         ← Nat.pow_succ]
       simp only [List.length_cons]
 
+/-- Every generated sequential-loop leaf is accepted. -/
 theorem clusterSeqLoopLeafGen_accepted (zs : List ℂ) (ω : Reg zs.length) :
     (clusterSeqLoopLeafGen zs ω).accepted = true := by
   match zs, ω with
@@ -1396,6 +1580,7 @@ theorem clusterSeqLoopLeafGen_accepted (zs : List ℂ) (ω : Reg zs.length) :
   | [z], _ => rfl
   | z :: w :: ws, _ => rfl
 
+/-- Every generated sequential-loop leaf makes zero oracle queries. -/
 theorem clusterSeqLoopLeafGen_queries (zs : List ℂ) (ω : Reg zs.length) :
     (clusterSeqLoopLeafGen zs ω).queries = 0 := by
   match zs, ω with
@@ -1403,6 +1588,8 @@ theorem clusterSeqLoopLeafGen_queries (zs : List ℂ) (ω : Reg zs.length) :
   | [z], _ => rfl
   | z :: w :: ws, _ => rfl
 
+/-- Prepending the first step with outcome zero produces the generated leaf whose leading
+outcome is false. -/
 theorem clusterSeqLoopElem_low (z w : ℂ) (ws : List ℂ) (j : Fin (2 ^ (w :: ws).length)) :
     ObservedKrausLeaf.prepend (clusterSeqPhaseFin (z :: w :: ws).length z) 0 1 0 []
       (ObservedKrausLeaf.prepend (clusterSeqHFin (z :: w :: ws).length) 0 1 0 []
@@ -1422,6 +1609,8 @@ theorem clusterSeqLoopElem_low (z w : ℂ) (ws : List ℂ) (j : Fin (2 ^ (w :: w
     ObservedKrausLeaf.prepend, clusterSeqShiftLeaf]
   simp [boolEquivFin2, clusterSeqLoopLeafGen_accepted, clusterSeqLoopLeafGen_queries]
 
+/-- Prepending the first step with outcome one produces the generated leaf whose leading outcome
+is true. -/
 theorem clusterSeqLoopElem_high (z w : ℂ) (ws : List ℂ) (j : Fin (2 ^ (w :: ws).length)) :
     ObservedKrausLeaf.prepend (clusterSeqPhaseFin (z :: w :: ws).length z) 0 1 0 []
       (ObservedKrausLeaf.prepend (clusterSeqHFin (z :: w :: ws).length) 0 1 0 []
@@ -1443,6 +1632,8 @@ theorem clusterSeqLoopElem_high (z w : ℂ) (ws : List ℂ) (j : Fin (2 ^ (w :: 
 
 set_option maxHeartbeats 1000000 in
 
+/-- The loop's Kraus leaves are the generated leaves enumerated by binary-encoded outcome
+registers. -/
 theorem clusterSeqLoopFin_leaves (zs : List ℂ) :
     observedKrausLeaves 1 (clusterSeqLoopFin zs)
       = List.ofFn fun i : Fin (2 ^ zs.length) =>
@@ -1523,10 +1714,13 @@ theorem clusterSeqLoopFin_leaves (zs : List ℂ) :
         exact congrArg (clusterSeqLoopLeafGen (z :: w :: ws))
           (clusterSeqBitVec_symm_high (w :: ws).length n hn1 (by omega)).symm
 
+/-- The observed program preparing the path resource and then executing the sequential
+measurement loop. -/
 noncomputable def clusterSequenceProgram (zs : List ℂ) :
     ObservedCircuit (Fin (2 ^ (zs.length + 1))) :=
   clusterSeqPrependSteps 1 (clusterSequenceResourceCircuit zs.length) (clusterSeqLoopFin zs)
 
+/-- Prepending an ordinary circuit preserves the number of observed leaves. -/
 theorem observedLeafCount_prependSteps {D : ℕ} (oracle : Operator D) (C : Circuit (Fin D))
     (P : ObservedCircuit (Fin D)) :
     observedLeafCount (clusterSeqPrependSteps oracle C P) = observedLeafCount P := by
@@ -1534,15 +1728,20 @@ theorem observedLeafCount_prependSteps {D : ℕ} (oracle : Operator D) (C : Circ
   | nil => rfl
   | cons s C ih => cases s <;> exact ih P
 
+/-- The complete cluster sequence program has exactly `2 ^ zs.length` leaves. -/
 theorem observedLeafCount_program (zs : List ℂ) :
     observedLeafCount (clusterSequenceProgram zs) = 2 ^ zs.length := by
   rw [clusterSequenceProgram, observedLeafCount_prependSteps, observedLeafCount_loopFin]
 
+/-- The generated program leaf obtained by prepending resource preparation to the specified loop
+leaf. -/
 noncomputable def clusterSeqProgramLeafGen (zs : List ℂ) (ω : Reg zs.length) :
     ObservedKrausLeaf (2 ^ (zs.length + 1)) :=
   ObservedKrausLeaf.prepend (clusterSequenceResourceGate zs.length) 0 (2 * zs.length) 0 []
     (clusterSeqLoopLeafGen zs ω)
 
+/-- The complete program's Kraus leaves are the generated program leaves in binary outcome
+order. -/
 theorem clusterSequenceProgram_leaves (zs : List ℂ) :
     observedKrausLeaves 1 (clusterSequenceProgram zs)
       = List.ofFn fun i : Fin (2 ^ zs.length) =>
@@ -1565,10 +1764,12 @@ theorem clusterSequenceProgram_leaves (zs : List ℂ) :
   simp only [Function.comp_apply, ObservedKrausLeaf.prepend, Nat.add_zero,
     List.nil_append]
 
+/-- The leaf index of the complete program corresponding to an outcome register. -/
 noncomputable def clusterSequenceLeaf (zs : List ℂ) (ω : Reg zs.length) :
     Fin (observedLeafCount (clusterSequenceProgram zs)) :=
   Fin.cast (observedLeafCount_program zs).symm (bitVecEquiv zs.length ω)
 
+/-- Selecting the program leaf indexed by `ω` returns its generated program leaf. -/
 theorem clusterSequenceLeaf_eq (zs : List ℂ) (ω : Reg zs.length) :
     observedLeaf 1 (clusterSequenceProgram zs) (clusterSequenceLeaf zs ω)
       = clusterSeqProgramLeafGen zs ω := by
@@ -1589,6 +1790,8 @@ theorem clusterSequenceLeaf_eq (zs : List ℂ) (ω : Reg zs.length) :
   apply Fin.val_injective
   simp
 
+/-- Each generated loop leaf uses `4 * zs.length - 1` gates, with subtraction in the natural
+numbers. -/
 theorem clusterSeqLoopLeafGen_gates : ∀ (zs : List ℂ) (ω : Reg zs.length),
     (clusterSeqLoopLeafGen zs ω).gates = 4 * zs.length - 1
   | [], _ => rfl
@@ -1602,6 +1805,7 @@ theorem clusterSeqLoopLeafGen_gates : ∀ (zs : List ℂ) (ω : Reg zs.length),
       rw [ih, hlen, Nat.mul_add]
       omega
 
+/-- Each generated loop leaf performs exactly `zs.length` measurements. -/
 theorem clusterSeqLoopLeafGen_measurements : ∀ (zs : List ℂ) (ω : Reg zs.length),
     (clusterSeqLoopLeafGen zs ω).measurements = zs.length
   | [], _ => rfl
@@ -1613,6 +1817,7 @@ theorem clusterSeqLoopLeafGen_measurements : ∀ (zs : List ℂ) (ω : Reg zs.le
         simp only [List.length_cons]
       omega
 
+/-- A generated loop leaf records the bits of `ω` in wire order as binary measurement outcomes. -/
 theorem clusterSeqLoopLeafGen_outcomes : ∀ (zs : List ℂ) (ω : Reg zs.length),
     (clusterSeqLoopLeafGen zs ω).outcomes
       = List.ofFn fun j : Fin zs.length => (2, (boolEquivFin2 (ω j)).val)
@@ -1624,10 +1829,12 @@ theorem clusterSeqLoopLeafGen_outcomes : ∀ (zs : List ℂ) (ω : Reg zs.length
       simp only [clusterSeqLoopLeafGen, ih, List.ofFn_succ]
       rfl
 
+/-- Relabeling a matrix commutes with conjugate transposition. -/
 theorem clusterSeqRelabelGate_conjTranspose {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     (relabelGate e A)ᴴ = relabelGate e Aᴴ := Matrix.conjTranspose_reindex e e A
 
+/-- Extending an integer-indexed operator commutes with conjugate transposition. -/
 theorem clusterSeqShiftGateFin_conjTranspose (m : ℕ) (U : Operator (2 ^ (m + 1))) :
     (clusterSeqShiftGateFin m U)ᴴ = clusterSeqShiftGateFin m Uᴴ := by
   unfold clusterSeqShiftGateFin clusterSeqShiftOp
@@ -1635,6 +1842,7 @@ theorem clusterSeqShiftGateFin_conjTranspose (m : ℕ) (U : Operator (2 ^ (m + 1
     tensorGate_conjTranspose, Matrix.conjTranspose_one,
     clusterSeqRelabelGate_conjTranspose]
 
+/-- Shifting a well-formed observed circuit preserves well-formedness. -/
 theorem observedWellFormed_shiftObservedFin (m : ℕ) :
     ∀ P : ObservedCircuit (Fin (2 ^ (m + 1))), observedWellFormed P →
       observedWellFormed (clusterSeqShiftObservedFin m P)
@@ -1654,6 +1862,8 @@ theorem observedWellFormed_shiftObservedFin (m : ℕ) :
         rw [clusterSeqShiftGateFin_conjTranspose,
           show Pᴴ = star P from (Matrix.star_eq_conjTranspose P).symm, hidem]
 
+/-- Prepending a unitary ordinary circuit to a well-formed observed circuit preserves
+well-formedness. -/
 theorem observedWellFormed_prependSteps {D : ℕ} (oracle : Operator D) (C : Circuit (Fin D))
     (P : ObservedCircuit (Fin D)) (hP : observedWellFormed P) (hC : IsUnitaryCircuit C) :
     observedWellFormed (clusterSeqPrependSteps oracle C P) := by
@@ -1666,6 +1876,7 @@ theorem observedWellFormed_prependSteps {D : ℕ} (oracle : Operator D) (C : Cir
         ih P hP fun V hV => hC V (List.mem_cons_of_mem _ hV)⟩
     | query => exact ih P hP fun V hV => hC V (List.mem_cons_of_mem _ hV)
 
+/-- The sequential loop is well formed when every phase parameter has norm one. -/
 theorem observedWellFormed_loopFin : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1) →
     observedWellFormed (clusterSeqLoopFin zs)
   | [], _ => trivial
@@ -1681,6 +1892,8 @@ theorem observedWellFormed_loopFin : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖
               (observedWellFormed_loopFin (w :: ws)
                 (fun y hy => hzs y (by simp [hy])))⟩⟩⟩
 
+/-- The complete cluster sequence program is well formed when every phase parameter has norm
+one. -/
 theorem observedWellFormed_program {zs : List ℂ} (hzs : ∀ z ∈ zs, ‖z‖ = 1) :
     observedWellFormed (clusterSequenceProgram zs) := by
   refine observedWellFormed_prependSteps 1 _ _ (observedWellFormed_loopFin zs hzs) ?_
@@ -1689,6 +1902,7 @@ theorem observedWellFormed_program {zs : List ℂ} (hzs : ∀ z ∈ zs, ‖z‖ 
   exact (relabelCircuit_legality_resources (bitVecEquiv (zs.length + 1))
     (clusterSeqResourceCircuitB zs.length)).1.mpr (isUnitaryCircuit_resourceCircuitB zs.length)
 
+/-- Outcome registers are in bijection with the leaves of the complete cluster sequence program. -/
 theorem clusterSequenceLeaf_bijective (zs : List ℂ) :
     Function.Bijective (clusterSequenceLeaf zs) := by
   constructor
@@ -1703,6 +1917,9 @@ theorem clusterSequenceLeaf_bijective (zs : List ℂ) :
     apply Fin.val_injective
     simp only [clusterSequenceLeaf, Fin.val_cast, Equiv.apply_symm_apply]
 
+/-- For unit-norm phases, the program is well formed with one accepted leaf per outcome
+register. Each leaf makes zero queries, uses `6 * zs.length - 1` gates and `zs.length`
+measurements, and records the specified outcomes. -/
 theorem cluster_sequence_actual_program_and_feedback_cost :
     ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1) →
       observedWellFormed (clusterSequenceProgram zs) ∧
@@ -1727,8 +1944,11 @@ theorem cluster_sequence_actual_program_and_feedback_cost :
   rw [clusterSeqLoopLeafGen_gates zs ω]
   omega
 
+/-- The classical message listing the bits of the outcome register in order. -/
 def clusterSequenceMessage {n : ℕ} (ω : Reg n) : List Bool := List.ofFn ω
 
+/-- The classical message has the register's length, uniquely determines the register, and
+encodes the program leaf's measurement history. -/
 theorem cluster_sequence_classical_message_history :
     (∀ (n : ℕ) (ω : Reg n), clusterSequenceMessage ω = List.ofFn ω ∧
       (clusterSequenceMessage ω).length = n) ∧
@@ -1749,6 +1969,7 @@ theorem cluster_sequence_classical_message_history :
     simp only [clusterSeqProgramLeafGen, ObservedKrausLeaf.prepend, List.nil_append]
     exact clusterSeqLoopLeafGen_outcomes zs ω
 
+/-- The Boolean-register operator for the sequential loop with a fixed outcome register. -/
 noncomputable def clusterSeqLeafOpLoopB : (zs : List ℂ) → ∀ _ω : Reg zs.length,
     Matrix (Reg (zs.length + 1)) (Reg (zs.length + 1)) ℂ
   | [], _ => 1
@@ -1766,6 +1987,8 @@ noncomputable def clusterSeqLeafOpLoopB : (zs : List ℂ) → ∀ _ω : Reg zs.l
         * clusterSeqOneBitB (z :: w :: ws).length 0 Hadamard
         * clusterSeqOneBitB (z :: w :: ws).length 0 (clusterSeqPhaseB z)
 
+/-- The leading-wire measurement projector in integer coordinates is the relabeling of its
+Boolean-register projector. -/
 theorem clusterSeqProjectorFin_eq (m : ℕ) (b : Bool) :
     Projector (Finset.univ.filter (fun r : Fin (2 ^ (m + 1)) =>
         clusterSeqLabelFin m r = boolEquivFin2 b))
@@ -1798,6 +2021,7 @@ theorem clusterSeqProjectorFin_eq (m : ℕ) (b : Bool) :
   · rw [if_neg (fun hc => h hc.symm),
       if_neg (fun hc => h (Equiv.injective ((bitVecEquiv (m + 1)).symm) hc).symm)]
 
+/-- A product of six relabeled matrices is the relabeling of their product. -/
 theorem clusterSeqRelabelGate_merge6 {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A B C D F G : Matrix I I ℂ) :
     relabelGate e A * relabelGate e B * relabelGate e C * relabelGate e D
@@ -1807,6 +2031,7 @@ theorem clusterSeqRelabelGate_merge6 {I J : Type*} [Fintype I] [DecidableEq I]
     ← CircuitRelabel.relabelGate_mul, ← CircuitRelabel.relabelGate_mul,
     ← CircuitRelabel.relabelGate_mul]
 
+/-- A product of four relabeled matrices is the relabeling of their product. -/
 theorem clusterSeqRelabelGate_merge4 {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A B C D : Matrix I I ℂ) :
     relabelGate e A * relabelGate e B * relabelGate e C * relabelGate e D
@@ -1816,6 +2041,8 @@ theorem clusterSeqRelabelGate_merge4 {I J : Type*} [Fintype I] [DecidableEq I]
 
 set_option maxHeartbeats 1000000 in
 
+/-- The operator of a generated loop leaf is the relabeling of its Boolean-register loop
+operator. -/
 theorem clusterSeqLoopLeafGen_operator : ∀ (zs : List ℂ) (ω : Reg zs.length),
     (clusterSeqLoopLeafGen zs ω).operator
       = relabelGate (bitVecEquiv (zs.length + 1)) (clusterSeqLeafOpLoopB zs ω)
@@ -1838,9 +2065,12 @@ theorem clusterSeqLoopLeafGen_operator : ∀ (zs : List ℂ) (ω : Reg zs.length
             = relabelGate (bitVecEquiv ((z :: w :: ws).length + 1)) M := fun _ => rfl
       rw [hE _, clusterSeqRelabelGate_merge6, Equiv.symm_apply_apply]
 
+/-- The equivalence encoding an outcome register followed by a final output bit as an integer
+register index. -/
 def clusterSequenceRegisterEquiv (n : ℕ) : Reg n × Bool ≃ Fin (2 ^ (n + 1)) :=
   (regSuccEquiv n).symm.trans (bitVecEquiv (n + 1))
 
+/-- The resource preparation matrix for zero ancillas is the identity. -/
 theorem clusterSeqResourceGateB_zero : clusterSeqResourceGateB 0 = 1 := by
   show clusterSeqCircuitGate (clusterSeqResourceCircuitB 0) = 1
   simp only [clusterSeqResourceCircuitB, clusterSeqResourceHB, clusterSeqResourceCzB]
@@ -1848,6 +2078,8 @@ theorem clusterSeqResourceGateB_zero : clusterSeqResourceGateB 0 = 1 := by
   show clusterSeqCircuitGate ([] : Circuit (Reg 1)) = 1
   rfl
 
+/-- A generated program leaf has operator equal to the relabeling of its loop operator times the
+resource matrix. -/
 theorem clusterSeqProgramLeaf_operator {zs : List ℂ} (ω : Reg zs.length) :
     (clusterSeqProgramLeafGen zs ω).operator
       = relabelGate (bitVecEquiv (zs.length + 1))
@@ -1864,6 +2096,7 @@ theorem clusterSeqProgramLeaf_operator {zs : List ℂ} (ω : Reg zs.length) :
       rw [clusterSeqCircuitGate_relabel]]
   rw [← CircuitRelabel.relabelGate_mul]
 
+/-- A sum over registers splits into a sum over the leading bit and the tail register. -/
 theorem clusterSeqSum_cons {M : Type*} [AddCommMonoid M] (m : ℕ) (g : Reg (m + 2) → M) :
     ∑ y : Reg (m + 2), g y = ∑ b : Bool, ∑ t : Reg (m + 1), g (Fin.cons b t) := by
   rw [Fintype.sum_equiv (Fin.consEquiv (fun _ : Fin (m + 2) => Bool)).symm g
@@ -1872,6 +2105,7 @@ theorem clusterSeqSum_cons {M : Type*} [AddCommMonoid M] (m : ℕ) (g : Reg (m +
         rw [Fin.cons_self_tail])]
   rw [Fintype.sum_prod_type]
 
+/-- Agreement away from wire zero is equivalent to equality of the tail registers. -/
 theorem clusterSeqSupport_zero {m : ℕ} (y : Reg (m + 2)) (b : Bool) (t : Reg (m + 1)) :
     (∀ k : Fin (m + 2), k ≠ (0 : Fin (m + 2)) → y k = (Fin.cons b t : Reg (m + 2)) k) ↔
       Fin.tail y = t := by
@@ -1885,6 +2119,8 @@ theorem clusterSeqSupport_zero {m : ℕ} (y : Reg (m + 2)) (b : Bool) (t : Reg (
     · rw [Fin.cons_succ]
       exact congrFun h k'
 
+/-- Agreement away from wire one is equivalent to agreement of the leading bit and of all bits
+after wire one. -/
 theorem clusterSeqSupport_one {m : ℕ} (y : Reg (m + 2)) (b : Bool) (t : Reg (m + 1)) :
     (∀ k : Fin (m + 2), k ≠ (1 : Fin (m + 2)) → y k = (Fin.cons b t : Reg (m + 2)) k) ↔
       (y (0 : Fin (m + 2)) = b ∧ Fin.tail (Fin.tail y) = Fin.tail t) := by
@@ -1903,6 +2139,8 @@ theorem clusterSeqSupport_one {m : ℕ} (y : Reg (m + 2)) (b : Bool) (t : Reg (m
       · rw [Fin.cons_succ]
         exact congrFun htt k''
 
+/-- Embedding a Boolean permutation matrix at wire `j` gives the register matrix updating that
+wire by the same function. -/
 theorem clusterSeqOneBitB_permMatrix (n : ℕ) (j : Fin (n + 1)) (σ : Bool → Bool) :
     clusterSeqOneBitB n j (permMatrix σ)
       = permMatrix (fun x : Reg (n + 1) => Function.update x j (σ (x j))) := by
@@ -1930,6 +2168,8 @@ theorem clusterSeqOneBitB_permMatrix (n : ℕ) (j : Fin (n + 1)) (σ : Bool → 
     rw [Function.update_of_ne hkj] at hkc
     exact hkc
 
+/-- A conditional embedded Pauli-X matrix is the register permutation conditionally flipping
+wire `j`. -/
 theorem clusterSeqOneBitB_Xchoice (n : ℕ) (j : Fin (n + 1)) (a : Bool) :
     clusterSeqOneBitB n j (if a then PauliX else 1)
       = permMatrix (fun x : Reg (n + 1) => if a then Function.update x j !(x j) else x) := by
@@ -1943,6 +2183,8 @@ theorem clusterSeqOneBitB_Xchoice (n : ℕ) (j : Fin (n + 1)) (a : Bool) :
         = permMatrix (fun x : Reg (n + 1) => Function.update x j !(x j))
     rw [clusterSeqOneBitB_permMatrix]
 
+/-- A conditional embedded Pauli-Z matrix is diagonal with sign determined by the control bit
+and wire `j`. -/
 theorem clusterSeqOneBitB_Zchoice (n : ℕ) (j : Fin (n + 1)) (a : Bool) :
     clusterSeqOneBitB n j (if a then PauliZ else 1)
       = Matrix.diagonal (fun x : Reg (n + 1) => if a && x j then (-1 : ℂ) else 1) := by
@@ -1954,6 +2196,7 @@ theorem clusterSeqOneBitB_Zchoice (n : ℕ) (j : Fin (n + 1)) (a : Bool) :
         = Matrix.diagonal (fun x : Reg (n + 1) => if x j then (-1 : ℂ) else 1)
     rw [clusterSeqOneBitB_diagonal]
 
+/-- A conditional Pauli-X matrix embedded at any wire squares to the identity. -/
 theorem clusterSeqOneBitB_Xchoice_mul_self (n : ℕ) (j : Fin (n + 1)) (a : Bool) :
     clusterSeqOneBitB n j (if a then PauliX else 1)
       * clusterSeqOneBitB n j (if a then PauliX else 1) = 1 := by
@@ -1967,6 +2210,8 @@ theorem clusterSeqOneBitB_Xchoice_mul_self (n : ℕ) (j : Fin (n + 1)) (a : Bool
       exact permMatrix_mul_self Bool.not_not
     rw [hX, clusterSeqOneBitB_one]
 
+/-- Transporting a conditional leading-wire Pauli-X through the first controlled-Z gate
+introduces the matching Pauli-Z on the adjacent wire. -/
 theorem clusterSeqXZ_czB_transport {m : ℕ} (hm : 1 ≤ m) (a : Bool) :
     clusterSeqOneBitB m ⟨0, by omega⟩ (if a then PauliX else 1)
       * clusterSeqOneBitB m ⟨1, by omega⟩ (if a then PauliZ else 1)
@@ -2043,6 +2288,7 @@ theorem clusterSeqXZ_czB_transport {m : ℕ} (hm : 1 ≤ m) (a : Bool) :
   conv_rhs => rw [← h4]
   rw [key]
 
+/-- Diagonal complex matrices on the same finite index type commute. -/
 theorem clusterSeqOneBitB_diagonal_mul_diagonal {I : Type*} [Fintype I] [DecidableEq I]
     (d : I → ℂ) (e : I → ℂ) :
     Matrix.diagonal d * Matrix.diagonal e = Matrix.diagonal e * Matrix.diagonal d := by
@@ -2051,6 +2297,7 @@ theorem clusterSeqOneBitB_diagonal_mul_diagonal {I : Type*} [Fintype I] [Decidab
   funext x
   exact mul_comm _ _
 
+/-- A conditional embedded Pauli-Z matrix commutes with every diagonal register matrix. -/
 theorem clusterSeqZchoice_mul_diagonal (n : ℕ) (j : Fin (n + 1)) (a : Bool)
     (d : Reg (n + 1) → ℂ) :
     clusterSeqOneBitB n j (if a then PauliZ else 1) * Matrix.diagonal d
@@ -2061,11 +2308,13 @@ theorem clusterSeqZchoice_mul_diagonal (n : ℕ) (j : Fin (n + 1)) (a : Bool)
   funext x
   exact mul_comm _ _
 
+/-- The first two wire indices of `Fin (n + 2)` are distinct. -/
 theorem clusterSeqFin01_ne (n : ℕ) : (0 : Fin (n + 2)) ≠ 1 := by
   intro h
   have hv := congrArg Fin.val h
   simp at hv
 
+/-- A matrix commuting with each of three factors commutes with their product. -/
 theorem clusterSeqComm3 {I : Type*} [Fintype I] [DecidableEq I] (Z P Q R : Matrix I I ℂ)
     (h1 : Z * P = P * Z) (h2 : Z * Q = Q * Z) (h3 : Z * R = R * Z) :
     Z * (P * Q * R) = P * Q * R * Z := by
@@ -2074,6 +2323,8 @@ theorem clusterSeqComm3 {I : Type*} [Fintype I] [DecidableEq I] (Z P Q R : Matri
     Matrix.mul_assoc Q Z R, h3, ← Matrix.mul_assoc P Q (R * Z),
     Matrix.mul_assoc (P * Q) R Z]
 
+/-- The stated commutation and transport identities move `X * Z` through `S * C * H`, leaving
+`X` on the right. -/
 theorem clusterSeqTransportChain {I : Type*} [Fintype I] [DecidableEq I]
     (X Z S C H : Matrix I I ℂ)
     (hZS : Z * S = S * Z) (hXS : X * S = S * X)
@@ -2085,6 +2336,7 @@ theorem clusterSeqTransportChain {I : Type*} [Fintype I] [DecidableEq I]
     ← Matrix.mul_assoc S C X, Matrix.mul_assoc (S * C) X H, hXH,
     ← Matrix.mul_assoc (S * C) H X]
 
+/-- A conditional Pauli-Z on the input wire commutes with resource preparation. -/
 theorem clusterSeqZa0_commute_resource : ∀ (n : ℕ) (a : Bool),
     clusterSeqOneBitB n (0 : Fin (n + 1)) (if a then PauliZ else 1)
       * clusterSeqResourceGateB n
@@ -2102,6 +2354,8 @@ theorem clusterSeqZa0_commute_resource : ∀ (n : ℕ) (a : Bool),
         (clusterSeqOneBitB_commute (n + 1) (0 : Fin (n + 2)) (1 : Fin (n + 2))
           (clusterSeqFin01_ne n) _ Hadamard)
 
+/-- Transporting a conditional input Pauli-X through resource preparation introduces the
+matching Pauli-Z on the first ancilla. -/
 theorem clusterSeqXZ_resource_transport (n : ℕ) (a : Bool) :
     clusterSeqOneBitB (n + 1) (0 : Fin (n + 2)) (if a then PauliX else 1)
       * clusterSeqOneBitB (n + 1) (1 : Fin (n + 2)) (if a then PauliZ else 1)
@@ -2130,12 +2384,16 @@ theorem clusterSeqXZ_resource_transport (n : ℕ) (a : Bool) :
     (clusterSeqOneBitB_commute (n + 1) (0 : Fin (n + 2)) (1 : Fin (n + 2))
       (clusterSeqFin01_ne n) _ Hadamard)
 
+/-- An initial-frame amplitude equals the input amplitude when the tail register is zero and
+vanishes otherwise. -/
 theorem clusterSeqInitialFrameB_val (n : ℕ) (ψ : QState (Fin 2)) (y : Reg (n + 1)) :
     (clusterSeqInitialFrameB n *ᵥ ψ) y
       = ψ (boolEquivFin2 (y 0)) * (if Fin.tail y = ZeroStr n then (1 : ℂ) else 0) := by
   rw [clusterSeqInitialFrameB_mulVec]
   rfl
 
+/-- Relabeling a qubit state back to Boolean coordinates intertwines the corresponding relabeled
+matrix action. -/
 theorem clusterSeqRelabelFin2_back (U : Matrix Bool Bool ℂ) (ψ : QState (Fin 2)) :
     relabelState boolEquivFin2.symm (ApplyGate (relabelGate boolEquivFin2 U) ψ)
       = ApplyGate U (relabelState boolEquivFin2.symm ψ) := by
@@ -2145,6 +2403,8 @@ theorem clusterSeqRelabelFin2_back (U : Matrix Bool Bool ℂ) (ψ : QState (Fin 
   rw [h]
   exact relabelState_relabelState boolEquivFin2 _
 
+/-- A conditional Pauli-X on the first physical wire intertwines the initial frame with the
+logical Pauli-X. -/
 theorem clusterSeqFrameX (n : ℕ) (a : Bool) (ψ : QState (Fin 2)) :
     clusterSeqOneBitB n (0 : Fin (n + 1)) (if a then PauliX else 1) *ᵥ
         (clusterSeqInitialFrameB n *ᵥ ψ)
@@ -2161,6 +2421,8 @@ theorem clusterSeqFrameX (n : ℕ) (a : Bool) (ψ : QState (Fin 2)) :
       = ApplyGate (relabelGate boolEquivFin2 (if a then PauliX else 1)) ψ from rfl,
     clusterSeqRelabelFin2_back]
 
+/-- Matrix multiplication followed by matrix-vector multiplication agrees with successive
+matrix-vector multiplication. -/
 theorem clusterSeqMulVecAssoc {I J K : Type*} [Fintype I] [Fintype J] [Fintype K] [DecidableEq J]
     (M : Matrix I J ℂ) (N : Matrix J K ℂ) (v : QState K) :
     (M * N) *ᵥ v = M *ᵥ (N *ᵥ v) := by
@@ -2174,6 +2436,8 @@ theorem clusterSeqMulVecAssoc {I J K : Type*} [Fintype I] [Fintype J] [Fintype K
     rw [Finset.mul_sum]
     exact Finset.sum_congr rfl (fun k _ => by ring))
 
+/-- The first controlled-Z gate multiplies each state amplitude by the sign determined by the
+first two bits. -/
 theorem clusterSeqCzB0_mulVec (m : ℕ) (w : QState (Reg (m + 2))) (y : Reg (m + 2)) :
     (clusterSeqCzB (m + 1) (0 : Fin (m + 1)) *ᵥ w) y
       = (if y (0 : Fin (m + 2)) && y (1 : Fin (m + 2)) then (-1 : ℂ) else 1) * w y := by
@@ -2181,6 +2445,7 @@ theorem clusterSeqCzB0_mulVec (m : ℕ) (w : QState (Reg (m + 2))) (y : Reg (m +
       then (-1 : ℂ) else 1) *ᵥ w) y = _
   rw [mulVec_diagonal]
 
+/-- Applying an extended operator sums over tail registers while keeping the leading bit fixed. -/
 theorem clusterSeqShiftOp_mulVec (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ)
     (v : QState (Reg (m + 2))) (x : Reg (m + 2)) :
     (clusterSeqShiftOp m W *ᵥ v) x
@@ -2198,6 +2463,8 @@ theorem clusterSeqShiftOp_mulVec (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1
   · intro h
     exact (h (Finset.mem_univ _)).elim
 
+/-- Applying Hadamard to the first ancilla produces equal ancilla amplitudes scaled by the
+inverse square root of two. -/
 theorem clusterSeqH1Frame (m : ℕ) (φ : QState (Fin 2)) (y : Reg (m + 2)) :
     (clusterSeqOneBitB (m + 1) (1 : Fin (m + 2)) Hadamard
         *ᵥ (clusterSeqInitialFrameB (m + 1) *ᵥ φ)) y
@@ -2250,6 +2517,8 @@ theorem clusterSeqH1Frame (m : ℕ) (φ : QState (Fin 2)) (y : Reg (m + 2)) :
       rw [if_neg hns, zero_mul]
     · rw [if_neg ht, mul_zero, mul_zero]
 
+/-- The prepared resource amplitude factors into the leading input amplitude and a smaller
+prepared frame applied to a Hadamard row. -/
 theorem clusterSeqResourceFirstStep (m : ℕ) (φ : QState (Fin 2)) (x : Reg (m + 2)) :
     (clusterSeqShiftOp m (clusterSeqResourceGateB m)
         *ᵥ (clusterSeqCzB (m + 1) (0 : Fin (m + 1))
@@ -2286,6 +2555,7 @@ theorem clusterSeqResourceFirstStep (m : ℕ) (φ : QState (Fin 2)) (x : Reg (m 
   simp only [Equiv.symm_apply_apply]
   ring
 
+/-- Matrix application distributes over a Boolean-indexed linear combination of states. -/
 theorem clusterSeqMulVec_sum_smul {I J : Type*} [Fintype I] [Fintype J] (M : Matrix I J ℂ)
     (cs : Bool → ℂ) (vs : Bool → QState J) (x : I) :
     (M *ᵥ (∑ b : Bool, cs b • vs b)) x = ∑ b : Bool, cs b * (M *ᵥ vs b) x := by
@@ -2296,12 +2566,15 @@ theorem clusterSeqMulVec_sum_smul {I J : Type*} [Fintype I] [Fintype J] (M : Mat
   exact Finset.sum_congr rfl (fun b _ => by
     exact Finset.sum_congr rfl (fun j _ => by ring))
 
+/-- Applying `clusterJ z` gives the two input amplitudes combined with phase `z` and
+inverse-square-root normalization. -/
 theorem clusterSeqJ_mulVec (z : ℂ) (φ : QState (Fin 2)) (j : Fin 2) :
     (clusterJ z *ᵥ φ) j
       = (Real.sqrt 2 : ℂ)⁻¹ * (φ 0 + (if j = 0 then (1 : ℂ) else -1) * z * φ 1) := by
   rw [Matrix.mulVec, dotProduct, Fin.sum_univ_two, clusterJ_entry z j 0, clusterJ_entry z j 1]
   fin_cases j <;> simp <;> ring
 
+/-- A conditional logical Pauli-X reads the input amplitude at the conditionally flipped index. -/
 theorem clusterSeqXchoiceFin_mulVec (a : Bool) (χ : QState (Fin 2)) (j : Fin 2) :
     (relabelGate boolEquivFin2 (if a then PauliX else 1) *ᵥ χ) j
       = χ (if a then (if j = 0 then (1 : Fin 2) else 0) else j) := by
@@ -2315,6 +2588,8 @@ theorem clusterSeqXchoiceFin_mulVec (a : Bool) (χ : QState (Fin 2)) (j : Fin 2)
         Matrix.reindex_apply, Matrix.submatrix_apply, PauliX, permMatrix,
         Matrix.of_apply, boolEquivFin2, mul_comm]
 
+/-- A conditional Pauli-X on the leading wire intertwines the initial frame with the
+corresponding logical operation. -/
 theorem clusterSeqFrameX' (n : ℕ) (a : Bool) (ψ : QState (Fin 2)) :
     clusterSeqOneBitB n ⟨0, by omega⟩ (if a then PauliX else 1) *ᵥ
         (clusterSeqInitialFrameB n *ᵥ ψ)
@@ -2322,6 +2597,8 @@ theorem clusterSeqFrameX' (n : ℕ) (a : Bool) (ψ : QState (Fin 2)) :
           ((relabelGate boolEquivFin2 (if a then PauliX else 1)) *ᵥ ψ) :=
   clusterSeqFrameX n a ψ
 
+/-- The leading-wire measurement contraction equals the logical `clusterJ z` output with a
+conditional Pauli-X and inverse-square-root scaling. -/
 theorem clusterSeqMeasureQ0_input (z : ℂ) (a : Bool) (φ : QState (Fin 2)) :
     (∑ b : Bool, (Hadamard a b * (if b then z else 1) * φ (boolEquivFin2 b)) •
         (fun j : Fin 2 => Hadamard b (boolEquivFin2.symm j)))
@@ -2334,6 +2611,8 @@ theorem clusterSeqMeasureQ0_input (z : ℂ) (a : Bool) (φ : QState (Fin 2)) :
   cases a <;> fin_cases j <;>
     simp [boolEquivFin2, Fin.isValue] <;> ring
 
+/-- Measuring the first resource wire factors off its outcome ket and leaves a smaller prepared
+frame carrying the scaled logical output with its Pauli-X byproduct. -/
 theorem clusterSeqMeasureQ0 (m : ℕ) (z : ℂ) (a : Bool) (φ : QState (Fin 2)) :
     (Projector (Finset.univ.filter (fun y : Reg (m + 2) => y (0 : Fin (m + 2)) = a))
         *ᵥ (clusterSeqOneBitB (m + 1) (0 : Fin (m + 2)) Hadamard
@@ -2454,6 +2733,8 @@ theorem clusterSeqMeasureQ0 (m : ℕ) (z : ℂ) (a : Bool) (φ : QState (Fin 2))
               *ᵥ (clusterJ z *ᵥ φ)))) (Fin.tail x)
     rw [if_neg hx, zero_mul]
 
+/-- An operator extended to the tail acts only on the tail factor of a state with a fixed
+leading basis ket. -/
 theorem clusterSeqShiftOp_mulVec_tensor (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ)
     (v : QState (Reg (m + 1))) (b : Bool) :
     clusterSeqShiftOp m W *ᵥ relabelState (Fin.consEquiv (fun _ : Fin (m + 2) => Bool))
@@ -2467,12 +2748,14 @@ theorem clusterSeqShiftOp_mulVec_tensor (m : ℕ) (W : Matrix (Reg (m + 1)) (Reg
   rw [applyGate_relabelGate, applyGate_tensorGate, applyGate_one]
   rfl
 
+/-- Scalar multiplication in the second tensor factor can be moved outside the tensor state. -/
 theorem clusterSeqTensorState_smul {I J : Type*} (c : ℂ) (ψ : QState I) (χ : QState J) :
     TensorState ψ (c • χ) = c • TensorState ψ χ := by
   funext p
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- The conditional logical Pauli-X matrix squares to the identity. -/
 theorem clusterSeqXchoiceFin_mul_self (a : Bool) :
     relabelGate boolEquivFin2 (if a then PauliX else 1)
       * relabelGate boolEquivFin2 (if a then PauliX else 1) = 1 := by
@@ -2486,6 +2769,8 @@ theorem clusterSeqXchoiceFin_mul_self (a : Bool) :
       exact permMatrix_mul_self Bool.not_not
     rw [hX, CircuitRelabel.relabelGate_one]
 
+/-- For a nonempty resource tail, a conditional input Pauli-X transports through resource
+preparation with the matching adjacent Pauli-Z. -/
 theorem clusterSeqXZ_resource_transport_m {m : ℕ} (hm : 1 ≤ m) (a : Bool) :
     clusterSeqOneBitB m (0 : Fin (m + 1)) (if a then PauliX else 1)
       * clusterSeqOneBitB m (1 : Fin (m + 1)) (if a then PauliZ else 1)
@@ -2496,6 +2781,8 @@ theorem clusterSeqXZ_resource_transport_m {m : ℕ} (hm : 1 ≤ m) (a : Bool) :
   subst hk
   exact clusterSeqXZ_resource_transport k a
 
+/-- The prescribed Pauli-X and Pauli-Z corrections remove the logical Pauli-X byproduct from the
+prepared tail. -/
 theorem clusterSeqCorrectTail {m : ℕ} (hm : 1 ≤ m) (a : Bool) (ψ : QState (Fin 2)) :
     clusterSeqOneBitB (m + 1) ⟨2, by omega⟩ (if a then PauliZ else 1)
         *ᵥ (clusterSeqOneBitB (m + 1) ⟨1, by omega⟩ (if a then PauliX else 1)
@@ -2539,6 +2826,8 @@ theorem clusterSeqCorrectTail {m : ℕ} (hm : 1 ≤ m) (a : Bool) (ψ : QState (
       (if a then PauliX else 1) *ᵥ ψ)), ← clusterSeqMulVecAssoc,
     applyGate_smul', ← clusterSeqMulVecAssoc, clusterSeqXchoiceFin_mul_self, Matrix.one_mulVec]
 
+/-- One corrected measurement step factors off the outcome ket and reduces the sequence to its
+tail with input scaled by the inverse square root of two after `clusterJ z`. -/
 theorem clusterSeqStep : ∀ (zs : List ℂ) (z : ℂ) (a : Bool) (ω' : Reg zs.length)
     (φ : QState (Fin 2)),
     (clusterSeqLeafOpLoopB (z :: zs) (Fin.cons a ω')
@@ -2600,6 +2889,8 @@ theorem clusterSeqStep : ∀ (zs : List ℂ) (z : ℂ) (a : Bool) (ω' : Reg zs.
       rw [hB, hC, clusterSeqShiftOp_mulVec_tensor, ← clusterSeqMulVecAssoc,
         ← Matrix.mul_assoc, clusterSeqMulVecAssoc]
 
+/-- The initial frame with no ancillas has the input amplitude at the index encoded by its sole
+bit. -/
 theorem clusterSeqFrame0_val (χ : QState (Fin 2)) (y : Reg 1) :
     (clusterSeqInitialFrameB 0 *ᵥ χ) y = χ (boolEquivFin2 (y (0 : Fin 1))) := by
   rw [clusterSeqInitialFrameB_val]
@@ -2608,6 +2899,8 @@ theorem clusterSeqFrame0_val (χ : QState (Fin 2)) (y : Reg 1) :
     exact Fin.elim0 j
   rw [ht, if_pos rfl, mul_one]
 
+/-- For unit-norm phases, a corrected leaf is supported on its outcome register and carries the
+logical sequence output scaled by the inverse square root of two to the sequence length. -/
 theorem clusterSeqLeafPhysics : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1) →
     ∀ (ω : Reg zs.length) (φ : QState (Fin 2)),
       ApplyGate (clusterSeqLeafOpLoopB zs ω * clusterSeqResourceGateB zs.length)
@@ -2818,6 +3111,8 @@ theorem clusterSeqLeafPhysics : ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1)
       · rw [if_neg hx0, zero_mul,
         if_neg (fun hc => hx0 (hfront.mp hc).1)]
 
+/-- Splitting a register into a front register and a final bit recovers each front coordinate
+under the inverse equivalence. -/
 theorem clusterSeqRegSucc_symm_front (n : ℕ) (v : Reg n) (c : Bool) (j : Fin n) :
     (regSuccEquiv n).symm (v, c) (Fin.castSucc j) = v j := by
   have h : regSuccEquiv n ((regSuccEquiv n).symm (v, c)) = (v, c) := Equiv.apply_symm_apply _ _
@@ -2826,6 +3121,8 @@ theorem clusterSeqRegSucc_symm_front (n : ℕ) (v : Reg n) (c : Bool) (j : Fin n
           (regSuccEquiv n).symm (v, c) (Fin.last n)) from rfl] at h
   exact congrArg (fun p => (p.1 : Reg n) j) h
 
+/-- Splitting a register into a front register and a final bit recovers the final coordinate
+under the inverse equivalence. -/
 theorem clusterSeqRegSucc_symm_last (n : ℕ) (v : Reg n) (c : Bool) :
     (regSuccEquiv n).symm (v, c) (Fin.last n) = c := by
   have h : regSuccEquiv n ((regSuccEquiv n).symm (v, c)) = (v, c) := Equiv.apply_symm_apply _ _
@@ -2834,10 +3131,13 @@ theorem clusterSeqRegSucc_symm_last (n : ℕ) (v : Reg n) (c : Bool) :
           (regSuccEquiv n).symm (v, c) (Fin.last n)) from rfl] at h
   exact congrArg (fun p => (p.2 : Bool)) h
 
+/-- A finite sum against the Kronecker delta at `i` evaluates the summand at `i`. -/
 theorem clusterSeqSum_col (f : Fin 2 → ℂ) (i : Fin 2) :
     (∑ k : Fin 2, f k * (if i = k then (1 : ℂ) else 0)) = f i := by
   fin_cases i <;> simp
 
+/-- For unit-norm phases, every physical leaf amplitude equals the corresponding logical matrix
+entry times `(1 / √2)^n` on its outcome register and vanishes elsewhere. -/
 theorem cluster_sequence_actual_leaf_full_amplitude :
     ∀ (zs : List ℂ), (∀ z ∈ zs, ‖z‖ = 1) →
       ∀ (ω v : Reg zs.length) (c i : Fin 2),
@@ -2917,13 +3217,18 @@ theorem cluster_sequence_actual_leaf_full_amplitude :
     rw [hUcol, if_pos hv]
   · rw [if_neg hv, if_neg hv]
 
+/-- The equivalence decoding an integer register index into its measured front register and
+final output bit. -/
 def clusterSeqSplitEquiv (n : ℕ) : Fin (2 ^ (n + 1)) ≃ Reg n × Bool :=
   (bitVecEquiv (n + 1)).symm.trans (regSuccEquiv n)
 
+/-- The inverse splitting equivalence agrees with `clusterSequenceRegisterEquiv`. -/
 theorem clusterSeqSplitEquiv_symm_apply (n : ℕ) (v : Reg n) (c : Bool) :
     (clusterSeqSplitEquiv n).symm (v, c)
       = clusterSequenceRegisterEquiv n (v, c) := rfl
 
+/-- The image of a basis ket under a physical leaf frame has the stated logical column on its
+outcome register and zero amplitude elsewhere. -/
 theorem clusterSeqG4_vec (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω : Reg zs.length)
     (i : Fin 2) :
     ((observedLeaf 1 (clusterSequenceProgram zs) (clusterSequenceLeaf zs ω)).operator
@@ -2973,12 +3278,15 @@ theorem clusterSeqG4_vec (zs : List ℂ) (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω :
   · intro h
     exact (h (Finset.mem_univ _)).elim
 
+/-- The square of the inverse-square-root amplitude factor of length `n` is `(1 / 2)^n`. -/
 theorem clusterSeqSqrtPow (n : ℕ) :
     ((Real.sqrt 2 : ℂ)⁻¹) ^ n * ((Real.sqrt 2 : ℂ)⁻¹) ^ n = (1 / 2 : ℂ) ^ n := by
   rw [← mul_pow,
     show ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = 1 / 2 from by
       rw [sqrt2_inv_sq]]
 
+/-- The physical branch output obtained by embedding the input, applying its Kraus leaf, and
+tracing out the measured register. -/
 noncomputable def clusterSequenceActualBranchCore (zs : List ℂ) (ω : Reg zs.length)
     (ρ : Operator 2) : Operator 2 :=
   relabelGate boolEquivFin2 (Matrix.traceLeft
@@ -2988,6 +3296,7 @@ noncomputable def clusterSequenceActualBranchCore (zs : List ℂ) (ω : Reg zs.l
             * (clusterSequenceInitialFrame zs.length).conjTranspose)
         * (observedLeaf 1 (clusterSequenceProgram zs) (clusterSequenceLeaf zs ω)).operator.conjTranspose)))
 
+/-- The complex-linear map sending an input operator to its reduced physical branch output. -/
 noncomputable def clusterSequenceActualBranchMap (zs : List ℂ) (ω : Reg zs.length) :
     Operator 2 →ₗ[ℂ] Operator 2 where
   toFun := clusterSequenceActualBranchCore zs ω
@@ -3007,12 +3316,15 @@ noncomputable def clusterSequenceActualBranchMap (zs : List ℂ) (ω : Reg zs.le
       simp [Matrix.mul_smul, Matrix.smul_mul, relabelGate_smul'],
       RingHom.id_apply]
 
+/-- A gate on the leading wire commutes with a gate on any successor wire. -/
 theorem clusterSeqOneBitB_commute01 {m : ℕ} (j : Fin (m + 1))
     (U V : Matrix Bool Bool ℂ) :
     clusterSeqOneBitB (m + 1) 0 U * clusterSeqOneBitB (m + 1) j.succ V
       = clusterSeqOneBitB (m + 1) j.succ V * clusterSeqOneBitB (m + 1) 0 U :=
   clusterSeqOneBitB_commute (m + 1) 0 j.succ (fun h => Fin.succ_ne_zero j h.symm) U V
 
+/-- For unit-norm phases, every physical branch map is logical unitary conjugation scaled by `(1
+/ 2)^zs.length`. -/
 theorem clusterSequenceActualBranchMap_apply (zs : List ℂ)
     (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω : Reg zs.length) (ρ : Operator 2) :
     clusterSequenceActualBranchMap zs ω ρ =
@@ -3053,6 +3365,8 @@ theorem clusterSequenceActualBranchMap_apply (zs : List ℂ)
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hcol, if_neg hv,
       zero_mul, Finset.sum_const_zero]
 
+/-- The physical branch map equals the corresponding branch of `clusterSequenceInstrument`, with
+the common logical conjugation and uniform branch weight. -/
 theorem cluster_sequence_actual_branch_instrument_bridge (zs : List ℂ)
     (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω : Reg zs.length) :
     clusterSequenceActualBranchMap zs ω = (clusterSequenceInstrument zs hzs).branch ω ∧
@@ -3063,6 +3377,8 @@ theorem cluster_sequence_actual_branch_instrument_bridge (zs : List ℂ)
   rw [clusterSequenceActualBranchMap_apply zs hzs ω,
     (cluster_sequence_instrument_probability_conditioning zs hzs ρ ω).1]
 
+/-- Summing all physical branch maps gives conjugation by the logical sequence unitary when the
+phases have norm one. -/
 theorem clusterSequenceActualBranchMap_sum (zs : List ℂ)
     (hzs : ∀ z ∈ zs, ‖z‖ = 1) (ρ : Operator 2) :
     (∑ ω : Reg zs.length, clusterSequenceActualBranchMap zs ω ρ) =
@@ -3071,6 +3387,8 @@ theorem clusterSequenceActualBranchMap_sum (zs : List ℂ)
   rw [← Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument.forget_apply]
   exact (cluster_sequence_instrument_probability_conditioning zs hzs ρ (ZeroStr _)).2.2.1
 
+/-- With a finite reference system, each branch is the same uniformly scaled logical conjugation
+tensored with the identity, and summing branches removes the scale. -/
 theorem cluster_sequence_actual_reference_output (zs : List ℂ)
     (hzs : ∀ z ∈ zs, ‖z‖ = 1) (r : ℕ)
     (ρ : Matrix (Fin 2 × Fin r) (Fin 2 × Fin r) ℂ) (ω : Reg zs.length) :
@@ -3090,16 +3408,21 @@ theorem cluster_sequence_actual_reference_output (zs : List ℂ)
     simpa only [Matrix.sum_apply, tensorLeft] using! congrArg (fun M => M x.1 y.1)
       (clusterSequenceActualBranchMap_sum zs hzs (fun i j => ρ (i,x.2) (j,y.2)))
 
+/-- The outcome register formed by concatenating the outcomes of two phase sequences. -/
 def clusterSequenceAppendOutcome (zs ys : List ℂ) (ω : Reg zs.length) (v : Reg ys.length) :
     Reg (zs ++ ys).length :=
   fun i => (regAppendEquiv zs.length ys.length).symm (ω,v) (Fin.cast (List.length_append ..) i)
 
+/-- The logical unitary of concatenated phase lists is the second sequence's unitary times the
+first sequence's unitary. -/
 theorem clusterSequenceUnitary_append (zs ys : List ℂ) :
     clusterSequenceUnitary (zs ++ ys) = clusterSequenceUnitary ys * clusterSequenceUnitary zs := by
   induction zs with
   | nil => simp [clusterSequenceUnitary]
   | cons z zs ih => simp [clusterSequenceUnitary, ih, Matrix.mul_assoc]
 
+/-- For unit-norm phase lists, concatenation composes both logical unitaries and the
+corresponding physical branch maps with concatenated outcomes. -/
 theorem cluster_sequence_append_actual_compilation (zs ys : List ℂ)
     (hzs : ∀ z ∈ zs, ‖z‖ = 1) (hys : ∀ y ∈ ys, ‖y‖ = 1) :
     clusterSequenceUnitary (zs++ys) = clusterSequenceUnitary ys * clusterSequenceUnitary zs ∧

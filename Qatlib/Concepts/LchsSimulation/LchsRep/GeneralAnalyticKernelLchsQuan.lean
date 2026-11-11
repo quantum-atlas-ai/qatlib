@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticKernelLchsStat
 import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
 
+/-!
+# LCHS representation with general analytic kernels
+
+`generalAnalyticKernelLchs` represents forward dissipative evolution by a normalized analytic
+kernel with positive-order power decay. The specialization
+`generalAnalyticKernelLchs_principalPower` uses the near-exponential principal-power kernel. See
+[AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `generalAnalyticKernelLchs`: A normalized Cauchy-weighted analytic kernel with the stated
+  positive-order decay reproduces the forward dissipative ordered evolution for continuous
+  positive semidefinite `L` and Hermitian `H`, with entrywise integrability.
+* `generalAnalyticKernelLchs_principalPower`: For `0 < β < 1`, the `highKernelG β`-weighted
+  unitary family is entrywise integrable and its integral equals the forward dissipative ordered
+  evolution under the stated continuity and positivity hypotheses.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 
 open Qatlib.Concepts.LchsSimulation.TimeLchs
 open Qatlib.Concepts.LchsSimulation.Kernel
@@ -24,6 +46,9 @@ open MeasureTheory
 open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- A normalized Cauchy-weighted analytic kernel with the stated positive-order decay reproduces
+the forward dissipative ordered evolution for continuous positive semidefinite `L` and
+Hermitian `H`, with entrywise integrability. See [AnChildsLin2026]. -/
 theorem generalAnalyticKernelLchs : GeneralAnalyticKernelLchs := by
   intro I _ _ f L H s t hf hdecay hmass hL hH hPSD hHerm hst
   let F := fun z : ℂ=>orderedEvolution (fun u=>z • L u+Complex.I • H u) s t
@@ -69,6 +94,9 @@ theorem generalAnalyticKernelLchs : GeneralAnalyticKernelLchs := by
     have hFone : F 1=orderedEvolution (fun u=>L u+Complex.I • H u) s t := by simp [F]
     simpa only [hb,hmass,one_smul,hFone] using! he
 
+/-- For `0 < β < 1`, the `highKernelG β`-weighted unitary family is entrywise integrable and its
+integral equals the forward dissipative ordered evolution under the stated continuity and
+positivity hypotheses. See [AnChildsLin2026]. -/
 theorem generalAnalyticKernelLchs_principalPower :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (β : ℝ) (L H : ℝ → Matrix I I ℂ)
     (s t : ℝ),

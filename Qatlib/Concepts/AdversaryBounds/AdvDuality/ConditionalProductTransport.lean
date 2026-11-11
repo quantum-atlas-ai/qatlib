@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeLayeredMean
 import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
+
+/-!
+# Transport bounds for conditional product distributions
+
+This module controls the change in repeated independent records when a finite family of
+distributions is replaced by another. `conditional_product_record_transport` averages over a
+conditioning index and bounds both the record distribution's L1 difference and the change in
+bounded observations.
+
+The estimates use the finite-distribution relation between L1 distance and bounded statistical
+tests, as in [Watrous2018].
+
+## Main statements
+
+* `conditional_product_l1`: the L1 difference of `R`-fold products is at most `R` times the
+  one-sample difference.
+* `conditional_product_record_transport`: the product estimate and its bounded-observation
+  consequence persist under finite averaging.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -18,6 +42,7 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open scoped BigOperators
 set_option warningAsError false
 
+/-- Finite hash averaging preserves pointwise inequalities between real-valued functions. -/
 private theorem conditional_average_mono
     {H : Type} [Fintype H] (f g : H → ℝ) (hfg : ∀ h, f h ≤ g h) :
     finiteHashAverage f ≤ finiteHashAverage g := by
@@ -25,6 +50,7 @@ private theorem conditional_average_mono
     (Finset.sum_le_sum (s := (Finset.univ : Finset H)) (fun h _ => hfg h))
     (inv_nonneg.mpr (Nat.cast_nonneg _))
 
+/-- A real scalar factors out of a finite hash average. -/
 private theorem conditional_average_scale
     {H : Type} [Fintype H] (c : ℝ) (f : H → ℝ) :
     finiteHashAverage (fun h => c * f h) = c * finiteHashAverage f := by
@@ -32,6 +58,8 @@ private theorem conditional_average_scale
   rw [← Finset.mul_sum]
   ring
 
+/-- The absolute value of a finite hash average is bounded by the average of the absolute
+values. -/
 private theorem conditional_average_abs
     {H : Type} [Fintype H] (f : H → ℝ) :
     |finiteHashAverage f| ≤ finiteHashAverage (fun h => |f h|) := by
@@ -40,6 +68,8 @@ private theorem conditional_average_abs
   exact mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _)
     (inv_nonneg.mpr (Nat.cast_nonneg _))
 
+/-- The L1 difference of two `R`-fold product distributions is at most `R` times their
+one-sample L1 difference. -/
 private theorem conditional_product_l1
     {X : Type} [Fintype X] [DecidableEq X] (p q : FinDist X) (R : ℕ) :
     (∑ ω : Fin R → X, |p.probOf ω - q.probOf ω|) ≤
@@ -48,6 +78,8 @@ private theorem conditional_product_l1
   simpa only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf, Finset.sum_const, Finset.card_univ,
     Fintype.card_fin, nsmul_eq_mul] using! hh
 
+/-- The difference in expectations of an observation valued in `[0, 1]` is bounded by half the
+L1 difference of the product distributions. -/
 private theorem conditional_product_observation_l1
     {X : Type} [Fintype X] [DecidableEq X] (p q : FinDist X) (R : ℕ)
     (w : (Fin R → X) → ℝ)
@@ -89,6 +121,8 @@ private theorem conditional_product_observation_l1
         _ = _ := mul_comm _ _
     _ = _ := by rw [Finset.mul_sum]
 
+/-- Averaging over the conditioning index bounds the product-record L1 difference by `R` times
+the averaged one-sample difference. Bounded observations differ by at most half that bound. -/
 theorem conditional_product_record_transport
     (H X : Type) [Fintype H] [Fintype X] [DecidableEq X]
     (p q : H → FinDist X) (R : ℕ) :

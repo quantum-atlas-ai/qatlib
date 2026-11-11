@@ -6,18 +6,41 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ChemDynamics08.MainResults.Resources
 
+/-!
+# Comparison of chemical simulation costs
+
+`bornOppenheimerCost` and `nonadiabaticCost` encode two resource models for chemical dynamics.
+An explicit exponential lower bound proves that the nonadiabatic model has strictly smaller cost
+when the basis parameter is at least fifteen, the particle count is at least five, and the
+precision parameter is at least one.
+
+These constructions support the treatment in [KassalEtAl2008].
+
+## Main statements
+
+* `nonadiabatic_dominates_born_oppenheimer`: compares the two defined cost functions under
+  explicit parameter bounds.
+
+## References
+
+* [Kassal et al., 2008][KassalEtAl2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.ChemDynamics08.MainResults.Simulation
 
 open Qatlib.Papers.ChemDynamics08.MainResults.Resources
 
+/-- The modeled Born-Oppenheimer cost `K^(3 * B - 6)` times the squaring cost polynomial. -/
 noncomputable def bornOppenheimerCost (K B : ℕ) (m : ℝ) : ℝ :=
   (K : ℝ) ^ (3 * B - 6) * (5 / 4 * m ^ 3 + 5 / 2 * m ^ 2)
 
+/-- The modeled nonadiabatic cost, equal to one thousand times the total Coulomb pair cost. -/
 noncomputable def nonadiabaticCost (B : ℕ) (m : ℝ) : ℝ :=
   1000 * pairCount B * coulombPairCost m
 
+/-- For `B ≥ 5`, the exponential `15^(3 * B - 6)` is at least `17700 * B²`. -/
 private theorem fifteen_pow_lower (B : ℕ) (hB : 5 ≤ B) :
     (17700 : ℝ) * (B : ℝ) ^ 2 ≤ (15 : ℝ) ^ (3 * B - 6) := by
   induction B, hB using Nat.le_induction with
@@ -38,6 +61,8 @@ private theorem fifteen_pow_lower (B : ℕ) (hB : 5 ≤ B) :
               mul_le_mul_of_nonneg_left ih (by norm_num)
         _ = (15 : ℝ) ^ (3 * B - 6) * 3375 := by ring
 
+/-- For `K ≥ 15`, `B ≥ 5`, and `m ≥ 1`, the defined nonadiabatic cost is strictly smaller than
+the defined Born-Oppenheimer cost [KassalEtAl2008]. -/
 theorem nonadiabatic_dominates_born_oppenheimer
     (K B : ℕ) (m : ℝ) (hK : 15 ≤ K) (hB : 5 ≤ B) (hm : 1 ≤ m) :
     nonadiabaticCost B m < bornOppenheimerCost K B m := by

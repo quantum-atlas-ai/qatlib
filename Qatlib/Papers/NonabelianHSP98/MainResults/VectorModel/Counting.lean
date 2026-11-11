@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Orthogonal
+
+/-!
+# Counting binary pairing values
+
+This module counts wreath-product elements and transports subgroup sums through `phiSubEquiv`.
+For a nonzero dot-product functional on a binary subspace, the zero and one fibers have equal
+cardinality. This yields vanishing of the binary sum under a divisibility assumption and
+vanishing of the complex sign-character sum. This development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `card_wreath`: the wreath product has cardinality `2 ^ (2 * n + 1)`.
+* `card_dot_zero_eq_one`: a nonzero binary functional has equal fibers.
+* `sum_dot_eq_zero`: a binary sum identity when the subspace cardinality is divisible by four.
+* `sum_chi_eq_zero`: cancellation of a nontrivial sign-character sum.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,11 +44,13 @@ attribute [local instance] Classical.propDecidable
 
 variable {n : ℕ}
 
+/-- The final coordinate of `phi g` is the final coordinate of `g`. -/
 @[simp] lemma phi_a (g : Wreath n) : (phi g).2.2 = g.a := by
   rcases zmod2_eq_zero_or_one g.a with h | h
   · simp [phi, h]
   · simp [phi, h]
 
+/-- Every vector in `Vec n` adds to itself to give zero. -/
 lemma add_self_eq_zero (v : Vec n) : v + v = 0 := by
   rcases v with ⟨x, y, a⟩
   refine Prod.ext ?_ (Prod.ext ?_ ?_)
@@ -37,6 +60,8 @@ lemma add_self_eq_zero (v : Vec n) : v + v = 0 := by
     exact CharTwo.add_self_eq_zero (y i)
   · exact CharTwo.add_self_eq_zero a
 
+/-- The equivalence that reads the two vector blocks and final coordinate of a wreath-product
+element. -/
 def wreathEquiv (n : ℕ) :
     Wreath n ≃ ((Fin n → ZMod 2) × (Fin n → ZMod 2) × ZMod 2) where
   toFun g := (g.x, g.y, g.a)
@@ -44,6 +69,7 @@ def wreathEquiv (n : ℕ) :
   left_inv g := by cases g; rfl
   right_inv p := by rcases p with ⟨x, y, a⟩; rfl
 
+/-- The cardinality of `Wreath n` is `2 ^ (2 * n + 1)`. -/
 theorem card_wreath (n : ℕ) : Fintype.card (Wreath n) = 2 ^ (2 * n + 1) := by
   rw [Fintype.card_congr (wreathEquiv n)]
   simp only [Fintype.card_prod, Fintype.card_fun, Fintype.card_fin, ZMod.card]
@@ -51,6 +77,8 @@ theorem card_wreath (n : ℕ) : Fintype.card (Wreath n) = 2 ^ (2 * n + 1) := by
     rw [show 2 * n + 1 = n + (n + 1) by omega, pow_add, pow_add]
     norm_num]
 
+/-- The cardinality of a wreath-product subgroup with at least four elements is divisible by
+four. -/
 theorem four_dvd_card_subgroup (U : Subgroup (Wreath n)) (hcard : 4 ≤ Fintype.card U) :
     4 ∣ Fintype.card U := by
   classical
@@ -66,17 +94,21 @@ theorem four_dvd_card_subgroup (U : Subgroup (Wreath n)) (hcard : 4 ≤ Fintype.
   rw [hj]
   simpa using! (pow_dvd_pow 2 h2)
 
+/-- The equivalence between a subgroup and its image subspace under `phi`. -/
 def phiSubEquiv (U : Subgroup (Wreath n)) : U ≃ phiSub U where
   toFun x := ⟨phi x, mem_phiSub.mpr x.2⟩
   invFun w := ⟨phiInv w, mem_phiSub.mp (by rw [phiInv_phi]; exact w.2)⟩
   left_inv x := by apply Subtype.ext; simp [phi_phiInv]
   right_inv w := by apply Subtype.ext; simp [phiInv_phi]
 
+/-- The subspace `phiSub U` has the same cardinality as the subgroup `U`. -/
 theorem card_phiSub (U : Subgroup (Wreath n)) :
     Fintype.card (phiSub U) = Fintype.card U := by
   classical
   exact (Fintype.card_congr (phiSubEquiv U)).symm
 
+/-- Summing `mu` over a subgroup agrees with summing the corresponding vector dot products over
+`phiSub U`. -/
 theorem sum_mu_eq_sum_dot (U : Subgroup (Wreath n)) (y : Wreath n) :
     (∑ u : U, mu (u : Wreath n) y) = ∑ w : phiSub U, dot (phi y) (w : Vec n) := by
   classical
@@ -86,6 +118,8 @@ theorem sum_mu_eq_sum_dot (U : Subgroup (Wreath n)) (y : Wreath n) :
   rw [phi_mu]
   exact dot_comm _ _
 
+/-- A binary dot-product functional that is nonzero somewhere on a subspace takes the value one
+somewhere on that subspace. -/
 theorem exists_dot_one (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
     (hne : ∃ w ∈ W, dot y w ≠ 0) : ∃ w₀ ∈ W, dot y w₀ = 1 := by
   obtain ⟨w, hw, hne⟩ := hne
@@ -94,6 +128,8 @@ theorem exists_dot_one (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
   · exact absurd h hne
   · exact h
 
+/-- If `dot y w₀ = 1` for some `w₀` in a subspace, the zero and one fibers of `dot y` in that
+subspace have equal cardinality. -/
 theorem card_dot_zero_eq_one (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
     (w₀ : Vec n) (hw₀ : w₀ ∈ W) (hd₀ : dot y w₀ = 1) :
     (univ.filter (fun w : W => dot y (w : Vec n) = 0)).card
@@ -120,6 +156,8 @@ theorem card_dot_zero_eq_one (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
       simp only [Subtype.coe_mk]
       rw [add_assoc, add_self_eq_zero, add_zero]
 
+/-- A nonzero binary dot-product functional sums to zero in `ZMod 2` over a subspace whose
+cardinality is divisible by four. -/
 theorem sum_dot_eq_zero (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
     (hne : ∃ w ∈ W, dot y w ≠ 0) (h4 : 4 ∣ Fintype.card W) :
     (∑ w : W, dot y (w : Vec n)) = 0 := by
@@ -167,8 +205,12 @@ theorem sum_dot_eq_zero (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
   have h2 : ((2 : ℕ) : ZMod 2) = 0 := by decide
   rw [h2, zero_mul]
 
+/-- The complex sign character sending zero to one and every other binary residue to negative
+one. -/
 noncomputable def chi : ZMod 2 → ℂ := fun a => if a = 0 then 1 else -1
 
+/-- The complex sign character of a nonzero dot-product functional sums to zero over a binary
+subspace. -/
 theorem sum_chi_eq_zero (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
     (hne : ∃ w ∈ W, dot y w ≠ 0) :
     (∑ w : W, chi (dot y (w : Vec n))) = 0 := by

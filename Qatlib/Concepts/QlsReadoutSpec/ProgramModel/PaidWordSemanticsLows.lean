@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsStat
+
+/-!
+# Semantics of paid oracle words
+
+This module proves algebraic and probabilistic laws for paid oracle words, including sequential
+composition, adjoints, legality, and oracle-call counts. Executing a legal word on a normalized
+clean input produces a normalized state whose unconditional output density is positive
+semidefinite with trace one. Related mathematical background is given in [Watrous2018].
+
+## Main statements
+
+* `wordMatrix_append`: Execution order for concatenated words.
+* `wordMatrix_wordAdjoint`: Matrix semantics of the adjoint word.
+* `Clause1PaidWordSemantics_answer`: Combined paid-word semantics theorem.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +43,8 @@ namespace Qatlib.Concepts.QlsReadoutSpec.ProgramModel
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The matrix of a paid-word step, using a known gate directly or a controlled oracle or
+adjoint for a call. -/
 private def stepMatrix {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) :
     Matrix (Space H r) (Space H r) ℂ :=
@@ -30,18 +52,23 @@ private def stepMatrix {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
   | .known U => U
   | .call i T adj => controlled (if adj then (oracles i)ᴴ else oracles i) T
 
+/-- The adjoint of a paid-word step, conjugate-transposing known gates and reversing the adjoint
+flag of oracle calls. -/
 private def adjStep {H : Type} {r : ℕ} (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r :=
   match s with
   | .known U => .known Uᴴ
   | .call i T a => .call i T (!a)
 
+/-- The matrix of a paid word is the product of its step matrices in reverse list order. -/
 theorem wordMatrix_eq_map {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (C : Word H r) :
     wordMatrix oracles C = (C.map (stepMatrix oracles)).reverse.prod := rfl
 
+/-- The adjoint word is obtained by reversing the word and taking each step's adjoint. -/
 theorem wordAdjoint_eq {H : Type} {r : ℕ} (C : Word H r) :
     wordAdjoint C = C.reverse.map adjStep := rfl
 
+/-- Conjugate transpose commutes with forming a controlled matrix on a fixed control set. -/
 theorem controlled_conjTranspose {H : Type} [DecidableEq H] {r : ℕ}
     (U : Matrix H H ℂ) (T : Finset (Fin r)) :
     (controlled U T)ᴴ = controlled Uᴴ T := by
@@ -62,6 +89,8 @@ theorem controlled_conjTranspose {H : Type} [DecidableEq H] {r : ℕ}
   · have hk2 : k' ≠ k := fun e => hk e.symm
     simp [hk, hk2]
 
+/-- Rows of a matrix whose product with its conjugate transpose is the identity have the stated
+Kronecker-delta inner products. -/
 theorem sum_mul_star_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {U : Matrix H H ℂ}
     (hU : U * Uᴴ = 1) (h h' : H) :
     (∑ g, U h g * star (U h' g)) = if h = h' then (1 : ℂ) else 0 := by
@@ -69,6 +98,8 @@ theorem sum_mul_star_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {U : M
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
   rw [key, hU, Matrix.one_apply]
 
+/-- The sum of products of two Kronecker-delta rows equals the Kronecker delta of their row
+indices. -/
 theorem sum_ite_delta {H : Type} [Fintype H] [DecidableEq H] (h h' : H) :
     (∑ g, ((if h = g then (1 : ℂ) else 0)) * ((if h' = g then (1 : ℂ) else 0)))
     = if h = h' then (1 : ℂ) else 0 := by
@@ -92,6 +123,7 @@ theorem sum_ite_delta {H : Type} [Fintype H] [DecidableEq H] (h h' : H) :
     rw [Finset.sum_congr rfl fun g _ => hterm g, if_neg hh]
     simp
 
+/-- A controlled unitary multiplied by its conjugate transpose is the identity. -/
 theorem controlled_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) (T : Finset (Fin r)) :
     controlled U T * (controlled U T)ᴴ = 1 := by
@@ -160,12 +192,15 @@ theorem controlled_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H] {r :
   rw [hprod]
   by_cases hk : k = k' <;> by_cases hh : h = h' <;> simp [hk, hh]
 
+/-- Controlling a unitary matrix on a finite set of control labels gives a unitary matrix. -/
 theorem controlled_unitary {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) (T : Finset (Fin r)) :
     controlled U T ∈ Matrix.unitaryGroup (Space H r) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
   exact controlled_mul_conjTranspose hU T
 
+/-- A paid-word step has unitary matrix semantics when its known gate is unitary or its oracle
+index is in the unitary-oracle range. -/
 theorem stepMatrix_unitary {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r)
     (hOracle : ∀ j < slots, oracles j ∈ Matrix.unitaryGroup H ℂ)
@@ -180,6 +215,7 @@ theorem stepMatrix_unitary {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ
     | true => exact controlled_unitary (Qatlib.Concepts.Execution.WorkspaceCP.adjoint_unitary hU) T
     | false => exact controlled_unitary hU T
 
+/-- A legal paid word over unitary oracles has unitary matrix semantics. -/
 theorem wordMatrix_unitary {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (C : Word H r)
     (hOracle : ∀ j < slots, oracles j ∈ Matrix.unitaryGroup H ℂ)
@@ -194,12 +230,15 @@ theorem wordMatrix_unitary {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ
   obtain ⟨s, hs, rfl⟩ := hex
   exact stepMatrix_unitary oracles s hOracle (hlegal s hs)
 
+/-- The matrix of concatenated paid words is the matrix of the second word multiplied by that of
+the first. -/
 theorem wordMatrix_append {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (C D : Word H r) :
     wordMatrix oracles (C ++ D) = wordMatrix oracles D * wordMatrix oracles C := by
   rw [wordMatrix_eq_map, wordMatrix_eq_map, wordMatrix_eq_map]
   simp only [List.map_append, List.reverse_append, List.prod_append]
 
+/-- The matrix of an adjoint step is the conjugate transpose of the original step matrix. -/
 theorem stepMatrix_adjStep {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) :
     stepMatrix oracles (adjStep s) = (stepMatrix oracles s)ᴴ := by
@@ -221,6 +260,8 @@ theorem stepMatrix_adjStep {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
       rw [h1, h2]
       exact (controlled_conjTranspose (oracles i) T).symm
 
+/-- The product of the conjugate transposes of a list of matrices equals the conjugate transpose
+of the product in reverse order. -/
 theorem prod_map_conjTranspose {n : Type} [Fintype n] [DecidableEq n]
     (L : List (Matrix n n ℂ)) :
     (L.map (fun m => mᴴ)).prod = (L.reverse.prod)ᴴ := by
@@ -230,6 +271,7 @@ theorem prod_map_conjTranspose {n : Type} [Fintype n] [DecidableEq n]
     rw [List.map_cons, List.prod_cons, ih, List.reverse_cons, List.prod_append,
       List.prod_cons, List.prod_nil, mul_one, Matrix.conjTranspose_mul]
 
+/-- The matrix of an adjoint paid word is the conjugate transpose of the original word matrix. -/
 theorem wordMatrix_wordAdjoint {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (oracles : ℕ → Matrix H H ℂ) (C : Word H r) :
     wordMatrix oracles (wordAdjoint C) = (wordMatrix oracles C)ᴴ := by
@@ -248,6 +290,7 @@ theorem wordMatrix_wordAdjoint {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
   rw [hmap2]
   exact prod_map_conjTranspose _
 
+/-- Taking the adjoint of a legal paid word preserves legality. -/
 theorem legal_wordAdjoint {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ}
     (C : Word H r) (h : legal slots C) : legal slots (wordAdjoint C) := by
   intro t ht
@@ -263,6 +306,7 @@ theorem legal_wordAdjoint {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ}
     show i < slots
     exact hP
 
+/-- Taking the adjoint of a paid word preserves the number of calls to each oracle slot. -/
 theorem calls_wordAdjoint {H : Type} {r : ℕ} (C : Word H r) (j : ℕ) :
     calls (wordAdjoint C) j = calls C j := by
   show (wordAdjoint C).countP
@@ -278,6 +322,7 @@ theorem calls_wordAdjoint {H : Type} {r : ℕ} (C : Word H r) (j : ℕ) :
     | true => rfl
     | false => rfl
 
+/-- The number of calls to an oracle slot in concatenated words is the sum of their call counts. -/
 theorem calls_append {H : Type} {r : ℕ} (C D : Word H r) (j : ℕ) :
     calls (C ++ D) j = calls C j + calls D j := by
   show (C ++ D).countP
@@ -286,6 +331,7 @@ theorem calls_append {H : Type} {r : ℕ} (C D : Word H r) (j : ℕ) :
         + D.countP (fun s => match s with | .call i _ _ => decide (i = j) | _ => false)
   exact List.countP_append
 
+/-- The clean embedding into a positive-size auxiliary register preserves normalization. -/
 theorem clean_normalized {H : Type} [Fintype H] {r : ℕ} (hr : 0 < r) (ω : QState H)
     (hω : Normalized ω) : Normalized (clean r hr ω) := by
   show ∑ p : H × Fin r, ‖clean r hr ω p‖ ^ 2 = 1
@@ -309,12 +355,16 @@ theorem clean_normalized {H : Type} [Fintype H] {r : ℕ} (hr : 0 < r) (ω : QSt
   rw [Finset.sum_congr rfl fun h _ => hinner h]
   exact hω
 
+/-- With identity output map, the branch at a control label is the corresponding slice of the
+state. -/
 theorem outputBranch_one {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (ψ : QState (Space H r)) (k : Fin r) :
     outputBranch (1 : Matrix H H ℂ) ψ k = fun h => ψ (h, k) := by
   show (1 : Matrix H H ℂ)ᴴ *ᵥ (fun h => ψ (h, k)) = _
   rw [Matrix.conjTranspose_one, Matrix.one_mulVec]
 
+/-- For a normalized state, the output mass with identity output map over all control labels is
+one. -/
 theorem outputMass_one_univ {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (ψ : QState (Space H r)) (hψ : Normalized ψ) :
     outputMass (1 : Matrix H H ℂ) Finset.univ ψ = 1 := by
@@ -327,6 +377,8 @@ theorem outputMass_one_univ {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
   rw [hswap, ← Fintype.sum_prod_type (fun p : H × Fin r => ‖ψ p‖ ^ 2)]
   exact hψ
 
+/-- For a normalized state, the output density with identity output map over all control labels
+is the sum of the pure densities of its slices. -/
 theorem outputDensity_one_univ {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (ψ : QState (Space H r)) (hψ : Normalized ψ) :
     outputDensity (1 : Matrix H H ℂ) Finset.univ ψ
@@ -342,9 +394,12 @@ theorem outputDensity_one_univ {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
   rw [inv_one, one_smul]
   exact Finset.sum_congr rfl fun k _ => by rw [hbr k]
 
+/-- The pure-state density matrix equals the outer-product matrix. -/
 theorem pureDensity_eq_outerProduct {I : Type} (ψ : QState I) :
     pureDensity ψ = outerProduct ψ := rfl
 
+/-- The unconditional output density with identity output map is positive semidefinite for a
+normalized state. -/
 theorem outputDensity_posSemidef {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (ψ : QState (Space H r)) (hψ : Normalized ψ) :
     (outputDensity (1 : Matrix H H ℂ) Finset.univ ψ).PosSemidef := by
@@ -354,6 +409,8 @@ theorem outputDensity_posSemidef {H : Type} [Fintype H] [DecidableEq H] {r : ℕ
   rw [pureDensity_eq_outerProduct]
   exact outerProduct_posSemidef _
 
+/-- The unconditional output density with identity output map has trace one for a normalized
+state. -/
 theorem outputDensity_trace {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (ψ : QState (Space H r)) (hψ : Normalized ψ) :
     Matrix.trace (outputDensity (1 : Matrix H H ℂ) Finset.univ ψ) = 1 := by
@@ -371,10 +428,12 @@ theorem outputDensity_trace {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
   rw [hswap, hψ]
   norm_num
 
+/-- Running a paid word applies its matrix to the clean embedding of the input state. -/
 theorem run_eq_applyGate {H : Type} [Fintype H] [DecidableEq H] {r : ℕ} (hr : 0 < r)
     (oracles : ℕ → Matrix H H ℂ) (C : Word H r) (ω : QState H) :
     run hr oracles C ω = ApplyGate (wordMatrix oracles C) (clean r hr ω) := rfl
 
+/-- Running a legal paid word over unitary oracles preserves normalization of the clean input. -/
 theorem run_normalized {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ}
     (hr : 0 < r) (oracles : ℕ → Matrix H H ℂ) (C : Word H r) (ω : QState H)
     (hOracle : ∀ j < slots, oracles j ∈ Matrix.unitaryGroup H ℂ)
@@ -384,6 +443,8 @@ theorem run_normalized {H : Type} [Fintype H] [DecidableEq H] {r slots : ℕ}
   exact normalized_applyGate (wordMatrix_unitary oracles C hOracle hlegal)
     (clean_normalized hr ω hω)
 
+/-- Legal paid words over unitary oracles satisfy the stated unitarity, composition, adjoint,
+call-count, normalization, and unconditional-density laws. -/
 theorem Clause1PaidWordSemantics_answer : Clause1PaidWordSemantics := by
   intro H _instF _instD r slots oracles C D horacle hlegal
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩

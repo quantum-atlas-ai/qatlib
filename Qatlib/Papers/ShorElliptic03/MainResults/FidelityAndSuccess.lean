@@ -100,6 +100,28 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 
+/-!
+# Fidelity loss and Fourier readout for elliptic-curve discrete logarithms
+
+`badSlotFraction` and `groupShiftTotalLoss` model the losses from exceptional group additions,
+while `euclidTotalIterations` supports a separate accumulated Euclidean loss bound. The Fourier
+peak model `peakWeight` yields finite tail bounds and a lower-bound expression
+`dlogSuccessLowerBound` that approaches one along powers of two. See [ProosZalka2003] for the
+source development.
+
+## Main statements
+
+* `totalFidelityLoss_le`: bounds the sum of `12 * n ^ 2` losses of size at most `1 / n ^ 3` by
+  `12 / n`.
+* `peak_tail_bound`: bounds the two-sided finite Fourier tail by `2 / Δ`.
+* `dlogSuccess_two_pow_close_to_one`: makes the gap in the modeled success lower bound
+  arbitrarily small.
+
+## References
+
+* [Proos and Zalka, 2003][ProosZalka2003]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 noncomputable section
@@ -108,12 +130,18 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ShorElliptic03.MainResults.FidelityAndSuccess
 
+/-- The real logarithm to base two used in the resource and fidelity formulas. -/
 def paperLog2 (x : ℝ) : ℝ := Real.logb 2 x
 
+/-- The modeled exceptional fraction `2 / q` for a group shift over `q` slots. -/
 def badSlotFraction (q : ℕ) : ℝ := 2 / (q : ℝ)
 
+/-- The modeled total exceptional loss from `2 * n` group shifts, each contributing
+`badSlotFraction q`. -/
 def groupShiftTotalLoss (n q : ℕ) : ℝ := 2 * (n : ℝ) * badSlotFraction q
 
+/-- For positive `q`, a set of at most two exceptional slots has uniform fraction at most `2 /
+q`. See [ProosZalka2003]. -/
 theorem uniform_bad_fraction (q : ℕ) (bad : Finset (Fin q)) (hbad : bad.card ≤ 2)
     (hq : 0 < q) :
     (bad.card : ℝ) / (q : ℝ) ≤ 2 / (q : ℝ) := by
@@ -121,6 +149,8 @@ theorem uniform_bad_fraction (q : ℕ) (bad : Finset (Fin q)) (hbad : bad.card �
   have h : (bad.card : ℝ) ≤ 2 := by exact_mod_cast hbad
   exact div_le_div_of_nonneg_right h (le_of_lt hq')
 
+/-- If every group-shift loss is at most `badSlotFraction q` and `q > 0`, their sum over `2 * n`
+shifts is at most `4 * n / q`. See [ProosZalka2003]. -/
 theorem groupShiftLoss_le (n q : ℕ) (hq : 0 < q) (loss : ℕ → ℝ)
     (hloss : ∀ i, loss i ≤ badSlotFraction q) :
     ∑ i ∈ Finset.range (2 * n), loss i ≤ 4 * (n : ℝ) / (q : ℝ) := by
@@ -142,6 +172,8 @@ theorem groupShiftLoss_le (n q : ℕ) (hq : 0 < q) (loss : ℕ → ℝ)
           field_simp
           ring
 
+/-- For positive `q`, the modeled total group-shift loss equals `4 * n / q`. See
+[ProosZalka2003]. -/
 theorem groupShiftTotalLoss_eq (n q : ℕ) (hq : 0 < q) :
     groupShiftTotalLoss n q = 4 * (n : ℝ) / (q : ℝ) := by
   unfold groupShiftTotalLoss badSlotFraction
@@ -150,6 +182,8 @@ theorem groupShiftTotalLoss_eq (n q : ℕ) (hq : 0 < q) :
   field_simp
   ring
 
+/-- For positive `q`, multiplying `badSlotFraction q` by twice the base-two logarithm of `q`
+gives `4 * log₂ q / q`. See [ProosZalka2003]. -/
 theorem groupShiftTotalLoss_log2 (q : ℕ) (hq : 0 < q) :
     2 * paperLog2 (q : ℝ) * badSlotFraction q =
       4 * paperLog2 (q : ℝ) / (q : ℝ) := by
@@ -159,13 +193,18 @@ theorem groupShiftTotalLoss_log2 (q : ℕ) (hq : 0 < q) :
   field_simp
   ring
 
+/-- The real-valued iteration estimate obtained from `8 * n` Euclidean runs with `1.5 * n`
+iterations each. -/
 def euclidTotalIterations (n : ℕ) : ℝ := 8 * (n : ℝ) * (1.5 * (n : ℝ))
 
+/-- The modeled Euclidean iteration count simplifies to `12 * n ^ 2`. See [ProosZalka2003]. -/
 theorem euclidTotalIterations_eq (n : ℕ) :
     euclidTotalIterations n = 12 * (n : ℝ) ^ 2 := by
   unfold euclidTotalIterations
   ring
 
+/-- For `n ≥ 1`, the sum of `12 * n ^ 2` losses, each at most `1 / n ^ 3`, is at most `12 / n`.
+See [ProosZalka2003]. -/
 theorem totalFidelityLoss_le (n : ℕ) (hn : 1 ≤ n) (loss : ℕ → ℝ)
     (hloss : ∀ i, loss i ≤ 1 / (n : ℝ) ^ 3) :
     ∑ i ∈ Finset.range (12 * n ^ 2), loss i ≤ 12 / (n : ℝ) := by
@@ -183,16 +222,22 @@ theorem totalFidelityLoss_le (n : ℕ) (hn : 1 ≤ n) (loss : ℕ → ℝ)
     _ = 12 / (n : ℝ) := by
           field_simp
 
+/-- The squared sine-ratio Fourier peak weight at offset `d + δ`, with value one when that
+offset vanishes. -/
 def peakWeight (N : ℕ) (δ : ℝ) (d : ℤ) : ℝ :=
   if (d : ℝ) + δ = 0 then 1
   else
     (Real.sin (Real.pi * ((d : ℝ) + δ)) /
         ((N : ℝ) * Real.sin (Real.pi * ((d : ℝ) + δ) / (N : ℝ)))) ^ 2
 
+/-- The real-valued readout window `N / (2 * q)` for register size `N` and group size `q`. -/
 def readoutWindow (N q : ℕ) : ℝ := (N : ℝ) / (2 * (q : ℝ))
 
+/-- The modeled discrete-logarithm success lower bound `1 - 8 * q / N`. -/
 def dlogSuccessLowerBound (N q : ℕ) : ℝ := 1 - 8 * (q : ℝ) / (N : ℝ)
 
+/-- For positive `N` and nonzero offset `d + δ` whose scaled angle has magnitude at most `π /
+2`, the peak weight is at most `1 / (4 * (d + δ) ^ 2)`. See [ProosZalka2003]. -/
 theorem peakWeight_le_inv_four_sq (N : ℕ) (δ : ℝ) (d : ℤ)
     (hN : 0 < N) (hne : (d : ℝ) + δ ≠ 0)
     (hangle : |Real.pi * ((d : ℝ) + δ) / (N : ℝ)| ≤ Real.pi / 2) :
@@ -246,6 +291,8 @@ theorem peakWeight_le_inv_four_sq (N : ℕ) (δ : ℝ) (d : ℤ)
         ≤ 1 / ((N : ℝ) ^ 2 * Real.sin (Real.pi * ((d : ℝ) + δ) / (N : ℝ)) ^ 2) := hstep1
     _ ≤ 1 / (4 * ((d : ℝ) + δ) ^ 2) := one_div_le_one_div_of_le hspos hle
 
+/-- For `a ≥ 2`, every finite sum of reciprocal squares starting at `a` is at most `1 / (a -
+1)`. -/
 lemma sum_range_inv_sq_le (a n : ℕ) (ha : 2 ≤ a) :
     (∑ i ∈ Finset.range n, (1 : ℝ) / ((a : ℝ) + (i : ℝ)) ^ 2) ≤ 1 / ((a : ℝ) - 1) := by
   have ha1 : (1 : ℝ) ≤ (a : ℝ) - 1 := by
@@ -298,6 +345,7 @@ lemma sum_range_inv_sq_le (a n : ℕ) (ha : 2 ≤ a) :
           have hle : 0 ≤ 1 / ((a : ℝ) - 1 + (n : ℝ)) := by positivity
           linarith
 
+/-- For `a ≥ 1`, every finite sum of reciprocal squares starting at `a` is at most `2 / a`. -/
 lemma sum_range_inv_sq_le_two (a n : ℕ) (ha : 1 ≤ a) :
     (∑ i ∈ Finset.range n, (1 : ℝ) / ((a : ℝ) + (i : ℝ)) ^ 2) ≤ 2 / (a : ℝ) := by
   by_cases ha1 : a = 1
@@ -327,6 +375,8 @@ lemma sum_range_inv_sq_le_two (a n : ℕ) (ha : 1 ≤ a) :
       nlinarith
     linarith
 
+/-- For `0 ≤ δ < 1`, `2 ≤ j ≤ K`, and `2 * (K + 1) ≤ N`, the positive-offset peak weight is at
+most `1 / (4 * j ^ 2)`. -/
 lemma peakWeight_pos_le (N K : ℕ) (δ : ℝ) (j : ℕ)
     (hN : 0 < N) (hδ0 : 0 ≤ δ) (hδ1 : δ < 1) (hKj : j ≤ K)
     (hKN : 2 * (K + 1) ≤ N) (hj : 2 ≤ j) :
@@ -365,6 +415,8 @@ lemma peakWeight_pos_le (N K : ℕ) (δ : ℝ) (j : ℕ)
         apply one_div_le_one_div_of_le hspos
         nlinarith [hjR, hδ0]
 
+/-- For `0 ≤ δ < 1`, `2 ≤ j ≤ K`, and `2 * (K + 1) ≤ N`, the negative-offset peak weight is at
+most `1 / (4 * (j - 1) ^ 2)`. -/
 lemma peakWeight_neg_le (N K : ℕ) (δ : ℝ) (j : ℕ)
     (hN : 0 < N) (hδ0 : 0 ≤ δ) (hδ1 : δ < 1) (hKj : j ≤ K)
     (hKN : 2 * (K + 1) ≤ N) (hj : 2 ≤ j) :
@@ -419,6 +471,8 @@ lemma peakWeight_neg_le (N K : ℕ) (δ : ℝ) (j : ℕ)
           nlinarith [hjR]
   exact hmain
 
+/-- For `0 ≤ δ < 1`, `1 ≤ Δ ≤ K`, and `2 * (K + 1) ≤ N`, the sum of the positive and negative
+peak weights from `Δ + 1` through `K` is at most `2 / Δ`. See [ProosZalka2003]. -/
 theorem peak_tail_bound (N K : ℕ) (δ : ℝ) (Δ : ℕ)
     (hK : 1 ≤ K) (hN : 2 * (K + 1) ≤ N)
     (hδ0 : 0 ≤ δ) (hδ1 : δ < 1) (hΔ1 : 1 ≤ Δ) (hΔK : Δ ≤ K) :
@@ -516,6 +570,8 @@ theorem peak_tail_bound (N K : ℕ) (δ : ℝ) (Δ : ℕ)
     have hΔpos : (0 : ℝ) < (Δ : ℝ) := by exact_mod_cast hΔ1
     positivity
 
+/-- For positive `N` and `q`, twice the reciprocal of the readout window equals `4 * q / N`. See
+[ProosZalka2003]. -/
 theorem peakTail_window (N q : ℕ) (hN : 0 < N) (hq : 0 < q) :
     2 / readoutWindow N q = 4 * (q : ℝ) / (N : ℝ) := by
   unfold readoutWindow
@@ -524,6 +580,8 @@ theorem peakTail_window (N q : ℕ) (hN : 0 < N) (hq : 0 < q) :
   field_simp
   ring
 
+/-- If both register tails are at most `2 / readoutWindow N q` and `N, q > 0`, then
+`dlogSuccessLowerBound N q` is at most one minus their sum. See [ProosZalka2003]. -/
 theorem dlog_success_of_register_tails (N q : ℕ) (hN : 0 < N) (hq : 0 < q)
     (tailx taily : ℝ) (hx : tailx ≤ 2 / readoutWindow N q)
     (hy : taily ≤ 2 / readoutWindow N q) :
@@ -544,6 +602,8 @@ theorem dlog_success_of_register_tails (N q : ℕ) (hN : 0 < N) (hq : 0 < q)
       _ = 8 * (q : ℝ) / (N : ℝ) := heq
   linarith
 
+/-- For positive `q`, the gap between one and `dlogSuccessLowerBound (2 ^ n) q` can be made at
+most any prescribed positive real number. See [ProosZalka2003]. -/
 theorem dlogSuccess_two_pow_close_to_one (q : ℕ) (hq : 0 < q) :
     ∀ ε : ℝ, 0 < ε → ∃ n : ℕ,
       1 - dlogSuccessLowerBound (2 ^ n) q ≤ ε := by

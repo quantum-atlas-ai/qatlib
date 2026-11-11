@@ -11,6 +11,25 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Normalization and conditional precision bounds
+
+`normalizedState` rescales a vector by the reciprocal of its norm. A perturbation bound for
+nonzero vectors converts an assumed decaying absolute error and a lower heat-state norm bound
+into normalized-state error and precision estimates for the analysis of [JinLiu2024].
+
+## Main statements
+
+* `norm_normalizedState_sub_le`: normalization changes two nonzero vectors by at most twice
+  their relative distance.
+* `conditional_target_precision`: a square-root scale bound implies a requested normalized-state
+  error.
+
+## References
+
+* [Jin and Liu, 2024][JinLiu2024]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,14 +37,17 @@ namespace Qatlib.Papers.ParabolicPDE24.MainResults
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 
+/-- The vector obtained by multiplying `x` by the reciprocal of its norm. -/
 def normalizedState (x : E) : E := (‖x‖ : ℝ)⁻¹ • x
 
+/-- The normalization of a nonzero vector has norm one. See [JinLiu2024]. -/
 theorem norm_normalizedState (x : E) (hx : x ≠ 0) : ‖normalizedState x‖ = 1 := by
   have h : (0 : ℝ) < ‖x‖ := norm_pos_iff.mpr hx
   rw [normalizedState, norm_smul, Real.norm_eq_abs, abs_inv,
     abs_of_nonneg (norm_nonneg x)]
   exact inv_mul_cancel₀ (ne_of_gt h)
 
+/-- For positive `α` and `β`, `|α⁻¹ − β⁻¹| * β` is at most `|β − α| / α`. -/
 theorem abs_inv_sub_inv_mul_le (α β : ℝ) (hα : 0 < α) (hβ : 0 < β) :
     |α⁻¹ - β⁻¹| * β ≤ |β - α| / α := by
   have h : |α⁻¹ - β⁻¹| * β = |β - α| / α := by
@@ -34,6 +56,7 @@ theorem abs_inv_sub_inv_mul_le (α β : ℝ) (hα : 0 < α) (hβ : 0 < β) :
     field_simp [ne_of_gt hα, ne_of_gt hβ]
   exact le_of_eq h
 
+/-- For nonzero vectors `a` and `b`, their normalized distance is at most `2 * ‖a − b‖ / ‖a‖`. -/
 theorem norm_normalizedState_sub_le (a b : E) (ha : a ≠ 0) (hb : b ≠ 0) :
     ‖normalizedState a - normalizedState b‖ ≤ 2 * ‖a - b‖ / ‖a‖ := by
   have ha' : (0 : ℝ) < ‖a‖ := norm_pos_iff.mpr ha
@@ -66,6 +89,8 @@ theorem norm_normalizedState_sub_le (a b : E) (ha : a ≠ 0) (hb : b ≠ 0) :
         field_simp [ne_of_gt ha']
         ring
 
+/-- Given nonzero states, the stated decaying error bound, and the lower heat-state norm bound,
+their normalized distance is at most `2 * C * ε²`. -/
 theorem conditional_normalized_budget
     (k ε C : ℝ) (_hk : 0 < k) (hε : 0 < ε) (hC : 0 ≤ C)
     (u ũ : ℝ → E) {t : ℝ}
@@ -92,6 +117,8 @@ theorem conditional_normalized_budget
     _ ≤ 2 * (C * ε ^ 2) := by linarith
     _ = 2 * C * ε ^ 2 := by ring
 
+/-- Under the stated conditional error and norm bounds and positivity assumptions, `ε ≤ sqrt (δ
+/ (2 * C))` ensures normalized-state error at most `δ`. -/
 theorem conditional_target_precision
     (k ε C δ : ℝ) (hk : 0 < k) (hε : 0 < ε) (hC : 0 < C) (hδ : 0 < δ)
     (u ũ : ℝ → E) {t : ℝ}

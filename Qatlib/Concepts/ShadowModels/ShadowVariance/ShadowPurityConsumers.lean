@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticPauliShadows
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+/-!
+# Purity estimation and counted postprocessing
+
+This module combines tensor Pauli purity U-statistics into a median estimator and proves its
+concentration bound. It gives a maximally mixed qubit example and exact rational postprocessing
+counts for the purity estimation framework [HuangKuengPreskill2020].
+
+## Main statements
+
+* `tensor_purity_same_born_records_median_bound`: concentration from independent groups.
+* `tensorPurityURationalCounted_spec`: rational estimator correctness and work counts.
+* `tensorPurityGrouped_classical_counts`: grouped pair and local multiplication counts.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,10 +42,15 @@ open Matrix
 open scoped BigOperators ComplexOrder
 set_option autoImplicit false
 
+/-- The middle sorted value of the blockwise purity U-statistics, with zero as the default for
+an empty list. -/
 noncomputable def tensorPurityMedian (n L K : ℕ)
     (ω : Fin K → Fin L → Fin n → Fin 3 × Bool) : ℝ :=
   (insertionSortCounted (List.ofFn (fun k => tensorPurityU n (ω k)))).1.getD (K / 2) 0
 
+/-- Under the stated group-size and variance budget, the odd-group purity median exceeds error
+`ε` with probability at most `2 ^ (2 * r + 1) * (1 / 16) ^ (r + 1)`. See
+[HuangKuengPreskill2020]. -/
 theorem tensor_purity_same_born_records_median_bound (n L r : ℕ)
     (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ) (ε : ℝ) (hL : 2 ≤ L) (hε : 0 < ε)
     (hbudget : 16 * (4 * (5 : ℝ) ^ n / (L : ℝ) +
@@ -85,10 +109,14 @@ theorem tensor_purity_same_born_records_median_bound (n L r : ℕ)
   have hdiv : (2 * r + 1) / 2 = r := by omega
   simpa only [tensorPurityMedian, sortedBlockMedian, hdiv, θ, p] using hc
 
+/-- Half the identity on a qubit is a density operator. -/
 theorem tensorPurityMixedDensity : IsDensityOperator ((1 / 2 : ℂ) • (1 : Operator 2)) := by
   refine ⟨Matrix.PosSemidef.smul Matrix.PosSemidef.one (by norm_num [Complex.nonneg_iff]), ?_⟩
   norm_num [Matrix.trace_smul, Matrix.trace_one]
 
+/-- For the maximally mixed qubit, the purity kernel mean is one half, grouped pair evaluations
+total `K * L.choose 2`, and fresh-record resources have the displayed counts. See
+[HuangKuengPreskill2020]. -/
 theorem tensor_purity_real_mixed_consumer_and_work_count (L K : ℕ)
     (hρ : IsDensityOperator ((1 / 2 : ℂ) • (1 : Operator 2))) (_hL : 2 ≤ L) :
     pairKernelMean (tensorPauliLaw 1 ((1 / 2 : ℂ) • (1 : Operator 2)) hρ)
@@ -107,6 +135,8 @@ theorem tensor_purity_real_mixed_consumer_and_work_count (L K : ℕ)
         Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, Nat.cast_id]
     · simpa only [mul_one, one_mul] using tensorPauliFreshResourceCounts_spec 1 L K ω
 
+/-- The maximally mixed qubit has purity-kernel mean one half and the displayed grouped
+pair-evaluation and fresh-record resource counts, using `tensorPurityMixedDensity`. -/
 theorem tensorPurityMixed_actual (L K : ℕ) (hL : 2 ≤ L) :
     pairKernelMean (tensorPauliLaw 1 ((1 / 2 : ℂ) • (1 : Operator 2)) tensorPurityMixedDensity)
       (tensorPurityKernel 1) = 1 / 2 ∧
@@ -115,6 +145,8 @@ theorem tensorPurityMixed_actual (L K : ℕ) (hL : 2 ≤ L) :
         tensorPauliFreshResourceCounts 1 L K ω = (K * L, 2 * (K * L), K * L, 0) :=
   tensor_purity_real_mixed_consumer_and_work_count L K tensorPurityMixedDensity hL
 
+/-- The rational purity pair average, together with its pair-kernel evaluation count and local
+multiplication count. -/
 def tensorPurityURationalCounted (n : ℕ) {m : ℕ}
     (ω : Fin m → Fin n → Fin 3 × Bool) : ℚ × ℕ × ℕ :=
   let a := (pairIndexList m).foldl (fun acc ij =>
@@ -122,6 +154,8 @@ def tensorPurityURationalCounted (n : ℕ) {m : ℕ}
     (acc.1 + c.1, acc.2.1 + 1, acc.2.2 + c.2)) (0, 0, 0)
   (a.1 / (m.choose 2 : ℚ), a.2)
 
+/-- The counted pair fold accumulates the rational purity-kernel sum, one pair evaluation per
+entry, and `n` local multiplications per entry. -/
 private theorem tensorPurity_pair_fold (n m : ℕ) (ω : Fin m → Fin n → Fin 3 × Bool)
     (ps : List (Fin m × Fin m)) (acc : ℚ × ℕ × ℕ) :
     ps.foldl (fun acc ij =>
@@ -136,6 +170,8 @@ private theorem tensorPurity_pair_fold (n m : ℕ) (ω : Fin m → Fin n → Fin
         (tensorPurityKernelCounted_spec n (ω ij.1) (ω ij.2)).2, Nat.mul_succ,
         add_assoc, Nat.add_comm, Nat.add_left_comm]
 
+/-- The rational counted estimator embeds into `tensorPurityU` and uses exactly `m.choose 2`
+pair evaluations and `n * m.choose 2` local multiplications. -/
 theorem tensorPurityURationalCounted_spec (n m : ℕ)
     (ω : Fin m → Fin n → Fin 3 × Bool) :
     ((tensorPurityURationalCounted n ω).1 : ℝ) = tensorPurityU n ω ∧
@@ -152,12 +188,15 @@ theorem tensorPurityURationalCounted_spec (n m : ℕ)
   refine ⟨?_, trivial, trivial⟩
   exact (finite_pair_u_statistic_actual_value_and_count _ m (tensorPurityKernel n) ω).1.symm
 
+/-- Sorting the `K` blockwise purity estimates uses at most `K * K` comparisons. -/
 theorem tensorPurityMedian_comparisons (n L K : ℕ)
     (ω : Fin K → Fin L → Fin n → Fin 3 × Bool) :
     (insertionSortCounted (List.ofFn (fun k => tensorPurityU n (ω k)))).2 ≤ K * K := by
   simpa only [List.length_ofFn] using insertionSortCounted_cost_le
     (List.ofFn (fun k => tensorPurityU n (ω k)))
 
+/-- Across `K` groups of length `L`, rational purity postprocessing uses `K * L.choose 2` pair
+evaluations and `K * (n * L.choose 2)` local multiplications. -/
 theorem tensorPurityGrouped_classical_counts (n L K : ℕ)
     (ω : Fin K → Fin L → Fin n → Fin 3 × Bool) :
     (∑ k, (tensorPurityURationalCounted n (ω k)).2.1) = K * L.choose 2 ∧

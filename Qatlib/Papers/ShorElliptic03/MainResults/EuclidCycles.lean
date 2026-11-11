@@ -76,6 +76,27 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Cycle bounds for the Euclidean algorithm
+
+This module defines `euclidQuotients` and the weighted count `euclidCycles`, with weight `1 + 4
+* Nat.log2 q` for each quotient q. It proves Lemma 1 of [ProosZalka2003]: coprime inputs with p
+> x ≥ 1 and p > 2 have cycle count at most 4.5 log₂ p, using recursive identities and explicit
+logarithmic estimates.
+
+## Main statements
+
+* `euclidQuotients_prod_le`: The product of the Euclidean quotients is bounded by the positive
+  first input when the second does not exceed it.
+* `euclidCycles_cons`: The cycle count satisfies the Euclidean recursion with the prescribed
+  quotient weight.
+* `euclidCycles_le`: The cycle count is at most 4.5 log₂ p for the stated coprime inputs.
+
+## References
+
+* [Proos and Zalka, 2003][ProosZalka2003]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 noncomputable section
@@ -83,8 +104,11 @@ set_option maxHeartbeats 1000000
 
 namespace Qatlib.Papers.ShorElliptic03.MainResults.EuclidCycles
 
+/-- The real base-two logarithm used in the cycle bound. -/
 def paperLog2 (x : ℝ) : ℝ := Real.logb 2 x
 
+/-- The list of natural-number quotients produced by repeated Euclidean division, terminating
+when the second input is zero. -/
 def euclidQuotients : ℕ → ℕ → List ℕ
   | a, 0 => []
   | a, b + 1 => (a / (b + 1)) :: euclidQuotients (b + 1) (a % (b + 1))
@@ -93,16 +117,22 @@ decreasing_by
   simp_wf
   exact Nat.le_of_lt_succ (Nat.mod_lt _ (Nat.succ_pos _))
 
+/-- The length of the Euclidean quotient list plus four times the sum of the natural base-two
+logarithms of its entries. -/
 def euclidCycles (p x : ℕ) : ℕ :=
   (euclidQuotients p x).length +
     4 * ((euclidQuotients p x).map Nat.log2).sum
 
+/-- For a positive second input, the Euclidean quotient list starts with `a / b` and continues
+with the list for `b` and `a % b`. -/
 theorem euclidQuotients_cons (a b : ℕ) (hb : 0 < b) :
     euclidQuotients a b = (a / b) :: euclidQuotients b (a % b) := by
   cases b with
   | zero => omega
   | succ b => simp only [euclidQuotients]
 
+/-- For `0 < a` and `b ≤ a`, the product of the Euclidean quotients for `a` and `b` is at most
+`a`. -/
 theorem euclidQuotients_prod_le (a b : ℕ) (ha : 0 < a) (hb : b ≤ a) :
     (euclidQuotients a b).prod ≤ a := by
   induction b using Nat.strong_induction_on generalizing a with
@@ -124,6 +154,8 @@ theorem euclidQuotients_prod_le (a b : ℕ) (ha : 0 < a) (hb : b ≤ a) :
             ≤ a / (b + 1) * (b + 1) := Nat.mul_le_mul_left _ htail
         _ ≤ a := Nat.div_mul_le_self a (b + 1)
 
+/-- For `b > 0`, the cycle count for `(a, b)` is `1 + 4 * Nat.log2 (a / b)` plus the cycle count
+for `(b, a % b)`. -/
 theorem euclidCycles_cons (a b : ℕ) (hb : 0 < b) :
     euclidCycles a b = 1 + 4 * Nat.log2 (a / b) + euclidCycles b (a % b) := by
   unfold euclidCycles
@@ -132,12 +164,15 @@ theorem euclidCycles_cons (a b : ℕ) (hb : 0 < b) :
   rw [Nat.mul_add]
   omega
 
+/-- The cycle count for `(p, 1)` equals `4 * Nat.log2 p + 1`. -/
 theorem euclidCycles_one (p : ℕ) : euclidCycles p 1 = 4 * Nat.log2 p + 1 := by
   have h := euclidCycles_cons p 1 (by norm_num)
   simp only [Nat.div_one, Nat.mod_one, euclidCycles, euclidQuotients,
     List.length_nil, List.map_nil, List.sum_nil] at h ⊢
   omega
 
+/-- For positive naturals `m` and `v`, the inequality `2 ^ u ≤ m ^ v` implies the real bound `2
+^ (u / v) ≤ m`. -/
 lemma rpow_two_div_le {m u v : ℕ} (hm : 0 < m) (hv : 0 < v) (h : 2 ^ u ≤ m ^ v) :
     (2 : ℝ) ^ ((u : ℝ) / (v : ℝ)) ≤ (m : ℝ) := by
   have hv0 : (v : ℝ) ≠ 0 := by positivity
@@ -146,62 +181,77 @@ lemma rpow_two_div_le {m u v : ℕ} (hm : 0 < m) (hv : 0 < v) (h : 2 ^ u ≤ m ^
   rw [Real.rpow_le_rpow_iff (by positivity) (by positivity) (by positivity)]
   exact_mod_cast h
 
+/-- For positive naturals `m` and `v`, the inequality `2 ^ u ≤ m ^ v` implies `u / v ≤ Real.logb
+2 m` over the reals. -/
 lemma le_logb_two {m u v : ℕ} (hm : 0 < m) (hv : 0 < v) (h : 2 ^ u ≤ m ^ v) :
     (u : ℝ) / (v : ℝ) ≤ Real.logb 2 (m : ℝ) := by
   rw [Real.le_logb_iff_rpow_le (by norm_num) (by exact_mod_cast hm)]
   exact rpow_two_div_le hm hv h
 
+/-- The real base-two logarithm of three is at least `4/3`. -/
 lemma logb_two_three : (4/3 : ℝ) ≤ Real.logb 2 3 := by
   have h := le_logb_two (m := 3) (u := 4) (v := 3) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 4 ≤ 3 ^ 3)
   simpa using h
 
+/-- The real base-two logarithm of five is at least `20/9`. -/
 lemma logb_two_five : (20/9 : ℝ) ≤ Real.logb 2 5 := by
   have h := le_logb_two (m := 5) (u := 20) (v := 9) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 20 ≤ 5 ^ 9)
   simpa using h
 
+/-- The real base-two logarithm of two equals one. -/
 lemma logb_two_two : Real.logb 2 (2:ℝ) = 1 := Real.logb_self_eq_one (by norm_num)
 
+/-- The real base-two logarithm is monotone between positive ordered inputs. -/
 lemma logb_mono {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     Real.logb 2 a ≤ Real.logb 2 b :=
   (Real.logb_le_logb (b := 2) (by norm_num) ha (by linarith)).mpr hab
 
+/-- The real base-two logarithm of nine is at least `28/9`. -/
 lemma logb_two_nine : (28/9 : ℝ) ≤ Real.logb 2 9 := by
   have h := le_logb_two (m := 9) (u := 28) (v := 9) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 28 ≤ 9 ^ 9)
   simpa using h
 
+/-- The real base-two logarithm of seven is at least `22/9`. -/
 lemma logb_two_seven : (22/9 : ℝ) ≤ Real.logb 2 7 := by
   have h := le_logb_two (m := 7) (u := 22) (v := 9) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 22 ≤ 7 ^ 9)
   simpa using h
 
+/-- The real base-two logarithm of eleven is at least `10/3`. -/
 lemma logb_two_eleven : (10/3 : ℝ) ≤ Real.logb 2 11 := by
   have h := le_logb_two (m := 11) (u := 10) (v := 3) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 10 ≤ 11 ^ 3)
   simpa using h
 
+/-- The real base-two logarithm of nineteen is at least `38/9`. -/
 lemma logb_two_nineteen : (38/9 : ℝ) ≤ Real.logb 2 19 := by
   have h := le_logb_two (m := 19) (u := 38) (v := 9) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 38 ≤ 19 ^ 9)
   simpa using h
 
+/-- The real base-two logarithm of thirty-five is at least `46/9`. -/
 lemma logb_two_thirtyfive : (46/9 : ℝ) ≤ Real.logb 2 35 := by
   have h := le_logb_two (m := 35) (u := 46) (v := 9) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 46 ≤ 35 ^ 9)
   simpa using h
 
+/-- The real base-two logarithm of ten is at least `29/9`. -/
 lemma logb_two_ten : (29/9 : ℝ) ≤ Real.logb 2 10 := by
   have h := le_logb_two (m := 10) (u := 29) (v := 9) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 29 ≤ 10 ^ 9)
   simpa using h
 
+/-- The real base-two logarithm of eighteen is at least `25/6`. -/
 lemma logb_two_eighteen : (25/6 : ℝ) ≤ Real.logb 2 18 := by
   have h := le_logb_two (m := 18) (u := 25) (v := 6) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 25 ≤ 18 ^ 6)
   simpa using h
 
+/-- For `p ≥ 3`, the expression `4 * Nat.log2 p + 1`, viewed in the reals, is at most `4.5 *
+Real.logb 2 p`. -/
 theorem cycleBound_base (p : ℕ) (hp : 3 ≤ p) :
     (4 * (Nat.log2 p : ℝ) + 1) ≤ 4.5 * Real.logb 2 (p : ℝ) := by
   have hp0 : p ≠ 0 := by omega
@@ -221,6 +271,7 @@ theorem cycleBound_base (p : ℕ) (hp : 3 ≤ p) :
   · have h2' : (2:ℝ) ≤ (Nat.log2 p : ℝ) := by exact_mod_cast hk
     nlinarith
 
+/-- For `n ≥ 1`, the real value of `4 * Nat.log2 n + 1` is at most `4.5 * Real.logb 2 (n + 1)`. -/
 theorem cycleBound_succ (n : ℕ) (hn : 1 ≤ n) :
     (4 * (Nat.log2 n : ℝ) + 1) ≤ 4.5 * Real.logb 2 ((n + 1 : ℕ) : ℝ) := by
   have hn0 : n ≠ 0 := by omega
@@ -253,6 +304,7 @@ theorem cycleBound_succ (n : ℕ) (hn : 1 ≤ n) :
       rwa [Real.logb_pow, Real.logb_self_eq_one (by norm_num), mul_one] at h
     nlinarith
 
+/-- For `n ≥ 1`, the real value of `4 * Nat.log2 n + 2` is at most `4.5 * Real.logb 2 (n + 1)`. -/
 theorem cycleBound_succ2 (n : ℕ) (hn : 1 ≤ n) :
     (4 * (Nat.log2 n : ℝ) + 2) ≤ 4.5 * Real.logb 2 ((n + 1 : ℕ) : ℝ) := by
   have hn0 : n ≠ 0 := by omega
@@ -302,6 +354,8 @@ theorem cycleBound_succ2 (n : ℕ) (hn : 1 ≤ n) :
       rwa [Real.logb_pow, Real.logb_self_eq_one (by norm_num), mul_one] at h
     nlinarith
 
+/-- For `n ≥ 1`, the real value of `4 * Nat.log2 n + 6` is at most `4.5 * Real.logb 2 (2 * n +
+1)`. -/
 theorem cycleBound_two_mul (n : ℕ) (hn : 1 ≤ n) :
     (4 * (Nat.log2 n : ℝ) + 6) ≤ 4.5 * Real.logb 2 ((2 * n + 1 : ℕ) : ℝ) := by
   have hn0 : n ≠ 0 := by omega
@@ -349,11 +403,14 @@ theorem cycleBound_two_mul (n : ℕ) (hn : 1 ≤ n) :
       exact h
     nlinarith
 
+/-- The real base-two logarithm of six is at least `5/2`. -/
 lemma logb_two_six : (5/2 : ℝ) ≤ Real.logb 2 6 := by
   have h := le_logb_two (m := 6) (u := 5) (v := 2) (by norm_num) (by norm_num)
     (by norm_num : 2 ^ 5 ≤ 6 ^ 2)
   simpa using h
 
+/-- For odd `x ≥ 3`, the real value of `7 + 4 * Nat.log2 (x / 2)` is at most `4.5 * Real.logb 2
+(x + 2)`. -/
 theorem r1two_one (x : ℕ) (hx3 : 3 ≤ x) (hodd : x % 2 = 1) :
     7 + 4 * (Nat.log2 (x / 2) : ℝ) ≤ 4.5 * Real.logb 2 ((x + 2 : ℕ) : ℝ) := by
   have h2k : 2 ^ Nat.log2 (x/2) ≤ x/2 := (Nat.le_log2 (by omega : x/2 ≠ 0)).mp le_rfl
@@ -412,6 +469,8 @@ theorem r1two_one (x : ℕ) (hx3 : 3 ≤ x) (hodd : x % 2 = 1) :
     have hk5 : (5:ℝ) ≤ (Nat.log2 (x/2) : ℝ) := by exact_mod_cast hk
     nlinarith
 
+/-- For odd `x ≥ 3`, the real value of `11 + 4 * Nat.log2 (x / 2)` is at most `4.5 * Real.logb 2
+(2 * x + 2)`. -/
 theorem r1two_two (x : ℕ) (hx3 : 3 ≤ x) (hodd : x % 2 = 1) :
     11 + 4 * (Nat.log2 (x / 2) : ℝ) ≤ 4.5 * Real.logb 2 ((2 * x + 2 : ℕ) : ℝ) := by
   have h2k : 2 ^ Nat.log2 (x/2) ≤ x/2 := (Nat.le_log2 (by omega : x/2 ≠ 0)).mp le_rfl
@@ -469,6 +528,8 @@ theorem r1two_two (x : ℕ) (hx3 : 3 ≤ x) (hodd : x % 2 = 1) :
     have hk4 : (4:ℝ) ≤ (Nat.log2 (x/2) : ℝ) := by exact_mod_cast hk
     nlinarith
 
+/-- If `q = k * x + 2` and `q` is coprime to `x`, then the greatest common divisor of `x` and
+two is one. -/
 lemma gcd_two_eq_one_of_coprime {q x k : ℕ} (hq : q = k * x + 2) (h : Nat.Coprime q x) :
     x.gcd 2 = 1 := by
   have hgq : x.gcd q = 1 := by rw [Nat.gcd_comm]; exact h
@@ -481,6 +542,7 @@ lemma gcd_two_eq_one_of_coprime {q x k : ℕ} (hq : q = k * x + 2) (h : Nat.Copr
   rw [hgq] at hdvd
   exact Nat.dvd_one.mp hdvd
 
+/-- A natural number whose greatest common divisor with two is one has remainder one modulo two. -/
 lemma odd_of_gcd_two {x : ℕ} (h : x.gcd 2 = 1) : x % 2 = 1 := by
   have hne : x % 2 ≠ 0 := by
     intro h0
@@ -492,6 +554,8 @@ lemma odd_of_gcd_two {x : ℕ} (h : x.gcd 2 = 1) : x % 2 = 1 := by
   have := Nat.mod_lt x (by norm_num : 0 < 2)
   omega
 
+/-- For coprime naturals with `p > x ≥ 1` and `p > 2`, the Euclidean cycle count is at most `4.5
+* paperLog2 p`. This is Lemma 1 of [ProosZalka2003]. -/
 theorem euclidCycles_le (p x : ℕ) (hp2 : 2 < p) (hx1 : 1 ≤ x) (hxp : x < p)
     (hcop : Nat.Coprime p x) :
     (euclidCycles p x : ℝ) ≤ 4.5 * paperLog2 (p : ℝ) := by

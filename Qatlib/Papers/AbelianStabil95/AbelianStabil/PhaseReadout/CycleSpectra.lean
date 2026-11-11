@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.Qubit
 import Mathlib.Dynamics.PeriodicPts.Lemmas
 
+/-!
+# Bounded orders of permutation eigenvalues
+
+`permutationEigenvalueBoundedRoot` shows that an eigenvalue associated to a nonzero eigenvector
+of a finite permutation matrix is a root of unity. Its order has a positive witness bounded by
+the cardinality of the underlying index type, providing the spectral input for rational phase
+recovery. The development follows [Kitaev1995].
+
+## Main statements
+
+* `permutationEigenvalueBoundedRoot`: finds a positive exponent at most the dimension for which
+  the eigenvalue power is one.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Qatlib.Foundations.PureStateMath
@@ -14,6 +32,9 @@ open Matrix
 open scoped BigOperators
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout
 
+/-- An eigenvalue of a finite permutation matrix with a nonzero eigenvector has a positive power
+equal to one, with exponent at most the index cardinality. This supplies the bounded-root
+property used in [Kitaev, 1995, Theorem 1][Kitaev1995]. -/
 theorem permutationEigenvalueBoundedRoot {I : Type} [Fintype I] [DecidableEq I]
     (p : Equiv.Perm I) (ψ : QState I) (lam : ℂ)
     (hne : ψ ≠ 0) (heig : (permMatrix p) *ᵥ ψ = lam • ψ) :

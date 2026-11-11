@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.TaylorBounds
 import Mathlib.Data.Nat.Log
+
+/-!
+# Taylor simulation with logarithmic segment overhead
+
+`logTaylorCutoff` replaces the linear segment-count precision overhead by a binary logarithmic
+overhead. The resulting circuits have explicit forward and adjoint costs and dyadic coherent
+error bounds, giving a refined parameter choice for truncated Taylor simulation
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `log_taylor_computed_precision`: A comparison with the earlier cutoff and the coherent error
+  budget.
+* `log_taylor_actual_program_and_inverse_cost`: The well-formed circuit and its forward and
+  adjoint costs.
+* `log_taylor_coherent_full_workspace_error`: The full-workspace dyadic simulation bound.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,12 +59,15 @@ open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The Taylor cutoff `2 * (k + Nat.clog 2 (max 1 s) + 4)` with logarithmic overhead in the
+segment count. -/
 def logTaylorCutoff (s k : ℕ) : ℕ := 2 * (k + Nat.clog 2 (max 1 s) + 4)
 
 section Simulation
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The repeated coherently amplified Taylor LCU word using `logTaylorCutoff`. -/
 noncomputable def logTaylorWord (h : J → ℝ) (j0 : J) (t : ℝ) (Λ T k : ℕ) :
     List (AdjointStep (TaylorWordLabel J (logTaylorCutoff (taylorSegments Λ T) k) ×
       (Bool × (J × I)))) :=
@@ -51,6 +76,7 @@ noncomputable def logTaylorWord (h : J → ℝ) (j0 : J) (t : ℝ) (Λ T k : ℕ
   repeatAdjointWord (substituteAdjointCircuit (taylorLCUWord h j0 (t / s) K)
     (coherentOAAWord (taylorFrame j0 K))) s
 
+/-- The logarithmic-cutoff Taylor word uses `3 * s * K` queries and `s * (6 * K + 13)` gates. -/
 theorem logTaylor_word_counts (h : J → ℝ) (j0 : J)
     (t : ℝ) (Λ T k : ℕ) :
     let s := taylorSegments Λ T
@@ -76,6 +102,7 @@ theorem logTaylor_word_counts (h : J → ℝ) (j0 : J)
   rw [rqc, rgc, eqc, egc, hq, hg, bqc, bgc]
   constructor <;> ring
 
+/-- The chosen segment duration makes coefficient mass times absolute duration at most `1 / 2`. -/
 private theorem logTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)
     (hΛ : (∑ j, |h j|) ≤ Λ) (hT : |t| ≤ T) :
     (∑ j, |h j|) * |t / (taylorSegments Λ T : ℝ)| ≤ 1 / 2 := by
@@ -88,6 +115,8 @@ private theorem logTaylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)
     mul_le_mul hΛ hT (abs_nonneg _) (Nat.cast_nonneg _)
   linarith
 
+/-- For positive `s`, the `s`th power of exact evolution for duration `t / s` equals evolution
+for duration `t`. -/
 private theorem logTaylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : ℕ) (hs : 0 < s) :
     (hamiltonianEvolution H (t / s)) ^ s = hamiltonianEvolution H t := by
   have hp : ∀ n : ℕ, (hamiltonianEvolution H (t / s)) ^ n =
@@ -107,6 +136,8 @@ private theorem logTaylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : ℕ) (
   have hs0 : (s : ℝ) ≠ 0 := by exact_mod_cast hs.ne'
   rw [mul_div_cancel₀ _ hs0]
 
+/-- The logarithmic Taylor cutoff bounds accumulated coherent amplification error over `s`
+segments by `2⁻ᵏ`. -/
 private theorem logTaylor_precision (s k : ℕ) :
     (s : ℝ) * Real.sqrt (2 * coherentOAAError ((1 / 2 : ℝ) ^ logTaylorCutoff s k)) ≤
       (1 / 2 : ℝ) ^ k := by
@@ -148,6 +179,8 @@ private theorem logTaylor_precision (s k : ℕ) :
       have hp : 0 ≤ (1 / 2 : ℝ) ^ k := by positivity
       nlinarith [mul_le_mul_of_nonneg_left hsp hp]
 
+/-- For Hermitian unitary summands under the supplied bounds, the logarithmic-cutoff word is
+well formed and has embedded vector error at most `2⁻ᵏ` times the input norm. -/
 theorem logTaylor_full_error (h : J → ℝ)
     (U : J → Matrix I I ℂ) (j0 : J) (t : ℝ) (Λ T k : ℕ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ ∧ (U j).IsHermitian)
@@ -191,6 +224,8 @@ end Simulation
 
 variable {J : Type} [Fintype J] [DecidableEq J]
 
+/-- The logarithmic-cutoff coherent Taylor simulation word specialized to data operators indexed
+by `Fin D`. -/
 noncomputable def logTaylorSimulationWord {D : ℕ} (h : J → ℝ) (j0 : J)
     (t : ℝ) (Lambda T k : ℕ) :=
   let s := taylorSegments Lambda T
@@ -198,6 +233,8 @@ noncomputable def logTaylorSimulationWord {D : ℕ} (h : J → ℝ) (j0 : J)
   repeatAdjointWord (substituteAdjointCircuit (taylorLCUWord (I := Fin D) h j0 (t/s) K)
     (coherentOAAWord (taylorFrame (I := Fin D) j0 K))) s
 
+/-- The logarithmic cutoff is at most `taylorCutoff s k` and meets the dyadic accumulated
+coherent error budget. -/
 theorem log_taylor_computed_precision : ∀ s k : ℕ,
   logTaylorCutoff s k ≤ taylorCutoff s k ∧
   (s:ℝ)*Real.sqrt (2*coherentOAAError ((1/2:ℝ)^logTaylorCutoff s k)) ≤ (1/2:ℝ)^k := by
@@ -209,6 +246,8 @@ theorem log_taylor_computed_precision : ∀ s k : ℕ,
   dsimp [logTaylorCutoff, taylorCutoff]
   omega
 
+/-- Under the stated simulation assumptions, the logarithmic Taylor program is well formed. It
+and its adjoint each use `3 * s * K` queries and `s * (6 * K + 13)` gates. -/
 theorem log_taylor_actual_program_and_inverse_cost : ∀ (D : ℕ) (h : J → ℝ) (U : J → Operator D) (j0 : J)
     (t : ℝ) (Lambda T k : ℕ),
   (∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ ∧ (U j).IsHermitian) →
@@ -225,6 +264,9 @@ theorem log_taylor_actual_program_and_inverse_cost : ∀ (D : ℕ) (h : J → �
   obtain ⟨hq, hg⟩ := logTaylor_word_counts (I := Fin D) h j0 t Lambda T k
   exact ⟨hf.1, hq, hg, by simpa using! hq, by simpa using! hg⟩
 
+/-- For the stated Hermitian unitary decomposition and parameter bounds, the full-workspace
+logarithmic Taylor output differs from the embedded ideal evolution by at most `2⁻ᵏ` times
+the input norm. -/
 theorem log_taylor_coherent_full_workspace_error : ∀ (D : ℕ) (h : J → ℝ) (U : J → Operator D) (j0 : J)
     (t : ℝ) (Lambda T k : ℕ),
   (∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ ∧ (U j).IsHermitian) →

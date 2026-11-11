@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessDefs
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Certified preparation and checked table access
+
+This module bounds state-preparation error for certified complex tables by combining
+finite-precision circuit error with perturbation of normalized table snapshots.
+`certPrepare_error` separates these contributions, and `certErr_le` proves geometric decay of
+the certified table error. Finite quantum states and reversible computation provide the
+background in [NielsenChuang2010].
+
+`checkedLookup_word` compiles enabled, range-checked table lookup into a reversible Boolean-DAG
+circuit with explicit node and gate bounds. The remaining statements expose QRAM contract
+charges and address coverage, together with descent and halving properties of the Euclidean
+remainder sequence.
+
+## Main statements
+
+* `certPrepare_error`: controls preparation from a certified snapshot under positive mass and
+  closeness hypotheses.
+* `checkedLookup_value`: identifies enabled lookup values and rejects addresses outside the
+  table.
+* `checkedLookup_word`: gives reversible lookup semantics and circuit counts.
+* `remSeq_halving`: bounds a later Euclidean remainder by half the current term.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -32,21 +61,28 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 
+/-- The squared norm of a complex number is the sum of the squares of its real and imaginary
+parts. -/
 private theorem complexSq (z : ℂ) : ‖z‖ ^ 2 = z.re ^ 2 + z.im ^ 2 := by
   rw [Complex.sq_norm, Complex.normSq_apply]
   ring
 
+/-- The unnormalized complex state of the precision-`k` approximations in a certified table,
+extended by zero at `none`. -/
 noncomputable def certRawState {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     QState (Option (Fin D)) :=
   fun a => match a with
     | none => 0
     | some i => ratToComplex ((T.entry i).approx k)
 
+/-- The unnormalized state of a certified table's exact complex values, extended by zero at
+`none`. -/
 noncomputable def certRawValues {D : ℕ} (T : CertifiedTable D) : QState (Option (Fin D)) :=
   fun a => match a with
     | none => 0
     | some i => (T.entry i).value
 
+/-- The squared Euclidean norm of a certified table's raw exact state equals its exact mass. -/
 private theorem certRawValues_sq {D : ℕ} (T : CertifiedTable D) :
     ‖stateVector (certRawValues T)‖ ^ 2 = certMass T := by
   have hsum : (∑ a : Option (Fin D), ‖certRawValues T a‖ ^ 2)
@@ -56,6 +92,8 @@ private theorem certRawValues_sq {D : ℕ} (T : CertifiedTable D) :
   rw [Qatlib.Concepts.LocalMachine.LocalTransport.stateVector_norm_sq_sum, hsum]
   rfl
 
+/-- The squared Euclidean norm of the raw approximate state equals the snapshot mass coerced to
+the reals. -/
 private theorem certRawState_sq {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     ‖stateVector (certRawState T k)‖ ^ 2 = (certSnapshotMass T k : ℝ) := by
   have hsum : (∑ a : Option (Fin D), ‖certRawState T k a‖ ^ 2)
@@ -69,6 +107,7 @@ private theorem certRawState_sq {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     norm_cast
   rw [Qatlib.Concepts.LocalMachine.LocalTransport.stateVector_norm_sq_sum, hsum, h2]
 
+/-- The Euclidean norm of the raw exact state is the square root of the certified mass. -/
 private theorem certRawValues_norm {D : ℕ} (T : CertifiedTable D) :
     ‖stateVector (certRawValues T)‖ = Real.sqrt (certMass T) := by
   have hsq := certRawValues_sq T
@@ -81,6 +120,7 @@ private theorem certRawValues_norm {D : ℕ} (T : CertifiedTable D) :
   have hn3 : 0 ≤ Real.sqrt (certMass T) := Real.sqrt_nonneg _
   nlinarith
 
+/-- The Euclidean norm of the raw approximate state is the square root of the snapshot mass. -/
 private theorem certRawState_norm {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     ‖stateVector (certRawState T k)‖ = Real.sqrt (certSnapshotMass T k : ℝ) := by
   have hsq := certRawState_sq T k
@@ -94,6 +134,8 @@ private theorem certRawState_norm {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
   have hn3 : 0 ≤ Real.sqrt (certSnapshotMass T k : ℝ) := Real.sqrt_nonneg _
   nlinarith
 
+/-- The certified target vector is the raw exact vector scaled by the inverse square root of its
+mass. -/
 private theorem certTarget_eq {D : ℕ} (T : CertifiedTable D) :
     stateVector (certTarget T) = (Real.sqrt (certMass T))⁻¹ • stateVector (certRawValues T) := by
   have h : certTarget T = (Real.sqrt (certMass T))⁻¹ • certRawValues T := by
@@ -105,6 +147,8 @@ private theorem certTarget_eq {D : ℕ} (T : CertifiedTable D) :
       <;> ring
   rw [stateVector, h, WithLp.toLp_smul]
 
+/-- The normalized snapshot vector is the raw approximate vector scaled by the inverse square
+root of its mass. -/
 private theorem certSnapshotState_eq {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     stateVector (certSnapshotState T k)
       = (Real.sqrt (certSnapshotMass T k : ℝ))⁻¹ • stateVector (certRawState T k) := by
@@ -118,6 +162,8 @@ private theorem certSnapshotState_eq {D : ℕ} (T : CertifiedTable D) (k : ℕ) 
       <;> ring
   rw [stateVector, h, WithLp.toLp_smul]
 
+/-- The Euclidean distance between raw approximate and exact certified states is at most `sqrt D
+* T.err k`. -/
 private theorem certRaw_diff_le {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     ‖stateVector (certRawState T k) - stateVector (certRawValues T)‖
       ≤ Real.sqrt D * (T.err k : ℝ) := by
@@ -156,6 +202,8 @@ private theorem certRaw_diff_le {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     nlinarith
   nlinarith [sq_nonneg (‖stateVector (certRawState T k) - stateVector (certRawValues T)‖)]
 
+/-- For nonzero Euclidean vectors `p` and `z` with `‖p - z‖ ≤ ‖z‖ / 2`, their normalized
+distance is at most `4 * ‖p - z‖ / ‖z‖`. -/
 private theorem normalized_diff_le {D : ℕ}
     (p z : EuclideanSpace ℂ (Option (Fin D)))
     (hp : 0 < ‖p‖) (hz : 0 < ‖z‖) (hhalf : ‖p - z‖ ≤ ‖z‖ / 2) :
@@ -225,15 +273,19 @@ private theorem normalized_diff_le {D : ℕ}
       gcongr
     _ = 4 * ‖p - z‖ / ‖z‖ := by ring
 
+/-- The loaded certified snapshot has mass `certSnapshotMass T k`. -/
 private theorem certSnapshotLoaded_mass {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     (certSnapshotLoaded T k).mass = certSnapshotMass T k := rfl
 
+/-- The loaded certified snapshot has amplitude table `certSnapshotAmpOpt T k`. -/
 private theorem certSnapshotLoaded_amp {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     (certSnapshotLoaded T k).amp = certSnapshotAmpOpt T k := rfl
 
+/-- The loaded certified snapshot has weights `certSnapshotWeights T k`. -/
 private theorem certSnapshotLoaded_weights {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     (certSnapshotLoaded T k).weights = certSnapshotWeights T k := rfl
 
+/-- The target of the loaded certified snapshot is `certSnapshotState T k`. -/
 private theorem certSnapshotLoaded_target {D : ℕ} (T : CertifiedTable D) (k : ℕ) :
     loadedTarget (certSnapshotLoaded T k) = certSnapshotState T k := by
   funext a
@@ -241,6 +293,8 @@ private theorem certSnapshotLoaded_target {D : ℕ} (T : CertifiedTable D) (k : 
   | none => rfl
   | some i => rfl
 
+/-- For positive exact and snapshot masses with `2 * sqrt D * T.err k ≤ sqrt (certMass T)`,
+normalized snapshot error is at most `4 * sqrt D * T.err k / sqrt (certMass T)`. -/
 private theorem certSnapshot_target_le {D : ℕ} (T : CertifiedTable D) (k : ℕ)
     (hmass : 0 < certMass T) (hsnap : 0 < certSnapshotMass T k)
     (hnear : 2 * Real.sqrt D * (T.err k : ℝ) ≤ Real.sqrt (certMass T)) :
@@ -291,6 +345,8 @@ private theorem certSnapshot_target_le {D : ℕ} (T : CertifiedTable D) (k : ℕ
     exact hmul4
   linarith
 
+/-- Under positive mass and snapshot-closeness hypotheses, certified preparation error is at
+most `32 * (D + 1) / 2^k + 4 * sqrt D * T.err k / sqrt (certMass T)`. -/
 theorem certPrepare_error {D : ℕ} (T : CertifiedTable D) (k : ℕ)
     (hmass : 0 < certMass T)
     (hsnap : 0 < certSnapshotMass T k)
@@ -326,6 +382,7 @@ theorem certPrepare_error {D : ℕ} (T : CertifiedTable D) (k : ℕ)
     exact h
   linarith
 
+/-- The certified error at precision `k` is bounded by the initial error divided by `2^k`. -/
 theorem certErr_le {D : ℕ} (T : CertifiedTable D) : ∀ k,
     (T.err k : ℝ) ≤ (T.err 0 : ℝ) / 2 ^ k := by
   intro k
@@ -338,6 +395,8 @@ theorem certErr_le {D : ℕ} (T : CertifiedTable D) : ∀ k,
         div_le_div_of_nonneg_right ih (by norm_num : (0 : ℝ) ≤ 2)
       _ = (T.err 0 : ℝ) / 2 ^ (k + 1) := by ring
 
+/-- Collects the certified preparation error bound, geometric decay of table error, and
+decomposition of the preparation word's length into phase and weight words. -/
 theorem clause1_endpoint :
     (∀ (D : ℕ) (T : CertifiedTable D) (k : ℕ),
       0 < certMass T → 0 < certSnapshotMass T k →
@@ -359,6 +418,8 @@ theorem clause1_endpoint :
   · intro D T k
     simp [prepareWord]
 
+/-- A conjunction of address-bit tests over a list evaluates to true exactly when every listed
+address wire equals the corresponding bit of `s`. -/
 private theorem matching_list (a b : ℕ) (s : Fin (2 ^ a))
     (x : Reg (inputs a b)) (ls : List (Fin a)) :
     eval (ls.foldr (fun i z => Expr.conj
@@ -371,12 +432,15 @@ private theorem matching_list (a b : ℕ) (s : Fin (2 ^ a))
     cases ht : s.val.testBit i.val <;>
       simp [List.foldr_cons, eval, ht, ih, Bool.and_eq_true]
 
+/-- The address-matching expression evaluates to true exactly when every address wire matches
+the corresponding bit of `s`. -/
 private theorem matching_true (a b : ℕ) (s : Fin (2 ^ a)) (x : Reg (inputs a b)) :
     eval (matchExpr a b s) x = true ↔
       ∀ i : Fin a, x (addressWire a b i) = s.val.testBit i.val := by
   simpa only [matchExpr, List.mem_finRange, forall_const] using!
     matching_list a b s x (List.finRange a)
 
+/-- Two rows in `Fin (2^a)` are equal if all their `a` address bits agree. -/
 private theorem row_ext (a : ℕ) (r s : Fin (2 ^ a))
     (h : ∀ i : Fin a, r.val.testBit i.val = s.val.testBit i.val) : r = s := by
   apply Fin.ext
@@ -388,6 +452,8 @@ private theorem row_ext (a : ℕ) (r s : Fin (2 ^ a))
     rw [Nat.testBit_eq_false_of_lt (r.isLt.trans_le hp),
       Nat.testBit_eq_false_of_lt (s.isLt.trans_le hp)]
 
+/-- On a register encoding row `r`, the expression matching row `s` evaluates to true exactly
+when `s = r`. -/
 private theorem matching_value (a b : ℕ) (x : Reg (inputs a b))
     (r s : Fin (2 ^ a))
     (hx : ∀ i : Fin a, x (addressWire a b i) = r.val.testBit i.val) :
@@ -401,6 +467,7 @@ private theorem matching_value (a b : ℕ) (x : Reg (inputs a b))
       exact hs (row_ext a s r (fun i => (hm i).symm.trans (hx i)))
     cases he : eval (matchExpr a b s) x <;> simp_all
 
+/-- A checked lookup expression for one output bit has at most `1 + D * (2 * a + 5)` nodes. -/
 private theorem checkedLookup_nodes (a b D : ℕ) (hD : D ≤ 2 ^ a) (j : Fin b) :
     nodes (checkedLookupExpr a b D hD j) ≤ 1 + D * (2 * a + 5) := by
   have hm : ∀ (s : Fin (2 ^ a)), nodes (matchExpr a b s) ≤ 2 * a + 1 := by
@@ -430,6 +497,8 @@ private theorem checkedLookup_nodes (a b D : ℕ) (hD : D ≤ 2 ^ a) (j : Fin b)
   simpa only [checkedLookupExpr, List.length_map, List.length_finRange] using!
     h ((List.finRange D).map (Fin.castLE hD))
 
+/-- On an address encoding row `r`, checked lookup returns the enabled table bit when `r < D`
+and false otherwise. -/
 theorem checkedLookup_value (a b D : ℕ) (hD : D ≤ 2 ^ a)
     (x : Reg (inputs a b)) (r : Fin (2 ^ a)) (j : Fin b)
     (hx : ∀ i : Fin a, x (addressWire a b i) = r.val.testBit i.val) :
@@ -476,16 +545,20 @@ theorem checkedLookup_value (a b D : ℕ) (hD : D ≤ 2 ^ a)
     rw [hn]
     simp [hr', hr]
 
+/-- Loading an index into a register establishes the corresponding `loadedIndexBits` predicate. -/
 theorem loadIndex_bits {D : ℕ} (a b : ℕ) (i : Fin D) (x : Reg (inputs a b)) :
     loadedIndexBits a b i (loadIndex a b i x) := by
   intro j
   simp [loadedIndexBits, loadIndex, addressWire]
 
+/-- Loading an address index preserves every register wire at position at least `a`. -/
 private theorem loadIndex_other {D : ℕ} (a b : ℕ) (i : Fin D) (x : Reg (inputs a b))
     (w : Fin (inputs a b)) (hw : a ≤ w.val) : loadIndex a b i x w = x w := by
   simp [loadIndex]
   omega
 
+/-- After loading index `i`, checked lookup returns the conjunction of the enable bit and the
+indexed table bit. -/
 theorem checkedLookup_loaded {D : ℕ} (a b : ℕ) (hD : D ≤ 2 ^ a) (i : Fin D) (j : Fin b)
     (x : Reg (inputs a b)) :
     eval (checkedLookupExpr a b D hD j) (loadIndex a b i x) =
@@ -507,6 +580,9 @@ theorem checkedLookup_loaded {D : ℕ} (a b : ℕ) (hD : D ≤ 2 ^ a) (i : Fin D
   rw [hval, if_pos hcast, loadIndex_other a b i x (enableWire a b) hen,
     loadIndex_other a b i x (tableWire a b (Fin.castLE hD i) j) htb]
 
+/-- Checked lookup has a reflection-legal Boolean-DAG compilation with zero queries, at most `30
+* k + b` gates, and `k ≤ b * (1 + D * (2 * a + 5))` internal nodes. It XORs the checked
+table values into the output, and two copies restore the embedded input. -/
 theorem checkedLookup_word (a b D : ℕ) (hD : D ≤ 2 ^ a) :
     ∃ (k : ℕ) (g : BooleanDAG (inputs a b) k) (out : Fin b → Fin (inputs a b + k)),
       k ≤ b * (1 + D * (2 * a + 5)) ∧
@@ -558,22 +634,28 @@ theorem checkedLookup_word (a b D : ℕ) (hD : D ≤ 2 ^ a) :
     simp only [run_reflectionCompile_sum, run_reflectionCompile_smul, boolean_dag_basis,
       hinv, booleanDAGEmbed]
 
+/-- A QRAM contract's paid entry count equals its row count. -/
 theorem qram_paid_reads {D : ℕ} (c : QramContract D) : c.paidEntries = c.rows :=
   c.paid_reads_rows
 
+/-- The total charge of a QRAM contract is at least its row count for every access count. -/
 theorem qram_total_charge {D : ℕ} (c : QramContract D) (n : ℕ) :
     c.rows ≤ c.totalCharge n := by
   rw [QramContract.totalCharge, qram_paid_reads]
   omega
 
+/-- A QRAM contract's address space has at least as many addresses as table rows. -/
 theorem qram_address_covers {D : ℕ} (c : QramContract D) : c.rows ≤ 2 ^ c.addressWidth :=
   c.rows_le
 
+/-- If the per-access charge is positive, equal total charges imply equal access counts. -/
 theorem qram_per_access_constant {D : ℕ} (c : QramContract D) (hpos : 0 < c.perAccess)
     (n m : ℕ) (hn : c.totalCharge n = c.totalCharge m) : n = m := by
   simp only [QramContract.totalCharge] at hn
   exact Nat.mul_right_cancel hpos (Nat.add_left_cancel hn)
 
+/-- Checked QRAM lookup has a Boolean-DAG compilation with at most `b * (1 + D * (2 * a + 5))`
+internal nodes and at most `30 * k + b` gates. -/
 theorem qram_gate_bound (a b D : ℕ) (hD : D ≤ 2 ^ a) :
     ∃ (k : ℕ) (g : BooleanDAG (inputs a b) k) (out : Fin b → Fin (inputs a b + k)),
       k ≤ b * (1 + D * (2 * a + 5)) ∧
@@ -581,10 +663,14 @@ theorem qram_gate_bound (a b D : ℕ) (hD : D ≤ 2 ^ a) :
   obtain ⟨k, g, out, hk, _, _, hg, _, _⟩ := checkedLookup_word a b D hD
   exact ⟨k, g, out, hk, hg⟩
 
+/-- The explicit lookup bit-time expression `b * (1 + D * (2 * a + 5)) + a`. -/
 def qramBitTime (a b D : ℕ) : ℕ := b * (1 + D * (2 * a + 5)) + a
 
+/-- The explicit register-space expression `a + 2^a * b + 1 + b` for address, table, enable, and
+output bits. -/
 def qramPeakSpace (a b D : ℕ) : ℕ := a + (2 ^ a) * b + 1 + b
 
+/-- For natural numbers `0 < y < x`, the remainder `x % y` is at most `x / 2`. -/
 private theorem mod_le_half {x y : ℕ} (hxy : y < x) (hy : 0 < y) : x % y ≤ x / 2 := by
   by_cases h : y ≤ x / 2
   · have h1 : x % y < y := Nat.mod_lt x hy
@@ -602,11 +688,14 @@ private theorem mod_le_half {x y : ℕ} (hxy : y < x) (hy : 0 < y) : x % y ≤ x
     rw [h4]
     omega
 
+/-- Once the remainder sequence is zero, its next term is also zero. -/
 private theorem remSeq_zero_of_zero {a b : ℕ} (n : ℕ) (h : remSeq (n + 1) a b = 0) :
     remSeq (n + 2) a b = 0 := by
   rw [remSeq]
   rw [if_pos (by simp [h])]
 
+/-- If consecutive remainder terms are equal and the earlier term is positive, the following
+term is zero. -/
 private theorem remSeq_zero_of_eq {a b : ℕ} (n : ℕ)
     (h : remSeq (n + 1) a b = remSeq n a b) (hpos : 0 < remSeq n a b) :
     remSeq (n + 2) a b = 0 := by
@@ -615,6 +704,8 @@ private theorem remSeq_zero_of_eq {a b : ℕ} (n : ℕ)
   rw [h]
   exact Nat.mod_self _
 
+/-- From index one onward, the next remainder is zero when the current term is zero and
+otherwise is the previous term modulo the current term. -/
 private theorem remSeq_step {a b : ℕ} (n : ℕ) (hn : 1 ≤ n) :
     remSeq (n + 1) a b = if remSeq n a b = 0 then 0
       else remSeq (n - 1) a b % remSeq n a b := by
@@ -622,6 +713,8 @@ private theorem remSeq_step {a b : ℕ} (n : ℕ) (hn : 1 ≤ n) :
   have h2 : (n - 1) + 1 = n := by omega
   rw [h, remSeq, h2]
 
+/-- From index one onward, a positive next remainder is strictly smaller than the current
+remainder. -/
 theorem remSeq_strict {a b : ℕ} (n : ℕ) (hn : 1 ≤ n) (h : 0 < remSeq (n + 1) a b) :
     remSeq (n + 1) a b < remSeq n a b := by
   have hpos : 0 < remSeq n a b := by
@@ -636,6 +729,8 @@ theorem remSeq_strict {a b : ℕ} (n : ℕ) (hn : 1 ≤ n) (h : 0 < remSeq (n + 
   rw [remSeq_step n hn, if_neg (by omega)]
   exact Nat.mod_lt _ hpos
 
+/-- If the next remainder is positive and strictly smaller than the current term, twice the
+following remainder is at most the current term. -/
 theorem remSeq_halving {a b : ℕ} (n : ℕ)
     (h1 : 0 < remSeq (n + 1) a b) (h2 : remSeq (n + 1) a b < remSeq n a b) :
     remSeq (n + 2) a b * 2 ≤ remSeq n a b := by
@@ -646,12 +741,16 @@ theorem remSeq_halving {a b : ℕ} (n : ℕ)
   have hh := mod_le_half h2 h1
   omega
 
+/-- The arithmetic cost expression `2 * (Nat.log2 b + 2)`. -/
 def gcdPrice (b : ℕ) : ℕ := 2 * (Nat.log2 b + 2)
 
+/-- The cost expression `gcdPrice b` is at least four. -/
 theorem gcdPrice_pos (b : ℕ) : 4 ≤ gcdPrice b := by
   unfold gcdPrice
   omega
 
+/-- Collects loaded-index lookup correctness, out-of-range rejection, reversible lookup
+compilation with explicit resource bounds, and the QRAM row-charge lower bound. -/
 theorem clause2_endpoint :
     (∀ {D : ℕ} (a b : ℕ) (hD : D ≤ 2 ^ a) (i : Fin D) (j : Fin b) (x : Reg (inputs a b)),
       eval (checkedLookupExpr a b D hD j) (loadIndex a b i x) =
@@ -689,6 +788,8 @@ theorem clause2_endpoint :
   · intro D c n
     exact qram_total_charge c n
 
+/-- Collects QRAM row and address accounting, lookup gate bounds, remainder descent and halving,
+the lower bound on `gcdPrice`, and certified approximation error and width bounds. -/
 theorem clause3_endpoint :
     (∀ {D : ℕ} (c : QramContract D), c.paidEntries = c.rows) ∧
     (∀ {D : ℕ} (c : QramContract D), c.rows ≤ 2 ^ c.addressWidth) ∧

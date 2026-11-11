@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
+
+/-!
+# Adaptive laws for prepared relative amplitude estimation
+
+This module builds certified amplitude intervals from recorded AE labels and defines a stopping
+test on geometrically growing grids. The stage laws are the Born distributions of prepared AE
+circuits, with the success-window mass supplied by [BrassardEtAl2002]. `adaptiveReady` compares
+interval width with its lower endpoint, so an accurate stage sample yields a relative-error
+guarantee when the test fires.
+
+The module proves deterministic stopping criteria and cumulative access budgets under the stated
+sample-window hypotheses. `adaptiveJointLaw` places finitely many independent stage outcomes on
+a common sample space and preserves each stage's window probability.
+
+## Main statements
+
+* `certifiedStop_relative_band`: derive relative error from interval certification.
+* `adaptiveStopsAt_total_budget`: bound accumulated accesses before a stopping stage.
+* `adaptiveStopsAt_or_before`: obtain a stopping stage from a sufficiently fine accurate sample.
+* `adaptiveJointLaw_window_mass`: transfer the stage window bound to the joint law.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -33,15 +59,20 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The phase-grid correction `π / M`. -/
 noncomputable def gridCorrection (M : ℕ) : ℝ := Real.pi / (M : ℝ)
 
+/-- The phase-grid correction is positive for a positive grid size. -/
 theorem gridCorrection_pos {M : ℕ} (hM : 0 < M) : 0 < gridCorrection M := by
   unfold gridCorrection
   exact div_pos Real.pi_pos (by exact_mod_cast hM)
 
+/-- The phase-grid correction is nonnegative for a positive grid size. -/
 theorem gridCorrection_nonneg {M : ℕ} (hM : 0 < M) : 0 ≤ gridCorrection M :=
   (gridCorrection_pos hM).le
 
+/-- For nonnegative `a`, adding `nextWindowBound M a` completes the square `(√a + gridCorrection
+M)²`. -/
 private theorem windowBound_add_eq_square {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a) :
     a + nextWindowBound M a = (Real.sqrt a + gridCorrection M) ^ 2 := by
   have hsq : (Real.sqrt a) ^ 2 = a := Real.sq_sqrt ha0
@@ -53,25 +84,33 @@ private theorem windowBound_add_eq_square {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 
       = (Real.sqrt a) ^ 2 + nextWindowBound M a := by rw [hsq]
     _ = (Real.sqrt a + gridCorrection M) ^ 2 := h1
 
+/-- Express `nextWindowBound` as `2√a` times the grid correction plus the squared correction. -/
 private theorem windowBound_eq_grid_form {M : ℕ} (hM : 0 < M) (a : ℝ) :
     nextWindowBound M a
       = 2 * Real.sqrt a * (gridCorrection M) + (gridCorrection M) ^ 2 := by
   unfold nextWindowBound gridCorrection
   ring
 
+/-- The amplitude estimate associated with a recorded finite phase label. -/
 noncomputable def recordEstimate (M : ℕ) (z : Fin M) : ℝ := aeEstimate M z
 
+/-- Every recorded amplitude estimate is nonnegative. -/
 theorem recordEstimate_nonneg (M : ℕ) (z : Fin M) : 0 ≤ recordEstimate M z := by
   unfold recordEstimate aeEstimate
   exact sq_nonneg _
 
+/-- The squared nonnegative part of the recorded square-root estimate minus the grid correction. -/
 noncomputable def certifiedLowerBound (M : ℕ) (z : Fin M) : ℝ :=
   (max 0 (Real.sqrt (recordEstimate M z) - gridCorrection M)) ^ 2
 
+/-- The squared sum of the grid correction and the square root of the recorded estimate plus
+twice the squared correction. -/
 noncomputable def certifiedUpperBound (M : ℕ) (z : Fin M) : ℝ :=
   (gridCorrection M
     + Real.sqrt (recordEstimate M z + 2 * (gridCorrection M) ^ 2)) ^ 2
 
+/-- For a positive grid size, the certified lower endpoint does not exceed the recorded
+estimate. -/
 theorem certifiedLowerBound_le_record {M : ℕ} (hM : 0 < M) (z : Fin M) :
     certifiedLowerBound M z ≤ recordEstimate M z := by
   have hpos : 0 ≤ Real.sqrt (recordEstimate M z) := Real.sqrt_nonneg _
@@ -90,6 +129,8 @@ theorem certifiedLowerBound_le_record {M : ℕ} (hM : 0 < M) (z : Fin M) :
         ≤ (Real.sqrt (recordEstimate M z)) ^ 2 := by nlinarith [h2]
     rwa [Real.sq_sqrt (recordEstimate_nonneg M z)] at h3
 
+/-- For a positive grid size, the recorded estimate does not exceed the certified upper
+endpoint. -/
 theorem record_le_certifiedUpperBound {M : ℕ} (hM : 0 < M) (z : Fin M) :
     recordEstimate M z ≤ certifiedUpperBound M z := by
   have hpos : 0 ≤ recordEstimate M z := recordEstimate_nonneg M z
@@ -112,6 +153,8 @@ theorem record_le_certifiedUpperBound {M : ℕ} (hM : 0 < M) (z : Fin M) :
     (sq_le_sq₀ (Real.sqrt_nonneg _) (by positivity)).mpr h3
   rwa [Real.sq_sqrt (recordEstimate_nonneg M z)] at h4
 
+/-- If the recorded estimate lies in the AE success window, its certified lower endpoint is at
+most the prepared marked probability. -/
 theorem certifiedLowerBound_le_amplitude {M : ℕ} (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
@@ -154,6 +197,8 @@ theorem certifiedLowerBound_le_amplitude {M : ℕ} (hM : 0 < M)
       (sq_le_sq₀ h3 (Real.sqrt_nonneg _)).mpr h4
     rwa [Real.sq_sqrt ha0] at h5
 
+/-- If the recorded estimate lies in the AE success window, its certified upper endpoint is at
+least the prepared marked probability. -/
 theorem certifiedUpperBound_ge_amplitude {M : ℕ} (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
@@ -199,6 +244,8 @@ theorem certifiedUpperBound_ge_amplitude {M : ℕ} (hM : 0 < M)
         Real.sqrt_nonneg (recordEstimate M z + 2 * (gridCorrection M) ^ 2)])).mpr h5
   rwa [Real.sq_sqrt ha0] at h6
 
+/-- An estimate in the AE success window yields a certified interval containing the prepared
+marked probability. -/
 theorem certifiedInterval_contains {M : ℕ} (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
@@ -209,34 +256,44 @@ theorem certifiedInterval_contains {M : ℕ} (hM : 0 < M)
   ⟨certifiedLowerBound_le_amplitude hM A j S hA z ha1 hw,
    certifiedUpperBound_ge_amplitude hM A j S hA z ha1 hw⟩
 
+/-- The dyadic grid size `2^(k + 1)` at adaptive stage `k`. -/
 def adaptiveGrid (k : ℕ) : ℕ := 2 ^ (k + 1)
 
+/-- Every adaptive grid has at least two labels. -/
 theorem adaptiveGrid_two (k : ℕ) : 2 ≤ adaptiveGrid k := by
   unfold adaptiveGrid
   calc 2 = 2 ^ 1 := by norm_num
     _ ≤ 2 ^ (k + 1) := Nat.pow_le_pow_right (by norm_num) (by omega)
 
+/-- The adaptive grid size doubles at each successor stage. -/
 theorem adaptiveGrid_succ (k : ℕ) :
     adaptiveGrid (k + 1) = 2 * adaptiveGrid k := by
   unfold adaptiveGrid
   rw [show k + 1 + 1 = (k + 1) + 1 by omega, pow_succ, pow_succ]
   ring
 
+/-- Reduce a natural-number record modulo the grid size at stage `k`. -/
 def adaptiveLabel (k w : ℕ) : Fin (adaptiveGrid k) :=
   ⟨w % adaptiveGrid k, Nat.mod_lt _ (by unfold adaptiveGrid; positivity)⟩
 
+/-- The amplitude estimate obtained from the record at adaptive stage `k`. -/
 noncomputable def adaptiveEstimate (k w : ℕ) : ℝ :=
   recordEstimate (adaptiveGrid k) (adaptiveLabel k w)
 
+/-- The certified lower endpoint obtained from the record at adaptive stage `k`. -/
 noncomputable def adaptiveLower (k w : ℕ) : ℝ :=
   certifiedLowerBound (adaptiveGrid k) (adaptiveLabel k w)
 
+/-- The certified upper endpoint obtained from the record at adaptive stage `k`. -/
 noncomputable def adaptiveUpper (k w : ℕ) : ℝ :=
   certifiedUpperBound (adaptiveGrid k) (adaptiveLabel k w)
 
+/-- The stopping condition that the certified interval width is at most `eps` times its lower
+endpoint. -/
 def adaptiveReady (eps : ℝ) (k w : ℕ) : Prop :=
   adaptiveUpper k w - adaptiveLower k w ≤ eps * adaptiveLower k w
 
+/-- A ready adaptive stage has a strictly positive certified lower endpoint. -/
 theorem adaptiveReady_pos {eps : ℝ} {k w : ℕ} (hM : 0 < adaptiveGrid k)
     (h : adaptiveReady eps k w) : 0 < adaptiveLower k w := by
   have hM' : (0:ℝ) < (adaptiveGrid k : ℝ) := by positivity
@@ -255,6 +312,8 @@ theorem adaptiveReady_pos {eps : ℝ} {k w : ℕ} (hM : 0 < adaptiveGrid k)
   rw [hL] at h
   linarith
 
+/-- An AE-window sample whose certified interval width is at most `eps` times its lower endpoint
+has relative error at most `eps` for positive `eps`. -/
 theorem certifiedStop_relative_band {M : ℕ} (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (eps : ℝ) (heps : 0 < eps)
@@ -285,6 +344,8 @@ theorem certifiedStop_relative_band {M : ℕ} (hM : 0 < M)
         ≤ certifiedUpperBound M z - certifiedLowerBound M z := by linarith
     linarith
 
+/-- At an adaptive stage, an AE-window sample satisfying `adaptiveReady` has relative error at
+most `eps` for positive `eps`. -/
 theorem certifiedStop_relative_band_at_stage {k w : ℕ} (eps : ℝ) (heps : 0 < eps)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
@@ -298,6 +359,7 @@ theorem certifiedStop_relative_band_at_stage {k w : ℕ} (eps : ℝ) (heps : 0 <
     positivity
   exact certifiedStop_relative_band hM A j S hA (adaptiveLabel k w) eps heps ha1 hw hready
 
+/-- If `8π ≤ M√a` and `a ≥ 0`, the grid correction is at most `√a / 8`. -/
 theorem gridCorrection_le_eighth {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a)
     (hscale : 8 * Real.pi ≤ (M : ℝ) * Real.sqrt a) :
     gridCorrection M ≤ Real.sqrt a / 8 := by
@@ -312,6 +374,8 @@ theorem gridCorrection_le_eighth {M : ℕ} (hM : 0 < M) (a : ℝ) (ha0 : 0 ≤ a
   rw [h9] at h8
   exact h8
 
+/-- An accurate AE-window sample with grid correction at most `√a / 8` has certified lower
+endpoint at least `a / 4`. -/
 theorem certifiedLowerBound_ge_quarter {M : ℕ} (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin M) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
@@ -415,9 +479,11 @@ theorem certifiedLowerBound_ge_quarter {M : ℕ} (hM : 0 < M)
   unfold certifiedLowerBound
   nlinarith [hcore]
 
+/-- Every adaptive amplitude estimate is nonnegative. -/
 theorem adaptiveEstimate_nonneg (k w : ℕ) : 0 ≤ adaptiveEstimate k w :=
   recordEstimate_nonneg _ _
 
+/-- Every adaptive amplitude estimate is at most one. -/
 theorem adaptiveEstimate_le_one (k w : ℕ) : adaptiveEstimate k w ≤ 1 := by
   unfold adaptiveEstimate recordEstimate aeEstimate
   have h : |Real.sin (Real.pi * (adaptiveLabel k w).val / (adaptiveGrid k : ℝ))| ≤ 1 :=
@@ -426,16 +492,20 @@ theorem adaptiveEstimate_le_one (k w : ℕ) : adaptiveEstimate k w ≤ 1 := by
   nlinarith [sq_nonneg (R := ℝ)
     (Real.sin (Real.pi * (adaptiveLabel k w).val / (adaptiveGrid k : ℝ)))]
 
+/-- Every adaptive certified lower endpoint is nonnegative. -/
 theorem adaptiveLower_nonneg (k w : ℕ) : 0 ≤ adaptiveLower k w := by
   unfold adaptiveLower certifiedLowerBound
   exact sq_nonneg (R := ℝ) _
 
+/-- Every adaptive certified upper endpoint is strictly positive. -/
 theorem adaptiveUpper_pos {k : ℕ} (w : ℕ) : 0 < adaptiveUpper k w := by
   have hM : 0 < adaptiveGrid k := by unfold adaptiveGrid; positivity
   unfold adaptiveUpper certifiedUpperBound
   have hc : 0 < gridCorrection (adaptiveGrid k) := gridCorrection_pos hM
   positivity
 
+/-- Readiness implies `4π ≤ eps` times the grid size times the square root of the recorded
+estimate. -/
 theorem adaptiveReady_grid_lower {k w : ℕ} (eps : ℝ)
     (h : adaptiveReady eps k w) :
     4 * Real.pi ≤ eps * (adaptiveGrid k : ℝ) * Real.sqrt (adaptiveEstimate k w) := by
@@ -544,6 +614,8 @@ theorem adaptiveReady_grid_lower {k w : ℕ} (eps : ℝ)
     (div_le_iff₀ hM').mp h1
   convert! h2 using 1; ring
 
+/-- Under the stated positive-parameter and width inequalities with `eps ≤ 1`, the product `eps
+* v` is at most `8 * c`. -/
 private theorem notReady_algebra {eps v c : ℝ} (heps : 0 < eps) (heps1 : eps ≤ 1)
     (hc : 0 < c) (hv : c < v) (h : eps * (v - c) ^ 2 < 4 * c * (v + c)) :
     eps * v ≤ 8 * c := by
@@ -603,6 +675,8 @@ private theorem notReady_algebra {eps v c : ℝ} (heps : 0 < eps) (heps1 : eps �
     nlinarith [hmul]
   nlinarith [htv, hfin]
 
+/-- For `0 < eps ≤ 1`, a stage that is not ready satisfies `eps` times the grid size times the
+square root of its estimate at most `8π`. -/
 theorem adaptiveNotReady_grid_upper {k w : ℕ} (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (h : ¬ adaptiveReady eps k w) :
     eps * (adaptiveGrid k : ℝ) * Real.sqrt (adaptiveEstimate k w) ≤ 8 * Real.pi := by
@@ -713,6 +787,7 @@ theorem adaptiveNotReady_grid_upper {k w : ℕ} (eps : ℝ) (heps : 0 < eps) (he
       nlinarith [hmul, hprod]
     exact h2
 
+/-- For `eps ≤ 1`, no record satisfies the readiness test at stage zero. -/
 theorem adaptiveReady_zero_stage {w : ℕ} (eps : ℝ) (heps1 : eps ≤ 1) :
     ¬ adaptiveReady eps 0 w := by
   intro h
@@ -743,15 +818,19 @@ theorem adaptiveReady_zero_stage {w : ℕ} (eps : ℝ) (heps1 : eps ≤ 1) :
   have hcontra : 4 * Real.pi ≤ 2 := by nlinarith [hlow, hmul]
   linarith
 
+/-- Every adaptive grid size is positive. -/
 theorem adaptiveGrid_pos (k : ℕ) : 0 < adaptiveGrid k := by
   unfold adaptiveGrid
   positivity
 
+/-- The natural-number record selected from a run at stage `k`. -/
 def adaptiveRun (w : ℕ → ℕ) (k : ℕ) : ℕ := w k
 
+/-- The condition that stage `k` is ready and every earlier stage is not ready. -/
 def adaptiveStopsAt (eps : ℝ) (w : ℕ → ℕ) (k : ℕ) : Prop :=
   adaptiveReady eps k (w k) ∧ ∀ j < k, ¬ adaptiveReady eps j (w j)
 
+/-- For `eps ≤ 1`, an adaptive stopping stage has positive index. -/
 theorem adaptiveStopsAt_pos {eps : ℝ} {w : ℕ → ℕ} {k : ℕ} (heps1 : eps ≤ 1)
     (h : adaptiveStopsAt eps w k) : 0 < k := by
   by_contra hn
@@ -759,6 +838,7 @@ theorem adaptiveStopsAt_pos {eps : ℝ} {w : ℕ → ℕ} {k : ℕ} (heps1 : eps
   subst hk0
   exact adaptiveReady_zero_stage eps heps1 h.1
 
+/-- A ready stage has a nonzero recorded amplitude estimate. -/
 theorem adaptiveReady_estimate_pos {k w : ℕ} (eps : ℝ)
     (h : adaptiveReady eps k w) : adaptiveEstimate k w ≠ 0 := by
   intro hn
@@ -778,6 +858,8 @@ theorem adaptiveReady_estimate_pos {k w : ℕ} (eps : ℝ)
   rw [hL0] at h
   linarith
 
+/-- For `0 < eps ≤ 1`, the stopping-stage grid size times `eps√v`, using the preceding estimate
+`v`, is at most `16π`. -/
 theorem adaptiveStopsAt_grid_budget {eps : ℝ} {w : ℕ → ℕ} {k : ℕ}
     (heps : 0 < eps) (heps1 : eps ≤ 1) (h : adaptiveStopsAt eps w k) :
     (adaptiveGrid k : ℝ)
@@ -803,6 +885,8 @@ theorem adaptiveStopsAt_grid_budget {eps : ℝ} {w : ℕ → ℕ} {k : ℕ}
   rw [hgrid, hcast]
   nlinarith [hM2]
 
+/-- If the preceding sample is accurate and sufficiently fine, the stopping-stage grid size
+times `eps√a` is at most `32π`. -/
 theorem adaptiveStopsAt_grid_budget_amplitude {eps : ℝ} {w : ℕ → ℕ} {k : ℕ}
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (heps : 0 < eps) (heps1 : eps ≤ 1) (h : adaptiveStopsAt eps w k)
@@ -881,15 +965,19 @@ theorem adaptiveStopsAt_grid_budget_amplitude {eps : ℝ} {w : ℕ → ℕ} {k :
   rw [hgrid, hcast]
   nlinarith [hM2]
 
+/-- The finite Born distribution of the prepared AE phase label at adaptive stage `k`. -/
 noncomputable def adaptiveStageLaw (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) : FinDist (Fin (adaptiveGrid k)) :=
   aeLaw (adaptiveGrid k) A j S hA (adaptiveGrid_two k)
 
+/-- Each adaptive stage probability equals the corresponding frozen prepared AE-law probability. -/
 theorem adaptiveStageLaw_eq_frozen (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (z : Fin (adaptiveGrid k)) :
     (adaptiveStageLaw k A j S hA).prob z
       = (aeLaw (adaptiveGrid k) A j S hA (adaptiveGrid_two k)).prob z := rfl
 
+/-- An adaptive stage label's probability is its phase-register Born probability in the counted
+AE circuit. -/
 theorem adaptiveStageLaw_prob_eq_born (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (z : Fin (adaptiveGrid k)) :
     (adaptiveStageLaw k A j S hA).prob z
@@ -900,11 +988,14 @@ theorem adaptiveStageLaw_prob_eq_born (k : ℕ) (A : Matrix I I ℂ) (j : I) (S 
               (TensorState (Qatlib.Foundations.PureStateMath.Ket false) (Qatlib.Foundations.PureStateMath.Ket j))))
           (Finset.univ.filter (fun p => p.1 = z)) := rfl
 
+/-- The adaptive stage label probabilities sum to one. -/
 theorem adaptiveStageLaw_sum_one (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (∑ z : Fin (adaptiveGrid k), (adaptiveStageLaw k A j S hA).prob z) = 1 :=
   (adaptiveStageLaw k A j S hA).sum_one
 
+/-- The AE success window has probability at least `8/π²` under every adaptive stage law
+[BrassardEtAl2002]. -/
 theorem adaptiveStageLaw_window_mass (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (∑ z ∈ Finset.univ.filter (fun z : Fin (adaptiveGrid k) =>
@@ -915,6 +1006,7 @@ theorem adaptiveStageLaw_window_mass (k : ℕ) (A : Matrix I I ℂ) (j : I) (S :
     A j S hA).1
   simpa only [nextAeWindow, adaptiveStageLaw] using! h
 
+/-- The AE success window has probability at least `2/3` under every adaptive stage law. -/
 theorem adaptiveStageLaw_failure_le_third (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (∑ z ∈ Finset.univ.filter (fun z : Fin (adaptiveGrid k) =>
@@ -932,6 +1024,8 @@ theorem adaptiveStageLaw_failure_le_third (k : ℕ) (A : Matrix I I ℂ) (j : I)
     linarith
   linarith
 
+/-- At zero marked probability, label zero has probability one, its estimate is zero, and it
+satisfies the relative-error inequality for any `eps`. -/
 theorem adaptiveStageLaw_zero (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (eps : ℝ)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -954,6 +1048,7 @@ theorem adaptiveStageLaw_zero (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset
     rw [hz0]
     norm_num
 
+/-- At marked probability one, estimates equal to one have total stage probability one. -/
 theorem adaptiveStageLaw_one (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 1) :
@@ -968,6 +1063,8 @@ theorem adaptiveStageLaw_one (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset 
     A j S hA).2.2 ha hdiv
   simpa only [adaptiveStageLaw] using! h
 
+/-- Compute the stage's forward and backward preparation accesses, marking queries, ordinary
+gates, and fixed flag and Fourier macro counts. -/
 theorem adaptiveStage_access_counts (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     aeForwardAccesses (aeAccessWord (I := I) (adaptiveGrid k)) = adaptiveGrid k ∧
@@ -978,6 +1075,8 @@ theorem adaptiveStage_access_counts (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : 
       aeFixedMacros (aeFourierAccessWord (I := I) (adaptiveGrid k)) = 2 :=
   nextRelative_access_counts (adaptiveGrid k) (adaptiveGrid_two k) A j S hA
 
+/-- The sum of adaptive grid sizes at stages below `k`, plus two, equals the grid size at stage
+`k`. -/
 theorem adaptiveGrid_sum_lt (k : ℕ) :
     (∑ j ∈ Finset.range k, adaptiveGrid j) + 2 = adaptiveGrid k := by
   induction k with
@@ -990,6 +1089,8 @@ theorem adaptiveGrid_sum_lt (k : ℕ) :
       rw [hsum, hsucc]
       omega
 
+/-- The sum of forward preparation accesses at stages below `k`, plus two, equals the stage-`k`
+grid size. -/
 theorem adaptiveStage_forward_sum (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (∑ j ∈ Finset.range k, aeForwardAccesses (aeAccessWord (I := I) (adaptiveGrid j)))
@@ -997,6 +1098,7 @@ theorem adaptiveStage_forward_sum (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fi
   simp_rw [(adaptiveStage_access_counts _ A j S hA).1]
   exact adaptiveGrid_sum_lt k
 
+/-- The stage-`k` adaptive grid size is at least `k + 2`. -/
 theorem adaptiveGrid_ge_two_add_k (k : ℕ) : k + 2 ≤ adaptiveGrid k := by
   induction k with
   | zero => simp [adaptiveGrid]
@@ -1004,6 +1106,7 @@ theorem adaptiveGrid_ge_two_add_k (k : ℕ) : k + 2 ≤ adaptiveGrid k := by
       have hsucc := adaptiveGrid_succ k
       omega
 
+/-- The total forward preparation accesses at stages below `k` equal `adaptiveGrid k - 2`. -/
 theorem adaptiveTotal_forward_sum (k : ℕ) :
     (∑ j ∈ Finset.range k, aeForwardAccesses (aeAccessWord (I := I) (adaptiveGrid j)))
       = adaptiveGrid k - 2 := by
@@ -1018,6 +1121,8 @@ theorem adaptiveTotal_forward_sum (k : ℕ) :
       have htwo := adaptiveGrid_two k
       omega
 
+/-- The total forward preparation accesses at stages below `k`, plus two, equal `adaptiveGrid
+k`. -/
 theorem adaptiveTotal_forward (k : ℕ) :
     (∑ j ∈ Finset.range k, aeForwardAccesses (aeAccessWord (I := I) (adaptiveGrid j))) + 2
       = adaptiveGrid k := by
@@ -1025,6 +1130,7 @@ theorem adaptiveTotal_forward (k : ℕ) :
   have htwo := adaptiveGrid_two k
   omega
 
+/-- The total backward preparation accesses at stages below `k` equal `adaptiveGrid k - 2 - k`. -/
 theorem adaptiveTotal_backward_sum (k : ℕ) :
     (∑ j ∈ Finset.range k, aeBackwardAccesses (aeAccessWord (I := I) (adaptiveGrid j)))
       = adaptiveGrid k - 2 - k := by
@@ -1041,6 +1147,8 @@ theorem adaptiveTotal_backward_sum (k : ℕ) :
       have hdom := adaptiveGrid_ge_two_add_k k
       omega
 
+/-- The total backward preparation accesses at stages below `k`, plus `k + 2`, equal
+`adaptiveGrid k`. -/
 theorem adaptiveTotal_backward (k : ℕ) :
     (∑ j ∈ Finset.range k, aeBackwardAccesses (aeAccessWord (I := I) (adaptiveGrid j))) + (k + 2)
       = adaptiveGrid k := by
@@ -1049,6 +1157,7 @@ theorem adaptiveTotal_backward (k : ℕ) :
   have hdom := adaptiveGrid_ge_two_add_k k
   omega
 
+/-- The total marking queries at stages below `k` equal `adaptiveGrid k - 2 - k`. -/
 theorem adaptiveTotal_mark_sum (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : ℕ) :
     (∑ j' ∈ Finset.range k, QueryCount (countedAECircuit (adaptiveGrid j') A j))
@@ -1065,6 +1174,7 @@ theorem adaptiveTotal_mark_sum (A : Matrix I I ℂ) (j : I) (S : Finset I)
       have hdom := adaptiveGrid_ge_two_add_k k
       omega
 
+/-- The total marking queries at stages below `k`, plus `k + 2`, equal `adaptiveGrid k`. -/
 theorem adaptiveTotal_mark (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : ℕ) :
     (∑ j' ∈ Finset.range k, QueryCount (countedAECircuit (adaptiveGrid j') A j)) + (k + 2)
@@ -1074,6 +1184,9 @@ theorem adaptiveTotal_mark (A : Matrix I I ℂ) (j : I) (S : Finset I)
   have hdom := adaptiveGrid_ge_two_add_k k
   omega
 
+/-- For positive marked probability `a` and `0 < eps ≤ 1`, stopping with an accurate preceding
+sample bounds each accumulated forward, backward, and marking count before stage `k` by `32π
+/ (eps√a)`. -/
 theorem adaptiveStopsAt_total_budget {eps : ℝ} {w : ℕ → ℕ} {k : ℕ}
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (heps : 0 < eps) (heps1 : eps ≤ 1) (h : adaptiveStopsAt eps w k)
@@ -1154,6 +1267,8 @@ theorem adaptiveStopsAt_total_budget {eps : ℝ} {w : ℕ → ℕ} {k : ℕ}
     exact Nat.cast_le.mpr h3
   exact ⟨hfwd.trans hMbudget, hbwd.trans hMbudget, hmark.trans hMbudget⟩
 
+/-- For `a > 0` and `0 < eps ≤ 1`, an accurate stage sample is ready whenever `32π ≤ eps` times
+its grid size times `√a`. -/
 theorem adaptiveFires_at_fine_stage {k w : ℕ} (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -1219,6 +1334,7 @@ theorem adaptiveFires_at_fine_stage {k w : ℕ} (eps : ℝ) (heps : 0 < eps) (he
       ≤ 16 * Real.pi := by nlinarith
   nlinarith [hfine]
 
+/-- An accurate sufficiently fine stage is a stopping stage if every earlier stage is not ready. -/
 theorem adaptiveStopsAt_fine_stage {k : ℕ} {w : ℕ → ℕ} (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -1231,6 +1347,8 @@ theorem adaptiveStopsAt_fine_stage {k : ℕ} {w : ℕ → ℕ} (eps : ℝ) (heps
     adaptiveStopsAt eps w k :=
   ⟨adaptiveFires_at_fine_stage eps heps heps1 A j S hA ha0 ha1 hw hfine, hprior⟩
 
+/-- An accurate sufficiently fine sample at stage `J` ensures that some stage at or before `J`
+is the first ready stage. -/
 theorem adaptiveStopsAt_or_before {J : ℕ} {w : ℕ → ℕ} (eps : ℝ) (heps : 0 < eps)
     (heps1 : eps ≤ 1)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -1252,6 +1370,8 @@ theorem adaptiveStopsAt_or_before {J : ℕ} {w : ℕ → ℕ} (eps : ℝ) (heps 
     exact hnot hreadyJ
   refine ⟨Nat.find hex, hkJ, hk, fun m hm => Nat.find_min hex hm⟩
 
+/-- Combine stage success-window mass, conditional relative accuracy, readiness scale bounds,
+the zero endpoint, and stopping-stage resources for prepared AE [BrassardEtAl2002]. -/
 theorem frontier1 (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
     (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1) (w : ℕ → ℕ) (k : ℕ) :
@@ -1308,6 +1428,8 @@ theorem frontier1 (A : Matrix I I ℂ) (j : I) (S : Finset I)
     · exact (adaptiveStage_access_counts k A j S hA).2.2.2.1
     · exact adaptiveStopsAt_grid_budget heps heps1 hst
 
+/-- Combine exact cumulative access identities, conditional stopping budgets, and readiness and
+stopping at sufficiently fine accurate stages for positive marked probability. -/
 theorem frontier2 (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (ha0 : 0 < MeasureProb (preparedAAState A j) S)
     (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
@@ -1352,6 +1474,7 @@ theorem frontier2 (A : Matrix I I ℂ) (j : I) (S : Finset I)
     · intro J hw hfine
       exact adaptiveStopsAt_or_before eps heps heps1 A j S hA ha0 ha1 hw hfine
 
+/-- The adaptive estimate of record zero is zero at every stage. -/
 theorem adaptiveEstimate_zero (k : ℕ) : adaptiveEstimate k 0 = 0 := by
   simp only [adaptiveEstimate, recordEstimate, aeEstimate]
   have hval : ((adaptiveLabel k 0 : Fin (adaptiveGrid k)).val : ℝ) = 0 := by
@@ -1360,12 +1483,15 @@ theorem adaptiveEstimate_zero (k : ℕ) : adaptiveEstimate k 0 = 0 := by
   rw [hval, mul_zero, zero_div, Real.sin_zero]
   norm_num
 
+/-- The condition that a stage's recorded amplitude estimate is zero. -/
 def adaptiveZeroReady (k w : ℕ) : Prop := adaptiveEstimate k w = 0
 
+/-- Record zero satisfies `adaptiveZeroReady` at every stage. -/
 theorem adaptiveZeroReady_zero (k : ℕ) : adaptiveZeroReady k 0 := by
   unfold adaptiveZeroReady
   exact adaptiveEstimate_zero k
 
+/-- A zero recorded amplitude estimate gives a zero adaptive certified lower endpoint. -/
 theorem adaptiveLower_of_estimate_zero {k w : ℕ}
     (h : recordEstimate (adaptiveGrid k) (adaptiveLabel k w) = 0) :
     adaptiveLower k w = 0 := by
@@ -1375,6 +1501,7 @@ theorem adaptiveLower_of_estimate_zero {k w : ℕ}
   rw [max_eq_left (by linarith)]
   norm_num
 
+/-- For positive `eps`, a zero adaptive estimate fails the positive relative-readiness test. -/
 theorem adaptiveNotReady_zero {k w : ℕ} (eps : ℝ) (heps : 0 < eps)
     (h : adaptiveEstimate k w = 0) : ¬ adaptiveReady eps k w := by
   intro hready
@@ -1386,6 +1513,8 @@ theorem adaptiveNotReady_zero {k w : ℕ} (eps : ℝ) (heps : 0 < eps)
   rw [hL] at hready
   linarith
 
+/-- At zero marked probability, record zero has probability one, satisfies the zero branch and
+relative-error inequality, and fails the positive-readiness test. -/
 theorem adaptiveStageLaw_zero_branch (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (eps : ℝ) (heps : 0 < eps)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -1401,6 +1530,8 @@ theorem adaptiveStageLaw_zero_branch (k : ℕ) (A : Matrix I I ℂ) (j : I) (S :
     norm_num
   · exact adaptiveNotReady_zero eps heps hest
 
+/-- Package the deterministic zero-amplitude stage law, zero-branch certification, exact
+estimate, and failure of positive readiness. -/
 theorem frontier3 (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (eps : ℝ) (heps : 0 < eps)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -1411,21 +1542,28 @@ theorem frontier3 (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
       ¬ adaptiveReady eps k 0 :=
   adaptiveStageLaw_zero_branch k A j S hA eps heps ha
 
+/-- An earlier adaptive grid is no larger than the grid at stage `N`. -/
 theorem adaptiveGrid_le (N k : ℕ) (hk : k < N) : adaptiveGrid k ≤ adaptiveGrid N := by
   unfold adaptiveGrid
   exact Nat.pow_le_pow_right (by omega) (by omega)
 
+/-- Reduce a label from the common stage-`N` grid modulo the grid at stage `k`. -/
 def adaptiveRunLabel {N : ℕ} (k : ℕ) (z : Fin (adaptiveGrid N)) : Fin (adaptiveGrid k) :=
   ⟨z.val % adaptiveGrid k, Nat.mod_lt _ (by unfold adaptiveGrid; positivity)⟩
 
+/-- A common-grid label already smaller than the stage grid keeps its natural-number value under
+`adaptiveRunLabel`. -/
 theorem adaptiveRunLabel_of_lt {N : ℕ} (k : ℕ) (z : Fin (adaptiveGrid N))
     (h : z.val < adaptiveGrid k) : adaptiveRunLabel k z = ⟨z.val, h⟩ := by
   apply Fin.ext
   simp [adaptiveRunLabel, Nat.mod_eq_of_lt h]
 
+/-- Embed an earlier stage label into the common stage-`N` grid without changing its value. -/
 def adaptiveGridEmbed {N k : ℕ} (hk : k < N) (z : Fin (adaptiveGrid k)) : Fin (adaptiveGrid N) :=
   ⟨z.val, Nat.lt_of_lt_of_le z.isLt (adaptiveGrid_le N k hk)⟩
 
+/-- Extend the stage-`k` probability mass to the common stage-`N` grid by assigning zero outside
+the stage grid. -/
 noncomputable def adaptiveStageProbAt (N k : ℕ) (hk : k < N)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin (adaptiveGrid N)) : ℝ :=
@@ -1433,6 +1571,7 @@ noncomputable def adaptiveStageProbAt (N k : ℕ) (hk : k < N)
     (adaptiveStageLaw k A j S hA).prob (adaptiveRunLabel k z)
   else 0
 
+/-- Every extended stage probability is nonnegative. -/
 theorem adaptiveStageProbAt_nonneg (N k : ℕ) (hk : k < N)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (z : Fin (adaptiveGrid N)) : 0 ≤ adaptiveStageProbAt N k hk A j S hA z := by
@@ -1441,6 +1580,8 @@ theorem adaptiveStageProbAt_nonneg (N k : ℕ) (hk : k < N)
   · exact (adaptiveStageLaw k A j S hA).nonneg _
   · exact le_rfl
 
+/-- A weighted sum against the extended stage law equals the corresponding weighted sum on the
+original grid after label embedding. -/
 theorem adaptiveStageProbAt_weighted (N k : ℕ) (hk : k < N)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (g : Fin (adaptiveGrid N) → ℝ) :
@@ -1518,6 +1659,7 @@ theorem adaptiveStageProbAt_weighted (N k : ℕ) (hk : k < N)
       simp only [hlab]
   rw [h1, h2]
 
+/-- The stage law extended to the common grid has total mass one. -/
 theorem adaptiveStageProbAt_sum_one (N k : ℕ) (hk : k < N)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (∑ z : Fin (adaptiveGrid N), adaptiveStageProbAt N k hk A j S hA z) = 1 := by
@@ -1531,6 +1673,8 @@ theorem adaptiveStageProbAt_sum_one (N k : ℕ) (hk : k < N)
     exact (adaptiveStageLaw k A j S hA).sum_one
   simpa using! h''
 
+/-- The finite product distribution of independent stage labels represented in a common
+stage-`N` grid. -/
 noncomputable def adaptiveJointLaw (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) : FinDist (Fin N → Fin (adaptiveGrid N)) where
   prob ω := ∏ k : Fin N, adaptiveStageProbAt N k.val (k.isLt) A j S hA (ω k)
@@ -1557,6 +1701,8 @@ noncomputable def adaptiveJointLaw (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : F
       exact adaptiveStageProbAt_sum_one N k.val (k.isLt) A j S hA
     simpa using! hfinal
 
+/-- The expectation of any function of one stage coordinate under the joint law equals its
+expectation under that coordinate's extended stage law. -/
 theorem adaptiveJointLaw_marginal (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : Fin N) (g : Fin (adaptiveGrid N) → ℝ) :
     (∑ ω : Fin N → Fin (adaptiveGrid N),
@@ -1616,6 +1762,8 @@ theorem adaptiveJointLaw_marginal (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fi
   · intro hcon
     exact absurd (Finset.mem_univ k) hcon
 
+/-- Weighting a finite sum by a predicate's indicator equals restricting the sum to the
+predicate's filter. -/
 private theorem sum_indicator_eq_filter {X : Type*} [Fintype X] [DecidableEq X]
     (f : X → ℝ) (p : X → Prop) :
     (∑ z : X, f z * (if p z then 1 else 0))
@@ -1637,6 +1785,8 @@ private theorem sum_indicator_eq_filter {X : Type*} [Fintype X] [DecidableEq X]
     simp
   rw [hA', hB', add_zero]
 
+/-- Every stage coordinate of the joint law satisfies its AE success window with probability at
+least `8/π²` [BrassardEtAl2002]. -/
 theorem adaptiveJointLaw_window_mass (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : Fin N) :
     (∑ ω : Fin N → Fin (adaptiveGrid N),

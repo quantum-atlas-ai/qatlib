@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.GradientDefs
+
+/-!
+# Collected Fourier gradient guarantees
+
+This module proves three conjunctions collecting the full-range gradient construction, analytic
+error transport, and implementation guarantees. These combine the finite-grid approach of
+[Jordan2005Gradient] with robust readout and higher-order approximation results related to
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `stageB_fourier_gradient_gext1`: full-range precision, numerical gradient, variance, and
+  step-size guarantees.
+* `stageB_fourier_gradient_gext2`: almost-affine and central-difference error guarantees.
+* `stageB_fourier_gradient_gext3`: readout, finite-code unitarity, median, and
+  character-kickback guarantees.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +57,8 @@ open Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
 open Qatlib.Concepts.GradientOracle.GradientAlgo
 open Qatlib
 
+/-- Combines full-range character kickback, fixed-point precision, gradient readout, numerical
+gradient estimation, cube-variance formulas, and classical/quantum step-size guarantees. -/
 theorem stageB_fourier_gradient_gext1 : stageB_fourier_gradient_gext1_spec := by
   refine ⟨fullRangeCharacterKickback,
           fullRangeFixedPointPrecision,
@@ -42,6 +67,9 @@ theorem stageB_fourier_gradient_gext1 : stageB_fourier_gradient_gext1_spec := by
           stationaryPhaseVariance,
           classicalQuantumStepSizes⟩
 
+/-- Combines rescaled almost-affine gradient estimation, analytic and one-dimensional
+central-difference bounds, exceptional phase transport, pure-state event stability, and
+full-range character kickback. -/
 theorem stageB_fourier_gradient_gext2 : stageB_fourier_gradient_gext2_spec := by
   refine ⟨sourceAlmostAffineGradient,
           analyticCentralDifferenceGridError,
@@ -51,6 +79,8 @@ theorem stageB_fourier_gradient_gext2 : stageB_fourier_gradient_gext2_spec := by
           pureStateEventLipschitz,
           fullRangeCharacterKickback⟩
 
+/-- Combines the Fourier readout and implementation guarantees of `g8` with finite-code matrix
+unitarity, vector-median amplification, and full-range character kickback. -/
 theorem stageB_fourier_gradient_gext3 : stageB_fourier_gradient_gext3_spec := by
   refine ⟨g8,
           finiteCodeMatrix_unitary,

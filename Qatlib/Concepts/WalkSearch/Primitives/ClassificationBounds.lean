@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationProgress
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationEdgeLedger
+
+/-!
+# Bounds for graph classification scans
+
+Combines progress and ledger estimates to bound the high-degree branches, query cost, and
+retained graph edges of a complete classification scan. The results assume the scan's degree
+tests are correct and, for the edge bound, that the initial pairs are thin; these are
+bookkeeping components of graph search as surveyed in [Ambainis2005].
+
+## Main statements
+
+* `classifyScan_cost_bound`: For positive `n`, `dLo`, and `τ`, a complete scan with correct
+  tests uses at most `classifyBudgetCorrected n dLo τ K c sgs` queries.
+* `classifyScan_E_bound`: Under correct tests and the initial thin-pair condition, bounds the
+  graph edges in `movedE` by `2 * n * dHi + (n * n / (dLo * τ) + 1) * (2 * n * (tThin + 1))`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +39,8 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- With positive `dLo` and `τ` and correct scan tests, the number of high-degree branches is at
+most `n * n / (dLo * τ) + 1`. -/
 theorem classifyScan_high_bound (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) (hdLo : 0<dLo) (hτ : 0<τ)
@@ -36,6 +59,8 @@ theorem classifyScan_high_bound (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo 
   have hdiv := (Nat.le_div_iff_mul_le hw).mpr hminus
   omega
 
+/-- For positive `n`, `dLo`, and `τ`, a complete scan with correct tests uses at most
+`classifyBudgetCorrected n dLo τ K c sgs` queries. -/
 theorem classifyScan_cost_bound (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (S : SymmetricPairSet n) (hn : 0<n) (hdLo : 0<dLo) (hτ : 0<τ)
@@ -50,6 +75,8 @@ theorem classifyScan_cost_bound (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo 
   dsimp only [classifyBudgetCorrected,neighborhoodFee] at *
   nlinarith [hl.2]
 
+/-- Under correct tests and the initial thin-pair condition, bounds the graph edges in `movedE`
+by `2 * n * dHi + (n * n / (dLo * τ) + 1) * (2 * n * (tThin + 1))`. -/
 theorem classifyScan_E_bound (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c tThin : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (S : SymmetricPairSet n) (hn : 0<n) (hdLo : 0<dLo) (hτ : 0<τ)

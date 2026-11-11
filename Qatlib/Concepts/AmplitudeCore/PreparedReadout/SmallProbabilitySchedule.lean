@@ -8,6 +8,28 @@ import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
 import Mathlib.Data.Nat.Log
 import Mathlib.Algebra.Order.Floor.Ring
 import Lean.Elab.Tactic.Omega
+
+/-!
+# Dyadic schedules for small-probability estimation
+
+`request` combines variance and quadratic error requirements, and `counterBits` selects a dyadic
+`grid` whose square meets them. `decoderBits` allocates a separate rational decoding precision.
+
+The module proves upper and lower resource bounds and combines the scaled BHMT radius with
+decoder error under a mass cap `T * p ≤ B`. The statistical radius is the amplitude-estimation
+bound of [BrassardEtAl2002].
+
+## Main statements
+
+* `counter_square_lower`: shows that the squared grid meets the request.
+* `counter_square_upper`: bounds the squared grid in terms of the request.
+* `statistical_budget`: bounds the total statistical and decoder error by `5 * eps / 8`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,16 +38,20 @@ set_option maxHeartbeats 2000000
 namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule
 open scoped BigOperators
 
+/-- The base-two ceiling logarithm of the natural ceiling of a rational request. -/
 def dyadicBits (x : ℚ) : ℕ := Nat.clog 2 ⌈x⌉₊
 
+/-- The power of two selected by `dyadicBits` is at least the rational request. -/
 theorem dyadicBits_bound (x : ℚ) : x ≤ (2:ℚ)^(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits x) := by
   calc
     _ ≤ (⌈x⌉₊:ℚ) := Nat.le_ceil x
     _ ≤ _ := by exact_mod_cast Nat.le_pow_clog (by decide : 1 < (2:ℕ)) ⌈x⌉₊
 
+/-- The BHMT amplitude-estimation error radius `2π sqrt(p(1-p)) / M + π² / M²`. -/
 noncomputable def radius (M : ℕ) (p : ℝ) : ℝ :=
   2*Real.pi*Real.sqrt (p*(1-p))/(M:ℝ)+Real.pi^2/(M:ℝ)^2
 
+/-- The guarded ceiling logarithm gives `2^(max 1 (Nat.clog 2 m)) ≤ 2 * (m + 1)`. -/
 private theorem guarded_clog_power_bound (m : ℕ) :
     2^(max 1 (Nat.clog 2 m)) ≤ 2*(m+1) := by
   by_cases hm : m ≤ 1
@@ -43,6 +69,8 @@ private theorem guarded_clog_power_bound (m : ℕ) :
       _ = 2^(Nat.clog 2 m).pred*2 := pow_succ _ _
       _ ≤ 2*(m+1) := by omega
 
+/-- For a nonnegative rational request, the guarded dyadic power is at most twice the request
+plus four. -/
 private theorem guarded_dyadic_power_bound (request : ℚ) (hr : 0 ≤ request) :
     (2 : ℚ)^(max 1 (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits request)) ≤ 2*request+4 := by
   have hn : (2 : ℚ)^(max 1 (Nat.clog 2 ⌈request⌉₊)) ≤
@@ -52,58 +80,73 @@ private theorem guarded_dyadic_power_bound (request : ℚ) (hr : 0 ≤ request) 
   change (2 : ℚ)^(max 1 (Nat.clog 2 ⌈request⌉₊)) ≤ _
   linarith
 
+/-- The maximum of the rational variance and quadratic requests `1024 * B * T / eps²` and `64 *
+T / eps`. -/
 def request (T B eps : ℚ) : ℚ := max (1024*B*T/eps^2) (64*T/eps)
 
+/-- The dyadic bit count for the squared-grid request. -/
 def requestBits (T B eps : ℚ) : ℕ :=
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits
     (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.request T B eps)
 
+/-- The counter bit count, at least one and otherwise the rounded-up half of `requestBits`. -/
 def counterBits (T B eps : ℚ) : ℕ :=
     max 1 ((Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.requestBits T B eps+1)/2)
 
+/-- The dyadic phase-counter grid determined by `counterBits`. -/
 def grid (T B eps : ℚ) : ℕ :=
     2^(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits T B eps)
 
+/-- The dyadic decoder precision chosen from `8 * T / eps`. -/
 def decoderBits (T eps : ℚ) : ℕ :=
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits (8*T/eps)
 
+/-- The counter uses at least one bit. -/
 theorem counterBits_positive (T B eps : ℚ) :
     1≤Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits T B eps :=
     le_max_left _ _
 
+/-- The selected grid has at least two labels. -/
 theorem two_le_grid (T B eps : ℚ) : 2≤Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps :=
   calc
     2 = (2:ℕ)^1 := by norm_num
     _ ≤ 2^(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits T B eps) := pow_le_pow_right₀ (by decide) (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits_positive T B eps)
 
+/-- The selected grid size is positive. -/
 theorem grid_pos (T B eps : ℚ) : 0<Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps :=
   lt_of_lt_of_le (by decide : 0<2) (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.two_le_grid T B eps)
 
+/-- The request bit count is at most twice the counter bit count. -/
 theorem requestBits_le_twice (T B eps : ℚ) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.requestBits T B eps≤2*Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits T B eps := by
   dsimp only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits]
   omega
 
+/-- Twice the counter bit count is at most the guarded request bit count plus one. -/
 theorem twice_counterBits_le (T B eps : ℚ) :
     2*Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits T B eps ≤ max 1 (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.requestBits T B eps)+1 := by
   dsimp only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits]
   omega
 
+/-- The rational square of the grid equals two raised to twice the counter bit count. -/
 theorem grid_sq_rat (T B eps : ℚ) :
     (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps : ℚ)^2=(2:ℚ)^(2*Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.counterBits T B eps) := by
   simp only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid,Nat.cast_pow,Nat.cast_ofNat,← pow_mul]
   rw [Nat.mul_comm]
 
+/-- The grid squared is at least the rational request. -/
 theorem counter_square_lower (T B eps : ℚ) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.request T B eps≤(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps : ℚ)^2 := by
   rw [Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid_sq_rat]
   exact (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits_bound (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.request T B eps)).trans
     (pow_le_pow_right₀ (by norm_num) (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.requestBits_le_twice T B eps))
 
+/-- For nonnegative `T` and `B`, the rational request is nonnegative. -/
 theorem request_nonneg (T B eps : ℚ) (hT : 0≤T) (hB : 0≤B) :
     0≤Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.request T B eps :=
   (div_nonneg (by positivity : 0≤1024*B*T) (sq_nonneg eps)).trans (le_max_left _ _)
 
+/-- For nonnegative `T` and `B`, the grid squared is at most `8 + 4 * request`. -/
 theorem counter_square_upper (T B eps : ℚ) (hT : 0≤T) (hB : 0≤B) :
     (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps : ℚ)^2≤8+4*Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.request T B eps := by
   have hr :=
@@ -118,6 +161,8 @@ theorem counter_square_upper (T B eps : ℚ) (hT : 0≤T) (hB : 0≤B) :
     _ ≤ (4+2*Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.request T B eps)*2 := mul_le_mul_of_nonneg_right hu (by norm_num)
     _ = _ := by ring
 
+/-- For positive `eps`, the selected grid satisfies the rational variance budget `1024 * B * T ≤
+eps² * grid²`. -/
 theorem variance_budget_rat (T B eps : ℚ) (heps : 0<eps) :
     1024*B*T≤eps^2*(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps : ℚ)^2 := by
   have hh := (le_max_left (1024*B*T/eps^2) (64*T/eps)).trans
@@ -125,6 +170,8 @@ theorem variance_budget_rat (T B eps : ℚ) (heps : 0<eps) :
   have hc := (div_le_iff₀ (sq_pos_of_pos heps)).mp hh
   nlinarith
 
+/-- For positive `eps`, the selected grid satisfies the rational quadratic budget `64 * T ≤ eps
+* grid²`. -/
 theorem quadratic_budget_rat (T B eps : ℚ) (heps : 0<eps) :
     64*T≤eps*(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps : ℚ)^2 := by
   have hh := (le_max_right (1024*B*T/eps^2) (64*T/eps)).trans
@@ -132,6 +179,7 @@ theorem quadratic_budget_rat (T B eps : ℚ) (heps : 0<eps) :
   have hc := (div_le_iff₀ heps).mp hh
   nlinarith
 
+/-- The selected decoder precision bounds the scaled rational rounding error by `eps / 8`. -/
 theorem decoder_budget_rat (T eps : ℚ) (heps : 0<eps) :
     T/(2:ℚ)^(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.decoderBits T eps)≤eps/8 := by
   have hh :=
@@ -142,6 +190,7 @@ theorem decoder_budget_rat (T eps : ℚ) (heps : 0<eps) :
   apply (div_le_iff₀ (by positivity : (0:ℚ)<2^(decoderBits T eps))).mpr
   nlinarith
 
+/-- The selected decoder precision bounds the scaled real dyadic rounding error by `eps / 8`. -/
 theorem decoder_budget (T eps : ℚ) (heps : 0<eps) :
     (T:ℝ)*((2:ℝ)⁻¹)^(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.decoderBits T eps)≤(eps:ℝ)/8 := by
   have hh :=
@@ -151,6 +200,8 @@ theorem decoder_budget (T eps : ℚ) (heps : 0<eps) :
   rw [inv_pow]
   simpa only [div_eq_mul_inv] using hh
 
+/-- Under a scaled-mass cap `T * p ≤ B`, the selected grid bounds the scaled BHMT radius by `eps
+/ 2`. -/
 theorem bhmt_budget (T B eps : ℚ) (hT : 0<T) (heps : 0<eps)
     (p : ℝ) (hp0 : 0≤p) (hp1 : p≤1) (hpB : (T:ℝ)*p≤(B:ℝ)) :
     (T:ℝ)*Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.radius (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps) p≤(eps:ℝ)/2 := by
@@ -201,6 +252,8 @@ theorem bhmt_budget (T B eps : ℚ) (hT : 0<T) (heps : 0<eps)
     _ ≤ (eps:ℝ)/4+(eps:ℝ)/4 := add_le_add hfirst hsecond
     _ = _ := by ring
 
+/-- Under the scaled-mass cap, the combined BHMT and dyadic decoder errors are at most `5 * eps
+/ 8`. -/
 theorem statistical_budget (T B eps : ℚ) (hT : 0<T) (heps : 0<eps)
     (p : ℝ) (hp0 : 0≤p) (hp1 : p≤1) (hpB : (T:ℝ)*p≤(B:ℝ)) :
     (T:ℝ)*(Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.radius (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps) p+

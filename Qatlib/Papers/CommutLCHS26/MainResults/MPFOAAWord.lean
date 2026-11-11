@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAPadding
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAASine
+
+/-!
+# Compiled amplification words and query counts
+
+This module compiles the selected odd amplification sequence into `word` and substitutes padded
+circuit bodies to obtain `expanded`. Exact response and encoding identities show that an encoded
+unitary target is recovered at unit scale.
+
+Exact gate and query counts, together with a linear coefficient-mass bound, make the
+implementation cost explicit for the multi-product construction associated with
+[AftabAnTrivisa2026].
+
+## Main statements
+
+* `word_encoding`: proves exact amplification of a sine-scaled unitary encoding.
+* `expanded_counts`: counts oracle queries and gates after substitution.
+* `expanded_queries_linear`: bounds the query overhead linearly in coefficient mass.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -29,15 +52,20 @@ set_option warningAsError false
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- The compiled amplification circuit using the frame range projectors, initial phase -i, and
+the selected odd number of phases i. -/
 def word (A : ℝ) (R : Matrix H I ℂ) : List (AdjointStep H) :=
   compileQSVT (rangeProjector R) (rangeProjector R) (-Complex.I) (List.replicate (queries A) Complex.I)
 
 omit [Fintype H] [DecidableEq I] in
 
+/-- The amplification word has the selected number of oracle queries and one more gate than
+oracle queries. -/
 theorem word_counts (A : ℝ) (R : Matrix H I ℂ) :
     adjointQueryCount (word A R) = queries A ∧ adjointGateCount (word A R) = queries A + 1 := by
   simp [word, queryCount_compileQSVT, gateCount_compileQSVT]
 
+/-- The compiled amplification word is well-formed whenever its frame is an isometry. -/
 theorem word_wellFormed (A : ℝ) (R : Matrix H I ℂ) (hR : IsIsometry R) :
     WellFormedAdjointCircuit (word A R) := by
   apply compileQSVT_wellFormed (rangeProjector_isOrthogonalProjector hR)
@@ -47,6 +75,8 @@ theorem word_wellFormed (A : ℝ) (R : Matrix H I ℂ) (hR : IsIsometry R) :
   rw [he]
   norm_num [IsPhase]
 
+/-- The response polynomial for the selected query count evaluates to 1 at the selected sine
+amplitude. -/
 theorem response_exact (A : ℝ) :
     (responseP (-Complex.I) (List.replicate (queries A) Complex.I)).eval
       (Real.sin (angle (queries A)) : ℂ) = 1 := by
@@ -58,6 +88,8 @@ theorem response_exact (A : ℝ) :
   change _ = (Real.sin ((queries A : ℝ) * angle (queries A)) : ℂ) at h
   simpa only [ha, Real.sin_pi_div_two, Complex.ofReal_one] using! h
 
+/-- Amplifying a projected encoding of the selected sine amplitude times a unitary V gives a
+projected encoding of V. -/
 theorem word_encoding (A : ℝ) (V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ)
     (hV : V ∈ unitaryGroup I ℂ)
     (h : ProjectedUnitaryEncoding ((Real.sin (angle (queries A)) : ℂ) • V) U R R) :
@@ -76,11 +108,14 @@ theorem word_encoding (A : ℝ) (V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : M
     h.left_isometry, h.right_isometry, ?_⟩
   simpa only [word, evaluate_compileQSVT] using! he
 
+/-- The amplification word with each oracle step replaced by the padded circuit body. -/
 def expanded (A : ℝ) (R : Matrix H I ℂ) (cs : List (AdjointStep H)) : List (AdjointStep (Bool × H)) :=
   substituteAdjointCircuit (MPFOAAPadding.body A cs) (word A (scaleEightFrame R))
 
 omit [DecidableEq I] in
 
+/-- Writing q for `queries A`, the expanded query count is q times `adjointQueryCount cs`, and
+its gate count is q + 1 + q(`adjointGateCount cs` + 1) [AftabAnTrivisa2026]. -/
 theorem expanded_counts (A : ℝ) (R : Matrix H I ℂ) (cs : List (AdjointStep H)) :
     adjointQueryCount (expanded A R cs) = queries A * adjointQueryCount cs ∧
     adjointGateCount (expanded A R cs) = queries A + 1 + queries A * (adjointGateCount cs + 1) := by
@@ -93,12 +128,16 @@ theorem expanded_counts (A : ℝ) (R : Matrix H I ℂ) (cs : List (AdjointStep H
 
 omit [DecidableEq I] in
 
+/-- For A ≥ 1, the expanded oracle query count is at most (π/2 + 3)A times the original circuit
+query count [AftabAnTrivisa2026]. -/
 theorem expanded_queries_linear (A : ℝ) (hA : 1 ≤ A) (R : Matrix H I ℂ) (cs : List (AdjointStep H)) :
     (adjointQueryCount (expanded A R cs) : ℝ) ≤
       (Real.pi / 2 + 3) * A * (adjointQueryCount cs : ℝ) := by
   rw [(expanded_counts A R cs).1, Nat.cast_mul]
   exact mul_le_mul_of_nonneg_right (queries_linear A hA).2 (Nat.cast_nonneg _)
 
+/-- For A ≥ 1, an isometric frame and a well-formed original circuit give a well-formed expanded
+amplification circuit. -/
 theorem expanded_wellFormed (A : ℝ) (hA : 1 ≤ A) (R : Matrix H I ℂ) (hR : IsIsometry R)
     (cs : List (AdjointStep H)) (hcs : WellFormedAdjointCircuit cs) :
     WellFormedAdjointCircuit (expanded A R cs) :=
@@ -107,6 +146,8 @@ theorem expanded_wellFormed (A : ℝ) (hA : 1 ≤ A) (R : Matrix H I ℂ) (hR : 
       (MPFOAAPadding.body_wellFormed A hA cs hcs)
       (word_wellFormed A _ (scaleEightFrame_isometry R hR))
 
+/-- For A ≥ 1, expanding an inverse-mass projected encoding of a unitary V yields an exact
+projected encoding of V in the scaled frame [AftabAnTrivisa2026]. -/
 theorem expanded_encoding (O : Matrix H H ℂ) (A : ℝ) (hA : 1 ≤ A) (V : Matrix I I ℂ)
     (hV : V ∈ unitaryGroup I ℂ) (R : Matrix H I ℂ) (cs : List (AdjointStep H))
     (h : ProjectedUnitaryEncoding ((A : ℂ)⁻¹ • V) (evaluate O cs) R R) :

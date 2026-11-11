@@ -10,6 +10,31 @@ import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Weighted path eigenfunction ansatzes and gap estimates
+
+This module studies a path recurrence whose central edge has weight `√2`, as in the spectral
+argument of [ChildsEtAl2003]. It defines the recurrence and boundary conditions, proves
+reflection invariance, and constructs sine and hyperbolic-sine solutions from their matching
+equations.
+
+`eigenvalue_gap_of_root_gap` converts specified angular separation and sine bounds into a lower
+bound for the separation of the values `2 * cos p` and `2 * cos q`.
+
+## Main statements
+
+* `ansatz_path_eigen`: the sine ansatz satisfies the weighted recurrence under the matching
+  condition.
+* `matching_of_path_eigen`: the eigenvalue and matching condition forced by a nondegenerate sine
+  ansatz.
+* `sinh_ansatz_eigenvalue`: a nonzero hyperbolic-sine solution with zero endpoints.
+* `eigenvalue_gap_of_root_gap`: a conditional gap estimate for the cosine parametrization.
+
+## References
+
+* [Childs et al., 2003][ChildsEtAl2003]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -18,29 +43,39 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.MinGap
 
+/-- The path edge weight, equal to `√2` at edge `n` and to one elsewhere. -/
 def edgeWeight (n c : ℕ) : ℝ := if c = n then Real.sqrt 2 else 1
 
+/-- The central path edge has weight `√2`. -/
 lemma edgeWeight_at (n : ℕ) : edgeWeight n n = Real.sqrt 2 := by
   simp [edgeWeight]
 
+/-- Every edge other than the central edge `n` has weight one. -/
 lemma edgeWeight_off {n c : ℕ} (h : c ≠ n) : edgeWeight n c = 1 := by
   simp [edgeWeight, h]
 
+/-- The weighted path eigenfunction recurrence at vertices `1 ≤ c ≤ 2*n`, with eigenvalue
+parameter `lam`. -/
 def IsPathEigen (n : ℕ) (f : ℕ → ℝ) (lam : ℝ) : Prop :=
   ∀ c, 1 ≤ c → c ≤ 2 * n →
     edgeWeight n (c - 1) * f (c - 1) + edgeWeight n c * f (c + 1) = lam * f c
 
+/-- The existence of a function `f : ℕ → ℝ` with `f ≠ 0`, zero values at `0` and `2*n+1`, and
+the weighted path recurrence with parameter `lam`. -/
 def IsEigenvalue (n : ℕ) (lam : ℝ) : Prop :=
   ∃ f : ℕ → ℝ, f 0 = 0 ∧ f (2 * n + 1) = 0 ∧ f ≠ 0 ∧ IsPathEigen n f lam
 
+/-- Reflection of a function by the index map `c ↦ 2*n+1-c`, using natural subtraction. -/
 def reflectFun (n : ℕ) (f : ℕ → ℝ) : ℕ → ℝ := fun c => f (2 * n + 1 - c)
 
+/-- Reflecting a function twice recovers its value at every index at most `2*n+1`. -/
 lemma reflectFun_involutive_on (n : ℕ) (f : ℕ → ℝ) {c : ℕ} (hc : c ≤ 2 * n + 1) :
     reflectFun n (reflectFun n f) c = f c := by
   simp only [reflectFun]
   congr 1
   omega
 
+/-- For positive `n`, reflecting an edge index by `c ↦ 2*n-c` preserves its weight. -/
 lemma edgeWeight_reflect (n : ℕ) (hn : 0 < n) (c : ℕ) :
     edgeWeight n c = edgeWeight n (2 * n - c) := by
   by_cases h : c = n
@@ -49,6 +84,8 @@ lemma edgeWeight_reflect (n : ℕ) (hn : 0 < n) (c : ℕ) :
     rw [h2]
   · simp [edgeWeight, h, show ¬(2 * n - c = n) by omega]
 
+/-- For positive `n`, reflection preserves the weighted path recurrence and its eigenvalue
+parameter. -/
 lemma reflectFun_pathEigen (n : ℕ) (hn : 0 < n) {f : ℕ → ℝ} {lam : ℝ}
     (h : IsPathEigen n f lam) : IsPathEigen n (reflectFun n f) lam := by
   intro c hc1 hc2
@@ -64,6 +101,8 @@ lemma reflectFun_pathEigen (n : ℕ) (hn : 0 < n) {f : ℕ → ℝ} {lam : ℝ}
   rw [show 2 * n - (c - 1) = 2 * n + 1 - c by omega]
   linarith [hc]
 
+/-- For positive `n`, if the reflected function satisfies the weighted path recurrence, then the
+original function satisfies it with the same parameter. -/
 lemma reflectFun_pathEigen_rev (n : ℕ) (hn : 0 < n) {f : ℕ → ℝ} {lam : ℝ}
     (h : IsPathEigen n (reflectFun n f) lam) : IsPathEigen n f lam := by
   intro c hc1 hc2
@@ -80,27 +119,36 @@ lemma reflectFun_pathEigen_rev (n : ℕ) (hn : 0 < n) {f : ℕ → ℝ} {lam : �
   rw [show 2 * n - (c - 1) = 2 * n + 1 - c by omega]
   linarith [hc]
 
+/-- For positive `n`, a function satisfies the weighted path recurrence exactly when its
+reflection does. -/
 lemma reflectFun_pathEigen_iff (n : ℕ) (hn : 0 < n) (f : ℕ → ℝ) (lam : ℝ) :
     IsPathEigen n (reflectFun n f) lam ↔ IsPathEigen n f lam :=
   ⟨reflectFun_pathEigen_rev n hn, reflectFun_pathEigen n hn⟩
 
+/-- The sine ansatz, zero at index zero, equal to `sin(p*c)` on the left half, and to `s *
+sin(p*(2*n+1-c))` on the right half. -/
 def ansatzFun (n : ℕ) (p s : ℝ) : ℕ → ℝ :=
   fun c =>
     if c = 0 then 0
     else if c ≤ n then Real.sin (p * (c : ℝ))
     else s * Real.sin (p * (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ)))
 
+/-- The sine ansatz vanishes at index zero. -/
 lemma ansatzFun_zero (n : ℕ) (p s : ℝ) : ansatzFun n p s 0 = 0 := by
   simp [ansatzFun]
 
+/-- At indices `1 ≤ c ≤ n`, the sine ansatz equals `sin(p*c)`. -/
 lemma ansatzFun_left {n : ℕ} {p s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : c ≤ n) :
     ansatzFun n p s c = Real.sin (p * (c : ℝ)) := by
   simp only [ansatzFun, if_neg (show c ≠ 0 by omega), if_pos hcn]
 
+/-- At positive indices `c > n`, the sine ansatz equals the reflected sine value multiplied by
+`s`. -/
 lemma ansatzFun_right {n : ℕ} {p s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : n < c) :
     ansatzFun n p s c = s * Real.sin (p * (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ))) := by
   simp only [ansatzFun, if_neg (show c ≠ 0 by omega), if_neg (show ¬ c ≤ n by omega)]
 
+/-- The sum of the sine values at `p*(c-1)` and `p*(c+1)` equals `2 * cos p * sin(p*c)`. -/
 lemma sin_shift_add (p : ℝ) (c : ℝ) :
     Real.sin (p * (c - 1)) + Real.sin (p * (c + 1)) = 2 * Real.cos p * Real.sin (p * c) := by
   rw [Real.sin_add_sin]
@@ -109,12 +157,15 @@ lemma sin_shift_add (p : ℝ) (c : ℝ) :
   rw [Real.cos_neg]
   ring
 
+/-- The sine values at `p*(n+1)` and `p*(n-1)` sum to `2 * cos p * sin(p*n)`. -/
 lemma sin_pair_n (n : ℕ) (p : ℝ) :
     Real.sin (p * ((n : ℝ) + 1)) + Real.sin (p * ((n : ℝ) - 1))
       = 2 * Real.cos p * Real.sin (p * (n : ℝ)) := by
   have h := sin_shift_add p (n : ℝ)
   linarith [h]
 
+/-- The sine recurrence at the central vertex is equivalent to the matching equation
+`sin(p*(n+1)) = √2 * s * sin(p*n)`. See [Childs et al., Lemma 2][ChildsEtAl2003]. -/
 lemma matching_iff (n : ℕ) (p s : ℝ) :
     (s * Real.sqrt 2 * Real.sin (p * (n : ℝ)) + Real.sin (p * ((n : ℝ) - 1))
         = 2 * Real.cos p * Real.sin (p * (n : ℝ)))
@@ -124,6 +175,9 @@ lemma matching_iff (n : ℕ) (p s : ℝ) :
   · intro h; linarith [hpair, h]
   · intro h; linarith [hpair, h]
 
+/-- For `n ≥ 2`, if `s^2 = 1` and the sine matching equation holds, the sine ansatz satisfies
+the weighted path recurrence with parameter `2 * cos p`. See [Childs et al., Lemma
+2][ChildsEtAl2003]. -/
 theorem ansatz_path_eigen {n : ℕ} (hn : 2 ≤ n) {p s : ℝ} (hs : s ^ 2 = 1)
     (hmatch : Real.sin (p * ((n : ℝ) + 1)) = Real.sqrt 2 * s * Real.sin (p * (n : ℝ))) :
     IsPathEigen n (ansatzFun n p s) (2 * Real.cos p) := by
@@ -216,6 +270,8 @@ theorem ansatz_path_eigen {n : ℕ} (hn : 2 ≤ n) {p s : ℝ} (hs : s ^ 2 = 1)
           rw [sin_shift_add p (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ))]
           ring
 
+/-- For `n ≥ 2`, the sine matching equation, `s^2 = 1`, and `sin p ≠ 0` imply `IsEigenvalue n (2
+* cos p)`. -/
 theorem ansatz_eigenvalue {n : ℕ} (hn : 2 ≤ n) {p s : ℝ} (hs : s ^ 2 = 1)
     (hsinp : Real.sin p ≠ 0)
     (hmatch : Real.sin (p * ((n : ℝ) + 1)) = Real.sqrt 2 * s * Real.sin (p * (n : ℝ))) :
@@ -232,6 +288,9 @@ theorem ansatz_eigenvalue {n : ℕ} (hn : 2 ≤ n) {p s : ℝ} (hs : s ^ 2 = 1)
     simp only [Nat.cast_one, mul_one] at h1
     exact hsinp h1
 
+/-- For `n ≥ 2` and `sin p ≠ 0`, a sine ansatz satisfying the weighted path recurrence must have
+parameter `2 * cos p` and satisfy the sine matching equation. See [Childs et al., Lemma
+2][ChildsEtAl2003]. -/
 theorem matching_of_path_eigen {n : ℕ} (hn : 2 ≤ n) {p s lam : ℝ}
     (hsinp : Real.sin p ≠ 0) (h : IsPathEigen n (ansatzFun n p s) lam) :
     lam = 2 * Real.cos p ∧
@@ -270,23 +329,30 @@ theorem matching_of_path_eigen {n : ℕ} (hn : 2 ≤ n) {p s lam : ℝ}
     linarith [hcn]
   exact (matching_iff n p s).mp h53'
 
+/-- The hyperbolic-sine ansatz, zero at index zero, equal to `sinh(k*c)` on the left half, and
+to `s * sinh(k*(2*n+1-c))` on the right half. -/
 def sinhFun (n : ℕ) (k s : ℝ) : ℕ → ℝ :=
   fun c =>
     if c = 0 then 0
     else if c ≤ n then Real.sinh (k * (c : ℝ))
     else s * Real.sinh (k * (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ)))
 
+/-- The hyperbolic-sine ansatz vanishes at index zero. -/
 lemma sinhFun_zero (n : ℕ) (k s : ℝ) : sinhFun n k s 0 = 0 := by
   simp [sinhFun]
 
+/-- At indices `1 ≤ c ≤ n`, the hyperbolic-sine ansatz equals `sinh(k*c)`. -/
 lemma sinhFun_left {n : ℕ} {k s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : c ≤ n) :
     sinhFun n k s c = Real.sinh (k * (c : ℝ)) := by
   simp only [sinhFun, if_neg (show c ≠ 0 by omega), if_pos hcn]
 
+/-- At positive indices `c > n`, the hyperbolic-sine ansatz equals the reflected hyperbolic-sine
+value multiplied by `s`. -/
 lemma sinhFun_right {n : ℕ} {k s : ℝ} {c : ℕ} (hc : 1 ≤ c) (hcn : n < c) :
     sinhFun n k s c = s * Real.sinh (k * (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ))) := by
   simp only [sinhFun, if_neg (show c ≠ 0 by omega), if_neg (show ¬ c ≤ n by omega)]
 
+/-- The hyperbolic-sine values at `k*(c-1)` and `k*(c+1)` sum to `2 * cosh k * sinh(k*c)`. -/
 lemma sinh_shift_add (k c : ℝ) :
     Real.sinh (k * (c - 1)) + Real.sinh (k * (c + 1))
       = 2 * Real.cosh k * Real.sinh (k * c) := by
@@ -294,12 +360,15 @@ lemma sinh_shift_add (k c : ℝ) :
       show k * (c + 1) = k * c + k by ring, Real.sinh_sub, Real.sinh_add]
   ring
 
+/-- The hyperbolic-sine values at `k*(n+1)` and `k*(n-1)` sum to `2 * cosh k * sinh(k*n)`. -/
 lemma sinh_pair_n (n : ℕ) (k : ℝ) :
     Real.sinh (k * ((n : ℝ) + 1)) + Real.sinh (k * ((n : ℝ) - 1))
       = 2 * Real.cosh k * Real.sinh (k * (n : ℝ)) := by
   have h := sinh_shift_add k (n : ℝ)
   linarith [h]
 
+/-- The hyperbolic-sine recurrence at the central vertex is equivalent to `sinh(k*(n+1)) = √2 *
+s * sinh(k*n)`. -/
 lemma sinh_matching_iff (n : ℕ) (k s : ℝ) :
     (s * Real.sqrt 2 * Real.sinh (k * (n : ℝ)) + Real.sinh (k * ((n : ℝ) - 1))
         = 2 * Real.cosh k * Real.sinh (k * (n : ℝ)))
@@ -309,6 +378,9 @@ lemma sinh_matching_iff (n : ℕ) (k s : ℝ) :
   · intro h; linarith [hpair, h]
   · intro h; linarith [hpair, h]
 
+/-- For `n ≥ 2`, if `s^2 = 1` and the hyperbolic-sine matching equation holds, `sinhFun n k s`
+satisfies the weighted recurrence with parameter `2 * cosh k`. See [Childs et al., Lemma
+2][ChildsEtAl2003]. -/
 theorem sinh_path_eigen {n : ℕ} (hn : 2 ≤ n) {k s : ℝ} (hs : s ^ 2 = 1)
     (hmatch : Real.sinh (k * ((n : ℝ) + 1)) = Real.sqrt 2 * s * Real.sinh (k * (n : ℝ))) :
     IsPathEigen n (sinhFun n k s) (2 * Real.cosh k) := by
@@ -399,6 +471,8 @@ theorem sinh_path_eigen {n : ℕ} (hn : 2 ≤ n) {k s : ℝ} (hs : s ^ 2 = 1)
           rw [sinh_shift_add k (((2 * n + 1 : ℕ) : ℝ) - (c : ℝ))]
           ring
 
+/-- For `n ≥ 2`, the hyperbolic-sine matching equation, `s^2 = 1`, and `sinh(k*n) ≠ 0` imply
+`IsEigenvalue n (2 * cosh k)`. See [Childs et al., Lemma 2][ChildsEtAl2003]. -/
 theorem sinh_ansatz_eigenvalue {n : ℕ} (hn : 2 ≤ n) {k s : ℝ} (hs : s ^ 2 = 1)
     (hsinh : Real.sinh (k * (n : ℝ)) ≠ 0)
     (hmatch : Real.sinh (k * ((n : ℝ) + 1)) = Real.sqrt 2 * s * Real.sinh (k * (n : ℝ))) :
@@ -413,6 +487,8 @@ theorem sinh_ansatz_eigenvalue {n : ℕ} (hn : 2 ≤ n) {k s : ℝ} (hs : s ^ 2 
     rw [sinhFun_left (c := n) (by omega) (by omega)] at h1
     exact hsinh h1
 
+/-- If the sine of the mean angle is nonnegative, the absolute difference of `2 * cos p` and `2
+* cos q` equals four times that sine times the absolute sine of the half-difference. -/
 lemma abs_two_cos_sub_eq (p q : ℝ) (havg : 0 ≤ Real.sin ((p + q) / 2)) :
     |2 * Real.cos p - 2 * Real.cos q|
       = 4 * Real.sin ((p + q) / 2) * |Real.sin ((p - q) / 2)| := by
@@ -426,6 +502,9 @@ lemma abs_two_cos_sub_eq (p q : ℝ) (havg : 0 ≤ Real.sin ((p + q) / 2)) :
         rw [abs_neg, abs_mul, abs_mul,
           abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 4), abs_of_nonneg havg]
 
+/-- For `n ≥ 2`, the stated angular separation, the bound `|p-q| ≤ π`, and the lower bound
+`sin((p+q)/2) ≥ 2/n` imply `|2*cos p - 2*cos q| ≥ 8/((1+√2)*n^3)`. See [Childs et al., Lemma
+2][ChildsEtAl2003]. -/
 theorem eigenvalue_gap_of_root_gap {n : ℕ} (hn : 2 ≤ n) {p q : ℝ}
     (havg : 0 ≤ Real.sin ((p + q) / 2))
     (hampl : 2 / (n : ℝ) ≤ Real.sin ((p + q) / 2))
@@ -468,6 +547,7 @@ theorem eigenvalue_gap_of_root_gap {n : ℕ} (hn : 2 ≤ n) {p q : ℝ}
     linarith [hmul, heq]
   linarith [hstep1, hstep2]
 
+/-- The numerical inequality `8 < 2*π^2/(1+√2)`. See [Childs et al., Lemma 2][ChildsEtAl2003]. -/
 theorem eight_lt_two_pi_sq : (8 : ℝ) < 2 * Real.pi ^ 2 / (1 + Real.sqrt 2) := by
   have hpi : (3.14 : ℝ) < Real.pi := Real.pi_gt_d2
   have hsqrt : Real.sqrt 2 < 1.42 := by

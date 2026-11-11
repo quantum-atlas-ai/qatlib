@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Dirichlet
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+
+/-!
+# Conditional ring Gauss-sum phase estimation
+
+The theorem `theorem2_ringGaussSumEstimation` gives a polar form and estimation bound for a ring
+Gauss sum at a unit frequency. It assumes the square-root norm at frequency one,
+`PhaseAccessModel`, and a polylogarithmic per-sample cost. See [VanDamSeroussi2002].
+
+## Main statements
+
+* `theorem2_ringGaussSumEstimation`: At a unit frequency, an assumed base Gauss-sum norm of `√n`
+  yields the same norm and a polar representation at that frequency. Given `PhaseAccessModel`
+  and polylogarithmic per-sample cost, protocols attain any positive expected absolute
+  angular-error tolerance with the stated `sampleCount` times polylogarithmic cost bound.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +38,10 @@ namespace Qatlib.Papers.GaussSumEst02.MainResults.Claims
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- At a unit frequency, an assumed base Gauss-sum norm of `√n` yields the same norm and a polar
+representation at that frequency. Given `PhaseAccessModel` and polylogarithmic per-sample
+cost, protocols attain any positive expected absolute angular-error tolerance with the
+stated `sampleCount` times polylogarithmic cost bound [VanDamSeroussi2002]. -/
 theorem theorem2_ringGaussSumEstimation (n : ℕ) [NeZero n] (χ : DirichletChar n)
     (e : AddChar (ZMod n)) {β : ZMod n} (hβ : IsUnit β)
     (hprim : ‖ringGaussSum χ e 1‖ = Real.sqrt (n : ℝ))

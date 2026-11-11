@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHMassProducts
 import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+
+/-!
+# Multilinear expansions of summable families
+
+This module expands continuous multilinear maps applied to absolutely convergent series. The
+tuple-indexed expansion and its grouping by total index provide summation tools for the
+perturbative estimates associated with [AftabAnTrivisa2026].
+
+## Main statements
+
+* `map_hasSum`: the full expansion over tuples of natural numbers.
+* `grouped_hasSum`: the expansion grouped over finite antidiagonals.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,12 +39,16 @@ variable {E F : Type} [NormedAddCommGroup E] [NormedSpace ℝ E]
 
 omit [CompleteSpace F] in
 
+/-- A continuous multilinear map applied to every tuple from an absolutely summable sequence
+yields an absolutely summable family. -/
 theorem norm_summable {n : ℕ} (f : ContinuousMultilinearMap ℝ (fun _ : Fin n => E) F)
     (D : ℕ → E) (hD : Summable fun j => ‖D j‖) :
     Summable (fun v : Fin n → ℕ => ‖f (fun i => D (v i))‖) := by
   have hm := (BCHMassProducts.tuple_hasSum (fun j => ‖D j‖) hD (fun _ => norm_nonneg _) n).summable
   exact (hm.mul_left ‖f‖).of_nonneg_of_le (fun _ => norm_nonneg _) (fun v => f.le_opNorm _)
 
+/-- A continuous multilinear map commutes with an absolutely convergent sum in all its
+arguments, with the expansion indexed by tuples of natural numbers. -/
 theorem map_hasSum (n : ℕ) (f : ContinuousMultilinearMap ℝ (fun _ : Fin n => E) F)
     (D : ℕ → E) (hD : Summable fun j => ‖D j‖) (x : E) (hx : HasSum D x) :
     HasSum (fun v : Fin n → ℕ => f (fun i => D (v i))) (f (fun _ => x)) := by
@@ -65,6 +87,7 @@ theorem map_hasSum (n : ℕ) (f : ContinuousMultilinearMap ℝ (fun _ : Fin n =>
     rw [he]
     exact heq ▸ hp.hasSum
 
+/-- Grouping the multilinear expansion by the sum of its tuple indices preserves its sum. -/
 theorem grouped_hasSum (n : ℕ) (f : ContinuousMultilinearMap ℝ (fun _ : Fin n => E) F)
     (D : ℕ → E) (hD : Summable fun j => ‖D j‖) (x : E) (hx : HasSum D x) :
     HasSum (fun k => ∑ v ∈ Finset.finAntidiagonal n k, f (fun i => D (v i)))

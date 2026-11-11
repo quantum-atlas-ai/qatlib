@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalshMoment.Forrelation.SpectralForrelationBasicsStat
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Bounds and optimal witnesses for spectral forrelation
+
+This module proves that spectral forrelation lies in `[0, 1]`, bounds every normalized witness
+mass by it, and constructs a normalized witness attaining that bound. The proof combines
+contraction bounds for characteristic projectors and the Hadamard transform with compactness of
+the finite-dimensional unit sphere. It also proves that an identically false predicate on either
+side makes spectral forrelation zero.
+
+The operator-norm interpretation of quantum states and transformations is standard in
+[Watrous2018].
+
+## Key declarations
+
+* `charProjector_norm_le_one` and `forrMatrix_norm_le_one` establish the contraction bounds.
+* `forrWitnessMass_le_spectral` gives the upper bound for normalized witnesses.
+* `spectral_attained` supplies an optimal normalized witness.
+* `spectralForrelationBasics` assembles the full specification.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -21,6 +46,8 @@ open Matrix
 
 open scoped Matrix.Norms.L2Operator
 
+/-- The characteristic projector of any Boolean predicate has Euclidean operator norm at most
+one. -/
 private theorem charProjector_norm_le_one (n : ℕ) (f : Reg n → Bool) :
     ‖charProjector n f‖ ≤ 1 := by
   rw [charProjector, Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg zero_le_one]
@@ -31,6 +58,8 @@ private theorem charProjector_norm_le_one (n : ℕ) (f : Reg n → Bool) :
   · simp only [if_neg h]
     norm_num
 
+/-- The product `charProjector n U * HadamardN n * charProjector n S` has Euclidean operator
+norm at most one. -/
 private theorem forrMatrix_norm_le_one (n : ℕ) (S U : Reg n → Bool) :
     ‖charProjector n U * HadamardN n * charProjector n S‖ ≤ 1 := by
   have h1 := Matrix.l2_opNorm_mul (charProjector n U * HadamardN n) (charProjector n S)
@@ -43,6 +72,7 @@ private theorem forrMatrix_norm_le_one (n : ℕ) (S U : Reg n → Bool) :
   have h7 := charProjector_norm_le_one n S
   nlinarith
 
+/-- The witness mass of any normalized state is at most the spectral forrelation value. -/
 private theorem forrWitnessMass_le_spectral (n : ℕ) (S U : Reg n → Bool)
     (ψ : QState (Reg n)) (hψ : Normalized ψ) :
     forrWitnessMass n S U ψ ≤ spectralForrelation n S U := by
@@ -55,6 +85,8 @@ private theorem forrWitnessMass_le_spectral (n : ℕ) (S U : Reg n → Bool)
   unfold forrWitnessMass spectralForrelation
   nlinarith
 
+/-- There exists a normalized witness whose mass is at least the spectral forrelation value.
+Together with the upper bound for normalized witnesses, this gives attainment of that value. -/
 private theorem spectral_attained (n : ℕ) (S U : Reg n → Bool) :
     ∃ ψ : QState (Reg n), Normalized ψ ∧
       spectralForrelation n S U ≤ forrWitnessMass n S U ψ := by
@@ -135,6 +167,9 @@ private theorem spectral_attained (n : ℕ) (S U : Reg n → Bool) :
     simp only [hf]
     nlinarith
 
+/-- Spectral forrelation lies in `[0, 1]`, bounds all normalized witness masses, and has a
+normalized witness meeting any target at most that value. It vanishes if either oracle
+predicate is identically false. -/
 theorem spectralForrelationBasics : SpectralForrelationBasics := by
   intro n S U
   refine ⟨sq_nonneg _, ?_, fun ψ hψ => forrWitnessMass_le_spectral n S U ψ hψ,

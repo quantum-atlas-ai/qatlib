@@ -7,22 +7,46 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Scalar work comparison for the Haar transform
+
+The scalar quantities `sampleSize` and `haarWorkFactor` encode the classical three-sigma sample
+threshold and the Haar work factor. Their comparison reduces to an explicit polynomial
+inequality under `0 < M` and `2 * M < N`. This development supports the treatment in
+[Cornwell2014].
+
+## Main statements
+
+* `sampleSize_threeSigma_intersection`: equality of the two three-sigma endpoints.
+* `haarWins_iff`: the exact algebraic work comparison.
+* `haarWins_of_cubic`: a sufficient cubic inequality for the Haar advantage.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AmpTransform14.ScalarHaar
 
 noncomputable section
 
+/-- The scalar sample threshold `36 * M * (1 - M/N) / (1 - 2 * M/N)^2` used in the three-sigma
+comparison. -/
 def sampleSize (M N : ℝ) : ℝ := 36 * M * (1 - M / N) / (1 - 2 * M / N) ^ 2
 
+/-- The scalar Haar work factor `sqrt(N/(2 * M))`. -/
 def haarWorkFactor (M N : ℝ) : ℝ := Real.sqrt (N / (2 * M))
 
+/-- For positive `M` and nonnegative `N`, the squared Haar work factor equals `N/(2 * M)`. -/
 @[simp]
 theorem haarWorkFactor_sq {M N : ℝ} (hM : 0 < M) (hN : 0 ≤ N) :
     haarWorkFactor M N ^ 2 = N / (2 * M) := by
   unfold haarWorkFactor
   rw [Real.sq_sqrt (by positivity)]
 
+/-- The sample threshold is positive when `0 < M` and `2 * M < N`. -/
 theorem sampleSize_pos {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) : 0 < sampleSize M N := by
   have hN : 0 < N := by linarith
   have h1 : 0 < 1 - M / N := by
@@ -34,6 +58,8 @@ theorem sampleSize_pos {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) : 0 < sampleSi
   unfold sampleSize
   positivity
 
+/-- For `0 < M` and `2 * M < N`, multiplying the sample threshold by `(1 - 2 * M/N)^2` yields
+`36 * M * (1 - M/N)`. -/
 theorem sampleSize_spec {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) :
     sampleSize M N * (1 - 2 * M / N) ^ 2 = 36 * M * (1 - M / N) := by
   have hN : 0 < N := by linarith
@@ -50,6 +76,8 @@ theorem sampleSize_spec {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) :
   unfold sampleSize
   exact div_mul_cancel₀ _ h2
 
+/-- At `sampleSize`, the upper three-sigma endpoint around `M/N` equals the lower three-sigma
+endpoint around `1 - M/N`, assuming `0 < M` and `2 * M < N`. -/
 theorem sampleSize_threeSigma_intersection {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) :
     M / N + 3 * Real.sqrt (M * (1 - M / N) / sampleSize M N)
       = (1 - M / N) - 3 * Real.sqrt (M * (1 - M / N) / sampleSize M N) := by
@@ -70,6 +98,8 @@ theorem sampleSize_threeSigma_intersection {M N : ℝ} (hM : 0 < M) (hMN : 2 * M
   rw [hs]
   ring
 
+/-- For `0 < M` and `2 * M < N`, Haar work is below the sample threshold exactly when `N * (1 -
+2 * M/N)^4 < 2592 * M^3 * (1 - M/N)^2` [Cornwell2014]. -/
 theorem haarWins_iff {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) :
     haarWorkFactor M N < sampleSize M N
       ↔ N * (1 - 2 * M / N) ^ 4 < 2592 * M ^ 3 * (1 - M / N) ^ 2 := by
@@ -99,6 +129,8 @@ theorem haarWins_iff {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N) :
   rw [haarWorkFactor, Real.sqrt_lt' hn, hsq]
   exact key
 
+/-- Under `0 < M` and `2 * M < N`, the inequality `N < 2592 * M^3 * (1 - M/N)^2` suffices for
+Haar work to be below the sample threshold. -/
 theorem haarWins_of_cubic {M N : ℝ} (hM : 0 < M) (hMN : 2 * M < N)
     (hcubic : N < 2592 * M ^ 3 * (1 - M / N) ^ 2) :
     haarWorkFactor M N < sampleSize M N := by

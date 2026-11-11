@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.LowerTarget
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.CompletionRow
+
+/-!
+# Cost-class marginals of native threshold search
+
+This module aggregates optional candidate outputs into lower cost-class outputs. It identifies
+the target class law with normalized Born fiber masses and proves that native scheduled search
+preserves this class distribution conditional on success, as required for the biased process
+associated with [ShaydulinEtAl2024].
+
+## Main statements
+
+* `target_born_point`: A conditional lower-class probability is the sum of the normalized
+  prepared Born masses of the candidate labels in that class.
+* `native_class_point`: The native scheduled search's probability of a specified lower-class
+  output equals its total success probability times the conditional lower-class probability.
+* `native_class_success`: For native scheduled search, extracting the lower-class output
+  preserves the probability that the candidate result is present.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -22,6 +45,8 @@ open Qatlib.Papers.QAOAScaling23.BiasedProcess
 open Qatlib.Papers.QAOAScaling23.WeightedCost
 namespace Qatlib.Papers.QAOAScaling23.BiasedProcess.Born
 
+/-- The probability that an optional label followed by an optional map yields `j` is the sum of
+the original label-event probabilities over the fiber yielding `j`. -/
 theorem option_fiber_event {A B C : Type} [Fintype B] (p : PMF A) (label : A → Option B)
     (f : B → Option C) (j : C) :
     event p (fun a => (label a).bind f = some j) =
@@ -43,6 +68,8 @@ theorem option_fiber_event {A B C : Type} [Fintype B] (p : PMF A) (label : A →
   intro i _
   by_cases hi : f i = some j <;> simp [hi,event]
 
+/-- The probability that an optional label is present equals the sum of its point-output event
+probabilities over a finite label type. -/
 theorem option_success_sum {A B : Type} [Fintype B] (p : PMF A) (label : A → Option B) :
     event p (fun a => (label a).isSome) = ∑ j, event p (fun a => label a = some j) := by
   classical
@@ -54,16 +81,22 @@ theorem option_success_sum {A B : Type} [Fintype B] (p : PMF A) (label : A → O
   exact (event_eq p _).trans ((expectation_congr he).trans (expectation_sum p Finset.univ _))
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The optional lower cost-class rank obtained from a search receipt's candidate result
+relative to the current rank. -/
 def classOutput (cost : I → ℝ) (current : I) (tr : CappedSearchTrace I) :
     Option (Fin (costRank cost current).val) :=
   tr.result.bind (lowerRank cost (costRank cost current).val)
 omit [DecidableEq I] in
 
+/-- Returning `j` through the lower-rank map is equivalent to the candidate having the
+corresponding full cost-class rank. -/
 theorem lowerRank_eq_class (cost : I → ℝ) (current i : I) (j : Fin (costRank cost current).val) :
     lowerRank cost (costRank cost current).val i = some j ↔
       costRank cost i = ⟨j.val,lt_trans j.isLt (costRank cost current).isLt⟩ := by
   rw [lowerRank_some,Fin.ext_iff]
 
+/-- A conditional lower-class probability is the sum of the normalized prepared Born masses of
+the candidate labels in that class. -/
 theorem target_born_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (costRank cost current).val)
@@ -90,6 +123,8 @@ theorem target_born_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I
   intro i _
   split_ifs <;> simp
 
+/-- The native scheduled search's probability of a specified lower-class output equals its total
+success probability times the conditional lower-class probability. -/
 theorem native_class_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (costRank cost current).val)
@@ -117,6 +152,8 @@ theorem native_class_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup 
       (by rwa [strict_mass_prefix]) (strict_mass_le_one U hU seed cost current) ms i him
   · simp [hi]
 
+/-- For native scheduled search, extracting the lower-class output preserves the probability
+that the candidate result is present. -/
 theorem native_class_success (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (costRank cost current).val)

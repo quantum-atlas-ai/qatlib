@@ -5,17 +5,44 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
+
+/-!
+# Hamming weights and affine subspaces of the Boolean cube
+
+This module develops counting and dimension estimates for `cubeWeight` on `BooleanVec n`. It
+counts weight layers and balls, bounds a small Hamming ball by a power of two, and finds a
+small-weight vector in an affine subspace of positive specified dimension. Binary coding and
+Hamming-weight background appears in [NielsenChuang2010].
+
+## Main statements
+
+* `cubeWeight_add_le` gives the triangle inequality for Boolean Hamming weight.
+* `card_ball_lt` bounds the radius-`8 * r` ball when `1 ≤ n` and `100 * r ≤ n`.
+* `exists_small_weight_mem_affine` finds weight at most `k` when the affine direction has
+  positive dimension `n - k`.
+* `card_cubeWeight_eq` and `card_cubeWeight_le` count exact-weight layers and bounded-weight
+  sets by binomial coefficients.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.PauliClifford.ExactRank
 open scoped Classical BigOperators
 
+/-- The Hamming weight of the sum of two Boolean vectors is at most the sum of their Hamming
+weights. -/
 theorem cubeWeight_add_le {n : ℕ} (x y : BooleanVec n) :
     cubeWeight (x+y) ≤ cubeWeight x+cubeWeight y := by
   simpa [cubeWeight,hammingDist_eq_hammingNorm] using
     hammingDist_triangle (0 : BooleanVec n) x (x+y)
 
+/-- Bounds `5 ^ n` by `2 ^ (3 * n - n / 2)`, with division and subtraction taken in the natural
+numbers. -/
 private theorem five_pow_bound (n : ℕ) : 5^n ≤ 2^(3*n-n/2) := by
   induction n using Nat.twoStepInduction with
   | zero => norm_num
@@ -26,10 +53,13 @@ private theorem five_pow_bound (n : ℕ) : 5^n ≤ 2^(3*n-n/2) := by
     norm_num
     exact Nat.mul_le_mul ih (by norm_num : (25 : ℕ) ≤ 32)
 
+/-- The weighted binomial sum of `n.choose j * 4 ^ (n - j)` for `0 ≤ j ≤ n` equals `5 ^ n`. -/
 private theorem weighted_binomial_sum (n : ℕ) :
     (∑ j ∈ Finset.range (n+1), n.choose j*4^(n-j))=5^n := by
   simpa [Nat.mul_comm] using (add_pow (1 : ℕ) 4 n).symm
 
+/-- If `1 ≤ n` and `100 * r ≤ n`, the sum of binomial coefficients through weight `8 * r` is
+strictly less than `2 ^ (n - 4 * r)`. -/
 theorem card_ball_lt {n r : ℕ} (hn : 1 ≤ n) (hrn : 100*r ≤ n) :
     (∑ j ∈ Finset.range (8*r+1), Nat.choose n j) < 2^(n-4*r) := by
   by_cases hr : r=0
@@ -62,15 +92,19 @@ theorem card_ball_lt {n r : ℕ} (hn : 1 ≤ n) (hrn : 100*r ≤ n) :
     exact (hweighted.trans (five_pow_bound n)).trans_lt hp
   exact Nat.lt_of_mul_lt_mul_right hh
 
+/-- Returns the finite set of coordinates where the Boolean vector is nonzero. -/
 private def cubeSupport {n : ℕ} (x : BooleanVec n) : Finset (Fin n) :=
   Finset.univ.filter (fun i => x i ≠ 0)
 
+/-- Defines the submodule of Boolean vectors that vanish wherever `x` vanishes. -/
 private def supportedSubmodule {n : ℕ} (x : BooleanVec n) : Submodule (ZMod 2) (BooleanVec n) where
   carrier := {v | ∀ i, x i=0 → v i=0}
   zero_mem' := by intro i _; rfl
   add_mem' := by intro v w hv hw i hi; simp [hv i hi,hw i hi]
   smul_mem' := by intro c v hv i hi; simp [hv i hi]
 
+/-- Identifies vectors supported inside `cubeSupport x` with arbitrary `ZMod 2`-valued functions
+on that support, by restriction and extension by zero. -/
 private noncomputable def supportedEquiv {n : ℕ} (x : BooleanVec n) :
     supportedSubmodule x ≃ₗ[ZMod 2] (cubeSupport x → ZMod 2) where
   toFun v i := v.1 i
@@ -91,16 +125,20 @@ private noncomputable def supportedEquiv {n : ℕ} (x : BooleanVec n) :
   map_add' v w := rfl
   map_smul' c v := rfl
 
+/-- The dimension of the submodule supported inside `x` is the Hamming weight of `x`. -/
 private theorem supported_finrank {n : ℕ} (x : BooleanVec n) :
     Module.finrank (ZMod 2) ↥(supportedSubmodule x)=cubeWeight x := by
   rw [(supportedEquiv x).finrank_eq,Module.finrank_pi,Fintype.card_coe]
   rfl
 
+/-- Every nonzero element of `ZMod 2` equals one. -/
 private theorem zmod_two_nonzero (a : ZMod 2) (ha : a ≠ 0) : a=1 := by
   fin_cases a
   · exact (ha rfl).elim
   · rfl
 
+/-- Adding a nonzero Boolean vector supported inside `x` strictly decreases the Hamming weight
+of `x`. -/
 private theorem supported_weight_drop {n : ℕ} (x v : BooleanVec n)
     (hv : v ∈ supportedSubmodule x) (hv0 : v ≠ 0) : cubeWeight (x+v) < cubeWeight x := by
   have hsub : cubeSupport v ⊆ cubeSupport x := by
@@ -125,6 +163,8 @@ private theorem supported_weight_drop {n : ℕ} (x v : BooleanVec n)
   rw [hs,Finset.card_sdiff_of_subset hsub]
   omega
 
+/-- An affine subspace whose direction has positive dimension `n - k` contains a Boolean vector
+of Hamming weight at most `k`. -/
 theorem exists_small_weight_mem_affine {n k : ℕ}
     (A : AffineSubspace (ZMod 2) (BooleanVec n))
     (hdim : Module.finrank (ZMod 2) ↥(A.direction)=n-k) (hk : 0 < n-k) :
@@ -154,9 +194,12 @@ theorem exists_small_weight_mem_affine {n k : ℕ}
   rw [supported_finrank,hdim,hn] at hd
   exact ⟨u,hu,by omega⟩
 
+/-- Every Boolean vector of length `n` has Hamming weight at most `n`. -/
 theorem cubeWeight_le_n {n : ℕ} (x : BooleanVec n) : cubeWeight x ≤ n := by
   simpa [cubeWeight] using (hammingNorm_le_card_fintype (x := x))
 
+/-- Identifies Boolean vectors with finite subsets of their coordinate set through support and
+the corresponding indicator vector. -/
 private noncomputable def cubeSupportEquiv (n : ℕ) : BooleanVec n ≃ Finset (Fin n) where
   toFun := cubeSupport
   invFun s := fun i => if i ∈ s then 1 else 0
@@ -169,6 +212,7 @@ private noncomputable def cubeSupportEquiv (n : ℕ) : BooleanVec n ≃ Finset (
     ext i
     simp [cubeSupport]
 
+/-- The number of Boolean vectors of length `n` and Hamming weight exactly `k` is `n.choose k`. -/
 theorem card_cubeWeight_eq (n k : ℕ) :
     Fintype.card {x : BooleanVec n // cubeWeight x=k}=n.choose k := by
   let e := cubeSupportEquiv n
@@ -188,6 +232,8 @@ theorem card_cubeWeight_eq (n k : ℕ) :
   rw [Fintype.card_congr E,Fintype.card_congr E2,Fintype.card_coe,Finset.card_powersetCard]
   simp
 
+/-- The number of Boolean vectors of length `n` and Hamming weight at most `t` is the sum of
+`n.choose j` over `0 ≤ j ≤ t`. -/
 theorem card_cubeWeight_le (n t : ℕ) :
     Fintype.card {x : BooleanVec n // cubeWeight x ≤ t}=
       ∑ j ∈ Finset.range (t+1), n.choose j := by

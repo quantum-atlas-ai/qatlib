@@ -9,6 +9,27 @@ import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSumBound
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Bound
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatSum1Log
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Log
+
+/-!
+# Critical lattice search scales
+
+This module bounds the negative secular root at the critical coupling `latSum1 n d` in the
+lattice search analysis of [ChildsGoldstone2004]. It establishes positivity and lower bounds for
+the lattice sums, then converts a lower bound on the root magnitude into an upper bound on
+`Real.pi / (2 * δ)`.
+
+## Main statements
+
+* `crit_root_identity`: exact reciprocal-sum identity for a negative critical root.
+* `crit_root_lower`: lower bound on the root magnitude in terms of the first two lattice sums.
+* `crit_time_upper_d5` and `crit_time_upper_d4`: explicit time-scale bounds above and at
+  dimension four.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +43,7 @@ open ThetaSums
 
 variable {d : ℕ}
 
+/-- The lattice dispersion is at most four times the number of coordinates. -/
 theorem dispersion_le_four_mul (k : Fin d → ℝ) : dispersion k ≤ 4 * (d : ℝ) := by
   unfold dispersion
   have h : ∑ j : Fin d, (1 - Real.cos (k j)) ≤ ∑ _j : Fin d, (2 : ℝ) := by
@@ -34,11 +56,15 @@ theorem dispersion_le_four_mul (k : Fin d → ℝ) : dispersion k ≤ 4 * (d : �
         rw [Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin]
         ring
 
+/-- At a nonzero lattice index with positive side length, the inverse dispersion is at least `(4
+* d)⁻¹`. -/
 theorem inv_dispersion_ge_four {n : ℕ} [NeZero n] (hn : 0 < n)
     {m : Fin d → ZMod n} (hm : m ≠ 0) :
     (4 * (d : ℝ))⁻¹ ≤ (dispersion (waveVector n m))⁻¹ :=
   inv_anti₀ (dispersion_waveVector_pos hn hm) (dispersion_le_four_mul _)
 
+/-- The first lattice sum is strictly positive for side length greater than one and positive
+dimension, as used in [ChildsGoldstone2004]. -/
 theorem latSum1_pos {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) :
     0 < latSum1 n d := by
   have hn0 : 0 < n := Nat.lt_trans Nat.zero_lt_one hn
@@ -71,6 +97,8 @@ theorem latSum1_pos {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) :
   unfold latSum1
   exact mul_pos hNpos (lt_of_lt_of_le hpos hle)
 
+/-- The second lattice sum is strictly positive for side length greater than one and positive
+dimension. -/
 theorem latSum2_pos {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) :
     0 < latSum2 n d := by
   have hn0 : 0 < n := Nat.lt_trans Nat.zero_lt_one hn
@@ -103,6 +131,8 @@ theorem latSum2_pos {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) :
   unfold latSum2
   exact mul_pos hNpos (lt_of_lt_of_le hpos hle)
 
+/-- For positive side length and dimension, the first lattice sum is at least `(n ^ d - 1) / (n
+^ d * (4 * d))`. -/
 theorem latSum1_ge {n d : ℕ} [NeZero n] (hn : 0 < n) (_hd : 0 < d) :
     ((n : ℝ) ^ d - 1) / ((n : ℝ) ^ d * (4 * (d : ℝ))) ≤ latSum1 n d := by
   have hnR : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hn
@@ -139,6 +169,8 @@ theorem latSum1_ge {n d : ℕ} [NeZero n] (hn : 0 < n) (_hd : 0 < d) :
   rw [hS] at hstep
   exact hstep
 
+/-- For side length greater than one and positive dimension, the first lattice sum is at least
+`(8 * d)⁻¹`, giving a uniform lower bound used in [ChildsGoldstone2004]. -/
 theorem latSum1_ge_eighth {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) :
     (8 * (d : ℝ))⁻¹ ≤ latSum1 n d := by
   have hn0 : 0 < n := Nat.lt_trans Nat.zero_lt_one hn
@@ -172,6 +204,9 @@ theorem latSum1_ge_eighth {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) :
   rw [hcomp] at hstep
   exact le_trans hstep (latSum1_ge hn0 hd)
 
+/-- For positive coupling, side length, and `δ`, expand the secular function at `-δ` into the
+zero-mode pole, the nonzero-mode inverse-energy sum, and an exact negative correction
+proportional to `δ`. -/
 theorem secular_expansion_neg {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     {δ : ℝ} (hδ : 0 < δ) :
     secular γ n d (-δ)
@@ -203,6 +238,9 @@ theorem secular_expansion_neg {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn
   rw [hexp, hthird]
   ring
 
+/-- At a negative secular root `-δ` with critical coupling `latSum1 n d`, multiplying the
+indicated nonzero-mode reciprocal sum by `δ ^ 2` gives one. This is an exact critical-root
+identity for the analysis of [ChildsGoldstone2004]. -/
 theorem crit_root_identity {n : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d)
     {δ : ℝ} (hδ : 0 < δ)
     (hF : secular (latSum1 n d) n d (-δ) = 1) :
@@ -252,6 +290,8 @@ theorem crit_root_identity {n : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d)
   rw [hL] at h3
   exact h3
 
+/-- A negative critical root `-δ` with `δ > 0` satisfies `latSum1 n d / Real.sqrt (latSum2 n d *
+n ^ d) ≤ δ` for side length greater than one and positive dimension [ChildsGoldstone2004]. -/
 theorem crit_root_lower {n : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d)
     {δ : ℝ} (hδ : 0 < δ)
     (hF : secular (latSum1 n d) n d (-δ) = 1) :
@@ -329,6 +369,8 @@ theorem crit_root_lower {n : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d)
     Real.sqrt_sq (mul_nonneg hδ.le (Real.sqrt_nonneg _))] at hmono
   exact hmono
 
+/-- A negative critical root `-δ` with `δ > 0` satisfies `δ ≤ 8 * d * latSum1 n d` for side
+length greater than one and positive dimension [ChildsGoldstone2004]. -/
 theorem crit_root_upper {n : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d)
     {δ : ℝ} (hδ : 0 < δ)
     (hF : secular (latSum1 n d) n d (-δ) = 1) :
@@ -422,6 +464,9 @@ theorem crit_root_upper {n : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d)
   have h4 : 0 < A * (δ - A) := mul_pos hA (by linarith)
   nlinarith [h2, h3, h4, hδsq]
 
+/-- If the second lattice sum is at most `C`, a negative critical root `-δ` bounds `Real.pi / (2
+* δ)` above by `4 * Real.pi * d * Real.sqrt (C * n ^ d)` under the stated positivity
+assumptions [ChildsGoldstone2004]. -/
 theorem crit_time_upper {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) {C δ : ℝ}
     (hδ : 0 < δ)
     (hF : secular (latSum1 n d) n d (-δ) = 1)
@@ -469,6 +514,9 @@ theorem crit_time_upper {n d : ℕ} [NeZero n] (hn : 1 < n) (hd : 0 < d) {C δ :
         mul_le_mul_of_nonneg_left h5 (by positivity)
     _ = 4 * Real.pi * (d : ℝ) * Real.sqrt (C * (n : ℝ) ^ d) := by ring_nf
 
+/-- In dimension at least five, a negative critical root `-δ` gives the time-scale bound
+`Real.pi / (2 * δ) ≤ 4 * Real.pi * d * Real.sqrt (((4 * 3 ^ d + 1) / 256) * n ^ d)` for `n >
+1` [ChildsGoldstone2004]. -/
 theorem crit_time_upper_d5 {n : ℕ} [NeZero n] [NeZero d] (hn : 1 < n) (hd : 5 ≤ d)
     {δ : ℝ} (hδ : 0 < δ)
     (hF : secular (latSum1 n d) n d (-δ) = 1) :
@@ -477,6 +525,9 @@ theorem crit_time_upper_d5 {n : ℕ} [NeZero n] [NeZero d] (hn : 1 < n) (hd : 5 
   crit_time_upper hn (by omega) hδ hF
     (latSum2_le (d := d) (Nat.lt_trans Nat.zero_lt_one hn) hd)
 
+/-- In dimension four, a negative critical root `-δ` bounds `Real.pi / (2 * δ)` by `16 * Real.pi
+* Real.sqrt (((81 / 64) * (1 + Real.log n) + 1 / 256) * n ^ 4)` for `n > 1`
+[ChildsGoldstone2004]. -/
 theorem crit_time_upper_d4 {n : ℕ} [NeZero n] (hn : 1 < n) {δ : ℝ} (hδ : 0 < δ)
     (hF : secular (latSum1 n 4) n 4 (-δ) = 1) :
     Real.pi / (2 * δ) ≤

@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+/-!
+# Difference-model partition functions and consistent labels
+
+Defines the edge-difference map `edgeDiff`, the Boltzmann product `deltaWeight`, and the sum
+`consistentDeltaSum` over labelings induced by vertex configurations. Global shifts preserve
+edge differences, and under the stated connectivity condition each nonempty fiber consists
+precisely of the global shifts of one configuration.
+
+The theorem `lemma5_6_difference_model_partition` proves the factorization from Lemma 5.6 of
+[AradLandau2010]: the difference-model partition function is the color cardinality times the
+consistent-label sum.
+
+## Main statements
+
+* `fiber_eq_image`: describes a fiber of the edge-difference map by global shifts.
+* `lemma5_6_difference_model_partition`: factors the partition function through consistent
+  labels.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Lemma56
@@ -15,6 +39,8 @@ open Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
 
 variable {V E C : Type*} [Fintype V] [Fintype E] [Fintype C]
 
+/-- The sum of Boltzmann edge-weight products over edge labelings induced by vertex differences,
+with zero contribution from other labelings. -/
 noncomputable def consistentDeltaSum [DecidableEq C] [AddCommGroup C]
     (src dst : E → V) (h : E → C → ℂ) (β : ℂ) : ℂ :=
   ∑ δ : E → C,
@@ -22,12 +48,16 @@ noncomputable def consistentDeltaSum [DecidableEq C] [AddCommGroup C]
       ∏ e : E, Complex.exp (-(β * h e (δ e)))
     else 0
 
+/-- The edge labeling obtained by subtracting the destination vertex label from the source
+vertex label. -/
 def edgeDiff [Sub C] (src dst : E → V) (σ : V → C) : E → C :=
   fun e => σ (src e) - σ (dst e)
 
+/-- The product of the Boltzmann factors `exp (-β * h e (δ e))` over all edges. -/
 noncomputable def deltaWeight (h : E → C → ℂ) (β : ℂ) (δ : E → C) : ℂ :=
   ∏ e : E, Complex.exp (-(β * h e (δ e)))
 
+/-- Adding a constant to every vertex label leaves all edge differences unchanged. -/
 theorem edgeDiff_shift [AddCommGroup C] (src dst : E → V) (σ : V → C) (κ : C) :
     edgeDiff src dst (σ + fun _ => κ) = edgeDiff src dst σ := by
   classical
@@ -35,6 +65,8 @@ theorem edgeDiff_shift [AddCommGroup C] (src dst : E → V) (σ : V → C) (κ :
   simp only [edgeDiff, Pi.add_apply]
   abel
 
+/-- On a nonempty vertex type, distinct constant shifts of a fixed configuration give distinct
+configurations. -/
 theorem shift_injective [AddCommGroup C] [Nonempty V] (σ₀ : V → C) :
     Function.Injective (fun κ : C => σ₀ + fun _ => κ) := by
   classical
@@ -42,6 +74,8 @@ theorem shift_injective [AddCommGroup C] [Nonempty V] (σ₀ : V → C) :
   have hv := congrFun h (Classical.arbitrary V)
   simpa only [Pi.add_apply] using add_left_cancel hv
 
+/-- Under the stated connectivity condition, the fiber of `edgeDiff` containing `σ₀` is exactly
+the image of all constant shifts of `σ₀`. See [AradLandau2010]. -/
 theorem fiber_eq_image [AddCommGroup C] [DecidableEq C] [Nonempty V]
     (src dst : E → V) (hconn : ∀ σ τ : V → C,
       (∀ e : E, σ (src e) - σ (dst e) = τ (src e) - τ (dst e)) →
@@ -64,6 +98,9 @@ theorem fiber_eq_image [AddCommGroup C] [DecidableEq C] [Nonempty V]
   · rintro ⟨κ, rfl⟩
     rw [edgeDiff_shift, hσ₀]
 
+/-- For a nonempty vertex type and the stated connectivity condition, the difference-model
+partition function equals the color cardinality times the sum over consistent edge
+labelings. See [AradLandau2010]. -/
 theorem lemma5_6_difference_model_partition
     [AddCommGroup C] [DecidableEq C] [Nonempty V]
     (src dst : E → V) (h : E → C → ℂ) (β : ℂ)

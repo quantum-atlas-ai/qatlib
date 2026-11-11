@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional
+
+/-!
+# Cauchy bounds along rotation paths
+
+This module applies integral Cauchy-Schwarz to the angular path joining two points in a real
+inner product space. The theorem `c1_rotation_square` bounds the squared increment of a C¹
+observable by its integrated squared directional derivative, an analytic ingredient for Gaussian
+interpolation estimates in optimization [GohMuller2026].
+
+## Main statements
+
+* `angle_square_cauchy`: The squared integral on [0, b] is at most b times the square integral.
+* `c1_rotation_square`: The endpoint increment is controlled by angular derivative energy.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -13,6 +32,8 @@ noncomputable section
 open MeasureTheory
 namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.AngleIntegral
 
+/-- For a continuous real function and `b > 0`, the square of its integral over [0, b] is at
+most `b` times the integral of its square. -/
 theorem angle_square_cauchy (g : ℝ→ℝ) (hg : Continuous g) (b : ℝ) (hb : 0<b) :
     (∫ θ in (0:ℝ)..b,g θ)^2≤b*(∫ θ in (0:ℝ)..b,(g θ)^2) := by
   let I := ∫ θ in (0:ℝ)..b,g θ
@@ -41,6 +62,9 @@ theorem angle_square_cauchy (g : ℝ→ℝ) (hg : Continuous g) (b : ℝ) (hb : 
   exact sub_nonneg.mp hmul
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- For a C¹ observable, the squared difference between its values at two points is at most π/2
+times the integral of the squared directional derivative along the quarter-circle rotation
+path. -/
 theorem c1_rotation_square (f : E→ℝ) (hf : ContDiff ℝ 1 f) (z : E×E) :
     (f z.2-f z.1)^2≤(Real.pi/2)*(∫ θ in (0:ℝ)..Real.pi/2,
       ((fderiv ℝ f (ContinuousLinearMap.rotation θ z).1)

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AlgebraicProb08.MainResults.UniformBaseOrder
 import Mathlib.Data.Nat.Prime.Basic
+
+/-!
+# Extracting factors from an even order
+
+Proves that an even-order unit whose half-order power is not −1 yields a nontrivial divisor of
+an odd modulus through a greatest common divisor. The checked routine `orderFactor` succeeds on
+such bases, and for an odd modulus with at least two distinct prime factors its success
+probability under a uniform unit is at least one half. See [ChildsVanDam2010].
+
+## Main statements
+
+* `alg08_gcd_nontrivial`: the half-order predecessor yields a proper nontrivial divisor.
+* `alg08_half_order_step_succeeds`: the probability bound and correctness of every returned
+  factor.
+
+## References
+
+* [Childs and van Dam, 2010][ChildsVanDam2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,10 +37,12 @@ open Qatlib
 open Qatlib.Concepts.PeriodSampling.OrderRecovery
 open scoped Classical
 
+/-- For a unit of even order, the square of its half-order power is one. -/
 theorem alg08_half_pow_sq (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (he : Even (orderOf a)) : (a ^ (orderOf a / 2)) ^ 2 = 1 := by
   rw [← pow_mul, Nat.div_mul_cancel (even_iff_two_dvd.mp he), pow_orderOf_eq_one]
 
+/-- For a unit of even order, its half-order power is not one. -/
 theorem alg08_half_pow_ne_one (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (he : Even (orderOf a)) : a ^ (orderOf a / 2) ≠ 1 := by
   apply pow_ne_one_of_lt_orderOf
@@ -29,6 +51,8 @@ theorem alg08_half_pow_ne_one (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     omega
   · exact Nat.div_lt_self (orderOf_pos a) (by omega)
 
+/-- For odd `N > 1` and a unit `x` with `x^2 = 1`, the natural predecessor of its representative
+is coprime to `N` exactly when `x = -1` modulo `N`. -/
 theorem alg08_root_predecessor_coprime_iff (N : ℕ) [NeZero N]
     (hN : 1 < N) (hodd : Odd N) (x : (ZMod N)ˣ) (hx : x ^ 2 = 1) :
     (x.val.val - 1).Coprime N ↔ (x : ZMod N) = -1 := by
@@ -55,6 +79,8 @@ theorem alg08_root_predecessor_coprime_iff (N : ℕ) [NeZero N]
     convert! hu.neg using 1
     ring
 
+/-- For odd `N > 1`, an even-order unit whose half-order power is not −1 yields a greatest
+common divisor with `N` that is a proper nontrivial divisor [ChildsVanDam2010]. -/
 theorem alg08_gcd_nontrivial (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (hN : 1 < N) (hodd : Odd N) (he : Even (orderOf a))
     (hneg : ((a ^ (orderOf a / 2) : (ZMod N)ˣ) : ZMod N) ≠ -1) :
@@ -95,6 +121,8 @@ theorem alg08_gcd_nontrivial (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
       exact hxne (Units.ext hz)
     omega
 
+/-- For odd `N > 1`, a good base makes `orderFactor` return a proper nontrivial divisor when
+supplied with the exact order. -/
 theorem alg08_factor_of_good_base (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (hN : 1 < N) (hodd : Odd N) (hgood : algGoodBase N a) :
     ∃ d, orderFactor N a (orderOf a) = some d ∧ 1 < d ∧ d < N ∧ d ∣ N := by
@@ -104,6 +132,8 @@ theorem alg08_factor_of_good_base (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   obtain ⟨d, hd⟩ := Option.isSome_iff_exists.mp hgood'
   exact ⟨d, hd, orderFactor_sound N a (orderOf a) d hd⟩
 
+/-- For odd `N` with at least two distinct prime factors, the fraction of units for which
+exact-order factor extraction returns a value is at least one half. -/
 theorem alg08_factor_success_probability (N : ℕ) [NeZero N] (hodd : Odd N)
     (hk : 2 ≤ N.primeFactors.card) :
     (1 / 2 : ℝ) ≤
@@ -120,6 +150,9 @@ theorem alg08_factor_success_probability (N : ℕ) [NeZero N] (hodd : Odd N)
   rw [hfilter, ← algGoodBaseProbability, div_eq_inv_mul]
   simpa using! alg08_lemma2_probability N hodd hk
 
+/-- For odd `N` with at least two distinct prime factors, exact-order factor extraction succeeds
+on at least half the units, and every returned value is a proper nontrivial divisor [Childs
+and van Dam, Lemma 2][ChildsVanDam2010]. -/
 theorem alg08_half_order_step_succeeds (N : ℕ) [NeZero N] (hodd : Odd N)
     (hk : 2 ≤ N.primeFactors.card) :
     (1 / 2 : ℝ) ≤

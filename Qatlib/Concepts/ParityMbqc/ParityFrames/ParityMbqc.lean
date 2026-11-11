@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ParityMbqc.ParityFrames.ParityMbqcDefs
+
+/-!
+# Pauli frames and parity corrections for measurement patterns
+
+This module proves the unitary and multiplication laws for `frame`, the dependence of
+`xCorrection` and `zCorrection` on earlier outcomes in a `Flow`, and total squared-norm
+preservation for the measurement amplitudes `branch`. The flow interpretation is motivated by
+[DanosKashefi2006], while the Pauli and measurement background appears in [NielsenChuang2010].
+
+## Main statements
+
+* `g1` collects frame unitarity, composition with its explicit sign, and the frame square
+  formula.
+* `g2` shows that corrections at a vertex depend only on outcomes of smaller rank.
+* `braMatrix_unitary` proves unitarity of the product measurement matrix.
+* `g3` equates the sum of squared branch amplitudes with the squared norm of the input
+  amplitudes.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +46,7 @@ namespace Qatlib.Concepts.ParityMbqc.ParityFrames
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Every Pauli frame `frame x z` is a unitary matrix on the Boolean register. -/
 theorem frame_unitary {n : ℕ} (x z : Reg n) :
     frame x z ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   have h := teleportRelabelGate_mem_unitaryGroup
@@ -29,6 +54,8 @@ theorem frame_unitary {n : ℕ} (x z : Reg n) :
   simpa [pauliFrameGate, frame, pauliFrameGateB, relabelGate,
     Matrix.reindex_apply, Matrix.submatrix_submatrix, Function.comp_def] using! h
 
+/-- Composing two Pauli frames adds their Boolean labels by `bxor` and multiplies by the
+explicit sign contributed by overlaps of `z` with `x'`. -/
 theorem frame_mul {n : ℕ} (x z x' z' : Reg n) :
     frame x z * frame x' z' =
       (∏ i, (if z i && x' i then (-1 : ℂ) else 1)) •
@@ -67,6 +94,7 @@ theorem frame_mul {n : ℕ} (x z x' z' : Reg n) :
   · intro hu
     exact (hu (Finset.mem_univ _)).elim
 
+/-- The Pauli frame with both labels identically false is the identity matrix. -/
 theorem frame_zero (n : ℕ) : frame (fun _ : Fin n => false) (fun _ => false) = 1 := by
   have hs (v : Reg n) : frameShift (fun _ => false, fun _ => false) v = v := by
     funext i
@@ -75,6 +103,8 @@ theorem frame_zero (n : ℕ) : frame (fun _ : Fin n => false) (fun _ => false) =
   simp [frame, pauliFrameGateB_entry, hs, frameSign, frameBitSign,
     Matrix.one_apply]
 
+/-- Squaring a Pauli frame yields the identity multiplied by the product of the signs at
+coordinates where both labels are true. -/
 theorem frame_square {n : ℕ} (x z : Reg n) :
     frame x z * frame x z =
       (∏ i, (if z i && x i then (-1 : ℂ) else 1)) •
@@ -84,6 +114,8 @@ theorem frame_square {n : ℕ} (x z : Reg n) :
   have hz : bxor z z = fun _ => false := by funext i; simp [bxor]
   rw [hx, hz, frame_zero]
 
+/-- Collects unitarity, the signed composition law, and the signed square formula for Pauli
+frames on every register size. -/
 theorem g1 :
     (∀ (n : ℕ) (x z : Reg n), frame x z ∈ Matrix.unitaryGroup (Reg n) ℂ) ∧
     (∀ (n : ℕ) (x z x' z' : Reg n),
@@ -94,6 +126,8 @@ theorem g1 :
         (1 : Matrix (Reg n) (Reg n) ℂ)) :=
   ⟨fun _ => frame_unitary, fun _ => frame_mul, fun _ => frame_square⟩
 
+/-- If two outcome registers agree at all vertices of rank smaller than that of `v`, their X and
+Z correction parities at `v` agree. -/
 theorem g2 :
     ∀ (n : ℕ) (F : Flow n) (s t : Reg n) (v : Fin n),
       (∀ u, F.rank u < F.rank v → s u = t u) →
@@ -118,15 +152,20 @@ theorem g2 :
       rw [h u hr]
     · rfl
 
+/-- The measurement coefficient `bra θ s b` is the `(s, b)` entry of `Hadamard * Rz (-θ)`. -/
 theorem bra_eq_gate (θ : ℝ) (s b : Bool) :
     bra θ s b = (Hadamard * Rz (-θ)) s b := by
   rw [Rz, Matrix.mul_diagonal]
   cases s <;> cases b <;>
     simp [bra, Hadamard, div_eq_mul_inv, mul_comm, Complex.ofReal_neg]
 
+/-- Defines the matrix whose outcome and input-register entry is the product of the single-qubit
+measurement coefficients `bra` over all measured coordinates. -/
 noncomputable def braMatrix {m : ℕ} (θ : Fin m → ℝ) : Matrix (Reg m) (Reg m) ℂ :=
   fun s r => ∏ i, bra (θ i) (s i) (r i)
 
+/-- The product measurement matrix `braMatrix θ` is unitary for every choice of real measurement
+angles. -/
 theorem braMatrix_unitary {m : ℕ} (θ : Fin m → ℝ) :
     braMatrix θ ∈ Matrix.unitaryGroup (Reg m) ℂ := by
   let A : Fin m → Operator 2 := fun i =>
@@ -145,6 +184,8 @@ theorem braMatrix_unitary {m : ℕ} (θ : Fin m → ℝ) :
     simpa only [Matrix.star_eq_conjTranspose] using! Matrix.mem_unitaryGroup_iff'.mp (hu i)
   rw [hh, pauliProductDensity_one]
 
+/-- Identifies a pair of Boolean registers of sizes `m` and `o` with their concatenated register
+of size `m + o`. -/
 def joinEquiv (m o : ℕ) : (Reg m × Reg o) ≃ Reg (m+o) where
   toFun p := join p.1 p.2
   invFun q := (fun i => q ⟨i.val, by omega⟩, fun j => q ⟨m+j.val, by omega⟩)
@@ -164,6 +205,9 @@ def joinEquiv (m o : ℕ) : (Reg m × Reg o) ≃ Reg (m+o) where
       change m + (i.val - m) = i.val
       omega
 
+/-- Summing the squared norms of all output amplitudes over all measurement outcomes preserves
+the total squared norm of the input amplitudes. No normalization hypothesis on the input is
+required. -/
 theorem g3 :
     ∀ (m o : ℕ) (ψ : QState (Reg (m+o))) (θ : Fin m → ℝ),
       (∑ s : Reg m, ∑ z : Reg o, ‖branch ψ θ s z‖^2) =

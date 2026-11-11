@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OrderedOpExp08.MainResults.ErrorBounds
+
+/-!
+# Selecting Suzuki segment counts
+
+Verifies that the selected number of segments is positive and attains a prescribed positive
+error tolerance for a fixed skew-Hermitian generator list. The construction uses recursive
+Suzuki words in the framework of [WiebeEtAl2010].
+
+## Main statements
+
+* `lemma5_segment_selection`: combines positivity of the chosen count with its norm-error
+  guarantee.
+
+## References
+
+* [Wiebe et al., 2010][WiebeEtAl2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +40,9 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 
+/-- For `k ≥ 1`, a skew-Hermitian generator list and sum, and `ε > 0`, the selected segment
+count is positive and its segment product approximates `exp (t • hs.sum)` within `ε`
+[WiebeEtAl2010]. -/
 theorem lemma5_segment_selection {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (hk : 1 ≤ k) (t ε : ℝ) (hε : 0 < ε)
     (hhs : ∀ X ∈ hs, Xᴴ = -X) (hH : hs.sumᴴ = -hs.sum) :

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QuantumMetro05.MainResults.Source
+
+/-!
+# Separable metrology precision
+
+This module constructs independent probe distributions with `productLaw` and proves expectation
+factorization and variance additivity. These identities give the separable error bound, with the
+maximal variance realized by independent balanced two point laws. See
+[GiovannettiLloydMaccone2006].
+
+## Main statements
+
+* `separables_variance_additive`: Under the independent product law, the variance of the sum of
+  coordinate observables equals the sum of their marginal variances.
+* `cc_cq_error_bound`: For bounded generator values and positive probe and repetition counts,
+  the stated Cramér–Rao hypothesis gives error at least `1 / (√(ν * N) * (b - a))`.
+* `eq3_max_variance`: For independent balanced two point probes at values `a` and `b`, the
+  variance of their sum is `N * spectralSpread a b ^ 2`.
+
+## References
+
+* [Giovannetti et al., 2006][GiovannettiLloydMaccone2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +40,7 @@ namespace Qatlib.Papers.QuantumMetro05.MainResults.ClassicalBound
 
 open Qatlib.Papers.QuantumMetro05.MainResults.Source
 
+/-- The independent product of the finite probe distributions `q j`. -/
 def productLaw {N d : ℕ} (q : Fin N → FinDist (Fin d)) : FinDist (Fin N → Fin d) where
   prob ω := ∏ j, (q j).prob (ω j)
   nonneg ω := Finset.prod_nonneg fun j _ => (q j).nonneg (ω j)
@@ -29,9 +53,12 @@ def productLaw {N d : ℕ} (q : Fin N → FinDist (Fin d)) : FinDist (Fin N → 
     refine Finset.prod_eq_one fun j _ => ?_
     simpa using (q j).sum_one
 
+/-- The probability of a product outcome equals the product of its coordinate probabilities. -/
 @[simp] theorem productLaw_prob {N d : ℕ} (q : Fin N → FinDist (Fin d))
     (ω : Fin N → Fin d) : (productLaw q).prob ω = ∏ j, (q j).prob (ω j) := rfl
 
+/-- The expectation of a product of coordinate functions under `productLaw` factors into the
+product of the coordinate expectations. -/
 theorem productLaw_expect_prod {N d : ℕ} (q : Fin N → FinDist (Fin d))
     (g : Fin N → Fin d → ℝ) :
     ∑ ω : Fin N → Fin d, (productLaw q).prob ω * ∏ k, g k (ω k)
@@ -53,6 +80,8 @@ theorem productLaw_expect_prod {N d : ℕ} (q : Fin N → FinDist (Fin d))
           (f := fun k x => (q k).prob x * g k x)).symm
     _ = ∏ k, (∑ x, (q k).prob x * g k x) := by simp
 
+/-- A coordinate observable has the same expectation under `productLaw` as under its
+corresponding marginal distribution. -/
 theorem productLaw_expect_coord {N d : ℕ} (q : Fin N → FinDist (Fin d))
     (k : Fin N) (h : Fin d → ℝ) :
     ∑ ω : Fin N → Fin d, (productLaw q).prob ω * h (ω k) = ∑ x, (q k).prob x * h x := by
@@ -76,6 +105,8 @@ theorem productLaw_expect_coord {N d : ℕ} (q : Fin N → FinDist (Fin d))
           simpa using (q j).sum_one
         · intro hcon; exact absurd (Finset.mem_univ k) hcon
 
+/-- The expectation of a sum of coordinate observables is the sum of their marginal
+expectations. -/
 theorem productLaw_expect_sum {N d : ℕ} (q : Fin N → FinDist (Fin d))
     (H : Fin N → Fin d → ℝ) :
     ∑ ω : Fin N → Fin d, (productLaw q).prob ω * (∑ j, H j (ω j))
@@ -89,6 +120,8 @@ theorem productLaw_expect_sum {N d : ℕ} (q : Fin N → FinDist (Fin d))
         refine Finset.sum_congr rfl fun j _ => ?_
         exact productLaw_expect_coord q j (H j)
 
+/-- Under the independent product law, the variance of the sum of coordinate observables equals
+the sum of their marginal variances. See [GiovannettiLloydMaccone2006]. -/
 theorem separables_variance_additive {N d : ℕ} (q : Fin N → FinDist (Fin d))
     (H : Fin N → Fin d → ℝ) :
     (productLaw q).variance (fun ω => ∑ j, H j (ω j))
@@ -181,6 +214,9 @@ theorem separables_variance_additive {N d : ℕ} (q : Fin N → FinDist (Fin d))
         refine Finset.sum_congr rfl fun j _ => ?_
         simp
 
+/-- For bounded generator values and positive probe and repetition counts, the stated Cramér–Rao
+hypothesis gives error at least `1 / (√(ν * N) * (b - a))`. See
+[GiovannettiLloydMaccone2006]. -/
 theorem cc_cq_error_bound {N d : ℕ} (hN : 0 < N) (q : Fin N → FinDist (Fin d))
     (H : Fin d → ℝ) {a b ν δφ : ℝ} (hν : 0 < ν) (hab : a < b)
     (ha : ∀ x, a ≤ H x) (hb : ∀ x, H x ≤ b)
@@ -223,6 +259,8 @@ theorem cc_cq_error_bound {N d : ℕ} (hN : 0 < N) (q : Fin N → FinDist (Fin d
     rw [hden2]
   rwa [hden] at hmain
 
+/-- For independent balanced two point probes at values `a` and `b`, the variance of their sum
+is `N * spectralSpread a b ^ 2`. See [GiovannettiLloydMaccone2006]. -/
 theorem eq3_max_variance {N : ℕ} (a b : ℝ) :
     (productLaw (fun _ : Fin N => twoPointLaw)).variance
         (fun ω : Fin N → Fin 2 => ∑ _j : Fin N, twoPointValue a b (ω _j))
@@ -231,6 +269,8 @@ theorem eq3_max_variance {N : ℕ} (a b : ℝ) :
   simp only [twoPointLaw_variance]
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- Saturation of the Cramér–Rao expression at spread `√N * spectralSpread a b` gives error
+exactly `1 / (√(ν * N) * (b - a))`. See [GiovannettiLloydMaccone2006]. -/
 theorem eq3_attains_error_bound {N : ℕ} (hN : 0 < N) {a b ν δφ : ℝ}
     (hν : 0 < ν) (hab : a < b)
     (hcr : δφ * (Real.sqrt (N : ℝ) * spectralSpread a b) = 1 / (2 * Real.sqrt ν)) :

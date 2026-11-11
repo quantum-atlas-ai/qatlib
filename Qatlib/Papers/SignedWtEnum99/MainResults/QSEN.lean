@@ -62,6 +62,26 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.SignedWtEnum99.MainResults.Pauli
+
+/-!
+# Quadratically signed weight enumerators
+
+`qsen` is an integer sum over the kernel of a binary matrix, weighted by Hamming weight and the
+sign of a binary quadratic form. The module also defines triangular and diagonal matrix parts
+and the magnitude promise used in the associated decision problems. See [KnillLaflamme1999] for
+the source development.
+
+## Main statements
+
+* `sum_weight`: evaluates the unrestricted binary weight sum as `(x + y) ^ n`.
+* `abs_qsen_le`: bounds the magnitude of the signed enumerator by `(|x| + |y|) ^ n`.
+* `PromiseHolds`: expresses the prescribed magnitude threshold for a signed sum.
+
+## References
+
+* [Knill and Laflamme, 1999][KnillLaflamme1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -74,14 +94,19 @@ namespace Qatlib.Papers.SignedWtEnum99.MainResults
 
 open Pauli
 
+/-- The Hamming weight of a binary vector, counting its coordinates equal to one. -/
 def bitWeight {n : ℕ} (b : Fin n → ZMod 2) : ℕ :=
   (Finset.univ.filter (fun i => b i = 1)).card
 
+/-- The binary quadratic form `bᵀ * B * b`, expressed as a coordinate sum. -/
 def quadForm {n : ℕ} (B : Matrix (Fin n) (Fin n) (ZMod 2)) (b : Fin n → ZMod 2) : ZMod 2 :=
   ∑ i : Fin n, b i * (B.mulVec b) i
 
+/-- The integer sign of a binary scalar, equal to one at zero and negative one otherwise. -/
 def sgnZ (z : ZMod 2) : ℤ := if z = 0 then 1 else -1
 
+/-- The integer signed Hamming-weight sum over the kernel of `A`, with quadratic sign from `B`
+and weight parameters `x, y`. -/
 def qsen {m n : ℕ} (A : Matrix (Fin m) (Fin n) (ZMod 2))
     (B : Matrix (Fin n) (Fin n) (ZMod 2)) (x y : ℤ) : ℤ :=
   ∑ b : Fin n → ZMod 2,
@@ -89,25 +114,34 @@ def qsen {m n : ℕ} (A : Matrix (Fin m) (Fin n) (ZMod 2))
       sgnZ (quadForm B b) * x ^ bitWeight b * y ^ (n - bitWeight b)
     else 0
 
+/-- The strictly lower triangular part of a square matrix, with all other entries set to zero. -/
 def lwtr {n : ℕ} {R : Type} [Zero R] (M : Matrix (Fin n) (Fin n) R) : Matrix (Fin n) (Fin n) R :=
   fun i j => if j < i then M i j else 0
 
+/-- The diagonal part of a square matrix, with off-diagonal entries set to zero. -/
 def diagMat {n : ℕ} {R : Type} [Zero R] (M : Matrix (Fin n) (Fin n) R) : Matrix (Fin n) (Fin n) R :=
   fun i j => if i = j then M i j else 0
 
+/-- The real threshold `(k ^ 2 + l ^ 2) ^ (n / 2) / 2` for the magnitude promise. -/
 def promiseThreshold (k l : ℤ) (n : ℕ) : ℝ :=
   ((k ^ 2 + l ^ 2 : ℤ) : ℝ) ^ ((n : ℝ) / 2) / 2
 
+/-- The predicate that the absolute real value of the integer sum `S` is at least
+`promiseThreshold k l n`. -/
 def PromiseHolds (S : ℤ) (k l : ℤ) (n : ℕ) : Prop :=
   promiseThreshold k l n ≤ |(S : ℝ)|
 
+/-- The predicate that the diagonal part of a binary square matrix is the identity matrix. -/
 def IsUnitDiagonal {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2)) : Prop :=
   diagMat A = 1
 
+/-- The integer sign of a binary scalar has absolute value one. -/
 lemma abs_sgnZ (z : ZMod 2) : |sgnZ z| = 1 := by
   unfold sgnZ
   split <;> simp
 
+/-- Summing `x ^ bitWeight b * y ^ (n - bitWeight b)` over all binary vectors of length `n`
+gives `(x + y) ^ n`. -/
 lemma sum_weight (n : ℕ) (x y : ℤ) :
     (∑ b : Fin n → ZMod 2, x ^ bitWeight b * y ^ (n - bitWeight b)) = (x + y) ^ n := by
   classical
@@ -177,6 +211,7 @@ lemma sum_weight (n : ℕ) (x y : ℤ) :
     _ = (x + y) ^ n := by
         rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+/-- The absolute value of the signed weight enumerator is at most `(|x| + |y|) ^ n`. -/
 theorem abs_qsen_le {m n : ℕ} (A : Matrix (Fin m) (Fin n) (ZMod 2))
     (B : Matrix (Fin n) (Fin n) (ZMod 2)) (x y : ℤ) :
     |qsen A B x y| ≤ (|x| + |y|) ^ n := by

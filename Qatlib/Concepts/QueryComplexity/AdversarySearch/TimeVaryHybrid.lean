@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
 import Qatlib.Foundations.BornMetrics.EventProbability
+
+/-!
+# Hybrid bounds for time varying oracle edits
+
+This module models a sequence of local oracle changes using `OracleEdit` and records query
+masses along the reference execution with `editCharges`. When the intervening mixing matrices
+are unitary, the final state deviation is bounded by the accumulated charges, giving finite
+circuit versions of the hybrid argument in [BennettEtAl1997].
+
+## Main statements
+
+* `time_varying_hybrid`: deviation is at most twice the sum of square roots of the charges.
+* `time_varying_hybrid_energy`: squared deviation is at most four times the edit count times
+  total charge.
+* `time_varying_hybrid_budget`: a prescribed charge budget ensures a specified deviation bound.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +42,8 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 open Qatlib.Foundations.PureStateMath.BornBridge
 open scoped Classical BigOperators
 
+/-- A reference oracle and a replacement oracle agreeing outside a finite scope, together with
+the matrix applied after the oracle query. -/
 structure OracleEdit (I W : Type) where
   reference : I → Bool
   replacement : I → Bool
@@ -30,27 +53,34 @@ structure OracleEdit (I W : Type) where
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- Apply either the reference or replacement bit oracle, according to `modified`, and then
+apply the edit's mixing matrix. -/
 def editAdvance (e : OracleEdit I W) (modified : Bool)
     (ψ : QState ((I × Bool) × W)) : QState ((I × Bool) × W) :=
   ApplyGate e.mixing (ApplyGate (workspaceBitOracle
     (if modified then e.replacement else e.reference)) ψ)
 
+/-- Execute a list of oracle edits using the reference or replacement oracle consistently at
+every step. -/
 def runOracleEdits (modified : Bool) : List (OracleEdit I W) →
     QState ((I × Bool) × W) → QState ((I × Bool) × W)
   | [], ψ => ψ
   | e :: tail, ψ => runOracleEdits modified tail (editAdvance e modified ψ)
 
+/-- The list of query masses on the edit scopes along the execution using reference oracles. -/
 def editCharges : List (OracleEdit I W) → QState ((I × Bool) × W) → List ℝ
   | [], _ => []
   | e :: tail, ψ => MeasureProb ψ (workspaceMarkFiber (W := W) e.scope) ::
       editCharges tail (editAdvance e false ψ)
 
+/-- The charge list contains one entry for each oracle edit. -/
 theorem editCharges_length (L : List (OracleEdit I W))
     (ψ : QState ((I × Bool) × W)) : (editCharges L ψ).length = L.length := by
   induction L generalizing ψ with
   | nil => rfl
   | cons e tail ih => simp [editCharges, ih]
 
+/-- Every entry of the edit charge list is nonnegative. -/
 theorem editCharges_nonneg (L : List (OracleEdit I W))
     (ψ : QState ((I × Bool) × W)) : ∀ q ∈ editCharges L ψ, 0 ≤ q := by
   induction L generalizing ψ with
@@ -61,11 +91,13 @@ theorem editCharges_nonneg (L : List (OracleEdit I W))
     · subst q; exact measureProb_nonneg _ _
     · exact ih _ q h
 
+/-- An edit step preserves subtraction of states. -/
 theorem editAdvance_sub (e : OracleEdit I W) (b : Bool)
     (ψ χ : QState ((I × Bool) × W)) :
     editAdvance e b (ψ - χ) = editAdvance e b ψ - editAdvance e b χ := by
   simp only [editAdvance, ApplyGate, Matrix.mulVec_sub]
 
+/-- Executing a list of oracle edits preserves subtraction of states. -/
 theorem runOracleEdits_sub (b : Bool) (L : List (OracleEdit I W))
     (ψ χ : QState ((I × Bool) × W)) :
     runOracleEdits b L (ψ - χ) = runOracleEdits b L ψ - runOracleEdits b L χ := by
@@ -73,6 +105,8 @@ theorem runOracleEdits_sub (b : Bool) (L : List (OracleEdit I W))
   | nil => rfl
   | cons e tail ih => simp only [runOracleEdits, editAdvance_sub, ih]
 
+/-- If every mixing matrix is unitary, executing the oracle edits preserves the Euclidean norm
+of any state. -/
 theorem norm_runOracleEdits (b : Bool) (L : List (OracleEdit I W))
     (hL : ∀ e ∈ L, e.mixing ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ)
     (ψ : QState ((I × Bool) × W)) :
@@ -86,6 +120,8 @@ theorem norm_runOracleEdits (b : Bool) (L : List (OracleEdit I W))
     rw [norm_applyGate_of_mem_unitaryGroup (hL e List.mem_cons_self),
       norm_applyGate_of_mem_unitaryGroup (workspaceBitOracle_unitary _)]
 
+/-- The Euclidean deviation caused by replacing one oracle is at most twice the square root of
+the input mass on the edit scope. -/
 theorem edit_query_deviation (e : OracleEdit I W)
     (ψ : QState ((I × Bool) × W)) :
     ‖toEuclidean_fromVec
@@ -107,6 +143,8 @@ theorem edit_query_deviation (e : OracleEdit I W)
       (Qatlib.Foundations.BornMetrics.EventProbability.measureProb_mono ψ hsub))
         (by norm_num))
 
+/-- For unitary mixing matrices, the final deviation between the two executions is at most twice
+the sum of the square roots of the reference execution's edit charges. -/
 theorem time_varying_hybrid (L : List (OracleEdit I W))
     (hL : ∀ e ∈ L, e.mixing ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ)
     (ψ : QState ((I × Bool) × W)) :
@@ -144,6 +182,9 @@ theorem time_varying_hybrid (L : List (OracleEdit I W))
       simp only [editCharges, List.map_cons, List.sum_cons]
       ring))
 
+/-- For unitary mixing matrices, the squared final deviation is at most four times the number of
+edits times their total reference charge. This is a finite circuit form of the hybrid
+estimate in [Bennett et al., Theorem 3.3][BennettEtAl1997]. -/
 theorem time_varying_hybrid_energy (L : List (OracleEdit I W))
     (hL : ∀ e ∈ L, e.mixing ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ)
     (ψ : QState ((I × Bool) × W)) :
@@ -168,6 +209,8 @@ theorem time_varying_hybrid_energy (L : List (OracleEdit I W))
   rw [hq]
   nlinarith only [hc, hh]
 
+/-- For a nonempty edit list with unitary mixing matrices, a total reference charge at most ε²
+divided by four times the edit count bounds the final deviation by nonnegative ε. -/
 theorem time_varying_hybrid_budget (L : List (OracleEdit I W))
     (hL : ∀ e ∈ L, e.mixing ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ)
     (ψ : QState ((I × Bool) × W)) (hT : 0 < L.length) (ε : ℝ) (hε : 0 ≤ ε)

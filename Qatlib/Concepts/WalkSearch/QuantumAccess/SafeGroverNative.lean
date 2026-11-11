@@ -10,6 +10,31 @@ import Mathlib.Tactic.Linarith
 import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
 import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+
+/-!
+# Validated native Grover search
+
+This module constructs `validatedGroverWord`, a Grover circuit followed by a bit-oracle check,
+and relates its readout law to the marked-set Born probabilities. It also proves that the
+unrestricted native realization condition fails on the empty search space and distinguishes
+input-dependent preparation from uniform zero-query search.
+
+`sourceSafeGroverLaw` provides a capped geometric search schedule with soundness, inverse-power
+failure bounds, and explicit query and gate bounds. Integer amplitude weights and
+`nativeGroverTicket` give an exact finite sampling representation of uniform Grover measurement,
+in the amplitude-amplification setting of [BrassardEtAl2002].
+
+## Main statements
+
+* `validatedGroverWord_actual`: circuit semantics and exact resource counts.
+* `sourceSafeGroverLaw_confidence`: inverse-power failure bound when a marked item exists.
+* `nativeGroverTicket_born_coupling`: equality of ticket frequencies and Born probabilities.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,9 +58,12 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkSearch.QuantumAccess
 
+/-- No state on the empty index type is normalized. -/
 theorem no_normalized_empty_search (ψ : QState (Fin 0)) : ¬ Normalized ψ := by
   simp [Normalized]
 
+/-- A safe Grover search primitive cannot satisfy `SafeGrover.NativeRealized`, since that
+condition would require a normalized state on an empty search space. -/
 theorem safeGrover_native_empty_obstruction (sgs : Qatlib.Concepts.WalkSearch.Primitives.SafeGrover) :
     ¬ SafeGrover.NativeRealized sgs := by
   intro h
@@ -44,11 +72,14 @@ theorem safeGrover_native_empty_obstruction (sgs : Qatlib.Concepts.WalkSearch.Pr
   exact no_normalized_empty_search (start (Classical.choice sgs.seedNe))
     (hnorm (Classical.choice sgs.seedNe))
 
+/-- The global `SafeGroverNative` realization condition is false. -/
 theorem safeGroverNative_obstruction : ¬ SafeGroverNative := by
   intro h
   obtain ⟨sgs, _hexp, _hκ, hnative⟩ := h 3 (by decide)
   exact safeGrover_native_empty_obstruction sgs hnative
 
+/-- If a marked item exists, an input-dependent initial state and a unitary circuit with zero
+queries and gates achieve marked-set probability one. -/
 theorem input_dependent_zero_query_word {N : ℕ} (marked : Fin N → Bool)
     (hex : ∃ x, marked x = true) :
     ∃ (C : Circuit (Fin N)) (ψ : QState (Fin N)),
@@ -61,6 +92,8 @@ theorem input_dependent_zero_query_word {N : ℕ} (marked : Fin N → Bool)
       rfl, rfl, ?_⟩
   simp [MeasureProb, bornProb_ket, hx]
 
+/-- A fixed normalized input and zero-query unitary circuit on two items cannot succeed with
+probability greater than one half for both singleton marked sets. -/
 theorem no_uniform_zero_query_word (C : Circuit (Fin 2))
     (hC : IsUnitaryCircuit C) (hQ : QueryCount C = 0)
     (ψ : QState (Fin 2)) (hψ : Normalized ψ) (ε : ℝ) (hε : ε < 1 / 2) :
@@ -78,6 +111,8 @@ theorem no_uniform_zero_query_word (C : Circuit (Fin 2))
   simp only [MeasureProb, Finset.sum_singleton] at h
   linarith [h.1, h.2]
 
+/-- One bit-oracle query maps the candidate basis state with a false flag to the same candidate
+with its marking bit. The accepting probability is one exactly when the candidate is marked. -/
 theorem native_candidate_verification {N : ℕ} (x : Fin N) (marked : Fin N → Bool) :
     let C : Circuit (Fin N × Bool) := [Step.query]
     IsUnitaryCircuit C ∧ Normalized (Qatlib.Foundations.PureStateMath.Ket (x, false)) ∧ QueryCount C = 1 ∧
@@ -96,17 +131,22 @@ open Matrix
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The lifted amplitude-amplification circuit with flag preparation, flag reset, and a final
+bit-oracle query to validate the candidate. -/
 noncomputable def validatedGroverWord (A : Matrix I I ℂ) (j : I) (k : ℕ) : Circuit (I × Bool) :=
   [Step.gate (TensorGate 1 PauliX), Step.gate (TensorGate 1 Hadamard)] ++
     LiftCircuit (preparedAACircuit A j k) ++
     [Step.gate (TensorGate 1 Hadamard), Step.gate (TensorGate 1 PauliX), Step.query]
 
+/-- The Hadamard gate sends the minus state to the true basis state. -/
 private theorem hadamard_minus : ApplyGate Hadamard Minus = Qatlib.Foundations.PureStateMath.Ket true := by
   rw [← applyGate_hadamard_ket_true, ← applyGate_mul, hadamard_mul_self, applyGate_one]
 
+/-- The Pauli X gate sends the true basis state to the false basis state. -/
 private theorem pauliX_true : ApplyGate PauliX (Qatlib.Foundations.PureStateMath.Ket true) = Qatlib.Foundations.PureStateMath.Ket false := by
   simpa using applyGate_pauliX_ket true
 
+/-- The prepared marking operator for the true set of `f` equals its phase oracle. -/
 private theorem marked_phase (f : I → Bool) :
     preparedMark (Finset.univ.filter (fun x => f x = true)) = PhaseOracle f := by
   ext i j
@@ -118,6 +158,9 @@ private theorem marked_phase (f : I → Bool) :
     cases f i <;> norm_num
   · simp [hij]
 
+/-- For unitary preparation, the validated Grover circuit is unitary, uses `k + 1` queries and
+`3 * k + 5` gates, and produces the amplitude-amplified state followed by a bit-oracle
+validation query. -/
 theorem validatedGroverWord_actual (A : Matrix I I ℂ) (j : I) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → Bool) :
     IsUnitaryCircuit (validatedGroverWord A j k) ∧
@@ -144,6 +187,8 @@ theorem validatedGroverWord_actual (A : Matrix I I ℂ) (j : I) (k : ℕ)
       run_liftCircuit_bitOracleOn, applyGate_tensorGate, applyGate_one, hadamard_minus,
       applyGate_tensorGate, applyGate_one, pauliX_true]
 
+/-- After bit-oracle validation, the probability of `(x, b)` equals the original probability of
+`x` when `b = f x`, and is zero otherwise. -/
 theorem validated_candidate_born (ψ : QState I) (f : I → Bool) (x : I) (b : Bool) :
     BornProb (ApplyGate (BitOracleOn f) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket false))) (x, b) =
       if b = f x then BornProb ψ x else 0 := by
@@ -152,9 +197,12 @@ theorem validated_candidate_born (ψ : QState I) (f : I → Bool) (x : I) (b : B
   cases hf : f x <;> cases b <;> simp [TensorState, BitFlip,
       Qatlib.Foundations.PureStateMath.Ket, hf]
 
+/-- Return the candidate when its validation flag is true, and return `none` otherwise. -/
 def validatedGroverReadout (p : I × Bool) : Option I :=
   if p.2 then some p.1 else none
 
+/-- The probability of reading out `some x` after validation is the original Born probability of
+`x` if it is marked, and zero otherwise. -/
 theorem validated_candidate_readout_mass (ψ : QState I) (f : I → Bool) (x : I) :
     MeasureProb (ApplyGate (BitOracleOn f) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket false)))
       (Finset.univ.filter (fun p => validatedGroverReadout p = some x)) =
@@ -167,6 +215,8 @@ theorem validated_candidate_readout_mass (ψ : QState I) (f : I → Bool) (x : I
   rw [hs, MeasureProb, Finset.sum_singleton, validated_candidate_born]
   cases f x <;> simp
 
+/-- The probability of a true validation flag equals the original state's probability mass on
+the marked set. -/
 theorem validated_candidate_accept_mass (ψ : QState I) (f : I → Bool) :
     MeasureProb (ApplyGate (BitOracleOn f) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket false)))
       (Finset.univ.filter (fun p : I × Bool => p.2 = true)) =
@@ -177,6 +227,8 @@ theorem validated_candidate_accept_mass (ψ : QState I) (f : I → Bool) :
   rw [Fintype.sum_bool]
   simp [validated_candidate_born]
 
+/-- The accepting probability of the validated Grover circuit equals the marked-set probability
+of the underlying amplitude-amplification circuit. -/
 theorem validatedGroverWord_born_success (A : Matrix I I ℂ) (j : I) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → Bool) :
     MeasureProb (Run (BitOracleOn f) (validatedGroverWord A j k) (Qatlib.Foundations.PureStateMath.Ket (j, false)))
@@ -186,6 +238,8 @@ theorem validatedGroverWord_born_success (A : Matrix I I ℂ) (j : I) (k : ℕ)
   rw [(validatedGroverWord_actual A j k hA f).2.2.2, validated_candidate_accept_mass,
     marked_phase]
 
+/-- Measuring the validated state and applying `validatedGroverReadout` has the same law as
+measuring the original state and retaining only marked outcomes. -/
 theorem native_validation_output_law (ψ : QState I) (hψ : Normalized ψ) (f : I → Bool) :
     (bornDistribution (ApplyGate (BitOracleOn f) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket false)))
       (normalized_applyGate (bitOracleOn_unitary f)
@@ -199,10 +253,16 @@ theorem native_validation_output_law (ψ : QState I) (hψ : Normalized ψ) (f : 
   simp only [validated_candidate_born]
   cases f x <;> simp [validatedGroverReadout]
 
+/-- The Grover iteration cap `4 * (Nat.sqrt N + 1)` for a search space of size `N`. -/
 def sourceSearchCap (N : ℕ) : ℕ := 4 * (Nat.sqrt N + 1)
+/-- The number of geometric warmup stages, four times the ceiling base-two logarithm of
+`sourceSearchCap N`. -/
 def sourceSearchWarmup (N : ℕ) : ℕ := 4 * Nat.clog 2 (sourceSearchCap N)
+/-- The number of confidence tail stages, `4 * c * Nat.clog 2 (max N floor + 1)`. -/
 def sourceSearchTail (N floor c : ℕ) : ℕ := 4 * c * Nat.clog 2 (max N floor + 1)
 
+/-- For a positive cap, the geometric window reaches that cap after four times its ceiling
+base-two logarithm. -/
 private theorem public_window_reaches_cap (M : ℕ) (hM : 0 < M) :
     geometricWindow M (4 * Nat.clog 2 M) = M := by
   let a := Nat.clog 2 M
@@ -219,6 +279,8 @@ private theorem public_window_reaches_cap (M : ℕ) (hM : 0 < M) :
   change max 1 (min M ((6 ^ (4 * a) + 5 ^ (4 * a) - 1) / 5 ^ (4 * a))) = M
   rw [min_eq_left hc, max_eq_right (by omega)]
 
+/-- For `0 < t < N`, the uniform-search angle lies strictly between zero and π/2, has squared
+sine `t / N`, and satisfies the iteration-cap threshold for `sin (2 * θ)`. -/
 theorem sourceSearchCap_uniform_angle (N t : ℕ) (ht : 0 < t) (htN : t < N) :
     let θ := Real.arcsin (Real.sqrt ((t : ℝ) / N))
     0 < θ ∧ θ < Real.pi / 2 ∧ (Real.sin θ) ^ 2 = (t : ℝ) / N ∧
@@ -269,6 +331,8 @@ theorem sourceSearchCap_uniform_angle (N t : ℕ) (ht : 0 < t) (htN : t < N) :
   have hc0 : 0 < (sourceSearchCap N : ℝ) := by unfold sourceSearchCap; positivity
   nlinarith [mul_pos hc0 hspos]
 
+/-- The geometric failure factor `(25 / 32)^(4 * c * Nat.clog 2 K)` is at most `K^(-c)` for
+positive `K`. -/
 private theorem source_tail_inverse_power (K c : ℕ) (hK : 0 < K) :
     (25 / 32 : ℝ) ^ (4 * c * Nat.clog 2 K) ≤ (K : ℝ) ^ (-(c : ℝ)) := by
   have h4 : (25 / 32 : ℝ) ^ 4 ≤ (1 / 2 : ℝ) := by norm_num
@@ -286,6 +350,8 @@ private theorem source_tail_inverse_power (K c : ℕ) (hK : 0 < K) :
     _ ≤ ((K : ℝ)⁻¹) ^ c := pow_le_pow_left₀ (by positivity) he c
     _ = _ := by rw [Real.rpow_neg hk.le, Real.rpow_natCast, inv_pow]
 
+/-- The capped geometric Grover search law with Fourier preparation, warmup stages, and
+confidence tail stages; an empty search space gives the empty trace. -/
 noncomputable def sourceSafeGroverLaw (N : ℕ) (f : Fin N → Bool) (floor c : ℕ) :
     PMF (CappedSearchTrace (Fin N)) :=
   if hN : 0 < N then
@@ -295,10 +361,13 @@ noncomputable def sourceSafeGroverLaw (N : ℕ) (f : Fin N → Bool) (floor c : 
         (sourceSearchWarmup N + sourceSearchTail N floor c))
   else PMF.pure emptySearchTrace
 
+/-- Safe Grover search on an empty search space is concentrated on `emptySearchTrace`. -/
 theorem sourceSafeGroverLaw_empty (f : Fin 0 → Bool) (floor c : ℕ) :
     sourceSafeGroverLaw 0 f floor c = PMF.pure emptySearchTrace := by
   simp [sourceSafeGroverLaw]
 
+/-- If a marked item exists and `c > 0`, the probability of returning no result is at most `(max
+N floor + 1)^(-c)`. -/
 theorem sourceSafeGroverLaw_confidence (N : ℕ) (f : Fin N → Bool) (floor c : ℕ)
     (hc : 0 < c) (hex : ∃ x, f x = true) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (sourceSafeGroverLaw N f floor c) (fun tr => tr.result = none)).toReal ≤
@@ -362,6 +431,7 @@ theorem sourceSafeGroverLaw_confidence (N : ℕ) (f : Fin N → Bool) (floor c :
     simp only [Nat.add_sub_cancel_left] at hr
     exact hr.trans (source_tail_inverse_power (max N floor + 1) c (by omega))
 
+/-- Every successful result in the support of `sourceSafeGroverLaw` is marked. -/
 theorem sourceSafeGroverLaw_sound (N : ℕ) (f : Fin N → Bool) (floor c : ℕ) :
     ∀ tr ∈ (sourceSafeGroverLaw N f floor c).support,
       ∀ x, tr.result = some x → f x = true := by
@@ -377,6 +447,8 @@ theorem sourceSafeGroverLaw_sound (N : ℕ) (f : Fin N → Bool) (floor c : ℕ)
     subst N
     exact Fin.elim0 x
 
+/-- The warmup and tail length is bounded by a logarithmic expression, and the iteration cap
+plus one is bounded by a square-root expression in `max N floor + 1`. -/
 private theorem source_schedule_size_bounds (N floor c : ℕ) :
     sourceSearchWarmup N + sourceSearchTail N floor c ≤
       8 * (c + 1) * (Nat.log 2 (max N floor + 1) + 2) ∧
@@ -405,6 +477,7 @@ private theorem source_schedule_size_bounds (N floor c : ℕ) :
   · unfold sourceSearchCap
     nlinarith
 
+/-- The sum of a geometric search schedule of length `T` is at most `T * sourceSearchCap N`. -/
 private theorem source_schedule_sum_cap (N T : ℕ) :
     (geometricSearchSchedule (sourceSearchCap N) T).sum ≤ T * sourceSearchCap N := by
   rw [geometricSearchSchedule, List.sum_ofFn]
@@ -414,6 +487,9 @@ private theorem source_schedule_sum_cap (N T : ℕ) :
         (by unfold sourceSearchCap; positivity))
     _ = _ := by simp
 
+/-- Every supported search trace satisfies the stated logarithmic-times-square-root query bound,
+with validation overhead, and its macro gate count plus validation overhead is at most five
+times its total query count. -/
 theorem sourceSafeGroverLaw_actual_resources (N : ℕ) (f : Fin N → Bool) (floor c check : ℕ) :
     ∀ tr ∈ (sourceSafeGroverLaw N f floor c).support,
       (check + 1) * (tr.phaseQueries + tr.validationQueries) ≤
@@ -446,6 +522,7 @@ theorem sourceSafeGroverLaw_actual_resources (N : ℕ) (f : Fin N → Bool) (flo
     subst tr
     simp [emptySearchTrace]
 
+/-- If every item is unmarked, every trace in the search law's support returns `none`. -/
 theorem sourceSafeGroverLaw_reject (N : ℕ) (f : Fin N → Bool) (floor c : ℕ)
     (hempty : ∀ x, f x = false) :
     ∀ tr ∈ (sourceSafeGroverLaw N f floor c).support, tr.result = none := by
@@ -457,13 +534,17 @@ theorem sourceSafeGroverLaw_reject (N : ℕ) (f : Fin N → Bool) (floor c : ℕ
     rw [hempty] at hs
     contradiction
 
+/-- The integer phase sign, equal to minus one for marked items and one for unmarked items. -/
 def groverSignedValue {N : ℕ} (f : Fin N → Bool) (x : Fin N) : ℤ := if f x then -1 else 1
 
+/-- The integer recurrence representing uniform Grover amplitudes before division by their
+common normalization factor. -/
 def groverIntegerAmplitude (N : ℕ) (f : Fin N → Bool) : ℕ → Fin N → ℤ
   | 0 => fun _ => 1
   | k + 1 => fun x => 2 * (∑ y, groverSignedValue f y * groverIntegerAmplitude N f k y) -
       (N : ℤ) * groverSignedValue f x * groverIntegerAmplitude N f k x
 
+/-- The prepared marking operator for the true set of `f` equals `PhaseOracle f`. -/
 private theorem groverPhase_eq {N : ℕ} (f : Fin N → Bool) :
     preparedMark (Finset.univ.filter (fun x => f x = true)) = PhaseOracle f := by
   ext i j
@@ -474,6 +555,8 @@ private theorem groverPhase_eq {N : ℕ} (f : Fin N → Bool) :
   · subst j; cases f i <;> norm_num
   · simp [hij]
 
+/-- Reflection about the Fourier-prepared uniform state sends each amplitude to twice the mean
+amplitude minus that amplitude. -/
 private theorem uniform_reflection_action (N : ℕ) (hN : 0 < N) (ψ : QState (Fin N))
     (x : Fin N) :
     ApplyGate (ReflectionAbout (outerProduct (preparedAAState (QFTMatrix N) ⟨0,hN⟩))) ψ x =
@@ -492,6 +575,8 @@ private theorem uniform_reflection_action (N : ℕ) (hN : 0 < N) (ψ : QState (F
   rw [← hs]
   ring
 
+/-- After `k` uniform Grover iterations, the amplitude at `x` is `groverIntegerAmplitude N f k
+x` divided by `N^k * sqrt N`. -/
 theorem groverIntegerAmplitude_actual (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ)
     (x : Fin N) :
     Run (PhaseOracle f) (preparedAACircuit (QFTMatrix N) ⟨0,hN⟩ k) (Qatlib.Foundations.PureStateMath.Ket ⟨0,hN⟩) x =
@@ -532,9 +617,13 @@ theorem groverIntegerAmplitude_actual (N : ℕ) (hN : 0 < N) (f : Fin N → Bool
     field_simp
     ring
 
+/-- The natural-number weight obtained by squaring the absolute value of the integer Grover
+amplitude. -/
 def groverIntegerTicketWeight (N : ℕ) (f : Fin N → Bool) (k : ℕ) (x : Fin N) : ℕ :=
   (groverIntegerAmplitude N f k x).natAbs ^ 2
 
+/-- The Born probability after `k` Grover iterations equals the integer ticket weight divided by
+`N^(2 * k + 1)`. -/
 theorem groverIntegerWeight_born (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ)
     (x : Fin N) :
     BornProb (Run (PhaseOracle f) (preparedAACircuit (QFTMatrix N) ⟨0,hN⟩ k)
@@ -557,6 +646,7 @@ theorem groverIntegerWeight_born (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k 
   rw [ha]
   simp only [← pow_two, hs, ← pow_mul, pow_add, pow_one]
 
+/-- The integer Grover ticket weights sum to `N^(2 * k + 1)` for positive `N`. -/
 theorem groverIntegerWeight_total (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ) :
     ∑ x, groverIntegerTicketWeight N f k x = N ^ (2 * k + 1) := by
   have hc := (prepared_aa_actual_circuit (QFTMatrix N) (⟨0,hN⟩ : Fin N)
@@ -569,6 +659,8 @@ theorem groverIntegerWeight_total (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k
   have hh := (div_eq_one_iff_eq hd).mp hn
   exact_mod_cast hh
 
+/-- Decode a uniform ticket from `Fin (N^(2 * k + 1))` into a search item using the integer
+Grover weights. -/
 def nativeGroverTicket (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ)
     (u : Fin (N ^ (2 * k + 1))) : Fin N :=
   weightTicket (groverIntegerTicketWeight N f k)
@@ -577,6 +669,8 @@ def nativeGroverTicket (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ)
         positivity)
     (Fin.cast (groverIntegerWeight_total N hN f k).symm u)
 
+/-- The fiber of `nativeGroverTicket` at an item has cardinality equal to that item's integer
+Grover weight. -/
 theorem nativeGroverTicket_fiber (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ)
     (x : Fin N) :
     (Finset.univ.filter (fun u : Fin (N ^ (2 * k + 1)) => nativeGroverTicket N hN f k u = x)).card =
@@ -608,6 +702,8 @@ theorem nativeGroverTicket_fiber (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k 
       exact e.symm_apply_apply u
   exact ht.trans hcard
 
+/-- Uniform ticket decoding reproduces exactly the Born probability of the corresponding uniform
+Grover circuit. -/
 theorem nativeGroverTicket_born_coupling (N : ℕ) (hN : 0 < N) (f : Fin N → Bool) (k : ℕ)
     (x : Fin N) :
     ((Finset.univ.filter (fun u : Fin (N ^ (2 * k + 1)) =>

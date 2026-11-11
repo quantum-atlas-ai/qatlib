@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+/-!
+# Lemma 8 step and error parameter bounds
+
+This module chooses the integer step count `lemma8Steps` and parameter `lemma8Eps`, then bounds
+the latter, under the stated parameter hypotheses, between `δ / (2 * (Λ * t))` and `δ / (Λ *
+t)`. The result `lemma8_improved_simulation` packages the existence of a parameter satisfying
+these bounds, its range conditions, and the scalar cost estimate derived by
+`lemma8_query_bound`.
+
+These arithmetic estimates accompany the improved simulation analysis of Lemma 8 in
+[BerryChilds2012].
+
+## Main statements
+
+* `lemma8_eps_ge_half` gives a lower bound on the selected parameter.
+* `lemma8_improved_simulation` collects parameter existence and scalar cost bounds.
+
+## References
+
+* [Berry and Childs, 2012][BerryChilds2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,10 +44,15 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Inhabited ι] {D L : ℕ}
 
+/-- The natural ceiling of `Λ1 * Λ * t ^ 2 / δ`, used as the step count for Lemma 8. -/
 def lemma8Steps (Λ1 Λ t δ : ℝ) : ℕ := ⌈Λ1 * Λ * t ^ 2 / δ⌉₊
 
+/-- The parameter `Λ1 * t / lemma8Steps Λ1 Λ t δ` associated with the selected integer step
+count. -/
 def lemma8Eps (Λ1 Λ t δ : ℝ) : ℝ := Λ1 * t / (lemma8Steps Λ1 Λ t δ : ℝ)
 
+/-- For positive `δ`, `t`, and `Λ`, the conditions `sqrt δ ≤ Λ * t` and `Λ ≤ Λ1` imply that `Λ1
+* Λ * t ^ 2 / δ` is at least one. -/
 theorem lemma8_ratio_ge_one {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (hΛ0 : 0 < Λ)
     (hcond1 : Real.sqrt δ ≤ Λ * t) (hcond3 : Λ ≤ Λ1) :
     1 ≤ Λ1 * Λ * t ^ 2 / δ := by
@@ -43,14 +71,18 @@ theorem lemma8_ratio_ge_one {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (h�
     rw [Real.sq_sqrt hδ0.le]
   linarith [hprod, heq]
 
+/-- The selected step count is at least the real ratio `Λ1 * Λ * t ^ 2 / δ`. -/
 theorem lemma8_ratio_le_steps (Λ1 Λ t δ : ℝ) :
     Λ1 * Λ * t ^ 2 / δ ≤ (lemma8Steps Λ1 Λ t δ : ℝ) :=
   Nat.le_ceil _
 
+/-- When the defining ratio is positive, its natural ceiling is strictly less than that ratio
+plus one. -/
 theorem lemma8_steps_lt_add_one {Λ1 Λ t δ : ℝ} (hratio : 0 < Λ1 * Λ * t ^ 2 / δ) :
     (lemma8Steps Λ1 Λ t δ : ℝ) < Λ1 * Λ * t ^ 2 / δ + 1 :=
   Nat.ceil_lt_add_one (le_of_lt hratio)
 
+/-- The selected parameter `lemma8Eps` is positive when `δ`, `t`, `Λ`, and `Λ1` are positive. -/
 theorem lemma8_eps_pos {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (hΛ0 : 0 < Λ)
     (hΛ1 : 0 < Λ1) : 0 < lemma8Eps Λ1 Λ t δ := by
   have hratio0 : 0 < Λ1 * Λ * t ^ 2 / δ := by positivity
@@ -58,6 +90,8 @@ theorem lemma8_eps_pos {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (hΛ0 : 
   unfold lemma8Eps
   exact div_pos (mul_pos hΛ1 ht) hK
 
+/-- For positive parameters, `lemma8Eps` is at most `δ / (Λ * t)`. See [Berry and Childs, Lemma
+8][BerryChilds2012]. -/
 theorem lemma8_eps_le_delta {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (hΛ0 : 0 < Λ)
     (hΛ1 : 0 < Λ1) : lemma8Eps Λ1 Λ t δ ≤ δ / (Λ * t) := by
   have hratio0 : 0 < Λ1 * Λ * t ^ 2 / δ := by positivity
@@ -72,6 +106,8 @@ theorem lemma8_eps_le_delta {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (h�
   have hsq : Λ1 * t * (Λ * t) = Λ1 * Λ * t ^ 2 := by ring
   linarith
 
+/-- For positive parameters and a defining ratio at least one, `lemma8Eps` is at least `δ / (2 *
+(Λ * t))`. See [Berry and Childs, Lemma 8][BerryChilds2012]. -/
 theorem lemma8_eps_ge_half {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (hΛ0 : 0 < Λ)
     (hΛ1 : 0 < Λ1) (hratio : 1 ≤ Λ1 * Λ * t ^ 2 / δ) :
     δ / (2 * (Λ * t)) ≤ lemma8Eps Λ1 Λ t δ := by
@@ -90,6 +126,7 @@ theorem lemma8_eps_ge_half {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (ht : 0 < t) (hΛ
   have hrhs : Λ1 * t * (2 * (Λ * t)) = 2 * (Λ1 * Λ * t ^ 2) := by ring
   linarith
 
+/-- For positive parameters, `δ ≤ 1` and `sqrt δ ≤ Λ * t` ensure that `lemma8Eps ≤ 1`. -/
 theorem lemma8_eps_le_one {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (ht : 0 < t)
     (hΛ0 : 0 < Λ) (hΛ1 : 0 < Λ1) (hcond1 : Real.sqrt δ ≤ Λ * t) :
     lemma8Eps Λ1 Λ t δ ≤ 1 := by
@@ -106,6 +143,9 @@ theorem lemma8_eps_le_one {Λ Λ1 t δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) 
     exact hδt
   linarith
 
+/-- For positive `ε` and `Λ1` and nonnegative `Λmax`, rewrite the product of the real step
+factor and square root amplification factor as `t * sqrt (Λ1 * Λmax * D / ε)`. See [Berry
+and Childs, Lemma 8][BerryChilds2012]. -/
 theorem lemma8_query_identity {Λ1 Λmax ε t : ℝ} {D : ℕ} (hε0 : 0 < ε) (hΛ1 : 0 < Λ1)
     (hmax0 : 0 ≤ Λmax) :
     (Λ1 * t / ε) * Real.sqrt (ε * Λmax * (D : ℝ) / Λ1) =
@@ -122,6 +162,8 @@ theorem lemma8_query_identity {Λ1 Λmax ε t : ℝ} {D : ℕ} (hε0 : 0 < ε) (
           congr 2
           field_simp
 
+/-- For the stated positive parameters and nonnegative `Λmax`, rewrite `lemma8QueryExpr` as `t *
+sqrt (Λmax * D * Λ1 * Λ * t / δ)`. See [Berry and Childs, Lemma 8][BerryChilds2012]. -/
 theorem lemma8QueryExpr_eq {Λ Λ1 Λmax t δ : ℝ} {D : ℕ}
     (hΛ : 0 < Λ) (hΛ1 : 0 < Λ1) (hD : 0 < D) (ht : 0 < t) (hδ : 0 < δ)
     (hmax0 : 0 ≤ Λmax) :
@@ -145,6 +187,9 @@ theorem lemma8QueryExpr_eq {Λ Λ1 Λmax t δ : ℝ} {D : ℕ}
           congr 2
           field_simp
 
+/-- A positive `ε` at least `δ / (2 * (Λ * t))` makes `t * sqrt (Λ1 * Λmax * D / ε)` at most
+`sqrt 2 * lemma8QueryExpr`, under the stated positivity hypotheses. See [Berry and Childs,
+Lemma 8][BerryChilds2012]. -/
 theorem lemma8_query_bound {Λ Λ1 Λmax ε t δ : ℝ} {D : ℕ}
     (hΛ : 0 < Λ) (hΛ1 : 0 < Λ1) (hD : 0 < D) (ht : 0 < t) (hδ : 0 < δ)
     (hmax0 : 0 ≤ Λmax) (hε0 : 0 < ε)
@@ -176,6 +221,9 @@ theorem lemma8_query_bound {Λ Λ1 Λmax ε t δ : ℝ} {D : ℕ}
     _ = t * (Real.sqrt 2 * Real.sqrt (Λmax * (D : ℝ) * Λ1 * Λ * t / δ)) := by rw [hsplit]
     _ = Real.sqrt 2 * (t * Real.sqrt (Λmax * (D : ℝ) * Λ1 * Λ * t / δ)) := by ring
 
+/-- Under the stated black box, norm, and parameter hypotheses, choose a positive `ε ≤ 1`
+between `δ / (2 * (Λ * t))` and `δ / (Λ * t)` and establish the accompanying scalar cost
+identity and bound. This packages the parameter arithmetic for Lemma 8 of [BerryChilds2012]. -/
 theorem lemma8_improved_simulation
     (BB : BlackBox ι D L) {Λ Λ1 Λmax t δ : ℝ}
     (hsp : IsColumnSparse BB.H D) (hD : 0 < D)

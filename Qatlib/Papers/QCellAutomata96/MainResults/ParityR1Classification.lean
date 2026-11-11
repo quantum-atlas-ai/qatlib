@@ -11,6 +11,25 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 
+/-!
+# Parity constraints for Equation (24) weights
+
+This module verifies that the explicit Equation (24) weights satisfy the unitarity relations and
+parity invariance. It also defines `IsEq24Form` as their orbit under a common unitary change of
+basis and a unit-modulus phase. See [Meyer1996a].
+
+## Main statements
+
+* `eq24_satisfies_constraints`: For every pair of real parameters, the Equation (24) weights
+  satisfy both `Eq19` and `ParityInvariant`.
+* `IsEq24Form`: The property that a triple of weights is obtained from the Equation (24) family
+  by simultaneous unitary conjugation and multiplication by a common unit-modulus phase.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,6 +39,8 @@ namespace Qatlib.Papers.QCellAutomata96.MainResults
 
 set_option maxHeartbeats 1000000 in
 
+/-- For every pair of real parameters, the Equation (24) weights satisfy both `Eq19` and
+`ParityInvariant`. See [Meyer1996a]. -/
 theorem eq24_satisfies_constraints (θ ρ : ℝ) :
     Eq19 (eq24wm θ ρ) (eq24w0 θ ρ) (eq24wp θ ρ) ∧
     ParityInvariant (eq24wm θ ρ) (eq24w0 θ ρ) (eq24wp θ ρ) := by
@@ -55,6 +76,8 @@ theorem eq24_satisfies_constraints (θ ρ : ℝ) :
       fin_cases i <;> fin_cases j <;>
         simp [eq24w0, P2, Matrix.of_apply]
 
+/-- The property that a triple of weights is obtained from the Equation (24) family by
+simultaneous unitary conjugation and multiplication by a common unit-modulus phase. -/
 def IsEq24Form (wm w0 wp : Matrix (Fin 2) (Fin 2) ℂ) : Prop :=
   ∃ (θ ρ : ℝ) (U : Matrix (Fin 2) (Fin 2) ℂ) (φ : ℂ),
     U ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧ ‖φ‖ = 1 ∧

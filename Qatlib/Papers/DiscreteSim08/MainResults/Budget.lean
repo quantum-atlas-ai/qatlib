@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.DiscreteSim08.MainResults.ErrorCorrection
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Arithmetic budgets for discrete query simulation
+
+The expected-query expression `theorem1ExpectedQueries` is bounded using an overhead factor at
+most two. Algebraic and logarithmic comparisons then convert truncation-parameter bounds into
+explicit query budgets and simplify the known-unitary cost model.
+
+This development follows [CleveEtAl2009].
+
+## Main statements
+
+* `theorem1_query_budget`: the logarithmic truncation bound yields an explicit query budget.
+* `main_result_query_log_bound`: replacing `T` by `3 * T` costs at most a factor two in the
+  logarithmic ratio.
+* `knownUnitary_budget_le`: a bound on `k` controls the known-unitary expression.
+
+## References
+
+* [Cleve et al., 2009][CleveEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,13 +36,18 @@ noncomputable section
 
 namespace Qatlib.Papers.DiscreteSim08.MainResults
 
+/-- The expected-query cost expression `4 * T * A * k`. See [CleveEtAl2009]. -/
 noncomputable def theorem1ExpectedQueries (T A k : ℝ) : ℝ := 4 * T * A * k
 
+/-- For nonnegative `T` and `k` and overhead `A ≤ 2`, the expected-query expression is at most
+`8 * T * k`. See [CleveEtAl2009]. -/
 theorem theorem1ExpectedQueries_le (T A k : ℝ) (hT : 0 ≤ T) (hA : A ≤ 2) (hk : 0 ≤ k) :
     theorem1ExpectedQueries T A k ≤ 8 * T * k := by
   unfold theorem1ExpectedQueries
   nlinarith [mul_nonneg hT hk]
 
+/-- For positive `T`, `ε`, `L`, and `LL`, the bound `k ≤ 2 * L / LL` implies `8 * T * k / ε ≤ 16
+* (T * L) / (ε * LL)`. See [CleveEtAl2009]. -/
 theorem theorem1_query_budget_arithmetic (T ε k L LL : ℝ) (hT : 0 < T) (hε : 0 < ε)
     (hL : 0 < L) (hLL : 0 < LL) (hkL : k ≤ 2 * L / LL) :
     8 * T * k / ε ≤ 16 * (T * L) / (ε * LL) := by
@@ -34,6 +61,8 @@ theorem theorem1_query_budget_arithmetic (T ε k L LL : ℝ) (hT : 0 < T) (hε :
   rw [h1, h2]
   exact mul_le_mul_of_nonneg_left hkL hfac
 
+/-- For positive `T` and `ε` with `1 < log (T / ε)`, the stated logarithmic bound on `k` gives
+the query budget `16 * T * log (T / ε) / (ε * log (log (T / ε)))`. See [CleveEtAl2009]. -/
 theorem theorem1_query_budget (T ε k : ℝ) (hT : 0 < T) (hε : 0 < ε)
     (h1 : 1 < Real.log (T / ε))
     (hkL : k ≤ 2 * Real.log (T / ε) / Real.log (Real.log (T / ε))) :
@@ -42,6 +71,8 @@ theorem theorem1_query_budget (T ε k : ℝ) (hT : 0 < T) (hε : 0 < ε)
   theorem1_query_budget_arithmetic T ε k (Real.log (T / ε)) (Real.log (Real.log (T / ε)))
     hT hε (by linarith) (Real.log_pos h1) hkL
 
+/-- For `T > exp 2`, the ratio `log (3 * T) / log (log (3 * T))` is at most twice `log T / log
+(log T)`. See [CleveEtAl2009]. -/
 theorem main_result_query_log_bound (T : ℝ) (hT : Real.exp 2 < T) :
     Real.log (3 * T) / Real.log (Real.log (3 * T)) ≤
       2 * (Real.log T / Real.log (Real.log T)) := by
@@ -69,6 +100,8 @@ theorem main_result_query_log_bound (T : ℝ) (hT : Real.exp 2 < T) :
         div_le_div_of_nonneg_left (by positivity) hLB_pos hLA_ge
     _ = 2 * (Real.log T / Real.log (Real.log T)) := by ring
 
+/-- For nonnegative `C`, replacing `k ≤ log T` in the known-unitary expression gives `C * T ^ 2
+* k ≤ C * T ^ 2 * log T`. See [CleveEtAl2009]. -/
 theorem knownUnitary_budget_le (C k T : ℝ) (hC : 0 ≤ C) (hk : k ≤ Real.log T) :
     C * T ^ 2 * k ≤ C * T ^ 2 * Real.log T :=
   mul_le_mul_of_nonneg_left hk (by positivity)

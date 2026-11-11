@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+/-!
+# Specification of finite conditional risk estimation
+
+This module defines `CVaRAlgorithmFiniteRestricted`, the probabilistic guarantee for finite CVaR
+estimation on a sorted list containing all loss values. Its hypotheses separate the target
+quantile from the confidence level and keep the denominator above the estimation error.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `CVaRAlgorithmFiniteRestricted`: The proposition that finite CVaR estimation returns the
+  target index and a tail-mean estimate within `4 * eps` divided by the target CDF mass, except
+  with probability at most `(Nat.clog 2 xs.length + 3) * (8 / 9) ^ r`, under the stated margin
+  hypotheses.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +44,9 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition that finite CVaR estimation returns the target index and a tail-mean
+estimate within `4 * eps` divided by the target CDF mass, except with probability at most
+`(Nat.clog 2 xs.length + 3) * (8 / 9) ^ r`, under the stated margin hypotheses. -/
 def CVaRAlgorithmFiniteRestricted : Prop :=
 ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
   (loss : I  → ℚ) (xs : List ℚ) (q eps : ℝ) (k M r v : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ)

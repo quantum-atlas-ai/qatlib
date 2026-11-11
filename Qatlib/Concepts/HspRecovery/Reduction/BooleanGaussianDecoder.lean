@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonRecovery
 import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Boolean Gaussian elimination and Simon decoding
+
+This module implements Gaussian elimination on Boolean registers using pivot rows and XOR
+operations. It proves preservation of row spans, echelon invariants, and correctness of back
+substitution, then constructs a linearly independent spanning list for the pivot kernel.
+
+The decoder `decodeSimonSecret` returns the unique secret encoded by a candidate subgroup of
+cardinality at most two, and returns `none` for larger candidates. Explicit operation counters
+bound the elimination and kernel construction costs. See [Simon1997] for the mathematical
+background.
+
+## Main statements
+
+* `boolean_gaussian_actual_echelon`: echelon form, row-span preservation, and an XOR-count
+  bound.
+* `boolean_gaussian_kernel_basis`: independence and spanning for the constructed kernel list.
+* `boolean_gaussian_simon_decode_iff`: characterize a successful decoded secret.
+* `boolean_gaussian_actual_operation_bound`: bound the recorded bit-operation counts.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.Distinguisher
@@ -21,50 +47,62 @@ namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
 open scoped Classical
 
+/-- Coordinatewise exclusive-or of two Boolean registers. -/
 def regXor {n : ℕ} (x y : Reg n) : Reg n := fun i => x i ^^ y i
 
+/-- Coordinatewise register XOR evaluates to Boolean exclusive-or at each index. -/
 @[simp] theorem regXor_apply {n : ℕ} (x y : Reg n) (i : Fin n) :
     regXor x y i = (x i ^^ y i) := rfl
 
+/-- The Boolean-to-`ZMod 2` equivalence sends exclusive-or to addition. -/
 theorem boolZModEquiv_xor (a b : Bool) :
     boolZModEquiv (a ^^ b) = boolZModEquiv a + boolZModEquiv b := by
   cases a <;> cases b <;> decide
 
+/-- The register equivalence sends coordinatewise XOR to vector addition over `ZMod 2`. -/
 theorem regBooleanEquiv_xor {n : ℕ} (x y : Reg n) :
     regBooleanEquiv n (regXor x y) = regBooleanEquiv n x + regBooleanEquiv n y := by
   funext i
   simp only [regBooleanEquiv_apply, Pi.add_apply]
   exact boolZModEquiv_xor _ _
 
+/-- The all-false register maps to the zero Boolean vector. -/
 @[simp] theorem regBooleanEquiv_zeroStr (n : ℕ) :
     regBooleanEquiv n (ZeroStr n) = 0 := by
   funext i
   simp [ZeroStr]
 
+/-- The equivalence from Boolean registers to Boolean vectors is injective. -/
 theorem regBooleanEquiv_injective (n : ℕ) :
     Function.Injective (regBooleanEquiv n) := (regBooleanEquiv n).injective
 
+/-- The XOR of a register with itself is the all-false register. -/
 @[simp] theorem regXor_self {n : ℕ} (x : Reg n) : regXor x x = ZeroStr n := by
   funext i
   simp [ZeroStr]
 
+/-- Register XOR is associative. -/
 theorem regXor_assoc {n : ℕ} (x y z : Reg n) :
     regXor (regXor x y) z = regXor x (regXor y z) := by
   funext i
   simp
 
+/-- Register XOR is commutative. -/
 theorem regXor_comm {n : ℕ} (x y : Reg n) : regXor x y = regXor y x := by
   funext i
   simp [Bool.xor_comm]
 
+/-- XOR with the all-false register on the right preserves a register. -/
 @[simp] theorem regXor_zeroStr {n : ℕ} (x : Reg n) : regXor x (ZeroStr n) = x := by
   funext i
   simp [ZeroStr]
 
+/-- XOR with the all-false register on the left preserves a register. -/
 @[simp] theorem zeroStr_regXor {n : ℕ} (x : Reg n) : regXor (ZeroStr n) x = x := by
   funext i
   simp [ZeroStr]
 
+/-- Subtraction of encoded Boolean registers equals the encoding of their XOR. -/
 theorem regBooleanEquiv_sub {n : ℕ} (x y : Reg n) :
     regBooleanEquiv n x - regBooleanEquiv n y = regBooleanEquiv n (regXor x y) := by
   rw [regBooleanEquiv_xor]
@@ -73,6 +111,7 @@ theorem regBooleanEquiv_sub {n : ℕ} (x y : Reg n) :
     simp only [regBooleanEquiv_apply, Pi.sub_apply, Pi.add_apply, hx, hy,
       boolZModEquiv_true, boolZModEquiv_false] <;> decide
 
+/-- The Boolean dot product is symmetric. -/
 theorem booleanDot_comm' {n : ℕ} (a x : BooleanVec n) :
     booleanDot a x = booleanDot x a := by
   simp only [booleanDot]
@@ -80,25 +119,32 @@ theorem booleanDot_comm' {n : ℕ} (a x : BooleanVec n) :
   intro i _
   exact mul_comm _ _
 
+/-- The Boolean dot product is additive in its left argument. -/
 theorem booleanDot_add_left {n : ℕ} (a b x : BooleanVec n) :
     booleanDot (a + b) x = booleanDot a x + booleanDot b x := by
   simp [booleanDot, add_mul, Finset.sum_add_distrib]
 
+/-- Negating the left argument negates the Boolean dot product. -/
 theorem booleanDot_neg_left {n : ℕ} (a x : BooleanVec n) :
     booleanDot (-a) x = -booleanDot a x := by
   simp [booleanDot]
 
+/-- The Boolean dot product is additive in its right argument. -/
 theorem booleanDot_add_right {n : ℕ} (a x y : BooleanVec n) :
     booleanDot a (x + y) = booleanDot a x + booleanDot a y := by
   simp [booleanDot, mul_add, Finset.sum_add_distrib]
 
+/-- Negating the right argument negates the Boolean dot product. -/
 theorem booleanDot_neg_right {n : ℕ} (a x : BooleanVec n) :
     booleanDot a (-x) = -booleanDot a x := by
   simp [booleanDot]
 
+/-- Compute the Boolean dot product as the XOR of coordinatewise conjunctions. -/
 def booleanDotBool {n : ℕ} (r x : Reg n) : Bool :=
   (List.finRange n).foldl (fun acc i => acc ^^ (r i && x i)) false
 
+/-- The Boolean implementation of the dot product agrees with `booleanDot` after encoding in
+`ZMod 2`. -/
 theorem boolZModEquiv_booleanDotBool {n : ℕ} (r x : Reg n) :
     boolZModEquiv (booleanDotBool r x) =
       booleanDot (regBooleanEquiv n r) (regBooleanEquiv n x) := by
@@ -118,29 +164,35 @@ theorem boolZModEquiv_booleanDotBool {n : ℕ} (r x : Reg n) :
     rw [List.ofFn_eq_map]]
   simp [List.sum_ofFn]
 
+/-- The Boolean dot product is false exactly when the encoded vector dot product is zero. -/
 theorem booleanDotBool_eq_false_iff {n : ℕ} (r x : Reg n) :
     booleanDotBool r x = false ↔
       booleanDot (regBooleanEquiv n r) (regBooleanEquiv n x) = 0 := by
   rw [← boolZModEquiv_booleanDotBool, ← boolZModEquiv_false]
   exact (boolZModEquiv.injective.eq_iff).symm
 
+/-- A table of optional pivot rows together with XOR and bit-operation counters. -/
 structure BooleanEchelonResult (n : ℕ) where
   pivots : Fin n → Option (Reg n)
   xorCount : ℕ
   bitOps : ℕ
 
+/-- Each occupied pivot row has a true pivot bit and false bits in every earlier column. -/
 def IsBooleanEchelon {n : ℕ} (piv : Fin n → Option (Reg n)) : Prop :=
   ∀ i row, piv i = some row → row i = true ∧ ∀ j, j < i → row j = false
 
+/-- The additive subgroup generated by the encoded rows in a pivot table. -/
 def booleanPivotSpan {n : ℕ} (piv : Fin n → Option (Reg n)) :
     AddSubgroup (BooleanVec n) :=
   AddSubgroup.closure {v | ∃ i row, piv i = some row ∧ v = regBooleanEquiv n row}
 
+/-- Every occupied pivot row, encoded as a Boolean vector, belongs to the pivot span. -/
 theorem mem_booleanPivotSpan_of_piv {n : ℕ} {piv : Fin n → Option (Reg n)}
     {i : Fin n} {row : Reg n} (h : piv i = some row) :
     regBooleanEquiv n row ∈ booleanPivotSpan piv :=
   AddSubgroup.subset_closure ⟨i, row, h, rfl⟩
 
+/-- The subgroup of vectors orthogonal to every occupied pivot row. -/
 def booleanPivotKernel {n : ℕ} (piv : Fin n → Option (Reg n)) :
     AddSubgroup (BooleanVec n) where
   carrier := {x | ∀ i row, piv i = some row → booleanDot (regBooleanEquiv n row) x = 0}
@@ -154,20 +206,24 @@ def booleanPivotKernel {n : ℕ} (piv : Fin n → Option (Reg n)) :
     intro x hx i row hrow
     rw [booleanDot_neg_right, hx i row hrow, neg_zero]
 
+/-- Membership in the pivot kernel means having zero dot product with every occupied pivot row. -/
 @[simp] theorem mem_booleanPivotKernel {n : ℕ} (piv : Fin n → Option (Reg n))
     (x : BooleanVec n) :
     x ∈ booleanPivotKernel piv ↔
       ∀ i row, piv i = some row → booleanDot (regBooleanEquiv n row) x = 0 :=
   Iff.rfl
 
+/-- The additive subgroup generated by the encodings of the rows in a list. -/
 def booleanRowsSpan {n : ℕ} (rows : List (Reg n)) : AddSubgroup (BooleanVec n) :=
   AddSubgroup.closure {v | ∃ r, r ∈ rows ∧ v = regBooleanEquiv n r}
 
+/-- The encoding of any listed row belongs to the row span. -/
 theorem mem_booleanRowsSpan_of_mem {n : ℕ} {rows : List (Reg n)} {r : Reg n}
     (h : r ∈ rows) :
     regBooleanEquiv n r ∈ booleanRowsSpan rows :=
   AddSubgroup.subset_closure ⟨r, h, rfl⟩
 
+/-- The pivot kernel is the Boolean orthogonal complement of the pivot span. -/
 theorem booleanPivotKernel_eq_booleanOrthogonal_span {n : ℕ}
     (piv : Fin n → Option (Reg n)) :
     booleanPivotKernel piv = booleanOrthogonal (booleanPivotSpan piv) := by
@@ -192,6 +248,7 @@ theorem booleanPivotKernel_eq_booleanOrthogonal_span {n : ℕ}
     rw [booleanDot_comm']
     exact hx ⟨regBooleanEquiv n row, mem_booleanPivotSpan_of_piv hrow⟩
 
+/-- Summing a function along `List.finRange n` equals its finite sum over `Fin n`. -/
 theorem listSum_finRange_map {M : Type*} [AddCommMonoid M] :
     ∀ (n : ℕ) (f : Fin n → M), ((List.finRange n).map f).sum = ∑ i, f i := by
   intro n f
@@ -202,6 +259,8 @@ theorem listSum_finRange_map {M : Type*} [AddCommMonoid M] :
       List.map_singleton, List.sum_singleton, ih, Fin.sum_univ_castSucc]
     simp only [Function.comp_apply]
 
+/-- Encoding an XOR fold in `ZMod 2` gives the initial encoded bit plus the sum of encoded input
+bits. -/
 theorem boolZModEquiv_foldl_xor {ι : Type*} (l : List ι) (g : ι → Bool) (b : Bool) :
     boolZModEquiv (l.foldl (fun acc i => acc ^^ g i) b) =
       boolZModEquiv b + (l.map (fun i => boolZModEquiv (g i))).sum := by
@@ -211,6 +270,8 @@ theorem boolZModEquiv_foldl_xor {ι : Type*} (l : List ι) (g : ι → Bool) (b 
     simp only [List.foldl_cons, List.map_cons, List.sum_cons, ih, boolZModEquiv_xor]
     ring
 
+/-- A position-dependent invariant preserved at each list entry holds after folding the entire
+list. -/
 theorem foldl_induction_position {α β : Type*} (l : List β) (f : α → β → α) :
     ∀ (init : α) (P : ℕ → α → Prop), P 0 init →
       (∀ (k : ℕ) (hk : k < l.length) (acc : α),
@@ -228,6 +289,8 @@ theorem foldl_induction_position {α β : Type*} (l : List β) (f : α → β �
       have h := hstep (k + 1) (by simp only [List.length_cons]; omega) acc hacc
       rwa [List.getElem_cons_succ] at h
 
+/-- An invariant indexed by the number of processed coordinates holds after folding over
+`List.finRange n`. -/
 theorem foldl_finRange_induction {α : Type*} {n : ℕ} (f : α → Fin n → α) (init : α)
     (P : ℕ → α → Prop) (h0 : P 0 init)
     (hstep : ∀ (k : ℕ) (hk : k < n) (acc : α), P k acc → P (k + 1) (f acc ⟨k, hk⟩)) :
@@ -241,11 +304,14 @@ theorem foldl_finRange_induction {α : Type*} {n : ℕ} (f : α → Fin n → α
     exact hstep k hk acc hacc)
   rwa [List.length_finRange] at h
 
+/-- A Boolean row together with the XOR and bit-operation counts accumulated during reduction. -/
 structure ReduceAccum (n : ℕ) where
   row : Reg n
   xorCount : ℕ
   bitOps : ℕ
 
+/-- At a true coordinate with an occupied pivot, XOR the accumulator row with that pivot row and
+update operation counts. -/
 def booleanReduceStep {n : ℕ} (piv : Fin n → Option (Reg n)) (acc : ReduceAccum n)
     (i : Fin n) : ReduceAccum n :=
   if acc.row i then
@@ -254,13 +320,18 @@ def booleanReduceStep {n : ℕ} (piv : Fin n → Option (Reg n)) (acc : ReduceAc
     | none => ⟨acc.row, acc.xorCount, acc.bitOps + 2⟩
   else ⟨acc.row, acc.xorCount, acc.bitOps + 2⟩
 
+/-- Reduce a row against all pivot columns in increasing order, starting both operation counters
+at zero. -/
 def booleanReduceFull {n : ℕ} (piv : Fin n → Option (Reg n)) (x : Reg n) :
     ReduceAccum n :=
   (List.finRange n).foldl (booleanReduceStep piv) ⟨x, 0, 0⟩
 
+/-- The row component of the full pivot reduction. -/
 def booleanReduceRow {n : ℕ} (piv : Fin n → Option (Reg n)) (x : Reg n) : Reg n :=
   (booleanReduceFull piv x).row
 
+/-- For an echelon pivot table, full reduction changes the row by an element of the pivot span,
+clears all pivot columns, and satisfies the stated operation bounds. -/
 theorem booleanReduceFull_invariant {n : ℕ} (piv : Fin n → Option (Reg n)) (x : Reg n)
     (hech : IsBooleanEchelon piv) :
     regBooleanEquiv n (booleanReduceFull piv x).row - regBooleanEquiv n x ∈
@@ -347,6 +418,8 @@ theorem booleanReduceFull_invariant {n : ℕ} (piv : Fin n → Option (Reg n)) (
   obtain ⟨hspan, hbits, hxc, hbo⟩ := h
   exact ⟨hspan, fun i row hi => hbits i row hi i.isLt, hxc, hbo⟩
 
+/-- Reduction against an echelon pivot table preserves the row modulo the pivot span and clears
+every occupied pivot column. -/
 theorem boolean_gaussian_reduce_invariant {n : ℕ} (piv : Fin n → Option (Reg n))
     (x : Reg n) :
     IsBooleanEchelon piv →
@@ -357,15 +430,21 @@ theorem boolean_gaussian_reduce_invariant {n : ℕ} (piv : Fin n → Option (Reg
   have h := booleanReduceFull_invariant piv x hech
   exact ⟨h.1, h.2.1⟩
 
+/-- Retain an already found coordinate or record a true bit at the current coordinate,
+increasing the scan count by one. -/
 def booleanFindFirstStep {n : ℕ} (x : Reg n) (acc : Option (Fin n) × ℕ) (i : Fin n) :
     Option (Fin n) × ℕ :=
   (match acc.1 with
    | some j => some j
    | none => if x i then some i else none, acc.2 + 1)
 
+/-- Scan a register in increasing coordinate order for its first true bit, recording the scan
+count. -/
 def booleanFindFirstTrue {n : ℕ} (x : Reg n) : Option (Fin n) × ℕ :=
   (List.finRange n).foldl (booleanFindFirstStep x) (none, 0)
 
+/-- The scan returns the first true coordinate or certifies that all bits are false, and its
+count equals `n`. -/
 theorem booleanFindFirstTrue_sound {n : ℕ} (x : Reg n) :
     (∀ i, (booleanFindFirstTrue x).1 = some i →
         x i = true ∧ ∀ j, j < i → x j = false) ∧
@@ -420,6 +499,8 @@ theorem booleanFindFirstTrue_sound {n : ℕ} (x : Reg n) :
   obtain ⟨-, htrue, hlow⟩ := hsome i hi
   exact ⟨htrue, hlow⟩
 
+/-- Reduce an input row, insert a nonzero remainder at its first true coordinate, and accumulate
+the reduction and insertion costs. -/
 def booleanInsertRow {n : ℕ} (acc : BooleanEchelonResult n) (x : Reg n) :
     BooleanEchelonResult n :=
   match (booleanFindFirstTrue (booleanReduceFull acc.pivots x).row).1 with
@@ -431,18 +512,23 @@ def booleanInsertRow {n : ℕ} (acc : BooleanEchelonResult n) (x : Reg n) :
       acc.bitOps + (booleanReduceFull acc.pivots x).bitOps +
         (booleanFindFirstTrue (booleanReduceFull acc.pivots x).row).2 + n⟩
 
+/-- Insert a list of rows into an initial pivot table with operation counters initialized to
+zero. -/
 def booleanEchelonContinue {n : ℕ} (piv : Fin n → Option (Reg n)) (rows : List (Reg n)) :
     BooleanEchelonResult n :=
   rows.foldl booleanInsertRow ⟨piv, 0, 0⟩
 
+/-- Run Boolean elimination on a row list starting from an empty pivot table. -/
 def booleanEchelonRun {n : ℕ} (rows : List (Reg n)) : BooleanEchelonResult n :=
   booleanEchelonContinue (fun _ => none) rows
 
+/-- The empty pivot table satisfies the Boolean echelon condition. -/
 theorem isBooleanEchelon_none {n : ℕ} :
     IsBooleanEchelon (fun _ : Fin n => none) := by
   intro i row h
   simp at h
 
+/-- The span of an empty pivot table is the trivial subgroup. -/
 theorem booleanPivotSpan_none {n : ℕ} :
     booleanPivotSpan (fun _ : Fin n => none) = ⊥ := by
   unfold booleanPivotSpan
@@ -452,6 +538,7 @@ theorem booleanPivotSpan_none {n : ℕ} :
     simp]
   exact AddSubgroup.closure_empty
 
+/-- Inserting a row into an echelon pivot table preserves the echelon condition. -/
 theorem booleanInsertRow_echelon {n : ℕ} (acc : BooleanEchelonResult n) (x : Reg n)
     (hech : IsBooleanEchelon acc.pivots) :
     IsBooleanEchelon (booleanInsertRow acc x).pivots := by
@@ -479,6 +566,7 @@ theorem booleanInsertRow_echelon {n : ℕ} (acc : BooleanEchelonResult n) (x : R
     · rw [if_neg hji] at hj
       exact hech j row hj
 
+/-- Inserting a row into an echelon pivot table adds exactly that row's span to the pivot span. -/
 theorem booleanInsertRow_span {n : ℕ} (acc : BooleanEchelonResult n) (x : Reg n)
     (hech : IsBooleanEchelon acc.pivots) :
     booleanPivotSpan (booleanInsertRow acc x).pivots =
@@ -571,6 +659,7 @@ theorem booleanInsertRow_span {n : ℕ} (acc : BooleanEchelonResult n) (x : Reg 
       exact AddSubgroup.mem_sup.mpr ⟨_, neg_mem hspan, _,
         AddSubgroup.subset_closure (Set.mem_singleton _), by abel⟩
 
+/-- The span of a list with a prepended row is the join of that row's span and the tail span. -/
 theorem booleanRowsSpan_cons {n : ℕ} (x : Reg n) (xs : List (Reg n)) :
     booleanRowsSpan (x :: xs) = booleanRowsSpan [x] ⊔ booleanRowsSpan xs := by
   have hgen : {v : BooleanVec n | ∃ r, r ∈ x :: xs ∧ v = regBooleanEquiv n r} =
@@ -581,6 +670,7 @@ theorem booleanRowsSpan_cons {n : ℕ} (x : Reg n) (xs : List (Reg n)) :
   unfold booleanRowsSpan
   rw [hgen, AddSubgroup.closure_union]
 
+/-- The span of an empty row list is the trivial subgroup. -/
 theorem booleanRowsSpan_nil {n : ℕ} : booleanRowsSpan ([] : List (Reg n)) = ⊥ := by
   unfold booleanRowsSpan
   rw [show {v : BooleanVec n | ∃ r, r ∈ ([] : List (Reg n)) ∧
@@ -589,6 +679,8 @@ theorem booleanRowsSpan_nil {n : ℕ} : booleanRowsSpan ([] : List (Reg n)) = �
     simp]
   exact AddSubgroup.closure_empty
 
+/-- Repeated insertion preserves echelon form, joins the initial and input row spans, and
+increases the counters by at most the stated bounds. -/
 theorem booleanEchelonContinue_invariant {n : ℕ} :
     ∀ (rows : List (Reg n)) (init : BooleanEchelonResult n),
       IsBooleanEchelon init.pivots →
@@ -657,6 +749,8 @@ theorem booleanEchelonContinue_invariant {n : ℕ} :
           simp only [List.length_cons, Nat.add_mul, Nat.one_mul]
           ring
 
+/-- Boolean elimination returns an echelon table spanning the input rows and uses at most
+`rows.length * n` XOR operations. -/
 theorem boolean_gaussian_actual_echelon {n : ℕ} (rows : List (Reg n)) :
     IsBooleanEchelon (booleanEchelonRun rows).pivots ∧
     booleanPivotSpan (booleanEchelonRun rows).pivots = booleanRowsSpan rows ∧
@@ -673,6 +767,8 @@ theorem boolean_gaussian_actual_echelon {n : ℕ} (rows : List (Reg n)) :
       rows.length * n
     simpa using hxc
 
+/-- Elimination on concatenated rows has the same pivots as continuing from the first prefix,
+and the concatenated row span is the join of the two spans. -/
 theorem boolean_gaussian_span_and_prefix {n : ℕ} (xs ys : List (Reg n)) :
     (booleanEchelonRun (xs ++ ys)).pivots =
       (booleanEchelonContinue (booleanEchelonRun xs).pivots ys).pivots ∧
@@ -710,6 +806,8 @@ theorem boolean_gaussian_span_and_prefix {n : ℕ} (xs ys : List (Reg n)) :
     unfold booleanRowsSpan
     rw [hgen, AddSubgroup.closure_union]
 
+/-- Encoding a conditional XOR fold gives the initial encoded bit plus the sum of encoded bits
+at selected entries. -/
 theorem boolZModEquiv_foldl_xor_ite {ι : Type*} (l : List ι) (p : ι → Prop)
     [DecidablePred p] (g : ι → Bool) (b : Bool) :
     boolZModEquiv (l.foldl (fun acc j => if p j then acc ^^ g j else acc) b) =
@@ -726,13 +824,18 @@ theorem boolZModEquiv_foldl_xor_ite {ι : Type*} (l : List ι) (p : ι → Prop)
       rw [ih]
       simp
 
+/-- Compute the parity of coordinatewise products strictly after column `i`, together with a
+bit-operation counter. -/
 def booleanTailParityFull {n : ℕ} (row x : Reg n) (i : Fin n) : Bool × ℕ :=
   (List.finRange n).foldl (fun acc j =>
     if i < j then (acc.1 ^^ (row j && x j), acc.2 + 5) else (acc.1, acc.2 + 1)) (false, 0)
 
+/-- The parity component of `booleanTailParityFull`. -/
 def booleanTailParity {n : ℕ} (row x : Reg n) (i : Fin n) : Bool :=
   (booleanTailParityFull row x i).1
 
+/-- The parity component of the counted tail computation equals the corresponding conditional
+XOR fold. -/
 theorem booleanTailParityFull_fst {n : ℕ} (row x : Reg n) (i : Fin n) :
     (booleanTailParityFull row x i).1 =
       (List.finRange n).foldl (fun acc j =>
@@ -755,6 +858,7 @@ theorem booleanTailParityFull_fst {n : ℕ} (row x : Reg n) (i : Fin n) :
         exact ih _ _
   exact hgen _ false 0
 
+/-- Tail parity depends only on coordinates strictly after the pivot column. -/
 theorem booleanTailParity_congr {n : ℕ} (row : Reg n) (i : Fin n) {x y : Reg n}
     (h : ∀ j, i < j → x j = y j) :
     booleanTailParity row x i = booleanTailParity row y i := by
@@ -775,6 +879,7 @@ theorem booleanTailParity_congr {n : ℕ} (row : Reg n) (i : Fin n) {x y : Reg n
         exact ih _
   exact hgen _ false
 
+/-- The tail parity bit-operation count is at most `5 * n`. -/
 theorem booleanTailParityFull_snd_le {n : ℕ} (row x : Reg n) (i : Fin n) :
     (booleanTailParityFull row x i).2 ≤ 5 * n := by
   unfold booleanTailParityFull
@@ -799,6 +904,8 @@ theorem booleanTailParityFull_snd_le {n : ℕ} (row x : Reg n) (i : Fin n) :
   have h0 : ((false, 0) : Bool × ℕ).2 = 0 := rfl
   rwa [h0, zero_add] at h
 
+/-- Encoded tail parity equals the sum of encoded coordinate products strictly after the pivot
+column. -/
 theorem boolZModEquiv_booleanTailParity {n : ℕ} (row x : Reg n) (i : Fin n) :
     boolZModEquiv (booleanTailParity row x i) =
       ∑ j ∈ Finset.univ.filter (fun j => i < j),
@@ -810,6 +917,8 @@ theorem boolZModEquiv_booleanTailParity {n : ℕ} (row x : Reg n) (i : Fin n) :
   rw [← Finset.sum_filter]
   exact Finset.sum_congr rfl (fun j _ => rfl)
 
+/-- Set a free coordinate from the supplied free register or a pivot coordinate from its row's
+tail parity, updating the operation count. -/
 def booleanBackSubstituteStep {n : ℕ} (piv : Fin n → Option (Reg n)) (free : Reg n)
     (acc : Reg n × ℕ) (i : Fin n) : Reg n × ℕ :=
   match piv i with
@@ -818,16 +927,21 @@ def booleanBackSubstituteStep {n : ℕ} (piv : Fin n → Option (Reg n)) (free :
     (Function.update acc.1 i (booleanTailParity row acc.1 i),
       acc.2 + 2 + (booleanTailParityFull row acc.1 i).2)
 
+/-- Perform one back-substitution step at the reversed coordinate `Fin.rev k`. -/
 def booleanBackSubstituteRevStep {n : ℕ} (piv : Fin n → Option (Reg n)) (free : Reg n)
     (acc : Reg n × ℕ) (k : Fin n) : Reg n × ℕ :=
   booleanBackSubstituteStep piv free acc (Fin.rev k)
 
+/-- At an unoccupied pivot column, back substitution updates that coordinate with its supplied
+free bit. -/
 theorem booleanBackSubstituteStep_fst_none {n : ℕ} (piv : Fin n → Option (Reg n))
     (free : Reg n) (acc : Reg n × ℕ) {i : Fin n} (h : piv i = none) :
     (booleanBackSubstituteStep piv free acc i).1 = Function.update acc.1 i (free i) := by
   unfold booleanBackSubstituteStep
   rw [h]
 
+/-- At an occupied pivot column, back substitution updates that coordinate with the pivot row's
+tail parity. -/
 theorem booleanBackSubstituteStep_fst_some {n : ℕ} (piv : Fin n → Option (Reg n))
     (free : Reg n) (acc : Reg n × ℕ) {i : Fin n} {row : Reg n} (h : piv i = some row) :
     (booleanBackSubstituteStep piv free acc i).1 =
@@ -835,14 +949,19 @@ theorem booleanBackSubstituteStep_fst_some {n : ℕ} (piv : Fin n → Option (Re
   unfold booleanBackSubstituteStep
   rw [h]
 
+/-- Perform counted back substitution in decreasing coordinate order, starting from the supplied
+free register. -/
 def booleanBackSubstituteFull {n : ℕ} (piv : Fin n → Option (Reg n)) (free : Reg n) :
     Reg n × ℕ :=
   ((List.finRange n).reverse).foldl (booleanBackSubstituteStep piv free) (free, 0)
 
+/-- The register produced by the counted back-substitution procedure. -/
 def booleanBackSubstitute {n : ℕ} (piv : Fin n → Option (Reg n)) (free : Reg n) :
     Reg n :=
   (booleanBackSubstituteFull piv free).1
 
+/-- The back-substituted register equals the free bit at an unoccupied column and the final tail
+parity at an occupied column. -/
 theorem booleanBackSubstitute_apply {n : ℕ} (piv : Fin n → Option (Reg n)) (free : Reg n)
     (i : Fin n) :
     booleanBackSubstitute piv free i =
@@ -924,6 +1043,7 @@ theorem booleanBackSubstitute_apply {n : ℕ} (piv : Fin n → Option (Reg n)) (
             omega) _ _).symm)
   exact h i (Nat.sub_self n ▸ Nat.zero_le _)
 
+/-- Split a sum over `Fin n` into indices before `i`, the term at `i`, and indices after `i`. -/
 theorem finSum_split_three {n : ℕ} (i : Fin n) (g : Fin n → ZMod 2) :
     ∑ j, g j = (∑ j ∈ Finset.univ.filter (· < i), g j) + g i +
       (∑ j ∈ Finset.univ.filter (i < ·), g j) := by
@@ -952,6 +1072,8 @@ theorem finSum_split_three {n : ℕ} (i : Fin n) (g : Fin n → ZMod 2) :
     rw [← Finset.sum_filter_add_sum_filter_not Finset.univ (fun j => j ≤ i) g, hnot]
   rw [hmain, hle, Finset.sum_union hdisj, Finset.sum_singleton, add_assoc]
 
+/-- For an echelon pivot table, back substitution produces a vector orthogonal to every pivot
+row and preserves all supplied free coordinates. -/
 theorem boolean_gaussian_back_substitution {n : ℕ} (piv : Fin n → Option (Reg n))
     (free : Reg n) :
     IsBooleanEchelon piv →
@@ -981,21 +1103,27 @@ theorem boolean_gaussian_back_substitution {n : ℕ} (piv : Fin n → Option (Re
   · intro i hi
     rw [booleanBackSubstitute_apply, hi]
 
+/-- The list of coordinates with no pivot row, in increasing order. -/
 def booleanFreeColumns {n : ℕ} (piv : Fin n → Option (Reg n)) : List (Fin n) :=
   (List.finRange n).filter (fun i => (piv i).isNone)
 
+/-- A coordinate is listed as free exactly when its pivot entry is `none`. -/
 theorem mem_booleanFreeColumns {n : ℕ} {piv : Fin n → Option (Reg n)} {j : Fin n} :
     j ∈ booleanFreeColumns piv ↔ piv j = none := by
   simp [booleanFreeColumns, Option.isNone_iff_eq_none]
 
+/-- The list of free columns has no duplicates. -/
 theorem nodup_booleanFreeColumns {n : ℕ} (piv : Fin n → Option (Reg n)) :
     (booleanFreeColumns piv).Nodup :=
   List.Nodup.filter _ (List.nodup_finRange n)
 
+/-- The number of free columns is at most `n`. -/
 theorem length_booleanFreeColumns_le {n : ℕ} (piv : Fin n → Option (Reg n)) :
     (booleanFreeColumns piv).length ≤ n :=
   (List.length_filter_le _ _).trans_eq List.length_finRange
 
+/-- A fold that appends one computed element at each step produces the initial list followed by
+the mapped input list. -/
 theorem foldl_append_singleton_fst {α β : Type*} (l : List β) (g : β → α) (c : β → ℕ) :
     ∀ (acc : List α) (z : ℕ),
       (l.foldl (fun (a : List α × ℕ) j => (a.1 ++ [g j], a.2 + c j)) (acc, z)).1 =
@@ -1008,6 +1136,8 @@ theorem foldl_append_singleton_fst {α β : Type*} (l : List β) (g : β → α)
     rw [ih]
     simp [List.append_assoc]
 
+/-- If each step adds at most `B` to the counter, the final counter is at most its initial value
+plus the list length times `B`. -/
 theorem foldl_append_singleton_snd {α β : Type*} (l : List β) (g : β → α) (c : β → ℕ)
     (B : ℕ) :
     ∀ (_hc : ∀ j ∈ l, c j ≤ B) (acc : List α) (z : ℕ),
@@ -1024,15 +1154,19 @@ theorem foldl_append_singleton_snd {α β : Type*} (l : List β) (g : β → α)
     have h5 : (l.length + 1) * B = l.length * B + B := Nat.succ_mul _ _
     omega
 
+/-- Back-substitute a unit free assignment for every free column, collecting the resulting
+registers and their operation counts. -/
 def booleanKernelBasisFull {n : ℕ} (piv : Fin n → Option (Reg n)) : List (Reg n) × ℕ :=
   (booleanFreeColumns piv).foldl (fun acc j =>
     (acc.1 ++ [(booleanBackSubstituteFull piv (fun i => decide (i = j))).1],
       acc.2 + (booleanBackSubstituteFull piv (fun i => decide (i = j))).2))
     ([], n)
 
+/-- The list component of `booleanKernelBasisFull`. -/
 def booleanKernelBasis {n : ℕ} (piv : Fin n → Option (Reg n)) : List (Reg n) :=
   (booleanKernelBasisFull piv).1
 
+/-- The constructed kernel list is the map of unit free assignments through back substitution. -/
 theorem booleanKernelBasis_eq_map {n : ℕ} (piv : Fin n → Option (Reg n)) :
     booleanKernelBasis piv =
       (booleanFreeColumns piv).map (fun j =>
@@ -1041,6 +1175,7 @@ theorem booleanKernelBasis_eq_map {n : ℕ} (piv : Fin n → Option (Reg n)) :
   rw [foldl_append_singleton_fst]
   simp [booleanBackSubstitute]
 
+/-- The counted back-substitution cost is at most `n * (2 + 5 * n)`. -/
 theorem booleanBackSubstituteFull_snd_le {n : ℕ} (piv : Fin n → Option (Reg n))
     (free : Reg n) :
     (booleanBackSubstituteFull piv free).2 ≤ n * (2 + 5 * n) := by
@@ -1070,6 +1205,7 @@ theorem booleanBackSubstituteFull_snd_le {n : ℕ} (piv : Fin n → Option (Reg 
   rw [List.length_reverse, List.length_finRange] at h
   simpa using h
 
+/-- The counted kernel-list construction cost is at most `n + n * (n * (2 + 5 * n))`. -/
 theorem booleanKernelBasisFull_snd_le {n : ℕ} (piv : Fin n → Option (Reg n)) :
     (booleanKernelBasisFull piv).2 ≤
       n + n * (n * (2 + 5 * n)) := by
@@ -1088,6 +1224,7 @@ theorem booleanKernelBasisFull_snd_le {n : ℕ} (piv : Fin n → Option (Reg n))
     _ ≤ n + n * (n * (2 + 5 * n)) :=
       Nat.add_le_add_left (Nat.mul_le_mul hle le_rfl) n
 
+/-- The free-column list length equals the cardinality of the set of unoccupied pivot columns. -/
 theorem length_booleanFreeColumns {n : ℕ} (piv : Fin n → Option (Reg n)) :
     (booleanFreeColumns piv).length =
       (Finset.univ.filter (fun i => piv i = none)).card := by
@@ -1099,16 +1236,21 @@ theorem length_booleanFreeColumns {n : ℕ} (piv : Fin n → Option (Reg n)) :
   rw [htoFinset] at hcard
   exact hcard.symm
 
+/-- Back substitution of the unit assignment at `j` has bit `decide (i = j)` at every free
+column `i`. -/
 theorem booleanBackSubstitute_apply_free {n : ℕ} (piv : Fin n → Option (Reg n))
     (j i : Fin n) (hi : piv i = none) :
     booleanBackSubstitute piv (fun l => decide (l = j)) i = decide (i = j) := by
   rw [booleanBackSubstitute_apply, hi]
 
+/-- Equal lists have equal entries at the same valid index, independently of the chosen bound
+proofs. -/
 theorem list_getElem_eq_of_eq {α : Type*} {l₁ l₂ : List α} (h : l₁ = l₂) (i : ℕ)
     (h₁ : i < l₁.length) (h₂ : i < l₂.length) : l₁[i]'h₁ = l₂[i]'h₂ := by
   subst h
   rfl
 
+/-- The encoded kernel-list vectors restrict to the identity matrix on the ordered free columns. -/
 theorem booleanKernelBasis_eval_free {n : ℕ} {piv : Fin n → Option (Reg n)}
     (i : ℕ) (hi : i < (booleanKernelBasis piv).length)
     (j : ℕ) (hj : j < (booleanFreeColumns piv).length) :
@@ -1144,6 +1286,7 @@ theorem booleanKernelBasis_eval_free {n : ℕ} {piv : Fin n → Option (Reg n)}
     rw [h0, if_neg hji]
     exact boolZModEquiv_false
 
+/-- The constructed kernel list has no repeated registers. -/
 theorem booleanKernelBasis_nodup {n : ℕ} (piv : Fin n → Option (Reg n)) :
     (booleanKernelBasis piv).Nodup := by
   rw [booleanKernelBasis_eq_map]
@@ -1157,6 +1300,7 @@ theorem booleanKernelBasis_nodup {n : ℕ} (piv : Fin n → Option (Reg n)) :
     exact hv
   · exact nodup_booleanFreeColumns piv
 
+/-- The encoded vectors of the constructed kernel list are linearly independent over `ZMod 2`. -/
 theorem booleanKernelBasis_linearIndependent {n : ℕ} (piv : Fin n → Option (Reg n)) :
     LinearIndependent (ZMod 2) (fun j : Fin (booleanKernelBasis piv).length =>
       regBooleanEquiv n ((booleanKernelBasis piv)[j])) := by
@@ -1185,6 +1329,7 @@ theorem booleanKernelBasis_linearIndependent {n : ℕ} (piv : Fin n → Option (
       rw [if_neg (fun h => hij h.symm), mul_zero]) (fun hn => absurd hj hn)] at h0
   simpa using h0
 
+/-- Every element of `ZMod 2` is zero or one. -/
 theorem zmod2_eq_zero_or_one (c : ZMod 2) : c = 0 ∨ c = 1 := by
   have hv : c.val = 0 ∨ c.val = 1 := by
     have hlt := ZMod.val_lt c
@@ -1198,12 +1343,14 @@ theorem zmod2_eq_zero_or_one (c : ZMod 2) : c = 0 ∨ c = 1 := by
     rw [← hcast, h1]
     simp
 
+/-- Adding an element of `ZMod 2` to itself gives zero. -/
 theorem zmod2_add_self (a : ZMod 2) : a + a = 0 := by
   rcases zmod2_eq_zero_or_one a with h | h
   · rw [h, add_zero]
   · rw [h, ← Nat.cast_one, ← Nat.cast_add]
     exact ZMod.natCast_self 2
 
+/-- Two elements of `ZMod 2` whose sum is zero are equal. -/
 theorem zmod2_eq_of_add_eq_zero {a b : ZMod 2} (h : a + b = 0) : a = b := by
   have hbb := zmod2_add_self b
   calc a = a + (b + b) := by rw [hbb]; simp
@@ -1211,6 +1358,8 @@ theorem zmod2_eq_of_add_eq_zero {a b : ZMod 2} (h : a + b = 0) : a = b := by
     _ = 0 + b := by rw [h]
     _ = b := zero_add b
 
+/-- For an echelon pivot table, the constructed kernel-list span is contained in the pivot
+kernel. -/
 theorem booleanRowsSpan_kernelBasis_le {n : ℕ} (piv : Fin n → Option (Reg n))
     (hech : IsBooleanEchelon piv) :
     booleanRowsSpan (booleanKernelBasis piv) ≤ booleanPivotKernel piv := by
@@ -1227,6 +1376,8 @@ theorem booleanRowsSpan_kernelBasis_le {n : ℕ} (piv : Fin n → Option (Reg n)
   intro i row hrow
   exact (boolean_gaussian_back_substitution piv _ hech).1 i row hrow
 
+/-- For an echelon pivot table, every vector in the pivot kernel lies in the constructed
+kernel-list span. -/
 theorem booleanPivotKernel_le_span {n : ℕ} (piv : Fin n → Option (Reg n))
     (hech : IsBooleanEchelon piv) :
     booleanPivotKernel piv ≤ booleanRowsSpan (booleanKernelBasis piv) := by
@@ -1335,6 +1486,8 @@ theorem booleanPivotKernel_le_span {n : ℕ} (piv : Fin n → Option (Reg n))
   rw [← hy_eq_x]
   exact hy_span
 
+/-- For an echelon pivot table, the constructed list has no duplicates, is linearly independent,
+spans the pivot kernel, and has one entry per free column. -/
 theorem boolean_gaussian_kernel_basis {n : ℕ} (piv : Fin n → Option (Reg n)) :
     IsBooleanEchelon piv →
     (booleanKernelBasis piv).Nodup ∧
@@ -1350,6 +1503,8 @@ theorem boolean_gaussian_kernel_basis {n : ℕ} (piv : Fin n → Option (Reg n))
   · rw [booleanKernelBasis_eq_map, List.length_map]
     exact length_booleanFreeColumns piv
 
+/-- The pivot kernel obtained by eliminating a sample list equals the Boolean sample candidate
+subgroup. -/
 theorem boolean_gaussian_record_kernel {n m : ℕ} (samples : Fin m → Reg n) :
     booleanPivotKernel (booleanEchelonRun (List.ofFn samples)).pivots =
       booleanSampleCandidate (fun i => regBooleanEquiv n (samples i)) := by
@@ -1368,11 +1523,14 @@ theorem boolean_gaussian_record_kernel {n m : ℕ} (samples : Fin m → Reg n) :
   · rintro ⟨i, rfl⟩
     exact ⟨samples i, List.mem_ofFn.mpr ⟨i, rfl⟩, rfl⟩
 
+/-- The additive subgroup generated by one Boolean vector is its subgroup of integer multiples. -/
 theorem addSubgroupClosure_singleton_eq_zmultiples {n : ℕ} (a : BooleanVec n) :
     AddSubgroup.closure {a} = AddSubgroup.zmultiples a := by
   ext x
   rw [AddSubgroup.mem_closure_singleton, AddSubgroup.mem_zmultiples_iff]
 
+/-- For Boolean vectors, membership in the linear span over `ZMod 2` is equivalent to membership
+in the additive subgroup closure. -/
 theorem mem_span_iff_mem_closure_zmod2 {n : ℕ} (s : Set (BooleanVec n))
     (x : BooleanVec n) :
     x ∈ Submodule.span (ZMod 2) s ↔ x ∈ AddSubgroup.closure s := by
@@ -1400,6 +1558,8 @@ theorem mem_span_iff_mem_closure_zmod2 {n : ℕ} (s : Set (BooleanVec n))
       exact neg_mem hy
     · exact hx
 
+/-- For an echelon pivot table, the pivot kernel has cardinality two to the length of its
+constructed basis list. -/
 theorem booleanPivotKernel_card_eq_two_pow {n : ℕ} (piv : Fin n → Option (Reg n))
     (hech : IsBooleanEchelon piv) :
     Fintype.card (booleanPivotKernel piv) = 2 ^ (booleanKernelBasis piv).length := by
@@ -1442,6 +1602,8 @@ theorem booleanPivotKernel_card_eq_two_pow {n : ℕ} (piv : Fin n → Option (Re
     exact Fintype.card_congr (Equiv.refl _)
   rw [hcardK, hcardM]
 
+/-- Return zero for an empty kernel basis, its sole vector for a singleton basis, or `none` for
+a larger basis, together with the elimination and kernel-construction cost. -/
 def decodeSimonWithCost {n m : ℕ} (samples : Fin m → Reg n) : Option (Reg n) × ℕ :=
   (match booleanKernelBasis (booleanEchelonRun (List.ofFn samples)).pivots with
    | [] => some (ZeroStr n)
@@ -1450,9 +1612,12 @@ def decodeSimonWithCost {n m : ℕ} (samples : Fin m → Reg n) : Option (Reg n)
    (booleanEchelonRun (List.ofFn samples)).bitOps +
      (booleanKernelBasisFull (booleanEchelonRun (List.ofFn samples)).pivots).2)
 
+/-- The optional secret returned by `decodeSimonWithCost`. -/
 def decodeSimonSecret {n m : ℕ} (samples : Fin m → Reg n) : Option (Reg n) :=
   (decodeSimonWithCost samples).1
 
+/-- The span of a singleton row list equals the additive subgroup generated by its encoded
+vector. -/
 theorem booleanRowsSpan_singleton {n : ℕ} (x : Reg n) :
     booleanRowsSpan [x] = AddSubgroup.closure {regBooleanEquiv n x} := by
   unfold booleanRowsSpan
@@ -1460,6 +1625,7 @@ theorem booleanRowsSpan_singleton {n : ℕ} (x : Reg n) :
   ext v
   simp
 
+/-- The natural number `2 ^ L` exceeds two exactly when `L` is at least two. -/
 theorem two_lt_two_pow_iff (L : ℕ) : 2 < 2 ^ L ↔ 2 ≤ L := by
   constructor
   · intro h
@@ -1471,6 +1637,8 @@ theorem two_lt_two_pow_iff (L : ℕ) : 2 < 2 ^ L ↔ 2 ≤ L := by
       _ = 2 ^ 2 := by norm_num
       _ ≤ 2 ^ L := Nat.pow_le_pow_right (by norm_num) h
 
+/-- The decoder returns `some s` exactly when the sample candidate equals the Simon subgroup
+generated by the encoded `s` [Simon1997]. -/
 theorem boolean_gaussian_simon_decode_iff {n m : ℕ} (samples : Fin m → Reg n)
     (s : Reg n) :
     decodeSimonSecret samples = some s ↔
@@ -1564,6 +1732,8 @@ theorem boolean_gaussian_simon_decode_iff {n m : ℕ} (samples : Fin m → Reg n
         rw [hb]
         rw [hvs]
 
+/-- The decoder returns `none` exactly when the sample candidate subgroup has cardinality
+greater than two. -/
 theorem boolean_gaussian_ambiguous_record {n m : ℕ} (samples : Fin m → Reg n) :
     decodeSimonSecret samples = none ↔
       2 < Fintype.card (booleanSampleCandidate (fun i => regBooleanEquiv n (samples i))) := by
@@ -1586,6 +1756,9 @@ theorem boolean_gaussian_ambiguous_record {n m : ℕ} (samples : Fin m → Reg n
       | cons v₂ rest' => simp [List.length_cons]
   rw [hlen2, ← hK, hcard, two_lt_two_pow_iff]
 
+/-- The counted decoder returns `decodeSimonSecret`, its total cost is at most `10 * (m * n ^ 2
++ n ^ 3 + m * n + n ^ 2 + n + 1)`, and its elimination cost satisfies the displayed
+quadratic bound. -/
 theorem boolean_gaussian_actual_operation_bound {n m : ℕ} (samples : Fin m → Reg n) :
     (decodeSimonWithCost samples).1 = decodeSimonSecret samples ∧
     (decodeSimonWithCost samples).2 ≤ 10*(m*n^2+n^3+m*n+n^2+n+1) ∧

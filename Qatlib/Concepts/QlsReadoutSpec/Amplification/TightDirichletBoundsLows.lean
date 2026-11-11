@@ -9,6 +9,29 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Analysis.Calculus.MeanValue
+
+/-!
+# Sharp quadratic bounds for amplification gain ratios
+
+This module proves `Clause7TightDirichletBounds_answer`, bounding the normalized sine ratio
+between quadratic expressions with coefficients 1/6 and `(4 * Real.pi - 8) / Real.pi ^ 3`. It
+constructs witnesses showing both coefficients are sharp for natural amplification factors at
+least three and angles without overshoot, and computes `gainLoss 3` exactly.
+
+Sine amplification and its gain ratios arise in amplitude amplification [BrassardEtAl2002]. For
+sharp Dirichlet-kernel bounds for tunable amplification, see [LowSu2026].
+
+## Main statements
+
+* `Clause7TightDirichletBounds_answer`: Proves the two sharp ratio bounds, their optimality, and
+  the triple-angle gain identity.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +46,7 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical
 
+/-- The derivative of `Real.cos u - 1 + u ^ 2 / 2` at `t` is `t - Real.sin t`. -/
 private theorem hasDerivAt_cos_sub (t : ℝ) :
     HasDerivAt (fun u : ℝ => Real.cos u - 1 + u ^ 2 / 2) (t - Real.sin t) t := by
   have a : HasDerivAt (fun u : ℝ => Real.cos u) (-Real.sin t) t := Real.hasDerivAt_cos t
@@ -39,6 +63,7 @@ private theorem hasDerivAt_cos_sub (t : ℝ) :
   rw [hd] at c
   exact c
 
+/-- The derivative of `Real.sin u - u + u ^ 3 / 6` at `t` is `Real.cos t - 1 + t ^ 2 / 2`. -/
 private theorem hasDerivAt_sin_sub (t : ℝ) :
     HasDerivAt (fun u : ℝ => Real.sin u - u + u ^ 3 / 6)
       (Real.cos t - 1 + t ^ 2 / 2) t := by
@@ -54,6 +79,8 @@ private theorem hasDerivAt_sin_sub (t : ℝ) :
   have f : HasDerivAt (fun u : ℝ => Real.sin u - u) (Real.cos t - 1) t := a.sub b
   exact f.add c
 
+/-- The derivative of the fifth-order sine polynomial minus sine is the fourth-order cosine
+polynomial minus cosine. -/
 private theorem hasDerivAt_five (t : ℝ) :
     HasDerivAt (fun u : ℝ => u - u ^ 3 / 6 + u ^ 5 / 120 - Real.sin u)
       (1 - t ^ 2 / 2 + t ^ 4 / 24 - Real.cos t) t := by
@@ -78,6 +105,8 @@ private theorem hasDerivAt_five (t : ℝ) :
       ((1 - t ^ 2 / 2) + t ^ 4 / 24) t := g1.add c
   exact g2.sub f
 
+/-- The derivative of `1 - u ^ 2 / 2 + u ^ 4 / 24 - Real.cos u` is `-u + u ^ 3 / 6 + Real.sin
+u`. -/
 private theorem hasDerivAt_four (t : ℝ) :
     HasDerivAt (fun u : ℝ => 1 - u ^ 2 / 2 + u ^ 4 / 24 - Real.cos u)
       (-t + t ^ 3 / 6 + Real.sin t) t := by
@@ -105,6 +134,7 @@ private theorem hasDerivAt_four (t : ℝ) :
   rw [hd] at g2
   exact g2
 
+/-- For every real `t`, `Real.cos t - 1 + t ^ 2 / 2` is nonnegative. -/
 private theorem cos_sub_one_add_sq_nonneg (t : ℝ) : 0 ≤ Real.cos t - 1 + t ^ 2 / 2 := by
   have hsq : Real.sin (t / 2) ^ 2 ≤ (t / 2) ^ 2 := Real.sin_sq_le_sq
   have h2 : Real.sin (t / 2) ^ 2 = (1 - Real.cos t) / 2 := by
@@ -114,6 +144,7 @@ private theorem cos_sub_one_add_sq_nonneg (t : ℝ) : 0 ≤ Real.cos t - 1 + t ^
     linarith
   nlinarith
 
+/-- For nonnegative `x`, sine is bounded below by `x - x ^ 3 / 6`. -/
 private theorem sin_ge_sub_cube (x : ℝ) (hx : 0 ≤ x) : x - x ^ 3 / 6 ≤ Real.sin x := by
   have hg_mono : Monotone (fun t : ℝ => Real.sin t - t + t ^ 3 / 6) := by
     apply monotone_of_deriv_nonneg
@@ -125,6 +156,7 @@ private theorem sin_ge_sub_cube (x : ℝ) (hx : 0 ≤ x) : x - x ^ 3 / 6 ≤ Rea
   have hg0 : (fun t : ℝ => Real.sin t - t + t ^ 3 / 6) 0 = 0 := by simp
   linarith
 
+/-- For nonnegative `x`, sine is bounded above by `x - x ^ 3 / 6 + x ^ 5 / 120`. -/
 private theorem sin_le_add_five (x : ℝ) (hx : 0 ≤ x) : Real.sin x ≤ x - x ^ 3 / 6 + x ^ 5 / 120 := by
   have hh_mono : MonotoneOn (fun t : ℝ => t - t ^ 3 / 6 + t ^ 5 / 120 - Real.sin t) (Set.Ici 0) := by
     apply monotoneOn_of_deriv_nonneg (convex_Ici 0)
@@ -155,6 +187,7 @@ private theorem sin_le_add_five (x : ℝ) (hx : 0 ≤ x) : Real.sin x ≤ x - x 
   have hh0 : (fun t : ℝ => t - t ^ 3 / 6 + t ^ 5 / 120 - Real.sin t) 0 = 0 := by simp
   linarith [this, hh0]
 
+/-- For amplitudes in the unit interval, `gainLoss 3 a = 1 - (4 / 3) * a ^ 2`. -/
 private theorem gainLoss_three (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     gainLoss 3 a = 1 - (4/3)*a^2 := by
   unfold gainLoss
@@ -171,6 +204,8 @@ private theorem gainLoss_three (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
       nlinarith
     field_simp
 
+/-- For natural `ρ ≥ 3` and `0 ≤ ρ * θ ≤ Real.pi / 2` with `θ ≥ 0`, the amplified sine is at
+least `ρ * Real.sin θ - ρ ^ 3 * Real.sin θ ^ 3 / 6`. -/
 private theorem sin_rho_theta_ge (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 ≤ θ)
     (hle : ρ * θ ≤ Real.pi / 2) :
     Real.sin (ρ * θ) ≥ (ρ:ℝ) * Real.sin θ - (ρ:ℝ) ^ 3 * Real.sin θ ^ 3 / 6 := by
@@ -201,6 +236,8 @@ private theorem sin_rho_theta_ge (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0
   have hcube := sin_ge_sub_cube ((ρ:ℝ) * Real.sin θ) hρsinθ
   nlinarith [hmono, hcube, hsinθ_le, hρ0]
 
+/-- The absolute sine of a natural multiple of an angle is at most that multiple of its absolute
+sine. -/
 private theorem abs_sin_nat_mul_le (n : ℕ) (θ : ℝ) :
     |Real.sin ((n:ℝ) * θ)| ≤ (n:ℝ) * |Real.sin θ| := by
   induction n with
@@ -227,6 +264,8 @@ private theorem abs_sin_nat_mul_le (n : ℕ) (θ : ℝ) :
     have h8 : ((n:ℝ) + 1) * |Real.sin θ| = (n:ℝ) * |Real.sin θ| + |Real.sin θ| := by ring
     nlinarith [ih, h1, h2, h7, h8]
 
+/-- For nonnegative angles and an amplified angle at most `Real.pi / 2`, the amplified sine is
+at most the natural amplification factor times the original sine. -/
 private theorem sin_nat_mul_le (n : ℕ) (θ : ℝ) (hθ : 0 ≤ θ) (hθle : θ ≤ Real.pi / 2)
     (hle : (n:ℝ) * θ ≤ Real.pi / 2) : Real.sin ((n:ℝ) * θ) ≤ (n:ℝ) * Real.sin θ := by
   have h1 : 0 ≤ Real.sin ((n:ℝ) * θ) :=
@@ -238,6 +277,8 @@ private theorem sin_nat_mul_le (n : ℕ) (θ : ℝ) (hθ : 0 ≤ θ) (hθle : θ
   rw [abs_of_nonneg h1, abs_of_nonneg h2] at this
   exact this
 
+/-- For `ρ ≥ 3` and a nonnegative angle without overshoot, the normalized sine ratio, defined as
+one at zero, is at least `1 - ρ ^ 2 * Real.sin θ ^ 2 / 6`. -/
 private theorem dirichlet_lower (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 ≤ θ)
     (hle : ρ * θ ≤ Real.pi / 2) :
     1 - (ρ:ℝ) ^ 2 * (Real.sin θ) ^ 2 / 6 ≤
@@ -266,6 +307,8 @@ private theorem dirichlet_lower (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 
     rw [le_div_iff₀ hpos]
     nlinarith [h, hsinθpos, hρpos, hθ, Real.sin_le hθ]
 
+/-- For `r ≥ 2` and positive `θ` with `r * θ ≤ Real.pi / 2`, the cubic drop minus its
+fifth-order correction is nonnegative. -/
 private theorem cubic_drop_nonneg (r θ : ℝ) (hr : 2 ≤ r) (hθ : 0 < θ)
     (hle : r * θ ≤ Real.pi / 2) :
     0 ≤ θ ^ 3 * (r ^ 3 - r) / 6 - r ^ 5 * θ ^ 5 / 120 := by
@@ -305,6 +348,8 @@ private theorem cubic_drop_nonneg (r θ : ℝ) (hr : 2 ≤ r) (hθ : 0 < θ)
   apply div_nonneg _ (by norm_num)
   nlinarith [hkey]
 
+/-- For `ρ ≥ 3` and a positive angle without overshoot, the drop in normalized sine ratio is at
+least `θ ^ 2 * (ρ ^ 2 - 1) / 6 - ρ ^ 4 * θ ^ 4 / 120`. -/
 private theorem drop_ge_poly (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 < θ)
     (hle : ρ * θ ≤ Real.pi / 2) :
     1 - Real.sin (ρ * θ) / (ρ * Real.sin θ) ≥
@@ -367,6 +412,8 @@ private theorem drop_ge_poly (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 < �
           div_le_div_of_nonneg_left hNnonneg hden (by nlinarith [hsinθ_le, hρ0])
   linarith [hstep1, hdiv]
 
+/-- Evaluating the quadratic-minus-quartic drop polynomial at `1 / r ^ 2` gives `(20 * r ^ 2 -
+21) / (120 * r ^ 4)` for positive `r`. -/
 private theorem small_angle_poly (r : ℝ) (hr : 0 < r) :
     (1 / r ^ 2) ^ 2 * (r ^ 2 - 1) / 6 - r ^ 4 * (1 / r ^ 2) ^ 4 / 120
       = (20 * r ^ 2 - 21) / (120 * r ^ 4) := by
@@ -375,6 +422,8 @@ private theorem small_angle_poly (r : ℝ) (hr : 0 < r) :
   field_simp [hr2, hr4]
   ring
 
+/-- For `c < 1 / 6` and sufficiently large `r ≥ 3` as specified, the small-angle polynomial
+exceeds `c / r ^ 2`. -/
 private theorem small_angle_ratio (r c : ℝ) (hr : 3 ≤ r) (hc : c < 1 / 6)
     (hε : (0:ℝ) < 20 - 120 * c) (hbig : 21 / (20 - 120 * c) < r) :
     (20 * r ^ 2 - 21) / (120 * r ^ 4) > c / r ^ 2 := by
@@ -391,6 +440,8 @@ private theorem small_angle_ratio (r c : ℝ) (hr : 3 ≤ r) (hc : c < 1 / 6)
     nlinarith [hmain, sq_nonneg r, sq_nonneg (r ^ 2)]
   exact hgt
 
+/-- Every coefficient smaller than `1 / 6` fails as a uniform quadratic lower-bound coefficient
+for the normalized sine ratio without overshoot. -/
 private theorem witness_small_c (c : ℝ) (hc : c < 1 / 6) :
     ∃ (ρ : ℕ) (θ : ℝ), 3 ≤ ρ ∧ 0 < θ ∧ ρ * θ ≤ Real.pi / 2 ∧
       Real.sin (ρ * θ) / (ρ * Real.sin θ) < 1 - c * (ρ:ℝ) ^ 2 * (Real.sin θ) ^ 2 := by
@@ -494,11 +545,14 @@ private theorem witness_small_c (c : ℝ) (hc : c < 1 / 6) :
       rw [hcastρ, hcastρ2]
       linarith [hfin]
 
+/-- For `y ≤ 1`, the cubic Bernoulli bound `1 - 3 * y ≤ (1 - y) ^ 3` holds. -/
 private theorem bernoulli_cube (y : ℝ) (_hy : 0 ≤ y) (hy1 : y ≤ 1) :
     1 - 3 * y ≤ (1 - y) ^ 3 := by
   have h : (1 - y) ^ 3 - (1 - 3 * y) = y ^ 2 * (3 - y) := by ring
   nlinarith [sq_nonneg y]
 
+/-- The coefficient `(4 * Real.pi - 8) / Real.pi ^ 3` equals `(Real.pi / 2 - 1) / (Real.pi / 2)
+^ 3`. -/
 private theorem c0_eq : (4 * Real.pi - 8) / Real.pi ^ 3
     = (Real.pi / 2 - 1) / ((Real.pi / 2) ^ 3) := by
   have h1 : Real.pi / 2 - 1 = (Real.pi - 2) / 2 := by ring
@@ -513,6 +567,8 @@ private theorem c0_eq : (4 * Real.pi - 8) / Real.pi ^ 3
   field_simp [hpi]
   ring
 
+/-- For a coefficient above `(4 * Real.pi - 8) / Real.pi ^ 3` and sufficiently large `r ≥ 3`,
+the endpoint cubic sine expression is strictly less than one. -/
 private theorem endpoint_core (r c : ℝ) (hr : 3 ≤ r)
     (hc : (4 * Real.pi - 8) / Real.pi ^ 3 < c)
     (hbig : c * Real.pi ^ 2 / (8 * (c - (4 * Real.pi - 8) / Real.pi ^ 3)) < r ^ 2) :
@@ -650,6 +706,8 @@ private theorem endpoint_core (r c : ℝ) (hr : 3 ≤ r)
     nlinarith [hupper, hdn, mul_le_mul_of_nonneg_left hdn (le_of_lt hcc)]
   nlinarith [hfin, hkey]
 
+/-- Every coefficient greater than `(4 * Real.pi - 8) / Real.pi ^ 3` fails as a uniform
+quadratic upper-bound coefficient for the normalized sine ratio without overshoot. -/
 private theorem witness_large_c (c : ℝ) (hc : (4 * Real.pi - 8) / Real.pi ^ 3 < c) :
     ∃ (ρ : ℕ) (θ : ℝ), 3 ≤ ρ ∧ 0 < θ ∧ ρ * θ ≤ Real.pi / 2 ∧
       1 - c * (ρ:ℝ) ^ 2 * (Real.sin θ) ^ 2 < Real.sin (ρ * θ) / (ρ * Real.sin θ) := by
@@ -726,6 +784,7 @@ private theorem witness_large_c (c : ℝ) (hc : (4 * Real.pi - 8) / Real.pi ^ 3 
     rw [hcalc]
     exact hcore
 
+/-- The sharp upper-bound coefficient `(4 * Real.pi - 8) / Real.pi ^ 3` is at most `4 / 27`. -/
 private theorem c0_le_four_div_27 :
     (4 * Real.pi - 8) / Real.pi ^ 3 ≤ 4 / 27 := by
   have hpi3 : 0 < Real.pi ^ 3 := by positivity
@@ -745,6 +804,7 @@ private theorem c0_le_four_div_27 :
   rw [hform] at hdiv
   exact hdiv
 
+/-- The derivative of `Real.sin v - v * Real.cos v` at `u` is `u * Real.sin u`. -/
 private theorem hasDerivAt_sin_sub_u_mul_cos (u : ℝ) :
     HasDerivAt (fun v : ℝ => Real.sin v - v * Real.cos v) (u * Real.sin u) u := by
   have a : HasDerivAt (fun v : ℝ => Real.sin v) (Real.cos u) u := Real.hasDerivAt_sin u
@@ -759,6 +819,7 @@ private theorem hasDerivAt_sin_sub_u_mul_cos (u : ℝ) :
   rw [hd] at c
   exact c
 
+/-- For `u` between zero and `Real.pi / 2`, `u * Real.cos u ≤ Real.sin u`. -/
 private theorem sin_ge_mul_cos (u : ℝ) (hu : 0 ≤ u) (hle : u ≤ Real.pi / 2) :
     u * Real.cos u ≤ Real.sin u := by
   have hmono : MonotoneOn (fun t : ℝ => Real.sin t - t * Real.cos t)
@@ -779,6 +840,8 @@ private theorem sin_ge_mul_cos (u : ℝ) (hu : 0 ≤ u) (hle : u ≤ Real.pi / 2
   have hf0 : (fun t : ℝ => Real.sin t - t * Real.cos t) 0 = 0 := by simp
   linarith
 
+/-- The derivative of `2 * (1 - Real.cos v) - v * Real.sin v` at `u` is `Real.sin u - u *
+Real.cos u`. -/
 private theorem hasDerivAt_two_one_sub_cos (u : ℝ) :
     HasDerivAt (fun v : ℝ => 2 * (1 - Real.cos v) - v * Real.sin v)
       (Real.sin u - u * Real.cos u) u := by
@@ -802,6 +865,8 @@ private theorem hasDerivAt_two_one_sub_cos (u : ℝ) :
   rw [hd] at d
   exact d
 
+/-- The derivative of `v * (2 + Real.cos v) - 3 * Real.sin v` is `2 * (1 - Real.cos v) - v *
+Real.sin v`. -/
 private theorem hasDerivAt_u_two_add_cos (u : ℝ) :
     HasDerivAt (fun v : ℝ => v * (2 + Real.cos v) - 3 * Real.sin v)
       (2 * (1 - Real.cos u) - u * Real.sin u) u := by
@@ -825,6 +890,7 @@ private theorem hasDerivAt_u_two_add_cos (u : ℝ) :
   rw [hd] at c
   exact c
 
+/-- For `u` between zero and `Real.pi / 2`, `3 * Real.sin u ≤ u * (2 + Real.cos u)`. -/
 private theorem three_sin_le_u_mul_two_add_cos (u : ℝ) (hu : 0 ≤ u) (hle : u ≤ Real.pi / 2) :
     3 * Real.sin u ≤ u * (2 + Real.cos u) := by
   have hh'mono : MonotoneOn (fun v : ℝ => 2 * (1 - Real.cos v) - v * Real.sin v)
@@ -861,6 +927,8 @@ private theorem three_sin_le_u_mul_two_add_cos (u : ℝ) (hu : 0 ≤ u) (hle : u
   have := hhmono h0 hu' hu
   linarith
 
+/-- For positive `x`, the derivative of `(y - Real.sin y) / y ^ 3` at `x` is `(3 * Real.sin x -
+2 * x - x * Real.cos x) / x ^ 4`. -/
 private theorem hasDerivAt_sub_sin_div_cube (x : ℝ) (hx : 0 < x) :
     HasDerivAt (fun y : ℝ => (y - Real.sin y) / y ^ 3)
       ((3 * Real.sin x - 2 * x - x * Real.cos x) / x ^ 4) x := by
@@ -881,6 +949,8 @@ private theorem hasDerivAt_sub_sin_div_cube (x : ℝ) (hx : 0 < x) :
   rw [hd] at this
   exact this
 
+/-- For positive `x`, the function `(y - Real.sin y) / y ^ 3` is antitone on the interval from
+`x` to `Real.pi / 2`. -/
 private theorem sub_sin_div_cube_antitoneOn (x : ℝ) (hx : 0 < x) (_hxle : x ≤ Real.pi / 2) :
     AntitoneOn (fun y : ℝ => (y - Real.sin y) / y ^ 3) (Set.Icc x (Real.pi / 2)) := by
   apply antitoneOn_of_deriv_nonpos (convex_Icc _ _)
@@ -902,6 +972,8 @@ private theorem sub_sin_div_cube_antitoneOn (x : ℝ) (hx : 0 < x) (_hxle : x �
     have hy4 : 0 ≤ y ^ 4 := by positivity
     exact div_nonpos_of_nonpos_of_nonneg hnum hy4
 
+/-- For `x` between zero and `Real.pi / 2`, the sine deficit `x - Real.sin x` is at least `(4 *
+Real.pi - 8) / Real.pi ^ 3` times `x ^ 3`. -/
 private theorem sub_sin_ge_c0_mul_cube (x : ℝ) (hx : 0 ≤ x) (hle : x ≤ Real.pi / 2) :
     ((4 * Real.pi - 8) / Real.pi ^ 3) * x ^ 3 ≤ x - Real.sin x := by
   by_cases h0 : x = 0
@@ -923,6 +995,8 @@ private theorem sub_sin_ge_c0_mul_cube (x : ℝ) (hx : 0 ≤ x) (hle : x ≤ Rea
     rw [hc0]
     exact hmul
 
+/-- For positive `u`, the derivative of `Real.sin v / v` at `u` is `(u * Real.cos u - Real.sin
+u) / u ^ 2`. -/
 private theorem hasDerivAt_sin_div (u : ℝ) (hu : 0 < u) :
     HasDerivAt (fun v : ℝ => Real.sin v / v)
       ((u * Real.cos u - Real.sin u) / u ^ 2) u := by
@@ -934,6 +1008,8 @@ private theorem hasDerivAt_sin_div (u : ℝ) (hu : 0 < u) :
   rw [hd] at this
   exact this
 
+/-- The function `Real.sin v / v` is antitone on every interval with positive left endpoint and
+right endpoint at most `Real.pi / 2`. -/
 private theorem sin_div_antitoneOn (a b : ℝ) (ha : 0 < a) (_hab : a ≤ b) (hb : b ≤ Real.pi / 2) :
     AntitoneOn (fun v : ℝ => Real.sin v / v) (Set.Icc a b) := by
   apply antitoneOn_of_deriv_nonpos (convex_Icc _ _)
@@ -953,10 +1029,13 @@ private theorem sin_div_antitoneOn (a b : ℝ) (ha : 0 < a) (_hab : a ≤ b) (hb
     have hy2 : 0 ≤ y ^ 2 := by positivity
     exact div_nonpos_of_nonpos_of_nonneg hnum hy2
 
+/-- For `0 < x ≤ y ≤ Real.pi / 2`, `Real.sin y / y ≤ Real.sin x / x`. -/
 private theorem sin_div_anti (x y : ℝ) (hx : 0 < x) (hxy : x ≤ y) (hy : y ≤ Real.pi / 2) :
     Real.sin y / y ≤ Real.sin x / x :=
   sin_div_antitoneOn x y hx hxy hy ⟨le_rfl, hxy⟩ ⟨hxy, le_rfl⟩ hxy
 
+/-- An exact algebraic identity expresses a cubic's value relative to its endpoint chord, with
+remainder `c * t ^ 3 * (w - a) * (1 - w) * (1 - a) * (1 + a + w)`. -/
 private theorem chord_cubic (c t s a w : ℝ) :
     (1 - a) * (t * w - c * t ^ 3 * w ^ 3 - s)
       = (1 - w) * (t * a - c * t ^ 3 * a ^ 3 - s)
@@ -964,6 +1043,8 @@ private theorem chord_cubic (c t s a w : ℝ) :
         + c * t ^ 3 * (w - a) * (1 - w) * (1 - a) * (1 + a + w) := by
   ring
 
+/-- For `ρ ≥ 3` and a nonnegative angle without overshoot, the normalized sine ratio, defined as
+one at zero, is at most `1 - ((4 * Real.pi - 8) / Real.pi ^ 3) * ρ ^ 2 * Real.sin θ ^ 2`. -/
 private theorem dirichlet_upper (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 ≤ θ)
     (hle : ρ * θ ≤ Real.pi / 2) :
     (if θ = 0 then 1 else Real.sin (ρ * θ) / (ρ * Real.sin θ)) ≤
@@ -1112,6 +1193,9 @@ private theorem dirichlet_upper (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 
     rw [hexpand]
     exact hcore
 
+/-- Establishes the sharp quadratic bounds, optimality witnesses for both coefficients, and the
+exact triple-angle gain formula in `Clause7TightDirichletBounds`. See [Low and Su,
+Proposition 16][LowSu2026]. -/
 theorem Clause7TightDirichletBounds_answer : Clause7TightDirichletBounds := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro ρ θ hρ hθ hle

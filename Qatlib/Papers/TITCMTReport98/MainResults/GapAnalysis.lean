@@ -10,6 +10,31 @@ import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Order.Filter.AtTopBot.Field
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Two-level gap and quasistatic deficiency
+
+This module analyzes an explicit real two-level Hamiltonian and the gap-dependent weight
+expressions used in [KadowakiNishimori1998]. It verifies a ground-energy equation, identifies
+the corresponding overlap weight when the coupling is nonzero, and studies the small-coupling
+deficiency.
+
+The finite-sum expression `quasistaticDeficiency` records squared couplings divided by squared
+energy differences. Its square-root schedule scales exactly as inverse time.
+
+## Main statements
+
+* `twoLevel_ground_eigen`: verifies the ground-energy equation for the explicit vector.
+* `twoLevel_excited_equiv`: gives the quadratic small-coupling equivalent for positive diagonal
+  gap.
+* `twoLevel_schedule_deficiency_tendsto`: gives the rescaled large-time limit.
+* `quasistaticDeficiency_schedule`: computes the deficiency along `c / √t`.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,26 +49,38 @@ open scoped Topology BigOperators
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- The real symmetric two-level matrix with diagonal energies `E0`, `E1` and off-diagonal
+entries `-g`. -/
 def twoLevelHamiltonian (E0 E1 g : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
   !![E0, -g; -g, E1]
 
+/-- The difference `E1 - E0` between the diagonal energies. -/
 def twoLevelGap (E0 E1 : ℝ) : ℝ := E1 - E0
 
+/-- The square-root discriminant `√((E1 - E0) ^ 2 + 4 * g ^ 2)`. -/
 def twoLevelDisc (E0 E1 g : ℝ) : ℝ :=
   Real.sqrt ((E1 - E0) ^ 2 + 4 * g ^ 2)
 
+/-- The lower eigenvalue expression `(E0 + E1 - twoLevelDisc E0 E1 g) / 2`. -/
 def twoLevelGroundEnergy (E0 E1 g : ℝ) : ℝ :=
   (E0 + E1 - twoLevelDisc E0 E1 g) / 2
 
+/-- The vector with coordinates `g` and `(twoLevelDisc E0 E1 g - (E1 - E0)) / 2` used in the
+ground-energy equation. -/
 def twoLevelGroundVec (E0 E1 g : ℝ) : Fin 2 → ℝ :=
   ![g, (twoLevelDisc E0 E1 g - (E1 - E0)) / 2]
 
+/-- The ground-overlap weight expression `(D + (E1 - E0)) / (2D)`, where `D = twoLevelDisc E0 E1
+g`. -/
 def twoLevelGroundWeight (E0 E1 g : ℝ) : ℝ :=
   (twoLevelDisc E0 E1 g + (E1 - E0)) / (2 * twoLevelDisc E0 E1 g)
 
+/-- The complementary weight expression `2 * g ^ 2 / (D * (D + (E1 - E0)))`, where `D =
+twoLevelDisc E0 E1 g`. -/
 def twoLevelExcitedWeight (E0 E1 g : ℝ) : ℝ :=
   2 * g ^ 2 / (twoLevelDisc E0 E1 g * (twoLevelDisc E0 E1 g + (E1 - E0)))
 
+/-- A positive diagonal energy gap makes the discriminant strictly positive. -/
 theorem twoLevelDisc_pos (E0 E1 g : ℝ) (hgap : 0 < E1 - E0) :
     0 < twoLevelDisc E0 E1 g := by
   unfold twoLevelDisc
@@ -51,11 +88,14 @@ theorem twoLevelDisc_pos (E0 E1 g : ℝ) (hgap : 0 < E1 - E0) :
   have : 0 < (E1 - E0) ^ 2 := by positivity
   nlinarith [sq_nonneg g]
 
+/-- The squared discriminant equals `(E1 - E0) ^ 2 + 4 * g ^ 2`. -/
 theorem twoLevelDisc_sq (E0 E1 g : ℝ) :
     twoLevelDisc E0 E1 g ^ 2 = (E1 - E0) ^ 2 + 4 * g ^ 2 := by
   unfold twoLevelDisc
   exact Real.sq_sqrt (by positivity)
 
+/-- For a positive diagonal energy gap, the explicit ground vector satisfies the eigenvalue
+equation with `twoLevelGroundEnergy` [KadowakiNishimori1998]. -/
 theorem twoLevel_ground_eigen (E0 E1 g : ℝ) (_hgap : 0 < E1 - E0) :
     twoLevelHamiltonian E0 E1 g *ᵥ twoLevelGroundVec E0 E1 g
       = twoLevelGroundEnergy E0 E1 g • twoLevelGroundVec E0 E1 g := by
@@ -70,6 +110,9 @@ theorem twoLevel_ground_eigen (E0 E1 g : ℝ) (_hgap : 0 < E1 - E0) :
     ring_nf
     nlinarith [hs2]
 
+/-- For a positive diagonal gap and nonzero coupling, the ground weight equals the squared first
+coordinate divided by the squared norm of the explicit real ground vector
+[KadowakiNishimori1998]. -/
 theorem twoLevelGroundWeight_eq_overlap (E0 E1 g : ℝ) (hgap : 0 < E1 - E0)
     (hg : g ≠ 0) :
     twoLevelGroundWeight E0 E1 g
@@ -95,6 +138,8 @@ theorem twoLevelGroundWeight_eq_overlap (E0 E1 g : ℝ) (hgap : 0 < E1 - E0)
   field_simp
   nlinarith [hs2]
 
+/-- For a positive diagonal energy gap, the ground and excited weight expressions sum to one
+[KadowakiNishimori1998]. -/
 theorem twoLevelGroundWeight_add_excited (E0 E1 g : ℝ) (hgap : 0 < E1 - E0) :
     twoLevelGroundWeight E0 E1 g + twoLevelExcitedWeight E0 E1 g = 1 := by
   have hs2 := twoLevelDisc_sq E0 E1 g
@@ -108,11 +153,15 @@ theorem twoLevelGroundWeight_add_excited (E0 E1 g : ℝ) (hgap : 0 < E1 - E0) :
   ring_nf
   nlinarith [hs2]
 
+/-- For a positive diagonal energy gap, the excited weight equals one minus the ground weight
+[KadowakiNishimori1998]. -/
 theorem twoLevel_excited_eq_one_sub (E0 E1 g : ℝ) (hgap : 0 < E1 - E0) :
     1 - twoLevelGroundWeight E0 E1 g = twoLevelExcitedWeight E0 E1 g := by
   have h := twoLevelGroundWeight_add_excited E0 E1 g hgap
   linarith
 
+/-- For a positive diagonal gap, the excited weight is asymptotically equivalent to `g ^ 2 / (E1
+- E0) ^ 2` as `g` tends to zero through nonzero values [KadowakiNishimori1998]. -/
 theorem twoLevel_excited_equiv (E0 E1 : ℝ) (hgap : 0 < E1 - E0) :
     Asymptotics.IsEquivalent (𝓝[≠] (0 : ℝ))
       (fun g : ℝ => twoLevelExcitedWeight E0 E1 g)
@@ -171,6 +220,8 @@ theorem twoLevel_excited_equiv (E0 E1 : ℝ) (hgap : 0 < E1 - E0) :
     hlim0.mono_left nhdsWithin_le_nhds
   exact Tendsto.congr' heq.symm hlim
 
+/-- For a positive diagonal gap, `t` times the excited weight at coupling `c / √t` tends to `c ^
+2 / (E1 - E0) ^ 2` as `t` tends to infinity [KadowakiNishimori1998]. -/
 theorem twoLevel_schedule_deficiency_tendsto (E0 E1 c : ℝ) (hgap : 0 < E1 - E0) :
     Tendsto (fun t : ℝ => t * twoLevelExcitedWeight E0 E1 (c / Real.sqrt t))
       atTop (𝓝 (c ^ 2 / (E1 - E0) ^ 2)) := by
@@ -223,10 +274,13 @@ theorem twoLevel_schedule_deficiency_tendsto (E0 E1 c : ℝ) (hgap : 0 < E1 - E0
     field_simp
   exact Tendsto.congr' heq.symm hlim0
 
+/-- The finite sum `Γ ^ 2 * ∑ i ≠ g, (V i) ^ 2 / (E g - E i) ^ 2` defining the quasistatic
+deficiency expression. -/
 def quasistaticDeficiency {κ : Type*} [Fintype κ] [DecidableEq κ]
     (E : κ → ℝ) (V : κ → ℝ) (g : κ) (Γ : ℝ) : ℝ :=
   Γ ^ 2 * ∑ i ∈ Finset.univ.erase g, (V i) ^ 2 / (E g - E i) ^ 2
 
+/-- The quasistatic deficiency expression is nonnegative [KadowakiNishimori1998]. -/
 theorem quasistaticDeficiency_nonneg {κ : Type*} [Fintype κ] [DecidableEq κ]
     (E : κ → ℝ) (V : κ → ℝ) (g : κ) (Γ : ℝ) :
     0 ≤ quasistaticDeficiency E V g Γ := by
@@ -235,6 +289,8 @@ theorem quasistaticDeficiency_nonneg {κ : Type*} [Fintype κ] [DecidableEq κ]
     Finset.sum_nonneg (fun i _ => div_nonneg (sq_nonneg _) (sq_nonneg _))
   exact mul_nonneg (sq_nonneg _) hterm
 
+/-- At coupling `c / √t` with `t > 0`, the quasistatic deficiency equals `1 / t` times the sum
+of squared ratios `c * V i / (E g - E i)` over `i ≠ g` [KadowakiNishimori1998]. -/
 theorem quasistaticDeficiency_schedule {κ : Type*} [Fintype κ] [DecidableEq κ]
     (E : κ → ℝ) (V : κ → ℝ) (g : κ) (c t : ℝ) (ht : 0 < t) :
     quasistaticDeficiency E V g (c / Real.sqrt t)
@@ -249,6 +305,8 @@ theorem quasistaticDeficiency_schedule {κ : Type*} [Fintype κ] [DecidableEq κ
   intro i _
   field_simp
 
+/-- For two levels with energies zero and nonzero `d` and unit couplings, the quasistatic
+deficiency at level zero equals `Γ ^ 2 / d ^ 2` [KadowakiNishimori1998]. -/
 theorem twoLevelQuasistatic_eq (d Γ : ℝ) (hd : d ≠ 0) :
     quasistaticDeficiency (fun i : Fin 2 => (![0, d] : Fin 2 → ℝ) i)
       (fun _ : Fin 2 => 1) 0 Γ = Γ ^ 2 / d ^ 2 := by

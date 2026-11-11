@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Reduction.FourierEffectiveRecoveryDefs
+
+/-!
+# Two-register Fourier phase recovery
+
+This module verifies `recordCircuit`, which performs phase estimation at two resolutions on a
+shared eigenstate, and `classifiedCircuit`, which records a Boolean label of the outcomes. It
+proves joint measurement laws, window probability bounds, and exact resource counts.
+
+For orthonormal eigenstate superpositions, `recordRun_spectral_law` expresses the joint law as a
+sum weighted by squared coefficients. The phase estimation framework is described in
+[NielsenChuang2010].
+
+## Main statements
+
+* `recordRun_joint_law`: factors the joint law on an eigenstate.
+* `rationalTolerance_record`: obtains a joint probability bound for rational tolerances.
+* `recordRun_spectral_law`: computes the law for an orthonormal spectral expansion.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,6 +55,7 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] in
 
+/-- Relabeling the record oracle by the register swap exchanges its two resolution parameters. -/
 theorem recordOracle_swap (M N : ℕ) (U : Matrix I I ℂ) :
     relabelGate (recordSwap M N) (recordOracle N M U) = recordOracle M N U := by
   ext ⟨x,b,y,i⟩ ⟨x',b',y',i'⟩
@@ -40,12 +64,15 @@ theorem recordOracle_swap (M N : ℕ) (U : Matrix I I ℂ) :
       TensorGate, Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle, Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.one_apply]
     <;> split_ifs <;> simp_all
 
+/-- The record oracle is unitary whenever its underlying operator `U` is unitary. -/
 theorem recordOracle_unitary (M N : ℕ) (U : Matrix I I ℂ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     recordOracle M N U ∈ Matrix.unitaryGroup (RecordSpace M N I) ℂ :=
   tensorGate_unitary (by simp)
     (Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle_unitary (tensorGate_unitary (by simp) hU))
 
+/-- Tensoring an eigenstate with an arbitrary spectator state preserves its eigenvalue under the
+identity tensored with `U`. -/
 theorem spectator_eigen {J : Type} [Fintype J] [DecidableEq J]
     (U : Matrix I I ℂ) (ψ : QState I) (χ : QState J) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ) :
@@ -56,6 +83,8 @@ theorem spectator_eigen {J : Type} [Fintype J] [DecidableEq J]
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- On an eigenstate of phase `φ`, the record run factors into two phase estimation kernels, the
+false control state, and the original eigenstate. -/
 theorem recordRun_eigen (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ) :
@@ -89,6 +118,8 @@ theorem recordRun_eigen (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   cases b <;> simp [relabelState, recordSwap, TensorState, Ket]
   ring
 
+/-- For positive resolutions, the record circuit is unitary and uses `(M - 1) + (N - 1)` queries
+and `2 * (M - 1) + 2 * (N - 1) + 4` gates. -/
 theorem recordCircuit_resources (M N : ℕ) (hM : 0 < M) (hN : 0 < N) :
     QueryCount (recordCircuit (I := I) M N) = (M-1) + (N-1) ∧
     GateCount (recordCircuit (I := I) M N) = 2*(M-1) + 2*(N-1) + 4 ∧
@@ -105,6 +136,7 @@ theorem recordCircuit_resources (M N : ℕ) (hM : 0 < M) (hN : 0 < N) :
     omega
   · exact (isUnitaryCircuit_append _ _).mpr ⟨hM'.2.2, hr.1.mpr hN'.2.2⟩
 
+/-- For a unitary operator and normalized input state, the record run is normalized. -/
 theorem recordRun_normalized (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (hψ : Normalized ψ) :
@@ -115,6 +147,8 @@ theorem recordRun_normalized (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (normalized_tensorState (normalized_ket _)
       (normalized_tensorState (normalized_ket _) hψ))
 
+/-- On a normalized eigenstate, the joint record probability on `S × T` is the product of the
+two phase kernel probabilities. -/
 theorem recordRun_joint_law (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ)
@@ -125,6 +159,8 @@ theorem recordRun_joint_law (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   simp only [recordEvent, measureProb_tensorState_prod, measureProb_univ (normalized_ket false),
     measureProb_univ hnorm, one_mul, mul_one]
 
+/-- For resolutions at least two and a normalized eigenstate, both phase windows are hit with
+probability at least `(8 / Real.pi^2)^2`. -/
 theorem recordRun_joint_window (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ)
@@ -140,6 +176,8 @@ theorem recordRun_joint_window (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
   nlinarith [mul_le_mul hm hn (by positivity : (0 : ℝ) ≤ 8 / Real.pi^2)
     (measureProb_nonneg (qpeKernel M φ) (phaseWindow M φ))]
 
+/-- The classified circuit is unitary, has the same query count as the record circuit, and uses
+`2 * (M - 1) + 2 * (N - 1) + 5` gates. -/
 theorem classifiedCircuit_resources (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (label : Fin M × Fin N → Bool) :
     QueryCount (classifiedCircuit (I := I) M N label) = (M-1) + (N-1) ∧
@@ -152,6 +190,8 @@ theorem classifiedCircuit_resources (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   · apply (isUnitaryCircuit_append _ _).mpr
     exact ⟨hu, by simp [permMatrix_unitary (classifierFlip_involutive (I := I) M N label)]⟩
 
+/-- On an eigenstate, the classified circuit places the Boolean label in the control register
+and has the product phase-kernel amplitude on matching basis states. -/
 theorem classifiedRun_eigen (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ)
@@ -166,6 +206,8 @@ theorem classifiedRun_eigen (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   rw [applyGate_permMatrix (classifierFlip_involutive M N label)]
   cases b <;> cases h : label (x,y) <;> simp [classifierFlip, TensorState, Ket, h]
 
+/-- For positive rational `ε`, the chosen resolution is at least two and its reciprocal is at
+most `ε`. -/
 theorem resolutionForTolerance_radius (ε : ℚ) (hε : 0 < ε) :
     2 ≤ resolutionForTolerance ε ∧ 1 / (resolutionForTolerance ε : ℝ) ≤ (ε : ℝ) := by
   refine ⟨le_max_left _ _, ?_⟩
@@ -182,6 +224,8 @@ theorem resolutionForTolerance_radius (ε : ℚ) (hε : 0 < ε) :
     (div_le_iff₀ hεR).mp hd
   nlinarith
 
+/-- For positive rational tolerances, the chosen resolutions give joint radius-window
+probability at least `(8 / Real.pi^2)^2` and query count `(M - 1) + (N - 1)`. -/
 theorem rationalTolerance_record (ε δ : ℚ) (hε : 0 < ε) (hδ : 0 < δ)
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ)
@@ -204,6 +248,7 @@ theorem rationalTolerance_record (ε δ : ℚ) (hε : 0 < ε) (hδ : 0 < δ)
     Finset.mem_filter, Finset.mem_univ, true_and, and_true] at hp ⊢
   exact ⟨hp.1.trans hrM, hp.2.trans hrN⟩
 
+/-- Running a fixed circuit commutes with finite weighted sums of input states. -/
 private theorem run_weighted_sum {K J : Type} [Fintype K] [DecidableEq K] [Fintype J]
     (O : Matrix K K ℂ) (C : Circuit K) (v : J → QState K) (c : J → ℂ) :
     Run O C (∑ j, c j • v j) = ∑ j, c j • Run O C (v j) := by
@@ -215,6 +260,7 @@ private theorem run_weighted_sum {K J : Type} [Fintype K] [DecidableEq K] [Finty
   | cons s C ih =>
     cases s <;> simp only [Run] <;> rw [ha, ih]
 
+/-- The record run commutes with finite weighted sums of target states. -/
 theorem recordRun_sum {J : Type} [Fintype J]
     (M N : ℕ) (hM : 0 < M) (hN : 0 < N) (U : Matrix I I ℂ)
     (v : J → QState I) (c : J → ℂ) :
@@ -231,6 +277,8 @@ theorem recordRun_sum {J : Type} [Fintype J]
   unfold recordRun
   rw [hi, run_weighted_sum]
 
+/-- For an orthonormal family of eigenstates, the joint singleton probability is the sum of the
+two kernel probabilities weighted by the squared expansion coefficients. -/
 theorem recordRun_spectral_law {J : Type} [Fintype J]
     (M N : ℕ) (hM : 0 < M) (hN : 0 < N) (U : Matrix I I ℂ)
     (v : J → QState I) (c : J → ℂ) (φ : J → ℝ)

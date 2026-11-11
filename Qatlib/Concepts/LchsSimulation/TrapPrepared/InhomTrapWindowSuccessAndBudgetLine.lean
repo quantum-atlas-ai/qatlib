@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapWindowSuccessAndBudgetStat
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionLine
+
+/-!
+# Success and access bounds for forced LCHS windows
+
+`inhomogeneousTrapezoidWindowSuccessAndBudget` establishes a finite amplification-window
+guarantee for the unified trapezoidal family. The iteration weights sum to one, weighted success
+is at least `1 / 8`, and the compiled words satisfy explicit input and selection access bounds.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneousTrapezoidWindowSuccessAndBudget`: proves the finite-window success and access
+  estimates.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -30,6 +50,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- Under the unified approximation hypotheses, the iteration weights sum to one, `m ≤ 2 * α / τ
++ 1`, weighted success is at least `1 / 8`, and each window word has at most `2 * m + 1`
+input and selection accesses [AnLiuLin2023]. -/
 theorem inhomogeneousTrapezoidWindowSuccessAndBudget :
     InhomogeneousTrapezoidWindowSuccessAndBudget := by
   intro I _ _ L H b s t ε τ K N Mt B P i₀ hL hH hPSD hHerm hst hB hP

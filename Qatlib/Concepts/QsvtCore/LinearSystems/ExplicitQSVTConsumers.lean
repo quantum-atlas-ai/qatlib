@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
+
+/-!
+# Scalar consumers of explicit QSVT inversion
+
+This module supplies a two dimensional unitary oracle and a one dimensional frame encoding the
+scalar `κ⁻¹`. The fixed precision consumer specializes the explicit noisy inverse solver to the
+scalar matrix `1/2` and records its concrete counts and postselection guarantee. The
+mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `explicit_inverse_scalar_unitary_input`: a unitary encoding of the reciprocal scalar.
+* `explicit_inverse_fixed_precision_actual_consumer`: a concrete circuit with forty-seven
+  queries and forty-eight gates.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,15 +54,19 @@ open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The two by two real rotation matrix with diagonal `κ⁻¹` and off diagonal magnitude `√(1 - (κ
+* κ)⁻¹)`. -/
 noncomputable def scalarInverseOracle (κ : ℕ) : Matrix Bool Bool ℂ :=
   Matrix.of fun i j =>
     if i = j then ((κ:ℝ)⁻¹ : ℂ)
     else if i then (-(Real.sqrt (1 - (((κ*κ : ℕ):ℝ))⁻¹) : ℂ))
       else ((Real.sqrt (1 - (((κ*κ : ℕ):ℝ))⁻¹) : ℂ))
 
+/-- The frame embedding the one dimensional input into the false coordinate of `Bool`. -/
 def scalarInverseFrame : Matrix Bool (Fin 1) ℂ :=
   Matrix.of fun b _ => if b then 0 else 1
 
+/-- The scalar inverse frame is an isometry. -/
 theorem scalarInverseFrame_isIsometry : IsIsometry scalarInverseFrame := by
   unfold IsIsometry
   ext i j
@@ -50,6 +74,8 @@ theorem scalarInverseFrame_isIsometry : IsIsometry scalarInverseFrame := by
   fin_cases j
   simp [scalarInverseFrame, Matrix.mul_apply, Matrix.conjTranspose_apply]
 
+/-- Compressing the scalar inverse oracle by its frame gives the one by one matrix with entry
+`κ⁻¹`. -/
 theorem scalarInverseFrame_compress (κ : ℕ) :
     scalarInverseFrameᴴ * scalarInverseOracle κ * scalarInverseFrame =
       Matrix.of (fun _ _ : Fin 1 => ((κ:ℝ)⁻¹ : ℂ)) := by
@@ -59,6 +85,7 @@ theorem scalarInverseFrame_compress (κ : ℕ) :
   simp [scalarInverseFrame, scalarInverseOracle, Matrix.mul_apply,
     Matrix.conjTranspose_apply]
 
+/-- For positive `κ`, the scalar inverse oracle is unitary. -/
 theorem scalarInverseOracle_unitary {κ : ℕ} (hκ : 0 < κ) :
     scalarInverseOracle κ ∈ Matrix.unitaryGroup Bool ℂ := by
   have hpos : (0:ℝ) < (κ:ℝ)⁻¹ := by positivity
@@ -86,6 +113,8 @@ theorem scalarInverseOracle_unitary {κ : ℕ} (hκ : 0 < κ) :
     | exact hkeyC
     | (rw [add_comm]; exact hkeyC)
 
+/-- Every positive `κ` gives a unitary scalar inverse oracle and an isometric frame whose
+compression is `κ⁻¹`. -/
 theorem explicit_inverse_scalar_unitary_input :
     ∀ (κ : ℕ), 0<κ →
       scalarInverseOracle κ ∈ Matrix.unitaryGroup Bool ℂ ∧
@@ -96,6 +125,8 @@ theorem explicit_inverse_scalar_unitary_input :
   exact ⟨scalarInverseOracle_unitary hκ, scalarInverseFrame_isIsometry,
     scalarInverseFrame_compress κ⟩
 
+/-- The one by one matrix with entry `1/2` acts on Euclidean space by scalar multiplication by
+`1/2`. -/
 private theorem scalarA_toEuclideanLin (u : EuclideanSpace ℂ (Fin 1)) :
     (Matrix.of (fun _ _ : Fin 1 => (1/2:ℂ))).toEuclideanLin u = (1/2:ℂ) • u := by
   have hA : (Matrix.of (fun _ _ : Fin 1 => (1/2:ℂ))) =
@@ -107,6 +138,7 @@ private theorem scalarA_toEuclideanLin (u : EuclideanSpace ℂ (Fin 1)) :
   rw [hA, map_smul, Matrix.toLpLin_one]
   simp
 
+/-- The singular value indexed by the input dimension of the one by one matrix `1/2` is `1/2`. -/
 theorem scalar_matrixSingularValues (i : Fin (Fintype.card (Fin 1))) :
     matrixSingularValues (Matrix.of (fun _ _ : Fin 1 => (1/2:ℂ))) i = 1/2 := by
   have h := norm_apply_rightSingularBasis (Matrix.of (fun _ _ : Fin 1 => (1/2:ℂ))) i
@@ -115,6 +147,9 @@ theorem scalar_matrixSingularValues (i : Fin (Fintype.card (Fin 1))) :
   rw [hn, mul_one] at h
   exact h.symm
 
+/-- A unitary oracle within `inverseScale 24 / 768` of the scalar oracle at `κ = 2` gives a
+circuit with forty-seven queries and forty-eight gates, success probability at least `1 /
+384`, and solution state error at most `3 / 8`. -/
 theorem explicit_inverse_fixed_precision_actual_consumer :
     ∀ (V : Matrix Bool Bool ℂ), V ∈ Matrix.unitaryGroup Bool ℂ →
       ‖V-scalarInverseOracle 2‖ ≤ inverseScale 24/768 →

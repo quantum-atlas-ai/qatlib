@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+
+/-!
+# Interaction picture sorting and resource definitions
+
+This module defines cutoff and resource expressions for interaction picture simulation
+[LowWiebe2018], along with index transformations and comparison schedules. `ip25MergeRun`
+records comparisons in a fuel-bounded merge, while `ip25BitonicSort` constructs a comparator
+list on a power-of-two number of positions.
+
+The Boolean gate and recursion definitions provide explicit operations for studying interval
+patterns and sortedness. Further definitions count query steps and prepend diagonal phase gates
+to a sparse effective program.
+
+## Main statements
+
+* `ip27DiagonalProgram`: prepend diagonal phase steps to the sparse program.
+* `ip25SortSchedule`: extract comparisons from a merge-sort run on grid indices.
+* `Ip25BoolBitonic`: express Boolean mountain or valley patterns with a specified number of
+  false entries.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.InteractionEvo.ComputedGrid
@@ -20,61 +45,84 @@ namespace Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib MeasureTheory Set Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The natural ceiling of the logarithmic cutoff expression `2 log(2 / ε) / log(log(2 / ε))`. -/
 noncomputable def ip25CorrectedCutoff (ε : ℝ) : ℕ :=
   Nat.ceil (2 * Real.log (2 / ε) / Real.log (Real.log (2 / ε)))
 
+/-- The dyadic accuracy `1 / 2^k`. -/
 def ip25DyadicAccuracy (k : ℕ) : ℝ := ((2 : ℝ) ^ k)⁻¹
 
+/-- The comparator-count expression `k * (Nat.log2 k + 1)`. -/
 def ip25SortingComparators (k : ℕ) : ℕ := k * (Nat.log2 k + 1)
 
+/-- The permutation of positions exchanging `i` and `j` and fixing every other position. -/
 def ip25IndexTransposition {k : ℕ} (i j : Fin k) : Fin k → Fin k :=
   fun p => if p = i then j else if p = j then i else p
 
+/-- Swaps positions `i` and `j` in a finite grid-index vector. -/
 def ip25IndexSwap {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) : Fin k → Fin M :=
   fun p => v (ip25IndexTransposition i j p)
 
+/-- Leaves the index vector unchanged when its entries at `i` and `j` are ordered, and swaps
+those positions otherwise. -/
 def ip25IndexCompare {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) : Fin k → Fin M :=
   if v i ≤ v j then v else ip25IndexSwap i j v
 
+/-- Reverses the positions of a finite grid-index vector. -/
 def ip25IndexReverse {M k : ℕ} (v : Fin k → Fin M) : Fin k → Fin M :=
   fun p => v ⟨k - 1 - p.val, by omega⟩
 
+/-- The reversal gate-count expression `k`. -/
 def ip25ReverseGates (k : ℕ) : ℕ := k
 
+/-- The segment gate allowance `2 * ipSegmentCopies p`. -/
 def ip26SegmentGateCount (p : EffectiveSegmentParameters) : ℕ :=
   2 * ipSegmentCopies p
 
+/-- The sparse-step count expression, equal to three. -/
 def ip27SparseStepCount (p : EffectiveSparseParameters) : ℕ := 3
 
+/-- The sparse register width expression `p.nd + 2 * p.ns + 2 * p.np`. -/
 def ip27SparseWidth (p : EffectiveSparseParameters) : ℕ :=
   p.nd + 2 * p.ns + 2 * p.np
 
+/-- The shifted Dyson cutoff `computedDysonCutoff (k + 8)` used as a segment query rate. -/
 def ip26SegmentQueryRate (k : ℕ) : ℕ := computedDysonCutoff (k + 8)
 
+/-- The segment query-rate expression multiplied by the segment count `L`. -/
 def ip26TotalQueryRate (L k : ℕ) : ℕ := L * ip26SegmentQueryRate k
 
+/-- The binary ceiling logarithm of the segment count `L`. -/
 def ip26AuxBitRate (L : ℕ) : ℕ := Nat.clog 2 L
 
+/-- The real logarithmic rate expression `2 log(2 / ε) / log(log(2 / ε))`. -/
 noncomputable def ip26NonBinaryRate (ε : ℝ) : ℝ :=
   2 * Real.log (2 / ε) / Real.log (Real.log (2 / ε))
 
+/-- Counts the query steps in an effective program. -/
 def ip27ProgramQueries (prog : EffectiveProgram) : ℕ :=
   (prog.steps.filter (fun s => match s with
     | EffectiveStep.query _ _ _ _ => true
     | _ => false)).length
 
+/-- The diagonal phase-gate count expression `p.nd`. -/
 def ip27DiagonalGateCount (p : EffectiveSparseParameters) : ℕ := p.nd
 
+/-- The diagonal query-count expression, equal to zero. -/
 def ip27DiagonalQueries (p : EffectiveSparseParameters) : ℕ := 0
 
+/-- Prepends `p.nd` phase steps to the sparse program and uses the sparse register width. -/
 def ip27DiagonalProgram (p : EffectiveSparseParameters) : EffectiveProgram :=
   { width := p.nd + 2 * p.ns + 2 * p.np
     steps := (List.range p.nd).map (fun i => EffectiveStep.phase i 1 1 false)
       ++ (ipSparseProgram p).steps }
 
+/-- The sum of the diagonal phase-gate count and the sparse program's total step count. -/
 def ip27DiagonalTotalGates (p : EffectiveSparseParameters) : ℕ :=
   ip27DiagonalGateCount p + (ipSparseProgram p).steps.length
 
+/-- Runs a fuel-bounded merge of two lists with an accumulated prefix and records the compared
+position pairs. -/
 def ip25MergeRun {α : Type} (le : α → α → Bool) (off : ℕ) (fuel : ℕ)
     (res a b : List α) : List α × List (ℕ × ℕ) :=
   match fuel with
@@ -91,6 +139,8 @@ def ip25MergeRun {α : Type} (le : α → α → Bool) (off : ℕ) (fuel : ℕ)
           let (r, t) := ip25MergeRun le off fuel (res ++ [y]) (x :: xs) ys
           (r, (off + res.length, off + res.length + (x :: xs).length) :: t)
 
+/-- Runs fuel-bounded recursive merge sorting with a position offset, returning the resulting
+list and recorded comparison pairs. -/
 def ip25SortRunAt {α : Type} (le : α → α → Bool) (off : ℕ) (fuel : ℕ)
     (xs : List α) : List α × List (ℕ × ℕ) :=
   match fuel with
@@ -107,13 +157,17 @@ def ip25SortRunAt {α : Type} (le : α → α → Bool) (off : ℕ) (fuel : ℕ)
         let (m, t3) := ip25MergeRun le off (l.length + r.length) [] ls rs
         (m, t1 ++ t2 ++ t3)
 
+/-- Runs `ip25SortRunAt` with fuel equal to the input list length. -/
 def ip25SortRun {α : Type} (le : α → α → Bool) (off : ℕ) (xs : List α) :
     List α × List (ℕ × ℕ) :=
   ip25SortRunAt le off xs.length xs
 
+/-- Extracts the comparison pairs recorded while merge sorting the given finite grid-index
+vector. -/
 def ip25SortSchedule {M k : ℕ} (v : Fin k → Fin M) : List (ℕ × ℕ) :=
   (ip25SortRun (fun a b => decide (a ≤ b)) 0 (List.ofFn v)).2
 
+/-- A comparator descriptor with two natural-number positions and a direction flag. -/
 structure Ip25BitonicGate where
 
   i : ℕ
@@ -123,6 +177,8 @@ structure Ip25BitonicGate where
   up : Bool
   deriving DecidableEq, Repr
 
+/-- Constructs a recursive bitonic merge comparator list for `2^s` positions and the chosen
+direction. -/
 def ip25BitonicMerge (s : ℕ) (up : Bool) : List Ip25BitonicGate :=
   match s with
   | 0 => []
@@ -133,6 +189,8 @@ def ip25BitonicMerge (s : ℕ) (up : Bool) : List Ip25BitonicGate :=
           ++ (ip25BitonicMerge s up).map
             (fun g => ⟨g.i + half, g.j + half, g.up⟩))
 
+/-- Constructs a recursive bitonic sorting comparator list for `2^m` positions and the chosen
+direction. -/
 def ip25BitonicSortDir (m : ℕ) (up : Bool) : List Ip25BitonicGate :=
   match m with
   | 0 => []
@@ -142,8 +200,11 @@ def ip25BitonicSortDir (m : ℕ) (up : Bool) : List Ip25BitonicGate :=
         ++ ((ip25BitonicSortDir m up).map (fun g => ⟨g.i + half, g.j + half, g.up⟩)
           ++ ip25BitonicMerge (m + 1) up)
 
+/-- The ascending comparator list produced by `ip25BitonicSortDir m true`. -/
 def ip25BitonicSort (m : ℕ) : List Ip25BitonicGate := ip25BitonicSortDir m true
 
+/-- Applies a Boolean comparator, placing conjunction and disjunction at the two designated
+positions according to its direction. -/
 def ip25BoolGate (g : Ip25BitonicGate) (v : ℕ → Bool) : ℕ → Bool :=
   fun j =>
     if j = g.i then
@@ -152,15 +213,22 @@ def ip25BoolGate (g : Ip25BitonicGate) (v : ℕ → Bool) : ℕ → Bool :=
       if g.up then v j || v g.i else v j && v g.i
     else v j
 
+/-- Applies a list of Boolean comparators in order. -/
 def ip25BoolRun (gs : List Ip25BitonicGate) (v : ℕ → Bool) : ℕ → Bool :=
   gs.foldl (fun v g => ip25BoolGate g v) v
 
+/-- Compares corresponding positions in two halves, placing their conjunction in the lower half
+and disjunction in the upper half. -/
 def ip25BoolHalfCleaner (h : ℕ) (v : ℕ → Bool) : ℕ → Bool :=
   fun j => if j < h then v j && v (j + h) else if j < 2 * h then v (j - h) || v j else v j
 
+/-- The ascending comparator list pairing each position below `h` with the position `h` places
+above it. -/
 def ip25BoolHalfCleanerGates (h : ℕ) : List Ip25BitonicGate :=
   (List.range h).map (fun j => ⟨j, j + h, true⟩)
 
+/-- Recursively applies Boolean half-cleaners to two halves, preserving positions outside the
+active range. -/
 def ip25BoolMergeRun (s : ℕ) (up : Bool) (v : ℕ → Bool) : ℕ → Bool :=
   match s with
   | 0 => v
@@ -171,6 +239,8 @@ def ip25BoolMergeRun (s : ℕ) (up : Bool) (v : ℕ → Bool) : ℕ → Bool :=
       let hi := ip25BoolMergeRun s up (fun j => b (j + half))
       fun j => if j < half then lo j else if j < 2 * half then hi (j - half) else b j
 
+/-- Recursively processes two halves with opposite direction flags and combines them using
+`ip25BoolMergeRun`. -/
 def ip25BoolSortRun (m : ℕ) (up : Bool) (v : ℕ → Bool) : ℕ → Bool :=
   match m with
   | 0 => v
@@ -180,18 +250,28 @@ def ip25BoolSortRun (m : ℕ) (up : Bool) (v : ℕ → Bool) : ℕ → Bool :=
       let hi := ip25BoolSortRun m up (fun j => v (j + half))
       ip25BoolMergeRun (m + 1) up (fun j => if j < half then lo j else hi (j - half))
 
+/-- States that the first `n` Boolean entries are true on one interval and false elsewhere, with
+`z` false entries. -/
 def Ip25BoolMountain (v : ℕ → Bool) (n z : ℕ) : Prop :=
   ∃ A B, A ≤ B ∧ B ≤ n ∧ n - (B - A) = z ∧ ∀ j < n, v j = decide (A ≤ j ∧ j < B)
 
+/-- States that the first `n` Boolean entries are false on one interval and true elsewhere, with
+interval length `z`. -/
 def Ip25BoolValley (v : ℕ → Bool) (n z : ℕ) : Prop :=
   ∃ A B, A ≤ B ∧ B ≤ n ∧ B - A = z ∧ ∀ j < n, v j = decide (j < A ∨ (B ≤ j))
 
+/-- States that the first `n` Boolean entries have either the mountain or valley interval
+pattern with `z` false entries. -/
 def Ip25BoolBitonic (v : ℕ → Bool) (n z : ℕ) : Prop :=
   Ip25BoolMountain v n z ∨ Ip25BoolValley v n z
 
+/-- States that the first `n` Boolean entries consist of `z` false entries followed by true
+entries. -/
 def Ip25BoolSorted (v : ℕ → Bool) (n z : ℕ) : Prop :=
   z ≤ n ∧ ∀ j < n, v j = decide (z ≤ j)
 
+/-- States that the first `n` Boolean entries consist of true entries followed by `z` false
+entries. -/
 def Ip25BoolReverseSorted (v : ℕ → Bool) (n z : ℕ) : Prop :=
   z ≤ n ∧ ∀ j < n, v j = decide (j < n - z)
 

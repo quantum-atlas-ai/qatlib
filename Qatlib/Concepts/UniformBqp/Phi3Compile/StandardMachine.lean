@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachineDefs
+
+/-!
+# Reversible gate programs and clocked machine guarantees
+
+This module proves correctness and resource bounds for reversible gate ladders implementing
+controlled bit flips with clean auxiliary wires. It also establishes bounded-clock simulation,
+randomized-machine termination, polynomial-time complementation, and exact gate decompositions.
+
+For `GeneralNativeMachine`, the finite-window results give exact Phi3 simulation with explicit
+register and gate bounds. The final results show that a separator-based pair encoding collides
+and prevents the stated gate-count emitter for the reference construction.
+
+For background, see [Yao1993].
+
+## Main statements
+
+* `mcxProgram_run`: correctness of the pattern-controlled bit flip with clean auxiliary wires.
+* `clocked_always_halts`: bounded termination of a clocked tape machine.
+* `generalPhi3_cellTable`: exact Phi3 simulation and resource guarantees.
+* `emitterClause_impossible_for_theorem2_build`: obstruction from an ambiguous input encoding.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,12 +53,14 @@ namespace StandardMachine
 
 open Matrix
 
+/-- Running concatenated gate words equals running the first word and then the second. -/
 theorem BoundedGate.run_append {n : ℕ} (l m : List (BoundedGate n)) (x : Reg n) :
     BoundedGate.run (l ++ m) x = BoundedGate.run m (BoundedGate.run l x) := by
   induction l generalizing x with
   | nil => rfl
   | cons g l ih => simp only [List.cons_append, BoundedGate.run, ih]
 
+/-- Reversing a word of well-formed involutive gates undoes its action on a register. -/
 theorem BoundedGate.run_reverse {n : ℕ} (l : List (BoundedGate n)) (x : Reg n)
     (hg : ∀ g ∈ l, g.wellformed) :
     BoundedGate.run l.reverse (BoundedGate.run l x) = x := by
@@ -48,6 +76,8 @@ theorem BoundedGate.run_reverse {n : ℕ} (l : List (BoundedGate n)) (x : Reg n)
       rw [hrev, BoundedGate.run, ih (g.act x) hg']
       exact (BoundedGate.act_involutive g (hg g (by simp))) x
 
+/-- The matrix of a bounded-gate word is the permutation matrix associated with its register
+action. -/
 theorem BoundedGate.wordMatrix_eq_permMatrix {n : ℕ} (l : List (BoundedGate n)) :
     BoundedGate.wordMatrix l = permMatrix (BoundedGate.run l) := by
   induction l with
@@ -61,9 +91,12 @@ theorem BoundedGate.wordMatrix_eq_permMatrix {n : ℕ} (l : List (BoundedGate n)
         rfl
       rw [hcomp]
 
+/-- A gate word touches a wire when that wire belongs to the support of some gate in the word. -/
 def BoundedGate.touches {n : ℕ} (w : List (BoundedGate n)) (s : Fin n) : Prop :=
   ∃ g ∈ w, s ∈ g.support
 
+/-- A wire is touched by a nonempty word exactly when it is in the first gate support or touched
+by the remaining word. -/
 theorem BoundedGate.touches_cons {n : ℕ} (g : BoundedGate n) (l : List (BoundedGate n))
     (s : Fin n) : BoundedGate.touches (g :: l) s ↔ s ∈ g.support ∨ BoundedGate.touches l s := by
   constructor
@@ -76,6 +109,7 @@ theorem BoundedGate.touches_cons {n : ℕ} (g : BoundedGate n) (l : List (Bounde
     · exact ⟨g, (List.mem_cons_self : g ∈ g :: l), h⟩
     · exact ⟨g', List.mem_cons_of_mem g hg', hs'⟩
 
+/-- Reversing a gate word preserves the set of wires it touches. -/
 theorem BoundedGate.touches_reverse {n : ℕ} (w : List (BoundedGate n)) (s : Fin n) :
     BoundedGate.touches w.reverse s ↔ BoundedGate.touches w s := by
   constructor
@@ -84,6 +118,7 @@ theorem BoundedGate.touches_reverse {n : ℕ} (w : List (BoundedGate n)) (s : Fi
   · rintro ⟨g, hg, hs⟩
     exact ⟨g, List.mem_reverse.mpr hg, hs⟩
 
+/-- A gate preserves every register bit outside its support. -/
 theorem BoundedGate.act_eq_of_not_mem_support {n : ℕ} (g : BoundedGate n) (reg : Reg n)
     {s : Fin n} (hs : s ∉ g.support) : (g.act reg) s = reg s := by
   cases g with
@@ -103,6 +138,8 @@ theorem BoundedGate.act_eq_of_not_mem_support {n : ℕ} (g : BoundedGate n) (reg
         exact hs (by simp [BoundedGate.support, hsc])
       simp [BoundedGate.act, Function.update, hsc]
 
+/-- A well-formed gate sends registers agreeing on its support to outputs agreeing on its
+support. -/
 theorem BoundedGate.act_congr_on {n : ℕ} (g : BoundedGate n) (hw : g.wellformed)
     {reg reg' : Reg n} (h : ∀ s ∈ g.support, reg s = reg' s) :
     ∀ s ∈ g.support, (g.act reg) s = (g.act reg') s := by
@@ -141,6 +178,7 @@ theorem BoundedGate.act_congr_on {n : ℕ} (g : BoundedGate n) (hw : g.wellforme
         have h3 := h b (by simp [BoundedGate.support])
         simp [BoundedGate.act, Function.update, h1, h2, h3]
 
+/-- Running a gate word preserves every wire that the word does not touch. -/
 theorem BoundedGate.run_untouched {n : ℕ} : ∀ (w : List (BoundedGate n)) (reg : Reg n) {s : Fin n},
     ¬ BoundedGate.touches w s → (BoundedGate.run w reg) s = reg s := by
   intro w
@@ -158,6 +196,8 @@ theorem BoundedGate.run_untouched {n : ℕ} : ∀ (w : List (BoundedGate n)) (re
       rw [ih (g.act reg) hl]
       exact BoundedGate.act_eq_of_not_mem_support g reg hg
 
+/-- A word of well-formed gates sends registers agreeing on all gate supports to outputs
+agreeing on every touched wire. -/
 theorem BoundedGate.run_congr_touched {n : ℕ} : ∀ (w : List (BoundedGate n)) {reg reg' : Reg n},
     (∀ g ∈ w, g.wellformed) →
     (∀ g ∈ w, ∀ s ∈ g.support, reg s = reg' s) →
@@ -201,18 +241,21 @@ theorem BoundedGate.run_congr_touched {n : ℕ} : ∀ (w : List (BoundedGate n))
             (fun g'' hg'' => hw g'' (List.mem_cons_of_mem g hg''))
             hagx s hlt)
 
+/-- A controlled-NOT from an address wire to an auxiliary wire preserves all address bits. -/
 theorem cx_addr_preserved {n m : ℕ} (c : Fin n) (a : Fin m) (x : Reg (n + m)) :
     ∀ w : Fin n, ((BoundedGate.cx (addrWire m c) (ancWire n a)).act x) (addrWire m w)
       = x (addrWire m w) := by
   intro w
   simp [BoundedGate.act, Function.update, addrWire_ne_ancWire n m w a]
 
+/-- A doubly controlled bit flip targeting an auxiliary wire preserves every address bit. -/
 theorem ccx_addr_preserved {n m : ℕ} (p : Fin m) (c : Fin n) (a : Fin m) (x : Reg (n + m)) :
     ∀ w : Fin n, ((BoundedGate.ccx (ancWire n p) (addrWire m c) (ancWire n a)).act x) (addrWire m w)
       = x (addrWire m w) := by
   intro w
   simp [BoundedGate.act, Function.update, addrWire_ne_ancWire n m w a]
 
+/-- The conjunction accumulation program preserves all address bits. -/
 theorem conjAccum_preserves_addr {n m : ℕ} (l : List (Fin n × Fin m)) (prev : Fin m)
     (x : Reg (n + m)) :
     ∀ w : Fin n, (BoundedGate.run (conjAccum l prev) x) (addrWire m w) = x (addrWire m w) := by
@@ -229,6 +272,7 @@ theorem conjAccum_preserves_addr {n m : ℕ} (l : List (Fin n × Fin m)) (prev :
       rw [ih a _ w]
       exact ccx_addr_preserved prev c a x w
 
+/-- The conjunction ladder preserves all address bits. -/
 theorem conjLadder_preserves_addr {n m : ℕ} (l : List (Fin n × Fin m)) (x : Reg (n + m)) :
     ∀ w : Fin n, (BoundedGate.run (conjLadder l) x) (addrWire m w) = x (addrWire m w) := by
   induction l generalizing x with
@@ -244,33 +288,41 @@ theorem conjLadder_preserves_addr {n m : ℕ} (l : List (Fin n × Fin m)) (x : R
       rw [conjAccum_preserves_addr rest a _ w]
       exact cx_addr_preserved c a x w
 
+/-- Every bounded gate has arity at most three. -/
 theorem BoundedGate.arity_le_three {n : ℕ} (g : BoundedGate n) : g.arity ≤ 3 := by
   cases g <;> simp [BoundedGate.arity]
 
+/-- Every gate in the all-true controlled bit-flip program has arity at most three. -/
 theorem mcxProgramAll_arity {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) :
     ∀ g ∈ mcxProgramAll l t, g.arity ≤ 3 := by
   intro g hg
   cases g <;> simp [BoundedGate.arity] at hg ⊢
 
+/-- Every gate in the pattern-controlled bit-flip program has arity at most three. -/
 theorem mcxProgram_arity {n : ℕ} (t : Fin n) (p : Reg n) :
     ∀ g ∈ mcxProgram t p, g.arity ≤ 3 := by
   intro g hg
   cases g <;> simp [BoundedGate.arity] at hg ⊢
 
+/-- Equality of embedded address wires implies equality of their original indices. -/
 theorem addrWire_injective {n m : ℕ} {a b : Fin n} (h : addrWire m a = addrWire m b) : a = b := by
   have hv := congrArg Fin.val h
   simp only [addrWire_val] at hv
   exact Fin.ext hv
 
+/-- Equality of embedded auxiliary wires implies equality of their original indices. -/
 theorem ancWire_injective {n m : ℕ} {a b : Fin m} (h : ancWire n a = ancWire n b) : a = b := by
   have hv := congrArg Fin.val h
   simp only [ancWire_val] at hv
   exact Fin.ext (by omega)
 
+/-- Distinct auxiliary indices give distinct embedded wires. -/
 theorem ancWire_ne_ancWire {n m : ℕ} {a b : Fin m} (h : a ≠ b) : ancWire n a ≠ ancWire n b := by
   intro hcon
   exact h (ancWire_injective hcon)
 
+/-- The conjunction of the selected address bits depends only on the address portion of the
+register. -/
 theorem ladderChain_congr_addr {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) {x y : Reg (n + m)},
     (∀ w : Fin n, x (addrWire m w) = y (addrWire m w)) → ladderChain l x = ladderChain l y := by
   intro l
@@ -282,6 +334,8 @@ theorem ladderChain_congr_addr {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) {x 
       simp only [ladderChain]
       rw [h c, ih (x := x) (y := y) h]
 
+/-- The recursive ladder conjunction equals the Boolean conjunction of all selected control
+bits. -/
 theorem ladderChain_eq_ctrlConjAll {n m : ℕ} (l : List (Fin n × Fin m)) (x : Reg (n + m)) :
     ladderChain l x = ctrlConjAll l x := by
   induction l with
@@ -290,6 +344,9 @@ theorem ladderChain_eq_ctrlConjAll {n m : ℕ} (l : List (Fin n × Fin m)) (x : 
       rcases p with ⟨c, a⟩
       simp [ladderChain, ctrlConjAll, ih]
 
+/-- With distinct initially false destination wires and a separate initial auxiliary wire, a
+nonempty conjunction chain stores the initial auxiliary bit conjoined with all selected
+address bits in its last destination. -/
 theorem conjChain_conj {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (x : Reg (n + m)),
     (∀ a ∈ ancOf l, x (ancWire n a) = false) →
     (ancOf l).Nodup →
@@ -345,6 +402,8 @@ theorem conjChain_conj {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (x : Reg (n
           simp [ladderChain, Bool.and_assoc,
             ladderChain_congr_addr tl (ccx_addr_preserved prev hc ha x)]
 
+/-- A nonempty conjunction ladder with distinct initially false auxiliary wires stores the
+conjunction of its address controls in its last auxiliary wire. -/
 theorem conjLadder_conj {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (x : Reg (n + m)),
     (∀ a ∈ ancOf l, x (ancWire n a) = false) →
     (ancOf l).Nodup →
@@ -391,6 +450,8 @@ theorem conjLadder_conj {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (x : Reg (
           rw [hchain, hx1]
           simp [ladderChain, ladderChain_congr_addr tl (cx_addr_preserved hc ha x)]
 
+/-- A conjunction chain consists of well-formed gates when its auxiliary destinations are
+distinct and exclude its initial auxiliary wire. -/
 theorem conjChain_wellformed {n m : ℕ} : ∀ (l : List (Fin n × Fin m)),
     (ancOf l).Nodup → ∀ (prev : Fin m), prev ∉ ancOf l →
     ∀ g ∈ conjChain prev l, g.wellformed := by
@@ -416,6 +477,8 @@ theorem conjChain_wellformed {n m : ℕ} : ∀ (l : List (Fin n × Fin m)),
           intro hmem
           exact (List.nodup_cons.mp hd).1 hmem) g hg'
 
+/-- A conjunction ladder consists of well-formed gates when its auxiliary destinations are
+distinct. -/
 theorem conjLadder_wellformed {n m : ℕ} (l : List (Fin n × Fin m)) (hd : (ancOf l).Nodup) :
     ∀ g ∈ conjLadder l, g.wellformed := by
   induction l with
@@ -434,6 +497,7 @@ theorem conjLadder_wellformed {n m : ℕ} (l : List (Fin n × Fin m)) (hd : (anc
           intro hmem
           exact (List.nodup_cons.mp hd).1 hmem) g hg'
 
+/-- A conjunction chain avoids an address target that is absent from its control indices. -/
 theorem conjChain_not_touches_target {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (t : Fin n),
     (∀ p ∈ l, p.1 ≠ t) → ∀ (prev : Fin m),
     ∀ g ∈ conjChain prev l, addrWire m t ∉ g.support := by
@@ -456,6 +520,7 @@ theorem conjChain_not_touches_target {n m : ℕ} : ∀ (l : List (Fin n × Fin m
         · exact absurd h3 (addrWire_ne_ancWire n m t pa)
       · exact ih t (fun q hq => ht q (by simp [hq])) pa g hg'
 
+/-- A conjunction ladder avoids an address target that is absent from its control indices. -/
 theorem conjLadder_not_touches_target {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n)
     (ht : ∀ p ∈ l, p.1 ≠ t) : ∀ g ∈ conjLadder l, addrWire m t ∉ g.support := by
   cases l with
@@ -475,6 +540,7 @@ theorem conjLadder_not_touches_target {n m : ℕ} (l : List (Fin n × Fin m)) (t
         · exact absurd h2 (addrWire_ne_ancWire n m t pa)
       · exact conjChain_not_touches_target rest t (fun q hq => ht q (by simp [hq])) pa g hg'
 
+/-- The last pair of a list with a final appended singleton is that singleton pair. -/
 theorem lastPair_append_singleton {n m : ℕ} : ∀ (tail : List (Fin n × Fin m)) (p : Fin n × Fin m),
     lastPair (tail ++ [p]) = some p := by
   intro tail
@@ -489,12 +555,17 @@ theorem lastPair_append_singleton {n m : ℕ} : ∀ (tail : List (Fin n × Fin m
           simp only [lastPair]
           simpa [List.cons_append] using! ih p
 
+/-- With no control pairs, the all-true controlled program agrees with the unconditional target
+flip. -/
 theorem mcxProgramAll_run_nil {n m : ℕ} (t : Fin n) (x : Reg (n + m)) :
     BoundedGate.run (mcxProgramAll [] t) x = mcxAllPerm [] t x := by
   have h1 : lastPair (n := n) (m := m) [] = none := rfl
   rw [mcxProgramAll, h1]
   simp [mcxAllPerm, BoundedGate.run, BoundedGate.act]
 
+/-- Computing the conjunction, toggling the target, and reversing the ladder changes only the
+target by the control conjunction when auxiliary wires are clean and distinct and the target
+is not a control. -/
 theorem mcxMiddle_run {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) (x : Reg (n + m))
     (hanc : ∀ a : Fin m, x (ancWire n a) = false)
     (hd : (ancOf l).Nodup)
@@ -568,6 +639,8 @@ theorem mcxMiddle_run {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) (x : R
   rw [hrun]
   exact hrest
 
+/-- A nonempty all-true controlled program implements `mcxAllPerm` when auxiliary wires start
+false, auxiliary destinations are distinct, and no control is the target. -/
 theorem mcxProgramAll_run {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) (x : Reg (n + m))
     (hanc : ∀ a : Fin m, x (ancWire n a) = false)
     (hd : (ancOf l).Nodup)
@@ -617,6 +690,7 @@ theorem mcxProgramAll_run {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) (x
     rw [mcxAllPerm, if_neg hc]
     simp [hchain]
 
+/-- A conjunction chain contains exactly one gate per control-destination pair. -/
 theorem conjChain_length {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (prev : Fin m),
     (conjChain prev l).length = l.length := by
   intro l
@@ -624,17 +698,22 @@ theorem conjChain_length {n m : ℕ} : ∀ (l : List (Fin n × Fin m)) (prev : F
   | nil => intro prev; rfl
   | cons p rest ih => intro prev; simp [conjChain, ih p.2]
 
+/-- A conjunction ladder contains exactly one gate per control-destination pair. -/
 theorem conjLadder_length {n m : ℕ} (l : List (Fin n × Fin m)) :
     (conjLadder l).length = l.length := by
   induction l with
   | nil => rfl
   | cons p rest ih => simp [conjLadder, conjAccum, conjChain_length]
 
+/-- A list of distinct auxiliary indices has length at most the number of available auxiliary
+wires. -/
 theorem ancOf_length_le {n m : ℕ} (l : List (Fin n × Fin m)) (hd : (ancOf l).Nodup) :
     (ancOf l).length ≤ m := by
   have hcard := List.Nodup.length_le_card hd
   simpa using! hcard
 
+/-- The all-true controlled program uses at most twice the number of control pairs plus one
+gate. -/
 theorem mcxProgramAll_gate_count {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) :
     (mcxProgramAll l t).length ≤ 2 * l.length + 1 := by
   cases hl : lastPair l with
@@ -643,10 +722,14 @@ theorem mcxProgramAll_gate_count {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fi
       simp [mcxProgramAll, hl, conjLadder_length]
       omega
 
+/-- The matrix of the all-true controlled program equals the permutation matrix of its register
+action. -/
 theorem mcxProgramAll_matrix {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) :
     BoundedGate.wordMatrix (mcxProgramAll l t) = permMatrix (BoundedGate.run (mcxProgramAll l t)) :=
   BoundedGate.wordMatrix_eq_permMatrix _
 
+/-- The address portion of `mcxPerm` agrees with the evaluation of the corresponding
+pattern-controlled address gate. -/
 theorem mcxPerm_addrGate {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1))) :
     ∀ w : Fin n,
       mcxPerm t p x (addrWire (n - 1) w)
@@ -671,6 +754,7 @@ theorem mcxPerm_addrGate {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1)
         (fun w => x (addrWire (n - 1) w)) := fun hp => h (hmatch.mp hp)
     rw [Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.eval, if_neg hneg]
 
+/-- Filtering a list with no repeated entries preserves the absence of repetitions. -/
 theorem nodup_filter_of_nodup {α : Type} (p : α → Bool) :
     ∀ (l : List α), l.Nodup → (l.filter p).Nodup := by
   intro l
@@ -686,10 +770,13 @@ theorem nodup_filter_of_nodup {α : Type} (p : α → Bool) :
       · simp only [List.filter_cons, if_neg hpa]
         exact ih hl'
 
+/-- The list of wires other than a specified target has no repeated entries. -/
 theorem otherWires_nodup {n : ℕ} (t : Fin n) : (otherWires t).Nodup := by
   unfold otherWires
   exact (List.nodup_finRange n).erase t
 
+/-- Applying one bit flip at each address in a list without repetitions toggles exactly the
+listed address bits. -/
 theorem run_x_addr {n m : ℕ} : ∀ (l : List (Fin n)) (x : Reg (n + m)) (w : Fin n),
     l.Nodup →
       (BoundedGate.run (l.map (fun i => BoundedGate.x (addrWire m i))) x) (addrWire m w)
@@ -716,6 +803,8 @@ theorem run_x_addr {n m : ℕ} : ∀ (l : List (Fin n)) (x : Reg (n + m)) (w : F
         have hne' : addrWire m w ≠ addrWire m a := fun h => hne h.symm
         simp [BoundedGate.act, Function.update, hne', hwa]
 
+/-- Pattern preparation toggles exactly the non-target address bits where the prescribed pattern
+is false. -/
 theorem patternFix_run {n m : ℕ} (p : Reg n) (t : Fin n) (x : Reg (n + m)) (w : Fin n) :
     (BoundedGate.run (patternFix m p t) x) (addrWire m w)
       = (x (addrWire m w) ^^ (if w ∈ otherWires t ∧ p w = false then true else false)) := by
@@ -724,6 +813,7 @@ theorem patternFix_run {n m : ℕ} (p : Reg n) (t : Fin n) (x : Reg (n + m)) (w 
   rw [patternFix, run_x_addr _ x w hnodup]
   simp only [List.mem_filter, decide_eq_true_eq]
 
+/-- Pattern preparation preserves every auxiliary bit. -/
 theorem patternFix_preserves_anc {n m : ℕ} (p : Reg n) (t : Fin n) (x : Reg (n + m)) :
     ∀ a : Fin m, (BoundedGate.run (patternFix m p t) x) (ancWire n a) = x (ancWire n a) := by
   intro a
@@ -737,6 +827,8 @@ theorem patternFix_preserves_anc {n m : ℕ} (p : Reg n) (t : Fin n) (x : Reg (n
     exact absurd hs ((addrWire_ne_ancWire n m w a).symm)
   exact BoundedGate.run_untouched (patternFix m p t) x hne
 
+/-- After pattern preparation, each non-target address bit indicates whether its original value
+matched the prescribed pattern. -/
 theorem patternFix_indicators {n m : ℕ} (p : Reg n) (t : Fin n) (x : Reg (n + m))
     (w : Fin n) (hw : w ≠ t) :
     (BoundedGate.run (patternFix m p t) x) (addrWire m w) = decide (x (addrWire m w) = p w) := by
@@ -746,9 +838,12 @@ theorem patternFix_indicators {n m : ℕ} (p : Reg n) (t : Fin n) (x : Reg (n + 
   · simp [hmem, hp]
   · simp [hmem, hp]
 
+/-- The control-destination pairing for a target contains `n - 1` pairs. -/
 theorem mcxPairs_length {n : ℕ} (t : Fin n) : (mcxPairs t).length = n - 1 := by
   simp [mcxPairs, otherWires_length, List.length_zip]
 
+/-- The first components of the control-destination pairing are exactly the non-target address
+wires. -/
 theorem mcxPairs_map_fst {n : ℕ} (t : Fin n) :
     (mcxPairs t).map Prod.fst = otherWires t := by
   have h1 : (otherWires t).length ≤ (List.finRange (n - 1)).length := by
@@ -757,6 +852,8 @@ theorem mcxPairs_map_fst {n : ℕ} (t : Fin n) :
     List.map_fst_zip h1
   simpa only [mcxPairs] using! hz
 
+/-- The second components of the control-destination pairing enumerate all `n - 1` auxiliary
+wires. -/
 theorem mcxPairs_map_snd {n : ℕ} (t : Fin n) :
     (mcxPairs t).map Prod.snd = List.finRange (n - 1) := by
   have h1 : (List.finRange (n - 1)).length ≤ (otherWires t).length := by
@@ -765,20 +862,24 @@ theorem mcxPairs_map_snd {n : ℕ} (t : Fin n) :
     List.map_snd_zip h1
   simpa only [mcxPairs] using! hz
 
+/-- Extracting auxiliary destinations from a pair list equals mapping its second projection. -/
 theorem ancOf_eq_map {n m : ℕ} (l : List (Fin n × Fin m)) :
     ancOf l = l.map Prod.snd := by
   induction l with
   | nil => rfl
   | cons p rest ih => cases p; simp [ancOf, ih]
 
+/-- The auxiliary destinations in the target pairing enumerate `Fin (n - 1)` in order. -/
 theorem mcxPairs_ancOf {n : ℕ} (t : Fin n) :
     ancOf (mcxPairs t) = List.finRange (n - 1) := by
   rw [ancOf_eq_map, mcxPairs_map_snd]
 
+/-- The auxiliary destinations in the target pairing have no repetitions. -/
 theorem mcxPairs_ancOf_nodup {n : ℕ} (t : Fin n) : (ancOf (mcxPairs t)).Nodup := by
   rw [mcxPairs_ancOf]
   exact List.nodup_finRange _
 
+/-- Every address control in the target pairing differs from the target. -/
 theorem mcxPairs_control_ne_target {n : ℕ} (t : Fin n) :
     ∀ p ∈ mcxPairs t, p.1 ≠ t := by
   intro p hp
@@ -786,6 +887,7 @@ theorem mcxPairs_control_ne_target {n : ℕ} (t : Fin n) :
   rw [mcxPairs_map_fst] at h1
   exact (otherWires_mem t).1 h1
 
+/-- If a pair is the last pair of a list, the list decomposes as a prefix followed by that pair. -/
 theorem exists_append_singleton_of_lastPair {n m : ℕ} :
     ∀ (l : List (Fin n × Fin m)) (p : Fin n × Fin m),
       lastPair l = some p → ∃ tail, l = tail ++ [p] := by
@@ -810,6 +912,7 @@ theorem exists_append_singleton_of_lastPair {n m : ℕ} :
             obtain ⟨tail, htail⟩ := ih p h2
             exact ⟨hd :: tail, by simp [htail]⟩
 
+/-- Every nonempty pair list has a last pair. -/
 theorem exists_lastPair_of_ne_nil {n m : ℕ} : ∀ (l : List (Fin n × Fin m)), l ≠ [] →
     ∃ p, lastPair l = some p := by
   intro l
@@ -823,6 +926,7 @@ theorem exists_lastPair_of_ne_nil {n m : ℕ} : ∀ (l : List (Fin n × Fin m)),
         obtain ⟨p, hp⟩ := ih (by simp)
         exact ⟨p, by simpa [lastPair] using! hp⟩
 
+/-- Pattern preparation does not touch the target address wire. -/
 theorem patternFix_not_touches_target {n m : ℕ} (p : Reg n) (t : Fin n) :
     ¬ BoundedGate.touches (patternFix m p t) (addrWire m t) := by
   intro hmem
@@ -837,6 +941,7 @@ theorem patternFix_not_touches_target {n m : ℕ} (p : Reg n) (t : Fin n) :
     exact ((otherWires_mem t).1 hw.1) hwt
   exact absurd hs hne
 
+/-- Pattern preparation does not touch any auxiliary wire. -/
 theorem patternFix_not_touches_anc {n m : ℕ} (p : Reg n) (t : Fin n) (a : Fin m) :
     ¬ BoundedGate.touches (patternFix m p t) (ancWire n a) := by
   intro hmem
@@ -847,6 +952,7 @@ theorem patternFix_not_touches_anc {n m : ℕ} (p : Reg n) (t : Fin n) (a : Fin 
   simp only [BoundedGate.support, List.mem_singleton] at hs
   exact absurd hs ((addrWire_ne_ancWire n m w a).symm)
 
+/-- Every gate used for pattern preparation is well formed. -/
 theorem patternFix_wellformed {n m : ℕ} (p : Reg n) (t : Fin n) :
     ∀ g ∈ patternFix m p t, g.wellformed := by
   intro g hg
@@ -855,6 +961,8 @@ theorem patternFix_wellformed {n m : ℕ} (p : Reg n) (t : Fin n) :
   obtain ⟨w, hw, rfl⟩ := hg
   simp [BoundedGate.wellformed]
 
+/-- Reversing pattern preparation restores the original register except for a possibly changed
+target bit. -/
 theorem run_patternFix_reverse {n m : ℕ} (p : Reg n) (t : Fin n) (x y : Reg (n + m))
     (hy : ∀ s : Fin (n + m), s ≠ addrWire m t →
         y s = (BoundedGate.run (patternFix m p t) x) s) :
@@ -898,6 +1006,8 @@ theorem run_patternFix_reverse {n m : ℕ} (p : Reg n) (t : Fin n) (x y : Reg (n
       rw [hy s hst, hxs]
       simp [Function.update, hst]
 
+/-- After pattern preparation, the conjunction of the non-target controls is true exactly when
+every original non-target address bit matched the prescribed pattern. -/
 theorem ladderChain_patternFix {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1))) :
     ladderChain (mcxPairs t) (BoundedGate.run (patternFix (n - 1) p t) x) = true ↔
       ∀ w : Fin n, w ≠ t → x (addrWire (n - 1) w) = p w := by
@@ -940,6 +1050,7 @@ theorem ladderChain_patternFix {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (
     rw [hind]
     simp [hval]
 
+/-- The pattern-controlled permutation preserves every wire other than the target address wire. -/
 theorem mcxPerm_target_only {n m : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + m)) :
     ∀ s : Fin (n + m), s ≠ addrWire m t → mcxPerm t p x s = x s := by
   intro s hs
@@ -948,6 +1059,7 @@ theorem mcxPerm_target_only {n m : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + m)
   · simp [Function.update, hs]
   · rfl
 
+/-- The pattern-controlled program uses at most `4 * (n - 1) + 1` gates. -/
 theorem mcxProgram_gate_count {n : ℕ} (t : Fin n) (p : Reg n) :
     (mcxProgram t p).length ≤ 4 * (n - 1) + 1 := by
   have hfix : ((otherWires t).filter (fun w => p w = false)).length ≤ n - 1 := by
@@ -972,6 +1084,8 @@ theorem mcxProgram_gate_count {n : ℕ} (t : Fin n) (p : Reg n) :
       simp only [mcxProgram, hl, List.length_append, List.length_cons, List.length_nil]
       omega
 
+/-- With initially false auxiliary wires, the pattern-controlled gate program implements
+`mcxPerm` exactly. -/
 theorem mcxProgram_run {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1)))
     (hanc : ∀ a : Fin (n - 1), x (ancWire n a) = false) :
     BoundedGate.run (mcxProgram t p) x = mcxPerm t p x := by
@@ -1083,6 +1197,8 @@ theorem mcxProgram_run {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1)))
 
 open Turing
 
+/-- After `j` steps within the input length, the scan clock is in state zero with its tape head
+moved right by `j` cells. -/
 theorem scanClock_after (x : List Bool) (j : ℕ) (hj : j ≤ x.length) :
     BitMachineAfter scanClockMachine (x.map some) j =
       some ⟨0, (Turing.Tape.move Turing.Dir.right)^[j] (Turing.Tape.mk₁ (x.map some))⟩ := by
@@ -1114,6 +1230,7 @@ theorem scanClock_after (x : List Bool) (j : ℕ) (hj : j ≤ x.length) :
     congr 1
     rw [Function.iterate_succ_apply']
 
+/-- The scan clock reaches a halting configuration after exactly the input length in steps. -/
 theorem scanClock_halts (x : List Bool) :
     ∃ cfg : Turing.TM0.Cfg (Option Bool) (Fin 1),
       BitMachineAfter scanClockMachine (x.map some) x.length = some cfg ∧
@@ -1128,6 +1245,8 @@ theorem scanClock_halts (x : List Bool) :
   rw [TM0_step_eq_none]
   simp [scanClockMachine, hheadN]
 
+/-- Before the input length in steps, the scan clock has a configuration under
+`BitMachineAfter`. -/
 theorem scanClock_live_before (x : List Bool) (s : ℕ) (hs : s < x.length) :
     BitMachineAfter scanClockMachine (x.map some) s ≠ none := by
   have hafter := scanClock_after x s (Nat.le_of_lt hs)
@@ -1150,6 +1269,8 @@ theorem scanClock_live_before (x : List Bool) (s : ℕ) (hs : s < x.length) :
     rfl
   exact hnext hn'
 
+/-- The scan clock halts within the stated linear bound and has a configuration at every earlier
+step below the input length. -/
 theorem scanClock_time_constructible (x : List Bool) :
     ∃ s, s ≤ 1 * x.length ^ 1 + 1 ∧
       ∃ cfg : Turing.TM0.Cfg (Option Bool) (Fin 1),
@@ -1163,6 +1284,8 @@ theorem scanClock_time_constructible (x : List Bool) :
   · intro s' hs'
     exact scanClock_live_before x s' hs'
 
+/-- Before the deadline, the clocked machine performs the underlying transition and increments
+its phase. -/
 theorem clockedMachine_at {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (i : Fin (m + 1)) (j : Fin (q + 1)) (γ : Option Bool) (h : i.val < m) :
     clockedMachine M m (clockedLabel (m := m) i j) γ =
@@ -1174,6 +1297,7 @@ theorem clockedMachine_at {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin
     exfalso
     omega
 
+/-- At the deadline phase, the clocked machine has no outgoing transition. -/
 theorem clockedMachine_deadline {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (j : Fin (q + 1)) (γ : Option Bool) :
     clockedMachine M m (clockedLabel (m := m) ⟨m, by omega⟩ j) γ = none := by
@@ -1184,6 +1308,8 @@ theorem clockedMachine_deadline {q m : ℕ} (M : Turing.TM0.Machine (Option Bool
     omega
   · rfl
 
+/-- Before the deadline, a clocked configuration steps by applying the underlying instruction
+and incrementing the phase. -/
 theorem clockedMachine_step {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (i : Fin (m + 1)) (j : Fin (q + 1)) (tape : Turing.Tape (Option Bool)) (h : i.val < m) :
     Turing.TM0.step (clockedMachine M m) ⟨clockedLabel i j, tape⟩ =
@@ -1194,10 +1320,14 @@ theorem clockedMachine_step {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (F
   | none => simp
   | some p => simp
 
+/-- Fixing the coin in the clocked coin machine gives the clocked version of the corresponding
+underlying machine. -/
 theorem clockedCoinMachine_eq {q : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1))) (m : ℕ) (c : Bool) :
     clockedCoinMachine M m c = clockedMachine (M c) m := rfl
 
+/-- Up to the deadline, every successful underlying run lifts to a clocked run with the elapsed
+time encoded in its label. -/
 theorem clocked_run {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (input : List (Option Bool)) :
     ∀ (s : ℕ) (hs : s ≤ m) (j : Fin (q + 1)) (tape : Turing.Tape (Option Bool)),
@@ -1250,12 +1380,15 @@ theorem clocked_run {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 
       rw [hp1, hpt]
     exact hsteq
 
+/-- An optional value distinct from `none` equals `some` value. -/
 theorem exists_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
     ∃ a, o = some a := by
   cases o with
   | none => exact absurd rfl h
   | some a => exact ⟨a, rfl⟩
 
+/-- If `BitMachineAfter` is `none` at a given time, the machine reached a halting configuration
+at an earlier time. -/
 theorem exists_halt {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (input : List (Option Bool)) : ∀ m, BitMachineAfter M input m = none →
     ∃ s < m, ∃ cfg : Turing.TM0.Cfg (Option Bool) (Fin (q + 1)),
@@ -1280,6 +1413,7 @@ theorem exists_halt {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)
       simp only [Option.bind_some] at h
       exact ⟨m, by omega, cfg0, hb, h⟩
 
+/-- Every clocked machine reaches a halting configuration within `m + 1` steps. -/
 theorem clocked_always_halts {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (input : List (Option Bool)) :
     ∃ s ≤ m + 1, ∃ cfg : Turing.TM0.Cfg (Option Bool) (Fin (ClockedSize q m)),
@@ -1305,6 +1439,8 @@ theorem clocked_always_halts {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (
     rw [TM0_step_eq_none]
     exact clockedMachine_deadline M cfg.q cfg.Tape.head
 
+/-- A halting underlying run within the deadline lifts to a halting clocked run with the same
+acceptance label. -/
 theorem clocked_halt_preserves {q m : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (accept : Fin (q + 1) → Bool) (input : List (Option Bool))
     (s : ℕ) (hs : s ≤ m) (j : Fin (q + 1)) (tape : Turing.Tape (Option Bool))
@@ -1327,12 +1463,14 @@ theorem clocked_halt_preserves {q m : ℕ} (M : Turing.TM0.Machine (Option Bool)
       rw [clockedMachine_deadline M j tape.head]
   · simp [clockedAccept, clockedBase_label]
 
+/-- A mapped optional value distinct from `none` equals `some` value. -/
 theorem exists_some_of_map_ne_none {α β : Type} {f : α → β} {o : Option α} (h : o.map f ≠ none) :
     ∃ b, o.map f = some b := by
   cases o with
   | none => simp at h
   | some a => exact ⟨f a, by simp⟩
 
+/-- Clocking preserves the agreement of the two coin branches on whether a transition is absent. -/
 theorem clockedCoinMachine_shared {q m : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (hshared : ∀ ql γ, (M false ql γ = none) ↔ (M true ql γ = none))
@@ -1344,6 +1482,7 @@ theorem clockedCoinMachine_shared {q m : ℕ}
     exact hshared (clockedBase l) γ
   · simp [hlive]
 
+/-- The clocked coin machine satisfies its halting test at the deadline phase. -/
 theorem coinHalt_clocked_deadline {q m : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (j : Fin (q + 1)) (tape : Turing.Tape (Option Bool)) :
@@ -1351,6 +1490,8 @@ theorem coinHalt_clocked_deadline {q m : ℕ}
   rw [coinHalt]
   simp [clockedCoinMachine, clockedMachine, clockedPhase_label]
 
+/-- Starting at phase `s`, a coin sequence with length plus `s` at least `m + 1` produces a
+nonempty result from the clocked coin-run procedure. -/
 theorem clockedCoin_aux {q m : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (accept : Fin (q + 1) → Bool) :
@@ -1437,6 +1578,8 @@ theorem clockedCoin_aux {q m : ℕ}
         have hrec := ih cfg' (s + 1) (by omega) hph' hlen'
         simpa using! hrec
 
+/-- The clocked coin branches share their halting condition, and every coin sequence of length
+at least `m + 1` yields a nonempty decision result. -/
 theorem clockedCoin_terminates {q m : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (accept : Fin (q + 1) → Bool)
@@ -1461,6 +1604,8 @@ theorem clockedCoin_terminates {q m : ℕ}
     (by omega) hinit hcoins
   simpa [coinTapeRun] using! hrec
 
+/-- Applying a Boolean function to the acceptance labels maps the optional result of a bounded
+tape decision run by that function. -/
 theorem tapeDecisionRun_map {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) (g : Bool → Bool) :
     ∀ (t : ℕ) (cfg : Turing.TM0.Cfg Γ Λ),
@@ -1484,6 +1629,7 @@ theorem tapeDecisionRun_map {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     | some cfg' =>
       simp only [ih]
 
+/-- Negating the acceptance labels negates the optional result of a bounded tape decision. -/
 theorem tapeDecision_neg {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (input : List Γ) (t : ℕ),
@@ -1492,6 +1638,7 @@ theorem tapeDecision_neg {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
   unfold tapeDecision
   exact tapeDecisionRun_map M accept Bool.not t (Turing.TM0.init input)
 
+/-- The class `TapeInP` is closed under complement. -/
 theorem tapeInP_complement (L : List Bool → Prop) (hL : TapeInP L) :
     TapeInP (fun x => ¬ L x) := by
   obtain ⟨q, M, accept, c, k, hbound⟩ := hL
@@ -1502,6 +1649,8 @@ theorem tapeInP_complement (L : List Bool → Prop) (hL : TapeInP L) :
   rw [tapeDecision_neg, hdec]
   simp
 
+/-- Validity of a gate operation is equivalent to legality of its local reflection-gate
+interpretation. -/
 theorem dLambdaValid_iff {n : ℕ} {op : DLambdaOp n} :
     dLambdaValid op ↔ reflectionGateLegal (dLambdaReflection op) := by
   cases op with
@@ -1513,6 +1662,8 @@ theorem dLambdaValid_iff {n : ℕ} {op : DLambdaOp n} :
       simp [dLambdaValid, dLambdaReflection, reflectionGateLegal, tGateAdj_mem_unitary]
   | cnot c t => simp [dLambdaValid, dLambdaReflection, reflectionGateLegal]
 
+/-- A valid operation list compiles to a unitary circuit with zero queries and exactly one gate
+per operation. -/
 theorem dLambdaCircuit_counts {n : ℕ} (ops : List (DLambdaOp n))
     (hops : ∀ op ∈ ops, dLambdaValid op) :
     IsUnitaryCircuit (dLambdaCircuit ops) ∧
@@ -1528,14 +1679,18 @@ theorem dLambdaCircuit_counts {n : ℕ} (ops : List (DLambdaOp n))
   rw [dLambdaCircuit, gateCount_reflectionCompile]
   simp
 
+/-- The size of a compiled operation list equals its length. -/
 theorem dLambdaCircuit_size {n : ℕ} (ops : List (DLambdaOp n)) :
     Size (dLambdaCircuit ops) = ops.length := by
   simp [Size, dLambdaCircuit, reflectionCompile, List.length_map]
 
+/-- The reflection-gate interpretation of the Toffoli decomposition equals `toffoliLocalSteps`. -/
 theorem dLambdaToffoli_reflection {n : ℕ} (a b t : Fin n) :
     (dLambdaToffoli a b t).map dLambdaReflection = toffoliLocalSteps a b t := by
   rfl
 
+/-- For three distinct wires, the 15-operation decomposition is valid and acts exactly as a
+Toffoli gate on every basis ket. -/
 theorem dLambdaToffoli_exact {n : ℕ} (a b t : Fin n)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) :
     (dLambdaToffoli a b t).length = 15 ∧
@@ -1554,6 +1709,7 @@ theorem dLambdaToffoli_exact {n : ℕ} (a b t : Fin n)
     rw [dLambdaCircuit, dLambdaToffoli_reflection]
     exact hexact x
 
+/-- The fourth power of the T gate, grouped into two pairs, equals the Pauli Z matrix. -/
 theorem tGate_four_eq_pauliZ : (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate * Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate) * (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate * Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate) = PauliZ := by
   have hexp : Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I) ^ 4 = -1 := by
     rw [← Complex.exp_nat_mul]
@@ -1581,12 +1737,15 @@ theorem tGate_four_eq_pauliZ : (Qatlib.Concepts.GateVocabulary.LocalReflectionGa
         _ = -1 := hexp
   · simp [hij]
 
+/-- The reflection interpretation of the NOT decomposition is a Hadamard, four T gates, and a
+Hadamard on the chosen wire. -/
 theorem dLambdaNot_reflection {n : ℕ} (i : Fin n) :
     (dLambdaNot i).map dLambdaReflection =
       [Sum.inl (i, Hadamard), Sum.inl (i, Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate), Sum.inl (i, Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate),
         Sum.inl (i, Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate), Sum.inl (i, Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate), Sum.inl (i, Hadamard)] := by
   rfl
 
+/-- The matrix of the NOT decomposition is the single-wire Pauli X gate. -/
 theorem dLambdaNot_program_matrix {n : ℕ} (i : Fin n) :
     reflectionProgramMatrix ((dLambdaNot i).map dLambdaReflection)
       = wireGate n i PauliX := by
@@ -1602,9 +1761,12 @@ theorem dLambdaNot_program_matrix {n : ℕ} (i : Fin n) :
             simp [Matrix.mul_assoc], tGate_four_eq_pauliZ]
     _ = PauliX := Qatlib.Concepts.GateVocabulary.GateVocab.hadamard_z_conjugation
 
+/-- A Pauli X matrix entry is one exactly when its Boolean indices are opposite, and is zero
+otherwise. -/
 theorem pauliX_apply (a b : Bool) : PauliX a b = if b = !a then 1 else 0 := by
   cases a <;> cases b <;> rfl
 
+/-- The NOT decomposition flips the chosen bit of every basis ket exactly. -/
 theorem dLambdaNot_ket {n : ℕ} (i : Fin n) (x : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (dLambdaCircuit (dLambdaNot i)) (Qatlib.Foundations.PureStateMath.Ket x)
       = Qatlib.Foundations.PureStateMath.Ket (Function.update x i (!x i)) := by
@@ -1628,6 +1790,9 @@ open Qatlib.Concepts.QtmSimulation.Phi3Compilation
 open Qatlib.Concepts.UniformBqp.Phi3Compile
 open Qatlib.Concepts.CircuitImpl.Phi3Universal
 
+/-- A general native machine has an exact window circuit with zero queries and at most twice the
+square of `generalWindowSize n t` gates, preserving configuration Born probabilities in the
+QTM framework of [BernsteinVazirani1997]. -/
 theorem generalTheorem2_window {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1653,6 +1818,9 @@ theorem generalTheorem2_window {Q A : Type} [Fintype Q] [DecidableEq Q]
   intro x c
   exact hrun x c
 
+/-- A general native machine has a unitary Phi3 simulation with zero queries, the stated gate
+budget, normalized encoded states, and exact state and Born-probability transport for
+`generalWindowSize n t` steps. -/
 theorem generalPhi3_cellTable {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1694,6 +1862,8 @@ theorem generalPhi3_cellTable {Q A : Type} [Fintype Q] [DecidableEq Q]
   simpa only [generalBasisCode, cellBasisWidth, generalWindowSize, generalRegisterWidth,
     generalWindowCells] using! hx x c
 
+/-- For each positive input and time parameter, one Phi3 gate word reproduces all configuration
+amplitudes after `generalWindowSize n t` machine steps. -/
 theorem generalPhi3_uniform {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1714,6 +1884,8 @@ theorem generalPhi3_uniform {Q A : Type} [Fintype Q] [DecidableEq Q]
     (generalBasisCode Q A) (generalBasisCode_injective Q A) _ (windowEncode c)).trans
     (qtmPhi3_windowEmbed_image _ c)
 
+/-- A Phi3 gate word reproduces every encoded configuration amplitude after `generalWindowSize n
+t` steps for all inputs of length `n`. -/
 theorem generalPhi3_amplitudeExact {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1734,6 +1906,8 @@ theorem generalPhi3_amplitudeExact {Q A : Type} [Fintype Q] [DecidableEq Q]
     (generalBasisCode Q A) (generalBasisCode_injective Q A) _ (windowEncode c)).trans
     (qtmPhi3_windowEmbed_image _ c)
 
+/-- A Phi3 gate word reproduces every configuration Born probability after `generalWindowSize n
+t` steps for all inputs of length `n`. -/
 theorem generalPhi3_born {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1750,6 +1924,8 @@ theorem generalPhi3_born {Q A : Type} [Fintype Q] [DecidableEq Q]
   obtain ⟨gs, -, -, -, -, hsim⟩ := generalPhi3_cellTable M n t hn ht
   exact ⟨gs, fun x c => (hsim x c).2.2.2⟩
 
+/-- There exists a Phi3 gate word satisfying the stated length bound, together with the formulas
+for the window cell count and register width. -/
 theorem generalPhi3_resources {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1762,6 +1938,8 @@ theorem generalPhi3_resources {Q A : Type} [Fintype Q] [DecidableEq Q]
   obtain ⟨gs, -, -, -, hlen, -⟩ := generalPhi3_cellTable M n t hn ht
   exact ⟨gs, hlen, rfl, rfl⟩
 
+/-- A single Phi3 gate word reproduces both configuration Born probabilities and complex
+amplitudes after `generalWindowSize n t` steps. -/
 theorem generalPhi3_twoWay {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -1794,6 +1972,8 @@ theorem generalPhi3_twoWay {Q A : Type} [Fintype Q] [DecidableEq Q]
       (generalBasisCode Q A) (generalBasisCode_injective Q A) _ (windowEncode c)).trans
       (qtmPhi3_windowEmbed_image _ c)
 
+/-- Packages the five local QTM conditions and the exact Phi3 state, amplitude, probability, and
+resource guarantees for every general native machine. -/
 theorem clause1_complete :
     ∀ (Q A : Type) [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
       (M : GeneralNativeMachine Q A),
@@ -1863,6 +2043,9 @@ theorem clause1_complete :
   · intro n t hn ht
     exact generalPhi3_resources M n t hn ht
 
+/-- Packages clocked termination, scan-clock bounds, shared coin halting, polynomial-time
+complementation, valid gate compilation, exact Toffoli decomposition, and the failure of
+`HeadStaySimulationSpec`. -/
 theorem clause2_complete :
     (∀ (q m : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
       (input : List (Option Bool)),
@@ -1909,10 +2092,13 @@ theorem clause2_complete :
   · intro n a b t hab hat hbt
     exact dLambdaToffoli_exact a b t hab hat hbt
 
+/-- The separator-based binary encodings of `(1, 21)` and `(5, 5)` coincide. -/
 theorem emitterEncoding_ambiguous :
     (1 : ℕ).bits ++ [false] ++ (21 : ℕ).bits
       = (5 : ℕ).bits ++ [false] ++ (5 : ℕ).bits := by decide
 
+/-- Once a bounded halting run returns a terminal configuration, every larger run budget returns
+the same configuration. -/
 theorem TM0HaltRun_stable {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     {x : Turing.TM0.Cfg (Option Bool) (Fin (q + 1))} {s : ℕ}
     {cfg : Turing.TM0.Cfg (Option Bool) (Fin (q + 1))}
@@ -1956,6 +2142,8 @@ theorem TM0HaltRun_stable {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (
                 simp only [TM0HaltRun, hstepx]
                 exact hrec' k h2
 
+/-- Boolean lists are equal if their `some`-mapped lists have equal entries at every index when
+padded by `none`. -/
 private theorem map_some_inj_of_getD {out1 out2 : List Bool}
     (h : ∀ i, (out1.map some).getD i none = (out2.map some).getD i none) : out1 = out2 := by
   induction out1 generalizing out2 with
@@ -1980,6 +2168,8 @@ private theorem map_some_inj_of_getD {out1 out2 : List Bool}
               have hh := h (i + 1)
               exact hh)
 
+/-- A fixed deterministic tape machine on a fixed source cannot emit two different output words
+under `TM0EmitsPoly`. -/
 theorem TM0EmitsPoly_output_unique {q : ℕ}
     (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     {c d : ℕ} {src out1 out2 : List Bool}
@@ -2001,6 +2191,8 @@ theorem TM0EmitsPoly_output_unique {q : ℕ}
     rw [← ht1 i, ← ht2 i]
   exact map_some_inj_of_getD hagree
 
+/-- Different required gate-count outputs at the colliding parameter pairs rule out the stated
+uniform emission property. -/
 theorem emitterClause_impossible_of_output_difference
     {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     {w : ℕ} {build : (n t : ℕ) → Circuit (WReg w Q A)}
@@ -2019,6 +2211,8 @@ theorem emitterClause_impossible_of_output_difference
     exact h2
   exact hne (TM0EmitsPoly_output_unique emitter h1 h2')
 
+/-- A circuit formed by mapping each list entry to a gate has gate count equal to the list
+length. -/
 private theorem map_gate_gateCount {I : Type*} {ι : Type*}
     (l : List ι) (f : ι → Matrix I I ℂ) :
     GateCount (l.map (fun i => Step.gate (f i))) = l.length := by
@@ -2026,6 +2220,7 @@ private theorem map_gate_gateCount {I : Type*} {ι : Type*}
   | nil => simp
   | cons i l ih => simp [ih]
 
+/-- For positive `t`, a reference round has exactly `2 * t` gates. -/
 theorem kRoundCircuit_gateCount {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (t : ℕ) (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
     (ht : 0 < t) : GateCount (kRoundCircuit t G) = 2 * t := by
@@ -2035,12 +2230,15 @@ theorem kRoundCircuit_gateCount {Q A : Type} [Fintype Q] [DecidableEq Q]
   simp only [kRoundCircuit, gateCount_append, gateCount_gate, gateCount_nil, hmap]
   omega
 
+/-- For positive `t`, repeating the reference round `t` times has exactly `2 * t * t` gates. -/
 theorem kRound_build_gateCount {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (t : ℕ) (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
     (ht : 0 < t) : GateCount (RepeatCircuit (kRoundCircuit t G) t) = 2 * t * t := by
   rw [gateCount_repeatCircuit, kRoundCircuit_gateCount t G ht]
   ring
 
+/-- No deterministic polynomial emitter can output the reference construction's gate-count word
+from the stated separator-based pair encoding for all valid parameter pairs. -/
 theorem emitterClause_impossible_for_theorem2_build
     {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     {G : Matrix (GWindow Q A) (GWindow Q A) ℂ}

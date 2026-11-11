@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineFiniteCircle
 import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+
+/-!
+# Propagator numerators for cosine contours
+
+This module defines analytic wave, Bessel, and Airy numerators on the pencil `L + (I * z) • H`.
+At the sample poles this pencil becomes `L + s • H` with positive real sampling scale. Finite
+contour identities and positive semidefinite sample norm bounds connect these propagators to the
+cosine sampling method in [WangEtAl2026].
+
+## Main statements
+
+* `cosinePencil_sample`: sample poles produce real-scaled matrix pencils.
+* `wave_cosine_circle_identity`: specializes the finite contour formula to the wave propagator.
+* `cosineSampleMatrix_posSemidef`: positive semidefinite inputs give positive semidefinite
+  sampled matrices.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -19,15 +40,19 @@ open scoped BigOperators Topology
 section BanachAlgebra
 variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
 
+/-- The wave propagator at time `t` evaluated on the pencil `L + (I * z) • H`. -/
 def waveCosineNumerator (L H : E) (t : ℂ) (z : ℂ) : E :=
   wavePropagator (L + (I * z) • H) t
 
+/-- The Bessel propagator at time `t` evaluated on the pencil `L + (I * z) • H`. -/
 def besselCosineNumerator (L H : E) (t : ℂ) (z : ℂ) : E :=
   besselPropagator (L + (I * z) • H) t
 
+/-- The Airy propagator at time `t` evaluated on the pencil `L + (I * z) • H`. -/
 def airyCosineNumerator (L H : E) (t : ℂ) (z : ℂ) : E :=
   airyPropagator (L + (I * z) • H) t
 
+/-- The wave cosine numerator is complex differentiable as a function of the pencil parameter. -/
 theorem waveCosineNumerator_differentiable (L H : E) (t : ℂ) :
     Differentiable ℂ (waveCosineNumerator L H t) := by
   intro z
@@ -35,6 +60,7 @@ theorem waveCosineNumerator_differentiable (L H : E) (t : ℂ) :
   have h := wave_series_affine_analytic L (I • H) t z
   simpa only [wavePropagator, smul_smul, mul_comm] using! h.differentiableAt
 
+/-- The Bessel cosine numerator is complex differentiable as a function of the pencil parameter. -/
 theorem besselCosineNumerator_differentiable (L H : E) (t : ℂ) :
     Differentiable ℂ (besselCosineNumerator L H t) := by
   intro z
@@ -42,6 +68,7 @@ theorem besselCosineNumerator_differentiable (L H : E) (t : ℂ) :
   have h := bessel_series_affine_analytic L (I • H) t z
   simpa only [besselPropagator, smul_smul, mul_comm] using! h.differentiableAt
 
+/-- The Airy cosine numerator is complex differentiable as a function of the pencil parameter. -/
 theorem airyCosineNumerator_differentiable (L H : E) (t : ℂ) :
     Differentiable ℂ (airyCosineNumerator L H t) := by
   intro z
@@ -51,10 +78,13 @@ theorem airyCosineNumerator_differentiable (L H : E) (t : ℂ) :
 
 omit [CompleteSpace E] in
 
+/-- At parameter one, the cosine pencil is `L + I • H`. -/
 theorem cosinePencil_target (L H : E) : L + (I * (1 : ℂ)) • H = L + I • H := by simp
 
 omit [CompleteSpace E] in
 
+/-- At the `k`th cosine sample pole, the pencil is `L + cosineSampleScale γ τ k • H` with the
+real scale cast to the complex numbers. -/
 theorem cosinePencil_sample (L H : E) (γ τ : ℝ) (k : ℕ) :
     L + (I * cosineSamplePole γ τ k) • H =
       L + (cosineSampleScale γ τ k : ℂ) • H := by
@@ -62,6 +92,8 @@ theorem cosinePencil_sample (L H : E) (γ τ : ℝ) (k : ℕ) :
 
 omit [CompleteSpace E] in
 
+/-- The wave numerator at a cosine sample pole equals the wave propagator of the corresponding
+real-scaled pencil. -/
 theorem waveCosineNumerator_sample (L H : E) (t : ℂ) (γ τ : ℝ) (k : ℕ) :
     waveCosineNumerator L H t (cosineSamplePole γ τ k) =
       wavePropagator (L + (cosineSampleScale γ τ k : ℂ) • H) t := by
@@ -69,6 +101,8 @@ theorem waveCosineNumerator_sample (L H : E) (t : ℂ) (γ τ : ℝ) (k : ℕ) :
 
 omit [CompleteSpace E] in
 
+/-- The Bessel numerator at a cosine sample pole equals the Bessel propagator of the
+corresponding real-scaled pencil. -/
 theorem besselCosineNumerator_sample (L H : E) (t : ℂ) (γ τ : ℝ) (k : ℕ) :
     besselCosineNumerator L H t (cosineSamplePole γ τ k) =
       besselPropagator (L + (cosineSampleScale γ τ k : ℂ) • H) t := by
@@ -76,11 +110,16 @@ theorem besselCosineNumerator_sample (L H : E) (t : ℂ) (γ τ : ℝ) (k : ℕ)
 
 omit [CompleteSpace E] in
 
+/-- The Airy numerator at a cosine sample pole equals the Airy propagator of the corresponding
+real-scaled pencil. -/
 theorem airyCosineNumerator_sample (L H : E) (t : ℂ) (γ τ : ℝ) (k : ℕ) :
     airyCosineNumerator L H t (cosineSamplePole γ τ k) =
       airyPropagator (L + (cosineSampleScale γ τ k : ℂ) • H) t := by
   rw [airyCosineNumerator, cosinePencil_sample]
 
+/-- For positive `γ` and time and cosine radius greater than one, the normalized wave contour
+integral equals the target propagator minus the regulator-weighted baseline plus the
+regulator-weighted sum of the first `N` samples. -/
 theorem wave_cosine_circle_identity (L H : E) {γ t : ℝ}
     (hγ : 0 < γ) (ht : 0 < t) (N : ℕ) (hR : 1 < cosineCircleRadius γ t N) :
     (2 * (Real.pi : ℂ) * I)⁻¹ •
@@ -96,6 +135,9 @@ theorem wave_cosine_circle_identity (L H : E) {γ t : ℝ}
   simpa only [cosineLCUSum, cosineSample, waveCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! h
 
+/-- For positive `γ` and time and cosine radius greater than one, the normalized Bessel contour
+integral equals the target propagator minus the regulator-weighted baseline plus the
+regulator-weighted sum of the first `N` samples. -/
 theorem bessel_cosine_circle_identity (L H : E) {γ t : ℝ}
     (hγ : 0 < γ) (ht : 0 < t) (N : ℕ) (hR : 1 < cosineCircleRadius γ t N) :
     (2 * (Real.pi : ℂ) * I)⁻¹ •
@@ -111,6 +153,9 @@ theorem bessel_cosine_circle_identity (L H : E) {γ t : ℝ}
   simpa only [cosineLCUSum, cosineSample, besselCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! h
 
+/-- For positive `γ` and time and transformed cosine radius greater than one, the normalized
+Airy contour integral equals the target propagator minus the weighted baseline plus the
+weighted first `N` samples, with regulator and sample parameters set by `airyTimeScale t`. -/
 theorem airy_cosine_circle_identity (L H : E) {γ t : ℝ}
     (hγ : 0 < γ) (ht : 0 < t) (N : ℕ)
     (hR : 1 < cosineCircleRadius γ (airyTimeScale t) N) :
@@ -136,6 +181,8 @@ variable {n : Type*} [Fintype n] [DecidableEq n]
 
 omit [Fintype n] [DecidableEq n] in
 
+/-- For positive `γ` and `τ`, the sampled matrix is positive semidefinite whenever both `L` and
+`H` are positive semidefinite. -/
 theorem cosineSampleMatrix_posSemidef (L H : Matrix n n ℂ)
     (hL : L.PosSemidef) (hH : H.PosSemidef) {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (k : ℕ) :
@@ -143,6 +190,8 @@ theorem cosineSampleMatrix_posSemidef (L H : Matrix n n ℂ)
   exact hL.add (hH.smul (show (0 : ℂ) ≤ (cosineSampleScale γ τ k : ℂ) by
     exact_mod_cast (cosineSampleScale_pos hγ hτ k).le))
 
+/-- For positive parameters and positive semidefinite `L` and `H`, the wave numerator at every
+sample pole has norm at most one for every real time. -/
 theorem waveCosineNumerator_sample_norm_le_one (L H : Matrix n n ℂ)
     (hL : L.PosSemidef) (hH : H.PosSemidef) {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (t : ℝ) (k : ℕ) :
@@ -151,6 +200,8 @@ theorem waveCosineNumerator_sample_norm_le_one (L H : Matrix n n ℂ)
   exact wavePropagator_posSemidef_norm_le_one _
     (cosineSampleMatrix_posSemidef L H hL hH hγ hτ k) t
 
+/-- For positive parameters and positive semidefinite `L` and `H`, the Bessel numerator at every
+sample pole has norm at most one for every real time. -/
 theorem besselCosineNumerator_sample_norm_le_one (L H : Matrix n n ℂ)
     (hL : L.PosSemidef) (hH : H.PosSemidef) {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (t : ℝ) (k : ℕ) :
@@ -159,6 +210,8 @@ theorem besselCosineNumerator_sample_norm_le_one (L H : Matrix n n ℂ)
   exact besselPropagator_posSemidef_norm_le_one _
     (cosineSampleMatrix_posSemidef L H hL hH hγ hτ k) t
 
+/-- For positive parameters and positive semidefinite `L` and `H`, the Airy numerator at every
+sample pole has norm at most one for every nonnegative real time. -/
 theorem airyCosineNumerator_sample_norm_le_one (L H : Matrix n n ℂ)
     (hL : L.PosSemidef) (hH : H.PosSemidef) {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (t : ℝ) (ht : 0 ≤ t) (k : ℕ) :

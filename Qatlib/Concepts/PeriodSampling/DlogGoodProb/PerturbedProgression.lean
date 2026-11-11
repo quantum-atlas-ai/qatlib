@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Perturbed complex progression estimates
+
+Develops finite grid moment identities and explicit trigonometric estimates for a centered
+complex exponential sum. The lower bound `perturbed_progression_norm_lower` controls perturbed
+Fourier progressions used in the discrete-logarithm amplitude analysis associated with
+[Shor1997].
+
+## Main statements
+
+* `progression_centered_second`: Computes the centered second moment of a finite grid.
+* `perturbed_progression_norm_lower`: Bounds the progression norm below by `N / 4`.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,7 @@ set_option maxHeartbeats 1800000
 namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open scoped Classical BigOperators
 
+/-- The sum of the real values of `Fin N` is `N * (N - 1) / 2`. -/
 theorem progression_grid_first (N : ℕ) :
     (∑ b : Fin N, (b.val : ℝ)) = (N : ℝ) * ((N : ℝ) - 1) / 2 := by
   induction N with
@@ -26,6 +46,7 @@ theorem progression_grid_first (N : ℕ) :
     rw [ih]
     ring
 
+/-- The sum of the squared real values of `Fin N` is `N * (N - 1) * (2 * N - 1) / 6`. -/
 theorem progression_grid_second (N : ℕ) :
     (∑ b : Fin N, (b.val : ℝ)^2) =
       (N : ℝ) * ((N : ℝ) - 1) * (2 * (N : ℝ) - 1) / 6 := by
@@ -37,6 +58,7 @@ theorem progression_grid_second (N : ℕ) :
     rw [ih]
     ring
 
+/-- The sum of squared deviations from `(N - 1) / 2` on `Fin N` is `N * (N ^ 2 - 1) / 12`. -/
 theorem progression_centered_second (N : ℕ) :
     (∑ b : Fin N, ((b.val : ℝ) - ((N : ℝ) - 1) / 2)^2) =
       (N : ℝ) * ((N : ℝ)^2 - 1) / 12 := by
@@ -48,6 +70,8 @@ theorem progression_centered_second (N : ℕ) :
   simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   ring
 
+/-- For `|η| ≤ π / 12`, the cosine is at least `139 / 144` and the absolute sine is at most `4 /
+15`. -/
 theorem progression_small_phase_bounds (η : ℝ) (hη : |η| ≤ Real.pi / 12) :
     (139 / 144 : ℝ) ≤ Real.cos η ∧ |Real.sin η| ≤ (4 / 15 : ℝ) := by
   have hpi : Real.pi ≤ (16 / 5 : ℝ) := by linarith [Real.pi_lt_d2]
@@ -62,6 +86,8 @@ theorem progression_small_phase_bounds (η : ℝ) (hη : |η| ≤ Real.pi / 12) 
   · nlinarith [Real.one_sub_sq_div_two_le_cos (x := η)]
   · exact (Real.abs_sin_le_abs (x := η)).trans (by linarith)
 
+/-- For `|γ| ≤ π / 2` and `|η| ≤ π / 12`, the perturbed cosine is at least `(139 / 144) * cos γ
+- 4 / 15`. -/
 theorem progression_cos_perturbation (γ η : ℝ) (hγ : |γ| ≤ Real.pi / 2)
     (hη : |η| ≤ Real.pi / 12) :
     (139 / 144 : ℝ) * Real.cos γ - 4 / 15 ≤ Real.cos (γ + η) := by
@@ -77,6 +103,8 @@ theorem progression_cos_perturbation (γ η : ℝ) (hγ : |γ| ≤ Real.pi / 2)
   rw [Real.cos_add]
   nlinarith
 
+/-- For the stated phase and perturbation bounds with `0 < N ≤ q`, the norm of the centered
+exponential sum is at least `(N : ℝ) / 4`. -/
 theorem perturbed_progression_norm_lower (N q : ℕ) (hN : 0 < N) (hNq : N ≤ q)
     (θ s : ℝ) (hθ : |θ| ≤ 1/2) (hs : |s| ≤ (q : ℝ)/12)
     (a : Fin N → ℝ) (ha : ∀ b, 0 ≤ a b ∧ a b ≤ (N : ℝ)) :

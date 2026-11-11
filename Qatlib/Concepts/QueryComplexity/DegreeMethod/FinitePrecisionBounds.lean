@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs
 import Mathlib.Tactic
+
+/-!
+# Stack simulation and binary multiplication bounds
+
+This module bounds the stack height and simulation clocks of a finite binary stack program in
+terms of its initial stack height, step count, and structural program constants. It also bounds
+the lengths and step counts of the shift-and-add multiplication construction.
+
+Polynomial resource analysis for finite computation has general background in
+[KitaevShenVyalyi2002]; the explicit stack and multiplication estimates here concern the
+concrete implementation in this development.
+
+## Main statements
+
+* `stepAux_length_le` and `step_height_le` bound stack growth for a statement and a successful
+  machine step.
+* `runMaxHeight_le`, `runClock_le`, and `runMaxClock_le` control height, total simulation cost,
+  and maximum single-step cost over a finite run.
+* `mulAcc_length`, `mulRoundTicks_le`, and `mulTotalTicks_le` give accumulator length and
+  multiplication step bounds.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002] provides general background on
+  computational models and complexity.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -31,6 +58,8 @@ variable {K Λ σ : Type} [DecidableEq K] [Fintype K] [Fintype Λ]
 
 omit [Fintype K] [Fintype Λ] in
 
+/-- If every input stack has length at most `H`, evaluating `q` leaves every stack with length
+at most `H + stackNodes q`. -/
 theorem stepAux_length_le (q : TM2.Stmt (fun _ : K => Bool) Λ σ)
     (v : σ) (S : K → List Bool) (H : ℕ) (hS : ∀ k, (S k).length ≤ H) :
     ∀ k, ((TM2.stepAux q v S).stk k).length ≤ H+stackNodes q := by
@@ -78,6 +107,7 @@ theorem stepAux_length_le (q : TM2.Stmt (fun _ : K => Bool) Λ σ)
   | goto f => simpa only [TM2.stepAux,stackNodes,Nat.add_zero] using! hS
   | halt => simpa only [TM2.stepAux,stackNodes,Nat.add_zero] using! hS
 
+/-- A successful step of `M` increases the maximum stack height by at most `programNodes M`. -/
 theorem step_height_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (first next : TM2.Cfg (fun _ : K => Bool) Λ σ) (hs : TM2.step M first=some next) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight next.stk ≤ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight first.stk+programNodes M := by
@@ -95,6 +125,8 @@ theorem step_height_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     intro k _
     exact (stepAux_length_le (M l) v S (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight S) hS k).trans (Nat.add_le_add_left hn _)
 
+/-- The maximum stack height encountered during `n` steps is at most the initial stack height
+plus `n * programNodes M`. -/
 theorem runMaxHeight_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (n : ℕ) (first : TM2.Cfg (fun _ : K => Bool) Λ σ) :
     stackRunMaxHeight M n first ≤ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight first.stk+n*programNodes M := by
@@ -113,6 +145,8 @@ theorem runMaxHeight_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
             Nat.add_le_add_right (step_height_le M first next hs) _
           _ = Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight first.stk+(n+1)*programNodes M := by ring
 
+/-- The accumulated simulation clock over `n` steps is at most `n * sweepFactor M * (stackHeight
+first.stk + n * programNodes M + 1)`. -/
 theorem runClock_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (n : ℕ) (first : TM2.Cfg (fun _ : K => Bool) Λ σ) :
     stackRunClock M n first ≤ n*sweepFactor M*(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight first.stk+n*programNodes M+1) := by
@@ -139,17 +173,21 @@ theorem runClock_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
           add_le_add (Nat.mul_le_mul_left _ hsmall) (Nat.mul_le_mul_left _ hbig)
         _ = (n+1)*sweepFactor M*(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight first.stk+(n+1)*programNodes M+1) := by ring
 
+/-- The maximum single-step simulation clock during `n` steps is at most `sweepFactor M *
+(stackHeight first.stk + n * programNodes M + 1)`. -/
 theorem runMaxClock_le (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (n : ℕ) (first : TM2.Cfg (fun _ : K => Bool) Λ σ) :
     stackRunMaxClock M n first ≤ sweepFactor M*(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight first.stk+n*programNodes M+1) :=
   (maxClock_height M n first).trans (Nat.mul_le_mul_left _ (Nat.succ_le_succ (runMaxHeight_le M n first)))
 end Generic
 
+/-- The carry-preserving sum `mulAddBits u b` has length `max u.length b.length + 1`. -/
 theorem mulAddBits_length (u b : Bits) : (mulAddBits u b).length=max u.length b.length+1 := by
   simp only [mulAddBits,carryAddAux,List.length_append,List.length_singleton,List.length_reverse]
   rw [addTurns_os_length]
   simp
 
+/-- After `j` multiplication rounds, the accumulator has length at most `x.length + 2 * j`. -/
 theorem mulAcc_length (x y : Bits) (j : ℕ) : (mulAcc x y j).length ≤ x.length+2*j := by
   induction j with
   | zero => simp only [mulAcc,List.length_nil,Nat.mul_zero,Nat.add_zero]; omega
@@ -164,6 +202,8 @@ theorem mulAcc_length (x y : Bits) (j : ℕ) : (mulAcc x y j).length ≤ x.lengt
       omega
     · simp only [List.length_cons]; omega
 
+/-- The addition result used in round `j` has length `max ((mulAcc x y j).length + 1) x.length +
+1`. -/
 theorem mulRoundResult_length (x y : Bits) (j : ℕ) :
     (mulRoundResult x y j).length=max ((mulAcc x y j).length+1) x.length+1 := by
   simp only [mulRoundResult,mulAddFinal,mulStacks_two,List.length_cons,
@@ -171,6 +211,7 @@ theorem mulRoundResult_length (x y : Bits) (j : ℕ) :
   rw [addTurns_os_length]
   simp only [List.length_nil,Nat.zero_add]
 
+/-- The source step count for multiplication round `j` is at most `4 * x.length + 4 * j + 8`. -/
 theorem mulRoundTicks_le (x y : Bits) (j : ℕ) : mulRoundTicks x y j ≤ 4*x.length+4*j+8 := by
   have hlen := mulAcc_length x y j
   have hmax : max ((mulAcc x y j).length+1) x.length ≤ x.length+2*j+1 :=
@@ -181,6 +222,8 @@ theorem mulRoundTicks_le (x y : Bits) (j : ℕ) : mulRoundTicks x y j ≤ 4*x.le
   · simp only [List.length_cons,mulRoundResult_length]; omega
   · omega
 
+/-- The total source step count for the first `n` multiplication rounds is at most `n * (4 *
+x.length + 4 * n + 8)`. -/
 theorem mulTotalTicks_le (x y : Bits) (n : ℕ) : mulTotalTicks x y n ≤ n*(4*x.length+4*n+8) := by
   induction n with
   | zero => simp only [mulTotalTicks,Nat.zero_mul,le_refl]

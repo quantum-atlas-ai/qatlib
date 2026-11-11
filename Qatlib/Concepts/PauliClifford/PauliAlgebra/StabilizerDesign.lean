@@ -6,6 +6,40 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesignDefs
 import Mathlib.Algebra.Ring.BooleanRing
+
+/-!
+# Stabilizer generators, code spaces, and Clifford actions
+
+This module relates masked Pauli products and binary symplectic vectors to stabilizer code
+spaces. It proves generator counting, projector trace and dimension formulas, uniqueness up to a
+nonzero scalar for a full independent tableau, and correctness properties of Pauli measurement
+updates. These constructions follow the stabilizer framework of [Gottesman1997].
+
+The binary action of legal Clifford circuits preserves commutation and is transitive on nonzero
+Pauli directions. The module also develops stabilizer-function normalization and rank
+identities, uniform weights on the Hermitian nontrivial Pauli sector, explicitly defined second
+and third moments, and a tableau simulator driven by a finite fair-bit tape; see
+[DehaeneDeMoor2003] and [AaronsonGottesman2004] for background.
+
+## Main statements
+
+* `finrank_codeSpace_eq_pow_sub_rank`: code-space dimension from the reduced generator rank.
+* `unique_stabilizerState`: proportionality of normalized code states for a full independent
+  tableau.
+* `consistent_measuredTableau`: consistency of a measurement update with an anticommuting
+  selected row.
+* `pauliDirection_orbit_transitive_legal`: transitivity of legal binary Clifford actions on
+  nonzero vectors.
+* `pauliThirdMoment_eq`: the case formula for the defined third moment.
+* `clause3Simulate_rowUpdates`: the simulator's recorded row-update count.
+
+## References
+
+* [Gottesman, 1997][Gottesman1997]
+* [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
+* [Aaronson and Gottesman, 2004][AaronsonGottesman2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -34,39 +68,50 @@ open Qatlib.Concepts.PauliClifford.ExactRank (BooleanVec booleanDot booleanDotHo
 
 open scoped Classical
 
+/-- A finite Boolean list selecting positions in a generator list. -/
 abbrev Mask := List Bool
 
+/-- Computes componentwise exclusive-or of two masks, stopping when either list ends. -/
 def maskXor : Mask → Mask → Mask
   | [], _ => []
   | _, [] => []
   | b1 :: m1, b2 :: m2 => xor b1 b2 :: maskXor m1 m2
 
+/-- Multiplies the Pauli generators selected by the mask, in list order and stopping when either
+list ends. -/
 def maskProduct {n : ℕ} : List (PauliElem n) → Mask → PauliElem n
   | [], _ => 1
   | _ :: _, [] => 1
   | g :: gs, b :: m =>
       if b then PauliElem.mul g (maskProduct gs m) else maskProduct gs m
 
+/-- Multiplies the phase-free words of the generators selected by a mask. -/
 def maskWordProduct {n : ℕ} : List (PauliElem n) → Mask → PauliWord n
   | [], _ => 1
   | _ :: _, [] => 1
   | g :: gs, b :: m => if b then g.word * maskWordProduct gs m else maskWordProduct gs m
 
+/-- Every nonempty selection of generators has a nontrivial phase-free word. -/
 def IndependentGenerators {n : ℕ} (gs : List (PauliElem n)) : Prop :=
   ∀ m : Mask, m.length = gs.length → (∃ b ∈ m, b = true) →
     maskWordProduct gs m ≠ trivialWord
 
+/-- The set of masked products with one Boolean selection bit per generator. -/
 def generatedSubgroup {n : ℕ} (gs : List (PauliElem n)) : Set (PauliElem n) :=
   {p | ∃ m : Mask, m.length = gs.length ∧ maskProduct gs m = p}
 
+/-- The Pauli element with identity word and phase exponent two, representing negative identity. -/
 def minusI (n : ℕ) : PauliElem n := ⟨fun _ => .I, 2⟩
 
+/-- The trace of the single-qubit identity Pauli matrix is two. -/
 theorem trace_P1_I : Matrix.trace (P1 .I) = 2 := by
   simp [P1, Matrix.trace]
 
+/-- Every nonidentity single-qubit Pauli matrix has trace zero. -/
 theorem trace_P1_ne (a : Pauli1) (ha : a ≠ .I) : Matrix.trace (P1 a) = 0 := by
   cases a <;> simp_all [P1, Matrix.trace]
 
+/-- A Pauli operator has trace zero if its word contains a nonidentity letter. -/
 theorem trace_op_eq_zero_of_word_ne (n : ℕ) (p : PauliElem n) (h : ∃ i, p.word i ≠ .I) :
     Matrix.trace (op p) = 0 := by
   have hprod : ∏ i : Fin n, Matrix.trace (P1 (p.word i)) = 0 := by
@@ -78,6 +123,7 @@ theorem trace_op_eq_zero_of_word_ne (n : ℕ) (p : PauliElem n) (h : ∃ i, p.wo
   rw [op, Matrix.trace_smul]
   simp [hword]
 
+/-- The trace of an identity-word Pauli element is its scalar phase times `2 ^ n`. -/
 theorem trace_op_trivial (n : ℕ) (φ : Phase4) :
     Matrix.trace (op (⟨fun _ => Pauli1.I, φ⟩ : PauliElem n))
       = (Complex.I ^ φ.val : ℂ) * (2 : ℂ) ^ n := by
@@ -87,6 +133,7 @@ theorem trace_op_trivial (n : ℕ) (φ : Phase4) :
   rw [op_trivial_word, Matrix.trace_smul]
   simp [hone, smul_eq_mul]
 
+/-- The exclusive-or of equal-length masks has the same length. -/
 theorem maskXor_length : ∀ (m m' : Mask), m.length = m'.length → (maskXor m m').length = m.length := by
   intro m
   induction m with
@@ -103,6 +150,7 @@ theorem maskXor_length : ∀ (m m' : Mask), m.length = m'.length → (maskXor m 
           simp only [maskXor, List.length_cons]
           rw [ih m' (by simpa using! h)]
 
+/-- Equal-length masks are equal if every bit of their exclusive-or is false. -/
 theorem maskXor_eq_of_no_true : ∀ (m m' : Mask), m.length = m'.length →
     (∀ b ∈ maskXor m m', b = false) → m = m' := by
   intro m
@@ -128,6 +176,8 @@ theorem maskXor_eq_of_no_true : ∀ (m m' : Mask), m.length = m'.length →
             exact hnone c (by simp [maskXor, hc])
           exact congrArg (List.cons b) (ih m' (by simpa using! h) hnone')
 
+/-- For masks matching the generator-list length, exclusive-or corresponds to multiplication of
+their selected phase-free words. -/
 theorem maskWordProduct_xor {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (m m' : Mask),
       m.length = gs.length → m'.length = gs.length →
@@ -186,6 +236,7 @@ theorem maskWordProduct_xor {n : ℕ} :
                     _ = ((g.word * maskWordProduct gs m₀)
                         * (g.word * maskWordProduct gs m₀')) := by ac_rfl
 
+/-- The word of a masked Pauli product is the corresponding masked word product. -/
 theorem maskProduct_word {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (m : Mask),
       (maskProduct gs m).word = maskWordProduct gs m := by
@@ -212,6 +263,7 @@ theorem maskProduct_word {n : ℕ} :
               funext i
               rw [ih m₀]
 
+/-- An all-false mask of the generator-list length selects the identity element. -/
 theorem maskProduct_eq_one {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (m : Mask), m.length = gs.length →
       (∀ b ∈ m, b = false) → maskProduct gs m = 1 := by
@@ -236,6 +288,8 @@ theorem maskProduct_eq_one {n : ℕ} :
           simp only [maskProduct, Bool.false_eq_true, ↓reduceIte]
           exact ih m₀ h0 hnone
 
+/-- For independent generators, equal masked products with matching mask lengths have equal
+masks. -/
 theorem maskProduct_injective {n : ℕ} (gs : List (PauliElem n))
     (hind : IndependentGenerators gs) {m m' : Mask}
     (hm : m.length = gs.length) (hm' : m'.length = gs.length)
@@ -261,6 +315,7 @@ theorem maskProduct_injective {n : ℕ} (gs : List (PauliElem n))
     exact hcontra rfl
   exact maskXor_eq_of_no_true m m' (hm.trans hm'.symm) hnone
 
+/-- Equality of lists constructed by `List.ofFn` implies equality of their indexing functions. -/
 theorem list_ofFn_injective {n : ℕ} {α : Type} {f g : Fin n → α}
     (h : List.ofFn f = List.ofFn g) : f = g := by
   funext i
@@ -272,6 +327,7 @@ theorem list_ofFn_injective {n : ℕ} {α : Type} {f g : Fin n → α}
   rw [hi] at h1
   exact h1
 
+/-- The image of all Boolean masks for `k` independent generators has cardinality `2 ^ k`. -/
 theorem card_generatedSubgroup {n k : ℕ} (gs : List (PauliElem n)) (hgs : gs.length = k)
     (hind : IndependentGenerators gs) :
     Finset.card (Finset.image (fun m => maskProduct gs (List.ofFn m))
@@ -284,6 +340,8 @@ theorem card_generatedSubgroup {n k : ℕ} (gs : List (PauliElem n)) (hgs : gs.l
   rw [Finset.card_image_of_injective _ hinj, Finset.card_univ, Fintype.card_fun,
     Fintype.card_bool, Fintype.card_fin]
 
+/-- The trace of `op p * projectorAux gs` vanishes if no selected generator word cancels the
+word of `p`. -/
 theorem trace_op_mul_projectorAux_eq_zero {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (p : PauliElem n),
       (∀ m : Mask, m.length = gs.length →
@@ -333,6 +391,7 @@ theorem trace_op_mul_projectorAux_eq_zero {n : ℕ} :
       rw [hcalc, Matrix.trace_smul, Matrix.trace_add, h1, h2]
       simp
 
+/-- For independent generators, the trace of `projectorAux gs` is `2 ^ n / 2 ^ gs.length`. -/
 theorem trace_projectorAux {n : ℕ} :
     ∀ (gs : List (PauliElem n)), IndependentGenerators gs →
       Matrix.trace (projectorAux gs) = (2 : ℂ) ^ n * ((2 : ℂ) ^ gs.length)⁻¹ := by
@@ -369,6 +428,7 @@ theorem trace_projectorAux {n : ℕ} :
       rw [hpow]
       field_simp
 
+/-- For `k ≤ n` independent generators, the trace of `projectorAux gs` is `2 ^ (n - k)`. -/
 theorem trace_projectorAux_eq_pow {n k : ℕ} (gs : List (PauliElem n)) (hgs : gs.length = k)
     (hk : k ≤ n) (hind : IndependentGenerators gs) :
     Matrix.trace (projectorAux gs) = (2 : ℂ) ^ (n - k) := by
@@ -378,6 +438,8 @@ theorem trace_projectorAux_eq_pow {n k : ℕ} (gs : List (PauliElem n)) (hgs : g
     (pow_sub₀ (2 : ℂ) (by norm_num) hk).symm
   rw [hmain, hexp]
 
+/-- The generated set contains negative identity exactly when a mask of the required length
+selects negative identity. -/
 theorem contains_minusI_iff_exists_mask {n : ℕ} (gs : List (PauliElem n)) :
     ContainsMinusI (generatedSubgroup gs) ↔
       ∃ m : Mask, m.length = gs.length ∧ maskProduct gs m = minusI n := by
@@ -387,6 +449,7 @@ theorem contains_minusI_iff_exists_mask {n : ℕ} (gs : List (PauliElem n)) :
   · rintro ⟨m, hm, hprod⟩
     exact ⟨m, hm, hprod⟩
 
+/-- The set generated by independent generators does not contain negative identity. -/
 theorem not_contains_minusI_of_independent {n : ℕ} (gs : List (PauliElem n))
     (hind : IndependentGenerators gs) : ¬ ContainsMinusI (generatedSubgroup gs) := by
   rintro ⟨m, hm, hprod⟩
@@ -409,9 +472,11 @@ theorem not_contains_minusI_of_independent {n : ℕ} (gs : List (PauliElem n))
   have hz : (0 : ZMod 4) = 2 := by simpa [pauliElemOne, minusI] using! hphase
   exact absurd hz (by decide)
 
+/-- Encodes a Pauli word as its pair of binary X and Z coordinate vectors. -/
 def symplecticVec {n : ℕ} (w : PauliWord n) : BooleanVec n × BooleanVec n :=
   (symplecticX w, symplecticZ w)
 
+/-- The trivial Pauli word has zero binary symplectic vector. -/
 theorem symplecticVec_trivialWord {n : ℕ} : symplecticVec (trivialWord : PauliWord n) = 0 := by
   apply Prod.ext
   · funext i
@@ -419,10 +484,12 @@ theorem symplecticVec_trivialWord {n : ℕ} : symplecticVec (trivialWord : Pauli
   · funext i
     simp [symplecticVec, symplecticZ, trivialWord]
 
+/-- The identity Pauli word has zero binary symplectic vector. -/
 theorem symplecticVec_one {n : ℕ} : symplecticVec (1 : PauliWord n) = 0 := by
   rw [show (1 : PauliWord n) = trivialWord from rfl]
   exact symplecticVec_trivialWord
 
+/-- Pauli words with equal binary symplectic vectors are equal. -/
 theorem symplecticVec_injective {n : ℕ} {w w' : PauliWord n}
     (h : symplecticVec w = symplecticVec w') : w = w' := by
   funext i
@@ -433,6 +500,7 @@ theorem symplecticVec_injective {n : ℕ} {w w' : PauliWord n}
     simp [symplecticX, symplecticZ, hwi, hw'i] at hx hz
   all_goals rfl
 
+/-- A Pauli word has zero binary symplectic vector exactly when it is trivial. -/
 theorem symplecticVec_eq_zero_iff {n : ℕ} {w : PauliWord n} :
     symplecticVec w = 0 ↔ w = trivialWord := by
   constructor
@@ -446,18 +514,24 @@ theorem symplecticVec_eq_zero_iff {n : ℕ} {w : PauliWord n} :
     rw [h]
     exact symplecticVec_trivialWord
 
+/-- The X coordinate of a phase-free single-site Pauli product is the sum of the X coordinates
+over `ZMod 2`. -/
 theorem symplecticX_letter_mul (a b : Pauli1) :
     (if pauliMul1 a b = .X ∨ pauliMul1 a b = .Y then (1 : ZMod 2) else 0)
       = (if a = .X ∨ a = .Y then (1 : ZMod 2) else 0)
         + (if b = .X ∨ b = .Y then (1 : ZMod 2) else 0) := by
   cases a <;> cases b <;> decide
 
+/-- The Z coordinate of a phase-free single-site Pauli product is the sum of the Z coordinates
+over `ZMod 2`. -/
 theorem symplecticZ_letter_mul (a b : Pauli1) :
     (if pauliMul1 a b = .Y ∨ pauliMul1 a b = .Z then (1 : ZMod 2) else 0)
       = (if a = .Y ∨ a = .Z then (1 : ZMod 2) else 0)
         + (if b = .Y ∨ b = .Z then (1 : ZMod 2) else 0) := by
   cases a <;> cases b <;> decide
 
+/-- Multiplication of phase-free Pauli words corresponds to addition of their binary symplectic
+vectors. -/
 theorem symplecticVec_mul {n : ℕ} (w w' : PauliWord n) :
     symplecticVec (w * w') = symplecticVec w + symplecticVec w' := by
   have hmul : (w * w' : PauliWord n) = fun j => pauliMul1 (w j) (w' j) := by
@@ -471,12 +545,14 @@ theorem symplecticVec_mul {n : ℕ} (w w' : PauliWord n) :
   · funext i
     exact symplecticZ_letter_mul (w i) (w' i)
 
+/-- Sums the binary symplectic vectors of generators selected by a Boolean mask. -/
 def maskVecSum {n : ℕ} : List (PauliElem n) → Mask → BooleanVec n × BooleanVec n
   | [], _ => 0
   | _ :: _, [] => 0
   | g :: gs, b :: m =>
       if b then symplecticVec g.word + maskVecSum gs m else maskVecSum gs m
 
+/-- The symplectic vector of a masked word product is the masked sum of generator vectors. -/
 theorem symplecticVec_maskWordProduct {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (m : Mask),
       symplecticVec (maskWordProduct gs m) = maskVecSum gs m := by
@@ -501,6 +577,7 @@ theorem symplecticVec_maskWordProduct {n : ℕ} :
               simp only [maskVecSum, maskWordProduct, ↓reduceIte]
               rw [symplecticVec_mul, ih m₀]
 
+/-- A nonempty mask of the required length has nonzero vector sum for independent generators. -/
 theorem maskVecSum_ne_zero_of_independent {n : ℕ} (gs : List (PauliElem n))
     (hind : IndependentGenerators gs) {m : Mask} (hm : m.length = gs.length)
     (hne : ∃ b ∈ m, b = true) : maskVecSum gs m ≠ 0 := by
@@ -511,10 +588,12 @@ theorem maskVecSum_ne_zero_of_independent {n : ℕ} (gs : List (PauliElem n))
   have hword := symplecticVec_eq_zero_iff.mp hsym
   exact (hind m hm hne) hword
 
+/-- The binary symplectic vector of the generator at a finite list index. -/
 def symplecticVecOfFn {n : ℕ} (gs : List (PauliElem n)) (i : Fin gs.length) :
     BooleanVec n × BooleanVec n :=
   symplecticVec (generatorAt gs i).word
 
+/-- Every element of `ZMod 2` is zero or one. -/
 theorem zmod2_eq_zero_or_one (e : ZMod 2) : e = 0 ∨ e = 1 := by
   have hlt : e.val < 2 := ZMod.val_lt e
   interval_cases h : e.val
@@ -532,6 +611,8 @@ theorem zmod2_eq_zero_or_one (e : ZMod 2) : e = 0 ∨ e = 1 := by
       simp
     exact hz
 
+/-- Scalar multiplication over `ZMod 2` returns the vector when the scalar is one and zero
+otherwise. -/
 theorem zmod2_smul_eq {n : ℕ} (c0 : ZMod 2) (v : BooleanVec n × BooleanVec n) :
     c0 • v = if c0 = 1 then v else 0 := by
   rcases zmod2_eq_zero_or_one c0 with h0 | h1
@@ -540,6 +621,7 @@ theorem zmod2_smul_eq {n : ℕ} (c0 : ZMod 2) (v : BooleanVec n × BooleanVec n)
   · subst h1
     simp
 
+/-- Adding an element of `ZMod 2` to itself gives zero. -/
 theorem zmod2_add_self (x : ZMod 2) : x + x = 0 := by
   rcases zmod2_eq_zero_or_one x with h0 | h1
   · subst h0
@@ -547,6 +629,7 @@ theorem zmod2_add_self (x : ZMod 2) : x + x = 0 := by
   · subst h1
     decide
 
+/-- The binary dot product is additive in its left argument. -/
 theorem booleanDot_add_left {n : ℕ} (a b x : BooleanVec n) :
     booleanDot (a + b) x = booleanDot a x + booleanDot b x := by
   simp only [booleanDot]
@@ -554,10 +637,12 @@ theorem booleanDot_add_left {n : ℕ} (a b x : BooleanVec n) :
   exact Finset.sum_congr rfl fun i _ => by
     rw [Pi.add_apply, add_mul]
 
+/-- The binary dot product is symmetric. -/
 theorem booleanDot_comm {n : ℕ} (a x : BooleanVec n) : booleanDot a x = booleanDot x a := by
   simp only [booleanDot]
   exact Finset.sum_congr rfl fun i _ => mul_comm (a i) (x i)
 
+/-- The binary symplectic form is additive in its left argument. -/
 theorem symplecticForm_add_left {n : ℕ} (v₁ v₂ w : BooleanVec n × BooleanVec n) :
     symplecticForm (v₁ + v₂) w = symplecticForm v₁ w + symplecticForm v₂ w := by
   simp only [symplecticForm, Prod.fst_add, Prod.snd_add]
@@ -568,6 +653,7 @@ theorem symplecticForm_add_left {n : ℕ} (v₁ v₂ w : BooleanVec n × Boolean
   rw [h1, h2]
   abel
 
+/-- The binary symplectic form is additive in its right argument. -/
 theorem symplecticForm_add_right {n : ℕ} (v w₁ w₂ : BooleanVec n × BooleanVec n) :
     symplecticForm v (w₁ + w₂) = symplecticForm v w₁ + symplecticForm v w₂ := by
   simp only [symplecticForm, Prod.fst_add, Prod.snd_add]
@@ -578,18 +664,22 @@ theorem symplecticForm_add_right {n : ℕ} (v w₁ w₂ : BooleanVec n × Boolea
   rw [h1, h2]
   abel
 
+/-- The binary symplectic form vanishes on equal arguments. -/
 theorem symplecticForm_self {n : ℕ} (v : BooleanVec n × BooleanVec n) :
     symplecticForm v v = 0 := by
   simp only [symplecticForm]
   rw [booleanDot_comm v.1 v.2]
   exact zmod2_add_self _
 
+/-- Two Pauli operators commute exactly when their binary symplectic pairing is zero. -/
 theorem op_commute_iff_symplecticVec_form_zero {n : ℕ} (p q : PauliElem n) :
     op p * op q = op q * op p
       ↔ symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 0 := by
   rw [op_commute_iff]
   rfl
 
+/-- For independent generators, equal masked word products with masks of the required length
+have equal masks. -/
 theorem maskWordProduct_injective {n : ℕ} (gs : List (PauliElem n))
     (hind : IndependentGenerators gs) {m m' : Mask}
     (hm : m.length = gs.length) (hm' : m'.length = gs.length)
@@ -612,6 +702,8 @@ theorem maskWordProduct_injective {n : ℕ} (gs : List (PauliElem n))
     exact hcontra rfl
   exact maskXor_eq_of_no_true m m' (hm.trans hm'.symm) hnone
 
+/-- A masked generator-vector sum equals the linear combination whose binary coefficients
+determine the mask. -/
 theorem maskVecSum_eq_sum {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (c : Fin gs.length → ZMod 2),
       maskVecSum gs (List.ofFn (fun i => decide (c i = 1)))
@@ -665,6 +757,8 @@ theorem maskVecSum_eq_sum {n : ℕ} :
               rw [hS, h0]
         _ = ∑ i : Fin (g :: gs).length, c i • symplecticVecOfFn (g :: gs) i := hsum.symm
 
+/-- Independent Pauli generators have linearly independent binary symplectic vectors over `ZMod
+2`. -/
 theorem symplecticVecOfFn_linearIndependent {n : ℕ} (gs : List (PauliElem n))
     (hind : IndependentGenerators gs) :
     LinearIndependent (ZMod 2) (symplecticVecOfFn gs) := by
@@ -701,6 +795,8 @@ theorem symplecticVecOfFn_linearIndependent {n : ℕ} (gs : List (PauliElem n))
       exact (zmod2_eq_zero_or_one (c' i)).resolve_right hne
     exact hb0.trans hb0'.symm
 
+/-- The binary symplectic images of all masked products of independent generators have
+cardinality `2 ^ gs.length`. -/
 theorem card_symplecticImage {n : ℕ} (gs : List (PauliElem n))
     (hind : IndependentGenerators gs) :
     ((Finset.univ : Finset (Fin gs.length → Bool)).image
@@ -720,6 +816,7 @@ theorem card_symplecticImage {n : ℕ} (gs : List (PauliElem n))
   rw [Finset.card_image_of_injective _ hinj, Finset.card_univ, Fintype.card_fun,
     Fintype.card_bool, Fintype.card_fin]
 
+/-- The squared complex norm of a real scalar equals its real square. -/
 theorem norm_sq_ofReal (r : ℝ) : ‖(r : ℂ)‖ ^ 2 = r ^ 2 := by
   have h : Complex.normSq (r : ℂ) = r ^ 2 := by
     show Complex.normSq (Complex.mk r 0) = r ^ 2
@@ -728,16 +825,20 @@ theorem norm_sq_ofReal (r : ℝ) : ‖(r : ℂ)‖ ^ 2 = r ^ 2 := by
   rw [← Complex.normSq_eq_norm_sq]
   exact h
 
+/-- The complex number `Complex.I` has norm one. -/
 theorem norm_I : ‖(Complex.I : ℂ)‖ = 1 := by
   have h := Complex.normSq_eq_norm_sq (Complex.I)
   rw [Complex.normSq_I] at h
   nlinarith [norm_nonneg (Complex.I)]
 
+/-- The complex number negative one has norm one. -/
 theorem norm_neg_one : ‖(-1 : ℂ)‖ = 1 := by
   have h := Complex.normSq_eq_norm_sq (-1 : ℂ)
   rw [Complex.normSq_neg, Complex.normSq_one] at h
   nlinarith [norm_nonneg (-1 : ℂ)]
 
+/-- The displayed affine-support phase function vanishes at `x` exactly when `x` lies outside
+its affine support. -/
 theorem isStabilizerFun_zero_iff {n : ℕ} (a : BooleanVec n)
     (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (b : BooleanVec n) (c : ZMod 2)
     (A : AffineSubspace (ZMod 2) (BooleanVec n)) (x : BooleanVec n) :
@@ -753,6 +854,8 @@ theorem isStabilizerFun_zero_iff {n : ℕ} (a : BooleanVec n)
     rw [if_neg h]
     simp
 
+/-- The squared norm of the displayed affine-support phase function is the indicator of its
+affine support. -/
 theorem isStabilizerFun_norm_sq {n : ℕ} (a : BooleanVec n)
     (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (b : BooleanVec n) (c : ZMod 2)
     (A : AffineSubspace (ZMod 2) (BooleanVec n)) (x : BooleanVec n) :
@@ -765,6 +868,7 @@ theorem isStabilizerFun_norm_sq {n : ℕ} (a : BooleanVec n)
   · rw [if_neg hx, if_neg hx]
     simp
 
+/-- The mass of the displayed stabilizer function equals the cardinality of its affine support. -/
 theorem isStabilizerFun_mass_eq_card {n : ℕ} (a : BooleanVec n)
     (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (b : BooleanVec n) (c : ZMod 2)
     (A : AffineSubspace (ZMod 2) (BooleanVec n))
@@ -794,6 +898,7 @@ theorem isStabilizerFun_mass_eq_card {n : ℕ} (a : BooleanVec n)
     _ = ((↑A : Set (BooleanVec n)).toFinset.card : ℝ) := by
           exact_mod_cast hcard
 
+/-- The register-state encoding `stateOfFn` preserves the sum of squared amplitude norms. -/
 theorem sum_normSq_stateOfFn {n : ℕ} (f : BooleanVec n → ℂ) :
     ∑ r : Reg n, ‖stateOfFn f r‖ ^ 2 = ∑ x : BooleanVec n, ‖f x‖ ^ 2 := by
   have h := Fintype.sum_bijective (regVecEquiv : Reg n ≃ BooleanVec n)
@@ -801,6 +906,7 @@ theorem sum_normSq_stateOfFn {n : ℕ} (f : BooleanVec n → ℂ) :
     (fun x : BooleanVec n => ‖f x‖ ^ 2) (fun r => rfl)
   exact h
 
+/-- A function of positive mass yields a normalized state under `normalizedStabilizerState`. -/
 theorem normalizedStabilizerState_normalized {n : ℕ} (φ : BooleanVec n → ℂ)
     (hmass : 0 < stabilizerFunMass φ) : Normalized (normalizedStabilizerState φ) := by
   unfold Normalized normalizedStabilizerState
@@ -823,6 +929,8 @@ theorem normalizedStabilizerState_normalized {n : ℕ} (φ : BooleanVec n → �
     _ = 1 := by
           rw [hinv, mul_inv_cancel₀ (ne_of_gt hmass)]
 
+/-- For nonzero mass, a normalized stabilizer-state amplitude vanishes exactly when the original
+function vanishes at the corresponding binary vector. -/
 theorem normalizedStabilizerState_zero_iff {n : ℕ} (φ : BooleanVec n → ℂ)
     (hmass : stabilizerFunMass φ ≠ 0) (r : Reg n) :
     normalizedStabilizerState φ r = 0 ↔ φ (regToVec r) = 0 := by
@@ -846,6 +954,8 @@ theorem normalizedStabilizerState_zero_iff {n : ℕ} (φ : BooleanVec n → ℂ)
   · intro h
     simp [h]
 
+/-- Multiplying a function of nonzero mass by a nonzero complex scalar multiplies its normalized
+state by the scalar divided by its norm. -/
 theorem normalizedStabilizerState_smul {n : ℕ} (φ : BooleanVec n → ℂ) (lam : ℂ) (hlam : lam ≠ 0)
     (hmass : stabilizerFunMass φ ≠ 0) (r : Reg n) :
     normalizedStabilizerState (fun x => lam * φ x) r
@@ -892,12 +1002,15 @@ theorem normalizedStabilizerState_smul {n : ℕ} (φ : BooleanVec n → ℂ) (la
   rw [hsqrt, Complex.ofReal_mul]
   field_simp [hneC, hsqrtc]
 
+/-- Powers of `Complex.I` with natural exponents less than four are equal only when their
+exponents are equal. -/
 theorem complex_I_pow_inj {a b : ℕ} (ha : a < 4) (hb : b < 4)
     (h : (Complex.I ^ a : ℂ) = Complex.I ^ b) : a = b := by
   interval_cases a <;> interval_cases b <;>
     (try rfl) <;>
     (exfalso; norm_num [Complex.ext_iff] at h)
 
+/-- The matrix representing a phase-free Pauli word is nonzero. -/
 theorem pauliWordOp_ne_zero {n : ℕ} (w : PauliWord n) : pauliWordOp n w ≠ 0 := by
   intro h
   have hu := pauliWordOp_unitary n w
@@ -905,6 +1018,7 @@ theorem pauliWordOp_ne_zero {n : ℕ} (w : PauliWord n) : pauliWordOp n w ≠ 0 
   rw [h] at h1
   simp at h1
 
+/-- Pauli elements with equal words and equal operator matrices have equal phase exponents. -/
 theorem op_eq_of_same_word {n : ℕ} {x y : PauliElem n}
     (h : op x = op y) (hw : x.word = y.word) : x.phase = y.phase := by
   have hne : pauliWordOp n x.word ≠ 0 := pauliWordOp_ne_zero x.word
@@ -936,6 +1050,7 @@ theorem op_eq_of_same_word {n : ℕ} {x y : PauliElem n}
     _ = (y.phase.val : ZMod 4) := by rw [hsame]
     _ = y.phase := ZMod.natCast_zmod_val y.phase
 
+/-- Commuting Pauli operator matrices imply commutativity of their Pauli-element products. -/
 theorem pauliElem_mul_comm_of_op_commute {n : ℕ} {p q : PauliElem n}
     (h : op p * op q = op q * op p) : PauliElem.mul p q = PauliElem.mul q p := by
   apply pauli_ext
@@ -948,16 +1063,19 @@ theorem pauliElem_mul_comm_of_op_commute {n : ℕ} {p q : PauliElem n}
       rw [op_mul, h, op_mul]
     exact op_eq_of_same_word hop hw
 
+/-- A zero binary symplectic pairing implies commutativity of the Pauli-element products. -/
 theorem pauliElem_mul_comm_of_form_zero {n : ℕ} {p q : PauliElem n}
     (h : symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 0) :
     PauliElem.mul p q = PauliElem.mul q p := by
   refine pauliElem_mul_comm_of_op_commute ?_
   exact (op_commute_iff p q).mpr h
 
+/-- Enumerates all Boolean masks of a prescribed length. -/
 def masksOfLen : ℕ → List Mask
   | 0 => [[]]
   | k + 1 => (masksOfLen k).map (fun m => false :: m) ++ (masksOfLen k).map (fun m => true :: m)
 
+/-- Every mask in `masksOfLen k` has length `k`. -/
 theorem masksOfLen_length : ∀ k (m : Mask), m ∈ masksOfLen k → m.length = k := by
   intro k
   induction k with
@@ -973,6 +1091,7 @@ theorem masksOfLen_length : ∀ k (m : Mask), m ∈ masksOfLen k → m.length = 
       · simp [ih m0 hm0]
       · simp [ih m0 hm0]
 
+/-- Every Boolean mask of length `k` belongs to `masksOfLen k`. -/
 theorem mem_masksOfLen : ∀ (k : ℕ) (m : Mask), m.length = k → m ∈ masksOfLen k := by
   intro k
   induction k with
@@ -996,6 +1115,7 @@ theorem mem_masksOfLen : ∀ (k : ℕ) (m : Mask), m.length = k → m ∈ masksO
             simp only [masksOfLen, List.mem_append, List.mem_map]
             exact Or.inr ⟨m, hmem, rfl⟩
 
+/-- Right multiplication by the identity leaves a Pauli element unchanged. -/
 theorem pauliElem_mul_one {n : ℕ} (p : PauliElem n) : PauliElem.mul p 1 = p := by
   apply pauli_ext
   · exact mul_one p.word
@@ -1005,6 +1125,7 @@ theorem pauliElem_mul_one {n : ℕ} (p : PauliElem n) : PauliElem.mul p 1 = p :=
       simp [pauliMulPhase_right_I]
     rw [hz, add_zero]
 
+/-- Left multiplication by the identity leaves a Pauli element unchanged. -/
 theorem pauliElem_one_mul {n : ℕ} (p : PauliElem n) : PauliElem.mul 1 p = p := by
   apply pauli_ext
   · exact one_mul p.word
@@ -1014,6 +1135,7 @@ theorem pauliElem_one_mul {n : ℕ} (p : PauliElem n) : PauliElem.mul 1 p = p :=
       simp [pauliMulPhase_I]
     rw [hz, add_zero]
 
+/-- A Pauli element commuting with each of two elements also commutes with their product. -/
 theorem pauliElem_mul_comm_of_comm {n : ℕ} (g a b : PauliElem n)
     (hga : PauliElem.mul g a = PauliElem.mul a g)
     (hgb : PauliElem.mul g b = PauliElem.mul b g) :
@@ -1030,6 +1152,7 @@ theorem pauliElem_mul_comm_of_comm {n : ℕ} (g a b : PauliElem n)
       = PauliElem.mul (PauliElem.mul a b) g := (pauliElem_mul_assoc' a b g).symm
   exact h1.trans (h2.trans (h3.trans (h4.trans h5)))
 
+/-- A Pauli element commuting with every generator commutes with every masked product. -/
 theorem maskProduct_comm {n : ℕ} : ∀ (gs : List (PauliElem n)) (m : Mask) (g : PauliElem n),
     (∀ h ∈ gs, PauliElem.mul g h = PauliElem.mul h g) →
     PauliElem.mul g (maskProduct gs m) = PauliElem.mul (maskProduct gs m) g := by
@@ -1064,6 +1187,8 @@ theorem maskProduct_comm {n : ℕ} : ∀ (gs : List (PauliElem n)) (m : Mask) (g
                 _ = PauliElem.mul (PauliElem.mul h (maskProduct gs m₀)) g :=
                     (pauliElem_mul_assoc' _ _ _).symm
 
+/-- For commuting Hermitian generators and masks of the required length, exclusive-or
+corresponds to multiplication of masked Pauli products. -/
 theorem maskProduct_xor {n : ℕ} : ∀ (gs : List (PauliElem n)) (_hcomm : CommutingHermitianPaulis gs)
     (m m' : Mask), m.length = gs.length → m'.length = gs.length →
     maskProduct gs (maskXor m m') = maskProduct gs m * maskProduct gs m' := by
@@ -1182,11 +1307,14 @@ theorem maskProduct_xor {n : ℕ} : ∀ (gs : List (PauliElem n)) (_hcomm : Comm
                       = PauliElem.mul (PauliElem.mul g (maskProduct gs m₀))
                           (PauliElem.mul g (maskProduct gs m₀')) := hchain.symm
 
+/-- The identity belongs to the set of masked generator products. -/
 theorem generatedSubgroup_one_mem {n : ℕ} (gs : List (PauliElem n)) :
     (1 : PauliElem n) ∈ generatedSubgroup gs := by
   refine ⟨List.replicate gs.length false, ⟨by simp, ?_⟩⟩
   exact maskProduct_eq_one gs _ (by simp) (by simp)
 
+/-- The set generated by commuting Hermitian Pauli elements is closed under Pauli
+multiplication. -/
 theorem generatedSubgroup_mul_mem {n : ℕ} (gs : List (PauliElem n))
     (hgs : CommutingHermitianPaulis gs) {p q : PauliElem n}
     (hp : p ∈ generatedSubgroup gs) (hq : q ∈ generatedSubgroup gs) :
@@ -1200,6 +1328,7 @@ theorem generatedSubgroup_mul_mem {n : ℕ} (gs : List (PauliElem n))
       = maskProduct gs m * maskProduct gs m' := maskProduct_xor gs hgs m m' hm hm'
     _ = p * q := by rw [hpm, hqm]
 
+/-- Pauli elements with equal binary symplectic vectors and equal phase exponents are equal. -/
 theorem pauliElem_eq_of_symplecticVec_phase {n : ℕ} {p q : PauliElem n}
     (h1 : symplecticVec p.word = symplecticVec q.word) (h2 : p.phase = q.phase) :
     p = q := by
@@ -1207,6 +1336,7 @@ theorem pauliElem_eq_of_symplecticVec_phase {n : ℕ} {p q : PauliElem n}
   · exact symplecticVec_injective h1
   · exact h2
 
+/-- Every element of `ZMod 4` is zero, one, two, or three. -/
 theorem zmod4_cases (e : ZMod 4) : e = 0 ∨ e = 1 ∨ e = 2 ∨ e = 3 := by
   have hlt : e.val < 4 := ZMod.val_lt e
   interval_cases h : e.val
@@ -1238,6 +1368,7 @@ theorem zmod4_cases (e : ZMod 4) : e = 0 ∨ e = 1 ∨ e = 2 ∨ e = 3 := by
       simp
     exact hz
 
+/-- The product of two commuting Hermitian Pauli elements is Hermitian. -/
 theorem mul_herm_comm_herm {n : ℕ} {p q : PauliElem n} (hp : IsHermitianPauli p)
     (hq : IsHermitianPauli q) (hc : op p * op q = op q * op p) :
     IsHermitianPauli (PauliElem.mul p q) := by
@@ -1274,6 +1405,8 @@ theorem mul_herm_comm_herm {n : ℕ} {p q : PauliElem n} (hp : IsHermitianPauli 
     rw [h3] at hsum
     exact absurd hsum (by decide)
 
+/-- For commuting Hermitian generators, the linear map associated to `projectorAux` is
+idempotent. -/
 theorem projectorAux_toLin'_idem {n : ℕ} (gs : List (PauliElem n))
     (hgs : CommutingHermitianPaulis gs) :
     (projectorAux gs).toLin'.comp (projectorAux gs).toLin' = (projectorAux gs).toLin' := by
@@ -1281,6 +1414,7 @@ theorem projectorAux_toLin'_idem {n : ℕ} (gs : List (PauliElem n))
     projectorAux_mul_self gs hgs
   rw [← Matrix.toLin'_mul, hmul]
 
+/-- For a consistent tableau, its code space is the range of the associated generator projector. -/
 theorem codeSpace_eq_range {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t) :
     codeSpace t = (projectorAux (tableauGenerators t)).toLin'.range := by
   have hgen : CommutingHermitianPaulis (tableauGenerators t) := by
@@ -1309,6 +1443,8 @@ theorem codeSpace_eq_range {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau
       rwa [Matrix.toLin'_apply] at h1
     exact (stabilizerProjector_mem_codeSpace t ht ψ).mpr hfix
 
+/-- The range of the projector for `k ≤ n` independent commuting Hermitian generators has
+complex dimension `2 ^ (n - k)`. -/
 theorem finrank_range_projectorAux {n k : ℕ} (gs : List (PauliElem n)) (hgs : gs.length = k)
     (hk : k ≤ n) (hcomm : CommutingHermitianPaulis gs) (hind : IndependentGenerators gs) :
     Module.finrank ℂ ((projectorAux gs).toLin'.range) = 2 ^ (n - k) := by
@@ -1324,6 +1460,8 @@ theorem finrank_range_projectorAux {n k : ℕ} (gs : List (PauliElem n)) (hgs : 
   rw [hmain] at htr
   exact_mod_cast htr.symm
 
+/-- A consistent tableau with `k ≤ n` independent generators has code-space dimension `2 ^ (n -
+k)`. -/
 theorem finrank_codeSpace {n m k : ℕ} (t : Tableau n m)
     (hgs : (tableauGenerators t).length = k) (hk : k ≤ n) (ht : ConsistentTableau t)
     (hind : IndependentGenerators (tableauGenerators t)) :
@@ -1340,6 +1478,8 @@ theorem finrank_codeSpace {n m k : ℕ} (t : Tableau n m)
   rw [codeSpace_eq_range t ht]
   exact finrank_range_projectorAux (tableauGenerators t) hgs hk hgen hind
 
+/-- A consistent tableau with `k ≤ n` independent generators possesses a normalized state in its
+code space. -/
 theorem exists_normalized_codeState {n m k : ℕ} (t : Tableau n m)
     (hgs : (tableauGenerators t).length = k) (hk : k ≤ n) (ht : ConsistentTableau t)
     (hind : IndependentGenerators (tableauGenerators t)) :
@@ -1386,6 +1526,9 @@ theorem exists_normalized_codeState {n m k : ℕ} (t : Tableau n m)
     congr 1
     exact (mem_codeSpace_iff t ψ).mp hψ a
 
+/-- For a consistent tableau with `n` independent generators, any two normalized code states
+differ by a nonzero complex scalar. See [Aaronson and Gottesman, Theorem
+1][AaronsonGottesman2004]. -/
 theorem unique_stabilizerState {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t)
     (hgs : (tableauGenerators t).length = n) (hind : IndependentGenerators (tableauGenerators t)) :
     ∀ ψ₁ ψ₂ : QState (Reg n), ψ₁ ∈ codeSpace t → ψ₂ ∈ codeSpace t →
@@ -1456,6 +1599,8 @@ theorem unique_stabilizerState {n m : ℕ} (t : Tableau n m) (ht : ConsistentTab
     rw [Pi.smul_apply, Pi.smul_apply, Pi.smul_apply, smul_eq_mul, smul_eq_mul, smul_eq_mul]
     field_simp [hc'ne]
 
+/-- A state fixed by every generator is fixed by every masked product with the required mask
+length. -/
 theorem op_maskProduct_fixes_codeSpace' {n : ℕ} (gs : List (PauliElem n)) (ψ : QState (Reg n))
     (hfix : ∀ g ∈ gs, op g *ᵥ ψ = ψ) :
     ∀ (mask : Mask), mask.length = gs.length → op (maskProduct gs mask) *ᵥ ψ = ψ := by
@@ -1495,6 +1640,7 @@ theorem op_maskProduct_fixes_codeSpace' {n : ℕ} (gs : List (PauliElem n)) (ψ 
               rw [ih hfix' mask hlen]
               exact hg
 
+/-- Every code state is fixed by every masked product of the tableau generators. -/
 theorem op_maskProduct_fixes_codeSpace {n m : ℕ} (t : Tableau n m) (ψ : QState (Reg n))
     (hψ : ψ ∈ codeSpace t) (mask : Mask) (hmask : mask.length = (tableauGenerators t).length) :
     op (maskProduct (tableauGenerators t) mask) *ᵥ ψ = ψ := by
@@ -1504,6 +1650,8 @@ theorem op_maskProduct_fixes_codeSpace {n m : ℕ} (t : Tableau n m) (ψ : QStat
     exact hψ a
   exact op_maskProduct_fixes_codeSpace' (tableauGenerators t) ψ hfix mask hmask
 
+/-- If a Hermitian Pauli fixes a state, its positive measurement branch has the full state mass
+and its negative branch has zero mass. -/
 theorem pauliBranch_deterministic_of_fixes {n : ℕ} (ψ : QState (Reg n))
     (p : PauliElem n) (hp : IsHermitianPauli p) (hfix : op p *ᵥ ψ = ψ) :
     ProjectiveBranchMass (pauliBranchProjector p true) true ψ = MeasureProb ψ Finset.univ ∧
@@ -1537,6 +1685,8 @@ theorem pauliBranch_deterministic_of_fixes {n : ℕ} (ψ : QState (Reg n))
     rw [hplusmass] at hsum
     linarith
 
+/-- A Hermitian Pauli in the generated set has a deterministic positive measurement branch on
+the tableau code space. -/
 theorem pauliBranch_deterministic_of_generatedSubgroup {n m : ℕ} (t : Tableau n m)
     (ψ : QState (Reg n)) (hψ : ψ ∈ codeSpace t) (p : PauliElem n) (hp : IsHermitianPauli p)
     (hgen : p ∈ generatedSubgroup (tableauGenerators t)) :
@@ -1547,6 +1697,8 @@ theorem pauliBranch_deterministic_of_generatedSubgroup {n m : ℕ} (t : Tableau 
   rw [← hprod]
   exact op_maskProduct_fixes_codeSpace t ψ hψ mask hmask
 
+/-- A Hermitian Pauli anticommuting with some tableau row has equal measurement branch masses on
+every code state. -/
 theorem pauliBranch_equiprobable_of_anticommute_some {n m : ℕ} (t : Tableau n m)
     (ψ : QState (Reg n)) (hψ : ψ ∈ codeSpace t) (p : PauliElem n) (hp : IsHermitianPauli p)
     (hanti : ∃ a : Fin m, op (t a).decode * op p = - (op p * op (t a).decode)) :
@@ -1555,6 +1707,8 @@ theorem pauliBranch_equiprobable_of_anticommute_some {n m : ℕ} (t : Tableau n 
   obtain ⟨a, ha⟩ := hanti
   exact pauliBranch_equiprobable t ψ hψ a p hp ha
 
+/-- For a normalized code state, measuring a Hermitian Pauli anticommuting with some tableau row
+has the fair-bit branch probabilities. -/
 theorem pauliBranchMass_fairBit_of_anticommute_some {n m : ℕ} (t : Tableau n m)
     (ψ : QState (Reg n)) (hψ : ψ ∈ codeSpace t) (hn : Normalized ψ) (p : PauliElem n)
     (hp : IsHermitianPauli p)
@@ -1564,15 +1718,19 @@ theorem pauliBranchMass_fairBit_of_anticommute_some {n m : ℕ} (t : Tableau n m
   obtain ⟨a, ha⟩ := hanti
   exact pauliBranchMass_fairBit t ψ hψ hn a p hp ha
 
+/-- The binary dot product with the zero vector is zero. -/
 theorem booleanDot_zero {n : ℕ} (a : BooleanVec n) : booleanDot a 0 = 0 := by
   simp [booleanDot]
 
+/-- The value of `quadFun Q b c` at zero is its constant coefficient `c`. -/
 theorem quadFun_zero {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (b : BooleanVec n)
     (c : ZMod 2) : quadFun Q b c 0 = c := by
   simp [quadFun]
 
+/-- The natural representative of one in `ZMod 2` is one. -/
 theorem zmod2_val_one : (1 : ZMod 2).val = 1 := by decide
 
+/-- A stabilizer function nonzero at the origin takes value one or negative one there. -/
 theorem isStabilizerFun_value_zero {n : ℕ} (φ : BooleanVec n → ℂ) (hφ : IsStabilizerFun φ)
     (hzero : φ 0 ≠ 0) :
     φ 0 ∈ ({1, -1} : Set ℂ) := by
@@ -1588,6 +1746,7 @@ theorem isStabilizerFun_value_zero {n : ℕ} (φ : BooleanVec n → ℂ) (hφ : 
   simp only [hmem, if_pos]
   rcases zmod2_eq_zero_or_one c with rfl | rfl <;> simp [zmod2_val_one]
 
+/-- A stabilizer function cannot take the value `Complex.I` at the origin. -/
 theorem not_isStabilizerFun_imag_zero {n : ℕ} (φ : BooleanVec n → ℂ) (hφ : IsStabilizerFun φ)
     (himag : φ 0 = Complex.I) (hne : φ 0 ≠ 0) : False := by
   have h := isStabilizerFun_value_zero φ hφ hne
@@ -1596,31 +1755,40 @@ theorem not_isStabilizerFun_imag_zero {n : ℕ} (φ : BooleanVec n → ℂ) (hφ
   · exact absurd h (by simp [Complex.ext_iff])
   · exact absurd h (by simp [Complex.ext_iff])
 
+/-- The one-bit function equal to `Complex.I` at zero and one elsewhere is not a stabilizer
+function. -/
 theorem not_isStabilizerFun_one_imag :
     ¬ IsStabilizerFun (fun x : BooleanVec 1 => if x = 0 then Complex.I else 1) := by
   intro h
   have hne : (fun x : BooleanVec 1 => if x = 0 then Complex.I else 1) 0 ≠ 0 := by simp
   exact not_isStabilizerFun_imag_zero _ h (by simp) hne
 
+/-- Single-site Hadamard conjugation preserves the site symplectic form. -/
 theorem siteForm_conjH (a b : Pauli1) :
     siteForm (conjHWord a) (conjHWord b) = siteForm a b := by
   cases a <;> cases b <;> decide
 
+/-- Single-site phase-gate conjugation preserves the site symplectic form. -/
 theorem siteForm_conjS (a b : Pauli1) :
     siteForm (conjSWord a) (conjSWord b) = siteForm a b := by
   cases a <;> cases b <;> decide
 
+/-- The two-site CNOT word update preserves the sum of the two site symplectic pairings. -/
 theorem siteForm_cnot (a b c d : Pauli1) :
     siteForm (pauliMul1 a (cnotTargetCross b)) (pauliMul1 c (cnotTargetCross d))
       + siteForm (pauliMul1 (cnotControlCross a) b) (pauliMul1 (cnotControlCross c) d)
       = siteForm a c + siteForm b d := by
   cases a <;> cases b <;> cases c <;> cases d <;> decide
 
+/-- For the displayed X and Y letters, the single-site expression obtained from the CNOT word
+update fails to preserve the site pairing. -/
 theorem siteForm_cnot_degenerate_not :
     siteForm (pauliMul1 .X (cnotTargetCross .X)) (pauliMul1 .Y (cnotTargetCross .Y))
       ≠ siteForm .X .Y := by
   decide
 
+/-- A finite sum splits into its values at two distinct indices and the sum over the remaining
+indices. -/
 theorem sum_split_two {n : ℕ} (i j : Fin n) (hij : i ≠ j) (f : Fin n → ZMod 2) :
     (∑ k, f k) = f i + f j + ∑ k ∈ Finset.univ \ {i, j}, f k := by
   have hi : i ∈ (Finset.univ : Finset (Fin n)) := Finset.mem_univ i
@@ -1633,34 +1801,44 @@ theorem sum_split_two {n : ℕ} (i j : Fin n) (hij : i ≠ j) (f : Fin n → ZMo
   rw [hset]
   abel
 
+/-- Hadamard conjugation sends the site X coordinate to the original Z coordinate. -/
 theorem siteX_conjH (a : Pauli1) : siteX (conjHWord a) = siteZ a := by
   cases a <;> decide
 
+/-- Hadamard conjugation sends the site Z coordinate to the original X coordinate. -/
 theorem siteZ_conjH (a : Pauli1) : siteZ (conjHWord a) = siteX a := by
   cases a <;> decide
 
+/-- Phase-gate conjugation preserves the site X coordinate. -/
 theorem siteX_conjS (a : Pauli1) : siteX (conjSWord a) = siteX a := by
   cases a <;> decide
 
+/-- Phase-gate conjugation adds the site X coordinate to the site Z coordinate. -/
 theorem siteZ_conjS (a : Pauli1) : siteZ (conjSWord a) = siteZ a + siteX a := by
   cases a <;> decide
 
+/-- The displayed `cnotTargetCross` word update preserves the X coordinate of its first letter. -/
 theorem siteX_cnotTarget (a b : Pauli1) :
     siteX (pauliMul1 a (cnotTargetCross b)) = siteX a := by
   cases a <;> cases b <;> decide
 
+/-- The displayed `cnotTargetCross` word update adds the Z coordinates of its two letters. -/
 theorem siteZ_cnotTarget (a b : Pauli1) :
     siteZ (pauliMul1 a (cnotTargetCross b)) = siteZ a + siteZ b := by
   cases a <;> cases b <;> decide
 
+/-- The displayed `cnotControlCross` word update adds the X coordinates of its two letters. -/
 theorem siteX_cnotControl (a b : Pauli1) :
     siteX (pauliMul1 (cnotControlCross a) b) = siteX a + siteX b := by
   cases a <;> cases b <;> decide
 
+/-- The displayed `cnotControlCross` word update preserves the Z coordinate of its second
+letter. -/
 theorem siteZ_cnotControl (a b : Pauli1) :
     siteZ (pauliMul1 (cnotControlCross a) b) = siteZ b := by
   cases a <;> cases b <;> decide
 
+/-- The action of a legal Clifford gate preserves the binary symplectic pairing of Pauli words. -/
 theorem symplecticForm_cliffordAction {n : ℕ} (g : CliffordGate n) (hg : legalGate g)
     (p q : PauliElem n) :
     symplecticForm (symplecticVec (cliffordAction g p).word)
@@ -1756,6 +1934,8 @@ theorem symplecticForm_cliffordAction {n : ℕ} (g : CliffordGate n) (hg : legal
         rw [h1, h2]
       rw [hsum]
 
+/-- The action of a legal Clifford gate preserves and reflects commutativity of Pauli operator
+matrices. -/
 theorem cliffordAction_preserves_commute {n : ℕ} (g : CliffordGate n) (hg : legalGate g)
     (p q : PauliElem n) :
     op (cliffordAction g p) * op (cliffordAction g q)
@@ -1775,6 +1955,8 @@ theorem cliffordAction_preserves_commute {n : ℕ} (g : CliffordGate n) (hg : le
     rw [← hsym] at h
     exact h
 
+/-- For a legal Clifford gate, the binary symplectic vector of its Pauli action is given by
+`cliffordSymplecticMap`. -/
 theorem symplecticVec_cliffordAction {n : ℕ} (g : CliffordGate n) (hg : legalGate g)
     (p : PauliElem n) :
     symplecticVec (cliffordAction g p).word = cliffordSymplecticMap g (symplecticVec p.word) := by
@@ -1922,6 +2104,7 @@ theorem symplecticVec_cliffordAction {n : ℕ} (g : CliffordGate n) (hg : legalG
               simp [cliffordSymplecticMap, hki]
             rw [h1, h2, symplecticZ_apply]
 
+/-- A circuit of legal Clifford gates preserves the binary symplectic pairing of Pauli words. -/
 theorem symplecticForm_cliffordActionCircuit {n : ℕ} (gs : CliffordCircuit n)
     (hlegal : ∀ g ∈ gs, legalGate g) (p q : PauliElem n) :
     symplecticForm (symplecticVec (cliffordActionCircuit gs p).word)
@@ -1934,6 +2117,8 @@ theorem symplecticForm_cliffordActionCircuit {n : ℕ} (gs : CliffordCircuit n)
       rw [ih (fun g' hg' => hlegal g' (by simp [hg'])) (cliffordAction g p) (cliffordAction g q)]
       exact symplecticForm_cliffordAction g (hlegal g (by simp)) p q
 
+/-- A circuit of legal Clifford gates preserves and reflects commutativity of Pauli operator
+matrices. -/
 theorem cliffordActionCircuit_preserves_commute {n : ℕ} (gs : CliffordCircuit n)
     (hlegal : ∀ g ∈ gs, legalGate g) (p q : PauliElem n) :
     op (cliffordActionCircuit gs p) * op (cliffordActionCircuit gs q)
@@ -1946,6 +2131,8 @@ theorem cliffordActionCircuit_preserves_commute {n : ℕ} (gs : CliffordCircuit 
       rw [ih (fun g' hg' => hlegal g' (by simp [hg'])) (cliffordAction g p) (cliffordAction g q)]
       exact cliffordAction_preserves_commute g (hlegal g (by simp)) p q
 
+/-- A legal Clifford circuit preserves all three pairwise commutativity relations among three
+Pauli operator matrices. -/
 theorem cliffordActionCircuit_preserves_commute_pattern {n : ℕ} (gs : CliffordCircuit n)
     (hlegal : ∀ g ∈ gs, legalGate g) (p q r : PauliElem n) :
     ((op (cliffordActionCircuit gs p) * op (cliffordActionCircuit gs q)
@@ -1961,6 +2148,8 @@ theorem cliffordActionCircuit_preserves_commute_pattern {n : ℕ} (gs : Clifford
    cliffordActionCircuit_preserves_commute gs hlegal p r,
    cliffordActionCircuit_preserves_commute gs hlegal q r⟩
 
+/-- The binary symplectic vector of a legal Clifford circuit action is given by
+`cliffordSymplecticCircuit`. -/
 theorem symplecticVec_cliffordActionCircuit {n : ℕ} (gs : CliffordCircuit n)
     (hlegal : ∀ g ∈ gs, legalGate g) (p : PauliElem n) :
     symplecticVec (cliffordActionCircuit gs p).word
@@ -1973,6 +2162,7 @@ theorem symplecticVec_cliffordActionCircuit {n : ℕ} (gs : CliffordCircuit n)
       rw [symplecticVec_cliffordAction g (hlegal g (by simp)) p]
       rfl
 
+/-- Concatenating Clifford circuits composes their binary symplectic actions in execution order. -/
 theorem cliffordSymplecticCircuit_append {n : ℕ} (gs hs : CliffordCircuit n)
     (v : BooleanVec n × BooleanVec n) :
     cliffordSymplecticCircuit (gs ++ hs) v
@@ -1983,6 +2173,7 @@ theorem cliffordSymplecticCircuit_append {n : ℕ} (gs hs : CliffordCircuit n)
       simp only [cliffordSymplecticCircuit, List.cons_append]
       rw [ih]
 
+/-- The local canonicalization map sets the Z coordinate at the selected site to zero. -/
 theorem siteCanonicalVector_z_zero {n : ℕ} (j : Fin n) (v : BooleanVec n × BooleanVec n) :
     (siteCanonicalVector j v).2 j = 0 := by
   by_cases hz : v.2 j = 0
@@ -2025,6 +2216,7 @@ theorem siteCanonicalVector_z_zero {n : ℕ} (j : Fin n) (v : BooleanVec n × Bo
       rw [siteCanonicalVector, if_neg hz, if_neg hx, h1, h2, h3, hx1, hz1]
       exact zmod2_add_self _
 
+/-- The local canonicalization map preserves both binary coordinates at every other site. -/
 theorem siteCanonicalVector_local {n : ℕ} (j : Fin n) (v : BooleanVec n × BooleanVec n)
     (k : Fin n) (hk : k ≠ j) :
     (siteCanonicalVector j v).1 k = v.1 k ∧ (siteCanonicalVector j v).2 k = v.2 k := by
@@ -2036,6 +2228,7 @@ theorem siteCanonicalVector_local {n : ℕ} (j : Fin n) (v : BooleanVec n × Boo
     · simp [siteCanonicalVector, hz, hx, cliffordSymplecticMap, hk]
     · simp [siteCanonicalVector, hz, hx, cliffordSymplecticMap, hk]
 
+/-- The binary action of `siteCanonicalGates` agrees with `siteCanonicalVector`. -/
 theorem siteCanonicalGates_eq {n : ℕ} (j : Fin n) (v : BooleanVec n × BooleanVec n) :
     cliffordSymplecticCircuit (siteCanonicalGates j v) v = siteCanonicalVector j v := by
   by_cases hz : v.2 j = 0
@@ -2046,6 +2239,8 @@ theorem siteCanonicalGates_eq {n : ℕ} (j : Fin n) (v : BooleanVec n × Boolean
     · simp [siteCanonicalGates, siteCanonicalVector, hz, hx, cliffordSymplecticCircuit]
     · simp [siteCanonicalGates, siteCanonicalVector, hz, hx, cliffordSymplecticCircuit]
 
+/-- Canonicalization at distinct listed sites clears their Z coordinates and preserves both
+coordinates outside the list. -/
 theorem canonicalCircuit_effect {n : ℕ} (sites : List (Fin n))
     (v : BooleanVec n × BooleanVec n) (hnd : sites.Nodup) :
     (∀ j ∈ sites, (cliffordSymplecticCircuit (canonicalCircuit sites v) v).2 j = 0)
@@ -2091,6 +2286,8 @@ theorem canonicalCircuit_effect {n : ℕ} (sites : List (Fin n))
         rw [hpres.1, hpres.2]
         exact ⟨h1, h2⟩
 
+/-- The X-coordinate update for CNOT preserves the control coordinate and adds it to the target
+coordinate. -/
 theorem cliffordSymplecticMap_CNOT_x {n : ℕ} (c t : Fin n) (x z : BooleanVec n) (j : Fin n) :
     (cliffordSymplecticMap (.CNOT c t) (x, z)).1 j
       = if j = c then x j else if j = t then x j + x c else x j := by
@@ -2100,6 +2297,8 @@ theorem cliffordSymplecticMap_CNOT_x {n : ℕ} (c t : Fin n) (x z : BooleanVec n
     · simp [cliffordSymplecticMap, h2]
     · simp [cliffordSymplecticMap, h2]
 
+/-- The Z-coordinate update for CNOT adds the target coordinate to the control coordinate and
+preserves the target coordinate. -/
 theorem cliffordSymplecticMap_CNOT_z {n : ℕ} (c t : Fin n) (x z : BooleanVec n) (j : Fin n) :
     (cliffordSymplecticMap (.CNOT c t) (x, z)).2 j
       = if j = c then z j + z t else if j = t then z j else z j := by
@@ -2109,6 +2308,8 @@ theorem cliffordSymplecticMap_CNOT_z {n : ℕ} (c t : Fin n) (x z : BooleanVec n
     · simp [cliffordSymplecticMap, h2]
     · simp [cliffordSymplecticMap, h2]
 
+/-- For zero Z coordinates, CNOTs from a control outside a duplicate-free target list add its X
+coordinate exactly at those targets. -/
 theorem cnotCircuit_effect {n : ℕ} (c : Fin n) (ts : List (Fin n))
     (hnd : ts.Nodup) (hc : c ∉ ts) :
     ∀ (x z : BooleanVec n), (∀ j, z j = 0) →
@@ -2163,16 +2364,21 @@ theorem cnotCircuit_effect {n : ℕ} (c : Fin n) (ts : List (Fin n))
         · simp [hjin, hjt, hct]
         · simp [hjin, hjt]
 
+/-- The list underlying `supportTail` has no duplicates and excludes the distinguished index. -/
 theorem supportTail_toList {n : ℕ} (zero : Fin n) (x : BooleanVec n) :
     (supportTail zero x).toList.Nodup ∧ zero ∉ (supportTail zero x).toList := by
   constructor
   · exact Finset.nodup_toList _
   · simp [supportTail]
 
+/-- Membership in `supportTail zero x` means being distinct from `zero` and having a nonzero X
+coordinate. -/
 theorem mem_supportTail {n : ℕ} (zero : Fin n) (x : BooleanVec n) (j : Fin n) :
     j ∈ supportTail zero x ↔ j ≠ zero ∧ x j ≠ 0 := by
   simp [supportTail]
 
+/-- On a vector with zero Z coordinates, `cnotFixCircuit` adds `x i` at the distinguished site
+exactly when its X coordinate is zero. -/
 theorem cnotFixCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
     (hzi : i ≠ zero) :
     cliffordSymplecticCircuit (cnotFixCircuit zero i x) (x, 0)
@@ -2199,6 +2405,8 @@ theorem cnotFixCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
         · simp [h2]
   · simp [cnotFixCircuit, hz, cliffordSymplecticCircuit]
 
+/-- Local canonicalization makes the selected X coordinate zero for a zero coordinate pair and
+one otherwise. -/
 theorem siteCanonicalVector_x {n : ℕ} (j : Fin n) (v : BooleanVec n × BooleanVec n) :
     (siteCanonicalVector j v).1 j = if v.1 j = 0 ∧ v.2 j = 0 then 0 else 1 := by
   by_cases hz : v.2 j = 0
@@ -2242,6 +2450,8 @@ theorem siteCanonicalVector_x {n : ℕ} (j : Fin n) (v : BooleanVec n × Boolean
       rw [hz1]
       simp [hz, hx]
 
+/-- After canonicalization at distinct listed sites, each processed X coordinate indicates
+whether its original coordinate pair was nonzero. -/
 theorem canonicalCircuit_x_processed {n : ℕ} (sites : List (Fin n))
     (v : BooleanVec n × BooleanVec n) (hnd : sites.Nodup) (j : Fin n) (hj : j ∈ sites) :
     (cliffordSymplecticCircuit (canonicalCircuit sites v) v).1 j
@@ -2266,6 +2476,7 @@ theorem canonicalCircuit_x_processed {n : ℕ} (sites : List (Fin n))
         have hloc := siteCanonicalVector_local a v j hja
         rw [h1, hloc.1, hloc.2]
 
+/-- If `x i = 1`, the displayed update makes the distinguished X coordinate one. -/
 theorem cnotFix_x_zero {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (_hzi : i ≠ zero)
     (hxi : x i = 1) :
     (if x zero = 0 ∧ zero = zero then x zero + x i else x zero) = 1 := by
@@ -2280,6 +2491,8 @@ theorem cnotFix_x_zero {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (_hzi : i �
     simp only [eq_self, and_true, if_neg hz]
     exact h1
 
+/-- If `x i = 1`, the displayed update sets the distinguished X coordinate to one and preserves
+the others. -/
 theorem cnotFix_x_apply {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (_hzi : i ≠ zero)
     (hxi : x i = 1) (j : Fin n) :
     (if x zero = 0 ∧ j = zero then x zero + x i else x j) = if j = zero then 1 else x j := by
@@ -2293,6 +2506,8 @@ theorem cnotFix_x_apply {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (_hzi : i 
       exact hjz h2
     rw [if_neg hne, if_neg hjz]
 
+/-- At a processed site, the canonicalized X coordinate vanishes exactly when both original
+binary coordinates vanish. -/
 theorem canonicalCircuit_x_zero_iff {n : ℕ} (sites : List (Fin n))
     (v : BooleanVec n × BooleanVec n) (hnd : sites.Nodup) (j : Fin n) (hj : j ∈ sites) :
     (cliffordSymplecticCircuit (canonicalCircuit sites v) v).1 j = 0
@@ -2314,6 +2529,8 @@ theorem canonicalCircuit_x_zero_iff {n : ℕ} (sites : List (Fin n))
     rw [canonicalCircuit_x_processed sites v hnd j hj]
     simp [h2, h3]
 
+/-- If `i` differs from the distinguished site and `x i = 1`, the reduction circuit maps `(x,
+0)` to the X unit vector at the distinguished site. -/
 theorem cnotReduceCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
     (hzi : i ≠ zero) (hxi : x i = 1) :
     cliffordSymplecticCircuit (cnotReduceCircuit zero i x) (x, 0)
@@ -2364,6 +2581,7 @@ theorem cnotReduceCircuit_effect {n : ℕ} (zero i : Fin n) (x : BooleanVec n)
         · exact (hj0 hjz).elim
       rw [hne]
 
+/-- Applying the binary Hadamard map twice is the identity. -/
 theorem cliffordSymplecticMap_H_inv {n : ℕ} (i : Fin n)
     (v : BooleanVec n × BooleanVec n) :
     cliffordSymplecticMap (.H i) (cliffordSymplecticMap (.H i) v) = v := by
@@ -2380,6 +2598,7 @@ theorem cliffordSymplecticMap_H_inv {n : ℕ} (i : Fin n)
     · rw [if_pos h1, if_pos h1]
     · rw [if_neg h1, if_neg h1]
 
+/-- Applying the binary phase-gate map twice is the identity. -/
 theorem cliffordSymplecticMap_S_inv {n : ℕ} (i : Fin n)
     (v : BooleanVec n × BooleanVec n) :
     cliffordSymplecticMap (.S i) (cliffordSymplecticMap (.S i) v) = v := by
@@ -2397,6 +2616,7 @@ theorem cliffordSymplecticMap_S_inv {n : ℕ} (i : Fin n)
         _ = z j := by simp
     · rw [if_neg h1, if_neg h1]
 
+/-- Applying a CNOT binary map with distinct control and target twice is the identity. -/
 theorem cliffordSymplecticMap_CNOT_inv {n : ℕ} (c t : Fin n) (hct : c ≠ t)
     (x z : BooleanVec n) :
     cliffordSymplecticMap (.CNOT c t) (cliffordSymplecticMap (.CNOT c t) (x, z)) = (x, z) := by
@@ -2426,6 +2646,7 @@ theorem cliffordSymplecticMap_CNOT_inv {n : ℕ} (c t : Fin n) (hct : c ≠ t)
       · rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
       · rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
 
+/-- Every legal Clifford gate has an involutive binary symplectic map. -/
 theorem cliffordSymplecticMap_inv {n : ℕ} (g : CliffordGate n) (hg : legalGate g)
     (v : BooleanVec n × BooleanVec n) :
     cliffordSymplecticMap g (cliffordSymplecticMap g v) = v := by
@@ -2437,6 +2658,7 @@ theorem cliffordSymplecticMap_inv {n : ℕ} (g : CliffordGate n) (hg : legalGate
       rcases v with ⟨x, z⟩
       exact cliffordSymplecticMap_CNOT_inv i j h x z
 
+/-- Reversing a legal Clifford circuit gives the inverse of its binary symplectic action. -/
 theorem cliffordSymplecticCircuit_inv {n : ℕ} (gs : CliffordCircuit n)
     (hg : ∀ g ∈ gs, legalGate g) (v : BooleanVec n × BooleanVec n) :
     cliffordSymplecticCircuit gs.reverse (cliffordSymplecticCircuit gs v) = v := by
@@ -2450,6 +2672,7 @@ theorem cliffordSymplecticCircuit_inv {n : ℕ} (gs : CliffordCircuit n)
       rw [ih hg2 (cliffordSymplecticMap g v)]
       exact cliffordSymplecticMap_inv g hg1 v
 
+/-- Every gate in `siteCanonicalGates` is legal. -/
 theorem legal_siteCanonicalGates {n : ℕ} (j : Fin n) (v : BooleanVec n × BooleanVec n) :
     ∀ g ∈ siteCanonicalGates j v, legalGate g := by
   intro g hg
@@ -2483,6 +2706,7 @@ theorem legal_siteCanonicalGates {n : ℕ} (j : Fin n) (v : BooleanVec n × Bool
   · rw [hg2]
     trivial
 
+/-- Every gate in `canonicalCircuit` is legal. -/
 theorem legal_canonicalCircuit {n : ℕ} (sites : List (Fin n))
     (v : BooleanVec n × BooleanVec n) :
     ∀ g ∈ canonicalCircuit sites v, legalGate g := by
@@ -2499,6 +2723,7 @@ theorem legal_canonicalCircuit {n : ℕ} (sites : List (Fin n))
       · exact legal_siteCanonicalGates a v g hg
       · exact ih (siteCanonicalVector a v) g hg
 
+/-- The fixing circuit uses legal gates when its source and distinguished site are distinct. -/
 theorem legal_cnotFixCircuit {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (hzi : i ≠ zero) :
     ∀ g ∈ cnotFixCircuit zero i x, legalGate g := by
   by_cases hz : x zero = 0
@@ -2511,6 +2736,7 @@ theorem legal_cnotFixCircuit {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (hzi 
     intro g hg
     simp at hg
 
+/-- Every gate in `cnotClearCircuit` is legal. -/
 theorem legal_cnotClearCircuit {n : ℕ} (zero : Fin n) (x : BooleanVec n) :
     ∀ g ∈ cnotClearCircuit zero x, legalGate g := by
   intro g hg
@@ -2523,6 +2749,8 @@ theorem legal_cnotClearCircuit {n : ℕ} (zero : Fin n) (x : BooleanVec n) :
   simp only [legalGate]
   exact fun h => hj0 h.symm
 
+/-- The reduction circuit uses legal gates when its selected index differs from the
+distinguished site. -/
 theorem legal_cnotReduceCircuit {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (hzi : i ≠ zero) :
     ∀ g ∈ cnotReduceCircuit zero i x, legalGate g := by
   rw [cnotReduceCircuit]
@@ -2532,6 +2760,8 @@ theorem legal_cnotReduceCircuit {n : ℕ} (zero i : Fin n) (x : BooleanVec n) (h
   · exact legal_cnotFixCircuit zero i x hzi g hg
   · exact legal_cnotClearCircuit zero x g hg
 
+/-- Every nonzero binary symplectic vector can be mapped to the X unit vector at a specified
+site by a legal Clifford circuit. -/
 theorem pauliDirection_to_unit {n : ℕ} (zero : Fin n)
     (v : BooleanVec n × BooleanVec n) (hv : v ≠ 0) :
     ∃ (gs : CliffordCircuit n),
@@ -2633,6 +2863,8 @@ theorem pauliDirection_to_unit {n : ℕ} (zero : Fin n)
       rw [hres']
       exact cnotReduceCircuit_effect zero i res.1 hi0 hi1
 
+/-- Any two nonzero binary symplectic vectors are connected by a Clifford circuit when a
+register site is specified. -/
 theorem pauliDirection_orbit_transitive {n : ℕ} (zero : Fin n)
     (v w : BooleanVec n × BooleanVec n) (hv : v ≠ 0) (hw : w ≠ 0) :
     ∃ (gs : CliffordCircuit n), cliffordSymplecticCircuit gs v = w := by
@@ -2644,20 +2876,26 @@ theorem pauliDirection_orbit_transitive {n : ℕ} (zero : Fin n)
   rw [h2.2] at hinv
   exact hinv
 
+/-- The indicator of a singleton binary vector is a stabilizer function. -/
 theorem isStabilizerFun_delta {n : ℕ} (p : BooleanVec n) :
     IsStabilizerFun (fun x => if x = p then (1 : ℂ) else 0) := by
   refine ⟨0, 0, 0, 0, affineSpan (ZMod 2) ({p} : Set (BooleanVec n)), ?_⟩
   ext x
   simp [booleanDot, quadFun, AffineSubspace.mem_affineSpan_singleton]
 
+/-- The set of numbers of terms in finite complex linear decompositions of a function into
+stabilizer functions. -/
 def stabilizerRankSet {n : ℕ} (F : BooleanVec n → ℂ) : Set ℕ :=
   {r | ∃ (c : Fin r → ℂ) (ψ : Fin r → BooleanVec n → ℂ),
     (∀ j, IsStabilizerFun (ψ j)) ∧ F = fun x => ∑ j, c j * ψ j x}
 
+/-- The stabilizer rank is the infimum of the set of stabilizer-decomposition lengths. -/
 theorem stabilizerRank_eq_sInf_set {n : ℕ} (F : BooleanVec n → ℂ) :
     stabilizerRank F = sInf (stabilizerRankSet F) := by
   rfl
 
+/-- Every function on the binary cube possesses a finite decomposition into stabilizer
+functions. -/
 theorem stabilizerRankSet_nonempty {n : ℕ} (F : BooleanVec n → ℂ) :
     (stabilizerRankSet F).Nonempty := by
   let e : Fin (Fintype.card (BooleanVec n)) ≃ BooleanVec n := (Fintype.equivFin _).symm
@@ -2677,6 +2915,7 @@ theorem stabilizerRankSet_nonempty {n : ℕ} (F : BooleanVec n → ℂ) :
       simp [hn]
     · simp
 
+/-- Multiplication by a nonzero complex scalar preserves stabilizer rank. -/
 theorem stabilizerRank_smul {n : ℕ} (φ : BooleanVec n → ℂ) (lam : ℂ) (hlam : lam ≠ 0) :
     stabilizerRank (fun x => lam * φ x) = stabilizerRank φ := by
   have hmemF : ∃ (c : Fin (stabilizerRank φ) → ℂ)
@@ -2720,6 +2959,8 @@ theorem stabilizerRank_smul {n : ℕ} (φ : BooleanVec n → ℂ) (lam : ℂ) (h
     exact Nat.sInf_le hset
   exact Nat.le_antisymm hle hge
 
+/-- Encoding and normalizing a function with `normalizedStabilizerState` preserves its
+stabilizer rank. -/
 theorem stabilizerRank_normalizedStabilizerState {n : ℕ} (φ : BooleanVec n → ℂ) :
     stabilizerRank (amplitudeFn (normalizedStabilizerState φ)) = stabilizerRank φ := by
   have hrt (x : BooleanVec n) : regToVec (vecToReg x) = x := regVecEquiv.apply_symm_apply x
@@ -2763,6 +3004,8 @@ theorem stabilizerRank_normalizedStabilizerState {n : ℕ} (φ : BooleanVec n �
     rw [h1]
     exact stabilizerRank_smul φ (Real.sqrt (stabilizerFunMass φ) : ℂ)⁻¹ (inv_ne_zero hsqrt')
 
+/-- If `1 ≤ n` and `100 * r ≤ n`, rank at most `r` for the normalized state's amplitude function
+forces equal amplitudes at two binary vectors of different cube weights. -/
 theorem exact_rank_collision_normalizedStabilizerState {n r : ℕ} (φ : BooleanVec n → ℂ)
     (hn : 1 ≤ n) (hrn : 100 * r ≤ n)
     (hF : stabilizerRank (amplitudeFn (normalizedStabilizerState φ)) ≤ r) :
@@ -2770,9 +3013,12 @@ theorem exact_rank_collision_normalizedStabilizerState {n r : ℕ} (φ : Boolean
       amplitudeFn (normalizedStabilizerState φ) y = amplitudeFn (normalizedStabilizerState φ) z :=
   exact_rank_collision (amplitudeFn (normalizedStabilizerState φ)) hn hrn hF
 
+/-- Tests membership in the set of masked generator products by enumerating masks of the
+generator-list length. -/
 def memGenerated {n : ℕ} (gs : List (PauliElem n)) (p : PauliElem n) : Bool :=
   (masksOfLen gs.length).any fun m => maskProduct gs m == p
 
+/-- The Boolean membership test returns true exactly for elements of `generatedSubgroup gs`. -/
 theorem memGenerated_eq_true_iff {n : ℕ} (gs : List (PauliElem n)) (p : PauliElem n) :
     memGenerated gs p = true ↔ p ∈ generatedSubgroup gs := by
   constructor
@@ -2786,12 +3032,15 @@ theorem memGenerated_eq_true_iff {n : ℕ} (gs : List (PauliElem n)) (p : PauliE
     simp only [memGenerated, List.any_eq_true]
     exact ⟨m, hm', of_decide_eq_true (by simp [hpm])⟩
 
+/-- The tail of a commuting Hermitian generator list is commuting and Hermitian. -/
 theorem commutingHermitian_tail {n : ℕ} {g : PauliElem n} {rest : List (PauliElem n)}
     (hgs : CommutingHermitianPaulis (g :: rest)) : CommutingHermitianPaulis rest := by
   rcases hgs with ⟨h1, h2⟩
   refine ⟨fun k hk => h1 k (by simp [hk]),
     fun a ha b hb => h2 a (by simp [ha]) b (by simp [hb])⟩
 
+/-- Replacing the tail of a commuting Hermitian list by a list drawn from that tail preserves
+the commuting Hermitian property. -/
 theorem commutingHermitian_cons_of_subset {n : ℕ} {g : PauliElem n}
     {h gs : List (PauliElem n)} (hgs : CommutingHermitianPaulis (g :: gs))
     (hh : ∀ k, k ∈ h → k ∈ gs) : CommutingHermitianPaulis (g :: h) := by
@@ -2814,12 +3063,14 @@ theorem commutingHermitian_cons_of_subset {n : ℕ} {g : PauliElem n}
       · exact h2 a (List.mem_cons_of_mem _ (hh a hah)) b
           (List.mem_cons_of_mem _ (hh b hbh))
 
+/-- A Boolean mask of successor length can be written as a head bit followed by a tail. -/
 theorem mask_exists_cons {k : ℕ} {m : Mask} (hm : m.length = k + 1) :
     ∃ b m0, m = b :: m0 := by
   cases m with
   | nil => simp at hm
   | cons b m0 => exact ⟨b, m0, rfl⟩
 
+/-- A generator belongs to the set generated by the list having it as head. -/
 theorem self_mem_cons {n : ℕ} (g : PauliElem n) (gs : List (PauliElem n)) :
     g ∈ generatedSubgroup (g :: gs) := by
   refine ⟨true :: List.replicate gs.length false, ?_, ?_⟩
@@ -2830,6 +3081,8 @@ theorem self_mem_cons {n : ℕ} (g : PauliElem n) (gs : List (PauliElem n)) :
     rw [maskProduct_eq_one gs (List.replicate gs.length false) (by simp) (by simp)]
     exact pauliElem_mul_one g
 
+/-- For commuting Hermitian generators, adding a head already generated by the tail does not
+change the generated set. -/
 theorem generatedSubgroup_cons_of_mem {n : ℕ} {g : PauliElem n} {rest : List (PauliElem n)}
     (hgs : CommutingHermitianPaulis (g :: rest)) (hg : g ∈ generatedSubgroup rest) :
     generatedSubgroup (g :: rest) = generatedSubgroup rest := by
@@ -2856,6 +3109,8 @@ theorem generatedSubgroup_cons_of_mem {n : ℕ} {g : PauliElem n} {rest : List (
       rw [show maskProduct (g :: rest) (false :: m) = maskProduct rest m from rfl]
       exact hpm
 
+/-- For commuting Hermitian lists with the same head, equality of the tail-generated sets
+implies equality of the full generated sets. -/
 theorem generatedSubgroup_cons_congr {n : ℕ} {g : PauliElem n}
     {rest gs : List (PauliElem n)} (hgs : CommutingHermitianPaulis (g :: gs))
     (hgs' : CommutingHermitianPaulis (g :: rest))
@@ -2916,12 +3171,15 @@ theorem generatedSubgroup_cons_congr {n : ℕ} {g : PauliElem n}
         rw [show maskProduct (g :: rest) (false :: m1) = maskProduct rest m1 from rfl]
         exact hq1.trans hpm
 
+/-- Recursively removes a generator when it belongs to the set generated by the already reduced
+tail. -/
 def eliminateGenerators {n : ℕ} : List (PauliElem n) → List (PauliElem n)
   | [] => []
   | g :: gs =>
       let rest := eliminateGenerators gs
       if memGenerated rest g then rest else g :: rest
 
+/-- Every generator retained by `eliminateGenerators` belongs to the original list. -/
 theorem mem_eliminateGenerators {n : ℕ} (gs : List (PauliElem n)) (g : PauliElem n) :
     g ∈ eliminateGenerators gs → g ∈ gs := by
   induction gs with
@@ -2938,6 +3196,7 @@ theorem mem_eliminateGenerators {n : ℕ} (gs : List (PauliElem n)) (g : PauliEl
           simp
         · exact List.mem_cons_of_mem _ (ih h)
 
+/-- Eliminating redundant generators preserves the generated set for a commuting Hermitian list. -/
 theorem generatedSubgroup_eliminateGenerators {n : ℕ} (gs : List (PauliElem n))
     (hgs : CommutingHermitianPaulis gs) :
     generatedSubgroup (eliminateGenerators gs) = generatedSubgroup gs := by
@@ -2963,12 +3222,14 @@ theorem generatedSubgroup_eliminateGenerators {n : ℕ} (gs : List (PauliElem n)
             exact h ((memGenerated_eq_true_iff _ _).mpr hcon)
           rw [generatedSubgroup_cons_congr hgs hcomm hconj]
 
+/-- Scaling the sum of two equal complex matrices by one half returns that matrix. -/
 theorem half_smul_add {n : ℕ} (P : Matrix (Reg n) (Reg n) ℂ) :
     ((2 : ℂ)⁻¹) • (P + P) = P := by
   ext i j
   simp [Matrix.smul_apply]
   ring
 
+/-- A list drawn from a commuting Hermitian generator list is also commuting and Hermitian. -/
 theorem commutingHermitian_of_subset {n : ℕ} {gs gs' : List (PauliElem n)}
     (hgs : CommutingHermitianPaulis gs) (h : ∀ k, k ∈ gs' → k ∈ gs) :
     CommutingHermitianPaulis gs' := by
@@ -2978,6 +3239,7 @@ theorem commutingHermitian_of_subset {n : ℕ} {gs gs' : List (PauliElem n)}
   · intro u hu v hv
     exact hgs.2 u (h u hu) v (h v hv)
 
+/-- The set generated by a list is contained in the set generated after adjoining a head. -/
 theorem generatedSubgroup_tail_subset {n : ℕ} (g : PauliElem n)
     (rest : List (PauliElem n)) :
     generatedSubgroup rest ⊆ generatedSubgroup (g :: rest) := by
@@ -2989,6 +3251,7 @@ theorem generatedSubgroup_tail_subset {n : ℕ} (g : PauliElem n)
     rw [show maskProduct (g :: rest) (false :: m) = maskProduct rest m from rfl]
     exact hpm
 
+/-- An all-false mask of the generator-list length has identity word product. -/
 theorem maskWordProduct_eq_one {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (m : Mask), m.length = gs.length →
       (∀ b ∈ m, b = false) → maskWordProduct gs m = 1 := by
@@ -3013,6 +3276,7 @@ theorem maskWordProduct_eq_one {n : ℕ} :
           simp only [maskWordProduct, Bool.false_eq_true, ↓reduceIte]
           exact ih m0 h0 hnone
 
+/-- Two Hermitian Pauli elements with the same word are equal or have product negative identity. -/
 theorem hermitian_eq_or_mul_minusI {n : ℕ} {p q : PauliElem n}
     (hp : IsHermitianPauli p) (hq : IsHermitianPauli q) (hw : p.word = q.word) :
     p = q ∨ p * q = minusI n := by
@@ -3035,6 +3299,8 @@ theorem hermitian_eq_or_mul_minusI {n : ℕ} {p q : PauliElem n}
       rw [hsum]
       simp [pauliMulPhase_self, hw]
 
+/-- A Pauli operator commuting with every generator commutes with the operator of every masked
+product of the required length. -/
 theorem op_commute_maskProduct {n : ℕ} {g : PauliElem n} :
     ∀ (rest : List (PauliElem n)), (∀ h ∈ rest, op g * op h = op h * op g) →
       ∀ (m : Mask), m.length = rest.length →
@@ -3070,6 +3336,8 @@ theorem op_commute_maskProduct {n : ℕ} {g : PauliElem n} :
       · rw [hmp, if_neg hb]
         exact ih hgrest m0 hm0
 
+/-- Every masked product of a commuting Hermitian generator list, with mask of the required
+length, is Hermitian. -/
 theorem maskProduct_herm {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (hgs : CommutingHermitianPaulis gs) (m : Mask),
       m.length = gs.length → IsHermitianPauli (maskProduct gs m) := by
@@ -3101,6 +3369,8 @@ theorem maskProduct_herm {n : ℕ} :
           exact mul_herm_comm_herm (hgs.1 g (List.mem_cons_self)) (ih hrest m0 hm0)
             (op_commute_maskProduct (g := g) rest hgrest m0 hm0)
 
+/-- Every masked product of commuting Hermitian generators acts as the identity on their
+projector. -/
 theorem projectorAux_mul_maskProduct {n : ℕ} :
     ∀ (gs : List (PauliElem n)) (hgs : CommutingHermitianPaulis gs) (m : Mask),
       m.length = gs.length → op (maskProduct gs m) * projectorAux gs = projectorAux gs := by
@@ -3169,6 +3439,7 @@ theorem projectorAux_mul_maskProduct {n : ℕ} :
       · rw [hmp, if_neg hb]
         exact hinner
 
+/-- Eliminating redundant commuting Hermitian generators preserves `projectorAux`. -/
 theorem projectorAux_eliminateGenerators {n : ℕ} (gs : List (PauliElem n))
     (hgs : CommutingHermitianPaulis gs) :
     projectorAux (eliminateGenerators gs) = projectorAux gs := by
@@ -3201,6 +3472,8 @@ theorem projectorAux_eliminateGenerators {n : ℕ} (gs : List (PauliElem n))
       · next h =>
           rw [hformE, hformR, ih']
 
+/-- Eliminating redundant commuting Hermitian generators gives independent generators if the
+generated set excludes negative identity. -/
 theorem independent_eliminateGenerators {n : ℕ} :
     ∀ (gs : List (PauliElem n)), CommutingHermitianPaulis gs →
       (minusI n ∉ generatedSubgroup gs) → IndependentGenerators (eliminateGenerators gs) := by
@@ -3343,13 +3616,17 @@ theorem independent_eliminateGenerators {n : ℕ} :
                   rw [← hgminus]
                   exact self_mem_cons g rest)
 
+/-- The length of the generator list obtained by `eliminateGenerators`. -/
 def generatedGroupRank {n : ℕ} (gs : List (PauliElem n)) : ℕ := (eliminateGenerators gs).length
 
+/-- Every list of length `n` can be represented by `List.ofFn` on `Fin n`. -/
 theorem exists_ofFn_eq_of_length {α : Type} {n : ℕ} (m : List α) (hm : m.length = n) :
     ∃ f : Fin n → α, List.ofFn f = m := by
   subst hm
   exact ⟨fun i : Fin m.length => m[i.val], List.ofFn_getElem⟩
 
+/-- The generated set is the finite image of all Boolean selection functions on the generator
+indices. -/
 theorem generatedSubgroup_eq_image {n : ℕ} (gs : List (PauliElem n)) :
     generatedSubgroup gs
       = ((Finset.univ : Finset (Fin gs.length → Bool)).image
@@ -3369,6 +3646,8 @@ theorem generatedSubgroup_eq_image {n : ℕ} (gs : List (PauliElem n)) :
     obtain ⟨m, hm, hpm⟩ := hp
     exact ⟨List.ofFn m, by simp, hpm⟩
 
+/-- For commuting Hermitian generators excluding negative identity, the generated set has
+cardinality `2 ^ generatedGroupRank gs`. -/
 theorem card_generatedSubgroup_eq_pow_rank {n : ℕ} (gs : List (PauliElem n))
     (hgs : CommutingHermitianPaulis gs)
     (hminus : minusI n ∉ generatedSubgroup gs) :
@@ -3394,6 +3673,8 @@ theorem card_generatedSubgroup_eq_pow_rank {n : ℕ} (gs : List (PauliElem n))
   rw [himg]
   exact card_generatedSubgroup (eliminateGenerators gs) rfl hIE
 
+/-- For `k` independent commuting Hermitian generators, the projector-range dimension times `2 ^
+k` equals `2 ^ n`. -/
 theorem finrank_range_projectorAux_mul {n k : ℕ} (gs : List (PauliElem n))
     (hgs : gs.length = k) (hcomm : CommutingHermitianPaulis gs)
     (hind : IndependentGenerators gs) :
@@ -3415,6 +3696,8 @@ theorem finrank_range_projectorAux_mul {n k : ℕ} (gs : List (PauliElem n))
     field_simp
   exact_mod_cast hmul
 
+/-- For commuting Hermitian generators excluding negative identity, the reduced generator rank
+is at most the number of qubits. -/
 theorem generatedGroupRank_le_n {n : ℕ} (gs : List (PauliElem n))
     (hgs : CommutingHermitianPaulis gs)
     (hminus : minusI n ∉ generatedSubgroup gs) :
@@ -3438,6 +3721,8 @@ theorem generatedGroupRank_le_n {n : ℕ} (gs : List (PauliElem n))
       _ = 2 ^ n := hmul
   exact Nat.pow_le_pow_iff_right (by decide) |>.mp hle
 
+/-- A consistent tableau's code space is the range of the projector formed from its reduced
+generators. -/
 theorem codeSpace_eq_range_eliminateGenerators {n m : ℕ} (t : Tableau n m)
     (ht : ConsistentTableau t) :
     codeSpace t = (projectorAux (eliminateGenerators (tableauGenerators t))).toLin'.range := by
@@ -3452,6 +3737,8 @@ theorem codeSpace_eq_range_eliminateGenerators {n m : ℕ} (t : Tableau n m)
       exact ht.2 a b
   rw [codeSpace_eq_range t ht, projectorAux_eliminateGenerators _ hgen]
 
+/-- For a consistent tableau whose generated set excludes negative identity, its code-space
+dimension is `2 ^ (n - generatedGroupRank (tableauGenerators t))`. -/
 theorem finrank_codeSpace_eq_pow_sub_rank {n m : ℕ} (t : Tableau n m)
     (ht : ConsistentTableau t)
     (hminus : minusI n ∉ generatedSubgroup (tableauGenerators t)) :
@@ -3474,20 +3761,24 @@ theorem finrank_codeSpace_eq_pow_sub_rank {n m : ℕ} (t : Tableau n m)
   rw [codeSpace_eq_range_eliminateGenerators t ht]
   exact finrank_range_projectorAux (eliminateGenerators (tableauGenerators t)) rfl hr hcomm hind
 
+/-- The binary symplectic pairing of the two Pauli words is nonzero. -/
 def pauliAnticommutes {n : ℕ} (p q : PauliElem n) : Prop :=
   symplecticForm (symplecticVec p.word) (symplecticVec q.word) ≠ 0
 
+/-- Two Pauli elements anticommute exactly when they do not commute. -/
 theorem pauliAnticommutes_iff {n : ℕ} (p q : PauliElem n) :
     pauliAnticommutes p q ↔ ¬ pauliCommute p q := by
   unfold pauliAnticommutes pauliCommute symplecticVec
   rfl
 
+/-- The binary symplectic form is symmetric. -/
 theorem symplecticForm_comm {n : ℕ} (v w : BooleanVec n × BooleanVec n) :
     symplecticForm v w = symplecticForm w v := by
   simp only [symplecticForm]
   rw [booleanDot_comm v.2 w.1, booleanDot_comm v.1 w.2]
   abel
 
+/-- Anticommuting Pauli words have binary symplectic pairing one. -/
 theorem symplecticForm_eq_one_of_anticommutes {n : ℕ} {p q : PauliElem n}
     (h : pauliAnticommutes p q) :
     symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 1 := by
@@ -3496,22 +3787,27 @@ theorem symplecticForm_eq_one_of_anticommutes {n : ℕ} {p q : PauliElem n}
   · exact (h h').elim
   · exact h'
 
+/-- The selected measurement row decodes to the outcome-signed measured Pauli element. -/
 theorem decode_measuredRow_of_eq {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i = a₀) :
     (measuredRow t a₀ p b i).decode = signedMeasuredPauli p b := by
   subst hi
   rw [measuredRow, if_pos rfl, decode_encode]
 
+/-- An unselected row commuting with the measured Pauli decodes to its original element. -/
 theorem decode_measuredRow_of_commute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : pauliCommute (t i).decode p) :
     (measuredRow t a₀ p b i).decode = (t i).decode := by
   rw [measuredRow, if_neg hi, if_pos hc]
 
+/-- An unselected row not commuting with the measured Pauli decodes to its product with the
+selected row. -/
 theorem decode_measuredRow_of_anticommute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : ¬ pauliCommute (t i).decode p) :
     (measuredRow t a₀ p b i).decode = PauliElem.mul (t i).decode (t a₀).decode := by
   rw [measuredRow, if_neg hi, if_neg hc, decode_mul]
 
+/-- Changing the measurement-outcome sign preserves the Pauli word. -/
 theorem word_signedMeasuredPauli {n : ℕ} (p : PauliElem n) (b : Bool) :
     (signedMeasuredPauli p b).word = p.word := by
   cases b with
@@ -3522,6 +3818,7 @@ theorem word_signedMeasuredPauli {n : ℕ} (p : PauliElem n) (b : Bool) :
       have h : (fun _ : Fin n => Pauli1.I) = (1 : PauliWord n) := by funext i; rfl
       rw [h, mul_one]
 
+/-- The row `minusIRow` decodes to the identity word with phase exponent two. -/
 theorem decode_minusIRow {n : ℕ} :
     (minusIRow n).decode = (⟨fun _ : Fin n => Pauli1.I, 2⟩ : PauliElem n) := by
   apply pauli_ext
@@ -3529,6 +3826,7 @@ theorem decode_minusIRow {n : ℕ} :
     rfl
   · rfl
 
+/-- The signed measured Pauli element is the decoding of `feedbackRow p b`. -/
 theorem signedMeasuredPauli_eq_feedbackRow {n : ℕ} (p : PauliElem n) (b : Bool) :
     signedMeasuredPauli p b = (feedbackRow p b).decode := by
   cases b with
@@ -3539,11 +3837,13 @@ theorem signedMeasuredPauli_eq_feedbackRow {n : ℕ} (p : PauliElem n) (b : Bool
       show PauliElem.mul p (⟨fun _ => Pauli1.I, 2⟩ : PauliElem n) = (feedbackRow p false).decode
       simp [feedbackRow, decode_mul, decode_encode, decode_minusIRow]
 
+/-- The operator of the signed measured Pauli is `op p` for true and its negative for false. -/
 theorem op_signedMeasuredPauli {n : ℕ} (p : PauliElem n) (b : Bool) :
     op (signedMeasuredPauli p b) = if b then op p else -op p := by
   rw [signedMeasuredPauli_eq_feedbackRow]
   exact op_feedbackRow p b
 
+/-- The outcome-signed version of a Hermitian Pauli element is Hermitian. -/
 theorem hermitian_signedMeasuredPauli {n : ℕ} (p : PauliElem n) (hp : IsHermitianPauli p)
     (b : Bool) : IsHermitianPauli (signedMeasuredPauli p b) := by
   cases b with
@@ -3562,22 +3862,27 @@ theorem hermitian_signedMeasuredPauli {n : ℕ} (p : PauliElem n) (hp : IsHermit
         show (2 : ZMod 4) + 2 + 0 = 0 ∨ (2 : ZMod 4) + 2 + 0 = 2
         decide
 
+/-- The selected measurement row has the binary symplectic vector of the measured Pauli word. -/
 theorem symplecticVec_measuredRow_of_eq {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i = a₀) :
     symplecticVec (measuredRow t a₀ p b i).decode.word = symplecticVec p.word := by
   rw [decode_measuredRow_of_eq t a₀ p b hi, word_signedMeasuredPauli]
 
+/-- An unselected commuting measurement row retains its binary symplectic vector. -/
 theorem symplecticVec_measuredRow_of_commute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : pauliCommute (t i).decode p) :
     symplecticVec (measuredRow t a₀ p b i).decode.word = symplecticVec (t i).decode.word := by
   rw [decode_measuredRow_of_commute t a₀ p b hi hc]
 
+/-- An unselected noncommuting measurement row has vector equal to its original vector plus the
+selected row vector. -/
 theorem symplecticVec_measuredRow_of_anticommute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : ¬ pauliCommute (t i).decode p) :
     symplecticVec (measuredRow t a₀ p b i).decode.word =
       symplecticVec (t i).decode.word + symplecticVec (t a₀).decode.word := by
   rw [decode_measuredRow_of_anticommute t a₀ p b hi hc, pauliElem_mul_word, symplecticVec_mul]
 
+/-- A Pauli element anticommuting with each of two elements commutes with their product. -/
 theorem pauliCommute_mul_of_anticommute {n : ℕ} (p q r : PauliElem n)
     (hq : pauliAnticommutes p q) (hr : pauliAnticommutes p r) :
     pauliCommute p (PauliElem.mul q r) := by
@@ -3588,31 +3893,37 @@ theorem pauliCommute_mul_of_anticommute {n : ℕ} (p q r : PauliElem n)
   rw [h1, h2]
   decide
 
+/-- Pauli commutativity is symmetric. -/
 theorem pauliCommute_comm {n : ℕ} (p q : PauliElem n) :
     pauliCommute p q ↔ pauliCommute q p := by
   unfold pauliCommute
   rw [symplecticForm_comm]
 
+/-- A binary symplectic pairing vanishes exactly when the Pauli elements commute. -/
 theorem symplecticForm_eq_zero_iff_commute {n : ℕ} (p q : PauliElem n) :
     symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 0 ↔ pauliCommute p q := by
   unfold pauliCommute symplecticVec
   rfl
 
+/-- A binary symplectic pairing is nonzero exactly when the Pauli elements anticommute. -/
 theorem symplecticForm_ne_zero_iff_anticommute {n : ℕ} (p q : PauliElem n) :
     symplecticForm (symplecticVec p.word) (symplecticVec q.word) ≠ 0 ↔ pauliAnticommutes p q := by
   unfold pauliAnticommutes
   rfl
 
+/-- Commuting Pauli elements have zero binary symplectic pairing. -/
 theorem form_zero_of_commute {n : ℕ} {p q : PauliElem n} (h : pauliCommute p q) :
     symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 0 :=
   (symplecticForm_eq_zero_iff_commute p q).mpr h
 
+/-- Commutativity in the reversed order also implies zero binary symplectic pairing. -/
 theorem form_zero_of_commute_symm {n : ℕ} {p q : PauliElem n} (h : pauliCommute q p) :
     symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 0 := by
   have h' := form_zero_of_commute h
   rw [symplecticForm_comm] at h'
   exact h'
 
+/-- Anticommutativity in the reversed order rules out commutativity. -/
 theorem not_commute_of_anticommutes {n : ℕ} {p q : PauliElem n} (h : pauliAnticommutes q p) :
     ¬ pauliCommute p q := by
   intro hc
@@ -3623,12 +3934,15 @@ theorem not_commute_of_anticommutes {n : ℕ} {p q : PauliElem n} (h : pauliAnti
     exact hz
   exact h hz'
 
+/-- Anticommutativity in the reversed order gives binary symplectic pairing one. -/
 theorem form_one_of_anticommute_symm {n : ℕ} {p q : PauliElem n} (h : pauliAnticommutes q p) :
     symplecticForm (symplecticVec p.word) (symplecticVec q.word) = 1 := by
   have h' := symplecticForm_eq_one_of_anticommutes h
   rw [symplecticForm_comm] at h'
   exact h'
 
+/-- If the selected row anticommutes with the measured Pauli, all updated row vectors of a
+consistent tableau have pairwise zero symplectic pairing. -/
 theorem symplecticForm_measuredRow_zero {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t)
     (a₀ : Fin m) (p : PauliElem n)
     (hanti : pauliAnticommutes (t a₀).decode p) (b : Bool) (i j : Fin m) :
@@ -3693,24 +4007,31 @@ theorem symplecticForm_measuredRow_zero {n m : ℕ} (t : Tableau n m) (ht : Cons
           rw [hrow i j, hrow i a₀, hrow a₀ j, hrow a₀ a₀]
           decide
 
+/-- At the selected index, the measured tableau decodes to the outcome-signed measured Pauli. -/
 theorem decode_measuredTableau_of_eq {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i = a₀) :
     (measuredTableau t a₀ p b i).decode = signedMeasuredPauli p b := by
   show (measuredRow t a₀ p b i).decode = _
   exact decode_measuredRow_of_eq t a₀ p b hi
 
+/-- An unselected row commuting with the measured Pauli is unchanged after decoding the measured
+tableau. -/
 theorem decode_measuredTableau_of_commute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : pauliCommute (t i).decode p) :
     (measuredTableau t a₀ p b i).decode = (t i).decode := by
   show (measuredRow t a₀ p b i).decode = _
   exact decode_measuredRow_of_commute t a₀ p b hi hc
 
+/-- An unselected noncommuting row of the measured tableau decodes to its product with the
+selected original row. -/
 theorem decode_measuredTableau_of_anticommute {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) {i : Fin m} (hi : i ≠ a₀) (hc : ¬ pauliCommute (t i).decode p) :
     (measuredTableau t a₀ p b i).decode = PauliElem.mul (t i).decode (t a₀).decode := by
   show (measuredRow t a₀ p b i).decode = _
   exact decode_measuredRow_of_anticommute t a₀ p b hi hc
 
+/-- Updating a consistent tableau by a Hermitian Pauli measurement with an anticommuting
+selected row preserves tableau consistency. -/
 theorem consistent_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t)
     (a₀ : Fin m) (p : PauliElem n) (hp : IsHermitianPauli p)
     (hanti : pauliAnticommutes (t a₀).decode p) (b : Bool) :
@@ -3730,6 +4051,8 @@ theorem consistent_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : Consisten
       (measuredTableau t a₀ p b j).decode).mpr
       (symplecticForm_measuredRow_zero t ht a₀ p hanti b i j)
 
+/-- Projecting a code state onto a measurement branch places it in the updated tableau's code
+space, provided the selected row anticommutes with the Hermitian measured Pauli. -/
 theorem mem_codeSpace_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t)
     (a₀ : Fin m) (p : PauliElem n) (hp : IsHermitianPauli p)
     (hanti : pauliAnticommutes (t a₀).decode p) (b : Bool) (ψ : QState (Reg n))
@@ -3781,6 +4104,8 @@ theorem mem_codeSpace_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : Consis
             (Matrix.mulVec_mulVec ψ _ _).symm
         _ = pauliBranchProjector p b *ᵥ ψ := by rw [hfix]
 
+/-- Every state in the updated code space is an eigenvector of the measured Pauli with sign
+determined by the Boolean outcome. -/
 theorem codeSpace_measuredTableau_subset_branch {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) (ψ : QState (Reg n))
     (hψ : ψ ∈ codeSpace (measuredTableau t a₀ p b)) :
@@ -3800,10 +4125,12 @@ theorem codeSpace_measuredTableau_subset_branch {n m : ℕ} (t : Tableau n m) (a
             rw [hneg, neg_neg]
         _ = -ψ := by rw [h]
 
+/-- The list of tableau generators has one entry per row. -/
 theorem tableauGenerators_length {n m : ℕ} (t : Tableau n m) :
     (tableauGenerators t).length = m := by
   simp [tableauGenerators, List.length_map, List.length_finRange]
 
+/-- Identifies tableau row indices with indices of the corresponding generator list. -/
 def rowEquiv {n m : ℕ} (t : Tableau n m) : Fin m ≃ Fin (tableauGenerators t).length :=
   Equiv.ofBijective (Fin.cast (tableauGenerators_length t).symm)
     ⟨Fin.cast_injective _, fun y =>
@@ -3814,6 +4141,8 @@ def rowEquiv {n m : ℕ} (t : Tableau n m) : Fin m ≃ Fin (tableauGenerators t)
           apply Fin.ext
           rfl⟩⟩
 
+/-- Accessing the generator corresponding to a row index returns that row's decoded Pauli
+element. -/
 theorem generatorAt_rowEquiv {n m : ℕ} (t : Tableau n m) (i : Fin m) :
     generatorAt (tableauGenerators t) (rowEquiv t i) = (t i).decode := by
   show (tableauGenerators t).getD (rowEquiv t i).val 1 = (t i).decode
@@ -3831,14 +4160,17 @@ theorem generatorAt_rowEquiv {n m : ℕ} (t : Tableau n m) (i : Fin m) :
     exact Option.some.inj hq
   rw [hfin]
 
+/-- The binary symplectic vector of a decoded tableau row. -/
 def rowSympVec {n m : ℕ} (t : Tableau n m) (i : Fin m) : BooleanVec n × BooleanVec n :=
   symplecticVec (t i).decode.word
 
+/-- Reindexing the generator-vector family by `rowEquiv` gives the row-vector family. -/
 theorem symplecticVecOfFn_rowEquiv {n m : ℕ} (t : Tableau n m) (i : Fin m) :
     symplecticVecOfFn (tableauGenerators t) (rowEquiv t i) = rowSympVec t i := by
   rw [symplecticVecOfFn, generatorAt_rowEquiv]
   rfl
 
+/-- The binary symplectic form respects scalar multiplication in its left argument. -/
 theorem symplecticForm_smul_left {n : ℕ} (c : ZMod 2) (v w : BooleanVec n × BooleanVec n) :
     symplecticForm (c • v) w = c • symplecticForm v w := by
   rcases zmod2_eq_zero_or_one c with h0 | h1
@@ -3847,6 +4179,8 @@ theorem symplecticForm_smul_left {n : ℕ} (c : ZMod 2) (v w : BooleanVec n × B
   · subst h1
     simp [symplecticForm, booleanDot]
 
+/-- The symplectic pairing of a finite binary linear combination equals the corresponding linear
+combination of pairings. -/
 theorem symplecticForm_sum_left {n m : ℕ} (c : Fin m → ZMod 2)
     (v : Fin m → BooleanVec n × BooleanVec n) (w : BooleanVec n × BooleanVec n) :
     symplecticForm (∑ i, c i • v i) w = ∑ i, c i • symplecticForm (v i) w := by
@@ -3859,9 +4193,13 @@ theorem symplecticForm_sum_left {n m : ℕ} (c : Fin m → ZMod 2)
         symplecticForm_smul_left]
       rw [ih (fun i => c i.succ) (fun i => v i.succ)]
 
+/-- The binary indicator that a tableau row anticommutes with a measured Pauli element. -/
 def antiFlag {n m : ℕ} (t : Tableau n m) (p : PauliElem n) (i : Fin m) : ZMod 2 :=
   if pauliAnticommutes (t i).decode p then 1 else 0
 
+/-- Replacing one vector of an independent isotropic family by a vector pairing to one with it,
+and adding multiples of the replaced vector to the other rows, preserves linear
+independence. -/
 theorem linearIndependent_measured {n m : ℕ} (v v' : Fin m → BooleanVec n × BooleanVec n)
     (vp : BooleanVec n × BooleanVec n) (a₀ : Fin m) (anti : Fin m → ZMod 2)
     (hv : LinearIndependent (ZMod 2) v)
@@ -4010,6 +4348,7 @@ theorem linearIndependent_measured {n m : ℕ} (v v' : Fin m → BooleanVec n ×
   funext i
   exact sub_eq_zero.mp (hzero i)
 
+/-- Reindexing a linearly independent family by an equivalence preserves linear independence. -/
 theorem linearIndependent_comp {ι ι' : Type*} [Fintype ι] [Fintype ι']
     {R M : Type*} [Semiring R] [AddCommMonoid M] [Module R M] {v : ι' → M}
     (e : ι ≃ ι') (hv : LinearIndependent R v) :
@@ -4035,6 +4374,8 @@ theorem linearIndependent_comp {ι ι' : Type*} [Fintype ι] [Fintype ι']
   funext i
   simpa using! congrFun h4 (e i)
 
+/-- A measurement update with an anticommuting selected row preserves linear independence of
+tableau row vectors for a consistent tableau with independent generators. -/
 theorem linearIndependent_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t)
     (a₀ : Fin m) (p : PauliElem n) (hanti : pauliAnticommutes (t a₀).decode p) (b : Bool)
     (hind : IndependentGenerators (tableauGenerators t)) :
@@ -4079,6 +4420,7 @@ theorem linearIndependent_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : Co
   exact linearIndependent_measured (rowSympVec t) (rowSympVec (measuredTableau t a₀ p b))
     (symplecticVec p.word) a₀ (antiFlag t p) hold hpair hvpa hnew₀ hnew
 
+/-- Every mask of length `k` is `List.ofFn` of a Boolean function on `Fin k`. -/
 theorem mask_eq_ofFn {k : ℕ} (mk : Mask) (hmk : mk.length = k) :
     ∃ c : Fin k → Bool, mk = List.ofFn c := by
   refine ⟨fun i => mk.getD i.val false, ?_⟩
@@ -4087,6 +4429,7 @@ theorem mask_eq_ofFn {k : ℕ} (mk : Mask) (hmk : mk.length = k) :
   · intro j h1 h2
     rw [← List.getD_eq_getElem mk false h1, List.getElem_ofFn h2]
 
+/-- Linear independence of the generator symplectic vectors implies `IndependentGenerators`. -/
 theorem IndependentGenerators_of_linearIndependent {n : ℕ} (gs : List (PauliElem n))
     (h : LinearIndependent (ZMod 2) (symplecticVecOfFn gs)) : IndependentGenerators gs := by
   classical
@@ -4133,6 +4476,8 @@ theorem IndependentGenerators_of_linearIndependent {n : ℕ} (gs : List (PauliEl
     exact hi.symm
   exact absurd hbt (by simp [hbfalse])
 
+/-- For a consistent tableau with independent generators, a measurement update with an
+anticommuting selected row has linearly independent generator vectors. -/
 theorem measuredTableau_gens_linearIndependent {n m : ℕ} (t : Tableau n m)
     (ht : ConsistentTableau t) (a₀ : Fin m) (p : PauliElem n)
     (hanti : pauliAnticommutes (t a₀).decode p) (b : Bool)
@@ -4154,6 +4499,8 @@ theorem measuredTableau_gens_linearIndependent {n m : ℕ} (t : Tableau n m)
   rw [← heq]
   exact h2
 
+/-- A Hermitian measurement update with an anticommuting selected row preserves code-space
+dimension `2 ^ (n - m)` for a consistent tableau with `m ≤ n` independent generators. -/
 theorem finrank_codeSpace_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : ConsistentTableau t)
     (a₀ : Fin m) (p : PauliElem n) (hp : IsHermitianPauli p)
     (hanti : pauliAnticommutes (t a₀).decode p) (b : Bool)
@@ -4170,8 +4517,10 @@ theorem finrank_codeSpace_measuredTableau {n m : ℕ} (t : Tableau n m) (ht : Co
     tableauGenerators_length (measuredTableau t a₀ p b)
   exact finrank_codeSpace (measuredTableau t a₀ p b) hlen hm hcons hind'
 
+/-- The Boolean outcome opposite to the given outcome. -/
 def otherOutcome (b : Bool) : Bool := if b then false else true
 
+/-- Flipping the measurement outcome leaves every unselected decoded tableau row unchanged. -/
 theorem measuredTableau_flip_off {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p : PauliElem n)
     (b : Bool) {i : Fin m} (hi : i ≠ a₀) :
     (measuredTableau t a₀ p (otherOutcome b) i).decode = (measuredTableau t a₀ p b i).decode := by
@@ -4181,6 +4530,7 @@ theorem measuredTableau_flip_off {n m : ℕ} (t : Tableau n m) (a₀ : Fin m) (p
   · rw [decode_measuredTableau_of_anticommute t a₀ p (otherOutcome b) hi hc,
       decode_measuredTableau_of_anticommute t a₀ p b hi hc]
 
+/-- Flipping the measurement outcome negates the decoded Pauli element at the selected row. -/
 theorem measuredTableau_flip_measured {n m : ℕ} (t : Tableau n m) (a₀ : Fin m)
     (p : PauliElem n) (b : Bool) :
     (measuredTableau t a₀ p (otherOutcome b) a₀).decode
@@ -4211,42 +4561,52 @@ theorem measuredTableau_flip_measured {n m : ℕ} (t : Tableau n m) (a₀ : Fin 
         simp [pauliMulPhase_right_I]
         abel
 
+/-- At the acted-on site, the Hadamard Pauli action applies `conjHWord` to the word letter. -/
 theorem cliffordAction_H_word {n : ℕ} (i k : Fin n) (p : PauliElem n) (hk : k = i) :
     (cliffordAction (.H i) p).word k = conjHWord (p.word k) := by
   simp [cliffordAction, hk]
 
+/-- The Hadamard Pauli action preserves word letters outside its site. -/
 theorem cliffordAction_H_word_ne {n : ℕ} (i k : Fin n) (p : PauliElem n) (hk : k ≠ i) :
     (cliffordAction (.H i) p).word k = p.word k := by
   simp [cliffordAction, hk]
 
+/-- The Hadamard Pauli action adds the local `conjHPhase` correction to the phase exponent. -/
 theorem cliffordAction_H_phase {n : ℕ} (i : Fin n) (p : PauliElem n) :
     (cliffordAction (.H i) p).phase = p.phase + conjHPhase (p.word i) := by
   simp only [cliffordAction]
   simp
 
+/-- At the acted-on site, the phase-gate Pauli action applies `conjSWord` to the word letter. -/
 theorem cliffordAction_S_word {n : ℕ} (i k : Fin n) (p : PauliElem n) (hk : k = i) :
     (cliffordAction (.S i) p).word k = conjSWord (p.word k) := by
   simp [cliffordAction, hk]
 
+/-- The phase-gate Pauli action preserves word letters outside its site. -/
 theorem cliffordAction_S_word_ne {n : ℕ} (i k : Fin n) (p : PauliElem n) (hk : k ≠ i) :
     (cliffordAction (.S i) p).word k = p.word k := by
   simp [cliffordAction, hk]
 
+/-- The phase-gate Pauli action adds the local `conjSPhase` correction to the phase exponent. -/
 theorem cliffordAction_S_phase {n : ℕ} (i : Fin n) (p : PauliElem n) :
     (cliffordAction (.S i) p).phase = p.phase + conjSPhase (p.word i) := by
   simp only [cliffordAction]
   simp
 
+/-- The defined CNOT Pauli action preserves the phase field. -/
 theorem cliffordAction_CNOT_phase {n : ℕ} (i j : Fin n) (p : PauliElem n) :
     (cliffordAction (.CNOT i j) p).phase = p.phase := by
   simp [cliffordAction]
 
+/-- The local Hadamard phase correction is zero or two. -/
 theorem conjHPhase_eq (a : Pauli1) : conjHPhase a = 0 ∨ conjHPhase a = 2 := by
   cases a <;> simp [conjHPhase]
 
+/-- The local phase-gate phase correction is zero or two. -/
 theorem conjSPhase_eq (a : Pauli1) : conjSPhase a = 0 ∨ conjSPhase a = 2 := by
   cases a <;> simp [conjSPhase]
 
+/-- The defined action of any Clifford gate preserves the Hermitian Pauli predicate. -/
 theorem cliffordAction_hermitian {n : ℕ} (g : CliffordGate n) (p : PauliElem n)
     (hp : IsHermitianPauli p) : IsHermitianPauli (cliffordAction g p) := by
   cases g with
@@ -4275,6 +4635,7 @@ theorem cliffordAction_hermitian {n : ℕ} (g : CliffordGate n) (p : PauliElem n
       rw [cliffordAction_CNOT_phase]
       exact hp
 
+/-- A Hadamard or phase gate at one site preserves word letters at every other site. -/
 theorem cliffordAction_site_word_ne {n : ℕ} (g : CliffordGate n) (i k : Fin n) (q : PauliElem n)
     (hk : k ≠ i) (hg : g = .H i ∨ g = .S i) :
     (cliffordAction g q).word k = q.word k := by
@@ -4284,6 +4645,8 @@ theorem cliffordAction_site_word_ne {n : ℕ} (g : CliffordGate n) (i k : Fin n)
   · subst hg
     exact cliffordAction_S_word_ne i k q hk
 
+/-- A circuit consisting of Hadamard and phase gates at a single site preserves every word
+letter outside that site. -/
 theorem cliffordActionCircuit_site_word_ne {n : ℕ} : ∀ (c : CliffordCircuit n) (i k : Fin n)
     (q : PauliElem n), k ≠ i → (∀ g ∈ c, g = .H i ∨ g = .S i) →
     (cliffordActionCircuit c q).word k = q.word k
@@ -4294,6 +4657,7 @@ theorem cliffordActionCircuit_site_word_ne {n : ℕ} : ∀ (c : CliffordCircuit 
         (fun g' hg' => h g' (List.mem_cons_of_mem g hg'))]
       exact cliffordAction_site_word_ne g i k q hk (h g (List.mem_cons_self))
 
+/-- The sign-flip circuit preserves word letters outside its chosen site. -/
 theorem signFlipCircuit_word_ne {n : ℕ} (i k : Fin n) (p : PauliElem n) (hk : k ≠ i) :
     (cliffordActionCircuit (signFlipCircuit i (p.word i)) p).word k = p.word k := by
   cases hp : p.word i with
@@ -4328,6 +4692,7 @@ theorem signFlipCircuit_word_ne {n : ℕ} (i k : Fin n) (p : PauliElem n) (hk : 
           · exact Or.inr rfl
           · exact Or.inl rfl)
 
+/-- The sign-flip circuit associated with a site's Pauli letter preserves that letter. -/
 theorem signFlipCircuit_word_at {n : ℕ} (i : Fin n) (p : PauliElem n) (a : Pauli1)
     (ha : p.word i = a) : (cliffordActionCircuit (signFlipCircuit i a) p).word i = a := by
   cases a with
@@ -4346,6 +4711,7 @@ theorem signFlipCircuit_word_at {n : ℕ} (i : Fin n) (p : PauliElem n) (a : Pau
       simp only [cliffordAction_H_word, cliffordAction_S_word]
       simp only [ha, conjHWord, conjSWord]
 
+/-- At a nonidentity site letter, the sign-flip circuit adds two to the Pauli phase exponent. -/
 theorem signFlipCircuit_phase_at {n : ℕ} (i : Fin n) (p : PauliElem n) (a : Pauli1)
     (ha : p.word i = a) (hne : a ≠ .I) :
     (cliffordActionCircuit (signFlipCircuit i a) p).phase = p.phase + 2 := by
@@ -4372,6 +4738,7 @@ theorem signFlipCircuit_phase_at {n : ℕ} (i : Fin n) (p : PauliElem n) (a : Pa
       simp only [ha, conjHPhase, conjSPhase, conjHWord, conjSWord]
       abel
 
+/-- The sign-flip circuit preserves the entire Pauli word. -/
 theorem signFlipCircuit_word {n : ℕ} (i : Fin n) (p : PauliElem n) :
     (cliffordActionCircuit (signFlipCircuit i (p.word i)) p).word = p.word := by
   have hat := signFlipCircuit_word_at i p (p.word i) rfl
@@ -4381,6 +4748,8 @@ theorem signFlipCircuit_word {n : ℕ} (i : Fin n) (p : PauliElem n) :
     exact hat
   · exact signFlipCircuit_word_ne i k p hk
 
+/-- Adding an even residue modulo four preserves and reflects membership in the set consisting
+of zero and two. -/
 theorem even_phase_add {a b : ZMod 4} (hb : b = 0 ∨ b = 2) :
     (a + b = 0 ∨ a + b = 2) ↔ (a = 0 ∨ a = 2) := by
   rcases hb with hb | hb
@@ -4393,6 +4762,8 @@ theorem even_phase_add {a b : ZMod 4} (hb : b = 0 ∨ b = 2) :
     · subst h2; decide
     · subst h3; decide
 
+/-- The defined action of any Clifford gate preserves and reflects the Hermitian Pauli
+predicate. -/
 theorem cliffordAction_hermitian_iff {n : ℕ} (g : CliffordGate n) (p : PauliElem n) :
     IsHermitianPauli (cliffordAction g p) ↔ IsHermitianPauli p := by
   cases g with
@@ -4411,6 +4782,7 @@ theorem cliffordAction_hermitian_iff {n : ℕ} (g : CliffordGate n) (p : PauliEl
         p.phase = 0 ∨ p.phase = 2
       rw [cliffordAction_CNOT_phase]
 
+/-- Concatenating Clifford circuits composes their Pauli actions in execution order. -/
 theorem cliffordActionCircuit_append {n : ℕ} (c1 c2 : CliffordCircuit n) (p : PauliElem n) :
     cliffordActionCircuit (c1 ++ c2) p = cliffordActionCircuit c2 (cliffordActionCircuit c1 p) := by
   induction c1 generalizing p with
@@ -4419,6 +4791,7 @@ theorem cliffordActionCircuit_append {n : ℕ} (c1 c2 : CliffordCircuit n) (p : 
       simp only [List.cons_append, cliffordActionCircuit]
       rw [ih]
 
+/-- The action of any Clifford circuit preserves the Hermitian Pauli predicate. -/
 theorem cliffordActionCircuit_hermitian {n : ℕ} (c : CliffordCircuit n) (p : PauliElem n)
     (hp : IsHermitianPauli p) : IsHermitianPauli (cliffordActionCircuit c p) := by
   induction c generalizing p with
@@ -4427,6 +4800,8 @@ theorem cliffordActionCircuit_hermitian {n : ℕ} (c : CliffordCircuit n) (p : P
       simp only [cliffordActionCircuit]
       exact ih (cliffordAction g p) (cliffordAction_hermitian g p hp)
 
+/-- Any two nonzero binary symplectic vectors are connected by a legal Clifford circuit when a
+register site is specified. -/
 theorem pauliDirection_orbit_transitive_legal {n : ℕ} (zero : Fin n)
     (v w : BooleanVec n × BooleanVec n) (hv : v ≠ 0) (hw : w ≠ 0) :
     ∃ (gs : CliffordCircuit n), (∀ g ∈ gs, legalGate g) ∧
@@ -4445,6 +4820,8 @@ theorem pauliDirection_orbit_transitive_legal {n : ℕ} (zero : Fin n)
     rw [h2.2] at hinv
     exact hinv
 
+/-- Every Pauli element with nontrivial word can be mapped to its negative by a Clifford
+circuit. -/
 theorem cliffordSignFlip {n : ℕ} (p : PauliElem n) (hw : p.word ≠ trivialWord) :
     ∃ (c : CliffordCircuit n), cliffordActionCircuit c p = negPauliElem p := by
   have hne : ∃ i : Fin n, p.word i ≠ .I := by
@@ -4458,6 +4835,7 @@ theorem cliffordSignFlip {n : ℕ} (p : PauliElem n) (hw : p.word ≠ trivialWor
   · exact signFlipCircuit_word i p
   · exact signFlipCircuit_phase_at i p (p.word i) rfl hi
 
+/-- The phase exponents of two Hermitian Pauli elements are equal or differ by two. -/
 theorem phase_eq_or_add_two {n : ℕ} {p q : PauliElem n}
     (hp : IsHermitianPauli p) (hq : IsHermitianPauli q) :
     p.phase = q.phase ∨ p.phase = q.phase + 2 := by
@@ -4469,6 +4847,8 @@ theorem phase_eq_or_add_two {n : ℕ} {p q : PauliElem n}
     · exact Or.inr (by rw [hp2, hq0]; decide)
     · exact Or.inl (hp2.trans hq2.symm)
 
+/-- Any two Hermitian Pauli elements with nontrivial words are connected by a Clifford circuit
+under the defined Pauli action. -/
 theorem cliffordOrbit_eq {n : ℕ} (σ : PauliElem n) (hσ : IsHermitianPauli σ)
     (hwσ : σ.word ≠ trivialWord) :
     ∀ (τ : PauliElem n), IsHermitianPauli τ → τ.word ≠ trivialWord →
@@ -4518,6 +4898,8 @@ theorem cliffordOrbit_eq {n : ℕ} (σ : PauliElem n) (hσ : IsHermitianPauli σ
       rw [hph, hdiff]
       abel
 
+/-- A real-valued function invariant under each Clifford gate is invariant under every Clifford
+circuit. -/
 theorem cliffordInvariant_const_on_circuit {n : ℕ} (w : PauliElem n → ℝ)
     (hinv : ∀ (g : CliffordGate n) (p : PauliElem n), w (cliffordAction g p) = w p) :
     ∀ (c : CliffordCircuit n) (p : PauliElem n), w (cliffordActionCircuit c p) = w p := by
@@ -4529,6 +4911,8 @@ theorem cliffordInvariant_const_on_circuit {n : ℕ} (w : PauliElem n → ℝ)
       simp only [cliffordActionCircuit]
       rw [ih, hinv]
 
+/-- A real-valued function invariant under each Clifford gate takes equal values on elements
+connected by a Clifford circuit. -/
 theorem cliffordInvariant_const_on_orbit {n : ℕ} (w : PauliElem n → ℝ)
     (hinv : ∀ (g : CliffordGate n) (p : PauliElem n), w (cliffordAction g p) = w p)
     {σ τ : PauliElem n} (hτ : ∃ c : CliffordCircuit n, cliffordActionCircuit c σ = τ) :
@@ -4538,6 +4922,8 @@ theorem cliffordInvariant_const_on_orbit {n : ℕ} (w : PauliElem n → ℝ)
   rw [hc] at h
   exact h.symm
 
+/-- A real-valued function invariant under every Clifford gate is constant on Hermitian Pauli
+elements with nontrivial words. -/
 theorem pauliMixing_equal {n : ℕ} (w : PauliElem n → ℝ)
     (hinv : ∀ (g : CliffordGate n) (p : PauliElem n), w (cliffordAction g p) = w p)
     (σ τ : PauliElem n) (hσ : IsHermitianPauli σ) (hwσ : σ.word ≠ trivialWord)
@@ -4545,6 +4931,7 @@ theorem pauliMixing_equal {n : ℕ} (w : PauliElem n → ℝ)
   obtain ⟨c, hc⟩ := cliffordOrbit_eq σ hσ hwσ τ hτ hwτ
   exact cliffordInvariant_const_on_orbit w hinv ⟨c, hc⟩
 
+/-- Identifies a Pauli element with its word and phase exponent. -/
 def pauliElemEquiv (n : ℕ) : PauliElem n ≃ (PauliWord n × ZMod 4) where
   toFun p := (p.word, p.phase)
   invFun := fun x => ⟨x.1, x.2⟩
@@ -4563,6 +4950,8 @@ instance pauliElemFintype (n : ℕ) : Fintype (PauliElem n) :=
 instance instDecidableIsHermitianPauli {n : ℕ} (p : PauliElem n) : Decidable (IsHermitianPauli p) :=
   inferInstanceAs (Decidable (p.phase = 0 ∨ p.phase = 2))
 
+/-- Casting the natural number `4 ^ n - 1` to the reals agrees with real exponentiation followed
+by subtraction. -/
 theorem cast_pred_pow_four (n : ℕ) : ((4 : ℕ) ^ n - 1 : ℝ) = (4 : ℝ) ^ n - 1 := by
   have hle : (1 : ℕ) ≤ 4 ^ n := by
     cases n with
@@ -4572,9 +4961,11 @@ theorem cast_pred_pow_four (n : ℕ) : ((4 : ℕ) ^ n - 1 : ℝ) = (4 : ℝ) ^ n
         exact Nat.succ_le_of_lt (by positivity)
   simp
 
+/-- There are two even phase exponents in `ZMod 4`. -/
 theorem card_evenPhase : Fintype.card {φ : ZMod 4 // φ = 0 ∨ φ = 2} = 2 := by
   decide
 
+/-- There are `4 ^ n - 1` nontrivial Pauli words on `n` sites. -/
 theorem card_nontrivialWord (n : ℕ) :
     Fintype.card {w : PauliWord n // w ≠ trivialWord} = 4 ^ n - 1 := by
   have h1 : Fintype.card {w : PauliWord n // w ≠ trivialWord}
@@ -4588,6 +4979,8 @@ theorem card_nontrivialWord (n : ℕ) :
     rw [Fintype.card_fun, Fintype.card_fin, h3]
   rw [h1, h1b, h2]
 
+/-- Identifies Hermitian Pauli elements with nontrivial words with pairs of an even phase
+exponent and a nontrivial word. -/
 def nontrivHermEquiv (n : ℕ) :
     {p : PauliElem n // IsHermitianPauli p ∧ p.word ≠ trivialWord}
       ≃ ({φ : ZMod 4 // φ = 0 ∨ φ = 2} × {w : PauliWord n // w ≠ trivialWord}) where
@@ -4608,12 +5001,14 @@ def nontrivHermEquiv (n : ℕ) :
     · apply Subtype.ext
       rfl
 
+/-- There are `2 * (4 ^ n - 1)` Hermitian Pauli elements with nontrivial words. -/
 theorem card_nontrivialHermitianPauli (n : ℕ) :
     Fintype.card {p : PauliElem n // IsHermitianPauli p ∧ p.word ≠ trivialWord}
       = 2 * (4 ^ n - 1) := by
   have h := Fintype.card_congr (nontrivHermEquiv n)
   rw [h, Fintype.card_prod, card_evenPhase, card_nontrivialWord]
 
+/-- Every Clifford binary symplectic map fixes zero. -/
 theorem cliffordSymplecticMap_zero {n : ℕ} (g : CliffordGate n) :
     cliffordSymplecticMap g 0 = 0 := by
   rcases g with g | g | g
@@ -4630,6 +5025,7 @@ theorem cliffordSymplecticMap_zero {n : ℕ} (g : CliffordGate n) :
     · funext j; simp
     · funext j; simp
 
+/-- Every Clifford circuit's binary symplectic action fixes zero. -/
 theorem cliffordSymplecticCircuit_zero {n : ℕ} (gs : CliffordCircuit n) :
     cliffordSymplecticCircuit gs 0 = 0 := by
   induction gs with
@@ -4638,25 +5034,33 @@ theorem cliffordSymplecticCircuit_zero {n : ℕ} (gs : CliffordCircuit n) :
       simp only [cliffordSymplecticCircuit]
       rw [cliffordSymplecticMap_zero, ih]
 
+/-- The subtype of Hermitian Pauli elements whose words are nontrivial. -/
 abbrev PauliSector (n : ℕ) := {p : PauliElem n // IsHermitianPauli p ∧ p.word ≠ trivialWord}
 
+/-- The constant weight on `PauliSector n` equal to the reciprocal of its cardinality. -/
 noncomputable def pauliMixingMeasure (n : ℕ) : PauliSector n → ℝ :=
   fun _ => (Fintype.card (PauliSector n) : ℝ)⁻¹
 
+/-- Every weight assigned by `pauliMixingMeasure` is nonnegative. -/
 theorem pauliMixingMeasure_nonneg (n : ℕ) (q : PauliSector n) : 0 ≤ pauliMixingMeasure n q := by
   simp [pauliMixingMeasure]
 
+/-- The mixing measure assigns the same weight to every pair of sector elements. -/
 theorem pauliMixingMeasure_const (n : ℕ) (q q' : PauliSector n) :
     pauliMixingMeasure n q = pauliMixingMeasure n q' := rfl
 
+/-- The Pauli sector has cardinality `2 * (4 ^ n - 1)`. -/
 theorem card_pauliSector (n : ℕ) : Fintype.card (PauliSector n) = 2 * (4 ^ n - 1) := by
   exact card_nontrivialHermitianPauli n
 
+/-- The Pauli-sector cardinality equals the number of all Pauli elements satisfying its defining
+predicate. -/
 theorem card_pauliSector_filter (n : ℕ) :
     Fintype.card (PauliSector n)
       = (Finset.univ.filter (fun p : PauliElem n => IsHermitianPauli p ∧ p.word ≠ trivialWord)).card :=
   Fintype.card_subtype _
 
+/-- The Pauli sector has positive cardinality when the number of qubits is positive. -/
 theorem card_pauliSector_pos (n : ℕ) (h : 0 < n) : 0 < Fintype.card (PauliSector n) := by
   rw [card_pauliSector]
   have h4 : 4 ≤ 4 ^ n := by
@@ -4668,6 +5072,7 @@ theorem card_pauliSector_pos (n : ℕ) (h : 0 < n) : 0 < Fintype.card (PauliSect
   have hpos : 0 < 4 ^ n - 1 := (Nat.sub_pos_iff_lt).mpr hlt
   exact Nat.mul_pos (by decide : (0 : ℕ) < 2) hpos
 
+/-- For a positive number of qubits, the sector mixing weights sum to one. -/
 theorem pauliMixingMeasure_sum_one (n : ℕ) (h : 0 < n) :
     (∑ q : PauliSector n, pauliMixingMeasure n q) = 1 := by
   have hpos : (0 : ℝ) < Fintype.card (PauliSector n) := by
@@ -4678,20 +5083,26 @@ theorem pauliMixingMeasure_sum_one (n : ℕ) (h : 0 < n) :
         simp [pauliMixingMeasure, Finset.sum_const]
     _ = 1 := mul_inv_cancel₀ hne
 
+/-- Extends the constant sector weight to all Pauli elements by assigning zero outside the
+Hermitian nontrivial sector. -/
 noncomputable def pauliMixingProb (n : ℕ) (p : PauliElem n) : ℝ :=
   if IsHermitianPauli p ∧ p.word ≠ trivialWord then
     (Fintype.card (PauliSector n) : ℝ)⁻¹
   else 0
 
+/-- The extended mixing weight is nonnegative for every Pauli element. -/
 theorem pauliMixingProb_nonneg (n : ℕ) (p : PauliElem n) : 0 ≤ pauliMixingProb n p := by
   by_cases h : IsHermitianPauli p ∧ p.word ≠ trivialWord
   · simp [pauliMixingProb, h]
   · simp [pauliMixingProb, h]
 
+/-- On the Pauli sector, the extended mixing weight agrees with `pauliMixingMeasure`. -/
 theorem pauliMixingProb_of_sector (n : ℕ) (q : PauliSector n) :
     pauliMixingProb n q.1 = pauliMixingMeasure n q := by
   simp [pauliMixingProb, q.2.1, q.2.2, pauliMixingMeasure]
 
+/-- For a positive number of qubits, the extended mixing weights over all Pauli elements sum to
+one. -/
 theorem pauliMixingProb_sum_one (n : ℕ) (h : 0 < n) :
     (∑ p : PauliElem n, pauliMixingProb n p) = 1 := by
   have hpos : (0 : ℝ) < Fintype.card (PauliSector n) := by
@@ -4715,6 +5126,8 @@ theorem pauliMixingProb_sum_one (n : ℕ) (h : 0 < n) :
         rw [card_pauliSector_filter]
     _ = 1 := mul_inv_cancel₀ hne
 
+/-- The defined action of any Clifford circuit preserves and reflects the Hermitian Pauli
+predicate. -/
 theorem cliffordActionCircuit_hermitian_iff {n : ℕ} (c : CliffordCircuit n) (p : PauliElem n) :
     IsHermitianPauli (cliffordActionCircuit c p) ↔ IsHermitianPauli p := by
   induction c generalizing p with
@@ -4723,6 +5136,8 @@ theorem cliffordActionCircuit_hermitian_iff {n : ℕ} (c : CliffordCircuit n) (p
       rw [cliffordActionCircuit]
       exact Iff.trans (ih (cliffordAction g p)) (cliffordAction_hermitian_iff g p)
 
+/-- A legal Clifford circuit sends a Pauli word to the trivial word exactly when the original
+word is trivial. -/
 theorem cliffordActionCircuit_word_trivial_iff {n : ℕ} (c : CliffordCircuit n)
     (hc : ∀ g ∈ c, legalGate g) (p : PauliElem n) :
     (cliffordActionCircuit c p).word = trivialWord ↔ p.word = trivialWord := by
@@ -4744,6 +5159,8 @@ theorem cliffordActionCircuit_word_trivial_iff {n : ℕ} (c : CliffordCircuit n)
       rw [hsym, hz, cliffordSymplecticCircuit_zero]
     exact (symplecticVec_eq_zero_iff).mp hz'
 
+/-- The action of a legal Clifford circuit preserves membership in the Hermitian nontrivial
+Pauli sector. -/
 theorem cliffordActionCircuit_mem_sector {n : ℕ} (c : CliffordCircuit n)
     (hc : ∀ g ∈ c, legalGate g) (q : PauliSector n) :
     IsHermitianPauli (cliffordActionCircuit c q.1) ∧
@@ -4752,6 +5169,7 @@ theorem cliffordActionCircuit_mem_sector {n : ℕ} (c : CliffordCircuit n)
   intro h
   exact q.2.2 ((cliffordActionCircuit_word_trivial_iff c hc q.1).mp h)
 
+/-- The extended mixing weight is invariant under every legal Clifford circuit. -/
 theorem pauliMixingProb_clifford_invariant {n : ℕ} (c : CliffordCircuit n)
     (hc : ∀ g ∈ c, legalGate g) (p : PauliElem n) :
     pauliMixingProb n (cliffordActionCircuit c p) = pauliMixingProb n p := by
@@ -4765,6 +5183,7 @@ theorem pauliMixingProb_clifford_invariant {n : ℕ} (c : CliffordCircuit n)
         (cliffordActionCircuit_word_trivial_iff c hc p).not.mp hh2⟩
     simp [pauliMixingProb, h, h3]
 
+/-- Negating a Hermitian Pauli element preserves the Hermitian predicate. -/
 theorem negPauliElem_hermitian {n : ℕ} (p : PauliElem n) (hp : IsHermitianPauli p) :
     IsHermitianPauli (negPauliElem p) := by
   rcases hp with hp | hp
@@ -4781,6 +5200,7 @@ theorem negPauliElem_hermitian {n : ℕ} (p : PauliElem n) (hp : IsHermitianPaul
     rw [hp]
     decide
 
+/-- Negating a Pauli element twice returns the original element. -/
 theorem negPauliElem_involutive {n : ℕ} (p : PauliElem n) :
     negPauliElem (negPauliElem p) = p := by
   apply pauli_ext
@@ -4788,6 +5208,7 @@ theorem negPauliElem_involutive {n : ℕ} (p : PauliElem n) :
   · show p.phase + 2 + 2 = p.phase
     abel
 
+/-- The operator represented by `negPauliElem p` is the negative of `op p`. -/
 theorem op_negPauliElem {n : ℕ} (p : PauliElem n) : op (negPauliElem p) = -op p := by
   have hq : PauliElem.mul p (⟨fun _ : Fin n => Pauli1.I, 2⟩ : PauliElem n) = negPauliElem p := by
     apply pauli_ext
@@ -4803,6 +5224,7 @@ theorem op_negPauliElem {n : ℕ} (p : PauliElem n) : op (negPauliElem p) = -op 
   rw [hone]
   simp
 
+/-- The involutive equivalence of the Pauli sector induced by Pauli negation. -/
 def sectorNegEquiv (n : ℕ) : PauliSector n ≃ PauliSector n where
   toFun q := ⟨negPauliElem q.1, ⟨negPauliElem_hermitian q.1 q.2.1, q.2.2⟩⟩
   invFun q := ⟨negPauliElem q.1, ⟨negPauliElem_hermitian q.1 q.2.1, q.2.2⟩⟩
@@ -4813,6 +5235,7 @@ def sectorNegEquiv (n : ℕ) : PauliSector n ≃ PauliSector n where
     apply Subtype.ext
     exact negPauliElem_involutive q.1
 
+/-- The sum of the operators over the Hermitian nontrivial Pauli sector is zero. -/
 theorem sum_op_sector_eq_zero (n : ℕ) : (∑ q : PauliSector n, op q.1) = 0 := by
   have hpoint : ∀ q : PauliSector n, op ((sectorNegEquiv n) q).1 = -(op q.1) := by
     intro q
@@ -4839,29 +5262,37 @@ theorem sum_op_sector_eq_zero (n : ℕ) : (∑ q : PauliSector n, op q.1) = 0 :=
     exact hij
   exact (mul_eq_zero.mp hz).resolve_left (by norm_num)
 
+/-- The uniform average of the operator matrices over the Hermitian nontrivial Pauli sector. -/
 noncomputable def pauliSectorUniformAverage (n : ℕ) : Matrix (Reg n) (Reg n) ℂ :=
   ∑ q : PauliSector n, (Fintype.card (PauliSector n) : ℂ)⁻¹ • op q.1
 
+/-- The uniform average of Pauli-sector operator matrices is zero. -/
 theorem pauliSectorUniformAverage_eq_zero (n : ℕ) : pauliSectorUniformAverage n = 0 := by
   rw [pauliSectorUniformAverage, ← Finset.smul_sum, sum_op_sector_eq_zero, smul_zero]
 
+/-- Returns the operator of the triple product when its word is trivial, and the uniform sector
+average otherwise. -/
 noncomputable def pauliThirdMoment {n : ℕ} (P1 P2 P3 : PauliElem n) : Matrix (Reg n) (Reg n) ℂ :=
   if (P1 * P2 * P3).word = trivialWord then
     op (P1 * P2 * P3)
   else
     pauliSectorUniformAverage n
 
+/-- For a triple product with trivial word, `pauliThirdMoment` equals its operator matrix. -/
 theorem pauliThirdMoment_of_closed {n : ℕ} {P1 P2 P3 : PauliElem n}
     (h : (P1 * P2 * P3).word = trivialWord) :
     pauliThirdMoment P1 P2 P3 = op (P1 * P2 * P3) := by
   rw [pauliThirdMoment, if_pos h]
 
+/-- For a triple product with nontrivial word, `pauliThirdMoment` is zero. -/
 theorem pauliThirdMoment_of_open {n : ℕ} {P1 P2 P3 : PauliElem n}
     (h : (P1 * P2 * P3).word ≠ trivialWord) :
     pauliThirdMoment P1 P2 P3 = 0 := by
   rw [pauliThirdMoment, if_neg h]
   exact pauliSectorUniformAverage_eq_zero n
 
+/-- The defined third moment is the triple-product operator for trivial product word and zero
+otherwise. -/
 theorem pauliThirdMoment_eq {n : ℕ} (P1 P2 P3 : PauliElem n) :
     pauliThirdMoment P1 P2 P3
       = if (P1 * P2 * P3).word = trivialWord then op (P1 * P2 * P3) else 0 := by
@@ -4869,12 +5300,14 @@ theorem pauliThirdMoment_eq {n : ℕ} (P1 P2 P3 : PauliElem n) :
   · rw [pauliThirdMoment_of_closed h, if_pos h]
   · rw [pauliThirdMoment_of_open h, if_neg h]
 
+/-- The operator matrix of every Pauli element is nonzero. -/
 theorem op_ne_zero {n : ℕ} (p : PauliElem n) : op p ≠ 0 := by
   intro h
   have hh := op_mul_ne_zero p p
   rw [h, zero_mul] at hh
   exact absurd rfl hh
 
+/-- The defined third moment is nonzero exactly when the triple product has trivial word. -/
 theorem pauliThirdMoment_ne_zero_iff {n : ℕ} (P1 P2 P3 : PauliElem n) :
     pauliThirdMoment P1 P2 P3 ≠ 0 ↔ (P1 * P2 * P3).word = trivialWord := by
   by_cases h : (P1 * P2 * P3).word = trivialWord
@@ -4886,25 +5319,32 @@ theorem pauliThirdMoment_ne_zero_iff {n : ℕ} (P1 P2 P3 : PauliElem n) :
       exact (hne rfl).elim
     · exact (h hh).elim
 
+/-- Returns the operator of the pair product when its word is trivial, and the uniform sector
+average otherwise. -/
 noncomputable def pauliSecondMoment {n : ℕ} (P1 P2 : PauliElem n) : Matrix (Reg n) (Reg n) ℂ :=
   if (P1 * P2).word = trivialWord then
     op (P1 * P2)
   else
     pauliSectorUniformAverage n
 
+/-- For a pair product with trivial word, `pauliSecondMoment` equals its operator matrix. -/
 theorem pauliSecondMoment_of_closed {n : ℕ} {P1 P2 : PauliElem n}
     (h : (P1 * P2).word = trivialWord) :
     pauliSecondMoment P1 P2 = op (P1 * P2) := by
   rw [pauliSecondMoment, if_pos h]
 
+/-- For a pair product with nontrivial word, `pauliSecondMoment` is zero. -/
 theorem pauliSecondMoment_of_open {n : ℕ} {P1 P2 : PauliElem n}
     (h : (P1 * P2).word ≠ trivialWord) :
     pauliSecondMoment P1 P2 = 0 := by
   rw [pauliSecondMoment, if_neg h]
   exact pauliSectorUniformAverage_eq_zero n
 
+/-- A Boolean random tape indexed by `Fin m`. -/
 abbrev FairTape (m : ℕ) := Fin m → Bool
 
+/-- The uniform finite distribution on Boolean tapes of length `m`, assigning each tape
+probability `(1 / 2) ^ m`. -/
 noncomputable def fairTapeLaw (m : ℕ) : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (FairTape m) where
   prob := fun _ => (1 / 2 : ℝ) ^ m
   nonneg := fun _ => by positivity
@@ -4919,21 +5359,27 @@ noncomputable def fairTapeLaw (m : ℕ) : Qatlib.Concepts.MonteCarloMean.FinDist
         rw [← mul_pow]
         norm_num
 
+/-- There are `2 ^ m` Boolean tapes of length `m`. -/
 theorem card_fairTape (m : ℕ) : Fintype.card (FairTape m) = 2 ^ m := by
   rw [Fintype.card_fun]
   simp [Fintype.card_bool]
 
+/-- Each Boolean tape of length `m` has probability `(1 / 2) ^ m` under `fairTapeLaw`. -/
 theorem fairTapeLaw_prob (m : ℕ) (ω : FairTape m) :
     (fairTapeLaw m).prob ω = (1 / 2 : ℝ) ^ m := rfl
 
+/-- The probability of a Boolean tape equals the product of its individual fair-bit
+probabilities. -/
 theorem fairTapeLaw_prob_eq_product (m : ℕ) (ω : FairTape m) :
     (fairTapeLaw m).prob ω = ∏ i, fairBitLaw.prob (ω i) := by
   simp [fairTapeLaw, fairBitLaw, Finset.prod_const]
 
+/-- A tape of length one gives the same probability to its bit as `fairBitLaw`. -/
 theorem clause3TapeBit_is_fairBit (b : Bool) :
     (fairTapeLaw 1).prob (fun _ => b) = fairBitLaw.prob b := by
   simp [fairTapeLaw, fairBitLaw]
 
+/-- Classifies a simulation step as random or deterministic. -/
 inductive Clause3StepKind
 
   | random
@@ -4941,6 +5387,8 @@ inductive Clause3StepKind
   | deterministic
   deriving DecidableEq, Repr
 
+/-- A simulation step specifying a measured Pauli element, a selected tableau row, and a random
+or deterministic kind. -/
 structure Clause3Step (n m : ℕ) where
 
   measured : PauliElem n
@@ -4949,6 +5397,8 @@ structure Clause3Step (n m : ℕ) where
 
   kind : Clause3StepKind
 
+/-- A simulation result containing the outcome list, final tableau, random-bit count, and
+row-update count. -/
 structure Clause3SimResult (n m : ℕ) where
 
   outcomes : List Bool
@@ -4959,10 +5409,13 @@ structure Clause3SimResult (n m : ℕ) where
 
   rowUpdates : ℕ
 
+/-- Counts the steps marked random in a simulation-step list. -/
 def clause3RandomCount {n m : ℕ} : List (Clause3Step n m) → ℕ
   | [] => 0
   | s :: ss => (if s.kind == .random then 1 else 0) + clause3RandomCount ss
 
+/-- Processes measurement steps using the corresponding tape bit for random steps and true for
+deterministic steps, while updating the tableau and operation counts. -/
 noncomputable def clause3Simulate {n m : ℕ} (t : Tableau n m) :
     (steps : List (Clause3Step n m)) → (ω : FairTape steps.length) → Clause3SimResult n m
   | [], _ => ⟨[], t, 0, 0⟩
@@ -4973,6 +5426,7 @@ noncomputable def clause3Simulate {n m : ℕ} (t : Tableau n m) :
       ⟨b :: r.outcomes, r.finalTableau, r.randomBits + (if s.kind == .random then 1 else 0),
         r.rowUpdates + m⟩
 
+/-- The simulator produces exactly one Boolean outcome per step. -/
 theorem clause3Simulate_outcomes_length {n m : ℕ} (steps : List (Clause3Step n m)) :
     ∀ (t : Tableau n m) (ω : FairTape steps.length),
       (clause3Simulate t steps ω).outcomes.length = steps.length := by
@@ -4988,6 +5442,7 @@ theorem clause3Simulate_outcomes_length {n m : ℕ} (steps : List (Clause3Step n
           have h := ih (measuredTableau t s.row s.measured true) (fun i => ω i.succ)
           simp [clause3Simulate, hk, h]
 
+/-- The simulator's random-bit count equals the number of steps marked random. -/
 theorem clause3Simulate_randomBits_eq {n m : ℕ} (steps : List (Clause3Step n m)) :
     ∀ (t : Tableau n m) (ω : FairTape steps.length),
       (clause3Simulate t steps ω).randomBits = clause3RandomCount steps := by
@@ -5004,6 +5459,7 @@ theorem clause3Simulate_randomBits_eq {n m : ℕ} (steps : List (Clause3Step n m
           have h := ih (measuredTableau t s.row s.measured true) (fun i => ω i.succ)
           simp [clause3Simulate, hk, h, clause3RandomCount]
 
+/-- The number of random steps is at most the total number of steps. -/
 theorem clause3RandomCount_le {n m : ℕ} : ∀ (steps : List (Clause3Step n m)), clause3RandomCount steps ≤ steps.length := by
   intro steps
   induction steps with
@@ -5017,6 +5473,7 @@ theorem clause3RandomCount_le {n m : ℕ} : ∀ (steps : List (Clause3Step n m))
           simp [clause3RandomCount, hk]
           omega
 
+/-- The simulator's random-bit count is at most the number of steps. -/
 theorem clause3Simulate_randomBits_le {n m : ℕ} (steps : List (Clause3Step n m)) :
     ∀ (t : Tableau n m) (ω : FairTape steps.length),
       (clause3Simulate t steps ω).randomBits ≤ steps.length := by
@@ -5024,6 +5481,7 @@ theorem clause3Simulate_randomBits_le {n m : ℕ} (steps : List (Clause3Step n m
   rw [clause3Simulate_randomBits_eq]
   exact clause3RandomCount_le steps
 
+/-- The simulator records exactly `steps.length * m` row updates. -/
 theorem clause3Simulate_rowUpdates {n m : ℕ} (steps : List (Clause3Step n m)) :
     ∀ (t : Tableau n m) (ω : FairTape steps.length),
       (clause3Simulate t steps ω).rowUpdates = steps.length * m := by
@@ -5041,11 +5499,14 @@ theorem clause3Simulate_rowUpdates {n m : ℕ} (steps : List (Clause3Step n m)) 
           simp [clause3Simulate, hk, h]
           ring
 
+/-- When the first simulation step is random, its first recorded outcome is the first tape bit. -/
 theorem clause3Simulate_first_outcome_random {n m : ℕ} (s : Clause3Step n m) (ss : List (Clause3Step n m))
     (t : Tableau n m) (ω : FairTape (s :: ss).length) (hk : s.kind = .random) :
     (clause3Simulate t (s :: ss) ω).outcomes.head? = some (ω 0) := by
   simp [clause3Simulate, hk]
 
+/-- For a normalized code state, a Hermitian Pauli measurement anticommuting with some tableau
+row has the two fair-bit branch probabilities. -/
 theorem clause3RandomStep_branch_prob {n m : ℕ} (t : Tableau n m) (ψ : QState (Reg n))
     (hψ : ψ ∈ codeSpace t) (hn : Normalized ψ) (p : PauliElem n) (hp : IsHermitianPauli p)
     (hanti : ∃ a : Fin m, op (t a).decode * op p = - (op p * op (t a).decode)) :
@@ -5053,10 +5514,14 @@ theorem clause3RandomStep_branch_prob {n m : ℕ} (t : Tableau n m) (ψ : QState
       ProjectiveBranchMass (pauliBranchProjector p true) false ψ = fairBitLaw.prob false :=
   pauliBranchMass_fairBit_of_anticommute_some t ψ hψ hn p hp hanti
 
+/-- The natural representative of zero in `ZMod 2` is zero. -/
 theorem zmod2_val_zero : (0 : ZMod 2).val = 0 := rfl
 
+/-- The natural representative of one plus one in `ZMod 2` is zero. -/
 theorem zmod2_val_one_add_one : ((1 : ZMod 2) + 1).val = 0 := rfl
 
+/-- The product of the three powers of `Complex.I` with exponents given by two binary residues
+and their sum is one or negative one. -/
 theorem iPowZ2_triple (z1 z2 : ZMod 2) :
     (Complex.I ^ z1.val : ℂ) * (Complex.I ^ z2.val) * (Complex.I ^ (z1 + z2).val)
       ∈ ({1, -1} : Set ℂ) := by
@@ -5064,6 +5529,7 @@ theorem iPowZ2_triple (z1 z2 : ZMod 2) :
     rcases zmod2_eq_zero_or_one z2 with rfl | rfl <;>
     simp [zmod2_val_zero, zmod2_val_one, zmod2_val_one_add_one]
 
+/-- Every natural power of complex negative one is one or negative one. -/
 theorem negOnePow_mem (k : ℕ) : ((-1 : ℂ)^k) ∈ ({1, -1} : Set ℂ) := by
   induction k with
   | zero => simp
@@ -5073,14 +5539,19 @@ theorem negOnePow_mem (k : ℕ) : ((-1 : ℂ)^k) ∈ ({1, -1} : Set ℂ) := by
       · rw [ih, one_mul]; simp
       · rw [ih, neg_mul]; simp
 
+/-- The product of two complex numbers each equal to one or negative one is again one or
+negative one. -/
 theorem mul_mem_pm_one {u v : ℂ} (hu : u ∈ ({1, -1} : Set ℂ)) (hv : v ∈ ({1, -1} : Set ℂ)) :
     u * v ∈ ({1, -1} : Set ℂ) := by
   rcases hu with rfl | rfl <;> rcases hv with rfl | rfl <;> simp
 
+/-- The binary dot product is additive in its right argument. -/
 theorem booleanDot_add {n : ℕ} (a x y : BooleanVec n) :
     booleanDot a (x + y) = booleanDot a x + booleanDot a y := by
   simp [booleanDot, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- For a stabilizer function nonzero at `0`, `x`, `y`, and `x + y`, the product of its values
+at these four points is one or negative one. -/
 theorem isStabilizerFun_second_difference {n : ℕ} (φ : BooleanVec n → ℂ) (hφ : IsStabilizerFun φ)
     {x y : BooleanVec n} (hx : φ x ≠ 0) (hy : φ y ≠ 0) (hxy : φ (x + y) ≠ 0)
     (h0 : φ 0 ≠ 0) :
@@ -5122,6 +5593,8 @@ theorem isStabilizerFun_second_difference {n : ℕ} (φ : BooleanVec n → ℂ) 
   rw [heq]
   exact mul_mem_pm_one hi' hn'
 
+/-- For a stabilizer function nonzero at the origin, the fourth power of its value there is one
+or negative one. -/
 theorem isStabilizerFun_second_difference_zero {n : ℕ} (φ : BooleanVec n → ℂ)
     (hφ : IsStabilizerFun φ) (h0 : φ 0 ≠ 0) :
     φ 0 * φ 0 * φ 0 * φ 0 ∈ ({1, -1} : Set ℂ) :=

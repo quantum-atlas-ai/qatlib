@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.OversampledEvenSVTProgram
+
+/-!
+# Statement of oversampled SVT record accuracy
+
+`EvenSVTFrobeniusOversampledRecords` specifies a joint law for row records and conditional
+column records with oversampling domination. Its conclusion bounds the probability of Frobenius
+error greater than `ε` for `oversampledEvenSVTRun` under explicit concentration and spectral
+regularity hypotheses, following [ChiaEtAl2022].
+
+## Main statements
+
+* `EvenSVTFrobeniusOversampledRecords`: The proposition that dominated row and
+  conditional-column sampling, together with the stated spectral regularity and explicit error
+  budgets, produces a joint record law whose even-SVT run output has Frobenius failure
+  probability at most `δ`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -20,6 +41,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The proposition that dominated row and conditional-column sampling, together with the stated
+spectral regularity and explicit error budgets, produces a joint record law whose even-SVT
+run output has Frobenius failure probability at most `δ`. -/
 def EvenSVTFrobeniusOversampledRecords : Prop :=
   ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (r c : ℕ) (f fbar : ℝ → ℂ) (L Lbar d ε δ η₁ η₂ φrow φcol : ℝ)

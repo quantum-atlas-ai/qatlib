@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
+
+/-!
+# First-order Lie product-word leakage
+
+This module defines `lieStages`, containing each group once with coefficient one, and verifies
+first-order cancellation. It specializes the general leakage estimate to this Lie product word,
+giving a concrete first-order instance of [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_lie_cancellation`: Verifies lower-order cancellation at order one.
+* `actual_lie_product_leakage`: Bounds Lie-word leakage when `2 * J * k * d * M * s < 1`.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +39,7 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- The zeroth computed generator coefficient equals the sum of the stage generators. -/
 theorem actual_zero_coefficient (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M)) :
     computedCoefficient h stages 0=(stages.map (stageGenerator h)).sum := by
   induction stages with
@@ -31,14 +50,17 @@ theorem actual_zero_coefficient (h : Hamiltonian N R M k d J) (stages : List (�
       one_div_one, adIter, one_smul, if_pos rfl, List.map_cons, List.sum_cons] using!
       congrArg (fun A => stageGenerator h stage+A) ih
 
+/-- The stage list obtained by enumerating every group in `Fin M` once with coefficient one. -/
 def lieStages (M : ℕ) : List (ℝ × Fin M) := Finset.univ.toList.map (fun m => (1,m))
 
+/-- The absolute coefficient time budget of `lieStages M` is `M`. -/
 theorem timeBudget_lieStages (M : ℕ) : timeBudget (lieStages M) = (M : ℝ) := by
   simp only [timeBudget, lieStages, List.map_map, Function.comp_def, abs_one]
   simpa only [Finset.toList_toFinset, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
     nsmul_eq_mul, mul_one] using!
       (List.sum_toFinset (fun _ : Fin M => (1 : ℝ)) (Finset.nodup_toList Finset.univ)).symm
 
+/-- The Lie stage list satisfies `lowerOrderCancellation` at order one. -/
 theorem actual_lie_cancellation (h : Hamiltonian N R M k d J) : lowerOrderCancellation h (lieStages M) 1 := by
   intro n hn
   have hn0 : n=0 := by omega
@@ -54,6 +76,8 @@ theorem actual_lie_cancellation (h : Hamiltonian N R M k d J) : lowerOrderCancel
   rw [← Finset.smul_sum]
   rfl
 
+/-- For a nonnegative step satisfying `2 * J * k * d * M * s < 1`, the Lie word satisfies the
+exponential energy-gap leakage bound with the order-one step exponent. -/
 theorem actual_lie_product_leakage (h : Hamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (s : ℝ) (hs : 0 ≤ s)

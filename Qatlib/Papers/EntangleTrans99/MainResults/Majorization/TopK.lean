@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+
+/-!
+# Subset sums and sorted spectral prefixes
+
+This module gives a variational description of sorted prefix sums: the first `k` entries of
+`sortedDesc a` sum to the maximum over sets of `k` coordinates. The proofs compare submultisets
+with descending initial segments and construct a set attaining the bound.
+
+The theorem `majorizes_iff_forall_subset_sum` recasts `Majorizes` as inequalities over all
+coordinate subsets, providing a tool for the spectral arguments of [Nielsen1999].
+
+## Main statements
+
+* `finset_sum_le_prefixSum`: bounds any coordinate subset sum by the matching sorted prefix.
+* `exists_finset_sum_eq_prefixSum`: constructs a subset attaining that prefix sum.
+* `majorizes_iff_forall_subset_sum`: characterizes majorization by subset-sum bounds.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,8 @@ namespace Qatlib.Papers.EntangleTrans99.MainResults.Majorization
 open Qatlib.Concepts.FiniteLocc.LOCCProgram
 open scoped BigOperators
 
+/-- The sum of a submultiset of a weakly descending list is bounded by the sum of the equally
+long initial segment. -/
 theorem take_sum_le_of_le {l : List ℝ} (hl : l.Pairwise (fun x y => ¬ x < y))
     {m : Multiset ℝ} (hm : m ≤ (l : Multiset ℝ)) :
     m.sum ≤ (l.take m.card).sum := by
@@ -87,6 +111,8 @@ theorem take_sum_le_of_le {l : List ℝ} (hl : l.Pairwise (fun x y => ¬ x < y))
         rw [hR, hm', Multiset.sum_cons]
         linarith
 
+/-- The sum over any `k` coordinates of `a` is at most the sum of the first `k` entries of
+`sortedDesc a`. -/
 theorem finset_sum_le_prefixSum {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (_hk : k ≤ n)
     {s : Finset (Fin n)} (hcard : s.card = k) :
     ∑ i ∈ s, a i ≤ prefixSum (sortedDesc a) k := by
@@ -108,6 +134,8 @@ theorem finset_sum_le_prefixSum {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (_hk : k
   rw [hcard'] at hmain
   simpa [prefixSum] using hmain
 
+/-- Every submultiset of the values of `a` on a finite set is the multiset of values on some
+subset of that set. -/
 theorem exists_finset_map_eq {ι : Type*} [DecidableEq ι] (a : ι → ℝ) :
     ∀ t : Finset ι, ∀ m : Multiset ℝ, m ≤ t.val.map a →
       ∃ s : Finset ι, s ⊆ t ∧ s.val.map a = m := by
@@ -156,6 +184,7 @@ theorem exists_finset_map_eq {ι : Type*} [DecidableEq ι] (a : ι → ℝ) :
         · rw [Multiset.map_cons, hs', ← hm']
         · exact fun hmem => hi (hsub' hmem)
 
+/-- For `k ≤ n`, some set of `k` coordinates realizes the first `k` sorted prefix sum of `a`. -/
 theorem exists_finset_sum_eq_prefixSum {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (hk : k ≤ n) :
     ∃ s : Finset (Fin n), s.card = k ∧ ∑ i ∈ s, a i = prefixSum (sortedDesc a) k := by
   have hm : (((sortedDesc a).take k : List ℝ) : Multiset ℝ) ≤ (Finset.univ.val.map a : Multiset ℝ) := by
@@ -176,6 +205,8 @@ theorem exists_finset_sum_eq_prefixSum {n : ℕ} (a : Fin n → ℝ) {k : ℕ} (
   · rw [Finset.sum_eq_multiset_sum, hs, Multiset.sum_coe]
     rfl
 
+/-- If every `k`-coordinate sum of `b` is bounded by the first `k` sorted prefix sum of `a`, the
+same bound holds for the first `k` sorted prefix sum of `b`. -/
 theorem prefixSum_le_of_forall_subset {n : ℕ} {a b : Fin n → ℝ} {k : ℕ} (hk : k ≤ n)
     (h : ∀ s : Finset (Fin n), s.card = k →
       ∑ i ∈ s, b i ≤ prefixSum (sortedDesc a) k) :
@@ -184,6 +215,8 @@ theorem prefixSum_le_of_forall_subset {n : ℕ} {a b : Fin n → ℝ} {k : ℕ} 
   rw [← hsum]
   exact h s hcard
 
+/-- The relation `Majorizes a b` is equivalent to bounding every `k`-coordinate sum of `b` by
+the first `k` sorted prefix sum of `a`, for every `k ≤ n` [Nielsen1999]. -/
 theorem majorizes_iff_forall_subset_sum {n : ℕ} (a b : Fin n → ℝ) :
     Majorizes a b ↔ ∀ k, k ≤ n → ∀ s : Finset (Fin n), s.card = k →
       ∑ i ∈ s, b i ≤ prefixSum (sortedDesc a) k := by

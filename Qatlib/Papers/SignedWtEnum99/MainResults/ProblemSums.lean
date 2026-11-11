@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SignedWtEnum99.MainResults.Factorization
+
+/-!
+# Matrix factorizations for the signed-enumerator problems
+
+This module relates the kernel constraints in `qsen` and `qsen2` to the matrix forms used for
+Problems 3 and 4. Independent-column factorizations and independent-row kernel identities supply
+the algebraic equalities between the corresponding finite sums. See [KnillLaflamme1999] for the
+source development.
+
+## Main statements
+
+* `exists_indep_cols_factorization`: factors any square binary matrix as `X * Yᵀ` with both
+  column families independent.
+* `qsen2_problem4_eq_sum19`: rewrites the two-constraint sum using such a factorization.
+* `qsen_eq_of_indep_rows`: replaces a kernel constraint by multiplication with an
+  independent-row factor.
+
+## References
+
+* [Knill and Laflamme, 1999][KnillLaflamme1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,8 @@ namespace Qatlib.Papers.SignedWtEnum99.MainResults
 
 variable {N : ℕ}
 
+/-- Replacing the constraint matrix by one with the same kernel preserves `qsen` when the phase
+matrix and weights are fixed. -/
 lemma qsen_congr {m m' n : ℕ} {A : Matrix (Fin m) (Fin n) (ZMod 2)}
     {A' : Matrix (Fin m') (Fin n) (ZMod 2)}
     {B : Matrix (Fin n) (Fin n) (ZMod 2)} (x y : ℤ)
@@ -31,6 +55,7 @@ lemma qsen_congr {m m' n : ℕ} {A : Matrix (Fin m) (Fin n) (ZMod 2)}
   · have h1' : ¬ A'.mulVec b = 0 := fun hh => h1 ((hA b).mpr hh)
     rw [if_neg h1, if_neg h1']
 
+/-- Injectivity of a binary matrix's linear map implies linear independence of its columns. -/
 lemma linearIndependent_cols_of_injective {N k : ℕ} (X : Matrix (Fin N) (Fin k) (ZMod 2))
     (h : Function.Injective (Matrix.mulVecLin X)) :
     LinearIndependent (ZMod 2) (fun j : Fin k => fun i : Fin N => X i j) := by
@@ -44,6 +69,7 @@ lemma linearIndependent_cols_of_injective {N k : ℕ} (X : Matrix (Fin N) (Fin k
   intro j
   exact congrFun hc0 j
 
+/-- Surjectivity of a binary matrix's linear map implies linear independence of its rows. -/
 lemma linearIndependent_rows_of_surjective {r N : ℕ} (M : Matrix (Fin r) (Fin N) (ZMod 2))
     (h : Function.Surjective (Matrix.mulVecLin M)) :
     LinearIndependent (ZMod 2) (fun j : Fin r => fun i : Fin N => M j i) := by
@@ -74,6 +100,8 @@ lemma linearIndependent_rows_of_surjective {r N : ℕ} (M : Matrix (Fin r) (Fin 
     simp [Pi.single_apply]
   rw [← hval, hzero]
 
+/-- Every square binary matrix factors as `X * Yᵀ` for some number of columns such that both `X`
+and `Y` have linearly independent columns. See [KnillLaflamme1999]. -/
 theorem exists_indep_cols_factorization (C : Matrix (Fin N) (Fin N) (ZMod 2)) :
     ∃ (k : ℕ) (X Y : Matrix (Fin N) (Fin k) (ZMod 2)),
       LinearIndependent (ZMod 2) (fun j : Fin k => fun i : Fin N => X i j) ∧
@@ -126,6 +154,9 @@ theorem exists_indep_cols_factorization (C : Matrix (Fin N) (Fin N) (ZMod 2)) :
       rfl
     exact (Matrix.toLin'.injective (show Matrix.toLin' (X * M) = Matrix.toLin' C from hlin)).symm
 
+/-- Every square binary matrix possesses an independent-column factorization that rewrites the
+constraints `C, Cᵀ` of `qsen2` as `Yᵀ, Xᵀ` while retaining the phase `lwtr C`. See
+[KnillLaflamme1999]. -/
 theorem qsen2_problem4_eq_sum19 (C : Matrix (Fin N) (Fin N) (ZMod 2)) (x y : ℤ) :
     ∃ (k : ℕ) (X Y : Matrix (Fin N) (Fin k) (ZMod 2)),
       LinearIndependent (ZMod 2) (fun j : Fin k => fun i : Fin N => X i j) ∧
@@ -135,11 +166,15 @@ theorem qsen2_problem4_eq_sum19 (C : Matrix (Fin N) (Fin N) (ZMod 2)) (x y : ℤ
   obtain ⟨k, X, Y, hX, hY, hC⟩ := exists_indep_cols_factorization C
   exact ⟨k, X, Y, hX, hY, hC, qsen2_eq_of_factorization C X Y hC hX hY x y⟩
 
+/-- The phase matrix `lwtr (1ᵀ * C)` in the Problem 3 enumerator simplifies to `lwtr C`. See
+[KnillLaflamme1999]. -/
 theorem qsen_problem3_eq_sum18 (C : Matrix (Fin N) (Fin N) (ZMod 2)) (x y : ℤ) :
     qsen C (lwtr ((1 : Matrix (Fin N) (Fin N) (ZMod 2))ᵀ * C)) x y
       = qsen C (lwtr C) x y := by
   simp
 
+/-- If the rows of `H0` are independent, the enumerator constrained by `H1` equals the one
+constrained by `H0ᵀ * H1`, with phase `lwtr (H0ᵀ * H1)`. See [KnillLaflamme1999]. -/
 theorem qsen_eq_of_indep_rows {m : ℕ} (H0 H1 : Matrix (Fin m) (Fin N) (ZMod 2))
     (h0 : LinearIndependent (ZMod 2) (fun j : Fin m => fun i : Fin N => H0 j i)) (x y : ℤ) :
     qsen H1 (lwtr (H0ᵀ * H1)) x y = qsen (H0ᵀ * H1) (lwtr (H0ᵀ * H1)) x y := by

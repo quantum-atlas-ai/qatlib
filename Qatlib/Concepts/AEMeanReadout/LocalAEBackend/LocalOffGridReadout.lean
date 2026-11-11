@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+/-!
+# Local Fourier readout of off-grid phases
+
+This module transfers a circular phase window between finite labels and bit-vector registers,
+then bounds its measurement probability after the approximate local inverse Fourier circuit. The
+phase-estimation success mass of [BrassardEtAl2002] is reduced by an explicit Fourier
+approximation error.
+
+## Main statements
+
+* `offgrid_window_filter_map`: identify the phase window under register relabeling.
+* `local_offgrid_readout_probability`: bound the implemented off-grid readout probability.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +48,8 @@ open scoped Classical Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 
+/-- The bit-vector phase window of radius `1 / 2^n` is the image of the corresponding
+finite-label window under the inverse bit-vector equivalence. -/
 theorem offgrid_window_filter_map (n : ℕ) (φ : ℝ) :
     (Finset.univ.filter (fun z : Reg n =>
         phaseDistance φ (((bitVecEquiv n z).val : ℝ)/(2^n : ℝ)) ≤ 1/(2^n : ℝ)))
@@ -39,6 +60,8 @@ theorem offgrid_window_filter_map (n : ℕ) (φ : ℝ) :
   simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_map_equiv,
     Equiv.symm_symm]
 
+/-- For `n ≥ 1`, approximate local inverse Fourier readout places mass at least `8/π² - πn/2^b`
+within circular distance `1 / 2^n` of the input phase [BrassardEtAl2002]. -/
 theorem local_offgrid_readout_probability (n b : ℕ) (hn : 1 ≤ n) (φ : ℝ) :
     let ψ := relabelState (bitVecEquiv n).symm (offGridPhase (2^n) φ)
     let C := localProgramCircuit (localProgramAdjoint (approxLocalQFT n b))

@@ -8,6 +8,26 @@ import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonEnergy
 import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Isometric
+
+/-!
+# Angular growth of wave propagators
+
+This module derives energy estimates for a coupled first-order wave system and uses them to
+bound `wavePropagator` for complex spectral parameters. The matrix estimate uses the positive
+square root of a positive definite matrix, providing growth control for the contour-based matrix
+analysis of [WangEtAl2026].
+
+## Main statements
+
+* `wave_pair_trajectory_norm_le`: exponential control of wave trajectories.
+* `wavePropagator_matrix_angular`: angular growth bound for positive definite matrix
+  coefficients.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -21,6 +41,8 @@ open scoped InnerProductSpace ComplexConjugate
 section Energy
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- Bounds the real energy pairing for the coupled wave system by `(|r.im| * ‖B‖ + ‖r‖⁻¹ * ‖D‖)
+* (‖u‖² + ‖v‖²)` when `B` is symmetric. -/
 theorem wave_pair_energy_le (B D : E →L[ℂ] E) (hB : B.IsSymmetric) (r : ℂ) (u v : E) :
     (inner ℂ u (r • B v)).re + (inner ℂ v (-(r • B u) - r⁻¹ • D u)).re ≤
       (|r.im| * ‖B‖ + ‖r‖⁻¹ * ‖D‖) * (‖u‖ ^ 2 + ‖v‖ ^ 2) := by
@@ -63,6 +85,8 @@ theorem wave_pair_energy_le (B D : E →L[ℂ] E) (hB : B.IsSymmetric) (r : ℂ)
   nlinarith [mul_nonneg (mul_nonneg (mul_nonneg (inv_nonneg.mpr (norm_nonneg r))
     (norm_nonneg D)) (norm_nonneg u)) (norm_nonneg v)]
 
+/-- Bounds the first component of the coupled wave trajectory at nonnegative time by an
+exponential multiple of its initial norm, assuming the second component initially vanishes. -/
 theorem wave_pair_trajectory_norm_le (B D : E →L[ℂ] E) (hB : B.IsSymmetric) (r : ℂ)
     (u v : ℝ → E)
     (hu : ∀ s, HasDerivAt u (r • B (v s)) s)
@@ -123,6 +147,8 @@ end Energy
 section ActualOperator
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E]
 
+/-- Bounds the wave propagator for `L + r² • (B * B)` when `B` is symmetric and `C` is its
+two-sided inverse. -/
 theorem wavePropagator_angular_of_square (L B C : E →L[ℂ] E)
     (hB : B.IsSymmetric) (hBC : B * C = 1) (hCB : C * B = 1)
     (r : ℂ) (hr : r ≠ 0) (t : ℝ) (ht : 0 ≤ t) :
@@ -183,6 +209,8 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- Converting a matrix wave propagator to a continuous linear operator commutes with forming
+the wave propagator. -/
 private theorem wavePropagator_matrix_toOperator (A : Matrix n n ℂ) (t : ℂ) :
     (Matrix.toEuclideanCLM (𝕜 := ℂ) (n := n)) (wavePropagator A t) =
       wavePropagator ((Matrix.toEuclideanCLM (𝕜 := ℂ) (n := n)) A) t := by
@@ -198,6 +226,8 @@ private theorem wavePropagator_matrix_toOperator (A : Matrix n n ℂ) (t : ℂ) 
   simp only [map_smul, map_pow]
   rfl
 
+/-- Bounds the matrix wave propagator for `L + r² • H` using the positive square root of the
+positive definite matrix `H`. -/
 theorem wavePropagator_matrix_angular (L H : Matrix n n ℂ) (hH : H.PosDef)
     (r : ℂ) (hr : r ≠ 0) (t : ℝ) (ht : 0 ≤ t) :
     ‖wavePropagator (L + r ^ 2 • H) (t : ℂ)‖ ≤

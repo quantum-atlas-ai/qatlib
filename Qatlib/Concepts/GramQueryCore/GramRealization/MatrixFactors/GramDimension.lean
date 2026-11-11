@@ -9,10 +9,34 @@ import Mathlib.LinearAlgebra.Dimension.Finite
 import Mathlib.Data.Nat.Log
 import Mathlib.Tactic
 
+/-!
+# Dimension bounds for orthogonal state families
+
+This module bounds the cardinality of a nonzero orthogonal family by the complex dimension of
+its ambient space. The arithmetic lemma `p3_bits_bridge` converts a bound `r ≤ 2 ^ n` into
+`Nat.log2 r ≤ n`, linking the dimension estimate to finite-register sizes as used in
+[NielsenChuang2010].
+
+## Main statements
+
+* `p3_target_necessity`: A finite family of nonzero pairwise orthogonal vectors has cardinality
+  at most the complex dimension of its ambient space.
+
+* `p3_bits_bridge`: If a nonzero natural number `r` is at most `2 ^ n`, then `Nat.log2 r ≤ n`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.GramQueryCore.GramRealization.GramDimension
 
+/-- A finite family of nonzero pairwise orthogonal vectors has cardinality at most the complex
+dimension of its ambient space. -/
 theorem p3_target_necessity {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℂ E] [Module.Finite ℂ E] {r : ℕ} (w : Fin r → E)
     (hw_ne : ∀ i, w i ≠ 0)
@@ -35,6 +59,7 @@ theorem p3_target_necessity {E : Type*} [NormedAddCommGroup E]
     · intro hcon; exact absurd (Finset.mem_univ i) hcon
   simpa using hli.fintype_card_le_finrank
 
+/-- If a nonzero natural number `r` is at most `2 ^ n`, then `Nat.log2 r ≤ n`. -/
 theorem p3_bits_bridge (r n : ℕ) (hr : r ≠ 0) (h : r ≤ 2 ^ n) :
     Nat.log2 r ≤ n := by
   by_cases h2 : Nat.log2 r ≤ n

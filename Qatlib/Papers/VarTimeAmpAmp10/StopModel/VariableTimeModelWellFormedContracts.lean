@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeDefs
+
+/-!
+# Fixed stopped-subspace well-formedness contract
+
+`variableTimeModelWellFormed` states preservation of stopped components, monotonicity of stopped
+mass, and unitarity of prefix evolution for sequences satisfying `IsVtStage`. Its stage
+condition fixes the entire stopped subspace.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `variableTimeModelWellFormed`: preservation, monotonicity, and prefix unitarity specification.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +32,8 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 
 namespace Qatlib.Papers.VarTimeAmpAmp10.StopModel
 
+/-- The proposition that stages fixing the stopped subspace preserve stopped components, yield
+nondecreasing stopped mass, and have unitary prefix products. -/
 def variableTimeModelWellFormed : Prop :=
   ∀ (C : Type) [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)),

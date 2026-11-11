@@ -9,6 +9,30 @@ import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PhysicalMid
 import Qatlib.Concepts.OperatorAccess.EncodedAccess
 import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Born probabilities for projector histories
+
+`idealOutput` combines a uniform clock, a purified input, clock-dependent evolutions, and a
+unitary encoding of a projector. The module identifies the selected ancilla probability with an
+average of evolved projector expectations and bounds its difference from a physical time
+integral.
+
+The estimates combine midpoint quadrature with stability of Born probabilities under state
+perturbations; see [NielsenChuang2010] for the measurement and unitary-evolution framework.
+
+## Main statements
+
+* `idealOutput_born`: expresses the readout probability as a uniform average of trace
+  expectations.
+* `approximate_history_integral_error`: combines quadrature error with the full-history state
+  error.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -61,6 +85,8 @@ variable {A E I C : Type} [Fintype A] [DecidableEq A]
   [Fintype E] [DecidableEq E] [Fintype I] [DecidableEq I]
   [Fintype C] [DecidableEq C]
 
+/-- The effect of the singleton ancilla outcome is the adjoint square of the corresponding
+compressed block of `U`. -/
 theorem singleton_effect (U : Matrix (A × I) (A × I) ℂ) (a : A) :
     outcomeEffect U a {a} =
       (compress (encodingFiber a) U (encodingFiber a))ᴴ *
@@ -71,6 +97,8 @@ theorem singleton_effect (U : Matrix (A × I) (A × I) ℂ) (a : A) :
     rfl
   simp only [outcomeEffect, Finset.sum_singleton, hc]
 
+/-- For a unitary encoding of a self-adjoint idempotent `Pi`, the probability of observing the
+encoding ancilla label equals the real part of its quadratic form on `v`. -/
 theorem projector_block_born (Pi : Matrix I I ℂ)
     (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (henc : ProjectedUnitaryEncoding Pi U (encodingFiber a) (encodingFiber a))
@@ -80,11 +108,15 @@ theorem projector_block_born (Pi : Matrix I I ℂ)
   have h := outcomeEffect_born U a {a} v
   simpa only [Finset.mem_singleton, singleton_effect, henc.encoded, hstar, hsq] using! h
 
+/-- The uniform clock history obtained by applying `V` to each system slice of a purification,
+embedding at ancilla label `a`, and then applying `U`. -/
 noncomputable def idealOutput (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (V : C → Matrix I I ℂ) (psi : QState (E × I)) : QState (C × (E × (A × I))) :=
   fun x => Uniform C x.1 *
     (U *ᵥ (encodingFiber a *ᵥ (V x.1 *ᵥ (fun i => psi (x.2.1,i))))) x.2.2
 
+/-- The expectation of `K` in `purifiedDensity psi` is the sum of its quadratic forms on the
+environment-indexed slices of `psi`. -/
 theorem purified_expectation (psi : QState (E × I)) (K : Matrix I I ℂ) :
     Matrix.trace (purifiedDensity psi * K) =
       ∑ r : E, Inner (fun i => psi (r,i)) (K *ᵥ (fun i => psi (r,i))) := by
@@ -93,6 +125,8 @@ theorem purified_expectation (psi : QState (E × I)) (K : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- Moving an evolution matrix across a quadratic form conjugates the observable to `Vᴴ * K *
+V`. -/
 theorem evolution_quadratic (V K : Matrix I I ℂ) (v : QState I) :
     Inner (V *ᵥ v) (K *ᵥ (V *ᵥ v)) = Inner v ((Vᴴ * K * V) *ᵥ v) := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, Matrix.star_mulVec, Matrix.dotProduct_mulVec,
@@ -100,6 +134,8 @@ theorem evolution_quadratic (V K : Matrix I I ℂ) (v : QState I) :
 
 omit [DecidableEq C] in
 
+/-- The selected ancilla probability of `idealOutput` is the uniform clock average of the
+evolved projector expectations in `purifiedDensity psi`. -/
 theorem idealOutput_born (Pi : Matrix I I ℂ)
     (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (henc : ProjectedUnitaryEncoding Pi U (encodingFiber a) (encodingFiber a))
@@ -133,6 +169,8 @@ theorem idealOutput_born (Pi : Matrix I I ℂ)
 
 omit [DecidableEq E] in
 
+/-- Unitary clock evolutions and a unitary readout preserve normalization of the ideal history
+for a nonempty clock. -/
 theorem idealOutput_normalized [Nonempty C]
     (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (hU : U ∈ Matrix.unitaryGroup (A × I) ℂ)
@@ -159,6 +197,8 @@ theorem idealOutput_normalized [Nonempty C]
   rw [hp]
   simpa only [mul_one] using! (normalized_uniform (I := C) Fintype.card_pos)
 
+/-- For normalized actual and ideal histories at Euclidean distance at most `delta`, the
+selected ancilla probabilities differ by at most `2 * delta`. -/
 theorem whole_event_error [Nonempty C]
     (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (hU : U ∈ Matrix.unitaryGroup (A × I) ℂ)
@@ -180,6 +220,8 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.Projecto
 variable {I E A : Type} [Fintype I] [DecidableEq I]
   [Fintype E] [DecidableEq E] [Fintype A] [DecidableEq A]
 
+/-- The physical readout integral differs from the scaled midpoint-history Born probability by
+at most `alpha * ‖Pi‖ * T² / (2 * N)`. -/
 theorem midpoint_born_quadrature (H : Matrix I I ℂ) (hH : H.IsHermitian)
     (Pi : Matrix I I ℂ) (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (henc : ProjectedUnitaryEncoding Pi U (encodingFiber a) (encodingFiber a))
@@ -211,6 +253,8 @@ theorem midpoint_born_quadrature (H : Matrix I I ℂ) (hH : H.IsHermitian)
   exact midpoint_quadrature H hH Pi (purifiedDensity psi)
     (purifiedDensity_posSemidef psi) htr alpha T halpha hT N hN
 
+/-- Combining midpoint quadrature with a full-state error of at most `delta` bounds the integral
+readout error by `alpha * ‖Pi‖ * T² / (2 * N) + 2 * T * delta`. -/
 theorem approximate_history_integral_error (H : Matrix I I ℂ) (hH : H.IsHermitian)
     (Pi : Matrix I I ℂ) (U : Matrix (A × I) (A × I) ℂ) (a : A)
     (henc : ProjectedUnitaryEncoding Pi U (encodingFiber a) (encodingFiber a))

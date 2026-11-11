@@ -12,6 +12,28 @@ import Mathlib.Tactic.Abel
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Transporting conditional bounds from pure to mixed states
+
+Proves linearity and positivity of `selectedBranch` and constructs a finite pure-state
+decomposition of every density operator. These facts extend uniform pure-input branch estimates
+to mixed inputs.
+
+The theorem `pureToMixed_holds` gives the conditional normalized-output guarantee encoded by
+`transportPureToMixed` under `PureUniformBranchBound` and `2 * e < g`. The density-operator and
+instrument framework is described in [Watrous2018].
+
+## Main statements
+
+* `density_pure_decomposition`: a convex decomposition into normalized pure states.
+* `pureToMixed_holds`: a mixed-input guarantee from uniform pure-input branch bounds.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -26,6 +48,7 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 open Matrix
 open scoped Classical Matrix.Norms.L2Operator ComplexOrder
 
+/-- The selected instrument branch sum maps the zero operator to zero. -/
 theorem selectedBranch_zero {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O D E)
     (S : Finset O) : selectedBranch J S (0 : Operator D) = 0 := by
   unfold selectedBranch
@@ -33,6 +56,7 @@ theorem selectedBranch_zero {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O
   simp only [map_zero]
   exact Finset.sum_const_zero
 
+/-- The selected instrument branch sum preserves addition. -/
 theorem selectedBranch_add {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O D E)
     (S : Finset O) (ρ σ : Operator D) :
     selectedBranch J S (ρ + σ) = selectedBranch J S ρ + selectedBranch J S σ := by
@@ -41,6 +65,7 @@ theorem selectedBranch_add {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O 
   simp only [map_add]
   exact Finset.sum_add_distrib
 
+/-- The selected instrument branch sum preserves complex scalar multiplication. -/
 theorem selectedBranch_smul {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O D E)
     (S : Finset O) (c : ℂ) (ρ : Operator D) :
     selectedBranch J S (c • ρ) = c • selectedBranch J S ρ := by
@@ -49,6 +74,7 @@ theorem selectedBranch_smul {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O
   simp only [map_smul]
   exact Finset.smul_sum.symm
 
+/-- The selected instrument branch sum commutes with finite complex linear combinations. -/
 theorem selectedBranch_sum {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O D E)
     (S : Finset O) {ι : Type} (t : Finset ι) (c : ι → ℂ) (X : ι → Operator D) :
     selectedBranch J S (∑ k ∈ t, (c k : ℂ) • X k) =
@@ -61,6 +87,7 @@ theorem selectedBranch_sum {O : Type} [Fintype O] {D E : ℕ} (J : Instrument O 
   | insert k t hk ih =>
     rw [Finset.sum_insert hk, Finset.sum_insert hk, selectedBranch_add, selectedBranch_smul, ih]
 
+/-- The selected instrument branch sum preserves positive semidefiniteness. -/
 theorem selectedBranch_posSemidef {O : Type} [Fintype O] {D E : ℕ}
     (J : Instrument O D E) (S : Finset O) {ρ : Operator D} (hρ : ρ.PosSemidef) :
     (selectedBranch J S ρ).PosSemidef := by
@@ -68,10 +95,12 @@ theorem selectedBranch_posSemidef {O : Type} [Fintype O] {D E : ℕ}
   show (∑ o ∈ S, (J.branch o) ρ).PosSemidef
   exact Matrix.posSemidef_sum S (fun o _ => (J.cp o).positive hρ)
 
+/-- The trace norm of a positive semidefinite matrix equals the real part of its trace. -/
 theorem psd_traceNorm_eq_re_trace {D : ℕ} {X : Operator D} (hX : X.PosSemidef) :
     Matrix.traceNorm X = (Matrix.trace X).re := by
   simpa using! congrArg Complex.re hX.traceNorm_eq_trace
 
+/-- Each column of the eigenvector unitary of a Hermitian operator is a normalized state vector. -/
 theorem eigenvectorUnitary_col_normalized {D : ℕ} {ρ : Operator D}
     (hherm : ρ.IsHermitian) (k : Fin D) :
     Normalized (fun i => (hherm.eigenvectorUnitary : Matrix (Fin D) (Fin D) ℂ) i k) := by
@@ -95,6 +124,8 @@ theorem eigenvectorUnitary_col_normalized {D : ℕ} {ρ : Operator D}
     exact h
   simpa [U] using! hsumre
 
+/-- Every density operator is a finite convex combination of outer products of normalized
+vectors, indexed by `Fin D`. -/
 theorem density_pure_decomposition {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) :
     ∃ (w : Fin D → ℝ) (ψ : Fin D → QState (Fin D)),
@@ -149,6 +180,8 @@ theorem density_pure_decomposition {D : ℕ} (ρ : Operator D)
     conv_lhs => rw [hspec]
     rw [hcore, hrhs]
 
+/-- A uniform pure-input branch bound with `2 * e < g` implies the mixed-input conditional
+guarantee with direction error `2 * e / (g - e)` and success gap `g - e`. -/
 theorem pureToMixed_holds {O : Type} [Fintype O] {D E : ℕ}
     (J K : Instrument O D E) (S : Finset O) (e g : ℝ)
     (hb : PureUniformBranchBound J K S e g) (h2 : 2 * e < g) :

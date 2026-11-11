@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCalls
+
+/-!
+# Execution of rational stack-machine instructions
+
+This module proves execution rules for decoding and running the arithmetic machine's
+instructions on encoded word states. The rules cover literals, parameter lookup, addition,
+multiplication, storage, initialization, and final output, each with an explicit budget.
+
+`PathExecution` tracks total clock and maximum clock separately, allowing `program_execution` to
+compose successful instruction semantics into a machine execution. These constructions implement
+elementary classical arithmetic in the computation setting of [NielsenChuang2010].
+
+## Main statements
+
+* `instruction_execution`: realizes each successful word-level instruction execution.
+* `PathExecution.trans`: adds total-clock bounds and takes the maximum of peak bounds.
+* `program_execution`: realizes a successful list of instructions with compositional cost
+  bounds.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
@@ -27,15 +51,22 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open scoped Classical
 
+/-- Configurations of the rational-arithmetic machine with Boolean stack symbols. -/
 abbrev Config :=
     TM2.Cfg (fun _ : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot => Bool) Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Label Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local
 
+/-- Construct an active machine configuration from a control label, local state, and payload
+data, with auxiliary stacks initialized by `dataHeap`. -/
 def cfg (l : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Label) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) : Config :=
   ⟨some l,v,dataHeap S⟩
 
+/-- Update the local state with three parsed instruction bits, storing the third bit in the
+input/output register. -/
 def parsed (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) (a b c : Bool) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local :=
   {v with io:=some c,first:=a,second:=b,third:=c}
 
+/-- Updating a payload slot in `dataHeap S` agrees with applying `dataHeap` after the
+corresponding update to `S`. -/
 @[simp] theorem dataHeap_update (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (p : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload) (bits : Bits) :
     Function.update (dataHeap S) (.inl p) bits = dataHeap (Function.update S p bits) := by
   funext k
@@ -49,17 +80,21 @@ def parsed (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs
       simp only [dataHeap,Function.update_of_ne hn]
     | inr k => rfl
 
+/-- Three machine ticks consume the three instruction-tag bits and reach the dispatch phase with
+the corresponding parsed local state. -/
 theorem parse_run (a b c : Bool) (tail : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program 3 (cfg (.phase .firstBit) v (Function.update S .program (a::b::c::tail))) =
       some (cfg (.phase .dispatch) (parsed v a b c) (Function.update S .program tail)) := by
   simp [stackRun,cfg,Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program,phaseProgram,TM2.step,TM2.stepAux,dataHeap,Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.putIO,parsed]
 
+/-- The three-tick instruction-tag parser has total clock `6 * tail.length + 18`. -/
 theorem parse_clock (a b c : Bool) (tail : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     stackRunClock Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program 3 (cfg (.phase .firstBit) v (Function.update S .program (a::b::c::tail))) =
       6*tail.length+18 := by
   simp [stackRunClock,cfg,Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program,phaseProgram,TM2.step,TM2.stepAux,dataHeap,Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.putIO,stackClock]
   omega
 
+/-- A phase transition with zero stack clock gives an `Execution` with budget one. -/
 theorem control (p : Phase) (l : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Label) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v w : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hr : TM2.step Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (cfg (.phase p) v S)=some (cfg l w S))
     (hc : stackClock (phaseProgram p) v (dataHeap S)=0) :
@@ -68,15 +103,21 @@ theorem control (p : Phase) (l : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRa
   · simpa only [run_one] using! hr
   · simp [stackRunClock,cfg,Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program,hc]
 
+/-- Encode the remaining program, value stack, and reversed parameter-table stream as payload
+stacks, leaving other payload stacks empty. -/
 def wordData (code : Bits) (ps values : List Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits
   | .program => code
   | .values => valueStack values
   | .lookup k => ReadonlyTableGet.store (TableGet.stream ps).reverse [] [] [] k
   | _ => []
 
+/-- The clock budget for copying an arithmetic result onto the value stack and clearing its
+temporary stack. -/
 def resultBudget (bits values : Bits) : ℕ :=
   1+10000*(1+bits.length+values.length)^3+1+(bits.length^2+3*bits.length+3)
 
+/-- An arithmetic result stored in reverse order can be copied and cleared, returning to
+instruction parsing within `resultBudget`. -/
 theorem finish_result (bits : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hr : S (.arithmetic 2)=bits.reverse) :
     ∃ last, Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (cfg (.phase .copyResult) v S)
@@ -98,11 +139,14 @@ theorem finish_result (bits : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDual
   refine ⟨Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.putIO (putCopy v none) none,?_⟩
   exact ((h0.trans h1).trans h2).trans h3
 
+/-- The clock budget for parsing, reading, and pushing a literal bit word. -/
 def literalBudget (bits tail : Bits) (stack : List Bits) : ℕ :=
   6*(framed bits++tail).length+18+1+
     5000*(bits.length+1)*(1+(framed bits++tail).length)^2+
     resultBudget bits (valueStack stack)
 
+/-- A literal instruction consumes its code and pushes `bits` onto the value stack within
+`literalBudget`, preserving the parameter table. -/
 theorem literal_execution (bits tail : Bits) (ps stack : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (cfg (.phase .firstBit) v
       (wordData (Instruction.code (.literal bits)++tail) ps stack))
@@ -139,10 +183,14 @@ theorem literal_execution (bits tail : Bits) (ps stack : List Bits) (v : Qatlib.
   have hh := ((h0.trans h1).trans h2).trans h3
   simpa [literalBudget,resultBudget,T,takeResult,takeSource,takeTarget,P,S,wordData] using! hh
 
+/-- The clock budget for clearing the parameter table and transferring the value stack to final
+output. -/
 def finishBudget (ps values : List Bits) : ℕ :=
   3+1+((TableGet.stream ps).length^2+3*(TableGet.stream ps).length+3)+1+
     ((valueStack values).length*(2*(valueStack values).length+5)+3)+1
 
+/-- An empty remaining program halts with all stacks empty except the reversed encoded value
+stack in the output slot, within `finishBudget`. -/
 theorem finish_execution (ps stack : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (cfg (.phase .firstBit) v (wordData [] ps stack))
       ⟨none,last,Function.update (fun _ => []) (.inl .output) (valueStack stack).reverse⟩
@@ -208,12 +256,17 @@ theorem finish_execution (ps stack : List Bits) (v : Qatlib.Concepts.AdversaryBo
   rw [hf] at hh
   exact ⟨vf,hh⟩
 
+/-- The reversed input encoding of the framed parameter-table stream followed by the program
+code. -/
 def inputCode (ps : List Bits) (code : Bits) : Bits :=
   (framed (TableGet.stream ps)++code).reverse
 
+/-- The clock budget for reading the initial parameter table and reaching the first instruction. -/
 def bootBudget (ps : List Bits) (code : Bits) : ℕ :=
   1+5000*((TableGet.stream ps).length+1)*(1+(framed (TableGet.stream ps)++code).length)^2
 
+/-- The machine initialized with reversed `inputCode ps code` reaches the first parsing phase
+with program `code`, parameters `ps`, and an empty value stack within `bootBudget`. -/
 theorem boot_execution (ps : List Bits) (code : Bits) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (TM2.init (.inl .program) (inputCode ps code).reverse)
       (cfg (.phase .firstBit) last (wordData code ps [])) (bootBudget ps code) := by
@@ -258,11 +311,15 @@ theorem boot_execution (ps : List Bits) (code : Bits) :
   rw [hi]
   exact ⟨putTake Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local.init last,h0.trans h1⟩
 
+/-- Associate each copy mode with the drain mode that clears its temporary source. -/
 def copyDrain : CopyMode → DrainMode | .result => .result | .lookup => .lookup | .store => .store
 
+/-- The combined clock budget for copying a bit word and clearing its temporary source stack. -/
 def copyDrainBudget (bits out : Bits) : ℕ :=
   10000*(1+bits.length+out.length)^3+1+(bits.length^2+3*bits.length+3)
 
+/-- A copy followed by its associated drain reaches the corresponding return phase with the
+specified payload update within `copyDrainBudget`. -/
 theorem finish_copy (mode : CopyMode) (bits : Bits) (S : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (hr : S (copySource mode)=bits.reverse) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (cfg (.copy mode copyEntry) v S)
@@ -287,15 +344,21 @@ theorem finish_copy (mode : CopyMode) (bits : Bits) (S : Qatlib.Concepts.Adversa
     all_goals simpa [hr] using! hB
   exact ⟨Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.putIO (putCopy v none) none,(h0.trans h1).trans h2⟩
 
+/-- Existence of a machine run between two configurations with separate bounds on total clock
+and maximum clock. -/
 def PathExecution (first last : Config) (time peak : ℕ) : Prop :=
   ∃ ticks,stackRun Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks first=some last ∧
     stackRunClock Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks first≤time ∧ stackRunMaxClock Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program ticks first≤peak
 
+/-- An `Execution` with budget `budget` yields a `PathExecution` with both clock bounds equal to
+`budget`. -/
 theorem path_of_execution {first last : Config} {budget : ℕ}
     (h : Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program first last budget) : PathExecution first last budget budget := by
   obtain ⟨n,hr,hc⟩ := h
   exact ⟨n,hr,hc,(maxClock_le_clock _ _ _).trans hc⟩
 
+/-- Compose two path executions by adding their total-clock bounds and taking the maximum of
+their maximum-clock bounds. -/
 theorem PathExecution.trans {first mid last : Config} {a b p q : ℕ}
     (h : PathExecution first mid a p) (g : PathExecution mid last b q) :
     PathExecution first last (a+b) (max p q) := by
@@ -308,11 +371,15 @@ theorem PathExecution.trans {first mid last : Config} {a b p q : ℕ}
   · rw [maxClock_add _ _ _ _ _ hr]
     exact max_le_max hp gp
 
+/-- Updating the program component of `wordData` replaces its code while preserving the
+parameter and value encodings. -/
 @[simp] theorem wordData_update (code code' : Bits) (ps values : List Bits) :
     Function.update (wordData code ps values) .program code'=wordData code' ps values := by
   funext p
   cases p <;> rfl
 
+/-- The three instruction-tag bits are parsed into the dispatch state within budget `6 *
+tail.length + 18`. -/
 theorem parse_execution (a b c : Bool) (tail : Bits) (ps values : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program (cfg (.phase .firstBit) v (wordData (a::b::c::tail) ps values))
       (cfg (.phase .dispatch) (parsed v a b c) (wordData tail ps values))
@@ -321,12 +388,16 @@ theorem parse_execution (a b c : Bool) (tail : Bits) (ps values : List Bits) (v 
   · simpa only [wordData_update] using! parse_run a b c tail (wordData tail ps values) v
   · simpa only [wordData_update] using! (parse_clock a b c tail (wordData tail ps values) v).le
 
+/-- The clock budget for reading, framing, clearing, and appending a stored value to the
+parameter table. -/
 def storeBudget (bits tail : Bits) (ps rest : List Bits) : ℕ :=
   6*tail.length+18+1+
     5000*(bits.length+1)*(1+(framed bits++valueStack rest).length)^2+1+
     copyDrainBudget bits []+1+
     ((framed bits).length*(2*((framed bits).length+(TableGet.stream ps).length)+5)+3)
 
+/-- A store instruction removes the top value and appends it to the parameter list, returning to
+parsing within `storeBudget`. -/
 theorem store_execution (bits tail : Bits) (ps rest : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program
       (cfg (.phase .firstBit) v (wordData (Instruction.code .store++tail) ps (bits::rest)))
@@ -382,6 +453,8 @@ theorem store_execution (bits tail : Bits) (ps rest : List Bits) (v : Qatlib.Con
   simpa [storeBudget,Instruction.code,copyDrain,copyDrainBudget,T,takeResult,takeSource,takeTarget,
     P,wordData,copyTarget] using! hh
 
+/-- The clock budget for decoding a parameter index, looking up its bit word, and pushing the
+result. -/
 def parameterBudget (i : ℕ) (tail : Bits) (ps stack : List Bits) : ℕ :=
   6*(framed i.bits++tail).length+18+1+
     5000*(i.bits.length+1)*(1+(framed i.bits++tail).length)^2+1+
@@ -389,6 +462,8 @@ def parameterBudget (i : ℕ) (tail : Bits) (ps stack : List Bits) : ℕ :=
     30000*(1+(TableGet.stream ps).length)*(1+(TableGet.stream ps).length+i.bits.length)^2+
     copyDrainBudget (ps.getD i []) (valueStack stack)
 
+/-- A parameter instruction pushes `ps.getD i []` onto the value stack within `parameterBudget`,
+preserving the parameter table. -/
 theorem parameter_execution (i : ℕ) (tail : Bits) (ps stack : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program
       (cfg (.phase .firstBit) v (wordData (Instruction.code (.parameter i)++tail) ps stack))
@@ -465,15 +540,19 @@ theorem parameter_execution (i : ℕ) (tail : Bits) (ps stack : List Bits) (v : 
   simpa [parameterBudget,Instruction.code,copyDrain,V,lookupResult,U,transferResult,transferSource,
     transferTarget,lookupIndex,T,takeResult,takeSource,takeTarget,P,wordData,copyTarget] using! hh
 
+/-- The payload layout after extracting the two operands of a binary arithmetic instruction. -/
 def binaryData (tail : Bits) (ps rest : List Bits) (a b : Bits) : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Payload → Bits :=
   Function.update (Function.update (wordData tail ps rest) (.arithmetic 3) a.reverse)
     (.arithmetic 4) b.reverse
 
+/-- The clock budget for parsing a binary instruction and extracting its two operands. -/
 def operandBudget (a b tail : Bits) (rest : List Bits) : ℕ :=
   6*tail.length+18+1+
     5000*(b.length+1)*(1+(framed b++framed a++valueStack rest).length)^2+1+
     5000*(a.length+1)*(1+(framed a++valueStack rest).length)^2
 
+/-- A binary instruction reaches the operand-ready phase with payload `binaryData` and the
+prescribed multiplication selector within `operandBudget`. -/
 theorem operands_execution (multiply : Bool) (a b tail : Bits) (ps rest : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,last.multiply=multiply ∧ Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program
       (cfg (.phase .firstBit) v (wordData (false::true::multiply::tail) ps (b::a::rest)))
@@ -509,11 +588,14 @@ theorem operands_execution (multiply : Bool) (a b tail : Bits) (ps rest : List B
   rw [hf] at hh
   exact ⟨putTake (putTake v1 l0) l1,rfl,hh⟩
 
+/-- The clock budget for parsing, extracting, adding, copying, and clearing two operands. -/
 def addBudget (a b tail : Bits) (rest : List Bits) : ℕ :=
   operandBudget a b tail rest+1+(a.length*(2*a.length+5)+3)+1+
     (b.length*(2*b.length+5)+3)+1+addClockBound a b+
     copyDrainBudget (bitAdd a b) (valueStack rest)
 
+/-- An addition instruction replaces the top two values `b` and `a` with `bitAdd a b` within
+`addBudget`. -/
 theorem add_execution (a b tail : Bits) (ps rest : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program
       (cfg (.phase .firstBit) v (wordData (Instruction.code .add++tail) ps (b::a::rest)))
@@ -564,12 +646,15 @@ theorem add_execution (a b tail : Bits) (ps rest : List Bits) (v : Qatlib.Concep
   simpa [Instruction.code,addBudget,copyDrain,copyTarget,V,addResult,U,T,transferResult,
     transferSource,transferTarget,S,binaryData,wordData] using! hh
 
+/-- The clock budget for parsing, extracting, multiplying, copying, and clearing two operands. -/
 def mulBudget (a b tail : Bits) (rest : List Bits) : ℕ :=
   operandBudget a b tail rest+1+1+31720*(1+a.length+b.length)^4+1+
     (a.length^2+3*a.length+3)+1+
     ((mulAcc a b b.length).length*(2*(mulAcc a b b.length).length+5)+3)+
     resultBudget (mulAcc a b b.length) (valueStack rest)
 
+/-- A multiplication instruction replaces the top two values `b` and `a` with `mulAcc a b
+b.length` within `mulBudget`. -/
 theorem mul_execution (a b tail : Bits) (ps rest : List Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program
       (cfg (.phase .firstBit) v (wordData (Instruction.code .multiply++tail) ps (b::a::rest)))
@@ -621,6 +706,8 @@ theorem mul_execution (a b tail : Bits) (ps rest : List Bits) (v : Qatlib.Concep
   simpa [Instruction.code,mulBudget,U,transferResult,transferSource,transferTarget,T,
     drainResult,drainTarget,V,mulResult,S,binaryData,wordData] using! hh
 
+/-- Select the execution budget for an instruction and word state, returning zero for
+unsupported stack shapes. -/
 def instructionBudget : Instruction → Bits → WordState → ℕ
   | .literal bits,tail,s => literalBudget bits tail s.values
   | .parameter i,tail,s => parameterBudget i tail s.parameters s.values
@@ -629,6 +716,8 @@ def instructionBudget : Instruction → Bits → WordState → ℕ
   | .store,tail,⟨ps,a::rest⟩ => storeBudget a tail ps rest
   | _,_,_ => 0
 
+/-- Every successful word-level instruction execution is realized by the stack machine within
+`instructionBudget`, consuming the instruction code and preserving the program tail. -/
 theorem instruction_execution (op : Instruction) (tail : Bits) (s s' : WordState) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (h : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost.execute op s=some s') :
     ∃ last,Execution Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.program
@@ -673,16 +762,22 @@ theorem instruction_execution (op : Instruction) (tail : Bits) (s s' : WordState
       subst s'
       exact store_execution a tail ps rest v
 
+/-- The sum of instruction budgets along the word-level execution, stopping the recursive
+contribution when an instruction fails. -/
 def programBudget : List Instruction → Bits → WordState → ℕ
   | [],_,_ => 0
   | op::rest,tail,s => instructionBudget op (programCode rest++tail) s+
       match Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost.execute op s with | some next => programBudget rest tail next | none => 0
 
+/-- The maximum instruction budget along the word-level execution, stopping the recursive
+contribution when an instruction fails. -/
 def programPeak : List Instruction → Bits → WordState → ℕ
   | [],_,_ => 0
   | op::rest,tail,s => max (instructionBudget op (programCode rest++tail) s)
       (match Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost.execute op s with | some next => programPeak rest tail next | none => 0)
 
+/-- Every successful word-level program run is realized by a `PathExecution` that consumes its
+encoded program and respects `programBudget` and `programPeak`. -/
 theorem program_execution (p : List Instruction) (tail : Bits) (s s' : WordState) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local)
     (h : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost.run p s=some s') :
     ∃ last,PathExecution

@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+
+/-!
+# Analytic Error and Outer LCU Encodings
+
+This module connects analytic approximation bounds to coefficient LCU block encodings.
+`outer_blockEncoding_of_discrepancy` combines sample encoding errors with a norm bound on the
+difference between a target matrix and its finite weighted sample sum.
+
+`outer_blockEncoding_of_residue_bounds` specializes this discrepancy to a contour contribution
+minus auxiliary and tail contributions. `outer_postselection_of_residue_bounds` then gives a
+positive success probability and a normalized target-output approximation whenever the total
+error is smaller than the target output norm. See [WangEtAl2026].
+
+## Main statements
+
+* `outer_blockEncoding_of_discrepancy` adds an analytic discrepancy to the weighted encoding
+  error.
+* `outer_blockEncoding_of_residue_bounds` combines the three supplied residue-related norm
+  bounds.
+* `outer_postselection_of_residue_bounds` supplies a probability lower bound and a conditional
+  output error bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -36,6 +63,9 @@ variable {J H O I : Type*}
   [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
   [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- Builds a target block encoding from sample encodings and a norm discrepancy bound for their
+weighted sum. The scale is the coefficient-weighted sum of sample scales, and the error is
+the weighted encoding error plus the supplied discrepancy. -/
 theorem outer_blockEncoding_of_discrepancy
     (j₀ : J) (target : Matrix O I ℂ) (samples : J → Matrix O I ℂ)
     (U : J → Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -51,6 +81,9 @@ theorem outer_blockEncoding_of_discrepancy
   exact (scaled_approximate_lcu_encoding j₀ samples U L R c α ε henc hmass).perturb
     hδ hanalytic
 
+/-- Uses the contour-minus-auxiliary-minus-tail identity to bound the analytic discrepancy in an
+outer coefficient LCU. The resulting encoding error is the weighted sample error plus `εIR +
+εAE + εTR`. -/
 theorem outer_blockEncoding_of_residue_bounds
     (j₀ : J) (target : Matrix O I ℂ) (samples : J → Matrix O I ℂ)
     (U : J → Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)
@@ -79,6 +112,10 @@ theorem outer_blockEncoding_of_residue_bounds
     outer_blockEncoding_of_discrepancy j₀ target samples U L R c α ε henc hmass
       (εIR + εAE + εTR) hδ hanalytic
 
+/-- When the total residue and sample error is smaller than the target output norm,
+postselection has positive probability bounded below by the squared norm gap divided by the
+squared LCU scale. The conditional output approximates the normalized target application
+with error at most twice the total error divided by the target output norm. -/
 theorem outer_postselection_of_residue_bounds
     (j₀ : J) (target : Matrix O I ℂ) (samples : J → Matrix O I ℂ)
     (U : J → Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)

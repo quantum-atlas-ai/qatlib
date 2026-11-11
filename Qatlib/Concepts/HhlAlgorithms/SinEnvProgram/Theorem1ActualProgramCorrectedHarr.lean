@@ -7,6 +7,23 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
 import Qatlib.Concepts.HhlErrorBridge.FilterStability
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+
+/-!
+# Proof of the corrected sine-envelope HHL specification
+
+This module assembles the filter laws, preparation identities, circuit counts, and error
+estimates into `Theorem1ActualProgramCorrected`. The result formalizes the positive-spectrum
+sine-envelope program analysis associated with [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `theorem1ActualProgram`: the corrected program guarantee package.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +52,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Real
 
+/-- The corrected program specification holds, including basic laws, workspace and relative mass
+estimates, and normalized well-branch accuracy. See [Harrow et al., Theorem
+1][HarrowHassidimLloyd2009]. -/
 theorem theorem1ActualProgram : Theorem1ActualProgramCorrected :=
   ⟨⟨sin_envelope_filter_bounded, sin_envelope_filter_branch_values,
      sin_envelope_h_normalized, sin_envelope_flag_rotation_unitary_and_column,

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 
+/-!
+# Gaussian characteristic functions and Laplace comparison
+
+`gaussianBilinearCF` integrates the phase of a bilinear Gaussian form with two linear terms.
+One-sided Gaussian integral formulas yield quadratic scaling, geometric interpolation, and an
+averaged two-coordinate compression bound. The module also transfers pointwise real
+characteristic-function comparison to the quadratic Laplace comparison `matrixLaplaceLE`.
+
+The mathematical background is described in [KoehlerLeung2026].
+
+## Main statements
+
+* `gaussianCF_oneSidedQuadraticScaling`: positivity and quadratic scaling of one-sided sections.
+* `gaussianCF_twoCoordinateCompression`: averaged geometric interpolation bound.
+* `fourier_to_laplace`: quadratic Laplace comparison from characteristic functions.
+
+## References
+
+* [Koehler and Leung, 2026][KoehlerLeung2026]
+-/
+
 namespace Qatlib.Concepts.BosonFock.PermAnalysis
 
 open MeasureTheory ProbabilityTheory Complex
@@ -16,19 +37,27 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDim
   [MeasurableSpace E] [BorelSpace E]
 variable {Ω : Type*} [MeasurableSpace Ω]
 
+/-- The characteristic-function integral of `⟪x, T y⟫ + ⟪x, L b⟫ + ⟪y, L a⟫` for two independent
+standard Gaussian vectors. -/
 noncomputable def gaussianBilinearCF {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     (T : E →L[ℝ] E) (L : F →L[ℝ] E) (a b : F) : ℂ :=
   ∫ x : E, ∫ y : E,
     Complex.exp ((I : ℂ) * ((⟪x, T y⟫_ℝ : ℂ) + (⟪x, L b⟫_ℝ : ℂ) + (⟪y, L a⟫_ℝ : ℂ)))
       ∂(stdGaussian E) ∂(stdGaussian E)
 
+/-- The comparison requiring the Laplace transform of `μ` to be at least that of `ν` at every
+nonnegative argument. -/
 def laplaceLE (μ ν : Measure ℝ) : Prop :=
   ∀ s : ℝ, 0 ≤ s → ∫ x, Real.exp (-s * x) ∂μ ≥ ∫ x, Real.exp (-s * x) ∂ν
 
+/-- The comparison requiring the integral of `exp (-⟪x, Q x⟫)` under `μ` to be at least that
+under `ν` for every nonnegative quadratic form `Q`. -/
 def matrixLaplaceLE (μ ν : Measure E) : Prop :=
   ∀ Q : E →L[ℝ] E, (∀ x : E, 0 ≤ ⟪x, Q x⟫_ℝ) →
     ∫ y, Real.exp (-⟪y, Q y⟫_ℝ) ∂μ ≥ ∫ x, Real.exp (-⟪x, Q x⟫_ℝ) ∂ν
 
+/-- For nonnegative `μ`, the standard real Gaussian integral of `exp (-μr²/2 + ihr)` is `(1 +
+μ)^(-1/2) * exp (-h²/(2 * (1 + μ)))`. -/
 private theorem integral_cexp_gaussianReal_quadratic (μ h : ℝ) (hμ : 0 ≤ μ) :
     ∫ r, cexp (((-(μ * r ^ 2 / 2) : ℝ) : ℂ) + I * (((h * r) : ℝ) : ℂ)) ∂(gaussianReal 0 1)
       = (((1 + μ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ) * cexp (((-(h ^ 2 / (2 * (1 + μ))) : ℝ) : ℂ)) := by
@@ -85,6 +114,7 @@ private theorem integral_cexp_gaussianReal_quadratic (μ h : ℝ) (hμ : 0 ≤ �
     Real.div_rpow (by positivity) h1μ.le, ← Real.sqrt_eq_rpow, mul_div_assoc',
     inv_mul_cancel₀ hr, one_div, ← Real.rpow_neg h1μ.le]
 
+/-- The linear operator `1 + R.adjoint ∘L R` is symmetric. -/
 private theorem gaussAdjointSymm (R : E →L[ℝ] E) :
     ((ContinuousLinearMap.id ℝ E + R.adjoint ∘L R).toLinearMap).IsSymmetric := by
   intro x y
@@ -92,6 +122,9 @@ private theorem gaussAdjointSymm (R : E →L[ℝ] E) :
   rw [inner_add_left, inner_add_right, ContinuousLinearMap.adjoint_inner_left,
     ContinuousLinearMap.adjoint_inner_right]
 
+/-- The anisotropic Gaussian quadratic integral is the product of inverse square roots of the
+eigenvalues of `1 + R*R` times the exponential of the corresponding inverse quadratic form
+in `h`. -/
 private theorem gaussian_anisotropic_integral (R : E →L[ℝ] E) (h : E) :
     ∫ y, cexp (((-(‖R y‖ ^ 2 / 2) : ℝ) : ℂ) + I * ((⟪h, y⟫_ℝ : ℝ) : ℂ)) ∂(stdGaussian E)
       = ((∏ i : Fin (Module.finrank ℝ E),
@@ -197,6 +230,8 @@ private theorem gaussian_anisotropic_integral (R : E →L[ℝ] E) (h : E) :
 
 variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
 
+/-- Setting the second linear parameter to zero reduces the bilinear Gaussian integral to a
+quadratic Gaussian integral with damping `‖T y‖² / 2`. -/
 private theorem gaussianBilinearCF_a_zero {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     (T : E →L[ℝ] E) (L : F →L[ℝ] E) (a : F) :
     gaussianBilinearCF T L a 0
@@ -238,6 +273,7 @@ private theorem gaussianBilinearCF_a_zero {F : Type*} [NormedAddCommGroup F] [No
           simp [Complex.mul_re, Complex.I_re, Complex.I_im, Complex.add_re, Complex.add_im]
         rw [hre, Real.exp_zero]
 
+/-- Every eigenvalue of `1 + R.adjoint ∘L R` is at least one. -/
 private theorem gaussEigenvalue_ge_one (R : E →L[ℝ] E) (i : Fin (Module.finrank ℝ E)) :
     1 ≤ (gaussAdjointSymm R).eigenvalues rfl i := by
   set S : E →L[ℝ] E := ContinuousLinearMap.id ℝ E + R.adjoint ∘L R with hS
@@ -256,6 +292,8 @@ private theorem gaussEigenvalue_ge_one (R : E →L[ℝ] E) (i : Fin (Module.finr
   rw [← h2, h3]
   linarith
 
+/-- Setting the first linear parameter to zero reduces the bilinear Gaussian integral to a
+quadratic Gaussian integral with damping `‖T.adjoint x‖² / 2`. -/
 private theorem gaussianBilinearCF_b_zero {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     (T : E →L[ℝ] E) (L : F →L[ℝ] E) (b : F) :
     gaussianBilinearCF T L 0 b
@@ -285,6 +323,9 @@ private theorem gaussianBilinearCF_b_zero {F : Type*} [NormedAddCommGroup F] [No
   congr 1
   rw [real_inner_comm]
 
+/-- The two one-sided Gaussian sections and their common origin have positive real parts, and
+scaling either section parameter by `t` raises its ratio to the origin value to the power
+`t²`. See [Koehler and Leung, Lemma 3.1][KoehlerLeung2026]. -/
 theorem gaussianCF_oneSidedQuadraticScaling (T : E →L[ℝ] E) (L : F →L[ℝ] E) (a b : F) :
     0 < (gaussianBilinearCF T L a 0).re ∧
       0 < (gaussianBilinearCF T L 0 b).re ∧
@@ -391,6 +432,8 @@ theorem gaussianCF_oneSidedQuadraticScaling (T : E →L[ℝ] E) (L : F →L[ℝ]
         = (t' ^ 2 * -(∑ i : Fin n, (⟪ebTs i, L b⟫_ℝ) ^ 2 / (2 * evTs i)) : ℝ) := by ring
     rw [harg]
 
+/-- The product of two standard Gaussian measures becomes the standard Gaussian on the Euclidean
+product under `WithLp.toLp 2`. -/
 private theorem stdGaussian_prod_lp :
     ((stdGaussian E).prod (stdGaussian E)).map
         (WithLp.toLp 2 : E × E → WithLp 2 (E × E)) = stdGaussian (WithLp 2 (E × E)) := by
@@ -424,6 +467,8 @@ private theorem stdGaussian_prod_lp :
     ring
   · exact (Continuous.aestronglyMeasurable (by fun_prop))
 
+/-- The orthogonal transformation sending `(x, y)` to `((x + y) / sqrt 2, (x - y) / sqrt 2)` on
+the Euclidean product. -/
 private noncomputable def rotLp : WithLp 2 (E × E) ≃ₗᵢ[ℝ] WithLp 2 (E × E) where
   toFun := fun w ↦ WithLp.toLp 2 ((Real.sqrt 2)⁻¹ • (w.fst + w.snd),
     (Real.sqrt 2)⁻¹ • (w.fst - w.snd))
@@ -568,6 +613,8 @@ private noncomputable def rotLp : WithLp 2 (E × E) ≃ₗᵢ[ℝ] WithLp 2 (E �
       _ = (1 / 2) * (‖w.fst + w.snd‖ ^ 2 + ‖w.fst - w.snd‖ ^ 2) := by rw [hsq]
       _ = ‖w.fst‖ ^ 2 + ‖w.snd‖ ^ 2 := by rw [hpar]; ring
 
+/-- Applying `rotLp` to each component preserves the product of standard Gaussian measures on
+the Euclidean product. -/
 private theorem stdGaussian_prod_lp_rotate :
     ((stdGaussian (WithLp 2 (E × E))).prod (stdGaussian (WithLp 2 (E × E)))).map
       (Prod.map rotLp rotLp)
@@ -578,6 +625,8 @@ private theorem stdGaussian_prod_lp_rotate :
     stdGaussian_map (rotLp : WithLp 2 (E × E) ≃ₗᵢ[ℝ] WithLp 2 (E × E))
   rw [hr]
 
+/-- The difference of two bilinear phase expressions splits after `rotLp` into two cross terms,
+with linear parameters scaled by `sqrt 2`. -/
 private theorem rotLp_exponent {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     (T : E →L[ℝ] E) (L : F →L[ℝ] E) (u v : F) (r : (WithLp 2 (E × E)) × (WithLp 2 (E × E))) :
     ((⟪(r.1.fst : E), T (r.2.fst : E)⟫_ℝ : ℂ) + (⟪(r.1.fst : E), L v⟫_ℝ : ℂ)
@@ -608,6 +657,8 @@ private theorem rotLp_exponent {F : Type*} [NormedAddCommGroup F] [NormedSpace �
   rw [hs2]
   ring
 
+/-- The sum-and-difference transformation divided by `sqrt 2` preserves the product of two
+standard Gaussian measures. -/
 private theorem stdGaussian_prod_rotate_raw :
     ((stdGaussian E).prod (stdGaussian E)).map
         (fun p : E × E ↦ ((Real.sqrt 2)⁻¹ • (p.1 + p.2), (Real.sqrt 2)⁻¹ • (p.1 - p.2)))
@@ -639,6 +690,8 @@ private theorem stdGaussian_prod_rotate_raw :
     Measure.map_map (WithLp.measurable_ofLp (p := 2) (X := E × E))
       (WithLp.measurable_toLp (p := 2) (X := E × E)), hid, Measure.map_id]
 
+/-- Two imaginary exponentials differ in norm by at most twice the absolute difference of their
+real phase parameters. -/
 private theorem norm_sub_cexp_two_mul_le (s t : ℝ) :
     ‖cexp (((I : ℂ)) * ((s : ℂ))) - cexp (((I : ℂ)) * ((t : ℂ)))‖ ≤ 2 * |s - t| := by
   have h1 : cexp (((I : ℂ)) * ((s : ℂ)))
@@ -686,6 +739,8 @@ private theorem norm_sub_cexp_two_mul_le (s t : ℝ) :
           have h1 : (1 : ℝ) < |s - t| := not_le.mp hst
           nlinarith [abs_nonneg (s - t), h1]
 
+/-- An almost everywhere strongly measurable complex function bounded in norm by one is
+integrable under a probability measure. -/
 private theorem integrable_norm_le_one {G : Type*} [MeasurableSpace G] {μ : Measure G}
     [IsProbabilityMeasure μ] {f : G → ℂ} (hfm : AEStronglyMeasurable f μ) (hf : ∀ x, ‖f x‖ ≤ 1) :
     Integrable f μ := by
@@ -694,6 +749,8 @@ private theorem integrable_norm_le_one {G : Type*} [MeasurableSpace G] {μ : Mea
   filter_upwards [] with x
   simpa using hf x
 
+/-- The integral of an almost everywhere strongly measurable complex function bounded in norm by
+one has norm at most one under a probability measure. -/
 private theorem integral_norm_le_one {G : Type*} [MeasurableSpace G] {μ : Measure G}
     [IsProbabilityMeasure μ] {f : G → ℂ} (hfm : AEStronglyMeasurable f μ)
     (hf : ∀ x, ‖f x‖ ≤ 1) :
@@ -704,9 +761,12 @@ private theorem integral_norm_le_one {G : Type*} [MeasurableSpace G] {μ : Measu
           (fun x ↦ hf x)
     _ = 1 := by simp
 
+/-- The norm function is integrable under the standard Gaussian measure. -/
 private theorem integrable_norm_stdGaussian : Integrable (fun x : E ↦ ‖x‖) (stdGaussian E) :=
   IsGaussian.integrable_id.norm
 
+/-- An integrable bound on parameter increments by `dist + dist²` gives continuity of the
+parameterized complex integral. -/
 private theorem continuous_param_integral {X : Type*} [MetricSpace X] {Y : Type*}
     [MeasurableSpace Y] (μ : Measure Y) [IsProbabilityMeasure μ]
     {G : X → Y → ℂ} {c : X → Y → ℝ}
@@ -756,6 +816,8 @@ private theorem continuous_param_integral {X : Type*} [MetricSpace X] {Y : Type*
 
 set_option maxHeartbeats 1000000 in
 
+/-- The squared norm of the bilinear Gaussian characteristic function is the real part of the
+product of its one-sided sections at parameters scaled by `sqrt 2`. -/
 private theorem gaussianBilinearCF_norm_sq {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     (T : E →L[ℝ] E) (L : F →L[ℝ] E) (u v : F) :
     ‖gaussianBilinearCF T L u v‖ ^ 2
@@ -1482,6 +1544,8 @@ private theorem gaussianBilinearCF_norm_sq {F : Type*} [NormedAddCommGroup F] [N
     exact Complex.normSq_eq_norm_sq _
   rw [← hre, hconj]
 
+/-- For positive bases and nonnegative complementary weights, a weighted geometric product
+factors through an arbitrary positive common scale. -/
 private theorem rpow_split_one {θ c0 x y : ℝ} (hθ : 0 ≤ θ) (hθ' : 0 ≤ 1 - θ)
     (hc0 : 0 < c0) (hx : 0 < x) (hy : 0 < y) :
     x ^ θ * y ^ (1 - θ) = c0 * (x / c0) ^ θ * (y / c0) ^ (1 - θ) := by
@@ -1499,6 +1563,8 @@ private theorem rpow_split_one {θ c0 x y : ℝ} (hθ : 0 ≤ θ) (hθ' : 0 ≤ 
       _ = c0 * ((x / c0) ^ θ * (y / c0) ^ (1 - θ)) := by rw [hmerge]
       _ = c0 * (x / c0) ^ θ * (y / c0) ^ (1 - θ) := by ring
 
+/-- For nonnegative bases and complementary nonnegative weights, the product of the
+doubled-power terms equals the square of their geometrically interpolated expression. -/
 private theorem rpow_interp_sq {θ c0 x y : ℝ} (hθ : 0 ≤ θ) (hθ' : 0 ≤ 1 - θ)
     (hc0 : 0 < c0) (hx : 0 ≤ x) (hy : 0 ≤ y) :
     c0 * x ^ (2 * θ) * (c0 * y ^ (2 * (1 - θ))) = (c0 * x ^ θ * y ^ (1 - θ)) ^ 2 := by
@@ -1510,6 +1576,9 @@ private theorem rpow_interp_sq {θ c0 x y : ℝ} (hθ : 0 ≤ θ) (hθ' : 0 ≤ 
   rw [h2a, h2b]
   ring
 
+/-- For `θ` in `[0, 1]`, the Gaussian characteristic-function norm at square-root-scaled
+parameters equals the weighted geometric mean of the two one-sided real values. See
+[KoehlerLeung2026]. -/
 theorem gaussianCF_geometricInterpolation (T : E →L[ℝ] E) (L : F →L[ℝ] E) (a b : F)
     (θ : ℝ) (hθ₁ : 0 ≤ θ) (hθ₂ : θ ≤ 1) :
     ‖gaussianBilinearCF T L (Real.sqrt θ • a) (Real.sqrt (1 - θ) • b)‖ =
@@ -1598,6 +1667,7 @@ theorem gaussianCF_geometricInterpolation (T : E →L[ℝ] E) (L : F →L[ℝ] E
     exact rpow_interp_sq hθ₁ (by linarith) hp0
       (div_nonneg hpa.le hp0.le) (div_nonneg hpb.le hp0.le)
 
+/-- The complex phase integrand defining `gaussianBilinearCF` has norm one. -/
 private theorem gaussianCF_integrand_norm_one {F : Type*} [NormedAddCommGroup F]
     [NormedSpace ℝ F] (T : E →L[ℝ] E) (L : F →L[ℝ] E) (a b : F) (p : E × E) :
     ‖cexp ((I : ℂ) * ((⟪p.1, T p.2⟫_ℝ : ℂ) + (⟪p.1, L b⟫_ℝ : ℂ)
@@ -1608,6 +1678,7 @@ private theorem gaussianCF_integrand_norm_one {F : Type*} [NormedAddCommGroup F]
     simp [Complex.mul_re, Complex.I_re, Complex.I_im, Complex.add_re, Complex.add_im]
   rw [hre, Real.exp_zero]
 
+/-- The bilinear Gaussian characteristic-function integral has norm at most one. -/
 private theorem gaussianBilinearCF_norm_le_one {F : Type*} [NormedAddCommGroup F]
     [NormedSpace ℝ F] (T : E →L[ℝ] E) (L : F →L[ℝ] E) (a b : F) :
     ‖gaussianBilinearCF T L a b‖ ≤ 1 := by
@@ -1623,6 +1694,9 @@ private theorem gaussianBilinearCF_norm_le_one {F : Type*} [NormedAddCommGroup F
   exact integral_norm_le_one hcont.aestronglyMeasurable
     (fun p ↦ (gaussianCF_integrand_norm_one T L a b p).le)
 
+/-- For measurable random operators and `θ` in `[0, 1]`, the averaged two-sided norm is bounded
+by the geometric mean of the averaged one-sided real values, which is at most their maximum.
+See [Koehler and Leung, Corollary 3.3][KoehlerLeung2026]. -/
 theorem gaussianCF_twoCoordinateCompression
     (ν : Measure Ω) [IsProbabilityMeasure ν]
     (T : Ω → (E →L[ℝ] E)) (L : Ω → (F →L[ℝ] E)) (hT : Measurable T) (hL : Measurable L)
@@ -1882,18 +1956,22 @@ theorem gaussianCF_twoCoordinateCompression
             show θ + (1 - θ) = 1 from by ring, Real.rpow_one]
   exact ⟨part1, part2⟩
 
+/-- The complex exponential of `r * I` has norm one for real `r`. -/
 private theorem norm_cexp_imag_one (r : ℝ) : ‖cexp (r * I)‖ = 1 := by
   rw [Complex.norm_exp]
   have hre : ((r : ℂ) * I).re = 0 := by
     simp [Complex.mul_re, Complex.I_re, Complex.I_im]
   rw [hre, Real.exp_zero]
 
+/-- The characteristic function of a probability measure has norm at most one. -/
 private theorem charFun_norm_le_one (μ : Measure E) [IsProbabilityMeasure μ] (t : E) :
     ‖charFun μ t‖ ≤ 1 := by
   rw [charFun_apply]
   exact integral_norm_le_one (Continuous.aestronglyMeasurable (by fun_prop))
     (fun x ↦ (norm_cexp_imag_one (⟪x, t⟫_ℝ)).le)
 
+/-- A symmetric nonnegative quadratic form possesses a symmetric linear square root whose
+squared output norm equals the quadratic form. -/
 private theorem exists_symmetric_sqrt_quad (T : E →L[ℝ] E)
     (hTsym : (T.toLinearMap).IsSymmetric) (hTpsd : ∀ x : E, 0 ≤ ⟪x, T x⟫_ℝ) :
     ∃ B : E →L[ℝ] E, (∀ x y : E, ⟪B x, y⟫_ℝ = ⟪B y, x⟫_ℝ) ∧
@@ -1982,6 +2060,9 @@ private theorem exists_symmetric_sqrt_quad (T : E →L[ℝ] E)
       ring
     rw [hqB, hqT]
 
+/-- When the quadratic form of `Q` is half the squared norm of a symmetric `B`, its Laplace
+integral equals the Gaussian integral of the real characteristic function at `B z`, and this
+integrand is integrable. -/
 private theorem laplace_eq_charFun_re (Q B : E →L[ℝ] E)
     (hBsymm : ∀ x y : E, ⟪B x, y⟫_ℝ = ⟪B y, x⟫_ℝ)
     (hquad : ∀ x : E, ⟪x, Q x⟫_ℝ = ‖B x‖ ^ 2 / 2)
@@ -2041,6 +2122,9 @@ private theorem laplace_eq_charFun_re (Q B : E →L[ℝ] E)
       _ = ∫ z, (charFun μ (B z)).re ∂(stdGaussian E) :=
           integral_congr_ae (ae_of_all _ (fun z ↦ hinner z))
 
+/-- A pointwise comparison of real characteristic functions yields the corresponding
+reversed-argument `matrixLaplaceLE` comparison for probability measures. See [Koehler and
+Leung, Lemma 3.4][KoehlerLeung2026]. -/
 theorem fourier_to_laplace (μX μY : Measure E) [IsProbabilityMeasure μX] [IsProbabilityMeasure μY]
     (h : ∀ t : E, (charFun μX t).re ≤ (charFun μY t).re) :
     matrixLaplaceLE μY μX := by

@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+/-!
+# Fixed-budget counting specification
+
+`Corollary2FixedBudget` states the counting guarantee when the estimation grid is a positive
+constant times `sqrt N`, as in [BrassardHoyerTapp1998Counting]. It records `P - 1` queries and
+the corresponding strict count-error window of mass at least `8 / π^2`.
+
+## Main statements
+
+* `Corollary2FixedBudget`: the square-root-budget query and count-error specification.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +34,9 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 open Qatlib
 
+/-- Specifies the `P - 1` query count and probability at least `8 / π^2` for count error
+strictly below `2 * π * sqrt S.card / c + π^2 / c^2`, assuming `P = c * sqrt N`, `P ≥ 4`, `c
+> 0`, and `S.card ≤ N / 2`. -/
 def Corollary2FixedBudget : Prop :=
   ∀ (N P : ℕ) (S : Finset (Fin N)) (c : ℝ),
     (hN : 0 < N) → (hS : S.card ≤ N / 2) → (hc : 0 < c) →

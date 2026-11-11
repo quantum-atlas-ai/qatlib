@@ -8,6 +8,33 @@ import Qatlib.Foundations.MatrixAlgebra.ParamWord.ActualContract
 import Qatlib.Foundations.MatrixAlgebra.ParamWord.PhysicalWord
 import Qatlib.Papers.LatentPQCTran26.MainResults.NativePreserve
 import Qatlib.Papers.LatentPQCTran26.MainResults.NativeCoverage
+
+/-!
+# Latent trainability estimates for exponential circuit words
+
+These results instantiate the latent-decoder estimates for `exponentialWord` and its observable
+loss `wordLoss`, with Hermitian generators of norm at most one, unitary interleaving matrices, a
+unit input state, and a bounded observable. They provide parameter perturbation bounds,
+tanh-decoder gradient estimates, reference and routed coverage, and a warm-start mean bound. See
+[TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `actual_word_perturbation`: With Hermitian generators of norm at most one and unitary
+  interleaving matrices, the exponential circuit word is Lipschitz in its Euclidean parameters
+  with constant `K`.
+* `actual_tanh_meta_gradient`: Under the stated circuit hypotheses with positive `K`,
+  concentration radius `0 ≤ gamma ≤ g / (8 * K ^ 2)` preserves a tanh-decoder bias meta-gradient
+  norm of at least `g / 2`, which is at most the full meta-gradient norm.
+* `actual_warm_mean`: Under the stated bounded circuit hypotheses and `lam ≤ 1`, the tagged
+  warm-start prior is a probability measure and its routed mean squared gradient is at least
+  `lam * mu0` when the reference mean is at least `mu0`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -21,6 +48,9 @@ local instance {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] :
 local instance {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] :
     NormedAlgebra ℝ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℝ ℂ _
 
+/-- With Hermitian generators of norm at most one and unitary interleaving matrices, the
+exponential circuit word is Lipschitz in its Euclidean parameters with constant `K`
+[TranEtAl2026]. -/
 theorem actual_word_perturbation
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K : ℕ}
     (G W : Fin K → Matrix I I ℂ) (hG : ∀ j, (G j).IsHermitian)
@@ -34,6 +64,9 @@ theorem actual_word_perturbation
     (fun j x => expSlot_hasFDerivAt (G j) (W j) j x) (List.finRange K)
   simpa [exponentialWord] using hl.norm_sub_le theta eta
 
+/-- For a unit input state, Hermitian generators of norm at most one, unitary interleaving
+matrices, and an observable of norm at most one, the squared gradient norm of `wordLoss` is
+integrable under any Borel probability measure on parameter space. -/
 theorem actual_word_gradient_sq_integrable
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K : ℕ}
     [MeasurableSpace (EuclideanSpace ℝ (Fin K))] [BorelSpace (EuclideanSpace ℝ (Fin K))]
@@ -49,6 +82,9 @@ theorem actual_word_gradient_sq_integrable
   rw [Real.norm_eq_abs,abs_of_nonneg (sq_nonneg _),nativeGradient_norm]
   exact pow_le_pow_left₀ (norm_nonneg _) (hderiv x) 2
 
+/-- Under the stated circuit hypotheses with positive `K`, concentration radius `0 ≤ gamma ≤ g /
+(8 * K ^ 2)` preserves a tanh-decoder bias meta-gradient norm of at least `g / 2`, which is
+at most the full meta-gradient norm [TranEtAl2026]. -/
 theorem actual_tanh_meta_gradient
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K d : ℕ} (hK : 0 < K)
     (G W : Fin K → Matrix I I ℂ) (O : Matrix I I ℂ) (psi : EuclideanSpace ℂ I)
@@ -72,6 +108,9 @@ theorem actual_tanh_meta_gradient
   exact tanh_meta_gradient r a c _ hd hcont 1 (2*(K:ℝ)) hbound hderiv theta v hv
     (4*(K:ℝ)^2) gamma g (by positivity) hgamma0 hlip hg hgamma
 
+/-- Under the stated circuit hypotheses with positive `K` and nonnegative `g`, tanh-decoder
+concentration within radius `0 ≤ gamma ≤ g / (8 * K ^ 2)` gives expected squared
+circuit-loss gradient at least `g ^ 2 / 4` [TranEtAl2026]. -/
 theorem actual_tanh_expected
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K d : ℕ} (hK : 0 < K)
     (G W : Fin K → Matrix I I ℂ) (O : Matrix I I ℂ) (psi : EuclideanSpace ℂ I)
@@ -89,6 +128,9 @@ theorem actual_tanh_expected
   exact tanh_expected r a c _ hcont (2*(K:ℝ)) hderiv theta v hv (4*(K:ℝ)^2)
     gamma g (by positivity) hgamma0 hg0 hlip hg hgamma
 
+/-- Under the stated bounded circuit hypotheses with positive `K`, a reference mean squared
+gradient of at least `mu0` yields a tanh-decoder center and gradient-dependent radius with
+expected squared gradient at least `mu0 / 4` [TranEtAl2026]. -/
 theorem actual_reference_initialization
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K d : ℕ} (hK : 0 < K)
     [MeasurableSpace (EuclideanSpace ℝ (Fin K))] [BorelSpace (EuclideanSpace ℝ (Fin K))]
@@ -107,6 +149,9 @@ theorem actual_reference_initialization
   exact reference_initialization r nu a c _ hcont (2*(K:ℝ)) hderiv v hv (4*(K:ℝ)^2)
     (by positivity) hlip (actual_word_gradient_sq_integrable G W O psi hpsi hG hGn hW hO nu) mu0 hmean
 
+/-- For the stated bounded circuit model with positive `K` and reference mean squared gradient
+at least nonnegative `mu0`, the routed mixture gives real measure at least `lam * mu0 / (8 *
+K ^ 2)` to parameters with squared gradient at least `mu0 / 2` [TranEtAl2026]. -/
 theorem actual_routed_coverage
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K : ℕ} (hK : 0 < K)
     [MeasurableSpace (EuclideanSpace ℝ (Fin K))] [BorelSpace (EuclideanSpace ℝ (Fin K))]
@@ -136,6 +181,9 @@ theorem actual_routed_coverage
     (2*(K:ℝ)) mu0 (by positivity) hmu hderiv hmean hsml
   convert hr using 1; congr 2; ring
 
+/-- For the stated bounded circuit model with positive `K` and reference mean squared gradient
+at least nonnegative `mu0`, the reference real measure of parameters with squared gradient
+at least `mu0 / 2` is at least `mu0 / (8 * K ^ 2)` [TranEtAl2026]. -/
 theorem actual_reference_coverage
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K : ℕ} (hK : 0 < K)
     [MeasurableSpace (EuclideanSpace ℝ (Fin K))] [BorelSpace (EuclideanSpace ℝ (Fin K))]
@@ -151,6 +199,9 @@ theorem actual_reference_coverage
     nu nu 1 mu0 hmu hmean
   simpa [ActualWarmRoute.pushforward] using hr
 
+/-- Under the stated bounded circuit hypotheses and `lam ≤ 1`, the tagged warm-start prior is a
+probability measure and its routed mean squared gradient is at least `lam * mu0` when the
+reference mean is at least `mu0` [TranEtAl2026]. -/
 theorem actual_warm_mean
     {I : Type*} [Fintype I] [DecidableEq I] [Nonempty I] {K : ℕ}
     [MeasurableSpace (EuclideanSpace ℝ (Fin K))] [BorelSpace (EuclideanSpace ℝ (Fin K))]

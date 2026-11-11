@@ -8,6 +8,34 @@ import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralFilterWord
 import Mathlib.Algebra.BigOperators.Module
 import Mathlib.Algebra.Ring.GeomSum
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Aligned sine packet phase reflections
+
+`alignedPhaseCircuit` prepares a sine envelope, applies controlled phase queries, and unprepares
+the envelope so that zero phase gives the zero label. Repeated detection packets define
+`alignedReflectionWord`; its eigenstate action and exact query and gate counts are proved
+alongside the corresponding spectral superposition formulas.
+
+The finite difference estimates for `overlapSum` give quadratic decay away from zero phase.
+`frontier1` combines this decay with an orthonormal spectral decomposition to bound the
+reflection error by the unmarked coefficient norm, with exact preservation of the zero phase
+component. For background on search via quantum walks, see [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `alignedDetectionWord_resources`: The repeated detection word is well formed and uses `k * (M
+  - 1)` queries and `k * (2 * (M - 1) + 2)` explicit gates.
+* `frontier1`: For an orthonormal eigenvector family with normalized coefficients, zero phase on
+  `T`, and phase distance at least `η > 0` outside `T`, the aligned reflection error is at most
+  `2 * (π^2 / (M^2 * η^2))^k` times the square root of the coefficient mass outside `T`. The
+  reflection word has `2 * k * (M - 1)` queries and `4 * k * (M - 1) + 4 * k + 1` gates.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -55,12 +83,16 @@ open Qatlib
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The sine envelope phase state after applying the adjoint preparation map, or the zero state
+when `M < 2`. -/
 noncomputable def alignedKernel (M : ℕ) (φ : ℝ) : QState (Fin M) :=
   if hM : 2 ≤ M then
     ApplyGate (sinEnvelopePrep M hM)ᴴ
       (fun τ => Complex.exp (2*Real.pi*Complex.I*((τ.val:ℝ)*φ)) * sinEnvelopeState M τ)
   else 0
 
+/-- Prepare the sine envelope, run the phase threshold loop for `M - 1` steps, and apply the
+adjoint preparation gate. -/
 noncomputable def alignedPhaseCircuit (M : ℕ) (hM : 2 ≤ M) :
     Circuit (Fin M × (Bool × I)) :=
   [Step.gate (TensorGate (sinEnvelopePrep M hM)
@@ -69,10 +101,13 @@ noncomputable def alignedPhaseCircuit (M : ℕ) (hM : 2 ≤ M) :
     [Step.gate (TensorGate (sinEnvelopePrep M hM)ᴴ
       (1 : Matrix (Bool × I) (Bool × I) ℂ))]
 
+/-- The adjoint step word obtained by converting and reversing the steps of
+`alignedPhaseCircuit`. -/
 noncomputable def alignedForwardWord (M : ℕ) (hM : 2 ≤ M) :
     List (AdjointStep (Fin M × (Bool × I))) :=
   ((alignedPhaseCircuit (I := I) M hM).map stepToAdjoint).reverse
 
+/-- Every explicit gate in `alignedPhaseCircuit M hM` is unitary. -/
 theorem aligned_phase_circuit_unitary (M : ℕ) (hM : 2 ≤ M) :
     IsUnitaryCircuit (alignedPhaseCircuit (I := I) M hM) := by
   intro G hG
@@ -86,6 +121,7 @@ theorem aligned_phase_circuit_unitary (M : ℕ) (hM : 2 ≤ M) :
       (adjoint_unitary (sin_envelope_state_normalized_and_prep M hM).2.1)
       (Submonoid.one_mem _)
 
+/-- The aligned forward word has `M - 1` oracle queries and `2 * (M - 1) + 2` explicit gates. -/
 theorem aligned_forward_word_counts (M : ℕ) (hM : 2 ≤ M) :
     adjointQueryCount (alignedForwardWord (I := I) M hM) = M-1 ∧
       adjointGateCount (alignedForwardWord (I := I) M hM) = 2*(M-1)+2 := by
@@ -96,6 +132,9 @@ theorem aligned_forward_word_counts (M : ℕ) (hM : 2 ≤ M) :
   · rw [alignedForwardWord, adjointGateCount_reverse, adjointGateCount_map_stepToAdjoint]
     simp [alignedPhaseCircuit, gateCount_append, GateCount, ht.2.1]
 
+/-- On a zero ancilla embedding of an eigenvector of `U` with phase `φ`, the aligned phase
+circuit produces the corresponding `alignedKernel M φ` tensor packet with the phase flag
+embedding. -/
 theorem aligned_forward_eigenstate (M : ℕ) (hM : 2 ≤ M) (U : Matrix I I ℂ)
     (ψ : QState I) (φ : ℝ)
     (hψ : U *ᵥ ψ = Complex.exp (2*Real.pi*Complex.I*φ) • ψ) :
@@ -135,6 +174,7 @@ theorem aligned_forward_eigenstate (M : ℕ) (hM : 2 ≤ M) (U : Matrix I I ℂ)
     applyGate_tensorGate, applyGate_one]
   simp only [alignedKernel, dif_pos hM]
 
+/-- Relabeling a matrix commutes with taking its conjugate transpose. -/
 private theorem aligned_relabel_adjoint {H K : Type} (e : H ≃ K)
     (U : Matrix H H ℂ) : (relabelGate e U)ᴴ = relabelGate e Uᴴ := by
   ext i j
@@ -142,6 +182,7 @@ private theorem aligned_relabel_adjoint {H K : Type} (e : H ≃ K)
 
 omit [Fintype I] in
 
+/-- The aligned forward word equals the phase compiler output for `alignedPhaseCircuit`. -/
 theorem alignedForwardWord_eq_compile (M : ℕ) (hM : 2 ≤ M) :
     alignedForwardWord (I := I) M hM =
       phaseCompileCircuit (alignedPhaseCircuit (I := I) M hM) := by
@@ -151,15 +192,18 @@ theorem alignedForwardWord_eq_compile (M : ℕ) (hM : 2 ≤ M) :
   simp only [alignedForwardWord, phaseCompileCircuit, hmap]
   exact List.map_reverse.symm
 
+/-- The compiled aligned forward word satisfies `WellFormedAdjointCircuit`. -/
 theorem alignedForwardWord_wellFormed (M : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (alignedForwardWord (I := I) M hM) := by
   rw [alignedForwardWord_eq_compile M hM]
   exact phaseCompileCircuit_wellFormed (aligned_phase_circuit_unitary (I := I) M hM)
 
+/-- Lifting the identity matrix to the tail registers gives the identity matrix. -/
 private theorem alignedTailGate_one (M k : ℕ) :
     phaseTailGate (I := I) M k 1 = 1 := by
   rw [phaseTailGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- The tail register gate lift preserves matrix multiplication. -/
 private theorem alignedTailGate_mul (M k : ℕ)
     (U V : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate (I := I) M k (U * V) =
@@ -167,16 +211,19 @@ private theorem alignedTailGate_mul (M k : ℕ)
   unfold phaseTailGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- The tail register gate lift commutes with conjugate transpose. -/
 private theorem alignedTailGate_adjoint (M k : ℕ)
     (U : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate (I := I) M k Uᴴ = (phaseTailGate (I := I) M k U)ᴴ := by
   rw [phaseTailGate, phaseTailGate, aligned_relabel_adjoint,
     tensorGate_conjTranspose, Matrix.conjTranspose_one]
 
+/-- Lifting the identity matrix to the head register gives the identity matrix. -/
 private theorem alignedHeadGate_one (M k : ℕ) :
     phaseHeadGate (I := I) M k 1 = 1 := by
   rw [phaseHeadGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- The head register gate lift preserves matrix multiplication. -/
 private theorem alignedHeadGate_mul (M k : ℕ)
     (U V : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate (I := I) M k (U * V) =
@@ -184,12 +231,15 @@ private theorem alignedHeadGate_mul (M k : ℕ)
   unfold phaseHeadGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- The head register gate lift commutes with conjugate transpose. -/
 private theorem alignedHeadGate_adjoint (M k : ℕ)
     (U : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate (I := I) M k Uᴴ = (phaseHeadGate (I := I) M k U)ᴴ := by
   rw [phaseHeadGate, phaseHeadGate, aligned_relabel_adjoint,
     tensorGate_conjTranspose, Matrix.conjTranspose_one]
 
+/-- Two functions on `Fin (k + 1)` are equal exactly when their values at zero and their
+restrictions to successor indices agree. -/
 private theorem aligned_function_eq_iff (M k : ℕ) (x y : Fin (k + 1) → Fin M) :
     x = y ↔ x 0 = y 0 ∧ (fun j : Fin k => x j.succ) = (fun j : Fin k => y j.succ) := by
   constructor
@@ -201,6 +251,8 @@ private theorem aligned_function_eq_iff (M k : ℕ) (x y : Fin (k + 1) → Fin M
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Lifting the parallel oracle on the tail registers yields the parallel oracle on all `k + 1`
+registers. -/
 private theorem alignedTailGate_oracle (M k : ℕ)
     (A : Matrix (Bool × I) (Bool × I) ℂ) :
     phaseTailGate (I := I) M k (parallelOracle (J := Fin k → Fin M) A) =
@@ -221,6 +273,8 @@ private theorem alignedTailGate_oracle (M k : ℕ)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Lifting the parallel oracle on the head register yields the parallel oracle on all `k + 1`
+registers. -/
 private theorem alignedHeadGate_oracle (M k : ℕ)
     (A : Matrix (Bool × I) (Bool × I) ℂ) :
     phaseHeadGate (I := I) M k (parallelOracle (J := Fin M) A) =
@@ -240,6 +294,8 @@ private theorem alignedHeadGate_oracle (M k : ℕ)
   · have hxy : x ≠ y := fun h => hh ((aligned_function_eq_iff M k x y).mp h).1
     simp [hh, ht, hxy]
 
+/-- Recursively combine lifted aligned forward words to perform detection on `k` phase
+registers. -/
 noncomputable def alignedDetectionWord (M : ℕ) (hM : 2 ≤ M) : (k : ℕ) →
     List (AdjointStep (PhaseReflectionSpace I M k))
   | 0 => []
@@ -247,6 +303,8 @@ noncomputable def alignedDetectionWord (M : ℕ) (hM : 2 ≤ M) : (k : ℕ) →
       phaseLiftWord (phaseTailGate M k) (alignedDetectionWord M hM k) ++
         phaseLiftWord (phaseHeadGate M k) (alignedForwardWord (I := I) M hM)
 
+/-- The repeated detection word is well formed and uses `k * (M - 1)` queries and `k * (2 * (M -
+1) + 2)` explicit gates. -/
 theorem alignedDetectionWord_resources (M k : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (alignedDetectionWord (I := I) M hM k) ∧
       adjointQueryCount (alignedDetectionWord (I := I) M hM k) = k * (M - 1) ∧
@@ -277,6 +335,8 @@ theorem alignedDetectionWord_resources (M k : ℕ) (hM : 2 ≤ M) :
         (phaseLiftWord_counts _ _).2, ih.2.2, hsingle.2]
       ring
 
+/-- The evaluated detection word on `k + 1` registers is the product of the lifted tail
+detection matrix and the lifted head forward matrix. -/
 theorem alignedDetectionWord_evaluate_succ (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) :
     evaluate (parallelOracle (controlOracle W)) (alignedDetectionWord M hM (k + 1)) =
       phaseTailGate (I := I) M k
@@ -293,12 +353,16 @@ theorem alignedDetectionWord_evaluate_succ (W : Matrix I I ℂ) (M k : ℕ) (hM 
   rw [alignedHeadGate_oracle M k (controlOracle W)] at hh
   rw [alignedDetectionWord, evaluate_append, ht, hh]
 
+/-- The product of `k` aligned phase kernels with the system state `v`, supported on the false
+flag. -/
 noncomputable def alignedKernelPacket (M k : ℕ) (φ : ℝ) (v : QState I) :
     QState (PhaseReflectionSpace I M k) :=
   fun p => (∏ j : Fin k, alignedKernel M φ (p.1 j)) * (if p.2.1 then 0 else v p.2.2)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Relabeling the tensor product of one aligned kernel and a `k` register packet gives the
+packet on `k + 1` registers. -/
 private theorem alignedKernelPacket_succ (M k : ℕ) (φ : ℝ) (v : QState I) :
     relabelState (phaseTailSplit I M k).symm
       (TensorState (alignedKernel M φ) (alignedKernelPacket M k φ v)) =
@@ -308,6 +372,8 @@ private theorem alignedKernelPacket_succ (M k : ℕ) (φ : ℝ) (v : QState I) :
   rw [Fin.prod_univ_succ]
   ring
 
+/-- The distinguished zero phase register index equals `x` exactly when every coordinate of `x`
+has value zero. -/
 private theorem aligned_zero_predicate (M k : ℕ) (hM : 0 < M) (x : Fin k → Fin M) :
     phaseZeroIndex M k hM = x ↔ ∀ j, (x j).val = 0 := by
   constructor
@@ -319,6 +385,8 @@ private theorem aligned_zero_predicate (M k : ℕ) (hM : 0 < M) (x : Fin k → F
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The zero phase register embedding on `k + 1` registers is the relabeled tensor product of
+the zero tail index, zero head label, false flag, and system state. -/
 private theorem aligned_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I) :
     phaseReflectionEmbed M (k + 1) v =
       relabelState (phaseHeadSplit I M k).symm
@@ -336,6 +404,8 @@ private theorem aligned_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I)
     | rw [if_pos (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
     | (intro _ he; exact (ht he).elim)
 
+/-- On an embedded eigenvector of `W`, the lifted head forward word replaces the zero head label
+by its aligned phase kernel while the tail labels remain zero. -/
 private theorem aligned_head_eigen (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -358,6 +428,8 @@ private theorem aligned_head_eigen (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I �
     simp [relabelState, phaseHeadSplit, phaseTailSplit, TensorState,
       Qatlib.Foundations.PureStateMath.Ket, phaseFlagEmbed]
 
+/-- On the zero register embedding of an eigenvector with phase `φ`, the evaluated repeated
+detection word produces `alignedKernelPacket M k φ v`. -/
 theorem alignedDetectionWord_eigenstate (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -373,6 +445,8 @@ theorem alignedDetectionWord_eigenstate (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I
       aligned_head_eigen M k hM W v φ hv, phaseTailGate, applyGate_relabelGate,
       applyGate_tensorGate, applyGate_one, ih, alignedKernelPacket_succ]
 
+/-- Projecting the kernel packet onto the zero phase event gives the zero register embedding
+scaled by the `k`th power of the aligned kernel's zero amplitude. -/
 private theorem alignedKernelPacket_project_zero (M k : ℕ) (hM : 0 < M) (φ : ℝ)
     (v : QState I) :
     ApplyGate (Projector (phaseZeroEvent M k)) (alignedKernelPacket M k φ v) =
@@ -386,11 +460,15 @@ private theorem alignedKernelPacket_project_zero (M k : ℕ) (hM : 0 < M) (φ : 
       phaseReflectionEmbed, phaseZeroIndex]
   · cases b <;> simp [collapse_apply, phaseZeroEvent, phaseReflectionEmbed, hx]
 
+/-- The adjoint detection word, zero event reflection gate, and forward detection word
+concatenated in the order used by the evaluation convention. -/
 noncomputable def alignedReflectionWord (M : ℕ) (hM : 2 ≤ M) (k : ℕ) :
     List (AdjointStep (PhaseReflectionSpace I M k)) :=
   adjointCircuit (alignedDetectionWord M hM k) ++ [.gate (phaseZeroReflection M k)] ++
     alignedDetectionWord M hM k
 
+/-- The aligned reflection word is well formed and has exactly `2 * k * (M - 1)` queries and `4
+* k * (M - 1) + 4 * k + 1` explicit gates. -/
 theorem aligned_reflection_actual_queries_and_macros (M k : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (alignedReflectionWord (I := I) M hM k) ∧
       adjointQueryCount (alignedReflectionWord (I := I) M hM k) = 2 * k * (M - 1) ∧
@@ -412,11 +490,16 @@ theorem aligned_reflection_actual_queries_and_macros (M k : ℕ) (hM : 2 ≤ M) 
       adjointGateCount_adjointCircuit, adjointGateCount, hg]
     ring
 
+/-- Apply the evaluated aligned reflection word to the zero phase register embedding of the
+input system state. -/
 noncomputable def alignedReflectionState (W : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M)
     (k : ℕ) (ψ : QState I) : QState (PhaseReflectionSpace I M k) :=
   ApplyGate (evaluate (parallelOracle (controlOracle W)) (alignedReflectionWord M hM k))
     (phaseReflectionEmbed M k ψ)
 
+/-- For a unitary `W` and an eigenvector of phase `φ`, the reflection output plus the input
+embedding equals inverse detection applied to twice the zero embedding scaled by the zero
+kernel amplitude to power `k`. -/
 theorem aligned_reflection_eigenstate_residual (M k : ℕ) (hM : 2 ≤ M)
     (W : Matrix I I ℂ) (v : QState I) (φ : ℝ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -474,6 +557,9 @@ theorem aligned_reflection_eigenstate_residual (M k : ℕ) (hM : 2 ≤ M)
   simp only [ApplyGate, Matrix.mulVec_smul]
   module
 
+/-- For an eigenvector of unitary `W`, the Euclidean norm of the reflection output plus its
+embedding is at most twice the `k`th power of the zero kernel amplitude norm times the
+vector norm. -/
 theorem aligned_reflection_eigenstate_error (M k : ℕ) (hM : 2 ≤ M)
     (W : Matrix I I ℂ) (v : QState I) (φ : ℝ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
     (hv : W *ᵥ v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -493,15 +579,22 @@ theorem aligned_reflection_eigenstate_error (M k : ℕ) (hM : 2 ≤ M)
   rw [norm_smul, norm_smul, norm_pow, phaseReflectionEmbed_norm M k (by omega)]
   norm_num [mul_assoc]
 
+/-- Apply the evaluated repeated detection word to the zero phase register embedding of the
+input system state. -/
 noncomputable def alignedDetectionState (W : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M)
     (k : ℕ) (ψ : QState I) : QState (PhaseReflectionSpace I M k) :=
   ApplyGate (evaluate (parallelOracle (controlOracle W)) (alignedDetectionWord M hM k))
     (phaseReflectionEmbed M k ψ)
 
+/-- Read the amplitudes of `alignedDetectionState` with all phase labels zero and the flag false
+as a system state. -/
 noncomputable def alignedZeroBranch (W : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M)
     (k : ℕ) (ψ : QState I) : QState I :=
   fun i => alignedDetectionState W M hM k ψ (phaseZeroIndex M k (by omega), (false, i))
 
+/-- Detection of a finite eigenvector superposition is the corresponding superposition of
+aligned packets, and its zero branch multiplies each coefficient by the `k`th power of that
+eigenphase's zero kernel amplitude. -/
 theorem aligned_phase_actual_spectral_packet
     (J : Type) [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M)
@@ -536,6 +629,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A finite weighted geometric sum multiplied by `1 - z` equals its two endpoint terms plus a
+geometric sum of first differences. -/
 theorem weighted_first_diff (w : ℕ → ℂ) (z : ℂ) (n : ℕ) :
     (∑ i ∈ Finset.range n, w i * z ^ i) * (1-z) =
       w 0 - w (n-1) * z^n +
@@ -554,8 +649,11 @@ theorem weighted_first_diff (w : ℕ → ℂ) (z : ℂ) (n : ℕ) :
     ring]
   ring
 
+/-- The forward difference `w (i + 1) - w i` of a complex sequence. -/
 def nextDiff (w : ℕ → ℂ) (i : ℕ) : ℂ := w (i+1)-w i
 
+/-- Multiplying a finite weighted geometric sum by `(1 - z)^2` expresses it through endpoint
+values, endpoint first differences, and a sum of second differences. -/
 theorem weighted_second_diff (w : ℕ → ℂ) (z : ℂ) (n : ℕ) :
     (∑ i ∈ Finset.range n, w i * z ^ i) * (1-z)^2 =
       (w 0-w (n-1)*z^n)*(1-z) +
@@ -570,6 +668,8 @@ theorem weighted_second_diff (w : ℕ → ℂ) (z : ℂ) (n : ℕ) :
           ring
     _ = _ := by rw [weighted_first_diff]; rfl
 
+/-- For `‖z‖ = 1`, bound the weighted geometric sum times `‖1 - z‖^2` by endpoint norms,
+endpoint first difference norms, and the sum of second difference norms. -/
 theorem weighted_second_diff_bound (w : ℕ → ℂ) (z : ℂ) (n : ℕ) (hz : ‖z‖ = 1) :
     ‖(∑ i ∈ Finset.range n, w i * z ^ i)‖ * ‖1-z‖^2 ≤
       (‖w 0‖ + ‖w (n-1)‖)*‖1-z‖ +
@@ -609,6 +709,8 @@ theorem weighted_second_diff_bound (w : ℕ → ℂ) (z : ℂ) (n : ℕ) (hz : �
           z * ∑ i ∈ Finset.range ((n-1)-1), nextDiff (nextDiff w) i*z^i)‖ := norm_add_le _ _
     _ ≤ _ := by linarith
 
+/-- The second difference of squared sine with step `h` equals `2 * sin(h)^2 * cos(2 * (x +
+h))`. -/
 theorem sin_sq_second_diff_identity (x h : ℝ) :
     Real.sin (x+2*h)^2-2*Real.sin (x+h)^2+Real.sin x^2 =
       2*Real.sin h^2*Real.cos (2*(x+h)) := by
@@ -618,6 +720,7 @@ theorem sin_sq_second_diff_identity (x h : ℝ) :
     show 2*x=2*(x+h)-2*h by ring, Real.cos_add, Real.cos_sub]
   ring
 
+/-- The absolute second difference of squared sine with step `h` is at most `2 * h^2`. -/
 theorem sin_sq_second_diff_bound (x h : ℝ) :
     |Real.sin (x+2*h)^2-2*Real.sin (x+h)^2+Real.sin x^2| ≤ 2*h^2 := by
   rw [sin_sq_second_diff_identity, abs_mul, abs_mul,
@@ -627,27 +730,35 @@ theorem sin_sq_second_diff_bound (x h : ℝ) :
       mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (by positivity)
     _ ≤ 2*h^2 := by nlinarith only [Real.sin_sq_le_sq (x := h)]
 
+/-- For `2 ≤ M`, `|sin (π / (2 * M))| ≤ π / (2 * M)`. -/
 theorem sin_half_endpoint_bound (M : ℕ) (hM : 2 ≤ M) :
     |Real.sin (Real.pi/(2*(M:ℝ)))| ≤ Real.pi/(2*(M:ℝ)) := by
   have hm : (0:ℝ)<M := by exact_mod_cast (show 0<M by omega)
   simpa only [abs_of_pos (by positivity : (0:ℝ)<Real.pi/(2*(M:ℝ)))] using!
     (Real.abs_sin_le_abs (x := Real.pi/(2*(M:ℝ))))
 
+/-- The real weight `(2 / M) * sin (π * (n + 1 / 2) / M)^2` of the sine envelope at index `n`. -/
 noncomputable def sineWeight (M n : ℕ) : ℝ :=
   (2/(M:ℝ))*Real.sin (Real.pi*((n:ℝ)+1/2)/(M:ℝ))^2
 
+/-- The unit complex phase `exp (2 * π * I * φ)`. -/
 noncomputable def phaseUnit (φ : ℝ) : ℂ := Complex.exp (2*Real.pi*Complex.I*φ)
 
+/-- The finite geometric sum of the sine weights against powers of `phaseUnit φ` over indices
+below `M`. -/
 noncomputable def overlapSum (M : ℕ) (φ : ℝ) : ℂ :=
   ∑ n ∈ Finset.range M, (sineWeight M n : ℂ) * (phaseUnit φ)^n
 
+/-- The complex phase `phaseUnit φ` has norm one. -/
 theorem phaseUnit_norm (φ : ℝ) : ‖phaseUnit φ‖ = 1 := by
   simp [phaseUnit, Complex.norm_exp, Complex.mul_re]
 
+/-- Every sine envelope weight is nonnegative. -/
 theorem sineWeight_nonneg (M n : ℕ) : 0 ≤ sineWeight M n := by
   unfold sineWeight
   positivity
 
+/-- For `2 ≤ M`, the first sine weight is at most `π^2 / (2 * M^3)`. -/
 theorem sineWeight_zero_bound (M : ℕ) (hM : 2 ≤ M) :
     sineWeight M 0 ≤ Real.pi^2/(2*(M:ℝ)^3) := by
   have hm : (0:ℝ)<M := by exact_mod_cast (show 0<M by omega)
@@ -659,6 +770,7 @@ theorem sineWeight_zero_bound (M : ℕ) (hM : 2 ≤ M) :
         (by positivity)
     _ = Real.pi^2/(2*(M:ℝ)^3) := by field_simp; ring
 
+/-- For `2 ≤ M`, the sine weight at index one is at most `9 * π^2 / (2 * M^3)`. -/
 theorem sineWeight_one_bound (M : ℕ) (hM : 2 ≤ M) :
     sineWeight M 1 ≤ 9*Real.pi^2/(2*(M:ℝ)^3) := by
   have hm : (0:ℝ)<M := by exact_mod_cast (show 0<M by omega)
@@ -670,6 +782,7 @@ theorem sineWeight_one_bound (M : ℕ) (hM : 2 ≤ M) :
         (by positivity)
     _ = 9*Real.pi^2/(2*(M:ℝ)^3) := by field_simp; ring
 
+/-- For `n < M`, the sine weight at the reversed index `M - 1 - n` equals the weight at `n`. -/
 theorem sineWeight_reverse (M n : ℕ) (hn : n<M) :
     sineWeight M (M-1-n) = sineWeight M n := by
   have hm : (0:ℝ)<M := by exact_mod_cast (show 0<M by omega)
@@ -681,6 +794,7 @@ theorem sineWeight_reverse (M n : ℕ) (hn : n<M) :
       Real.pi-Real.pi*((n:ℝ)+1/2)/(M:ℝ) by field_simp; ring,
     Real.sin_pi_sub]
 
+/-- For `2 ≤ M`, the absolute second difference of the sine weights is at most `4 * π^2 / M^3`. -/
 theorem sineWeight_second_bound (M n : ℕ) (hM : 2 ≤ M) :
     |sineWeight M (n+2)-2*sineWeight M (n+1)+sineWeight M n| ≤
       4*Real.pi^2/(M:ℝ)^3 := by
@@ -700,16 +814,21 @@ theorem sineWeight_second_bound (M n : ℕ) (hM : 2 ≤ M) :
       mul_le_mul_of_nonneg_left (sin_sq_second_diff_bound x h) (by positivity)
     _ = _ := by dsimp [h]; field_simp; ring
 
+/-- The complex norm of a sine weight equals its real value. -/
 theorem sineWeight_norm (M n : ℕ) : ‖(sineWeight M n : ℂ)‖ = sineWeight M n := by
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (sineWeight_nonneg M n)]
 
+/-- For `2 ≤ M`, the last sine weight equals the first weight. -/
 theorem sineWeight_last (M : ℕ) (hM : 2 ≤ M) : sineWeight M (M-1) = sineWeight M 0 := by
   simpa only [Nat.sub_zero] using! sineWeight_reverse M 0 (by omega)
 
+/-- For `2 ≤ M`, the penultimate sine weight equals the weight at index one. -/
 theorem sineWeight_penultimate (M : ℕ) (hM : 2 ≤ M) :
     sineWeight M (M-2) = sineWeight M 1 := by
   simpa only [Nat.sub_sub] using! sineWeight_reverse M 1 (by omega)
 
+/-- For `2 ≤ M`, the norm of the first forward difference of the complex sine weights is at most
+`5 * π^2 / M^3`. -/
 theorem sineWeight_diff_zero (M : ℕ) (hM : 2 ≤ M) :
     ‖nextDiff (fun n => (sineWeight M n : ℂ)) 0‖ ≤ 5*Real.pi^2/(M:ℝ)^3 := by
   have hm : (0:ℝ)<M := by exact_mod_cast (show 0<M by omega)
@@ -721,6 +840,8 @@ theorem sineWeight_diff_zero (M : ℕ) (hM : 2 ≤ M) :
       add_le_add (sineWeight_one_bound M hM) (sineWeight_zero_bound M hM)
     _ = _ := by field_simp; ring
 
+/-- For `2 ≤ M`, the forward difference of the complex sine weights at `(M - 1) - 1` has norm at
+most `5 * π^2 / M^3`. -/
 theorem sineWeight_diff_last (M : ℕ) (hM : 2 ≤ M) :
     ‖nextDiff (fun n => (sineWeight M n : ℂ)) ((M-1)-1)‖ ≤
       5*Real.pi^2/(M:ℝ)^3 := by
@@ -736,6 +857,8 @@ theorem sineWeight_diff_last (M : ℕ) (hM : 2 ≤ M) :
       add_le_add (sineWeight_zero_bound M hM) (sineWeight_one_bound M hM)
     _ = _ := by field_simp; ring
 
+/-- For `2 ≤ M`, every complex second forward difference of the sine weights has norm at most `4
+* π^2 / M^3`. -/
 theorem sineWeight_complex_second (M n : ℕ) (hM : 2 ≤ M) :
     ‖nextDiff (nextDiff (fun j => (sineWeight M j : ℂ))) n‖ ≤
       4*Real.pi^2/(M:ℝ)^3 := by
@@ -747,6 +870,8 @@ theorem sineWeight_complex_second (M n : ℕ) (hM : 2 ≤ M) :
   rw [he,Complex.norm_real,Real.norm_eq_abs]
   exact sineWeight_second_bound M n hM
 
+/-- For `2 ≤ M`, the product `‖overlapSum M φ‖ * ‖1 - phaseUnit φ‖^2` is at most `16 * π^2 /
+M^2`. -/
 theorem overlapSum_difference_bound (M : ℕ) (hM : 2 ≤ M) (φ : ℝ) :
     ‖overlapSum M φ‖ * ‖1-phaseUnit φ‖^2 ≤ 16*Real.pi^2/(M:ℝ)^2 := by
   have hm : (0:ℝ)<M := by exact_mod_cast (show 0<M by omega)
@@ -796,6 +921,8 @@ theorem overlapSum_difference_bound (M : ℕ) (hM : 2 ≤ M) (φ : ℝ) :
   simp only [mul_div_assoc] at hb hd0 hd1 hsum hsmall ⊢
   linarith
 
+/-- If the phase distance of `φ` from zero is at least a positive `η` and `2 ≤ M`, then
+`‖overlapSum M φ‖ ≤ π^2 / (M^2 * η^2)`. -/
 theorem overlapSum_far_bound (M : ℕ) (hM : 2 ≤ M) (φ η : ℝ)
     (hη : 0<η) (hg : η≤phaseDistance φ 0) :
     ‖overlapSum M φ‖ ≤ Real.pi^2/((M:ℝ)^2*η^2) := by
@@ -816,12 +943,14 @@ theorem overlapSum_far_bound (M : ℕ) (hM : 2 ≤ M) (φ η : ℝ)
   apply (le_div_iff₀ (by positivity : (0:ℝ)<(M:ℝ)^2*η^2)).2
   nlinarith
 
+/-- The squared norm of the sine envelope amplitude at `τ` equals `sineWeight M τ.val`. -/
 theorem sineWeight_eq_norm (M : ℕ) (τ : Fin M) :
     ‖sinEnvelopeState M τ‖^2 = sineWeight M τ.val := by
   simp only [sinEnvelopeState,norm_mul,mul_pow,Complex.norm_real,Real.norm_eq_abs,sq_abs,
     Real.sq_sqrt (by positivity : (0:ℝ)≤2/(M:ℝ))]
   rfl
 
+/-- The `n`th power of `phaseUnit φ` equals `exp (2 * π * I * (n * φ))`. -/
 theorem phaseUnit_pow (φ : ℝ) (n : ℕ) :
     (phaseUnit φ)^n = Complex.exp (2*Real.pi*Complex.I*((n:ℝ)*φ)) := by
   rw [phaseUnit,← Complex.exp_nat_mul]
@@ -829,10 +958,12 @@ theorem phaseUnit_pow (φ : ℝ) (n : ℕ) :
   push_cast
   ring
 
+/-- The inner product of the basis ket at `i` with `ψ` is the amplitude `ψ i`. -/
 theorem inner_ket_read {M : ℕ} (i : Fin M) (ψ : QState (Fin M)) :
     Qatlib.Foundations.PureStateMath.Inner (Qatlib.Foundations.PureStateMath.Ket i) ψ = ψ i := by
   simp [inner_apply,Qatlib.Foundations.PureStateMath.Ket]
 
+/-- For `2 ≤ M`, the zero label amplitude of `alignedKernel M φ` equals `overlapSum M φ`. -/
 theorem aligned_zero_label_overlap (M : ℕ) (hM : 2≤M) (φ : ℝ) :
     alignedKernel M φ (⟨0,by omega⟩:Fin M) = overlapSum M φ := by
   let f : QState (Fin M) := fun τ =>
@@ -865,6 +996,7 @@ theorem aligned_zero_label_overlap (M : ℕ) (hM : 2≤M) (φ : ℝ) :
       unfold overlapSum
       exact Fin.sum_univ_eq_sum_range (fun n => (sineWeight M n:ℂ)*(phaseUnit φ)^n) M
 
+/-- For `2 ≤ M`, the aligned kernel at phase zero is the zero basis ket. -/
 theorem alignedKernel_zero (M : ℕ) (hM : 2≤M) :
     alignedKernel M 0 = Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M) := by
   simp only [alignedKernel,dif_pos hM,Complex.ofReal_zero,mul_zero,Complex.exp_zero,one_mul]
@@ -876,6 +1008,8 @@ theorem alignedKernel_zero (M : ℕ) (hM : 2≤M) :
     simpa only [Matrix.star_eq_conjTranspose] using!
       (sin_envelope_state_normalized_and_prep M hM).2.1.1,Matrix.one_mulVec]
 
+/-- For `2 ≤ M`, any phase at distance zero from zero has aligned kernel equal to the zero basis
+ket. -/
 theorem alignedKernel_zero_distance (M : ℕ) (hM : 2≤M) (φ : ℝ)
     (hφ : phaseDistance φ 0=0) :
     alignedKernel M φ = Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M) := by
@@ -891,6 +1025,8 @@ theorem alignedKernel_zero_distance (M : ℕ) (hM : 2≤M) (φ : ℝ)
     simp
   exact hk.trans (alignedKernel_zero M hM)
 
+/-- For `2 ≤ M` and phase distance at least a positive `η`, the zero label amplitude norm is at
+most `π^2 / (M^2 * η^2)`. -/
 theorem aligned_zero_label_far_bound (M : ℕ) (hM : 2≤M) (φ η : ℝ)
     (hη : 0<η) (hg : η≤phaseDistance φ 0) :
     ‖alignedKernel M φ (⟨0,by omega⟩:Fin M)‖≤Real.pi^2/((M:ℝ)^2*η^2) := by
@@ -899,6 +1035,8 @@ theorem aligned_zero_label_far_bound (M : ℕ) (hM : 2≤M) (φ η : ℝ)
 
 variable {I : Type}
 
+/-- At phase distance zero, the repeated aligned kernel packet is exactly the zero phase
+register embedding of the system state. -/
 theorem alignedKernelPacket_zero_distance (M k : ℕ) (hM : 2≤M) (φ : ℝ)
     (hφ : phaseDistance φ 0=0) (v : QState I) :
     alignedKernelPacket M k φ v = phaseReflectionEmbed M k v := by
@@ -922,6 +1060,8 @@ theorem alignedKernelPacket_zero_distance (M k : ℕ) (hM : 2≤M) (φ : ℝ)
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The evaluated aligned detection word fixes the zero register embedding of an eigenvector
+whose phase has distance zero from zero. -/
 theorem aligned_detection_zero_fixed (M k : ℕ) (hM : 2≤M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (he : W*ᵥv=Complex.exp (2*Real.pi*Complex.I*φ)•v)
@@ -931,6 +1071,8 @@ theorem aligned_detection_zero_fixed (M k : ℕ) (hM : 2≤M) (W : Matrix I I �
   rw [alignedDetectionWord_eigenstate M k hM W v φ he,
     alignedKernelPacket_zero_distance M k hM φ ht v]
 
+/-- For unitary `W`, the adjoint of the evaluated aligned detection word fixes the embedded
+eigenvector when its phase has distance zero from zero. -/
 theorem aligned_inverse_zero_fixed (M k : ℕ) (hM : 2≤M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ) (hW : W∈Matrix.unitaryGroup I ℂ)
     (he : W*ᵥv=Complex.exp (2*Real.pi*Complex.I*φ)•v)
@@ -950,6 +1092,8 @@ theorem aligned_inverse_zero_fixed (M k : ℕ) (hM : 2≤M) (W : Matrix I I ℂ)
       rw [← applyGate_mul,show Dᴴ*D=1 by
         simpa only [Matrix.star_eq_conjTranspose] using! hD.1,applyGate_one]
 
+/-- For unitary `W`, the aligned reflection exactly fixes the embedded eigenvector at phase
+distance zero. -/
 theorem aligned_reflection_zero_exact (M k : ℕ) (hM : 2≤M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ) (hW : W∈Matrix.unitaryGroup I ℂ)
     (he : W*ᵥv=Complex.exp (2*Real.pi*Complex.I*φ)•v)
@@ -975,6 +1119,10 @@ theorem aligned_reflection_zero_exact (M k : ℕ) (hM : 2≤M) (W : Matrix I I �
 open Qatlib
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- For an orthonormal eigenvector family with normalized coefficients, zero phase on `T`, and
+phase distance at least `η > 0` outside `T`, the aligned reflection error is at most `2 *
+(π^2 / (M^2 * η^2))^k` times the square root of the coefficient mass outside `T`. The
+reflection word has `2 * k * (M - 1)` queries and `4 * k * (M - 1) + 4 * k + 1` gates. -/
 theorem frontier1
     (J : Type) [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
@@ -1127,15 +1275,18 @@ theorem frontier1
   rw [herror,hfirst]
   nlinarith [hz]
 
+/-- The product of the adjoint Fourier matrix and the sine envelope preparation matrix. -/
 noncomputable def zeroPacketPrep (M : ℕ) (hM : 2≤M) : Matrix (Fin M) (Fin M) ℂ :=
   (QFTMatrix M)ᴴ * sinEnvelopePrep M hM
 
+/-- The matrix `zeroPacketPrep M hM` is unitary. -/
 theorem zeroPacketPrep_unitary (M : ℕ) (hM : 2≤M) :
     zeroPacketPrep M hM∈Matrix.unitaryGroup (Fin M) ℂ :=
   (Matrix.unitaryGroup (Fin M) ℂ).mul_mem
     (adjoint_unitary (qftMatrix_unitary (by omega)))
     (sin_envelope_state_normalized_and_prep M hM).2.1
 
+/-- Applying `zeroPacketPrep` to the zero basis ket gives `sinEnvelopeKernel M 0`. -/
 theorem zeroPacketPrep_column (M : ℕ) (hM : 2≤M) :
     zeroPacketPrep M hM *ᵥ Qatlib.Foundations.PureStateMath.Ket (⟨0,by omega⟩:Fin M)=sinEnvelopeKernel M 0 := by
   rw [zeroPacketPrep,← Matrix.mulVec_mulVec,
@@ -1145,6 +1296,8 @@ theorem zeroPacketPrep_column (M : ℕ) (hM : 2≤M) :
   funext τ
   simp
 
+/-- Applying the adjoint of `zeroPacketPrep` to `sinEnvelopeKernel M φ` gives `alignedKernel M
+φ`. -/
 theorem aligned_as_packet_alignment (M : ℕ) (hM : 2≤M) (φ : ℝ) :
     (zeroPacketPrep M hM)ᴴ *ᵥ sinEnvelopeKernel M φ=alignedKernel M φ := by
   rw [zeroPacketPrep,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose]

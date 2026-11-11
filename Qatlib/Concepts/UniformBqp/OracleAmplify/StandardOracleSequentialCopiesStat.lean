@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
 import Qatlib.Concepts.QueryComplexity.Amplification.SubroutineCleaning
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+/-!
+# Standard-oracle sequential-copy specification
+
+`StandardOracleSequentialCopies` states the existence of a unitary circuit running a fixed
+oracle circuit on each factor of an arbitrary tensor input. It records preservation of a clean
+shared oracle register and the exact costs of routing queries. The background is described in
+[BennettEtAl1997].
+
+## Main statements
+
+* `StandardOracleSequentialCopies`: independent execution on every tensor factor with exact
+  costs.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +39,9 @@ namespace Qatlib.Concepts.UniformBqp.OracleAmplify
 open Matrix
 open scoped Classical BigOperators
 
+/-- The assertion that a unitary standard bit-oracle circuit can be run independently on `k`
+tensor factors while preserving a shared clean oracle register, with exactly `k` times its
+queries and two routing gates per copied query. -/
 def StandardOracleSequentialCopies : Prop :=
   ∀ (n k : ℕ) (hn : 0 < n) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (C : Circuit ((Fin n × Bool) × W)), IsUnitaryCircuit C →

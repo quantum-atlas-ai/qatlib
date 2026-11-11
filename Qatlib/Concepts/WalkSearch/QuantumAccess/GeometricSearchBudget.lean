@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.QuantumAccess.CappedGeometricSearch
+
+/-!
+# Failure and resource bounds for geometric search
+
+This module analyzes the probability law of capped geometric search. It derives multiplicative
+failure and additive expected-resource recurrences, obtains a `25 / 32` failure bound for a
+sufficiently large attempt window, and sums the resulting geometric resource bounds.
+
+The analysis formalizes the increasing-window search strategy of [BoyerEtAl1998], with explicit
+cutoff probabilities, expected counters, endpoint behavior, and deterministic bounds for
+supported traces.
+
+## Main statements
+
+* `geometric_search_actual_cutoff_failure_probability`: geometric failure decay after a mature
+  window.
+* `geometric_search_intrinsic_expected_resource_budget`: five expected-resource bounds
+  proportional to `1 / sin (2 * θ)`.
+* `geometric_search_zero_one_endpoints_and_path_caps`: endpoint probabilities and bounds on each
+  supported trace.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 
@@ -27,6 +53,8 @@ open scoped ENNReal Classical
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The expectation of a constant times an event indicator equals that constant times the event
+probability. -/
 private theorem expectation_indicator_mul {α : Type} (p : PMF α) (P : α → Prop) (c : ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun a => if P a then c else 0) = c * Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P := by
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq p P,
@@ -34,6 +62,7 @@ private theorem expectation_indicator_mul {α : Type} (p : PMF α) (P : α → P
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr
       (fun a => by by_cases hP : P a <;> simp [hP])
 
+/-- The probabilities of a predicate and its complement sum to one. -/
 theorem event_compl {α : Type} (p : PMF α) (P : α → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun a => ¬P a) = 1 := by
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq p P, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq p (fun a => ¬P a),
@@ -43,6 +72,8 @@ theorem event_compl {α : Type} (p : PMF α) (P : α → Prop) :
   intro a
   by_cases hP : P a <;> simp [hP]
 
+/-- If a nonnegative extended-real function is at most `c` on a probability law's support, its
+expectation is at most `c`. -/
 theorem expectation_le_of_support {α : Type} (p : PMF α) (f : α → ℝ≥0∞) (c : ℝ≥0∞)
     (h : ∀ a ∈ p.support, f a ≤ c) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p f ≤ c := by
   show ∑' a, p a * f a ≤ c
@@ -57,9 +88,12 @@ theorem expectation_le_of_support {α : Type} (p : PMF α) (f : α → ℝ≥0�
       rw [show ∑' a, p a * c = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun _ => c) from rfl,
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
+/-- The condition that an attempt contains no candidate accepted by the validation predicate. -/
 def searchSlotFail {I : Type} (valid : I → Bool) (out : Option (I × ℕ) × ℕ × ℕ) : Prop :=
   ¬ ∃ y g, out.1 = some (y, g) ∧ valid y = true
 
+/-- The continuation law after an attempt, stopping with a valid candidate or prepending the
+receipt to a fresh search on the remaining schedule. -/
 private noncomputable def searchCont {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (valid : I → Bool) (m : ℕ) (ms : List ℕ) (out : Option (I × ℕ) × ℕ × ℕ) :
@@ -72,18 +106,22 @@ private noncomputable def searchCont {I : Type} [Fintype I] [DecidableEq I]
           (prependSearchReceipt m out {(emptySearchTrace (I := I)) with result := some y})
       else (searchForSchedule A hA j₀ S valid ms).map (prependSearchReceipt m out)
 
+/-- A search on a nonempty schedule is the first sampled attempt bound to its continuation law. -/
 private theorem searchCons_eq (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ) :
     searchForSchedule A hA j₀ S valid (m :: ms)
       = (preparedAASampled A hA j₀ S (Nat.clog 2 m) m 3).bind
           (searchCont A hA j₀ S valid m ms) := rfl
 
+/-- An attempt without a candidate continues on the remaining schedule and prepends its receipt. -/
 private theorem searchCont_none (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ) (bits q : ℕ) :
     searchCont A hA j₀ S valid m ms (none, bits, q)
       = (searchForSchedule A hA j₀ S valid ms).map
           (prependSearchReceipt m (none, bits, q)) := rfl
 
+/-- An attempt with an invalid candidate continues on the remaining schedule and prepends its
+receipt. -/
 private theorem searchCont_some_invalid (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ) (y : I) (g bits q : ℕ)
     (hv : ¬ valid y = true) :
@@ -97,6 +135,8 @@ private theorem searchCont_some_invalid (A : Matrix I I ℂ) (hA : A ∈ Matrix.
           (prependSearchReceipt m (some (y, g), bits, q))) = _
   rw [if_neg hv]
 
+/-- An attempt with a valid candidate terminates in the pure law of the corresponding successful
+trace. -/
 private theorem searchCont_some_valid (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ) (y : I) (g bits q : ℕ)
     (hv : valid y = true) :
@@ -110,6 +150,8 @@ private theorem searchCont_some_valid (A : Matrix I I ℂ) (hA : A ∈ Matrix.un
           (prependSearchReceipt m (some (y, g), bits, q))) = _
   rw [if_pos hv]
 
+/-- Every failed attempt continues with the remaining search law and prepends its attempt
+receipt. -/
 private theorem searchCont_fail (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ)
     (out : Option (I × ℕ) × ℕ × ℕ) (hfail : searchSlotFail valid out) :
@@ -123,6 +165,7 @@ private theorem searchCont_fail (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
       exact searchCont_some_invalid A hA j₀ S valid m ms y g bits q
         (fun hv => hfail ⟨y, g, rfl, hv⟩)
 
+/-- An attempt does not fail exactly when it contains a candidate accepted by validation. -/
 private theorem slotFail_iff (valid : I → Bool) (out : Option (I × ℕ) × ℕ × ℕ) :
     (¬ searchSlotFail valid out) ↔ ∃ y g, out.1 = some (y, g) ∧ valid y = true := by
   constructor
@@ -132,6 +175,8 @@ private theorem slotFail_iff (valid : I → Bool) (out : Option (I × ℕ) × �
   · rintro ⟨y, g, ho, hv⟩ hcon
     exact hcon ⟨y, g, ho, hv⟩
 
+/-- The failure probability on a nonempty schedule equals the first-attempt failure probability
+times the remaining search's failure probability. -/
 theorem search_event_none_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (searchForSchedule A hA j₀ S valid (m :: ms)) (fun tr => tr.result = none)
@@ -177,6 +222,8 @@ theorem search_event_none_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unit
   rw [searchCons_eq, houter, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit, expectation_indicator_mul,
     mul_comm]
 
+/-- For a resource counter with additive receipts and zero terminal charge, expected total cost
+is expected first-attempt cost plus failure probability times expected continuation cost. -/
 theorem search_ledger_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (L : CappedSearchTrace I → ℕ)
     (inc : Option (I × ℕ) × ℕ × ℕ → ℕ)
@@ -219,12 +266,16 @@ theorem search_ledger_recursion (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryG
     expectation_indicator_mul]
   ring
 
+/-- The list of `T` geometric windows starting at offset `off` with cap `M`. -/
 def schedFrom (M off T : ℕ) : List ℕ :=
   List.ofFn fun i : Fin T => geometricWindow M (off + i.val)
 
+/-- The offset-zero schedule equals `geometricSearchSchedule M T`. -/
 theorem schedFrom_zero (M T : ℕ) : schedFrom M 0 T = geometricSearchSchedule M T := by
   simp only [schedFrom, geometricSearchSchedule, Nat.zero_add]
 
+/-- An offset schedule of length `T + 1` splits into its first window and the length-`T`
+schedule at the next offset. -/
 theorem schedFrom_succ (M off T : ℕ) :
     schedFrom M off (T + 1) = geometricWindow M off :: schedFrom M (off + 1) T := by
   show List.ofFn (fun i : Fin (T+1) => geometricWindow M (off + i.val)) = _
@@ -239,8 +290,10 @@ theorem schedFrom_succ (M off T : ℕ) :
       simp]
   rfl
 
+/-- An offset schedule of length zero is empty. -/
 theorem schedFrom_nil (M off : ℕ) : schedFrom M off 0 = [] := rfl
 
+/-- Every natural power of the real number `6 / 5` is at least one. -/
 private theorem geopow_ge_one (k : ℕ) : (1:ℝ) ≤ ((6/5:ℝ)^k) := by
   induction k with
   | zero => norm_num
@@ -249,10 +302,12 @@ private theorem geopow_ge_one (k : ℕ) : (1:ℝ) ≤ ((6/5:ℝ)^k) := by
         _ ≤ ((6/5:ℝ)^k) * (6/5) := mul_le_mul ih (by norm_num) (by norm_num) (by norm_num)
         _ = (6/5:ℝ)^(k+1) := (pow_succ _ _).symm
 
+/-- Every capped geometric window is positive. -/
 theorem geometric_window_pos (M k : ℕ) : 0 < geometricWindow M k := by
   show 0 < max 1 (min M _)
   omega
 
+/-- For a fixed cap, the geometric window is nondecreasing in its index. -/
 theorem geometric_window_mono (M : ℕ) : ∀ a b : ℕ, a ≤ b →
     geometricWindow M a ≤ geometricWindow M b := by
   intro a b h
@@ -263,12 +318,14 @@ theorem geometric_window_mono (M : ℕ) : ∀ a b : ℕ, a ≤ b →
         (geometric_search_actual_integer_schedule M m m).2.2.2.1
       exact le_trans ih hstep
 
+/-- The rounded window numerator satisfies `6 ^ k ≤ 5 ^ k * ((6 ^ k + 5 ^ k - 1) / 5 ^ k)`. -/
 private theorem window_raw_mul (k : ℕ) : (6:ℕ)^k ≤ 5^k * ((6^k + 5^k - 1) / 5^k) := by
   have h5 : (0:ℕ) < 5^k := Nat.pow_pos (by norm_num)
   have hd := Nat.div_add_mod (6^k + 5^k - 1) (5^k)
   have hmod : (6^k + 5^k - 1) % 5^k ≤ 5^k - 1 := Nat.le_pred_of_lt (Nat.mod_lt _ h5)
   omega
 
+/-- The real value of the `k`th capped geometric window is at most `3 * (6 / 5) ^ k`. -/
 theorem geometric_window_le (M k : ℕ) :
     (geometricWindow M k : ℝ) ≤ 3 * ((6/5:ℝ)^k) := by
   have h5 : (0:ℕ) < 5^k := Nat.pow_pos (by norm_num)
@@ -298,6 +355,8 @@ theorem geometric_window_le (M k : ℕ) :
   have hge := geopow_ge_one k
   linarith
 
+/-- For `0 < s ≤ 1`, if both the cap and the raw geometric window times `s` are at least one,
+the integer window times `s` is at least one. -/
 theorem geometric_window_mature {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) (M k : ℕ)
     (hMs : 1 ≤ (M:ℝ)*s) (hk : 1 ≤ ((6/5:ℝ)^k)*s) :
     1 ≤ (geometricWindow M k : ℝ)*s := by
@@ -339,6 +398,7 @@ theorem geometric_window_mature {s : ℝ} (hs0 : 0 < s) (hs1 : s ≤ 1) (M k : �
   rw [div_mul_cancel₀ _ (ne_of_gt hs0)] at hgoal
   linarith
 
+/-- For positive `s`, some natural power of `6 / 5` is at least `1 / s`. -/
 private theorem exists_geometric_cross {s : ℝ} (hs : 0 < s) :
     ∃ k : ℕ, 1/s ≤ ((6/5:ℝ)^k) := by
   have hgrowth : ∀ k : ℕ, 1 + (k:ℝ)/5 ≤ ((6/5:ℝ)^k) := by
@@ -367,28 +427,40 @@ private theorem exists_geometric_cross {s : ℝ} (hs : 0 < s) :
   calc (1/s) ≤ 1 + 1/s := by linarith
     _ ≤ 1 + ((Nat.ceil (5/s) : ℕ):ℝ)/5 := le_trans (le_of_eq h2.symm) h1
 
+/-- The extended nonnegative real value `25 / 32` equals `ENNReal.ofReal` of the corresponding
+real ratio. -/
 private theorem rat_coe_25_32 : ((25/32:ℝ≥0∞)) = ENNReal.ofReal ((25/32:ℝ)) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 32)]
   norm_num
 
+/-- The extended nonnegative real value `7 / 32` equals `ENNReal.ofReal` of the corresponding
+real ratio. -/
 private theorem rat_coe_7_32 : ((7/32:ℝ≥0∞)) = ENNReal.ofReal ((7/32:ℝ)) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 32)]
   norm_num
 
+/-- The extended nonnegative real value `1 / 8` equals `ENNReal.ofReal` of the corresponding
+real ratio. -/
 private theorem rat_coe_1_8 : ((1/8:ℝ≥0∞)) = ENNReal.ofReal ((1/8:ℝ)) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 8)]
   norm_num
 
+/-- The extended nonnegative real value `7 / 8` equals `ENNReal.ofReal` of the corresponding
+real ratio. -/
 private theorem rat_coe_7_8 : ((7/8:ℝ≥0∞)) = ENNReal.ofReal ((7/8:ℝ)) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 8)]
   norm_num
 
+/-- The extended nonnegative real value `6 / 5` equals `ENNReal.ofReal` of the corresponding
+real ratio. -/
 private theorem rat_coe_65 : ((6/5:ℝ≥0∞)) = ENNReal.ofReal ((6/5:ℝ)) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 5)]
   norm_num
 
+/-- The extended nonnegative real cast of a natural equals `ENNReal.ofReal` of its real cast. -/
 private theorem nat_coe (n : ℕ) : ((n:ℝ≥0∞)) = ENNReal.ofReal ((n:ℝ)) := by norm_num
 
+/-- The cube of one half in extended nonnegative reals equals `ENNReal.ofReal (1 / 8)`. -/
 private theorem half_pow3 : ((1/2:ℝ≥0∞))^3 = ENNReal.ofReal ((1/8:ℝ)) := by
   rw [show ((1/2:ℝ≥0∞)) = ENNReal.ofReal ((1/2:ℝ)) from by
       rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 2)]
@@ -397,6 +469,8 @@ private theorem half_pow3 : ((1/2:ℝ≥0∞))^3 = ENNReal.ofReal ((1/8:ℝ)) :=
   congr 1
   norm_num
 
+/-- When validation exactly recognizes `S`, attempt success has the same probability as
+producing a candidate in `S`. -/
 theorem slot_success_event_congr (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ)
     (hvalid : ∀ y, valid y = true ↔ y ∈ S) :
@@ -413,6 +487,8 @@ theorem slot_success_event_congr (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitary
       · rintro ⟨hv1, hS⟩
         exact ⟨hv1, (hvalid y).mpr hS⟩)
 
+/-- With marked mass `sin θ ^ 2` and a positive window satisfying `m * sin (2 * θ) ≥ 1`, the
+attempt's failure probability is at most `25 / 32`. -/
 theorem slot_fail_le (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (θ : ℝ) (m : ℕ)
     (hvalid : ∀ y, valid y = true ↔ y ∈ S) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi/2)
@@ -474,6 +550,8 @@ theorem slot_fail_le (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
   exact (ENNReal.add_le_add_iff_right
     (by rw [rat_coe_7_32]; exact ENNReal.ofReal_ne_top)).mp hkey
 
+/-- With exact validation and zero initial marked mass, every positive-window attempt fails with
+probability one. -/
 theorem slot_fail_eq_one (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ)
     (hvalid : ∀ y, valid y = true ↔ y ∈ S) (hm : 0 < m)
@@ -489,6 +567,8 @@ theorem slot_fail_eq_one (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I 
   rw [hzero, add_zero] at hpart
   exact hpart
 
+/-- With exact validation and initial marked mass one, the window-one attempt has failure
+probability zero. -/
 theorem slot_fail_first_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool)
     (hvalid : ∀ y, valid y = true ↔ y ∈ S)
@@ -522,6 +602,8 @@ theorem slot_fail_first_zero (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGrou
         exact (zero_add _).symm)
   exact hgoal
 
+/-- With exact validation and marked mass `sin θ ^ 2`, a mature window at index `j` bounds
+cutoff failure probability by `(25 / 32) ^ (T - j)` [BoyerEtAl1998]. -/
 theorem geometric_search_actual_cutoff_failure_probability :
     ∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
       (j₀ : I) (S : Finset I) (valid : I → Bool) (M T j : ℕ) (θ : ℝ),
@@ -620,6 +702,8 @@ theorem geometric_search_actual_cutoff_failure_probability :
       _ = (25/32:ℝ)^(T-j) := by
           rw [rat_coe_25_32, ENNReal.toReal_ofReal (by norm_num : (0:ℝ) ≤ 25/32)]
 
+/-- Natural powers of an extended nonnegative real at least one are nondecreasing in the
+exponent. -/
 private theorem pow_le_of_ge_one {r : ℝ≥0∞} (hr : 1 ≤ r) : ∀ a b : ℕ, a ≤ b → r ^ a ≤ r ^ b := by
   intro a b h
   induction h with
@@ -631,6 +715,7 @@ private theorem pow_le_of_ge_one {r : ℝ≥0∞} (hr : 1 ≤ r) : ∀ a b : ℕ
         calc r^m = r^m * 1 := (mul_one _).symm
           _ ≤ r^m * r := mul_le_mul' (le_refl _) hr)
 
+/-- Every natural power of an extended nonnegative real at least one is at least one. -/
 private theorem one_le_pow' {r : ℝ≥0∞} (hr : 1 ≤ r) (k : ℕ) : 1 ≤ r ^ k := by
   induction k with
   | zero => simp
@@ -640,6 +725,8 @@ private theorem one_le_pow' {r : ℝ≥0∞} (hr : 1 ≤ r) (k : ℕ) : 1 ≤ r 
       calc (1:ℝ≥0∞) = (1:ℝ≥0∞) * 1 := (one_mul _).symm
         _ ≤ r^k * r := mul_le_mul' ih hr
 
+/-- Bounds a recursive cost by the geometric costs before the mature index and a terminal
+envelope, under the stated slot, failure, and stability inequalities. -/
 private theorem cap_master {r ρ β C : ℝ≥0∞} {jstar : ℕ}
     (slot fail : ℕ → ℝ≥0∞) (F : ℕ → ℕ → ℝ≥0∞)
     (hF0 : ∀ off : ℕ, F off 0 = 0)
@@ -700,6 +787,8 @@ private theorem cap_master {r ρ β C : ℝ≥0∞} {jstar : ℕ}
           _ ≤ r^off * C := mul_le_mul' (le_refl _) hβC
           _ = C * r^(off + 0) := by rw [mul_comm, Nat.add_zero off]
 
+/-- For extended nonnegative real ratio `6 / 5`, the sum of the first `n` powers plus five
+equals five times the `n`th power. -/
 private theorem geo_five {r : ℝ≥0∞} (hr : r = ENNReal.ofReal ((6/5:ℝ))) :
     ∀ n : ℕ, ∑ i ∈ Finset.range n, r^i + 5 = 5 * r^n := by
   intro n
@@ -719,6 +808,8 @@ private theorem geo_five {r : ℝ≥0∞} (hr : r = ENNReal.ofReal ((6/5:ℝ))) 
         _ = 5 * r * r^n := by rw [show (5:ℝ≥0∞) + 1 = 5 * r from by rw [h5r]; norm_num]
         _ = 5 * r^(n+1) := by rw [pow_succ]; ring
 
+/-- Under the stated geometric recurrence and stability assumptions, `F 0 T ≤ (5 * β + C) * r ^
+jstar` for every cutoff `T`. -/
 private theorem cap_final {r ρ β C : ℝ≥0∞} {jstar : ℕ} (hr1 : 1 ≤ r)
     (hgeo : ∀ n : ℕ, ∑ i ∈ Finset.range n, r^i ≤ 5 * r^n)
     (slot fail : ℕ → ℝ≥0∞) (F : ℕ → ℕ → ℝ≥0∞)
@@ -747,6 +838,8 @@ private theorem cap_final {r ρ β C : ℝ≥0∞} {jstar : ℕ} (hr1 : 1 ≤ r)
           exact mul_le_mul' (le_refl _) (pow_le_of_ge_one hr1 _ _ hn)
     _ = (5*β + C) * r^jstar := by ring
 
+/-- Converts an extended-real geometric bound at `jstar` into `X ≤ ENNReal.ofReal (LIM / s)`
+under the crossing and constant assumptions. -/
 private theorem sin_bound {X : ℝ≥0∞} {K LIM : ℝ} {jstar : ℕ} {s : ℝ} (hs0 : 0 < s)
     (hK : (0:ℝ) ≤ K) (hLIM : (0:ℝ) ≤ LIM) (hKLIM : K * ((6/5:ℝ)) ≤ LIM)
     (hjbound : ((6/5:ℝ)^jstar)*s ≤ 6/5)
@@ -772,6 +865,8 @@ private theorem sin_bound {X : ℝ≥0∞} {K LIM : ℝ} {jstar : ℕ} {s : ℝ}
         rw [← ENNReal.ofReal_mul (div_nonneg hLIM hs0.le),
           div_mul_cancel₀ _ (ne_of_gt hs0)]
 
+/-- An additive resource counter satisfying the stated slot and stability bounds has expected
+search cost at most `LIM / sin (2 * θ)`. -/
 private theorem ledger_cap {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (valid : I → Bool) (hvalid : ∀ y, valid y = true ↔ y ∈ S) (θ : ℝ)
@@ -907,6 +1002,8 @@ private theorem ledger_cap {I : Type} [Fintype I] [DecidableEq I]
   rw [hrdef, ← hK5C] at hKbound
   exact sin_bound hs0 hK0 hLIM0 hKLIM hjbound hKbound
 
+/-- The extended nonnegative real value of the `k`th geometric window is at most `3 * (6 / 5) ^
+k`. -/
 private theorem window_coe_bound (M k : ℕ) :
     ((geometricWindow M k : ℕ) : ℝ≥0∞)
       ≤ (ENNReal.ofReal (3:ℝ)) * (ENNReal.ofReal ((6/5:ℝ)))^k := by
@@ -916,6 +1013,7 @@ private theorem window_coe_bound (M k : ℕ) :
     ← ENNReal.ofReal_mul (by norm_num : (0:ℝ) ≤ 3)]
   exact ENNReal.ofReal_le_ofReal (geometric_window_le M k)
 
+/-- The base-two ceiling logarithm `Nat.clog 2 m` is at most `m`. -/
 private theorem clog2_le (m : ℕ) : Nat.clog 2 m ≤ m := by
   rcases Nat.lt_or_ge m 2 with hm2 | hm2
   · rcases Nat.eq_zero_or_pos m with h0 | h0
@@ -933,6 +1031,8 @@ private theorem clog2_le (m : ℕ) : Nat.clog 2 m ≤ m := by
       le_trans hkey (le_of_lt Nat.lt_two_pow_self)
     omega
 
+/-- Transfers the nonnegative real stability inequality `β + (25 / 32) * C * (6 / 5) ≤ C` to
+extended nonnegative reals. -/
 private theorem beta_C_coe (β C : ℝ) (h : β + (25/32:ℝ)*C*(6/5:ℝ) ≤ C)
     (hβ : (0:ℝ) ≤ β) (hC : (0:ℝ) ≤ C) :
     (ENNReal.ofReal β) + (25/32:ℝ≥0∞) * (ENNReal.ofReal C) * ((6/5:ℝ≥0∞)) ≤ ENNReal.ofReal C := by
@@ -946,11 +1046,15 @@ private theorem beta_C_coe (β C : ℝ) (h : β + (25/32:ℝ)*C*(6/5:ℝ) ≤ C)
         (by norm_num : (0:ℝ) ≤ 6/5))]
   exact ENNReal.ofReal_le_ofReal (by linarith)
 
+/-- Every natural power of `ENNReal.ofReal (6 / 5)` is at least one. -/
 private theorem rpow_ge_one (k : ℕ) : (1:ℝ≥0∞) ≤ (ENNReal.ofReal ((6/5:ℝ)))^k := by
   refine one_le_pow' ?_ k
   rw [← ENNReal.ofReal_one]
   exact ENNReal.ofReal_le_ofReal (by norm_num)
 
+/-- Under the marked-mass and cap assumptions, expected phase queries, bits, validation queries,
+preparations, and macro gates are bounded by `100`, `300`, `100`, `300`, and `400`,
+respectively, divided by `sin (2 * θ)` [BoyerEtAl1998]. -/
 theorem geometric_search_intrinsic_expected_resource_budget :
     ∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
       (j₀ : I) (S : Finset I) (valid : I → Bool) (M T : ℕ) (θ : ℝ),
@@ -1128,6 +1232,8 @@ theorem geometric_search_intrinsic_expected_resource_budget :
     (beta_C_coe 10 160 (by norm_num) (by norm_num) (by norm_num)) (by norm_num) hslotMac
   exact ⟨hP, hB, hV, hPre, hMac⟩
 
+/-- Every supported trace has phase queries at most the window sum, validation queries at most
+the schedule length, and bits at most three times the sum of ceiling logarithms. -/
 private theorem search_support_path_caps (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (valid : I → Bool) :
     ∀ (ms : List ℕ) (tr : CappedSearchTrace I),
@@ -1217,6 +1323,9 @@ private theorem search_support_path_caps (A : Matrix I I ℂ) (hA : A ∈ Matrix
             have hbb : (some (y, g), bits, q).2.1 = bits := rfl
             exact ⟨by omega, by omega, by omega⟩
 
+/-- With exact validation, zero marked mass gives certain failure, unit marked mass gives
+certain success for positive cutoff, and every supported trace satisfies the stated query
+and bit caps. -/
 theorem geometric_search_zero_one_endpoints_and_path_caps :
     ∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
       (j₀ : I) (S : Finset I) (valid : I → Bool) (M T : ℕ), (∀ y, valid y=true ↔ y∈S) →

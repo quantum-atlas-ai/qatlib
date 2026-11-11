@@ -8,11 +8,32 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Nat.Choose.Basic
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.ReadoutParameters
 
+/-!
+# Precision arithmetic for phase recovery
+
+This module collects the dyadic precision identities and rational-separation estimates used in
+phase recovery. `rational_separation` bounds the distance between distinct rational numbers with
+bounded denominators, and `rational_readout_unique` proves uniqueness inside the corresponding
+common approximation window. The development follows [Kitaev1995].
+
+## Main statements
+
+* `rational_separation`: separates distinct rationals with denominators at most `2 ^ n`.
+* `rational_readout_unique`: proves equality of two bounded-denominator candidates close to the
+  same estimate.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout
 
+/-- Multiplying the dyadic factor `2 ^ (-l + 1)` by one eighth gives `2 ^ (-l - 2)`, the
+precision identity used in [Kitaev, 1995, Lemma 10][Kitaev1995]. -/
 theorem bisect_combine (l : ℕ) :
     (1 / 8 : ℝ) * (2 : ℝ) ^ (-(l : ℤ) + 1) = (2 : ℝ) ^ (-(l : ℤ) - 2) := by
   have h2 : (2 : ℝ) ≠ 0 := by norm_num
@@ -22,11 +43,15 @@ theorem bisect_combine (l : ℕ) :
   rw [h3]
   ring
 
+/-- For positive `l`, summing `l` identical error allocations `ε / l` gives `ε`, as used in the
+readout analysis of [Kitaev1995]. -/
 theorem per_coordinate_failure_sum {l : ℕ} (hl : 0 < l) (ε : ℝ) :
     (l : ℝ) * (ε / (l : ℝ)) = ε := by
   have hlR : (0 : ℝ) < (l : ℝ) := by exact_mod_cast hl
   field_simp
 
+/-- The difference of two rational expressions with nonzero natural denominators equals their
+cross numerator divided by the product of denominators. -/
 theorem div_sub_div_eq (p q p' q' : ℕ) (hq : q ≠ 0) (hq' : q' ≠ 0) :
     (p : ℝ) / (q : ℝ) - (p' : ℝ) / (q' : ℝ)
       = ((p : ℝ) * (q' : ℝ) - (p' : ℝ) * (q : ℝ))
@@ -35,6 +60,8 @@ theorem div_sub_div_eq (p q p' q' : ℕ) (hq : q ≠ 0) (hq' : q' ≠ 0) :
   have hq'R : (q' : ℝ) ≠ 0 := by exact_mod_cast hq'
   field_simp
 
+/-- If two rational expressions with nonzero natural denominators differ, the absolute value of
+their integer cross numerator is at least one. -/
 theorem cross_numerator_abs_ge_one {p q p' q' : ℕ} (hq : q ≠ 0) (hq' : q' ≠ 0)
     (hne : (p : ℝ) / (q : ℝ) ≠ (p' : ℝ) / (q' : ℝ)) :
     (1 : ℝ) ≤ |(p : ℝ) * (q' : ℝ) - (p' : ℝ) * (q : ℝ)| := by
@@ -61,6 +88,9 @@ theorem cross_numerator_abs_ge_one {p q p' q' : ℕ} (hq : q ≠ 0) (hq' : q' �
     rw [abs_of_nonneg hnonneg]
     linarith
 
+/-- For positive `n`, distinct rational expressions with positive denominators at most `2 ^ n`
+differ by more than `1 / (2 ^ n * 2 ^ n)`. This is the separation estimate used for [Kitaev,
+1995, Theorem 1][Kitaev1995]. -/
 theorem rational_separation {p q p' q' n : ℕ} (hn : 0 < n)
     (hq : 0 < q) (hq' : 0 < q') (hqle : q ≤ 2 ^ n) (hq'le : q' ≤ 2 ^ n)
     (hne : (p : ℝ) / (q : ℝ) ≠ (p' : ℝ) / (q' : ℝ)) :
@@ -145,6 +175,8 @@ theorem rational_separation {p q p' q' n : ℕ} (hn : 0 < n)
       simpa using this
     linarith
 
+/-- For positive `n`, two rational candidates with positive denominators at most `2 ^ n` are
+equal if each is within `1 / (2 * 2 ^ n * 2 ^ n)` of the same real estimate. -/
 theorem rational_readout_unique {φ ψ φ' : ℝ} {p q p' q' n : ℕ} (hn : 0 < n)
     (hq : 0 < q) (hq' : 0 < q') (hqle : q ≤ 2 ^ n) (hq'le : q' ≤ 2 ^ n)
     (hφ : φ = (p : ℝ) / (q : ℝ)) (hψ : ψ = (p' : ℝ) / (q' : ℝ))

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.MatrixFunctionDefs
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+/-!
+# Sample budgets and costs for sketch matrix functions
+
+This module establishes algebraic identities and parameter comparisons for the matrix-function
+sample and cost expressions in `MatrixFunctionDefs`. The sampling framework motivating these
+expressions is developed in [ChiaEtAl2022]. The results here include monotonicity, cutoff
+retention under fixed Gram error bounds, and access-cost comparisons.
+
+## Main statements
+
+* `clause23_lemma414_frozen_retention`: preservation of singular values above a threshold under
+  two Gram error bounds.
+* `clause23_lemma414_frozen_second_isometry`: an operator norm bound for the retained-coordinate
+  isometry residual.
+* `clause25_endpoint`: collected budget, cost, and scaling identities.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.IntervalArith.IntervalOps
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -30,6 +52,8 @@ open Matrix
 open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For positive accuracy and failure parameters with failure parameter below one, the sample
+rate increases with nonnegative oversampling. -/
 theorem g23_lemma49_rate_φ_mono (φ₁ φ₂ ε δ : ℝ)
     (hε : 0 < ε) (hδ : 0 < δ) (hδ1 : δ < 1) (hφ₁ : 0 ≤ φ₁) (hφ₂ : φ₁ ≤ φ₂) :
     lemma49SampleRate φ₁ ε δ ≤ lemma49SampleRate φ₂ ε δ := by
@@ -40,6 +64,8 @@ theorem g23_lemma49_rate_φ_mono (φ₁ φ₂ ε δ : ℝ)
   rw [div_le_div_iff₀ (sq_pos_of_pos hε) (sq_pos_of_pos hε)]
   exact mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hsq hlog) (sq_nonneg ε)
 
+/-- For a failure parameter in (0, 1), increasing the positive accuracy parameter decreases the
+sample rate. -/
 theorem g23_lemma49_rate_ε_mono (φ ε₁ ε₂ δ : ℝ)
     (hε₁ : 0 < ε₁) (hε₂ : ε₁ ≤ ε₂) (hδ : 0 < δ) (hδ1 : δ < 1) :
     lemma49SampleRate φ ε₂ δ ≤ lemma49SampleRate φ ε₁ δ := by
@@ -51,6 +77,7 @@ theorem g23_lemma49_rate_ε_mono (φ ε₁ ε₂ δ : ℝ)
   rw [div_le_div_iff₀ (sq_pos_of_pos hε₂pos) (sq_pos_of_pos hε₁)]
   exact mul_le_mul_of_nonneg_left hsq (mul_nonneg (sq_nonneg φ) hlog)
 
+/-- For positive accuracy, increasing the positive failure parameter decreases the sample rate. -/
 theorem g23_lemma49_rate_δ_mono (φ ε δ₁ δ₂ : ℝ)
     (hε : 0 < ε) (hδ₁ : 0 < δ₁) (hδ₂ : δ₁ ≤ δ₂) :
     lemma49SampleRate φ ε δ₂ ≤ lemma49SampleRate φ ε δ₁ := by
@@ -62,11 +89,14 @@ theorem g23_lemma49_rate_δ_mono (φ ε δ₁ δ₂ : ℝ)
   exact mul_le_mul_of_nonneg_right
     (mul_le_mul_of_nonneg_left hlog (sq_nonneg φ)) (sq_nonneg ε)
 
+/-- The total sample count is twice the row sample count. -/
 theorem clause23_lemma49_total_is_two_row (φ ε δ : ℝ) :
     lemma49TotalSamples φ ε δ = 2 * lemma49RowSamples φ ε δ := by
   unfold lemma49TotalSamples lemma49RowSamples lemma49ColSamples lemma49SampleRate
   ring
 
+/-- For positive accuracy, the multiplicative sample budget is equivalent to the row sample
+count being at most `r`. -/
 theorem clause23_lemma49_budget_iff (φ ε δ : ℝ) (hε : 0 < ε) (r : ℕ) :
     lemma49SampleBudgetMul φ ε δ r ↔ lemma49RowSamples φ ε δ ≤ r := by
   have hne : ε ^ 2 ≠ 0 := by rw [pow_two]; exact mul_ne_zero (ne_of_gt hε) (ne_of_gt hε)
@@ -81,9 +111,12 @@ theorem clause23_lemma49_budget_iff (φ ε δ : ℝ) (hε : 0 < ε) (r : ℕ) :
       _ ≤ r * ε ^ 2 := mul_le_mul_of_nonneg_right h (sq_nonneg ε)
       _ = ε ^ 2 * r := by ring
 
+/-- The sketch runtime equals the total row and column samples times the cost per sample. -/
 theorem clause23_lemma49_sketch_time_shape (r c perSample : ℕ) :
     lemma49SketchTime r c perSample = (r + c) * perSample := rfl
 
+/-- If each sample costs at least one unit, both sampler reads and probability reads are bounded
+by the ledger runtime. -/
 theorem clause23_lemma49_ledger_covers_reads (l : Lemma49Ledger) (hper : 1 ≤ l.perSample) :
     l.samplerReads ≤ l.runtime ∧ l.probReads ≤ l.runtime := by
   have hsum : l.rowSamples + l.colSamples ≤ (l.rowSamples + l.colSamples) * l.perSample := by
@@ -91,12 +124,17 @@ theorem clause23_lemma49_ledger_covers_reads (l : Lemma49Ledger) (hper : 1 ≤ l
     simpa using! h
   exact ⟨hsum, hsum⟩
 
+/-- The ledger runtime equals the sketch time evaluated at its sample counts and per-sample
+cost. -/
 theorem clause23_lemma49_ledger_runtime (l : Lemma49Ledger) :
     l.runtime = lemma49SketchTime l.rowSamples l.colSamples l.perSample := rfl
 
+/-- The cutoff error budget equals twice the sum of the two Gram error bounds. -/
 theorem clause23_lemma414_cutoff_budget (η₁ η₂ : ℝ) :
     lemma414CutoffBudget η₁ η₂ = 2 * η₁ + 2 * η₂ := rfl
 
+/-- If the cutoff budget does not exceed the squared singular value, the squared cutoff equals
+their difference. -/
 theorem clause23_lemma414_cutoff_sq (σk η₁ η₂ : ℝ)
     (hcut : lemma414CutoffBudget η₁ η₂ ≤ σk ^ 2) :
     lemma414Cutoff σk η₁ η₂ ^ 2 = σk ^ 2 - lemma414CutoffBudget η₁ η₂ := by
@@ -104,11 +142,14 @@ theorem clause23_lemma414_cutoff_sq (σk η₁ η₂ : ℝ)
   unfold lemma414Cutoff
   exact Real.sq_sqrt hnonneg
 
+/-- For positive `α`, comparing the isometry budget to τ² is equivalent to the bound η₂ ≤ τ²α. -/
 theorem clause23_lemma414_isometry_budget_iff (η₂ α τ : ℝ) (hα : 0 < α) :
     lemma414IsometryBudget η₂ α ≤ τ ^ 2 ↔ η₂ ≤ τ ^ 2 * α := by
   unfold lemma414IsometryBudget
   exact div_le_iff₀ hα
 
+/-- For positive `σk` and nonzero `α`, the column sample expression is the row sample expression
+multiplied by 1 / α². -/
 theorem clause23_lemma414_col_over_row (φ normA normAF σk α δ : ℝ)
     (hσ : 0 < σk) (hα : α ≠ 0) :
     lemma414ColSamples φ normA normAF σk α δ
@@ -123,6 +164,8 @@ theorem clause23_lemma414_col_over_row (φ normA normAF σk α δ : ℝ)
   unfold lemma414ColSamples lemma414RowSamples
   field_simp [hα2, hσ2, hσ4, hprod]
 
+/-- Under the two Frobenius Gram error bounds and the cutoff budget condition, every singular
+value of `Cc` at an index below `k` is at least `τ`. -/
 theorem clause23_lemma414_frozen_retention {K C RS CT : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
     (A : Matrix K C ℂ) (R : Matrix RS C ℂ) (Cc : Matrix RS CT ℂ) (k : ℕ) (η₁ η₂ τ : ℝ)
@@ -140,6 +183,8 @@ theorem clause23_lemma414_frozen_retention {K C RS CT : Type} [Fintype K] [Decid
   rw [hkey]
   exact hcut
 
+/-- A second-stage Frobenius Gram error at most η₂ ≤ τ²α bounds the truncated isometry residual
+in operator norm by `α`, for positive `τ`. -/
 theorem clause23_lemma414_frozen_second_isometry {C RS CT : Type} [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
     (R : Matrix RS C ℂ) (Cc : Matrix RS CT ℂ) (τ α η₂ : ℝ)
@@ -151,10 +196,13 @@ theorem clause23_lemma414_frozen_second_isometry {C RS CT : Type} [Fintype C] [D
     C RS CT R Cc τ α η₂ hτ hα hη₂ h2 hbudget
   simpa only [lemma414SecondIsometryResidual] using! h
 
+/-- The first Gram bad mass is the compact Gram operator bad mass. -/
 theorem clause23_first_gram_bad_mass_eq_frozen {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (p : FinDist K) (r : ℕ) (A : Matrix K C ℂ) (η : ℝ) :
     firstGramBadMass p r A η = Qatlib.Concepts.SketchSpectral.SketchAnalysis.compactGramOperatorBadMass p r A η := rfl
 
+/-- The stated multiplicative sample budget bounds the first Gram tail scale by εE under the
+positivity assumptions. -/
 theorem clause23_first_gram_tail_scale_le (φ δ : ℝ) (r : ℕ) (E ε : ℝ)
     (hδ : 0 < δ) (hδ4 : δ ≤ 4) (hr : 0 < r) (hE : 0 ≤ E) (hε : 0 < ε)
     (hbudget : 8 * φ ^ 2 * Real.log (2 / (δ / 2)) ≤ ε ^ 2 * (r : ℝ)) :
@@ -173,9 +221,12 @@ theorem clause23_first_gram_tail_scale_le (φ δ : ℝ) (r : ℕ) (E ε : ℝ)
   unfold firstGramTailScale
   exact mul_le_mul_of_nonneg_right hsqrt hE
 
+/-- The operator range parameter is the interval length b - a. -/
 theorem clause23_lemma55_operator_range (a b : ℝ) :
     lemma55OperatorRange a b = b - a := rfl
 
+/-- The logarithmic factor is at least one when the positive difference parameter is at most the
+interval length. -/
 theorem clause23_lemma55_log_factor_ge_one (a b diff : ℝ)
     (hab : a ≤ b) (hdiff : 0 < diff) (hdiffle : diff ≤ b - a) :
     1 ≤ lemma55LogFactor a b diff := by
@@ -199,6 +250,8 @@ theorem clause23_lemma55_log_factor_ge_one (a b diff : ℝ)
       Real.log_exp]
   linarith
 
+/-- For positive difference parameter and a nonempty initial interval, the logarithmic factor
+increases with the upper endpoint. -/
 theorem clause23_lemma55_log_factor_mono (a b₁ b₂ diff : ℝ)
     (ha₁ : a < b₁) (hdiff : 0 < diff) (hb : b₁ ≤ b₂) :
     lemma55LogFactor a b₁ diff ≤ lemma55LogFactor a b₂ diff := by
@@ -224,12 +277,15 @@ theorem clause23_lemma55_log_factor_mono (a b₁ b₂ diff : ℝ)
     Real.log_exp]
   linarith
 
+/-- The rank logarithm is the logarithm of the smaller rank. -/
 theorem clause23_lemma56_rank_log (ra rb : ℕ) :
     lemma56RankLog ra rb = Real.log (min ra rb) := rfl
 
+/-- The lower rank logarithm is the logarithm of the minimum of the two ranks and `m`. -/
 theorem clause23_lemma56_rank_log_lower_def (ra rb m : ℕ) :
     lemma56RankLogLower ra rb m = Real.log (min (min ra rb) m) := rfl
 
+/-- If positive `m` does not exceed either rank, then log m is at most the rank logarithm. -/
 theorem clause23_lemma56_rank_log_lower (ra rb m : ℕ) (hm0 : 0 < m) (hm : m ≤ min ra rb) :
     Real.log (m : ℝ) ≤ lemma56RankLog ra rb := by
   unfold lemma56RankLog
@@ -238,39 +294,51 @@ theorem clause23_lemma56_rank_log_lower (ra rb m : ℕ) (hm0 : 0 < m) (hm : m �
     rwa [Nat.cast_min] at h1
   exact Real.log_le_log (by exact_mod_cast hm0) hcast
 
+/-- The classical matrix-function output has the form RᴴuR plus `f0` times the identity. -/
 theorem clause23_classical_output_shape {C RS : Type} [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS]
     (f0 : ℂ) (R : Matrix RS C ℂ) (u : Matrix RS RS ℂ) :
     classicalOutput f0 R u = Rᴴ * u * R + f0 • (1 : Matrix C C ℂ) := rfl
 
+/-- If the cost per sample is at least one, output sampling and query accesses are bounded by
+the sketch time. -/
 theorem clause23_output_sq_queries_le_time (r c perSample : ℕ) (hper : 1 ≤ perSample) :
     outputSqQueries r c ≤ lemma49SketchTime r c perSample := by
   unfold outputSqQueries lemma49SketchTime
   have h := Nat.mul_le_mul_left (r + c) hper
   simpa using! h
 
+/-- For word size at least one, the output RAM operation count is at most the bit-time count. -/
 theorem clause23_output_ram_le_bit (r c n w : ℕ) (hw : 1 ≤ w) :
     outputRamOps r c n ≤ outputBitTime r c n w := by
   have h := Nat.mul_le_mul_left (outputRamOps r c n) hw
   simpa [Nat.mul_comm, Nat.mul_one] using! h
 
+/-- The function evaluation cost at size `s` is s². -/
 theorem clause23_function_evaluation_cost (s : ℕ) :
     functionEvaluationCost s = s * s := rfl
 
+/-- The backend query cost is the sum of the row samples, column samples, and s² function
+evaluation cost. -/
 theorem clause23_backend_query_cost (r c s : ℕ) :
     backendQueryCost r c s = r + c + s * s := rfl
 
+/-- For word size at least one, the backend RAM word count is bounded by the backend bit-time
+count. -/
 theorem clause23_backend_ram_le_bit (r c s n w : ℕ) (hw : 1 ≤ w) :
     backendRamWords r c s n ≤ backendBitTime r c s n w := by
   have h := Nat.mul_le_mul_left (backendRamWords r c s n) hw
   simpa [Nat.mul_comm, Nat.mul_one] using! h
 
+/-- The frame power ratio k / m is at most one when `m` is positive and k ≤ m. -/
 theorem clause23_frame_power_le_one (k m : ℕ) (hm : 0 < m) (hkm : k ≤ m) :
     framePower k m ≤ 1 := by
   unfold framePower
   rw [div_le_one (by exact_mod_cast hm)]
   exact_mod_cast hkm
 
+/-- The numerical SVD iteration expression is positive for an accuracy parameter strictly
+between zero and one. -/
 theorem clause23_numerical_svd_iterations_pos (ε : ℝ) (hε : 0 < ε) (hε1 : ε < 1) :
     0 < numericalSvdIterations ε := by
   unfold numericalSvdIterations
@@ -278,15 +346,20 @@ theorem clause23_numerical_svd_iterations_pos (ε : ℝ) (hε : 0 < ε) (hε1 : 
   rw [lt_div_iff₀ hε]
   linarith
 
+/-- The numerical SVD relative error parameter equals `ε`. -/
 theorem clause23_numerical_svd_relative_error (ε : ℝ) :
     numericalSvdRelativeError ε = ε := rfl
 
+/-- Multiplying the column sample expression by the squared Frobenius norm parameter equals
+multiplying the row sample expression by the squared operator norm parameter. -/
 theorem clause23_th71_two_stage_factor (φ L normA normAF ε δ : ℝ) :
     th71ColSamples φ L normA normAF ε δ * (normAF ^ 2)
       = th71RowSamples φ L normA normAF ε δ * (normA ^ 2) := by
   unfold th71ColSamples th71RowSamples
   ring
 
+/-- For nonzero accuracy, the two row sample expressions satisfy the stated scaling identity
+with norm, Lipschitz, and accuracy factors. -/
 theorem clause23_th72_vs_th71_factor (φ L normA normAF ε δ : ℝ) (hε : ε ≠ 0) :
     th72RowSamples φ L normA normAF ε δ * (normAF ^ 2 * ε ^ 4)
       = th71RowSamples φ L normA normAF ε δ * (normA ^ 2 * L ^ 4) := by
@@ -307,9 +380,12 @@ theorem clause23_th72_vs_th71_factor (φ L normA normAF ε δ : ℝ) (hε : ε �
   rw [e1, e2]
   exact (div_eq_div_iff hε6 hε2).2 (by ring)
 
+/-- The rank sample expression is normAF²L² / ε². -/
 theorem clause23_th72_rank_budget (L normAF ε : ℝ) :
     th72RankSamples L normAF ε = normAF ^ 2 * L ^ 2 / ε ^ 2 := rfl
 
+/-- Under the norm ordering and accuracy assumptions, the operator-based row sample expression
+is at most the Markov-based expression. -/
 theorem clause23_markov_row_control_not_tighter (φ normA normAF σk ε δ : ℝ)
     (hA : 0 ≤ normA) (hAF : 0 ≤ normAF) (hσ : 0 < σk) (hε : 0 < ε)
     (hδ : 0 < δ) (hδ1 : δ < 1) (hAFsq : normA ≤ normAF) (hεσ : ε ≤ σk ^ 2) :
@@ -343,15 +419,21 @@ theorem clause23_markov_row_control_not_tighter (φ normA normAF σk ε δ : ℝ
     _ ≤ φ ^ 2 * (normAF ^ 4 / ε ^ 2) * Real.log (1 / δ) := hstep
     _ = (φ ^ 2 * normAF ^ 4 / ε ^ 2) * Real.log (1 / δ) := by ring
 
+/-- The quantum machine learning application sample expression equals `th71RowSamples`. -/
 theorem clause23_qml_application_endpoint (φ L normA normAF ε δ : ℝ) :
     qmlApplicationSamples φ L normA normAF ε δ = th71RowSamples φ L normA normAF ε δ := rfl
 
+/-- The matrix multiplicative weights application sample expression equals `th71ColSamples`. -/
 theorem clause23_mmw_application_endpoint (φ L normA normAF ε δ : ℝ) :
     mmwApplicationSamples φ L normA normAF ε δ = th71ColSamples φ L normA normAF ε δ := rfl
 
+/-- The semidefinite programming application sample expression equals `th72RowSamples`. -/
 theorem clause23_sdp_application_endpoint (φ L normA normAF ε δ : ℝ) :
     sdpApplicationSamples φ L normA normAF ε δ = th72RowSamples φ L normA normAF ε δ := rfl
 
+/-- When normA²L⁴ is at least normAF²ε⁴ and the parameters satisfy the stated positivity
+conditions, the quantum machine learning sample expression is at most the semidefinite
+programming expression. -/
 theorem clause23_sdp_application_not_tighter (φ L normA normAF ε δ : ℝ)
     (hε : 0 < ε) (hδ : 0 < δ)
     (hδ1 : δ < 1) (htrade : normA ^ 2 * L ^ 4 ≥ normAF ^ 2 * ε ^ 4) :
@@ -379,16 +461,22 @@ theorem clause23_sdp_application_not_tighter (φ L normA normAF ε δ : ℝ)
     _ ≤ φ ^ 2 * (normA ^ 4 * normAF ^ 2 * L ^ 6 / ε ^ 6) * Real.log (1 / δ) := hlogstep
     _ = (φ ^ 2 * normA ^ 4 * normAF ^ 2 * L ^ 6 / ε ^ 6) * Real.log (1 / δ) := by ring
 
+/-- The required row sample expression contains the squared factor L times the rank logarithmic
+factor, with the stated constant and failure logarithm. -/
 theorem clause23_two_sketch_row_budget_has_rank_log (L ε φ δ E : ℝ) (rank : ℕ) :
     requiredRowSamples L ε φ δ E rank
       = 32 * φ ^ 2 * Real.log (2 / (δ / 3)) * (L * rankLogFactor rank) ^ 2 * E ^ 2 / ε ^ 2 := rfl
 
+/-- The rank logarithmic factor is at least one. -/
 theorem clause23_rank_log_factor_ge_one (rank : ℕ) : 1 ≤ rankLogFactor rank := by
   have hnonneg : (0 : ℝ) ≤ (rank : ℝ) := by exact_mod_cast Nat.zero_le rank
   unfold rankLogFactor
   have hlog : 0 ≤ Real.log (1 + (rank : ℝ)) := Real.log_nonneg (by linarith)
   linarith
 
+/-- Collects the sample-budget equivalences, cutoff and logarithmic identities, output cost
+bounds, frame bound, and application scaling identities under the stated parameter
+assumptions. -/
 theorem clause25_endpoint {C RS : Type} [Fintype C] [DecidableEq C] [Fintype RS]
     [DecidableEq RS]
     (φ ε δ normA normAF L : ℝ) (r c perSample n w : ℕ) (η₁ η₂ τ α : ℝ) (k m : ℕ)

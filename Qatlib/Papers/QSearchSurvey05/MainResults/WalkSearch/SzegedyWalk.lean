@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+/-!
+# Szegedy walk detection bounds
+
+This module formalizes the walk detection estimate associated with Theorem 4.3 of
+[Ambainis2005]. For a symmetric chain with positive gap δ and marked fraction at least ε,
+`theorem43_szegedy_walk` bounds a random iteration detection probability and the corresponding
+program counts.
+
+## Main statements
+
+* `theorem43_szegedy_walk`: Gives mean detection probability at least 1/32 within an explicit
+  inverse square root scale.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,10 @@ open Matrix
 
 namespace Qatlib.Papers.QSearchSurvey05.MainResults
 
+/-- For the supplied unitary preparation of a symmetric chain with gap δ and marked fraction at
+least ε, constructs a positive iteration range between 1000/√(δε) and 1002/√(δε), with
+average detection probability at least 1/32 and the stated linear program count bounds. See
+[Ambainis2005]. -/
 theorem theorem43_szegedy_walk
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ) (j : I)

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetworkDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+/-!
+# POVM instruments and pure-state measurement
+
+This module connects the instrument associated with a POVM to vector-state measurement formulas.
+It proves the Born probability rule, normalization for normalized inputs, vanishing of zero-mass
+branches, and the projected-vector formula for conditional states when the effect is a
+projection.
+
+The same identities are established with an untouched reference system, and `part4_clause1`
+collects the resulting measurement contract. The projective measurement conventions used in
+[Itakura2005] are covered as a special case of the instrument framework described in
+[Watrous2018].
+
+## Main statements
+
+* `povm_pure_probability`: pure-state branch probabilities are effect expectations.
+* `povm_projective_pure_conditional`: conditional states for projective effects.
+* `part4_clause1`: the combined measurement and reference-system laws.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -24,6 +50,7 @@ namespace Qatlib.Concepts.InstrumentCore.PovmBridge
 open Matrix
 open scoped BigOperators ComplexOrder
 
+/-- The trace of `A * outerProduct ψ` equals the inner product of `ψ` with `A *ᵥ ψ`. -/
 theorem trace_mul_outerProduct {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (ψ : QState I) :
     Matrix.trace (A * outerProduct ψ) = Qatlib.Foundations.PureStateMath.Inner ψ (A *ᵥ ψ) := by
@@ -35,24 +62,31 @@ theorem trace_mul_outerProduct {I : Type*} [Fintype I] [DecidableEq I]
   intro j _
   ring
 
+/-- The branch probability of a POVM instrument on `outerProduct ψ` is the real expectation of
+its effect in `ψ` [Itakura2005]. -/
 theorem povm_pure_probability {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D)) (o : O) :
     instrumentProb (Instrument.ofPOVM Λ) (outerProduct ψ) o =
       (Qatlib.Foundations.PureStateMath.Inner ψ ((Λ.mats o).mat *ᵥ ψ)).re := by
   rw [instrumentProb_ofPOVM, trace_mul_outerProduct]
 
+/-- The outcome probabilities of a POVM instrument sum to one on a normalized pure state
+[Itakura2005]. -/
 theorem povm_pure_pmf_total {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D)) (hψ : Normalized ψ) :
     (∑ o, instrumentPMF (Instrument.ofPOVM Λ) (isDensityOperator_outerProduct hψ) o) = 1 := by
   simpa only [tsum_fintype] using
     (instrumentPMF (Instrument.ofPOVM Λ) (isDensityOperator_outerProduct hψ)).tsum_coe
 
+/-- A zero-probability outcome of a POVM instrument on a pure input has zero branch operator
+[Itakura2005]. -/
 theorem povm_pure_zero_branch {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D)) (o : O)
     (hzero : instrumentProb (Instrument.ofPOVM Λ) (outerProduct ψ) o = 0) :
     (Instrument.ofPOVM Λ).branch o (outerProduct ψ) = 0 :=
   (instrumentProb_eq_zero_iff _ (outerProduct_posSemidef ψ) o).mp hzero
 
+/-- Each effect of `binaryProjectivePOVM P hP` is idempotent. -/
 theorem binaryProjectivePOVM_projection {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     (hP : P.mat * P.mat = P.mat) (o : Bool) :
     ((binaryProjectivePOVM P hP).mats o).mat *
@@ -62,6 +96,8 @@ theorem binaryProjectivePOVM_projection {D : ℕ} (P : HermitianMat (Fin D) ℂ)
   · exact complement_projection P hP
   · exact hP
 
+/-- For an idempotent POVM effect, the instrument branch on a pure input is the outer product of
+the projected vector. -/
 theorem povm_projective_pure_branch {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D)) (o : O)
     (hproj : (Λ.mats o).mat * (Λ.mats o).mat = (Λ.mats o).mat) :
@@ -71,6 +107,8 @@ theorem povm_projective_pure_branch {O : Type*} [Fintype O] [DecidableEq O] {D :
   simpa only [conjBranch_apply, HermitianMat.conjTranspose_mat] using
     conjBranch_outerProduct (Λ.mats o).mat ψ
 
+/-- For an idempotent POVM effect, the branch probability equals the total squared norm of the
+projected vector. -/
 theorem povm_projective_pure_mass {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D)) (o : O)
     (hproj : (Λ.mats o).mat * (Λ.mats o).mat = (Λ.mats o).mat) :
@@ -80,6 +118,8 @@ theorem povm_projective_pure_mass {O : Type*} [Fintype O] [DecidableEq O] {D : �
   rw [povm_projective_pure_branch Λ ψ o hproj, trace_outerProduct]
   rfl
 
+/-- When the total squared norm of `φ` is positive, the outer product of its normalized
+post-measurement vector is its outer product scaled by the inverse mass. -/
 theorem outerProduct_postMeasure_univ {I : Type*} [Fintype I] [DecidableEq I]
     (φ : QState I) (hφ : 0 < MeasureProb φ Finset.univ) :
     outerProduct (PostMeasure φ Finset.univ) =
@@ -97,6 +137,8 @@ theorem outerProduct_postMeasure_univ {I : Type*} [Fintype I] [DecidableEq I]
         (φ i * (starRingEnd ℂ) (φ j)) := by ring
     _ = _ := by rw [hsq]
 
+/-- For an idempotent effect with positive branch probability, the conditional instrument state
+is the outer product of the normalized projected vector [Itakura2005]. -/
 theorem povm_projective_pure_conditional {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D)) (o : O)
     (hproj : (Λ.mats o).mat * (Λ.mats o).mat = (Λ.mats o).mat)
@@ -107,6 +149,8 @@ theorem povm_projective_pure_conditional {O : Type*} [Fintype O] [DecidableEq O]
   rw [Instrument.conditionalState, povm_projective_pure_branch Λ ψ o hproj,
     outerProduct_postMeasure_univ _ (by simpa only [← hm] using hprob), hm]
 
+/-- A positive-probability binary projective outcome has a vector conditional state whose outer
+product equals the conditional POVM instrument state. -/
 theorem binary_projective_conditional {D : ℕ} (P : HermitianMat (Fin D) ℂ)
     (hP : P.mat * P.mat = P.mat) (ψ : QState (Fin D)) (o : Bool)
     (hp : 0 < instrumentProb (Instrument.ofPOVM (binaryProjectivePOVM P hP))
@@ -125,6 +169,7 @@ theorem binary_projective_conditional {D : ℕ} (P : HermitianMat (Fin D) ℂ)
   · simpa only [hb] using povm_projective_pure_conditional
       (binaryProjectivePOVM P hP) ψ o (binaryProjectivePOVM_projection P hP o) hp
 
+/-- Conjugating a vector's outer product by `M` gives the outer product of `M *ᵥ ψ`. -/
 theorem conjugate_outerProduct {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (M : Matrix J I ℂ) (ψ : QState I) :
     M * outerProduct ψ * Mᴴ = outerProduct (M *ᵥ ψ) := by
@@ -135,6 +180,8 @@ theorem conjugate_outerProduct {I J : Type*} [Fintype I] [Fintype J]
   funext j
   simp [Matrix.vecMul, Matrix.mulVec, dotProduct, Matrix.conjTranspose_apply, mul_comm]
 
+/-- Extending a POVM branch by a reference identity gives conjugation by the square root of its
+effect tensored with that identity. -/
 theorem povm_reference_branch {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (o : O)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
@@ -143,6 +190,8 @@ theorem povm_reference_branch {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ
         (TensorGate (Λ.mats o ^ (1 / 2 : ℝ)).mat (1 : Operator R))ᴴ := by
   exact tensorLeft_conjBranch _ ρ
 
+/-- For an idempotent effect, its reference-extended branch on a pure input is the outer product
+of the vector projected on the measured subsystem. -/
 theorem povm_projective_reference_pure_branch
     {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D × Fin R)) (o : O)
@@ -151,6 +200,8 @@ theorem povm_projective_reference_pure_branch
       outerProduct (TensorGate (Λ.mats o).mat (1 : Operator R) *ᵥ ψ) := by
   rw [povm_reference_branch, hermitian_projection_half _ hproj, conjugate_outerProduct]
 
+/-- For an idempotent effect, the real trace mass of the reference-extended pure branch is the
+total squared norm of the projected vector. -/
 theorem povm_projective_reference_mass
     {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D × Fin R)) (o : O)
@@ -160,6 +211,8 @@ theorem povm_projective_reference_mass
   rw [povm_projective_reference_pure_branch Λ ψ o hproj, trace_outerProduct]
   rfl
 
+/-- For an idempotent effect with positive projected mass, normalizing the reference-extended
+pure branch gives the outer product of the normalized projected vector. -/
 theorem povm_projective_reference_conditional
     {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D × Fin R)) (o : O)
@@ -175,12 +228,16 @@ theorem povm_projective_reference_conditional
     povm_projective_reference_pure_branch Λ ψ o hproj,
     outerProduct_postMeasure_univ _ hprob]
 
+/-- A reference-extended POVM branch on a pure input is the outer product obtained by applying
+the effect's square root on the measured subsystem. -/
 theorem povm_reference_pure_branch {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D × Fin R)) (o : O) :
     tensorLeft ((Instrument.ofPOVM Λ).branch o) (outerProduct ψ) =
       outerProduct (TensorGate (Λ.mats o ^ (1/2 : ℝ)).mat (1 : Operator R) *ᵥ ψ) := by
   rw [povm_reference_branch, conjugate_outerProduct]
 
+/-- The real trace of a reference-extended pure POVM branch is the expectation of the effect
+tensored with the reference identity [Itakura2005]. -/
 theorem povm_reference_pure_probability {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D × Fin R)) (o : O) :
     (Matrix.trace (tensorLeft ((Instrument.ofPOVM Λ).branch o) (outerProduct ψ))).re =
@@ -193,12 +250,16 @@ theorem povm_reference_pure_probability {O : Type*} [Fintype O] [DecidableEq O] 
       HermitianMat.conjTranspose_mat, HermitianMat.pow_half_mul (Λ.nonneg o), Matrix.one_mul]
   rw [povm_reference_branch, Matrix.trace_mul_cycle, hm, trace_mul_outerProduct]
 
+/-- The real trace masses of all reference-extended POVM branches sum to one on a normalized
+pure input. -/
 theorem povm_reference_total_pure {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ψ : QState (Fin D × Fin R)) (hψ : Normalized ψ) :
     (∑ o, (Matrix.trace (tensorLeft ((Instrument.ofPOVM Λ).branch o) (outerProduct ψ))).re) = 1 := by
   rw [← Complex.re_sum, ← Matrix.trace_sum, Instrument.tensorLeft_total]
   simpa only [trace_outerProduct, Complex.ofReal_re] using! hψ
 
+/-- A reference-extended POVM branch on a positive semidefinite input is zero whenever its real
+trace mass is zero. -/
 theorem povm_reference_zero_mass {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
     (hρ : ρ.PosSemidef) (o : O)
@@ -210,6 +271,7 @@ theorem povm_reference_zero_mass {O : Type*} [Fintype O] [DecidableEq O] {D R : 
   · exact hz
   · exact (RCLike.nonneg_iff.mp hp.trace_nonneg).2
 
+/-- A zero POVM effect gives the zero reference-extended branch on every input operator. -/
 theorem povm_reference_zero_effect {O : Type*} [Fintype O] [DecidableEq O] {D R : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (o : O)
     (ho : Λ.mats o = 0) : tensorLeft ((Instrument.ofPOVM Λ).branch o) ρ = 0 := by
@@ -217,6 +279,10 @@ theorem povm_reference_zero_effect {O : Type*} [Fintype O] [DecidableEq O] {D R 
   ext i j
   simp [tensorLeft]
 
+/-- Collect the pure-state Born rules, normalization, zero-branch laws, conditional projective
+states, and reference-system positivity and trace laws for POVM instruments. The contract
+also identifies binary projective conditional vectors and reference-extended projective pure
+branches. -/
 theorem part4_clause1 :
   (∀ (O : Type u) [Fintype O] [DecidableEq O] (D : ℕ) (Λ : POVM O (Fin D)),
     (∀ (ψ : QState (Fin D)) (o : O),

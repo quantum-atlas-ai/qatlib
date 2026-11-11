@@ -8,18 +8,40 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.Order.Floor.Semiring
 import Mathlib.Tactic
 
+/-!
+# Query-cost bounds for clique finding
+
+This module defines memory choices and real-valued query-cost expressions for direct and
+recursive clique-finding strategies from [ChildsEisenberg2003]. It proves explicit power bounds
+after rounding the memory size down, together with comparisons of the resulting exponents.
+
+## Main statements
+
+* `direct_cost_bound`: bounds the direct cost by a constant times `N ^ (2L / (L + 1))`.
+* `recursive_cost_bound`: bounds the recursive cost by a constant times `N ^ ((5L - 2) / (2L +
+  4))`.
+* `note_added_cost_bound`: gives the exponent `2(L - 1) / L` for the note-added memory choice.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.SubsetFinding03.CliqueQueries
 
+/-- The natural-number floor of the memory scale `N ^ a`. -/
 def cliqueMem (N : ℕ) (a : ℝ) : ℕ :=
   ⌊(N : ℝ) ^ a⌋₊
 
+/-- The rounded memory size is at most the real-valued scale `N ^ a`. -/
 lemma cliqueMem_le (N : ℕ) (a : ℝ) :
     (cliqueMem N a : ℝ) ≤ (N : ℝ) ^ a :=
   Nat.floor_le (Real.rpow_nonneg (by positivity) _)
 
+/-- For `N ≥ 4` and `a ≥ 1 / 2`, the real power `N ^ a` is at least two. -/
 lemma rpow_mem_ge_two {N : ℕ} {a : ℝ} (hN : 4 ≤ N) (ha : (1 : ℝ) / 2 ≤ a) :
     2 ≤ (N : ℝ) ^ a := by
   have hN1 : (1 : ℝ) ≤ (N : ℝ) := by
@@ -34,6 +56,7 @@ lemma rpow_mem_ge_two {N : ℕ} {a : ℝ} (hN : 4 ≤ N) (ha : (1 : ℝ) / 2 ≤
     norm_num
   linarith
 
+/-- For `N ≥ 4` and `a ≥ 1 / 2`, rounding `N ^ a` down preserves at least half its value. -/
 lemma cliqueMem_ge_half {N : ℕ} {a : ℝ} (hN : 4 ≤ N) (ha : (1 : ℝ) / 2 ≤ a) :
     (N : ℝ) ^ a / 2 ≤ (cliqueMem N a : ℝ) := by
   have hx2 : 2 ≤ (N : ℝ) ^ a := rpow_mem_ge_two hN ha
@@ -41,12 +64,16 @@ lemma cliqueMem_ge_half {N : ℕ} {a : ℝ} (hN : 4 ≤ N) (ha : (1 : ℝ) / 2 �
     simpa [cliqueMem] using Nat.lt_floor_add_one ((N : ℝ) ^ a)
   linarith
 
+/-- The memory choice obtained by rounding down `N ^ (L / (L + 1))`. -/
 def directMemory (N L : ℕ) : ℕ :=
   cliqueMem N ((L : ℝ) / ((L : ℝ) + 1))
 
+/-- The direct clique-finding cost expression `M ^ 2 + (N / M) ^ (L / 2) * M ^ (3 / 2)`. -/
 def directCost (M N L : ℕ) : ℝ :=
   (M : ℝ) ^ 2 + ((N : ℝ) / (M : ℝ)) ^ ((L : ℝ) / 2) * (M : ℝ) ^ ((3 : ℝ) / 2)
 
+/-- For `L ≥ 1` and `N ≥ 4`, bounds the direct cost by `(2 + 2 ^ (L / 2)) * N ^ (2L / (L + 1))`
+when `M` lies between half and all of the prescribed memory scale [ChildsEisenberg2003]. -/
 theorem directCost_le (N M L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N)
     (hMle : (M : ℝ) ≤ (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)))
     (hMge : (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 1)) / 2 ≤ (M : ℝ)) :
@@ -156,6 +183,8 @@ theorem directCost_le (N M L : ℕ) (hL : 1 ≤ L) (hN : 4 ≤ N)
     nlinarith [hE0]
   linarith
 
+/-- For each `L ≥ 1`, the direct cost at `directMemory N L` is bounded by a positive constant
+times `N ^ (2L / (L + 1))` for every `N ≥ 4` [ChildsEisenberg2003]. -/
 theorem direct_cost_bound (L : ℕ) (hL : 1 ≤ L) :
     ∃ C : ℝ, 0 < C ∧ ∀ N : ℕ, 4 ≤ N →
       directCost (directMemory N L) N L ≤
@@ -170,13 +199,18 @@ theorem direct_cost_bound (L : ℕ) (hL : 1 ≤ L) :
     (by rw [directMemory]; exact cliqueMem_le N _)
     (by rw [directMemory]; exact cliqueMem_ge_half hN ha)
 
+/-- The memory choice obtained by rounding down `N ^ (L / (L + 2))`. -/
 def recursiveMemory (N L : ℕ) : ℕ :=
   cliqueMem N ((L : ℝ) / ((L : ℝ) + 2))
 
+/-- The recursive clique-finding cost expression combining memory setup, a recursive subproblem
+term, and a walk term. -/
 def recursiveCost (M N L : ℕ) : ℝ :=
   (M : ℝ) ^ 2 + ((N : ℝ) / (M : ℝ)) ^ (((L : ℝ) - 1) / 2) *
     ((M : ℝ) ^ (((L : ℝ) - 1) / (L : ℝ)) * Real.sqrt (N : ℝ) + (M : ℝ) ^ ((3 : ℝ) / 2))
 
+/-- For `L ≥ 2` and `N ≥ 4`, bounds the recursive cost by `(1 + 2 ^ ((L + 1) / 2)) * N ^ ((5L -
+2) / (2L + 4))` under the stated bounds on `M` [ChildsEisenberg2003]. -/
 theorem recursiveCost_le (N M L : ℕ) (hL : 2 ≤ L) (hN : 4 ≤ N)
     (hMle : (M : ℝ) ≤ (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 2)))
     (hMge : (N : ℝ) ^ ((L : ℝ) / ((L : ℝ) + 2)) / 2 ≤ (M : ℝ)) :
@@ -356,6 +390,8 @@ theorem recursiveCost_le (N M L : ℕ) (hL : 2 ≤ L) (hN : 4 ≤ N)
     nlinarith [hE0]
   linarith
 
+/-- For each `L ≥ 2`, the recursive cost at `recursiveMemory N L` is bounded by a positive
+constant times `N ^ ((5L - 2) / (2L + 4))` for every `N ≥ 4` [ChildsEisenberg2003]. -/
 theorem recursive_cost_bound (L : ℕ) (hL : 2 ≤ L) :
     ∃ C : ℝ, 0 < C ∧ ∀ N : ℕ, 4 ≤ N →
       recursiveCost (recursiveMemory N L) N L ≤
@@ -371,9 +407,12 @@ theorem recursive_cost_bound (L : ℕ) (hL : 2 ≤ L) :
     (by rw [recursiveMemory]; exact cliqueMem_le N _)
     (by rw [recursiveMemory]; exact cliqueMem_ge_half hN ha)
 
+/-- The note-added memory choice obtained by rounding down `N ^ ((L - 1) / L)`. -/
 def noteAddedMemory (N L : ℕ) : ℕ :=
   cliqueMem N (((L : ℝ) - 1) / (L : ℝ))
 
+/-- For each `L ≥ 2`, the recursive cost at `noteAddedMemory N L` is bounded by a positive
+constant times `N ^ (2(L - 1) / L)` for every `N ≥ 4` [ChildsEisenberg2003]. -/
 theorem note_added_cost_bound (L : ℕ) (hL : 2 ≤ L) :
     ∃ C : ℝ, 0 < C ∧ ∀ N : ℕ, 4 ≤ N →
       recursiveCost (noteAddedMemory N L) N L ≤
@@ -554,12 +593,16 @@ theorem note_added_cost_bound (L : ℕ) (hL : 2 ≤ L) :
     nlinarith [hE0]
   linarith
 
+/-- For `L ≥ 1`, the note-added exponent `2(L - 1) / L` is no greater than the direct exponent
+`2L / (L + 1)` [ChildsEisenberg2003]. -/
 theorem noteAdded_subsumes_direct (L : ℕ) (hL : 1 ≤ L) :
     (2 * ((L : ℝ) - 1)) / (L : ℝ) ≤ (2 * (L : ℝ)) / ((L : ℝ) + 1) := by
   have hLpos : (0 : ℝ) < (L : ℝ) := by exact_mod_cast (by omega : 0 < L)
   rw [div_le_div_iff₀ hLpos (by positivity : (0 : ℝ) < (L : ℝ) + 1)]
   nlinarith
 
+/-- The recursive exponent is smaller than the direct exponent for `L = 3, 4, 5`, while the
+direct exponent is smaller for `L = 6` [ChildsEisenberg2003]. -/
 theorem table_one_comparisons :
     ((5 * (3 : ℝ) - 2) / (2 * 3 + 4) < (2 * 3) / (3 + 1)) ∧
     ((5 * (4 : ℝ) - 2) / (2 * 4 + 4) < (2 * 4) / (4 + 1)) ∧
@@ -567,6 +610,8 @@ theorem table_one_comparisons :
     ((2 * 6) / (6 + 1) < (5 * (6 : ℝ) - 2) / (2 * 6 + 4)) := by
   norm_num
 
+/-- At `L = 5`, the note-added exponent is strictly smaller than the recursive exponent
+[ChildsEisenberg2003]. -/
 theorem noteAdded_improves_recursive_at_five :
     (2 * ((5 : ℝ) - 1)) / (5 : ℝ) < (5 * (5 : ℝ) - 2) / (2 * 5 + 4) := by
   norm_num

@@ -8,6 +8,24 @@ import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualOverlap
 import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
 import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
 import Qatlib.Foundations.MatrixAlgebra.FrameProject.TensorErrors
+
+/-!
+# Unbiased Fourier and histogram Gram identities
+
+Shows that the weighted Fourier columns at zero bias are orthonormal. Their tensor products
+indexed by an injective histogram map have the same row Gram matrix as the corresponding
+histogram basis, providing a Gram identity for purification transport. See [TangWright2025].
+
+## Main statements
+
+* `unbiased_column_gram`: the unbiased Fourier columns have Kronecker-delta inner products.
+* `unbiased_histogram_gram`: the tensor-column and histogram-basis row Gram matrices agree.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +39,8 @@ open Qatlib.Foundations.MatrixAlgebra.TorusMoments
 open Qatlib.Foundations.MatrixAlgebra.FrameProject.Tensor
 set_option warningAsError false
 
+/-- For positive `q`, the inner product of the zero-bias Fourier columns indexed by `j` and `k`
+is one if `j = k` and zero otherwise. -/
 theorem unbiased_column_gram (q : ℕ) (hq : 0<q) (j k : Fin q) :
     (∑g,star (fourierUnitVec 0 q j g)*fourierUnitVec 0 q k g) = if j=k then 1 else 0 := by
   have hq0 : (q:ℂ)≠0 := by exact_mod_cast hq.ne'
@@ -45,6 +65,8 @@ theorem unbiased_column_gram (q : ℕ) (hq : 0<q) (j k : Fin q) :
   rw [hm]
   by_cases he : j=k <;> simp [he,eq_comm, hq0]
 
+/-- For positive `q` and an injective histogram map, the tensor matrix of unbiased Fourier
+columns has the same row Gram matrix as the histogram-basis matrix. -/
 theorem unbiased_histogram_gram {H : Type*} [DecidableEq H] {d q : ℕ}
     (hq : 0<q) (hist : H → Fin d → Fin q) (hinj : Function.Injective hist) :
     columns (fourierUnitVec 0 q) hist * (columns (fourierUnitVec 0 q) hist)ᴴ =

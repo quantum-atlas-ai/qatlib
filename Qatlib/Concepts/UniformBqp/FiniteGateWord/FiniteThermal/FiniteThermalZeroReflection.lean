@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMaskedX
+
+/-!
+# Finite reflection about a zero pattern
+
+`thermalZeroReflection` uses a masked controlled X, a four-T realization of Pauli Z, and
+uncomputation to negate the zero pattern on a selected set of wires. The module proves exact
+basis and coherent actions with clean flag and workspace, together with legality and explicit
+gate counts. The background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `thermalZeroReflection_uniform`: coherent sign change for the all-zero control pattern.
+* `thermalZeroReflection_cost`: exact gate count and zero queries.
+* `thermalZWord_inverse_transport`: the four-T phase word agrees with its adjoint at the matrix
+  level.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -16,6 +37,7 @@ namespace Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits
 open Qatlib Matrix
 open scoped BigOperators
 
+/-- The fourth power of the T gate equals Pauli Z. -/
 theorem thermalT_four : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate^4=Qatlib.Foundations.PureStateMath.PauliZ := by
   unfold Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGate Qatlib.Foundations.PureStateMath.Rz Qatlib.Foundations.PureStateMath.PauliZ
   rw [Matrix.diagonal_pow]
@@ -29,6 +51,7 @@ theorem thermalT_four : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGat
       _ = Complex.exp ((Real.pi:ℂ)*Complex.I) := by congr 1; push_cast; ring
       _ = -1 := Complex.exp_pi_mul_I
 
+/-- The fourth power of the adjoint T gate equals Pauli Z. -/
 theorem thermalTAdj_four : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGateAdj^4=Qatlib.Foundations.PureStateMath.PauliZ := by
   unfold Qatlib.Concepts.GateVocabulary.LocalReflectionGates.tGateAdj Qatlib.Foundations.PureStateMath.Rz Qatlib.Foundations.PureStateMath.PauliZ
   rw [Matrix.diagonal_pow]
@@ -42,9 +65,12 @@ theorem thermalTAdj_four : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.t
       _ = Complex.exp (-((Real.pi:ℂ)*Complex.I)) := by congr 1; push_cast; ring
       _ = -1 := by rw [Complex.exp_neg,Complex.exp_pi_mul_I]; norm_num
 
+/-- The four-T finite word implementing Pauli Z on the specified wire. -/
 def thermalZWord (w : ℕ) : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode :=
     [.t w,.t w,.t w,.t w]
 
+/-- The four-T word multiplies a basis state by minus one precisely when its selected bit is
+true. -/
 theorem thermalZWord_basis {n : ℕ} (w : Fin n) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n (thermalZWord w.val))
       (Qatlib.Foundations.PureStateMath.Ket x) = (if x w then (-1 : ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket x := by
@@ -54,15 +80,22 @@ theorem thermalZWord_basis {n : ℕ} (w : Fin n) (x : Qatlib.Foundations.PureSta
   cases hx : x w <;> simp_all [Qatlib.Foundations.PureStateMath.PauliZ]
   all_goals congr 1; apply Function.update_eq_self_iff.mpr; exact hx.symm
 
+/-- The finite word that computes the zero-pattern match into a flag, applies Z to the flag, and
+uncomputes the match. -/
 def thermalZeroReflection {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n)) :
     List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode :=
   thermalMaskedX cs cs flag ws ++ thermalZWord flag.val ++ thermalMaskedX cs cs flag ws
 
+/-- Running a compiled finite gate word commutes with complex scalar multiplication of the input
+state. -/
 private theorem finite_run_smul {n : ℕ} (gs : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode) (a : ℂ) (psi : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n)) :
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n gs) (a • psi)=
       a • Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n gs) psi := by
   simp only [Qatlib.Concepts.UniformBqp.FiniteGateWord.finite_phase_word_run,Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionApplyGate_smul]
 
+/-- With distinct control, flag, and workspace wires and enough clean workspace, the
+zero-reflection word has phase determined by the input flag XOR the zero-pattern match and
+restores the basis label. -/
 theorem thermalZeroReflection_basis_raw {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hn : (cs++flag::ws).Nodup) (hlen : cs.length ≤ ws.length+2)
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hc : ∀ w∈ws,x w=false) :
@@ -109,6 +142,9 @@ theorem thermalZeroReflection_basis_raw {n : ℕ} (cs : List (Fin n)) (flag : Fi
   rw [hm,thermalZWord_basis,finite_run_smul,hr']
   simp [y,b]
 
+/-- With pairwise distinct control, flag, and workspace wires, a clean flag, and enough clean
+workspace, the zero-reflection word negates exactly the basis states matching the zero
+pattern on `cs`. -/
 theorem thermalZeroReflection_basis {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hn : (cs++flag::ws).Nodup) (hlen : cs.length ≤ ws.length+2)
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hc : ∀ w∈ws,x w=false) (hflag : x flag=false) :
@@ -117,6 +153,7 @@ theorem thermalZeroReflection_basis {n : ℕ} (cs : List (Fin n)) (flag : Fin n)
       (if thermalMatch cs cs x then (-1 : ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket x := by
   simpa only [hflag,Bool.false_xor] using thermalZeroReflection_basis_raw cs flag ws hn hlen x hc
 
+/-- Matching the zero mask on `cs` is equivalent to all listed control bits being false. -/
 theorem thermalZero_match_iff {n : ℕ} (cs : List (Fin n)) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     thermalMatch cs cs x=true ↔ ∀ c∈cs,x c=false := by
   simp only [thermalMatch,List.all_eq_true]
@@ -126,6 +163,8 @@ theorem thermalZero_match_iff {n : ℕ} (cs : List (Fin n)) (x : Qatlib.Foundati
   · intro h c hc
     simp [hc,h c hc]
 
+/-- With distinct control, flag, and workspace wires and the stated workspace bound, the
+zero-reflection word is legal. -/
 theorem thermalZeroReflection_legal {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hn : (cs++flag::ws).Nodup) (hlen : cs.length ≤ ws.length+2) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal n (thermalZeroReflection cs flag ws)=true := by
@@ -135,6 +174,8 @@ theorem thermalZeroReflection_legal {n : ℕ} (cs : List (Fin n)) (flag : Fin n)
   simpa only [thermalZeroReflection,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal,List.all_append,Bool.and_eq_true]
     using And.intro (And.intro hm hz) hm
 
+/-- With enough workspace, the zero-reflection word has zero queries and gate count
+`2*(2*cs.length + (if cs.length ≤ 1 then 1 else 15*(2*cs.length - 3))) + 4`. -/
 theorem thermalZeroReflection_cost {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hlen : cs.length ≤ ws.length+2) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n (thermalZeroReflection cs flag ws)) =
@@ -147,6 +188,9 @@ theorem thermalZeroReflection_cost {n : ℕ} (cs : List (Fin n)) (flag : Fin n) 
   rw [hm]
   omega
 
+/-- On states supported on a clean flag and clean workspace, the zero-reflection word multiplies
+each amplitude by minus one for a zero-pattern match and by one otherwise, under the
+distinctness and workspace hypotheses. -/
 theorem thermalZeroReflection_coherent {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hn : (cs++flag::ws).Nodup) (hlen : cs.length ≤ ws.length+2) (psi : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n))
     (hc : ∀ x : Qatlib.Foundations.PureStateMath.Reg n, (¬(x flag=false ∧ ∀ w∈ws,x w=false)) → psi x=0) :
@@ -173,6 +217,9 @@ theorem thermalZeroReflection_coherent {n : ℕ} (cs : List (Fin n)) (flag : Fin
   simp only [Finset.sum_apply,Pi.smul_apply,smul_eq_mul,Qatlib.Foundations.PureStateMath.Ket]
   simp
 
+/-- On states supported on a clean flag and clean workspace, the zero-reflection word negates
+exactly the amplitudes whose control wires are all zero, under the distinctness and
+workspace hypotheses. -/
 theorem thermalZeroReflection_uniform {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hn : (cs++flag::ws).Nodup) (hlen : cs.length ≤ ws.length+2) (psi : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n))
     (hc : ∀ x : Qatlib.Foundations.PureStateMath.Reg n, (¬(x flag=false ∧ ∀ w∈ws,x w=false)) → psi x=0) :
@@ -180,6 +227,8 @@ theorem thermalZeroReflection_uniform {n : ℕ} (cs : List (Fin n)) (flag : Fin 
       fun x => (if ∀ c∈cs,x c=false then (-1 : ℂ) else 1)*psi x := by
   simpa only [thermalZero_match_iff] using thermalZeroReflection_coherent cs flag ws hn hlen psi hc
 
+/-- Under the distinctness, workspace, and clean-input hypotheses, the checked finite-word
+interpreter returns the input basis state with sign determined by its zero-pattern match. -/
 theorem thermalZeroReflection_public {n : ℕ} (cs : List (Fin n)) (flag : Fin n) (ws : List (Fin n))
     (hn : (cs++flag::ws).Nodup) (hlen : cs.length ≤ ws.length+2)
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hc : ∀ w∈ws,x w=false) (hflag : x flag=false) :
@@ -188,6 +237,8 @@ theorem thermalZeroReflection_public {n : ℕ} (cs : List (Fin n)) (flag : Fin n
   simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalZeroReflection_legal cs flag ws hn hlen,if_true]
   rw [thermalZeroReflection_basis cs flag ws hn hlen x hc hflag]
 
+/-- The adjoint of the four-T word has the same register matrix as the original word and still
+has length four. -/
 theorem thermalZWord_inverse_transport {n : ℕ} (w : Fin n) :
     Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix n (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordAdjoint (thermalZWord w.val)) =
       Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix n (thermalZWord w.val) ∧

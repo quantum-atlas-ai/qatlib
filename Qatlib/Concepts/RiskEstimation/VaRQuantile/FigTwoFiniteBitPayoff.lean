@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyRotationDefs
+
+/-!
+# Finite precision polynomial payoff specification
+
+`FigTwoFiniteBitPayoff` specifies the accuracy of the decoded polynomial-payoff estimator built
+from `figTwoExpandedLaw`. Its error window includes amplitude readout and angle precision, and
+its second clause bounds the length of `figTwoAngleWord` in terms of the polynomial degree,
+expansion order, and register size. The construction is motivated by the payoff encoding in
+[WoernerEgger2019].
+
+## Main statements
+
+* `FigTwoFiniteBitPayoff`: a polynomial expectation error bound and an angle-word length bound.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +46,8 @@ namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The specification of a finite precision error bound for the decoded polynomial payoff
+expectation and a polynomial-degree-dependent bound on the angle-word length. -/
 def FigTwoFiniteBitPayoff : Prop :=
   ∀ (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) (u : ℕ) (c : ℝ)
     (fp : Polynomial ℝ) (M r bits angleBits : ℕ),

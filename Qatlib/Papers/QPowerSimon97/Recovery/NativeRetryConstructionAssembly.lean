@@ -9,6 +9,32 @@ import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
 import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAmplification
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionOracle
+
+/-!
+# Simon amplification and random-oracle bounds
+
+Assembles two-sided error estimates and repeated-run cost ledgers for the near-period
+distinguisher in [Simon1997]. It also bounds classical query-tree success in guessing the
+sampled branch of `simonOracleConstruction`; that construction samples masks uniformly,
+including the zero mask.
+
+## Main statements
+
+* `simonNegligibleErrorAmplification`: For `n + k ≥ 2`, amplification has error at most `r * (1
+  / 2)^k` on injective functions and at most `(3 / 4)^r` under the stated nonzero near-period
+  condition; the first two single-run ledger fields are `n + k` and `2 * (n + k)` [Simon1997].
+* `simonClassicalRandomOracleBound`: For `n ≥ 1`, a randomized query tree bounded by the natural
+  budget `2^(n / 4)` guesses the sampled oracle branch with mass at most `1 / 2 + 2^(-n / 2)`
+  [Simon1997].
+* `clause5_complete`: The combined two-sided amplification, exact ledger and marginal
+  statements, and classical random-oracle branch-guessing bound hold as specified by
+  `Clause5TwoSidedAmplification` [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,6 +67,9 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery
 variable {n : ℕ}
 noncomputable section
 
+/-- For `n + k ≥ 2`, amplification has error at most `r * (1 / 2)^k` on injective functions and
+at most `(3 / 4)^r` under the stated nonzero near-period condition; the first two single-run
+ledger fields are `n + k` and `2 * (n + k)` [Simon1997]. -/
 theorem simonNegligibleErrorAmplification :
     ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R] [DecidableEq R]
       (f : BooleanVec n → R) (k r : ℕ), 2 ≤ n + k →
@@ -62,6 +91,8 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.SimonAssembly
 variable {n : ℕ}
 noncomputable section
 
+/-- Nested expectations of a nonnegative extended-real function under two probability mass
+functions can be interchanged. -/
 lemma expectation_swap {α β : Type} (p : PMF α) (q : PMF β)
     (F : α → β → ℝ≥0∞) :
     expectation p (fun a => expectation q (F a)) =
@@ -77,6 +108,8 @@ lemma expectation_swap {α β : Type} (p : PMF α) (q : PMF β)
 end
 noncomputable section
 
+/-- Expectation under the uniform Boolean distribution is one half of each of the two function
+values. -/
 lemma expectation_uniform_bool (F : Bool → ℝ≥0∞) :
     expectation (PMF.uniformOfFintype' Bool) F =
       (1 / 2 : ℝ≥0∞) * F true + (1 / 2 : ℝ≥0∞) * F false := by
@@ -84,6 +117,8 @@ lemma expectation_uniform_bool (F : Bool → ℝ≥0∞) :
 end
 noncomputable section
 
+/-- The oracle branch-guessing mass decomposes into the uniform-mask expectation of the equally
+weighted strict-two-to-one and permutation branch success masses. -/
 lemma guess_mass_decomp {n : ℕ} (P : PMF (SimonQueryTree n)) :
     simonOracleGuessMass P = expectation (PMF.uniformOfFintype' (BooleanVec n))
       (fun s => (1 / 2 : ℝ≥0∞) *
@@ -106,6 +141,8 @@ lemma guess_mass_decomp {n : ℕ} (P : PMF (SimonQueryTree n)) :
 end
 noncomputable section
 
+/-- A bound `bad ≤ (q^2 + 1) / 2^n` with `q ≥ 1` implies `(1 / 2) * (1 + bad) ≤ 1 / 2 + q^2 /
+2^n` in the extended nonnegative reals. -/
 lemma half_bad_le {n q : ℕ} (hq : 1 ≤ q) (bad : ℝ≥0∞)
     (hbad : bad ≤ ((q * q + 1 : ℕ) : ℝ≥0∞) * (2 ^ n : ℝ≥0∞)⁻¹) :
     (1 / 2 : ℝ≥0∞) * (1 + bad) ≤
@@ -130,6 +167,8 @@ lemma half_bad_le {n q : ℕ} (hq : 1 ≤ q) (bad : ℝ≥0∞)
 end
 noncomputable section
 
+/-- If `q ≤ 2^(n / 4)` with natural division in the exponent, the extended-real birthday term
+`q^2 / 2^n` is at most `2^(-n / 2)`. -/
 lemma birthday_ennreal_le (n q : ℕ) (hq : q ≤ 2 ^ (n / 4)) :
     ((q * q : ℕ) : ℝ≥0∞) * (2 ^ n : ℝ≥0∞)⁻¹ ≤
       ENNReal.ofReal ((2 : ℝ) ^ (-(n : ℝ) / 2)) := by
@@ -144,6 +183,8 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
 variable {n : ℕ}
 noncomputable section
 
+/-- The expectation of the indicator that a Boolean-valued function equals `b` is the mass of
+that event. -/
 private lemma expectation_bool_indicator {α : Type} (p : PMF α) (F : α → Bool)
     (b : Bool) : expectation p (fun x => if F x = b then 1 else 0) =
       event p (fun x => F x = b) := by
@@ -154,6 +195,8 @@ private lemma expectation_bool_indicator {α : Type} (p : PMF α) (F : α → Bo
 end
 noncomputable section
 
+/-- For `n ≥ 1` and positive `q`, a randomized query tree bounded by `q` has oracle
+branch-guessing mass at most `1 / 2 + q^2 / 2^n`. -/
 lemma simonOracleGuessMass_le_birthday {n q : ℕ} (hn : 1 ≤ n) (hqpos : 1 ≤ q)
     (P : PMF (SimonQueryTree n)) (hq : SimonQueryTree.bounded P q) :
     simonOracleGuessMass P ≤ (1 / 2 : ℝ≥0∞) +
@@ -255,6 +298,8 @@ lemma simonOracleGuessMass_le_birthday {n q : ℕ} (hn : 1 ≤ n) (hqpos : 1 ≤
 end
 noncomputable section
 
+/-- For `n ≥ 1`, a randomized query tree bounded by the natural budget `2^(n / 4)` guesses the
+sampled oracle branch with mass at most `1 / 2 + 2^(-n / 2)` [Simon1997]. -/
 theorem simonClassicalRandomOracleBound (n : ℕ) (hn : 1 ≤ n)
     (P : PMF (SimonQueryTree n)) (hq : SimonQueryTree.bounded P (2 ^ (n / 4))) :
     simonOracleGuessMass P ≤ ENNReal.ofReal (1 / 2 + (2 : ℝ) ^ (-(n : ℝ) / 2)) := by
@@ -269,12 +314,15 @@ theorem simonClassicalRandomOracleBound (n : ℕ) (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- Mapping a probability mass function twice equals mapping it once by the composite function. -/
 theorem pmf_map_map {α β γ : Type} (g : β → γ) (f : α → β) (p : PMF α) :
     PMF.map g (PMF.map f p) = PMF.map (g ∘ f) p := by
   rw [← PMF.bind_pure_comp, PMF.bind_map, Function.comp_assoc, ← PMF.bind_pure_comp]
 end
 noncomputable section
 
+/-- Each coordinate marginal of the fresh-run distribution equals the original decoded-run
+distribution. -/
 theorem simonFreshRuns_marginal {n r : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (m : ℕ) :
     ∀ i : Fin r, PMF.map (fun v => v i) (simonFreshRuns f m r) = (simonDecodedRun f m).1 := by
@@ -300,6 +348,8 @@ theorem simonFreshRuns_marginal {n r : ℕ} {R : Type} [AddCommGroup R] [Fintype
 end
 noncomputable section
 
+/-- The fresh runs have the original decoded-run marginals, and their three total ledger fields
+equal `r * (n + k)`, `r * (2 * (n + k))`, and `r * (n + k)`. -/
 theorem simonAmplifiedTotalLedger {n k r : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) :
     (∀ i : Fin r, PMF.map (fun v => v i) (simonFreshRuns f (n + k) r) =
@@ -317,6 +367,8 @@ theorem simonAmplifiedTotalLedger {n k r : ℕ} {R : Type} [AddCommGroup R] [Fin
 end
 noncomputable section
 
+/-- For `n` runs with `n + 2 * n` samples each, the three total ledger fields are `3 * n^2`, `6
+* n^2`, and `3 * n^2`. -/
 theorem simonAmplifiedPaperSchedule (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) :
     n * (simonDecodedRun f (n + 2 * n)).2.1 = 3 * n ^ 2 ∧
@@ -328,6 +380,9 @@ theorem simonAmplifiedPaperSchedule (n : ℕ) (R : Type) [AddCommGroup R] [Finty
 end
 noncomputable section
 
+/-- The combined two-sided amplification, exact ledger and marginal statements, and classical
+random-oracle branch-guessing bound hold as specified by `Clause5TwoSidedAmplification`
+[Simon1997]. -/
 theorem clause5_complete : Clause5TwoSidedAmplification := by
   constructor
   · intro n R _ _ _ f k r hnk
@@ -340,6 +395,8 @@ theorem clause5_complete : Clause5TwoSidedAmplification := by
 end
 noncomputable section
 
+/-- If the natural query count is at most the real threshold `2^(n / 4)`, then the real birthday
+term `q^2 / 2^n` is at most `2^(-n / 2)`. -/
 lemma birthday_real_query_le (n q : ℕ)
     (hq : (q : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 4)) :
     ((q * q : ℕ) : ℝ) / (2 ^ n : ℝ) ≤ (2 : ℝ) ^ (-(n : ℝ) / 2) := by
@@ -360,6 +417,8 @@ lemma birthday_real_query_le (n q : ℕ)
 end
 noncomputable section
 
+/-- For `n ≥ 1`, a randomized query tree whose query bound is at most the real threshold `2^(n /
+4)` guesses the sampled oracle branch with mass at most `1 / 2 + 2^(-n / 2)` [Simon1997]. -/
 theorem simonClassicalRandomOracleBound_realBudget (n : ℕ) (hn : 1 ≤ n)
     (q : ℕ) (P : PMF (SimonQueryTree n)) (hq : SimonQueryTree.bounded P q)
     (hreal : (q : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 4)) :

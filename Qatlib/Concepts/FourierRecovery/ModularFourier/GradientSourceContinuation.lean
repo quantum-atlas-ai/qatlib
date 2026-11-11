@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SignalPrimitive.GridGradient.GradientSourceContinuationDefs
+
+/-!
+# Value kickback and Fourier gradient continuation
+
+This module proves the compute, phase kickback, and uncompute action of a modular value oracle,
+including restoration of the value register and explicit resource counts. It then transports
+phase residual bounds to Fourier gradient windows, in the numerical estimation setting of
+[Jordan2005Gradient].
+
+Centered decoding estimates, dyadic output certificates, examples without exact low precision
+records, and register ledgers are collected into three continuation endpoint theorems.
+
+## Main statements
+
+* `value_compute_kickback_uncompute_actual`: the exact phase action with a clean value register.
+* `value_compute_kickback_uncompute_operator_error`: operator error from phase error modulo
+  integers.
+* `centered_output_estimate_error`: coordinate accuracy on a good modular window.
+* `gext1_endpoint`, `gext2_endpoint`, and `gext3_endpoint`: the three continuation
+  specifications.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -31,12 +57,14 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 set_option warningAsError false
 
+/-- The gradient value oracle is the additive oracle for the same modular value function. -/
 private theorem gradientValueOracle_eq_addOracle {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) : gradientValueOracle Q v = AddOracle v := by
   rw [addOracle_eq_permMatrix]
   ext x y
   simp [gradientValueOracle, permMatrix, addOracleEquiv, Prod.ext_iff]
 
+/-- Applying a matrix gate commutes with scalar multiplication of the input state. -/
 private theorem applyGate_smul {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (c : ℂ) (ψ : QState I) : ApplyGate A (c • ψ) = c • ApplyGate A ψ := by
   funext i
@@ -46,12 +74,15 @@ private theorem applyGate_smul {I : Type*} [Fintype I] [DecidableEq I]
   intro j _
   ring
 
+/-- Applying a matrix to a basis ket returns its corresponding column. -/
 private theorem applyGate_matrix_ket {J : Type*} [Fintype J] [DecidableEq J]
     (P : Matrix J J ℂ) (y : J) : ApplyGate P (Qatlib.Foundations.PureStateMath.Ket y) = fun i => P i y := by
   funext i
   show (∑ j, P i j * Qatlib.Foundations.PureStateMath.Ket y j) = P i y
   simp [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The tensor product of the identity and a diagonal gate multiplies a basis ket by the
+corresponding diagonal coefficient. -/
 private theorem tensorGate_one_diag_ket {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (d : J → ℂ) (x : I) (y : J) :
     ApplyGate (TensorGate (1 : Matrix I I ℂ) (Matrix.diagonal d))
@@ -64,6 +95,7 @@ private theorem tensorGate_one_diag_ket {I J : Type*} [Fintype I] [Fintype J]
     by_cases hx : i = x <;> by_cases hy : j = y <;>
       simp [hx, hy, Qatlib.Foundations.PureStateMath.Ket, Matrix.diag_apply, Prod.ext_iff]
 
+/-- The modular value phase gate is unitary. -/
 private theorem valuePhaseGate_unitary (Q : ℕ) [NeZero Q] :
     valuePhaseGate Q ∈ Matrix.unitaryGroup (ZMod Q) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -83,6 +115,7 @@ private theorem valuePhaseGate_unitary (Q : ℕ) [NeZero Q] :
       + (((2 * Real.pi * ((y.val : ℝ) / (Q : ℝ)) : ℝ) : ℂ) * Complex.I) = 0 := by ring
   rw [hz, Complex.exp_zero]
 
+/-- Adding an integer to a real phase leaves its `2 * π * i` complex exponential unchanged. -/
 private theorem exp_two_pi_I_shift_int (t : ℝ) (n : ℤ) :
     Complex.exp (2 * Real.pi * Complex.I * (Complex.ofReal (t + (n : ℝ))))
       = Complex.exp (2 * Real.pi * Complex.I * (Complex.ofReal t)) := by
@@ -93,6 +126,8 @@ private theorem exp_two_pi_I_shift_int (t : ℝ) (n : ℤ) :
     ring
   rw [h, Complex.exp_add, exp_two_pi_I_int, mul_one]
 
+/-- The compute, phase kickback, and uncompute word multiplies a basis state with zero value
+register by the value phase and restores the value register to zero. -/
 theorem value_compute_kickback_uncompute_actual :
     ∀ (d M Q : ℕ) [NeZero Q] (v : GradientGrid d M → ZMod Q) (x : GradientGrid d M),
       (evaluate (gradientValueOracle Q v) (valueComputeKickbackUncomputeWord d M Q)) *ᵥ
@@ -125,6 +160,8 @@ theorem value_compute_kickback_uncompute_actual :
   rw [applyGate_smul]
   rw [hket2]
 
+/-- The value kickback word is well formed, has two queries and one gate, and uses the stated
+modular value register bit budget. -/
 theorem value_compute_kickback_uncompute_resources :
     ∀ (d M Q : ℕ) [NeZero Q],
       WellFormedAdjointCircuit (valueComputeKickbackUncomputeWord d M Q) ∧
@@ -138,6 +175,7 @@ theorem value_compute_kickback_uncompute_resources :
   exact ⟨tensorGate_unitary (one_mem (Matrix.unitaryGroup _ ℂ))
       (valuePhaseGate_unitary Q), WellFormedAdjointCircuit.nil⟩
 
+/-- Adding an integer valued function to a gradient phase leaves its phase operator unchanged. -/
 theorem gradientPhase_int_shift (d M : ℕ) (φ : GradientGrid d M → ℝ)
     (k : GradientGrid d M → ℤ) :
     gradientPhase d M (fun x => φ x + (k x : ℝ)) = gradientPhase d M φ := by
@@ -146,6 +184,8 @@ theorem gradientPhase_int_shift (d M : ℕ) (φ : GradientGrid d M → ℝ)
   funext x
   exact exp_two_pi_I_shift_int (φ x) (k x)
 
+/-- A value phase error at most `δ` modulo integers bounds the norm of the phase operator
+difference by `2 * π * δ`. -/
 theorem value_compute_kickback_uncompute_operator_error :
     ∀ (d M Q : ℕ) [NeZero Q] (v : GradientGrid d M → ZMod Q)
       (φ : GradientGrid d M → ℝ) (δ : ℝ) (hδ : 0 ≤ δ)
@@ -174,6 +214,8 @@ theorem value_compute_kickback_uncompute_operator_error :
   rw [hshift] at h
   exact h
 
+/-- A stationary phase residual bounded within `B` of a constant gives window probability at
+least `1 - 16 * d / (M * w) - 4 * π * B` under the stated positivity conditions. -/
 theorem stationary_phase_window_transport :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
       (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -196,6 +238,8 @@ theorem stationary_phase_window_transport :
     exact abs_le.mpr h
   exact gradient_actual_phase_error_transport d M hM g c w B φ hM2 hw hB hpoint
 
+/-- A good modular window sample gives centered coordinate errors at most `w` when the gradient
+and window satisfy the stated bounds. -/
 theorem centered_output_estimate_error :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
       (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
@@ -206,11 +250,13 @@ theorem centered_output_estimate_error :
   have h := gradient_signed_decode_window M hM (z j) (g j) w (hg j) hw (hgood j)
   simpa only [gradientEstimate, centeredGridOutput] using! h
 
+/-- Every label on a grid of size `2^m` satisfies `DyadicGridLabel m`. -/
 theorem dyadic_grid_label (m : ℕ) (z : Fin (2 ^ m)) : DyadicGridLabel m z := by
   refine ⟨z.val, ?_⟩
   push_cast
   ring
 
+/-- Every centered output on a grid of size `2^m` is an integer multiple of `2^(-m)`. -/
 theorem centered_output_dyadic (m : ℕ) (z : Fin (2 ^ m)) :
     ∃ n : ℤ, centeredGridOutput (2 ^ m) z = (n : ℝ) / (2 : ℝ) ^ m := by
   unfold centeredGridOutput signedGridValue
@@ -222,12 +268,15 @@ theorem centered_output_dyadic (m : ℕ) (z : Fin (2 ^ m)) :
     push_cast
     field_simp
 
+/-- The uncentered real coordinate of a grid label of size `2^m` has an exact precision `m`
+record. -/
 theorem dyadic_grid_record (m : ℕ) (z : Fin (2 ^ m)) :
     GeneralRealRecord m ((z.val : ℝ) / (2 : ℝ) ^ m) := by
   refine ⟨z.val, ?_⟩
   push_cast
   ring
 
+/-- For natural `Q > 1`, the reciprocal `1 / Q` has no exact real record at precision zero. -/
 theorem non_dyadic_reciprocal (Q : ℕ) (hQ : 1 < Q) :
     ¬ GeneralRealRecord 0 ((1 : ℝ) / Q) := by
   rintro ⟨n, hn⟩
@@ -254,6 +303,7 @@ theorem non_dyadic_reciprocal (Q : ℕ) (hQ : 1 < Q) :
       mul_nonpos_of_nonpos_of_nonneg hnle (le_of_lt hQpos)
     linarith
 
+/-- The value `1 / 3` has no exact real record at precision zero or one. -/
 theorem non_dyadic_one_third : ¬ GeneralRealRecord 0 (1 / 3) ∧
     ¬ GeneralRealRecord 1 (1 / 3) := by
   constructor
@@ -272,23 +322,30 @@ theorem non_dyadic_one_third : ¬ GeneralRealRecord 0 (1 / 3) ∧
     have hnint : (3 : ℤ) * n = 2 := by exact_mod_cast hn'.symm
     omega
 
+/-- The gradient readout word is unitary and has one query and `2 * d` gates for positive grid
+size. -/
 theorem clause3_readout_word_ledger (d M : ℕ) (hM : 0 < M) :
     IsUnitaryCircuit (gradientWord d M) ∧
       QueryCount (gradientWord d M) = 1 ∧
       GateCount (gradientWord d M) = 2 * d :=
   gradient_coordinate_qft_word_unitarity d M hM
 
+/-- The readout integer budget is `K + k`, and its space budget is `d * Nat.clog 2 (max 2 M) + K
++ k`. -/
 theorem clause3_readout_bit_and_space_ledger (d M K k : ℕ) :
     readoutIntegerBits K k = K + k ∧
       readoutSpaceBits d M K k = d * Nat.clog 2 (max 2 M) + K + k :=
   ⟨rfl, rfl⟩
 
+/-- The one coordinate gradient estimate on a grid of size `2^m` is an integer multiple of
+`2^(-m)`. -/
 theorem clause3_estimate_is_dyadic (m : ℕ) (z : Fin (2 ^ m)) :
     ∃ n : ℤ, gradientEstimate 1 (2 ^ m) (fun _ => z) 0 = (n : ℝ) / (2 : ℝ) ^ m := by
   obtain ⟨n, hn⟩ := centered_output_dyadic m z
   refine ⟨n, ?_⟩
   simpa only [gradientEstimate, centeredGridOutput] using! hn
 
+/-- A coordinatewise estimate error bound `w` gives the magnitude bound `|ê j| ≤ |g j| + w`. -/
 theorem clause3_estimate_magnitude_bound (d : ℕ) (g ê : Fin d → ℝ) (w : ℝ)
     (herror : ∀ j : Fin d, |ê j - g j| ≤ w) :
     ∀ j : Fin d, |ê j| ≤ |g j| + w := by
@@ -303,6 +360,8 @@ theorem clause3_estimate_magnitude_bound (d : ℕ) (g ê : Fin d → ℝ) (w : �
       have habs : |ê j - g j| ≤ w := abs_le.mpr h
       linarith
 
+/-- Establishes the first gradient continuation specification, combining value kickback, phase
+invariance and perturbation bounds, stationary phase transport, and exact affine readout. -/
 theorem gext1_endpoint : stageB_fourier_gradient_gext1_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro d M Q _ v x
@@ -319,6 +378,8 @@ theorem gext1_endpoint : stageB_fourier_gradient_gext1_spec := by
   · intro d M hM q c
     exact gradient_affine_actual_exact_readout d M hM q c
 
+/-- Establishes the second gradient continuation specification, combining centered decoding,
+window probability, dyadic records, and the stated obstructions to exact records. -/
 theorem gext2_endpoint : stageB_fourier_gradient_gext2_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro d M hM g w hg hw z hgood
@@ -336,6 +397,8 @@ theorem gext2_endpoint : stageB_fourier_gradient_gext2_spec := by
   · intro Q hQ
     exact non_dyadic_reciprocal Q hQ
 
+/-- Establishes the third gradient continuation specification, combining readout and value
+register resource ledgers, dyadic estimates, and estimate magnitude bounds. -/
 theorem gext3_endpoint : stageB_fourier_gradient_gext3_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro d M hM

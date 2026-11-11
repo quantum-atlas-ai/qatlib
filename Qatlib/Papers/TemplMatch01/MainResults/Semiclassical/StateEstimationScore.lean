@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Semiclassical state-estimation score expressions
+
+Defines state and measurement amplitudes, grouped outcome probabilities, and the phase-averaged
+score `stateEstimationScore` for the state-estimation strategy in [SasakiCarliniJozsa2001]. The
+auxiliary expression `estClosedForm` uses the finite binomial sum `estCoefficientSum`.
+
+The integral lemma computes the uniform average of each guess fidelity. The theorem
+`estClosedForm_special` simplifies the expression at `M = N + 1` and the specified phase offset.
+
+## Main statements
+
+* `estGuessFidelity_integral`: computes the average guess fidelity as one half.
+* `estClosedForm_special`: specializes the defined expression to `M = N + 1`.
+
+## References
+
+* [Sasaki et al., 2001][SasakiCarliniJozsa2001]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TemplMatch01.MainResults.Semiclassical
@@ -18,39 +39,56 @@ set_option autoImplicit false
 
 open intervalIntegral
 
+/-- The `k`th complex amplitude of measurement vector `m`, with magnitude factor `1 / √M` and
+the specified phase offset. -/
 noncomputable def estMuAmp (N M : ℕ) (ϕ : ℝ) (m k : ℕ) : ℂ :=
   ((Real.sqrt (M : ℝ))⁻¹ : ℂ) *
     Complex.exp (-(Complex.I) * ((((N : ℝ) - 2 * (k : ℝ)) *
       (ϕ / 2 + (m : ℝ) * Real.pi / (M : ℝ)) : ℝ) : ℂ))
 
+/-- The `k`th complex state amplitude with binomial magnitude factor `√(choose N k / 2^N)` and
+phase determined by `φ`. -/
 noncomputable def estFAmp (N : ℕ) (φ : ℝ) (k : ℕ) : ℂ :=
   ((Real.sqrt ((Nat.choose N k : ℝ) / (2 : ℝ) ^ N) : ℝ) : ℂ) *
     Complex.exp (-(Complex.I) * ((((N : ℝ) - 2 * (k : ℝ)) * (φ / 2) : ℝ) : ℂ))
 
+/-- The inner-product sum of the measurement amplitudes and the state amplitudes over `k = 0, …,
+N`. -/
 noncomputable def estOverlap (N M : ℕ) (φ ϕ : ℝ) (m : ℕ) : ℂ :=
   ∑ k ∈ Finset.range (N + 1), star (estMuAmp N M ϕ m k) * estFAmp N φ k
 
+/-- The sum of squared overlap magnitudes over the first half of measurement outcomes when `j =
+0`, and over the remaining outcomes otherwise. -/
 noncomputable def estOutcomeProb (N M j : ℕ) (φ ϕ : ℝ) : ℝ :=
   ∑ m ∈ (if j = 0 then Finset.range (M / 2) else Finset.Ico (M / 2) M),
     Complex.normSq (estOverlap N M φ ϕ m)
 
+/-- The squared half-angle cosine fidelity for the guess selected by whether `j` is zero. -/
 noncomputable def estGuessFidelity (θ φ : ℝ) (j : ℕ) : ℝ :=
   if j = 0 then Real.cos ((φ - Real.pi / 2 + θ) / 2) ^ 2
   else Real.cos ((φ - Real.pi / 2 - θ) / 2) ^ 2
 
+/-- The sum over the two guesses of the uniform phase integral of outcome probability times
+guess fidelity. -/
 noncomputable def stateEstimationScore (N M : ℕ) (θ ϕ : ℝ) : ℝ :=
   ∑ j ∈ Finset.range 2, (1 / (2 * Real.pi)) *
     ∫ φ in (0 : ℝ)..(2 * Real.pi),
       estOutcomeProb N M j φ ϕ * estGuessFidelity θ φ j
 
+/-- The sum over `k < N` of `choose N k` multiplied by `√((N - k) / (k + 1))`, with the
+subtraction taken in the reals. -/
 noncomputable def estCoefficientSum (N : ℕ) : ℝ :=
   ∑ k ∈ Finset.range N, (Nat.choose N k : ℝ) *
     Real.sqrt (((N : ℝ) - (k : ℝ)) / ((k : ℝ) + 1))
 
+/-- The scalar expression formed from one half, the cosine factors in `θ` and `ϕ`, and the
+normalized coefficient sum `estCoefficientSum`. -/
 noncomputable def estClosedForm (N M : ℕ) (ϕ θ : ℝ) : ℝ :=
   1 / 2 + Real.cos θ * Real.cos (ϕ - Real.pi / (M : ℝ)) /
     ((2 : ℝ) ^ N * (M : ℝ) * Real.sin (Real.pi / (M : ℝ))) * estCoefficientSum N
 
+/-- The uniform phase average of `estGuessFidelity θ φ j` is one half for every angle and guess
+index. See [SasakiCarliniJozsa2001]. -/
 lemma estGuessFidelity_integral (θ : ℝ) (j : ℕ) :
     (1 / (2 * Real.pi)) * ∫ φ in (0 : ℝ)..(2 * Real.pi), estGuessFidelity θ φ j
       = 1 / 2 := by
@@ -92,6 +130,8 @@ lemma estGuessFidelity_integral (θ : ℝ) (j : ℕ) :
     simpa only [show ∀ φ : ℝ, φ - Real.pi / 2 - θ = φ - (Real.pi / 2 + θ) by
       intro φ; ring] using h
 
+/-- At `M = N + 1` and phase offset `π / (N + 1)`, simplifies `estClosedForm` by removing its
+phase cosine factor. See [SasakiCarliniJozsa2001]. -/
 theorem estClosedForm_special (N : ℕ) (θ : ℝ) :
     estClosedForm N (N + 1) (Real.pi / ((N : ℝ) + 1)) θ
       = 1 / 2 + Real.cos θ /

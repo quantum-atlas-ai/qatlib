@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceTensorSeries
 import Mathlib.Analysis.Normed.Group.InfiniteSum
+
+/-!
+# Taylor series for central-difference stencils
+
+This module defines the Taylor contribution of each degree to a central-difference stencil and
+proves that the series sums to the stencil evaluation. Polynomial exactness isolates the
+derivative, while a geometric majorant controls the tail, as needed for
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_stencil_prefix`: the terms below degree `2*m+1` sum to the derivative at zero.
+* `centralDiff_stencil_geometric_error`: a degreewise bound `T^k` yields error at most
+  `T^(2*m+1)/(1-T)`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
@@ -15,11 +35,15 @@ noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- The degree-`k` Taylor contribution to the central-difference stencil, formed from the
+diagonal iterated derivative divided by `k!` and the signed stencil moment. -/
 def centralDiffStencilTerm (d m : ℕ) (f : EuclideanSpace ℝ (Fin d) → ℝ)
     (y : EuclideanSpace ℝ (Fin d)) (k : ℕ) : ℝ :=
   iteratedFDeriv ℝ k f 0 (fun _ : Fin k => y)/(Nat.factorial k : ℝ)*
     (∑ l∈Finset.Ico (-(m : ℤ)) ((m : ℤ)+1),centralDiffCoeff m l*(l : ℝ)^k)
 
+/-- For an analytic function with the stated coordinate-derivative growth, the stencil-term
+series sums to `centralDiffApply m f y`. -/
 theorem centralDiff_stencil_hasSum (d m : ℕ) (f : EuclideanSpace ℝ (Fin d) → ℝ)
     (hf : AnalyticOnNhd ℝ f Set.univ) (c : ℝ) (hc : 0≤c)
     (hb : ∀ (k : ℕ) (α : Fin k → Fin d),
@@ -36,6 +60,8 @@ theorem centralDiff_stencil_hasSum (d m : ℕ) (f : EuclideanSpace ℝ (Fin d) �
   intro l _
   ring
 
+/-- For positive stencil order `m`, the stencil-series terms of degrees below `2*m+1` sum
+exactly to the derivative of `f` at zero applied to `y`. -/
 theorem centralDiff_stencil_prefix (d m : ℕ) (hm : 0<m)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (y : EuclideanSpace ℝ (Fin d)) :
     (∑ k∈Finset.range (2*m+1),centralDiffStencilTerm d m f y k)=(fderiv ℝ f 0) y := by
@@ -51,6 +77,9 @@ theorem centralDiff_stencil_prefix (d m : ℕ) (hm : 0<m)
   rw [Finset.sum_congr rfl hlow,Finset.sum_ite_eq']
   simp [Finset.mem_range,show 1<2*m+1 by omega]
 
+/-- For an analytic function with the stated derivative growth, a tail bound
+`|centralDiffStencilTerm ... k| ≤ T^k` with `0 ≤ T < 1` gives derivative error at most
+`T^(2*m+1)/(1-T)`. -/
 theorem centralDiff_stencil_geometric_error (d m : ℕ) (hm : 0<m)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (hf : AnalyticOnNhd ℝ f Set.univ)
     (c : ℝ) (hc : 0≤c)

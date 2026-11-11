@@ -8,6 +8,19 @@ import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingBoundaryDefs
 import Qatlib.Concepts.Waterfill.LevelFidelity.RealFidelityEndpoints
 import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
 import Qatlib.Concepts.Waterfill.LevelFidelity.AccessReweighting
+
+/-!
+# Boundary cases and complete reweighting contracts
+
+`gext1_complete` combines endpoint formulas, level existence, and source-box optimality,
+including a collapsed bracket. `gext2_complete` supplies certified rational brackets and
+mass-error estimates, while `gext3_complete` derives a source-query bound conditionally on a
+filtered consumer and records its failure on a zero-query instance.
+
+These statements refine the water-level setting of quantum rejection sampling
+[OzolsRoettelerRoland2013]; see [Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -58,6 +71,10 @@ open scoped BigOperators ComplexOrder ENNReal
 
 variable {m : ℕ}
 
+/-- Combines the endpoint fill, mass, and overlap formulas with level existence for a strict
+extended bracket and the fidelity characterization for a collapsed bracket. It also proves
+the overlap comparison at bounded mass and the mass optimality of a realizing fill among
+source-box competitors meeting the fidelity constraint. -/
 theorem gext1_complete :
     ∀ (m : ℕ) (π σ : Fin m → ℝ) (γlo γhi : ℝ) (p : ℝ),
       (∑ i, π i ^ 2) = 1 → (∑ i, σ i ^ 2) = 1 →
@@ -306,6 +323,10 @@ theorem gext1_complete :
       nlinarith [hcomp, hsq, hcontra]
   refine ⟨hzero, hlow, hdotlo, hmasslo, hhigh, hmasshi, hdothi, hexist, hdeg, hover, hopt⟩
 
+/-- For admissible normalized rational tables, supplies certified brackets and exact
+arithmetic-work counts at every search depth. The selected level bounds every positive-mass
+realizing level from above, lies within the stated dyadic distance of a residual root, and
+gives a corresponding local mass-error estimate. -/
 theorem gext2_complete :
     ∀ (m : ℕ) (π σ : Fin m → ℚ) (p : ℚ),
       (∀ i, 0 ≤ π i) → (∀ i, 0 ≤ σ i) →
@@ -444,6 +465,8 @@ theorem gext2_complete :
         nlinarith
   refine ⟨hcert, hdiv, henergy, hcomp, hdom, ⟨γt, htransrel, hlo', hhi'⟩, hprec⟩
 
+/-- The empty prepared word succeeds with fidelity one for the one-coordinate constant-one
+source and target with ancillary dimension one at level one. -/
 theorem easyInstance_success :
     ReweightingSuccess (D := 1) ((0, 0) : Fin 1 × Fin 1) easyPi easySig (1 : ℝ) 1
       (List.nil : List (PreparedStep ((Fin 1 × Fin 1) × Bool))) := by
@@ -499,6 +522,9 @@ theorem easyInstance_success :
       Complex.normSq_conj _
     rw [hconj, hnorm]
 
+/-- Derives the source-query bound `c / (2 * sqrt(levelMass))` conditionally on a filtered
+gamma-two lower-bound consumer. It also excludes such consumers whenever a successful
+zero-query word exists and records the explicit one-dimensional counterexample. -/
 theorem gext3_complete :
     ∀ (m D : ℕ) (π σ : Fin m → ℚ) (γ p δ c cδ : ℝ),
       0 < levelMass π σ γ →

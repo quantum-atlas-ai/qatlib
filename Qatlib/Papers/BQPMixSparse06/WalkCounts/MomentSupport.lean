@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.BQPMixSparse06.MainResults.Lemma1FunctionalCalculus
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.Order.Archimedean.Basic
+
+/-!
+# Spectral moment bounds and support
+
+The finite spectral moment `spectralMoment` relates growth of all moments to the support of a
+nonnegative weighted spectrum. For probability weights, `moment_growth_iff_supp` characterizes
+the bound `|moment n| ≤ b ^ n` by the requirement that every positive-weight eigenvalue have
+absolute value at most `b`.
+
+The power and clamping estimates provide quantitative continuity bounds used in the normalized
+walk-count arguments of [JanzingWocjan2006].
+
+## Main statements
+
+* `moment_growth_iff_supp`: moment growth and the spectral support bound are equivalent for
+  nonnegative `b`.
+* `pow_abs_sub_pow_le`: a Lipschitz bound for powers on a bounded interval.
+* `abs_clamp_sub_clamp_le`: clamping does not increase distances.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,9 +40,11 @@ namespace Qatlib.Papers.BQPMixSparse06.WalkCounts
 
 open Finset
 
+/-- The finite weighted spectral moment `∑ l, p l * lam l ^ n`. -/
 def spectralMoment {ι : Type*} [Fintype ι] (p lam : ι → ℝ) (n : ℕ) : ℝ :=
   ∑ l, p l * lam l ^ n
 
+/-- Every even spectral moment is nonnegative when all weights are nonnegative. -/
 theorem spectralMoment_even_nonneg {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (n : ℕ) : 0 ≤ spectralMoment p lam (2 * n) := by
   unfold spectralMoment
@@ -28,6 +54,7 @@ theorem spectralMoment_even_nonneg {ι : Type*} [Fintype ι] (p lam : ι → ℝ
   simp only [h]
   exact Finset.sum_nonneg fun l _ => mul_nonneg (hp l) (pow_nonneg (sq_nonneg (lam l)) n)
 
+/-- Each weighted even-power term is bounded above by the corresponding even spectral moment. -/
 theorem spectralMoment_even_ge {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (j : ι) (k : ℕ) :
     p j * (lam j ^ 2) ^ k ≤ spectralMoment p lam (2 * k) := by
@@ -40,6 +67,8 @@ theorem spectralMoment_even_ge {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (fun l _ => mul_nonneg (hp l) (pow_nonneg (sq_nonneg (lam l)) k))
     (Finset.mem_univ j)
 
+/-- For probability weights supported on eigenvalues with absolute value at most `b`, the
+absolute `n`th spectral moment is at most `b ^ n` [JanzingWocjan2006]. -/
 theorem moment_le_of_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (hmass : ∑ l, p l = 1) (b : ℝ)
     (hb : ∀ l, 0 < p l → |lam l| ≤ b) (n : ℕ) :
@@ -60,6 +89,8 @@ theorem moment_le_of_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     _ = (∑ l, p l) * b ^ n := by rw [Finset.sum_mul]
     _ = b ^ n := by rw [hmass, one_mul]
 
+/-- If every spectral moment is bounded in absolute value by `b ^ n` with `b ≥ 0`, every
+positive-weight eigenvalue has absolute value at most `b` [JanzingWocjan2006]. -/
 theorem moment_growth_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (b : ℝ) (hb : 0 ≤ b)
     (hΔ : ∀ n, |spectralMoment p lam n| ≤ b ^ n) :
@@ -117,17 +148,23 @@ theorem moment_growth_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
       nlinarith
     rw [hlam, abs_zero]
 
+/-- For nonnegative probability weights and `b ≥ 0`, the bound `|spectralMoment p lam n| ≤ b ^
+n` for all orders is equivalent to `|lam j| ≤ b` at every positive-weight index
+[JanzingWocjan2006]. -/
 theorem moment_growth_iff_supp {ι : Type*} [Fintype ι] (p lam : ι → ℝ)
     (hp : ∀ l, 0 ≤ p l) (hmass : ∑ l, p l = 1) (b : ℝ) (hb : 0 ≤ b) :
     (∀ n, |spectralMoment p lam n| ≤ b ^ n) ↔
       ∀ j, 0 < p j → |lam j| ≤ b :=
   ⟨moment_growth_supp p lam hp b hb, fun hsupp n => moment_le_of_supp p lam hp hmass b hsupp n⟩
 
+/-- If `|x| ≤ c`, the absolute value of `x ^ m` is at most `c ^ m`. -/
 theorem pow_abs_le_of_abs_le {x c : ℝ} (_hc : 0 ≤ c) (hx : |x| ≤ c) (m : ℕ) :
     |x ^ m| ≤ c ^ m := by
   rw [abs_pow]
   exact pow_le_pow_left₀ (abs_nonneg x) hx m
 
+/-- For `|x|, |y| ≤ c` with `c ≥ 0`, the absolute difference of their `m`th powers is at most `m
+* c ^ (m - 1) * |x - y|` [JanzingWocjan2006]. -/
 theorem pow_abs_sub_pow_le {x y c : ℝ} (_hc : 0 ≤ c) (hx : |x| ≤ c)
     (hy : |y| ≤ c) (m : ℕ) :
     |x ^ m - y ^ m| ≤ (m : ℝ) * c ^ (m - 1) * |x - y| := by
@@ -149,11 +186,15 @@ theorem pow_abs_sub_pow_le {x y c : ℝ} (_hc : 0 ≤ c) (hx : |x| ≤ c)
     _ ≤ |x - y| * (m : ℝ) * c ^ (m - 1) := hstep
     _ = (m : ℝ) * c ^ (m - 1) * |x - y| := by ring
 
+/-- Taking the minimum with a fixed real number does not increase the distance between two real
+numbers. -/
 theorem abs_min_sub_min_le_abs (a b c : ℝ) : |min a c - min b c| ≤ |a - b| := by
   have h : LipschitzWith 1 (fun x : ℝ => min x c) := LipschitzWith.id.min_const c
   have hd := h.dist_le_mul a b
   simpa [Real.dist_eq] using hd
 
+/-- Applying the same clamping function to two real numbers does not increase their distance
+[JanzingWocjan2006]. -/
 theorem abs_clamp_sub_clamp_le {lo hi : ℝ} (x y : ℝ) :
     |Qatlib.Papers.BQPMixSparse06.MainResults.clamp lo hi x -
         Qatlib.Papers.BQPMixSparse06.MainResults.clamp lo hi y| ≤

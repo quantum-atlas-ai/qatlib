@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.OptimizedBound.OptimizedAdversaryQueryLowerBoundStat
 import Mathlib.Tactic.NormNum.RealSqrt
+
+/-!
+# Optimized adversary lower bound for Boolean circuits
+
+`optimizedAdversaryQueryLowerBound` bounds the optimized general adversary value using an actual
+unitary Boolean query circuit and its Born measurement event. For error at most one half, the
+factor `1 - 2 * Real.sqrt (ε * (1 - ε))` times the adversary value is at most twice the query
+count.
+
+The mathematical context is discussed in [LeeEtAl2011].
+
+## Main statements
+
+* `optimizedAdversaryQueryLowerBound`: The optimized adversary inequality in the extended
+  nonnegative reals.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +40,9 @@ namespace Qatlib.Concepts.ConversionCore.OptimizedBound
 open Matrix
 open scoped Matrix.Norms.L2Operator ENNReal
 
+/-- For a normalized initial state and a unitary circuit computing `f` with error ε in [0, 1/2]
+via the specified Born event, `(1 − 2√(ε(1 − ε)))` times the general adversary value is at
+most twice the query count [LeeEtAl2011]. -/
 theorem optimizedAdversaryQueryLowerBound : OptimizedAdversaryQueryLowerBound := by
   intro X W _ _ _ _ _ n input f C ψ E ε hC hψ he0 he1 hs
   have hprod : ε * (1 - ε) ≤ (1 / 4 : ℝ) := by nlinarith [sq_nonneg (ε - 1 / 2)]

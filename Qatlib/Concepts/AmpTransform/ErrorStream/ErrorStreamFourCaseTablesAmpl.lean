@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamFourCaseTablesStat
 import Qatlib.Concepts.AmpTransform.ErrorStream.ProgressionFourierCases
 import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedMarkedSetAmplitudes
+
+/-!
+# Exact probability tables for error-stream transforms
+
+This module proves `ErrorStreamFourCaseTables` for a nonwrapping planted progression with
+disjoint fixed noise. It gives the zero-mode and nonzero-label probabilities for the amplified
+transform, phase baseline, and quantum hidden-subgroup baseline.
+
+The marked Fourier sum is evaluated separately at resonance, in the off-resonant geometric case,
+and when the progression contribution vanishes. The probabilities refer to the actual label
+outcomes under the stated sparsity assumptions.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `errorStreamFourCaseTables`: the full probability and Fourier-case table.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AmpTransform.NoiseEnvelope
@@ -18,6 +41,10 @@ set_option backward.isDefEq.respectTransparency false
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open scoped Classical BigOperators
 
+/-- Establish the exact zero- and nonzero-frequency probabilities for the amplified, phase, and
+quantum hidden-subgroup baselines, with resonant, geometric, and vanishing-signal Fourier
+branches under the stated error-stream assumptions; see [Cornwell, Section
+3.4.4][Cornwell2014]. -/
 theorem errorStreamFourCaseTables : ErrorStreamFourCaseTables := by
   intro N hN s M L P G h hM hP hbound h2T hG hdis hmark
   (try dsimp only)

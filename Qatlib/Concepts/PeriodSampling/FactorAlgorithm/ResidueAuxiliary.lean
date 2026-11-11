@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchStat
+
+/-!
+# Residue factor soundness and bit-width bounds
+
+Proves soundness of the classical residue factor routine and the power-of-two window for the
+chosen residue bit width. These auxiliary results support fair-bit residue sampling and
+factoring attempts in the framework associated with [Shor1997].
+
+## Main statements
+
+* `residue_classical_factor_sound`: Proves soundness of a returned classical factor.
+* `residue_bit_width_window`: Bounds the chosen sampler capacity between `N` and `2 * N`.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +33,7 @@ open scoped Classical
 
 namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 
+/-- If the classical residue factor routine returns `d`, then `1 < d < N` and `d` divides `N`. -/
 theorem residue_classical_factor_sound (N : ℕ) [NeZero N] (y : ZMod N) (d : ℕ)
     (hd : residueClassicalFactor N y = some d) : 1 < d ∧ d < N ∧ d ∣ N := by
   unfold residueClassicalFactor at hd
@@ -30,6 +49,8 @@ open Qatlib
 open scoped Classical
 namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm.Shor1997
 
+/-- For positive `N`, the chosen residue bit width satisfies `N ≤ 2 ^ shorResidueBits N < 2 *
+N`. -/
 theorem residue_bit_width_window (N : ℕ) (hN : 0 < N) :
     N ≤ 2^shorResidueBits N ∧ 2^shorResidueBits N < 2*N := by
   have hlo := Nat.pow_log_le_self 2 hN.ne'

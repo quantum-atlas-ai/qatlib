@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Qatlib.Concepts.WalkFind.UniqueCollision.GeneralQueryMemory
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Choosing the optimized collision-search memory scale
+
+This module chooses an integer subset size whose memory size and `queryScale` are both bounded
+by `(k+2)*N^(k/(k+1))`. It then derives the general optimized-query contract from the general
+query-memory tradeoff, following the scale balancing used in collision search
+[Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `optimizedMemory_choice`: simultaneous bounds on the chosen subset size and query scale.
+* `generalOptimizedQueries_of_generalQueryMemory`: the optimized endpoint from the memory
+  tradeoff.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open scoped Classical
 
+/-- For `2 ≤ k ≤ N`, there is `r` with `k ≤ r ≤ N` such that both `queryScale k N r` and `r` are
+at most `(k+2)*N^(k/(k+1))`. -/
 theorem optimizedMemory_choice (k N : ℕ) (hk : 2 ≤ k) (hNk : k ≤ N) :
     ∃ r : ℕ, k ≤ r ∧ r ≤ N ∧
       queryScale k N r ≤ ((k : ℝ)+2)*(N : ℝ)^((k : ℝ)/(k+1)) ∧
@@ -64,6 +86,7 @@ theorem optimizedMemory_choice (k N : ℕ) (hk : 2 ≤ k) (hNk : k ≤ N) :
     nlinarith
   · nlinarith
 
+/-- The general query-memory contract implies the general optimized-query contract. -/
 theorem generalOptimizedQueries_of_generalQueryMemory
     (hgeneral : GeneralQueryMemoryContract) : GeneralOptimizedQueriesContract := by
   intro k hk

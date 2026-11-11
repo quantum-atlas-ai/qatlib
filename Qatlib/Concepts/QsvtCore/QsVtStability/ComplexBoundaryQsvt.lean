@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
+
+/-!
+# Boundary robustness of complex QSVT
+
+This module constructs defect-square-root unitaries for Hermitian contractions and applies them
+to rectangular Hermitian dilations. It proves square-root perturbation bounds for complex
+phase-list singular responses, in the robustness setting of [GilyenSuLowWiebe2019].
+
+For an odd phase list and an approximate block encoding, the actual compressed word has error
+bounded by `4 * zs.length * √(ε / α)`, with query count equal to the list length.
+
+## Main statements
+
+* `complex_boundary_singular_response_stability`: Bound odd and even response perturbations on
+  contractions.
+* `complex_boundary_actual_encoded_word`: Transfer the bound to an actual encoded word and its
+  query count.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -33,14 +56,17 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOr
 noncomputable local instance boundaryMatrixCStar {I : Type} [Fintype I] [DecidableEq I] :
     CStarAlgebra (Matrix I I ℂ) where
 
+/-- A nonnegative real scalar maps to a nonnegative scalar matrix. -/
 private theorem boundary_scalar_nonneg {I : Type} [Fintype I] [DecidableEq I]
     {r : ℝ} (hr : 0 ≤ r) : 0 ≤ algebraMap ℝ (Matrix I I ℂ) r := by
   rw [Algebra.algebraMap_eq_smul_one]
   exact ((Matrix.PosSemidef.one : (1 : Matrix I I ℂ).PosSemidef).smul hr).nonneg
 
+/-- The defect square root `√(1 - X * X)` used in the boundary unitary construction. -/
 private noncomputable def boundaryDefect {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : Matrix I I ℂ := CFC.sqrt (1-X*X)
 
+/-- For a Hermitian contraction `X`, the defect matrix `1 - X * X` is nonnegative. -/
 private theorem boundaryDefect_positive {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.IsHermitian) (hn : ‖X‖ ≤ 1) : 0 ≤ 1-X*X := by
   have h := CStarAlgebra.star_mul_le_algebraMap_norm_sq (a := X)
@@ -51,15 +77,19 @@ private theorem boundaryDefect_positive {I : Type} [Fintype I] [DecidableEq I]
     nlinarith [norm_nonneg X]
   exact sub_nonneg.mpr (h.trans hscalar)
 
+/-- A matrix commutes with its defect square root. -/
 private theorem boundaryDefect_commute {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : X * boundaryDefect X = boundaryDefect X * X := by
   have hc : Commute (1-X*X) X := by change (1-X*X)*X=X*(1-X*X); noncomm_ring
   exact (hc.cfcₙ_nnreal NNReal.sqrt).eq.symm
 
+/-- The block matrix with diagonal blocks `X` and `-X` and both off-diagonal blocks equal to the
+defect square root. -/
 private noncomputable def boundaryUnitary {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : Matrix (I⊕I) (I⊕I) ℂ :=
   Matrix.fromBlocks X (boundaryDefect X) (boundaryDefect X) (-X)
 
+/-- The boundary block construction is unitary for a Hermitian contraction. -/
 private theorem boundaryUnitary_unitary {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.IsHermitian) (hn : ‖X‖ ≤ 1) :
     boundaryUnitary X ∈ Matrix.unitaryGroup (I⊕I) ℂ := by
@@ -75,6 +105,7 @@ private theorem boundaryUnitary_unitary {I : Type} [Fintype I] [DecidableEq I]
     hsq,hc,add_sub_cancel,add_neg_cancel,sub_add_cancel]
   exact Matrix.fromBlocks_one
 
+/-- The norm of the signed block diagonal matrix of a Hermitian `X` is at most `‖X‖`. -/
 private theorem boundary_signed_diagonal_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.IsHermitian) :
     ‖Matrix.fromBlocks X 0 0 (-X)‖ ≤ ‖X‖ := by
@@ -90,6 +121,7 @@ private theorem boundary_signed_diagonal_norm_le {I : Type} [Fintype I] [Decidab
     rw [hermitianDilation_norm]
     exact mul_le_of_le_one_left (norm_nonneg X) (unitary_norm_le_one hJ))
 
+/-- For contractions `X` and `Y`, their squared defect matrices differ by at most `2 * ‖X - Y‖`. -/
 private theorem boundary_square_distance {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (hX : ‖X‖ ≤ 1) (hY : ‖Y‖ ≤ 1) :
     ‖(1-X*X)-(1-Y*Y)‖ ≤ 2*‖X-Y‖ := by
@@ -103,6 +135,7 @@ private theorem boundary_square_distance {I : Type} [Fintype I] [DecidableEq I]
       (mul_le_mul_of_nonneg_left hY (norm_nonneg _))
     _ = _ := by ring
 
+/-- The boundary unitaries of Hermitian contractions differ by at most `4 * √‖X - Y‖`. -/
 private theorem boundaryUnitary_distance {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (hX : X.IsHermitian) (hY : Y.IsHermitian)
     (hnX : ‖X‖ ≤ 1) (hnY : ‖Y‖ ≤ 1) :
@@ -140,21 +173,29 @@ private theorem boundaryUnitary_distance {I : Type} [Fintype I] [DecidableEq I]
       exact add_le_add (boundary_signed_diagonal_norm_le (X-Y) (hX.sub hY)) hboundary
     _ ≤ _ := by linarith
 
+/-- The Hermitian dilation of a rectangular matrix is Hermitian. -/
 private theorem boundary_dilation_hermitian {I O : Type} [Fintype I] [Fintype O]
     (A : Matrix O I ℂ) : (hermitianDilation A).IsHermitian := by
   unfold Matrix.IsHermitian hermitianDilation
   simp [Matrix.fromBlocks_conjTranspose]
 
+/-- The embedding into the first summand of the doubled Hermitian-dilation space. -/
 private noncomputable def boundaryFirst {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] : Matrix ((O⊕I)⊕(O⊕I)) (O⊕I) ℂ :=
   (dilationLeft (I := O⊕I) (O := O⊕I))ᴴ
+/-- The output frame obtained by composing the first-summand embedding with the output dilation
+embedding. -/
 private noncomputable def boundaryLeft {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] : Matrix ((O⊕I)⊕(O⊕I)) O ℂ :=
   boundaryFirst (I := I) (O := O) * (dilationLeft (I := I) (O := O))ᴴ
+/-- The input frame obtained by composing the first-summand embedding with the input dilation
+embedding. -/
 private noncomputable def boundaryRight {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] : Matrix ((O⊕I)⊕(O⊕I)) I ℂ :=
   boundaryFirst (I := I) (O := O) * (dilationRight (I := I) (O := O))ᴴ
 
+/-- A rectangular contraction is encoded by the boundary unitary of its Hermitian dilation and
+the boundary frames. -/
 private theorem boundary_projectedEncoding {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (A : Matrix O I ℂ) (hn : ‖A‖ ≤ 1) :
     ProjectedUnitaryEncoding A (boundaryUnitary (hermitianDilation A)) boundaryLeft boundaryRight := by
@@ -178,6 +219,8 @@ private theorem boundary_projectedEncoding {I O : Type} [Fintype I] [Fintype O]
       simp only [Matrix.mul_assoc]
     _ = A := by rw [he,compress_dilation_selectors12]; rfl
 
+/-- For contractions and unit phases, the odd or even singular response changes by at most `4 *
+zs.length * √‖A - B‖`, according to list parity [GilyenSuLowWiebe2019]. -/
 theorem complex_boundary_singular_response_stability :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A B : Matrix O I ℂ) (base : ℂ) (zs : List ℂ),
@@ -222,6 +265,9 @@ theorem complex_boundary_singular_response_stability :
     rw [← Matrix.conjTranspose_sub, Matrix.l2_opNorm_conjTranspose] at h
     exact h.trans hrate
 
+/-- For an approximate block encoding with contractive normalized target and an odd unit-phase
+list, the actual compressed word has error at most `4 * zs.length * √(ε / α)` and uses
+exactly `zs.length` oracle queries [GilyenSuLowWiebe2019]. -/
 theorem complex_boundary_actual_encoded_word :
     ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

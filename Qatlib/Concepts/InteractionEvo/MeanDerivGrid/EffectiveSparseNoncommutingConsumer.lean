@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+/-!
+# A noncommuting one-qubit Hamiltonian field
+
+This module proves that the one-qubit field `H(u) = (Z + u X) / 4` has noncommuting values at
+zero and one half. `effectiveConsumer_noncommuting` gives a concrete finite-dimensional example
+for the time-dependent simulation setting of [LowWiebe2018].
+
+## Main statements
+
+* `effectiveConsumer_noncommuting`: the two displayed Hamiltonian values do not commute.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +37,8 @@ namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The one-qubit Hamiltonian field `H(u) = (Z + u X) / 4` has noncommuting values at `u = 0`
+and `u = 1/2`. -/
 theorem effectiveConsumer_noncommuting :
     let H : ℝ → Matrix (Reg 1) (Reg 1) ℂ := fun u =>
       (1/4 : ℂ) • (effectivePauliZ + (u : ℂ) • effectivePauliX)

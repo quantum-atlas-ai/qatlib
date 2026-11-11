@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvWitness
 import Mathlib.Data.ZMod.Basic
 import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+/-!
+# Adversary bounds for finite alphabet queries
+
+This module defines the additive finite alphabet oracle `alphabetOracle` and the coordinate
+filters `alphabetFilter`. It extends adversary progress estimates to multiple output labels,
+following the general adversary method of [HoyerLeeSpalek2007].
+
+The proofs decompose states into query address slices and correct or erroneous output sectors,
+giving per-query progress bounds and a circuit query lower bound.
+
+## Main statements
+
+* `alphabet_oracle_actual_unitarity_and_filter`: the additive oracle is unitary.
+* `alphabet_adversary_same_query_progress`: a query changes progress by at most twice a uniform
+  filter norm bound.
+* `multioutput_adversary_actual_circuit_lower_bound`: relates the adversary norm to query count
+  and output error.
+
+## References
+
+* [Hoyer et al., 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -24,6 +48,8 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The basis permutation that adds the addressed input symbol to the response register and
+preserves the workspace. -/
 noncomputable def alphabetShift {W : Type} {n a : ℕ} (input : Fin n → ZMod a) :
     Equiv.Perm ((Fin n×ZMod a)×W) where
   toFun p := ((p.1.1,p.1.2+input p.1.1),p.2)
@@ -31,38 +57,49 @@ noncomputable def alphabetShift {W : Type} {n a : ℕ} (input : Fin n → ZMod a
   left_inv p := by ext <;> simp
   right_inv p := by ext <;> simp
 
+/-- The permutation matrix implementing the additive oracle for an input over `ZMod a`. -/
 noncomputable def alphabetOracle {W : Type} [Fintype W] [DecidableEq W] {n a : ℕ}
     [NeZero a] (input : Fin n → ZMod a) :
     Matrix ((Fin n×ZMod a)×W) ((Fin n×ZMod a)×W) ℂ := permMatrix (alphabetShift input)
 
+/-- The matrix obtained from `Gamma` by retaining entries whose inputs differ at coordinate `i`. -/
 noncomputable def alphabetFilter {X : Type} {n a : ℕ} (input : X→Fin n→ZMod a)
     (Gamma : Matrix X X ℂ) (i : Fin n) : Matrix X X ℂ :=
   fun x y => if input x i≠input y i then Gamma x y else 0
 
+/-- The adjacency matrix on alphabet strings that differ at exactly one coordinate. -/
 noncomputable def alphabetCubeGamma (n a : ℕ) [NeZero a] :
     Matrix (Fin n→ZMod a) (Fin n→ZMod a) ℂ :=
   fun x y => if (Finset.univ.filter (fun i => x i≠y i)).card=1 then 1 else 0
 
+/-- The additive finite alphabet oracle belongs to the matrix unitary group. -/
 theorem alphabet_oracle_actual_unitarity_and_filter
     (W : Type) [Fintype W] [DecidableEq W] (n a : ℕ) [NeZero a]
     (input : Fin n → ZMod a) :
     alphabetOracle (W:=W) input ∈ Matrix.unitaryGroup ((Fin n × ZMod a) × W) ℂ :=
   permMatrix_unitary_of_injective (alphabetShift input).injective
 
+/-- The component of a joint input and output state supported where the output label equals `f`
+of the input. -/
 noncomputable def multiCorrect {X H Y : Type} [DecidableEq Y]
     (f : X → Y) (label : H → Y) (v : QState (X × H)) : QState (X × H) :=
   fun p => if label p.2 = f p.1 then v p else 0
 
+/-- The component of a joint input and output state supported where the output label differs
+from `f` of the input. -/
 noncomputable def multiError {X H Y : Type} [DecidableEq Y]
     (f : X → Y) (label : H → Y) (v : QState (X × H)) : QState (X × H) :=
   fun p => if label p.2 = f p.1 then 0 else v p
 
+/-- The correct and erroneous output components sum to the original state. -/
 private theorem multi_correct_add_error {X H Y : Type} [DecidableEq Y]
     (f : X → Y) (label : H → Y) (v : QState (X × H)) :
     multiCorrect f label v + multiError f label v = v := by
   ext p
   by_cases hp : label p.2 = f p.1 <;> simp [multiCorrect, multiError, hp]
 
+/-- The adversary quadratic form vanishes on the correct output component when `Gamma` vanishes
+between inputs with equal function values. -/
 private theorem multi_correct_zero {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [DecidableEq Y]
     (Gamma : Matrix X X ℂ) (f : X → Y) (label : H → Y) (v : QState (X × H))
@@ -78,6 +115,8 @@ private theorem multi_correct_zero {X H Y : Type} [Fintype X] [DecidableEq X]
   · simp only [multiCorrect, if_neg hx, if_pos hy]; simp
   · simp only [multiCorrect, if_neg hx, if_neg hy]; simp
 
+/-- The squared Euclidean norms of the correct and erroneous components sum to the squared norm
+of the original state. -/
 private theorem multi_output_energy {X H Y : Type} [Fintype X] [Fintype H]
     [DecidableEq Y] (f : X → Y) (label : H → Y) (v : QState (X × H)) :
     ‖toEuclidean_fromVec (multiCorrect f label v)‖ ^ 2 +
@@ -87,6 +126,8 @@ private theorem multi_output_energy {X H Y : Type} [Fintype X] [Fintype H]
   intro p _
   by_cases hp : label p.2 = f p.1 <;> simp [multiCorrect, multiError, hp]
 
+/-- The squared norm of the correct component of `advStack` equals the weighted sum of the
+individual success probabilities. -/
 private theorem multi_correct_mass {X H Y : Type} [Fintype X] [Fintype H]
     [DecidableEq Y] (f : X → Y) (label : H → Y) (weight : QState X)
     (states : X → QState H) :
@@ -101,6 +142,9 @@ private theorem multi_correct_mass {X H Y : Type} [Fintype X] [Fintype H]
   intro h _
   by_cases hh : label h = f x <;> simp [hh, mul_pow]
 
+/-- For normalized states with output error at most `eps`, where `0 ≤ eps ≤ 1 / 2`, the absolute
+adversary progress is at most `(2 * Real.sqrt (eps * (1 - eps)) + 2 * eps) * ‖Gamma‖` when
+equal-output entries vanish. -/
 theorem multioutput_adversary_actual_final_progress
     (X H Y : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     [Fintype Y] [DecidableEq Y] (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -169,6 +213,8 @@ theorem multioutput_adversary_actual_final_progress
     _ ≤ (2 * Real.sqrt (eps * (1 - eps)) + 2 * eps) * ‖Gamma‖ := by
       nlinarith [norm_nonneg Gamma]
 
+/-- Applying the alphabet oracle evaluates each output amplitude at the response symbol minus
+the addressed input symbol. -/
 theorem alphabetOracle_mulVec {W : Type} [Fintype W] [DecidableEq W] {n a : ℕ}
     [NeZero a] (input : Fin n → ZMod a) (ψ : QState ((Fin n × ZMod a) × W))
     (p : (Fin n × ZMod a) × W) :
@@ -185,6 +231,8 @@ theorem alphabetOracle_mulVec {W : Type} [Fintype W] [DecidableEq W] {n a : ℕ}
     simp [hp]
   · simp
 
+/-- The quadratic form of `Gamma` tensored with the identity expands as a sum of matrix entries
+times inner products of input slices. -/
 private theorem alphabet_form_expand {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (Gamma : Matrix X X ℂ) (v : QState (X × H)) :
     Qatlib.Foundations.PureStateMath.Inner v (TensorGate Gamma (1 : Matrix H H ℂ) *ᵥ v) =
@@ -197,16 +245,21 @@ private theorem alphabet_form_expand {X H : Type} [Fintype X] [DecidableEq X]
   intro y _
   exact Finset.sum_congr rfl fun h _ => by ring
 
+/-- The state obtained by translating each response coordinate backward by the symbol assigned
+to its input. -/
 private noncomputable def alphabetPull {X W : Type} {a : ℕ} (f : X → ZMod a)
     (v : QState (X × (ZMod a × W))) : QState (X × (ZMod a × W)) :=
   fun p => v (p.1, (p.2.1 - f p.1, p.2.2))
 
+/-- The permutation subtracting `z` from the alphabet coordinate and preserving the workspace
+coordinate. -/
 private def alphabetSectorPerm {W : Type} {a : ℕ} (z : ZMod a) : Equiv.Perm (ZMod a × W) where
   toFun p := (p.1 - z, p.2)
   invFun p := (p.1 + z, p.2)
   left_inv p := by simp
   right_inv p := by simp
 
+/-- Translating two input slices by the same alphabet symbol preserves their inner product. -/
 private theorem alphabetPull_inner {X W : Type} [Fintype W] {a : ℕ} [NeZero a]
     (f : X → ZMod a) (v : QState (X × (ZMod a × W))) (x y : X) (hxy : f x = f y) :
     Qatlib.Foundations.PureStateMath.Inner (fun h => alphabetPull f v (x,h)) (fun h => alphabetPull f v (y,h)) =
@@ -215,6 +268,7 @@ private theorem alphabetPull_inner {X W : Type} [Fintype W] {a : ℕ} [NeZero a]
   exact Equiv.sum_comp (alphabetSectorPerm (W:=W) (f y))
     (fun h => star (v (x,h)) * v (y,h))
 
+/-- Input-dependent translation of the response register preserves the Euclidean norm. -/
 private theorem alphabetPull_norm {X W : Type} [Fintype X] [Fintype W] {a : ℕ} [NeZero a]
     (f : X → ZMod a) (v : QState (X × (ZMod a × W))) :
     ‖toEuclidean_fromVec (alphabetPull f v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -225,6 +279,8 @@ private theorem alphabetPull_norm {X W : Type} [Fintype X] [Fintype W] {a : ℕ}
   simpa only [Fintype.sum_prod_type, alphabetSectorPerm, Equiv.coe_fn_mk, alphabetPull] using!
     Equiv.sum_comp (alphabetSectorPerm (W:=W) (f x)) (fun h => ‖v (x,h)‖ ^ 2)
 
+/-- The change in the adversary quadratic form under `alphabetPull` depends only on entries
+between inputs with different translation symbols. -/
 private theorem alphabetPull_filter_difference {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {a : ℕ} [NeZero a] (f : X → ZMod a) (Gamma : Matrix X X ℂ)
     (v : QState (X × (ZMod a × W))) :
@@ -241,6 +297,8 @@ private theorem alphabetPull_filter_difference {X W : Type} [Fintype X] [Decidab
       alphabetPull_inner f v x y hf, sub_self]
   · simp [hf]
 
+/-- The absolute real change in the adversary quadratic form is at most twice the filtered
+matrix norm times the squared state norm. -/
 private theorem alphabetPull_progress_bound {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {a : ℕ} [NeZero a] (f : X → ZMod a) (Gamma : Matrix X X ℂ)
     (v : QState (X × (ZMod a × W))) :
@@ -264,10 +322,13 @@ private theorem alphabetPull_progress_bound {X W : Type} [Fintype X] [DecidableE
     _ = 2 * ‖A‖ * ‖toEuclidean_fromVec v‖ ^ 2 := by rw [alphabetPull_norm]; ring
     _ ≤ _ := mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hA (by norm_num)) (sq_nonneg _)
 
+/-- The weighted joint input and response state obtained by fixing the query address to `i`. -/
 noncomputable def alphabetSlice {X W : Type} {n a : ℕ} [NeZero a] (weight : QState X)
     (states : X → QState ((Fin n × ZMod a) × W)) (i : Fin n) : QState (X × (ZMod a × W)) :=
   fun p => weight p.1 * states p.1 ((i, p.2.1), p.2.2)
 
+/-- Adversary progress is the real part of the sum of the quadratic forms of the query address
+slices. -/
 private theorem alphabetProgress_slices {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n a : ℕ} [NeZero a] (Gamma : Matrix X X ℂ) (weight : QState X)
     (states : X → QState ((Fin n × ZMod a) × W)) :
@@ -290,6 +351,8 @@ private theorem alphabetProgress_slices {X W : Type} [Fintype X] [DecidableEq X]
   intro b _
   exact Finset.sum_congr rfl fun w _ => by simp only [RCLike.star_def]; ring
 
+/-- Taking an address slice after an alphabet query is the same as applying the corresponding
+input-dependent translation to that slice. -/
 private theorem alphabetSlice_query {X W : Type} [Fintype W] [DecidableEq W]
     {n a : ℕ} [NeZero a] (input : X → Fin n → ZMod a) (weight : QState X)
     (states : X → QState ((Fin n × ZMod a) × W)) (i : Fin n) :
@@ -299,6 +362,8 @@ private theorem alphabetSlice_query {X W : Type} [Fintype W] [DecidableEq W]
   simp only [alphabetSlice, alphabetPull]
   rw [alphabetOracle_mulVec]
 
+/-- For normalized input weights and component states, the squared norms of all address slices
+sum to one. -/
 private theorem alphabetSlice_energy {X W : Type} [Fintype X] [Fintype W] {n a : ℕ} [NeZero a]
     (weight : QState X) (states : X → QState ((Fin n × ZMod a) × W))
     (hw : Normalized weight) (hs : ∀ x, Normalized (states x)) :
@@ -313,6 +378,8 @@ private theorem alphabetSlice_energy {X W : Type} [Fintype X] [Fintype W] {n a :
   simp only [hsn, mul_one]
   exact hw
 
+/-- If every coordinate filter has norm at most `B`, one alphabet query changes adversary
+progress by at most `2 * B` for normalized weights and states. -/
 theorem alphabet_adversary_same_query_progress
     (X W : Type) [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W] (n a : ℕ) [NeZero a]
     (input : X → Fin n → ZMod a) (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -334,6 +401,8 @@ theorem alphabet_adversary_same_query_progress
         (mul_le_mul_of_nonneg_left (hfilter i) (by norm_num)) (sq_nonneg _)
     _ = _ := by rw [← Finset.mul_sum, alphabetSlice_energy weight states hw hs, mul_one]
 
+/-- A unitary circuit changes adversary progress by at most `2 * QueryCount C * B` when all
+coordinate filter norms are bounded by the nonnegative number `B`. -/
 theorem alphabetProgress_run_bound
     (X W : Type) [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W] (n a : ℕ) [NeZero a]
     (input : X → Fin n → ZMod a) (Gamma : Matrix X X ℂ) (weight : QState X) (B : ℝ) (hB : 0 ≤ B)
@@ -366,6 +435,10 @@ theorem alphabetProgress_run_bound
       dsimp [next] at *
       linarith
 
+/-- A unitary circuit computing `f` with error at most `eps` satisfies `(1 - 2 * Real.sqrt (eps
+* (1 - eps)) - 2 * eps) * ‖Gamma‖ ≤ 2 * QueryCount C * B` under the stated adversary and
+filter hypotheses. This is the finite alphabet, multiple output adversary estimate of [Hoyer
+et al., Theorem 2][HoyerLeeSpalek2007]. -/
 theorem multioutput_adversary_actual_circuit_lower_bound
     (X W Y : Type) [Fintype X] [DecidableEq X] [Nonempty X] [Fintype W] [DecidableEq W]
     [Fintype Y] [DecidableEq Y]

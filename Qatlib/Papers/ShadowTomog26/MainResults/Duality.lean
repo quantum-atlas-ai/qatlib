@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ShadowTomog26.MainResults.Core
 import Qatlib.Foundations.GraphFraction.CoverLP.MinimaxDual
+
+/-!
+# Fractional-cover duality for graph-body minima
+
+This module identifies the finite-set cover definitions used in the shadow-tomography framework
+of [XuEtAl2026] with the foundational cover linear program. Restriction to independent-set
+contexts and extension by zero preserve both feasibility and objective values, allowing the
+minimax duality theorem to compute `alphaMin`.
+
+## Main statements
+
+* `fractionalChromatic_eq_coverValue` equates the two cover objectives.
+* `weightedIndepNum_eq_support` identifies the corresponding independent-set support functions.
+* `alphaMin_eq_inverse_fractionalChromatic` computes the simplex minimum as a reciprocal
+  fractional chromatic number.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,8 @@ namespace LP
 open Qatlib.Foundations.GraphFraction.CoverLP
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- If a finite-set function vanishes on sets that are not independent in `G`, summing it over
+independent-set contexts equals summing it over all finite vertex sets. -/
 theorem supported_sum (G : SimpleGraph V) (f : Finset V → ℝ)
     (hf : ∀ I : Finset V, ¬G.IsIndepSet (I : Set V) → f I=0) :
     (∑ I : Context G,f I.val) = ∑ I : Finset V,f I := by
@@ -29,6 +52,8 @@ theorem supported_sum (G : SimpleGraph V) (f : Finset V → ℝ)
   rw [hz,add_zero] at h
   exact h
 
+/-- Restricting a `FracCover` to independent-set contexts yields a feasible foundational cover
+with constant demand one. The restriction preserves the total cover weight. -/
 theorem restrict_cover (G : SimpleGraph V) (x : Finset V → ℝ) (hx : FracCover G x) :
     Feasible G (fun _ => 1) (fun I => x I.val) ∧
       (∑ I : Context G,x I.val)=(∑ I : Finset V,x I) := by
@@ -40,9 +65,12 @@ theorem restrict_cover (G : SimpleGraph V) (x : Finset V → ℝ) (hx : FracCove
   rw [hs]
   exact hx.2.2 i
 
+/-- Extend a real weight function on independent-set contexts to all finite vertex sets by
+assigning zero to sets that are not independent. -/
 def extend (G : SimpleGraph V) (x : Context G → ℝ) (I : Finset V) : ℝ :=
   if h : G.IsIndepSet (I : Set V) then x ⟨I,h⟩ else 0
 
+/-- Extension by zero from independent-set contexts preserves the sum of the weights. -/
 theorem extend_sum (G : SimpleGraph V) (x : Context G → ℝ) :
     (∑ I : Finset V,extend G x I) = ∑ I : Context G,x I := by
   rw [← supported_sum G (extend G x) (by intro I hI;simp [extend,hI])]
@@ -50,6 +78,8 @@ theorem extend_sum (G : SimpleGraph V) (x : Context G → ℝ) :
   intro I _
   simp [extend,I.property]
 
+/-- A feasible context cover with constant demand one extends by zero to a `FracCover` on all
+finite vertex sets. -/
 theorem extend_cover (G : SimpleGraph V) (x : Context G → ℝ)
     (hx : Feasible G (fun _ => 1) x) : FracCover G (extend G x) := by
   refine ⟨fun I hI => by simpa [extend,hI] using hx.1 ⟨I,hI⟩,
@@ -62,6 +92,8 @@ theorem extend_cover (G : SimpleGraph V) (x : Context G → ℝ)
   simp_rw [he]
   exact hx.2 i
 
+/-- The fractional chromatic number defined using `FracCover` equals the foundational cover
+value with constant vertex demand one. -/
 theorem fractionalChromatic_eq_coverValue (G : SimpleGraph V) :
     fractionalChromatic G=coverValue G (fun _ => 1) := by
   unfold fractionalChromatic coverValue
@@ -76,6 +108,8 @@ theorem fractionalChromatic_eq_coverValue (G : SimpleGraph V) :
 
 omit [Fintype V] [DecidableEq V] in
 
+/-- The weighted independence number defined using finite independent sets equals the
+foundational independent-set support function. -/
 theorem weightedIndepNum_eq_support (G : SimpleGraph V) (w : V → ℝ) :
     weightedIndepNum G w=independentSupport G w := by
   unfold weightedIndepNum independentSupport
@@ -87,6 +121,8 @@ theorem weightedIndepNum_eq_support (G : SimpleGraph V) (w : V → ℝ) :
   · rintro ⟨I,rfl⟩
     exact ⟨I.val,I.property,rfl⟩
 
+/-- For a graph-body system on a nonempty finite vertex type, the simplex infimum of its
+weighted independence number equals the reciprocal fractional chromatic number [XuEtAl2026]. -/
 theorem alphaMin_eq_inverse_fractionalChromatic [Nonempty V] (B : GraphBodies V) :
     alphaMin B=1/fractionalChromatic B.G := by
   rw [fractionalChromatic_eq_coverValue]

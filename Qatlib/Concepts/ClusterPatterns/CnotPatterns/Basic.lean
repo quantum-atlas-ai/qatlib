@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+
+/-!
+# Shared context for CNOT measurement patterns
+
+This module imports the shared CNOT-pattern definitions and supplies the namespace and scope
+context used by the clause and gadget proofs. The imported vocabulary includes `MpPattern` and
+`mpPatternKraus`, representing finite measurement patterns and their branch operators in the
+setting of [DanosKashefiPanangaden2007].
+
+## Main statements
+
+* `MpPattern`: Imported finite measurement-pattern data used by the CNOT development.
+* `mpPatternKraus`: Imported Kraus matrices used to express branch semantics.
+
+## References
+
+* [Danos et al., 2007][DanosKashefiPanangaden2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

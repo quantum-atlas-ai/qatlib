@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPowerSimon97.StandardModel.SimonMachineDefs
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAssembly
+
+/-!
+# Machine cost bounds for verified Simon retries
+
+This module proves bounds for the oracle-machine and history costs defined in
+`SimonMachineDefs`, in the setting of Simon's algorithm [Simon1997]. It accounts for oracle
+running time, output comparison, sample serialization, decoding, and the quantum query ledger.
+
+The expected-history bounds are assembled into `clause4_endpoint`, while `clause5_endpoint`
+packages amplification errors, bit costs, and the sequential record-space count.
+
+## Main statements
+
+* `simon_verified_path_expected_bit_time`: Under the Simon promise and the oracle realization
+  bound, expected history bit cost is at most twice the per-attempt bit-cost bound.
+* `simon_verified_path_expected_unified_cost`: Under the Simon promise and the oracle
+  realization bound, expected unified history cost is at most `simonStandardModelG n m Tf`.
+* `clause5_endpoint`: Establishes the machine-separation package of amplification errors, run
+  ledgers, bit-cost bounds, and sequential record-space accounting.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore
@@ -32,6 +57,7 @@ namespace Qatlib.Papers.QPowerSimon97.StandardDefs
 open Qatlib
 open scoped Classical BigOperators ENNReal
 
+/-- The entries of `List.range n` are pairwise strictly increasing. -/
 lemma pairwise_range : ∀ n : ℕ, (List.range n).Pairwise (· < ·) := by
   intro n
   induction n with
@@ -45,6 +71,8 @@ lemma pairwise_range : ∀ n : ℕ, (List.range n).Pairwise (· < ·) := by
       simp only [List.mem_range] at ha
       omega
 
+/-- If a list search returns `b`, the list splits at that occurrence and the predicate is false
+on every preceding element. -/
 lemma find?_first {α : Type} {p : α → Bool} {l : List α} {b : α}
     (h : l.find? p = some b) :
     ∃ as bs, l = as ++ b :: bs ∧ ∀ a ∈ as, p a = false := by
@@ -59,6 +87,8 @@ lemma find?_first {α : Type} {p : α → Bool} {l : List α} {b : α}
       rw [ha'] at hcontra
       simp at hcontra
 
+/-- If the oracle machine is halted at its selected spending time, every earlier time within the
+budget has a false halt flag. -/
 theorem simonOracleSpend_first {n m : ℕ} (M : SimonOracleMachine n m) (x : BooleanVec n)
     (Tf : ℕ) (h : simonOracleHaltedB M x (simonOracleSpend M x Tf) = true) :
     ∀ j, j < simonOracleSpend M x Tf → j ≤ Tf → simonOracleHaltedB M x j = false := by
@@ -96,16 +126,21 @@ theorem simonOracleSpend_first {n m : ℕ} (M : SimonOracleMachine n m) (x : Boo
   intro j hj hj'
   exact hkey j hj hj'
 
+/-- An oracle machine realizing `f` within `Tf` selects a spending time at most `Tf` on every
+input. -/
 theorem simonOracleSpend_le {n m : ℕ} {f : BooleanVec n → BooleanVec m}
     {M : SimonOracleMachine n m} {Tf : ℕ} (h : SimonOracleRealizes f M Tf)
     (x : BooleanVec n) : simonOracleSpend M x Tf ≤ Tf :=
   (h x).2.2
 
+/-- An oracle machine realizing `f` returns `f x` at its selected spending time. -/
 theorem simonOracleOutput_eq {n m : ℕ} {f : BooleanVec n → BooleanVec m}
     {M : SimonOracleMachine n m} {Tf : ℕ} (h : SimonOracleRealizes f M Tf)
     (x : BooleanVec n) : simonOracleOutput M x (simonOracleSpend M x Tf) = f x :=
   (h x).2.1
 
+/-- The counted comparison on a list of positions returns their conjunction of bit equalities
+and the list length. -/
 theorem simonComparePrefix_spec {m : ℕ} (a b : Reg m) :
     ∀ l : List (Fin m),
       simonComparePrefix a b l = (l.all (fun j => decide (a j = b j)), l.length) := by
@@ -119,20 +154,25 @@ theorem simonComparePrefix_spec {m : ℕ} (a b : Reg m) :
         exact Bool.and_comm _ _
       · simp only [List.length_cons]
 
+/-- The counted full-register comparison returns `simonCompare a b` with cost exactly `m`. -/
 theorem simonCompareCounted_spec {m : ℕ} (a b : Reg m) :
     simonCompareCounted a b = (simonCompare a b, m) := by
   rw [simonCompareCounted, simonComparePrefix_spec, List.length_finRange]
   rfl
 
+/-- Decoding a Simon retry record uses at most `simonBlockOpsBound n` counted operations. -/
 theorem simonAttemptDecoder_le {n : ℕ} (xs : SimonRetryRecord n) :
     (decodeSimonWithCost (simonRecordBits xs)).2 ≤ simonBlockOpsBound n := by
   rw [simonBlockOpsBound]
   exact (boolean_gaussian_actual_operation_bound (simonRecordBits xs)).2.1
 
+/-- Serializing a Simon retry record costs exactly `(n + 1) * n` steps. -/
 theorem simonAttemptSerialize_eq {n : ℕ} (xs : SimonRetryRecord n) :
     simonSerializeSteps (simonRecordBits xs) = (n + 1) * n := by
   simp [simonSerializeSteps]
 
+/-- For an oracle machine realizing `f` within `Tf`, one retry record has bit cost at most `2 *
+Tf + m + (n + 1) * n + simonBlockOpsBound n`. -/
 theorem simonAttemptBitCost_le {n m : ℕ} {f : BooleanVec n → BooleanVec m}
     {M : SimonOracleMachine n m} {Tf : ℕ} (h : SimonOracleRealizes f M Tf)
     (xs : SimonRetryRecord n) :
@@ -193,6 +233,8 @@ theorem simonAttemptBitCost_le {n m : ℕ} {f : BooleanVec n → BooleanVec m}
       rw [← hfinal]
       exact h5
 
+/-- The sum of retry-record bit costs is at most the history length times the stated per-attempt
+bit-cost bound. -/
 theorem simonHistoryBitCost_le {n m : ℕ} {f : BooleanVec n → BooleanVec m}
     {M : SimonOracleMachine n m} {Tf : ℕ} (h : SimonOracleRealizes f M Tf)
     (xs : List (SimonRetryRecord n)) :
@@ -221,6 +263,8 @@ theorem simonHistoryBitCost_le {n m : ℕ} {f : BooleanVec n → BooleanVec m}
       rw [hsl]
       exact h1
 
+/-- The sum of unified retry-record costs is at most the history length times the per-attempt
+query, local-gate, and bit-work bound. -/
 theorem simonHistoryUnifiedCost_le {n m : ℕ} {f : BooleanVec n → BooleanVec m}
     {M : SimonOracleMachine n m} {Tf : ℕ} (h : SimonOracleRealizes f M Tf)
     (xs : List (SimonRetryRecord n)) :
@@ -274,6 +318,8 @@ theorem simonHistoryUnifiedCost_le {n m : ℕ} {f : BooleanVec n → BooleanVec 
       rw [hsl]
       exact hstep
 
+/-- Under the Simon promise, the expected number of records in every bounded verified retry
+history is at most two. -/
 theorem simon_verified_path_expected_attempts {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (s : Reg n) (hf : BooleanSimonPromise f (regBooleanEquiv n s)) (T : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (simonVerifiedHistory f T)
@@ -295,6 +341,8 @@ theorem simon_verified_path_expected_attempts {n m : ℕ} (f : BooleanVec n → 
   rw [hround]
   exact hfinite
 
+/-- Under the Simon promise and the oracle realization bound, expected history bit cost is at
+most twice the per-attempt bit-cost bound. -/
 theorem simon_verified_path_expected_bit_time {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (s : Reg n) (hf : BooleanSimonPromise f (regBooleanEquiv n s))
     (M : SimonOracleMachine n m) (Tf : ℕ) (T : ℕ)
@@ -344,6 +392,8 @@ theorem simon_verified_path_expected_bit_time {n m : ℕ} (f : BooleanVec n → 
       mul_le_mul_right (hround ▸ hfinite) _
     _ = _ := by push_cast; rw [mul_comm]
 
+/-- Under the Simon promise, expected history quantum queries are at most twice the per-attempt
+query count. -/
 theorem simon_verified_path_expected_quantum_queries {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (s : Reg n) (hf : BooleanSimonPromise f (regBooleanEquiv n s)) (T : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost
@@ -392,6 +442,8 @@ theorem simon_verified_path_expected_quantum_queries {n m : ℕ} (f : BooleanVec
       mul_le_mul_right (hround ▸ hfinite) _
     _ = _ := by push_cast; rw [mul_comm]
 
+/-- Under the Simon promise and the oracle realization bound, expected unified history cost is
+at most `simonStandardModelG n m Tf`. -/
 theorem simon_verified_path_expected_unified_cost {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (s : Reg n) (hf : BooleanSimonPromise f (regBooleanEquiv n s))
     (M : SimonOracleMachine n m) (Tf : ℕ) (T : ℕ)
@@ -458,6 +510,8 @@ theorem simon_verified_path_expected_unified_cost {n m : ℕ} (f : BooleanVec n 
       push_cast
       rw [mul_comm]
 
+/-- For a realizing oracle machine, `r` amplification records with `n + k` samples each have
+total bit cost at most `r * ((n + k) * n + simonEliminationBound n (n + k) + 2 * Tf + n)`. -/
 theorem simon_amplified_bit_cost_le {n : ℕ} (k r : ℕ) (M : SimonOracleMachine n n)
     (Tf : ℕ) (f : BooleanVec n → BooleanVec n) (h : SimonOracleRealizes f M Tf) :
     ∀ rs : Fin r → (Fin (n + k) → AddChar (BooleanVec n) ℂ),
@@ -522,6 +576,8 @@ theorem simon_amplified_bit_cost_le {n : ℕ} (k r : ℕ) (M : SimonOracleMachin
     _ = r * ((n + k) * n + simonEliminationBound n (n + k) + 2 * Tf + n) := by
       simp [Finset.sum_const, Finset.card_univ]
 
+/-- The sequential amplification record counter is zero for zero repetitions and one for any
+positive number of repetitions. -/
 theorem simon_sequential_peak_space {n : ℕ} (f : BooleanVec n → BooleanVec n) (m r : ℕ) :
     (simonSequentialAmplified f m r).2 = if r = 0 then 0 else 1 := by
   have haux : ∀ (i : ℕ), (simonSequentialAmplifiedAux f m i).2 = if i = 0 then 0 else 1 := by
@@ -537,6 +593,8 @@ theorem simon_sequential_peak_space {n : ℕ} (f : BooleanVec n → BooleanVec n
   rw [simonSequentialAmplified]
   exact haux r
 
+/-- Establishes the machine-model bridge packaging the expected attempt, bit-time,
+quantum-query, and unified-cost bounds. -/
 theorem clause4_endpoint : Clause4StandardModelBridge := by
   intro n m f s hf M Tf h T
   exact ⟨simon_verified_path_expected_attempts f s hf T,
@@ -544,6 +602,8 @@ theorem clause4_endpoint : Clause4StandardModelBridge := by
     simon_verified_path_expected_quantum_queries f s hf T,
     simon_verified_path_expected_unified_cost f s hf M Tf T h⟩
 
+/-- Establishes the machine-separation package of amplification errors, run ledgers, bit-cost
+bounds, and sequential record-space accounting. -/
 theorem clause5_endpoint : Clause5MachineSeparation := by
   refine ⟨clause5_complete.1, ?_, ?_, ?_⟩
   · intro n k r M Tf f h

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+/-!
+# Phase-kernel estimates for total variation
+
+Develops the analytic estimates used to compare phase-readout laws in the Lemma 18 stability
+argument of [Montanaro2015]. It relates overlaps of off-grid phase states to the
+phase-estimation kernel and derives the Dirichlet-kernel expression needed for a fidelity bound.
+
+## Main statements
+
+* `phaseDistance_le_half` bounds the circular phase distance by one half.
+* `sinc_square_defect_le` bounds the defect of the squared sinc function.
+* `offGridPhase_inner_norm_dirichlet` expresses phase-state overlap through a ratio of sines.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,7 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 open Matrix Set
 open scoped Classical BigOperators
 
+/-- Bounds the circular phase distance between any two real phases by `1 / 2`. -/
 theorem phaseDistance_le_half (x y : ℝ) : phaseDistance x y ≤ 1 / 2 := by
   unfold phaseDistance
   have hl := Int.floor_le (x - y + 1 / 2)
@@ -26,6 +46,7 @@ theorem phaseDistance_le_half (x y : ℝ) : phaseDistance x y ≤ 1 / 2 := by
   apply abs_le.mpr
   constructor <;> linarith
 
+/-- Bounds sine below by `x - x³ / 6` for every nonnegative real `x`. -/
 private theorem sin_lower_cubic (x : ℝ) (hx : 0 ≤ x) : x - x ^ 3 / 6 ≤ Real.sin x := by
   let f := fun t : ℝ => Real.sin t - t + t ^ 3 / 6
   have hd (t : ℝ) : HasDerivAt f (Real.cos t - 1 + t ^ 2 / 2) t := by
@@ -40,6 +61,7 @@ private theorem sin_lower_cubic (x : ℝ) (hx : 0 ≤ x) : x - x ^ 3 / 6 ≤ Rea
   have hh : 0 ≤ Real.sin x - x + x ^ 3 / 6 := by simpa [f] using! h
   linarith
 
+/-- Bounds `1 - (sin x / x)²` by `x² / 3` for positive `x`. -/
 theorem sinc_square_defect_le (x : ℝ) (hx : 0 < x) :
     1 - (Real.sin x / x) ^ 2 ≤ x ^ 2 / 3 := by
   by_cases hlarge : 3 ≤ x ^ 2
@@ -52,12 +74,16 @@ theorem sinc_square_defect_le (x : ℝ) (hx : 0 < x) :
   have hsq := pow_le_pow_left₀ hlow hratio 2
   nlinarith [sq_nonneg (x ^ 2)]
 
+/-- Identifies the conjugate of the exponential of a purely imaginary complex number with the
+exponential of its negative. -/
 private theorem exp_phase_conjugate (w : ℂ) (hw : w.re = 0) :
     (starRingEnd ℂ) (Complex.exp w) = Complex.exp (-w) := by
   rw [← Complex.exp_conj]
   congr 1
   apply Complex.ext <;> simp [hw]
 
+/-- Identifies the inner product of two off-grid phase states with the zero-label kernel at
+their phase difference, for positive grid size. -/
 theorem offGridPhase_inner_eq_kernel_zero (M : ℕ) (hM : 0 < M) (x y : ℝ) :
     Inner (offGridPhase M x) (offGridPhase M y) = qpeKernel M (y - x) ⟨0, hM⟩ := by
   rw [inner_apply, (offgrid_phase_kernel_formula M (y - x) ⟨0, hM⟩ hM).2.1]
@@ -81,6 +107,7 @@ theorem offGridPhase_inner_eq_kernel_zero (M : ℕ) (hM : 0 < M) (x y : ℝ) :
       push_cast
       ring
 
+/-- Expresses the norm of `exp (2πit) - 1` as `2 * |sin (πt)|`. -/
 theorem norm_exp_two_pi_sub_one (t : ℝ) :
     ‖Complex.exp (2 * Real.pi * Complex.I * t) - 1‖ = 2 * |Real.sin (Real.pi * t)| := by
   have he : (2 * Real.pi * Complex.I * t : ℂ) = Complex.I * ((2 * Real.pi * t : ℝ) : ℂ) := by
@@ -90,12 +117,16 @@ theorem norm_exp_two_pi_sub_one (t : ℝ) :
     show (2 * Real.pi * t) / 2 = Real.pi * t by ring, Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- Shows that replacing the second factor of a sine argument by its absolute value preserves
+the absolute value of the sine. -/
 private theorem abs_sin_mul_abs (a r : ℝ) :
     |Real.sin (a * |r|)| = |Real.sin (a * r)| := by
   rcases le_or_gt 0 r with hr | hr
   · rw [abs_of_nonneg hr]
   · rw [abs_of_neg hr, mul_neg, Real.sin_neg, abs_neg]
 
+/-- Expresses the norm of an off-grid phase-state inner product as the Dirichlet sine ratio when
+the grid size and circular phase distance are positive. -/
 theorem offGridPhase_inner_norm_dirichlet (M : ℕ) (hM : 0 < M) (x y : ℝ)
     (hδ : 0 < phaseDistance x y) :
     ‖Inner (offGridPhase M x) (offGridPhase M y)‖ =

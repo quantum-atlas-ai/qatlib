@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
+
+/-!
+# Computed Dyson accuracy contract
+
+This module defines `Lemma5DysonComputedParameters`, combining structural properties of the
+computed grid with a dyadic approximation bound. Its hypotheses express bounded Hermitian
+evolution, a continuous derivative, and an integral mean derivative bound, following the setting
+of [LowWiebe2018].
+
+## Main statements
+
+* `Lemma5DysonComputedParameters`: the accuracy and exact counting specification for computed
+  runs.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +34,8 @@ namespace Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that every computed Dyson run satisfies the grid and counting identities and
+error at most `2⁻ᵏ` under the stated bounded-field and mean derivative hypotheses. -/
 def Lemma5DysonComputedParameters : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (H Hd : ℝ → Matrix I I ℂ)
     (t Λ χ : ℝ) (k : ℕ),

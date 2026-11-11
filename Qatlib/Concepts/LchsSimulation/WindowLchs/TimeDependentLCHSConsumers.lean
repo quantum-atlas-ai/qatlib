@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.TimeLchs
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Forced time-dependent LCHS and compiled output bounds
+
+The time-dependent Cauchy representation acts on an initial vector and on each source vector in
+the Duhamel integral. `time_dependent_forced_lchs_double_integral` gives the resulting forced
+representation. `time_dependent_lchs_actual_prepared_output` connects the finite quadrature with
+an actual compiled circuit and bounds the initial selected branch and its normalized direction.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `time_dependent_forced_lchs_double_integral`: gives the homogeneous-plus-source Cauchy
+  representation.
+* `time_dependent_lchs_actual_prepared_output`: gives circuit counts, branch mass, and direction
+  error.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -35,6 +58,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The Cauchy-weighted integral of ordered Hamiltonian evolutions applied to `v` equals the
+nonunitary ordered evolution applied to `v` under the continuity and positivity hypotheses. -/
 private theorem tdLchs_integral_action {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H)
     (hPSD : ∀ u, (L u).PosSemidef) (hHerm : ∀ u, (H u).IsHermitian)
@@ -69,6 +94,9 @@ private theorem tdLchs_integral_action {I : Type} [Fintype I] [DecidableEq I]
   have hmapply (X : Matrix I I ℂ) : m X = X *ᵥ v := rfl
   simpa only [hmapply, Matrix.smul_mulVec] using! hm
 
+/-- The forced solution is the Cauchy-weighted Hamiltonian integral of the initial vector plus
+the iterated time-and-parameter integral of propagated source vectors [An et al., Equation
+(7)][AnLiuLin2023]. -/
 theorem time_dependent_forced_lchs_double_integral :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
       (b : ℝ → QState I) (v : QState I) (s t : ℝ),
@@ -88,6 +116,10 @@ theorem time_dependent_forced_lchs_double_integral :
     exact (tdLchs_integral_action L H hL hH hPSD hHerm u t
       ((Set.uIcc_of_le hst ▸ hu).2) (b u)).symm
 
+/-- The compiled time-dependent quadrature circuit is unitary with `k` queries and word length
+`10 * k + 4`, with exact input and selection counts; if quadrature error `η` is below target
+norm `τ`, its initial selected branch has squared norm at least `((τ - η) / coefficientMass
+c) ^ 2` and direction error at most `2 * η / τ` [AnLiuLin2023]. -/
 theorem time_dependent_lchs_actual_prepared_output :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
       (s t : ℝ) (K N k : ℕ) (B : Matrix I I ℂ) (i₀ : I) (j₀ : Fin N),

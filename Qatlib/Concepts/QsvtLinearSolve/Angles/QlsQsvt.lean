@@ -9,6 +9,26 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
 import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
 import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
+
+/-!
+# Absorbing a terminal phase in QSVT
+
+This module absorbs a unit complex factor into the first angle of a nonempty QSVT phase list. It
+tracks the resulting source word, polynomial response, compiler counts, and conditional output
+estimates in the singular-value transformation framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `frontier1`: A phase absorption witness preserving phase-list length.
+* `absorbed_channel_rotation`: The compressed and ideal outputs acquire the same phase.
+* `absorbed_conditional_output_channel`: Phase absorption with exact costs and conditional
+  output bounds.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -41,8 +61,10 @@ open Matrix Polynomial
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- The complex argument of `b * anglePhase φ`, used to incorporate `b` into the angle `φ`. -/
 def absorbedAngle (b : ℂ) (φ : ℝ) : ℝ := (b * anglePhase φ).arg
 
+/-- Multiplying an angle phase by a unit phase again gives a unit phase. -/
 private theorem absorbed_product_isPhase (b : ℂ) (hb : IsPhase b) (φ : ℝ) :
     IsPhase (b * anglePhase φ) := by
   have hφ := anglePhase_isPhase φ
@@ -52,10 +74,13 @@ private theorem absorbed_product_isPhase (b : ℂ) (hb : IsPhase b) (φ : ℝ) :
       = (star b * b) * (star (anglePhase φ) * anglePhase φ) := by ring
     _ = 1 := by rw [hb, hφ]; simp
 
+/-- For a unit phase `b`, the angle phase of `absorbedAngle b φ` equals `b * anglePhase φ`. -/
 theorem absorbedAngle_phase (b : ℂ) (hb : IsPhase b) (φ : ℝ) :
     anglePhase (absorbedAngle b φ) = b * anglePhase φ :=
   anglePhase_arg_of_isPhase (absorbed_product_isPhase b hb φ)
 
+/-- Absorbing `b` into the first angle left-multiplies the source word by `phaseRotation Q b`
+when `Q` is an orthogonal projector. -/
 theorem sourceDefWord_absorb_terminal_base (U P Q : Matrix H H ℂ)
     (hQ : IsOrthogonalProjector Q) (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ) :
     sourceDefWord U P Q (absorbedAngle b φ :: Φ) =
@@ -63,6 +88,8 @@ theorem sourceDefWord_absorb_terminal_base (U P Q : Matrix H H ℂ)
   simp only [sourceDefWord, absorbedAngle_phase b hb φ, ← phaseRotation_mul hQ,
     Matrix.mul_assoc]
 
+/-- Absorbing a unit phase into the first angle multiplies the source response polynomial by the
+constant polynomial `C b`. -/
 theorem sourcePhaseResponse_absorb (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ) :
     sourcePhaseResponse (absorbedAngle b φ :: Φ) =
       C b * sourcePhaseResponse (φ :: Φ) := by
@@ -70,6 +97,8 @@ theorem sourcePhaseResponse_absorb (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : L
     responseP_cons, Polynomial.C_mul]
   ring
 
+/-- When the original word's output on `V` lies in the range of `Q`, absorbing `b` multiplies
+that output by `b`. -/
 theorem sourceDefWord_absorb_range (U P Q : Matrix H H ℂ)
     (hQ : IsOrthogonalProjector Q) (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ)
     {K : Type} (V : Matrix H K ℂ)
@@ -80,6 +109,8 @@ theorem sourceDefWord_absorb_range (U P Q : Matrix H H ℂ)
   rw [sourceDefWord_absorb_terminal_base U P Q hQ b hb φ Φ, Matrix.mul_assoc,
     phaseRotation_mul_of_fixed hV b]
 
+/-- When the original word's output on `V` lies in the kernel of `Q`, absorbing `b` multiplies
+that output by `star b`. -/
 theorem sourceDefWord_absorb_kernel (U P Q : Matrix H H ℂ)
     (hQ : IsOrthogonalProjector Q) (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ)
     {K : Type} (V : Matrix H K ℂ)
@@ -91,6 +122,8 @@ theorem sourceDefWord_absorb_kernel (U P Q : Matrix H H ℂ)
 
 omit [Fintype H] in
 
+/-- Moving the base factor into the first phase preserves both query and gate counts of the
+real-part QSVT compiler. -/
 theorem compileRealPartQSVT_absorb_counts (P Q : Matrix H H ℂ) (b z : ℂ)
     (zs : List ℂ) :
     adjointQueryCount (compileRealPartQSVT P Q 1 ((b * z) :: zs)) =
@@ -102,6 +135,8 @@ theorem compileRealPartQSVT_absorb_counts (P Q : Matrix H H ℂ) (b z : ℂ)
   simp only [List.length_cons] at h1 h2
   exact ⟨h1.1.trans h2.1.symm, h1.2.trans h2.2.symm⟩
 
+/-- Well-formed computed phase words with equal phase-list lengths have equal full-word query
+and gate counts. -/
 theorem fullComputedPhaseWord_absorb_counts (P Q : Matrix H H ℂ)
     (d₁ d₂ : PhaseData)
     (h₁ : WellFormedAdjointCircuit (computedPhaseWord P Q d₁))
@@ -115,10 +150,13 @@ theorem fullComputedPhaseWord_absorb_counts (P Q : Matrix H H ℂ)
   obtain ⟨_, e₂, f₂⟩ := fullComputedPhaseWord_wellFormed_counts P Q d₂ h₂
   omega
 
+/-- Changing only the first phase function preserves the compiler's resource counts. -/
 theorem cppCompile_absorb_counts {J : Type} (f g : J → ℝ) (fs : List (J → ℝ)) :
     cppCounts (cppCompile (g :: fs)) = cppCounts (cppCompile (f :: fs)) := by
   simp only [cppCompile_counts, List.length_cons]
 
+/-- A unit phase can be absorbed into a first angle while preserving list length, multiplying
+the response by `C b`, and left-multiplying the source word by `phaseRotation Q b`. -/
 theorem frontier1 (U P Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ) :
     ∃ θ : ℝ,
@@ -136,6 +174,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 
+/-- A complex unit phase has norm one. -/
 private theorem isPhase_norm_one {b : ℂ} (hb : IsPhase b) : ‖b‖ = 1 := by
   have h2 : ‖b‖ ^ 2 = 1 := by
     rw [← Complex.normSq_eq_norm_sq, IsPhase.normSq hb]
@@ -145,16 +184,20 @@ private theorem isPhase_norm_one {b : ℂ} (hb : IsPhase b) : ‖b‖ = 1 := by
   · linarith
   · linarith
 
+/-- The conversion from state vectors to Euclidean space commutes with complex scalar
+multiplication. -/
 private theorem toEuclidean_fromVec_smul {K : Type} [Fintype K] (c : ℂ) (v : QState K) :
     toEuclidean_fromVec (c • v) = c • toEuclidean_fromVec v := by
   ext i
   simp [toEuclidean_fromVec_apply]
 
+/-- The conversion from state vectors to Euclidean space preserves subtraction. -/
 private theorem toEuclidean_fromVec_sub {K : Type} [Fintype K] (u v : QState K) :
     toEuclidean_fromVec (u - v) = toEuclidean_fromVec u - toEuclidean_fromVec v := by
   ext i
   simp [toEuclidean_fromVec_apply]
 
+/-- A common scalar phase factors out of a converted difference of scaled states. -/
 private theorem toEuclidean_fromVec_rotated_diff {K : Type} [Fintype K] (b c d : ℂ)
     (u v : QState K) :
     toEuclidean_fromVec (c • (b • u) - d • (b • v)) =
@@ -162,6 +205,8 @@ private theorem toEuclidean_fromVec_rotated_diff {K : Type} [Fintype K] (b c d :
   simp only [toEuclidean_fromVec_sub, toEuclidean_fromVec_smul]
   rw [smul_smul, smul_smul, mul_comm c b, mul_comm d b, ← smul_smul, ← smul_smul, ← smul_sub]
 
+/-- For an isometry `L`, multiplying its adjoint by rotation about its range projector gives `b
+• Lᴴ`. -/
 private theorem conjTranspose_mul_phaseRotation (L : Matrix H O ℂ) (hL : IsIsometry L)
     (b : ℂ) : Lᴴ * phaseRotation (rangeProjector L) b = b • Lᴴ := by
   have hL' : Lᴴ * L = 1 := hL
@@ -173,6 +218,7 @@ private theorem conjTranspose_mul_phaseRotation (L : Matrix H O ℂ) (hL : IsIso
 
 omit [DecidableEq O] in
 
+/-- A constant complex factor in the scalar function factors out of the odd singular transform. -/
 private theorem oddSingularTransform_const_smul (A : Matrix O I ℂ) (f : ℝ → ℂ) (b : ℂ) :
     oddSingularTransform A (fun x => b * f x) = b • oddSingularTransform A f := by
   have hd : Matrix.diagonal (fun i : Fin (Fintype.card I) => b * f (matrixSingularValues A i))
@@ -182,6 +228,8 @@ private theorem oddSingularTransform_const_smul (A : Matrix O I ℂ) (f : ℝ �
   unfold oddSingularTransform
   rw [hd, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- Absorbing a unit phase multiplies both the compressed output and the ideal odd
+singular-transform output by that phase. The norm of the ideal output is preserved. -/
 theorem absorbed_channel_rotation (U : Matrix H H ℂ) (L : Matrix H O ℂ)
     (hL : IsIsometry L) (R : Matrix H I ℂ) (A : Matrix O I ℂ)
     (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ) (ψ : QState I) :
@@ -220,6 +268,8 @@ theorem absorbed_channel_rotation (U : Matrix H H ℂ) (L : Matrix H O ℂ)
   exact ⟨hy, hv, by
     rw [hv, toEuclidean_fromVec_smul, norm_smul, isPhase_norm_one hb, one_mul]⟩
 
+/-- Simultaneously rotating actual and ideal output vectors by a unit phase preserves the stated
+success-norm and normalized-output error bounds. -/
 private theorem channel_bound_transfer {K : Type} [Fintype K] {b : ℂ}
     (hb : IsPhase b) (yΘ yΨ vΘ vΨ : QState K) (η : ℝ)
     (hy : yΘ = b • yΨ) (hv : vΘ = b • vΨ)
@@ -249,6 +299,10 @@ private theorem channel_bound_transfer {K : Type} [Fintype K] {b : ℂ}
 
 set_option maxHeartbeats 800000 in
 
+/-- For a bounded odd polynomial and a block encoding satisfying the stated scaling assumptions,
+phase synthesis can absorb any unit phase while preserving degree-length and exact compiler
+costs. The resulting actual and ideal outputs share that phase and satisfy the stated
+conditional success and normalized-output estimates. -/
 theorem absorbed_conditional_output_channel :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ)

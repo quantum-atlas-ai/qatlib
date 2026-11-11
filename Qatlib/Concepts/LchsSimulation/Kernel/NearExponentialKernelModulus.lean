@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialModulusAnalytic
+
+/-!
+# Modulus bounds for the near-exponential kernel
+
+The real-axis modulus of `highKernelG` is positive, smooth, and integrable for `0 < β < 1`.
+Explicit integral and derivative estimates support coefficient-mass bounds for high-order LCHS
+quadrature. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `highKernelG_abs_integral_le`: For `0 < β < 1`, the integral of the kernel modulus is at most
+  `exp(1)^2 / Real.pi * (1 + 1 / (β * (1 - β)))`.
+* `highKernelG_abs_deriv_le`: For `0 < β < 1` and positive `p`, the absolute value of the `p`-th
+  derivative of the kernel modulus is at most `p.factorial * 32^p / highKernelC β`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -17,13 +37,16 @@ open MeasureTheory
 open scoped ContDiff
 set_option warningAsError false
 
+/-- The real-axis modulus of `highKernelG β` is continuous. -/
 theorem highKernelG_abs_continuous (β : ℝ) : Continuous (fun k : ℝ => ‖highKernelG β k‖) :=
   (highKernelG_continuous β).norm
 
+/-- For `0 < β < 1`, the real-axis modulus of `highKernelG β` is integrable. -/
 theorem highKernelG_abs_integrable (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     Integrable (fun k : ℝ => ‖highKernelG β k‖) :=
   (highKernelG_integrable β hβ hβ1).norm
 
+/-- The modulus of `highKernelG β k` is strictly positive for every real `β` and `k`. -/
 theorem highKernelG_abs_pos (β k : ℝ) : 0 < ‖highKernelG β k‖ := by
   apply norm_pos_iff.mpr
   unfold highKernelG highKernelF
@@ -35,6 +58,7 @@ theorem highKernelG_abs_pos (β k : ℝ) : 0 < ‖highKernelG β k‖ := by
     have hre := congrArg Complex.re hh
     norm_num at hre
 
+/-- The real-axis modulus of `highKernelG β` is infinitely differentiable. -/
 theorem highKernelG_abs_contDiff (β : ℝ) :
     ContDiff ℝ ∞ (fun k : ℝ => ‖highKernelG β k‖) := by
   apply contDiff_iff_contDiffAt.mpr
@@ -52,6 +76,7 @@ theorem highKernelG_abs_contDiff (β : ℝ) :
     simpa only [highKernelG, div_eq_mul_inv] using! hf.mul (hd.inv hn)
   exact hg.norm ℂ (norm_pos_iff.mp (highKernelG_abs_pos β k))
 
+/-- For `0 < β < 1`, the modulus of `highKernelG β k` is at most `1 / highKernelC β`. -/
 theorem highKernelG_abs_le_invC (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) (k : ℝ) :
     ‖highKernelG β k‖ ≤ 1 / highKernelC β := by
   refine (highKernelG_norm_le β hβ hβ1 k).trans ?_
@@ -61,6 +86,8 @@ theorem highKernelG_abs_le_invC (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) (k : �
   have hc := highKernel_cos_pos β hβ hβ1
   nlinarith
 
+/-- For `0 < β < 1`, the integral of the kernel modulus is at most `exp(1)^2 / Real.pi * (1 + 1
+/ (β * (1 - β)))`. See [AnChildsLin2026]. -/
 theorem highKernelG_abs_integral_le :
     ∀ β : ℝ, 0 < β → β < 1 →
       (∫ k : ℝ, ‖highKernelG β k‖) ≤
@@ -81,6 +108,8 @@ theorem highKernelG_abs_integral_le :
     exact mul_le_mul_of_nonneg_left hcos hβ.le
   exact add_le_add (le_refl _) h2
 
+/-- For `0 < β < 1` and positive `p`, the absolute value of the `p`-th derivative of the kernel
+modulus is at most `p.factorial * 32^p / highKernelC β`. See [AnChildsLin2026]. -/
 theorem highKernelG_abs_deriv_le :
     ∀ β : ℝ, 0 < β → β < 1 → ∀ p : ℕ, 1 ≤ p → ∀ k : ℝ,
       |iteratedDeriv p (fun x : ℝ => ‖highKernelG β x‖) k| ≤

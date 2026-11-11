@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator.Defs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Gram components and propagator bound specifications
+
+This module defines the Hermitian-component candidate `sharpGramComponent`, the scalar radius
+`sharpGramRadius`, and a proposition collecting generic and trigonometric propagator bounds.
+Gram matrices and operator norms are used in the sense of [Bhatia1997].
+
+## Main statements
+
+* `sharpGramComponent`: the matrix expression `c Q - ih P Q`.
+* `sharpGramRadius`: the radius `sqrt (1 + d²) + |d|`.
+* `SharpGramSpecification`: Gram identities and upper and inverse vector bounds under explicit
+  hypotheses.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,13 +35,17 @@ namespace Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The matrix component `c Q - ih P Q` in the rescaled-step Gram decomposition. -/
 def sharpGramComponent {I : Type*} [Fintype I]
     (P Q : Matrix I I ℂ) (c h : ℝ) : Matrix I I ℂ :=
   (c : ℂ) • Q - (Complex.I * (h : ℂ)) • (P * Q)
 
+/-- The scalar radius `sqrt (1 + d²) + |d|` used in the propagator norm bounds. -/
 def sharpGramRadius (d : ℝ) : ℝ :=
   Real.sqrt (1 + d ^ 2) + |d|
 
+/-- The conjunction of generic Gram identities and norm bounds for anticommuting Hermitian
+involutions, and trigonometric-coefficient bounds controlled by `(ω + a) / ν`. -/
 def SharpGramSpecification : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I]
       (P Q : Matrix I I ℂ) (c h d : ℝ),

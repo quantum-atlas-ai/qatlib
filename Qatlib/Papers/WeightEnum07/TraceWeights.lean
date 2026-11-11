@@ -8,6 +8,30 @@ import Qatlib.Papers.WeightEnum07.MainResults.Proposition1
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Fintype.Card
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+/-!
+# Recovering weight multiplicities from representatives
+
+An idempotent representative map partitions a finite type into fibers, and a weight function
+invariant under this map can be counted on the fixed representatives. The theorem
+`card_weight_eq_n_mul_reps` specializes the fiber sum when every representative fiber has the
+same size.
+
+This development forms part of the formalization of [GeraciVanBussel2007].
+
+## Main statements
+
+* `card_weight_eq_sum_rep`: For an idempotent representative map preserving weights, the number
+  of elements of weight `w` is the sum of fiber cardinalities over fixed representatives of that
+  weight.
+* `card_weight_eq_n_mul_reps`: If every fixed representative has a fiber of size `n`, the number
+  of elements of weight `w` equals `n` times the number of fixed representatives of that weight.
+
+## References
+
+* [Geraci and Van Bussel, 2007][GeraciVanBussel2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +41,9 @@ namespace Qatlib.Papers.WeightEnum07.TraceWeights
 
 open scoped BigOperators
 
+/-- For an idempotent representative map preserving weights, the number of elements of weight
+`w` is the sum of fiber cardinalities over fixed representatives of that weight. See
+[GeraciVanBussel2007]. -/
 theorem card_weight_eq_sum_rep {ι : Type*} [Fintype ι] [DecidableEq ι]
     (rep : ι → ι) (hidem : ∀ x, rep (rep x) = rep x) (W : ι → ℕ)
     (hinv : ∀ x, W x = W (rep x)) (w : ℕ) :
@@ -79,6 +106,9 @@ theorem card_weight_eq_sum_rep {ι : Type*} [Fintype ι] [DecidableEq ι]
         · intro hrep
           exact ⟨by rw [hinv x, hrep]; exact hbw, hrep⟩
 
+/-- If every fixed representative has a fiber of size `n`, the number of elements of weight `w`
+equals `n` times the number of fixed representatives of that weight. See
+[GeraciVanBussel2007]. -/
 theorem card_weight_eq_n_mul_reps {ι : Type*} [Fintype ι] [DecidableEq ι]
     (n : ℕ) (rep : ι → ι) (hidem : ∀ x, rep (rep x) = rep x) (W : ι → ℕ)
     (hinv : ∀ x, W x = W (rep x))

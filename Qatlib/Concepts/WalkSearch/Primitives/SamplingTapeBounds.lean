@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.GraphVocabulary
+
+/-!
+# Avoidance bounds for sampling tapes
+
+This module counts vertex-sampling tapes that avoid a fixed set and bounds that count under a
+logarithmic sampling-size condition. `natLog_padding_ge_log` connects the discrete base-two
+logarithm to the real natural logarithm for these estimates.
+
+The sampling estimates serve the finite subset-search setting [ChildsEisenberg2003].
+
+## Main statements
+
+* `avoiding_tape_card`: exactly `(n - S.card) ^ k` avoiding tapes.
+* `source_sampling_avoid_bound`: an inverse-fourth-power bound after normalization.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
@@ -12,6 +32,7 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 
+/-- There are exactly `(n - S.card) ^ k` length-`k` vertex tapes whose entries all avoid `S`. -/
 theorem avoiding_tape_card (n k : ℕ) (S : Finset (Fin n)) :
     (Finset.univ.filter (fun s : Fin k→Fin n=>∀ i,s i∉S)).card=(n-S.card)^k := by
   rw [← Fintype.card_subtype]
@@ -19,6 +40,8 @@ theorem avoiding_tape_card (n k : ℕ) (S : Finset (Fin n)) :
       Equiv.subtypePiEquivPi (β := fun _ : Fin k=>Fin n) (p := fun _ v=>v∉S)
   rw [Fintype.card_congr he,Fintype.card_fun,Fintype.card_fin,Fintype.card_subtype_compl,Fintype.card_fin,Fintype.card_coe]
 
+/-- For positive `n`, the natural logarithm of `n` is at most the real cast of `Nat.log 2 n +
+1`. -/
 theorem natLog_padding_ge_log (n : ℕ) (hn : 0<n) : Real.log (n:ℝ)≤(Nat.log 2 n+1:ℕ) := by
   have hnR : (0:ℝ)<n := by exact_mod_cast hn
   have hp : (n:ℝ)<(2:ℝ)^(Nat.log 2 n+1) := by
@@ -30,6 +53,8 @@ theorem natLog_padding_ge_log (n : ℕ) (hn : 0<n) : Real.log (n:ℝ)≤(Nat.log
   norm_num only [Nat.cast_add,Nat.cast_one] at hl hh ⊢
   nlinarith [hl]
 
+/-- Under the target-size and sampling-length assumptions, `(n - d) ^ k ≤ n ^ k / n ^ 4` over
+the reals. -/
 theorem source_sampling_avoid_bound (n d k : ℕ) (ε : ℝ) (hn : 0<n) (_hε : 0<ε)
     (hd : d≤n) (hlarge : (n:ℝ)^(1-ε)≤(d:ℝ))
     (hk : 4*(n:ℝ)^ε*(Nat.log 2 n+1:ℕ)≤(k:ℝ)) :

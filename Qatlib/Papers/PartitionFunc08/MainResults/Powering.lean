@@ -8,6 +8,28 @@ import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Probability.Independence.Basic
 import Mathlib.MeasureTheory.Measure.Real
 import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+/-!
+# Median amplification of ratio estimators
+
+The predicate `IsMedianOf` bounds the number of observations strictly above or below a candidate
+median. A majority of accurate estimates forces the median into the same interval, and
+independent failure indicators give the exponential probability bound used by `lemma2_powering`.
+These estimates form part of the partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `median_mem_Icc`: If more than `k` of `2 * k + 1` values lie in a closed interval, any value
+  satisfying the median rank bounds lies in that interval.
+* `lemma2_powering`: A measurable median of the estimators has relative-accuracy probability at
+  least `1 - δboost` under the independent failure-indicator assumptions and the exponential
+  failure budget.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,10 +42,14 @@ namespace Qatlib.Papers.PartitionFunc08.MainResults.Powering
 
 open ProbabilityTheory
 
+/-- The condition that at most `k` of the `2 * k + 1` values lie strictly below `m` and at most
+`k` lie strictly above it. -/
 def IsMedianOf (k : ℕ) (x : Fin (2 * k + 1) → ℝ) (m : ℝ) : Prop :=
   (Finset.univ.filter (fun i => x i < m)).card ≤ k ∧
     (Finset.univ.filter (fun i => m < x i)).card ≤ k
 
+/-- If more than `k` of `2 * k + 1` values lie in a closed interval, any value satisfying the
+median rank bounds lies in that interval. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem median_mem_Icc {k : ℕ} {x : Fin (2 * k + 1) → ℝ} {m L U : ℝ}
     {s : Finset (Fin (2 * k + 1))} (hcard : k < s.card)
     (hs : ∀ i ∈ s, x i ∈ Set.Icc L U)
@@ -48,6 +74,9 @@ theorem median_mem_Icc {k : ℕ} {x : Fin (2 * k + 1) → ℝ} {m L U : ℝ}
     have := Finset.card_le_card hsub
     omega
 
+/-- For independent measurable zero-one failure indicators with means at most `1 - p` and `p > 1
+/ 2`, the probability of at least `k + 1` failures satisfies the stated exponential bound.
+See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem powering_failure_bound
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (k : ℕ) {p : ℝ} (hp : 1 / 2 < p)
@@ -130,6 +159,8 @@ theorem powering_failure_bound
     linarith
   simpa using hhoeff.trans htail
 
+/-- The exponential majority-failure bound is at most positive `δ` when its squared deviation
+satisfies the stated logarithmic budget. -/
 theorem powering_delta_bound {k : ℕ} {p δ : ℝ} (hp : 1 / 2 < p) (hδ0 : 0 < δ)
     (h : ((2 * (k : ℝ) + 1) / 2) * Real.log (1 / δ) ≤
       (((k : ℝ) + 1) - (2 * (k : ℝ) + 1) * (1 - p)) ^ 2) :
@@ -152,6 +183,9 @@ theorem powering_delta_bound {k : ℕ} {p δ : ℝ} (hp : 1 / 2 < p) (hδ0 : 0 <
   refine hexp_le.trans ?_
   rw [Real.exp_neg, Real.exp_log (one_div_pos.mpr hδ0), one_div, inv_inv]
 
+/-- A measurable median of the estimators has relative-accuracy probability at least `1 -
+δboost` under the independent failure-indicator assumptions and the exponential failure
+budget. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma2_powering
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (k : ℕ) {p : ℝ} (hp : 1 / 2 < p)

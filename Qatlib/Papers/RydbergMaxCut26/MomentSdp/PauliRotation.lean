@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.MomentSdp.DensityMoment
+
+/-!
+# Global Pauli rotations and phase conjugation
+
+`sitePauli` embeds a Pauli matrix at a single register site, and `globalUnitary` applies the
+same one-qubit matrix at every site. The conjugation `rotate` preserves density matrices for
+unitary inputs; the phase gate exchanges distinct-site XX and YY correlations while preserving
+ZZ correlations.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `pair_conjugate`: transfers single-qubit signed Pauli conjugation to pair operators.
+* `phase_corr_x`, `phase_corr_y`, and `phase_corr_z`: compute phase-rotated correlations.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -19,15 +40,19 @@ namespace Qatlib.Papers.RydbergMaxCut26.MomentSdp.Rotation
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Graph
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.EnergyBounds
 
+/-- The register operator acting by Pauli axis `a` at site `i` and by identity at all other
+sites. -/
 noncomputable def sitePauli (n : ℕ) (i : Fin n) (a : Fin 3) : Matrix (Reg n) (Reg n) ℂ :=
   qubitTensor (fun h => if h=i then pauliMatrix a else 1)
 
+/-- A single-site Pauli register operator equals its conjugate transpose. -/
 theorem site_hermitian (n : ℕ) (i : Fin n) (a : Fin 3) : (sitePauli n i a)ᴴ=sitePauli n i a := by
   rw [sitePauli,qubitTensor_conjTranspose]
   congr 1
   funext h
   split <;> simp only [axis_adjoint,Matrix.conjTranspose_one]
 
+/-- The square of a single-site Pauli register operator is the identity. -/
 theorem site_square (n : ℕ) (i : Fin n) (a : Fin 3) : sitePauli n i a*sitePauli n i a=1 := by
   rw [sitePauli,qubitTensor_mul]
   have he : (fun h : Fin n => (if h=i then pauliMatrix a else 1)*(if h=i then pauliMatrix a else 1)) =
@@ -36,9 +61,13 @@ theorem site_square (n : ℕ) (i : Fin n) (a : Fin 3) : sitePauli n i a*sitePaul
     split <;> simp only [axis_square,Matrix.one_mul]
   rw [he,qubitTensor_one]
 
+/-- The conjugate transpose of a single-site Pauli operator multiplied by that operator is the
+identity. -/
 theorem site_unitary (n : ℕ) (i : Fin n) (a : Fin 3) : (sitePauli n i a)ᴴ*sitePauli n i a=1 := by
   rw [site_hermitian,site_square]
 
+/-- For distinct sites, the product of the two single-site Pauli operators on the same axis
+equals `pairPauli`. -/
 theorem site_pair (n : ℕ) (i j : Fin n) (hij : i≠j) (a : Fin 3) :
     sitePauli n i a*sitePauli n j a=pairPauli i j a := by
   rw [sitePauli,sitePauli,qubitTensor_mul,pairPauli]
@@ -52,9 +81,11 @@ theorem site_pair (n : ℕ) (i j : Fin n) (hij : i≠j) (a : Fin 3) :
       simp [hi]
     · simp [hi,hj]
 
+/-- The tensor product applying the same one-qubit matrix `U` at every register site. -/
 noncomputable def globalUnitary (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ) : Matrix (Reg n) (Reg n) ℂ :=
   qubitTensor (fun _ : Fin n => U)
 
+/-- The global tensor product of a one-qubit unitary matrix is unitary. -/
 theorem global_unitary (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     globalUnitary n U ∈ Matrix.unitaryGroup (Reg n) ℂ := by
@@ -65,9 +96,11 @@ theorem global_unitary (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ)
   simp_rw [he]
   exact qubitTensor_one n
 
+/-- Conjugation of the register matrix `ρ` by `globalUnitary n U`. -/
 noncomputable def rotate (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ) (ρ : Matrix (Reg n) (Reg n) ℂ) :
     Matrix (Reg n) (Reg n) ℂ := globalUnitary n U*ρ*(globalUnitary n U)ᴴ
 
+/-- Conjugation by a global one-qubit unitary preserves positive semidefiniteness and trace one. -/
 theorem rotate_density (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) (ρ : Matrix (Reg n) (Reg n) ℂ)
     (hρ : ρ.PosSemidef) (htr : ρ.trace=1) : (rotate n U ρ).PosSemidef ∧ (rotate n U ρ).trace=1 := by
@@ -77,6 +110,8 @@ theorem rotate_density (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ)
   · have hg : (globalUnitary n U)ᴴ*globalUnitary n U=1 := Matrix.mem_unitaryGroup_iff'.mp (global_unitary n U hU)
     rw [rotate,Matrix.trace_mul_cycle,hg,Matrix.one_mul,htr]
 
+/-- The trace against a rotated matrix equals the trace against the observable conjugated by the
+adjoint global operator. -/
 theorem rotated_trace (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ)
     (A ρ : Matrix (Reg n) (Reg n) ℂ) :
     (A*rotate n U ρ).trace = ((globalUnitary n U)ᴴ*A*globalUnitary n U*ρ).trace := by
@@ -87,6 +122,9 @@ theorem rotated_trace (n : ℕ) (U : Matrix (Fin 2) (Fin 2) ℂ)
   congr 1
   noncomm_ring
 
+/-- If one-qubit unitary conjugation maps Pauli axis `a` to a scalar multiple of axis `b` with
+scalar square one, global conjugation maps the corresponding distinct-site pair operator to
+axis `b`. -/
 theorem pair_conjugate (n : ℕ) (i j : Fin n) (hij : i≠j)
     (U : Matrix (Fin 2) (Fin 2) ℂ) (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ)
     (a b : Fin 3) (s : ℂ) (hs : s*s=1) (hact : Uᴴ*pauliMatrix a*U=s • pauliMatrix b) :
@@ -116,35 +154,45 @@ theorem pair_conjugate (n : ℕ) (i j : Fin n) (hij : i≠j)
   rw [hc,one_smul]
   rfl
 
+/-- The one-qubit phase gate with diagonal entries one and the imaginary unit. -/
 noncomputable def phase : Matrix (Fin 2) (Fin 2) ℂ := !![1,0;0,Complex.I]
 
+/-- The one-qubit phase gate is unitary. -/
 theorem phase_unitary : phase ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose]
   ext i j
   fin_cases i <;> fin_cases j <;> simp [phase,Matrix.conjTranspose_apply,Matrix.mul_apply,Fin.sum_univ_two]
 
+/-- Conjugating Pauli X by the adjoint phase gate gives negative Pauli Y. -/
 theorem phase_x : phaseᴴ*pauliMatrix 0*phase=(-1:ℂ) • pauliMatrix 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [phase,pauliMatrix,pauliX,pauliY,Matrix.conjTranspose_apply,Matrix.mul_apply,Fin.sum_univ_two]
 
+/-- Conjugating Pauli Y by the adjoint phase gate gives Pauli X. -/
 theorem phase_y : phaseᴴ*pauliMatrix 1*phase=pauliMatrix 0 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [phase,pauliMatrix,pauliX,pauliY,Matrix.conjTranspose_apply,Matrix.mul_apply,Fin.sum_univ_two]
 
+/-- Conjugating Pauli Z by the adjoint phase gate preserves Pauli Z. -/
 theorem phase_z : phaseᴴ*pauliMatrix 2*phase=pauliMatrix 2 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [phase,pauliMatrix,pauliZ,Matrix.conjTranspose_apply,Matrix.mul_apply,Fin.sum_univ_two]
 
+/-- For distinct sites, the XX correlation after global phase rotation equals the original YY
+correlation. -/
 theorem phase_corr_x (n : ℕ) (i j : Fin n) (hij : i≠j) (ρ : Matrix (Reg n) (Reg n) ℂ) :
     corr (rotate n phase ρ) i j 0=corr ρ i j 1 := by
   rw [corr,rotated_trace,pair_conjugate n i j hij phase phase_unitary 0 1 (-1) (by norm_num) phase_x]
   rfl
 
+/-- For distinct sites, the YY correlation after global phase rotation equals the original XX
+correlation. -/
 theorem phase_corr_y (n : ℕ) (i j : Fin n) (hij : i≠j) (ρ : Matrix (Reg n) (Reg n) ℂ) :
     corr (rotate n phase ρ) i j 1=corr ρ i j 0 := by
   rw [corr,rotated_trace,pair_conjugate n i j hij phase phase_unitary 1 0 1 (by norm_num) (by simpa using phase_y)]
   rfl
 
+/-- For distinct sites, global phase rotation preserves the ZZ correlation. -/
 theorem phase_corr_z (n : ℕ) (i j : Fin n) (hij : i≠j) (ρ : Matrix (Reg n) (Reg n) ℂ) :
     corr (rotate n phase ρ) i j 2=corr ρ i j 2 := by
   rw [corr,rotated_trace,pair_conjugate n i j hij phase phase_unitary 2 2 1 (by norm_num) (by simpa using phase_z)]

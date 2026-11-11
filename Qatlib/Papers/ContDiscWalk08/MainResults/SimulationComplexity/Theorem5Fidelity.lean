@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.Theorem1Eigenpairs
+
+/-!
+# Fidelity simulation at zero time
+
+The theorem `theorem5_zero_time_fidelity` verifies the zero-time case of the fidelity
+formulation associated with Theorem 5 in [Childs2010]. It produces a unitary run and a
+nonnegative step parameter satisfying the stated overlap and cost bounds.
+
+## Main statements
+
+* `theorem5_zero_time_fidelity`: existence of a unitary zero-time simulation with the specified
+  fidelity bound.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +40,10 @@ open Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- For positive `δ`, constructs a unitary run and a nonnegative step parameter satisfying the
+squared-overlap bound `1 - δ` for every normalized state at zero time, together with the
+stated zero-time cost bound. This is the zero-time case associated with Theorem 5 of
+[Childs2010]. -/
 theorem theorem5_zero_time_fidelity (D : WalkSetup I) (δ : ℝ) (hδ : 0 < δ) :
     ∃ (run : Matrix I I ℂ) (steps : ℝ),
       run ∈ Matrix.unitaryGroup I ℂ ∧

@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+/-!
+# Rational recovery windows for amplified progressions
+
+`aqGoodWindow` consists of labels close to reduced fractions with denominator `P`. Kernel
+estimates bound the progression Fourier sum on this window, and rounded rational labels give its
+totient cardinality bound.
+
+`amplified_progression_actual_rational_window_mass` combines these estimates into a positive
+lower bound for the window mass of the actual amplified progression state under the stated size
+and recovery assumptions.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `aq_window_root_lower`: a lower bound for the progression Fourier sum.
+* `aq_good_window_card`: at least `Nat.totient P` favorable labels.
+* `amplified_progression_actual_rational_window_mass`: the actual-state success-mass bound.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -20,11 +45,16 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open Matrix
 open scoped Classical BigOperators Kronecker
 
+/-- The Fourier labels within `1 / (2 * N)` of a reduced fraction `a / P` with `a < P`. -/
 def aqGoodWindow (N P : ℕ) : Finset (Fin N) := {y | ∃ a : ℕ,
   a< P ∧ Nat.Coprime a P ∧ |(y.val:ℚ)/N-(a:ℚ)/P|≤1/(2*(N:ℚ))}
+/-- The lower-bound expression `4 * totient P * M * aqGain N M / (π ^ 2 * (N - M))` for
+rational-window success mass. -/
 noncomputable def aqSuccessLower (N M P : ℕ) : ℝ :=
   4*(Nat.totient P:ℝ)*(M:ℝ)*aqGain N M/(Real.pi^2*(N-M:ℕ))
 
+/-- For positive `M` and `|M * phi| ≤ 1 / 2`, the squared norm of the zero-index
+phase-estimation kernel is at least `4 / π ^ 2`. -/
 theorem aq_kernel_half_window (M : ℕ) (hM : 0 < M) (phi : ℝ)
     (hw : |(M:ℝ)*phi| ≤ 1/2) :
     4/Real.pi^2 ≤ ‖qpeKernel M phi (⟨0,hM⟩ : Fin M)‖^2 := by
@@ -64,9 +94,12 @@ theorem aq_kernel_half_window (M : ℕ) (hM : 0 < M) (phi : ℝ)
         div_le_div_of_nonneg_right hs (by positivity)
       _ ≤ _ := hk
 
+/-- Every progression phase factor `aqPhase N s y` has squared norm one. -/
 theorem aqPhase_normSq (N s y : ℕ) : Complex.normSq (aqPhase N s y) = 1 := by
   simp [Complex.normSq_eq_norm_sq, aqPhase, Complex.norm_exp]
 
+/-- Express the progression Fourier sum as its initial phase times `M` times the zero-index
+phase-estimation kernel at `-P * y / N`. -/
 theorem aq_progression_kernel (N s M P y : ℕ) (hM : 0 < M) :
     aqProgressionFourier N s M P y =
       aqPhase N s y*(M:ℂ)*qpeKernel M (-(P:ℝ)*(y:ℝ)/(N:ℝ)) (⟨0,hM⟩ : Fin M) := by
@@ -91,6 +124,8 @@ theorem aq_progression_kernel (N s M P y : ℕ) (hM : 0 < M) :
   push_cast
   ring
 
+/-- Under the stated size and rational-window conditions, the progression Fourier sum has
+squared norm at least `4 * M ^ 2 / π ^ 2`. -/
 theorem aq_window_root_lower (N s M P : ℕ) (hN : 0 < N) (hM : 0 < M) (hP : 0 < P)
     (hMP : M*P ≤ N) (y : Fin N) (a : ℕ)
     (hw : |(y.val:ℚ)/N-(a:ℚ)/P| ≤ 1/(2*(N:ℚ))) :
@@ -132,8 +167,12 @@ theorem aq_window_root_lower (N s M P : ℕ) (hN : 0 < N) (hM : 0 < M) (hP : 0 <
   have h := mul_le_mul_of_nonneg_left hk (show 0 ≤ (M:ℝ)^2 by positivity)
   convert! h using 1 <;> ring
 
+/-- The natural number obtained by rounding the rational value `N * a / P` using an added half
+before taking the floor. -/
 def aqNearestNat (N P a : ℕ) : ℕ := Nat.floor ((N:ℚ)*(a:ℚ)/(P:ℚ)+1/2)
 
+/-- For `0 < P < N` and `a < P`, the rounded label lies below `N` and is within the rational
+recovery window around `a / P`. -/
 theorem aqNearest_bounds (N P a : ℕ) (hP : 0 < P) (hPN : P < N) (ha : a < P) :
     aqNearestNat N P a < N ∧
       |(aqNearestNat N P a:ℚ)/N-(a:ℚ)/P| ≤ 1/(2*(N:ℚ)) := by
@@ -161,6 +200,8 @@ theorem aqNearest_bounds (N P a : ℕ) (hP : 0 < P) (hPN : P < N) (ha : a < P) :
   rw [he, abs_div, abs_of_pos hNR]
   exact (div_le_div_of_nonneg_right hw hNR.le).trans_eq (by ring)
 
+/-- When `0 < P < N`, rounding `N * a / P` by `aqNearestNat` is injective in the natural index
+`a`. -/
 theorem aqNearest_injective (N P : ℕ) (hP : 0 < P) (hPN : P < N) :
     Function.Injective (aqNearestNat N P) := by
   intro a b hab
@@ -185,6 +226,7 @@ theorem aqNearest_injective (N P : ℕ) (hP : 0 < P) (hPN : P < N) :
     rw [← sub_div, div_lt_iff₀ hPR] at he
     nlinarith
 
+/-- For `0 < P < N`, the rational recovery window contains at least `Nat.totient P` labels. -/
 theorem aq_good_window_card (N P : ℕ) (hP : 0 < P) (hPN : P < N) :
     Nat.totient P ≤ (aqGoodWindow N P).card := by
   let C : Finset (Fin P) := Finset.univ.filter (fun a => Nat.Coprime a.val P)
@@ -214,6 +256,7 @@ theorem aq_good_window_card (N P : ℕ) (hP : 0 < P) (hPN : P < N) :
     _ = (C.image e).card := (Finset.card_image_of_injective _ hinj).symm
     _ ≤ _ := Finset.card_le_card hsub
 
+/-- For `2 ≤ P < N`, every label in the rational recovery window is nonzero. -/
 theorem aq_good_nonzero (N P : ℕ) (hP : 2 ≤ P) (hPN : P < N)
     (y : Fin N) (hy : y ∈ aqGoodWindow N P) : y.val ≠ 0 := by
   obtain ⟨a,ha,hcop,hw⟩ := (Finset.mem_filter.mp hy).2
@@ -233,6 +276,9 @@ theorem aq_good_nonzero (N P : ℕ) (hP : 2 ≤ P) (hPN : P < N)
   have hPNR : (P:ℚ) < N := by exact_mod_cast hPN
   nlinarith
 
+/-- Under the stated progression, sparsity, and denominator bounds, `aqSuccessLower` is positive
+and bounds the actual amplified-state mass of the rational window from below, whose
+cardinality is at least `Nat.totient P`. -/
 theorem amplified_progression_actual_rational_window_mass : ∀ (N : ℕ) (hN : 0< N) (s M P B : ℕ),
   2≤ M → 2≤ P → s+(M-1)*P< N → 2*M≤ N → M*P≤ N → P≤ B → 2*B^2< N →
   0< aqSuccessLower N M P ∧ aqSuccessLower N M P≤

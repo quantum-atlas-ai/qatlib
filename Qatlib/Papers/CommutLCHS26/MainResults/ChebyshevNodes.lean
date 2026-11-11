@@ -8,6 +8,28 @@ import Qatlib.Papers.CommutLCHS26.MainResults.GeneralMPF
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.NumberTheory.Harmonic.Bounds
 import Mathlib.LinearAlgebra.Lagrange
+
+/-!
+# Rounded Chebyshev nodes and interpolation weights
+
+This module defines `angle`, `realNode`, and the rounded positive integer `node` used in
+Chebyshev multi-product formulas associated with [AftabAnTrivisa2026]. Reciprocal-square
+coordinates and their Lagrange weights enforce the inverse-even-power moment identities.
+
+The node sum and total word length satisfy explicit O(m² log m) bounds, while coefficient
+matching gives an exponential Taylor-tail estimate for the resulting approximation.
+
+## Main statements
+
+* `weight_moments`: establishes the cancellation moments.
+* `coefficients`: matches exponential coefficients through degree 2m.
+* `node_sum_bound`: bounds the total number of repetitions.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,12 +41,16 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
 open Real Set
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The angle π(2j + 1)/(8m) associated with the j-th Chebyshev node. -/
 def angle (m : ℕ) (j : Fin m) : ℝ := Real.pi * (2 * (j.val : ℝ) + 1) / (8 * (m : ℝ))
 
+/-- The real node 4m divided by the sine of its associated angle. -/
 def realNode (m : ℕ) (j : Fin m) : ℝ := 4 * (m : ℝ) / Real.sin (angle m j)
 
+/-- The natural-number ceiling of the corresponding real Chebyshev node. -/
 def node (m : ℕ) (j : Fin m) : ℕ := Nat.ceil (realNode m j)
 
+/-- For positive m, every node angle lies strictly between 0 and π/4. -/
 theorem angle_bounds (m : ℕ) (hm : 0 < m) (j : Fin m) :
     0 < angle m j ∧ angle m j < Real.pi / 4 := by
   have hmpos : 0 < (m : ℝ) := by exact_mod_cast hm
@@ -34,14 +60,17 @@ theorem angle_bounds (m : ℕ) (hm : 0 < m) (j : Fin m) :
   · rw [angle, div_lt_iff₀ (by positivity : 0 < 8 * (m : ℝ))]
     nlinarith [Real.pi_pos]
 
+/-- Every real Chebyshev node is positive when m is positive. -/
 theorem realNode_pos (m : ℕ) (hm : 0 < m) (j : Fin m) : 0 < realNode m j := by
   have h := angle_bounds m hm j
   have hmpos : 0 < (m : ℝ) := by exact_mod_cast hm
   exact div_pos (by positivity) (Real.sin_pos_of_pos_of_lt_pi h.1 (by linarith [Real.pi_pos]))
 
+/-- Every rounded Chebyshev node is positive when m is positive. -/
 theorem node_pos (m : ℕ) (hm : 0 < m) (j : Fin m) : 0 < node m j :=
   Nat.ceil_pos.mpr (realNode_pos m hm j)
 
+/-- For 0 < a ≤ b ≤ π/4, the sine difference is at least (b - a)/π. -/
 private theorem sine_gap {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) (hb : b ≤ Real.pi / 4) :
     (b - a) / Real.pi ≤ Real.sin b - Real.sin a := by
   have hc : (1 / 2 : ℝ) ≤ Real.cos ((b + a) / 2) := by
@@ -56,6 +85,7 @@ private theorem sine_gap {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) (hb : b ≤ Re
       mul_le_mul_of_nonneg_left h (by norm_num)
     _ = _ := by rw [Real.sin_sub_sin]; ring
 
+/-- For 0 < a ≤ b ≤ π/4, the reciprocal-sine difference is at least (b - a)/π. -/
 private theorem inverse_sine_gap {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) (hb : b ≤ Real.pi / 4) :
     (b - a) / Real.pi ≤ (Real.sin a)⁻¹ - (Real.sin b)⁻¹ := by
   have hsa : 0 < Real.sin a := Real.sin_pos_of_pos_of_lt_pi ha (by linarith [Real.pi_pos])
@@ -73,6 +103,7 @@ private theorem inverse_sine_gap {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) (hb : 
       simpa only [mul_one] using! mul_le_mul_of_nonneg_left hprod hnum
     _ = _ := by field_simp
 
+/-- For i < j, the difference of the real node values is at least j - i. -/
 theorem realNode_gap (m : ℕ) (hm : 0 < m) (i j : Fin m) (hij : i < j) :
     (j.val : ℝ) - (i.val : ℝ) ≤ realNode m i - realNode m j := by
   have hmpos : 0 < (m : ℝ) := by exact_mod_cast hm
@@ -93,6 +124,7 @@ theorem realNode_gap (m : ℕ) (hm : 0 < m) (i j : Fin m) (hij : i < j) :
   rw [he] at h
   exact h.trans_eq (by dsimp [realNode]; ring)
 
+/-- For positive m, the rounded integer nodes are strictly decreasing. -/
 theorem node_strictAnti (m : ℕ) (hm : 0 < m) : StrictAnti (node m) := by
   intro i j hij
   have hgap := realNode_gap m hm i j hij
@@ -109,6 +141,7 @@ theorem node_strictAnti (m : ℕ) (hm : 0 < m) : StrictAnti (node m) := by
   change (node m j : ℝ) < realNode m j + 1 at hupp
   linarith
 
+/-- The real node at index j is at most 16m²/(2j + 1). -/
 theorem realNode_bound (m : ℕ) (hm : 0 < m) (j : Fin m) :
     realNode m j ≤ 16 * (m : ℝ) ^ 2 / (2 * (j.val : ℝ) + 1) := by
   have hmpos : 0 < (m : ℝ) := by exact_mod_cast hm
@@ -126,11 +159,13 @@ theorem realNode_bound (m : ℕ) (hm : 0 < m) (j : Fin m) :
       div_le_div_of_nonneg_left (by positivity) hd hs
     _ = _ := by field_simp; ring
 
+/-- The rounded node at index j is at most 16m²/(2j + 1) + 1. -/
 theorem node_bound (m : ℕ) (hm : 0 < m) (j : Fin m) :
     (node m j : ℝ) ≤ 16 * (m : ℝ) ^ 2 / (2 * (j.val : ℝ) + 1) + 1 :=
   (Nat.ceil_lt_add_one (realNode_pos m hm j).le).le.trans
     (_root_.add_le_add (realNode_bound m hm j) le_rfl)
 
+/-- The sum of the rounded nodes is at most 16m² times the m-th harmonic number plus m. -/
 theorem node_sum_harmonic (m : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, (node m j : ℝ)) ≤ 16 * (m : ℝ) ^ 2 * (harmonic m : ℝ) + m := by
   have hb (j : Fin m) : (node m j : ℝ) ≤ 16 * (m : ℝ) ^ 2 / ((j.val : ℝ) + 1) + 1 := by
@@ -152,6 +187,7 @@ theorem node_sum_harmonic (m : ℕ) (hm : 0 < m) :
           _ = _ := by unfold harmonic; push_cast; rfl
       rw [hh]
 
+/-- The rounded-node sum is bounded by (16 + 17/log 2)m² log(m + 1). -/
 theorem node_sum_bound (m : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, (node m j : ℝ)) ≤
       (16 + 17 / Real.log 2) * (m : ℝ) ^ 2 * Real.log ((m : ℝ) + 1) := by
@@ -175,6 +211,7 @@ theorem node_sum_bound (m : ℕ) (hm : 0 < m) :
   have h := mul_le_mul_of_nonneg_left hunit (sq_nonneg (m : ℝ))
   nlinarith
 
+/-- The rounded-node sum is O(m² log m) as m tends to infinity. -/
 theorem node_sum_isBigO :
     (fun m : ℕ => ∑ j : Fin m, (node m j : ℝ)) =O[Filter.atTop]
       (fun m : ℕ => (m : ℝ) ^ 2 * Real.log (m : ℝ)) := by
@@ -201,8 +238,11 @@ theorem node_sum_isBigO :
       mul_le_mul_of_nonneg_left hlogbound (mul_nonneg hC (sq_nonneg _))
     _ = _ := by ring
 
+/-- The reciprocal square of a rounded Chebyshev node, used as a Lagrange interpolation
+coordinate. -/
 def coordinate (m : ℕ) (j : Fin m) : ℝ := ((node m j : ℝ) ^ 2)⁻¹
 
+/-- For positive m, the reciprocal-square node coordinates are pairwise distinct. -/
 theorem coordinate_injective (m : ℕ) (hm : 0 < m) : Function.Injective (coordinate m) := by
   intro i j he
   apply (node_strictAnti m hm).injective
@@ -211,9 +251,12 @@ theorem coordinate_injective (m : ℕ) (hm : 0 < m) : Function.Injective (coordi
   have hs : (node m i : ℝ) ^ 2 = (node m j : ℝ) ^ 2 := inv_injective he
   exact_mod_cast ((sq_eq_sq₀ hi.le hj.le).mp hs)
 
+/-- The Lagrange basis polynomial for the reciprocal-square coordinates, evaluated at 0. -/
 def weight (m : ℕ) (j : Fin m) : ℝ :=
   (Lagrange.basis Finset.univ (coordinate m) j).eval 0
 
+/-- The weighted inverse-even-power moment of degree r < m equals 0^r, giving normalization at r
+= 0 and cancellation at positive r. -/
 theorem weight_moments (m : ℕ) (hm : 0 < m) (r : ℕ) (hr : r < m) :
     (∑ j : Fin m, weight m j / (node m j : ℝ) ^ (2 * r)) = (0 : ℝ) ^ r := by
   have hd : (Polynomial.X ^ r : Polynomial ℝ).degree < (Finset.univ : Finset (Fin m)).card := by
@@ -231,6 +274,8 @@ theorem weight_moments (m : ℕ) (hm : 0 < m) (r : ℕ) (hr : r < m) :
       ring
     _ = _ := h.symm
 
+/-- Each Chebyshev interpolation weight equals the product of its squared-node ratios over the
+other nodes. -/
 theorem weight_product (m : ℕ) (hm : 0 < m) (j : Fin m) :
     weight m j = ∏ l ∈ Finset.univ.erase j,
       (node m j : ℝ) ^ 2 / ((node m j : ℝ) ^ 2 - (node m l : ℝ) ^ 2) := by
@@ -261,6 +306,7 @@ theorem weight_product (m : ℕ) (hm : 0 < m) (j : Fin m) :
   ring_nf
   field_simp [hrev]
 
+/-- For positive m, the sum of the absolute interpolation weights is at least 1. -/
 theorem weight_mass_lower (m : ℕ) (hm : 0 < m) : 1 ≤ ∑ j : Fin m, |weight m j| := by
   have h := weight_moments m hm 0 hm
   simp only [Nat.mul_zero, pow_zero, div_one] at h
@@ -273,12 +319,16 @@ open MPFRemainder SubdivisionPolynomial GeneralMPF
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The Chebyshev multi-product coefficients agree with those of exp(t(X + Y)) through degree
+2m. -/
 theorem coefficients (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < m) (n : ℕ) (hn : n < 2 * m + 1) :
     coefficient (fun j => strangRepeats X Y (node m j)) (weight m) n =
       ((n.factorial : ℝ)⁻¹) • (X + Y) ^ n :=
   coefficients_from_scalar_moments X Y (node m) (weight m) m hm
     (node_pos m hm) (weight_moments m hm) n hn
 
+/-- The Chebyshev multi-product error is bounded by its absolute weight mass plus 1 times the
+exponential Taylor tail of order 2m + 1. -/
 theorem local_error (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < m) (t : ℝ) :
     ‖multiProduct (fun j => strangRepeats X Y (node m j)) (weight m) t -
       NormedSpace.exp (t • (X + Y))‖ ≤
@@ -290,6 +340,7 @@ theorem local_error (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < m) (t : ℝ) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The total length of all repeated Strang words is bounded by 3(16 + 17/log 2)m² log(m + 1). -/
 theorem visits_bound (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, ((strangRepeats X Y (node m j)).length : ℝ)) ≤
       3 * (16 + 17 / Real.log 2) * (m : ℝ) ^ 2 * Real.log ((m : ℝ) + 1) := by

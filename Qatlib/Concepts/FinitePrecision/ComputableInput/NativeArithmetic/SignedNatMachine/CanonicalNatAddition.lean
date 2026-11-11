@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.FramedBinaryAddition
+
+/-!
+# Canonical natural-number addition machines
+
+`CanonicalNatAddition` assembles a stack-machine program that reads two canonically encoded
+naturals, adds their binary payloads, normalizes the result, and emits the canonical encoding of
+their sum. Framed subroutine executions yield the source execution bound, and `raw_adder` gives
+a finite-state `TM0` machine with uniform quadratic resource bounds in the encoded input length.
+
+For background on classical computation and its resource models, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `source_exec`: the assembled source program computes the encoded sum within a quadratic
+  execution budget.
+* `raw_adder`: a compiled machine computes canonical addition with both resource parameters
+  bounded quadratically.
+
+## References
+
+* [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,45 +38,74 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.CanonicalNatAddition
 
+/-- The stack slots for raw input, reading workspace, two operands, the binary result, temporary
+storage, and output of canonical addition. -/
 inductive Slot where
   | raw | reader | markers | payload | first | second | result | temp | output
   deriving DecidableEq, Fintype
+/-- Control labels for input transfer, operand reading, output clearing, addition,
+normalization, reversal, emission, cleanup, and completion. -/
 inductive Label where
   | start (l : Fin 1) | read (which : Bool) (l : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Label)
   | clear (l : Fin 1) | add (l : Fin 3) | normalize (l : Fin 1)
   | reverse (l : Fin 1) | emit (l : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatEmit.Label) | drain (l : Fin 1) | done
   deriving DecidableEq, Fintype
 instance : Inhabited Label := ⟨.start 0⟩
+/-- The combined local state of the natural reader, framed binary adder, and shared input-output
+symbol. -/
 abbrev Local :=
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Local × FramedBinaryAddition.Local × Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol
+/-- A Boolean-stack machine configuration with the canonical addition slots, labels, and local
+state. -/
 abbrev Config := TM2.Cfg (fun _ : Slot => Bool) Label Local
 
+/-- Assigns each of the nine supplied Boolean words to its named stack slot. -/
 def state (raw reader markers payload first second result temp output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | .raw => raw | .reader => reader | .markers => markers | .payload => payload
   | .first => first | .second => second | .result => result | .temp => temp | .output => output
 
+/-- Projects the natural-reader component of the combined local state. -/
 def getRead (v : Local) := v.1
+/-- Replaces the natural-reader component of the combined local state. -/
 def putRead (v : Local)
     (x : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Local) : Local := (x, v.2)
+/-- Projects the framed binary-adder component of the combined local state. -/
 def getAdd (v : Local) := v.2.1
+/-- Replaces the framed binary-adder component of the combined local state. -/
 def putAdd (v : Local) (x : FramedBinaryAddition.Local) : Local := (v.1, x, v.2.2)
+/-- Projects the shared input-output symbol from the combined local state. -/
 def getIO (v : Local) := v.2.2
+/-- Replaces the shared input-output symbol in the combined local state. -/
 def putIO (v : Local) (x : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol) : Local :=
     (v.1, v.2.1, x)
 
+/-- Embeds the two input-transfer stacks into the raw-input and reader slots. -/
 def startCode : Fin 2 → Slot | 0 => .raw | _ => .reader
+/-- Embeds the reader subroutine's stacks into the global slots, placing its value in the first
+or second operand slot according to `which`. -/
 def readCode (which : Bool) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload
   | .value => if which then .second else .first | .temporary => .temp | .output => .output
+/-- Assigns the output-clearing subroutine's sole stack to the output slot. -/
 def clearCode (_ : Fin 1) : Slot := .output
+/-- Embeds the binary-adder stacks into the reader, first operand, second operand, and result
+slots. -/
 def addCode : Fin 4 → Slot | 0 => .reader | 1 => .first | 2 => .second | _ => .result
+/-- Assigns the binary-normalization subroutine's sole stack to the result slot. -/
 def normalizeCode (_ : Fin 1) : Slot := .result
+/-- Embeds the reversal-transfer stacks into the result and first operand slots. -/
 def reverseCode : Fin 2 → Slot | 0 => .result | _ => .first
+/-- Embeds the natural-emission stacks into the first operand, temporary, and output slots. -/
 def emitCode : Fin 3 → Slot | 0 => .first | 1 => .temp | _ => .output
+/-- Assigns the final cleanup subroutine's sole stack to the first operand slot. -/
 def drainCode (_ : Fin 1) : Slot := .first
 
+/-- Selects the next reader call after the first operand and output clearing after the second
+operand. -/
 def afterRead (which : Bool) : Label := if which then .clear 0 else .read true (.read .unary)
 
+/-- The assembled Boolean-stack program for reading two canonical naturals, adding their
+payloads, normalizing and emitting their sum, and clearing workspace before halting. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt startCode Label.start (.read false (.read .unary)) getIO putIO (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.transferProgram l)
   | .read which l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt (readCode which) (Label.read which) (afterRead which) getRead putRead (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.program l)
@@ -65,6 +117,8 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt drainCode Label.drain .done getIO putIO (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.drainProgram l)
   | .done => .load (fun _ => default) .halt
 
+/-- An injective stack embedding reconstructs the target global stack state when the embedded
+entries match the supplied data and all other entries match the original state. -/
 private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot) (hinj : Function.Injective code)
     (S T : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (data : K → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (hi : ∀ k, T (code k) = data k)
     (ho : ∀ j, (∀ k, code k ≠ j) → T j = S j) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.frame code S data = T := by
@@ -77,6 +131,9 @@ private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot) (hinj : 
   · rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator.frame_outside code S data j (by simpa using! hj)]
     exact (ho j (by simpa using! hj)).symm
 
+/-- Lifts a terminating subroutine execution into the assembled program with the same budget,
+given an injective stack embedding, compatible local-state accessors, and unchanged outside
+stacks. -/
 private theorem lift {K Λ σ : Type} [DecidableEq K]
     (code : K → Slot) (hinj : Function.Injective code) (labels : Λ → Label) (ret : Label)
     (get : Local → σ) (put : Local → σ → Local)
@@ -104,43 +161,57 @@ private theorem lift {K Λ σ : Type} [DecidableEq K]
   · simpa only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.cfg,
       Option.map_some, Option.getD_some, hs, hi] using! hnc.trans_le hc
 
+/-- The input-transfer stack embedding is injective. -/
 private theorem startCode_inj : Function.Injective (startCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [startCode]
 
+/-- The reader stack embedding is injective for either operand choice. -/
 private theorem readCode_inj (which : Bool) : Function.Injective (readCode which) := by
   cases which <;> intro x y h <;> cases x <;> cases y <;> simp_all [readCode]
 
+/-- The output-clearing stack embedding is injective. -/
 private theorem clearCode_inj : Function.Injective (clearCode) := by
   intro x y _
   exact Subsingleton.elim x y
 
+/-- The binary-adder stack embedding is injective. -/
 private theorem addCode_inj : Function.Injective (addCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [addCode]
 
+/-- The binary-normalization stack embedding is injective. -/
 private theorem normalizeCode_inj : Function.Injective (normalizeCode) := by
   intro x y _
   exact Subsingleton.elim x y
 
+/-- The reversal-transfer stack embedding is injective. -/
 private theorem reverseCode_inj : Function.Injective (reverseCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [reverseCode]
 
+/-- The natural-emission stack embedding is injective. -/
 private theorem emitCode_inj : Function.Injective (emitCode) := by
   intro x y h
   fin_cases x <;> fin_cases y <;> simp_all [emitCode]
 
+/-- The final cleanup stack embedding is injective. -/
 private theorem drainCode_inj : Function.Injective (drainCode) := by
   intro x y _
   exact Subsingleton.elim x y
 
+/-- The final natural-reader local state associated with reading the binary payload of `n`. -/
 def readLast (n : ℕ) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit.Local :=
     ((true, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat.lastField n.bits none),
     none)
+/-- Builds a global stack state with one selected operand, the other operand, a reader word, and
+an output word, leaving all workspace stacks empty. -/
 def operandState (which : Bool) (reader value other out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   state [] reader [] [] (if which then other else value) (if which then value else other) [] [] out
 
+/-- Reading a canonical natural consumes its encoding from the reader stack, places its binary
+payload in the selected operand slot, and prepends its reversed encoding to output within
+the stated quadratic budget. -/
 theorem read_call (which : Bool) (n : ℕ) (tail other out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       ⟨some (.read which (.read .unary)), v, operandState which (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ tail) [] other out⟩
@@ -164,6 +235,8 @@ theorem read_call (which : Bool) (n : ℕ) (tail other out : Qatlib.Concepts.Bit
     | exact (hj .temporary rfl).elim
     | exact (hj .output rfl).elim
 
+/-- Transfers reversed raw input to the reader stack, clears raw input, and reaches the first
+reader call within budget `input.length * (2 * input.length + 5) + 3`. -/
 theorem start_call (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.start 0), v, state (input.reverse) [] [] [] [] [] [] [] []⟩
       ⟨some (.read false (.read .unary)), putIO v none, state [] (input) [] [] [] [] [] [] []⟩
@@ -187,6 +260,8 @@ theorem start_call (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     | exact (hj 0 rfl).elim
     | exact (hj 1 rfl).elim
 
+/-- Clears the accumulated output word while preserving both operands and reaches the addition
+call within budget `out.length ^ 2 + 3 * out.length + 3`. -/
 theorem clear_call (a b out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.clear 0), v, state [] [] [] [] (a) (b) [] [] (out)⟩
       ⟨some (.add 2), putIO v none, state [] [] [] [] (a) (b) [] [] []⟩
@@ -205,6 +280,9 @@ theorem clear_call (a b out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
     | rfl
     | exact (hj 0 rfl).elim
 
+/-- With the adder local state initially default, computes the reversed binary sum word, clears
+the operand stacks, and reaches normalization within budget `30 * (a.length + b.length + 1)
+^ 2`. -/
 theorem add_call (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) (h : getAdd v = default) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.add 2), v, state [] [] [] [] (a) (b) [] [] []⟩
       ⟨some (.normalize 0), putAdd v default, state [] [] [] [] [] [] ((PaidBinaryAddition.output a b).reverse) [] []⟩
@@ -230,6 +308,8 @@ theorem add_call (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v 
     | exact (hj 2 rfl).elim
     | exact (hj 3 rfl).elim
 
+/-- Transfers the reversed canonical binary payload of `n` into the first operand slot in
+forward order and reaches emission within the stated quadratic budget. -/
 theorem reverse_call (n : ℕ) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.reverse 0), v, state [] [] [] [] [] [] (n.bits.reverse) [] []⟩
       ⟨some (.emit .count), putIO v none, state [] [] [] [] (n.bits) [] [] [] []⟩
@@ -253,6 +333,8 @@ theorem reverse_call (n : ℕ) (v : Local) :
     | exact (hj 0 rfl).elim
     | exact (hj 1 rfl).elim
 
+/-- Emits the reversed canonical natural encoding of `n` to the output slot while preserving its
+binary payload, within budget `100 * (1 + n.bits.length) ^ 2`. -/
 theorem emit_call (n : ℕ) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.emit .count), v, state [] [] [] [] (n.bits) [] [] [] []⟩
       ⟨some (.drain 0), putIO v none, state [] [] [] [] (n.bits) [] [] [] ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n).reverse)⟩
@@ -273,6 +355,8 @@ theorem emit_call (n : ℕ) (v : Local) :
     | exact (hj 1 rfl).elim
     | exact (hj 2 rfl).elim
 
+/-- Clears the remaining binary payload of `n` while preserving its reversed canonical output
+encoding and reaches completion within the stated quadratic budget. -/
 theorem drain_call (n : ℕ) (v : Local) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program ⟨some (Label.drain 0), v, state [] [] [] [] (n.bits) [] [] [] ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n).reverse)⟩
       ⟨some (.done), putIO v none, state [] [] [] [] [] [] [] [] ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n).reverse)⟩
@@ -292,6 +376,9 @@ theorem drain_call (n : ℕ) (v : Local) :
     | rfl
     | exact (hj 0 rfl).elim
 
+/-- Normalizes a reversed binary word to the reversed canonical bits of its decoded value and
+reaches the reversal call with some final input-output symbol, within budget `20 * (1 +
+bits.length) ^ 2`. -/
 theorem normalize_call (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) : ∃ last,
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       ⟨some (.normalize 0), v, state [] [] [] [] [] [] bits [] []⟩
@@ -311,6 +398,8 @@ theorem normalize_call (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
     | rfl
     | exact (hj 0 rfl).elim
 
+/-- Under `S, R, N ≤ 1 + L`, the displayed sum of subroutine budgets is at most `10000 * (1 + L)
+^ 2`. -/
 private theorem budget_le (L S R N : ℕ) (hs : S ≤ 1 + L) (hr : R ≤ 1 + L) (hn : N ≤ 1 + L) :
     L * (2 * L + 5) + 3 + 500 * (1 + L) ^ 2 + 500 * (1 + L) ^ 2 +
       (L ^ 2 + 3 * L + 3) + 30 * S ^ 2 + 20 * (1 + R) ^ 2 +
@@ -321,6 +410,8 @@ private theorem budget_le (L S R N : ℕ) (hs : S ≤ 1 + L) (hr : R ≤ 1 + L) 
   have hn2 := Nat.pow_le_pow_left hn 2
   nlinarith only [hs2, hr, hr2, hn, hn2]
 
+/-- The binary length of a natural sum is at most the sum of the two input binary lengths plus
+one. -/
 theorem sum_bits_length (a b : ℕ) : (a + b).bits.length ≤ a.bits.length + b.bits.length + 1 := by
   have hc :=
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryNormalize.canonical_length
@@ -330,6 +421,9 @@ theorem sum_bits_length (a b : ℕ) : (a + b).bits.length ≤ a.bits.length + b.
   exact hc.trans ((PaidBinaryAddition.digits_length _ false).trans
     (Nat.add_le_add_right (PaidBinaryAddition.columns_length a.bits b.bits) 1))
 
+/-- On the reversed concatenated canonical encodings of `a` and `b`, the source program halts
+with default local state, empty workspace, and the reversed canonical encoding of `a + b`.
+The execution budget is `10000 * (1 + input.length) ^ 2`. -/
 theorem source_exec (a b : ℕ) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       (TM2.init Slot.raw (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits a ++ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits b).reverse)
@@ -407,6 +501,9 @@ theorem source_exec (a b : ℕ) :
   exact budget_le input.length (a.bits.length + b.bits.length + 1) r.length
       (a + b).bits.length hsum hr hn
 
+/-- There exist a finite-state `TM0` machine and a positive constant `c` that map concatenated
+canonical natural encodings to the canonical encoding of their sum, with both `Runs`
+resource bounds equal to `c * (1 + input.length) ^ 2`. -/
 theorem raw_adder :
     ∃ (q c : ℕ) (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))), 0 < c ∧ ∀ a b : ℕ,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs M (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits a ++ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits b) (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits (a + b))

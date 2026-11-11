@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MbqcFlow.FlowDecision.DiagonalTraceDistance
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Mathlib.Tactic.Linarith
+
+/-!
+# Quadratic forms controlled by trace distance
+
+Relates `trace (outerProduct z * X)` to the quadratic form of `X` at `z`. For trace-zero
+matrices, it bounds the absolute real part of this form by half the trace norm when `z` is
+normalized, and by the same bound multiplied by the vector's squared mass in general.
+
+These estimates express the control of measurement expectations by trace distance; see
+[Watrous2018].
+
+## Main statements
+
+* `abs_quadratic_re_le_half_traceNorm`: the normalized-vector bound.
+* `abs_quadratic_re_le_mass_half_traceNorm`: the bound for arbitrary vectors.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -16,6 +37,7 @@ noncomputable section
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 open Matrix
 
+/-- The trace of `outerProduct z * X` equals the quadratic form `star z ⬝ᵥ X *ᵥ z`. -/
 theorem trace_outerProduct_mul_eq_quadratic
     {I : Type*} [Fintype I] [DecidableEq I] (z : QState I) (X : Matrix I I ℂ) :
     (outerProduct z * X).trace = star z ⬝ᵥ X *ᵥ z := by
@@ -30,6 +52,8 @@ theorem trace_outerProduct_mul_eq_quadratic
   change z i*star (z j)*X j i = star (z j)*(X j i*z i)
   ring
 
+/-- For a trace-zero matrix and a normalized vector, the absolute real part of the quadratic
+form is at most half the matrix trace norm. -/
 theorem abs_quadratic_re_le_half_traceNorm
     {I : Type*} [Fintype I] [DecidableEq I] (X : Matrix I I ℂ)
     (htrace : X.trace = 0) (z : QState I) (hz : Normalized z) :
@@ -50,6 +74,8 @@ theorem abs_quadratic_re_le_half_traceNorm
   have hr := Complex.abs_re_le_norm ((outerProduct z*X).trace)
   linarith
 
+/-- For a trace-zero matrix and an arbitrary vector, the absolute real quadratic form is bounded
+by the vector's squared mass times half the trace norm. -/
 theorem abs_quadratic_re_le_mass_half_traceNorm
     {I : Type*} [Fintype I] [DecidableEq I] (X : Matrix I I ℂ)
     (htrace : X.trace = 0) (z : QState I) :

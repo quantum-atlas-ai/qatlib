@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
+
+/-!
+# Certified stability of SU(2) layer stripping
+
+This module gives error certificates and stability bounds for polynomial SU(2) layer stripping.
+`CertStepData` bounds parameter-read and coefficient-update errors, while `CertLayerStrip`
+records a finite run with a lower bound on each divisor. The polynomial transformations belong
+to the SU(2) signal-processing setting of [LowChuang2017].
+
+The one-step perturbation estimate propagates through `certRespBound` and `certPhaseBound` under
+uniform coefficient bounds and positive denominator lower bounds. The module also computes the
+exact operation charge and bounds recovery errors for parameters generating a finite nonlinear
+Fourier transform.
+
+## Main statements
+
+* `certStep_stability`: bound the parameter and coefficient errors of one certified step.
+* `certLayerStrip_stability`: propagate those bounds along a certified run.
+* `frontier1`: combine stability with parameter-list length and operation charge.
+* `frontier2`: bound recovery errors relative to a generating parameter list.
+* `certRefA_exact_norm_ge`: an exact update does not decrease the first constant-coefficient
+  norm.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.NativeNumerics.NlfftPipeline
@@ -16,12 +44,15 @@ namespace Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStabilit
 
 open Polynomial Qatlib
 
+/-- The real normalization factor `(1 + Complex.normSq γ)^(-1/2)`, viewed as a complex number. -/
 noncomputable def layerC (γ : ℂ) : ℂ :=
   (((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ)
 
+/-- The complex norm of a real number equals its absolute value. -/
 private theorem norm_ofReal' (x : ℝ) : ‖((x : ℝ) : ℂ)‖ = |x| := by
   rw [Complex.norm_real, Real.norm_eq_abs]
 
+/-- The layer normalization factor is nonzero. -/
 theorem layerC_ne_zero (γ : ℂ) : layerC γ ≠ 0 := by
   have hpos : (0 : ℝ) < 1 + Complex.normSq γ :=
     add_pos_of_pos_of_nonneg zero_lt_one (Complex.normSq_nonneg γ)
@@ -31,6 +62,7 @@ theorem layerC_ne_zero (γ : ℂ) : layerC γ ≠ 0 := by
   rw [inv_eq_zero, Real.sqrt_eq_zero (by positivity : (0 : ℝ) ≤ 1 + Complex.normSq γ)] at hinv
   linarith
 
+/-- The norm of the layer normalization factor is at most one. -/
 theorem layerC_norm_le_one (γ : ℂ) : ‖layerC γ‖ ≤ 1 := by
   have hpos : (0 : ℝ) < 1 + Complex.normSq γ :=
     add_pos_of_pos_of_nonneg zero_lt_one (Complex.normSq_nonneg γ)
@@ -41,6 +73,7 @@ theorem layerC_norm_le_one (γ : ℂ) : ‖layerC γ‖ ≤ 1 := by
   rw [layerC, norm_ofReal', abs_of_nonneg (inv_nonneg.mpr (Real.sqrt_nonneg _))]
   exact (inv_le_one₀ (Real.sqrt_pos.mpr hpos)).mpr h1
 
+/-- The real function `s ↦ (Real.sqrt (1 + s ^ 2))⁻¹` is Lipschitz with constant one. -/
 private theorem real_invSqrt_lipschitz (s t : ℝ) :
     |(Real.sqrt (1 + s ^ 2))⁻¹ - (Real.sqrt (1 + t ^ 2))⁻¹| ≤ |s - t| := by
   have hs2 : (0 : ℝ) ≤ s ^ 2 := sq_nonneg s
@@ -95,46 +128,62 @@ private theorem real_invSqrt_lipschitz (s t : ℝ) :
     nlinarith
   exact le_trans hdivle hsub
 
+/-- The layer normalization factor is Lipschitz with constant one on `ℂ`. -/
 theorem layerC_lipschitz (γ δ : ℂ) : ‖layerC γ - layerC δ‖ ≤ ‖γ - δ‖ := by
   rw [layerC, layerC, ← Complex.ofReal_sub, norm_ofReal',
     Complex.normSq_eq_norm_sq γ, Complex.normSq_eq_norm_sq δ]
   exact le_trans (real_invSqrt_lipschitz ‖γ‖ ‖δ‖) (abs_norm_sub_norm_le γ δ)
 
+/-- The normalized reference update `layerC γ • (A + conjugate γ • B)` for the first polynomial. -/
 noncomputable def certRefA (γ : ℂ) (A B : Polynomial ℂ) : Polynomial ℂ :=
   layerC γ • (A + (starRingEnd ℂ γ) • B)
 
+/-- The normalized reference update obtained by removing one power of `X` from `B - γ • A`. -/
 noncomputable def certRefB (γ : ℂ) (A B : Polynomial ℂ) : Polynomial ℂ :=
   layerC γ • (B - γ • A).divX
 
+/-- Each coefficient of the first reference update is the normalized sum of the corresponding
+input coefficients. -/
 theorem certRefA_coeff (γ : ℂ) (A B : Polynomial ℂ) (i : ℕ) :
     (certRefA γ A B).coeff i
       = layerC γ * (A.coeff i + (starRingEnd ℂ γ) * B.coeff i) := by
   simp [certRefA, coeff_smul, coeff_add, smul_eq_mul, mul_add]
 
+/-- Each coefficient of the second reference update is the normalized difference of the next
+input coefficients. -/
 theorem certRefB_coeff (γ : ℂ) (A B : Polynomial ℂ) (i : ℕ) :
     (certRefB γ A B).coeff i
       = layerC γ * (B.coeff (i + 1) - γ * A.coeff (i + 1)) := by
   simp [certRefB, coeff_smul, Polynomial.coeff_divX, coeff_sub, smul_eq_mul]
 
+/-- Using the constant-coefficient ratio as the parameter makes the first reference update equal
+the first output of `layerStripStepSU2`. -/
 theorem certRefA_eq_step (A B : Polynomial ℂ) :
     certRefA (B.coeff 0 / A.coeff 0) A B = (layerStripStepSU2 A B).2.1 := rfl
 
+/-- Using the constant-coefficient ratio as the parameter makes the second reference update
+equal the second output of `layerStripStepSU2`. -/
 theorem certRefB_eq_step (A B : Polynomial ℂ) :
     certRefB (B.coeff 0 / A.coeff 0) A B = (layerStripStepSU2 A B).2.2 := rfl
 
+/-- The polynomial pair remaining after `k` steps of ideal SU(2) layer stripping. -/
 noncomputable def idealPair (A B : Polynomial ℂ) (k : ℕ) :
     Polynomial ℂ × Polynomial ℂ :=
   ((layerStripSU2 A B k).finalA, (layerStripSU2 A B k).finalB)
 
+/-- The ratio of the second to the first constant coefficient after `k` ideal stripping steps. -/
 noncomputable def idealGamma (A B : Polynomial ℂ) (k : ℕ) : ℂ :=
   (idealPair A B k).2.coeff 0 / (idealPair A B k).1.coeff 0
 
+/-- The polynomial pair produced by one ideal SU(2) stripping step. -/
 noncomputable def stepPair (P : Polynomial ℂ × Polynomial ℂ) :
     Polynomial ℂ × Polynomial ℂ :=
   ((layerStripStepSU2 P.1 P.2).2.1, (layerStripStepSU2 P.1 P.2).2.2)
 
+/-- Zero ideal stripping steps leave the input pair unchanged. -/
 theorem idealPair_zero (A B : Polynomial ℂ) : idealPair A B 0 = (A, B) := rfl
 
+/-- An additional ideal stripping step applies `stepPair` to the current pair. -/
 theorem idealPair_succ (A B : Polynomial ℂ) (k : ℕ) :
     idealPair A B (k + 1) = stepPair (idealPair A B k) := by
   induction k generalizing A B with
@@ -146,16 +195,22 @@ theorem idealPair_succ (A B : Polynomial ℂ) (k : ℕ) :
         = idealPair A B (k + 1) := rfl
     rw [h1, ih (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2, h2]
 
+/-- Starting from the output of the first ideal step shifts the ideal pair sequence by one
+index. -/
 private theorem idealPair_step (A B : Polynomial ℂ) (k : ℕ) :
     idealPair (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 k
       = idealPair A B (k + 1) := rfl
 
+/-- Starting from the output of the first ideal step shifts the ideal parameter sequence by one
+index. -/
 private theorem idealGamma_step (A B : Polynomial ℂ) (k : ℕ) :
     idealGamma (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 k
       = idealGamma A B (k + 1) := by
   simp only [idealGamma]
   rw [idealPair_step]
 
+/-- Within the requested stripping length, the extracted parameter list agrees with
+`idealGamma`. -/
 theorem layerStrip_gammas_getD (A B : Polynomial ℂ) (n k : ℕ) (hk : k < n) :
     (layerStripSU2 A B n).gammas.getD k 0 = idealGamma A B k := by
   induction n generalizing A B k with
@@ -172,6 +227,8 @@ theorem layerStrip_gammas_getD (A B : Polynomial ℂ) (n k : ℕ) (hk : k < n) :
         ih (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 k (by omega)]
       rw [idealGamma_step]
 
+/-- A computed stripping parameter and output pair equipped with error bounds `η` for the
+parameter read and both coefficient updates. -/
 structure CertStepData (η : ℝ) (A B : Polynomial ℂ) where
 
   γ : ℂ
@@ -186,6 +243,8 @@ structure CertStepData (η : ℝ) (A B : Polynomial ℂ) where
 
   rotBOK : ∀ i, ‖B'.coeff i - (certRefB γ A B).coeff i‖ ≤ η
 
+/-- A finite certified stripping run whose steps carry local error certificates and a lower
+bound `γc` on the first constant-coefficient norm. -/
 inductive CertLayerStrip (η γc : ℝ) : Polynomial ℂ → Polynomial ℂ → Type where
   | stop (A B : Polynomial ℂ) : CertLayerStrip η γc A B
   | more (A B : Polynomial ℂ) (s : CertStepData η A B)
@@ -193,44 +252,57 @@ inductive CertLayerStrip (η γc : ℝ) : Polynomial ℂ → Polynomial ℂ → 
       (rest : CertLayerStrip η γc s.A' s.B') :
       CertLayerStrip η γc A B
 
+/-- The operation charge `8 * m + 8` assigned to a certified step of size `m`. -/
 def certStepOpCount (m : ℕ) : ℕ := 6 * m + 5 + 2 * m + 3
 
 namespace CertLayerStrip
 
+/-- The number of steps in a certified stripping run. -/
 def certSteps {η γc : ℝ} {A B : Polynomial ℂ} : CertLayerStrip η γc A B → ℕ
   | .stop _ _ => 0
   | .more _ _ _ _ rest => certSteps rest + 1
 
+/-- The list of computed stripping parameters in execution order. -/
 def certGammas {η γc : ℝ} {A B : Polynomial ℂ} : CertLayerStrip η γc A B → List ℂ
   | .stop _ _ => []
   | .more _ _ s _ rest => s.γ :: certGammas rest
 
+/-- The polynomial pair at a given certified step, retaining the terminal pair beyond the end of
+the run. -/
 def certPairAt {η γc : ℝ} {A B : Polynomial ℂ} :
     CertLayerStrip η γc A B → ℕ → Polynomial ℂ × Polynomial ℂ
   | .stop A B, _ => (A, B)
   | .more A B _ _ _, 0 => (A, B)
   | .more _ _ _ _ r, k + 1 => certPairAt r k
 
+/-- The number of extracted parameters equals the number of certified steps. -/
 theorem certGammas_length {η γc : ℝ} {A B : Polynomial ℂ} (r : CertLayerStrip η γc A B) :
     r.certGammas.length = r.certSteps := by
   induction r with
   | stop _ _ => rfl
   | more _ _ s _ _ ih => simp [certGammas, certSteps, ih]
 
+/-- The pair at a positive index of an extended run equals the pair at the preceding index of
+its continuation. -/
 theorem certPairAt_more_succ {η γc : ℝ} (A B : Polynomial ℂ) (s : CertStepData η A B)
     (hdiv : γc ≤ ‖A.coeff 0‖) (r : CertLayerStrip η γc s.A' s.B') (k : ℕ) :
     certPairAt (CertLayerStrip.more A B s hdiv r) (k + 1) = certPairAt r k := rfl
 
+/-- Parameter lookup at a positive index of an extended run reduces to lookup at the preceding
+index of its continuation. -/
 theorem certGammas_more_getD_succ {η γc : ℝ} (A B : Polynomial ℂ) (s : CertStepData η A B)
     (hdiv : γc ≤ ‖A.coeff 0‖) (r : CertLayerStrip η γc s.A' s.B') (k : ℕ) :
     (certGammas (CertLayerStrip.more A B s hdiv r)).getD (k + 1) 0
       = (certGammas r).getD k 0 := by
   simp [certGammas]
 
+/-- The accumulated operation charge of a certified stripping run, using the remaining step
+count at each step. -/
 def certOps {η γc : ℝ} {A B : Polynomial ℂ} : CertLayerStrip η γc A B → ℕ
   | .stop _ _ => 0
   | .more _ _ _ _ r => certStepOpCount (certSteps r + 1) + certOps r
 
+/-- A certified run of `s` steps has operation charge `4 * s ^ 2 + 12 * s`. -/
 theorem certOps_eq {η γc : ℝ} {A B : Polynomial ℂ} (r : CertLayerStrip η γc A B) :
     r.certOps = 4 * r.certSteps ^ 2 + 12 * r.certSteps := by
   induction r with
@@ -244,14 +316,20 @@ theorem certOps_eq {η γc : ℝ} {A B : Polynomial ℂ} (r : CertLayerStrip η 
 
 end CertLayerStrip
 
+/-- The recursive coefficient-error bound propagated from initial error `δ0`, local tolerance
+`η`, denominator bound `γc`, and coefficient bound `M`. -/
 noncomputable def certRespBound (η γc M δ0 : ℝ) : ℕ → ℝ
   | 0 => δ0
   | k + 1 => η + (1 + M / γc + η) * certRespBound η γc M δ0 k
       + (η + 2 * M * certRespBound η γc M δ0 k / γc ^ 2) * (2 * M + M ^ 2 / γc)
 
+/-- The extracted-parameter error bound `η + 2 * M * certRespBound η γc M δ0 k / γc ^ 2` at step
+`k`. -/
 noncomputable def certPhaseBound (η γc M δ0 : ℝ) (k : ℕ) : ℝ :=
   η + 2 * M * certRespBound η γc M δ0 k / γc ^ 2
 
+/-- Using the one-step response bound as the initial error shifts the response-bound sequence by
+one step. -/
 theorem certRespBound_shift (η γc M δ0 : ℝ) (k : ℕ) :
     certRespBound η γc M (certRespBound η γc M δ0 1) k
       = certRespBound η γc M δ0 (k + 1) := by
@@ -267,12 +345,16 @@ theorem certRespBound_shift (η γc M δ0 : ℝ) (k : ℕ) :
               * (2 * M + M ^ 2 / γc) := by rw [ih]
       _ = certRespBound η γc M δ0 (k + 1 + 1) := rfl
 
+/-- Using the one-step response bound as the initial error shifts the parameter-error bound by
+one step. -/
 theorem certPhaseBound_shift (η γc M δ0 : ℝ) (k : ℕ) :
     certPhaseBound η γc M (certRespBound η γc M δ0 1) k
       = certPhaseBound η γc M δ0 (k + 1) := by
   simp only [certPhaseBound]
   rw [certRespBound_shift]
 
+/-- A parameter read within error `η` of the constant-coefficient ratio has norm at most `M / γc
++ η` under the stated numerator and positive denominator bounds. -/
 theorem certRead_norm_le {η γc M : ℝ} (hγc : 0 < γc)
     (A B : Polynomial ℂ) (γ : ℂ)
     (hmagB0 : ‖B.coeff 0‖ ≤ M)
@@ -294,6 +376,8 @@ theorem certRead_norm_le {η γc M : ℝ} (hγc : 0 < γc)
     exact norm_add_le _ _
   linarith
 
+/-- A coefficient of the first reference update has norm at most the first input coefficient
+norm plus `‖γ‖` times the second. -/
 theorem certRefA_coeff_norm_le (γ : ℂ) (A B : Polynomial ℂ) (i : ℕ) :
     ‖(certRefA γ A B).coeff i‖ ≤ ‖A.coeff i‖ + ‖γ‖ * ‖B.coeff i‖ := by
   rw [certRefA_coeff, Complex.norm_mul]
@@ -304,6 +388,8 @@ theorem certRefA_coeff_norm_le (γ : ℂ) (A B : Polynomial ℂ) (i : ℕ) :
   exact le_trans (mul_le_mul (layerC_norm_le_one γ) h2 (norm_nonneg _) zero_le_one)
     (le_of_eq (one_mul _))
 
+/-- A coefficient of the second reference update is bounded by the next second coefficient norm
+plus `‖γ‖` times the next first coefficient norm. -/
 theorem certRefB_coeff_norm_le (γ : ℂ) (A B : Polynomial ℂ) (i : ℕ) :
     ‖(certRefB γ A B).coeff i‖ ≤ ‖B.coeff (i + 1)‖ + ‖γ‖ * ‖A.coeff (i + 1)‖ := by
   rw [certRefB_coeff, Complex.norm_mul]
@@ -314,6 +400,9 @@ theorem certRefB_coeff_norm_le (γ : ℂ) (A B : Polynomial ℂ) (i : ℕ) :
   exact le_trans (mul_le_mul (layerC_norm_le_one γ) h2 (norm_nonneg _) zero_le_one)
     (le_of_eq (one_mul _))
 
+/-- Under uniform coefficient bounds, a coefficient perturbation bound, and positive denominator
+lower bounds, one certified step satisfies the displayed parameter-error and output
+coefficient-error bounds. -/
 theorem certStep_stability {η γc M d : ℝ} (hγc : 0 < γc)
     (A B Ai Bi : Polynomial ℂ) (γ : ℂ) (A' B' : Polynomial ℂ)
     (hmag : ∀ i, ‖A.coeff i‖ ≤ M ∧ ‖B.coeff i‖ ≤ M
@@ -608,6 +697,9 @@ theorem certStep_stability {η γc M d : ℝ} (hγc : 0 < γc)
             linarith
           linarith
 
+/-- Under exactness, coefficient magnitude bounds, and positive denominator lower bounds, every
+stage of a certified run satisfies `certRespBound` and every extracted parameter satisfies
+`certPhaseBound`. -/
 private theorem certLayerStrip_stability_aux (η γc M : ℝ) (hγc : 0 < γc)
     {A B : Polynomial ℂ} (r : CertLayerStrip η γc A B) :
     ∀ (δ : ℝ) {Ai Bi : Polynomial ℂ},
@@ -703,6 +795,9 @@ private theorem certLayerStrip_stability_aux (η γc M : ℝ) (hγc : 0 < γc)
           ← certPhaseBound_shift η γc M δ k]
         exact hrec
 
+/-- A certified run stays within the recursive coefficient and parameter bounds of an exact
+ideal run, assuming the stated initial error, coefficient magnitude bounds, and positive
+denominator lower bounds. -/
 theorem certLayerStrip_stability (η γc M δ0 : ℝ) (hγc : 0 < γc)
     (A0 B0 : Polynomial ℂ) (r : CertLayerStrip η γc A0 B0)
     {Ai0 Bi0 : Polynomial ℂ}
@@ -723,6 +818,8 @@ theorem certLayerStrip_stability (η γc M δ0 : ℝ) (hγc : 0 < γc)
         ‖r.certGammas.getD k 0 - idealGamma Ai0 Bi0 k‖ ≤ certPhaseBound η γc M δ0 k) :=
   certLayerStrip_stability_aux η γc M hγc r δ0 hex hγcI hmag hdev0
 
+/-- Under the stability hypotheses, a certified run has one parameter per step, operation charge
+`4 * s ^ 2 + 12 * s`, and the recursive coefficient and parameter error bounds. -/
 theorem frontier1 (η γc M δ0 : ℝ) (hγc : 0 < γc)
     (A0 B0 Ai0 Bi0 : Polynomial ℂ) (r : CertLayerStrip η γc A0 B0)
     (hex : LayerStripExact Ai0 Bi0 r.certSteps)
@@ -745,6 +842,8 @@ theorem frontier1 (η γc M δ0 : ℝ) (hγc : 0 < γc)
   ⟨CertLayerStrip.certGammas_length r, CertLayerStrip.certOps_eq r,
     certLayerStrip_stability η γc M δ0 hγc A0 B0 r hex hγcI hmag hdev0⟩
 
+/-- The first polynomial of a finite SU(2) nonlinear Fourier transform has a positive real
+constant coefficient. -/
 private theorem nlft_fst_coeff_pos_real (γs : List ℂ) :
     ((nlftSU2 γs).1.coeff 0).im = 0 ∧ 0 < ((nlftSU2 γs).1.coeff 0).re := by
   have h := nlftSU2_fst_coeff_zero γs
@@ -760,6 +859,9 @@ private theorem nlft_fst_coeff_pos_real (γs : List ℂ) :
   · simp
     exact hpos
 
+/-- A certified run of the same positive length as a generating parameter list has operation
+charge `4 * n ^ 2 + 12 * n` and recovers each parameter within `certPhaseBound`, under the
+stated initial, coefficient, and denominator bounds. -/
 theorem frontier2 (η γc M δ0 : ℝ) (hγc : 0 < γc)
     (γtrue : List ℂ) (n : ℕ) (hn : γtrue.length = n) (hn1 : 1 ≤ n)
     (A0 B0 : Polynomial ℂ) (r : CertLayerStrip η γc A0 B0)
@@ -818,6 +920,8 @@ theorem frontier2 (η γc M δ0 : ℝ) (hγc : 0 < γc)
   rw [htrue]
   exact hkbound
 
+/-- For nonzero `a`, the exact normalized update with parameter `b / a` has squared norm
+`Complex.normSq a + Complex.normSq b`. -/
 theorem certRefA_exact_normSq (a b : ℂ) (ha : a ≠ 0) :
     Complex.normSq (layerC (b / a) * (a + (starRingEnd ℂ (b / a)) * b))
       = Complex.normSq a + Complex.normSq b := by
@@ -851,12 +955,16 @@ theorem certRefA_exact_normSq (a b : ℂ) (ha : a ≠ 0) :
   field_simp [hnsa, hden', hnsab]
   ring
 
+/-- If the first constant coefficient is nonzero, the exact first reference update has
+constant-coefficient squared norm equal to the sum of the two input squared norms. -/
 theorem certRefA_exact_normSq' (A B : Polynomial ℂ) (hA : A.coeff 0 ≠ 0) :
     Complex.normSq ((certRefA (B.coeff 0 / A.coeff 0) A B).coeff 0)
       = Complex.normSq (A.coeff 0) + Complex.normSq (B.coeff 0) := by
   rw [certRefA_coeff]
   exact certRefA_exact_normSq _ _ hA
 
+/-- An exact first reference update does not decrease the norm of a nonzero first constant
+coefficient. -/
 theorem certRefA_exact_norm_ge (A B : Polynomial ℂ) (hA : A.coeff 0 ≠ 0) :
     ‖A.coeff 0‖ ≤ ‖(certRefA (B.coeff 0 / A.coeff 0) A B).coeff 0‖ := by
   have h := certRefA_exact_normSq' A B hA

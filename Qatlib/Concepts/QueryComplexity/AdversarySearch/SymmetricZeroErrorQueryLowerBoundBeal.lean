@@ -9,6 +9,25 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Symmetric zero error query lower bound
+
+This module proves `symmetricZeroErrorQueryLowerBound` using the symmetrized polynomials for two
+error free outcome events. For a nonconstant symmetric Boolean function, their product vanishes
+on all N + 1 weight layers, yielding N + 1 ≤ 4Q when the total answer probability is at least
+1/2, as in [BealsEtAl2001].
+
+## Main statements
+
+* `symmetricZeroErrorQueryLowerBound`: the zero error lower bound for nonconstant symmetric
+  Boolean functions.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -18,11 +37,14 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Concepts.QueryComplexity.AdversarySearch
 open scoped Classical
 
+/-- The Hamming weight of a Boolean input is at most the cardinality of its index type. -/
 private theorem weight_le_card {I : Type} [Fintype I] [DecidableEq I] (x : I → Bool) :
     boolWeight x ≤ Fintype.card I := by
   simpa [boolWeight, boolSupp] using
     Finset.card_le_card (Finset.filter_subset (fun i => x i = true) Finset.univ)
 
+/-- If a polynomial vanishes on every Boolean input of weight `k`, its layer average at `k` is
+zero. -/
 private theorem average_zero {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℝ) (k : ℕ)
     (h : ∀ x : I → Bool, boolWeight x = k → p.eval (boolPoint x) = 0) :
@@ -32,6 +54,8 @@ private theorem average_zero {I : Type} [Fintype I] [DecidableEq I]
     Finset.sum_eq_zero (fun x _ => h x.1 x.2)
   rw [hz,zero_mul]
 
+/-- If `k` is at most the number of variables and every weight `k` Boolean evaluation is at
+least `c`, the corresponding layer average is at least `c`. -/
 private theorem average_lower {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype.card I) (c : ℝ)
     (h : ∀ x : I → Bool, boolWeight x = k → c ≤ p.eval (boolPoint x)) :
@@ -47,6 +71,8 @@ private theorem average_lower {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_right hs (inv_nonneg.mpr (Nat.cast_nonneg ((Fintype.card I).choose k)))
   simpa [layerAverage, mul_assoc, mul_comm, mul_left_comm, hn] using he
 
+/-- If every Boolean evaluation on the weight layer of `x` is at least 1/2, the symmetrized
+polynomial `avgPoly p` is nonzero. -/
 private theorem average_nonzero {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℝ) (x : I → Bool)
     (h : ∀ y : I → Bool, boolWeight y = boolWeight x → (1/2 : ℝ) ≤ p.eval (boolPoint y)) :
@@ -56,6 +82,9 @@ private theorem average_nonzero {I : Type} [Fintype I] [DecidableEq I]
   rw [layerAverage_eq_avgPoly p _ (weight_le_card x), hz, Polynomial.eval_zero] at hl
   norm_num at hl
 
+/-- For a nonconstant symmetric Boolean function, error free outcome events with total
+probability at least 1/2 on every input force 4 times the query count to be at least the
+input size plus one. See [Beals et al., Theorem 4.5][BealsEtAl2001]. -/
 theorem symmetricZeroErrorQueryLowerBound : SymmetricZeroErrorQueryLowerBound := by
   intro I W _ _ _ _ C ψ E0 E1 f hsym hnon hno1 hno0 hans
   let P0 := booleanAcceptancePolynomial C ψ E0

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
 
+/-!
+# Diagonal moments as differences of walk counts
+
+The permutation matrix `pairFlip` swaps the two copies of each vertex in `blockConvert`. Its
+conjugation identities establish the equal diagonal entries needed to evaluate
+antisymmetric-state expectations.
+
+The lift intertwines the signed matrix with its action on vectors of the form `liftVec phiMinus
+v`. Combining this with symmetry gives `theorem2_path_difference`, the algebraic walk-difference
+identity used in [JanzingWocjan2006].
+
+## Main statements
+
+* `eq12_diagonal_entry`: a diagonal moment of the signed matrix is an antisymmetric-state
+  expectation of the lift.
+* `theorem2_path_difference`: for a symmetric signed matrix, this moment is a
+  diagonal-minus-off-diagonal entry of a power of the unsigned lift.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -13,31 +36,41 @@ namespace Qatlib.Papers.BQPMixSparse06.MainResults
 
 open Finset Matrix
 
+/-- The difference between the entries of `M` from `(0, j)` to `(0, j)` and to `(1, j)`. -/
 def doubledPathDiff {N : ℕ} (M : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ) (j : Fin N) :
     ℝ := M (0, j) (0, j) - M (0, j) (1, j)
 
+/-- The involution swapping zero and one in `Fin 2`. -/
 def flipFin (s : Fin 2) : Fin 2 := if s = 0 then 1 else 0
 
+/-- The map that swaps the first coordinate of a doubled vertex and preserves its original
+vertex index. -/
 def flipBit {N : ℕ} (p : Fin 2 × Fin N) : Fin 2 × Fin N := (flipFin p.1, p.2)
 
+/-- Applying `flipFin` twice returns the original bit. -/
 lemma flipFin_involutive (s : Fin 2) : flipFin (flipFin s) = s := by
   fin_cases s <;> simp [flipFin]
 
+/-- Applying `flipBit` twice returns the original doubled vertex. -/
 lemma flipBit_involutive {N : ℕ} (p : Fin 2 × Fin N) : flipBit (flipBit p) = p := by
   obtain ⟨s, i⟩ := p
   simp [flipBit, flipFin_involutive]
 
+/-- The flip sends the second copy of vertex `j` to its first copy. -/
 lemma flipBit_one {N : ℕ} (j : Fin N) : flipBit ((1 : Fin 2), j) = (0, j) := by
   simp [flipBit, flipFin]
 
+/-- The doubled-vertex flip is injective. -/
 lemma flipBit_injective {N : ℕ} : Function.Injective (flipBit : Fin 2 × Fin N → _) := by
   intro p q h
   have := congrArg flipBit h
   simpa [flipBit_involutive] using this
 
+/-- The permutation matrix swapping the two copies of every vertex. -/
 def pairFlip {N : ℕ} : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ :=
   fun p q => if q = flipBit p then 1 else 0
 
+/-- The vertex-swap permutation matrix squares to the identity. -/
 @[simp] theorem pairFlip_mul_pairFlip {N : ℕ} :
     pairFlip * pairFlip = (1 : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ) := by
   ext p q
@@ -49,6 +82,7 @@ def pairFlip {N : ℕ} : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ :=
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Conjugating a matrix by `pairFlip` flips the first coordinate of both of its entry indices. -/
 theorem pairFlip_conj_apply {N : ℕ} (M : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ)
     (p q : Fin 2 × Fin N) :
     ((pairFlip * M * pairFlip : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ)) p q =
@@ -77,6 +111,7 @@ theorem pairFlip_conj_apply {N : ℕ} (M : Matrix (Fin 2 × Fin N) (Fin 2 × Fin
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- For `a` in `{-1, 0, 1}`, flipping both indices leaves `gammaBlock a` unchanged. -/
 lemma gammaBlock_flip (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1) (s t : Fin 2) :
     gammaBlock a (flipFin s) (flipFin t) = gammaBlock a s t := by
   rcases ha with rfl | rfl | rfl
@@ -84,6 +119,7 @@ lemma gammaBlock_flip (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1) (s t : Fin 2) 
   · fin_cases s <;> fin_cases t <;> simp [gammaBlock, Matrix.one_apply, flipFin]
   · fin_cases s <;> fin_cases t <;> simp [gammaBlock, flipFin]
 
+/-- The block conversion of a signed matrix is invariant under conjugation by `pairFlip`. -/
 theorem pairFlip_conj_blockConvert {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) :
     pairFlip * blockConvert A * pairFlip = blockConvert A := by
@@ -97,6 +133,7 @@ theorem pairFlip_conj_blockConvert {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     · exact Or.inr (Or.inl h)
   exact gammaBlock_flip (A p.2 q.2) hA' p.1 q.1
 
+/-- Conjugation by `pairFlip` preserves matrix products. -/
 theorem pairFlip_sandwich_mul {N : ℕ}
     (X Y : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ) :
     (pairFlip * X * pairFlip) * (pairFlip * Y * pairFlip) =
@@ -105,12 +142,15 @@ theorem pairFlip_sandwich_mul {N : ℕ}
   rw [← Matrix.mul_assoc pairFlip pairFlip (Y * pairFlip)]
   rw [pairFlip_mul_pairFlip, Matrix.one_mul]
 
+/-- A natural power of a matrix conjugated by `pairFlip` equals the conjugate of that power. -/
 theorem pairFlip_conj_pow {N : ℕ} (M : Matrix (Fin 2 × Fin N) (Fin 2 × Fin N) ℝ)
     (m : ℕ) : (pairFlip * M * pairFlip) ^ m = pairFlip * M ^ m * pairFlip := by
   induction m with
   | zero => rw [pow_zero, pow_zero, Matrix.mul_one, pairFlip_mul_pairFlip]
   | succ m ih => rw [pow_succ, ih, pow_succ, pairFlip_sandwich_mul]
 
+/-- The powers of a signed matrix's block conversion have equal diagonal entries on the two
+copies of each vertex. -/
 theorem blockConvert_pow_diag_eq {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (m : ℕ) (j : Fin N) :
     ((blockConvert A) ^ m) ((1 : Fin 2), j) ((1 : Fin 2), j) =
@@ -119,6 +159,7 @@ theorem blockConvert_pow_diag_eq {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     rw [← pairFlip_conj_blockConvert A hA, pairFlip_conj_pow, pairFlip_conj_apply,
       flipBit_one]
 
+/-- Each two-by-two block `gammaBlock a` is symmetric. -/
 theorem gammaBlock_symm (a : ℤ) (s t : Fin 2) : gammaBlock a s t = gammaBlock a t s := by
   by_cases h0 : a = 0
   · rw [h0]
@@ -131,6 +172,7 @@ theorem gammaBlock_symm (a : ℤ) (s t : Fin 2) : gammaBlock a s t = gammaBlock 
       rw [hσ]
       fin_cases s <;> fin_cases t <;> simp
 
+/-- The block conversion of a symmetric integer matrix has symmetric entries. -/
 theorem blockConvert_symm {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hAsym : ∀ i j, A i j = A j i) (p q : Fin 2 × Fin N) :
     blockConvert A p q = blockConvert A q p := by
@@ -138,6 +180,8 @@ theorem blockConvert_symm {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
   rw [hAsym q.2 p.2]
   exact gammaBlock_symm (A p.2 q.2) p.1 q.1
 
+/-- The transpose of the block conversion of a symmetric integer matrix equals that block
+conversion. -/
 theorem blockConvert_transpose {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hAsym : ∀ i j, A i j = A j i) :
     (blockConvert A)ᵀ = blockConvert A := by
@@ -145,6 +189,8 @@ theorem blockConvert_transpose {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
   rw [Matrix.transpose_apply]
   exact (blockConvert_symm A hAsym p q).symm
 
+/-- Every natural power of the block conversion of a symmetric integer matrix has symmetric
+entries. -/
 theorem blockConvert_pow_symm {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hAsym : ∀ i j, A i j = A j i) (m : ℕ) (p q : Fin 2 × Fin N) :
     ((blockConvert A) ^ m) p q = ((blockConvert A) ^ m) q p := by
@@ -154,6 +200,8 @@ theorem blockConvert_pow_symm {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
   rw [Matrix.transpose_apply] at this
   exact this.symm
 
+/-- The block conversion intertwines the original real matrix action with the antisymmetric lift
+of vectors. -/
 theorem blockConvert_mulVec_lift {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (v : Fin N → ℝ) :
     blockConvert A *ᵥ liftVec phiMinus v = liftVec phiMinus (realCast A *ᵥ v) := by
@@ -180,6 +228,8 @@ theorem blockConvert_mulVec_lift {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
   simp only [hinner]
   rw [Finset.sum_mul]
 
+/-- The same intertwining identity holds for every natural power of the signed matrix and its
+block conversion [JanzingWocjan2006]. -/
 theorem blockConvert_pow_mulVec_lift {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (m : ℕ) (v : Fin N → ℝ) :
     (blockConvert A) ^ m *ᵥ liftVec phiMinus v =
@@ -201,6 +251,8 @@ theorem blockConvert_pow_mulVec_lift {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
         _ = liftVec phiMinus (((realCast A) ^ (m + 1)) *ᵥ v) := by
             rw [pow_succ]
 
+/-- Pairing an antisymmetric localized state with an antisymmetric lift extracts the original
+vector's coordinate at `j`. -/
 theorem dot_psiMinus_lift {N : ℕ} (w : Fin N → ℝ) (j : Fin N) :
     dot (psiMinus j) (liftVec phiMinus w) = w j := by
   have hpp : (∑ s : Fin 2, phiMinus s * phiMinus s) = 1 := by
@@ -229,6 +281,8 @@ theorem dot_psiMinus_lift {N : ℕ} (w : Fin N → ℝ) (j : Fin N) :
   · intro h
     exact absurd (Finset.mem_univ j) h
 
+/-- A diagonal entry of a power of a signed matrix equals the expectation of the corresponding
+power of its block conversion in `psiMinus j` [JanzingWocjan2006]. -/
 theorem eq12_diagonal_entry {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (m : ℕ) (j : Fin N) :
     ((realCast A) ^ m) j j = dot (psiMinus j) ((blockConvert A) ^ m *ᵥ psiMinus j) := by
@@ -238,6 +292,9 @@ theorem eq12_diagonal_entry {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
   rw [hstep, dot_psiMinus_lift, Matrix.mulVec_single_one]
   simp [Matrix.col_apply]
 
+/-- For a symmetric matrix with entries in `{-1, 0, 1}`, a diagonal moment equals the
+diagonal-minus-off-diagonal difference in the corresponding power of its unsigned block
+conversion [JanzingWocjan2006, Theorem 2][JanzingWocjan2006]. -/
 theorem theorem2_path_difference {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1)
     (hAsym : ∀ i j, A i j = A j i) (m : ℕ) (j : Fin N) :

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelCircleBounds
+
+/-!
+# Radial bounds for finite pole sets
+
+`finitePoleRadius` gives an explicit radius containing a finite complex pole set. For a nonempty
+pole set bounded by `B ≥ 1`, `finite_pole_denominator_lower` bounds the product of pole
+distances and the target distance from below outside radius `B + 1`.
+
+These estimates control rational contour kernels in the framework of [WangEtAl2026].
+
+## Main statements
+
+* `finite_pole_denominator_lower`: gives a quadratic radial lower bound.
+* `norm_le_finitePoleRadius`: places every pole inside the chosen radius.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -15,6 +35,8 @@ namespace CBMD
 open Complex
 open scoped BigOperators
 
+/-- If a nonempty pole set has norms at most `B ≥ 1` and `‖z‖ ≥ B + 1`, then `‖z + i‖` times the
+product of pole distances is at least `(‖z‖ - B) ^ 2`. -/
 theorem finite_pole_denominator_lower (s : Finset ℂ) (hs : s.Nonempty)
     (B : ℝ) (hB : 1 ≤ B) (hp : ∀ p ∈ s, ‖p‖ ≤ B)
     (z : ℂ) (hz : B + 1 ≤ ‖z‖) :
@@ -35,13 +57,16 @@ theorem finite_pole_denominator_lower (s : Finset ℂ) (hs : s.Nonempty)
     _ = (‖z‖ - B) * (‖z‖ - B) ^ s.card := by rw [pow_succ]; ring
     _ ≤ _ := mul_le_mul hI hprod (by positivity) (norm_nonneg _)
 
+/-- The explicit pole radius `1 + ∑ p ∈ s, ‖p‖`. -/
 def finitePoleRadius (s : Finset ℂ) : ℝ := 1 + ∑ p ∈ s, ‖p‖
 
+/-- The finite pole radius is at least one. -/
 theorem finitePoleRadius_ge_one (s : Finset ℂ) : 1 ≤ finitePoleRadius s := by
   have h : 0 ≤ ∑ p ∈ s, ‖p‖ := Finset.sum_nonneg (fun _ _ => norm_nonneg _)
   dsimp [finitePoleRadius]
   linarith
 
+/-- Every member of a finite pole set has norm at most its finite pole radius. -/
 theorem norm_le_finitePoleRadius (s : Finset ℂ) (p : ℂ) (hp : p ∈ s) :
     ‖p‖ ≤ finitePoleRadius s := by
   have h := Finset.single_le_sum (fun q (_ : q ∈ s) => norm_nonneg q) hp

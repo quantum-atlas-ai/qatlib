@@ -13,11 +13,35 @@ import Mathlib.Data.Fin.Basic
 import Mathlib.Data.Vector.Defs
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition1Defs
 
+/-!
+# Classical spectral-gap search specification
+
+Defines `Proposition1WalkSpec.expected`, the finite-path formulation of the classical MNRS
+search comparison [MagniezNayakRolandSantha2011]. It specifies strided and every-step scans,
+success at least `1 / 2`, and explicit resource bounds in terms of the absolute gap and
+marked-density lower bound.
+
+## Main statements
+
+* `expected`: The classical search contract for a primitive symmetric stochastic matrix with
+  positive absolute gap `δ` and marked-density lower bound `ε`, giving the prescribed scan
+  lengths, success at least `1 / 2`, and both trace-cost estimates [Magniez et al., Proposition
+  1][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open scoped BigOperators
 
 open Qatlib.Concepts.WalkSearch.MnrsAmplify
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition1WalkSpec
+/-- The classical search contract for a primitive symmetric stochastic matrix with positive
+absolute gap `δ` and marked-density lower bound `ε`, giving the prescribed scan lengths,
+success at least `1 / 2`, and both trace-cost estimates [Magniez et al., Proposition
+1][MagniezNayakRolandSantha2011]. -/
 def expected : Prop :=
   (∀ (δ ε : ℝ),
   0 < δ → 0 < ε →

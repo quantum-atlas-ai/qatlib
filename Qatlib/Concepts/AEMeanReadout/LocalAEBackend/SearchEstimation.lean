@@ -12,6 +12,35 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnknownSigmaMean
+
+/-!
+# Search and estimation endpoint guarantees
+
+This module assembles source quantum-search semantics, termination, and expected ledger bounds
+together with rational readout and strict amplitude-estimation success bounds. The search and
+counting results follow the framework of [BrassardEtAl2002], with the exact boundary correction
+between source and shifted search windows retained.
+
+The endpoint theorems also collect integer readout properties, oracle-cost transport, and
+confidence and access bounds for mean estimation with an unknown variance, in the setting of
+[Montanaro2015].
+
+## Main statements
+
+* `clause78_endpoint` and `clause79_endpoint`: source search costs, survival, and stopping
+  properties.
+* `clause83_endpoint`: strict phase-window, amplitude-estimation, and counting probability
+  bounds.
+* `clause85_endpoint`: effective rational and integer readout guarantees.
+* `clause8_endpoint`: unknown-variance mean-estimation confidence and resource bounds.
+* `clause84_endpoint`: record and path oracle-cost transport identities.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,6 +78,8 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The source round succeeds with probability a + (1 − a) · w, where a is the initial marked
+probability and w is the source-window average. -/
 theorem s2_source_search_law (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (l : ℕ) :
     roundSuccessMass (s2SourceRound A hA j₀ S l)
@@ -57,6 +88,9 @@ theorem s2_source_search_law (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGrou
           * sourceWindowAverage A j₀ S (qSearchWindow l) :=
   sourceRound_successMass A hA j₀ S l
 
+/-- The source-minus-BHMT round success probability equals (1 − a) times the endpoint
+depth-success difference divided by the search-window size, where a is the initial marked
+probability. -/
 theorem s2_source_search_exact_relation_to_frozen_shifted (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ) :
     roundSuccessMass (s2SourceRound A hA j₀ S l)
@@ -67,6 +101,8 @@ theorem s2_source_search_exact_relation_to_frozen_shifted (A : Matrix I I ℂ)
   rw [← shiftedRound_eq_frozenRound A hA j₀ S l]
   exact sourceRound_successMass_sub_shiftedRound A hA j₀ S l
 
+/-- The source and existing BHMT rounds have different success probabilities when the two
+endpoint depth-success masses differ and the initial marked probability is not one. -/
 theorem s2_source_search_ne_frozen_shifted_of_boundary (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ)
     (hbound : depthSuccessMass A j₀ S (qSearchWindow l) ≠ depthSuccessMass A j₀ S 0)
@@ -76,11 +112,14 @@ theorem s2_source_search_ne_frozen_shifted_of_boundary (A : Matrix I I ℂ)
   rw [← shiftedRound_eq_frozenRound A hA j₀ S l]
   exact sourceRound_successMass_ne_shiftedRound_of_boundary A hA j₀ S l hbound hA1
 
+/-- The stage-two source round is definitionally the source quantum-search round. -/
 theorem s2_source_step_is_s1_readout_round (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ) :
     s2SourceRound A hA j₀ S l = sourceQSearchRound A hA j₀ S l :=
   rfl
 
+/-- The rational estimation readout is no greater than the ideal amplitude estimate and has
+absolute error strictly less than 2^(−b). -/
 theorem s2_estimation_readout_terminating (M : ℕ) (b : ℕ) (z : Fin M) :
     (s2EstimationReadout M b z : ℝ) ≤ aeEstimate M z ∧
       |(s2EstimationReadout M b z : ℝ) - aeEstimate M z| * (2 : ℝ)^b < 1 := by
@@ -89,23 +128,30 @@ theorem s2_estimation_readout_terminating (M : ℕ) (b : ℕ) (z : Fin M) :
   · exact dyadicRound_le b (aeEstimate M z)
   · exact dyadicRound_error b (aeEstimate M z)
 
+/-- The estimation readout at the zero phase label is zero, and dyadic rounding fixes one. -/
 theorem s2_estimation_readout_boundaries (M : ℕ) (b : ℕ) (hM : 0 < M) :
     s2EstimationReadout M b ⟨0, by omega⟩ = 0 ∧ dyadicRound b 1 = 1 :=
   ⟨by simp [s2EstimationReadout, labelReadout, aeEstimate, dyadicRound_zero],
     dyadicRound_one b⟩
 
+/-- For positive initial marked probability, the source search survival probability tends to
+zero as the number of steps tends to infinity. -/
 theorem s2_unbounded_search_terminates (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
     Tendsto (sourceSurvival A hA j₀ S) atTop (𝓝 0) :=
   sourceSurvival_tendsto_zero A hA j₀ S ha
 
+/-- When the initial marked probability is zero, the source search survival probability equals
+one at every finite step. -/
 theorem s2_unbounded_search_never_halts (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : MeasureProb (preparedAAState A j₀) S = 0) :
     ∀ n, sourceSurvival A hA j₀ S n = 1 :=
   sourceSurvival_eq_one_of_zero A hA j₀ S ha
 
+/-- Every supported halting configuration of a source transition that returns an index returns
+an element of the marked set. -/
 theorem s2_unbounded_search_halts_marked (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r c1 c2 : ℕ) (cfg : Configuration SourceRunState (SourceRunOutcome I))
@@ -113,12 +159,15 @@ theorem s2_unbounded_search_halts_marked (A : Matrix I I ℂ)
     ∀ y c1' c2', cfg = Sum.inl (some y, c1', c2') → y ∈ S :=
   sourceTransition_halt_marked A hA j₀ S r c1 c2 cfg hcfg
 
+/-- For positive initial marked probability, the stopping distribution assigns each step its
+specified `sourceStopMass`. -/
 theorem s2_unbounded_search_stopping_law (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
     ∀ k, sourceStopLaw A hA j₀ S ha k = sourceStopMass A hA j₀ S k :=
   sourceStopLaw_mass A hA j₀ S ha
 
+/-- The source transition used here is the same fully qualified local-backend source transition. -/
 theorem s2_unbounded_transition_is_s1_unbounded_transition (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (r c1 c2 : ℕ) :
@@ -126,6 +175,8 @@ theorem s2_unbounded_transition_is_s1_unbounded_transition (A : Matrix I I ℂ)
       = Qatlib.Concepts.AEMeanReadout.LocalAEBackend.sourceTransition A hA j₀ S r c1 c2 :=
   rfl
 
+/-- The expected first ledger of a truncated source loop cannot decrease when its horizon
+increases by one. -/
 theorem s2_cumulative_ledger_expectation_mono (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (T : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (sourceQSearchLoop A hA j₀ S T 0) (fun out => (out.2.1 : ℝ≥0∞))
@@ -133,6 +184,8 @@ theorem s2_cumulative_ledger_expectation_mono (A : Matrix I I ℂ)
           (fun out => (out.2.1 : ℝ≥0∞)) :=
   sourceLoop_ledger1_expectation_mono A hA j₀ S T
 
+/-- The expected accumulated first ledger of N execution steps equals the expected first ledger
+of the source loop truncated to N rounds. -/
 theorem s2_unbounded_execution_matches_truncated_loop (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (N : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (runFor (sourceNext A hA j₀ S) N (sourceInitial (I := I)))
@@ -142,6 +195,8 @@ theorem s2_unbounded_execution_matches_truncated_loop (A : Matrix I I ℂ)
   sourceRunFor_ledger_eq_sourceLoop A hA j₀ S (fun c1 c2 => c1)
     (fun _ _ _ _ => rfl) (by rfl) N
 
+/-- The expected first ledger of a finite source loop is the sum of the round expectations
+weighted by their reach probabilities. -/
 theorem s2_cumulative_ledger_expectation_unfold (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (T : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (sourceQSearchLoop A hA j₀ S T 0) (fun out => (out.2.1 : ℝ≥0∞))
@@ -152,6 +207,8 @@ theorem s2_cumulative_ledger_expectation_unfold (A : Matrix I I ℂ)
     (fun out => (out.2.1 : ℝ≥0∞)) (fun _ out => by simp only []; rw [Nat.cast_add])
     (by simp) T
 
+/-- Expected accumulated first-ledger costs of finite executions converge to the corresponding
+infinite source-search cost series. -/
 theorem s2_stop_cost_expectation_is_limit (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) :
     Tendsto (fun N => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (runFor (sourceNext A hA j₀ S) N
@@ -162,6 +219,8 @@ theorem s2_stop_cost_expectation_is_limit (A : Matrix I I ℂ)
   sourceStopLedgerExpectation_eq_limit A hA j₀ S (fun c1 c2 => c1)
     (fun _ _ _ _ => rfl) (by rfl)
 
+/-- A mature source round has failure probability at most 3/4 under the stated amplitude-angle
+and window hypotheses. -/
 theorem s2_mature_source_round_fails_at_most_three_quarters (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (θ : ℝ) (l : ℕ)
     (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -170,6 +229,8 @@ theorem s2_mature_source_round_fails_at_most_three_quarters (A : Matrix I I ℂ)
     1 - roundSuccessMass (sourceQSearchRound A hA j₀ S l) ≤ 3 / 4 :=
   sourceRound_fail_prob_le_three_quarters A hA j₀ S θ l hθ0 hθ1 hprob hmature
 
+/-- Source round l has expected first ledger at most 6(6/5)^l and expected second ledger at most
+4(6/5)^l. -/
 theorem s2_source_round_ledger_cost (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (l : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (sourceQSearchRound A hA j₀ S l) (fun out => (out.2.1 : ℝ≥0∞))
@@ -179,6 +240,8 @@ theorem s2_source_round_ledger_cost (A : Matrix I I ℂ)
   ⟨sourceRound_ledger1_expectation_le A hA j₀ S l,
     sourceRound_ledger2_expectation_le A hA j₀ S l⟩
 
+/-- For positive initial marked probability a, both expected ledgers of every truncated source
+loop are at most 400/√a. -/
 theorem s2_source_search_two_ledger_budget (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (T : ℕ)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
@@ -189,6 +252,8 @@ theorem s2_source_search_two_ledger_budget (A : Matrix I I ℂ)
   ⟨sourceLoop_ledger1_expectation_le A hA j₀ S T ha,
     sourceLoop_ledger2_expectation_le A hA j₀ S T ha⟩
 
+/-- For positive initial marked probability a, both infinite source-search ledger expectation
+series retain the bound 400/√a. -/
 theorem s2_unbounded_stop_cost_retains_sqrt_a_budget (A : Matrix I I ℂ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (ha : 0 < MeasureProb (preparedAAState A j₀) S) :
@@ -198,10 +263,14 @@ theorem s2_unbounded_stop_cost_retains_sqrt_a_budget (A : Matrix I I ℂ)
       ≤ ENNReal.ofReal (400 / Real.sqrt (MeasureProb (preparedAAState A j₀) S)) :=
   sourceStopLedgerExpectation_le A hA j₀ S ha
 
+/-- For a positive grid M and real k > 1, the BHMT phase-window mass at radius k/M is strictly
+greater than 1 − 1/(2(k − 1)) [BrassardEtAl2002]. -/
 theorem s2_strict_bhmt_window_mass (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk : 1 < k) :
     1 - 1 / (2 * (k - 1)) < bhmt11WindowMass M ω (k / (M : ℝ)) :=
   bhmt11WindowMass_strict M ω hM k hk
 
+/-- For M ≥ 2 and natural k ≥ 2, the amplitude-estimation event with error at most 2πk√(a(1 −
+a))/M + k²π²/M² has probability strictly greater than 1 − 1/(2(k − 1)) [BrassardEtAl2002]. -/
 theorem s2_strict_ae_success_probability (M : ℕ) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (k : ℕ) (hk : 2 ≤ k) :
@@ -212,6 +281,9 @@ theorem s2_strict_ae_success_probability (M : ℕ) (A : Matrix I I ℂ) (j : I)
       (aeLaw M A j S hA hM).prob z > 1 - 1 / (2 * ((k : ℝ) - 1)) :=
   preparedAeWindow_strict M A j S hM hA k hk
 
+/-- For a nonempty universe, M ≥ 2, and k ≥ 2, quantum counting lies within the stated error
+bound around the marked-set cardinality with probability strictly greater than 1 − 1/(2(k −
+1)) [BrassardEtAl2002]. -/
 theorem s2_strict_counting_success_probability (N M : ℕ) (S : Finset (Fin N))
     (hN : 0 < N) (hM : 2 ≤ M) (k : ℕ) (hk : 2 ≤ k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -222,6 +294,9 @@ theorem s2_strict_counting_success_probability (N M : ℕ) (S : Finset (Fin N))
         1 - 1 / (2 * ((k : ℝ) - 1)) :=
   countingWindow_strict N M S hN hM k hk
 
+/-- Collects effective label precision, integer-count error and range bounds, upward
+half-integer tie handling, rounding discontinuity, readout comparison, bit budgets, and the
+integer-readout transport specification. -/
 theorem clause85_endpoint :
 
     (∀ (M k : ℕ) (z : Fin M),
@@ -278,6 +353,9 @@ theorem clause85_endpoint :
     exact effectiveIntegerReadout_budgets N k
   · exact effectiveIntegerReadout_transports
 
+/-- Collects the source depth convention, round and loop ledger bounds, the exact
+source-versus-shifted success correction, shared source and BHMT cost bounds, and survival
+equal to one when the initial marked probability is zero [BrassardEtAl2002]. -/
 theorem clause78_endpoint :
 
     (∀ (M : ℕ) (i : Fin M), sourceDepth M i = i.val + 1) ∧
@@ -338,6 +416,9 @@ theorem clause78_endpoint :
   · intro A hA j₀ S ha n
     exact s2_unbounded_search_never_halts A hA j₀ S ha n
 
+/-- Collects vanishing survival for positive initial marked probability, correctness of returned
+marked indices, convergence of first-ledger execution expectations, both infinite ledger
+bounds, and unit survival when the initial marked probability is zero. -/
 theorem clause79_endpoint :
 
     (∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I),
@@ -378,6 +459,9 @@ theorem clause79_endpoint :
   · intro A hA j₀ S ha n
     exact s2_unbounded_search_never_halts A hA j₀ S ha n
 
+/-- Collects strict BHMT phase-window, amplitude-estimation, and counting success bounds,
+together with their stated zero-amplitude, unit-amplitude, and odd-grid specializations
+[BrassardEtAl2002]. -/
 theorem clause83_endpoint :
 
     (∀ (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk : 1 < k),
@@ -442,6 +526,9 @@ theorem clause83_endpoint :
   · intro M A j S hM hA k hk hodd
     exact s2_strict_ae_success_probability M A j S hM hA k hk
 
+/-- Under the stated bounded-payoff and pilot assumptions, the unknown-variance estimator has
+failure mass at most (8/9)^r + 2/(Nν²). It also satisfies the displayed second- and
+fourth-moment bounds, variance comparison, and pilot moment failure bound [Montanaro2015]. -/
 theorem clause8_confidence_endpoint
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -469,6 +556,8 @@ theorem clause8_confidence_endpoint
   · exact unknownSigma_fourth_moment_ge_variance_sq A j hA f
   · exact unknownSigma_pilot_moment_failure_mass A j hA f N (nu : ℝ) hN hnuR
 
+/-- Under the stated pilot and payoff assumptions, the unknown-variance estimator succeeds with
+mass at least 1 − δ whenever (8/9)^r + 2/(Nν²) ≤ δ and 0 < δ < 1 [Montanaro2015]. -/
 theorem clause8_success_endpoint
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -482,6 +571,9 @@ theorem clause8_success_endpoint
       ≥ 1 - δ :=
   unknownSigma_success_bound A j hA f nu eps N h K r hk hN hf hnu hnu1 heps δ hδ0 hδ1 hδ
 
+/-- Collects normalization, confidence, moment bounds, pathwise worst-case ledger domination,
+and the displayed moment-weighted expected-access bound for the unknown-variance mean
+estimator under the stated hypotheses [Montanaro2015]. -/
 theorem clause8_endpoint
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -523,6 +615,11 @@ theorem clause8_endpoint
   · exact unknownSigma_expected_accesses_le A j hA f nu eps N h K r hk
       hN hf hnu hnu1 heps
 
+/-- Collects Boolean marking and controlled-phase implementations, single-record and
+joint-record oracle-cost transports, expected path-cost identities for approximate and exact
+counting, and source ledger relations. It also records failure of unrestricted transport,
+the obstruction from zero grids, and existence of path transport for positive grids
+[BrassardEtAl2002]. -/
 theorem clause84_endpoint
     (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -636,10 +733,12 @@ theorem clause84_endpoint
     · intro grids hg
       exact (pathLedgerTransport_exists_iff grids).2 hg
 
+/-- The record ledger at every source depth satisfies `RecordLedgerTransport` for that depth. -/
 theorem s2_source_round_record_ledger_transport (M : ℕ) (jj : Fin M) :
     RecordLedgerTransport (sourceDepth M jj) (recordLedger (sourceDepth M jj)) :=
   sourceRoundRecord_ledger_transport M jj
 
+/-- The source-round source ledger equals its controlled-mark ledger plus the window size M. -/
 theorem s2_source_round_ledger_relation (M : ℕ) :
     sourceRoundSourceLedger M = sourceRoundControlledMarkLedger M + M :=
   sourceRound_ledger_relation M

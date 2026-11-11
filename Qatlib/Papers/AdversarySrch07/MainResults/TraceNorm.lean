@@ -8,6 +8,30 @@ import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
 import Mathlib.LinearAlgebra.Matrix.Hermitian
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.Matrix.Spectrum
+
+/-!
+# Comparison matrices and symmetric trace norms
+
+Defines the real symmetric comparison matrix `lemmaSixMatrix` associated with Lemma 6 of
+[ChildsLee2008]. It proves symmetry, diagonal and trace formulas, and entrywise inequalities
+under nonnegativity assumptions.
+
+The spectral quantity `symTraceNorm` is the sum of absolute eigenvalues. It equals the trace for
+positive semidefinite matrices and bounds the comparison matrix trace from below.
+
+## Main statements
+
+* `lemmaSixMatrix_isHermitian`: Proves Hermiticity of the comparison matrix.
+* `posSemidef_trace_eq_symTraceNorm`: Identifies the symmetric trace norm with the trace for
+  positive semidefinite matrices.
+* `trace_le_symTraceNorm_lemmaSix`: Bounds the dot product of the defining vectors by the
+  symmetric trace norm.
+
+## References
+
+* [Childs and Lee, 2008][ChildsLee2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,9 +43,12 @@ open Finset
 
 namespace Qatlib.Papers.AdversarySrch07.MainResults.TraceNorm
 
+/-- The symmetric comparison matrix with entry `v i * w j` for `i ≤ j` and `v j * w i`
+otherwise. -/
 def lemmaSixMatrix {n : ℕ} (v w : Fin n → ℝ) : Matrix (Fin n) (Fin n) ℝ :=
   fun i j => if i ≤ j then v i * w j else v j * w i
 
+/-- The real comparison matrix `lemmaSixMatrix v w` is Hermitian. See [ChildsLee2008]. -/
 theorem lemmaSixMatrix_isHermitian {n : ℕ} (v w : Fin n → ℝ) :
     (lemmaSixMatrix v w).IsHermitian := by
   apply Matrix.IsHermitian.ext
@@ -35,15 +62,19 @@ theorem lemmaSixMatrix_isHermitian {n : ℕ} (v w : Fin n → ℝ) :
     · rw [if_neg hij]
   · rw [if_neg hji, if_pos (le_of_not_ge hji)]
 
+/-- Swapping the two indices leaves each entry of `lemmaSixMatrix v w` unchanged. -/
 theorem lemmaSixMatrix_comm {n : ℕ} (v w : Fin n → ℝ) (i j : Fin n) :
     lemmaSixMatrix v w i j = lemmaSixMatrix v w j i := by
   have h := (lemmaSixMatrix_isHermitian v w).apply j i
   simpa using! h
 
+/-- The `i`th diagonal entry of the comparison matrix is `v i * w i`. -/
 theorem lemmaSixMatrix_self {n : ℕ} (v w : Fin n → ℝ) (i : Fin n) :
     lemmaSixMatrix v w i i = v i * w i := by
   simp [lemmaSixMatrix]
 
+/-- If both defining vectors are entrywise nonnegative, every entry of the comparison matrix is
+nonnegative. -/
 theorem lemmaSixMatrix_nonneg {n : ℕ} (v w : Fin n → ℝ)
     (hv : ∀ i, 0 ≤ v i) (hw : ∀ i, 0 ≤ w i) (i j : Fin n) :
     0 ≤ lemmaSixMatrix v w i j := by
@@ -52,6 +83,8 @@ theorem lemmaSixMatrix_nonneg {n : ℕ} (v w : Fin n → ℝ)
   · exact mul_nonneg (hv i) (hw j)
   · exact mul_nonneg (hv j) (hw i)
 
+/-- For entrywise nonnegative `v` and `w`, each comparison-matrix entry is at most `v i * w j +
+v j * w i`. See [ChildsLee2008]. -/
 theorem lemmaSixMatrix_le_add {n : ℕ} (v w : Fin n → ℝ)
     (hv : ∀ i, 0 ≤ v i) (hw : ∀ i, 0 ≤ w i) (i j : Fin n) :
     lemmaSixMatrix v w i j ≤ v i * w j + v j * w i := by
@@ -62,38 +95,52 @@ theorem lemmaSixMatrix_le_add {n : ℕ} (v w : Fin n → ℝ)
   · have : 0 ≤ v i * w j := mul_nonneg (hv i) (hw j)
     linarith
 
+/-- For `i ≤ j`, the product `v i * w j` is at most the corresponding comparison-matrix entry. -/
 theorem lemmaSixMatrix_ge_rankOne {n : ℕ} (v w : Fin n → ℝ) {i j : Fin n} (h : i ≤ j) :
     v i * w j ≤ lemmaSixMatrix v w i j := by
   simp [lemmaSixMatrix, h]
 
+/-- The sum of the diagonal entries of the comparison matrix equals the dot product `∑ i, v i *
+w i`. See [ChildsLee2008]. -/
 theorem trace_lemmaSix {n : ℕ} (v w : Fin n → ℝ) :
     ∑ i, lemmaSixMatrix v w i i = ∑ i, v i * w i := by
   apply Finset.sum_congr rfl
   intro i _
   exact lemmaSixMatrix_self v w i
 
+/-- The Euclidean norm of a finite real vector, defined as the square root of the sum of squared
+coordinates. -/
 noncomputable def l2norm {n : ℕ} (v : Fin n → ℝ) : ℝ := Real.sqrt (∑ i, v i ^ 2)
 
+/-- The Euclidean norm `l2norm v` is nonnegative. -/
 theorem l2norm_nonneg {n : ℕ} (v : Fin n → ℝ) : 0 ≤ l2norm v := Real.sqrt_nonneg _
 
+/-- The symmetric trace norm of a real Hermitian matrix, defined as the sum of the absolute
+values of its eigenvalues. -/
 noncomputable def symTraceNorm {n : ℕ} (M : Matrix (Fin n) (Fin n) ℝ) (hM : M.IsHermitian) : ℝ :=
   ∑ i, |hM.eigenvalues i|
 
+/-- The symmetric trace norm is nonnegative. -/
 theorem symTraceNorm_nonneg {n : ℕ} (M : Matrix (Fin n) (Fin n) ℝ) (hM : M.IsHermitian) :
     0 ≤ symTraceNorm M hM :=
   Finset.sum_nonneg (fun _ _ => abs_nonneg _)
 
+/-- For a real positive semidefinite matrix, the symmetric trace norm equals its trace. See
+[ChildsLee2008]. -/
 theorem posSemidef_trace_eq_symTraceNorm {n : ℕ} (P : Matrix (Fin n) (Fin n) ℝ)
     (hP : P.PosSemidef) : symTraceNorm P hP.1 = P.trace := by
   unfold symTraceNorm
   rw [hP.1.trace_eq_sum_eigenvalues]
   exact Finset.sum_congr rfl (fun i _ => abs_of_nonneg (hP.eigenvalues_nonneg i))
 
+/-- The trace of a real positive semidefinite matrix is nonnegative. -/
 theorem posSemidef_trace_nonneg {n : ℕ} (P : Matrix (Fin n) (Fin n) ℝ) (hP : P.PosSemidef) :
     0 ≤ P.trace := by
   rw [hP.1.trace_eq_sum_eigenvalues]
   exact Finset.sum_nonneg (fun i _ => hP.eigenvalues_nonneg i)
 
+/-- The dot product `∑ i, v i * w i` is at most the symmetric trace norm of `lemmaSixMatrix v
+w`. See [ChildsLee2008]. -/
 theorem trace_le_symTraceNorm_lemmaSix {n : ℕ} (v w : Fin n → ℝ) :
     ∑ i, v i * w i ≤
       symTraceNorm (lemmaSixMatrix v w) (lemmaSixMatrix_isHermitian v w) := by

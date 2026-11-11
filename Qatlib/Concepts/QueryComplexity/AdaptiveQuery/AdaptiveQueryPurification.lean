@@ -23,6 +23,35 @@ import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
 import Mathlib.Data.List.NodupEquivFin
 import Mathlib.Data.List.OfFn
+
+/-!
+# Purification and polynomials for adaptive query circuits
+
+This module compiles well formed `ObservedCircuit` trees into unitary circuits that coherently
+retain every branch state. The construction uses measurement history registers, conditional
+query padding, and frontier isometries to preserve query depth while bounding the number of
+gates.
+
+It also represents adaptive acceptance probabilities by Boolean multilinear polynomials of
+degree at most twice `observedQueryDepth` and transports acceptance to a final history
+measurement. These constructions combine deferred measurement as described in
+[NielsenChuang2010] with the polynomial method of [BealsEtAl2001].
+
+## Main statements
+
+* `observed_actual_multilinear_acceptance_polynomial`: a multilinear acceptance polynomial of
+  degree at most twice query depth.
+* `observed_query_same_cost_full_branch_purification`: a unitary compilation preserving every
+  branch and the query count.
+* `observed_full_history_acceptance_transport`: equality of adaptive acceptance and a history
+  measurement probability.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -45,6 +74,7 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 
 open Matrix
 
+/-- The maximum number of oracle queries along a branch of an observed circuit. -/
 def observedQueryDepth {I : Type} : ObservedCircuit I → ℕ
   | .halt _ => 0
   | .step (.gate _) P => observedQueryDepth P
@@ -53,6 +83,7 @@ def observedQueryDepth {I : Type} : ObservedCircuit I → ℕ
       (List.ofFn (fun o : Fin k => observedQueryDepth (next o))).foldl max 0
   | .project _ P Q => max (observedQueryDepth P) (observedQueryDepth Q)
 
+/-- The total number of nodes in an observed circuit tree, including halting nodes. -/
 def observedTreeNodes {I : Type} : ObservedCircuit I → ℕ
   | .halt _ => 1
   | .step _ P => observedTreeNodes P + 1
@@ -60,14 +91,18 @@ def observedTreeNodes {I : Type} : ObservedCircuit I → ℕ
       (List.ofFn (fun o : Fin k => observedTreeNodes (next o))).sum + 1
   | .project _ P Q => observedTreeNodes P + observedTreeNodes Q + 1
 
+/-- The zero state trace with rejection, zero resource counts, and an empty observation record. -/
 def emptyObservedTrace (I : Type) : BranchTrace I :=
   ⟨0, false, 0, 0, 0, []⟩
 
+/-- Embed an input state into history slot zero and tensor it with a uniform spare Boolean
+register. -/
 noncomputable def deferredObservedInput {n R : ℕ} {W : Type}
     (ψ : QState ((Fin n × Bool) × W)) :
     QState ((Fin n × Bool) × (W × Fin (R + 1) × Bool)) :=
   fun x => if x.2.2.1.val = 0 then ψ (x.1, x.2.1) / Real.sqrt 2 else 0
 
+/-- The deferred input embedding preserves total branch mass. -/
 theorem deferredObservedInput_mass {n R : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (ψ : QState ((Fin n × Bool) × W)) :
     branchMass (deferredObservedInput (R := R) ψ) = branchMass ψ := by
@@ -88,12 +123,15 @@ theorem deferredObservedInput_mass {n R : ℕ} {W : Type} [Fintype W] [Decidable
     simp [hval]
   · simp
 
+/-- The deferred input embedding preserves normalization. -/
 theorem deferredObservedInput_normalized {n R : ℕ} {W : Type}
     [Fintype W] [DecidableEq W] {ψ : QState ((Fin n × Bool) × W)}
     (hψ : Normalized ψ) : Normalized (deferredObservedInput (R := R) ψ) := by
   change branchMass (deferredObservedInput (R := R) ψ) = 1
   exact (deferredObservedInput_mass ψ).trans (measureProb_univ hψ)
 
+/-- A left fold by `max` is bounded by any common upper bound on its initial value and list
+entries. -/
 private theorem foldl_max_le (xs : List ℕ) (a K : ℕ)
     (ha : a ≤ K) (hxs : ∀ x ∈ xs, x ≤ K) : xs.foldl max a ≤ K := by
   induction xs generalizing a with
@@ -102,6 +140,7 @@ private theorem foldl_max_le (xs : List ℕ) (a K : ℕ)
     exact ih (max a x) (max_le ha (hxs x List.mem_cons_self))
       (fun y hy => hxs y (List.mem_cons_of_mem x hy))
 
+/-- A left fold by `max` bounds both its initial value and every entry of the list. -/
 private theorem le_foldl_max (xs : List ℕ) (a : ℕ) :
     a ≤ xs.foldl max a ∧ ∀ x ∈ xs, x ≤ xs.foldl max a := by
   induction xs generalizing a with
@@ -114,6 +153,8 @@ private theorem le_foldl_max (xs : List ℕ) (a : ℕ) :
     · exact le_trans (le_max_right _ _) htail.1
     · exact htail.2 y hy
 
+/-- Folding `max` over a finite indexed list with initial value zero equals the finite supremum
+of the indexed values. -/
 private theorem foldl_max_ofFn (k : ℕ) (g : Fin k → ℕ) :
     (List.ofFn g).foldl max 0 = Finset.univ.sup g := by
   apply le_antisymm
@@ -125,6 +166,7 @@ private theorem foldl_max_ofFn (k : ℕ) (g : Fin k → ℕ) :
     intro o _
     exact (le_foldl_max (List.ofFn g) 0).2 (g o) (List.mem_ofFn.mpr ⟨o, rfl⟩)
 
+/-- The recursive query depth equals `observedQueryBudget`. -/
 theorem observedQueryDepth_eq_budget {I : Type} (P : ObservedCircuit I) :
     observedQueryDepth P = observedQueryBudget P := by
   induction P with
@@ -135,6 +177,7 @@ theorem observedQueryDepth_eq_budget {I : Type} (P : ObservedCircuit I) :
     exact Finset.sup_congr rfl (fun o _ => ih o)
   | project A P Q ihP ihQ => simp only [observedQueryDepth, observedQueryBudget, ihP, ihQ]
 
+/-- Every trace of an observed circuit uses at most `observedQueryDepth P` queries. -/
 theorem observed_query_depth_all_trace_bound
     (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (f : Fin n → Bool)
@@ -147,6 +190,8 @@ theorem observed_query_depth_all_trace_bound
 
 open scoped InnerProductSpace in
 
+/-- A linear isometry from a subspace of a finite complex Euclidean space extends to a unitary
+matrix on the whole space. -/
 theorem adaptiveHistoryIsometry_extension {J : Type} [Fintype J] [DecidableEq J]
     (S : Submodule ℂ (EuclideanSpace ℂ J))
     (L : S →ₗᵢ[ℂ] EuclideanSpace ℂ J) :
@@ -178,6 +223,8 @@ section Padding
 variable {n : ℕ} {W H : Type} [Fintype W] [DecidableEq W]
   [Fintype H] [DecidableEq H]
 
+/-- Swap the query answer bit with a spare bit on inactive histories, leaving active histories
+unchanged. -/
 def adaptivePaddingSwap (active : H → Bool)
     (x : (Fin n × Bool) × (W × H × Bool)) :
     (Fin n × Bool) × (W × H × Bool) :=
@@ -186,17 +233,20 @@ def adaptivePaddingSwap (active : H → Bool)
 
 omit [Fintype W] [DecidableEq W] [Fintype H] [DecidableEq H] in
 
+/-- The conditional padding swap is an involution. -/
 theorem adaptivePaddingSwap_involutive (active : H → Bool) :
     Function.Involutive (adaptivePaddingSwap (n := n) (W := W) active) := by
   intro x
   rcases x with ⟨⟨i, b⟩, w, h, s⟩
   cases ha : active h <;> simp [adaptivePaddingSwap, ha]
 
+/-- A padded query consisting of a conditional swap, one oracle query, and the same swap again. -/
 noncomputable def adaptivePaddedQuery (active : H → Bool) :
     Circuit ((Fin n × Bool) × (W × H × Bool)) :=
   [.gate (permMatrix (adaptivePaddingSwap active)), .query,
     .gate (permMatrix (adaptivePaddingSwap active))]
 
+/-- The padded query is a unitary circuit containing one query and two gates. -/
 theorem adaptivePaddedQuery_cost_and_unitary (active : H → Bool) :
     IsUnitaryCircuit (adaptivePaddedQuery (n := n) (W := W) active) ∧
       QueryCount (adaptivePaddedQuery (n := n) (W := W) active) = 1 ∧
@@ -204,11 +254,15 @@ theorem adaptivePaddedQuery_cost_and_unitary (active : H → Bool) :
   have hu := permMatrix_unitary (adaptivePaddingSwap_involutive (n := n) (W := W) active)
   simp [adaptivePaddedQuery, hu]
 
+/-- Extend a history state by a uniform spare Boolean register with amplitudes divided by the
+square root of two. -/
 noncomputable def adaptiveSpareInput
     (v : QState ((Fin n × Bool) × (W × H))) :
     QState ((Fin n × Bool) × (W × H × Bool)) :=
   fun x => v (x.1, x.2.1, x.2.2.1) / Real.sqrt 2
 
+/-- On a state with a uniform spare bit, a padded query applies the bit oracle on active
+histories and preserves inactive histories. -/
 theorem run_adaptivePaddedQuery (active : H → Bool) (f : Fin n → Bool)
     (v : QState ((Fin n × Bool) × (W × H)))
     (x : (Fin n × Bool) × (W × H × Bool)) :
@@ -228,23 +282,30 @@ section MeasurementHistory
 
 variable {I H : Type} [Fintype I] [DecidableEq I] [Fintype H] [DecidableEq H]
 
+/-- Preserve the state index and swap the blank history label with its partition label. -/
 def adaptivePartitionSwap (label : I → H) (blank : H) (x : I × H) : I × H :=
   (x.1, Equiv.swap blank (label x.1) x.2)
 
 omit [Fintype I] [DecidableEq I] [Fintype H] in
 
+/-- The partition history swap is an involution. -/
 theorem adaptivePartitionSwap_involutive (label : I → H) (blank : H) :
     Function.Involutive (adaptivePartitionSwap label blank) := by
   intro x
   exact Prod.ext rfl (Equiv.swap_apply_self blank (label x.1) x.2)
 
+/-- The permutation matrix that records a partition label by swapping it with a blank history
+label. -/
 noncomputable def adaptivePartitionHistoryGate (label : I → H) (blank : H) :
     Matrix (I × H) (I × H) ℂ := permMatrix (adaptivePartitionSwap label blank)
 
+/-- The partition history gate is unitary. -/
 theorem adaptivePartitionHistoryGate_unitary (label : I → H) (blank : H) :
     adaptivePartitionHistoryGate label blank ∈ Matrix.unitaryGroup (I × H) ℂ :=
   permMatrix_unitary (adaptivePartitionSwap_involutive label blank)
 
+/-- Applied to a blank history register, the partition history gate places each amplitude at its
+partition label and gives zero at other labels. -/
 theorem apply_adaptivePartitionHistoryGate (label : I → H) (blank : H)
     (ψ : QState I) (x : I × H) :
     ApplyGate (adaptivePartitionHistoryGate label blank) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket blank)) x =
@@ -261,10 +322,13 @@ theorem apply_adaptivePartitionHistoryGate (label : I → H) (blank : H)
       rw [← h, Equiv.swap_apply_right]
   by_cases h : label x.1 = x.2 <;> simp [he, h]
 
+/-- The controlled history gate that acts by the label transposition on the `P` component and by
+the identity on its complement. -/
 noncomputable def adaptiveProjectHistoryGate (P : Matrix I I ℂ) (a b : H) :
     Matrix (I × H) (I × H) ℂ :=
   TensorGate (1 - P) 1 + TensorGate P (permMatrix (Equiv.swap a b))
 
+/-- For an orthogonal projector, the projective history gate is unitary. -/
 theorem adaptiveProjectHistoryGate_unitary {P : Matrix I I ℂ}
     (hP : IsOrthogonalProjector P) (a b : H) :
     adaptiveProjectHistoryGate P a b ∈ Matrix.unitaryGroup (I × H) ℂ := by
@@ -291,6 +355,8 @@ theorem adaptiveProjectHistoryGate_unitary {P : Matrix I I ℂ}
   simp only [TensorGate, Matrix.zero_kronecker, add_zero, zero_add,
     ← Matrix.add_kronecker, sub_add_cancel, Matrix.one_kronecker_one]
 
+/-- Starting with history label `a`, the projective history gate records the false projective
+branch at `a` and the true branch at distinct label `b`, with zero amplitudes elsewhere. -/
 theorem apply_adaptiveProjectHistoryGate (P : Matrix I I ℂ) (a b : H)
     (hab : a ≠ b) (ψ : QState I) (x : I × H) :
     ApplyGate (adaptiveProjectHistoryGate P a b) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket a)) x =
@@ -316,17 +382,22 @@ section HistoryLayout
 variable {A W H : Type} [Fintype A] [DecidableEq A]
   [Fintype W] [DecidableEq W] [Fintype H] [DecidableEq H]
 
+/-- The coordinate equivalence regrouping state, workspace, history, and spare Boolean
+registers. -/
 def adaptiveHistoryLayoutEquiv : (((A × W) × H) × Bool) ≃ A × (W × H × Bool) where
   toFun x := (x.1.1.1, x.1.1.2, x.1.2, x.2)
   invFun x := (((x.1, x.2.1), x.2.2.1), x.2.2.2)
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Lift a matrix on the state and history registers to act trivially on a spare Boolean
+register, using the regrouped coordinates. -/
 noncomputable def adaptiveHistoryLift
     (U : Matrix ((A × W) × H) ((A × W) × H) ℂ) :
     Matrix (A × (W × H × Bool)) (A × (W × H × Bool)) ℂ :=
   Matrix.reindex adaptiveHistoryLayoutEquiv adaptiveHistoryLayoutEquiv (TensorGate U 1)
 
+/-- Lifting a unitary history matrix preserves unitarity. -/
 theorem adaptiveHistoryLift_unitary
     {U : Matrix ((A × W) × H) ((A × W) × H) ℂ}
     (hU : U ∈ Matrix.unitaryGroup ((A × W) × H) ℂ) :
@@ -335,6 +406,8 @@ theorem adaptiveHistoryLift_unitary
 
 omit [DecidableEq A] [DecidableEq W] [DecidableEq H] in
 
+/-- On amplitudes independent of the spare bit, applying a lifted history matrix agrees with
+applying the original matrix and dividing by the square root of two. -/
 theorem apply_adaptiveHistoryLift
     (U : Matrix ((A × W) × H) ((A × W) × H) ℂ)
     (v : QState ((A × W) × H)) (x : A × (W × H × Bool)) :
@@ -356,20 +429,25 @@ theorem apply_adaptiveHistoryLift
   intro h _
   ring
 
+/-- The state packing the false and true projective branches into history labels zero and one. -/
 noncomputable def adaptiveBinaryHistory (P : Matrix (A × W) (A × W) ℂ)
     (ψ : QState (A × W)) : QState ((A × W) × Fin 2) :=
   fun x => if x.2 = 0 then ProjectiveBranch P false ψ x.1
     else ProjectiveBranch P true ψ x.1
 
+/-- The lifted projective history gate recording a binary outcome in a `Fin 2` register. -/
 noncomputable def adaptiveBinaryHistoryGate (P : Matrix (A × W) (A × W) ℂ) :
     Matrix (A × (W × Fin 2 × Bool)) (A × (W × Fin 2 × Bool)) ℂ :=
   adaptiveHistoryLift (adaptiveProjectHistoryGate P (0 : Fin 2) 1)
 
+/-- The binary history gate is unitary when its matrix is an orthogonal projector. -/
 theorem adaptiveBinaryHistoryGate_unitary {P : Matrix (A × W) (A × W) ℂ}
     (hP : IsOrthogonalProjector P) :
     adaptiveBinaryHistoryGate P ∈ Matrix.unitaryGroup (A × (W × Fin 2 × Bool)) ℂ :=
   adaptiveHistoryLift_unitary (adaptiveProjectHistoryGate_unitary hP 0 1)
 
+/-- The binary history gate transforms a state in history slot zero with a uniform spare bit
+into the packed binary projective history. -/
 theorem apply_adaptiveBinaryHistoryGate (P : Matrix (A × W) (A × W) ℂ)
     (ψ : QState (A × W)) (x : A × (W × Fin 2 × Bool)) :
     ApplyGate (adaptiveBinaryHistoryGate P)
@@ -395,21 +473,29 @@ section BinaryQueryBranch
 
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- An observed circuit that performs the specified number of oracle queries and then halts with
+the chosen acceptance flag. -/
 def observedQueryChain {I : Type} (accepted : Bool) : ℕ → ObservedCircuit I
   | 0 => .halt accepted
   | k + 1 => .step .query (observedQueryChain accepted k)
 
+/-- A projective observed circuit that halts with flag `a` on the false branch and performs `k`
+queries before halting with flag `b` on the true branch. -/
 noncomputable def observedProjectQueryBranch
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (a b : Bool) (k : ℕ) : ObservedCircuit ((Fin n × Bool) × W) :=
   .project P (.halt a) (observedQueryChain b k)
 
+/-- The circuit that records a binary projective history and then performs `k` padded queries on
+history label one. -/
 noncomputable def adaptiveProjectQueryBranchCircuit
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ) (k : ℕ) :
     Circuit ((Fin n × Bool) × (W × Fin 2 × Bool)) :=
   [.gate (adaptiveBinaryHistoryGate P)] ++
     RepeatCircuit (adaptivePaddedQuery (fun h : Fin 2 => decide (h ≠ 0))) k
 
+/-- A query chain has one trace, whose state is the `k`th oracle iterate and whose query count
+is `k`. -/
 theorem observedQueryChain_traces {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (accepted : Bool) (k : ℕ) (ψ : QState I) :
     observedTraces O (observedQueryChain accepted k) ψ =
@@ -419,10 +505,12 @@ theorem observedQueryChain_traces {I : Type} [Fintype I] [DecidableEq I]
   | succ k ih =>
     simp [observedQueryChain, observedTraces, ih, Function.iterate_succ_apply]
 
+/-- Pack two states into history labels zero and one. -/
 noncomputable def adaptiveTwoHistory (ψ₀ ψ₁ : QState ((Fin n × Bool) × W)) :
     QState ((Fin n × Bool) × (W × Fin 2)) :=
   fun x => if x.2.2 = 0 then ψ₀ (x.1, x.2.1) else ψ₁ (x.1, x.2.1)
 
+/-- One padded query preserves history zero and applies the workspace bit oracle to history one. -/
 private theorem paddedQuery_twoHistory (f : Fin n → Bool)
     (ψ₀ ψ₁ : QState ((Fin n × Bool) × W)) :
     Run (workspaceBitOracle (W := W × Fin 2 × Bool) f)
@@ -436,6 +524,8 @@ private theorem paddedQuery_twoHistory (f : Fin n → Bool)
   · simp [adaptiveSpareInput, adaptiveTwoHistory, hz]
   · simp [adaptiveSpareInput, adaptiveTwoHistory, hz, applyGate_workspaceBitOracle]
 
+/-- Repeating the padded query `k` times preserves history zero and applies the `k`th oracle
+iterate to history one. -/
 theorem run_adaptiveTwoHistory_padding (f : Fin n → Bool) (k : ℕ)
     (ψ₀ ψ₁ : QState ((Fin n × Bool) × W)) :
     Run (workspaceBitOracle (W := W × Fin 2 × Bool) f)
@@ -449,6 +539,8 @@ theorem run_adaptiveTwoHistory_padding (f : Fin n → Bool) (k : ℕ)
     rw [RepeatCircuit, run_append, paddedQuery_twoHistory, ih,
       Function.iterate_succ_apply]
 
+/-- For an orthogonal projector, the binary branch compilation is unitary, uses `k` queries, and
+contains `1 + 2*k` gates. -/
 theorem adaptiveProjectQueryBranchCircuit_cost_and_unitary
     {P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ}
     (hP : IsOrthogonalProjector P) (k : ℕ) :
@@ -467,6 +559,8 @@ theorem adaptiveProjectQueryBranchCircuit_cost_and_unitary
       gateCount_repeatCircuit, gateCount_gate, gateCount_nil, hpad.2.2]
     omega
 
+/-- Running the binary branch compilation packs the false projective branch unchanged and the
+true branch after `k` oracle applications, together with the uniform spare bit. -/
 theorem run_adaptiveProjectQueryBranchCircuit
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (k : ℕ) (f : Fin n → Bool) (ψ : QState ((Fin n × Bool) × W)) :
@@ -483,6 +577,8 @@ theorem run_adaptiveProjectQueryBranchCircuit
   simp only [adaptiveProjectQueryBranchCircuit, run_append, run_gate, run_nil, hm,
     run_adaptiveTwoHistory_padding]
 
+/-- Each amplitude of the binary branch compilation equals the corresponding observed trace
+amplitude divided by the square root of two. -/
 theorem observed_project_query_branch_purification
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (a b : Bool) (k : ℕ) (f : Fin n → Bool)
@@ -503,6 +599,7 @@ theorem observed_project_query_branch_purification
 
 omit [Fintype W] [DecidableEq W] in
 
+/-- The projective branch circuit has query depth `k`. -/
 theorem observedProjectQueryBranch_depth
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (a b : Bool) (k : ℕ) : observedQueryDepth (observedProjectQueryBranch P a b k) = k := by
@@ -513,6 +610,9 @@ theorem observedProjectQueryBranch_depth
     | succ j ih => simp [observedQueryChain, observedQueryDepth, ih]
   simp [observedProjectQueryBranch, observedQueryDepth, hc]
 
+/-- A projective branch circuit with an orthogonal projector has a unitary compilation with the
+same query count, at most `10 * observedTreeNodes * (observedQueryDepth + 1)` gates, and
+both trace states stored in its history register. -/
 theorem observed_project_query_branch_same_cost
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (hP : IsOrthogonalProjector P) (a b : Bool) (k : ℕ) :
@@ -543,12 +643,16 @@ theorem observed_project_query_branch_same_cost
     refine ⟨?_, observed_project_query_branch_purification P a b k f ψ⟩
     simp [observedProjectQueryBranch, observedTraces, observedQueryChain_traces]
 
+/-- The measurement event selecting history zero according to flag `a` and history one according
+to flag `b`. -/
 def adaptiveBinaryHistoryEvent (a b : Bool) :
     Finset ((Fin n × Bool) × (W × Fin 2 × Bool)) :=
   Finset.univ.filter (fun x => if x.2.2.1 = 0 then a else b)
 
 omit [DecidableEq W] in
 
+/-- Measuring the binary history event gives the sum of the masses of those packed states whose
+acceptance flags are true. -/
 theorem adaptiveTwoHistory_readout (a b : Bool)
     (ψ₀ ψ₁ : QState ((Fin n × Bool) × W)) :
     MeasureProb (adaptiveSpareInput (adaptiveTwoHistory ψ₀ ψ₁)) (adaptiveBinaryHistoryEvent a b) =
@@ -559,6 +663,8 @@ theorem adaptiveTwoHistory_readout (a b : Bool)
       Fintype.sum_prod_type, Fin.sum_univ_two,
       div_pow, Finset.sum_add_distrib]
 
+/-- The final binary history measurement probability equals the acceptance probability of the
+projective branch circuit. -/
 theorem observed_project_query_branch_acceptance_transport
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (a b : Bool) (k : ℕ) (f : Fin n → Bool) (ψ : QState ((Fin n × Bool) × W)) :
@@ -570,6 +676,8 @@ theorem observed_project_query_branch_acceptance_transport
   cases a <;> cases b <;>
     simp [observedProjectQueryBranch, observedTraces, observedQueryChain_traces]
 
+/-- The acceptance of an orthogonal projective branch circuit is represented on Boolean inputs
+by a multilinear real polynomial of degree at most twice its query depth. -/
 theorem observed_project_query_branch_multilinear_polynomial
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
     (hP : IsOrthogonalProjector P) (a b : Bool) (k : ℕ)
@@ -592,6 +700,8 @@ end BinaryQueryBranch
 
 section BranchPolynomials
 
+/-- List all observed branches as acceptance flags paired with ordinary circuit words containing
+the corresponding measurement projectors. -/
 noncomputable def observedBranchWords {I : Type} [Fintype I] [DecidableEq I] :
     ObservedCircuit I → List (Bool × Circuit I)
   | .halt a => [(a, [])]
@@ -603,6 +713,8 @@ noncomputable def observedBranchWords {I : Type} [Fintype I] [DecidableEq I] :
       (observedBranchWords P).map (fun b => (b.1, .gate (1 - A) :: b.2)) ++
       (observedBranchWords Q).map (fun b => (b.1, .gate A :: b.2))
 
+/-- The observed trace states, acceptance flags, and query counts agree with running the
+corresponding branch words. -/
 theorem observedBranchWords_traces {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) :
     (observedTraces O P ψ).map (fun t => (t.state, t.accepted, t.queries)) =
@@ -631,6 +743,7 @@ theorem observedBranchWords_traces {I : Type} [Fintype I] [DecidableEq I]
       congrArg₂ List.append (ihP (ProjectiveBranch A false ψ))
         (ihQ (ProjectiveBranch A true ψ))
 
+/-- Every branch word has query count at most the observed circuit's query depth. -/
 theorem observedBranchWords_queryCount_le (n : ℕ) (W : Type)
     [Fintype W] [DecidableEq W]
     (P : ObservedCircuit ((Fin n × Bool) × W))
@@ -647,6 +760,7 @@ theorem observedBranchWords_queryCount_le (n : ℕ) (W : Type)
   rw [← hq]
   exact observed_query_depth_all_trace_bound n W P (fun _ => false) 0 t ht
 
+/-- Observed acceptance is the sum of the masses of accepting branch word runs. -/
 theorem observedAcceptance_eq_branchWords {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) :
     observedAcceptance O P ψ =
@@ -660,12 +774,16 @@ theorem observedAcceptance_eq_branchWords {I : Type} [Fintype I] [DecidableEq I]
 
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- The real acceptance polynomial obtained by summing the acceptance polynomials of accepting
+branch words. -/
 noncomputable def observedRawAcceptancePolynomial
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W)) :
     MvPolynomial (Fin n) ℝ :=
   ((observedBranchWords P).map (fun b =>
     if b.1 then rawAcceptancePolynomial b.2 ψ Finset.univ else 0)).sum
 
+/-- A finite sum of multivariate polynomials has degree at most a common upper bound on the
+summand degrees. -/
 private theorem adaptivePolynomial_list_degree {α : Type}
     (xs : List α) (g : α → MvPolynomial (Fin n) ℝ) (d : ℕ)
     (hd : ∀ x ∈ xs, (g x).totalDegree ≤ d) : (xs.map g).sum.totalDegree ≤ d := by
@@ -677,6 +795,8 @@ private theorem adaptivePolynomial_list_degree {α : Type}
       (max_le (hd x List.mem_cons_self)
         (ih (fun y hy => hd y (List.mem_cons_of_mem x hy))))
 
+/-- The raw adaptive acceptance polynomial has total degree at most twice the observed query
+depth. -/
 theorem observedRawAcceptancePolynomial_degree
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W)) :
     (observedRawAcceptancePolynomial P ψ).totalDegree ≤ 2 * observedQueryDepth P := by
@@ -689,6 +809,8 @@ theorem observedRawAcceptancePolynomial_degree
       (fun _ => false)).2.trans
         (Nat.mul_le_mul_left 2 (observedBranchWords_queryCount_le n W P b hb))
 
+/-- Evaluating the raw adaptive acceptance polynomial on a Boolean oracle gives the observed
+acceptance probability. -/
 theorem observedRawAcceptancePolynomial_eval
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))
     (f : Fin n → Bool) :
@@ -705,6 +827,10 @@ theorem observedRawAcceptancePolynomial_eval
   · simp only [↓reduceIte]
     exact (acceptance_polynomial_actual_born_and_degree b.2 ψ Finset.univ f).1
 
+/-- For a well formed observed circuit and normalized input, acceptance on Boolean oracles is
+represented by a multilinear real polynomial of degree at most twice the query depth. This
+extends the polynomial representation of [Beals et al., Lemma 4.2][BealsEtAl2001] to
+adaptive observations. -/
 theorem observed_actual_multilinear_acceptance_polynomial
     (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))
@@ -726,17 +852,21 @@ section QueryFreeHistory
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The matrix product representing a circuit word run with oracle matrix `O`. -/
 noncomputable def adaptiveBranchMatrix (O : Matrix I I ℂ) : Circuit I → Matrix I I ℂ
   | [] => 1
   | .gate U :: C => adaptiveBranchMatrix O C * U
   | .query :: C => adaptiveBranchMatrix O C * O
 
+/-- Applying the branch matrix to a state agrees with running its circuit word. -/
 theorem adaptiveBranchMatrix_apply (O : Matrix I I ℂ) (C : Circuit I) (ψ : QState I) :
     ApplyGate (adaptiveBranchMatrix O C) ψ = Run O C ψ := by
   induction C generalizing ψ with
   | nil => simp [adaptiveBranchMatrix]
   | cons s C ih => cases s <;> simp [adaptiveBranchMatrix, applyGate_mul, ih]
 
+/-- The list of observed trace states agrees with the list of states obtained by running the
+branch words. -/
 theorem observedBranchWords_states (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) :
     (observedTraces O P ψ).map BranchTrace.state =
       (observedBranchWords P).map (fun b => Run O b.2 ψ) := by
@@ -746,6 +876,8 @@ theorem observedBranchWords_states (O : Matrix I I ℂ) (P : ObservedCircuit I) 
 
 omit [DecidableEq I] in
 
+/-- Packing a list of states into sufficiently many history slots preserves the sum of their
+masses, with zero in unused slots. -/
 theorem adaptiveListHistory_mass (vs : List (QState I)) (K : ℕ) (hK : vs.length ≤ K) :
     branchMass (fun x : I × Fin K => (vs.getD x.2.val 0) x.1) =
       (vs.map branchMass).sum := by
@@ -766,6 +898,8 @@ theorem adaptiveListHistory_mass (vs : List (QState I)) (K : ℕ) (hK : vs.lengt
 
 omit [DecidableEq I] in
 
+/-- Two linear isometries with a common domain and finite dimensional codomain are related by a
+unitary matrix on the codomain. -/
 theorem adaptiveHistoryIsometries_transport {J : Type} [Fintype J] [DecidableEq J]
     (E F : EuclideanSpace ℂ I →ₗᵢ[ℂ] EuclideanSpace ℂ J) :
     ∃ U : Matrix J J ℂ, U ∈ Matrix.unitaryGroup J ℂ ∧
@@ -777,11 +911,15 @@ theorem adaptiveHistoryIsometries_transport {J : Type} [Fintype J] [DecidableEq 
   have h := hact (E.equivRange ψ)
   simpa [L] using h
 
+/-- The matrix packing the identity oracle branch matrices of an observed circuit into separate
+leaf history slots, with one additional slot. -/
 noncomputable def adaptiveLeafHistoryMatrix (P : ObservedCircuit I) :
     Matrix (I × Fin ((observedBranchWords P).length + 1)) I ℂ :=
   fun x i => if h : x.2.val < (observedBranchWords P).length then
     adaptiveBranchMatrix 1 ((observedBranchWords P).get ⟨x.2.val, h⟩).2 x.1 i else 0
 
+/-- Applying the leaf history matrix packs the identity oracle branch word runs into history
+coordinates and gives zero in unused slots. -/
 theorem adaptiveLeafHistoryMatrix_apply (P : ObservedCircuit I) (ψ : QState I)
     (x : I × Fin ((observedBranchWords P).length + 1)) :
     (adaptiveLeafHistoryMatrix P *ᵥ ψ) x =
@@ -796,6 +934,7 @@ theorem adaptiveLeafHistoryMatrix_apply (P : ObservedCircuit I) (ψ : QState I)
   · rw [List.getD_eq_default _ _ (by simpa using Nat.le_of_not_gt h)]
     simp [adaptiveLeafHistoryMatrix, h, Matrix.mulVec, dotProduct]
 
+/-- For a well formed observed circuit, the leaf history matrix preserves branch mass. -/
 theorem adaptiveLeafHistoryMatrix_mass (P : ObservedCircuit I) (hP : observedWellFormed P)
     (ψ : QState I) : branchMass (adaptiveLeafHistoryMatrix P *ᵥ ψ) = branchMass ψ := by
   have h := adaptiveListHistory_mass ((observedBranchWords P).map (fun b => Run 1 b.2 ψ))
@@ -806,6 +945,8 @@ theorem adaptiveLeafHistoryMatrix_mass (P : ObservedCircuit I) (hP : observedWel
   rw [← hv, ← observedBranchWords_states 1 P ψ, List.map_map, Function.comp_def] at h
   exact h.trans (observedTraces_mass 1 (Submonoid.one_mem _) P hP ψ)
 
+/-- The linear isometry packing all identity oracle branch states of a well formed observed
+circuit into a leaf history register. -/
 noncomputable def adaptiveLeafHistoryIsometry (P : ObservedCircuit I)
     (hP : observedWellFormed P) :
     EuclideanSpace ℂ I →ₗᵢ[ℂ] EuclideanSpace ℂ (I × Fin ((observedBranchWords P).length + 1)) where
@@ -817,9 +958,12 @@ noncomputable def adaptiveLeafHistoryIsometry (P : ObservedCircuit I)
     simp only [norm_toEuclidean_fromVec_sq]
     exact adaptiveLeafHistoryMatrix_mass P hP (WithLp.ofLp ψ)
 
+/-- The matrix embedding a state into history slot zero of `Fin (R + 1)`. -/
 noncomputable def adaptiveBlankHistoryMatrix (R : ℕ) : Matrix (I × Fin (R + 1)) I ℂ :=
   fun x i => if x.2 = 0 then (1 : Matrix I I ℂ) x.1 i else 0
 
+/-- The blank history matrix places the input amplitude in slot zero and gives zero in all other
+slots. -/
 theorem adaptiveBlankHistoryMatrix_apply (R : ℕ) (ψ : QState I) (x : I × Fin (R + 1)) :
     (adaptiveBlankHistoryMatrix R *ᵥ ψ) x = if x.2 = 0 then ψ x.1 else 0 := by
   by_cases h : x.2 = 0
@@ -827,6 +971,7 @@ theorem adaptiveBlankHistoryMatrix_apply (R : ℕ) (ψ : QState I) (x : I × Fin
       congrFun (Matrix.one_mulVec ψ) x.1
   · simp [adaptiveBlankHistoryMatrix, h, Matrix.mulVec, dotProduct]
 
+/-- The linear isometry embedding a state into history slot zero. -/
 noncomputable def adaptiveBlankHistoryIsometry (R : ℕ) :
     EuclideanSpace ℂ I →ₗᵢ[ℂ] EuclideanSpace ℂ (I × Fin (R + 1)) where
   toLinearMap := (adaptiveBlankHistoryMatrix R).toEuclideanLin
@@ -843,6 +988,8 @@ section QueryFreeCompilation
 
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- A well formed observed circuit of query depth zero has a unitary compilation preserving
+every trace state, with zero queries and the stated bound on gate count. -/
 theorem observed_zero_query_full_branch_purification
     (P : ObservedCircuit ((Fin n × Bool) × W)) (hP : observedWellFormed P)
     (hd : observedQueryDepth P = 0) :
@@ -901,6 +1048,8 @@ end QueryFreeCompilation
 
 section QueryFrontiers
 
+/-- The type of branch histories reached after consuming up to `j` queries, stopping before the
+next query or at a halt. -/
 @[reducible] def adaptiveFrontierType {I : Type} : ObservedCircuit I → ℕ → Type
   | .halt _, _ => Unit
   | .step (.gate _) P, j => adaptiveFrontierType P j
@@ -909,6 +1058,7 @@ section QueryFrontiers
   | .measure k _ next, j => (o : Fin k) × adaptiveFrontierType (next o) j
   | .project _ P Q, j => adaptiveFrontierType P j ⊕ adaptiveFrontierType Q j
 
+/-- A finite type instance for the histories at each adaptive query frontier. -/
 @[reducible] private noncomputable def adaptiveFrontierFintype {I : Type} :
     (P : ObservedCircuit I) → (j : ℕ) → Fintype (adaptiveFrontierType P j)
   | .halt _, _ => inferInstance
@@ -931,6 +1081,8 @@ noncomputable instance {I : Type} (P : ObservedCircuit I) (j : ℕ) :
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The state of all adaptive frontier branches after up to `j` oracle queries, with each branch
+retained in its own history coordinate. -/
 noncomputable def adaptiveFrontierRun (O : Matrix I I ℂ) :
     (P : ObservedCircuit I) → (j : ℕ) → QState I → QState (I × adaptiveFrontierType P j)
   | .halt _, _, ψ => fun x => ψ x.1
@@ -946,6 +1098,8 @@ noncomputable def adaptiveFrontierRun (O : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- The mass of a state indexed by a dependent sum of history types equals the sum of the masses
+of its component states. -/
 private theorem adaptiveSigma_mass {K : Type} [Fintype K]
     {H : K → Type} [∀ k, Fintype (H k)]
     (v : ∀ k, QState (I × H k)) :
@@ -956,6 +1110,8 @@ private theorem adaptiveSigma_mass {K : Type} [Fintype K]
 
 omit [DecidableEq I] in
 
+/-- The mass of a state indexed by a disjoint sum of histories equals the sum of the two
+component masses. -/
 private theorem adaptiveSum_mass {H K : Type} [Fintype H] [Fintype K]
     (v : QState (I × H)) (w : QState (I × K)) :
     branchMass (fun x : I × (H ⊕ K) => Sum.elim
@@ -964,6 +1120,8 @@ private theorem adaptiveSum_mass {H K : Type} [Fintype H] [Fintype K]
   simp [branchMass, MeasureProb, BornProb, Fintype.sum_prod_type,
     Fintype.sum_sum_type, Finset.sum_add_distrib]
 
+/-- For a unitary oracle and a well formed observed circuit, the frontier run preserves branch
+mass. -/
 theorem adaptiveFrontierRun_mass (O : Matrix I I ℂ)
     (hO : O ∈ Matrix.unitaryGroup I ℂ) (P : ObservedCircuit I)
     (hP : observedWellFormed P) (j : ℕ) (ψ : QState I) :
@@ -1003,6 +1161,7 @@ theorem adaptiveFrontierRun_mass (O : Matrix I I ℂ)
     rw [he, adaptiveSum_mass, ihP hP.2.1, ihQ hP.2.2]
     exact projectiveBranchMass_add hP.1 ψ
 
+/-- The predicate identifying frontier histories that are waiting for an oracle query. -/
 def adaptiveFrontierActive : (P : ObservedCircuit I) → (j : ℕ) →
     adaptiveFrontierType P j → Bool
   | .halt _, _, _ => false
@@ -1013,6 +1172,8 @@ def adaptiveFrontierActive : (P : ObservedCircuit I) → (j : ℕ) →
   | .project _ P _, j, .inl h => adaptiveFrontierActive P j h
   | .project _ _ Q, j, .inr h => adaptiveFrontierActive Q j h
 
+/-- Advance a frontier state to the next frontier by applying the intervening gates and
+measurements after its pending query has been handled. -/
 noncomputable def adaptiveFrontierAdvance : (P : ObservedCircuit I) → (j : ℕ) →
     QState (I × adaptiveFrontierType P j) → QState (I × adaptiveFrontierType P (j + 1))
   | .halt _, _, v => v
@@ -1026,6 +1187,7 @@ noncomputable def adaptiveFrontierAdvance : (P : ObservedCircuit I) → (j : ℕ
       | .inl h => adaptiveFrontierAdvance P j (fun y => v (y.1, .inl y.2)) (x.1, h)
       | .inr h => adaptiveFrontierAdvance Q j (fun y => v (y.1, .inr y.2)) (x.1, h)
 
+/-- For a well formed observed circuit, advancing a frontier state preserves branch mass. -/
 theorem adaptiveFrontierAdvance_mass (P : ObservedCircuit I)
     (hP : observedWellFormed P) (j : ℕ)
     (v : QState (I × adaptiveFrontierType P j)) :
@@ -1065,6 +1227,7 @@ theorem adaptiveFrontierAdvance_mass (P : ObservedCircuit I)
     funext ⟨i, h⟩
     cases h <;> rfl
 
+/-- The frontier state before any query is independent of the oracle matrix. -/
 theorem adaptiveFrontierRun_zero_eq (O O' : Matrix I I ℂ) (P : ObservedCircuit I)
     (ψ : QState I) : adaptiveFrontierRun O P 0 ψ = adaptiveFrontierRun O' P 0 ψ := by
   induction P generalizing ψ with
@@ -1083,11 +1246,15 @@ theorem adaptiveFrontierRun_zero_eq (O O' : Matrix I I ℂ) (P : ObservedCircuit
     | inl h => exact congrFun (ihP (ProjectiveBranch A false ψ)) (i, h)
     | inr h => exact congrFun (ihQ (ProjectiveBranch A true ψ)) (i, h)
 
+/-- Apply the oracle matrix to each active frontier history and leave inactive histories
+unchanged. -/
 noncomputable def adaptiveFrontierQuery (O : Matrix I I ℂ) (P : ObservedCircuit I) (j : ℕ)
     (v : QState (I × adaptiveFrontierType P j)) : QState (I × adaptiveFrontierType P j) :=
   fun x => if adaptiveFrontierActive P j x.2 then
     ApplyGate O (fun i => v (i, x.2)) x.1 else v x
 
+/-- Applying the frontier query and then advancing gives the frontier run with one additional
+query allowed. -/
 theorem adaptiveFrontierAdvance_query (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (j : ℕ) (ψ : QState I) :
     adaptiveFrontierAdvance P j (adaptiveFrontierQuery O P j (adaptiveFrontierRun O P j ψ)) =
@@ -1112,6 +1279,7 @@ theorem adaptiveFrontierAdvance_query (O : Matrix I I ℂ) (P : ObservedCircuit 
     | inl h => exact congrFun (ihP j (ProjectiveBranch A false ψ)) (i, h)
     | inr h => exact congrFun (ihQ j (ProjectiveBranch A true ψ)) (i, h)
 
+/-- The adaptive frontier run preserves addition of input states. -/
 theorem adaptiveFrontierRun_add (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (j : ℕ) (ψ φ : QState I) :
     adaptiveFrontierRun O P j (ψ + φ) =
@@ -1143,6 +1311,7 @@ theorem adaptiveFrontierRun_add (O : Matrix I I ℂ) (P : ObservedCircuit I)
         Matrix.mulVec_add, Pi.add_apply] using
         congrFun (ihQ j (ProjectiveBranch A true ψ) (ProjectiveBranch A true φ)) (i, h)
 
+/-- The adaptive frontier run commutes with complex scalar multiplication. -/
 theorem adaptiveFrontierRun_smul (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (j : ℕ) (c : ℂ) (ψ : QState I) :
     adaptiveFrontierRun O P j (c • ψ) = c • adaptiveFrontierRun O P j ψ := by
@@ -1173,6 +1342,8 @@ theorem adaptiveFrontierRun_smul (O : Matrix I I ℂ) (P : ObservedCircuit I)
         Matrix.mulVec_smul, Pi.smul_apply] using
         congrFun (ihQ j (ProjectiveBranch A true ψ)) (i, h)
 
+/-- The linear isometry associated with a frontier run for a unitary oracle and a well formed
+observed circuit. -/
 noncomputable def adaptiveFrontierIsometry (O : Matrix I I ℂ)
     (hO : O ∈ Matrix.unitaryGroup I ℂ) (P : ObservedCircuit I)
     (hP : observedWellFormed P) (j : ℕ) :
@@ -1188,6 +1359,7 @@ noncomputable def adaptiveFrontierIsometry (O : Matrix I I ℂ)
     simp only [norm_toEuclidean_fromVec_sq]
     exact adaptiveFrontierRun_mass O hO P hP j (WithLp.ofLp ψ)
 
+/-- Advancing a frontier state preserves addition. -/
 theorem adaptiveFrontierAdvance_add (P : ObservedCircuit I) (j : ℕ)
     (v w : QState (I × adaptiveFrontierType P j)) :
     adaptiveFrontierAdvance P j (v + w) =
@@ -1212,6 +1384,7 @@ theorem adaptiveFrontierAdvance_add (P : ObservedCircuit I) (j : ℕ)
     | inr h => exact congrFun (ihQ j (fun y => v (y.1, .inr y.2))
         (fun y => w (y.1, .inr y.2))) (i, h)
 
+/-- Advancing a frontier state commutes with complex scalar multiplication. -/
 theorem adaptiveFrontierAdvance_smul (P : ObservedCircuit I) (j : ℕ) (c : ℂ)
     (v : QState (I × adaptiveFrontierType P j)) :
     adaptiveFrontierAdvance P j (c • v) = c • adaptiveFrontierAdvance P j v := by
@@ -1232,6 +1405,7 @@ theorem adaptiveFrontierAdvance_smul (P : ObservedCircuit I) (j : ℕ) (c : ℂ)
     | inl h => exact congrFun (ihP j (fun y => v (y.1, .inl y.2))) (i, h)
     | inr h => exact congrFun (ihQ j (fun y => v (y.1, .inr y.2))) (i, h)
 
+/-- The linear isometry advancing one frontier of a well formed observed circuit to the next. -/
 noncomputable def adaptiveFrontierAdvanceIsometry (P : ObservedCircuit I)
     (hP : observedWellFormed P) (j : ℕ) :
     EuclideanSpace ℂ (I × adaptiveFrontierType P j) →ₗᵢ[ℂ]
@@ -1253,11 +1427,13 @@ section AdaptiveCoordinates
 
 variable {K H : Type} [Fintype K] [Fintype H] [DecidableEq K] [DecidableEq H]
 
+/-- The coordinate inclusion matrix associated with an embedding of finite index types. -/
 noncomputable def adaptiveCoordinateMatrix (e : K ↪ H) : Matrix H K ℂ :=
   fun h k => if e k = h then 1 else 0
 
 omit [Fintype K] in
 
+/-- The coordinate inclusion matrix has identity Gram matrix. -/
 theorem adaptiveCoordinateMatrix_gram (e : K ↪ H) :
     (adaptiveCoordinateMatrix e)ᴴ * adaptiveCoordinateMatrix e = 1 := by
   ext a b
@@ -1269,6 +1445,7 @@ theorem adaptiveCoordinateMatrix_gram (e : K ↪ H) :
     simp [Ne.symm hne]
   · simp
 
+/-- The linear isometry induced by a finite coordinate embedding. -/
 noncomputable def adaptiveCoordinateIsometry (e : K ↪ H) :
     EuclideanSpace ℂ K →ₗᵢ[ℂ] EuclideanSpace ℂ H :=
   (Matrix.toEuclideanLin (adaptiveCoordinateMatrix e)).isometryOfInner (by
@@ -1282,12 +1459,14 @@ noncomputable def adaptiveCoordinateIsometry (e : K ↪ H) :
 
 omit [Fintype H] in
 
+/-- The coordinate inclusion matrix recovers the original amplitude at each embedded index. -/
 theorem adaptiveCoordinateMatrix_apply_image (e : K ↪ H) (v : QState K) (k : K) :
     (adaptiveCoordinateMatrix e *ᵥ v) (e k) = v k := by
   simp [adaptiveCoordinateMatrix, Matrix.mulVec, dotProduct, e.injective.eq_iff]
 
 omit [Fintype H] [DecidableEq K] in
 
+/-- The coordinate inclusion matrix gives zero at every index outside the embedding image. -/
 theorem adaptiveCoordinateMatrix_apply_outside (e : K ↪ H) (v : QState K) (h : H)
     (hh : ∀ k, e k ≠ h) : (adaptiveCoordinateMatrix e *ᵥ v) h = 0 := by
   simp [adaptiveCoordinateMatrix, Matrix.mulVec, dotProduct, hh]
@@ -1296,6 +1475,7 @@ end AdaptiveCoordinates
 
 section AdaptiveFrontierEnumeration
 
+/-- The recursive list enumerating all histories at a given query frontier. -/
 def adaptiveFrontierEnumeration {I : Type} : (P : ObservedCircuit I) → (j : ℕ) →
     List (adaptiveFrontierType P j)
   | .halt _, _ => [()]
@@ -1309,6 +1489,7 @@ def adaptiveFrontierEnumeration {I : Type} : (P : ObservedCircuit I) → (j : �
       (adaptiveFrontierEnumeration P j).map Sum.inl ++
         (adaptiveFrontierEnumeration Q j).map Sum.inr
 
+/-- Every frontier history occurs in the frontier enumeration. -/
 theorem adaptiveFrontierEnumeration_mem {I : Type} (P : ObservedCircuit I) (j : ℕ)
     (h : adaptiveFrontierType P j) : h ∈ adaptiveFrontierEnumeration P j := by
   induction P generalizing j with
@@ -1326,6 +1507,7 @@ theorem adaptiveFrontierEnumeration_mem {I : Type} (P : ObservedCircuit I) (j : 
     | inl h => exact List.mem_append_left _ (List.mem_map.mpr ⟨h, ihP j h, rfl⟩)
     | inr h => exact List.mem_append_right _ (List.mem_map.mpr ⟨h, ihQ j h, rfl⟩)
 
+/-- The frontier enumeration contains no duplicates. -/
 theorem adaptiveFrontierEnumeration_nodup {I : Type} (P : ObservedCircuit I) (j : ℕ) :
     (adaptiveFrontierEnumeration P j).Nodup := by
   induction P generalizing j with
@@ -1358,6 +1540,7 @@ theorem adaptiveFrontierEnumeration_nodup {I : Type} (P : ObservedCircuit I) (j 
     obtain ⟨v, _, hv⟩ := List.mem_map.mp hy
     cases hu.trans hv.symm
 
+/-- The equivalence between positions in the frontier enumeration and frontier histories. -/
 noncomputable def adaptiveFrontierEnumerationEquiv {I : Type} (P : ObservedCircuit I) (j : ℕ) :
     Fin (adaptiveFrontierEnumeration P j).length ≃ adaptiveFrontierType P j :=
   List.Nodup.getEquivOfForallMemList _ (adaptiveFrontierEnumeration_nodup P j)
@@ -1365,6 +1548,8 @@ noncomputable def adaptiveFrontierEnumerationEquiv {I : Type} (P : ObservedCircu
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Once the query allowance reaches the circuit depth, enumerating frontier states gives
+exactly the list of observed trace states. -/
 theorem adaptiveFrontierEnumeration_final (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (j : ℕ) (hd : observedQueryDepth P ≤ j) (ψ : QState I) :
     (adaptiveFrontierEnumeration P j).map (fun h => fun i => adaptiveFrontierRun O P j ψ (i, h)) =
@@ -1409,9 +1594,13 @@ variable {K H : Type} [Fintype K] [Fintype H] [DecidableEq K] [DecidableEq H]
 section HistoryCoordinate
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The coordinate inclusion matrix extending a history embedding while preserving the
+underlying state index. -/
 noncomputable def adaptiveHistoryCoordinateMatrix (e : K ↪ H) : Matrix (I × H) (I × K) ℂ :=
   adaptiveCoordinateMatrix ((Function.Embedding.refl I).prodMap e)
 
+/-- For a well formed observed circuit, frontier advancement between two embeddings into a
+common history space is realized by a unitary matrix. -/
 theorem adaptiveFrontierLayer_transport (P : ObservedCircuit I) (hP : observedWellFormed P)
     (j : ℕ) (e : adaptiveFrontierType P j ↪ H)
     (e' : adaptiveFrontierType P (j + 1) ↪ H) :
@@ -1427,6 +1616,8 @@ theorem adaptiveFrontierLayer_transport (P : ObservedCircuit I) (hP : observedWe
   intro v
   exact congrArg WithLp.ofLp (hact (toEuclidean_fromVec v))
 
+/-- For a well formed observed circuit, a unitary matrix sends the blank history embedding to
+the embedded frontier state before any query. -/
 theorem adaptiveFrontierInitial_transport (P : ObservedCircuit I) (hP : observedWellFormed P)
     (blank : H) (e : adaptiveFrontierType P 0 ↪ H) :
     ∃ U : Matrix (I × H) (I × H) ℂ, U ∈ Matrix.unitaryGroup (I × H) ℂ ∧
@@ -1454,6 +1645,7 @@ theorem adaptiveFrontierInitial_transport (P : ObservedCircuit I) (hP : observed
 
 omit [Fintype H] in
 
+/-- The history coordinate inclusion preserves amplitudes at embedded history labels. -/
 theorem adaptiveHistoryCoordinateMatrix_apply_image (e : K ↪ H)
     (v : QState (I × K)) (i : I) (k : K) :
     (adaptiveHistoryCoordinateMatrix e *ᵥ v) (i, e k) = v (i, k) :=
@@ -1461,6 +1653,7 @@ theorem adaptiveHistoryCoordinateMatrix_apply_image (e : K ↪ H)
 
 omit [Fintype H] [DecidableEq K] in
 
+/-- The history coordinate inclusion has zero amplitude outside the embedded history labels. -/
 theorem adaptiveHistoryCoordinateMatrix_apply_outside (e : K ↪ H)
     (v : QState (I × K)) (i : I) (h : H) (hh : ∀ k, e k ≠ h) :
     (adaptiveHistoryCoordinateMatrix e *ᵥ v) (i, h) = 0 :=
@@ -1469,11 +1662,14 @@ theorem adaptiveHistoryCoordinateMatrix_apply_outside (e : K ↪ H)
 
 end HistoryCoordinate
 
+/-- Extend a Boolean activity predicate along a history embedding, taking value false outside
+its image. -/
 noncomputable def adaptiveEmbeddedActive (e : K ↪ H) (active : K → Bool) : H → Bool :=
   fun h => decide (∃ k, e k = h ∧ active k = true)
 
 omit [Fintype H] [DecidableEq K] in
 
+/-- The extended activity predicate agrees with the original predicate on embedded labels. -/
 theorem adaptiveEmbeddedActive_image (e : K ↪ H) (active : K → Bool) (k : K) :
     adaptiveEmbeddedActive e active (e k) = active k := by
   simp [adaptiveEmbeddedActive, e.injective.eq_iff]
@@ -1481,6 +1677,8 @@ theorem adaptiveEmbeddedActive_image (e : K ↪ H) (active : K → Bool) (k : K)
 section EmbeddedPadding
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- A padded query on embedded histories applies the workspace bit oracle exactly on the active
+histories and preserves the coordinate embedding. -/
 theorem run_adaptivePaddedQuery_embedded (e : K ↪ H) (active : K → Bool)
     (f : Fin n → Bool) (v : QState (((Fin n × Bool) × W) × K)) :
     Run (workspaceBitOracle (W := W × H × Bool) f)
@@ -1513,6 +1711,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The number of histories at any query frontier is at most the total number of observed tree
+nodes. -/
 theorem adaptiveFrontier_card_le_nodes (P : ObservedCircuit I) (j : ℕ) :
     Fintype.card (adaptiveFrontierType P j) ≤ observedTreeNodes P := by
   induction P generalizing j with
@@ -1535,10 +1735,13 @@ theorem adaptiveFrontier_card_le_nodes (P : ObservedCircuit I) (j : ℕ) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The length of the frontier enumeration equals the cardinality of the frontier history type. -/
 theorem adaptiveFrontierEnumeration_length (P : ObservedCircuit I) (j : ℕ) :
     (adaptiveFrontierEnumeration P j).length = Fintype.card (adaptiveFrontierType P j) := by
   simpa only [Fintype.card_fin] using Fintype.card_congr (adaptiveFrontierEnumerationEquiv P j)
 
+/-- The embedding of frontier histories into `observedTreeNodes P + 1` history slots using their
+enumeration order. -/
 noncomputable def adaptiveHistorySlots (P : ObservedCircuit I) (j : ℕ) :
     adaptiveFrontierType P j ↪ Fin (observedTreeNodes P + 1) :=
   (adaptiveFrontierEnumerationEquiv P j).symm.toEmbedding.trans
@@ -1551,6 +1754,8 @@ section LayerWord
 variable {n : ℕ} {W H : Type} [Fintype W] [DecidableEq W]
   [Fintype H] [DecidableEq H]
 
+/-- The circuit word consisting of an initial lifted history gate followed by padded queries and
+lifted frontier advancement gates. -/
 noncomputable def adaptiveFrontierLayerWord
     (U0 : Matrix (((Fin n × Bool) × W) × H) (((Fin n × Bool) × W) × H) ℂ)
     (Us : ℕ → Matrix (((Fin n × Bool) × W) × H) (((Fin n × Bool) × W) × H) ℂ)
@@ -1559,6 +1764,8 @@ noncomputable def adaptiveFrontierLayerWord
   | k + 1 => adaptiveFrontierLayerWord U0 Us active k ++
       (adaptivePaddedQuery (active k) ++ [.gate (adaptiveHistoryLift (Us k))])
 
+/-- If the initial and advancement matrices are unitary, the frontier layer word is unitary,
+uses `k` queries, and contains `1 + 3*k` gates. -/
 theorem adaptiveFrontierLayerWord_cost
     (U0 : Matrix (((Fin n × Bool) × W) × H) (((Fin n × Bool) × W) × H) ℂ)
     (Us : ℕ → Matrix (((Fin n × Bool) × W) × H) (((Fin n × Bool) × W) × H) ℂ)
@@ -1582,6 +1789,8 @@ theorem adaptiveFrontierLayerWord_cost
         gateCount_gate, gateCount_nil]
       omega
 
+/-- Given initial and advancement transport identities, running the frontier layer word produces
+the embedded frontier run after `k` queries with a uniform spare bit. -/
 theorem run_adaptiveFrontierLayerWord
     (P : ObservedCircuit ((Fin n × Bool) × W))
     (e : ∀ j, adaptiveFrontierType P j ↪ H) (blank : H)
@@ -1643,6 +1852,8 @@ end LayerWord
 section FinalCoordinates
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- At full query depth, the packed frontier coordinate equals the corresponding observed trace
+state, with the empty trace in unused slots. -/
 theorem adaptiveFrontier_final_coordinate (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (ψ : QState I) (x : I × Fin (observedTreeNodes P + 1)) :
     (adaptiveHistoryCoordinateMatrix (adaptiveHistorySlots P (observedQueryDepth P)) *ᵥ
@@ -1687,6 +1898,10 @@ theorem adaptiveFrontier_final_coordinate (O : Matrix I I ℂ) (P : ObservedCirc
 
 end FinalCoordinates
 
+/-- Every well formed observed circuit has a unitary compilation storing all branch states,
+using exactly its query depth in queries and at most `10 * observedTreeNodes P *
+(observedQueryDepth P + 1)` gates. It provides the deferred measurement interface for the
+polynomial method in [BealsEtAl2001]. -/
 theorem observed_query_same_cost_full_branch_purification
     (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (_hn : 0 < n) (hP : observedWellFormed P) :
@@ -1741,6 +1956,7 @@ variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
 omit [DecidableEq W] in
 
+/-- Adding a uniform spare Boolean register to a history state preserves its branch mass. -/
 theorem adaptiveSpareHistory_mass {H : Type} [Fintype H]
     (v : QState (((Fin n × Bool) × W) × H)) :
     branchMass (fun x : (Fin n × Bool) × (W × H × Bool) =>
@@ -1749,6 +1965,8 @@ theorem adaptiveSpareHistory_mass {H : Type} [Fintype H]
   simp [branchMass, MeasureProb, BornProb, Fintype.sum_prod_type,
     div_pow, ht]
 
+/-- Measuring the accepting slots of a sufficiently large packed trace history gives the sum of
+the masses of its accepted traces. -/
 theorem adaptivePackedTraceHistory_readout (ts : List (BranchTrace ((Fin n × Bool) × W)))
     (K : ℕ) (hK : ts.length ≤ K) :
     MeasureProb (fun x : (Fin n × Bool) × (W × Fin K × Bool) =>
@@ -1787,6 +2005,8 @@ theorem adaptivePackedTraceHistory_readout (ts : List (BranchTrace ((Fin n × Bo
       intro t _
       cases t.accepted <;> simp [branchMass, MeasureProb, BornProb]
 
+/-- The list of acceptance flags in observed traces equals the list of flags in the branch
+words. -/
 theorem observedBranchWords_accepted {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) :
     (observedTraces O P ψ).map BranchTrace.accepted = (observedBranchWords P).map Prod.fst := by
@@ -1794,10 +2014,14 @@ theorem observedBranchWords_accepted {I : Type} [Fintype I] [DecidableEq I]
     (observedBranchWords_traces O P ψ)
   simpa only [List.map_map, Function.comp_def] using h
 
+/-- The final measurement event selecting history slots marked as accepting by the observed
+branch words. -/
 noncomputable def adaptiveObservedHistoryEvent (P : ObservedCircuit ((Fin n × Bool) × W)) (R : ℕ) :
     Finset ((Fin n × Bool) × (W × Fin (R + 1) × Bool)) :=
   Finset.univ.filter (fun x => ((observedBranchWords P).map Prod.fst).getD x.2.2.1.val false)
 
+/-- If a compiled circuit stores every observed trace state in its history register with the
+specified normalization, its history event probability equals the observed acceptance. -/
 theorem observed_full_history_acceptance_transport
     (P : ObservedCircuit ((Fin n × Bool) × W)) (R : ℕ)
     (C : Circuit ((Fin n × Bool) × (W × Fin (R + 1) × Bool)))

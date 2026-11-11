@@ -6,6 +6,22 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatSum1Log
 import Mathlib.NumberTheory.Harmonic.Bounds
+
+/-!
+# Logarithmic second lattice-sum bound
+
+This module proves an explicit logarithmic upper bound for `latSum2 n 4`. It supplies the
+lattice-sum estimate at the marginal dimension four in [ChildsGoldstone2004].
+
+## Main statements
+
+* `latSum2_le_log`: bounds the sum by `(81 / 64) * (1 + Real.log n) + 1 / 256`.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +32,8 @@ namespace Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums
 
 open Finset
 
+/-- For positive side length, the second lattice sum in dimension four is at most `(81 / 64) *
+(1 + Real.log n) + 1 / 256` [ChildsGoldstone2004]. -/
 theorem latSum2_le_log {n : ℕ} [NeZero n] (hn : 0 < n) :
     latSum2 n 4 ≤ (81/64) * (1 + Real.log n) + 1/256 := by
   have hnR : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn

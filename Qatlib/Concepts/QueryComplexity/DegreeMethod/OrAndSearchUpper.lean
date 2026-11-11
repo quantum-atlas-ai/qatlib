@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundBeal
+
+/-!
+# Exact and zero-error complexity of OR, AND, and search
+
+This module constructs exact search programs by reading the input and returning its first marked
+index, or reporting that no index is marked. The predicates `SearchExact` and `SearchZeroError`
+also allow a separate inconclusive outcome.
+
+The constructions attain the linear lower bounds for OR, AND, and search in the exact and
+zero-error models of [BealsEtAl2001]. Complementing each query transfers the OR lower bound to
+AND without changing the query count.
+
+## Main statements
+
+* `or_zeroErrorMinimum`: The zero-error query complexity of OR on `n` bits is `n`.
+* `and_exactMinimum`: The exact query complexity of AND on `n` bits is `n`.
+* `search_first_feasible`: First-marked search is realized with `n` queries and `3 * n` gates.
+* `search_exactMinimum`: Exact search has minimum query count `n`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,14 +46,18 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
 open Matrix
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 
+/-- Returns the least index at which the Boolean input is true, or `none` when every bit is
+false. -/
 def firstMarked : (n : ℕ) → (Fin n → Bool) → Option (Fin n)
   | 0,_ => none
   | n+1,x => if x 0 then some 0 else (firstMarked n (fun i => x i.succ)).map Fin.succ
 
+/-- Specifies either that no input bit is true or that the returned index is the first true bit. -/
 def FirstSpec {n : ℕ} (x : Fin n → Bool) : Option (Fin n) → Prop
   | none => ∀ i,x i=false
   | some j => x j=true ∧ ∀ i,i.val < j.val → x i=false
 
+/-- The result of `firstMarked` satisfies the first-marked specification. -/
 theorem firstMarked_spec (n : ℕ) (x : Fin n → Bool) : FirstSpec x (firstMarked n x) := by
   induction n with
   | zero => intro i; exact Fin.elim0 i
@@ -55,6 +83,7 @@ theorem firstMarked_spec (n : ℕ) (x : Fin n → Bool) : FirstSpec x (firstMark
         refine Fin.cases (fun _ => h0) (fun k hk => htail.2 k ?_) i hi
         simpa only [Fin.val_succ,Nat.add_lt_add_iff_right] using! hk
 
+/-- The first-marked search returns `none` exactly when every input bit is false. -/
 theorem firstMarked_none {n : ℕ} (x : Fin n → Bool) :
     firstMarked n x=none ↔ ∀ i,x i=false := by
   constructor
@@ -67,6 +96,7 @@ theorem firstMarked_none {n : ℕ} (x : Fin n → Bool) :
           (show FirstSpec x (some j) by simpa only [he] using! firstMarked_spec n x).1
       simp [h j] at ht
 
+/-- An index returned by `firstMarked` is marked, and all smaller indices are unmarked. -/
 theorem firstMarked_some {n : ℕ} (x : Fin n → Bool) (j : Fin n)
     (h : firstMarked n x=some j) : x j=true ∧ ∀ i,i.val < j.val → x i=false := by
   simpa only [h,FirstSpec] using! firstMarked_spec n x
@@ -74,9 +104,13 @@ theorem firstMarked_some {n : ℕ} (x : Fin n → Bool) (j : Fin n)
 open scoped Classical
 noncomputable section
 
+/-- The Boolean OR of all input bits. -/
 def orValue {n : ℕ} (x : Fin n → Bool) : Bool := decide (∃ i,x i=true)
+/-- The Boolean AND of all input bits. -/
 def andValue {n : ℕ} (x : Fin n → Bool) : Bool := decide (∀ i,x i=true)
 
+/-- Every zero-error program computing OR on `n` bits uses at least `n` queries, for either
+choice of strictness. -/
 theorem or_zeroError_lower {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (strict : Bool) (P : Program n W) (E0 : Finset (Space n W))
     (h : ZeroError strict P E0 orValue) : n ≤ QueryCount P.circuit := by
@@ -99,6 +133,8 @@ theorem or_zeroError_lower {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
       P.circuit (initial P) E0 (by simp) hno hp
     simpa only [Fintype.card_fin] using! hl
 
+/-- The minimum zero-error query count for OR on `n` bits is `n`, under either strictness
+convention. See [Beals et al., Proposition 6.1][BealsEtAl2001]. -/
 theorem or_zeroErrorMinimum (n : ℕ) (strict : Bool) : zeroErrorMinimum strict (@orValue n)=n := by
   apply Nat.le_antisymm
   · cases strict with
@@ -111,6 +147,7 @@ theorem or_zeroErrorMinimum (n : ℕ) (strict : Bool) : zeroErrorMinimum strict 
     letI := dS
     simpa only [hq] using! or_zeroError_lower strict P E0 hp
 
+/-- The minimum exact query count for OR on `n` bits is `n` [BealsEtAl2001]. -/
 theorem or_exactMinimum (n : ℕ) : exactMinimum (@orValue n)=n := by
   apply Nat.le_antisymm (minima_upper_and_order (@orValue n)).2
   have h := (zeroError_minima_order (@orValue n)).2
@@ -120,13 +157,17 @@ theorem or_exactMinimum (n : ℕ) : exactMinimum (@orValue n)=n := by
 namespace Complement
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The gate that flips the oracle target bit and acts as the identity on the workspace. -/
 noncomputable def targetX : Matrix (PolynomialWorkspace I W) (PolynomialWorkspace I W) ℂ :=
   TensorGate (BitOracleOn (fun _ : I => true)) 1
 
+/-- The target-bit flip `targetX` is unitary. -/
 theorem targetX_unitary :
     targetX (I := I) (W := W) ∈ Matrix.unitaryGroup (PolynomialWorkspace I W) ℂ :=
   tensorGate_unitary (bitOracleOn_unitary _) (Submonoid.one_mem _)
 
+/-- Flipping the target bit after a query to `f` implements a query to the pointwise complement
+of `f`. -/
 theorem targetX_after_query (f : I → Bool) (ψ : QState (PolynomialWorkspace I W)) :
     ApplyGate targetX (ApplyGate (TensorGate (BitOracleOn f) 1) ψ) =
       ApplyGate (TensorGate (BitOracleOn (fun i => !(f i))) 1) ψ := by
@@ -136,12 +177,15 @@ theorem targetX_after_query (f : I → Bool) (ψ : QState (PolynomialWorkspace I
   change ψ ((i, (b ^^ true) ^^ f i), w) = ψ ((i, b ^^ !(f i)), w)
   cases b <;> cases f i <;> rfl
 
+/-- Inserts a target-bit flip after each query, leaving the other gates unchanged. -/
 noncomputable def complementQueries : Circuit (PolynomialWorkspace I W) →
     Circuit (PolynomialWorkspace I W)
   | [] => []
   | .gate U :: C => .gate U :: complementQueries C
   | .query :: C => .query :: .gate targetX :: complementQueries C
 
+/-- The transformed circuit with oracle `f` has the same output state as the original circuit
+with the complemented oracle. -/
 theorem complementQueries_run (C : Circuit (PolynomialWorkspace I W))
     (f : I → Bool) (ψ : QState (PolynomialWorkspace I W)) :
     Run (TensorGate (BitOracleOn f) 1) (complementQueries C) ψ =
@@ -157,6 +201,7 @@ theorem complementQueries_run (C : Circuit (PolynomialWorkspace I W))
 
 omit [Fintype I] [Fintype W] in
 
+/-- Complementing a circuit's queries preserves its query count. -/
 theorem complementQueries_queryCount (C : Circuit (PolynomialWorkspace I W)) :
     QueryCount (complementQueries C) = QueryCount C := by
   induction C with
@@ -165,12 +210,14 @@ theorem complementQueries_queryCount (C : Circuit (PolynomialWorkspace I W)) :
 
 omit [Fintype I] [Fintype W] in
 
+/-- Complementing the queries adds exactly one gate per query to the gate count. -/
 theorem complementQueries_gateCount (C : Circuit (PolynomialWorkspace I W)) :
     GateCount (complementQueries C) = GateCount C + QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [complementQueries, ih] <;> omega
 
+/-- The query-complement transformation preserves unitarity of the circuit's gates. -/
 theorem complementQueries_unitary (C : Circuit (PolynomialWorkspace I W))
     (hC : IsUnitaryCircuit C) : IsUnitaryCircuit (complementQueries C) := by
   induction C with
@@ -184,6 +231,8 @@ theorem complementQueries_unitary (C : Circuit (PolynomialWorkspace I W))
       exact (isUnitaryCircuit_query _).mpr
         ((isUnitaryCircuit_gate _ _).mpr ⟨targetX_unitary, ih ((isUnitaryCircuit_query _).mp hC)⟩)
 
+/-- A nonempty-input circuit whose chosen event has positive probability on the all-true input
+and zero probability on every other input uses at least one query per input index. -/
 theorem and_lower (C : Circuit (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) (E1 : Finset (PolynomialWorkspace I W))
     (hcard : 0 < Fintype.card I)
@@ -205,6 +254,8 @@ theorem and_lower (C : Circuit (PolynomialWorkspace I W))
 
 end Complement
 
+/-- Every zero-error program computing AND on `n` bits uses at least `n` queries, for either
+choice of strictness. -/
 theorem and_zeroError_lower {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (strict : Bool) (P : Program n W) (E0 : Finset (Space n W))
     (h : ZeroError strict P E0 andValue) : n ≤ QueryCount P.circuit := by
@@ -233,6 +284,8 @@ theorem and_zeroError_lower {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
         Complement.and_lower (I:=Fin (m+1)) (W:=W) P.circuit (initial P) P.accept (by simp) hno hp
     simpa only [Fintype.card_fin] using! hl
 
+/-- The minimum zero-error query count for AND on `n` bits is `n`, under either strictness
+convention. -/
 theorem and_zeroErrorMinimum (n : ℕ) (strict : Bool) : zeroErrorMinimum strict (@andValue n)=n := by
   apply Nat.le_antisymm
   · cases strict with
@@ -245,16 +298,20 @@ theorem and_zeroErrorMinimum (n : ℕ) (strict : Bool) : zeroErrorMinimum strict
     letI := dS
     simpa only [hq] using! and_zeroError_lower strict P E0 hp
 
+/-- The minimum exact query count for AND on `n` bits is `n`. -/
 theorem and_exactMinimum (n : ℕ) : exactMinimum (@andValue n)=n := by
   apply Nat.le_antisymm (minima_upper_and_order (@andValue n)).2
   have h := (zeroError_minima_order (@andValue n)).2
   rw [and_zeroErrorMinimum] at h
   exact h
 
+/-- Specifies a correct search answer: `none` certifies that all bits are false, while `some i`
+identifies a true bit. -/
 def SearchValid {n : ℕ} (x : Fin n → Bool) : Option (Fin n) → Prop
   | none => ∀ i,x i=false
   | some i => x i=true
 
+/-- The result of `firstMarked` is a valid search answer. -/
 theorem firstMarked_valid {n : ℕ} (x : Fin n → Bool) : SearchValid x (firstMarked n x) := by
   have h := firstMarked_spec n x
   cases he : firstMarked n x with
@@ -263,26 +320,35 @@ theorem firstMarked_valid {n : ℕ} (x : Fin n → Bool) : SearchValid x (firstM
     have hi : FirstSpec x (some i) := by simpa only [he] using! h
     exact hi.1
 
+/-- A query program equipped with a decoder for an inconclusive outcome, a no-solution answer,
+or a marked index. -/
 structure SearchProgram (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] where
   base : Program n W
   decode : Space n W → Option (Option (Fin n))
 
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- The measurement outcomes decoded as a conclusive search answer. -/
 def answeredEvent (P : SearchProgram n W) : Finset (Space n W) :=
   Finset.univ.filter (fun q => (P.decode q).isSome)
 
+/-- The measurement outcomes decoded as a conclusive answer that is invalid for the input. -/
 def wrongEvent (P : SearchProgram n W) (x : Fin n → Bool) : Finset (Space n W) :=
   Finset.univ.filter (fun q => match P.decode q with | none => False | some a => ¬SearchValid x a)
 
+/-- Requires zero probability of a wrong answer and probability one of a conclusive answer on
+every input. -/
 def SearchExact (P : SearchProgram n W) : Prop := ∀ x,
   MeasureProb (output P.base x) (wrongEvent P x)=0 ∧ MeasureProb (output P.base x) (answeredEvent P)=1
 
+/-- Requires zero probability of a wrong answer and conclusive probability at least one half, or
+strictly greater than one half when `strict` is true. -/
 def SearchZeroError (strict : Bool) (P : SearchProgram n W) : Prop := ∀ x,
   MeasureProb (output P.base x) (wrongEvent P x)=0 ∧
   (if strict then (1:ℝ)/2 < MeasureProb (output P.base x) (answeredEvent P)
     else (1:ℝ)/2 ≤ MeasureProb (output P.base x) (answeredEvent P))
 
+/-- An exact search program satisfies either zero-error strictness convention. -/
 theorem searchExact_zeroError (strict : Bool) (P : SearchProgram n W) (h : SearchExact P) :
     SearchZeroError strict P := by
   intro x
@@ -290,12 +356,15 @@ theorem searchExact_zeroError (strict : Bool) (P : SearchProgram n W) (h : Searc
   rw [(h x).2]
   cases strict <;> norm_num
 
+/-- The measurement outcomes decoded as a conclusive no-solution answer. -/
 def negativeEvent (P : SearchProgram n W) : Finset (Space n W) :=
   Finset.univ.filter (fun q => P.decode q=some none)
 
+/-- The measurement outcomes decoded as a marked-index answer. -/
 def positiveEvent (P : SearchProgram n W) : Finset (Space n W) :=
   Finset.univ.filter (fun q => ∃ i,P.decode q=some (some i))
 
+/-- The no-solution and marked-index answer events are disjoint. -/
 theorem answer_disjoint (P : SearchProgram n W) : Disjoint (negativeEvent P) (positiveEvent P) := by
   apply Finset.disjoint_left.mpr
   intro q hn hp
@@ -304,19 +373,25 @@ theorem answer_disjoint (P : SearchProgram n W) : Disjoint (negativeEvent P) (po
   rw [hn'] at hi
   cases hi
 
+/-- The union of the no-solution and marked-index events is exactly the conclusive-answer event. -/
 theorem answer_union (P : SearchProgram n W) : negativeEvent P∪positiveEvent P=answeredEvent P := by
   ext q
   cases he : P.decode q with
   | none => simp [negativeEvent,positiveEvent,answeredEvent,he]
   | some a => cases a <;> simp [negativeEvent,positiveEvent,answeredEvent,he]
 
+/-- Converts a search program to an OR decision program by accepting marked-index answers. -/
 def searchOrProgram (P : SearchProgram n W) : Program n W := {P.base with accept:=positiveEvent P}
 
+/-- Every subevent of the wrong-answer event has probability zero when the wrong-answer event
+has probability zero. -/
 theorem wrong_subset_zero (P : SearchProgram n W) (x : Fin n → Bool) (E : Finset (Space n W))
     (hw : MeasureProb (output P.base x) (wrongEvent P x)=0) (he : E ⊆ wrongEvent P x) :
     MeasureProb (output P.base x) E=0 :=
   le_antisymm ((measureProb_mono _ he).trans_eq hw) (measureProb_nonneg _ _)
 
+/-- A zero-error search program yields a zero-error OR decision program with the same underlying
+circuit. -/
 theorem search_or_zeroError (strict : Bool) (P : SearchProgram n W) (h : SearchZeroError strict P) :
     ZeroError strict (searchOrProgram P) (negativeEvent P) orValue := by
   refine ⟨answer_disjoint P,?_⟩
@@ -352,18 +427,22 @@ theorem search_or_zeroError (strict : Bool) (P : SearchProgram n W) (h : SearchZ
     rw [← measureProb_union _ (answer_disjoint P),answer_union]
     exact (h x).2
 
+/-- Every zero-error search program on `n` bits uses at least `n` queries. -/
 theorem search_zeroError_lower (strict : Bool) (P : SearchProgram n W) (h : SearchZeroError strict P) :
     n ≤ QueryCount P.base.circuit :=
   or_zeroError_lower strict (searchOrProgram P) (negativeEvent P) (search_or_zeroError strict P h)
 
+/-- The search program on `m + 1` bits that reads the input and decodes its first marked index. -/
 def positiveSearch (m : ℕ) : SearchProgram (m+1) (Fin (m+1) → Bool) where
   base := positiveProgram m (fun _ => false)
   decode := fun q => some (firstMarked (m+1) q.2)
 
+/-- The search program on an empty input that always reports no solution. -/
 def zeroSearch : SearchProgram 0 Unit where
   base := constantProgram 0 false
   decode := fun _ => some none
 
+/-- The first-marked program on `m + 1` bits is exact. -/
 theorem positiveSearch_exact (m : ℕ) : SearchExact (positiveSearch m) := by
   intro x
   have hr : output (positiveSearch m).base x=Qatlib.Foundations.PureStateMath.Ket ((cleanAddress (m+1),false),x) :=
@@ -375,6 +454,7 @@ theorem positiveSearch_exact (m : ℕ) : SearchExact (positiveSearch m) := by
   · rw [hr,basis_probability]
     simp [answeredEvent,positiveSearch]
 
+/-- The empty-input search program is exact. -/
 theorem zeroSearch_exact : SearchExact zeroSearch := by
   intro x
   have hr :
@@ -386,14 +466,18 @@ theorem zeroSearch_exact : SearchExact zeroSearch := by
   · rw [hr,basis_probability]
     simp [answeredEvent,zeroSearch]
 
+/-- The first-marked program on `m + 1` bits uses `m + 1` queries and `3 * (m + 1)` gates. -/
 theorem positiveSearch_counts (m : ℕ) :
     QueryCount (positiveSearch m).base.circuit=m+1 ∧
       GateCount (positiveSearch m).base.circuit=3*(m+1) :=
   positiveProgram_counts m (fun _ => false)
 
+/-- The probability that measuring a search program's output yields the specified decoded
+outcome. -/
 def decodedProbability (P : SearchProgram n W) (x : Fin n → Bool) (a : Option (Option (Fin n))) : ℝ :=
   MeasureProb (output P.base x) (Finset.univ.filter (fun q => P.decode q=a))
 
+/-- The inconclusive probability and the conclusive-answer probability sum to one. -/
 theorem search_inconclusive_identity (P : SearchProgram n W) (x : Fin n → Bool) :
     decodedProbability P x none+MeasureProb (output P.base x) (answeredEvent P)=1 := by
   have he : (answeredEvent P)ᶜ=Finset.univ.filter (fun q => P.decode q=none) := by
@@ -405,6 +489,8 @@ theorem search_inconclusive_identity (P : SearchProgram n W) (x : Fin n → Bool
   rw [he] at h
   exact h
 
+/-- Zero-error search is equivalent to having no wrong answers and inconclusive probability at
+most one half, with a strict inequality when requested. -/
 theorem search_zeroError_inconclusive (strict : Bool) (P : SearchProgram n W) :
     SearchZeroError strict P ↔ ∀ x,
       MeasureProb (output P.base x) (wrongEvent P x)=0 ∧
@@ -422,6 +508,7 @@ theorem search_zeroError_inconclusive (strict : Bool) (P : SearchProgram n W) :
     have hs := (h x).2
     cases strict <;> simp only [Bool.false_eq_true,ite_false,ite_true] at hs ⊢ <;> linarith
 
+/-- The positive-length search program returns `firstMarked` with probability one. -/
 theorem positiveSearch_first (m : ℕ) (x : Fin (m+1) → Bool) :
     decodedProbability (positiveSearch m) x (some (firstMarked (m+1) x))=1 := by
   unfold decodedProbability
@@ -429,40 +516,52 @@ theorem positiveSearch_first (m : ℕ) (x : Fin (m+1) → Bool) :
     from positiveProgram_output m (fun _ => false) x,basis_probability]
   simp [positiveSearch]
 
+/-- The empty-input search program reports no solution with probability one. -/
 theorem zeroSearch_none (x : Fin 0 → Bool) : decodedProbability zeroSearch x (some none)=1 := by
   unfold decodedProbability
   rw [show output zeroSearch.base x=Qatlib.Foundations.PureStateMath.Ket ((cleanAddress 0,false),()) from rfl,basis_probability]
   simp [zeroSearch]
 
+/-- The positive-length search program has zero probability of an inconclusive outcome. -/
 theorem positiveSearch_not_inconclusive (m : ℕ) (x : Fin (m+1) → Bool) :
     decodedProbability (positiveSearch m) x none=0 := by
   simp [decodedProbability,positiveSearch,MeasureProb]
 
+/-- Asserts the existence of an exact program using `n` queries and `3 * n` gates that returns
+`firstMarked` with probability one. -/
 def SearchFirstFeasible (n : ℕ) : Prop :=
   ∃ (S : Type) (hS : Fintype S) (dS : DecidableEq S) (P : @SearchProgram n S hS dS),
     QueryCount P.base.circuit=n ∧ GateCount P.base.circuit=3*n ∧ @SearchExact n S hS dS P ∧
       ∀ x, @decodedProbability n S hS dS P x (some (firstMarked n x))=1
 
+/-- First-marked search is feasible with `n` queries and `3 * n` gates for every input length. -/
 theorem search_first_feasible (n : ℕ) : SearchFirstFeasible n := by
   cases n with
   | zero => exact ⟨Unit,inferInstance,inferInstance,zeroSearch,rfl,rfl,zeroSearch_exact,zeroSearch_none⟩
   | succ m => exact ⟨Fin (m+1) → Bool,inferInstance,inferInstance,positiveSearch m,
       (positiveSearch_counts m).1,(positiveSearch_counts m).2,positiveSearch_exact m,positiveSearch_first m⟩
 
+/-- Asserts the existence of an exact search program on `n` bits using exactly `t` queries over
+some finite workspace. -/
 def SearchExactFeasible (n t : ℕ) : Prop :=
   ∃ (S : Type) (hS : Fintype S) (dS : DecidableEq S) (P : @SearchProgram n S hS dS),
     QueryCount P.base.circuit=t ∧ @SearchExact n S hS dS P
 
+/-- Asserts the existence of a zero-error search program on `n` bits using exactly `t` queries
+with the chosen strictness convention. -/
 def SearchZeroErrorFeasible (strict : Bool) (n t : ℕ) : Prop :=
   ∃ (S : Type) (hS : Fintype S) (dS : DecidableEq S) (P : @SearchProgram n S hS dS),
     QueryCount P.base.circuit=t ∧ @SearchZeroError n S hS dS strict P
 
+/-- Exact search on `n` bits is feasible with exactly `n` queries. -/
 theorem search_exact_feasible (n : ℕ) : SearchExactFeasible n n := by
   cases n with
   | zero => exact ⟨Unit,inferInstance,inferInstance,zeroSearch,rfl,zeroSearch_exact⟩
   | succ m => exact ⟨Fin (m+1) → Bool,inferInstance,inferInstance,positiveSearch m,
       (positiveSearch_counts m).1,positiveSearch_exact m⟩
 
+/-- Any query count feasible for exact search is feasible for zero-error search under either
+strictness convention. -/
 theorem searchExactFeasible_zeroError (strict : Bool) (n t : ℕ) (h : SearchExactFeasible n t) :
     SearchZeroErrorFeasible strict n t := by
   obtain ⟨S,hS,dS,P,hq,hp⟩ := h
@@ -470,17 +569,25 @@ theorem searchExactFeasible_zeroError (strict : Bool) (n t : ℕ) (h : SearchExa
   letI := dS
   exact ⟨S,hS,dS,P,hq,searchExact_zeroError strict P hp⟩
 
+/-- There exists a feasible exact-search query count for every input length. -/
 theorem searchExactFeasible_nonempty (n : ℕ) : ∃ t,SearchExactFeasible n t :=
     ⟨n,search_exact_feasible n⟩
 
+/-- There exists a feasible zero-error-search query count for every input length and strictness
+convention. -/
 theorem searchZeroErrorFeasible_nonempty (strict : Bool) (n : ℕ) :
     ∃ t,SearchZeroErrorFeasible strict n t :=
   ⟨n,searchExactFeasible_zeroError strict n n (search_exact_feasible n)⟩
 
+/-- The least query count among exact search programs on `n` bits over finite workspaces. -/
 def searchExactMinimum (n : ℕ) : ℕ := Nat.find (searchExactFeasible_nonempty n)
+/-- The least query count among zero-error search programs on `n` bits with the specified
+strictness convention. -/
 def searchZeroErrorMinimum (strict : Bool) (n : ℕ) : ℕ :=
     Nat.find (searchZeroErrorFeasible_nonempty strict n)
 
+/-- The minimum zero-error search query count on `n` bits is `n`, for either strictness
+convention [BealsEtAl2001]. -/
 theorem search_zeroErrorMinimum (n : ℕ) (strict : Bool) : searchZeroErrorMinimum strict n=n := by
   apply Nat.le_antisymm
   · exact Nat.find_min' (searchZeroErrorFeasible_nonempty strict n)
@@ -490,6 +597,7 @@ theorem search_zeroErrorMinimum (n : ℕ) (strict : Bool) : searchZeroErrorMinim
     letI := dS
     simpa only [hq] using! search_zeroError_lower strict P hp
 
+/-- The minimum exact search query count on `n` bits is `n` [BealsEtAl2001]. -/
 theorem search_exactMinimum (n : ℕ) : searchExactMinimum n=n := by
   apply Nat.le_antisymm
   · exact Nat.find_min' (searchExactFeasible_nonempty n) (search_exact_feasible n)
@@ -498,6 +606,8 @@ theorem search_exactMinimum (n : ℕ) : searchExactMinimum n=n := by
     letI := dS
     simpa only [hq] using! search_zeroError_lower true P (searchExact_zeroError true P hp)
 
+/-- Collects correctness and feasibility of first-marked search together with the exact and
+zero-error minimum query counts for OR, AND, and search. -/
 theorem frontier1 (n : ℕ) :
     (∀ x : Fin n → Bool,FirstSpec x (firstMarked n x)) ∧
     SearchFirstFeasible n ∧

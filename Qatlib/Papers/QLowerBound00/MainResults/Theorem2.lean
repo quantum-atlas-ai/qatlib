@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
+
+/-!
+# Boolean adversary query lower bound
+
+`source_theorem2` combines relation degree counts, distinguishability of final workspace
+vectors, and a bound on each phase-query progress change. Its hypotheses explicitly specify the
+coherent initial weights, query recurrence, mass bounds, and final-state factorization. See
+[Ambainis2002] for the paper's setting.
+
+## Main statements
+
+* `source_theorem2`: For a phase-query trajectory satisfying the stated initialization, mass,
+  factorization, output-error, and relation-degree hypotheses, `(1 - 2*sqrt (ε*(1-ε))) * sqrt
+  (m*m') / 2 ≤ T * sqrt (l*l')`.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,9 @@ namespace Qatlib.Papers.QLowerBound00.MainResults.Theorem2
 
 open Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
+/-- For a phase-query trajectory satisfying the stated initialization, mass, factorization,
+output-error, and relation-degree hypotheses, `(1 - 2*sqrt (ε*(1-ε))) * sqrt (m*m') / 2 ≤ T
+* sqrt (l*l')`. See [Ambainis2002]. -/
 theorem source_theorem2 {ι : Type*} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (f : Input n → Bool) (X Y : Finset (Input n)) (R : Finset (InputPair n))
     (m m' l l' : ℕ) (ε : ℝ) (T : ℕ)

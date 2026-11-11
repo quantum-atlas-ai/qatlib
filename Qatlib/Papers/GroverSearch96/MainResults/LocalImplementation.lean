@@ -8,6 +8,34 @@ import Qatlib.Concepts.CircuitImpl.ReflectionCompile.LocalPreparedAmplification
 import Mathlib.Tactic
 import Qatlib.Papers.GroverSearch96.MainResults.Theorem1Decomposition
 import Qatlib.Papers.GroverSearch96.MainResults.SearchBounds
+
+/-!
+# Local implementation and readout of Grover search
+
+The prepared amplitude amplification construction is identified with the source Grover oracle,
+reflection, and state. The local circuit realizes this state in a clean ancillary embedding and
+has explicit query and gate counts.
+
+`measure_clean_embed` and `local_source_readout` transfer marked measurement probabilities to
+the enlarged register. `local_source_singleton_algorithm` combines these identities with
+normalization and a singleton search success bound. See [Grover1996].
+
+## Main statements
+
+* `local_source_grover_state_and_cost`: The local circuit with the lifted set oracle produces
+  the embedded Grover state, uses exactly `k` queries and at most `(34*k+1)*n` gates, and is
+  unitary.
+* `local_source_readout`: The marked data readout of the local circuit equals the success
+  probability of `GroverState S k`.
+* `local_source_singleton_algorithm`: For `n ≥ 1`, a unitary local singleton search circuit uses
+  `k ≤ (π/4) * sqrt (2^n)` queries and at most `(34*k+1)*n` gates, with normalized input and
+  outputs and success probability at least `1/2` for every target.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -22,6 +50,7 @@ open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.Pha
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Papers.GroverSearch96.MainResults
 
+/-- The prepared marking operator for `S` equals the source set oracle `SetOracle S`. -/
 theorem prepared_mark_eq_source_oracle (n : ℕ) (S : Finset (Reg n)) :
     preparedMark S = SetOracle S := by
   ext x y
@@ -32,6 +61,7 @@ theorem prepared_mark_eq_source_oracle (n : ℕ) (S : Finset (Reg n)) :
     by_cases hx : x∈S <;> norm_num [hx]
   · simp [hxy]
 
+/-- Reflection about the zero basis state equals `ZeroPhaseReflection n`. -/
 theorem zero_ket_reflection_eq_source (n : ℕ) :
     ReflectionAbout (outerProduct (Ket (ZeroStr n))) = ZeroPhaseReflection n := by
   ext x y
@@ -42,11 +72,14 @@ theorem zero_ket_reflection_eq_source (n : ℕ) :
     by_cases hy : y=ZeroStr n <;> simp_all
   all_goals norm_num
 
+/-- The tensor Hadamard operator `HadamardN n` is self adjoint. -/
 theorem source_hadamard_adjoint (n : ℕ) : (HadamardN n)ᴴ = HadamardN n := by
   ext x y
   simp only [Matrix.conjTranspose_apply, RCLike.star_def, hadamardN_conj]
   simp [HadamardN, Hadamard, and_comm]
 
+/-- Prepared amplitude amplification using `HadamardN n` and the zero basis state produces
+`GroverState S k`. -/
 theorem prepared_aa_eq_source_grover (n k : ℕ) (S : Finset (Reg n)) :
     Run (preparedMark S) (preparedAACircuit (HadamardN n) (ZeroStr n) k)
       (Ket (ZeroStr n)) = GroverState S k := by
@@ -58,6 +91,9 @@ theorem prepared_aa_eq_source_grover (n k : ℕ) (S : Finset (Reg n)) :
     prepared_mark_eq_source_oracle, run_expandedCircuit]
   rfl
 
+/-- The local prepared circuit realizes the embedded prepared state, uses `k` queries and
+`(2*k+1)*n + k*localReflectionCost n` gates, and is unitary; its gate count is at most
+`(34*k+1)*n`. -/
 theorem local_grover_actual_state_and_cost (n k : ℕ) (S : Finset (Reg n)) :
     Run (reflectionLift n (preparedMark S))
       (localPreparedAACircuit n (localHadamardReflectionSteps n) k)
@@ -85,6 +121,8 @@ theorem local_grover_actual_state_and_cost (n k : ℕ) (S : Finset (Reg n)) :
       Nat.add_le_add_left (Nat.mul_le_mul_left k hc) _
     _ = (34*k+1)*n := by ring
 
+/-- The local circuit with the lifted set oracle produces the embedded Grover state, uses
+exactly `k` queries and at most `(34*k+1)*n` gates, and is unitary. See [Grover1996]. -/
 theorem local_source_grover_state_and_cost (n k : ℕ) (S : Finset (Reg n)) :
     Run (reflectionLift n (SetOracle S))
       (localPreparedAACircuit n (localHadamardReflectionSteps n) k)
@@ -97,6 +135,8 @@ theorem local_source_grover_state_and_cost (n k : ℕ) (S : Finset (Reg n)) :
   rw [prepared_mark_eq_source_oracle] at hs
   exact ⟨hs,hq,hg,hu⟩
 
+/-- Measuring the data component of a clean ancillary embedding gives the same probability for
+`S` as measuring the original state. -/
 theorem measure_clean_embed (n : ℕ) (ψ : QState (Reg n)) (S : Finset (Reg n)) :
     MeasureProb (reflectionEmbed n ψ)
       (Finset.univ.filter (fun z => (reflectionSplit n z).1 ∈ S)) = MeasureProb ψ S := by
@@ -118,6 +158,8 @@ theorem measure_clean_embed (n : ℕ) (ψ : QState (Reg n)) (S : Finset (Reg n))
       rw [← Finset.sum_filter]
       simp
 
+/-- The marked data readout of the local circuit equals the success probability of `GroverState
+S k`. See [Grover1996]. -/
 theorem local_source_readout (n k : ℕ) (S : Finset (Reg n)) :
     MeasureProb (Run (reflectionLift n (SetOracle S))
       (localPreparedAACircuit n (localHadamardReflectionSteps n) k)
@@ -126,6 +168,7 @@ theorem local_source_readout (n k : ℕ) (S : Finset (Reg n)) :
       MeasureProb (GroverState S k) S := by
   rw [(local_source_grover_state_and_cost n k S).1, measure_clean_embed]
 
+/-- A clean ancillary embedding of a normalized state is normalized. -/
 theorem normalized_clean_embed (n : ℕ) (ψ : QState (Reg n)) (hψ : Normalized ψ) :
     Normalized (reflectionEmbed n ψ) := by
   have hmass : MeasureProb ψ Finset.univ = 1 := by
@@ -133,6 +176,9 @@ theorem normalized_clean_embed (n : ℕ) (ψ : QState (Reg n)) (hψ : Normalized
   have h := (measure_clean_embed n ψ Finset.univ).trans hmass
   simpa [MeasureProb, BornProb, Normalized] using h
 
+/-- For `n ≥ 1`, a unitary local singleton search circuit uses `k ≤ (π/4) * sqrt (2^n)` queries
+and at most `(34*k+1)*n` gates, with normalized input and outputs and success probability at
+least `1/2` for every target. See [Grover1996]. -/
 theorem local_source_singleton_algorithm (n : ℕ) (hn : 1 ≤ n) :
     ∃ k : ℕ, (k : ℝ) ≤ Real.pi/4 * Real.sqrt (2^n : ℝ) ∧
       QueryCount (localPreparedAACircuit n (localHadamardReflectionSteps n) k) = k ∧

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+
+/-!
+# Specification of the axis-rotation word bridge
+
+`Equation1WordBridge` specifies the conversion of a nonempty axis-rotation word into a QSP word
+with reversed phase half-differences and explicit endpoint rotations. It also records the
+signal-matrix identity on the angle interval from 0 to 2π, the zero-angle identity, and
+unitarity. Background and related constructions are discussed in [LowChuang2017].
+
+## Main statements
+
+* `Equation1WordBridge`: the complete word-convention bridge property.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -14,6 +32,10 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence
 
 namespace Qatlib.Concepts.QspSimulation.WordModel
 
+/-- Specifies the factorization of nonempty axis-rotation words using reversed phase
+half-differences and endpoint rotations for angles in [0, 2π]. It also requires the
+adjoint-signal identity on that interval, the zero-angle word identity, and unitarity for
+all angles. -/
 def Equation1WordBridge : Prop :=
   ∀ (phis : List ℝ) (θ : ℝ),
 

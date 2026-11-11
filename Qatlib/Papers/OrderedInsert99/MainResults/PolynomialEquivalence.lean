@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
 import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.Eval.Defs
+
+/-!
+# Polynomial sequences for ordered insertion
+
+Defines the initial polynomial `P0poly` and the bounded-degree polynomial-sequence conditions
+`PolySeqExists` associated with invariant insertion in [FarhiEtAl1999]. The conditions prescribe
+the initial and final polynomials and equality of consecutive evaluations at the alternating
+roots `z ^ N = (-1) ^ ℓ`.
+
+## Main statements
+
+* `polyseq_zero_queries`: characterizes the zero-query conditions for positive `N`.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,10 +36,13 @@ namespace Qatlib.Papers.OrderedInsert99.MainResults
 open scoped BigOperators
 open Polynomial
 
+/-- The initial polynomial `1 / √N` times the sum of `X ^ i` for `i < N`. -/
 noncomputable def P0poly (N : ℕ) : Polynomial ℂ :=
   Polynomial.C (((Real.sqrt (N : ℝ))⁻¹ : ℝ) : ℂ) *
     ∑ i ∈ Finset.range N, Polynomial.X ^ i
 
+/-- Existence of a degree-at-most-`N − 1` polynomial sequence with the prescribed endpoints and
+matching consecutive evaluations at alternating `N`th roots. -/
 def PolySeqExists (N k : ℕ) : Prop :=
   ∃ P : ℕ → Polynomial ℂ,
     (∀ ℓ, ℓ ≤ k → (P ℓ).natDegree ≤ N - 1) ∧
@@ -30,6 +51,8 @@ def PolySeqExists (N k : ℕ) : Prop :=
     (∀ ℓ, 1 ≤ ℓ → ℓ ≤ k → ∀ z : ℂ,
       z ^ N = (-1 : ℂ) ^ ℓ → (P ℓ).eval z = (P (ℓ - 1)).eval z)
 
+/-- For positive `N`, a zero-query polynomial sequence exists exactly when `N = 1`
+[FarhiEtAl1999]. -/
 theorem polyseq_zero_queries (N : ℕ) (hN : 0 < N) :
     PolySeqExists N 0 ↔ N = 1 := by
   constructor

@@ -8,6 +8,28 @@ import Qatlib.Papers.DiscreteSim08.MainResults.FractionalQuery
 import Mathlib.Data.Nat.Choose.Bounds
 import Mathlib.Algebra.Order.Field.GeomSum
 import Mathlib.Algebra.Order.Ring.Pow
+
+/-!
+# Binomial truncation estimates for controlled simulation
+
+The unnormalized terms `poissonTerm` bound binomial weights and, when the mean is at most one
+eighth, yield a geometric estimate for `binomTail`. The module also bounds the Hamming-weight
+parameter and the scalar segment-success expression used in controlled simulation.
+
+This development follows [CleveEtAl2009].
+
+## Main statements
+
+* `binomTail_le_poisson`: the binomial tail is at most twice its first Poisson comparison term.
+* `binomTail_le_eps`: an explicit comparison-term bound controls the truncation error.
+* `controlledSimulation_segment_success`: the segment-success expression is at least three
+  quarters.
+
+## References
+
+* [Cleve et al., 2009][CleveEtAl2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,12 +40,15 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.DiscreteSim08.MainResults
 
+/-- The unnormalized Poisson comparison term `μ ^ j / j!`. -/
 noncomputable def poissonTerm (μ : ℝ) (j : ℕ) : ℝ := μ ^ j / (Nat.factorial j : ℝ)
 
+/-- The Poisson comparison term is nonnegative when its parameter is nonnegative. -/
 theorem poissonTerm_nonneg (μ : ℝ) (hμ : 0 ≤ μ) (j : ℕ) : 0 ≤ poissonTerm μ j := by
   unfold poissonTerm
   exact div_nonneg (pow_nonneg hμ j) (Nat.cast_nonneg _)
 
+/-- The next Poisson comparison term is the current term times `μ / (j + 1)`. -/
 theorem poissonTerm_succ (μ : ℝ) (j : ℕ) :
     poissonTerm μ (j + 1) = poissonTerm μ j * (μ / ((j : ℝ) + 1)) := by
   unfold poissonTerm
@@ -33,6 +58,7 @@ theorem poissonTerm_succ (μ : ℝ) (j : ℕ) :
   have hj : ((j : ℝ) + 1) ≠ 0 := by positivity
   field_simp
 
+/-- Every finite geometric sum with ratio one eighth is at most `8 / 7`. -/
 theorem geom_eighth_sum_le (N : ℕ) :
     (∑ i ∈ Finset.range N, ((1 : ℝ) / 8) ^ i) ≤ 8 / 7 := by
   have hmul : (∑ i ∈ Finset.range N, ((1 : ℝ) / 8) ^ i) * (1 - 1 / 8)
@@ -46,10 +72,13 @@ theorem geom_eighth_sum_le (N : ℕ) :
       ≤ 1 / (1 - 1 / 8) := (le_div_iff₀ hpos).mpr hle
     _ = 8 / 7 := by norm_num
 
+/-- The finite binomial tail summing weights of indices strictly greater than `k` and at most
+`m`. -/
 noncomputable def binomTail (m k : ℕ) (B : ℝ) : ℝ :=
   ∑ i ∈ Finset.range (m - k),
     (m.choose (k + 1 + i) : ℝ) * B ^ (k + 1 + i) * (1 - B) ^ (m - (k + 1 + i))
 
+/-- For `0 ≤ B ≤ 1`, the binomial weight at index `j` is at most `poissonTerm (m * B) j`. -/
 theorem binomTail_term_le_poisson (m j : ℕ) (B : ℝ) (hB0 : 0 ≤ B) (hB1 : B ≤ 1) :
     (m.choose j : ℝ) * B ^ j * (1 - B) ^ (m - j)
       ≤ poissonTerm ((m : ℝ) * B) j := by
@@ -74,6 +103,8 @@ theorem binomTail_term_le_poisson (m j : ℕ) (B : ℝ) (hB0 : 0 ≤ B) (hB1 : B
         rw [mul_pow]
         ring
 
+/-- For `0 ≤ μ ≤ 1 / 8`, the term at `k + 1 + i` is at most the term at `k + 1` times `(1 / 8) ^
+i`. -/
 theorem poissonTerm_shift_le (μ : ℝ) (hμ0 : 0 ≤ μ) (hμ : μ ≤ 1 / 8) (k i : ℕ) :
     poissonTerm μ (k + 1 + i) ≤ poissonTerm μ (k + 1) * ((1 : ℝ) / 8) ^ i := by
   induction i with
@@ -102,6 +133,8 @@ theorem poissonTerm_shift_le (μ : ℝ) (hμ0 : 0 ≤ μ) (hμ : μ ≤ 1 / 8) (
             exact mul_le_mul ih hratio hrn htn
         _ = poissonTerm μ (k + 1) * ((1 : ℝ) / 8) ^ (i + 1) := by ring
 
+/-- For `0 ≤ B ≤ 1` and `m * B ≤ 1 / 8`, the binomial tail above `k` is at most `2 * poissonTerm
+(m * B) (k + 1)`. -/
 theorem binomTail_le_poisson (m k : ℕ) (B : ℝ) (hB0 : 0 ≤ B) (hB1 : B ≤ 1)
     (hμ : (m : ℝ) * B ≤ 1 / 8) :
     binomTail m k B ≤ 2 * poissonTerm ((m : ℝ) * B) (k + 1) := by
@@ -128,6 +161,8 @@ theorem binomTail_le_poisson (m k : ℕ) (B : ℝ) (hB0 : 0 ≤ B) (hB1 : B ≤ 
         have h := poissonTerm_nonneg ((m : ℝ) * B) hμ0 (k + 1)
         nlinarith
 
+/-- If `0 ≤ B ≤ 1`, `m * B ≤ 1 / 8`, and `2 * poissonTerm (1 / 8) (k + 1) ≤ ε`, then the
+binomial tail above `k` is at most `ε`. See [CleveEtAl2009]. -/
 theorem binomTail_le_eps (m k : ℕ) (B ε : ℝ) (hB0 : 0 ≤ B) (hB1 : B ≤ 1)
     (hμ : (m : ℝ) * B ≤ 1 / 8)
     (hk : 2 * poissonTerm ((1 : ℝ) / 8) (k + 1) ≤ ε) :
@@ -142,6 +177,8 @@ theorem binomTail_le_eps (m k : ℕ) (B ε : ℝ) (hB0 : 0 ≤ B) (hB1 : B ≤ 1
     exact div_le_div_of_nonneg_right hpow hden.le
   linarith
 
+/-- For `0 ≤ θ ≤ π` and `m * θ = 1 / 4`, the ratio `sin (θ / 2) / controlledSimulationNorm θ` is
+at most `1 / (8 * m)`. -/
 theorem hammingParam_le (θ m : ℝ) (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi)
     (hm : m * θ = 1 / 4) :
     Real.sin (θ / 2) / controlledSimulationNorm θ ≤ 1 / (8 * m) := by
@@ -176,6 +213,8 @@ theorem hammingParam_le (θ m : ℝ) (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi)
     _ ≤ θ / 2 := hsinle
     _ = 1 / (8 * m) := hθ
 
+/-- For `0 ≤ θ ≤ 1 / 8` and natural `m` with `m * θ = 1 / 4`, the segment expression `(1 - θ) ^
+m` is at least three quarters. -/
 theorem controlledSimulation_segment_success (θ : ℝ) (m : ℕ)
     (hm : (m : ℝ) * θ = 1 / 4) (h0 : 0 ≤ θ) (h1 : θ ≤ 1 / 8) :
     (3 : ℝ) / 4 ≤ (1 - θ) ^ m := by

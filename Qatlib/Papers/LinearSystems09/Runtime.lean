@@ -12,6 +12,20 @@ import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.MixedState
+
+/-!
+# HHL amplification and runtime accounting
+
+The corrected sine-envelope filter contract yields an amplified good-event
+probability of at least one quarter with at most `4 * κ` amplification steps,
+under the stated spectral and precision hypotheses. The module records the
+associated oracle budget, simplifies the precision requirement, and expands
+the runtime expression to display input-state preparation cost separately.
+
+The source analysis is [HarrowHassidimLloyd2009], specifically
+[Harrow, Hassidim & Lloyd, Section II][HarrowHassidimLloyd2009]. The corrected
+filter and explicit numerical constants are those of this development.
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,10 +48,15 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram
 open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
 open scoped Real
 
+/-- The corrected amplified Section II runtime contract for the sine-envelope HHL construction
+in [HarrowHassidimLloyd2009]. -/
 theorem source_sectionII_amplified_runtime_contract :
     Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SectionIIAmplifiedRuntimeCorrected :=
   Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.sectionIIAmplifiedRuntime
 
+/-- The corrected HHL filter admits the stated amplified success and query
+ledger under its spectral and precision assumptions; compare
+[Harrow, Hassidim & Lloyd, Section II][HarrowHassidimLloyd2009]. -/
 theorem source_sectionII_runtime_ledger
     {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
     (κ η d : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -83,6 +102,8 @@ theorem source_sectionII_runtime_ledger
       nlinarith
     _ = 8 * κ * (M : ℝ) := by ring
 
+/-- For positive `κ` and `η`, the precision-budget expression `420 / ((1 / (2 * κ)) * η)`
+simplifies to `840 * κ / η` [HarrowHassidimLloyd2009]. -/
 theorem source_sectionII_precision_budget_eq (κ η : ℝ) (hκ : 0 < κ) (hη : 0 < η) :
     (420 : ℝ) / ((1 / (2 * κ)) * η) = 840 * κ / η := by
   have hκ0 : κ ≠ 0 := ne_of_gt hκ
@@ -90,6 +111,8 @@ theorem source_sectionII_precision_budget_eq (κ η : ℝ) (hκ : 0 < κ) (hη :
   field_simp
   ring
 
+/-- Expand the modeled HHL runtime to expose the amplified preparation term
+`κ * TB` alongside the solve term [HarrowHassidimLloyd2009]. -/
 theorem source_sectionII_runtime_composition (κ TB C s logN ε : ℝ) (hε : ε ≠ 0) :
     κ * (TB + (C * κ / ε) * s ^ 2 * logN) =
       κ * TB + C * κ ^ 2 * s ^ 2 * logN / ε := by

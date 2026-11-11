@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtSignMaterials
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreDefs
+
+/-!
+# Gap-dependent sign approximation by truncated series
+
+This module constructs the bounded odd polynomial `gapSignPolynomial` from a truncated
+inverse-square-root series. It proves a geometric error bound outside a spectral gap and obtains
+an explicit degree bound proportional to δ⁻² log(2/(εδ)). Background and related constructions
+are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `gapSign_approximation`: packages the error bound as a sign approximation.
+* `frontier1`: chooses a polynomial with prescribed gap error and an explicit degree budget.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,12 +39,15 @@ open scoped Classical BigOperators
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 set_option warningAsError false
 
+/-- The odd truncated-series polynomial (X/2) times the sum of `cReal i` (1 − X²/4)ⁱ for i from
+zero through `K`. -/
 noncomputable def gapSignPolynomial (K : ℕ) : Polynomial ℝ :=
   Polynomial.C (1 / 2) * Polynomial.X *
     ∑ i ∈ Finset.range (K + 1),
       Polynomial.C (cReal i) *
         (Polynomial.C (1 : ℝ) - Polynomial.C (1 / 4) * Polynomial.X ^ 2) ^ i
 
+/-- The gap sign polynomial evaluates to `(x / 2) * wsum K (1 - x ^ 2 / 4)`. -/
 lemma gapSignPolynomial_eval (K : ℕ) (x : ℝ) :
     (gapSignPolynomial K).eval x = (x / 2) * wsum K (1 - x ^ 2 / 4) := by
   have hsum : (∑ i ∈ Finset.range (K + 1),
@@ -42,6 +64,7 @@ lemma gapSignPolynomial_eval (K : ℕ) (x : ℝ) :
   rw [hsum]
   ring
 
+/-- The gap sign polynomial has an odd response. -/
 lemma gapSignPolynomial_odd (K : ℕ) (x : ℝ) :
     (gapSignPolynomial K).eval (-x) = -(gapSignPolynomial K).eval x := by
   rw [gapSignPolynomial_eval, gapSignPolynomial_eval]
@@ -49,12 +72,14 @@ lemma gapSignPolynomial_odd (K : ℕ) (x : ℝ) :
   rw [hb]
   ring
 
+/-- A real input of absolute value at most two has square at most four. -/
 lemma sq_le_four_of_abs_le_two {x : ℝ} (hx : |x| ≤ 2) : x ^ 2 ≤ 4 := by
   have h1 := mul_self_le_mul_self (abs_nonneg x) hx
   calc x ^ 2 = |x| ^ 2 := by rw [sq_abs]
     _ ≤ (2:ℝ) ^ 2 := by nlinarith [h1]
     _ = 4 := by norm_num
 
+/-- The gap sign polynomial has absolute value at most one on [0, 2]. -/
 lemma gapSignPolynomial_abs_le_one_nonneg (K : ℕ) {x : ℝ} (hx : |x| ≤ 2) (h0 : 0 ≤ x) :
     |(gapSignPolynomial K).eval x| ≤ 1 := by
   rw [gapSignPolynomial_eval]
@@ -77,6 +102,7 @@ lemma gapSignPolynomial_abs_le_one_nonneg (K : ℕ) {x : ℝ} (hx : |x| ≤ 2) (
           have hne : x / 2 ≠ 0 := by linarith
           field_simp [hne]
 
+/-- The gap sign polynomial has absolute value at most one on [−2, 2]. -/
 lemma gapSignPolynomial_abs_le_one (K : ℕ) {x : ℝ} (hx : |x| ≤ 2) :
     |(gapSignPolynomial K).eval x| ≤ 1 := by
   rcases le_or_gt 0 x with h0 | h0
@@ -86,6 +112,8 @@ lemma gapSignPolynomial_abs_le_one (K : ℕ) {x : ℝ} (hx : |x| ≤ 2) :
     rw [abs_neg] at h
     exact h
 
+/-- On the positive part of [−2, 2] outside a positive gap, the sign error is at most (2/δ)(1 −
+δ²/4)^(K + 1) `cReal (K + 1)`. -/
 lemma gapSignPolynomial_error_le_pos (K : ℕ) {δ x : ℝ} (hδ : 0 < δ) (hgap : δ ≤ x)
     (hx : |x| ≤ 2) (hpos : 0 < x) :
     |(gapSignPolynomial K).eval x - Real.sign x| ≤
@@ -159,6 +187,8 @@ lemma gapSignPolynomial_error_le_pos (K : ℕ) {δ x : ℝ} (hδ : 0 < δ) (hgap
             (le_of_lt (cReal_pos (K + 1)))
   linarith [hmain, hstep]
 
+/-- On [−2, 2] outside a positive gap, the sign error is at most (2/δ)(1 − δ²/4)^(K + 1) `cReal
+(K + 1)`. -/
 lemma gapSignPolynomial_error_le (K : ℕ) {δ x : ℝ} (hδ : 0 < δ) (hgap : δ ≤ |x|)
     (hx : |x| ≤ 2) :
     |(gapSignPolynomial K).eval x - Real.sign x| ≤
@@ -183,6 +213,7 @@ lemma gapSignPolynomial_error_le (K : ℕ) {δ x : ℝ} (hδ : 0 < δ) (hgap : �
     rw [hneg', abs_neg] at h
     exact h
 
+/-- The gap sign polynomial has natural degree at most 2K + 1. -/
 lemma gapSignPolynomial_natDegree_le (K : ℕ) :
     (gapSignPolynomial K).natDegree ≤ 2 * K + 1 := by
   have hfactor :
@@ -233,9 +264,11 @@ lemma gapSignPolynomial_natDegree_le (K : ℕ) :
         (Polynomial.C (1 : ℝ) - Polynomial.C (1 / 4) * Polynomial.X ^ 2) ^ i) h1
   exact le_trans (add_le_add hmul hsum) (by omega)
 
+/-- The natural ceiling of 4 log(2/(εδ))/δ² used to choose a gap sign truncation. -/
 noncomputable def gapSignCutoff (δ ε : ℝ) : ℕ :=
   Nat.ceil (4 * Real.log (2 / (ε * δ)) / (δ * δ))
 
+/-- For u in [0, 1] and natural `n`, the power (1 − u)ⁿ is at most exp(−un). -/
 lemma one_sub_pow_le_exp {u : ℝ} (_hu : 0 ≤ u) (hu1 : u ≤ 1) (n : ℕ) :
     (1 - u)^n ≤ Real.exp (-(u * (n : ℝ))) := by
   have h1 : 1 - u ≤ Real.exp (-u) := by
@@ -247,6 +280,7 @@ lemma one_sub_pow_le_exp {u : ℝ} (_hu : 0 ≤ u) (hu1 : u ≤ 1) (n : ℕ) :
         congr 1
         ring
 
+/-- A cutoff bound K ≤ 4L/D + 1 with D > 0 gives the degree bound 2K + 1 ≤ 8L/D + 3. -/
 lemma gapDegreeBudget (K D L : ℝ) (hD : 0 < D) (hK : K ≤ 4 * L / D + 1) :
     2 * K + 1 ≤ 8 * L / D + 3 := by
   have h1 : K * D ≤ 4 * L + D := by
@@ -261,9 +295,13 @@ lemma gapDegreeBudget (K D L : ℝ) (hD : 0 < D) (hK : K ≤ 4 * L / D + 1) :
   rw [h5] at h4
   exact h4
 
+/-- The geometric error bound (2/δ)(1 − δ²/4)^(K + 1) `cReal (K + 1)` for the truncated sign
+polynomial. -/
 noncomputable def gapSignError (K : ℕ) (δ : ℝ) : ℝ :=
   (2 / δ) * (1 - δ ^ 2 / 4) ^ (K + 1) * cReal (K + 1)
 
+/-- For positive gap `δ`, the gap sign polynomial satisfies `SignApproximation` with tolerance
+`gapSignError K δ`. -/
 theorem gapSign_approximation (K : ℕ) (δ : ℝ) (hδ : 0 < δ) :
     Qatlib.Concepts.QsvtCore.ApproxToolkit.SignApproximation
       (gapSignPolynomial K) δ (gapSignError K δ) := by
@@ -273,6 +311,8 @@ theorem gapSign_approximation (K : ℕ) (δ : ℝ) (hδ : 0 < δ) :
   · intro x hx hgap
     exact gapSignPolynomial_error_le K hδ hgap hx
 
+/-- For 0 < δ ≤ 2 and 0 < ε ≤ 1/2, a gap sign polynomial is odd, bounded by one on [−2, 2], and
+approximates sign within `ε` outside the gap. Its degree is at most 8 log(2/(εδ))/δ² + 3. -/
 theorem frontier1 (δ ε : ℝ) (hδ : 0 < δ) (hδ2 : δ ≤ 2) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2) :
     ∃ (P : Polynomial ℝ) (K : ℕ),
       P = gapSignPolynomial K ∧

@@ -6,10 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductFactorialLowerBoundStat
 import Mathlib.Analysis.SpecialFunctions.Stirling
+
+/-!
+# An explicit factorial lower bound
+
+This module proves `multiproductFactorialLowerBound`, supplying the analytic factorial estimate
+used in the coefficient analysis. It establishes √(2πn) n^n exp(−n − 1/13) ≤ n! for every
+natural number n. See [ChildsWiebe2012] for the multiproduct and linear-combination simulation
+framework.
+
+## Main statements
+
+* `multiproductFactorialLowerBound`: Establishes `MultiproductFactorialLowerBound`, the
+  inequality √(2πn) n^n exp(−n − 1 / 13) ≤ n! for every natural number n.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 
+/-- Establishes `MultiproductFactorialLowerBound`, the inequality √(2πn) n^n exp(−n − 1 / 13) ≤
+n! for every natural number n. See [ChildsWiebe2012]. -/
 theorem multiproductFactorialLowerBound : MultiproductFactorialLowerBound := by
   intro n
   have hs := Stirling.le_factorial_stirling n

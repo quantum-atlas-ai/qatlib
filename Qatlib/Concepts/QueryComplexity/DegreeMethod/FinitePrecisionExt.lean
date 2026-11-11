@@ -18,6 +18,38 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Order.Basic
 import Mathlib.Algebra.Order.Field.Basic
 import Mathlib.Algebra.Order.Ring.Abs
+
+/-!
+# Finite-precision arithmetic and machine constructions
+
+This module proves correctness and error bounds for dyadic arithmetic, rational interval
+operations, and arithmetic on real names. It establishes square-root, division, sine, and
+logarithm lifts with their specified precision and clock guarantees, providing finite-precision
+infrastructure for the computational setting of [KitaevShenVyalyi2002].
+
+The module also bounds errors in channel words using `mixedChain` and finite diamond distance,
+and develops binary increment, repeated-increment addition, framed parsing, copying, length
+counting, and pair-assembly stack programs with explicit execution bounds. For background on
+channel norms, see [Watrous2018].
+
+## Main statements
+
+* `name_mul`: correctness of multiplication of real names under magnitude and precision-shift
+  assumptions.
+* `clause1_v2_sqrt_lift`, `clause1_v2_div_lift`, `clause1_v2_sin_lift`, and
+  `clause1_v2_log_lift`: the specified elementary-function lifts.
+* `approxWord_distance_bare_le`: a finite diamond distance bound of four times the sum of the
+  individual step bounds.
+* `word_computesAt`: linear time and space bounds for binary increment.
+* `AddLoop.addLoop_complete` and `ParseFramed.parseFramed_total`: termination and clock bounds
+  for addition and total framed parsing.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
@@ -57,6 +89,7 @@ open scoped ENNReal
 
 namespace Dyadic
 
+/-- Conversion to rational numbers preserves dyadic addition. -/
 theorem toRat_add (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.add b).toRat = a.toRat + b.toRat := by
   simp only [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.add,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toRat]
@@ -66,6 +99,7 @@ theorem toRat_add (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrec
   rw [pow_add]
   field_simp [h1, h2]
 
+/-- Conversion to rational numbers preserves dyadic multiplication. -/
 theorem toRat_mul (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.mul b).toRat = a.toRat * b.toRat := by
   simp only [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.mul,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toRat]
@@ -75,39 +109,49 @@ theorem toRat_mul (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrec
   rw [pow_add]
   field_simp [h1, h2]
 
+/-- Conversion to rational numbers preserves dyadic negation. -/
 theorem toRat_neg (a : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : a.neg.toRat = -a.toRat := by
   simp only [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.neg,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toRat]
   push_cast
   field_simp
 
+/-- Conversion to rational numbers preserves dyadic subtraction. -/
 theorem toRat_sub (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.sub b).toRat = a.toRat - b.toRat := by
   simp only [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.sub]
   rw [toRat_add, toRat_neg]
   ring
 
+/-- The real value of a dyadic number is the real coercion of its rational value. -/
 theorem toReal_eq (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : d.toReal = (d.toRat : ℝ) := by
   simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toReal,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toRat]
 
+/-- Conversion to real numbers preserves dyadic addition. -/
 theorem toReal_add (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.add b).toReal = a.toReal + b.toReal := by
   simp [toReal_eq, toRat_add]
 
+/-- Conversion to real numbers preserves dyadic multiplication. -/
 theorem toReal_mul (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.mul b).toReal = a.toReal * b.toReal := by
   simp [toReal_eq, toRat_mul]
 
+/-- Conversion to real numbers preserves dyadic negation. -/
 theorem toReal_neg (a : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : a.neg.toReal = -a.toReal := by
   simp [toReal_eq, toRat_neg]
 
+/-- Conversion to real numbers preserves dyadic subtraction. -/
 theorem toReal_sub (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.sub b).toReal = a.toReal - b.toReal := by
   simp [toReal_eq, toRat_sub]
 
+/-- The dyadic representation with numerator and exponent both zero has real value zero. -/
 theorem toReal_zero : (⟨0, 0⟩ : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic).toReal = 0 := by
   simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toReal]
 
+/-- The dyadic representation with numerator one and exponent zero has real value one. -/
 theorem toReal_one : (⟨1, 0⟩ : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic).toReal = 1 := by
   simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic.toReal]
 
+/-- The binary size of a sum of natural numbers is at most one plus the larger input size. -/
 theorem nat_size_add_le' (a b : ℕ) : (a + b).size ≤ max a.size b.size + 1 := by
   rw [Nat.size_le]
   have ha : a < 2 ^ a.size := Nat.lt_size_self a
@@ -120,6 +164,7 @@ theorem nat_size_add_le' (a b : ℕ) : (a + b).size ≤ max a.size b.size + 1 :=
     _ ≤ 2 ^ (max a.size b.size) + 2 ^ (max a.size b.size) := add_le_add hm1 hm2
     _ = 2 ^ (max a.size b.size + 1) := by rw [pow_succ]; ring
 
+/-- Multiplication by `2 ^ k` increases the binary size of a natural number by at most `k`. -/
 theorem nat_size_mul_pow_two_le (m k : ℕ) : (m * 2 ^ k).size ≤ m.size + k := by
   rcases Nat.eq_zero_or_pos m with h | h
   · subst h
@@ -128,6 +173,7 @@ theorem nat_size_mul_pow_two_le (m k : ℕ) : (m * 2 ^ k).size ≤ m.size + k :=
     rw [← Nat.shiftLeft_eq]
     exact le_of_eq (Nat.size_shiftLeft hne k)
 
+/-- The binary size of a product of natural numbers is at most the sum of their binary sizes. -/
 theorem nat_size_mul_le (m n : ℕ) : (m * n).size ≤ m.size + n.size := by
   rw [Nat.size_le]
   rcases Nat.eq_zero_or_pos m with hm | hm
@@ -143,6 +189,7 @@ theorem nat_size_mul_le (m n : ℕ) : (m * n).size ≤ m.size + n.size := by
   rw [hpow] at hlt
   exact hlt
 
+/-- The size of a dyadic sum is at most `2 * (a.size + b.size + 1)`. -/
 theorem size_add (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.add b).size ≤ 2 * (a.size + b.size + 1) := by
   have habs0 : (a.mant * (2:ℤ) ^ b.exp + b.mant * (2:ℤ) ^ a.exp).natAbs ≤
       (a.mant * (2:ℤ) ^ b.exp).natAbs + (b.mant * (2:ℤ) ^ a.exp).natAbs :=
@@ -178,6 +225,7 @@ theorem size_add (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePreci
     _ ≤ 2 * (a.mant.natAbs.size + a.exp + (b.mant.natAbs.size + b.exp) + 1) := by
           omega
 
+/-- The size of a dyadic product is at most the sum of the input sizes. -/
 theorem size_mul (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic) : (a.mul b).size ≤ a.size + b.size := by
   have h1 : (a.mant * b.mant).natAbs = a.mant.natAbs * b.mant.natAbs := by
     exact_mod_cast Int.natAbs_mul a.mant b.mant
@@ -191,6 +239,7 @@ theorem size_mul (a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePreci
 
 end Dyadic
 
+/-- The interval `cert q k` is valid for every rational center and precision. -/
 theorem valid_cert (q : ℚ) (k : ℕ) : Valid (cert q k) := by
   show (q - unit k : ℚ) ≤ q + unit k
   have h : (0:ℚ) ≤ unit k := by
@@ -198,10 +247,12 @@ theorem valid_cert (q : ℚ) (k : ℕ) : Valid (cert q k) := by
     positivity
   linarith
 
+/-- The width of `cert q k` is twice `unit k`. -/
 theorem width_cert (q : ℚ) (k : ℕ) : width (cert q k) = 2 * unit k := by
   show ((q + unit k) - (q - unit k) : ℚ) = 2 * unit k
   ring
 
+/-- The interval `cert q k` contains its rational center, viewed as a real number. -/
 theorem contains_cert_self (q : ℚ) (k : ℕ) : Contains (cert q k) (q : ℝ) := by
   constructor
   · show ((q - unit k : ℚ) : ℝ) ≤ _
@@ -217,12 +268,14 @@ theorem contains_cert_self (q : ℚ) (k : ℕ) : Contains (cert q k) (q : ℝ) :
     push_cast at h ⊢
     linarith
 
+/-- Rounding a rational number down at precision `k` gives a value no greater than the original. -/
 theorem roundDown_le (q : ℚ) (k : ℕ) : roundDown q k ≤ q := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.roundDown]
   have hp : (0:ℚ) < 2 ^ k := by positivity
   rw [div_le_iff₀ hp]
   exact_mod_cast Int.floor_le (q * (2:ℚ) ^ k)
 
+/-- A rational number lies strictly below its rounded-down value plus `unit k`. -/
 theorem lt_roundDown_add_unit (q : ℚ) (k : ℕ) : q < roundDown q k + unit k := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.roundDown,
       Qatlib.Foundations.IntervalArith.IntervalOps.unit]
@@ -233,6 +286,7 @@ theorem lt_roundDown_add_unit (q : ℚ) (k : ℕ) : q < roundDown q k + unit k :
   rw [hform, lt_div_iff₀ hp]
   exact_mod_cast hlt
 
+/-- The rounded interval of a rational number is valid. -/
 theorem valid_rounded (q : ℚ) (k : ℕ) : Valid (rounded q k) := by
   show (roundDown q k : ℚ) ≤ roundDown q k + unit k
   have h : (0:ℚ) ≤ unit k := by
@@ -240,6 +294,7 @@ theorem valid_rounded (q : ℚ) (k : ℕ) : Valid (rounded q k) := by
     positivity
   linarith
 
+/-- The rounded interval of a rational number contains that number. -/
 theorem contains_rounded_self (q : ℚ) (k : ℕ) : Contains (rounded q k) q := by
   constructor
   · show ((roundDown q k : ℚ) : ℝ) ≤ _
@@ -247,15 +302,18 @@ theorem contains_rounded_self (q : ℚ) (k : ℕ) : Contains (rounded q k) q := 
   · show _ ≤ ((roundDown q k + unit k : ℚ) : ℝ)
     exact_mod_cast (le_of_lt (lt_roundDown_add_unit q k))
 
+/-- The rounded interval at precision `k` has width `unit k`. -/
 theorem width_rounded (q : ℚ) (k : ℕ) : width (rounded q k) = unit k := by
   show ((roundDown q k + unit k) - roundDown q k : ℚ) = unit k
   ring
 
+/-- Interval addition preserves validity. -/
 theorem valid_add (a b : Interval) (ha : Valid a) (hb : Valid b) :
     Valid (Qatlib.Foundations.IntervalArith.IntervalOps.add a b) := by
   show (a.lo + b.lo : ℚ) ≤ a.hi + b.hi
   exact add_le_add ha hb
 
+/-- The sum of two values lies in the sum of any intervals containing them. -/
 theorem contains_add (a b : Interval) {x y : ℝ} (hx : Contains a x) (hy : Contains b y) :
     Contains (Qatlib.Foundations.IntervalArith.IntervalOps.add a b) (x + y) := by
   constructor
@@ -266,21 +324,25 @@ theorem contains_add (a b : Interval) {x y : ℝ} (hx : Contains a x) (hy : Cont
     push_cast
     exact add_le_add hx.2 hy.2
 
+/-- The width of an interval sum is the sum of the input widths. -/
 theorem width_add (a b : Interval) :
     width (Qatlib.Foundations.IntervalArith.IntervalOps.add a b) = width a + width b := by
   show ((a.hi + b.hi) - (a.lo + b.lo) : ℚ) = (a.hi - a.lo) + (b.hi - b.lo)
   ring
 
+/-- Coercion from rational to real numbers preserves the minimum of two values. -/
 theorem ratCast_min (u v : ℚ) : ((min u v : ℚ) : ℝ) = min (u:ℝ) (v:ℝ) := by
   rcases le_total u v with h | h
   · rw [min_eq_left h, min_eq_left (by exact_mod_cast h)]
   · rw [min_eq_right h, min_eq_right (by exact_mod_cast h)]
 
+/-- Coercion from rational to real numbers preserves the maximum of two values. -/
 theorem ratCast_max (u v : ℚ) : ((max u v : ℚ) : ℝ) = max (u:ℝ) (v:ℝ) := by
   rcases le_total u v with h | h
   · rw [max_eq_right h, max_eq_right (by exact_mod_cast h)]
   · rw [max_eq_left h, max_eq_left (by exact_mod_cast h)]
 
+/-- If `p ≤ x ≤ q`, then `t * x` is bounded below by the smaller endpoint product. -/
 theorem mul_left_lower {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
     min (t * p) (t * q) ≤ t * x := by
   by_cases ht : 0 ≤ t
@@ -288,6 +350,7 @@ theorem mul_left_lower {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
   · have htn : t ≤ 0 := le_of_lt (lt_of_not_ge ht)
     exact le_trans (min_le_right _ _) (mul_le_mul_of_nonpos_left hq htn)
 
+/-- If `p ≤ x ≤ q`, then `t * x` is bounded above by the larger endpoint product. -/
 theorem mul_left_upper {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
     t * x ≤ max (t * p) (t * q) := by
   by_cases ht : 0 ≤ t
@@ -295,6 +358,7 @@ theorem mul_left_upper {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
   · have htn : t ≤ 0 := le_of_lt (lt_of_not_ge ht)
     exact le_trans (mul_le_mul_of_nonpos_left hp htn) (le_max_left _ _)
 
+/-- If `p ≤ x ≤ q`, then `x * t` is bounded below by the smaller endpoint product. -/
 theorem mul_right_lower {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
     min (p * t) (q * t) ≤ x * t := by
   by_cases ht : 0 ≤ t
@@ -302,6 +366,7 @@ theorem mul_right_lower {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
   · have htn : t ≤ 0 := le_of_lt (lt_of_not_ge ht)
     exact le_trans (min_le_right _ _) (mul_le_mul_of_nonpos_right hq htn)
 
+/-- If `p ≤ x ≤ q`, then `x * t` is bounded above by the larger endpoint product. -/
 theorem mul_right_upper {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
     x * t ≤ max (p * t) (q * t) := by
   by_cases ht : 0 ≤ t
@@ -309,12 +374,14 @@ theorem mul_right_upper {p q x t : ℝ} (hp : p ≤ x) (hq : x ≤ q) :
   · have htn : t ≤ 0 := le_of_lt (lt_of_not_ge ht)
     exact le_trans (mul_le_mul_of_nonpos_right hp htn) (le_max_left _ _)
 
+/-- Interval multiplication preserves validity. -/
 theorem valid_mul (a b : Interval) (_ha : Valid a) (_hb : Valid b) :
     Valid (Qatlib.Foundations.IntervalArith.IntervalOps.mul a b) := by
   show (min (min (a.lo * b.lo) (a.lo * b.hi)) (min (a.hi * b.lo) (a.hi * b.hi)) : ℚ) ≤
     max (max (a.lo * b.lo) (a.lo * b.hi)) (max (a.hi * b.lo) (a.hi * b.hi))
   exact le_trans (min_le_left _ _) (le_trans min_le_max (le_max_left _ _))
 
+/-- The product of two values lies in the product of any intervals containing them. -/
 theorem contains_mul (a b : Interval) {x y : ℝ} (hx : Contains a x) (hy : Contains b y) :
     Contains (Qatlib.Foundations.IntervalArith.IntervalOps.mul a b) (x * y) := by
   have hpx : (a.lo : ℝ) ≤ x := hx.1
@@ -339,6 +406,8 @@ theorem contains_mul (a b : Interval) {x y : ℝ} (hx : Contains a x) (hy : Cont
     push_cast
     exact upper
 
+/-- If `divPositive a b gap` returns an interval, that interval contains `x / y` whenever the
+inputs contain `x` and `y`. -/
 theorem contains_divPositive (a b : Interval) (gap : ℚ) {x y : ℝ}
     (hx : Contains a x) (hy : Contains b y) {c : Interval}
     (h : Qatlib.Foundations.IntervalArith.IntervalOps.divPositive a b gap = some c) :
@@ -370,6 +439,7 @@ theorem contains_divPositive (a b : Interval) (gap : ℚ) {x y : ℝ}
   have hmul := contains_mul a (⟨b.hi⁻¹, b.lo⁻¹⟩ : Interval) hx hrecip
   simpa [mul_one_div] using! hmul
 
+/-- Positive-denominator interval division returns `none` when the supplied gap is nonpositive. -/
 theorem divPositive_none_of_gap_le_zero (a b : Interval) {gap : ℚ} (h : gap ≤ 0) :
     Qatlib.Foundations.IntervalArith.IntervalOps.divPositive a b gap = none := by
   have hnot : ¬ (0 < gap ∧ gap ≤ b.lo ∧ Valid a ∧ Valid b) := by
@@ -377,6 +447,7 @@ theorem divPositive_none_of_gap_le_zero (a b : Interval) {gap : ℚ} (h : gap �
     exact (lt_of_lt_of_le hc.1 h).false
   simp [Qatlib.Foundations.IntervalArith.IntervalOps.divPositive, hnot]
 
+/-- The constant real name associated with a rational number satisfies its specification. -/
 theorem const_spec (q : ℚ) : (RealName.const q).Spec (q : ℝ) := by
   refine ⟨?_, ?_⟩
   · show (0:ℕ) < 1
@@ -384,11 +455,14 @@ theorem const_spec (q : ℚ) : (RealName.const q).Spec (q : ℝ) := by
   · intro p
     exact contains_cert_self q p
 
+/-- There exist real names satisfying the specifications for zero and one. -/
 theorem name_zero : ∃ N0 N1 : RealName, N0.Spec 0 ∧ N1.Spec 1 := by
   refine ⟨RealName.const 0, RealName.const 1, ?_, ?_⟩
   · simpa using! const_spec 0
   · simpa using! const_spec 1
 
+/-- The certificates centered at zero, one, and negative one contain their centers at every
+precision. -/
 theorem name_neg_boundary : ∀ p : ℕ, Contains (cert (0 : ℚ) p) 0 ∧
     Contains (cert (1 : ℚ) p) 1 ∧ Contains (cert (-1 : ℚ) p) (-1) := by
   intro p
@@ -396,15 +470,19 @@ theorem name_neg_boundary : ∀ p : ℕ, Contains (cert (0 : ℚ) p) 0 ∧
     by simpa using! contains_cert_self 1 p,
     by simpa using! contains_cert_self (-1 : ℚ) p⟩
 
+/-- Real names for the real and imaginary parts combine into a complex name satisfying the
+corresponding specification. -/
 theorem complex_name_boundary (Nre Nim : RealName) (x y : ℝ)
     (hre : Nre.Spec x) (him : Nim.Spec y) :
     (⟨Nre, Nim⟩ : ComplexName).Spec (⟨x, y⟩ : ℂ) := by
   show Nre.Spec (Complex.re ⟨x, y⟩) ∧ Nim.Spec (Complex.im ⟨x, y⟩)
   simpa using! ⟨hre, him⟩
 
+/-- A positive rational gap satisfies `DivPremise` for its own real value. -/
 theorem divPremise_self (gap : ℚ) (h : 0 < gap) : DivPremise gap (gap : ℝ) :=
   ⟨h, le_refl (gap : ℝ)⟩
 
+/-- Negative one fails `SqrtPremise`, and zero fails `LogPremise`. -/
 theorem domain_rejection : ¬ SqrtPremise (-1 : ℝ) ∧ ¬ LogPremise (0 : ℝ) := by
   refine ⟨?_, ?_⟩
   · show ¬ (0 ≤ (-1 : ℝ))
@@ -412,6 +490,7 @@ theorem domain_rejection : ¬ SqrtPremise (-1 : ℝ) ∧ ¬ LogPremise (0 : ℝ)
   · show ¬ ((0:ℝ) < 0)
     norm_num
 
+/-- Containment in `cert q k` bounds the absolute error from `q` by `unit k`. -/
 theorem abs_of_contains_cert {q : ℚ} {k : ℕ} {z : ℝ} (h : Contains (cert q k) z) :
     |(q : ℝ) - z| ≤ (unit k : ℝ) := by
   have h1 : ((q - unit k : ℚ) : ℝ) ≤ z := h.1
@@ -420,6 +499,7 @@ theorem abs_of_contains_cert {q : ℚ} {k : ℕ} {z : ℝ} (h : Contains (cert q
   apply abs_le.mpr
   constructor <;> linarith
 
+/-- An absolute error bound of `unit k` implies containment in `cert q k`. -/
 theorem contains_cert_of_abs (q : ℚ) (k : ℕ) {z : ℝ} (h : |(q : ℝ) - z| ≤ (unit k : ℝ)) :
     Contains (cert q k) z := by
   have h1 : (-(unit k : ℝ) ≤ (q : ℝ) - z) ∧ ((q : ℝ) - z ≤ (unit k : ℝ)) := abs_le.mp h
@@ -431,17 +511,20 @@ theorem contains_cert_of_abs (q : ℚ) (k : ℕ) {z : ℝ} (h : |(q : ℝ) - z| 
     push_cast
     linarith
 
+/-- The absolute error of a sum is at most the sum of the two absolute error bounds. -/
 theorem abs_add_error {a b x y u v : ℝ} (ha : |a - x| ≤ u) (hb : |b - y| ≤ v) :
     |(a + b) - (x + y)| ≤ u + v := by
   have h : (a + b) - (x + y) = (a - x) + (b - y) := by ring
   rw [h]
   exact (abs_add_le _ _).trans (add_le_add ha hb)
 
+/-- Negating both an approximation and its target preserves an absolute error bound. -/
 theorem abs_neg_error {a x u : ℝ} (ha : |a - x| ≤ u) : |-a - -x| ≤ u := by
   have h : -a - -x = -(a - x) := by ring
   rw [h, abs_neg]
   exact ha
 
+/-- Two copies of `unit (p + 1)` sum to `unit p`. -/
 theorem two_mul_unit_succ (p : ℕ) : (unit (p + 1) : ℝ) + unit (p + 1) = (unit p : ℝ) := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.unit,
       Qatlib.Foundations.IntervalArith.IntervalOps.unit]
@@ -449,6 +532,8 @@ theorem two_mul_unit_succ (p : ℕ) : (unit (p + 1) : ℝ) + unit (p + 1) = (uni
   field_simp [pow_succ]
   ring
 
+/-- Adding real names preserves their specifications, with the sum of the input clocks at `p`
+bounded by the output clock at `p + 3`. -/
 theorem name_add (Nx Ny : RealName) (x y : ℝ) (hx : Nx.Spec x) (hy : Ny.Spec y) :
     (Nx.add Ny).Spec (x + y) ∧
       ∀ p : ℕ, Nx.clock p + Ny.clock p ≤ (Nx.add Ny).clock (p + 3) := by
@@ -488,6 +573,8 @@ theorem name_add (Nx Ny : RealName) (x y : ℝ) (hx : Nx.Spec x) (hy : Ny.Spec y
       _ = (Nx.timeC + Ny.timeC) * (p + 4) ^ (max Nx.timeD Ny.timeD + 1) := by ring
       _ = (Nx.add Ny).clock (p + 3) := rfl
 
+/-- Negating a real name preserves its specification for the negated value and leaves its clock
+unchanged. -/
 theorem name_neg (N : RealName) (x : ℝ) (hx : N.Spec x) :
     N.neg.Spec (-x) ∧ ∀ p : ℕ, N.clock p = N.neg.clock p := by
   refine ⟨?_, fun _ => rfl⟩
@@ -496,6 +583,8 @@ theorem name_neg (N : RealName) (x : ℝ) (hx : N.Spec x) :
   have ha : |(N.approx p : ℝ) - x| ≤ (unit p : ℝ) := abs_of_contains_cert (hx.2 p)
   exact contains_cert_of_abs _ _ (by simpa [RealName.neg] using! abs_neg_error ha)
 
+/-- Subtracting real names preserves their specifications, with the sum of the input clocks at
+`p` bounded by the output clock at `p + 3`. -/
 theorem name_sub (Nx Ny : RealName) (x y : ℝ) (hx : Nx.Spec x) (hy : Ny.Spec y) :
     (Nx.sub Ny).Spec (x - y) ∧
       ∀ p : ℕ, Nx.clock p + Ny.clock p ≤ (Nx.sub Ny).clock (p + 3) := by
@@ -504,6 +593,7 @@ theorem name_sub (Nx Ny : RealName) (x y : ℝ) (hx : Nx.Spec x) (hy : Ny.Spec y
   refine ⟨?_, hca⟩
   simpa [RealName.sub, sub_eq_add_neg] using! ha
 
+/-- Every natural power of two, viewed as a real number, is at least one. -/
 theorem one_le_two_pow_real (k : ℕ) : (1:ℝ) ≤ (2:ℝ) ^ k := by
   induction k with
   | zero => simp
@@ -511,6 +601,7 @@ theorem one_le_two_pow_real (k : ℕ) : (1:ℝ) ≤ (2:ℝ) ^ k := by
     rw [pow_succ]
     nlinarith [pow_nonneg (by norm_num : (0:ℝ) ≤ 2) k]
 
+/-- The real value of `unit k` is at most one. -/
 theorem unit_le_one (k : ℕ) : (unit k : ℝ) ≤ 1 := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.unit]
   push_cast
@@ -518,6 +609,7 @@ theorem unit_le_one (k : ℕ) : (unit k : ℝ) ≤ 1 := by
   rw [div_le_one hp]
   exact one_le_two_pow_real k
 
+/-- Multiplying `unit (k + s)` by `2 ^ s` gives `unit k`. -/
 theorem unit_succ_split (k s : ℕ) : (unit (k + s) : ℝ) * (2 : ℝ) ^ s = (unit k : ℝ) := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.unit,
       Qatlib.Foundations.IntervalArith.IntervalOps.unit]
@@ -525,6 +617,8 @@ theorem unit_succ_split (k s : ℕ) : (unit (k + s) : ℝ) * (2 : ℝ) ^ s = (un
   field_simp
   rw [← pow_add, Nat.add_comm]
 
+/-- For targets bounded in absolute value by `B`, product approximation error is at most `B * v
++ B * u + u * v`. -/
 theorem mul_error_bound {a b x y u v B : ℝ}
     (ha : |a - x| ≤ u) (hb : |b - y| ≤ v) (hbx : |x| ≤ B) (hby : |y| ≤ B) :
     |a * b - x * y| ≤ B * v + B * u + u * v := by
@@ -543,6 +637,8 @@ theorem mul_error_bound {a b x y u v B : ℝ}
   refine le_trans (abs_add_le _ _) (add_le_add ?_ h3)
   refine le_trans (abs_add_le _ _) (add_le_add h1 h2)
 
+/-- Multiplication of real names satisfies the product specification under the magnitude and
+precision-shift assumptions, with the stated comparison of input and output clocks. -/
 theorem name_mul (Nx Ny : RealName) (s B : ℕ) (x y : ℝ)
     (hx : Nx.Spec x) (hy : Ny.Spec y)
     (hbx : MagnitudeBound B x) (hby : MagnitudeBound B y)
@@ -607,17 +703,21 @@ theorem name_mul (Nx Ny : RealName) (s B : ℕ) (x y : ℝ)
       _ = (Nx.timeC + Ny.timeC) * (p + 4) ^ (max Nx.timeD Ny.timeD + 1) := by ring
       _ = (Nx.mul Ny s).clock (p + 3) := rfl
 
+/-- The approximation budget of an empty word is zero. -/
 theorem budget_nil (D : ℕ) :
     Qatlib.Concepts.RawChannelWord.CptpWordBound.budget
       ([] : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) = 0 :=
   rfl
 
+/-- The approximation budget is additive under concatenation of words. -/
 theorem budget_append (D : ℕ)
     (p q : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) :
     Qatlib.Concepts.RawChannelWord.CptpWordBound.budget (p ++ q) =
       Qatlib.Concepts.RawChannelWord.CptpWordBound.budget p + Qatlib.Concepts.RawChannelWord.CptpWordBound.budget q := by
   simp [Qatlib.Concepts.RawChannelWord.CptpWordBound.budget, List.map_append, List.sum_append]
 
+/-- A word's approximation budget is at most its total account when the read clock is
+nonnegative. -/
 theorem totalAccount_le (D : ℕ)
     (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) {readClock : ℝ}
     (h : 0 ≤ readClock) :
@@ -626,6 +726,8 @@ theorem totalAccount_le (D : ℕ)
     Qatlib.Concepts.RawChannelWord.CptpWordBound.budget p + readClock
   linarith
 
+/-- There exists a family of approximation words whose error lists depend only on the public
+parameter and not on the input matrix. -/
 theorem layer_family_public : ∃ (D : ℕ)
     (F : ℕ → Matrix (Fin D) (Fin D) ℂ → List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)),
     ∀ (pub : ℕ) (u v : Matrix (Fin D) (Fin D) ℂ),
@@ -636,24 +738,31 @@ theorem layer_family_public : ∃ (D : ℕ)
   intro pub u v
   simp
 
+/-- There exists a real-valued probability assignment satisfying `FairCoinLaw`. -/
 theorem fair_coin_law : ∃ p : Bool → ℝ, FairCoinLaw p := by
   refine ⟨fun _ => 1 / 2, ?_⟩
   refine ⟨rfl, rfl, ?_⟩
   intro b
   norm_num
 
+/-- An access capability with `adj = false` grants no inverse access. -/
 theorem access_inverse_only_when_supplied (c : AccessCap) (h : c.adj = false) :
     c.inverseGranted = none := by
   simp [AccessCap.inverseGranted, h]
 
+/-- An access capability with `ctrl = false` grants no controlled access. -/
 theorem access_control_only_when_supplied (c : AccessCap) (h : c.ctrl = false) :
     c.controlGranted = none := by
   simp [AccessCap.controlGranted, h]
 
+/-- The displayed natural-number examples evaluate gcd, modular multiplication, modular
+exponentiation, and addition. -/
 theorem arithmetic_targets :
     Nat.gcd 12 18 = 6 ∧ (3 * 4) % 5 = 2 ∧ (2 ^ 3) % 5 = 3 ∧ 2 + 3 = 5 := by
   decide
 
+/-- The built fragment of clause 1 combines constant names, dyadic arithmetic and size bounds,
+valid interval operations, and the stated boundary and domain properties. -/
 theorem clause1_built_fragment :
     (∃ N0 N1 : RealName, N0.Spec 0 ∧ N1.Spec 1) ∧
     (∀ a b : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs.Dyadic,
@@ -712,6 +821,7 @@ theorem clause1_built_fragment :
   · intro a b gap h
     exact divPositive_none_of_gap_le_zero a b h
 
+/-- For `0 ≤ a ≤ x`, the difference of square roots is at most `Real.sqrt (x - a)`. -/
 theorem sqrt_sub_sqrt_le {a x : ℝ} (ha : 0 ≤ a) (hx : 0 ≤ x)
     (hax : a ≤ x) :
     Real.sqrt x - Real.sqrt a ≤ Real.sqrt (x - a) := by
@@ -733,6 +843,7 @@ theorem sqrt_sub_sqrt_le {a x : ℝ} (ha : 0 ≤ a) (hx : 0 ≤ x)
       ≤ Real.sqrt (x - a) := Real.sqrt_le_sqrt hkey
   rwa [Real.sqrt_mul_self (sub_nonneg.mpr hm)] at hmono
 
+/-- The square-root function satisfies the one-half Hölder estimate on nonnegative real numbers. -/
 theorem sqrt_hoelder {a x : ℝ} (ha : 0 ≤ a) (hx : 0 ≤ x) :
     |Real.sqrt a - Real.sqrt x| ≤ Real.sqrt |a - x| := by
   rcases le_total a x with hax | hax
@@ -744,8 +855,11 @@ theorem sqrt_hoelder {a x : ℝ} (ha : 0 ≤ a) (hx : 0 ≤ x) :
       abs_of_nonneg (sub_nonneg.mpr hax)]
     exact sqrt_sub_sqrt_le hx ha hax
 
+/-- Every natural power of two is positive in the rational numbers. -/
 private theorem two_pow_pos (k : ℕ) : (0:ℚ) < 2 ^ k := by positivity
 
+/-- For a nonnegative rational `a`, the scaled radicand used by `ratSqrtLo` has nonnegative
+integer floor. -/
 private theorem ratSqrtLo_radicand_nonneg (a : ℚ) (k : ℕ) (ha : 0 ≤ a) :
     0 ≤ ⌊a * (2 : ℚ) ^ (2 * k)⌋ := by
   have h0 : (0:ℚ) ≤ a * (2 : ℚ) ^ (2 * k) := mul_nonneg ha (le_of_lt (two_pow_pos _))
@@ -756,6 +870,7 @@ private theorem ratSqrtLo_radicand_nonneg (a : ℚ) (k : ℕ) (ha : 0 ≤ a) :
     exact_mod_cast h4
   omega
 
+/-- The square of the real coercion of rational `2 ^ k` equals the coercion of `2 ^ (2 * k)`. -/
 private theorem ratSqrtLo_denom (k : ℕ) : ((2:ℚ)^k : ℝ) * ((2:ℚ)^k : ℝ)
     = ((2:ℚ)^(2*k) : ℝ) := by
   push_cast
@@ -763,6 +878,8 @@ private theorem ratSqrtLo_denom (k : ℕ) : ((2:ℚ)^k : ℝ) * ((2:ℚ)^k : ℝ
   congr 1
   omega
 
+/-- The rational approximation `ratSqrtLo a k` is a lower bound for the square root of
+nonnegative `a`. -/
 theorem ratSqrtLo_le (a : ℚ) (k : ℕ) (ha : 0 ≤ a) :
     (ratSqrtLo a k : ℝ) ≤ Real.sqrt a := by
   have hm0 : 0 ≤ ⌊a * (2 : ℚ) ^ (2 * k)⌋ := ratSqrtLo_radicand_nonneg a k ha
@@ -805,6 +922,7 @@ theorem ratSqrtLo_le (a : ℚ) (k : ℕ) (ha : 0 ≤ a) :
   rw [hcast]
   exact hfinal
 
+/-- The square root of nonnegative `a` is strictly below `ratSqrtLo a k + unit k`. -/
 theorem sqrt_lt_ratSqrtLo_add (a : ℚ) (k : ℕ) (ha : 0 ≤ a) :
     Real.sqrt a < (ratSqrtLo a k : ℝ) + (unit k : ℝ) := by
   have hm0 : 0 ≤ ⌊a * (2 : ℚ) ^ (2 * k)⌋ := ratSqrtLo_radicand_nonneg a k ha
@@ -847,12 +965,14 @@ theorem sqrt_lt_ratSqrtLo_add (a : ℚ) (k : ℕ) (ha : 0 ≤ a) :
         * ((Nat.sqrt (⌊a * (2 : ℚ) ^ (2 * k)⌋).toNat : ℝ) + 1)) := by
         exact_mod_cast hlt
 
+/-- The product of two precision units equals the precision unit at the sum of their indices. -/
 private theorem unit_mul_unit (k j : ℕ) : (unit k : ℚ) * unit j = unit (k + j) := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.unit, Qatlib.Foundations.IntervalArith.IntervalOps.unit,
     Qatlib.Foundations.IntervalArith.IntervalOps.unit]
   field_simp
   rw [← pow_add]
 
+/-- The square root of `unit (2 * p + 4)` equals `unit (p + 2)`. -/
 private theorem sqrt_unit (p : ℕ) :
     Real.sqrt ((unit (2 * p + 4) : ℝ)) = (unit (p + 2) : ℝ) := by
   have hnn : (0:ℝ) ≤ (unit (p + 2) : ℝ) := by
@@ -866,6 +986,7 @@ private theorem sqrt_unit (p : ℕ) :
     exact_mod_cast h1
   rw [← hsq, Real.sqrt_mul_self hnn]
 
+/-- The sum of `unit (p + 1)` and `unit (p + 2)` is at most `unit p`. -/
 private theorem unit_add_half (p : ℕ) :
     (unit (p + 1) : ℝ) + unit (p + 2) ≤ (unit p : ℝ) := by
   have e1 := two_mul_unit_succ p
@@ -876,6 +997,8 @@ private theorem unit_add_half (p : ℕ) :
     positivity
   linarith
 
+/-- The square-root lift satisfies `Clause1V2SqrtLift`, including the specified approximation
+and clock guarantees for nonnegative inputs. -/
 theorem clause1_v2_sqrt_lift : Clause1V2SqrtLift := by
   intro N x hx hxp
   have hu : ∀ p : ℕ, |(N.approx (2 * p + 4) : ℝ) - x| ≤ (unit (2 * p + 4) : ℝ) :=
@@ -970,6 +1093,8 @@ theorem clause1_v2_sqrt_lift : Clause1V2SqrtLift := by
           exact Nat.mul_le_mul_left _ hgrow
       _ = N.timeC * 5 ^ N.timeD * (p + 1) ^ (2 * N.timeD + 2) := by ring
 
+/-- Under the stated magnitude and positive-denominator bounds, common input error `u` gives
+quotient error at most `u * 2 ^ s`. -/
 private theorem div_error_bound {a b x y u B g : ℝ} {s : ℕ}
     (hbx : |x| ≤ B) (hby : |y| ≤ B) (hg : 0 < g) (hxg : g ≤ y)
     (hb : g / 2 ≤ b) (hea : |a - x| ≤ u) (heb : |b - y| ≤ u)
@@ -1011,6 +1136,8 @@ private theorem div_error_bound {a b x y u B g : ℝ} {s : ℕ}
     exact le_trans hstep2 hstep1
   exact le_trans hnum hgrow
 
+/-- The division lift satisfies `Clause1V2DivLift` under its magnitude, positive-gap, and
+precision-shift assumptions. -/
 theorem clause1_v2_div_lift : Clause1V2DivLift := by
   intro Nx Ny s B x y gap hx hy hgap hbx hby h1 h2
   have hypos : (0:ℝ) < y := lt_of_lt_of_le (by exact_mod_cast hgap.1 : (0:ℝ) < gap)
@@ -1095,21 +1222,28 @@ theorem clause1_v2_div_lift : Clause1V2DivLift := by
 
 section Taylor
 
+/-- The first `K` odd-degree Taylor terms for the sine function. -/
 noncomputable def oddPoly (x : ℝ) (K : ℕ) : ℝ :=
   ∑ k ∈ Finset.range K, (-1 : ℝ) ^ k * x ^ (2 * k + 1) / ((2 * k + 1).factorial : ℝ)
 
+/-- The first `K` even-degree Taylor terms for the cosine function. -/
 noncomputable def evenPoly (x : ℝ) (K : ℕ) : ℝ :=
   ∑ k ∈ Finset.range K, (-1 : ℝ) ^ k * x ^ (2 * k) / ((2 * k).factorial : ℝ)
 
+/-- The difference between sine and its `K`-term polynomial `oddPoly`. -/
 noncomputable def sinRem (x : ℝ) (K : ℕ) : ℝ := Real.sin x - oddPoly x K
 
+/-- The difference between cosine and its `K`-term polynomial `evenPoly`. -/
 noncomputable def cosRem (x : ℝ) (K : ℕ) : ℝ := Real.cos x - evenPoly x K
 
+/-- The first `K` terms of the alternating power series for `Real.log (1 + t)`. -/
 noncomputable def logPoly (t : ℝ) (K : ℕ) : ℝ :=
   ∑ k ∈ Finset.range K, (-1 : ℝ) ^ k * t ^ (k + 1) / ((k + 1 : ℕ) : ℝ)
 
+/-- The difference between `Real.log (1 + t)` and its `K`-term polynomial `logPoly`. -/
 noncomputable def logRem (t : ℝ) (K : ℕ) : ℝ := Real.log (1 + t) - logPoly t K
 
+/-- The derivative of `oddPoly` with `K` terms is `evenPoly` with `K` terms. -/
 private theorem oddPoly_hasDerivAt (x : ℝ) (K : ℕ) :
     HasDerivAt (fun y => oddPoly y K) (evenPoly x K) x := by
   have hfun : (fun y : ℝ => oddPoly y K)
@@ -1139,6 +1273,7 @@ private theorem oddPoly_hasDerivAt (x : ℝ) (K : ℕ) :
   rw [hexp, hfac]
   field_simp
 
+/-- The derivative of `evenPoly` with `K` terms is the negation of `oddPoly` with `K - 1` terms. -/
 private theorem evenPoly_hasDerivAt (x : ℝ) (K : ℕ) :
     HasDerivAt (fun y => evenPoly y K) (-oddPoly x (K - 1)) x := by
   have hfun : (fun y : ℝ => evenPoly y K)
@@ -1171,6 +1306,8 @@ private theorem evenPoly_hasDerivAt (x : ℝ) (K : ℕ) :
     field_simp
     ring
 
+/-- A global derivative representation with the stated local bound implies `|f v - f u| ≤ C * |v
+- u|`. -/
 private theorem mvt_abs_le2 {f f' : ℝ → ℝ} (u v : ℝ)
     (hderiv : ∀ ξ : ℝ, HasDerivAt f (f' ξ) ξ) {C : ℝ}
     (hbound : ∀ ξ : ℝ, |ξ - u| ≤ |v - u| → |f' ξ| ≤ C) : |f v - f u| ≤ C * |v - u| := by
@@ -1202,12 +1339,14 @@ private theorem mvt_abs_le2 {f f' : ℝ → ℝ} (u v : ℝ)
     rw [abs_sub_comm (f v) (f u), ← hmul, abs_mul, abs_of_nonneg (sub_nonneg.mpr hlt.le), hvu]
     exact mul_le_mul hC (le_refl _) (sub_nonneg.mpr hlt.le) (le_trans (abs_nonneg (f' ξ)) hC)
 
+/-- The sine remainder vanishes at zero for every truncation length. -/
 private theorem sinRem_zero (K : ℕ) : sinRem 0 K = 0 := by
   have h : oddPoly 0 K = 0 := by
     refine Finset.sum_eq_zero (fun k _ => ?_)
     rw [zero_pow (by omega), mul_zero, zero_div]
   simp [sinRem, h]
 
+/-- The cosine polynomial with `K + 1` terms takes value one at zero. -/
 private theorem evenPoly_zero_succ (K : ℕ) : evenPoly 0 (K + 1) = 1 := by
   induction K with
   | zero => simp [evenPoly]
@@ -1220,9 +1359,12 @@ private theorem evenPoly_zero_succ (K : ℕ) : evenPoly 0 (K + 1) = 1 := by
     rw [hz]
     norm_num
 
+/-- The cosine remainder with `K + 1` terms vanishes at zero. -/
 private theorem cosRem_zero_succ (K : ℕ) : cosRem 0 (K + 1) = 0 := by
   simp [cosRem, evenPoly_zero_succ K]
 
+/-- The sine remainder with `K` terms and cosine remainder with `K + 1` terms are bounded by
+`|x| ^ (2 * K + 1)` and `|x| ^ (2 * K + 2)`, respectively. -/
 private theorem remainders_coupled : ∀ K : ℕ,
     (∀ x : ℝ, |sinRem x K| ≤ |x| ^ (2 * K + 1)) ∧
       (∀ x : ℝ, |cosRem x (K + 1)| ≤ |x| ^ (2 * K + 2)) := by
@@ -1295,12 +1437,14 @@ private theorem remainders_coupled : ∀ K : ℕ,
     rw [pow_succ]
     exact hkey
 
+/-- The logarithm remainder vanishes at zero for every truncation length. -/
 private theorem logRem_zero (K : ℕ) : logRem 0 K = 0 := by
   have h : logPoly 0 K = 0 := by
     refine Finset.sum_eq_zero (fun k _ => ?_)
     rw [zero_pow (by omega), mul_zero, zero_div]
   simp [logRem, h, Real.log_one]
 
+/-- Away from `t = -1`, the derivative of the logarithm remainder is `(-t) ^ K / (1 + t)`. -/
 private theorem logRem_hasDerivAt (t : ℝ) (K : ℕ) (ht : t ≠ -1) :
     HasDerivAt (fun y => logRem y K) ((-t) ^ K / (1 + t)) t := by
   have hlog : HasDerivAt (fun y : ℝ => Real.log (1 + y)) (1 / (1 + t)) t := by
@@ -1355,6 +1499,7 @@ private theorem logRem_hasDerivAt (t : ℝ) (K : ℕ) (ht : t ≠ -1) :
         field_simp
         ring
 
+/-- A point between zero and `t` has absolute value at most `|t|`. -/
 private theorem abs_le_of_mem_icc {t y : ℝ}
     (hy : y ∈ Set.Icc (min (0:ℝ) t) (max (0:ℝ) t)) : |y| ≤ |t| := by
   rcases lt_trichotomy 0 t with hpos | hzero | hneg
@@ -1368,6 +1513,8 @@ private theorem abs_le_of_mem_icc {t y : ℝ}
     rw [abs_of_nonpos hy.2, abs_of_neg hneg]
     exact neg_le_neg hy.1
 
+/-- Continuity on the closed interval and a bounded derivative on its interior imply `|f v - f
+u| ≤ C * |v - u|`. -/
 private theorem mvt_abs_le2' {f f' : ℝ → ℝ} (u v : ℝ)
     (hcont : ContinuousOn f (Set.Icc (min u v) (max u v)))
     (hderiv : ∀ ξ ∈ Set.Ioo (min u v) (max u v), HasDerivAt f (f' ξ) ξ) {C : ℝ}
@@ -1400,6 +1547,7 @@ private theorem mvt_abs_le2' {f f' : ℝ → ℝ} (u v : ℝ)
     rw [abs_sub_comm (f v) (f u), ← hmul, abs_mul, abs_of_nonneg (sub_nonneg.mpr hlt.le), hvu]
     exact mul_le_mul hC (le_refl _) (sub_nonneg.mpr hlt.le) (le_trans (abs_nonneg (f' ξ)) hC)
 
+/-- For `|t| ≤ 1 / 2`, the logarithm remainder is bounded by `2 * |t| ^ (K + 1)`. -/
 private theorem logRem_bound (t : ℝ) (K : ℕ) (h : |t| ≤ 1 / 2) :
     |logRem t K| ≤ 2 * |t| ^ (K + 1) := by
   have hderiv : ∀ ξ ∈ Set.Ioo (min (0:ℝ) t) (max (0:ℝ) t),
@@ -1444,6 +1592,7 @@ private theorem logRem_bound (t : ℝ) (K : ℕ) (h : |t| ≤ 1 / 2) :
   rw [← heq]
   exact hkey
 
+/-- Coercing the rational sine partial sum to the reals yields `oddPoly`. -/
 private theorem cast_sinPartial (a : ℚ) (K : ℕ) :
     (sinPartial a K : ℝ) = oddPoly (a : ℝ) K := by
   simp only [sinPartial, oddPoly, Rat.cast_sum]
@@ -1451,6 +1600,7 @@ private theorem cast_sinPartial (a : ℚ) (K : ℕ) :
   push_cast
   simp
 
+/-- Coercing the rational logarithm partial sum to the reals yields `logPoly`. -/
 private theorem cast_logPartial (t : ℚ) (K : ℕ) :
     (logPartial t K : ℝ) = logPoly (t : ℝ) K := by
   simp only [logPartial, logPoly, Rat.cast_sum]
@@ -1460,22 +1610,26 @@ private theorem cast_logPartial (t : ℚ) (K : ℕ) :
 
 end Taylor
 
+/-- Every precision unit has nonnegative real value. -/
 private theorem unit_ge_zero (k : ℕ) : (0:ℝ) ≤ unit k := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.unit]
   push_cast
   positivity
 
+/-- The real power `(1 / 2) ^ k` equals the real value of `unit k`. -/
 private theorem half_pow_eq_unit (k : ℕ) : (1 / 2 : ℝ) ^ k = (unit k : ℝ) := by
   rw [Qatlib.Foundations.IntervalArith.IntervalOps.unit]
   push_cast
   rw [div_pow]
   simp
 
+/-- Increasing the precision index by one does not increase the precision unit. -/
 private theorem unit_le_of_succ (p : ℕ) : (unit (p + 1) : ℝ) ≤ unit p := by
   have h := two_mul_unit_succ p
   have h0 : (0:ℝ) ≤ unit (p + 1) := unit_ge_zero (p + 1)
   linarith
 
+/-- The real value of `unit (p + 3)` is at most one eighth. -/
 private theorem unit3_le_eighth (p : ℕ) : (unit (p + 3) : ℝ) ≤ 1 / 8 := by
   rw [← half_pow_eq_unit]
   have h := pow_le_pow_of_le_one (by norm_num : (0:ℝ) ≤ 1/2)
@@ -1483,6 +1637,8 @@ private theorem unit3_le_eighth (p : ℕ) : (unit (p + 3) : ℝ) ≤ 1 / 8 := by
   calc (1/2 : ℝ) ^ (p + 3) ≤ (1/2 : ℝ) ^ 3 := h
     _ = 1 / 8 := by norm_num
 
+/-- The sine lift satisfies `Clause1V2SinLift`, with the specified approximation and clock
+guarantees for inputs with absolute value at most one quarter. -/
 theorem clause1_v2_sin_lift : Clause1V2SinLift := by
   intro N x hx hxwin
   have hu : ∀ p : ℕ, |(N.approx (p + 3) : ℝ) - x| ≤ (unit (p + 3) : ℝ) :=
@@ -1555,6 +1711,8 @@ theorem clause1_v2_sin_lift : Clause1V2SinLift := by
           exact Nat.mul_le_mul_left _ hgrow
       _ = N.timeC * 5 ^ N.timeD * (p + 3) ^ (N.timeD + 3) := by ring
 
+/-- The logarithm lift satisfies `Clause1V2LogLift`, with the specified approximation and clock
+guarantees for inputs within one quarter of one. -/
 theorem clause1_v2_log_lift : Clause1V2LogLift := by
   intro N x hx hxwin
   have hu : ∀ p : ℕ, |(N.approx (p + 3) : ℝ) - x| ≤ (unit (p + 3) : ℝ) :=
@@ -1683,6 +1841,7 @@ theorem clause1_v2_log_lift : Clause1V2LogLift := by
           exact Nat.mul_le_mul_left _ hgrow
       _ = N.timeC * 5 ^ N.timeD * (p + 3) ^ (N.timeD + 3) := by ring
 
+/-- The finite diamond distance satisfies the triangle inequality. -/
 theorem finiteDiamondDistance_tri {D E : ℕ} (T S R : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondDistance T R ≤ finiteDiamondDistance T S + finiteDiamondDistance S R := by
   have htri := (finiteDiamondNorm_algebra D E E (T - S) (S - R)
@@ -1702,6 +1861,8 @@ theorem finiteDiamondDistance_tri {D E : ℕ} (T S R : Operator D →ₗ[ℂ] Op
     _ = (1/2 : ℝ≥0∞) * finiteDiamondNorm (T - S)
           + (1/2 : ℝ≥0∞) * finiteDiamondNorm (S - R) := hmul
 
+/-- The finite diamond distance between the endpoints of a chain is bounded by the sum of the
+assumed successive distance bounds. -/
 theorem finiteDiamondDistance_chain_le {D E : ℕ}
     (F : ℕ → Operator D →ₗ[ℂ] Operator E) (L : ℕ)
     (ε : ℕ → ℝ≥0∞)
@@ -1720,6 +1881,7 @@ theorem finiteDiamondDistance_chain_le {D E : ℕ}
     rw [Finset.sum_range_succ]
     exact le_trans h1 (add_le_add h2 h3)
 
+/-- Negation preserves the finite diamond norm. -/
 theorem finiteDiamondNorm_neg {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondNorm (-T) = finiteDiamondNorm T := by
   unfold finiteDiamondNorm
@@ -1729,6 +1891,7 @@ theorem finiteDiamondNorm_neg {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E
     simp [tensorLeft]
   rw [htl, Matrix.traceNorm_neg]
 
+/-- The finite diamond distance is symmetric. -/
 theorem finiteDiamondDistance_sym {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondDistance T S = finiteDiamondDistance S T := by
   have hsub : S - T = -(T - S) := by
@@ -1737,6 +1900,8 @@ theorem finiteDiamondDistance_sym {D E : ℕ} (T S : Operator D →ₗ[ℂ] Oper
   unfold finiteDiamondDistance
   rw [hsub, finiteDiamondNorm_neg]
 
+/-- Postcomposition by a linear map increases finite diamond distance by at most the finite
+diamond norm of that map. -/
 theorem finiteDiamondDistance_comp_le {D E F : ℕ}
     (R : Operator E →ₗ[ℂ] Operator F) (T S : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondDistance (R.comp T) (R.comp S) ≤
@@ -1756,6 +1921,8 @@ theorem finiteDiamondDistance_comp_le {D E F : ℕ}
         mul_le_mul_right hcomp _
     _ = finiteDiamondNorm R * ((1/2 : ℝ≥0∞) * finiteDiamondNorm (T - S)) := hmul
 
+/-- A chain from the ideal word to the actual word bounds their finite diamond distance by the
+sum of its step bounds. -/
 theorem approxWord_distance_le {D : ℕ} (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D))
     (G : ℕ → Operator D →ₗ[ℂ] Operator D)
     (hG0 : G 0 = (Qatlib.Concepts.RawChannelWord.CptpWordBound.idealWord p).map)
@@ -1769,26 +1936,31 @@ theorem approxWord_distance_le {D : ℕ} (p : List (Qatlib.Concepts.RawChannelWo
   rw [hG0, hGL] at h
   rwa [finiteDiamondDistance_sym] at h
 
+/-- The channel word using actual steps in the first `i` positions and ideal steps thereafter. -/
 noncomputable def mixedChain {D : ℕ} (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) :
     ℕ → Operator D →ₗ[ℂ] Operator D :=
   fun i => (Qatlib.Concepts.RawChannelWord.CptpWordBound.run
     ((p.take i).map Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep.actual
       ++ (p.drop i).map Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep.ideal)).map
 
+/-- At index zero, `mixedChain` equals the ideal channel word. -/
 theorem mixedChain_ideal {D : ℕ} (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) :
     mixedChain p 0 = (Qatlib.Concepts.RawChannelWord.CptpWordBound.idealWord p).map := by
   simp [mixedChain, Qatlib.Concepts.RawChannelWord.CptpWordBound.idealWord]
 
+/-- At the word length, `mixedChain` equals the actual channel word. -/
 theorem mixedChain_actual {D : ℕ} (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) :
     mixedChain p p.length = (Qatlib.Concepts.RawChannelWord.CptpWordBound.actualWord p).map := by
   simp [mixedChain, Qatlib.Concepts.RawChannelWord.CptpWordBound.actualWord]
 
+/-- Channel amplification preserves complex scalar multiplication of its matrix input. -/
 theorem diamondAmplification_smul {D E r : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (c : ℂ) (X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) :
     ChannelAmplification T r (c • X) = c • ChannelAmplification T r X := by
   ext x y
   exact congrArg (· x.2 y.2) (T.map_smul c _)
 
+/-- Channel amplification preserves addition of matrix inputs. -/
 theorem diamondAmplification_add {D E r : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (X Y : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) :
     ChannelAmplification T r (X + Y) =
@@ -1796,6 +1968,7 @@ theorem diamondAmplification_add {D E r : ℕ} (T : Operator D →ₗ[ℂ] Opera
   ext x y
   exact congrArg (· x.2 y.2) (T.map_add _ _)
 
+/-- The matrix `Complex.I • (X - X.conjTranspose)` is Hermitian. -/
 theorem diamondSkewPart_hermitian {n : Type*} [Fintype n] [DecidableEq n]
     (X : Matrix n n ℂ) :
     ((Complex.I) • (X - X.conjTranspose)).IsHermitian := by
@@ -1807,6 +1980,7 @@ theorem diamondSkewPart_hermitian {n : Type*} [Fintype n] [DecidableEq n]
   rw [hI, neg_smul]
   module
 
+/-- The finite diamond norm of a quantum channel's linear map is at most two. -/
 theorem finiteDiamondNorm_channel_le_two {D E : ℕ} (T : QuantumChannel D E) :
     finiteDiamondNorm T.map ≤ (2:ℝ≥0∞) := by
   rw [finiteDiamondNorm_left_reference D E T.map]
@@ -1893,6 +2067,7 @@ theorem finiteDiamondNorm_channel_le_two {D E : ℕ} (T : QuantumChannel D E) :
     exact ENNReal.ofReal_le_ofReal hchain
   · norm_num
 
+/-- Precomposition by a quantum channel multiplies finite diamond distance by at most two. -/
 theorem finiteDiamondDistance_pre_comp_le {D E F : ℕ}
     (T S : Operator E →ₗ[ℂ] Operator F) (C : QuantumChannel D E) :
     finiteDiamondDistance (T.comp C.map) (S.comp C.map) ≤
@@ -1915,6 +2090,7 @@ theorem finiteDiamondDistance_pre_comp_le {D E F : ℕ}
         mul_le_mul_left hmono _
     _ = (2:ℝ≥0∞) * ((1/2 : ℝ≥0∞) * finiteDiamondNorm (T - S)) := by ring
 
+/-- Postcomposition by a quantum channel multiplies finite diamond distance by at most two. -/
 theorem finiteDiamondDistance_post_comp_le {D E F : ℕ}
     (C : QuantumChannel E F) (T S : Operator D →ₗ[ℂ] Operator E) :
     finiteDiamondDistance (C.map.comp T) (C.map.comp S) ≤
@@ -1923,6 +2099,8 @@ theorem finiteDiamondDistance_post_comp_le {D E F : ℕ}
   have hC := finiteDiamondNorm_channel_le_two C
   exact h1.trans (mul_le_mul_left hC (finiteDiamondDistance T S))
 
+/-- One replacement in `mixedChain` has finite diamond distance at most four times the distance
+between that step's actual and ideal channels. -/
 theorem mixedChain_step_bare_le {D : ℕ}
     (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) {i : ℕ}
     (hi : i < p.length) :
@@ -1998,6 +2176,8 @@ theorem mixedChain_step_bare_le {D : ℕ}
           rw [hn, finiteDiamondNorm_neg]
           ring
 
+/-- The finite diamond distance between the actual and ideal words is at most four times the sum
+of the assumed individual step bounds. -/
 theorem approxWord_distance_bare_le {D : ℕ}
     (p : List (Qatlib.Concepts.RawChannelWord.CptpWordBound.ApproxStep D)) (ε : ℕ → ℝ≥0∞)
     (hstep : ∀ i (_ : i < p.length),
@@ -2026,6 +2206,8 @@ section SuccessorMachine
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- A two-label tape program that increments a binary word and returns the head to its starting
+position. -/
 def incProgram (l : Fin 2) : TM1.Stmt Symbol (Fin 2) Unit :=
   if l = 0 then
     .branch (fun a _ => a.isSome)
@@ -2037,6 +2219,8 @@ def incProgram (l : Fin 2) : TM1.Stmt Symbol (Fin 2) Unit :=
     .move .left (.branch (fun a _ => a.isSome)
       (.goto (fun _ _ => 1)) (.move .right .halt))
 
+/-- The increment program's return phase halts on `left.reverse ++ right` in `left.length + 1`
+source steps, with displacement `-left.length`. -/
 theorem inc_return (left right : Bits) :
     SourceTrace incProgram ⟨some 1,(),Tape.mk₂ (left.map some) (right.map some)⟩
       ⟨none,(),Tape.mk₁ ((left.reverse++right).map some)⟩ (left.length+1)
@@ -2066,6 +2250,8 @@ theorem inc_return (left right : Bits) :
           Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.stmtOffset,Tape.mk₂,Tape.move_left_mk'])
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc,Int.add_comm]
 
+/-- The carry phase replaces an initial block of ones by zeros and the following zero by one in
+`ones + 1` source steps, with displacement `ones`. -/
 theorem inc_carry (left : Bits) (ones : ℕ) (rest : Bits) :
     SourceTrace incProgram ⟨some 0,(),Tape.mk₂ (left.map some)
         ((List.replicate ones true ++ false::rest).map some)⟩
@@ -2118,6 +2304,8 @@ theorem inc_carry (left : Bits) (ones : ℕ) (rest : Bits) :
     rw [hca, hdc] at ht
     exact ht
 
+/-- On an all-ones suffix, the carry phase replaces the ones by zeros and writes a new final one
+in `ones + 1` source steps. -/
 theorem inc_carry_overflow (left : Bits) (ones : ℕ) :
     SourceTrace incProgram ⟨some 0,(),Tape.mk₂ (left.map some)
         ((List.replicate ones true).map some)⟩
@@ -2167,11 +2355,14 @@ theorem inc_carry_overflow (left : Bits) (ones : ℕ) :
     rw [hca, hdc] at ht
     exact ht
 
+/-- The increment program has TM1 tick bound at most five. -/
 theorem inc_tickBound : tm1TickBound incProgram ≤ 5 := by
   apply Finset.sup_le
   intro l _
   by_cases h : l = 0 <;> simp [incProgram, h, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.stmtTicks]
 
+/-- The compiled increment machine correctly increments an all-ones word of length `n`, with
+time and space bounds `10 * n + 10`. -/
 theorem inc_runs_ones (n : ℕ) :
     Runs (tm1Machine incProgram) (List.replicate n true)
       (Increment.word (List.replicate n true)) (10*n+10) (10*n+10) := by
@@ -2201,6 +2392,8 @@ theorem inc_runs_ones (n : ℕ) :
   · intro i
     rfl
 
+/-- The compiled increment machine computes `Increment.word` on every input, with time and space
+bounds `10 * input.length + 10`. -/
 theorem inc_runs (input : Bits) :
     Runs (tm1Machine incProgram) input (Increment.word input)
       (10*input.length+10) (10*input.length+10) := by
@@ -2239,6 +2432,8 @@ theorem inc_runs (input : Bits) :
     rw [← he] at h
     exact h
 
+/-- Binary increment satisfies `ComputesAt` with both time and space bounded by ten times the
+input length plus ten. -/
 theorem word_computesAt :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ComputesAt Increment.word
       (fun x => 10*x.length+10) (fun x => 10*x.length+10) :=
@@ -2260,9 +2455,12 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM (Symbol)
 open Turing
 
+/-- The accumulator, counter, and temporary stack slots used by the addition loop. -/
 inductive Slot | acc | cnt | tmp deriving DecidableEq, Fintype
 instance : Inhabited Slot := ⟨.tmp⟩
 
+/-- The control labels for decrementing the counter, branching, incrementing the accumulator,
+and halting. -/
 inductive Label
   | dec : Counter.Label → Label
   | branch
@@ -2270,9 +2468,13 @@ inductive Label
   | done
   deriving DecidableEq
 
+/-- Maps the decrement subroutine's two stack slots to the counter and temporary slots. -/
 def cntCode (k : Fin 2) : Slot := if k = 0 then .cnt else .tmp
+/-- Maps the increment subroutine's two stack slots to the accumulator and temporary slots. -/
 def accCode (k : Fin 2) : Slot := if k = 0 then .acc else .tmp
 
+/-- A stack program that repeatedly decrements a counter and increments an accumulator until the
+counter is exhausted. -/
 def addProgram : Label → TM2.Stmt (fun _ : Slot => Bool) Label Counter.Local
   | .dec l => StackCall.stmt cntCode Label.dec .branch id (fun _ s => s) (Counter.program l)
   | .branch => .branch (fun v => v.1)
@@ -2281,38 +2483,50 @@ def addProgram : Label → TM2.Stmt (fun _ : Slot => Bool) Label Counter.Local
       Prod.snd (fun v s => (v.1, s)) (Increment.program l)
   | .done => .halt
 
+/-- Embeds a two-stack counter store into the addition-loop store while fixing the accumulator. -/
 def cntFrame (acc : Bits) (S : Fin 2 → Bits) : Slot → Bits
   | .acc => acc | .cnt => S 0 | .tmp => S 1
 
+/-- Embeds a two-stack accumulator store into the addition-loop store while fixing the counter. -/
 def accFrame (cnt : Bits) (S : Fin 2 → Bits) : Slot → Bits
   | .acc => S 0 | .cnt => cnt | .tmp => S 1
 
+/-- Evaluating `cntFrame` at a slot selected by `cntCode` recovers the corresponding subroutine
+stack. -/
 theorem cntFrame_at (acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     cntFrame acc S (cntCode k) = S k := by
   fin_cases k <;> simp [cntFrame, cntCode]
 
+/-- Updating a counter subroutine stack commutes with embedding it through `cntFrame`. -/
 theorem cntFrame_update (acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     cntFrame acc (Function.update S k bits)
       = Function.update (cntFrame acc S) (cntCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [cntFrame, cntCode]
 
+/-- Evaluating `accFrame` at a slot selected by `accCode` recovers the corresponding subroutine
+stack. -/
 theorem accFrame_at (cnt : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     accFrame cnt S (accCode k) = S k := by
   fin_cases k <;> simp [accFrame, accCode]
 
+/-- Updating an accumulator subroutine stack commutes with embedding it through `accFrame`. -/
 theorem accFrame_update (cnt : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     accFrame cnt (Function.update S k bits)
       = Function.update (accFrame cnt S) (accCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [accFrame, accCode]
 
+/-- The addition-loop store with the given accumulator and counter and an empty temporary stack. -/
 def fullStore (acc cnt : Bits) : Slot → Bits := cntFrame acc (Stacks.stackPair cnt [])
 
+/-- The full addition-loop store can equivalently be expressed using `accFrame`. -/
 theorem fullStore_eq (acc cnt : Bits) : fullStore acc cnt = accFrame cnt (Stacks.stackPair acc []) := by
   funext j
   cases j <;> simp [fullStore, cntFrame, accFrame, Stacks.stackPair]
 
+/-- A positive counter is decremented without changing its length, preserving the accumulator
+and reaching the branch label with clock at most `10 * (1 + cnt.length) ^ 2`. -/
 theorem dec_positive (acc cnt : Bits) (v : Counter.Local) (hp : 0 < binaryValue cnt) :
     ∃ ticks next, next.length = cnt.length ∧ binaryValue next + 1 = binaryValue cnt ∧
       Stacks.stackRun addProgram ticks ⟨some (.dec .borrow), v, fullStore acc cnt⟩ =
@@ -2328,6 +2542,8 @@ theorem dec_positive (acc cnt : Bits) (v : Counter.Local) (hp : 0 < binaryValue 
     cntFrame] at hN hNC
   exact ⟨ticks, next, hlen, hval, hN, hNC.trans_le hc⟩
 
+/-- A zero-valued counter becomes an all-ones word of the same length and reaches the branch
+label with a false flag in `2 * cnt.length + 2` steps and the stated quadratic clock bound. -/
 theorem dec_zero (acc cnt : Bits) (v : Counter.Local) (hz : binaryValue cnt = 0) :
     Stacks.stackRun addProgram (2*cnt.length+2)
       ⟨some (.dec .borrow), v, fullStore acc cnt⟩ =
@@ -2344,26 +2560,33 @@ theorem dec_zero (acc cnt : Bits) (v : Counter.Local) (hz : binaryValue cnt = 0)
     cntFrame] at hN hNC
   exact ⟨hN, hNC.trans_le hc⟩
 
+/-- The addition-loop branch selects accumulator increment when the flag is true and the done
+label otherwise. -/
 theorem branch_step (v : Counter.Local) (acc cnt : Bits) :
     TM2.step addProgram ⟨some .branch, v, fullStore acc cnt⟩ =
       some ⟨some (if v.1 then .inc .carry else .done), v, fullStore acc cnt⟩ := by
   cases h : v.1 <;> simp [h, TM2.step, addProgram, TM2.stepAux]
 
+/-- One addition-loop branch step has clock at most two. -/
 theorem branch_clock (v : Counter.Local) (acc cnt : Bits) :
     Stacks.stackRunClock addProgram 1 ⟨some .branch, v, fullStore acc cnt⟩ ≤ 2 := by
   rcases hv : v.1 with _ | _ <;>
     simp [Stacks.stackRunClock, Stacks.stackRun, addProgram, TM2.step, Stacks.stackClock, hv] <;>
     omega
 
+/-- The addition-loop done label halts in one step without changing the local state or stacks. -/
 theorem halt_run (v : Counter.Local) (acc cnt : Bits) :
     Stacks.stackRun addProgram 1 ⟨some .done, v, fullStore acc cnt⟩ =
       some ⟨none, v, fullStore acc cnt⟩ := by
   simp [Stacks.stackRun, addProgram, TM2.step]
 
+/-- One step at the addition-loop done label has clock at most one. -/
 theorem halt_clock (v : Counter.Local) (acc cnt : Bits) :
     Stacks.stackRunClock addProgram 1 ⟨some .done, v, fullStore acc cnt⟩ ≤ 1 := by
   simp [Stacks.stackRunClock, Stacks.stackRun, addProgram, TM2.step, Stacks.stackClock]
 
+/-- The accumulator increment subroutine returns to counter decrement with the counter and
+Boolean flag preserved, using clock at most `50 * (1 + acc.length) ^ 2`. -/
 theorem inc_call (acc cnt : Bits) (b : Bool) :
     ∃ ticks, Stacks.stackRun addProgram ticks ⟨some (.inc .carry), (b, none), fullStore acc cnt⟩ =
         some ⟨some (.dec .borrow), (b, none), fullStore (Increment.word acc) cnt⟩ ∧
@@ -2380,6 +2603,9 @@ theorem inc_call (acc cnt : Bits) (b : Bool) :
     List.nil_append, fullStore_eq, accFrame] at hN hNC
   exact ⟨ticks, hN, hNC.trans_le hc⟩
 
+/-- Starting with counter value `n`, the addition loop halts with the accumulator incremented
+`n` times and an all-ones counter. Both accumulated and maximum clocks satisfy the displayed
+bound. -/
 theorem addLoop_complete (n : ℕ) (acc cnt : Bits) (hnum : binaryValue cnt = n) :
     ∀ v : Counter.Local, ∃ ticks,
       Stacks.stackRun addProgram ticks
@@ -2492,9 +2718,14 @@ open Turing
 
 namespace ParseFramed
 
+/-- The seven stack slots for framed-word parsing, including raw input, length fields, temporary
+storage, and output. -/
 inductive PSlot | raw | parse | num | num2 | spare | acc1 | acc deriving DecidableEq, Fintype
 instance : Inhabited PSlot := ⟨.spare⟩
+/-- The parser's local state, consisting of a counter state and an optional saved bit. -/
 abbrev PLocal := Counter.Local × Option Bool
+/-- The control labels for transferring input, parsing a natural length, extracting a counted
+payload, reversing output, and halting. -/
 inductive PLabel
   | read : Fin 1 → PLabel
   | nat : Fin 3 → PLabel
@@ -2506,13 +2737,20 @@ inductive PLabel
   | flip : Fin 1 → PLabel
   | pdone
   deriving DecidableEq
+/-- Maps input-transfer stack slots to the parser's raw and parsing slots. -/
 def readCode (k : Fin 2) : PSlot := if k = 0 then .raw else .parse
+/-- Maps natural-number parser stack slots to the parsing, spare, and length slots. -/
 def natCode (k : Fin 3) : PSlot :=
   if k = 0 then .parse else if k = 1 then .spare else .num
+/-- Maps length-reversal stack slots to the parser's `num` and `num2` slots. -/
 def nflipCode (k : Fin 2) : PSlot := if k = 0 then .num else .num2
+/-- Maps counter subroutine slots to the parser's `num2` and spare slots. -/
 def tkCode (k : Fin 2) : PSlot := if k = 0 then .num2 else .spare
+/-- Maps payload-reversal stack slots to the intermediate and final accumulator slots. -/
 def flipCode (k : Fin 2) : PSlot := if k = 0 then .acc1 else .acc
 
+/-- A stack program that parses a natural-number length and extracts that many payload bits,
+padding missing bits with false. -/
 def parseProgram : PLabel → TM2.Stmt (fun _ : PSlot => Bool) PLabel PLocal
   | .read l => StackCall.stmt readCode PLabel.read (.nat 0)
       Prod.snd (fun v b => (v.1, b)) (Stacks.transferProgram l)
@@ -2530,52 +2768,76 @@ def parseProgram : PLabel → TM2.Stmt (fun _ : PSlot => Bool) PLabel PLocal
   | .flip l => StackCall.stmt flipCode PLabel.flip .pdone
       Prod.snd (fun v b => (v.1, b)) (Stacks.transferProgram l)
   | .pdone => .halt
+/-- The parser store assigning the supplied bit words to its seven named stack slots. -/
 def pstore (raw parse num num2 spare acc1 acc : Bits) : PSlot → Bits
   | .raw => raw | .parse => parse | .num => num | .num2 => num2 | .spare => spare
   | .acc1 => acc1 | .acc => acc
+/-- Embeds the input-transfer store into the parser store with the other stacks empty. -/
 def readFrame (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore (S 0) (S 1) [] [] [] [] []
+/-- Evaluating `readFrame` at a slot selected by `readCode` recovers the corresponding transfer
+stack. -/
 def readFrame_at (S : Fin 2 → Bits) (k : Fin 2) : readFrame S (readCode k) = S k := by
   fin_cases k <;> simp [readFrame, readCode, pstore]
+/-- Updating an input-transfer stack commutes with embedding it through `readFrame`. -/
 def readFrame_update (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     readFrame (Function.update S k bits) = Function.update (readFrame S) (readCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [readFrame, readCode, pstore, Function.update_apply]
+/-- Embeds the natural-number parser's three stacks into the framed-parser store with the
+specified background stacks. -/
 def natFrame (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) : PSlot → Bits :=
   pstore raw (S 0) (S 2) [] (S 1) acc1 acc
+/-- Evaluating `natFrame` at a slot selected by `natCode` recovers the corresponding
+natural-number parser stack. -/
 def natFrame_at (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     natFrame raw spare acc1 acc S (natCode k) = S k := by
   fin_cases k <;> simp [natFrame, natCode, pstore]
+/-- Updating a natural-number parser stack commutes with embedding it through `natFrame`. -/
 def natFrame_update (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     natFrame raw spare acc1 acc (Function.update S k bits)
       = Function.update (natFrame raw spare acc1 acc S) (natCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [natFrame, natCode, pstore, Function.update_apply]
+/-- Embeds the counter subroutine's two stacks into the framed-parser store with the specified
+background stacks. -/
 def tkFrame (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore raw parse num (S 0) (S 1) acc1 acc
+/-- Evaluating `tkFrame` at a slot selected by `tkCode` recovers the corresponding counter
+stack. -/
 def tkFrame_at (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     tkFrame raw parse num spare acc1 acc S (tkCode k) = S k := by
   fin_cases k <;> simp [tkFrame, tkCode, pstore]
+/-- Updating a counter stack commutes with embedding it through `tkFrame`. -/
 def tkFrame_update (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     tkFrame raw parse num spare acc1 acc (Function.update S k bits)
       = Function.update (tkFrame raw parse num spare acc1 acc S) (tkCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [tkFrame, tkCode, pstore, Function.update_apply]
+/-- Embeds the length-reversal store into the parser store with the specified background stacks. -/
 def nflipFrame (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore raw parse (S 0) (S 1) spare acc1 acc
+/-- Evaluating `nflipFrame` at a slot selected by `nflipCode` recovers the corresponding
+length-reversal stack. -/
 def nflipFrame_at (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     nflipFrame raw parse spare acc1 acc S (nflipCode k) = S k := by
   fin_cases k <;> simp [nflipFrame, nflipCode, pstore]
+/-- Updating a length-reversal stack commutes with embedding it through `nflipFrame`. -/
 def nflipFrame_update (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     nflipFrame raw parse spare acc1 acc (Function.update S k bits)
       = Function.update (nflipFrame raw parse spare acc1 acc S) (nflipCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [nflipFrame, nflipCode, pstore, Function.update_apply]
+/-- Embeds the payload-reversal store into the parser store with the specified background
+stacks. -/
 def flipFrame (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore raw parse num num2 spare (S 0) (S 1)
+/-- Evaluating `flipFrame` at a slot selected by `flipCode` recovers the corresponding
+payload-reversal stack. -/
 def flipFrame_at (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     flipFrame raw parse num num2 spare S (flipCode k) = S k := by
   fin_cases k <;> simp [flipFrame, flipCode, pstore]
+/-- Updating a payload-reversal stack commutes with embedding it through `flipFrame`. -/
 def flipFrame_update (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     flipFrame raw parse num num2 spare (Function.update S k bits)
       = Function.update (flipFrame raw parse num num2 spare S) (flipCode k) bits := by
@@ -2583,6 +2845,8 @@ def flipFrame_update (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k :
   fin_cases k <;> cases j <;> simp [flipFrame, flipCode, pstore, Function.update_apply]
 set_option maxHeartbeats 1000000 in
 
+/-- The input-transfer call moves the raw word in reverse order to the parsing stack and reaches
+natural-number parsing with clock at most `9 * (1 + raw.length) ^ 2`. -/
 theorem read_call (raw : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.read 0), ((false,none),none), pstore raw [] [] [] [] [] []⟩ =
@@ -2606,6 +2870,8 @@ theorem read_call (raw : Bits) :
   nlinarith only [hNC, hb, h0]
 set_option maxHeartbeats 1000000 in
 
+/-- Parsing the length prefix of `natBits w.length ++ (w ++ rest)` leaves the payload and suffix
+intact and stores the reversed binary length, with the stated quadratic clock bound. -/
 theorem nat_call (w rest : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.nat 0), ((false,none),none), pstore [] (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits w.length ++ (w ++ rest)) [] [] [] [] []⟩ =
@@ -2630,6 +2896,8 @@ theorem nat_call (w rest : Bits) :
   exact ⟨2*w.length.bits.length+3, hN, hNC.trans_le hc⟩
 set_option maxHeartbeats 1000000 in
 
+/-- The length-reversal call moves the reversed binary payload length into `num2` in forward
+order, with clock at most `9 * (1 + w.length.bits.length) ^ 2`. -/
 theorem nflip_call (w rest : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.nflip 0), ((false,none),none),
@@ -2660,6 +2928,8 @@ theorem nflip_call (w rest : Bits) :
   nlinarith only [hNC, hb, h0]
 set_option maxHeartbeats 1000000 in
 
+/-- A positive parser counter is decremented without changing its length, reaching the parser
+branch with a true flag and the stated quadratic clock bound. -/
 theorem tk_dec_positive (drop num numw acc1 raw acc : Bits) (v : PLocal)
     (hp : 0 < binaryValue numw) :
     ∃ ticks next, next.length = numw.length ∧ binaryValue next + 1 = binaryValue numw ∧
@@ -2681,6 +2951,8 @@ theorem tk_dec_positive (drop num numw acc1 raw acc : Bits) (v : PLocal)
   exact ⟨ticks, next, hlen, hval, hN, hNC.trans_le hc⟩
 set_option maxHeartbeats 1000000 in
 
+/-- A zero-valued parser counter becomes an all-ones word and reaches the parser branch with a
+false flag in `2 * numw.length + 2` steps, with the stated clock bound. -/
 theorem tk_dec_zero (drop num numw acc1 raw acc : Bits) (v : PLocal)
     (hz : binaryValue numw = 0) :
     Stacks.stackRun parseProgram (2*numw.length+2)
@@ -2701,37 +2973,47 @@ theorem tk_dec_zero (drop num numw acc1 raw acc : Bits) (v : PLocal)
     pstore, List.append_nil, List.reverse_nil, List.nil_append] at hN hNC
   exact ⟨hN, hNC.trans_le hc⟩
 
+/-- The parser branch selects payload extraction when the counter flag is true and local-state
+clearing otherwise. -/
 theorem pbranch_step (v : PLocal) (st : PSlot → Bits) :
     TM2.step parseProgram ⟨some .pbranch, v, st⟩ =
       some ⟨some (if v.1.1 then .tkBody else .clear), v, st⟩ := by
   cases h : v.1.1 <;> simp [h, TM2.step, parseProgram, TM2.stepAux]
 
+/-- One parser branch step has clock at most two. -/
 theorem pbranch_clock (v : PLocal) (st : PSlot → Bits) :
     Stacks.stackRunClock parseProgram 1 ⟨some .pbranch, v, st⟩ ≤ 2 := by
   rcases hv : v.1.1 with _ | _ <;>
     simp [Stacks.stackRunClock, Stacks.stackRun, parseProgram, TM2.step,
       Stacks.stackClock, hv] <;> omega
 
+/-- The parser's clear label resets the saved bit to `none` and enters payload reversal without
+changing the stacks. -/
 theorem clear_step (v : PLocal) (st : PSlot → Bits) :
     TM2.step parseProgram ⟨some .clear, v, st⟩ =
       some ⟨some (.flip 0), (v.1, none), st⟩ := by
   simp [TM2.step, parseProgram, TM2.stepAux]
 
+/-- One parser clear step has clock at most two. -/
 theorem clear_clock (v : PLocal) (st : PSlot → Bits) :
     Stacks.stackRunClock parseProgram 1 ⟨some .clear, v, st⟩ ≤ 2 := by
   simp [Stacks.stackRunClock, Stacks.stackRun, parseProgram, TM2.step, Stacks.stackClock]
 
+/-- Updating the parsing slot of `pstore` replaces exactly its parsing word. -/
 theorem pstore_upd_parse (raw parse num num2 spare acc1 acc drop : Bits) :
     Function.update (pstore raw parse num num2 spare acc1 acc) PSlot.parse drop
       = pstore raw drop num num2 spare acc1 acc := by
   funext j
   cases j <;> simp [pstore, Function.update_apply]
 
+/-- Updating the parsing slot of `pstore` leaves its intermediate accumulator unchanged. -/
 theorem pstore_upd_parse_acc1 (raw parse num num2 spare acc1 acc drop : Bits) :
     (Function.update (pstore raw parse num num2 spare acc1 acc) PSlot.parse drop) PSlot.acc1
       = acc1 := by
   simp [pstore, Function.update_apply]
 
+/-- Popping the parsing word's head and pushing it onto the intermediate accumulator produces
+the corresponding updated `pstore`. -/
 theorem tkbody_store (b : Bool) (raw drop num num2 spare acc1 acc : Bits) :
     Function.update (Function.update (pstore raw (b::drop) num num2 spare acc1 acc)
         PSlot.parse drop) PSlot.acc1
@@ -2741,6 +3023,8 @@ theorem tkbody_store (b : Bool) (raw drop num num2 spare acc1 acc : Bits) :
   funext j
   cases j <;> simp [pstore, Function.update_apply]
 
+/-- A payload-extraction step moves the leading parsing bit to the intermediate accumulator and
+returns to counter decrement. -/
 theorem tkbody_step (b : Bool) (raw drop num num2 spare acc1 acc : Bits) (v : PLocal) :
     TM2.step parseProgram ⟨some .tkBody, v, pstore raw (b::drop) num num2 spare acc1 acc⟩ =
       some ⟨some (.tk .borrow), (v.1, some b),
@@ -2749,6 +3033,7 @@ theorem tkbody_step (b : Bool) (raw drop num num2 spare acc1 acc : Bits) (v : PL
     Option.getD_some]
   rw [tkbody_store]
 
+/-- A payload-extraction step has clock at most `2 * ((b :: drop).length + acc1.length) + 10`. -/
 theorem tkbody_clock (b : Bool) (raw drop num num2 spare acc1 acc : Bits) (v : PLocal) :
     Stacks.stackRunClock parseProgram 1
         ⟨some .tkBody, v, pstore raw (b::drop) num num2 spare acc1 acc⟩ ≤
@@ -2759,6 +3044,9 @@ theorem tkbody_clock (b : Bool) (raw drop num num2 spare acc1 acc : Bits) (v : P
   omega
 set_option maxHeartbeats 1000000 in
 
+/-- When the counter value and payload length are `k`, the extraction loop transfers the
+reversed payload to the intermediate accumulator, leaves the suffix, and reaches reversal
+with the displayed clock bound. -/
 theorem tk_loop : ∀ (k : ℕ) (drop rest numw acc1 raw num acc : Bits) (v : PLocal),
     binaryValue numw = k → drop.length = k →
     ∃ ticks,
@@ -2932,6 +3220,8 @@ theorem tk_loop : ∀ (k : ℕ) (drop rest numw acc1 raw num acc : Bits) (v : PL
       linarith only [hc1, hlin, hqq]
 set_option maxHeartbeats 1000000 in
 
+/-- The payload-reversal call moves the intermediate accumulator in reverse order into the empty
+final accumulator, with clock at most `9 * (1 + acc1.length) ^ 2`. -/
 theorem flip_call (acc1 raw parse num num2 spare : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.flip 0), ((false,none),none),
@@ -2958,16 +3248,20 @@ theorem flip_call (acc1 raw parse num num2 spare : Bits) :
   have h0 : (0:ℕ) ≤ acc1.length := Nat.zero_le _
   nlinarith only [hNC, hb, h0]
 
+/-- The parser done label halts in one step without changing its stacks. -/
 theorem pdone_run (st : PSlot → Bits) :
     Stacks.stackRun parseProgram 1 ⟨some .pdone, ((false,none),none), st⟩ =
       some ⟨none, ((false,none),none), st⟩ := by
   simp [Stacks.stackRun, parseProgram, TM2.step]
 
+/-- One step at the parser done label has clock at most one. -/
 theorem pdone_clock (st : PSlot → Bits) :
     Stacks.stackRunClock parseProgram 1 ⟨some .pdone, ((false,none),none), st⟩ ≤ 1 := by
   simp [Stacks.stackRunClock, Stacks.stackRun, parseProgram, TM2.step, Stacks.stackClock]
 set_option maxHeartbeats 1000000 in
 
+/-- Parsing the reversed raw encoding of `framed w ++ rest` halts with payload `w` and
+unconsumed suffix `rest`, with the displayed clock bound. -/
 theorem parseFramed_run (w rest : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.read 0), ((false,none),none),
@@ -3055,6 +3349,8 @@ theorem parseFramed_run (w rest : Bits) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- Starting at natural-number parsing on `framed w ++ rest` halts with payload `w` and suffix
+`rest`, with the displayed clock bound. -/
 theorem parseFramed_run_from (w rest : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.nat 0), ((false,none),none),
@@ -3126,9 +3422,11 @@ end ParseFramed
 
 end ParseFramed
 
+/-- Binary-word addition defined by iterating increment on `x` exactly `binaryValue y` times. -/
 def bitsAdd (x y : Bits) : Bits :=
   Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word^[binaryValue y] x
 
+/-- Iterating binary increment `k` times on `n.bits` yields `(n + k).bits`. -/
 theorem succIterate_bits (k n : ℕ) :
     (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word^[k]) n.bits = (n+k).bits := by
   induction k with
@@ -3138,6 +3436,7 @@ theorem succIterate_bits (k n : ℕ) :
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word_bits]
     congr 1
 
+/-- Iterating binary increment `k` times increases the represented natural number by `k`. -/
 theorem succIterate_value (k : ℕ) (x : Bits) :
     binaryValue ((Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word^[k]) x)
       = binaryValue x + k := by
@@ -3148,15 +3447,20 @@ theorem succIterate_value (k : ℕ) (x : Bits) :
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word_value, ih]
     omega
 
+/-- The binary value of `bitsAdd x y` is the sum of the input values. -/
 theorem bitsAdd_value (x y : Bits) :
     binaryValue (bitsAdd x y) = binaryValue x + binaryValue y :=
   succIterate_value (binaryValue y) x
 
+/-- Adding the canonical binary words for `n` and `m` yields the canonical binary word for `n +
+m`. -/
 theorem bitsAdd_bits (n m : ℕ) :
     bitsAdd n.bits m.bits = (n+m).bits := by
   rw [bitsAdd, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits m,
     succIterate_bits]
 
+/-- Iterating addition of `x` exactly `n` times adds `n * binaryValue x` to the initial binary
+value. -/
 theorem mulIterate_value (n : ℕ) (z x : Bits) :
     binaryValue ((fun w => bitsAdd w x)^[n] z) = binaryValue z + n*binaryValue x := by
   induction n generalizing z with
@@ -3165,6 +3469,8 @@ theorem mulIterate_value (n : ℕ) (z x : Bits) :
     rw [Function.iterate_succ_apply', bitsAdd_value, ih]
     ring
 
+/-- Iterating addition of `x` exactly `n` times on `m.bits` yields `(m + n * binaryValue
+x).bits`. -/
 theorem mulIterate_bits (n m : ℕ) (x : Bits) :
     (fun w => bitsAdd w x)^[n] m.bits = (m + n*binaryValue x).bits := by
   induction n generalizing m with
@@ -3178,14 +3484,19 @@ theorem mulIterate_bits (n m : ℕ) (x : Bits) :
     congr 1
     ring
 
+/-- Binary-word multiplication defined by repeatedly adding `x` to the empty word `binaryValue
+y` times. -/
 def bitsMul (x y : Bits) : Bits :=
   (fun z => bitsAdd z x)^[binaryValue y] []
 
+/-- The binary value of `bitsMul x y` is the product of the input values. -/
 theorem bitsMul_value (x y : Bits) :
     binaryValue (bitsMul x y) = binaryValue x * binaryValue y := by
   rw [bitsMul, mulIterate_value, show binaryValue ([] : Bits) = 0 from rfl]
   ring
 
+/-- Multiplying the canonical binary words for `n` and `m` yields the canonical binary word for
+`n * m`. -/
 theorem bitsMul_bits (n m : ℕ) :
     bitsMul n.bits m.bits = (n*m).bits := by
   rw [bitsMul, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits,
@@ -3194,27 +3505,37 @@ theorem bitsMul_bits (n m : ℕ) :
   congr 1
   ring
 
+/-- The number of consecutive true bits at the beginning of a bit word. -/
 def countTrues : Bits → ℕ
   | [] => 0
   | true :: rest => countTrues rest + 1
   | false :: _ => 0
 
+/-- Splits a natural-number encoding into its binary value and residual input, using the leading
+run of true bits to determine the field length. -/
 def natBitsSplit (input : Bits) : ℕ × Bits :=
   let k := countTrues input
   let rest := input.drop (k + 1)
   (binaryValue (rest.take k), rest.drop k)
 
+/-- Splits a framed word into the payload specified by its encoded length and the residual
+input, padding a short payload with false. -/
 def frameSplit (input : Bits) : Bits × Bits :=
   let (n, body) := natBitsSplit input
   (body.take n ++ List.replicate (n - body.length) false, body.drop n)
 
+/-- The encoding of a pair of bit words as the concatenation of their framed encodings. -/
 def pairEnc (acc cnt : Bits) : Bits := framed acc ++ framed cnt
 
+/-- Decodes two framed words, adds the second to the first, and encodes the updated first word
+together with the unchanged second word. -/
 def bitsAddPair (w : Bits) : Bits :=
   let (acc, rest) := frameSplit w
   let (cnt, _) := frameSplit rest
   framed (bitsAdd acc cnt) ++ framed cnt
 
+/-- A prefix of `k` true bits followed by false has leading true count `k`, independently of the
+suffix. -/
 theorem countTrues_prefix (k : ℕ) (rest : Bits) :
     countTrues (List.replicate k true ++ [false] ++ rest) = k := by
   induction k generalizing rest with
@@ -3224,6 +3545,8 @@ theorem countTrues_prefix (k : ℕ) (rest : Bits) :
     show countTrues ((List.replicate k true ++ [false]) ++ rest) + 1 = k + 1
     rw [ih]
 
+/-- Dropping `k` bits from `k` true bits followed by false and a suffix leaves false followed by
+that suffix. -/
 theorem drop_prefix (k : ℕ) (rest : Bits) :
     List.drop k (List.replicate k true ++ [false] ++ rest) = false :: rest := by
   induction k generalizing rest with
@@ -3232,18 +3555,21 @@ theorem drop_prefix (k : ℕ) (rest : Bits) :
     rw [List.replicate_succ, List.cons_append]
     exact ih rest
 
+/-- Taking `l.length` bits from `l ++ rest` recovers `l`. -/
 theorem take_append_self (l rest : Bits) :
     List.take l.length (l ++ rest) = l := by
   induction l generalizing rest with
   | nil => rfl
   | cons a l ih => exact congrArg (a :: ·) (ih rest)
 
+/-- Dropping `l.length` bits from `l ++ rest` recovers `rest`. -/
 theorem drop_append_self (l rest : Bits) :
     List.drop l.length (l ++ rest) = rest := by
   induction l generalizing rest with
   | nil => rfl
   | cons a l ih => exact ih rest
 
+/-- Splitting `natBits n ++ rest` recovers the number `n` and the unchanged suffix. -/
 theorem natBitsSplit_natBits (n : ℕ) (rest : Bits) :
     natBitsSplit (natBits n ++ rest) = (n, rest) := by
   have hassoc : natBits n ++ rest
@@ -3262,6 +3588,7 @@ theorem natBitsSplit_natBits (n : ℕ) (rest : Bits) :
   unfold natBitsSplit
   simp only [hk, htl, htk, hdr, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
 
+/-- Splitting `framed w ++ rest` recovers the payload `w` and the unchanged suffix. -/
 theorem frameSplit_framed (w : Bits) (rest : Bits) :
     frameSplit (framed w ++ rest) = (w, rest) := by
   have h : framed w ++ rest = natBits w.length ++ (w ++ rest) := by
@@ -3274,10 +3601,13 @@ theorem frameSplit_framed (w : Bits) (rest : Bits) :
   simp only [frameSplit, natBitsSplit_natBits, take_append_self, drop_append_self,
     Nat.sub_eq_zero_of_le hlen, List.replicate_zero, List.append_nil]
 
+/-- Splitting `pairEnc acc cnt` recovers `acc` and the framed encoding of `cnt`. -/
 theorem frameSplit_pair (acc cnt : Bits) :
     frameSplit (pairEnc acc cnt) = (acc, framed cnt) := by
   rw [pairEnc, frameSplit_framed]
 
+/-- Applying `bitsAddPair` to an encoded pair adds the counter word to the accumulator word and
+preserves the counter. -/
 theorem bitsAddPair_pairEnc (acc cnt : Bits) :
     bitsAddPair (pairEnc acc cnt) = pairEnc (bitsAdd acc cnt) cnt := by
   have h2 : frameSplit (framed cnt) = (cnt, []) := by
@@ -3286,6 +3616,8 @@ theorem bitsAddPair_pairEnc (acc cnt : Bits) :
   have ha := frameSplit_framed acc (framed cnt)
   simp only [bitsAddPair, pairEnc, ha, h2]
 
+/-- Iterating `bitsAddPair` preserves pair encoding and iterates addition of the counter word to
+the accumulator. -/
 theorem bitsAddPair_iterate (n : ℕ) (acc cnt : Bits) :
     (bitsAddPair^[n]) (pairEnc acc cnt)
       = pairEnc ((fun z => bitsAdd z cnt)^[n] acc) cnt := by
@@ -3295,10 +3627,15 @@ theorem bitsAddPair_iterate (n : ℕ) (acc cnt : Bits) :
     rw [Function.iterate_succ_apply', ih, bitsAddPair_pairEnc,
       Function.iterate_succ_apply']
 
+/-- Iterating `bitsAddPair` on the pair of an empty accumulator and `x` exactly `binaryValue y`
+times produces the pair of `bitsMul x y` and `x`. -/
 theorem bitsMul_pair (x y : Bits) :
     (bitsAddPair^[binaryValue y]) (pairEnc [] x) = pairEnc (bitsMul x y) x := by
   rw [bitsAddPair_iterate, bitsMul]
 
+/-- Given a `ComputesAt` implementation of increment, each pair of input words has a machine
+computing their sum from the specified framed input, with the displayed bounds involving the
+iteration costs. -/
 theorem bitsAdd_runs (tw sw : Bits → ℕ)
     (hf : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ComputesAt
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word tw sw)
@@ -3323,6 +3660,8 @@ theorem bitsAdd_runs (tw sw : Bits → ℕ)
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment.word tw sw hf
   exact ⟨q,M,C,hC,h (binaryValue y) x⟩
 
+/-- Each pair of input words has a machine computing their sum from the specified framed input,
+with the displayed bounds obtained from the linear time and space bounds for increment. -/
 theorem bitsAdd_runs' (y x : Bits) :
     ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ), 0 < C ∧
       Runs M (natBits (binaryValue y) ++ framed x) (bitsAdd x y)
@@ -3354,17 +3693,23 @@ open Turing
 
 namespace PairCopy
 
+/-- The source, temporary, and two destination stack slots used to duplicate a bit word. -/
 inductive Slot | src | tmp | d1 | d2 deriving DecidableEq, Fintype
 instance : Inhabited Slot := ⟨.tmp⟩
 
+/-- The control labels for reversing the source, copying each bit to both destinations, and
+halting. -/
 inductive Label
   | mv : Fin 1 → Label
   | cp
   | done
   deriving DecidableEq
 
+/-- Maps the transfer subroutine's two slots to the source and temporary slots. -/
 def mvCode (k : Fin 2) : Slot := if k = 0 then .src else .tmp
 
+/-- A stack program that reverses the source into temporary storage, then transfers each bit to
+both destination stacks. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .mv l => StackCall.stmt mvCode Label.mv .cp id (fun _ v => v) (Stacks.transferProgram l)
   | .cp => .pop .tmp (fun _ bit => bit) (.branch (fun bit => bit.isSome)
@@ -3373,22 +3718,30 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
       (.goto (fun _ => .done)))
   | .done => .halt
 
+/-- The four-stack store for a source word, a temporary word, and two destination words. -/
 def cstore (src tmp d1 d2 : Bits) : Slot → Bits
   | .src => src | .tmp => tmp | .d1 => d1 | .d2 => d2
 
+/-- Embeds the source-transfer store into the copying store while fixing the two destination
+stacks. -/
 def mvFrame (d1 d2 : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
   cstore (S 0) (S 1) d1 d2
 
+/-- Evaluating `mvFrame` at a slot selected by `mvCode` recovers the corresponding transfer
+stack. -/
 theorem mvFrame_at (d1 d2 : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     mvFrame d1 d2 S (mvCode k) = S k := by
   fin_cases k <;> simp [mvFrame, mvCode, cstore]
 
+/-- Updating a transfer stack commutes with embedding it through `mvFrame`. -/
 theorem mvFrame_update (d1 d2 : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     mvFrame d1 d2 (Function.update S k bits)
       = Function.update (mvFrame d1 d2 S) (mvCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [mvFrame, mvCode, cstore, Function.update_apply]
 
+/-- The transfer phase empties the source into the temporary stack in reverse order and reaches
+copying with clock at most `9 * (1 + w.length) ^ 2`. -/
 theorem mv_run (w d1 d2 : Bits) (v : Symbol) :
     ∃ ticks, Stacks.stackRun program ticks ⟨some (.mv 0), v, cstore w [] d1 d2⟩ =
       some ⟨some .cp, none, cstore [] w.reverse d1 d2⟩ ∧
@@ -3408,6 +3761,8 @@ theorem mv_run (w d1 d2 : Bits) (v : Symbol) :
   have h0 : (0:ℕ) ≤ w.length := Nat.zero_le _
   nlinarith only [hNC, hb, h0]
 
+/-- Popping one temporary bit and pushing it to both destinations produces the corresponding
+updated copying store. -/
 theorem cp_store (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (Function.update (Function.update (cstore src (b::rest) d1 d2)
         Slot.tmp rest) Slot.d1 (b::d1)) Slot.d2 (b::d2)
@@ -3415,33 +3770,39 @@ theorem cp_store (b : Bool) (src rest d1 d2 : Bits) :
   funext j
   cases j <;> simp [cstore, Function.update_apply]
 
+/-- Updating the temporary slot after removing its leading bit replaces only that stack. -/
 theorem cstore_upd_tmp (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (cstore src (b::rest) d1 d2) Slot.tmp rest = cstore src rest d1 d2 := by
   funext j
   cases j <;> simp [cstore, Function.update_apply]
 
+/-- Pushing a bit to the first destination gives the corresponding update of `cstore`. -/
 theorem cstore_upd_d1 (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (cstore src rest d1 d2) Slot.d1 (b::d1) = cstore src rest (b::d1) d2 := by
   funext j
   cases j <;> simp [cstore, Function.update_apply]
 
+/-- Pushing a bit to the second destination gives the corresponding update of `cstore`. -/
 theorem cstore_upd_d2 (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (cstore src rest (b::d1) d2) Slot.d2 (b::d2)
       = cstore src rest (b::d1) (b::d2) := by
   funext j
   cases j <;> simp [cstore, Function.update_apply]
 
+/-- A copying step removes the leading temporary bit and pushes it onto both destination stacks. -/
 theorem cp_step (b : Bool) (src rest d1 d2 : Bits) (v : Symbol) :
     TM2.step program ⟨some .cp, v, cstore src (b::rest) d1 d2⟩ =
       some ⟨some .cp, some b, cstore src rest (b::d1) (b::d2)⟩ := by
   simp [TM2.step, program, TM2.stepAux, cstore]
   exact cp_store b src rest d1 d2
 
+/-- A copying step on an empty temporary stack enters the done label and clears the saved bit. -/
 theorem cp_stop (src d1 d2 : Bits) (v : Symbol) :
     TM2.step program ⟨some .cp, v, cstore src [] d1 d2⟩ =
       some ⟨some .done, none, cstore src [] d1 d2⟩ := by
   simp [TM2.step, program, TM2.stepAux, cstore]
 
+/-- One copying step has clock at most `2 * (tmp.length + d1.length + d2.length) + 20`. -/
 theorem cp_step_clock (src tmp d1 d2 : Bits) (v : Symbol) :
     Stacks.stackRunClock program 1 ⟨some .cp, v, cstore src tmp d1 d2⟩ ≤
       2*(tmp.length + d1.length + d2.length) + 20 := by
@@ -3453,6 +3814,8 @@ theorem cp_step_clock (src tmp d1 d2 : Bits) (v : Symbol) :
       List.length_cons, cstore_upd_tmp, cstore_upd_d1, cstore_upd_d2]
     omega
 
+/-- In `w.length + 1` steps, the copying loop empties `w` and prefixes its reverse to both
+destination stacks, with the displayed clock bound. -/
 theorem cp_loop (w src d1 d2 : Bits) (v : Symbol) :
     Stacks.stackRun program (w.length+1) ⟨some .cp, v, cstore src w d1 d2⟩ =
       some ⟨some .done, none, cstore src [] (w.reverse ++ d1) (w.reverse ++ d2)⟩ ∧
@@ -3490,11 +3853,15 @@ theorem cp_loop (w src d1 d2 : Bits) (v : Symbol) :
       simp only [List.length_cons] at h1c hIC hs ⊢
       nlinarith only [h1c, hIC, hs]
 
+/-- The copying program's done label halts in one step without changing the local state or
+stacks. -/
 theorem done_run (src tmp d1 d2 : Bits) (v : Symbol) :
     Stacks.stackRun program 1 ⟨some .done, v, cstore src tmp d1 d2⟩ =
       some ⟨none, v, cstore src tmp d1 d2⟩ := by
   simp [Stacks.stackRun, program, TM2.step]
 
+/-- The copying program halts with two copies of the input and empty source and temporary
+stacks, with clock at most `30 * (1 + w.length) ^ 2`. -/
 theorem copyTwo_run (w : Bits) (v : Symbol) :
     ∃ ticks, Stacks.stackRun program ticks ⟨some (.mv 0), v, cstore w [] [] []⟩ =
       some ⟨none, none, cstore [] [] w w⟩ ∧
@@ -3540,54 +3907,69 @@ open Turing
 
 namespace LengthCount
 
+/-- The source, counter, and temporary stack slots used for counting a word's length. -/
 inductive Slot | src | cnt | tmp deriving DecidableEq, Fintype
 instance : Inhabited Slot := ⟨.tmp⟩
 
+/-- The control labels for checking the source, incrementing the length counter, and halting. -/
 inductive Label
   | check
   | inc : Increment.Label → Label
   | done
   deriving DecidableEq
 
+/-- Maps the increment subroutine's two stack slots to the counter and temporary slots. -/
 def incCode (k : Fin 2) : Slot := if k = 0 then .cnt else .tmp
 
+/-- A stack program that consumes the source word and increments the counter once per bit. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .check => .pop .src (fun _ bit => bit) (.branch (fun bit => bit.isSome)
       (.goto (fun _ => .inc .carry)) (.goto (fun _ => .done)))
   | .inc l => StackCall.stmt incCode Label.inc .check id (fun _ v => v) (Increment.program l)
   | .done => .halt
 
+/-- The length-counting store assigning words to the source, counter, and temporary slots. -/
 def cstore (src cnt tmp : Bits) : Slot → Bits
   | .src => src | .cnt => cnt | .tmp => tmp
 
+/-- Embeds the increment subroutine's store into the length-counting store while fixing the
+source. -/
 def incFrame (src : Bits) (S : Fin 2 → Bits) : Slot → Bits := cstore src (S 0) (S 1)
 
+/-- Evaluating `incFrame` at a slot selected by `incCode` recovers the corresponding increment
+stack. -/
 theorem incFrame_at (src : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     incFrame src S (incCode k) = S k := by
   fin_cases k <;> simp [incFrame, incCode, cstore]
 
+/-- Updating an increment stack commutes with embedding it through `incFrame`. -/
 theorem incFrame_update (src : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     incFrame src (Function.update S k bits)
       = Function.update (incFrame src S) (incCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [incFrame, incCode, cstore, Function.update_apply]
 
+/-- Removing the source word's leading bit gives the corresponding update of the length-counting
+store. -/
 theorem check_store (b : Bool) (rest cnt tmp : Bits) :
     Function.update (cstore (b::rest) cnt tmp) Slot.src rest = cstore rest cnt tmp := by
   funext j
   cases j <;> simp [cstore, Function.update_apply]
 
+/-- Checking a nonempty source removes its leading bit and enters the increment subroutine. -/
 theorem check_step (b : Bool) (rest cnt tmp : Bits) (v : Symbol) :
     TM2.step program ⟨some .check, v, cstore (b::rest) cnt tmp⟩ =
       some ⟨some (.inc .carry), some b, cstore rest cnt tmp⟩ := by
   simp [TM2.step, program, TM2.stepAux, cstore]
   exact check_store b rest cnt tmp
 
+/-- Checking an empty source enters the done label and clears the saved bit. -/
 theorem check_empty (cnt tmp : Bits) (v : Symbol) :
     TM2.step program ⟨some .check, v, cstore [] cnt tmp⟩ =
       some ⟨some .done, none, cstore [] cnt tmp⟩ := by
   simp [TM2.step, program, TM2.stepAux, cstore]
 
+/-- One source-checking step has clock at most `2 * src.length + 10`. -/
 theorem check_step_clock (src cnt tmp : Bits) (v : Symbol) :
     Stacks.stackRunClock program 1 ⟨some .check, v, cstore src cnt tmp⟩ ≤
       2*src.length + 10 := by
@@ -3599,11 +3981,15 @@ theorem check_step_clock (src cnt tmp : Bits) (v : Symbol) :
       if_true, List.length_cons]
     omega
 
+/-- The length-counting program's done label halts in one step without changing the local state
+or stacks. -/
 theorem done_run (src cnt tmp : Bits) (v : Symbol) :
     Stacks.stackRun program 1 ⟨some .done, v, cstore src cnt tmp⟩ =
       some ⟨none, v, cstore src cnt tmp⟩ := by
   simp [Stacks.stackRun, program, TM2.step]
 
+/-- The increment subroutine updates the length counter and returns to checking the source, with
+clock at most `50 * (1 + cnt.length) ^ 2`. -/
 theorem inc_call (src cnt : Bits) (v : Symbol) :
     ∃ ticks, Stacks.stackRun program ticks ⟨some (.inc .carry), v, cstore src cnt []⟩ =
       some ⟨some .check, none, cstore src (Increment.word cnt) []⟩ ∧
@@ -3619,6 +4005,7 @@ theorem inc_call (src cnt : Bits) (v : Symbol) :
     incFrame, cstore, List.reverse_nil, List.nil_append, List.append_nil] at hN hNC
   exact ⟨ticks, hN, hNC.trans_le hc⟩
 
+/-- Binary increment increases the length of a word by at most one. -/
 theorem word_length_le (cnt : Bits) :
     (Increment.word cnt).length ≤ cnt.length + 1 := by
   induction cnt with
@@ -3630,6 +4017,8 @@ theorem word_length_le (cnt : Bits) :
       simp only [Increment.word, List.length_cons]
       omega
 
+/-- The counting loop consumes `w` and increments the initial counter `w.length` times before
+reaching the done label, with the displayed clock bound. -/
 theorem count_loop (w cnt : Bits) (v : Symbol) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .check, v, cstore w cnt []⟩ =
@@ -3680,6 +4069,8 @@ theorem count_loop (w cnt : Bits) (v : Symbol) :
     simp only [List.length_cons] at h1c h2c h3c hs1 hs2 hstepA hsum ⊢
     nlinarith only [h1c, h2c, h3c, hs1, hs2, hstepA, hsum]
 
+/-- Starting with an empty counter, the counting program halts with the canonical binary word
+for `w.length`, with the displayed cubic clock bound. -/
 theorem count_run (w : Bits) (v : Symbol) :
     ∃ ticks, Stacks.stackRun program ticks ⟨some .check, v, cstore w [] []⟩ =
       some ⟨none, none, cstore [] w.length.bits []⟩ ∧
@@ -3714,9 +4105,12 @@ open Turing
 
 namespace ParseFramed
 
+/-- Prepending bit `b` doubles the binary value of the tail and adds one exactly when `b` is
+true. -/
 theorem binaryValue_cons (b : Bool) (bs : Bits) :
     binaryValue (b :: bs) = 2 * binaryValue bs + (if b then 1 else 0) := rfl
 
+/-- A word consisting entirely of false bits has binary value zero. -/
 theorem binaryValue_replicate_false (m : ℕ) :
     binaryValue (List.replicate m false) = 0 := by
   induction m with
@@ -3725,16 +4119,20 @@ theorem binaryValue_replicate_false (m : ℕ) :
     rw [List.replicate_succ, binaryValue_cons, if_neg (by decide : ¬(false = true)), ih,
       Nat.mul_zero, Nat.add_zero]
 
+/-- Appending false bits does not change the binary value of a word. -/
 theorem binaryValue_pad (bs : Bits) (m : ℕ) :
     binaryValue (bs ++ List.replicate m false) = binaryValue bs := by
   induction bs with
   | nil => exact binaryValue_replicate_false m
   | cons b bs ih => rw [List.cons_append, binaryValue_cons, binaryValue_cons, ih]
 
+/-- The binary length field following the unary prefix, truncated to the indicated width and
+padded with false when necessary. -/
 def fieldOf (input : Bits) : Bits :=
   (input.drop (countTrues input + 1)).take (countTrues input) ++
     List.replicate (countTrues input - (input.drop (countTrues input + 1)).length) false
 
+/-- The length of `fieldOf input` equals the number of leading true bits of `input`. -/
 theorem length_fieldOf (input : Bits) : (fieldOf input).length = countTrues input := by
   have h1 : ((input.drop (countTrues input + 1)).take (countTrues input)).length
       = min (countTrues input) (input.drop (countTrues input + 1)).length := List.length_take ..
@@ -3744,10 +4142,14 @@ theorem length_fieldOf (input : Bits) : (fieldOf input).length = countTrues inpu
   simp only [fieldOf, List.length_append, h1, h2]
   omega
 
+/-- The binary value of `fieldOf input` equals the natural number returned by `natBitsSplit
+input`. -/
 theorem binaryValue_fieldOf (input : Bits) :
     binaryValue (fieldOf input) = (natBitsSplit input).1 := by
   simp only [fieldOf, natBitsSplit, binaryValue_pad]
 
+/-- Framed splitting takes the decoded number of payload bits, pads missing bits with false, and
+drops that many bits to obtain the suffix. -/
 theorem frameSplit_eq (input : Bits) :
     frameSplit input =
       ((natBitsSplit input).2.take (natBitsSplit input).1 ++
@@ -3756,16 +4158,21 @@ theorem frameSplit_eq (input : Bits) :
   rcases h : natBitsSplit input with ⟨n, body⟩
   simp [frameSplit, h]
 
+/-- The payload returned by `frameSplit` is the decoded-length prefix padded with false if the
+input is too short. -/
 theorem frameSplit_take (input : Bits) :
     (frameSplit input).1 =
       (natBitsSplit input).2.take (natBitsSplit input).1 ++
         List.replicate ((natBitsSplit input).1 - (natBitsSplit input).2.length) false := by
   rw [frameSplit_eq]
 
+/-- The suffix returned by `frameSplit` is obtained by dropping the decoded length from the
+remaining input. -/
 theorem frameSplit_drop (input : Bits) :
     (frameSplit input).2 = (natBitsSplit input).2.drop (natBitsSplit input).1 := by
   rw [frameSplit_eq]
 
+/-- The payload returned by `frameSplit` has exactly the decoded natural-number length. -/
 theorem length_frameSplit (input : Bits) :
     (frameSplit input).1.length = (natBitsSplit input).1 := by
   have h1 : ((natBitsSplit input).2.take (natBitsSplit input).1).length
@@ -3776,6 +4183,8 @@ theorem length_frameSplit (input : Bits) :
   rw [frameSplit_take, List.length_append, h1, h2]
   omega
 
+/-- The unary parser halts on an empty source, clears the saved bit, and preserves the count
+stack. -/
 theorem unary_empty_step (count : Bits) (saved : Option Bool) :
     TM2.step Parsing.unaryProgram
       (⟨some 0, saved, Stacks.stackPair ([] : Bits) count⟩ :
@@ -3783,6 +4192,8 @@ theorem unary_empty_step (count : Bits) (saved : Option Bool) :
       some ⟨none, none, Stacks.stackPair [] count⟩ := by
   simp [Parsing.unaryProgram, TM2.step, TM2.stepAux, Stacks.stackPair, Function.update_apply]
 
+/-- The unary parser halts after removing a leading false bit, saving that bit and preserving
+the count stack. -/
 theorem unary_false_step (s count : Bits) (saved : Option Bool) :
     TM2.step Parsing.unaryProgram
       (⟨some 0, saved, Stacks.stackPair (false :: s) count⟩ :
@@ -3790,6 +4201,9 @@ theorem unary_false_step (s count : Bits) (saved : Option Bool) :
       some ⟨none, some false, Stacks.stackPair s count⟩ := by
   simp [Parsing.unaryProgram, TM2.step, TM2.stepAux, Stacks.stackPair, Function.update_apply]
 
+/-- The unary parser consumes the leading true run and its terminator when present, prefixing
+that many true bits to the count stack. It runs for `countTrues s + 1` steps with the
+displayed clock bound. -/
 theorem unary_total : ∀ (s count : Bits) (saved : Option Bool),
     Stacks.stackRun Parsing.unaryProgram (countTrues s+1)
       (⟨some 0, saved, Stacks.stackPair s count⟩ :
@@ -3882,6 +4296,7 @@ theorem unary_total : ∀ (s count : Bits) (saved : Option Bool),
       simp only [h1] at hs
       nlinarith
 
+/-- The field parser halts and clears the saved bit when its count stack is empty. -/
 theorem field_empty_count (r out : Bits) (saved : Option Bool) :
     TM2.step Parsing.fieldProgram
       (⟨some 0, saved, Parsing.triple r [] out⟩ :
@@ -3889,6 +4304,8 @@ theorem field_empty_count (r out : Bits) (saved : Option Bool) :
       some ⟨none, none, Parsing.triple r [] out⟩ := by
   simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple]
 
+/-- With a nonempty true count stack and empty input, the field parser removes one count bit and
+pushes false to the output. -/
 theorem field_nil_step (count out : Bits) (saved : Option Bool) :
     TM2.step Parsing.fieldProgram
       (⟨some 0, saved, Parsing.triple ([] : Bits) (true::count) out⟩ :
@@ -3896,6 +4313,8 @@ theorem field_nil_step (count out : Bits) (saved : Option Bool) :
       some ⟨some 0, none, Parsing.triple [] count (false::out)⟩ := by
   simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple, Function.update_apply]
 
+/-- With a leading input bit and a nonempty true count stack, the field parser moves the bit to
+output and removes one count bit. -/
 theorem field_cons_step (b : Bool) (r count out : Bits) (saved : Option Bool) :
     TM2.step Parsing.fieldProgram
       (⟨some 0, saved, Parsing.triple (b::r) (true::count) out⟩ :
@@ -3903,6 +4322,8 @@ theorem field_cons_step (b : Bool) (r count out : Bits) (saved : Option Bool) :
       some ⟨some 0, some b, Parsing.triple r count (b::out)⟩ := by
   simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple, Function.update_apply]
 
+/-- The field parser extracts `k` bits, pads missing bits with false, and prefixes the reversed
+result to output in `k + 1` steps, with the displayed clock bound. -/
 theorem field_total : ∀ (k : ℕ) (r out : Bits) (saved : Option Bool),
     Stacks.stackRun Parsing.fieldProgram (k+1)
       (⟨some 0, saved, Parsing.triple r (List.replicate k true) out⟩ :
@@ -4007,6 +4428,7 @@ theorem field_total : ∀ (k : ℕ) (r out : Bits) (saved : Option Bool),
       rw [Nat.add_comm 1 (k+1)] at hs
       nlinarith only [hs, hIC, h1]
 
+/-- The number of leading true bits of a word is at most its length. -/
 theorem countTrues_le (s : Bits) : countTrues s ≤ s.length := by
   induction s with
   | nil => rfl
@@ -4015,6 +4437,8 @@ theorem countTrues_le (s : Bits) : countTrues s ≤ s.length := by
     | false => simp [countTrues] <;> omega
     | true => simp [countTrues] <;> omega
 
+/-- A payload-extraction store update on empty parsing input pushes false to the intermediate
+accumulator. -/
 theorem tkbody_store_empty (raw num num2 spare acc1 acc : Bits) :
     Function.update (Function.update (pstore raw ([] : Bits) num num2 spare acc1 acc)
         PSlot.parse []) PSlot.acc1
@@ -4024,6 +4448,8 @@ theorem tkbody_store_empty (raw num num2 spare acc1 acc : Bits) :
   funext j
   cases j <;> simp [pstore, Function.update_apply]
 
+/-- A payload-extraction step pops the parsing head when present, pushes its value or false onto
+the intermediate accumulator, and returns to counter decrement. -/
 theorem tkbody_step_gen (raw s num num2 spare acc1 acc : Bits) (v : PLocal) :
     TM2.step parseProgram ⟨some .tkBody, v, pstore raw s num num2 spare acc1 acc⟩ =
       some ⟨some (.tk .borrow), (v.1, s.head?),
@@ -4038,6 +4464,8 @@ theorem tkbody_step_gen (raw s num num2 spare acc1 acc : Bits) (v : PLocal) :
       Option.getD_some]
     rw [tkbody_store]
 
+/-- A payload-extraction step on any parsing word has clock at most `2 * (s.length +
+acc1.length) + 10`. -/
 theorem tkbody_clock_gen (raw s num num2 spare acc1 acc : Bits) (v : PLocal) :
     Stacks.stackRunClock parseProgram 1
         ⟨some .tkBody, v, pstore raw s num num2 spare acc1 acc⟩ ≤
@@ -4053,6 +4481,8 @@ theorem tkbody_clock_gen (raw s num num2 spare acc1 acc : Bits) (v : PLocal) :
       List.length_cons]
     omega
 
+/-- Taking a default-false head followed by a padded prefix of the tail equals the padded prefix
+of length `k + 1`. -/
 theorem take_pad_succ (k : ℕ) (s : Bits) :
     s.head?.getD false :: (s.tail.take k ++ List.replicate (k - s.tail.length) false)
       = s.take (k+1) ++ List.replicate ((k+1) - s.length) false := by
@@ -4067,6 +4497,8 @@ theorem take_pad_succ (k : ℕ) (s : Bits) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- For counter value `k`, the extraction loop consumes `k` payload positions, pads missing bits
+with false, and reaches reversal with the displayed clock bound. -/
 theorem tk_loop_gen : ∀ (k : ℕ) (s numw acc1 raw num acc : Bits) (v : PLocal),
     binaryValue numw = k →
     ∃ ticks,
@@ -4223,6 +4655,8 @@ theorem tk_loop_gen : ∀ (k : ℕ) (s numw acc1 raw num acc : Bits) (v : PLocal
 
 set_option maxHeartbeats 1000000 in
 
+/-- The length-reversal phase moves `num` into the empty `num2` stack in reverse order and
+reaches counter decrement with clock at most `9 * (1 + num.length) ^ 2`. -/
 theorem nflip_total (ps num spare acc1 acc : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.nflip 0), ((false,none),none), pstore [] ps num [] spare acc1 acc⟩ =
@@ -4249,6 +4683,9 @@ theorem nflip_total (ps num spare acc1 acc : Bits) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- On arbitrary input, the natural-number parser returns the suffix from `natBitsSplit` and
+prefixes the reversed padded field to output in `2 * countTrues s + 3` steps, with the
+stated quadratic clock bound. -/
 theorem natProgram_total (s out : Bits) (saved : Option Bool) :
     Stacks.stackRun Parsing.natProgram (2*countTrues s+3)
       ⟨some 0, saved, Parsing.triple s [] out⟩ =
@@ -4344,6 +4781,8 @@ theorem natProgram_total (s out : Bits) (saved : Option Bool) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- The embedded natural-number parser splits arbitrary input and stores the reversed padded
+length field before entering length reversal, with clock at most `40 * (1 + s.length) ^ 2`. -/
 theorem nat_total (s : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.nat 0), ((false,none),none), pstore [] s [] [] [] [] []⟩ =
@@ -4367,12 +4806,16 @@ theorem nat_total (s : Bits) :
   simp only [List.length_nil, Nat.add_zero] at hrc
   exact hNC.trans_le hrc
 
+/-- An explicit clock allowance for parsing an arbitrary framed input from the initial raw-input
+transfer phase. -/
 def parseCost (input : Bits) : ℕ :=
   9*(1+input.length)^2 + 40*(1+input.length)^2 + 9*(1+countTrues input)^2
     + (2*(natBitsSplit input).1+4)*(10*(1+countTrues input)^2
       +50*(1+(natBitsSplit input).2.length+(natBitsSplit input).1)^2+10)
     + 9*(1+(frameSplit input).1.length)^2 + 1
 
+/-- An explicit clock allowance for parsing an arbitrary framed input starting directly at
+natural-number parsing. -/
 def parseCostFrom (input : Bits) : ℕ :=
   40*(1+input.length)^2 + 9*(1+countTrues input)^2
     + (2*(natBitsSplit input).1+4)*(10*(1+countTrues input)^2
@@ -4381,6 +4824,8 @@ def parseCostFrom (input : Bits) : ℕ :=
 
 set_option maxHeartbeats 1000000 in
 
+/-- The framed parser terminates on every raw input with the payload and suffix specified by
+`frameSplit`, and its clock is bounded by `parseCost input`. -/
 theorem parseFramed_total (input : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.read 0), ((false,none),none), pstore input.reverse [] [] [] [] [] []⟩ =
@@ -4492,6 +4937,9 @@ theorem parseFramed_total (input : Bits) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- Starting directly at natural-number parsing, the framed parser terminates on every input
+with the payload and suffix specified by `frameSplit`, and its clock is bounded by
+`parseCostFrom input`. -/
 theorem parseFramed_total_from (input : Bits) :
     ∃ ticks, Stacks.stackRun parseProgram ticks
         ⟨some (.nat 0), ((false,none),none), pstore [] input [] [] [] [] []⟩ =
@@ -4598,6 +5046,7 @@ open Turing
 
 namespace PairAssembly
 
+/-- The pair-assembly local state, consisting of a counter state and an optional saved bit. -/
 abbrev Local := Counter.Local × Option Bool
 
 instance : Fintype ParseFramed.PLabel where
@@ -4648,12 +5097,16 @@ instance : Fintype LengthCount.Label where
     | inc l => cases l <;> simp
     | done => simp
 
+/-- The thirteen stack slots used for pair parsing, arithmetic, copying, length counting, and
+output assembly. -/
 inductive Slot
   | raw | parse | num | num2 | spare | acc1
   | acc | live | keep | tmp | work | lout | out
   deriving DecidableEq, Fintype
 instance : Inhabited Slot := ⟨.tmp⟩
 
+/-- The control labels for the two parsers, copying and addition calls, length counting, output
+emission, cleanup, and completion. -/
 inductive Label
   | p1 : ParseFramed.PLabel → Label
   | p2 : ParseFramed.PLabel → Label
@@ -4676,40 +5129,58 @@ inductive Label
   deriving DecidableEq, Fintype
 instance : Inhabited Label := ⟨.p1 (.read 0)⟩
 
+/-- The pair-assembly store assigning the supplied bit words to its thirteen named stacks. -/
 def astore (raw parse num num2 spare acc1 acc live keep tmp work lout out : Bits) : Slot → Bits
   | .raw => raw | .parse => parse | .num => num | .num2 => num2 | .spare => spare | .acc1 => acc1
   | .acc => acc | .live => live | .keep => keep | .tmp => tmp | .work => work
   | .lout => lout | .out => out
 
+/-- Embeds the first framed parser's stack slots into the pair-assembly slots, with its output
+in `acc`. -/
 def pCode1 : ParseFramed.PSlot → Slot
   | .raw => .raw | .parse => .parse | .num => .num | .num2 => .num2
   | .spare => .spare | .acc1 => .acc1 | .acc => .acc
 
+/-- Embeds the second framed parser's stack slots into the pair-assembly slots, with its output
+in `work`. -/
 def pCode2 : ParseFramed.PSlot → Slot
   | .raw => .raw | .parse => .parse | .num => .num | .num2 => .num2
   | .spare => .spare | .acc1 => .acc1 | .acc => .work
 
+/-- Maps the first copying call from `work` through `tmp` to destinations `live` and `keep`. -/
 def cCode1 : PairCopy.Slot → Slot
   | .src => .work | .tmp => .tmp | .d1 => .live | .d2 => .keep
 
+/-- Maps the second copying call from `acc` through `tmp` to destinations `work` and `raw`. -/
 def cCode2 : PairCopy.Slot → Slot
   | .src => .acc | .tmp => .tmp | .d1 => .work | .d2 => .raw
 
+/-- Maps addition-loop slots to the pair-assembly accumulator, live counter, and temporary
+stacks. -/
 def aCode : AddLoop.Slot → Slot
   | .acc => .acc | .cnt => .live | .tmp => .tmp
 
+/-- Maps the first length-counting call to source `work`, counter `lout`, and temporary stack
+`tmp`. -/
 def lCode1 : LengthCount.Slot → Slot
   | .src => .work | .cnt => .lout | .tmp => .tmp
 
+/-- Maps the second length-counting call to source `live`, counter `lout`, and temporary stack
+`tmp`. -/
 def lCode2 : LengthCount.Slot → Slot
   | .src => .live | .cnt => .lout | .tmp => .tmp
 
+/-- Maps natural-number emission slots to the length-output, number-work, and output stacks. -/
 def nCodeL (k : Fin 3) : Slot := if k = 0 then .lout else if k = 1 then .num else .out
 
+/-- Maps emission slots to the raw-word, number-work, and output stacks. -/
 def nCodeR (k : Fin 3) : Slot := if k = 0 then .raw else if k = 1 then .num else .out
 
+/-- Maps emission slots to the preserved-word, number-work, and output stacks. -/
 def nCodeK (k : Fin 3) : Slot := if k = 0 then .keep else if k = 1 then .num else .out
 
+/-- The pair-assembly stack program combining framed parsing, copying, repeated-increment
+addition, length counting, emission, and stack cleanup. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .p1 l => StackCall.stmt pCode1 Label.p1 (.clNum2a) id (fun _ v => v) (ParseFramed.parseProgram l)
   | .p2 l => StackCall.stmt pCode2 Label.p2 (.clNum2b) id (fun _ v => v) (ParseFramed.parseProgram l)
@@ -4745,14 +5216,19 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
       (.branch (fun v => v.2.isSome) (.goto (fun _ => .clKeep)) (.goto (fun _ => .finish)))
   | .finish => .halt
 
+/-- Embeds the first parser's store into the pair-assembly store with the specified background
+stacks. -/
 def pFrame1 (live keep tmp work lout out : Bits) (S : ParseFramed.PSlot → Bits) : Slot → Bits :=
   astore (S .raw) (S .parse) (S .num) (S .num2) (S .spare) (S .acc1) (S .acc)
     live keep tmp work lout out
 
+/-- Evaluating `pFrame1` at a slot selected by `pCode1` recovers the corresponding first-parser
+stack. -/
 theorem pFrame1_at (live keep tmp work lout out : Bits) (S : ParseFramed.PSlot → Bits)
     (k : ParseFramed.PSlot) : pFrame1 live keep tmp work lout out S (pCode1 k) = S k := by
   cases k <;> rfl
 
+/-- Updating a first-parser stack commutes with embedding it through `pFrame1`. -/
 theorem pFrame1_update (live keep tmp work lout out : Bits) (S : ParseFramed.PSlot → Bits)
     (k : ParseFramed.PSlot) (bits : Bits) :
     pFrame1 live keep tmp work lout out (Function.update S k bits)
@@ -4760,14 +5236,19 @@ theorem pFrame1_update (live keep tmp work lout out : Bits) (S : ParseFramed.PSl
   funext j
   cases k <;> cases j <;> simp [pFrame1, astore, pCode1, Function.update_apply]
 
+/-- Embeds the second parser's store into the pair-assembly store with the specified background
+stacks. -/
 def pFrame2 (acc live keep tmp lout out : Bits) (S : ParseFramed.PSlot → Bits) : Slot → Bits :=
   astore (S .raw) (S .parse) (S .num) (S .num2) (S .spare) (S .acc1) acc
     live keep tmp (S .acc) lout out
 
+/-- Evaluating `pFrame2` at a slot selected by `pCode2` recovers the corresponding second-parser
+stack. -/
 theorem pFrame2_at (acc live keep tmp lout out : Bits) (S : ParseFramed.PSlot → Bits)
     (k : ParseFramed.PSlot) : pFrame2 acc live keep tmp lout out S (pCode2 k) = S k := by
   cases k <;> rfl
 
+/-- Updating a second-parser stack commutes with embedding it through `pFrame2`. -/
 theorem pFrame2_update (acc live keep tmp lout out : Bits) (S : ParseFramed.PSlot → Bits)
     (k : ParseFramed.PSlot) (bits : Bits) :
     pFrame2 acc live keep tmp lout out (Function.update S k bits)
@@ -4775,15 +5256,20 @@ theorem pFrame2_update (acc live keep tmp lout out : Bits) (S : ParseFramed.PSlo
   funext j
   cases k <;> cases j <;> simp [pFrame2, astore, pCode2, Function.update_apply]
 
+/-- Embeds the first copying subroutine's store into the pair-assembly store with the specified
+background stacks. -/
 def cFrame1 (raw parse num num2 spare acc1 acc lout out : Bits)
     (S : PairCopy.Slot → Bits) : Slot → Bits :=
   astore raw parse num num2 spare acc1 acc (S .d1) (S .d2) (S .tmp) (S .src) lout out
 
+/-- Evaluating `cFrame1` at a slot selected by `cCode1` recovers the corresponding first-copy
+stack. -/
 theorem cFrame1_at (raw parse num num2 spare acc1 acc lout out : Bits)
     (S : PairCopy.Slot → Bits) (k : PairCopy.Slot) :
     cFrame1 raw parse num num2 spare acc1 acc lout out S (cCode1 k) = S k := by
   cases k <;> rfl
 
+/-- Updating a first-copy stack commutes with embedding it through `cFrame1`. -/
 theorem cFrame1_update (raw parse num num2 spare acc1 acc lout out : Bits)
     (S : PairCopy.Slot → Bits) (k : PairCopy.Slot) (bits : Bits) :
     cFrame1 raw parse num num2 spare acc1 acc lout out (Function.update S k bits)
@@ -4792,15 +5278,20 @@ theorem cFrame1_update (raw parse num num2 spare acc1 acc lout out : Bits)
   funext j
   cases k <;> cases j <;> simp [cFrame1, astore, cCode1, Function.update_apply]
 
+/-- Embeds the second copying subroutine's store into the pair-assembly store with the specified
+background stacks. -/
 def cFrame2 (parse num num2 spare acc1 live keep lout out : Bits)
     (S : PairCopy.Slot → Bits) : Slot → Bits :=
   astore (S .d2) parse num num2 spare acc1 (S .src) live keep (S .tmp) (S .d1) lout out
 
+/-- Evaluating `cFrame2` at a slot selected by `cCode2` recovers the corresponding second-copy
+stack. -/
 theorem cFrame2_at (parse num num2 spare acc1 live keep lout out : Bits)
     (S : PairCopy.Slot → Bits) (k : PairCopy.Slot) :
     cFrame2 parse num num2 spare acc1 live keep lout out S (cCode2 k) = S k := by
   cases k <;> rfl
 
+/-- Updating a second-copy stack commutes with embedding it through `cFrame2`. -/
 theorem cFrame2_update (parse num num2 spare acc1 live keep lout out : Bits)
     (S : PairCopy.Slot → Bits) (k : PairCopy.Slot) (bits : Bits) :
     cFrame2 parse num num2 spare acc1 live keep lout out (Function.update S k bits)
@@ -4809,15 +5300,20 @@ theorem cFrame2_update (parse num num2 spare acc1 live keep lout out : Bits)
   funext j
   cases k <;> cases j <;> simp [cFrame2, astore, cCode2, Function.update_apply]
 
+/-- Embeds the addition-loop store into the pair-assembly store with the specified background
+stacks. -/
 def aFrame (raw parse num num2 spare acc1 keep work lout out : Bits)
     (S : AddLoop.Slot → Bits) : Slot → Bits :=
   astore raw parse num num2 spare acc1 (S .acc) (S .cnt) keep (S .tmp) work lout out
 
+/-- Evaluating `aFrame` at a slot selected by `aCode` recovers the corresponding addition-loop
+stack. -/
 theorem aFrame_at (raw parse num num2 spare acc1 keep work lout out : Bits)
     (S : AddLoop.Slot → Bits) (k : AddLoop.Slot) :
     aFrame raw parse num num2 spare acc1 keep work lout out S (aCode k) = S k := by
   cases k <;> rfl
 
+/-- Updating an addition-loop stack commutes with embedding it through `aFrame`. -/
 theorem aFrame_update (raw parse num num2 spare acc1 keep work lout out : Bits)
     (S : AddLoop.Slot → Bits) (k : AddLoop.Slot) (bits : Bits) :
     aFrame raw parse num num2 spare acc1 keep work lout out (Function.update S k bits)
@@ -4826,15 +5322,20 @@ theorem aFrame_update (raw parse num num2 spare acc1 keep work lout out : Bits)
   funext j
   cases k <;> cases j <;> simp [aFrame, astore, aCode, Function.update_apply]
 
+/-- Embeds the first length-counting store into the pair-assembly store with the specified
+background stacks. -/
 def lFrame1 (raw parse num num2 spare acc1 acc live keep out : Bits)
     (S : LengthCount.Slot → Bits) : Slot → Bits :=
   astore raw parse num num2 spare acc1 acc live keep (S .tmp) (S .src) (S .cnt) out
 
+/-- Evaluating `lFrame1` at a slot selected by `lCode1` recovers the corresponding first
+length-counting stack. -/
 theorem lFrame1_at (raw parse num num2 spare acc1 acc live keep out : Bits)
     (S : LengthCount.Slot → Bits) (k : LengthCount.Slot) :
     lFrame1 raw parse num num2 spare acc1 acc live keep out S (lCode1 k) = S k := by
   cases k <;> rfl
 
+/-- Updating a first length-counting stack commutes with embedding it through `lFrame1`. -/
 theorem lFrame1_update (raw parse num num2 spare acc1 acc live keep out : Bits)
     (S : LengthCount.Slot → Bits) (k : LengthCount.Slot) (bits : Bits) :
     lFrame1 raw parse num num2 spare acc1 acc live keep out (Function.update S k bits)
@@ -4843,15 +5344,20 @@ theorem lFrame1_update (raw parse num num2 spare acc1 acc live keep out : Bits)
   funext j
   cases k <;> cases j <;> simp [lFrame1, astore, lCode1, Function.update_apply]
 
+/-- Embeds the second length-counting store into the pair-assembly store with the specified
+background stacks. -/
 def lFrame2 (raw parse num num2 spare acc1 acc keep work out : Bits)
     (S : LengthCount.Slot → Bits) : Slot → Bits :=
   astore raw parse num num2 spare acc1 acc (S .src) keep (S .tmp) work (S .cnt) out
 
+/-- Evaluating `lFrame2` at a slot selected by `lCode2` recovers the corresponding second
+length-counting stack. -/
 theorem lFrame2_at (raw parse num num2 spare acc1 acc keep work out : Bits)
     (S : LengthCount.Slot → Bits) (k : LengthCount.Slot) :
     lFrame2 raw parse num num2 spare acc1 acc keep work out S (lCode2 k) = S k := by
   cases k <;> rfl
 
+/-- Updating a second length-counting stack commutes with embedding it through `lFrame2`. -/
 theorem lFrame2_update (raw parse num num2 spare acc1 acc keep work out : Bits)
     (S : LengthCount.Slot → Bits) (k : LengthCount.Slot) (bits : Bits) :
     lFrame2 raw parse num num2 spare acc1 acc keep work out (Function.update S k bits)
@@ -4860,15 +5366,20 @@ theorem lFrame2_update (raw parse num num2 spare acc1 acc keep work out : Bits)
   funext j
   cases k <;> cases j <;> simp [lFrame2, astore, lCode2, Function.update_apply]
 
+/-- Embeds the length-prefix emission store into the pair-assembly store with the specified
+background stacks. -/
 def nFrameL (raw parse num2 spare acc1 acc live keep tmp work : Bits)
     (S : Fin 3 → Bits) : Slot → Bits :=
   astore raw parse (S 1) num2 spare acc1 acc live keep tmp work (S 0) (S 2)
 
+/-- Evaluating `nFrameL` at a slot selected by `nCodeL` recovers the corresponding length-prefix
+emission stack. -/
 theorem nFrameL_at (raw parse num2 spare acc1 acc live keep tmp work : Bits)
     (S : Fin 3 → Bits) (k : Fin 3) :
     nFrameL raw parse num2 spare acc1 acc live keep tmp work S (nCodeL k) = S k := by
   fin_cases k <;> rfl
 
+/-- Updating a length-prefix emission stack commutes with embedding it through `nFrameL`. -/
 theorem nFrameL_update (raw parse num2 spare acc1 acc live keep tmp work : Bits)
     (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     nFrameL raw parse num2 spare acc1 acc live keep tmp work (Function.update S k bits)
@@ -4877,15 +5388,20 @@ theorem nFrameL_update (raw parse num2 spare acc1 acc live keep tmp work : Bits)
   funext j
   fin_cases k <;> cases j <;> simp [nFrameL, astore, nCodeL, Function.update_apply]
 
+/-- Embeds the raw-word emission store into the pair-assembly store with the specified
+background stacks. -/
 def nFrameR (parse num2 spare acc1 acc live keep tmp work lout : Bits)
     (S : Fin 3 → Bits) : Slot → Bits :=
   astore (S 0) parse (S 1) num2 spare acc1 acc live keep tmp work lout (S 2)
 
+/-- Evaluating `nFrameR` at a slot selected by `nCodeR` recovers the corresponding raw-word
+emission stack. -/
 theorem nFrameR_at (parse num2 spare acc1 acc live keep tmp work lout : Bits)
     (S : Fin 3 → Bits) (k : Fin 3) :
     nFrameR parse num2 spare acc1 acc live keep tmp work lout S (nCodeR k) = S k := by
   fin_cases k <;> rfl
 
+/-- Updating a raw-word emission stack commutes with embedding it through `nFrameR`. -/
 theorem nFrameR_update (parse num2 spare acc1 acc live keep tmp work lout : Bits)
     (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     nFrameR parse num2 spare acc1 acc live keep tmp work lout (Function.update S k bits)
@@ -4894,15 +5410,20 @@ theorem nFrameR_update (parse num2 spare acc1 acc live keep tmp work lout : Bits
   funext j
   fin_cases k <;> cases j <;> simp [nFrameR, astore, nCodeR, Function.update_apply]
 
+/-- Embeds the preserved-word emission store into the pair-assembly store with the specified
+background stacks. -/
 def nFrameK (raw parse num2 spare acc1 acc live tmp work lout : Bits)
     (S : Fin 3 → Bits) : Slot → Bits :=
   astore raw parse (S 1) num2 spare acc1 acc live (S 0) tmp work lout (S 2)
 
+/-- Evaluating `nFrameK` at a slot selected by `nCodeK` recovers the corresponding
+preserved-word emission stack. -/
 theorem nFrameK_at (raw parse num2 spare acc1 acc live tmp work lout : Bits)
     (S : Fin 3 → Bits) (k : Fin 3) :
     nFrameK raw parse num2 spare acc1 acc live tmp work lout S (nCodeK k) = S k := by
   fin_cases k <;> rfl
 
+/-- Updating a preserved-word emission stack commutes with embedding it through `nFrameK`. -/
 theorem nFrameK_update (raw parse num2 spare acc1 acc live tmp work lout : Bits)
     (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     nFrameK raw parse num2 spare acc1 acc live tmp work lout (Function.update S k bits)
@@ -4911,6 +5432,8 @@ theorem nFrameK_update (raw parse num2 spare acc1 acc live tmp work lout : Bits)
   funext j
   fin_cases k <;> cases j <;> simp [nFrameK, astore, nCodeK, Function.update_apply]
 
+/-- The first embedded parser extracts `w` from the reversed raw encoding of `framed w ++ rest`,
+stores it in `acc`, and reaches counter cleanup with the displayed clock bound. -/
 theorem parse1_call (w rest : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.p1 (.read 0)), ((false,none),none),
@@ -4936,6 +5459,8 @@ theorem parse1_call (w rest : Bits) :
     ParseFramed.parseProgram program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The second embedded parser extracts `w` into `work` while preserving `acc` and the residual
+suffix, and reaches counter cleanup with the displayed clock bound. -/
 theorem parse2_call (acc w rest : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.p2 (.nat 0)), ((false,none),none),
@@ -4960,6 +5485,8 @@ theorem parse2_call (acc w rest : Bits) :
     ParseFramed.parseProgram program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The first copying call duplicates `work` into `live` and `keep`, empties `work`, and enters
+addition with clock at most `30 * (1 + w.length) ^ 2`. -/
 theorem copy1_call (w : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.c1 (.mv 0)), ((false,none),none),
@@ -4980,6 +5507,9 @@ theorem copy1_call (w : Bits) :
     PairCopy.program program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The embedded addition call increments `acc` exactly `binaryValue cnt` times, replaces the
+live counter by an all-ones word, and enters the second copying call with the displayed
+clock bound. -/
 theorem add_call (acc cnt : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.add (.dec .borrow)), ((false,none),none),
@@ -5004,6 +5534,8 @@ theorem add_call (acc cnt : Bits) :
     AddLoop.addProgram program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The second copying call duplicates `acc` into `raw` and `work`, empties `acc`, and enters
+the first length-counting phase with clock at most `30 * (1 + w.length) ^ 2`. -/
 theorem copy2_call (w : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.c2 (.mv 0)), ((false,none),none),
@@ -5024,6 +5556,8 @@ theorem copy2_call (w : Bits) :
     PairCopy.program program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The first length-counting call consumes `work`, writes the canonical binary word for its
+length to `lout`, and enters the first prefix-emission phase with the displayed clock bound. -/
 theorem count1_call (w : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.lc1 .check), ((false,none),none),
@@ -5045,6 +5579,9 @@ theorem count1_call (w : Bits) :
     LengthCount.program program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The second length-counting call consumes `live`, writes the canonical binary word for its
+length to `lout`, and enters the second prefix-emission phase with the displayed clock
+bound. -/
 theorem count2_call (w : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.lc2 .check), ((false,none),none),
@@ -5066,6 +5603,9 @@ theorem count2_call (w : Bits) :
     LengthCount.program program (fun _ => rfl) (((false,none),none) : Local) t _ _ h
   exact ⟨t, hr, (le_of_eq hrc).trans hc⟩
 
+/-- The first prefix-emission call prefixes `(natBits n).reverse` to output, preserves `n.bits`
+in `lout`, and reaches length-stack cleanup with clock at most `100 * (1 + n.bits.length +
+out.length) ^ 2`. -/
 theorem emitA_call (n : ℕ) (out : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.eA .count), ((false,none),none),
@@ -5089,6 +5629,8 @@ theorem emitA_call (n : ℕ) (out : Bits) :
   have hcb := NatEmit.clock_bound n out none
   exact ⟨_, hr, (le_of_eq hrc).trans hcb⟩
 
+/-- The first payload-emission call prefixes `bits.reverse` to output, preserves the raw word,
+and reaches raw-stack cleanup with clock at most `25 * (1 + bits.length + out.length) ^ 2`. -/
 theorem emitB_call (bits out : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.eB .emit), ((false,none),none),
@@ -5112,6 +5654,9 @@ theorem emitB_call (bits out : Bits) :
   have hcb := NatEmit.copy_clock_bound bits out none
   exact ⟨_, hr, (le_of_eq hrc).trans hcb⟩
 
+/-- The second prefix-emission call prefixes `(natBits n).reverse` to output, preserves `n.bits`
+in `lout`, and reaches length-stack cleanup with clock at most `100 * (1 + n.bits.length +
+out.length) ^ 2`. -/
 theorem emitC_call (n : ℕ) (out : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.eC .count), ((false,none),none),
@@ -5135,6 +5680,8 @@ theorem emitC_call (n : ℕ) (out : Bits) :
   have hcb := NatEmit.clock_bound n out none
   exact ⟨_, hr, (le_of_eq hrc).trans hcb⟩
 
+/-- The second payload-emission call prefixes `bits.reverse` to output, preserves the kept word,
+and reaches kept-stack cleanup with clock at most `25 * (1 + bits.length + out.length) ^ 2`. -/
 theorem emitD_call (bits out : Bits) :
     ∃ ticks, Stacks.stackRun program ticks
         (⟨some (.eD .emit), ((false,none),none),

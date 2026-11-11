@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalWordConstructionDefs
+
+/-!
+# Public fixed-point word guarantees
+
+This module assembles response, width, endpoint, resource, and nesting interfaces for the public
+fixed-point word of [YoderLowChuang2014]. The general response theorem
+`clause1_response_of_bridges` takes the two recurrence bridges explicitly, while the analytic
+results provide a common successful length and bounds on its resource counts.
+
+The module also transports the public word to a selected register fiber and develops the phase
+and failure-amplitude identities for length three. Conditional output statements identify the
+target direction without asserting a positive branch probability.
+
+## Main statements
+
+* `clause1_response_of_bridges`: the exact response from the recurrence bridges.
+* `clause1_uniform_success`: a common length with a uniform response bound.
+* `clause2_complete`: access bounds, phase approximation, and polynomial bounds.
+* `clause3_nesting_semigroup`: response composition under length multiplication.
+* `clause3_block_encoding_consumer`: the lifted word and its selected block.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
@@ -18,16 +44,22 @@ open Matrix
 open Polynomial
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
 
+/-- The public word is the product of the public iterate list in reverse order. -/
 theorem clause1_word_is_public (l : ℕ) (delta lam : ℝ) :
     publicWord l delta lam = (publicIterateList l delta lam).reverse.prod := by
   rfl
 
+/-- Expands a public iterate into its source and target reflections. The scheduled phase
+arguments depend on `l` and `delta`, while `lam` enters through the source reflection. -/
 theorem clause1_good_mass_enters_only_through_the_axis (l : ℕ) (delta lam : ℝ) (i : ℕ) :
     publicIterate l delta lam i =
       -(stateReflection lam (wordPhase (2 * l + 1) (i + 1) (ylcGamma (2 * l + 1) delta)) *
         targetReflection (-wordPhase (2 * l + 1) (l - i) (ylcGamma (2 * l + 1) delta))) := by
   rfl
 
+/-- Assuming both recurrence bridges, the public success probability is the degree-`2 * l + 1`
+Chebyshev response, and the failure probability is the displayed squared Chebyshev amplitude
+for valid probability parameters [YoderLowChuang2014]. -/
 theorem clause1_response_of_bridges
     (hre : ylcBridgeRec_rearrangement) (hmi : ylcBridgeRec_miracle)
     (l : ℕ) (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1) (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
@@ -62,6 +94,8 @@ theorem clause1_response_of_bridges
   rw [h2, hsucc, hresp]
   ring
 
+/-- For `0 < delta < 1` and `lam ∈ [0, 1]`, the zero-iterate success probability and length-one
+response equal `lam`, and the failure probability is their complement. -/
 theorem clause1_response_l0 (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     publicSuccessProb 0 delta lam = responseProb 1 delta lam ∧
@@ -90,12 +124,16 @@ theorem clause1_response_l0 (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
   refine ⟨hsucc, ?_, hresp⟩
   linarith [h1]
 
+/-- For positive length and `0 < delta < 1`, the width lies in `(0, 1)` and its reciprocal has
+Chebyshev value `1 / delta`. -/
 theorem clause1_width_identity :
     ∀ (L : ℕ) (delta : ℝ), 0 < L → 0 < delta ∧ delta < 1 →
       0 < ylcGamma L delta ∧ ylcGamma L delta < 1 ∧
         cheb L (1 / ylcGamma L delta) = 1 / delta :=
   widthIdentity
 
+/-- For `lam0, delta ∈ (0, 1)`, the public length is positive and odd and gives Chebyshev
+response at least `1 - delta ^ 2` for every `lam ∈ [lam0, 1]` [YoderLowChuang2014]. -/
 theorem clause1_uniform_success :
     ∀ (lam0 delta : ℝ), 0 < lam0 ∧ lam0 < 1 → 0 < delta ∧ delta < 1 →
       Odd (publicLength lam0 delta) ∧ 1 ≤ publicLength lam0 delta ∧
@@ -103,16 +141,22 @@ theorem clause1_uniform_success :
           1 - delta ^ 2 ≤ responseProb (publicLength lam0 delta) delta lam :=
   unifiedChoice
 
+/-- For positive odd length and `0 < delta < 1`, the Chebyshev response is zero at good mass
+zero and one at good mass one. -/
 theorem clause1_endpoints :
     ∀ (L : ℕ) (delta : ℝ), Odd L → 1 ≤ L → 0 < delta ∧ delta < 1 →
       responseProb L delta 0 = 0 ∧ responseProb L delta 1 = 1 :=
   responseEndpoints
 
+/-- For `0 < delta < 1`, a unit lower bound on good mass selects public length one, whose
+response is one for every `lam ≥ 1`. -/
 theorem clause1_trivial_bound :
     ∀ (delta : ℝ), 0 < delta ∧ delta < 1 →
       publicLength 1 delta = 1 ∧ ∀ lam, 1 ≤ lam → responseProb 1 delta lam = 1 :=
   fun delta hd => ⟨ylcLength_one delta, responseProb_one_of_one_le delta hd.1 hd.2⟩
 
+/-- A positive universal constant bounds the chosen public iterate count by `C * log (2 / delta)
+/ √lam0`, uniformly for `lam0, delta ∈ (0, 1)` and `lam ∈ [lam0, 1]` [YoderLowChuang2014]. -/
 theorem clause2_uniform_constant_before_good_mass :
     ∃ C : ℝ, 0 < C ∧
       ∀ (lam0 delta : ℝ), 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
@@ -125,6 +169,9 @@ theorem clause2_uniform_constant_before_good_mass :
   have h := hbound lam0 delta hl0 hl0' hd hd'
   simpa [publicIterateCount, publicLength] using h.1
 
+/-- Packages the universal access-count bound, exact ledgers, phase counts, and dyadic
+approximation at fixed or arbitrary precision. It also includes Chebyshev suppression and
+degree bounds, the chosen-length inequality, and width monotonicity [YoderLowChuang2014]. -/
 theorem clause2_complete :
     (∃ C : ℝ, 0 < C ∧
       ∀ (lam0 delta : ℝ), 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
@@ -180,6 +227,8 @@ theorem clause2_complete :
     exact unifiedLengthMeetsLowerBound lam0 delta hl0 hl0' hd hd'
   · exact widthWidening
 
+/-- The phase compilation cost is `2 * l * b`, and adding it to the public access cost gives `4
+* l + 2 * l * b`. -/
 theorem clause2_phase_compiler_is_separate (l b : ℕ) :
     phaseCompileCost l b = 2 * l * b ∧
       publicAccessCost l + phaseCompileCost l b = 4 * l + 2 * l * b := by
@@ -187,12 +236,15 @@ theorem clause2_phase_compiler_is_separate (l b : ℕ) :
   rw [publicAccessCost_eq]
   simp [phaseCompileCost]
 
+/-- For normalized source and target with zero good mass and `0 < delta < 1`, the full-register
+word has zero success probability. -/
 theorem clause3_zero_good_mass_fails :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (s T : QState I) (L : ℕ) (delta : ℝ),
       Normalized s → Normalized T → 0 < delta → delta < 1 →
         goodMass T s = 0 → fullSuccessProb s T L delta = 0 :=
   zeroMassFails
 
+/-- The public query and preparation costs are additive in the iterate count. -/
 theorem clause3_resource_transport :
     ∀ (l₁ l₂ : ℕ),
       publicQueryCost (l₁ + l₂) = publicQueryCost l₁ + publicQueryCost l₂ ∧
@@ -202,6 +254,9 @@ theorem clause3_resource_transport :
   simp [publicQueryCost, publicPreparationCost, wordQueryCount_eq, wordPreparationCount_eq,
     mul_add]
 
+/-- For positive lengths, `0 < delta < 1`, and `lam ∈ [0, 1]`, composing responses with the
+prescribed inner error parameter gives the response of length `L1 * L2`
+[YoderLowChuang2014]. -/
 theorem clause3_nesting_semigroup :
     ∀ (L1 L2 : ℕ) (delta lam : ℝ), 1 ≤ L1 → 1 ≤ L2 → 0 < delta → delta < 1 →
       0 ≤ lam → lam ≤ 1 →
@@ -209,14 +264,19 @@ theorem clause3_nesting_semigroup :
           responseProb (L1 * L2) delta lam :=
   nestedResponseIdentity
 
+/-- The public conditional output is a complex scalar multiple of the two-level target vector. -/
 theorem clause3_success_branch_direction (l : ℕ) (delta lam : ℝ) :
     ∃ c : ℂ, publicConditionalOutput l delta lam = c • ylcTargetVec :=
   ⟨(publicSuccessAmplitude l delta lam / (‖publicSuccessAmplitude l delta lam‖ : ℂ)),
     publicConditionalOutput_onTargetRay l delta lam⟩
 
+/-- The target basis vector in the register fiber at `j₀`, extended by zero on every other
+fiber. -/
 noncomputable def fiberTarget {J : Type} [DecidableEq J] (j₀ : J) : QState (J × Fin 2) :=
   fun p => if p.1 = j₀ then ylcTargetVec p.2 else 0
 
+/-- The block corner of the lifted public word at `j₀` is the original two-level word. Acting on
+a tensor state supported at that fiber applies the word to its two-level factor. -/
 theorem clause3_block_encoding_consumer {J : Type} [Fintype J] [DecidableEq J]
     (j₀ : J) (l : ℕ) (delta lam : ℝ) :
     BlockCorner (publicWordFiber j₀ l delta lam) j₀ = publicWord l delta lam ∧
@@ -228,6 +288,8 @@ theorem clause3_block_encoding_consumer {J : Type} [Fintype J] [DecidableEq J]
   · intro ψ
     exact publicWordFiber_apply j₀ l delta lam ψ
 
+/-- The inner product of a vector with a tensor of a basis state and `ψ` equals the inner
+product of that vector's selected fiber with `ψ`. -/
 private theorem inner_tensorState_ket {I J : Type} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J]
     (a : I) (ψ : QState J) (v : QState (I × J)) :
@@ -243,6 +305,8 @@ private theorem inner_tensorState_ket {I J : Type} [Fintype I] [Fintype J]
   · intro hcon
     exact absurd (Finset.mem_univ a) hcon
 
+/-- The target-overlap probability of the lifted word on the selected fiber equals the public
+two-level success probability. -/
 theorem clause3_fiber_success_probability {J : Type} [Fintype J] [DecidableEq J]
     (j₀ : J) (l : ℕ) (delta lam : ℝ) :
     ‖Qatlib.Foundations.PureStateMath.Inner (fiberTarget j₀)
@@ -266,13 +330,18 @@ theorem clause3_fiber_success_probability {J : Type} [Fintype J] [DecidableEq J]
       publicSuccessAmplitude l delta lam := hinner
   rw [h2]
 
+/-- The analytic source phase `ylcAlpha 3 1 (ylcGamma 3 delta)` for the length-three word. -/
 noncomputable def l3Phase (delta : ℝ) : ℝ := ylcAlpha 3 1 (ylcGamma 3 delta)
 
+/-- The square root `√(1 - (ylcGamma 3 delta) ^ 2)` associated with the length-three width. -/
 noncomputable def l3HalfWidth (delta : ℝ) : ℝ := Real.sqrt (1 - (ylcGamma 3 delta) ^ 2)
 
+/-- The complex phase `exp(-i * l3Phase delta)`. -/
 noncomputable def l3PhaseUnit (delta : ℝ) : ℂ :=
   Complex.exp (-(Complex.I * (l3Phase delta : ℝ)))
 
+/-- The cosine of the length-three phase equals the displayed rational expression in the square
+of `l3HalfWidth delta`. -/
 theorem l3_cos_identity (delta : ℝ) :
     Real.cos (l3Phase delta) =
       -((1 - 3 * (l3HalfWidth delta) ^ 2) / (1 + 3 * (l3HalfWidth delta) ^ 2)) := by
@@ -308,6 +377,7 @@ theorem l3_cos_identity (delta : ℝ) :
     ring
   rw [hcos2]
 
+/-- The degree-three Chebyshev polynomial evaluates to `4 * x ^ 3 - 3 * x`. -/
 theorem cheb_three (x : ℝ) : cheb 3 x = 4 * x ^ 3 - 3 * x := by
   have h2 : Polynomial.Chebyshev.T ℝ (2:ℤ) = 2 * Polynomial.X ^ 2 - 1 := by
     rw [Polynomial.Chebyshev.T_eq]
@@ -322,6 +392,8 @@ theorem cheb_three (x : ℝ) : cheb 3 x = 4 * x ^ 3 - 3 * x := by
   rw [cheb_eq, h3]
   simp
 
+/-- For `lam ∈ [0, 1]`, the one-iterate public failure amplitude is the displayed expression in
+the square-root amplitudes and `l3PhaseUnit delta`. -/
 theorem l3_failure_amplitude (delta lam : ℝ) (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     publicFailureAmplitude 1 delta lam =
       -(((1 - (lam:ℂ)) * l3PhaseUnit delta + (lam:ℂ)) * ((Real.sqrt (1 - lam) : ℝ) : ℂ) +

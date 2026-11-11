@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalAllPlusInputResource
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.UniversalInputAux
+
+/-!
+# All-plus resources for classical-input cluster computation
+
+For a legal reflection-gate program on a nonempty register, the compiled graph has an all-plus
+resource density operator independent of the classical input string. Its measurement branches
+reproduce the program output up to their prescribed Pauli frames and scalar weights, with the
+gate, measurement, and message counts recorded by `UniversalAllPlusInputResource`.
+
+The final result also identifies decoded-event and actual-readout probabilities with the Born
+probabilities of the original program acting on the input basis state. This formalizes the use
+of cluster states as resources for the full measurement-only scheme [RaussendorfBriegel2000].
+
+## Main statements
+
+* `mbqcDensityEvent_outer` identifies a density event on a pure-state outer product with its
+  pure-state measurement probability.
+* `universalAllPlusInputResource_answer` proves the complete all-plus resource specification,
+  including input independence, branch formulas, resource counts, and readout probabilities.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -31,6 +56,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The density-event value of the outer product of a state vector equals its pure-state
+measurement probability on the same event. -/
 theorem mbqcDensityEvent_outer {D : ℕ} (ψ : QState (Fin D)) (E : Finset (Fin D)) :
     mbqcDensityEvent (outerProduct ψ) E=MeasureProb ψ E := by
   rw [mbqcDensityEvent_diagonal]
@@ -40,6 +67,10 @@ theorem mbqcDensityEvent_outer {D : ℕ} (ψ : QState (Fin D)) (E : Finset (Fin 
   simp only [ht,Complex.ofReal_re]
   simp [MeasureProb,BornProb,Finset.sum_ite_mem]
 
+/-- Every legal reflection program on a nonempty register satisfies the all-plus resource
+specification, including classical-input independence, Pauli-frame branch formulas, resource
+counts, and final Born probabilities, formalizing the full cluster-resource scheme of
+[RaussendorfBriegel2000]. -/
 theorem universalAllPlusInputResource_answer : UniversalAllPlusInputResource := by
   intro n _ gs hgs
   refine ⟨mbqcInputGraph_resource_independent gs,?_⟩

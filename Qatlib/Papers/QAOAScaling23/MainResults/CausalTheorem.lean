@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.FreshRepeat.NativeOutput
+
+/-!
+# Causal minimum-finding confidence and charge bounds
+
+The module combines initialized online execution, descent risk, and fresh amplification into
+`causal_minimum_theorem`. With rank-compatible cost, matching joint oracle-row laws, sufficient
+fuel, and the stated fee and failure bounds, the repeated controller attains the requested error
+while respecting its total-charge cap.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `causal_minimum_theorem`: Under the stated rank, joint-law, fuel, row-charge, and row-failure
+  hypotheses, a budget `B ≥ 15 * C * M * N` with `M ≥ 1 / sqrt (popt q)` gives repeated
+  initialized runs failure probability at most positive `δ` and pathwise total charge at most
+  `outerIterations δ * B`.
+* `causal_public_budget_theorem`: Under the same rank, joint-law, fuel, and row estimates, the
+  direct budget condition `B ≥ 15 * C * N / sqrt (popt q)` gives failure probability at most
+  positive `δ` and pathwise total charge at most `outerIterations δ * B`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +43,8 @@ open Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
 open BiasedProcess WeightedCost BudgetPrefix CausalSearch FreshRepeat
 variable {I : Type} [Fintype I]
 
+/-- Under the positive optimal-mass and scale hypotheses, an initialization fee at most `C * N`
+fits within any budget at least `15 * C * M * N`. -/
 theorem source_initial_fee_funded {L : ℕ} (hL : 0<L) (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L,(p i).toReal=q i.val) (h0 : 0<q 0)
     (C N M : ℝ) (hC : 0<C) (hN : 0<N)
@@ -34,6 +62,10 @@ theorem source_initial_fee_funded {L : ℕ} (hL : 0<L) (p : PMF (Fin L)) (q : �
   have hi : (initialFee:ℝ)≤(B:ℝ) := by nlinarith
   exact_mod_cast hi
 
+/-- Under the stated rank, joint-law, fuel, row-charge, and row-failure hypotheses, a budget `B
+≥ 15 * C * M * N` with `M ≥ 1 / sqrt (popt q)` gives repeated initialized runs failure
+probability at most positive `δ` and pathwise total charge at most `outerIterations δ * B`.
+See [ShaydulinEtAl2024]. -/
 theorem causal_minimum_theorem {L : ℕ} (hL : 0<L) (cost : I → ℝ) (rank : I → Fin L)
     (hzero : ∀ i,(rank i).val=0 ↔ ∀ j,cost i≤cost j)
     (horder : ∀ i j,(rank i).val<(rank j).val ↔ cost i<cost j)
@@ -66,6 +98,9 @@ theorem causal_minimum_theorem {L : ℕ} (hL : 0<L) (cost : I → ℝ) (rank : I
   exact native_amplified_run cost (fun i => (rank i).val) horder _ (hphys.trans hrisk) B
     (initializedRun_cap cost p oracle fuel B initialFee fallback) δ hδ
 
+/-- Under the same rank, joint-law, fuel, and row estimates, the direct budget condition `B ≥ 15
+* C * N / sqrt (popt q)` gives failure probability at most positive `δ` and pathwise total
+charge at most `outerIterations δ * B`. -/
 theorem causal_public_budget_theorem {L : ℕ} (hL : 0<L) (cost : I → ℝ) (rank : I → Fin L)
     (hzero : ∀ i,(rank i).val=0 ↔ ∀ j,cost i≤cost j)
     (horder : ∀ i j,(rank i).val<(rank j).val ↔ cost i<cost j)

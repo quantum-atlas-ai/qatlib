@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianStat
+
+/-!
+# Specification of rescaled gradient estimation
+
+`SourceAlmostAffineGradient` specifies a dyadic-grid estimator for a function close to an affine
+function outside a small exceptional set. It records median accuracy and implementation costs in
+the robust gradient framework associated with [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `SourceAlmostAffineGradient`: the selected grid and repeated readout yield coordinatewise
+  error at most the target tolerance with the requested probability.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +43,10 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators
 
+/-- The proposition that the prescribed dyadic grid and median repetitions estimate all rescaled
+affine coefficients within `ε` with probability at least `1-δ`, under the stated
+exceptional-set and approximation bounds. It also records exact circuit counts and a
+comparison-count bound. -/
 def SourceAlmostAffineGradient : Prop :=
   ∀ (d : ℕ) (c r ε L : ℝ) (δ : ℚ) (g : Fin d → ℝ),
     0 < r → 0 < ε → ε < L → 0 < δ → δ ≤ 1 → (∀ j, |g j| ≤ L) →

@@ -8,6 +8,26 @@ import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Differential identities for the Hadamard dispersion
+
+The Hadamard dispersion `dispersion` has explicit sine, cosine, and derivative formulas. This
+module proves its range bounds and differentiates the phase `phaseK` through the third
+derivative expression, providing analytic identities for the stationary-phase calculations in
+[NayakVishwanath2000].
+
+## Main statements
+
+* `hasDerivAt_dispersion`: gives the first derivative of the dispersion relation.
+* `hasDerivAt_phaseK`: gives the phase derivative.
+* `hasDerivAt_phaseK_second_deriv`: differentiates the second phase derivative expression.
+
+## References
+
+* [Nayak and Vishwanath, 2000][NayakVishwanath2000]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkLine00.MainResults
@@ -18,6 +38,7 @@ open Real
 
 noncomputable section
 
+/-- The absolute value of `sin k / √2` is at most `1 / √2`. -/
 lemma abs_sin_div_sqrtTwo_le (k : ℝ) :
     |Real.sin k / Real.sqrt 2| ≤ 1 / Real.sqrt 2 := by
   have hpos : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.2 (by norm_num)
@@ -25,6 +46,7 @@ lemma abs_sin_div_sqrtTwo_le (k : ℝ) :
   gcongr
   exact Real.abs_sin_le_one k
 
+/-- The quantity `sin k / √2` lies strictly between minus one and one. -/
 lemma sin_div_sqrtTwo_mem_Ioo (k : ℝ) :
     Real.sin k / Real.sqrt 2 ∈ Set.Ioo (-1 : ℝ) 1 := by
   have hpos : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.2 (by norm_num)
@@ -40,15 +62,18 @@ lemma sin_div_sqrtTwo_mem_Ioo (k : ℝ) :
     linarith
   exact ⟨hge, hle⟩
 
+/-- The quantity `sin k / √2` lies in the closed interval from minus one to one. -/
 lemma sin_div_sqrtTwo_mem_Icc (k : ℝ) :
     Real.sin k / Real.sqrt 2 ∈ Set.Icc (-1 : ℝ) 1 := by
   obtain ⟨h1, h2⟩ := sin_div_sqrtTwo_mem_Ioo k
   exact ⟨le_of_lt h1, le_of_lt h2⟩
 
+/-- The sine of the Hadamard dispersion is `sin k / √2`. -/
 theorem sin_dispersion (k : ℝ) : Real.sin (dispersion k) = Real.sin k / Real.sqrt 2 := by
   unfold dispersion
   exact Real.sin_arcsin (sin_div_sqrtTwo_mem_Ioo k).1.le (sin_div_sqrtTwo_mem_Ioo k).2.le
 
+/-- The cosine of the Hadamard dispersion is `√(1 + cos² k) / √2`. -/
 theorem cos_dispersion (k : ℝ) :
     Real.cos (dispersion k) = Real.sqrt (1 + Real.cos k ^ 2) / Real.sqrt 2 := by
   unfold dispersion
@@ -62,6 +87,7 @@ theorem cos_dispersion (k : ℝ) :
     nlinarith [hsq, htrig]
   rw [key, Real.sqrt_div' (1 + Real.cos k ^ 2) (by norm_num)]
 
+/-- The derivative of the Hadamard dispersion at `k` is `cos k / √(1 + cos² k)`. -/
 theorem hasDerivAt_dispersion (k : ℝ) :
     HasDerivAt dispersion (Real.cos k / Real.sqrt (1 + Real.cos k ^ 2)) k := by
   have hinner : HasDerivAt (fun k : ℝ => Real.sin k / Real.sqrt 2)
@@ -88,12 +114,15 @@ theorem hasDerivAt_dispersion (k : ℝ) :
       (Real.cos k / Real.sqrt (1 + Real.cos k ^ 2)) k := hcomp.congr_deriv hval
   exact hmain
 
+/-- The Hadamard dispersion lies in `[-π / 2, π / 2]`. -/
 lemma dispersion_mem_Icc (k : ℝ) : dispersion k ∈ Set.Icc (-(Real.pi / 2)) (Real.pi / 2) :=
   ⟨Real.neg_pi_div_two_le_arcsin _, Real.arcsin_le_pi_div_two _⟩
 
+/-- The square root `√(1 + cos² k)` is positive. -/
 lemma sqrt_one_add_cos_sq_pos (k : ℝ) : 0 < Real.sqrt (1 + Real.cos k ^ 2) :=
   Real.sqrt_pos.2 (by nlinarith [sq_nonneg (Real.cos k)])
 
+/-- The derivative of `cos k / √(1 + cos² k)` is `-sin k / (√(1 + cos² k))³`. -/
 theorem hasDerivAt_cosDivSqrt (k : ℝ) :
     HasDerivAt (fun x : ℝ => Real.cos x / Real.sqrt (1 + Real.cos x ^ 2))
       (-Real.sin k / (Real.sqrt (1 + Real.cos k ^ 2)) ^ 3) k := by
@@ -118,6 +147,8 @@ theorem hasDerivAt_cosDivSqrt (k : ℝ) :
   rw [hsq]
   ring_nf
 
+/-- The derivative of `phaseK k α` with respect to `k` is `-(cos k / √(1 + cos² k) + α)`. See
+[NayakVishwanath2000]. -/
 theorem hasDerivAt_phaseK (α k : ℝ) :
     HasDerivAt (fun x : ℝ => phaseK x α)
       (-(Real.cos k / Real.sqrt (1 + Real.cos k ^ 2) + α)) k := by
@@ -130,6 +161,8 @@ theorem hasDerivAt_phaseK (α k : ℝ) :
   unfold phaseK
   exact this
 
+/-- The derivative of the first phase derivative expression is `sin k / (√(1 + cos² k))³`. See
+[NayakVishwanath2000]. -/
 theorem hasDerivAt_phaseK_deriv (α k : ℝ) :
     HasDerivAt (fun x : ℝ => -(Real.cos x / Real.sqrt (1 + Real.cos x ^ 2) + α))
       (Real.sin k / (Real.sqrt (1 + Real.cos k ^ 2)) ^ 3) k := by
@@ -140,6 +173,8 @@ theorem hasDerivAt_phaseK_deriv (α k : ℝ) :
   funext x
   ring
 
+/-- The derivative of the second phase derivative expression is `2 * cos k * (1 + sin² k) / (√(1
++ cos² k))⁵`. See [NayakVishwanath2000]. -/
 theorem hasDerivAt_phaseK_second_deriv (k : ℝ) :
     HasDerivAt (fun x : ℝ => Real.sin x / (Real.sqrt (1 + Real.cos x ^ 2)) ^ 3)
       (2 * Real.cos k * (1 + Real.sin k ^ 2)

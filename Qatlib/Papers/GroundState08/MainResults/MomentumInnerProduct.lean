@@ -10,6 +10,26 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Analysis.Complex.Trigonometric
+
+/-!
+# Momentum-state inner-product estimates
+
+This module expresses momentum-state inner products as normalized phase-estimation exponential
+sums. It proves the off-center decay and near-center lower bounds used in Appendix C of
+[PoulinWocjan2009], both for an arbitrary positive register size and for a register of size
+`2^k`.
+
+## Main statements
+
+* `momentumInner_norm_le`: inverse phase-distance decay away from the target.
+* `momentumInner_pow_ge_half`: a near-target lower bound for repeated filtering.
+* `appendixC_momentum_bounds`: the two estimates together.
+
+## References
+
+* [Poulin and Wocjan, 2009][PoulinWocjan2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,16 +41,21 @@ open Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
 namespace Qatlib.Papers.GroundState08.MainResults.MomentumInnerProduct
 
+/-- The complex inner product of the phase states at `φ` and `μ` on a register of size `2^k`. -/
 def momentumInner (k : ℕ) (φ μ : ℝ) : ℂ :=
   ∑ y : Fin (2 ^ k), star (bhmt11PhaseState (2 ^ k) φ y) *
     bhmt11PhaseState (2 ^ k) μ y
 
+/-- The complex inner product of the phase states at `φ` and `μ` on a register of size `M`. -/
 def momentumInnerAt (M : ℕ) (φ μ : ℝ) : ℂ :=
   ∑ y : Fin M, star (bhmt11PhaseState M φ y) * bhmt11PhaseState M μ y
 
+/-- The `k`-bit momentum inner product is the general-size inner product with `M = 2^k`. -/
 lemma momentumInner_eq_at (k : ℕ) (φ μ : ℝ) :
     momentumInner k φ μ = momentumInnerAt (2 ^ k) φ μ := rfl
 
+/-- The momentum inner product is `M⁻¹` times the phase-estimation exponential sum at phase
+difference `μ - φ`. -/
 lemma momentumInnerAt_eq (M : ℕ) (φ μ : ℝ) :
     momentumInnerAt M φ μ =
       (M : ℂ)⁻¹ * bhmt_phase_estimation_theorem11_expSum M (μ - φ) := by
@@ -50,6 +75,7 @@ lemma momentumInnerAt_eq (M : ℕ) (φ μ : ℝ) :
   push_cast
   ring
 
+/-- For `M > 0` and `0 < |φ - μ| ≤ 1/2`, the momentum-overlap norm is at most `1 / (2M|φ - μ|)`. -/
 lemma momentumInnerAt_norm_le (M : ℕ) (hM : 0 < M) (φ μ : ℝ)
     (hne : φ ≠ μ) (hsmall : |φ - μ| ≤ 1 / 2) :
     ‖momentumInnerAt M φ μ‖ ≤ 1 / (2 * (M : ℝ) * |φ - μ|) := by
@@ -133,6 +159,8 @@ lemma momentumInnerAt_norm_le (M : ℕ) (hM : 0 < M) (φ μ : ℝ)
       congr 1
       ring
 
+/-- For distinct phases at distance at most `1/2`, the `k`-bit momentum-overlap norm is at most
+`1 / (2^(k+1)|φ - μ|)` [PoulinWocjan2009]. -/
 theorem momentumInner_norm_le (k : ℕ) (φ μ : ℝ)
     (hne : φ ≠ μ) (hsmall : |φ - μ| ≤ 1 / 2) :
     ‖momentumInner k φ μ‖ ≤ 1 / ((2 : ℝ) ^ (k + 1) * |φ - μ|) := by
@@ -144,6 +172,8 @@ theorem momentumInner_norm_le (k : ℕ) (φ μ : ℝ)
     ‖momentumInnerAt (2 ^ k) φ μ‖ ≤ 1 / (2 * ((2 ^ k : ℕ) : ℝ) * |φ - μ|) := h
     _ = 1 / ((2 : ℝ) ^ (k + 1) * |φ - μ|) := by rw [heq]
 
+/-- For positive `M` and `η`, phase separation at most `M⁻¹ / (2π√η)` ensures that the overlap
+norm raised to `η` is at least `1/2`. -/
 theorem momentumInnerAt_pow_ge_half (M η : ℕ) (hη : 0 < η) (hM : 0 < M) (φ μ : ℝ)
     (h : |φ - μ| ≤ ((M : ℝ))⁻¹ / (2 * Real.pi * Real.sqrt (η : ℝ))) :
     ‖momentumInnerAt M φ μ‖ ^ η ≥ 1 / 2 := by
@@ -240,12 +270,17 @@ theorem momentumInnerAt_pow_ge_half (M η : ℕ) (hη : 0 < η) (hM : 0 < M) (φ
     exact hb
   exact le_trans hbern hmono
 
+/-- Phase separation at most `2⁻ᵏ / (2π√η)` ensures that the `k`-bit overlap norm raised to
+positive `η` is at least `1/2` [PoulinWocjan2009]. -/
 theorem momentumInner_pow_ge_half (k η : ℕ) (hη : 0 < η) (φ μ : ℝ)
     (h : |φ - μ| ≤ ((2 : ℕ) ^ k : ℝ)⁻¹ / (2 * Real.pi * Real.sqrt (η : ℝ))) :
     ‖momentumInner k φ μ‖ ^ η ≥ 1 / 2 := by
   rw [momentumInner_eq_at]
   exact momentumInnerAt_pow_ge_half (2 ^ k) η hη (by positivity) φ μ (by simpa using h)
 
+/-- The `k`-bit momentum overlap satisfies both the inverse-distance upper bound away from the
+target and the powered lower bound within the specified near-target interval
+[PoulinWocjan2009]. -/
 theorem appendixC_momentum_bounds (k η : ℕ) (hη : 0 < η) (φ μ : ℝ) :
     (φ ≠ μ → |φ - μ| ≤ 1 / 2 →
       ‖momentumInner k φ μ‖ ≤ 1 / ((2 : ℝ) ^ (k + 1) * |φ - μ|)) ∧

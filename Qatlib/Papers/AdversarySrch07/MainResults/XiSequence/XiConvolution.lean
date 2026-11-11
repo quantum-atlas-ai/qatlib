@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdversarySrch07.MainResults.XiSequence.XiBasic
 import Mathlib.RingTheory.Binomial
+
+/-!
+# Convolution identity for the ordered-search sequence
+
+Relates the sequence `xi` to generalized binomial coefficients at −1/2 and proves its
+self-convolution identity. This is the sequence identity used in the ordered-search adversary
+construction. See [ChildsLee2008].
+
+## Main statements
+
+* `ringChoose_neg_half`: expresses generalized binomial coefficients in terms of `xi`.
+* `source_proposition_four`: the convolution of `xi` with itself equals one at every index.
+
+## References
+
+* [Childs and Lee, 2008][ChildsLee2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +37,7 @@ namespace Qatlib.Papers.AdversarySrch07.MainResults.XiSequence
 
 open Qatlib.Papers.AdversarySrch07.MainResults
 
+/-- The generalized binomial coefficient at −1/2 equals `(-1)^n * xi n`. -/
 theorem ringChoose_neg_half (n : ℕ) :
     Ring.choose (-(1 / 2) : ℝ) n = (-1 : ℝ) ^ n * xi n := by
   induction n with
@@ -36,6 +55,7 @@ theorem ringChoose_neg_half (n : ℕ) :
       field_simp
     exact mul_left_cancel₀ hn hkey
 
+/-- The generalized binomial coefficient at −1 equals `(-1)^j`. -/
 theorem ringChoose_neg_one (j : ℕ) : Ring.choose (-1 : ℝ) j = (-1 : ℝ) ^ j := by
   induction j with
   | zero => simp
@@ -52,6 +72,8 @@ theorem ringChoose_neg_one (j : ℕ) : Ring.choose (-1 : ℝ) j = (-1 : ℝ) ^ j
       ring
     exact mul_left_cancel₀ hn hkey
 
+/-- For every natural number `j`, the sum of `xi i * xi (j - i)` over `0 ≤ i ≤ j` equals one
+[Childs and Lee, Proposition 4][ChildsLee2008]. -/
 theorem source_proposition_four (j : ℕ) :
     ∑ i ∈ Finset.range (j + 1), xi i * xi (j - i) = 1 := by
   have hv := Ring.add_choose_eq (r := (-(1 / 2) : ℝ)) (s := (-(1 / 2) : ℝ)) j (Commute.all _ _)

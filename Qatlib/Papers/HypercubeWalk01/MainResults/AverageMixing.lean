@@ -9,6 +9,25 @@ import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Tactic
+
+/-!
+# Obstruction to average mixing on the hypercube
+
+This module defines time averages of the continuous-walk mass function and its Fourier
+coefficients. A weight-two coefficient stays uniformly bounded away from zero, yielding the
+obstruction to average mixing described in Section 4 of [MooreRussell2001].
+
+## Main statements
+
+* `avgContCoeff_weight_two`: computes the averaged weight-two coefficient explicitly.
+* `no_average_mixing_time_continuous`: gives a positive lower bound on the total variation
+  distance for every positive averaging time in dimension at least two.
+
+## References
+
+* [Moore and Russell, 2001][MooreRussell2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,12 +40,16 @@ open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 namespace Qatlib.Papers.HypercubeWalk01.MainResults
 
+/-- The pointwise time average `(1 / T) * ∫ t in 0..T, contDist n t x`. -/
 noncomputable def avgContDist (n : ℕ) (T : ℝ) (x : Cube n) : ℝ :=
   (1 / T) * ∫ t in (0 : ℝ)..T, contDist n t x
 
+/-- The time average of the continuous-walk coefficient indexed by `S`. -/
 noncomputable def avgContCoeff (n : ℕ) (T : ℝ) (S : Finset (Fin n)) : ℝ :=
   (1 / T) * ∫ t in (0 : ℝ)..T, contCoeffByWeight n t S.card
 
+/-- For positive `n`, integrates `cos (2 * t / n) ^ 2` over `[0, T]` in terms of a sine-cosine
+boundary term. -/
 lemma integral_cos_sq_scaled {n : ℕ} (hn : 0 < n) (T : ℝ) :
     ∫ t in (0 : ℝ)..T, Real.cos (2 * t / n) ^ 2 =
       (n : ℝ) / 4 * (Real.cos (2 * T / n) * Real.sin (2 * T / n)) + T / 2 := by
@@ -61,6 +84,8 @@ lemma integral_cos_sq_scaled {n : ℕ} (hn : 0 < n) (T : ℝ) :
         (n : ℝ) / 2 * ((2 * T / (n : ℝ)) / 2) := by ring
   rw [hexp, hcs, key]
 
+/-- For positive `n`, the integral of `cos (2 * t / n) ^ 2` over `[0, T]` is `T / 2 + n / 8 *
+sin (4 * T / n)`. -/
 lemma integral_cos_sq_scaled_eq10 {n : ℕ} (hn : 0 < n) (T : ℝ) :
     ∫ t in (0 : ℝ)..T, Real.cos (2 * t / n) ^ 2 =
       T / 2 + (n : ℝ) / 8 * Real.sin (4 * T / n) := by
@@ -71,6 +96,8 @@ lemma integral_cos_sq_scaled_eq10 {n : ℕ} (hn : 0 < n) (T : ℝ) :
   rw [hsin]
   ring
 
+/-- For positive `n`, nonzero `T`, and `|S| = 2`, the averaged coefficient is `1 / 2 + sin (4 *
+T / n) / (8 * T / n)`, as in Section 4 of [MooreRussell2001]. -/
 theorem avgContCoeff_weight_two {n : ℕ} (hn : 0 < n) {T : ℝ} (hT : T ≠ 0)
     {S : Finset (Fin n)} (hS : S.card = 2) :
     avgContCoeff n T S = 1 / 2 + Real.sin (4 * T / n) / (8 * T / n) := by
@@ -83,6 +110,7 @@ theorem avgContCoeff_weight_two {n : ℕ} (hn : 0 < n) {T : ℝ} (hT : T ≠ 0)
     exact hT (by linarith [h])
   field_simp
 
+/-- For `x > 0`, the sine satisfies `-x / π ≤ sin x`. -/
 lemma sin_ge_neg_div_pi {x : ℝ} (hx : 0 < x) : -x / Real.pi ≤ Real.sin x := by
   have hp : (0 : ℝ) < Real.pi := Real.pi_pos
   rcases lt_or_ge x Real.pi with h | h
@@ -99,6 +127,7 @@ lemma sin_ge_neg_div_pi {x : ℝ} (hx : 0 < x) : -x / Real.pi ≤ Real.sin x := 
       linarith
     linarith
 
+/-- For `x > 0`, the expression `1 / 2 + sin x / (2 * x)` is at least `1 / 2 - 1 / (2 * π)`. -/
 lemma half_add_sin_div_lower {x : ℝ} (hx : 0 < x) :
     1 / 2 - 1 / (2 * Real.pi) ≤ 1 / 2 + Real.sin x / (2 * x) := by
   have hp : (0 : ℝ) < Real.pi := Real.pi_pos
@@ -114,6 +143,8 @@ lemma half_add_sin_div_lower {x : ℝ} (hx : 0 < x) :
     1 / 2 - 1 / (2 * Real.pi) = 1 / 2 + -(1 / (2 * Real.pi)) := by ring
     _ ≤ 1 / 2 + Real.sin x / (2 * x) := by linarith [h3]
 
+/-- For positive `n` and `T`, every weight-two averaged coefficient is at least `1 / 2 - 1 / (2
+* π)`. -/
 theorem avgContCoeff_weight_two_lower {n : ℕ} (hn : 0 < n) {T : ℝ} (hT : 0 < T)
     {S : Finset (Fin n)} (hS : S.card = 2) :
     1 / 2 - 1 / (2 * Real.pi) ≤ avgContCoeff n T S := by
@@ -128,6 +159,8 @@ theorem avgContCoeff_weight_two_lower {n : ℕ} (hn : 0 < n) {T : ℝ} (hT : 0 <
   rw [heq]
   linarith
 
+/-- Taking the Fourier coefficient of the averaged continuous-walk mass function equals
+averaging that coefficient. -/
 theorem fourierCoeff_avgContDist {n : ℕ} (T : ℝ) (S : Finset (Fin n)) :
     fourierCoeff (avgContDist n T) S = avgContCoeff n T S := by
   classical
@@ -159,6 +192,9 @@ theorem fourierCoeff_avgContDist {n : ℕ} (T : ℝ) (S : Finset (Fin n)) :
   simpa only [fourierCoeff] using!
     fourierCoeff_synthesis (fun R => contCoeffByWeight n t R.card) S
 
+/-- There is a positive constant bounding the total variation distance of the time-averaged
+continuous walk from uniform below for all `n ≥ 2` and `T > 0`. This is the average-mixing
+obstruction of [Moore and Russell, Section 4][MooreRussell2001]. -/
 theorem no_average_mixing_time_continuous :
     ∃ ε : ℝ, 0 < ε ∧ ∀ (n : ℕ), 2 ≤ n → ∀ T : ℝ, 0 < T →
       ε ≤ tvDist (avgContDist n T) := by

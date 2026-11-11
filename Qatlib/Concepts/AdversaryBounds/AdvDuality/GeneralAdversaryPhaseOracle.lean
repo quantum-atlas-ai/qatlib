@@ -17,6 +17,30 @@ import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+/-!
+# Adversary progress for phase-oracle queries
+
+Analyzes how a finite-alphabet phase oracle changes the adversary progress functional. The
+coordinate slices `phaseSlice` have total squared norm one for normalized input families, and
+each query changes progress by at most twice `maxFilterNorm input Gamma`.
+
+The resulting bounds accumulate over unitary query circuits and combine with successful POVM
+readout to yield general and binary-output adversary lower bounds. These use the negative-weight
+adversary method of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `phase_progress_step`: progress change for one phase query.
+* `phase_progress_run`: progress change bounded by query count times the one-query bound.
+* `phase_povm_query_lower_bound`: error-dependent lower bound for general output types.
+* `phase_povm_binary_query_lower_bound`: sharper error factor for two outputs.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -41,6 +65,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 set_option linter.unusedVariables false in
 noncomputable section
 
+/-- The magnitude of `Inner u (A *ᵥ v)` is at most the operator norm of `A` times the Euclidean
+norms of `u` and `v`. -/
 theorem inner_mulVec_bound {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix I J ℂ) (u : QState I) (v : QState J) :
     ‖Inner u (A *ᵥ v)‖ ≤ ‖A‖ * ‖toEuclidean_fromVec u‖ * ‖toEuclidean_fromVec v‖ := by
@@ -57,23 +83,29 @@ variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 noncomputable section
 
+/-- The complex phase `exp (2πi x p / q)` associated with an alphabet symbol and a
+phase-register index. -/
 noncomputable def phaseFactor (x p : Fin q) : ℂ :=
   Complex.exp ((2 * Real.pi * Complex.I) * (((x.val : ℝ) * ((p.val : ℝ) / (q : ℝ)))))
 end
 noncomputable section
 
+/-- Multiplies each joint input-register amplitude by the phase determined by its input symbol
+at coordinate `i`. -/
 noncomputable def phaseAction (input : X → Fin n → Fin q) (i : Fin n)
     (v : QState (X × (Fin q × W))) : QState (X × (Fin q × W)) :=
   fun p => phaseFactor (input p.1 i) p.2.1 * v p
 end
 noncomputable section
 
+/-- The weighted joint state obtained by fixing the query-coordinate register to `i`. -/
 noncomputable def phaseSlice (weight : QState X) (states : X → QState ((Fin n × Fin q) × W))
     (i : Fin n) : QState (X × (Fin q × W)) :=
   fun p => weight p.1 * states p.1 ((i, p.2.1), p.2.2)
 end
 noncomputable section
 
+/-- Every alphabet phase factor has complex norm one. -/
 theorem phaseFactor_norm (x p : Fin q) : ‖phaseFactor x p‖ = 1 := by
   unfold phaseFactor
   rw [Complex.norm_exp]
@@ -84,12 +116,15 @@ theorem phaseFactor_norm (x p : Fin q) : ‖phaseFactor x p‖ = 1 := by
 end
 noncomputable section
 
+/-- Equal alphabet symbols give equal phase factors at every phase-register index. -/
 theorem phaseFactor_eq (x y p : Fin q) (h : x = y) : phaseFactor x p = phaseFactor y p := by
   subst h
   rfl
 end
 noncomputable section
 
+/-- For two inputs agreeing at coordinate `i`, applying the coordinate phase action preserves
+the inner product of their state slices. -/
 theorem phaseAction_inner (input : X → Fin n → Fin q) (i : Fin n)
     (v : QState (X × (Fin q × W))) (x y : X) (hxy : input x i = input y i) :
     Inner (fun h => phaseAction input i v (x, h)) (fun h => phaseAction input i v (y, h)) =
@@ -116,6 +151,7 @@ theorem phaseAction_inner (input : X → Fin n → Fin q) (i : Fin n)
 end
 noncomputable section
 
+/-- The coordinate phase action preserves the squared Euclidean norm. -/
 theorem phaseAction_norm (input : X → Fin n → Fin q) (i : Fin n)
     (v : QState (X × (Fin q × W))) :
     ‖toEuclidean_fromVec (phaseAction input i v)‖ ^ 2 = ‖toEuclidean_fromVec v‖ ^ 2 := by
@@ -129,6 +165,8 @@ theorem phaseAction_norm (input : X → Fin n → Fin q) (i : Fin n)
   rw [norm_mul, mul_pow, phaseFactor_norm, one_pow, one_mul]
 end
 
+/-- Expands the quadratic form of `Gamma` tensored with the identity as a sum of matrix entries
+times inner products of state fibers. -/
 private theorem phaseFormExpand {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (Gamma : Matrix X X ℂ) (v : QState (X × H)) :
     Inner v (TensorGate Gamma (1 : Matrix H H ℂ) *ᵥ v) =
@@ -141,6 +179,8 @@ private theorem phaseFormExpand {X H : Type} [Fintype X] [DecidableEq X]
   intro y _
   exact Finset.sum_congr rfl fun h _ => by ring
 
+/-- The phase-induced change in the quadratic form of `Gamma` equals the change for its
+coordinate-filtered matrix. -/
 private theorem phase_filter_difference (input : X → Fin n → Fin q) (i : Fin n)
     (Gamma : Matrix X X ℂ) (v : QState (X × (Fin q × W))) :
     Inner (phaseAction input i v) (TensorGate Gamma 1 *ᵥ phaseAction input i v) -
@@ -158,6 +198,8 @@ private theorem phase_filter_difference (input : X → Fin n → Fin q) (i : Fin
     simp [genAdvFilter, hxy]
   · simp [genAdvFilter, Matrix.hadamard_apply, hxy]
 
+/-- The absolute real change in a coordinate phase quadratic form is at most twice the
+coordinate filter norm times the state's squared Euclidean norm. -/
 private theorem phase_progress_bound (input : X → Fin n → Fin q) (i : Fin n)
     (Gamma : Matrix X X ℂ) (v : QState (X × (Fin q × W))) :
     |(Inner (phaseAction input i v) (TensorGate Gamma 1 *ᵥ phaseAction input i v) -
@@ -193,6 +235,8 @@ private theorem phase_progress_bound (input : X → Fin n → Fin q) (i : Fin n)
             (mul_le_mul_of_nonneg_left hA (by norm_num)) (sq_nonneg _)
 noncomputable section
 
+/-- Applying the phase oracle multiplies each amplitude by the exponential phase determined by
+its query coordinate and phase-register value. -/
 theorem phaseOracle_mulVec {W : Type} [Fintype W] [DecidableEq W] {n q : ℕ} [NeZero q]
     (input : Fin n → Fin q) (v : QState ((Fin n × Fin q) × W))
     (k : (Fin n × Fin q) × W) :
@@ -211,6 +255,8 @@ theorem phaseOracle_mulVec {W : Type} [Fintype W] [DecidableEq W] {n q : ℕ} [N
 end
 noncomputable section
 
+/-- Taking a coordinate slice after a phase query equals applying the coordinate phase action to
+the original slice. -/
 theorem phaseSlice_query {W : Type} [Fintype W] [DecidableEq W] {n q : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (weight : QState X)
     (states : X → QState ((Fin n × Fin q) × W)) (i : Fin n) :
@@ -228,6 +274,7 @@ variable {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
 variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
 
+/-- Adversary progress is the real part of the sum of the coordinate-slice quadratic forms. -/
 private theorem phase_progress_slices {W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n q : ℕ} (Gamma : Matrix X X ℂ) (weight : QState X)
     (states : X → QState ((Fin n × Fin q) × W)) :
@@ -250,6 +297,8 @@ private theorem phase_progress_slices {W : Type} [Fintype X] [DecidableEq X]
   intro p _
   exact Finset.sum_congr rfl fun w _ => by simp only [RCLike.star_def]; ring
 
+/-- For normalized weight and state families, the squared Euclidean norms of all coordinate
+slices sum to one. -/
 private theorem phaseSlice_energy {W : Type} [Fintype X] [DecidableEq X] [Fintype W]
     [DecidableEq W] {n q : ℕ} (weight : QState X) (states : X → QState ((Fin n × Fin q) × W))
     (hw : Normalized weight) (hs : ∀ x, Normalized (states x)) :
@@ -265,6 +314,8 @@ private theorem phaseSlice_energy {W : Type} [Fintype X] [DecidableEq X] [Fintyp
   exact hw
 noncomputable section
 
+/-- For normalized weight and state families, one phase query changes adversary progress by at
+most twice the maximum coordinate filter norm. -/
 theorem phase_progress_step {W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     {n q : ℕ} [NeZero q] (input : X → Fin n → Fin q) (Gamma : Matrix X X ℂ) (weight : QState X)
     (states : X → QState ((Fin n × Fin q) × W)) (hw : Normalized weight)
@@ -288,6 +339,8 @@ theorem phase_progress_step {W : Type} [Fintype X] [DecidableEq X] [Fintype W] [
     _ = _ := by rw [← Finset.mul_sum, phaseSlice_energy weight states hw hs, mul_one]
 end
 
+/-- The product of a complex number's conjugate with itself is its squared norm, viewed as a
+complex number. -/
 private theorem star_mul_self_sq (z : ℂ) : star z * z = ((‖z‖ ^ 2 : ℝ) : ℂ) := by
   have h3 : conj z * z = ((‖z‖ ^ 2 : ℝ) : ℂ) := by
     rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
@@ -295,11 +348,13 @@ private theorem star_mul_self_sq (z : ℂ) : star z * z = ((‖z‖ ^ 2 : ℝ) :
   rw [h4]
   exact h3
 
+/-- A complex number of norm one has conjugate product equal to one. -/
 private theorem star_mul_one (z : ℂ) (hz : ‖z‖ = 1) : star z * z = 1 := by
   rw [star_mul_self_sq, hz]
   norm_num
 noncomputable section
 
+/-- The finite-alphabet phase oracle is unitary. -/
 theorem phaseOracle_unitary {n q : ℕ} [NeZero q] {W : Type} [Fintype W] [DecidableEq W]
     (input : Fin n → Fin q) :
     phaseOracle (W := W) input ∈ Matrix.unitaryGroup ((Fin n × Fin q) × W) ℂ := by
@@ -320,6 +375,8 @@ theorem phaseOracle_unitary {n q : ℕ} [NeZero q] {W : Type} [Fintype W] [Decid
 end
 noncomputable section
 
+/-- Establishes that one phase query changes adversary progress by at most twice the maximum
+filter norm for normalized weight and state families. -/
 theorem stageA_general_adversary_clause16_phase_step
     {X W : Type} [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     {n q : ℕ} [NeZero q] (input : X → Fin n → Fin q) (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -331,6 +388,8 @@ theorem stageA_general_adversary_clause16_phase_step
 end
 noncomputable section
 
+/-- If every oracle call changes progress by at most `B` on normalized state families, a unitary
+circuit changes progress by at most `QueryCount C * B`. -/
 theorem progress_run_of_step {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (oracle : X → Matrix H H ℂ)
     (hO : ∀ x, oracle x ∈ Matrix.unitaryGroup H ℂ)
@@ -368,6 +427,8 @@ variable {n q : ℕ} [NeZero q]
 set_option maxHeartbeats 0 in
 noncomputable section
 
+/-- For normalized weights and initial states, a unitary phase-query circuit changes adversary
+progress by at most twice its query count times the maximum filter norm. -/
 theorem phase_progress_run {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n q : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (G : Matrix X X ℂ)
@@ -385,6 +446,7 @@ theorem phase_progress_run {X W : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Establishes the circuit progress bound for finite-alphabet phase oracles. -/
 theorem phaseOracle_run_progress {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] {n q : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (G : Matrix X X ℂ) :
@@ -394,6 +456,8 @@ theorem phaseOracle_run_progress {X W : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- Establishes the final adversary progress estimate for successful POVM readout encoded by
+`PovmFinalProgressBound`. -/
 theorem povm_final_progress {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (G : Matrix X X ℂ) (f : X → Y) (out : Y → Matrix H H ℂ) (eps : ℝ) :
@@ -416,6 +480,9 @@ theorem povm_final_progress {X H Y : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- A bounded-error phase-query circuit with POVM readout bounds `(1 - 2 * Real.sqrt (eps * (1 -
+eps)) - 2 * eps) * ‖G‖` by twice its query count times the maximum filter norm for a
+Hermitian witness supported on different outputs. -/
 theorem phase_povm_query_lower_bound
     (q n : ℕ) [NeZero q] (X W Y : Type) [Fintype X] [DecidableEq X] [Fintype W] [Fintype Y]
     (input : X → Fin n → Fin q) (f : X → Y)
@@ -433,6 +500,8 @@ theorem phase_povm_query_lower_bound
 end
 noncomputable section
 
+/-- A uniform inequality `a * ‖G‖ ≤ 2 * T * maxFilterNorm input G` for all supported Hermitian
+witnesses implies `ENNReal.ofReal (a / 2) * advPmValue input f ≤ T`. -/
 theorem adversary_value_of_multiplicative_bound
     {X Y : Type} [Fintype X] [DecidableEq X] {n q : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y) (a : ℝ) (T : ℕ)
@@ -465,6 +534,9 @@ theorem adversary_value_of_multiplicative_bound
 end
 noncomputable section
 
+/-- For a two-output POVM with error at most `eps ∈ [0, 1/2]`, normalized weights and states,
+and a supported Hermitian witness, final absolute progress is at most `2 * Real.sqrt (eps *
+(1 - eps)) * ‖G‖`. -/
 theorem povm_final_progress_binary {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (G : Matrix X X ℂ) (f : X → Y) (out : Y → Matrix H H ℂ) (eps : ℝ)
@@ -493,6 +565,9 @@ theorem povm_final_progress_binary {X H Y : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- For a bounded-error phase-query circuit with two outputs, `(1 - 2 * Real.sqrt (eps * (1 -
+eps))) * ‖G‖` is bounded by twice its query count times the maximum filter norm, giving the
+binary adversary bound of [HoyerLeeSpalek2007]. -/
 theorem phase_povm_binary_query_lower_bound
     (q n : ℕ) [NeZero q] (X W Y : Type) [Fintype X] [DecidableEq X] [Fintype W] [Fintype Y]
     (input : X → Fin n → Fin q) (f : X → Y)
@@ -526,6 +601,7 @@ theorem phase_povm_binary_query_lower_bound
 end
 noncomputable section
 
+/-- Establishes the general phase-oracle adversary proposition `clause16Prop`. -/
 theorem stageA_general_adversary_clause16_full_endpoint_v2 : clause16Prop := by
   intro q n _ X W Y _ _ _ _ input f G C psi out eps hG hz hrun
   refine ⟨phase_povm_query_lower_bound q n X W Y input f G C psi out eps hG hz hrun, ?_, ?_⟩

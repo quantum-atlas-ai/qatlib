@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QuadChar00.MainResults.Defs
+
+/-!
+# The shifted Legendre algorithm
+
+This module defines the Fourier, character multiplication, and inverse Fourier stages of
+Algorithm 1. It proves the shifted character amplitude identity and the exact final success
+probability `(p - 1) / p`, together with the two query count and a polynomial bound for the
+cubic cost function. See [VanDamHallgren2000].
+
+## Main statements
+
+* `theorem1_shiftedLegendre_solved`: For odd prime `p`, Algorithm 1 has query count two, the
+  cubic cost function is polynomially bounded, and its squared final amplitude at `-s` is `(p -
+  1) / p`.
+* `theorem1_failureProbability`: For an odd prime `p`, the complement of `(p - 1) / p` equals `1
+  / p`.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,20 +36,30 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators ComplexConjugate
 
+/-- The Fourier transform of the shifted Legendre setup state in Algorithm 1. -/
 def algorithm1Step2 (p : ℕ) [Fact p.Prime] [NeZero p] (s : ZMod p) : ZMod p → ℂ :=
   modularFourier p (legendreSetupState p s)
 
+/-- The state obtained by multiplying each Fourier amplitude of Algorithm 1 by the quadratic
+character. -/
 def algorithm1Step3 (p : ℕ) [Fact p.Prime] [NeZero p] (s : ZMod p) : ZMod p → ℂ :=
   fun y => ((quadCharZMod p y : ℤ) : ℂ) * algorithm1Step2 p s y
 
+/-- The final state of Algorithm 1 obtained by applying the inverse Fourier transform to
+`algorithm1Step3`. -/
 def algorithm1FinalState (p : ℕ) [Fact p.Prime] [NeZero p] (s : ZMod p) : ZMod p → ℂ :=
   modularFourierInv p (algorithm1Step3 p s)
 
+/-- The declared query count of Algorithm 1 is two. See [VanDamHallgren2000]. -/
 theorem theorem1_queries : algorithm1Queries = 2 := rfl
 
+/-- The cubic function `n ↦ n ^ 3` is polynomially bounded. See [VanDamHallgren2000]. -/
 theorem theorem1_polynomialTime : PolynomiallyBounded (fun n => n ^ 3) :=
   ⟨1, 3, fun n => by rw [one_mul]; exact Nat.pow_le_pow_left (Nat.le_succ n) 3⟩
 
+/-- For an odd prime, the Fourier sum of a shifted quadratic character factors into its Gauss
+sum, the shift phase, and the quadratic character of the frequency. See
+[VanDamHallgren2000]. -/
 theorem legendre_amplitude (p : ℕ) [Fact p.Prime] [NeZero p] (hp : p ≠ 2) (s y : ZMod p) :
     ∑ x : ZMod p, ((quadCharZMod p (x + s) : ℤ) : ℂ) * ZMod.stdAddChar (x * y)
       = legendreGaussSum p * ZMod.stdAddChar (-(s * y)) * ((quadCharZMod p y : ℤ) : ℂ) := by
@@ -126,6 +158,8 @@ theorem legendre_amplitude (p : ℕ) [Fact p.Prime] [NeZero p] (hp : p ≠ 2) (s
     rw [hshift, hS]
     ring
 
+/-- For an odd prime `p`, the squared norm of its Legendre Gauss sum is `p`. See
+[VanDamHallgren2000]. -/
 theorem norm_legendreGaussSum (p : ℕ) [Fact p.Prime] [NeZero p] (hp : p ≠ 2) :
     ‖legendreGaussSum p‖ ^ 2 = (p : ℝ) := by
   classical
@@ -161,6 +195,8 @@ theorem norm_legendreGaussSum (p : ℕ) [Fact p.Prime] [NeZero p] (hp : p ≠ 2)
   rw [Complex.normSq_eq_norm_sq] at h3
   exact h3
 
+/-- For an odd prime `p`, the squared final amplitude of Algorithm 1 at `-s` equals `(p - 1) /
+p`. See [VanDamHallgren2000]. -/
 theorem theorem1_successProbability (p : ℕ) [Fact p.Prime] [NeZero p]
     (hp : p ≠ 2) (s : ZMod p) :
     ‖algorithm1FinalState p s (-s)‖ ^ 2 = ((p : ℝ) - 1) / (p : ℝ) := by
@@ -296,6 +332,8 @@ theorem theorem1_successProbability (p : ℕ) [Fact p.Prime] [NeZero p]
   have hpne : (p:ℝ) ≠ 0 := by exact_mod_cast (Fact.out : p.Prime).ne_zero
   field_simp
 
+/-- For odd prime `p`, Algorithm 1 has query count two, the cubic cost function is polynomially
+bounded, and its squared final amplitude at `-s` is `(p - 1) / p`. See [VanDamHallgren2000]. -/
 theorem theorem1_shiftedLegendre_solved (p : ℕ) [Fact p.Prime] [NeZero p]
     (hp : p ≠ 2) :
     algorithm1Queries = 2 ∧
@@ -304,6 +342,8 @@ theorem theorem1_shiftedLegendre_solved (p : ℕ) [Fact p.Prime] [NeZero p]
   ⟨theorem1_queries, theorem1_polynomialTime,
     fun s => theorem1_successProbability p hp s⟩
 
+/-- For an odd prime `p`, the complement of `(p - 1) / p` equals `1 / p`. See
+[VanDamHallgren2000]. -/
 theorem theorem1_failureProbability (p : ℕ) [Fact p.Prime] [NeZero p] (_hp : p ≠ 2) :
     1 - ((p : ℝ) - 1) / (p : ℝ) = 1 / (p : ℝ) := by
   have hp0 : (p : ℝ) ≠ 0 := by exact_mod_cast (Fact.out : p.Prime).ne_zero

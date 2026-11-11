@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.MonteCarloInt20.RiskPayoff.StrictTail
 import Mathlib.Order.ConditionallyCompleteLattice.Basic
+
+/-!
+# Expected shortfall with threshold atoms
+
+This module defines finite upper-tail expected shortfall by maximizing the loss mean over
+subprobability weights of prescribed mass `α`. `QuantileBracket` expresses that this mass lies
+between the strict tail above a threshold and that tail together with the threshold atom.
+
+`selectedWeight` takes the full strict tail and the required fraction of the atom. Its
+normalized law attains the largest feasible selected mean, yielding `expectedShortfall_formula`
+with the explicit threshold-atom correction. See [KanekoEtAl2020].
+
+## Main statements
+
+* `selectedWeight_optimal`: optimality among selections of mass `α`.
+* `selectedLaw_isGreatest`: attainment of the greatest selected mean.
+* `expectedShortfall_formula`: the corrected finite-distribution formula.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,23 +39,31 @@ open Qatlib.Papers.MonteCarloInt20.RiskPayoff.StrictTail
 
 namespace Qatlib.Papers.MonteCarloInt20.RiskPayoff.ExpectedShortfall
 
+/-- The original probability weight at outcomes whose loss equals the threshold, and zero
+elsewhere. -/
 def atomWeight {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q : ℝ) (x : X) : ℝ :=
   if L x=q then p.prob x else 0
 
+/-- The total probability mass of the loss atom at the threshold. -/
 def atomMass {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q : ℝ) : ℝ :=
     ∑ x,atomWeight p L q x
 
+/-- The condition that the desired upper-tail mass `α` lies between the strict-tail mass and
+that mass plus the threshold atom. -/
 def QuantileBracket {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ) : Prop :=
   tailMass p L q≤α ∧ α≤tailMass p L q+atomMass p L q
 
+/-- The fraction of the threshold atom required to supplement the strict tail to mass `α`. -/
 def atomFraction {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ) : ℝ :=
   (α-tailMass p L q)/atomMass p L q
 
+/-- The threshold-atom mass is nonnegative. -/
 theorem atomMass_nonneg {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q : ℝ) : 0≤atomMass p L q := by
   apply Finset.sum_nonneg
   intro x _
   by_cases h : L x=q <;> simp [atomWeight,h,p.nonneg x]
 
+/-- Under the quantile-bracket condition, the required atom fraction lies in `[0,1]`. -/
 theorem atomFraction_bounds {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (h : QuantileBracket p L q α) : atomFraction p L q α ∈ Set.Icc (0:ℝ) 1 := by
   by_cases hz : atomMass p L q=0
@@ -40,6 +71,8 @@ theorem atomFraction_bounds {X : Type} [Fintype X] (p : FinDist X) (L : X → �
   · have hp : 0<atomMass p L q := lt_of_le_of_ne (atomMass_nonneg p L q) (Ne.symm hz)
     exact ⟨div_nonneg (sub_nonneg.mpr h.1) hp.le,(div_le_one hp).2 (by linarith [h.2])⟩
 
+/-- Under the quantile-bracket condition, the selected fraction of the atom supplies exactly the
+mass missing from the strict tail. -/
 theorem atomFraction_mass {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (h : QuantileBracket p L q α) : atomFraction p L q α*atomMass p L q=α-tailMass p L q := by
   by_cases hz : atomMass p L q=0
@@ -47,9 +80,13 @@ theorem atomFraction_mass {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ)
     simp [atomFraction,hz,he]
   · exact div_mul_cancel₀ _ hz
 
+/-- The weights obtained by taking the strict tail and the required fraction of the threshold
+atom. -/
 def selectedWeight {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ) (x : X) : ℝ :=
   tailWeight p L q x+atomFraction p L q α*atomWeight p L q x
 
+/-- Under the quantile-bracket condition, each selected weight lies between zero and the
+original probability weight. -/
 theorem selectedWeight_bounds {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (h : QuantileBracket p L q α) (x : X) : 0≤selectedWeight p L q α x ∧ selectedWeight p L q α x≤p.prob x := by
   have hf := atomFraction_bounds p L q α h
@@ -61,6 +98,7 @@ theorem selectedWeight_bounds {X : Type} [Fintype X] (p : FinDist X) (L : X → 
       exact ⟨mul_nonneg hf.1 (p.nonneg x),(mul_le_mul_of_nonneg_right hf.2 (p.nonneg x)).trans_eq (one_mul _)⟩
     · simp [selectedWeight,tailWeight,atomWeight,ht,he,p.nonneg x]
 
+/-- Under the quantile-bracket condition, the selected weights sum to `α`. -/
 theorem selectedWeight_sum {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (h : QuantileBracket p L q α) : ∑ x,selectedWeight p L q α x=α := by
   simp only [selectedWeight,Finset.sum_add_distrib,← Finset.mul_sum]
@@ -68,6 +106,8 @@ theorem selectedWeight_sum {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ
   rw [atomFraction_mass p L q α h]
   ring
 
+/-- The selected weighted loss equals the strict-tail loss plus `q` times the mass supplied by
+the threshold atom. -/
 theorem selectedWeight_loss {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (h : QuantileBracket p L q α) :
     ∑ x,selectedWeight p L q α x*L x=tailLoss p L q+q*(α-tailMass p L q) := by
@@ -79,25 +119,33 @@ theorem selectedWeight_loss {X : Type} [Fintype X] (p : FinDist X) (L : X → �
   change tailLoss p L q+q*(atomFraction p L q α*atomMass p L q)=_
   rw [atomFraction_mass p L q α h]
 
+/-- The finite probability law obtained by normalizing the selected weights by a positive mass
+`α` under the quantile-bracket condition. -/
 def selectedLaw {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (hα : 0<α) (h : QuantileBracket p L q α) : FinDist X where
   prob x := selectedWeight p L q α x/α
   nonneg x := div_nonneg (selectedWeight_bounds p L q α h x).1 hα.le
   sum_one := by rw [← Finset.sum_div,selectedWeight_sum p L q α h]; exact div_self hα.ne'
 
+/-- The selected-law mean is the selected weighted loss divided by `α`. -/
 theorem selectedLaw_expect_weights {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (L : X → ℝ) (q α : ℝ) (hα : 0<α) (h : QuantileBracket p L q α) :
     (selectedLaw p L q α hα h).expect L=(∑ x,selectedWeight p L q α x*L x)/α := by
   simp only [FinDist.expect,selectedLaw,div_mul_eq_mul_div,Finset.sum_div]
 
+/-- The selected-law mean is `(tailLoss p L q+q*(α-tailMass p L q))/α`. -/
 theorem selectedLaw_mean {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (L : X → ℝ) (q α : ℝ) (hα : 0<α) (h : QuantileBracket p L q α) :
     (selectedLaw p L q α hα h).expect L=(tailLoss p L q+q*(α-tailMass p L q))/α := by
   rw [selectedLaw_expect_weights,selectedWeight_loss p L q α h]
 
+/-- The set of loss means obtainable from weights bounded by the original law and summing to
+`α`. -/
 def selectionMeans {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (α : ℝ) : Set ℝ :=
   {m | ∃ r : X → ℝ,(∀ x,0≤r x ∧ r x≤p.prob x) ∧ (∑ x,r x)=α ∧ m=(∑ x,r x*L x)/α}
 
+/-- Under the quantile-bracket condition, the selected weights maximize weighted loss among all
+feasible weights of mass `α`. -/
 theorem selectedWeight_optimal {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (q α : ℝ)
     (h : QuantileBracket p L q α) (r : X → ℝ) (hr : ∀ x,0≤r x ∧ r x≤p.prob x) (hm : ∑ x,r x=α) :
     ∑ x,r x*L x≤∑ x,selectedWeight p L q α x*L x := by
@@ -123,6 +171,8 @@ theorem selectedWeight_optimal {X : Type} [Fintype X] (p : FinDist X) (L : X →
   rw [heq,hm,selectedWeight_sum p L q α h,sub_self,mul_zero,sub_zero] at hsum
   exact sub_nonpos.mp hsum
 
+/-- For positive `α` satisfying the quantile bracket, the selected-law mean is the greatest
+feasible selection mean. -/
 theorem selectedLaw_isGreatest {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (L : X → ℝ) (q α : ℝ) (hα : 0<α) (h : QuantileBracket p L q α) :
     IsGreatest (selectionMeans p L α) ((selectedLaw p L q α hα h).expect L) := by
@@ -132,9 +182,12 @@ theorem selectedLaw_isGreatest {X : Type} [Fintype X] [DecidableEq X]
   rw [selectedLaw_expect_weights]
   exact div_le_div_of_nonneg_right (selectedWeight_optimal p L q α h r hr hrm) hα.le
 
+/-- The supremum of loss means obtainable by selecting mass `α` from the original finite law. -/
 def expectedShortfall {X : Type} [Fintype X] (p : FinDist X) (L : X → ℝ) (α : ℝ) : ℝ :=
   sSup (selectionMeans p L α)
 
+/-- For positive `α` and a quantile bracket at `q`, expected shortfall equals the strict-tail
+loss plus the threshold-atom correction, divided by `α`. See [KanekoEtAl2020]. -/
 theorem expectedShortfall_formula {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (L : X → ℝ) (q α : ℝ) (hα : 0<α) (h : QuantileBracket p L q α) :
     expectedShortfall p L α=(tailLoss p L q+q*(α-tailMass p L q))/α := by

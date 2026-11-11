@@ -5,10 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Mathlib.NumberTheory.DiophantineApproximation.Basic
+
+/-!
+# Specification of rounded-numerator period recovery
+
+`LegendreFullBoundary` states the continued-fraction recovery guarantee for samples with small
+modular residue distance. It uses the nearest integer to Py/N as the numerator before reducing
+modulo the period denominator, matching the corrected recovery interpretation of [Cornwell2014].
+
+## Main statements
+
+* `LegendreFullBoundary`: The modular recovery contract: under P² ≤ N and the stated
+  residue-distance bound, the rounded numerator over P reduces to a convergent of y/N with
+  positive denominator dividing P.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.LegendreWindow
 
+/-- The modular recovery contract: under P² ≤ N and the stated residue-distance bound, the
+rounded numerator over P reduces to a convergent of y/N with positive denominator dividing
+P. -/
 def LegendreFullBoundary : Prop :=
   ∀ (N P y : ℕ), 0 < N → 0 < P → P ^ 2 ≤ N → 0 < y → y < N →
     let r := (P * y) % N

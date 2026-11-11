@@ -8,6 +8,28 @@ import Qatlib.Papers.TuraevViro10.MainResults.WrtBridge
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic
+
+/-!
+# Error propagation and promise transfer for the reduction
+
+This module bounds accumulated errors of approximate gate sequences and their effects on squared
+matrix elements. It proves the numerical promise separation used in the Turaev–Viro reduction:
+given a reduction accurate to strictly less than `1/6` and a decision procedure for the
+invariant promise, the acceptance and rejection guarantees transfer to the original inputs. See
+[AlagicEtAl2010].
+
+## Main statements
+
+* `gateRun_error_le`: Linear accumulation of uniform gate errors for an isometric ideal
+  sequence.
+* `eq2_of_gate_approximation`: A squared matrix-element error bound of `1/6`.
+* `bqp_hardness_transfer`: Conditional transfer of the invariant promise decision guarantees.
+
+## References
+
+* [Alagic et al., 2010][AlagicEtAl2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,10 +40,14 @@ namespace Qatlib.Papers.TuraevViro10.MainResults.BqpHardness
 open Qatlib.Papers.TuraevViro10.MainResults.WrtBridge
 open Qatlib.Papers.TuraevViro10.MainResults.WrtBridge.TuraevViroModel
 
+/-- Sequential evaluation of a finite gate family, applying the last gate after the preceding
+gates. -/
 def gateRun {H : Type*} : ∀ {T : ℕ}, (Fin T → H → H) → H → H
   | 0, _, ψ => ψ
   | T + 1, G, ψ => G (Fin.last T) (gateRun (fun i => G i.castSucc) ψ)
 
+/-- For an isometric ideal gate sequence and uniformly `η`-close approximate gates with `η ≥ 0`,
+the output error after `T` gates is at most `T * η`. -/
 theorem gateRun_error_le {H : Type*} [SeminormedAddCommGroup H] :
     ∀ {T : ℕ} (U V : Fin T → H → H) (ψ : H) (η : ℝ), 0 ≤ η →
       (∀ i z w, ‖U i z - U i w‖ = ‖z - w‖) →
@@ -61,6 +87,8 @@ theorem gateRun_error_le {H : Type*} [SeminormedAddCommGroup H] :
       nlinarith
     exact (add_le_add h1 h2).trans hsum
 
+/-- A finite sequence of distance-preserving gates preserves distances between its initial
+states. -/
 theorem gateRun_dist {H : Type*} [SeminormedAddCommGroup H] :
     ∀ {T : ℕ} (U : Fin T → H → H), (∀ i z w, ‖U i z - U i w‖ = ‖z - w‖) →
       ∀ z w, ‖gateRun U z - gateRun U w‖ = ‖z - w‖ := by
@@ -74,12 +102,16 @@ theorem gateRun_dist {H : Type*} [SeminormedAddCommGroup H] :
     simp only [gateRun]
     rw [hU (Fin.last T) _ _, ih (fun i => U i.castSucc) (fun i => hU i.castSucc) z w]
 
+/-- The change in an inner product with fixed first argument is bounded by the norm of that
+argument times the change in the second argument. -/
 theorem norm_inner_sub_le {H : Type*} [SeminormedAddCommGroup H]
     [InnerProductSpace ℂ H] (ψ φ φ' : H) :
     ‖inner ℂ ψ φ - inner ℂ ψ φ'‖ ≤ ‖ψ‖ * ‖φ - φ'‖ := by
   rw [← inner_sub_right]
   exact norm_inner_le_norm ψ (φ - φ')
 
+/-- For complex numbers of norm at most one, the difference of squared norms is at most twice
+their distance. -/
 theorem normSq_error_le {z w : ℂ} (hz : ‖z‖ ≤ 1) (hw : ‖w‖ ≤ 1) :
     |‖z‖ ^ 2 - ‖w‖ ^ 2| ≤ 2 * ‖z - w‖ := by
   have hdecomp : ‖z‖ ^ 2 - ‖w‖ ^ 2 = (‖z‖ - ‖w‖) * (‖z‖ + ‖w‖) := by ring
@@ -92,6 +124,8 @@ theorem normSq_error_le {z w : ℂ} (hz : ‖z‖ ≤ 1) (hw : ‖w‖ ≤ 1) :
         mul_le_mul h1 h2 (abs_nonneg _) (norm_nonneg _)
     _ = 2 * ‖z - w‖ := by ring
 
+/-- For a unit state and matrix elements of norm at most one, an output-vector error at most `η`
+gives squared matrix-element error at most `2 * η`. -/
 theorem matrixElement_normSq_error {H : Type*} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] (ψ : H) (hψ : ‖ψ‖ = 1) (A B : H → H) {η : ℝ}
     (hclose : ‖A ψ - B ψ‖ ≤ η) (hA : ‖inner ℂ ψ (A ψ)‖ ≤ 1)
@@ -103,6 +137,8 @@ theorem matrixElement_normSq_error {H : Type*} [NormedAddCommGroup H]
     exact hclose
   exact (normSq_error_le hA hB).trans (mul_le_mul_of_nonneg_left hdiff (by norm_num))
 
+/-- For complex numbers in the unit disk, the squared-norm error is at most twice the sum of the
+absolute real and imaginary component errors. -/
 theorem normSq_error_of_quadrature_error {z w : ℂ} (hz : ‖z‖ ≤ 1) (hw : ‖w‖ ≤ 1) :
     |‖z‖ ^ 2 - ‖w‖ ^ 2| ≤ 2 * (|z.re - w.re| + |z.im - w.im|) := by
   refine (normSq_error_le hz hw).trans ?_
@@ -110,6 +146,9 @@ theorem normSq_error_of_quadrature_error {z w : ℂ} (hz : ‖z‖ ≤ 1) (hw : 
     simpa using Complex.norm_le_abs_re_add_abs_im (z - w)
   linarith
 
+/-- For a unit initial state, an isometric ideal gate sequence, uniformly `η`-close
+approximants, and bounded final matrix elements, `T * η ≤ 1/12` implies squared
+matrix-element error at most `1/6`. See [AlagicEtAl2010]. -/
 theorem eq2_of_gate_approximation {H : Type*} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] {T : ℕ} (U V : Fin T → H → H) (ψ : H) (η : ℝ) (hη : 0 ≤ η)
     (hψ : ‖ψ‖ = 1) (hU : ∀ i z w, ‖U i z - U i w‖ = ‖z - w‖)
@@ -125,20 +164,27 @@ theorem eq2_of_gate_approximation {H : Type*} [NormedAddCommGroup H]
       (by simpa [norm_sub_rev] using hstate) hUle hVle
   linarith
 
+/-- If `p ≥ 5/6` and `|p - ntv| < 1/6`, then `ntv > 2/3`. -/
 theorem gap_upper {p ntv : ℝ} (h : |p - ntv| < 1 / 6) (hyes : 5 / 6 ≤ p) :
     2 / 3 < ntv := by
   rw [abs_lt] at h
   linarith
 
+/-- If `p ≤ 1/6` and `|p - ntv| < 1/6`, then `ntv < 1/3`. -/
 theorem gap_lower {p ntv : ℝ} (h : |p - ntv| < 1 / 6) (hno : p ≤ 1 / 6) :
     ntv < 1 / 3 := by
   rw [abs_lt] at h
   linarith
 
+/-- No real number lies simultaneously above `2/3` and below `1/3`. -/
 theorem promise_sets_disjoint (v : ℝ) : ¬ ((2 / 3 : ℝ) < v ∧ v < 1 / 3) := by
   intro h
   linarith [h.1, h.2]
 
+/-- Given a reduction with normalized-invariant error strictly below `1/6`, a procedure deciding
+the invariant promises above `2/3` and below `1/3` accepts inputs with acceptance
+probability at least `5/6` and rejects those with probability at most `1/6`. See
+[AlagicEtAl2010]. -/
 theorem bqp_hardness_transfer {P ι C : Type*} [Fintype P] (M : TuraevViroModel P ι)
     (acceptProb : C → ℝ) (red : C → ℕ × ι)
     (hfaithful : ∀ c, |acceptProb c -
@@ -155,6 +201,9 @@ theorem bqp_hardness_transfer {P ι C : Type*} [Fintype P] (M : TuraevViroModel 
   · intro hno
     exact (hdecide (red c).1 (red c).2).2 (gap_lower (hfaithful c) hno)
 
+/-- A reduction accurate to strictly less than `1/6` sends acceptance probabilities at least
+`5/6` above the normalized-invariant threshold `2/3`, and those at most `1/6` below `1/3`.
+See [AlagicEtAl2010]. -/
 theorem converse_promise_separation {P ι C : Type*} [Fintype P]
     (M : TuraevViroModel P ι) (acceptProb : C → ℝ) (red : C → ℕ × ι)
     (hfaithful : ∀ c, |acceptProb c -

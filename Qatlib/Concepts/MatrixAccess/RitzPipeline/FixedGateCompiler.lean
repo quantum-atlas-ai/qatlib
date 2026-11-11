@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateCompilerDefs
+
+/-!
+# Combining fixed-gate synthesis segments
+
+`MiddleWindowSynthesizer` specifies controlled-phase synthesis with one clean ancillary wire,
+correctness up to global phase, and a polynomial word-length bound. `nextSegment` combines this
+interface with the primitive cases of `effectiveCompiler`. The circuit approximation framework
+is described in [NielsenChuang2010].
+
+## Main statements
+
+* `nextSegment_legal`: every emitted gate is a fixed primitive.
+* `nextSegment_accepts_middleWindow`: the supplied synthesizer yields an accepted segment for
+  exponents at least four.
+* `nextSegment_ledger`: segment lengths have a uniform polynomial bound in the request size.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +52,7 @@ open scoped Matrix.Norms.L2Operator
 open Qatlib
 open Qatlib
 
+/-- Every natural power of a real number at least one is at least one. -/
 theorem one_le_pow_of_one_le {b : ℝ} (hb : 1 ≤ b) : ∀ n : ℕ, 1 ≤ b ^ n := by
   intro n
   induction n with
@@ -40,6 +62,7 @@ theorem one_le_pow_of_one_le {b : ℝ} (hb : 1 ≤ b) : ∀ n : ℕ, 1 ≤ b ^ n
       have hpos : 0 ≤ b ^ k := pow_nonneg (by linarith) _
       nlinarith [ih]
 
+/-- Every natural power of a natural number at least one is at least one. -/
 theorem one_le_pow_nat {b : ℕ} (hb : 1 ≤ b) : ∀ n : ℕ, 1 ≤ b ^ n := by
   intro n
   induction n with
@@ -49,6 +72,7 @@ theorem one_le_pow_nat {b : ℕ} (hb : 1 ≤ b) : ∀ n : ℕ, 1 ≤ b ^ n := by
       have hmul : 1 * 1 ≤ b ^ k * b := Nat.mul_le_mul ih hb
       omega
 
+/-- Powers of a natural base at least one are monotone in the natural exponent. -/
 theorem pow_le_pow_nat {x : ℕ} (hx : 1 ≤ x) : ∀ {m n : ℕ}, m ≤ n → x ^ m ≤ x ^ n := by
   intro m n hmn
   induction n, hmn using Nat.le_induction with
@@ -60,11 +84,15 @@ theorem pow_le_pow_nat {x : ℕ} (hx : 1 ≤ x) : ∀ {m n : ℕ}, m ≤ n → x
         _ ≤ x ^ k * x := by omega
         _ = x ^ (k + 1) := by rw [pow_succ]
 
+/-- The size of every local-gate synthesis request is at least one. -/
 theorem requestSize_pos {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
     1 ≤ requestSize w g k := by
   unfold requestSize
   omega
 
+/-- A controlled-phase synthesis interface using one ancillary wire and only fixed primitives.
+For exponents at least four and positive precision, it supplies approximation up to global
+phase, ancillary-wire restoration, and a uniform polynomial word-length bound. -/
 structure MiddleWindowSynthesizer where
 
   emit : (w : ℕ) → (a c : Fin w) → (e : ℕ) → (neg : Bool) → (k : ℕ) →
@@ -84,6 +112,8 @@ structure MiddleWindowSynthesizer where
   bounded : ∃ C D : ℕ, ∀ (w : ℕ) (a c : Fin w) (e k : ℕ) (neg : Bool), 4 ≤ e → 1 ≤ k →
     (emit w a c e neg k).length ≤ C * (requestSize w (.cp a c e neg) k) ^ D
 
+/-- Combine a supplied controlled-phase synthesizer for exponents at least four with the
+effective primitive emitter for the remaining local gates. -/
 def nextSegment (S : MiddleWindowSynthesizer) (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     SynthAnswer :=
   match g with
@@ -92,6 +122,8 @@ def nextSegment (S : MiddleWindowSynthesizer) (w : ℕ) (g : LocalQFTGate w) (k 
   | .cp a c e neg =>
       if 4 ≤ e then ⟨w + 1, S.emit w a c e neg k⟩ else ⟨w, effectiveEmit w (.cp a c e neg) k⟩
 
+/-- For a controlled phase with exponent at least four, `nextSegment` uses the supplied
+synthesizer on width `w + 1`. -/
 theorem nextSegment_cp_ge4 {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w) (e : ℕ)
     (neg : Bool) (k : ℕ) (he : 4 ≤ e) :
     nextSegment S w (.cp a c e neg) k = ⟨w + 1, S.emit w a c e neg k⟩ := by
@@ -100,6 +132,8 @@ theorem nextSegment_cp_ge4 {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w)
   · rfl
   · omega
 
+/-- For a controlled phase with exponent below four, `nextSegment` uses `effectiveEmit` at the
+original width. -/
 theorem nextSegment_cp_lt4 {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w) (e : ℕ)
     (neg : Bool) (k : ℕ) (he : ¬ (4 ≤ e)) :
     nextSegment S w (.cp a c e neg) k = ⟨w, effectiveEmit w (.cp a c e neg) k⟩ := by
@@ -108,6 +142,7 @@ theorem nextSegment_cp_lt4 {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w)
   · omega
   · rfl
 
+/-- The width of `nextSegment` is the input width plus a natural number of ancillary wires. -/
 theorem nextSegment_width {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w) (k : ℕ) :
     ∃ a : ℕ, (nextSegment S w g k).width = w + a := by
   cases g with
@@ -121,6 +156,7 @@ theorem nextSegment_width {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTG
         rw [nextSegment_cp_lt4 S a c e neg k h4]
         simp [effectiveAnc]
 
+/-- Every segment produced by `nextSegment` has zero oracle calls. -/
 theorem nextSegment_zero_oracle {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w)
     (k : ℕ) : answerOracleCalls (nextSegment S w g k) = 0 := by
   cases g with
@@ -131,6 +167,7 @@ theorem nextSegment_zero_oracle {w : ℕ} (S : MiddleWindowSynthesizer) (g : Loc
       · simp [nextSegment, h4, answerOracleCalls]
       · simp [nextSegment, h4, answerOracleCalls]
 
+/-- Every gate emitted by `nextSegment` is a fixed primitive. -/
 theorem nextSegment_legal {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w) (k : ℕ) :
     ∀ h ∈ (nextSegment S w g k).word, IsFixedPrim h := by
   cases g with
@@ -165,6 +202,8 @@ theorem nextSegment_legal {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTG
         subst hh'
         simp [IsFixedPrim, he3]
 
+/-- The segment selected by `nextSegment` satisfies `Accepts` for every fixed primitive at every
+precision. -/
 theorem nextSegment_accepts_primitive {w : ℕ} (S : MiddleWindowSynthesizer) (g : LocalQFTGate w)
     (k : ℕ) (hg : IsFixedPrim g) : Accepts w g k (nextSegment S w g k) := by
   cases g with
@@ -187,6 +226,8 @@ theorem nextSegment_accepts_primitive {w : ℕ} (S : MiddleWindowSynthesizer) (g
       rw [hlen]
       exact exactAccepts_of_isFixedPrim (.cp a c e neg) k (by exact he3)
 
+/-- For positive precision and controlled-phase exponent at least four, `nextSegment` satisfies
+`Accepts`. -/
 theorem nextSegment_accepts_middleWindow {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w)
     (e : ℕ) (neg : Bool) (k : ℕ) (hk : 1 ≤ k) (he : 4 ≤ e) :
     Accepts w (.cp a c e neg) k (nextSegment S w (.cp a c e neg) k) := by
@@ -204,6 +245,8 @@ theorem nextSegment_accepts_middleWindow {w : ℕ} (S : MiddleWindowSynthesizer)
   · exact S.correct w a c e k neg he hk
   · exact S.clean w a c e k neg he hk
 
+/-- At positive precision `k`, `nextSegment` satisfies `Accepts` for controlled phases with
+exponent at least `k + 2`. -/
 theorem nextSegment_accepts_smallAngle {w : ℕ} (S : MiddleWindowSynthesizer) (a c : Fin w)
     (e : ℕ) (neg : Bool) (k : ℕ) (hk : 1 ≤ k) (he : k + 2 ≤ e) :
     Accepts w (.cp a c e neg) k (nextSegment S w (.cp a c e neg) k) := by
@@ -212,6 +255,8 @@ theorem nextSegment_accepts_smallAngle {w : ℕ} (S : MiddleWindowSynthesizer) (
   · have he3 : e ≤ 3 := by omega
     exact nextSegment_accepts_primitive S (.cp a c e neg) k (by exact he3)
 
+/-- For a fixed `MiddleWindowSynthesizer`, segment word lengths are uniformly bounded by a
+polynomial in `requestSize` whenever the precision is positive. -/
 theorem nextSegment_ledger (S : MiddleWindowSynthesizer) :
     ∃ C D : ℕ, ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ), 1 ≤ k →
       (nextSegment S w g k).word.length ≤ C * (requestSize w g k) ^ D := by

@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStability
+
+/-!
+# Rational certificates for polynomial layer stripping
+
+Finite Gaussian rational lists are interpreted as complex polynomials by `ratPoly`.
+Coefficientwise approximation supplies rational data for certified layer-stripping steps, and
+the existence results give exactly `n` steps with operation count 4n² + 12n.
+
+The strengthened results retain a positive divisor threshold when the initial constant
+coefficient exceeds the accumulated tolerance. These rational certificates support polynomial
+synthesis in quantum signal processing; see [LowChuang2017] for background.
+
+## Main statements
+
+* `exists_ratRotPair`: both reference polynomials have coefficientwise Gaussian rational
+  approximations.
+* `frontier3`: arbitrary step counts have rational certificates with zero divisor threshold.
+* `frontier3_nondeg_of_head`: a sufficiently large initial constant coefficient gives a positive
+  threshold.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 set_option warningAsError false
 open Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStability
@@ -18,6 +43,8 @@ open Qatlib
 
 namespace Qatlib.Concepts.MonteCarloMean.PayoffRotation
 
+/-- Every complex number has a Gaussian rational approximation within any prescribed positive
+norm tolerance. -/
 theorem ratApprox (z : ℂ) (ε : ℝ) (hε : 0 < ε) :
     ∃ g : GaussianRat, ‖gaussianRatComplex g - z‖ ≤ ε := by
   have hpos : (0 : ℝ) < ε / 2 := by positivity
@@ -48,9 +75,11 @@ theorem ratApprox (z : ℂ) (ε : ℝ) (hε : 0 < ε) :
           rw [hre, him]
     _ ≤ ε := h3
 
+/-- The complex interpretation of Gaussian rational zero is zero. -/
 theorem gaussianRatComplex_zero : gaussianRatComplex 0 = 0 := by
   simp [gaussianRatComplex]
 
+/-- Reading a Gaussian rational list at or beyond its length with default zero returns zero. -/
 theorem list_getD_default (l : List GaussianRat) (i : ℕ) (h : l.length ≤ i) :
     l.getD i 0 = 0 := by
   induction l generalizing i with
@@ -60,10 +89,14 @@ theorem list_getD_default (l : List GaussianRat) (i : ℕ) (h : l.length ≤ i) 
     | zero => exact absurd h (by simp only [List.length_cons]; omega)
     | succ i => rw [List.getD_cons_succ]; exact ih i (by simp only [List.length_cons] at h; omega)
 
+/-- The complex polynomial whose coefficients are the complex interpretations of a finite
+Gaussian rational list, extended by zero. -/
 noncomputable def ratPoly (gs : List GaussianRat) : Polynomial ℂ :=
   ∑ i ∈ Finset.range gs.length,
     Polynomial.C (gaussianRatComplex (gs.getD i 0)) * Polynomial.X ^ i
 
+/-- The coefficient at index `i` of `ratPoly` is the complex interpretation of the list entry at
+`i`, with default zero. -/
 theorem ratPoly_coeff (gs : List GaussianRat) (i : ℕ) :
     (ratPoly gs).coeff i = gaussianRatComplex (gs.getD i 0) := by
   by_cases hi : i < gs.length
@@ -79,16 +112,20 @@ theorem ratPoly_coeff (gs : List GaussianRat) (i : ℕ) :
           if_neg (fun h => by have h1 := Finset.mem_range.mp hb; omega)])]
     rw [list_getD_default gs i (by omega), gaussianRatComplex_zero]
 
+/-- The list of values of a Gaussian rational sequence at indices zero through `N`. -/
 def approxList (f : ℕ → GaussianRat) : ℕ → List GaussianRat
   | 0 => [f 0]
   | N + 1 => f 0 :: approxList (fun k => f (k + 1)) N
 
+/-- The list `approxList f N` has length `N + 1`. -/
 theorem approxList_length (f : ℕ → GaussianRat) (N : ℕ) :
     (approxList f N).length = N + 1 := by
   induction N generalizing f with
   | zero => rfl
   | succ N ih => rw [approxList, List.length_cons, ih (fun k => f (k + 1))]
 
+/-- At every index below `N + 1`, the list `approxList f N` returns the corresponding sequence
+value. -/
 theorem approxList_getD (f : ℕ → GaussianRat) (N i : ℕ) (hi : i < N + 1) :
     (approxList f N).getD i 0 = f i := by
   induction N generalizing i f with
@@ -103,6 +140,8 @@ theorem approxList_getD (f : ℕ → GaussianRat) (N i : ℕ) (hi : i < N + 1) :
       rw [approxList, List.getD_cons_succ]
       exact ih (fun k => f (k + 1)) i (by omega)
 
+/-- The first reference polynomial has zero coefficient at any index strictly greater than the
+natural degrees of both input polynomials. -/
 theorem certRefA_coeff_zero (γ : ℂ) (A B : Polynomial ℂ) {i : ℕ}
     (hA : A.natDegree < i) (hB : B.natDegree < i) :
     (certRefA γ A B).coeff i = 0 := by
@@ -111,6 +150,8 @@ theorem certRefA_coeff_zero (γ : ℂ) (A B : Polynomial ℂ) {i : ℕ}
     Polynomial.coeff_eq_zero_of_natDegree_lt hB]
   ring
 
+/-- The second reference polynomial has zero coefficient at any index strictly greater than the
+natural degrees of both input polynomials. -/
 theorem certRefB_coeff_zero (γ : ℂ) (A B : Polynomial ℂ) {i : ℕ}
     (hA : A.natDegree < i) (hB : B.natDegree < i) :
     (certRefB γ A B).coeff i = 0 := by
@@ -119,10 +160,13 @@ theorem certRefB_coeff_zero (γ : ℂ) (A B : Polynomial ℂ) {i : ℕ}
     Polynomial.coeff_eq_zero_of_natDegree_lt (by omega : A.natDegree < i + 1)]
   ring
 
+/-- Prepending one certified layer-stripping step increases the certified step count by one. -/
 theorem certSteps_more {η γc : ℝ} {A B : Polynomial ℂ} (s : CertStepData η A B)
     (hdiv : γc ≤ ‖A.coeff 0‖) (r : CertLayerStrip η γc s.A' s.B') :
     (CertLayerStrip.more A B s hdiv r).certSteps = r.certSteps + 1 := rfl
 
+/-- For positive tolerance `η`, both reference polynomials possess finite Gaussian rational
+coefficient lists with coefficientwise norm error at most `η`. -/
 theorem exists_ratRotPair (η : ℝ) (hη : 0 < η) (γ : ℂ) (A B : Polynomial ℂ) :
     ∃ a1 b1 : List GaussianRat,
       (∀ i, ‖(ratPoly a1).coeff i - (certRefA γ A B).coeff i‖ ≤ η) ∧
@@ -157,6 +201,9 @@ theorem exists_ratRotPair (η : ℝ) (hη : 0 < η) (γ : ℂ) (A B : Polynomial
         sub_zero, norm_zero]
       exact hη.le
 
+/-- For positive tolerance and any two initial Gaussian rational coefficient lists, a
+certificate with divisor threshold zero exists for exactly `n` steps and 4n² + 12n
+operations. -/
 theorem frontier3 (η : ℝ) (hη : 0 < η) (a0 b0 : List GaussianRat) (n : ℕ) :
     ∃ r : CertLayerStrip η 0 (ratPoly a0) (ratPoly b0),
       r.certSteps = n ∧ r.certOps = 4 * n ^ 2 + 12 * n := by
@@ -177,6 +224,8 @@ theorem frontier3 (η : ℝ) (hη : 0 < η) (a0 b0 : List GaussianRat) (n : ℕ)
     · rw [certSteps_more, hrestSteps]
     · rw [CertLayerStrip.certOps_eq, certSteps_more, hrestSteps]
 
+/-- The complex interpretation of a Gaussian rational is zero exactly when the Gaussian rational
+itself is zero. -/
 theorem gaussianRatComplex_eq_zero (z : GaussianRat) :
     gaussianRatComplex z = 0 ↔ z = 0 := by
   obtain ⟨q1, q2⟩ := z
@@ -191,6 +240,9 @@ theorem gaussianRatComplex_eq_zero (z : GaussianRat) :
     rw [h]
     simp [gaussianRatComplex_zero]
 
+/-- For positive tolerance `η`, a positive threshold `γc` with γc + nη at most the initial
+constant-coefficient norm yields a certificate with exactly `n` steps and 4n² + 12n
+operations. -/
 theorem frontier3_nondeg (η : ℝ) (hη : 0 < η) :
     ∀ (n : ℕ) (γc : ℝ) (a0 b0 : List GaussianRat),
       0 < γc → γc + n * η ≤ ‖(ratPoly a0).coeff 0‖ →
@@ -239,6 +291,8 @@ theorem frontier3_nondeg (η : ℝ) (hη : 0 < η) :
     · rw [certSteps_more, hsteps]
     · rw [CertLayerStrip.certOps_eq, certSteps_more, hsteps]
 
+/-- If nη is below the norm of the initial list head, there is a rational threshold strictly
+above nη and at most the constant-coefficient norm of the interpreted polynomial. -/
 theorem exists_divisor_cert_rat (η : ℝ) (hη : 0 < η) (n : ℕ) (a0 : List GaussianRat)
     (hηn : n * η < ‖gaussianRatComplex (a0.getD 0 0)‖) :
     ∃ γ0 : ℚ, n * η < (γ0 : ℝ) ∧ (γ0 : ℝ) ≤ ‖(ratPoly a0).coeff 0‖ := by
@@ -253,6 +307,8 @@ theorem exists_divisor_cert_rat (η : ℝ) (hη : 0 < η) (n : ℕ) (a0 : List G
   rw [ratPoly_coeff]
   exact le_of_lt hq2
 
+/-- For positive tolerance `η`, if nη is below the initial list-head norm, some positive divisor
+threshold yields a certificate with exactly `n` steps and 4n² + 12n operations. -/
 theorem frontier3_nondeg_of_head (η : ℝ) (hη : 0 < η) (n : ℕ)
     (a0 b0 : List GaussianRat)
     (hηn : n * η < ‖gaussianRatComplex (a0.getD 0 0)‖) :

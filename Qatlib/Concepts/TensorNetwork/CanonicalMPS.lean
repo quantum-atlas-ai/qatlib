@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+
+/-!
+# Canonical matrix product states
+
+This module packages three matrix product state results for a normalized amplitude function in
+`g2`. Every exact MPS representation has bond dimension at least the rank `cutRank` at each cut.
+For a nonempty chain, an exact `LeftCanonical` representation exists with bond dimension equal
+to the maximum of one and the cut ranks.
+
+For every positive bond dimension on a nonempty chain, `g2` also supplies an MPS approximation
+whose squared amplitude error is bounded by twice the sum of the squared Schmidt tails
+`schmidtTailSq` over all cuts. Background on MPS representations and canonical forms is given in
+[PerezGarciaEtAl2007].
+
+## Main statements
+
+* `g2`: the cut-rank lower bound, existence of an exact left-canonical representation, and the
+  Schmidt-tail approximation bound for normalized states.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +40,12 @@ open Qatlib.Concepts.TensorNetwork.GaugeInvariance
 namespace Qatlib.Concepts.TensorNetwork.CanonicalMPS
 open scoped BigOperators ComplexConjugate
 
+/-- For a normalized amplitude function, every exact MPS representation has bond dimension at
+least `cutRank n d ψ c` at each cut `c < n`. If `1 ≤ n`, there exists an exact
+`LeftCanonical` representation with bond dimension equal to the maximum of one and the cut
+ranks, and for every positive `D` there exists an MPS of bond dimension `D` whose squared
+amplitude error is at most twice the sum of `schmidtTailSq n d ψ c D` over `c < n`
+[PerezGarciaEtAl2007]. -/
 theorem g2 :
 ∀ (n d : ℕ) (ψ : (Fin n → Fin d) → ℂ),
 

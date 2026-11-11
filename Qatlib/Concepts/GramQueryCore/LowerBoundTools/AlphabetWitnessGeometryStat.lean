@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Alphabet witness geometry specification
+
+Defines `AlphabetWitnessGeometry`, packaging bounded filtered Gram witnesses together with their
+alphabet vectors and orthogonal projection geometry. It requires positive alphabet, budget, and
+error parameters and normalized input and output states.
+
+The specification includes the pairing identities, common fixed vectors, forbidden-vector
+annihilation, and norm estimates used in the state conversion construction of [LeeEtAl2011].
+
+## Main statements
+
+* `AlphabetWitnessGeometry`: specifies bounded witness extraction and its projection geometry.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -23,6 +43,9 @@ namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The proposition that a filtered Gram value bounded by `W` yields witnesses with budget `W`,
+normalized alphabet vectors with prescribed pairings, and the complement and keep projection
+identities and quantitative error bounds. -/
 def AlphabetWitnessGeometry : Prop :=
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     (n q : ℕ) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (W ε : ℝ),

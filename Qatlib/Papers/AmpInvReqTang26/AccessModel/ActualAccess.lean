@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
 import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+/-!
+# Preparation-oracle algorithms and amplitude tasks
+
+Defines `PreparationAlgorithm`, whose normalized initial state and unitary interleaving steps
+use the preparation oracle on the data register. The reduced output `preparationOutput` is
+compared with the normalized good component for amplification, while estimation uses the Born
+mass of outcomes whose assigned values approximate the preparation amplitude. See
+[TangWright2025].
+
+## Main statements
+
+* `SolvesAmplification`: uniform trace-distance accuracy for the good-state target under an
+  amplitude promise.
+* `SolvesEstimation`: uniform estimation success probability at least 0.99.
+* `preparationRun_normalized`: unitary oracle runs remain normalized.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +38,8 @@ open Matrix
 namespace Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.ForwardHist
 
+/-- A preparation-oracle algorithm with a designated input, a good-data predicate, a normalized
+initial state, unitary interleaving steps, and real values assigned to measurement outcomes. -/
 structure PreparationAlgorithm (I A : Type*) [Fintype I] [Fintype A] [DecidableEq I] [DecidableEq A] where
 
   start : I
@@ -34,30 +58,41 @@ structure PreparationAlgorithm (I A : Type*) [Fintype I] [Fintype A] [DecidableE
 
 variable {I A : Type*} [Fintype I] [Fintype A] [DecidableEq I] [DecidableEq A]
 
+/-- The preparation oracle `X` tensored with the identity on the auxiliary register. -/
 def preparationQuery (X : Matrix I I ℂ) : Matrix (I×A) (I×A) ℂ := X ⊗ₖ (1 : Matrix A A ℂ)
 
+/-- The state after `n` forward uses of the preparation oracle, interleaved with the algorithm's
+unitary steps. -/
 def preparationRun (Alg : PreparationAlgorithm I A) (X : Matrix I I ℂ) : ℕ → I×A → ℂ
   | 0 => Alg.step 0 *ᵥ Alg.init
   | n+1 => Alg.step (n+1) *ᵥ (preparationQuery X *ᵥ preparationRun Alg X n)
 
 omit [Fintype A] [DecidableEq A] in
 
+/-- The squared mass of the good coordinates in the column of `X` indexed by `start`. -/
 def preparationGoodMass (start : I) (good : I → Bool) (X : Matrix I I ℂ) : ℝ :=
   ∑i,if good i then ‖X i start‖^2 else 0
 
 omit [Fintype A] [DecidableEq A] in
 
+/-- The square root of `preparationGoodMass start good X`. -/
 def preparationAmplitude (start : I) (good : I → Bool) (X : Matrix I I ℂ) : ℝ :=
   Real.sqrt (preparationGoodMass start good X)
 
 omit [Fintype A] [DecidableEq A] in
 
+/-- The good part of the designated column of `X`, divided by its preparation amplitude. -/
 def preparationGoodVector (start : I) (good : I → Bool) (X : Matrix I I ℂ) : I → ℂ :=
   fun i => if good i then X i start / (preparationAmplitude start good X:ℂ) else 0
 
+/-- The reduced data-register matrix of the algorithm's output after `n` oracle uses, obtained
+by summing over the auxiliary register. -/
 def preparationOutput (Alg : PreparationAlgorithm I A) (X : Matrix I I ℂ) (n : ℕ) : Matrix I I ℂ :=
   fun i j => ∑a,preparationRun Alg X n (i,a)*star (preparationRun Alg X n (j,a))
 
+/-- For every unitary preparation oracle with positive amplitude at least `a0`, the reduced
+output is within trace distance 0.01 of the normalized good-state projector [Tang and
+Wright, Problem 1.1][TangWright2025]. -/
 def SolvesAmplification (Alg : PreparationAlgorithm I A) (n : ℕ) (a0 : ℝ) : Prop :=
   ∀ X : Matrix I I ℂ, Xᴴ*X=1 →
     a0≤preparationAmplitude Alg.start Alg.goodData X →
@@ -66,16 +101,23 @@ def SolvesAmplification (Alg : PreparationAlgorithm I A) (n : ℕ) (a0 : ℝ) : 
       Matrix.vecMulVec (preparationGoodVector Alg.start Alg.goodData X)
         (star (preparationGoodVector Alg.start Alg.goodData X)))/2≤0.01
 
+/-- For every unitary preparation oracle, outcomes with an assigned estimate within strict error
+`eps` of its amplitude have Born mass at least 0.99 [Tang and Wright, Problem
+1.1][TangWright2025]. -/
 def SolvesEstimation (Alg : PreparationAlgorithm I A) (n : ℕ) (eps : ℝ) : Prop :=
   ∀ X : Matrix I I ℂ, Xᴴ*X=1 →
     (∑x,if |Alg.value x-preparationAmplitude Alg.start Alg.goodData X|<eps
       then ‖preparationRun Alg X n x‖^2 else 0)≥0.99
 
+/-- Tensoring a unitary preparation oracle with the auxiliary identity preserves the equation
+`Xᴴ * X = 1`. -/
 theorem preparationQuery_unitary (X : Matrix I I ℂ) (hX : Xᴴ*X=1) :
     (preparationQuery (A := A) X)ᴴ*preparationQuery X=1 := by
   simp only [preparationQuery,Matrix.conjTranspose_kronecker,Matrix.conjTranspose_one,
     ← Matrix.mul_kronecker_mul,hX,Matrix.one_mul,Matrix.one_kronecker_one]
 
+/-- For a unitary preparation oracle, the state after any number of oracle uses has total
+squared mass one. -/
 theorem preparationRun_normalized (Alg : PreparationAlgorithm I A) (X : Matrix I I ℂ)
     (hX : Xᴴ*X=1) (n : ℕ) : ∑x,‖preparationRun Alg X n x‖^2=1 := by
   induction n with
@@ -87,6 +129,7 @@ theorem preparationRun_normalized (Alg : PreparationAlgorithm I A) (X : Matrix I
 
 omit [Fintype A] [DecidableEq A] in
 
+/-- For a unitary preparation oracle, the preparation amplitude lies in the interval `[0, 1]`. -/
 theorem preparationAmplitude_bounds (start : I) (good : I → Bool) (X : Matrix I I ℂ)
     (hX : Xᴴ*X=1) : 0≤preparationAmplitude start good X ∧ preparationAmplitude start good X≤1 := by
   have hn := unitary_normSq X hX (Pi.single start 1)
@@ -109,6 +152,8 @@ theorem preparationAmplitude_bounds (start : I) (good : I → Bool) (X : Matrix 
 
 omit [Fintype A] [DecidableEq A] [DecidableEq I] in
 
+/-- If the preparation amplitude is positive, the vector `preparationGoodVector` has total
+squared mass one. -/
 theorem preparationGoodVector_normalized (start : I) (good : I → Bool) (X : Matrix I I ℂ)
     (ha : 0<preparationAmplitude start good X) :
     ∑i,‖preparationGoodVector start good X i‖^2=1 := by

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.MixedState
 
+/-!
+# Diagonal spectral truncation bounds
+
+Defines the Euclidean size of a complex eigenvalue list and identifies it with the Schatten
+two-norm of the associated diagonal matrix. Componentwise eigenvalue bounds give an
+inverse-square-root dimension estimate, attained by the uniform list. See
+[RebentrostMohseniLloyd2014].
+
+## Main statements
+
+* `truncationError_le`: bounds the truncation expression by `inverseSqrt M`.
+* `schattenTwo_uniform_truncation`: evaluates the uniform diagonal case.
+
+## References
+
+* [Rebentrost et al., 2014][RebentrostMohseniLloyd2014]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 
@@ -20,11 +38,15 @@ open Qatlib.Foundations.PureStateMath
 
 variable {M : ℕ}
 
+/-- The square root of the sum of squared complex norms of the eigenvalue list. -/
 noncomputable def truncationError (lam : Fin M → ℂ) : ℝ :=
   Real.sqrt (∑ i, Complex.normSq (lam i))
 
+/-- The inverse square root `1 / Real.sqrt M` of the dimension. -/
 noncomputable def inverseSqrt (M : ℕ) : ℝ := 1 / Real.sqrt (M : ℝ)
 
+/-- The Schatten two-norm of a diagonal matrix equals `truncationError` of its diagonal entries
+[RebentrostMohseniLloyd2014]. -/
 theorem schattenTwo_diagonal (lam : Fin M → ℂ) :
     SchattenTwo (Matrix.diagonal lam) = truncationError lam := by
   unfold SchattenTwo truncationError
@@ -38,6 +60,7 @@ theorem schattenTwo_diagonal (lam : Fin M → ℂ) :
     exact congrFun Complex.star_def (lam i)
   rw [hconj, ← Complex.normSq_eq_conj_mul_self, Complex.ofReal_re]
 
+/-- For positive `M`, the square root of `1 / M` equals `1 / Real.sqrt M`. -/
 theorem sqrt_inv_eq (hM : 0 < M) : Real.sqrt (1 / (M : ℝ)) = 1 / Real.sqrt (M : ℝ) := by
   have hMpos : (0 : ℝ) < M := by exact_mod_cast hM
   have hnonneg : 0 ≤ 1 / Real.sqrt (M : ℝ) := by positivity
@@ -45,6 +68,8 @@ theorem sqrt_inv_eq (hM : 0 < M) : Real.sqrt (1 / (M : ℝ)) = 1 / Real.sqrt (M 
     rw [div_pow, one_pow, Real.sq_sqrt hMpos.le]
   rw [← hsq, Real.sqrt_sq hnonneg]
 
+/-- If `M` is positive and every eigenvalue has squared norm at most `1 / M ^ 2`, the truncation
+expression is at most `inverseSqrt M` [RebentrostMohseniLloyd2014]. -/
 theorem truncationError_le (hM : 0 < M) (lam : Fin M → ℂ)
     (h : ∀ i, Complex.normSq (lam i) ≤ 1 / (M : ℝ) ^ 2) :
     truncationError lam ≤ inverseSqrt M := by
@@ -59,6 +84,8 @@ theorem truncationError_le (hM : 0 < M) (lam : Fin M → ℂ)
         Real.sqrt_le_sqrt hsum
     _ = 1 / Real.sqrt (M : ℝ) := sqrt_inv_eq hM
 
+/-- For positive `M`, the uniform eigenvalue list with entries `1 / M` has truncation expression
+`inverseSqrt M` [RebentrostMohseniLloyd2014]. -/
 theorem truncationError_uniform (hM : 0 < M) :
     truncationError (fun _ : Fin M => ((1 / (M : ℝ) : ℝ) : ℂ)) = inverseSqrt M := by
   have hMpos : (0 : ℝ) < M := by exact_mod_cast hM
@@ -74,6 +101,8 @@ theorem truncationError_uniform (hM : 0 < M) :
   have hsum : (M : ℝ) * (1 / (M : ℝ) ^ 2) = 1 / (M : ℝ) := by field_simp
   rw [hsum, sqrt_inv_eq hM]
 
+/-- For positive `M`, the diagonal matrix with constant diagonal `1 / M` has Schatten two-norm
+`inverseSqrt M` [RebentrostMohseniLloyd2014]. -/
 theorem schattenTwo_uniform_truncation (hM : 0 < M) :
     SchattenTwo (Matrix.diagonal (fun _ : Fin M => ((1 / (M : ℝ) : ℝ) : ℂ)))
       = inverseSqrt M := by

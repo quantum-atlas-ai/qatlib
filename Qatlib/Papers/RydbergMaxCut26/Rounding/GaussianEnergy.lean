@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPhysical
 import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
+
+/-!
+# Expected energy of physical Gaussian rounding
+
+The Euclidean vectors obtained from a physical density matrix reproduce its off-site parameter
+`tParam`, both as an inner product and as a Gaussian row covariance. The module expresses the
+rounded QMC energy as a finite sum of normalized Gaussian projection expectations. See
+[CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `physical_row_covariance`: identifies projected row covariance with the physical edge
+  parameter.
+* `physical_energy_expectation`: computes the expected QMC energy in terms of `rawExpectation`.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,11 +44,15 @@ namespace Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPhysical
 open Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPair
 open Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
 
+/-- For distinct sites, the inner product of the Euclidean physical fit vectors equals the
+physical correlation parameter `tParam`. -/
 theorem physicalFitEuclidean_dot (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1)
     (i j : Fin n) (hij : i≠j) :
     inner ℝ (physicalFitEuclidean n ρ hρ htr i) (physicalFitEuclidean n ρ hρ htr j)=tParam ρ i j := by
   simpa [physicalFitEuclidean,PiLp.inner_apply,mul_comm] using physical_fit_dot n ρ hρ htr i j hij
 
+/-- For distinct sites, the covariance of the Gaussian row projections of the physical fit
+vectors equals `tParam`. -/
 theorem physical_row_covariance (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1)
     (i j : Fin n) (hij : i≠j) :
     cov[fun x : Row (Fin 2 × MomentIndex n) => inner ℝ (physicalFitEuclidean n ρ hρ htr i) x,
@@ -36,6 +60,8 @@ theorem physical_row_covariance (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ
       stdGaussian (Row (Fin 2 × MomentIndex n))]=tParam ρ i j := by
   rw [row_projection_covariance,physicalFitEuclidean_dot n ρ hρ htr i j hij]
 
+/-- The expected dot product of two physically rounded vectors equals `rawExpectation` of their
+Euclidean fit vectors. -/
 theorem physical_dot_expectation (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1)
     (i j : Fin n) :
     (∫ R : Fin 3 → Fin 2 × MomentIndex n → ℝ,
@@ -44,6 +70,8 @@ theorem physical_dot_expectation (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ) (h�
   apply integral_congr_ae
   exact Filter.Eventually.of_forall (fun R => physical_dot_eq n ρ hρ htr i j R)
 
+/-- For a finite graph with distinct edge endpoints, the QMC energy of the physically rounded
+product state is integrable under the raw Gaussian matrix law. -/
 theorem physical_energy_integrable {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ)
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1) :
@@ -59,6 +87,8 @@ theorem physical_energy_integrable {n : ℕ} {E : Type*} [Fintype E]
   exact hi.congr
       (Filter.Eventually.of_forall (fun R => (physical_round_energy ends hends w ρ hρ htr R).symm))
 
+/-- For a finite graph with distinct edge endpoints, the expected rounded QMC energy is `-1/4`
+times the sum of weights multiplied by one minus the corresponding `rawExpectation`. -/
 theorem physical_energy_expectation {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ)
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1) :

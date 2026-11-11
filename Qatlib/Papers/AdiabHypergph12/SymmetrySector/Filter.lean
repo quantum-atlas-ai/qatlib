@@ -13,6 +13,25 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# Convergence of a diagonal spectral filter
+
+Defines the diagonal filter `diagFilter` and the normalized squared weight `groundWeight` of
+coordinate zero after iteration. A positive, strictly dominant zeroth eigenvalue and a nonzero
+initial zeroth coordinate force this weight to converge to one. See [FarhiEtAl2012].
+
+## Main statements
+
+* `diagFilter_iterate`: Iteration multiplies each coordinate by the corresponding eigenvalue
+  power.
+* `groundWeight_tendsto`: The weight of the strictly dominant zeroth coordinate tends to one.
+
+## References
+
+* [Farhi et al., 2012][FarhiEtAl2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,10 +44,12 @@ noncomputable section
 open Filter
 open scoped BigOperators
 
+/-- The diagonal operator that multiplies coordinate `i` by `lam i`. -/
 def diagFilter {n : ℕ} (lam : Fin (n + 1) → ℝ) (v : Fin (n + 1) → ℝ) :
     Fin (n + 1) → ℝ :=
   fun i => lam i * v i
 
+/-- After `m` iterations, the diagonal filter multiplies coordinate `i` by `(lam i) ^ m`. -/
 theorem diagFilter_iterate {n : ℕ} (lam : Fin (n + 1) → ℝ) (m : ℕ)
     (v : Fin (n + 1) → ℝ) :
     (diagFilter lam)^[m] v = fun i => (lam i)^m * v i := by
@@ -41,6 +62,8 @@ theorem diagFilter_iterate {n : ℕ} (lam : Fin (n + 1) → ℝ) (m : ℕ)
       rw [pow_succ]
       ring
 
+/-- The coordinate vector supported at `i` with value one is an eigenvector of the diagonal
+filter with eigenvalue `lam i`. -/
 theorem diagFilter_eigen {n : ℕ} (lam : Fin (n + 1) → ℝ) (i : Fin (n + 1)) :
     diagFilter lam (Pi.single i (1 : ℝ)) = lam i • Pi.single i (1 : ℝ) := by
   funext j
@@ -48,10 +71,14 @@ theorem diagFilter_eigen {n : ℕ} (lam : Fin (n + 1) → ℝ) (i : Fin (n + 1))
   · subst h; simp [diagFilter]
   · simp [diagFilter, h]
 
+/-- The squared zeroth coordinate after `m` filtering steps divided by the total squared
+coordinate sum. -/
 def groundWeight {n : ℕ} (lam : Fin (n + 1) → ℝ) (v : Fin (n + 1) → ℝ)
     (m : ℕ) : ℝ :=
   (lam 0)^(2 * m) * (v 0)^2 / (∑ i, (lam i)^(2 * m) * (v i)^2)
 
+/-- If `lam 0` is nonzero, the ground weight can be expressed using the eigenvalue ratios `lam i
+/ lam 0`. -/
 theorem groundWeight_eq {n : ℕ} (lam : Fin (n + 1) → ℝ) (v : Fin (n + 1) → ℝ)
     (m : ℕ) (h0 : lam 0 ≠ 0) :
     groundWeight lam v m
@@ -69,6 +96,8 @@ theorem groundWeight_eq {n : ℕ} (lam : Fin (n + 1) → ℝ) (v : Fin (n + 1) �
   exact mul_div_mul_left ((v 0)^2)
     (∑ i, (lam i / lam 0)^(2 * m) * (v i)^2) (pow_ne_zero _ h0)
 
+/-- If `lam 0` is positive and strictly exceeds all other eigenvalue magnitudes, and `v 0` is
+nonzero, the ground weight tends to one [FarhiEtAl2012]. -/
 theorem groundWeight_tendsto {n : ℕ} (lam : Fin (n + 1) → ℝ)
     (v : Fin (n + 1) → ℝ) (h0 : 0 < lam 0)
     (hgap : ∀ i, i ≠ 0 → |lam i| < lam 0) (hv : v 0 ≠ 0) :

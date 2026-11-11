@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.ProposalUnitary
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+
+/-!
+# Energy measurements and quantum Metropolis steps
+
+This module proves completeness and unitarity properties for phase-estimation components and
+constructs the spectral energy-label instrument `energyInstrument`. It computes readout
+amplitudes, proves exact readout on grid-aligned eigenstates, and bounds the width of energies
+sharing a label. Phase estimation follows the finite-register framework described in
+[NielsenChuang2010].
+
+The module also builds `metropolisJointInstrument`, proves outcome normalization and
+reference-marginal preservation, and characterizes rejection branches and resource ledgers in
+the quantum Metropolis setting of [TemmeEtAl2011]. The mixing estimates explicitly take
+`TraceMixingFromGap` as an assumption.
+
+## Main statements
+
+* `qpeKraus_complete`: completeness of phase-estimation Kraus operators.
+* `energyBinProjector_resolution`: a resolution of the identity by energy bins.
+* `qpe_readout_exact_label`: deterministic readout for an exactly represented eigenphase.
+* `metropolisJointKraus_complete`: completeness of the joint Metropolis Kraus family.
+* `metropolisReject_branch_restores`: conditional restoration on a supported Hermitian input.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -25,6 +54,7 @@ namespace StageAQUANTUMGIBBS
 open Matrix Qatlib
 open scoped Classical BigOperators ComplexOrder
 
+/-- Each phase-register basis projector is Hermitian. -/
 theorem registerProjector_hermitian (G : PhaseGrid) (j : Fin G.levels) :
     (registerProjector G j)ᴴ = registerProjector G j := by
   ext i k
@@ -35,6 +65,7 @@ theorem registerProjector_hermitian (G : PhaseGrid) (j : Fin G.levels) :
     split_ifs <;> simp
   · rw [if_neg (Ne.symm h), if_neg h, star_zero]
 
+/-- Each phase-register basis projector is idempotent. -/
 theorem registerProjector_sq (G : PhaseGrid) (j : Fin G.levels) :
     registerProjector G j * registerProjector G j = registerProjector G j := by
   ext i k
@@ -44,6 +75,7 @@ theorem registerProjector_sq (G : PhaseGrid) (j : Fin G.levels) :
     by_cases h1 : i = j <;> simp [h1]
   · simp only [if_neg h, zero_mul]
 
+/-- Summing the equality indicator over a finite index set gives one at any fixed index. -/
 private theorem sum_ite_eq_one (M : ℕ) (i : Fin M) :
     (∑ j : Fin M, if i = j then (1 : ℂ) else 0) = 1 := by
   rw [Finset.sum_eq_single i]
@@ -53,6 +85,7 @@ private theorem sum_ite_eq_one (M : ℕ) (i : Fin M) :
   · intro hcon
     exact absurd (Finset.mem_univ i) hcon
 
+/-- The phase-register basis projectors sum to the identity. -/
 theorem registerProjector_sum (G : PhaseGrid) :
     (∑ j : Fin G.levels, registerProjector G j) = 1 := by
   ext i k
@@ -66,6 +99,7 @@ theorem registerProjector_sum (G : PhaseGrid) :
     intro j _
     simp
 
+/-- The phase-register projectors tensored with the system identity sum to the joint identity. -/
 theorem registerProjector_tensor_sum (G : PhaseGrid) (D : ℕ) :
     (∑ j : Fin G.levels, TensorGate (registerProjector G j) (1 : Operator D))
       = 1 := by
@@ -91,6 +125,8 @@ theorem registerProjector_tensor_sum (G : PhaseGrid) (D : ℕ) :
       simp only [if_pos hik, if_neg hab, mul_zero]
     · simp only [if_neg hik, zero_mul]
 
+/-- The inverse Fourier transform on the phase register tensored with the system identity is
+unitary. -/
 theorem qftTensorGate_unitary (G : PhaseGrid) (D : ℕ) :
     TensorGate (QFTMatrix G.levels)ᴴ (1 : Operator D)
       ∈ Matrix.unitaryGroup (QpeSpace G D) ℂ := by
@@ -105,6 +141,7 @@ theorem qftTensorGate_unitary (G : PhaseGrid) (D : ℕ) :
     simp [Matrix.conjTranspose_one, Matrix.one_mul]
   exact tensorGate_unitary hU h1
 
+/-- The phase-estimation circuit associated with an energy oracle and phase grid is unitary. -/
 theorem qpeCircuit_unitary {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     qpeCircuit O G ∈ Matrix.unitaryGroup (QpeSpace G D) ℂ := by
   rw [qpeCircuit]
@@ -112,6 +149,7 @@ theorem qpeCircuit_unitary {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     (qftTensorGate_unitary G D)
     (controlledPowers_unitary (M := G.levels) O.evolution O.evolutionUnitary)
 
+/-- The phase-estimation Kraus operators satisfy the completeness relation. -/
 theorem qpeKraus_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     (∑ j : Fin G.levels, (qpeKraus O G j)ᴴ * (qpeKraus O G j)) = 1 := by
   have hV : (qpeCircuit O G)ᴴ * (qpeCircuit O G) = 1 := by
@@ -166,22 +204,28 @@ theorem qpeKraus_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
         rw [registerProjector_tensor_sum, Matrix.one_mul]
     _ = 1 := hV
 
+/-- The unitary eigenvector matrix selected from the Hermitian Hamiltonian of an energy oracle. -/
 noncomputable def energyEigenbasis {D : ℕ} (O : EnergyOracle D) : Operator D :=
   O.hamHermitian.eigenvectorUnitary.1
 
+/-- The Hamiltonian eigenvector matrix is unitary. -/
 theorem energyEigenbasis_unitary {D : ℕ} (O : EnergyOracle D) :
     energyEigenbasis O ∈ Matrix.unitaryGroup (Fin D) ℂ :=
   O.hamHermitian.eigenvectorUnitary.2
 
+/-- The projector onto Hamiltonian eigenvectors assigned to a specified energy label. -/
 noncomputable def energyBinProjector {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (j : Fin G.levels) : Operator D :=
   Qatlib.Concepts.MbqcFlow.FlowDecision.energyProjector (energyLabelMap O G) (energyEigenbasis O) j
 
+/-- The projective instrument measuring the energy labels in the Hamiltonian eigenbasis. -/
 noncomputable def energyInstrument {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     Instrument (Fin G.levels) D D :=
   Qatlib.Concepts.MbqcFlow.FlowDecision.energyInstrument (energyLabelMap O G) (energyEigenbasis O)
     (energyEigenbasis_unitary O)
 
+/-- Each energy-instrument branch sandwiches its input by the corresponding energy-bin
+projector. -/
 theorem energyInstrument_branch {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (j : Fin G.levels) (X : Operator D) :
     (energyInstrument O G).branch j X
@@ -191,12 +235,15 @@ theorem energyInstrument_branch {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
   rw [energyInstrument, energyBinProjector]
   exact h.1
 
+/-- The sum of energy-label outcome weights equals the real part of the input trace. -/
 theorem energyInstrument_labelMass {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (X : Operator D) :
     (∑ j : Fin G.levels, instrumentProb (energyInstrument O G) X j)
       = (Matrix.trace X).re :=
   sum_instrumentProb (energyInstrument O G) X
 
+/-- Forgetting the energy measurement outcomes preserves the reference marginal of a joint
+operator. -/
 theorem energyInstrument_referenceMarginal {D R : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     partialTraceFirst (∑ j : Fin G.levels,
@@ -204,6 +251,8 @@ theorem energyInstrument_referenceMarginal {D R : ℕ} (O : EnergyOracle D) (G :
       = partialTraceFirst ρ :=
   Instrument.referenceMarginal (energyInstrument O G) ρ
 
+/-- Each energy-instrument branch, extended by a reference identity, does not increase the real
+trace of a positive semidefinite input. -/
 theorem energyInstrument_tensorLeft_tni {D R : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
     (hρ : ρ.PosSemidef) (j : Fin G.levels) :
@@ -211,6 +260,8 @@ theorem energyInstrument_tensorLeft_tni {D R : ℕ} (O : EnergyOracle D) (G : Ph
       ≤ (Matrix.trace ρ).re :=
   Instrument.tensorLeft_tni (energyInstrument O G) hρ j
 
+/-- The energy-bin projectors are Hermitian, idempotent, pairwise orthogonal, and sum to the
+identity. -/
 theorem energyBinProjector_resolution {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     (∀ j : Fin G.levels, (energyBinProjector O G j)ᴴ = energyBinProjector O G j ∧
         energyBinProjector O G j * energyBinProjector O G j = energyBinProjector O G j) ∧
@@ -229,6 +280,8 @@ theorem energyBinProjector_resolution {D : ℕ} (O : EnergyOracle D) (G : PhaseG
   · simp only [energyBinProjector]
     exact h.2.2.2
 
+/-- On an eigenvector with eigenvalue `lam`, controlled powers transfer the factors `lam ^
+x.val` to a uniform control register. -/
 theorem controlledPowers_kickback_general {D M : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
     {ψ : QState (Fin D)} {lam : ℂ} (hψ : U *ᵥ ψ = lam • ψ) :
     ControlledPowers U M *ᵥ TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ
@@ -250,10 +303,14 @@ theorem controlledPowers_kickback_general {D M : ℕ} {U : Matrix (Fin D) (Fin D
   · intro hcon
     exact absurd (Finset.mem_univ x) hcon
 
+/-- The phase-estimation readout amplitude given by the normalized geometric sum of the
+eigenvalue relative to a grid phase. -/
 noncomputable def qpeReadoutAmplitude (G : PhaseGrid) (lam : ℂ) (j : Fin G.levels) : ℂ :=
   (G.levels : ℂ)⁻¹ * ∑ x : Fin G.levels,
     (lam * (primRoot G.levels) ^ (-((j.val : ℤ)))) ^ (x.val : ℕ)
 
+/-- Applying the inverse Fourier matrix to the normalized eigenvalue-power vector gives
+`qpeReadoutAmplitude` at each grid label. -/
 theorem qft_readout_amplitude (M : ℕ) (hM : 0 < M) (lam : ℂ) (j : Fin M) :
     ((QFTMatrix M)ᴴ *ᵥ (fun x => (Real.sqrt (M : ℝ) : ℂ)⁻¹ * lam ^ (x.val : ℕ))) j
       = qpeReadoutAmplitude { levels := M, levelsPos := hM } lam j := by
@@ -303,6 +360,8 @@ theorem qft_readout_amplitude (M : ℕ) (hM : 0 < M) (lam : ℂ) (j : Fin M) :
   simp only [qpeReadoutAmplitude]
   rw [Finset.mul_sum]
 
+/-- For an eigenvalue of norm one, the readout amplitude at label `j` has norm at least one
+minus `M⁻¹ * (M * (M - 1) / 2)` times its distance from the corresponding grid phase. -/
 theorem qpe_phase_error_bound (M : ℕ) (hM : 0 < M) (lam : ℂ) (j : Fin M) (hlam : ‖lam‖ = 1) :
     ‖qpeReadoutAmplitude { levels := M, levelsPos := hM } lam j‖
       ≥ 1 - (M : ℝ)⁻¹ * ((M * (M - 1) : ℝ) / 2)
@@ -472,25 +531,33 @@ theorem qpe_phase_error_bound (M : ℕ) (hM : 0 < M) (lam : ℂ) (j : Fin M) (hl
     exact mul_le_mul_of_nonneg_left htotal hpos
   linarith
 
+/-- Equal Hamiltonian energy levels receive equal energy labels. -/
 theorem energyLabelMap_const_on_level {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (i j : Fin D) (h : energyLevel O i = energyLevel O j) :
     energyLabelMap O G i = energyLabelMap O G j := by
   exact congrArg (fun E => energyLabel G O.time E) h
 
+/-- Each selected energy eigenvector satisfies the Hamiltonian eigenvalue equation with its
+corresponding energy level. -/
 theorem energyEigenvector_energy_spec {D : ℕ} (O : EnergyOracle D) (i : Fin D) :
     O.ham *ᵥ energyEigenvector O i = (energyLevel O i : ℂ) • energyEigenvector O i :=
   energyEigenvector_spec O i
 
+/-- The total accepted proposal mass at a source label, obtained by summing acceptance weights
+times proposal weights. -/
 noncomputable def acceptMass (M : ℕ) (accept : Fin M → ℝ) (propose : Fin M → Fin M → ℝ)
     (j : Fin M) : ℝ :=
   ∑ k, labelChain M accept propose j k
 
+/-- Nonnegative acceptance and proposal weights give nonnegative total acceptance mass. -/
 theorem acceptMass_nonneg {M : ℕ} (accept : Fin M → ℝ) (propose : Fin M → Fin M → ℝ)
     (ha : ∀ k, 0 ≤ accept k) (hp : ∀ k j, 0 ≤ propose k j) (j : Fin M) :
     0 ≤ acceptMass M accept propose j := by
   unfold acceptMass
   exact Finset.sum_nonneg fun k _ => mul_nonneg (ha k) (hp k j)
 
+/-- Acceptance weights at most one and nonnegative proposal weights summing to one give
+acceptance mass at most one. -/
 theorem acceptMass_le_one {M : ℕ} (accept : Fin M → ℝ) (propose : Fin M → Fin M → ℝ)
     (ha : ∀ k, accept k ≤ 1) (hp : ∀ k j, 0 ≤ propose k j)
     (hrow : ∀ j, (∑ k, propose k j) = 1) (j : Fin M) :
@@ -510,24 +577,31 @@ theorem acceptMass_le_one {M : ℕ} (accept : Fin M → ℝ) (propose : Fin M �
             ring
         _ = 1 := hrow j
 
+/-- The acceptance mass and its complementary rejection mass sum to one. -/
 theorem acceptReject_partition {M : ℕ} (accept : Fin M → ℝ) (propose : Fin M → Fin M → ℝ)
     (ha : ∀ k, accept k ≤ 1) (hp : ∀ k j, 0 ≤ propose k j)
     (hrow : ∀ j, (∑ k, propose k j) = 1) (j : Fin M) :
     acceptMass M accept propose j + (1 - acceptMass M accept propose j) = 1 := by ring
 
+/-- A chain minorization's parameter is strictly between zero and one. -/
 theorem chainMinorization_pos {M : ℕ} {T : Fin M → Fin M → ℝ} (d : ChainMinorization M T) :
     0 < d.epsilon ∧ d.epsilon < 1 :=
   ⟨d.epsilonPos, d.epsilonLtOne⟩
 
+/-- The energy oracle's Gibbs state is the Gibbs density of its Hamiltonian. -/
 theorem gibbsState_eq {D : ℕ} (O : EnergyOracle D) (β : ℝ) :
     gibbsState O β = Qatlib.Concepts.LindbladFlow.GkslSemigroup.gibbsDensity O.ham β := rfl
 
+/-- A KMS normal form with respect to the oracle Gibbs state makes that state stationary. -/
 theorem gibbsState_stationary {D : ℕ} (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.GKSL D)
     (O : EnergyOracle D) (β : ℝ)
     (h : Qatlib.Concepts.LindbladFlow.GkslSemigroup.KMSNormalForm G (gibbsState O β)) :
     Qatlib.Concepts.LindbladFlow.GkslSemigroup.IsStationary G (gibbsState O β) :=
   Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore.stationary_of_kmsNormalForm G (gibbsState O β) h
 
+/-- Assuming `TraceMixingFromGap`, a KMS normal form and positive spectral gap bound trace
+distance at nonnegative time by `exp (-γ * t)` times the square root of twice the initial
+relative entropy. -/
 theorem mixing_budget {D : ℕ} (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.GKSL D)
     (ρ : Operator D) (γ : ℝ)
     (hKMS : Qatlib.Concepts.LindbladFlow.GkslSemigroup.KMSNormalForm G ρ)
@@ -540,6 +614,8 @@ theorem mixing_budget {D : ℕ} (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.
       ≤ Real.exp (-γ * t) * Real.sqrt (2 * Qatlib.Concepts.LindbladFlow.GkslSemigroup.relativeEntropy σ ρ) :=
   (hMix D G ρ γ hKMS hGap σ hσ t ht).1
 
+/-- Assuming `TraceMixingFromGap`, a KMS normal form and positive spectral gap imply that
+relative entropy does not increase at nonnegative times. -/
 theorem mixing_entropy_monotone {D : ℕ} (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.GKSL D)
     (ρ : Operator D) (γ : ℝ)
     (hKMS : Qatlib.Concepts.LindbladFlow.GkslSemigroup.KMSNormalForm G ρ)
@@ -552,12 +628,16 @@ theorem mixing_entropy_monotone {D : ℕ} (G : Qatlib.Concepts.LindbladFlow.Gksl
       ≤ Qatlib.Concepts.LindbladFlow.GkslSemigroup.relativeEntropy σ ρ :=
   (hMix D G ρ γ hKMS hGap σ hσ t ht).2
 
+/-- The phase-estimation ledger records the grid size for levels, controlled powers, and
+inverse-Fourier gates, and records `D` in its controlled-system field. -/
 theorem qpeCostLedger_counts {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     (qpeCostLedger O G).levels = G.levels ∧
       (qpeCostLedger O G).controlledPowers = G.levels ∧
       (qpeCostLedger O G).inverseQftGates = G.levels ∧
       (qpeCostLedger O G).controlledSystemQubits = D := ⟨rfl, rfl, rfl, rfl⟩
 
+/-- A complex exponential at angle `n * (2 * π) / M` equals the `n`th power of the chosen `M`th
+root of unity. -/
 theorem exp_mul_I_eq_primRoot (M : ℕ) (n : ℕ) (x : ℝ)
     (hx : x = (n : ℝ) * (2 * Real.pi) / (M : ℝ)) :
     Complex.exp (x * Complex.I) = primRoot M ^ n := by
@@ -567,6 +647,9 @@ theorem exp_mul_I_eq_primRoot (M : ℕ) (n : ℕ) (x : ℝ)
     ring
   rw [harg, Complex.exp_nat_mul (2 * Real.pi * Complex.I / (M : ℝ)) n, primRoot]
 
+/-- For a normalized Hamiltonian eigenstate whose phase is exactly grid label `j`, phase
+estimation produces `Ket j` tensored with the unchanged eigenstate and reads label `j` with
+probability one. -/
 theorem qpe_readout_exact_label {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (ψ : QState (Fin D)) (E : ℝ) (j : Fin G.levels)
     (hψn : Normalized ψ)
@@ -599,6 +682,7 @@ theorem qpe_readout_exact_label {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     rw [hexp, hzp]
   exact qpe_exact_readout G.levelsPos hψn j hstep
 
+/-- Energies assigned the same phase index differ by at most `2 * π / (O.time * G.levels)`. -/
 theorem energyLabel_alias_width {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) (E E' : ℝ)
     (h : phaseIndex G O.time E = phaseIndex G O.time E') :
     |E - E'| ≤ 2 * Real.pi / (O.time * (G.levels : ℝ)) := by
@@ -645,6 +729,7 @@ theorem energyLabel_alias_width {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) (
   rw [hrewrite] at hone
   exact hone
 
+/-- The energy-bin projectors bundled as a family of label projectors. -/
 noncomputable def energyLabelProjectors {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     LabelProjectors D G.levels where
   proj := energyBinProjector O G
@@ -653,6 +738,8 @@ noncomputable def energyLabelProjectors {D : ℕ} (O : EnergyOracle D) (G : Phas
   orthogonality := fun j k hjk => (energyBinProjector_resolution O G).2.1 j k hjk
   total := (energyBinProjector_resolution O G).2.2
 
+/-- The acceptance Kraus effect equals its acceptance weight times the proposal-conjugated label
+projector. -/
 theorem metropolisAcceptKraus_KK {D M : ℕ} (P : LabelProjectors D M) (Q : ProposalOracle D)
     (α : AcceptWeights M) (j : Fin M) :
     (metropolisAcceptKraus P Q α j)ᴴ * (metropolisAcceptKraus P Q α j)
@@ -666,6 +753,8 @@ theorem metropolisAcceptKraus_KK {D M : ℕ} (P : LabelProjectors D M) (Q : Prop
   rw [← Matrix.mul_assoc (P.proj j) (P.proj j) Q.unitary]
   rw [P.idempotent j]
 
+/-- The rejection Kraus effect equals the complementary acceptance weight times the
+proposal-conjugated label projector. -/
 theorem metropolisRejectKraus_KK {D M : ℕ} (P : LabelProjectors D M) (Q : ProposalOracle D)
     (α : AcceptWeights M) (j : Fin M) :
     (metropolisRejectKraus P Q α j)ᴴ * (metropolisRejectKraus P Q α j)
@@ -680,6 +769,7 @@ theorem metropolisRejectKraus_KK {D M : ℕ} (P : LabelProjectors D M) (Q : Prop
   rw [← Matrix.mul_assoc (P.proj j) (P.proj j) Q.unitary]
   rw [P.idempotent j]
 
+/-- The joint label-and-acceptance Kraus family satisfies the completeness relation. -/
 theorem metropolisJointKraus_complete {D M : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M) :
     (∑ jb : Fin M × Fin 2,
@@ -735,22 +825,28 @@ theorem metropolisJointKraus_complete {D M : ℕ} (P : LabelProjectors D M)
     _ = Q.unitaryᴴ * Q.unitary := by rw [Matrix.one_mul]
     _ = 1 := Q.unitary_KK
 
+/-- The instrument combining energy-label outcomes with the two acceptance outcomes of the
+Metropolis step. -/
 noncomputable def metropolisJointInstrument {D M : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M) : Instrument (Fin M × Fin 2) D D :=
   Instrument.ofKraus (metropolisJointKraus P Q α) (metropolisJointKraus_complete P Q α)
 
+/-- The joint Metropolis outcome weights sum to the real part of the input trace. -/
 theorem metropolisJoint_total {D M : ℕ} (P : LabelProjectors D M) (Q : ProposalOracle D)
     (α : AcceptWeights M) (ρ : Operator D) :
     (∑ jb : Fin M × Fin 2, instrumentProb (metropolisJointInstrument P Q α) ρ jb)
       = (Matrix.trace ρ).re :=
   sum_instrumentProb (metropolisJointInstrument P Q α) ρ
 
+/-- The joint Metropolis outcome weights sum to one for a density operator. -/
 theorem metropolisJoint_isProbability {D M : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M) (ρ : Operator D)
     (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ) :
     (∑ jb : Fin M × Fin 2, instrumentProb (metropolisJointInstrument P Q α) ρ jb) = 1 :=
   sum_instrumentProb_isDensityOperator (metropolisJointInstrument P Q α) hρ
 
+/-- Forgetting all joint Metropolis outcomes preserves the reference marginal of a joint
+operator. -/
 theorem metropolisJoint_referenceMarginal {D M R : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
@@ -759,6 +855,8 @@ theorem metropolisJoint_referenceMarginal {D M R : ℕ} (P : LabelProjectors D M
       = partialTraceFirst ρ :=
   Instrument.referenceMarginal (metropolisJointInstrument P Q α) ρ
 
+/-- Each joint Metropolis branch, extended by a reference identity, does not increase the real
+trace of a positive semidefinite input. -/
 theorem metropolisJoint_tni {D M R : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
@@ -767,6 +865,8 @@ theorem metropolisJoint_tni {D M R : ℕ} (P : LabelProjectors D M)
       ≤ (Matrix.trace ρ).re :=
   Instrument.tensorLeft_tni (metropolisJointInstrument P Q α) hρ jb
 
+/-- A rejection branch is the proposal-rewound label-projection conjugation scaled by the
+complementary acceptance weight. -/
 theorem metropolisReject_branch_general {D M : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M) (ρ : Operator D) (j : Fin M) :
     (metropolisRejectKraus P Q α j) * ρ * (metropolisRejectKraus P Q α j)ᴴ
@@ -778,6 +878,8 @@ theorem metropolisReject_branch_general {D M : ℕ} (P : LabelProjectors D M)
   rw [Matrix.smul_mul, Matrix.mul_smul, Matrix.smul_mul, smul_smul,
       acceptScale_sq_sub (α.le_one j)]
 
+/-- When the proposal commutes with the label projector, rejection is the label-projection
+sandwich scaled by the complementary acceptance weight. -/
 theorem metropolisReject_branch_commuting {D M : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M) (ρ : Operator D) (j : Fin M)
     (hcomm : Q.unitary * P.proj j = P.proj j * Q.unitary) :
@@ -792,6 +894,8 @@ theorem metropolisReject_branch_commuting {D M : ℕ} (P : LabelProjectors D M)
       acceptScale_sq_sub (α.le_one j)]
   rw [hinv, P.hermitian j]
 
+/-- When the proposal commutes with the label projector and a Hermitian input is supported
+there, rejection returns the input scaled by the complementary acceptance weight. -/
 theorem metropolisReject_branch_restores {D M : ℕ} (P : LabelProjectors D M)
     (Q : ProposalOracle D) (α : AcceptWeights M) (ρ : Operator D) (j : Fin M)
     (hcomm : Q.unitary * P.proj j = P.proj j * Q.unitary)
@@ -805,6 +909,8 @@ theorem metropolisReject_branch_restores {D M : ℕ} (P : LabelProjectors D M)
   rw [metropolisReject_branch_commuting P Q α ρ j hcomm]
   rw [hsupp, hsupp']
 
+/-- The Metropolis-step ledger assigning grid-sized energy-estimation counts, one proposal, one
+rewind, system field `D`, and `Nat.log2 G.levels + 1` readout bits. -/
 noncomputable def metropolisStepLedger {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     MetropolisStepLedger where
   energyControlledPowers := G.levels
@@ -814,6 +920,8 @@ noncomputable def metropolisStepLedger {D : ℕ} (O : EnergyOracle D) (G : Phase
   controlledSystemQubits := D
   classicalReadoutBits := Nat.log2 G.levels + 1
 
+/-- The Metropolis-step ledger has grid-sized controlled-power and inverse-Fourier counts, one
+proposal, one rewind, system field `D`, and `Nat.log2 G.levels + 1` readout bits. -/
 theorem metropolisStepLedger_counts {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     (metropolisStepLedger O G).energyControlledPowers = G.levels ∧
       (metropolisStepLedger O G).energyInverseQftGates = G.levels ∧
@@ -823,6 +931,7 @@ theorem metropolisStepLedger_counts {D : ℕ} (O : EnergyOracle D) (G : PhaseGri
       (metropolisStepLedger O G).classicalReadoutBits = Nat.log2 G.levels + 1 :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- The classical readout-bit count in the Metropolis-step ledger is at most `G.levels + 1`. -/
 theorem metropolisStepLedger_readout_le {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) :
     (metropolisStepLedger O G).classicalReadoutBits ≤ G.levels + 1 := by
   simp only [metropolisStepLedger]

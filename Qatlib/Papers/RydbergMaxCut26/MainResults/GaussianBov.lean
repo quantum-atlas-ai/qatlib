@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.RydbergMaxCut26.Rounding.GeneralBov
 import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEnergy
 import Qatlib.Papers.RydbergMaxCut26.MainResults.PhysicalRatios
+
+/-!
+# Gaussian kernel for physical rounding
+
+Identifies the expected inner product of physically rounded vectors at distinct sites under the
+raw Gaussian matrix law. The expectation is `kernelConstant` times `Fhat` evaluated at the
+physical two-site correlation `tParam`, connecting the physical moment construction to the
+scalar kernel estimates. See [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `actual_root_physical_BOV`: evaluates the expected rounded inner product for a positive
+  semidefinite trace-one input.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +45,9 @@ open Qatlib.Papers.RydbergMaxCut26.RatioBounds.SOS
 
 namespace Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
 
+/-- For a positive semidefinite trace-one `ρ` and distinct sites `i` and `j`, the expected inner
+product of their physically rounded vectors under the raw Gaussian matrix law equals
+`kernelConstant * Fhat (tParam ρ i j)` [CrostaSaubanereHuber2026]. -/
 theorem actual_root_physical_BOV (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ)
     (hρ : ρ.PosSemidef) (htr : ρ.trace=1) (i j : Fin n) (hij : i≠j) :
     (∫ R : Fin 3→Fin 2×MomentIndex n→ℝ,

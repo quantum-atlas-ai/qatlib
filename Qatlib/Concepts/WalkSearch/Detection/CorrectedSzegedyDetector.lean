@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.ProjectorCS
 import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
 import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+
+/-!
+# Corrected Szegedy detector and resource bounds
+
+`correctedMarkedWalk` is built from the unmarked row-frame reflection and register swaps. The
+module defines a detector with control and marker flags, proves its unitary circuit semantics,
+and computes exact row-access, marker, and fixed-gate counts.
+
+The interference analysis gives zero acceptance for empty marked sets and constant average
+acceptance over a sufficiently long range of positive walk powers under a symmetric-chain gap
+assumption. The estimates formalize the detection mechanism of [Szegedy2004].
+
+## Main statements
+
+* `corrected_szegedy_actual_detector_and_counts`: unitary semantics and exact instruction
+  counts.
+* `corrected_szegedy_empty_mark_one_sided`: zero acceptance for empty marks.
+* `corrected_szegedy_busy_random_power_difference`: average displacement of the unmarked state.
+* `corrected_szegedy_actual_random_power_detection`: constant average success and resource
+  bounds.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -35,37 +61,62 @@ open Qatlib.Concepts.ReferenceError.RefTraceError
 open Qatlib.Concepts.BlockEncoding.EncodingCore
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- The constant state with amplitude equal to the reciprocal square root of the cardinality of
+the finite index type. -/
 noncomputable def chainUniform {I : Type} [Fintype I] : QState I :=
   fun _=>(Real.sqrt (Fintype.card I:ℝ):ℂ)⁻¹
+/-- The detector's initial pair-register state, obtained by applying `SzegedyIsometry P` to
+`chainUniform`. -/
 noncomputable def detectionInitial {I : Type} [Fintype I] [DecidableEq I] (P : I→I→ℝ) :
     QState (I×I) := SzegedyIsometry P *ᵥ chainUniform
+/-- The restriction of `detectionInitial P` to pairs whose first coordinate is unmarked, defined
+using `Collapse`. -/
 noncomputable def detectionUnmarkedInitial {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) : QState (I×I) :=
   Collapse (detectionInitial P) {xy | xy.1∉S}
+/-- The product `SwapGate * R * SwapGate * R`, where `R` is the reflection about the unmarked
+row-frame projector. -/
 noncomputable def correctedMarkedWalk {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) : Matrix (I×I) (I×I) ℂ :=
   let F:= unmarkedRowFrame P S;
   let R:= ReflectionAbout (F*Fᴴ);
   SwapGate*R*SwapGate*R
 
+/-- The detector state index consisting of a Boolean control flag, a Boolean marker flag, and
+two walk-register indices. -/
 abbrev DetectionSpace (I : Type) := Bool×(Bool×(I×I))
+/-- The permutation that XORs membership of the first walk-register index in `S` into the marker
+flag, preserving the other indices. -/
 def detectionMarkPermutation {I : Type} [DecidableEq I] (S : Finset I)
     (v : DetectionSpace I) : DetectionSpace I :=
   (v.1,(v.2.1 ^^ decide (v.2.2.1∈S),v.2.2))
+/-- The permutation matrix implementing `detectionMarkPermutation S` on the detector state
+space. -/
 noncomputable def detectionMarkGate {I : Type} [DecidableEq I] (S : Finset I) :
     Matrix (DetectionSpace I) (DetectionSpace I) ℂ := permMatrix (detectionMarkPermutation S)
+/-- The diagonal gate that acts trivially when the control flag is false and, when it is true,
+assigns sign 1 exactly to states with false marker flag and second walk register equal to
+`j`. -/
 noncomputable def detectionPhase {I : Type} [DecidableEq I] (j : I) :
     Matrix (DetectionSpace I) (DetectionSpace I) ℂ := diagonal (fun v=>
   if v.1 then if v.2.1= false ∧ v.2.2.2= j then 1 else -1 else 1)
+/-- The gate that swaps the two walk registers when the control flag is true, while preserving
+the marker flag. -/
 noncomputable def detectionControlledSwap {I : Type} [DecidableEq I] :
     Matrix (DetectionSpace I) (DetectionSpace I) ℂ :=
   Qatlib.Concepts.BlockEncoding.LCU.select (fun b : Bool=> if b then (1:Matrix Bool Bool ℂ)⊗ₖ
     (SwapGate:Matrix (I×I) (I×I) ℂ) else 1)
+/-- The Hadamard gate on the control flag tensored with the identity on the remaining detector
+registers. -/
 noncomputable def detectionHadamard {I : Type} [DecidableEq I] :
     Matrix (DetectionSpace I) (DetectionSpace I) ℂ := Hadamard⊗ₖ(1:Matrix (Bool×(I×I)) (Bool×(I×I)) ℂ)
+/-- The detector instruction type, with constructors for controlled forward and adjoint row
+access, initial row preparation, marking, and a specified fixed gate. -/
 inductive DetectionStep (I : Type) where
   | rowForward | rowBackward | rowInitial | marker
   | fixed : Matrix (DetectionSpace I) (DetectionSpace I) ℂ → DetectionStep I
+/-- The matrix interpretation of a detector instruction using row-access matrix `U`, its
+adjoint, the marker gate for `S`, or the specified fixed gate. -/
 noncomputable def detectionInstruction {I : Type} [DecidableEq I] (U : Matrix (I×I) (I×I) ℂ)
     (S : Finset I) : DetectionStep I→Matrix (DetectionSpace I) (DetectionSpace I) ℂ
   | .rowForward => select (fun b : Bool=> if b then (1:Matrix Bool Bool ℂ)⊗ₖU else 1)
@@ -73,37 +124,55 @@ noncomputable def detectionInstruction {I : Type} [DecidableEq I] (U : Matrix (I
   | .rowInitial => (1:Matrix Bool Bool ℂ)⊗ₖ((1:Matrix Bool Bool ℂ)⊗ₖU)
   | .marker => detectionMarkGate S
   | .fixed V => V
+/-- The ordered matrix product interpreting a list of detector instructions, with the empty list
+evaluated as the identity. -/
 noncomputable def detectionEvaluate {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I×I) (I×I) ℂ) (S : Finset I) :
     List (DetectionStep I)→Matrix (DetectionSpace I) (DetectionSpace I) ℂ
   | [] => 1
   | s::ss => detectionInstruction U S s*detectionEvaluate U S ss
+/-- The triple counting row-access instructions, marker instructions, and fixed-gate
+instructions in a detector word. -/
 def detectionCounts {I : Type} : List (DetectionStep I)→ℕ×ℕ×ℕ
   | [] => (0,0,0)
   | s::ss => let c:= detectionCounts ss; match s with
     | .rowForward | .rowBackward | .rowInitial => (c.1+1,c.2.1,c.2.2)
     | .marker => (c.1,c.2.1+1,c.2.2)
     | .fixed _ => (c.1,c.2.1,c.2.2+1)
+/-- The instruction word implementing the controlled unmarked reflection using row access, two
+marker calls, and the anchor-dependent phase gate. -/
 noncomputable def detectionReflectionWord {I : Type} [DecidableEq I] (j : I) : List (DetectionStep I) :=
   [.rowForward,.marker,.fixed (detectionPhase j),.marker,.rowBackward]
+/-- The detector walk word built from two controlled swaps and two copies of
+`detectionReflectionWord j`. -/
 noncomputable def detectionWalkWord {I : Type} [DecidableEq I] (j : I) : List (DetectionStep I) :=
   [.fixed detectionControlledSwap]++detectionReflectionWord j++
     [.fixed detectionControlledSwap]++detectionReflectionWord j
+/-- The detector word combining initial row preparation, Hadamard interference around `K` walk
+words, and a final marker call. -/
 noncomputable def detectionProgram {I : Type} [DecidableEq I] (j : I) (K : ℕ) : List (DetectionStep I) :=
   [.marker,.fixed detectionHadamard]++(List.replicate K (detectionWalkWord j)).flatten++
     [.fixed detectionHadamard,.rowInitial]
+/-- The initial detector state with both flags false, second walk register fixed at `j`, and
+first walk register in `chainUniform`. -/
 noncomputable def detectionStart {I : Type} [Fintype I] [DecidableEq I] (j : I) : QState (DetectionSpace I) :=
   fun v=> if v.1= false ∧ v.2.1= false ∧ v.2.2.2= j then chainUniform v.2.2.1 else 0
+/-- The state with marker flag false and control branches `(u + W ^ K *ᵥ u) / 2` and `(u - W ^ K
+*ᵥ u) / 2`. -/
 noncomputable def detectionInterference {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix (I×I) (I×I) ℂ) (u : QState (I×I)) (K : ℕ) : QState (DetectionSpace I) :=
   fun v=> if v.2.1 then 0 else if v.1 then (u v.2.2-(W^K*ᵥu) v.2.2)/2
     else (u v.2.2+(W^K*ᵥu) v.2.2)/2
+/-- The accepting detector indices for which either the control flag or the marker flag is true. -/
 noncomputable def detectionAccept {I : Type} [Fintype I] : Finset (DetectionSpace I) :=
   {v | v.1= true ∨ v.2.1= true}
+/-- The measurement weight of `detectionAccept` after applying the evaluated detector program to
+`detectionStart j`. -/
 noncomputable def detectionProbability {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I×I) (I×I) ℂ) (S : Finset I) (j : I) (K : ℕ) : ℝ :=
   MeasureProb (detectionEvaluate U S (detectionProgram j K)*ᵥdetectionStart j) detectionAccept
 
+/-- Concatenating detector instruction lists adds their three resource counts componentwise. -/
 private theorem detectionCounts_append {I : Type} (xs ys : List (DetectionStep I)) :
     detectionCounts (xs++ys)=((detectionCounts xs).1+(detectionCounts ys).1,
       (detectionCounts xs).2.1+(detectionCounts ys).2.1,(detectionCounts xs).2.2+(detectionCounts ys).2.2) := by
@@ -111,6 +180,8 @@ private theorem detectionCounts_append {I : Type} (xs ys : List (DetectionStep I
   | nil => simp [detectionCounts]
   | cons x xs ih => cases x <;> simp [detectionCounts,ih,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
 
+/-- Concatenating `K` copies of a detector word multiplies each of its three resource counts by
+`K`. -/
 private theorem detectionCounts_replicate {I : Type} (xs : List (DetectionStep I)) (K : ℕ) :
     detectionCounts (List.replicate K xs).flatten=(K*(detectionCounts xs).1,
       K*(detectionCounts xs).2.1,K*(detectionCounts xs).2.2) := by
@@ -118,21 +189,26 @@ private theorem detectionCounts_replicate {I : Type} (xs : List (DetectionStep I
   | zero => simp [detectionCounts]
   | succ K ih => simp [List.replicate_succ,detectionCounts_append,ih,Nat.add_mul,Nat.add_comm,Nat.add_left_comm]
 
+/-- The power-`K` detector program has `4 * K + 1` row-access instructions, `4 * K + 1` marker
+instructions, and `4 * K + 2` fixed gates. -/
 theorem detectionProgram_actual_counts {I : Type} [DecidableEq I] (j : I) (K : ℕ) :
     detectionCounts (detectionProgram j K)=(4*K+1,4*K+1,4*K+2) := by
   simp [detectionProgram,detectionCounts_append,detectionCounts_replicate,detectionWalkWord,
     detectionReflectionWord,detectionCounts]
   simp [Nat.mul_comm]
 
+/-- Applying the marker permutation twice returns the original detector index. -/
 theorem detectionMarkPermutation_involutive {I : Type} [DecidableEq I] (S : Finset I) :
     Function.Involutive (detectionMarkPermutation S) := by
   intro v
   rcases v with ⟨b,c,i,j⟩
   cases c <;> by_cases h : i∈S <;> simp [detectionMarkPermutation,h]
 
+/-- The detector marker gate is unitary. -/
 theorem detectionMarkGate_unitary {I : Type} [Fintype I] [DecidableEq I] (S : Finset I) :
     detectionMarkGate S∈unitaryGroup (DetectionSpace I) ℂ := permMatrix_unitary (detectionMarkPermutation_involutive S)
 
+/-- The controlled forward row-access instruction is unitary whenever `U` is unitary. -/
 theorem detectionRowForward_unitary {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I×I) (I×I) ℂ) (S : Finset I) (hU : U∈unitaryGroup (I×I) ℂ) :
     detectionInstruction U S .rowForward∈unitaryGroup (DetectionSpace I) ℂ := by
@@ -142,6 +218,7 @@ theorem detectionRowForward_unitary {I : Type} [Fintype I] [DecidableEq I]
   · exact (unitaryGroup _ _).one_mem
   · exact tensorGate_unitary ((unitaryGroup _ _).one_mem) hU
 
+/-- The anchor-dependent detector phase gate is unitary. -/
 theorem detectionPhase_unitary {I : Type} [Fintype I] [DecidableEq I] (j : I) :
     detectionPhase j∈unitaryGroup (DetectionSpace I) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose]
@@ -152,6 +229,7 @@ theorem detectionPhase_unitary {I : Type} [Fintype I] [DecidableEq I] (j : I) :
   · by_cases h : v.2.1=false ∧ v.2.2.2=j <;> simp [Matrix.diagonal_apply,Matrix.one_apply,hv,h]
   · simp [Matrix.diagonal_apply,Matrix.one_apply,hv]
 
+/-- The detector's controlled swap gate is unitary. -/
 theorem detectionControlledSwap_unitary {I : Type} [Fintype I] [DecidableEq I] :
     (detectionControlledSwap : Matrix (DetectionSpace I) (DetectionSpace I) ℂ)∈
       unitaryGroup (DetectionSpace I) ℂ := by
@@ -161,6 +239,8 @@ theorem detectionControlledSwap_unitary {I : Type} [Fintype I] [DecidableEq I] :
   · exact (unitaryGroup _ _).one_mem
   · exact tensorGate_unitary ((unitaryGroup _ _).one_mem) swapGate_unitary
 
+/-- A detector word evaluates to a unitary matrix if the matrix interpretation of every
+instruction in the word is unitary. -/
 private theorem detectionEvaluate_unitary {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I×I) (I×I) ℂ) (S : Finset I) (xs : List (DetectionStep I))
     (h : ∀ x∈xs,detectionInstruction U S x∈unitaryGroup (DetectionSpace I) ℂ) :
@@ -170,6 +250,8 @@ private theorem detectionEvaluate_unitary {I : Type} [Fintype I] [DecidableEq I]
   | cons x xs ih =>
     exact (unitaryGroup _ _).mul_mem (h x (by simp)) (ih (by intro y hy; exact h y (by simp [hy])))
 
+/-- For unitary row access `U`, the full detector program evaluates to a unitary matrix for
+every anchor, marked set, and power. -/
 theorem detectionProgram_unitary {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I×I) (I×I) ℂ) (S : Finset I) (j : I) (K : ℕ)
     (hU : U∈unitaryGroup (I×I) ℂ) :
@@ -192,11 +274,14 @@ theorem detectionProgram_unitary {I : Type} [Fintype I] [DecidableEq I]
   · exact detectionControlledSwap_unitary
   · exact tensorGate_unitary hadamard_unitary ((unitaryGroup _ _).one_mem)
 
+/-- The initial amplitude at `(x, y)` equals `sqrt (P x y)` times the uniform amplitude at `x`. -/
 theorem detectionInitial_apply {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (xy : I×I) :
     detectionInitial P xy=(Real.sqrt (P xy.1 xy.2):ℂ)*chainUniform xy.1 := by
   simp [detectionInitial,Matrix.mulVec,dotProduct,SzegedyIsometry,ite_mul]
 
+/-- For a transition matrix on a nonempty finite type, the unmarked initial state's squared
+Euclidean norm is `1 - markedFraction S`. -/
 theorem detectionUnmarkedInitial_norm_sq {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I→I→ℝ) (S : Finset I) (hP : IsTransitionMatrix P) :
     ‖toEuclidean_fromVec (detectionUnmarkedInitial P S)‖^2=1-markedFraction S := by
@@ -230,9 +315,12 @@ theorem detectionUnmarkedInitial_norm_sq {I : Type} [Fintype I] [DecidableEq I] 
   unfold markedFraction
   field_simp
 
+/-- The detector state with marker flag false and control-branch amplitudes supplied by `f`. -/
 noncomputable def detectionCleanState {I : Type} (f : Bool → QState (I×I)) :
     QState (DetectionSpace I) := fun v => if v.2.1 then 0 else f v.1 v.2.2
 
+/-- Controlled application of `A` to a clean detector state applies `A` to the true-control
+branch and preserves the false-control branch. -/
 private theorem detection_select_clean {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix (I×I) (I×I) ℂ) (f : Bool → QState (I×I)) :
     select (fun b : Bool => if b then (1 : Matrix Bool Bool ℂ)⊗ₖA else 1) *ᵥ
@@ -244,6 +332,8 @@ private theorem detection_select_clean {I : Type} [Fintype I] [DecidableEq I]
     simp [select,detectionCleanState,Matrix.mulVec,dotProduct,
       Fintype.sum_prod_type,Matrix.kroneckerMap,Matrix.one_apply,ite_mul,ite_and]
 
+/-- Uncontrolled application of `A` on the walk registers applies `A` to both control branches
+of a clean detector state. -/
 private theorem detection_row_initial_clean {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix (I×I) (I×I) ℂ) (f : Bool → QState (I×I)) :
     ((1 : Matrix Bool Bool ℂ)⊗ₖ((1 : Matrix Bool Bool ℂ)⊗ₖA)) *ᵥ
@@ -254,6 +344,7 @@ private theorem detection_row_initial_clean {I : Type} [Fintype I] [DecidableEq 
     simp [detectionCleanState,Matrix.mulVec,dotProduct,
       Fintype.sum_prod_type,Matrix.kroneckerMap,Matrix.one_apply,ite_mul,ite_and]
 
+/-- The detector Hadamard maps clean branch amplitudes to their normalized sum and difference. -/
 private theorem detection_hadamard_clean {I : Type} [Fintype I] [DecidableEq I]
     (f : Bool → QState (I×I)) :
     detectionHadamard *ᵥ detectionCleanState f =
@@ -265,6 +356,9 @@ private theorem detection_hadamard_clean {I : Type} [Fintype I] [DecidableEq I]
     simp [detectionHadamard,detectionCleanState,Hadamard,Matrix.mulVec,dotProduct,
       Fintype.sum_prod_type,Matrix.kroneckerMap,Matrix.one_apply,ite_mul,ite_and] <;> ring
 
+/-- On a clean state, conjugating the detector phase by the marker gate applies the diagonal
+unmarked-anchor reflection to the true-control branch and preserves the false-control
+branch. -/
 private theorem detection_marker_phase_clean {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (j : I) (f : Bool → QState (I×I)) :
     detectionMarkGate S *ᵥ (detectionPhase j *ᵥ
@@ -283,10 +377,14 @@ private theorem detection_marker_phase_clean {I : Type} [Fintype I] [DecidableEq
   cases b <;> cases c <;> by_cases hx : x∈S <;> by_cases hy : y=j <;>
     simp [detectionCleanState,detectionMarkPermutation,hx,hy,Matrix.mulVec_diagonal]
 
+/-- The basis embedding of unmarked indices into pair states with second coordinate fixed at the
+anchor `j`. -/
 private noncomputable def detectionSourceFrame {I : Type} [DecidableEq I]
     (S : Finset I) (j : I) : Matrix (I×I) (Unmarked I S) ℂ :=
   fun xy i => if xy=(i.1,j) then 1 else 0
 
+/-- The source-frame projector is the diagonal indicator of pairs with unmarked first coordinate
+and second coordinate equal to `j`. -/
 private theorem detection_source_projector {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (j : I) :
     detectionSourceFrame S j * (detectionSourceFrame S j)ᴴ =
@@ -306,6 +404,8 @@ private theorem detection_source_projector {I : Type} [Fintype I] [DecidableEq I
     simp [Prod.mk.injEq,Ne.symm hi]
   · simp
 
+/-- For a unitary row preparation, conjugating the diagonal unmarked-anchor reflection by `U`
+yields the reflection about the unmarked row-frame projector. -/
 theorem detection_prepared_unmarked_reflection {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ)
     (hU : U∈unitaryGroup (I×I) ℂ)
@@ -336,6 +436,8 @@ theorem detection_prepared_unmarked_reflection {I : Type} [Fintype I] [Decidable
   rw [hprod,hUE]
   rfl
 
+/-- For a unitary row preparation, the reflection word applies the unmarked row-frame reflection
+to the true-control branch of a clean state and preserves its false-control branch. -/
 theorem detectionReflectionWord_clean {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ)
     (hU : U∈unitaryGroup (I×I) ℂ)
@@ -355,6 +457,7 @@ theorem detectionReflectionWord_clean {I : Type} [Fintype I] [DecidableEq I]
   · simp only [Bool.true_eq,if_true,Matrix.mulVec_mulVec]
     rw [← Matrix.mul_assoc,detection_prepared_unmarked_reflection P S j U hU hp]
 
+/-- The evaluation of concatenated detector words is the product of their evaluations. -/
 private theorem detectionEvaluate_append {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I×I) (I×I) ℂ) (S : Finset I) (xs ys : List (DetectionStep I)) :
     detectionEvaluate U S (xs++ys)=detectionEvaluate U S xs*detectionEvaluate U S ys := by
@@ -362,6 +465,8 @@ private theorem detectionEvaluate_append {I : Type} [Fintype I] [DecidableEq I]
   | nil => simp [detectionEvaluate]
   | cons x xs ih => simp only [List.cons_append,detectionEvaluate,ih,Matrix.mul_assoc]
 
+/-- For a unitary row preparation, the walk word applies `correctedMarkedWalk P S` to the
+true-control branch of a clean state and preserves its false-control branch. -/
 theorem detectionWalkWord_clean {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ)
     (hU : U∈unitaryGroup (I×I) ℂ)
@@ -382,6 +487,8 @@ theorem detectionWalkWord_clean {I : Type} [Fintype I] [DecidableEq I]
   · rfl
   · simp only [if_true,Matrix.mulVec_mulVec,correctedMarkedWalk,Matrix.mul_assoc]
 
+/-- For a unitary row preparation, `K` repeated walk words apply the `K`th power of the
+corrected marked walk to the true-control branch of a clean state. -/
 private theorem detection_repeated_walk_clean {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ)
     (hU : U∈unitaryGroup (I×I) ℂ)
@@ -406,6 +513,9 @@ private theorem detection_repeated_walk_clean {I : Type} [Fintype I] [DecidableE
     · rfl
     · simp only [if_true,Matrix.mulVec_mulVec,pow_succ']
 
+/-- If `U` prepares the Szegedy row states from anchor `j`, its initial instruction maps
+`detectionStart j` to the clean state with false-control branch `detectionInitial P` and
+zero true-control branch. -/
 private theorem detection_initial_word {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ)
     (hp : ∀ i,U*ᵥTensorState (Ket i) (Ket j)=SzegedyIsometry P*ᵥKet i) :
@@ -428,6 +538,9 @@ private theorem detection_initial_word {I : Type} [Fintype I] [DecidableEq I]
     rfl
   · simp
 
+/-- For a transition matrix and a unitary row preparation, the detector is unitary, produces the
+marked interference state, and has exact counts `(4 * K + 1, 4 * K + 1, 4 * K + 2)`. See
+[Szegedy2004]. -/
 theorem corrected_szegedy_actual_detector_and_counts :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ) (K : ℕ),
@@ -456,6 +569,8 @@ theorem corrected_szegedy_actual_detector_and_counts :
     simp [detectionCleanState,detectionInterference,Matrix.mulVec_smul,
       Pi.smul_apply,smul_eq_mul,mul_add,mul_sub,← mul_assoc,hs,div_eq_mul_inv] <;> ring
 
+/-- The unmarked row-frame projector entry is the product of the two transition square roots
+when the first register indices agree and are unmarked, and is zero otherwise. -/
 theorem detection_unmarked_projector_entry {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (xy zw : I×I) :
     (unmarkedRowFrame P S * (unmarkedRowFrame P S)ᴴ) xy zw =
@@ -472,6 +587,8 @@ theorem detection_unmarked_projector_entry {I : Type} [Fintype I] [DecidableEq I
     simp [SzegedyIsometry,Ne.symm hi]
   · simp
 
+/-- With no marked states, the unmarked row-frame projector equals the full Szegedy isometry
+projector. -/
 private theorem detection_empty_projector {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) :
     unmarkedRowFrame P ∅ * (unmarkedRowFrame P ∅)ᴴ =
@@ -483,6 +600,8 @@ private theorem detection_empty_projector {I : Type} [Fintype I] [DecidableEq I]
     (fun i => SzegedyIsometry P xy i * star (SzegedyIsometry P zw i))
   exact hs.symm
 
+/-- For a symmetric transition matrix, the corrected marked walk with an empty marked set fixes
+`detectionInitial P`. -/
 theorem correctedMarkedWalk_empty_fixed {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (hP : IsTransitionMatrix P) (hSym : ∀ i l,P i l=P l i) :
     correctedMarkedWalk P ∅ *ᵥ detectionInitial P = detectionInitial P := by
@@ -505,6 +624,8 @@ theorem correctedMarkedWalk_empty_fixed {I : Type} [Fintype I] [DecidableEq I]
     rfl
   simp only [correctedMarkedWalk,← Matrix.mulVec_mulVec,hR,hS]
 
+/-- For a symmetric transition matrix and a unitary row preparation, the detector has acceptance
+probability zero for an empty marked set at every power. See [Szegedy2004]. -/
 theorem corrected_szegedy_empty_mark_one_sided :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I→I→ℝ) (j : I) (U : Matrix (I×I) (I×I) ℂ) (K : ℕ),
@@ -531,18 +652,23 @@ theorem corrected_szegedy_empty_mark_one_sided :
     · simp [detectionInterference,detectionMarkPermutation,hc]
   simp [BornProb,hz]
 
+/-- The pure-state Hermitian inner product is additive in its first argument. -/
 private theorem detection_inner_add_left {H : Type} [Fintype H] (u v w : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (u+v) w=Qatlib.Foundations.PureStateMath.Inner u w+Qatlib.Foundations.PureStateMath.Inner v w := by simp only [Qatlib.Foundations.PureStateMath.Inner,star_add,add_dotProduct]
 
+/-- The pure-state Hermitian inner product is additive in its second argument. -/
 private theorem detection_inner_add_right {H : Type} [Fintype H] (u v w : QState H) :
     Qatlib.Foundations.PureStateMath.Inner u (v+w)=Qatlib.Foundations.PureStateMath.Inner u v+Qatlib.Foundations.PureStateMath.Inner u w := by simp only [Qatlib.Foundations.PureStateMath.Inner,dotProduct_add]
 
+/-- A unitary matrix preserves the Euclidean norm of a finite complex state. -/
 private theorem detection_unitary_norm {H : Type} [Fintype H] [DecidableEq H]
     {W : Matrix H H ℂ} (hW : W∈unitaryGroup H ℂ) (u : QState H) :
     ‖toEuclidean_fromVec (W*ᵥu)‖=‖toEuclidean_fromVec u‖ := by
   apply isometry_mulVec_norm
   simpa only [IsIsometry,Matrix.star_eq_conjTranspose] using! hW.1
 
+/-- If `A` is an isometry, `Aᴴ * B = 0`, and `Bᴴ * B` is a diagonal indicator, then the squared
+norm of `A *ᵥ x + B *ᵥ y` is at most the sum of the input squared norms. -/
 private theorem detection_synthesis_norm_sq_le {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (A B : Matrix H J ℂ) (p : J→Prop) [DecidablePred p]
     (hA : IsIsometry A) (hAB : Aᴴ*B=0)
@@ -571,6 +697,8 @@ private theorem detection_synthesis_norm_sq_le {H J : Type} [Fintype H] [Decidab
     exact le_rfl
   · simp [hp]
 
+/-- If `u = r - W *ᵥ r`, then summing `W ^ (k + 1) *ᵥ u` for `k < L` telescopes to `W *ᵥ r - W ^
+(L + 1) *ᵥ r`. -/
 private theorem detection_power_sum_telescope {H : Type} [Fintype H] [DecidableEq H]
     (W : Matrix H H ℂ) (u r : QState H) (hu : u=r-W*ᵥr) (L : ℕ) :
     (∑ k∈Finset.range L,W^(k+1)*ᵥu)=W*ᵥr-W^(L+1)*ᵥr := by
@@ -580,6 +708,9 @@ private theorem detection_power_sum_telescope {H : Type} [Fintype H] [DecidableE
     rw [Finset.sum_range_succ,ih,hu,Matrix.mulVec_sub,Matrix.mulVec_mulVec,← pow_succ]
     abel
 
+/-- For unitary `W`, positive `g`, and `u = r - W *ᵥ r` with `4 * g * ‖r‖² ≤ ‖u‖²`, the mean
+squared displacement over powers 1 through positive `L` is at least `2 * (1 - 1 / (L * sqrt
+g)) * ‖u‖²`. -/
 theorem detection_busy_difference_of_right_inverse {H : Type} [Fintype H] [DecidableEq H]
     (W : Matrix H H ℂ) (hW : W∈unitaryGroup H ℂ) (u r : QState H)
     (g : ℝ) (hg : 0<g) (hu : u=r-W*ᵥr)
@@ -647,6 +778,9 @@ theorem detection_busy_difference_of_right_inverse {H : Type} [Fintype H] [Decid
   field_simp
   nlinarith [(le_div_iff₀ hsqrtp).mp hin]
 
+/-- For an isometry `A` and orthogonal projector `Q` whose compression `Aᴴ * Q * A` is diagonal
+with entries in `[0, 1 - g]`, constructs `r` satisfying `A *ᵥ x = r - (ReflectionAbout Q *
+ReflectionAbout (A * Aᴴ)) *ᵥ r` and the stated squared-norm bound, when `0 < g ≤ 1`. -/
 private theorem detection_frame_right_inverse {H J : Type} [Fintype H] [DecidableEq H]
     [Fintype J] [DecidableEq J] (Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (A : Matrix H J ℂ) (t : J→ℝ) (hA : IsIsometry A)
@@ -743,15 +877,21 @@ private theorem detection_frame_right_inverse {H J : Type} [Fintype H] [Decidabl
       (show 0≤4*g by positivity)
     nlinarith [hcoef]
 
+/-- Matrix multiplication over a finite intermediate index type, with the multiplication
+instance specified explicitly. -/
 private noncomputable abbrev detectionMM {M N K : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) : Matrix M K ℂ :=
   @HMul.hMul (Matrix M N ℂ) (Matrix N K ℂ) (Matrix M K ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 
+/-- The matrix multiplication operation `detectionMM` is associative. -/
 private theorem detectionMM_assoc {M N K L : Type} [Fintype N] [Fintype K]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) (C : Matrix K L ℂ) :
     detectionMM (detectionMM A B) C=detectionMM A (detectionMM B C) := Matrix.mul_assoc A B C
 
+/-- If isometries `A` and `F` have the same range projector and `S` is Hermitian with `‖Fᴴ * S *
+F‖ ≤ c` for `c ≥ 0`, then the stated compression of `(S * F) * (S * F)ᴴ` by `A` has norm at
+most `c²`. -/
 private theorem detection_frame_compression_bound {H J K : Type}
     [Fintype H] [DecidableEq H] [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
     (F : Matrix H J ℂ) (A : Matrix H K ℂ) (S : Matrix H H ℂ)
@@ -786,6 +926,8 @@ private theorem detection_frame_compression_bound {H J K : Type}
   rw [Matrix.l2_opNorm_conjTranspose] at hn
   exact hn.trans (by nlinarith [norm_nonneg Y])
 
+/-- Each nonnegative real diagonal entry is at most the operator norm of the corresponding
+complex diagonal matrix. -/
 private theorem detection_diagonal_eigenvalue_le_norm {J : Type} [Fintype J] [DecidableEq J]
     (t : J→ℝ) (ht : ∀ i,0≤t i) (i : J) :
     t i ≤ ‖diagonal (fun j=>(t j:ℂ))‖ := by
@@ -803,6 +945,8 @@ private theorem detection_diagonal_eigenvalue_le_norm {J : Type} [Fintype J] [De
   simpa only [norm_smul,hk,Complex.norm_real,Real.norm_eq_abs,
     abs_of_nonneg (ht i),mul_one] using! hh
 
+/-- The unmarked row frame applied to the restriction of `chainUniform` equals
+`detectionUnmarkedInitial P S`. -/
 theorem detectionUnmarkedInitial_in_frame {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) :
     unmarkedRowFrame P S *ᵥ (fun i : Unmarked I S => chainUniform i.1)=
@@ -819,6 +963,9 @@ theorem detectionUnmarkedInitial_in_frame {I : Type} [Fintype I] [DecidableEq I]
     simp [SzegedyIsometry,Ne.symm hi]
   · simp
 
+/-- Under the stated gap and positivity assumptions, the unmarked initial state has squared norm
+`1 - markedFraction S` and mean squared displacement at least `2 * (1 - 1 / (L * sqrt (δ *
+markedFraction S))) * (1 - markedFraction S)`. See [Szegedy2004]. -/
 theorem corrected_szegedy_busy_random_power_difference :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I→I→ℝ) (S : Finset I) (δ : ℝ) (L : ℕ),
@@ -894,6 +1041,7 @@ theorem corrected_szegedy_busy_random_power_difference :
       detection_busy_difference_of_right_inverse (correctedMarkedWalk P S) hW u r g hg hru hnr' L hL
   simpa only [u,g,hmass] using! hd
 
+/-- The corrected marked walk is unitary for every transition matrix and marked set. -/
 theorem correctedMarkedWalk_unitary {I : Type} [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (hP : IsTransitionMatrix P) :
     correctedMarkedWalk P S∈unitaryGroup (I×I) ℂ := by
@@ -902,6 +1050,8 @@ theorem correctedMarkedWalk_unitary {I : Type} [Fintype I] [DecidableEq I]
   exact (unitaryGroup _ _).mul_mem
     ((unitaryGroup _ _).mul_mem ((unitaryGroup _ _).mul_mem swapGate_unitary hR) swapGate_unitary) hR
 
+/-- The marked interference state's acceptance weight is the sum of the squared half-difference
+amplitudes and, on marked first-register indices, the squared half-sum amplitudes. -/
 private theorem detection_interference_accept_formula {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (W : Matrix (I×I) (I×I) ℂ) (u : QState (I×I)) (K : ℕ) :
     MeasureProb (detectionMarkGate S*ᵥdetectionInterference W u K) detectionAccept =
@@ -925,6 +1075,8 @@ private theorem detection_interference_accept_formula {I : Type} [Fintype I] [De
   intro y _
   by_cases hx : x∈S <;> simp [hx] <;> ring
 
+/-- The marked interference state's acceptance weight is at least one quarter of the squared
+walk displacement and at least one half of the input's marked measurement weight. -/
 private theorem detection_interference_accept_lower {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (W : Matrix (I×I) (I×I) ℂ) (u : QState (I×I)) (K : ℕ) :
     ‖toEuclidean_fromVec (W^K*ᵥu-u)‖^2/4 ≤
@@ -958,6 +1110,8 @@ private theorem detection_interference_accept_lower {I : Type} [Fintype I] [Deci
     · simp [hx]
       positivity
 
+/-- For a transition matrix on a nonempty finite type, both the squared norm of the marked part
+of `detectionInitial P` and its marked measurement weight equal `markedFraction S`. -/
 theorem detection_marked_initial_mass {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I→I→ℝ) (S : Finset I) (hP : IsTransitionMatrix P) :
     ‖toEuclidean_fromVec (detectionInitial P-detectionUnmarkedInitial P S)‖^2=markedFraction S ∧
@@ -987,6 +1141,9 @@ theorem detection_marked_initial_mass {I : Type} [Fintype I] [DecidableEq I] [No
   by_cases hx : xy.1∈S <;>
     simp [detectionUnmarkedInitial,collapse_apply,BornProb,hx]
 
+/-- For a transition matrix and a unitary row preparation, detection probability is at least one
+eighth of the unmarked initial state's squared displacement after `K` corrected walk steps,
+minus `markedFraction S`. -/
 private theorem detection_difference_sparse_lower {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I→I→ℝ) (S : Finset I) (j : I) (U : Matrix (I×I) (I×I) ℂ) (K : ℕ)
     (hP : IsTransitionMatrix P) (hU : U∈unitaryGroup (I×I) ℂ)
@@ -1023,6 +1180,9 @@ private theorem detection_difference_sparse_lower {I : Type} [Fintype I] [Decida
   change ‖toEuclidean_fromVec a‖^2/8-markedFraction S ≤ _
   linarith
 
+/-- Under the stated gap, marked-fraction, and unitary-preparation assumptions, a range `L ≥
+1000 / sqrt (δ * ε)` gives average acceptance at least `1 / 32`, with row-query and marker
+counts at most `4 * L + 1` and fixed-gate count at most `4 * L + 2`. See [Szegedy2004]. -/
 theorem corrected_szegedy_actual_random_power_detection :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I→I→ℝ) (S : Finset I) (δ ε : ℝ) (L : ℕ) (j : I)

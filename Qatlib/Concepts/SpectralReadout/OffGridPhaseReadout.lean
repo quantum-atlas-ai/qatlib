@@ -27,6 +27,33 @@ import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Convex.Slope
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Off-grid phase estimation and window probabilities
+
+This module defines `offGridPhase`, the QPE amplitude kernel `qpeKernel`, and the circular
+distance `phaseDistance`. It derives the finite exponential-sum and geometric formulas, exact
+grid readout, and the spectral probability law underlying phase estimation and amplitude
+estimation in [BrassardEtAl2002].
+
+`countedPhaseCircuit` realizes the readout through threshold-controlled queries with a clean
+flag. Trigonometric bounds show that the circular window of radius `1/M` captures kernel
+probability at least `8/π²` for `M ≥ 2`.
+
+## Main statements
+
+* `offgrid_phase_geometric_and_periodic`: periodicity, geometric formula, and grid
+  specialization.
+* `offgrid_qpe_eigen_and_spectral_law`: eigenstate output and orthonormal spectral mixtures.
+* `counted_offgrid_qpe_clean_flag`: execution semantics with exact query and gate counts.
+* `offgrid_phase_window_probability`: the off-grid window probability lower bound.
+
+## References
+
+* [Brassard et al., 2002, Theorems 11 and 12][BrassardEtAl2002]
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,23 +77,32 @@ set_option autoImplicit false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The circular distance between real phases, obtained by subtracting the nearest integer from
+their difference and taking absolute value. -/
 noncomputable def phaseDistance (x y : ℝ) : ℝ :=
   |x - y - ((⌊x - y + 1/2⌋ : ℤ) : ℝ)|
 
+/-- The inverse-square-root normalized exponential phase vector with arbitrary real phase `φ` on
+`Fin M`. -/
 noncomputable def offGridPhase (M : ℕ) (φ : ℝ) : QState (Fin M) :=
   fun y => (Real.sqrt (M : ℝ) : ℂ)⁻¹ *
     Complex.exp (2 * Real.pi * Complex.I * ((y.val : ℝ) * φ))
 
+/-- The amplitude at label `z` after applying the inverse Fourier matrix to `offGridPhase M φ`. -/
 noncomputable def qpeKernel (M : ℕ) (φ : ℝ) (z : Fin M) : ℂ :=
   ApplyGate (QFTMatrix M)ᴴ (offGridPhase M φ) z
 
+/-- Evaluate the off-grid phase vector as its normalized complex exponential. -/
 theorem offGridPhase_apply (M : ℕ) (φ : ℝ) (y : Fin M) :
     offGridPhase M φ y = (Real.sqrt (M : ℝ) : ℂ)⁻¹ *
       Complex.exp (2 * Real.pi * Complex.I * ((y.val : ℝ) * φ)) := rfl
 
+/-- The QPE kernel is the indicated coordinate of the inverse Fourier transform of the off-grid
+phase vector. -/
 theorem qpeKernel_apply (M : ℕ) (φ : ℝ) (z : Fin M) :
     qpeKernel M φ z = ApplyGate (QFTMatrix M)ᴴ (offGridPhase M φ) z := rfl
 
+/-- Adding an integer to the phase leaves every off-grid phase-vector amplitude unchanged. -/
 theorem offGridPhase_int_add (M : ℕ) (φ : ℝ) (c : ℤ) (y : Fin M) :
     offGridPhase M (φ + (c : ℝ)) y = offGridPhase M φ y := by
   have hexp : Complex.exp (2 * Real.pi * Complex.I * ((y.val : ℝ) * (φ + (c : ℝ))))
@@ -86,6 +122,9 @@ theorem offGridPhase_int_add (M : ℕ) (φ : ℝ) (c : ℤ) (y : Fin M) :
   convert! hexp using 1
   simp
 
+/-- For positive `M`, express the inverse Fourier readout amplitude as the normalized finite
+exponential sum and prove the input phase vector is normalized. This is the phase-estimation
+kernel used in [BrassardEtAl2002]. -/
 theorem offgrid_phase_kernel_formula (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) :
     ApplyGate (QFTMatrix M)ᴴ (offGridPhase M φ) z = qpeKernel M φ z ∧
     qpeKernel M φ z = (M : ℂ)⁻¹ * ∑ y : Fin M,
@@ -159,6 +198,7 @@ theorem offgrid_phase_kernel_formula (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < 
     rw [Finset.sum_congr rfl (fun y _ => hnorm y), Finset.sum_const, Finset.card_univ,
       Fintype.card_fin, nsmul_eq_mul, mul_inv_cancel₀ (by exact_mod_cast hM.ne' : (M : ℝ) ≠ 0)]
 
+/-- The QPE kernel is invariant under integer shifts of the phase. -/
 theorem qpeKernel_int_add (M : ℕ) (φ : ℝ) (z : Fin M) (c : ℤ) :
     qpeKernel M (φ + (c : ℝ)) z = qpeKernel M φ z := by
   unfold qpeKernel
@@ -166,6 +206,8 @@ theorem qpeKernel_int_add (M : ℕ) (φ : ℝ) (z : Fin M) (c : ℤ) :
   funext i
   exact offGridPhase_int_add M φ c i
 
+/-- Each term of the kernel exponential sum is the corresponding natural power of its common
+geometric ratio. -/
 private theorem kernel_pow (M : ℕ) (φ : ℝ) (z : Fin M) (y : Fin M) :
     Complex.exp (2 * Real.pi * Complex.I * ((y.val : ℝ) * (φ - (z.val : ℝ)/(M : ℝ)))) =
       (Complex.exp (2 * Real.pi * Complex.I * (φ - (z.val : ℝ)/(M : ℝ)))) ^ y.val := by
@@ -176,6 +218,7 @@ private theorem kernel_pow (M : ℕ) (φ : ℝ) (z : Fin M) (y : Fin M) :
     ring
   rw [hexp]
 
+/-- For positive `M`, the Mth power of the kernel geometric ratio equals `exp(2*π*I*M*φ)`. -/
 private theorem ratio_pow_eq (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) :
     (Complex.exp (2 * Real.pi * Complex.I * (φ - (z.val : ℝ)/(M : ℝ)))) ^ M
       = Complex.exp (2 * Real.pi * Complex.I * ((M : ℝ) * φ)) := by
@@ -189,6 +232,8 @@ private theorem ratio_pow_eq (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) :
     field_simp
   rw [← Complex.exp_nat_mul, hexp, Complex.exp_sub, hz, div_one]
 
+/-- For positive `M`, prove unit periodicity, the geometric quotient formula when its
+denominator is nonzero, and exact basis-ket readout at grid phases. See [BrassardEtAl2002]. -/
 theorem offgrid_phase_geometric_and_periodic (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) :
     qpeKernel M (φ + 1) z = qpeKernel M φ z ∧
     (Complex.exp (2 * Real.pi * Complex.I * (φ - (z.val : ℝ)/(M : ℝ))) ≠ 1 →
@@ -219,12 +264,16 @@ theorem offgrid_phase_geometric_and_periodic (M : ℕ) (φ : ℝ) (z : Fin M) (h
   · intro j
     rw [qpeKernel_apply, hgrid j, qftMatrix_conjTranspose_mulVec_phaseState hM j]
 
+/-- The joint phase and data state produced by controlled powers followed by inverse Fourier
+transform of a uniform phase register. -/
 noncomputable def qpeOutput (M : ℕ) (U : Matrix I I ℂ) (ψ : QState I) :
     QState (Fin M × I) :=
   ApplyGate (TensorGate (QFTMatrix M)ᴴ (1 : Matrix I I ℂ))
     (ControlledPowers U M *ᵥ
       TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ)
 
+/-- Controlled powers acting on an eigenstate create its arbitrary real phase vector in the
+control register and preserve the data state. -/
 theorem controlledPowers_offgrid_kickback (M : ℕ) (U : Matrix I I ℂ)
     (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ) :
@@ -252,6 +301,8 @@ theorem controlledPowers_offgrid_kickback (M : ℕ) (U : Matrix I I ℂ)
     simp [show x ≠ y from fun e => hy e.symm]
   · simp
 
+/-- For an eigenstate with phase `φ`, QPE output is the tensor product of `qpeKernel M φ` and
+that eigenstate. -/
 theorem qpeOutput_eigen (M : ℕ) (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ) :
     qpeOutput M U ψ = TensorState (qpeKernel M φ) ψ := by
@@ -259,6 +310,7 @@ theorem qpeOutput_eigen (M : ℕ) (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ
     applyGate_tensorGate, applyGate_one]
   rfl
 
+/-- QPE output preserves finite complex linear combinations of data states. -/
 theorem qpeOutput_sum (M : ℕ) (U : Matrix I I ℂ) {J : Type} [Fintype J]
     (v : J → QState I) (c : J → ℂ) :
     qpeOutput M U (∑ j, c j • v j) = ∑ j, c j • qpeOutput M U (v j) := by
@@ -276,6 +328,9 @@ theorem qpeOutput_sum (M : ℕ) (U : Matrix I I ℂ) {J : Type} [Fintype J]
   rw [Matrix.mulVec_sum]
   simp_rw [Matrix.mulVec_smul]
 
+/-- QPE factors on each eigenstate, and the readout probability for an orthonormal eigenstate
+combination is the sum of squared coefficient norms times squared kernel amplitudes. See
+[BrassardEtAl2002]. -/
 theorem offgrid_qpe_eigen_and_spectral_law (M : ℕ) (U : Matrix I I ℂ)
     (ψ : QState I) (φ : ℝ) (_hM : 0 < M) :
     (ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ →
@@ -302,32 +357,41 @@ theorem offgrid_qpe_eigen_and_spectral_law (M : ℕ) (U : Matrix I I ℂ)
   rw [hz, sum_norm_sq_orthonormal v _ hv]
   simp only [norm_mul, mul_pow]
 
+/-- Toggle the flag exactly when the phase-register label is greater than the threshold `k`. -/
 def phaseThresholdFlip (M k : ℕ) (p : Fin M × (Bool × I)) : Fin M × (Bool × I) :=
   (p.1, (if k < p.1.val then !p.2.1 else p.2.1, p.2.2))
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The threshold-controlled flag flip is an involution. -/
 theorem phaseThresholdFlip_involutive (M k : ℕ) :
     Function.Involutive (phaseThresholdFlip (I := I) M k) := by
   rintro ⟨x, b, i⟩
   by_cases h : k < x.val <;> simp [phaseThresholdFlip, h]
 
+/-- A threshold block consisting of a flag flip, one oracle query, and the same flag flip. -/
 def phaseThresholdBlock (M k : ℕ) : Circuit (Fin M × (Bool × I)) :=
   [.gate (permMatrix (phaseThresholdFlip M k)), .query,
     .gate (permMatrix (phaseThresholdFlip M k))]
 
+/-- The circuit of consecutive threshold blocks with thresholds from zero through `n-1`. -/
 def phaseThresholdLoop (M : ℕ) : ℕ → Circuit (Fin M × (Bool × I))
   | 0 => []
   | n + 1 => phaseThresholdLoop M n ++ phaseThresholdBlock M n
 
+/-- The Fourier preparation, `M-1` threshold blocks, and inverse Fourier transform implementing
+counted phase estimation. -/
 noncomputable def countedPhaseCircuit (M : ℕ) : Circuit (Fin M × (Bool × I)) :=
   [.gate (TensorGate (QFTMatrix M) (1 : Matrix (Bool × I) (Bool × I) ℂ))] ++
     phaseThresholdLoop M (M-1) ++
     [.gate (TensorGate (QFTMatrix M)ᴴ (1 : Matrix (Bool × I) (Bool × I) ℂ))]
 
+/-- Embed a phase and data state with the extra flag fixed to false. -/
 def phaseFlagEmbed (M : ℕ) (ψ : QState (Fin M × I)) : QState (Fin M × (Bool × I)) :=
   fun p => if p.2.1 then 0 else ψ (p.1, p.2.2)
 
+/-- The parallel controlled oracle applies `U` in true-flag blocks and the identity in
+false-flag blocks. -/
 theorem phaseControlledOracle_apply (M : ℕ) (U : Matrix I I ℂ)
     (ψ : QState (Fin M × (Bool × I))) (x : Fin M) (b : Bool) (i : I) :
     ApplyGate (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ)
@@ -337,6 +401,8 @@ theorem phaseControlledOracle_apply (M : ℕ) (U : Matrix I I ℂ)
     simp [ApplyGate, Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
       TensorGate, Matrix.one_apply, Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle, Qatlib.Concepts.BlockEncoding.LCU.select]
 
+/-- A threshold block applies `U` exactly on phase labels greater than `k` and restores the
+false flag. -/
 theorem phaseThresholdBlock_action (M k : ℕ) (U : Matrix I I ℂ)
     (ψ : QState (Fin M × I)) :
     Run (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ)
@@ -353,6 +419,8 @@ theorem phaseThresholdBlock_action (M k : ℕ) (U : Matrix I I ℂ)
     simp [phaseThresholdFlip, phaseFlagEmbed, hx, ApplyGate, Matrix.mulVec, dotProduct,
         Matrix.one_apply]
 
+/-- The threshold loop applies `U^(min n x)` in the phase-label block `x` and restores the false
+flag. -/
 theorem phaseThresholdLoop_action (M n : ℕ) (U : Matrix I I ℂ)
     (ψ : QState (Fin M × I)) :
     Run (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ)
@@ -371,6 +439,7 @@ theorem phaseThresholdLoop_action (M n : ℕ) (U : Matrix I I ℂ)
         ← applyGate_mul, ← pow_succ']
     · rw [if_neg h, Nat.min_eq_right (by omega), Nat.min_eq_right (by omega)]
 
+/-- Applying a gate on the phase register commutes with embedding the extra false flag. -/
 theorem phaseFlagEmbed_phaseGate (M : ℕ) (T : Matrix (Fin M) (Fin M) ℂ)
     (ψ : QState (Fin M × I)) :
     ApplyGate (TensorGate T (1 : Matrix (Bool × I) (Bool × I) ℂ)) (phaseFlagEmbed M ψ) =
@@ -381,6 +450,7 @@ theorem phaseFlagEmbed_phaseGate (M : ℕ) (T : Matrix (Fin M) (Fin M) ℂ)
     simp [ApplyGate, Matrix.mulVec, dotProduct, TensorGate,
       Fintype.sum_prod_type, Matrix.one_apply, phaseFlagEmbed]
 
+/-- The threshold loop has `n` queries and `2*n` gates and satisfies `IsUnitaryCircuit`. -/
 theorem phaseThresholdLoop_resources (M n : ℕ) :
     QueryCount (phaseThresholdLoop (I := I) M n) = n ∧
     GateCount (phaseThresholdLoop (I := I) M n) = 2*n ∧
@@ -396,6 +466,8 @@ theorem phaseThresholdLoop_resources (M n : ℕ) :
       refine ⟨ih.2.2, ?_⟩
       simp [phaseThresholdBlock, permMatrix_unitary (phaseThresholdFlip_involutive (I := I) M n)]
 
+/-- For positive `M`, counted phase estimation yields `qpeOutput` with a false flag, uses `M-1`
+queries and `2*(M-1)+2` gates, and satisfies `IsUnitaryCircuit`. -/
 theorem counted_offgrid_qpe_clean_flag (M : ℕ) (hM : 0 < M)
     (U : Matrix I I ℂ) (ψ : QState I) :
     Run (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ) (Qatlib.Concepts.LocalMachine.LocalTransport.controlOracle U))
@@ -433,6 +505,7 @@ theorem counted_offgrid_qpe_clean_flag (M : ℕ) (hM : 0 < M)
       (phaseThresholdLoop_resources M (M-1)).2.2⟩,
       tensorGate_unitary (conjTranspose_mem_unitaryGroup (qftMatrix_unitary hM)) (by simp)⟩
 
+/-- For `0 < a ≤ b ≤ π`, the sine ratio satisfies `sin b / b ≤ sin a / a`. -/
 private theorem sine_ratio_antitone {a b : ℝ} (ha : 0 < a) (hab : a ≤ b)
     (hb : b ≤ Real.pi) : Real.sin b / b ≤ Real.sin a / a := by
   have hc : ConvexOn ℝ (Icc 0 Real.pi) (fun x => -Real.sin x) :=
@@ -442,6 +515,8 @@ private theorem sine_ratio_antitone {a b : ℝ} (ha : 0 < a) (hab : a ≤ b)
     ⟨ha.le, hab.trans hb⟩ ⟨ha.le.trans hab, hb⟩ ha.ne' (ne_of_gt (ha.trans_le hab)) hab
   simpa only [Real.sin_zero, neg_zero, sub_zero, neg_div, neg_le_neg_iff] using! h
 
+/-- For the specified angles in `[0,π/2]`, the quadratic expression based at positive `a` is a
+lower bound for `cos x`. -/
 private theorem cosine_square_tangent {a x : ℝ} (ha : 0 < a)
     (ha1 : a ≤ Real.pi / 2) (hx0 : 0 ≤ x) (hx1 : x ≤ Real.pi / 2) :
     Real.cos a + Real.sin a / (2*a) * (a^2-x^2) ≤ Real.cos x := by
@@ -475,6 +550,7 @@ private theorem cosine_square_tangent {a x : ℝ} (ha : 0 < a)
   dsimp [f] at h
   linarith
 
+/-- For `s` in `[0,1]`, bound `(1-s^2)^2` by `cos(π*s/2)^2*(1+s^2)`. -/
 private theorem cosine_two_neighbour_bound {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s ≤ 1) :
     (1-s^2)^2 ≤ (Real.cos (Real.pi/2*s))^2*(1+s^2) := by
   have ht0 : 0 ≤ s^2 := sq_nonneg s
@@ -560,6 +636,8 @@ private theorem cosine_two_neighbour_bound {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s �
       have h := mul_nonneg hp (sq_nonneg (1-s^2))
       nlinarith only [hprod,h]
 
+/-- For `0 < δ < 1`, the two-neighbor sine expression `sin(π*δ)^2*(1/δ^2+1/(1-δ)^2)` is at least
+eight. -/
 theorem qpe_two_neighbour_scalar_bound {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ < 1) :
     8 ≤ (Real.sin (Real.pi*δ))^2 * (1/δ^2 + 1/(1-δ)^2) := by
   have hs0 : 0 ≤ |2*δ-1| := abs_nonneg _
@@ -583,6 +661,8 @@ theorem qpe_two_neighbour_scalar_bound {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ < 1
   rw [hc, sq_abs] at h
   nlinarith only [h]
 
+/-- For positive `M`, multiplying the QPE kernel by `M` and the geometric denominator gives
+`exp(2*π*I*M*φ)-1`, including the zero-denominator case. -/
 theorem qpeKernel_geometric_identity (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) :
     (M : ℂ) * qpeKernel M φ z *
         (Complex.exp (2*Real.pi*Complex.I*(φ-(z.val : ℝ)/(M : ℝ)))-1) =
@@ -607,6 +687,7 @@ theorem qpeKernel_geometric_identity (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < 
     simpa using! exp_two_pi_I_int (z.val : ℤ)
   rw [hi, div_one]
 
+/-- The chord norm `‖exp(2*π*I*t)-1‖` equals `2*|sin(π*t)|`. -/
 private theorem norm_exp_two_pi_sub_one (t : ℝ) :
     ‖Complex.exp (2*Real.pi*Complex.I*t)-1‖ = 2*|Real.sin (Real.pi*t)| := by
   have he : (2*Real.pi*Complex.I*t : ℂ) = Complex.I*((2*Real.pi*t : ℝ) : ℂ) := by
@@ -616,6 +697,8 @@ private theorem norm_exp_two_pi_sub_one (t : ℝ) :
     show (2*Real.pi*t)/2 = Real.pi*t by ring, Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- Under the given integer-offset representations and nonzero offset `r`, the squared kernel
+amplitude is at least `sin(π*δ)^2/(π^2*r^2)`. -/
 theorem qpeKernel_neighbour_lower (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) (n c : ℤ) (δ r : ℝ)
     (hn : (M : ℝ)*φ = (n : ℝ)+δ)
     (hr : φ-(z.val : ℝ)/(M : ℝ) = (c : ℝ)+r/(M : ℝ)) (hr0 : r ≠ 0) :
@@ -659,6 +742,7 @@ theorem qpeKernel_neighbour_lower (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 0 < M) 
   have h := pow_le_pow_left₀ (abs_nonneg (Real.sin (Real.pi*δ))) hs 2
   simpa only [mul_pow, sq_abs, mul_assoc, mul_comm, mul_left_comm] using! h
 
+/-- Circular phase distance is at most the absolute difference after subtracting any integer. -/
 theorem phaseDistance_le_integer_distance (x y : ℝ) (c : ℤ) : phaseDistance x y ≤ |x-y-(c : ℝ)| := by
   let n : ℤ := ⌊x-y+1/2⌋
   have hn0 : -(1/2 : ℝ) ≤ x-y-(n : ℝ) := by
@@ -681,12 +765,15 @@ theorem phaseDistance_le_integer_distance (x y : ℝ) (c : ℤ) : phaseDistance 
     have := neg_le_abs (x-y-(c : ℝ))
     linarith
 
+/-- The Fourier label obtained by reducing an integer modulo the positive register size. -/
 private def integerPhaseLabel (M : ℕ) (hM : 0 < M) (n : ℤ) : Fin M :=
   ⟨(n % (M : ℤ)).toNat, by
     have := Int.emod_nonneg n (show (M : ℤ) ≠ 0 by omega)
     have := Int.emod_lt_of_pos n (show (0 : ℤ) < M by omega)
     omega⟩
 
+/-- Decompose an integer into its phase-label representative plus `M` times its integer
+quotient. -/
 private theorem integerPhaseLabel_representative (M : ℕ) (hM : 0 < M) (n : ℤ) :
     (n : ℝ) = ((integerPhaseLabel M hM n).val : ℝ)+(M : ℝ)*((n / (M : ℤ) : ℤ) : ℝ) := by
   have hn := Int.emod_nonneg n (show (M : ℤ) ≠ 0 by omega)
@@ -696,6 +783,7 @@ private theorem integerPhaseLabel_representative (M : ℕ) (hM : 0 < M) (n : ℤ
   rw [← hz, mul_comm] at he
   exact_mod_cast he.symm
 
+/-- Consecutive integers have distinct reduced phase labels when `M ≥ 2`. -/
 private theorem integerPhaseLabel_ne_succ (M : ℕ) (hM : 2 ≤ M) (n : ℤ) :
     integerPhaseLabel M (by omega) n ≠ integerPhaseLabel M (by omega) (n+1) := by
   intro he
@@ -713,6 +801,8 @@ private theorem integerPhaseLabel_ne_succ (M : ℕ) (hM : 2 ≤ M) (n : ℤ) :
   simp at this
   omega
 
+/-- Express the difference between a phase and its reduced grid label using an integer quotient
+and the scaled phase offset. -/
 private theorem integerPhaseLabel_offset (M : ℕ) (hM : 0 < M) (φ : ℝ) (n : ℤ) :
     φ-((integerPhaseLabel M hM n).val : ℝ)/(M : ℝ) =
       ((n/(M : ℤ) : ℤ) : ℝ) + ((M : ℝ)*φ-(n : ℝ))/(M : ℝ) := by
@@ -721,6 +811,8 @@ private theorem integerPhaseLabel_offset (M : ℕ) (hM : 0 < M) (φ : ℝ) (n : 
   field_simp [hM0]
   nlinarith only [he]
 
+/-- For `M ≥ 2`, the total squared QPE-kernel amplitude within circular distance `1/M` of the
+phase is at least `8/π^2`. See [Brassard et al., Theorem 11][BrassardEtAl2002]. -/
 theorem offgrid_phase_window_probability (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
       phaseDistance φ ((z.val : ℝ)/(M : ℝ)) ≤ 1/(M : ℝ)),

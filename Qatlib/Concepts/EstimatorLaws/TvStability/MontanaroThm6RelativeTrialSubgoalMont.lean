@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm6RelativeTrialSubgoalStat
+
+/-!
+# Pilot-scaled relative quantum mean trial
+
+Proves the relative-error guarantee for one pilot-scaled layered quantum mean trial,
+corresponding to the relative-estimation step of Theorem 6 in [Montanaro2015]. A classical pilot
+average selects a scale, a good pilot ensures normalized second moment at most one, and the
+layered estimate is rescaled to the original mean.
+
+## Main statements
+
+* `theorem6_good_pilot_moments` controls the scale and second moment when the pilot has error at
+  most half the mean.
+* `theorem6_good_record_error` converts normalized layer accuracy into relative error.
+* `montanaroTheorem6RelativeTrialSubgoal` proves trial failure probability at most one quarter.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.SketchArith.TransposeAccess.FinDist
 
@@ -20,6 +41,8 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- Identifies the probability of an event on one sample with `SignedMean.mass` of that event
+under the same finite law. -/
 theorem theorem6_event_one_mass {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) :
     p.probEvent (fun ω : Fin 1 → X => E (ω 0)) = SignedMean.mass p E := by
@@ -39,6 +62,8 @@ theorem theorem6_event_one_mass {X : Type} [Fintype X] [DecidableEq X]
       SignedMean.mass, Finset.sum_filter]
   rfl
 
+/-- Shows that the pilot-scaled payoff is nonnegative whenever the original payoff is
+nonnegative. -/
 private theorem scaled_nonneg {I : Type} [Fintype I] (f : I → ℝ) (B : ℝ)
     (N : ℕ) (ω : Fin N → I) (hf : ∀ i, 0 ≤ f i) :
     ∀ i, 0 ≤ theorem6ScaledPayoff f B N ω i := by
@@ -49,6 +74,9 @@ private theorem scaled_nonneg {I : Type} [Fintype I] (f : I → ℝ) (B : ℝ)
     exact add_nonneg (mul_nonneg havg (by positivity)) (by split_ifs <;> norm_num)
   exact fun i => div_nonneg (hf i) hs
 
+/-- Shows that a pilot average within half the positive mean yields a positive scale at most `3
+* sqrt (B + 1)` times the mean and a scaled second moment at most one, assuming the relative
+variance bound. -/
 theorem theorem6_good_pilot_moments {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℝ) (B : ℝ) (N : ℕ) (ω : Fin N → I)
     (hB : 1 ≤ B) (hμ : 0 < p.expect f)
@@ -95,6 +123,8 @@ theorem theorem6_good_pilot_moments {I : Type} [Fintype I] [DecidableEq I]
     rw [hssq]
     exact hraw.trans (by nlinarith [mul_le_mul_of_nonneg_left hcsq (by linarith : 0 ≤ B+1)])
 
+/-- Converts a layer-estimate error at most `2⁻ᵏ` into an output error at most `3 * sqrt (B + 1)
+* 2⁻ᵏ` times the mean, using the stated scale bounds. -/
 theorem theorem6_good_record_error {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℝ) (B : ℝ) (N k : ℕ)
     (ω : Fin N → I) (u : LayerRecord k)
@@ -118,6 +148,9 @@ theorem theorem6_good_record_error {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_right hscale' (by positivity)
     _ = _ := by ring
 
+/-- Proves the single-trial relative guarantee associated with Theorem 6 of [Montanaro2015]. The
+pilot-size, layer-accuracy, positive-mean, and relative-variance assumptions give failure
+probability at most `1 / 4`. -/
 theorem montanaroTheorem6RelativeTrialSubgoal : MontanaroTheorem6RelativeTrialSubgoal := by
   intro I _ _ A j f B ε N k hA hf hB _hε _hε1 hN hk hwindow μ hμ hv
   let p := signedMeanSource A j hA

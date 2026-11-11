@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CollisionProb97.MainResults.TablePreparation
 import Qatlib.Papers.CollisionProb97.MainResults.TableLookup
+
+/-!
+# Correctness of table record recovery
+
+This module relates indexed read-only memory to the record lists used by lookup and internal
+collision detection. It certifies the classical record operations in the collision and claw
+constructions of [BrassardHoyerTapp1998Collision].
+
+The theorem `early_correct` validates an internal collision in a loaded table, while
+`no_early_injective` supplies the injectivity hypothesis required for marked-set counting when
+no collision is found.
+
+## Main statements
+
+* `recover_sound`: For accurate table memory, successful recovery returns a stored input with
+  the supplied value and preserves the supplied input component.
+* `early_correct`: An internal pair found in a table loaded from `K` consists of distinct
+  members of `K` with equal function values.
+* `no_early_injective`: If the loaded table has no detected internal collision, `F` is injective
+  on `K`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,17 +41,21 @@ open scoped Classical
 namespace Qatlib.Papers.CollisionProb97.MainResults.TableRecords
 variable {S X R : Type} [DecidableEq S] [DecidableEq R]
 
+/-- The list of records obtained by enumerating every index of the read-only table memory. -/
 def rows {k : ℕ} (L : ReadOnlyTable.Memory (X := S) (R := R) k) : List (S × R) :=
   List.ofFn L
 
 omit [DecidableEq S] [DecidableEq R] in
 
+/-- A record belongs to `rows L` exactly when it occurs at some memory index. -/
 theorem mem_rows {k : ℕ} (L : ReadOnlyTable.Memory (X := S) (R := R) k) (p : S × R) :
     p ∈ rows L ↔ ∃ i, L i = p := by
   simp [rows, List.mem_ofFn]
 
 omit [DecidableEq S] in
 
+/-- A value occurring in table memory permits recovery of a stored matching input paired with
+the supplied input. -/
 theorem recover_exists {k : ℕ} (L : ReadOnlyTable.Memory (X := S) (R := R) k)
     (p : X × R) (hp : p.2 ∈ ReadOnlyTable.values L) :
     ∃ s, TableLookup.recover (rows L) p = some (s,p.1) ∧ (s,p.2) ∈ rows L := by
@@ -36,6 +66,8 @@ theorem recover_exists {k : ℕ} (L : ReadOnlyTable.Memory (X := S) (R := R) k)
 
 omit [DecidableEq S] in
 
+/-- For accurate table memory, successful recovery returns a stored input with the supplied
+value and preserves the supplied input component. -/
 theorem recover_sound {k : ℕ} (F : S → R)
     (L : ReadOnlyTable.Memory (X := S) (R := R) k)
     (hL : ∀ i, (L i).2 = F (L i).1) (p : X × R) (s : S) (x : X)
@@ -57,6 +89,8 @@ variable [Fintype S]
 
 omit [Fintype S] [DecidableEq R] in
 
+/-- A record occurs in the table loaded from `K` exactly when its input is in `K` and its value
+is the corresponding `F`-value. -/
 theorem loaded_mem (F : S → R) (K : Finset S) (s : S) (z : R) :
     (s,z) ∈ rows (TablePreparation.loaded F (TablePreparation.inputs K)) ↔ s ∈ K ∧ z = F s := by
   rw [mem_rows]
@@ -80,6 +114,8 @@ theorem loaded_mem (F : S → R) (K : Finset S) (s : S) (z : R) :
 
 omit [Fintype S] in
 
+/-- An internal pair found in a table loaded from `K` consists of distinct members of `K` with
+equal function values. -/
 theorem early_correct (F : S → R) (K : Finset S) (s t : S)
     (h : TableLookup.internal (rows (TablePreparation.loaded F (TablePreparation.inputs K))) = some (s,t)) :
     s ∈ K ∧ t ∈ K ∧ s ≠ t ∧ F s = F t := by
@@ -90,6 +126,7 @@ theorem early_correct (F : S → R) (K : Finset S) (s t : S)
 
 omit [Fintype S] in
 
+/-- If the loaded table has no detected internal collision, `F` is injective on `K`. -/
 theorem no_early_injective (F : S → R) (K : Finset S)
     (h : TableLookup.internal (rows (TablePreparation.loaded F (TablePreparation.inputs K))) = none) :
     Set.InjOn F (K : Set S) := by

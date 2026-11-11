@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+
+/-!
+# Statement of optimized adversary composition
+
+`Theorem13OptimizedComposition` states a lower bound for the optimized adversary value of a
+Boolean composition. It quantifies over nonconstant inner functions on finite types, positive
+inner input lengths, and nonnegative coordinate costs, allowing outer costs bounded by the inner
+adversary values.
+
+The proposition formalizes the composition principle associated with Theorem 13 of
+[HoyerLeeSpalek2007].
+
+## Main statements
+
+* `Theorem13OptimizedComposition`: states the optimized weighted adversary composition
+  inequality.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +37,10 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open scoped ENNReal
 
+/-- The proposition that the composed optimized adversary bound dominates the outer bound when
+each outer cost is bounded by the corresponding inner bound, under the stated nonconstancy,
+input-length, and coordinate-cost assumptions. See [Hoyer, Lee, and Spalek, Theorem
+13][HoyerLeeSpalek2007]. -/
 def Theorem13OptimizedComposition : Prop :=
   ∀ (k : ℕ) (X : Fin k → Type) [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (n : Fin k → ℕ) (hne : ∀ i, 0 < n i)

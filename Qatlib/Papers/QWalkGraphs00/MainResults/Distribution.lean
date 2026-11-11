@@ -10,6 +10,27 @@ import Mathlib.Algebra.Star.BigOperators
 import Mathlib.Topology.Algebra.Order.Field
 import Mathlib.Tactic
 import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+
+/-!
+# Spectral formulas for limiting vertex distributions
+
+This module expands vertex probabilities and their finite averages in a supplied eigenvector
+decomposition. Unit-modulus eigenvalues make the time average retain exactly the pairs with
+equal eigenvalues; distinct eigenvalues reduce the limit to a weighted sum of eigenvector vertex
+weights, as in [AharonovEtAl2001Walks].
+
+## Main statements
+
+* `avgNodeProb_eq_spectral`: expresses the finite average using geometric averages.
+* `limiting_distribution_spectral`: gives the limit including repeated eigenvalues.
+* `limiting_distribution_distinct_eigenvalues`: gives the diagonal formula for distinct
+  eigenvalues.
+
+## References
+
+* [Aharonov et al., 2001][AharonovEtAl2001Walks]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +44,8 @@ open Qatlib.Papers.QWalkGraphs00.MainResults.Core
 
 variable {Coin V : Type*} [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V]
 
+/-- The squared norm of a finite complex sum is the real part of its double sum of conjugate
+products. -/
 theorem normSq_sum_finset {ι : Type*} [Fintype ι] (f : ι → ℂ) :
     Complex.normSq (∑ j, f j) = (∑ i, ∑ j, f i * star (f j)).re := by
   have h1 : (∑ j, f j) * star (∑ j, f j) = ∑ i, ∑ j, f i * star (f j) := by
@@ -33,6 +56,8 @@ theorem normSq_sum_finset {ι : Type*} [Fintype ι] (f : ι → ℂ) :
         rw [Complex.star_def, Complex.mul_conj, Complex.ofReal_re]
     _ = _ := by rw [h1]
 
+/-- A vector satisfying the eigenvalue equation for `U` satisfies the corresponding equation for
+every natural power of `U`. -/
 theorem mulVec_pow_eigenvector
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -45,6 +70,8 @@ theorem mulVec_pow_eigenvector
       rw [pow_succ', ← Matrix.mulVec_mulVec, ih, Matrix.mulVec_smul, hφ j, smul_smul,
         pow_succ]
 
+/-- An eigenvector expansion of the initial state gives the coordinate expansion of its
+evolution under `U^t`. -/
 theorem mulVec_pow_state_coord
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -62,6 +89,8 @@ theorem mulVec_pow_state_coord
   simp only [Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- The vertex probability of a state with an eigenvector expansion is a double spectral sum
+over eigenvalue phase products and coin coordinates. -/
 theorem nodeProb_eq_spectral
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -95,12 +124,15 @@ theorem nodeProb_eq_spectral
           (φ i (c, v) * star (φ j (c, v)))).re := by
         rw [Complex.re_sum]
 
+/-- Multiplication of a real part by the real inverse of `T` equals taking the real part after
+multiplication by the complex inverse. -/
 theorem ofReal_inv_mul_re (T : ℕ) (Z : ℂ) :
     (T : ℝ)⁻¹ * Z.re = ((T : ℂ)⁻¹ * Z).re := by
   have hT : (T : ℂ) = ((T : ℝ) : ℂ) := (Complex.ofReal_natCast T).symm
   rw [hT, ← Complex.ofReal_inv, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- A normalized finite time sum commutes with a finite sum over indices. -/
 theorem inv_mul_sum_comm {ι : Type*} [Fintype ι]
     (g : ι → ℕ → ℂ) (T : ℕ) :
     (T : ℂ)⁻¹ * ∑ t ∈ Finset.range T, (∑ i, g i t)
@@ -115,6 +147,7 @@ theorem inv_mul_sum_comm {ι : Type*} [Fintype ι]
         intro i _
         rw [Finset.mul_sum]
 
+/-- Time-independent coefficients can be taken outside each normalized finite time sum. -/
 theorem mul_sum_comm {ι : Type*} [Fintype ι]
     (C : ι → ℂ) (g : ι → ℕ → ℂ) (T : ℕ) :
     (T : ℂ)⁻¹ * ∑ t ∈ Finset.range T, (∑ i, C i * g i t)
@@ -130,6 +163,8 @@ theorem mul_sum_comm {ι : Type*} [Fintype ι]
         rw [← Finset.mul_sum, ← Finset.mul_sum]
         ring
 
+/-- A normalized time sum of weighted powers equals the corresponding sum of weighted geometric
+averages. -/
 theorem geomAvg_sum_swap {ι : Type*} [Fintype ι]
     (C z : ι → ℂ) (T : ℕ) :
     (T : ℂ)⁻¹ * ∑ t ∈ Finset.range T, (∑ i, C i * z i ^ t)
@@ -137,6 +172,8 @@ theorem geomAvg_sum_swap {ι : Type*} [Fintype ι]
   rw [mul_sum_comm C (fun i t => z i ^ t) T]
   rfl
 
+/-- A normalized time sum with three finite index sums equals the triple sum weighted by the
+corresponding geometric averages. -/
 theorem geomAvg_sum_swap3 {κ ι ν : Type*} [Fintype κ] [Fintype ι] [Fintype ν]
     (C : κ → ι → ν → ℂ) (z : ι → ν → ℂ) (T : ℕ) :
     (T : ℂ)⁻¹ * ∑ t ∈ Finset.range T, (∑ k, ∑ i, ∑ j, C k i j * z i j ^ t)
@@ -150,6 +187,8 @@ theorem geomAvg_sum_swap3 {κ ι ν : Type*} [Fintype κ] [Fintype ι] [Fintype 
   rw [mul_sum_comm (C k i) (fun j t => z i j ^ t) T]
   rfl
 
+/-- The averaged vertex probability is the real part of the spectral coefficient sum weighted by
+geometric averages of eigenvalue products. -/
 theorem avgNodeProb_eq_spectral
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -191,6 +230,9 @@ theorem avgNodeProb_eq_spectral
     _ = (∑ c : Coin, ∑ i, ∑ j, C c i j * geomAvg (z i j) T).re := by
           rw [geomAvg_sum_swap3 C z T]
 
+/-- For unit-modulus eigenvalues and a supplied eigenvector expansion, averaged vertex
+probabilities converge to the spectral sum over equal-eigenvalue pairs. See [Aharonov et
+al., Theorem 3.4][AharonovEtAl2001Walks]. -/
 theorem limiting_distribution_spectral
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -296,6 +338,9 @@ theorem limiting_distribution_spectral
     Tendsto.congr' heq hre_lim
   rwa [hlim_eq] at hfinal
 
+/-- For distinct unit-modulus eigenvalues, the limiting vertex probability is the sum of squared
+coefficient norms times eigenvector vertex weights. See [Aharonov et al., Corollary
+3.5][AharonovEtAl2001Walks]. -/
 theorem limiting_distribution_distinct_eigenvalues
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)

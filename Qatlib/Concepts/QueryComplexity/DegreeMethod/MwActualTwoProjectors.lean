@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwRecordStatistics
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwSpectralMixture
+
+/-!
+# Two-projector mixtures and verifier promises
+
+A spectral frame for two orthogonal projectors expresses alternating measurement records as
+mixtures of Bernoulli record laws. `frontier1` supplies such a frame for concrete verifier and
+clean-subspace projectors, while the remaining results transfer spectral bounds and verifier
+promises to threshold error estimates.
+
+The mathematical background is developed in [MarriottWatrous2005].
+
+## Main statements
+
+* `clean_event_mixture`: expresses record-event mass as a spectral mixture.
+* `clean_threshold_soundness_of_promise`: bounds threshold acceptance under a uniform
+  no-instance promise.
+* `clean_threshold_completeness_of_promise`: constructs a clean witness with exponentially small
+  threshold rejection.
+
+## References
+
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Concepts.BlockEncoding
@@ -32,6 +56,10 @@ set_option linter.unusedSectionVars false
 
 variable {H W : Type} [Fintype H] [DecidableEq H] [Fintype W] [DecidableEq W]
 
+/-- For a unitary verifier and isometric witness embedding, there is an orthonormal
+clean-subspace frame with parameters in `[0, 1]` giving the spectral mixture formula for
+every embedded witness's alternating record mass. Every output of the clean projector also
+lies in the witness embedding's image. -/
 theorem frontier1 (U : Matrix H H ℂ) (S : Finset H) (E : Matrix H W ℂ)
     (hU : U ∈ unitaryGroup H ℂ) (hE : Eᴴ * E = 1) :
     let P := pulledAccept U S
@@ -54,6 +82,9 @@ theorem frontier1 (U : Matrix H H ℂ) (S : Finset H) (E : Matrix H W ℂ)
   rw [alternating_eq_branch, agreement_outcome]
   exact clean_record_mixture Q P hQ hP A t hA hAQ hdiag (E *ᵥ w) (clean_embed E hE w) z
 
+/-- Given a spectral frame diagonalizing the compressed projector, record-event mass from a
+clean state equals the sum of Bernoulli event masses weighted by its squared spectral
+coordinates. -/
 theorem clean_event_mixture {J : Type} [Fintype J] [DecidableEq J]
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)
@@ -74,6 +105,8 @@ theorem clean_event_mixture {J : Type} [Fintype J] [DecidableEq J]
   rw [recordWeight_ofFn]
   rfl
 
+/-- The mass of all length-`n` records from a normalized clean state is one under the stated
+spectral-frame hypotheses. -/
 theorem clean_record_total {J : Type} [Fintype J] [DecidableEq J]
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)
@@ -85,6 +118,8 @@ theorem clean_record_total {J : Type} [Fintype J] [DecidableEq J]
   simp only [eventMass, Finset.filter_true, (recordLaw n _ _).sum_one, mul_one]
   exact (clean_spectral_weights_sum_one Q A hA hAQ ψ hψ hnψ).2
 
+/-- A common upper bound on every Bernoulli component's event probability also bounds the
+record-event mass of a normalized clean state. -/
 theorem clean_event_bound {J : Type} [Fintype J] [DecidableEq J]
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)
@@ -102,6 +137,9 @@ theorem clean_event_bound {J : Type} [Fintype J] [DecidableEq J]
       rw [← Finset.sum_mul, (clean_spectral_weights_sum_one Q A hA hAQ ψ hψ hnψ).2,
         one_mul]
 
+/-- If every spectral parameter is at least `d > 0` below the threshold, a normalized clean
+state exceeds the agreement threshold with probability at most `2 * exp (-2 * (n * d)^2 /
+n)` for `n > 0`. -/
 theorem clean_threshold_soundness {J : Type} [Fintype J] [DecidableEq J]
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)
@@ -124,6 +162,8 @@ theorem clean_threshold_soundness {J : Type} [Fintype J] [DecidableEq J]
 
 variable {J : Type} [Fintype J] [DecidableEq J]
 
+/-- The acceptance mass of a clean state is the weighted sum of spectral parameters, with
+weights given by its squared frame coordinates. -/
 theorem clean_single_accept_mixture
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (hA : IsIsometry A) (hAQ : A * Aᴴ = Q)
@@ -133,6 +173,8 @@ theorem clean_single_accept_mixture
   simpa [branchState, recordWeight] using!
     clean_record_mixture Q P hQ hP A t hA hAQ hdiag ψ hψ [true]
 
+/-- If a normalized clean state's acceptance mass is at least `a`, some spectral parameter is at
+least `a`. -/
 theorem clean_yes_spectral_index
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (hA : IsIsometry A) (hAQ : A * Aᴴ = Q)
@@ -157,6 +199,8 @@ theorem clean_yes_spectral_index
       exact mul_le_mul_of_nonneg_left (hmax i (Finset.mem_univ i)) (hweights.1 i)
     _ = t j := by rw [← Finset.sum_mul, hweights.2, one_mul]
 
+/-- Acceptance mass at least `a` for a normalized clean state yields a normalized clean
+eigenvector with a compressed-projector eigenvalue in `[0, 1]` that is at least `a`. -/
 theorem clean_yes_eigen_witness
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)
@@ -172,6 +216,8 @@ theorem clean_yes_eigen_witness
   refine ⟨(fun h => A h j), t j, ht j, hj, ?_, hfix j, heig j⟩
   exact (normalized_iff_inner_self _).mpr (by simpa using! hv j j)
 
+/-- A uniform acceptance bound `b` on normalized clean states bounds every parameter in the
+stated spectral frame by `b`. -/
 theorem clean_no_spectral_bound
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (hA : IsIsometry A) (hAQ : A * Aᴴ = Q)
@@ -190,6 +236,9 @@ theorem clean_no_spectral_bound
   rw [← hsingle]
   exact hno φ hnφ (hfix j)
 
+/-- A uniform clean-state acceptance bound `b` and a gap `b + d ≤ threshold` give threshold
+acceptance probability at most `2 * exp (-2 * (n * d)^2 / n)` for a normalized clean state
+and `n, d > 0`. -/
 theorem clean_threshold_soundness_of_promise
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)
@@ -207,6 +256,9 @@ theorem clean_threshold_soundness_of_promise
   intro j
   linarith [clean_no_spectral_bound Q P hQ hP A t hA hAQ hdiag b hno j]
 
+/-- If some normalized clean state has acceptance at least `a` and `threshold + d ≤ a`, there is
+a normalized clean state whose threshold rejection probability is at most `2 * exp (-2 * (n
+* d)^2 / n)` for `n, d > 0`. -/
 theorem clean_threshold_completeness_of_promise
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (ht : ∀ j, t j ∈ Set.Icc 0 1)

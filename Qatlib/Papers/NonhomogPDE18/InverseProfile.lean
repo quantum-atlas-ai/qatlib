@@ -8,25 +8,52 @@ import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Limits of the modeled inverse profile
+
+Defines a finite-cutoff scalar inverse profile `modeledF` and its scaled eigenvalue expression
+`modeledEigenvalue`. The profile converges as the cutoff tends to infinity, and its limiting
+expression tends to the reciprocal of a nonzero spectral parameter as the precision parameter
+tends to zero. See [ArrazolaEtAl2019].
+
+## Main statements
+
+* `modeledEigenvalue_eq`: the eigenvalue expression is a scalar multiple of the profile.
+* `modeledF_atTop`: the cutoff limit has an explicit regularized expression.
+* `modeledF_zero_precision`: the regularized expression tends to 1/a.
+
+## References
+
+* [Arrazola et al., 2019][ArrazolaEtAl2019]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.NonhomogPDE18.InverseProfile
 
+/-- The modeled finite-cutoff inverse profile with cutoff `L`, precision `Δ`, and spectral
+parameter `a`. -/
 def modeledF (L Δ a : ℝ) : ℝ :=
   a * (1 - Real.exp (-(L ^ 2 * (a ^ 2 + Δ ^ 2 + Δ ^ 4)) / (2 * (1 + Δ ^ 2)))) /
     (Real.sqrt (1 + Δ ^ 2) * (a ^ 2 + Δ ^ 2 + Δ ^ 4))
 
+/-- The modeled eigenvalue expression obtained from the finite-cutoff profile with its Gaussian
+prefactor. -/
 def modeledEigenvalue (L Δ a : ℝ) : ℝ :=
   2 * a * Real.sqrt Real.pi * Δ *
       (1 - Real.exp (-(L ^ 2 * (a ^ 2 + Δ ^ 2 + Δ ^ 4)) / (2 * (1 + Δ ^ 2)))) /
     (Real.sqrt (1 + Δ ^ 2) * (a ^ 2 + Δ ^ 2 + Δ ^ 4))
 
+/-- The modeled eigenvalue equals `2 * Real.sqrt Real.pi * Δ * modeledF L Δ a`. See
+[ArrazolaEtAl2019]. -/
 theorem modeledEigenvalue_eq (L Δ a : ℝ) :
     modeledEigenvalue L Δ a = 2 * Real.sqrt Real.pi * Δ * modeledF L Δ a := by
   unfold modeledEigenvalue modeledF
   ring
 
+/-- For positive `Δ` and nonzero `a`, the cutoff profile tends to a/(sqrt(1 + Δ^2)(a^2 + Δ^2 +
+Δ^4)) as `L` tends to infinity. See [ArrazolaEtAl2019]. -/
 theorem modeledF_atTop {Δ : ℝ} (hΔ : 0 < Δ) {a : ℝ} (ha : a ≠ 0) :
     Filter.Tendsto (fun L : ℝ => modeledF L Δ a) Filter.atTop
       (nhds (a / (Real.sqrt (1 + Δ ^ 2) * (a ^ 2 + Δ ^ 2 + Δ ^ 4)))) := by
@@ -63,6 +90,8 @@ theorem modeledF_atTop {Δ : ℝ} (hΔ : 0 < Δ) {a : ℝ} (ha : a ≠ 0) :
   have := hnum.div_const (Real.sqrt (1 + Δ ^ 2) * (a ^ 2 + Δ ^ 2 + Δ ^ 4))
   simpa [modeledF] using this
 
+/-- For nonzero `a`, the limiting regularized profile tends to `1 / a` as `Δ` tends to zero. See
+[ArrazolaEtAl2019]. -/
 theorem modeledF_zero_precision {a : ℝ} (ha : a ≠ 0) :
     Filter.Tendsto
       (fun Δ : ℝ => a / (Real.sqrt (1 + Δ ^ 2) * (a ^ 2 + Δ ^ 2 + Δ ^ 4)))

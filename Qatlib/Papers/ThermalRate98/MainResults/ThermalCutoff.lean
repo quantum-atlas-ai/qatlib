@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
+
+/-!
+# Weighted thermal cutoff bounds
+
+This module bounds the high-energy contribution to the finite spectral correlation sum in
+[LidarWang1999]. With positive inverse temperature, nonnegative energies, and uniform bounds on
+energy gaps and overlaps, each tail summand is controlled by an exponential cutoff factor times
+the squared gap and overlap bounds.
+
+`weighted_tail_bound` includes the number of index pairs, and `weighted_cutoff_epsilon` gives a
+sufficient logarithmic cutoff for a prescribed error. Further identities describe tail
+multiplicity, strict positivity of Boltzmann tails, and the decomposition into active and tail
+contributions.
+
+## Main statements
+
+* `eq16Summand_norm_tail_le`: bounds an individual summand with at least one energy above the
+  cutoff.
+* `weighted_tail_bound`: bounds the sum of tail norms including the dimension factor.
+* `weighted_cutoff_epsilon`: gives a sufficient cutoff for a positive error tolerance.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,14 +41,19 @@ namespace Qatlib.Papers.ThermalRate98.MainResults
 open scoped BigOperators
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The pairwise thermal weight `exp (-β * (E n + E m) / 2)`. -/
 def boltzmannPair (β : ℝ) (E : I → ℝ) (n m : I) : ℝ :=
   Real.exp (-(β * (E n + E m)) / 2)
 
+/-- The spectral correlation summand consisting of a thermal factor, an oscillatory phase, a
+squared energy gap, and a squared overlap norm. -/
 def eq16Summand (β t ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) (n m : I) : ℂ :=
   Complex.exp (-(β * (E n + E m)) / 2) *
     Complex.exp (Complex.I * ((E m - E n) * t / ħ)) *
     (((E n - E m : ℝ) : ℂ) ^ 2) * (Complex.normSq (S n m) : ℂ)
 
+/-- The norm of a spectral correlation summand is its real thermal weight times the squared
+energy gap and squared overlap norm. -/
 theorem eq16Summand_norm (β t ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) (n m : I) :
     ‖eq16Summand β t ħ E S n m‖ =
       Real.exp (-(β * (E n + E m)) / 2) * (E n - E m) ^ 2 * ‖S n m‖ ^ 2 := by
@@ -45,11 +76,14 @@ theorem eq16Summand_norm (β t ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) (
   rw [hthermal, hphase, hgap, hov]
   ring
 
+/-- The pairwise thermal weight is symmetric in its two indices. -/
 theorem boltzmannPair_comm (β : ℝ) (E : I → ℝ) (n m : I) :
     boltzmannPair β E n m = boltzmannPair β E m n := by
   unfold boltzmannPair
   rw [add_comm]
 
+/-- For positive inverse temperature and nonnegative energies, a pair whose first energy is at
+least `E_c` has thermal weight at most `exp (-β * E_c / 2)`. -/
 theorem boltzmannPair_tail_le (β E_c : ℝ) (hβ : 0 < β) (E : I → ℝ)
     (hE0 : ∀ k, 0 ≤ E k) (n m : I) (hn : E_c ≤ E n) :
     boltzmannPair β E n m ≤ Real.exp (-(β * E_c) / 2) := by
@@ -58,14 +92,19 @@ theorem boltzmannPair_tail_le (β E_c : ℝ) (hβ : 0 < β) (E : I → ℝ)
   have hm : 0 ≤ E m := hE0 m
   nlinarith
 
+/-- The finite set of indices with energy at least the cutoff `E_c`. -/
 def energyTail (E : I → ℝ) (E_c : ℝ) : Finset I := by
   classical
   exact Finset.univ.filter (fun k => E_c ≤ E k)
 
+/-- The finite set of index pairs having at least one energy at or above the cutoff `E_c`. -/
 def tailPairs (E : I → ℝ) (E_c : ℝ) : Finset (I × I) := by
   classical
   exact Finset.univ.filter (fun p => E_c ≤ E p.1 ∨ E_c ≤ E p.2)
 
+/-- For positive inverse temperature and nonnegative energies, a summand with at least one
+energy at or above the cutoff is bounded in norm by the cutoff exponential times the squared
+uniform gap and overlap bounds. See [LidarWang1999]. -/
 theorem eq16Summand_norm_tail_le (β t ħ E_c gap ov : ℝ) (hβ : 0 < β)
     (E : I → ℝ) (hE0 : ∀ k, 0 ≤ E k) (S : I → I → ℂ)
     (hgap : ∀ n m, |E n - E m| ≤ gap) (hov : ∀ n m, ‖S n m‖ ≤ ov)
@@ -96,6 +135,9 @@ theorem eq16Summand_norm_tail_le (β t ħ E_c gap ov : ℝ) (hβ : 0 < β)
         · positivity
         · apply mul_nonneg (Real.exp_pos _).le (sq_nonneg _)
 
+/-- For positive inverse temperature, nonnegative energies, and uniform gap and overlap bounds,
+the sum of tail summand norms is at most the squared dimension times the cutoff exponential
+and the squared bounds. See [LidarWang1999]. -/
 theorem weighted_tail_bound (β t ħ E_c gap ov : ℝ) (hβ : 0 < β)
     (E : I → ℝ) (hE0 : ∀ k, 0 ≤ E k) (S : I → I → ℂ)
     (hgap : ∀ n m, |E n - E m| ≤ gap) (hov : ∀ n m, ‖S n m‖ ≤ ov) :
@@ -130,6 +172,8 @@ theorem weighted_tail_bound (β t ħ E_c gap ov : ℝ) (hβ : 0 < β)
     _ = (Fintype.card I : ℝ) ^ 2 * Real.exp (-(β * E_c) / 2) * gap ^ 2 * ov ^ 2 := by
         ring
 
+/-- Under the positivity and uniform bound hypotheses, the stated logarithmic lower bound on
+`E_c` makes the sum of tail summand norms at most positive `ε`. See [LidarWang1999]. -/
 theorem weighted_cutoff_epsilon (β t ħ E_c gap ov ε : ℝ) (hβ : 0 < β) (hε : 0 < ε)
     (hgap0 : 0 < gap) (hov0 : 0 < ov) [Nonempty I]
     (E : I → ℝ) (hE0 : ∀ k, 0 ≤ E k) (S : I → I → ℂ)
@@ -172,10 +216,14 @@ theorem weighted_cutoff_epsilon (β t ħ E_c gap ov ε : ℝ) (hβ : 0 < β) (h�
   rw [hleft, hright] at hAle
   exact hAle
 
+/-- The sum of `k` identical Boltzmann weights equals `k` times that weight. See
+[LidarWang1999]. -/
 theorem boltzmann_tail_multiplicity (k : ℕ) (β E₀ : ℝ) :
     (∑ _n : Fin k, Real.exp (-(β * E₀))) = (k : ℝ) * Real.exp (-(β * E₀)) := by
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- For positive inverse temperature and positive energy, the Boltzmann weight is strictly
+between zero and one. -/
 theorem boltzmann_tail_not_zero (β E₀ : ℝ) (hβ : 0 < β) (hE : 0 < E₀) :
     0 < Real.exp (-(β * E₀)) ∧ Real.exp (-(β * E₀)) < 1 := by
   constructor
@@ -183,6 +231,8 @@ theorem boltzmann_tail_not_zero (β E₀ : ℝ) (hβ : 0 < β) (hE : 0 < E₀) :
   · rw [← Real.exp_zero, Real.exp_lt_exp]
     nlinarith
 
+/-- In the two-level example, the tail over the true index equals `exp (-β * E₀ / 2)` and lies
+strictly between zero and one for positive `β` and `E₀`. -/
 theorem boltzmann_tail_example (β E₀ : ℝ) (hβ : 0 < β) (hE : 0 < E₀) :
     (∑ m ∈ Finset.univ.filter (fun b : Bool => b = true),
         Real.exp (-(β * ((if m then E₀ else 0) + (0 : ℝ))) / 2)) =
@@ -195,6 +245,8 @@ theorem boltzmann_tail_example (β E₀ : ℝ) (hβ : 0 < β) (hE : 0 < E₀) :
   · exact Real.exp_pos _
   · rw [← Real.exp_zero, Real.exp_lt_exp]; nlinarith
 
+/-- The sum over pairs outside the thermal tail plus the sum over tail pairs equals the sum over
+all pairs. See [LidarWang1999]. -/
 theorem tail_add_active (f : I × I → ℝ) (E : I → ℝ) (E_c : ℝ) :
     (∑ p ∈ (Finset.univ \ tailPairs E E_c), f p) +
       (∑ p ∈ tailPairs E E_c, f p) = ∑ p, f p := by

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
+
+/-!
+# Function evaluation norm sandwich
+
+This module compares the alphabet-query adversary value with the rectangular filtered value of
+`gramFunctionEvaluationMatrix`. The identity `sourceAdversary_eq_masked` and an unfiltered
+evaluation-matrix bound give the two-sided comparison in `functionEvaluationNormSandwich`, with
+factor `2 * (1 - 1 / Fintype.card E)` [LeeEtAl2011].
+
+## Main statements
+
+* `sourceUnfiltered_functionEvaluation`: The unfiltered value of the function-evaluation matrix
+  is bounded by `2 * (1 - 1 / Fintype.card E)`.
+
+* `sourceAdversary_eq_masked`: The adversary value equals the rectangular filtered value of the
+  function-evaluation matrix with output-masked alphabet filters.
+
+* `functionEvaluationNormSandwich`: The adversary value and the rectangular query-filtered value
+  satisfy the function-evaluation sandwich with factor `2 * (1 - 1 / Fintype.card E)`, together
+  with the masked-value identity and unfiltered bound [LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +47,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- A Gram filtered certificate on a square matrix yields a rectangular filtered certificate
+with the same budget. -/
 theorem sourceRectCert_of_gram {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {w : ℝ} (h : gramFilteredCert A Z w) :
     sourceRectCert n A Z w := by
@@ -28,6 +56,8 @@ theorem sourceRectCert_of_gram {X : Type} {n : ℕ} {A : Matrix X X ℂ}
   exact sourceRectCert_of_finiteWitness (fun r j => u j r) (fun s j => v j s)
     (by simpa only [dotProduct,Pi.star_apply] using! heq) hu hv
 
+/-- The function-evaluation budget `2 * (1 - 1 / Fintype.card E)` is nonnegative for every
+finite output type. -/
 theorem sourceFunctionEvaluation_budget_nonneg {E : Type} [Fintype E] :
     0 ≤ 2*(1-1/(Fintype.card E : ℝ)) := by
   by_cases hz : Fintype.card E = 0
@@ -38,12 +68,17 @@ theorem sourceFunctionEvaluation_budget_nonneg {E : Type} [Fintype E] :
     simpa using! one_div_le_one_div_of_le (by norm_num : (0 : ℝ)<1) hcard
   linarith
 
+/-- The unfiltered value of the function-evaluation matrix is bounded by `2 * (1 - 1 /
+Fintype.card E)`. -/
 theorem sourceUnfiltered_functionEvaluation {X E : Type} [Fintype E] [DecidableEq E]
     (f : X → E) : sourceUnfiltered (gramFunctionEvaluationMatrix f) ≤
       ENNReal.ofReal (2*(1-1/(Fintype.card E : ℝ))) :=
   sourceRectValue_le_of_cert sourceFunctionEvaluation_budget_nonneg
     (sourceRectCert_of_gram (gramFilteredCert_gramFunctionEvaluation f))
 
+/-- A multiplier feasible for output-masked alphabet filters yields a real Hermitian adversary
+matrix vanishing on equal outputs, with feasible unmasked filters and at least the original
+objective norm. -/
 theorem sourceAlphabet_masked_real_symmetrization {X E : Type} [Fintype X] [DecidableEq X]
     [DecidableEq E] {n q : ℕ} (input : X → Fin n → Fin (q+1))
     (f : X → E) (M : Matrix X X ℂ)
@@ -110,6 +145,8 @@ theorem sourceAlphabet_masked_real_symmetrization {X E : Type} [Fintype X] [Deci
   · intro x y
     simp [Γ,gamma2RealPart]
 
+/-- The adversary value equals the rectangular filtered value of the function-evaluation matrix
+with output-masked alphabet filters. -/
 theorem sourceAdversary_eq_masked {X E : Type} [Fintype X] [DecidableEq X]
     [DecidableEq E] {n q : ℕ} (input : X → Fin n → Fin (q+1)) (f : X → E) :
     sourceAdversary (sourceAlphabetDelta input) f=
@@ -137,11 +174,15 @@ theorem sourceAdversary_eq_masked {X E : Type} [Fintype X] [DecidableEq X]
     exact le_iSup_of_le ⟨Γ,hherm,hreal,hzero,fun j => by
       rw [Matrix.hadamard_comm]; exact hfilter j⟩ (ENNReal.ofReal_le_ofReal hbound)
 
+/-- The function-evaluation matrix is idempotent under entrywise multiplication. -/
 theorem sourceFunctionEvaluation_hadamard_self {X E : Type} [DecidableEq E] (f : X → E) :
     gramFunctionEvaluationMatrix f ⊙ gramFunctionEvaluationMatrix f=gramFunctionEvaluationMatrix f := by
   ext x y
   by_cases hh : f x=f y <;> simp [gramFunctionEvaluationMatrix,Matrix.hadamard_apply,hh]
 
+/-- The adversary value and the rectangular query-filtered value satisfy the function-evaluation
+sandwich with factor `2 * (1 - 1 / Fintype.card E)`, together with the masked-value identity
+and unfiltered bound [LeeEtAl2011]. -/
 theorem functionEvaluationNormSandwich : FunctionEvaluationNormSandwich := by
   intro X E _ _ _ _ n q input f
   let A := gramFunctionEvaluationMatrix f

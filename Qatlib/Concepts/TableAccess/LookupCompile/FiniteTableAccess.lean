@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccessDefs
 import Mathlib.Data.Nat.Bitwise
+
+/-!
+# Coherent compilation of finite table lookup
+
+This module compiles finite Boolean expression families into a common `BooleanDAG` and proves
+correctness and size bounds for enabled finite-table lookup expressions. The resulting
+reflection circuit implements coherent XOR lookup with zero oracle queries and restores the
+clean auxiliary wires.
+
+The reversible compute-and-uncompute viewpoint follows the circuit framework of
+[NielsenChuang2010]. The theorem `g3` also shows that applying the same lookup circuit twice
+restores every embedded input state.
+
+## Main statements
+
+* `g1`: Boolean expression families compiled with a node-count bound
+* `g2`: enabled lookup correctness and total expression size
+* `g3`: coherent reflection compilation, resources, and involution on embedded states
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -19,12 +43,15 @@ open Matrix
 open scoped BigOperators
 set_option autoImplicit false
 
+/-- Appending a Boolean DAG node preserves the values of all existing wires. -/
 private theorem snoc_old {m n : ℕ} (g : BooleanDAG m n) (node : BooleanNode (m+n))
     (x : Reg m) (i : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) i) = booleanDAGValue g x i := by
   change booleanDAGValue (g.snoc node) x i.castSucc = _
   simp only [booleanDAGValue, Fin.lastCases_castSucc]
 
+/-- The final wire of a DAG with an appended node evaluates that node against the previous wire
+values. -/
 private theorem snoc_last {m n : ℕ} (g : BooleanDAG m n) (node : BooleanNode (m+n))
     (x : Reg m) :
     booleanDAGValue (g.snoc node) x (Fin.last (m+n)) = booleanNodeValue node (booleanDAGValue g x) := by
@@ -32,12 +59,15 @@ private theorem snoc_last {m n : ℕ} (g : BooleanDAG m n) (node : BooleanNode (
   exact Fin.lastCases_last (n := m+n) (motive := fun _ => Bool)
     (last := booleanNodeValue node (booleanDAGValue g x)) (cast := booleanDAGValue g x)
 
+/-- A Boolean DAG's input wires retain the supplied input values. -/
 private theorem dag_input {m n : ℕ} (g : BooleanDAG m n) (x : Reg m) (i : Fin m) :
     booleanDAGValue g x (Fin.castLE (by omega) i) = x i := by
   induction g with
   | nil => rfl
   | @snoc n g node ih => exact (snoc_old g node x _).trans ih
 
+/-- A Boolean expression can be compiled by extending an existing DAG with at most its node
+count, preserving existing wires and producing a wire with the expression's value. -/
 private theorem compile_expr {m : ℕ} (e : Expr m) {n : ℕ} (g : BooleanDAG m n) :
     ∃ (k : ℕ) (h : BooleanDAG m k) (w : Fin (m+k)),
       ∃ (hnk : n ≤ k), k ≤ n + nodes e ∧
@@ -84,6 +114,8 @@ private theorem compile_expr {m : ℕ} (e : Expr m) {n : ℕ} (g : BooleanDAG m 
       rw [snoc_last]
       simp only [booleanNodeValue,wa',hpb,hwa,hwb,eval]
 
+/-- A finite family of Boolean expressions compiles into one DAG with at most the sum of their
+node counts and an output wire computing each expression. -/
 theorem g1 :
     ∀ (m o : ℕ) (es : Fin o → Expr m),
       ∃ (k : ℕ) (g : BooleanDAG m k) (out : Fin o → Fin (m+k)),
@@ -107,6 +139,8 @@ theorem g1 :
       · simpa only [Fin.lastCases_last] using hw x
       · simpa only [Fin.lastCases_castSucc] using (hp x (out i)).trans (ho x i)
 
+/-- The folded conjunction over an address-bit list is true exactly when all listed bits match
+the row index. -/
 private theorem matching_list (a b : ℕ) (s : Fin (2^a))
     (x : Reg (inputs a b)) (ls : List (Fin a)) :
     eval (ls.foldr (fun i z => Expr.conj
@@ -119,12 +153,15 @@ private theorem matching_list (a b : ℕ) (s : Fin (2^a))
     cases ht : s.val.testBit i.val <;>
       simp [List.foldr_cons,eval,ht,ih, Bool.and_eq_true]
 
+/-- The row-matching expression is true exactly when every address bit matches the row's binary
+representation. -/
 private theorem matching_true (a b : ℕ) (s : Fin (2^a)) (x : Reg (inputs a b)) :
     eval (matchExpr a b s) x = true ↔
       ∀ i : Fin a, x (addressWire a b i) = s.val.testBit i.val := by
   simpa only [matchExpr, List.mem_finRange, forall_const] using
     matching_list a b s x (List.finRange a)
 
+/-- Two indices below `2 ^ a` are equal when their first `a` binary bits agree. -/
 private theorem row_ext (a : ℕ) (r s : Fin (2^a))
     (h : ∀ i : Fin a, r.val.testBit i.val = s.val.testBit i.val) : r = s := by
   apply Fin.ext
@@ -136,6 +173,8 @@ private theorem row_ext (a : ℕ) (r s : Fin (2^a))
     rw [Nat.testBit_eq_false_of_lt (r.isLt.trans_le hp),
       Nat.testBit_eq_false_of_lt (s.isLt.trans_le hp)]
 
+/-- When the input address encodes row `r`, the matching expression for `s` evaluates to the
+Boolean equality test `s = r`. -/
 private theorem matching_value (a b : ℕ) (x : Reg (inputs a b))
     (r s : Fin (2^a))
     (hx : ∀ i : Fin a, x (addressWire a b i) = r.val.testBit i.val) :
@@ -149,6 +188,7 @@ private theorem matching_value (a b : ℕ) (x : Reg (inputs a b))
       exact hs (row_ext a s r (fun i => (hm i).symm.trans (hx i)))
     cases he : eval (matchExpr a b s) x <;> simp_all
 
+/-- A row-matching expression uses at most `2 * a + 1` nodes. -/
 private theorem matching_nodes (a b : ℕ) (s : Fin (2^a)) :
     nodes (matchExpr a b s) ≤ 2*a+1 := by
   have h : ∀ ls : List (Fin a),
@@ -163,6 +203,8 @@ private theorem matching_nodes (a b : ℕ) (s : Fin (2^a)) :
         ↓reduceIte, nodes, List.length_cons] <;> omega
   simpa only [matchExpr, List.length_finRange] using h (List.finRange a)
 
+/-- For a duplicate-free list of rows, the folded lookup expression returns the enabled selected
+table bit when the addressed row is listed, and false otherwise. -/
 private theorem lookup_list (a b : ℕ) (x : Reg (inputs a b))
     (r : Fin (2^a)) (j : Fin b)
     (hx : ∀ i : Fin a, x (addressWire a b i) = r.val.testBit i.val)
@@ -182,6 +224,7 @@ private theorem lookup_list (a b : ℕ) (x : Reg (inputs a b))
       simp [hnot]
     · simp [hs, Ne.symm hs]
 
+/-- Each table lookup expression uses at most `1 + 2 ^ a * (2 * a + 5)` nodes. -/
 private theorem lookup_nodes (a b : ℕ) (j : Fin b) :
     nodes (lookupExpr a b j) ≤ 1+(2^a)*(2*a+5) := by
   have h : ∀ ls : List (Fin (2^a)),
@@ -197,6 +240,8 @@ private theorem lookup_nodes (a b : ℕ) (j : Fin b) :
       nlinarith
   simpa only [lookupExpr,List.length_finRange] using h (List.finRange (2^a))
 
+/-- The lookup expressions return the enabled table bits at the encoded address, and their total
+node count is at most `b * (1 + 2 ^ a * (2 * a + 5))`. -/
 theorem g2 :
     ∀ (a b : ℕ),
       (∀ (x : Reg (inputs a b)) (r : Fin (2^a)) (j : Fin b),
@@ -213,6 +258,9 @@ theorem g2 :
       _ ≤ ∑ _j : Fin b, (1+(2^a)*(2*a+5)) := Finset.sum_le_sum (fun j _ => lookup_nodes a b j)
       _ = _ := by simp
 
+/-- Finite table lookup possesses a legal reflection-compiled Boolean DAG with zero queries and
+at most `30 * k + b` gates, implementing coherent XOR lookup with clean auxiliary wires.
+Applying the same compiled circuit twice restores every embedded input state. -/
 theorem g3 :
     ∀ (a b : ℕ),
       ∃ (k : ℕ) (g : BooleanDAG (inputs a b) k)

@@ -16,6 +16,30 @@ import Mathlib.Tactic.Ext
 import Mathlib.Tactic.NormNum
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
 
+/-!
+# CSS codespaces and dimension
+
+The structure `CssData` consists of compatible binary X-check and Z-check matrices. Their common
+fixed subspace is `cssCodespace`; qubit counts, rate, check weight, qubit incidence, and an
+extended-natural distance are also defined. This is the CSS construction of [CalderbankShor1996]
+and [Steane1996].
+
+The module identifies distance with the least weight of a zero-syndrome Pauli label outside the
+stabilizer row spaces. It computes the codespace dimension using a stabilizer representation and
+its character, obtaining `2 ^ c.encodedQubits`.
+
+## Main statements
+
+* `cssRank_add_le`: bounds the sum of check ranks by the physical qubit count.
+* `cssDistance_eq_logical`: characterizes distance using nontrivial logical Pauli labels.
+* `cssCodespace_finrank`: proves the CSS codespace dimension formula.
+
+## References
+
+* [Calderbank and Shor, 1996][CalderbankShor1996]
+* [Steane, 1996][Steane1996]
+-/
+
 open Qatlib.Concepts.CodingDecoding.CssTesters
 
 namespace Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
@@ -26,6 +50,8 @@ local instance fact_prime_two : Fact (Nat.Prime 2) := ⟨Nat.prime_two⟩
 
 variable {ι κX κZ : Type*} [Fintype ι] [Fintype κX] [Fintype κZ] [DecidableEq ι]
 
+/-- Binary X-check and Z-check matrices satisfying the CSS compatibility relation `hX * hZᵀ =
+0`. -/
 structure CssData (ι κX κZ : Type*) [Fintype ι] where
 
   hX : Matrix κX ι (ZMod 2)
@@ -34,54 +60,70 @@ structure CssData (ι κX κZ : Type*) [Fintype ι] where
 
   hcompat : hX * hZᵀ = 0
 
+/-- The cardinality of the physical qubit index type. -/
 def CssData.numQubits (_c : CssData ι κX κZ) : ℕ := Fintype.card ι
 
+/-- The physical qubit count minus the ranks of the X-check and Z-check matrices. -/
 noncomputable def CssData.encodedQubits (c : CssData ι κX κZ) : ℕ :=
   Fintype.card ι - Matrix.rank c.hX - Matrix.rank c.hZ
 
+/-- The rational ratio of the encoded qubit count to the physical qubit count. -/
 noncomputable def CssData.rate (c : CssData ι κX κZ) : ℚ :=
   (c.encodedQubits : ℚ) / (Fintype.card ι : ℚ)
 
+/-- The subspace of coefficient vectors fixed by a specified X-check operator. -/
 noncomputable def cssXCheckKernel (c : CssData ι κX κZ) (i : κX) :
     Submodule ℂ ((ι → ZMod 2) → ℂ) :=
   LinearMap.ker ((cssPauliX (c.hX i) - 1).mulVecLin)
 
+/-- The subspace of coefficient vectors fixed by a specified Z-check operator. -/
 noncomputable def cssZCheckKernel (c : CssData ι κX κZ) (j : κZ) :
     Submodule ℂ ((ι → ZMod 2) → ℂ) :=
   LinearMap.ker ((cssPauliZ (c.hZ j) - 1).mulVecLin)
 
+/-- The subspace fixed by every X-check operator. -/
 noncomputable def cssXStabilized (c : CssData ι κX κZ) :
     Submodule ℂ ((ι → ZMod 2) → ℂ) :=
   ⨅ i, cssXCheckKernel c i
 
+/-- The subspace fixed by every Z-check operator. -/
 noncomputable def cssZStabilized (c : CssData ι κX κZ) :
     Submodule ℂ ((ι → ZMod 2) → ℂ) :=
   ⨅ j, cssZCheckKernel c j
 
+/-- The intersection of the X-stabilized and Z-stabilized subspaces. -/
 noncomputable def cssCodespace (c : CssData ι κX κZ) : Submodule ℂ ((ι → ZMod 2) → ℂ) :=
   cssXStabilized c ⊓ cssZStabilized c
 
+/-- The minimum of the X-only and Z-only nontrivial logical weights, expressed in `ℕ∞`. -/
 noncomputable def cssDistance (c : CssData ι κX κZ) : ℕ∞ :=
   min (sInf {w : ℕ∞ | ∃ z : ι → ZMod 2, c.hX *ᵥ z = 0 ∧
       z ∉ LinearMap.range (Matrix.mulVecLin c.hZᵀ) ∧ (bitWeight z : ℕ∞) = w})
     (sInf {w : ℕ∞ | ∃ x : ι → ZMod 2, c.hZ *ᵥ x = 0 ∧
       x ∉ LinearMap.range (Matrix.mulVecLin c.hXᵀ) ∧ (bitWeight x : ℕ∞) = w})
 
+/-- The maximum Hamming weight among the X-check and Z-check rows. -/
 def CssData.checkWeight (c : CssData ι κX κZ) : ℕ :=
   max (Finset.univ.sup fun i => bitWeight (c.hX i))
     (Finset.univ.sup fun j => bitWeight (c.hZ j))
 
+/-- The maximum total number of X and Z checks incident on a physical qubit. -/
 def CssData.qubitIncidence (c : CssData ι κX κZ) : ℕ :=
   Finset.univ.sup fun p : ι =>
     (Finset.univ.filter fun i : κX => c.hX i p ≠ 0).card +
       (Finset.univ.filter fun j : κZ => c.hZ j p ≠ 0).card
 
+/-- The sum of the X-check and Z-check ranks is at most the number of physical qubits, as in the
+CSS dimension count of [CalderbankShor1996]. -/
 theorem cssRank_add_le (c : CssData ι κX κZ) :
     Matrix.rank c.hX + Matrix.rank c.hZ ≤ Fintype.card ι := by
   classical
   have h := Matrix.rank_add_rank_le_card_of_mul_eq_zero c.hcompat
   simpa only [Matrix.rank_transpose] using h
 
+/-- The CSS distance equals the infimum of weights of zero-syndrome Pauli labels outside the
+stabilizer row spaces. This is the stabilizer description of distance discussed in
+[Gottesman1997]. -/
 theorem cssDistance_eq_logical (c : CssData ι κX κZ) :
     cssDistance c = sInf {w : ℕ∞ | ∃ (x z : ι → ZMod 2),
       c.hX *ᵥ z = 0 ∧ c.hZ *ᵥ x = 0 ∧
@@ -121,14 +163,18 @@ theorem cssDistance_eq_logical (c : CssData ι κX κZ) :
       · exact fun h => hout h.1
       · simpa using hw
 
+/-- The binary row space of the X-check matrix. -/
 private noncomputable abbrev cssRowX (c : CssData ι κX κZ) :=
   LinearMap.range (Matrix.mulVecLin c.hXᵀ)
 
+/-- The binary row space of the Z-check matrix. -/
 private noncomputable abbrev cssRowZ (c : CssData ι κX κZ) :=
   LinearMap.range (Matrix.mulVecLin c.hZᵀ)
 
 omit [DecidableEq ι] in
 
+/-- The binary dot product of any X-check row-space vector with any Z-check row-space vector is
+zero. -/
 private theorem css_rows_orthogonal (c : CssData ι κX κZ) (x : cssRowX c) (z : cssRowZ c) :
     bitDot (z : ι → ZMod 2) (x : ι → ZMod 2) = 0 := by
   classical
@@ -142,6 +188,8 @@ private theorem css_rows_orthogonal (c : CssData ι κX κZ) (x : cssRowX c) (z 
   rw [dotProduct_mulVec, Matrix.mulVec_transpose, Matrix.vecMul_vecMul, hc]
   simp
 
+/-- The complex representation of the product of the binary X and Z row spaces by their Pauli
+operators. -/
 private noncomputable def cssStabilizerRepresentation (c : CssData ι κX κZ) :
     Representation ℂ (Multiplicative (cssRowX c × cssRowZ c)) ((ι → ZMod 2) → ℂ) where
   toFun g := (cssPauliX (g.toAdd.1 : ι → ZMod 2) * cssPauliZ (g.toAdd.2 : ι → ZMod 2)).mulVecLin
@@ -158,6 +206,7 @@ private noncomputable def cssStabilizerRepresentation (c : CssData ι κX κZ) :
     rw [← Matrix.mulVecLin_mul, cssPauliXZ_mul, css_rows_orthogonal c b.toAdd.1 a.toAdd.2]
     simp
 
+/-- The additive map sending binary check coefficients to their X and Z row-space combinations. -/
 private noncomputable def cssCoefficientLabels (c : CssData ι κX κZ) :
     ((κX ⊕ κZ) → ZMod 2) →+ (cssRowX c × cssRowZ c) where
   toFun a :=
@@ -175,6 +224,7 @@ private noncomputable def cssCoefficientLabels (c : CssData ι κX κZ) :
 
 omit [DecidableEq ι] in
 
+/-- Every pair of X and Z row-space labels is represented by binary check coefficients. -/
 private theorem cssCoefficientLabels_surjective (c : CssData ι κX κZ) :
     Function.Surjective (cssCoefficientLabels c) := by
   rintro ⟨x, z⟩
@@ -185,10 +235,14 @@ private theorem cssCoefficientLabels_surjective (c : CssData ι κX κZ) :
   · exact hu
   · exact hv
 
+/-- The stabilizer representation pulled back along the map from binary check coefficients to
+row-space labels. -/
 private noncomputable def cssCoefficientRepresentation (c : CssData ι κX κZ) :
     Representation ℂ (Multiplicative (((κX ⊕ κZ) → ZMod 2))) ((ι → ZMod 2) → ℂ) :=
   (cssStabilizerRepresentation c).comp (cssCoefficientLabels c).toMultiplicative
 
+/-- A unit check-coefficient vector acts in the coefficient representation by the corresponding
+CSS check operator. -/
 private theorem cssCoefficientRepresentation_basis [DecidableEq κX] [DecidableEq κZ]
     (c : CssData ι κX κZ) (k : κX ⊕ κZ) :
     cssCoefficientRepresentation c (Multiplicative.ofAdd (Pi.single k 1)) =
@@ -222,6 +276,8 @@ private theorem cssCoefficientRepresentation_basis [DecidableEq κX] [DecidableE
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- A vector is fixed by a representation of the binary vector group exactly when it is fixed by
+every standard basis generator. -/
 private theorem binary_rep_fixed_iff {κ : Type*} [Fintype κ] [DecidableEq κ]
     (ρ : Representation ℂ (Multiplicative (κ → ZMod 2)) ((ι → ZMod 2) → ℂ))
     (v : (ι → ZMod 2) → ℂ) :
@@ -259,6 +315,7 @@ private theorem binary_rep_fixed_iff {κ : Type*} [Fintype κ] [DecidableEq κ]
       simp [Pi.single_apply]
     simpa only [ha] using hs Finset.univ a
 
+/-- A vector belongs to the CSS codespace exactly when all X-check and Z-check operators fix it. -/
 private theorem mem_cssCodespace_iff (c : CssData ι κX κZ) (v : (ι → ZMod 2) → ℂ) :
     v ∈ cssCodespace c ↔
       (∀ i : κX, cssPauliX (c.hX i) *ᵥ v = v) ∧
@@ -267,6 +324,7 @@ private theorem mem_cssCodespace_iff (c : CssData ι κX κZ) (v : (ι → ZMod 
   simp [cssCodespace, cssXStabilized, cssZStabilized, cssXCheckKernel, cssZCheckKernel,
     sub_eq_zero]
 
+/-- The invariant subspace of the check-coefficient representation is the CSS codespace. -/
 private theorem cssCoefficient_invariants (c : CssData ι κX κZ) :
     (cssCoefficientRepresentation c).invariants = cssCodespace c := by
   classical
@@ -278,6 +336,7 @@ private theorem cssCoefficient_invariants (c : CssData ι κX κZ) :
   simp only [cssCoefficientRepresentation_basis, Sum.forall, Sum.elim_inl, Sum.elim_inr,
     Matrix.mulVecLin_apply]
 
+/-- The invariant subspace of the stabilizer representation is the CSS codespace. -/
 private theorem cssStabilizer_invariants (c : CssData ι κX κZ) :
     (cssStabilizerRepresentation c).invariants = cssCodespace c := by
   classical
@@ -295,6 +354,8 @@ private theorem cssStabilizer_invariants (c : CssData ι κX κZ) :
     rw [ha] at hh
     exact hh
 
+/-- The stabilizer representation has character equal to the ambient dimension at the identity
+and zero at every other element. -/
 private theorem cssStabilizer_character (c : CssData ι κX κZ)
     (g : Multiplicative (cssRowX c × cssRowZ c)) :
     (cssStabilizerRepresentation c).character g =
@@ -318,6 +379,7 @@ private theorem cssStabilizer_character (c : CssData ι κX κZ)
 
 omit [DecidableEq ι] in
 
+/-- The binary row space of a matrix has cardinality `2 ^ Matrix.rank A`. -/
 private theorem css_row_card {κ : Type*} [Fintype κ] (A : Matrix κ ι (ZMod 2))
     [Fintype ↥(LinearMap.range (Matrix.mulVecLin Aᵀ))] :
     Fintype.card ↥(LinearMap.range (Matrix.mulVecLin Aᵀ)) = 2 ^ Matrix.rank A := by
@@ -325,6 +387,8 @@ private theorem css_row_card {κ : Type*} [Fintype κ] (A : Matrix κ ι (ZMod 2
   change 2 ^ Matrix.rank Aᵀ = 2 ^ Matrix.rank A
   rw [Matrix.rank_transpose]
 
+/-- The complex dimension of the CSS codespace is `2 ^ c.encodedQubits`, giving the standard CSS
+dimension formula of [CalderbankShor1996]. -/
 theorem cssCodespace_finrank (c : CssData ι κX κZ) :
     Module.finrank ℂ ↥(cssCodespace c) = 2 ^ c.encodedQubits := by
   classical

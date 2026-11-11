@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelRegulatorZeros
+
+/-!
+# Finite pole sets for integer sampling contours
+
+`integerPoleSet` combines the distinguished poles `-i` and `2i`, the finite row of poles `r +
+i`, and the real lattice points retained by a half-grid contour. The module characterizes
+denominator zeros in the closed disk and proves that sufficiently large half-grid circles
+contain the poles strictly inside and have no denominator zeros on their boundary.
+
+Injectivity and disjointness results split finite sums over the pole set into the contributions
+used in [WangEtAl2026].
+
+## Main statements
+
+* `integerContourDenominator_sphere_ne_zero`: excludes denominator zeros on the contour.
+* `integerPoleSet_sum`: splits a pole sum into its four contributions.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -14,19 +36,25 @@ namespace CBMD
 open Metric
 open scoped BigOperators
 
+/-- The finite set of row poles `r + i` for integer indices `-m ≤ r ≤ m`. -/
 noncomputable def integerRowPoleSet (m : ℕ) : Finset ℂ := by
   classical
   exact (Finset.Icc (-(m : ℤ)) m).image (fun r : ℤ => (r : ℂ) + Complex.I)
 
+/-- The finite set of real lattice points `k / a` for integer indices `-n ≤ k ≤ n`. -/
 noncomputable def integerRealPoleSet (a : ℝ) (n : ℕ) : Finset ℂ := by
   classical
   exact (Finset.Icc (-(n : ℤ)) n).image (fun k : ℤ => (((k : ℝ) / a : ℝ) : ℂ))
 
+/-- The union of the distinguished poles `-i` and `2i`, the finite row poles, and the retained
+real lattice points. -/
 noncomputable def integerPoleSet (m : ℕ) (a : ℝ) (n : ℕ) : Finset ℂ := by
   classical
   exact insert (-Complex.I)
     (insert (2 * Complex.I) (integerRowPoleSet m ∪ integerRealPoleSet a n))
 
+/-- Membership in the finite pole set is equivalent to being a distinguished pole, a row pole
+with index in `[-m, m]`, or a lattice point with index in `[-n, n]`. -/
 theorem mem_integerPoleSet_iff (m : ℕ) (a : ℝ) (n : ℕ) (z : ℂ) :
     z ∈ integerPoleSet m a n ↔ z = -Complex.I ∨ z = 2 * Complex.I ∨
       (∃ r ∈ Finset.Icc (-(m : ℤ)) m, z = (r : ℂ) + Complex.I) ∨
@@ -36,6 +64,8 @@ theorem mem_integerPoleSet_iff (m : ℕ) (a : ℝ) (n : ℕ) (z : ℂ) :
     Finset.mem_insert, Finset.mem_union, Finset.mem_image]
   aesop
 
+/-- For positive spacing, the norm of `k / a` is at most the half-grid radius exactly when `-n ≤
+k ≤ n`. -/
 theorem lattice_norm_le_halfgrid_iff {a : ℝ} (ha : 0 < a) (n : ℕ) (k : ℤ) :
     ‖(((k : ℝ) / a : ℝ) : ℂ)‖ ≤ ((n : ℝ) + 1 / 2) / a ↔
       k ∈ Finset.Icc (-(n : ℤ)) n := by
@@ -56,6 +86,8 @@ theorem lattice_norm_le_halfgrid_iff {a : ℝ} (ha : 0 < a) (n : ℕ) (k : ℤ) 
     have hkr : |(k : ℝ)| ≤ (n : ℝ) := by exact_mod_cast hki
     linarith
 
+/-- For positive spacing, every retained real lattice point lies strictly inside the half-grid
+radius. -/
 theorem lattice_norm_lt_halfgrid {a : ℝ} (ha : 0 < a) (n : ℕ) (k : ℤ)
     (hk : k ∈ Finset.Icc (-(n : ℤ)) n) :
     ‖(((k : ℝ) / a : ℝ) : ℂ)‖ < ((n : ℝ) + 1 / 2) / a := by
@@ -65,6 +97,7 @@ theorem lattice_norm_lt_halfgrid {a : ℝ} (ha : 0 < a) (n : ℕ) (k : ℤ)
   have hr : |(k : ℝ)| ≤ (n : ℝ) := by exact_mod_cast hi
   linarith
 
+/-- Every row pole with index in `[-m, m]` has norm less than `m + 2`. -/
 theorem integerRowPole_norm_lt (m : ℕ) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) : ‖(r : ℂ) + Complex.I‖ < (m : ℝ) + 2 := by
   have hi : |r| ≤ (m : ℤ) := abs_le.mpr (Finset.mem_Icc.mp hr)
@@ -73,6 +106,8 @@ theorem integerRowPole_norm_lt (m : ℕ) (r : ℤ)
   simp only [Complex.norm_intCast, Complex.norm_I] at hnorm
   linarith
 
+/-- If the half-grid radius exceeds `m + 2` and spacing is positive, every point of the finite
+pole set lies in the corresponding open disk. -/
 theorem integerPoleSet_inside (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : (m : ℝ) + 2 < ((n : ℝ) + 1 / 2) / a) :
     ∀ z ∈ integerPoleSet m a n, z ∈ ball (0 : ℂ) (((n : ℝ) + 1 / 2) / a) := by
@@ -90,6 +125,8 @@ theorem integerPoleSet_inside (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ)
   · subst z
     exact lattice_norm_lt_halfgrid ha n k hk
 
+/-- For positive spacing and a point in the closed half-grid disk, vanishing of the contour
+denominator is equivalent to membership in the finite pole set. -/
 theorem integerContourDenominator_disk_zeros (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ)
     (z : ℂ) (hz : z ∈ closedBall (0 : ℂ) (((n : ℝ) + 1 / 2) / a)) :
     integerContourDenominator m a z = 0 ↔ z ∈ integerPoleSet m a n := by
@@ -109,6 +146,8 @@ theorem integerContourDenominator_disk_zeros (m : ℕ) {a : ℝ} (ha : 0 < a) (n
     · exact Or.inr (Or.inr (Or.inl ⟨r, hr, h⟩))
     · exact Or.inr (Or.inr (Or.inr ⟨k, h⟩))
 
+/-- For positive spacing and half-grid radius greater than `m + 2`, the contour denominator is
+nonzero on the bounding circle. -/
 theorem integerContourDenominator_sphere_ne_zero (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : (m : ℝ) + 2 < ((n : ℝ) + 1 / 2) / a)
     (z : ℂ) (hz : z ∈ sphere (0 : ℂ) (((n : ℝ) + 1 / 2) / a)) :
@@ -123,11 +162,14 @@ theorem integerContourDenominator_sphere_ne_zero (m : ℕ) {a : ℝ} (ha : 0 < a
     simpa only [Metric.mem_ball, dist_zero_right] using hinside
   linarith
 
+/-- The map from integer row indices to the complex poles `r + i` is injective. -/
 theorem integerRowPole_injective : Function.Injective (fun r : ℤ => (r : ℂ) + Complex.I) := by
   intro r q h
   have hr : (r : ℂ) = (q : ℂ) := add_right_cancel h
   exact_mod_cast hr
 
+/-- For positive spacing, the map from integer indices to the real lattice points `k / a` is
+injective. -/
 theorem integerRealPole_injective {a : ℝ} (ha : 0 < a) :
     Function.Injective (fun k : ℤ => (((k : ℝ) / a : ℝ) : ℂ)) := by
   intro k l h
@@ -135,17 +177,20 @@ theorem integerRealPole_injective {a : ℝ} (ha : 0 < a) :
   have hk : (k : ℝ) = (l : ℝ) := (div_left_inj' ha.ne').mp hr
   exact_mod_cast hk
 
+/-- Every member of the row pole set has imaginary part one. -/
 private theorem integerRowPoleSet_im (m : ℕ) (z : ℂ) (hz : z ∈ integerRowPoleSet m) : z.im = 1 := by
   classical
   obtain ⟨r, _, rfl⟩ := Finset.mem_image.mp hz
   simp
 
+/-- Every member of the real pole set has imaginary part zero. -/
 private theorem integerRealPoleSet_im (a : ℝ) (n : ℕ) (z : ℂ)
     (hz : z ∈ integerRealPoleSet a n) : z.im = 0 := by
   classical
   obtain ⟨k, _, rfl⟩ := Finset.mem_image.mp hz
   simp
 
+/-- The row pole set and real lattice pole set are disjoint. -/
 theorem integerPoleSet_row_real_disjoint (m : ℕ) (a : ℝ) (n : ℕ) :
     Disjoint (integerRowPoleSet m) (integerRealPoleSet a n) := by
   apply Finset.disjoint_left.mpr
@@ -154,6 +199,7 @@ theorem integerPoleSet_row_real_disjoint (m : ℕ) (a : ℝ) (n : ℕ) :
   have h0 := integerRealPoleSet_im a n z hk
   linarith
 
+/-- Neither distinguished pole `-i` nor `2i` belongs to the union of the row and real pole sets. -/
 theorem integerPoleSet_distinguished_not_mem (m : ℕ) (a : ℝ) (n : ℕ) :
     -Complex.I ∉ integerRowPoleSet m ∪ integerRealPoleSet a n ∧
     2 * Complex.I ∉ integerRowPoleSet m ∪ integerRealPoleSet a n := by
@@ -171,6 +217,8 @@ theorem integerPoleSet_distinguished_not_mem (m : ℕ) (a : ℝ) (n : ℕ) :
     · have h0 := integerRealPoleSet_im a n (2 * Complex.I) hk
       norm_num at h0
 
+/-- For positive spacing, a sum over the finite pole set splits into the two distinguished
+values, the row-index sum, and the real lattice-index sum. -/
 theorem integerPoleSet_sum {M : Type*} [AddCommMonoid M] (m : ℕ) {a : ℝ}
     (ha : 0 < a) (n : ℕ) (f : ℂ → M) :
     (∑ z ∈ integerPoleSet m a n, f z) =

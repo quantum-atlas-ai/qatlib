@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialCallScopes
 import Qatlib.Concepts.WalkSearch.MainResults.SearchEventBounds
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationAdaptiveTape
+
+/-!
+# Successful tapes prevent combinatorial rejection
+
+`sourceTapeClass` extracts the unrestricted classification run determined by a complete
+algorithm tape. `sourceComb_good_tape_not_reject` proves that a graph containing a triangle
+avoids rejection when sampling, preparation, degree tests, and the two final searches satisfy
+their stated guarantees. For background on quantum search and amplitude amplification, see
+[BrassardEtAl2002].
+
+## Main statements
+
+* `sourceTapeClass`: Run the unrestricted classification scan from the sampled survivor set
+  using the classification components of a complete source tape.
+* `sourceComb_good_tape_not_reject`: If a triangle exists and the tape satisfies the sampling,
+  preparation, degree test, and final search guarantees, then `sourceCombAlg` does not reject
+  under the stated positive threshold assumptions.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,11 +41,16 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 
+/-- Run the unrestricted classification scan from the sampled survivor set using the
+classification components of a complete source tape. -/
 def sourceTapeClass {n : ℕ} (G : UGraph n) (sgs : SGSExecution)
     (ets : PromisedEdgeSearchFamily) (k K c τ : ℕ) (t : sourceCombTape n k K c sgs ets) : ClassificationRun n :=
   classifyScan G sgs τ K c t.2.2.1 t.2.2.2.1 Finset.univ.toList
     ⟨sampledSurvivors G t.1, sampledSurvivors_symmetric G t.1⟩
 
+/-- If a triangle exists and the tape satisfies the sampling, preparation, degree test, and
+final search guarantees, then `sourceCombAlg` does not reject under the stated positive
+threshold assumptions. -/
 theorem sourceComb_good_tape_not_reject {n : ℕ} (G : UGraph n) (sgs : SGSExecution)
     (ets : PromisedEdgeSearchFamily) (k K c dHi dLo τ tThin : ℕ)
     (t : sourceCombTape n k K c sgs ets) (hn : 0 < n) (hdLo : 1 ≤ dLo)

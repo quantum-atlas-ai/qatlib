@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+
+/-!
+# Discrete descending-rank run laws
+
+`RankedCallLaw` packages a search-call distribution with a uniform output rank below the current
+threshold and a nonnegative duration. `RankSkip` allows the next threshold to decrease further,
+as needed for tied values, and `RankedCallLaw.runMass` assigns mass to finite terminating runs.
+
+The module proves normalization, termination bounds, initial-rank averaging, and uniform
+continuation expectations. This probabilistic rank model supports the quantum minimum-finding
+analysis of [DurrHoyer1996].
+
+## Main statements
+
+* `RankedCallLaw.runMass_normalized`: normalizes finite terminating runs.
+* `RankedCallLaw.runMass_terminates`: bounds a positive-mass run's length by its starting
+  threshold.
+* `RankedCallLaw.continuation_sum`: computes continuation expectations as uniform lower-rank
+  averages.
+
+## References
+
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +41,8 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- A ranked search-call law with nonnegative durations and, below `N`, nonnegative call masses
+that are normalized and uniform over lower output ranks at positive thresholds. -/
 structure RankedCallLaw (N : ℕ) (Ω : Type) where
   mass : ℕ → Ω → ℝ
   outputRank : Ω → Fin N
@@ -28,12 +55,16 @@ structure RankedCallLaw (N : ℕ) (Ω : Type) where
     HasSum (fun x => if outputRank x = i then mass t x else 0)
       (if i.val < t then 1 / (t : ℝ) else 0)
 
+/-- A rank-threshold update bounded above by the selected rank. -/
 structure RankSkip (N : ℕ) where
   next : Fin N → ℕ
   le_rank : ∀ i, next i ≤ i.val
 
+/-- The rank skip that uses the selected rank itself as the next threshold. -/
 def RankSkip.distinct (N : ℕ) : RankSkip N := ⟨Fin.val, fun _ => le_rfl⟩
 
+/-- For a nonnegative family, summing each fiber and then its fiber sums gives the same sum over
+the product type. -/
 theorem nonnegative_product_sum {α β : Type*}
     (f : α → β → ℝ) (hf : ∀ a b, 0 ≤ f a b) (g : α → ℝ) (q : ℝ)
     (hfib : ∀ a, HasSum (f a) (g a)) (hrows : HasSum g q) :
@@ -46,6 +77,7 @@ theorem nonnegative_product_sum {α β : Type*}
   have h := hrows.sigma_of_hasSum hfib hs
   exact (Equiv.sigmaEquivProd α β).hasSum_iff.mp h
 
+/-- The equivalence splitting a list into either the empty list or a head and tail. -/
 private def runListCases (α : Type*) : List α ≃ (Unit ⊕ (α × List α)) where
   toFun
     | [] => Sum.inl ()
@@ -60,6 +92,8 @@ private def runListCases (α : Type*) : List α ≃ (Unit ⊕ (α × List α)) w
     · cases u; rfl
     · rfl
 
+/-- If the nonempty-list terms sum to `q`, the entire list family sums to its empty-list value
+plus `q`. -/
 theorem list_run_hasSum {α : Type*} (f : List α → ℝ) (q : ℝ)
     (hcons : HasSum (fun x : α × List α => f (x.1 :: x.2)) q) :
     HasSum f (f [] + q) := by
@@ -75,6 +109,8 @@ namespace RankedCallLaw
 
 variable {N : ℕ} {Ω : Type}
 
+/-- The mass of a finite terminating run, multiplying supported descending call masses and
+stopping exactly at threshold zero. -/
 noncomputable def runMass (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ) :
     List Ω → ℝ
   | [] => if t = 0 then 1 else 0
@@ -82,6 +118,7 @@ noncomputable def runMass (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : �
       if (law.outputRank x).val < t then
         law.mass t x * runMass law skip (skip.next (law.outputRank x)) xs else 0
 
+/-- For a starting threshold below `N`, every ranked run mass is nonnegative. -/
 theorem runMass_nonneg (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (t : ℕ) (htN : t < N) (xs : List Ω) : 0 ≤ law.runMass skip t xs := by
   induction xs generalizing t with
@@ -94,6 +131,7 @@ theorem runMass_nonneg (law : RankedCallLaw N Ω) (skip : RankSkip N)
         (ih _ (lt_of_le_of_lt (skip.le_rank _) (lt_trans hlow htN)))
     · exact le_rfl
 
+/-- For a starting threshold below `N`, the finite terminating run masses sum to one. -/
 theorem runMass_normalized (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (t : ℕ) (htN : t < N) : HasSum (law.runMass skip t) 1 := by
   induction t using Nat.strong_induction_on with
@@ -122,10 +160,13 @@ theorem runMass_normalized (law : RankedCallLaw N Ω) (skip : RankSkip N)
       have h := list_run_hasSum (law.runMass skip (t + 1)) 1 hcons
       simpa only [runMass, if_neg (by omega : ¬ t + 1 = 0), zero_add] using h
 
+/-- The candidate threshold remaining after applying the rank skip along a list of calls. -/
 def finalCandidateCount (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ) : List Ω → ℕ
   | [] => t
   | x :: xs => finalCandidateCount law skip (skip.next (law.outputRank x)) xs
 
+/-- A positive-mass run ends at threshold zero and contains at most its starting threshold many
+calls. -/
 theorem runMass_terminates (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (t : ℕ) (htN : t < N) (xs : List Ω) (hm : 0 < law.runMass skip t xs) :
     law.finalCandidateCount skip t xs = 0 ∧ xs.length ≤ t := by
@@ -151,9 +192,12 @@ theorem runMass_terminates (law : RankedCallLaw N Ω) (skip : RankSkip N)
     · simp only [runMass, if_neg ht, if_neg hx] at hm
       linarith
 
+/-- The run mass obtained by choosing an initial rank uniformly and applying its skipped
+starting threshold. -/
 noncomputable def initialMass (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (x : Fin N × List Ω) : ℝ := law.runMass skip (skip.next x.1) x.2 / (N : ℝ)
 
+/-- For positive `N`, the initial run masses are nonnegative and sum to one. -/
 theorem initialMass_normalized (law : RankedCallLaw N Ω) (skip : RankSkip N) (hN : 0 < N) :
     HasSum (law.initialMass skip) 1 ∧ ∀ x, 0 ≤ law.initialMass skip x := by
   have hnext (i : Fin N) : skip.next i < N := lt_of_le_of_lt (skip.le_rank _) i.isLt
@@ -168,6 +212,8 @@ theorem initialMass_normalized (law : RankedCallLaw N Ω) (skip : RankSkip N) (h
   exact nonnegative_product_sum (fun i xs => law.initialMass skip (i, xs))
     (fun i xs => hnn (i, xs)) _ 1 hfib hg
 
+/-- A sum over ranks below `t` inside `Fin N` equals the corresponding sum over `Fin t` when `t
+≤ N`. -/
 theorem sum_lower_ranks (t : ℕ) (htN : t ≤ N) (V : ℕ → ℝ) :
     (∑ i : Fin N, if i.val < t then V i.val else 0) = ∑ k : Fin t, V k.val := by
   rw [← Finset.sum_filter]
@@ -181,6 +227,8 @@ theorem sum_lower_ranks (t : ℕ) (htN : t ≤ N) (V : ℕ → ℝ) :
     · rfl
   · intro i hi; rfl
 
+/-- A finite payoff of the call's output rank has expectation equal to its uniform average below
+the positive threshold. -/
 theorem continuation_finite (law : RankedCallLaw N Ω) (t : ℕ)
     (ht : 0 < t) (htN : t < N) (V : Fin N → ℝ) :
     HasSum (fun x => law.mass t x * V (law.outputRank x))
@@ -200,6 +248,8 @@ theorem continuation_finite (law : RankedCallLaw N Ω) (t : ℕ)
   rw [hright] at hsum
   exact hsum
 
+/-- A natural-rank payoff of the call output has expectation equal to its average over ranks
+below the positive threshold. -/
 theorem continuation_sum (law : RankedCallLaw N Ω) (t : ℕ)
     (ht : 0 < t) (htN : t < N) (V : ℕ → ℝ) :
     HasSum (fun x => law.mass t x * V (law.outputRank x).val)

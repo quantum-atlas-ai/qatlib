@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ModularFunct00.MainResults.Representation.JonesSpectrum
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Algebra.Algebra.Basic
+
+/-!
+# Temperley-Lieb relations for Jones generators
+
+This module derives the braid relation for `jonesGen` from idempotence and the stated
+Temperley-Lieb relations. It also proves the inverse formula for reciprocal scalar parameters.
+
+For self-adjoint idempotents and unit-modulus parameters, the generator and its adjoint multiply
+to the identity in either order, giving the algebraic unitarity calculation used in
+[FreedmanLarsenWang2000].
+
+## Main statements
+
+* `jonesGen_braid_pair`: Temperley-Lieb relations imply the generator braid relation.
+* `jonesGen_star`: Conjugating the parameter gives the adjoint generator.
+* `jonesGen_mul_star`: A generator times its adjoint is the identity under the stated
+  hypotheses.
+
+## References
+
+* [Freedman et al., 2000][FreedmanLarsenWang2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +44,8 @@ section Algebra
 
 variable {V : Type*} [AddCommGroup V] [Module ℂ V]
 
+/-- For idempotent `e` and reciprocal parameters `r * q = 1`, the product `jonesGen q e *
+jonesGen r e` is the identity; see [FreedmanLarsenWang2000]. -/
 theorem jonesGen_mul_jonesGen (q r : ℂ) (e : Module.End ℂ V) (he : e * e = e)
     (hrq : r * q = 1) :
     jonesGen q e * jonesGen r e = 1 := by
@@ -36,6 +61,8 @@ theorem jonesGen_mul_jonesGen (q r : ℂ) (e : Module.End ℂ V) (he : e * e = e
   rw [hrq, hcoef]
   simp
 
+/-- Two idempotents satisfying the stated Temperley-Lieb and scalar relations yield Jones
+generators satisfying the braid relation; see [FreedmanLarsenWang2000]. -/
 theorem jonesGen_braid_pair (q β γ : ℂ) (a b : Module.End ℂ V)
     (ha : a * a = a) (hb : b * b = b)
     (haba : a * b * a = γ • a) (hbab : b * a * b = γ • b)
@@ -74,17 +101,23 @@ section Star
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
   [FiniteDimensional ℂ V]
 
+/-- For self-adjoint `e`, the adjoint of `jonesGen q e` is `jonesGen (star q) e`; see
+[FreedmanLarsenWang2000]. -/
 theorem jonesGen_star (q : ℂ) (e : Module.End ℂ V) (hstar : star e = e) :
     star (jonesGen q e) = jonesGen (star q) e := by
   have hstar_add : star (1 + q : ℂ) = 1 + star q := by simp
   rw [jonesGen, jonesGen, star_sub, star_smul, star_smul, hstar_add, star_one, hstar]
 
+/-- For self-adjoint idempotent `e` and `star q * q = 1`, the product of `jonesGen q e` with its
+adjoint is the identity; see [FreedmanLarsenWang2000]. -/
 theorem jonesGen_mul_star (q : ℂ) (e : Module.End ℂ V) (he : e * e = e)
     (hstar : star e = e) (hq : star q * q = 1) :
     jonesGen q e * star (jonesGen q e) = 1 := by
   rw [jonesGen_star q e hstar]
   exact jonesGen_mul_jonesGen q (star q) e he hq
 
+/-- For self-adjoint idempotent `e` and `star q * q = 1`, the product of the adjoint of
+`jonesGen q e` with the generator is the identity; see [FreedmanLarsenWang2000]. -/
 theorem jonesGen_star_mul (q : ℂ) (e : Module.End ℂ V) (he : e * e = e)
     (hstar : star e = e) (hq : star q * q = 1) :
     star (jonesGen q e) * jonesGen q e = 1 := by

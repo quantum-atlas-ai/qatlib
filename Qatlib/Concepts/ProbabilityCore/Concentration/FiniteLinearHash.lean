@@ -18,10 +18,32 @@ import Mathlib.Tactic.ByContra
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 
+/-!
+# Collision probabilities for finite linear hashes
+
+The module proves that a uniformly chosen finite field matrix maps two distinct vectors to the
+same output with probability equal to the reciprocal output cardinality. A uniform fiber
+calculation for surjective additive homomorphisms supplies the counting step.
+
+Random finite field linear maps also appear in the linear disequation setting of [Ivanyos2008].
+
+## Main statements
+
+* `uniform_hom_fiber_average`: the uniform mass of a fiber of a surjective additive
+  homomorphism.
+* `finite_linear_matrix_hash_collision`: the exact collision probability for distinct vectors.
+
+## References
+
+* [Ivanyos, 2008][Ivanyos2008]
+-/
+
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
 open scoped BigOperators
 
+/-- Each fiber of a surjective additive homomorphism between finite types has uniform mass equal
+to the reciprocal target cardinality. -/
 private theorem uniform_hom_fiber_average
     {G Y : Type} [AddGroup G] [Fintype G] [AddMonoid Y] [Fintype Y]
     [DecidableEq Y] (f : G →+ Y) (hsurj : Function.Surjective f) (y : Y) :
@@ -57,6 +79,8 @@ private theorem uniform_hom_fiber_average
   field_simp [hG, hY]
   nlinarith [htotal]
 
+/-- For distinct vectors over a finite field, a uniformly chosen matrix hash collides with
+probability `1 / Fintype.card (J → K)`. -/
 theorem finite_linear_matrix_hash_collision
     (K I J : Type) [Field K] [Fintype K] [DecidableEq K]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]

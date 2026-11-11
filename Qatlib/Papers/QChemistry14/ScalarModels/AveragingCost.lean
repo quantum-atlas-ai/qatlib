@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+/-!
+# Scalar sampling and averaging costs
+
+This module defines real-valued sample and measurement counts from a coefficient bound and
+target precision. It proves variance comparisons and an explicit sixth-power size bound for the
+Hamiltonian-averaging cost expression. See [McCleanEtAl2014].
+
+## Main statements
+
+* `variance_le_precision`: For positive `N` and `ε`, the sample-budget inequality `C² / ε² ≤ N`
+  implies `C² / N ≤ ε²`.
+* `averaging_bigO`: For `M ≥ 1`, nonnegative `β` and `h`, and positive `ε`, the displayed
+  averaging-cost expression is at most `2 * (β + h)² * M⁶ / ε²`.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,10 +33,13 @@ namespace Qatlib.Papers.QChemistry14.ScalarModels.AveragingCost
 
 noncomputable section
 
+/-- The real-valued sample budget `C² / ε²`. -/
 def sampleCount (C ε : ℝ) : ℝ := C ^ 2 / ε ^ 2
 
+/-- The real-valued measurement budget `Nint * C² / ε²`. -/
 def measurementCount (Nint C ε : ℝ) : ℝ := Nint * C ^ 2 / ε ^ 2
 
+/-- For positive `N` and `ε`, the sample-budget inequality `C² / ε² ≤ N` implies `C² / N ≤ ε²`. -/
 theorem variance_le_precision (C ε N : ℝ) (_hε : 0 < ε) (hNpos : 0 < N)
     (hN : C ^ 2 / ε ^ 2 ≤ N) :
     C ^ 2 / N ≤ ε ^ 2 := by
@@ -25,11 +48,14 @@ theorem variance_le_precision (C ε N : ℝ) (_hε : 0 < ε) (hNpos : 0 < N)
   rw [div_le_iff₀ hNpos]
   linarith
 
+/-- For positive `C` and `ε`, dividing `C²` by `sampleCount C ε` gives exactly `ε²`. -/
 theorem sample_count_eq (C ε : ℝ) (hC : 0 < C) (_hε : 0 < ε) :
     C ^ 2 / sampleCount C ε = ε ^ 2 := by
   unfold sampleCount
   field_simp
 
+/-- If `Ns` is at most the sample budget and `Nint ≥ 0`, then `Nint * Ns` is at most the
+measurement budget. -/
 theorem measurement_count_le (Nint C ε Ns : ℝ) (hNs : Ns ≤ sampleCount C ε)
     (hNint : 0 ≤ Nint) :
     Nint * Ns ≤ measurementCount Nint C ε := by
@@ -40,6 +66,8 @@ theorem measurement_count_le (Nint C ε Ns : ℝ) (hNs : Ns ≤ sampleCount C ε
     Nint * Ns ≤ Nint * (C ^ 2 / ε ^ 2) := hmul
     _ = Nint * C ^ 2 / ε ^ 2 := by ring
 
+/-- For `M ≥ 1`, nonnegative `β` and `h`, and positive `ε`, the displayed averaging-cost
+expression is at most `2 * (β + h)² * M⁶ / ε²`. See [McCleanEtAl2014]. -/
 theorem averaging_bigO (β h M ε : ℝ) (hM : 1 ≤ M) (hβ : 0 ≤ β) (hh : 0 ≤ h)
     (_hε : 0 < ε) :
     (M + M ^ 2) * (β * M ^ (5 / 3 : ℝ) + h * M ^ 2) ^ 2 / ε ^ 2

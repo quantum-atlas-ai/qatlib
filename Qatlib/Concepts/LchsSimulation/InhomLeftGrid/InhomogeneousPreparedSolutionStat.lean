@@ -8,6 +8,26 @@ import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratur
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindowConsumers
 import Mathlib.Logic.Equiv.Fin.Basic
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionDefs
+
+/-!
+# Prepared inhomogeneous LCHS solution specification
+
+`InhomogeneousPreparedSolution` specifies a trace-norm accuracy guarantee for the successful
+branch of the compiled unified LCHS family. It assumes normalized source preparations, a raw
+approximation error, and a positive lower bound on the exact solution norm. See [AnLiuLin2023]
+for the mathematical setting.
+
+## Main statements
+
+* `InhomogeneousPreparedSolution`: The prepared-solution guarantee that raw error at most `ε`
+  yields trace-norm error at most `4 * ε / τ` for every successful compiled branch, under the
+  stated preparation and solution-norm hypotheses.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -38,6 +58,9 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 end InhomogeneousUnifiedDefinitions
 
+/-- The prepared-solution guarantee that raw error at most `ε` yields trace-norm error at most
+`4 * ε / τ` for every successful compiled branch, under the stated preparation and
+solution-norm hypotheses. -/
 def InhomogeneousPreparedSolution : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s t ε τ : ℝ) (K N Mt : ℕ) (B : Matrix I I ℂ) (P : Fin Mt → Matrix I I ℂ)

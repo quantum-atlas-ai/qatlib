@@ -10,6 +10,31 @@ import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Tactic
+
+/-!
+# Tensor phase witnesses and operator error lower bounds
+
+This module turns normalized eigenvectors with conjugate phases into lower bounds on the
+operator-norm distance of tensor powers from identity. It uses tensor eigenvectors and the
+eigenvalue norm principle from finite-dimensional matrix analysis [Bhatia1997].
+
+A phase-grid argument gives a lower bound that grows linearly with the tensor count until it
+reaches one, for phases in `[0, 1/8]`. Relative-product identities transfer this bound to the
+distance between two tensor powers when the reference factor is unitary.
+
+## Main statements
+
+* `paired_phase_tensor_witness`: a sine lower bound for every choice of phase signs.
+* `phase_grid_saturation`: a phase-grid witness for the capped linear lower bound.
+* `paired_relative_tensor_saturation`: the corresponding relative tensor error bound.
+* `principal_phase_small_of_chord`: small chord length implies phase at most `1/8`.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +49,8 @@ open Matrix
 open Qatlib.Concepts.TensorRegisters.RegisterModel
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A register tensor product acts on a product state by applying each local matrix to the
+corresponding local vector. -/
 theorem productMatrix_mulVec_piTensorState
     {ι I : Type*} [Fintype ι] [DecidableEq ι] [Fintype I] [DecidableEq I]
     (A : ι → Matrix I I ℂ) (v : ι → Qatlib.Foundations.PureStateMath.QState I) :
@@ -35,6 +62,8 @@ theorem productMatrix_mulVec_piTensorState
   simp only [← Finset.prod_mul_distrib]
   exact (Fintype.prod_sum (fun i j => A i (x i) j * v i j)).symm
 
+/-- A tensor product of local eigenvectors is an eigenvector of the product matrix with
+eigenvalue equal to the product of the local eigenvalues. -/
 theorem productMatrix_mulVec_eigen
     {ι I : Type*} [Fintype ι] [DecidableEq ι] [Fintype I] [DecidableEq I]
     (A : ι → Matrix I I ℂ) (v : ι → Qatlib.Foundations.PureStateMath.QState I) (z : ι → ℂ)
@@ -47,6 +76,7 @@ theorem productMatrix_mulVec_eigen
   simp [Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState, Finset.prod_mul_distrib,
       smul_eq_mul]
 
+/-- If `v` is a normalized eigenvector of `A` with eigenvalue `z`, then `‖z - 1‖ ≤ ‖A - 1‖`. -/
 theorem eigenvalue_sub_one_le_norm
     {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (v : Qatlib.Foundations.PureStateMath.QState I) (z : ℂ)
@@ -61,6 +91,8 @@ theorem eigenvalue_sub_one_le_norm
   change ‖(z - 1) • Qatlib.Foundations.PureStateMath.BornBridge.toEuclidean_fromVec v‖ ≤ ‖A - 1‖ at hb
   simpa only [norm_smul, hn, mul_one] using hb
 
+/-- For normalized local eigenvectors, the distance of the product eigenvalue from one is at
+most the operator-norm distance of the product matrix from identity. -/
 theorem product_eigenvalue_sub_one_le_norm
     {ι I : Type*} [Fintype ι] [DecidableEq ι] [Fintype I] [DecidableEq I]
     (A : ι → Matrix I I ℂ) (v : ι → Qatlib.Foundations.PureStateMath.QState I) (z : ι → ℂ)
@@ -69,6 +101,8 @@ theorem product_eigenvalue_sub_one_le_norm
   Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.eigenvalue_sub_one_le_norm _ _ _ (Qatlib.Concepts.QueryComplexity.Amplification.normalized_piTensorState hv)
     (Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.productMatrix_mulVec_eigen A v z hAv)
 
+/-- Normalized eigenvectors of `A` with phases `±θ` give the lower bound `2 * |sin ((n - k) * θ
+/ 2)|` for the distance of its `(n + k)`-fold tensor product from identity. -/
 theorem paired_phase_tensor_witness_add
     {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (vplus vminus : Qatlib.Foundations.PureStateMath.QState I) (θ : ℝ)
@@ -111,6 +145,8 @@ theorem paired_phase_tensor_witness_add
   norm_num at h
   exact h
 
+/-- Normalized eigenvectors with phases `±θ` give the lower bound `2 * |sin ((N - 2k) * θ / 2)|`
+for the `N`-fold tensor product error whenever `k ≤ N`. -/
 theorem paired_phase_tensor_witness
     {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (vplus vminus : Qatlib.Foundations.PureStateMath.QState I) (θ : ℝ)
@@ -127,6 +163,7 @@ theorem paired_phase_tensor_witness
   rw [hcast]
   exact Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.paired_phase_tensor_witness_add A vplus vminus θ hp hm hAp hAm n k
 
+/-- The register tensor product of unitary local matrices is unitary. -/
 theorem productMatrix_unitary
     {ι I : Type*} [Fintype ι] [DecidableEq ι] [Fintype I] [DecidableEq I]
     (U : ι → Matrix I I ℂ) (hU : ∀ i, U i ∈ Matrix.unitaryGroup I ℂ) :
@@ -140,6 +177,8 @@ theorem productMatrix_unitary
       (Matrix.mem_unitaryGroup_iff.mp (hU i))
   rw [h, Qatlib.Concepts.TensorRegisters.RegisterModel.productMatrix_one]
 
+/-- For unitary reference factors `U`, the distance between the tensor products of `W` and `U`
+equals the distance from identity of the tensor product of `(U i)ᴴ * W i`. -/
 theorem productMatrix_relative_error
     {ι I : Type*} [Fintype ι] [DecidableEq ι] [Fintype I] [DecidableEq I]
     (U W : ι → Matrix I I ℂ) (hU : ∀ i, U i ∈ Matrix.unitaryGroup I ℂ) :
@@ -157,6 +196,8 @@ theorem productMatrix_relative_error
       Qatlib.Concepts.TensorRegisters.RegisterModel.productMatrix_mul] at hn
   exact hn.symm
 
+/-- If `θ > 0` and `N * θ > π`, some grid point `(N - 2k) * θ` with `k ≤ N` lies in `(π - 2θ,
+π]`. -/
 theorem phase_grid_below_pi (N : ℕ) (θ : ℝ)
     (hθ : 0 < θ) (hlarge : Real.pi < (N : ℝ) * θ) :
     ∃ k : ℕ, k ≤ N ∧
@@ -192,6 +233,8 @@ theorem phase_grid_below_pi (N : ℕ) (θ : ℝ)
   · dsimp [a] at hkloθ
     nlinarith [hdiv]
 
+/-- For positive `N` and `θ ∈ [0, 1/8]`, some phase-grid sine witness is at least `min (2 * N *
+(2 * sin (θ/2)) / π) 1`. -/
 theorem phase_grid_saturation (N : ℕ) (hN : 0 < N)
     (θ : ℝ) (hθ0 : 0 ≤ θ) (hθ : θ ≤ 1 / 8) :
     ∃ k : ℕ, k ≤ N ∧
@@ -255,6 +298,8 @@ theorem phase_grid_saturation (N : ℕ) (hN : 0 < N)
       _ ≤ 2 * |Real.sin (x / 2)| :=
         mul_le_mul_of_nonneg_left (le_abs_self _) (by norm_num)
 
+/-- For normalized eigenvectors with phases `±θ`, positive `N`, and `θ ∈ [0, 1/8]`, the `N`-fold
+tensor error is at least `min (2 * N * (2 * sin (θ/2)) / π) 1`. -/
 theorem paired_phase_tensor_saturation
     {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (vplus vminus : Qatlib.Foundations.PureStateMath.QState I) (θ : ℝ)
@@ -269,6 +314,9 @@ theorem paired_phase_tensor_saturation
   exact hb.trans
       (Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.paired_phase_tensor_witness A vplus vminus θ hp hm hAp hAm N k hk)
 
+/-- If `U` is unitary and `Uᴴ * W` has normalized eigenvectors with phases `±θ ∈ ±[0, 1/8]`, the
+distance between their positive tensor powers is at least `min (2 * N * (2 * sin (θ/2)) / π)
+1`. -/
 theorem paired_relative_tensor_saturation
     {I : Type*} [Fintype I] [DecidableEq I]
     (U W : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
@@ -282,6 +330,8 @@ theorem paired_relative_tensor_saturation
   rw [Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.productMatrix_relative_error (fun _ : Fin N => U) (fun _ => W) (fun _ => hU)]
   exact Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.paired_phase_tensor_saturation (Uᴴ * W) vplus vminus θ hp hm hAp hAm N hN hθ0 hθ
 
+/-- Under the paired relative-phase hypotheses with `θ ∈ [0, 1/8]` and positive `N`, any lower
+bound `d ≤ 2 * sin (θ/2)` gives tensor error at least `min (2 * N * d / π) 1`. -/
 theorem paired_relative_tensor_saturation_of_lower
     {I : Type*} [Fintype I] [DecidableEq I]
     (U W : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
@@ -300,6 +350,7 @@ theorem paired_relative_tensor_saturation_of_lower
   exact (min_le_min hl le_rfl).trans
     (Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.TensorPhaseLowerBound.paired_relative_tensor_saturation U W hU vplus vminus θ hp hm hAp hAm N hN hθ0 hθ)
 
+/-- For `θ ∈ [0, π]`, the phase is at most twice its chord length `2 * sin (θ / 2)`. -/
 theorem principal_phase_le_twice_chord (θ : ℝ)
     (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi) :
     θ ≤ 2*(2*Real.sin (θ/2)) := by
@@ -318,6 +369,7 @@ theorem principal_phase_le_twice_chord (θ : ℝ)
       mul_le_mul_of_nonneg_right Real.pi_lt_four.le hsin
     _ = _ := by ring
 
+/-- For a principal phase `θ ∈ [0, π]`, chord length at most `1/16` implies `θ ≤ 1/8`. -/
 theorem principal_phase_small_of_chord (θ : ℝ)
     (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi)
     (hc : 2*Real.sin (θ/2) ≤ 1/16) : θ ≤ 1/8 := by

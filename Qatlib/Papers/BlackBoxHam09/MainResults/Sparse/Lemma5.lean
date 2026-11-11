@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+/-!
+# Lemma 5 phase and accumulated cost arithmetic
+
+This module proves the phase identity `lemma5_phase_power`, finite error summation bounds, and
+scalar identities for a prescribed integer number of steps. Given an integer witness for `d = Λ1
+* t / ε`, `lemma5_walk_step_simulation` packages the step, cost, and cubic error identities.
+
+These calculations support the walk step analysis of Lemma 5 in [BerryChilds2012].
+
+## Main statements
+
+* `lemma5_phase_power` gives the repeated phase identity.
+* `lemma5_walk_step_simulation` collects arithmetic for a supplied integer step count.
+
+## References
+
+* [Berry and Childs, 2012][BerryChilds2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +41,8 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Inhabited ι] {D L : ℕ}
 
+/-- Raising the phase `exp (θ * I)` to the natural power `d` multiplies its angle by `d`. See
+[Berry and Childs, Lemma 5][BerryChilds2012]. -/
 theorem lemma5_phase_power (θ : ℝ) (d : ℕ) :
     (Complex.exp (θ * Complex.I)) ^ d = Complex.exp (((d : ℝ) * θ) * Complex.I) := by
   rw [← Complex.exp_nat_mul]
@@ -28,6 +50,8 @@ theorem lemma5_phase_power (θ : ℝ) (d : ℕ) :
   push_cast
   ring
 
+/-- A sum of `d` nonnegative errors, each at most `e`, is at most `d * e`. See [Berry and
+Childs, Lemma 5][BerryChilds2012]. -/
 theorem lemma5_error_accumulation (d : ℕ) (err : ℕ → ℝ) (e : ℝ)
     (herr0 : ∀ j ∈ Finset.range d, 0 ≤ err j)
     (herr : ∀ j ∈ Finset.range d, err j ≤ e) :
@@ -36,26 +60,36 @@ theorem lemma5_error_accumulation (d : ℕ) (err : ℕ → ℝ) (e : ℝ)
         exact Finset.sum_le_sum herr
     _ = (d : ℝ) * e := by simp
 
+/-- For nonzero `Λ1` and `ε`, simplify the real step factor times the cubic local error to `Λ ^
+3 * t * ε ^ 2 / Λ1 ^ 2`. See [Berry and Childs, Lemma 5][BerryChilds2012]. -/
 theorem lemma5_total_error_eq {Λ Λ1 ε t : ℝ} (hΛ1 : Λ1 ≠ 0) (hε : ε ≠ 0) :
     (Λ1 * t / ε) * (Λ * ε / Λ1) ^ 3 = Λ ^ 3 * t * ε ^ 2 / Λ1 ^ 2 := by
   field_simp
 
+/-- Restate the supplied bound `Λ ^ 2 * ε ^ 2 / Λ1 ^ 2 ≤ δ`. -/
 theorem lemma5_error_le_of_bound {Λ Λ1 ε : ℝ} {δ : ℝ} (hΛ1 : Λ1 ≠ 0)
     (h : Λ ^ 2 * ε ^ 2 / Λ1 ^ 2 ≤ δ) :
     Λ ^ 2 * ε ^ 2 / Λ1 ^ 2 ≤ δ := h
 
+/-- If the natural step count satisfies `d = Λ1 * t / ε` and `ε` is nonzero, then `d * ε = Λ1 *
+t`. -/
 theorem lemma5_steps_times_eps {Λ1 ε t : ℝ} {d : ℕ}
     (hint : (d : ℝ) = Λ1 * t / ε) (hε : ε ≠ 0) :
     (d : ℝ) * ε = Λ1 * t := by
   rw [hint]
   field_simp
 
+/-- For a prescribed step count `d = Λ1 * t / ε` and nonnegative per-step cost `c`, the total
+scalar cost is at most `c * (Λ1 * t / ε)`. -/
 theorem lemma5_query_budget {Λ1 ε t c : ℝ} {d : ℕ}
     (hint : (d : ℝ) = Λ1 * t / ε) (hc : 0 ≤ c) :
     (d : ℝ) * c ≤ c * (Λ1 * t / ε) := by
   rw [hint]
   exact le_of_eq (mul_comm _ _)
 
+/-- Given the stated black box hypotheses and an integer witness for `d = Λ1 * t / ε`, retain
+that witness and establish its step identity, scalar cost bound, and cubic error identity.
+These arithmetic relations accompany Lemma 5 of [BerryChilds2012]. -/
 theorem lemma5_walk_step_simulation
     (BB : BlackBox ι D L) {Λ Λ1 ε t : ℝ}
     (hsp : IsColumnSparse BB.H D)

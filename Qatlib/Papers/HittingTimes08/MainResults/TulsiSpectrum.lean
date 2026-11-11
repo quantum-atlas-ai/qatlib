@@ -8,6 +8,26 @@ import Qatlib.Papers.HittingTimes08.MainResults.Tulsi
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+
+/-!
+# Spectral equations for the Tulsi construction
+
+This module simplifies paired complex-phase expressions and studies the real spectral equation
+`tulsiF` from [MagniezEtAl2008]. It proves continuity and strict decrease on a controlled
+interval, derives conditional existence and uniqueness of a root, and bounds that root using
+cotangent comparisons.
+
+## Main statements
+
+* `lemma_4_4_equation_iff`: relates the scaled and unscaled spectral equations.
+* `lemma_4_7_full`: combines unique-root existence with cotangent and phase lower bounds.
+* `rotation_overlap_paired`: simplifies the overlap expression for paired phases.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,16 +38,20 @@ namespace Qatlib.Papers.HittingTimes08.MainResults
 
 open scoped BigOperators
 
+/-- The complex unit-circle phase `cos α + sin α * I`. -/
 def phase (α : ℝ) : ℂ := (Real.cos α : ℂ) + (Real.sin α : ℂ) * Complex.I
 
+/-- Negating the angle conjugates its complex phase. -/
 theorem phase_neg (α : ℝ) : phase (-α) = starRingEnd ℂ (phase α) := by
   apply Complex.ext
   · simp [phase, Real.cos_neg]
   · simp [phase, Real.cos_neg, Real.sin_neg]
 
+/-- Cotangent is odd: `cot (-x) = -cot x`. -/
 theorem cot_neg (x : ℝ) : cot (-x) = -cot x := by
   simp [cot, Real.cos_neg, Real.sin_neg, div_neg]
 
+/-- Cotangent is positive on `(0, π / 2)`. -/
 theorem cot_pos_of_pos_of_lt_half_pi {x : ℝ} (h0 : 0 < x) (h1 : x < Real.pi / 2) :
     0 < cot x := by
   have hsin : 0 < Real.sin x :=
@@ -35,6 +59,8 @@ theorem cot_pos_of_pos_of_lt_half_pi {x : ℝ} (h0 : 0 < x) (h1 : x < Real.pi / 
   have hcos : 0 < Real.cos x := Real.cos_pos_of_mem_Ioo ⟨by linarith [Real.pi_pos], h1⟩
   exact div_pos hcos hsin
 
+/-- For nonzero weights, the sum over conjugate phase pairs simplifies to `-2 * c` times the
+weighted sum of `sin α * cot (α / 2)`. -/
 theorem overlap_paired (P : Type*) [Fintype P] (W α : P → ℝ) (c : ℝ)
     (hW : ∀ p, W p ≠ 0) :
     (∑ a : P × Bool,
@@ -92,6 +118,8 @@ end Qatlib.Papers.HittingTimes08.MainResults
 
 namespace Qatlib.Papers.HittingTimes08.MainResults
 
+/-- Specializes the paired-phase overlap identity to the coefficient `a0`, giving `-2 * a0`
+times the weighted sine-cotangent sum, as in Lemma 4.2 of [MagniezEtAl2008]. -/
 theorem lemma_4_2 (P : Type*) [Fintype P] (W α : P → ℝ) (a0 : ℝ)
     (hW : ∀ p, W p ≠ 0) :
     (∑ a : P × Bool,
@@ -104,6 +132,8 @@ theorem lemma_4_2 (P : Type*) [Fintype P] (W α : P → ℝ) (a0 : ℝ)
           ∑ p, (Real.sin (α p) : ℂ) * (cot (α p / 2) : ℂ) / (W p : ℂ) :=
   overlap_paired P W α a0 hW
 
+/-- Specializes the paired-phase overlap identity to `a0 * cos θ`, giving the modified overlap
+expression of Corollary 4.6 in [MagniezEtAl2008]. -/
 theorem corollary_4_6 (P : Type*) [Fintype P] (W α : P → ℝ) (a0 θ : ℝ)
     (hW : ∀ p, W p ≠ 0) :
     (∑ a : P × Bool,
@@ -116,6 +146,8 @@ theorem corollary_4_6 (P : Type*) [Fintype P] (W α : P → ℝ) (a0 θ : ℝ)
           ∑ p, (Real.sin (α p) : ℂ) * (cot (α p / 2) : ℂ) / (W p : ℂ) := by
   simpa only [Complex.ofReal_mul] using overlap_paired P W α (a0 * Real.cos θ) hW
 
+/-- When `cos θ ≠ 0`, the scaled spectral equation implies the unscaled equation with
+tangent-squared correction, as in Lemma 4.4 of [MagniezEtAl2008]. -/
 theorem lemma_4_4_equation {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θ : ℝ) (θj : J → ℝ) (x : ℝ) (hcos : Real.cos θ ≠ 0)
     (h : (a0 * Real.cos θ) ^ 2 * cot (x / 2) +
@@ -153,9 +185,11 @@ theorem lemma_4_4_equation {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     rw [hkey]; exact h
   exact (mul_eq_zero.mp hmul).resolve_left hcos2
 
+/-- Cotangent equals the reciprocal of tangent. -/
 theorem cot_eq_one_div_tan (x : ℝ) : cot x = 1 / Real.tan x := by
   rw [cot, Real.tan_eq_sin_div_cos, one_div_div]
 
+/-- Cotangent is strictly decreasing between two points in `(0, π / 2)`. -/
 theorem cot_lt_cot {x y : ℝ} (hx : 0 < x) (hxy : x < y) (hy : y < Real.pi / 2) :
     cot y < cot x := by
   have htan : Real.tan x < Real.tan y :=
@@ -168,11 +202,13 @@ theorem cot_lt_cot {x y : ℝ} (hx : 0 < x) (hxy : x < y) (hy : y < Real.pi / 2)
   rw [cot_eq_one_div_tan x, cot_eq_one_div_tan y]
   exact one_div_lt_one_div_of_lt hpx htan
 
+/-- If `cos u` and `cos v` are nonzero, then `tan u - tan v = sin (u - v) / (cos u * cos v)`. -/
 theorem tan_sub_tan (u v : ℝ) (hu : Real.cos u ≠ 0) (hv : Real.cos v ≠ 0) :
     Real.tan u - Real.tan v = Real.sin (u - v) / (Real.cos u * Real.cos v) := by
   rw [Real.tan_eq_sin_div_cos, Real.tan_eq_sin_div_cos, Real.sin_sub]
   field_simp
 
+/-- For `0 < a ≤ π / 4`, the bound `(101 / 100) * tan ((39 / 100) * a) ≤ tan (a / 2)` holds. -/
 theorem tan_ratio_lower {a : ℝ} (h0 : 0 < a) (ha : a ≤ Real.pi / 4) :
     (101 / 100 : ℝ) * Real.tan (39 / 100 * a) ≤ Real.tan (a / 2) := by
   have hpi := Real.pi_pos
@@ -229,6 +265,8 @@ theorem tan_ratio_lower {a : ℝ} (h0 : 0 < a) (ha : a ≤ Real.pi / 4) :
     rw [hsub]; exact htanv
   linarith
 
+/-- For `0 < a ≤ π / 4` and `x > 0`, the bound `cot (x / 2) ≤ (101 / 100) * cot (a / 2)` implies
+`(78 / 100) * a ≤ x`, as used in Lemma 4.7 of [MagniezEtAl2008]. -/
 theorem lemma_4_7_alpha_lower {a x : ℝ} (ha0 : 0 < a) (ha : a ≤ Real.pi / 4)
     (hx0 : 0 < x)
     (hcot : cot (x / 2) ≤ (101 / 100) * cot (a / 2)) :
@@ -252,6 +290,7 @@ theorem lemma_4_7_alpha_lower {a x : ℝ} (ha0 : 0 < a) (ha : a ≤ Real.pi / 4)
     nlinarith [htan]
   linarith [hbase, hmono, hcot]
 
+/-- Cotangent is strictly decreasing between two points in `(0, π)`. -/
 theorem cot_lt_cot_of_pos_of_lt_pi {x y : ℝ} (hx : 0 < x) (hxy : x < y)
     (hy : y < Real.pi) : cot y < cot x := by
   have hpi := Real.pi_pos
@@ -269,6 +308,7 @@ theorem cot_lt_cot_of_pos_of_lt_pi {x y : ℝ} (hx : 0 < x) (hxy : x < y)
     exact div_neg_of_neg_of_pos hsin (mul_pos hsy hsx)
   linarith
 
+/-- Cotangent is strictly decreasing between two points in `(-π, 0)`. -/
 theorem cot_lt_cot_of_neg_of_neg_pi_lt {x y : ℝ} (hx : -Real.pi < x) (hxy : x < y)
     (hy : y < 0) : cot y < cot x := by
   have h1 : cot y = -cot (-y) := by
@@ -282,18 +322,21 @@ theorem cot_lt_cot_of_neg_of_neg_pi_lt {x y : ℝ} (hx : -Real.pi < x) (hxy : x 
     cot_lt_cot_of_pos_of_lt_pi (by linarith) (by linarith) (by linarith)
   linarith
 
+/-- Cotangent is nonincreasing between ordered points in `(0, π)`. -/
 theorem cot_le_cot_of_pos_of_le_of_lt_pi {x y : ℝ} (hx : 0 < x) (hxy : x ≤ y)
     (hy : y < Real.pi) : cot y ≤ cot x := by
   rcases lt_or_eq_of_le hxy with h | h
   · exact (cot_lt_cot_of_pos_of_lt_pi hx h hy).le
   · rw [h]
 
+/-- Cotangent is nonincreasing between ordered points in `(-π, 0)`. -/
 theorem cot_le_cot_of_neg_of_le_of_neg_pi_lt {x y : ℝ} (hx : -Real.pi < x)
     (hxy : x ≤ y) (hy : y < 0) : cot y ≤ cot x := by
   rcases lt_or_eq_of_le hxy with h | h
   · exact (cot_lt_cot_of_neg_of_neg_pi_lt hx h hy).le
   · rw [h]
 
+/-- For `0 < t ≤ π / 2`, cotangent is at most `π / (2 * t)`. -/
 theorem cot_le_pi_div_two_mul {t : ℝ} (h0 : 0 < t) (ht : t ≤ Real.pi / 2) :
     cot t ≤ Real.pi / (2 * t) := by
   have hpi := Real.pi_pos
@@ -308,6 +351,7 @@ theorem cot_le_pi_div_two_mul {t : ℝ} (h0 : 0 < t) (ht : t ≤ Real.pi / 2) :
     field_simp [Real.pi_ne_zero, ne_of_gt h0]
   linarith [h1, h2, h3]
 
+/-- For `0 < t ≤ π / 4`, cotangent is at least `1 / t - t / 2`. -/
 theorem cot_ge_one_div_sub {t : ℝ} (h0 : 0 < t) (ht : t ≤ Real.pi / 4) :
     1 / t - t / 2 ≤ cot t := by
   have hpi := Real.pi_pos
@@ -327,6 +371,7 @@ theorem cot_ge_one_div_sub {t : ℝ} (h0 : 0 < t) (ht : t ≤ Real.pi / 4) :
   rw [cot, ← heq]
   linarith [hstep1, hstep2]
 
+/-- For `0 < t ≤ π / 4`, tangent is at most `2 * t`. -/
 theorem tan_le_two_mul {t : ℝ} (h0 : 0 < t) (ht : t ≤ Real.pi / 4) :
     Real.tan t ≤ 2 * t := by
   have hpi := Real.pi_pos
@@ -345,6 +390,8 @@ theorem tan_le_two_mul {t : ℝ} (h0 : 0 < t) (ht : t ≤ Real.pi / 4) :
   have h3 : t / (1 / 2) = 2 * t := by ring
   linarith [h1, h2, h3]
 
+/-- The shifted half-angle cotangent is continuous on any set where its sine denominator is
+nonzero. -/
 theorem continuousOn_cot_comp {c : ℝ} {s : Set ℝ}
     (h : ∀ x ∈ s, Real.sin ((x + c) / 2) ≠ 0) :
     ContinuousOn (fun x => cot ((x + c) / 2)) s := by
@@ -356,11 +403,15 @@ theorem continuousOn_cot_comp {c : ℝ} {s : Set ℝ}
   have hdiv := hcos.div hsin h
   simpa [cot] using! hdiv
 
+/-- The real spectral equation consisting of the weighted cotangent terms minus `tan θ ^ 2 * tan
+(x / 2)`. -/
 def tulsiF {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ) (θj : J → ℝ) (θ x : ℝ) : ℝ :=
   a0 ^ 2 * cot (x / 2) +
     (∑ j, a j ^ 2 * (cot ((x + θj j) / 2) + cot ((x - θj j) / 2))) -
     Real.tan θ ^ 2 * Real.tan (x / 2)
 
+/-- For `0 < α ≤ π / 4`, phases in `[0, π / 2]` strictly above `α`, and `cos θ ≠ 0`, the
+spectral function `tulsiF` is continuous on `[α / 4, α]`. -/
 theorem tulsiF_continuousOn {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ}
     (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
@@ -417,6 +468,8 @@ theorem tulsiF_continuousOn {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
   have h := (hterm0.add hsum).sub htan
   simpa [tulsiF] using! h
 
+/-- For nonzero `a0`, `0 < α ≤ π / 4`, and phases in `[0, π / 2]` strictly above `α`, the
+spectral function `tulsiF` is strictly decreasing on `[α / 4, α]`. -/
 theorem tulsiF_strictAntiOn {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ}
     (ha0 : a0 ≠ 0) (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
@@ -452,6 +505,8 @@ theorem tulsiF_strictAntiOn {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
   unfold tulsiF
   linarith [hA, hB, hC]
 
+/-- If `α > 0`, `tulsiF` is continuous on `[α / 4, α]`, positive at the left endpoint, and
+nonpositive at the right endpoint, it has a root in that interval. -/
 theorem tulsiF_root_exists {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ} (hα0 : 0 < α)
     (hcont : ContinuousOn (tulsiF a0 a θj θ) (Set.Icc (α / 4) α))
@@ -464,6 +519,7 @@ theorem tulsiF_root_exists {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
   rcases intermediate_value_Icc' hab hcont hmem with ⟨x, hx, hfx⟩
   exact ⟨x, hx, hfx⟩
 
+/-- Strict decrease of `tulsiF` on `[α / 4, α]` makes any two roots in that interval equal. -/
 theorem tulsiF_root_unique {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ}
     (hanti : StrictAntiOn (tulsiF a0 a θj θ) (Set.Icc (α / 4) α))
@@ -478,6 +534,8 @@ theorem tulsiF_root_unique {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     rw [hfx, hfy] at h
     exact lt_irrefl (0 : ℝ) h
 
+/-- For `α > 0`, continuity, strict decrease, and the specified endpoint signs give a unique
+root of `tulsiF` in `[α / 4, α]`, as used in Lemma 4.7 of [MagniezEtAl2008]. -/
 theorem tulsiF_root_exists_unique {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ} (hα0 : 0 < α)
     (hcont : ContinuousOn (tulsiF a0 a θj θ) (Set.Icc (α / 4) α))
@@ -490,6 +548,9 @@ theorem tulsiF_root_exists_unique {J : Type*} [Fintype J] (a0 : ℝ) (a : J → 
   intro y hy
   exact (tulsiF_root_unique a0 a θj θ hanti hx hy.1 hfx hy.2).symm
 
+/-- Under the stated phase restrictions, unperturbed spectral equation, and tangent-error bound,
+every root `x ∈ [α / 4, α]` satisfies `cot (x / 2) ≤ (101 / 100) * cot (α / 2)`, as in Lemma
+4.7 of [MagniezEtAl2008]. -/
 theorem lemma_4_7_cot_bound {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ x α : ℝ)
     (ha0 : a0 ≠ 0) (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
@@ -550,6 +611,10 @@ theorem lemma_4_7_cot_bound {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     nlinarith [htan, ha0sq, hcot2pos]
   linarith [hstep', hbound]
 
+/-- Under the stated continuity, monotonicity, endpoint, and spectral hypotheses, `tulsiF` has a
+unique root in `[α / 4, α]`; every such root satisfies `cot (x / 2) ≤ (101 / 100) * cot (α /
+2)` and `x ≥ (78 / 100) * α`. This is the conditional root estimate associated with [Magniez
+et al., Lemma 4.7][MagniezEtAl2008]. -/
 theorem lemma_4_7_full {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ : ℝ) {α : ℝ}
     (ha0 : a0 ≠ 0) (hα0 : 0 < α) (hα4 : α ≤ Real.pi / 4)
@@ -572,6 +637,8 @@ theorem lemma_4_7_full {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
   exact lemma_4_7_alpha_lower hα0 hα4 hx0
     (lemma_4_7_cot_bound a0 a θj θ x α ha0 hα0 hα4 hθ0 hθ2 hθα hx hEq8 hroot htan)
 
+/-- When `cos θ ≠ 0`, the scaled spectral expression equals `cos θ ^ 2` times the unscaled
+expression with tangent-squared correction. -/
 theorem lemma_4_4_coefficients {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ x : ℝ) (hcos : Real.cos θ ≠ 0) :
     (a0 * Real.cos θ) ^ 2 * cot (x / 2) +
@@ -593,6 +660,8 @@ theorem lemma_4_4_coefficients {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ
     mul_sub, mul_add, hsum]
   field_simp [hcos]
 
+/-- When `cos θ ≠ 0`, vanishing of the scaled spectral expression is equivalent to vanishing of
+the unscaled expression, as in Lemma 4.4 of [MagniezEtAl2008]. -/
 theorem lemma_4_4_equation_iff {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ)
     (θj : J → ℝ) (θ x : ℝ) (hcos : Real.cos θ ≠ 0) :
     ((a0 * Real.cos θ) ^ 2 * cot (x / 2) +
@@ -609,6 +678,8 @@ theorem lemma_4_4_equation_iff {J : Type*} [Fintype J] (a0 : ℝ) (a : J → ℝ
     have hcos2 : Real.cos θ ^ 2 ≠ 0 := pow_ne_zero 2 hcos
     rw [hcoe, h, mul_zero]
 
+/-- For nonzero weights, the signed paired-phase overlap simplifies to `2 * I * c * ∑ p, cot (α
+p / 2) / W p`. -/
 theorem rotation_overlap_paired (P : Type*) [Fintype P] (W α : P → ℝ) (c : ℝ)
     (hW : ∀ p, W p ≠ 0) :
     (∑ a : P × Bool,
@@ -638,6 +709,8 @@ theorem rotation_overlap_paired (P : Type*) [Fintype P] (W α : P → ℝ) (c : 
   rw [Finset.sum_congr rfl (fun p _ => hinner p)]
   rw [← Finset.mul_sum]
 
+/-- Specializes the signed paired-phase overlap to `c = a0`, yielding the rotation expression
+associated with Lemma 4.2 of [MagniezEtAl2008]. -/
 theorem lemma_4_2_rotation (P : Type*) [Fintype P] (W α : P → ℝ) (a0 : ℝ)
     (hW : ∀ p, W p ≠ 0) :
     (∑ a : P × Bool,
@@ -649,6 +722,8 @@ theorem lemma_4_2_rotation (P : Type*) [Fintype P] (W α : P → ℝ) (a0 : ℝ)
       = 2 * Complex.I * (a0 : ℂ) * ∑ p, (cot (α p / 2) : ℂ) / (W p : ℂ) :=
   rotation_overlap_paired P W α a0 hW
 
+/-- Specializes the signed paired-phase overlap to `c = a0 * cos θ`, yielding the modified
+rotation expression associated with Corollary 4.6 of [MagniezEtAl2008]. -/
 theorem corollary_4_6_rotation (P : Type*) [Fintype P] (W α : P → ℝ) (a0 θ : ℝ)
     (hW : ∀ p, W p ≠ 0) :
     (∑ a : P × Bool,

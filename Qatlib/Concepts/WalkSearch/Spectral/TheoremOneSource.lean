@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
 import Qatlib.Concepts.WalkSearch.FrameSpectral.StationaryFixpointSubgoalQuan
+
+/-!
+# Source spectral map and the uniform fixed point
+
+This module packages the endpoint and interior source actions of a bipartite reflection walk in
+`source_theorem_one_spectral`. Common frame images give fixed points, interior sources give
+signed τ eigenvectors, and null sources map to the minus-one action.
+
+For symmetric transition matrices on nonempty finite types, `source_lemma_one_uniform_fixpoint`
+supplies the normalized lifted uniform fixed point. These statements express the source spectral
+picture of [Szegedy2004].
+
+## Main statements
+
+* `source_theorem_one_spectral`: common, interior, and null source actions.
+* `source_lemma_one_uniform_fixpoint`: normalized stationary uniform lift.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +46,9 @@ open Qatlib.Concepts.WalkSearch.FrameSpectral
 
 namespace Qatlib.Concepts.WalkSearch.Spectral.TheoremOneSource
 
+/-- For two isometric frames, common images give fixed points, normalized interior discriminant
+sources give signed τ eigenvectors, and zero-eigenvalue sources give minus-one walk images
+[Szegedy2004]. -/
 theorem source_theorem_one_spectral
     (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -64,6 +89,8 @@ theorem source_theorem_one_spectral
     fun v hv => (bipartite_endpoint_kernel_transport H I J A B v hA hB).2.2 hv
   exact ⟨hrow1, hrow2, hrow4⟩
 
+/-- For a symmetric transition matrix on a nonempty finite type, the isometric lift of the
+uniform state is normalized and fixed by the Szegedy walk [Szegedy2004]. -/
 theorem source_lemma_one_uniform_fixpoint
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (hP : IsTransitionMatrix P) (hsym : ∀ i j, P i j = P j i) :

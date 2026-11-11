@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FixedPtSearch14.FixedPoint.FixedPointDefs
+
+/-!
+# Filter stability and consumer bounds
+
+This module proves exact well-branch identities and perturbation bounds for the sine-envelope
+filter. The results `clause20_executed_mass_stability` and `clause20_executed_output_stability`
+control the branch mass and normalized direction from an operator-norm execution error.
+
+It also provides mixed-state conditional transport, consumer access ledgers, and sampling bounds
+used alongside the fixed-point search development of [YoderLowChuang2014]. These interfaces
+retain their explicit error, gap, and sampling hypotheses.
+
+## Main statements
+
+* `clause20_actual_well_mass`: agreement of actual and ideal well masses.
+* `clause20_executed_output_stability`: stability of the normalized well branch.
+* `clause21_mixed_transport_bounds`: mixed-state success and trace-norm bounds.
+* `clause22_unknown_variance_total_failure`: a joint pilot-mean failure bound.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -41,6 +65,7 @@ open Qatlib.Concepts.HhlErrorBridge.FilterStability
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The operator norm of a projector onto a subset of the three flag states is at most one. -/
 theorem projector_flag_norm_le_one (S : Finset (Fin 3)) : ‖Projector S‖ ≤ 1 := by
   rw [show Projector S = Matrix.diagonal (fun i => if i ∈ S then (1 : ℂ) else 0) from rfl,
     Matrix.l2_opNorm_diagonal]
@@ -48,6 +73,7 @@ theorem projector_flag_norm_le_one (S : Finset (Fin 3)) : ‖Projector S‖ ≤ 
   intro i
   split_ifs <;> simp
 
+/-- Projecting a three-component flag vector does not increase its Euclidean norm. -/
 theorem projector_flag_contract (S : Finset (Fin 3)) (w : QState (Fin 3)) :
     ‖toEuclidean_fromVec (Projector S *ᵥ w)‖ ≤ ‖toEuclidean_fromVec w‖ := by
   have h := Matrix.l2_opNorm_mulVec (Projector S) (toEuclidean_fromVec w)
@@ -57,6 +83,7 @@ theorem projector_flag_contract (S : Finset (Fin 3)) (w : QState (Fin 3)) :
         exact mul_le_mul_of_nonneg_right hp (norm_nonneg _)
     _ = ‖toEuclidean_fromVec w‖ := by ring
 
+/-- Collapsing a flag vector onto an event does not increase its Euclidean norm. -/
 theorem collapse_contract (S : Finset (Fin 3)) (w : QState (Fin 3)) :
     ‖toEuclidean_fromVec (Collapse w S)‖ ≤ ‖toEuclidean_fromVec w‖ := by
   have hsq : ‖toEuclidean_fromVec (Collapse w S)‖ ^ 2 ≤ ‖toEuclidean_fromVec w‖ ^ 2 := by
@@ -66,15 +93,19 @@ theorem collapse_contract (S : Finset (Fin 3)) (w : QState (Fin 3)) :
       _ = ∑ i, ‖w i‖ ^ 2 := by simp [MeasureProb, BornProb]
   exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp hsq
 
+/-- Every computational basis vector in the three-state flag register has Euclidean norm one. -/
 theorem ket_flag_norm (i : Fin 3) : ‖toEuclidean_fromVec (Ket i)‖ = 1 :=
   (normalized_iff_norm_toEuclidean_fromVec (Ket i)).mp (normalized_ket i)
 
+/-- Collapse onto a fixed flag event commutes with subtraction of state vectors. -/
 theorem collapse_sub (S : Finset (Fin 3)) (u v : QState (Fin 3)) :
     Collapse u S - Collapse v S = Collapse (u - v) S := by
   funext i
   simp only [Pi.sub_apply, collapse_apply]
   by_cases hi : i ∈ S <;> simp [hi]
 
+/-- For a positive threshold, the well-branch probability of the filter instrument equals
+`sinEnvelopeIdealWellMass`. -/
 theorem clause20_actual_well_mass (d θ : ℝ) (hd : 0 < d) :
     sinEnvelopeActualWellMass d θ hd = sinEnvelopeIdealWellMass d θ := by
   unfold sinEnvelopeActualWellMass sinEnvelopeIdealWellMass instrumentProb
@@ -99,6 +130,8 @@ theorem clause20_actual_well_mass (d θ : ℝ) (hd : 0 < d) :
     simp [sinEnvelopeHVector, sinEnvelopeWellFlag]]
   rw [Complex.ofReal_re, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hf]
 
+/-- When the threshold and well-filter amplitude are positive, conditioning on the well event
+returns the basis state with flag one. -/
 theorem clause20_actual_well_output (d θ : ℝ) (hd : 0 < d)
     (hf : 0 < sinEnvelopeFilterF d θ) :
     sinEnvelopeActualWellOutput d θ hd = some (Ket (1 : Fin 3)) := by
@@ -162,6 +195,8 @@ theorem clause20_actual_well_output (d θ : ℝ) (hd : 0 < d)
       simp [hi, hi1, Qatlib.Foundations.PureStateMath.Ket]
   rw [hpost]
 
+/-- For a positive threshold, measuring the rotated initial flag in the well event has
+probability `(sinEnvelopeFilterF d θ) ^ 2`. -/
 theorem clause20_ideal_well_measureProb (d θ : ℝ) (hd : 0 < d) :
     MeasureProb (sinEnvelopeFlagRotation d θ *ᵥ Ket (0 : Fin 3)) sinEnvelopeWellEvent
       = (sinEnvelopeFilterF d θ) ^ 2 := by
@@ -172,6 +207,8 @@ theorem clause20_ideal_well_measureProb (d θ : ℝ) (hd : 0 < d) :
     simp [sinEnvelopeHVector, sinEnvelopeWellFlag]]
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hfn]
 
+/-- For a positive threshold, the Euclidean norm of the reference well-branch vector equals
+`sinEnvelopeFilterF d θ`. -/
 theorem clause20_reference_branch_norm (d θ : ℝ) (hd : 0 < d) :
     ‖toEuclidean_fromVec (sinEnvelopeActualWellVector d θ hd)‖ = sinEnvelopeFilterF d θ := by
   have hsq : ‖toEuclidean_fromVec (sinEnvelopeActualWellVector d θ hd)‖ ^ 2
@@ -196,6 +233,8 @@ theorem clause20_reference_branch_norm (d θ : ℝ) (hd : 0 < d) :
     (sq_le_sq₀ hfn hpos).mp (le_of_eq hsq.symm)
   exact le_antisymm h1 h2
 
+/-- At phase `2 * d`, the well mass is `1 / 4` and the ideal ill mass is zero. For every phase
+at least `2 * d`, the ideal well mass is `(d / θ') ^ 2`. -/
 theorem clause20_tight_well_parameters (d θ : ℝ) (hd : 0 < d) :
     sinEnvelopeActualWellMass d (2 * d) hd = 1 / 4 ∧
     sinEnvelopeIdealIllMass d (2 * d) = 0 ∧
@@ -213,6 +252,8 @@ theorem clause20_tight_well_parameters (d θ : ℝ) (hd : 0 < d) :
     simp only [sinEnvelopeIdealWellMass]
     rw [(h.2.2.2.2.2.2.2.2 θ' hθ').1]
 
+/-- The Euclidean error of the executed well-branch vector is at most the execution's operator
+error bound. -/
 theorem clause20_executed_branch_error {d θ : ℝ} (E : SinEnvelopeFilterExecution d θ) :
     ‖toEuclidean_fromVec (E.wellVector - sinEnvelopeActualWellVector d θ E.threshold_pos)‖
       ≤ E.error := by
@@ -243,6 +284,8 @@ theorem clause20_executed_branch_error {d θ : ℝ} (E : SinEnvelopeFilterExecut
         exact mul_le_mul_of_nonneg_right E.error_le (by norm_num)
     _ = E.error := by ring
 
+/-- The absolute error in the executed well mass is at most `E.error * (2 * sinEnvelopeFilterF d
+θ + E.error)`. -/
 theorem clause20_executed_mass_stability {d θ : ℝ} (E : SinEnvelopeFilterExecution d θ) :
     |E.wellMass - sinEnvelopeIdealWellMass d θ|
       ≤ E.error * (2 * sinEnvelopeFilterF d θ + E.error) := by
@@ -273,6 +316,9 @@ theorem clause20_executed_mass_stability {d θ : ℝ} (E : SinEnvelopeFilterExec
   rw [clause20_reference_branch_norm d θ E.threshold_pos] at h
   exact h
 
+/-- If the execution error is smaller than the well-filter amplitude, the executed well vector
+is nonzero. Its normalized direction differs from the reference direction by at most `2 *
+E.error / sinEnvelopeFilterF d θ`. -/
 theorem clause20_executed_output_stability {d θ : ℝ} (E : SinEnvelopeFilterExecution d θ)
     (hgap : E.error < sinEnvelopeFilterF d θ) :
     toEuclidean_fromVec (E.wellVector) ≠ 0 ∧
@@ -302,11 +348,16 @@ theorem clause20_executed_output_stability {d θ : ℝ} (E : SinEnvelopeFilterEx
   · rw [hnorm] at hbound
     exact hbound
 
+/-- If twice the error is smaller than the gap, a conditional channel program's pure-state
+certificate yields the mixed-state guarantee `transportPureToMixed`. -/
 theorem clause21_mixed_transport {O : Type} [Fintype O] {D E : ℕ}
     (P : ConditionalChannelProgram O D E) (h2 : 2 * P.error < P.gap) :
     (transportPureToMixed P.error P.gap).Holds P.actual P.ideal P.selected :=
   pureToMixed_holds P.actual P.ideal P.selected P.error P.gap P.pureCertificate h2
 
+/-- Under `2 * P.error < P.gap`, every density input has ideal selected mass at least `P.gap -
+P.error` and positive actual selected mass. The normalized selected branches differ in trace
+norm by at most `2 * P.error / (P.gap - P.error)`. -/
 theorem clause21_mixed_transport_bounds {O : Type} [Fintype O] {D E : ℕ}
     (P : ConditionalChannelProgram O D E) (h2 : 2 * P.error < P.gap) :
     0 < P.gap - P.error ∧ 0 ≤ 2 * P.error / (P.gap - P.error) ∧
@@ -328,6 +379,8 @@ theorem clause21_mixed_transport_bounds {O : Type} [Fintype O] {D E : ℕ}
     clause21_mixed_transport P h2
   exact ⟨h.1, h.2.1, h.2.2⟩
 
+/-- A positive semidefinite input with zero probability for an instrument outcome produces a
+zero branch operator and a zero normalized branch. -/
 theorem clause21_zero_mass_branch {O : Type} [Fintype O] {D E : ℕ}
     (I : Instrument O D E) {ρ : Operator D} (hρ : ρ.PosSemidef) (o : O)
     (hzero : instrumentProb I ρ o = 0) :
@@ -338,6 +391,8 @@ theorem clause21_zero_mass_branch {O : Type} [Fintype O] {D E : ℕ}
     unfold Qatlib.Concepts.MbqcFlow.FlowDecision.normalizedBranch
     simp
 
+/-- For the stated positive threshold and unitary inputs, the HHL word has `2 * (M - 1)` adjoint
+queries and `4 * (M - 1) + 6` adjoint gates. These counts agree with `hhlCallerLedger M`. -/
 theorem clause21_hhl_caller_ledger {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (d : ℝ) (hd : 0 < d)
     (B U : Operator D) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -349,6 +404,9 @@ theorem clause21_hhl_caller_ledger {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (d : ℝ) 
   have h := sin_envelope_word_legality_and_counts D M hM d hd B U hB hU
   exact ⟨h.2.2.1, h.2.2.2, rfl⟩
 
+/-- For positive `M`, the amplitude-estimation word has `M` forward accesses, `M - 1` backward
+accesses, `2 * (M - 1) + 1` input accesses, and `M - 1` source reflections. Its fixed-macro
+count and combined ledger are the stated values in `aeCallerLedger M`. -/
 theorem clause21_ae_caller_ledger {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     aeForwardAccesses (aeAccessWord (I := I) M) = M ∧
@@ -363,6 +421,8 @@ theorem clause21_ae_caller_ledger {I : Type} [Fintype I] [DecidableEq I] (M : �
   refine ⟨h1.1, h1.2.1, h2.2.2.1, h2.2.2.2, ?_, rfl⟩
   rw [h1.2.2.1, h1.2.2.2]
 
+/-- For `2 ≤ M`, repeating the counted mean-estimation circuit `2 * r + 1` times has the query
+and gate counts recorded by `statisticsCallerLedger M r`. -/
 theorem clause21_statistics_caller_ledger {I : Type} [Fintype I] [DecidableEq I]
     (M r : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) :
     QueryCount (RepeatCircuit (countedAECircuit M (payoffPreparation A f) (j, false))
@@ -374,6 +434,9 @@ theorem clause21_statistics_caller_ledger {I : Type} [Fintype I] [DecidableEq I]
   have h := quantum_mean_repeated_actual_accesses M r hM A j f
   refine ⟨by simpa using! h.1, by simpa using! h.2, rfl⟩
 
+/-- The HHL, amplitude-estimation, and statistics ledgers satisfy their displayed budgets. The
+HHL ledger differs from the amplitude-estimation ledger, which also differs from the
+statistics ledger. -/
 theorem clause21_caller_budgets (M r : ℕ) :
     (hhlCallerLedger M).withinBudget
         (⟨2 * (M - 1), 4 * (M - 1) + 6⟩ : CallerAccessBudget) ∧
@@ -407,6 +470,8 @@ theorem clause21_caller_budgets (M r : ℕ) :
         simpa using! (Nat.mul_le_mul_right (5 * k + 3) (by omega : (1 : ℕ) ≤ 2 * r + 1))
       omega
 
+/-- All three caller success gaps are positive. The HHL gap differs from the
+amplitude-estimation gap, which also differs from the statistics gap. -/
 theorem clause21_caller_success_gaps :
     0 < callerSuccessGap .hhl ∧ 0 < callerSuccessGap .amplitudeEstimation ∧
     0 < callerSuccessGap .statistics ∧
@@ -434,6 +499,9 @@ theorem clause21_caller_success_gaps :
     have hninth : (1 : ℝ) / 9 < 1 / 2 := by norm_num
     linarith
 
+/-- The scaled native amplitude-estimation decoder satisfies the displayed sampling and dyadic
+error bound with probability at least `8 / Real.pi ^ 2`. If the amplitude and recorded index
+are zero, the decoded value is zero. -/
 theorem clause22_relative_ae_same_record {I : Type} [Fintype I] [DecidableEq I] (M k N : ℕ)
     (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -446,12 +514,16 @@ theorem clause22_relative_ae_same_record {I : Type} [Fintype I] [DecidableEq I] 
     (∀ z : Fin M, (a = 0 ∧ z.val = 0) → nativeAEDecode M k z = 0) :=
   native_ae_counting_relative_output_consumer I M k N hM A j S hA
 
+/-- The counted native sine computation uses `8 * (k + 8)` units of cost. The native decoder
+lies in `[0, 1]` and approximates `aeEstimate M z` within `((2 : ℝ)⁻¹) ^ k`. -/
 theorem clause22_integer_bit_cost (x : ℚ) (k : ℕ) (M : ℕ) (z : Fin M) :
     nativeAESinCounted x k = (nativeAESin x k, 8 * (k + 8)) ∧
     0 ≤ nativeAEDecode M k z ∧ nativeAEDecode M k z ≤ 1 ∧
     |(nativeAEDecode M k z : ℝ) - aeEstimate M z| ≤ ((2 : ℝ)⁻¹) ^ k := by
   refine ⟨nativeAESin_value_and_terms x k, native_ae_computed_scalar_precision M k z⟩
 
+/-- For a positive sample count and error tolerance, the POVM sample-average deviation
+probability is at most the outcome variance divided by `L * ε ^ 2`. -/
 theorem clause22_variance_only_sample_budget {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (f : O → ℝ)
     (L : ℕ) (hL : 0 < L) (ε : ℝ) (hε : 0 < ε) :
@@ -460,12 +532,16 @@ theorem clause22_variance_only_sample_budget {O : Type} [Fintype O] [DecidableEq
       ≤ (povmLaw Λ ρ hρ).variance f / (L * ε ^ 2) :=
   FinDist.chebyshev_avg (povmLaw Λ ρ hρ) f hL ε hε
 
+/-- The variance of a POVM outcome statistic is the sum of squared deviations weighted by the
+real traces of the outcome operators against the density input. -/
 theorem clause22_record_variance {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (f : O → ℝ) :
     (povmLaw Λ ρ hρ).variance f =
       ∑ o, (↑(Λ.mats o) * ρ).trace.re * (f o - (povmLaw Λ ρ hρ).expect f) ^ 2 :=
   povm_variance Λ ρ hρ f
 
+/-- If the POVM outcome variance is at most `δ * L * ε ^ 2`, the sample-average deviation
+probability is at most `δ`. -/
 theorem clause22_variance_only_sample_count {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (f : O → ℝ)
     (L : ℕ) (hL : 0 < L) (ε : ℝ) (hε : 0 < ε) (δ : ℝ) (_hδ : 0 < δ)
@@ -480,6 +556,8 @@ theorem clause22_variance_only_sample_count {O : Type} [Fintype O] [DecidableEq 
     linarith
   exact h.trans h2
 
+/-- For every positive failure tolerance `δ`, some repetition parameter makes `(8 / 9) ^ r` at
+most `δ / 2`. -/
 theorem clause22_repetition_budget (δ : ℝ) (hδ : 0 < δ) :
     ∃ r : ℕ, (8 / 9 : ℝ) ^ r ≤ δ / 2 := by
   obtain ⟨r, hr⟩ := exists_pow_lt_of_lt_one
@@ -489,6 +567,8 @@ theorem clause22_repetition_budget (δ : ℝ) (hδ : 0 < δ) :
       norm_num)
   exact ⟨r, le_of_lt hr⟩
 
+/-- For the stated bounded payoff and positive parameters, pilot and repetition failure budgets
+of at most `δ / 2` each bound the joint pilot-mean estimation failure probability by `δ`. -/
 theorem clause22_unknown_variance_total_failure {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (N h r : ℕ) (f : I → ℚ) (nu eps : ℚ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1)

@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.LindbladSemigroupDefs
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.GibbsMetropolis
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+/-!
+# Lindblad mixing and Metropolis specifications
+
+This module derives KMS chi squared contraction and trace distance mixing for Lindblad
+semigroups under self adjointness and a spectral gap hypothesis. It also derives exponential
+entropy decay from `EntropyContractionRate` and a linear lower retention bound from
+`MlsiEntropyProduction`. `TunableQuerySpec` packages these estimates, while
+`OptimizedTunableSpec` packages Metropolis assembly, approximation, and query cost identities.
+Background on quantum dynamical semigroups is given in [Lindblad1976].
+
+## Main statements
+
+* `kmsChiSq_contract`: Under KMS self adjointness and a gap bound `γ`, the KMS chi squared
+  quantity contracts by `exp (-2 * γ * t)` for nonnegative times and positive definite reference
+  density.
+* `entropyContraction_exponential`: The small time contraction property `EntropyContractionRate`
+  implies relative entropy decay by `exp (-γ * t)` at every nonnegative time for density inputs
+  and positive definite reference density.
+* `mlsiEntropyProduction_linear`: For nonnegative time with `γ * t ≤ 1`, `MlsiEntropyProduction`
+  bounds the evolved relative entropy below by `1 - γ * t` times its initial value.
+* `stageB_lindblad_semigroup_clause3`: The Metropolis assembly, approximation, and cost results
+  satisfy `OptimizedTunableSpec`.
+
+## References
+
+* [Lindblad, 1976][Lindblad1976]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -39,6 +68,8 @@ noncomputable section
 
 variable {D : ℕ}
 
+/-- For density operators with positive definite reference `ρ`, the KMS chi squared quantity
+equals the squared KMS norm of the centered density ratio. -/
 theorem kmsChiSq_eq_centered_norm {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hσ : IsDensityOperator σ) :
     kmsChiSq ρ σ = (kmsNorm ρ (kmsDensityRatio ρ (σ - ρ))) ^ 2 := by
@@ -46,12 +77,16 @@ theorem kmsChiSq_eq_centered_norm {ρ σ : Operator D}
   unfold kmsChiSq
   linarith
 
+/-- The KMS chi squared quantity is nonnegative for density operators with positive definite
+reference state. -/
 theorem kmsChiSq_nonneg {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hσ : IsDensityOperator σ) :
     0 ≤ kmsChiSq ρ σ := by
   rw [kmsChiSq_eq_centered_norm hρ hfull hσ]
   positivity
 
+/-- For a positive definite reference density operator, the KMS chi squared quantity is at most
+`kmsMinSpectralWeight ρ ^ 2 - 1`. -/
 theorem kmsChiSq_le_minSpectralWeight {ρ σ : Operator D}
     (_hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hσ : IsDensityOperator σ) :
     kmsChiSq ρ σ ≤ kmsMinSpectralWeight ρ ^ 2 - 1 := by
@@ -61,6 +96,8 @@ theorem kmsChiSq_le_minSpectralWeight {ρ σ : Operator D}
   unfold kmsChiSq kmsMinSpectralWeight
   nlinarith [hsq]
 
+/-- KMS self adjointness and a gap bound `γ` give decay of the centered density ratio norm by
+`exp (-γ * t)` for nonnegative times and density inputs. -/
 theorem kmsDensityRatio_centered_norm_le (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -93,6 +130,8 @@ theorem kmsDensityRatio_centered_norm_le (G : GKSL D) {ρ σ : Operator D}
   rw [hinit] at hn
   exact hn
 
+/-- Under KMS self adjointness and a gap bound `γ`, the KMS chi squared quantity contracts by
+`exp (-2 * γ * t)` for nonnegative times and positive definite reference density. -/
 theorem kmsChiSq_contract (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -119,6 +158,8 @@ theorem kmsChiSq_contract (G : GKSL D) {ρ σ : Operator D}
     _ = Real.exp (-2 * γ * t) * kmsChiSq ρ σ := by
       exact congrArg (fun z : ℝ => Real.exp (-2 * γ * t) * z) hc2.symm
 
+/-- Under the stated KMS self adjointness and gap hypotheses, trace distance to the positive
+definite reference density is at most `exp (-γ * t) * kmsMinSpectralWeight ρ / 2`. -/
 theorem traceDistance_le_exp_minSpectralWeight (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -129,18 +170,24 @@ theorem traceDistance_le_exp_minSpectralWeight (G : GKSL D) {ρ σ : Operator D}
   have h := lindblad_traceDistance_le_inverse_sqrt G hρ hfull hself γ hgap hσ t ht
   simpa [kmsMinSpectralWeight] using! h
 
+/-- KMS self adjointness of the Heisenberg generator with respect to a density operator makes
+that density operator stationary. -/
 theorem isStationary_of_heisenberg_kmsSelfAdjoint (G : GKSL D) {ρ : Operator D}
     (hρ : IsDensityOperator ρ)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) :
     Qatlib.Concepts.LindbladFlow.GkslSemigroup.IsStationary G ρ :=
   stationary_of_heisenberg_kmsSelfAdjoint G ρ hρ.1 hself
 
+/-- Relative entropy between density operators is nonnegative when the reference density
+operator is positive definite. -/
 theorem relativeEntropy_nonneg {σ ρ : Operator D}
     (hσ : IsDensityOperator σ) (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) :
     0 ≤ relativeEntropy σ ρ := by
   have h := relativeEntropy_eq_qRelativeEnt hσ hρ hfull
   exact ENNReal.toReal_nonneg.trans (le_of_eq h.symm)
 
+/-- The small time entropy contraction hypothesis gives the factor `(1 - γ * h) ^ n` at time `n
+* h` for `0 < h ≤ 1` and density inputs. -/
 theorem entropyContractionRate_iterate_aux (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (_hρ : IsDensityOperator ρ) (_hfull : ρ.PosDef)
     (hcont : EntropyContractionRate G ρ γ) {h : ℝ} (hh : 0 < h) (hh1 : h ≤ 1) :
@@ -182,6 +229,9 @@ theorem entropyContractionRate_iterate_aux (G : GKSL D) (ρ : Operator D) (γ : 
               = ((1 - γ * h) ^ n * (1 - γ * h)) * relativeEntropy σ ρ := by ring
           rw [hre, hpow]
 
+/-- The small time contraction property `EntropyContractionRate` implies relative entropy decay
+by `exp (-γ * t)` at every nonnegative time for density inputs and positive definite
+reference density. -/
 theorem entropyContraction_exponential (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hcont : EntropyContractionRate G ρ γ) (σ : Operator D) (hσ : IsDensityOperator σ)
@@ -227,6 +277,8 @@ theorem entropyContraction_exponential (G : GKSL D) (ρ : Operator D) (γ : ℝ)
         ≤ (1 - γ * (t / ⌈t⌉₊)) ^ ⌈t⌉₊ * relativeEntropy σ ρ := hiter
       _ ≤ Real.exp (-γ * t) * relativeEntropy σ ρ := hmul
 
+/-- Unit time entropy contraction iterates to the factor `(1 - γ) ^ n` at natural times on
+density inputs. -/
 theorem entropyContractionStep_iterate_aux (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (_hρ : IsDensityOperator ρ) (_hfull : ρ.PosDef)
     (hcont : EntropyContractionStep G ρ γ) :
@@ -265,6 +317,8 @@ theorem entropyContractionStep_iterate_aux (G : GKSL D) (ρ : Operator D) (γ : 
               = ((1 - γ) ^ n * (1 - γ)) * relativeEntropy σ ρ := by ring
           rw [hre, hpow]
 
+/-- Unit time entropy contraction and KMS self adjointness give relative entropy decay by `(1 -
+γ) ^ ⌊t⌋₊` for nonnegative real times. -/
 theorem entropyContractionStep_geometric (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G))
@@ -295,6 +349,8 @@ theorem entropyContractionStep_geometric (G : GKSL D) (ρ : Operator D) (γ : �
       ≤ (1 - γ) ^ ⌊t⌋₊ * relativeEntropy (lindbladSemigroup G (t - (⌊t⌋₊ : ℝ)) σ) ρ := hiter
     _ ≤ (1 - γ) ^ ⌊t⌋₊ * relativeEntropy σ ρ := hmul
 
+/-- For `t ≥ 1`, unit time entropy contraction and KMS self adjointness bound relative entropy
+by `entropyComparisonConstant γ * exp (-γ * t)` times its initial value. -/
 theorem entropyContractionStep_comparison (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G))
@@ -339,6 +395,7 @@ theorem entropyContractionStep_comparison (G : GKSL D) (ρ : Operator D) (γ : �
     _ = entropyComparisonConstant γ * Real.exp (-γ * t) * relativeEntropy σ ρ := by
       rw [hexp3]
 
+/-- For `0 ≤ x ≤ 1`, the power `(1 - x) ^ n` is at least `1 - n * x`. -/
 theorem one_sub_pow_le (x : ℝ) (n : ℕ) (_hx : 0 ≤ x) (hx1 : x ≤ 1) :
     1 - n * x ≤ (1 - x) ^ n := by
   induction n with
@@ -351,6 +408,8 @@ theorem one_sub_pow_le (x : ℝ) (n : ℕ) (_hx : 0 ≤ x) (hx1 : x ≤ 1) :
         _ ≤ (1 - x) ^ n * (1 - x) := mul_le_mul_of_nonneg_right ih (by linarith)
         _ = (1 - x) ^ (n + 1) := by rw [pow_succ]
 
+/-- The small time lower retention property `MlsiEntropyProduction` iterates to a lower relative
+entropy bound with factor `(1 - γ * h) ^ n`. -/
 theorem mlsiEntropyProduction_iterate_aux (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (_hρ : IsDensityOperator ρ) (_hfull : ρ.PosDef)
     (hmlsi : MlsiEntropyProduction G ρ γ) {h : ℝ} (hh : 0 < h) (hh1 : h ≤ 1) :
@@ -393,6 +452,8 @@ theorem mlsiEntropyProduction_iterate_aux (G : GKSL D) (ρ : Operator D) (γ : �
         _ ≤ (1 - γ * h) * relativeEntropy (lindbladSemigroup G ((n : ℝ) * h) σ) ρ := hmul
         _ ≤ relativeEntropy (lindbladSemigroup G h (lindbladSemigroup G ((n : ℝ) * h) σ)) ρ := hstep
 
+/-- For nonnegative time with `γ * t ≤ 1`, `MlsiEntropyProduction` bounds the evolved relative
+entropy below by `1 - γ * t` times its initial value. -/
 theorem mlsiEntropyProduction_linear (G : GKSL D) (ρ : Operator D) (γ : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hmlsi : MlsiEntropyProduction G ρ γ) (σ : Operator D) (hσ : IsDensityOperator σ)
@@ -430,6 +491,8 @@ theorem mlsiEntropyProduction_linear (G : GKSL D) (ρ : Operator D) (γ : ℝ)
       _ ≤ (1 - γ * (t / ⌈t⌉₊)) ^ ⌈t⌉₊ * relativeEntropy σ ρ := hmul
       _ ≤ relativeEntropy (lindbladSemigroup G t σ) ρ := hiter
 
+/-- The collection of conditional Lindblad stationarity, trace mixing, chi squared contraction,
+entropy contraction and comparison, lower retention, and entropy monotonicity estimates. -/
 structure TunableQuerySpec : Prop where
 
   stationarity : ∀ (D : ℕ) (G : GKSL D) {ρ : Operator D},
@@ -476,6 +539,7 @@ structure TunableQuerySpec : Prop where
     IsDensityOperator σ → ∀ t : ℝ, 0 ≤ t →
       relativeEntropy (lindbladSemigroup G t σ) ρ ≤ relativeEntropy σ ρ
 
+/-- The Lindblad semigroup estimates satisfy the complete proposition `TunableQuerySpec`. -/
 theorem stageB_lindblad_semigroup_clause2 : TunableQuerySpec where
   stationarity := fun _ G _ hρ hself =>
     isStationary_of_heisenberg_kmsSelfAdjoint G hρ hself
@@ -494,12 +558,14 @@ theorem stageB_lindblad_semigroup_clause2 : TunableQuerySpec where
     lindbladSemigroup_relativeEntropy_le G hρ hfull
       (isStationary_of_heisenberg_kmsSelfAdjoint G hρ hself) hσ t ht
 
+/-- The Temme acceptance map is the sum of its initial energy rows. -/
 theorem metropolisAcceptRow_sum {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (ens : ProposalEnsemble D) (β : ℝ) (ρ : Operator D) :
     temmeAcceptMap E ψ ens β ρ = ∑ i, metropolisAcceptRow E ψ ens β ρ i := by
   unfold temmeAcceptMap metropolisAcceptRow
   rw [Finset.sum_comm]
 
+/-- An acceptance row vanishes when its initial index is not an energy representative. -/
 theorem metropolisAcceptFilter {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (ens : ProposalEnsemble D) (β : ℝ) (ρ : Operator D) (i : Fin D)
     (hni : ¬ isEnergyRep E i) : metropolisAcceptRow E ψ ens β ρ i = 0 := by
@@ -517,6 +583,7 @@ theorem metropolisAcceptFilter {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QSt
   refine Finset.sum_eq_zero fun c _ => ?_
   exact hterm j c
 
+/-- A rejection row vanishes when its initial index is not an energy representative. -/
 theorem metropolisRejectFilter {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (C : Operator D) (β : ℝ) (n : ℕ) (s : Fin n → Bool) (ρ : Operator D) (i : Fin D)
     (hni : ¬ isEnergyRep E i) : metropolisRejectRow E ψ C β n s ρ i = 0 := by
@@ -534,16 +601,21 @@ theorem metropolisRejectFilter {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QSt
   refine Finset.sum_eq_zero fun r _ => ?_
   exact hterm l r
 
+/-- The Temme one step map is the sum of its acceptance map and total rejection map. -/
 theorem metropolisOneStep_assembly {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (ens : ProposalEnsemble D) (β : ℝ) (ρ : Operator D) :
     temmeMapFun E ψ ens β ρ = temmeAcceptMap E ψ ens β ρ + temmeBtotal E ψ ens β ρ := rfl
 
+/-- In positive dimension, the Temme Gibbs operator built from an orthonormal energy basis is a
+density operator. -/
 theorem metropolisGibbsDensity {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (ψ : Fin D → QState (Fin D))
     (horth : ∀ i j : Fin D, Qatlib.Foundations.PureStateMath.Inner (ψ i) (ψ j) = if i = j then 1 else 0) :
     IsDensityOperator (temmeGibbsState D hD E β ψ) :=
   temmeGibbsState_isDensity hD E β ψ horth
 
+/-- A completely positive trace preserving map satisfying quantum detailed balance with the
+stated Gibbs density fixes that density. -/
 theorem metropolisGibbsFixedPoint {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (ψ : Fin D → QState (Fin D))
     (horth : ∀ i j : Fin D, Qatlib.Foundations.PureStateMath.Inner (ψ i) (ψ j) = if i = j then 1 else 0)
@@ -553,11 +625,16 @@ theorem metropolisGibbsFixedPoint {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) (β
   exact quantumDetailedBalanceFixedPoint D ⟨T, hcp, htp⟩ _
     (temmeGibbsState_isDensity hD E β ψ horth) hdb
 
+/-- For two orthogonal projectors and a normalized input fixed by the first, rejection failure
+after `n` rounds is at most `1 / (2 * (n + 1))`. -/
 theorem metropolisRejectWindow {D : ℕ} (P Q : Operator D) (hPs : P.IsHermitian) (hPi : P * P = P)
     (hQs : Q.IsHermitian) (hQi : Q * Q = Q) (ψ : QState (Fin D)) (hnorm : Qatlib.Foundations.PureStateMath.Inner ψ ψ = 1)
     (hψ : P *ᵥ ψ = ψ) (n : ℕ) : rejectFailProb P Q ψ n ≤ 1 / (2 * (n + 1)) :=
   rejection_failure_bound_all_rounds D P Q hPs hPi hQs hQi ψ hnorm hψ n
 
+/-- For rational energies in `[0, 1]` on a nonempty space, the rational heat bath has positive
+total weight and trace norm error at most `4 * (1 / 2) ^ K` from the rational energy Gibbs
+density. -/
 theorem metropolisRationalWindow :
     ∀ (N K : ℕ) (E : Fin N → ℚ), 0 < N → (∀ i, 0 ≤ E i ∧ E i ≤ 1) →
       ∃ hW : 0 < weightTotal (boltzmannIntegerWeights K E),
@@ -567,18 +644,25 @@ theorem metropolisRationalWindow :
             - rationalEnergyGibbsDensity E) ≤ 4 * (1 / 2 : ℝ) ^ K :=
   clause28_block2_rationalWindow
 
+/-- The step ledger query count equals `metropolisActualStepQueries M n nStar`. -/
 theorem metropolisActualStepCost (D M k n nStar : ℕ) :
     (metropolisStepLedger D M k n nStar).stepQueries = metropolisActualStepQueries M n nStar := rfl
 
+/-- The run ledger query count is `m` times `metropolisActualStepQueries M n nStar`. -/
 theorem metropolisActualRunCost (D M k n nStar m : ℕ) :
     (metropolisRunLedger m D M k n nStar).stepQueries = m * metropolisActualStepQueries M n nStar :=
   rfl
 
+/-- The specification cost at dimension two is strictly smaller than the actual step query count
+for parameters `M = 4`, `n = 1`, and `nStar = 0`. -/
 theorem metropolisSpecCostUnpacked :
     metropolisSpecStepCost 2 < metropolisActualStepQueries 4 1 0 := by
   unfold metropolisSpecStepCost metropolisActualStepQueries qpeWindowQueries
   norm_num
 
+/-- The collection of Metropolis row assembly and filtering identities, conditional Gibbs
+stationarity, rejection and rational approximation bounds, and actual query cost identities
+and comparison. -/
 structure OptimizedTunableSpec : Prop where
 
   acceptAssembly : ∀ (D : ℕ) (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
@@ -625,6 +709,7 @@ structure OptimizedTunableSpec : Prop where
 
   specCostUnpacked : metropolisSpecStepCost 2 < metropolisActualStepQueries 4 1 0
 
+/-- The Metropolis assembly, approximation, and cost results satisfy `OptimizedTunableSpec`. -/
 theorem stageB_lindblad_semigroup_clause3 : OptimizedTunableSpec where
   acceptAssembly := fun _ E ψ ens β ρ => metropolisAcceptRow_sum E ψ ens β ρ
   acceptFilter := fun _ E ψ ens β ρ i hni => metropolisAcceptFilter E ψ ens β ρ i hni

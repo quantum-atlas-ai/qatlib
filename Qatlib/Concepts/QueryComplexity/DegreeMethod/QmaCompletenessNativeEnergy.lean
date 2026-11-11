@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
 import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalEnergy
+
+/-!
+# Energy lower bounds from finite local tables
+
+This module evaluates an integer local term on filled local registers and bounds the energy of
+the physical matrix it represents. Support on at most five qubits and entry norms at most one
+give the lower bound `-32 * mass ψ`, a finite-dimensional estimate used for the local terms of
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `value_fill`: Filled-register entries recover the original dyadic table.
+* `local_table_lower`: A represented five-qubit term with bounded entries has energy at least
+  `-32 * mass ψ`.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -20,11 +40,15 @@ open scoped Classical
 set_option autoImplicit false
 noncomputable section
 
+/-- Evaluating a local term on filled local registers recovers the dyadic interpretation of its
+real and imaginary integer table entries. -/
 theorem value_fill {N : ℕ} (b : ℕ) (t : IntegerLocalTerm N)
     (u v : Reg t.support.card) :
     value b t (fill t.support u) (fill t.support v)=dyadicValue b (t.re u v) (t.im u v) := by
   simp only [value,partitionLift_apply,mask_fill,outside_fill,ite_true]
 
+/-- A matrix represented by an integer local term on at most five qubits, with all entry norms
+at most one, has energy at least `-32 * mass ψ` on every state. -/
 theorem local_table_lower {m n : ℕ} (b : ℕ) (t : IntegerLocalTerm (m+n))
     (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ)
     (ht : t.support.card ≤ 5)

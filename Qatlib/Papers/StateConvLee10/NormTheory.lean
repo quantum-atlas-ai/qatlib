@@ -9,6 +9,29 @@ import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+
+/-!
+# Filtered norm laws and rectangular duality
+
+This module exposes filtered and unfiltered matrix norms and the query distance between Gram
+matrices. It proves rectangular certificate and dual formulations, basic norm inequalities,
+filter closure rules, and direct-sum and tensor-product formulas in the framework of
+[LeeEtAl2011].
+
+## Main statements
+
+* `source_rectangular_budget`: rectangular norm bounds are equivalent to certificates and finite
+  values have bounded-dimensional witnesses.
+* `source_rectangular_duality`: the rectangular norm equals its Schur-product dual.
+* `source_norm_filter_closure`: the norm obeys the stated filter transformations.
+* `source_norm_products`: composition, direct sums, and tensor products satisfy the displayed
+  bounds and identities.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,18 +53,25 @@ open Qatlib.Concepts.GramQueryCore.FilteredNorm
 
 namespace Qatlib.Papers.StateConvLee10.NormTheory
 
+/-- The rectangular filtered norm of `A` with respect to the filter family `Z` [LeeEtAl2011]. -/
 def source_filtered_norm {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) : ℝ≥0∞ :=
   sourceRectValue A Z
 
+/-- The unfiltered matrix norm `sourceUnfiltered A` [LeeEtAl2011]. -/
 def source_unfiltered_norm {R S : Type} [Fintype R] [Fintype S]
     (A : Matrix R S ℂ) : ℝ≥0∞ :=
   sourceUnfiltered A
 
+/-- The filtered norm of `ρ - σ` with respect to the alphabet-difference filters of `input`
+[LeeEtAl2011]. -/
 def source_query_distance {X : Type} [Fintype X] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : Matrix X X ℂ) : ℝ≥0∞ :=
   source_filtered_norm (ρ-σ) (sourceAlphabetDelta input)
 
+/-- The rectangular norm equals the lifted filtered gamma-two norm, its nonnegative real bounds
+are equivalent to certificates, and every finite value has an attaining witness of dimension
+at most `n * (|R| + |S|)` [LeeEtAl2011]. -/
 theorem source_rectangular_budget :
     ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),
@@ -57,6 +87,9 @@ theorem source_rectangular_budget :
         (∀ s, ∑ j, ‖toEuclidean_fromVec (v s j)‖^2 ≤ w)) := by
   exact Qatlib.Concepts.GramQueryCore.FilteredNorm.rectangularBudgetRealization
 
+/-- The rectangular norm equals its Schur-product dual; finite values have maximizing dual
+witnesses, while an infinite value yields dual objectives above any prescribed real
+threshold [LeeEtAl2011]. -/
 theorem source_rectangular_duality :
     ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),
@@ -67,6 +100,9 @@ theorem source_rectangular_duality :
         (∀ j, ‖Z j ⊙ M‖ ≤ 1) ∧ t ≤ ‖A ⊙ M‖) := by
   exact Qatlib.Concepts.GramQueryCore.FilteredNorm.rectangularSchurDuality
 
+/-- The rectangular filtered norm satisfies the displayed normalization, zero and support
+characterizations, scaling rules, triangle inequality, and Hadamard-product inequalities
+[LeeEtAl2011]. -/
 theorem source_norm_basic_laws :
   ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (n : ℕ) (A B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),
@@ -83,6 +119,9 @@ theorem source_norm_basic_laws :
       sourceRectValue A Z ≤ sourceRectValue A (fun j => Z j ⊙ B)*sourceUnfiltered B) := by
   exact Qatlib.Concepts.GramQueryCore.FilteredNorm.filteredNormBasicLaws
 
+/-- The rectangular filtered norm obeys the stated surjective reindexing, filter addition and
+restriction, absolutely bounded filter-combination, and disjoint-filter merging rules
+[LeeEtAl2011]. -/
 theorem source_norm_filter_closure :
   (∀ (R S R' S' : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       [Fintype R'] [DecidableEq R'] [Fintype S'] [DecidableEq S'] (n : ℕ)
@@ -105,6 +144,9 @@ theorem source_norm_filter_closure :
         sourceRectValue A (sourceMergeTwo Z)=sourceRectValue A Z) := by
   exact Qatlib.Concepts.GramQueryCore.FilteredNorm.filteredNormClosureLaws
 
+/-- The rectangular filtered norm satisfies the stated filter-composition bound under its
+finiteness or nonzero condition, equals the maximum for direct sums, and is multiplicative
+for tensor products with tensor filters [LeeEtAl2011]. -/
 theorem source_norm_products :
   (∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n m : ℕ) (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ)

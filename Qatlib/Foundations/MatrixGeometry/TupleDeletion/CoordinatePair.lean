@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceGram
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceInner
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinateEnergy
+
+/-!
+# A pairwise bound for coordinate deletion actions
+
+Proves `coordinate_pair_bound` for two distinct deletion coordinates over a nonempty label type.
+The sum of the negative real coordinate quadratic forms is bounded above by twice the real inner
+product of the coordinate-action outputs, providing the pairwise estimate used in the Gram gap.
+See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `coordinate_pair_bound`: For distinct coordinates `i` and `j` and a nonempty finite label
+  type, `-Re ⟨v, Gᵢ v⟩ - Re ⟨v, Gⱼ v⟩ ≤ 2 * Re ⟨Gᵢ v, Gⱼ v⟩`, where the `G` operators are the
+  coordinate actions.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,8 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- For distinct coordinates `i` and `j` and a nonempty finite label type, `-Re ⟨v, Gᵢ v⟩ - Re
+⟨v, Gⱼ v⟩ ≤ 2 * Re ⟨Gᵢ v, Gⱼ v⟩`, where the `G` operators are the coordinate actions. -/
 theorem coordinate_pair_bound (v : EuclideanSpace ℂ (InjectiveTuple I L)) (i j : I)
     (hij : i ≠ j) (hL : 0 < Fintype.card L) :
     -(inner ℂ v (coordinateAction (L := L) i v)).re-

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Bridge
+
+/-!
+# Conditional decoupling of unitary representations
+
+This module records that complex inner product spaces of different finite dimensions have no
+linear isometric equivalence. For a pair of unitary representations, it derives simultaneous
+approximation of a target in one factor and the identity in the other from the stated density
+hypothesis on a representation kernel. See [AharonovArad2011].
+
+## Main statements
+
+* `lemma42_finrank_ne_no_isometry`: different dimensions exclude a linear isometric equivalence.
+* `lemma42_decoupling_of_kernel_dense`: decouples using density inside the second kernel.
+* `lemma42_decoupling_of_kernel_dense_symm`: gives the symmetric decoupling implication.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,8 @@ namespace Qatlib.Papers.BQPJonesPoly06.MainResults
 
 open Model
 
+/-- Complex finite-dimensional inner product spaces of different dimensions possess no linear
+isometric equivalence. See [Aharonov and Arad, Lemma 4.2][AharonovArad2011]. -/
 theorem lemma42_finrank_ne_no_isometry (A B : Type*)
     [NormedAddCommGroup A] [InnerProductSpace ℂ A] [FiniteDimensional ℂ A]
     [NormedAddCommGroup B] [InnerProductSpace ℂ B] [FiniteDimensional ℂ B]
@@ -21,6 +43,9 @@ theorem lemma42_finrank_ne_no_isometry (A B : Type*)
   rintro ⟨e⟩
   exact hAB (e.toLinearEquiv.finrank_eq)
 
+/-- If every target in the first representation can be approximated by a group element in the
+second representation’s kernel, then it can be approximated while the second factor is also
+within the same tolerance of identity. See [Aharonov and Arad, Lemma 4.2][AharonovArad2011]. -/
 theorem lemma42_decoupling_of_kernel_dense {G : Type*} [Group G]
     (A B : Type*)
     [NormedAddCommGroup A] [InnerProductSpace ℂ A]
@@ -39,6 +64,9 @@ theorem lemma42_decoupling_of_kernel_dense {G : Type*} [Group G]
   rw [hz, norm_zero]
   exact mul_nonneg (le_of_lt hε) (norm_nonneg x)
 
+/-- If every target in the second representation can be approximated inside the first
+representation’s kernel, then it can be approximated while the first factor is within the
+same tolerance of identity. See [Aharonov and Arad, Lemma 4.2][AharonovArad2011]. -/
 theorem lemma42_decoupling_of_kernel_dense_symm {G : Type*} [Group G]
     (A B : Type*)
     [NormedAddCommGroup A] [InnerProductSpace ℂ A]

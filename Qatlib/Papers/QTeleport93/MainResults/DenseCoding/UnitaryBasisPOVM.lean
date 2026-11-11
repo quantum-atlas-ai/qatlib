@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.NoSignalCode.QuantumMessageCount
 import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+
+/-!
+# Unitary basis measurements and exact decoding
+
+`unitaryBasisPOVM` constructs a finite measurement with effects obtained by conjugating
+computational basis projectors by a unitary. Each effect is itself a density operator, and
+measuring one such operator gives its matching label with probability one.
+
+These measurement identities provide exact decoding tools for the dense coding argument
+associated with [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `unitaryBasisPOVM` constructs the measurement from a unitary.
+* `unitary_basis_code_density` proves that each effect is a density operator.
+* `unitary_basis_code_decode` proves the Kronecker delta trace pairing between effects.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,7 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
 open Qatlib.Concepts.ShadowModels.ShadowChannel
 open Qatlib.Foundations.InstrumentCore.Measurement
 
+/-- The finite POVM with effects `Vᴴ * Projector {b} * V` for a unitary matrix `V`. -/
 noncomputable def unitaryBasisPOVM {d : ℕ} (V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) : FinitePOVM (Fin d) d where
   effect b := ensembleProjector (fun _ : Unit => V) ((), b)
@@ -30,6 +53,7 @@ noncomputable def unitaryBasisPOVM {d : ℕ} (V : Operator d)
     rw [ensembleProjector_conjTranspose, ensembleProjector_idem _ (fun _ => hV)]
     simp
 
+/-- Every effect of the unitary basis POVM is a density operator. -/
 theorem unitary_basis_code_density {d : ℕ} (V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (x : Fin d) :
     IsDensityOperator ((unitaryBasisPOVM V hV).effect x) := by
@@ -37,6 +61,9 @@ theorem unitary_basis_code_density {d : ℕ} (V : Operator d)
   exact ⟨ensembleProjector_posSemidef (fun _ : Unit => V) ((), x),
     ensembleProjector_trace (fun _ : Unit => V) (fun _ => hV) ((), x)⟩
 
+/-- The trace pairing of two unitary basis effects is one for equal labels and zero otherwise,
+giving exact measurement decoding for the communication argument of
+[BennettEtAl1993Teleportation]. -/
 theorem unitary_basis_code_decode {d : ℕ} (V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (b x : Fin d) :
     Matrix.trace ((unitaryBasisPOVM V hV).effect b *

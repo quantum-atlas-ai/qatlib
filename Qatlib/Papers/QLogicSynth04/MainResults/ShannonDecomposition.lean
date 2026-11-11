@@ -9,6 +9,30 @@ import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+/-!
+# Quantum Shannon decomposition from cosine-sine data
+
+The Hermitian components `hermPart` and `skewPart` lead to a unitary diagonalization used by
+`theorem12_demultiplex`. A selector of two unitary blocks then factors through a Z-rotation
+multiplexor.
+
+Given a cosine-sine factorization, `theorem13_qsd_of_csd` decomposes both selectors and obtains
+the corresponding quantum Shannon factorization. See [ShendeBullockMarkov2006] for the paper's
+setting.
+
+## Main statements
+
+* `star_negI_half`: The complex conjugate of `-I / 2` is `I / 2`.
+* `theorem13_qsd_of_csd`: Given the stated cosine-sine factorization with unitary outer blocks,
+  `U` has a quantum Shannon factorization with two Z-rotation multiplexors surrounding the given
+  Y-rotation multiplexor and four repeated unitary blocks.
+
+## References
+
+* [Shende et al., 2006][ShendeBullockMarkov2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,23 +47,29 @@ namespace Qatlib.Papers.QLogicSynth04.MainResults
 
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 
+/-- The complex conjugate of `-I / 2` is `I / 2`. -/
 theorem star_negI_half : star (-Complex.I / 2 : ℂ) = Complex.I / 2 := by
   rw [star_div₀, star_neg, star_ofNat, Complex.star_def, Complex.conj_I]
   ring
 
+/-- The complex number `1 / 2` is fixed by conjugation. -/
 theorem star_half : star ((1 / 2 : ℂ)) = 1 / 2 := by
   rw [star_div₀, star_one, star_ofNat]
 
+/-- The Hermitian part `(U + Uᴴ) / 2` of a complex matrix. -/
 def hermPart {M : Type*} (U : Matrix M M ℂ) : Matrix M M ℂ :=
   (1 / 2 : ℂ) • (U + Uᴴ)
 
+/-- The Hermitian matrix `(-I / 2) • (U - Uᴴ)` representing the imaginary component of `U`. -/
 def skewPart {M : Type*} (U : Matrix M M ℂ) : Matrix M M ℂ :=
   (-Complex.I / 2 : ℂ) • (U - Uᴴ)
 
+/-- The matrix `hermPart U` is Hermitian. -/
 theorem hermPart_isHermitian {M : Type*} (U : Matrix M M ℂ) : (hermPart U).IsHermitian := by
   unfold hermPart
   exact (isHermitian_add_transpose_self U).smul (by rw [isSelfAdjoint_iff, star_half])
 
+/-- The matrix `skewPart U` is Hermitian. -/
 theorem skewPart_isHermitian {M : Type*} (U : Matrix M M ℂ) : (skewPart U).IsHermitian := by
   rw [Matrix.IsHermitian.ext_iff]
   intro i j
@@ -48,6 +78,7 @@ theorem skewPart_isHermitian {M : Type*} (U : Matrix M M ℂ) : (skewPart U).IsH
   rw [star_mul, star_negI_half, star_sub, star_star]
   ring
 
+/-- The decomposition `hermPart U + I • skewPart U` recovers `U`. -/
 theorem hermPart_add_I_smul_skewPart {M : Type*} (U : Matrix M M ℂ) :
     hermPart U + Complex.I • skewPart U = U := by
   ext i j
@@ -61,6 +92,7 @@ theorem hermPart_add_I_smul_skewPart {M : Type*} (U : Matrix M M ℂ) :
         = (Complex.I * (-Complex.I / 2)) * (U i j - star (U j i)) by ring, hI]
   ring
 
+/-- For a unitary matrix, its Hermitian and imaginary Hermitian components commute. -/
 theorem hermPart_comm_skewPart {M : Type*} [Fintype M] [DecidableEq M]
     (U : Matrix M M ℂ) (hU : U * Uᴴ = 1) (hU' : Uᴴ * U = 1) :
     hermPart U * skewPart U = skewPart U * hermPart U := by
@@ -80,6 +112,8 @@ theorem hermPart_comm_skewPart {M : Type*} [Fintype M] [DecidableEq M]
   have hcoef : (-Complex.I / 2) * (1 / 2 : ℂ) = (1 / 2 : ℂ) * (-Complex.I / 2) := mul_comm _ _
   rw [hcoef]
 
+/-- If a unitary conjugate of a diagonal matrix is unitary, every diagonal entry has squared
+norm one. -/
 theorem diag_normSq_of_unitary {n : ℕ} (V : Matrix (Fin n) (Fin n) ℂ) (d : Fin n → ℂ)
     (hVl : V * Vᴴ = 1) (hVr : Vᴴ * V = 1)
     (hU : (V * Matrix.diagonal d * Vᴴ) * (V * Matrix.diagonal d * Vᴴ)ᴴ = 1) :
@@ -112,6 +146,8 @@ theorem diag_normSq_of_unitary {n : ℕ} (V : Matrix (Fin n) (Fin n) ℂ) (d : F
     exact h
   rwa [← Complex.ofReal_one, Complex.ofReal_inj] at hns
 
+/-- Every finite unitary matrix has a unitary diagonalization whose diagonal entries have
+squared norm one. -/
 theorem unitary_diag {n : ℕ} (U : Matrix (Fin n) (Fin n) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin n) ℂ) :
     ∃ (V : Matrix (Fin n) (Fin n) ℂ) (lam : Fin n → ℂ),
@@ -159,9 +195,11 @@ theorem unitary_diag {n : ℕ} (U : Matrix (Fin n) (Fin n) ℂ)
     rw [← hUeq]; exact hU1
   exact diag_normSq_of_unitary V lam hVl hVr hdiagU
 
+/-- The matrix selecting `U0` on the false Boolean sector and `U1` on the true sector. -/
 def selectBlock {M : Type*} (U0 U1 : Matrix M M ℂ) : Matrix (Bool × M) (Bool × M) ℂ :=
   fun p q => if p.1 = q.1 then (if p.1 then U1 else U0) p.2 q.2 else 0
 
+/-- Multiplication of two selector matrices multiplies the corresponding selected blocks. -/
 theorem selectBlock_mul {M : Type*} [Fintype M]
     (A0 A1 B0 B1 : Matrix M M ℂ) :
     selectBlock A0 A1 * selectBlock B0 B1 = selectBlock (A0 * B0) (A1 * B1) := by
@@ -170,6 +208,8 @@ theorem selectBlock_mul {M : Type*} [Fintype M]
   rcases s with _ | _ <;> rcases s' with _ | _ <;>
     simp [Fintype.sum_bool, Matrix.mul_apply]
 
+/-- Selecting the diagonal phases `exp (-φ*I/2)` and `exp (φ*I/2)` equals the multiplexor of
+`paperRz (φ c)`. See [ShendeBullockMarkov2006]. -/
 theorem selectBlock_rz {M : Type*} [Fintype M] [DecidableEq M] (φ : M → ℝ) :
     selectBlock
         (Matrix.diagonal (fun c => Complex.exp (((-(φ c / 2) : ℝ) : ℂ) * Complex.I)))
@@ -181,6 +221,8 @@ theorem selectBlock_rz {M : Type*} [Fintype M] [DecidableEq M] (φ : M → ℝ) 
     simp [selectBlock, Matrix.blockDiagonal_apply, paperRz, qubitEulerPhase_apply, hij]
   all_goals (congr 1; ring)
 
+/-- A selector of two unitary matrices factors into repeated unitary blocks, a Z-rotation
+multiplexor, and repeated unitary blocks. See [ShendeBullockMarkov2006]. -/
 theorem theorem12_demultiplex {n : ℕ}
     (U0 U1 : Matrix (Fin n) (Fin n) ℂ)
     (hU0 : U0 ∈ Matrix.unitaryGroup (Fin n) ℂ)
@@ -314,6 +356,9 @@ theorem theorem12_demultiplex {n : ℕ}
     rw [hAB, ← selectBlock_rz (fun j => -ψ j), ← hfirst, ← hsecond,
       selectBlock_mul, selectBlock_mul]
 
+/-- Given the stated cosine-sine factorization with unitary outer blocks, `U` has a quantum
+Shannon factorization with two Z-rotation multiplexors surrounding the given Y-rotation
+multiplexor and four repeated unitary blocks. See [ShendeBullockMarkov2006]. -/
 theorem theorem13_qsd_of_csd {n : ℕ}
     (U : Matrix (Bool × Fin n) (Bool × Fin n) ℂ)
     (A1 B1 A2 B2 : Matrix (Fin n) (Fin n) ℂ) (ψ : Fin n → ℝ)

@@ -7,6 +7,27 @@ Authors: Sébastien Gouëzel, Qatlib Contributors
 import Mathlib.MeasureTheory.Covering.BesicovitchVectorSpace
 import Mathlib.Topology.MetricSpace.CoveringNumbers
 import Mathlib.Analysis.InnerProductSpace.PiL2
+
+/-!
+# Volume bounds for separated finite sets
+
+Proves volume and cardinality bounds for ε-separated finite subsets of the unit ball in a
+finite-dimensional real normed space. The specialization `half_separated_card` bounds the size
+of a 1-separated subset of the radius-two ball in real Euclidean `N`-space by `5^N`. See
+[GohMuller2026] for related background.
+
+## Main statements
+
+* `separated_card_bound`: An ε-separated finite subset of the unit ball, with `ε > 0`, has
+  cardinality at most `((1 + ε / 2) / (ε / 2))^finrank ℝ E`.
+* `half_separated_card`: A finite subset of the radius-two ball in real Euclidean `N`-space with
+  distinct points at distance at least one has cardinality at most `5^N`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Metric Set Module MeasureTheory
@@ -14,6 +35,8 @@ open scoped ENNReal Classical Function
 namespace Qatlib.Foundations.MatrixGeometry.SphereNets.Packing
 variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
 
+/-- If points of a finite set lie in the unit ball and distinct points are at least `ε > 0`
+apart, then `s.card * (ε / 2)^dim ≤ (1 + ε / 2)^dim`. -/
 theorem separated_volume_bound (s : Finset E) (ε : ℝ) (hε : 0 < ε)
     (hs : ∀ c ∈ s, ‖c‖ ≤ 1)
     (hsep : ∀ c ∈ s, ∀ d ∈ s, c≠d → ε ≤ ‖c-d‖) :
@@ -54,6 +77,8 @@ theorem separated_volume_bound (s : Finset E) (ε : ℝ) (hε : 0 < ε)
   simpa only [ENNReal.toReal_mul,ENNReal.toReal_natCast,
     ENNReal.toReal_ofReal (pow_nonneg hδ.le _)] using K
 
+/-- An ε-separated finite subset of the unit ball, with `ε > 0`, has cardinality at most `((1 +
+ε / 2) / (ε / 2))^finrank ℝ E`. -/
 theorem separated_card_bound (s : Finset E) (ε : ℝ) (hε : 0 < ε)
     (hs : ∀ c ∈ s, ‖c‖ ≤ 1)
     (hsep : ∀ c ∈ s, ∀ d ∈ s, c≠d → ε ≤ ‖c-d‖) :
@@ -61,6 +86,8 @@ theorem separated_card_bound (s : Finset E) (ε : ℝ) (hε : 0 < ε)
   rw [div_pow,le_div_iff₀ (pow_pos (by linarith : 0 < ε/2) _)]
   exact separated_volume_bound s ε hε hs hsep
 
+/-- A finite subset of the radius-two ball in real Euclidean `N`-space with distinct points at
+distance at least one has cardinality at most `5^N`. -/
 theorem half_separated_card (N : ℕ) (s : Finset (EuclideanSpace ℝ (Fin N)))
     (hs : ∀ c ∈ s, ‖c‖≤2)
     (hsep : ∀ c ∈ s,∀ d ∈ s,c≠d→1≤‖c-d‖) : s.card ≤ 5^N := by

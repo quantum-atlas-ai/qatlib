@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.RestartSearchDefs
+
+/-!
+# Statement of the paid restart attempt law
+
+Defines `ActualRestartAttemptLaw`, the one-attempt distributional specification for a prepared
+Grover search followed by verification. Successful marked addresses carry their Grover Born
+masses, failure has the complementary mass, and the receipt always records the prescribed price.
+For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `ActualRestartAttemptLaw`: The proposition that one verified restart attempt has
+  marked-address Born masses, failure mass `1 - p`, and a receipt supported only at the
+  specified price.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -19,6 +39,8 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- The proposition that one verified restart attempt has marked-address Born masses, failure
+mass `1 - p`, and a receipt supported only at the specified price. -/
 def ActualRestartAttemptLaw : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     ∀ (T' : Matrix I I ℂ) (v : QState I), T' ∈ Matrix.unitaryGroup I ℂ →

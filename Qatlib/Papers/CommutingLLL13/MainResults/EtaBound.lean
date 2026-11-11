@@ -8,11 +8,32 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Tactic
 
+/-!
+# The unrounded natural-logarithm threshold
+
+This module bounds the real threshold `thresholdNoCeil m η = 4 * m * η * log(η + 2)` for `m ≥ 2`
+and `η > 0`. The logarithmic inequalities supply the unrounded scalar threshold estimate
+associated with Appendix A.2 of [SattathArad2015].
+
+## Main statements
+
+* `appendix_A2_mul`: Bounds the logarithmic numerator at the real threshold.
+* `appendix_A2`: Bounds the numerator-to-threshold ratio by `1 / η`.
+
+## References
+
+* [Sattath and Arad, 2015][SattathArad2015]
+-/
+
 namespace Qatlib.Papers.CommutingLLL13.MainResults.EtaBound
 
+/-- The real-valued threshold `4 * m * η * log(η + 2)` before taking a natural-number ceiling. -/
 noncomputable def thresholdNoCeil (m : ℕ) (η : ℝ) : ℝ :=
   4 * (m : ℝ) * η * Real.log (η + 2)
 
+/-- For `m ≥ 2` and `η > 0`, `log(thresholdNoCeil m η) + m ≤ 4 * m * log(η + 2)`, the
+natural-logarithm threshold inequality associated with [Sattath and Arad, Appendix
+A.2][SattathArad2015]. -/
 theorem appendix_A2_mul (m : ℕ) (hm : 2 ≤ m) (η : ℝ) (hη : 0 < η) :
     Real.log (thresholdNoCeil m η) + (m : ℝ)
       ≤ 4 * (m : ℝ) * Real.log (η + 2) := by
@@ -63,6 +84,9 @@ theorem appendix_A2_mul (m : ℕ) (hm : 2 ≤ m) (η : ℝ) (hη : 0 < η) :
     rw [hexp]
     nlinarith [hlog4m, hlogetanon, hlogLnon, hLgt, Real.log_two_gt_d9, hmR, hmpos]
 
+/-- For `m ≥ 2` and `η > 0`, `(log(thresholdNoCeil m η) + m) / thresholdNoCeil m η ≤ 1 / η`.
+This is the unrounded natural-logarithm ratio bound associated with [Sattath and Arad,
+Appendix A.2][SattathArad2015]. -/
 theorem appendix_A2 (m : ℕ) (hm : 2 ≤ m) (η : ℝ) (hη : 0 < η) :
     (Real.log (thresholdNoCeil m η) + (m : ℝ)) / thresholdNoCeil m η ≤ 1 / η := by
   have hmR : (2 : ℝ) ≤ (m : ℝ) := by exact_mod_cast hm

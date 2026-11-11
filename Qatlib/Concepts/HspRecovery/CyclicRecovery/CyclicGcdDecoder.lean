@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Counted gcd decoding of cyclic periods
+
+Defines a counted Euclidean algorithm, a gcd fold over Fourier records, and the period candidate
+`cyclicPeriodDecode`. The verified decoder tests this candidate using two oracle readouts, and
+`cyclicCountedRecovery` combines verification with fresh sampling.
+
+For a function whose collisions are exactly congruence modulo a positive divisor `r` of `N`,
+proves a failure bound `r / 2 ^ m`, absence of incorrect verified outputs, and explicit query,
+gate, and Euclidean-step budgets. This develops cyclic period postprocessing in the setting of
+[Shor1997].
+
+## Main statements
+
+* `cyclic_decoder_supported_divisor_and_cost`: gives the candidate divisor, gcd criterion, and
+  step bound.
+* `cyclic_verified_recovery_probability`: bounds failure and excludes incorrect outputs.
+* `cyclic_accessible_budget_and_measurements`: combines success and counted recovery resources.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +51,8 @@ open scoped Classical
 
 variable {R : Type} [Fintype R] [DecidableEq R] [AddCommGroup R]
 
+/-- Runs the Euclidean algorithm with bounded fuel and returns its current gcd candidate
+together with the number of remainder steps. -/
 def euclidFuel : ℕ → ℕ → ℕ → ℕ × ℕ
   | 0, a, _ => (a, 0)
   | _ + 1, a, 0 => (a, 0)
@@ -33,6 +60,8 @@ def euclidFuel : ℕ → ℕ → ℕ → ℕ × ℕ
     let result := euclidFuel fuel (b + 1) (a % (b + 1))
     (result.1, result.2 + 1)
 
+/-- If the second argument is smaller than the available fuel, the Euclidean computation returns
+`Nat.gcd a b`. -/
 theorem euclidFuel_gcd : ∀ (fuel a b : ℕ), b < fuel →
     (euclidFuel fuel a b).1 = Nat.gcd a b := by
   intro fuel
@@ -55,6 +84,8 @@ theorem euclidFuel_gcd : ∀ (fuel a b : ℕ), b < fuel →
       rw [ih (b + 1) (a % (b + 1)) hfuel, Nat.gcd_comm a (b + 1), Nat.gcd_rec (b + 1) a,
         Nat.gcd_comm]
 
+/-- With fuel exceeding the second argument, the Euclidean remainder-step count is at most that
+argument. -/
 theorem euclidFuel_count : ∀ (fuel a b : ℕ), b < fuel →
     (euclidFuel fuel a b).2 ≤ b := by
   intro fuel
@@ -76,19 +107,26 @@ theorem euclidFuel_count : ∀ (fuel a b : ℕ), b < fuel →
       show (euclidFuel fuel (b + 1) (a % (b + 1))).2 + 1 ≤ b + 1
       omega
 
+/-- Runs the counted Euclidean algorithm on `a` and `b` with fuel `b + 1`. -/
 def euclidCounted (a b : ℕ) : ℕ × ℕ := euclidFuel (b + 1) a b
 
+/-- The value returned by `euclidCounted a b` is `Nat.gcd a b`. -/
 theorem euclidCounted_gcd (a b : ℕ) : (euclidCounted a b).1 = Nat.gcd a b :=
   euclidFuel_gcd (b + 1) a b (Nat.lt_succ_self b)
 
+/-- The counted Euclidean algorithm uses at most `b` remainder steps on inputs `a` and `b`. -/
 theorem euclidCounted_count (a b : ℕ) : (euclidCounted a b).2 ≤ b :=
   euclidFuel_count (b + 1) a b (Nat.lt_succ_self b)
 
+/-- Folds the counted Euclidean algorithm over a list, starting from `N`, and accumulates the
+remainder-step counts. -/
 def cyclicGcdCounted (N : ℕ) (xs : List ℕ) : ℕ × ℕ :=
   xs.foldl (fun acc x =>
     let result := euclidCounted acc.1 x
     (result.1, acc.2 + result.2)) (N, 0)
 
+/-- The counted gcd fold returns the ordinary gcd fold, with accumulated count at most the
+initial count plus the sum of the list. -/
 theorem cyclicGcdCounted_foldl (a c : ℕ) (xs : List ℕ) :
     (xs.foldl (fun acc x =>
         ((euclidCounted acc.1 x).1, acc.2 + (euclidCounted acc.1 x).2)) (a, c)).1
@@ -115,6 +153,7 @@ theorem cyclicGcdCounted_foldl (a c : ℕ) (xs : List ℕ) :
           ≤ (c + (euclidCounted a x).2) + xs.sum := ih2
         _ ≤ c + (x + xs.sum) := by omega
 
+/-- If every list entry is at most `B`, its sum is at most the list length times `B + 1`. -/
 theorem list_sum_le_length_mul {xs : List ℕ} {B : ℕ} (h : ∀ x ∈ xs, x ≤ B) :
     xs.sum ≤ xs.length * (B + 1) := by
   induction xs with
@@ -126,6 +165,8 @@ theorem list_sum_le_length_mul {xs : List ℕ} {B : ℕ} (h : ∀ x ∈ xs, x �
     have hih := ih hrest
     omega
 
+/-- The counted cyclic gcd equals the ordinary gcd fold; if every entry is at most `N`, its
+count is at most the list length times `N + 1`. -/
 theorem cyclic_counted_euclidean_gcd (N : ℕ) (xs : List ℕ) :
     (cyclicGcdCounted N xs).1 = xs.foldl Nat.gcd N ∧
     ((∀ x ∈ xs, x ≤ N) → (cyclicGcdCounted N xs).2 ≤ xs.length * (N + 1)) := by
@@ -136,19 +177,24 @@ theorem cyclic_counted_euclidean_gcd (N : ℕ) (xs : List ℕ) :
         rw [Nat.zero_add]
         exact list_sum_le_length_mul hxs
 
+/-- Decodes a period candidate by dividing `N` by the gcd of `N` and all sampled residue
+representatives. -/
 def cyclicPeriodDecode {m : ℕ} (N : ℕ) (ω : Fin m → Fin N) : ℕ :=
   N / (cyclicGcdCounted N (List.ofFn fun i => (ω i).val)).1
 
+/-- A gcd fold starting from a positive natural remains positive. -/
 theorem foldl_gcd_pos {a : ℕ} (ha : 0 < a) (xs : List ℕ) : 0 < xs.foldl Nat.gcd a := by
   induction xs generalizing a with
   | nil => exact ha
   | cons x xs ih => exact ih (Nat.gcd_pos_of_pos_left x ha)
 
+/-- The result of a gcd fold divides its initial accumulator. -/
 theorem foldl_gcd_dvd_left (a : ℕ) (xs : List ℕ) : xs.foldl Nat.gcd a ∣ a := by
   induction xs generalizing a with
   | nil => exact dvd_refl a
   | cons x xs ih => exact (ih (Nat.gcd a x)).trans (Nat.gcd_dvd_left a x)
 
+/-- The result of a gcd fold divides every entry in the folded list. -/
 theorem foldl_gcd_dvd_of_mem (a : ℕ) (xs : List ℕ) {x : ℕ} (hx : x ∈ xs) :
     xs.foldl Nat.gcd a ∣ x := by
   induction xs generalizing a with
@@ -161,6 +207,7 @@ theorem foldl_gcd_dvd_of_mem (a : ℕ) (xs : List ℕ) {x : ℕ} (hx : x ∈ xs)
       exact (foldl_gcd_dvd_left _ _).trans (Nat.gcd_dvd_right _ _)
     | inr hmem => exact ih (Nat.gcd a y) hmem
 
+/-- Scaling every list entry and the initial accumulator by `q` scales the gcd fold by `q`. -/
 theorem foldl_gcd_mul (q : ℕ) (xs : List ℕ) (a : ℕ) :
     (xs.map (q * ·)).foldl Nat.gcd (q * a) = q * xs.foldl Nat.gcd a := by
   induction xs generalizing a with
@@ -169,6 +216,9 @@ theorem foldl_gcd_mul (q : ℕ) (xs : List ℕ) (a : ℕ) :
     rw [List.map_cons, List.foldl_cons, List.foldl_cons, Nat.gcd_mul_left]
     exact ih _
 
+/-- For records divisible by `N / r`, the decoded candidate is a positive divisor of `r`, its
+Euclidean count is at most `m * (N + 1)`, and it equals `r` exactly when the scaled-record
+gcd fold is one. -/
 theorem cyclic_decoder_supported_divisor_and_cost (N r m : ℕ) (ω : Fin m → Fin N)
     (hN : 0 < N) (hr : 0 < r) (hrdvd : r ∣ N) (hsupp : ∀ i, (N / r) ∣ (ω i).val) :
     0 < cyclicPeriodDecode N ω ∧ cyclicPeriodDecode N ω ∣ r ∧
@@ -219,17 +269,23 @@ theorem cyclic_decoder_supported_divisor_and_cost (N r m : ℕ) (ω : Fin m → 
     · intro h
       rw [h, Nat.div_one]
 
+/-- Returns the gcd-decoded candidate only when querying `f` at zero and at the candidate modulo
+`N` gives equal labels. -/
 def cyclicVerifiedDecode {R : Type} [Fintype R] [DecidableEq R] {m : ℕ}
     (N : ℕ) (hN : 0 < N) (f : Fin N → R) (ω : Fin m → Fin N) : Option ℕ :=
   if f (⟨0, hN⟩ : Fin N) = f (⟨(cyclicPeriodDecode N ω) % N, Nat.mod_lt _ hN⟩ : Fin N)
     then some (cyclicPeriodDecode N ω) else none
 
+/-- Expands the verified decoder as the comparison of the labels at zero and at the decoded
+candidate modulo `N`. -/
 theorem cyclicVerifiedDecode_def {R : Type} [Fintype R] [DecidableEq R] {m : ℕ}
     (N : ℕ) (hN : 0 < N) (f : Fin N → R) (ω : Fin m → Fin N) :
     cyclicVerifiedDecode N hN f ω =
       if f (⟨0, hN⟩ : Fin N) = f (⟨(cyclicPeriodDecode N ω) % N, Nat.mod_lt _ hN⟩ : Fin N)
         then some (cyclicPeriodDecode N ω) else none := rfl
 
+/-- The costed output-label distribution obtained by measuring a single additive oracle query on
+the basis input `(x, 0)`, charged one query. -/
 noncomputable def cyclicCountedQueryReadout {N : ℕ} (f : Fin N → R) (x : Fin N) :
     CostedLaw R :=
   (bornDistribution
@@ -237,6 +293,7 @@ noncomputable def cyclicCountedQueryReadout {N : ℕ} (f : Fin N → R) (x : Fin
     (normalized_run_addOracle_query f (normalized_ket (x, 0)))).map
       (fun q => (q.2, 1))
 
+/-- A counted basis-state oracle readout deterministically returns `f x` with cost one. -/
 theorem cyclicCountedQueryReadout_eq {N : ℕ} (f : Fin N → R) (x : Fin N) :
     cyclicCountedQueryReadout f x = PMF.pure (f x, 1) := by
   have hrun : Run (AddOracle f) ([Step.query] : Circuit (Fin N × R)) (Ket (x, 0)) =
@@ -244,6 +301,7 @@ theorem cyclicCountedQueryReadout_eq {N : ℕ} (f : Fin N → R) (x : Fin N) :
     rw [run_addOracle_query, applyGate_addOracle_ket, zero_add]
   simp only [cyclicCountedQueryReadout, hrun, bornDistribution_ket, PMF.pure_map]
 
+/-- Verifies the decoded period by comparing two fresh counted oracle readouts. -/
 noncomputable def cyclicCountedVerification {m : ℕ} (N : ℕ) (hN : 0 < N)
     (f : Fin N → R) (ω : Fin m → Fin N) : CostedLaw (Option ℕ) :=
   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind (cyclicCountedQueryReadout f (⟨0, hN⟩ : Fin N)) fun a =>
@@ -251,16 +309,21 @@ noncomputable def cyclicCountedVerification {m : ℕ} (N : ℕ) (hN : 0 < N)
       (⟨cyclicPeriodDecode N ω % N, Nat.mod_lt _ hN⟩ : Fin N)) fun b =>
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (if a = b then some (cyclicPeriodDecode N ω) else none)
 
+/-- Counted verification deterministically returns `cyclicVerifiedDecode` with query cost two. -/
 theorem cyclicCountedVerification_eq {m : ℕ} (N : ℕ) (hN : 0 < N)
     (f : Fin N → R) (ω : Fin m → Fin N) :
     cyclicCountedVerification N hN f ω = PMF.pure (cyclicVerifiedDecode N hN f ω, 2) := by
   simp [cyclicCountedVerification, cyclicCountedQueryReadout_eq, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret, PMF.pure_bind, PMF.pure_map, cyclicVerifiedDecode_def]
 
+/-- Samples `m` fresh cyclic Fourier records and verifies the resulting gcd-decoded period in a
+costed probability law. -/
 noncomputable def cyclicCountedRecovery (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     CostedLaw (Option ℕ) :=
   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind (cyclicCountedFreshSamples N hN f m) (cyclicCountedVerification N hN f)
 
+/-- Counted recovery is the fresh-sample law mapped to the verified decoder output with constant
+query cost `m + 2`. -/
 theorem cyclicCountedRecovery_eq (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     cyclicCountedRecovery N hN f m =
       (cyclicFreshSamples N hN f m).map (fun ω => (cyclicVerifiedDecode N hN f ω, m + 2)) := by
@@ -269,12 +332,15 @@ theorem cyclicCountedRecovery_eq (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : �
     Function.comp_def]
   rfl
 
+/-- Discarding costs from counted recovery gives the fresh-sample distribution mapped through
+verified decoding. -/
 theorem cyclicCountedRecovery_erase (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     (cyclicCountedRecovery N hN f m).map Prod.fst =
       (cyclicFreshSamples N hN f m).map (cyclicVerifiedDecode N hN f) := by
   rw [cyclicCountedRecovery_eq, PMF.map_comp]
   rfl
 
+/-- The query cost of counted cyclic recovery is bounded by `m + 2`. -/
 theorem cyclicCountedRecovery_bounded (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.BoundedBy (cyclicCountedRecovery N hN f m) (m + 2) := by
   rw [cyclicCountedRecovery_eq]
@@ -282,6 +348,8 @@ theorem cyclicCountedRecovery_bounded (N : ℕ) (hN : 0 < N) (f : Fin N → R) (
   obtain ⟨ω, _, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hout
   exact le_refl _
 
+/-- The probability of returning `r` within query budget `m + 2` equals the independent-record
+verified success probability, converted to `ENNReal`. -/
 theorem cyclicCountedRecovery_within (N r m : ℕ) (hN : 0 < N) (f : Fin N → R) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.within (cyclicCountedRecovery N hN f m) (m + 2) (fun out => out = some r) =
       ENNReal.ofReal ((cyclicSampleDist N hN f).probEvent (fun ω : Fin m → Fin N =>
@@ -294,6 +362,9 @@ theorem cyclicCountedRecovery_within (N r m : ℕ) (hN : 0 < N) (f : Fin N → R
   simp only [mul_ite, mul_one, mul_zero, ← Finset.sum_filter]
   exact cyclicFreshSamples_event N hN f m _
 
+/-- For the exact collision promise and supported records, verification returns `r` exactly when
+the gcd decoder does, and every returned candidate equals `r`. Also identifies each
+basis-state query output as `Ket (x, f x)`. -/
 theorem cyclic_candidate_actual_two_query_verification (N r m : ℕ) (hN : 0 < N)
     (f : Fin N → R) (ω : Fin m → Fin N)
     (hr : 0 < r) (hrdvd : r ∣ N)
@@ -349,10 +420,13 @@ theorem cyclic_candidate_actual_two_query_verification (N r m : ℕ) (hN : 0 < N
     rw [applyGate_addOracle_ket]
     simp
 
+/-- The product probability assigned to any finite independent sample sequence is nonnegative. -/
 theorem FinDist.probOf_nonneg {X : Type} [Fintype X] (p : FinDist X) {L : ℕ}
     (ω : Fin L → X) : 0 ≤ p.probOf ω :=
   Finset.prod_nonneg fun _ _ => p.nonneg _
 
+/-- Under the exact cyclic collision promise, a length-`m` record sequence has probability `(1 /
+r) ^ m` if all records are divisible by `N / r`, and zero otherwise. -/
 theorem cyclicSampleDist_probOf (N r : ℕ) (hN : 0 < N) (f : Fin N → R)
     (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r)
@@ -369,6 +443,8 @@ theorem cyclicSampleDist_probOf (N r : ℕ) (hN : 0 < N) (f : Fin N → R)
     obtain ⟨i, hi⟩ := not_forall.mp hs
     exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
 
+/-- Events that agree on all supported cyclic record sequences have equal probabilities under
+the exact collision promise. -/
 theorem cyclicSampleDist_probEvent_congr (N r : ℕ) (hN : 0 < N) (f : Fin N → R)
     (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r)
@@ -392,6 +468,8 @@ theorem cyclicSampleDist_probEvent_congr (N r : ℕ) (hN : 0 < N) (f : Fin N →
   · rintro ⟨hE, hsupp⟩
     exact ⟨(h ω hsupp).mpr hE, hsupp⟩
 
+/-- Under the exact cyclic collision promise, the probability that gcd decoding of `m` fresh
+records fails to return `r` is at most `r / 2 ^ m`. -/
 theorem cyclic_gcd_failure_probability (N r m : ℕ) (hN : 0 < N) (f : Fin N → R)
     (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r) :
@@ -531,6 +609,8 @@ theorem cyclic_gcd_failure_probability (N r m : ℕ) (hN : 0 < N) (f : Fin N →
     _ = (r : ℝ) / (2 ^ m : ℝ) := by
         rw [div_pow, one_pow, mul_one_div]
 
+/-- Under the exact cyclic collision promise, verified recovery succeeds with probability at
+least `1 - r / 2 ^ m` and returns an incorrect period with probability zero. -/
 theorem cyclic_verified_recovery_probability (N r m : ℕ) (hN : 0 < N) (f : Fin N → R)
     (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r) :
@@ -571,6 +651,9 @@ theorem cyclic_verified_recovery_probability (N r m : ℕ) (hN : 0 < N) (f : Fin
         hsupp).2.1 p hvp)
     · rw [if_neg hsupp]
 
+/-- With `m = Nat.log2 N + 1 + k`, verified recovery has success probability at least `1 - 2 ^
+(-k)`, uses `m + 2` queries including verification and `2 * m` sampling gate macros, and has
+Euclidean count at most `m * (N + 1)`. -/
 theorem cyclic_accessible_budget_and_three_costs (N r k : ℕ) (hN : 0 < N) (f : Fin N → R)
     (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r) :
@@ -620,6 +703,9 @@ theorem cyclic_accessible_budget_and_three_costs (N r k : ℕ) (hN : 0 < N) (f :
         exact le_of_lt (ω i).isLt)
     rwa [List.length_ofFn] at h2
 
+/-- For `m = Nat.log2 N + 1 + k`, counted recovery succeeds within query budget `m + 2` with
+probability at least `1 - 2 ^ (-k)`. Also gives the sampling gate and Euclidean-step bounds
+and identifies its exact costed output law [CheungMosca2001]. -/
 theorem cyclic_accessible_budget_and_measurements (N r k : ℕ) (hN : 0 < N)
     (f : Fin N → R) (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r) :

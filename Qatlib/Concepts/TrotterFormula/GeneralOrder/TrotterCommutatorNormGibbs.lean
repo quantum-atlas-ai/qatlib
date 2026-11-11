@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Gibbs normalization and output error bounds
+
+This module controls trace normalization of an approximation to an unnormalized Gibbs
+exponential. It proves positivity and unit-trace properties, then bounds normalized operator
+error and observable trace error under an explicit partition-function gap. The Gibbs sampling
+setting is discussed in [ChowdhurySomma2017].
+
+The theorem `clause57` packages a normalized density operator, its error estimates, and a
+resource ledger. A logarithmic repetition selector ensures the stated repeated-failure bound,
+while the ledger separately records preparation calls and readout shots.
+
+## Main statements
+
+* `normalizedDensity_isDensity`: density-operator property after normalization.
+* `gibbs_normalized_output_bound`: normalized error estimate under the partition gap.
+* `gibbs_observable_bound`: observable trace bound from operator norm.
+* `clause57`: normalized output, error bounds, and resource ledger.
+
+## References
+
+* [Chowdhury and Somma, 2017][ChowdhurySomma2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
@@ -22,6 +47,8 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 
+/-- The absolute value of the trace of a `D`-dimensional operator is at most `D` times its
+operator norm. -/
 theorem trace_abs_le_card_mul_opNorm {D : ℕ} (X : Operator D) :
     ‖Matrix.trace X‖ ≤ (D : ℝ) * ‖X‖ := by
   have h1 : ‖Matrix.trace X‖ ≤ Matrix.traceNorm X := Matrix.abs_trace_le_traceNorm X
@@ -37,12 +64,14 @@ theorem trace_abs_le_card_mul_opNorm {D : ℕ} (X : Operator D) :
       simp
 open scoped ComplexOrder
 
+/-- The trace of a positive semidefinite operator is the complex embedding of its real part. -/
 theorem psd_trace_eq_ofReal {D : ℕ} (M : Operator D) (hM : M.PosSemidef) :
     Matrix.trace M = ((Matrix.trace M).re : ℂ) := by
   have hnn : (0 : ℂ) ≤ Matrix.trace M := hM.trace_nonneg
   obtain ⟨_, him⟩ := RCLike.nonneg_iff.mp hnn
   exact (Complex.conj_eq_iff_re.mp (Complex.conj_eq_iff_im.mpr him)).symm
 
+/-- Trace normalization preserves positive semidefiniteness. -/
 theorem normalizedDensity_posSemidef {D : ℕ} (M : Operator D) (hM : M.PosSemidef) :
     (normalizedDensity M).PosSemidef := by
   have hreal := psd_trace_eq_ofReal M hM
@@ -53,15 +82,20 @@ theorem normalizedDensity_posSemidef {D : ℕ} (M : Operator D) (hM : M.PosSemid
   rw [hreal, ← Complex.ofReal_inv]
   exact Matrix.PosSemidef.smul hM (RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr hre))
 
+/-- An operator with nonzero trace has trace one after applying `normalizedDensity`. -/
 theorem normalizedDensity_trace_eq_one {D : ℕ} (M : Operator D)
     (hne : Matrix.trace M ≠ 0) : Matrix.trace (normalizedDensity M) = 1 := by
   rw [normalizedDensity, Matrix.trace_smul, smul_eq_mul]
   exact inv_mul_cancel₀ hne
 
+/-- A positive semidefinite operator with nonzero trace becomes a density operator after trace
+normalization. -/
 theorem normalizedDensity_isDensity {D : ℕ} (M : Operator D) (hM : M.PosSemidef)
     (hne : Matrix.trace M ≠ 0) : IsDensityOperator (normalizedDensity M) :=
   ⟨normalizedDensity_posSemidef M hM, normalizedDensity_trace_eq_one M hne⟩
 
+/-- An operator within `η` of the unnormalized Gibbs operator satisfies the stated normalized
+operator-norm error bound whenever `D * η` is smaller than the partition-function norm. -/
 theorem gibbs_normalized_output_bound {D : ℕ} (H : Operator D) (β : ℝ)
     (Mword : Operator D) (η : ℝ)
     (hclose : ‖Mword - gibbsUnnormalized H β‖ ≤ η)
@@ -183,6 +217,7 @@ theorem gibbs_normalized_output_bound {D : ℕ} (H : Operator D) (β : ℝ)
       rw [ha]
       exact add_le_add le_rfl hb
 
+/-- The difference of observable traces is at most `‖O‖ * D * ‖ρ-g‖` in dimension `D`. -/
 theorem gibbs_observable_bound {D : ℕ} (ρ g O : Operator D) :
     ‖Matrix.trace (O * ρ) - Matrix.trace (O * g)‖ ≤
       ‖O‖ * (D : ℝ) * ‖ρ - g‖ := by
@@ -197,6 +232,8 @@ theorem gibbs_observable_bound {D : ℕ} (ρ g O : Operator D) :
       exact Matrix.l2_opNorm_mul O (ρ - g)
     _ = ‖O‖ * (D : ℝ) * ‖ρ - g‖ := by ring
 
+/-- For success probability and failure tolerance in `(0,1)`, the selected repetition count
+makes `(1-p)^r` at most `δ`. -/
 theorem gibbsAmplificationRounds_pow_le (p δ : ℝ) (hp : 0 < p) (hp1 : p < 1)
     (hδ : 0 < δ) (hδ1 : δ < 1) :
     (1 - p) ^ gibbsAmplificationRounds p δ ≤ δ := by
@@ -233,6 +270,10 @@ theorem gibbsAmplificationRounds_pow_le (p δ : ℝ) (hp : 0 < p) (hp1 : p < 1)
   rw [Real.exp_log hδ] at hle
   exact hle
 
+/-- A positive semidefinite approximation to a Hermitian Gibbs exponential satisfying the
+partition-gap bound yields a normalized density operator with the stated operator and
+observable error bounds. The accompanying ledger records preparation calls, readout shots,
+and amplification rounds whose repeated-failure bound is at most `δ`. -/
 theorem clause57 : ∀ (D : ℕ) (H : Operator D) (β : ℝ) (p δ εro : ℝ),
     Hᴴ = H →
     0 ≤ β →

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
+
+/-!
+# Quantum Turing machine circuit simulation contract
+
+`Theorem2QtmCircuitSimulation` specifies a unitary circuit simulation of `t` finite-window
+machine steps for positive input length `n ≤ t`. It requires zero oracle queries, at most `2 * t
+* t` gates, equality of embedded output states, and equality of Born probabilities on encoded
+configurations.
+
+The mathematical background is discussed in [Yao1993].
+
+## Main statements
+
+* `Theorem2QtmCircuitSimulation`: the circuit existence, cost, state equality, and probability
+  equality specification.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -14,6 +35,9 @@ namespace Qatlib.Foundations.StandardDefs.WindowSim
 
 open Matrix
 
+/-- The proposition that every local quantum Turing machine has, for positive `n ≤ t`, a unitary
+circuit using no queries and at most `2 * t * t` gates that reproduces `t` window steps and
+their encoded Born probabilities on initialized inputs. -/
 def Theorem2QtmCircuitSimulation : Prop :=
   ∀ (Q : Type) [Fintype Q] [DecidableEq Q] (A : Type) [Fintype A] [DecidableEq A]
       (M : LocalQTM Q A) (n t : ℕ), 0 < n → 0 < t → n ≤ t →

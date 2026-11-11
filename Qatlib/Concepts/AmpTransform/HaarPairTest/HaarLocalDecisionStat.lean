@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairDefs
+
+/-!
+# Specification of the local Haar decision guarantee
+
+`HaarLocalDecision` states the behavior of the amplified Haar-pair circuit for any unitary
+preparation of the uniform state. It includes exact resource counts and success bounds when all
+marked pairs have the same parity, in the setting of [Cornwell2014].
+
+## Main statements
+
+* `HaarLocalDecision`: The local Haar decision contract for a uniform preparation: circuit
+  validity and counts, exact amplified marked mass in the common parity sector, and the stated
+  total-orientation success bounds.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -33,6 +52,9 @@ open Qatlib
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The local Haar decision contract for a uniform preparation: circuit validity and counts,
+exact amplified marked mass in the common parity sector, and the stated total-orientation
+success bounds. -/
 def HaarLocalDecision : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     ∀ (T' : Matrix (I × Bool) (I × Bool) ℂ) (seed : I × Bool),

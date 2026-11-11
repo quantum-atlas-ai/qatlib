@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+
+/-!
+# From source words to adaptive computations
+
+Source query words embed into adaptive computations by interpreting each known gate or oracle
+call as a unary tree node. The embedding preserves output density matrices and bounds adaptive
+calls by word calls.
+
+`clause91` combines this embedding with instrument purification and word-cost accounting to
+establish `AdaptiveBridgeSpec`, supporting the state conversion framework of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceWordToAdaptive_density`: equality of adaptive and word output densities.
+* `clause91`: the adaptive bridge specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,16 +48,22 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 
+/-- The adaptive computation obtained by replacing each source-word instruction with a unary
+adaptive node. -/
 private def sourceWordToAdaptive {S : Type} : SourceWord S → SourceAdaptive S
   | [] => .finish
   | .inl U :: rest => .known U (sourceWordToAdaptive rest)
   | .inr adj :: rest => .query adj (sourceWordToAdaptive rest)
 
+/-- The matrix of a source-word instruction: its known matrix, the oracle, or the adjoint
+oracle. -/
 private noncomputable def sourceWordGate {S : Type} (O : Matrix S S ℂ) :
     Matrix S S ℂ ⊕ Bool → Matrix S S ℂ
   | .inl U => U
   | .inr adj => if adj then Oᴴ else O
 
+/-- The matrix of a word beginning with instruction `s` is the matrix of the remaining word
+multiplied by the matrix of `s`. -/
 private theorem sourceWordMatrix_cons {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (s : Matrix S S ℂ ⊕ Bool) (C : SourceWord S) :
     sourceWordMatrix O (s :: C) = sourceWordMatrix O C * sourceWordGate O s := by
@@ -44,6 +71,7 @@ private theorem sourceWordMatrix_cons {S : Type} [Fintype S] [DecidableEq S]
     simp only [sourceWordMatrix, sourceWordGate, List.map_cons, List.reverse_cons,
       List.prod_append, List.prod_singleton]
 
+/-- Embedding a legal source word into an adaptive computation preserves legality. -/
 private theorem sourceWordToAdaptive_legal {S : Type} [Fintype S] [DecidableEq S]
     (C : SourceWord S) (hC : sourceWordLegal C) :
     sourceAdaptiveLegal (sourceWordToAdaptive C) := by
@@ -56,6 +84,7 @@ private theorem sourceWordToAdaptive_legal {S : Type} [Fintype S] [DecidableEq S
     · exact ⟨hs, ih hrest⟩
     · exact ih hrest
 
+/-- The adaptive embedding makes at most as many oracle calls as the source word. -/
 private theorem sourceWordToAdaptive_calls {S : Type} (C : SourceWord S) :
     sourceAdaptiveCalls (sourceWordToAdaptive C) ≤ sourceWordCalls C := by
   induction C with
@@ -73,6 +102,8 @@ private theorem sourceWordToAdaptive_calls {S : Type} (C : SourceWord S) :
       rw [hEq2, hEq]
       exact Nat.add_le_add_left ih _
 
+/-- The adaptive embedding produces the rank-one density matrix of the state obtained by
+evaluating the source word. -/
 private theorem sourceWordToAdaptive_density {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (C : SourceWord S) (ψ : QState S) :
     ∀ (p t : S), sourceAdaptiveDensity O (sourceWordToAdaptive C) ψ p t =
@@ -105,6 +136,8 @@ private theorem sourceWordToAdaptive_density {S : Type} [Fintype S] [DecidableEq
         ih' ((if adj then Oᴴ else O) *ᵥ ψ), hgate ψ]
       simp only [sourceWordGate]
 
+/-- Successful legal source words bound the corresponding coherent and noncoherent query costs
+by their oracle-call counts. -/
 private theorem sourceWordAccounting : SourceWordAccountingSpec := by
   intro X H _ _ _ _ n q input ρ σ ε r hr C hC
   constructor
@@ -113,6 +146,8 @@ private theorem sourceWordAccounting : SourceWordAccountingSpec := by
   · intro hnoncoh
     exact sInf_le ⟨r, hr, C, rfl, hC, hnoncoh⟩
 
+/-- The adaptive bridge specification follows from instrument purification, word-cost
+accounting, and the density-preserving embedding of words. -/
 theorem clause91 : AdaptiveBridgeSpec :=
   ⟨Qatlib.Concepts.ConversionCore.WitnessCompile.adaptiveInstrumentPurification,
     sourceWordAccounting, fun _ _ _ C hC =>

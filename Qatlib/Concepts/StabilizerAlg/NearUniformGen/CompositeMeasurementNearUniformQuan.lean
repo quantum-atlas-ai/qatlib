@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.CompositeMeasurementNearUniformStat
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Near uniformity of composite measurements
+
+`compositeMeasurementNearUniformSubgoal` proves that uniformly mixing conditional laws which
+return their subgroup label with error at most δ gives subset probabilities within δ of the
+uniform subgroup law. The proof bounds the conditional mass of a subset separately for labels
+inside and outside it. For background, see [Kitaev1995].
+
+## Main statements
+
+* `compositeMeasurementNearUniformSubgoal`: proves the subsetwise deviation bound for the
+  composite measurement mixture.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false
@@ -14,15 +33,20 @@ namespace Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open scoped Classical BigOperators
 open Qatlib
 
+/-- The sum of a real constant over a finite set is its cardinality times the constant. -/
 private lemma sum_const_card {α : Type} [Fintype α] (s : Finset α) (c : ℝ) :
     (∑ _i ∈ s, c) = (s.card : ℝ) * c := by
   simp [Finset.sum_const, nsmul_eq_mul]
 
+/-- The real-valued cardinality of a finite-set complement is the ambient cardinality minus the
+set cardinality. -/
 private lemma card_compl {α : Type} [Fintype α] [DecidableEq α] (s : Finset α) :
     (sᶜ : Finset α).card = (Fintype.card α : ℝ) - (s.card : ℝ) := by
   have hle := Finset.card_le_univ s
   rw [Finset.card_compl, Nat.cast_sub hle]
 
+/-- The mass assigned by a finite distribution to a finite set of distinct subgroup elements is
+at most one. -/
 private lemma subset_mass_le_one {G : Type} [AddCommGroup G] [Fintype G] [DecidableEq G]
     {H : AddSubgroup G} (d : FinDist G) (s : Finset (↥H)) :
     (∑ g ∈ s, d.prob (g : G)) ≤ 1 := by
@@ -39,6 +63,9 @@ private lemma subset_mass_le_one {G : Type} [AddCommGroup G] [Fintype G] [Decida
   rw [d.sum_one] at hsub
   exact hsub
 
+/-- A uniform mixture over subgroup labels, each conditionally returned with probability at
+least `1 - δ`, differs from the uniform subgroup law by at most δ on every finite subgroup
+subset. -/
 theorem compositeMeasurementNearUniformSubgoal :
     CompositeMeasurementNearUniformSubgoal := by
   intro G _ _ _ H μ cond δ hδ hmix hacc L

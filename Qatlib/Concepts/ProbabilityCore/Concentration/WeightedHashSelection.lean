@@ -7,8 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashVectorData
 import Mathlib.Analysis.Normed.Group.Basic
 
+/-!
+# Selections of weighted hash deviations
+
+The module bounds a complex sum that selects one component of the hash deviation vector at each
+bucket. Coefficients of norm at most one ensure that this selected sum is bounded by
+`weightedHashVectorDeviation`.
+
+The estimate is a finite complex norm calculation in the matrix and vector analysis setting of
+[Bhatia1997].
+
+## Main statements
+
+* `selected_weighted_hash_moment_bound`: domination of selected weighted deviations by the full
+  vector deviation.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
+/-- Selecting one component per hash bucket and multiplying by coefficients of norm at most one
+gives a sum whose norm is at most the total vector hash deviation. -/
 theorem selected_weighted_hash_moment_bound
     (H X A T : Type) [Fintype X] [Fintype A] [DecidableEq A] [Fintype T]
     (hash : H → X → A) (f : T → X → ℂ) (r : H)

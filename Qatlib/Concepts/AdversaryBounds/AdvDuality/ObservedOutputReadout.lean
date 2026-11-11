@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedOutputReadoutDefs
+
+/-!
+# Decoded outputs of deferred observed circuits
+
+`adaptivePackedTraceHistory_decoded_readout` relates measurement of a packed branch history to
+the sum of decoded masses of its branches. `observed_all_output_query_purification` applies this
+identity to a unitary simulation of an observed circuit, preserving every decoded output mass.
+This develops the deferred measurement viewpoint described in [NielsenChuang2010].
+
+## Main statements
+
+* `adaptivePackedTraceHistory_decoded_readout`: Decoded measurement masses agree for packed and
+  separate branch histories.
+* `observed_all_output_query_purification`: A unitary circuit preserves all decoded output
+  masses with the stated query and gate bounds.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,8 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open scoped Classical
 
+/-- The decoded measurement mass of a packed trace history equals the sum of the corresponding
+masses of its indexed traces, provided the history capacity bounds the trace count. -/
 theorem adaptivePackedTraceHistory_decoded_readout
     {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (ts : List (BranchTrace ((Fin n × Bool) × W))) (K : ℕ) (hK : ts.length ≤ K)
@@ -65,6 +88,10 @@ theorem adaptivePackedTraceHistory_decoded_readout
       simp only [vs,List.map_map,Function.comp_def,branchMass,measureProb_collapse,
         Finset.inter_univ]
 
+/-- For a well-formed observed circuit with a nonempty query register, there is a unitary
+circuit preserving every history-dependent decoded output mass. Its query count equals
+`observedQueryDepth P`, and its gate count is at most `10 * observedTreeNodes P *
+(observedQueryDepth P + 1)`, in the deferred measurement setting of [NielsenChuang2010]. -/
 theorem observed_all_output_query_purification :
     ∀ (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
       (P : ObservedCircuit ((Fin n × Bool) × W)), 0 < n → observedWellFormed P →

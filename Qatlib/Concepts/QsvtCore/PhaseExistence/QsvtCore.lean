@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ComplexFourRouteLcu
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCore
+
+/-!
+# Rectangle approximation from sign polynomials
+
+`printedRectanglePolynomial` combines shifted evaluations of a sign approximant into an even
+rectangle approximant. The module establishes its degree bound, uniform bound, and inner and
+outer band estimates, including a specialization to `gapSignPolynomial`. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `printedRectangle_bands`: transfer sign approximation bounds to rectangle bands.
+* `frontier2_gapSign`: obtain rectangle bounds from an explicit gap-sign error budget.
+* `middle_band_nonempty_iff` and `outer_band_nonempty_iff`: characterize nonempty bands.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -19,12 +39,15 @@ open scoped Classical BigOperators
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 set_option warningAsError false
 
+/-- The symmetrized shifted sign polynomial with scale `(1 - ε₀ / 2) / 2` and offset `ε₀ / 2`. -/
 noncomputable def printedRectanglePolynomial (S : Polynomial ℝ) (ε₀ t : ℝ) : Polynomial ℝ :=
   Polynomial.C ((1 - ε₀ / 2) / 2) *
     (S.comp (Polynomial.X + Polynomial.C t) +
       S.comp (Polynomial.C t - Polynomial.X)) +
     Polynomial.C (ε₀ / 2)
 
+/-- Evaluation of the rectangle polynomial is the scaled sum of `S(x + t)` and `S(t - x)` plus
+the offset. -/
 lemma printedRectanglePolynomial_eval (S : Polynomial ℝ) (ε₀ t x : ℝ) :
     (printedRectanglePolynomial S ε₀ t).eval x =
       ((1 - ε₀ / 2) / 2) * (S.eval (x + t) + S.eval (t - x)) + ε₀ / 2 := by
@@ -33,6 +56,7 @@ lemma printedRectanglePolynomial_eval (S : Polynomial ℝ) (ε₀ t x : ℝ) :
   rw [Polynomial.eval_comp, Polynomial.eval_comp]
   simp only [Polynomial.eval_add, Polynomial.eval_sub, Polynomial.eval_C, Polynomial.eval_X]
 
+/-- The rectangle polynomial has the same value at `x` and `-x`. -/
 lemma printedRectanglePolynomial_even (S : Polynomial ℝ) (ε₀ t x : ℝ) :
     (printedRectanglePolynomial S ε₀ t).eval (-x) = (printedRectanglePolynomial S ε₀ t).eval x := by
   rw [printedRectanglePolynomial_eval, printedRectanglePolynomial_eval]
@@ -41,6 +65,7 @@ lemma printedRectanglePolynomial_even (S : Polynomial ℝ) (ε₀ t x : ℝ) :
   rw [h1, h2]
   ring
 
+/-- The natural degree of the rectangle polynomial is at most that of its input polynomial. -/
 lemma printedRectanglePolynomial_natDegree_le (S : Polynomial ℝ) (ε₀ t : ℝ) :
     (printedRectanglePolynomial S ε₀ t).natDegree ≤ S.natDegree := by
   have h1 : (S.comp (Polynomial.X + Polynomial.C t)).natDegree ≤ S.natDegree := by
@@ -66,6 +91,9 @@ lemma printedRectanglePolynomial_natDegree_le (S : Polynomial ℝ) (ε₀ t : �
   exact le_trans (Polynomial.natDegree_add_le _ _)
     (by simpa using! add_le_add hmul hz2)
 
+/-- Under the sign approximation and error budget hypotheses, the rectangle polynomial is
+bounded by one on `[-1, 1]`, lies in `[1 - ε₀, 1]` on the inner band, and lies in `[0, ε₀]`
+on the outer bands. -/
 theorem printedRectangle_bands {S : Polynomial ℝ} {ε₀ δ' t σ : ℝ}
     (hε0 : 0 < ε₀) (hε01 : ε₀ < 1) (hδ' : 0 < δ') (ht : 0 ≤ t) (ht1 : t ≤ 1)
     (hbudget : (1 - ε₀ / 2) * σ ≤ ε₀ / 2)
@@ -211,6 +239,8 @@ theorem printedRectangle_bands {S : Polynomial ℝ} {ε₀ δ' t σ : ℝ}
       have hb : (1 - ε₀ / 2) * σ ≤ ε₀ / 2 := hbudget
       constructor <;> linarith
 
+/-- The rectangle construction with threshold `|t|` satisfies the uniform, inner band, and outer
+band bounds under the stated sign approximation budget. -/
 theorem printedRectangle_bands_abs {S : Polynomial ℝ} {ε₀ δ' t σ : ℝ}
     (hε0 : 0 < ε₀) (hε01 : ε₀ < 1) (hδ' : 0 < δ') (ht : |t| ≤ 1)
     (hbudget : (1 - ε₀ / 2) * σ ≤ ε₀ / 2)
@@ -226,6 +256,8 @@ theorem printedRectangle_bands_abs {S : Polynomial ℝ} {ε₀ δ' t σ : ℝ}
   have htabs1 : |t| ≤ 1 := ht
   exact printedRectangle_bands hε0 hε01 hδ' htabs htabs1 hbudget hS
 
+/-- A sign approximation with error `ε' / 2` yields a rectangle polynomial with error `ε'` on
+the inner and outer bands and absolute value at most one on `[-1, 1]`. -/
 theorem frontier2 {S : Polynomial ℝ} (δ' ε' t : ℝ) (hδ' : 0 < δ') (hε' : 0 < ε')
     (hε'2 : ε' ≤ 1 / 2) (ht : |t| ≤ 1) (hS : SignApproximation S δ' (ε' / 2)) :
     (∀ x : ℝ, |x| ≤ 1 → |(printedRectanglePolynomial S ε' |t|).eval x| ≤ 1) ∧
@@ -242,6 +274,8 @@ theorem frontier2 {S : Polynomial ℝ} (δ' ε' t : ℝ) (hδ' : 0 < δ') (hε' 
   exact printedRectangle_bands_abs (ε₀ := ε') (δ' := δ') (σ := ε' / 2)
     (by linarith) (by linarith) (by linarith) ht hbudget hS
 
+/-- A gap-sign polynomial with error at most `σ` yields a rectangle polynomial with band error
+`4 * σ` and absolute value at most one on `[-1, 1]`. -/
 theorem frontier2_gapSign (K : ℕ) (δ σ t : ℝ)
     (hδ : 0 < δ) (hσ : 0 < σ) (hσ8 : σ ≤ 1 / 8) (ht : |t| ≤ 1)
     (hbudget : gapSignError K δ ≤ σ) :
@@ -262,12 +296,14 @@ theorem frontier2_gapSign (K : ℕ) (δ σ t : ℝ)
   exact printedRectangle_bands_abs (S := gapSignPolynomial K) (ε₀ := 4 * σ) (δ' := δ) (σ := σ)
     (by positivity) (by linarith) (by linarith) ht hbudget' hS
 
+/-- The inner rectangle band contains no point of `[-1, 1]` when `t < δ'`. -/
 theorem middle_band_empty {t δ' : ℝ} (h : t < δ') :
     ¬ (∃ x : ℝ, |x| ≤ 1 ∧ -(t - δ') ≤ x ∧ x ≤ t - δ') := by
   rintro ⟨x, _, hleft, hright⟩
   have : -(t - δ') ≤ t - δ' := le_trans hleft hright
   linarith
 
+/-- The outer rectangle bands contain no point of `[-1, 1]` when `1 < t + δ'`. -/
 theorem outer_band_empty {t δ' : ℝ} (h : 1 < t + δ') :
     ¬ (∃ x : ℝ, |x| ≤ 1 ∧ (x ≤ -(t + δ') ∨ t + δ' ≤ x)) := by
   rintro ⟨x, hx, hband⟩
@@ -276,6 +312,7 @@ theorem outer_band_empty {t δ' : ℝ} (h : 1 < t + δ') :
   · linarith
   · linarith
 
+/-- The outer rectangle bands meet `[-1, 1]` if and only if `t + δ' ≤ 1`. -/
 theorem outer_band_nonempty_iff {t δ' : ℝ} :
     (∃ x : ℝ, |x| ≤ 1 ∧ (x ≤ -(t + δ') ∨ t + δ' ≤ x)) ↔ t + δ' ≤ 1 := by
   constructor
@@ -289,6 +326,7 @@ theorem outer_band_nonempty_iff {t δ' : ℝ} :
     · refine ⟨t + δ', ⟨abs_le.mpr ⟨hc, h⟩, Or.inr (le_refl _)⟩⟩
     · refine ⟨-1, ⟨abs_le.mpr ⟨by norm_num, by norm_num⟩, Or.inl (by linarith)⟩⟩
 
+/-- The inner rectangle band meets `[-1, 1]` if and only if `δ' ≤ t`. -/
 theorem middle_band_nonempty_iff {t δ' : ℝ} :
     (∃ x : ℝ, |x| ≤ 1 ∧ -(t - δ') ≤ x ∧ x ≤ t - δ') ↔ δ' ≤ t := by
   constructor

@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
 import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionDefs
+
+/-!
+# Hubbard Hamiltonian product-formula bounds
+
+The finite-mode Hamiltonian `hubbardHamiltonian` sums the number, pair-interaction, and
+symmetric hopping terms from `hubbardJWTerms`. For real coefficients, the module proves
+Hermiticity of each term and constructs repeated first-order evolution words approximating the
+full Hamiltonian evolution.
+
+The theorem `g2` supplies an approximation within any positive tolerance, explicit bounds on
+word length and derived size expressions, and the exact multiplicity of each term label.
+Fermionic simulation is discussed in [OrtizEtAl2001], and commutator-based product-formula error
+analysis in [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `creation_eq_conjTranspose`: creation is the adjoint of annihilation in the occupation basis.
+* `numberOp_idem`: each number operator is idempotent.
+* `g2`: real-coefficient Hubbard evolution has the stated finite product-formula approximation
+  and resource bounds.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,12 +49,17 @@ open Qatlib.Concepts.TrotterFormula.LieStrang
 
 namespace Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 
+/-- The sum of the coefficient-weighted number, pair-interaction, and hopping terms in
+`hubbardJWTerms`. -/
 private noncomputable def hubbardHamiltonian {n : ℕ} (t μ U : ℂ) :
     Matrix (Reg n) (Reg n) ℂ :=
   ((hubbardJWTerms (n := n) t μ U).map fun term => term.1 • term.2).sum
 
+/-- The number of single-mode terms plus twice the number of increasing mode pairs. -/
 private def hubbardTermCount (n : ℕ) : ℕ := n + 2 * (fermionPairs n).length
 
+/-- The finite family of coefficient-weighted Hubbard terms indexed by `Fin (hubbardTermCount
+n)`. -/
 private noncomputable def hubbardTermVec {n : ℕ} (t μ U : ℂ) :
     Fin (hubbardTermCount n) → Matrix (Reg n) (Reg n) ℂ :=
   fun j =>
@@ -36,35 +67,46 @@ private noncomputable def hubbardTermVec {n : ℕ} (t μ U : ℂ) :
       (hubbardJWTerms (n := n) t μ U).getD j.val (0, 0)
     e.1 • e.2
 
+/-- The maximum squared complex norm of the three Hubbard coefficients `t`, `μ`, and `U`. -/
 private def hubbardCoeffSqBound (t μ U : ℂ) : ℝ :=
   max (Complex.normSq t) (max (Complex.normSq μ) (Complex.normSq U))
 
+/-- The tagged first-order evolution word consisting of `r` repetitions of every Hubbard term
+evolved for time `τ / r`. -/
 private noncomputable def hubbardWord {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ) :
     List (Matrix (Reg n) (Reg n) ℂ × ℕ) :=
   (List.replicate r
     (List.ofFn fun j : Fin (hubbardTermCount n) =>
       (HamiltonianEvolution (hubbardTermVec t μ U j) (τ / (r : ℝ)), j.val))).flatten
 
+/-- Interpret a tagged matrix word by successive left multiplication, starting from the identity
+matrix. -/
 private noncomputable def wordInterp {n : ℕ} (word : List (Matrix (Reg n) (Reg n) ℂ × ℕ)) :
     Matrix (Reg n) (Reg n) ℂ :=
   word.foldl (fun V e => e.1 * V) 1
 
+/-- A register update takes the assigned value at the updated coordinate. -/
 theorem upd_self {n : ℕ} (x : Reg n) (i : Fin n) (b : Bool) :
     Function.update x i b i = b := by
   rw [Function.update_apply, if_pos rfl]
 
+/-- Updating a register coordinate to its existing value leaves the register unchanged. -/
 theorem upd_eq_self {n : ℕ} {x : Reg n} {i : Fin n} {b : Bool} (h : x i = b) :
     Function.update x i b = x :=
   ((Function.eq_update_iff).mpr ⟨h, fun _ _ => rfl⟩).symm
 
+/-- Updating the same register coordinate twice leaves only the second assigned value. -/
 theorem upd_upd_self {n : ℕ} (x : Reg n) (i : Fin n) (a b : Bool) :
     Function.update (Function.update x i a) i b = Function.update x i b :=
   Function.update_idem a b x
 
+/-- The square of every natural power of complex minus one equals one. -/
 theorem neg_one_pow_mul_self (m : ℕ) : (-1 : ℂ) ^ m * (-1 : ℂ) ^ m = 1 := by
   rw [← pow_add, show m + m = 2 * m by ring, pow_mul]
   norm_num
 
+/-- The Jordan–Wigner sign can be written using a sum over all modes restricted to positions
+before `i`. -/
 theorem jwSign_eq {n : ℕ} (i : Fin n) (x : Reg n) :
     jwSign i x = (-1 : ℂ) ^ (∑ k : Fin n, if (k : ℕ) < (i : ℕ) then (if x k then 1 else 0) else 0) := by
   unfold jwSign
@@ -92,25 +134,34 @@ theorem jwSign_eq {n : ℕ} (i : Fin n) (x : Reg n) :
     _ = ∑ k : Fin n, (if (k : ℕ) < (i : ℕ) then (if x k then 1 else 0) else 0) := by
         rw [Finset.sum_filter]
 
+/-- Every Jordan–Wigner sign has square equal to one. -/
 theorem jwSign_sq {n : ℕ} (i : Fin n) (x : Reg n) :
     jwSign i x * jwSign i x = 1 := by
   rw [jwSign_eq, neg_one_pow_mul_self]
 
+/-- Complex conjugation fixes every Jordan–Wigner sign. -/
 private theorem jwSign_real {n : ℕ} (i : Fin n) (x : Reg n) :
     (starRingEnd ℂ) (jwSign i x) = jwSign i x := by
   rw [jwSign_eq, map_pow]
   congr 1
   simp
 
+/-- An annihilation matrix entry is the prefix sign when the input mode is occupied and the
+output clears that mode, and zero otherwise. -/
 theorem ann_apply {n : ℕ} (i : Fin n) (y x : Reg n) :
     annihilation i y x = if x i ∧ y = Function.update x i false then jwSign i x else 0 := rfl
 
+/-- A creation matrix entry is the output prefix sign when the input mode is unoccupied and the
+output fills that mode, and zero otherwise. -/
 theorem cre_apply {n : ℕ} (i : Fin n) (y x : Reg n) :
     creation i y x = if ¬ x i ∧ y = Function.update x i true then jwSign i y else 0 := rfl
 
+/-- A number-operator entry is one exactly for equal basis states with occupied mode `i`, and
+zero otherwise. -/
 theorem num_apply {n : ℕ} (i : Fin n) (y x : Reg n) :
     numberOp i y x = if x = y ∧ x i then 1 else 0 := rfl
 
+/-- The creation operator at a mode is the conjugate transpose of its annihilation operator. -/
 theorem creation_eq_conjTranspose {n : ℕ} (i : Fin n) :
     creation i = (annihilation i)ᴴ := by
   ext y x
@@ -130,6 +181,7 @@ theorem creation_eq_conjTranspose {n : ℕ} (i : Fin n) :
       rw [if_neg hLneg, if_neg (fun h => hx h.2), map_zero]
   · rw [if_neg (fun h => hyi (by rw [h.2, upd_self])), if_neg (fun h => hyi h.1), map_zero]
 
+/-- The number operator equals `creation i * annihilation i`. -/
 theorem numberOp_eq {n : ℕ} (i : Fin n) :
     numberOp i = creation i * annihilation i := by
   ext y x
@@ -163,6 +215,7 @@ theorem numberOp_eq {n : ℕ} (i : Fin n) :
       rw [ann_apply i z x, if_neg (fun h => absurd h.1 (by simp [hxi])), mul_zero]
     rw [hsum, if_neg (fun h => absurd h.2 (by simp [hxi]))]
 
+/-- Each number operator is idempotent. -/
 theorem numberOp_idem {n : ℕ} (i : Fin n) :
     numberOp i * numberOp i = numberOp i := by
   ext y x
@@ -182,16 +235,19 @@ theorem numberOp_idem {n : ℕ} (i : Fin n) :
       rw [num_apply i z x, if_neg (fun h => absurd h.2 (by simp [hxi])), mul_zero]
     rw [hsum, num_apply i y x, if_neg (fun h => absurd h.2 (by simp [hxi]))]
 
+/-- Relabeling basis indices preserves the identity matrix. -/
 private theorem relabel_one {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) :
     relabelGate e (1 : Matrix I I ℂ) = 1 :=
   (Matrix.reindexAlgEquiv ℂ ℂ e).map_one
 
+/-- Relabeling basis indices preserves matrix multiplication. -/
 private theorem relabel_mul {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) (A B : Matrix I I ℂ) :
     relabelGate e (A * B) = relabelGate e A * relabelGate e B :=
   (Matrix.reindexAlgEquiv ℂ ℂ e).map_mul A B
 
+/-- Relabeling basis indices commutes with complex scalar multiplication. -/
 private theorem relabel_smul {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) (c : ℂ) (A : Matrix I I ℂ) :
     relabelGate e (c • A) = c • relabelGate e A := by
@@ -199,6 +255,7 @@ private theorem relabel_smul {I K : Type*} [Fintype I] [DecidableEq I]
   ext i j
   simp [Matrix.reindex_apply]
 
+/-- Relabeling basis indices commutes with a finite sum of matrices. -/
 private theorem relabel_sum {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) {m : ℕ} (A : Fin m → Matrix I I ℂ) :
     relabelGate e (∑ j, A j) = ∑ j, relabelGate e (A j) := by
@@ -206,11 +263,13 @@ private theorem relabel_sum {I K : Type*} [Fintype I] [DecidableEq I]
   ext i j
   simp only [Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sum_apply]
 
+/-- Relabeling basis indices preserves matrix subtraction. -/
 private theorem relabel_sub {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) (A B : Matrix I I ℂ) :
     relabelGate e (A - B) = relabelGate e A - relabelGate e B :=
   (Matrix.reindexAlgEquiv ℂ ℂ e).map_sub A B
 
+/-- Relabeling basis indices commutes with the matrix exponential. -/
 private theorem relabel_exp {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) (X : Matrix I I ℂ) :
     relabelGate e (NormedSpace.exp X) = NormedSpace.exp (relabelGate e X) := by
@@ -218,18 +277,22 @@ private theorem relabel_exp {I K : Type*} [Fintype I] [DecidableEq I]
   exact NormedSpace.map_exp (Matrix.reindexAlgEquiv ℂ ℂ e)
     (Matrix.reindexAlgEquiv ℂ ℂ e).toLinearMap.continuous_of_finiteDimensional X
 
+/-- Relabeling basis indices commutes with Hamiltonian evolution. -/
 private theorem relabel_evolution {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) (H : Matrix I I ℂ) (τ : ℝ) :
     relabelGate e (HamiltonianEvolution H τ) = HamiltonianEvolution (relabelGate e H) τ := by
   unfold HamiltonianEvolution
   rw [relabel_exp, relabel_smul]
 
+/-- Relabeling basis indices preserves Hermiticity. -/
 private theorem relabel_hermitian {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) {H : Matrix I I ℂ} (hH : H.IsHermitian) :
     (relabelGate e H).IsHermitian := by
   show (Matrix.reindex e e H)ᴴ = Matrix.reindex e e H
   rw [Matrix.conjTranspose_reindex, hH]
 
+/-- Relabeling the result of successive left matrix multiplications equals relabeling the
+initial matrix and every matrix in the word. -/
 private theorem relabel_foldl {I K : Type*} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (e : I ≃ K) :
     ∀ (w : List (Matrix I I ℂ × ℕ)) (V : Matrix I I ℂ),
@@ -244,6 +307,8 @@ private theorem relabel_foldl {I K : Type*} [Fintype I] [DecidableEq I]
       simp only [List.foldl_cons, List.map_cons]
       rw [ih (p.1 * V), relabel_mul]
 
+/-- Relabeling an interpreted tagged word gives the product-formula interpretation of the
+relabeled word. -/
 private theorem relabel_wordInterp {D n : ℕ} (e : Reg n ≃ Fin D)
     (w : List (Matrix (Reg n) (Reg n) ℂ × ℕ)) :
     relabelGate e (wordInterp w) = pfInterpret (w.map fun p => (relabelGate e p.1, p.2)) := by
@@ -251,6 +316,8 @@ private theorem relabel_wordInterp {D n : ℕ} (e : Reg n ≃ Fin D)
   rw [relabel_one] at h
   exact h
 
+/-- The product of two number operators is diagonal with value one exactly when both indicated
+modes are occupied. -/
 private theorem numberOp_mul_apply {n : ℕ} (i j : Fin n) (y x : Reg n) :
     (numberOp i * numberOp j) y x = if x = y ∧ x i ∧ x j then (1 : ℂ) else 0 := by
   rw [Matrix.mul_apply]
@@ -280,6 +347,7 @@ private theorem numberOp_mul_apply {n : ℕ} (i j : Fin n) (y x : Reg n) :
       rw [num_apply j z x, if_neg (fun h => hxj h.2), mul_zero]
     rw [hsum, if_neg (fun h => hxj h.2.2)]
 
+/-- Any two number operators commute. -/
 private theorem numberOp_mul_comm {n : ℕ} (i j : Fin n) :
     numberOp i * numberOp j = numberOp j * numberOp i := by
   ext y x
@@ -288,6 +356,8 @@ private theorem numberOp_mul_comm {n : ℕ} (i j : Fin n) :
   · rw [if_pos h, if_pos ⟨h.1, h.2.2, h.2.1⟩]
   · rw [if_neg h, if_neg (fun h' => h ⟨h'.1, h'.2.2, h'.2.1⟩)]
 
+/-- If every image list has length at most `K`, flat-mapping a list gives length at most its
+original length times `K`. -/
 private theorem flatMap_length_le {α β : Type*} (f : α → List β) (K : ℕ)
     (hK : ∀ a, (f a).length ≤ K) :
     ∀ l : List α, (l.flatMap f).length ≤ l.length * K := by
@@ -304,6 +374,7 @@ private theorem flatMap_length_le {α β : Type*} (f : α → List β) (K : ℕ)
       rw [h1, h2]
       omega
 
+/-- The number of increasing mode pairs is at most `n * n`. -/
 private theorem fermionPairs_length_le (n : ℕ) : (fermionPairs n).length ≤ n * n := by
   have h := flatMap_length_le (fun i : Fin n =>
       (List.finRange n).filterMap fun j => if i < j then some (i, j) else none) n
@@ -313,6 +384,7 @@ private theorem fermionPairs_length_le (n : ℕ) : (fermionPairs n).length ≤ n
       (List.finRange n).filterMap fun j => if i < j then some (i, j) else none).length ≤ n * n
   rwa [List.length_finRange] at h
 
+/-- The number of Hubbard terms is at most `2 * (n + 1) * (n + 1)`. -/
 private theorem hubbardTermCount_le (n : ℕ) : hubbardTermCount n ≤ 2 * (n + 1) * (n + 1) := by
   have h1 : (fermionPairs n).length ≤ n * n := fermionPairs_length_le n
   have h2 : 2 * (n + 1) * (n + 1) = 2 * (n * n) + 4 * n + 2 := by ring
@@ -320,12 +392,15 @@ private theorem hubbardTermCount_le (n : ℕ) : hubbardTermCount n ≤ 2 * (n + 
   rw [h2, h3]
   omega
 
+/-- The Hubbard coefficient-operator list has length `hubbardTermCount n`. -/
 private theorem hubbardJWTerms_length {n : ℕ} (t μ U : ℂ) :
     (hubbardJWTerms (n := n) t μ U).length = hubbardTermCount n := by
   simp only [hubbardJWTerms, List.length_append, List.length_map, List.length_finRange,
     hubbardTermCount]
   omega
 
+/-- Summing a mapped list through its valid finite indices equals the sum of the mapped list,
+independently of the out-of-range default. -/
 private theorem sum_getD {α β : Type*} [AddCommMonoid β] (F : α → β) (d : α) :
     ∀ l : List α, ∑ j : Fin l.length, F (l.getD (j : ℕ) d) = (l.map F).sum := by
   intro l
@@ -335,12 +410,14 @@ private theorem sum_getD {α β : Type*} [AddCommMonoid β] (F : α → β) (d :
       simp only [List.length_cons, Fin.sum_univ_succ, Fin.val_zero, List.getD_cons_zero,
         Fin.val_succ, List.getD_cons_succ, List.map_cons, List.sum_cons]
       exact congrArg _ ih
+/-- The equivalence between finite index types induced by equality of their bounds. -/
 private def finCastEq {m k : ℕ} (h : m = k) : Fin m ≃ Fin k where
   toFun i := ⟨i.val, h ▸ i.isLt⟩
   invFun j := ⟨j.val, h.symm ▸ j.isLt⟩
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The Hubbard Hamiltonian equals the finite sum of its indexed coefficient-weighted terms. -/
 private theorem hubbardHamiltonian_sum {n : ℕ} (t μ U : ℂ) :
     hubbardHamiltonian (n := n) t μ U
       = ∑ j : Fin (hubbardTermCount n), hubbardTermVec (n := n) t μ U j := by
@@ -356,6 +433,7 @@ private theorem hubbardHamiltonian_sum {n : ℕ} (t μ U : ℂ) :
     (fun j : Fin (hubbardTermCount n) => hubbardTermVec (n := n) t μ U j)
     (fun _ => rfl)
 
+/-- Every number operator is Hermitian. -/
 private theorem numberOp_herm {n : ℕ} (i : Fin n) : (numberOp i).IsHermitian := by
   show (numberOp i)ᴴ = numberOp i
   ext y x
@@ -367,16 +445,20 @@ private theorem numberOp_herm {n : ℕ} (i : Fin n) : (numberOp i).IsHermitian :
   · have hl : (if y = x ∧ y i then (1 : ℂ) else 0) = 0 := if_neg h
     rw [hl, map_zero, if_neg (fun h' => h ⟨h'.1.symm, by rw [← h'.1]; exact h'.2⟩)]
 
+/-- The conjugate transpose of a creation operator is its annihilation operator. -/
 private theorem cre_conjTranspose {n : ℕ} (i : Fin n) :
     (creation i)ᴴ = annihilation i := by
   rw [creation_eq_conjTranspose, Matrix.conjTranspose_conjTranspose]
 
+/-- The product of any two number operators is Hermitian. -/
 private theorem numberOp_mul_herm {n : ℕ} (i j : Fin n) :
     (numberOp i * numberOp j).IsHermitian := by
   show (numberOp i * numberOp j)ᴴ = numberOp i * numberOp j
   rw [Matrix.conjTranspose_mul, (numberOp_herm i).eq, (numberOp_herm j).eq,
     numberOp_mul_comm]
 
+/-- The symmetric hopping operator `creation i * annihilation j + creation j * annihilation i`
+is Hermitian. -/
 private theorem hop_herm {n : ℕ} (i j : Fin n) :
     (creation i * annihilation j + creation j * annihilation i).IsHermitian := by
   show (creation i * annihilation j + creation j * annihilation i)ᴴ
@@ -385,10 +467,13 @@ private theorem hop_herm {n : ℕ} (i j : Fin n) :
     ← creation_eq_conjTranspose j, cre_conjTranspose i, ← creation_eq_conjTranspose i,
     cre_conjTranspose j, add_comm]
 
+/-- A complex scalar with zero imaginary part is self-adjoint. -/
 private theorem isSelfAdjoint_of_im_zero {c : ℂ} (h : c.im = 0) : IsSelfAdjoint c := by
   show (starRingEnd ℂ) c = c
   exact Complex.conj_eq_iff_im.mpr h
 
+/-- Every Hubbard list entry is a number term with coefficient `μ`, a number-pair interaction
+with coefficient `U`, or a symmetric hopping term with coefficient `t`. -/
 private theorem mem_terms_cases {n : ℕ} (t μ U : ℂ) {c : ℂ}
     {M : Matrix (Reg n) (Reg n) ℂ} (h : (c, M) ∈ hubbardJWTerms (n := n) t μ U) :
     (∃ i : Fin n, c = μ ∧ M = numberOp i)
@@ -411,15 +496,19 @@ private theorem mem_terms_cases {n : ℕ} (t μ U : ℂ) {c : ℂ}
     cases h4
     exact Or.inr (Or.inr ⟨p.1, p.2, rfl, rfl⟩)
 
+/-- An in-range `List.getD` value belongs to the list. -/
 private theorem getD_mem' {α : Type*} (l : List α) (d : α) {n : ℕ} (h : n < l.length) :
     l.getD n d ∈ l := by
   rw [List.getD_eq_getElem l d h]
   exact List.getElem_mem h
 
+/-- Every valid indexed Hubbard list entry belongs to `hubbardJWTerms`. -/
 private theorem term_mem {n : ℕ} (t μ U : ℂ) (j : Fin (hubbardTermCount n)) :
     (hubbardJWTerms (n := n) t μ U).getD (j : ℕ) (0, 0) ∈ hubbardJWTerms (n := n) t μ U :=
   getD_mem' _ _ (by rw [hubbardJWTerms_length]; exact j.isLt)
 
+/-- If all three Hubbard coefficients have zero imaginary part, every indexed
+coefficient-weighted term is Hermitian. -/
 private theorem term_herm {n : ℕ} (t μ U : ℂ) (ht : t.im = 0) (hμ : μ.im = 0)
     (hU : U.im = 0) (j : Fin (hubbardTermCount n)) :
     (hubbardTermVec (n := n) t μ U j).IsHermitian := by
@@ -440,6 +529,8 @@ private theorem term_herm {n : ℕ} (t μ U : ℂ) (ht : t.im = 0) (hμ : μ.im 
         = creation i * annihilation j' + creation j' * annihilation i := hMi
     rw [hc, hM]; exact (hop_herm i j').smul (isSelfAdjoint_of_im_zero ht)
 
+/-- A finite sum of coefficient-weighted matrices is Hermitian when every summand in the list is
+Hermitian. -/
 private theorem sum_smul_herm_list {n : ℕ} :
     ∀ l : List (ℂ × Matrix (Reg n) (Reg n) ℂ),
       (∀ p ∈ l, (p.1 • p.2).IsHermitian) →
@@ -453,6 +544,7 @@ private theorem sum_smul_herm_list {n : ℕ} :
           + ((l.map fun term : ℂ × Matrix (Reg n) (Reg n) ℂ => term.1 • term.2).sum)).IsHermitian
       exact (hall p (by simp)).add (ih (fun q hq => hall q (by simp [hq])))
 
+/-- The Hubbard Hamiltonian is Hermitian when all three coefficients have zero imaginary part. -/
 private theorem hubbardHamiltonian_herm {n : ℕ} (t μ U : ℂ) (ht : t.im = 0) (hμ : μ.im = 0)
     (hU : U.im = 0) : (hubbardHamiltonian (n := n) t μ U).IsHermitian := by
   rw [hubbardHamiltonian]
@@ -463,12 +555,14 @@ private theorem hubbardHamiltonian_herm {n : ℕ} (t μ U : ℂ) (ht : t.im = 0)
   · rw [hci, hMi]; exact (numberOp_mul_herm i j').smul (isSelfAdjoint_of_im_zero hU)
   · rw [hci, hMi]; exact (hop_herm i j').smul (isSelfAdjoint_of_im_zero ht)
 
+/-- The operator norm of a number operator is at most one. -/
 private theorem numberOp_norm_le {n : ℕ} (i : Fin n) : ‖numberOp i‖ ≤ 1 := by
   have h1 : ‖numberOp i‖ * ‖numberOp i‖ = ‖numberOp i‖ := by
     rw [← Matrix.l2_opNorm_conjTranspose_mul_self, (numberOp_herm i).eq, numberOp_idem i]
   have h2 : 0 ≤ ‖numberOp i‖ := norm_nonneg _
   nlinarith [sq_nonneg (‖numberOp i‖ - 1)]
 
+/-- The operator norm of an annihilation operator is at most one. -/
 private theorem ann_norm_le {n : ℕ} (i : Fin n) : ‖annihilation i‖ ≤ 1 := by
   have h1 : ‖annihilation i‖ * ‖annihilation i‖ = ‖numberOp i‖ := by
     rw [← Matrix.l2_opNorm_conjTranspose_mul_self, ← creation_eq_conjTranspose i,
@@ -477,10 +571,12 @@ private theorem ann_norm_le {n : ℕ} (i : Fin n) : ‖annihilation i‖ ≤ 1 :
   have h3 : ‖numberOp i‖ ≤ 1 := numberOp_norm_le i
   nlinarith [sq_nonneg (‖annihilation i‖ - 1)]
 
+/-- The operator norm of a creation operator is at most one. -/
 private theorem cre_norm_le {n : ℕ} (i : Fin n) : ‖creation i‖ ≤ 1 := by
   rw [← Matrix.l2_opNorm_conjTranspose (creation i), cre_conjTranspose]
   exact ann_norm_le i
 
+/-- The operator norm of a symmetric hopping term is at most two. -/
 private theorem hop_norm_le {n : ℕ} (i j : Fin n) :
     ‖creation i * annihilation j + creation j * annihilation i‖ ≤ 2 := by
   have h1 : ‖creation i * annihilation j‖ ≤ 1 := by
@@ -496,6 +592,7 @@ private theorem hop_norm_le {n : ℕ} (i j : Fin n) :
   have h3 := norm_add_le (creation i * annihilation j) (creation j * annihilation i)
   linarith
 
+/-- The operator norm of the product of two number operators is at most two. -/
 private theorem nummul_norm_le {n : ℕ} (i j : Fin n) :
     ‖numberOp i * numberOp j‖ ≤ 2 := by
   refine le_trans (Matrix.l2_opNorm_mul _ _) ?_
@@ -503,9 +600,12 @@ private theorem nummul_norm_le {n : ℕ} (i j : Fin n) :
     mul_le_mul (numberOp_norm_le i) (numberOp_norm_le j) (norm_nonneg _) (by norm_num)
   linarith
 
+/-- The product of a complex number's norm with itself equals its squared complex norm. -/
 private theorem norm_sq_eq {c : ℂ} : ‖c‖ * ‖c‖ = Complex.normSq c := by
   rw [Complex.normSq_eq_norm_sq, pow_two]
 
+/-- The squared norm of any of the three Hubbard coefficients is at most `hubbardCoeffSqBound t
+μ U`. -/
 private theorem coeff_sq_le {t μ U c : ℂ} (h : c = t ∨ c = μ ∨ c = U) :
     ‖c‖ * ‖c‖ ≤ hubbardCoeffSqBound t μ U := by
   rcases h with rfl | rfl | rfl
@@ -513,6 +613,8 @@ private theorem coeff_sq_le {t μ U c : ℂ} (h : c = t ∨ c = μ ∨ c = U) :
   · rw [norm_sq_eq]; exact le_trans (le_max_left _ _) (le_max_right _ _)
   · rw [norm_sq_eq]; exact le_trans (le_max_right _ _) (le_max_right _ _)
 
+/-- The product of the norms of two indexed Hubbard terms is at most four times
+`hubbardCoeffSqBound t μ U`. -/
 private theorem term_norm_pair {n : ℕ} (t μ U : ℂ) (j k : Fin (hubbardTermCount n)) :
     ‖hubbardTermVec (n := n) t μ U j‖ * ‖hubbardTermVec (n := n) t μ U k‖
       ≤ 4 * hubbardCoeffSqBound t μ U := by
@@ -563,6 +665,7 @@ private theorem term_norm_pair {n : ℕ} (t μ U : ℂ) (j k : Fin (hubbardTermC
   rw [h3]
   exact mul_le_mul_of_nonneg_left hxy (by norm_num)
 
+/-- The norm of a matrix commutator is at most twice the product of the two matrix norms. -/
 private theorem pfComm_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) : ‖pfComm A B‖ ≤ 2 * (‖A‖ * ‖B‖) := by
   have h1 := norm_sub_le (A * B) (B * A)
@@ -571,6 +674,8 @@ private theorem pfComm_norm_le {I : Type} [Fintype I] [DecidableEq I]
   show ‖A * B - B * A‖ ≤ 2 * (‖A‖ * ‖B‖)
   nlinarith
 
+/-- A uniform commutator bound `C` gives `2 * pfCommutatorSum G ≤ C * m ^ 2` for a family of `m`
+operators. -/
 private theorem pfCommSum_pair_le {D m : ℕ} (G : Fin m → Operator D) (C : ℝ)
     (h : ∀ j k, ‖pfComm (G j) (G k)‖ ≤ C) :
     2 * pfCommutatorSum G ≤ C * (m : ℝ) ^ 2 := by
@@ -643,11 +748,14 @@ private theorem pfCommSum_pair_le {D m : ℕ} (G : Fin m → Operator D) (C : �
       _ = C * (m : ℝ) ^ 2 := by ring
   nlinarith [h2S, hbound]
 
+/-- A Hubbard evolution word with `r` repetitions has length `r * hubbardTermCount n`. -/
 private theorem hubbardWord_length {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ) :
     (hubbardWord (n := n) t μ U τ r).length = r * hubbardTermCount n := by
   rw [hubbardWord, List.length_flatten, List.map_replicate, List.sum_replicate,
     Nat.nsmul_eq_mul, List.length_ofFn]
 
+/-- Relabeling every matrix in the Hubbard word produces the product-formula family word for the
+relabeled terms. -/
 private theorem map_relabel_hubbardWord {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ)
     (e : Reg n ≃ Fin (2 ^ n)) :
     (hubbardWord (n := n) t μ U τ r).map (fun p => (relabelGate e p.1, p.2))
@@ -667,17 +775,21 @@ private theorem map_relabel_hubbardWord {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r :
   rw [hubbardWord, List.map_flatten, List.map_replicate, List.map_ofFn, Function.comp_def,
     hfun, pfFamilyWord]
 
+/-- Relabeling the interpreted Hubbard word gives the product-formula family operator for the
+relabeled terms. -/
 private theorem relabel_wordInterp_hubbardWord {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ)
     (e : Reg n ≃ Fin (2 ^ n)) :
     relabelGate e (wordInterp (hubbardWord (n := n) t μ U τ r))
       = pfFamily (fun j => relabelGate e (hubbardTermVec (n := n) t μ U j)) τ r := by
   rw [relabel_wordInterp, map_relabel_hubbardWord, pfFamily]
 
+/-- The finite sum of relabeled Hubbard terms equals the relabeled Hubbard Hamiltonian. -/
 private theorem sum_relabel_terms {n : ℕ} (t μ U : ℂ) (e : Reg n ≃ Fin (2 ^ n)) :
     ∑ j : Fin (hubbardTermCount n), relabelGate e (hubbardTermVec (n := n) t μ U j)
       = relabelGate e (hubbardHamiltonian (n := n) t μ U) := by
   rw [hubbardHamiltonian_sum, relabel_sum]
 
+/-- Filtering a list by a Boolean predicate that is false on every member yields length zero. -/
 private theorem filter_none_length {α : Type*} (p : α → Bool) :
     ∀ {l : List α}, (∀ a ∈ l, p a = false) → (l.filter p).length = 0 := by
   intro l
@@ -688,6 +800,8 @@ private theorem filter_none_length {α : Type*} (p : α → Bool) :
       rw [List.filter_cons_of_neg (by simp [h a (by simp)])]
       exact ih (fun b hb => h b (by simp [hb]))
 
+/-- In a function-generated tagged list with injective tags, exactly one entry has each
+specified tag. -/
 private theorem filter_val_length {M : Type*} :
     ∀ (m : ℕ) (X : Fin m → M) (v : Fin m → ℕ), Function.Injective v → ∀ j : Fin m,
       ((List.ofFn fun k : Fin m => (X k, v k)).filter
@@ -726,6 +840,8 @@ private theorem filter_val_length {M : Type*} :
             (fun k => v ((k : Fin m).succ : Fin (m + 1)))
             (hv.comp (Fin.succ_injective m)) j'
 
+/-- The number of entries satisfying a filter in `r` concatenated copies of a list equals `r`
+times the filtered length of one copy. -/
 private theorem filter_flatten_replicate_length {α : Type*} (p : α → Bool) (b : List α) :
     ∀ r : ℕ, ((List.replicate r b).flatten.filter p).length = r * (b.filter p).length := by
   intro r
@@ -735,6 +851,7 @@ private theorem filter_flatten_replicate_length {α : Type*} (p : α → Bool) (
       rw [List.replicate_succ, List.flatten_cons, List.filter_append, List.length_append, ih]
       ring
 
+/-- Each indexed term label occurs exactly `r` times in the Hubbard word with `r` repetitions. -/
 private theorem hubbardWord_filter_length {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ)
     (j : Fin (hubbardTermCount n)) :
     ((hubbardWord (n := n) t μ U τ r).filter fun e => decide (e.2 = (j : ℕ))).length = r := by
@@ -747,6 +864,8 @@ private theorem hubbardWord_filter_length {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r
     (fun k => (k : ℕ)) Fin.val_injective j]
   simp
 
+/-- Every matrix appearing in a Hubbard word is the evolution of some indexed Hubbard term for
+time `τ / r`. -/
 private theorem hubbardWord_mem {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ)
     {E : Matrix (Reg n) (Reg n) ℂ × ℕ} (he : E ∈ hubbardWord (n := n) t μ U τ r) :
     ∃ j : Fin (hubbardTermCount n),
@@ -759,6 +878,10 @@ private theorem hubbardWord_mem {n : ℕ} (t μ U : ℂ) (τ : ℝ) (r : ℕ)
   obtain ⟨j, rfl⟩ := heseg
   exact ⟨j, rfl⟩
 
+/-- For real Hubbard coefficients and positive `ε`, the Hamiltonian is Hermitian and has the
+stated term decomposition, and its evolution at time `τ` has a repeated product-formula
+approximation within `ε` satisfying the explicit polynomial size bounds. Each term label
+occurs exactly once per repetition [ChildsEtAl2021Trotter]. -/
 theorem g2 : ∀ (n : ℕ) (t μ U : ℂ) (τ ε : ℝ),
     t.im = 0 → μ.im = 0 → U.im = 0 → 0 < ε →
 

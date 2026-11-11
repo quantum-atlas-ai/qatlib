@@ -5,6 +5,37 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+
+/-!
+# Independent repetition and a longer minimum search
+
+This module compares independent charged minimum-search runs with a single run given the same
+aggregate budget. `independentRunsLaw` combines the candidate indices of repeated runs and adds
+their remaining-budget coordinates; `chargedSuccessEvent` and `chargedFailureEvent` express
+whether the retained candidate minimizes the table.
+
+The comparison is expressed through exact failure probabilities and equivalent tail
+inequalities. The minimum-finding setting follows [DurrHoyer1996]; the results here do not
+establish an unconditional ordering between the success probabilities of repetition and a longer
+run.
+
+## Main statements
+
+* `independent_runs_failure_exact` and `independent_runs_failure_real` identify the failure
+  probability of a positive number of independent runs as a power of the one-run failure
+  probability.
+* `independent_runs_bounded` and `single_long_run_bounded` bound the remaining-budget
+  coordinates by the aggregate charged budget.
+* `amplification_domination_condition` and `amplification_domination_strict` reformulate success
+  comparisons as failure-tail comparisons.
+* `independent_bound_strictly_exceeds_long_bound` compares the two numerical guarantees for at
+  least three repetitions.
+
+## References
+
+- [Dürr and Høyer, 1996][DurrHoyer1996]. *A quantum algorithm for finding the minimum*. 1996.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +61,7 @@ open scoped ENNReal BigOperators Classical
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The probabilities of two pointwise complementary events sum to one under any PMF. -/
 theorem event_total' {α : Type*} (p : PMF α) (E E' : α → Prop)
     (h : ∀ x, E x ↔ ¬E' x) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E' = 1 := by
@@ -50,26 +82,38 @@ theorem event_total' {α : Type*} (p : PMF α) (E E' : α → Prop)
             simp [hx, hx']
     _ = 1 := Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const p 1
 
+/-- The probability of an event plus the probability of its complement equals one. -/
 theorem event_total {α : Type*} (p : PMF α) (E : α → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => ¬E x) = 1 :=
   event_total' p E (fun x => ¬E x) (fun x => by simp)
 
+/-- The event that the index in a charged run's output pair is not a global minimum of `T`. The
+remaining-budget coordinate does not affect this predicate. -/
 def chargedFailureEvent {N : ℕ} {α : Type*} [LinearOrder α] (T : Fin N → α) :
     Fin N × ℕ → Prop := fun x => ¬∀ j, T x.1 ≤ T j
 
+/-- The event that the index in a charged run's output pair is a global minimum of `T`. The
+remaining-budget coordinate does not affect this predicate. -/
 def chargedSuccessEvent {N : ℕ} {α : Type*} [LinearOrder α] (T : Fin N → α) :
     Fin N × ℕ → Prop := fun x => ∀ j, T x.1 ≤ T j
 
+/-- Applies `amplifiedStep` exactly `c` times to a supplied base law, combining retained
+candidates and adding remaining-budget coordinates. -/
 noncomputable def independentRunsLawAux {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) : (c : ℕ) → PMF (Fin N × ℕ) → PMF (Fin N × ℕ)
   | 0, base => base
   | c + 1, base => amplifiedStep T hN (independentRunsLawAux T hN c base)
 
+/-- The law obtained from `c` independent charged-budget runs by retaining the better candidate
+and adding their remaining-budget coordinates. At `c = 0`, it is the pure law at index zero
+with second coordinate zero. -/
 noncomputable def independentRunsLaw {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) : PMF (Fin N × ℕ) :=
   if c = 0 then PMF.pure (⟨0, hN⟩, 0)
   else independentRunsLawAux T hN (c - 1) (chargedInitialPMF T hN (chargedBudget N))
 
+/-- The real probability that a charged initial run fails equals one minus
+`chargedInitialSuccess` at the same budget. -/
 theorem charged_run_failure_real {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (chargedInitialPMF T hN budget) (chargedFailureEvent T)).toReal
@@ -97,6 +141,8 @@ theorem charged_run_failure_real {N : ℕ} {α : Type*} [LinearOrder α]
       exact (chargedInitialSuccess_bounds T hN budget).1)]
   linarith
 
+/-- For `c ≥ 1`, the law of `c + 1` independent runs is one amplification step applied to the
+law of `c` runs. -/
 theorem independentRunsLaw_step {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) (h : 1 ≤ c) :
     independentRunsLaw T hN (c + 1) = amplifiedStep T hN (independentRunsLaw T hN c) := by
@@ -113,6 +159,8 @@ theorem independentRunsLaw_step {N : ℕ} {α : Type*} [LinearOrder α]
     rw [independentRunsLaw, if_neg (by omega)]
   rw [h1, h2, h3]
 
+/-- For a positive number `c` of independent runs, the failure-event probability is exactly the
+`c`th power of the one-run charged-budget failure probability. -/
 theorem independent_runs_failure_exact {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) (hc : 0 < c) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (independentRunsLaw T hN c) (chargedFailureEvent T) =
@@ -143,6 +191,8 @@ theorem independent_runs_failure_exact {N : ℕ} {α : Type*} [LinearOrder α]
         rw [ih c' hlow hpos]
         rw [pow_succ]
 
+/-- For positive `c`, the real failure probability of `c` independent runs equals `(1 -
+chargedInitialSuccess T (chargedBudget N)) ^ c`. -/
 theorem independent_runs_failure_real {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) (hc : 0 < c) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (independentRunsLaw T hN c) (chargedFailureEvent T)).toReal
@@ -151,6 +201,8 @@ theorem independent_runs_failure_real {N : ℕ} {α : Type*} [LinearOrder α]
   have hrun := charged_run_failure_real T hN (chargedBudget N)
   rw [hex, ENNReal.toReal_pow, hrun]
 
+/-- Every supported output of `c` independent runs has remaining-budget coordinate at most `c *
+chargedBudget N`. -/
 theorem independent_runs_bounded {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) :
     ∀ x ∈ (independentRunsLaw T hN c).support, x.2 ≤ c * chargedBudget N := by
@@ -192,6 +244,8 @@ theorem independent_runs_bounded {N : ℕ} {α : Type*} [LinearOrder α]
             (Nat.succ_mul c' (chargedBudget N)).symm
           omega
 
+/-- Every supported output of a single charged run with budget `c * chargedBudget N` has
+remaining-budget coordinate at most that budget. -/
 theorem single_long_run_bounded {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (c : ℕ) :
     ∀ x ∈ (chargedInitialPMF T hN (c * chargedBudget N)).support, x.2 ≤ c * chargedBudget N := by
@@ -200,6 +254,9 @@ theorem single_long_run_bounded {N : ℕ} {α : Type*} [LinearOrder α]
   obtain ⟨i, hi, hxy⟩ := (PMF.mem_support_bind_iff _ _ x).mp hx
   exact minimumBudgetPMFWithInit_remaining T (initCharge N) hN (c * chargedBudget N) i x hxy
 
+/-- A long run's success probability is at least the independent-repetition expression exactly
+when its failure probability is at most the corresponding power of the short-run failure
+probability. -/
 theorem amplification_domination_condition {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (c : ℕ) :
     chargedInitialSuccess T (c * chargedBudget N) ≥
@@ -208,6 +265,8 @@ theorem amplification_domination_condition {N : ℕ} {α : Type*} [LinearOrder �
           ≤ (1 - chargedInitialSuccess T (chargedBudget N)) ^ c := by
   constructor <;> intro h <;> linarith
 
+/-- At one repetition, the long-run success probability satisfies the independent-repetition
+comparison. -/
 theorem amplification_condition_at_one {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) :
     chargedInitialSuccess T (1 * chargedBudget N) ≥
@@ -216,6 +275,7 @@ theorem amplification_condition_at_one {N : ℕ} {α : Type*} [LinearOrder α]
   simp only [Nat.one_mul, pow_one]
   nlinarith
 
+/-- For every natural number `c ≥ 3`, the power `2 ^ c` strictly exceeds `2 * c`. -/
 theorem two_pow_gt_two_mul_nat (c : ℕ) (hc : 3 ≤ c) : (2 : ℕ) ^ c > 2 * c := by
   induction c with
   | zero => omega
@@ -231,6 +291,8 @@ theorem two_pow_gt_two_mul_nat (c : ℕ) (hc : 3 ≤ c) : (2 : ℕ) ^ c > 2 * c 
         rw [pow_succ]
         omega
 
+/-- For positive table size and repetition count, the success comparison between a long run and
+the repetition expression is equivalent to the corresponding failure-tail inequality. -/
 theorem amplification_comparison_is_a_tail_condition {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (_hN : 0 < N) (c : ℕ) (_hc : 0 < c) :
     chargedInitialSuccess T (c * chargedBudget N) ≥
@@ -239,6 +301,7 @@ theorem amplification_comparison_is_a_tail_condition {N : ℕ} {α : Type*} [Lin
           ≤ (1 - chargedInitialSuccess T (chargedBudget N)) ^ c :=
   amplification_domination_condition T c
 
+/-- For `c ≥ 3`, the numerical guarantee `1 - (1 / 2) ^ c` strictly exceeds `1 - 1 / (2 * c)`. -/
 theorem independent_bound_strictly_exceeds_long_bound (c : ℕ) (hc : 3 ≤ c) :
     (1 - 1 / (2 * c : ℝ)) < 1 - (1 / 2 : ℝ) ^ c := by
   have hnat := two_pow_gt_two_mul_nat c hc
@@ -250,6 +313,8 @@ theorem independent_bound_strictly_exceeds_long_bound (c : ℕ) (hc : 3 ≤ c) :
   rw [hdiv]
   linarith
 
+/-- Strict superiority of the long-run success probability over the independent-repetition
+expression is equivalent to a strict inequality between their failure expressions. -/
 theorem amplification_domination_strict {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (_hN : 0 < N) (c : ℕ) (_hc : 0 < c) :
     (chargedInitialSuccess T (c * chargedBudget N) >
@@ -262,6 +327,8 @@ theorem amplification_domination_strict {N : ℕ} {α : Type*} [LinearOrder α]
   · intro h
     linarith
 
+/-- For `c ≥ 3`, a long run that strictly exceeds the independent-repetition success expression
+also strictly exceeds `1 - 1 / (2 * c)`. -/
 theorem amplification_comparison_exceeds_frozen_long_bound {N : ℕ} {α : Type*}
     [LinearOrder α] (T : Fin N → α) (hN : 0 < N) (c : ℕ) (hc : 3 ≤ c) :
     (chargedInitialSuccess T (c * chargedBudget N) >

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BKFermion17.FermionEdge.Relations
+
+/-!
+# Fermionic operators in the edge-generator dictionary
+
+This module rewrites fermionic number, excitation, and pairing expressions using the edge
+generators `edgeA` and `edgeB`. Intermediate Majorana identities track scalar factors, operator
+order, and the commutation conditions needed for the double-excitation formula. See
+[SetiaWhitfield2018].
+
+## Main statements
+
+* `numberOp_eq_half`: expresses occupation through the vertex generator.
+* `excitation_eq`: rewrites a symmetric single excitation.
+* `doubleExcitation_eq`: rewrites a four-mode double excitation.
+
+## References
+
+* [Setia and Whitfield, 2018][SetiaWhitfield2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,8 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.BKFermion17.FermionEdge
 open Qatlib.Papers.BKFermion17.FermionEdge
 
+/-- Twice the creation operator is the even Majorana operator plus `Complex.I` times the odd
+Majorana operator. -/
 theorem two_smul_creation {n : ℕ} (k : Fin n) :
     (2 : ℂ) • creation k = majoranaEven k + Complex.I • majoranaOdd k := by
   unfold majoranaEven majoranaOdd
@@ -27,6 +49,8 @@ theorem two_smul_creation {n : ℕ} (k : Fin n) :
     show (2 : ℂ) • creation k = creation k + creation k from two_smul ℂ (creation k)]
   abel
 
+/-- Twice the annihilation operator is the even Majorana operator minus `Complex.I` times the
+odd Majorana operator. -/
 theorem two_smul_annihilation {n : ℕ} (k : Fin n) :
     (2 : ℂ) • annihilation k = majoranaEven k + (-Complex.I) • majoranaOdd k := by
   unfold majoranaEven majoranaOdd
@@ -35,6 +59,7 @@ theorem two_smul_annihilation {n : ℕ} (k : Fin n) :
       two_smul ℂ (annihilation k)]
   abel
 
+/-- Expand the product of two scalar-weighted matrix sums into four ordered terms. -/
 theorem add_mul_add_smul {n : ℕ} (c d : ℂ)
     (A B C D : Matrix (Reg n) (Reg n) ℂ) :
     (A + c • B) * (C + d • D) =
@@ -42,10 +67,12 @@ theorem add_mul_add_smul {n : ℕ} (c d : ℂ)
   rw [add_mul, mul_add, mul_add, Matrix.mul_smul, Matrix.smul_mul, smul_mul_smul_eq]
   abel
 
+/-- Four times `X * Y` equals the product of twice `X` and twice `Y`. -/
 theorem four_smul_mul {n : ℕ} (X Y : Matrix (Reg n) (Reg n) ℂ) :
     (4 : ℂ) • (X * Y) = (2 : ℂ) • X * ((2 : ℂ) • Y) := by
   rw [smul_mul_smul_eq, show (2 : ℂ) * 2 = 4 by norm_num]
 
+/-- The vertex edge generator equals the identity minus twice the occupation operator. -/
 theorem edgeB_eq_one_sub_two_numberOp {n : ℕ} (i : Fin n) :
     edgeB i = 1 - (2 : ℂ) • numberOp i := by
   unfold edgeB
@@ -55,6 +82,8 @@ theorem edgeB_eq_one_sub_two_numberOp {n : ℕ} (i : Fin n) :
     show (2 : ℂ) • numberOp i = numberOp i + numberOp i from two_smul ℂ (numberOp i)]
   abel
 
+/-- The occupation operator equals one half of `1 - edgeB i`. See [Setia and Whitfield,
+2018][SetiaWhitfield2018]. -/
 theorem numberOp_eq_half {n : ℕ} (i : Fin n) :
     numberOp i = (2⁻¹ : ℂ) • (1 - edgeB i) := by
   rw [edgeB_eq_one_sub_two_numberOp]
@@ -62,16 +91,20 @@ theorem numberOp_eq_half {n : ℕ} (i : Fin n) :
       = (2 : ℂ) • numberOp i := by abel
   rw [h, smul_smul, show (2⁻¹ : ℂ) * 2 = 1 by norm_num, one_smul]
 
+/-- Rewrite a product of occupation operators as the product of their half-scaled edge-generator
+expressions. -/
 theorem coulomb_eq {n : ℕ} (i j : Fin n) :
     numberOp i * numberOp j =
       ((2⁻¹ : ℂ) • (1 - edgeB i)) * ((2⁻¹ : ℂ) • (1 - edgeB j)) := by
   rw [← numberOp_eq_half i, ← numberOp_eq_half j]
 
+/-- The product of occupation operators equals one quarter of `(1 - edgeB i) * (1 - edgeB j)`. -/
 theorem coulomb_eq_fourth {n : ℕ} (i j : Fin n) :
     numberOp i * numberOp j = (4⁻¹ : ℂ) • ((1 - edgeB i) * (1 - edgeB j)) := by
   rw [coulomb_eq, smul_mul_smul_eq,
     show ((2⁻¹ : ℂ) * 2⁻¹) = 4⁻¹ by norm_num]
 
+/-- The product `edgeA i j * edgeB j` equals the even-odd Majorana product on `i` and `j`. -/
 theorem edgeA_mul_edgeB_right {n : ℕ} (i j : Fin n) :
     edgeA i j * edgeB j = majoranaEven i * majoranaOdd j := by
   unfold edgeA edgeB
@@ -84,6 +117,8 @@ theorem edgeA_mul_edgeB_right {n : ℕ} (i j : Fin n) :
     noncomm_ring
   rw [h, majoranaEven_sq, mul_one]
 
+/-- The product `edgeB i * edgeA i j` equals the negative odd-even Majorana product on `i` and
+`j`. -/
 theorem edgeB_mul_edgeA_left {n : ℕ} (i j : Fin n) :
     edgeB i * edgeA i j = -(majoranaOdd i * majoranaEven j) := by
   unfold edgeB edgeA
@@ -107,11 +142,15 @@ theorem edgeB_mul_edgeA_left {n : ℕ} (i j : Fin n) :
           rw [neg_one_mul]
   rw [h]
 
+/-- The indicated sum of edge-generator products equals the difference of the two mixed Majorana
+products. -/
 theorem edgeA_edgeB_sum {n : ℕ} (i j : Fin n) :
     edgeA i j * edgeB j + edgeB i * edgeA i j
       = majoranaEven i * majoranaOdd j - majoranaOdd i * majoranaEven j := by
   rw [edgeA_mul_edgeB_right, edgeB_mul_edgeA_left, sub_eq_add_neg]
 
+/-- For distinct modes, four times the symmetric single-excitation expression equals `-2 *
+Complex.I` times the mixed Majorana difference. -/
 theorem four_smul_excitation {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     (4 : ℂ) • (creation i * annihilation j + creation j * annihilation i)
       = (-2 * Complex.I) • (majoranaEven i * majoranaOdd j
@@ -128,6 +167,8 @@ theorem four_smul_excitation {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   simp only [smul_neg]
   module
 
+/-- For distinct modes, the symmetric single excitation equals `-Complex.I / 2` times `edgeA i j
+* edgeB j + edgeB i * edgeA i j`. See [Setia and Whitfield, 2018][SetiaWhitfield2018]. -/
 theorem excitation_eq {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     creation i * annihilation j + creation j * annihilation i
       = (-(2⁻¹ : ℂ) * Complex.I) • (edgeA i j * edgeB j + edgeB i * edgeA i j) := by
@@ -141,6 +182,7 @@ theorem excitation_eq {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
         show ((4⁻¹ : ℂ) * (-2)) = -(2⁻¹ : ℂ) by norm_num]] at h'
   exact h'
 
+/-- The occupation operator at `i` commutes with annihilation at a distinct mode `j`. -/
 theorem numberOp_commute_annihilation_of_ne {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     numberOp i * annihilation j = annihilation j * numberOp i := by
   have haa : annihilation i * annihilation j = -(annihilation j * annihilation i) :=
@@ -164,6 +206,7 @@ theorem numberOp_commute_annihilation_of_ne {n : ℕ} (i j : Fin n) (hij : i ≠
     _ = annihilation j * (creation i * annihilation i) := by noncomm_ring
     _ = annihilation j * numberOp i := by rw [creation_mul_annihilation_eq_numberOp]
 
+/-- The occupation operator at `i` commutes with creation at a distinct mode `j`. -/
 theorem numberOp_commute_creation_of_ne {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     numberOp i * creation j = creation j * numberOp i := by
   have hac : annihilation i * creation j = -(creation j * annihilation i) := by
@@ -182,6 +225,9 @@ theorem numberOp_commute_creation_of_ne {n : ℕ} (i j : Fin n) (hij : i ≠ j) 
     _ = creation j * (creation i * annihilation i) := by noncomm_ring
     _ = creation j * numberOp i := by rw [creation_mul_annihilation_eq_numberOp]
 
+/-- For three pairwise distinct modes, the occupation-weighted excitation equals its
+edge-generator excitation expression times the occupation expression at the middle mode. See
+[Setia and Whitfield, 2018][SetiaWhitfield2018]. -/
 theorem numberExcitation_eq {n : ℕ} (i j k : Fin n) (hij : i ≠ j) (hjk : j ≠ k)
     (hik : i ≠ k) :
     creation i * creation j * annihilation j * annihilation k
@@ -213,6 +259,8 @@ theorem numberExcitation_eq {n : ℕ} (i j k : Fin n) (hij : i ≠ j) (hjk : j �
         noncomm_ring]
   rw [numberOp_eq_half j, ← excitation_eq i k hik]
 
+/-- The sum of the ordered creation pair and annihilation pair equals half the difference of the
+even-even and odd-odd Majorana products. -/
 theorem pairCreation_eq {n : ℕ} (i j : Fin n) :
     creation i * creation j + annihilation i * annihilation j
       = (2⁻¹ : ℂ) • (majoranaEven i * majoranaEven j)
@@ -235,11 +283,15 @@ theorem pairCreation_eq {n : ℕ} (i j : Fin n) :
     show (4⁻¹ : ℂ) * 2 = 2⁻¹ by norm_num] at h'
   exact h'
 
+/-- The indicated difference of edge-generator products equals the sum of the two mixed Majorana
+products. -/
 theorem edgeA_edgeB_sub {n : ℕ} (i j : Fin n) :
     edgeA i j * edgeB j - edgeB i * edgeA i j
       = majoranaEven i * majoranaOdd j + majoranaOdd i * majoranaEven j := by
   rw [edgeA_mul_edgeB_right, edgeB_mul_edgeA_left, sub_neg_eq_add]
 
+/-- The ordered annihilation pair minus the creation pair equals `-Complex.I / 2` times the
+specified edge-generator difference. See [Setia and Whitfield, 2018][SetiaWhitfield2018]. -/
 theorem pairAnnihilation_sub_creation_eq {n : ℕ} (i j : Fin n) :
     annihilation i * annihilation j - creation i * creation j
       = (-(2⁻¹ : ℂ) * Complex.I) • (edgeA i j * edgeB j - edgeB i * edgeA i j) := by
@@ -264,6 +316,8 @@ theorem pairAnnihilation_sub_creation_eq {n : ℕ} (i j : Fin n) :
         show ((4⁻¹ : ℂ) * (-2)) = -(2⁻¹ : ℂ) by norm_num]] at h'
   exact h'
 
+/-- For distinct modes, the square of the product of their even Majorana operators is negative
+identity. -/
 theorem even_even_mul_self {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     majoranaEven i * majoranaEven j * (majoranaEven i * majoranaEven j) = -1 := by
   calc majoranaEven i * majoranaEven j * (majoranaEven i * majoranaEven j)
@@ -277,6 +331,8 @@ theorem even_even_mul_self {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
         rw [majoranaEven_sq, majoranaEven_sq]
         norm_num
 
+/-- For distinct modes, the product of vertex generators equals the even-even Majorana product
+times the odd-odd Majorana product. -/
 theorem edgeB_mul_edgeB {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     edgeB i * edgeB j =
       majoranaEven i * majoranaEven j * (majoranaOdd i * majoranaOdd j) := by
@@ -295,6 +351,8 @@ theorem edgeB_mul_edgeB {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
           noncomm_ring
   rw [hshuffle, neg_neg]
 
+/-- For distinct modes, `Complex.I` times `edgeA i j * (1 + edgeB i * edgeB j)` equals the
+even-even Majorana product minus the odd-odd product. -/
 theorem edgeA_mul_one_add_edgeB {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     Complex.I • (edgeA i j * (1 + edgeB i * edgeB j)) =
       majoranaEven i * majoranaEven j - majoranaOdd i * majoranaOdd j := by
@@ -306,12 +364,17 @@ theorem edgeA_mul_one_add_edgeB {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   rw [hII, one_smul, mul_add, mul_one, ← mul_assoc, even_even_mul_self i j hij,
     neg_one_mul, sub_eq_add_neg]
 
+/-- For distinct modes, the ordered creation-pair plus annihilation-pair expression equals
+`Complex.I / 2` times `edgeA i j * (1 + edgeB i * edgeB j)`. See [Setia and Whitfield,
+2018][SetiaWhitfield2018]. -/
 theorem pairCreation_edge_form {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     creation i * creation j + annihilation i * annihilation j =
       (2⁻¹ : ℂ) • (Complex.I • (edgeA i j * (1 + edgeB i * edgeB j))) := by
   rw [pairCreation_eq i j, edgeA_mul_one_add_edgeB i j hij]
   module
 
+/-- For distinct modes, the specified edge-generator difference factors as `edgeA i j * (edgeB i
++ edgeB j)`. -/
 theorem edgeA_mul_edgeB_sum_eq {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     edgeA i j * edgeB j - edgeB i * edgeA i j =
       edgeA i j * (edgeB i + edgeB j) := by
@@ -321,6 +384,8 @@ theorem edgeA_mul_edgeB_sum_eq {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   rw [h]
   noncomm_ring
 
+/-- For distinct modes, the ordered creation pair minus annihilation pair equals `Complex.I / 2`
+times `edgeA i j * (edgeB i + edgeB j)`. -/
 theorem pairAnnihilation_edge_form {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     creation i * creation j - annihilation i * annihilation j =
       (2⁻¹ : ℂ) • (Complex.I • (edgeA i j * (edgeB i + edgeB j))) := by
@@ -335,6 +400,8 @@ theorem pairAnnihilation_edge_form {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
         rw [← neg_smul]
         module
 
+/-- An annihilation pair commutes with a creation pair when every mode in the first pair differs
+from every mode in the second pair. -/
 theorem annihilation_pair_commute_creation_pair {n : ℕ} (i j k l : Fin n)
     (hik : i ≠ k) (hil : i ≠ l) (hjk : j ≠ k) (hjl : j ≠ l) :
     annihilation i * annihilation j * (creation k * creation l)
@@ -379,6 +446,9 @@ theorem annihilation_pair_commute_creation_pair {n : ℕ} (i j k l : Fin n)
     _ = creation k * creation l * annihilation i * annihilation j := by
         noncomm_ring
 
+/-- For four pairwise distinct modes, the symmetric double excitation equals one eighth of the
+ordered edge-generator product times the displayed polynomial in vertex generators. See
+[Setia and Whitfield, 2018][SetiaWhitfield2018]. -/
 theorem doubleExcitation_eq {n : ℕ} (i j k l : Fin n)
     (hij : i ≠ j) (hik : i ≠ k) (hil : i ≠ l) (hjk : j ≠ k) (hjl : j ≠ l)
     (hkl : k ≠ l) :

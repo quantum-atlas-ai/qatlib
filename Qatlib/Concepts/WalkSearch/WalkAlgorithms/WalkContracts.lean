@@ -15,8 +15,26 @@ import Mathlib.Data.Fintype.Pi
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Order.Basic
 
+/-!
+# Search interfaces and graph-search algorithms
+
+This module defines finite loopless undirected graphs and abstract collision, Grover, and
+noisy-search interfaces. Each search interface carries finite seeds, soundness and rejection
+properties, a bound on failing seeds, and an explicit charge bound.
+
+`gcAlg`, `th4Alg`, and `hAlg` combine these interfaces into graph-collision, triangle, and
+subgraph candidate-search procedures with recorded costs. They provide a contract-based setting
+for the quantum search methods surveyed in [Ambainis2005].
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- A finite undirected graph on `Fin n`, represented by a symmetric edge set containing no
+loops. -/
 structure OGraph (n : ℕ) where
 
   edges : Finset (Fin n × Fin n)
@@ -27,8 +45,11 @@ structure OGraph (n : ℕ) where
 
 variable {n : ℕ}
 
+/-- The Boolean adjacency predicate obtained by deciding membership in the edge set of `G`. -/
 def adjB (G : OGraph n) (a b : Fin n) : Bool := decide ((a, b) ∈ G.edges)
 
+/-- An abstract collision-search interface with a finite nonempty seed space, soundness and
+rejection guarantees, a bound on failing seeds, and a parameterized charge bound. -/
 structure KCollisionSolver where
 
   seed : Type
@@ -62,6 +83,8 @@ structure KCollisionSolver where
     cost r R s u c ρ ≤
       κ * (Nat.log 2 (n + 1) + 2) * (s + (n / r) ^ (k / 2) * (c + Nat.sqrt r * u))
 
+/-- An abstract search interface for a Boolean marked predicate with finite seeds, soundness and
+rejection guarantees, a failure-count bound, and a Grover-type charge bound. -/
 structure SafeGrover where
 
   seed : Type
@@ -93,6 +116,9 @@ structure SafeGrover where
     cost marked check floor ρ ≤
       κ * (Nat.log 2 (max N floor + 1) + 2) * (check + 1) * (Nat.sqrt (max N floor + 1) + 1)
 
+/-- An abstract search interface taking marked and test predicates, with finite seeds, soundness
+and rejection guarantees, and explicit failure-count and charge bounds. The failure bound
+assumes that every positive test result is marked. -/
 structure NoisySearch where
 
   seed : Type
@@ -130,13 +156,19 @@ structure NoisySearch where
     cost marked test tcost floor ρ ≤
       κ * (Nat.log 2 (floor + 1) + 2) * (tcost + 1) * (Nat.sqrt (floor + 1) + 1)
 
+/-- Extends a finite seed tape to natural-number indices, using an arbitrary seed outside its
+original range. -/
 noncomputable def extSeed {B : ℕ} {seed : Type} [Nonempty seed] (τ : Fin B → seed)
     (i : ℕ) : seed :=
   if h : i < B then τ ⟨i, h⟩ else Classical.arbitrary seed
 
+/-- The Boolean relation requiring both entries of a pair to be marked by `f` and adjacent in
+`G`. -/
 def gcRel (G : OGraph n) (f : Fin n → Bool) (t : Fin 2 → Fin n) : Bool :=
   f (t 0) && f (t 1) && adjB G (t 0) (t 1)
 
+/-- Runs collision search for `gcRel`, validates a returned pair, and records the solver charge
+plus two checks when a candidate is returned. -/
 noncomputable def gcAlg {n : ℕ} (G : OGraph n) (f : Fin n → Bool) (kcs : KCollisionSolver)
     (r : ℕ) (ρ : kcs.seed) : Option (Fin n × Fin n) × ℕ :=
   match kcs.run r (gcRel G f) r 1 0 ρ with
@@ -147,14 +179,20 @@ noncomputable def gcAlg {n : ℕ} (G : OGraph n) (f : Fin n → Bool) (kcs : KCo
       else (none, kcs.cost r (gcRel G f) r 1 0 ρ + 2)
   | none => (none, kcs.cost r (gcRel G f) r 1 0 ρ)
 
+/-- The numerical checker-cost expression combining noisy-search and collision-search constants,
+logarithmic factors, and the subset parameters. -/
 def cCOf (kcs : KCollisionSolver) (ncs : NoisySearch) (n r r' c₀ : ℕ) : ℕ :=
   ncs.κ * (Nat.log 2 (n + 1) + 2) *
     (c₀ * (kcs.κ * (Nat.log 2 (r + 1) + 2) * (r' + (r / r') * Nat.sqrt r')) + 3) *
     (Nat.sqrt (n + 1) + 1)
 
+/-- The Boolean relation requiring distinct adjacent entries of a pair and a vertex adjacent
+from both entries. -/
 def triRel {n : ℕ} (adj : Fin n → Fin n → Bool) (t : Fin 2 → Fin n) : Bool :=
   decide (t 0 ≠ t 1 ∧ adj (t 0) (t 1) ∧ ∃ w : Fin n, adj (t 0) w ∧ adj (t 1) w)
 
+/-- Runs collision search for a pair satisfying `triRel`, then safe Grover search for a distinct
+common neighbor, validates the three edges, and records the accumulated cost. -/
 noncomputable def th4Alg {n : ℕ} (adj : Fin n → Fin n → Bool)
     (kcs : KCollisionSolver) (ncs : NoisySearch) (sgs : SafeGrover) (r r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (gtape : ℕ → sgs.seed) :
@@ -180,6 +218,9 @@ noncomputable def th4Alg {n : ℕ} (adj : Fin n → Fin n → Bool)
             sgs.cost marked 3 n (gtape 0))
   | none => (none, kcs.cost (n := n) (k := 2) r (triRel adj) (r * r) r cC (stape 0))
 
+/-- The Boolean relation asserting that `K` is injective and covers all vertices except the
+distinguished vertex in some injective, edge-preserving embedding of `H` into the adjacency
+predicate. -/
 def hCandRel {n k : ℕ} (adj : Fin n → Fin n → Bool) (H : OGraph k) (hv : Fin k)
     (K : Fin (k - 1) → Fin n) : Bool :=
   decide (
@@ -190,6 +231,8 @@ def hCandRel {n k : ℕ} (adj : Fin n → Fin n → Bool) (H : OGraph k) (hv : F
       (∀ i : Fin k, i ≠ hv → ∃ j : Fin (k - 1), σ i = K j) ∧
       (∀ a b : Fin k, (a, b) ∈ H.edges → adj (σ a) (σ b) = true))
 
+/-- Runs collision search for `hCandRel`, retains a candidate only when it satisfies that
+relation, and records the collision-solver charge. -/
 noncomputable def hAlg {n k : ℕ} (adj : Fin n → Fin n → Bool) (H : OGraph k) (hv : Fin k)
     (kcs : KCollisionSolver) (r qH : ℕ) (stape : ℕ → kcs.seed) :
     Option (Fin (k - 1) → Fin n) × ℕ :=

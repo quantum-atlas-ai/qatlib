@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
+
+/-!
+# Ordered composition commutator coefficients
+
+This module indexes conjugation coefficients by `pfCompositions` and builds the associated
+reverse-ordered repeated generator words. It introduces an initial composition coefficient, a
+revised multinomially weighted coefficient, and real-linear adjoint budgets for the ordered
+expansions used in product-formula analysis [ChildsEtAl2021Trotter].
+
+The coefficient expansion `pfConjCoeff_ordered` and the recursive budget identities give a
+conjugation remainder estimate in both general and skew-Hermitian modes. The revised coefficient
+`pfCommAlphaOrderedV2` is related explicitly to the factorial-normalized adjoint budget.
+
+## Main statements
+
+* `pfConjCoeff_ordered`: ordered composition expansion of conjugation coefficients.
+* `pfConjWord_ordered_remainder_norm_mode`: remainder estimate in terms of the ordered adjoint
+  budget.
+* `pfCommAlphaOrderedV2_eq_budget`: factorial relation between the revised coefficient and the
+  budget.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -20,22 +46,28 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The finite set of `s`-tuples of natural numbers whose entries sum to `p`. -/
 def pfCompositions (s p : ℕ) : Finset (Fin s → ℕ) :=
   ((Finset.univ : Finset (Fin s → Fin (p + 1))).image
       fun f i => (f i).val).filter
     (fun q => ∑ i, q i = p)
 
+/-- The generator word formed in reverse index order, repeating each generator according to its
+multiplicity in `q`. -/
 def pfOrderedCompositionWord (xs : List (Matrix I I ℂ)) (q : Fin xs.length → ℕ) :
     List (Matrix I I ℂ) :=
   (List.ofFn (fun i : Fin xs.length => (xs.get i, q i))).reverse.flatMap
     (fun kc => List.replicate kc.2 kc.1)
 
+/-- The sum over compositions of `p!` divided by the product whose factors are the multiplicity
+factorials multiplied by the nested commutator norm. -/
 noncomputable def pfCommAlphaOrdered (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) : ℝ :=
   ∑ q ∈ pfCompositions xs.length p,
     (p.factorial : ℝ) / ∏ i, ((q i).factorial : ℝ) *
       ‖pfNestedCommList (B :: pfOrderedCompositionWord xs q)‖
 
+/-- Membership in `pfCompositions s n` is equivalent to having total sum `n`. -/
 theorem pfCompositions_mem {s n : ℕ} (q : Fin s → ℕ) :
     q ∈ pfCompositions s n ↔ ∑ i, q i = n := by
   classical
@@ -51,6 +83,8 @@ theorem pfCompositions_mem {s n : ℕ} (q : Fin s → ℕ) :
       omega
     · rfl
 
+/-- Splits a sum over compositions with `s+1` entries according to the first entry and the
+remaining composition. -/
 theorem pfCompositions_sum_cons {E : Type*} [AddCommMonoid E] (s n : ℕ)
     (f : (Fin (s+1) → ℕ) → E) :
     ∑ q ∈ pfCompositions (s+1) n, f q =
@@ -92,6 +126,8 @@ theorem pfCompositions_sum_cons {E : Type*} [AddCommMonoid E] (s n : ℕ)
 
 omit [DecidableEq I] in
 
+/-- Appending `j` copies of `X` to a seeded commutator word applies `pfAdPower X` of order `j`
+to its nested commutator. -/
 theorem pfNestedCommList_append_replicate (B X : Matrix I I ℂ)
     (w : List (Matrix I I ℂ)) (j : ℕ) :
     pfNestedCommList (B :: (w ++ List.replicate j X)) =
@@ -106,6 +142,8 @@ theorem pfNestedCommList_append_replicate (B X : Matrix I I ℂ)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The ordered composition word for `X :: xs` consists of the tail composition word followed by
+the specified number of copies of `X`. -/
 theorem pfOrderedCompositionWord_cons (X : Matrix I I ℂ)
     (xs : List (Matrix I I ℂ)) (q : Fin (xs.length+1) → ℕ) :
     pfOrderedCompositionWord (X::xs) q =
@@ -115,6 +153,8 @@ theorem pfOrderedCompositionWord_cons (X : Matrix I I ℂ)
 
 omit [DecidableEq I] in
 
+/-- Expands the degree-`n` conjugation coefficient as a sum of nested commutators over ordered
+compositions, weighted by reciprocal factorial products. -/
 theorem pfConjCoeff_ordered (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (n : ℕ) :
     pfConjCoeff xs B n =
       ∑ q ∈ pfCompositions xs.length n,
@@ -154,12 +194,15 @@ theorem pfConjCoeff_ordered (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (n
     rw [pfNestedCommList_append_replicate]
     rfl
 
+/-- The sum over degree-`n` compositions of the norms of their nested commutators after applying
+`L`, weighted by reciprocal factorial products. -/
 def pfOrderedAdBudget (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
     (n : ℕ) (L : Matrix I I ℂ →ₗ[ℝ] Matrix I I ℂ) : ℝ :=
   ∑ q ∈ pfCompositions xs.length n,
     (∏ i, ((q i).factorial : ℝ))⁻¹ *
       ‖L (pfNestedCommList (B :: pfOrderedCompositionWord xs q))‖
 
+/-- The ordered adjoint budget is nonnegative. -/
 theorem pfOrderedAdBudget_nonneg (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
     (n : ℕ) (L : Matrix I I ℂ →ₗ[ℝ] Matrix I I ℂ) :
     0 ≤ pfOrderedAdBudget xs B n L := by
@@ -168,6 +211,8 @@ theorem pfOrderedAdBudget_nonneg (xs : List (Matrix I I ℂ)) (B : Matrix I I �
   intro q _
   positivity
 
+/-- The norm of a real-linear image of a conjugation coefficient is bounded by the corresponding
+ordered adjoint budget. -/
 theorem pfConjCoeff_ordered_linear_norm_le (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (n : ℕ) (L : Matrix I I ℂ →ₗ[ℝ] Matrix I I ℂ) :
     ‖L (pfConjCoeff xs B n)‖ ≤ pfOrderedAdBudget xs B n L := by
@@ -178,10 +223,13 @@ theorem pfConjCoeff_ordered_linear_norm_le (xs : List (Matrix I I ℂ))
   intro q _
   rw [map_smul, norm_smul, Real.norm_of_nonneg (by positivity)]
 
+/-- For an empty generator list at order zero, `pfCommAlphaOrdered` equals one. -/
 theorem pfCommAlphaOrdered_nil_zero (B : Matrix I I ℂ) :
     pfCommAlphaOrdered [] B 0 = 1 := by
   simp [pfCommAlphaOrdered, pfCompositions]
 
+/-- Splits the ordered adjoint budget for a nonempty generator list by the multiplicity of its
+leading generator. -/
 theorem pfOrderedAdBudget_cons (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (p : ℕ) (L : Matrix I I ℂ →ₗ[ℝ] Matrix I I ℂ) :
     pfOrderedAdBudget (X::xs) B p L =
@@ -204,6 +252,8 @@ theorem pfOrderedAdBudget_cons (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ
     _root_.mul_inv_rev]
   ring
 
+/-- Decomposes the identity-map adjoint budget into the tail budget and the positive
+leading-generator multiplicity contributions. -/
 theorem pfOrderedAdBudget_remainder_cons (X B : Matrix I I ℂ)
     (xs : List (Matrix I I ℂ)) (p : ℕ) :
     pfOrderedAdBudget (X::xs) B p LinearMap.id =
@@ -229,6 +279,8 @@ theorem pfOrderedAdBudget_remainder_cons (X B : Matrix I I ℂ)
     rfl
   rw [hzero, add_comm]
 
+/-- Bounds the scaled conjugation remainder of a coefficient by an ordered adjoint budget and
+the appropriate word inflation factor. -/
 theorem pfConjCoeff_ordered_remainder_scaled_le (skew : Bool) (X B : Matrix I I ℂ)
     (xs : List (Matrix I I ℂ)) (p : ℕ) (t : ℝ) (k : Fin p)
     (hX : skew=true → Xᴴ=-X) :
@@ -256,6 +308,8 @@ theorem pfConjCoeff_ordered_remainder_scaled_le (skew : Bool) (X B : Matrix I I 
       ring
     _ = _ := by rw [← pow_add, Nat.add_sub_of_le k.isLt.le]
 
+/-- Bounds the conjugation-word remainder by the ordered adjoint budget times `|t|^p` and the
+word inflation factor. In skew mode the generators are required to be skew-Hermitian. -/
 theorem pfConjWord_ordered_remainder_norm_mode (skew : Bool)
     (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) (t : ℝ)
     (hxs : skew=true → ∀ X∈xs, Xᴴ=-X) :
@@ -316,11 +370,15 @@ theorem pfConjWord_ordered_remainder_norm_mode (skew : Bool)
             |t|^p * pfWordInflation skew (X::xs) t := add_le_add hh hs
       _ = _ := by rw [pfOrderedAdBudget_remainder_cons]; ring
 
+/-- The multinomially weighted sum of seeded nested commutator norms over ordered compositions
+of `p`. -/
 def pfCommAlphaOrderedV2 (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) : ℝ :=
   ∑ q ∈ pfCompositions xs.length p,
     ((p.factorial : ℝ) / (∏ i, ((q i).factorial : ℝ))) *
       ‖pfNestedCommList (B :: pfOrderedCompositionWord xs q)‖
 
+/-- The revised ordered commutator coefficient equals `p!` times the identity-map ordered
+adjoint budget. -/
 theorem pfCommAlphaOrderedV2_eq_budget (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) :
     pfCommAlphaOrderedV2 xs B p = (p.factorial : ℝ) * pfOrderedAdBudget xs B p LinearMap.id := by
@@ -330,6 +388,8 @@ theorem pfCommAlphaOrderedV2_eq_budget (xs : List (Matrix I I ℂ))
   intro q _
   ring
 
+/-- The revised ordered coefficient scaled by `|t|^p/p!` equals the ordered adjoint budget
+scaled by `|t|^p`. -/
 theorem pfCommAlphaOrderedV2_scaled (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (t : ℝ) :
     pfCommAlphaOrderedV2 xs B p * |t|^p / (p.factorial : ℝ) =
@@ -338,6 +398,8 @@ theorem pfCommAlphaOrderedV2_scaled (xs : List (Matrix I I ℂ))
   have hp : (p.factorial : ℝ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero p
   field_simp
 
+/-- For an empty generator list at order zero, the revised ordered commutator coefficient equals
+the seed norm. -/
 theorem pfCommAlphaOrderedV2_nil_zero (B : Matrix I I ℂ) :
     pfCommAlphaOrderedV2 [] B 0 = ‖B‖ := by
   simp [pfCommAlphaOrderedV2, pfCompositions, pfOrderedCompositionWord, pfNestedCommList]

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLSStatePrep24.SpectralLeak.BandModels
+
+/-!
+# Specification of spectral leakage bounds
+
+The proposition `Clause30WeightedSpectralLeakage` packages stopping-mass normalization and two
+leakage estimates for legal band rows. Both estimates are quadratic in the sum of row errors,
+with constants expressed through `singleBandProbability`. See [LowSu2026] for the paper context.
+
+## Main statements
+
+* `Clause30WeightedSpectralLeakage`: The proposition that legal rows have unit stopping mass and
+  that weighted and unweighted leakage are bounded by `9 * p1 * e²` and `p1 * e² / 9`,
+  respectively.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +48,8 @@ open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Papers.QLSStatePrep24.S
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition that legal rows have unit stopping mass and that weighted and unweighted
+leakage are bounded by `9 * p1 * e²` and `p1 * e² / 9`, respectively. -/
 def Clause30WeightedSpectralLeakage : Prop :=
   ∀ (I : Type) [Fintype I] (m : ℕ) (k : I → ℕ) (γ : I → ℂ)
     (ξ : ℕ → I → QState (Fin 2)) (δ : ℕ → ℝ), bandRowsLegal m k ξ δ →

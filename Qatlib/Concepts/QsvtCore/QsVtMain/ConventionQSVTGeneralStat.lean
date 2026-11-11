@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+
+/-!
+# Source-convention QSVT specification
+
+This module defines `SourceConventionQSVTGeneral`, a proposition combining degree-optimal real
+phase synthesis with odd and even projected-corner identities. It also specifies the separate
+minimal lengths for constant responses, in the QSVT setting of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `SourceConventionQSVTGeneral`: Specify phase existence, minimality, projected corners, and
+  constant cases.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -29,6 +47,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 namespace Qatlib.Concepts.QsvtCore.QsVtMain
 
+/-- The source-convention QSVT specification combining degree-optimal real phases,
+parity-dependent projected singular transforms, and minimal lengths for constants. -/
 def SourceConventionQSVTGeneral : Prop :=
   (∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

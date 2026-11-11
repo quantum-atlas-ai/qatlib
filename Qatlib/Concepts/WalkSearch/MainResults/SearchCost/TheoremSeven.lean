@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.SearchCost.Defs
+
+/-!
+# The MNRS search cost bound
+
+`mnrs_search_theorem_seven` combines tolerant amplification with the reflection ledger to bound
+cost by a constant times `S + (U * log (1 / sqrt ε) / sqrt δ + C) / sqrt ε`. The theorem assumes
+the invariant subspace and reflection interfaces explicitly, and `mnrsSearchCostResidual`
+records the concrete circuit and execution constructions outside this assembly. For background
+on search via quantum walks, see [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `mnrs_fiveSample_branch`: The arithmetic success bound `3 / 4 ≤ 1 - (3 / 4)^5` for the five
+  sample branch of [Magniez et al., Quantum Search][MagniezNayakRolandSantha2011].
+* `mnrs_search_theorem_seven`: Under the invariant subspace, reflection, schedule, and ledger
+  hypotheses, tolerant success is zero at zero marked mass and at least `1 / 24` otherwise, with
+  the stated logarithmic search cost bound; see [Magniez et al., Theorem
+  7][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,11 +39,16 @@ open Qatlib.Concepts.WalkSearch.MnrsAmplify
 
 namespace Qatlib.Concepts.WalkSearch.MainResults.SearchCost
 
+/-- The arithmetic success bound `3 / 4 ≤ 1 - (3 / 4)^5` for the five sample branch of [Magniez
+et al., Quantum Search][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_fiveSample_branch : (3 : ℝ) / 4 ≤ 1 - (3 / 4) ^ 5 := by
   norm_num
 
+/-- The constant `12800 * π + 4` used in the MNRS Theorem 7 search cost bound. -/
 noncomputable def mnrsTheoremSevenCostConstant : ℝ := 12800 * Real.pi + 4
 
+/-- Under the stated hypotheses with `ε ≤ 1 / 4`, the recursive cost expression is at most `6400
+* π / sqrt ε * (U * log (1 / sqrt ε) / sqrt δ + C)`. -/
 theorem mnrs_seven_order_form {ε δ U C c₁ : ℝ} (tMax : ℕ) (hε : 0 < ε)
     (hε1 : ε ≤ 1 / 4) (hδ : 0 < δ) (hU : 0 ≤ U) (hC : 0 ≤ C)
     (hc₁ : 0 ≤ c₁) (hc₁U : c₁ ≤ 80 * Real.pi * U / Real.sqrt δ)
@@ -128,12 +157,17 @@ theorem mnrs_seven_order_form {ε δ U C c₁ : ℝ} (tMax : ℕ) (hε : 0 < ε)
     _ = 6400 * Real.pi * (1 / Real.sqrt ε) *
           ((1 / Real.sqrt δ) * Real.log (1 / Real.sqrt ε) * U + C) := by ring
 
+/-- Descriptions of the concrete reflection circuit, chain spectrum realization, randomized
+search procedure, and additional resource ledgers not constructed by the cost assembly. -/
 def mnrsSearchCostResidual : List String :=
   [ "the concrete phase-estimation circuit word of Theorem 6 R(P) (its Hadamard, phase-rotation and controlled-walk instructions) is not built here",
     "the chain-level reachable-spectrum instantiation of the frozen reflection interface R, i.e. that W(P) restricted to A + B realises the level unitaries R i, is not built here",
     "the randomized-Grover procedure of §3.3 (uniform T in [0, 1/√ε] and the hybrid error argument) is replaced by the paper's stronger §4 Tolerant RAA assembly",
     "the query, gate and bit-time ledgers of the controlled walk beyond the counted call model are not built here" ]
 
+/-- Under the invariant subspace, reflection, schedule, and ledger hypotheses, tolerant success
+is zero at zero marked mass and at least `1 / 24` otherwise, with the stated logarithmic
+search cost bound; see [Magniez et al., Theorem 7][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_search_theorem_seven
     {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
     (Mr : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)

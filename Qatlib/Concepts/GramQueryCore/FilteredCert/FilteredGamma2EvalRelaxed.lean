@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+
+/-!
+# Filter absorption and evaluation adversary bounds
+
+This module shows that a Schur factor fixing the target matrix can be absorbed into all filters
+without increasing the certificate budget or filtered gamma-two value. It also proves an
+adversary lower bound for evaluation-filtered gamma-two, in the comparison framework of
+[LeeEtAl2011].
+
+## Main statements
+
+* `filteredGamma2_le_of_filter_absorb`: absorption gives a monotonicity inequality.
+* `adversary_le_filteredGamma2_evalRelaxed`: the norm of a feasible adversary is bounded by the
+  relaxed evaluation-filtered value.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +35,9 @@ open Matrix
 open scoped ENNReal ComplexOrder Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- If the Schur product of `A` with `B` equals `A`, multiplying every filter by `B` preserves
+any certificate and its budget. This is a filter-absorption step in the comparison
+associated with [Lee et al., Theorem 3.4][LeeEtAl2011]. -/
 theorem gramFilteredCert_of_filter_absorb {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {B : Matrix X X ℂ} {W : ℝ}
     (h : gramFilteredCert A Z W) (hidem : ∀ x y, A x y * B x y = A x y) :
@@ -31,6 +54,8 @@ theorem gramFilteredCert_of_filter_absorb {X : Type} {n : ℕ} {A : Matrix X X �
       intro j _
       ring
 
+/-- If the Schur product of `A` with `B` equals `A`, multiplying every filter by `B` cannot
+increase `filteredGamma2 A`. See [Lee et al., Theorem 3.4][LeeEtAl2011]. -/
 theorem filteredGamma2_le_of_filter_absorb {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {B : Matrix X X ℂ}
     (hidem : ∀ x y, A x y * B x y = A x y) :
@@ -40,6 +65,9 @@ theorem filteredGamma2_le_of_filter_absorb {X : Type} {n : ℕ} {A : Matrix X X 
   obtain ⟨w,rfl,hcert⟩ := hW
   exact sInf_le ⟨w,rfl,gramFilteredCert_of_filter_absorb hcert hidem⟩
 
+/-- A matrix vanishing on equal-output pairs and satisfying the coordinate-filter norm
+constraints has norm bounded by the evaluation-filtered gamma-two value. See [Lee et al.,
+Theorem 3.4][LeeEtAl2011]. -/
 theorem adversary_le_filteredGamma2_evalRelaxed {X : Type} [Fintype X] [DecidableEq X]
     {E : Type} [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E)
     (Γ : Matrix X X ℂ) (hzero : ∀ x y, f x = f y → Γ x y = 0)

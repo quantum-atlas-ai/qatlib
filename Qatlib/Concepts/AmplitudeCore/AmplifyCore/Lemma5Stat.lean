@@ -14,9 +14,29 @@ import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Defs
 
+/-!
+# Specification of the general phase component action
+
+`expected` expresses the good and bad component coefficients of
+`amplitudeEstimationPhaseIterate` for success probability strictly between zero and one. The two
+phase parameters are taken in the interval from zero to `2 * Real.pi`. See [BrassardEtAl2002]
+for background.
+
+## Main statements
+
+* `expected`: The proposition giving the generalized phase iterate coefficients on good and bad
+  components for success probability in `(0, 1)`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Spec
+/-- The proposition giving the generalized phase iterate coefficients on good and bad components
+for success probability in `(0, 1)`. -/
 def expected : Prop :=
   (∀ (ι H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (basis : HilbertBasis ι ℂ H) (zeroIndex : ι)

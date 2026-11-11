@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
 import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceWord
+
+/-!
+# Endpoint normalization for source words
+
+This module normalizes an even real polynomial pair at the endpoint `1` before conversion to the
+source-word form of quantum signal processing [LowChuang2017]. The polynomial
+`lcEndpointNormalize A B` is the linear combination of `A` and `B` weighted by their endpoint
+values; when those values have squared sum one, its endpoint value is exactly one.
+
+The normalization preserves even parity and a common degree bound, retains the required weighted
+square inequality, and changes `A` by at most `6 * ε` under explicit endpoint and completion
+bounds. `lcEndpointNormalize_source` combines these facts with polynomial sufficiency and
+`lcSourceWord_of_normalized` to produce a source phase list of the prescribed positive even
+length.
+
+## Main statements
+
+* `lcEndpointNormalize_one` proves exact endpoint normalization.
+* `lcEndpointNormalize_bound` preserves the weighted square constraint with the polynomial `Qt`.
+* `lcEndpointNormalize_error` bounds the normalization perturbation by `6 * ε`.
+* `lcEndpointNormalize_source` realizes the normalized polynomial amplitude as `lcPlusAmp` on
+  `[0, 2 * Real.pi]`.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,24 +46,32 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 
 open Polynomial
 
+/-- The polynomial `A.eval 1 * A + B.eval 1 * B`, with the scalar factors represented by
+constant polynomials. -/
 noncomputable def lcEndpointNormalize (A B : Polynomial ℝ) : Polynomial ℝ :=
   C (A.eval 1) * A + C (B.eval 1) * B
 
+/-- Evaluating the endpoint-normalized polynomial at `x` gives `A.eval 1 * A.eval x + B.eval 1 *
+B.eval x`. -/
 theorem lcEndpointNormalize_eval (A B : Polynomial ℝ) (x : ℝ) :
     (lcEndpointNormalize A B).eval x = A.eval 1 * A.eval x + B.eval 1 * B.eval x := by
   simp [lcEndpointNormalize]
 
+/-- If the squared endpoint values of `A` and `B` sum to one, their endpoint-normalized
+polynomial evaluates to one at `1`. -/
 theorem lcEndpointNormalize_one (A B : Polynomial ℝ)
     (h : A.eval 1 ^ 2 + B.eval 1 ^ 2 = 1) :
     (lcEndpointNormalize A B).eval 1 = 1 := by
   rw [lcEndpointNormalize_eval]
   nlinarith only [h]
 
+/-- Endpoint normalization preserves even parity when both input polynomials are even. -/
 theorem lcEndpointNormalize_parity (A B : Polynomial ℝ)
     (hA : A.comp (-X) = A) (hB : B.comp (-X) = B) :
     (lcEndpointNormalize A B).comp (-X) = lcEndpointNormalize A B := by
   simp only [lcEndpointNormalize, add_comp, mul_comp, C_comp, hA, hB]
 
+/-- A common degree bound for `A` and `B` also bounds their endpoint-normalized polynomial. -/
 theorem lcEndpointNormalize_degree (A B : Polynomial ℝ) (d : ℕ)
     (hA : A.degree ≤ (d : WithBot ℕ)) (hB : B.degree ≤ (d : WithBot ℕ)) :
     (lcEndpointNormalize A B).degree ≤ (d : WithBot ℕ) := by
@@ -48,6 +84,8 @@ theorem lcEndpointNormalize_degree (A B : Polynomial ℝ) (d : ℕ)
     · simp [hz]
     · rw [degree_C_mul hz]; exact hB
 
+/-- When the endpoint values of `A` and `B` have squared sum one, replacing their square sum by
+the square of `lcEndpointNormalize A B` preserves the stated weighted bound with `Qt`. -/
 theorem lcEndpointNormalize_bound (A B Qt : Polynomial ℝ) (x : ℝ)
     (h1 : A.eval 1 ^ 2 + B.eval 1 ^ 2 = 1)
     (hx : A.eval x ^ 2 + B.eval x ^ 2 + (1 - x * x) * Qt.eval x ^ 2 ≤ 1) :
@@ -61,6 +99,8 @@ theorem lcEndpointNormalize_bound (A B Qt : Polynomial ℝ) (x : ℝ)
       _ = _ := by rw [h1, one_mul]
   linarith
 
+/-- Under the stated bounds on `A`, its endpoint error, and the squares of the two values of
+`B`, endpoint normalization changes `A.eval x` by at most `6 * ε`. -/
 theorem lcEndpointNormalize_error (A B : Polynomial ℝ) (x ε : ℝ)
     (hε : 0 ≤ ε) (hA : |A.eval x| ≤ 1)
     (ha : |A.eval 1 - 1| ≤ 2 * ε)
@@ -81,6 +121,9 @@ theorem lcEndpointNormalize_error (A B : Polynomial ℝ) (x ε : ℝ)
       (A.eval 1 - 1) * A.eval x + B.eval 1 * B.eval x by ring]
   exact (abs_add_le _ _).trans (by linarith)
 
+/-- For positive even `d`, the stated parity, degree, endpoint, and weighted square bounds yield
+a source phase list of length `d`. Its amplitude is the endpoint-normalized `A, B`
+polynomial plus the sine-weighted imaginary contribution from `Qt` on `[0, 2 * Real.pi]`. -/
 theorem lcEndpointNormalize_source (d : ℕ) (A B Qt : Polynomial ℝ)
     (hd : Even d) (hdpos : 0 < d)
     (hA : A.comp (-X) = A) (hB : B.comp (-X) = B) (hQ : Qt.comp (-X) = -Qt)

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+/-!
+# Specification of approximate counting
+
+`Theorem5ApproximateCounting` specifies the probability of a strict count-error bound under the
+Fourier-prepared amplitude-estimation law. Its parameters require a positive search-space size,
+marked size at most half that size, and precision at least four. For background, see
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `Theorem5ApproximateCounting`: The proposition that the count estimate `N * aeEstimate P z`
+  has error strictly below `2π * sqrt (|S| * N) / P + π² * N / P²` with mass at least `8 / π²`,
+  under the stated size and precision hypotheses.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,9 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 open Qatlib
 
+/-- The proposition that the count estimate `N * aeEstimate P z` has error strictly below `2π *
+sqrt (|S| * N) / P + π² * N / P²` with mass at least `8 / π²`, under the stated size and
+precision hypotheses. -/
 def Theorem5ApproximateCounting : Prop :=
   ∀ (N P : ℕ) (S : Finset (Fin N)),
     (hN : 0 < N) → (hS : S.card ≤ N / 2) → (hP : 4 ≤ P) →

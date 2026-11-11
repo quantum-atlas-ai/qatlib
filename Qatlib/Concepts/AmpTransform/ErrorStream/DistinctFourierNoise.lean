@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
 import Mathlib.Data.Finset.Powerset
+
+/-!
+# Fourier moments of uniformly sampled distinct noise sites
+
+`distinctNoiseSets` and `distinctNoiseMean` describe uniform sampling of size-`L` subsets of the
+whole cyclic register. Exact inclusion counts yield the mean and second moment of
+`distinctNoiseFourier` at nonzero frequency.
+
+The normalized Fourier consumer gives the corresponding second-moment formula and verifies the
+cardinality and unit-modulus marking phases of each sampled set. These averages use the whole
+register as their sampling universe.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `distinct_noise_actual_inclusion_law`: single-site and pair inclusion means.
+* `distinct_noise_fourier_mean_second_moment`: zero mean and exact second moment.
+* `distinct_noise_marked_fourier_consumer`: normalized moment and marking-phase properties.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -18,31 +43,42 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open Matrix
 open scoped Classical BigOperators
 
+/-- The finite family of all size-`L` subsets of `ZMod N`. -/
 noncomputable def distinctNoiseSets (N L : ℕ) [NeZero N] : Finset (Finset (ZMod N)) :=
   Finset.univ.powersetCard L
 
+/-- The uniform complex-valued mean over all size-`L` subsets of `ZMod N`. -/
 noncomputable def distinctNoiseMean (N L : ℕ) [NeZero N] (f : Finset (ZMod N) → ℂ) : ℂ :=
   ((distinctNoiseSets N L).card : ℂ)⁻¹*∑ S ∈ distinctNoiseSets N L, f S
 
+/-- The unnormalized additive-character Fourier sum of the finite set `S` at frequency `y`. -/
 noncomputable def distinctNoiseFourier {N : ℕ} [NeZero N] (S : Finset (ZMod N)) (y : ZMod N) : ℂ :=
   ∑ x ∈ S, ZMod.stdAddChar (x*y)
 
+/-- The vector with amplitude `1 / sqrt S.card` on `S` and zero outside `S`. -/
 noncomputable def distinctNoiseState {N : ℕ} [NeZero N] (S : Finset (ZMod N)) : ZMod N → ℂ :=
   fun x => if x∈S then (Real.sqrt (S.card : ℝ) : ℂ)⁻¹ else 0
 
+/-- There are `N.choose L` subsets of `ZMod N` of cardinality `L`. -/
 theorem distinct_noise_sets_card (N L : ℕ) [NeZero N] : (distinctNoiseSets N L).card = N.choose L := by
   simp [distinctNoiseSets, Finset.card_powersetCard, ZMod.card]
 
+/-- The sum of complex indicators over a finite set equals the complex cast of the filtered
+cardinality. -/
 private theorem distinctNoise_sum_indicator {α : Type} [DecidableEq α] (T : Finset α) (p : α → Prop)
     [DecidablePred p] : (∑ x ∈ T, if p x then (1 : ℂ) else 0) = ((T.filter p).card : ℂ) := by
   rw [← Finset.sum_filter]
   simp
 
+/-- For positive `N` and `L`, counting subsets through one distinguished element gives `N *
+choose (N - 1) (L - 1) = choose N L * L`. -/
 private theorem distinctNoise_choose_one (N L : ℕ) (hN : 0 < N) (hL : 0 < L) :
     N*((N-1).choose (L-1)) = (N.choose L)*L := by
   have hh := Nat.add_one_mul_choose_eq (N-1) (L-1)
   simpa only [Nat.sub_add_cancel hN, Nat.sub_add_cancel hL] using hh
 
+/-- For `L ≤ N`, a specified residue belongs to a uniformly chosen size-`L` subset with mean
+indicator `L / N`. -/
 private theorem distinctNoise_single_inclusion (N L : ℕ) [NeZero N] (hLN : L ≤ N) (x : ZMod N) :
     distinctNoiseMean N L (fun S => if x∈S then 1 else 0) = (L : ℂ)/N := by
   by_cases hL : L = 0
@@ -63,6 +99,8 @@ private theorem distinctNoise_single_inclusion (N L : ℕ) [NeZero N] (hLN : L �
     _ = (N.choose L : ℂ)⁻¹*((N.choose L : ℂ)*(L : ℂ)) := by rw [hh]
     _ = _ := by rw [← mul_assoc, inv_mul_cancel₀ hC, one_mul]
 
+/-- For `N` and `L` at least two, counting subsets through a distinguished pair gives the
+corresponding two-element binomial coefficient identity. -/
 private theorem distinctNoise_choose_two (N L : ℕ) (hN : 2 ≤ N) (hL : 2 ≤ L) :
     N*(N-1)*((N-2).choose (L-2)) = (N.choose L)*L*(L-1) := by
   have h1 := distinctNoise_choose_one N L (by omega) (by omega)
@@ -74,6 +112,8 @@ private theorem distinctNoise_choose_two (N L : ℕ) (hN : 2 ≤ N) (hL : 2 ≤ 
     _ = (N*((N-1).choose (L-1)))*(L-1) := by ring
     _ = _ := by rw [h1]
 
+/-- For `L ≤ N` and `1 < N`, two distinct residues have joint mean inclusion indicator `L * (L -
+1) / (N * (N - 1))`. -/
 private theorem distinctNoise_pair_inclusion (N L : ℕ) [NeZero N] (hLN : L ≤ N) (x y : ZMod N)
     (hxy : x ≠ y) (hN : 1 < N) :
     distinctNoiseMean N L (fun S => if x∈S ∧ y∈S then 1 else 0) =
@@ -113,6 +153,8 @@ private theorem distinctNoise_pair_inclusion (N L : ℕ) [NeZero N] (hLN : L ≤
     have hcases : L = 0 ∨ L = 1 := by omega
     rcases hcases with rfl | rfl <;> simp
 
+/-- Combine the subset-family cardinality and exact single-site and distinct-pair inclusion
+means for uniform size-`L` noise subsets, as used in the Fourier analysis of [Cornwell2014]. -/
 theorem distinct_noise_actual_inclusion_law (N L : ℕ) [NeZero N] (hLN : L ≤ N) :
     (distinctNoiseSets N L).card = N.choose L ∧
     (∀ x : ZMod N, distinctNoiseMean N L (fun S => if x∈S then 1 else 0) = (L : ℂ)/N) ∧
@@ -120,16 +162,19 @@ theorem distinct_noise_actual_inclusion_law (N L : ℕ) [NeZero N] (hLN : L ≤ 
       (L : ℂ)*(L-1)/(N*(N-1))) :=
   ⟨distinct_noise_sets_card N L, distinctNoise_single_inclusion N L hLN, distinctNoise_pair_inclusion N L hLN⟩
 
+/-- A constant complex factor can be pulled out of the uniform fixed-cardinality mean. -/
 @[simp] theorem distinctNoiseMean_mul_left (N L : ℕ) [NeZero N] (c : ℂ) (f : Finset (ZMod N) → ℂ) :
     distinctNoiseMean N L (fun S => c*f S) = c*distinctNoiseMean N L f := by
   simp [distinctNoiseMean, ← Finset.mul_sum, mul_left_comm]
 
+/-- The uniform fixed-cardinality mean commutes with a sum over a finite type. -/
 private theorem distinctNoiseMean_sum {A : Type} [Fintype A] (N L : ℕ) [NeZero N]
     (f : A → Finset (ZMod N) → ℂ) :
     distinctNoiseMean N L (fun S => ∑ x, f x S) = ∑ x, distinctNoiseMean N L (f x) := by
   unfold distinctNoiseMean
   rw [Finset.sum_comm, Finset.mul_sum]
 
+/-- Write the set Fourier sum as a sum over all residues multiplied by membership indicators. -/
 private theorem distinctNoise_fourier_expand {N : ℕ} [NeZero N] (S : Finset (ZMod N)) (y : ZMod N) :
     distinctNoiseFourier S y = ∑ x : ZMod N, ZMod.stdAddChar (x*y)*(if x∈S then 1 else 0) := by
   have he (x : ZMod N) : ZMod.stdAddChar (x*y)*(if x∈S then 1 else 0) =
@@ -137,6 +182,8 @@ private theorem distinctNoise_fourier_expand {N : ℕ} [NeZero N] (S : Finset (Z
   simp_rw [he]
   simp [distinctNoiseFourier, Finset.sum_ite_mem]
 
+/-- Expand the Fourier squared modulus as a double character sum weighted by joint membership
+indicators. -/
 private theorem distinctNoise_fourier_square_expand {N : ℕ} [NeZero N] (S : Finset (ZMod N)) (y : ZMod N) :
     distinctNoiseFourier S y*star (distinctNoiseFourier S y) =
       ∑ x : ZMod N, ∑ w : ZMod N, (ZMod.stdAddChar (x*y)*star (ZMod.stdAddChar (w*y)))*
@@ -148,6 +195,8 @@ private theorem distinctNoise_fourier_square_expand {N : ℕ} [NeZero N] (S : Fi
   intro w _
   by_cases hx : x∈S <;> by_cases hw : w∈S <;> simp [hx,hw]
 
+/-- At nonzero frequency with `1 < N` and `L ≤ N`, the uniform size-`L` Fourier mean is zero and
+its second moment is `L * (N - L) / (N - 1)`; see [Cornwell2014]. -/
 theorem distinct_noise_fourier_mean_second_moment (N L : ℕ) [NeZero N] (y : ZMod N)
     (hN : 1 < N) (hLN : L ≤ N) (hy : y ≠ 0) :
     distinctNoiseMean N L (fun S => distinctNoiseFourier S y) = 0 ∧
@@ -203,6 +252,9 @@ theorem distinct_noise_fourier_mean_second_moment (N L : ℕ) [NeZero N] (y : ZM
     field_simp
     ring
 
+/-- For `0 < L ≤ N`, `1 < N`, and nonzero frequency, the normalized Fourier second moment is `(N
+- L) / (N * (N - 1))`, and each sampled set has size `L` with unit-modulus marking phases;
+see [Cornwell2014]. -/
 theorem distinct_noise_marked_fourier_consumer (N L : ℕ) [NeZero N] (y : ZMod N)
     (hN : 1 < N) (hL : 0 < L) (hLN : L ≤ N) (hy : y ≠ 0) :
     distinctNoiseMean N L (fun S => ((N*L : ℂ)⁻¹)*(distinctNoiseFourier S y*star (distinctNoiseFourier S y))) =

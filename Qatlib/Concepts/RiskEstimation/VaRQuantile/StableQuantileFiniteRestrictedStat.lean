@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+/-!
+# Separated finite quantile specification
+
+`StableQuantileFiniteRestricted` specifies the probability of returning an incorrect quantile
+index. The CDF must exceed the target plus the error margin at the chosen index and remain below
+the target minus that margin at every earlier index. The specification expresses a stable case
+of the bisection procedure in [WoernerEgger2019].
+
+## Main statements
+
+* `StableQuantileFiniteRestricted`: the separated-index recovery probability contract.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +40,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The specification that `riskVaR` recovers a prescribed, margin-separated quantile index
+except with probability at most the bisection depth times `(8/9)^r`. -/
 def StableQuantileFiniteRestricted : Prop :=
 ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
   (loss : I  → ℚ) (xs : List ℚ) (q eps : ℝ) (M r v : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M),

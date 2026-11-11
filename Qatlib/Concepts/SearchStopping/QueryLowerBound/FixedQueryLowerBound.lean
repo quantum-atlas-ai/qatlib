@@ -8,14 +8,40 @@ import Qatlib.Concepts.SearchStopping.QueryLowerBound.Lemma6Tigh
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Algebra.Order.Floor.Ring
 
+/-!
+# Fixed-query quantum search lower bounds
+
+Defines `QuerySuccess` using the squared norm of a labeled coordinate projection.
+Average-success estimates and a hybrid argument give `fixed_query_quadratic_bound`, while
+`floor_bound_of_quadratic` converts the quadratic inequality into an integer floor bound with
+constant `Real.sin (Real.pi / 8)`. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `fixed_query_quadratic_bound`: For a normalized initial state and oracle evolutions agreeing
+  off their labeled query fibers, average success at least one half implies `(1 - Real.sqrt 2 /
+  2) * Fintype.card Y - Real.sqrt (Fintype.card Y) ≤ 2 * r ^ 2`.
+* `zero_query_card_le_two`: If one normalized state has average labeled success at least one
+  half, there are at most two labels.
+* `floor_bound_of_quadratic`: The stated quadratic query inequality, together with the
+  zero-query restriction `N ≤ 2`, implies `⌊Real.sin (Real.pi / 8) * Real.sqrt N⌋ ≤ r`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 
 open scoped BigOperators
 
+/-- The squared norm of the state projected onto coordinates whose label is `some y`. -/
 noncomputable def QuerySuccess {C Y : Type*} [Fintype C] [DecidableEq C]
     [DecidableEq Y] (label : C → Option Y) (ψ : EuclideanSpace ℂ C) (y : Y) : ℝ :=
   ‖QueryProjection (Finset.univ.filter (fun c => label c = some y)) ψ‖ ^ 2
 
+/-- For normalized states with average marked-set success at least one half, the sum of
+complementary projection norms is at most `Real.sqrt 2 / 2` times the number of states. -/
 theorem average_failure_projection_bound {C Y : Type*}
     [Fintype C] [DecidableEq C] [Fintype Y]
     (A : Y → Finset C) (states : Y → EuclideanSpace ℂ C)
@@ -44,6 +70,8 @@ theorem average_failure_projection_bound {C Y : Type*}
       rw [mul_pow, div_pow, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
       ring
 
+/-- For normalized labeled states with average `QuerySuccess` at least one half, the total
+failure-projection norm is at most `Real.sqrt 2 / 2` times the label count. -/
 theorem average_failure_amplitude_bound {C Y : Type*}
     [Fintype C] [DecidableEq C] [Fintype Y] [DecidableEq Y]
     (label : C → Option Y) (states : Y → EuclideanSpace ℂ C)
@@ -53,6 +81,9 @@ theorem average_failure_amplitude_bound {C Y : Type*}
       (states y)‖) ≤ Real.sqrt 2 / 2 * Fintype.card Y :=
   average_failure_projection_bound _ states hnorm hsuccess
 
+/-- For a normalized initial state and oracle evolutions agreeing off their labeled query
+fibers, average success at least one half implies `(1 - Real.sqrt 2 / 2) * Fintype.card Y -
+Real.sqrt (Fintype.card Y) ≤ 2 * r ^ 2`. -/
 theorem fixed_query_quadratic_bound {C Y : Type*}
     [Fintype C] [DecidableEq C] [Fintype Y] [DecidableEq Y]
     (U : ℕ → EuclideanSpace ℂ C ≃ₗᵢ[ℂ] EuclideanSpace ℂ C)
@@ -70,6 +101,8 @@ theorem fixed_query_quadratic_bound {C Y : Type*}
     (fun y => by rw [unitaryEvolution_norm, hψ]) hsuccess
   nlinarith
 
+/-- If one normalized state has average labeled success at least one half, there are at most two
+labels. -/
 theorem zero_query_card_le_two {C Y : Type*}
     [Fintype C] [DecidableEq C] [Fintype Y] [DecidableEq Y]
     (label : C → Option Y) (ψ : EuclideanSpace ℂ C) (hψ : ‖ψ‖ = 1)
@@ -81,6 +114,8 @@ theorem zero_query_card_le_two {C Y : Type*}
   have : (Fintype.card Y : ℝ) ≤ 2 := by linarith
   exact_mod_cast this
 
+/-- The value `Real.sin (Real.pi / 8)` lies strictly between `3 / 8` and `1 / 2`, and its square
+is `(2 - Real.sqrt 2) / 4`. -/
 theorem sine_eighth_bounds :
     (3 / 8 : ℝ) < Real.sin (Real.pi / 8) ∧
     Real.sin (Real.pi / 8) < 1 / 2 ∧
@@ -99,6 +134,8 @@ theorem sine_eighth_bounds :
   · nlinarith
   · nlinarith
 
+/-- The stated quadratic query inequality, together with the zero-query restriction `N ≤ 2`,
+implies `⌊Real.sin (Real.pi / 8) * Real.sqrt N⌋ ≤ r`. -/
 theorem floor_bound_of_quadratic (N r : ℕ)
     (hquad : (1 - Real.sqrt 2 / 2) * (N : ℝ) - Real.sqrt N ≤ 2 * (r : ℝ) ^ 2)
     (hzero : r = 0 → N ≤ 2) :

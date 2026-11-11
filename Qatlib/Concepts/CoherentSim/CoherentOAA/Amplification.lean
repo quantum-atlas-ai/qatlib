@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+
+/-!
+# Cubic singular value amplification
+
+This module gives a three-phase sequence whose response polynomial is `3 * X - 4 * X ^ 3`. It
+realizes the cubic amplitude amplification response from [BrassardEtAl2002] within the projected
+unitary encoding framework.
+
+The theorem `cubic_singularPair` computes the action on a supplied singular pair, and
+`cubic_queryCount` records the exact three-query cost of its compiled word.
+
+## Main statements
+
+* `responseP_cubic`: the phase sequence has the cubic response polynomial.
+* `cubic_singularPair`: the compressed circuit transforms a singular value to `3 * σ - 4 * σ ^
+  3`.
+* `cubic_queryCount`: compilation uses three oracle queries.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -18,8 +41,11 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- The three-element phase sequence consisting of `Complex.I` at every position. -/
 def cubicPhases : List ℂ := [Complex.I, Complex.I, Complex.I]
 
+/-- With base phase `-Complex.I`, the cubic phase sequence has response polynomial `3 * X - 4 *
+X ^ 3`. -/
 theorem responseP_cubic :
     responseP (-Complex.I) cubicPhases = 3 * X - 4 * X ^ 3 := by
   have hI4 : Complex.I ^ 4 = (1 : ℂ) := by
@@ -33,6 +59,9 @@ theorem responseP_cubic :
   rw [Complex.I_sq, hI4]
   ring
 
+/-- For a supplied pair satisfying the two singular-pair equations, the compressed cubic
+sequence sends `v` to `(3 * σ - 4 * σ ^ 3) • w`. This is the cubic amplification response of
+[BrassardEtAl2002]. -/
 theorem cubic_singularPair {H I O K : Type*}
     [Fintype H] [Fintype I] [Fintype O]
     [DecidableEq H] [DecidableEq I] [DecidableEq O]
@@ -45,6 +74,7 @@ theorem cubic_singularPair {H I O K : Type*}
   have he := qsvt_odd h hav haw (-Complex.I) cubicPhases (by decide)
   simpa [responseP_cubic] using he
 
+/-- The compiled cubic amplification word contains exactly three oracle queries. -/
 theorem cubic_queryCount {H : Type*} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) :
     adjointQueryCount (compileQSVT P Q (-Complex.I) cubicPhases) = 3 := by

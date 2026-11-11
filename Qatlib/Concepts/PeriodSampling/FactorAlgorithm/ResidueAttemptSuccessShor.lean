@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAttemptSuccessStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchShor
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+
+/-!
+# Success of residue-based factoring attempts
+
+Splits the single-attempt residue success mass into the classical gcd contribution and the
+accepted-unit contribution. This decomposition proves `residueAttemptSuccess`, including
+soundness of both branches, in the factoring probability model associated with [Shor1997].
+
+## Main statements
+
+* `residue_single_mass_split`: Decomposes the success mass into gcd and unit-attempt terms.
+* `residueAttemptSuccess`: Establishes the one-attempt residue success contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,10 +39,13 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- The number of units modulo nonzero `N` is at most `N`. -/
 private theorem residue_units_card_le (N : ℕ) [NeZero N] : Fintype.card (ZMod N)ˣ ≤ N := by
   rw [← residue_coprime_card N]
   exact (Finset.card_filter_le _ _).trans_eq (ZMod.card N)
 
+/-- The single residue-attempt success probability equals `residueGcdProperCount N / 2 ^ k` plus
+the corresponding unit-based attempt success probability. -/
 theorem residue_single_mass_split (N M k : ℕ) [NeZero N] (hM : 0 < M)
     (hk : N ≤ 2^k) :
     (residueAttemptLaw N M k hM hk).probEvent (L := 1)
@@ -56,6 +77,8 @@ theorem residue_single_mass_split (N M k : ℕ) [NeZero N] (hM : 0 < M)
   simp only [attemptSuccess, ↓reduceIte, Finset.sum_const_zero, zero_add]
   rfl
 
+/-- Establishes the residue-attempt success lower bound and soundness of the classical gcd and
+unit-based factor outputs in the probability model associated with [Shor1997]. -/
 theorem residueAttemptSuccess : ResidueAttemptSuccess := by
   intro N M k _ hM hk hN hodd hs hsize
   have hu := (residue_units_card_le N).trans hk

@@ -8,6 +8,27 @@ import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
 import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Tactic
+
+/-!
+# Signed Kraus representations from Hermitian Choi matrices
+
+The spectral decomposition of a Hermitian Choi matrix yields a signed sum of Kraus conjugation
+maps. `canonicalKraus` retains only nonzero spectral modes and indexes them by the Choi rank;
+`canonical_signed_representation` proves the action formula, nonzero terms, and signed
+completeness for Hermitian-preserving, trace-preserving maps [CaiEtAl2026].
+
+## Main statements
+
+* `choi_hermitian`: Hermitian preservation implies a Hermitian Choi matrix.
+* `active_signed_action`: reconstruction from nonzero Choi modes.
+* `canonical_signed_representation`: the rank-indexed signed representation.
+
+## References
+
+* [Cai et al., 2026][CaiEtAl2026]
+* [Choi, 1975][Choi1975]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,8 @@ open scoped ComplexOrder Classical
 
 namespace Qatlib.Concepts.KrausCompile.SignedChoi
 
+/-- A complex-linear map preserving Hermitian matrices commutes with conjugate transpose on
+every input matrix. -/
 theorem hp_preserves_adjoint {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hHP : ∀ X : Operator d, X.IsHermitian → (T X).IsHermitian) (X : Operator d) :
     T X.conjTranspose = (T X).conjTranspose := by
@@ -45,6 +68,7 @@ theorem hp_preserves_adjoint {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
   linear_combination (norm := (ring_nf; simp only [Complex.I_sq]; ring))
     -(1/2:ℂ) * h1ij - (Complex.I/2) * h2ij
 
+/-- The Choi matrix of a complex-linear Hermitian-preserving map is Hermitian. -/
 theorem choi_hermitian {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hHP : ∀ X : Operator d, X.IsHermitian → (T X).IsHermitian) :
     (ChoiMatrix T).IsHermitian := by
@@ -53,26 +77,36 @@ theorem choi_hermitian {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
   have h := congrArg (fun M => M a b) (hp_preserves_adjoint T hHP (matrixUnit j i))
   simpa [ChoiMatrix, matrixUnit, Matrix.conjTranspose_single] using h.symm
 
+/-- Multiplying the absolute value of a real number by the sign chosen as one for nonnegative
+inputs and minus one otherwise recovers the number. -/
 theorem sign_mul_abs (x : ℝ) : (if 0 ≤ x then (1:ℝ) else -1) * |x| = x := by
   split_ifs with hx
   · simp [abs_of_nonneg hx]
   · simp [abs_of_neg (lt_of_not_ge hx)]
 
+/-- The subtype of spectral indices corresponding to nonzero eigenvalues of a Hermitian matrix. -/
 abbrev Active {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) := {i : I // hA.eigenvalues i ≠ 0}
 
+/-- The number of nonzero spectral indices of a Hermitian matrix equals its rank. -/
 theorem active_card_eq_rank {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) : Fintype.card (Active A hA) = A.rank :=
   hA.rank_eq_card_non_zero_eigs.symm
 
+/-- The complex sign of the selected real eigenvalue, taking value one at nonnegative
+eigenvalues and minus one at negative eigenvalues. -/
 noncomputable def spectralSign {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) (k : I) : ℂ :=
   if 0 ≤ hA.eigenvalues k then 1 else -1
 
+/-- The selected unitary eigenvector scaled by the square root of the absolute value of its
+eigenvalue. -/
 noncomputable def spectralVector {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) (k x : I) : ℂ :=
   (Real.sqrt |hA.eigenvalues k| : ℂ) * (hA.eigenvectorUnitary : Matrix I I ℂ) x k
 
+/-- A signed outer-product entry of the scaled spectral vector equals the corresponding
+eigenvalue-weighted eigenvector entry. -/
 theorem spectral_term {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) (k x y : I) :
     spectralSign hA k * spectralVector hA k x * star (spectralVector hA k y) =
@@ -96,6 +130,8 @@ theorem spectral_term {I : Type} [Fintype I] [DecidableEq I]
         ring
     _ = _ := by rw [hsq, hsgn]; simp only [Complex.star_def]; ring
 
+/-- Reconstructs each entry of a Hermitian matrix as the signed sum of outer products of its
+scaled spectral vectors. -/
 theorem spectral_signed_entry {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (x y : I) :
     A x y = ∑ k : I, spectralSign hA k * spectralVector hA k x * star (spectralVector hA k y) := by
@@ -106,6 +142,7 @@ theorem spectral_signed_entry {I : Type} [Fintype I] [DecidableEq I]
   rw [h]
   exact Finset.sum_congr rfl (fun k _ => (spectral_term hA k x y).symm)
 
+/-- Reconstructs each entry of a Hermitian matrix using only its nonzero spectral modes. -/
 theorem spectral_active_entry {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (x y : I) :
     A x y = ∑ k : Active A hA,
@@ -122,10 +159,14 @@ theorem spectral_active_entry {I : Type} [Fintype I] [DecidableEq I]
   rw [hz, add_zero] at hsum
   rw [spectral_signed_entry A hA x y, ← hsum]
 
+/-- The operator obtained by reshaping a scaled nonzero spectral vector of the Hermitian Choi
+matrix. -/
 noncomputable def activeKraus {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hC : (ChoiMatrix T).IsHermitian) (k : Active (ChoiMatrix T) hC) : Operator d :=
   fun a i => spectralVector hC k.val (i,a)
 
+/-- A map with Hermitian Choi matrix equals the signed sum of conjugation maps associated with
+its nonzero Choi spectral modes. -/
 theorem active_signed_action {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hC : (ChoiMatrix T).IsHermitian) (X : Operator d) :
     T X = ∑ k : Active (ChoiMatrix T) hC,
@@ -145,6 +186,8 @@ theorem active_signed_action {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
   simp only [activeKraus]
   ring
 
+/-- For a trace-preserving map with Hermitian Choi matrix, the signed Gram sum of its active
+Kraus operators equals the identity. -/
 theorem active_signed_complete {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hC : (ChoiMatrix T).IsHermitian) (hTP : TracePreserving T) :
     (∑ k : Active (ChoiMatrix T) hC,
@@ -164,6 +207,7 @@ theorem active_signed_complete {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     _ = Matrix.trace (T X) := by rw [active_signed_action T hC X, Matrix.trace_sum]
     _ = Matrix.trace X := hTP X
 
+/-- Every Kraus operator obtained from a nonzero Choi spectral mode is nonzero. -/
 theorem activeKraus_ne_zero {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hC : (ChoiMatrix T).IsHermitian) (k : Active (ChoiMatrix T) hC) :
     activeKraus T hC k ≠ 0 := by
@@ -182,20 +226,28 @@ theorem activeKraus_ne_zero {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     hcol, mul_zero, Finset.sum_const_zero, Matrix.one_apply_eq] at hu
   exact zero_ne_one hu
 
+/-- An equivalence between indices below the Choi rank and the nonzero spectral indices of its
+Hermitian Choi matrix. -/
 noncomputable def rankIndex {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hC : (ChoiMatrix T).IsHermitian) : Fin (ChoiMatrix T).rank ≃ Active (ChoiMatrix T) hC :=
   (finCongr hC.rank_eq_card_non_zero_eigs).trans (Fintype.equivFin _).symm
 
+/-- The Kraus operator associated with a Choi spectral mode after reindexing nonzero modes by
+the Choi rank. -/
 noncomputable def canonicalKraus {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hHP : ∀ X : Operator d, X.IsHermitian → (T X).IsHermitian)
     (i : Fin (ChoiMatrix T).rank) : Operator d :=
   activeKraus T (choi_hermitian T hHP) (rankIndex T (choi_hermitian T hHP) i)
 
+/-- The spectral sign paired with a canonical rank-indexed Kraus operator. -/
 noncomputable def canonicalSign {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hHP : ∀ X : Operator d, X.IsHermitian → (T X).IsHermitian)
     (i : Fin (ChoiMatrix T).rank) : ℂ :=
   spectralSign (choi_hermitian T hHP) (rankIndex T (choi_hermitian T hHP) i).val
 
+/-- A Hermitian-preserving, trace-preserving map has the stated canonical representation by
+nonzero Kraus operators indexed by its Choi rank, with signs in `{1, -1}` and signed Gram
+sum equal to the identity. -/
 theorem canonical_signed_representation {d : ℕ} (T : Operator d →ₗ[ℂ] Operator d)
     (hHP : ∀ X : Operator d, X.IsHermitian → (T X).IsHermitian)
     (hTP : TracePreserving T) :

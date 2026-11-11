@@ -19,6 +19,36 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySourceOptimizers
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryIteration
+
+/-!
+# Cost-weighted Hermitian adversary composition
+
+Proves compactness and existence of optimal Hermitian adversary matrices with strictly positive
+coordinate costs when outputs are observable from the input encoding.
+`CostHermitianAdversaryFeasible` supplies the normalized feasible set used to construct these
+optimizers.
+
+The module combines optimal outer and inner witnesses to prove a negative-weight composition
+lower bound in the framework of [HoyerLeeSpalek2007]. It also proves a composition endpoint
+under nonconstancy and finiteness hypotheses and refutes the unrestricted `clause18Prop` using
+constant blocks.
+
+## Main statements
+
+* `advAlphaPm_optimal_exists_of_observable`: existence of an optimal nonzero feasible Hermitian
+  witness.
+* `source_optimized_adversary_composition`: construct optimal outer and inner matrices with a
+  composed witness bound.
+* `source_negative_adversary_composition_lower`: the cost-weighted negative-weight composition
+  lower bound.
+* `clause18_raw_constant_block_counterexample`: failure of the unrestricted composition
+  proposition.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -57,6 +87,8 @@ variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 set_option maxRecDepth 100000 in
 noncomputable section
 
+/-- A Hermitian matrix vanishing on equal Boolean outputs whose coordinate filter norms are
+bounded by the specified real costs. -/
 def CostHermitianAdversaryFeasible (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (G : Matrix X X ℂ) : Prop :=
   G.IsHermitian ∧ (∀ x y,f x=f y → G x y=0) ∧
@@ -65,6 +97,7 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- The magnitude of each entry of a complex matrix is bounded by its operator norm. -/
 theorem complex_operator_entry_bound (M : Matrix X X ℂ) (x y : X) : ‖M x y‖≤‖M‖ := by
   let v : EuclideanSpace ℂ X := PiLp.single 2 y 1
   let w : EuclideanSpace ℂ X := (EuclideanSpace.equiv X ℂ).symm (M *ᵥ v)
@@ -79,6 +112,8 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- The zero matrix is a feasible cost-weighted Hermitian adversary when all costs are
+nonnegative. -/
 theorem costHermitianAdversary_zero (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0≤alpha i) : CostHermitianAdversaryFeasible input f alpha 0 := by
   refine ⟨by simp,by simp,?_⟩
@@ -93,6 +128,7 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- The set of feasible cost-weighted Hermitian adversary matrices is closed. -/
 theorem costHermitianAdversary_closed (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ) :
     IsClosed {G : Matrix X X ℂ | CostHermitianAdversaryFeasible input f alpha G} := by
   have hc (i : K) : Continuous (fun G : Matrix X X ℂ => genAdvFilter input G i) := by
@@ -125,6 +161,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs and nonnegative costs, every entry of a feasible Hermitian adversary
+is bounded in magnitude by the sum of the costs. -/
 theorem costHermitianAdversary_entry_bound (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0≤alpha i) (hobs : OutputObservable input f)
     (G : Matrix X X ℂ) (hG : CostHermitianAdversaryFeasible input f alpha G) (x y : X) :
@@ -141,6 +179,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs and nonnegative costs, the feasible cost-weighted Hermitian adversary
+set is compact. -/
 theorem costHermitianAdversary_compact (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0≤alpha i) (hobs : OutputObservable input f) :
     IsCompact {G : Matrix X X ℂ | CostHermitianAdversaryFeasible input f alpha G} := by
@@ -159,6 +199,8 @@ end
 noncomputable section
 omit [DecidableEq K] in
 
+/-- For observable outputs and nonnegative costs, a feasible Hermitian adversary matrix attains
+the maximum operator norm. -/
 theorem costHermitianAdversary_norm_max_exists (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0≤alpha i) (hobs : OutputObservable input f) :
     ∃ G : Matrix X X ℂ,CostHermitianAdversaryFeasible input f alpha G ∧
@@ -169,6 +211,8 @@ end
 noncomputable section
 omit [Fintype K] [DecidableEq K] in
 
+/-- For observable outputs, a nonzero complex matrix vanishing on equal outputs has a coordinate
+filter with positive norm. -/
 theorem nonzero_complex_adversary_filter (input : X → K → Bool) (f : X → Bool)
     (hobs : OutputObservable input f) (G : Matrix X X ℂ)
     (hz : ∀ x y,f x=f y → G x y=0) (hne : G≠0) : ∃ i,0<‖genAdvFilter input G i‖ := by
@@ -188,6 +232,9 @@ theorem nonzero_complex_adversary_filter (input : X → K → Bool) (f : X → B
 end
 noncomputable section
 
+/-- With positive costs and observable outputs, a nonzero Hermitian witness vanishing on equal
+outputs can be replaced by a nonzero feasible matrix whose norm bounds its weighted witness
+value. -/
 theorem costHermitianAdversary_normalize (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0<alpha i) (hobs : OutputObservable input f)
     (G : Matrix X X ℂ) (hG : G.IsHermitian) (hz : ∀ x y,f x=f y → G x y=0) (hne : G≠0) :
@@ -236,6 +283,8 @@ theorem costHermitianAdversary_normalize (input : X → K → Bool) (f : X → B
 end
 noncomputable section
 
+/-- With positive costs, the norm of a feasible Hermitian adversary is bounded by its weighted
+witness value. -/
 theorem costHermitianAdversary_norm_le_witness (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0<alpha i) (G : Matrix X X ℂ) (hG : CostHermitianAdversaryFeasible input f alpha G) :
     ENNReal.ofReal ‖G‖≤advAlphaPmWitness input (fun i => ENNReal.ofReal (alpha i)) G := by
@@ -258,12 +307,16 @@ theorem costHermitianAdversary_norm_le_witness (input : X → K → Bool) (f : X
 end
 noncomputable section
 
+/-- The complex matrix equal to one on the two ordered edges joining `a` and `b`, and zero
+elsewhere. -/
 def complexAdversaryEdge (a b : X) : Matrix X X ℂ :=
   fun x y => if (x=a ∧ y=b) ∨ (x=b ∧ y=a) then 1 else 0
 end
 noncomputable section
 omit [Fintype X] [Fintype K] [DecidableEq K] in
 
+/-- Inputs with different outputs determine a nonzero Hermitian edge matrix vanishing on
+equal-output pairs. -/
 theorem complexAdversaryEdge_source (f : X → Bool) (a b : X) (hab : f a≠f b) :
     (complexAdversaryEdge a b).IsHermitian ∧
       (∀ x y,f x=f y → complexAdversaryEdge a b x y=0) ∧ complexAdversaryEdge a b≠0 := by
@@ -289,6 +342,8 @@ theorem complexAdversaryEdge_source (f : X → Bool) (a b : X) (hab : f a≠f b)
 end
 noncomputable section
 
+/-- For a nonconstant function with observable outputs and positive costs, a nonzero feasible
+Hermitian matrix attains the weighted negative adversary value, which equals its norm. -/
 theorem advAlphaPm_optimal_exists_of_observable
     (input : X → K → Bool) (f : X → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0<alpha i) (hobs : OutputObservable input f) (hnc : ∃ a b,f a≠f b) :
@@ -321,6 +376,8 @@ theorem advAlphaPm_optimal_exists_of_observable
 end
 noncomputable section
 
+/-- For a nonconstant function on a domain of Boolean words with positive costs, a nonzero
+feasible Hermitian matrix attains the weighted negative adversary value as its norm. -/
 theorem advAlphaPm_word_optimal_exists (D : Set (K → Bool)) (f : D → Bool) (alpha : K → ℝ)
     (ha : ∀ i,0<alpha i) (hnc : ∃ a b,f a≠f b) :
     ∃ G : Matrix D D ℂ,CostHermitianAdversaryFeasible (fun x : D => x.val) f alpha G ∧ G≠0 ∧
@@ -331,6 +388,8 @@ theorem advAlphaPm_word_optimal_exists (D : Set (K → Bool)) (f : D → Bool) (
 end
 noncomputable section
 
+/-- Nonzero feasible outer and inner Hermitian matrices with positive coordinate costs generate
+a composition witness whose weighted value is at least the outer matrix norm. -/
 theorem generated_cost_composition {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i,Fintype (Y i)] [∀ i,DecidableEq (Y i)]
     (gin : ∀ i,Y i → Fin (n i) → Bool) (g : ∀ i,Y i → Bool)
@@ -390,6 +449,9 @@ theorem generated_cost_composition {k : ℕ} {Y : Fin k → Type} {n : Fin k →
 end
 noncomputable section
 
+/-- For nonconstant outer and inner functions, observable inner outputs, and positive costs,
+optimal outer and inner negative adversary matrices exist and their composition has witness
+value at least the outer optimum. -/
 theorem source_optimized_adversary_composition {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i,Fintype (Y i)] [∀ i,DecidableEq (Y i)]
     (gin : ∀ i,Y i → Fin (n i) → Bool) (g : ∀ i,Y i → Bool)
@@ -421,6 +483,7 @@ theorem source_optimized_adversary_composition {k : ℕ} {Y : Fin k → Type} {n
 end
 noncomputable section
 
+/-- A Boolean-valued function taking two different values is surjective. -/
 theorem bool_surjective_of_nonconstant {Z : Type} (g : Z → Bool) (h : ∃ a b,g a≠g b) :
     Function.Surjective g := by
   obtain ⟨a,b,hab⟩ := h
@@ -432,6 +495,8 @@ theorem bool_surjective_of_nonconstant {Z : Type} (g : Z → Bool) (h : ∃ a b,
 end
 noncomputable section
 
+/-- Composing a nonconstant Boolean outer function with nonconstant Boolean inner functions
+yields a nonconstant function. -/
 theorem composedFunction_nonconstant {k : ℕ} {Y : Fin k → Type}
     (g : ∀ i,Y i → Bool) (f : (Fin k → Bool) → Bool)
     (hfn : ∃ u v,f u≠f v) (hgn : ∀ i,∃ a b,g i a≠g i b) :
@@ -445,6 +510,9 @@ theorem composedFunction_nonconstant {k : ℕ} {Y : Fin k → Type}
 end
 noncomputable section
 
+/-- Under positive costs, nonconstant outer and inner functions, and finite inner nonnegative
+adversary costs, proves the nonnegative composition upper bound and constructs optimal
+negative adversary matrices and minimax witnesses with the stated composition inequalities. -/
 theorem stageA_general_adversary_clause18_source_complete {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i,Fintype (Y i)] [∀ i,DecidableEq (Y i)]
     (gin : ∀ i,Y i → Fin (n i) → Bool) (g : ∀ i,Y i → Bool)
@@ -511,6 +579,7 @@ theorem stageA_general_adversary_clause18_source_complete {k : ℕ} {Y : Fin k �
 end
 noncomputable section
 
+/-- The cost-weighted nonnegative adversary value of a constant Boolean function is zero. -/
 theorem advAlphaENN_constant_zero {Z J : Type} [Fintype Z] [DecidableEq Z] [Fintype J] [DecidableEq J]
     (input : Z → J → Bool) (b : Bool) (cost : J → ℝ≥0∞) :
     advAlphaENN input (fun _ => b) cost=0 := by
@@ -525,6 +594,7 @@ theorem advAlphaENN_constant_zero {Z J : Type} [Fintype Z] [DecidableEq Z] [Fint
 end
 noncomputable section
 
+/-- The unrestricted composition statement `clause18Prop` is false. -/
 theorem clause18_raw_constant_block_counterexample : ¬Qatlib.Concepts.AdversaryBounds.AdvDuality.clause18Prop := by
   intro h
   have hfin : ∀ i : Fin 1,blockCosts (fun (_ : Fin 1) (x : Bool) (_ : Fin 1) => x)
@@ -545,6 +615,9 @@ theorem clause18_raw_constant_block_counterexample : ¬Qatlib.Concepts.Adversary
 end
 noncomputable section
 
+/-- For positive costs and nonconstant functions with observable inner outputs, the outer
+negative adversary value at the inner adversary costs is bounded by the negative adversary
+value of the composition, as in [HoyerLeeSpalek2007]. -/
 theorem source_negative_adversary_composition_lower {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i,Fintype (Y i)] [∀ i,DecidableEq (Y i)]
     (gin : ∀ i,Y i → Fin (n i) → Bool) (g : ∀ i,Y i → Bool)

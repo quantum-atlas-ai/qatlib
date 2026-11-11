@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QImagingLimit06.MainResults.FisherCore
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+/-!
+# Intensity Fisher information and resolution bounds
+
+`poissonPixelFisher` collects the pixel mean derivative expression for intensity measurements.
+Under the stated nonvanishing and constant-intensity conditions, it equals `4N/a²`; reciprocal
+variance hypotheses then give the ordinary and sub-Poissonian resolution bounds. See
+[DelaubertEtAl2008] for the paper context.
+
+## Main statements
+
+* `poisson_intensity_fisher_value`: For nonzero pixel amplitudes with the stated
+  constant-intensity and derivative-scale identities, the Poisson Fisher expression equals
+  `4N/a²`.
+* `poisson_intensity_quantum_limit`: Given Fisher information `4N/a²` and its reciprocal
+  variance bound, the resolution is at least `a/(2√N)` for positive `N` and `a`.
+* `sub_poisson_intensity_quantum_limit`: Given Fisher information `4N/(a²σ²)` and its reciprocal
+  variance bound, the resolution is at least `aσ/(2√N)` for positive parameters.
+
+## References
+
+* [Delaubert et al., 2008][DelaubertEtAl2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,9 +39,13 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QImagingLimit06.MainResults
 
+/-- The pixel sum of the squared first mean derivative divided by the mean, minus the second
+mean derivative. -/
 def poissonPixelFisher {ι : Type} [Fintype ι] (nbar nbar' nbar'' : ι → ℝ) : ℝ :=
   ∑ k, ((nbar' k) ^ 2 / nbar k - nbar'' k)
 
+/-- For nonzero pixel amplitudes with the stated constant-intensity and derivative-scale
+identities, the Poisson Fisher expression equals `4N/a²`. See [DelaubertEtAl2008]. -/
 theorem poisson_intensity_fisher_value {ι : Type} [Fintype ι] {N a : ℝ}
     (hN : 0 < N) (ha : 0 < a) (u du ddu : ι → ℝ)
     (hu : ∀ k, u k ≠ 0)
@@ -45,6 +73,8 @@ theorem poisson_intensity_fisher_value {ι : Type} [Fintype ι] {N a : ℝ}
   have ha' : a ≠ 0 := ha.ne'
   field_simp
 
+/-- Given Fisher information `4N/a²` and its reciprocal variance bound, the resolution is at
+least `a/(2√N)` for positive `N` and `a`. See [DelaubertEtAl2008]. -/
 theorem poisson_intensity_quantum_limit {N a Var pmin : ℝ} (hN : 0 < N)
     (ha : 0 < a) (IF : ℝ) (hIF : IF = 4 * N / a ^ 2)
     (hVar : 1 / IF ≤ Var) (hpmin : pmin = Real.sqrt Var) :
@@ -53,6 +83,8 @@ theorem poisson_intensity_quantum_limit {N a Var pmin : ℝ} (hN : 0 < N)
   have hbnd := cramerRao_bound hIFpos hVar hpmin
   rwa [hIF, resolution_intensity_fisher hN ha] at hbnd
 
+/-- Given Fisher information `4N/(a²σ²)` and its reciprocal variance bound, the resolution is at
+least `aσ/(2√N)` for positive parameters. See [DelaubertEtAl2008]. -/
 theorem sub_poisson_intensity_quantum_limit {N a σ Var pmin : ℝ}
     (hN : 0 < N) (ha : 0 < a) (hσ : 0 < σ) (IF : ℝ)
     (hIF : IF = 4 * N / (a ^ 2 * σ ^ 2))

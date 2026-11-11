@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedStat
+
+/-!
+# Specification of restricted QSP compilation
+
+`QspCompilationRestricted` states a phase-existence guarantee for approximating exp(ih(θ)) when
+h is odd and 2π-periodic. For positive even N, suitable even and odd polynomials of degrees at
+most N and strictly below N give a response of length parameter N with error at most 8ε and
+squared modulus bounds, in the setting of [LowChuang2017].
+
+## Main statements
+
+* `QspCompilationRestricted`: The scalar approximation and success bounds required of a
+  restricted QSP phase sequence.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +34,10 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 
 open Polynomial
 
+/-- The proposition that, for positive even N and an odd 2π-periodic target phase, the specified
+polynomial approximation with 0 < ε ≤ 1/16 yields phases with `psis.length + 1 = N`,
+response error at most 8ε, and squared modulus at least both (1 − 8ε)^2 and 1 − 16ε on [−1,
+1]. -/
 def QspCompilationRestricted : Prop :=
   ∀ (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) (ε : ℝ),
     Even N → 0 < N →

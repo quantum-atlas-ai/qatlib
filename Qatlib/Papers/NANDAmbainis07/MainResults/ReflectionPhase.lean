@@ -9,6 +9,31 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Arg
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 
+/-!
+# Eigenphases of two reflections
+
+This module studies `refl`, the transformation that subtracts twice the orthogonal projection
+onto a complex subspace. It develops inner-product identities for one reflection and for a
+product of two reflections, then proves a phase bound of the form used in Lemma 7 of
+[Ambainis2007].
+
+The quantitative statements assume disjoint subspaces and a lower bound on the squared distance
+from the first subspace to the second. For a nonzero eigenvector in their sum, `eigen_re_le`
+bounds the real part of the eigenvalue and `eigenphase_bounds` gives an angular interval.
+
+## Main statements
+
+* `norm_refl`, `refl_self_adjoint`, and `refl_refl` establish basic reflection identities.
+* `eigen_norm_one` places the eigenvalue of a nonzero eigenvector on the unit circle.
+* `eigen_re_le` bounds the real part by `1 - ε` under the stated separation hypotheses.
+* `eigenphase_bounds` represents the eigenvalue as `Complex.exp ((θ : ℂ) * Complex.I)` with `θ`
+  between `Real.sqrt ε` and `2 * Real.pi - Real.sqrt ε`.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,26 +43,33 @@ open scoped ComplexConjugate ComplexInnerProductSpace
 
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
 
+/-- The reflection `v - 2 • S.starProjection v`, which negates the component in `S` and
+preserves the component orthogonal to `S`. -/
 def refl (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) : V :=
   v - 2 • S.starProjection v
 
+/-- Expands `refl S v` as the vector minus twice its orthogonal projection onto `S`. -/
 lemma refl_def (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     refl S v = v - 2 • S.starProjection v := rfl
 
+/-- The reflection `refl S` is the negative of Mathlib's subspace reflection `S.reflection`. -/
 lemma refl_eq_neg_reflection (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     refl S v = -(S.reflection v) := by
   rw [refl_def, Submodule.reflection_apply, neg_sub]
 
+/-- Reflection by `refl S` preserves the norm of every vector. -/
 lemma norm_refl (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     ‖refl S v‖ = ‖v‖ := by
   rw [refl_eq_neg_reflection, norm_neg]
   exact LinearIsometryEquiv.norm_map S.reflection v
 
+/-- Reflection can be moved between the two arguments of the complex inner product. -/
 lemma refl_self_adjoint (S : Submodule ℂ V) [S.HasOrthogonalProjection] (x y : V) :
     ⟪refl S x, y⟫ = ⟪x, refl S y⟫ := by
   rw [refl_def, refl_def, two_smul, two_smul, inner_sub_left, inner_sub_right, inner_add_left,
     inner_add_right, Submodule.inner_starProjection_left_eq_right S x y]
 
+/-- Applying the same reflection twice returns the original vector. -/
 lemma refl_refl (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     refl S (refl S v) = v := by
   have hidem : S.starProjection (S.starProjection v) = S.starProjection v :=
@@ -48,14 +80,19 @@ lemma refl_refl (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
   rw [refl_def, hproj, smul_neg, refl_def, two_smul]
   abel
 
+/-- Applying the same reflection to both arguments preserves their complex inner product. -/
 lemma refl_inner (S : Submodule ℂ V) [S.HasOrthogonalProjection] (x y : V) :
     ⟪refl S x, refl S y⟫ = ⟪x, y⟫ := by
   rw [refl_self_adjoint, refl_refl]
 
+/-- The complex inner product of a vector with itself is the real squared norm cast to the
+complex numbers. -/
 lemma inner_self_eq (v : V) : ⟪v, v⟫ = ((‖v‖ ^ 2 : ℝ) : ℂ) := by
   rw [inner_self_eq_norm_sq_to_K]
   exact (Complex.ofReal_pow ‖v‖ 2).symm
 
+/-- The inner product of a vector with its orthogonal projection is the squared norm of the
+projection, cast to the complex numbers. -/
 lemma inner_starProjection_eq (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     ⟪v, S.starProjection v⟫ = ((‖S.starProjection v‖ ^ 2 : ℝ) : ℂ) := by
   have hidem : S.starProjection (S.starProjection v) = S.starProjection v :=
@@ -66,17 +103,24 @@ lemma inner_starProjection_eq (S : Submodule ℂ V) [S.HasOrthogonalProjection] 
           rw [Submodule.inner_starProjection_left_eq_right]
     _ = ((‖S.starProjection v‖ ^ 2 : ℝ) : ℂ) := inner_self_eq _
 
+/-- The inner product of a vector with its reflection is its squared norm minus twice the
+squared norm of its projection, with the real terms cast separately to the complex numbers. -/
 lemma refl_inner_self_eq (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     ⟪v, refl S v⟫ = ((‖v‖ ^ 2 : ℝ) : ℂ) - 2 * ((‖S.starProjection v‖ ^ 2 : ℝ) : ℂ) := by
   rw [refl_def, two_smul, inner_sub_right, inner_add_right, inner_starProjection_eq, inner_self_eq,
     ← two_mul]
 
+/-- The real part of the inner product with a reflected vector is the vector's squared norm
+minus twice the squared norm of its projection. -/
 lemma refl_inner_self_re (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     (⟪v, refl S v⟫).re = ‖v‖ ^ 2 - 2 * ‖S.starProjection v‖ ^ 2 := by
   rw [refl_inner_self_eq, Complex.sub_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_re,
     Complex.ofReal_im]
   norm_num
 
+/-- For `p` in the first subspace and `q` orthogonal to it, computes the real part of the inner
+product of `p + q` with its image under two reflections using the norms of `p`, `q`, and
+their projections onto the second subspace. -/
 lemma composite_re_of_orth (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
     [S2.HasOrthogonalProjection] {p q : V} (hp : p ∈ S1) (hq : q ∈ S1ᗮ) :
     (⟪p + q, refl S2 (refl S1 (p + q))⟫).re
@@ -125,12 +169,17 @@ lemma composite_re_of_orth (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection
   rw [hcomp, inner_sub_right, inner_sub_right, Complex.sub_re, Complex.sub_re, e1, hAB]
   ring
 
+/-- Expresses the inner product with a reflected vector as a single complex cast of the
+difference between its squared norm and twice its projection's squared norm. -/
 lemma refl_inner_self_eq' (S : Submodule ℂ V) [S.HasOrthogonalProjection] (v : V) :
     ⟪v, refl S v⟫ = ((‖v‖ ^ 2 - 2 * ‖S.starProjection v‖ ^ 2 : ℝ) : ℂ) := by
   rw [refl_inner_self_eq]
   push_cast
   ring
 
+/-- The eigenvector equation for two successive reflections relates the inner product with the
+first reflection to the eigenvalue times the conjugate inner product with the second
+reflection. -/
 lemma eigen_inner_relation (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
     [S2.HasOrthogonalProjection] {ψ : V} {lam : ℂ}
     (heig : refl S2 (refl S1 ψ) = lam • ψ) :
@@ -142,6 +191,8 @@ lemma eigen_inner_relation (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection
     _ = conj (conj lam * ⟪ψ, refl S2 ψ⟫) := by rw [inner_smul_left]
     _ = lam * conj ⟪ψ, refl S2 ψ⟫ := by rw [map_mul, Complex.conj_conj]
 
+/-- An eigenvalue associated with a nonzero eigenvector of two successive reflections has norm
+one. -/
 lemma eigen_norm_one {S1 S2 : Submodule ℂ V} [S1.HasOrthogonalProjection]
     [S2.HasOrthogonalProjection] {ψ : V} (hψ : ψ ≠ 0) {lam : ℂ}
     (heig : refl S2 (refl S1 ψ) = lam • ψ) : ‖lam‖ = 1 := by
@@ -151,6 +202,9 @@ lemma eigen_norm_one {S1 S2 : Submodule ℂ V} [S1.HasOrthogonalProjection]
   rw [norm_smul] at h
   exact mul_right_cancel₀ hψn.ne' (by rw [one_mul]; exact h)
 
+/-- Computes the real part of the inner product with two successive reflections by decomposing
+the vector into its projection onto the first subspace and its orthogonal remainder, and
+using their projections onto the second subspace. -/
 lemma refl_refl_inner_re (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
     [S2.HasOrthogonalProjection] (ψ : V) :
     (⟪ψ, refl S2 (refl S1 ψ)⟫).re
@@ -162,6 +216,9 @@ lemma refl_refl_inner_re (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
     (S1.sub_starProjection_mem_orthogonal ψ)
   rwa [show S1.starProjection ψ + (ψ - S1.starProjection ψ) = ψ from by abel] at h
 
+/-- If the subspaces have trivial intersection and every vector in the first has squared
+distance to the second at least `ε` times its squared norm, with `ε ≤ 1`, a nonzero
+eigenvector in their sum has eigenvalue real part at most `1 - ε`. -/
 lemma eigen_re_le (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
     [S2.HasOrthogonalProjection] {ε : ℝ} (hε1 : ε ≤ 1)
     (hsep : ∀ x ∈ S1, ε * ‖x‖ ^ 2 ≤ ‖x - S2.starProjection x‖ ^ 2)
@@ -273,6 +330,10 @@ lemma eigen_re_le (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
       norm_num
       linarith
 
+/-- For disjoint subspaces satisfying the stated squared-distance separation with `0 ≤ ε ≤ 1`,
+an eigenvalue of two reflections associated with a nonzero eigenvector in their sum has a
+phase between `Real.sqrt ε` and `2 * Real.pi - Real.sqrt ε`. This is the two-reflection
+phase estimate corresponding to [Ambainis, Lemma 7][Ambainis2007]. -/
 theorem eigenphase_bounds (S1 S2 : Submodule ℂ V) [S1.HasOrthogonalProjection]
     [S2.HasOrthogonalProjection] {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1)
     (hdisj : S1 ⊓ S2 = ⊥)

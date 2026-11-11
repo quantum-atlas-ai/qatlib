@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary74Stat
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountPackedCommutator
+
+/-!
+# Elementary synthesis of conjunction-controlled toggles
+
+This module proves `corollary7_4`, the elementary-gate conjunction-toggle bound corresponding to
+Corollary 7.4 of [BarencoEtAl1995]. For at least five distinct controls with separate spectator
+and target wires, it constructs a legal, query-free word of length at most `48 * m - 108` and
+verifies its basis-state action.
+
+## Main statements
+
+* `corollary7_4`: The synthesis bound with explicit wire separation and gate accounting.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +43,7 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl.Corollary74Elem
 open Matrix
 open scoped Classical BigOperators
 
+/-- Two Boolean sequences agreeing on their first `r` entries have equal prefix conjunctions. -/
 private theorem and_congr (c d : ℕ → Bool) (r : ℕ) (h : ∀ i < r, c i = d i) :
     noWorkPrefixAnd c r = noWorkPrefixAnd d r := by
   apply Bool.eq_iff_iff.mpr
@@ -37,19 +56,25 @@ private theorem and_congr (c d : ℕ → Bool) (r : ℕ) (h : ∀ i < r, c i = d
     rw [h i hi]
     exact hd i hi
 
+/-- Changing a wire outside the prefix control wires leaves their conjunction unchanged. -/
 private theorem and_update {N : ℕ} (c : ℕ → Fin N) (r : ℕ) (s : Fin N)
     (hc : ∀ i < r, c i ≠ s) (x : Reg N) (v : Bool) :
     noWorkPrefixAnd (fun i => Function.update x s v (c i)) r = noWorkPrefixAnd (fun i => x (c i)) r :=
   and_congr _ _ _ (fun i hi => Function.update_of_ne (hc i hi) _ _)
 
+/-- A prefix conjunction over `a + b` bits is the conjunction of its two consecutive segments. -/
 private theorem and_add (c : ℕ → Bool) (a b : ℕ) :
     noWorkPrefixAnd c (a+b) = (noWorkPrefixAnd c a && noWorkPrefixAnd (fun i => c (a+i)) b) := by
   simp [noWorkPrefixAnd, List.range_add, List.all_map, Function.comp_def]
 
+/-- A singleton word containing a unitary single-wire gate is legal. -/
 private theorem singleton_legal {N : ℕ} (s : Fin N) (U : Matrix Bool Bool ℂ)
     (hU : U ∈ unitaryGroup Bool ℂ) : reflectionLegal [.inl (s,U)] := by
   simpa [reflectionLegal, reflectionGateLegal] using! hU
 
+/-- For `m ≥ 5` distinct controls and separate spectator and target wires, constructs a legal,
+query-free conjunction toggle of length at most `48 * m - 108` [Barenco et al., Corollary
+7.4][BarencoEtAl1995]. -/
 theorem corollary7_4 : Corollary7_4 := by
   intro N m c s t hm hc hcs hct hst
   let a := (m+1)/2

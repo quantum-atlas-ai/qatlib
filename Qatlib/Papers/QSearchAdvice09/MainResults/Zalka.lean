@@ -112,12 +112,34 @@ import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Order.DenselyOrdered
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Trigonometric constants for search lower bounds
+
+This module proves polynomial bounds for sine and cosine and certifies the numerical constants
+used in the advice-search lower bound. The theorem `prop_2_3_sharp` specializes a supplied
+family of Zalka-type inequalities to obtain coefficient 0.2059 and offset 0.316.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `sin_ge_cubic`: For x ≥ 0, sin x ≥ x − x³/6.
+* `coef_ge`: The coefficient 0.6537·cos²(0.6537)/2 is at least 0.2059.
+* `prop_2_3_sharp`: For n ≥ 2, the supplied family of success-dependent lower bounds implies T ≥
+  0.2059/arcsin(1/√n) − 0.316.
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- For x ≥ 0, cos x ≥ 1 − x²/2. -/
 theorem cos_ge_one_sub_sq_div_two (x : ℝ) (hx : 0 ≤ x) :
     1 - x ^ 2 / 2 ≤ Real.cos x := by
   have hmono : MonotoneOn (fun y : ℝ => Real.cos y - (1 - y ^ 2 / 2)) (Set.Ici 0) := by
@@ -146,6 +168,7 @@ theorem cos_ge_one_sub_sq_div_two (x : ℝ) (hx : 0 ≤ x) :
   have := hmono (Set.mem_Ici.2 le_rfl) (Set.mem_Ici.2 hx) hx
   simpa using this
 
+/-- For x ≥ 0, sin x ≥ x − x³/6. -/
 theorem sin_ge_cubic (x : ℝ) (hx : 0 ≤ x) :
     x - x ^ 3 / 6 ≤ Real.sin x := by
   have hmono : MonotoneOn (fun y : ℝ => Real.sin y - (y - y ^ 3 / 6)) (Set.Ici 0) := by
@@ -172,6 +195,7 @@ theorem sin_ge_cubic (x : ℝ) (hx : 0 ≤ x) :
   have := hmono (Set.mem_Ici.2 le_rfl) (Set.mem_Ici.2 hx) hx
   simpa using this
 
+/-- For x ≥ 0, cos x ≤ 1 − x²/2 + x⁴/24. -/
 theorem cos_le_quartic (x : ℝ) (hx : 0 ≤ x) :
     Real.cos x ≤ 1 - x ^ 2 / 2 + x ^ 4 / 24 := by
   have hanti : AntitoneOn (fun y : ℝ => Real.cos y - (1 - y ^ 2 / 2 + y ^ 4 / 24))
@@ -209,6 +233,7 @@ theorem cos_le_quartic (x : ℝ) (hx : 0 ≤ x) :
   have := hanti (Set.mem_Ici.2 le_rfl) (Set.mem_Ici.2 hx) hx
   simpa using this
 
+/-- For x ≥ 0, sin x ≤ x − x³/6 + x⁵/120. -/
 theorem sin_le_quintic (x : ℝ) (hx : 0 ≤ x) :
     Real.sin x ≤ x - x ^ 3 / 6 + x ^ 5 / 120 := by
   have hanti : AntitoneOn (fun y : ℝ => Real.sin y - (y - y ^ 3 / 6 + y ^ 5 / 120))
@@ -242,6 +267,7 @@ theorem sin_le_quintic (x : ℝ) (hx : 0 ≤ x) :
   have := hanti (Set.mem_Ici.2 le_rfl) (Set.mem_Ici.2 hx) hx
   simpa using this
 
+/-- For x ≥ 0, cos x ≥ 1 − x²/2 + x⁴/24 − x⁶/720. -/
 theorem cos_ge_sextic (x : ℝ) (hx : 0 ≤ x) :
     1 - x ^ 2 / 2 + x ^ 4 / 24 - x ^ 6 / 720 ≤ Real.cos x := by
   have hmono : MonotoneOn
@@ -286,16 +312,19 @@ theorem cos_ge_sextic (x : ℝ) (hx : 0 ≤ x) :
   have := hmono (Set.mem_Ici.2 le_rfl) (Set.mem_Ici.2 hx) hx
   simpa using this
 
+/-- The square root of 37/100 is at least 0.6082. -/
 theorem sqrt_37_100_ge : (0.6082 : ℝ) ≤ Real.sqrt ((37 : ℝ) / 100) := by
   rw [Real.le_sqrt (by norm_num) (by norm_num)]
   norm_num
 
+/-- The value sin(0.6537) is at most √(37/100). -/
 theorem sin_frac_le_sqrt : Real.sin (0.6537 : ℝ) ≤ Real.sqrt ((37 : ℝ) / 100) := by
   have h := sin_le_quintic (0.6537 : ℝ) (by norm_num)
   have hnum : (0.6537 : ℝ) - (0.6537 : ℝ) ^ 3 / 6 + (0.6537 : ℝ) ^ 5 / 120 ≤ 0.6082 := by
     norm_num
   linarith [sqrt_37_100_ge]
 
+/-- The value arcsin(√(37/100)) is at least 0.6537. -/
 theorem arcsin_sqrt_frac_ge : (0.6537 : ℝ) ≤ Real.arcsin (Real.sqrt ((37 : ℝ) / 100)) := by
   rw [Real.le_arcsin_iff_sin_le]
   · exact sin_frac_le_sqrt
@@ -308,6 +337,7 @@ theorem arcsin_sqrt_frac_ge : (0.6537 : ℝ) ≤ Real.arcsin (Real.sqrt ((37 : �
         norm_num
       exact h
 
+/-- The value cos(0.6537) is at least 0.7938. -/
 theorem cos_frac_ge : (0.7938 : ℝ) ≤ Real.cos (0.6537 : ℝ) := by
   have h := cos_ge_sextic (0.6537 : ℝ) (by norm_num)
   have hnum : (0.7938 : ℝ) ≤
@@ -315,18 +345,21 @@ theorem cos_frac_ge : (0.7938 : ℝ) ≤ Real.cos (0.6537 : ℝ) := by
     norm_num
   linarith
 
+/-- The value cos(0.6537) is at most 0.794. -/
 theorem cos_frac_le : Real.cos (0.6537 : ℝ) ≤ (0.794 : ℝ) := by
   have h := cos_le_quartic (0.6537 : ℝ) (by norm_num)
   have hnum : (1 : ℝ) - (0.6537 : ℝ) ^ 2 / 2 + (0.6537 : ℝ) ^ 4 / 24 ≤ 0.794 := by
     norm_num
   linarith
 
+/-- The coefficient 0.6537·cos²(0.6537)/2 is at least 0.2059. -/
 theorem coef_ge : (0.2059 : ℝ) ≤ (0.6537 : ℝ) * (Real.cos (0.6537 : ℝ)) ^ 2 / 2 := by
   have hcos := cos_frac_ge
   have hsq : (0.7938 : ℝ) ^ 2 ≤ (Real.cos (0.6537 : ℝ)) ^ 2 :=
     pow_le_pow_left₀ (by norm_num) hcos 2
   nlinarith [hsq]
 
+/-- The offset cos²(0.6537)/2 is at most 0.316. -/
 theorem offset_le : (Real.cos (0.6537 : ℝ)) ^ 2 / 2 ≤ (0.316 : ℝ) := by
   have hle := cos_frac_le
   have h0 : (0 : ℝ) ≤ Real.cos (0.6537 : ℝ) := le_trans (by norm_num) cos_frac_ge
@@ -334,6 +367,8 @@ theorem offset_le : (Real.cos (0.6537 : ℝ)) ^ 2 / 2 ≤ (0.316 : ℝ) := by
     pow_le_pow_left₀ h0 hle 2
   nlinarith [hsq]
 
+/-- For n ≥ 2, the supplied family of success-dependent lower bounds implies T ≥
+0.2059/arcsin(1/√n) − 0.316 [Montanaro2011]. -/
 theorem prop_2_3_sharp (n : ℕ) (hn : 2 ≤ n) (T : ℝ)
     (hZalka : ∀ p : ℝ, 0 < p → p < 1 →
       (1 - p) * (Real.arcsin (Real.sqrt p) /

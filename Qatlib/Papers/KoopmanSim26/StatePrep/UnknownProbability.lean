@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.KoopmanSim26.StatePrep.LowerBoundSchedule
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
 import Mathlib.Tactic
+
+/-!
+# State preparation with unknown success probability
+
+The costed laws `attempt`, `stage`, and `stages` implement randomized amplitude amplification
+with dyadically increasing windows and stopping on success. For positive initial success
+probability, potential bounds control the expected query cost uniformly in the finite execution
+budget, while the failure probability tends to zero. The density identities show that successful
+outputs remain proportional to the desired postselected pure state. See [ZhangEtAl2026] for the
+paper context.
+
+## Main statements
+
+* `unknown_probability_program`: For positive success probability `p ≤ 1`, the dyadic program
+  has expected cost at most `496 / sqrt p` for every finite budget and real failure probability
+  tending to zero.
+* `unknown_balanced_source`: If at least an `η` fraction of target entries have norm at least `c
+  * G`, the stated positivity and boundedness hypotheses give uniform expected cost at most `496
+  / (c * sqrt η)` and real failure probability tending to zero.
+* `unknown_stopped_density`: For a nonzero target, every finite stopped stage density equals its
+  total success probability times the outer product of the postselected state.
+
+## References
+
+* [Zhang et al., 2026][ZhangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
 open Matrix
@@ -24,18 +51,26 @@ open scoped Classical ENNReal
 set_option warningAsError false
 namespace Qatlib.Papers.KoopmanSim26.StatePrep.UnknownSchedule
 
+/-- The extended nonnegative real number `1 / 8` is the image of its real counterpart under
+`ENNReal.ofReal`. -/
 theorem rat18 : (1/8:ℝ≥0∞) = ENNReal.ofReal (1/8:ℝ) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ)<8)]
   norm_num
 
+/-- The extended nonnegative real number `7 / 8` is the image of its real counterpart under
+`ENNReal.ofReal`. -/
 theorem rat78 : (7/8:ℝ≥0∞) = ENNReal.ofReal (7/8:ℝ) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ)<8)]
   norm_num
 
+/-- The extended nonnegative real number `3 / 8` is the image of its real counterpart under
+`ENNReal.ofReal`. -/
 theorem rat38 : (3/8:ℝ≥0∞) = ENNReal.ofReal (3/8:ℝ) := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ)<8)]
   norm_num
 
+/-- For a nonnegative real function on a finite distribution, its extended nonnegative
+expectation equals `ENNReal.ofReal` of its real expectation. -/
 theorem finite_expect_nn {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (hf : ∀ x, 0 ≤ f x) :
     expectation (toPMF p) (fun x => ENNReal.ofReal (f x)) = ENNReal.ofReal (p.expect f) := by
@@ -45,14 +80,19 @@ theorem finite_expect_nn {X : Type*} [Fintype X] [DecidableEq X]
   intro x _
   exact (ENNReal.ofReal_mul (p.nonneg x)).symm
 
+/-- The costed Boolean law of one randomized amplification attempt, recording membership in the
+good set and the number of preparation queries. -/
 noncomputable def attempt {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) : CostedLaw Bool :=
   (jointPMF A hA j S M hM).map (fun x =>
     (decide (x.2 ∈ S), preparedInputQueries (preparedAAWord j (chosenRound x.1))))
 
+/-- The probability that a costed Boolean law returns `false`. -/
 noncomputable def failure (p : CostedLaw Bool) : ℝ≥0∞ := event p (fun x => x.1=false)
 
+/-- The probability that an amplification attempt returns `true` equals the real success
+probability embedded in the extended nonnegative reals. -/
 theorem attempt_success {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) :
@@ -65,6 +105,7 @@ theorem attempt_success {I : Type} [Fintype I] [DecidableEq I]
   intro x
   by_cases h : x.2 ∈ S <;> simp [h]
 
+/-- An amplification attempt with positive window size `M` uses at most `2 * M + 1` queries. -/
 theorem attempt_bounded {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) : BoundedBy (attempt A hA j S M hM) (2*M+1) := by
@@ -72,6 +113,7 @@ theorem attempt_bounded {I : Type} [Fintype I] [DecidableEq I]
   obtain ⟨x,_,rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hy
   exact selected_count_le A hA j S x.1
 
+/-- Failure and success probabilities of a costed Boolean law sum to one. -/
 theorem flag_partition (p : CostedLaw Bool) : failure p + event p (fun x => x.1=true) = 1 := by
   rw [failure, event, event, ← expectation_add]
   calc
@@ -81,9 +123,12 @@ theorem flag_partition (p : CostedLaw Bool) : failure p + event p (fun x => x.1=
       cases x.1 <;> simp
     _ = 1 := expectation_const _ _
 
+/-- The failure probability of a costed Boolean law is at most one. -/
 theorem failure_le_one (p : CostedLaw Bool) : failure p ≤ 1 :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one p _
 
+/-- For positive success probability at most one, a window satisfying `1 ≤ M * sqrt p` gives
+failure probability at most `7 / 8`. -/
 theorem attempt_failure_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -102,15 +147,21 @@ theorem attempt_failure_le {I : Type} [Fintype I] [DecidableEq I]
       rw [rat78, rat18, ← ENNReal.ofReal_add (by norm_num) (by norm_num)]
       norm_num
 
+/-- Run the first costed Boolean law and return immediately on success, running the second law
+only on failure. -/
 noncomputable def stopThen (p q : CostedLaw Bool) : CostedLaw Bool :=
   CostedLaw.bind p (fun good => if good then ret true else q)
 
+/-- Adding a fixed cost to a law preserves its failure probability. -/
 theorem failure_charge (p : CostedLaw Bool) (n : ℕ) : failure (charge n p) = failure p := by
   simp only [failure, event, charge, expectation_map]
 
+/-- A deterministic Boolean return fails with probability one exactly when its value is `false`. -/
 theorem failure_ret (b : Bool) : failure (ret b) = if b=false then 1 else 0 := by
   simp [failure, event, ret]
 
+/-- The expectation of a constant charged only on failure equals that constant times the failure
+probability. -/
 theorem indicator_expect (p : PMF (Bool × ℕ)) (c : ℝ≥0∞) :
     expectation p (fun x => if x.1=false then c else 0) = c * failure p := by
   rw [failure, event,
@@ -119,6 +170,8 @@ theorem indicator_expect (p : PMF (Bool × ℕ)) (c : ℝ≥0∞) :
   intro x
   split_ifs <;> simp
 
+/-- The failure probability of two attempts composed with stopping on success is the product of
+their failure probabilities. -/
 theorem failure_stopThen (p q : CostedLaw Bool) : failure (stopThen p q) = failure p * failure q := by
   calc
     _ = expectation p (fun x => failure (charge x.2 (if x.1 then ret true else q))) := by
@@ -132,6 +185,8 @@ theorem failure_stopThen (p q : CostedLaw Bool) : failure (stopThen p q) = failu
     _ = failure q * failure p := indicator_expect p (failure q)
     _ = _ := mul_comm _ _
 
+/-- The expected cost of `stopThen p q` is the cost of `p` plus its failure probability times
+the expected cost of `q`. -/
 theorem cost_stopThen (p q : CostedLaw Bool) :
     expectedCost (stopThen p q) = expectedCost p + failure p * expectedCost q := by
   rw [stopThen, expectedCost_bind]
@@ -141,15 +196,20 @@ theorem cost_stopThen (p q : CostedLaw Bool) :
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr h, indicator_expect,
       mul_comm]
 
+/-- Repeat a costed Boolean law at most the specified number of times, stopping at the first
+success. -/
 noncomputable def repeatAttempts (p : CostedLaw Bool) : ℕ → CostedLaw Bool
   | 0 => ret false
   | n+1 => stopThen p (repeatAttempts p n)
 
+/-- Repeating a law at most `n` times gives failure probability equal to its single-attempt
+failure probability raised to `n`. -/
 theorem repeat_failure (p : CostedLaw Bool) (n : ℕ) : failure (repeatAttempts p n) = (failure p)^n := by
   induction n with
   | zero => simp [repeatAttempts, failure_ret]
   | succ n ih => rw [repeatAttempts, failure_stopThen, ih, pow_succ]; ring
 
+/-- If one attempt has cost at most `B`, then at most `n` attempts have cost at most `n * B`. -/
 theorem repeat_bounded (p : CostedLaw Bool) (B n : ℕ) (hp : BoundedBy p B) :
     BoundedBy (repeatAttempts p n) (n*B) := by
   induction n with
@@ -163,10 +223,13 @@ theorem repeat_bounded (p : CostedLaw Bool) (B n : ℕ) (hp : BoundedBy p B) :
     have h : BoundedBy (stopThen p (repeatAttempts p n)) (B+n*B) := hp.bind hf
     simpa [repeatAttempts, Nat.succ_mul, Nat.add_comm] using! h
 
+/-- A stage consisting of at most eight amplification attempts with window size `2 ^ h`,
+stopping on success. -/
 noncomputable def stage {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) (h : ℕ) : CostedLaw Bool :=
   repeatAttempts (attempt A hA j S (2^h) (by positivity)) 8
 
+/-- The cost of stage `h` is bounded by `24 * 2 ^ h`. -/
 theorem stage_bounded {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) (h : ℕ) :
     BoundedBy (stage A hA j S h) (24*2^h) := by
@@ -177,6 +240,8 @@ theorem stage_bounded {I : Type} [Fintype I] [DecidableEq I]
   have hp : 1 ≤ 2^h := Nat.one_le_pow h 2 (by omega)
   omega
 
+/-- A stage whose dyadic window satisfies `1 ≤ 2 ^ h * sqrt p` has failure probability at most
+`3 / 8`, for positive `p ≤ 1`. -/
 theorem stage_failure_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) (h : ℕ)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -191,15 +256,20 @@ theorem stage_failure_le {I : Type} [Fintype I] [DecidableEq I]
       rw [rat78, rat38, ← ENNReal.ofReal_pow (by norm_num : (0:ℝ)≤7/8)]
       exact ENNReal.ofReal_le_ofReal (by norm_num)
 
+/-- Run a finite sequence of stages starting at the given offset, increasing the dyadic exponent
+after each failure. -/
 noncomputable def stages {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) :
     ℕ → ℕ → CostedLaw Bool
   | _off, 0 => ret false
   | off, fuel+1 => stopThen (stage A hA j S off) (stages A hA j S (off+1) fuel)
 
+/-- The piecewise real potential `124 * 2 ^ h0 - 24 * 2 ^ off` before the threshold and `100 * 2
+^ off` at or after it. -/
 noncomputable def potential (h0 off : ℕ) : ℝ :=
   if off<h0 then 124*(2:ℝ)^h0-24*(2:ℝ)^off else 100*(2:ℝ)^off
 
+/-- The stage-cost potential is nonnegative at every threshold and offset. -/
 theorem potential_nonneg (h0 off : ℕ) : 0 ≤ potential h0 off := by
   unfold potential
   split_ifs with h
@@ -207,6 +277,7 @@ theorem potential_nonneg (h0 off : ℕ) : 0 ≤ potential h0 off := by
     nlinarith [pow_nonneg (by norm_num : (0:ℝ)≤2) h0]
   · positivity
 
+/-- Before the threshold, the current potential covers `24 * 2 ^ off` plus the next potential. -/
 theorem potential_before (h0 off : ℕ) (h : off<h0) :
     24*(2:ℝ)^off + potential h0 (off+1) ≤ potential h0 off := by
   unfold potential
@@ -221,6 +292,8 @@ theorem potential_before (h0 off : ℕ) (h : off<h0) :
     simp only [pow_succ]
     linarith
 
+/-- At or after the threshold, the current potential covers `24 * 2 ^ off` plus `3 / 8` of the
+next potential. -/
 theorem potential_after (h0 off : ℕ) (h : h0≤off) :
     24*(2:ℝ)^off + (3/8)*potential h0 (off+1) ≤ potential h0 off := by
   have hn : ¬off+1<h0 := by omega
@@ -228,12 +301,16 @@ theorem potential_after (h0 off : ℕ) (h : h0≤off) :
   simp only [potential, if_neg hn, if_neg ho, pow_succ]
   nlinarith [pow_nonneg (by norm_num : (0:ℝ)≤2) off]
 
+/-- Once a dyadic window satisfies the maturity inequality, every larger exponent satisfies it
+as well. -/
 theorem mature_later {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (h0 off : ℕ) (h : h0≤off)
     (hm : 1 ≤ (2:ℝ)^h0 * Real.sqrt (MeasureProb (preparedAAState A j) S)) :
     1 ≤ (2:ℝ)^off * Real.sqrt (MeasureProb (preparedAAState A j) S) :=
   hm.trans (mul_le_mul_of_nonneg_right (pow_le_pow_right₀ (by norm_num) h) (Real.sqrt_nonneg _))
 
+/-- If the threshold window satisfies `1 ≤ 2 ^ h0 * sqrt p` with positive `p ≤ 1`, the expected
+cost of any finite stage sequence is bounded by the potential at its starting offset. -/
 theorem stages_cost_potential {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -264,6 +341,8 @@ theorem stages_cost_potential {I : Type} [Fintype I] [DecidableEq I]
             ENNReal.ofReal_add (by positivity) (mul_nonneg (by norm_num) hn)]
         _ ≤ _ := ENNReal.ofReal_le_ofReal (potential_after h0 off (by omega))
 
+/-- Under the maturity condition at `h0` and positive `p ≤ 1`, every finite stage sequence
+starting at zero has expected cost at most `124 * 2 ^ h0`. -/
 theorem stages_cost_uniform {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -277,12 +356,15 @@ theorem stages_cost_uniform {I : Type} [Fintype I] [DecidableEq I]
   · have he : h0=0 := by omega
     norm_num [he]
 
+/-- Composition of costed Boolean laws with stopping on success is associative. -/
 theorem stopThen_assoc (p q r : CostedLaw Bool) : stopThen (stopThen p q) r = stopThen p (stopThen q r) := by
   simp only [stopThen, CostedLaw.bind_assoc]
   congr 1
   funext b
   cases b <;> simp
 
+/-- Splitting a stage sequence into two consecutive parts is equivalent to composing those parts
+with stopping on success. -/
 theorem stages_concat {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (off a b : ℕ) :
@@ -294,6 +376,8 @@ theorem stages_concat {I : Type} [Fintype I] [DecidableEq I]
     congr 2
     omega
 
+/-- For positive `p ≤ 1`, a sequence starting at or beyond a mature threshold has failure
+probability at most `(3 / 8) ^ fuel`. -/
 theorem stages_failure_mature {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -310,6 +394,8 @@ theorem stages_failure_mature {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ (3/8:ℝ≥0∞) * (3/8:ℝ≥0∞)^fuel := mul_le_mul' hq ht
       _ = _ := mul_comm _ _
 
+/-- For positive `p ≤ 1` and mature threshold `h0`, running `h0 + fuel` stages from zero gives
+failure probability at most `(3 / 8) ^ fuel`. -/
 theorem stages_failure_after {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -324,6 +410,8 @@ theorem stages_failure_after {I : Type} [Fintype I] [DecidableEq I]
       rw [one_mul]
       exact stages_failure_mature A hA j S hp0 hp1 h0 hm fuel h0 le_rfl
 
+/-- For positive success probability at most one and a mature threshold, the real failure
+probabilities tend to zero as the stage budget tends to infinity. -/
 theorem stages_failure_tendsto_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -342,6 +430,7 @@ theorem stages_failure_tendsto_zero {I : Type} [Fintype I] [DecidableEq I]
   exact squeeze_zero (fun _ => ENNReal.toReal_nonneg) hu
     (tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num : (0:ℝ)≤3/8) (by norm_num : (3/8:ℝ)<1))
 
+/-- For positive `M`, the dyadic power selected by `Nat.clog 2 M` is at most `2 * M`. -/
 theorem pow_clog_le_twice (M : ℕ) (hM : 0 < M) : 2^(Nat.clog 2 M) ≤ 2*M := by
   by_cases h : M≤1
   · have he : M=1 := by omega
@@ -354,6 +443,8 @@ theorem pow_clog_le_twice (M : ℕ) (hM : 0 < M) : 2^(Nat.clog 2 M) ≤ 2*M := b
       _ = 2 * 2^(Nat.clog 2 M-1) := by rw [pow_succ]; omega
       _ ≤ 2*M := Nat.mul_le_mul_left 2 hl.le
 
+/-- For `0 < p ≤ 1`, there is a dyadic exponent satisfying the maturity inequality and `2 ^ h0 ≤
+4 / sqrt p`. -/
 theorem threshold_exists (p : ℝ) (hp0 : 0<p) (hp1 : p≤1) :
     ∃ h0 : ℕ, 1 ≤ (2:ℝ)^h0 * Real.sqrt p ∧ (2:ℝ)^h0 ≤ 4/Real.sqrt p := by
   let M := window p
@@ -366,6 +457,8 @@ theorem threshold_exists (p : ℝ) (hp0 : 0<p) (hp1 : p≤1) :
   have hr : 4/Real.sqrt p = 2*(2/Real.sqrt p) := by ring
   linarith
 
+/-- For positive success probability `p ≤ 1`, the dyadic program has expected cost at most `496
+/ sqrt p` for every finite budget and real failure probability tending to zero. -/
 theorem unknown_probability_program {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (hp0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -382,6 +475,8 @@ theorem unknown_probability_program {I : Type} [Fintype I] [DecidableEq I]
     linarith
   · exact stages_failure_tendsto_zero A hA j S hp0 hp1 h0 hm
 
+/-- A run of `h` fair bits chooses uniformly among `2 ^ h` outcomes with zero rejection
+probability, cost bounded by `h`, and expected cost exactly `h`. -/
 theorem dyadic_fair_choice (h : ℕ) :
     event (finiteCoinRun h (2^h) 1) (fun x => x.1=Sum.inr ()) = 0 ∧
     (∀ i : Fin (2^h), event (finiteCoinRun h (2^h) 1) (fun x => x.1=Sum.inl i) =
@@ -397,6 +492,9 @@ theorem dyadic_fair_choice (h : ℕ) :
   · simpa using! hc.1
   · simpa [coinRejectMass] using! hc.2
 
+/-- For a nonzero target and values bounded by positive `G`, every finite stage budget has
+expected cost at most `496 * sqrt (2 ^ n) * G / sqrt (targetNormSq b value)`, and real
+failure probability tends to zero. -/
 theorem unknown_observables_source {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0) :
     let A := preparation b value G
@@ -421,6 +519,9 @@ theorem unknown_observables_source {n m : ℕ} (b : Reg n → Reg m) (value : Re
     _ = 496*(1/Real.sqrt (MeasureProb (preparedAAState (preparation b value G) (seed n m)) (goodSet n m))) := by ring
     _ = _ := by rw [hr]
 
+/-- If at least an `η` fraction of target entries have norm at least `c * G`, the stated
+positivity and boundedness hypotheses give uniform expected cost at most `496 / (c * sqrt
+η)` and real failure probability tending to zero. -/
 theorem unknown_balanced_source {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G c η : ℝ) (hG : 0 < G) (hc : 0 < c) (hη : 0 < η)
     (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0) (S : Finset (Reg n))
@@ -441,11 +542,15 @@ theorem unknown_balanced_source {n m : ℕ} (b : Reg n → Reg m) (value : Reg m
     _ ≤ 496*(1/(c*Real.sqrt η)) := mul_le_mul_of_nonneg_left hb (by norm_num)
     _ = _ := by ring
 
+/-- Accumulate a successful density over finitely many attempts, weighting each continuation by
+the real failure probability. -/
 noncomputable def repeatedDensity {I : Type} [Fintype I] [DecidableEq I]
     (p : CostedLaw Bool) (D : Matrix I I ℂ) : ℕ → Matrix I I ℂ
   | 0 => 0
   | n+1 => D + ((failure p).toReal : ℂ) • repeatedDensity p D n
 
+/-- If the single-attempt density is its success probability times `ρ`, the repeated density is
+the total repeated success probability times `ρ`. -/
 theorem repeatedDensity_ray {I : Type} [Fintype I] [DecidableEq I]
     (p : CostedLaw Bool) (D ρ : Matrix I I ℂ)
     (hD : D = ((1-(failure p).toReal : ℝ) : ℂ) • ρ) (n : ℕ) :
@@ -459,6 +564,8 @@ theorem repeatedDensity_ray {I : Type} [Fintype I] [DecidableEq I]
     push_cast
     ring
 
+/-- For a nonzero target, the successful density of one amplification attempt is its success
+probability times the outer product of the postselected state. -/
 theorem attempt_density_coeff {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0)
     (M : ℕ) (hM : 0 < M) :
@@ -479,6 +586,7 @@ theorem attempt_density_coeff {n m : ℕ} (b : Reg n → Reg m) (value : Reg m �
   have he : success A (seed n m) (goodSet n m) M = 1-(failure p).toReal := by linarith
   rw [actual_successful_density b value G hG hvalue hu M, he]
 
+/-- The successful output density accumulated over the eight stopped attempts of a dyadic stage. -/
 noncomputable def stageDensity {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (h : ℕ) : Matrix (Reg n) (Reg n) ℂ :=
   repeatedDensity
@@ -486,6 +594,8 @@ noncomputable def stageDensity {n m : ℕ} (b : Reg n → Reg m) (value : Reg m 
       (seed n m) (goodSet n m) (2^h) (by positivity))
     (successfulDensity b value G (2^h)) 8
 
+/-- For a nonzero target, a stage density equals its success probability times the outer product
+of the postselected state. -/
 theorem stageDensity_ray {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0) (h : ℕ) :
     stageDensity b value G hG hvalue h =
@@ -493,6 +603,8 @@ theorem stageDensity_ray {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → �
         (seed n m) (goodSet n m) h)).toReal : ℝ) : ℂ) • outerProduct (postselected b value G) :=
   repeatedDensity_ray _ _ _ (attempt_density_coeff b value G hG hvalue hu (2^h) (by positivity)) 8
 
+/-- The successful density accumulated over consecutive dyadic stages, with continuation
+weighted by each stage's failure probability. -/
 noncomputable def stoppedDensity {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) : ℕ → ℕ → Matrix (Reg n) (Reg n) ℂ
   | _off, 0 => 0
@@ -500,6 +612,8 @@ noncomputable def stoppedDensity {n m : ℕ} (b : Reg n → Reg m) (value : Reg 
       ((failure (stage (preparation b value G) (preparation_unitary b value G hG hvalue)
         (seed n m) (goodSet n m) off)).toReal : ℂ) • stoppedDensity b value G hG hvalue (off+1) fuel
 
+/-- For a nonzero target, every finite stopped stage density equals its total success
+probability times the outer product of the postselected state. -/
 theorem unknown_stopped_density {n m : ℕ} (b : Reg n → Reg m) (value : Reg m → ℂ)
     (G : ℝ) (hG : 0 < G) (hvalue : ∀ v, ‖value v‖ ≤ G) (hu : target b value ≠ 0)
     (fuel off : ℕ) :

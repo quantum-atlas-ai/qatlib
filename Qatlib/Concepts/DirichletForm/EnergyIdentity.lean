@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GraphStationary.StationaryLaw
+
+/-!
+# Dirichlet energy as squared transition differences
+
+This module expands `energy` for the graph transition kernel and its stationary distribution.
+Detailed balance identifies the starting and ending second moments, yielding the expression as
+half the weighted sum of squared differences. Stationary graph walks also underlie the
+quantum-walk framework of [Szegedy2004].
+
+## Main statements
+
+* `sum_shift_sq`: one transition preserves the stationary second moment.
+* `energy_expand`: energy is a second moment minus a cross term.
+* `g1`: energy equals half the stationary-weighted squared-difference sum.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GraphStationary.StationaryLaw
 
@@ -21,6 +41,8 @@ variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
 omit [Nonempty V] in
 
+/-- Summing the stationary-weighted square of the starting value against the transition kernel
+gives its stationary second moment. -/
 lemma sum_stationary_sq (f : V → ℝ) :
     ∑ x, ∑ y, stationary G x * kernel G x y * (f x)^2 = ∑ x, stationary G x * (f x)^2 := by
   refine Finset.sum_congr rfl fun x _ => ?_
@@ -29,6 +51,8 @@ lemma sum_stationary_sq (f : V → ℝ) :
     intro y; ring
   simp_rw [hcomm, ← Finset.mul_sum, kernel_sum, mul_one]
 
+/-- The stationary-weighted square of the endpoint has the same second moment after one
+transition. -/
 lemma sum_shift_sq (f : V → ℝ) :
     ∑ x, ∑ y, stationary G x * kernel G x y * (f y)^2 = ∑ y, stationary G y * (f y)^2 := by
   have hswap : ∀ x y, stationary G x * kernel G x y * (f y)^2 =
@@ -47,6 +71,8 @@ lemma sum_shift_sq (f : V → ℝ) :
 
 omit [Nonempty V] in
 
+/-- The stationary-weighted cross term equals the stationary pairing of `f` with its kernel
+average. -/
 lemma sum_cross (f : V → ℝ) :
     ∑ x, ∑ y, stationary G x * kernel G x y * (f x * f y) =
       ∑ x, stationary G x * f x * ∑ y, kernel G x y * f y := by
@@ -58,6 +84,8 @@ lemma sum_cross (f : V → ℝ) :
 
 omit [Nonempty V] in
 
+/-- The graph energy is the stationary second moment minus the pairing of `f` with its kernel
+average. -/
 lemma energy_expand (f : V → ℝ) :
     energy G f = ∑ x, stationary G x * (f x)^2 -
       ∑ x, stationary G x * f x * ∑ y, kernel G x y * f y := by
@@ -67,6 +95,8 @@ lemma energy_expand (f : V → ℝ) :
     intro x; ring
   simp_rw [hsub, Finset.sum_sub_distrib]
 
+/-- The graph energy equals half the stationary-weighted sum of squared differences across a
+transition. -/
 theorem g1 :
     ∀ (V : Type) [Fintype V] [DecidableEq V] [Nonempty V]
       (G : SimpleGraph V) [DecidableRel G.Adj] (f : V → ℝ),

@@ -7,6 +7,18 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalBeal
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+
+/-!
+# Exact polynomial degree of Boolean OR
+
+The polynomial `1 - ∏ i, (1 - X i)` represents OR on Boolean inputs and has
+total degree at most `n`. Multilinear uniqueness gives the matching lower
+bound, so the exact representing degree is `n`, including the empty-input
+case. The final result expresses the same value through the local
+`exactMinimum` interface.
+
+The polynomial method in quantum query complexity is developed in [BealsEtAl2001].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,9 +34,13 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 open scoped Classical BigOperators
 
+/-- The standard multilinear OR polynomial `1 - ∏ i, (1 - X i)`; compare
+[Beals et al., the polynomial method][BealsEtAl2001]. -/
 def orRepresentingPoly (n : ℕ) : MvPolynomial (Fin n) ℝ :=
   1 - ∏ i : Fin n, (1 - (MvPolynomial.X i : MvPolynomial (Fin n) ℝ))
 
+/-- The polynomial `orRepresentingPoly n` evaluates to the Boolean OR indicator on every Boolean
+input. -/
 theorem orRepresentingPoly_represents (n : ℕ) (g : Fin n → Bool) :
     boolEval (orRepresentingPoly n) g = if orValue g then (1 : ℝ) else 0 := by
   classical
@@ -47,6 +63,7 @@ theorem orRepresentingPoly_represents (n : ℕ) (g : Fin n → Bool) :
   unfold orValue
   by_cases h : ∃ i, g i = true <;> simp [h]
 
+/-- The total degree of `orRepresentingPoly n` is at most `n`. -/
 theorem orRepresentingPoly_totalDegree_le (n : ℕ) :
     (orRepresentingPoly n).totalDegree ≤ n := by
   classical
@@ -68,10 +85,13 @@ theorem orRepresentingPoly_totalDegree_le (n : ℕ) :
   rw [MvPolynomial.totalDegree_one]
   exact max_le (Nat.zero_le n) (hprod.trans hsum)
 
+/-- There exists a real multivariate polynomial representing Boolean OR exactly on `n` input
+bits. -/
 theorem or_representing_nonempty (n : ℕ) :
     {p : MvPolynomial (Fin n) ℝ | ∀ g, boolEval p g = if orValue g then (1 : ℝ) else 0}.Nonempty :=
   ⟨orRepresentingPoly n, orRepresentingPoly_represents n⟩
 
+/-- Boolean OR on `n` variables has exact representing degree `n` [BealsEtAl2001]. -/
 theorem or_exactDegree (n : ℕ) : exactDegree (@orValue n) = n := by
   classical
   refine Nat.le_antisymm ?_ ?_
@@ -100,6 +120,7 @@ theorem or_exactDegree (n : ℕ) : exactDegree (@orValue n) = n := by
         simpa using! hrep'
       exact le_csInf ⟨_, ⟨orRepresentingPoly n, orRepresentingPoly_represents n, rfl⟩⟩ hlower
 
+/-- The exact query minimum for Boolean OR on `n` bits is `n`. -/
 theorem or_exactMinimum_eq (n : ℕ) : exactMinimum (@orValue n) = n :=
   or_exactMinimum n
 

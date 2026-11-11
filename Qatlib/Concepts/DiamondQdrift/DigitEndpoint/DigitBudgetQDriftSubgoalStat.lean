@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftProgram
+
+/-!
+# Specification of digit budget qDRIFT
+
+This module states `DigitBudgetQDriftSubgoal` for rational lower coefficient oracles and sign
+flags. The specification combines finite diamond approximation with digit access, simulation
+step, circuit, and fair coin sampling bounds in the qDRIFT setting of [Campbell2019].
+
+## Main statements
+
+* `DigitBudgetQDriftSubgoal`: the combined numerical and circuit resource specification.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +40,9 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Matrix
 open scoped BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- The digit budget compiler reads one coefficient column, satisfies the stated step bound and
+finite diamond tolerance, and produces unitary branches with the specified query, gate,
+coin, and comparison counts [Campbell2019]. -/
 def DigitBudgetQDriftSubgoal : Prop :=
   ∀ (L D : ℕ) (a : Fin L → ℝ) (K : Fin L → Operator D)
     (t ε : ℚ) (j0 : Fin L) (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool),

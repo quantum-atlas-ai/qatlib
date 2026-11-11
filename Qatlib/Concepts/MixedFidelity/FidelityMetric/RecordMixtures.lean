@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
 import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+
+/-!
+# Trace error of record mixtures
+
+This module bounds the trace distance of a finite mixture by its weighted component errors. For
+density matrices, `bad_record_budget` combines a uniform error bound on good records with a
+bound on the remaining probability mass. The trace norm framework is described in [Watrous2018].
+
+## Main statements
+
+* `weighted_error`: proves the convex mixture error bound.
+* `bad_record_budget`: adds the good-record error and the bad-record mass.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +37,7 @@ variable {R I : Type} [Fintype R] [DecidableEq R] [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- The trace distance between two positive semidefinite matrices of trace one is at most one. -/
 theorem density_distance (σ ρ : Matrix I I ℂ) (hσ : σ.PosSemidef) (hρ : ρ.PosSemidef)
     (hσt : Matrix.trace σ=1) (hρt : Matrix.trace ρ=1) : Matrix.traceNorm (σ-ρ)/2 ≤ 1 := by
   have h := Matrix.traceNorm_add_le σ (-ρ)
@@ -29,6 +48,8 @@ theorem density_distance (σ ρ : Matrix I I ℂ) (hσ : σ.PosSemidef) (hρ : �
 
 omit [DecidableEq R] in
 
+/-- The trace distance from a convex mixture to a fixed matrix is at most the weighted sum of
+the component trace distances. -/
 theorem weighted_error (w : R → ℝ) (hw : ∀ r, 0 ≤ w r) (hs : ∑ r, w r=1)
     (σ : R → Matrix I I ℂ) (ρ : Matrix I I ℂ) :
     Matrix.traceNorm ((∑ r : R, ((w r : ℝ) : ℂ) • σ r)-ρ)/2 ≤
@@ -46,6 +67,8 @@ theorem weighted_error (w : R → ℝ) (hw : ∀ r, 0 ≤ w r) (hs : ∑ r, w r=
     _ ≤ (∑ r : R, w r*Matrix.traceNorm (σ r-ρ))/2 := div_le_div_of_nonneg_right h (by norm_num)
     _=_ := by rw [Finset.sum_div]; apply Finset.sum_congr rfl; intro r _; ring
 
+/-- A mixture of density matrices has trace distance at most `η + ζ` from `ρ` when good records
+have error at most `η` and the total weight of the other records is at most `ζ`. -/
 theorem bad_record_budget (w : R → ℝ) (hw : ∀ r, 0 ≤ w r) (hs : ∑ r, w r=1)
     (σ : R → Matrix I I ℂ) (hσ : ∀ r, (σ r).PosSemidef ∧ Matrix.trace (σ r)=1)
     (ρ : Matrix I I ℂ) (hρ : ρ.PosSemidef ∧ Matrix.trace ρ=1)

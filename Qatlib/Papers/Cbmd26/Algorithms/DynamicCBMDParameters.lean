@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+
+/-!
+# Parameters for segmented dynamic simulation
+
+Defines `dynamicSegmentCount`, `dynamicSimulationAccuracy`, `dynamicSegmentAccuracy`,
+`dynamicDysonDegree`, and `dynamicFineGridSize` for dynamic CBMD. Their bounds control segment
+size, Taylor tails, grid error, and the logarithmic dependence of the chosen resources. These
+results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicDysonDegree_tail`: bounds the retained Taylor tail.
+* `dynamicChosen_segments_bound`: bounds the chosen segment count.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,12 +53,20 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- Defines the positive segment count as the maximum of one and the natural ceiling of `2 * Λ *
+T`. -/
 def dynamicSegmentCount (Λ T : ℝ) : ℕ := max 1 ⌈2 * Λ * T⌉₊
+/-- Defines the dynamic simulation accuracy as `ε * η / (16 * staticMassBudget)`. -/
 def dynamicSimulationAccuracy (ε η : ℝ) : ℝ := ε * η / (16 * staticMassBudget)
+/-- Defines the segment accuracy as `ζ² / (10 * S²)`. -/
 def dynamicSegmentAccuracy (S : ℕ) (ζ : ℝ) : ℝ := ζ ^ 2 / (10 * (S : ℝ) ^ 2)
+/-- Chooses the dyadic truncation degree for half the segment accuracy. -/
 def dynamicDysonDegree (S : ℕ) (ζ : ℝ) : ℕ := dyadicOrder (dynamicSegmentAccuracy S ζ / 2)
+/-- Defines a positive fine-grid size from the natural ceiling of `2 * C / ξ`. -/
 def dynamicFineGridSize (C ξ : ℝ) : ℕ := max 1 ⌈2 * C / ξ⌉₊
 
+/-- For nonnegative `Λ` and `T`, the segment count is positive, lies between `2 * Λ * T` and
+that value plus one, and gives segment scale at most `1/2`. -/
 theorem dynamicSegmentCount_bounds {Λ T : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 ≤ T) :
     0 < dynamicSegmentCount Λ T ∧
     2 * Λ * T ≤ (dynamicSegmentCount Λ T : ℝ) ∧
@@ -58,6 +85,8 @@ theorem dynamicSegmentCount_bounds {Λ T : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 ≤ T) 
   apply (div_le_iff₀ (by exact_mod_cast hpos)).mpr
   linarith
 
+/-- For `ε` and `η` in `(0, 1]`, the simulation accuracy lies in `(0, 1]` and the stated
+analytic, grid, and simulation allocations sum to `ε * η / 4`. -/
 theorem dynamicSimulationAccuracy_bounds {ε η : ℝ}
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hη1 : η ≤ 1) :
     0 < dynamicSimulationAccuracy ε η ∧ dynamicSimulationAccuracy ε η ≤ 1 ∧
@@ -72,6 +101,7 @@ theorem dynamicSimulationAccuracy_bounds {ε η : ℝ}
   · field_simp
     ring
 
+/-- A positive segment count and accuracy `ζ` in `(0, 1]` give segment accuracy in `(0, 1]`. -/
 theorem dynamicSegmentAccuracy_bounds {S : ℕ} (hS : 0 < S) {ζ : ℝ}
     (hζ : 0 < ζ) (hζ1 : ζ ≤ 1) :
     0 < dynamicSegmentAccuracy S ζ ∧ dynamicSegmentAccuracy S ζ ≤ 1 := by
@@ -81,6 +111,8 @@ theorem dynamicSegmentAccuracy_bounds {S : ℕ} (hS : 0 < S) {ζ : ℝ}
   apply (div_le_one (by positivity)).mpr
   nlinarith [sq_nonneg ((S:ℝ)-1)]
 
+/-- For positive `ξ`, the fine-grid size is positive and makes `C` divided by that size at most
+`ξ / 2`. -/
 theorem dynamicFineGridSize_error {C ξ : ℝ} (_hC : 0 ≤ C) (hξ : 0 < ξ) :
     0 < dynamicFineGridSize C ξ ∧ C / dynamicFineGridSize C ξ ≤ ξ / 2 := by
   have hn : 1 ≤ dynamicFineGridSize C ξ := le_max_left _ _
@@ -92,6 +124,7 @@ theorem dynamicFineGridSize_error {C ξ : ℝ} (_hC : 0 ≤ C) (hξ : 0 < ξ) :
   have hmul := (div_le_iff₀ hξ).mp hm
   nlinarith
 
+/-- For `0 ≤ a ≤ 1/2`, the selected factorial Taylor tail is at most half the segment accuracy. -/
 theorem dynamicDysonDegree_tail {S : ℕ} (hS : 0 < S) {ζ : ℝ}
     (hζ : 0 < ζ) (hζ1 : ζ ≤ 1) {a : ℝ} (ha : 0 ≤ a) (ha2 : a ≤ 1 / 2) :
     2 * a ^ (dynamicDysonDegree S ζ + 1) /
@@ -107,6 +140,7 @@ theorem dynamicDysonDegree_tail {S : ℕ} (hS : 0 < S) {ζ : ℝ}
     _ = (1/2 : ℝ) ^ dynamicDysonDegree S ζ := by rw [pow_succ]; ring
     _ ≤ _ := he
 
+/-- The selected Dyson degree is at most `log (20 * S² / ζ²) / log 2 + 1`. -/
 theorem dynamicDysonDegree_log_bound {S : ℕ} (hS : 0 < S) {ζ : ℝ}
     (hζ : 0 < ζ) (hζ1 : ζ ≤ 1) :
     (dynamicDysonDegree S ζ : ℝ) ≤
@@ -126,6 +160,8 @@ theorem dynamicDysonDegree_log_bound {S : ℕ} (hS : 0 < S) {ζ : ℝ}
   rw [hi]
   exact (Nat.ceil_lt_add_one hl).le
 
+/-- The chosen segment count is at most `15 * (1 + α * T) * log (staticQueryLogConstant / (ε *
+η))` under the stated parameter bounds. -/
 theorem dynamicChosen_segments_bound {α T ε η : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) :

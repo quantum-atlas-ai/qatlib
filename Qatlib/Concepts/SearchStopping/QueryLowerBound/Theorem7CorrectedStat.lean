@@ -6,11 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
 
+/-!
+# Statement of the corrected single-target query bound
+
+Defines `Theorem7Corrected`, an integer lower bound for query evolutions with average labeled
+success at least one half. Under the off-fiber agreement hypotheses, the number of steps is at
+least the floor of `Real.sin (Real.pi / 8)` times the square root of the number of labels. For
+the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `Theorem7Corrected`: The proposition that normalized query evolutions with a nonempty label
+  type, off-fiber agreement, and average labeled success at least one half require `r ≥
+  ⌊Real.sin (Real.pi / 8) * Real.sqrt (Fintype.card Y)⌋`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 
 open scoped BigOperators
 universe u v
 
+/-- The proposition that normalized query evolutions with a nonempty label type, off-fiber
+agreement, and average labeled success at least one half require `r ≥ ⌊Real.sin (Real.pi /
+8) * Real.sqrt (Fintype.card Y)⌋`. -/
 def Theorem7Corrected : Prop :=
   ∀ {C : Type u} {Y : Type v} [Fintype C] [DecidableEq C]
     [Fintype Y] [DecidableEq Y] [Nonempty Y]

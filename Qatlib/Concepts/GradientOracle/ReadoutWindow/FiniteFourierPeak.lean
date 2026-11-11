@@ -10,6 +10,25 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
+/-!
+# Finite Fourier peak estimates
+
+This module defines a normalized finite Fourier amplitude and derives its sine-ratio formula,
+central peak bound, and periodicity. Product amplitudes factor across coordinates, as used in
+the finite-grid gradient readout of [Jordan2005Gradient].
+
+## Main statements
+
+* `fourierAmp_norm_eq`: the amplitude norm is a ratio of sine magnitudes in the stated central
+  interval.
+* `prob_ge_four_div_pi_sq`: the central probability is at least `4/π^2`.
+* `joint_prob_eq_prod`: joint squared amplitudes factor into coordinate probabilities.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,20 +36,25 @@ open scoped BigOperators
 
 namespace Qatlib.Concepts.GradientOracle.ReadoutWindow
 
+/-- A natural number at least one has nonzero complex cast. -/
 lemma natCast_ne_zero {N : ℕ} (hN : 1 ≤ N) : (N : ℂ) ≠ 0 := by
   have h : N ≠ 0 := Nat.ne_of_gt (Nat.lt_of_lt_of_le Nat.zero_lt_one hN)
   exact_mod_cast h
 
+/-- The complex phase `exp (i * 2*π*y/N)` used as the ratio in the finite Fourier sum. -/
 def zeta (N : ℕ) (y : ℝ) : ℂ :=
   Complex.exp (Complex.I * (((2 * Real.pi * y) / (N : ℝ) : ℝ) : ℂ))
 
+/-- The normalized geometric Fourier sum `N⁻¹ * ∑ j < N, zeta N y ^ j`. -/
 def fourierAmp (N : ℕ) (y : ℝ) : ℂ :=
   (N : ℂ)⁻¹ * ∑ j ∈ Finset.range N, zeta N y ^ j
 
+/-- The real norm of `2*sin t` equals `2*|sin t|`. -/
 lemma norm_two_mul_sin (t : ℝ) : ‖2 * Real.sin t‖ = 2 * |Real.sin t| := by
   rw [Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- For positive `N`, the `N`th power of `zeta N y` equals `exp (i * 2*π*y)`. -/
 theorem zeta_pow (N : ℕ) (y : ℝ) (hN : 1 ≤ N) :
     zeta N y ^ N = Complex.exp (Complex.I * (((2 * Real.pi * y : ℝ) : ℂ))) := by
   unfold zeta
@@ -45,6 +69,7 @@ theorem zeta_pow (N : ℕ) (y : ℝ) (hN : 1 ≤ N) :
       = Complex.I * ((N : ℂ) * (((2 * Real.pi * y) / (N : ℝ) : ℝ) : ℂ)) := by ring
     _ = Complex.I * (((2 * Real.pi * y : ℝ)) : ℂ) := by rw [hNa]
 
+/-- For positive `N`, the norm of `zeta N y ^ N - 1` is `2*|sin (π*y)|`. -/
 theorem norm_zeta_pow_sub_one (N : ℕ) (y : ℝ) (hN : 1 ≤ N) :
     ‖zeta N y ^ N - 1‖ = 2 * |Real.sin (Real.pi * y)| := by
   rw [zeta_pow N y hN]
@@ -53,6 +78,7 @@ theorem norm_zeta_pow_sub_one (N : ℕ) (y : ℝ) (hN : 1 ≤ N) :
   congr 2
   ring
 
+/-- The norm of `zeta N y - 1` equals `2*|sin (π*y/N)|`. -/
 theorem norm_zeta_sub_one (N : ℕ) (y : ℝ) :
     ‖zeta N y - 1‖ = 2 * |Real.sin (Real.pi * y / (N : ℝ))| := by
   unfold zeta
@@ -61,6 +87,8 @@ theorem norm_zeta_sub_one (N : ℕ) (y : ℝ) :
   congr 2
   ring
 
+/-- For positive `N` and nonzero `y` with `|y| ≤ 1/2`, the denominator factor `sin (π*y/N)` is
+nonzero. -/
 theorem sin_div_ne_zero (N : ℕ) (y : ℝ) (hN : 1 ≤ N) (hy : y ≠ 0) (hy2 : |y| ≤ 1 / 2) :
     Real.sin (Real.pi * y / (N : ℝ)) ≠ 0 := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
@@ -81,6 +109,8 @@ theorem sin_div_ne_zero (N : ℕ) (y : ℝ) (hN : 1 ≤ N) (hy : y ≠ 0) (hy2 :
     linarith [hz]
   exact hy ((mul_eq_zero.mp hmul).resolve_left Real.pi_ne_zero)
 
+/-- For positive `N` and `0 < |y| ≤ 1/2`, the Fourier amplitude norm equals `|sin (π*y)| /
+(N*|sin (π*y/N)|)`. This is the finite peak formula used with [Jordan2005Gradient]. -/
 theorem fourierAmp_norm_eq (N : ℕ) (y : ℝ) (hN : 1 ≤ N) (hy : y ≠ 0) (hy2 : |y| ≤ 1 / 2) :
     ‖fourierAmp N y‖
       = |Real.sin (Real.pi * y)| / ((N : ℝ) * |Real.sin (Real.pi * y / (N : ℝ))|) := by
@@ -113,6 +143,8 @@ theorem fourierAmp_norm_eq (N : ℕ) (y : ℝ) (hN : 1 ≤ N) (hy : y ≠ 0) (hy
     norm_zeta_sub_one, inv_eq_one_div]
   field_simp [hNne, hbne]
 
+/-- For positive `N` and `0 < |y| ≤ 1/2`, the normalized Fourier amplitude has norm at least
+`2/π`. -/
 theorem fourierAmp_norm_ge_two_div_pi (N : ℕ) (y : ℝ) (hN : 1 ≤ N)
     (hy : y ≠ 0) (hy2 : |y| ≤ 1 / 2) :
     2 / Real.pi ≤ ‖fourierAmp N y‖ := by
@@ -142,6 +174,8 @@ theorem fourierAmp_norm_ge_two_div_pi (N : ℕ) (y : ℝ) (hN : 1 ≤ N)
   nlinarith [hnum_ge, hden_le, abs_nonneg (Real.sin (Real.pi * y)),
     abs_nonneg y, Real.pi_pos, hypos]
 
+/-- For positive `N` and `0 < |y| ≤ 1/2`, the squared Fourier amplitude is at least `4/π^2`,
+giving the central peak probability bound associated with [Jordan2005Gradient]. -/
 theorem prob_ge_four_div_pi_sq (N : ℕ) (y : ℝ) (hN : 1 ≤ N)
     (hy : y ≠ 0) (hy2 : |y| ≤ 1 / 2) :
     4 / Real.pi ^ 2 ≤ ‖fourierAmp N y‖ ^ 2 := by
@@ -152,6 +186,8 @@ theorem prob_ge_four_div_pi_sq (N : ℕ) (y : ℝ) (hN : 1 ≤ N)
   calc 4 / Real.pi ^ 2 = (2 / Real.pi) ^ 2 := by field_simp; ring
     _ ≤ ‖fourierAmp N y‖ ^ 2 := h2
 
+/-- At zero offset, the normalized Fourier amplitude is one for every positive `N`. See
+[Jordan2005Gradient]. -/
 theorem fourierAmp_zero (N : ℕ) (hN : 1 ≤ N) : fourierAmp N 0 = 1 := by
   unfold fourierAmp
   have hz : zeta N 0 = 1 := by unfold zeta; simp
@@ -162,12 +198,14 @@ theorem fourierAmp_zero (N : ℕ) (hN : 1 ≤ N) : fourierAmp N 0 = 1 := by
   rw [mul_one]
   field_simp
 
+/-- The complex exponential of `i * 2*π` is one. -/
 lemma exp_two_pi_I : Complex.exp (Complex.I * (((2 * Real.pi : ℝ) : ℂ))) = 1 := by
   have h : Complex.I * (((2 * Real.pi : ℝ) : ℂ)) = 2 * (Real.pi : ℂ) * Complex.I := by
     push_cast
     ring
   rw [h, Complex.exp_two_pi_mul_I]
 
+/-- For positive `N`, adding `N` to the phase offset leaves `zeta N` unchanged. -/
 theorem zeta_add_N (N : ℕ) (y : ℝ) (hN : 1 ≤ N) : zeta N (y + N) = zeta N y := by
   unfold zeta
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
@@ -183,14 +221,19 @@ theorem zeta_add_N (N : ℕ) (y : ℝ) (hN : 1 ≤ N) : zeta N (y + N) = zeta N 
     ring
   rw [harg, Complex.exp_add, exp_two_pi_I, mul_one]
 
+/-- For positive `N`, the finite Fourier amplitude is invariant under shifting its offset by
+`N`. See [Jordan2005Gradient]. -/
 theorem fourierAmp_period (N : ℕ) (y : ℝ) (hN : 1 ≤ N) :
     fourierAmp N (y + N) = fourierAmp N y := by
   unfold fourierAmp
   rw [zeta_add_N N y hN]
 
+/-- The product of the coordinate Fourier amplitudes for the given register sizes and offsets. -/
 def jointAmp {d : ℕ} (N : Fin d → ℕ) (y : Fin d → ℝ) : ℂ :=
   ∏ i, fourierAmp (N i) (y i)
 
+/-- The squared norm of the joint Fourier amplitude equals the product of the coordinate squared
+norms, as used in the product readout analysis of [Jordan2005Gradient]. -/
 theorem joint_prob_eq_prod {d : ℕ} (N : Fin d → ℕ) (y : Fin d → ℝ) :
     ‖jointAmp N y‖ ^ 2 = ∏ i, ‖fourierAmp (N i) (y i)‖ ^ 2 := by
   unfold jointAmp

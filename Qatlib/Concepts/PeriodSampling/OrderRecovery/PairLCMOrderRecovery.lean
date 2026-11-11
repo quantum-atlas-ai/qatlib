@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.ReducedOrderDenominator
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.OrderFactorConsumers
+
+/-!
+# Order recovery from two reduced denominators
+
+This module combines two phase samples using `pairLCMOrderDecode`: it decodes their reduced
+denominators, forms their least common multiple, and verifies the resulting exponent. The
+arithmetic and factor consumer extend the modular order-finding setting of [Shor1997].
+
+When the gcd of the two spectral indices is coprime to the order, good phase windows recover the
+full order. Counting such index pairs gives a uniform success probability bound for two
+independent samples.
+
+## Main statements
+
+* `reduced_order_pair_lcm_arithmetic`: the least common multiple of two reduced denominators
+  equals the order under the coprimality condition.
+* `pair_lcm_order_soundness_and_actual_work`: sound exponent and factor outputs with explicit
+  work bounds.
+* `pair_lcm_order_actual_fresh_success_bound`: success probability at least `(8 / π²)² / 4`.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +42,8 @@ set_option autoImplicit false
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
+/-- Decodes two reduced rational denominators, verifies their least common multiple as an
+exponent of `a`, and records total scan work and the verification exponent. -/
 def pairLCMOrderDecode (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (yz : Fin M×Fin M) :
     Option ℕ × (ℕ×ℕ) :=
   let x := reducedOrderDecode N M yz.1
@@ -28,12 +55,17 @@ def pairLCMOrderDecode (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (yz : Fin M×Fin 
       (x.2+y.2,candidate))
   | _,_ => (none,(x.2+y.2,0))
 
+/-- Applies `orderFactor` to an exponent returned by the two-sample least-common-multiple
+decoder. -/
 def pairLCMFactor (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (yz : Fin M×Fin M) : Option ℕ :=
   (pairLCMOrderDecode N M a yz).1.bind (orderFactor N a)
 
+/-- Counts index pairs in `Fin r × Fin r` whose gcd is coprime to `r`. -/
 def orderCoprimePairCount (r : ℕ) : ℕ :=
   (Finset.univ.filter fun st : Fin r×Fin r => Nat.Coprime (Nat.gcd st.1.val st.2.val) r).card
 
+/-- For positive `r` and indices below `r`, the least common multiple of `r / gcd(s, r)` and `r
+/ gcd(t, r)` equals `r` when `gcd(s, t)` is coprime to `r`. -/
 theorem reduced_order_pair_lcm_arithmetic :
     ∀ (r s t : ℕ), 0<r → s<r → t<r → Nat.Coprime (Nat.gcd s t) r →
       Nat.lcm (r/Nat.gcd s r) (r/Nat.gcd t r)=r := by
@@ -43,6 +75,8 @@ theorem reduced_order_pair_lcm_arithmetic :
     simp [Nat.gcd_assoc, Nat.gcd_left_comm, Nat.gcd_comm]
   rw [hg, hc.gcd_eq_one, Nat.div_one]
 
+/-- Under the nontriviality and clock-size hypotheses, two good phase windows recover the exact
+order whenever the gcd of their spectral indices is coprime to it [Shor1997]. -/
 theorem pair_lcm_order_actual_good_event :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (s t : Fin (orderOf a)) (y z : Fin M),
       1<N → 1<orderOf a → 2*N^2<M → Nat.Coprime (Nat.gcd s.val t.val) (orderOf a) →
@@ -57,6 +91,9 @@ theorem pair_lcm_order_actual_good_event :
   simp only [pairLCMOrderDecode, hd, he, hl, orderVerificationProduct_eq_pow,
     pow_orderOf_eq_one, if_true]
 
+/-- The pair decoder uses at most `N * (N + 1)` scan tests and verification exponent at most `N
+^ 2`, returning only positive exponents with `a ^ q = 1`. Every successful `pairLCMFactor`
+output is a nontrivial divisor of `N` [Shor1997]. -/
 theorem pair_lcm_order_soundness_and_actual_work :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y z : Fin M),
       (pairLCMOrderDecode N M a (y,z)).2.1≤N*(N+1) ∧
@@ -96,9 +133,12 @@ theorem pair_lcm_order_soundness_and_actual_work :
               simpa [orderVerificationProduct_eq_pow] using!
                 ‹orderVerificationProduct N a (Nat.lcm q v)=1›⟩
           · simp at hj
+/-- The set of pairs of indices below `r` both divisible by `d`. -/
 private def orderDivisiblePairs (r d : ℕ) : Finset (Fin r×Fin r) :=
   Finset.univ.filter fun st => d ∣ st.1.val ∧ d ∣ st.2.val
 
+/-- For positive `d` dividing `r`, at most `(r / d) ^ 2` pairs of indices below `r` are both
+divisible by `d`. -/
 private theorem orderDivisiblePairs_card (r d : ℕ) (hd : 0<d) (hdr : d∣r) :
     (orderDivisiblePairs r d).card ≤ (r/d)^2 := by
   let f : Fin r×Fin r → Fin (r/d)×Fin (r/d) := fun st =>
@@ -118,6 +158,8 @@ private theorem orderDivisiblePairs_card (r d : ℕ) (hd : 0<d) (hdr : d∣r) :
         simpa only [f, Nat.div_mul_cancel hs'.2, Nat.div_mul_cancel hu'.2] using! hm)
   simpa [pow_two] using! h
 
+/-- For `r ≥ 2`, the sum of `1 / d²` over integers from two through `r` is at most `3 / 4 - 1 /
+r`. -/
 private theorem reciprocal_square_sum (r : ℕ) (hr : 2≤r) :
     (∑ d ∈ Finset.Icc 2 r, 1/(d:ℝ)^2) ≤ 3/4-1/(r:ℝ) := by
   induction r, hr using Nat.le_induction with
@@ -132,6 +174,8 @@ private theorem reciprocal_square_sum (r : ℕ) (hr : 2≤r) :
       nlinarith
     linarith
 
+/-- For `r > 1`, at least `r² / 4` index pairs below `r` have gcd coprime to `r`. This count
+supports the two-sample order-finding success bound [Shor1997]. -/
 theorem coprime_order_pair_uniform_constant :
     ∀ (r : ℕ), 1<r → (r:ℝ)^2/4≤(orderCoprimePairCount r:ℝ) := by
   intro r hr
@@ -180,6 +224,9 @@ theorem coprime_order_pair_uniform_constant :
   have htotalR : (orderCoprimePairCount r:ℝ)+(bad.card:ℝ)=(r:ℝ)^2 := by exact_mod_cast htotal
   linarith
 
+/-- Under the nontriviality and clock-size hypotheses, two independent samples from
+`modularOrderLaw` recover the exact order with probability at least `(8 / π²)² / 4`
+[Shor1997]. -/
 theorem pair_lcm_order_actual_fresh_success_bound :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0<M),
       1<N → 1<orderOf a → 2*N^2<M →

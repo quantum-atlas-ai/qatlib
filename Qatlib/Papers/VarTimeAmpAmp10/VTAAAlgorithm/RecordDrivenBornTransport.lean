@@ -9,6 +9,25 @@ import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
 import Mathlib.Tactic.NormNum.RealSqrt
+
+/-!
+# Born probabilities for record-driven amplification
+
+This module transports prepared amplitude-amplification formulas to legal data words in a
+growing variable-time pipeline. It gives exact sine-squared laws for live and good sector mass,
+connecting the record-driven implementation with the amplification analysis of [Ambainis2012].
+
+## Main statements
+
+* `rdvt_live_aa_born`: exact live-sector amplification probability.
+* `rdvt_good_aa_state`: identification with the prepared amplification circuit.
+* `rdvt_good_aa_born`: exact good-sector amplification probability.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +48,8 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 noncomputable section
 
+/-- For a legal growing pipeline and data word with live mass `0 < a < 1`, `k`
+live-amplification rounds give live mass `sin² ((2 * k + 1) * arcsin (sqrt a))`. -/
 theorem rdvt_live_aa_born (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (word : List DataVtStep) (hw : DataVtWordLegal stages word)
@@ -51,6 +72,8 @@ theorem rdvt_live_aa_born (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 end
 noncomputable section
 
+/-- For a legal growing pipeline and data word, the state of the good-amplified word equals the
+state produced by the corresponding prepared amplitude-amplification circuit. -/
 theorem rdvt_good_aa_state (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (word : List DataVtStep) (hw : DataVtWordLegal stages word) (k : ℕ) :
@@ -63,6 +86,8 @@ theorem rdvt_good_aa_state (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 end
 noncomputable section
 
+/-- For a legal growing pipeline and data word with good mass `0 < a < 1`, `k`
+good-amplification rounds give good mass `sin² ((2 * k + 1) * arcsin (sqrt a))`. -/
 theorem rdvt_good_aa_born (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (word : List DataVtStep) (hw : DataVtWordLegal stages word)

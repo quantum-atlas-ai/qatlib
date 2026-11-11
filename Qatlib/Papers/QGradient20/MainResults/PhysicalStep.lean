@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QGradient20.DressedUpdate.Stationary
 import Qatlib.Papers.QGradient20.FilterBranch.Operator
 import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+
+/-!
+# Physical readout of a polynomial gradient step
+
+The pure state `inputState` and binary measurement `gradientReadout` realize the dressed
+polynomial update. The module identifies the successful Born weight and density matrix, bounds
+the success probability at parameter 1/3, and relates decoded coordinates to the polynomial
+gradient. See [GaoEtAl2021] for the paper context.
+
+## Main statements
+
+* `actual_gradient_Born`: The successful outcome of `gradientReadout` on `inputState` has
+  probability equal to the squared norm of `outputVector`.
+* `actual_success_probability`: At parameter `ξ = 1/3`, the successful gradient readout has
+  probability at least 1/4.
+* `actual_polynomial_step`: For positive tensor degree and symmetric coefficients, the gradient
+  is the coordinate derivative of the homogeneous objective and the decoded output coordinate
+  equals the signed gradient update with rate `decodedRate`.
+
+## References
+
+* [Gao et al., 2021][GaoEtAl2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,15 +45,20 @@ open Qatlib.Papers.QGradient20.DressedUpdate
 open Qatlib.Papers.QGradient20.FilterBranch
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The pure density state associated with the normalized dressed encoding of `x`. -/
 def inputState (x : I → ℝ) : MState (Option I) :=
     MState.pure (ContractionBorn.ketOfUnit (encoded x) (encoded_norm x))
 
+/-- The binary POVM associated with the polynomial update success operator, for nonnegative
+parameter `ξ` and the selected ascent or descent branch. -/
 def gradientReadout {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) (ξ : ℝ) (hξ : 0 ≤ ξ) (ascent : Bool) : POVM Bool (Option I) :=
   ContractionInstrument.readout (successOperator none (complexDerivative A x) ξ ascent)
     (successOperator_norm none (complexDerivative A x) hξ ascent)
 
+/-- The successful outcome of `gradientReadout` on `inputState` has probability equal to the
+squared norm of `outputVector`. See [GaoEtAl2021]. -/
 theorem actual_gradient_Born {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) (ξ : ℝ) (hξ : 0 ≤ ξ) (ascent : Bool) :
@@ -42,6 +71,8 @@ theorem actual_gradient_Born {p : ℕ}
   rw [successOperator_action]
   rfl
 
+/-- At parameter `ξ = 1/3`, the successful gradient readout has probability at least 1/4. See
+[GaoEtAl2021]. -/
 theorem actual_success_probability {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) (ascent : Bool) :
@@ -49,12 +80,16 @@ theorem actual_success_probability {p : ℕ}
   rw [actual_gradient_Born]
   exact outputVector_mass_third A x ascent
 
+/-- At parameter `ξ = 1/3`, the successful gradient readout has probability strictly greater
+than 3/16. See [GaoEtAl2021]. -/
 theorem actual_success_gt_source {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) (ascent : Bool) :
     (3/16 : ℝ) < (((gradientReadout A x (1/3) (by norm_num) ascent).measure (inputState x)) true : ℝ) := by
   linarith [actual_success_probability A x ascent]
 
+/-- Applying the successful completely positive map to `inputState` gives the outer product of
+`outputVector` with its conjugate. -/
 theorem actual_success_density {p : ℕ}
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ)
     (x : I → ℝ) (ξ : ℝ) (ascent : Bool) :
@@ -69,6 +104,9 @@ theorem actual_success_density {p : ℕ}
     (fun j => star ((successOperator none (complexDerivative A x) ξ ascent *ᵥ (encoded x).ofLp) j)) = _
   rw [he]
 
+/-- For positive tensor degree and symmetric coefficients, the gradient is the coordinate
+derivative of the homogeneous objective and the decoded output coordinate equals the signed
+gradient update with rate `decodedRate`. See [GaoEtAl2021]. -/
 theorem actual_polynomial_step {p : ℕ} (hp : 0 < p)
     (A : Matrix (TensorIndex p (Option I)) (TensorIndex p (Option I)) ℝ) (hA : A.IsSymm)
     (x : I → ℝ) (ξ : ℝ) (hξ : 0 ≤ ξ) (ascent : Bool) (i : I) :

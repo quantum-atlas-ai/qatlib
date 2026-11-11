@@ -8,6 +8,32 @@ import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+
+/-!
+# Circuit specifications and QTM light-cone obstructions
+
+This module introduces auxiliary circuit and machine specifications, including a Hadamard, T,
+and controlled-NOT language and a polynomial clock requirement. It develops head light-cone
+bounds for Boolean-tape QTM evolution.
+
+The light-cone arguments refute `HeadStaySimulationSpec` and the local `DLambdaCorrespondence`
+specification using a distant input bit. These results describe the precise resource constraints
+of the stated specifications.
+
+For background, see [BernsteinVazirani1997].
+
+## Main statements
+
+* `evolve_headCone`: evolved amplitudes vanish outside the head light cone.
+* `clause1_headStaySimulationSpec_lightCone_false`: refutation of the head-stay specification.
+* `clause2_dLambdaCorrespondence_lightCone_false`: refutation of the stated circuit
+  correspondence.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -22,6 +48,8 @@ open Matrix Qatlib.Concepts.UniformBqp.Phi3Compile
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Concepts.UniformBqp.Phi3Compile
 
+/-- The existence of a unitary circuit with zero queries and at most `2 * t * steps` gates that
+exactly reproduces the embedded window evolution and its configuration Born probabilities. -/
 private def WindowSimulatesSteps {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (M : LocalQTM Q A) (n steps t : ℕ) : Prop :=
   ∃ C : Circuit (WReg t Q A),
@@ -36,6 +64,8 @@ private def WindowSimulatesSteps {Q A : Type} [Fintype Q] [DecidableEq Q] [Finty
           = BornProb ((windowStep (t := t) M) ^ steps *ᵥ
               Ket (initWindowCfg (t := t) M n x)) cfg
 
+/-- The specification that each positive polynomial budget has a tape clock that halts within
+that budget and has no halting run with budget below the input length. -/
 private def TimeConstructibleBudget : Prop :=
   ∀ c k : ℕ, 1 ≤ c → 1 ≤ k →
     ∃ (q : ℕ) (Clock : Turing.TM0.Machine (Option Bool) (Fin (q + 1))),
@@ -47,15 +77,19 @@ private def TimeConstructibleBudget : Prop :=
       (∀ (s : ℕ) (x : List Bool), s < x.length →
           TM0HaltRun Clock s (Turing.TM0.init (x.map some)) = none)
 
+/-- The finite-register gate syntax with Hadamard, T, and controlled-NOT operations. -/
 private inductive DLambdaOp (n : ℕ) where
   | hGate : Fin n → DLambdaOp n
   | tGate : Fin n → DLambdaOp n
   | cnot : Fin n → Fin n → DLambdaOp n
 
+/-- The validity condition requiring distinct control and target wires for controlled-NOT; the
+single-wire operations are always valid. -/
 private def ValidDLambdaOp : ∀ {n : ℕ}, DLambdaOp n → Prop
   | _, .cnot i j => i ≠ j
   | _, _ => True
 
+/-- The matrix interpretation of the Hadamard, T, and controlled-NOT gate syntax. -/
 private noncomputable def dLambdaGateMatrix {n : ℕ} :
     DLambdaOp n → Matrix (Reg n) (Reg n) ℂ
   | .hGate i =>
@@ -72,18 +106,25 @@ private noncomputable def dLambdaGateMatrix {n : ℕ} :
     Matrix.of fun y x =>
       if y = Function.update x j (Bool.xor (x j) (x i)) then 1 else 0
 
+/-- Converts a list of gate operations into the circuit consisting of their matrix
+interpretations. -/
 private noncomputable def dLambdaCircuit {n : ℕ} (ops : List (DLambdaOp n)) :
     Circuit (Reg n) :=
   ops.map (fun op => Step.gate (dLambdaGateMatrix op))
 
+/-- Encodes an operation using a Boolean tag and binary wire indices. -/
 private def dLambdaOpEnc {n : ℕ} : DLambdaOp n → List Bool
   | .hGate i => false :: false :: i.val.bits
   | .tGate i => false :: true :: i.val.bits
   | .cnot i j => true :: (i.val.bits ++ [false] ++ j.val.bits)
 
+/-- Encodes an operation list by concatenating the individual operation encodings. -/
 private def dLambdaOpsEnc {n : ℕ} (ops : List (DLambdaOp n)) : List Bool :=
   ops.flatMap dLambdaOpEnc
 
+/-- The conjunction of circuit unitarity and count guarantees, an acceptance-preserving local
+QTM simulation with the specified polynomial bounds, and polynomial tape emission of circuit
+sizes. -/
 private def DLambdaCorrespondence : Prop :=
   (∀ (n : ℕ) (ops : List (DLambdaOp n)), (∀ op ∈ ops, ValidDLambdaOp op) →
       IsUnitaryCircuit (dLambdaCircuit ops) ∧
@@ -106,6 +147,7 @@ private def DLambdaCorrespondence : Prop :=
           TM0EmitsPoly emitter c d (n.bits ++ [false] ++ dLambdaOpsEnc ops)
             ((Size (dLambdaCircuit ops)).bits ++ [false]))
 
+/-- The oracle query mass multiplied by the sum of the query, computation, and routing tariffs. -/
 private noncomputable def oracleTariffBill {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] {w : ℕ} (O : OracleQTM Q A) (m steps : ℕ)
     (x : Fin m → A) (qf cf rf : ℝ) : ℝ :=
@@ -113,12 +155,14 @@ private noncomputable def oracleTariffBill {Q A : Type} [Fintype Q] [DecidableEq
 
 section LightCone
 
+/-- Flips the Boolean tape symbol at a chosen cell while preserving the head and internal state. -/
 private def flipCfg {Q : Type} {w : ℕ} (j₀ : Fin (2 * w + 1)) (c : WindowCfg w Q Bool) :
     WindowCfg w Q Bool where
   head := c.head
   state := c.state
   tape := fun j => if j = j₀ then !c.tape j else c.tape j
 
+/-- Flipping the same configuration cell twice returns the original configuration. -/
 private theorem flipCfg_involutive {Q : Type} {w : ℕ} (j₀ : Fin (2 * w + 1))
     (c : WindowCfg w Q Bool) : flipCfg j₀ (flipCfg j₀ c) = c := by
   have htp : (flipCfg j₀ (flipCfg j₀ c)).tape = c.tape := by
@@ -128,6 +172,7 @@ private theorem flipCfg_involutive {Q : Type} {w : ℕ} (j₀ : Fin (2 * w + 1))
   simp only [flipCfg, WindowCfg.mk.injEq]
   exact ⟨trivial, trivial, htp⟩
 
+/-- Flipping a fixed tape cell is a bijection on window configurations. -/
 private theorem flipCfg_bijective {Q : Type} {w : ℕ} (j₀ : Fin (2 * w + 1)) :
     Function.Bijective (flipCfg (Q := Q) (w := w) j₀) := by
   constructor
@@ -138,9 +183,11 @@ private theorem flipCfg_bijective {Q : Type} {w : ℕ} (j₀ : Fin (2 * w + 1)) 
   · intro b
     exact ⟨flipCfg j₀ b, flipCfg_involutive j₀ b⟩
 
+/-- Flipping a tape cell preserves the internal state of the configuration. -/
 private theorem flipCfg_state {Q : Type} {w : ℕ} (j₀ : Fin (2 * w + 1))
     (c : WindowCfg w Q Bool) : (flipCfg j₀ c).state = c.state := rfl
 
+/-- A successful head move changes the cell index by at most one. -/
 private theorem moveCell_dist {w : ℕ} (d : QtmMove) (h h' : Fin (2 * w + 1))
     (hm : moveCell d h = some h') : h'.val ≤ h.val + 1 ∧ h.val ≤ h'.val + 1 := by
   cases d with
@@ -165,6 +212,8 @@ private theorem moveCell_dist {w : ℕ} (d : QtmMove) (h h' : Fin (2 * w + 1))
       show h.val + 1 ≤ h.val + 1 ∧ h.val ≤ h.val + 1 + 1
       omega
 
+/-- A window transition has zero amplitude when its source and target heads are at least two
+cells apart. -/
 private theorem windowStep_zero_of_far {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (c d : WindowCfg w Q Bool)
     (hfar : d.head.val + 2 ≤ c.head.val ∨ c.head.val + 2 ≤ d.head.val) :
@@ -182,6 +231,8 @@ private theorem windowStep_zero_of_far {Q : Type} [Fintype Q] [DecidableEq Q] {w
   obtain ⟨h1, h2⟩ := moveCell_dist dd d.head c.head hmove
   omega
 
+/-- Evolution from a configuration with centered head has zero amplitude outside the head light
+cone of radius equal to the step count. -/
 private theorem evolve_headCone {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (i : WindowCfg w Q Bool) (hi : i.head.val = w) :
     ∀ (t : ℕ) (c : WindowCfg w Q Bool),
@@ -216,6 +267,8 @@ private theorem evolve_headCone {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
       rw [hzero, zero_mul]
     · rw [ih d hcone, mul_zero]
 
+/-- Flipping a cell away from the source head can be transferred between the source and target
+of a window transition without changing its amplitude. -/
 private theorem windowStep_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (j₀ : Fin (2 * w + 1)) (c e : WindowCfg w Q Bool)
     (hj : e.head ≠ j₀) :
@@ -275,6 +328,8 @@ private theorem windowStep_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
       fun hcond => hmove ⟨hcond.1, hcond.2.1, tapeImp' b hcond.2.2⟩
     rw [if_neg hmove, if_neg hcond2]
 
+/-- Before a distant flipped cell can be reached, the two evolutions have equal amplitudes at
+configurations related by that flip. -/
 private theorem evolve_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (j₀ : Fin (2 * w + 1)) (i i' : WindowCfg w Q Bool)
     (hflip : flipCfg j₀ i = i') (hi : i.head.val = w) :
@@ -334,6 +389,8 @@ private theorem evolve_flip {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
       rw [hzero, mul_zero, mul_zero]
     · rw [windowStep_flip M j₀ c e hj]
 
+/-- Flipping an initially distant tape cell does not change acceptance mass before the head can
+reach that cell. -/
 private theorem acceptMass_lightCone {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (qacc : Q) (j₀ : Fin (2 * w + 1)) (i i' : WindowCfg w Q Bool)
     (hflip : flipCfg j₀ i = i') (hi : i.head.val = w) (t : ℕ) (ht : t < j₀.val - w) :
@@ -351,22 +408,30 @@ private theorem acceptMass_lightCone {Q : Type} [Fintype Q] [DecidableEq Q] {w :
 
 end LightCone
 
+/-- The all-false Boolean input on 730 wires. -/
 private def zeroInput : Reg 730 := fun _ => false
 
+/-- The 730-bit input whose only true bit is at index 729. -/
 private def farInput : Reg 730 := fun i => if i = ⟨729, by omega⟩ then true else false
 
+/-- Every bit of `zeroInput` is false. -/
 private theorem zeroInput_eq (i : Fin 730) : zeroInput i = false := rfl
 
+/-- The bit of `farInput` at index 729 is true. -/
 private theorem farInput_self : farInput ⟨729, by omega⟩ = true := by
   rw [farInput]
   exact if_pos rfl
 
+/-- Every bit of `farInput` away from index 729 is false. -/
 private theorem farInput_ne {i : Fin 730} (h : i ≠ ⟨729, by omega⟩) : farInput i = false := by
   rw [farInput, if_neg h]
 
+/-- The register transformation that toggles wire zero under the control of wire 729. -/
 private def cnotPerm : Reg 730 → Reg 730 :=
   fun y => Function.update y ⟨0, by omega⟩ (Bool.xor (y ⟨0, by omega⟩) (y ⟨729, by omega⟩))
 
+/-- Applying the distant controlled-NOT register transformation twice returns the original
+register. -/
 private theorem cnotPerm_involutive : Function.Involutive cnotPerm := by
   intro y
   have hcancel : ∀ a b : Bool, Bool.xor (Bool.xor a b) b = a := by
@@ -391,16 +456,20 @@ private theorem cnotPerm_involutive : Function.Involutive cnotPerm := by
       exact Function.update_of_ne hj _ _
     rw [h0, h1]
 
+/-- A basis ket has zero Born probability at a distinct basis register. -/
 private theorem bornProb_ket_ne {n : ℕ} {z y : Reg n} (h : y ≠ z) : BornProb (Ket z) y = 0 := by
   show ‖(if y = z then (1 : ℂ) else 0)‖ ^ 2 = 0
   rw [if_neg h]
   simp
 
+/-- A basis ket has Born probability one at its own basis register. -/
 private theorem bornProb_ket_self {n : ℕ} (z : Reg n) : BornProb (Ket z) z = 1 := by
   show ‖(if z = z then (1 : ℂ) else 0)‖ ^ 2 = 1
   rw [if_pos rfl]
   simp
 
+/-- Running the permutation matrix of an involutive register map on a basis ket gives the ket of
+its image. -/
 private theorem run_permKet {n : ℕ} (σ : Reg n → Reg n) (_hσ : Function.Involutive σ)
     (x : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) [Step.gate (permMatrix σ)] (Ket x) = Ket (σ x) := by
@@ -431,6 +500,8 @@ private theorem run_permKet {n : ℕ} (σ : Reg n → Reg n) (_hσ : Function.In
 
 set_option maxRecDepth 20000 in
 
+/-- The acceptance probability of a basis ket is one exactly when its first bit is true, and is
+zero otherwise. -/
 private theorem acceptProb_ket {n : ℕ} (hn : 0 < n) (z : Reg n) :
     AcceptProb (Ket z) hn = (if z ⟨0, hn⟩ = true then (1 : ℝ) else 0) := by
   unfold AcceptProb MeasureProb
@@ -450,6 +521,8 @@ private theorem acceptProb_ket {n : ℕ} (hn : 0 < n) (z : Reg n) :
       subst e
       exact hnm hy)
 
+/-- The initialized tape for `farInput` is obtained from that for `zeroInput` by flipping the
+cell at offset 730 from the window center. -/
 private theorem initTape_eq_flip {w : ℕ} (blank : Bool) (j₀ : Fin (2 * w + 1))
     (hj0val : j₀.val = w + 730) :
     ∀ j : Fin (2 * w + 1),
@@ -481,6 +554,8 @@ private theorem initTape_eq_flip {w : ℕ} (blank : Bool) (j₀ : Fin (2 * w + 1
       rw [hfar, zeroInput_eq]
     · rw [dif_neg hreg, if_neg hj, dif_neg hreg]
 
+/-- The head-stay simulation specification is false, as witnessed by the distant-bit light-cone
+obstruction. -/
 theorem clause1_headStaySimulationSpec_lightCone_false : ¬ HeadStaySimulationSpec := by
   intro hspec
   have hunit : IsUnitaryCircuit [Step.gate (permMatrix cnotPerm)] :=
@@ -530,6 +605,8 @@ theorem clause1_headStaySimulationSpec_lightCone_false : ¬ HeadStaySimulationSp
 
 set_option maxRecDepth 20000 in
 
+/-- A single controlled-NOT operation maps a basis ket to the ket obtained by toggling the
+target by the control bit. -/
 private theorem run_dLambdaCnot (i j : Fin 730) (x : Reg 730) :
     Run (1 : Matrix (Reg 730) (Reg 730) ℂ) (dLambdaCircuit [DLambdaOp.cnot i j]) (Ket x)
       = Ket (Function.update x j (Bool.xor (x j) (x i))) := by
@@ -556,6 +633,8 @@ private theorem run_dLambdaCnot (i j : Fin 730) (x : Reg 730) :
     rw [if_pos rfl, mul_one]
   exact hstep
 
+/-- The stated `DLambdaCorrespondence` specification is false because its time bound cannot
+support the distant controlled-NOT acceptance behavior. -/
 theorem clause2_dLambdaCorrespondence_lightCone_false : ¬ DLambdaCorrespondence := by
   intro hcorr
   obtain ⟨_h1, h2, _h3⟩ := hcorr

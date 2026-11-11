@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
 import Qatlib.Papers.AdversarySrch07.MainResults.XiSequence.XiConvolution
+
+/-!
+# Explicit ordered-search adversary weights
+
+Defines the even and odd weight sequences `gammaEven` and `gammaOdd`, the Toeplitz matrix
+construction, and their objective values from [ChildsLee2008]. Monotonicity of the correlation
+sums `AM` gives nonnegativity of both weight sequences.
+
+Telescoping and triangular-sum identities evaluate the objectives and establish
+`eigen_identity`, the correlation identity used in the even-size eigenvector calculation.
+
+## Main statements
+
+* `gammaEven_nonneg`: Proves nonnegativity of the even weight sequence.
+* `objective_gammaEven`: Evaluates the even objective as `2 * AM m 0`.
+* `objective_gammaOdd`: Evaluates the odd objective as `AM (m + 1) 0 + AM m 0`.
+* `eigen_identity`: Proves the weighted correlation identity producing `xi j`.
+
+## References
+
+* [Childs and Lee, 2008][ChildsLee2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,15 +43,19 @@ namespace Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound
 open Qatlib.Papers.AdversarySrch07.MainResults
 open Qatlib.Papers.AdversarySrch07.MainResults.XiSequence
 
+/-- The zero-shift correlation `AM m 0` is the sum of `xi i ^ 2` over `i < m`. -/
 theorem AM_zero (m : ℕ) : AM m 0 = ∑ i ∈ Finset.range m, xi i ^ 2 := by
   unfold AM
   simp only [Nat.sub_zero, Nat.add_zero, pow_two]
 
+/-- The truncated correlation `AM m j` is zero when `m ≤ j`. -/
 theorem AM_eq_zero {m j : ℕ} (h : m ≤ j) : AM m j = 0 := by
   unfold AM
   rw [Nat.sub_eq_zero_of_le h]
   simp
 
+/-- Increasing the shift by one and omitting the final summand cannot increase the finite `xi`
+correlation sum. -/
 theorem xi_corr_antitone (k j : ℕ) :
     ∑ i ∈ Finset.range k, xi i * xi (i + (j + 1)) ≤
       ∑ i ∈ Finset.range (k + 1), xi i * xi (i + j) := by
@@ -47,6 +74,8 @@ theorem xi_corr_antitone (k j : ℕ) :
       (mul_nonneg (le_of_lt (xi_pos _)) (le_of_lt (xi_pos _)))
   exact hterm.trans hstep2
 
+/-- For fixed `m`, the correlation `AM m j` is nonincreasing in the shift `j`. See
+[ChildsLee2008]. -/
 theorem AM_antitone (m j : ℕ) : AM m (j + 1) ≤ AM m j := by
   by_cases h : j + 1 ≤ m
   · unfold AM
@@ -56,41 +85,56 @@ theorem AM_antitone (m j : ℕ) : AM m (j + 1) ≤ AM m j := by
   · have hle : m ≤ j := by omega
     rw [AM_eq_zero (by omega : m ≤ j + 1), AM_eq_zero hle]
 
+/-- The last nonempty shifted correlation satisfies `AM (m + 1) m = xi m`. See [ChildsLee2008]. -/
 theorem AM_succ_diag (m : ℕ) : AM (m + 1) m = xi m := by
   unfold AM
   rw [show m + 1 - m = 1 by omega, Finset.sum_range_one]
   simp
 
+/-- The ordered-search objective `γ n + 2 * ∑ i < n - 1, γ (i + 1)`. See [ChildsLee2008]. -/
 noncomputable def objective (n : ℕ) (γ : ℕ → ℝ) : ℝ :=
   γ n + 2 * ∑ i ∈ Finset.range (n - 1), γ (i + 1)
 
+/-- The finite sum of successive differences `f i - f (i + 1)` equals `f 0 - f n`. -/
 theorem sum_range_telescope (f : ℕ → ℝ) (n : ℕ) :
     ∑ i ∈ Finset.range n, (f i - f (i + 1)) = f 0 - f n := by
   induction n with
   | zero => simp
   | succ k ih => rw [Finset.sum_range_succ, ih]; ring
 
+/-- The even adversary weights `AM m (i - 1) - AM m i`, using natural subtraction at the index. -/
 noncomputable def gammaEven (m : ℕ) (i : ℕ) : ℝ := AM m (i - 1) - AM m i
 
+/-- The odd adversary weights, obtained by averaging successive correlation differences at sizes
+`m + 1` and `m`. -/
 noncomputable def gammaOdd (m : ℕ) (i : ℕ) : ℝ :=
   ((AM (m + 1) (i - 1) - AM (m + 1) i) + (AM m (i - 1) - AM m i)) / 2
 
+/-- The real Toeplitz matrix whose `(i, j)` entry is `γ (n - |i - j|)`. See [ChildsLee2008]. -/
 def toeplitz (n : ℕ) (γ : ℕ → ℝ) : Matrix (Fin n) (Fin n) ℝ :=
   fun i j => γ (n - Int.natAbs ((i.val : ℤ) - (j.val : ℤ)))
 
+/-- The even vector obtained by reflecting the first `m` terms of `xi` into a vector of length
+`2 * m`. -/
 noncomputable def uEven (m : ℕ) : Fin (2 * m) → ℝ :=
   fun k => if k.val < m then xi k.val else xi (2 * m - 1 - k.val)
 
+/-- The odd vector obtained by reflecting the first `m + 1` terms of `xi` into a vector of
+length `2 * m + 1`. -/
 noncomputable def uOdd (m : ℕ) : Fin (2 * m + 1) → ℝ :=
   fun k => if k.val ≤ m then xi k.val else xi (2 * m - k.val)
 
+/-- At index `i + 1`, the even weight is `AM m i - AM m (i + 1)`. -/
 theorem gammaEven_apply_succ (m i : ℕ) : gammaEven m (i + 1) = AM m i - AM m (i + 1) := by
   unfold gammaEven; rw [Nat.add_sub_cancel]
 
+/-- At index `i + 1`, the odd weight is the average of the successive correlation differences
+for `m + 1` and `m`. -/
 theorem gammaOdd_apply_succ (m i : ℕ) :
     gammaOdd m (i + 1) = ((AM (m + 1) i - AM (m + 1) (i + 1)) + (AM m i - AM m (i + 1))) / 2 := by
   unfold gammaOdd; rw [Nat.add_sub_cancel]
 
+/-- Every even adversary weight `gammaEven m i` is nonnegative. See [ChildsLee2008]. -/
 theorem gammaEven_nonneg (m i : ℕ) : 0 ≤ gammaEven m i := by
   unfold gammaEven
   rcases Nat.eq_zero_or_pos i with hi | hi
@@ -100,6 +144,7 @@ theorem gammaEven_nonneg (m i : ℕ) : 0 ≤ gammaEven m i := by
       have := AM_antitone m (i - 1); rwa [hpred] at this
     linarith
 
+/-- Every odd adversary weight `gammaOdd m i` is nonnegative. See [ChildsLee2008]. -/
 theorem gammaOdd_nonneg (m i : ℕ) : 0 ≤ gammaOdd m i := by
   unfold gammaOdd
   have h1 : 0 ≤ AM (m + 1) (i - 1) - AM (m + 1) i := by
@@ -118,6 +163,7 @@ theorem gammaOdd_nonneg (m i : ℕ) : 0 ≤ gammaOdd m i := by
       linarith
   linarith
 
+/-- The even objective at size `2 * m` equals `2 * AM m 0`. See [ChildsLee2008]. -/
 theorem objective_gammaEven (m : ℕ) :
     objective (2 * m) (gammaEven m) = 2 * AM m 0 := by
   have hlast : gammaEven m (2 * m) = 0 := by
@@ -134,6 +180,8 @@ theorem objective_gammaEven (m : ℕ) :
   have hzero : AM m (2 * m - 1) = 0 := AM_eq_zero (by omega)
   rw [hzero]; ring
 
+/-- For `m ≥ 1`, the odd objective at size `2 * m + 1` equals `AM (m + 1) 0 + AM m 0`. See
+[ChildsLee2008]. -/
 theorem objective_gammaOdd (m : ℕ) (hm : 1 ≤ m) :
     objective (2 * m + 1) (gammaOdd m) = AM (m + 1) 0 + AM m 0 := by
   have hlast : gammaOdd m (2 * m + 1) = 0 := by
@@ -157,6 +205,8 @@ theorem objective_gammaOdd (m : ℕ) (hm : 1 ≤ m) :
   have hz2 : AM m (2 * m) = 0 := AM_eq_zero (by omega)
   rw [hz1, hz2]; ring
 
+/-- Splits the antidiagonal sum at its initial term and reindexes the remaining terms by
+shifting the first index. -/
 theorem inner_split (g : ℕ → ℕ → ℝ) (s : ℕ) :
     ∑ i ∈ Finset.range (s + 1 + 1), g i (s + 1 - i)
       = g 0 (s + 1) + ∑ i ∈ Finset.range (s + 1), g (i + 1) (s - i) := by
@@ -164,6 +214,8 @@ theorem inner_split (g : ℕ → ℕ → ℝ) (s : ℕ) :
   simp only [Nat.succ_sub_succ_eq_sub, Nat.sub_zero]
   rw [add_comm]
 
+/-- Reindexes the triangular sum over `i + k < N` as a sum over antidiagonals `s < N` with
+entries `g i (s - i)`. -/
 theorem sum_triangle (N : ℕ) : ∀ g : ℕ → ℕ → ℝ,
     (∑ i ∈ Finset.range N, ∑ k ∈ Finset.range (N - i), g i k)
       = ∑ s ∈ Finset.range N, ∑ i ∈ Finset.range (s + 1), g i (s - i) := by
@@ -188,6 +240,8 @@ theorem sum_triangle (N : ℕ) : ∀ g : ℕ → ℕ → ℝ,
       ring
     rw [hL, hR, ih (fun i k => g (i + 1) k)]
 
+/-- For `j < m`, the sum of `AM m (i + j) * xi i` over `i < m - j` equals the sum of `xi (s +
+j)` over the same range. -/
 theorem corr_sum_shift (m j : ℕ) (_hj : j < m) :
     ∑ i ∈ Finset.range (m - j), AM m (i + j) * xi i
       = ∑ s ∈ Finset.range (m - j), xi (s + j) := by
@@ -211,6 +265,8 @@ theorem corr_sum_shift (m j : ℕ) (_hj : j < m) :
     ring
   rw [Finset.sum_congr rfl hfac, ← Finset.mul_sum, source_proposition_four s]; ring
 
+/-- For `j < m`, the sum of `AM m (i + j + 1) * xi i` over `i < m - j` equals the sum of `xi (s
++ j + 1)` over `s < m - j - 1`. -/
 theorem corr_sum_shift_succ (m j : ℕ) (hj : j < m) :
     ∑ i ∈ Finset.range (m - j), AM m (i + j + 1) * xi i
       = ∑ s ∈ Finset.range (m - j - 1), xi (s + j + 1) := by
@@ -243,6 +299,8 @@ theorem corr_sum_shift_succ (m j : ℕ) (hj : j < m) :
     ring
   rw [Finset.sum_congr rfl hfac, ← Finset.mul_sum, source_proposition_four s]; ring
 
+/-- For `j < m`, the sum of `(AM m (i + j) - AM m (i + j + 1)) * xi i` over `i < m - j` equals
+`xi j`. See [ChildsLee2008]. -/
 theorem eigen_identity (m j : ℕ) (hj : j < m) :
     ∑ i ∈ Finset.range (m - j), (AM m (i + j) - AM m (i + j + 1)) * xi i = xi j := by
   have hsub : ∑ i ∈ Finset.range (m - j), (AM m (i + j) - AM m (i + j + 1)) * xi i

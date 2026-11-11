@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTFrobeniusOversampledRecordsStat
+
+/-!
+# Frobenius guarantees for oversampled SVT records
+
+This module proves `evenSVTFrobeniusOversampledRecords`, the Frobenius accuracy guarantee for
+the output of an oversampled even-SVT run. It combines row and conditional-column concentration
+events under the explicit error budgets of the sampling-based framework in [ChiaEtAl2022].
+
+## Main statements
+
+* `evenSVTFrobeniusOversampledRecords`: Under the specified domination, spectral regularity, and
+  error budgets, an oversampled even-SVT run has Frobenius error greater than `ε` with
+  probability at most `δ`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -24,12 +43,15 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Hermitian functional calculus is unchanged when its matrix argument is replaced by an equal
+Hermitian matrix. -/
 private theorem oversampled_function_congr {I : Type} [Fintype I] [DecidableEq I]
     {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ)
     (h : A = B) : hermitianFunction A hA f = hermitianFunction B hB f := by
   subst B
   rfl
 
+/-- The probability of a union of two sample events is at most the sum of their probabilities. -/
 private theorem oversampled_event_union {K : Type} [Fintype K] [DecidableEq K]
     (q : FinDist K) (r : ℕ) (P S : (Fin r → K) → Prop) :
     q.probEvent (fun v => P v ∨ S v) ≤ q.probEvent P + q.probEvent S := by
@@ -40,6 +62,9 @@ private theorem oversampled_event_union {K : Type} [Fintype K] [DecidableEq K]
   have hn : 0 ≤ q.probOf v := Finset.prod_nonneg fun _ _ => q.nonneg _
   by_cases hp : P v <;> by_cases hs : S v <;> simp [hp, hs, hn]
 
+/-- Under the specified domination, spectral regularity, and error budgets, an oversampled
+even-SVT run has Frobenius error greater than `ε` with probability at most `δ`. See
+[ChiaEtAl2022]. -/
 theorem evenSVTFrobeniusOversampledRecords : EvenSVTFrobeniusOversampledRecords := by
   classical
   intro K C _ _ _ _ A r c f fbar L Lbar d ε δ η₁ η₂ φrow φcol qs condQ

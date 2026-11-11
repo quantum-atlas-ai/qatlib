@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
 import Qatlib.Papers.NonAbelianHSP01.MainResults.CommutatorExtraSpecial
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
+
+/-!
+# Extra-special hidden-subgroup reduction
+
+Specializes the supplied-generator reduction to `IsExtraSpecial p G`. The result
+`corollary_twelve` combines the center-cardinality and commutative-quotient facts with a
+hidden-subgroup solution whose ledger satisfies `PolyBoundedIn B p`. See
+[IvanyosMagniezSantha2003] for the surrounding analysis.
+
+## Main statements
+
+* `corollary_twelve`: Given the stated generators, lifts into `I.H`, and ledger bound for an
+  extra-special group, the center has cardinality `p`, the quotient by the commutator is
+  commutative, and a hidden-subgroup solution exists with cost satisfying `PolyBoundedIn B p`.
+
+## References
+
+* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +36,10 @@ namespace Qatlib.Papers.NonAbelianHSP01.MainResults.Claims
 
 open scoped IsMulCommutative
 
+/-- Given the stated generators, lifts into `I.H`, and ledger bound for an extra-special group,
+the center has cardinality `p`, the quotient by the commutator is commutative, and a
+hidden-subgroup solution exists with cost satisfying `PolyBoundedIn B p`
+[IvanyosMagniezSantha2003]. -/
 theorem corollary_twelve {G : Type*} [Group G] (B : BlackBoxGroupData G) {p : ℕ}
     (hp : IsExtraSpecial p G) {X : Type*} (I : HiddenSubgroupInstance G X)
     (S : Finset G) (hS : Subgroup.closure (S : Set G) = I.H ⊔ commutator G)

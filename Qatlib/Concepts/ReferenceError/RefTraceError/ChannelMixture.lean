@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ReferenceError.RefTraceError.MixedStateChannels
 import Qatlib.Foundations.PureStateMath.MixedState
+
+/-!
+# Finite mixtures of conjugation maps
+
+This module defines `ChannelMixture` as a finite probability-weighted sum of conjugations. It
+proves linearity and shows that unitary branches preserve trace and map density operators to
+density operators, following the standard mixed-unitary channel construction in [Watrous2018].
+
+## Main statements
+
+* `channelMixture_add` and `channelMixture_smul`: linearity in the matrix input.
+* `trace_channelMixture`: trace preservation for unitary branches.
+* `channelMixture_maps_density`: preservation of density operators.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -16,15 +35,19 @@ namespace Qatlib.Concepts.ReferenceError.RefTraceError
 open scoped ComplexOrder
 open Matrix
 
+/-- The finite probability-weighted sum of conjugations `ρ ↦ U j*ρ*(U j)ᴴ`. -/
 noncomputable def ChannelMixture {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (d : FinDist J) (U : J → Matrix I I ℂ) : Matrix I I ℂ → Matrix I I ℂ :=
   fun ρ => ∑ j, (d.prob j : ℂ) • (U j * ρ * (U j)ᴴ)
 
+/-- Each entry of a conjugation mixture is the corresponding probability-weighted sum of branch
+entries. -/
 theorem channelMixture_apply {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (d : FinDist J) (U : J → Matrix I I ℂ) (ρ : Matrix I I ℂ) (a b : I) :
     ChannelMixture d U ρ a b = ∑ j, (d.prob j : ℂ) * (U j * ρ * (U j)ᴴ) a b := by
   simp only [ChannelMixture, Matrix.sum_apply, Matrix.smul_apply, smul_eq_mul]
 
+/-- A conjugation mixture preserves addition of input matrices. -/
 theorem channelMixture_add {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (d : FinDist J) (U : J → Matrix I I ℂ) (ρ σ : Matrix I I ℂ) :
     ChannelMixture d U (ρ + σ) = ChannelMixture d U ρ + ChannelMixture d U σ := by
@@ -35,6 +58,7 @@ theorem channelMixture_add {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
   exact Finset.sum_congr rfl fun j _ => by
     rw [Matrix.mul_add, Matrix.add_mul, smul_add]
 
+/-- A conjugation mixture preserves complex scalar multiplication of the input. -/
 theorem channelMixture_smul {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (d : FinDist J) (U : J → Matrix I I ℂ) (c : ℂ) (ρ : Matrix I I ℂ) :
     ChannelMixture d U (c • ρ) = c • ChannelMixture d U ρ := by
@@ -44,6 +68,7 @@ theorem channelMixture_smul {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I
   exact Finset.sum_congr rfl fun j _ => by
     rw [mul_smul_comm, smul_mul_assoc, smul_comm]
 
+/-- A probability mixture of unitary conjugations preserves matrix trace. -/
 theorem trace_channelMixture {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Matrix (Fin D) (Fin D) ℂ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : Matrix (Fin D) (Fin D) ℂ) :
@@ -67,6 +92,7 @@ theorem trace_channelMixture {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     _ = Matrix.trace ρ := by
         rw [← Complex.ofReal_sum, d.sum_one, Complex.ofReal_one, one_mul]
 
+/-- A probability mixture of unitary conjugations maps density operators to density operators. -/
 theorem channelMixture_maps_density {J : Type*} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (U : J → Matrix (Fin D) (Fin D) ℂ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)

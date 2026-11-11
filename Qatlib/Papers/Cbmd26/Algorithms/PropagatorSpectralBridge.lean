@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
 import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
+
+/-!
+# Spectral Series for Wave and Bessel Propagators
+
+`hermitian_scalar_series` identifies a scalar power series applied through `hermitianFunction`
+with the corresponding series of powers of a scaled Hermitian matrix. Its summability assumption
+is imposed at each eigenvalue of `orderedHermitianValues`.
+
+The wave and Bessel specializations connect the spectral functions used by QSVT to the matrix
+power-series propagators `wavePropagator` and `besselPropagator`, supporting the second-order
+CBMD algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `scalar_power_term_spectral` expresses each scaled matrix-power term in the ordered Hermitian
+  eigenbasis.
+* `hermitian_scalar_series` exchanges the finite-dimensional spectral map with a summable scalar
+  series.
+* `wave_hermitian_function_eq_series` and `bessel_hermitian_function_eq_series` identify the
+  spectral and matrix-series definitions of the propagators.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -36,6 +62,8 @@ namespace CBMD
 open Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Expresses `c • (b • A) ^ n` as the spectral diagonal of `c * (b * x) ^ n` in the ordered
+eigenbasis of a Hermitian matrix `A`. -/
 private theorem scalar_power_term_spectral (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (c b : ℂ) (n : ℕ) :
     c • (b • A) ^ n = spectralDiagonal (orderedHermitianBasis hA)
@@ -45,6 +73,8 @@ private theorem scalar_power_term_spectral (I : Type) [Fintype I] [DecidableEq I
   simpa only [map_mul, map_pow, aeval_C, aeval_X, eval_mul, eval_pow, eval_C,
     eval_X, Algebra.algebraMap_eq_smul_one, smul_mul_assoc, one_mul] using h
 
+/-- For a scalar power series summable at every scaled eigenvalue of a Hermitian matrix,
+spectral evaluation equals the sum of the corresponding scaled matrix powers. -/
 theorem hermitian_scalar_series (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (c : ℕ → ℂ) (b : ℂ)
     (hc : ∀ i, Summable (fun n => c n * (b * (orderedHermitianValues hA i : ℂ)) ^ n)) :
@@ -78,6 +108,8 @@ theorem hermitian_scalar_series (I : Type) [Fintype I] [DecidableEq I]
   intro n
   exact (scalar_power_term_spectral I A hA (c n) b n).symm
 
+/-- Applying the scalar wave propagator spectrally to a Hermitian matrix equals the
+matrix-series wave propagator of `b • A`. -/
 theorem wave_hermitian_function_eq_series (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (b t : ℂ) :
     hermitianFunction A hA (fun x => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator (b * (x : ℂ)) t) =
@@ -89,6 +121,8 @@ theorem wave_hermitian_function_eq_series (I : Type) [Fintype I] [DecidableEq I]
   simpa only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator, smul_eq_mul,
       smul_smul, mul_assoc] using h
 
+/-- Applying the scalar Bessel propagator spectrally to a Hermitian matrix equals the
+matrix-series Bessel propagator of `b • A`. -/
 theorem bessel_hermitian_function_eq_series (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (b t : ℂ) :
     hermitianFunction A hA (fun x => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator (b * (x : ℂ)) t) =

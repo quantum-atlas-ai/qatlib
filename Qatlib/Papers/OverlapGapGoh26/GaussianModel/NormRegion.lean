@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawPath
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
+
+/-!
+# High probability norm regions for Gaussian inputs
+
+`normScale_inputPath` controls the tensor norm along an interpolated input by the endpoint
+bounds. The positive threshold `normBound` defines `pairRegion`, whose complement has Gaussian
+probability at most `4 exp(-N)`, supplying a region for uniform path estimates in the analysis
+associated with [GohMuller2026].
+
+## Main statements
+
+* `normScale_inputPath`: For `τ ∈ [0,1]`, if both endpoint norm scales are at most `K`, then the
+  interpolated input has norm scale at most `2K`.
+* `normBound_tail`: For positive `r` and `N`, the probability that `normScale` exceeds
+  `normBound r` is at most `2 exp(-N)`.
+* `pairRegion_failure`: For positive `r` and `N`, an independent standard Gaussian input pair
+  lies outside `pairRegion` with probability at most `4 exp(-N)`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,10 +49,13 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianModel.NormRegion
 
+/-- Passing from a tensor to its continuous multilinear form preserves real linear combinations. -/
 theorem tensorForm_linear {q N : ℕ} (a b : ℝ) (A B : Tensor q N) :
     tensorForm (fun k => a*A k+b*B k)=a•tensorForm A+b•tensorForm B := by
   simp only [tensorForm,add_smul,mul_smul,Finset.sum_add_distrib,Finset.smul_sum]
 
+/-- For `τ ∈ [0,1]`, if both endpoint norm scales are at most `K`, then the interpolated input
+has norm scale at most `2K`. -/
 theorem normScale_inputPath {r N : ℕ} (x y : Input r N) (K : ℝ)
     (hx : normScale x≤K) (hy : normScale y≤K) (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) :
     normScale (inputPath x y τ)≤2*K := by
@@ -57,13 +83,18 @@ theorem normScale_inputPath {r N : ℕ} (x y : Input r N) (K : ℝ)
     _ ≤ a*K+b*K := add_le_add (mul_le_mul_of_nonneg_left hx ha) (mul_le_mul_of_nonneg_left hy hb)
     _ ≤ _ := by nlinarith
 
+/-- The normalized tensor norm scale is measurable on the Gaussian input space. -/
 theorem normScale_measurable (r N : ℕ) : Measurable (normScale (r:=r) (N:=N)) :=
   (normalizedNorm_continuous r N).measurable.comp (actual_tensor_preserving r N).measurable
 
+/-- The positive degree dependent bound `1 + |goodNormConstant r|`. -/
 def normBound (r : ℕ) : ℝ := 1+|goodNormConstant r|
 
+/-- The bound `normBound r` is strictly positive. -/
 theorem normBound_pos (r : ℕ) : 0 < normBound r := by unfold normBound; positivity
 
+/-- For positive `r` and `N`, the probability that `normScale` exceeds `goodNormConstant r` is
+at most `2 exp(-N)`. -/
 theorem normScale_good_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) :
     (stdGaussian (Input r N)).real {x | goodNormConstant r < normScale x}≤2*Real.exp (-(N:ℝ)) := by
   have hn : (0:ℝ)<N := by exact_mod_cast hN
@@ -84,6 +115,8 @@ theorem normScale_good_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) :
       congrArg ENNReal.toReal ((actual_tensor_preserving r N).measure_preimage hm.nullMeasurableSet)
   exact he.trans_le ht
 
+/-- For positive `r` and `N`, the probability that `normScale` exceeds `normBound r` is at most
+`2 exp(-N)`. -/
 theorem normBound_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) :
     (stdGaussian (Input r N)).real {x | normBound r < normScale x}≤2*Real.exp (-(N:ℝ)) := by
   refine (measureReal_mono (fun x hx => ?_)).trans (normScale_good_tail hr hN)
@@ -92,9 +125,12 @@ theorem normBound_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) :
   change 1+|goodNormConstant r| < normScale x at hx
   linarith
 
+/-- The set of input pairs whose two normalized tensor norm scales are at most `normBound r`. -/
 def pairRegion (r N : ℕ) : Set (Input r N×Input r N) :=
   {w | normScale w.1≤normBound r ∧ normScale w.2≤normBound r}
 
+/-- For positive `r` and `N`, an independent standard Gaussian input pair lies outside
+`pairRegion` with probability at most `4 exp(-N)`. -/
 theorem pairRegion_failure {r N : ℕ} (hr : 0<r) (hN : 0<N) :
     ((stdGaussian (Input r N)).prod (stdGaussian (Input r N))).real (pairRegion r N)ᶜ≤4*Real.exp (-(N:ℝ)) := by
   have hm : MeasurableSet {x : Input r N | normBound r < normScale x} :=

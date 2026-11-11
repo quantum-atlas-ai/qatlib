@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalToffoli
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Finite words for multiply controlled X
+
+This module recursively constructs `thermalMultiX` from X, CNOT, and the finite Toffoli word,
+using workspace bits initialized to false and restoring them after use. It proves exact action
+on basis states and coherent superpositions, legality with sufficient workspace, rejection with
+insufficient workspace, and gate counts, following the elementary gate perspective of
+[BarencoEtAl1995].
+
+## Main statements
+
+* `thermalMultiX_basis`: the target toggles when all control bits are true.
+* `thermalMultiX_cost`: gives zero queries and the exact elementary gate count.
+* `thermalMultiX_insufficient`: insufficient workspace produces an illegal word.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -17,6 +38,8 @@ namespace Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits
 open Qatlib Matrix
 open scoped BigOperators
 
+/-- The recursive finite gate word for X controlled by `cs`, using workspace `ws`; when more
+than two controls remain without workspace, it emits an illegal self-CNOT code. -/
 def thermalMultiX {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     (ws : List (Fin n)) : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode :=
   match cs,ws with
@@ -30,9 +53,12 @@ def thermalMultiX {n : ℕ} (cs : List (Fin n)) (t : Fin n)
   | _,[] => [.cx t.val t.val]
 termination_by cs.length
 
+/-- The conjunction of the basis bits on all wires in `cs`, with value true for the empty
+control list. -/
 def thermalControl {n : ℕ} (cs : List (Fin n)) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     Bool := cs.all x
 
+/-- Updating a wire outside the control list does not change `thermalControl`. -/
 private theorem control_update {n : ℕ} (cs : List (Fin n)) (x : Qatlib.Foundations.PureStateMath.Reg n)
     (w : Fin n) (b : Bool) (hne : w ∉ cs) :
     thermalControl cs (Function.update x w b) = thermalControl cs x := by
@@ -47,6 +73,8 @@ private theorem control_update {n : ℕ} (cs : List (Fin n)) (x : Qatlib.Foundat
   · intro h c hc
     simpa only [he c hc] using h c hc
 
+/-- Distinctness of the original controls, target, and workspace implies distinctness after
+replacing the first two controls by the first workspace wire. -/
 private theorem move_scratch {n : ℕ} (a b w t : Fin n) (cs ws : List (Fin n))
     (hn : (a::b::cs ++ t::w::ws).Nodup) :
     (w::cs ++ t::ws).Nodup := by
@@ -55,6 +83,7 @@ private theorem move_scratch {n : ℕ} (a b w t : Fin n) (cs ws : List (Fin n))
     simpa [List.append_assoc] using (List.perm_middle (a:=w) (l₁:=cs++[t]) (l₂:=ws))
   exact hp.nodup_iff.mp ht
 
+/-- Running a single X gate on a basis state negates the target bit. -/
 private theorem x_run {n : ℕ} (t : Fin n) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n [.x t.val])
       (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t (!x t)) := by
@@ -65,6 +94,8 @@ private theorem x_run {n : ℕ} (t : Fin n) (x : Qatlib.Foundations.PureStateMat
       x t <;> simp
       [Qatlib.Foundations.PureStateMath.PauliX,Qatlib.Foundations.PureStateMath.permMatrix]
 
+/-- For distinct control and target wires, running a CNOT on a basis state XORs the control bit
+into the target. -/
 private theorem cx_run {n : ℕ} (c t : Fin n) (hct : c ≠ t) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ) (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n [.cx c.val t.val])
       (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t (x t ^^ x c)) := by
@@ -74,6 +105,8 @@ private theorem cx_run {n : ℕ} (c t : Fin n) (hct : c ≠ t) (x : Qatlib.Found
       ⟨c.isLt,t.isLt,hct'⟩)]
   exact Qatlib.Concepts.GateVocabulary.LocalReflectionGates.applyGate_cnotGate_ket n c t hct x
 
+/-- For three distinct wires, the finite Toffoli word XORs the conjunction of the two control
+bits into the target bit. -/
 private theorem tof_run {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t)
     (hbt : b ≠ t) (x : Qatlib.Foundations.PureStateMath.Reg n) :
     Qatlib.Foundations.QueryWordCore.Circuit.Run (1 : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ)
@@ -83,6 +116,9 @@ private theorem tof_run {n : ℕ} (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t
   rw [thermalToffoliWord_compile n a b t hab hat hbt]
   exact (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.local_toffoli_fifteen_exact n a b t hab hat hbt).2.2 x
 
+/-- For distinct control, target, and workspace wires with `cs.length ≤ ws.length + 2` and
+workspace initially false, the word toggles only `t` by the conjunction `thermalControl cs
+x`. -/
 theorem thermalMultiX_basis {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (hn : (cs ++ t::ws).Nodup) (hlen : cs.length ≤ ws.length+2)
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hclean : ∀ w∈ws,x w=false) :
@@ -156,6 +192,8 @@ theorem thermalMultiX_basis {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List
         | nil => exact (h2 a b rfl).elim
         | cons c cs => simp only [List.length_cons,List.length_nil] at hlen; omega
 
+/-- The finite Toffoli word is legal when its two controls and target are distinct wires of type
+`Fin n`. -/
 private theorem tof_legal {n : ℕ} (a b t : Fin n) (hab : a ≠ b)
     (hat : a ≠ t) (hbt : b ≠ t) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal n (thermalToffoliWord a.val b.val t.val) = true := by
@@ -165,6 +203,8 @@ private theorem tof_legal {n : ℕ} (a b t : Fin n) (hab : a ≠ b)
   simp [thermalToffoliWord,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeLegal,a.isLt,b.isLt,t.isLt,
     hab',hat',hbt']
 
+/-- The multiply controlled X word is legal when the listed control, target, and workspace wires
+are distinct and `cs.length ≤ ws.length + 2`. -/
 theorem thermalMultiX_legal {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (hn : (cs ++ t::ws).Nodup) (hlen : cs.length ≤ ws.length+2) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal n (thermalMultiX cs t ws) = true := by
@@ -197,6 +237,8 @@ theorem thermalMultiX_legal {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List
         | nil => exact (h2 a b rfl).elim
         | cons c cs => simp only [List.length_cons,List.length_nil] at hlen; omega
 
+/-- With `cs.length ≤ ws.length + 2`, the word has zero queries and gate count one for at most
+one control, otherwise `15 * (2 * cs.length - 3)`. -/
 theorem thermalMultiX_cost {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (hlen : cs.length ≤ ws.length+2) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit n (thermalMultiX cs t ws)) =
@@ -228,6 +270,8 @@ theorem thermalMultiX_cost {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List 
         | nil => exact (h2 a b rfl).elim
         | cons c cs => simp only [List.length_cons,List.length_nil] at hlen; omega
 
+/-- For distinct listed wires and sufficient workspace, the word acts on a state supported on
+false workspace by XORing `thermalControl cs x` into `t` in each basis component. -/
 theorem thermalMultiX_coherent {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (hn : (cs ++ t::ws).Nodup) (hlen : cs.length ≤ ws.length+2) (psi : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg n))
     (hclean : ∀ x : Qatlib.Foundations.PureStateMath.Reg n, (¬∀ w∈ws,x w=false) → psi x=0) :
@@ -248,6 +292,7 @@ theorem thermalMultiX_coherent {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : L
     exact congrArg (fun v => psi x • v) hb
   · simp only [hclean x hc,zero_smul]
 
+/-- If `ws.length + 2 < cs.length`, the generated multiply controlled X word is illegal. -/
 theorem thermalMultiX_insufficient {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     (ws : List (Fin n)) (hshort : ws.length+2 < cs.length) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal n (thermalMultiX cs t ws) = false := by
@@ -269,6 +314,8 @@ theorem thermalMultiX_insufficient {n : ℕ} (cs : List (Fin n)) (t : Fin n)
         | nil => exact (h2 a b rfl).elim
         | cons c cs => simp [thermalMultiX,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal,Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeLegal]
 
+/-- For distinct listed wires, sufficient workspace, and workspace initially false,
+`finiteWordRun` returns the basis state with only `t` XORed by `thermalControl cs x`. -/
 theorem thermalMultiX_public {n : ℕ} (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (hn : (cs ++ t::ws).Nodup) (hlen : cs.length ≤ ws.length+2)
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hclean : ∀ w∈ws,x w=false) :

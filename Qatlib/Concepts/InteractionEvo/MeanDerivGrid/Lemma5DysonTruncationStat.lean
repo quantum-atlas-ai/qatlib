@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonAuxiliary
+
+/-!
+# Statement of the Dyson truncation error budget
+
+`Lemma5DysonTruncation` packages the hypotheses for a truncated Dyson grid sum to approximate
+ordered evolution within ε. Its discretization budget combines a quadratic Hamiltonian term with
+the integral of the derivative norm, while its truncation budget is a factorial tail. These
+estimates support the interaction-picture simulation analysis of [LowWiebe2018].
+
+## Main statements
+
+* `Lemma5DysonTruncation`: the split-budget error proposition.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,9 @@ namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that a short-time, continuously differentiable Hermitian Hamiltonian has
+total Dyson grid error at most ε when its discretization and factorial tail terms are each
+at most ε/2. -/
 def Lemma5DysonTruncation : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (H Hd : ℝ → Matrix I I ℂ) (t Λ ε : ℝ) (K M : ℕ),
     Continuous H → Continuous Hd →

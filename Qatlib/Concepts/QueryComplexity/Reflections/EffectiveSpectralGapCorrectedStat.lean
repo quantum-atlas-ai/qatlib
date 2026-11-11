@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapContracts
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Nonzero-witness effective-gap contract
+
+Defines `EffectiveSpectralGapCorrected`, requiring a nonzero vector annihilated by `Bᴴ` and a
+positive lower bound on its squared target overlap relative to its squared norm. Every complete
+orthonormal eigenframe then satisfies the asserted low-energy root-mass estimate.
+
+This proposition records the corrected witness hypothesis for the effective-gap argument of
+[Reichardt2011].
+
+## Main statements
+
+* `EffectiveSpectralGapCorrected`: states the root spectral-mass bound `8 * γ^2 / δ` with a
+  nonzero kernel witness.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -13,6 +34,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 
+/-- The effective spectral-gap contract with a nonzero witness in the kernel of `Bᴴ`, bounding
+root mass at energies at most `γ` by `8 * γ^2 / δ`. -/
 def EffectiveSpectralGapCorrected : Prop :=
   ∀ (T U : Type) [Fintype T] [DecidableEq T] [Fintype U] [DecidableEq U]
     (B : Matrix T U ℂ) (t ψ : QState T) (δ : ℝ),

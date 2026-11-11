@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridHHLConsumers
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Spectral pseudoinverses for Hermitian systems
+
+This module expresses the pseudoinverse of a unitarily diagonalized real-spectrum matrix by
+reciprocating its eigenvalues, with zero eigenvalues remaining zero. The matrix-pseudoinverse
+product is the spectral support operator, and applying the pseudoinverse yields a Euclidean
+least-squares solution. Related mathematical background is given in [Bhatia1997].
+
+## Main statements
+
+* `spectralSupport`: Operator selecting the nonzero spectral modes.
+* `singular_hermitian_pseudoinverse_and_least_squares`: Spectral pseudoinverse, support, and
+  least-squares identities.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -25,9 +45,13 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The spectral operator obtained by conjugating the diagonal indicator of nonzero eigenvalues
+by `V`. -/
 noncomputable def spectralSupport {D : ℕ} (eig : Fin D → ℝ) (V : Operator D) : Operator D :=
   V * Matrix.diagonal (fun i => if eig i = 0 then 0 else 1) * Vᴴ
 
+/-- Products of two diagonal matrices conjugated by the same unitary equal the conjugation of
+their pointwise diagonal product. -/
 theorem singular_conj_diagonal_mul {D : ℕ} (w z : Fin D → ℂ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     (V*Matrix.diagonal w*Vᴴ)*(V*Matrix.diagonal z*Vᴴ) =
@@ -38,6 +62,8 @@ theorem singular_conj_diagonal_mul {D : ℕ} (w z : Fin D → ℂ) (V : Operator
       V*(Matrix.diagonal w*((Vᴴ*V)*Matrix.diagonal z))*Vᴴ := by noncomm_ring
   rw [ha, hv, Matrix.one_mul, Matrix.diagonal_mul_diagonal]
 
+/-- The real-spectrum matrix and its reciprocal-eigenvalue candidate inverse multiply in either
+order to the spectral support operator. -/
 theorem singular_hermitian_support_products (D : ℕ) (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     continuousHHLMatrix eig V * (V*Matrix.diagonal (fun i => (eig i:ℂ)⁻¹)*Vᴴ) = spectralSupport eig V ∧
@@ -53,6 +79,10 @@ theorem singular_hermitian_support_products (D : ℕ) (eig : Fin D → ℝ) (V :
   · rw [continuousHHLMatrix, singular_conj_diagonal_mul _ _ V hV]
     simp only [mul_comm, he, spectralSupport]
 
+/-- The pseudoinverse of a unitarily diagonalized real-spectrum matrix is obtained by
+reciprocating its eigenvalues, and its product with the matrix is the spectral support
+operator. Applying this pseudoinverse to any right-hand side gives a Euclidean least-squares
+solution. -/
 theorem singular_hermitian_pseudoinverse_and_least_squares : ∀ (D : ℕ) (eig : Fin D → ℝ) (V : Operator D),
   V ∈ Matrix.unitaryGroup (Fin D) ℂ →
   matrixPseudoinverse (continuousHHLMatrix eig V) =

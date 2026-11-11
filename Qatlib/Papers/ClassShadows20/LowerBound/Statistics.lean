@@ -12,6 +12,27 @@ import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSu
 import Qatlib.Concepts.QuantumGibbs.DetailedBalance.RejectionInstrumentSubgoalQuan
 import Qatlib.Concepts.QuantumGibbs.DetailedBalance.RejectionInstrumentSubgoalStat
 import Mathlib.NumberTheory.Real.Irrational
+
+/-!
+# Finite statistical witnesses
+
+`degree_zero_design_correct` verifies the singleton identity ensemble at degree zero, and
+`no_rat_sq_two` records that no rational number has square two. `clause33` combines finite
+moment and parameter witnesses with tuple and pilot identities, imported statistical
+propositions, and explicit statements separating selected resource counts.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `degree_zero_design_correct`: verifies a degree-zero design in every dimension.
+* `clause33`: assembles the finite statistical and resource propositions.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -41,6 +62,8 @@ open Qatlib.Concepts.MeasureStats.MedianOfMeans Qatlib.Concepts.QuantumGibbs.Det
 open scoped Classical ENNReal BigOperators
 set_option warningAsError false
 
+/-- The singleton identity ensemble is a correct finite design of degree zero in every
+dimension. -/
 theorem degree_zero_design_correct (d : ℕ) :
     FiniteDesign.Correct (⟨1, fun _ => (1 : Operator d), 0⟩ : FiniteDesign d) := by
   refine ⟨?_, ?_⟩
@@ -50,6 +73,7 @@ theorem degree_zero_design_correct (d : ℕ) :
     intro ρ σ _hρ _hσ
     simp [haarOverlapMoment]
 
+/-- No rational number, cast to the reals, has square equal to two. -/
 theorem no_rat_sq_two : nativeRationalNotRealRamSqrt := by
   intro q h
   have habs : Real.sqrt ((q : ℝ) ^ 2) = Real.sqrt 2 := by rw [h]
@@ -60,6 +84,10 @@ theorem no_rat_sq_two : nativeRationalNotRealRamSqrt := by
     exact hq
   exact absurd hcast.symm (irrational_sqrt_two.ne_rat (|q| : ℚ))
 
+/-- Collects finite design and qubit moment witnesses, parameter-record witnesses, tuple and
+pilot identities, and the sharp Pauli variance, median-of-means, and rejection-instrument
+propositions. It also supplies a polynomially bounded resource-record family and proves the
+three stated rational and resource-count distinctions. -/
 theorem clause33 :
 
   (∀ d : ℕ, ∃ D : FiniteDesign d, FiniteDesign.Correct D) ∧

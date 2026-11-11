@@ -50,6 +50,25 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 
+/-!
+# Two-dimensional exact amplification identities
+
+This module computes the action of a two-dimensional phase amplification matrix on real
+normalized amplitudes. It derives the output coefficients, verifies their normalization
+polynomial, and evaluates the cases of zero and one-half good mass. The development follows
+[BrassardHoyer1997].
+
+## Main statements
+
+* `lemma8_grover_output`: computes the two output amplitudes.
+* `lemma8_amplitude_normalised`: proves the polynomial identity for total output mass.
+* `lemma8_at_half`: evaluates the coefficients at good mass one half.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 
@@ -59,16 +78,23 @@ open Matrix
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The two-coordinate complex vector with entries `α` and `β`. -/
 def psiVec (α β : ℂ) : Fin 2 → ℂ := ![α, β]
 
+/-- The diagonal matrix multiplying the first coordinate by `Complex.I` and fixing the second. -/
 def phaseA : Matrix (Fin 2) (Fin 2) ℂ := !![Complex.I, 0; 0, 1]
 
+/-- The matrix `1 + (Complex.I - 1) * ψ ψᵀ`, using `ψ = psiVec α β` and an ordinary transpose
+product. -/
 noncomputable def zeroRefl (α β : ℂ) : Matrix (Fin 2) (Fin 2) ℂ :=
   (Complex.I - 1) • Matrix.of (fun i j => psiVec α β i * psiVec α β j) + 1
 
+/-- The product of `zeroRefl α β` with the first-coordinate phase matrix `phaseA`. -/
 noncomputable def groverOp (α β : ℂ) : Matrix (Fin 2) (Fin 2) ℂ :=
   zeroRefl α β * phaseA
 
+/-- Multiplication by `zeroRefl α β` adds the stated rank-one update using the bilinear
+coordinate sum. -/
 lemma zeroRefl_mulVec (α β : ℂ) (v : Fin 2 → ℂ) :
     zeroRefl α β *ᵥ v =
       fun i => (Complex.I - 1) * (∑ j, psiVec α β j * v j) * psiVec α β i + v i := by
@@ -79,6 +105,8 @@ lemma zeroRefl_mulVec (α β : ℂ) (v : Fin 2 → ℂ) :
       Fin.sum_univ_two] <;>
     ring
 
+/-- For real amplitudes with `α ^ 2 + β ^ 2 = 1`, the amplification matrix has the stated good
+and bad output amplitudes. See [BrassardHoyer1997]. -/
 theorem lemma8_grover_output (α β : ℝ) (hαβ : α ^ 2 + β ^ 2 = 1) :
     groverOp (α : ℂ) (β : ℂ) *ᵥ psiVec (α : ℂ) (β : ℂ) =
       psiVec ((2 * Complex.I * (1 - ((α : ℂ) ^ 2)) - 1) * (α : ℂ))
@@ -131,10 +159,13 @@ theorem lemma8_grover_output (α β : ℝ) (hαβ : α ^ 2 + β ^ 2 = 1) :
             try rw [hI3]
             ring
 
+/-- The polynomial expression for the total amplified mass equals one. See [BrassardHoyer1997]. -/
 theorem lemma8_amplitude_normalised (a : ℝ) (_ha : 0 ≤ a) (_ha1 : a ≤ 1) :
     (4 * (1 - a) ^ 2 + 1) * a + (1 - 2 * a) ^ 2 * (1 - a) = 1 := by
   ring
 
+/-- When `α ^ 2 = 1 / 2`, the good multiplier is `Complex.I - 1` and the bad multiplier is zero.
+See [BrassardHoyer1997]. -/
 theorem lemma8_at_half (α β : ℝ) (_hαβ : α ^ 2 + β ^ 2 = 1) (hα : α ^ 2 = 1 / 2) :
     (2 * Complex.I * (1 - ((α : ℂ) ^ 2)) - 1) = Complex.I - 1 ∧
       (Complex.I * (1 - 2 * ((α : ℂ) ^ 2))) = 0 := by
@@ -143,6 +174,8 @@ theorem lemma8_at_half (α β : ℝ) (_hαβ : α ^ 2 + β ^ 2 = 1) (hα : α ^ 
   rw [hαC]
   constructor <;> push_cast <;> ring
 
+/-- When `α = 0`, the good output amplitude is zero and the bad multiplier is `Complex.I`. See
+[BrassardHoyer1997]. -/
 theorem lemma8_at_zero (α β : ℝ) (_hαβ : α ^ 2 + β ^ 2 = 1) (hα : α = 0) :
     (2 * Complex.I * (1 - ((α : ℂ) ^ 2)) - 1) * (α : ℂ) = 0 ∧
       (Complex.I * (1 - 2 * ((α : ℂ) ^ 2))) = Complex.I := by

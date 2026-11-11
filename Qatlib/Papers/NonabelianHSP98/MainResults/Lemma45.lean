@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Counting
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+
+/-!
+# Equal orthogonal-complement slices
+
+`lastVec` extracts the final binary coordinate through the vector dot product. Using the
+correspondence between vector orthogonality and `perpSub`, `lemma_4_5` shows that the slice with
+final coordinate zero contains half the orthogonal complement whenever an element with final
+coordinate one exists. This development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `mem_orthW_iff`: vector orthogonality agrees with subgroup orthogonality.
+* `lemma_4_5`: the final-coordinate-zero slice has half the total cardinality.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -25,11 +44,15 @@ attribute [local instance] Classical.propDecidable
 
 variable {n : ℕ}
 
+/-- The vector with zero entries in both length-`n` blocks and final coordinate one. -/
 def lastVec (n : ℕ) : Vec n := ((0 : Fin n → ZMod 2), (0 : Fin n → ZMod 2), (1 : ZMod 2))
 
+/-- Pairing `lastVec n` with `z` by `dot` extracts the final coordinate of `z`. -/
 @[simp] lemma dot_lastVec (z : Vec n) : dot (lastVec n) z = z.2.2 := by
   simp [lastVec, dot]
 
+/-- The `phi` image of `g` is orthogonal to `phiSub U` precisely when `g` belongs to `perpSub
+U`. -/
 theorem mem_orthW_iff {U : Subgroup (Wreath n)} {g : Wreath n} :
     phi g ∈ blin.orthogonal (phiSub U) ↔ g ∈ perpSub U := by
   change phi g ∈ (blin.orthogonal (phiSub U) : Set (Vec n)) ↔ g ∈ perpSub U
@@ -37,6 +60,9 @@ theorem mem_orthW_iff {U : Subgroup (Wreath n)} {g : Wreath n} :
     (orthV_eq_orthogonal (phiSub U)).symm]
   exact phi_mem_orthV
 
+/-- If `perpSub U` contains an element with final coordinate one, twice the number of its
+elements with final coordinate zero equals its total cardinality. This is Lemma 4.5 of
+[RoettelerBeth1998]. -/
 theorem lemma_4_5 (U : Subgroup (Wreath n)) (t₀ : Wreath n)
     (ht₀ : t₀ ∈ perpSub U) (ht₀a : t₀.a = 1) :
     2 * (Finset.univ.filter (fun g : Wreath n => g ∈ perpSub U ∧ g.a = 0)).card

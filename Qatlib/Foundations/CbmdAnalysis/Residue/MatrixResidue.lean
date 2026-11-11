@@ -8,6 +8,25 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Residue.
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.UnboundedComponent
 import Mathlib.Analysis.Matrix.Normed
 import Mathlib.Analysis.Analytic.ChangeOrigin
+
+/-!
+# Residues on positive Jordan contours
+
+This module packages positively oriented piecewise C¹ Jordan contours in `PositiveJordanContour`
+and defines their trace and interior. Scalar residue formulas are lifted entrywise to finite
+matrices through `matrixResidue`, supplying contour identities for the matrix decomposition
+framework of [WangEtAl2026].
+
+## Main statements
+
+* `scalar_residue`: the scalar residue formula on a positive Jordan contour.
+* `matrix_residue`: the corresponding entrywise matrix formula.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -21,6 +40,8 @@ namespace CBMDResidue
 open _root_.Set Complex MeasureTheory TauCeti TauCeti.Contour
 open scoped Topology Matrix.Norms.Elementwise
 
+/-- A closed, simple, piecewise C¹ complex contour with increasing parameter endpoints and
+winding number one throughout its filled interior. -/
 structure PositiveJordanContour where
   curve : ℝ → ℂ
   start : ℝ
@@ -34,26 +55,36 @@ structure PositiveJordanContour where
 
 namespace PositiveJordanContour
 
+/-- The trace of a positive Jordan contour over its parameter interval. -/
 def trace (Γ : PositiveJordanContour) : Set ℂ := Γ.curve '' uIcc Γ.start Γ.finish
 
+/-- The filled hull of the contour trace with the trace removed. -/
 def inside (Γ : PositiveJordanContour) : Set ℂ := filledHull Γ.trace \ Γ.trace
 
+/-- The trace of a positive Jordan contour is compact. -/
 theorem trace_isCompact (Γ : PositiveJordanContour) : IsCompact Γ.trace :=
   isCompact_uIcc.image_of_continuousOn Γ.piecewiseC1.continuousOn
 
+/-- The interior of a positive Jordan contour is open. -/
 theorem inside_isOpen (Γ : PositiveJordanContour) : IsOpen Γ.inside :=
   IsClosed.isOpen_filledHull_sdiff Γ.trace_isCompact.isClosed
 
+/-- The winding number of a positive Jordan contour vanishes outside the filled hull of its
+trace. -/
 theorem winding_eq_zero_outside (Γ : PositiveJordanContour) {z : ℂ}
     (hz : z ∉ filledHull Γ.trace) : windingNumber Γ.curve Γ.start Γ.finish z = 0 := by
   exact Γ.piecewiseC1.windingNumber_eq_zero_of_unbounded_component Γ.closed hz
 
+/-- A positive Jordan contour is null-homologous in any set containing the filled hull of its
+trace. -/
 theorem nullHomologous_of_filledHull_subset (Γ : PositiveJordanContour) {U : Set ℂ}
     (hU : filledHull Γ.trace ⊆ U) : IsNullHomologous Γ.curve Γ.start Γ.finish U := by
   rw [isNullHomologous_iff]
   intro z hz
   exact Γ.winding_eq_zero_outside (fun h => hz (hU h))
 
+/-- The contour integral equals `2πi` times the sum of residues at the specified interior
+points, assuming analyticity elsewhere and meromorphicity at those points. -/
 theorem scalar_residue (Γ : PositiveJordanContour) (f : ℂ → ℂ) (S : Finset ℂ)
     (hS : ∀ s ∈ S, s ∈ Γ.inside)
     (hboundary : ∀ z ∈ Γ.trace, AnalyticAt ℂ f z)
@@ -89,6 +120,8 @@ theorem scalar_residue (Γ : PositiveJordanContour) (f : ℂ → ℂ) (S : Finse
   intro s hs
   rw [Γ.positive s (hS s hs), one_mul]
 
+/-- The scalar residue formula holds for a function meromorphic on an open set containing the
+filled contour, with all interior nonanalytic points in `S`. -/
 theorem scalar_residue_on_open (Γ : PositiveJordanContour) (f : ℂ → ℂ)
     (U : Set ℂ) (_hU : IsOpen U) (hfill : filledHull Γ.trace ⊆ U)
     (hf : MeromorphicOn f U) (S : Finset ℂ)
@@ -104,9 +137,12 @@ theorem scalar_residue_on_open (Γ : PositiveJordanContour) (f : ℂ → ℂ)
   · intro s hs
     exact hf s (hfill (hS s hs).1)
 
+/-- The matrix formed by taking the scalar residue of each matrix entry at `z`. -/
 def matrixResidue {n m : Type*} (F : ℂ → Matrix n m ℂ) (z : ℂ) : Matrix n m ℂ :=
   fun i j => residue (fun w => F w i j) z
 
+/-- Entrywise analyticity on the contour trace ensures interval integrability of the matrix
+contour integrand. -/
 theorem matrix_contour_integrable {n m : Type*} [Fintype n] [Fintype m]
     (Γ : PositiveJordanContour) (F : ℂ → Matrix n m ℂ)
     (hboundary : ∀ i j z, z ∈ Γ.trace → AnalyticAt ℂ (fun w => F w i j) z) :
@@ -120,6 +156,8 @@ theorem matrix_contour_integrable {n m : Type*} [Fintype n] [Fintype m]
   exact (hboundary i j _ ⟨t, ht, rfl⟩).continuousAt.comp_continuousWithinAt
     (Γ.piecewiseC1.continuousOn t ht)
 
+/-- The matrix contour integral equals `2πi` times the sum of entrywise residues under entrywise
+analyticity and meromorphicity hypotheses. -/
 theorem matrix_residue {n m : Type*} [Fintype n] [Fintype m]
     (Γ : PositiveJordanContour) (F : ℂ → Matrix n m ℂ) (S : Finset ℂ)
     (hS : ∀ s ∈ S, s ∈ Γ.inside)
@@ -141,6 +179,8 @@ theorem matrix_residue {n m : Type*} [Fintype n] [Fintype m]
   simpa only [Matrix.smul_apply, Matrix.sum_apply, matrixResidue, smul_eq_mul]
     using Γ.scalar_residue (fun z => F z i j) S hS (hboundary i j) (hoff i j) (hmero i j)
 
+/-- The matrix residue formula holds for entries meromorphic on an open set containing the
+filled contour, with all interior nonanalytic points in `S`. -/
 theorem matrix_residue_on_open {n m : Type*} [Fintype n] [Fintype m]
     (Γ : PositiveJordanContour) (F : ℂ → Matrix n m ℂ)
     (U : Set ℂ) (_hU : IsOpen U) (hfill : filledHull Γ.trace ⊆ U)

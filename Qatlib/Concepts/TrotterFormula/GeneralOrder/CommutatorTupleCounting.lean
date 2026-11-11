@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorExpansion
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
+
+/-!
+# Counting ordered tuples in commutator bounds
+
+The map `pfBlockTuple` injects tuples formed from tail indices followed by repeated head indices
+into all index tuples of fixed length. This injection and its nested commutator interpretation
+compare decomposed remainder budgets with the full tuple sum `pfCommAlphaInner`. For background,
+see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `pfBlockTuple_injective`: injectivity of the block tuple construction.
+* `pf_inner_remainder_budget_le`: the decomposed remainder budget is bounded by the full tuple
+  budget.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -16,9 +36,13 @@ open Qatlib.Concepts.TrotterFormula.LieStrang
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open scoped Classical BigOperators
 
+/-- A length-`p` index tuple whose first `p - j.val` entries are shifted tail indices and whose
+remaining entries are zero. -/
 def pfBlockTuple {p m : ℕ} (j : Fin (p+1)) (v : Fin (p-j.val)→Fin m) : Fin p→Fin (m+1) :=
   fun i=>if hi : i.val<p-j.val then (v ⟨i.val,hi⟩).succ else 0
 
+/-- The block tuple construction is injective in the repetition count and the tuple of tail
+indices. -/
 theorem pfBlockTuple_injective (p m : ℕ) :
     Function.Injective (fun z : (j : Fin (p+1)) × (Fin (p-j.val)→Fin m)=>pfBlockTuple z.1 z.2) := by
   intro ⟨j,v⟩ ⟨j',v'⟩ he
@@ -51,6 +75,8 @@ theorem pfBlockTuple_injective (p m : ℕ) :
     omega
   rw [hv]
 
+/-- For nonnegative weights, summing over block tuples is bounded by summing over all length-`p`
+tuples. -/
 theorem pfBlockTuple_sum_le (p m : ℕ) (f : (Fin p→Fin (m+1))→ℝ) (hf : ∀ i,0≤f i) :
     (∑ j : Fin (p+1),∑ v : Fin (p-j.val)→Fin m,f (pfBlockTuple j v))≤∑ i : Fin p→Fin (m+1),f i := by
   let e := fun z : (j : Fin (p+1)) × (Fin (p-j.val)→Fin m)=>pfBlockTuple z.1 z.2
@@ -66,11 +92,14 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- A list selected by an index tuple of length `n` has length `n`. -/
 theorem pfChosenList_length (xs : List (Matrix I I ℂ)) {n : ℕ} (idx : Fin n→Fin xs.length) :
     (pfChosenList xs idx).length=n := by simp [pfChosenList]
 
 omit [DecidableEq I] in
 
+/-- Selecting from `X :: xs` with a block tuple yields the selected tail list followed by
+`j.val` copies of `X`. -/
 theorem pfChosenList_block (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ)
     (j : Fin (p+1)) (v : Fin (p-j.val)→Fin xs.length) :
     pfChosenList (X::xs) (pfBlockTuple j v)=pfChosenList xs v++List.replicate j.val X := by
@@ -89,6 +118,8 @@ theorem pfChosenList_block (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p 
 
 omit [DecidableEq I] in
 
+/-- Folding commutation with `X` over `n` repeated copies of `X`, starting at `B`, gives
+`pfAdPower X B n`. -/
 private theorem foldl_replicate_ad (X B : Matrix I I ℂ) (n : ℕ) :
     (List.replicate n X).foldl (fun D Y=>pfComm Y D) B=pfAdPower X B n := by
   induction n generalizing B with
@@ -99,6 +130,8 @@ private theorem foldl_replicate_ad (X B : Matrix I I ℂ) (n : ℕ) :
 
 omit [DecidableEq I] in
 
+/-- The nested commutator selected by a block tuple is the tail-selected nested commutator
+followed by `j.val` iterated commutations with `X`. -/
 theorem pf_nested_block (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ)
     (j : Fin (p+1)) (v : Fin (p-j.val)→Fin xs.length) :
     pfNestedCommList (B::pfChosenList (X::xs) (pfBlockTuple j v))=
@@ -106,6 +139,8 @@ theorem pf_nested_block (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p :
   rw [pfChosenList_block]
   simp only [pfNestedCommList,List.foldl_append,foldl_replicate_ad]
 
+/-- After any real linear map, the sum of norms over block nested commutators is bounded by the
+sum over all index tuples. -/
 theorem pf_inner_block_sum_le_map (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ)
     (L : Matrix I I ℂ→ₗ[ℝ]Matrix I I ℂ) :
     (∑ j : Fin (p+1),∑ v : Fin (p-j.val)→Fin xs.length,
@@ -115,9 +150,13 @@ theorem pf_inner_block_sum_le_map (X B : Matrix I I ℂ) (xs : List (Matrix I I 
     (fun idx=>‖L (pfNestedCommList (B::pfChosenList (X::xs) idx))‖) (fun _=>norm_nonneg _)
   simpa only [pf_nested_block] using! hh
 
+/-- The sum over length-`k` tail index tuples of the norms of their nested commutators after `j`
+further commutations with `X`. -/
 def pfInnerAdSum (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (k j : ℕ) : ℝ :=
   ∑ idx : Fin k→Fin xs.length,‖pfAdPower X (pfNestedCommList (B::pfChosenList xs idx)) j‖
 
+/-- The block commutator sum separates into the term with no head commutations and the sum of
+terms with positive head commutation count. -/
 theorem pf_inner_block_split (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ) :
     (∑ j : Fin (p+1),pfInnerAdSum X B xs (p-j.val) j.val)=
       pfCommAlphaInner xs B p+∑ k : Fin p,pfInnerAdSum X B xs k.val (p-k.val) := by
@@ -134,6 +173,8 @@ theorem pf_inner_block_split (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
   calc (∑ i : Fin p,f i.succ)=(∑ i : Fin p,g i.rev) := Finset.sum_congr rfl (fun i _=>(hg i).symm)
        _=∑ i : Fin p,g i := Equiv.sum_comp (show Equiv.Perm (Fin p) from ⟨Fin.rev,Fin.rev,Fin.rev_rev,Fin.rev_rev⟩) g
 
+/-- The tail commutator budget plus the positive-head-commutation budgets is at most the full
+budget for `X :: xs`. -/
 theorem pf_inner_remainder_budget_le (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ) :
     pfCommAlphaInner xs B p+∑ k : Fin p,pfInnerAdSum X B xs k.val (p-k.val)≤pfCommAlphaInner (X::xs) B p := by
   rw [← pf_inner_block_split]

@@ -8,6 +8,33 @@ import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
 import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
 import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
+
+/-!
+# Native layered mean estimation
+
+This module constructs rational dyadic payoffs, finite-precision payoff preparations, and the
+joint amplitude-estimation record law `nativeLayerLaw`. The dyadic decomposition follows the
+layered mean-estimation setting of [Montanaro2015], using amplitude estimation as in
+[BrassardEtAl2002].
+
+The preparation and circuit perturbation bounds give an explicit ℓ¹ distance of at most
+`(1/2)^k` between the native and ideal laws on the same record space.
+
+## Main statements
+
+* `native_layered_payoff_exact_partition`: Rational layers lie in `[0,1]` and agree with the
+  real dyadic payoffs.
+* `native_layered_actual_record_law`: The native joint law factors into the amplitude-estimation
+  trial laws.
+* `native_layered_same_record_variation_budget`: The native and ideal record laws differ in ℓ¹
+  norm by at most `(1/2)^k`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 600000
 set_option backward.isDefEq.respectTransparency false
@@ -34,19 +61,28 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The rational dyadic payoff: layer zero retains values below one, and layer `l+1` rescales
+values in `[2^l, 2^(l+1))` by `2^(l+1)`. -/
 def nativeLayerPayoff {I : Type} (f : I→ℚ) : ℕ→I→ℚ
   | 0,i => if f i < 1 then f i else 0
   | l+1,i => if (2:ℚ)^l≤f i ∧ f i < (2:ℚ)^(l+1) then f i/(2:ℚ)^(l+1) else 0
 
+/-- The bit precision `32 * (k + 16)` used for native layered payoff rotations. -/
 def nativeLayerBits (k : ℕ) : ℕ := 32*(k+16)
 
+/-- Prepares a native layer by applying `A` on the input register and then the rational payoff
+rotation at precision `nativeLayerBits k`. -/
 noncomputable def nativeLayerPrepare {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (f : I→ℚ) (k l : ℕ) : Matrix (I×Bool) (I×Bool) ℂ :=
   rationalPayoffRotation (nativeLayerPayoff f l) (nativeLayerBits k)*TensorGate A (1 : Matrix Bool Bool ℂ)
 
+/-- The measurement event consisting of all basis states whose payoff flag is `true`. -/
 def nativeLayerEvent (I : Type) [Fintype I] [DecidableEq I] : Finset (I×Bool) :=
   Finset.univ.filter (fun p => p.2=true)
 
+/-- For a nonnegative rational payoff, each native dyadic layer lies in `[0,1]` and its real
+cast equals `layerPayoff`. This identifies the partition used in the layered construction
+associated with [Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem native_layered_payoff_exact_partition (I : Type) (f : I → ℚ) (hf : ∀ i, 0≤f i)
     (l : ℕ) (i : I) :
     0≤nativeLayerPayoff f l i ∧ nativeLayerPayoff f l i≤1 ∧
@@ -86,6 +122,7 @@ theorem native_layered_payoff_exact_partition (I : Type) (f : I → ℚ) (hf : �
       · norm_num
   exact ⟨hb.1,hb.2,he⟩
 
+/-- The native layer preparation is unitary when `A` is unitary and the payoff is nonnegative. -/
 theorem nativeLayerPrepare_unitary {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (f : I→ℚ) (k l : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0≤f i) :
@@ -95,6 +132,8 @@ theorem nativeLayerPrepare_unitary {I : Type} [Fintype I] [DecidableEq I]
     (rational_payoff_unitary_value_and_operator_error I _ _ (fun i => ⟨(hp i).1,(hp i).2.1⟩)).1
     (tensorGate_unitary hA (by simp))
 
+/-- The law of `2 * layerRepetitions k + 1` independent amplitude-estimation outcomes for a
+fixed native layer. -/
 noncomputable def nativeLayerTrialLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (k : ℕ)
     (hP : ∀ l : Fin (k+2),nativeLayerPrepare A f k l∈Matrix.unitaryGroup (I×Bool) ℂ)
@@ -104,11 +143,16 @@ noncomputable def nativeLayerTrialLaw {I : Type} [Fintype I] [DecidableEq I]
   nonneg u := Finset.prod_nonneg fun n _ => (aeLaw _ _ _ _ (hP l) (layerGrid_ge_two k)).nonneg (u n)
   sum_one := Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf _ _
 
+/-- The independent joint law of the repeated amplitude-estimation records across all `k+2`
+native layers. -/
 noncomputable def nativeLayerLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (k : ℕ)
     (hP : ∀ l : Fin (k+2),nativeLayerPrepare A f k l∈Matrix.unitaryGroup (I×Bool) ℂ) :
     FinDist (LayerRecord k) := independentSampleLaw (nativeLayerTrialLaw A j f k hP)
 
+/-- For unitary `A` and nonnegative `f`, native layer preparations are unitary and possess a
+joint record law with the stated product probabilities. This supplies the layerwise sampling
+law for the construction associated with [Montanaro2015, Algorithm 2][Montanaro2015]. -/
 theorem native_layered_actual_record_law
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (k : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0≤f i) :
@@ -120,6 +164,8 @@ theorem native_layered_actual_record_law
   let hP := fun l : Fin (k+2) => nativeLayerPrepare_unitary A f k l hA hf
   exact ⟨hP,nativeLayerLaw A j f k hP,fun _ => rfl⟩
 
+/-- The ℓ¹ distance between finite product laws is bounded by the sum of the ℓ¹ distances
+between their factors. -/
 theorem native_product_l1 {X : Type} [Fintype X] [DecidableEq X] (n : ℕ)
     (p q : Fin n→FinDist X) :
     (∑ ω : Fin n→X, |(∏ i,(p i).prob (ω i))-(∏ i,(q i).prob (ω i))|) ≤
@@ -150,6 +196,8 @@ theorem native_product_l1 {X : Type} [Fintype X] [DecidableEq X] (n : ℕ)
           (q 0).sum_one, one_mul]
       _ ≤ _ := add_le_add le_rfl (ih (fun i => p i.succ) (fun i => q i.succ))
 
+/-- If every event probability differs by at most `δ`, the ℓ¹ distance between two finite
+probability laws is at most `2 * δ`. -/
 theorem native_l1_from_events {X : Type} [Fintype X] [DecidableEq X]
     (p q : FinDist X) (δ : ℝ)
     (he : ∀ E : Finset X, |(∑ x∈E,p.prob x)-(∑ x∈E,q.prob x)|≤δ) :
@@ -168,10 +216,14 @@ theorem native_l1_from_events {X : Type} [Fintype X] [DecidableEq X]
   rw [hE, Finset.sum_sub_distrib]
   exact mul_le_mul_of_nonneg_left ((le_abs_self _).trans (he E)) (by norm_num)
 
+/-- The matrix of a circuit step, interpreting fixed gates by their matrices and query steps by
+the oracle `O`. -/
 private def nativeStepMatrix {R : Type} (O : Matrix R R ℂ) : Step R→Matrix R R ℂ
   | .gate U => U
   | .query => O
 
+/-- Running a circuit equals applying the product of its step matrices in reverse list order to
+the initial state. -/
 private theorem native_run_matrix {R : Type} [Fintype R] [DecidableEq R]
     (O : Matrix R R ℂ) (C : Circuit R) (ψ : QState R) :
     Run O C ψ=(C.reverse.map (nativeStepMatrix O)).prod*ᵥψ := by
@@ -181,16 +233,21 @@ private theorem native_run_matrix {R : Type} [Fintype R] [DecidableEq R]
     cases s <;> simp [Run, ApplyGate, ih, List.reverse_cons, List.map_append,
       List.prod_append, nativeStepMatrix, Matrix.mulVec_mulVec]
 
+/-- Tensoring two matrices with the same identity matrix does not increase the norm of their
+difference. -/
 private theorem native_tensor_identity_sub {R T : Type} [Fintype R] [DecidableEq R]
     [Fintype T] [DecidableEq T] (A B : Matrix T T ℂ) :
     ‖TensorGate (1:Matrix R R ℂ) A-TensorGate (1:Matrix R R ℂ) B‖≤‖A-B‖ := by
   rw [tensorGate_sub_right, l2_norm_tensorGate]
   exact (mul_le_mul_of_nonneg_right l2_norm_one_le (norm_nonneg _)).trans_eq (one_mul _)
 
+/-- The controlled amplitude-estimation lift does not increase the norm of a matrix
+perturbation. -/
 private theorem native_ae_control_sub {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (A B : Matrix I I ℂ) : ‖aeControlledGate M A-aeControlledGate M B‖≤‖A-B‖ :=
   (native_tensor_identity_sub (R:=Fin M) _ _).trans (norm_controlOracle_sub A B)
 
+/-- The sum of instruction perturbations is at most the number of input accesses times `‖A-B‖`. -/
 private theorem native_ae_instruction_sum {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (A B : Matrix I I ℂ) (j : I) (O : Matrix (Fin M×(Bool×I)) (Fin M×(Bool×I)) ℂ)
     (w : List (AEAccessStep (Fin M×(Bool×I)))) :
@@ -221,6 +278,8 @@ private theorem native_ae_instruction_sum {I : Type} [Fintype I] [DecidableEq I]
     | mark => simpa [aeInputAccesses,aeAccessInstruction,nativeStepMatrix] using! ih
     | fixed U => simpa [aeInputAccesses,aeAccessInstruction,nativeStepMatrix] using! ih
 
+/-- Replacing unitary preparation `A` by `B` changes the counted amplitude-estimation output
+state by at most `(2 * (M-1) + 1) * ‖A-B‖` in Euclidean norm. -/
 theorem native_ae_output_distance {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2≤M) (A B : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A∈Matrix.unitaryGroup I ℂ) (hB : B∈Matrix.unitaryGroup I ℂ) :
@@ -273,6 +332,8 @@ theorem native_ae_output_distance {I : Type} [Fintype I] [DecidableEq I]
   change ‖toEuclidean_fromVec (((w.reverse.map F).prod-(w.reverse.map G).prod)*ᵥinput)‖≤_
   exact he.trans hop
 
+/-- The ℓ¹ distance between the amplitude-estimation output laws for unitary preparations `A`
+and `B` is at most `4 * (2 * (M-1) + 1) * ‖A-B‖`. -/
 theorem native_ae_l1 {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2≤M) (A B : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A∈Matrix.unitaryGroup I ℂ) (hB : B∈Matrix.unitaryGroup I ℂ) :
@@ -294,6 +355,8 @@ theorem native_ae_l1 {I : Type} [Fintype I] [DecidableEq I]
     simp only [aeControlledGate, mul_assoc]
   all_goals congr 5
 
+/-- The native layer preparation differs from its ideal real-payoff preparation by at most `32 /
+2^(nativeLayerBits k)` in matrix norm. -/
 theorem nativeLayerPrepare_error {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (f : I→ℚ) (k l : ℕ) (hA : A∈Matrix.unitaryGroup I ℂ) (hf : ∀ i,0≤f i) :
     ‖nativeLayerPrepare A f k l-payoffPreparation A (layerPayoff (fun i => (f i:ℝ)) l)‖≤
@@ -310,6 +373,8 @@ theorem nativeLayerPrepare_error {I : Type} [Fintype I] [DecidableEq I]
   exact (norm_mul_le _ _).trans
       ((mul_le_mul hr hT (norm_nonneg _) (by positivity)).trans_eq (mul_one _))
 
+/-- The chosen native precision makes the accumulated layer, repetition, and
+amplitude-estimation perturbation budget at most `(1/2)^k`. -/
 theorem nativeLayerBits_record_budget (k : ℕ) :
     (k+2:ℝ)*(2*layerRepetitions k+1)*4*(2*(layerGrid k-1)+1:ℕ)*
       (32/(2:ℝ)^nativeLayerBits k)≤(1/2:ℝ)^k := by
@@ -345,6 +410,8 @@ theorem nativeLayerBits_record_budget (k : ℕ) :
   rw [he]
   exact (div_le_one (by positivity)).mpr hnR
 
+/-- Any native record law with the specified product probabilities has ℓ¹ distance at most
+`(1/2)^k` from the ideal `layerLaw`. -/
 theorem native_layered_same_record_variation_budget
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (f : I→ℚ) (k : ℕ)
     (hA : A∈Matrix.unitaryGroup I ℂ) (hf : ∀ i,0≤f i)

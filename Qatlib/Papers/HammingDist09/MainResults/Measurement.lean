@@ -10,6 +10,32 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Analysis.Matrix.Order
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.Tactic
+
+/-!
+# Measurement bounds and Gram-matrix constructions
+
+This module develops finite-dimensional outer-product and trace identities for the measurement
+analysis of [MeyerPommersheim2009]. It proves positivity properties of `rankOne` matrices and
+complementary projections, then bounds discrimination success for normalized states in the image
+of an isometry.
+
+For a Hermitian square root of a column Gram matrix with a Hermitian inverse, the module
+constructs column effects with a positive semidefinite residual and computes their average
+success expression.
+
+## Main statements
+
+* `lemma_6_2`: bounds the average success for states in a k-dimensional isometric image by k
+  divided by the number of states.
+* `prop_6_1`: establishes positivity and trace identities for the Gram-based column effects.
+* `prop_6_1_measurementSuccess`: computes their success expression from the squared diagonal
+  entries of the Gram square root.
+
+## References
+
+* [Meyer and Pommersheim, 2009][MeyerPommersheim2009]
+-/
+
 set_option warningAsError false
 
 set_option maxHeartbeats 1000000
@@ -23,34 +49,44 @@ noncomputable section
 
 variable {N : ℕ}
 
+/-- The complex outer-product matrix with entry `v a * star (w b)`. -/
 def outer (v w : Fin N → ℂ) : Matrix (Fin N) (Fin N) ℂ := fun a b => v a * star (w b)
 
+/-- The positive outer product of a vector with itself. -/
 def rankOne (v : Fin N → ℂ) : Matrix (Fin N) (Fin N) ℂ := outer v v
 
+/-- The outer product equals the column matrix of `v` multiplied by the conjugate transpose of
+the column matrix of `w`. -/
 lemma outer_eq_col_mul_row (v w : Fin N → ℂ) :
     outer v w = (Matrix.of (fun a (_ : Fin 1) => v a))
       * (Matrix.of (fun a (_ : Fin 1) => w a)).conjTranspose := by
   ext a b
   simp [outer, Matrix.mul_apply]
 
+/-- The outer product of a vector with itself equals its column matrix multiplied by its
+conjugate transpose. -/
 lemma rankOne_eq_col_mul_row (v : Fin N → ℂ) :
     rankOne v = (Matrix.of (fun a (_ : Fin 1) => v a))
       * (Matrix.of (fun a (_ : Fin 1) => v a)).conjTranspose :=
   outer_eq_col_mul_row v v
 
+/-- The outer product of a vector with itself is positive semidefinite. -/
 lemma rankOne_posSemidef (v : Fin N → ℂ) : (rankOne v).PosSemidef := by
   rw [rankOne_eq_col_mul_row]
   exact Matrix.posSemidef_self_mul_conjTranspose _
 
+/-- The outer product of a vector with itself is Hermitian. -/
 lemma rankOne_isHermitian (v : Fin N → ℂ) : (rankOne v).IsHermitian :=
   (rankOne_posSemidef v).1
 
+/-- The trace of `rankOne v` equals the squared norm expressed as `star v ⬝ᵥ v`. -/
 lemma rankOne_trace (v : Fin N → ℂ) : (rankOne v).trace = star v ⬝ᵥ v := by
   rw [Matrix.trace, dotProduct]
   apply Finset.sum_congr rfl
   intro i _
   simp [rankOne, outer, Matrix.diag_apply, mul_comm]
 
+/-- The matrix `rankOne v` sends `x` to `v` scaled by the inner product `star v ⬝ᵥ x`. -/
 lemma rankOne_mulVec_apply (v x : Fin N → ℂ) :
     rankOne v *ᵥ x = (star v ⬝ᵥ x) • v := by
   ext a
@@ -61,6 +97,7 @@ lemma rankOne_mulVec_apply (v x : Fin N → ℂ) :
   show v a * star (v b) * x b = star (v b) * x b * v a
   ring
 
+/-- For a normalized vector, its outer product with itself is idempotent. -/
 lemma rankOne_mul_self (v : Fin N → ℂ) (hv : star v ⬝ᵥ v = 1) :
     rankOne v * rankOne v = rankOne v := by
   ext a b
@@ -77,11 +114,14 @@ lemma rankOne_mul_self (v : Fin N → ℂ) (hv : star v ⬝ᵥ v = 1) :
     _ = v a * 1 * star (v b) := by rw [hv']
     _ = v a * star (v b) := by ring
 
+/-- A Hermitian idempotent matrix is positive semidefinite. -/
 lemma posSemidef_of_isHermitian_idempotent {M : Matrix (Fin N) (Fin N) ℂ}
     (hH : M.IsHermitian) (hI : M * M = M) : M.PosSemidef := by
   have h := Matrix.posSemidef_conjTranspose_mul_self M
   rwa [hH.eq, hI] at h
 
+/-- The identity minus the outer product of a normalized vector with itself is positive
+semidefinite. -/
 lemma posSemidef_one_sub_rankOne (v : Fin N → ℂ) (hv : star v ⬝ᵥ v = 1) :
     (1 - rankOne v).PosSemidef := by
   have hherm : (1 - rankOne v).IsHermitian := by
@@ -94,6 +134,7 @@ lemma posSemidef_one_sub_rankOne (v : Fin N → ℂ) (hv : star v ⬝ᵥ v = 1) 
     abel
   exact h1
 
+/-- The trace of the product of two positive semidefinite complex matrices is nonnegative. -/
 lemma trace_mul_nonneg {A B : Matrix (Fin N) (Fin N) ℂ}
     (hA : A.PosSemidef) (hB : B.PosSemidef) : 0 ≤ (A * B).trace := by
   have hAeq : A = CFC.sqrt A * CFC.sqrt A := (CFC.sqrt_mul_sqrt_self A hA.nonneg).symm
@@ -113,11 +154,14 @@ lemma trace_mul_nonneg {A B : Matrix (Fin N) (Fin N) ℂ}
   rw [htr]
   exact hpsd.trace_nonneg
 
+/-- The real part of the trace of the product of two positive semidefinite matrices is
+nonnegative. -/
 lemma trace_mul_re_nonneg {A B : Matrix (Fin N) (Fin N) ℂ}
     (hA : A.PosSemidef) (hB : B.PosSemidef) : 0 ≤ (A * B).trace.re := by
   have h := (RCLike.le_iff_re_im.mp (trace_mul_nonneg hA hB)).1
   simpa using h
 
+/-- The trace of `X * rankOne v` is the quadratic form `star v ⬝ᵥ (X *ᵥ v)`. -/
 lemma mul_rankOne_trace (X : Matrix (Fin N) (Fin N) ℂ) (v : Fin N → ℂ) :
     (X * rankOne v).trace = star v ⬝ᵥ (X *ᵥ v) := by
   simp only [Matrix.trace, Matrix.diag_apply, Matrix.mul_apply, rankOne, outer,
@@ -132,6 +176,7 @@ section Isometry
 
 variable {k : ℕ}
 
+/-- The outer product of `V *ᵥ c` with itself equals `V * rankOne c * Vᴴ`. -/
 lemma rankOne_isometry_mulVec (V : Matrix (Fin N) (Fin k) ℂ) (c : Fin k → ℂ) :
     rankOne (V *ᵥ c) = V * rankOne c * Vᴴ := by
   ext a b
@@ -139,17 +184,22 @@ lemma rankOne_isometry_mulVec (V : Matrix (Fin N) (Fin k) ℂ) (c : Fin k → �
     Matrix.conjTranspose_apply, star_sum, star_mul, Finset.mul_sum, Finset.sum_mul,
     mul_assoc]
 
+/-- If `Vᴴ * V = 1`, the matrix `V * Vᴴ` is idempotent. -/
 lemma isometry_proj_mul_self (V : Matrix (Fin N) (Fin k) ℂ) (hV : Vᴴ * V = 1) :
     (V * Vᴴ) * (V * Vᴴ) = V * Vᴴ := by
   calc (V * Vᴴ) * (V * Vᴴ) = V * (Vᴴ * (V * Vᴴ)) := Matrix.mul_assoc V Vᴴ (V * Vᴴ)
     _ = V * ((Vᴴ * V) * Vᴴ) := by rw [Matrix.mul_assoc Vᴴ V Vᴴ]
     _ = V * Vᴴ := by rw [hV, Matrix.one_mul]
 
+/-- If `Vᴴ * V = 1`, the trace of `V * Vᴴ` equals the number `k` of columns. -/
 lemma isometry_proj_trace (V : Matrix (Fin N) (Fin k) ℂ) (hV : Vᴴ * V = 1) :
     (V * Vᴴ).trace = (k : ℂ) := by
   rw [Matrix.trace_mul_comm, hV]
   simp
 
+/-- For `n > 0` normalized states in the image of a `k`-column isometry, the average success
+probability of any positive semidefinite measurement is at most `k / n`.
+[MeyerPommersheim2009]. -/
 theorem lemma_6_2 {n : ℕ} (hn : 0 < n) (V : Matrix (Fin N) (Fin k) ℂ)
     (hV : Vᴴ * V = 1) (c : Fin n → Fin k → ℂ) (hc : ∀ i, star (c i) ⬝ᵥ c i = 1)
     (X : Fin n → Matrix (Fin N) (Fin N) ℂ) (hX : ∀ i, (X i).PosSemidef)
@@ -200,6 +250,8 @@ section PGM
 
 variable {M : ℕ}
 
+/-- The sum of the outer products of a matrix's columns with themselves equals the matrix
+multiplied by its conjugate transpose. -/
 lemma sum_rankOne_eq (A : Matrix (Fin N) (Fin M) ℂ) :
     (∑ i, rankOne (fun a => A a i)) = A * Aᴴ := by
   ext a b
@@ -208,11 +260,14 @@ lemma sum_rankOne_eq (A : Matrix (Fin N) (Fin M) ℂ) :
   intro i _
   simp [rankOne, outer, Matrix.conjTranspose_apply]
 
+/-- The trace of the product of two vector outer products equals the product of their two
+conjugate inner products. -/
 lemma rankOne_mul_rankOne_trace (u v : Fin N → ℂ) :
     (rankOne u * rankOne v).trace = (star u ⬝ᵥ v) * (star v ⬝ᵥ u) := by
   rw [mul_rankOne_trace]
   rw [rankOne_mulVec_apply, dotProduct_smul, smul_eq_mul]
 
+/-- The identity minus a Hermitian idempotent matrix is positive semidefinite. -/
 lemma posSemidef_one_sub_idempotent {P : Matrix (Fin N) (Fin N) ℂ}
     (hH : P.IsHermitian) (hI : P * P = P) : (1 - P).PosSemidef := by
   refine posSemidef_of_isHermitian_idempotent ?_ ?_
@@ -220,6 +275,7 @@ lemma posSemidef_one_sub_idempotent {P : Matrix (Fin N) (Fin N) ℂ}
   · rw [Matrix.sub_mul, Matrix.one_mul, Matrix.mul_sub, Matrix.mul_one, hI]
     abel
 
+/-- If `Uᴴ * V = S`, the inner product of the corresponding `i`th columns equals `S i i`. -/
 lemma col_inner_eq (U V : Matrix (Fin N) (Fin M) ℂ) (S : Matrix (Fin M) (Fin M) ℂ)
     (h : Uᴴ * V = S) (i : Fin M) :
     star (fun a => U a i) ⬝ᵥ (fun a => V a i) = S i i := by
@@ -228,6 +284,10 @@ lemma col_inner_eq (U V : Matrix (Fin N) (Fin M) ℂ) (S : Matrix (Fin M) (Fin M
   intro k _
   simp [Matrix.conjTranspose_apply]
 
+/-- For a Hermitian square root `S` of `Bᴴ * B` with Hermitian inverse `T`, the column effects
+from `B * T` and their residual effect are positive semidefinite. The diagonal entries of
+`S` are real, and the summed effect-state trace equals the sum of their squares.
+[MeyerPommersheim2009]. -/
 theorem prop_6_1 (B : Matrix (Fin N) (Fin M) ℂ) (S T : Matrix (Fin M) (Fin M) ℂ)
     (hS : S.IsHermitian) (hT : T.IsHermitian)
     (hSsq : S * S = Bᴴ * B) (hST : S * T = 1) (hTS : T * S = 1) :
@@ -273,6 +333,7 @@ theorem prop_6_1 (B : Matrix (Fin N) (Fin M) ℂ) (S T : Matrix (Fin M) (Fin M) 
     rw [rankOne_mul_rankOne_trace, col_inner_eq (B * T) B S hEq1 i,
       col_inner_eq B (B * T) S hEq2 i, sq]
 
+/-- The quadratic form `star v ⬝ᵥ (X *ᵥ v)` equals its double sum over matrix entries. -/
 lemma dot_mulVec_eq_sum (X : Matrix (Fin N) (Fin N) ℂ) (v : Fin N → ℂ) :
     star v ⬝ᵥ (X *ᵥ v) = ∑ p, ∑ q, star (v p) * X p q * v q := by
   simp only [Matrix.mulVec, dotProduct, Finset.mul_sum, Pi.star_apply]
@@ -282,6 +343,8 @@ lemma dot_mulVec_eq_sum (X : Matrix (Fin N) (Fin N) ℂ) (v : Fin N → ℂ) :
   intro q _
   ring
 
+/-- The measurement success expression is the equally weighted sum of the real quadratic forms
+of its effects on the columns of `B`. -/
 lemma measurementSuccess_eq_sum_dot (B : Matrix (Fin N) (Fin M) ℂ)
     (X : Fin M → Matrix (Fin N) (Fin N) ℂ) :
     measurementSuccess B X
@@ -293,6 +356,9 @@ lemma measurementSuccess_eq_sum_dot (B : Matrix (Fin N) (Fin M) ℂ)
   intro i _
   simp only [dot_mulVec_eq_sum]
 
+/-- For the stated Hermitian square root `S` of the Gram matrix and its Hermitian inverse `T`,
+the effects from the columns of `B * T` have success value equal to the average real squared
+diagonal entry of `S`. [MeyerPommersheim2009]. -/
 theorem prop_6_1_measurementSuccess (B : Matrix (Fin N) (Fin M) ℂ)
     (S T : Matrix (Fin M) (Fin M) ℂ) (hS : S.IsHermitian) (hT : T.IsHermitian)
     (hSsq : S * S = Bᴴ * B) (hST : S * T = 1) (hTS : T * S = 1) :

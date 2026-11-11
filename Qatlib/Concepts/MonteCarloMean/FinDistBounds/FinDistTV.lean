@@ -6,14 +6,38 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 
+/-!
+# Total variation transport of expectations
+
+This module defines `tvDist` as half the L1 distance between finite probability mass functions.
+`expect_sub_tvDist` bounds the change in the expectation of a function valued in `[0, 1]` by
+twice this distance, giving a finite distribution transport estimate for Monte Carlo analysis
+[Montanaro2015].
+
+## Main statements
+
+* `tvDist`: The total variation distance between finite distributions, defined as half the sum
+  of absolute differences of their masses.
+* `expect_sub_tvDist`: For a function valued in `[0, 1]`, the absolute difference of its
+  expectations is at most `2 * tvDist p q`; see [Montanaro2015].
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open scoped BigOperators
 
+/-- The total variation distance between finite distributions, defined as half the sum of
+absolute differences of their masses. -/
 noncomputable def tvDist {X : Type*} [Fintype X] [DecidableEq X]
     (p q : FinDist X) : ℝ := (1 / 2 : ℝ) * ∑ x, |p.prob x - q.prob x|
 
+/-- For a function valued in `[0, 1]`, the absolute difference of its expectations is at most `2
+* tvDist p q`; see [Montanaro2015]. -/
 theorem expect_sub_tvDist {X : Type*} [Fintype X] [DecidableEq X]
     (p q : FinDist X) (w : X → ℝ) (hw₀ : ∀ x, 0 ≤ w x) (hw₁ : ∀ x, w x ≤ 1) :
     |p.expect w - q.expect w| ≤ 2 * tvDist p q := by

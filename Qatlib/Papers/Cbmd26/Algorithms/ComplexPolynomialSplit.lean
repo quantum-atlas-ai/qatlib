@@ -11,6 +11,26 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Splitting complex polynomials into real parity branches
+
+The polynomials `reP` and `imP` split complex coefficients into real and imaginary parts, while
+`evenPart` and `oddPart` split each real polynomial by parity. The four `branches` reconstruct
+the original polynomial and retain interval bounds suitable for polynomial transformation. These
+results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `branches_identity`: reconstructs a complex polynomial from four real branches.
+* `branches_parity`, `branches_degree`, and `branches_bounded`: establish parity, degree, and
+  interval bounds.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -26,6 +46,7 @@ noncomputable section
 namespace CBMD.ComplexPolynomialSplit
 open Polynomial
 
+/-- The real part of a finite complex sum is the sum of the real parts. -/
 theorem re_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
     Complex.re (∑ i ∈ s, f i) = ∑ i ∈ s, (f i).re := by
   classical
@@ -33,6 +54,7 @@ theorem re_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
   | empty => simp
   | insert i s _ ih => simp
 
+/-- The imaginary part of a finite complex sum is the sum of the imaginary parts. -/
 theorem im_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
     Complex.im (∑ i ∈ s, f i) = ∑ i ∈ s, (f i).im := by
   classical
@@ -40,6 +62,7 @@ theorem im_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℂ) :
   | empty => simp
   | insert i s _ ih => simp
 
+/-- Polynomial evaluation commutes with finite sums over a semiring. -/
 theorem eval_finset_sum_poly {R : Type} [Semiring R] {ι : Type}
     (s : Finset ι) (f : ι → Polynomial R) (x : R) :
     (∑ i ∈ s, f i).eval x = ∑ i ∈ s, (f i).eval x := by
@@ -49,6 +72,7 @@ theorem eval_finset_sum_poly {R : Type} [Semiring R] {ι : Type}
   | insert i s hi ih =>
     rw [Finset.sum_insert hi, Finset.sum_insert hi, Polynomial.eval_add, ih]
 
+/-- A complex polynomial is the sum of its coefficient monomials over its support. -/
 theorem coeff_sum_eq (P : Polynomial ℂ) :
     (∑ i ∈ P.support,
       (Polynomial.C (P.coeff i) * Polynomial.X ^ (i : ℕ) : Polynomial ℂ)) = P := by
@@ -56,6 +80,8 @@ theorem coeff_sum_eq (P : Polynomial ℂ) :
   rw [Polynomial.sum_def] at h
   simpa using h
 
+/-- Evaluation at a real argument equals the sum of the complex coefficient monomials at that
+argument. -/
 theorem polynomial_eval_eq_coeff_sum (P : Polynomial ℂ) (x : ℝ) :
     P.eval (x : ℂ) = ∑ i ∈ P.support,
       (P.coeff i : ℂ) * ((x : ℂ) ^ (i : ℕ)) := by
@@ -71,6 +97,8 @@ theorem polynomial_eval_eq_coeff_sum (P : Polynomial ℂ) (x : ℝ) :
     simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
   exact heq.symm.trans h2
 
+/-- Evaluating the real-coefficient part at a real argument gives the real part of the original
+evaluation. -/
 theorem polynomial_eval_re_eq (P : Polynomial ℂ) (x : ℝ) :
     (∑ i ∈ P.support, Polynomial.C (P.coeff i).re * Polynomial.X ^ (i : ℕ) : Polynomial ℝ).eval x
       = (P.eval (x : ℂ)).re := by
@@ -87,6 +115,8 @@ theorem polynomial_eval_re_eq (P : Polynomial ℂ) (x : ℝ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- Evaluating the imaginary-coefficient part at a real argument gives the imaginary part of the
+original evaluation. -/
 theorem polynomial_eval_im_eq (P : Polynomial ℂ) (x : ℝ) :
     (∑ i ∈ P.support, Polynomial.C (P.coeff i).im * Polynomial.X ^ (i : ℕ) : Polynomial ℝ).eval x
       = (P.eval (x : ℂ)).im := by
@@ -103,6 +133,8 @@ theorem polynomial_eval_im_eq (P : Polynomial ℂ) (x : ℝ) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- At real arguments, a complex polynomial evaluates as its real-coefficient part plus `i`
+times its imaginary-coefficient part. -/
 theorem polynomial_eval_eq_re_add_im (P : Polynomial ℂ) (x : ℝ) :
     P.eval (x : ℂ) =
       Complex.ofReal ((∑ i ∈ P.support,
@@ -112,23 +144,30 @@ theorem polynomial_eval_eq_re_add_im (P : Polynomial ℂ) (x : ℝ) :
   rw [polynomial_eval_re_eq, polynomial_eval_im_eq, mul_comm]
   exact (Complex.re_add_im (P.eval (x : ℂ))).symm
 
+/-- Forms the real polynomial whose coefficients are the real parts of the complex coefficients. -/
 def reP (P : Polynomial ℂ) : Polynomial ℝ :=
   ∑ i ∈ P.support, C (P.coeff i).re * X ^ i
 
+/-- Forms the real polynomial whose coefficients are the imaginary parts of the complex
+coefficients. -/
 def imP (P : Polynomial ℂ) : Polynomial ℝ :=
   ∑ i ∈ P.support, C (P.coeff i).im * X ^ i
 
+/-- Defines the even part of a real polynomial as `(p(X) + p(-X)) / 2`. -/
 def evenPart (p : Polynomial ℝ) : Polynomial ℝ :=
   (p + p.comp (-X)) * C (1 / 2)
 
+/-- Defines the odd part of a real polynomial as `(p(X) - p(-X)) / 2`. -/
 def oddPart (p : Polynomial ℝ) : Polynomial ℝ :=
   (p - p.comp (-X)) * C (1 / 2)
 
+/-- The even and odd parts sum to the original real polynomial. -/
 theorem parity_parts_sum (p : Polynomial ℝ) : evenPart p + oddPart p = p := by
   ext n
   simp only [evenPart, oddPart, coeff_add, coeff_sub, coeff_mul_C]
   ring
 
+/-- The even part has real parity indexed by any even natural number. -/
 theorem evenPart_parity (p : Polynomial ℝ) (n : ℕ) :
     HasRealParity (2 * n) (evenPart p) := by
   unfold HasRealParity evenPart
@@ -136,6 +175,7 @@ theorem evenPart_parity (p : Polynomial ℝ) (n : ℕ) :
   simp only [pow_mul, neg_one_sq, one_pow, C_1, one_mul]
   rw [add_comm]
 
+/-- The odd part has real parity indexed by any odd natural number. -/
 theorem oddPart_parity (p : Polynomial ℝ) (n : ℕ) :
     HasRealParity (2 * n + 1) (oddPart p) := by
   unfold HasRealParity oddPart
@@ -144,6 +184,7 @@ theorem oddPart_parity (p : Polynomial ℝ) (n : ℕ) :
     C_1, neg_one_mul]
   ring
 
+/-- Taking the even part does not increase natural degree. -/
 theorem evenPart_natDegree_le (p : Polynomial ℝ) :
     (evenPart p).natDegree ≤ p.natDegree := by
   apply (natDegree_mul_C_le _ _).trans
@@ -151,6 +192,7 @@ theorem evenPart_natDegree_le (p : Polynomial ℝ) :
   apply max_le le_rfl
   simpa using (natDegree_comp_le (p := p) (q := (-X : Polynomial ℝ)))
 
+/-- Taking the odd part does not increase natural degree. -/
 theorem oddPart_natDegree_le (p : Polynomial ℝ) :
     (oddPart p).natDegree ≤ p.natDegree := by
   apply (natDegree_mul_C_le _ _).trans
@@ -158,6 +200,8 @@ theorem oddPart_natDegree_le (p : Polynomial ℝ) :
   apply max_le le_rfl
   simpa using (natDegree_comp_le (p := p) (q := (-X : Polynomial ℝ)))
 
+/-- Applying a function to coefficients and rebuilding on the original support does not increase
+natural degree. -/
 theorem coeffSum_natDegree_le (P : Polynomial ℂ) (f : ℂ → ℝ) :
     (∑ i ∈ P.support, C (f (P.coeff i)) * X ^ i : Polynomial ℝ).natDegree ≤
       P.natDegree := by
@@ -173,12 +217,18 @@ theorem coeffSum_natDegree_le (P : Polynomial ℂ) (f : ℂ → ℝ) :
       · exact ih (fun j hj => hs j (Finset.mem_insert_of_mem hj))
   exact hsum P.support (fun i hi => le_natDegree_of_mem_supp i hi)
 
+/-- The real-coefficient part has natural degree at most that of the original complex
+polynomial. -/
 theorem reP_natDegree_le (P : Polynomial ℂ) : (reP P).natDegree ≤ P.natDegree :=
   coeffSum_natDegree_le P Complex.re
 
+/-- The imaginary-coefficient part has natural degree at most that of the original complex
+polynomial. -/
 theorem imP_natDegree_le (P : Polynomial ℂ) : (imP P).natDegree ≤ P.natDegree :=
   coeffSum_natDegree_le P Complex.im
 
+/-- If a real polynomial is bounded in absolute value by one on `[-1, 1]`, so are its even and
+odd parts. -/
 theorem parts_bounded (p : Polynomial ℝ)
     (hp : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ 1) :
     ∀ x ∈ Set.Icc (-1 : ℝ) 1,
@@ -192,6 +242,8 @@ theorem parts_bounded (p : Polynomial ℝ)
     eval_neg, eval_X, eval_C]
   constructor <;> rw [abs_le] <;> constructor <;> linarith [hpos.1, hpos.2, hneg.1, hneg.2]
 
+/-- A complex polynomial bounded in norm by one on `[-1, 1]` has real and imaginary coefficient
+parts bounded in absolute value by one there. -/
 theorem re_im_bounded (P : Polynomial ℂ)
     (hP : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖P.eval (x : ℂ)‖ ≤ 1) :
     (∀ x ∈ Set.Icc (-1 : ℝ) 1, |(reP P).eval x| ≤ 1) ∧
@@ -204,6 +256,8 @@ theorem re_im_bounded (P : Polynomial ℂ)
     rw [imP, polynomial_eval_im_eq]
     exact (Complex.abs_im_le_norm _).trans (hP x hx)
 
+/-- Mapping the real and imaginary coefficient parts to complex polynomials reconstructs the
+original polynomial as their sum with factor `i`. -/
 theorem re_im_polynomial_identity (P : Polynomial ℂ) :
     (reP P).map Complex.ofRealHom + Complex.I • (imP P).map Complex.ofRealHom = P := by
   apply Eq.trans ?_ (coeff_sum_eq P)
@@ -217,14 +271,20 @@ theorem re_im_polynomial_identity (P : Polynomial ℂ) :
   congr 2
   simpa only [mul_comm] using Complex.re_add_im (P.coeff i)
 
+/-- Lists the even and odd parts of the real and imaginary coefficient polynomials. -/
 def branches (P : Polynomial ℂ) : Fin 4 → Polynomial ℝ :=
   ![evenPart (reP P), oddPart (reP P), evenPart (imP P), oddPart (imP P)]
 
+/-- Assigns even degree bound `2 * P.natDegree` and odd degree bound `2 * P.natDegree + 1` to
+the four branches. -/
 def branchDegrees (P : Polynomial ℂ) : Fin 4 → ℕ :=
   ![2 * P.natDegree, 2 * P.natDegree + 1, 2 * P.natDegree, 2 * P.natDegree + 1]
 
+/-- Defines the reconstruction coefficients `1`, `1`, `i`, and `i` for the four real branches. -/
 def coefficients : Fin 4 → ℂ := ![1, 1, Complex.I, Complex.I]
 
+/-- The four real branches, mapped to complex coefficients and weighted by `coefficients`, sum
+to the original polynomial. -/
 theorem branches_identity (P : Polynomial ℂ) :
     (∑ j : Fin 4, coefficients j • (branches P j).map Complex.ofRealHom) = P := by
   rw [Fin.sum_univ_four]
@@ -238,6 +298,7 @@ theorem branches_identity (P : Polynomial ℂ) :
     ← Polynomial.map_add, ← Polynomial.map_add, parity_parts_sum, parity_parts_sum]
   exact re_im_polynomial_identity P
 
+/-- Each real branch has the parity specified by its assigned branch degree. -/
 theorem branches_parity (P : Polynomial ℂ) :
     ∀ j, HasRealParity (branchDegrees P j) (branches P j) := by
   intro j
@@ -247,6 +308,7 @@ theorem branches_parity (P : Polynomial ℂ) :
   · exact evenPart_parity (imP P) P.natDegree
   · exact oddPart_parity (imP P) P.natDegree
 
+/-- Each real branch has degree at most its assigned branch degree. -/
 theorem branches_degree (P : Polynomial ℂ) :
     ∀ j, (branches P j).degree ≤ (branchDegrees P j : WithBot ℕ) := by
   intro j
@@ -258,11 +320,14 @@ theorem branches_degree (P : Polynomial ℂ) :
   apply WithBot.coe_le_coe.mpr
   fin_cases j <;> simp [branches, branchDegrees] <;> omega
 
+/-- Every assigned branch degree is at most `2 * P.natDegree + 1`. -/
 theorem branchDegrees_le (P : Polynomial ℂ) :
     ∀ j, branchDegrees P j ≤ 2 * P.natDegree + 1 := by
   intro j
   fin_cases j <;> simp [branchDegrees]
 
+/-- If the original complex polynomial is bounded in norm by one on `[-1, 1]`, each real branch
+is bounded in absolute value by one there. -/
 theorem branches_bounded (P : Polynomial ℂ)
     (hP : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖P.eval (x : ℂ)‖ ≤ 1) :
     ∀ j x, x ∈ Set.Icc (-1 : ℝ) 1 → |(branches P j).eval x| ≤ 1 := by

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TensorNetwork.GaugeInvariance
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Bundled tensor-network representation and cost claims
+
+This module defines `Clause18Claim` and `Clause19Claim`, packaging tensor-network
+representation, invariance, evaluation-cost, and sampling-approximation properties as
+propositions. The MPS representation setting follows [PerezGarciaEtAl2007], while the broader
+MPS and PEPS setting is described in [VerstraeteMurgCirac2008].
+
+## Main statements
+
+* `Clause18Claim`: contraction invariance, bounded-bond network encodings, explicit small MPS
+  examples, and contraction bounds and degenerate cases.
+* `Clause19Claim`: counted MPS and PEPS evaluation bounds and existence of finite-bit
+  approximations to normalized MPS sampling laws.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+* [Verstraete, Murg, and Cirac, 2008][VerstraeteMurgCirac2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.TensorNetwork.GaugeInvariance
@@ -16,6 +38,9 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 
 open Matrix Qatlib.Concepts.TensorNetwork.GaugeInvariance
 
+/-- The conjunction of tensor-network isomorphism and unitary gauge invariance, bounded-bond MPS
+and PEPS encodings, explicit small MPS examples, and basic contraction bounds and degenerate
+cases. -/
 def Clause18Claim : Prop :=
   (∀ (N₁ N₂ : TensorNet) (iso : NetIso N₁ N₂) (ext : ∀ o : OpenLeg N₂, Fin (N₂.dims o.val)),
     netContract N₂ ext = netContract N₁
@@ -72,6 +97,8 @@ def Clause18Claim : Prop :=
   ∧ (∀ N : TensorNet, N.nv = 0 → N.nh = 0 →
       ∀ (ext : ∀ o : OpenLeg N, Fin (N.dims o.val)), netContract N ext = 1)
 
+/-- The conjunction of operation-count bounds for MPS and PEPS evaluators and the existence of
+finite-bit samplers approximating normalized MPS laws in total variation. -/
 def Clause19Claim : Prop :=
   (∀ (n d D : ℕ) (hn : NeZero n) (hD : NeZero D) {R : Type} [CommRing R]
       (A : Fin n → Fin d → Matrix (Fin D) (Fin D) R) (x : Fin n → Fin d),

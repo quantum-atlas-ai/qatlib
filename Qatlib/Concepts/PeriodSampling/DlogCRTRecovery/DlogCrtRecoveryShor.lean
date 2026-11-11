@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCrtRecoveryStat
 import Mathlib.Tactic.NormNum.Prime
+
+/-!
+# CRT uniqueness with a bounded discrete logarithm
+
+This module proves `DlogCrtRecovery`: sampling congruences determine an exponent in the range
+below `p - 1` when large prime divisors have nondivisibility witnesses and residues agree at the
+full powers of small prime divisors. The proof combines prime-power divisibility with equality
+of bounded representatives, in the modular recovery setting of [Shor1997].
+
+The module also defines `DlogCrtRecoveryOriginal`, which omits the target exponent's range
+restriction, and refutes it using `p = 3`, `q = 4`, and target exponent two.
+
+## Main statements
+
+* `DlogCrtRecoveryOriginal`: the uniqueness proposition without a target range hypothesis.
+* `dlogCrtRecovery_false`: a counterexample to that proposition.
+* `dlogCrtRecovery`: the corrected uniqueness theorem for bounded target and competing
+  exponents.
+
+## References
+
+* [Shor, 1997, Section 6][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +37,8 @@ open Qatlib.Concepts.PeriodSampling.DlogSamplingLaw
 set_option autoImplicit false
 namespace Qatlib.Concepts.PeriodSampling.DlogCRTRecovery
 
+/-- The CRT recovery uniqueness statement with range restriction on the competing exponent but
+no range restriction on the target exponent. -/
 def DlogCrtRecoveryOriginal : Prop :=
   ∀ (p q r : ℕ) [NeZero p], Nat.Prime p → 3 ≤ p → (p : ℕ) < q →
     ∀ (t : ℕ) (c : Fin t → Fin q) (d' : Fin t → ℤ),
@@ -28,6 +54,8 @@ def DlogCrtRecoveryOriginal : Prop :=
               = r % ℓ ^ ((p - 1).factorization ℓ)) →
         r' = r
 
+/-- The unrestricted-target CRT recovery statement is false, as witnessed by `p = 3`, `q = 4`,
+`r = 2`, and competing exponent zero. -/
 theorem dlogCrtRecovery_false : ¬ DlogCrtRecoveryOriginal := by
   intro h
   have hh := h 3 4 2 (by norm_num) (by norm_num) (by norm_num)
@@ -48,6 +76,9 @@ theorem dlogCrtRecovery_false : ¬ DlogCrtRecoveryOriginal := by
       norm_num [Nat.Prime.factorization Nat.prime_two])
   norm_num at hh
 
+/-- For a target exponent in `[0, p - 1)`, the sampling congruences, large-prime nondivisibility
+witnesses, and matching small-prime-power residues uniquely determine the exponent in that
+range [Shor1997]. -/
 theorem dlogCrtRecovery : DlogCrtRecovery := by
   intro p q r _ _ hp hpq hr t c d' hcong hlarge r' hr' hcong' hsmall
   let δ : ℤ := (r' : ℤ) - (r : ℤ)

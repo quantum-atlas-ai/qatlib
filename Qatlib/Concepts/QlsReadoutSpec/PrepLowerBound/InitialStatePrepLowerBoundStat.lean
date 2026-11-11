@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverCorrectedOracle
+
+/-!
+# State-preparation lower-bound specification
+
+The proposition `InitialStatePreparationLowerBoundSubgoalCorrected` specifies a query lower
+bound for unitary circuits that approximate every marked-instance solution using the corrected
+preparation oracle. It uses an explicit error threshold and a finite-cardinality hypothesis.
+Related mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `InitialStatePreparationLowerBoundSubgoalCorrected`: The instance cardinality is at most 64
+  times the squared query count.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.BlockEncoding.Postselection
@@ -16,6 +35,9 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound
 open Matrix
 
+/-- The assertion that uniformly accurate corrected-oracle solution preparation, at error at
+most `1 / 100` and index cardinality at least 150, forces the cardinality to be at most 64
+times the squared query count of the unitary circuit. -/
 def InitialStatePreparationLowerBoundSubgoalCorrected : Prop :=
   ∀ (I W : Type) [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (ν₀ : QState Bool) (ω₀ : QState W) (ε : ℝ) (C : Circuit ((I × Bool) × W)),

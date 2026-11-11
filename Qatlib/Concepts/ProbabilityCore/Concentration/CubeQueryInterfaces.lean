@@ -10,6 +10,28 @@ import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeMvPolynomial
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSlicePoincare
+
+/-!
+# Query algorithms and cube influence
+
+The module relates decision tree execution and finite cube laws to acceptance polynomials,
+degree bounds, and influence estimates. It also bounds the acceptance degree and total influence
+of normalized quantum query circuits with unitary gates.
+
+The circuit degree statement implements the polynomial method of [BealsEtAl2001].
+
+## Main statements
+
+* `FiniteDecisionTree.polynomial_eval` and `FiniteDecisionTree.polynomial_degree`: correctness
+  and degree of tree polynomials.
+* `randomized_cube_degree`: the acceptance degree bound for randomized trees.
+* `circuit_total_influence`: a total influence bound in terms of the circuit query count.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -30,18 +52,23 @@ open scoped Classical BigOperators
 
 namespace FiniteDecisionTree
 
+/-- A leaf outputs its stored Boolean value. -/
 @[simp] theorem output_leaf {n : ℕ} (b : Bool) (x : Fin n → Bool) : (leaf b).output x = b := rfl
 
+/-- Executing a leaf makes no queries. -/
 @[simp] theorem queries_leaf {n : ℕ} (b : Bool) (x : Fin n → Bool) : (leaf b).queries x = 0 := rfl
 
+/-- A query node returns the output of the branch selected by the queried input bit. -/
 theorem output_query {n : ℕ} (i : Fin n) (l r : FiniteDecisionTree n) (x : Fin n → Bool) :
     (query i l r).output x = if x i then r.output x else l.output x := by
   cases h : x i <;> simp [output, execute, h]
 
+/-- A query node makes one query followed by the queries of the selected branch. -/
 theorem queries_query {n : ℕ} (i : Fin n) (l r : FiniteDecisionTree n) (x : Fin n → Bool) :
     (query i l r).queries x = 1+(if x i then r.queries x else l.queries x) := by
   cases h : x i <;> simp [queries, execute, h, Nat.add_comm]
 
+/-- The number of queries on any input is at most the tree depth. -/
 theorem queries_le_depth {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool) :
     t.queries x ≤ t.depth := by
   induction t with
@@ -50,6 +77,7 @@ theorem queries_le_depth {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Boo
     rw [queries_query]
     cases x i <;> simp only [Bool.false_eq_true, if_false, if_true, depth] <;> omega
 
+/-- Every answer in an execution trace equals the corresponding input bit. -/
 theorem execute_answers {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool) :
     ∀ v ∈ (t.execute x).2, v.2 = x v.1 := by
   induction t with
@@ -67,6 +95,8 @@ theorem execute_answers {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool
       · subst v; exact h.symm
       · exact hr v hv
 
+/-- Relabeling a tree and its input preserves the output and relabels each coordinate in the
+execution trace. -/
 theorem execute_relabel {n : ℕ} (e : Equiv.Perm (Fin n)) (t : FiniteDecisionTree n)
     (x : Fin n → Bool) :
     (t.relabel e).execute (fun i => x (e.symm i)) =
@@ -76,15 +106,19 @@ theorem execute_relabel {n : ℕ} (e : Equiv.Perm (Fin n)) (t : FiniteDecisionTr
   | query i l r hl hr =>
     cases h : x i <;> simp [relabel, execute, Equiv.symm_apply_apply, h, hl, hr]
 
+/-- Relabeling query coordinates preserves tree depth. -/
 theorem depth_relabel {n : ℕ} (e : Equiv.Perm (Fin n)) (t : FiniteDecisionTree n) :
     (t.relabel e).depth = t.depth := by
   induction t <;> simp_all [relabel, depth]
 
+/-- A decision tree acceptance indicator lies in `[0, 1]`. -/
 theorem accept_range {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool) :
     t.accept x ∈ Set.Icc 0 1 := by
   unfold accept
   split <;> norm_num
 
+/-- Evaluating the tree polynomial on the zero and one encoding of an input gives its acceptance
+indicator. -/
 theorem polynomial_eval {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool) :
     MvPolynomial.eval (fun i => if x i then (1 : ℝ) else 0) t.polynomial = t.accept x := by
   induction t with
@@ -92,6 +126,7 @@ theorem polynomial_eval {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool
   | query i l r hl hr =>
     cases h : x i <;> simp [polynomial, h, hl, hr, accept, output, execute]
 
+/-- The total degree of a tree acceptance polynomial is at most the tree depth. -/
 theorem polynomial_degree {n : ℕ} (t : FiniteDecisionTree n) :
     t.polynomial.totalDegree ≤ t.depth := by
   induction t with
@@ -107,6 +142,7 @@ theorem polynomial_degree {n : ℕ} (t : FiniteDecisionTree n) :
       (max_le (hL.trans (Nat.add_le_add_left (Nat.le_max_left _ _) 1))
         (hR.trans (Nat.add_le_add_left (Nat.le_max_right _ _) 1)))
 
+/-- A tree acceptance indicator has cube degree at most its depth. -/
 theorem cube_degree {n : ℕ} (t : FiniteDecisionTree n) : CubeDegreeLE t.depth t.accept := by
   have h := cube_degree_of_mv_polynomial t.polynomial t.polynomial_degree
   have he : (fun x : Fin n → Bool => MvPolynomial.eval (fun i => if x i then (1 : ℝ) else 0)
@@ -115,31 +151,40 @@ theorem cube_degree {n : ℕ} (t : FiniteDecisionTree n) : CubeDegreeLE t.depth 
 
 end FiniteDecisionTree
 
+/-- Expectation under `cubeLaw` equals the weighted cube expectation. -/
 theorem cubeLaw_expect (n : ℕ) (w : (Fin n → Bool) → ℝ) (hw : CubeWeight n w)
     (f : (Fin n → Bool) → ℝ) : (cubeLaw n w hw).expect f = cubeExpect n w f := rfl
 
+/-- Variance under `cubeLaw` equals the weighted cube variance. -/
 theorem cubeLaw_variance (n : ℕ) (w : (Fin n → Bool) → ℝ) (hw : CubeWeight n w)
     (f : (Fin n → Bool) → ℝ) : (cubeLaw n w hw).variance f = cubeVar n w f := rfl
 
+/-- The expected squared difference under a coordinate flip equals that coordinate's cube
+influence. -/
 theorem cubeLaw_influence (n : ℕ) (w : (Fin n → Bool) → ℝ) (hw : CubeWeight n w)
     (f : (Fin n → Bool) → ℝ) (i : Fin n) :
     (cubeLaw n w hw).expect (fun x => (f x-f (cubeFlip x i))^2) = cubeInf n w f i := rfl
 
+/-- The product Bernoulli cube law has point probabilities `muWeight p n`. -/
 theorem biasedCubeLaw_prob (n : ℕ) (p : ℝ) (hp : p ∈ Set.Icc 0 1) (x : Fin n → Bool) :
     (biasedCubeLaw n p hp).prob x = muWeight p n x := rfl
 
+/-- Expectation under the biased cube law equals expectation with weight `muWeight p n`. -/
 theorem biasedCubeLaw_expect (n : ℕ) (p : ℝ) (hp : p ∈ Set.Icc 0 1)
     (f : (Fin n → Bool) → ℝ) : (biasedCubeLaw n p hp).expect f = cubeExpect n (muWeight p n) f := rfl
 
+/-- Every Boolean input has probability `2⁻ⁿ` under the cube law with bias one half. -/
 theorem uniformCubeLaw_prob (n : ℕ) (x : Fin n → Bool) :
     (biasedCubeLaw n (1/2) (by constructor <;> norm_num)).prob x = (2 : ℝ)⁻¹^n := by
   rw [biasedCubeLaw_prob]
   simp only [muWeight, show (1 : ℝ)-1/2 = 1/2 by norm_num, ite_self]
   simp
 
+/-- The slice cube law has point probabilities `sliceWeight n k`. -/
 theorem sliceCubeLaw_prob (n k : ℕ) (hk : k ≤ n) (x : Fin n → Bool) :
     (sliceCubeLaw n k hk).prob x = sliceWeight n k x := rfl
 
+/-- The randomized tree polynomial evaluates to the seed averaged acceptance probability. -/
 theorem randomized_polynomial_eval {Ω : Type*} [Fintype Ω] {n : ℕ}
     (p : FinDist Ω) (t : Ω → FiniteDecisionTree n) (x : Fin n → Bool) :
     MvPolynomial.eval (fun i => if x i then (1 : ℝ) else 0) (randomizedTreePolynomial p t) =
@@ -147,6 +192,7 @@ theorem randomized_polynomial_eval {Ω : Type*} [Fintype Ω] {n : ℕ}
   simp only [randomizedTreePolynomial, MvPolynomial.eval_sum, MvPolynomial.eval_mul,
     MvPolynomial.eval_C, FiniteDecisionTree.polynomial_eval, randomizedTreeAccept, FinDist.expect]
 
+/-- The randomized tree polynomial has total degree at most the maximum tree depth. -/
 theorem randomized_polynomial_degree {Ω : Type*} [Fintype Ω] {n : ℕ}
     (p : FinDist Ω) (t : Ω → FiniteDecisionTree n) :
     (randomizedTreePolynomial p t).totalDegree ≤ forestDepth t := by
@@ -156,6 +202,7 @@ theorem randomized_polynomial_degree {Ω : Type*} [Fintype Ω] {n : ℕ}
     simp only [MvPolynomial.totalDegree_C, Nat.zero_add]
     exact (t ω).polynomial_degree.trans (Finset.le_sup (f := fun ω => (t ω).depth) hω))
 
+/-- The acceptance function of randomized trees has cube degree at most their maximum depth. -/
 theorem randomized_cube_degree {Ω : Type*} [Fintype Ω] {n : ℕ}
     (p : FinDist Ω) (t : Ω → FiniteDecisionTree n) :
     CubeDegreeLE (forestDepth t) (randomizedTreeAccept p t) := by
@@ -165,6 +212,7 @@ theorem randomized_cube_degree {Ω : Type*} [Fintype Ω] {n : ℕ}
       (randomizedTreePolynomial p t)) = randomizedTreeAccept p t := funext (randomized_polynomial_eval p t)
   rwa [he] at h
 
+/-- The seed averaged tree acceptance probability lies in `[0, 1]`. -/
 theorem randomized_accept_range {Ω : Type*} [Fintype Ω] {n : ℕ}
     (p : FinDist Ω) (t : Ω → FiniteDecisionTree n) (x : Fin n → Bool) :
     randomizedTreeAccept p t x ∈ Set.Icc 0 1 := by
@@ -175,6 +223,7 @@ theorem randomized_accept_range {Ω : Type*} [Fintype Ω] {n : ℕ}
         mul_le_mul_of_nonneg_left ((t ω).accept_range x).2 (p.nonneg ω))
       _ = 1 := by simpa only [mul_one] using p.sum_one
 
+/-- The seed averaged query count is nonnegative and at most the maximum tree depth. -/
 theorem randomized_queries_bound {Ω : Type*} [Fintype Ω] {n : ℕ}
     (p : FinDist Ω) (t : Ω → FiniteDecisionTree n) (x : Fin n → Bool) :
     0 ≤ randomizedTreeQueries p t x ∧ randomizedTreeQueries p t x ≤ forestDepth t := by
@@ -189,6 +238,7 @@ theorem randomized_queries_bound {Ω : Type*} [Fintype Ω] {n : ℕ}
         mul_le_mul_of_nonneg_left (hb ω) (p.nonneg ω))
       _ = _ := by rw [← Finset.sum_mul, p.sum_one, one_mul]
 
+/-- Expectation under the seed and input product law is the iterated input and seed expectation. -/
 theorem seed_input_expect {Ω : Type*} [Fintype Ω] {n : ℕ} (p : FinDist Ω)
     (q : FinDist (Fin n → Bool)) (g : Ω → (Fin n → Bool) → ℝ) :
     (seedInputLaw p q).expect (fun z => g z.1 z.2) = q.expect (fun x => p.expect (fun ω => g ω x)) := by
@@ -201,6 +251,8 @@ theorem seed_input_expect {Ω : Type*} [Fintype Ω] {n : ℕ} (p : FinDist Ω)
   intro ω _
   ring
 
+/-- A Boolean bit oracle circuit has acceptance cube degree at most twice its query count, as in
+[BealsEtAl2001]. -/
 theorem circuit_cube_degree (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W)) :
@@ -213,17 +265,23 @@ theorem circuit_cube_degree (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
       (fun f => MeasureProb (Run (TensorGate (BitOracleOn f) (1 : Matrix W W ℂ)) C ψ) E) := funext he
   rwa [hf] at h
 
+/-- The total influence of a tree acceptance indicator is at most eight times its squared depth
+under any cube probability weight. -/
 theorem tree_total_influence {n : ℕ} (t : FiniteDecisionTree n)
     (w : (Fin n → Bool) → ℝ) (hw : CubeWeight n w) :
     cubeTotalInf n w t.accept ≤ 8*(t.depth : ℝ)^2 :=
   cube_total_inf_le hw t.accept_range t.cube_degree
 
+/-- The total influence of randomized tree acceptance is at most eight times the squared maximum
+tree depth. -/
 theorem randomized_total_influence {Ω : Type*} [Fintype Ω] {n : ℕ}
     (p : FinDist Ω) (t : Ω → FiniteDecisionTree n) (w : (Fin n → Bool) → ℝ)
     (hw : CubeWeight n w) :
     cubeTotalInf n w (randomizedTreeAccept p t) ≤ 8*(forestDepth t : ℝ)^2 :=
   cube_total_inf_le hw (randomized_accept_range p t) (randomized_cube_degree p t)
 
+/-- A circuit with unitary gates and normalized initial state has acceptance probability in `[0,
+1]`. -/
 theorem circuit_accept_range (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W))
@@ -233,6 +291,8 @@ theorem circuit_accept_range (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
   refine ⟨measureProb_nonneg _ E, measureProb_le_one ?_ E⟩
   exact normalized_run _ (tensorGate_unitary (bitOracleOn_unitary f) (by simp)) C hC hψ
 
+/-- For unitary gates and a normalized initial state, total acceptance influence is at most `8 *
+(2 * QueryCount C)²` under any cube probability weight. -/
 theorem circuit_total_influence (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W)) (ψ : QState (PolynomialWorkspace (Fin n) W))
     (E : Finset (PolynomialWorkspace (Fin n) W))

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicOriginalOracleBridge
+
+/-!
+# Time-indexed compilation to the original oracle
+
+`dynamicTimeWorkspaceEquiv` regroups the sample and time registers so that the original oracle
+depends only on its time address. `dynamicTimeOriginalWord` transports the compiled circuit to
+this workspace, preserving its block-encoding parameters while doubling the query count and
+adding twelve fixed gates per source query. This supplies a circuit interface for the
+time-dependent construction of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicTimeSource_reindex`: identifies the controlled oracle after regrouping the registers.
+* `dynamicTimeOriginalWord_blockEncoding`: combines well-formedness, the transported encoding,
+  and exact circuit counts.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,6 +73,8 @@ local instance cbmdDynamicTimeOracleBridgeInstance2 (J W : Type) [DecidableEq J]
     DecidableEq (DynamicSampleWorkspace J W) :=
   inferInstanceAs (DecidableEq (Bool × (J × (Bool × (Bool × W)))))
 
+/-- The workspace equivalence that moves the sample register `F` beside the time address `J`,
+leaving the control and original-oracle labels intact. -/
 def dynamicTimeWorkspaceEquiv (T F J W : Type) :
     Bool × ((DynamicOriginalLabels T × F) × (J × W)) ≃
     Bool × (DynamicOriginalLabels T × ((F × J) × W)) where
@@ -62,6 +85,8 @@ def dynamicTimeWorkspaceEquiv (T F J W : Type) :
 
 omit [Fintype T] [Fintype F] [Fintype J] [Fintype W] in
 
+/-- Reindexing the controlled oracle by `dynamicTimeWorkspaceEquiv` turns the sample register
+into a spectator and leaves selection on the time address. -/
 theorem dynamicTimeSource_reindex (U : J → Matrix W W ℂ) :
     (controlOracle (parallelOracle (J := DynamicOriginalLabels T)
       (select (fun fj : F × J => U fj.2)))).submatrix
@@ -74,11 +99,15 @@ theorem dynamicTimeSource_reindex (U : J → Matrix W W ℂ) :
     simp [dynamicTimeWorkspaceEquiv, controlOracle, parallelOracle, select,
       hl, hf, hj, hw]
 
+/-- The original-oracle compilation of `cs`, reindexed so that the sample register is a
+spectator to the time-selected oracle. -/
 def dynamicTimeOriginalWord (α Λ : ℝ) (s : F × J → ℝ)
     (cs : List (AdjointStep (T × DynamicSampleWorkspace (F × J) W))) :
     List (AdjointStep (Bool × ((DynamicOriginalLabels T × F) × (J × W)))) :=
   reindexAdjointWord (dynamicTimeWorkspaceEquiv T F J W) (dynamicOriginalWord α Λ s cs)
 
+/-- Evaluation of the time-indexed compiled word is the reindexing of the evaluation of
+`dynamicOriginalWord`. -/
 theorem dynamicTimeOriginalWord_evaluate (α Λ : ℝ) (s : F × J → ℝ)
     (cs : List (AdjointStep (T × DynamicSampleWorkspace (F × J) W)))
     (U : J → Matrix W W ℂ) :
@@ -90,6 +119,8 @@ theorem dynamicTimeOriginalWord_evaluate (α Λ : ℝ) (s : F × J → ℝ)
   rw [← dynamicTimeSource_reindex (T := T) (F := F), dynamicTimeOriginalWord,
     reindexAdjointWord_evaluate]
 
+/-- The compiled word uses twice as many queries as `cs` and its fixed-gate count is that of
+`cs` plus twelve times its query count. -/
 theorem dynamicTimeOriginalWord_cost (α Λ : ℝ) (s : F × J → ℝ)
     (cs : List (AdjointStep (T × DynamicSampleWorkspace (F × J) W))) :
     adjointQueryCount (dynamicTimeOriginalWord α Λ s cs) = 2 * adjointQueryCount cs ∧
@@ -99,6 +130,9 @@ theorem dynamicTimeOriginalWord_cost (α Λ : ℝ) (s : F × J → ℝ)
     (reindexAdjointWord_cost _ _).2]
   exact dynamicOriginalWord_cost α Λ s cs
 
+/-- Under the positivity, sample bound, unitarity, and source-encoding hypotheses, the compiled
+word is well formed and preserves the block encoding with reindexed frames. Its query count
+doubles and it adds twelve fixed gates per source query. -/
 theorem dynamicTimeOriginalWord_blockEncoding (α Λ : ℝ) (s : F × J → ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ j, α * Real.sqrt (1 + (s j)^2) ≤ Λ)
     (U : J → Matrix W W ℂ) (hU : ∀ j, U j ∈ Matrix.unitaryGroup W ℂ)

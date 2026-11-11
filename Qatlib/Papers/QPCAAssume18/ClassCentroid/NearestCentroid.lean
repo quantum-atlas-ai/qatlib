@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Nearest-centroid tensor reduction
+
+Defines energy quantities, block matrices, weights, and tensor vectors for the classical
+nearest-centroid reduction of [Tang2021]. The algebra identifies the squared centroid distance
+with a tensor inner product, establishes the tensor norm identities, and combines this reduction
+with an inner-product estimation bound.
+
+## Main statements
+
+* `source_theorem6_tensor_norm_product`: Under the unit-energy hypotheses and `n > 0`, the
+  product of the two tensor norms equals `2 * averageNormSq u V`.
+* `source_theorem6_core_content`: Under the scaling, normalization, target, and sample-budget
+  hypotheses, the tensor inner product recovers the squared centroid distance and satisfies the
+  stated median failure bound. Any run whose complex error is at most `eps` has real-part
+  centroid-distance error at most `eps` [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,23 +42,32 @@ open Qatlib.Concepts.SqEstimation.InnerProduct
 
 variable {n d : ℕ}
 
+/-- The squared Frobenius norm, defined as the sum of squared moduli of all matrix entries. -/
 def frobeniusEnergy (V : Matrix (Fin n) (Fin d) ℂ) : ℝ :=
   ∑ i, ∑ k, Complex.normSq (V i k)
 
+/-- The squared Euclidean norm of a finite complex vector. -/
 def vectorEnergy (u : Fin d → ℂ) : ℝ :=
   ∑ k, Complex.normSq (u k)
 
+/-- The vector energy plus the matrix Frobenius energy divided by the number of rows. -/
 def averageNormSq (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ) : ℝ :=
   vectorEnergy u + (1 / (n : ℝ)) * frobeniusEnergy V
 
+/-- The nearest-centroid weights with first entry equal to the input norm and all remaining
+entries equal to the negative reciprocal square root of the row count. -/
 def ncWeight (u : Fin d → ℂ) : Fin (n + 1) → ℂ :=
   fun j => Fin.cases (((Real.sqrt (vectorEnergy u) : ℝ)) : ℂ)
     (fun _ => -(((Real.sqrt (n : ℝ) : ℂ))⁻¹)) j
 
+/-- The block matrix whose first row is `uhat` and whose remaining rows are those of `V` divided
+by the square root of the row count. -/
 def ncMatrix (uhat : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ) :
     Matrix (Fin (n + 1)) (Fin d) ℂ :=
   fun j k => Fin.cases (uhat k) (fun i => ((Real.sqrt (n : ℝ) : ℂ))⁻¹ * V i k) j
 
+/-- When scaling `uhat` by the norm of `u` recovers `u`, the weighted block matrix equals the
+input vector minus the mean of the matrix rows [Tang2021]. -/
 theorem source_theorem6_reduction (uhat u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)
     (hscale : ∀ k, ((Real.sqrt (vectorEnergy u) : ℝ) : ℂ) * uhat k = u k) :
@@ -63,6 +95,8 @@ theorem source_theorem6_reduction (uhat u : Fin d → ℂ)
   rw [← Finset.mul_sum, hcinv]
   ring
 
+/-- Under the scaling hypothesis, the energy of the weighted block matrix equals the squared
+distance from `u` to the centroid of the rows of `V` [Tang2021]. -/
 theorem source_theorem6_objective (uhat u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)
     (hscale : ∀ k, ((Real.sqrt (vectorEnergy u) : ℝ) : ℂ) * uhat k = u k) :
@@ -70,6 +104,8 @@ theorem source_theorem6_objective (uhat u : Fin d → ℂ)
       = ∑ k, Complex.normSq (u k - (n : ℂ)⁻¹ * ∑ i, V i k) := by
   simp_rw [source_theorem6_reduction uhat u V hn hscale]
 
+/-- The energy of a weighted row combination equals the real part of its Gram-matrix quadratic
+expression. -/
 theorem source_theorem6_gram (w : Fin (n + 1) → ℂ)
     (M : Matrix (Fin (n + 1)) (Fin d) ℂ) :
     ∑ k, Complex.normSq (∑ j, w j * M j k)
@@ -120,6 +156,8 @@ theorem source_theorem6_gram (w : Fin (n + 1) → ℂ)
   have := congrArg Complex.re hcomplex
   simpa using! this
 
+/-- For a positive number of unit-energy matrix rows, the sum of squared moduli of `ncWeight u`
+equals `averageNormSq u V`. -/
 theorem source_theorem6_average_norm (u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ)
     (hn : 0 < n) (hunit : ∀ i, ∑ k, Complex.normSq (V i k) = 1) :
     (∑ j : Fin (n + 1), Complex.normSq (ncWeight u j)) = averageNormSq u V := by
@@ -146,24 +184,31 @@ theorem source_theorem6_average_norm (u : Fin d → ℂ) (V : Matrix (Fin n) (Fi
   have hnne : (n : ℝ) ≠ 0 := ne_of_gt hnpos
   field_simp
 
+/-- The real-valued sample budget `54 / eps ^ 2 * log (2 / delta)`. -/
 def innerProductSamples (eps delta : ℝ) : ℝ :=
   54 / eps ^ 2 * Real.log (2 / delta)
 
+/-- The inner-product sample budget factors as `6 * log (2 / delta)` times `9 / eps ^ 2`. -/
 theorem source_theorem6_block_and_sample_counts (eps delta : ℝ) :
     innerProductSamples eps delta
       = (6 * Real.log (2 / delta)) * (9 / eps ^ 2) := by
   unfold innerProductSamples
   ring
 
+/-- The inner-product sample budget multiplied by the access cost `T`. -/
 def innerProductCost (T eps delta : ℝ) : ℝ :=
   T * innerProductSamples eps delta
 
+/-- The inner-product estimation cost with error parameter rescaled to `eps / (4 * Z)`. -/
 def algorithm4Cost (T Z eps delta : ℝ) : ℝ :=
   innerProductCost T (eps / (4 * Z)) delta
 
+/-- The runtime expression `T * Z ^ 2 / eps ^ 2 * log (1 / delta)`. -/
 def theorem6Runtime (T Z eps delta : ℝ) : ℝ :=
   T * Z ^ 2 / eps ^ 2 * Real.log (1 / delta)
 
+/-- For positive `Z` and `eps`, the rescaled inner-product cost equals `864 * (T * Z ^ 2 / eps ^
+2) * log (2 / delta)`. -/
 theorem source_theorem6_cost_eq (T Z eps delta : ℝ) (hZ : 0 < Z) (heps : 0 < eps) :
     algorithm4Cost T Z eps delta
       = 864 * (T * Z ^ 2 / eps ^ 2) * Real.log (2 / delta) := by
@@ -173,6 +218,8 @@ theorem source_theorem6_cost_eq (T Z eps delta : ℝ) (hZ : 0 < Z) (heps : 0 < e
   field_simp
   ring
 
+/-- If the norm product equals `4 * Z` with `Z > 0`, the stated rescaled estimation error is at
+most `eps`. -/
 theorem source_theorem6_error_rescaling {eps Z normProd est target : ℝ}
     (hZ : 0 < Z) (hnorm : normProd = 4 * Z)
     (h : |est - target| ≤ (eps / (4 * Z)) * normProd) :
@@ -182,6 +229,8 @@ theorem source_theorem6_error_rescaling {eps Z normProd est target : ℝ}
   rw [div_mul_cancel₀ eps h4] at h
   exact h
 
+/-- For the stated positive parameters and `delta ≤ 1 / 2`, `algorithm4Cost` is at most `1728 *
+theorem6Runtime`. -/
 theorem source_theorem6_runtime (T Z eps delta : ℝ) (hT : 0 ≤ T) (hZ : 0 < Z)
     (heps : 0 < eps) (hdelta : 0 < delta) (hdelta2 : delta ≤ 1 / 2) :
     algorithm4Cost T Z eps delta ≤ 1728 * theorem6Runtime T Z eps delta := by
@@ -206,23 +255,29 @@ theorem source_theorem6_runtime (T Z eps delta : ℝ) (hT : 0 ≤ T) (hZ : 0 < Z
           unfold theorem6Runtime
           ring
 
+/-- The inner-product run ledger contains exactly `(2 * r + 1) * m` envelope-sampling calls. -/
 theorem source_inner_product_envelope_samples {X : Type} [Fintype X]
     (a : FiniteSQInput X) (v : X → ℂ) (m r : ℕ) (ω : Fin (2 * r + 1) → Fin m → X) :
     (sqRunCalls a v m r ω).count SQCall.sampleEnvelope = (2 * r + 1) * m := by
   rw [sqRunCalls_count]
   simp
 
+/-- The Euclidean norm of a matrix row, defined as the square root of its energy. -/
 def rowNorm {m d : ℕ} (M : Matrix (Fin m) (Fin d) ℂ) (k : Fin m) : ℝ :=
   Real.sqrt (∑ i, Complex.normSq (M k i))
 
+/-- The tensor with entries `M j i * rowNorm M k`. -/
 def tensorA {n d : ℕ} (M : Matrix (Fin (n + 1)) (Fin d) ℂ) :
     Fin d → Fin (n + 1) → Fin (n + 1) → ℂ :=
   fun i j k => M j i * (((rowNorm M k : ℝ) : ℂ))
 
+/-- The tensor with entries `star (w j) * w k * M k i / rowNorm M k`. -/
 def tensorB {n d : ℕ} (w : Fin (n + 1) → ℂ) (M : Matrix (Fin (n + 1)) (Fin d) ℂ) :
     Fin d → Fin (n + 1) → Fin (n + 1) → ℂ :=
   fun i j k => star (w j) * w k * M k i / (((rowNorm M k : ℝ) : ℂ))
 
+/-- The energy of a noninitial row of `ncMatrix` equals the corresponding original row energy
+divided by `n`. -/
 theorem ncMatrix_row_energy_succ {n d : ℕ} (uhat : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (i : Fin n) :
     (∑ k, Complex.normSq (ncMatrix uhat V i.succ k))
@@ -234,6 +289,8 @@ theorem ncMatrix_row_energy_succ {n d : ℕ} (uhat : Fin d → ℂ)
     rw [Complex.normSq_inv, hc]
   simp only [ncMatrix, Fin.cases_succ, Complex.normSq_mul, hcinvsq, ← Finset.mul_sum]
 
+/-- If `uhat` and every row of `V` have unit energy and `n > 0`, every row of `ncMatrix uhat V`
+has positive norm. -/
 theorem source_theorem6_rowNorm_pos {n d : ℕ} (uhat : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)
     (huhat : ∑ k, Complex.normSq (uhat k) = 1)
@@ -252,6 +309,8 @@ theorem source_theorem6_rowNorm_pos {n d : ℕ} (uhat : Fin d → ℂ)
     rw [ncMatrix_row_energy_succ uhat V i, hunit i]
     exact mul_pos (inv_pos.mpr (by exact_mod_cast hn)) (by norm_num)
 
+/-- With positive row norms, the inner product of `tensorA` and `tensorB` equals the stated
+weighted Gram expression. -/
 theorem source_theorem6_tensor_inner (w : Fin (n + 1) → ℂ)
     (M : Matrix (Fin (n + 1)) (Fin d) ℂ) (hrow : ∀ k, 0 < rowNorm M k) :
     (∑ i, ∑ j, ∑ k, star (tensorA M i j k) * tensorB w M i j k)
@@ -273,6 +332,7 @@ theorem source_theorem6_tensor_inner (w : Fin (n + 1) → ℂ)
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl (fun i _ => by ring)
 
+/-- The energy of `tensorA M` equals the square of the Frobenius energy of `M`. -/
 theorem source_theorem6_tensor_energy_a (M : Matrix (Fin (n + 1)) (Fin d) ℂ) :
     (∑ i, ∑ j, ∑ k, Complex.normSq (tensorA M i j k)) = (frobeniusEnergy M) ^ 2 := by
   have hterm : ∀ (i : Fin d) (j k : Fin (n + 1)),
@@ -300,6 +360,8 @@ theorem source_theorem6_tensor_energy_a (M : Matrix (Fin (n + 1)) (Fin d) ℂ) :
   unfold frobeniusEnergy
   rw [sq]
 
+/-- If `uhat` and all rows of `V` have unit energy and `n > 0`, `ncMatrix uhat V` has Frobenius
+energy two. -/
 theorem source_theorem6_matrix_energy {n d : ℕ} (uhat : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)
     (huhat : ∑ k, Complex.normSq (uhat k) = 1)
@@ -323,6 +385,7 @@ theorem source_theorem6_matrix_energy {n d : ℕ} (uhat : Fin d → ℂ)
   rw [hrow0, hrowsum]
   norm_num
 
+/-- Under the unit-energy hypotheses and `n > 0`, `tensorA (ncMatrix uhat V)` has energy four. -/
 theorem source_theorem6_tensor_energy_a_norm {n d : ℕ} (uhat : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)
     (huhat : ∑ k, Complex.normSq (uhat k) = 1)
@@ -331,6 +394,7 @@ theorem source_theorem6_tensor_energy_a_norm {n d : ℕ} (uhat : Fin d → ℂ)
   rw [source_theorem6_tensor_energy_a, source_theorem6_matrix_energy uhat V hn huhat hunit]
   norm_num
 
+/-- With positive row norms, the energy of `tensorB w M` equals the square of the energy of `w`. -/
 theorem source_theorem6_tensor_energy_b (w : Fin (n + 1) → ℂ)
     (M : Matrix (Fin (n + 1)) (Fin d) ℂ) (hrow : ∀ k, 0 < rowNorm M k) :
     (∑ i, ∑ j, ∑ k, Complex.normSq (tensorB w M i j k))
@@ -396,6 +460,8 @@ theorem source_theorem6_tensor_energy_b (w : Fin (n + 1) → ℂ)
   simp only [hk]
   rw [sq]
 
+/-- Under the unit-energy hypotheses and `n > 0`, the product of the two tensor norms equals `2
+* averageNormSq u V`. -/
 theorem source_theorem6_tensor_norm_product {n d : ℕ} (uhat u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)
     (huhat : ∑ k, Complex.normSq (uhat k) = 1)
@@ -423,14 +489,21 @@ theorem source_theorem6_tensor_norm_product {n d : ℕ} (uhat u : Fin d → ℂ)
     rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
   rw [hsqrt4, Real.sqrt_sq hZ]
 
+/-- The tensor `tensorA (ncMatrix uhat V)` viewed as a function on coordinate triples. -/
 def ncTensorA {n d : ℕ} (uhat : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ) :
     Fin d × Fin (n + 1) × Fin (n + 1) → ℂ :=
   fun p => tensorA (ncMatrix uhat V) p.1 p.2.1 p.2.2
 
+/-- The tensor `tensorB (ncWeight u) (ncMatrix uhat V)` viewed as a function on coordinate
+triples. -/
 def ncTensorB {n d : ℕ} (u uhat : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ) :
     Fin d × Fin (n + 1) × Fin (n + 1) → ℂ :=
   fun p => tensorB (ncWeight u) (ncMatrix uhat V) p.1 p.2.1 p.2.2
 
+/-- Under the scaling, normalization, target, and sample-budget hypotheses, the tensor inner
+product recovers the squared centroid distance and satisfies the stated median failure
+bound. Any run whose complex error is at most `eps` has real-part centroid-distance error at
+most `eps` [Tang2021]. -/
 theorem source_theorem6_core_content {n d : ℕ}
     (x : FiniteSQInput (Fin d × Fin (n + 1) × Fin (n + 1)))
     (uhat u : Fin d → ℂ) (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n)

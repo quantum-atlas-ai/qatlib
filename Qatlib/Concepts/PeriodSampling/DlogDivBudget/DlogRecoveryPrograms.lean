@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Finite sampling laws for discrete-logarithm recovery
+
+This module defines finite distributions and events for the discrete-logarithm recovery analysis
+in [Shor1997]. The distribution `dlogUniformGoodLaw` is uniform on small-residue first
+coordinates, and `dlogCommonPpDivides` detects a common prime-power divisor of the sampled
+scaled coefficients.
+
+The module also defines good full outcomes, a threshold event for their count, and the Born
+distribution `dlogBornLaw` associated with a normalized two-dimensional sampling state.
+
+## Main statements
+
+* `dlogUniformGoodLaw`: the uniform law on small-residue coordinates.
+* `dlogCommonPpDivides`: the common prime-power divisibility event.
+* `dlogGoodCountGE`: a lower threshold for the number of good outcomes.
+* `dlogBornLaw`: the finite sampling law given by Born probabilities.
+
+## References
+
+* [Shor, 1997, Section 6][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,12 +47,14 @@ namespace Qatlib.Concepts.PeriodSampling.DlogDivBudget
 open Qatlib
 open scoped Classical
 
+/-- The natural number is a positive power of a prime. -/
 def dlogIsPrimePower (w : ℕ) : Prop := ∃ ℓ e, Nat.Prime ℓ ∧ 1 ≤ e ∧ ℓ ^ e = w
 
 instance instDecidableDlogIsPrimePowerAnd : DecidablePred
     (fun w : ℕ => dlogIsPrimePower w ∧ 18 < w) :=
   fun w => Classical.propDecidable _
 
+/-- The subtype of Fourier-sampling first coordinates satisfying `dlogSmallResidue p q`. -/
 def dlogGoodCType (p q : ℕ) : Type := {c : Fin q // dlogSmallResidue p q c}
 
 instance instDlogGoodCTypeFintype (p q : ℕ) : Fintype (dlogGoodCType p q) :=
@@ -52,6 +78,7 @@ instance instDlogGoodCTypeNonempty (p q : ℕ) [NeZero q] : Nonempty (dlogGoodCT
           (by norm_num : (0 : ℤ) ≤ 2)
       exact absurd h2 (by assumption)⟩⟩
 
+/-- The uniform finite probability distribution on the small-residue coordinate subtype. -/
 noncomputable def dlogUniformGoodLaw (p q : ℕ) [NeZero q] :
     FinDist (dlogGoodCType p q) where
   prob _ := (Fintype.card (dlogGoodCType p q) : ℝ)⁻¹
@@ -62,6 +89,8 @@ noncomputable def dlogUniformGoodLaw (p q : ℕ) [NeZero q] :
       exact_mod_cast Fintype.card_ne_zero
     field_simp
 
+/-- Some prime-power divisor of `p - 1` greater than eighteen divides every `dlogCprime` value
+in the sample. -/
 def dlogCommonPpDivides (p q : ℕ) {t : ℕ}
     (ω : Fin t → dlogGoodCType p q) : Prop :=
   ∃ w ∈ (Nat.divisors (p - 1)).filter
@@ -72,12 +101,14 @@ instance dlogCommonPpDividesDecidable (p q : ℕ) {t : ℕ} :
     DecidablePred (dlogCommonPpDivides (p := p) (q := q) (t := t)) :=
   fun ω => Classical.propDecidable _
 
+/-- The first two coordinates of a sampling outcome form a good discrete-logarithm pair. -/
 def dlogGoodOutcome (p q r : ℕ) (o : Fin q × Fin q × ZMod p) : Prop :=
   dlogGoodPair p q r o.1 o.2.1
 
 instance instDecidableDlogGoodOutcome (p q r : ℕ) :
     DecidablePred (dlogGoodOutcome p q r) := fun o => Classical.propDecidable _
 
+/-- At least `t` of the `L` sampled outcomes satisfy `dlogGoodOutcome`. -/
 def dlogGoodCountGE (p q r t L : ℕ)
     (ω : Fin L → Fin q × Fin q × ZMod p) : Prop :=
   (t : ℝ) ≤ ∑ j, if dlogGoodOutcome p q r (ω j) then (1 : ℝ) else 0
@@ -86,6 +117,8 @@ instance instDecidableDlogGoodCountGE (p q r t L : ℕ) :
     DecidablePred (dlogGoodCountGE p q r t L) :=
   fun ω => Classical.propDecidable _
 
+/-- The finite Born-probability distribution of a normalized two-dimensional discrete-logarithm
+sampling state. -/
 noncomputable def dlogBornLaw (p q : ℕ) [NeZero p] (g x : ZMod p)
     (hnorm : Normalized (dlogTwoDimState p q g x)) :
     FinDist (Fin q × Fin q × ZMod p) where

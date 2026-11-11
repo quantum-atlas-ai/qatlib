@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+
+/-!
+# Repetition bounds for random-base factoring
+
+This module turns a success bound for one uniformly sampled base into a bound for independent
+repetitions. It applies the random-base estimate from the order-finding reduction of [Shor1997]
+to odd moduli with at least two distinct prime factors.
+
+## Main statements
+
+* `uniform_fresh_success_bound`: one-trial failure bounded by `q` gives repeated success at
+  least `1 - q ^ R`.
+* `random_base_verified_fresh_failure_consumer`: the repeated random-base estimate together with
+  soundness of every returned order-based factor.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PeriodSampling.OrderRecovery
@@ -17,6 +37,9 @@ open scoped Classical BigOperators
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- If a predicate holds with probability at least `1 - q` under the uniform law on a nonempty
+finite type, it holds in at least one of `R` independent uniform samples with probability at
+least `1 - q ^ R`. -/
 private theorem uniform_fresh_success_bound {A : Type*} [Fintype A] [Nonempty A]
     (P : A → Prop) (R : ℕ) (q : ℝ)
     (hP : 1 - q ≤ (Fintype.card A : ℝ)⁻¹ *
@@ -60,6 +83,9 @@ private theorem uniform_fresh_success_bound {A : Type*} [Fintype A] [Nonempty A]
     exact hp
   nlinarith
 
+/-- For odd `N > 1` with `k ≥ 2` distinct prime factors, `R` independent uniform units include a
+good base with probability at least `1 - (2 ^ (-(k - 1))) ^ R`. Every factor returned from a
+unit's exact order is a proper divisor of `N`, in the factoring reduction of [Shor1997]. -/
 theorem random_base_verified_fresh_failure_consumer :
     ∀ (N R : ℕ) [NeZero N], 1 < N → Odd N → 2 ≤ N.primeFactors.card →
       ((Fintype.card (Fin R → (ZMod N)ˣ) : ℝ)⁻¹ *

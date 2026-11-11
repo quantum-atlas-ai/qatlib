@@ -8,6 +8,27 @@ import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Order
 import Qatlib.Papers.PartitionFunc08.MainResults.Model.NumericBounds
+
+/-!
+# Relative accuracy and product estimates
+
+The event `relAccEvent` and predicate `IsRelAccurate` express multiplicative accuracy and its
+probability bound. The structure `SchemeCost` records resource counts, and the product lemmas
+show that relative errors of size `ε / (2 * ℓ)` combine into relative error `ε` for positive
+factors. These estimates form part of the partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `IsRelAccurate`: The condition that the relative-accuracy event for `Q` has real measure at
+  least `p`.
+* `prod_rel_acc`: For a nonempty product of positive factors and `0 < ε ≤ 1`, factorwise
+  relative errors at most `ε / (2 * ℓ)` give relative error at most `ε` for the product.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,19 +39,24 @@ open scoped BigOperators ENNReal
 
 namespace Qatlib.Papers.PartitionFunc08.MainResults
 
+/-- The event that `Q` lies between `(1 - ε) * α` and `(1 + ε) * α`. -/
 def relAccEvent {Ω : Type*} (α ε : ℝ) (Q : Ω → ℝ) : Set Ω :=
   {ω | (1 - ε) * α ≤ Q ω ∧ Q ω ≤ (1 + ε) * α}
 
+/-- The condition that the relative-accuracy event for `Q` has real measure at least `p`. -/
 def IsRelAccurate {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
     (α ε p : ℝ) (Q : Ω → ℝ) : Prop :=
   p ≤ μ.real (relAccEvent α ε Q)
 
+/-- Real-valued resource data recording walk calls and samples for an estimation scheme. -/
 structure SchemeCost where
 
   walkCalls : ℝ
 
   samples : ℝ
 
+/-- For a nonempty product of positive factors and `0 < ε ≤ 1`, factorwise relative errors at
+most `ε / (2 * ℓ)` give a product upper bound of `(1 + ε)` times the target product. -/
 theorem prod_upper_rel {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (hε0 : 0 < ε) (hε1 : ε ≤ 1)
     {α Q : Fin ℓ → ℝ} (hα : ∀ i, 0 < α i)
     (hQ : ∀ i, (1 - ε / (2 * (ℓ : ℝ))) * α i ≤ Q i ∧
@@ -69,6 +95,8 @@ theorem prod_upper_rel {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (hε0 : 0 < ε) (
           linarith
         exact mul_le_mul_of_nonneg_right hpow hprod
 
+/-- For a nonempty product of positive factors and `0 < ε ≤ 1`, factorwise relative errors at
+most `ε / (2 * ℓ)` give a product lower bound of `(1 - ε)` times the target product. -/
 theorem prod_lower_rel {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (hε0 : 0 < ε) (hε1 : ε ≤ 1)
     {α Q : Fin ℓ → ℝ} (hα : ∀ i, 0 < α i)
     (hQ : ∀ i, (1 - ε / (2 * (ℓ : ℝ))) * α i ≤ Q i ∧
@@ -101,6 +129,8 @@ theorem prod_lower_rel {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (hε0 : 0 < ε) (
           nlinarith
         · intro i _; exact (hQ i).1
 
+/-- For a nonempty product of positive factors and `0 < ε ≤ 1`, factorwise relative errors at
+most `ε / (2 * ℓ)` give relative error at most `ε` for the product. -/
 theorem prod_rel_acc {ℓ : ℕ} (hℓ : 0 < ℓ) {ε : ℝ} (hε0 : 0 < ε) (hε1 : ε ≤ 1)
     {α Q : Fin ℓ → ℝ} (hα : ∀ i, 0 < α i)
     (hQ : ∀ i, (1 - ε / (2 * (ℓ : ℝ))) * α i ≤ Q i ∧

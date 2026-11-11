@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
+
+/-!
+# Counting repeated tensor indices
+
+`repeated` and `noRepeat` split a tensor into terms with colliding indices and terms with
+injective index tuples. The module decomposes `tensorEnergy` accordingly and bounds the number
+of colliding tuples, supplying a combinatorial estimate for the Gaussian remainder analysis
+associated with [GohMuller2026].
+
+## Main statements
+
+* `energy_decomposition`: Tensor energy is the sum of the energies of its injective and repeated
+  index parts.
+* `repeated_tuple_card`: The number of noninjective index tuples from `Fin q` to `Fin N` is at
+  most `q² * N^(q-1)`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
@@ -13,12 +34,17 @@ open scoped Classical BigOperators
 open Qatlib.Foundations.MatrixAlgebra.TensorDiff
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder
 
+/-- The tensor retaining coefficients at noninjective index tuples and setting all other
+coefficients to zero. -/
 def repeated {q N : ℕ} (A : Tensor q N) : Tensor q N :=
     fun k=>if Function.Injective k then 0 else A k
 
+/-- The tensor retaining coefficients at injective index tuples and setting all other
+coefficients to zero. -/
 def noRepeat {q N : ℕ} (A : Tensor q N) : Tensor q N :=
     fun k=>if Function.Injective k then A k else 0
 
+/-- Tensor energy is the sum of the energies of its injective and repeated index parts. -/
 theorem energy_decomposition {q N : ℕ} (A : Tensor q N) (u : Fin N→ℝ) :
     tensorEnergy A u=tensorEnergy (noRepeat A) u+tensorEnergy (repeated A) u := by
   rw [tensorEnergy,tensorEnergy,tensorEnergy,← Finset.sum_add_distrib]
@@ -26,6 +52,7 @@ theorem energy_decomposition {q N : ℕ} (A : Tensor q N) (u : Fin N→ℝ) :
   intro k _
   by_cases h:Function.Injective k <;>simp [noRepeat,repeated,h]
 
+/-- For distinct slots `a` and `b`, at most `N^(q-1)` index tuples satisfy `k a = k b`. -/
 theorem collision_card {q N : ℕ} (a b : Fin q) (hab : a≠b) :
     (Finset.univ.filter (fun k:Fin q→Fin N=>k a=k b)).card≤N^(q-1) := by
   let f : {k:Fin q→Fin N // k a=k b}→({j:Fin q // j≠b}→Fin N) := fun k j=>k.1 j.1
@@ -45,6 +72,7 @@ theorem collision_card {q N : ℕ} (a b : Fin q) (hab : a≠b) :
   rw [Fintype.card_fun,hc] at h
   simpa only [Fintype.card_subtype,Finset.card_filter,Fintype.card_fin] using h
 
+/-- The number of noninjective index tuples from `Fin q` to `Fin N` is at most `q² * N^(q-1)`. -/
 theorem repeated_tuple_card (q N : ℕ) :
     (Finset.univ.filter (fun k:Fin q→Fin N=>¬Function.Injective k)).card≤q^2*N^(q-1) := by
   let C (ab:Fin q×Fin q) : Finset (Fin q→Fin N) :=

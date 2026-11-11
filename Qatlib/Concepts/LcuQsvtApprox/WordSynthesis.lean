@@ -22,6 +22,29 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+
+/-!
+# Signal-word synthesis and convention transport
+
+`g3` combines exact signal-word matrix formulas, transport to reflection words, bounded
+real-polynomial phase existence, and the completed-pair characterization. It also records
+counted synthesis, entrywise stability under phase perturbations, and completion with prescribed
+imaginary parts.
+
+The statements fix the phase and polynomial conventions needed to use quantum signal processing
+and singular value transformation as in [LowChuang2017] and [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `g3`: assemble word transport, synthesis, characterization, perturbation, and
+  polynomial-completion guarantees.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -70,6 +93,9 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord in
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis in
 open Matrix Polynomial in
 
+/-- Combines exact signal and reflection word formulas, real-polynomial phase existence,
+completed-pair characterization and counted synthesis, entrywise phase-perturbation bounds,
+and polynomial completion with prescribed imaginary parts [GilyenSuLowWiebe2019]. -/
 theorem g3 :
 
   (∀ (z0 : ℂ) (zs : List ℂ) (x : ℝ), x ∈ Set.Icc (-1 : ℝ) 1 →

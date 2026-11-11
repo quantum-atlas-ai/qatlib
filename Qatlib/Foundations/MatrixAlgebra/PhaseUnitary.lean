@@ -40,11 +40,30 @@ import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Tactic
 import Mathlib.Tactic.NormNum.Basic
 import Mathlib.Tactic.NormNum.Pow
+
+/-!
+# Diagonal phase unitaries
+
+`diagonal_unitary` proves that a finite complex diagonal matrix is unitary when every diagonal
+entry has modulus one. The exponential identity `exp_phase_norm` then gives `real_phase_unitary`
+for arbitrary real phases, as used in quantum phase gates [NielsenChuang2010].
+
+## Main statements
+
+* `diagonal_unitary`: unit-modulus diagonal entries give a unitary matrix.
+* `real_phase_unitary`: exponentials of imaginary real phases form a diagonal unitary.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 open scoped BigOperators
 open Matrix
 namespace Qatlib.Foundations.MatrixAlgebra.PhaseUnitary
 
+/-- A finite complex diagonal matrix is unitary if each diagonal entry has norm one. -/
 theorem diagonal_unitary {I : Type*} [Fintype I] [DecidableEq I] (d : I → ℂ) (hd : ∀ i, ‖d i‖=1) :
     diagonal d ∈ unitaryGroup I ℂ := by
   rw [mem_unitaryGroup_iff',star_eq_conjTranspose,diagonal_conjTranspose,diagonal_mul_diagonal]
@@ -58,9 +77,11 @@ theorem diagonal_unitary {I : Type*} [Fintype I] [DecidableEq I] (d : I → ℂ)
     norm_num
   · simp [h]
 
+/-- The complex exponential of `t * I` has norm one for every real `t`. -/
 theorem exp_phase_norm (t : ℝ) : ‖Complex.exp ((t:ℂ)*Complex.I)‖=1 := by
   simp [Complex.norm_exp]
 
+/-- The diagonal matrix with entries `exp (p i * I)` is unitary for any real phase function `p`. -/
 theorem real_phase_unitary {I : Type*} [Fintype I] [DecidableEq I] (p : I → ℝ) :
     Matrix.diagonal (fun i=>Complex.exp ((p i:ℂ)*Complex.I)) ∈ Matrix.unitaryGroup I ℂ :=
   diagonal_unitary _ (fun i=>exp_phase_norm (p i))

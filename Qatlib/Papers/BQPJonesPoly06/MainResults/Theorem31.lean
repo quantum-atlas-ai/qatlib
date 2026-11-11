@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Encoding
+
+/-!
+# Fixed-parameter Jones hardness reduction
+
+The structure `BraidEncoding` records a polynomial crossing bound and an additive approximation
+to circuit amplitudes. Given this encoding and the Jones-value scaling relation,
+`theorem31_reduction` transfers the circuit gap to the Jones promise problem in the setting of
+[AharonovArad2011].
+
+## Main statements
+
+* `theorem31_reduction`: an encoding error at most `1 / 20` yields BQP hardness.
+* `theorem31_bqpHard`: the fixed-parameter statement with the paper's restriction on `k`.
+* `theorem31_scale_pos`: positivity of the Jones normalization factor for `k > 4`.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,8 @@ namespace Qatlib.Papers.BQPJonesPoly06.MainResults
 
 open Model
 
+/-- A circuit-to-braid encoding with a polynomial crossing bound, a nonnegative error budget,
+and amplitudes approximating those of the input circuits. -/
 structure BraidEncoding (n : ℕ) where
 
   amp : BraidWord n → ℝ
@@ -31,6 +53,9 @@ structure BraidEncoding (n : ℕ) where
 
   amp_close : ∀ C : CircuitGap, |amp (enc C) - C.amplitude| ≤ eps
 
+/-- A braid encoding with error at most `1 / 20` yields BQP hardness of the Jones promise
+problem when the scale is positive and Jones magnitudes equal scaled encoding amplitudes
+[AharonovArad2011, Theorem 3.1][AharonovArad2011]. -/
 theorem theorem31_reduction (k n : ℕ) (hk : 4 < k) (V : JonesValue n)
     (E : BraidEncoding n) (hΔ : 0 < deltaScale k n)
     (hscale : ∀ b : BraidWord n, ‖V b‖ = deltaScale k n * E.amp b)
@@ -65,6 +90,9 @@ theorem theorem31_reduction (k n : ℕ) (hk : 4 < k) (V : JonesValue n)
     have hstep := mul_le_mul_of_nonneg_left hamp (le_of_lt hΔ)
     linarith
 
+/-- The fixed-parameter BQP hardness conclusion for `k > 4` and `k ≠ 6`, assuming the braid
+encoding, positive scaling relation, and error bound [AharonovArad2011, Theorem
+3.1][AharonovArad2011]. -/
 theorem theorem31_bqpHard (k n : ℕ) (hk : 4 < k) (_hk6 : k ≠ 6) (V : JonesValue n)
     (E : BraidEncoding n) (hΔ : 0 < deltaScale k n)
     (hscale : ∀ b : BraidWord n, ‖V b‖ = deltaScale k n * E.amp b)
@@ -72,6 +100,7 @@ theorem theorem31_bqpHard (k n : ℕ) (hk : 4 < k) (_hk6 : k ≠ 6) (V : JonesVa
     BQPHard (jonesPromise n V (deltaScale k n)) :=
   theorem31_reduction k n hk V E hΔ hscale heps
 
+/-- The Jones normalization factor `deltaScale k n` is positive when `k > 4`. -/
 theorem theorem31_scale_pos (k n : ℕ) (hk : 4 < k) : 0 < deltaScale k n :=
   deltaScale_pos (by omega)
 

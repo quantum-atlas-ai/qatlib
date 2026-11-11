@@ -13,6 +13,25 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
+
+/-!
+# Classical and quantum step-size identities
+
+This module proves the centered finite-difference error estimate using a third-derivative bound
+on the evaluation interval. It combines this estimate with endpoint perturbation and step-size
+identities for the comparison associated with [Jordan2005Gradient].
+
+## Main statements
+
+* `central_difference_error`: centered truncation error is at most `D*l^2/24`.
+* `classicalQuantumStepSizes`: endpoint error, truncation, and error-matching step-size
+  identities.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +41,9 @@ set_option maxHeartbeats 600000
 namespace Qatlib.Concepts.GradientOracle.StepSizes
 open Set
 
+/-- For a `C³` function and distinct real endpoints, the error after the quadratic Taylor
+polynomial equals the third derivative at some intermediate point times the cubed
+displacement divided by six. -/
 private theorem quadratic_remainder (f : ℝ → ℝ) (x y : ℝ) (hxy : x ≠ y)
     (hf : ContDiff ℝ 3 f) :
     ∃ z ∈ uIoo x y, f y - (f x + deriv f x * (y-x) +
@@ -42,6 +64,8 @@ private theorem quadratic_remainder (f : ℝ → ℝ) (x y : ℝ) (hxy : x ≠ y
   norm_num only [Nat.factorial] at he
   exact he
 
+/-- For a `C³` function whose third derivative is bounded by `D` on the evaluation interval, the
+centered-difference error at positive separation `l` is at most `D*l^2/24`. -/
 theorem central_difference_error (f : ℝ → ℝ) (x l D : ℝ) (hl : 0 < l)
     (hf : ContDiff ℝ 3 f)
     (hD : ∀ ξ ∈ Icc (x-l/2) (x+l/2), |iteratedDeriv 3 f ξ| ≤ D) :
@@ -76,6 +100,9 @@ theorem central_difference_error (f : ℝ → ℝ) (x l D : ℝ) (hl : 0 < l)
   apply (div_le_iff₀ hl).2
   nlinarith [hh]
 
+/-- Proves endpoint-value stability, the centered truncation bound, and the classical and
+quantum step-size substitution identities for the prescribed target error. See
+[Jordan2005Gradient]. -/
 theorem classicalQuantumStepSizes : ClassicalQuantumStepSizes := by
   refine ⟨?_, central_difference_error, ?_⟩
   · intro F1 F0 f1 f0 l δ hl _ h1 h0

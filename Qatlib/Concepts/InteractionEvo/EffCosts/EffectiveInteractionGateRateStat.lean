@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+/-!
+# Dyadic interaction gate-cost contract
+
+This module defines `EffectiveInteractionGateRate`, a summation specification for costs attached
+to dyadic interaction times. It turns a time-dependent logarithmic per-call bound into a
+full-duration bound with an additive term for the number of calls, in the setting of
+[LowWiebe2018].
+
+## Main statements
+
+* `EffectiveInteractionGateRate`: the aggregate cost proposition for dyadic durations.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.EffCosts
@@ -16,6 +34,9 @@ open Qatlib.Concepts.InteractionEvo.ComputedGrid Qatlib.Concepts.InteractionEvo.
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPicture2018 Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+/-- The proposition that the stated per-dyadic-time cost bound implies a total cost at most
+twice the full-duration leading bound plus `nd + 1`, for positive exponent and precision
+parameters. -/
 noncomputable def EffectiveInteractionGateRate : Prop :=
   ∀ (gamma : ℝ), 0 < gamma → ∀ (tau delta : ℚ) (nd : ℕ)
       (CA : ℝ) (cost : ℕ → ℕ),

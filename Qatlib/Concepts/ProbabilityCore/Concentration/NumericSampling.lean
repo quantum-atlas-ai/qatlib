@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSamplingDefs
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+/-!
+# Dyadic rounding errors for sampled matrices
+
+The module bounds scalar, complex, and matrix errors caused by dyadic floor rounding and
+transports norm tail events through that error budget. Rounding also commutes with matrix
+reindexing.
+
+The norm estimates use finite matrix analysis as in [Bhatia1997] and allow sampled matrix bounds
+to include numerical precision.
+
+## Main statements
+
+* `dyadic_matrix_error`: a matrix rounding error bounded by `dyadicOpBudget`.
+* `dyadic_sample_tail` and `dyadic_measure_tail`: tail bounds with a rounding allowance.
+* `dyadic_reindex`: compatibility with coordinate relabeling.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -18,6 +40,8 @@ namespace Qatlib.Concepts.ProbabilityCore.Concentration
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Encoding a complex number with rational real and imaginary parts agrees with rational dyadic
+encoding. -/
 theorem dyadicEncode_rat (bits : ℕ) (a b : ℚ) :
     dyadicEncode bits ((a : ℂ) + (b : ℂ)*Complex.I) = dyadicEncodeRat bits (a,b) := by
   have hf (q : ℚ) : ⌊(2 : ℝ)^bits*(q : ℝ)⌋ = ⌊(2 : ℚ)^bits*q⌋ := by
@@ -25,6 +49,7 @@ theorem dyadicEncode_rat (bits : ℕ) (a b : ℚ) :
     simpa using h
   simp [dyadicEncode, dyadicEncodeRat, hf]
 
+/-- Dyadic floor rounding of a real number has absolute error at most `1 / 2 ^ bits`. -/
 theorem dyadic_scalar_error (bits : ℕ) (x : ℝ) :
     |(⌊(2 : ℝ)^bits*x⌋ : ℝ)/(2 : ℝ)^bits-x| ≤ 1/(2 : ℝ)^bits := by
   have hs : 0 < (2 : ℝ)^bits := by positivity
@@ -36,6 +61,7 @@ theorem dyadic_scalar_error (bits : ℕ) (x : ℝ) :
   rw [he, abs_div, abs_of_pos hs, abs_of_nonpos (sub_nonpos.mpr hlo)]
   exact div_le_div_of_nonneg_right (by linarith) hs.le
 
+/-- Dyadic rounding of a complex number has norm error at most `2 / 2 ^ bits`. -/
 theorem dyadic_complex_error (bits : ℕ) (z : ℂ) :
     ‖dyadicRoundComplex bits z-z‖ ≤ 2/(2 : ℝ)^bits := by
   have hr : |(dyadicRoundComplex bits z-z).re| ≤ 1/(2 : ℝ)^bits := by
@@ -54,6 +80,7 @@ theorem dyadic_complex_error (bits : ℕ) (z : ℂ) :
     _ ≤ 1/(2 : ℝ)^bits+1/(2 : ℝ)^bits := add_le_add hr hi
     _ = _ := by ring
 
+/-- The norm error of a dyadically rounded square matrix is at most `dyadicOpBudget I bits`. -/
 theorem dyadic_matrix_error {I : Type} [Fintype I] [DecidableEq I]
     (bits : ℕ) (A : Matrix I I ℂ) :
     ‖dyadicRoundMatrix bits A-A‖ ≤ dyadicOpBudget I bits := by
@@ -70,6 +97,8 @@ theorem dyadic_matrix_error {I : Type} [Fintype I] [DecidableEq I]
       Finset.sum_le_sum (fun i _ => Finset.sum_le_sum (fun j _ => he i j))
     _ = _ := by simp [dyadicOpBudget]; ring
 
+/-- For a finite sample law, the rounded matrix tail beyond `η` plus the rounding budget is
+bounded by the original tail beyond `η`. -/
 theorem dyadic_sample_tail {X : Type*} [Fintype X] {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist X) (A : X → Matrix I I ℂ) (T : Matrix I I ℂ) (bits : ℕ) (η : ℝ) :
     eventMass p (fun ω => η+dyadicOpBudget I bits < ‖dyadicRoundMatrix bits (A ω)-T‖) ≤
@@ -87,10 +116,13 @@ theorem dyadic_sample_tail {X : Type*} [Fintype X] {I : Type} [Fintype I] [Decid
   · intro ω _ _
     exact p.nonneg ω
 
+/-- Dyadic matrix rounding commutes with reindexing both matrix coordinates by an equivalence. -/
 theorem dyadic_reindex {I J : Type*} (e : I ≃ J) (bits : ℕ) (A : Matrix I I ℂ) :
     dyadicRoundMatrix bits (Matrix.reindex e e A) =
       Matrix.reindex e e (dyadicRoundMatrix bits A) := rfl
 
+/-- For any measure, the rounded matrix tail beyond `η` plus the rounding budget is bounded by
+the original tail beyond `η`. -/
 theorem dyadic_measure_tail {Ω : Type*} [MeasurableSpace Ω]
     {I : Type} [Fintype I] [DecidableEq I]
     (μ : MeasureTheory.Measure Ω) (A : Ω → Matrix I I ℂ) (T : Matrix I I ℂ)

@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.FieldSimp
+
+/-!
+# Information-theoretic ordered-search lower bounds
+
+Computes the entropy of a symmetric noise profile and derives lower bounds on its multiway
+information. Under an explicit information-rate hypothesis, the module converts these bounds
+into query lower bounds corresponding to the discussion in [BenOrHassidim2007].
+
+## Main statements
+
+* `source_theorem4_2_query_lower_bound`: gives the entropy-corrected query lower bound
+  conditional on the information-rate bound.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,9 +36,13 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.OrderedList07.MainResults
 
+/-- The noise profile on `k + 1` outcomes assigning mass `1 − δ` to zero and `δ / k` to each
+other outcome. -/
 noncomputable def sourceTheorem4_2Noise (k : ℕ) (δ : ℝ) : Fin (k + 1) → ℝ :=
   fun i => if i = 0 then 1 - δ else δ / k
 
+/-- For positive `k`, expands the entropy sum of `sourceTheorem4_2Noise` into its distinguished
+term and `k` equal remaining terms. -/
 lemma source_theorem4_2_noise_entropy (k : ℕ) (hk : 0 < k) (δ : ℝ) :
     (∑ i : Fin (k + 1),
         -((sourceTheorem4_2Noise k δ i)
@@ -50,6 +72,8 @@ lemma source_theorem4_2_noise_entropy (k : ℕ) (hk : 0 < k) (δ : ℝ) :
   rw [← Finset.sum_erase_add _ _ h0, hErase, hZero]
   ring
 
+/-- For `k ≥ 2` and `0 < δ < 1`, the multiway information is at least `(1 − δ) * log₂ k −
+binEntropy δ` [BenOrHassidim2007]. -/
 lemma source_theorem4_2_multiInfo_ge (k : ℕ) (hk : 2 ≤ k) (δ : ℝ)
     (hδ0 : 0 < δ) (hδ1 : δ < 1) :
     (1 - δ) * (Real.log k / Real.log 2) - binEntropy δ
@@ -76,6 +100,8 @@ lemma source_theorem4_2_multiInfo_ge (k : ℕ) (hk : 2 ≤ k) (δ : ℝ)
   rw [div_eq_mul_inv, div_eq_mul_inv] at hlog
   linarith [hlog]
 
+/-- An upper bound of `(π / log 2) * t` on the noise profile's multiway information implies the
+corresponding lower bound on `t` [BenOrHassidim2007]. -/
 theorem source_theorem4_3_query_lower_bound
     (k : ℕ) (δ t : ℝ)
     (hrate : multiInfo (sourceTheorem4_2Noise k δ) ≤ (Real.pi / Real.log 2) * t) :
@@ -88,6 +114,8 @@ theorem source_theorem4_3_query_lower_bound
     field_simp
   linarith [hmul, heq]
 
+/-- For `k ≥ 2` and `0 < δ < 1`, the information-rate hypothesis implies the entropy-corrected
+query lower bound with coefficient `log 2 / π` [BenOrHassidim2007]. -/
 theorem source_theorem4_2_query_lower_bound
     (k : ℕ) (hk : 2 ≤ k) (δ t : ℝ) (hδ0 : 0 < δ) (hδ1 : δ < 1)
     (hrate : multiInfo (sourceTheorem4_2Noise k δ) ≤ (Real.pi / Real.log 2) * t) :

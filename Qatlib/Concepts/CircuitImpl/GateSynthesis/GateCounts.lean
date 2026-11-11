@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCountsDefs
 import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+/-!
+# Gate-count bounds and live-wire semantics
+
+This module bounds the two-level counts and primitive-operation budgets used in the Section 8
+synthesis arithmetic [BarencoEtAl1995]. It also records a density result for the complement of a
+fixed-wire KAK circuit range and, under a Hausdorff-dimension hypothesis on the unitary target,
+the existence of a unitary outside that range.
+
+The `LiveState` interpreter tracks a Boolean register and a list of live wires through dynamic
+operations. For programs whose extracted gate words contain valid X and CNOT codes, its register
+updates agree with the quantum circuit action on computational basis states.
+
+## Main statements
+
+* `clause14_primitive_budget_bounds`: explicit lower and upper bounds proportional to `4 ^ n * n
+  ^ 3`.
+* `clause14_unitary_target_outside`: a unitary outside the fixed-wire circuit range under the
+  stated dimension assumptions.
+* `walkGoal_live_wire_quantum_semantics`: agreement between the classical register interpreter
+  and quantum basis-state execution.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ResourceBounds.AsymBounds
@@ -27,6 +54,8 @@ open Matrix
 open Qatlib
 open scoped Classical BigOperators ENNReal
 
+/-- For `n ≥ 1`, the two-level counts satisfy the stated bounds and the unitary and
+special-unitary parameter counts at dimension `2 ^ n` are `4 ^ n` and `4 ^ n - 1`. -/
 theorem clause14_section8_count_ledger (n : ℕ) (hn : 1 ≤ n) :
     4 ^ n ≤ 4 * reckTwoLevelLower n ∧
     reckTwoLevelLower n ≤ section8TwoLevelCount n ∧
@@ -36,15 +65,19 @@ theorem clause14_section8_count_ledger (n : ℕ) (hn : 1 ≤ n) :
   obtain ⟨h1, h2, h3⟩ := section8TwoLevelCount_bounds n hn
   exact ⟨h1, h2, h3, unitaryParamCount_two_pow n, suParamCount_two_pow n⟩
 
+/-- The cube of a natural number equals its product with itself three times. -/
 theorem pow_three (n : ℕ) : n ^ 3 = n * n * n := by
   rw [Nat.pow_succ, Nat.pow_two]
 
+/-- A natural number at least one is at most its square. -/
 theorem le_mul_self (n : ℕ) (hn : 1 ≤ n) : n ≤ n * n := by
   have h2 : (1 : ℕ) ≤ n := hn
   have h3 : n * 1 ≤ n * n :=
     Nat.mul_le_mul (n₁ := n) (m₁ := 1) (n₂ := n) (m₂ := n) (Nat.le_refl n) h2
   exact Nat.le_trans (Nat.le_of_eq (Nat.mul_one n).symm) h3
 
+/-- For `n ≥ 1`, the primitive budget lies between `12 * 4 ^ n * n ^ 3` and `7498 * 4 ^ n * n ^
+3`. -/
 theorem clause14_primitive_budget_bounds (n : ℕ) (hn : 1 ≤ n) :
     12 * 4 ^ n * n ^ 3 ≤ section8PrimitiveBudget n ∧
     section8PrimitiveBudget n ≤ 7498 * 4 ^ n * n ^ 3 := by
@@ -117,13 +150,18 @@ theorem clause14_primitive_budget_bounds (n : ℕ) (hn : 1 ≤ n) :
   rw [← heq]
   exact hupp
 
+/-- The threshold inequality against `4 ^ n` is equivalent to the same inequality against the
+unitary parameter count at dimension `2 ^ n`. -/
 theorem clause14_threshold_equals_chart (n r : ℕ) :
     9 * r + 3 * n + 1 < 4 ^ n ↔ 9 * r + 3 * n + 1 < unitaryParamCount (2 ^ n) := by
   rw [unitaryParamCount_two_pow]
 
+/-- The set of unitary complex matrices on the `n`-qubit computational basis. -/
 def unitaryTarget {n : ℕ} : Set ((Fin n → Fin 2) → (Fin n → Fin 2) → ℂ) :=
   {M | M ∈ Matrix.unitaryGroup (Fin n → Fin 2) ℂ}
 
+/-- The complement of the fixed-wire KAK circuit range is dense in the ambient matrix space when
+`15 * wires.length + 3 * n + 1 < 2 * 4 ^ n`. -/
 theorem clause14_reachable_complement_dense {n : ℕ} (wires : List (Fin n × Fin n))
     (hlen : 15 * wires.length + 3 * n + 1 < 2 * 4 ^ n) :
     Dense (Set.range (kakCircuitFullFn wires)).compl := by
@@ -134,6 +172,8 @@ theorem clause14_reachable_complement_dense {n : ℕ} (wires : List (Fin n × Fi
   rw [qubitOperatorSpace_finrank]
   exact lt_of_le_of_lt h1 h2
 
+/-- A unitary lies outside the fixed-wire KAK circuit range when the target has Hausdorff
+dimension at least `4 ^ n` and `15 * wires.length + 3 * n + 1 < 4 ^ n`. -/
 theorem clause14_unitary_target_outside {n : ℕ} (wires : List (Fin n × Fin n))
     (hdim : ((4 ^ n : ℕ) : ℝ≥0∞) ≤ dimH (unitaryTarget (n := n)))
     (hlen : 15 * wires.length + 3 * n + 1 < 4 ^ n) :
@@ -143,15 +183,19 @@ theorem clause14_unitary_target_outside {n : ℕ} (wires : List (Fin n × Fin n)
       (Nat.cast_lt.2 hlen)
   exact ⟨V, hV, hout⟩
 
+/-- A Boolean register together with the list of wire indices currently recorded as live. -/
 structure LiveState (N : ℕ) where
 
   bits : Reg N
 
   live : List ℕ
 
+/-- The bit at wire `w` when `w < N`, and `none` when the wire is outside the register. -/
 def liveBit {N : ℕ} (x : Reg N) (w : ℕ) : Option Bool :=
   if h : w < N then some (x ⟨w, h⟩) else none
 
+/-- The Boolean-register action of X and CNOT codes, leaving the register unchanged for
+unsupported codes or invalid wire choices. -/
 def classicalAct {N : ℕ} (g : FiniteGateCode) (x : Reg N) : Reg N :=
   match g with
   | .x w =>
@@ -166,24 +210,31 @@ def classicalAct {N : ℕ} (g : FiniteGateCode) (x : Reg N) : Reg N :=
       else x
   | _ => x
 
+/-- The predicate selecting X codes on an in-range wire and CNOT codes on distinct in-range
+control and target wires. -/
 def classicalCodeOk (N : ℕ) : FiniteGateCode → Prop
   | .x w => w < N
   | .cx c t => c < N ∧ t < N ∧ c ≠ t
   | _ => False
 
+/-- The predicate asserting that every code in a gate list satisfies `classicalCodeOk N`. -/
 def classicalWord (N : ℕ) : List FiniteGateCode → Prop
   | [] => True
   | g :: gs => classicalCodeOk N g ∧ classicalWord N gs
 
+/-- A nonempty classical gate word has a valid head code and a classical tail. -/
 theorem classicalWord_head {N : ℕ} {g : FiniteGateCode} {gs : List FiniteGateCode}
     (hg : classicalWord N (g :: gs)) :
     classicalCodeOk N g ∧ classicalWord N gs := by
   simpa only [classicalWord] using! hg
 
+/-- The tail of a nonempty classical gate word is classical. -/
 theorem classicalWord_tail {N : ℕ} {g : FiniteGateCode} {gs : List FiniteGateCode}
     (hg : classicalWord N (g :: gs)) : classicalWord N gs :=
   (classicalWord_head hg).2
 
+/-- One step of dynamic live-wire bookkeeping, including register updates for supported fixed
+classical gates. -/
 def liveStep {N : ℕ} (base : ℕ) (st : LiveState N) (op : DynOp) : LiveState N :=
   match op with
   | .alloc w =>
@@ -199,18 +250,25 @@ def liveStep {N : ℕ} (base : ℕ) (st : LiveState N) (op : DynOp) : LiveState 
   | .fixedGate g => ⟨classicalAct g st.bits, st.live⟩
   | .oracleQuery _ => st
 
+/-- The final live state obtained by folding `liveStep base` over the dynamic operation list. -/
 def liveRun {N : ℕ} (base : ℕ) (ops : List DynOp) (st : LiveState N) : LiveState N :=
   ops.foldl (liveStep base) st
 
+/-- The list of live states reached after each operation, excluding the initial state. -/
 def liveTrace {N : ℕ} (base : ℕ) (ops : List DynOp) (st : LiveState N) : List (LiveState N) :=
   (ops.scanl (liveStep base) st).tail
 
+/-- The maximum live-list length among the initial state and all states visited during the
+operation list. -/
 def livePeakLive {N : ℕ} (base : ℕ) (ops : List DynOp) (st : LiveState N) : ℕ :=
   (liveTrace base ops st).foldl (fun m s => max m s.live.length) st.live.length
 
+/-- The maximum of the live-list length minus `base`, using natural-number subtraction, over the
+initial and visited states. -/
 def livePeakWorkspace {N : ℕ} (base : ℕ) (ops : List DynOp) (st : LiveState N) : ℕ :=
   (liveTrace base ops st).foldl (fun m s => max m (s.live.length - base)) (st.live.length - base)
 
+/-- Applying a Pauli X gate on an in-range wire flips that bit of a computational basis state. -/
 theorem applyGate_pauliX_ket {N : ℕ} (w : ℕ) (hw : w < N) (x : Reg N) :
     ApplyGate (wireGate N ⟨w, hw⟩ PauliX) (Ket x) =
       Ket (Function.update x ⟨w, hw⟩ (!x ⟨w, hw⟩)) := by
@@ -232,6 +290,8 @@ theorem applyGate_pauliX_ket {N : ℕ} (w : ℕ) (hw : w < N) (x : Reg N) :
     funext i
     simp
 
+/-- A valid classical gate code sends a computational basis ket to the ket of its `classicalAct`
+register update. -/
 theorem applyGate_classical_code {N : ℕ} (g : FiniteGateCode) (x : Reg N)
     (hg : classicalWord N [g]) :
     ApplyGate (finiteCodeMatrix N g) (Ket x) = Ket (classicalAct g x) := by
@@ -263,6 +323,8 @@ theorem applyGate_classical_code {N : ℕ} (g : FiniteGateCode) (x : Reg N)
       rw [hclassical]
       exact applyGate_cnotGate_ket N ⟨c, hc⟩ ⟨t, ht⟩ (by simpa using! hne) x
 
+/-- For a dynamic program with a valid classical extracted gate word, quantum execution on a
+basis ket agrees with the register component of `liveRun`. -/
 theorem walkGoal_live_wire_quantum_semantics {N : ℕ} (base : ℕ) (ops : List DynOp)
     (x : Reg N) (live : List ℕ) (hclassical : classicalWord N (opsGates ops)) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (finiteCodeCircuit N (opsGates ops)) (Ket x) =

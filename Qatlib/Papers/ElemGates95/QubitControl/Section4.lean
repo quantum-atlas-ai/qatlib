@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+
+/-!
+# One-qubit Euler identities
+
+This module fixes the phase and rotation conventions used in Section 4 of [BarencoEtAl1995]. The
+matrices `paperPh`, `paperRz`, and `paperRy` represent a scalar phase and the paper's two Euler
+rotations. Determinant identities distinguish the scalar phase from the determinant-one
+rotations.
+
+The main decomposition `lemma4_1` writes every one-qubit unitary as a scalar phase times a
+`paperRz * paperRy * paperRz` product. Its special-unitary form and the algebra in `lemma4_2`
+give the three factors in `lemma4_3`, whose product is the identity and whose interleaving with
+`PauliX` recovers the desired special unitary.
+
+## Main statements
+
+* `lemma4_1` and `lemma4_1_special`: general and special-unitary Euler decompositions.
+* `lemma4_2`: angle addition, the involution law for `PauliX`, and sign reversal under
+  conjugation by `PauliX`.
+* `lemma4_3`: determinant-one factors `A`, `B`, and `C` with `A * B * C = 1` and `A * PauliX * B
+  * PauliX * C = W`.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,12 +49,18 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Concepts.CopyEvolution.Discriminate
 
+/-- The one-qubit scalar phase matrix `exp (δ * I) • 1` in the paper's notation. -/
 def paperPh (δ : ℝ) : Matrix Bool Bool ℂ := Complex.exp ((δ : ℂ) * Complex.I) • 1
 
+/-- The paper's determinant-one diagonal Euler rotation, with phases `exp (I * α / 2)` and `exp
+(-I * α / 2)`. -/
 abbrev paperRz (α : ℝ) : Matrix Bool Bool ℂ := qubitEulerPhase α
 
+/-- The paper's real Euler rotation with diagonal entries `cos (θ / 2)` and off-diagonal entries
+`sin (θ / 2)` and `-sin (θ / 2)`. -/
 abbrev paperRy (θ : ℝ) : Matrix Bool Bool ℂ := qubitEulerRotation θ
 
+/-- The diagonal Euler rotation `paperRz α` has determinant one. -/
 theorem det_paperRz (α : ℝ) : (paperRz α).det = 1 := by
   have h : paperRz α = relabelGate boolEquivFin2.symm
       (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (α / 2)) := rfl
@@ -42,6 +75,7 @@ theorem det_paperRz (α : ℝ) : (paperRz α).det = 1 := by
     ring
   rw [hz, Complex.exp_zero]
 
+/-- The real Euler rotation `paperRy θ` has determinant one. -/
 theorem det_paperRy (θ : ℝ) : (paperRy θ).det = 1 := by
   show (qubitEulerRotation θ).det = 1
   rw [det_apply_bool]
@@ -55,17 +89,22 @@ theorem det_paperRy (θ : ℝ) : (paperRy θ).det = 1 := by
   rw [h, Real.cos_sq_add_sin_sq]
   norm_num
 
+/-- The product `paperRz α * paperRy θ` has determinant one. -/
 theorem det_paperRz_mul_paperRy (α θ : ℝ) :
     (paperRz α * paperRy θ).det = 1 := by
   rw [Matrix.det_mul, det_paperRz, det_paperRy, one_mul]
 
+/-- The product `paperRy θ * paperRz β` has determinant one. -/
 theorem det_paperRy_mul_paperRz (θ β : ℝ) :
     (paperRy θ * paperRz β).det = 1 := by
   rw [Matrix.det_mul, det_paperRy, det_paperRz, one_mul]
 
+/-- The determinant of the one-qubit scalar phase matrix is `exp (δ * I) ^ 2`. -/
 theorem det_paperPh (δ : ℝ) : (paperPh δ).det = Complex.exp ((δ : ℂ) * Complex.I) ^ 2 := by
   simp [paperPh, Fintype.card_bool]
 
+/-- Lemma 4.1 of [BarencoEtAl1995]: every one-qubit unitary is a scalar phase times a `paperRz *
+paperRy * paperRz` product with real angles. -/
 theorem lemma4_1 (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     ∃ δ α θ β : ℝ,
       U = Complex.exp ((δ : ℂ) * Complex.I) •
@@ -77,6 +116,8 @@ theorem lemma4_1 (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool
   show U = knownQubitUnitary p
   exact hrec.symm
 
+/-- The determinant-one case of Lemma 4.1 of [BarencoEtAl1995]: every special one-qubit unitary
+has a `paperRz * paperRy * paperRz` decomposition without a scalar phase. -/
 theorem lemma4_1_special (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool ℂ)
     (hdet : U.det = 1) :
     ∃ α θ β : ℝ, U = paperRz α * paperRy θ * paperRz β := by
@@ -89,6 +130,8 @@ theorem lemma4_1_special (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGr
     simp [knownQubitUnitary, hdelta]
   exact ⟨p.alpha, p.theta, p.beta, hrec.symm.trans hshape⟩
 
+/-- Lemma 4.2 of [BarencoEtAl1995]: the Euler rotations and scalar phases obey angle addition,
+Pauli X squares to the identity, and conjugation by X negates either rotation angle. -/
 theorem lemma4_2 :
     (∀ θ₁ θ₂ : ℝ, paperRy θ₁ * paperRy θ₂ = paperRy (θ₁ + θ₂)) ∧
     (∀ α₁ α₂ : ℝ, paperRz α₁ * paperRz α₂ = paperRz (α₁ + α₂)) ∧
@@ -123,6 +166,9 @@ theorem lemma4_2 :
   · intro α
     exact pauliX_mul_qubitEulerPhase α
 
+/-- Lemma 4.3 of [BarencoEtAl1995]: every special one-qubit unitary `W` possesses
+special-unitary factors `A`, `B`, and `C` satisfying `A * B * C = 1` and `A * PauliX * B *
+PauliX * C = W`. -/
 theorem lemma4_3 (W : Matrix Bool Bool ℂ) (hW : W ∈ Matrix.unitaryGroup Bool ℂ)
     (hdet : W.det = 1) :
     ∃ A B C : Matrix Bool Bool ℂ,

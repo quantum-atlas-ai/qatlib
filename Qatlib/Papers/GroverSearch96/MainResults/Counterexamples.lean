@@ -8,6 +8,33 @@ import Qatlib.Papers.GroverSearch96.MainResults.DiffusionAmplitudes
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
 import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3Counterexample
 import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21Counterexample
+
+/-!
+# Small register counterexamples for Grover search
+
+This module relates real two amplitude data to normalized register states and computes their
+actual Grover updates. It records two and four state examples relevant to the scope of the
+amplitude gain, positivity, and strict success claims.
+
+`two_state_no_strict_success` shows that the uniform two state search remains at success
+probability one half for every iteration count. See [Grover1996].
+
+## Main statements
+
+* `theorem3_actual_two_state_counterexample`: The normalized two state amplitudes `3/5` and
+  `4/5` satisfy the displayed positivity and threshold conditions, but one Grover step gives
+  `4/5` and `-3/5` with gain at most `1 / (2 * sqrt 2)`.
+* `corollary21_actual_four_state_counterexample`: There are normalized four state amplitudes
+  with `k < 0 < l` and `|k/l| < sqrt 4` whose ordinary amplitude becomes negative under
+  diffusion.
+* `two_state_no_strict_success`: For a single marked state in a two state register, every Grover
+  iteration count has success probability exactly `1/2`.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,12 +46,16 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Papers.GroverSearch96.MainResults
 
+/-- A singleton marked vector with real amplitudes is normalized exactly when its two amplitude
+mass on `2^n` states is one. -/
 theorem normalized_singleton_real_iff (n : ℕ) (w : Reg n) (k l : ℝ) :
     Normalized (MarkedVector {w} (k : ℂ) (l : ℂ)) ↔
       twoAmplitudeMass (2^n) k l = 1 := by
   rw [normalized_markedVector_iff]
   simp [twoAmplitudeMass, Complex.normSq_ofReal, pow_two]
 
+/-- A Grover step on a singleton marked vector first negates its marked amplitude and then
+applies the two diffusion amplitude formulas. See [Grover1996]. -/
 theorem run_singleton_real_step (n : ℕ) (w : Reg n) (k l : ℝ) :
     Run (SetOracle {w}) (GroverStep (Reg n)) (MarkedVector {w} (k : ℂ) (l : ℂ)) =
       MarkedVector {w} (distinguishedAfter (2^n) (-k) l : ℂ)
@@ -33,6 +64,9 @@ theorem run_singleton_real_step (n : ℕ) (w : Reg n) (k l : ℝ) :
   rw [applyGate_setOracle_markedVector]
   simpa only [Complex.ofReal_neg] using theorem2_markedRegister n w (-k) l
 
+/-- The normalized two state amplitudes `3/5` and `4/5` satisfy the displayed positivity and
+threshold conditions, but one Grover step gives `4/5` and `-3/5` with gain at most `1 / (2 *
+sqrt 2)`. See [Grover1996]. -/
 theorem theorem3_actual_two_state_counterexample (w : Reg 1) :
     Normalized (MarkedVector {w} ((3/5 : ℝ) : ℂ) ((4/5 : ℝ) : ℂ)) ∧
       (0 : ℝ) < 3/5 ∧ (3/5 : ℝ) < 1 / Real.sqrt 2 ∧ (0 : ℝ) < 4/5 ∧
@@ -50,6 +84,8 @@ theorem theorem3_actual_two_state_counterexample (w : Reg 1) :
     norm_num [distinguishedAfter] at hb ⊢
     exact hb
 
+/-- The normalized uniform four state vector has amplitude `1/2` everywhere and becomes the
+marked basis state after one Grover step. See [Grover1996]. -/
 theorem theorem3_actual_uniform_four_state_counterexample (w : Reg 2) :
     Normalized (MarkedVector {w} ((1/2 : ℝ) : ℂ) ((1/2 : ℝ) : ℂ)) ∧
       (∀ x, MarkedVector {w} ((1/2 : ℝ) : ℂ) ((1/2 : ℝ) : ℂ) x = 1/2) ∧
@@ -65,6 +101,8 @@ theorem theorem3_actual_uniform_four_state_counterexample (w : Reg 2) :
     funext x
     simp [MarkedVector, Ket]
 
+/-- There are normalized four state amplitudes with `k < 0 < l` and `|k/l| < sqrt 4` whose
+ordinary amplitude becomes negative under diffusion. See [Grover1996]. -/
 theorem corollary21_actual_four_state_counterexample (w : Reg 2) :
     ∃ k l : ℝ, k < 0 ∧ 0 < l ∧
       Normalized (MarkedVector {w} (k : ℂ) (l : ℂ)) ∧
@@ -77,6 +115,8 @@ theorem corollary21_actual_four_state_counterexample (w : Reg 2) :
   · exact (normalized_singleton_real_iff 2 w k l).mpr hmass
   · exact theorem2_markedRegister 2 w k l
 
+/-- For a single marked state in a two state register, every Grover iteration count has success
+probability exactly `1/2`. See [Grover1996]. -/
 theorem two_state_no_strict_success (w : Reg 1) (j : ℕ) :
     MeasureProb (GroverState ({w} : Finset (Reg 1)) j) {w} = 1/2 := by
   have hsqrt : (Real.sqrt (2 : ℝ))^2 = 2 := Real.sq_sqrt (by norm_num)

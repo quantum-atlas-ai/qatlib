@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+
+/-!
+# The qudit maximal-entanglement characterization contract
+
+`QuditMaxEntCharacterization` combines two statements about pure bipartite qudit resources.
+Orthonormal-family resources have both marginals equal to `1 / n` times the identity, and every
+normalized pure state with this first marginal possesses such a resource representation. The
+contract concerns resource characterizations for teleportation [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `QuditMaxEntCharacterization`: The proposition that orthonormal-family qudit resources have
+  both maximally mixed marginals and that any normalized pure state with first marginal `(1 / n)
+  • 1` has an orthonormal-family representation.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -17,6 +37,9 @@ namespace Qatlib.Concepts.QuditTeleport.QdLoccModel
 
 open Matrix
 
+/-- The proposition that orthonormal-family qudit resources have both maximally mixed marginals
+and that any normalized pure state with first marginal `(1 / n) • 1` has an
+orthonormal-family representation. -/
 def QuditMaxEntCharacterization : Prop :=
   (∀ (n : ℕ) [NeZero n] (u v : Fin n → QState (Fin n)),
     QuditOrthonormalFamily n u → QuditOrthonormalFamily n v →

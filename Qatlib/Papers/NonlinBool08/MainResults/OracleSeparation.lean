@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.SqrtQueries
 import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+
+/-!
+# Oracle separation and hidden-shift recovery
+
+Constructs a recovery function from compatible binary constraints whose vector parts have no
+common nonzero orthogonal vector. It combines this recovery statement with the numerical lower
+bound for deterministic nonadaptive strengthened-oracle algorithms. See [Roetteler2008].
+
+## Main statements
+
+* `hsp_recover`: informative compatible constraints determine the hidden shift.
+* `corollary10_query_separation`: the classical fixed-query obstruction and constraint-recovery
+  result hold together.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +39,9 @@ open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 open Qatlib.Papers.NonlinBool08.MainResults.HiddenShift
 open Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland
 
+/-- There exists a decoder that recovers any shift from a zero-padded finite sequence of
+compatible constraints whose vector components have no common nonzero orthogonal vector. See
+[Roetteler, Theorem 7][Roetteler2008]. -/
 theorem hsp_recover (n : ℕ) :
     ∃ recover : (ℕ → (BVec n × ZMod 2)) → BVec n,
       ∀ (s : BVec n) (k : ℕ) (t : Fin k → BVec n × ZMod 2),
@@ -77,6 +99,10 @@ theorem hsp_recover (n : ℕ) :
   intro i
   exact hs i
 
+/-- Under the displayed numerical inequality, no deterministic nonadaptive strengthened-oracle
+algorithm with at most `c * m` queries succeeds on every instance, while informative
+compatible constraint sequences possess an exact decoder. See [Roetteler, Corollary
+10][Roetteler2008]. -/
 theorem corollary10_query_separation {c m : ℕ} (harith : 4 * (2 * (c * m)) ^ 2 + 1 < 2 ^ m) :
     (∀ A : NonAdaptiveAlg m, A.qset.card ≤ c * m →
         ¬ ∀ (π : Equiv.Perm (BVec m)) (s : BVec m),

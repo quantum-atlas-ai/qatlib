@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# Trace distance from pure-state overlap
+
+Proves `pure_traceDistance_le_of_inner`, which converts a lower bound on the real inner product
+of two normalized vectors into a trace-distance bound for their outer products.
+
+This estimate connects vector overlap and distinguishability of pure states, within the
+trace-distance framework of [Watrous2018].
+
+## Main statements
+
+* `pure_traceDistance_le_of_inner`: a real-overlap deficit `ε` gives trace distance at most
+  `sqrt (2 * ε)`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 
@@ -18,6 +38,8 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 
 open scoped BigOperators
 
+/-- For normalized vectors with real inner product at least `1 - ε`, half the trace norm of the
+difference of their outer products is at most `sqrt (2 * ε)`. -/
 theorem pure_traceDistance_le_of_inner
     {I : Type*} [Fintype I] [DecidableEq I] (u v : QState I)
     (hu : Normalized u) (hv : Normalized v) (ε : ℝ)

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TruncTaylor14.Discard.DiscardActualSimulationStat
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedSimu
+
+/-!
+# Actual simulation by Taylor reset and discard
+
+This module proves `SourceDiscardActualSimulation` for finite unitary decompositions of a
+Hermitian Hamiltonian with a supplied coefficient-sum bound. The result combines circuit
+well-formedness, exact query and gate counts, amplified-workspace semantics, and a trace-norm
+error bound for repeated reset-and-discard steps. See [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `hamiltonianEvolution_power`: Repeated equal-time evolution equals evolution for the
+  accumulated time.
+* `sourceDiscardActualSimulation`: The full actual-simulation statement for the chosen Taylor
+  cutoff.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,6 +67,7 @@ local instance (priority := 10000) instProdProdFast' {α β γ : Type} [Decidabl
     [DecidableEq β] [DecidableEq γ] : DecidableEq ((α × β) × γ) :=
   @instDecidableEqProd (α × β) γ (@instDecidableEqProd α β _ _) _
 
+/-- The `n`th power of Hamiltonian evolution for time `τ` equals evolution for time `n * τ`. -/
 private theorem hamiltonianEvolution_power {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (τ : ℝ) (n : ℕ) :
     hamiltonianEvolution H τ ^ n = hamiltonianEvolution H ((n : ℝ) * τ) := by
@@ -59,6 +81,9 @@ private theorem hamiltonianEvolution_power {I : Type} [Fintype I] [DecidableEq I
     have hcast : ((n : ℝ) + 1) * τ = (n : ℝ) * τ + τ := by ring
     rw [Nat.cast_succ, hcast, hgroup]
 
+/-- The Taylor reset-and-discard construction satisfies `SourceDiscardActualSimulation`,
+including its circuit counts, amplified-workspace identity, and state trace-norm error
+guarantee. See [BerryEtAl2015Taylor]. -/
 theorem sourceDiscardActualSimulation : SourceDiscardActualSimulation := by
   intro J I _ _ _ _ h U j₀ t Λ k hU hHer hΛ ht
   (try simp only [])

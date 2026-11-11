@@ -15,6 +15,20 @@ import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
 import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureNaimark
 import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
 import Qatlib.Concepts.ChannelTheory.TwirlChannel
+
+/-!
+# Supporting imports for QSVT approximation
+
+This module gathers the phase-error, QSVT existence, spectral-transfer, and channel-structure
+interfaces used by the approximation toolkit. It prepares the `QsvtCore.ApproxToolkit`
+namespaces and the operator-norm and integration settings used by downstream polynomial
+constructions. Background and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

@@ -9,6 +9,30 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 import Mathlib.Topology.ContinuousMap.Bounded.Basic
 import Mathlib.Topology.MetricSpace.Kuratowski
 import Mathlib.Topology.Algebra.Module.Basic
+
+/-!
+# Kuratowski isometries into complete normed spaces
+
+Defines `kuratowskiEmbedding` using based distance functions and proves that it is an isometry.
+The module also constructs an isometric embedding of any separable metric space into a separable
+complete real normed space.
+
+These metric-space tools support the analytic foundations of the contour framework associated
+with [WangEtAl2026].
+
+## Main statements
+
+* `kuratowskiEmbedding`: The Kuratowski map based at `x₀`, sending `x` to the bounded continuous
+  function `y ↦ dist x y - dist x₀ y`.
+* `isometry_kuratowskiEmbedding`: The based Kuratowski map preserves distances.
+* `exists_isometry_separableSpace_completeSpace`: Every separable metric space has an isometric
+  embedding into a separable complete real normed space.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +47,8 @@ namespace TauCeti
 
 variable {X : Type*} [PseudoMetricSpace X]
 
+/-- The Kuratowski map based at `x₀`, sending `x` to the bounded continuous function `y ↦ dist x
+y - dist x₀ y`. -/
 noncomputable def kuratowskiEmbedding (x₀ x : X) : X →ᵇ ℝ :=
   .mkOfBound ⟨fun y ↦ dist x y - dist x₀ y, by fun_prop⟩ (2 * dist x x₀) fun y z ↦ by
     have hy := abs_le.1 (abs_dist_sub_le x x₀ y)
@@ -30,11 +56,13 @@ noncomputable def kuratowskiEmbedding (x₀ x : X) : X →ᵇ ℝ :=
     rw [ContinuousMap.coe_mk, Real.dist_eq, abs_le]
     constructor <;> linarith [hy.1, hy.2, hz.1, hz.2]
 
+/-- Evaluates the based Kuratowski map as a difference of distance functions. -/
 @[simp]
 theorem kuratowskiEmbedding_apply (x₀ x y : X) :
     kuratowskiEmbedding x₀ x y = dist x y - dist x₀ y := by
   simp [kuratowskiEmbedding]
 
+/-- The based Kuratowski map preserves distances. -/
 theorem isometry_kuratowskiEmbedding (x₀ : X) : Isometry (kuratowskiEmbedding x₀) := by
   refine Isometry.of_dist_eq fun x x' ↦ le_antisymm
     ((BoundedContinuousFunction.dist_le dist_nonneg).2 fun y ↦ ?_) ?_
@@ -43,6 +71,8 @@ theorem isometry_kuratowskiEmbedding (x₀ : X) : Isometry (kuratowskiEmbedding 
       BoundedContinuousFunction.dist_coe_le_dist (f := kuratowskiEmbedding x₀ x)
         (g := kuratowskiEmbedding x₀ x') x
 
+/-- Every separable metric space has an isometric embedding into a separable complete real
+normed space. -/
 theorem exists_isometry_separableSpace_completeSpace (Y : Type*) [MetricSpace Y]
     [SeparableSpace Y] :
     ∃ (E : Type) (_ : NormedAddCommGroup E) (_ : NormedSpace ℝ E), CompleteSpace E ∧

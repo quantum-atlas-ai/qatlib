@@ -12,15 +12,38 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 
+/-!
+# Finite cosine sums for amplification windows
+
+This module evaluates finite cosine sums on arithmetic progressions, including the odd-multiple
+sum used in amplitude amplification. `cosine_arithmetic_sum_mul` and `cosine_odd_sum_mul` retain
+the sine factor, so their identities also apply when that factor vanishes.
+
+The mathematical background is described in [BoyerEtAl1998].
+
+## Main statements
+
+* `cosine_arithmetic_sum`: evaluates an arithmetic cosine sum when its sine denominator is
+  nonzero.
+* `cosine_odd_sum`: evaluates the sum of the first `m` odd cosine multiples.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.LchsSimulation.StaticLchs
 
 open scoped BigOperators
 
+/-- The product `2 * sin y * cos x` equals `sin (x + y) - sin (x - y)`. -/
 private theorem two_sin_mul_cos (x y : ℝ) :
     2 * Real.sin y * Real.cos x = Real.sin (x + y) - Real.sin (x - y) := by
   rw [Real.sin_add, Real.sin_sub]
   ring
 
+/-- The arithmetic cosine sum multiplied by `sin β` equals `sin (m * β) * cos (α + (m - 1) * β)`
+[Boyer et al., Lemma 1][BoyerEtAl1998]. -/
 theorem cosine_arithmetic_sum_mul (α β : ℝ) (m : ℕ) :
     Real.sin β * (∑ j ∈ Finset.range m, Real.cos (α + 2 * β * j)) =
       Real.sin (m * β) * Real.cos (α + ((m : ℝ) - 1) * β) := by
@@ -44,12 +67,16 @@ theorem cosine_arithmetic_sum_mul (α β : ℝ) (m : ℕ) :
   rw [hp, hm] at product
   nlinarith [telescoping m]
 
+/-- When `sin β ≠ 0`, the arithmetic cosine sum equals `sin (m * β) * cos (α + (m - 1) * β) /
+sin β` [Boyer et al., Lemma 1][BoyerEtAl1998]. -/
 theorem cosine_arithmetic_sum (α β : ℝ) (m : ℕ) (hβ : Real.sin β ≠ 0) :
     (∑ j ∈ Finset.range m, Real.cos (α + 2 * β * j)) =
       Real.sin (m * β) * Real.cos (α + ((m : ℝ) - 1) * β) / Real.sin β := by
   apply (eq_div_iff hβ).2
   simpa only [mul_comm] using cosine_arithmetic_sum_mul α β m
 
+/-- Multiplying the sum of `cos ((2 * j + 1) * α)` for `j < m` by `2 * sin α` gives `sin (2 * m
+* α)` [Boyer et al., Lemma 1][BoyerEtAl1998]. -/
 theorem cosine_odd_sum_mul (α : ℝ) (m : ℕ) :
     (2 * Real.sin α) * (∑ j ∈ Finset.range m, Real.cos ((2 * j + 1) * α)) =
       Real.sin (2 * m * α) := by
@@ -67,6 +94,8 @@ theorem cosine_odd_sum_mul (α : ℝ) (m : ℕ) :
   rw [double]
   nlinarith [h]
 
+/-- When `sin α ≠ 0`, the sum of `cos ((2 * j + 1) * α)` for `j < m` equals `sin (2 * m * α) /
+(2 * sin α)` [Boyer et al., Lemma 1][BoyerEtAl1998]. -/
 theorem cosine_odd_sum (α : ℝ) (m : ℕ) (hα : Real.sin α ≠ 0) :
     (∑ j ∈ Finset.range m, Real.cos ((2 * j + 1) * α)) =
       Real.sin (2 * m * α) / (2 * Real.sin α) := by

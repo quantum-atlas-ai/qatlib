@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatistics
+
+/-!
+# Higher moments of finite U-statistics
+
+This module defines centered overlap moments of finite record tuples through `overlapMomentK`.
+It reduces expectations to distinct used records, proves invariance under record permutations
+and factorization for disjoint families, and expands centered U-statistic moments by tuple
+families and their overlap labels.
+
+The absolute kernel moments `centeredAbsMomentK` and a count of coinciding families yield
+explicit moment and deviation bounds. The finite-POVM specialization `frontier1_povm` places
+these identities in the measurement-record estimation setting of [HuangKuengPreskill2020].
+
+## Main statements
+
+* `uStatistic_moment_overlap_type`: the centered moment expansion grouped by overlap labels.
+* `overlapMoment_append_disjoint`: factorization for families using disjoint records.
+* `uStatistic_moment_abs_le`: a moment bound from the coincidence count.
+* `probEvent_uStatistic_hkp`: an even-moment bound on the deviation probability.
+* `frontier1_povm`: the combined results for independent finite-POVM records.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,51 +53,65 @@ set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O]
 
+/-- Every tuple in the family selects distinct record indices. -/
 def familyInjective {n k r : ℕ} (T : Fin r → Fin k → Fin n) : Prop :=
   ∀ a : Fin r, Function.Injective (T a)
 
+/-- The record index selected by a tuple position in the family. -/
 def posRead {n k r : ℕ} (T : Fin r → Fin k → Fin n) : Fin r × Fin k → Fin n :=
   fun α => T α.1 α.2
 
+/-- Distinct positions across the entire tuple family select distinct records. -/
 def coincidenceFree {n k r : ℕ} (T : Fin r → Fin k → Fin n) : Prop :=
   ∀ α β : Fin r × Fin k, α ≠ β → posRead T α ≠ posRead T β
 
+/-- The expectation of the product of the centered kernel evaluations selected by `T` under
+independent records with law `p`. -/
 noncomputable def overlapMomentK (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (T : Fin r → Fin k → Fin n) : ℝ :=
   ∑ ω : Fin n → O, p.probOf ω
     * ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h)
 
+/-- Pointwise equal tuple families have equal centered overlap moments. -/
 theorem overlapMomentK_congr (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (T S : Fin r → Fin k → Fin n) (hTS : ∀ a, T a = S a) :
     overlapMomentK p h T = overlapMomentK p h S := by
   have hT : T = S := funext hTS
   rw [hT]
 
+/-- The finite set of record indices used anywhere in the tuple family. -/
 def usedRecords {n k r : ℕ} (T : Fin r → Fin k → Fin n) : Finset (Fin n) :=
   Finset.univ.image (posRead T)
 
+/-- The increasing enumeration of the distinct record indices used by `T`. -/
 def mergeTuple {n k r : ℕ} (T : Fin r → Fin k → Fin n) :
     Fin (usedRecords T).card → Fin n :=
   fun j => ↑((usedRecords T).orderIsoOfFin rfl j)
 
+/-- The index of a tuple position's record in the increasing enumeration `mergeTuple`. -/
 def posIndex {n k r : ℕ} (T : Fin r → Fin k → Fin n) (α : Fin r × Fin k) :
     Fin (usedRecords T).card :=
   ((usedRecords T).orderIsoOfFin rfl).symm
     ⟨posRead T α, Finset.mem_image_of_mem _ (Finset.mem_univ α)⟩
 
+/-- The enumeration of the used record indices is injective. -/
 theorem mergeTuple_injective {n k r : ℕ} (T : Fin r → Fin k → Fin n) :
     Function.Injective (mergeTuple T) := by
   intro j₁ j₂ hj
   exact ((usedRecords T).orderIsoOfFin rfl).injective (Subtype.ext hj)
 
+/-- Reading `mergeTuple` at `posIndex T α` recovers the record selected at position `α`. -/
 theorem mergeTuple_posIndex {n k r : ℕ} (T : Fin r → Fin k → Fin n)
     (α : Fin r × Fin k) : mergeTuple T (posIndex T α) = posRead T α := by
   simp [mergeTuple, posIndex]
 
+/-- Every record enumerated by `mergeTuple` belongs to `usedRecords T`. -/
 theorem mergeTuple_mem {n k r : ℕ} (T : Fin r → Fin k → Fin n)
     (j : Fin (usedRecords T).card) : mergeTuple T j ∈ usedRecords T :=
   Subtype.coe_prop ((usedRecords T).orderIsoOfFin rfl j)
 
+/-- An expectation depending on the records selected by `T` can be computed over only its
+distinct used records, with product weights. -/
 theorem familyReadExpect (p : FinDist O) {n k r : ℕ} (T : Fin r → Fin k → Fin n)
     (F : (Fin r × Fin k → O) → ℝ) :
     (∑ ω : Fin n → O, p.probOf ω * F (fun α => ω (posRead T α)))
@@ -94,6 +134,8 @@ theorem familyReadExpect (p : FinDist O) {n k r : ℕ} (T : Fin r → Fin k → 
     _ = ∑ z : Fin (usedRecords T).card → O, (∏ j, p.prob (z j))
           * F (fun α => z (posIndex T α)) := hjoint
 
+/-- The centered overlap moment equals the product-weighted sum over assignments to the distinct
+used records. -/
 theorem overlapMomentK_eq_merged (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (T : Fin r → Fin k → Fin n) :
     overlapMomentK p h T
@@ -103,6 +145,7 @@ theorem overlapMomentK_eq_merged (p : FinDist O) {n k r : ℕ} (h : (Fin k → O
   familyReadExpect p T
     (fun y => ∏ a : Fin r, (h (fun i => y (a, i)) - kernelMeanK p h))
 
+/-- The centered overlap moment of a single injective tuple is zero. -/
 theorem overlapMoment_single_zero (p : FinDist O) {n k : ℕ} (t : Fin k → Fin n)
     (ht : Function.Injective t) (h : (Fin k → O) → ℝ) :
     overlapMomentK p h (fun _ : Fin 1 => t) = 0 := by
@@ -120,6 +163,7 @@ theorem overlapMoment_single_zero (p : FinDist O) {n k : ℕ} (t : Fin k → Fin
   rw [Finset.sum_congr rfl fun ω _ => hsplit ω, Finset.sum_sub_distrib,
     ← Finset.mul_sum, h1, h2, mul_one, sub_self]
 
+/-- Functions on a disjoint sum correspond to pairs of functions on its two summands. -/
 def elimTableEquiv {B₁ B₂ : Type} [Fintype B₁] [Fintype B₂] :
     ((B₁ ⊕ B₂) → O) ≃ ((B₁ → O) × (B₂ → O)) where
   toFun w := (fun i => w (Sum.inl i), fun j => w (Sum.inr j))
@@ -129,6 +173,8 @@ def elimTableEquiv {B₁ B₂ : Type} [Fintype B₁] [Fintype B₂] :
     rcases pr with ⟨a, b⟩
     rfl
 
+/-- Reading an injectively indexed finite collection of independent records gives the
+corresponding product-law expectation. -/
 theorem jointExpectGeneral {B : Type} [Fintype B] [DecidableEq B] {n : ℕ}
     (p : FinDist O) (u : B → Fin n) (hu : Function.Injective u)
     (G : (B → O) → ℝ) :
@@ -171,6 +217,8 @@ theorem jointExpectGeneral {B : Type} [Fintype B] [DecidableEq B] {n : ℕ}
   rw [hL, hR] at h0
   exact h0
 
+/-- Expectations of two functions of disjoint, injectively selected record sets factor as the
+product of their expectations. -/
 theorem jointReadFactor {B₁ B₂ : Type} [Fintype B₁] [Fintype B₂] [DecidableEq B₁]
     [DecidableEq B₂] {n : ℕ} (p : FinDist O) (u₁ : B₁ → Fin n)
     (h₁ : Function.Injective u₁) (u₂ : B₂ → Fin n) (h₂ : Function.Injective u₂)
@@ -231,20 +279,25 @@ theorem jointReadFactor {B₁ B₂ : Type} [Fintype B₁] [Fintype B₂] [Decida
     _ = (∑ y₁ : B₁ → O, (∏ b, p.prob (y₁ b)) * F₁ y₁)
         * (∑ y₂ : B₂ → O, (∏ b, p.prob (y₂ b)) * F₂ y₂) := hstep2
 
+/-- Concatenation of two families of record tuples. -/
 def familyAppend {n k r r' : ℕ} (T : Fin r → Fin k → Fin n)
     (S : Fin r' → Fin k → Fin n) : Fin (r + r') → Fin k → Fin n :=
   fun a => Sum.elim T S (finSumFinEquiv.symm a)
 
+/-- The first part of an appended tuple family agrees with the first family. -/
 theorem familyAppend_castAdd {n k r r' : ℕ} (T : Fin r → Fin k → Fin n)
     (S : Fin r' → Fin k → Fin n) (a : Fin r) :
     familyAppend T S (Fin.castAdd r' a) = T a := by
   simp only [familyAppend, finSumFinEquiv_symm_apply_castAdd, Sum.elim_inl]
 
+/-- The second part of an appended tuple family agrees with the second family. -/
 theorem familyAppend_natAdd {n k r r' : ℕ} (T : Fin r → Fin k → Fin n)
     (S : Fin r' → Fin k → Fin n) (b : Fin r') :
     familyAppend T S (Fin.natAdd r b) = S b := by
   simp only [familyAppend, finSumFinEquiv_symm_apply_natAdd, Sum.elim_inr]
 
+/-- The overlap moment of two appended families factors when each tuple is injective and the
+families use disjoint records. -/
 theorem overlapMoment_append_disjoint (p : FinDist O) {n k r r' : ℕ}
     (h : (Fin k → O) → ℝ) (T : Fin r → Fin k → Fin n) (S : Fin r' → Fin k → Fin n)
     (hT : familyInjective T) (hS : familyInjective S)
@@ -327,6 +380,7 @@ theorem overlapMoment_append_disjoint (p : FinDist O) {n k r r' : ℕ}
     _ = overlapMomentK p h T * overlapMomentK p h S := by
         rw [hjr, overlapMomentK_eq_merged p h T, overlapMomentK_eq_merged p h S]
 
+/-- Appending the final tuple to the preceding tuples reconstructs the original family. -/
 theorem familyAppend_snoc {n k r : ℕ} (T : Fin (r + 1) → Fin k → Fin n) :
     familyAppend (fun a => T (Fin.castAdd 1 a)) (fun _ : Fin 1 => T (Fin.natAdd r 0)) = T := by
   funext a i
@@ -343,6 +397,8 @@ theorem familyAppend_snoc {n k r : ℕ} (T : Fin (r + 1) → Fin k → Fin n) :
     rw [ha]
     simp only [familyAppend, finSumFinEquiv_symm_apply_natAdd, Sum.elim_inr]
 
+/-- The overlap moment factors into the preceding family and the last tuple when all tuples are
+injective and the last tuple uses disjoint records. -/
 theorem overlapMoment_snoc (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (T : Fin (r + 1) → Fin k → Fin n) (hT : familyInjective T)
     (hdis : ∀ (a : Fin r) (i j : Fin k),
@@ -360,6 +416,8 @@ theorem overlapMoment_snoc (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → 
         * overlapMomentK p h (fun _ : Fin 1 => T (Fin.natAdd r 0)) :=
           overlapMoment_append_disjoint p h _ _ hinj' hinj (fun a _ i j => hdis a i j)
 
+/-- A nonempty family of injective tuples with no record coincidences has zero centered overlap
+moment. -/
 theorem overlapMoment_coincidenceFree_zero (p : FinDist O) {n k r : ℕ}
     (h : (Fin k → O) → ℝ) (hr : 0 < r) (T : Fin r → Fin k → Fin n)
     (hT : familyInjective T) (hfree : coincidenceFree T) :
@@ -380,6 +438,7 @@ theorem overlapMoment_coincidenceFree_zero (p : FinDist O) {n k r : ℕ}
   rw [overlapMoment_snoc p h T hT hcross,
     overlapMoment_single_zero p (T (Fin.natAdd r' 0)) hlast h, mul_zero]
 
+/-- A common permutation of the record indices preserves the centered overlap moment. -/
 theorem overlapMomentK_transport (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (σ : Fin n ≃ Fin n) (T T' : Fin r → Fin k → Fin n)
     (hT' : ∀ a i, T' a i = σ (T a i)) :
@@ -410,17 +469,20 @@ theorem overlapMomentK_transport (p : FinDist O) {n k r : ℕ} (h : (Fin k → O
     (fun ω => p.probOf ω * ∏ a : Fin r, (h (fun i => ω (T a i)) - kernelMeanK p h))
     (fun ω => p.probOf ω * ∏ a : Fin r, (h (fun i => ω (T' a i)) - kernelMeanK p h)) hgo
 
+/-- The least flattened position selecting the same record as `α`, used as its overlap label. -/
 def overlapLabel {n k r : ℕ} (T : Fin r → Fin k → Fin n) (α : Fin r × Fin k) :
     Fin (r * k) :=
   ((Finset.univ : Finset (Fin (r * k))).filter
       (fun j => posRead T (finProdFinEquiv.symm j) = posRead T α)).min'
     ⟨finProdFinEquiv α, Finset.mem_filter.2 ⟨Finset.mem_univ _, by simp⟩⟩
 
+/-- Equal nonempty finite sets have equal minima, independently of the nonemptiness proofs. -/
 theorem filterMin'_congr {m : ℕ} (s t : Finset (Fin m)) (h : s = t)
     (hs : s.Nonempty) (ht : t.Nonempty) : s.min' hs = t.min' ht := by
   subst h
   rfl
 
+/-- A common permutation of record indices preserves the overlap labels of all positions. -/
 theorem overlapLabel_transport {n k r : ℕ} (σ : Fin n ≃ Fin n)
     (T T' : Fin r → Fin k → Fin n) (hT' : ∀ α, posRead T' α = σ (posRead T α)) :
     overlapLabel T' = overlapLabel T := by
@@ -436,11 +498,15 @@ theorem overlapLabel_transport {n k r : ℕ} (σ : Fin n ≃ Fin n)
   unfold overlapLabel
   exact filterMin'_congr _ _ hfilter _ _
 
+/-- Pointwise transport of a tuple family by a record permutation preserves its overlap
+labeling. -/
 theorem overlapLabel_transport_family {n k r : ℕ} (σ : Fin n ≃ Fin n)
     (T T' : Fin r → Fin k → Fin n) (hT' : ∀ a i, T' a i = σ (T a i)) :
     overlapLabel T' = overlapLabel T :=
   overlapLabel_transport σ T T' (fun α => hT' α.1 α.2)
 
+/-- The sum over families of injective tuples decomposes into sums indexed by their overlap
+label functions. -/
 theorem familyInjective_type_sum {n k r : ℕ} (F : (Fin r → Fin k → Fin n) → ℝ) :
     (∑ T : Fin r → Fin k → Fin n, (if familyInjective T then F T else 0))
       = ∑ c : Fin r × Fin k → Fin (r * k), ∑ T : Fin r → Fin k → Fin n,
@@ -454,6 +520,8 @@ theorem familyInjective_type_sum {n k r : ℕ} (F : (Fin r → Fin k → Fin n) 
   by_cases h1 : overlapLabel T = c <;>
     by_cases h2 : familyInjective T <;> simp [h1, h2]
 
+/-- When the distinct-tuple count is nonzero, the centered U-statistic is the normalized sum of
+centered kernel values over injective tuples. -/
 theorem uStatistic_centered_eq_sum (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (hN : (distinctTupleCount n k : ℕ) ≠ 0) (ω : Fin n → O) :
     povmUStatisticK h ω - kernelMeanK p h
@@ -487,6 +555,8 @@ theorem uStatistic_centered_eq_sum (p : FinDist O) {n k : ℕ} (h : (Fin k → O
             h (fun i => ω (t i)) - kernelMeanK p h else 0))
         / ((distinctTupleCount n k : ℕ) : ℝ) := by rw [hkey]
 
+/-- When the distinct-tuple count is nonzero, the centered U-statistic moment is the normalized
+sum of overlap moments over families of injective tuples. -/
 theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → O) → ℝ)
     (hN : (distinctTupleCount n k : ℕ) ≠ 0) :
     (∑ ω : Fin n → O, p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ r)
@@ -622,6 +692,8 @@ theorem uStatistic_moment_overlap (p : FinDist O) {n k r : ℕ} (h : (Fin k → 
                 Finset.sum_comm
         rw [hswap, Finset.sum_congr rfl fun T (_ : T ∈ Finset.univ) => hinner T]
 
+/-- The centered U-statistic moment decomposes by overlap labels, with normalization by the
+distinct-tuple count raised to the moment order. -/
 theorem uStatistic_moment_overlap_type (p : FinDist O) {n k r : ℕ}
     (h : (Fin k → O) → ℝ) (hN : (distinctTupleCount n k : ℕ) ≠ 0) :
     (∑ ω : Fin n → O, p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ r)
@@ -632,16 +704,21 @@ theorem uStatistic_moment_overlap_type (p : FinDist O) {n k r : ℕ}
   rw [uStatistic_moment_overlap p h hN,
     familyInjective_type_sum (fun T => overlapMomentK p h T)]
 
+/-- The first tuple of the family formed by appending two singleton families is the first
+supplied tuple. -/
 theorem familyAppend_pair_zero {n k : ℕ} (t s : Fin k → Fin n) :
     familyAppend (fun _ : Fin 1 => t) (fun _ : Fin 1 => s) (0 : Fin 2) = t := by
   have h0 : (0 : Fin 2) = Fin.castAdd 1 (0 : Fin 1) := Fin.ext rfl
   rw [h0, familyAppend_castAdd]
 
+/-- The second tuple of the family formed by appending two singleton families is the second
+supplied tuple. -/
 theorem familyAppend_pair_one {n k : ℕ} (t s : Fin k → Fin n) :
     familyAppend (fun _ : Fin 1 => t) (fun _ : Fin 1 => s) (1 : Fin 2) = s := by
   have h1 : (1 : Fin 2) = Fin.natAdd 1 (0 : Fin 1) := Fin.ext rfl
   rw [h1, familyAppend_natAdd]
 
+/-- For two injective tuples, their centered overlap moment equals their overlap covariance. -/
 theorem overlapMoment_pair (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s) :
     overlapMomentK p h (familyAppend (fun _ : Fin 1 => t) (fun _ : Fin 1 => s))
@@ -652,10 +729,14 @@ theorem overlapMoment_pair (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → �
   rw [Fin.prod_univ_two, familyAppend_pair_zero, familyAppend_pair_one]
   ring
 
+/-- The absolute centered moment of order `m` of the kernel under the product law with marginal
+`p`. -/
 noncomputable def centeredAbsMomentK (p : FinDist O) {k : ℕ} (h : (Fin k → O) → ℝ)
     (m : ℕ) : ℝ :=
   ∑ y : Fin k → O, (∏ i : Fin k, p.prob (y i)) * |h y - kernelMeanK p h| ^ m
 
+/-- Reading any injective tuple of independent records gives the kernel's absolute centered
+moment. -/
 theorem read_abs_moment (p : FinDist O) {n k : ℕ} (t : Fin k → Fin n)
     (ht : Function.Injective t) (h : (Fin k → O) → ℝ) (m : ℕ) :
     (∑ ω : Fin n → O, p.probOf ω
@@ -663,12 +744,15 @@ theorem read_abs_moment (p : FinDist O) {n k : ℕ} (t : Fin k → Fin n)
       = centeredAbsMomentK p h m :=
   povm_joint_expect p t ht (fun y => |h y - kernelMeanK p h| ^ m)
 
+/-- Every absolute centered kernel moment is nonnegative. -/
 theorem centeredAbsMomentK_nonneg (p : FinDist O) {k : ℕ} (h : (Fin k → O) → ℝ)
     (m : ℕ) : 0 ≤ centeredAbsMomentK p h m := by
   refine Finset.sum_nonneg fun y (_ : y ∈ Finset.univ) => ?_
   exact mul_nonneg (Finset.prod_nonneg fun i (_ : i ∈ Finset.univ) => p.nonneg _)
     (pow_nonneg (abs_nonneg _) _)
 
+/-- For a nonempty finite family of nonnegative reals, the product is bounded by the average of
+their powers of order equal to the family size. -/
 theorem prod_le_average_pow {m : ℕ} (hm : 0 < m) (u : Fin m → ℝ) (hu : ∀ a, 0 ≤ u a) :
     ∏ a : Fin m, u a ≤ (∑ a : Fin m, u a ^ m) / (m : ℝ) := by
   have hmR : ((m : ℝ)) ≠ 0 := by exact_mod_cast hm.ne'
@@ -703,6 +787,8 @@ theorem prod_le_average_pow {m : ℕ} (hm : 0 < m) (u : Fin m → ℝ) (hu : ∀
   rw [hrhs] at ham
   exact ham
 
+/-- For positive order and injective tuples, the absolute overlap moment is bounded by the
+corresponding absolute centered kernel moment. -/
 theorem overlapMoment_abs_le (p : FinDist O) {n k r : ℕ} (hr : 0 < r)
     (h : (Fin k → O) → ℝ) (T : Fin r → Fin k → Fin n) (hT : familyInjective T) :
     |overlapMomentK p h T| ≤ centeredAbsMomentK p h r := by
@@ -772,12 +858,16 @@ theorem overlapMoment_abs_le (p : FinDist O) {n k r : ℕ} (hr : 0 < r)
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
           mul_div_cancel_left₀ _ hRne]
 
+/-- Currying identifies tuple families with functions from pairs of tuple and coordinate
+indices. -/
 def familyEquiv {n k r : ℕ} : (Fin r → Fin k → Fin n) ≃ (Fin r × Fin k → Fin n) where
   toFun T := posRead T
   invFun g a i := g (a, i)
   left_inv T := by funext a i; rfl
   right_inv g := by funext α; rcases α with ⟨a, i⟩; rfl
 
+/-- Functions taking equal values at two distinct positions correspond to arbitrary functions on
+all positions except the first. -/
 def posFiberEquiv {n k r : ℕ} (α β : Fin r × Fin k) (hβ : β ≠ α) :
     {g : Fin r × Fin k → Fin n // g α = g β} ≃ (∀ x : {x : Fin r × Fin k // x ≠ α}, Fin n) where
   toFun hg x := hg.1 x.1
@@ -800,6 +890,8 @@ def posFiberEquiv {n k r : ℕ} (α β : Fin r × Fin k) (hβ : β ≠ α) :
           (fun hx' => w ⟨x, hx'⟩) = w x
       rw [dif_neg hx]
 
+/-- The number of record assignments identifying two distinct positions is `n` raised to the
+number of remaining positions. -/
 theorem pos_fiber_card {n k r : ℕ} (α β : Fin r × Fin k) (hαβ : α ≠ β) :
     Fintype.card {g : Fin r × Fin k → Fin n // g α = g β}
       = n ^ (Fintype.card (Fin r × Fin k) - 1) := by
@@ -816,6 +908,8 @@ theorem pos_fiber_card {n k r : ℕ} (α β : Fin r × Fin k) (hαβ : α ≠ β
             (fun x : Fin r × Fin k => (Iff.rfl : x ≠ α ↔ ¬(x = α)))),
           Fintype.card_subtype_compl, Fintype.card_subtype_eq α]
 
+/-- The number of tuple families whose reads coincide at two fixed distinct positions is `n`
+raised to the total position count minus one. -/
 theorem pos_fiber_filter_card {n k r : ℕ} (α β : Fin r × Fin k) (hαβ : α ≠ β) :
     ((Finset.univ : Finset (Fin r → Fin k → Fin n)).filter
         (fun T => posRead T α = posRead T β)).card
@@ -834,10 +928,13 @@ theorem pos_fiber_filter_card {n k r : ℕ} (α β : Fin r × Fin k) (hαβ : α
     Equiv.subtypeEquiv familyEquiv (fun _ => Iff.rfl)
   rw [hbridge, Fintype.card_congr he, pos_fiber_card α β hαβ]
 
+/-- A family of `r` tuples of length `k` has `r * k` positions. -/
 theorem pos_card {k r : ℕ} : Fintype.card (Fin r × Fin k) = r * k := by
   rw [Fintype.card_prod]
   simp
 
+/-- The number of families of injective tuples with a record coincidence is at most `(r * k) *
+(r * k) * n ^ (r * k - 1)`. -/
 theorem coinciding_family_card_le {n k r : ℕ} :
     ((Finset.univ : Finset (Fin r → Fin k → Fin n)).filter
         (fun T => familyInjective T ∧ ∃ α β : Fin r × Fin k,
@@ -888,6 +985,9 @@ theorem coinciding_family_card_le {n k r : ℕ} :
           _ ≤ (r * k * (r * k)) * n ^ (r * k - 1) :=
               Nat.mul_le_mul hpaircard (Nat.le_refl _)
 
+/-- For positive order and a nonzero distinct-tuple count, the absolute centered U-statistic
+moment is bounded by the absolute kernel moment times the coincidence count bound, divided
+by the tuple-count normalization. -/
 theorem uStatistic_moment_abs_le (p : FinDist O) {n k r : ℕ} (hr : 0 < r)
     (h : (Fin k → O) → ℝ) (hN : (distinctTupleCount n k : ℕ) ≠ 0) :
     |∑ ω : Fin n → O, p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ r|
@@ -964,6 +1064,8 @@ theorem uStatistic_moment_abs_le (p : FinDist O) {n k r : ℕ} (hr : 0 < r)
             * (((r * k) * (r * k) * n ^ (r * k - 1) : ℕ) : ℝ) := by ring))
     hNr.le
 
+/-- The probability of a deviation strictly exceeding a positive threshold is bounded by a
+positive even centered moment divided by the corresponding threshold power. -/
 theorem probEvent_le_even_moment {X : Type} [Fintype X] {n : ℕ} (p : FinDist X)
     (f : (Fin n → X) → ℝ) (μ : ℝ) (hμ : ∑ ω : Fin n → X, p.probOf ω * f ω = μ)
     {s : ℕ} (hs : 0 < s) (ε : ℝ) (hε : 0 < ε) :
@@ -1019,6 +1121,8 @@ theorem probEvent_le_even_moment {X : Type} [Fintype X] {n : ℕ} (p : FinDist X
     _ ≤ (∑ ω : Fin n → X, p.probOf ω * (f ω - μ) ^ (2 * s)) / ε ^ (2 * s) :=
         div_le_div_of_nonneg_right hsum2 h2.le
 
+/-- The U-statistic deviation probability is bounded using the absolute centered kernel moment
+of order `2 * s` and the record-coincidence count. -/
 theorem probEvent_uStatistic_hkp (p : FinDist O) {n k s : ℕ} (hs : 0 < s)
     (h : (Fin k → O) → ℝ) (hN : (distinctTupleCount n k : ℕ) ≠ 0)
     (ε : ℝ) (hε : 0 < ε) :
@@ -1053,6 +1157,9 @@ theorem probEvent_uStatistic_hkp (p : FinDist O) {n k s : ℕ} (hs : 0 < s)
           / (((distinctTupleCount n k : ℕ) : ℝ) ^ (2 * s) * ε ^ (2 * s)) := by
         rw [div_div]
 
+/-- Collects the overlap and overlap-type moment expansions, permutation invariance, disjoint
+factorization, vanishing and covariance identities, and moment and deviation bounds for
+finite U-statistics. -/
 theorem frontier1 :
     ∀ {O : Type} [Fintype O] [DecidableEq O] (p : FinDist O) {n k r : ℕ},
       0 < r → (distinctTupleCount n k : ℕ) ≠ 0 → ∀ (h : (Fin k → O) → ℝ),
@@ -1109,6 +1216,9 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
 
 variable {D : ℕ}
 
+/-- Specializes the overlap expansions, permutation invariance, factorization, vanishing and
+covariance identities, and moment and deviation bounds to independent records of a finite
+POVM. -/
 theorem frontier1_povm (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     {n k r : ℕ} (hr : 0 < r) (hN : (distinctTupleCount n k : ℕ) ≠ 0)
     (h : (Fin k → O) → ℝ) :

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeDefs
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeProgramDefs
+
+/-!
+# Coherent variable-time amplification contract
+
+`coherentVariableTimeAmplification` specifies a finite distribution of legal programs with a
+uniform per-record stage-time bound. Under its stopping and success assumptions, records of
+total weight at least `9/10` have good mass at least `2/5`, running mass at most `3/5`, and a
+good component proportional to the embedded original good component.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `coherentVariableTimeAmplification`: probabilistic program and output specification.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +44,9 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 
 end Program
 
+/-- The proposition that runs satisfying the stage, termination, and success-floor assumptions
+possess a finite distribution of legal programs with the specified per-record time bound and
+high-weight output guarantees. -/
 def coherentVariableTimeAmplification : Prop :=
   ∀ (C : Type) [Fintype C] [DecidableEq C]
     (stages : List (Matrix (Fin 3 × C) (Fin 3 × C) ℂ)),

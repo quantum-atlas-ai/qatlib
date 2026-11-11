@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHCloneBudget
+
+/-!
+# Commutator bounds for BCH coefficients
+
+This module defines `alphaComm`, the sum of norms of right-nested brackets over all words of a
+given length. It uses permutation and clone multiplicity estimates to obtain the BCH coefficient
+control needed in [AftabAnTrivisa2026].
+
+The main estimate `norm_word_log_le` bounds the degree-`n` logarithm coefficient of an
+exponential word by `alphaComm X n / n²` for positive `n`.
+
+## Main statements
+
+* `alphaComm`: The sum of norms of right-nested brackets over all length-`n` words in the finite
+  generator family `X`.
+* `norm_factorial_phi_le`: A degree-`n` clone BCH term normalized by its multiplicity factorials
+  is bounded by the similarly normalized permutation bracket sum divided by `n²`, for `n > 0`.
+* `norm_word_log_le`: For `n > 0`, the degree-`n` logarithm coefficient of the ordered
+  exponential word has norm at most `alphaComm X n / n²`.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,14 +44,19 @@ open BCHExpansion BCHCloneBudget
 
 variable {B : Type} [NormedRing B] [NormedAlgebra ℝ B] [Algebra ℚ B]
 
+/-- The sum of norms of right-nested brackets over all length-`n` words in the finite generator
+family `X`. -/
 def alphaComm {Γ : ℕ} (X : Fin Γ → B) (n : ℕ) : ℝ :=
   ∑ f : Fin n → Fin Γ, ‖rightBracket (List.ofFn (fun j => X (f j)))‖
 
 omit [NormedAlgebra ℝ B] [Algebra ℚ B] in
 
+/-- The commutator profile `alphaComm X n` is nonnegative. -/
 theorem alphaComm_nonneg {Γ : ℕ} (X : Fin Γ → B) (n : ℕ) : 0 ≤ alphaComm X n :=
   Finset.sum_nonneg fun _ _ => norm_nonneg _
 
+/-- For a nonempty list of distinct labels, the norm of its multilinear BCH term is bounded by
+the sum of bracket norms over permutations divided by the square of the list length. -/
 theorem norm_phi_list_le {σ : Type} (xs : List σ) (hx : xs.Nodup) (Y : σ → B)
     (hn : 0 < xs.length) :
     ‖BCHPhi.phi (fun j => Y (xs.get j))‖ ≤ (1 / (xs.length : ℝ) ^ 2) *
@@ -41,6 +71,8 @@ theorem norm_phi_list_le {σ : Type} (xs : List σ) (hx : xs.Nodup) (Y : σ → 
   rw [he] at h
   exact h
 
+/-- A degree-`n` clone BCH term normalized by its multiplicity factorials is bounded by the
+similarly normalized permutation bracket sum divided by `n²`, for `n > 0`. -/
 theorem norm_factorial_phi_le {Γ n : ℕ} (X : Fin Γ → B) (m : Fin Γ → ℕ)
     (hm : m ∈ multidegrees Γ n) (hn : 0 < n) :
     ‖(factorialMass m)⁻¹ • BCHPhi.phi (fun j => X ((cloneWord m).get j).1)‖ ≤
@@ -64,6 +96,8 @@ theorem norm_factorial_phi_le {Γ n : ℕ} (X : Fin Γ → B) (m : Fin Γ → �
         mul_le_mul_of_nonneg_left hphi (le_of_lt (inv_pos.mpr hpos))
     _ = _ := by ring
 
+/-- For `n > 0`, the degree-`n` logarithm coefficient of the ordered exponential word has norm
+at most `alphaComm X n / n²`. -/
 theorem norm_word_log_le {Γ : ℕ} (X : Fin Γ → B) (n : ℕ) (hn : 0 < n) :
     ‖logCoefficient (wordSeries ((List.finRange Γ).map X)) n‖ ≤
       alphaComm X n / (n : ℝ) ^ 2 := by

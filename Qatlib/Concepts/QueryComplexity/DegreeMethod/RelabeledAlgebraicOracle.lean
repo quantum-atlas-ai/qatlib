@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+
+/-!
+# Relabeled additive oracle readout
+
+This module prepares an input state, applies an additive value oracle, and swaps the
+response and input registers. `swappedAddOracleRun` exposes the response as the left
+register, using the value-oracle circuit model of [NielsenChuang2010].
+
+The amplitude and marginal readout identities express response probabilities as the
+prepared state's measurement weights on value fibers. The circuit has one gate and one query.
+
+## Main statements
+
+* `run_prepare_addOracle_apply`: amplitudes are supported on pairs with response `f x`.
+* `swappedAddOracleRun_readout`: the left marginal is the weight of the corresponding value
+  fibers.
+* `swappedAddOracleRun_resources`: query, gate, size, unitarity, and normalization properties.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,12 +48,16 @@ set_option autoImplicit false
 
 variable {I R : Type*}
 
+/-- The circuit applying `A` to the input register and then querying an additive oracle,
+relabeled so the response register comes first. -/
 noncomputable def swappedAddOracleCircuit {I R : Type*}
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (A : Matrix I I ℂ) : Circuit (R × I) :=
   relabelCircuit (Equiv.prodComm I R)
     [Step.gate (TensorGate A (1 : Matrix R R ℂ)), Step.query]
 
+/-- Run the register-swapped additive-oracle circuit from `ψ` with the response initialized to
+zero. -/
 noncomputable def swappedAddOracleRun {I R : Type*}
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R] [AddCommGroup R]
     (f : I → R) (A : Matrix I I ℂ) (ψ : QState I) : QState (R × I) :=
@@ -38,6 +65,8 @@ noncomputable def swappedAddOracleRun {I R : Type*}
     (swappedAddOracleCircuit A)
     (relabelState (Equiv.prodComm I R) (TensorState ψ (Ket 0)))
 
+/-- Swapping the coordinates maps the product of all input indices with `T` to the product of
+`T` with all input indices. -/
 theorem finset_prodComm_map {I R : Type*} [Fintype I] [DecidableEq I] [Fintype R]
     [DecidableEq R] (T : Finset R) :
     ((Finset.univ : Finset I) ×ˢ T).map (Equiv.prodComm I R).toEmbedding
@@ -55,6 +84,8 @@ theorem finset_prodComm_map {I R : Type*} [Fintype I] [DecidableEq I] [Fintype R
   · rintro ⟨hz, _⟩
     exact ⟨(x, z), ⟨Finset.mem_univ _, hz⟩, rfl⟩
 
+/-- The swapped additive-oracle run equals the register relabeling of the corresponding
+unswapped run. -/
 theorem swappedAddOracleRun_eq {I R : Type*} [Fintype I] [DecidableEq I] [Fintype R]
     [DecidableEq R] [AddCommGroup R] (f : I → R) (A : Matrix I I ℂ) (ψ : QState I) :
     swappedAddOracleRun f A ψ
@@ -65,6 +96,7 @@ theorem swappedAddOracleRun_eq {I R : Type*} [Fintype I] [DecidableEq I] [Fintyp
     [Step.gate (TensorGate A (1 : Matrix R R ℂ)), Step.query] (TensorState ψ (Ket 0))
     (Finset.univ : Finset (I × R))).1
 
+/-- The preparation gate can be absorbed into the input state before the additive-oracle query. -/
 theorem run_prepare_addOracle {I R : Type*} [Fintype I] [DecidableEq I] [Fintype R]
     [DecidableEq R] [AddCommGroup R] (f : I → R) (A : Matrix I I ℂ) (ψ : QState I) :
     Run (AddOracle f) [Step.gate (TensorGate A (1 : Matrix R R ℂ)), Step.query]
@@ -72,6 +104,8 @@ theorem run_prepare_addOracle {I R : Type*} [Fintype I] [DecidableEq I] [Fintype
       = Run (AddOracle f) [Step.query] (TensorState (ApplyGate A ψ) (Ket 0)) := by
   simp only [run_gate, run_addOracle_query, applyGate_tensorGate, applyGate_one]
 
+/-- After preparation and the additive query, amplitude at `(x, z)` equals `ApplyGate A ψ x`
+when `z = f x`, and zero otherwise. -/
 theorem run_prepare_addOracle_apply {I R : Type*} [Fintype I] [DecidableEq I] [Fintype R]
     [DecidableEq R] [AddCommGroup R] (f : I → R) (A : Matrix I I ℂ) (ψ : QState I)
     (x : I) (z : R) :
@@ -80,6 +114,8 @@ theorem run_prepare_addOracle_apply {I R : Type*} [Fintype I] [DecidableEq I] [F
       = if z = f x then ApplyGate A ψ x else 0 := by
   rw [run_prepare_addOracle, run_addOracle_zero_apply]
 
+/-- The swapped run has amplitude supported on `z = f x`, and its left marginal on `T` equals
+the prepared state's weight on indices with values in `T`. -/
 theorem swappedAddOracleRun_readout {I R : Type*} [Fintype I] [DecidableEq I] [Fintype R]
     [DecidableEq R] [AddCommGroup R] (f : I → R) (A : Matrix I I ℂ) (ψ : QState I)
     (x : I) (z : R) (T : Finset R) :
@@ -96,6 +132,8 @@ theorem swappedAddOracleRun_readout {I R : Type*} [Fintype I] [DecidableEq I] [F
       ← finset_prodComm_map (I := I) (R := R) T, measureProb_relabelState]
     exact marginalProbRight_run_addOracle_zero f (ApplyGate A ψ) T
 
+/-- The swapped circuit has one query, one gate, and size two; unitary preparation ensures
+circuit unitarity and preserves normalization of a normalized input. -/
 theorem swappedAddOracleRun_resources {I R : Type*} [Fintype I] [DecidableEq I]
     [Fintype R] [DecidableEq R] [AddCommGroup R] (f : I → R) (A : Matrix I I ℂ)
     (ψ : QState I) :

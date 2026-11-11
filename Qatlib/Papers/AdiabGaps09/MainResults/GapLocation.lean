@@ -9,6 +9,25 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Order.Filter.Basic
 import Mathlib.Tactic
 
+/-!
+# The second-order crossing location
+
+This module defines an eventual comparison relation `ThetaAtTop` and its elementary closure
+properties. For the second-order energy models `energyL` and `energyU`, it proves an explicit
+crossing and derives the location scale `n^(-1/4) * (m/n)^(3/4)` under the stated asymptotic and
+positivity assumptions, as in [FarhiEtAl2011].
+
+## Main statements
+
+* `crossing_second_order`: equality of the two energy models at an explicit value of `sStarOf`.
+* `inv_sqrt_gapScale_eq_paperScale`: the identity relating the two scale formulas.
+* `gap_location_theta`: the eventual scale of one minus the crossing parameter.
+
+## References
+
+* [Farhi et al., 2011][FarhiEtAl2011]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,13 +35,17 @@ open Filter
 
 namespace Qatlib.Papers.AdiabGaps09.MainResults
 
+/-- Eventual two-sided comparison of `f` with positive constant multiples of `g` along the
+natural numbers tending to infinity. -/
 def ThetaAtTop (f g : ℕ → ℝ) : Prop :=
   ∃ b c : ℝ, 0 < b ∧ 0 < c ∧ ∀ᶠ n in Filter.atTop, b * g n ≤ f n ∧ f n ≤ c * g n
 
+/-- Every function satisfies the eventual comparison relation `ThetaAtTop` with itself. -/
 theorem ThetaAtTop.refl (f : ℕ → ℝ) : ThetaAtTop f f :=
   ⟨1, 1, one_pos, one_pos,
     Eventually.of_forall (fun n => ⟨by rw [one_mul], by rw [one_mul]⟩)⟩
 
+/-- The eventual comparison relation `ThetaAtTop` is transitive. -/
 theorem ThetaAtTop.trans {f g h : ℕ → ℝ} (hfg : ThetaAtTop f g)
     (hgh : ThetaAtTop g h) : ThetaAtTop f h := by
   obtain ⟨b1, c1, hb1, hc1, h1⟩ := hfg
@@ -37,6 +60,8 @@ theorem ThetaAtTop.trans {f g h : ℕ → ℝ} (hfg : ThetaAtTop f g)
       _ ≤ c1 * (c2 * h n) := by nlinarith [hn2.2]
       _ = c1 * c2 * h n := by ring
 
+/-- Multiplying the first function by a positive real constant preserves its `ThetaAtTop`
+comparison with the second function. -/
 theorem ThetaAtTop.const_mul {f g : ℕ → ℝ} (a : ℝ) (ha : 0 < a)
     (h : ThetaAtTop f g) : ThetaAtTop (fun n => a * f n) g := by
   obtain ⟨b, c, hb, hc, hbnd⟩ := h
@@ -48,6 +73,7 @@ theorem ThetaAtTop.const_mul {f g : ℕ → ℝ} (a : ℝ) (ha : 0 < a)
   · calc a * f n ≤ a * (c * g n) := by nlinarith [hn.2]
       _ = a * c * g n := by ring
 
+/-- Taking square roots preserves `ThetaAtTop` when both functions are eventually nonnegative. -/
 theorem ThetaAtTop.sqrt {f g : ℕ → ℝ} (h : ThetaAtTop f g)
     (hf : ∀ᶠ n in Filter.atTop, 0 ≤ f n) (hg : ∀ᶠ n in Filter.atTop, 0 ≤ g n) :
     ThetaAtTop (fun n => Real.sqrt (f n)) (fun n => Real.sqrt (g n)) := by
@@ -60,6 +86,7 @@ theorem ThetaAtTop.sqrt {f g : ℕ → ℝ} (h : ThetaAtTop f g)
   · rw [← Real.sqrt_mul (le_of_lt hc)]
     exact Real.sqrt_le_sqrt hn.2
 
+/-- Taking reciprocals preserves `ThetaAtTop` when both functions are eventually positive. -/
 theorem ThetaAtTop.inv {f g : ℕ → ℝ} (h : ThetaAtTop f g)
     (hf : ∀ᶠ n in Filter.atTop, 0 < f n) (hg : ∀ᶠ n in Filter.atTop, 0 < g n) :
     ThetaAtTop (fun n => (f n)⁻¹) (fun n => (g n)⁻¹) := by
@@ -72,6 +99,8 @@ theorem ThetaAtTop.inv {f g : ℕ → ℝ} (h : ThetaAtTop f g)
   · have := (inv_le_inv₀ hfn (mul_pos hb hgn)).mpr hn.1
     simpa [mul_inv, mul_comm] using this
 
+/-- The second function in a `ThetaAtTop` relation can be replaced by an eventually equal
+function. -/
 theorem ThetaAtTop.of_eventuallyEq_right {f g h : ℕ → ℝ} (hfg : ThetaAtTop f g)
     (hgh : ∀ᶠ n in Filter.atTop, g n = h n) : ThetaAtTop f h := by
   obtain ⟨b, c, hb, hc, hbnd⟩ := hfg
@@ -79,6 +108,8 @@ theorem ThetaAtTop.of_eventuallyEq_right {f g h : ℕ → ℝ} (hfg : ThetaAtTop
   filter_upwards [hbnd, hgh] with n hn heq
   rw [← heq]; exact hn
 
+/-- The first function in a `ThetaAtTop` relation can be replaced by an eventually equal
+function. -/
 theorem ThetaAtTop.of_eventuallyEq_left {f g h : ℕ → ℝ} (hfg : ThetaAtTop f g)
     (hfh : ∀ᶠ n in Filter.atTop, f n = h n) : ThetaAtTop h g := by
   obtain ⟨b, c, hb, hc, hbnd⟩ := hfg
@@ -86,20 +117,28 @@ theorem ThetaAtTop.of_eventuallyEq_left {f g h : ℕ → ℝ} (hfg : ThetaAtTop 
   filter_upwards [hbnd, hfh] with n hn heq
   rw [← heq]; exact hn
 
+/-- The second-order energy expression `(1 - s) * n/2 + s * (((1 - s)/s)² * e2)`. -/
 def energyL (n e2 s : ℝ) : ℝ :=
   (1 - s) * (n / 2) + s * (((1 - s) / s) ^ 2 * e2)
 
+/-- The second-order energy expression with the additional contribution `s/2` relative to
+`energyL n e2 s`. -/
 def energyU (n e2 s : ℝ) : ℝ :=
   (1 - s) * (n / 2) + s * ((1 / 2) + ((1 - s) / s) ^ 2 * e2)
 
+/-- The parameter `1 / (1 + δ)` used to express a second-order crossing location. -/
 def sStarOf (δ : ℝ) : ℝ := 1 / (1 + δ)
 
+/-- The difference of the lower and upper energy expressions is `s * (-1/2 + ((1 - s)/s)² * (eL
+- eU))`. See [FarhiEtAl2011]. -/
 theorem energy_diff (n eL eU s : ℝ) :
     energyL n eL s - energyU n eU s
       = s * (-(1 / 2) + ((1 - s) / s) ^ 2 * (eL - eU)) := by
   unfold energyL energyU
   ring
 
+/-- If `eL - eU` is positive, the two second-order energy expressions coincide at `sStarOf (1 /
+sqrt(2 * (eL - eU)))`. See [FarhiEtAl2011]. -/
 theorem crossing_second_order (n eL eU : ℝ) (hD : 0 < eL - eU) :
     energyL n eL (sStarOf (1 / Real.sqrt (2 * (eL - eU))))
       = energyU n eU (sStarOf (1 / Real.sqrt (2 * (eL - eU)))) := by
@@ -121,12 +160,16 @@ theorem crossing_second_order (n eL eU : ℝ) (hD : 0 < eL - eU) :
     ring
   exact sub_eq_zero.mp hdiff
 
+/-- The scale `sqrt(n) * (n / m n) * sqrt(n / m n)` for the second-order coefficient difference. -/
 def gapScale (m : ℕ → ℝ) (n : ℕ) : ℝ :=
   Real.sqrt (n : ℝ) * ((n : ℝ) / m n) * Real.sqrt ((n : ℝ) / m n)
 
+/-- The scale `n^(-1/4) * (m n / n)^(3/4)` for the distance of the crossing parameter from one. -/
 def paperScale (m : ℕ → ℝ) (n : ℕ) : ℝ :=
   (n : ℝ) ^ (-(1 / 4 : ℝ)) * (m n / (n : ℝ)) ^ ((3 / 4 : ℝ))
 
+/-- For positive `m n` and `n`, the reciprocal square root of `gapScale m n` equals `paperScale
+m n`. See [FarhiEtAl2011]. -/
 theorem inv_sqrt_gapScale_eq_paperScale (m : ℕ → ℝ) (n : ℕ)
     (hm : 0 < m n) (hn : 0 < (n : ℝ)) :
     (Real.sqrt (gapScale m n))⁻¹ = paperScale m n := by
@@ -160,6 +203,8 @@ theorem inv_sqrt_gapScale_eq_paperScale (m : ℕ → ℝ) (n : ℕ)
   have hMN : m n / (n : ℝ) = ((n : ℝ) / m n)⁻¹ := (inv_div (n : ℝ) (m n)).symm
   rw [hMN, Real.inv_rpow hr.le, Real.rpow_neg hr.le]
 
+/-- If `δ` has `ThetaAtTop` scale `h` and eventually lies in `(0, 1]`, then `1 - sStarOf (δ n)`
+has the same scale. See [FarhiEtAl2011]. -/
 theorem one_minus_sStar_theta {δ h : ℕ → ℝ} (hδ : ThetaAtTop δ h)
     (hδpos : ∀ᶠ n in Filter.atTop, 0 < δ n) (hbdd : ∀ᶠ n in Filter.atTop, δ n ≤ 1) :
     ThetaAtTop (fun n => 1 - sStarOf (δ n)) h := by
@@ -179,6 +224,8 @@ theorem one_minus_sStar_theta {δ h : ℕ → ℝ} (hδ : ThetaAtTop δ h)
       nlinarith
   exact hself.trans hδ
 
+/-- Under the stated eventual positivity, comparison, and boundedness assumptions, `1 - sStarOf
+(1 / sqrt(2 * D n))` has `ThetaAtTop` scale `paperScale m`. See [FarhiEtAl2011]. -/
 theorem gap_location_theta (m D : ℕ → ℝ)
     (hm : ∀ᶠ n in Filter.atTop, 0 < m n) (hn : ∀ᶠ n : ℕ in Filter.atTop, 0 < (n : ℝ))
     (hDpos : ∀ᶠ n in Filter.atTop, 0 < D n) (hgpos : ∀ᶠ n in Filter.atTop, 0 < gapScale m n)

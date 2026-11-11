@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Born probabilities and energy coordinates
+
+This module relates position amplitudes, coordinates against the columns of a unitary matrix,
+and energy measurement probabilities in the thermal rate analysis of [LidarWang1999]. It proves
+reconstruction by `amplitude_recovery`, invariance of energy component norms under diagonal
+phase evolution, and probability identities for possibly degenerate energy levels.
+
+Global phase invariance and the normalization of fresh independent runs are complemented by a
+Bell pair example whose two measurement outcomes are dependent.
+
+## Main statements
+
+* `amplitude_recovery`: reconstructs position amplitudes from unitary coordinates.
+* `born_eigenspace_mass`: expresses the mass of an energy level as the squared norm of its
+  diagonal projection.
+* `fresh_runs_total`: normalizes the product distribution of repeated preparations.
+* `bell_pair_not_independent`: exhibits dependent outcomes within a Bell pair.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,8 +43,12 @@ open scoped BigOperators
 open Qatlib.Foundations.PureStateMath
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The Born probability of an outcome is the squared norm of its amplitude. See
+[LidarWang1999]. -/
 theorem born_eq_normsq (ψ : QState I) (i : I) : BornProb ψ i = ‖ψ i‖ ^ 2 := rfl
 
+/-- Applying the conjugate transpose of `V` to a basis ket gives the conjugates of the
+corresponding row of `V`. -/
 theorem position_basis_energy_coords {V : Matrix I I ℂ} (j : I) :
     Vᴴ *ᵥ (Ket j : QState I) = fun n => star (V j n) := by
   funext n
@@ -31,17 +60,24 @@ theorem position_basis_energy_coords {V : Matrix I I ℂ} (j : I) :
   · intro h
     exact absurd (Finset.mem_univ j) h
 
+/-- The coordinate of `ψ` against column `n` of `V`, given by the sum of conjugated column
+entries times position amplitudes. See [LidarWang1999]. -/
 def energyAmplitude (V : Matrix I I ℂ) (ψ : QState I) (n : I) : ℂ :=
   ∑ j, star (V j n) * ψ j
 
+/-- The energy amplitude is the corresponding entry of `Vᴴ *ᵥ ψ`. See [LidarWang1999]. -/
 theorem energyAmplitude_eq_coords (V : Matrix I I ℂ) (ψ : QState I) (n : I) :
     energyAmplitude V ψ n = (Vᴴ *ᵥ ψ) n := by
   simp [energyAmplitude, Matrix.mulVec, dotProduct, Matrix.conjTranspose_apply]
 
+/-- The energy amplitude of a position basis ket is the conjugate of the corresponding matrix
+entry. -/
 theorem energyAmplitude_ket (V : Matrix I I ℂ) (j n : I) :
     energyAmplitude V (Ket j) n = star (V j n) := by
   rw [energyAmplitude_eq_coords, position_basis_energy_coords]
 
+/-- For unitary `V`, summing energy amplitudes times the entries of row `j` recovers the
+position amplitude `ψ j`. See [LidarWang1999]. -/
 theorem amplitude_recovery {V : Matrix I I ℂ} (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (j : I) :
     (∑ n, energyAmplitude V ψ n * V j n) = ψ j := by
@@ -74,6 +110,8 @@ theorem amplitude_recovery {V : Matrix I I ℂ} (hV : V ∈ Matrix.unitaryGroup 
           simp
         · intro h; exact absurd (Finset.mem_univ j) h
 
+/-- If unitary `V` diagonalizes `U` with diagonal `u`, propagation multiplies the energy
+amplitude at `n` by `u n`. See [LidarWang1999]. -/
 theorem energyAmplitude_propagation {V U : Matrix I I ℂ} (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (u : I → ℂ) (hU : Vᴴ * U * V = Matrix.diagonal u) (ψ : QState I) (n : I) :
     energyAmplitude V (U *ᵥ ψ) n = u n * energyAmplitude V ψ n := by
@@ -94,12 +132,16 @@ theorem energyAmplitude_propagation {V U : Matrix I I ℂ} (hV : V ∈ Matrix.un
     simp
   · intro h; exact absurd (Finset.mem_univ n) h
 
+/-- Propagation preserves every energy amplitude norm when its diagonal factors in the unitary
+frame all have norm one. See [LidarWang1999]. -/
 theorem energyAmplitude_propagation_norm {V U : Matrix I I ℂ}
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (u : I → ℂ)
     (hU : Vᴴ * U * V = Matrix.diagonal u) (hu : ∀ n, ‖u n‖ = 1) (ψ : QState I) (n : I) :
     ‖energyAmplitude V (U *ᵥ ψ) n‖ = ‖energyAmplitude V ψ n‖ := by
   rw [energyAmplitude_propagation hV u hU ψ n, norm_mul, hu n, one_mul]
 
+/-- A zero energy amplitude remains zero under propagation diagonalized by the same unitary
+frame. See [LidarWang1999]. -/
 theorem energyAmplitude_zero_stable {V U : Matrix I I ℂ}
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (u : I → ℂ)
     (hU : Vᴴ * U * V = Matrix.diagonal u) (ψ : QState I) (n : I)
@@ -107,14 +149,19 @@ theorem energyAmplitude_zero_stable {V U : Matrix I I ℂ}
     energyAmplitude V (U *ᵥ ψ) n = 0 := by
   rw [energyAmplitude_propagation hV u hU ψ n, h0, mul_zero]
 
+/-- The finite set of indices whose energy label equals `lam`. -/
 def energyLevelSet (E : I → ℝ) (lam : ℝ) : Finset I := by
   classical
   exact Finset.univ.filter (fun i => E i = lam)
 
+/-- The diagonal projector retaining exactly the coordinates with energy label `lam`. See
+[LidarWang1999]. -/
 def eigenspaceProjector (E : I → ℝ) (lam : ℝ) : Matrix I I ℂ := by
   classical
   exact Matrix.diagonal (fun i => if E i = lam then (1 : ℂ) else 0)
 
+/-- The measurement mass of an energy level equals the sum of squared norms of the coordinates
+projected onto that level. See [LidarWang1999]. -/
 theorem born_eigenspace_mass (ψ : QState I) (E : I → ℝ) (lam : ℝ) :
     MeasureProb ψ (energyLevelSet E lam) =
       ∑ i, ‖(eigenspaceProjector E lam *ᵥ ψ) i‖ ^ 2 := by
@@ -142,6 +189,8 @@ theorem born_eigenspace_mass (ψ : QState I) (E : I → ℝ) (lam : ℝ) :
   · rw [hproj i, if_neg h]
     simp [h]
 
+/-- For injective energy labels, the mass of the level containing `i` equals the squared norm of
+`ψ i`. See [LidarWang1999]. -/
 theorem born_single_level (ψ : QState I) (E : I → ℝ) (hE : Function.Injective E) (i : I) :
     MeasureProb ψ (energyLevelSet E (E i)) = ‖ψ i‖ ^ 2 := by
   have hset : energyLevelSet E (E i) = {i} := by
@@ -152,6 +201,8 @@ theorem born_single_level (ψ : QState I) (E : I → ℝ) (hE : Function.Injecti
   rw [hset, MeasureProb, Finset.sum_singleton]
   rfl
 
+/-- For a normalized state, the measurement masses of all distinct energy levels sum to one. See
+[LidarWang1999]. -/
 theorem born_level_masses_total (ψ : QState I) (E : I → ℝ) (hψ : Normalized ψ) :
     ∑ lam ∈ (Finset.univ.image E),
       MeasureProb ψ (energyLevelSet E lam) = 1 := by
@@ -161,11 +212,15 @@ theorem born_level_masses_total (ψ : QState I) (E : I → ℝ) (hψ : Normalize
     (fun i _ => Finset.mem_image.mpr ⟨i, Finset.mem_univ i, rfl⟩)]
   simpa using! hψ
 
+/-- Multiplication of a state by a complex scalar of norm one preserves each Born probability.
+See [LidarWang1999]. -/
 theorem born_gauge (c : ℂ) (hc : ‖c‖ = 1) (ψ : QState I) (i : I) :
     BornProb (c • ψ) i = BornProb ψ i := by
   unfold BornProb
   simp only [Pi.smul_apply, smul_eq_mul, norm_mul, hc, one_mul]
 
+/-- Multiplication by a complex scalar of norm one preserves the measurement probability of
+every finite event. See [LidarWang1999]. -/
 theorem measureProb_gauge (c : ℂ) (hc : ‖c‖ = 1) (ψ : QState I) (S : Finset I) :
     MeasureProb (c • ψ) S = MeasureProb ψ S := by
   unfold MeasureProb
@@ -173,6 +228,8 @@ theorem measureProb_gauge (c : ℂ) (hc : ‖c‖ = 1) (ψ : QState I) (S : Fins
   intro i _
   rw [born_gauge c hc]
 
+/-- Scaling the state by a complex scalar scales every energy amplitude by the same scalar. See
+[LidarWang1999]. -/
 theorem energyAmplitude_gauge (V : Matrix I I ℂ) (c : ℂ) (ψ : QState I) (n : I) :
     energyAmplitude V (c • ψ) n = c * energyAmplitude V ψ n := by
   unfold energyAmplitude
@@ -182,6 +239,8 @@ theorem energyAmplitude_gauge (V : Matrix I I ℂ) (c : ℂ) (ψ : QState I) (n 
   simp only [Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- The product of the Born distributions of a normalized state over `n` fresh runs has total
+mass one. See [LidarWang1999]. -/
 theorem fresh_runs_total (n : ℕ) (ψ : QState I) (hψ : Normalized ψ) :
     (∑ ω : Fin n → I, ∏ k, BornProb ψ (ω k)) = 1 := by
   rw [show (Finset.univ : Finset (Fin n → I)) =
@@ -191,9 +250,12 @@ theorem fresh_runs_total (n : ℕ) (ψ : QState I) (hψ : Normalized ψ) :
     (g := fun (_ : Fin n) (i : I) => BornProb ψ i)]
   simp [bornProb_sum_eq_one hψ]
 
+/-- The two-qubit Bell state with amplitude `1 / √2` on equal bits and zero amplitude on unequal
+bits. -/
 def bellPair : QState (Bool × Bool) :=
   fun p => if p.1 = p.2 then ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ else 0
 
+/-- The Bell pair state is normalized. -/
 theorem bellPair_normalized : Normalized bellPair := by
   unfold Normalized bellPair
   rw [Fintype.sum_prod_type]
@@ -208,6 +270,8 @@ theorem bellPair_normalized : Normalized bellPair := by
   rw [hsq]
   norm_num [Fintype.sum_bool]
 
+/-- For the Bell pair, the joint probability of two false outcomes differs from the product of
+their marginal probabilities. See [LidarWang1999]. -/
 theorem bell_pair_not_independent :
     BornProb bellPair (false, false) ≠
       (∑ b, BornProb bellPair (false, b)) * (∑ a, BornProb bellPair (a, false)) := by

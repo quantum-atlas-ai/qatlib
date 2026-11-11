@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QCounting98.MainResults.ActualCounting.ActualWindows
+
+/-!
+# Walsh preparation for quantum counting
+
+`walsh_marked_mass` identifies the marked probability of a Walsh-prepared register with the
+marked fraction. `walsh_standard_theorem5` combines the actual XOR-oracle program, its exact
+query count, and the strict approximate-counting error window. The mathematical context is
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `source_sqrt_scale`: For nonnegative `t` and positive `N`, scaling `sqrt (t/N)` by `N` gives
+  `sqrt (t*N)`.
+* `walsh_standard_theorem5`: For `P ≥ 4`, the padded Walsh counting circuit uses exactly `P`
+  queries and places probability at least `8/π²` in the stated strict counting window.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +39,8 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Concepts.QueryComplexity.AdversarySearch
 open scoped Classical BigOperators
 
+/-- The Walsh-prepared zero state has marked probability equal to the number of marked strings
+divided by `2^n`. -/
 theorem walsh_marked_mass (n : ℕ) (F : Reg n → Bool) :
     MeasureProb (preparedAAState (HadamardN n) (ZeroStr n)) (sourceMarked F) =
       ((sourceMarked F).card : ℝ)/(2 : ℝ)^n := by
@@ -31,6 +54,7 @@ theorem walsh_marked_mass (n : ℕ) (F : Reg n → Bool) :
   rw [hn,inv_pow,Real.sq_sqrt hcard.le]
   simp only [card_reg,Nat.cast_pow,Nat.cast_ofNat,div_eq_mul_inv]
 
+/-- For nonnegative `t` and positive `N`, scaling `sqrt (t/N)` by `N` gives `sqrt (t*N)`. -/
 theorem source_sqrt_scale (t N : ℝ) (ht : 0 ≤ t) (hN : 0 < N) :
     N*Real.sqrt (t/N) = Real.sqrt (t*N) := by
   calc
@@ -38,6 +62,9 @@ theorem source_sqrt_scale (t N : ℝ) (ht : 0 ≤ t) (hN : 0 < N) :
     _ = Real.sqrt ((t/N)*N^2) := (Real.sqrt_mul (by positivity) _).symm
     _ = Real.sqrt (t*N) := by congr 1; field_simp
 
+/-- For `P ≥ 4`, the padded Walsh counting circuit uses exactly `P` queries and places
+probability at least `8/π²` in the stated strict counting window. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem walsh_standard_theorem5 (n P : ℕ) (F : Reg n → Bool) (hP : 4 ≤ P) :
     QueryCount (standardPaddedAEWord P (HadamardN n) (ZeroStr n)) = P ∧
       8/Real.pi^2 ≤ ∑ z ∈ Finset.univ.filter (fun z : Fin P =>

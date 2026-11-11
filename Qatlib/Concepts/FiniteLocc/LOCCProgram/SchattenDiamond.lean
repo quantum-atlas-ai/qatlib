@@ -8,6 +8,33 @@ import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
 import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Factorization bounds for trace and diamond norms
+
+This module amplifies rectangular matrix factors by an identity on a finite reference system and
+bounds the resulting trace-norm action of a complex-linear map. These estimates connect
+`CbFactorization` with `finiteDiamondNorm` and `cbNormDual`, in the operator-norm framework of
+[Paulsen2002] and the quantum-information setting of [Watrous2018].
+
+The module proves an upper bound of the finite diamond norm by the factorization infimum,
+finiteness under strict feasibility, and bounds on differences of real trace statistics for
+arbitrary operator inputs and norm-bounded test matrices.
+
+## Main statements
+
+* `traceNorm_tensorLeft_le_factorization`: a factorization bounds every finite reference
+  extension.
+* `frontier1`: `finiteDiamondNorm T` is at most `cbNormDual T`.
+* `channel_discrimination_bias_le_diamond`: the diamond norm controls the difference of real
+  trace statistics.
+
+## References
+
+* [Paulsen, 2002][Paulsen2002]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -29,18 +56,24 @@ set_option synthInstance.maxHeartbeats 400000
 
 variable {D E r : ℕ}
 
+/-- Tensors a rectangular matrix factor with the identity on a finite reference index. -/
 def amplifyFactor {D E r : ℕ} (C : Matrix (Fin D) (Fin E) ℂ) :
     Matrix (Fin D × Fin r) (Fin E × Fin r) ℂ :=
   fun p q => if p.2 = q.2 then C p.1 q.1 else 0
 
+/-- Represents a square matrix on a product index by acting identically on each reference-index
+block. -/
 def blockRep {E r : ℕ} (M : Matrix (Fin E) (Fin E) ℂ) :
     Matrix (Fin E × Fin r) (Fin E × Fin r) ℂ :=
   fun p q => if p.2 = q.2 then M p.1 q.1 else 0
 
+/-- Complex conjugation commutes with a conditional whose false branch is zero. -/
 private lemma star_ite_zero (c : Prop) [Decidable c] (v : ℂ) :
     star (if c then v else 0) = if c then star v else 0 := by
   by_cases hc : c <;> simp [hc]
 
+/-- A sum over a product index restricted to one reference coordinate reduces to a sum over the
+remaining coordinate. -/
 private lemma sum_ite_col {D r : ℕ} (f : Fin D × Fin r → ℂ) (s : Fin r) :
     ∑ p : Fin D × Fin r, (if p.2 = s then f p else 0) = ∑ d : Fin D, f (d, s) := by
   classical
@@ -49,6 +82,8 @@ private lemma sum_ite_col {D r : ℕ} (f : Fin D × Fin r → ℂ) (s : Fin r) :
   rw [Finset.sum_ite_eq' Finset.univ s fun t => f (d, t)]
   simp
 
+/-- A completely bounded factorization expresses the reference extension of a map as a sum of
+products of amplified factors with the input. -/
 theorem tensorLeft_eq_sum_amplified {D E r : ℕ} {T : Operator D →ₗ[ℂ] Operator E}
     (F : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbFactorization T)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -103,6 +138,8 @@ theorem tensorLeft_eq_sum_amplified {D E r : ℕ} {T : Operator D →ₗ[ℂ] Op
   simp_rw [Finset.sum_mul]
   exact Finset.sum_comm
 
+/-- The sum of amplified factors times their adjoints equals the block representation of the
+corresponding unamplified sum. -/
 theorem sum_amplifyFactor_mul_conjTranspose {D E r : ℕ}
     {N : ℕ} (C : Fin N → Matrix (Fin D) (Fin E) ℂ) :
     ∑ j, amplifyFactor (r := r) (C j) * (amplifyFactor (r := r) (C j))ᴴ
@@ -156,18 +193,24 @@ theorem sum_amplifyFactor_mul_conjTranspose {D E r : ℕ}
 
 open EuclideanSpace in
 
+/-- The squared Euclidean norm of a finite complex vector is the sum of squared norms of its
+coordinates. -/
 private lemma norm_toLp_sq {ι : Type} [Fintype ι] (f : ι → ℂ) :
     ‖(WithLp.toLp 2 f : EuclideanSpace ℂ ι)‖ ^ 2 = ∑ i, ‖f i‖ ^ 2 := by
   rw [EuclideanSpace.norm_sq_eq]
 
 open EuclideanSpace in
 
+/-- The Euclidean norm of a finite complex vector is the square root of the sum of squared
+coordinate norms. -/
 private lemma norm_toLp {ι : Type} [Fintype ι] (f : ι → ℂ) :
     ‖(WithLp.toLp 2 f : EuclideanSpace ℂ ι)‖ = Real.sqrt (∑ i, ‖f i‖ ^ 2) := by
   rw [← Real.sqrt_sq (norm_nonneg _), ← norm_toLp_sq]
 
 open EuclideanSpace in
 
+/-- The inner-product adjoint identity holds for matrix-vector multiplication after conversion
+to Euclidean space. -/
 private lemma inner_toLp_mulVec {m n : Type} [Fintype m] [Fintype n]
     (M : Matrix m n ℂ) (v : m → ℂ) (u : n → ℂ) :
     inner ℂ (WithLp.toLp 2 v) (WithLp.toLp 2 (M *ᵥ u))
@@ -182,6 +225,7 @@ private lemma inner_toLp_mulVec {m n : Type} [Fintype m] [Fintype n]
 
 open EuclideanSpace in
 
+/-- A nonnegative uniform bound on matrix-vector norm ratios bounds the matrix operator norm. -/
 private lemma opNorm_le_of_mulVec_le {m n : Type} [Fintype m] [Fintype n] [DecidableEq n]
     {c : ℝ} (hc : 0 ≤ c) (A : Matrix m n ℂ)
     (h : ∀ x : n → ℂ, ‖(WithLp.toLp 2 (A *ᵥ x) : EuclideanSpace ℂ m)‖
@@ -203,6 +247,8 @@ private lemma opNorm_le_of_mulVec_le {m n : Type} [Fintype m] [Fintype n] [Decid
 open EuclideanSpace in
 open EuclideanSpace in
 
+/-- The Euclidean norm of a matrix-vector product is at most the operator norm times the
+Euclidean norm of the vector. -/
 private lemma norm_toLp_mulVec_le {m n : Type} [Fintype m] [Fintype n] [DecidableEq n]
     (M : Matrix m n ℂ) (v : n → ℂ) :
     ‖((WithLp.toLp 2 (M *ᵥ v) : EuclideanSpace ℂ m))‖
@@ -218,6 +264,8 @@ private lemma norm_toLp_mulVec_le {m n : Type} [Fintype m] [Fintype n] [Decidabl
   rw [hF, ← Matrix.l2_opNorm_def] at h2
   exact h2
 
+/-- The norm of a finite sum of complex products is at most the product of the Euclidean norms
+of the two coordinate families. -/
 private lemma abs_sum_le {ι : Type} [Fintype ι] (a b : ι → ℂ) :
     ‖∑ i, a i * b i‖ ≤ Real.sqrt (∑ i, ‖a i‖ ^ 2) * Real.sqrt (∑ i, ‖b i‖ ^ 2) := by
   have hinner : (∑ i, a i * b i)
@@ -238,6 +286,8 @@ private lemma abs_sum_le {ι : Type} [Fintype ι] (a b : ι → ℂ) :
 
 open EuclideanSpace in
 
+/-- The operator norm of a finite complex matrix is at most the square root of the sum of
+squared norms of all its entries. -/
 private theorem opNorm_le_entry {m n : Type} [Fintype m] [Fintype n] (A : Matrix m n ℂ) :
     ‖A‖ ≤ Real.sqrt (∑ i, ∑ j, ‖A i j‖ ^ 2) := by
   classical
@@ -268,6 +318,8 @@ private theorem opNorm_le_entry {m n : Type} [Fintype m] [Fintype n] (A : Matrix
 
 open EuclideanSpace in
 
+/-- The operator norm of the reference-index block representation is at most the operator norm
+of the original matrix. -/
 private theorem blockRep_norm_le {E r : ℕ} (M : Matrix (Fin E) (Fin E) ℂ) :
     ‖(blockRep (E := E) (r := r) M)‖ ≤ ‖M‖ := by
   refine opNorm_le_of_mulVec_le (norm_nonneg _) _ ?_
@@ -314,6 +366,7 @@ private theorem blockRep_norm_le {E r : ℕ} (M : Matrix (Fin E) (Fin E) ℂ) :
       _ = ‖M‖ ^ 2 * (∑ p : Fin E × Fin r, ‖x p‖ ^ 2) := by
             rw [Fintype.sum_prod_type]
 
+/-- Amplifying a rectangular factor commutes with taking its conjugate transpose. -/
 private lemma conjTranspose_amplifyFactor {D E r : ℕ} (C : Matrix (Fin D) (Fin E) ℂ) :
     (amplifyFactor (r := r) C)ᴴ = amplifyFactor (r := r) (Cᴴ) := by
   ext p q
@@ -322,6 +375,8 @@ private lemma conjTranspose_amplifyFactor {D E r : ℕ} (C : Matrix (Fin D) (Fin
   · rw [if_pos h.symm, if_pos h]
   · rw [if_neg (fun h2 => h h2.symm), if_neg h]
 
+/-- The adjoint-product of an amplified factor is the block representation of the original
+factor's adjoint-product. -/
 theorem amplifyFactor_conjTranspose_mul {D E r : ℕ} (C : Matrix (Fin D) (Fin E) ℂ) :
     (amplifyFactor (r := r) C)ᴴ * amplifyFactor (r := r) C
       = blockRep (E := E) (r := r) (Cᴴ * C) := by
@@ -331,6 +386,8 @@ theorem amplifyFactor_conjTranspose_mul {D E r : ℕ} (C : Matrix (Fin D) (Fin E
     Matrix.conjTranspose_conjTranspose] at h
   exact h
 
+/-- Tensoring a rectangular factor with the reference identity does not increase its operator
+norm. -/
 theorem norm_amplifyFactor_le {D E r : ℕ} (C : Matrix (Fin D) (Fin E) ℂ) :
     ‖amplifyFactor (r := r) C‖ ≤ ‖C‖ := by
   have h1 : ‖amplifyFactor (r := r) C‖ ^ 2 ≤ ‖C‖ ^ 2 := by
@@ -344,11 +401,13 @@ theorem norm_amplifyFactor_le {D E r : ℕ} (C : Matrix (Fin D) (Fin E) ℂ) :
   have h2 := Real.sqrt_le_sqrt h1
   rwa [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (norm_nonneg _)] at h2
 
+/-- The operator norm of the identity matrix is at most one, including for empty index types. -/
 private lemma opNorm_one_le {n : Type} [Fintype n] [DecidableEq n] :
     ‖(1 : Matrix n n ℂ)‖ ≤ 1 := by
   refine opNorm_le_of_mulVec_le zero_le_one _ fun x => ?_
   simp [Matrix.one_mulVec]
 
+/-- A square matrix whose adjoint-product is the identity has operator norm at most one. -/
 private lemma opNorm_le_one_of_conjTranspose_mul {n : Type} [Fintype n] [DecidableEq n]
     {U : Matrix n n ℂ} (hU : Uᴴ * U = 1) : ‖U‖ ≤ 1 := by
   have h : ‖U‖ * ‖U‖ ≤ 1 := by
@@ -356,12 +415,14 @@ private lemma opNorm_le_one_of_conjTranspose_mul {n : Type} [Fintype n] [Decidab
     exact opNorm_one_le
   nlinarith [norm_nonneg U, h]
 
+/-- The real part of a complex number's conjugate times itself equals its squared norm. -/
 private lemma re_star_mul_self (c : ℂ) : (star c * c).re = ‖c‖ ^ 2 := by
   rw [Complex.mul_re]
   show c.re * c.re - (-c.im) * c.im = ‖c‖ ^ 2
   rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply]
   ring
 
+/-- The real trace of a matrix's adjoint-product equals the sum of squared norms of its entries. -/
 private lemma trace_conjTranspose_mul_re {m n : Type} [Fintype m] [Fintype n]
     (A : Matrix m n ℂ) :
     ((Aᴴ * A).trace).re = ∑ i, ∑ j, ‖A i j‖ ^ 2 := by
@@ -372,15 +433,20 @@ private lemma trace_conjTranspose_mul_re {m n : Type} [Fintype m] [Fintype n]
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun i _ => re_star_mul_self _
 
+/-- Squaring preserves an inequality between nonnegative real numbers. -/
 private lemma sq_le_sq_of_le {a b : ℝ} (ha : 0 ≤ a) (h : a ≤ b) (hb : 0 ≤ b) :
     a ^ 2 ≤ b ^ 2 :=
   sq_le_sq' ((neg_nonpos.mpr hb).trans ha) h
 
+/-- The squared operator norm of a complex matrix is at most the real trace of its
+adjoint-product. -/
 private lemma opNorm_sq_le_trace_re {m n : Type} [Fintype m] [Fintype n] [DecidableEq n]
     (A : Matrix m n ℂ) : ‖A‖ ^ 2 ≤ ((Aᴴ * A).trace).re := by
   refine le_trans (sq_le_sq_of_le (norm_nonneg _) (opNorm_le_entry A) (Real.sqrt_nonneg _)) ?_
   rw [Real.sq_sqrt (by positivity), trace_conjTranspose_mul_re]
 
+/-- A finite real dot product is at most the product of the square roots of the two sums of
+squares. -/
 private lemma sum_mul_le_sqrt {J : Type} [Fintype J] (p q : J → ℝ) :
     (∑ j, p j * q j) ≤ Real.sqrt (∑ j, (p j) ^ 2) * Real.sqrt (∑ j, (q j) ^ 2) := by
   have h := Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ : Finset J) p q
@@ -391,6 +457,7 @@ private lemma sum_mul_le_sqrt {J : Type} [Fintype J] (p q : J → ℝ) :
   exact (abs_le_of_sq_le_sq' hsq
     (mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _))).2
 
+/-- The trace norm of a finite sum of square matrices is at most the sum of their trace norms. -/
 private lemma traceNorm_sum_le {n : Type} [Fintype n] [DecidableEq n] {J : Type} [Fintype J]
     (M : J → Matrix n n ℂ) :
     Matrix.traceNorm (∑ j, M j) ≤ ∑ j, Matrix.traceNorm (M j) := by
@@ -404,6 +471,8 @@ private lemma traceNorm_sum_le {n : Type} [Fintype n] [DecidableEq n] {J : Type}
         exact (Matrix.traceNorm_add_le _ _).trans (add_le_add le_rfl ih))
   exact main Finset.univ
 
+/-- Every finite reference extension is bounded in trace norm by the completely bounded
+factorization norm times the input trace norm [Paulsen2002]. -/
 theorem traceNorm_tensorLeft_le_factorization {D E r : ℕ}
     {T : Operator D →ₗ[ℂ] Operator E}
     (F : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbFactorization T)
@@ -501,6 +570,8 @@ theorem traceNorm_tensorLeft_le_factorization {D E r : ℕ}
     _ ≤ Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbFactorizationNorm F * Matrix.traceNorm X :=
           mul_le_mul_of_nonneg_right hsqrt (Matrix.traceNorm_nonneg _)
 
+/-- The finite diamond norm is at most the nonnegative extended-real value of any completely
+bounded factorization norm. -/
 theorem diamondNorm_le_cbFactorizationNorm {D E : ℕ} {T : Operator D →ₗ[ℂ] Operator E}
     (F : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbFactorization T) :
     Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm T
@@ -511,12 +582,16 @@ theorem diamondNorm_le_cbFactorizationNorm {D E : ℕ} {T : Operator D →ₗ[�
   exact (Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm_le_iff_uniform D E T _ hd).mpr
     fun r X => traceNorm_tensorLeft_le_factorization F X
 
+/-- The finite diamond norm of a complex-linear map is bounded above by its factorization
+infimum `cbNormDual` [Watrous2018]. -/
 theorem frontier1 {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm T
       ≤ Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbNormDual T := by
   unfold Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbNormDual
   exact le_iInf fun F => diamondNorm_le_cbFactorizationNorm F
 
+/-- Strict feasibility of the completely bounded factorization problem implies that `cbNormDual`
+is finite. -/
 theorem cbNormDual_lt_top_of_strictlyFeasible {D E : ℕ} {T : Operator D →ₗ[ℂ] Operator E}
     (h : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbStrictlyFeasible T) :
     Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbNormDual T < ⊤ := by
@@ -526,12 +601,16 @@ theorem cbNormDual_lt_top_of_strictlyFeasible {D E : ℕ} {T : Operator D →ₗ
   unfold Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbNormDual
   exact iInf_le _ F
 
+/-- Strict feasibility of the completely bounded factorization problem implies finiteness of the
+finite diamond norm. -/
 theorem finiteDiamondNorm_lt_top_of_strictlyFeasible {D E : ℕ}
     {T : Operator D →ₗ[ℂ] Operator E}
     (h : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbStrictlyFeasible T) :
     Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm T < ⊤ :=
   lt_of_le_of_lt (frontier1 T) (cbNormDual_lt_top_of_strictlyFeasible h)
 
+/-- For a test matrix of operator norm at most one, the absolute difference of real output trace
+statistics is bounded by the trace norm of the reference-extended map difference. -/
 theorem trace_bias_le_traceNorm_sub {D E r : ℕ}
     (T S : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -552,6 +631,8 @@ theorem trace_bias_le_traceNorm_sub {D E r : ℕ}
     _ ≤ Matrix.traceNorm (tensorLeft (T - S) X) :=
           (mul_le_mul_of_nonneg_right hM (Matrix.traceNorm_nonneg _)).trans (one_mul _).le
 
+/-- A factorization of the map difference bounds the absolute real trace-statistic difference by
+its factorization norm times the input trace norm. -/
 theorem channel_discrimination_bias_le_factorization {D E r : ℕ}
     (T S : Operator D →ₗ[ℂ] Operator E)
     (F : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbFactorization (T - S))
@@ -562,6 +643,9 @@ theorem channel_discrimination_bias_le_factorization {D E r : ℕ}
   (trace_bias_le_traceNorm_sub T S X M hM).trans
     (traceNorm_tensorLeft_le_factorization F X)
 
+/-- For a norm-bounded test matrix, the extended-real absolute difference of real trace
+statistics is at most the diamond norm of the map difference times the input trace norm
+[Watrous2018]. -/
 theorem channel_discrimination_bias_le_diamond {D E r : ℕ}
     (T S : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)

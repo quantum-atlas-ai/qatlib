@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedStat
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedQuan
+
+/-!
+# Finite conditional risk estimation
+
+This module bounds the numerator and ratio errors used in finite conditional risk estimation. It
+combines quantile bisection, CDF estimation, and a bounded tail payoff to prove
+`riskCVaRAlgorithmFinite` under the stated separation and denominator conditions.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `risk_ratio_error`: If numerator and denominator errors are at most positive `eps`, with `0 ≤
+  mu ≤ p` and `2 * eps < p`, the clipped ratio error is at most `4 * eps / p`.
+* `riskCVaRAlgorithmFinite`: The finite CVaR procedure satisfies its quantile and
+  conditional-mean error guarantee under the specified CDF margin conditions; see
+  [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,16 +52,19 @@ open scoped Classical BigOperators ENNReal
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 
+/-- For losses in `[0, 1]`, every thresholded tail payoff lies in `[0, 1]`. -/
 theorem riskTailPayoff_bounds {I : Type} (loss : I → ℚ) (t : ℚ)
     (hloss : ∀ i, 0 ≤ loss i ∧ loss i ≤ 1) : ∀ i, 0 ≤ riskTailPayoff loss t i ∧ riskTailPayoff loss t i ≤ 1 := by
   intro i; dsimp [riskTailPayoff]; split <;> simp_all
 
+/-- The tail mean is the Born-weighted tail payoff numerator divided by the CDF mass. -/
 theorem riskTailMean_eq {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (t : ℚ) :
     riskTailMean A j loss t = (∑ i, BornProb (A *ᵥ Ket j) i*(riskTailPayoff loss t i : ℝ))/riskCDF A j loss t := by
   unfold riskTailMean
   rw [riskKet_eq (fun a b => Classical.propDecidable (a = b)) inferInstance j]
 
+/-- For losses in `[0, 1]`, the tail payoff numerator is nonnegative and at most the CDF mass. -/
 theorem risk_tail_numerator_bounds {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (t : ℚ) (hloss : ∀ i, 0 ≤ loss i ∧ loss i ≤ 1) :
     0 ≤ (∑ i, BornProb (A *ᵥ Ket j) i*(riskTailPayoff loss t i : ℝ)) ∧
@@ -53,6 +79,8 @@ theorem risk_tail_numerator_bounds {I : Type} [Fintype I] [DecidableEq I]
   · exact_mod_cast (hloss i).2
   · norm_num
 
+/-- The median tail-numerator estimate exceeds error `π / M + π² / M² + 64 / 2 ^ k` with
+probability at most `(8 / 9) ^ r`. -/
 theorem risk_numerator_tail {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (t : ℚ) (k M r : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hloss : ∀ i, 0 ≤ loss i ∧ loss i ≤ 1) (hM : 2 ≤ M) :
@@ -78,6 +106,8 @@ theorem risk_numerator_tail {I : Type} [Fintype I] [DecidableEq I]
       (∑ i, BornProb (A *ᵥ Ket j) i*(riskTailPayoff loss t i : ℝ))
     linarith
 
+/-- If numerator and denominator errors are at most positive `eps`, with `0 ≤ mu ≤ p` and `2 *
+eps < p`, the clipped ratio error is at most `4 * eps / p`. -/
 theorem risk_ratio_error (p mu phat muhat eps : ℝ) (heps : 0 < eps) (hp : 2*eps < p)
     (hmu : 0 ≤ mu) (hmup : mu ≤ p) (hphat : |phat-p| ≤ eps) (hmuhat : |muhat-mu| ≤ eps) :
     |muhat/max eps phat-mu/p| ≤ 4*eps/p := by
@@ -97,6 +127,8 @@ theorem risk_ratio_error (p mu phat muhat eps : ℝ) (heps : 0 < eps) (hp : 2*ep
     _ ≤ 4*eps*phat := by nlinarith
     _ = (4*eps/p)*(phat*p) := by field_simp
 
+/-- The finite CVaR procedure satisfies its quantile and conditional-mean error guarantee under
+the specified CDF margin conditions; see [WoernerEgger2019]. -/
 theorem riskCVaRAlgorithmFinite : CVaRAlgorithmFiniteRestricted := by
   intro I _ _ A j loss xs q eps k M r v hA hloss hM hxs hs hsupport hq0 hq1 heps hv hwindow habove hbelow hp
   classical

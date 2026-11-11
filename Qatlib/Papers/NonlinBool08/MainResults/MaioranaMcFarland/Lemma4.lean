@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+
+/-!
+# Maiorana-McFarland bent functions and their duals
+
+Defines the Maiorana-McFarland function `mm`, its dual formula `mmDual`, and the Walsh transform
+on pairs of binary vectors. Summation over one component gives a flat spectrum with signs
+prescribed by the dual formula. See [Roetteler2008].
+
+## Main statements
+
+* `lemma4_maiorana_mcfarland`: the Maiorana-McFarland function is bent and has the displayed
+  Walsh spectrum.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,30 +35,38 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland
 
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- Every binary vector sums with itself to zero. -/
 lemma add_self_bvec {n : ℕ} (u : BVec n) : u + u = 0 := by
   funext i
   rcases zmod2_cases (u i) with h | h <;>
     simp [Pi.add_apply, h, one_add_one_zmod2]
 
+/-- Every binary vector is its own additive inverse. -/
 lemma neg_bvec {n : ℕ} (u : BVec n) : -u = u := by
   funext i
   rcases zmod2_cases (u i) with h | h <;>
     simp [Pi.neg_apply, h, neg_one_zmod2]
 
+/-- The Maiorana-McFarland Boolean function `(x, y) ↦ dot x (π y) + g y`. -/
 def mm {n : ℕ} (π : Equiv.Perm (BVec n)) (g : BVec n → ZMod 2)
     (p : BVec n × BVec n) : ZMod 2 :=
   dot p.1 (π p.2) + g p.2
 
+/-- The Maiorana-McFarland dual formula `dot (π.symm u) v + g (π.symm u)`. -/
 def mmDual {n : ℕ} (π : Equiv.Perm (BVec n)) (g : BVec n → ZMod 2)
     (u v : BVec n) : ZMod 2 :=
   dot (π.symm u) v + g (π.symm u)
 
+/-- The unnormalized Walsh coefficient of a Boolean function on a pair of binary vector spaces. -/
 def pwalsh {n : ℕ} (F : BVec n × BVec n → ZMod 2) (u v : BVec n) : ℤ :=
   ∑ y : BVec n, ∑ x : BVec n, eps (dot u x + dot v y) * eps (F (x, y))
 
+/-- The condition that every squared pair-space Walsh coefficient equals `2 ^ (2 * n)`. -/
 def Bent2 {n : ℕ} (F : BVec n × BVec n → ZMod 2) : Prop :=
   ∀ u v, pwalsh F u v ^ 2 = (2 : ℤ) ^ (2 * n)
 
+/-- The Maiorana-McFarland function is bent on the pair space, with Walsh coefficient `2 ^ n *
+eps (mmDual π g u v)`. See [Roetteler, Lemma 4][Roetteler2008]. -/
 theorem lemma4_maiorana_mcfarland {n : ℕ} (π : Equiv.Perm (BVec n))
     (g : BVec n → ZMod 2) :
     Bent2 (mm π g) ∧

@@ -5,12 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+/-!
+# Scalar comparisons for the adiabatic gap model
+
+This module rewrites and compares the real-power expression used in the adiabatic gap
+discussion. Given an upper bound on `γ` by `β * M^(2/3)`, it proves the corresponding scalar
+upper comparison for that expression. See [McCleanEtAl2014].
+
+## Main statements
+
+* `gap_lower_bound_rpow`: For positive `ε` and `M` and nonnegative `γ`, the product `ε^(-log M)
+  * γ^(log M)` equals `(γ / ε)^(log M)`.
+* `adiabatic_gap_lower_bound`: If `ε > 0`, `γ, β ≥ 0`, `M ≥ 1`, and `γ ≤ β * M^(2/3)`, then
+  `ε^(-log M) * γ^(log M)` is at most `((β * M^(2/3)) / ε)^(log M)`.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QChemistry14.ScalarModels.AdiabaticGap
 
+/-- For positive `ε` and `M` and nonnegative `γ`, the product `ε^(-log M) * γ^(log M)` equals
+`(γ / ε)^(log M)`. -/
 theorem gap_lower_bound_rpow (ε γ M : ℝ) (hε : 0 < ε) (hγ : 0 ≤ γ) (_hM : 0 < M) :
     ε ^ (-(Real.log M)) * γ ^ (Real.log M) = (γ / ε) ^ (Real.log M) := by
   have hε0 : 0 ≤ ε := le_of_lt hε
@@ -23,6 +45,8 @@ theorem gap_lower_bound_rpow (ε γ M : ℝ) (hε : 0 < ε) (hγ : 0 ≤ γ) (_h
     _ = (γ / ε) ^ (Real.log M) := by
           rw [show ε⁻¹ * γ = γ / ε by rw [div_eq_inv_mul, mul_comm]]
 
+/-- Under the stated sign assumptions and `M ≥ 1`, replacing `γ` by its upper bound `β *
+M^(2/3)` increases the displayed real-power expression. -/
 theorem gap_lower_bound_mono (ε γ β M : ℝ) (hε : 0 < ε) (hγ : 0 ≤ γ)
     (_hβM : 0 ≤ β * M ^ (2 / 3 : ℝ)) (hγβ : γ ≤ β * M ^ (2 / 3 : ℝ))
     (_hM : 1 ≤ M) :
@@ -31,6 +55,8 @@ theorem gap_lower_bound_mono (ε γ β M : ℝ) (hε : 0 < ε) (hγ : 0 ≤ γ)
   apply mul_le_mul_of_nonneg_left _ (Real.rpow_nonneg (le_of_lt hε) _)
   exact Real.rpow_le_rpow hγ hγβ (Real.log_nonneg _hM)
 
+/-- If `ε > 0`, `γ, β ≥ 0`, `M ≥ 1`, and `γ ≤ β * M^(2/3)`, then `ε^(-log M) * γ^(log M)` is at
+most `((β * M^(2/3)) / ε)^(log M)`. See [McCleanEtAl2014]. -/
 theorem adiabatic_gap_lower_bound (ε γ β M : ℝ)
     (hε : 0 < ε) (hγ : 0 ≤ γ) (hβ : 0 ≤ β) (_hM : 1 ≤ M)
     (hγβ : γ ≤ β * M ^ (2 / 3 : ℝ)) :

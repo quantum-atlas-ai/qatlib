@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionPhaseProgram
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ReflectionsQueryProgram
+
+/-!
+# Physical query programs for witness conversion
+
+This module compiles adjoint reflection words into explicit bit-query circuits using a query
+frame. `conversion_physical_phase_word` implements the phase-reflection state with exact
+resource counts, while workspace embeddings and clean transport put the result into the standard
+conversion register layout.
+
+These constructions realize the reflection and state-conversion methods of [Reichardt2011] and
+[LeeEtAl2011].
+
+## Main statements
+
+* `conversion_compile_frame_word`: compiles an adjoint word using forward and backward two-query
+  circuits.
+* `conversion_physical_phase_word`: constructs a circuit with 4(M - 1) queries and 8(M - 1) + 5
+  gates.
+* `conversion_clean_transport_word`: adds clean input and output transport using two extra
+  gates.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -41,6 +68,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.ConversionCore.WitnessCompile
 open Qatlib.Concepts.QueryComplexity.Reflections
 
+/-- Compiles a well-formed adjoint word from framed forward and backward implementations, using
+twice its adjoint query count and its gate count plus twice its query count. -/
 theorem conversion_compile_frame_word
     {A G X : Type} [Fintype A] [DecidableEq A] [Fintype G] [DecidableEq G] {n : ℕ}
     (addr : G → Fin (n+1)) (input : X → Fin (n+1) → Bool)
@@ -96,16 +125,22 @@ theorem conversion_compile_frame_word
       · intro x ψ
         rw [run_append, hout, hb, evaluate, instructionMatrix, applyGate_mul]
 
+/-- Uses the padded address for the two state summands and the original address for
+query-witness vertices. -/
 def conversionFrameAddress {H Q : Type} (n : ℕ) :
     ((H ⊕ H) ⊕ (Fin n × Bool × Q)) → Fin (n+1)
   | .inl _ => ⟨n, by omega⟩
   | .inr p => p.1.castSucc
 
+/-- Assigns no bit to the state summands and the negated Boolean label to each query-witness
+vertex. -/
 def conversionFrameBit {H Q : Type} {n : ℕ} :
     ((H ⊕ H) ⊕ (Fin n × Bool × Q)) → Option Bool
   | .inl _ => none
   | .inr p => some (!p.2.1)
 
+/-- The framed logical phase for the padded input equals the controlled reflection about
+`conversionLogicalProjector`. -/
 theorem conversion_frame_logical_phase {A X H Q : Type}
     [Fintype A] [DecidableEq A] [Fintype H] [DecidableEq H]
     [Fintype Q] [DecidableEq Q] {n : ℕ}
@@ -139,6 +174,8 @@ theorem conversion_frame_logical_phase {A X H Q : Type}
   · have hpq : (a,g) ≠ (b,h) := fun he => hab (congrArg Prod.fst he)
     norm_num [reflectionsLogicalPhase, reflectionsControlled, Select, hpq, hab]
 
+/-- Constructs forward and adjoint controlled walk circuits, each with exactly two bit queries
+and two gates, acting correctly on framed states. -/
 theorem conversion_frame_walk_words {A X H Q : Type}
     [Fintype A] [DecidableEq A] [Fintype H] [DecidableEq H]
     [Fintype Q] [DecidableEq Q] {n : ℕ}
@@ -214,6 +251,8 @@ theorem conversion_frame_walk_words {A X H Q : Type}
   · (try dsimp only)
     rw [run_append, hphase, Run, Run, htrans, hprod, hadj, applyGate_mul]
 
+/-- Reassociates the phase-reflection space so that the clock function and Boolean control form
+a single control register. -/
 def conversionPhaseFrameEquiv (G : Type) (M k : ℕ) :
     PhaseReflectionSpace G M k ≃ ((Fin k → Fin M) × Bool) × G where
   toFun p := ((p.1, p.2.1), p.2.2)
@@ -221,6 +260,7 @@ def conversionPhaseFrameEquiv (G : Type) (M k : ℕ) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Relabeling the oracle and every gate of an adjoint word commutes with evaluating that word. -/
 theorem conversion_relabel_adjoint_word {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (U : Matrix I I ℂ)
     (cs : List (AdjointStep I)) :
@@ -235,6 +275,8 @@ theorem conversion_relabel_adjoint_word {I J : Type} [Fintype I] [DecidableEq I]
       instructionMatrix] at ih ⊢ <;> rw [ih] <;>
       simp only [hstar, CircuitRelabel.relabelGate_mul]
 
+/-- Under the phase-frame equivalence, the parallel controlled oracle becomes
+`reflectionsControlled` with the Boolean control flag. -/
 theorem conversion_phase_frame_oracle {G : Type} [Fintype G] [DecidableEq G]
     (M k : ℕ) (U : Matrix G G ℂ) :
     relabelGate (conversionPhaseFrameEquiv G M k) (parallelOracle (controlOracle U)) =
@@ -251,6 +293,8 @@ theorem conversion_phase_frame_oracle {G : Type} [Fintype G] [DecidableEq G]
   · simp [relabelGate, conversionPhaseFrameEquiv, parallelOracle,
       Qatlib.Concepts.BlockEncoding.LCU.select, reflectionsControlled, Select, hcd]
 
+/-- Constructs the framed phase-reflection transformation with exactly `4 * (M - 1)` bit queries
+and `8 * (M - 1) + 5` gates when `M ≥ 2`. -/
 theorem conversion_physical_phase_word {X H Q : Type}
     [Fintype H] [DecidableEq H] [Fintype Q] [DecidableEq Q] {n : ℕ}
     (input : X → Fin n → Bool) (M : ℕ) (hM : 2 ≤ M)
@@ -298,6 +342,8 @@ theorem conversion_physical_phase_word {X H Q : Type}
     rw [heval, applyGate_relabelGate]
     rfl
 
+/-- Reorders the workspace and identifies its finite auxiliary factor with `Fin (Fintype.card
+S)`. -/
 def conversionWorkspaceEquiv (S H : Type) [Fintype S] (n : ℕ) :
     (((Fin (n+1) × Bool) × S) × (Bool × H)) ≃
       ((Fin (n+1) × Bool) × ((Bool × H) × Fin (Fintype.card S))) where
@@ -306,11 +352,15 @@ def conversionWorkspaceEquiv (S H : Type) [Fintype S] (n : ℕ) :
   left_inv p := by simp
   right_inv p := by simp
 
+/-- Appends a clean false-tag basis state and relabels the resulting tensor state into the
+standard conversion workspace. -/
 def conversionWorkspaceEmbed {S H : Type} [Fintype S] [DecidableEq H] (n : ℕ) (h0 : H)
     (ψ : QState ((Fin (n+1) × Bool) × S)) :
     QState ((Fin (n+1) × Bool) × ((Bool × H) × Fin (Fintype.card S))) :=
   relabelState (conversionWorkspaceEquiv S H n) (TensorState ψ (Ket (false,h0)))
 
+/-- Lifts a circuit step to the standard conversion workspace by preserving queries and
+tensoring gates with the identity before relabeling. -/
 def conversionWorkspaceStep {S H : Type} [Fintype S] [Fintype H] [DecidableEq H]
     (n : ℕ) : Step ((Fin (n+1) × Bool) × S) →
     Step ((Fin (n+1) × Bool) × ((Bool × H) × Fin (Fintype.card S)))
@@ -318,9 +368,11 @@ def conversionWorkspaceStep {S H : Type} [Fintype S] [Fintype H] [DecidableEq H]
   | .gate U => .gate (relabelGate (conversionWorkspaceEquiv S H n)
       (TensorGate U (1 : Matrix (Bool × H) (Bool × H) ℂ)))
 
+/-- Maps every circuit step through the standard conversion workspace lift. -/
 def conversionWorkspaceCircuit {S H : Type} [Fintype S] [Fintype H] [DecidableEq H]
     (n : ℕ) (C : Circuit ((Fin (n+1) × Bool) × S)) := C.map (conversionWorkspaceStep (H := H) n)
 
+/-- The workspace lift preserves circuit unitarity and both query and gate counts. -/
 theorem conversion_workspace_resources {S H : Type} [Fintype S] [DecidableEq S]
     [Fintype H] [DecidableEq H] (n : ℕ) (C : Circuit ((Fin (n+1) × Bool) × S))
     (hC : IsUnitaryCircuit C) :
@@ -343,6 +395,8 @@ theorem conversion_workspace_resources {S H : Type} [Fintype S] [DecidableEq S]
       refine ⟨(isUnitaryCircuit_gate _ _).mpr ⟨?_,ht⟩,hQ,congrArg (fun t => t+1) hG⟩
       exact ((isUnitaryCircuit_gate _ _).mp (reflections_single_gate_wellFormed _ hK)).1
 
+/-- Running a workspace-lifted circuit on an embedded state equals embedding the output of the
+original circuit. -/
 theorem conversion_workspace_run {S H : Type} [Fintype S] [DecidableEq S]
     [Fintype H] [DecidableEq H] (n : ℕ) (h0 : H) (f : Fin (n+1) → Bool)
     (C : Circuit ((Fin (n+1) × Bool) × S)) (ψ : QState ((Fin (n+1) × Bool) × S)) :
@@ -373,6 +427,7 @@ theorem conversion_workspace_run {S H : Type} [Fintype S] [DecidableEq S]
       rw [he]
       exact ih _
 
+/-- The standard workspace embedding preserves complex inner products. -/
 theorem conversion_workspace_inner {S H : Type} [Fintype S] [DecidableEq S]
     [Fintype H] [DecidableEq H] (n : ℕ) (h0 : H)
     (ψ φ : QState ((Fin (n+1) × Bool) × S)) :
@@ -388,6 +443,8 @@ theorem conversion_workspace_inner {S H : Type} [Fintype S] [DecidableEq S]
     simp [Ket, mul_comm]
   exact Finset.sum_congr rfl fun z _ => ht z
 
+/-- Matching input and target Gram matrices allow a conversion circuit to be transported to
+clean embeddings with unchanged query count, two extra gates, and the same error bound. -/
 theorem conversion_clean_transport_word
     {X H : Type} [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     (n r : ℕ) (hr : 0 < r) (input : X → Fin n → Bool) (ρ σ : X → QState H)
@@ -438,12 +495,14 @@ theorem conversion_clean_transport_word
     rw [norm_applyGate_of_mem_unitaryGroup hB]
     exact herr x
 
+/-- The query-frame embedding preserves complex inner products. -/
 theorem conversion_frame_inner {A G : Type} [Fintype A] [DecidableEq A]
     [Fintype G] [DecidableEq G] {n : ℕ} (addr : G → Fin (n+1)) (ψ φ : QState (A × G)) :
     Inner (reflectionsFrame addr ψ) (reflectionsFrame addr φ) = Inner ψ φ := by
   rw [← reflectionsFrameMatrix_apply addr ψ, ← reflectionsFrameMatrix_apply addr φ,
     inner_mulVec_left_rect, Matrix.mulVec_mulVec, reflectionsFrameMatrix_isometry, Matrix.one_mulVec]
 
+/-- States in finite spaces with equal self-inner-products have equal Euclidean norms. -/
 theorem conversion_inner_norm_transport {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (ψ : QState I) (φ : QState J) (h : Inner ψ ψ = Inner φ φ) :
     ‖toEuclidean_fromVec ψ‖ = ‖toEuclidean_fromVec φ‖ := by

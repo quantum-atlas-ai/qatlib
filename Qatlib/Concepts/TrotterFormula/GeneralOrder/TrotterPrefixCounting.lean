@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScalingCorrected
+
+/-!
+# Counting prefix commutator tuples
+
+This module embeds prefix-selected commutator tuples into all tuples of one greater length. The
+injectivity of `pfPrefixTuple` bounds any nonnegative sum over prefix tuples by the unrestricted
+tuple sum.
+
+Applied to nested commutator norms, this counting argument controls the sum of prefix budgets by
+`pfCommAlphaSelf xs (p + 1)`, as used in commutator-scaled product-formula estimates
+[ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `pfPrefixTuple_injective`: proves injectivity of the prefix-tuple encoding.
+* `pfPrefixTuple_sum_le`: compares nonnegative prefix and unrestricted tuple sums.
+* `pf_prefix_commutator_budget_le`: bounds the sum of prefix commutator budgets.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -13,11 +36,14 @@ noncomputable section
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open scoped Classical BigOperators
 
+/-- The tuple with first entry `j` and remaining entries selected from indices strictly below
+`j`. -/
 def pfPrefixTuple {p m : ℕ} (j : Fin m) (v : Fin p→Fin j.val) : Fin (p+1)→Fin m :=
   fun i=>if h : i.val=0 then j else
     ⟨(v ⟨i.val-1,by have hi:=i.isLt;omega⟩).val,
       by have hv:=(v ⟨i.val-1,by have hi:=i.isLt;omega⟩).isLt;have hj:=j.isLt;omega⟩
 
+/-- The encoding of a prefix index and its lower-index tuple by `pfPrefixTuple` is injective. -/
 theorem pfPrefixTuple_injective (p m : ℕ) :
     Function.Injective (fun z : (j : Fin m) × (Fin p→Fin j.val)=>pfPrefixTuple z.1 z.2) := by
   intro ⟨j,v⟩ ⟨j',v'⟩ he
@@ -35,6 +61,8 @@ theorem pfPrefixTuple_injective (p m : ℕ) :
     exact hl
   rw [hv]
 
+/-- For a nonnegative function, summing over encoded prefix tuples is bounded by summing over
+all tuples. -/
 theorem pfPrefixTuple_sum_le (p m : ℕ) (f : (Fin (p+1)→Fin m)→ℝ) (hf : ∀ i,0≤f i) :
     (∑ j : Fin m,∑ v : Fin p→Fin j.val,f (pfPrefixTuple j v))≤∑ i : Fin (p+1)→Fin m,f i := by
   let e := fun z : (j : Fin m) × (Fin p→Fin j.val)=>pfPrefixTuple z.1 z.2
@@ -49,11 +77,14 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- The generator list selected by a tuple of indices below the prefix bound `j`. -/
 def pfPrefixSel (xs : List (Matrix I I ℂ)) (j : Fin xs.length) {p : ℕ}
     (v : Fin p→Fin j.val) : List (Matrix I I ℂ) := List.ofFn (fun i=>xs.getD (v i).val 0)
 
 omit [DecidableEq I] in
 
+/-- Selecting generators along a prefix tuple gives the generator at `j` followed by the
+selected prefix list. -/
 theorem pfChosenList_prefix_tuple (xs : List (Matrix I I ℂ)) (j : Fin xs.length) (p : ℕ)
     (v : Fin p→Fin j.val) :
     pfChosenList xs (pfPrefixTuple j v)=xs.getD j.val 0::pfPrefixSel xs j v := by
@@ -69,6 +100,8 @@ theorem pfChosenList_prefix_tuple (xs : List (Matrix I I ℂ)) (j : Fin xs.lengt
   simp only [pfPrefixTuple,dif_neg hi]
   rfl
 
+/-- The sum of prefix commutator budgets is bounded by the full self-commutator statistic at
+order `p + 1`. -/
 theorem pf_prefix_commutator_budget_le (xs : List (Matrix I I ℂ)) (p : ℕ) :
     (∑ j : Fin xs.length,pfCommAlphaInner (xs.take j.val) (xs.getD j.val 0) p)≤pfCommAlphaSelf xs (p+1) := by
   let g := fun (j : Fin xs.length) (v : Fin p→Fin j.val)=>

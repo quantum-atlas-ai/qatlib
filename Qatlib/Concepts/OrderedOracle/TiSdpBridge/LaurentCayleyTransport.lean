@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+
+/-!
+# Cayley transport for Laurent circle factors
+
+This module constructs a polynomial square-norm factor of a nonnegative complex Laurent
+polynomial on the unit circle. The private `laurentCayleySignal`, `laurentClearedPolynomial`,
+and reverse transport move between the circle and the real line; the final factor can be chosen
+with all roots in the closed unit disk. `complex_laurent_circle_factor_polynomial` supplies the
+circle factorization used in the ordered-search approach of [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `complex_laurent_circle_factor_polynomial`: existence of a factor of degree at most `n - 1`
+  with roots in the closed unit disk when nonzero.
+* `complexLaurentEval_ofReal`: agreement of complex and real-coefficient Laurent evaluation.
+* `polynomial_eq_of_unit_circle_eval_eq`: polynomial equality from equality on the unit circle.
+* `exists_unit_circle_eval_ne_zero`: every nonzero polynomial is nonzero at some unit-circle
+  point.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
@@ -18,9 +42,13 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open scoped Classical BigOperators ComplexOrder
 
+/-- The degree-`d` homogenized substitution sum with terms `C (P.coeff j) * a^j * b^(d-j)` for
+indices from zero through `d`. -/
 private def laurentCayleyTransform (P : Polynomial ℂ) (d : ℕ) (a b : Polynomial ℂ) : Polynomial ℂ :=
   ∑ j ∈ Finset.range (d+1), C (P.coeff j)*a^j*b^(d-j)
 
+/-- The homogenized substitution has natural degree at most `d` when both substitution
+polynomials have natural degree at most one. -/
 private theorem laurentCayleyTransform_degree (P : Polynomial ℂ) (d : ℕ) (a b : Polynomial ℂ)
     (ha : a.natDegree ≤ 1) (hb : b.natDegree ≤ 1) :
     (laurentCayleyTransform P d a b).natDegree ≤ d := by
@@ -40,6 +68,8 @@ private theorem laurentCayleyTransform_degree (P : Polynomial ℂ) (d : ℕ) (a 
   simp only [Nat.mul_one] at h1 h2
   omega
 
+/-- For a polynomial of degree at most `d` and a nonvanishing denominator evaluation, the
+transform evaluates to `b(z)^d * P(a(z)/b(z))`. -/
 private theorem laurentCayleyTransform_eval (P : Polynomial ℂ) (d : ℕ) (hp : P.natDegree ≤ d)
     (a b : Polynomial ℂ) (z : ℂ) (hb : b.eval z ≠ 0) :
     (laurentCayleyTransform P d a b).eval z = (b.eval z)^d*P.eval (a.eval z/b.eval z) := by
@@ -54,12 +84,17 @@ private theorem laurentCayleyTransform_eval (P : Polynomial ℂ) (d : ℕ) (hp :
   field_simp
   rw [mul_assoc, ← pow_add, Nat.sub_add_cancel hjd]
 
+/-- The real polynomial obtained by taking the real part of each coefficient of a complex
+polynomial. -/
 private def laurentCayleyRealCoeffs (P : Polynomial ℂ) : Polynomial ℝ :=
   ⟨⟨P.toFinsupp.coeff.mapRange Complex.re Complex.zero_re⟩⟩
 
+/-- The coefficient of the real-part polynomial is the real part of the corresponding original
+coefficient. -/
 private theorem laurentCayleyRealCoeffs_coeff (P : Polynomial ℂ) (j : ℕ) :
     (laurentCayleyRealCoeffs P).coeff j = (P.coeff j).re := rfl
 
+/-- Taking coefficientwise real parts does not increase natural degree. -/
 private theorem laurentCayleyRealCoeffs_degree (P : Polynomial ℂ) :
     (laurentCayleyRealCoeffs P).natDegree ≤ P.natDegree := by
   apply natDegree_le_iff_coeff_eq_zero.mpr
@@ -67,6 +102,8 @@ private theorem laurentCayleyRealCoeffs_degree (P : Polynomial ℂ) :
   rw [laurentCayleyRealCoeffs_coeff, coeff_eq_zero_of_natDegree_lt hj]
   rfl
 
+/-- If every coefficient has zero imaginary part, coercing the real-part polynomial back to
+complex coefficients recovers the original polynomial. -/
 private theorem laurentCayleyRealCoeffs_map (P : Polynomial ℂ)
     (hP : ∀ j, (P.coeff j).im = 0) :
     (laurentCayleyRealCoeffs P).map Complex.ofRealHom = P := by
@@ -76,13 +113,16 @@ private theorem laurentCayleyRealCoeffs_map (P : Polynomial ℂ)
   · simp
   · simpa using! (hP j).symm
 
+/-- The Cayley map from a real parameter `x` to the complex value `(x - I)/(x + I)`. -/
 private def laurentCayleySignal (x : ℝ) : ℂ := ((x : ℂ)-Complex.I)/((x : ℂ)+Complex.I)
 
+/-- For real `x`, the complex denominator `x + I` is nonzero. -/
 private theorem laurentCayley_den_ne_zero (x : ℝ) : (x : ℂ)+Complex.I ≠ 0 := by
   intro he
   have hh := congrArg Complex.im he
   simp at hh
 
+/-- The Cayley signal of every real parameter lies on the unit circle. -/
 private theorem laurentCayleySignal_norm (x : ℝ) : ‖laurentCayleySignal x‖ = 1 := by
   have he : ‖(x : ℂ)-Complex.I‖ = ‖(x : ℂ)+Complex.I‖ := by
     apply Real.sqrt_inj (by positivity) (by positivity) |>.mp
@@ -90,8 +130,11 @@ private theorem laurentCayleySignal_norm (x : ℝ) : ‖laurentCayleySignal x‖
   rw [laurentCayleySignal, norm_div, he,
       div_self (norm_ne_zero_iff.mpr (laurentCayley_den_ne_zero x))]
 
+/-- The inverse Cayley expression `I * (1 + z)/(1 - z)`, defined on all complex inputs using
+total division. -/
 private def laurentCayleyInverse (z : ℂ) : ℂ := Complex.I*(1+z)/(1-z)
 
+/-- The inverse Cayley expression has zero imaginary part at every unit-circle input. -/
 private theorem laurentCayleyInverse_real (z : ℂ) (hz : ‖z‖ = 1) : (laurentCayleyInverse z).im = 0 := by
   have hn : z.re^2+z.im^2 = 1 := by
     have hh := Complex.sq_norm z
@@ -107,38 +150,51 @@ private theorem laurentCayleyInverse_real (z : ℂ) (hz : ‖z‖ = 1) : (lauren
   rw [show (1+z.re)*(1-z.re)-(-z.im)*(-z.im) = 0 by nlinarith]
   simp
 
+/-- On the unit circle, the inverse Cayley expression equals the complex coercion of its real
+part. -/
 private theorem laurentCayleyInverse_cast (z : ℂ) (hz : ‖z‖ = 1) :
     ((laurentCayleyInverse z).re : ℂ) = laurentCayleyInverse z := by
   apply Complex.ext
   · simp
   · simp [laurentCayleyInverse_real z hz]
 
+/-- For `z` different from one, adding `I` to the inverse Cayley expression and multiplying by
+`1 - z` gives `2*I`. -/
 private theorem laurentCayleyInverse_shift (z : ℂ) (hz : z ≠ 1) :
     (laurentCayleyInverse z+Complex.I)*(1-z) = 2*Complex.I := by
   dsimp [laurentCayleyInverse]
   field_simp [sub_ne_zero.mpr hz.symm]
   ring
 
+/-- Applying the Cayley signal to the real part of the inverse expression recovers every
+unit-circle point other than one. -/
 private theorem laurentCayleySignal_inverse (z : ℂ) (hz : ‖z‖ = 1) (hz1 : z ≠ 1) :
     laurentCayleySignal (laurentCayleyInverse z).re = z := by
   rw [laurentCayleySignal, div_eq_iff (laurentCayley_den_ne_zero _), laurentCayleyInverse_cast z hz]
   have he := laurentCayleyInverse_shift z hz1
   linear_combination he
 
+/-- The Cayley signal of a real parameter is never one. -/
 private theorem laurentCayleySignal_ne_one (x : ℝ) : laurentCayleySignal x ≠ 1 := by
   intro he
   rw [laurentCayleySignal, div_eq_one_iff_eq (laurentCayley_den_ne_zero x)] at he
   have hh := congrArg Complex.im he
   norm_num at hh
 
+/-- The inverse Cayley expression applied to a real parameter's signal returns that parameter as
+a complex number. -/
 private theorem laurentCayleyInverse_signal (x : ℝ) : laurentCayleyInverse (laurentCayleySignal x) = x := by
   dsimp [laurentCayleyInverse, laurentCayleySignal]
   field_simp [laurentCayley_den_ne_zero x]
   ring
 
+/-- The normalized homogenized inverse Cayley substitution of `q`, using numerator `I*(1 + X)`,
+denominator `1 - X`, and normalization `((2*I)^d)^{-1}`. -/
 private def laurentCayleyReverse (q : Polynomial ℂ) (d : ℕ) : Polynomial ℂ :=
   C (((2*Complex.I)^d)⁻¹)*laurentCayleyTransform q d (C Complex.I*(1+X)) (1-X)
 
+/-- The reverse Cayley polynomial has natural degree at most the chosen homogenization degree
+`d`. -/
 private theorem laurentCayleyReverse_degree (q : Polynomial ℂ) (d : ℕ) :
     (laurentCayleyReverse q d).natDegree ≤ d := by
   apply (natDegree_C_mul_le _ _).trans
@@ -146,6 +202,8 @@ private theorem laurentCayleyReverse_degree (q : Polynomial ℂ) (d : ℕ) :
   · exact (natDegree_C_mul_le _ _).trans ((natDegree_add_le _ _).trans (by simp))
   · exact (natDegree_sub_le _ _).trans (by simp)
 
+/-- For `q` of degree at most `d`, evaluating its reverse Cayley polynomial at the signal of `x`
+gives `q(x)/(x + I)^d`. -/
 private theorem laurentCayleyReverse_eval (q : Polynomial ℂ) (d : ℕ) (hq : q.natDegree ≤ d) (x : ℝ) :
     (laurentCayleyReverse q d).eval (laurentCayleySignal x) = q.eval (x : ℂ)/((x : ℂ)+Complex.I)^d := by
   have hb : (1-X : Polynomial ℂ).eval (laurentCayleySignal x) ≠ 0 := by
@@ -170,6 +228,8 @@ private theorem laurentCayleyReverse_eval (q : Polynomial ℂ) (d : ℕ) (hq : q
     _ = ((2*Complex.I)^d)⁻¹*(((x : ℂ)+Complex.I)^d*(1-laurentCayleySignal x)^d)*q.eval (x : ℂ) := by ring
     _ = _ := by rw [hsPow, inv_mul_cancel₀ hc, one_mul]
 
+/-- If the zeroth Laurent coefficient is real, negating an integer index conjugates its Laurent
+coefficient. -/
 private theorem complexLaurentCoefficient_neg {n : ℕ} (a : Fin n → ℂ)
     (h0 : (complexLaurentCoefficient a 0).im=0) (j : ℤ) :
     complexLaurentCoefficient a (-j) = star (complexLaurentCoefficient a j) := by
@@ -188,11 +248,15 @@ private theorem complexLaurentCoefficient_neg {n : ℕ} (a : Fin n → ℂ)
           if_neg hneg,if_pos hn]
   · simp [complexLaurentCoefficient,Int.natAbs_neg,hj]
 
+/-- The polynomial obtained by clearing Cayley denominators in the Laurent coefficient window,
+with powers of `X - I` and `X + I` indexed around `n - 1`. -/
 private def laurentClearedPolynomial {n : ℕ} (a : Fin n → ℂ) : Polynomial ℂ :=
   ∑ j ∈ Finset.Icc (-(n : ℤ)+1) ((n : ℤ)-1),
     C (complexLaurentCoefficient a j)*(X-C Complex.I)^(((n-1 : ℕ) : ℤ)+j).toNat*
       (X+C Complex.I)^(((n-1 : ℕ) : ℤ)-j).toNat
 
+/-- A real zeroth Laurent coefficient ensures that every coefficient of the denominator-cleared
+polynomial has zero imaginary part. -/
 private theorem laurentClearedPolynomial_real {n : ℕ} (a : Fin n → ℂ)
     (h0 : (complexLaurentCoefficient a 0).im=0) :
     ∀ k, ((laurentClearedPolynomial a).coeff k).im=0 := by
@@ -226,6 +290,8 @@ private theorem laurentClearedPolynomial_real {n : ℕ} (a : Fin n → ℂ)
   simp only [Complex.star_def,Complex.conj_im] at hi
   linarith
 
+/-- For positive size `n`, the denominator-cleared polynomial has natural degree at most `2*(n -
+1)`. -/
 private theorem laurentClearedPolynomial_degree {n : ℕ} (a : Fin n → ℂ) (hn : 0<n) :
     (laurentClearedPolynomial a).natDegree≤2*(n-1) := by
   apply natDegree_le_of_degree_le
@@ -250,11 +316,14 @@ private theorem laurentClearedPolynomial_degree {n : ℕ} (a : Fin n → ℂ) (h
   simp only [Nat.mul_one] at hqd
   omega
 
+/-- For real `x`, the complex numerator `x - I` is nonzero. -/
 private theorem laurentCayley_num_ne_zero (x : ℝ) : (x : ℂ)-Complex.I≠0 := by
   intro h
   have hi := congrArg Complex.im h
   simp at hi
 
+/-- For an integer offset between `-d` and `d`, the corresponding product of powers of `x - I`
+and `x + I` equals `(x^2 + 1)^d` times the offset power of the Cayley signal. -/
 private theorem laurentCayley_term (x : ℝ) (d : ℕ) (j : ℤ)
     (hj : -(d : ℤ)≤j ∧ j≤d) :
     ((x : ℂ)-Complex.I)^((d : ℤ)+j).toNat*((x : ℂ)+Complex.I)^((d : ℤ)-j).toNat =
@@ -271,6 +340,8 @@ private theorem laurentCayley_term (x : ℝ) (d : ℕ) (j : ℤ)
   rw [Complex.ofReal_pow,← hprod,mul_pow]
   field_simp [laurentCayley_num_ne_zero x,laurentCayley_den_ne_zero x]
 
+/-- For positive size, the cleared polynomial at real `x` equals `(x^2 + 1)^(n - 1)` times the
+Laurent evaluation at the Cayley signal of `x`. -/
 private theorem laurentClearedPolynomial_eval {n : ℕ} (a : Fin n → ℂ) (hn : 0<n)
     (x : ℝ) :
     (laurentClearedPolynomial a).eval (x : ℂ) =
@@ -285,6 +356,9 @@ private theorem laurentClearedPolynomial_eval {n : ℕ} (a : Fin n → ℂ) (hn 
   rw [mul_assoc,laurentCayley_term x (n-1) j hbound]
   ring
 
+/-- A Laurent coefficient family of positive size whose evaluation is nonnegative on the unit
+circle has a complex polynomial factor of degree at most `n - 1` whose squared norm on the
+real line equals the cleared Laurent evaluation. -/
 private theorem laurentClearedPolynomial_factor {n : ℕ} (a : Fin n → ℂ)
     (hn : 0<n) (ha : complexLaurentNonnegative a) :
     ∃ q : Polynomial ℂ, q.natDegree≤n-1 ∧ ∀ x : ℝ,
@@ -316,6 +390,8 @@ private theorem laurentClearedPolynomial_factor {n : ℕ} (a : Fin n → ℂ)
   rw [laurentClearedPolynomial_eval a hn x] at he
   exact he.symm
 
+/-- A polynomial factor of the cleared real-line evaluation gives a square-norm factor on Cayley
+signals after reverse Cayley transport. -/
 private theorem laurentCayley_signal_factor {n : ℕ} (a : Fin n → ℂ)
     (q : Polynomial ℂ) (hq : q.natDegree≤n-1)
     (he : ∀ x : ℝ, ((‖q.eval (x : ℂ)‖^2 : ℝ) : ℂ) =
@@ -332,6 +408,8 @@ private theorem laurentCayley_signal_factor {n : ℕ} (a : Fin n → ℂ)
   apply (eq_div_iff hd).mpr
   simpa only [mul_comm] using! (he x).symm
 
+/-- A polynomial square-norm identity valid on every unit-circle point other than one also holds
+at one. -/
 private theorem laurent_circle_factor_extend_one {n : ℕ} (a : Fin n → ℂ)
     (P : Polynomial ℂ)
     (h : ∀ z : ℂ, ‖z‖=1 → z≠1 →
@@ -368,6 +446,9 @@ private theorem laurent_circle_factor_extend_one {n : ℕ} (a : Fin n → ℂ)
   apply sub_eq_zero.mp
   simpa [F,phase] using! hf0
 
+/-- Every finite complex Laurent polynomial that is nonnegative on the unit circle has a
+polynomial square-norm factor there of degree at most `n - 1`. When the factor is nonzero,
+all its roots lie in the closed unit disk. -/
 theorem complex_laurent_circle_factor_polynomial {n : ℕ} (a : Fin n → ℂ)
     (ha : complexLaurentNonnegative a) :
     ∃ P : Polynomial ℂ, P.natDegree≤n-1 ∧
@@ -399,6 +480,8 @@ theorem complex_laurent_circle_factor_polynomial {n : ℕ} (a : Fin n → ℂ)
     intro z _
     norm_num [complexLaurentEval]
 
+/-- Complex Laurent evaluation of a coerced real coefficient vector agrees with `laurentEval` at
+every complex input. -/
 theorem complexLaurentEval_ofReal {n : ℕ} (c : Fin n → ℝ) (z : ℂ) :
     complexLaurentEval (fun i => (c i : ℂ)) z=laurentEval c z := by
   have h0 : (complexLaurentCoefficient (fun i => (c i : ℂ)) 0).im=0 := by
@@ -421,6 +504,8 @@ theorem complexLaurentEval_ofReal {n : ℕ} (c : Fin n → ℝ) (z : ℂ) :
     simp only [Complex.star_def,Complex.conj_ofReal]
     ring
 
+/-- Two complex polynomials are equal if their evaluations agree at every point of the unit
+circle. -/
 theorem polynomial_eq_of_unit_circle_eval_eq (P Q : Polynomial ℂ)
     (h : ∀ z : ℂ, ‖z‖=1 → P.eval z=Q.eval z) : P=Q := by
   have hi : Function.Injective laurentCayleySignal := by
@@ -433,6 +518,7 @@ theorem polynomial_eq_of_unit_circle_eval_eq (P Q : Polynomial ℂ)
   rintro z ⟨x,rfl⟩
   exact h _ (laurentCayleySignal_norm x)
 
+/-- Every nonzero complex polynomial has a nonzero evaluation at some point of the unit circle. -/
 theorem exists_unit_circle_eval_ne_zero (P : Polynomial ℂ) (hP : P≠0) :
     ∃ z : ℂ, ‖z‖=1 ∧ P.eval z≠0 := by
   by_contra! h

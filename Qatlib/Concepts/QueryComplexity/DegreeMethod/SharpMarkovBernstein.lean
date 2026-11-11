@@ -46,6 +46,28 @@ import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
 import Mathlib.Topology.Algebra.Polynomial
+
+/-!
+# Sharp algebraic Bernstein inequality
+
+This module proves the sharp weighted derivative bound for a real polynomial bounded
+on `[-1, 1]`, in the form used in [NayakWu1998]. The trigonometric substitution
+`sharpBernsteinTrig p θ = p.eval (Real.cos θ)` connects the algebraic and circular forms.
+
+Complex polynomial lifts encode both the substituted polynomial and comparison tones.
+A zero-counting argument rules out a derivative larger than degree times amplitude.
+
+## Main statements
+
+* `sharpBernstein_lift_poly`: complex polynomial representation on the unit circle.
+* `sharpBernstein_trig_bound`: the trigonometric derivative bound.
+* `sharpBernstein_interior`: `sqrt (1 - x ^ 2) * |p'(x)| ≤ d * C`.
+
+## References
+
+* [Nayak and Wu, 1998, Fact A.5][NayakWu1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -58,16 +80,22 @@ open scoped Real BigOperators
 
 section Bernstein
 
+/-- The trigonometric substitution `θ ↦ p.eval (Real.cos θ)` for a real polynomial. -/
 def sharpBernsteinTrig (p : ℝ[X]) (θ : ℝ) : ℝ := p.eval (Real.cos θ)
 
+/-- The derivative of the cosine-substituted polynomial at `θ` is `p.derivative.eval (Real.cos
+θ) * (-Real.sin θ)`. -/
 theorem sharpBernsteinTrig_hasDerivAt (p : ℝ[X]) (θ : ℝ) :
     HasDerivAt (sharpBernsteinTrig p)
       (p.derivative.eval (Real.cos θ) * (-(Real.sin θ))) θ :=
   (p.hasDerivAt (Real.cos θ)).comp θ (Real.hasDerivAt_cos θ)
 
+/-- The cosine-substituted polynomial is continuous. -/
 theorem sharpBernsteinTrig_continuous (p : ℝ[X]) : Continuous (sharpBernsteinTrig p) :=
   p.continuous.comp Real.continuous_cos
 
+/-- A continuous real function whose endpoint values have negative product has a zero strictly
+between the endpoints. -/
 theorem exists_zero_of_mul_lt {f : ℝ → ℝ} {a b : ℝ} (hab : a < b)
     (hc : ContinuousOn f (Set.Icc a b)) (hf : f a * f b < 0) :
     ∃ ζ, a < ζ ∧ ζ < b ∧ f ζ = 0 := by
@@ -118,6 +146,8 @@ theorem exists_zero_of_mul_lt {f : ℝ → ℝ} {a b : ℝ} (hab : a < b)
         rw [hcon] at hcf
         linarith [hfb])
 
+/-- For a point on the unit circle, express the associated quadratic complex tone as that point
+times the corresponding real linear combination of its coordinates. -/
 private theorem tone_aux {czr szr Ãr Btr : ℝ} (h : czr * czr + szr * szr = 1) :
     ((((Ãr : ℝ) : ℂ) - ((Btr : ℝ) : ℂ) * Complex.I) / 2) *
         ((((czr : ℝ) : ℂ) + ((szr : ℝ) : ℂ) * Complex.I) *
@@ -136,6 +166,8 @@ private theorem tone_aux {czr szr Ãr Btr : ℝ} (h : czr * czr + szr * szr = 1)
     norm_num <;>
     nlinarith [hÃterm, hBterm]
 
+/-- Evaluate the complex lift of a degree-at-most-`d` polynomial on the unit circle as the
+circle point to power `d` times its cosine-substituted value. -/
 theorem sharpBernstein_lift_poly (d : ℕ) (p : ℝ[X]) (hdeg : p.natDegree ≤ d) (θ : ℝ) :
     (∑ j ∈ Finset.range (d + 1),
       Polynomial.C (((p.coeff j : ℝ) : ℂ) * ((2 : ℝ)⁻¹ ^ j : ℝ)) *
@@ -206,6 +238,8 @@ theorem sharpBernstein_lift_poly (d : ℕ) (p : ℝ[X]) (hdeg : p.natDegree ≤ 
       simp
   rw [hpsum]
 
+/-- The complex polynomial with constant and degree-`2 * d` terms represents a real sine-cosine
+tone multiplied by the circle point to power `d`. -/
 theorem sharpBernstein_lift_tone (Ã Bt : ℝ) (d : ℕ) (θ : ℝ) :
     (Polynomial.C ((((Ã : ℝ) : ℂ) - ((Bt : ℝ) : ℂ) * Complex.I) / 2) * Polynomial.X ^ (2 * d)
       + Polynomial.C ((((Ã : ℝ) : ℂ) + ((Bt : ℝ) : ℂ) * Complex.I) / 2)).eval
@@ -234,6 +268,8 @@ theorem sharpBernstein_lift_tone (Ã Bt : ℝ) (d : ℕ) (θ : ℝ) :
       rw [show 2 * d = d + d from by omega, pow_add, hzd], hzd]
   exact tone_aux hcs
 
+/-- A degree-at-most-`d` polynomial bounded in absolute value by nonnegative `C` on cosine
+inputs cannot have trigonometric derivative greater than `d * C` when `d ≥ 1`. -/
 theorem sharpBernstein_violation (d : ℕ) (hd1 : 1 ≤ d) (p : ℝ[X]) (hdeg : p.natDegree ≤ d)
     {C : ℝ} (hC : 0 ≤ C)
     (hb : ∀ θ : ℝ, |p.eval (Real.cos θ)| ≤ C) (η : ℝ)
@@ -699,6 +735,8 @@ theorem sharpBernstein_violation (d : ℕ) (hd1 : 1 ≤ d) (p : ℝ[X]) (hdeg : 
     exact hHne
       (Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero' H T hHT (by omega))
 
+/-- For degree at most `d ≥ 1` and absolute bound `C` on `[-1, 1]`, the cosine-substituted
+derivative has absolute value at most `d * C`. -/
 theorem sharpBernstein_trig_bound (d : ℕ) (p : ℝ[X]) (C : ℝ)
     (hd : 1 ≤ d) (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C) (θ : ℝ) :
@@ -717,6 +755,8 @@ theorem sharpBernstein_trig_bound (d : ℕ) (p : ℝ[X]) (C : ℝ)
   · by_contra h
     exact sharpBernstein_violation d hd p hdeg hC hbtrig θ (not_le.mp h)
 
+/-- For degree at most `d ≥ 1` and absolute bound `C` on `[-1, 1]`, `sqrt (1 - x ^ 2) * |p'(x)|
+≤ d * C` throughout that interval. See [Nayak and Wu, Fact A.5][NayakWu1998]. -/
 theorem sharpBernstein_interior (d : ℕ) (p : ℝ[X]) (C : ℝ)
     (hd : 1 ≤ d) (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C)

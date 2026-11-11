@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
 import Qatlib.Concepts.BlockEncoding.Postselection
 
+/-!
+# Imaginary-time Lie products and postselection bounds
+
+`imaginaryWord` and `imaginaryRun` define a repeated two-factor exponential product. For
+positive semidefinite matrices the product is a contraction, its global error is bounded by the
+commutator, and this error controls the norm and normalized state of its action on a unit
+vector. See [ChildsEtAl2021Trotter] for the mathematical setting.
+
+## Main statements
+
+* `imaginary_product_contraction_and_commutator_error`: For positive semidefinite `A` and `B`,
+  nonnegative `t`, and positive `r`, the product is a contraction with `2 * r` factors and error
+  at most `t^2 * ‖A * B - B * A‖ / (2 * r)`.
+* `imaginary_product_actual_postselection_consumer`: For a unit input, if the commutator error
+  budget `η` is smaller than the exact output norm, the approximate output has squared norm at
+  least `(‖v‖ - η)^2`, normalized-vector error at most `2 * η / ‖v‖`, and norm at most one.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Qatlib.Concepts.BlockEncoding.Postselection
@@ -26,15 +48,19 @@ open Matrix Set
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The list of `r` repeated pairs of exponentials of `-(t / r) • A` and `-(t / r) • B`. -/
 noncomputable def imaginaryWord {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) : List (Matrix I I ℂ) :=
   (List.replicate r [NormedSpace.exp (-(t / (r : ℝ)) • A),
     NormedSpace.exp (-(t / (r : ℝ)) • B)]).flatten
 
+/-- The ordered matrix product of the factors in `imaginaryWord A B t r`. -/
 noncomputable def imaginaryRun {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) : Matrix I I ℂ :=
   (imaginaryWord A B t r).prod
 
+/-- For positive semidefinite `A` and nonnegative `s`, the norm of `exp (-s • A)` is at most
+one. -/
 theorem imaginary_exp_psd_contraction {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.PosSemidef) (s : ℝ) (hs : 0 ≤ s) :
     ‖NormedSpace.exp (-s • A)‖ ≤ 1 := by
@@ -49,19 +75,23 @@ theorem imaginary_exp_psd_contraction {I : Type} [Fintype I] [DecidableEq I]
   rw [← he] at hc
   exact hc
 
+/-- The matrix exponential `exp (s • X)` as a function of the real scale `s`. -/
 private noncomputable def ipExp {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (s : ℝ) : Matrix I I ℂ := NormedSpace.exp (s • X)
 
+/-- The derivative of `ipExp X` at `s` is `X * ipExp X s`. -/
 private theorem ipExp_deriv {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (s : ℝ) : HasDerivAt (ipExp X) (X * ipExp X s) s :=
   hasDerivAt_exp_smul_const' X s
 
+/-- The derivative of `ipExp X (v * s)` at `u` is `s • (X * ipExp X (u * s))`. -/
 private theorem ipExp_scaled_deriv {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (s u : ℝ) :
     HasDerivAt (fun v => ipExp X (v * s)) (s • (X * ipExp X (u * s))) u := by
   convert! (ipExp_deriv X (u * s)).scomp u ((hasDerivAt_id u).mul_const s) using 1
   simp
 
+/-- The derivative of `ipExp X ((1 - v) * s)` at `u` is `(-s) • (ipExp X ((1 - u) * s) * X)`. -/
 private theorem ipExp_backward_scaled_deriv {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (s u : ℝ) :
     HasDerivAt (fun v => ipExp X ((1 - v) * s))
@@ -70,6 +100,8 @@ private theorem ipExp_backward_scaled_deriv {I : Type} [Fintype I] [DecidableEq 
     simpa using! ((hasDerivAt_const u (1 : ℝ)).sub (hasDerivAt_id u)).mul_const s
   convert! (hasDerivAt_exp_smul_const (𝕂 := ℝ) X ((1 - u) * s)).scomp u hi using 1
 
+/-- If the nonnegative-time exponentials of `X` are contractions, the commutator of `ipExp X s`
+with `Y` has norm at most `s * ‖X * Y - Y * X‖` for `s ≥ 0`. -/
 private theorem imaginary_exp_commutator_bound {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (hX : ∀ s : ℝ, 0 ≤ s → ‖ipExp X s‖ ≤ 1)
     (s : ℝ) (hs : 0 ≤ s) :
@@ -97,6 +129,8 @@ private theorem imaginary_exp_commutator_bound {I : Type} [Fintype I] [Decidable
   simpa only [f, ipExp, sub_self, zero_mul, zero_smul, NormedSpace.exp_zero,
     mul_one, one_mul, sub_zero, one_smul, norm_sub_rev] using! h
 
+/-- If `X`, `Y`, and `X + Y` generate nonnegative-time contractions, the unit-time Lie product
+error is at most `‖X * Y - Y * X‖ / 2`. -/
 private theorem imaginary_lie_contraction_generators {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ)
     (hX : ∀ s : ℝ, 0 ≤ s → ‖ipExp X s‖ ≤ 1)
@@ -130,6 +164,8 @@ private theorem imaginary_lie_contraction_generators {I : Type} [Fintype I] [Dec
     · dsimp; ring
   simpa [f, ipExp] using! hbound 1 ⟨zero_le_one, le_rfl⟩
 
+/-- For positive semidefinite `A` and `B` and nonnegative `s`, the Lie product error is at most
+`s^2 * ‖A * B - B * A‖ / 2`. -/
 theorem imaginary_psd_lie_segment_error {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.PosSemidef) (hB : B.PosSemidef)
     (s : ℝ) (hs : 0 ≤ s) :
@@ -152,25 +188,30 @@ theorem imaginary_psd_lie_segment_error {I : Type} [Fintype I] [DecidableEq I]
   rw [hz, hc, norm_smul, Real.norm_of_nonneg (sq_nonneg s)] at h
   simpa only [ipExp, one_smul] using! h
 
+/-- The repeated imaginary-time product equals the `r`-th power of its two-factor segment. -/
 theorem imaginaryRun_power {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) :
     imaginaryRun A B t r =
       (NormedSpace.exp (-(t / (r : ℝ)) • A) * NormedSpace.exp (-(t / (r : ℝ)) • B)) ^ r := by
   simp [imaginaryRun, imaginaryWord, List.prod_flatten, List.map_replicate]
 
+/-- The list `imaginaryWord A B t r` contains exactly `2 * r` matrix factors. -/
 theorem imaginaryWord_length {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (t : ℝ) (r : ℕ) : (imaginaryWord A B t r).length = 2 * r := by
   simp [imaginaryWord, List.length_flatten, List.map_replicate, Nat.mul_comm]
 
+/-- Every natural power of a matrix of norm at most one also has norm at most one. -/
 theorem imaginary_contraction_pow_norm {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : ‖U‖ ≤ 1) (r : ℕ) : ‖U ^ r‖ ≤ 1 := by
   exact l2_norm_pow_le_one U hU r
 
+/-- For contractions `U` and `V`, the norm of `U^r - V^r` is at most `r * ‖U - V‖`. -/
 theorem imaginary_contraction_power_error {I : Type} [Fintype I] [DecidableEq I]
     (U V : Matrix I I ℂ) (hU : ‖U‖ ≤ 1) (hV : ‖V‖ ≤ 1) (r : ℕ) :
     ‖U ^ r - V ^ r‖ ≤ (r : ℝ) * ‖U - V‖ := by
   exact l2_norm_pow_sub_pow_le U V hU hV r
 
+/-- The `r`-th power of `exp (-s • A)` equals `exp (-((r : ℝ) * s) • A)`. -/
 theorem imaginary_exp_power {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (s : ℝ) (r : ℕ) :
     (NormedSpace.exp (-s • A)) ^ r = NormedSpace.exp (-((r : ℝ) * s) • A) := by
@@ -186,6 +227,9 @@ theorem imaginary_exp_power {I : Type} [Fintype I] [DecidableEq I]
     congr 1
     ring
 
+/-- For positive semidefinite `A` and `B`, nonnegative `t`, and positive `r`, the product is a
+contraction with `2 * r` factors and error at most `t^2 * ‖A * B - B * A‖ / (2 * r)`. See
+[ChildsEtAl2021Trotter]. -/
 theorem imaginary_product_contraction_and_commutator_error :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
       (t : ℝ) (r : ℕ), A.PosSemidef → B.PosSemidef → 0 ≤ t → 0 < r →
@@ -218,6 +262,9 @@ theorem imaginary_product_contraction_and_commutator_error :
     dsimp [s]
     field_simp
 
+/-- For a unit input, if the commutator error budget `η` is smaller than the exact output norm,
+the approximate output has squared norm at least `(‖v‖ - η)^2`, normalized-vector error at
+most `2 * η / ‖v‖`, and norm at most one. See [ChildsEtAl2021Trotter]. -/
 theorem imaginary_product_actual_postselection_consumer :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
       (t : ℝ) (r : ℕ) (ψ : I → ℂ), A.PosSemidef → B.PosSemidef → 0 ≤ t →

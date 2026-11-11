@@ -8,6 +8,30 @@ import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDividerData
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtract
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
 import Mathlib.Algebra.BigOperators.Fin
+
+/-!
+# Unsigned division by Boolean DAGs
+
+`boolean_word_div_value` identifies the output quotient and remainder with natural division and
+remainder. The proof follows the high bits of the dividend through conditional subtraction
+rounds, maintaining the balance identity and the remainder bound for a positive divisor.
+
+The compiled circuit XORs the result into an output register and restores its workspace.
+Resource bounds and its action on basis states and arbitrary embedded states are proved
+separately. The circuit background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `boolean_word_div_prefix`: balance and remainder invariants for a division prefix.
+* `boolean_word_div_value`: correctness of quotient and remainder, including a zero divisor.
+* `boolean_word_div_resources`: polynomial node, gate, and register bounds.
+* `boolean_word_div_basis`, `boolean_word_div_coherent`: reversible circuit semantics.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +45,8 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Prepending a least significant bit gives its numeric value plus twice the value of the
+remaining word. -/
 private theorem div_cons_value (w : ℕ) (bit : Bool) (a : Reg w) :
     booleanWordLSBValue (w+1) (Fin.cons bit a) =
       (if bit then 1 else 0)+2*booleanWordLSBValue w a := by
@@ -32,9 +58,11 @@ private theorem div_cons_value (w : ℕ) (bit : Bool) (a : Reg w) :
   intro j _
   ring
 
+/-- Extend a little-endian word by `i` zero bits at its most significant end. -/
 private def divExtend (w i : ℕ) (a : Reg w) : Reg (w+i) := fun j =>
   if hj : j.val < w then a ⟨j.val,hj⟩ else false
 
+/-- Extending a word by zero high bits preserves its unsigned value. -/
 private theorem div_extend_value (w i : ℕ) (a : Reg w) :
     booleanWordLSBValue (w+i) (divExtend w i a) = booleanWordLSBValue w a := by
   rw [boolean_word_lsb_value,Fin.sum_univ_add,boolean_word_lsb_value]
@@ -52,6 +80,8 @@ private theorem div_extend_value (w i : ℕ) (a : Reg w) :
     simp [divExtend,hn]
   rw [hleft,hright,add_zero]
 
+/-- Extending the processed high-bit prefix by one bit doubles its value and adds the next
+dividend bit. -/
 private theorem div_high_step (w i : ℕ) (hi : i < w) (a : Reg w) :
     booleanWordHighValue w (i+1) (by omega) a =
       (if a ⟨w-1-i,by omega⟩ then 1 else 0)+2*booleanWordHighValue w i (by omega) a := by
@@ -73,10 +103,13 @@ private theorem div_high_step (w i : ℕ) (hi : i < w) (a : Reg w) :
   dsimp only [booleanWordHighValue]
   rw [he,div_cons_value]
 
+/-- The high-bit prefix of full width has the unsigned value of the whole word. -/
 private theorem div_high_full (w : ℕ) (a : Reg w) :
     booleanWordHighValue w w (Nat.le_refl w) a = booleanWordLSBValue w a := by
   simp [booleanWordHighValue]
 
+/-- Appending one Boolean node preserves earlier wire values and evaluates the new final wire
+using that node on the previous graph values. -/
 private theorem div_snoc_value {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+(n+1))) :
     booleanDAGValue (g.snoc node) x j =
@@ -86,6 +119,7 @@ private theorem div_snoc_value {m n : ℕ} (g : BooleanDAG m n)
   · simp [booleanDAGValue]
   · simp [booleanDAGValue]
 
+/-- Every original input wire of a Boolean graph evaluates to the corresponding input bit. -/
 private theorem div_input_value {m n : ℕ} (g : BooleanDAG m n)
     (x : Reg m) (j : Fin m) :
     booleanDAGValue g x (Fin.castLE (by omega) j) = x j := by
@@ -96,6 +130,7 @@ private theorem div_input_value {m n : ℕ} (g : BooleanDAG m n)
     have hj : j.val < m+n := by have := j.isLt; omega
     simpa only [Fin.val_castLE,dif_pos hj] using! ih
 
+/-- One more divisor nonzero-test stage preserves all wires of the preceding prefix. -/
 private theorem div_nz_old (w i : ℕ) (hi : i+1 ≤ w) (x : Reg (2*w))
     (j : ℕ) (hj : j < 2*w+(3*i+1)) :
     booleanDAGValue (booleanWordNonzeroPrefix w (i+1) hi) x ⟨j,by omega⟩ =
@@ -103,14 +138,17 @@ private theorem div_nz_old (w i : ℕ) (hi : i+1 ≤ w) (x : Reg (2*w))
   simp (disch := omega) [booleanWordNonzeroPrefix,Nat.mul_succ,Nat.add_assoc,div_snoc_value]
   split_ifs <;> first | rfl | omega
 
+/-- The divisor nonzero-test prefix preserves every input wire. -/
 private theorem div_nz_input (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w))
     (j : ℕ) (hj : j < 2*w) :
     booleanDAGValue (booleanWordNonzeroPrefix w i hi) x ⟨j,by omega⟩ = x ⟨j,hj⟩ :=
   div_input_value _ x ⟨j,hj⟩
 
+/-- Evaluate the accumulated nonzero flag after inspecting the first `i` divisor bits. -/
 private def divNZ (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) : Bool :=
   booleanDAGValue (booleanWordNonzeroPrefix w i hi) x ⟨2*w+3*i,by omega⟩
 
+/-- The distinguished initial constant wire in a divisor nonzero-test prefix evaluates to false. -/
 private theorem div_nz_zero_wire (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     booleanDAGValue (booleanWordNonzeroPrefix w i hi) x ⟨2*w,by omega⟩ = false := by
   induction i with
@@ -119,6 +157,8 @@ private theorem div_nz_zero_wire (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     rw [div_nz_old w i hi x (2*w) (by omega)]
     exact ih (by omega)
 
+/-- The next nonzero flag is the Boolean OR of the previous flag and the next divisor bit,
+expressed using XOR and conjunction. -/
 private theorem div_nz_step (w i : ℕ) (hi : i+1 ≤ w) (x : Reg (2*w)) :
     divNZ w (i+1) hi x =
       ((divNZ w i (by omega) x ^^ x ⟨w+i,by omega⟩) ^^
@@ -127,6 +167,8 @@ private theorem div_nz_step (w i : ℕ) (hi : i+1 ≤ w) (x : Reg (2*w)) :
     div_snoc_value,booleanNodeValue,div_nz_input]
   split_ifs <;> first | rfl | omega
 
+/-- The XOR-and-conjunction expression detects positivity after adding a Boolean-controlled
+positive summand. -/
 private theorem div_or_positive (s p : ℕ) (hp : 0 < p) (b : Bool) :
     ((decide (0 < s) ^^ b) ^^ (decide (0 < s) && b)) =
       decide (0 < s+(if b then 1 else 0)*p) := by
@@ -137,6 +179,8 @@ private theorem div_or_positive (s p : ℕ) (hp : 0 < p) (b : Bool) :
     simp only [if_true,one_mul,Bool.xor_true,Bool.and_true,decide_eq_true hpos]
     cases (decide (0 < s)) <;> rfl
 
+/-- The prefix nonzero flag detects whether the unsigned value of the first `i` divisor bits is
+positive. -/
 private theorem div_nz_value (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     divNZ w i hi x = decide (0 < ∑ j : Fin i,
       (if x ⟨w+j.val,by have := j.isLt; omega⟩ then 1 else 0)*(2 : ℕ)^j.val) := by
@@ -147,12 +191,16 @@ private theorem div_nz_value (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     simp only [Fin.val_castSucc,Fin.val_last]
     exact div_or_positive _ (2^i) (by positivity) _
 
+/-- Evaluate the quotient wires of a partial division state. -/
 private def divQ {w i : ℕ} (p : BooleanDAGDivState w i) (x : Reg (2*w)) : Reg i :=
   fun j => booleanDAGValue p.graph x (p.quotient j)
 
+/-- Evaluate the remainder wires of a partial division state. -/
 private def divR {w i : ℕ} (p : BooleanDAGDivState w i) (x : Reg (2*w)) : Reg (w+i) :=
   fun j => booleanDAGValue p.graph x (p.remainder j)
 
+/-- Route the shifted partial remainder and the zero-extended divisor into the next conditional
+subtraction. -/
 private def divRoundInputs (w i : ℕ) (hi : i < w) (p : BooleanDAGDivState w i) :
     Fin (2*(w+i+1)) → Fin (2*w+p.nodes) := fun j =>
   if hj : j.val < w+i+1 then
@@ -161,15 +209,20 @@ private def divRoundInputs (w i : ℕ) (hi : i < w) (p : BooleanDAGDivState w i)
   else if hb : j.val-(w+i+1) < w then ⟨w+(j.val-(w+i+1)),by omega⟩
     else p.zero
 
+/-- Prepend the next dividend bit to the little-endian partial remainder. -/
 private def divA (w i : ℕ) (hi : i < w) (p : BooleanDAGDivState w i) (x : Reg (2*w)) :
     Reg (w+i+1) := Fin.cons (x ⟨w-1-i,by omega⟩) (divR p x)
 
+/-- Extend the divisor to the width used by the next division round. -/
 private def divB (w i : ℕ) (x : Reg (2*w)) : Reg (w+i+1) :=
   divExtend w (i+1) (booleanWordAdderRight w x)
 
+/-- Evaluate conditional subtraction of the extended divisor from the shifted remainder and next
+dividend bit. -/
 private def divTrial (w i : ℕ) (hi : i < w) (p : BooleanDAGDivState w i) (x : Reg (2*w)) :
     Reg (w+i+1+1) := booleanWordCondSubResult (w+i+1) (divA w i hi p x) (divB w i x)
 
+/-- The left operand routed into a division round evaluates to `divA`. -/
 private theorem div_round_input_left (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w)) (j : Fin (w+i+1)) :
     booleanDAGValue p.graph x (divRoundInputs w i hi p ⟨j.val,by have := j.isLt; omega⟩) =
@@ -182,6 +235,8 @@ private theorem div_round_input_left (w i : ℕ) (hi : i < w)
     simp only [divRoundInputs,Fin.val_succ,dif_pos hk,Nat.succ_ne_zero,dite_false,
       Nat.add_sub_cancel,divA,Fin.cons_succ,divR]
 
+/-- If the state's zero wire is false, the right operand routed into a division round evaluates
+to `divB`. -/
 private theorem div_round_input_right (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) (j : Fin (w+i+1)) :
@@ -196,6 +251,8 @@ private theorem div_round_input_right (w i : ℕ) (hi : i < w)
   · simp only [dif_neg hj]
     exact hz
 
+/-- If the zero wire is false, the round's routed inputs are the packed operands `divA` and
+`divB`. -/
 private theorem div_round_inputs_value (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) :
@@ -214,6 +271,8 @@ private theorem div_round_inputs_value (w i : ℕ) (hi : i < w)
     rw [he] at h
     simpa only [booleanWordAdderInput,dif_neg hj] using! h
 
+/-- If the zero wire is false, the spliced conditional-subtraction output evaluates to
+`divTrial`. -/
 private theorem div_trial_value (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) (j : Fin (w+i+1+1)) :
@@ -225,6 +284,7 @@ private theorem div_trial_value (w i : ℕ) (hi : i < w)
   rw [div_round_inputs_value w i hi p x hz] at h
   exact h
 
+/-- A division round preserves the values of all pre-existing graph wires. -/
 private theorem div_round_old (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w)) (j : Fin (2*w+p.nodes)) :
     booleanDAGValue (booleanWordDivRound w i hi p).graph x
@@ -232,6 +292,8 @@ private theorem div_round_old (w i : ℕ) (hi : i < w)
       booleanDAGValue p.graph x j :=
   boolean_dag_splice_prefix _ _ _ _ _
 
+/-- If the zero wire is false, the new remainder consists of the magnitude bits of the trial
+conditional subtraction. -/
 private theorem div_round_remainder (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) :
@@ -240,6 +302,8 @@ private theorem div_round_remainder (w i : ℕ) (hi : i < w)
   funext j
   exact div_trial_value w i hi p x hz j.castSucc
 
+/-- If the zero wire is false, the new quotient prepends the trial subtraction flag to the old
+quotient. -/
 private theorem div_round_quotient (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) :
@@ -253,6 +317,8 @@ private theorem div_round_quotient (w i : ℕ) (hi : i < w)
       Nat.add_sub_cancel,Fin.cons_succ]
     exact div_round_old w i hi p x (p.quotient k)
 
+/-- Conditional subtraction decomposes the original value into its result plus the divisor
+multiplied by the subtraction flag. -/
 private theorem div_cond_balance (w : ℕ) (a b : Reg w) :
     booleanWordLSBValue w a =
       (if booleanWordCondSubResult w a b (Fin.last w) then 1 else 0)*booleanWordLSBValue w b +
@@ -263,17 +329,21 @@ private theorem div_cond_balance (w : ℕ) (a b : Reg w) :
   · simp [h]
   · simp [h]
 
+/-- The next trial dividend has value twice the partial remainder plus the next dividend bit. -/
 private theorem div_a_value (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w)) :
     booleanWordLSBValue (w+i+1) (divA w i hi p x) =
       (if x ⟨w-1-i,by omega⟩ then 1 else 0)+2*booleanWordLSBValue (w+i) (divR p x) :=
   div_cons_value _ _ _
 
+/-- The extended divisor has the same unsigned value as the original right input word. -/
 private theorem div_b_value (w i : ℕ) (x : Reg (2*w)) :
     booleanWordLSBValue (w+i+1) (divB w i x) =
       booleanWordLSBValue w (booleanWordAdderRight w x) :=
   div_extend_value w (i+1) (booleanWordAdderRight w x)
 
+/-- The quotient value after a round is twice the old quotient plus the trial subtraction flag,
+when the zero wire is false. -/
 private theorem div_round_q_value (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) :
@@ -282,6 +352,8 @@ private theorem div_round_q_value (w i : ℕ) (hi : i < w)
         2*booleanWordLSBValue i (divQ p x) := by
   rw [div_round_quotient w i hi p x hz,div_cons_value]
 
+/-- If the zero wire is false, one division round expresses the shifted remainder and next bit
+as a divisor multiple plus the new remainder. -/
 private theorem div_round_balance (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) :
@@ -294,6 +366,8 @@ private theorem div_round_balance (w i : ℕ) (hi : i < w)
   rw [div_a_value,div_b_value] at h
   exact h
 
+/-- For a positive divisor, a round preserves the strict remainder bound when the previous
+remainder is smaller than the divisor and the zero wire is false. -/
 private theorem div_round_small (w i : ℕ) (hi : i < w)
     (p : BooleanDAGDivState w i) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false)
@@ -316,6 +390,9 @@ private theorem div_round_small (w i : ℕ) (hi : i < w)
   rw [div_round_remainder w i hi p x hz]
   exact h
 
+/-- A division prefix has a false zero wire and a correct divisor nonzero flag, and satisfies
+the dividend-prefix balance identity. Its remainder is smaller than the divisor whenever the
+divisor is positive. -/
 theorem boolean_word_div_prefix (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     let p := booleanWordDivPrefix w i hi
     let B := booleanWordLSBValue w (booleanWordAdderRight w x)
@@ -354,6 +431,7 @@ theorem boolean_word_div_prefix (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     · intro hb
       exact div_round_small w i hi' p x hz hb (hsmall hb)
 
+/-- The division prefix after `i` rounds has at most `3*w+1+(20*w+2)*i` nodes. -/
 private theorem div_prefix_nodes (w i : ℕ) (hi : i ≤ w) :
     (booleanWordDivPrefix w i hi).nodes ≤ 3*w+1+(20*w+2)*i := by
   induction i with
@@ -365,6 +443,9 @@ private theorem div_prefix_nodes (w i : ℕ) (hi : i ≤ w) :
     have hiw : i+1 ≤ w := hi
     nlinarith
 
+/-- The unsigned divider is legal and uses no oracle queries, with at most `600*w^2+183*w+30`
+compiled gates and `20*w^2+11*w+1` total wires. Its graph has at most `20*w^2+6*w+1` nodes,
+and its gate count equals its reflection-step count. -/
 theorem boolean_word_div_resources (w : ℕ) :
     let n := (booleanWordDivProgram w).nodes+w
     let gs := booleanDAGSteps (booleanWordDivDAG w) (booleanWordDivSelect w)
@@ -380,6 +461,8 @@ theorem boolean_word_div_resources (w : ℕ) :
   obtain ⟨hl,hg,hq,hc⟩ := boolean_dag_resources (booleanWordDivDAG w) (booleanWordDivSelect w)
   exact ⟨hn,hl,by nlinarith,hq,hc,by nlinarith⟩
 
+/-- On a basis state with initialized workspace, the compiled unsigned divider XORs its result
+into the target word and restores the workspace. -/
 theorem boolean_word_div_basis (w : ℕ) (a b : Reg w) (y : Reg (3*w)) :
     let n := (booleanWordDivProgram w).nodes+w
     Run (1 : Matrix (Reg (2*w+n+3*w)) (Reg (2*w+n+3*w)) ℂ)
@@ -389,6 +472,7 @@ theorem boolean_word_div_basis (w : ℕ) (a b : Reg w) (y : Reg (3*w)) :
         (fun j => y j ^^ booleanWordDivResult w a b j)) :=
   boolean_dag_basis _ _ _ _
 
+/-- Packing the left and right views of a division input reconstructs that input. -/
 private theorem div_input_views (w : ℕ) (x : Reg (2*w)) :
     booleanWordAdderInput w (booleanWordAdderLeft w x) (booleanWordAdderRight w x) = x := by
   funext j
@@ -397,6 +481,8 @@ private theorem div_input_views (w : ℕ) (x : Reg (2*w)) :
   · have hle : w ≤ j.val := by omega
     simp [booleanWordAdderInput,booleanWordAdderRight,hj,Nat.add_sub_of_le hle]
 
+/-- On an arbitrary embedded state, the compiled unsigned divider coherently XORs the division
+result into each target word while restoring the workspace. -/
 theorem boolean_word_div_coherent (w : ℕ) (ψ : QState (Reg (2*w) × Reg (3*w))) :
     let n := (booleanWordDivProgram w).nodes+w
     Run (1 : Matrix (Reg (2*w+n+3*w)) (Reg (2*w+n+3*w)) ℂ)
@@ -412,6 +498,8 @@ theorem boolean_word_div_coherent (w : ℕ) (ψ : QState (Reg (2*w) × Reg (3*w)
   simp only [booleanWordDivResult,div_input_views]
   rfl
 
+/-- Each computed masking-prefix bit is the conjunction of its input bit with the common control
+bit. -/
 private theorem div_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : Fin n) :
     booleanDAGValue (booleanWordAndPrefix w n hn) x ⟨w+1+j.val,by have := j.isLt; omega⟩ =
       (x ⟨j.val,by have := j.isLt; omega⟩ && x (Fin.last w)) := by
@@ -433,10 +521,13 @@ private theorem div_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : F
       simp only [Fin.val_castSucc,dif_pos hk]
       exact ih (by omega) k
 
+/-- Route the final quotient wires and divisor nonzero flag into the quotient-masking graph. -/
 private def divMaskInputs (w : ℕ) : Fin (w+1) → Fin (2*w+(booleanWordDivProgram w).nodes) :=
   fun j => if hj : j.val < w then (booleanWordDivProgram w).quotient ⟨j.val,hj⟩
     else (booleanWordDivProgram w).nonzero
 
+/-- Each final masked quotient bit is the corresponding raw quotient bit conjoined with the
+divisor nonzero flag. -/
 private theorem div_mask_bit (w : ℕ) (x : Reg (2*w)) (j : Fin w) :
     booleanDAGValue (booleanWordDivDAG w) x
       ⟨2*w+(booleanWordDivProgram w).nodes+j.val,by have := j.isLt; omega⟩ =
@@ -468,6 +559,7 @@ private theorem div_mask_bit (w : ℕ) (x : Reg (2*w)) (j : Fin w) :
       div_and_prefix w w (Nat.le_refl w) _ j
     _ = _ := congrArg₂ (fun a b : Bool => a && b) ha hb
 
+/-- The selected quotient is the raw quotient word masked by the divisor nonzero flag. -/
 private theorem div_quotient_word (w : ℕ) (a b : Reg w) :
     booleanWordDivQuotient w a b = fun j =>
       divQ (booleanWordDivProgram w) (booleanWordAdderInput w a b) j &&
@@ -477,11 +569,15 @@ private theorem div_quotient_word (w : ℕ) (a b : Reg w) :
   simp only [booleanWordDivQuotient,booleanWordDivResult,booleanWordDivSelect,dif_pos j.isLt]
   exact div_mask_bit w (booleanWordAdderInput w a b) j
 
+/-- Masking a word by a Boolean gives its unsigned value when the control is true and zero
+otherwise. -/
 private theorem div_mask_value (w : ℕ) (a : Reg w) (bit : Bool) :
     booleanWordLSBValue w (fun j => a j && bit) =
       if bit then booleanWordLSBValue w a else 0 := by
   cases bit <;> simp [boolean_word_lsb_value]
 
+/-- The quotient value is the raw quotient value when the divisor nonzero flag is true, and zero
+otherwise. -/
 private theorem div_quotient_value (w : ℕ) (a b : Reg w) :
     booleanWordLSBValue w (booleanWordDivQuotient w a b) =
       if booleanDAGValue (booleanWordDivProgram w).graph (booleanWordAdderInput w a b)
@@ -490,6 +586,8 @@ private theorem div_quotient_value (w : ℕ) (a b : Reg w) :
       else 0 := by
   rw [div_quotient_word,div_mask_value]
 
+/-- Each selected remainder bit equals the corresponding evaluated remainder wire of the final
+division state. -/
 private theorem div_remainder_bit (w : ℕ) (a b : Reg w) (j : Fin (2*w)) :
     booleanWordDivRemainder w a b j =
       divR (booleanWordDivProgram w) (booleanWordAdderInput w a b)
@@ -499,6 +597,7 @@ private theorem div_remainder_bit (w : ℕ) (a b : Reg w) (j : Fin (2*w)) :
     dif_neg hnot,Nat.add_sub_cancel_left]
   exact boolean_dag_splice_prefix _ _ _ _ _
 
+/-- The selected remainder has the unsigned value of the final division state's remainder word. -/
 private theorem div_remainder_value (w : ℕ) (a b : Reg w) :
     booleanWordLSBValue (2*w) (booleanWordDivRemainder w a b) =
       booleanWordLSBValue (w+w)
@@ -509,17 +608,21 @@ private theorem div_remainder_value (w : ℕ) (a b : Reg w) :
   simp only [div_remainder_bit,finCongr_apply,Fin.val_cast]
   rfl
 
+/-- The left view of a packed operand pair recovers the first word. -/
 private theorem div_left_input (w : ℕ) (a b : Reg w) :
     booleanWordAdderLeft w (booleanWordAdderInput w a b) = a := by
   funext j
   simp [booleanWordAdderLeft,booleanWordAdderInput,j.isLt]
 
+/-- The right view of a packed operand pair recovers the second word. -/
 private theorem div_right_input (w : ℕ) (a b : Reg w) :
     booleanWordAdderRight w (booleanWordAdderInput w a b) = b := by
   funext j
   have hnot : ¬w+j.val < w := by omega
   simp [booleanWordAdderRight,booleanWordAdderInput,hnot]
 
+/-- The divider's quotient and remainder words have values equal to natural division and
+remainder of the input values, including when the divisor is zero. -/
 theorem boolean_word_div_value (w : ℕ) (a b : Reg w) :
     booleanWordLSBValue w (booleanWordDivQuotient w a b) =
       booleanWordLSBValue w a / booleanWordLSBValue w b ∧

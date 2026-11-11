@@ -23,6 +23,25 @@ import Mathlib.Data.Finset.Range
 import Mathlib.Data.Fintype.Defs
 import Mathlib.Logic.Equiv.Defs
 import Mathlib.Tactic
+
+/-!
+# Dual maps for finite sums of automorphism iterates
+
+`phiSum` is the additive endomorphism obtained by summing the first `b` iterates of an additive
+automorphism. Given an identification of a finite abelian group with its complex additive
+characters, `lemma7_exists_dual_map` constructs a map representing precomposition of characters
+by this endomorphism. See [BaconChildsVanDam2005] for the mathematical setting.
+
+## Main statements
+
+* `lemma7_exists_dual_map`: constructs a map satisfying the character-pairing identity for
+  `phiSum`.
+
+## References
+
+* [Bacon et al., 2005][BaconChildsVanDam2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -32,9 +51,14 @@ namespace Qatlib.Papers.SemidirectHSP05.MainResults.CharacterDuality
 
 variable {A : Type*} [AddCommGroup A]
 
+/-- The additive endomorphism obtained by summing the iterates of `φ` indexed by the natural
+numbers strictly below `b`. -/
 def phiSum (φ : AddAut A) (b : ℕ) : A →+ A :=
   ∑ i ∈ Finset.range b, (i • φ).toAddMonoidHom
 
+/-- Given an equivalence between a finite abelian group and its complex additive characters,
+there exists a map `Φhat` satisfying `e x (phiSum φ b d) = e (Φhat x) d` for every `d` and
+`x`. See [Bacon et al., 2005, Lemma 7][BaconChildsVanDam2005]. -/
 theorem lemma7_exists_dual_map [Fintype A]
     (e : A ≃ AddChar A ℂ) (φ : AddAut A) (b : ℕ) :
     ∃ Φhat : A → A, ∀ d x : A,

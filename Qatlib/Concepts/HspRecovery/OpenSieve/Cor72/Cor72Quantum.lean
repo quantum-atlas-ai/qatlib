@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+
+/-!
+# Mixture distance and hidden substring enumeration bounds
+
+This module supplies trace-distance and counting estimates for the hidden substring application
+in [Kuperberg2005]. The distance between uniform mixtures of normalized pure states is bounded
+by the fraction of indices at which the states can differ.
+
+The remaining estimates count a binary candidate grid and bound the cost of combining its
+enumeration with a subexponential factor.
+
+## Main statements
+
+* `traceDistance_pureMixture_le_of_agrees`: a mixture distance bound from agreement outside a
+  finite set.
+* `candidateCount_le`: the ceiling in the square-root exponent costs at most one additional
+  power of two.
+* `cor72_enumeration_cost`: a combined square-root exponential bound.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +44,7 @@ open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.PureStateMath.Reflection
 
+/-- The trace norm of a finite sum of operators is at most the sum of their trace norms. -/
 theorem traceNorm_finset_sum_le {D : ℕ} {ι : Type*} (s : Finset ι)
     (f : ι → Operator D) :
     (∑ i ∈ s, f i).traceNorm ≤ ∑ i ∈ s, (f i).traceNorm := by
@@ -31,6 +56,8 @@ theorem traceNorm_finset_sum_le {D : ℕ} {ι : Type*} (s : Finset ι)
       exact (Matrix.traceNorm_add_le (f a) (∑ i ∈ s, f i)).trans
         (by linarith [ih])
 
+/-- For a positive number of terms, the trace distance between uniform operator averages is at
+most the average of the termwise trace distances. -/
 theorem traceDistance_uniformMixture_le {D m : ℕ} (hm : 0 < m)
     (P Q : Fin m → Operator D) :
     traceDistance (((m : ℝ)⁻¹ : ℂ) • ∑ i, P i) (((m : ℝ)⁻¹ : ℂ) • ∑ i, Q i)
@@ -58,10 +85,12 @@ theorem traceDistance_uniformMixture_le {D m : ℕ} (hm : 0 < m)
     mul_le_mul_of_nonneg_left hsum (by positivity)
   nlinarith [h1]
 
+/-- The trace distance from an operator to itself is zero. -/
 @[simp] theorem traceDistance_self {D : ℕ} (ρ : Operator D) : traceDistance ρ ρ = 0 := by
   unfold traceDistance
   rw [sub_self, Matrix.traceNorm_zero, zero_div]
 
+/-- The trace distance between the outer products of two normalized pure states is at most one. -/
 theorem traceDistance_outerProduct_le_one {D : ℕ} (u v : QState (Fin D))
     (hu : Normalized u) (hv : Normalized v) :
     traceDistance (outerProduct u) (outerProduct v) ≤ 1 := by
@@ -76,6 +105,8 @@ theorem traceDistance_outerProduct_le_one {D : ℕ} (u v : QState (Fin D))
   calc Real.sqrt (1 - (Inner u v).re ^ 2) ≤ Real.sqrt 1 := Real.sqrt_le_sqrt hle
     _ = 1 := Real.sqrt_one
 
+/-- Uniform mixtures of normalized pure states that agree outside `S` have trace distance at
+most `S.card / m`, for a positive number `m` of terms. -/
 theorem traceDistance_pureMixture_le_of_agrees {D m : ℕ} (hm : 0 < m)
     (u v : Fin m → QState (Fin D)) (hu : ∀ i, Normalized (u i))
     (hv : ∀ i, Normalized (v i)) (S : Finset (Fin m))
@@ -106,6 +137,8 @@ theorem traceDistance_pureMixture_le_of_agrees {D m : ℕ} (hm : 0 < m)
         mul_le_mul_of_nonneg_left (hbound.trans_eq hcard) (by positivity)
     _ = (S.card : ℝ) / m := by rw [div_eq_inv_mul]
 
+/-- Uniform mixtures of normalized pure states differing only on at most `k` of their `m > 0`
+indices have trace distance at most `k / m`. -/
 theorem traceDistance_pureMixture_le_of_card_le {D m : ℕ} (hm : 0 < m)
     (u v : Fin m → QState (Fin D)) (hu : ∀ i, Normalized (u i))
     (hv : ∀ i, Normalized (v i)) (S : Finset (Fin m))
@@ -116,9 +149,11 @@ theorem traceDistance_pureMixture_le_of_card_le {D m : ℕ} (hm : 0 < m)
   have hk' : (S.card : ℝ) ≤ (k : ℝ) := by exact_mod_cast hk
   exact div_le_div_of_nonneg_right hk' (by positivity)
 
+/-- The natural-number grid below `2^m` contains exactly `2^m` candidates. -/
 theorem gridCandidateCount (m : ℕ) : (Finset.range (2 ^ m)).card = 2 ^ m := by
   simp
 
+/-- The binary candidate count with exponent `ceil (sqrt n)` is at most `2 ^ (sqrt n + 1)`. -/
 theorem candidateCount_le (n : ℕ) :
     (2 : ℝ) ^ ((Nat.ceil (Real.sqrt (n : ℝ)) : ℕ) : ℝ)
       ≤ (2 : ℝ) ^ (Real.sqrt (n : ℝ) + 1) := by
@@ -126,6 +161,8 @@ theorem candidateCount_le (n : ℕ) :
   have h := Nat.ceil_lt_add_one (Real.sqrt_nonneg (n : ℝ))
   exact le_of_lt h
 
+/-- For `n ≥ 1`, multiplying `2 ^ ceil (sqrt n)` by `2 ^ (C * sqrt n)` is bounded by `2 ^ ((C +
+2) * sqrt n)` in the enumeration estimate associated with [Kuperberg2005]. -/
 theorem cor72_enumeration_cost (C : ℝ) (_hC : 0 ≤ C) (n : ℕ) (hn : 1 ≤ n) :
     (2 : ℝ) ^ ((Nat.ceil (Real.sqrt (n : ℝ)) : ℕ) : ℝ)
         * (2 : ℝ) ^ (C * Real.sqrt (n : ℝ))

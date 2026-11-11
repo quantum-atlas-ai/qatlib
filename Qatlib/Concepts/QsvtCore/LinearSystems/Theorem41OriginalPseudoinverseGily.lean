@@ -9,6 +9,31 @@ import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialGily
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Threshold-sector pseudoinverse construction
+
+This module proves `theorem41OriginalPseudoinverse`, the packaged threshold-sector formulation
+of the pseudoinverse construction associated with Theorem 41 of [GilyenSuLowWiebe2019]. It
+combines a windowed reciprocal polynomial with a real QSVT word and records the phase length and
+compilation counts.
+
+The auxiliary lemmas diagonalize threshold sectors in singular bases and transfer scalar
+reciprocal error to the sector-projected operator bound.
+
+## Main statements
+
+* `leftSector_mul_leftSingularColumns`: intertwines the left threshold sector with its
+  singular-coordinate diagonal.
+* `sectorCoefficient_entry_bound`: bounds the scalar error in a retained sector.
+* `theorem41OriginalPseudoinverse`: establishes the polynomial, encoding, counts, and sector
+  error guarantees.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,9 +67,13 @@ set_option maxHeartbeats 1000000
 section Singular
 variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
+/-- The complex threshold-sector coefficient 1 - `thresholdIndicator 0 x` + `thresholdIndicator
+δ x`. -/
 private noncomputable def sectorCoefficient (δ x : ℝ) : ℂ :=
   ((1 : ℝ) - thresholdIndicator 0 x + thresholdIndicator δ x : ℂ)
 
+/-- Expresses the complement of the right threshold band between zero and δ as a diagonal
+operator in the right singular basis. -/
 private theorem rightSector_eq (A : Matrix O I ℂ) (δ : ℝ) :
     ((1 : Matrix I I ℂ) - (rightThresholdProjection A 0 - rightThresholdProjection A δ))
       = basisColumns (rightSingularBasis A)
@@ -69,6 +98,8 @@ private theorem rightSector_eq (A : Matrix O I ℂ) (δ : ℝ) :
   refine Eq.trans (congrArg (spectralDiagonal (rightSingularBasis A)) (funext hf)) ?_
   rfl
 
+/-- Expresses the complement of the left threshold band between zero and δ as a diagonal
+operator in the left singular basis. -/
 private theorem leftSector_eq (A : Matrix O I ℂ) (δ : ℝ) :
     ((1 : Matrix O O ℂ) - (leftThresholdProjection A 0 - leftThresholdProjection A δ))
       = basisColumns (leftSingularBasis A)
@@ -93,6 +124,7 @@ private theorem leftSector_eq (A : Matrix O I ℂ) (δ : ℝ) :
   refine Eq.trans (congrArg (spectralDiagonal (leftSingularBasis A)) (funext hf)) ?_
   rfl
 
+/-- The complement of the left threshold band between zero and δ is self-adjoint. -/
 private theorem leftSector_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (((1 : Matrix O O ℂ) - (leftThresholdProjection A 0 - leftThresholdProjection A δ)))ᴴ
       = ((1 : Matrix O O ℂ) - (leftThresholdProjection A 0 - leftThresholdProjection A δ)) := by
@@ -100,6 +132,7 @@ private theorem leftSector_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     fun τ => (leftThresholdProjection_isOrthogonalProjector A τ).2
   rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_sub, Matrix.conjTranspose_one, hl 0, hl δ]
 
+/-- The diagonal matrix of threshold-sector coefficients at the singular values is self-adjoint. -/
 private theorem sectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ : ℝ) :
     (diagonal (fun i : Fin (Fintype.card I) => sectorCoefficient δ (matrixSingularValues A i)))ᴴ
       = diagonal (fun i : Fin (Fintype.card I) => sectorCoefficient δ (matrixSingularValues A i)) := by
@@ -110,6 +143,8 @@ private theorem sectorCoefficient_diagonal_selfAdjoint (A : Matrix O I ℂ) (δ 
   · rw [Matrix.conjTranspose_apply, Matrix.diagonal_apply_ne _ (Ne.symm h),
       Matrix.diagonal_apply_ne _ h, star_zero]
 
+/-- The entries of the left singular-basis change matrix are the inner products with the left
+singular vectors. -/
 private theorem leftCompanion_gram_entries (A : Matrix O I ℂ) :
     ((basisColumns (leftSingularBasis A))ᴴ * leftSingularColumns A)
       = Matrix.of fun j i => inner ℂ (leftSingularBasis A j) (leftSingularVector A i) := by
@@ -117,6 +152,8 @@ private theorem leftCompanion_gram_entries (A : Matrix O I ℂ) :
   simp [Matrix.mul_apply, Matrix.conjTranspose_apply, leftSingularColumns,
     PiLp.inner_apply, mul_comm]
 
+/-- Multiplying the left singular-column matrix by the left sector operator equals right
+multiplication by the diagonal of sector coefficients. -/
 private theorem leftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (δ : ℝ) :
     ((1 : Matrix O O ℂ) - (leftThresholdProjection A 0 - leftThresholdProjection A δ))
       * leftSingularColumns A
@@ -148,6 +185,8 @@ private theorem leftSector_mul_leftSingularColumns (A : Matrix O I ℂ) (δ : �
     rw [leftSingularVector_eq_zero A i hσ0, h0]
     simp
 
+/-- For 0 < ε ≤ δ ≤ 1/2, a polynomial vanishing at zero and approximating (δ/2)/x on [δ, 1] has
+scalar sector-weighted error at most ε at every t in [0, 1] satisfying t = 0 or δ ≤ t. -/
 private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hεδ : ε ≤ δ) (hδ : δ ≤ 1/2)
     {Pw : Polynomial ℝ} (heval0 : Pw.eval 0 = 0)
     (happrox : ∀ x ∈ Set.Icc δ 1, |Pw.eval x - (δ/2)/x| ≤ ε)
@@ -197,6 +236,10 @@ private theorem sectorCoefficient_entry_bound {ε δ : ℝ} (hε : 0 < ε) (hε�
 
 end Singular
 
+/-- Establishes `Theorem41OriginalPseudoinverse`, providing a bounded reciprocal polynomial, a
+real QSVT encoding with explicit counts, and a threshold-sector pseudoinverse error bound.
+This is the packaged formulation associated with [Gilyén et al., Theorem
+41][GilyenSuLowWiebe2019]. -/
 theorem theorem41OriginalPseudoinverse : Theorem41OriginalPseudoinverse := by
   intro H I O _ _ _ _ _ _ A U L R ε δ henc hε hεδ hδ hgap
   obtain ⟨Pw, J, k, hbudget, h3k, hdeg, hpar, hbound, heval0, happrox⟩ :=

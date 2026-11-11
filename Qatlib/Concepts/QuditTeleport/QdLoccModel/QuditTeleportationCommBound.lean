@@ -19,6 +19,38 @@ import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Mathlib.Combinatorics.Pigeonhole
+
+/-!
+# Qudit message guessing and communication bounds
+
+The results bound `qdBestGuessMass` and `qdDecodeMass` for finite outcome encodings, including
+uniform qudit outcomes and collapsed messages. Counting Boolean lists relates injective message
+encodings to `qdCommCost`.
+
+The theorems also collect explicit protocol recovery and encoding properties, resource
+characterizations, and repeated-coding reliability for the combined teleportation theorem. These
+results develop resource and communication properties of teleportation
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `clause4_clause3`: A normalized nonnegative outcome law has a message value with weight at
+  least the reciprocal of the image size; any collapsed pair contributes its combined weight to
+  one message guess.
+* `clause4_clause4`: For uniform qudit outcomes, injective, noninjective, and constant encodings
+  satisfy the stated optimal fixed-message guessing bounds, while any decoder succeeds with
+  weight at most the image size divided by `n²`.
+* `qdCommCost_of_card`: An injective message encoding and at least `n²` outcomes imply `n² ≤ 2 ^
+  (qdCommCost P + 1)`.
+* `clause4_clause6`: The standard qudit protocol has corrected branch weight `1 / n²`, identity
+  total output, and injective decodable messages of length `2 * Nat.clog 2 n`
+  [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -38,6 +70,7 @@ open Qatlib.Concepts.QuditTeleport.TeleportCore
 
 namespace Qatlib.Concepts.QuditTeleport.QdLoccModel
 
+/-- The maximum fold of a real list is at least its initial seed. -/
 theorem list_foldl_max_seed_le : ∀ (l : List ℝ) (b : ℝ), b ≤ l.foldl max b := by
   intro l
   induction l with
@@ -47,6 +80,7 @@ theorem list_foldl_max_seed_le : ∀ (l : List ℝ) (b : ℝ), b ≤ l.foldl max
     show b ≤ List.foldl max (max b hd) tl
     exact le_trans (le_max_left b hd) (ih (max b hd))
 
+/-- Every member of a real list is at most the maximum fold with any initial seed. -/
 theorem list_foldl_max_le_of_mem : ∀ (l : List ℝ) (b : ℝ) (x : ℝ), x ∈ l →
     x ≤ l.foldl max b := by
   intro l
@@ -61,6 +95,8 @@ theorem list_foldl_max_le_of_mem : ∀ (l : List ℝ) (b : ℝ) (x : ℝ), x ∈
     · simp only [List.foldl_cons]
       exact ih (max b hd) x hx
 
+/-- If the seed and every list element are bounded above by `r`, their maximum fold is also
+bounded by `r`. -/
 theorem list_foldl_max_le_upper : ∀ (l : List ℝ) (b r : ℝ), (∀ x ∈ l, x ≤ r) → b ≤ r →
     l.foldl max b ≤ r := by
   intro l
@@ -72,6 +108,7 @@ theorem list_foldl_max_le_upper : ∀ (l : List ℝ) (b r : ℝ), (∀ x ∈ l, 
     exact ih (max b hd) r (fun x hx => hall x (by simp [hx]))
       (max_le hb (hall hd (by simp)))
 
+/-- The weight of any fixed message guess is at most `qdBestGuessMass`. -/
 theorem qdGuessMass_le_best {κ σ : Type} [Fintype κ] [Fintype σ] [DecidableEq σ]
     (p : κ → ℝ) (m : κ → σ) (g : σ) :
     qdGuessMass p m g ≤ qdBestGuessMass p m := by
@@ -79,6 +116,8 @@ theorem qdGuessMass_le_best {κ σ : Type} [Fintype κ] [Fintype σ] [DecidableE
   refine list_foldl_max_le_of_mem _ 0 _ ?_
   exact List.mem_map_of_mem (f := qdGuessMass p m) (by simp)
 
+/-- If every fixed-message guess has weight at most a nonnegative `r`, then `qdBestGuessMass` is
+at most `r`. -/
 theorem qdBestGuessMass_le_of_forall {κ σ : Type} [Fintype κ] [Fintype σ] [DecidableEq σ]
     (p : κ → ℝ) (m : κ → σ) {r : ℝ} (hr : 0 ≤ r)
     (hall : ∀ g : σ, qdGuessMass p m g ≤ r) :
@@ -89,6 +128,8 @@ theorem qdBestGuessMass_le_of_forall {κ σ : Type} [Fintype κ] [Fintype σ] [D
   obtain ⟨g, _, rfl⟩ := List.mem_map.mp hx
   exact hall g
 
+/-- For uniform qudit outcomes, a decoder's success weight is the number of correctly decoded
+outcomes divided by `n²`. -/
 theorem qdDecodeMass_uniform (n : ℕ) {σ : Type} [DecidableEq (Fin n × Fin n)] [DecidableEq σ]
     (m : Fin n × Fin n → σ) (g : σ → Fin n × Fin n) :
     qdDecodeMass (qdUniform n) m g =
@@ -96,6 +137,8 @@ theorem qdDecodeMass_uniform (n : ℕ) {σ : Type} [DecidableEq (Fin n × Fin n)
   simp only [qdDecodeMass, qdUniform]
   rw [Finset.sum_const, nsmul_eq_mul, mul_one_div]
 
+/-- For a perfect protocol with a normalized pure resource and unitary corrections, message
+consistency makes equal-message corrections induce the same conjugation map. -/
 theorem clause4_clause2_msgConsistent :
     ∀ (n : ℕ) (κ : Type) (_hκ : Fintype κ) (P : QdLoccTeleport n κ)
       (U : κ → Operator n) (Ψ : QState (Fin n × Fin n)),
@@ -105,11 +148,14 @@ theorem clause4_clause2_msgConsistent :
   intro n κ _ P U Ψ _ hU _ hc k k' hm
   exact qdMsgConsistent_sameConjugation P U hU hc hm
 
+/-- An outcome count of at least `n²` implies `n² ≤ 2 ^ qdMessageBits κ`. -/
 theorem clause4_clause2_counting_reduce (n : ℕ) (κ : Type) [Fintype κ]
     (hcard : n * n ≤ Fintype.card κ) :
     n * n ≤ 2 ^ qdMessageBits κ :=
   Nat.le_trans hcard (qdCard_le_pow_messageBits κ)
 
+/-- A normalized nonnegative outcome law has a message value with weight at least the reciprocal
+of the image size; any collapsed pair contributes its combined weight to one message guess. -/
 theorem clause4_clause3 : ∀ (κ σ : Type) (_hκ : Fintype κ) (_hd : DecidableEq σ) (p : κ → ℝ),
     (∀ k, 0 ≤ p k) → ∑ k, p k = 1 → ∀ m : κ → σ,
     (∃ g : σ,
@@ -160,6 +206,9 @@ theorem clause4_clause3 : ∀ (κ σ : Type) (_hκ : Fintype κ) (_hd : Decidabl
       _ ≤ ∑ k ∈ Finset.univ.filter (fun k => m k = m a), p k :=
           Finset.sum_le_sum_of_subset_of_nonneg hsub (fun k _ _ => hp k)
 
+/-- For uniform qudit outcomes, injective, noninjective, and constant encodings satisfy the
+stated optimal fixed-message guessing bounds, while any decoder succeeds with weight at most
+the image size divided by `n²`. -/
 theorem clause4_clause4 : ∀ (n : ℕ) (_hn : NeZero n) (σ : Type) (_hσ : Fintype σ) (_hd : DecidableEq σ)
     (m : Fin n × Fin n → σ),
     (Function.Injective m →
@@ -276,6 +325,8 @@ theorem clause4_clause4 : ∀ (n : ℕ) (_hn : NeZero n) (σ : Type) (_hσ : Fin
       exact Fintype.card_le_of_injective _ hinj
     exact mul_le_mul_of_nonneg_right (by exact_mod_cast hle) hn2pos.le
 
+/-- The standard qudit protocol has corrected branch weight `1 / n²`, identity total output, and
+injective decodable messages of length `2 * Nat.clog 2 n` [BennettEtAl1993Teleportation]. -/
 theorem clause4_clause6 : ∀ (n : ℕ) (h : NeZero n),
     (∀ (rho : Operator n) (o : Fin n × Fin n),
       @quditActualBranchCore n h o rho = (1 / (n : ℂ) ^ 2) • rho) ∧
@@ -296,6 +347,8 @@ theorem clause4_clause6 : ∀ (n : ℕ) (h : NeZero n),
   simp only [quditCorrectedInstrument_branch, ← Finset.sum_smul,
     qudit_uniform_scalar_sum, one_smul]
 
+/-- The qudit resource marginal converse, maximal-entanglement characterization, resource
+sufficiency, pure-resource form, and redundant-coding reliability contracts all hold. -/
 theorem clause4_clause7 : (QuditResourceMarginalConverse ∧ QuditMaxEntCharacterization ∧
     QuditMaxEntResourceTeleportation ∧ QuditPureResourceMaxEntForm ∧
     RedundantCodingReliability) :=
@@ -304,6 +357,7 @@ theorem clause4_clause7 : (QuditResourceMarginalConverse ∧ QuditMaxEntCharacte
     redundantCodingReliability⟩
 open Matrix
 
+/-- The sum of the powers `2 ^ i` for `i < n` is `2 ^ n - 1`. -/
 theorem sum_two_pow (n : ℕ) : ∑ i ∈ Finset.range n, 2 ^ i = 2 ^ n - 1 := by
   induction n with
   | zero => simp
@@ -314,6 +368,7 @@ theorem sum_two_pow (n : ℕ) : ∑ i ∈ Finset.range n, 2 ^ i = 2 ^ n - 1 := b
     · have h1 : 0 < 2 ^ (n + 1) := Nat.two_pow_pos _
       omega
 
+/-- A finite set contains at most `2 ^ m` Boolean lists of length `m`. -/
 private theorem boolListLen_card_le (m : ℕ) (s : Finset (List Bool)) :
     (s.filter (fun l => l.length = m)).card ≤ 2 ^ m := by
   have hlen : ∀ l ∈ s.filter (fun l => l.length = m), l.length = m :=
@@ -336,6 +391,8 @@ private theorem boolListLen_card_le (m : ℕ) (s : Finset (List Bool)) :
   rw [h2] at h1
   exact h1
 
+/-- A finite set of Boolean lists whose lengths are at most `c` has cardinality at most `2 ^ (c
++ 1)`. -/
 theorem boolLists_card_le (c : ℕ) (s : Finset (List Bool)) (hall : ∀ l ∈ s, l.length ≤ c) :
     s.card ≤ 2 ^ (c + 1) := by
   have heq : s = (Finset.range (c + 1)).biUnion
@@ -363,6 +420,8 @@ theorem boolLists_card_le (c : ℕ) (s : Finset (List Bool)) (hall : ∀ l ∈ s
   have hpow : 0 < 2 ^ (c + 1) := Nat.two_pow_pos _
   omega
 
+/-- If a protocol's message encoding is injective, its number of outcomes is at most `2 ^
+(qdCommCost P + 1)`. -/
 theorem qdCommCost_card_le {n : ℕ} {κ : Type} [Fintype κ] (P : QdLoccTeleport n κ)
     (hinj : Function.Injective P.msgCode) :
     Fintype.card κ ≤ 2 ^ (qdCommCost P + 1) := by
@@ -375,6 +434,8 @@ theorem qdCommCost_card_le {n : ℕ} {κ : Type} [Fintype κ] (P : QdLoccTelepor
   rw [hcard]
   exact boolLists_card_le (qdCommCost P) _ hall
 
+/-- An injective message encoding and at least `n²` outcomes imply `n² ≤ 2 ^ (qdCommCost P +
+1)`. -/
 theorem qdCommCost_of_card {n : ℕ} {κ : Type} [Fintype κ] (P : QdLoccTeleport n κ)
     (hcard : n * n ≤ Fintype.card κ) (hinj : Function.Injective P.msgCode) :
     n * n ≤ 2 ^ (qdCommCost P + 1) :=

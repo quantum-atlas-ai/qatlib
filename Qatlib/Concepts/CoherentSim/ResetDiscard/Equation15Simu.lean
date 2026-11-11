@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Stat
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation14Simu
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Robustness bounds for cubic amplification
+
+`oaa_scale_defect_le` and `oaa_cubic_operator_error_le` control scale errors and perturbations
+of the encoded operator. `equation15` transfers these bounds to normalized input vectors, making
+the robustness estimate for oblivious amplification [BerryEtAl2015Taylor] explicit.
+
+## Main statements
+
+* `oaa_cubic_operator_error_le`: A polynomial bound for the amplified operator error.
+* `equation15`: The corresponding projected vector-error bound.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -20,6 +38,8 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- For `s ≥ 1` within `δ ≤ 1` of two, the scalar amplification defect `|3 / s - 4 / s³ - 1|` is
+at most `15 * δ`. -/
 theorem oaa_scale_defect_le (s δ : ℝ) (hs : 1 ≤ s) (hd : |s-2| ≤ δ) (hδ : δ ≤ 1) :
     |3/s-4/s^3-1| ≤ 15*δ := by
   have hspos : 0 < s := by linarith
@@ -39,6 +59,9 @@ theorem oaa_scale_defect_le (s δ : ℝ) (hs : 1 ≤ s) (hd : |s-2| ≤ δ) (hδ
     _ ≤ 15*δ := by linarith
     _ ≤ _ := by nlinarith [mul_le_mul_of_nonneg_left hpow (by positivity : 0 ≤ 15*δ)]
 
+/-- If `X` is within `δ₁` of a unitary and `s ≥ 1` is within `δ₂ ≤ 1` of two, the cubic
+amplified operator differs from that unitary by at most `(15 + 12 * δ₁ + 4 * δ₁²) * δ₁ + 15
+* δ₂`. -/
 theorem oaa_cubic_operator_error_le {I : Type*} [Fintype I] [DecidableEq I]
     (X U : Matrix I I ℂ) (s δ₁ δ₂ : ℝ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (hX : ‖X-U‖ ≤ δ₁) (hs : 1 ≤ s) (hd : |s-2| ≤ δ₂) (hδ : δ₂ ≤ 1) :
@@ -68,6 +91,9 @@ theorem oaa_cubic_operator_error_le {I : Type*} [Fintype I] [DecidableEq I]
     exact hh.trans (by nlinarith)
   exact hD
 
+/-- The projected amplified output of an approximate scaled encoding differs from the embedded
+unitary output on a normalized input by at most `(15 + 12 * δ₁ + 4 * δ₁²) * δ₁ + 15 * δ₂`
+under the stated perturbation bounds. See [BerryEtAl2015Taylor]. -/
 theorem equation15 : Equation15 := by
   intro J I _ _ _ _ W j₀ X U s δ₁ δ₂ hW hU hX hs hd hδ ψ hψ
   let D : Matrix I I ℂ := ((3/s : ℝ) : ℂ) • X-

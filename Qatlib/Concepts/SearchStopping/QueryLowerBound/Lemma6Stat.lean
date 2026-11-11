@@ -6,11 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.QueryHybrid
 
+/-!
+# Statement of the quantum search hybrid estimates
+
+Defines `Lemma6`, combining the telescoping hybrid distance bound, a final projection-distance
+lower bound, and the summed quadratic deficit estimate. Its hypotheses compare normalized
+evolutions whose steps agree away from the relevant labeled query fibers. For the quantum-search
+analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `Lemma6`: The proposition asserting the individual hybrid distance bound, the
+  projection-deficit lower bound on squared state distance, and the summed `2 * r ^ 2` bound for
+  labeled query evolutions.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 
 open scoped BigOperators
 universe u v
 
+/-- The proposition asserting the individual hybrid distance bound, the projection-deficit lower
+bound on squared state distance, and the summed `2 * r ^ 2` bound for labeled query
+evolutions. -/
 def Lemma6 : Prop :=
   ∀ {C : Type u} {Y : Type v} [Fintype C] [DecidableEq C] [Fintype Y] [DecidableEq Y]
     (U : ℕ → EuclideanSpace ℂ C ≃ₗᵢ[ℂ] EuclideanSpace ℂ C)

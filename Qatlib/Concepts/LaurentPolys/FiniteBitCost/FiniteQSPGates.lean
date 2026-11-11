@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LaurentPolys.FiniteBitCost.FiniteQSPAlgebra
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Gate identities and continuity for the QSP bridge
+
+Hadamard conjugation relates the bridge factors and diagonal matrices to the phase and signal
+gates. The module proves exact trigonometric formulas, unitarity of these gates and the
+recursive QSP operator, and Lipschitz bounds for phase perturbations. These identities connect
+polynomial constructions with the quantum signal processing framework [LowChuang2017].
+
+## Main statements
+
+* `rhw_qsp_bridge_had_elem`: a normalized coefficient factor becomes a phase gate.
+* `rhw_qsp_bridge_phase_diff`: the phase-gate norm perturbation bound.
+* `rhw_qsp_bridge_qsp_unitary`: unitarity for signal values in `[0, 1]`.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
@@ -14,6 +34,8 @@ namespace Qatlib.Concepts.LaurentPolys.FiniteBitCost
 open Polynomial Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Expands Hadamard conjugation of an arbitrary bridge matrix into its four transformed
+entries. -/
 theorem rhw_qsp_bridge_had_mat (a b c d : ℂ) : Hadamard*rhwQSPBridgeMatrix a b c d*Hadamard=
     rhwQSPBridgeMatrix ((a+b+c+d)/2) ((a-b+c-d)/2) ((a+b-c-d)/2) ((a-b-c+d)/2) := by
   ext i j
@@ -22,17 +44,20 @@ theorem rhw_qsp_bridge_had_mat (a b c d : ℂ) : Hadamard*rhwQSPBridgeMatrix a b
   all_goals norm_num [sqrt2_sq]
   all_goals ring
 
+/-- Hadamard conjugation preserves products of two-by-two matrices. -/
 theorem rhw_qsp_bridge_had_mul (A B : Matrix Bool Bool ℂ) :
     Hadamard*(A*B)*Hadamard=(Hadamard*A*Hadamard)*(Hadamard*B*Hadamard) := by
   simp only [mul_assoc]
   rw [← mul_assoc Hadamard Hadamard,hadamard_mul_self,one_mul]
 
+/-- The inverse of `exp (i*θ)` equals `cos θ - i*sin θ` for real `θ`. -/
 theorem rhw_qsp_bridge_exp_inv (θ : ℝ) : (Complex.exp ((θ:ℂ)*Complex.I))⁻¹=
     (Real.cos θ:ℂ)-(Real.sin θ:ℂ)*Complex.I := by
   rw [← Complex.exp_neg,← neg_mul,← Complex.ofReal_neg,Complex.exp_ofReal_mul_I]
   simp only [Real.cos_neg,Real.sin_neg,Complex.ofReal_neg]
   ring
 
+/-- Expresses the bridge phase gate using the trigonometric entries `cos θ ± i*sin θ`. -/
 theorem rhw_qsp_bridge_phase_exp (θ : ℝ) : rhwQSPBridgePhase θ=
     rhwQSPBridgeMatrix ((Real.cos θ:ℂ)+(Real.sin θ:ℂ)*Complex.I) 0 0
       ((Real.cos θ:ℂ)-(Real.sin θ:ℂ)*Complex.I) := by
@@ -42,6 +67,8 @@ theorem rhw_qsp_bridge_phase_exp (θ : ℝ) : rhwQSPBridgePhase θ=
   congr 1
   ring
 
+/-- For `θ` in `[0, π/2]`, Hadamard conjugation of the bridge diagonal at `exp (i*θ)` equals the
+signal gate at `cos θ`. -/
 theorem rhw_qsp_bridge_had_signal (θ : ℝ) (hθ : θ∈Set.Icc (0:ℝ) (Real.pi/2)) :
     Hadamard*rhwQSPBridgeDiagonal (Complex.exp ((θ:ℂ)*Complex.I))*Hadamard=rhwQSPBridgeSignal (Real.cos θ) := by
   have hs : 0≤Real.sin θ := Real.sin_nonneg_of_nonneg_of_le_pi hθ.1 (by linarith [hθ.2,Real.pi_pos])
@@ -51,6 +78,8 @@ theorem rhw_qsp_bridge_had_signal (θ : ℝ) (hθ : θ∈Set.Icc (0:ℝ) (Real.p
   simp only [rhwQSPBridgeSignal,hroot]
   congr 1 <;> ring
 
+/-- For `φ` in `(-π/2, π/2)`, the bridge factor of `i * tan φ` has diagonal entries `cos φ` and
+off-diagonal entries `i*sin φ`. -/
 theorem rhw_qsp_bridge_elem_angle (φ : ℝ) (hφ : φ∈Set.Ioo (-(Real.pi/2)) (Real.pi/2)) :
     rhwQSPBridgeFactor (rhwQSPBridgeCoefficient φ)=rhwQSPBridgeMatrix (Real.cos φ:ℂ) (Complex.I*(Real.sin φ:ℂ))
       (Complex.I*(Real.sin φ:ℂ)) (Real.cos φ:ℂ) := by
@@ -69,11 +98,15 @@ theorem rhw_qsp_bridge_elem_angle (φ : ℝ) (hφ : φ∈Set.Ioo (-(Real.pi/2)) 
       _ = Complex.I*((Real.cos φ:ℂ)*(Real.tan φ:ℂ)) := by ring
       _ = _ := by rw [hs]
 
+/-- For `φ` in `(-π/2, π/2)`, Hadamard conjugation sends the bridge factor of its phase
+coefficient to the phase gate at `φ`. -/
 theorem rhw_qsp_bridge_had_elem (φ : ℝ) (hφ : φ∈Set.Ioo (-(Real.pi/2)) (Real.pi/2)) :
     Hadamard*rhwQSPBridgeFactor (rhwQSPBridgeCoefficient φ)*Hadamard=rhwQSPBridgePhase φ := by
   rw [rhw_qsp_bridge_elem_angle φ hφ,rhw_qsp_bridge_had_mat,rhw_qsp_bridge_phase_exp]
   congr 1 <;> ring
 
+/-- The distance between the unit complex phases at real angles `a` and `b` is at most `|a -
+b|`. -/
 theorem rhw_qsp_bridge_phase_chord (a b : ℝ) :
     ‖Complex.exp ((a:ℂ)*Complex.I)-Complex.exp ((b:ℂ)*Complex.I)‖≤|a-b| := by
   have he : Complex.exp ((a:ℂ)*Complex.I)-Complex.exp ((b:ℂ)*Complex.I)=
@@ -85,6 +118,7 @@ theorem rhw_qsp_bridge_phase_chord (a b : ℝ) :
   rw [he,norm_mul,Complex.norm_exp_ofReal_mul_I,one_mul]
   exact Real.norm_exp_I_mul_ofReal_sub_one_le
 
+/-- The diagonal matrix with entries `exp (i*a)` and `exp (-i*a)` is unitary. -/
 theorem rhw_qsp_bridge_diagonal_phase_unitary (a : ℝ) :
     (Matrix.diagonal (fun i : Bool => if i then Complex.exp (-(a:ℂ)*Complex.I)
       else Complex.exp ((a:ℂ)*Complex.I)))∈Matrix.unitaryGroup Bool ℂ := by
@@ -99,6 +133,8 @@ theorem rhw_qsp_bridge_diagonal_phase_unitary (a : ℝ) :
   all_goals convert Complex.exp_zero using 1
   all_goals ring
 
+/-- The operator-norm difference between the diagonal phase matrices at `a` and `b` is at most
+`|a - b|`. -/
 theorem rhw_qsp_bridge_diagonal_phase_norm_diff (a b : ℝ) :
     ‖(Matrix.diagonal (fun i : Bool => if i then Complex.exp (-(a:ℂ)*Complex.I)
       else Complex.exp ((a:ℂ)*Complex.I)))-
@@ -112,25 +148,32 @@ theorem rhw_qsp_bridge_diagonal_phase_norm_diff (a b : ℝ) :
   · simpa only [Complex.ofReal_neg,neg_sub_neg,abs_sub_comm] using!
       rhw_qsp_bridge_phase_chord (-a) (-b)
 
+/-- Identifies the bridge phase gate with the corresponding diagonal matrix of opposite complex
+phases. -/
 theorem rhw_qsp_bridge_phase_diagonal (a : ℝ) : rhwQSPBridgePhase a=Matrix.diagonal (fun i : Bool =>
     if i then Complex.exp (-(a:ℂ)*Complex.I) else Complex.exp ((a:ℂ)*Complex.I)) := by
   ext i j
   cases i <;> cases j <;> simp [rhwQSPBridgePhase,rhwQSPBridgeMatrix]
 
+/-- Every bridge phase gate at a real angle is unitary. -/
 theorem rhw_qsp_bridge_phase_unitary (a : ℝ) : rhwQSPBridgePhase a∈Matrix.unitaryGroup Bool ℂ := by
   rw [rhw_qsp_bridge_phase_diagonal]
   exact rhw_qsp_bridge_diagonal_phase_unitary a
 
+/-- The operator-norm difference between bridge phase gates is bounded by the absolute
+difference of their angles. -/
 theorem rhw_qsp_bridge_phase_diff (a b : ℝ) : ‖rhwQSPBridgePhase a-rhwQSPBridgePhase b‖≤|a-b| := by
   rw [rhw_qsp_bridge_phase_diagonal,rhw_qsp_bridge_phase_diagonal]
   exact rhw_qsp_bridge_diagonal_phase_norm_diff a b
 
+/-- The bridge diagonal at `exp (i*θ)` equals the bridge phase gate at `θ`. -/
 theorem rhw_qsp_bridge_diag_phase (θ : ℝ) : rhwQSPBridgeDiagonal (Complex.exp ((θ:ℂ)*Complex.I))=rhwQSPBridgePhase θ := by
   simp only [rhwQSPBridgeDiagonal,rhwQSPBridgePhase]
   rw [← Complex.exp_neg]
   congr 2
   ring
 
+/-- The bridge signal gate is unitary for `0 ≤ x ≤ 1`. -/
 theorem rhw_qsp_bridge_signal_unitary (x : ℝ) (hx : 0≤x) (hx1 : x≤1) : rhwQSPBridgeSignal x∈Matrix.unitaryGroup Bool ℂ := by
   let θ := Real.arccos x
   have hθ : θ∈Set.Icc (0:ℝ) (Real.pi/2) :=
@@ -141,6 +184,8 @@ theorem rhw_qsp_bridge_signal_unitary (x : ℝ) (hx : 0≤x) (hx1 : x≤1) : rhw
   exact (Matrix.unitaryGroup Bool ℂ).mul_mem
     ((Matrix.unitaryGroup Bool ℂ).mul_mem hadamard_unitary (rhw_qsp_bridge_phase_unitary θ)) hadamard_unitary
 
+/-- For signal value `x` in `[0, 1]`, every operator in the symmetric bridge QSP recursion is
+unitary. -/
 theorem rhw_qsp_bridge_qsp_unitary (ψ : ℕ → ℝ) (x : ℝ) (d : ℕ) (hx : 0≤x) (hx1 : x≤1) :
     rhwQSPBridgeOperator ψ x d∈Matrix.unitaryGroup Bool ℂ := by
   have hs := rhw_qsp_bridge_signal_unitary x hx hx1

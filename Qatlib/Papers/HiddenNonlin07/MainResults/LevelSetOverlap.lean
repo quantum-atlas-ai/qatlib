@@ -9,6 +9,28 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Level-set vectors and overlap estimates
+
+This module develops finite level-set counts and normalized level-set vectors for the setting of
+[ChildsSchulmanVazirani2007]. The functions `levelSet`, `overlap`, and `levelKet` record fibers,
+their intersection cardinalities, and their normalized indicator vectors.
+
+The inner-product formula expresses vector overlap through the two fiber sizes. Two real-array
+estimates bound sums of squared overlaps using either the number of large entries or the number
+of rows containing a large entry.
+
+## Main statements
+
+* `levelKet_inner`: computes the inner product of two level-set vectors.
+* `pair_sq_sum_le_card`: bounds a squared array sum from a large-entry count.
+* `pair_sq_div_sum_le`: bounds the corresponding row-normalized squared sum.
+
+## References
+
+* [Childs et al., 2007][ChildsSchulmanVazirani2007]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.HiddenNonlin07.MainResults.LevelSetOverlap
@@ -18,11 +40,14 @@ open Finset
 
 variable {X Y : Type*} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
+/-- The finite set of inputs mapped to `y` by `f`. -/
 def levelSet (f : X → Y) (y : Y) : Finset X := univ.filter fun x => f x = y
 
+/-- Membership in a level set is equivalent to the corresponding function-value equation. -/
 theorem mem_levelSet {f : X → Y} {y : Y} {x : X} : x ∈ levelSet f y ↔ f x = y := by
   simp [levelSet]
 
+/-- Level sets of the same function at distinct values are disjoint. -/
 theorem levelSet_disjoint {f : X → Y} {y y' : Y} (h : y ≠ y') :
     Disjoint (levelSet f y) (levelSet f y') := by
   rw [Finset.disjoint_iff_inter_eq_empty]
@@ -32,14 +57,18 @@ theorem levelSet_disjoint {f : X → Y} {y y' : Y} (h : y ≠ y') :
   rintro ⟨hx, hx'⟩
   exact h (hx.symm.trans hx')
 
+/-- The sum of the cardinalities of all level sets equals the cardinality of the domain. -/
 theorem card_eq_sum_levelSet (f : X → Y) :
     (∑ y, (levelSet f y).card) = Fintype.card X := by
   have h := Finset.card_eq_sum_card_fiberwise (s := (univ : Finset X))
     (t := (univ : Finset Y)) (f := f) (fun x _ => Finset.mem_univ (f x))
   simpa [levelSet, Finset.card_univ] using h.symm
 
+/-- The number of inputs in the intersection of the specified level sets of `f` and `f'`. -/
 def overlap (f f' : X → Y) (y y' : Y) : ℕ := ((levelSet f y) ∩ (levelSet f' y')).card
 
+/-- Summing overlaps with every level set of `f'` gives the cardinality of the fixed level set
+of `f`. -/
 theorem sum_overlap_eq_card_levelSet (f f' : X → Y) (y : Y) :
     (∑ y', overlap f f' y y') = (levelSet f y).card := by
   have h := Finset.card_eq_sum_card_fiberwise (s := levelSet f y) (t := (univ : Finset Y))
@@ -54,9 +83,13 @@ theorem sum_overlap_eq_card_levelSet (f f' : X → Y) (y : Y) :
       simp only [overlap, hfilter]
     _ = (levelSet f y).card := h.symm
 
+/-- The level-set indicator scaled by the inverse square root of its cardinality, with the empty
+level set giving the zero vector. -/
 noncomputable def levelKet (f : X → Y) (y : Y) : X → ℂ :=
   fun x => if f x = y then ((Real.sqrt ((levelSet f y).card : ℝ)) : ℂ)⁻¹ else 0
 
+/-- The inner product of two level-set vectors is their overlap size divided by the product of
+the square roots of their level-set sizes. -/
 theorem levelKet_inner (f f' : X → Y) (y y' : Y) :
     (∑ x, star (levelKet f y x) * levelKet f' y' x) =
       (((overlap f f' y y' : ℝ) /
@@ -85,6 +118,8 @@ theorem levelKet_inner (f f' : X → Y) (y y' : Y) :
   push_cast
   rw [div_eq_mul_inv, mul_inv]
 
+/-- For a nonnegative array bounded by `δ`, if at most `β * |Y| ^ 2` entries are at least `α ≥
+0`, its sum of squares is at most `(α ^ 2 + β * δ ^ 2) * |Y| ^ 2`. -/
 theorem pair_sq_sum_le_card (κ : Y → Y → ℝ) (α β δ : ℝ)
     (hκ0 : ∀ y y', 0 ≤ κ y y') (hδ : ∀ y y', κ y y' ≤ δ)
     (hα : 0 ≤ α) (_hβ : 0 ≤ β)
@@ -135,6 +170,9 @@ theorem pair_sq_sum_le_card (κ : Y → Y → ℝ) (α β δ : ℝ)
             mul_le_mul_of_nonneg_left hcount (by positivity)
           nlinarith [h1]
 
+/-- For a nonnegative array with row sums `sz y ≤ δ`, if at most `β * |Y|` rows contain an entry
+at least `α ≥ 0`, the sum of squared entries divided by their row sizes is at most `(α + β *
+δ) * |Y|`. -/
 theorem pair_sq_div_sum_le (κ : Y → Y → ℝ) (sz : Y → ℕ) (α β δ : ℝ)
     (hκ0 : ∀ y y', 0 ≤ κ y y') (hrow : ∀ y, ∑ y', κ y y' = (sz y : ℝ))
     (hδ : ∀ y, (sz y : ℝ) ≤ δ) (hδ0 : 0 ≤ δ) (hα : 0 ≤ α) (_hβ : 0 ≤ β)

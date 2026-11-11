@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+
+/-!
+# Concrete copy-based simulation and coherence
+
+The Bell density matrix `copyComparisonBell` provides an entangled input for an explicit
+fresh-copy simulation bound with resource counts. The module also computes the off-diagonal
+coherence after repeated partial swaps with a pure basis-state resource, separating its cosine
+attenuation from the ideal evolution phase. For background, see [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `copy_entangled_actual_precision_consumer`: a concrete entangled-input error bound and copy
+  counts.
+* `copy_pure_projector_exact_coherence_consumer`: exact coherence after equal partial-swap
+  steps.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,30 +44,37 @@ set_option linter.unusedSectionVars false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
+/-- The square of the inverse square root of two, viewed in `ℂ`, is `1 / 2`. -/
 private theorem invsqrt2_mul_self_ℂ :
     ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = 1 / 2 := by
   rw [inv_sqrt2_mul_self]
   norm_num
 
+/-- The outer product of `copyEvolutionBellInput`, used as a bipartite comparison density
+matrix. -/
 noncomputable def copyComparisonBell : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
   outerProduct copyEvolutionBellInput
 
+/-- The squared complex norm of the inverse square root of two is `1 / 2`. -/
 private theorem bell_norm_sq : ‖((Real.sqrt 2 : ℂ)⁻¹)‖ ^ 2 = 1 / 2 := by
   have hnn : (0 : ℝ) ≤ Real.sqrt 2 := Real.sqrt_nonneg 2
   rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hnn, inv_pow,
     Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   norm_num
 
+/-- The Bell input vector used for copy-evolution comparison is normalized. -/
 private theorem normalized_copyEvolutionBellInput : Normalized copyEvolutionBellInput := by
   show ∑ p : Fin 2 × Fin 2, ‖copyEvolutionBellInput p‖ ^ 2 = 1
   rw [Fintype.sum_prod_type]
   simp only [copyEvolutionBellInput, Fin.isValue, Fin.sum_univ_two, bell_norm_sq]
   norm_num
 
+/-- The Bell comparison matrix is positive semidefinite. -/
 theorem copyComparisonBell_posSemidef : copyComparisonBell.PosSemidef := by
   rw [copyComparisonBell]
   exact outerProduct_posSemidef _
 
+/-- The Bell comparison matrix has trace one. -/
 theorem copyComparisonBell_trace : Matrix.trace copyComparisonBell = 1 := by
   have hstar : starRingEnd ℂ ((Real.sqrt 2 : ℂ)⁻¹) = (Real.sqrt 2 : ℂ)⁻¹ := by
     rw [show ((Real.sqrt 2 : ℂ))⁻¹ = Complex.ofReal ((Real.sqrt 2 : ℝ)⁻¹) from
@@ -62,18 +90,24 @@ theorem copyComparisonBell_trace : Matrix.trace copyComparisonBell = 1 := by
   simp only [Matrix.trace, Matrix.diag_apply, happ]
   simp [Fintype.sum_prod_type, invsqrt2_mul_self_ℂ]
 
+/-- The Bell comparison matrix has trace norm one. -/
 theorem copyComparisonBell_traceNorm : Matrix.traceNorm copyComparisonBell = 1 := by
   have h := psd_traceNorm_eq_trace copyComparisonBell copyComparisonBell_posSemidef
   rw [copyComparisonBell_trace] at h
   norm_num at h
   exact h
 
+/-- The copy precision budget at parameters one and two is 32. -/
 private theorem budget_one_two : copyPrecisionBudget 1 2 = 32 := by
   rw [copyPrecisionBudget_eq_of_pos (by norm_num)]
   norm_num
 
+/-- The scalar step size `(1 / 2) / 32` equals `1 / 64`. -/
 private theorem half_div_thirty_two : ((1/2 : ℝ) / (32 : ℝ)) = 1 / 64 := by norm_num
 
+/-- Identifies the Bell comparison input and bounds the trace-norm error of 32 fresh-copy steps
+of size `1 / 64` at time `1 / 2` by `1 / 4`. The resource-count tuple is `(32, 32, 32, 0)`
+[LloydMohseniRebentrost2014]. -/
 theorem copy_entangled_actual_precision_consumer :
     copyComparisonBell = outerProduct (fun p : Fin 2 × Fin 2 =>
         if p.1 = p.2 then (Real.sqrt 2 : ℂ)⁻¹ else 0) ∧
@@ -106,6 +140,7 @@ theorem copy_entangled_actual_precision_consumer :
     · exact h1.trans hbudget
     · rw [freshCopyResourceCounts_eq, List.length_replicate]
 
+/-- The complex exponential `exp (-I * θ)` equals `cos θ - I * sin θ`. -/
 private theorem exp_neg_I (θ : ℝ) :
     Complex.exp (-Complex.I * (θ : ℂ)) = (Real.cos θ : ℂ) - Complex.I * (Real.sin θ : ℂ) := by
   have hre : (-Complex.I * (θ : ℂ)).re = 0 := by
@@ -129,6 +164,7 @@ private theorem exp_neg_I (θ : ℝ) :
     rw [Complex.sub_im, hM, hI']
     ring
 
+/-- The expression `cos² θ - I * sin θ * cos θ` factors as `cos θ * exp (-I * θ)`. -/
 private theorem cos_sq_sub_I (θ : ℝ) :
     (Real.cos θ)^2 - Complex.I*(Real.sin θ:ℂ)*(Real.cos θ:ℂ)
       = (Real.cos θ : ℂ) * Complex.exp (-Complex.I*(θ:ℂ)) := by
@@ -136,6 +172,8 @@ private theorem cos_sq_sub_I (θ : ℝ) :
   push_cast
   ring
 
+/-- A partial swap with the basis-zero pure projector multiplies the `(0, 1)` coherence by `cos
+θ * exp (-I * θ)`. -/
 theorem copy_zero_projector_coherence_step (θ : ℝ) (σ : Operator 2) :
     partialSwapOutput (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) θ σ 0 1
       = σ 0 1 * ((Real.cos θ : ℂ) * Complex.exp (-Complex.I*(θ:ℂ))) := by
@@ -146,6 +184,8 @@ theorem copy_zero_projector_coherence_step (θ : ℝ) (σ : Operator 2) :
       (σ 0 1),
     cos_sq_sub_I]
 
+/-- After `m` equal fresh-copy steps with the basis-zero projector, the `(0, 1)` coherence is
+multiplied by `(cos θ * exp (-I * θ)) ^ m`. -/
 theorem copy_zero_projector_coherence_foldl (θ : ℝ) (m : ℕ) (σ : Operator 2) :
     (freshCopyRun (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) (List.replicate m θ) σ) 0 1
       = σ 0 1 * ((Real.cos θ : ℂ) * Complex.exp (-Complex.I*(θ:ℂ)))^m := by
@@ -169,11 +209,15 @@ theorem copy_zero_projector_coherence_foldl (θ : ℝ) (m : ℕ) (σ : Operator 
         _ = σ 0 1 * ((Real.cos θ : ℂ) * Complex.exp (-Complex.I*(θ:ℂ)))^(m + 1) := by
               rw [pow_succ']
 
+/-- Every component of the equally weighted two-basis-state superposition equals the inverse
+square root of two. -/
 private theorem plusPure_apply (i : Fin 2) :
     ((Real.sqrt 2 : ℂ)⁻¹ • (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2) + Qatlib.Foundations.PureStateMath.Ket (1 : Fin 2))) i
       = (Real.sqrt 2 : ℂ)⁻¹ := by
   fin_cases i <;> simp [Matrix.smul_apply, Matrix.add_apply, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- Every entry of the outer product of the equally weighted two-basis-state superposition is
+the square of the inverse square root of two. -/
 private theorem plusPure_outer_apply (i j : Fin 2) :
     outerProduct ((Real.sqrt 2 : ℂ)⁻¹ • (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2) + Qatlib.Foundations.PureStateMath.Ket (1 : Fin 2))) i j
       = ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) := by
@@ -184,11 +228,14 @@ private theorem plusPure_outer_apply (i j : Fin 2) :
       Complex.conj_ofReal]
   rw [hstar]
 
+/-- The `(0, 1)` entry of the equally weighted qubit superposition's pure-state matrix is `1 /
+2`. -/
 theorem copy_plusProjector_01 :
     outerProduct ((Real.sqrt 2 : ℂ)⁻¹ • (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2) + Qatlib.Foundations.PureStateMath.Ket (1 : Fin 2))) 0 1 = (1/2 : ℂ) := by
   rw [plusPure_outer_apply, inv_sqrt2_mul_self]
   norm_num
 
+/-- The `m`th power of the coherence factor separates as `cos θ ^ m * exp (-I * (m * θ))`. -/
 theorem copy_coherence_power (θ : ℝ) (m : ℕ) :
     ((Real.cos θ : ℂ) * Complex.exp (-Complex.I*(θ:ℂ)))^m
       = (Real.cos θ : ℂ)^m * Complex.exp (-Complex.I * ((m:ℝ)*(θ:ℝ) : ℂ)) := by
@@ -198,6 +245,9 @@ theorem copy_coherence_power (θ : ℝ) (m : ℕ) :
     ring
   rw [hexp]
 
+/-- For positive `n`, simulating the basis-zero projector on the equally weighted qubit state
+with `n` steps of size `t / n` gives coherence `(1/2) * cos (t/n) ^ n * exp (-I * t)`
+[LloydMohseniRebentrost2014]. -/
 theorem copy_pure_projector_exact_coherence_consumer (t : ℝ) (n : ℕ) (hn : 0 < n) :
     let ρ := outerProduct (Qatlib.Foundations.PureStateMath.Ket (0:Fin 2))
     let σ :=

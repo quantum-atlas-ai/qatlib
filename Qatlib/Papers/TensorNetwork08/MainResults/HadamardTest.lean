@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihoodConcentration
 import Mathlib.Analysis.SpecialFunctions.Exp
+
+/-!
+# Finite-distribution sampling bounds for the Hadamard test
+
+Defines the sign observable `spin` and the Boolean distribution `rademacherDist` with prescribed
+mean `μ ∈ [-1, 1]`. Expectation identities and finite-event probability inequalities support the
+sampling analysis of the Hadamard test in [AradLandau2010].
+
+The theorem `hadamard_test_bias_bound` bounds the probability of empirical-mean error at least
+`ε` by one quarter when `N * ε² ≥ 16`, with positive sample count and tolerance.
+
+## Main statements
+
+* `expect_spin`: computes the sign expectation as the prescribed mean.
+* `probEvent_or_le`: gives a union bound for finite-sample events.
+* `hadamard_test_bias_bound`: proves the empirical-mean error bound.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.HadamardTest
@@ -16,16 +38,21 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLikelihoodConcentration
 
 noncomputable section
 
+/-- The real sign observable taking value one on true and negative one on false. -/
 def spin (b : Bool) : ℝ := if b then 1 else -1
 
+/-- The sign observable takes values in the interval `[-1, 1]`. -/
 theorem spin_mem_range (b : Bool) : spin b ∈ Set.Icc (-1 : ℝ) 1 := by
   cases b <;> simp [spin]
 
+/-- The negative sign observable takes values in the interval `[-1, 1]`. -/
 theorem neg_spin_mem_range (b : Bool) : (fun b => - spin b) b ∈ Set.Icc (-1 : ℝ) 1 := by
   have := spin_mem_range b
   simp only [Set.mem_Icc] at this ⊢
   constructor <;> linarith [this.1, this.2]
 
+/-- The Boolean distribution assigning probabilities `(1 + μ) / 2` to true and `(1 - μ) / 2` to
+false. -/
 def rademacherDist (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) : FinDist Bool where
   prob b := if b then (1 + μ) / 2 else (1 - μ) / 2
   nonneg := by
@@ -40,6 +67,7 @@ def rademacherDist (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) : FinDist Bool
     simp only [if_true, Bool.false_eq_true, if_false]
     ring
 
+/-- The expectation of `spin` under `rademacherDist μ hμ` equals `μ`. See [AradLandau2010]. -/
 theorem expect_spin (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) :
     (rademacherDist μ hμ).expect spin = μ := by
   unfold FinDist.expect
@@ -47,6 +75,7 @@ theorem expect_spin (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) :
   simp only [rademacherDist, spin, if_true, Bool.false_eq_true, if_false]
   ring
 
+/-- The expectation of the negative sign observable under `rademacherDist μ hμ` equals `-μ`. -/
 theorem expect_neg_spin (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) :
     (rademacherDist μ hμ).expect (fun b => - spin b) = -μ := by
   unfold FinDist.expect
@@ -54,11 +83,15 @@ theorem expect_neg_spin (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1) :
   simp only [rademacherDist, spin, if_true, Bool.false_eq_true, if_false]
   ring
 
+/-- The empirical average of the negative sign observable equals the negative empirical average
+of `spin`. -/
 theorem avg_neg_spin {N : ℕ} (ω : Fin N → Bool) :
     FinDist.avg (fun b => - spin b) ω = - FinDist.avg spin ω := by
   unfold FinDist.avg
   rw [Finset.sum_neg_distrib, neg_div]
 
+/-- Inclusion of finite-sample events implies the corresponding inequality of their
+probabilities. -/
 theorem probEvent_mono {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) {N : ℕ}
     {E F : (Fin N → X) → Prop} [DecidablePred E] [DecidablePred F]
     (h : ∀ ω, E ω → F ω) : p.probEvent E ≤ p.probEvent F := by
@@ -69,6 +102,8 @@ theorem probEvent_mono {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) {
   · intro w _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- The probability of the union of two finite-sample events is at most the sum of their
+probabilities. -/
 theorem probEvent_or_le {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) {N : ℕ}
     (E F : (Fin N → X) → Prop) [DecidablePred E] [DecidablePred F] :
     p.probEvent (fun ω => E ω ∨ F ω) ≤ p.probEvent E + p.probEvent F := by
@@ -82,6 +117,8 @@ theorem probEvent_or_le {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) 
   have hpω : 0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
   by_cases hE : E ω <;> by_cases hF : F ω <;> simp [hE, hF] <;> nlinarith
 
+/-- For positive `N` and `ε` with `N * ε² ≥ 16`, the probability that the empirical sign mean
+differs from `μ` by at least `ε` is at most one quarter. See [AradLandau2010]. -/
 theorem hadamard_test_bias_bound
     (μ : ℝ) (hμ : μ ∈ Set.Icc (-1 : ℝ) 1)
     (N : ℕ) (hN : 0 < N) (ε : ℝ) (hε : 0 < ε)

@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem4PCharacterizationStat
 import Qatlib.Concepts.QsvtCore.PhaseExistence.ComplexPolynomial
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+
+/-!
+# Characterization of the upper response polynomial
+
+`theorem4PCharacterization` proves the criterion for a complex polynomial to occur as the upper
+component of a `CompletedPair`. The conditions comprise degree and parity constraints, a unit
+bound on the real interval, a reverse bound outside its interior, and an imaginary-axis bound
+for even length. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `theorem4PCharacterization`: characterize existence of a completed lower partner.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
@@ -19,6 +37,9 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Polynomial Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- A polynomial has a completed lower partner exactly when it satisfies the stated degree,
+parity, real-axis bounds, and even-length imaginary-axis bound. This is the upper-polynomial
+criterion of [Gilyén et al., Theorem 4][GilyenSuLowWiebe2019]. -/
 theorem theorem4PCharacterization : Theorem4PCharacterization := by
   intro k P
   refine ⟨?_, ?_⟩

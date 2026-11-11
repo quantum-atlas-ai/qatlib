@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Explicit measurement branches and counterexamples
+
+This module computes measurement branches and finite gate decompositions for wire and cluster
+constructions in the one-way computation setting of [RaussendorfBriegel2001]. The wire branch
+`rbWireBranch` is independent of the corrected measurement outcome and equals one half of the
+corresponding unitary conjugation.
+
+The module also exhibits a factor-of-two discrepancy in the stated unscaled three-qubit transfer
+formula and proves that `mbqcCounterexampleGraph`, with empty boundary sets and XY measurements
+at angle `π / 2`, is not strongly deterministic. Explicit Pauli conjugation and branch
+calculations make the outcome dependence precise.
+
+## Main statements
+
+* `clause3_clause1`: the corrected wire branch identity.
+* `clause3_clause4`: the finite gate decomposition implements the wire pulse.
+* `clause3_counter_clause3`: the unscaled three-qubit branch formula fails.
+* `c5_branch_value`: the two-vertex branch value determined by corrected outcome labels.
+* `clause6_clause5`: failure of strong determinism for the two-vertex example.
+
+## References
+
+* [Raussendorf and Briegel, 2001][RaussendorfBriegel2001]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -29,18 +56,24 @@ open Qatlib.Concepts.PauliClifford.ExactRank
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision.FlowExtended
 
+/-- For two-bit registers, the product of coordinate equality indicators away from coordinate
+one is the equality indicator at coordinate zero. -/
 private theorem wire_prod_erase_one (x y : Reg 2) :
     (∏ i ∈ Finset.univ.erase (1 : Fin 2), (if x i = y i then (1 : ℂ) else 0))
       = (if x 0 = y 0 then (1 : ℂ) else 0) := by
   have h : Finset.univ.erase (1 : Fin 2) = ({0} : Finset (Fin 2)) := by decide
   rw [h, Finset.prod_singleton]
 
+/-- For two-bit registers, the product of coordinate equality indicators away from coordinate
+zero is the equality indicator at coordinate one. -/
 private theorem wire_prod_erase_zero (x y : Reg 2) :
     (∏ i ∈ Finset.univ.erase (0 : Fin 2), (if x i = y i then (1 : ℂ) else 0))
       = (if x 1 = y 1 then (1 : ℂ) else 0) := by
   have h : Finset.univ.erase (0 : Fin 2) = ({1} : Finset (Fin 2)) := by decide
   rw [h, Finset.prod_singleton]
 
+/-- The wire pulse is diagonal, with phase equal to the product of the second-bit phase and the
+two-bit controlled phase. -/
 private theorem wire_pulse_entry (x y : Reg 2) :
     rbWirePulse x y = if x = y then bitPhase (x 1) * bitPhase (x 0 && x 1) else 0 := by
   have h0 : incomingOdd rbWireEdges 0 = false := by decide +kernel
@@ -60,13 +93,17 @@ private theorem wire_pulse_entry (x y : Reg 2) :
     rw [hfr, hcz]
   · rw [if_neg hxy, if_neg hxy]
 
+/-- The wire input frame has amplitude `1 / √2` when the first register bit matches the logical
+input label, and zero otherwise. -/
 private theorem wire_frame_apply (x : Reg 2) (j : Fin 2) :
     rbWireFrame x j = if x 0 = boolEquivFin2.symm j then (Real.sqrt 2 : ℂ)⁻¹ else 0 := rfl
 
+/-- The wire output frame selects the measured first bit and the logical second-bit label. -/
 private theorem wire_out_apply (z : Bool) (j : Fin 2) (x : Reg 2) :
     rbWireOutFrame z j x =
       if x 0 = z ∧ x 1 = boolEquivFin2.symm j then (1 : ℂ) else 0 := rfl
 
+/-- The wire correction acts on the second qubit while preserving the first register bit. -/
 private theorem wire_corr_gate_apply (b : Bool) (x y : Reg 2) :
     rbWireCorrectorGate b x y =
       rbWireCorrector b (boolEquivFin2 (x 1)) (boolEquivFin2 (y 1)) *
@@ -75,6 +112,8 @@ private theorem wire_corr_gate_apply (b : Bool) (x y : Reg 2) :
   simp only [Matrix.of_apply]
   rw [wire_prod_erase_one]
 
+/-- The wire measurement gate applies the XY-plane measurement matrix to the first qubit and
+preserves the second register bit. -/
 private theorem wire_mg_apply (a : ℝ) (b : Bool) (x y : Reg 2) :
     rbWireMeasureGate a b x y =
       MbqcPlaneBasis MbqcPlane.XY a b (boolEquivFin2 (x 0)) (boolEquivFin2 (y 0)) *
@@ -83,6 +122,8 @@ private theorem wire_mg_apply (a : ℝ) (b : Bool) (x y : Reg 2) :
   simp only [Matrix.of_apply]
   rw [wire_prod_erase_zero]
 
+/-- The XY-plane measurement matrix has diagonal entries one half and the stated signed
+trigonometric off-diagonal entries. -/
 private theorem plane_XY_entry (a : ℝ) (b : Bool) (u v : Fin 2) :
     MbqcPlaneBasis MbqcPlane.XY a b u v =
       if u = v then (2 : ℂ)⁻¹
@@ -96,12 +137,14 @@ private theorem plane_XY_entry (a : ℝ) (b : Bool) (u v : Fin 2) :
     simp [MbqcPlaneBasis, mbqcPlaneAxisA, mbqcPlaneAxisB, pauliX, pauliY] <;>
     ring
 
+/-- The equivalence identifying a two-bit register with the pair of its coordinate values. -/
 private def reg2ProdEquiv : Reg 2 ≃ Bool × Bool where
   toFun y := (y 0, y 1)
   invFun p := ![p.1, p.2]
   left_inv y := funext fun k => by fin_cases k <;> rfl
   right_inv p := by cases p with | mk a b => rfl
 
+/-- A sum over two-bit registers expands into the four possible Boolean assignments. -/
 private theorem sum_reg2_eq (F : Reg 2 → ℂ) :
     (∑ y : Reg 2, F y)
       = F ![false, false] + F ![false, true] + F ![true, false] + F ![true, true] := by
@@ -114,6 +157,8 @@ private theorem sum_reg2_eq (F : Reg 2 → ℂ) :
   rw [e00, e01, e10, e11]
   ring
 
+/-- Fixing the first register bit by an equality indicator reduces a two-bit sum to its two
+second-bit assignments. -/
 private theorem sum_reg2_delta (x0 : Bool) (g : Reg 2 → ℂ) :
     (∑ y : Reg 2, (if x0 = y 0 then (1 : ℂ) else 0) * g y)
       = g ![x0, false] + g ![x0, true] := by
@@ -131,6 +176,8 @@ private theorem sum_reg2_delta (x0 : Bool) (g : Reg 2 → ℂ) :
     subst hxt
     simp
 
+/-- The pulse applied to the wire input frame has the stated matching-input amplitude and
+Boolean phase factors. -/
 private theorem wire_pulse_frame (x : Reg 2) (j : Fin 2) :
     (rbWirePulse * rbWireFrame) x j =
       if x 0 = boolEquivFin2.symm j then
@@ -151,6 +198,8 @@ private theorem wire_pulse_frame (x : Reg 2) (j : Fin 2) :
   · intro h
     exact absurd (Finset.mem_univ x) h
 
+/-- After the wire pulse and measurement, the input-frame amplitude is the measurement entry
+times the pulse phase, scaled by `1 / √2`. -/
 private theorem wire_stage1 (a : ℝ) (b : Bool) (x : Reg 2) (j : Fin 2) :
     (rbWireMeasureGate a b * (rbWirePulse * rbWireFrame)) x j =
       (Real.sqrt 2 : ℂ)⁻¹ *
@@ -180,6 +229,8 @@ private theorem wire_stage1 (a : ℝ) (b : Bool) (x : Reg 2) (j : Fin 2) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- After correction, the wire amplitude is the measurement entry times a sum over the
+second-bit correction and pulse phases. -/
 private theorem wire_stage2 (a : ℝ) (b : Bool) (x : Reg 2) (j : Fin 2) :
     (rbWireCorrectorGate b * (rbWireMeasureGate a b * (rbWirePulse * rbWireFrame))) x j =
       (Real.sqrt 2 : ℂ)⁻¹ *
@@ -210,6 +261,8 @@ private theorem wire_stage2 (a : ℝ) (b : Bool) (x : Reg 2) (j : Fin 2) :
   rw [b0, b1]
   ring
 
+/-- The sum of the wire correction entries against the pulse phases is the stated controlled
+phase, with the output bit flipped for outcome true. -/
 private theorem wire_corr_sum (b : Bool) (j j' : Fin 2) :
     (∑ t : Bool, rbWireCorrector b j' (boolEquivFin2 t) *
       bitPhase t * bitPhase (boolEquivFin2.symm j && t))
@@ -225,6 +278,8 @@ private theorem wire_corr_sum (b : Bool) (j j' : Fin 2) :
     fin_cases j' <;> fin_cases j <;>
       simp [bitPhase, boolEquivFin2, pauliX, pauliZ]
 
+/-- Each wire Kraus entry is the scaled XY-plane measurement entry multiplied by the
+outcome-dependent controlled phase. -/
 private theorem wire_kraus_entry (a : ℝ) (b z : Bool) (j' j : Fin 2) :
     rbWireKraus a b z j' j =
       (Real.sqrt 2 : ℂ)⁻¹ *
@@ -258,11 +313,13 @@ private theorem wire_kraus_entry (a : ℝ) (b z : Bool) (j' j : Fin 2) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The exponential of `a * I` is `cos a + I * sin a` for real `a`. -/
 private theorem exp_ofReal_I (a : ℝ) :
     Complex.exp ((a : ℂ) * Complex.I)
       = Complex.cos (a : ℂ) + Complex.sin (a : ℂ) * Complex.I :=
   (Complex.cos_add_sin_I (a : ℂ)).symm
 
+/-- The exponential of `-(a * I)` is `cos a - I * sin a` for real `a`. -/
 private theorem exp_neg_ofReal_I (a : ℝ) :
     Complex.exp (-(a : ℂ) * Complex.I)
       = Complex.cos (a : ℂ) - Complex.sin (a : ℂ) * Complex.I := by
@@ -272,12 +329,15 @@ private theorem exp_neg_ofReal_I (a : ℝ) :
       = Complex.cos (a : ℂ) + -Complex.sin (a : ℂ) * Complex.I := by ring
   rw [h3, ← h]
 
+/-- For real `a`, the product of `exp (a * I)` with its complex conjugate is one. -/
 private theorem mul_star_exp_one (a : ℝ) :
     Complex.exp ((a : ℂ) * Complex.I) * star (Complex.exp ((a : ℂ) * Complex.I)) = 1 := by
   rw [← starRingEnd_apply, Complex.mul_conj, Complex.normSq_eq_norm_sq,
     Complex.norm_exp_ofReal_mul_I]
   norm_num
 
+/-- Two scalar factors in a Kraus matrix contribute their squared moduli to its conjugation
+branch. -/
 private theorem conjBranch_phase {D : ℕ} (c d : ℂ) (M : Matrix (Fin D) (Fin D) ℂ) (ρ : Operator D) :
     conjBranch (c • (d • M)) ρ
       = (c * star c * (d * star d)) • (M * ρ * M.conjTranspose) := by
@@ -286,12 +346,14 @@ private theorem conjBranch_phase {D : ℕ} (c d : ℂ) (M : Matrix (Fin D) (Fin 
   congr 1
   ring
 
+/-- Complex conjugation fixes the reciprocal of two. -/
 private theorem star_inv_two : star ((2 : ℂ)⁻¹) = (2 : ℂ)⁻¹ := by
   show star (((2 : ℝ) : ℂ)⁻¹) = (((2 : ℝ) : ℂ)⁻¹)
   rw [← starRingEnd_apply]
   have h : (((2 : ℝ) : ℂ)⁻¹) = Complex.ofReal (2 : ℝ)⁻¹ := (Complex.ofReal_inv 2).symm
   rw [h, Complex.conj_ofReal]
 
+/-- The exponential of `I * a` is `cos a + I * sin a` for real `a`. -/
 private theorem exp_ofReal_I' (a : ℝ) :
     Complex.exp (Complex.I * (a : ℂ))
       = Complex.cos (a : ℂ) + Complex.sin (a : ℂ) * Complex.I := by
@@ -299,6 +361,7 @@ private theorem exp_ofReal_I' (a : ℝ) :
   rw [h]
   exact exp_ofReal_I a
 
+/-- The exponential of `-(I * a)` is `cos a - I * sin a` for real `a`. -/
 private theorem exp_neg_ofReal_I' (a : ℝ) :
     Complex.exp (-(Complex.I * (a : ℂ)))
       = Complex.cos (a : ℂ) - Complex.sin (a : ℂ) * Complex.I := by
@@ -306,6 +369,8 @@ private theorem exp_neg_ofReal_I' (a : ℝ) :
   rw [h]
   exact exp_neg_ofReal_I a
 
+/-- Each wire Kraus matrix is one half of `rbWireUnitary a`, multiplied by the stated
+outcome-dependent phase. -/
 private theorem wire_kraus_eq (a : ℝ) (b z : Bool) :
     rbWireKraus a b z
       = (if z then (if b then (-1 : ℂ) else 1) * Complex.exp ((a : ℂ) * Complex.I)
@@ -333,6 +398,8 @@ private theorem wire_kraus_eq (a : ℝ) (b z : Bool) :
   all_goals
     try linear_combination -(Complex.cos_sq_add_sin_sq a) * ((Real.sqrt 2 : ℂ)⁻¹ * (2 : ℂ)⁻¹)
 
+/-- Every corrected wire branch is independent of the Boolean measurement outcome and equals one
+half of conjugation by `rbWireUnitary a`. -/
 theorem clause3_clause1 :
     ∀ (a : ℝ) (ρ : Operator 2) (b b' : Bool),
       rbWireBranch a b ρ = rbWireBranch a b' ρ
@@ -385,6 +452,8 @@ theorem clause3_clause1 :
   refine ⟨?_, hbb b⟩
   rw [hbb b, hbb b']
 
+/-- The wire, CNOT, and three-qubit examples have declared communication counts one, two, and
+one, and every source pulse factors as its frame matrix times its CZ matrix. -/
 theorem clause3_clause5 :
     rbWireCommBits = 1 ∧ rbCnotCommBits = 2 ∧ rbFig2bCommBits = 1
       ∧ ∀ (n : ℕ) (edges : Finset (Fin n × Fin n)),
@@ -393,6 +462,8 @@ theorem clause3_clause5 :
               * Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix edges :=
   ⟨rfl, rfl, rfl, fun _n edges => sourcePulse_eq_frame_cz edges⟩
 
+/-- The three-qubit pulse is diagonal with the stated two local phases and two controlled
+phases. -/
 private theorem fig2b_pulse_apply (x y : Reg 3) :
     rbFig2bPulse x y =
       if x = y then
@@ -419,6 +490,7 @@ private theorem fig2b_pulse_apply (x y : Reg 3) :
       · rw [if_neg hxw, zero_mul])]
     rw [if_neg hxy]
 
+/-- A product of coordinate equality indicators selects one register assignment in a finite sum. -/
 private theorem sum_reg_single {n : ℕ} (F : Reg n → ℂ) (b : Reg n) :
     ∑ x : Reg n, (∏ k : Fin n, if x k = b k then (1 : ℂ) else 0) * F x = F b := by
   rw [Finset.sum_eq_single b]
@@ -434,12 +506,16 @@ private theorem sum_reg_single {n : ℕ} (F : Reg n → ℂ) (b : Reg n) :
   · intro h
     exact absurd (Finset.mem_univ b) h
 
+/-- The false-outcome XY-plane measurement matrix at angle zero has every entry equal to one
+half. -/
 private theorem plane_basis_XY0_entry (z d : Bool) :
     MbqcPlaneBasis MbqcPlane.XY 0 false (boolEquivFin2 z) (boolEquivFin2 d) = (2 : ℂ)⁻¹ := by
   cases z <;> cases d <;>
     simp [MbqcPlaneBasis, mbqcPlaneAxisA, mbqcPlaneAxisB, pauliX, pauliY,
       Real.cos_zero, Real.sin_zero, boolEquivFin2]
 
+/-- The false-outcome measurement gate in the three-qubit example has amplitude one half and
+preserves all coordinates except the measured coordinate zero. -/
 private theorem fig2b_mg_entry (x y : Reg 3) :
     rbFig2bMeasureGate false x y =
       (2 : ℂ)⁻¹ *
@@ -448,16 +524,22 @@ private theorem fig2b_mg_entry (x y : Reg 3) :
   simp only [Matrix.of_apply]
   rw [plane_basis_XY0_entry (x 0) (y 0)]
 
+/-- The three-qubit output frame selects the first-bit outcome and the two remaining bits
+encoded by the logical output label. -/
 private theorem fig2b_out_apply (z : Bool) (j : Fin 4) (x : Reg 3) :
     rbFig2bOutFrame z j x =
       (if x 0 = z then (1 : ℂ) else 0) *
         (if x 1 = (bitVecEquiv 2).symm j 0 then 1 else 0) *
         (if x 2 = (bitVecEquiv 2).symm j 1 then 1 else 0) := rfl
 
+/-- The three-qubit input frame has amplitude `1 / √2` when its first bit matches the logical
+input label, and zero otherwise. -/
 private theorem fig2b_frame_apply (x : Reg 3) (i : Fin 2) :
     rbFig2bFrame x i =
       if x 0 = boolEquivFin2.symm i then (Real.sqrt 2 : ℂ)⁻¹ else 0 := rfl
 
+/-- Composing the false-outcome measurement with the output frame gives one half times the
+equality indicators for the two retained bits. -/
 private theorem fig2b_outmg_apply (z : Bool) (j : Fin 4) (v : Reg 3) :
     (rbFig2bOutFrame z * rbFig2bMeasureGate false) j v =
       (2 : ℂ)⁻¹ *
@@ -490,6 +572,8 @@ private theorem fig2b_outmg_apply (z : Bool) (j : Fin 4) (v : Reg 3) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Composing the output frame, false-outcome measurement, and pulse gives the retained-bit
+indicators times the explicit pulse phases, scaled by one half. -/
 private theorem fig2b_outmgpulse_apply (z : Bool) (j : Fin 4) (w : Reg 3) :
     ((rbFig2bOutFrame z * rbFig2bMeasureGate false) * rbFig2bPulse) j w =
       (2 : ℂ)⁻¹ *
@@ -505,6 +589,8 @@ private theorem fig2b_outmgpulse_apply (z : Bool) (j : Fin 4) (w : Reg 3) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The false-outcome correction in the three-qubit example acts as the identity on any matrix
+with four rows. -/
 private theorem fig2b_corr_mul {α : Type*} (M : Matrix (Fin 4) α ℂ) :
     rbFig2bCorrection false * M = M := by
   ext j x
@@ -517,6 +603,8 @@ private theorem fig2b_corr_mul {α : Type*} (M : Matrix (Fin 4) α ℂ) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- For false outcome, each three-qubit Kraus entry has scale `1 / (2 * √2)` and the stated sign
+determined by the input label and equality of the output bits. -/
 private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
     rbFig2bKraus false z j i =
       ((2 : ℂ) * (Real.sqrt 2 : ℂ))⁻¹ *
@@ -559,12 +647,14 @@ private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- For false measurement outcome, both output-labeled Kraus matrices equal `rbFig2bTransferOp`. -/
 private theorem fig2b_kraus_false_eq (z : Bool) :
     rbFig2bKraus false z = rbFig2bTransferOp := by
   ext j i
   rw [fig2b_kraus_false_entry]
   simp only [rbFig2bTransferOp, Matrix.of_apply, smul_eq_mul]
 
+/-- The false-outcome branch is twice conjugation by `rbFig2bTransferOp`. -/
 private theorem fig2b_branch_false_eq (ρ : Operator 2) :
     rbFig2bBranch false ρ =
       (2 : ℂ) • (rbFig2bTransferOp * ρ * (rbFig2bTransferOp).conjTranspose) := by
@@ -573,6 +663,8 @@ private theorem fig2b_branch_false_eq (ρ : Operator 2) :
   simp only [conjBranch_apply]
   module
 
+/-- Conjugating the identity by `rbFig2bTransferOp` gives a matrix with nonzero entry at `(0,
+0)`. -/
 private theorem fig2b_transfer_nonsingular :
     (rbFig2bTransferOp * (1 : Operator 2) * (rbFig2bTransferOp).conjTranspose) 0 0 ≠ 0 := by
   have hc : rbFig2bTransferOp 0 0 = ((2 : ℂ) * (Real.sqrt 2 : ℂ))⁻¹ := by
@@ -607,6 +699,8 @@ private theorem fig2b_transfer_nonsingular :
   simp only [Matrix.conjTranspose_apply, hc, hc1] at h0
   exact hcc (by linear_combination (1 / 2) * h0)
 
+/-- The universal formula equating every three-qubit branch with unscaled conjugation by
+`rbFig2bTransferOp` is false. -/
 theorem clause3_counter_clause3 :
     ¬ (∀ (ρ : Operator 2) (s : Bool),
         rbFig2bBranch s ρ
@@ -620,6 +714,7 @@ theorem clause3_counter_clause3 :
     exact add_left_cancel (h1.trans (add_zero _).symm)
   exact fig2b_transfer_nonsingular (by rw [hX]; rfl)
 
+/-- Four successive T gates multiply to Pauli Z. -/
 private theorem tGate_fold : ((tGate * tGate) * tGate) * tGate = PauliZ := by
   rw [tGate, Rz, Matrix.diagonal_mul_diagonal, Matrix.diagonal_mul_diagonal,
     Matrix.diagonal_mul_diagonal, PauliZ]
@@ -653,6 +748,7 @@ private theorem tGate_fold : ((tGate * tGate) * tGate) * tGate = PauliZ := by
       push_cast; ring
     rw [h1, h2, h3, h4, Complex.exp_pi_mul_I]
 
+/-- Pauli Z on the second qubit is diagonal with sign determined by that register bit. -/
 private theorem wire_pauliZ_entry (x y : Reg 2) :
     wireGate 2 1 PauliZ x y = if x = y then (if x 1 then (-1 : ℂ) else 1) else 0 := by
   rw [wireGate_apply]
@@ -683,6 +779,7 @@ private theorem wire_pauliZ_entry (x y : Reg 2) :
       exact h0 (congrFun he 0)
     rw [if_neg hnsupp, if_neg hxy]
 
+/-- The wire frame matrix is diagonal with sign determined by the second register bit. -/
 private theorem frame_rb_entry (x y : Reg 2) :
     frameMatrix rbWireEdges x y = if x = y then (if x 1 then (-1 : ℂ) else 1) else 0 := by
   rw [frameMatrix, Matrix.diagonal_apply]
@@ -695,14 +792,18 @@ private theorem frame_rb_entry (x y : Reg 2) :
     cases x 0 <;> cases x 1 <;> simp
   · rw [if_neg hxy, if_neg hxy]
 
+/-- Pauli Z on the second qubit equals the wire frame matrix. -/
 private theorem wire_pauliZ_frame : wireGate 2 1 PauliZ = frameMatrix rbWireEdges := by
   ext x y
   rw [wire_pauliZ_entry, frame_rb_entry]
 
+/-- Four T gates on the second qubit multiply to the wire frame matrix. -/
 private theorem t4_frame : ((wireGate 2 1 tGate * wireGate 2 1 tGate)
     * wireGate 2 1 tGate) * wireGate 2 1 tGate = frameMatrix rbWireEdges := by
   rw [wireGate_mul, wireGate_mul, wireGate_mul, tGate_fold, wire_pauliZ_frame]
 
+/-- The Hadamard gate on the second qubit preserves the first bit and has the corresponding
+Hadamard matrix entry on the second. -/
 private theorem wire_hadamard_sep (x k : Reg 2) :
     wireGate 2 1 Hadamard x k
       = (if x 0 = k 0 then (1 : ℂ) else 0) * Hadamard (x 1) (k 1) := by
@@ -720,25 +821,32 @@ private theorem wire_hadamard_sep (x k : Reg 2) :
     rw [if_neg hnsupp, if_neg h]
     ring
 
+/-- The CNOT matrix from coordinate zero to coordinate one is the equality indicator for the
+target-bit XOR update. -/
 private theorem cnot01_apply (k j : Reg 2) :
     cnotGate 2 0 1 k j
       = if k = Function.update j 1 (j 1 ^^ j 0) then (1 : ℂ) else 0 := by
   rw [cnotGate, permMatrix]
   simp only [Matrix.of_apply]
 
+/-- The CNOT target update preserves the control bit at coordinate zero. -/
 private theorem cnot_update01_0 (j : Reg 2) :
     (Function.update j 1 (j 1 ^^ j 0)) 0 = j 0 :=
   Function.update_of_ne (by decide : (0 : Fin 2) ≠ 1) _ _
 
+/-- The CNOT target update sets coordinate one to the XOR of target and control. -/
 private theorem cnot_update01_1 (j : Reg 2) :
     (Function.update j 1 (j 1 ^^ j 0)) 1 = (j 1 ^^ j 0) :=
   Function.update_self 1 _ _
 
+/-- Applying the CNOT target-bit update twice restores the original register. -/
 private theorem cnot_update01_inv (k : Reg 2) :
     Function.update (Function.update k 1 (k 1 ^^ k 0)) 1
         ((Function.update k 1 (k 1 ^^ k 0)) 1 ^^ (Function.update k 1 (k 1 ^^ k 0)) 0) = k :=
   cnotUpdate_involutive 2 (0 : Fin 2) (1 : Fin 2) (by decide) k
 
+/-- The product of CNOT with a second-qubit Hadamard has the stated first-bit equality indicator
+and XOR-indexed Hadamard entry. -/
 private theorem cnot_hadamard_sep (k y : Reg 2) :
     (cnotGate 2 0 1 * wireGate 2 1 Hadamard) k y
       = (if k 0 = y 0 then (1 : ℂ) else 0) * Hadamard (k 1 ^^ k 0) (y 1) := by
@@ -758,6 +866,8 @@ private theorem cnot_hadamard_sep (k y : Reg 2) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The two-term Hadamard sum implementing a controlled-X conjugation equals the
+controlled-phase equality indicator. -/
 private theorem hcxh_scalar (c x1 y1 : Bool) :
     (Hadamard x1 false) * (Hadamard (false ^^ c) y1)
       + (Hadamard x1 true) * (Hadamard (true ^^ c) y1)
@@ -765,6 +875,7 @@ private theorem hcxh_scalar (c x1 y1 : Bool) :
   cases c <;> cases x1 <;> cases y1 <;>
     simp [Hadamard, Bool.xor, Qatlib.Concepts.QuditTeleport.TeleportCore.sqrt2_inv_sq] <;> norm_num
 
+/-- Conjugating CNOT by a Hadamard on the target gives the diagonal two-bit controlled phase. -/
 private theorem hcxh_entry (x y : Reg 2) :
     (wireGate 2 1 Hadamard * (cnotGate 2 0 1 * wireGate 2 1 Hadamard)) x y
       = if x = y then (if x 0 && x 1 then (-1 : ℂ) else 1) else 0 := by
@@ -822,11 +933,13 @@ private theorem hcxh_entry (x y : Reg 2) :
     rw [Finset.sum_const_zero]
     rw [if_neg (fun he : x = y => hxy (congrFun he 0))]
 
+/-- Conjugating CNOT by a Hadamard on the target gives `networkCzGateB 0 1`. -/
 private theorem hcxh : wireGate 2 1 Hadamard * (cnotGate 2 0 1 * wireGate 2 1 Hadamard)
     = networkCzGateB 0 1 := by
   ext x y
   rw [hcxh_entry, networkCzGateB, Matrix.diagonal_apply]
 
+/-- The CZ matrix of the wire edge set is `networkCzGateB 0 1`. -/
 private theorem cz_rb : czMatrix rbWireEdges = networkCzGateB 0 1 := by
   rw [czMatrix, networkCzGateB, rbWireEdges]
   congr 1
@@ -837,22 +950,28 @@ private theorem cz_rb : czMatrix rbWireEdges = networkCzGateB 0 1 := by
   · intro h
     exact absurd (Finset.mem_singleton_self (0, 1)) h
 
+/-- Conjugating CNOT by a Hadamard on the target gives the CZ matrix of the wire edge set. -/
 private theorem hcxh_cz : wireGate 2 1 Hadamard * (cnotGate 2 0 1 * wireGate 2 1 Hadamard)
     = czMatrix rbWireEdges := by
   rw [hcxh, cz_rb]
 
+/-- The finite code for a Hadamard on wire one denotes the corresponding embedded Hadamard gate. -/
 private theorem code_h : finiteCodeMatrix 2 (.h 1) = wireGate 2 1 Hadamard := by
   rw [finiteCodeMatrix, dif_pos (by decide : (1 : ℕ) < 2)]
   rfl
 
+/-- The finite code for CNOT from wire zero to wire one denotes the corresponding CNOT matrix. -/
 private theorem code_cx : finiteCodeMatrix 2 (.cx 0 1) = cnotGate 2 0 1 := by
   rw [finiteCodeMatrix, dif_pos (by decide : (0 : ℕ) < 2 ∧ 1 < 2 ∧ 0 ≠ 1)]
   rfl
 
+/-- The finite code for a T gate on wire one denotes the corresponding embedded T gate. -/
 private theorem code_t : finiteCodeMatrix 2 (.t 1) = wireGate 2 1 tGate := by
   rw [finiteCodeMatrix, dif_pos (by decide : (1 : ℕ) < 2)]
   rfl
 
+/-- The matrix denoted by the finite gate decomposition `rbFiniteGateDecomp` equals the wire
+pulse. -/
 private theorem codeWord_rb : finiteCodeWordMatrix 2 rbFiniteGateDecomp = rbWirePulse := by
   show finiteCodeWordMatrix 2 [.h 1, .cx 0 1, .h 1, .t 1, .t 1, .t 1, .t 1] = rbWirePulse
   rw [finite_phase_word_cons, finite_phase_word_cons, finite_phase_word_cons,
@@ -867,6 +986,8 @@ private theorem codeWord_rb : finiteCodeWordMatrix 2 rbFiniteGateDecomp = rbWire
   show frameMatrix rbWireEdges * czMatrix rbWireEdges = sourcePulse rbWireEdges
   rw [sourcePulse_eq_frame_cz]
 
+/-- Running the finite gate decomposition succeeds on every two-qubit state and applies the wire
+pulse. -/
 theorem clause3_clause4 :
     ∀ ψ : QState (Reg 2),
       finiteWordRun 2 rbFiniteGateDecomp ψ = some (ApplyGate rbWirePulse ψ) := by
@@ -875,6 +996,8 @@ theorem clause3_clause4 :
   simp only [finiteWordRun, hlegal, if_true]
   rw [finite_phase_word_run, codeWord_rb]
 
+/-- The conjunction of the listed wire, CNOT, three-qubit branch, finite decomposition, and
+communication assertions is false because its three-qubit branch formula fails. -/
 theorem clause3_counter :
     ¬ ((∀ (a : ℝ) (ρ : Operator 2) (b b' : Bool),
           rbWireBranch a b ρ = rbWireBranch a b' ρ
@@ -902,20 +1025,27 @@ theorem clause3_counter :
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 
+/-- The Boolean-outcome XY-plane measurement matrix at angle `π / 2`. -/
 private noncomputable def c5P (b : Bool) : Operator 2 :=
   MbqcPlaneBasis MbqcPlane.XY (Real.pi / 2) b
 
+/-- The two-qubit state with amplitude `1 / 2` at every register value except `true, true`,
+where it is `-1 / 2`. -/
 private noncomputable def c5ψ : Reg 2 → ℂ :=
   fun y => if y 0 && y 1 then -(1 / 2 : ℂ) else 1 / 2
 
+/-- The Boolean flag that is true exactly when the supplied matrix equals Pauli X or Pauli Z. -/
 private noncomputable def c5flip (W : Operator 2) : Bool :=
   if W = pauliX then true else if W = pauliZ then true else false
 
+/-- The measurement matrix `c5P b` is one half of the identity plus the outcome-signed Pauli Y. -/
 theorem c5P_eq (b : Bool) :
     c5P b = (2 : ℂ)⁻¹ • ((1 : Operator 2) + (if b then (-1 : ℂ) else 1) • pauliY) := by
   unfold c5P MbqcPlaneBasis
   simp [mbqcPlaneAxisA, mbqcPlaneAxisB, Real.cos_pi_div_two, Real.sin_pi_div_two]
 
+/-- The expectation of the product of two single-qubit operators in the state `c5ψ`, expressed
+as a double coordinate sum. -/
 private noncomputable def c5E (A B : Operator 2) : ℂ :=
   ∑ u : Reg 2, ∑ v : Reg 2,
     star (c5ψ u) *
@@ -923,22 +1053,26 @@ private noncomputable def c5E (A B : Operator 2) : ℂ :=
       B (boolEquivFin2 (u 1)) (boolEquivFin2 (v 1)) *
       c5ψ v
 
+/-- The expectation of the two identity operators in `c5ψ` is one. -/
 theorem c5E_one_one : c5E 1 1 = 1 := by
   unfold c5E
   simp only [sum_reg2_eq]
   simp [c5ψ, boolEquivFin2, Matrix.one_apply]
   norm_num
 
+/-- The expectation of Pauli Y on the first qubit and identity on the second in `c5ψ` is zero. -/
 theorem c5E_Y_one : c5E pauliY 1 = 0 := by
   unfold c5E
   simp only [sum_reg2_eq]
   simp [c5ψ, boolEquivFin2, pauliY, Matrix.one_apply]
 
+/-- The expectation of identity on the first qubit and Pauli Y on the second in `c5ψ` is zero. -/
 theorem c5E_one_Y : c5E 1 pauliY = 0 := by
   unfold c5E
   simp only [sum_reg2_eq]
   simp [c5ψ, boolEquivFin2, pauliY, Matrix.one_apply]
 
+/-- The expectation of Pauli Y on both qubits in `c5ψ` is one. -/
 theorem c5E_Y_Y : c5E pauliY pauliY = 1 := by
   unfold c5E
   simp only [sum_reg2_eq]
@@ -946,6 +1080,7 @@ theorem c5E_Y_Y : c5E pauliY pauliY = 1 := by
   ring_nf
   norm_num [Complex.I_sq]
 
+/-- The summand defining `c5E` distributes over addition in its first operator. -/
 private theorem c5E_term_add_left (A₁ A₂ B : Operator 2) (u v : Reg 2) :
     star (c5ψ u) * (A₁ + A₂) (boolEquivFin2 (u 0)) (boolEquivFin2 (v 0)) *
         B (boolEquivFin2 (u 1)) (boolEquivFin2 (v 1)) * c5ψ v
@@ -956,12 +1091,14 @@ private theorem c5E_term_add_left (A₁ A₂ B : Operator 2) (u v : Reg 2) :
   simp only [Matrix.add_apply]
   ring
 
+/-- The expectation `c5E` is additive in its first operator. -/
 theorem c5E_add_left (A₁ A₂ B : Operator 2) :
     c5E (A₁ + A₂) B = c5E A₁ B + c5E A₂ B := by
   unfold c5E
   simp only [c5E_term_add_left]
   simp only [Finset.sum_add_distrib]
 
+/-- The summand defining `c5E` distributes over addition in its second operator. -/
 private theorem c5E_term_add_right (A B₁ B₂ : Operator 2) (u v : Reg 2) :
     star (c5ψ u) * A (boolEquivFin2 (u 0)) (boolEquivFin2 (v 0)) *
         (B₁ + B₂) (boolEquivFin2 (u 1)) (boolEquivFin2 (v 1)) * c5ψ v
@@ -972,12 +1109,14 @@ private theorem c5E_term_add_right (A B₁ B₂ : Operator 2) (u v : Reg 2) :
   simp only [Matrix.add_apply]
   ring
 
+/-- The expectation `c5E` is additive in its second operator. -/
 theorem c5E_add_right (A B₁ B₂ : Operator 2) :
     c5E A (B₁ + B₂) = c5E A B₁ + c5E A B₂ := by
   unfold c5E
   simp only [c5E_term_add_right]
   simp only [Finset.sum_add_distrib]
 
+/-- A complex scalar multiplying the first operator factors out of `c5E`. -/
 theorem c5E_smul_left (c : ℂ) (A B : Operator 2) :
     c5E (c • A) B = c * c5E A B := by
   unfold c5E
@@ -991,6 +1130,7 @@ theorem c5E_smul_left (c : ℂ) (A B : Operator 2) :
     ring
   simp only [h, Finset.mul_sum]
 
+/-- A complex scalar multiplying the second operator factors out of `c5E`. -/
 theorem c5E_smul_right (c : ℂ) (A B : Operator 2) :
     c5E A (c • B) = c * c5E A B := by
   unfold c5E
@@ -1004,6 +1144,8 @@ theorem c5E_smul_right (c : ℂ) (A B : Operator 2) :
     ring
   simp only [h, Finset.mul_sum]
 
+/-- The joint `c5P` expectation is one half for equal Boolean outcomes and zero for unequal
+outcomes. -/
 theorem c5base (x y : Bool) :
     c5E (c5P x) (c5P y) = if x = y then (1 / 2 : ℂ) else 0 := by
   rw [c5P_eq, c5P_eq, c5E_smul_left, c5E_smul_right]
@@ -1012,6 +1154,8 @@ theorem c5base (x y : Bool) :
       c5E_one_one, c5E_Y_one, c5E_one_Y, c5E_Y_Y]
   all_goals norm_num
 
+/-- The entries of `c5P b` have diagonal value one half and the stated outcome-dependent
+imaginary off-diagonal values. -/
 theorem c5P_apply (b : Bool) (i j : Fin 2) :
     c5P b i j =
       if i = j then (2 : ℂ)⁻¹
@@ -1021,59 +1165,72 @@ theorem c5P_apply (b : Bool) (i j : Fin 2) :
     simp [c5P, MbqcPlaneBasis, mbqcPlaneAxisA, mbqcPlaneAxisB, pauliX, pauliY,
       Real.cos_pi_div_two, Real.sin_pi_div_two]
 
+/-- The identity matrix differs from Pauli X. -/
 private theorem ne_one_pauliX : (1 : Operator 2) ≠ pauliX := by
   intro h
   have e := congrArg (fun M : Operator 2 => M 0 0) h
   simp [pauliX] at e
 
+/-- The identity matrix differs from Pauli Z. -/
 private theorem ne_one_pauliZ : (1 : Operator 2) ≠ pauliZ := by
   intro h
   have e := congrArg (fun M : Operator 2 => M 1 1) h
   simp [pauliZ] at e
   norm_num at e
 
+/-- Pauli X differs from Pauli Z. -/
 private theorem ne_pauliX_pauliZ : pauliX ≠ pauliZ := by
   intro h
   have e := congrArg (fun M : Operator 2 => M 0 0) h
   simp [pauliX, pauliZ] at e
 
+/-- Pauli X differs from the product of Pauli X and Pauli Z. -/
 private theorem ne_pauliX_pauliXZ : pauliX ≠ pauliX * pauliZ := by
   intro h
   have e := congrArg (fun M : Operator 2 => M 0 1) h
   simp [pauliX, pauliZ, Matrix.mul_apply, Fin.sum_univ_two] at e
   norm_num at e
 
+/-- Pauli Z differs from the product of Pauli X and Pauli Z. -/
 private theorem ne_pauliZ_pauliXZ : pauliZ ≠ pauliX * pauliZ := by
   intro h
   have e := congrArg (fun M : Operator 2 => M 0 0) h
   simp [pauliX, pauliZ, Matrix.mul_apply, Fin.sum_univ_two] at e
 
+/-- The outcome-flip flag of the identity is false. -/
 private theorem c5flip_one : c5flip (1 : Operator 2) = false := by
   simp [c5flip, ne_one_pauliX, ne_one_pauliZ]
 
+/-- The outcome-flip flag of Pauli X is true. -/
 private theorem c5flip_X : c5flip pauliX = true := by
   simp [c5flip]
 
+/-- The outcome-flip flag of Pauli Z is true. -/
 private theorem c5flip_Z : c5flip pauliZ = true := by
   simp [c5flip]
 
+/-- The outcome-flip flag of the product of Pauli X and Pauli Z is false. -/
 private theorem c5flip_XZ : c5flip (pauliX * pauliZ) = false := by
   have h1 : pauliX * pauliZ ≠ pauliX := fun h => ne_pauliX_pauliXZ h.symm
   have h2 : pauliX * pauliZ ≠ pauliZ := fun h => ne_pauliZ_pauliXZ h.symm
   simp [c5flip, h1, h2]
 
+/-- Conjugating `c5P b` by Pauli X flips its Boolean outcome label. -/
 private theorem c5_conj_X (b : Bool) :
     pauliX * c5P b * pauliX = c5P (b.xor true) := by
   ext i j; fin_cases i <;> fin_cases j <;> cases b <;>
     simp only [Matrix.mul_apply, Fin.sum_univ_two] <;>
     simp [c5P_apply, pauliX, Bool.xor]
 
+/-- Conjugating `c5P b` by Pauli Z flips its Boolean outcome label. -/
 private theorem c5_conj_Z (b : Bool) :
     pauliZ * c5P b * pauliZ = c5P (b.xor true) := by
   ext i j; fin_cases i <;> fin_cases j <;> cases b <;>
     simp only [Matrix.mul_apply, Fin.sum_univ_two] <;>
     simp [c5P_apply, pauliZ, Bool.xor]
 
+/-- Conjugation by a permitted Pauli wire matrix changes the `c5P` outcome by XOR with its
+`c5flip` flag. -/
 theorem c5_conj (W : Operator 2) (hW : MbqcPauliWire W) (b : Bool) :
     W.conjTranspose * c5P b * W = c5P (b.xor (c5flip W)) := by
   rcases hW with rfl | rfl | rfl | rfl
@@ -1105,20 +1262,25 @@ theorem c5_conj (W : Operator 2) (hW : MbqcPauliWire W) (b : Bool) :
     rw [reassoc, c5_conj_X, c5_conj_Z]
     simp [Bool.xor]
 
+/-- The product of two complex reciprocals of `√2` is one half. -/
 theorem c5_sqrt2_inv_sq : (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ = (1 / 2 : ℂ) := by
   rw [← mul_inv, ← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   norm_num
 
+/-- The square of `√2`, embedded into `ℂ`, is two. -/
 theorem c5_sqrt2_sq : (Real.sqrt 2 : ℂ) ^ 2 = 2 := by
   rw [pow_two, ← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   norm_num
 
+/-- The input frame for the empty two-vertex input set has every entry equal to one half. -/
 theorem c5_inFrame (x : Fin 4) (y : Fin 1) :
     (mbqcInputFrame (∅ : Finset (Fin 2))) x y = (1 / 2 : ℂ) := by
   simp only [mbqcInputFrame]
   simp
   exact c5_sqrt2_sq
 
+/-- The output frame for the empty two-vertex output set selects the register label specified by
+`z`. -/
 theorem c5_outFrame (z : Reg 2) (y : Fin 1) (x : Fin 4) :
     (mbqcOutputFrame (∅ : Finset (Fin 2)) z) y x
       = if x = bitVecEquiv 2 z then (1 : ℂ) else 0 := by
@@ -1144,6 +1306,8 @@ theorem c5_outFrame (z : Reg 2) (y : Fin 1) (x : Fin 4) :
       · rw [if_neg h0]
     · rw [if_neg h1]
 
+/-- The single-edge two-qubit CZ matrix is diagonal, with negative sign exactly when both bits
+are true. -/
 theorem c5_czDiag (y w : Reg 2) :
     czMatrix ({(0, 1)} : Finset (Fin 2 × Fin 2)) y w
       = if y = w then (if y 0 && y 1 then (-1 : ℂ) else 1) else 0 := by
@@ -1156,32 +1320,42 @@ theorem c5_czDiag (y w : Reg 2) :
   · rw [if_neg he]
     simp [he]
 
+/-- The two-bit controlled phase is twice the corresponding amplitude of `c5ψ`. -/
 theorem c5_phase_eq (y : Reg 2) :
     (if y 0 && y 1 then (-1 : ℂ) else 1) = 2 * c5ψ y := by
   by_cases h0 : y 0 <;> by_cases h1 : y 1 <;> simp [c5ψ, h0, h1]
 
+/-- For two-bit registers, the coordinate equality product excluding zero is the equality
+indicator at coordinate one. -/
 private theorem prod_erase_zero (x y : Reg 2) :
     (∏ i ∈ Finset.univ.erase (0 : Fin 2), (if x i = y i then (1 : ℂ) else 0))
       = (if x 1 = y 1 then (1 : ℂ) else 0) := by
   have h : Finset.univ.erase (0 : Fin 2) = ({1} : Finset (Fin 2)) := by decide
   rw [h, Finset.prod_singleton]
 
+/-- For two-bit registers, the coordinate equality product excluding one is the equality
+indicator at coordinate zero. -/
 private theorem prod_erase_one (x y : Reg 2) :
     (∏ i ∈ Finset.univ.erase (1 : Fin 2), (if x i = y i then (1 : ℂ) else 0))
       = (if x 0 = y 0 then (1 : ℂ) else 0) := by
   have h : Finset.univ.erase (1 : Fin 2) = ({0} : Finset (Fin 2)) := by decide
   rw [h, Finset.prod_singleton]
 
+/-- Embedding an operator at coordinate zero preserves coordinate one and uses the operator's
+entries on coordinate zero. -/
 theorem regWire_zero (A : Operator 2) (x y : Reg 2) :
     mbqcRegWireGate 0 A x y
       = A (boolEquivFin2 (x 0)) (boolEquivFin2 (y 0)) * (if x 1 = y 1 then (1 : ℂ) else 0) := by
   rw [mbqcRegWireGate, Matrix.of_apply, prod_erase_zero]
 
+/-- Embedding an operator at coordinate one preserves coordinate zero and uses the operator's
+entries on coordinate one. -/
 theorem regWire_one (A : Operator 2) (x y : Reg 2) :
     mbqcRegWireGate 1 A x y
       = A (boolEquivFin2 (x 1)) (boolEquivFin2 (y 1)) * (if x 0 = y 0 then (1 : ℂ) else 0) := by
   rw [mbqcRegWireGate, Matrix.of_apply, prod_erase_one]
 
+/-- Embedding single-qubit operators at the same register coordinate preserves multiplication. -/
 theorem regWire_mul (v : Fin 2) (A B : Operator 2) :
     mbqcRegWireGate v A * mbqcRegWireGate v B = mbqcRegWireGate v (A * B) := by
   have hval : (v : ℕ) = 0 ∨ (v : ℕ) = 1 := by have := v.isLt; omega
@@ -1203,6 +1377,7 @@ theorem regWire_mul (v : Fin 2) (A B : Operator 2) :
     cases x 0 <;> cases x 1 <;> cases y 0 <;> cases y 1 <;>
       simp [boolEquivFin2, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- Embedding a single-qubit operator commutes with conjugate transpose. -/
 theorem regWire_adj (v : Fin 2) (A : Operator 2) :
     (mbqcRegWireGate v A).conjTranspose = mbqcRegWireGate v A.conjTranspose := by
   have hv : v = (0 : Fin 2) ∨ v = (1 : Fin 2) := by have := v.isLt; omega
@@ -1222,6 +1397,7 @@ theorem regWire_adj (v : Fin 2) (A : Operator 2) :
       intro he
       exact absurd he.symm h
 
+/-- Operators embedded on the two distinct register coordinates commute. -/
 theorem regWire_comm (A B : Operator 2) :
     mbqcRegWireGate (0 : Fin 2) A * mbqcRegWireGate (1 : Fin 2) B
       = mbqcRegWireGate (1 : Fin 2) B * mbqcRegWireGate (0 : Fin 2) A := by
@@ -1231,6 +1407,7 @@ theorem regWire_comm (A B : Operator 2) :
   cases x 0 <;> cases x 1 <;> cases y 0 <;> cases y 1 <;>
     simp [boolEquivFin2] <;> ring
 
+/-- Relabeling register matrices by `bitVecEquiv` preserves matrix multiplication. -/
 private theorem relabelGate_mul_local {n : ℕ} (A B : Matrix (Reg n) (Reg n) ℂ) :
     relabelGate (bitVecEquiv n) A * relabelGate (bitVecEquiv n) B
       = relabelGate (bitVecEquiv n) (A * B) := by
@@ -1239,22 +1416,28 @@ private theorem relabelGate_mul_local {n : ℕ} (A B : Matrix (Reg n) (Reg n) �
   exact Equiv.sum_comp (bitVecEquiv n).symm
     (fun k => A ((bitVecEquiv n).symm i) k * B k ((bitVecEquiv n).symm j))
 
+/-- The execution precedence relation never places a vertex strictly before itself. -/
 theorem c5_not_prec_self (r : Fin 2 → Fin 2) (u : Fin 2) : ¬ mbqcExecPrec r u u := by
   intro hp
   simp only [mbqcExecPrec] at hp
   omega
 
+/-- If one vertex is at most another in execution order, the latter does not strictly precede
+the former. -/
 theorem c5_not_prec_of_le (r : Fin 2 → Fin 2) (v w : Fin 2)
     (hle : mbqcExecLe r v w) : ¬ mbqcExecPrec r w v := by
   intro hp
   simp only [mbqcExecLe, mbqcExecPrec] at hle hp
   omega
 
+/-- Pairwise execution-order comparison of a two-element list implies that its first element is
+at most its second. -/
 theorem c5_pairwise_two (r : Fin 2 → Fin 2) (a b : Fin 2)
     (hp : List.Pairwise (mbqcExecLe r) [a, b]) : mbqcExecLe r a b := by
   cases hp with
   | cons h _ => exact h b (List.mem_singleton_self b)
 
+/-- With empty output set, the two-vertex execution order is either `[0, 1]` or `[1, 0]`. -/
 theorem c5_execOrder_dichotomy (r : Fin 2 → Fin 2) :
     mbqcExecOrder (∅ : Finset (Fin 2)) r = [(0 : Fin 2), 1]
       ∨ mbqcExecOrder (∅ : Finset (Fin 2)) r = [1, 0] := by
@@ -1293,6 +1476,8 @@ theorem c5_execOrder_dichotomy (r : Fin 2 → Fin 2) :
   · have h0 : (0 : Fin 2) ∈ ([1, 1] : List (Fin 2)) := hperm.mem_iff.mpr (by simp)
     simp at h0
 
+/-- The two possible execution orders each satisfy the corresponding comparison of their first
+and second vertices. -/
 theorem c5_execLe_of_order (r : Fin 2 → Fin 2) :
     (mbqcExecOrder (∅ : Finset (Fin 2)) r = [(0 : Fin 2), 1] ∧ mbqcExecLe r 0 1)
       ∨ (mbqcExecOrder (∅ : Finset (Fin 2)) r = [1, 0] ∧ mbqcExecLe r 1 0) := by
@@ -1302,6 +1487,7 @@ theorem c5_execLe_of_order (r : Fin 2 → Fin 2) :
   · exact Or.inl ⟨h, c5_pairwise_two r _ _ (by rwa [h] at hp)⟩
   · exact Or.inr ⟨h, c5_pairwise_two r _ _ (by rwa [h] at hp)⟩
 
+/-- The Pauli product matrix formed from identity operators on both wires is the identity. -/
 theorem c5_ppd_one : pauliProductDensity (fun _ : Fin 2 => (1 : Operator 2)) = 1 := by
   ext x y
   show (∏ i : Fin 2, ((1 : Operator 2) (boolEquivFin2 (x i)) (boolEquivFin2 (y i))))
@@ -1331,10 +1517,13 @@ theorem c5_ppd_one : pauliProductDensity (fun _ : Fin 2 => (1 : Operator 2)) = 1
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     rw [if_neg hi]
 
+/-- Relabeling the two-qubit identity matrix by `bitVecEquiv 2` gives the identity. -/
 theorem c5_relabel_one : relabelGate (bitVecEquiv 2) (1 : Matrix (Reg 2) (Reg 2) ℂ) = 1 := by
   ext i j
   simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.one_apply]
 
+/-- With empty input set, the initial correction product is the identity, regardless of the
+supplied corrections. -/
 theorem c5_init_one (corr : (Fin 2 → Bool) → Fin 2 → Operator 2) (s : Fin 2 → Bool) :
     relabelGate (bitVecEquiv 2)
         (pauliProductDensity fun v => if v ∈ (∅ : Finset (Fin 2)) then corr s v else 1)
@@ -1345,27 +1534,35 @@ theorem c5_init_one (corr : (Fin 2 → Bool) → Fin 2 → Operator 2) (s : Fin 
     simp
   rw [hfun, c5_ppd_one, c5_relabel_one]
 
+/-- Each measurement matrix `c5P b` satisfies `Pᴴ * P = P`. -/
 theorem c5P_proj (b : Bool) : (c5P b).conjTranspose * c5P b = c5P b := by
   ext i j
   fin_cases i <;> fin_cases j <;> cases b <;>
     simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.conjTranspose_apply, c5P_apply] <;>
     simp [Complex.conj_I] <;> ring_nf <;> norm_num [Complex.I_sq]
 
+/-- The two-qubit register matrix obtained by applying each correction and its `c5P` measurement
+on the corresponding wire. -/
 noncomputable def c5Ureg (corr : (Fin 2 → Bool) → Fin 2 → Operator 2) (s : Fin 2 → Bool) :
     Matrix (Reg 2) (Reg 2) ℂ :=
   mbqcRegWireGate 0 (c5P (s 0) * corr s 0) * mbqcRegWireGate 1 (c5P (s 1) * corr s 1)
 
+/-- Embedding single-qubit operators into the finite-index wire representation preserves
+multiplication. -/
 theorem c5_wireGate_mul (v : Fin 2) (A B : Operator 2) :
     mbqcWireGate v A * mbqcWireGate v B = mbqcWireGate v (A * B) := by
   unfold mbqcWireGate
   rw [relabelGate_mul_local, regWire_mul]
 
+/-- Single-qubit operators on wires zero and one commute in the finite-index representation. -/
 theorem c5_wireGate_comm (A B : Operator 2) :
     mbqcWireGate (0 : Fin 2) A * mbqcWireGate (1 : Fin 2) B
       = mbqcWireGate (1 : Fin 2) B * mbqcWireGate (0 : Fin 2) A := by
   unfold mbqcWireGate
   rw [relabelGate_mul_local, relabelGate_mul_local, regWire_comm]
 
+/-- For empty outputs and XY measurements at angle `π / 2`, the interleaved two-vertex gate is
+the relabeling of `c5Ureg`, independently of the rank function. -/
 theorem c5_interleaved (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 → Operator 2)
     (s : Fin 2 → Bool) :
     mbqcInterleavedGate (∅ : Finset (Fin 2)) r (fun _ => MbqcPlane.XY) (fun _ => Real.pi / 2) corr s
@@ -1388,6 +1585,7 @@ theorem c5_interleaved (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 
     rw [relabelGate_mul_local]
     rfl
 
+/-- The row sum of the single-edge CZ matrix equals its controlled phase at that row. -/
 theorem c5_czRow_sum (w : Reg 2) :
     ∑ y : Reg 2, czMatrix ({(0, 1)} : Finset (Fin 2 × Fin 2)) w y
       = (if w 0 && w 1 then (-1 : ℂ) else 1) := by
@@ -1401,10 +1599,13 @@ theorem c5_czRow_sum (w : Reg 2) :
   · intro y hy
     rw [if_neg (fun he => hy he.symm)]
 
+/-- Entries of a matrix relabeled by `bitVecEquiv 2` are obtained by applying the inverse
+equivalence to both indices. -/
 theorem c5_relabel_apply (M : Matrix (Reg 2) (Reg 2) ℂ) (i j : Fin 4) :
     relabelGate (bitVecEquiv 2) M i j = M ((bitVecEquiv 2).symm i) ((bitVecEquiv 2).symm j) := by
   simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply]
 
+/-- A double sum over four-element indices reindexes to a double sum over two-bit registers. -/
 theorem c5_reindex_double (F : Reg 2 → Reg 2 → ℂ) :
     (∑ x : Fin 4, ∑ x_1 : Fin 4, F ((bitVecEquiv 2).symm x_1) ((bitVecEquiv 2).symm x))
       = ∑ w : Reg 2, ∑ y : Reg 2, F y w := by
@@ -1417,6 +1618,8 @@ theorem c5_reindex_double (F : Reg 2 → Reg 2 → ℂ) :
   simp only [hinner]
   exact Equiv.sum_comp (bitVecEquiv 2).symm (fun w : Reg 2 => ∑ y : Reg 2, F y w)
 
+/-- The scalar Kraus entry of the empty-boundary counterexample is one half of the row sum of
+`c5Ureg` weighted by the CZ phase. -/
 theorem c5_kraus_raw (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 → Operator 2)
     (s z : Fin 2 → Bool) :
     mbqcPatternKraus mbqcCounterexampleGraph (∅ : Finset (Fin 2)) (∅ : Finset (Fin 2)) r
@@ -1520,6 +1723,8 @@ theorem c5_kraus_raw (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 �
   simp only [hout, hin]
   exact hexp.trans (hcoll.trans hre)
 
+/-- The scalar Kraus entry of the empty-boundary counterexample equals the corresponding
+coordinate of `c5Ureg corr s` applied to `c5ψ`. -/
 theorem c5_kraus (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 → Operator 2)
     (s z : Fin 2 → Bool) :
     mbqcPatternKraus mbqcCounterexampleGraph (∅ : Finset (Fin 2)) (∅ : Finset (Fin 2)) r
@@ -1540,6 +1745,8 @@ theorem c5_kraus (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 → Op
   simp only [h3]
   rfl
 
+/-- For a product of operators on separate wires, its adjoint product factors into the embedded
+single-qubit adjoint products. -/
 theorem c5_UdagU (A B : Operator 2) :
     ((mbqcRegWireGate (0 : Fin 2) A * mbqcRegWireGate (1 : Fin 2) B :
         Matrix (Reg 2) (Reg 2) ℂ)).conjTranspose
@@ -1568,6 +1775,8 @@ theorem c5_UdagU (A B : Operator 2) :
   congr 1
   rw [regWire_mul]
 
+/-- The sum of squared output moduli of `M` applied to `c5ψ` equals the quadratic form of `Mᴴ *
+M` in `c5ψ`. -/
 theorem c5_norm_form (M : Matrix (Reg 2) (Reg 2) ℂ) :
     (∑ z : Reg 2, (M *ᵥ c5ψ) z * star ((M *ᵥ c5ψ) z))
       = ∑ u : Reg 2, ∑ v : Reg 2,
@@ -1649,6 +1858,8 @@ theorem c5_norm_form (M : Matrix (Reg 2) (Reg 2) ℂ) :
   rw [hexp]
   exact Finset.sum_comm
 
+/-- An entry of the product of operators on separate register wires is the product of their
+corresponding single-qubit entries. -/
 theorem c5_regWire01 (A B : Operator 2) (u v : Reg 2) :
     (mbqcRegWireGate (0 : Fin 2) A * mbqcRegWireGate (1 : Fin 2) B) u v
       = A (boolEquivFin2 (u 0)) (boolEquivFin2 (v 0))
@@ -1659,6 +1870,8 @@ theorem c5_regWire01 (A B : Operator 2) (u v : Reg 2) :
   cases u 0 <;> cases u 1 <;> cases v 0 <;> cases v 1 <;>
     simp [boolEquivFin2]
 
+/-- The expectation `c5E A B` equals the quadratic form of the corresponding product of embedded
+wire operators in `c5ψ`. -/
 theorem c5E_eq_quad (A B : Operator 2) :
     c5E A B
       = ∑ u : Reg 2, ∑ v : Reg 2,
@@ -1669,6 +1882,8 @@ theorem c5E_eq_quad (A B : Operator 2) :
     rw [c5_regWire01]
     ring))
 
+/-- For permitted Pauli corrections, the adjoint product of `c5Ureg` is the product of
+measurement matrices with outcome labels changed by the correction flip flags. -/
 theorem c5_UdagU_reg (corr : (Fin 2 → Bool) → Fin 2 → Operator 2) (s : Fin 2 → Bool)
     (h0 : MbqcPauliWire (corr s 0)) (h1 : MbqcPauliWire (corr s 1)) :
     (c5Ureg corr s).conjTranspose * c5Ureg corr s
@@ -1700,6 +1915,7 @@ theorem c5_UdagU_reg (corr : (Fin 2 → Bool) → Fin 2 → Operator 2) (s : Fin
     exact c5_conj (corr s 1) h1 (s 1)
   rw [hA, hB]
 
+/-- Multiplication of one-dimensional operators is multiplication of their sole entries. -/
 theorem c5_mul_1x1 (P Q : Operator 1) : (P * Q) 0 0 = P 0 0 * Q 0 0 := by
   rw [Matrix.mul_apply]
   refine Fintype.sum_eq_single (0 : Fin 1) ?_
@@ -1707,6 +1923,7 @@ theorem c5_mul_1x1 (P Q : Operator 1) : (P * Q) 0 0 = P 0 0 * Q 0 0 := by
   fin_cases x
   exact absurd rfl hx
 
+/-- The sole entry of a finite sum of one-dimensional matrices is the sum of their sole entries. -/
 theorem c5_sum_entry {ι : Type} [Fintype ι] (F : ι → Matrix (Fin 1) (Fin 1) ℂ) :
     (∑ d : ι, F d) 0 0 = ∑ d : ι, F d 0 0 := by
   have h1 : (∑ d : ι, F d) 0 = (∑ d : ι, F d 0) :=
@@ -1716,6 +1933,8 @@ theorem c5_sum_entry {ι : Type} [Fintype ι] (F : ι → Matrix (Fin 1) (Fin 1)
     Finset.sum_apply (0 : Fin 1) Finset.univ (fun d : ι => F d 0)
   rw [h2]
 
+/-- Conjugating the one-dimensional identity by `M` gives the product of its sole entry with its
+conjugate. -/
 theorem c5_conj_entry (M : Matrix (Fin 1) (Fin 1) ℂ) :
     (conjBranch M (1 : Operator 1)) 0 0 = M 0 0 * star (M 0 0) := by
   rw [conjBranch_apply]
@@ -1723,6 +1942,8 @@ theorem c5_conj_entry (M : Matrix (Fin 1) (Fin 1) ℂ) :
   rw [c5_mul_1x1]
   rw [Matrix.conjTranspose_apply]
 
+/-- For permitted Pauli corrections, the counterexample branch on the scalar identity is one
+half when the corrected outcome labels agree and zero otherwise. -/
 theorem c5_branch_value (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2 → Operator 2)
     (s : Fin 2 → Bool) (h0 : MbqcPauliWire (corr s 0)) (h1 : MbqcPauliWire (corr s 1)) :
     mbqcPatternBranch mbqcCounterexampleGraph (∅ : Finset (Fin 2)) (∅ : Finset (Fin 2)) r
@@ -1771,14 +1992,20 @@ theorem c5_branch_value (r : Fin 2 → Fin 2) (corr : (Fin 2 → Bool) → Fin 2
   rw [hkey]
   rw [c5base]
 
+/-- The equality-conditioned values one half and zero change when the second Boolean argument is
+negated. -/
 theorem c5_if_ne_right (x y : Bool) :
     (if x = y then (1 / 2 : ℂ) else 0) ≠ (if x = y.not then (1 / 2 : ℂ) else 0) := by
   cases x <;> cases y <;> simp
 
+/-- The equality-conditioned values one half and zero change when the first Boolean argument is
+negated. -/
 theorem c5_if_ne_left (x y : Bool) :
     (if x = y then (1 / 2 : ℂ) else 0) ≠ (if x.not = y then (1 / 2 : ℂ) else 0) := by
   cases x <;> cases y <;> simp
 
+/-- The two-vertex counterexample graph with empty input and output sets and XY measurements at
+angle `π / 2` is not strongly deterministic. -/
 theorem clause6_clause5 :
     ¬ MbqcStronglyDeterministic mbqcCounterexampleGraph (∅ : Finset (Fin 2)) (∅ : Finset (Fin 2))
       (fun _ => MbqcPlane.XY) (fun _ => Real.pi / 2) := by

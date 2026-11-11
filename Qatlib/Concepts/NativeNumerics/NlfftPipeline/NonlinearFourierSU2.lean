@@ -29,6 +29,32 @@ import Mathlib.Algebra.Polynomial.Reverse
 import Mathlib.Algebra.Polynomial.Degree.Operations
 import Mathlib.Algebra.Polynomial.FieldDivision
 import Mathlib.RingTheory.EuclideanDomain
+
+/-!
+# SU(2) nonlinear Fourier polynomials and layer stripping
+
+This module defines the finite SU(2) nonlinear Fourier transform `nlftSU2`, fixed-degree
+conjugate reversal `conjRevN`, and sequential layer stripping `layerStripSU2`. Nonlinear Fourier
+transforms also appear in quantum signal processing; see [AlexisEtAl2026].
+
+The polynomial pair satisfies a conjugate-reversal identity and has unit total squared norm on
+the unit circle. The transform is injective at fixed list length, and the layer-stripping
+reconstruction theorem recovers polynomial pairs satisfying the stated identity and
+normalization.
+
+## Main statements
+
+* `nlftSU2_identity`: The transformed polynomial pair satisfies the conjugate-reversal identity.
+* `nlftSU2_circle_norm`: The two squared moduli sum to one on the unit circle.
+* `nlftSU2_injective`: Equal transforms of lists of equal length have equal parameters.
+* `layerStripSU2_correct`: Layer stripping reconstructs a normalized polynomial pair and ends at
+  `(1,0)`.
+
+## References
+
+* [Alexis et al., 2026][AlexisEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -38,9 +64,13 @@ open Polynomial
 
 set_option autoImplicit false
 
+/-- The conjugate coefficient reflection of `p` about degree `d`, obtained by conjugating its
+coefficients and applying `Polynomial.reflect d`. -/
 noncomputable def conjRevN (d : ℕ) (p : Polynomial ℂ) : Polynomial ℂ :=
   (p.map (starRingEnd ℂ)).reflect d
 
+/-- The finite SU(2) nonlinear Fourier polynomial pair obtained by recursively applying
+normalized transformations for the complex parameters in the list. -/
 noncomputable def nlftSU2 : List ℂ → Polynomial ℂ × Polynomial ℂ
   | [] => (1, 0)
   | γ :: rest =>
@@ -48,24 +78,32 @@ noncomputable def nlftSU2 : List ℂ → Polynomial ℂ × Polynomial ℂ
       let c : ℂ := ((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ)
       (c • (A - (starRingEnd ℂ γ) • (X * B)), c • (X * B + γ • A))
 
+/-- One layer-stripping step, extracting `γ = B.coeff 0 / A.coeff 0` and returning the
+normalized residual polynomial pair. -/
 noncomputable def layerStripStepSU2 (A B : Polynomial ℂ) :
     ℂ × Polynomial ℂ × Polynomial ℂ :=
   let γ := B.coeff 0 / A.coeff 0
   let c : ℂ := ((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ)
   (γ, c • (A + (starRingEnd ℂ γ) • B), c • (B - γ • A).divX)
 
+/-- The condition that the first polynomial has a nonzero constant coefficient at each of `n`
+successive layer-stripping steps. -/
 def LayerStripExact (A B : Polynomial ℂ) : ℕ → Prop
   | 0 => True
   | n + 1 =>
       A.coeff 0 ≠ 0 ∧
       LayerStripExact (layerStripStepSU2 A B).2.1 (layerStripStepSU2 A B).2.2 n
 
+/-- The parameters, residual polynomial pair, and operation count returned by sequential SU(2)
+layer stripping. -/
 structure LayerStripRunSU2 where
   gammas : List ℂ
   finalA : Polynomial ℂ
   finalB : Polynomial ℂ
   operations : ℕ
 
+/-- Performs `n` sequential layer-stripping steps and records the extracted parameters, final
+residual pair, and operation count. -/
 noncomputable def layerStripSU2 (A B : Polynomial ℂ) : ℕ → LayerStripRunSU2
   | 0 => { gammas := [], finalA := A, finalB := B, operations := 0 }
   | n + 1 =>
@@ -74,51 +112,66 @@ noncomputable def layerStripSU2 (A B : Polynomial ℂ) : ℕ → LayerStripRunSU
       { gammas := s.1 :: r.gammas, finalA := r.finalA, finalB := r.finalB,
         operations := 6 * (n + 1) + 5 + r.operations }
 
+/-- A coefficient of the conjugate reflection is the conjugate of the coefficient indexed by
+`revAt d i`. -/
 private theorem conjRevN_coeff_revAt (d : ℕ) (p : Polynomial ℂ) (i : ℕ) :
     (conjRevN d p).coeff i = (starRingEnd ℂ) (p.coeff (revAt d i)) := by
   simp [conjRevN, coeff_reflect, coeff_map]
 
+/-- For `i ≤ d`, the coefficient at `i` of `conjRevN d p` is the conjugate of `p.coeff (d-i)`. -/
 theorem conjRevN_coeff (d : ℕ) (p : Polynomial ℂ) (i : ℕ) (hi : i ≤ d) :
     (conjRevN d p).coeff i = (starRingEnd ℂ) (p.coeff (d - i)) := by
   rw [conjRevN_coeff_revAt, revAt_le hi]
 
+/-- Conjugate reflection about `d` preserves the natural-degree bound `d`. -/
 theorem conjRevN_natDegree_le (d : ℕ) (p : Polynomial ℂ) (hp : p.natDegree ≤ d) :
     (conjRevN d p).natDegree ≤ d := by
   simp only [conjRevN]
   exact le_trans natDegree_reflect_le (max_le le_rfl (natDegree_map_le.trans hp))
 
+/-- Conjugate reflection distributes over polynomial addition. -/
 private theorem conjRevN_add' (d : ℕ) (p q : Polynomial ℂ) :
     conjRevN d (p + q) = conjRevN d p + conjRevN d q := by
   simp [conjRevN]
 
+/-- Conjugate reflection distributes over polynomial subtraction. -/
 private theorem conjRevN_sub' (d : ℕ) (p q : Polynomial ℂ) :
     conjRevN d (p - q) = conjRevN d p - conjRevN d q := by
   simp [conjRevN]
 
+/-- Conjugate reflection of a constant multiple conjugates the constant and reflects the
+polynomial. -/
 private theorem conjRevN_C_mul' (d : ℕ) (c : ℂ) (p : Polynomial ℂ) :
     conjRevN d (C c * p) = C ((starRingEnd ℂ) c) * conjRevN d p := by
   simp [conjRevN]
 
+/-- Conjugate reflection commutes with scalar multiplication after conjugating the scalar. -/
 private theorem conjRevN_smul' (d : ℕ) (c : ℂ) (p : Polynomial ℂ) :
     conjRevN d (c • p) = (starRingEnd ℂ) c • conjRevN d p := by
   rw [smul_eq_C_mul, smul_eq_C_mul, conjRevN_C_mul']
 
+/-- The complex conjugation ring endomorphism fixes every real scalar. -/
 private theorem starRingEnd_ofReal (x : ℝ) :
     (starRingEnd ℂ) ((x : ℝ) : ℂ) = (x : ℂ) :=
   Complex.conj_ofReal x
 
+/-- Under the respective degree bounds, conjugate reflection of a product about `d+e` is the
+product of the reflections about `d` and `e`. -/
 theorem conjRevN_mul (d e : ℕ) (p q : Polynomial ℂ) (hp : p.natDegree ≤ d) (hq : q.natDegree ≤ e) :
     conjRevN (d + e) (p * q) = conjRevN d p * conjRevN e q := by
   simp only [conjRevN]
   rw [← Polynomial.coe_mapRingHom, map_mul, Polynomial.coe_mapRingHom]
   rw [reflect_mul _ _ (natDegree_map_le.trans hp) (natDegree_map_le.trans hq)]
 
+/-- Conjugate reflection about `d` is involutive on polynomials with natural degree at most `d`. -/
 theorem conjRevN_conjRevN (d : ℕ) (p : Polynomial ℂ) (hp : p.natDegree ≤ d) :
     conjRevN d (conjRevN d p) = p := by
   ext i
   rw [conjRevN_coeff_revAt, conjRevN_coeff_revAt, revAt_invol, starRingEnd_apply,
     starRingEnd_apply, star_star]
 
+/-- At nonzero `z`, evaluation of reflection about `d` equals `z^d` times evaluation of the
+original polynomial at `z⁻¹`, under the degree bound. -/
 private theorem eval_reflect' (q : Polynomial ℂ) (d : ℕ) (hq : q.natDegree ≤ d) {z : ℂ}
     (hz : z ≠ 0) :
     (q.reflect d).eval z = z ^ d * q.eval z⁻¹ := by
@@ -145,6 +198,8 @@ private theorem eval_reflect' (q : Polynomial ℂ) (d : ℕ) (hq : q.natDegree �
   rw [e]
   ring
 
+/-- On the unit circle, evaluating `conjRevN d p` gives `z^d` times the complex conjugate of
+`p.eval z`, under the degree bound. -/
 theorem conjRevN_eval_circle (d : ℕ) (p : Polynomial ℂ) (hp : p.natDegree ≤ d) (z : ℂ)
     (hz : ‖z‖ = 1) :
     (conjRevN d p).eval z = z ^ d * (starRingEnd ℂ) (p.eval z) := by
@@ -156,6 +211,7 @@ theorem conjRevN_eval_circle (d : ℕ) (p : Polynomial ℂ) (hp : p.natDegree �
   rw [conjRevN, eval_reflect' (p.map (starRingEnd ℂ)) d (natDegree_map_le.trans hp) hz0, ← hstar,
     hmapeval]
 
+/-- The square of the SU(2) normalization factor multiplied by `1 + normSq γ` equals one. -/
 private theorem nlftC_sq (γ : ℂ) :
     (((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ)
       * (((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ)
@@ -178,6 +234,7 @@ private theorem nlftC_sq (γ : ℂ) :
     rw [h2]
   rw [h4, Complex.ofReal_one]
 
+/-- The SU(2) normalization factor is nonzero for every complex parameter. -/
 private theorem nlftC_ne_zero (γ : ℂ) :
     (((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ) ≠ 0 := by
   have hpos : (0 : ℝ) < 1 + Complex.normSq γ :=
@@ -186,6 +243,8 @@ private theorem nlftC_ne_zero (γ : ℂ) :
   norm_cast
   exact inv_ne_zero hne
 
+/-- The constant coefficient of the first nonlinear Fourier polynomial is the product of the
+real normalization factors. -/
 theorem nlftSU2_fst_coeff_zero (γ : List ℂ) :
     (nlftSU2 γ).1.coeff 0
       = (((γ.map fun g => (Real.sqrt (1 + Complex.normSq g))⁻¹).prod : ℝ) : ℂ) := by
@@ -201,6 +260,7 @@ theorem nlftSU2_fst_coeff_zero (γ : List ℂ) :
     rw [hX0, smul_zero, sub_zero, smul_eq_mul, ih, List.map_cons, List.prod_cons,
       ← Complex.ofReal_mul]
 
+/-- The first nonlinear Fourier polynomial always has a nonzero constant coefficient. -/
 private theorem nlftSU2_fst_coeff_zero_ne (γ : List ℂ) :
     (nlftSU2 γ).1.coeff 0 ≠ 0 := by
   rw [nlftSU2_fst_coeff_zero]
@@ -212,6 +272,8 @@ private theorem nlftSU2_fst_coeff_zero_ne (γ : List ℂ) :
       (add_pos_of_pos_of_nonneg zero_lt_one (Complex.normSq_nonneg _)))
   exact_mod_cast ne_of_gt hpos
 
+/-- Both nonlinear Fourier polynomials have natural degree at most the parameter-list length
+minus one. -/
 private theorem nlftSU2_natDegree_le_pair (γ : List ℂ) :
     (nlftSU2 γ).1.natDegree ≤ γ.length - 1 ∧ (nlftSU2 γ).2.natDegree ≤ γ.length - 1 := by
   induction γ with
@@ -267,14 +329,20 @@ private theorem nlftSU2_natDegree_le_pair (γ : List ℂ) :
         apply max_le hX
         exact (natDegree_smul_le _ _).trans (le_trans ihA' (Nat.le_add_right _ _))
 
+/-- The first nonlinear Fourier polynomial has natural degree at most the parameter-list length
+minus one. -/
 theorem nlftSU2_fst_natDegree_le (γ : List ℂ) :
     (nlftSU2 γ).1.natDegree ≤ γ.length - 1 :=
   (nlftSU2_natDegree_le_pair γ).1
 
+/-- The second nonlinear Fourier polynomial has natural degree at most the parameter-list length
+minus one. -/
 theorem nlftSU2_snd_natDegree_le (γ : List ℂ) :
     (nlftSU2 γ).2.natDegree ≤ γ.length - 1 :=
   (nlftSU2_natDegree_le_pair γ).2
 
+/-- For `q.natDegree ≤ m`, reflecting `X*q` about `m+1` gives the conjugate reflection of `q`
+about `m`. -/
 theorem conjRevN_succ_X_mul (m : ℕ) (q : Polynomial ℂ) (hq : q.natDegree ≤ m) :
     conjRevN (m + 1) (X * q) = conjRevN m q := by
   have hX0 : (X * q).coeff 0 = 0 := by simp [Polynomial.coeff_mul]
@@ -300,6 +368,8 @@ theorem conjRevN_succ_X_mul (m : ℕ) (q : Polynomial ℂ) (hq : q.natDegree ≤
           coeff_eq_zero_of_natDegree_lt (by omega : q.natDegree < i'),
           coeff_eq_zero_of_natDegree_lt (by omega : q.natDegree < i' + 1)]
 
+/-- For `p.natDegree ≤ m`, increasing the reflection degree from `m` to `m+1` multiplies the
+conjugate reflection by `X`. -/
 theorem conjRevN_succ_eq_X_mul_conjRevN (m : ℕ) (p : Polynomial ℂ) (hp : p.natDegree ≤ m) :
     conjRevN (m + 1) p = X * conjRevN m p := by
   have hX0 : (X * conjRevN m p).coeff 0 = 0 := by simp [Polynomial.coeff_mul]
@@ -319,9 +389,12 @@ theorem conjRevN_succ_eq_X_mul_conjRevN (m : ℕ) (p : Polynomial ℂ) (hp : p.n
         coeff_eq_zero_of_natDegree_lt (by omega : p.natDegree < i' + 1),
         coeff_eq_zero_of_natDegree_lt (by omega : p.natDegree < i')]
 
+/-- Conjugate reflection of a constant polynomial about zero conjugates its coefficient. -/
 private theorem conjRevN_zero_C (c : ℂ) : conjRevN 0 (C c) = C ((starRingEnd ℂ) c) := by
   simp [conjRevN, reflect_C]
 
+/-- Under the degree bounds, the conjugate reflection of the first nonlinear Fourier update is
+the stated normalized combination of the reflected residual polynomials. -/
 private theorem conjRevN_nlft_cons_fst (γ : ℂ) (m : ℕ) (A₁ B₁ : Polynomial ℂ)
     (hA₁ : A₁.natDegree ≤ m) (hB₁ : B₁.natDegree ≤ m) :
     conjRevN (m + 1) ((((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ) • (A₁ - (starRingEnd ℂ γ) • (X * B₁)))
@@ -331,6 +404,8 @@ private theorem conjRevN_nlft_cons_fst (γ : ℂ) (m : ℕ) (A₁ B₁ : Polynom
     starRingEnd_apply, starRingEnd_apply, star_star,
     conjRevN_succ_eq_X_mul_conjRevN _ _ hA₁, conjRevN_succ_X_mul _ _ hB₁, smul_eq_C_mul]
 
+/-- Under the degree bounds, the conjugate reflection of the second nonlinear Fourier update is
+the stated normalized combination of the reflected residual polynomials. -/
 private theorem conjRevN_nlft_cons_snd (γ : ℂ) (m : ℕ) (A₁ B₁ : Polynomial ℂ)
     (hA₁ : A₁.natDegree ≤ m) (hB₁ : B₁.natDegree ≤ m) :
     conjRevN (m + 1) ((((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ) • (X * B₁ + γ • A₁))
@@ -340,14 +415,20 @@ private theorem conjRevN_nlft_cons_snd (γ : ℂ) (m : ℕ) (A₁ B₁ : Polynom
     conjRevN_succ_X_mul _ _ hB₁, conjRevN_smul', conjRevN_succ_eq_X_mul_conjRevN _ _ hA₁,
     smul_eq_C_mul]
 
+/-- The product of the constant polynomials for `γ` and its conjugate is the constant polynomial
+for `normSq γ`. -/
 private theorem nlftC_mul_conj (γ : ℂ) :
     C γ * C ((starRingEnd ℂ) γ) = C ((Complex.normSq γ : ℝ) : ℂ) := by
   rw [← C_mul, starRingEnd_apply, Complex.star_def, Complex.mul_conj]
 
+/-- Adding one to the constant polynomial for `normSq γ` gives the constant polynomial for `1 +
+normSq γ`. -/
 private theorem nlftC_one_add (γ : ℂ) :
     (1 : Polynomial ℂ) + C ((Complex.normSq γ : ℝ) : ℂ) = C (1 + ((Complex.normSq γ : ℝ) : ℂ)) := by
   rw [map_add, map_one]
 
+/-- The nonlinear Fourier pair `(A,B)` satisfies `A * conjRevN d A + B * conjRevN d B = X^d`,
+where `d` is the list length minus one. -/
 theorem nlftSU2_identity (γ : List ℂ) :
     (nlftSU2 γ).1 * conjRevN (γ.length - 1) (nlftSU2 γ).1
       + (nlftSU2 γ).2 * conjRevN (γ.length - 1) (nlftSU2 γ).2 = X ^ (γ.length - 1) := by
@@ -428,6 +509,7 @@ theorem nlftSU2_identity (γ : List ℂ) :
       rw [key, e, nlftC_one_add, ← C_mul, ← mul_assoc, ← C_mul, nlftC_sq γ, C_1, one_mul, ih,
         ← pow_succ']
 
+/-- On the unit circle, the squared moduli of the two nonlinear Fourier polynomials sum to one. -/
 theorem nlftSU2_circle_norm (γ : List ℂ) (z : ℂ) (hz : ‖z‖ = 1) :
     Complex.normSq ((nlftSU2 γ).1.eval z) + Complex.normSq ((nlftSU2 γ).2.eval z) = 1 := by
   have hz0 : z ≠ 0 := by rintro rfl; simp at hz
@@ -455,11 +537,14 @@ theorem nlftSU2_circle_norm (γ : List ℂ) (z : ℂ) (hz : ‖z‖ = 1) :
   have hre := congrArg Complex.re hmain'
   simpa using hre
 
+/-- Dividing `C c * (X*p)` by `X` using `divX` returns `C c * p`. -/
 private theorem divX_C_mul_X_mul (c : ℂ) (p : Polynomial ℂ) :
     (C c * (X * p)).divX = C c * p := by
   ext i
   rw [Polynomial.coeff_divX, Polynomial.coeff_C_mul, Polynomial.coeff_X_mul, Polynomial.coeff_C_mul]
 
+/-- The first parameter of a nonempty nonlinear Fourier transform is the ratio of the constant
+coefficients of its second and first polynomials. -/
 private theorem nlftSU2_cons_head (γ₀ : ℂ) (rest : List ℂ) :
     γ₀ = (nlftSU2 (γ₀ :: rest)).2.coeff 0 / (nlftSU2 (γ₀ :: rest)).1.coeff 0 := by
   have eA : (nlftSU2 (γ₀ :: rest)).1.coeff 0
@@ -483,6 +568,8 @@ private theorem nlftSU2_cons_head (γ₀ : ℂ) (rest : List ℂ) :
   have hc : (((Real.sqrt (1 + Complex.normSq γ₀))⁻¹ : ℝ) : ℂ) ≠ 0 := nlftC_ne_zero _
   rw [mul_div_mul_right _ _ hA₀, mul_div_cancel_left₀ _ hc]
 
+/-- One layer-stripping step on the transform of `γ₀ :: rest` recovers the nonlinear Fourier
+polynomial pair of `rest`. -/
 private theorem nlftSU2_cons_layerStrip (γ₀ : ℂ) (rest : List ℂ) :
     nlftSU2 rest = ((layerStripStepSU2 (nlftSU2 (γ₀ :: rest)).1 (nlftSU2 (γ₀ :: rest)).2).2.1,
                     (layerStripStepSU2 (nlftSU2 (γ₀ :: rest)).1 (nlftSU2 (γ₀ :: rest)).2).2.2) := by
@@ -542,6 +629,8 @@ private theorem nlftSU2_cons_layerStrip (γ₀ : ℂ) (rest : List ℂ) :
     rw [e1, nlftC_mul_conj γ₀, ← mul_assoc, nlftC_one_add, ← C_mul, divX_C_mul_X_mul,
       ← mul_assoc, ← C_mul, ← mul_assoc, nlftC_sq γ₀, C_1, one_mul]
 
+/-- The nonlinear Fourier transform of a concatenation with nonempty first list is the stated
+bilinear combination of the two transforms and the first pair's conjugate reflections. -/
 theorem nlftSU2_append (γ₁ γ₂ : List ℂ) (h₁ : γ₁ ≠ []) :
     nlftSU2 (γ₁ ++ γ₂) = ((nlftSU2 γ₁).1 * (nlftSU2 γ₂).1
         - X * conjRevN (γ₁.length - 1) (nlftSU2 γ₁).2 * (nlftSU2 γ₂).2,
@@ -623,6 +712,8 @@ theorem nlftSU2_append (γ₁ γ₂ : List ℂ) (h₁ : γ₁ ≠ []) :
         simp only [smul_eq_C_mul]
         ring
 
+/-- Two parameter lists of equal length with the same nonlinear Fourier polynomial pair are
+equal. -/
 theorem nlftSU2_injective {γ γ' : List ℂ} (hlen : γ.length = γ'.length) (h : nlftSU2 γ = nlftSU2 γ') :
     γ = γ' := by
   induction γ generalizing γ' with
@@ -646,6 +737,7 @@ theorem nlftSU2_injective {γ γ' : List ℂ} (hlen : γ.length = γ'.length) (h
       exact ⟨rfl,
           ih hlen' (by rw [nlftSU2_cons_layerStrip γ₀ rest, nlftSU2_cons_layerStrip γ₀ rest', h])⟩
 
+/-- Sequential layer stripping returns exactly `n` parameters after `n` steps. -/
 theorem layerStripSU2_gammas_length (A B : Polynomial ℂ) (n : ℕ) :
     (layerStripSU2 A B n).gammas.length = n := by
   induction n generalizing A B with
@@ -655,6 +747,7 @@ theorem layerStripSU2_gammas_length (A B : Polynomial ℂ) (n : ℕ) :
         (layerStripStepSU2 A B).2.2 n).gammas).length = n + 1
     rw [List.length_cons, ih]
 
+/-- The sequential layer-stripping operation count is exactly `3*n^2 + 8*n`. -/
 theorem layerStripSU2_operations (A B : Polynomial ℂ) (n : ℕ) :
     (layerStripSU2 A B n).operations = 3 * n ^ 2 + 8 * n := by
   induction n generalizing A B with
@@ -665,6 +758,8 @@ theorem layerStripSU2_operations (A B : Polynomial ℂ) (n : ℕ) :
     rw [ih]
     ring
 
+/-- When `A.coeff 0` is nonzero, the updated first polynomial has the stated normalized constant
+coefficient after one stripping step. -/
 private theorem layerStripStepSU2_fst_coeff (A B : Polynomial ℂ) (hA0 : A.coeff 0 ≠ 0) :
     (layerStripStepSU2 A B).2.1.coeff 0
       = (((Real.sqrt (1 + Complex.normSq (B.coeff 0 / A.coeff 0)))⁻¹ : ℝ) : ℂ)
@@ -673,6 +768,8 @@ private theorem layerStripStepSU2_fst_coeff (A B : Polynomial ℂ) (hA0 : A.coef
       • (A + (starRingEnd ℂ) (B.coeff 0 / A.coeff 0) • B))).coeff 0 = _
   rw [coeff_smul, coeff_add, coeff_smul, smul_eq_mul, smul_eq_mul]
 
+/-- A positive real constant coefficient of the first polynomial remains positive and real after
+one layer-stripping step. -/
 private theorem layerStripStepSU2_fst_coeff_invariant (A B : Polynomial ℂ)
     (hA0 : A.coeff 0 ≠ 0) (h0im : (A.coeff 0).im = 0) (h0re : 0 < (A.coeff 0).re) :
     ((layerStripStepSU2 A B).2.1.coeff 0).im = 0
@@ -720,6 +817,8 @@ private theorem layerStripStepSU2_fst_coeff_invariant (A B : Polynomial ℂ)
   · rw [Complex.mul_re, hcA0, zero_mul, sub_zero]
     exact mul_pos hcA0re hd1re
 
+/-- A positive real constant coefficient of `A` ensures `LayerStripExact A B n` for every number
+of steps `n`. -/
 theorem layerStripExact_of_pos (A B : Polynomial ℂ) (n : ℕ)
     (h0im : (A.coeff 0).im = 0) (h0re : 0 < (A.coeff 0).re) :
     LayerStripExact A B n := by
@@ -733,11 +832,14 @@ theorem layerStripExact_of_pos (A B : Polynomial ℂ) (n : ℕ)
     obtain ⟨him, hre⟩ := layerStripStepSU2_fst_coeff_invariant A B hA0 h0im h0re
     exact ⟨hA0, ih _ _ him hre⟩
 
+/-- Reduction modulo `X^m` preserves every coefficient of index less than `m`. -/
 theorem coeff_mod_X_pow (A : Polynomial ℂ) (m i : ℕ) (hi : i < m) :
     (A % X ^ m).coeff i = A.coeff i := by
   rw [EuclideanDomain.mod_eq_sub_mul_div, coeff_sub, coeff_X_pow_mul']
   simp [hi]
 
+/-- The extracted parameter and the two residual polynomials of a layer-stripping step are given
+by the stated explicit formulas. -/
 theorem layerStripStepSU2_apply (A B : Polynomial ℂ) :
     (layerStripStepSU2 A B).1 = B.coeff 0 / A.coeff 0
     ∧ (layerStripStepSU2 A B).2.1
@@ -748,6 +850,8 @@ theorem layerStripStepSU2_apply (A B : Polynomial ℂ) :
         • (B - (B.coeff 0 / A.coeff 0) • A).divX) :=
   ⟨rfl, rfl, rfl⟩
 
+/-- Agreement of the first `j` input coefficients implies agreement of the first `k ≤ j`
+extracted layer-stripping parameters. -/
 private theorem layerStripSU2_gammas_congr {A B A' B' : Polynomial ℂ} {j k : ℕ}
     (hk : k ≤ j) (h : ∀ i, i < j → A.coeff i = A'.coeff i ∧ B.coeff i = B'.coeff i) :
     (layerStripSU2 A B k).gammas = (layerStripSU2 A' B' k).gammas := by
@@ -783,12 +887,16 @@ private theorem layerStripSU2_gammas_congr {A B A' B' : Polynomial ℂ} {j k : �
     congr 1
     exact ih hj' hstep
 
+/-- Truncating both input polynomials modulo `X^m` preserves the parameters extracted by any `k
+≤ m` stripping steps. -/
 theorem layerStripSU2_truncate_gammas (m k : ℕ) (A B : Polynomial ℂ) (hk : k ≤ m) :
     (layerStripSU2 (A % X ^ m) (B % X ^ m) k).gammas = (layerStripSU2 A B k).gammas := by
   apply layerStripSU2_gammas_congr (j := m) hk
   intro i hi
   exact ⟨coeff_mod_X_pow A m i hi, coeff_mod_X_pow B m i hi⟩
 
+/-- The transform of a singleton list consists of the constant polynomials for the normalization
+factor and that factor times the parameter. -/
 theorem nlftSU2_singleton (γ : ℂ) :
     nlftSU2 [γ] = (C ((((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ)),
       C ((((Real.sqrt (1 + Complex.normSq γ))⁻¹ : ℝ) : ℂ) * γ)) := by
@@ -804,9 +912,14 @@ theorem nlftSU2_singleton (γ : ℂ) :
     rw [smul_eq_C_mul, mul_zero, zero_add, smul_eq_C_mul, mul_one, ← C_mul]
   exact Prod.ext hA hB
 
+/-- Conjugate reflection of a constant polynomial about degree one is its conjugate constant
+multiplied by `X`. -/
 private theorem conjRevN_one_C (c : ℂ) : conjRevN 1 (C c) = C ((starRingEnd ℂ) c) * X := by
   simp [conjRevN, reflect_C, pow_one]
 
+/-- For positive `m` and exact stripping, multiplying the residual pair by `X^m` gives the
+stated transfer formulas in terms of the original pair and the transform of the extracted
+parameters. -/
 theorem layerStripSU2_transfer (m : ℕ) (A B : Polynomial ℂ) (hm : 1 ≤ m)
     (hex : LayerStripExact A B m) :
     X ^ m * (layerStripSU2 A B m).finalA
@@ -939,6 +1052,8 @@ theorem layerStripSU2_transfer (m : ℕ) (A B : Polynomial ℂ) (hm : 1 ≤ m)
         simp only [smul_eq_C_mul, C_mul]
         ring
 
+/-- For `A.natDegree ≤ d`, the coefficient at `2*d` of `A * conjRevN d A` is `A.coeff d` times
+the conjugate of `A.coeff 0`. -/
 private theorem coeff_mul_conjRevN_top (A : Polynomial ℂ) (d : ℕ) (hd : A.natDegree ≤ d) :
     (A * conjRevN d A).coeff (2 * d) = A.coeff d * (starRingEnd ℂ) (A.coeff 0) := by
   rw [Polynomial.coeff_mul]
@@ -961,6 +1076,9 @@ private theorem coeff_mul_conjRevN_top (A : Polynomial ℂ) (d : ℕ) (hd : A.na
   · intro hdd
     exact absurd (Finset.mem_antidiagonal.mpr (show d + d = 2 * d by omega)) hdd
 
+/-- A degree-bounded polynomial pair satisfying the conjugate-reversal identity and a positive
+real first constant coefficient is reconstructed by `d+1` stripping steps, whose residual
+pair is `(1,0)`. -/
 theorem layerStripSU2_correct (d : ℕ) (A B : Polynomial ℂ) (hA : A.natDegree ≤ d)
     (hB : B.natDegree ≤ d)
     (hid : A * conjRevN d A + B * conjRevN d B = X ^ d)

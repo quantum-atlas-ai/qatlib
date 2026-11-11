@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringAlgorithmStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringRepetitionConsumerShor
+
+/-!
+# Factoring success after preprocessing
+
+Proves `factoringAlgorithm` by combining preprocessing with independent factoring attempts. The
+result gives a repeated-attempt success bound and soundness of factors returned by preprocessing
+or an attempt, within the finite probability model associated with [Shor1997].
+
+## Main statements
+
+* `attemptBound_le_one`: Bounds the single-attempt lower-bound expression by one.
+* `factoringAlgorithm`: Establishes the complete factoring success and soundness contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,8 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- For `N ≥ 3` and enough sampler bits to encode every unit, the single-attempt bound
+`shorAttemptBound N k` is at most one. -/
 private theorem attemptBound_le_one (N k : ℕ) [NeZero N] (hN : 3 ≤ N)
     (hk : Fintype.card (ZMod N)ˣ ≤ 2 ^ k) : shorAttemptBound N k ≤ 1 := by
   have hs : 1 ≤ N.primeFactors.card :=
@@ -44,6 +64,8 @@ private theorem attemptBound_le_one (N k : ℕ) [NeZero N] (hN : 3 ≤ N)
       gcongr; linarith
     _ = 1 := by ring
 
+/-- Establishes preprocessing soundness, the repeated-attempt factoring success bound, and
+soundness of individual factor outputs in the probability model associated with [Shor1997]. -/
 theorem factoringAlgorithm : FactoringAlgorithm := by
   intro N R k M _ hM hk hN hcomposite hsize
   refine ⟨fun d h => factoringPreprocessing.1 N d hN h, ?_, attemptFactor_sound N M⟩

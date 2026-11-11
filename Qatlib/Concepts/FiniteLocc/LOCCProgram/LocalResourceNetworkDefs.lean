@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkLOCC
 import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+
+/-!
+# EPR resources and local interaction definitions
+
+This module constructs the Bell vector, its EPR density operator, and tensor inventories with
+individually addressed slot actions. `EPRInventory` records pair releases and factory charges,
+while the explicit factory matrix prepares the Bell vector from `e00`, in the teleportation
+setting of [BennettEtAl1993Teleportation].
+
+Local Kraus operations are expressed through reference-indexed blocks and shown to preserve the
+reference marginal when complete. `InteractiveGuess` supplies deterministic finite-round
+transcript semantics, together with integer Kraft bounds, prefix-free leaf encodings, and
+repetition charges.
+
+## Main statements
+
+* `two_slot_consumption`: updates at distinct EPR slots affect only their respective factors.
+* `eprFactoryUnitary_e00`: the factory produces the Bell vector.
+* `localChannel_reference_preserved`: complete local channels preserve the reference marginal.
+* `InteractiveGuess.run_spec`: computed messages satisfy the strategy equations.
+* `tree_kraft_le_one`: bound integer Kraft mass by the depth budget.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -28,35 +55,44 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option linter.unusedVariables false
 
+/-- The positive real number `1 / √2`, viewed in `ℂ`. -/
 noncomputable def invSqrtTwo : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
 
+/-- The square of `invSqrtTwo` is the inverse of two. -/
 theorem invSqrtTwo_sq : invSqrtTwo ^ 2 = (2 : ℂ)⁻¹ := by
   have h : ((Real.sqrt 2 : ℝ) : ℂ) ^ 2 = 2 := by
     norm_cast
     simpa using Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
   rw [invSqrtTwo, inv_pow, h]
 
+/-- Complex conjugation fixes `invSqrtTwo`. -/
 theorem invSqrtTwo_star : starRingEnd ℂ invSqrtTwo = invSqrtTwo := by
   rw [invSqrtTwo, map_inv₀, Complex.conj_ofReal]
 
+/-- The product of `invSqrtTwo` with itself is the inverse of two. -/
 theorem invSqrtTwo_mul : invSqrtTwo * invSqrtTwo = (2 : ℂ)⁻¹ := by
   rw [show invSqrtTwo * invSqrtTwo = invSqrtTwo ^ 2 from by ring, invSqrtTwo_sq]
 
+/-- The normalized equal-bit Bell vector, with amplitude `1 / √2` on `(0, 0)` and `(1, 1)`. -/
 noncomputable def bellVector : Fin 2 × Fin 2 → ℂ :=
   fun ij => if ij = (0, 0) then invSqrtTwo else if ij = (1, 1) then invSqrtTwo else 0
 
+/-- The outer product of `bellVector`, representing one EPR pair. -/
 noncomputable def eprFactor : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
   outerProduct bellVector
 
+/-- The EPR factor is positive semidefinite. -/
 theorem eprFactor_psd : eprFactor.PosSemidef :=
   outerProduct_posSemidef _
 
+/-- The EPR factor has trace one. -/
 theorem eprFactor_trace : Matrix.trace eprFactor = 1 := by
   simp only [eprFactor, Matrix.trace, Matrix.diag_apply, outerProduct_apply]
   simp only [Fintype.sum_prod_type, Fin.sum_univ_two]
   simp [bellVector, invSqrtTwo_star, invSqrtTwo_mul]
   ring
 
+/-- The EPR factor is one half of the outer product of the equal-bit indicator vector. -/
 theorem eprFactor_canonical :
     eprFactor = (1 / 2 : ℂ) • outerProduct (fun ij => if ij.1 = ij.2 then 1 else 0) := by
   ext i j
@@ -67,22 +103,28 @@ theorem eprFactor_canonical :
       invSqrtTwo_mul] <;>
     ring
 
+/-- The tensor product of `m` EPR factors, indexed by assignments of two-bit basis labels to
+slots. -/
 noncomputable def eprInventory (m : ℕ) :
     Matrix (Fin m → (Fin 2 × Fin 2)) (Fin m → (Fin 2 × Fin 2)) ℂ :=
   productMatrix (fun _ => eprFactor)
 
+/-- A finite EPR inventory is positive semidefinite. -/
 theorem eprInventory_psd (m : ℕ) : (eprInventory m).PosSemidef :=
   productMatrix_psd (fun _ => eprFactor) (fun _ => eprFactor_psd)
 
+/-- A finite EPR inventory has trace one. -/
 theorem eprInventory_trace (m : ℕ) : Matrix.trace (eprInventory m) = 1 := by
   rw [eprInventory, productMatrix_trace]
   simp [eprFactor_trace]
 
+/-- The tensor operator acting by `A` at slot `j` and by the identity at every other slot. -/
 noncomputable def slotAction (m : ℕ) (j : Fin m)
     (A : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     Matrix (Fin m → (Fin 2 × Fin 2)) (Fin m → (Fin 2 × Fin 2)) ℂ :=
   productMatrix (fun j' => if j' = j then A else 1)
 
+/-- Pointwise equality of each tensor factor gives equality of the product matrices. -/
 private theorem productMatrix_congr {ι : Type} [Fintype ι] {S : ι → Type}
     (f g : ∀ i, Matrix (S i) (S i) ℂ) (h : ∀ i x y, f i x y = g i x y) :
     productMatrix f = productMatrix g := by
@@ -90,12 +132,15 @@ private theorem productMatrix_congr {ι : Type} [Fintype ι] {S : ι → Type}
   simp only [productMatrix]
   exact Finset.prod_congr rfl fun i _ => h i (x i) (y i)
 
+/-- Left multiplication of an EPR inventory by a slot action multiplies only the selected tensor
+factor by `A`. -/
 theorem slotAction_mul_inventory (m : ℕ) (j : Fin m)
     (A : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     slotAction m j A * eprInventory m
       = productMatrix (fun j' => (if j' = j then A else 1) * eprFactor) := by
   rw [slotAction, eprInventory, productMatrix_mul]
 
+/-- The adjoint of a slot action has `Aᴴ` at the selected slot and identities elsewhere. -/
 theorem slotAction_adjoint (m : ℕ) (j : Fin m)
     (A : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     (slotAction m j A)ᴴ = productMatrix (fun j' => if j' = j then Aᴴ else 1) := by
@@ -108,6 +153,8 @@ theorem slotAction_adjoint (m : ℕ) (j : Fin m)
   · rw [if_neg hj, if_neg hj]
     rw [Matrix.conjTranspose_one]
 
+/-- Conjugating an EPR inventory by a slot action replaces only that factor with `A * eprFactor
+* Aᴴ`. -/
 theorem slot_consumption (m : ℕ) (j : Fin m)
     (A : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     slotAction m j A * eprInventory m * (slotAction m j A)ᴴ
@@ -120,6 +167,8 @@ theorem slot_consumption (m : ℕ) (j : Fin m)
     simp
   · simp [hj]
 
+/-- Conjugating at two distinct slots replaces their EPR factors independently and leaves every
+other factor unchanged. -/
 theorem two_slot_consumption (m : ℕ) (j₁ j₂ : Fin m) (hne : j₁ ≠ j₂)
     (A₁ A₂ : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     slotAction m j₂ A₂ * (slotAction m j₁ A₁ * eprInventory m * (slotAction m j₁ A₁)ᴴ)
@@ -137,8 +186,10 @@ theorem two_slot_consumption (m : ℕ) (j₁ j₂ : Fin m) (hne : j₁ ≠ j₂)
     · simp [h1, h2, hne, Ne.symm hne]
     · simp [h1, h2]
 
+/-- A natural-number identifier for a local party. -/
 abbrev LocalParty := ℕ
 
+/-- The two local-party identifiers assigned to the halves of an EPR pair. -/
 structure EPRRelease where
 
   first : LocalParty
@@ -146,23 +197,29 @@ structure EPRRelease where
   second : LocalParty
   deriving DecidableEq
 
+/-- A number of EPR slots together with the release assignment for each pair. -/
 structure EPRInventory where
 
   slots : ℕ
 
   release : Fin slots → EPRRelease
 
+/-- The tensor product EPR state associated with the inventory's slot count. -/
 noncomputable def EPRInventory.state (inv : EPRInventory) :
     Matrix (Fin inv.slots → (Fin 2 × Fin 2)) (Fin inv.slots → (Fin 2 × Fin 2)) ℂ :=
   eprInventory inv.slots
 
+/-- The state of an EPR inventory is positive semidefinite. -/
 theorem EPRInventory.state_psd (inv : EPRInventory) : (inv.state).PosSemidef :=
   eprInventory_psd inv.slots
 
+/-- The state of an EPR inventory has trace one. -/
 theorem EPRInventory.state_trace (inv : EPRInventory) :
     Matrix.trace inv.state = 1 :=
   eprInventory_trace inv.slots
 
+/-- The gate descriptions used by the EPR factory: a Hadamard on a selected half or a CNOT at a
+slot. -/
 inductive EPRFactoryGate where
 
   | hadamard (slot : ℕ) (half : Bool)
@@ -170,31 +227,42 @@ inductive EPRFactoryGate where
   | cnot (slot : ℕ)
   deriving DecidableEq
 
+/-- The factory gate list containing a Hadamard on the first half followed by a CNOT for each
+slot. -/
 def eprFactoryGates (m : ℕ) : List EPRFactoryGate :=
   (List.finRange m).flatMap (fun j => [.hadamard j false, .cnot j])
 
+/-- The factory gate list contains exactly two gates per slot. -/
 theorem eprFactoryGates_length (m : ℕ) : (eprFactoryGates m).length = 2 * m := by
   simp [eprFactoryGates, List.length_flatMap, List.length_finRange]
   ring
 
+/-- The length of the factory gate list for an inventory. -/
 def EPRInventory.gateCost (inv : EPRInventory) : ℕ :=
   (eprFactoryGates inv.slots).length
 
+/-- The factory gate charge of an EPR inventory is twice its slot count. -/
 theorem EPRInventory.gateCost_eq (inv : EPRInventory) :
     inv.gateCost = 2 * inv.slots :=
   eprFactoryGates_length inv.slots
 
+/-- The two-dimensional Hadamard matrix with entries `±1 / √2`. -/
 noncomputable def hadamard2 : Operator 2 :=
   fun i j => if i = 0 then invSqrtTwo else if j = 0 then invSqrtTwo else -invSqrtTwo
 
+/-- The exclusive-or operation on `Fin 2`, returning zero for equal inputs and one otherwise. -/
 def xorFin2 (a b : Fin 2) : Fin 2 := if a = b then 0 else 1
 
+/-- The two-qubit factory matrix implementing a Hadamard on the first qubit followed by a
+controlled bit flip. -/
 noncomputable def eprFactoryUnitary : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
   fun i j => hadamard2 i.1 j.1 * if xorFin2 i.2 i.1 = j.2 then 1 else 0
 
+/-- The two-qubit computational basis vector at `(0, 0)`. -/
 def e00 : Fin 2 × Fin 2 → ℂ :=
   fun ij => if ij = (0, 0) then 1 else 0
 
+/-- The factory matrix maps `e00` to `bellVector`. -/
 theorem eprFactoryUnitary_e00 : eprFactoryUnitary *ᵥ e00 = bellVector := by
   funext i
   rcases i with ⟨i1, i2⟩
@@ -202,35 +270,46 @@ theorem eprFactoryUnitary_e00 : eprFactoryUnitary *ᵥ e00 = bellVector := by
     simp [Matrix.mulVec, dotProduct, e00, eprFactoryUnitary, hadamard2, bellVector,
       xorFin2, Fintype.sum_prod_type, Fin.sum_univ_two]
 
+/-- The projector onto the factory output from `e00` is the EPR factor. -/
 theorem eprFactoryOutput_eq : outerProduct (eprFactoryUnitary *ᵥ e00) = eprFactor := by
   rw [eprFactoryUnitary_e00]
   rfl
 
+/-- A complex operator on the product of a local system of dimension `D` and a reference of
+dimension `R`. -/
 abbrev LocalJoint (D R : ℕ) := Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ
 
+/-- The local-system matrix block obtained by fixing the two reference indices. -/
 def localBlock {D R : ℕ} (ρ : LocalJoint D R) (r r' : Fin R) : Operator D :=
   fun a b => ρ (a, r) (b, r')
 
+/-- The trace of a local block is the corresponding entry of the reference marginal. -/
 theorem localBlock_trace {D R : ℕ} (ρ : LocalJoint D R) (r r' : Fin R) :
     Matrix.trace (localBlock ρ r r') = partialTraceFirst ρ r r' := by
   simp only [localBlock, Matrix.trace, partialTraceFirst, Matrix.traceLeft, Matrix.of_apply]
   rfl
 
+/-- Conjugate the local subsystem by `A`, acting trivially on the reference. -/
 noncomputable def localConj {D : ℕ} (A : Operator D) {R : ℕ} (ρ : LocalJoint D R) :
     LocalJoint D R :=
   fun p q => ∑ b : Fin D,
     (∑ a : Fin D, A p.1 a * ρ (a, p.2) (b, q.2)) * starRingEnd ℂ (A q.1 b)
 
+/-- The sum of local conjugations over a finite Kraus family. -/
 noncomputable def localChannel {D : ℕ} {s : ℕ} (K : Fin s → Operator D) {R : ℕ}
     (ρ : LocalJoint D R) : LocalJoint D R :=
   ∑ k, localConj (K k) ρ
 
+/-- Each reference block of a local conjugation is the corresponding local block conjugated by
+`A`. -/
 private theorem localConj_block_apply {D R : ℕ} (A : Operator D) (ρ : LocalJoint D R)
     (r r' : Fin R) (i j : Fin D) :
     (localConj A ρ) (i, r) (j, r') = (A * localBlock ρ r r' * Aᴴ) i j := by
   simp only [localBlock, localConj, Matrix.mul_apply, Matrix.conjTranspose_apply]
   rfl
 
+/-- A reference block of a local channel equals the sum of the Kraus conjugations of that input
+block. -/
 private theorem localChannel_block {D R s : ℕ} (K : Fin s → Operator D)
     (ρ : LocalJoint D R) (r r' : Fin R) :
     localBlock (localChannel K ρ) r r'
@@ -240,6 +319,7 @@ private theorem localChannel_block {D R s : ℕ} (K : Fin s → Operator D)
   refine Finset.sum_congr rfl fun k _ => ?_
   rw [localConj_block_apply]
 
+/-- A complete local Kraus family leaves the reference marginal unchanged. -/
 theorem localChannel_reference_preserved {D R s : ℕ} (K : Fin s → Operator D)
     (hK : ∑ k, (K k)ᴴ * (K k) = 1) (ρ : LocalJoint D R) :
     partialTraceFirst (localChannel K ρ) = partialTraceFirst ρ := by
@@ -271,6 +351,7 @@ theorem localChannel_reference_preserved {D R s : ℕ} (K : Fin s → Operator D
     _ = Matrix.trace (localBlock ρ r r') := by rw [hK, Matrix.one_mul]
     _ = partialTraceFirst ρ r r' := localBlock_trace _ _ _
 
+/-- Summing the branches of a complete local instrument leaves the reference marginal unchanged. -/
 theorem localInstrument_reference_preserved {D R s : ℕ} (K : Fin s → Operator D)
     (hK : ∑ k, (K k)ᴴ * (K k) = 1) (ρ : LocalJoint D R) :
     partialTraceFirst (∑ k, localConj (K k) ρ) = partialTraceFirst ρ := by
@@ -309,6 +390,7 @@ theorem localInstrument_reference_preserved {D R s : ℕ} (K : Fin s → Operato
     _ = Matrix.trace (localBlock ρ r r') := by rw [hK, Matrix.one_mul]
     _ = partialTraceFirst ρ r r' := localBlock_trace _ _ _
 
+/-- A unitary local channel with one outcome leaves the reference marginal unchanged. -/
 theorem localUnitary_reference_preserved {D R : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : LocalJoint D R) :
     partialTraceFirst (localChannel (fun _ : Fin 1 => U) ρ) = partialTraceFirst ρ := by
@@ -318,6 +400,8 @@ theorem localUnitary_reference_preserved {D R : ℕ} (U : Operator D)
     rwa [Matrix.star_eq_conjTranspose] at h
   simp [hunit]
 
+/-- A finite-round deterministic interaction in which Alice knows `X`, each party reads only the
+other party's past messages, and a final rule guesses `X` from both transcripts. -/
 structure InteractiveGuess (X : Type) [Fintype X] (rounds : ℕ) where
 
   alice : X → (i : Fin rounds) → (bobPast : Fin i → List Bool) → List Bool
@@ -326,9 +410,12 @@ structure InteractiveGuess (X : Type) [Fintype X] (rounds : ℕ) where
 
   guess : (Fin rounds → List Bool) → (Fin rounds → List Bool) → X
 
+/-- Restrict a message array to the rounds strictly before `j`. -/
 def before {n : ℕ} (arr : Fin n → List Bool) (j : Fin n) : Fin j → List Bool :=
   fun k => arr (Fin.castLE (Nat.le_of_lt j.isLt) k)
 
+/-- Updating a message at index `i` does not change the history strictly before any index `j ≤
+i`. -/
 private theorem before_update {n : ℕ} (arr : Fin n → List Bool) (i : Fin n) (v : List Bool)
     (j : Fin n) (hj : j.val ≤ i.val) : before (Function.update arr i v) j = before arr j := by
   funext k
@@ -341,6 +428,8 @@ private theorem before_update {n : ℕ} (arr : Fin n → List Bool) (i : Fin n) 
     omega
   simp [Function.update, hne]
 
+/-- Recursively compute both message arrays through round `k`, using each party's strategy and
+the other party's earlier messages. -/
 noncomputable def InteractiveGuess.run {X : Type} [Fintype X] {rounds : ℕ}
     (P : InteractiveGuess X rounds) (x : X) :
     (k : ℕ) → (hk : k < rounds) → (Fin rounds → List Bool) → (Fin rounds → List Bool) →
@@ -354,6 +443,8 @@ noncomputable def InteractiveGuess.run {X : Type} [Fintype X] {rounds : ℕ}
       let bnew := P.bob ⟨k + 1, hk⟩ (before r.1 ⟨k + 1, hk⟩)
       (Function.update r.1 ⟨k + 1, hk⟩ anew, Function.update r.2 ⟨k + 1, hk⟩ bnew)
 
+/-- The pair of complete message arrays produced by a deterministic interactive protocol on
+input `x`. -/
 noncomputable def InteractiveGuess.transcript {X : Type} [Fintype X] {rounds : ℕ}
     (P : InteractiveGuess X rounds) (x : X) :
     (Fin rounds → List Bool) × (Fin rounds → List Bool) :=
@@ -361,6 +452,8 @@ noncomputable def InteractiveGuess.transcript {X : Type} [Fintype X] {rounds : �
   | 0 => (fun _ => [], fun _ => [])
   | r + 1 => P.run x r (by omega) (fun _ => []) (fun _ => [])
 
+/-- Every message through round `k` in a computed run satisfies its party's strategy equation
+using only the other party's earlier messages. -/
 theorem InteractiveGuess.run_spec {X : Type} [Fintype X] {rounds : ℕ}
     (P : InteractiveGuess X rounds) (x : X) :
     ∀ (k : ℕ) (hk : k < rounds) (aprev bprev : Fin rounds → List Bool)
@@ -464,6 +557,8 @@ theorem InteractiveGuess.run_spec {X : Type} [Fintype X] {rounds : ℕ}
           rw [hjb, hja]
           exact hr.2 j (by omega)
 
+/-- Each Alice transcript message is her strategy evaluated on the input and Bob's preceding
+messages. -/
 theorem InteractiveGuess.transcript_alice {X : Type} [Fintype X] {rounds : ℕ}
     (P : InteractiveGuess X rounds) (x : X) (j : Fin rounds) :
     (P.transcript x).1 j = P.alice x j (before (P.transcript x).2 j) := by
@@ -475,6 +570,7 @@ theorem InteractiveGuess.transcript_alice {X : Type} [Fintype X] {rounds : ℕ}
       have h := hspec.1 j (by omega)
       simpa [InteractiveGuess.transcript, rr] using h
 
+/-- Each Bob transcript message is his strategy evaluated on Alice's preceding messages. -/
 theorem InteractiveGuess.transcript_bob {X : Type} [Fintype X] {rounds : ℕ}
     (P : InteractiveGuess X rounds) (x : X) (j : Fin rounds) :
     (P.transcript x).2 j = P.bob j (before (P.transcript x).1 j) := by
@@ -486,16 +582,20 @@ theorem InteractiveGuess.transcript_bob {X : Type} [Fintype X] {rounds : ℕ}
       have h := hspec.2 j (by omega)
       simpa [InteractiveGuess.transcript, rr] using h
 
+/-- A fixed interactive protocol produces equal transcripts on equal inputs. -/
 theorem InteractiveGuess.transcript_deterministic {X : Type} [Fintype X]
     {rounds : ℕ} (P : InteractiveGuess X rounds) (x y : X) (h : x = y) :
     P.transcript x = P.transcript y := by
   subst h
   rfl
 
+/-- The integer Kraft mass with budget `C`, assigning `2 ^ C` to a leaf and decreasing the
+budget on each binary branch. -/
 def treeKraftMass : BinaryMessageTree → ℕ → ℕ
   | .leaf, C => 2 ^ C
   | .fork l r, C => treeKraftMass l (C - 1) + treeKraftMass r (C - 1)
 
+/-- A binary message tree of depth at most `C` has integer Kraft mass at most `2 ^ C`. -/
 theorem tree_kraft_le_one : ∀ (C : ℕ) (T : BinaryMessageTree), T.depth ≤ C →
     treeKraftMass T C ≤ 2 ^ C := by
   intro C
@@ -523,6 +623,7 @@ theorem tree_kraft_le_one : ∀ (C : ℕ) (T : BinaryMessageTree), T.depth ≤ C
           simp only [treeKraftMass, Nat.succ_sub_one]
           omega
 
+/-- The encoding of one leaf path cannot be a prefix of the encoding of a distinct leaf path. -/
 theorem tree_leaves_prefix_free (T : BinaryMessageTree) :
     ∀ p q : T.Path, p ≠ q → ¬ List.IsPrefix (T.encode p) (T.encode q) := by
   induction T with
@@ -561,10 +662,12 @@ theorem tree_leaves_prefix_free (T : BinaryMessageTree) :
                   hne (congrArg (fun w : r.Path => (Sum.inr w : l.Path ⊕ r.Path)) h))
               exact hlen ⟨t, by simpa [BinaryMessageTree.encode] using ht⟩
 
+/-- A redundant encoding with repetition factor `r` of a length-`C` word has length `r * C`. -/
 theorem redundant_budget (r C : ℕ) (w : List Bool) (h : w.length = C) :
     (redundantEncode r w).length = r * C := by
   rw [redundantEncode_length, h]
 
+/-- The exponential budget `2 ^ (C * r)` equals the `r`-th power of `2 ^ C` over the reals. -/
 theorem redundant_bound_degrades (r C : ℕ) :
     (2 : ℝ) ^ (C * r) = ((2 : ℝ) ^ C) ^ r := by
   rw [pow_mul (a := (2 : ℝ)) (m := C) (n := r)]

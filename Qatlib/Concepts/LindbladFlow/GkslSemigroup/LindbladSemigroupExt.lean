@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDefs
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
+
+/-!
+# Lindblad mixing, entropy bounds, and thermal jumps
+
+This module derives trace-distance mixing estimates and entropy bounds for finite Lindblad
+semigroups. The results `mixing_combined`, `entropyContraction_exponential`, and
+`entropy_retained` separate the KMS gap assumptions from the entropy contraction and retention
+laws; the dynamical setting is described in [Lindblad1976].
+
+It also develops rank-one thermal acceptance jumps, Gibbs stationarity, and geometric recovery
+tails for a measured Metropolis construction, providing algebraic components related to the
+sampling framework of [TemmeEtAl2011].
+
+## Main statements
+
+* `mixing_time_bound`: a finite mixing-time estimate from a positive KMS gap.
+* `ckGenerator_gibbs_stationary`: stationarity of the diagonal Gibbs density.
+* `ckRecoveryTailTotal_le`: a uniform geometric bound on total recovery tails.
+* `referenceWeight_unbounded`: growth of the reference weight with dimension.
+
+## References
+
+* [Lindblad, 1976][Lindblad1976]
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.GibbsMetropolis.RationalBath
@@ -28,6 +54,8 @@ noncomputable section
 
 variable {D : ℕ}
 
+/-- The initial relative entropy of two density operators is nonnegative when the reference
+operator is positive definite. -/
 theorem initialEntropy_nonneg {σ ρ : Operator D}
     (hσ : IsDensityOperator σ) (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) :
     0 ≤ initialEntropy σ ρ := by
@@ -35,6 +63,8 @@ theorem initialEntropy_nonneg {σ ρ : Operator D}
   unfold initialEntropy
   exact ENNReal.toReal_nonneg.trans (le_of_eq h.symm)
 
+/-- The natural power of a real exponential equals the exponential of the corresponding
+multiple. -/
 private theorem exp_mul_pow (x : ℝ) (n : ℕ) :
     (Real.exp x : ℝ) ^ n = Real.exp (x * (n : ℝ)) := by
   induction n with
@@ -45,6 +75,9 @@ private theorem exp_mul_pow (x : ℝ) (n : ℕ) :
       push_cast
       ring
 
+/-- For a KMS self-adjoint Heisenberg generator with gap at least `γ`, the trace distance to a
+positive definite reference density is bounded by `exp (-γ * t) * initialStateFactor ρ σ /
+2` at nonnegative times. -/
 theorem mixing_initialState (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -55,6 +88,9 @@ theorem mixing_initialState (G : GKSL D) {ρ σ : Operator D}
   have h := lindblad_traceDistance_le_of_heisenberg_kmsGap G hρ hfull hself γ hgap hσ t ht
   simpa only [initialStateFactor] using! h
 
+/-- For a KMS self-adjoint Heisenberg generator with gap at least `γ`, the trace distance to a
+positive definite reference density is bounded by `exp (-γ * t) * referenceWeight ρ / 2` at
+nonnegative times. -/
 theorem mixing_normalization (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -65,6 +101,8 @@ theorem mixing_normalization (G : GKSL D) {ρ σ : Operator D}
   have h := lindblad_traceDistance_le_inverse_sqrt G hρ hfull hself γ hgap hσ t ht
   simpa only [referenceWeight] using! h
 
+/-- A nonnegative common factor divided by two can be pulled out of the minimum of two real
+numbers. -/
 private theorem min_mul_div_two (e a b : ℝ) (he : 0 ≤ e) :
     min (e * a / 2) (e * b / 2) = e * min a b / 2 := by
   by_cases hab : a ≤ b
@@ -82,6 +120,8 @@ private theorem min_mul_div_two (e a b : ℝ) (he : 0 ≤ e) :
       · norm_num
     rw [min_eq_right hle]
 
+/-- The trace-distance mixing bound uses the minimum of the initial-state factor and reference
+weight under KMS self-adjointness and a gap bound. -/
 theorem mixing_combined (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -95,6 +135,8 @@ theorem mixing_combined (G : GKSL D) {ρ σ : Operator D}
     (referenceWeight ρ) (Real.exp_nonneg _)
   exact (le_min h1 h2).trans_eq hminBound
 
+/-- A positive KMS gap gives a finite mixing time, bounded by `log ((referenceWeight ρ + 1) / η)
+/ γ` for `0 < η ≤ 1`. -/
 theorem mixing_time_bound (G : GKSL D) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ) (hγ : 0 < γ)
@@ -104,6 +146,8 @@ theorem mixing_time_bound (G : GKSL D) {ρ : Operator D}
   have h := mixingTime_le_inverse_sqrt G hρ hfull hself γ hγ hgap η hη hη1
   simpa only [referenceWeight] using! h
 
+/-- An entropy contraction law bounds relative entropy at time `n * h` by `(1 - η * h) ^ n`
+times its initial value for `0 < h ≤ 1`. -/
 theorem entropyContraction_iterate_aux (G : GKSL D) (ρ : Operator D) (η : ℝ)
     (hcont : EntropyContractionLaw G ρ η) {h : ℝ} (hh : 0 < h) (hh1 : h ≤ 1) :
     ∀ (n : ℕ) (σ : Operator D), IsDensityOperator σ →
@@ -144,6 +188,8 @@ theorem entropyContraction_iterate_aux (G : GKSL D) (ρ : Operator D) (η : ℝ)
               = ((1 - η * h) ^ n * (1 - η * h)) * relativeEntropy σ ρ := by ring
           rw [hre, hpow]
 
+/-- An entropy contraction law yields exponential decay of relative entropy with rate `η` at all
+nonnegative times relative to a positive definite density. -/
 theorem entropyContraction_exponential (G : GKSL D) (ρ : Operator D) (η : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hcont : EntropyContractionLaw G ρ η) (σ : Operator D) (hσ : IsDensityOperator σ)
@@ -190,6 +236,8 @@ theorem entropyContraction_exponential (G : GKSL D) (ρ : Operator D) (η : ℝ)
         ≤ (1 - η * (t / ⌈t⌉₊)) ^ ⌈t⌉₊ * relativeEntropy σ ρ := hiter
       _ ≤ Real.exp (-η * t) * relativeEntropy σ ρ := hmul
 
+/-- A unit-step entropy law bounds relative entropy at integer time `n` by `(1 - η) ^ n` times
+its initial value. -/
 theorem entropyStep_iterate_aux (G : GKSL D) (ρ : Operator D) (η : ℝ)
     (hcont : EntropyStepLaw G ρ η) :
     ∀ (n : ℕ) (σ : Operator D), IsDensityOperator σ →
@@ -227,6 +275,8 @@ theorem entropyStep_iterate_aux (G : GKSL D) (ρ : Operator D) (η : ℝ)
               = ((1 - η) ^ n * (1 - η)) * relativeEntropy σ ρ := by ring
           rw [hre, hpow]
 
+/-- For a stationary positive definite reference density, a unit-step entropy law yields the
+bound `exp η * exp (-η * t)` times the initial relative entropy when `t ≥ 1`. -/
 theorem entropyContraction_unitStep (G : GKSL D) (ρ : Operator D) (η : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hstationary : Qatlib.Concepts.LindbladFlow.GkslSemigroup.IsStationary G ρ)
@@ -287,6 +337,7 @@ theorem entropyContraction_unitStep (G : GKSL D) (ρ : Operator D) (η : ℝ)
       have h := mul_le_mul_of_nonneg_left hexp1 hS0
       simpa only [mul_comm] using! h
 
+/-- For `0 ≤ x ≤ 1`, the power `(1 - x) ^ n` is at least `1 - n * x`. -/
 private theorem bernoulli : ∀ (x : ℝ) (n : ℕ), 0 ≤ x → x ≤ 1 →
     (1 - x) ^ n ≥ 1 - (n : ℝ) * x := by
   intro x n
@@ -307,6 +358,8 @@ private theorem bernoulli : ∀ (x : ℝ) (n : ℕ), 0 ≤ x → x ≤ 1 →
         ring
       linarith [h1, hid, hid2, hsq]
 
+/-- A retained-entropy law bounds the entropy at time `n * h` below by `(1 - η * h) ^ n` times
+its initial value for `0 < h ≤ 1`. -/
 theorem entropyRetained_iterate_aux (G : GKSL D) (ρ : Operator D) (η : ℝ)
     (hcont : RetainedEntropyLaw G ρ η) {h : ℝ} (hh : 0 < h) (hh1 : h ≤ 1) :
     ∀ (n : ℕ) (σ : Operator D), IsDensityOperator σ →
@@ -345,6 +398,8 @@ theorem entropyRetained_iterate_aux (G : GKSL D) (ρ : Operator D) (η : ℝ)
         _ ≤ relativeEntropy (lindbladSemigroup G h (lindbladSemigroup G ((n : ℝ) * h) σ)) ρ := by
           simpa [mul_comm] using! hstep
 
+/-- A retained-entropy law gives the lower bound `(1 - η * t)` times the initial relative
+entropy at nonnegative times relative to a positive definite density. -/
 theorem entropy_retained (G : GKSL D) (ρ : Operator D) (η : ℝ)
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hcont : RetainedEntropyLaw G ρ η) (σ : Operator D) (hσ : IsDensityOperator σ)
@@ -379,18 +434,23 @@ theorem entropy_retained (G : GKSL D) (ρ : Operator D) (η : ℝ)
           simpa only [mul_comm] using! hmul
       _ ≤ relativeEntropy (lindbladSemigroup G t σ) ρ := hiter
 
+/-- Relative entropy to a stationary positive definite density does not increase under the
+Lindblad semigroup at nonnegative times. -/
 theorem entropy_monotone (G : GKSL D) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hstationary : Qatlib.Concepts.LindbladFlow.GkslSemigroup.IsStationary G ρ)
     (hσ : IsDensityOperator σ) (t : ℝ) (ht : 0 ≤ t) :
     relativeEntropy (lindbladSemigroup G t σ) ρ ≤ relativeEntropy σ ρ :=
   lindbladSemigroup_relativeEntropy_le G hρ hfull hstationary hσ t ht
 
+/-- An entropy contraction law implies its unit-step entropy law. -/
 theorem entropyStepLaw_of_contractionLaw {G : GKSL D} {ρ : Operator D} {η : ℝ}
     (h : EntropyContractionLaw G ρ η) : EntropyStepLaw G ρ η := by
   refine ⟨h.1, h.2.1, ?_⟩
   intro σ hσ
   simpa using! (h.2.2 1 σ (by norm_num) (by norm_num) hσ)
 
+/-- Packages mixing and entropy data into a mixing-entropy interface using the derived mixing
+and entropy estimates. -/
 def clause2_endpoint (d : MixingEntropyData D) : MixingEntropyInterface D where
   gen := d.gen
   ref := d.ref
@@ -417,25 +477,34 @@ def clause2_endpoint (d : MixingEntropyData D) : MixingEntropyInterface D where
       (stationary_of_heisenberg_kmsSelfAdjoint d.gen d.ref d.refDensity.1 d.selfAdj)
       hσ t ht
 
+/-- Any entropy contraction rate for the same generator and reference can be used in
+mixing-entropy data while preserving the gap rate. -/
 theorem mixingEntropyData_rate_independent {d : MixingEntropyData D} {η' : ℝ}
     (hη' : EntropyContractionLaw d.gen d.ref η') :
     ∃ d' : MixingEntropyData D, d'.gapRate = d.gapRate ∧ d'.entropyRate = η' := by
   refine ⟨{ d with entropyRate := η', entropyLaw := hη' }, rfl, rfl⟩
 
+/-- For every valid entropy contraction rate, there are mixing-entropy data with that entropy
+rate and the original gap rate. -/
 theorem clause2_endpoint_entropy_rate_free {d : MixingEntropyData D} :
     ∀ (η' : ℝ), EntropyContractionLaw d.gen d.ref η' →
       ∃ d' : MixingEntropyData D, d'.gapRate = d.gapRate ∧ d'.entropyRate = η' := by
   intro η' h
   exact mixingEntropyData_rate_independent (d := d) h
 
+/-- For distinct indices, the acceptance jump is the rank-one transition operator scaled by the
+square root of the thermal acceptance. -/
 theorem ckAcceptJump_eq (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) (hij : i ≠ j) :
     ckAcceptJump E β i j = ((Real.sqrt (thermalAcceptance E β i j) : ℂ)) • ckRankOne i j := by
   simp [ckAcceptJump, hij]
 
+/-- The acceptance jump from an index to itself is zero. -/
 theorem ckAcceptJump_self (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
     ckAcceptJump E β i i = 0 := by
   simp [ckAcceptJump]
 
+/-- Thermal acceptance rates satisfy detailed balance with the diagonal Gibbs distribution in
+positive dimension. -/
 theorem ckAccept_detailedBalance (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     thermalAcceptance E β i j * (diagonalGibbsDist D hD E β).prob i
       = thermalAcceptance E β j i * (diagonalGibbsDist D hD E β).prob j := by
@@ -450,6 +519,8 @@ theorem ckAccept_detailedBalance (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β 
   rw [div_eq_div_iff hZ hZ]
   rw [h']
 
+/-- Left multiplication by the target energy-class projector fixes the rank-one transition
+operator. -/
 theorem ckRankOne_target_class (E : Fin D → ℝ) (i j : Fin D) :
     ckEnergyClass E j * ckRankOne i j = ckRankOne i j := by
   ext r c
@@ -466,6 +537,8 @@ theorem ckRankOne_target_class (E : Fin D → ℝ) (i j : Fin D) :
       simp [ckRankOne, h1, h2]
     · simp [ckRankOne, h1]
 
+/-- Right multiplication by the source energy-class projector fixes the rank-one transition
+operator. -/
 theorem ckRankOne_source_class (E : Fin D → ℝ) (i j : Fin D) :
     ckRankOne i j * ckEnergyClass E i = ckRankOne i j := by
   ext r c
@@ -482,6 +555,7 @@ theorem ckRankOne_source_class (E : Fin D → ℝ) (i j : Fin D) :
       simp [ckRankOne, h1, h2]
     · simp [ckRankOne, h2]
 
+/-- Left multiplication by the target energy-class projector fixes the acceptance jump. -/
 theorem ckJump_target_class (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     ckEnergyClass E j * ckAcceptJump E β i j = ckAcceptJump E β i j := by
   by_cases hij : i = j
@@ -489,6 +563,7 @@ theorem ckJump_target_class (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     simp [ckAcceptJump, ckEnergyClass]
   · rw [ckAcceptJump_eq E β i j hij, Matrix.mul_smul, ckRankOne_target_class E i j]
 
+/-- Right multiplication by the source energy-class projector fixes the acceptance jump. -/
 theorem ckJump_source_class (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     ckAcceptJump E β i j * ckEnergyClass E i = ckAcceptJump E β i j := by
   by_cases hij : i = j
@@ -496,6 +571,8 @@ theorem ckJump_source_class (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) :
     simp [ckAcceptJump, ckEnergyClass]
   · rw [ckAcceptJump_eq E β i j hij, Matrix.smul_mul, ckRankOne_source_class E i j]
 
+/-- For a positive number of steps and recovery window at least `4 * D`, the run readout count
+exceeds `m * (D * 2 * 2)`. -/
 theorem ckRunReadouts_exceeds_assumed (m nStar D : ℕ) (hns : 4 * D ≤ nStar) (hm : 0 < m) :
     m * (D * 2 * 2) < ckRunReadouts m nStar := by
   have hD2 : D * 2 * 2 = 4 * D := by ring
@@ -503,13 +580,18 @@ theorem ckRunReadouts_exceeds_assumed (m nStar D : ℕ) (hns : 4 * D ≤ nStar) 
   calc m * (4 * D) ≤ m * nStar := Nat.mul_le_mul_left m hns
     _ < m * (2 + nStar) := Nat.mul_lt_mul_of_pos_left (by omega) hm
 
+/-- The rank-one transition from `i` to `j` has entry one at row `j`, column `i`, and zero
+elsewhere. -/
 theorem ckRankOne_apply (i j r c : Fin D) :
     ckRankOne i j r c = if r = j ∧ c = i then 1 else 0 := rfl
 
+/-- The adjoint of a rank-one transition reverses its source and target. -/
 theorem ckRankOne_adjoint (i j : Fin D) : (ckRankOne i j)ᴴ = ckRankOne j i := by
   ext r c
   simp [ckRankOne, Matrix.conjTranspose_apply, and_comm]
 
+/-- The entrywise product sum of two rank-one transitions is one exactly when the intermediate
+indices match and the row and column are the resulting target and source. -/
 theorem ckRankOne_mul_entry (a b c d R C : Fin D) :
     (∑ j : Fin D, (ckRankOne a b R j) * (ckRankOne c d j C))
       = if R = b ∧ C = c ∧ a = d then 1 else 0 := by
@@ -545,6 +627,8 @@ theorem ckRankOne_mul_entry (a b c d R C : Fin D) :
         simp [h1]
       · simp [hxa]
 
+/-- Two rank-one transitions multiply to the composite transition when the intermediate indices
+match, and to zero otherwise. -/
 theorem ckRankOne_mul (a b c d : Fin D) :
     ckRankOne a b * ckRankOne c d = if a = d then ckRankOne c b else 0 := by
   classical
@@ -557,6 +641,8 @@ theorem ckRankOne_mul (a b c d : Fin D) :
   · rw [if_neg h3]
     simp [h3]
 
+/-- Right multiplication of a rank-one transition by a diagonal matrix scales it by the source
+diagonal entry. -/
 theorem ckRankOne_mul_diagonal (a b : Fin D) (p : Fin D → ℝ) :
     ckRankOne a b * Matrix.diagonal (fun k => (p k : ℂ)) = (p a : ℂ) • ckRankOne a b := by
   ext r c
@@ -570,6 +656,8 @@ theorem ckRankOne_mul_diagonal (a b : Fin D) (p : Fin D → ℝ) :
     · simp [h1, h2]
   · simp [h1]
 
+/-- Left multiplication of a rank-one transition by a diagonal matrix scales it by the target
+diagonal entry. -/
 theorem diagonal_mul_ckRankOne (a b : Fin D) (p : Fin D → ℝ) :
     Matrix.diagonal (fun k => (p k : ℂ)) * ckRankOne a b = (p b : ℂ) • ckRankOne a b := by
   ext r c
@@ -583,10 +671,12 @@ theorem diagonal_mul_ckRankOne (a b : Fin D) (p : Fin D → ℝ) :
     · simp [h1, h2]
   · simp [h1]
 
+/-- Scalar factors in the product of two scaled operators combine multiplicatively. -/
 private theorem smul_mul_smul (c d : ℂ) (M N : Operator D) :
     (c • M) * (d • N) = (c * d) • (M * N) := by
   rw [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
 
+/-- Scalar factors on the first and last operators in a triple product combine multiplicatively. -/
 private theorem smul_mul_mul_smul (c d : ℂ) (M N P : Operator D) :
     (c • M) * N * (d • P) = (c * d) • (M * N * P) := by
   calc (c • M) * N * (d • P)
@@ -596,6 +686,7 @@ private theorem smul_mul_mul_smul (c d : ℂ) (M N P : Operator D) :
     _ = (d * c) • ((M * N) * P) := by rw [smul_smul]
     _ = (c * d) • (M * N * P) := by rw [mul_comm, Matrix.mul_assoc]
 
+/-- Scalar factors on the first two operators in a triple product combine multiplicatively. -/
 private theorem smul_mul_smul_mul (c d : ℂ) (M N P : Operator D) :
     (c • M) * (d • N) * P = (c * d) • (M * N * P) := by
   calc (c • M) * (d • N) * P
@@ -603,6 +694,7 @@ private theorem smul_mul_smul_mul (c d : ℂ) (M N P : Operator D) :
     _ = (c * d) • ((M * N) * P) := by rw [Matrix.smul_mul]
     _ = (c * d) • (M * N * P) := by rw [Matrix.mul_assoc]
 
+/-- Scalar factors on the last two operators can be factored out of a triple product. -/
 private theorem mul_smul_mul_smul (c d : ℂ) (M N P : Operator D) :
     P * (c • M) * (d • N) = (c * d) • (P * (M * N)) := by
   calc P * (c • M) * (d • N)
@@ -612,11 +704,14 @@ private theorem mul_smul_mul_smul (c d : ℂ) (M N P : Operator D) :
     _ = (c * d) • ((P * M) * N) := by rw [smul_smul, mul_comm]
     _ = (c * d) • (P * (M * N)) := by rw [Matrix.mul_assoc]
 
+/-- Scaling the sum of two copies of an operator by one half returns that operator. -/
 private theorem half_add (X : Operator D) : (1 / 2 : ℂ) • (X + X) = X := by
   ext r c
   simp [Matrix.smul_apply, Matrix.add_apply]
   ring
 
+/-- On a diagonal input, the acceptance-jump dissipator transfers `thermalAcceptance E β i j * p
+i` from the source diagonal projector to the target diagonal projector. -/
 theorem ckAcceptJump_dissipator (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (i j : Fin D) :
     ckAcceptJump E β i j * Matrix.diagonal (fun t => (p t : ℂ)) * (ckAcceptJump E β i j)ᴴ
       - (1 / 2 : ℂ) • ((ckAcceptJump E β i j)ᴴ * ckAcceptJump E β i j
@@ -705,6 +800,8 @@ theorem ckAcceptJump_dissipator (E : Fin D → ℝ) (β : ℝ) (p : Fin D → �
             • (ckRankOne j j - ckRankOne i i) := by
               rw [← smul_sub]
 
+/-- The diagonal dissipator term is the acceptance-weighted target projector minus the equally
+weighted source projector. -/
 theorem ckDissipatorTerm_eq (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (i j : Fin D) :
     ckDissipatorTerm E β p i j
       = ((thermalAcceptance E β i j : ℂ) * (p i : ℂ)) • ckRankOne j j
@@ -712,14 +809,20 @@ theorem ckDissipatorTerm_eq (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (
   unfold ckDissipatorTerm
   rw [smul_sub]
 
+/-- The target-projector contribution to a diagonal acceptance-jump dissipator, indexed by a
+source-target pair. -/
 private def ckTermTarget (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ)
     (q : Fin D × Fin D) : Operator D :=
   ((thermalAcceptance E β q.1 q.2 : ℂ) * (p q.1 : ℂ)) • ckRankOne q.2 q.2
 
+/-- The source-projector contribution to a diagonal acceptance-jump dissipator, indexed by a
+source-target pair. -/
 private def ckTermSource (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ)
     (q : Fin D × Fin D) : Operator D :=
   ((thermalAcceptance E β q.1 q.2 : ℂ) * (p q.1 : ℂ)) • ckRankOne q.1 q.1
 
+/-- Detailed balance of the acceptance-weighted populations makes the sum of all diagonal
+dissipator terms zero. -/
 theorem ckDissipator_sum_zero (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ)
     (hbal : ∀ i j : Fin D,
       thermalAcceptance E β i j * p i = thermalAcceptance E β j i * p j) :
@@ -752,6 +855,8 @@ theorem ckDissipator_sum_zero (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ)
       Finset.sum_sub_distrib (s := Finset.univ) _ _
     _ = 0 := by rw [hswap]; simp
 
+/-- Summing jump dissipators over `Fin (D * D)` agrees with summing diagonal dissipator terms
+over pairs of indices. -/
 theorem ckDissipator_sum_bridge (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) :
     (∑ k : Fin (D * D), ckJumpDissipator E β p k)
       = ∑ q : Fin D × Fin D, ckDissipatorTerm E β p q.1 q.2 := by
@@ -767,6 +872,7 @@ theorem ckDissipator_sum_bridge (E : Fin D → ℝ) (β : ℝ) (p : Fin D → �
         simp only [ckJumpDissipator, ckJumps, Equiv.symm_apply_apply]
         exact ckAcceptJump_dissipator E β p q.1 q.2
 
+/-- The diagonal Hamiltonian commutes with every real diagonal population matrix. -/
 theorem ckHamiltonian_comm (E : Fin D → ℝ) (p : Fin D → ℝ) :
     ckHamiltonian E * Matrix.diagonal (fun t => (p t : ℂ))
       = Matrix.diagonal (fun t => (p t : ℂ)) * ckHamiltonian E := by
@@ -776,6 +882,8 @@ theorem ckHamiltonian_comm (E : Fin D → ℝ) (p : Fin D → ℝ) :
   funext i
   ring
 
+/-- The acceptance-jump Lindblad generator annihilates the diagonal Gibbs density in positive
+dimension. -/
 theorem ckGenerator_gibbs_fixed (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     lindbladApply (ckGenerator E β) (diagonalGibbsDensity D hD E β) = 0 := by
   classical
@@ -797,17 +905,23 @@ theorem ckGenerator_gibbs_fixed (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β :
   rw [ckHamiltonian_comm E p, hjump]
   simp
 
+/-- The diagonal Gibbs density is stationary for the acceptance-jump Lindblad generator in
+positive dimension. -/
 theorem ckGenerator_gibbs_stationary (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     Qatlib.Concepts.LindbladFlow.GkslSemigroup.IsStationary (ckGenerator E β)
       (diagonalGibbsDensity D hD E β) :=
   stationary_of_generator_zero (ckGenerator E β) _ (ckGenerator_gibbs_fixed D hD E β)
 
+/-- The Lindblad semigroup of the acceptance-jump generator fixes the diagonal Gibbs density at
+nonnegative times. -/
 theorem ckGenerator_gibbs_semigroup (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (t : ℝ) (ht : 0 ≤ t) :
     lindbladSemigroup (ckGenerator E β) t (diagonalGibbsDensity D hD E β)
       = diagonalGibbsDensity D hD E β :=
   (ckGenerator_gibbs_stationary D hD E β) t ht
 
+/-- A nonnegative Euler step applied to the Gibbs density equals that density plus the quadratic
+drift contribution. -/
 theorem ckGenerator_gibbs_euler_taylor (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (h : ℝ) (hh : 0 ≤ h) :
     gkslEulerMap (ckGenerator E β) h (diagonalGibbsDensity D hD E β)
@@ -818,6 +932,9 @@ theorem ckGenerator_gibbs_euler_taylor (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
   rw [ckGenerator_gibbs_fixed D hD E β]
   simp
 
+/-- For a step size in `[0, 1]`, the deviation of the iterated Euler map from the Gibbs density
+is bounded by an explicit expression proportional to `n * h ^ 2` with exponential time
+growth. -/
 theorem ckGenerator_gibbs_euler_window_error (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (h : ℝ) (hh : 0 ≤ h) (hh1 : h ≤ 1) (n : ℕ) :
     ‖((gkslEulerMap (ckGenerator E β) h)^[n]) (diagonalGibbsDensity D hD E β)
@@ -834,12 +951,16 @@ theorem ckGenerator_gibbs_euler_window_error (D : ℕ) (hD : 0 < D) (E : Fin D �
   rw [ckGenerator_gibbs_semigroup D hD E β ((n : ℝ) * h) (by positivity)] at herr
   exact herr
 
+/-- Multiplying an off-diagonal thermal kernel entry by the dimension recovers its thermal
+acceptance. -/
 theorem ckAccept_transport (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i j : Fin D) (hij : i ≠ j) :
     D * thermalKernel D E β i j = thermalAcceptance E β i j := by
   rw [thermalKernel_offdiag D E β hij]
   field_simp
 
+/-- The dimension times the complement of a diagonal thermal kernel entry equals the sum of
+off-diagonal acceptance rates from that index. -/
 theorem ckRejectRecovery_transport (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i : Fin D) :
     D * (1 - thermalKernel D E β i i)
@@ -854,6 +975,8 @@ open Filter
 
 open scoped Topology
 
+/-- The rejection mass is one minus the sum of outgoing off-diagonal acceptance rates divided by
+the dimension. -/
 theorem ckRejectMass_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
     ckRejectMass D E β i
       = 1 - ∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
@@ -861,12 +984,15 @@ theorem ckRejectMass_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
   unfold ckRejectMass
   rw [thermalKernel, if_pos rfl]
 
+/-- In dimension greater than one, removing a single index from the full index set leaves a
+nonempty set. -/
 private theorem ckErase_nonempty (D : ℕ) (hD : 1 < D) (i : Fin D) :
     ((Finset.univ : Finset (Fin D)).erase i).Nonempty := by
   rw [← Finset.card_pos]
   rw [Finset.card_erase_of_mem (Finset.mem_univ i), Finset.card_univ, Fintype.card_fin]
   omega
 
+/-- The rejection mass is strictly positive in dimension greater than one. -/
 theorem ckRejectMass_pos (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
     0 < ckRejectMass D E β i := by
   have hDpos : (0 : ℝ) < D := by exact_mod_cast (Nat.zero_lt_of_lt hD)
@@ -889,6 +1015,7 @@ theorem ckRejectMass_pos (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ) (
   rw [ckRejectMass_eq]
   linarith
 
+/-- The rejection mass is strictly less than one in dimension greater than one. -/
 theorem ckRejectMass_lt_one (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ) (i : Fin D) :
     ckRejectMass D E β i < 1 := by
   have hDpos : (0 : ℝ) < D := by exact_mod_cast (Nat.zero_lt_of_lt hD)
@@ -901,6 +1028,7 @@ theorem ckRejectMass_lt_one (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ
   rw [ckRejectMass_eq]
   linarith
 
+/-- In dimension one, the rejection mass equals one. -/
 theorem ckRejectMass_one (E : Fin 1 → ℝ) (β : ℝ) (i : Fin 1) :
     ckRejectMass 1 E β i = 1 := by
   have hi : i = 0 := Fin.ext (Nat.lt_one_iff.mp i.isLt)
@@ -909,6 +1037,7 @@ theorem ckRejectMass_one (E : Fin 1 → ℝ) (β : ℝ) (i : Fin 1) :
   rw [thermalKernel, if_pos rfl]
   simp
 
+/-- In dimension one, the off-diagonal acceptance inflow is zero. -/
 theorem ckAcceptInflow_one (E : Fin 1 → ℝ) (β : ℝ) (p : Fin 1 → ℝ) (i : Fin 1) :
     ckAcceptInflow 1 E β p i = 0 := by
   have hi : i = 0 := Fin.ext (Nat.lt_one_iff.mp i.isLt)
@@ -916,6 +1045,8 @@ theorem ckAcceptInflow_one (E : Fin 1 → ℝ) (β : ℝ) (p : Fin 1 → ℝ) (i
   unfold ckAcceptInflow
   simp
 
+/-- The acceptance inflow at an index is the sum of off-diagonal thermal kernel entries weighted
+by the input populations. -/
 theorem ckAcceptInflow_eq_kernel (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (j : Fin D) :
     ckAcceptInflow D E β p j
       = ∑ i ∈ (Finset.univ : Finset (Fin D)).erase j, thermalKernel D E β i j * p i := by
@@ -924,6 +1055,8 @@ theorem ckAcceptInflow_eq_kernel (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : F
   have hne : i ≠ j := (Finset.mem_erase.mp hi).1
   rw [thermalKernel_offdiag D E β hne]
 
+/-- The one-step inflow is multiplication of the input populations by the thermal transition
+kernel. -/
 theorem ckOneStepInflow_eq_kernel (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (j : Fin D) :
     ckOneStepInflow D E β p j = ∑ i : Fin D, thermalKernel D E β i j * p i := by
   have hsum : (∑ i ∈ (Finset.univ : Finset (Fin D)).erase j,
@@ -934,6 +1067,7 @@ theorem ckOneStepInflow_eq_kernel (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : 
       (fun i => thermalKernel D E β i j * p i) (Finset.mem_univ j)
   rw [ckOneStepInflow, ckAcceptInflow_eq_kernel, ckRejectPart, ckRejectMass, hsum]
 
+/-- The thermal one-step inflow preserves the sum of populations in positive dimension. -/
 theorem ckOneStep_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) :
     ∑ j : Fin D, ckOneStepInflow D E β p j = ∑ i : Fin D, p i := by
   rw [Finset.sum_congr rfl fun j _ => ckOneStepInflow_eq_kernel D E β p j]
@@ -949,14 +1083,20 @@ theorem ckOneStep_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (p :
         have hrow := (diagonal_metropolis_transition_reversible D hD E β).1.2 i
         rw [hrow, mul_one]
 
+/-- The diagonal Gibbs probabilities are fixed by the thermal transition kernel in positive
+dimension. -/
 theorem ckOneStep_gibbs_fixed (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (j : Fin D) :
     ∑ i : Fin D, (diagonalGibbsDist D hD E β).prob i * thermalKernel D E β i j
       = (diagonalGibbsDist D hD E β).prob j :=
   ((diagonal_metropolis_transition_reversible D hD E β).2.2.1).2.2 j
 
+/-- The recovery term at stage `n` is the initial population multiplied by the `n`th power of
+the rejection mass. -/
 theorem ckRecoveryTerm_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (j : Fin D) (n : ℕ) :
     ckRecoveryTerm D E β p j n = (ckRejectMass D E β j) ^ n * p j := rfl
 
+/-- For rejection mass in `[0, 1)`, the recovery tail has the geometric-series value `r ^ N * p
+j / (1 - r)`. -/
 theorem ckRecoveryTail_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (j : Fin D) (N : ℕ)
     (h0 : 0 ≤ ckRejectMass D E β j) (h1 : ckRejectMass D E β j < 1) :
     ckRecoveryTail D E β p j N
@@ -983,6 +1123,8 @@ theorem ckRecoveryTail_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D �
   rw [div_eq_mul_inv]
   ring
 
+/-- For rejection mass in `[0, 1)`, increasing the recovery cutoff by one multiplies the tail by
+that rejection mass. -/
 theorem ckRecoveryTail_succ (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ) (j : Fin D) (N : ℕ)
     (h0 : 0 ≤ ckRejectMass D E β j) (h1 : ckRejectMass D E β j < 1) :
     ckRecoveryTail D E β p j (N + 1)
@@ -991,6 +1133,8 @@ theorem ckRecoveryTail_succ (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (p : Fin D 
   rw [pow_succ]
   ring
 
+/-- The recovery tail tends to zero as its cutoff tends to infinity in dimension greater than
+one. -/
 theorem ckRecoveryTail_tendsto_zero (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ)
     (p : Fin D → ℝ) (j : Fin D) :
     Tendsto (ckRecoveryTail D E β p j) atTop (𝓝 0) := by
@@ -1021,6 +1165,8 @@ theorem ckRecoveryTail_tendsto_zero (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (
     exact hconst
   exact hmain
 
+/-- A common rejection bound `0 ≤ ρ < 1` bounds the total recovery tail for nonnegative
+populations by `ρ ^ N * (∑ j, p j) / (1 - ρ)`. -/
 theorem ckRecoveryTailTotal_le (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ)
     (p : Fin D → ℝ) (hp : ∀ j, 0 ≤ p j) (N : ℕ) (ρ : ℝ) (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
     (hle : ∀ j, ckRejectMass D E β j ≤ ρ) :
@@ -1055,6 +1201,8 @@ theorem ckRecoveryTailTotal_le (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : 
             = (∑ j : Fin D, ρ ^ N * p j) / (1 - ρ) := (Finset.sum_div _ _ _).symm
           _ = (ρ ^ N * ∑ j : Fin D, p j) / (1 - ρ) := by rw [Finset.mul_sum]
 
+/-- The recovery-window tail satisfies its geometric bound, and the step and run readout costs
+are `2 + nStar` and `m * (2 + nStar)`. -/
 theorem ckWindowError_cost (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ) (p : Fin D → ℝ)
     (m nStar : ℕ) (j : Fin D) :
     ckRecoveryTail D E β p j nStar
@@ -1069,12 +1217,15 @@ theorem ckWindowError_cost (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ) (β : ℝ)
   refine ⟨?_, rfl, rfl⟩
   rw [htail, hkey]
 
+/-- Transitions between indices with equal energies have thermal acceptance one. -/
 theorem ckAcceptance_same_class (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) (h : E i = E j) :
     thermalAcceptance E β i j = 1 := by
   unfold thermalAcceptance
   rw [h, sub_self]
   simp
 
+/-- At positive inverse temperature, an uphill transition has acceptance `exp (-β * (E j - E
+i))`, which is strictly less than one. -/
 theorem ckAcceptance_uphill (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     (hβ : 0 < β) (h : E i < E j) :
     thermalAcceptance E β i j = Real.exp (-β * (E j - E i))
@@ -1090,6 +1241,7 @@ theorem ckAcceptance_uphill (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
   rw [min_eq_right hlt.le]
   exact hlt
 
+/-- At positive inverse temperature, a downhill transition has thermal acceptance one. -/
 theorem ckAcceptance_downhill (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     (hβ : 0 < β) (h : E j < E i) :
     thermalAcceptance E β i j = 1 := by
@@ -1105,22 +1257,29 @@ theorem ckAcceptance_downhill (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     exact Real.exp_lt_exp.mpr hpos
   exact min_eq_left hexp.le
 
+/-- Between equal energies, the acceptance rate divided by the dimension is `1 / D`. -/
 theorem ckClassFlow_same (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     (h : E i = E j) :
     thermalAcceptance E β i j / (D : ℝ) = 1 / (D : ℝ) := by
   rw [ckAcceptance_same_class E β i j h]
 
+/-- At positive inverse temperature, the downhill acceptance rate divided by the dimension is `1
+/ D`. -/
 theorem ckClassFlow_downhill (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     (hβ : 0 < β) (h : E j < E i) :
     thermalAcceptance E β i j / (D : ℝ) = 1 / (D : ℝ) := by
   rw [ckAcceptance_downhill E β i j hβ h]
 
+/-- In positive dimension and at positive inverse temperature, the uphill acceptance rate
+divided by the dimension is strictly less than `1 / D`. -/
 theorem ckClassFlow_uphill (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     (hβ : 0 < β) (h : E i < E j) :
     thermalAcceptance E β i j / (D : ℝ) < 1 / (D : ℝ) := by
   have hDpos : (0 : ℝ) < D := by exact_mod_cast hD
   exact div_lt_div_of_pos_right ((ckAcceptance_uphill E β i j hβ h).2) hDpos
 
+/-- Packages the energy function and inverse temperature into the acceptance-jump generator
+interface. -/
 def clause3_endpoint (E : Fin D → ℝ) (β : ℝ) : CkGeneratorInterface D where
   energy := E
   temp := β
@@ -1140,6 +1299,8 @@ def clause3_endpoint (E : Fin D → ℝ) (β : ℝ) : CkGeneratorInterface D whe
       (le_of_lt (ckRejectMass_pos D hD E β j)) (ckRejectMass_lt_one D hD E β j)
   realizedCost := fun m nStar hns hm => ckRunReadouts_exceeds_assumed m nStar D hns hm
 
+/-- For a positive definite reference density, an entropy contraction law remains valid at any
+smaller strictly positive rate. -/
 theorem entropyContractionLaw_mono {G : GKSL D} {ρ : Operator D} {η η' : ℝ}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (h : EntropyContractionLaw G ρ η) (hη' : 0 < η') (hη'1 : η' ≤ η) :
@@ -1156,6 +1317,8 @@ theorem entropyContractionLaw_mono {G : GKSL D} {ρ : Operator D} {η η' : ℝ}
     _ ≤ (1 - η' * hh) * relativeEntropy σ ρ :=
           mul_le_mul_of_nonneg_right hfac hS0
 
+/-- There are mixing-entropy data with the same gap rate and half the original entropy rate,
+strictly below the original rate. -/
 theorem clause2_endpoint_entropy_rate_not_pinned {d : MixingEntropyData D} :
     ∃ d' : MixingEntropyData D,
       d'.gapRate = d.gapRate ∧ d'.entropyRate = d.entropyRate / 2
@@ -1167,6 +1330,7 @@ theorem clause2_endpoint_entropy_rate_not_pinned {d : MixingEntropyData D} :
   obtain ⟨d', hg, he⟩ := mixingEntropyData_rate_independent hlaw
   exact ⟨d', hg, he, by linarith [d.entropyLaw.1]⟩
 
+/-- For zero energy in positive dimension, every Gibbs probability is `1 / D`. -/
 theorem diagonalGibbsDist_flat (D : ℕ) (hD : 0 < D) (β : ℝ) (i : Fin D) :
     (diagonalGibbsDist D hD (fun _ => 0) β).prob i = 1 / (D : ℝ) := by
   have hZ : diagonalGibbsPartition D (fun _ => 0) β = (D : ℝ) := by
@@ -1175,6 +1339,7 @@ theorem diagonalGibbsDist_flat (D : ℕ) (hD : 0 < D) (β : ℝ) (i : Fin D) :
   rw [diagonalGibbsDist_prob, hZ]
   simp [Real.exp_zero]
 
+/-- The reference weight of the Gibbs density for zero energy is `sqrt D` in positive dimension. -/
 theorem referenceWeight_flatGibbs (D : ℕ) (hD : 0 < D) (β : ℝ) :
     referenceWeight (diagonalGibbsDensity D hD (fun _ => 0) β) = Real.sqrt (D : ℝ) := by
   have hDpos : (0 : ℝ) < D := by exact_mod_cast hD
@@ -1227,6 +1392,8 @@ theorem referenceWeight_flatGibbs (D : ℕ) (hD : 0 < D) (β : ℝ) :
   rw [hρ, hsqrt, hinv, hmat]
   exact hnorm
 
+/-- The reference weights of Gibbs densities for zero energy are unbounded as the dimension
+varies. -/
 theorem referenceWeight_unbounded (M : ℝ) :
     ∃ (D : ℕ) (hD : 0 < D) (β : ℝ),
       referenceWeight (diagonalGibbsDensity D hD (fun _ => 0) β) > M := by
@@ -1249,17 +1416,22 @@ theorem referenceWeight_unbounded (M : ℝ) :
     linarith
   linarith
 
+/-- For zero energy, the mixing-time expression has reference-weight factor `sqrt D`, giving
+`log ((sqrt D + 1) / η) / γ`. -/
 theorem mixingTimeBound_prefactor_grows (D : ℕ) (hD : 0 < D) (β : ℝ) (γ η : ℝ) :
     Real.log ((referenceWeight (diagonalGibbsDensity D hD (fun _ => 0) β) + 1) / η) / γ
       = Real.log ((Real.sqrt (D : ℝ) + 1) / η) / γ := by
   rw [referenceWeight_flatGibbs]
 
+/-- At zero inverse temperature, every thermal acceptance is one. -/
 theorem thermalAcceptance_highTemperature (E : Fin D → ℝ) (i j : Fin D) :
     thermalAcceptance E 0 i j = 1 := by
   unfold thermalAcceptance
   rw [neg_zero, zero_mul, Real.exp_zero]
   exact min_eq_left (by norm_num)
 
+/-- At zero inverse temperature and in positive dimension, every thermal kernel entry is `1 /
+D`. -/
 theorem thermalKernel_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (i j : Fin D) :
     thermalKernel D E 0 i j = 1 / (D : ℝ) := by
   by_cases hij : i = j
@@ -1286,6 +1458,7 @@ theorem thermalKernel_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     ring
   · rw [thermalKernel, if_neg hij, thermalAcceptance_highTemperature E i j]
 
+/-- At zero inverse temperature and in positive dimension, the rejection mass is `1 / D`. -/
 theorem ckRejectMass_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (j : Fin D) :
     ckRejectMass D E 0 j = 1 / (D : ℝ) := by
   rw [ckRejectMass_eq]
@@ -1309,6 +1482,8 @@ theorem ckRejectMass_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) 
   rw [hsum]
   ring
 
+/-- At zero inverse temperature, one thermal step sends populations of total mass one to the
+uniform populations in positive dimension. -/
 theorem ckOneStepInflow_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (p : Fin D → ℝ) (hpsum : ∑ i : Fin D, p i = 1) (j : Fin D) :
     ckOneStepInflow D E 0 p j = 1 / (D : ℝ) := by
@@ -1320,6 +1495,8 @@ theorem ckOneStepInflow_highTemperature (D : ℕ) (hD : 0 < D) (E : Fin D → �
     _ = (1 / (D : ℝ)) * (∑ i : Fin D, p i) := by rw [Finset.mul_sum]
     _ = 1 / (D : ℝ) := by rw [hpsum, mul_one]
 
+/-- At zero inverse temperature and in dimension greater than one, the recovery tail is `(1 / D)
+^ N * p j / (1 - 1 / D)`. -/
 theorem ckRecoveryTail_highTemperature (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ)
     (p : Fin D → ℝ) (j : Fin D) (N : ℕ) :
     ckRecoveryTail D E 0 p j N = (1 / (D : ℝ)) ^ N * p j / (1 - 1 / (D : ℝ)) := by
@@ -1336,21 +1513,28 @@ theorem ckRecoveryTail_highTemperature (D : ℕ) (hD : 1 < D) (E : Fin D → ℝ
     exact (div_lt_iff₀ hDpos).mpr (by linarith)
   rw [ckRecoveryTail_eq D E 0 p j N hnonneg hlt, hrw]
 
+/-- Equal energy functions and inverse temperatures give equal recovery tails for the same input
+populations and cutoff. -/
 theorem clause3_own_sampler_only (D : ℕ) (E₁ E₂ : Fin D → ℝ) (β₁ β₂ : ℝ)
     (h : E₁ = E₂) (hβ : β₁ = β₂) (p : Fin D → ℝ) (N : ℕ) (j : Fin D) :
     ckRecoveryTail D E₂ β₂ p j N = ckRecoveryTail D E₁ β₁ p j N := by
   rw [h, hβ]
 
+/-- The consumer kernel is a transition matrix in positive dimension. -/
 theorem ckConsumer_transition_matrix (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     IsTransitionMatrix (ckConsumerKernel D E β) := by
   have h := diagonal_metropolis_transition_reversible D hD E β
   exact h.1
 
+/-- The consumer kernel is reversible with respect to the diagonal Gibbs probabilities in
+positive dimension. -/
 theorem ckConsumer_reversible_gibbs (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     IsReversible (ckConsumerKernel D E β) (diagonalGibbsDist D hD E β).prob := by
   have h := diagonal_metropolis_transition_reversible D hD E β
   exact h.2.1
 
+/-- The diagonal Gibbs probabilities are stationary for the consumer kernel in positive
+dimension. -/
 theorem ckConsumer_stationary_gibbs (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     Qatlib.Concepts.WalkSearch.TwoLevelLower.IsStationary (ckConsumerKernel D E β)
       (diagonalGibbsDist D hD E β).prob := by

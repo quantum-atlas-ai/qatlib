@@ -6,8 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.AELawStability.MontanaroClaim17Stat
 
+/-!
+# An arcsine perturbation bound
+
+This module proves `montanaroClaim17`, the arcsine perturbation inequality used in the analysis
+of amplitude estimation in [Montanaro2015]. The auxiliary `arcsin_difference_bound` treats
+ordered inputs in the unit interval before symmetry gives the unrestricted order.
+
+## Main statements
+
+* `montanaroClaim17`: bounds the change in arcsine by the square root of the difference of
+  squared amplitudes.
+
+## References
+
+* [Montanaro, 2015, Claim 17][Montanaro2015]
+-/
+
 namespace Qatlib.Concepts.AEMeanReadout.AELawStability
 
+/-- For `0 ≤ y ≤ x ≤ 1`, the arcsine difference is at most `π / 2` times the square root of the
+absolute difference of their squares. -/
 private theorem arcsin_difference_bound {x y : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1)
     (hy0 : 0 ≤ y) (hy1 : y ≤ 1) (hyx : y ≤ x) :
     |Real.arcsin x - Real.arcsin y| ≤ (Real.pi / 2) * Real.sqrt |x ^ 2 - y ^ 2| := by
@@ -47,6 +66,8 @@ private theorem arcsin_difference_bound {x y : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤
   rw [abs_of_nonneg ht0]
   exact ht.trans (mul_le_mul_of_nonneg_left hroot (by positivity))
 
+/-- The arcsine perturbation inequality on the unit interval, as stated in [Montanaro, Claim
+17][Montanaro2015]. -/
 theorem montanaroClaim17 : MontanaroClaim17 := by
   intro x y hx0 hx1 hy0 hy1
   rcases le_total y x with hyx | hxy

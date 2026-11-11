@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajority
+
+/-!
+# Coin-run receipts and an absorbing-walk program
+
+This module defines `CoinReceipt`, a finite-run record of output, coin reads, transitions, and
+visited tape extent, and proves agreement with the existing tape interpreters. The receipt's
+tape extent is bounded by its initial interval length plus its executed transitions.
+
+The explicit `raceMachine` encodes an absorbing walk on positions zero through `N` using cyclic
+control labels. Its receipts and compiled copy-run-reset execution are related to `raceWalk` and
+`raceTime`, providing concrete randomized-machine resource accounting in the setting of
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `coinReceiptRun_agree`: receipt output, reads, and clock agree with the tape interpreters.
+* `race_receipt_run`: the walk receipt has exact time and read counts and a bounded tape extent.
+* `output1.frontier1`: the compiled program reaches a cleaned tape with exact counts for the
+  prescribed coin blocks.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,25 +49,33 @@ open Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler (phaseCop
   phase1Table phase1EmbedCfg phase1Readout tmCopyRunResetCompile tmCopyRunResetCompile_run
   pairCoins coinTapeRunAux_cons_live)
 
+/-- A finite coin-run receipt recording its optional output, coin reads, executed transitions,
+and visited tape extent. -/
 structure CoinReceipt where
   output : Option Bool
   reads : ℕ
   clock : ℕ
   peak : ℕ
 
+/-- Increment a receipt's coin-read and transition counts while preserving its output and tape
+extent. -/
 def CoinReceipt.bump (r : CoinReceipt) : CoinReceipt :=
   ⟨r.output, r.reads + 1, r.clock + 1, r.peak⟩
 
+/-- Bumping a receipt preserves its peak field and increases its clock by one. -/
 theorem CoinReceipt.bump_peak_clock (r : CoinReceipt) :
     (CoinReceipt.bump r).peak = r.peak ∧ (CoinReceipt.bump r).clock = r.clock + 1 :=
   ⟨rfl, rfl⟩
 
+/-- Update the visited tape interval and head offset after a write or one-cell move. -/
 def stmtExtent {Γ : Type*} (stmt : Turing.TM0.Stmt Γ) (lo hi d : ℤ) : ℤ × ℤ × ℤ :=
   match stmt with
   | .write _ => (lo, hi, d)
   | .move Turing.Dir.left => (min lo (d - 1), hi, d - 1)
   | .move Turing.Dir.right => (lo, max hi (d + 1), d + 1)
 
+/-- A statement update preserves the invariant that the head offset lies within the visited
+interval. -/
 theorem stmtExtent_inv {Γ : Type*} (stmt : Turing.TM0.Stmt Γ) {lo hi d : ℤ}
     (hlo : lo ≤ d) (hhi : d ≤ hi) :
     (stmtExtent stmt lo hi d).1 ≤ (stmtExtent stmt lo hi d).2.2
@@ -52,6 +85,7 @@ theorem stmtExtent_inv {Γ : Type*} (stmt : Turing.TM0.Stmt Γ) {lo hi d : ℤ}
   | move dir =>
       cases dir <;> simp only [stmtExtent] <;> omega
 
+/-- A statement update increases the visited interval's length by at most one. -/
 theorem stmtExtent_range {Γ : Type*} (stmt : Turing.TM0.Stmt Γ) {lo hi d : ℤ}
     (hlo : lo ≤ d) (hhi : d ≤ hi) :
     (stmtExtent stmt lo hi d).2.1 - (stmtExtent stmt lo hi d).1 ≤ hi - lo + 1 := by
@@ -60,6 +94,8 @@ theorem stmtExtent_range {Γ : Type*} (stmt : Turing.TM0.Stmt Γ) {lo hi d : ℤ
   | move dir =>
       cases dir <;> simp only [stmtExtent] <;> omega
 
+/-- Run a machine on a finite coin list while tracking output, reads, transitions, and the
+visited tape interval. -/
 def coinReceiptAux {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     List Bool → Turing.TM0.Cfg Γ Λ → ℤ → ℤ → ℤ → CoinReceipt
@@ -76,15 +112,20 @@ def coinReceiptAux {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
                 (stmtExtent stmt lo hi d).1 (stmtExtent stmt lo hi d).2.1
                 (stmtExtent stmt lo hi d).2.2)
 
+/-- Run the receipt interpreter from the initialized input tape with initial head offset and
+interval endpoints all zero. -/
 def coinReceiptRun {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (input : List Γ) (coins : List Bool) : CoinReceipt :=
   coinReceiptAux M accept coins (Turing.TM0.init input) 0 0 0
 
+/-- An integer at least one has natural-number conversion at least one. -/
 theorem one_le_toNat_of_one_le {x : ℤ} (h : (1 : ℤ) ≤ x) : 1 ≤ x.toNat := by
   have hx := Int.self_le_toNat x
   omega
 
+/-- An already halted configuration consumes no coins or transitions and returns its current
+acceptance value and tape extent. -/
 theorem coinReceiptAux_cons_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) (c : Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) (cs : List Bool) (lo hi d : ℤ)
@@ -93,6 +134,8 @@ theorem coinReceiptAux_cons_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
       = ⟨some (accept cfg.q), 0, 0, (hi - lo + 1).toNat⟩ := by
   simp only [coinReceiptAux, hc, if_true]
 
+/-- If the selected transition is absent in a nonhalted configuration, the receipt consumes one
+coin and no transition before returning the current acceptance value. -/
 theorem coinReceiptAux_cons_none {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) (c : Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) (cs : List Bool) (lo hi d : ℤ)
@@ -103,6 +146,8 @@ theorem coinReceiptAux_cons_none {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   have hne : ¬(coinHalt M cfg = true) := by simp [hc]
   simp only [coinReceiptAux, if_neg hne, hentry]
 
+/-- A successful selected transition updates the tape extent and recursively runs on the
+remaining coins, adding one read and one transition. -/
 theorem coinReceiptAux_cons_some {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) (c : Bool)
     (cfg : Turing.TM0.Cfg Γ Λ) (cs : List Bool) (lo hi d : ℤ) (q' : Λ)
@@ -117,6 +162,8 @@ theorem coinReceiptAux_cons_some {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
   have hne : ¬(coinHalt M cfg = true) := by simp [hc]
   simp only [coinReceiptAux, if_neg hne, hentry]
 
+/-- Under a valid extent invariant, receipt output and reads agree with `coinTapeRunAux`, its
+clock agrees with the transition counter, and its peak is at least one. -/
 theorem coinReceiptAux_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) (lo hi d : ℤ) (_hlo : lo ≤ d)
@@ -180,6 +227,8 @@ theorem coinReceiptAux_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
         rw [hrun, hcount]
         exact ⟨rfl, rfl, rfl, one_le_toNat_of_one_le (by omega)⟩
 
+/-- The receipt's peak tape extent is at most the initial interval length plus its transition
+count. -/
 theorem coinReceiptAux_peak_le {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) (lo hi d : ℤ) (_hlo : lo ≤ d)
@@ -225,6 +274,8 @@ theorem coinReceiptAux_peak_le {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
         rw [hp, hck]
         omega
 
+/-- The initialized receipt agrees with the tape interpreter's output and reads and with its
+transition count, and its peak is at least one. -/
 theorem coinReceiptRun_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) (input : List Γ)
     (coins : List Bool) :
@@ -236,21 +287,26 @@ theorem coinReceiptRun_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (by omega) (by omega)
   simpa only [coinReceiptRun, coinTapeRun, coinTapeTransitionCount] using! h
 
+/-- One step of a coin-directed walk with absorbing endpoints zero and `N`. -/
 def raceStep (N : ℕ) (p : ℕ) (c : Bool) : ℕ :=
   if p = 0 ∨ p = N then p else if c = true then p + 1 else p - 1
 
+/-- The final position after a finite coin-directed walk with absorbing endpoints. -/
 def raceWalk (N : ℕ) (p : ℕ) : List Bool → ℕ
   | [] => p
   | c :: w => raceWalk N (raceStep N p c) w
 
+/-- The number of walk steps performed before an endpoint is reached or the coin list ends. -/
 def raceTime (N : ℕ) (p : ℕ) : List Bool → ℕ
   | [] => 0
   | c :: w => if p = 0 ∨ p = N then 0 else raceTime N (raceStep N p c) w + 1
 
+/-- An absorbing endpoint remains fixed by every walk step. -/
 theorem raceStep_absorb (N : ℕ) {p : ℕ} (c : Bool) (hp : p = 0 ∨ p = N) :
     raceStep N p c = p := by
   rw [raceStep, if_pos hp]
 
+/-- A walk starting at a position at most `N` stays at most `N`. -/
 theorem raceWalk_le (N : ℕ) : ∀ (w : List Bool) {p : ℕ}, p ≤ N → raceWalk N p w ≤ N := by
   intro w
   induction w with
@@ -267,18 +323,22 @@ theorem raceWalk_le (N : ℕ) : ∀ (w : List Bool) {p : ℕ}, p ≤ N → raceW
         · rw [raceStep, if_neg hp, if_pos hc]; omega
         · rw [raceStep, if_neg hp, if_neg hc]; omega
 
+/-- A walk starting at an absorbing endpoint remains there for any coin list. -/
 theorem raceWalk_absorb_stay (N : ℕ) (p : ℕ) (w : List Bool) (hp : p = 0 ∨ p = N) :
     raceWalk N p w = p := by
   induction w generalizing p with
   | nil => rfl
   | cons c w ih => rw [raceWalk, raceStep_absorb N c hp]; exact ih _ hp
 
+/-- The walk's elapsed time is zero when it starts at an absorbing endpoint. -/
 theorem raceTime_absorb_zero (N : ℕ) (p : ℕ) (w : List Bool) (hp : p = 0 ∨ p = N) :
     raceTime N p w = 0 := by
   induction w generalizing p with
   | nil => rfl
   | cons c w ih => rw [raceTime, if_pos hp]
 
+/-- Walking along a concatenated coin list equals walking along the first list and then the
+second. -/
 theorem raceWalk_append (N : ℕ) (p : ℕ) (u v : List Bool) :
     raceWalk N p (u ++ v) = raceWalk N (raceWalk N p u) v := by
   induction u generalizing p with
@@ -287,28 +347,38 @@ theorem raceWalk_append (N : ℕ) (p : ℕ) (u v : List Bool) :
       rw [List.cons_append, raceWalk, ih]
       rfl
 
+/-- The control label representing the walk's left endpoint under the cyclic shift by `a`. -/
 def raceLabelL (N a : ℕ) : ℕ := (N + 1 - a) % (N + 1)
 
+/-- The control label representing the walk's right endpoint under the cyclic shift by `a`. -/
 def raceLabelR (N a : ℕ) : ℕ := (N - a) % (N + 1)
 
+/-- The Boolean test for either endpoint label. -/
 def raceWall (N a : ℕ) (ℓ : ℕ) : Bool := decide (ℓ = raceLabelL N a ∨ ℓ = raceLabelR N a)
 
+/-- The walk position represented by a control label after cyclic shift by `a`. -/
 def racePosOf (N a : ℕ) (ℓ : ℕ) : ℕ := (ℓ + a) % (N + 1)
 
+/-- The cyclic control-label update for a right or left coin-directed move. -/
 def raceRotStep (N : ℕ) (ℓ : ℕ) (c : Bool) : ℕ := (ℓ + (if c then 1 else N)) % (N + 1)
 
+/-- The next cyclic control label packaged as an element of `Fin (N + 1)`. -/
 def raceNext (N : ℕ) (ℓ : ℕ) (c : Bool) : Fin (N + 1) :=
   ⟨raceRotStep N ℓ c, Nat.mod_lt _ (Nat.succ_pos N)⟩
 
+/-- The left endpoint label lies below `N + 1`. -/
 theorem raceLabelL_lt (N a : ℕ) : raceLabelL N a < N + 1 :=
   Nat.mod_lt _ (Nat.succ_pos N)
 
+/-- The right endpoint label lies below `N + 1`. -/
 theorem raceLabelR_lt (N a : ℕ) : raceLabelR N a < N + 1 :=
   Nat.mod_lt _ (Nat.succ_pos N)
 
+/-- The position decoded from any label lies below `N + 1`. -/
 theorem racePosOf_lt (N a : ℕ) (ℓ : ℕ) : racePosOf N a ℓ < N + 1 :=
   Nat.mod_lt _ (Nat.succ_pos N)
 
+/-- When `a ≤ N`, the left endpoint label decodes to position zero. -/
 theorem racePosOf_wallL (N a : ℕ) (ha : a ≤ N) : racePosOf N a (raceLabelL N a) = 0 := by
   rcases Nat.eq_zero_or_pos a with h0 | h1
   · subst h0
@@ -318,6 +388,7 @@ theorem racePosOf_wallL (N a : ℕ) (ha : a ≤ N) : racePosOf N a (raceLabelL N
     have h : N + 1 - a + a = N + 1 := by omega
     rw [h, Nat.mod_self]
 
+/-- When `a ≤ N`, the right endpoint label decodes to position `N`. -/
 theorem racePosOf_wallR (N a : ℕ) (ha : a ≤ N) : racePosOf N a (raceLabelR N a) = N := by
   rcases Nat.eq_zero_or_pos a with h0 | h1
   · subst h0
@@ -328,11 +399,13 @@ theorem racePosOf_wallR (N a : ℕ) (ha : a ≤ N) : racePosOf N a (raceLabelR N
     rw [h]
     exact Nat.mod_eq_of_lt (by omega)
 
+/-- When `a ≤ N`, control label zero decodes to initial position `a`. -/
 theorem racePosOf_zero (N a : ℕ) (ha : a ≤ N) : racePosOf N a 0 = a := by
   show (0 + a) % (N + 1) = a
   rw [Nat.zero_add]
   exact Nat.mod_eq_of_lt (by omega)
 
+/-- Decoding positions is injective on labels below `N + 1`. -/
 theorem racePosOf_inj (N a : ℕ) {ℓ₁ ℓ₂ : ℕ} (h₁ : ℓ₁ < N + 1) (h₂ : ℓ₂ < N + 1)
     (h : racePosOf N a ℓ₁ = racePosOf N a ℓ₂) : ℓ₁ = ℓ₂ := by
   have hmod : (ℓ₁ + a) ≡ (ℓ₂ + a) [MOD N + 1] := h
@@ -340,18 +413,22 @@ theorem racePosOf_inj (N a : ℕ) {ℓ₁ ℓ₂ : ℕ} (h₁ : ℓ₁ < N + 1) 
     Nat.ModEq.add_right_cancel' a hmod
   rwa [Nat.mod_eq_of_lt h₁, Nat.mod_eq_of_lt h₂] at hEq
 
+/-- A valid label decodes to zero exactly when it is the left endpoint label, provided `a ≤ N`. -/
 theorem racePosOf_eq_zero_iff (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N + 1) :
     racePosOf N a ℓ = 0 ↔ ℓ = raceLabelL N a :=
   ⟨fun h => racePosOf_inj N a hℓ (raceLabelL_lt N a)
     (by rw [h, racePosOf_wallL N a ha]),
    fun h => by rw [h, racePosOf_wallL N a ha]⟩
 
+/-- A valid label decodes to `N` exactly when it is the right endpoint label, provided `a ≤ N`. -/
 theorem racePosOf_eq_N_iff (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N + 1) :
     racePosOf N a ℓ = N ↔ ℓ = raceLabelR N a :=
   ⟨fun h => racePosOf_inj N a hℓ (raceLabelR_lt N a)
     (by rw [h, racePosOf_wallR N a ha]),
    fun h => by rw [h, racePosOf_wallR N a ha]⟩
 
+/-- For valid labels and `a ≤ N`, the wall test holds exactly when the decoded position is an
+absorbing endpoint. -/
 theorem raceWall_iff (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N + 1) :
     raceWall N a ℓ = true ↔ racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := by
   constructor
@@ -366,6 +443,7 @@ theorem raceWall_iff (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N + 1)
     · exact Or.inl ((racePosOf_eq_zero_iff N a ha hℓ).mp h)
     · exact Or.inr ((racePosOf_eq_N_iff N a ha hℓ).mp h)
 
+/-- Decoding commutes with cyclic addition to a control label. -/
 theorem racePosOf_add (N a k : ℕ) (ℓ : ℕ) :
     racePosOf N a ((ℓ + k) % (N + 1)) = (racePosOf N a ℓ + k) % (N + 1) := by
   simp only [racePosOf]
@@ -373,6 +451,7 @@ theorem racePosOf_add (N a k : ℕ) (ℓ : ℕ) :
   congr 1
   omega
 
+/-- A cyclic label step away from either wall decodes to the corresponding absorbing-walk step. -/
 theorem racePosOf_rotStep (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N + 1)
     (hwall : raceWall N a ℓ = false) (c : Bool) :
     racePosOf N a (raceRotStep N ℓ c) = raceStep N (racePosOf N a ℓ) c := by
@@ -405,16 +484,21 @@ theorem racePosOf_rotStep (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N
       rw [hsplit, Nat.add_comm, Nat.add_mod_left]
       exact Nat.mod_eq_of_lt (show racePosOf N a ℓ - 1 < N + 1 by omega)
 
+/-- The coin-directed tape machine whose cyclic control labels encode the walk and whose head
+moves with each nonterminal step. -/
 def raceMachine (N a : ℕ) : Bool → Turing.TM0.Machine (Option Bool) (Fin (N + 1)) :=
   fun c q _ =>
     if _h : q.val = raceLabelL N a ∨ q.val = raceLabelR N a then none
     else some (raceNext N q.val c,
       Turing.TM0.Stmt.move (if c then Turing.Dir.right else Turing.Dir.left))
 
+/-- The acceptance test selecting the right endpoint label. -/
 def raceAccept (N a : ℕ) (q : Fin (N + 1)) : Bool := decide (q.val = raceLabelR N a)
 
+/-- The encoded program for the coin-directed race machine and its acceptance test. -/
 def raceCode (N a : ℕ) : Code := encodeMachine N (raceMachine N a) (raceAccept N a)
 
+/-- The race machine's halting test is exactly its endpoint-label test. -/
 theorem race_coinHalt (N a : ℕ) (q : Fin (N + 1)) (T : Turing.Tape (Option Bool)) :
     coinHalt (raceMachine N a) ⟨q, T⟩ = raceWall N a q.val := by
   unfold coinHalt raceMachine raceWall
@@ -422,6 +506,8 @@ theorem race_coinHalt (N a : ℕ) (q : Fin (N + 1)) (T : Turing.Tape (Option Boo
   · rw [dif_pos h, dif_pos h]; simp [h]
   · rw [dif_neg h, dif_neg h]; simp [h]
 
+/-- A race-machine transition away from both walls updates the cyclic label and moves in the
+direction selected by the coin. -/
 theorem race_entry_some (N a : ℕ) (c : Bool) (q : Fin (N + 1))
     (T : Turing.Tape (Option Bool))
     (hni : ¬ (q.val = raceLabelL N a ∨ q.val = raceLabelR N a)) :
@@ -430,6 +516,7 @@ theorem race_entry_some (N a : ℕ) (c : Bool) (q : Fin (N + 1))
   simp only [raceMachine]
   rw [dif_neg hni]
 
+/-- A race-machine step away from the walls has the stated next label and tape move. -/
 theorem race_step_some (N a : ℕ) (c : Bool) (q : Fin (N + 1))
     (T : Turing.Tape (Option Bool))
     (hni : ¬ (q.val = raceLabelL N a ∨ q.val = raceLabelR N a)) :
@@ -439,10 +526,13 @@ theorem race_step_some (N a : ℕ) (c : Bool) (q : Fin (N + 1))
             (if c then Turing.Dir.right else Turing.Dir.left))⟩ :=
   TM0_step_eq_some _ _ _ _ (race_entry_some N a c q T hni)
 
+/-- The control-label fold that applies cyclic coin steps until a wall is reached. -/
 def raceLabelFold (N a : ℕ) (ℓ : ℕ) : List Bool → ℕ
   | [] => ℓ
   | c :: w => raceLabelFold N a (if raceWall N a ℓ then ℓ else raceRotStep N ℓ c) w
 
+/-- A total race-configuration update that leaves wall configurations fixed and otherwise
+executes the selected transition. -/
 def raceCfgStep (N a : ℕ) (c : Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1))) :
     Turing.TM0.Cfg (Option Bool) (Fin (N + 1)) :=
   if raceWall N a cfg.q.val then cfg
@@ -451,11 +541,13 @@ def raceCfgStep (N a : ℕ) (c : Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin 
     | some (q', stmt) => ⟨q', TM0StmtApply cfg.Tape stmt⟩
     | none => cfg
 
+/-- The configuration fold over a finite coin list using the total race step. -/
 def raceCfgFold (N a : ℕ) : List Bool → Turing.TM0.Cfg (Option Bool) (Fin (N + 1)) →
     Turing.TM0.Cfg (Option Bool) (Fin (N + 1))
   | [], cfg => cfg
   | c :: w, cfg => raceCfgFold N a w (raceCfgStep N a c cfg)
 
+/-- A race configuration at a wall is fixed by `raceCfgStep`. -/
 theorem raceCfgStep_wall (N a : ℕ) (c : Bool)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1)))
     (hw : raceWall N a cfg.q.val = true) :
@@ -463,6 +555,8 @@ theorem raceCfgStep_wall (N a : ℕ) (c : Bool)
   simp only [raceCfgStep]
   rw [if_pos (show raceWall N a cfg.q.val = true by exact hw)]
 
+/-- A race configuration away from both walls updates to the next cyclic label and moves its
+tape head with the coin. -/
 theorem raceCfgStep_live (N a : ℕ) (c : Bool)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1)))
     (hni : ¬(cfg.q.val = raceLabelL N a ∨ cfg.q.val = raceLabelR N a)) :
@@ -476,13 +570,17 @@ theorem raceCfgStep_live (N a : ℕ) (c : Bool)
   simp only [raceCfgStep]
   rw [if_neg hw, race_entry_some N a c cfg.q cfg.Tape hni]
 
+/-- Folding an empty coin list leaves the race configuration unchanged. -/
 theorem raceCfgFold_nil (N a : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1))) :
     raceCfgFold N a [] cfg = cfg := rfl
 
+/-- Folding a nonempty coin list applies its first configuration step and folds the remaining
+list. -/
 theorem raceCfgFold_cons (N a : ℕ) (c : Bool) (w : List Bool)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1))) :
     raceCfgFold N a (c :: w) cfg = raceCfgFold N a w (raceCfgStep N a c cfg) := rfl
 
+/-- Folding the race labels preserves the bound below `N + 1`. -/
 theorem raceLabelFold_lt (N a : ℕ) : ∀ (w : List Bool) {ℓ : ℕ}, ℓ < N + 1 →
     raceLabelFold N a ℓ w < N + 1 := by
   intro w
@@ -495,6 +593,7 @@ theorem raceLabelFold_lt (N a : ℕ) : ∀ (w : List Bool) {ℓ : ℕ}, ℓ < N 
       · exact ih h
       · exact ih (Nat.mod_lt _ (Nat.succ_pos N))
 
+/-- The control label of a folded race configuration is the corresponding folded label. -/
 theorem raceCfgFold_val (N a : ℕ) : ∀ (w : List Bool)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1))),
     (raceCfgFold N a w cfg).q.val = raceLabelFold N a cfg.q.val w := by
@@ -514,6 +613,8 @@ theorem raceCfgFold_val (N a : ℕ) : ∀ (w : List Bool)
         rw [raceCfgFold_cons, raceCfgStep_live N a c cfg hni, raceLabelFold, if_neg hw]
         exact ih _
 
+/-- For a valid starting label and `a ≤ N`, decoding the folded label gives the absorbing walk's
+final position. -/
 theorem racePosOf_raceLabelFold (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool) {ℓ : ℕ},
     ℓ < N + 1 →
     racePosOf N a (raceLabelFold N a ℓ w) = raceWalk N (racePosOf N a ℓ) w := by
@@ -535,6 +636,7 @@ theorem racePosOf_raceLabelFold (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
         have ih2 := ih (ℓ := raceRotStep N ℓ c) (Nat.mod_lt _ (Nat.succ_pos N))
         rw [ih2, racePosOf_rotStep N a ha hℓ hwf c]
 
+/-- Folding any coin list fixes a race configuration whose label is already at a wall. -/
 theorem raceCfgFold_absorb_stay (N a : ℕ) (T : Turing.Tape (Option Bool)) {ℓ : ℕ}
     (hℓ : ℓ < N + 1) (hw : raceWall N a ℓ = true) (w : List Bool) :
     raceCfgFold N a w ⟨⟨ℓ, hℓ⟩, T⟩ = ⟨⟨ℓ, hℓ⟩, T⟩ := by
@@ -544,6 +646,8 @@ theorem raceCfgFold_absorb_stay (N a : ℕ) (T : Turing.Tape (Option Bool)) {ℓ
       rw [raceCfgFold_cons, raceCfgStep_wall N a c ⟨⟨ℓ, hℓ⟩, T⟩ hw]
       exact ih
 
+/-- The race tape interpreter returns an endpoint result exactly when the finite walk reaches an
+endpoint, with read count equal to `raceTime`. -/
 theorem race_coinTapeRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
     (T : Turing.Tape (Option Bool)) (ℓ : ℕ) (hℓ : ℓ < N + 1),
     coinTapeRunAux (raceMachine N a) (raceAccept N a) w ⟨⟨ℓ, hℓ⟩, T⟩
@@ -606,6 +710,7 @@ theorem race_coinTapeRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
         simp only [Prod.map, id_eq]
         rw [raceWalk, raceTime, if_neg hni]
 
+/-- The race machine's transition count equals the elapsed time of its decoded absorbing walk. -/
 theorem race_coinTapeTransitionCountAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
     (T : Turing.Tape (Option Bool)) (ℓ : ℕ) (hℓ : ℓ < N + 1),
     coinTapeTransitionCountAux (raceMachine N a) w ⟨⟨ℓ, hℓ⟩, T⟩
@@ -639,6 +744,8 @@ theorem race_coinTapeTransitionCountAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : Li
           (raceRotStep N ℓ c) (Nat.mod_lt _ (Nat.succ_pos N))
         rw [ih2, racePosOf_rotStep N a ha hℓ hwf c, raceTime, if_neg hni]
 
+/-- The race configuration interpreter reads `raceTime` coins and returns the folded
+configuration exactly when the walk ends at an endpoint. -/
 theorem race_coinConfigRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
     (T : Turing.Tape (Option Bool)) (ℓ : ℕ) (hℓ : ℓ < N + 1),
     (coinConfigRunAux (raceMachine N a) w ⟨⟨ℓ, hℓ⟩, T⟩).reads
@@ -701,6 +808,7 @@ theorem race_coinConfigRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
         rw [raceWalk, raceTime, if_neg hni]
         exact ⟨rfl, rfl⟩
 
+/-- The encoded race program has a common halting condition for both coin choices. -/
 theorem race_commonHalt (N a : ℕ) : commonHalt (raceCode N a) := by
   intro q sym
   have htable : table (raceCode N a) = raceMachine N a := table_encode N _ _
@@ -710,11 +818,16 @@ theorem race_commonHalt (N a : ℕ) : commonHalt (raceCode N a) := by
   · simp [h]
   · simp [h]
 
+/-- The initial source configuration for the race simulation, using the mapped empty-input
+phase-copy tape. -/
 def raceSourceInit (N : ℕ) : Turing.TM0.Cfg (Option Bool) (Fin (N + 1)) :=
   ⟨default, (phaseCopyResult []).map phaseWorkMap⟩
 
+/-- The initial race source configuration has control label zero. -/
 theorem raceSourceInit_label (N : ℕ) : (raceSourceInit N).q.val = 0 := rfl
 
+/-- The final encoded readout of the folded source configuration tests whether the walk from `a`
+finishes at `N`. -/
 theorem race_readout_final (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
     readout (raceCode N a) (raceCfgFold N a w (raceSourceInit N)).q
       = decide (raceWalk N a w = N) := by
@@ -741,6 +854,8 @@ theorem race_readout_final (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
       rw [← hpos, hl, racePosOf_wallR N a ha]
     simp [h, hR]
 
+/-- From the empty initialized tape, the race interpreter's output is the endpoint test for the
+walk from `a`, and its reads equal `raceTime`. -/
 theorem race_coinTapeRunAux_init (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
     coinTapeRunAux (raceMachine N a) (raceAccept N a) w
         (Turing.TM0.init ([] : List (Option Bool)))
@@ -751,6 +866,8 @@ theorem race_coinTapeRunAux_init (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
   rw [racePosOf_zero N a ha] at h
   exact h
 
+/-- From the empty initialized tape, the race machine's transition count is the elapsed walk
+time. -/
 theorem race_coinTapeTransitionCountAux_init (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
     coinTapeTransitionCountAux (raceMachine N a) w
         (Turing.TM0.init ([] : List (Option Bool)))
@@ -759,6 +876,8 @@ theorem race_coinTapeTransitionCountAux_init (N a : ℕ) (ha : a ≤ N) (w : Lis
   rw [racePosOf_zero N a ha] at h
   exact h
 
+/-- The initialized race receipt reports the endpoint output and has reads and clock equal to
+the walk time, with peak between one and that time plus one. -/
 theorem race_receipt_run (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
     (coinReceiptRun (raceMachine N a) (raceAccept N a) [] w).output
       = (if raceWalk N a w = 0 ∨ raceWalk N a w = N
@@ -790,6 +909,10 @@ theorem race_receipt_run (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
         (Turing.TM0.init ([] : List (Option Bool))) 0 0 0).clock := hpeak
     _ = raceTime N a w + 1 := by rw [hck]; omega
 
+/-- When a walk reaches an endpoint on its last supplied coin, the compiled copy-run-reset
+program reaches the specified cleaned, home-positioned tape configuration. For coin blocks
+of the prescribed lengths, it has the displayed exact read and transition counts and returns
+the race readout. -/
 theorem output1.frontier1 (N a : ℕ) (ha : a ≤ N) (w fs : List Bool)
     (habs : raceWalk N a w = 0 ∨ raceWalk N a w = N)
     (hend : raceTime N a w = w.length)

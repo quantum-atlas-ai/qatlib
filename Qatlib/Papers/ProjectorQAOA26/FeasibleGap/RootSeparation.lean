@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingSpectrum
+
+/-!
+# Separation of uniform secular roots
+
+This module compares negative and positive arguments with the same value of the uniform secular
+curve. The identity `two_root_identity` yields a finite lower bound on their separation for the
+feasible-gap analysis in [ZhouAnLiu2026].
+
+## Main statements
+
+* `two_root_identity`: If the uniform secular curve has equal values at `-x` and `y`, with `x >
+  0` and `0 < y < 1`, then `x * y` times the indicated sum over nonzero-cost indices equals one.
+* `two_root_separation`: Under the stated cost bounds, equal secular-curve values at `-x` and
+  `y`, with `0 < y ≤ 1 / 2`, imply `x + y ≥ 1 / (2 * sqrt L)`, where `L` is the index
+  cardinality.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +36,8 @@ open scoped Classical BigOperators
 open Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- If the uniform secular curve has equal values at `-x` and `y`, with `x > 0` and `0 < y < 1`,
+then `x * y` times the indicated sum over nonzero-cost indices equals one. -/
 theorem two_root_identity (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (x y : ℝ) (hx : 0<x) (hy : 0<y) (hy1 : y<1)
     (heq : uniformCurve E (-x)=uniformCurve E y) :
@@ -44,6 +67,8 @@ theorem two_root_identity (E : I → ℝ) (zero : I) (hzero : E zero=0)
   simp only [one_div] at hden
   nlinarith [hden]
 
+/-- Under the stated cost bounds, equal secular-curve values at `-x` and `y`, with `0 < y ≤ 1 /
+2`, imply `x + y ≥ 1 / (2 * sqrt L)`, where `L` is the index cardinality. -/
 theorem two_root_separation (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (x y : ℝ) (hx : 0<x) (hy : 0<y) (hyhalf : y≤1/2)
     (heq : uniformCurve E (-x)=uniformCurve E y) :

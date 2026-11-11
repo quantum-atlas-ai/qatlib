@@ -15,11 +15,33 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition2Defs
 
+/-!
+# Walk-with-data circuit specification
+
+Defines `Proposition2WalkSpec.expected`, the four-update implementation contract for the MNRS
+walk with data [MagniezNayakRolandSantha2011]. Given forward and reversed-chain preparation
+isometries, it asks for a labelled circuit realizing the product of the two associated subspace
+reflections.
+
+## Main statements
+
+* `expected`: The walk-with-data contract requiring a circuit equal to the product of the two
+  prepared-subspace reflections, with four updates, two zero-register reflections, and accounted
+  cost `4 • U` [Magniez et al., Proposition 2][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open scoped BigOperators
 
 open Qatlib.Concepts.WalkSearch.MnrsAmplify
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition2Spec
+/-- The walk-with-data contract requiring a circuit equal to the product of the two
+prepared-subspace reflections, with four updates, two zero-register reflections, and
+accounted cost `4 • U` [Magniez et al., Proposition 2][MagniezNayakRolandSantha2011]. -/
 def expected : Prop :=
   (∀ (X : Type*) (D : Type*) (C : Type*)
     [Fintype X] [DecidableEq X] [DecidableEq D] [AddCommMonoid C]

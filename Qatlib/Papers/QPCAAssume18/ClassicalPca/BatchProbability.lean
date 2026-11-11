@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.Algorithm
+
+/-!
+# Finite probability bounds for PCA batches
+
+Provides finite event masses, dependent joint laws, and union bounds for independently sampled
+coordinates. These elementary probability results combine sketch and output-access failures in
+the classical PCA analysis of [Tang2021].
+
+## Main statements
+
+* `pca_joint_failure`: A first-stage failure bound `a` and conditional second-stage failure
+  bound `b` outside the first failure event give joint failure mass at most `a + b`.
+* `pca_independent_union`: If every coordinate failure has mass at most `b`, the mass of any
+  coordinate failure in the independent product is at most `k * b`.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,13 +37,17 @@ open Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 local instance (priority := 1000000) pcaPropDecision (P : Prop) : Decidable P :=
     Classical.propDecidable P
 
+/-- The mass of a finite event, computed by summing probabilities over the elements satisfying
+its predicate. -/
 def pcaFiniteMass {X : Type} [Fintype X] (p : FinDist X) (P : X→Prop) : ℝ :=
   ∑ x∈Finset.univ.filter P,p.prob x
 
+/-- The finite event mass equals the expectation of its indicator function. -/
 theorem pcaFiniteMass_indicator {X : Type} [Fintype X] (p : FinDist X) (P : X→Prop) :
     pcaFiniteMass p P=p.expect (fun x => if P x then 1 else 0) := by
   simp only [pcaFiniteMass,FinDist.expect,Finset.sum_filter,mul_ite,mul_one,mul_zero]
 
+/-- The mass of a finite event lies in the interval `[0, 1]`. -/
 theorem pcaFiniteMass_range {X : Type} [Fintype X] (p : FinDist X) (P : X→Prop) :
     0≤pcaFiniteMass p P ∧ pcaFiniteMass p P≤1 := by
   constructor
@@ -31,6 +55,7 @@ theorem pcaFiniteMass_range {X : Type} [Fintype X] (p : FinDist X) (P : X→Prop
   · exact (Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
       (fun x _ _ => p.nonneg x)).trans_eq p.sum_one
 
+/-- The joint distribution with mass `p.prob x * (conditional x).prob y`. -/
 def pcaJointLaw {X Y : Type} [Fintype X] [Fintype Y]
     (p : FinDist X) (conditional : X→FinDist Y) : FinDist (X×Y) where
   prob z := p.prob z.1*(conditional z.1).prob z.2
@@ -38,6 +63,8 @@ def pcaJointLaw {X Y : Type} [Fintype X] [Fintype Y]
   sum_one := by
     simp only [Fintype.sum_prod_type,← Finset.mul_sum,(conditional _).sum_one,mul_one,p.sum_one]
 
+/-- A first-stage failure bound `a` and conditional second-stage failure bound `b` outside the
+first failure event give joint failure mass at most `a + b`. -/
 theorem pca_joint_failure {X Y : Type} [Fintype X] [Fintype Y]
     (p : FinDist X) (conditional : X→FinDist Y) (BadX : X→Prop) (BadY : X→Y→Prop)
     (a b : ℝ) (hb : 0≤b) (hfirst : pcaFiniteMass p BadX≤a)
@@ -70,6 +97,8 @@ theorem pca_joint_failure {X Y : Type} [Fintype X] [Fintype Y]
 
 attribute [-instance] pcaPropDecision
 
+/-- For a decidable predicate, finite event mass is the sum of probabilities over the filtered
+universal finite set. -/
 theorem pcaFiniteMass_eq {X : Type} [Fintype X] (p : FinDist X) (P : X→Prop) [DecidablePred P] :
     pcaFiniteMass p P=∑x∈Finset.univ.filter P,p.prob x := by
   unfold pcaFiniteMass
@@ -79,12 +108,16 @@ theorem pcaFiniteMass_eq {X : Type} [Fintype X] (p : FinDist X) (P : X→Prop) [
   · intro x _
     rfl
 
+/-- An event on one coordinate of an independent product law has the same mass as under that
+coordinate's marginal law. -/
 theorem pca_independent_coordinate {k : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (laws : Fin k→FinDist X) (i : Fin k) (Bad : X→Prop) :
     pcaFiniteMass (independentSampleLaw laws) (fun z => Bad (z i))=pcaFiniteMass (laws i) Bad := by
   rw [pcaFiniteMass_indicator,pcaFiniteMass_indicator]
   exact independentSampleLaw_expect_coord laws i (fun x => if Bad x then 1 else 0)
 
+/-- If every coordinate failure has mass at most `b`, the mass of any coordinate failure in the
+independent product is at most `k * b`. -/
 theorem pca_independent_union {k : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (laws : Fin k→FinDist X) (Bad : Fin k→X→Prop) (b : ℝ)
     (h : ∀ i,pcaFiniteMass (laws i) (Bad i)≤b) :

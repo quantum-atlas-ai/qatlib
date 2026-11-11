@@ -8,18 +8,46 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic
 
+/-!
+# Telescoping bounds for weighted search costs
+
+`prefixSum` and `searchTerm` encode the cumulative masses and weighted inverse-square-root terms
+in the descent cost analysis. A one-step square-root inequality telescopes to bound their sum by
+`2 / sqrt (popt q)`, giving the corresponding scaled query estimate.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `searchSum_bound`: For nonnegative weights with `q 0 > 0` and `n ≥ 1`, the sum of search terms
+  over `[1, n)` is at most `2 / sqrt (popt q)`.
+* `expected_queries_bound`: For positive `C`, nonnegative `N` and weights, positive optimal
+  mass, and `n ≥ 1`, the weighted search sum multiplied by `2 * C * N` is at most `4 * C * N /
+  sqrt (popt q)`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option autoImplicit false
 open scoped BigOperators
 namespace Qatlib.Papers.QAOAScaling23.WeightedCost
 
+/-- The sum of the weights `q j` for natural indices `j < k`. -/
 noncomputable def prefixSum (q : ℕ → ℝ) (k : ℕ) : ℝ :=
   ∑ j ∈ Finset.range k, q j
 
+/-- The term `q j / (prefixSum q (j + 1) * sqrt (prefixSum q j))` in the weighted search-cost
+sum. -/
 noncomputable def searchTerm (q : ℕ → ℝ) (j : ℕ) : ℝ :=
   q j / (prefixSum q (j + 1) * Real.sqrt (prefixSum q j))
 
+/-- The weight `q 0` of the optimal rank. -/
 noncomputable def popt (q : ℕ → ℝ) : ℝ := q 0
 
+/-- The sum of successive differences `f j - f (j + 1)` over `[a, b)` equals `f a - f b` when `a
+≤ b`. -/
 theorem telescope (f : ℕ → ℝ) {a b : ℕ} (h : a ≤ b) :
     ∑ j ∈ Finset.Ico a b, (f j - f (j + 1)) = f a - f b := by
   obtain ⟨n, rfl⟩ := Nat.exists_eq_add_of_le h
@@ -30,6 +58,7 @@ theorem telescope (f : ℕ → ℝ) {a b : ℕ} (h : a ≤ b) :
     rw [Finset.sum_Ico_succ_top (by omega), ih (by omega)]
     ring
 
+/-- For `0 < a ≤ b`, `(b - a) / (b * sqrt a)` is at most `2 * (1 / sqrt a - 1 / sqrt b)`. -/
 theorem step_ineq {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     (b - a) / (b * Real.sqrt a) ≤ 2 * (1 / Real.sqrt a - 1 / Real.sqrt b) := by
   have hb : 0 < b := lt_of_lt_of_le ha hab
@@ -50,9 +79,12 @@ theorem step_ineq {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
   have hnonneg : 0 ≤ (Real.sqrt b - Real.sqrt a) ^ 2 := sq_nonneg _
   nlinarith [hsab, hnonneg, hsa2, hsb2]
 
+/-- The prefix mass at one equals the weight at rank zero. -/
 theorem prefixSum_one (q : ℕ → ℝ) : prefixSum q 1 = q 0 := by
   simp [prefixSum]
 
+/-- For nonnegative weights with `q 0 > 0` and `n ≥ 1`, the sum of search terms over `[1, n)` is
+at most `2 / sqrt (popt q)`. -/
 theorem searchSum_bound (q : ℕ → ℝ) (h0 : 0 < q 0) (hnn : ∀ i, 0 ≤ q i)
     (n : ℕ) (hn : 1 ≤ n) :
     ∑ j ∈ Finset.Ico 1 n, searchTerm q j ≤ 2 / Real.sqrt (popt q) := by
@@ -115,6 +147,8 @@ theorem searchSum_bound (q : ℕ → ℝ) (h0 : 0 < q 0) (hnn : ∀ i, 0 ≤ q i
     _ ≤ 2 / Real.sqrt (prefixSum q 1) := hone
     _ = 2 / Real.sqrt (popt q) := by rw [hpq]
 
+/-- For positive `C`, nonnegative `N` and weights, positive optimal mass, and `n ≥ 1`, the
+weighted search sum multiplied by `2 * C * N` is at most `4 * C * N / sqrt (popt q)`. -/
 theorem expected_queries_bound (q : ℕ → ℝ) (C N : ℝ) (hC : 0 < C) (hN : 0 ≤ N)
     (h0 : 0 < q 0) (hnn : ∀ i, 0 ≤ q i) (n : ℕ) (hn : 1 ≤ n) :
     2 * C * N * (∑ j ∈ Finset.Ico 1 n, searchTerm q j)

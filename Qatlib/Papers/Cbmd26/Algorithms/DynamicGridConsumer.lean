@@ -8,6 +8,26 @@ import Qatlib.Papers.Cbmd26.Algorithms.DysonGridSegments
 import Qatlib.Papers.Cbmd26.Algorithms.DysonGridCircuitBridge
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
 import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridDysonError
+
+/-!
+# Counted simulation on supplied time grids
+
+Chooses `dynamicGridFineCount` and `dynamicGridDegree` to approximate an evolution supplied on a
+monotone time grid. The segment coefficients `dynamicGridCoefficients` define the fresh-register
+word `dynamicGridWord`, with freezing and truncation error bounds leading to a counted
+simulation guarantee. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicGridCoefficients_error`: controls each compiled segment approximation.
+* `dynamic_grid_simulation_counted`: gives a scale-one simulation encoding, circuit counts, and
+  a frame-action bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -57,24 +77,31 @@ open Matrix
 open scoped Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Defines the Euler error constant from the normalization and chosen segment duration. -/
 def dynamicGridEulerConstant (Λ T : ℝ) : ℝ :=
   Real.exp (Λ * (T / dynamicSegmentCount Λ T)) * Λ ^ 2 *
     (T / dynamicSegmentCount Λ T) ^ 2 / 2
 
+/-- Chooses a fine-grid size large enough for both the Euler segment error and the supplied-grid
+freezing error. -/
 def dynamicGridFineCount (Λ T : ℝ) (N : ℕ) (ζ : ℝ) : ℕ :=
   max (dynamicFineGridSize (dynamicGridEulerConstant Λ T)
     (dynamicSegmentAccuracy (dynamicSegmentCount Λ T) (ζ / 2)))
     (max 1 ⌈4 * Λ * N * T / ((dynamicSegmentCount Λ T : ℝ) * ζ)⌉₊)
 
+/-- Chooses the Dyson degree using half the requested simulation accuracy. -/
 def dynamicGridDegree (Λ T ζ : ℝ) : ℕ :=
   dynamicDysonDegree (dynamicSegmentCount Λ T) (ζ / 2)
 
+/-- The chosen dynamic fine-grid count is positive. -/
 theorem dynamicGridFineCount_pos (Λ T : ℝ) (N : ℕ) (ζ : ℝ) :
     0 < dynamicGridFineCount Λ T N ζ := by
   have h1 : 1 ≤ dynamicGridFineCount Λ T N ζ :=
     (le_max_left 1 _).trans (le_max_right _ _)
   omega
 
+/-- The Euler constant divided by the chosen fine-grid count is at most half the segment
+accuracy at `ζ / 2`. -/
 theorem dynamicGridFineCount_euler_error {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 ≤ T)
     (hζ : 0 < ζ) (hζ1 : ζ ≤ 1) (N : ℕ) :
     dynamicGridEulerConstant Λ T / dynamicGridFineCount Λ T N ζ ≤
@@ -90,6 +117,7 @@ theorem dynamicGridFineCount_euler_error {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT : 
     exact_mod_cast (le_max_left _ _ : dynamicFineGridSize _ _ ≤ dynamicGridFineCount Λ T N ζ)
   exact (div_le_div_of_nonneg_left hC (Nat.cast_pos.mpr he.1) hmax).trans he.2
 
+/-- The chosen fine-grid count makes the displayed supplied-grid freezing error at most `ζ / 2`. -/
 theorem dynamicGridFineCount_freezing_error {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 ≤ T)
     (hζ : 0 < ζ) (N : ℕ) :
     2 * Λ * N * (T / ((dynamicSegmentCount Λ T : ℝ) * dynamicGridFineCount Λ T N ζ)) ≤ ζ / 2 := by
@@ -108,12 +136,15 @@ theorem dynamicGridFineCount_freezing_error {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT
   apply (div_le_iff₀ (mul_pos hS hM)).mpr
   nlinarith
 
+/-- Combines a segment index and a local fine-grid index into a single global fine-grid address. -/
 def dynamicGridAddress (S M : ℕ) (q : Fin S) (j : Fin M) : Fin (S * M) :=
   ⟨q.val * M + j.val, by
     have hqM := Nat.mul_le_mul_right M (Nat.succ_le_of_lt q.isLt)
     rw [Nat.succ_mul] at hqM
     omega⟩
 
+/-- Defines the truncated grid-word coefficients for a segment, using reversed segment order and
+the chosen fine-grid addresses. -/
 def dynamicGridCoefficients (Λ T : ℝ) (N : ℕ) (ζ : ℝ)
     (i : Fin (dynamicSegmentCount Λ T)) :
     (Σ l : Fin (dynamicGridDegree Λ T ζ + 1),
@@ -124,6 +155,8 @@ def dynamicGridCoefficients (Λ T : ℝ) (N : ℕ) (ζ : ℝ)
     (dynamicGridDegree Λ T ζ)
     (gridStepCoefficient (T / dynamicSegmentCount Λ T) Λ (dynamicGridFineCount Λ T N ζ))
 
+/-- Each chosen segment coefficient family has absolute mass at most two for nonnegative
+normalization and time. -/
 theorem dynamicGridCoefficients_mass {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 ≤ T)
     (N : ℕ) (i : Fin (dynamicSegmentCount Λ T)) :
     coefficientMass (dynamicGridCoefficients Λ T N ζ i) ≤ 2 := by
@@ -135,6 +168,7 @@ theorem dynamicGridCoefficients_mass {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 �
     norm_num at h ⊢
     exact h)
 
+/-- Defines the zero address in the positive global dynamic fine grid. -/
 def dynamicGridZeroAddress (Λ T : ℝ) (N : ℕ) (ζ : ℝ) :
     Fin (dynamicSegmentCount Λ T * dynamicGridFineCount Λ T N ζ) :=
   ⟨0, Nat.mul_pos (by unfold dynamicSegmentCount; omega) (dynamicGridFineCount_pos Λ T N ζ)⟩
@@ -152,6 +186,8 @@ private instance dynamicFreshLabelWorkspaceDecEq (J : Type) [Fintype J] [Decidab
   @instDecidableEqProd (TaylorWordLabel J K) (FreshQueryWorkspace A J I K)
     inferInstance (dynamicFreshWorkspaceDecEq J K)
 
+/-- Constructs the segmented fresh-register Dyson word from the chosen grid coefficients and
+clean address. -/
 def dynamicGridWord (a₀ : A) (Λ T : ℝ) (N : ℕ) (ζ : ℝ) :
     List (AdjointStep
       (TaylorWordLabel (Fin (dynamicSegmentCount Λ T * dynamicGridFineCount Λ T N ζ))
@@ -166,11 +202,14 @@ end Circuit
 section Samples
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Samples the supplied-grid field at a global uniform fine-grid time. -/
 def dynamicGridSample (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     (Λ T : ℝ) (N : ℕ) (ζ : ℝ) (j : ℕ) : Matrix I I ℂ :=
   suppliedGridField τ B N
     (T * (j : ℝ) / (dynamicSegmentCount Λ T * dynamicGridFineCount Λ T N ζ : ℕ))
 
+/-- Hermitian supplied matrices of norm at most `Λ` give Hermitian dynamic grid samples with the
+same norm bound. -/
 theorem dynamicGridSample_bound (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     {Λ : ℝ} (hΛ : 0 ≤ Λ) (T : ℝ) (N : ℕ) (ζ : ℝ)
     (hB : ∀ j < N, (B j).IsHermitian ∧ ‖B j‖ ≤ Λ) (j : ℕ) :
@@ -180,6 +219,8 @@ theorem dynamicGridSample_bound (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- A global dynamic grid sample at index `q * M + j` equals the supplied field at the
+corresponding segment offset and local sample time. -/
 theorem dynamicGridSample_coarse (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     (Λ T : ℝ) (N : ℕ) (ζ : ℝ) (q j : ℕ) :
     dynamicGridSample τ B Λ T N ζ (q * dynamicGridFineCount Λ T N ζ + j) =
@@ -196,6 +237,8 @@ theorem dynamicGridSample_coarse (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
   push_cast
   field_simp
 
+/-- The uniform fine-grid evolution approximates the supplied-grid evolution within operator
+error `ζ / 2` under the stated grid and matrix bounds. -/
 theorem dynamicGridSample_target_error {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) {Λ T ζ : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 < T)
     (hζ : 0 < ζ) (N : ℕ) (hτN : τ N = T)
@@ -232,17 +275,22 @@ theorem dynamicGridSample_target_error {τ : ℕ → ℝ} (hτ : Monotone τ) (h
   apply hf.trans
   simpa only [Q, Nat.cast_mul] using! dynamicGridFineCount_freezing_error hΛ hT.le hζ N
 
+/-- Divides a dynamic grid sample by the normalization `Λ`. -/
 def dynamicGridNormalizedSample (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     (Λ T : ℝ) (N : ℕ) (ζ : ℝ)
     (j : Fin (dynamicSegmentCount Λ T * dynamicGridFineCount Λ T N ζ)) : Matrix I I ℂ :=
   (Λ : ℂ)⁻¹ • dynamicGridSample τ B Λ T N ζ j.val
 
+/-- Restricts the supplied-grid field to a segment by shifting its time argument by the segment
+start. -/
 def dynamicGridCoarseField (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     (Λ T : ℝ) (N : ℕ) (q : ℕ) (u : ℝ) : Matrix I I ℂ :=
   suppliedGridField τ B N ((q : ℝ) * (T / dynamicSegmentCount Λ T) + u)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Multiplying a normalized global sample by positive `Λ` recovers the corresponding
+coarse-segment field sample. -/
 theorem dynamicGridNormalizedSample_coarse (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     {Λ : ℝ} (hΛ : 0 < Λ) (T : ℝ) (N : ℕ) (ζ : ℝ)
     (q : Fin (dynamicSegmentCount Λ T)) (j : Fin (dynamicGridFineCount Λ T N ζ)) :
@@ -254,6 +302,8 @@ theorem dynamicGridNormalizedSample_coarse (τ : ℕ → ℝ) (B : ℕ → Matri
   rw [dynamicGridNormalizedSample, smul_smul, mul_inv_cancel₀ hΛc, one_smul]
   exact dynamicGridSample_coarse τ B Λ T N ζ q.val j.val
 
+/-- The sampled evolution product on a coarse segment equals its global-indexed Dyson grid
+segment. -/
 theorem dynamicGridCoarse_sampledEvolution (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     (Λ T : ℝ) (N : ℕ) (ζ : ℝ) (q : ℕ) :
     sampledEvolutionProduct (dynamicGridCoarseField τ B Λ T N q)
@@ -284,6 +334,8 @@ theorem dynamicGridCoarse_sampledEvolution (τ : ℕ → ℝ) (B : ℕ → Matri
   rw [hfn (fun j => HamiltonianEvolution (dynamicGridSample τ B Λ T N ζ (q*M+j))
     (T / (dynamicSegmentCount Λ T * M : ℕ)))]
 
+/-- The weighted Taylor branch sum from the chosen coefficients equals the truncated Dyson grid
+sum for the corresponding reversed segment. -/
 theorem dynamicGridCoefficients_target (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     {Λ : ℝ} (hΛ : 0 < Λ) (T : ℝ) (N : ℕ) (ζ : ℝ)
     (i : Fin (dynamicSegmentCount Λ T)) :
@@ -295,6 +347,8 @@ theorem dynamicGridCoefficients_target (τ : ℕ → ℝ) (B : ℕ → Matrix I 
   exact gridWordCoefficients_dyson_target _ _ _ _ _ _ _
     (dynamicGridNormalizedSample_coarse τ B hΛ T N ζ i.rev)
 
+/-- The weighted branch sum approximates its Dyson grid segment within the shared segment
+accuracy under the stated normalization and accuracy bounds. -/
 theorem dynamicGridCoefficients_error (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     {Λ T ζ : ℝ} (hΛ : 0 < Λ) (hT : 0 ≤ T) (hζ : 0 < ζ) (hζ1 : ζ ≤ 1)
     (N : ℕ) (hB : ∀ j < N, (B j).IsHermitian ∧ ‖B j‖ ≤ Λ)
@@ -340,6 +394,9 @@ end Samples
 section CompleteCircuit
 variable {A I : Type} [Fintype A] [DecidableEq A] [Fintype I] [DecidableEq I]
 
+/-- Exact encodings of normalized samples yield a well-formed scale-one encoding of the
+supplied-grid evolution with error `ζ`, `3 * S * K` queries, `S * (6 * K + 13)` gates, and
+frame-action error at most `ζ` [WangEtAl2026]. -/
 theorem dynamic_grid_simulation_counted (a₀ : A) {τ : ℕ → ℝ}
     (hτ : Monotone τ) (hτ0 : τ 0 = 0) (B : ℕ → Matrix I I ℂ)
     {Λ T ζ : ℝ} (hΛ : 0 < Λ) (hT : 0 < T) (hζ : 0 < ζ) (hζ1 : ζ ≤ 1)

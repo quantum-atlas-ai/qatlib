@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.ReadoutWindow.ValueOracleGradientPrecision
+
+/-!
+# Numerical gradient algorithm specification
+
+`NumericalGradientAlgorithm` states a finite-grid success guarantee for a rounded coherent value
+oracle. Under smoothness, bounded Hessian, gradient-range, and grid hypotheses, it bounds the
+probability of simultaneous coordinate errors and records exact query and gate counts. See
+[Jordan2005Gradient] for background.
+
+## Main statements
+
+* `NumericalGradientAlgorithm`: The proposition that the rounded value-oracle gradient program
+  uses one query and `2 * d + 1` gates and achieves coordinate error at most `w` with
+  probability at least `1 - 16 * d / (M * w) - Real.pi * M * H * h * d / 2 - 2 * Real.pi / Q`
+  under the stated hypotheses.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.GradientOracle.C2GradientAlg
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that the rounded value-oracle gradient program uses one query and `2 * d +
+1` gates and achieves coordinate error at most `w` with probability at least `1 - 16 * d /
+(M * w) - Real.pi * M * H * h * d / 2 - 2 * Real.pi / Q` under the stated hypotheses. -/
 def NumericalGradientAlgorithm : Prop :=
   ∀ (d M Q n_o : ℕ) (hM : 0 < M) [NeZero Q], 2 ≤ M → Q = 2 ^ n_o → 0 < n_o →
     ∀ (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d)) (H h w : ℝ),

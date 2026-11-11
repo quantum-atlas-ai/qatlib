@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+/-!
+# Ancilla fibers and exact state block encodings
+
+`IsBlockEncoding` describes an exact scaled matrix corner at a fixed ancilla label. The module
+expresses this condition using `FiberProjector`, supplies fiber embeddings and reflections, and
+proves closure under positive scaling and tensor products together with exact LCU constructions.
+
+The mathematical background is described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `isProjectedEncoding_iff_isBlockEncoding`: equivalence of corner and projector formulations.
+* `blockEncoding_tensor`: tensor products multiply encoding scales.
+* `lcu_isBlockEncoding_of_isScaledPrepare`: exact encoding from scaled weight preparation.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -23,19 +44,25 @@ open Matrix
 variable {J I K L : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
   [Fintype K] [DecidableEq K] [Fintype L] [DecidableEq L]
 
+/-- The matrix corner obtained by fixing both ancilla indices of `U` at `j₀`. -/
 def BlockCorner {J I : Type*} [Fintype J] [Fintype I]
     (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) : Matrix I I ℂ :=
   Matrix.of fun i i' => U (j₀, i) (j₀, i')
 
+/-- An entry of `BlockCorner U j₀` is the corresponding entry of `U` with ancilla label `j₀`. -/
 theorem blockCorner_apply {J I : Type*} [Fintype J] [Fintype I]
     (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) (i i' : I) :
     BlockCorner U j₀ i i' = U (j₀, i) (j₀, i') := rfl
 
+/-- The condition that `U` is unitary and its designated corner is `A / α` for a positive scale
+`α`. See [GilyenSuLowWiebe2019]. -/
 def IsBlockEncoding {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) (A : Matrix I I ℂ) (α : ℝ) : Prop :=
   U ∈ Matrix.unitaryGroup (J × I) ℂ ∧ 0 < α ∧
     BlockCorner U j₀ = ((α⁻¹ : ℝ) : ℂ) • A
 
+/-- Unitary selected matrices and a preparation of nonnegative weights give an exact block
+encoding of their weighted sum at scale one. See [GilyenSuLowWiebe2019]. -/
 theorem lcu_isBlockEncoding (U : J → Matrix I I ℂ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
     {w : J → ℝ} (hw : ∀ j, 0 ≤ w j) {P : Matrix J J ℂ} {j₀ : J} (hP : IsPrepare P w j₀) :
@@ -65,6 +92,8 @@ theorem lcu_isBlockEncoding (U : J → Matrix I I ℂ)
     rw [hcorner]
     simp
 
+/-- Multiplying the encoded matrix and its scale by the same positive real number preserves an
+exact block encoding. -/
 theorem blockEncoding_scale {U : Matrix (J × I) (J × I) ℂ} {j₀ : J} {A : Matrix I I ℂ}
     {α : ℝ} (h : IsBlockEncoding U j₀ A α) {c : ℝ} (hc : 0 < c) :
     IsBlockEncoding U j₀ (c • A) (c * α) := by
@@ -80,14 +109,19 @@ theorem blockEncoding_scale {U : Matrix (J × I) (J × I) ℂ} {j₀ : J} {A : M
       = (↑α)⁻¹ * ((↑c)⁻¹ * ↑c) * (A i i') := by ring
     _ = (↑α)⁻¹ * A i i' := by rw [inv_mul_cancel₀ hcc, mul_one]
 
+/-- The workspace matrix placing `A` in the ancilla fiber `j₀` and setting all other entries to
+zero. -/
 def FiberEmbed {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     (j₀ : J) (A : Matrix I I ℂ) : Matrix (J × I) (J × I) ℂ :=
   Matrix.of fun (a, i) (b, i') => if a = j₀ ∧ b = j₀ then A i i' else 0
 
+/-- The fiber embedding agrees with `A` when both ancilla labels equal `j₀` and is zero
+otherwise. -/
 theorem fiberEmbed_apply {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     (j₀ : J) (A : Matrix I I ℂ) (a : J) (i : I) (b : J) (i' : I) :
     FiberEmbed j₀ A (a, i) (b, i') = if a = j₀ ∧ b = j₀ then A i i' else 0 := rfl
 
+/-- Embedding matrices in a fixed ancilla fiber is injective. -/
 theorem fiberEmbed_injective (j₀ : J) :
     Function.Injective (FiberEmbed (I := I) j₀) := by
   intro A B h
@@ -96,6 +130,7 @@ theorem fiberEmbed_injective (j₀ : J) :
   rw [fiberEmbed_apply, fiberEmbed_apply, if_pos ⟨rfl, rfl⟩, if_pos ⟨rfl, rfl⟩] at h'
   exact h'
 
+/-- Embedding in a fixed fiber preserves matrix multiplication. -/
 theorem fiberEmbed_mul (j₀ : J) (A B : Matrix I I ℂ) :
     FiberEmbed j₀ A * FiberEmbed j₀ B = FiberEmbed j₀ (A * B) := by
   ext ⟨a, i⟩ ⟨b, i'⟩
@@ -120,6 +155,7 @@ theorem fiberEmbed_mul (j₀ : J) (A B : Matrix I I ℂ) :
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
     rw [if_neg (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]
 
+/-- Embedding in a fixed fiber commutes with conjugate transpose. -/
 theorem fiberEmbed_conjTranspose (j₀ : J) (A : Matrix I I ℂ) :
     (FiberEmbed j₀ A)ᴴ = FiberEmbed j₀ Aᴴ := by
   ext ⟨a, i⟩ ⟨b, i'⟩
@@ -127,15 +163,19 @@ theorem fiberEmbed_conjTranspose (j₀ : J) (A : Matrix I I ℂ) :
   by_cases ha : a = j₀ <;> by_cases hb : b = j₀ <;>
     simp [fiberEmbed_apply, ha, hb, Matrix.conjTranspose_apply]
 
+/-- The diagonal projector retaining precisely the workspace coordinates with ancilla label
+`j₀`. -/
 def FiberProjector {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (j₀ : J) : Matrix (J × I) (J × I) ℂ :=
   Matrix.of fun (a, i) (b, i') => if a = j₀ ∧ (a, i) = (b, i') then 1 else 0
 
+/-- The fiber projector has entry one exactly on diagonal coordinates with ancilla label `j₀`. -/
 theorem fiberProjector_apply {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (j₀ : J) (a : J) (i : I) (b : J) (i' : I) :
     FiberProjector (I := I) j₀ (a, i) (b, i')
       = if a = j₀ ∧ (a, i) = (b, i') then 1 else 0 := rfl
 
+/-- The fiber projector is the identity matrix embedded in that fiber. -/
 theorem fiberProjector_eq_fiberEmbed_one (j₀ : J) :
     FiberProjector (I := I) j₀ = FiberEmbed j₀ (1 : Matrix I I ℂ) := by
   ext ⟨a, i⟩ ⟨b, i'⟩
@@ -161,6 +201,7 @@ theorem fiberProjector_eq_fiberEmbed_one (j₀ : J) :
   · rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (b, i')) from fun h => ha h.1),
       if_neg (show ¬(a = j₀ ∧ b = j₀) from fun h => ha h.1)]
 
+/-- The projector onto a fixed ancilla fiber is an orthogonal projector. -/
 theorem isOrthogonalProjector_fiberProjector (j₀ : J) :
     IsOrthogonalProjector (FiberProjector (I := I) j₀) := by
   constructor
@@ -170,6 +211,7 @@ theorem isOrthogonalProjector_fiberProjector (j₀ : J) :
     rw [Matrix.star_eq_conjTranspose, fiberProjector_eq_fiberEmbed_one,
       fiberEmbed_conjTranspose, Matrix.conjTranspose_one]
 
+/-- Left multiplication by the fiber projector retains exactly the rows with ancilla label `j₀`. -/
 theorem fiberProjector_mul (j₀ : J) (M : Matrix (J × I) (J × I) ℂ) :
     FiberProjector j₀ * M
       = Matrix.of fun (a, i) (b, i') => if a = j₀ then M (a, i) (b, i') else 0 := by
@@ -196,6 +238,8 @@ theorem fiberProjector_mul (j₀ : J) (M : Matrix (J × I) (J × I) ℂ) :
     refine Finset.sum_eq_zero fun m _ => Finset.sum_eq_zero fun k _ => ?_
     rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (m, k)) from fun h => ha h.1), zero_mul]
 
+/-- Right multiplication by the fiber projector retains exactly the columns with ancilla label
+`j₀`. -/
 theorem mul_fiberProjector (j₀ : J) (M : Matrix (J × I) (J × I) ℂ) :
     M * FiberProjector j₀
       = Matrix.of fun (a, i) (b, i') => if b = j₀ then M (a, i) (b, i') else 0 := by
@@ -223,6 +267,8 @@ theorem mul_fiberProjector (j₀ : J) (M : Matrix (J × I) (J × I) ℂ) :
     rw [if_neg (show ¬(m = j₀ ∧ (m, k) = (b, i')) from
       fun h => hb (((Prod.mk.injEq _ _ _ _) ▸ h.2).1 ▸ h.1)), mul_zero]
 
+/-- Projecting both sides of a workspace matrix onto one fiber gives the fiber embedding of its
+block corner. -/
 theorem fiberProjector_mul_mul_corner (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) :
     FiberProjector j₀ * (U * FiberProjector j₀)
       = FiberEmbed j₀ (BlockCorner U j₀) := by
@@ -231,12 +277,16 @@ theorem fiberProjector_mul_mul_corner (U : Matrix (J × I) (J × I) ℂ) (j₀ :
   simp only [Matrix.of_apply, fiberEmbed_apply, blockCorner_apply]
   by_cases ha : a = j₀ <;> by_cases hb : b = j₀ <;> simp [ha, hb]
 
+/-- The condition that a unitary matrix compressed by the fiber projector equals the fiber
+embedding of `A / α`, with `α` positive. -/
 def IsProjectedEncoding {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) (A : Matrix I I ℂ) (α : ℝ) :
     Prop :=
   U ∈ Matrix.unitaryGroup (J × I) ℂ ∧ 0 < α ∧
     FiberProjector j₀ * (U * FiberProjector j₀) = FiberEmbed j₀ (((α⁻¹ : ℝ) : ℂ) • A)
 
+/-- The fiber projector formulation of an exact scaled encoding is equivalent to the block
+corner formulation. -/
 theorem isProjectedEncoding_iff_isBlockEncoding
     (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) (A : Matrix I I ℂ) (α : ℝ) :
     IsProjectedEncoding U j₀ A α ↔ IsBlockEncoding U j₀ A α := by
@@ -247,43 +297,53 @@ theorem isProjectedEncoding_iff_isBlockEncoding
   · rintro ⟨hU, hα, hcorner⟩
     exact ⟨hU, hα, by rw [fiberProjector_mul_mul_corner, hcorner]⟩
 
+/-- The reflection `2P - 1` associated with the projector onto the ancilla fiber `j₀`. -/
 noncomputable def FiberReflection {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I]
     [DecidableEq I] (j₀ : J) : Matrix (J × I) (J × I) ℂ :=
   ReflectionAbout (FiberProjector j₀)
 
+/-- The reflection about an ancilla fiber is unitary. -/
 theorem fiberReflection_unitary (j₀ : J) :
     FiberReflection (I := I) j₀ ∈ Matrix.unitaryGroup (J × I) ℂ :=
   reflectionAbout_unitary (isOrthogonalProjector_fiberProjector j₀)
 
+/-- The reflection about an ancilla fiber is Hermitian. -/
 theorem fiberReflection_conjTranspose (j₀ : J) :
     (FiberReflection (I := I) j₀)ᴴ = FiberReflection j₀ :=
   reflectionAbout_conjTranspose (isOrthogonalProjector_fiberProjector j₀)
 
+/-- The reflection about an ancilla fiber squares to the identity. -/
 theorem fiberReflection_mul_self (j₀ : J) :
     FiberReflection (I := I) j₀ * FiberReflection j₀ = 1 :=
   reflectionAbout_mul_self (isOrthogonalProjector_fiberProjector j₀)
 
+/-- Right multiplication by the fiber reflection fixes a matrix embedded in that fiber. -/
 theorem fiberEmbed_mul_fiberReflection (j₀ : J) (A : Matrix I I ℂ) :
     FiberEmbed j₀ A * FiberReflection j₀ = FiberEmbed j₀ A := by
   simp only [FiberReflection, ReflectionAbout, Matrix.mul_sub, Matrix.mul_smul,
     fiberProjector_eq_fiberEmbed_one, fiberEmbed_mul, mul_one, Matrix.mul_one]
   module
 
+/-- The index equivalence regrouping two ancilla-system pairs into an ancilla pair and a system
+pair. -/
 def tensorBlockEquiv : (J × I) × (K × L) ≃ (J × K) × (I × L) where
   toFun p := ((p.1.1, p.2.1), (p.1.2, p.2.2))
   invFun p := ((p.1.1, p.2.1), (p.1.2, p.2.2))
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The inverse tensor block equivalence separates paired ancilla and system labels. -/
 theorem tensorBlockEquiv_symm_apply (j : J) (k : K) (i : I) (l : L) :
     tensorBlockEquiv.symm ((j, k), (i, l)) = ((j, i), (k, l)) := rfl
 
+/-- Reindexing both matrix indices by the same equivalence commutes with conjugate transpose. -/
 theorem conjTranspose_reindex {M N : Type*} [Fintype M] [Fintype N] (e : M ≃ N)
     (A : Matrix M M ℂ) :
     (Matrix.reindex e e A)ᴴ = Matrix.reindex e e Aᴴ := by
   ext i j
   simp [Matrix.conjTranspose_apply, Matrix.reindex_apply]
 
+/-- Reindexing a unitary matrix by an equivalence preserves unitarity. -/
 theorem unitaryGroup_reindex {M N : Type*} [Fintype M] [DecidableEq M] [Fintype N]
     [DecidableEq N] (e : M ≃ N) {A : Matrix M M ℂ}
     (hA : A ∈ Matrix.unitaryGroup M ℂ) :
@@ -294,6 +354,8 @@ theorem unitaryGroup_reindex {M N : Type*} [Fintype M] [DecidableEq M] [Fintype 
   simp only [Matrix.reindexAlgEquiv_apply] at hmul
   rw [← hmul, hA, ← Matrix.reindexAlgEquiv_apply ℂ ℂ e, map_one]
 
+/-- After regrouping tensor indices, the paired ancilla corner is the tensor product of the two
+original corners. -/
 theorem blockCorner_reindex_tensorGate (U : Matrix (J × I) (J × I) ℂ)
     (V : Matrix (K × L) (K × L) ℂ) (j₀ : J) (k₀ : K) :
     BlockCorner (Matrix.reindex tensorBlockEquiv tensorBlockEquiv (TensorGate U V))
@@ -303,6 +365,8 @@ theorem blockCorner_reindex_tensorGate (U : Matrix (J × I) (J × I) ℂ)
   simp [blockCorner_apply, Matrix.reindex_apply, tensorBlockEquiv_symm_apply,
     tensorGate_apply]
 
+/-- The tensor product of exact block encodings, with indices regrouped, encodes the tensor
+product matrix at the product scale. -/
 theorem blockEncoding_tensor {U : Matrix (J × I) (J × I) ℂ} {j₀ : J}
     {A : Matrix I I ℂ} {α : ℝ} (hU : IsBlockEncoding U j₀ A α)
     {V : Matrix (K × L) (K × L) ℂ} {k₀ : K} {B : Matrix L L ℂ} {β : ℝ}
@@ -320,16 +384,21 @@ theorem blockEncoding_tensor {U : Matrix (J × I) (J × I) ℂ} {j₀ : J}
   rw [mul_inv]
   ring
 
+/-- The condition that a unitary prepares amplitudes `sqrt (w j / s)` from the designated basis
+state for a positive scale `s`. -/
 def IsScaledPrepare {J : Type*} [Fintype J] [DecidableEq J]
     (P : Matrix J J ℂ) (w : J → ℝ) (s : ℝ) (j₀ : J) : Prop :=
   P ∈ Matrix.unitaryGroup J ℂ ∧ 0 < s ∧
     P *ᵥ Ket j₀ = fun j => ((Real.sqrt (w j / s) : ℝ) : ℂ)
 
+/-- Preparation with scale one is equivalent to `IsPrepare`. -/
 theorem isScaledPrepare_one {P : Matrix J J ℂ} {w : J → ℝ} {j₀ : J} :
     IsScaledPrepare P w 1 j₀ ↔ IsPrepare P w j₀ := by
   unfold IsScaledPrepare IsPrepare
   simp
 
+/-- Scaled preparation of nonnegative weights and unitary selection give an exact encoding of
+their weighted sum with scale `s`. -/
 theorem lcu_isBlockEncoding_of_isScaledPrepare (U : J → Matrix I I ℂ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ)
     {w : J → ℝ} (hw : ∀ j, 0 ≤ w j)
@@ -348,19 +417,24 @@ theorem lcu_isBlockEncoding_of_isScaledPrepare (U : J → Matrix I I ℂ)
     field_simp [ne_of_gt hP.2.1]
   simpa only [hweights, mul_one] using hscaled
 
+/-- The ancilla fiber projector equals its conjugate transpose. -/
 theorem fiberProjector_hermitian (j₀ : J) :
     (FiberProjector (I := I) j₀)ᴴ = FiberProjector j₀ :=
   (isOrthogonalProjector_fiberProjector j₀).2
 
+/-- The ancilla fiber projector is idempotent. -/
 theorem fiberProjector_idempotent (j₀ : J) :
     FiberProjector (I := I) j₀ * FiberProjector j₀ = FiberProjector j₀ :=
   (isOrthogonalProjector_fiberProjector j₀).1
 
+/-- The fiber reflection acts on a state as twice its projected component minus the original
+state. -/
 theorem fiberReflection_mulVec (j₀ : J) (χ : QState (J × I)) :
     FiberReflection j₀ *ᵥ χ = (2 : ℂ) • (FiberProjector j₀ *ᵥ χ) - χ := by
   rw [FiberReflection, ReflectionAbout, Matrix.sub_mulVec, Matrix.smul_mulVec,
     Matrix.one_mulVec]
 
+/-- The fiber projector fixes a tensor state whose ancilla is the designated basis vector. -/
 theorem fiberProjector_mulVec_tensorState_ket (j₀ : J) (ψ : QState I) :
     FiberProjector j₀ *ᵥ TensorState (Ket j₀) ψ = TensorState (Ket j₀) ψ := by
   funext ⟨a, i⟩
@@ -387,6 +461,8 @@ theorem fiberProjector_mulVec_tensorState_ket (j₀ : J) (ψ : QState I) :
       by rw [if_neg (show ¬(a = j₀ ∧ (a, i) = (m, k)) from fun h => ha h.1), zero_mul]]
     simp [Ket, ha]
 
+/-- A matrix embedded in the designated fiber acts on the system factor of a state supported on
+that fiber. -/
 theorem fiberEmbed_mulVec_tensorState_ket (j₀ : J) (A : Matrix I I ℂ) (ψ : QState I) :
     FiberEmbed j₀ A *ᵥ TensorState (Ket j₀) ψ = TensorState (Ket j₀) (A *ᵥ ψ) := by
   funext ⟨a, i⟩
@@ -407,12 +483,15 @@ theorem fiberEmbed_mulVec_tensorState_ket (j₀ : J) (A : Matrix I I ℂ) (ψ : 
       by rw [if_neg (show ¬(a = j₀ ∧ m = j₀) from fun h => ha h.1), zero_mul]]
     simp [Ket, ha]
 
+/-- A scalar on the system factor can be moved outside a tensor state with a fixed ancilla basis
+vector. -/
 theorem tensorState_smul_ket_right (c : ℂ) (j₀ : J) (ψ : QState I) :
     TensorState (Ket j₀) (c • ψ) = c • TensorState (Ket j₀) ψ := by
   funext ⟨a, i⟩
   simp only [TensorState, Pi.smul_apply]
   ring
 
+/-- Right multiplication by the fiber reflection fixes the fiber projector. -/
 theorem fiberProjector_mul_fiberReflection (j₀ : J) :
     FiberProjector (I := I) j₀ * FiberReflection j₀ = FiberProjector j₀ := by
   rw [FiberReflection, ReflectionAbout, Matrix.mul_sub, Matrix.mul_smul,

@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryHitting
+
+/-!
+# Boolean subgroup recovery through quotient events
+
+This module characterizes failure of Boolean subgroup recovery by a nonzero quotient class whose
+pairings with all decoded samples vanish. A fixed nonzero class is missed with probability `(1 /
+2) ^ m`.
+
+Counting nonzero quotient classes yields failure and success bounds in terms of the quotient
+cardinality, with equivalent bounds stated using the character annihilator and the fresh-sample
+mass. See [Simon1997] for the mathematical background.
+
+## Main statements
+
+* `boolean_recovery_failure_iff_quotient_miss`: characterize failure by a missed nonzero
+  quotient class.
+* `hiddenSubgroupSampleDist_boolean_quotient_miss`: the exact miss probability for one nonzero
+  class.
+* `hiddenSubgroupFreshSamples_boolean_success_ge_quotient`: the quotient-cardinality success
+  bound.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 
@@ -22,15 +48,18 @@ open scoped Classical
 
 variable {n : ℕ}
 
+/-- Choose a Boolean vector representing a given coset modulo `H`. -/
 noncomputable def booleanQuotientRep (H : AddSubgroup (BooleanVec n))
     (q : BooleanVec n ⧸ H) : BooleanVec n :=
   Classical.choose (QuotientAddGroup.mk'_surjective H q)
 
+/-- The quotient class of the chosen representative is the original class. -/
 @[simp] theorem booleanQuotientRep_mk (H : AddSubgroup (BooleanVec n))
     (q : BooleanVec n ⧸ H) :
     QuotientAddGroup.mk' H (booleanQuotientRep H q) = q :=
   Classical.choose_spec (QuotientAddGroup.mk'_surjective H q)
 
+/-- The chosen representative of a nonzero quotient class lies outside `H`. -/
 theorem booleanQuotientRep_not_mem (H : AddSubgroup (BooleanVec n))
     (q : BooleanVec n ⧸ H) (hq : q ≠ 0) : booleanQuotientRep H q ∉ H := by
   intro hmem
@@ -38,6 +67,7 @@ theorem booleanQuotientRep_not_mem (H : AddSubgroup (BooleanVec n))
   rw [← booleanQuotientRep_mk H q]
   exact (QuotientAddGroup.eq_zero_iff (booleanQuotientRep H q)).2 hmem
 
+/-- Vectors in the same coset modulo `H` pair equally with every vector orthogonal to `H`. -/
 theorem booleanDot_eq_of_quotient_eq (H : AddSubgroup (BooleanVec n))
     {x y a : BooleanVec n} (ha : a ∈ booleanOrthogonal H)
     (hxy : QuotientAddGroup.mk' H x = QuotientAddGroup.mk' H y) :
@@ -50,6 +80,8 @@ theorem booleanDot_eq_of_quotient_eq (H : AddSubgroup (BooleanVec n))
   change booleanDot a x = booleanDot a y at h
   simpa only [booleanDot, mul_comm] using h
 
+/-- Two vectors have the same quotient class modulo `H` exactly when all pairings with
+`booleanOrthogonal H` agree. -/
 theorem boolean_quotient_eq_iff_pairings_eq (H : AddSubgroup (BooleanVec n))
     (x y : BooleanVec n) :
     QuotientAddGroup.mk' H x = QuotientAddGroup.mk' H y ↔
@@ -67,11 +99,15 @@ theorem boolean_quotient_eq_iff_pairings_eq (H : AddSubgroup (BooleanVec n))
     rw [booleanOrthogonal_booleanOrthogonal_eq] at hd
     exact (QuotientAddGroup.eq_iff_sub_mem).2 hd
 
+/-- Every decoded sample has zero dot product with the chosen representative of the quotient
+class. -/
 noncomputable def booleanQuotientMissEvent {m : ℕ}
     (H : AddSubgroup (BooleanVec n)) (q : BooleanVec n ⧸ H)
     (xs : Fin m → AddChar (BooleanVec n) ℂ) : Prop :=
   ∀ i, booleanDot (booleanQuotientRep H q) (booleanDecodedSamples xs i) = 0
 
+/-- For samples supported on the orthogonal complement of `H`, the quotient miss event can be
+tested using any representative of the class. -/
 theorem booleanQuotientMissEvent_iff {m : ℕ}
     (H : AddSubgroup (BooleanVec n)) (q : BooleanVec n ⧸ H)
     (x : BooleanVec n) (hx : QuotientAddGroup.mk' H x = q)
@@ -86,6 +122,8 @@ theorem booleanQuotientMissEvent_iff {m : ℕ}
   intro i
   rw [booleanDot_eq_of_quotient_eq H (hs i) hrep]
 
+/-- For samples orthogonal to `H`, recovery fails exactly when some nonzero quotient class is
+missed by every sample. -/
 theorem boolean_recovery_failure_iff_quotient_miss {m : ℕ}
     (H : AddSubgroup (BooleanVec n))
     (xs : Fin m → AddChar (BooleanVec n) ℂ)
@@ -109,6 +147,7 @@ theorem boolean_recovery_failure_iff_quotient_miss {m : ℕ}
   · rintro ⟨q, hmiss⟩
     exact ⟨booleanQuotientRep H q.1, booleanQuotientRep_not_mem H q.1 q.2, hmiss⟩
 
+/-- The Boolean quotient by `H` and the character annihilator of `H` have equal cardinality. -/
 theorem card_booleanQuotient_eq_annihilator (H : AddSubgroup (BooleanVec n)) :
     Fintype.card (BooleanVec n ⧸ H) = Fintype.card (characterAnnihilator H) := by
   have hQ : Fintype.card H * Fintype.card (BooleanVec n ⧸ H) =
@@ -121,6 +160,8 @@ theorem card_booleanQuotient_eq_annihilator (H : AddSubgroup (BooleanVec n)) :
     _ = Fintype.card (characterAnnihilator H) * Fintype.card H :=
       (card_characterAnnihilator H).symm
 
+/-- The real cardinality of the nonzero quotient classes equals the quotient cardinality minus
+one. -/
 theorem card_booleanNonzeroQuotient (H : AddSubgroup (BooleanVec n)) :
     (Fintype.card {q : BooleanVec n ⧸ H // q ≠ 0} : ℝ) =
       (Fintype.card (BooleanVec n ⧸ H) : ℝ) - 1 := by
@@ -130,6 +171,8 @@ theorem card_booleanNonzeroQuotient (H : AddSubgroup (BooleanVec n)) :
 
 variable {R : Type*} [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- For a hiding oracle, recovery failure has the same probability as the event that some
+nonzero quotient class is missed. -/
 theorem hiddenSubgroupSampleDist_boolean_failure_eq_quotient_union
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :
@@ -143,6 +186,8 @@ theorem hiddenSubgroupSampleDist_boolean_failure_eq_quotient_union
   intro xs hs
   exact boolean_recovery_failure_iff_quotient_miss H xs hs
 
+/-- For a hiding oracle, a fixed nonzero quotient class is missed by all `m` samples with
+probability `(1 / 2) ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_quotient_miss
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ)
@@ -156,6 +201,8 @@ theorem hiddenSubgroupSampleDist_boolean_quotient_miss
   exact heq.trans (hiddenSubgroupSampleDist_boolean_halfspace_event f H hf e
     (booleanQuotientRep H q) (booleanQuotientRep_not_mem H q hq) m)
 
+/-- For a hiding oracle, recovery failure probability is at most the number of nonzero quotient
+classes times `(1 / 2) ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_failure_le_nonzero_quotient
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :
@@ -193,6 +240,8 @@ theorem hiddenSubgroupSampleDist_boolean_failure_le_nonzero_quotient
     _ = (Fintype.card I : ℝ) * (1 / 2 : ℝ) ^ m := by
       simp only [heach, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- For a hiding oracle, recovery failure probability is at most `(|BooleanVec n / H| - 1) / 2 ^
+m`. -/
 theorem hiddenSubgroupSampleDist_boolean_failure_le_quotient
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :
@@ -203,6 +252,8 @@ theorem hiddenSubgroupSampleDist_boolean_failure_le_quotient
   have h := hiddenSubgroupSampleDist_boolean_failure_le_nonzero_quotient f H hf e m
   rwa [card_booleanNonzeroQuotient, div_pow, one_pow, mul_one_div] at h
 
+/-- For a hiding oracle, the fresh-sample mass of recovery failure is at most `ENNReal.ofReal
+((|BooleanVec n / H| - 1) / 2 ^ m)`. -/
 theorem hiddenSubgroupFreshSamples_boolean_failure_le_quotient
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :
@@ -214,6 +265,8 @@ theorem hiddenSubgroupFreshSamples_boolean_failure_le_quotient
   exact ENNReal.ofReal_le_ofReal
     (hiddenSubgroupSampleDist_boolean_failure_le_quotient f H hf e m)
 
+/-- For a hiding oracle, the fresh-sample failure mass is bounded by the character annihilator
+cardinality minus one, divided by `2 ^ m` and mapped through `ENNReal.ofReal`. -/
 theorem hiddenSubgroupFreshSamples_boolean_failure_le_annihilator
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :
@@ -224,6 +277,8 @@ theorem hiddenSubgroupFreshSamples_boolean_failure_le_annihilator
   simpa only [card_booleanQuotient_eq_annihilator] using
     hiddenSubgroupFreshSamples_boolean_failure_le_quotient f H hf e m
 
+/-- For a hiding oracle, the probability of recovering `H` is at least `1 - (|BooleanVec n / H|
+- 1) / 2 ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_success_ge_quotient
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :
@@ -248,6 +303,8 @@ theorem hiddenSubgroupSampleDist_boolean_success_ge_quotient
   change _ ≤ p.probEvent E
   linarith
 
+/-- For a hiding oracle, the fresh-sample mass of exact recovery is at least `ENNReal.ofReal (1
+- (|BooleanVec n / H| - 1) / 2 ^ m)`. -/
 theorem hiddenSubgroupFreshSamples_boolean_success_ge_quotient
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (m : ℕ) :

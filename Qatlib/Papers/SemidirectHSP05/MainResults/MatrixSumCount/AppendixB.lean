@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SemidirectHSP05.MainResults.MatrixSumCount.Lemma5
+
+/-!
+# Second moments for matrix sum solution counts
+
+This module establishes the matrix sum counting argument underlying Lemma 5 and Appendix B of
+[BaconChildsVanDam2005]. It proves triangular determinant identities and surjectivity for
+differences of `matSumLin`, then counts collisions to bound the second moment of `solutions`.
+
+## Main statements
+
+* `card_fiber`: Distinct coefficient vectors have exactly p^(r*r-r) collision inputs.
+* `second_moment`: The mean squared solution count is at most 2 - p^(-r).
+* `lemma5`: At least one quarter of all instances have one or two solutions.
+
+## References
+
+* [Bacon et al., 2005][BaconChildsVanDam2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,18 +35,22 @@ open scoped Classical BigOperators
 
 variable (p r : ℕ)
 
+/-- Each diagonal entry of `matEntry p r b` equals `b`. -/
 lemma matEntry_diag [NeZero p] (b : ZMod p) (i : Fin r) : matEntry p r b i i = b := by
   unfold matEntry binomMod
   rw [if_pos (le_refl _)]
   have h : (i : ℕ) - (i : ℕ) + 1 = 1 := by omega
   rw [h, Nat.choose_one_right, ZMod.natCast_zmod_val]
 
+/-- The entries of `matEntry p r b` below the diagonal vanish. -/
 lemma matEntry_eq_zero_of_lt (b : ZMod p) (i j : Fin r) (h : j < i) :
     matEntry p r b i j = 0 := by
   have hj : (j : ℕ) < (i : ℕ) := h
   unfold matEntry
   rw [if_neg (by omega)]
 
+/-- The difference of two matrices `matEntry p r b` and `matEntry p r c` is block triangular
+with respect to the identity ordering. -/
 lemma matEntry_sub_blockTriangular (b c : ZMod p) :
     Matrix.BlockTriangular
       (matEntry p r b - matEntry p r c : Matrix (Fin r) (Fin r) (ZMod p)) id := by
@@ -36,16 +59,20 @@ lemma matEntry_sub_blockTriangular (b c : ZMod p) :
   rw [matEntry_eq_zero_of_lt p r b i j (by simpa using hji),
     matEntry_eq_zero_of_lt p r c i j (by simpa using hji), sub_zero]
 
+/-- Each diagonal entry of `matEntry p r b - matEntry p r c` equals `b - c`. -/
 lemma matEntry_sub_diag [NeZero p] (b c : ZMod p) (i : Fin r) :
     (matEntry p r b - matEntry p r c) i i = b - c := by
   simp only [Pi.sub_apply, matEntry_diag p r b i, matEntry_diag p r c i]
 
+/-- The determinant of `matEntry p r b - matEntry p r c` equals `(b - c) ^ r`. -/
 lemma matEntry_sub_det [NeZero p] (b c : ZMod p) :
     Matrix.det (matEntry p r b - matEntry p r c : Matrix (Fin r) (Fin r) (ZMod p))
       = (b - c) ^ r := by
   rw [Matrix.det_of_upperTriangular (matEntry_sub_blockTriangular p r b c)]
   simp only [matEntry_sub_diag p r b c, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+/-- The matrix sum with fixed coefficient vector `b`, viewed as a linear map in the input array
+over `ZMod p`. -/
 def matSumLin (b : Fin r → ZMod p) :
     (Fin r → Fin r → ZMod p) →ₗ[ZMod p] (Fin r → ZMod p) where
   toFun x := matSum p r x b
@@ -60,10 +87,13 @@ def matSumLin (b : Fin r → ZMod p) :
     refine Finset.sum_congr rfl (fun l _ => ?_)
     ring
 
+/-- Applying `matSumLin` to an input array gives the corresponding value of `matSum`. -/
 @[simp]
 lemma matSumLin_apply (b : Fin r → ZMod p) (x : Fin r → Fin r → ZMod p) :
     matSumLin p r b x = matSum p r x b := rfl
 
+/-- For prime `p` and distinct coefficient vectors `b` and `c`, the difference of the
+corresponding matrix sum linear maps is surjective. -/
 theorem matSumLin_sub_surjective [Fact p.Prime] {b c : Fin r → ZMod p} (hbc : b ≠ c) :
     Function.Surjective (matSumLin p r b - matSumLin p r c) := by
   intro w
@@ -117,6 +147,8 @@ theorem matSumLin_sub_surjective [Fact p.Prime] {b c : Fin r → ZMod p} (hbc : 
   rw [show matVec p r (b j₀) v i - matVec p r (c j₀) v i
         = (Matrix.mulVec D v) i from congrFun hDiff i, hDw]
 
+/-- For prime `p` and distinct coefficient vectors, exactly `p ^ (r * r - r)` input arrays give
+equal matrix sums. -/
 theorem card_fiber [Fact p.Prime] {b c : Fin r → ZMod p} (hbc : b ≠ c) :
     Fintype.card {x : Fin r → Fin r → ZMod p // matSum p r x b = matSum p r x c}
       = p ^ (r * r - r) := by
@@ -147,6 +179,8 @@ theorem card_fiber [Fact p.Prime] {b c : Fin r → ZMod p} (hbc : b ≠ c) :
     rw [← hrn, Nat.add_sub_cancel_left]
   rw [Module.card_eq_pow_finrank (K := ZMod p) (V := LinearMap.ker L), ZMod.card, hker]
 
+/-- Summing the product of two equality indicators over their common target gives the indicator
+that the two sources are equal. -/
 lemma sum_indicator_mul {α : Type*} [Fintype α] [DecidableEq α] (a a' : α) :
     (∑ w : α, (if a = w then (1 : ℝ) else 0) * (if a' = w then (1 : ℝ) else 0))
       = if a = a' then (1 : ℝ) else 0 := by
@@ -168,6 +202,8 @@ lemma sum_indicator_mul {α : Type*} [Fintype α] [DecidableEq α] (a a' : α) :
     · rw [if_pos hw, if_neg (fun hh => h (hw.trans hh.symm)), mul_zero]
     · rw [if_neg hw, zero_mul]
 
+/-- The sum of squared solution counts over targets equals the number of ordered coefficient
+pairs with equal matrix sums. -/
 lemma sum_sq_eq_pairs [NeZero p] (x : Fin r → Fin r → ZMod p) :
     (∑ w : Fin r → ZMod p, ((solutions p r x w).card : ℝ) ^ 2)
       = ∑ b : Fin r → ZMod p, ∑ c : Fin r → ZMod p,
@@ -203,6 +239,8 @@ lemma sum_sq_eq_pairs [NeZero p] (x : Fin r → Fin r → ZMod p) :
         intro c _
         exact sum_indicator_mul (matSum p r x b) (matSum p r x c)
 
+/-- The collision count over input arrays is the full input cardinality for equal coefficient
+vectors, and `p ^ (r * r - r)` for distinct vectors. -/
 lemma sum_ind_over_x [Fact p.Prime] (b c : Fin r → ZMod p) :
     (∑ x : Fin r → Fin r → ZMod p,
         (if matSum p r x b = matSum p r x c then (1 : ℝ) else 0))
@@ -231,6 +269,9 @@ lemma sum_ind_over_x [Fact p.Prime] (b c : Fin r → ZMod p) :
       Fintype.card_subtype _
     rw [← hsub, card_fiber p r h, Nat.cast_pow]
 
+/-- For prime `p`, the total squared solution count is at most `2 - ((p : ℝ) ^ r)⁻¹` times the
+number of matrix sum instances. This is the second-moment estimate used for Lemma 5 of
+[BaconChildsVanDam2005]. -/
 theorem second_moment [Fact p.Prime] :
     (∑ xw : (Fin r → Fin r → ZMod p) × (Fin r → ZMod p),
         (((solutions p r xw.1 xw.2).card : ℝ)) ^ 2)
@@ -355,6 +396,8 @@ theorem second_moment [Fact p.Prime] :
     _ ≤ (2 - ((p : ℝ) ^ r)⁻¹) *
           (Fintype.card ((Fin r → Fin r → ZMod p) × (Fin r → ZMod p)) : ℝ) := harith
 
+/-- For prime `p`, at least one quarter of all matrix sum instances have exactly one or two
+solutions. This is the counting form of Lemma 5 of [BaconChildsVanDam2005]. -/
 theorem lemma5 [Fact p.Prime] :
     4 * ((Finset.univ.filter (fun xw : (Fin r → Fin r → ZMod p) × (Fin r → ZMod p) =>
         (solutions p r xw.1 xw.2).card = 1 ∨ (solutions p r xw.1 xw.2).card = 2)).card : ℝ)

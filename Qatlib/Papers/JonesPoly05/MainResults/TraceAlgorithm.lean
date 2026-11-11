@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.JonesPoly05.MainResults.PathModelTrace
 import Qatlib.Papers.JonesPoly05.MainResults.EstimatorTail
+
+/-!
+# Conditional trace-closure estimation
+
+For bounded real and imaginary observations with means equal to `markovTrace`, this module
+establishes a complex estimation guarantee. The definition `traceClosureOutput` incorporates the
+writhe and strand normalization, and `theorem31_trace_closure_algorithm` transfers the guarantee
+to `jonesTrace`. See [AharonovJonesLandau2009].
+
+## Main statements
+
+* `claim37_hadamard_estimator`: Bounded observations with means equal to the real and imaginary
+  parts of `markovTrace` possess a positive sample count with error probability at most δ at any
+  positive threshold ε.
+* `theorem31_trace_closure_algorithm`: For nonzero d and ‖A‖ = 1, bounded observations with the
+  specified Markov-trace means yield a positive sample count with Jones state-sum error
+  probability at most δ at threshold ε‖d^(n − 1)‖.
+
+## References
+
+* [Aharonov et al., 2009][AharonovJonesLandau2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +42,9 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.JonesPoly05.MainResults.Kauffman
 open Qatlib.Papers.JonesPoly05.MainResults.Estimator
 
+/-- Bounded observations with means equal to the real and imaginary parts of `markovTrace`
+possess a positive sample count with error probability at most δ at any positive threshold
+ε; see [AharonovJonesLandau2009]. -/
 theorem claim37_hadamard_estimator
     {n : ℕ} {A d : ℂ} (hd : d ≠ 0) (B : BraidWord n)
     (X : Type) [Fintype X] [DecidableEq X] (p : FinDist X) (re im : X → ℝ)
@@ -48,10 +74,15 @@ theorem claim37_hadamard_estimator
     htail.trans (by simpa using hbudget)
   simpa only [hfun] using hprob
 
+/-- The complex empirical estimate multiplied by the writhe correction and strand factor d^(n −
+1). -/
 def traceClosureOutput {X : Type} {L : ℕ} {n : ℕ} (A d : ℂ) (B : BraidWord n)
     (re im : X → ℝ) (ω : Fin L → X) : ℂ :=
   (-A) ^ (3 * writhe B : ℤ) * d ^ ((n : ℤ) - 1) * complexEstimate re im ω
 
+/-- For nonzero d and ‖A‖ = 1, bounded observations with the specified Markov-trace means yield
+a positive sample count with Jones state-sum error probability at most δ at threshold ε‖d^(n
+− 1)‖; see [AharonovJonesLandau2009]. -/
 theorem theorem31_trace_closure_algorithm
     {n : ℕ} {A d : ℂ} (hd : d ≠ 0) (hA : ‖A‖ = 1) (B : BraidWord n)
     (X : Type) [Fintype X] [DecidableEq X] (p : FinDist X) (re im : X → ℝ)

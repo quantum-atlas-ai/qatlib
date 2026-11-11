@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Mathlib.Tactic
 
+/-!
+# Average query counts for fixed-point search
+
+`avgQueriesN` and `classicalQueries` encode truncated weighted geometric sums for the search and
+classical query counts. The module evaluates both expressions and proves the stated comparison
+between twice the search average and the classical count for `0 < ε < 1`.
+
+These constructions belong to the formalization of [TulsiGroverPatel2006].
+
+## Main statements
+
+* `average_queries_eq`: evaluates the search average at query parameter `q`.
+* `classical_queries_eq`: evaluates the classical expression.
+* `two_average_gt_classical`: compares the two closed forms.
+
+## References
+
+* [Tulsi et al., 2006][TulsiGroverPatel2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -13,11 +33,14 @@ namespace Qatlib.Papers.FixedPntSrch05.MainResults.AverageQueries
 
 open Finset
 
+/-- The truncated average-query expression with initial success contribution, weighted geometric
+stopping terms, and a terminal contribution at `n + 1` queries. -/
 def avgQueriesN (ε : ℝ) (n : ℕ) : ℝ :=
   (1 - ε) / 2
     + (1 + ε) / 2 * (1 - ε ^ 2) * (∑ j ∈ range n, ((j : ℝ) + 2) * (ε ^ 2) ^ j)
     + ((n : ℝ) + 1) * (1 + ε) / 2 * (ε ^ 2) ^ n
 
+/-- For `0 ≤ ε < 1`, the truncated average is `1 + (1 - (ε ^ 2) ^ n) / (2 * (1 - ε))`. -/
 theorem avgQueriesN_eq (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε < 1) (n : ℕ) :
     avgQueriesN ε n = 1 + (1 - (ε ^ 2) ^ n) / (2 * (1 - ε)) := by
   have hden : (1 - ε) ≠ 0 := by
@@ -41,6 +64,8 @@ theorem avgQueriesN_eq (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε < 1) (n : ℕ) :
         ring
       linarith [ih, hd, hr]
 
+/-- For `0 ≤ ε < 1` and `q ≥ 1`, the weighted query-count expression equals `1 + (1 - ε ^ (2 * q
+- 2)) / (2 * (1 - ε))`. [TulsiGroverPatel2006] -/
 theorem average_queries_eq (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε < 1) (q : ℕ) (hq : 1 ≤ q) :
     (1 - ε) / 2
       + (1 + ε) / 2 * (1 - ε ^ 2) * (∑ k ∈ range (q - 1), ((k : ℝ) + 2) * (ε ^ 2) ^ k)
@@ -59,8 +84,11 @@ theorem average_queries_eq (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε < 1) (q : ℕ
   rw [hcast, hx] at h
   exact h
 
+/-- The finite weighted geometric sum of `(k + 1) * ε ^ k` over `k < m`. -/
 def clSum (ε : ℝ) (m : ℕ) : ℝ := ∑ k ∈ range m, ((k : ℝ) + 1) * ε ^ k
 
+/-- For `ε ≠ 1`, multiplying the weighted geometric sum by `1 - ε` gives `(1 - ε ^ m) / (1 - ε)
+- m * ε ^ m`. -/
 theorem clSum_eq (ε : ℝ) (hε : ε ≠ 1) (m : ℕ) :
     (1 - ε) * clSum ε m = (1 - ε ^ m) / (1 - ε) - (m : ℝ) * ε ^ m := by
   have hden : (1 : ℝ) - ε ≠ 0 := by
@@ -85,15 +113,21 @@ theorem clSum_eq (ε : ℝ) (hε : ε ≠ 1) (m : ℕ) :
         ring
       linarith [ih, hd, hr]
 
+/-- The truncated classical average-query expression with stopping terms up to `2 * q` and the
+terminal failure contribution. -/
 def classicalQueries (ε : ℝ) (q : ℕ) : ℝ :=
   (1 - ε) * clSum ε (2 * q) + ((2 * q : ℕ) : ℝ) * ε ^ (2 * q)
 
+/-- For `ε ≠ 1`, the classical query expression equals `(1 - ε ^ (2 * q)) / (1 - ε)`. See
+[TulsiGroverPatel2006]. -/
 theorem classical_queries_eq (ε : ℝ) (hε : ε ≠ 1) (q : ℕ) :
     classicalQueries ε q = (1 - ε ^ (2 * q)) / (1 - ε) := by
   unfold classicalQueries
   rw [clSum_eq ε hε (2 * q)]
   ring
 
+/-- For `0 < ε < 1` and `q ≥ 1`, twice the search average closed form is strictly greater than
+the classical query closed form. [TulsiGroverPatel2006] -/
 theorem two_average_gt_classical (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1) (q : ℕ) (hq : 1 ≤ q) :
     2 * (1 + (1 - ε ^ (2 * q - 2)) / (2 * (1 - ε))) > (1 - ε ^ (2 * q)) / (1 - ε) := by
   have hden : (1 : ℝ) - ε ≠ 0 := by

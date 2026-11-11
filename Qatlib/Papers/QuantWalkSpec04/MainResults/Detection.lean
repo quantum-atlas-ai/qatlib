@@ -8,6 +8,29 @@ import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
 import Qatlib.Concepts.WalkSearch.ProjectorCS
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+/-!
+# Szegedy walk detection bounds
+
+This module presents the uniform fixed state, unmarked spectral norm bound, and averaged
+detection guarantee for symmetric chains. It also defines `ampK` and bounds the fraction of walk
+times at which this squared norm is at most three. See [Szegedy2004].
+
+## Main statements
+
+* `szegedyLemma1_uniform_fixpoint`: For a symmetric transition matrix, the embedded uniform
+  state is normalized and fixed by both the Szegedy walk and the swap gate.
+* `szegedyTheorem2_detection`: Under the gap, marked fraction, and preparation hypotheses, empty
+  marked sets are never detected and the average detection probability is at least `1 / 1000`
+  when `L ≥ 1000 / √(δ * ε)`.
+* `szegedyLemma3_amp_bound`: For a symmetric chain with positive gap and marked fraction, at
+  least a fraction `1 / 6` of the prescribed walk times satisfy `ampK ≤ 3`.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +52,8 @@ open scoped Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.QuantWalkSpec04.MainResults.Detection
 
+/-- For a symmetric transition matrix, the embedded uniform state is normalized and fixed by
+both the Szegedy walk and the swap gate. -/
 theorem szegedyLemma1_uniform_fixpoint
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I] (P : I → I → ℝ)
     (hP : IsTransitionMatrix P) (hsymm : ∀ x y, P x y = P y x) :
@@ -68,6 +93,9 @@ theorem szegedyLemma1_uniform_fixpoint
   exact ⟨normalized_szegedyEmbedState P hP (fun _ => hcpos.le) hsum,
     szegedyWalk_fixes_stationary P hP hrev, hswap⟩
 
+/-- Under the gap, marked fraction, and preparation hypotheses, empty marked sets are never
+detected and the average detection probability is at least `1 / 1000` when `L ≥ 1000 / √(δ *
+ε)`. See [Szegedy2004]. -/
 theorem szegedyTheorem2_detection
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ) (L : ℕ) (j : I)
@@ -86,6 +114,8 @@ theorem szegedyTheorem2_detection
     hδ hδ1 hgap hε hεS hL hscale hU hprep).1
   linarith
 
+/-- Under the stated symmetric chain gap and marked fraction hypotheses, the norm of
+`unmarkedPrincipal P S` is at most `1 - δ * ε / 2`. -/
 theorem szegedyLemma2_spectral_radius
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ)
@@ -97,11 +127,15 @@ theorem szegedyLemma2_spectral_radius
     mul_le_mul_of_nonneg_left hεS hδ.le
   nlinarith [hnorm, hmul, mul_nonneg hδ.le hε.le]
 
+/-- The squared Euclidean norm of the sum of the unmarked initial state and its image after `K`
+corrected marked walk steps. -/
 noncomputable def ampK {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (K : ℕ) : ℝ :=
   ‖toEuclidean_fromVec (detectionUnmarkedInitial P S +
     ((correctedMarkedWalk P S) ^ K) *ᵥ detectionUnmarkedInitial P S)‖ ^ 2
 
+/-- For a symmetric chain with positive gap and marked fraction, at least a fraction `1 / 6` of
+the prescribed walk times satisfy `ampK ≤ 3`. -/
 theorem szegedyLemma3_amp_bound
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ)

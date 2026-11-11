@@ -11,12 +11,33 @@ import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedStat
 
+/-!
+# Sign action of the rank-one amplification iterate
+
+This module computes the action of `RankOneReflection.iterate` with both phases equal to -1 on
+the good and bad parts of a prepared state. It also proves invariance of the span of the good
+and bad components of an arbitrary vector and the prepared state under general unit-modulus
+phases. For background, see [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `zoo_counting_two_dimensional_sign_action`: For a unitary preparation, the sign-phase iterate
+  acts on the good and bad components by the stated two-dimensional formulas, and their squared
+  masses sum to one. See [Brassard et al., Lemma 4][BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 open scoped BigOperators
 
+/-- The rank-one iterate with unit-modulus phases preserves the span of the good and bad parts
+of `v` and of the prepared state `A|0⟩`, when `A * A.conjTranspose = 1`. -/
 lemma zoo_counting_two_dimensional_sign_action_span_invariant
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (φ ϕ : ℂ) (hφ : ‖φ‖ = 1) (hϕ : ‖ϕ‖ = 1)
@@ -80,6 +101,9 @@ lemma zoo_counting_two_dimensional_sign_action_span_invariant
       rw [Matrix.mulVec_smul]
       exact Submodule.smul_mem _ r ih
 
+/-- For a unitary preparation, the sign-phase iterate acts on the good and bad components by the
+stated two-dimensional formulas, and their squared masses sum to one. See [Brassard et al.,
+Lemma 4][BrassardHoyerTapp1998Counting]. -/
 theorem zoo_counting_two_dimensional_sign_action :
     ∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
       (g : Fin (n + 1) → Bool),
@@ -116,6 +140,7 @@ theorem zoo_counting_two_dimensional_sign_action :
     rw [hi, hbC]
     ring
 
+/-- The sign-action theorem satisfies the proposition `Lemma4RestrictedSpec.expected`. -/
 theorem zoo_counting_two_dimensional_sign_action_contract :
     Lemma4RestrictedSpec.expected :=
   zoo_counting_two_dimensional_sign_action

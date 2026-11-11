@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.NoGlobalSym14.ParamFacts
 import Qatlib.Papers.NoGlobalSym14.ScalarModels.Perturbation
 import Mathlib.Combinatorics.SimpleGraph.Maps
+
+/-!
+# Strongly regular graph scalar-model consequences
+
+This module bundles finite graph parameter facts with exact identities for the defined two-level
+scalar models associated with [JanmarkMeyerWong2014]. `source_main_result` includes the strongly
+regular graph counting identity and degree bound, the case-one critical coupling and sine law,
+and the corresponding scalar transfer time.
+
+The bundle also records the case-two critical coupling formula and sine law for arbitrary
+overlap and normalization parameters. Its probability conclusions concern `twoLevelAmplitude`
+with the specified effective energies.
+
+## Main statements
+
+* `source_main_result`: graph parameter identities together with the two defined scalar-model
+  success laws and case-one transfer time.
+
+## References
+
+* [Janmark et al., 2014][JanmarkMeyerWong2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +40,11 @@ open SimpleGraph
 
 open Qatlib.Papers.NoGlobalSym14.ParamFacts
 
+/-- For a positive-order strongly regular graph with k ≥ 1 and μ ≥ 1, bundles the parameter
+identity and degree bound with the case-one critical-coupling identity, scalar sine law and
+transfer time, and the case-two coupling formula and scalar sine law. The amplitude
+identities use the defined effective two-level energies associated with
+[JanmarkMeyerWong2014]. -/
 theorem source_main_result
     {V : Type*} [Fintype V] (G : SimpleGraph V) [DecidableRel G.Adj]
     {n k ℓ μ : ℕ} (h : G.IsSRGWith n k ℓ μ)

@@ -8,12 +8,40 @@ import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Tactic
 
+/-!
+# Projection success and ancillary error bounds
+
+Converts a lower bound on orthogonal-projection success for unit vectors in an input subspace
+into a homogeneous squared-norm bound on the rejected component. `tensorIdentitySquaredBound`
+and `actualProjectionComputationAncilla` extend the corresponding relative error bounds to
+arbitrary vectors with a finite ancillary system.
+
+These estimates support coherent computation from success-probability guarantees, in the setting
+of [Kitaev1995].
+
+## Main statements
+
+* `successOnSubspace_to_wrongSquared`: A success bound of `1 - ε` on unit vectors in `W` yields
+  a residual squared-norm bound of `ε * ‖x‖²` for every `x ∈ W` under the linear isometry `U`.
+* `tensorIdentitySquaredBound`: A relative squared Euclidean norm bound for `A` against `P`
+  persists after tensoring both matrices with an identity, for every joint input vector.
+* `actualProjectionComputationAncilla`: A projection-success bound on `W` yields the relative
+  squared-norm error bound for the projected computation tensored with an identity on any finite
+  ancillary space.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Matrix
 open scoped BigOperators Kronecker
 namespace Qatlib.Foundations.CoherentCompute.ProjectedError
 
+/-- The squared norm of the residual from an orthogonal projection plus the squared norm of the
+projection equals the squared norm of the vector. -/
 theorem projectionWrongPythagoras {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     (K : Submodule ℂ E) [K.HasOrthogonalProjection] (x : E) :
     ‖x - K.starProjection x‖ ^ 2 + ‖K.starProjection x‖ ^ 2 = ‖x‖ ^ 2 := by
@@ -24,6 +52,8 @@ theorem projectionWrongPythagoras {E : Type} [NormedAddCommGroup E] [InnerProduc
   rw [hc] at hh
   linarith
 
+/-- A success bound of `1 - ε` on unit vectors in `W` yields a residual squared-norm bound of `ε
+* ‖x‖²` for every `x ∈ W` under the linear isometry `U`. -/
 theorem successOnSubspace_to_wrongSquared {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     (W K : Submodule ℂ E) [K.HasOrthogonalProjection]
     (U : E →ₗᵢ[ℂ] E) (ε : ℝ)
@@ -52,6 +82,8 @@ theorem successOnSubspace_to_wrongSquared {E : Type} [NormedAddCommGroup E] [Inn
     _ ≤ ‖x‖ ^ 2 * ε := mul_le_mul_of_nonneg_left hbad (sq_nonneg _)
     _ = ε * ‖x‖ ^ 2 := by ring
 
+/-- A relative squared Euclidean norm bound for `A` against `P` persists after tensoring both
+matrices with an identity, for every joint input vector. -/
 theorem tensorIdentitySquaredBound {I J : Type} [Fintype I] [Fintype J] [DecidableEq J]
     (A P : Matrix I I ℂ) (ε : ℝ)
     (hbase : ∀ x : I → ℂ,
@@ -75,6 +107,8 @@ theorem tensorIdentitySquaredBound {I J : Type} [Fintype I] [Fintype J] [Decidab
     _ = ε * ∑ i, ∑ j, ‖(P *ᵥ (fun a => z (a,j))) i‖ ^ 2 := by
       rw [← Finset.mul_sum, Finset.sum_comm]
 
+/-- A projection-success bound on `W` yields the relative squared-norm error bound for the
+projected computation tensored with an identity on any finite ancillary space. -/
 theorem actualProjectionComputationAncilla
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W K : Submodule ℂ (EuclideanSpace ℂ I))

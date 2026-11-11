@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FrameEncoding.SharedAncilla.SharedAncillaWordConsumers
+
+/-!
+# Shared Frame Complements and Guarded Blocks
+
+This module develops the orthogonal complement `sharedComplement` of an isometric frame and the
+operator norm identities used to control shared workspace leakage. `GuardedSharedBlock` packages
+a workspace unitary, its target operator, scaling error, norm bounds, and both Gram defect
+bounds.
+
+The quantities `GuardedSharedBlock.mismatch`, `GuardedSharedBlock.defectBound`, and
+`GuardedSharedBlock.defect` prepare the quantitative estimates for shared frame composition. The
+block encoding viewpoint follows the framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sharedComplement_idempotent` and `sharedComplement_norm_le_one` establish the complementary
+  projection laws.
+* `isometry_mul_norm_eq` and `l2_opNorm_sq_add_le` give operator norm estimates for isometric
+  and orthogonal components.
+* `GuardedSharedBlock.mismatch_le` bounds the unscaled compression error by `|1 - α| + ε`.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019], Quantum singular value transformation and beyond:
+  exponential improvements for quantum matrix arithmetics.
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -23,41 +50,54 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 variable {F : Matrix H I ℂ}
 
+/-- Defines the complement matrix `1 - F * Fᴴ` of the frame range matrix. For an isometric
+frame, this is the orthogonal projection onto the complement of its range. -/
 noncomputable def sharedComplement (F : Matrix H I ℂ) : Matrix H H ℂ :=
   1 - F * Fᴴ
 
+/-- Identifies `F * Fᴴ` with the defined range matrix `rangeProjector F` for any frame matrix
+`F`. -/
 theorem sharedFrame_projector (F : Matrix H I ℂ) : F * Fᴴ = rangeProjector F := rfl
 
+/-- For an isometric frame `F`, its range projector acts as the identity on the columns of `F`. -/
 theorem sharedProjector_mul_F (F : Matrix H I ℂ) (hF : IsIsometry F) :
     F * Fᴴ * F = F := rangeProjector_mul hF
 
+/-- For an isometric frame `F`, the range projector `F * Fᴴ` is equal to its conjugate
+transpose. -/
 theorem sharedProjector_adjoint (F : Matrix H I ℂ) (hF : IsIsometry F) :
     (F * Fᴴ)ᴴ = F * Fᴴ := by
   have hp := rangeProjector_isOrthogonalProjector hF
   exact hp.2
 
+/-- The complementary projector of an isometric frame annihilates the frame matrix on the left. -/
 theorem sharedComplement_mul_F (F : Matrix H I ℂ) (hF : IsIsometry F) :
     sharedComplement F * F = 0 := by
   have h : Fᴴ * F = 1 := hF
   rw [sharedComplement, Matrix.sub_mul, Matrix.one_mul, Matrix.mul_assoc, h,
     Matrix.mul_one, sub_self]
 
+/-- The adjoint of an isometric frame annihilates its complementary projector on the right. -/
 theorem sharedComplement_mul_F_conj (F : Matrix H I ℂ) (hF : IsIsometry F) :
     Fᴴ * sharedComplement F = 0 := by
   have h : Fᴴ * F = 1 := hF
   rw [sharedComplement, Matrix.mul_sub, ← Matrix.mul_assoc Fᴴ F Fᴴ, h, Matrix.one_mul,
     Matrix.mul_one, sub_self]
 
+/-- The complement matrix of an isometric frame is self adjoint. -/
 theorem sharedComplement_adjoint (F : Matrix H I ℂ) (hF : IsIsometry F) :
     (sharedComplement F)ᴴ = sharedComplement F := by
   have hp : (F * Fᴴ)ᴴ = F * Fᴴ := sharedProjector_adjoint F hF
   simp only [sharedComplement, Matrix.conjTranspose_sub, Matrix.conjTranspose_one]
   rw [hp]
 
+/-- Expands left multiplication by `sharedComplement F` as subtraction of the frame range
+component `F * Fᴴ * X`. -/
 theorem sharedComplement_expand (F : Matrix H I ℂ) (X : Matrix H H ℂ) :
     sharedComplement F * X = X - F * Fᴴ * X := by
   rw [sharedComplement, Matrix.sub_mul, Matrix.one_mul]
 
+/-- The complement matrix of an isometric frame is idempotent. -/
 theorem sharedComplement_idempotent (F : Matrix H I ℂ) (hF : IsIsometry F) :
     sharedComplement F * sharedComplement F = sharedComplement F := by
   have hp := rangeProjector_isOrthogonalProjector hF
@@ -66,18 +106,21 @@ theorem sharedComplement_idempotent (F : Matrix H I ℂ) (hF : IsIsometry F) :
   unfold sharedComplement
   exact hq'
 
+/-- For an isometric frame, its complementary projector times its range projector is zero. -/
 theorem sharedComplement_mul_projector (F : Matrix H I ℂ) (hF : IsIsometry F) :
     sharedComplement F * (F * Fᴴ) = 0 := by
   have hp := rangeProjector_isOrthogonalProjector hF
   have hid : (F * Fᴴ) * (F * Fᴴ) = F * Fᴴ := hp.1
   rw [sharedComplement, Matrix.sub_mul, Matrix.one_mul, hid, sub_self]
 
+/-- For an isometric frame, its range projector times its complementary projector is zero. -/
 theorem sharedProjector_mul_complement (F : Matrix H I ℂ) (hF : IsIsometry F) :
     (F * Fᴴ) * sharedComplement F = 0 := by
   have hp := rangeProjector_isOrthogonalProjector hF
   have hid : (F * Fᴴ) * (F * Fᴴ) = F * Fᴴ := hp.1
   rw [sharedComplement, Matrix.mul_sub, Matrix.mul_one, hid, sub_self]
 
+/-- The complementary projector of an isometric frame has Euclidean operator norm at most one. -/
 theorem sharedComplement_norm_le_one (F : Matrix H I ℂ) (hF : IsIsometry F) :
     ‖sharedComplement F‖ ≤ 1 := by
   have hp := rangeProjector_isOrthogonalProjector hF
@@ -91,6 +134,7 @@ theorem sharedComplement_norm_le_one (F : Matrix H I ℂ) (hF : IsIsometry F) :
   have h2 : (0:ℝ) ≤ ‖sharedComplement F‖ := norm_nonneg _
   nlinarith
 
+/-- The identity matrix on a nonempty finite index type has Euclidean operator norm one. -/
 theorem l2_opNorm_one {n : Type} [Fintype n] [DecidableEq n] [Nonempty n] :
     ‖(1 : Matrix n n ℂ)‖ = 1 := by
   have h : (1 : Matrix n n ℂ) = Matrix.diagonal (fun _ : n => (1 : ℂ)) := by
@@ -103,6 +147,8 @@ theorem l2_opNorm_one {n : Type} [Fintype n] [DecidableEq n] [Nonempty n] :
     norm_num
   exact h2
 
+/-- Left multiplication by an isometric frame preserves the Euclidean operator norm of a square
+matrix on its input space. -/
 theorem isometry_mul_norm_eq {F : Matrix H I ℂ} (hF : IsIsometry F)
     (X : Matrix I I ℂ) : ‖F * X‖ = ‖X‖ := by
   have hF' : Fᴴ * F = 1 := hF
@@ -116,6 +162,8 @@ theorem isometry_mul_norm_eq {F : Matrix H I ℂ} (hF : IsIsometry F)
   have h2 : (0:ℝ) ≤ ‖X‖ := norm_nonneg _
   nlinarith
 
+/-- If `Xᴴ * Y = 0`, the squared Euclidean operator norm of `X + Y` is at most the sum of the
+squared norms of `X` and `Y`. -/
 theorem l2_opNorm_sq_add_le {m n : Type} [Fintype m] [DecidableEq m] [Fintype n]
     [DecidableEq n] {X Y : Matrix m n ℂ} (h : Xᴴ * Y = 0) :
     ‖X + Y‖ * ‖X + Y‖ ≤ ‖X‖ * ‖X‖ + ‖Y‖ * ‖Y‖ := by
@@ -136,8 +184,13 @@ theorem l2_opNorm_sq_add_le {m n : Type} [Fintype m] [DecidableEq m] [Fintype n]
     _ = ‖X‖ * ‖X‖ + ‖Y‖ * ‖Y‖ := by
         rw [Matrix.l2_opNorm_conjTranspose_mul_self, Matrix.l2_opNorm_conjTranspose_mul_self]
 
+/-- Defines the unscaled compression mismatch budget `|1 - α| + ε` from a scaling factor and an
+encoding error. -/
 def sharedMismatchBound (α ε : ℝ) : ℝ := |1 - α| + ε
 
+/-- Packages a target operator and a unitary block encoding through an isometric frame, together
+with positive scaling and a positive lower norm bound. It also stores an upper norm bound,
+bounds on both Gram defects, and the scaled compression error. -/
 structure GuardedSharedBlock (H I : Type) [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (F : Matrix H I ℂ) where
 
@@ -179,15 +232,22 @@ structure GuardedSharedBlock (H I : Type) [Fintype H] [DecidableEq H] [Fintype I
 
   error_le : ‖A - α • compress F U F‖ ≤ ε
 
+/-- Returns the unscaled compression mismatch budget computed from a guarded shared block's
+scaling factor and encoding error. -/
 def GuardedSharedBlock.mismatch {F : Matrix H I ℂ} (b : GuardedSharedBlock H I F) : ℝ :=
   sharedMismatchBound b.α b.ε
 
+/-- Defines the squared defect budget as the Gram defect budget plus twice the upper operator
+norm bound times the mismatch budget. -/
 def GuardedSharedBlock.defectBound {F : Matrix H I ℂ} (b : GuardedSharedBlock H I F) : ℝ :=
   b.ζ + 2 * b.Γ * b.mismatch
 
+/-- Defines the defect budget as the nonnegative square root of `b.defectBound`. -/
 noncomputable def GuardedSharedBlock.defect {F : Matrix H I ℂ}
     (b : GuardedSharedBlock H I F) : ℝ := Real.sqrt b.defectBound
 
+/-- Bounds the norm of the difference between the unscaled compression and its target operator
+by the guarded block's mismatch budget. -/
 theorem GuardedSharedBlock.mismatch_le (b : GuardedSharedBlock H I F) :
     ‖compress F b.U F - b.A‖ ≤ b.mismatch := by
   have hP : ‖compress F b.U F‖ ≤ 1 :=
@@ -224,6 +284,7 @@ theorem GuardedSharedBlock.mismatch_le (b : GuardedSharedBlock H I F) :
           linarith [h1, h2, hnorm]
     _ = b.mismatch := by rfl
 
+/-- The squared defect budget of a guarded shared block is nonnegative. -/
 theorem GuardedSharedBlock.defectBound_nonneg (b : GuardedSharedBlock H I F) :
     0 ≤ b.defectBound := by
   unfold GuardedSharedBlock.defectBound

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerCounting
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerSoundness
+
+/-!
+# Fresh checker costs and failure counts
+
+This module defines the subset enumeration, marked-vertex relation, repeated test, and test
+budget used by `triCheckFresh`. It proves test soundness and expands the checker into noisy
+vertex search followed by amplified extraction from separate suffix positions of the seed tape.
+
+The counting results bound search failure and extraction failure over finite seed spaces,
+including extraction fibers with a fixed prefix. `fresh_cost_le` gives the total checker budget.
+These are supporting estimates for graph checking in quantum-walk search
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `freshTest_sound`: accepted vertices satisfy the marked relation.
+* `fresh_E2_fiber_some`: extraction failure count with search data fixed.
+* `fresh_cost_le`: the total fresh-checker cost bound.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,17 +38,25 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- Enumerate the elements of `U` through the inverse of its canonical equivalence with a finite
+index type. -/
 def freshE {n : ℕ} (U : Finset (Fin n)) : Fin (Fintype.card ↥U) → Fin n :=
   fun i => ((Fintype.equivFin ↥U).symm i : Fin n)
 
+/-- The predicate that `v` is adjacent to two distinct elements of `U` which are adjacent to
+each other. -/
 def freshMarked {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n)) : Fin n → Bool :=
   fun v => decide (∃ u₁ ∈ U, ∃ u₂ ∈ U, u₁ ≠ u₂ ∧ adj v u₁ ∧ adj v u₂ ∧ adj u₁ u₂)
 
+/-- The two-index relation requiring distinct subset indices whose enumerated vertices are
+adjacent to `v` and to each other. -/
 def freshSubR {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n)) (v : Fin n) :
     (Fin 2 → Fin (Fintype.card ↥U)) → Bool :=
   fun t => decide (t 0 ≠ t 1 ∧ adj v (freshE U (t 0)) ∧ adj v (freshE U (t 1)) ∧
     adj (freshE U (t 0)) (freshE U (t 1)))
 
+/-- Test a vertex by running the collision solver on its subset relation for `c₀` seed positions
+and accepting a returned pair whose two incident adjacency checks succeed. -/
 def freshTest {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (r' c₀ : ℕ) (stape : ℕ → kcs.seed) : Fin n → Bool :=
   let m : ℕ := Fintype.card ↥U
@@ -35,9 +67,13 @@ def freshTest {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
       | some t => adj v (freshE U (t 0)) && adj v (freshE U (t 1))
       | none => false)
 
+/-- The declared repeated collision-test budget, with `c₀` solver costs and an additive
+two-query validation charge. -/
 def freshTcost (kcs : KCollisionSolver) (m r' c₀ : ℕ) : ℕ :=
   c₀ * (kcs.κ * (Nat.log 2 (m + 1) + 2) * (r' + (m / r') * Nat.sqrt r')) + 2
 
+/-- Expand the fresh checker into noisy vertex search followed, on success, by amplified
+extraction using the suffix seed positions, with the corresponding cost accumulation. -/
 theorem triCheckFresh_eq {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (ntape : ncs.seed) :
@@ -56,13 +92,16 @@ theorem triCheckFresh_eq {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset 
         | none => (none, ncs.cost (freshMarked adj U) (freshTest adj U kcs r' c₀ stape)
             (freshTcost kcs (Fintype.card ↥U) r' c₀) n ntape + ex.2 + 2) := rfl
 
+/-- Every vertex enumerated by `freshE U` belongs to `U`. -/
 theorem freshE_mem {n : ℕ} (U : Finset (Fin n)) (i : Fin (Fintype.card ↥U)) :
     freshE U i ∈ U := ((Fintype.equivFin ↥U).symm i).property
 
+/-- The subset enumeration `freshE U` is injective. -/
 theorem freshE_inj {n : ℕ} (U : Finset (Fin n)) : Function.Injective (freshE U) := by
   intro a b hab
   exact (Fintype.equivFin ↥U).symm.injective (Subtype.ext hab)
 
+/-- Acceptance by `freshTest` implies that the vertex satisfies `freshMarked`. -/
 theorem freshTest_sound {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (r' c₀ : ℕ) (stape : ℕ → kcs.seed) (v : Fin n)
     (h : freshTest adj U kcs r' c₀ stape v = true) :
@@ -82,6 +121,7 @@ theorem freshTest_sound {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (
       ⟨freshE U (t 0), freshE_mem U (t 0), freshE U (t 1), freshE_mem U (t 1),
         fun hEq => hcon.1 (freshE_inj U hEq), hcon.2.1, hcon.2.2.1, hcon.2.2.2⟩
 
+/-- A vertex satisfying `freshMarked` has a witness for its two-index subset relation. -/
 theorem freshSubR_nonempty {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (v : Fin n) (h : freshMarked adj U v = true) :
     ∃ t : Fin 2 → Fin (Fintype.card ↥U), freshSubR adj U v t = true := by
@@ -108,6 +148,8 @@ theorem freshSubR_nonempty {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finse
   · rw [key 1, if_neg (by decide : ¬ (1 : Fin 2) = 0)]; exact hadj2
   · rw [key 0, if_pos rfl, key 1, if_neg (by decide : ¬ (1 : Fin 2) = 0)]; exact hadj3
 
+/-- If a marked vertex exists, the number of seed pairs on which noisy search returns `none`,
+multiplied by `(n + 1)^ncs.cExp`, is at most the total number of seed pairs. -/
 theorem fresh_E1_card {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (hex : ∃ v : Fin n, freshMarked adj U v = true) :
@@ -169,10 +211,13 @@ theorem fresh_E1_card {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fi
         rw [filter_product_card_sum_snd]
     _ ≤ Fintype.card ncs.seed * Fintype.card (Fin (2 * n * c₀ + 1) → kcs.seed) := hsum
 
+/-- Extending a finite seed tape preserves every entry at an index within the original tape. -/
 theorem extSeed_prefix_read {S : Type} [Nonempty S] {B : ℕ} (τ : Fin B → S) (k : ℕ)
     (hk : k < B) : @extSeed B S _ τ k = τ ⟨k, hk⟩ := by
   rw [extSeed, dif_pos hk]
 
+/-- A vertex-test coordinate `k * c₀ + i` lies in the prefix of length `n * c₀` when `k < n` and
+`i < c₀`. -/
 theorem fresh_prefix_lt (n c₀ k i : ℕ) (hv : k < n) (hi : i < c₀) :
     k * c₀ + i < n * c₀ := by
   have h2 : (k + 1) * c₀ ≤ n * c₀ := Nat.mul_le_mul_right c₀ (by omega)
@@ -180,6 +225,7 @@ theorem fresh_prefix_lt (n c₀ k i : ℕ) (hv : k < n) (hi : i < c₀) :
     _ = (k + 1) * c₀ := by ring
     _ ≤ n * c₀ := h2
 
+/-- The vertex test on a concatenated seed tape depends only on its prefix tape. -/
 theorem freshTest_tapeUnsplit {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (r' c₀ : ℕ) (π : Fin (n * c₀) → kcs.seed)
     (σ : Fin (n * c₀ + 1) → kcs.seed) :
@@ -205,6 +251,9 @@ theorem freshTest_tapeUnsplit {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Fi
     rw [@extSeed_tapeUnsplit_prefix kcs.seed kcs.seedNe n c₀ π σ _ hlt]
     exact ⟨hi, hv⟩
 
+/-- Fix a noisy-search seed and prefix tape that select a vertex. The number of suffix tapes for
+which amplified extraction fails, multiplied by `(U.card + 1)^(c₀ * kcs.cExp)`, is at most
+the total number of suffix tapes. -/
 theorem fresh_E2_fiber_some {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (ρn : ncs.seed) (π : Fin (n * c₀) → kcs.seed) (v : Fin n)
@@ -330,6 +379,8 @@ theorem fresh_E2_fiber_some {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Fins
             _ = Fintype.card kcs.seed ^ (n * c₀ + 1) := by rw [hN]
   exact hfinal
 
+/-- The collision solver's charge bound applies to the two-index fresh subset relation with the
+displayed size and checking parameters. -/
 theorem fresh_run_cost {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (r' : ℕ) (v : Fin n) (ρ : kcs.seed) :
     kcs.cost (n := Fintype.card ↥U) (k := 2) r' (freshSubR adj U v) r' 1 0 ρ ≤
@@ -337,6 +388,8 @@ theorem fresh_run_cost {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (F
         (r' + (Fintype.card ↥U / r') ^ (2 / 2) * (0 + Nat.sqrt r' * 1)) :=
   kcs.charges (n := Fintype.card ↥U) (k := 2) r' (freshSubR adj U v) r' 1 0 ρ
 
+/-- When `ncs.κ ≥ 1`, every run of the fresh checker costs at most `2 * cCOf kcs ncs n U.card r'
+c₀`. -/
 theorem fresh_cost_le {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (hκn : 1 ≤ ncs.κ)
@@ -426,6 +479,9 @@ theorem fresh_cost_le {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fi
     | some t => exact hcomb
     | none => exact hcomb
 
+/-- The number of seed pairs for which noisy search selects a vertex but fresh amplified
+extraction fails, multiplied by `(U.card + 1)^(c₀ * kcs.cExp)`, is at most the total number
+of seed pairs. -/
 theorem fresh_E2_card {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ) :
     haveI := ncs.seedFin

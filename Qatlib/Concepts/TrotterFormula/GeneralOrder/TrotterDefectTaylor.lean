@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterDefectAlgebra
+
+/-!
+# Taylor cancellation for product-formula defects
+
+This module proves that coefficient matching through order `p` cancels all lower-order
+derivatives of the left-generator defect at zero. Taylor truncation identities turn this
+cancellation into a vanishing prefix polynomial and then into a commutator-norm estimate,
+following the defect approach to Trotter error in [ChildsEtAl2021Trotter].
+
+The final estimate uses `pfWordInflation` to handle both skew-Hermitian and general matrix
+words. Prefix mass and inflation comparisons allow all prefix contributions to share the
+full-word bound.
+
+## Main statements
+
+* `pfLeftGenerator_defect_jets`: gives vanishing defect derivatives below the matched order.
+* `pf_defect_prefix_polynomial_zero`: cancels the prefix truncation polynomial.
+* `pfLeftGenerator_defect_norm_mode`: bounds the defect in either inflation mode.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -19,6 +43,8 @@ open Matrix Set Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Taylor truncation before order `p` distributes over subtraction of smooth matrix-valued
+functions. -/
 theorem pfTaylorBefore_sub (f g : ℝ→Matrix I I ℂ) (hf : ContDiff ℝ ∞ f) (hg : ContDiff ℝ ∞ g)
     (p : ℕ) (t : ℝ) : pfTaylorBefore (fun u=>f u-g u) p t=pfTaylorBefore f p t-pfTaylorBefore g p t := by
   unfold pfTaylorBefore
@@ -28,6 +54,8 @@ theorem pfTaylorBefore_sub (f g : ℝ→Matrix I I ℂ) (hf : ContDiff ℝ ∞ f
   rw [iteratedDeriv_fun_sub (hf.contDiffAt.of_le (by exact_mod_cast (le_top : (n:ℕ∞)≤⊤)))
     (hg.contDiffAt.of_le (by exact_mod_cast (le_top : (n:ℕ∞)≤⊤))),smul_sub]
 
+/-- Taylor truncation before order `p` commutes with finite sums of smooth matrix-valued
+functions. -/
 theorem pfTaylorBefore_sum {J : Type} [Fintype J] (f : J→ℝ→Matrix I I ℂ)
     (hf : ∀ j,ContDiff ℝ ∞ (f j)) (p : ℕ) (t : ℝ) :
     pfTaylorBefore (fun u=>∑ j : J,f j u) p t=∑ j : J,pfTaylorBefore (f j) p t := by
@@ -38,6 +66,8 @@ theorem pfTaylorBefore_sum {J : Type} [Fintype J] (f : J→ℝ→Matrix I I ℂ)
   rw [iteratedDeriv_fun_sum (fun j _=>(hf j).contDiffAt.of_le
     (by exact_mod_cast (le_top : (n:ℕ∞)≤⊤))),Finset.smul_sum]
 
+/-- The Taylor truncation of a constant matrix-valued function equals that constant at every
+positive order. -/
 theorem pfTaylorBefore_const (C : Matrix I I ℂ) (p : ℕ) (hp : 1≤p) (t : ℝ) :
     pfTaylorBefore (fun _ : ℝ=>C) p t=C := by
   unfold pfTaylorBefore
@@ -49,6 +79,8 @@ theorem pfTaylorBefore_const (C : Matrix I I ℂ) (p : ℕ) (hp : 1≤p) (t : �
   · simp only [Finset.mem_range]
     omega
 
+/-- Coefficient matching through order `p` makes every derivative of the left-generator defect
+of order below `p` vanish at zero. -/
 theorem pfLeftGenerator_defect_jets (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p : ℕ)
     (hc : ∀ n≤p,suzukiSeries xs n=((n.factorial:ℝ)⁻¹) • H^n) :
     ∀ j<p,iteratedDeriv j (fun t=>pfLeftGenerator xs t-H) 0=0 := by
@@ -58,6 +90,8 @@ theorem pfLeftGenerator_defect_jets (xs : List (Matrix I I ℂ)) (H : Matrix I I
   simp only [pf_actual_left_defect] at horder
   exact (trotter_matrix_order_jets _ p ((pfLeftGenerator_contDiff xs).sub contDiff_const)).mp horder
 
+/-- Under positive-order coefficient matching, the sum of the prefix conjugation truncations
+equals `H`. -/
 theorem pf_defect_prefix_polynomial_zero (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p : ℕ)
     (hp : 1≤p) (hc : ∀ n≤p,suzukiSeries xs n=((n.factorial:ℝ)⁻¹) • H^n) (t : ℝ) :
     (∑ j : Fin xs.length,pfConjTrunc (xs.take j.val) (xs.getD j.val 0) p t)-H=0 := by
@@ -73,12 +107,14 @@ theorem pf_defect_prefix_polynomial_zero (xs : List (Matrix I I ℂ)) (H : Matri
     pfTaylorBefore_const H p hp t,pfTaylorBefore_sum _ (fun _=>pfConjWord_contDiff _ _)] at hz
   simpa only [pfConjWord_taylor_before] using! hz
 
+/-- The Suzuki mass of a prefix is bounded by the mass of the full list. -/
 theorem pf_mass_take_le (xs : List (Matrix I I ℂ)) (n : ℕ) : suzukiMass (xs.take n)≤ suzukiMass xs := by
   have he : suzukiMass xs=suzukiMass (xs.take n)+suzukiMass (xs.drop n) := by
     conv_lhs => rw [← List.take_append_drop n xs]
     simp only [suzukiMass,List.map_append,List.sum_append]
   linarith [general_trotter_mass_nonneg (xs.drop n)]
 
+/-- The word-inflation factor of a prefix is bounded by that of the full list in either mode. -/
 theorem pfWordInflation_take_le (skew : Bool) (xs : List (Matrix I I ℂ)) (n : ℕ) (t : ℝ) :
     pfWordInflation skew (xs.take n) t≤pfWordInflation skew xs t := by
   cases skew
@@ -87,6 +123,8 @@ theorem pfWordInflation_take_le (skew : Bool) (xs : List (Matrix I I ℂ)) (n : 
     exact mul_le_mul_of_nonneg_left (pf_mass_take_le xs n) (by positivity)
   · simp only [pfWordInflation_true,le_refl]
 
+/-- Positive-order coefficient matching bounds the left-generator defect by the self-commutator
+statistic times `|t| ^ p` and the mode-dependent inflation factor. -/
 theorem pfLeftGenerator_defect_norm_mode (skew : Bool) (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (p : ℕ) (t : ℝ) (hp : 1≤p)
     (hc : ∀ n≤p,suzukiSeries xs n=((n.factorial:ℝ)⁻¹) • H^n)

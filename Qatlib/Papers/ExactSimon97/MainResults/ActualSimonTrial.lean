@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ExactSimon97.MainResults.SimonSubroutine
 import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
+
+/-!
+# A finite gate implementation of Simon sampling
+
+The circuit `actualSimonTrial` applies Hadamard gates to the source register, queries the
+additive oracle once, and repeats the Hadamard layer. Its semantics agree with the prepared
+Simon sampling circuit, and its source measurement is uniform on the orthogonal subspace under
+the hiding promise. These constructions support the results of [BrassardHoyer1997].
+
+## Main statements
+
+* `actualSimonTrial_resources`: counts `2 * n` gates and one oracle query.
+* `theorem3_actual_source_event`: expresses source event probabilities using the uniform
+  distribution on `ortho H0`.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,11 +51,15 @@ open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- Lift a word of finite gate codes to the source register while applying the identity to the
+second register. -/
 def spectatorWord {n : ℕ} {R : Type} [Fintype R] [DecidableEq R]
     (gs : List FiniteGateCode) : Circuit (BoolVec n × R) :=
   gs.map fun g => Step.gate (TensorGate
     (relabelGate (regBooleanEquiv n) (finiteCodeMatrix n g)) (1 : Matrix R R ℂ))
 
+/-- Running a lifted gate word applies its relabelled word matrix tensored with the identity on
+the second register. See [BrassardHoyer1997]. -/
 theorem spectatorWord_run {n : ℕ} {R : Type} [Fintype R] [DecidableEq R]
     (gs : List FiniteGateCode) (O : Matrix (BoolVec n × R) (BoolVec n × R) ℂ)
     (ψ : QState (BoolVec n × R)) :
@@ -50,6 +74,7 @@ theorem spectatorWord_run {n : ℕ} {R : Type} [Fintype R] [DecidableEq R]
       ← tensorGate_mul, applyGate_mul]
     simp only [Matrix.one_mul]
 
+/-- A legal lifted gate word is a unitary circuit with one gate per code and no oracle queries. -/
 theorem spectatorWord_resources {n : ℕ} {R : Type} [Fintype R] [DecidableEq R]
     (gs : List FiniteGateCode) (hg : finiteWordLegal n gs = true) :
     IsUnitaryCircuit (spectatorWord (n := n) (R := R) gs) ∧
@@ -69,10 +94,14 @@ theorem spectatorWord_resources {n : ℕ} {R : Type} [Fintype R] [DecidableEq R]
         congrArg (· + 1) hc
     · simpa only [spectatorWord, List.map_cons, queryCount_gate] using hq
 
+/-- The Simon trial circuit consisting of a source Hadamard layer, one oracle query, and a
+second source Hadamard layer. -/
 def actualSimonTrial {R : Type} [Fintype R] [DecidableEq R] (n : ℕ) : Circuit (BoolVec n × R) :=
   spectatorWord (thermalUniformHWord (List.finRange n)) ++ [Step.query] ++
     spectatorWord (thermalUniformHWord (List.finRange n))
 
+/-- For an additive oracle, the implemented Simon trial has the same state semantics as
+`simonPreparedCircuit`. -/
 theorem actualSimonTrial_run {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (ρ : BoolVec n → R) (ψ : QState (BoolVec n × R)) :
     Run (AddOracle ρ) (actualSimonTrial n) ψ = Run (AddOracle ρ) (simonPreparedCircuit n) ψ := by
@@ -85,6 +114,8 @@ theorem actualSimonTrial_run {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [
     run_query, run_nil, simonPreparedCircuit, hiddenSubgroupSamplingCircuit, run_gate]
   rw [hF]
 
+/-- The implemented Simon trial is a unitary circuit with `2 * n` gates and exactly one oracle
+query. See [BrassardHoyer1997]. -/
 theorem actualSimonTrial_resources (n : ℕ) {R : Type} [Fintype R] [DecidableEq R] :
     IsUnitaryCircuit (actualSimonTrial (R := R) n) ∧
     GateCount (actualSimonTrial (R := R) n) = 2*n ∧
@@ -98,6 +129,8 @@ theorem actualSimonTrial_resources (n : ℕ) {R : Type} [Fintype R] [DecidableEq
     queryCount_query, queryCount_nil, hc, hq, hu, and_self, Nat.add_zero, Nat.zero_add]
   simpa only [hl, and_true, true_and] using (show n + n = 2 * n by omega)
 
+/-- Under the hiding promise, the source event probability is the sum of uniform annihilator
+weights over the event's orthogonal vectors. -/
 theorem actualSimonTrial_uniform {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (ρ : BoolVec n → R) (H0 : Submodule (ZMod 2) (BoolVec n))
     (hρ : FulfillsPromise ρ H0) (S : Finset (Reg n)) :
@@ -108,6 +141,7 @@ theorem actualSimonTrial_uniform {n : ℕ} {R : Type} [AddCommGroup R] [Fintype 
   rw [actualSimonTrial_run, (simon_actual_preparation_and_quantum_cost ρ 0).2.2.2.1]
   exact marginalProbLeft_hiddenSubgroupSampling_booleanReg ρ H0.toAddSubgroup hρ S
 
+/-- The equivalence between the source submodule orthogonal and the Boolean orthogonal subgroup. -/
 def sourceOrthogonalEquiv {n : ℕ} (H0 : Submodule (ZMod 2) (BoolVec n)) :
     ortho H0 ≃ booleanOrthogonal H0.toAddSubgroup where
   toFun x := ⟨x.1, fun h => x.2 h.1 h.2⟩
@@ -115,11 +149,14 @@ def sourceOrthogonalEquiv {n : ℕ} (H0 : Submodule (ZMod 2) (BoolVec n)) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The character annihilator has the same cardinality as the source orthogonal submodule. -/
 theorem sourceOrthogonal_card {n : ℕ} (H0 : Submodule (ZMod 2) (BoolVec n)) :
     Fintype.card (characterAnnihilator H0.toAddSubgroup) = Nat.card (ortho H0) := by
   rw [Nat.card_congr ((sourceOrthogonalEquiv H0).trans
     (booleanOrthogonalCharacterEquiv H0.toAddSubgroup).toEquiv), Nat.card_eq_fintype_card]
 
+/-- Under the hiding promise, source event probabilities of the implemented Simon trial equal
+sums of `uniformOnSub (ortho H0)`. See [BrassardHoyer1997]. -/
 theorem theorem3_actual_source_event {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (ρ : BoolVec n → R) (H0 : Submodule (ZMod 2) (BoolVec n))
     (hρ : FulfillsPromise ρ H0) (S : Finset (Reg n)) :
@@ -138,6 +175,8 @@ theorem theorem3_actual_source_event {n : ℕ} {R : Type} [AddCommGroup R] [Fint
       exact h x.1 x.2
   simp only [uniformOnSub, he, one_div]
 
+/-- The additive oracle is unitary, and the implemented Simon trial is a unitary circuit. See
+[BrassardHoyer1997]. -/
 theorem actualSimonTrial_valid {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (ρ : BoolVec n → R) :
     AddOracle ρ ∈ Matrix.unitaryGroup (BoolVec n × R) ℂ ∧

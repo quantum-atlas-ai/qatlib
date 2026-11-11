@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawAnsw
 import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryAnsw
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.PerturbedProgression
+
+/-!
+# Lower bounds for good discrete-logarithm amplitudes
+
+Rewrites a discrete-logarithm fiber sum as a unit complex phase times a centered, perturbed
+progression. The resulting estimate gives `dlog_good_state_probability_strong`, a lower bound
+for individual good measurement outcomes in the setting of [Shor1997].
+
+## Main statements
+
+* `dlog_good_fiber_rotation`: Factors a common phase out of the fiber sum.
+* `dlog_good_state_probability_strong`: Bounds a good outcome's Born probability below by `1 /
+  (16 * q ^ 2)`.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +41,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open Matrix
 open scoped Classical BigOperators
 
+/-- Factors a common unit complex phase from the discrete-logarithm fiber sum, leaving the
+stated centered progression with a residue-dependent phase perturbation. -/
 theorem dlog_good_fiber_rotation (p q r k : ℕ) (hp : 1 < p) (hpq : p < q)
     (c d : Fin q) (j : ℤ) :
     let θ := dlogT p q r c d - (j : ℝ)*(q : ℝ)
@@ -86,6 +107,8 @@ theorem dlog_good_fiber_rotation (p q r k : ℕ) (hp : 1 < p) (hpq : p < q)
   push_cast
   ring
 
+/-- For a prime `p ≥ 3`, a generator `g` of order `p - 1`, and a good pair `(c, d)`, the outcome
+`(c, d, g ^ k)` has Born probability at least `1 / (16 * q ^ 2)` whenever `k < p - 1`. -/
 theorem dlog_good_state_probability_strong (p q r : ℕ) [NeZero p] (g x : ZMod p)
     (hp : 3 ≤ p) (hprime : Nat.Prime p) (hx0 : x ≠ 0) (hpq : p < q) (ho : orderOf g = p-1) (hx : x = g ^ r)
     (c d : Fin q) (k : ℕ) (hk : k < p-1) (hgood : dlogGoodPair p q r c d) :

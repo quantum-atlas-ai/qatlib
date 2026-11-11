@@ -9,6 +9,32 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Basic
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.AbsolutelyContinuous.Basic
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.IntegralBound
+
+/-!
+# Vanishing of winding numbers at infinity
+
+Bounds winding numbers at sufficiently distant reference points and combines the bound with
+integer-valuedness to obtain vanishing outside a compact set. The closed-curve specialization
+assumes continuity, differentiability away from a countable set, and an interval-integrable
+derivative.
+
+This supplies a vanishing-at-infinity ingredient for the contour analysis associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `windingNumber_eq_zero_of_far`: An integer-valued winding number vanishes when the reference
+  point exceeds the stated bound involving a radius of the curve and the integral of the
+  derivative norm.
+* `windingNumber_eventually_zero_cocompact`: For a closed continuous curve differentiable
+  outside a countable set with interval-integrable derivative, every point outside some compact
+  set avoids the curve and has zero winding number.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -21,11 +47,14 @@ open scoped Real Topology Interval
 
 namespace TauCeti.Contour
 
+/-- The norm of `(2πi)⁻¹` equals `(2π)⁻¹`. -/
 private theorem norm_inv_two_pi_I : ‖(2 * (Real.pi : ℂ) * Complex.I)⁻¹‖ = (2 * Real.pi)⁻¹ := by
   rw [norm_inv, show (2 : ℂ) * (Real.pi : ℂ) * Complex.I = ((2 * Real.pi : ℝ) : ℂ) * Complex.I from
       by push_cast; ring, norm_mul, Complex.norm_I, mul_one, Complex.norm_real, Real.norm_eq_abs,
     abs_of_pos (by positivity)]
 
+/-- An integer-valued winding number vanishes when the reference point exceeds the stated bound
+involving a radius of the curve and the integral of the derivative norm. -/
 private theorem windingNumber_eq_zero_of_far {γ : ℝ → ℂ} {a b R : ℝ} {w : ℂ}
     (hγ_cont : ContinuousOn γ (uIcc a b))
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b)
@@ -58,6 +87,9 @@ private theorem windingNumber_eq_zero_of_far {γ : ℝ → ℂ} {a b R : ℝ} {w
     rwa [hn, Complex.norm_intCast] at h
   rw [hn, show n = 0 from Int.abs_lt_one_iff.mp (by exact_mod_cast h_abs), Int.cast_zero]
 
+/-- For a continuous curve with interval-integrable derivative and integer winding numbers off
+its image, every point outside some compact set avoids the image and has zero winding
+number. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumber_eventually_zero_cocompact_of_integer
     {γ : ℝ → ℂ} {a b : ℝ}
     (hγ_cont : ContinuousOn γ (uIcc a b))
@@ -84,6 +116,9 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumbe
   exact ⟨hwtrace, windingNumber_eq_zero_of_far hγ_cont hderiv_int
     (hint w hwtrace) hR (hRR_def ▸ hw)⟩
 
+/-- For a closed continuous curve differentiable outside a countable set with
+interval-integrable derivative, every point outside some compact set avoids the curve and
+has zero winding number. -/
 theorem windingNumber_eventually_zero_cocompact {γ : ℝ → ℂ} {a b : ℝ} {P : Set ℝ}
     (hclosed : γ a = γ b) (hP : P.Countable) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγ_diff : ∀ t ∈ Ioo (min a b) (max a b) \ P, DifferentiableAt ℝ γ t)

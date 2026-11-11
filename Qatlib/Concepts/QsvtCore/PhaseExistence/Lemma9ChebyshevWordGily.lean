@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordStat
 import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+
+/-!
+# Chebyshev polynomials from reflection words
+
+This module proves that the reflection word determined by `chebyshevAngles d` has upper-left
+entry `T_d(x)` on the unit interval, as in [GilyenSuLowWiebe2019]. The proof computes the
+response polynomials for repeated phases equal to `i` and transports the result to the
+single-qubit reflection word.
+
+## Main statements
+
+* `repeated_half_pi`: the response pair in terms of first- and second-kind Chebyshev
+  polynomials.
+* `lemma9ChebyshevWord`: the reflection-word realization of `T_d`.
+
+## References
+
+* [Gilyén et al., Lemma 9][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -20,10 +40,12 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Polynomial Polynomial.Chebyshev Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- Angle phases turn addition of real angles into multiplication. -/
 private theorem angle_add (a b : ℝ) : anglePhase (a + b) = anglePhase a * anglePhase b := by
   apply Complex.ext <;>
     simp [anglePhase, Real.cos_add, Real.sin_add, Complex.mul_re, Complex.mul_im, add_comm]
 
+/-- The phase at angle `-n * π/2` is `(-i)^n`. -/
 private theorem angle_negative_half_pi (n : ℕ) :
     anglePhase (-(n : ℝ) * (Real.pi / 2)) = (-Complex.I) ^ n := by
   induction n with
@@ -35,6 +57,8 @@ private theorem angle_negative_half_pi (n : ℕ) :
     congr 1
     apply Complex.ext <;> simp [anglePhase]
 
+/-- A list of `n` phases equal to `i` gives response polynomials `i^n * T_n` and `-i^n *
+U_(n-1)`. -/
 private theorem repeated_half_pi (n : ℕ) :
     responseP 1 (List.replicate n Complex.I) = C (Complex.I ^ n) * T ℂ (n : ℤ) ∧
     responseQ 1 (List.replicate n Complex.I) = -C (Complex.I ^ n) * U ℂ ((n : ℤ) - 1) := by
@@ -59,6 +83,8 @@ private theorem repeated_half_pi (n : ℕ) :
       simp only [map_neg]
       ring
 
+/-- The reflection word with `chebyshevAngles d` has `(0, 0)` entry equal to the real Chebyshev
+polynomial `T_d` on `[-1, 1]`. See [Gilyén et al., Lemma 9][GilyenSuLowWiebe2019]. -/
 theorem lemma9ChebyshevWord : Lemma9ChebyshevWord := by
   intro d x hx
   rw [(singleQubitWordTransport (chebyshevAngles d) x hx).1]

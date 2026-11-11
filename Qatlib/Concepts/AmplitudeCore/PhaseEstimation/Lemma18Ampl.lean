@@ -15,10 +15,30 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Stat
 
+/-!
+# Sine quotient for amplified Fourier amplitudes
+
+`zoo_amplified_qft_lemma18` rewrites the squared norm of a root of unity geometric quotient as a
+sine quotient and bounds it by `M^2`. The nonzero residue hypothesis ensures that the
+denominator sine does not vanish. See [Cornwell2014] for background.
+
+## Main statements
+
+* `zoo_amplified_qft_lemma18`: For the stated nonzero residue, the geometric quotient has
+  squared norm equal to the sine quotient, which is at most `M^2`, as in [Cornwell, Lemma
+  18][Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
+/-- A natural power of a complex exponential with real phase multiplies that phase by the
+exponent. -/
 lemma zoo_amplified_qft_lemma18_exp_pow (θ : ℝ) (k : ℕ) :
     Complex.exp ((θ : ℂ) * Complex.I) ^ k =
       Complex.exp (((θ * (k : ℝ) : ℝ) : ℂ) * Complex.I) := by
@@ -30,6 +50,7 @@ lemma zoo_amplified_qft_lemma18_exp_pow (θ : ℝ) (k : ℕ) :
       push_cast
       ring
 
+/-- The squared chord length from one to `exp (θ * I)` is `4 * sin (θ / 2)^2`. -/
 lemma zoo_amplified_qft_lemma18_chord_sq (θ : ℝ) :
     ‖1 - Complex.exp ((θ : ℂ) * Complex.I)‖ ^ 2 = 4 * (Real.sin (θ / 2)) ^ 2 := by
   have hre : (1 - Complex.exp ((θ : ℂ) * Complex.I)).re = 1 - Real.cos θ := by
@@ -48,6 +69,8 @@ lemma zoo_amplified_qft_lemma18_chord_sq (θ : ℝ) :
     _ = 4 * (Real.sin (θ / 2)) ^ 2 := by
         rw [Real.sin_sq, hcos]; ring
 
+/-- The squared norm of one minus the `k`th power of the negative `N`th root of unity is `4 *
+sin (π * k / N)^2`. -/
 lemma zoo_amplified_qft_lemma18_norm_one_sub_pow (N k : ℕ) :
     ‖1 - Complex.exp (((-2 * Real.pi / (N : ℝ) : ℝ) : ℂ) * Complex.I) ^ k‖ ^ 2
       = 4 * (Real.sin (Real.pi * (k : ℝ) / (N : ℝ))) ^ 2 := by
@@ -58,6 +81,7 @@ lemma zoo_amplified_qft_lemma18_norm_one_sub_pow (N k : ℕ) :
       = -(Real.pi * (k : ℝ) / (N : ℝ)) := by ring
   rw [hang, Real.sin_neg, neg_sq]
 
+/-- For positive `N`, a nonzero residue of `k` modulo `N` makes `sin (π * k / N)` nonzero. -/
 lemma zoo_amplified_qft_lemma18_sin_ne_zero {N k : ℕ} (hN : 0 < N) (hmod : k % N ≠ 0) :
     Real.sin (Real.pi * (k : ℝ) / (N : ℝ)) ≠ 0 := by
   intro hs
@@ -79,6 +103,8 @@ lemma zoo_amplified_qft_lemma18_sin_ne_zero {N k : ℕ} (hN : 0 < N) (hmod : k %
   rw [hc, Nat.mul_mod_right] at hmod
   exact hmod rfl
 
+/-- For the stated nonzero residue, the geometric quotient has squared norm equal to the sine
+quotient, which is at most `M^2`, as in [Cornwell, Lemma 18][Cornwell2014]. -/
 theorem zoo_amplified_qft_lemma18 :
     ∀ (n : ℕ),
       let N : ℕ := 2 ^ n;

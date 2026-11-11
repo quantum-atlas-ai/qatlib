@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ChannelTheory.Naimark.ProjectionControl
 import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+
+/-!
+# Born mass after removing one coordinate
+
+The coordinate-removal projector `removeZero` is contractive. Its output squared norm and the
+successful block mass of its controlled-reflection program equal the original squared norm minus
+the removed coordinate mass. On unit inputs, the native readout has success probability `1 - ‖x
+zero‖²`.
+
+The mathematical background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `projected_mass`: the squared norm after removing one coordinate.
+* `native_projected_Born`: the native success probability on a unit input.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,12 +41,14 @@ open Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
 namespace Qatlib.Concepts.ChannelTheory.Naimark.ProjectionBorn
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The operator norm of the projector removing coordinate `zero` is at most one. -/
 theorem removeZero_norm (zero : I) : ‖removeZero zero‖≤1 := by
   rw [removeZero,Matrix.l2_opNorm_diagonal]
   apply (pi_norm_le_iff_of_nonneg (by norm_num : (0:ℝ)≤1)).mpr
   intro i
   split_ifs <;> norm_num
 
+/-- Removing coordinate `zero` subtracts `‖x zero‖²` from the squared Euclidean norm of `x`. -/
 theorem projected_mass (zero : I) (x : EuclideanSpace ℂ I) :
     ‖(WithLp.toLp 2 (removeZero zero*ᵥWithLp.ofLp x) : EuclideanSpace ℂ I)‖^2=
       ‖x‖^2-‖x zero‖^2 := by
@@ -46,6 +69,8 @@ theorem projected_mass (zero : I) (x : EuclideanSpace ℂ I) :
   rw [hproj]
   linarith
 
+/-- The successful block of the coordinate-removal program on input `x` has squared mass `‖x‖² -
+‖x zero‖²`. -/
 theorem program_success_mass (zero : I) (x : EuclideanSpace ℂ I) :
     (∑ i : I,‖(program (removeZero zero)*ᵥSum.elim (WithLp.ofLp x) 0) (Sum.inl i)‖^2)=
       ‖x‖^2-‖x zero‖^2 := by
@@ -60,6 +85,8 @@ theorem program_success_mass (zero : I) (x : EuclideanSpace ℂ I) :
   exact (EuclideanSpace.norm_sq_eq (WithLp.toLp 2 (removeZero zero*ᵥWithLp.ofLp x) : EuclideanSpace ℂ I)).symm.trans
     (projected_mass zero x)
 
+/-- For unit input `x`, the native contraction readout for coordinate removal succeeds with
+probability `1 - ‖x zero‖²`. -/
 theorem native_projected_Born (zero : I) (x : EuclideanSpace ℂ I) (hx : ‖x‖=1) :
     (((readout (removeZero zero) (removeZero_norm zero)).measure (MState.pure (ketOfUnit x hx))) true : ℝ)=
       1-‖x zero‖^2 := by

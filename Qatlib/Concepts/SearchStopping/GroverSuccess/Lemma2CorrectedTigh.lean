@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.GroverSuccess.Lemma2CorrectedStat
+
+/-!
+# Exact randomized Grover success
+
+`search_randomized_formula` evaluates randomized Grover success when sin(2θ) is nonzero, and
+`search_randomized_singular` handles its vanishing case. `lemma2Corrected` combines these
+formulas with the success lower bound of 1/4 under the stated iteration threshold.
+
+For the mathematical background, see [BoyerEtAl1998].
+
+## Main statements
+
+* `lemma2Corrected`: Establishes the singular-aware randomized Grover success formula and the
+  1/4 lower bound under the hypotheses of `Lemma2Corrected`. See [BoyerEtAl1998].
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +33,8 @@ open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 namespace Qatlib.Concepts.SearchStopping.GroverSuccess
 
+/-- For positive m and sin(2θ) ≠ 0, randomized Grover success equals 1/2 − sin(4mθ)/(4m sin(2θ))
+when sin²(θ) is the marked fraction. -/
 theorem search_randomized_formula {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hd : Real.sin θ ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
@@ -31,6 +53,8 @@ theorem search_randomized_formula {I : Type*} [Fintype I] [DecidableEq I]
       show 2*(-θ) = -(2*θ) by ring, Real.sin_neg] at h
     simpa only [mul_neg, neg_div_neg_eq] using h
 
+/-- If sin(2θ) = 0 and sin²(θ) is the marked fraction, randomized Grover success for positive m
+equals that marked fraction. -/
 theorem search_randomized_singular {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hd : Real.sin θ ^ 2 = (A.card : ℝ) / (Fintype.card I : ℝ))
@@ -65,6 +89,8 @@ theorem search_randomized_singular {I : Type*} [Fintype I] [DecidableEq I]
 
 universe u
 
+/-- Establishes the singular-aware randomized Grover success formula and the 1/4 lower bound
+under the hypotheses of `Lemma2Corrected`. See [BoyerEtAl1998]. -/
 theorem lemma2Corrected : Lemma2Corrected.{u} := by
   intro I _ _ hN A θ hd m hm
   constructor

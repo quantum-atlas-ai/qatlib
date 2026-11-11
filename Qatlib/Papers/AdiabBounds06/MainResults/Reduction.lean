@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabBounds06.MainResults.SharpNorm
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+
+/-!
+# Unitary evolutions and partial integration
+
+The generators of the physical and adiabatic matrix evolutions are written as `Complex.I` times
+Hermitian matrices, yielding unitarity of `Uτ` and `UτA`. The module also proves the matrix
+product integration formula and the scaled `partial_integration_identity` used in the partial
+integration argument of [JansenRuskaiSeiler2007].
+
+## Main statements
+
+* `adiHerm_isHermitian`: the Hermitian form of the adiabatic generator.
+* `UτA_mem_unitary` and `Uτ_mem_unitary`: unitarity of the two evolutions.
+* `partial_integration_identity`: the boundary and integral terms arising from partial
+  integration.
+
+## References
+
+* [Jansen et al., 2007][JansenRuskaiSeiler2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,11 +50,15 @@ local instance sourceMatrixPseudoMetrizable (m : Type) [Fintype m] [DecidableEq 
   change TopologicalSpace.PseudoMetrizableSpace (m → m → ℂ)
   infer_instance
 
+/-- The physical generator is `Complex.I` times the Hamiltonian scaled by the real parameter
+`τ`. -/
 theorem realGenerator_eq_I_smul (τ : ℝ) (H : ℝ → Matrix (Fin n) (Fin n) ℂ) :
     realGenerator τ H = fun u => Complex.I • ((τ : ℂ) • H u) := by
   funext u
   rw [realGenerator, smul_smul]
 
+/-- The adiabatic generator is `Complex.I` times the sum of the scaled Hamiltonian and the
+Hermitian correction `Complex.I • (Pdot * P - P * Pdot)`. -/
 theorem adiGenerator_eq_I_smul (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ) :
     adiGenerator τ H P Pdot
       = fun u => Complex.I •
@@ -42,16 +67,19 @@ theorem adiGenerator_eq_I_smul (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fi
   simp only [adiGenerator, smul_add, smul_smul, Complex.I_mul_I, neg_one_smul]
   rw [sub_eq_add_neg]
 
+/-- A real number embedded in `ℂ` is self-adjoint. -/
 theorem isSelfAdjoint_ofReal (τ : ℝ) : IsSelfAdjoint (τ : ℂ) := by
   show star (τ : ℂ) = (τ : ℂ)
   rw [Complex.star_def, Complex.conj_ofReal]
 
+/-- The commutator `Pdot * P - P * Pdot` of two Hermitian matrices is skew-Hermitian. -/
 theorem skew_of_hermitian (P Pdot : Matrix (Fin n) (Fin n) ℂ)
     (hP : Pᴴ = P) (hPd : Pdotᴴ = Pdot) :
     (Pdot * P - P * Pdot)ᴴ = -(Pdot * P - P * Pdot) := by
   rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_mul, Matrix.conjTranspose_mul, hP, hPd]
   rw [neg_sub]
 
+/-- Multiplying a skew-Hermitian matrix by `Complex.I` gives a Hermitian matrix. -/
 theorem complexI_smul_hermitian (C : Matrix (Fin n) (Fin n) ℂ) (hC : Cᴴ = -C) :
     (Complex.I • C).IsHermitian := by
   show (Complex.I • C)ᴴ = Complex.I • C
@@ -61,10 +89,14 @@ theorem complexI_smul_hermitian (C : Matrix (Fin n) (Fin n) ℂ) (hC : Cᴴ = -C
   rw [hstar, show -C = (-1 : ℂ) • C by simp, smul_smul]
   rw [show (-Complex.I) * (-1) = Complex.I by ring]
 
+/-- The matrix function `τ H + i[Pdot, P]` whose multiplication by `Complex.I` gives the
+adiabatic generator. -/
 def adiHerm (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ) :
     ℝ → Matrix (Fin n) (Fin n) ℂ :=
   fun u => (τ : ℂ) • H u + Complex.I • (Pdot u * P u - P u * Pdot u)
 
+/-- The function `adiHerm τ H P Pdot` is pointwise Hermitian when `H`, `P`, and `Pdot` are
+pointwise Hermitian. -/
 theorem adiHerm_isHermitian (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ)
     (hH : ∀ s, (H s).IsHermitian)
     (hP : ∀ s, (P s)ᴴ = P s) (hPd : ∀ s, (Pdot s)ᴴ = Pdot s) :
@@ -73,10 +105,13 @@ theorem adiHerm_isHermitian (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n
   exact ((hH s).smul (isSelfAdjoint_ofReal τ)).add
     (complexI_smul_hermitian _ (skew_of_hermitian (P s) (Pdot s) (hP s) (hPd s)))
 
+/-- The adiabatic generator equals `Complex.I` times `adiHerm` at every parameter value. -/
 theorem adiGenerator_eq_I_adiHerm (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ) :
     adiGenerator τ H P Pdot = fun u => Complex.I • adiHerm τ H P Pdot u :=
   adiGenerator_eq_I_smul τ H P Pdot
 
+/-- The adiabatic evolution is unitary at every real time when `H`, `P`, and `Pdot` are
+continuous and pointwise Hermitian. -/
 theorem UτA_mem_unitary (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ)
     (hH : ∀ s, (H s).IsHermitian)
     (hP : ∀ s, (P s)ᴴ = P s) (hPd : ∀ s, (Pdot s)ᴴ = Pdot s)
@@ -91,6 +126,8 @@ theorem UτA_mem_unitary (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) �
       (adiHerm_isHermitian τ H P Pdot hH hP hPd) 0 s
   rwa [UτA, adiGenerator_eq_I_adiHerm]
 
+/-- The physical evolution is unitary at every real time for a continuous, pointwise Hermitian
+Hamiltonian. -/
 theorem Uτ_mem_unitary (τ : ℝ) (H : ℝ → Matrix (Fin n) (Fin n) ℂ)
     (hH : ∀ s, (H s).IsHermitian) (hHc : Continuous H) (s : ℝ) :
     Uτ τ H s ∈ unitaryGroup (Fin n) ℂ := by
@@ -102,14 +139,19 @@ theorem Uτ_mem_unitary (τ : ℝ) (H : ℝ → Matrix (Fin n) (Fin n) ℂ)
     ordered_evolution_hermitian_unitary (Fin n) (fun u => (τ : ℂ) • H u) hcont hherm 0 s
   rwa [Uτ, realGenerator_eq_I_smul]
 
+/-- The conjugate transpose of a unitary matrix multiplied by that matrix is the identity. -/
 theorem unitary_conjTranspose_mul {U : Matrix (Fin n) (Fin n) ℂ}
     (hU : U ∈ unitaryGroup (Fin n) ℂ) : Uᴴ * U = 1 :=
   Matrix.mem_unitaryGroup_iff'.mp hU
 
+/-- A unitary matrix multiplied by its conjugate transpose is the identity. -/
 theorem unitary_mul_conjTranspose {U : Matrix (Fin n) (Fin n) ℂ}
     (hU : U ∈ unitaryGroup (Fin n) ℂ) : U * Uᴴ = 1 :=
   Matrix.mem_unitaryGroup_iff.mp hU
 
+/-- The interval integral of `FDot * Y + F * YDot` equals the endpoint difference of `F * Y`,
+assuming the stated derivatives and their interval integrability. See
+[JansenRuskaiSeiler2007]. -/
 theorem matrix_integral_deriv_mul_eq_sub
     {F FDot Y YDot : ℝ → Matrix (Fin n) (Fin n) ℂ} {a b : ℝ}
     (hF : ∀ x ∈ [[a, b]], HasDerivAt F (FDot x) x)
@@ -119,6 +161,9 @@ theorem matrix_integral_deriv_mul_eq_sub
     ∫ x in a..b, FDot x * Y x + F x * YDot x = F b * Y b - F a * Y a :=
   intervalIntegral.integral_deriv_mul_eq_sub hF hY hFi hYi
 
+/-- For nonzero `τ`, the relation `iτ(P0 * Xadj * Q0) = FDot - G` yields an integral identity
+with factor `-i/τ`, the endpoint difference of `F * Y`, and the two correction integrals.
+See [JansenRuskaiSeiler2007]. -/
 theorem partial_integration_identity
     (τ : ℝ) (hτ : τ ≠ 0)
     (P0 Q0 : Matrix (Fin n) (Fin n) ℂ)

@@ -10,6 +10,35 @@ import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Algebra.Group.Subgroup.Basic
 import Mathlib.Algebra.Order.Field.Rat
 import Mathlib.Tactic
+
+/-!
+# Counting ordered group products outside a subgroup
+
+`chainProd` multiplies a selected set of generators in increasing index order. The module
+develops insertion and subgroup membership identities, then uses the least generator outside a
+proper subgroup to pair index subsets.
+
+With an identity generator at index zero, `lemma1_counting` and `lemma1_prob` bound the number
+of fixed size subsets whose ordered product lies outside the subgroup. The intervening counting
+lemmas evaluate the number of subsets containing both or neither of two distinguished indices.
+See [MagniezNayak2005].
+
+## Main statements
+
+* `chainProd_insert`: Inserting `i ∉ A` factors the ordered product into the product below `i`,
+  the generator `g i`, and the product above `i`.
+* `lemma1_counting`: For a generating family with identity at index zero and `l ≥ 1`, the number
+  of `l` element subsets is at most twice the number with product outside `K` plus the number
+  satisfying `sameSide` for `badIndex`.
+* `lemma1_prob`: For a generating family with identity at index zero and `2 ≤ l ≤ k`, at least
+  the displayed fraction `(1 - p)/2` of the `l` element index subsets have ordered product
+  outside the proper subgroup `K`.
+
+## References
+
+* [Magniez and Nayak, 2005][MagniezNayak2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,17 +52,22 @@ open Finset
 
 variable {G : Type*} [Group G]
 
+/-- The product of the generators indexed by `A`, taken in increasing index order. -/
 noncomputable def chainProd {k : ℕ} (g : Fin k → G) (A : Finset (Fin k)) : G :=
   ((A.sort (· ≤ ·)).map g).prod
 
+/-- The ordered product over the empty index set is the group identity. -/
 @[simp]
 theorem chainProd_empty {k : ℕ} (g : Fin k → G) : chainProd g ∅ = 1 := by
   simp [chainProd]
 
+/-- The ordered product over a singleton index set is the corresponding generator. -/
 theorem chainProd_singleton {k : ℕ} (g : Fin k → G) (i : Fin k) :
     chainProd g {i} = g i := by
   simp [chainProd]
 
+/-- If every index in `B` is smaller than every index in `C`, sorting their union concatenates
+the sorted lists of `B` and `C`. -/
 theorem sort_union_separated {k : ℕ} {B C : Finset (Fin k)}
     (h : ∀ b ∈ B, ∀ c ∈ C, b < c) :
     (B ∪ C).sort (· ≤ ·) = B.sort (· ≤ ·) ++ C.sort (· ≤ ·) := by
@@ -69,12 +103,14 @@ theorem sort_union_separated {k : ℕ} {B C : Finset (Fin k)}
     fun a ha b hb => le_of_lt (h a (Finset.mem_sort (· ≤ ·) |>.mp ha) b
       (Finset.mem_sort (· ≤ ·) |>.mp hb))⟩
 
+/-- The ordered product over two separated index sets is the product of their ordered products. -/
 theorem chainProd_union_separated {k : ℕ} (g : Fin k → G) {B C : Finset (Fin k)}
     (h : ∀ b ∈ B, ∀ c ∈ C, b < c) :
     chainProd g (B ∪ C) = chainProd g B * chainProd g C := by
   rw [chainProd, sort_union_separated h, List.map_append, List.prod_append]
   rfl
 
+/-- If `i ∉ A`, the subsets of `A` below and above `i` have union `A`. -/
 theorem filter_lt_union_filter_gt {k : ℕ} (A : Finset (Fin k)) {i : Fin k} (hi : i ∉ A) :
     A.filter (· < i) ∪ A.filter (i < ·) = A := by
   have hsplit := Finset.filter_union_filter_not_eq (fun x : Fin k => x < i) A
@@ -86,6 +122,8 @@ theorem filter_lt_union_filter_gt {k : ℕ} (A : Finset (Fin k)) {i : Fin k} (hi
   rw [← hcongr]
   exact hsplit
 
+/-- Inserting a new index into a sorted index set places it between the sorted indices below and
+above it. -/
 theorem sort_insert_split {k : ℕ} (A : Finset (Fin k)) {i : Fin k} (hi : i ∉ A) :
     (insert i A).sort (· ≤ ·) =
       (A.filter (· < i)).sort (· ≤ ·) ++ [i] ++ (A.filter (i < ·)).sort (· ≤ ·) := by
@@ -122,6 +160,8 @@ theorem sort_insert_split {k : ℕ} (A : Finset (Fin k)) {i : Fin k} (hi : i ∉
   rw [hins, sort_union_separated hsep, hrest, hB, hC]
   simp only [List.append_assoc]
 
+/-- Inserting `i ∉ A` factors the ordered product into the product below `i`, the generator `g
+i`, and the product above `i`. -/
 theorem chainProd_insert {k : ℕ} (g : Fin k → G) (A : Finset (Fin k)) {i : Fin k}
     (hi : i ∉ A) :
     chainProd g (insert i A) =
@@ -130,6 +170,7 @@ theorem chainProd_insert {k : ℕ} (g : Fin k → G) (A : Finset (Fin k)) {i : F
     List.prod_append]
   simp [chainProd, mul_assoc]
 
+/-- A list product lies in a subgroup when every factor lies in that subgroup. -/
 theorem list_prod_mem_subgroup (K : Subgroup G) {L : List G} (h : ∀ x ∈ L, x ∈ K) :
     L.prod ∈ K := by
   induction L with
@@ -138,6 +179,7 @@ theorem list_prod_mem_subgroup (K : Subgroup G) {L : List G} (h : ∀ x ∈ L, x
     rw [List.prod_cons]
     exact K.mul_mem (h a (by simp)) (ih (fun x hx => h x (by simp [hx])))
 
+/-- An ordered generator product lies in a subgroup when every selected generator lies in it. -/
 theorem chainProd_mem_subgroup {k : ℕ} (g : Fin k → G) (K : Subgroup G) {A : Finset (Fin k)}
     (h : ∀ a ∈ A, g a ∈ K) : chainProd g A ∈ K := by
   refine list_prod_mem_subgroup K ?_
@@ -145,6 +187,7 @@ theorem chainProd_mem_subgroup {k : ℕ} (g : Fin k → G) (K : Subgroup G) {A :
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hx
   exact h a ((Finset.mem_sort (· ≤ ·)).mp ha)
 
+/-- A generating family for the whole group contains a generator outside any proper subgroup. -/
 theorem exists_generator_not_mem {k : ℕ} (g : Fin k → G) (K : Subgroup G)
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) : ∃ j, g j ∉ K := by
   by_contra h
@@ -156,6 +199,7 @@ theorem exists_generator_not_mem {k : ℕ} (g : Fin k → G) (K : Subgroup G)
   rw [hgen] at hle
   exact hK (top_le_iff.mp hle)
 
+/-- The least index whose generator lies outside the proper subgroup `K`. -/
 noncomputable def badIndex {k : ℕ} (g : Fin k → G) (K : Subgroup G)
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) : Fin k := by
   classical
@@ -164,6 +208,7 @@ noncomputable def badIndex {k : ℕ} (g : Fin k → G) (K : Subgroup G)
       obtain ⟨j, hj⟩ := exists_generator_not_mem g K hgen hK
       exact ⟨j, Finset.mem_filter.mpr ⟨mem_univ j, hj⟩⟩)
 
+/-- The generator at `badIndex` lies outside `K`. -/
 theorem badIndex_not_mem {k : ℕ} (g : Fin k → G) (K : Subgroup G)
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) :
     g (badIndex g K hgen hK) ∉ K := by
@@ -171,6 +216,7 @@ theorem badIndex_not_mem {k : ℕ} (g : Fin k → G) (K : Subgroup G)
   exact (Finset.mem_filter.mp (Finset.min'_mem ((univ : Finset (Fin k)).filter
     (fun j => g j ∉ K)) _)).2
 
+/-- Every generator with index below `badIndex` lies in `K`. -/
 theorem mem_subgroup_of_lt_badIndex {k : ℕ} (g : Fin k → G) (K : Subgroup G)
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) {j : Fin k}
     (hj : j < badIndex g K hgen hK) : g j ∈ K := by
@@ -180,6 +226,8 @@ theorem mem_subgroup_of_lt_badIndex {k : ℕ} (g : Fin k → G) (K : Subgroup G)
     Finset.mem_filter.mpr ⟨mem_univ j, h⟩
   exact absurd (Finset.min'_le _ _ hj') (not_le.mpr hj)
 
+/-- If `A` omits `badIndex`, the products for `A` and for its insertion of `badIndex` cannot
+both lie in `K`. -/
 theorem not_both_chainProd_mem {k : ℕ} (g : Fin k → G) (K : Subgroup G)
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) {A : Finset (Fin k)}
     (hi : badIndex g K hgen hK ∉ A) :
@@ -213,33 +261,42 @@ theorem not_both_chainProd_mem {k : ℕ} (g : Fin k → G) (K : Subgroup G)
 
 section Counting
 
+/-- The finite collection of all `l` element subsets of `Fin k`. -/
 def lIndexSets (k l : ℕ) : Finset (Finset (Fin k)) := (univ : Finset (Fin k)).powersetCard l
 
+/-- Membership in `lIndexSets k l` is equivalent to having cardinality `l`. -/
 @[simp]
 theorem mem_lIndexSets {k l : ℕ} {A : Finset (Fin k)} :
     A ∈ lIndexSets k l ↔ A.card = l := by
   simp [lIndexSets]
 
+/-- There are `k.choose l` subsets in `lIndexSets k l`. -/
 theorem card_lIndexSets (k l : ℕ) : (lIndexSets k l).card = k.choose l := by
   simp [lIndexSets, Finset.card_powersetCard]
 
+/-- The zero index of `Fin k`, using the hypothesis `0 < k`. -/
 abbrev idIdx {k : ℕ} (hk : 0 < k) : Fin k := ⟨0, hk⟩
 
+/-- The property that `A` contains both `idIdx hk` and `i`, or contains neither. -/
 def sameSide {k : ℕ} (hk : 0 < k) (i : Fin k) (A : Finset (Fin k)) : Prop :=
   (idIdx hk ∈ A ∧ i ∈ A) ∨ (idIdx hk ∉ A ∧ i ∉ A)
 
+/-- The zero index `idIdx hk` is at most every index in `Fin k`. -/
 theorem idIdx_le {k : ℕ} (hk : 0 < k) (b : Fin k) : idIdx hk ≤ b := by
   rw [Fin.le_def]
   simp
 
+/-- Every index different from `idIdx hk` is strictly greater than it. -/
 theorem idIdx_lt {k : ℕ} (hk : 0 < k) {i : Fin k} (hi : i ≠ idIdx hk) : idIdx hk < i := by
   rcases lt_or_gt_of_ne hi with h' | h'
   · exact absurd h' (not_lt.mpr (idIdx_le hk i))
   · exact h'
 
+/-- The subset obtained by erasing `idIdx hk` and inserting `i`. -/
 def partner {k : ℕ} (hk : 0 < k) (i : Fin k) (A : Finset (Fin k)) : Finset (Fin k) :=
   insert i (A.erase (idIdx hk))
 
+/-- Erasing the zero index does not change the ordered product if its generator is the identity. -/
 theorem chainProd_erase_idIdx {k : ℕ} (g : Fin k → G) (hk : 0 < k)
     (hg0 : g (idIdx hk) = 1) {A : Finset (Fin k)} (hA : idIdx hk ∈ A) :
     chainProd g (A.erase (idIdx hk)) = chainProd g A := by
@@ -252,6 +309,7 @@ end Counting
 
 section LemmaOne
 
+/-- If the generator at the zero index is the identity, `badIndex` is different from that index. -/
 theorem badIndex_ne_idIdx {k : ℕ} (g : Fin k → G) (K : Subgroup G) {hk : 0 < k}
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) (hg0 : g (idIdx hk) = 1) :
     badIndex g K hgen hK ≠ idIdx hk := by
@@ -260,6 +318,8 @@ theorem badIndex_ne_idIdx {k : ℕ} (g : Fin k → G) (K : Subgroup G) {hk : 0 <
   rw [h, hg0] at hbad
   exact hbad K.one_mem
 
+/-- For distinct zero and distinguished indices and `l ≥ 1`, equally many `l` element subsets
+contain exactly the zero index as contain exactly the distinguished index. -/
 theorem card_partQ_eq_partR {k l : ℕ} (hk : 0 < k) {i : Fin k} (hne : i ≠ idIdx hk)
     (hl1 : 1 ≤ l) :
     ((lIndexSets k l).filter (fun A => idIdx hk ∈ A ∧ i ∉ A)).card
@@ -316,6 +376,8 @@ end LemmaOne
 
 section LemmaOneCounting
 
+/-- Replacing the distinguished index by the zero index gives equal counts for the two displayed
+families with subgroup membership tested on the corresponding partner products. -/
 theorem card_partR_filter_eq {k l : ℕ} (g : Fin k → G) (K : Subgroup G) {hk : 0 < k}
     {i : Fin k} (hne : i ≠ idIdx hk) (hl1 : 1 ≤ l) :
     (((lIndexSets k l).filter (fun A => idIdx hk ∉ A ∧ i ∈ A)).filter
@@ -373,6 +435,9 @@ end LemmaOneCounting
 
 section MainCounting
 
+/-- For a generating family with identity at index zero and `l ≥ 1`, the number of `l` element
+subsets is at most twice the number with product outside `K` plus the number satisfying
+`sameSide` for `badIndex`. See [MagniezNayak2005]. -/
 theorem lemma1_counting {k l : ℕ} (g : Fin k → G) (K : Subgroup G) {hk : 0 < k}
     (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤) (hg0 : g (idIdx hk) = 1)
     (hl1 : 1 ≤ l) :
@@ -503,19 +568,24 @@ end MainCounting
 
 section SameSideCount
 
+/-- The `l` element index subsets containing both `i` and `j`. -/
 def bothIn (k l : ℕ) (i j : Fin k) : Finset (Finset (Fin k)) :=
   (lIndexSets k l).filter (fun A => i ∈ A ∧ j ∈ A)
 
+/-- The `l` element index subsets containing neither `i` nor `j`. -/
 def bothOut (k l : ℕ) (i j : Fin k) : Finset (Finset (Fin k)) :=
   (lIndexSets k l).filter (fun A => i ∉ A ∧ j ∉ A)
 
+/-- The set of indices in `Fin k` other than `i` and `j`. -/
 def pairCompl {k : ℕ} (i j : Fin k) : Finset (Fin k) :=
   ((univ : Finset (Fin k)).erase i).erase j
 
+/-- An index belongs to `pairCompl i j` exactly when it differs from both `i` and `j`. -/
 theorem mem_pairCompl {k : ℕ} {i j x : Fin k} :
     x ∈ pairCompl i j ↔ x ≠ i ∧ x ≠ j := by
   simp [pairCompl, and_comm]
 
+/-- For distinct `i,j`, their complement in `Fin k` has cardinality `k - 2`. -/
 theorem card_pairCompl {k : ℕ} {i j : Fin k} (hij : i ≠ j) :
     (pairCompl i j).card = k - 2 := by
   have hj : j ∈ (univ : Finset (Fin k)).erase i :=
@@ -525,6 +595,8 @@ theorem card_pairCompl {k : ℕ} {i j : Fin k} (hij : i ≠ j) :
     Finset.card_univ, Fintype.card_fin]
   omega
 
+/-- For distinct `i,j` and `k,l ≥ 2`, there are `(k-2).choose (l-2)` subsets of size `l`
+containing both indices. -/
 theorem card_bothIn {k l : ℕ} (_hk : 2 ≤ k) (hl : 2 ≤ l) {i j : Fin k} (hij : i ≠ j) :
     (bothIn k l i j).card = (k - 2).choose (l - 2) := by
   classical
@@ -584,6 +656,8 @@ theorem card_bothIn {k l : ℕ} (_hk : 2 ≤ k) (hl : 2 ≤ l) {i j : Fin k} (hi
   obtain ⟨a, ha, hfa⟩ := hsurj b hb
   exact ⟨a, ha, hfa⟩
 
+/-- For distinct `i,j` with `k ≥ 2` and `l ≤ k`, there are `(k-2).choose l` subsets of size `l`
+containing neither index. -/
 theorem card_bothOut {k l : ℕ} (_hk : 2 ≤ k) (_hlk : l ≤ k) {i j : Fin k} (hij : i ≠ j) :
     (bothOut k l i j).card = (k - 2).choose l := by
   classical
@@ -614,6 +688,8 @@ theorem card_bothOut {k l : ℕ} (_hk : 2 ≤ k) (_hlk : l ≤ k) {i j : Fin k} 
   obtain ⟨a, ha, hfa⟩ := hsurj b hb
   exact ⟨a, ha, hfa⟩
 
+/-- For `2 ≤ l ≤ k` and distinct `i,j`, the number of `l` element subsets containing both or
+neither is `(k-2).choose (l-2) + (k-2).choose l`. -/
 theorem card_sameSideSets {k l : ℕ} (hk : 2 ≤ k) (hl : 2 ≤ l) (hlk : l ≤ k)
     {i j : Fin k} (hij : i ≠ j) :
     ((lIndexSets k l).filter (fun A => (i ∈ A ∧ j ∈ A) ∨ (i ∉ A ∧ j ∉ A))).card
@@ -631,6 +707,8 @@ theorem card_sameSideSets {k l : ℕ} (hk : 2 ≤ k) (hl : 2 ≤ l) (hlk : l ≤
   rw [hunion, Finset.card_union_of_disjoint hdisj, card_bothIn hk hl hij,
     card_bothOut hk hlk hij]
 
+/-- For `2 ≤ l ≤ k`, the ratio of the same side subset count to `k.choose l` equals `(l*(l-1) +
+(k-l)*(k-l-1)) / (k*(k-1))` over the rationals. See [MagniezNayak2005]. -/
 theorem p_eq_sameSide_ratio {k l : ℕ} (hk : 2 ≤ k) (hl : 2 ≤ l) (hlk : l ≤ k)
     {i j : Fin k} (_hij : i ≠ j) :
     (((k - 2).choose (l - 2) + (k - 2).choose l : ℕ) : ℚ) / (k.choose l : ℚ)
@@ -681,6 +759,9 @@ theorem p_eq_sameSide_ratio {k l : ℕ} (hk : 2 ≤ k) (hl : 2 ≤ l) (hlk : l �
   rw [h1, h2]
   field_simp
 
+/-- For a generating family with identity at index zero and `2 ≤ l ≤ k`, at least the displayed
+fraction `(1 - p)/2` of the `l` element index subsets have ordered product outside the
+proper subgroup `K`. See [MagniezNayak2005]. -/
 theorem lemma1_prob {k l : ℕ} (g : Fin k → G) (K : Subgroup G) (hk : 2 ≤ k) (hl : 2 ≤ l)
     (hlk : l ≤ k) (hgen : Subgroup.closure (Set.range g) = ⊤) (hK : K ≠ ⊤)
     (hg0 : g (idIdx (by omega : 0 < k)) = 1) :

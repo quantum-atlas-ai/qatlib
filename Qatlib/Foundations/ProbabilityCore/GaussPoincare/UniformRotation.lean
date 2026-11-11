@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare
+
+/-!
+# Uniform deviation bounds along Gaussian rotations
+
+The quantity `angularEnergy` bounds every squared observable increment along a quarter-circle
+rotation path. This module computes its Gaussian expectation and uses it to bound the
+probability of a large increment at any angle in [0, π/2], giving a continuum version of a
+Gaussian interpolation tail estimate [GohMuller2026].
+
+## Main statements
+
+* `rotation_uniform_square`: One angular energy bounds increments at every angle in the
+  interval.
+* `integral_angularEnergy`: Expected angular energy equals π²/4 times Gaussian derivative
+  energy.
+* `continuum_rotation_tail`: The continuum deviation event has a derivative-energy tail bound.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,15 +38,20 @@ open scoped Classical NNReal
 namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.UniformRotation
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The integral of the squared directional derivative along the quarter-circle rotation path,
+multiplied by π/2. -/
 def angularEnergy (f : E→ℝ) (z : E×E) : ℝ :=
   (Real.pi/2)*(∫ θ in (0:ℝ)..Real.pi/2,
     ((fderiv ℝ f (ContinuousLinearMap.rotation θ z).1) (ContinuousLinearMap.rotation θ z).2)^2)
 
+/-- Angular energy is nonnegative. -/
 theorem angularEnergy_nonneg (f : E→ℝ) (z : E×E) : 0≤angularEnergy f z := by
   unfold angularEnergy
   exact mul_nonneg (by positivity)
       (intervalIntegral.integral_nonneg_of_forall (by positivity) (fun θ => sq_nonneg _))
 
+/-- For a C¹ observable and any angle in [0, π/2], the squared increment from the initial point
+along the rotation path is at most its angular energy. -/
 theorem rotation_uniform_square (f : E→ℝ) (hf : ContDiff ℝ 1 f) (z : E×E)
     (θ : ℝ) (hθ : θ∈Set.Icc (0:ℝ) (Real.pi/2)) :
     (f (ContinuousLinearMap.rotation θ z).1-f z.1)^2≤angularEnergy f z := by
@@ -56,6 +83,8 @@ theorem rotation_uniform_square (f : E→ℝ) (hf : ContDiff ℝ 1 f) (z : E×E)
 
 variable [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
 
+/-- For a C¹ observable with integrable squared derivative norm under the standard Gaussian,
+angular energy is integrable under the Gaussian pair measure. -/
 theorem angularEnergy_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) :
     Integrable (angularEnergy f) ((stdGaussian E).prod (stdGaussian E)) := by
@@ -63,6 +92,8 @@ theorem angularEnergy_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   simp only [intervalIntegral.integral_of_le (by positivity : (0:ℝ)≤Real.pi/2)]
   exact (Poincare.angle_gradient_integrable f hf hgrad).integral_prod_right.const_mul _
 
+/-- For a C¹ observable with integrable squared derivative norm, expected angular energy equals
+π²/4 times its Gaussian derivative energy. -/
 theorem integral_angularEnergy (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) :
     (∫ z:E×E,angularEnergy f z ∂((stdGaussian E).prod (stdGaussian E)))=
@@ -76,6 +107,9 @@ theorem integral_angularEnergy (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   simp only [sub_zero,smul_eq_mul]
   ring
 
+/-- For a C¹ observable with integrable squared derivative norm and `ε > 0`, the probability of
+an absolute increment at least `ε` at some angle in [0, π/2] is at most π²/(4ε²) times its
+Gaussian derivative energy. -/
 theorem continuum_rotation_tail (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E)) (ε : ℝ) (hε : 0<ε) :
     ((stdGaussian E).prod (stdGaussian E)).real

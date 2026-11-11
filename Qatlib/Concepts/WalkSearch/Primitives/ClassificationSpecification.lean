@@ -9,6 +9,25 @@ import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBounds
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationTriangleTrace
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSoundness
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationTermination
+
+/-!
+# Verification of corrected classification
+
+Proves `classifySpec_source_complete` by combining classification soundness, termination,
+partition, and resource estimates. The resulting contract supplies the deterministic guarantees
+needed for the surrounding quantum graph-search construction; see [Ambainis2005].
+
+## Main statements
+
+* `classifySpec_source_complete`: Establishes `classifySpecCorrected`, including the corrected
+  query budget and either a sound triangle or a disjoint partition satisfying the stated
+  triangle-count and graph-edge bounds.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -17,6 +36,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 
+/-- Establishes `classifySpecCorrected`, including the corrected query budget and either a sound
+triangle or a disjoint partition satisfying the stated triangle-count and graph-edge bounds. -/
 theorem classifySpec_source_complete : classifySpecCorrected := by
   intro n G sgs τ dHi dLo K c tThin hn hdLo _hdHi hτ ttape stape S _hG hthin hc r
   refine ⟨classifyScan_cost_bound G sgs τ dHi dLo K c ttape stape S hn hdLo hτ hc,?_⟩

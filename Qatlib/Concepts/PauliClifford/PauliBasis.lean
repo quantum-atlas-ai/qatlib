@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
 import Mathlib.Tactic
+
+/-!
+# Tensor-product Pauli basis
+
+This module constructs register Pauli matrices as products of single-qubit matrix entries and
+proves that each is Hermitian and unitary. The matrix-entry completeness identity yields an
+expansion of every complex register matrix using the normalized trace coefficients
+`pauliCoefficient`.
+
+The expansion is the standard Pauli-basis representation of operators discussed in
+[NielsenChuang2010].
+
+## Main statements
+
+* `word_adjoint` and `word_unitary`: Hermitian and unitary properties of Pauli words.
+* `word_resolution`: matrix-entry completeness of the tensor-product family.
+* `word_expansion`: expansion of any register matrix in Pauli word matrices.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -15,9 +38,11 @@ open Qatlib.Concepts.GateVocabulary.GateVocab
 open scoped Classical
 namespace Qatlib.Concepts.PauliClifford.PauliBasis
 
+/-- The tensor-product Pauli matrix specified by a four-valued letter at each register site. -/
 noncomputable def pauliWord {n : ℕ} (w : Fin n → Fin 4) : Matrix (Reg n) (Reg n) ℂ :=
   fun x y => ∏ j, pauliBool (w j) (x j) (y j)
 
+/-- Every tensor-product Pauli word matrix is Hermitian. -/
 theorem word_adjoint {n : ℕ} (w : Fin n → Fin 4) :
     (pauliWord w).conjTranspose = pauliWord w := by
   ext x y
@@ -26,6 +51,7 @@ theorem word_adjoint {n : ℕ} (w : Fin n → Fin 4) :
   intro j _
   exact congrArg (fun A : Matrix Bool Bool ℂ => A (x j) (y j)) (pauli_adjoint (w j))
 
+/-- Every tensor-product Pauli word matrix belongs to the matrix unitary group. -/
 theorem word_unitary {n : ℕ} (w : Fin n → Fin 4) :
     pauliWord w ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, word_adjoint]
@@ -41,12 +67,16 @@ theorem word_unitary {n : ℕ} (w : Fin n → Fin 4) :
   simp only [Fintype.prod_boole, funext_iff]
   split_ifs <;> rfl
 
+/-- The four single-qubit Pauli matrices satisfy the displayed matrix-entry completeness
+identity with factor one half. -/
 theorem bool_resolution (x y u v : Bool) :
     (∑ a : Fin 4, (1/2 : ℂ) * pauliBool a y x * pauliBool a u v) =
     (if u=x then 1 else 0) * (if v=y then 1 else 0) := by
   cases x <;> cases y <;> cases u <;> cases v <;>
     norm_num [Fin.sum_univ_succ, pauliBool, pauliYBool, PauliX, PauliZ, permMatrix] <;> ring_nf <;> norm_num [Complex.I_sq]
 
+/-- The tensor-product Pauli matrices satisfy the matrix-entry completeness identity with factor
+`(1 / 2) ^ n`. -/
 theorem word_resolution {n : ℕ} (x y u v : Reg n) :
     (∑ w : Fin n → Fin 4, (1/2 : ℂ)^n * pauliWord w y x * pauliWord w u v) =
     (if u=x then 1 else 0) * (if v=y then 1 else 0) := by
@@ -62,9 +92,13 @@ theorem word_resolution {n : ℕ} (x y u v : Reg n) :
   simp only [Fintype.prod_boole, funext_iff]
   split_ifs <;> rfl
 
+/-- The normalized trace coefficient `2⁻ⁿ * trace (pauliWord w * A)` of a matrix in the Pauli
+basis. -/
 noncomputable def pauliCoefficient {n : ℕ} (A : Matrix (Reg n) (Reg n) ℂ)
     (w : Fin n → Fin 4) : ℂ := (1/2 : ℂ)^n * Matrix.trace (pauliWord w * A)
 
+/-- Every complex register matrix equals the sum of its Pauli trace coefficients times the
+corresponding Pauli word matrices. -/
 theorem word_expansion {n : ℕ} (A : Matrix (Reg n) (Reg n) ℂ) :
     A = ∑ w, pauliCoefficient A w • pauliWord w := by
   ext u v

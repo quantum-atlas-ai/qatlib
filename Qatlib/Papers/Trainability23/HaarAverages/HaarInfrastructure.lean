@@ -9,8 +9,31 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Tactic.Linarith
 
+/-!
+# Row normalization and bounds for unitary entries
+
+This module derives row normalization and entry bounds for finite complex unitary matrices. The
+diagonal entries of the product with the adjoint give sums of squared entry norms equal to one,
+hence each entry has norm at most one.
+
+These bounds support the compactness and Haar integration infrastructure used in the
+trainability analysis of [RudolphEtAl2024].
+
+## Main statements
+
+* `unitaryGroup_sum_normSq`: states that the squared norms along each unitary row sum to one.
+* `unitaryGroup_entry_normSq_le_one`: bounds each squared entry norm by one.
+* `unitaryGroup_entry_norm_le_one`: bounds each entry norm by one.
+
+## References
+
+* [Rudolph et al., 2024][RudolphEtAl2024]
+-/
+
 namespace Qatlib.Papers.Trainability23.HaarAverages
 
+/-- For a unitary complex matrix, the sum along any row of each entry times its complex
+conjugate equals one. -/
 theorem unitaryGroup_mul_star_diag {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A ∈ Matrix.unitaryGroup n ℂ) (i : n) :
     ∑ k, A i k * star (A i k) = 1 := by
@@ -20,6 +43,7 @@ theorem unitaryGroup_mul_star_diag {n : Type*} [Fintype n] [DecidableEq n]
   rw [← h1]
   exact Finset.sum_congr rfl fun k _ => by rw [Matrix.star_apply]
 
+/-- The squared norms of the entries in any row of a unitary complex matrix sum to one. -/
 theorem unitaryGroup_sum_normSq {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A ∈ Matrix.unitaryGroup n ℂ) (i : n) :
     ∑ k, ‖A i k‖ ^ 2 = 1 := by
@@ -32,6 +56,7 @@ theorem unitaryGroup_sum_normSq {n : Type*} [Fintype n] [DecidableEq n]
     exact hcast
   exact Complex.ofReal_injective hcast'
 
+/-- Every entry of a unitary complex matrix has squared norm at most one. -/
 theorem unitaryGroup_entry_normSq_le_one {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A ∈ Matrix.unitaryGroup n ℂ) (i j : n) :
     ‖A i j‖ ^ 2 ≤ 1 := by
@@ -41,6 +66,7 @@ theorem unitaryGroup_entry_normSq_le_one {n : Type*} [Fintype n] [DecidableEq n]
   rw [unitaryGroup_sum_normSq hA i] at hterm
   exact hterm
 
+/-- Every entry of a unitary complex matrix has norm at most one. -/
 theorem unitaryGroup_entry_norm_le_one {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A ∈ Matrix.unitaryGroup n ℂ) (i j : n) :
     ‖A i j‖ ≤ 1 := by

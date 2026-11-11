@@ -8,6 +8,24 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Nat.Choose.Basic
 
+/-!
+# Quantitative Johnson-walk estimates
+
+This module evaluates a binomial-coefficient ratio and derives scalar gap, hitting-time, and
+cost inequalities for Johnson-walk estimates in [Itakura2005]. The cost expression
+`johnsonQueryCost r n` combines a setup term `r` with the bound `8 * n ^ 2 / r`.
+
+## Main statements
+
+* `johnson_marked_fraction`: Evaluates `choose n (r - 2) / choose n r`.
+* `johnson_hitting_bound`: Turns the assumed spectral bound into a reciprocal-gap bound.
+* `johnson_query_le_nine_n`: Bounds the cost by `9 * n` on `n ≤ r ≤ 8 * n`.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,6 +33,8 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.CommuteTest05.ChainHitting
 
+/-- For `2 ≤ r ≤ n`, evaluates `choose n (r - 2) / choose n r` as `r * (r - 1) / ((n - r + 1) *
+(n - r + 2))`, with real-valued division. -/
 theorem johnson_marked_fraction (n r : ℕ) (hr2 : 2 ≤ r) (hrn : r ≤ n) :
     ((n.choose (r - 2) : ℝ) / (n.choose r : ℝ)) =
       ((r : ℝ) * ((r : ℝ) - 1)) /
@@ -71,6 +91,8 @@ theorem johnson_marked_fraction (n r : ℕ) (hr2 : 2 ≤ r) (hrn : r ≤ n) :
   rw [div_eq_div_iff hnum hden]
   nlinarith [hA2, hB2]
 
+/-- For `r ≥ 2` and `2 * r ≤ n`, the ratio `choose n (r - 2) / choose n r` is at least `r ^ 2 /
+(4 * n ^ 2)`. -/
 theorem johnson_marked_frac_lower (n r : ℕ) (hr2 : 2 ≤ r) (hrn : 2 * r ≤ n) :
     (r : ℝ) ^ 2 / (4 * (n : ℝ) ^ 2) ≤
       ((n.choose (r - 2) : ℝ) / (n.choose r : ℝ)) := by
@@ -111,6 +133,8 @@ theorem johnson_marked_frac_lower (n r : ℕ) (hr2 : 2 ≤ r) (hrn : 2 * r ≤ n
     linarith
   linarith [hstep]
 
+/-- For positive `r` and `n`, simplifies the assumed gap-product bound on `pm` to `pm ≤ 1 - r /
+(8 * n ^ 2)`, in the estimates of [Itakura2005]. -/
 theorem johnson_pm_bound (r n pm : ℝ) (hr : 0 < r) (hn : 0 < n)
     (h : pm ≤ 1 - (1 / r) * (r ^ 2 / (4 * n ^ 2)) / 2) :
     pm ≤ 1 - r / (8 * n ^ 2) := by
@@ -119,6 +143,8 @@ theorem johnson_pm_bound (r n pm : ℝ) (hr : 0 < r) (hn : 0 < n)
     ring
   rwa [e] at h
 
+/-- For positive `r` and `n`, the bound `pm ≤ 1 - r / (8 * n ^ 2)` implies `1 / (1 - pm) ≤ 8 * n
+^ 2 / r`. -/
 theorem johnson_hitting_bound (r n pm : ℝ) (hr : 0 < r) (hn : 0 < n)
     (hpm : pm ≤ 1 - r / (8 * n ^ 2)) :
     1 / (1 - pm) ≤ 8 * n ^ 2 / r := by
@@ -130,8 +156,11 @@ theorem johnson_hitting_bound (r n pm : ℝ) (hr : 0 < r) (hn : 0 < n)
     _ = 8 * n ^ 2 / r := by
       field_simp
 
+/-- The scalar setup-plus-hitting cost expression `r + 8 * n ^ 2 / r`. -/
 def johnsonQueryCost (r n : ℝ) : ℝ := r + 8 * n ^ 2 / r
 
+/-- Under the stated spectral bound and positive `r` and `n`, the setup term plus reciprocal gap
+is at most `johnsonQueryCost r n`. -/
 theorem johnson_query_bound (r n pm : ℝ) (hr : 0 < r) (hn : 0 < n)
     (hpm : pm ≤ 1 - r / (8 * n ^ 2)) :
     r + 1 / (1 - pm) ≤ johnsonQueryCost r n := by
@@ -139,12 +168,15 @@ theorem johnson_query_bound (r n pm : ℝ) (hr : 0 < r) (hn : 0 < n)
   unfold johnsonQueryCost
   linarith
 
+/-- For positive `n`, the cost expression at `r = n` equals `9 * n`. -/
 theorem johnson_query_at_unit (n : ℝ) (hn : 0 < n) :
     johnsonQueryCost n n = 9 * n := by
   unfold johnsonQueryCost
   field_simp
   ring
 
+/-- For positive `n` and `n ≤ r ≤ 8 * n`, the cost expression `johnsonQueryCost r n` is at most
+`9 * n`. -/
 theorem johnson_query_le_nine_n (r n : ℝ) (hn : 0 < n) (hrn : n ≤ r)
     (hr8 : r ≤ 8 * n) :
     johnsonQueryCost r n ≤ 9 * n := by

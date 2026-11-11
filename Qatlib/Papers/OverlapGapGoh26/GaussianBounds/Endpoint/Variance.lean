@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Scalar
+
+/-!
+# Uniform variance bounds for spin endpoints
+
+`spinCoefficient` controls the squared gradient of the scalar endpoint test by a polynomial in
+the normalized tensor norm. Gaussian moment estimates and a Poincaré inequality yield the
+`endpointConstant r T / N` variance bound, and odd interaction degree gives the same second
+moment bound. These estimates contribute to the endpoint obstruction analysis for
+[GohMuller2026].
+
+## Main statements
+
+* `test_gradient_integral_bound`: The Gaussian integral of the squared derivative norm is at
+  most `(spinCoefficient r T)^2 * uniformMomentConstant r (2*T) / N` under the stated
+  positivity, schedule, and vector norm assumptions.
+* `test_variance_uniform`: For positive `r` and `N`, schedules in `[0,1]`, and `‖v‖ ≤ √N`, the
+  Gaussian variance of the scalar endpoint test is at most `endpointConstant r T / N`.
+* `test_second_moment`: For odd `r`, positive `N`, schedules in `[0,1]`, and `‖v‖ ≤ √N`, the
+  Gaussian second moment of the scalar endpoint test is at most `endpointConstant r T / N`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -17,9 +42,12 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.RawMoments
 open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint
 
+/-- The dimension independent coefficient `4√T (2 + 2r√T)^T` in the endpoint gradient estimate. -/
 def spinCoefficient (r T : ℕ) : ℝ :=
   4*Real.sqrt (T:ℝ)*(2+2*(r:ℝ)*Real.sqrt (T:ℝ))^T
 
+/-- Under the schedule and vector norm bounds, the squared derivative norm of `test` is at most
+`(spinCoefficient r T)^2 (1 + normScale x)^(2T) / N`. -/
 theorem test_gradient_polynomial {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (v : EuclideanSpace ℝ (Fin N))
     (hv : ‖v‖≤Real.sqrt (N:ℝ)) (x : Input r N) :
@@ -43,6 +71,8 @@ theorem test_gradient_polynomial {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→
   refine hh.trans_eq ?_
   rw [mul_pow,div_pow,Real.sq_sqrt (Nat.cast_nonneg N),← pow_mul,show T*2=2*T by omega]
 
+/-- Under the schedule and vector norm bounds, the squared derivative norm of the scalar
+endpoint test is Gaussian integrable. -/
 theorem test_gradient_integrable {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (v : EuclideanSpace ℝ (Fin N))
     (hv : ‖v‖≤Real.sqrt (N:ℝ)) :
@@ -55,6 +85,9 @@ theorem test_gradient_integrable {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→
   exact Filter.Eventually.of_forall fun x=>by
     simpa only [Real.norm_eq_abs,abs_pow,sq_abs] using test_gradient_polynomial hr hN s hs v hv x
 
+/-- The Gaussian integral of the squared derivative norm is at most `(spinCoefficient r T)^2 *
+uniformMomentConstant r (2*T) / N` under the stated positivity, schedule, and vector norm
+assumptions. -/
 theorem test_gradient_integral_bound {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (v : EuclideanSpace ℝ (Fin N))
     (hv : ‖v‖≤Real.sqrt (N:ℝ)) :
@@ -68,9 +101,13 @@ theorem test_gradient_integral_bound {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : �
     _ = _ := by rw [integral_const_mul]
     _ ≤ _ := mul_le_mul_of_nonneg_left hp.2 (by positivity)
 
+/-- The dimension independent endpoint variance coefficient `(π²/8) * (spinCoefficient r T)^2 *
+uniformMomentConstant r (2*T)`. -/
 def endpointConstant (r T : ℕ) : ℝ :=
   (Real.pi^2/8)*(spinCoefficient r T)^2*uniformMomentConstant r (2*T)
 
+/-- For positive `r` and `N`, schedules in `[0,1]`, and `‖v‖ ≤ √N`, the Gaussian variance of the
+scalar endpoint test is at most `endpointConstant r T / N`. -/
 theorem test_variance_uniform {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (v : EuclideanSpace ℝ (Fin N))
     (hv : ‖v‖≤Real.sqrt (N:ℝ)) :
@@ -82,6 +119,8 @@ theorem test_variance_uniform {r N T : ℕ} (hr : 0<r) (hN : 0<N) (s : ℕ→ℝ
   exact (mul_le_mul_of_nonneg_left (test_gradient_integral_bound hr hN s hs v hv)
     (by positivity : (0:ℝ)≤Real.pi^2/8)).trans_eq (by unfold endpointConstant;ring)
 
+/-- For odd `r`, positive `N`, schedules in `[0,1]`, and `‖v‖ ≤ √N`, the Gaussian second moment
+of the scalar endpoint test is at most `endpointConstant r T / N`. -/
 theorem test_second_moment {r N T : ℕ} (hr : Odd r) (hN : 0<N) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (v : EuclideanSpace ℝ (Fin N))
     (hv : ‖v‖≤Real.sqrt (N:ℝ)) :

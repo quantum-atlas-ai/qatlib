@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QSearchBoyer96.MainResults.QueryScope
+
+/-!
+# Fixed and expected search query budgets
+
+This module collects the corrected fixed query lower bounds associated with Theorems 7 and 8 of
+[BoyerEtAl1998]. The explicit 64 address construction `source_expected_query_counterexample64`
+illustrates why an expected query budget requires a separate formulation.
+
+## Main statements
+
+* `source_fixed_query_bounds`: Packages the corrected fixed budget statements.
+* `source_expected_query_counterexample64`: Certifies a normalized search construction with
+  expected query count 8/3.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,9 +35,12 @@ open Qatlib.Concepts.SearchStopping.QueryLowerBound
 namespace Qatlib.Papers.QSearchBoyer98.QueryModels
 universe u v
 
+/-- Collects the corrected fixed query formulations of Theorems 7 and 8. See [BoyerEtAl1998]. -/
 theorem source_fixed_query_bounds : Theorem7Corrected.{u,v} ∧ Theorem8Corrected.{u,v} :=
   Qatlib.Papers.QSearchBoyer96.MainResults.source_fixed_query_bounds
 
+/-- Certifies a normalized unitary search construction on 64 addresses with success at least one
+half and expected query count 8/3, strictly below ⌊sin(π/8)√64⌋. See [BoyerEtAl1998]. -/
 theorem source_expected_query_counterexample64 :
     Normalized BudgetCoin64 ∧ Normalized BudgetStart64 ∧
     (∀ b, IsUnitaryCircuit (BudgetBranch64 b)) ∧

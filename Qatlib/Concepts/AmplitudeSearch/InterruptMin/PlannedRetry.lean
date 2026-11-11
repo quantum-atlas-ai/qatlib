@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
 import Mathlib.Data.PNat.Basic
+
+/-!
+# Budgeted retries with sampled plans
+
+This module defines `PlannedRetry`, whose state-dependent plans have positive costs and optional
+outputs. Its execution law checks whether a sampled plan fits the budget, retries failures, and
+returns either a successful output or a timeout with the remaining budget.
+
+The finite evaluator, event formulas, and cost bounds provide a general probability interface
+for randomized search retries [BoyerEtAl1998].
+
+## Main statements
+
+* `PlannedRetry`: A retry scheme with state-dependent sampled plans, positive plan costs,
+  optional outputs, and a state update after failure.
+* `run_remaining`: Every supported run leaves at most the initial budget, and a successful run
+  leaves strictly less.
+* `run_expectation`: For nonnegative payoffs, expectation under the run law equals the extended
+  nonnegative embedding of the real evaluator.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +47,8 @@ open scoped ENNReal BigOperators Classical
 
 universe u v w
 
+/-- A retry scheme with state-dependent sampled plans, positive plan costs, optional outputs,
+and a state update after failure. -/
 structure PlannedRetry (State : Type u) (Output : Type v) where
   Plan : State → Type w
   choose : (s : State) → PMF (Plan s)
@@ -32,6 +59,8 @@ structure PlannedRetry (State : Type u) (Output : Type v) where
 namespace PlannedRetry
 variable {State : Type u} {Output : Type v}
 
+/-- The budgeted retry law returning an optional output and remaining budget, with timeout when
+a sampled plan does not fit. -/
 noncomputable def run (K : PlannedRetry State Output) (budget : ℕ) (s : State) :
     PMF (Option Output × ℕ) :=
   (K.choose s).bind fun p =>
@@ -45,6 +74,8 @@ termination_by budget
 decreasing_by
   exact Nat.sub_lt (lt_of_lt_of_le (K.cost s p).pos _hc) (K.cost s p).pos
 
+/-- Every supported run leaves at most the initial budget, and a successful run leaves strictly
+less. -/
 theorem run_remaining (K : PlannedRetry State Output) (budget : ℕ) (s : State)
     (x : Option Output × ℕ) (hx : x ∈ (K.run budget s).support) :
     x.2 ≤ budget ∧ (x.1 ≠ none → x.2 < budget) := by
@@ -68,6 +99,7 @@ theorem run_remaining (K : PlannedRetry State Output) (budget : ℕ) (s : State)
       have heq := (PMF.mem_support_pure_iff _ _).mp hp
       simp [heq]
 
+/-- A zero-budget run returns timeout with zero remaining budget. -/
 @[simp] theorem run_zero (K : PlannedRetry State Output) (s : State) :
     K.run 0 s = PMF.pure (none, 0) := by
   rw [run]
@@ -75,22 +107,27 @@ theorem run_remaining (K : PlannedRetry State Output) (budget : ℕ) (s : State)
   simp only [h, dite_false]
   exact PMF.bind_const _ _
 
+/-- The run law paired with consumed cost, computed as initial budget minus remaining budget. -/
 noncomputable def costedRun (K : PlannedRetry State Output) (budget : ℕ) (s : State) :
     CostedLaw (Option Output) :=
   (K.run budget s).map (fun x => (x.1, budget - x.2))
 
+/-- The costed run is bounded by the initial budget. -/
 theorem costedRun_bounded (K : PlannedRetry State Output) (budget : ℕ) (s : State) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.BoundedBy (K.costedRun budget s) budget := by
   intro x hx
   obtain ⟨y, _, rfl⟩ := (PMF.mem_support_map_iff _ _ x).mp hx
   exact Nat.sub_le _ _
 
+/-- For every supported run, consumed cost plus remaining budget equals the initial budget. -/
 theorem run_budget_conservation (K : PlannedRetry State Output) (budget : ℕ) (s : State)
     (x : Option Output × ℕ) (hx : x ∈ (K.run budget s).support) :
     (budget - x.2) + x.2 = budget := Nat.sub_add_cancel (K.run_remaining budget s x hx).1
 
 section Finite
 
+/-- The real recursive payoff evaluator for finite plan and output types, with separate success
+and timeout payoffs. -/
 noncomputable def eval (K : PlannedRetry State Output)
     [∀ s, Fintype (K.Plan s)] [Fintype Output] (budget : ℕ) (s : State)
     (onSuccess : Output → ℕ → ℝ) (onTimeout : ℕ → ℝ) : ℝ :=
@@ -107,6 +144,7 @@ decreasing_by
 
 variable (K : PlannedRetry State Output) [∀ s, Fintype (K.Plan s)] [Fintype Output]
 
+/-- The retry evaluator is nonnegative when success and timeout payoffs are nonnegative. -/
 theorem eval_nonneg (budget : ℕ) (s : State)
     (onSuccess : Output → ℕ → ℝ) (onTimeout : ℕ → ℝ)
     (hs : ∀ a r, 0 ≤ onSuccess a r) (ht : ∀ r, 0 ≤ onTimeout r) :
@@ -127,6 +165,7 @@ theorem eval_nonneg (budget : ℕ) (s : State)
           (K.cost s p).pos) _
     · exact ht budget
 
+/-- The retry evaluator preserves pointwise order of success and timeout payoffs. -/
 theorem eval_mono (budget : ℕ) (s : State)
     (f g : Output → ℕ → ℝ) (t u : ℕ → ℝ)
     (hfg : ∀ a r, f a r ≤ g a r) (htu : ∀ r, t r ≤ u r) :
@@ -147,6 +186,7 @@ theorem eval_mono (budget : ℕ) (s : State)
           (K.cost s p).pos) _
     · exact htu budget
 
+/-- Expands the evaluator as a joint sum over sampled plans and optional attempt outputs. -/
 theorem eval_eq_joint_sum (budget : ℕ) (s : State)
     (onSuccess : Output → ℕ → ℝ) (onTimeout : ℕ → ℝ) :
     K.eval budget s onSuccess onTimeout =
@@ -170,6 +210,8 @@ theorem eval_eq_joint_sum (budget : ℕ) (s : State)
       rw [hn, ENNReal.toReal_one]
     rw [← Finset.sum_mul, ← Finset.mul_sum, hsum, mul_one]
 
+/-- For nonnegative payoffs, expectation under the run law equals the extended nonnegative
+embedding of the real evaluator. -/
 theorem run_expectation (budget : ℕ) (s : State)
     (onSuccess : Output → ℕ → ℝ) (onTimeout : ℕ → ℝ)
     (hs : ∀ a r, 0 ≤ onSuccess a r) (ht : ∀ r, 0 ≤ onTimeout r) :
@@ -241,6 +283,8 @@ theorem run_expectation (budget : ℕ) (s : State)
           | none => exact K.eval_nonneg _ _ _ _ hs ht
         · exact ht budget
 
+/-- The probability of a run event equals the evaluator applied to its success and timeout
+indicators. -/
 theorem run_event (budget : ℕ) (s : State) (E : Option Output × ℕ → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (K.run budget s) E = ENNReal.ofReal
       (K.eval budget s (fun a r => if E (some a, r) then 1 else 0)
@@ -256,6 +300,8 @@ theorem run_event (budget : ℕ) (s : State) (E : Option Output × ℕ → Prop)
   rcases x with ⟨o, r⟩
   cases o <;> (try dsimp only) <;> split_ifs <;> simp
 
+/-- The mass of a single run result equals the evaluator applied to the corresponding singleton
+indicators. -/
 theorem run_apply [DecidableEq Output] (budget : ℕ) (s : State) (x : Option Output × ℕ) :
     K.run budget s x = ENNReal.ofReal
       (K.eval budget s (fun a r => if (some a, r) = x then 1 else 0)

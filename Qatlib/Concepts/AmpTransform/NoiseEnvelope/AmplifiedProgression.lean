@@ -8,6 +8,28 @@ import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+/-!
+# Amplified sampling of an arithmetic progression
+
+This module defines progression marking, Fourier phases, the Grover angle and round schedule,
+and the executable amplified Fourier circuit. It proves exact circuit counts, the zero-frequency
+amplitude, and gain bounds for the progression-sampling analysis of [Cornwell2014].
+
+## Main statements
+
+* `amplified_progression_actual_circuit_and_counts`: The contained progression has cardinality
+  M, and its amplified circuit is unitary with normalized output, k queries, and 3k+2 gates for
+  k = `aqRounds N M`. See [Cornwell2014].
+* `amplified_progression_zero_mode_and_corrected_floor_bounds`: Gives the zero-frequency
+  amplitude, positive gain bounds, the zero-frequency probability bound 4(M/N)(1−M/N), and the
+  additional gain lower bound 1−2M²/N; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -27,27 +49,39 @@ namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 open Matrix
 open scoped Classical BigOperators Kronecker
 
+/-- The Grover angle arcsin √(M/N). -/
 noncomputable def aqAngle (N M : ℕ) : ℝ := Real.arcsin (Real.sqrt ((M:ℝ)/(N:ℝ)))
+/-- The prescribed Grover round count ⌊π/(4 · `aqAngle N M`)⌋. -/
 noncomputable def aqRounds (N M : ℕ) : ℕ := Nat.floor (Real.pi/(4*aqAngle N M))
+/-- The squared sine gain sin²(2kθ) for the prescribed Grover angle and round count. -/
 noncomputable def aqGain (N M : ℕ) : ℝ := (Real.sin (2*(aqRounds N M:ℝ)*aqAngle N M))^2
+/-- The set of labels in `Fin N` equal to s+rP for some r < M. -/
 def aqProgressionSet (N s M P : ℕ) : Finset (Fin N) :=
   {x | ∃ r∈Finset.range M,x.val= s+r*P}
+/-- The marking promise that f is the indicator of `aqProgressionSet N s M P`. -/
 def AQMarkPromise {N : ℕ} (f : Fin N→Bool) (s M P : ℕ) : Prop :=
   ∀ x,f x= decide (x∈aqProgressionSet N s M P)
+/-- The negative Fourier phase exp(−2πi · x · y/N). -/
 noncomputable def aqPhase (N x y : ℕ) : ℂ :=
   Complex.exp (((-2*Real.pi*(x:ℝ)*(y:ℝ)/(N:ℝ):ℝ):ℂ)*Complex.I)
+/-- The sum of negative Fourier phases over the M progression terms starting at s with step P. -/
 noncomputable def aqProgressionFourier (N s M P y : ℕ) : ℂ :=
   ∑ r∈Finset.range M,aqPhase N (s+r*P) y
+/-- The prepared amplitude-amplification circuit for the prescribed rounds followed by an
+inverse Fourier gate. -/
 noncomputable def aqCircuit (N : ℕ) (hN : 0< N) (M : ℕ) : Circuit (Fin N) :=
   preparedAACircuit (QFTMatrix N) ⟨0,hN⟩ (aqRounds N M)++[Step.gate (QFTMatrix N)ᴴ]
+/-- The output state of `aqCircuit` on the zero label with the phase oracle marking A. -/
 noncomputable def aqState (N : ℕ) (hN : 0< N) (M : ℕ) (A : Finset (Fin N)) : QState (Fin N) :=
   Run (preparedMark A) (aqCircuit N hN M) (Ket ⟨0,hN⟩)
 
+/-- Every term of a nonempty progression is below N when its last term is below N. -/
 theorem aqProgression_index_lt (N s M P r : ℕ) (hM : 0 < M)
     (hbound : s+(M-1)*P < N) (hr : r < M) : s+r*P < N := by
   have hm : r ≤ M-1 := by omega
   exact (Nat.add_le_add_left (Nat.mul_le_mul_right P hm) s).trans_lt hbound
 
+/-- A nonempty positive-step progression contained in the domain has cardinality M. -/
 theorem aqProgression_card (N s M P : ℕ) (hM : 0 < M) (hP : 0 < P)
     (hbound : s+(M-1)*P < N) : (aqProgressionSet N s M P).card=M := by
   let e : Fin M → Fin N :=
@@ -67,6 +101,8 @@ theorem aqProgression_card (N s M P : ℕ) (hM : 0 < M) (hP : 0 < P)
   rw [hset, Finset.card_image_of_injective _ he]
   simp
 
+/-- The contained progression has cardinality M, and its amplified circuit is unitary with
+normalized output, k queries, and 3k+2 gates for k = `aqRounds N M`. See [Cornwell2014]. -/
 theorem amplified_progression_actual_circuit_and_counts : ∀ (N : ℕ) (hN : 0< N) (s M P : ℕ),
   0< M → 0< P → s+(M-1)*P< N → M< N →
   (aqProgressionSet N s M P).card= M ∧
@@ -92,12 +128,14 @@ theorem amplified_progression_actual_circuit_and_counts : ∀ (N : ℕ) (hN : 0<
   · rw [aqCircuit, gateCount_append, hAA.2.2.1]
     simp
 
+/-- The squared norm of the reciprocal square-root amplitude is 1/N. -/
 theorem aq_uniform_entry_mass (N : ℕ) (_hN : 0 < N) :
     ‖(Real.sqrt (N:ℝ):ℂ)⁻¹‖^2 = 1/(N:ℝ) := by
   rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
     inv_pow, Real.sq_sqrt (Nat.cast_nonneg N)]
   simp only [one_div]
 
+/-- The uniform prepared state's probability on A is |A|/N. -/
 theorem aq_prepared_mass (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) :
     MeasureProb (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A = (A.card:ℝ)/(N:ℝ) := by
   rw [preparedAAState, qftMatrix_ket_zero N hN]
@@ -105,6 +143,8 @@ theorem aq_prepared_mass (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) :
     nsmul_eq_mul]
   ring
 
+/-- Under 0 < M and 2M ≤ N, the Grover angle is in (0,π/4], has positive sine and cosine, and
+satisfies sin²θ = M/N. -/
 theorem aq_angle_properties (N M : ℕ) (hN : 0 < N) (hM : 0 < M) (hMN : 2*M ≤ N) :
     0 < aqAngle N M ∧ aqAngle N M ≤ Real.pi/4 ∧ aqAngle N M < Real.pi/2 ∧
       (Real.sin (aqAngle N M))^2 = (M:ℝ)/(N:ℝ) ∧
@@ -137,6 +177,8 @@ theorem aq_angle_properties (N M : ℕ) (hN : 0 < N) (hM : 0 < M) (hMN : 2*M ≤
   exact ⟨htheta,hquarter,hhalf,hsin,Real.sin_pos_of_pos_of_lt_pi htheta (by linarith [Real.pi_pos]),
     Real.cos_pos_of_mem_Ioo ⟨by linarith [Real.pi_pos],hhalf⟩⟩
 
+/-- For 0 < θ ≤ π/4 and k = ⌊π/(4θ)⌋, the gain sin²(2kθ) is positive, at most one, and at least
+cos²(2θ). -/
 theorem aq_floor_gain (theta : ℝ) (ht : 0 < theta) (hq : theta ≤ Real.pi/4) :
     let k := Nat.floor (Real.pi/(4*theta))
     0 < (Real.sin (2*(k:ℝ)*theta))^2 ∧
@@ -167,6 +209,7 @@ theorem aq_floor_gain (theta : ℝ) (ht : 0 < theta) (hq : theta ≤ Real.pi/4) 
   · rw [he]
     exact pow_le_pow_left₀ hc0 hc 2
 
+/-- The inverse Fourier transform maps the prepared uniform state back to the zero basis state. -/
 theorem aq_inverse_uniform (N : ℕ) (hN : 0 < N) :
     ApplyGate (QFTMatrix N)ᴴ (preparedAAState (QFTMatrix N) ⟨0,hN⟩) = Ket ⟨0,hN⟩ := by
   have hu : (QFTMatrix N)ᴴ*QFTMatrix N=1 := by
@@ -174,6 +217,8 @@ theorem aq_inverse_uniform (N : ℕ) (hN : 0 < N) :
         qftMatrix_unitary hN
   simp only [preparedAAState, ApplyGate, Matrix.mulVec_mulVec, hu, Matrix.one_mulVec]
 
+/-- The zero-frequency amplitude of the inverse Fourier transform of the restricted uniform
+prepared state is |A|/N. -/
 theorem aq_inverse_selected_zero (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) :
     ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A) ⟨0,hN⟩ =
       ((A.card:ℝ)/(N:ℝ):ℂ) := by
@@ -193,6 +238,8 @@ theorem aq_inverse_selected_zero (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) :
       simp only [Finset.sum_const, nsmul_eq_mul, Complex.ofReal_natCast]
       ring
 
+/-- For a marked set of cardinality M satisfying positive half-density, the amplified state's
+zero-frequency amplitude is cos(2kθ). -/
 theorem aq_zero_amplitude (N : ℕ) (hN : 0 < N) (M : ℕ) (A : Finset (Fin N))
     (hcard : A.card=M) (hM : 0 < M) (hMN : 2*M ≤ N) :
     aqState N hN M A ⟨0,hN⟩ = (Real.cos (2*(aqRounds N M:ℝ)*aqAngle N M):ℂ) := by
@@ -233,6 +280,8 @@ theorem aq_zero_amplitude (N : ℕ) (hN : 0 < N) (M : ℕ) (A : Finset (Fin N))
     ring
   exact_mod_cast he
 
+/-- Gives the zero-frequency amplitude, positive gain bounds, the zero-frequency probability
+bound 4(M/N)(1−M/N), and the additional gain lower bound 1−2M²/N; see [Cornwell2014]. -/
 theorem amplified_progression_zero_mode_and_corrected_floor_bounds : ∀ (N : ℕ) (hN : 0< N) (s M P : ℕ),
   2≤ M → 0< P → s+(M-1)*P< N → 2*M≤ N →
   aqState N hN M (aqProgressionSet N s M P) ⟨0,hN⟩=

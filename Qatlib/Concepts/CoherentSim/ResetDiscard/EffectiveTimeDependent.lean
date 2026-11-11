@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.ResetDiscard.EffectiveTimeDependentDefs
+
+/-!
+# Effective time-grid identities and circuit counts
+
+This module proves coefficient, multiplicity, and resource identities for the time-grid encoding
+defined by `timeLCUWord`. It also verifies that `effectiveTimeGrid` meets its discretization
+budget; these ingredients support the time-dependent extension of truncated Taylor simulation
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `timeLCUWord_counts`: Exact query and gate counts for the time-grid word.
+* `effectiveTimeGrid_budget`: The chosen grid size meets the prescribed error budget.
+* `clause45_complete`: The combined coefficient, unitarity, counting, and grid-budget results.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -42,12 +62,15 @@ set_option warningAsError false
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- A time word whose time indices are not canonical has coefficient zero. -/
 theorem timeCoeff_noncanonical (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ)
     {l : Fin (K + 1)} {letters : Fin l.val → (Fin M × J)}
     (hnot : ¬ timeCanonical letters) :
     timeCoeff h τ M K (Sum.inl ⟨l, letters⟩) = 0 := by
   simp [timeCoeff, hnot]
 
+/-- A canonical time word has its Taylor coefficient multiplied by the number of time sequences
+with the same multiplicities. -/
 theorem timeCoeff_canonical (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ)
     {l : Fin (K + 1)} {letters : Fin l.val → (Fin M × J)}
     (hc : timeCanonical letters) :
@@ -56,6 +79,9 @@ theorem timeCoeff_canonical (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ)
         ((timeMultiplicity l.val M (wordTimeCount letters) : ℝ)) := by
   simp [timeCoeff, hc]
 
+/-- For a positive grid size, the rescaled Taylor-word coefficient equals the product of sampled
+Hamiltonian coefficients divided by the grid size, with the Taylor phase and factorial
+factor. -/
 theorem timeScale_wordCoefficient (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (hM : 0 < M)
     {K : ℕ} {l : Fin (K + 1)} {letters : Fin l.val → (Fin M × J)} :
     taylorWordCoefficient (timeScale h τ M) τ ⟨l, letters⟩ =
@@ -71,17 +97,22 @@ theorem timeScale_wordCoefficient (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (
     ring
   rw [Finset.prod_congr rfl (fun a ha => hfac a)]
 
+/-- The two padding coefficients are the opposite signed halves of the deficit from Taylor mass
+two. -/
 theorem timeCoeff_padding (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ) (b : Bool) :
     timeCoeff h τ M K (Sum.inr b) =
       ((if b then (2 - taylorS0 (timeScale h τ M) τ K) / 2
         else -(2 - taylorS0 (timeScale h τ M) τ K) / 2) : ℂ) := by
   cases b <;> rfl
 
+/-- The two padding coefficients sum to zero. -/
 theorem timeCoeff_padding_sum (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ) :
     timeCoeff h τ M K (Sum.inr false) + timeCoeff h τ M K (Sum.inr true) = 0 := by
   simp [timeCoeff]
   ring
 
+/-- For a positive grid size, the coefficient mass of `timeScale` multiplied by `M` equals the
+total absolute sampled coefficient mass. -/
 theorem timeScale_lambda (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (hM : 0 < M) :
     taylorLambda (timeScale h τ M) * (M : ℝ) =
       ∑ j : Fin M, ∑ m : J, |h (gridTime τ M j) m| := by
@@ -102,11 +133,15 @@ theorem timeScale_lambda (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (hM : 0 < 
   intro m _
   field_simp
 
+/-- The truncated mass for `timeScale` is the finite exponential sum in its coefficient mass
+times `|τ|`. -/
 theorem timeScale_s0 (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ) :
     taylorS0 (timeScale h τ M) τ K =
       ∑ l ∈ Finset.range (K + 1),
         (taylorLambda (timeScale h τ M) * |τ|) ^ l / l.factorial := rfl
 
+/-- A product over a time sequence equals the product over grid points with exponents given by
+their occurrence counts. -/
 theorem timeCount_prod {l M : ℕ} (f : Fin M → ℝ) (t : Fin l → Fin M) :
     (∏ a : Fin l, f (t a)) = ∏ j : Fin M, (f j) ^ (timeCount t j) := by
   classical
@@ -129,11 +164,15 @@ theorem timeCount_prod {l M : ℕ} (f : Fin M → ℝ) (t : Fin l → Fin M) :
   rw [hinner]
   rfl
 
+/-- Summing products of absolute weights over all length-`l` time sequences gives the `l`th
+power of the total absolute weight. -/
 theorem time_sum_prod_abs {M : ℕ} (f : Fin M → ℝ) (l : ℕ) :
     (∑ t : Fin l → Fin M, ∏ a, |f (t a)|) = (∑ j : Fin M, |f j|) ^ l := by
   have h := taylor_sum_prod_abs (J := Fin M) f l
   simpa [taylorLambda] using! h
 
+/-- The multiplicity of an element in a finite sum of multisets is the sum of its
+multiplicities. -/
 private theorem multiset_count_sum {ι α : Type} [DecidableEq α]
     (s : Finset ι) (f : ι → Multiset α) (a : α) :
     Multiset.count a (s.sum f) = s.sum (fun i => Multiset.count a (f i)) := by
@@ -143,6 +182,7 @@ private theorem multiset_count_sum {ι α : Type} [DecidableEq α]
   | @insert b s hb ih =>
       simp only [Finset.sum_insert hb, Multiset.count_add, ih]
 
+/-- The cardinality of a finite sum of multisets is the sum of their cardinalities. -/
 private theorem multiset_card_sum {ι α : Type}
     (s : Finset ι) (f : ι → Multiset α) :
     (s.sum f).card = s.sum (fun i => (f i).card) := by
@@ -152,6 +192,8 @@ private theorem multiset_card_sum {ι α : Type}
   | @insert b s hb ih =>
       simp only [Finset.sum_insert hb, Multiset.card_add, ih]
 
+/-- The multiset underlying the canonical time list is the sum of the prescribed repeated grid
+indices. -/
 theorem canonTimes_multiset {M : ℕ} (c : Fin M → ℕ) :
     ((canonTimes c : List (Fin M)) : Multiset (Fin M))
       = ∑ j : Fin M, Multiset.replicate (c j) j := by
@@ -172,11 +214,13 @@ theorem canonTimes_multiset {M : ℕ} (c : Fin M → ℕ) :
       = ∑ j : Fin M, Multiset.replicate (c j) j
   simpa [canonTimes, Multiset.coe_replicate] using! h
 
+/-- The length of the canonical time list is the sum of its prescribed multiplicities. -/
 theorem canonTimes_length {M : ℕ} (c : Fin M → ℕ) : (canonTimes c).length = ∑ j, c j := by
   classical
   rw [← Multiset.coe_card, canonTimes_multiset, multiset_card_sum (Finset.univ : Finset (Fin M))]
   simp only [Multiset.card_replicate]
 
+/-- Each grid index occurs in the canonical time list with exactly its prescribed multiplicity. -/
 theorem canonTimes_count {M : ℕ} (c : Fin M → ℕ) (j : Fin M) :
     Multiset.count j (↑(canonTimes c)) = c j := by
   classical
@@ -184,6 +228,7 @@ theorem canonTimes_count {M : ℕ} (c : Fin M → ℕ) (j : Fin M) :
   simp only [Multiset.count_replicate]
   simpa [eq_comm] using! (Fintype.sum_ite_eq j c)
 
+/-- The diagonal coefficient-phase gate for the time-grid encoding is unitary. -/
 theorem timePhaseGate_unitary (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ) :
     timePhaseGate h τ M K ∈ Matrix.unitaryGroup (TimeWordLabel J K M) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, timePhaseGate,
@@ -192,6 +237,7 @@ theorem timePhaseGate_unitary (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ) :
   funext x
   exact coefficientPhase_unit _
 
+/-- A length-`n` Taylor block list uses `n` queries and `2 * n` gates. -/
 private theorem timeBlockList_counts (M : ℕ) (j0 : Fin M × J) (K : ℕ) : ∀ (n : ℕ) (hn : n ≤ K),
     adjointQueryCount (taylorBlockList (I := I) j0 K n hn) = n ∧
     adjointGateCount (taylorBlockList (I := I) j0 K n hn) = 2 * n := by
@@ -208,6 +254,7 @@ private theorem timeBlockList_counts (M : ℕ) (j0 : Fin M × J) (K : ℕ) : ∀
       simp only [taylorQueryRouteStep, adjointQueryCount, adjointGateCount]
       exact ⟨by omega, by omega⟩
 
+/-- The time-grid LCU word uses `K` queries and `2 * K + 3` gates. -/
 theorem timeLCUWord_counts (h : ℝ → J → ℝ) (U : J → Matrix I I ℂ) (M : ℕ)
     (j0 : Fin M × J) (τ : ℝ) (K : ℕ) :
     adjointQueryCount (timeLCUWord h U M j0 τ K) = K ∧
@@ -223,19 +270,25 @@ theorem timeLCUWord_counts (h : ℝ → J → ℝ) (U : J → Matrix I I ℂ) (M
   simp only [adjointGateCount]
   simp
 
+/-- The query count of an instruction prepended to a circuit is the sum of the singleton and
+tail query counts. -/
 private theorem adjointQueryCount_cons {H : Type} (c : AdjointStep H) (cs : List (AdjointStep H)) :
     adjointQueryCount (c :: cs) = adjointQueryCount cs + adjointQueryCount [c] := by
   cases c <;> simp [adjointQueryCount]
 
+/-- The gate count of an instruction prepended to a circuit is the sum of the singleton and tail
+gate counts. -/
 private theorem adjointGateCount_cons {H : Type} (c : AdjointStep H) (cs : List (AdjointStep H)) :
     adjointGateCount (c :: cs) = adjointGateCount cs + adjointGateCount [c] := by
   cases c <;> simp [adjointGateCount]
 
+/-- Taking the adjoint of one instruction preserves its query and gate counts. -/
 private theorem adjointInstruction_counts {H : Type} (c : AdjointStep H) :
     adjointQueryCount [adjointInstruction c] = adjointQueryCount [c] ∧
     adjointGateCount [adjointInstruction c] = adjointGateCount [c] := by
   cases c <;> simp [adjointInstruction, adjointQueryCount, adjointGateCount]
 
+/-- Taking the adjoint of a circuit preserves its query and gate counts. -/
 private theorem adjointCircuit_counts {H : Type} (cs : List (AdjointStep H)) :
     adjointQueryCount (Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit cs) = adjointQueryCount cs ∧
     adjointGateCount (Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit cs) = adjointGateCount cs := by
@@ -246,6 +299,7 @@ private theorem adjointCircuit_counts {H : Type} (cs : List (AdjointStep H)) :
         simp [Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit, adjointInstruction,
             adjointQueryCount, adjointGateCount, ih]
 
+/-- The adjoint time-grid LCU word uses `K` queries and `2 * K + 3` gates. -/
 theorem timeLCUWord_inverse_counts (h : ℝ → J → ℝ) (U : J → Matrix I I ℂ) (M : ℕ)
     (j0 : Fin M × J) (τ : ℝ) (K : ℕ) :
     adjointQueryCount (Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit (timeLCUWord h U M j0 τ K)) = K ∧
@@ -254,6 +308,8 @@ theorem timeLCUWord_inverse_counts (h : ℝ → J → ℝ) (U : J → Matrix I I
   rw [hac.1, hac.2]
   exact timeLCUWord_counts h U M j0 τ K
 
+/-- For positive error tolerance and nonnegative coefficient, regularity, and time parameters,
+the chosen grid bounds `(2 * Λ² + L) * τ² / M` by the tolerance. -/
 theorem effectiveTimeGrid_budget (Λ L τ ε : ℝ) (hε : 0 < ε) (hΛ : 0 ≤ Λ)
     (hL : 0 ≤ L) (hτ : 0 ≤ τ) :
     (2 * Λ ^ 2 + L) * τ ^ 2 / (effectiveTimeGrid Λ L τ ε : ℝ) ≤ ε := by
@@ -283,11 +339,14 @@ theorem effectiveTimeGrid_budget (Λ L τ ε : ℝ) (hε : 0 < ε) (hΛ : 0 ≤ 
     field_simp
   linarith
 
+/-- The effective time-grid size is positive whenever the error tolerance is positive. -/
 theorem effectiveTimeGrid_pos (Λ L τ ε : ℝ) (hε : 0 < ε) :
     0 < effectiveTimeGrid Λ L τ ε := by
   simp only [effectiveTimeGrid]
   positivity
 
+/-- The canonical and noncanonical coefficient formulas, padding cancellation, mass identity,
+phase-gate unitarity, forward and adjoint counts, and effective grid budget hold together. -/
 theorem clause45_complete :
     (∀ (h : ℝ → J → ℝ) (τ : ℝ) (M K : ℕ) {l : Fin (K + 1)}
         {letters : Fin l.val → (Fin M × J)} (hc : timeCanonical letters),

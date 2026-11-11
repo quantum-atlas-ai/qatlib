@@ -8,6 +8,36 @@ import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
 import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
 import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
 import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+
+/-!
+# Certified QSP synthesis and flag semantics
+
+This module combines Jacobi-Anger truncation with rational phase synthesis for Hamiltonian
+simulation. The theorem `clause11` packages a corrected truncation count, even and odd
+approximating polynomials, certified phase data, coefficient-score stability, and legality of
+the computed trigonometric inputs. Its approximation setting follows [LowChuang2017]. The
+program `efficientInversion` reuses the output of `finitePhaseSynthesis` and supplies an
+explicit cost record checked by `efficientInversion_certified`.
+
+The remaining results verify the concrete register semantics of `identityFlagProgram`: an X gate
+sets the added success flag while preserving the system. This provides a direct check of the
+success-event, failure-probability, and conditional-state interfaces.
+
+## Main statements
+
+* `lcCorrectedQ_upper` bounds the corrected truncation count by eleven times the
+  time-and-logarithmic-accuracy expression.
+* `clause11` collects truncation, phase-synthesis, score-stability, and computed-input
+  guarantees.
+* `scoreStability'` bounds the change of the coefficient score by `inputCoefficientGap`.
+* `identityFlagProgram_semantics` proves legality, zero failure probability, and preservation of
+  every normalized system state.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,6 +76,8 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord
   Qatlib.Concepts.NativeNumerics.PhaseSynthesis Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The phase-inversion cost bound is at least `d + 1`, and hence at least `d`, for every degree
+and precision index. -/
 theorem costBound_dominates (d k : ℕ) :
     d + 1 ≤ phaseInversionCostBound d k ∧ d ≤ phaseInversionCostBound d k := by
   have hle : (d:ℕ) + 1 ≤ (d + 1) ^ 6 :=
@@ -76,6 +108,9 @@ theorem costBound_dominates (d k : ℕ) :
       _ ≤ 64 * ((d + 1) ^ 6 * (k + 2) ^ 4) := Nat.mul_le_mul_right _ h3
       _ = 64 * (d + 1) ^ 6 * (k + 2) ^ 4 := by ring
 
+/-- Returns the value produced by `finitePhaseSynthesis` with a cost record of `d + 1`
+coefficient visits and `d` response rounds. The recorded refinement-step and ring-operation
+counts are zero. -/
 def efficientInversion : PhaseInversionProgram := fun p d eps =>
   { value := (finitePhaseSynthesis p d eps).value
     cost := { refinementSteps := 0
@@ -83,6 +118,8 @@ def efficientInversion : PhaseInversionProgram := fun p d eps =>
               ringOperations := 0
               responseRounds := d } }
 
+/-- Every legal phase-inversion input receives the phase-data and cost-record certificate for
+`efficientInversion`. -/
 theorem efficientInversion_certified (p : List ℚ) (d : ℕ) (eps : ℚ)
     (hleg : PhaseInversionLegal p d eps) :
     PhaseInversionCertified efficientInversion p d eps := by
@@ -109,6 +146,8 @@ theorem efficientInversion_certified (p : List ℚ) (d : ℕ) (eps : ℚ)
       phaseInversionCostBound d (phaseToleranceBits eps)
     exact (costBound_dominates d (phaseToleranceBits eps)).2
 
+/-- The value accumulated by `scoreLoop` is the sum of the first `n` absolute differences
+between real response coefficients and target coefficients, using zero defaults. -/
 theorem scoreLoop_value (p : List ℚ) (coeffs : List GaussianRat) (n : ℕ) :
     (scoreLoop p coeffs n).1 = ∑ i ∈ Finset.range n,
       |(coeffs.getD i gzero).1 - p.getD i 0| := by
@@ -117,6 +156,8 @@ theorem scoreLoop_value (p : List ℚ) (coeffs : List GaussianRat) (n : ℕ) :
   | succ n ih =>
     rw [scoreLoop, Finset.sum_range_succ, ih]
 
+/-- Changing the target coefficients from `p` to `q` increases a fixed phase packet's score by
+at most `inputCoefficientGap p q d`. -/
 theorem scoreStability' (p q : List ℚ) (d : ℕ) (data : PhaseData) :
     (scoreData q d data).1.1 ≤ (scoreData p d data).1.1 + inputCoefficientGap p q d := by
   set coeffs := (responseData data.base data.phases).1.1
@@ -140,6 +181,9 @@ theorem scoreStability' (p q : List ℚ) (d : ℕ) (data : PhaseData) :
           + ∑ i ∈ Finset.range (d + 1), |p.getD i 0 - q.getD i 0| :=
         Finset.sum_add_distrib
 
+/-- For nonnegative time and accuracy in `(0, 1]`, bounds `lcCorrectedQ` by eleven times the
+stated time-and-logarithmic-accuracy expression. This makes the Jacobi-Anger truncation
+scale explicit in the setting of [LowChuang2017]. -/
 theorem lcCorrectedQ_upper (τ ε : ℝ) (hτ : 0 ≤ τ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     (lcCorrectedQ τ ε : ℝ) ≤
       11 * (τ + 1 +
@@ -189,6 +233,10 @@ theorem lcCorrectedQ_upper (τ ε : ℝ) (hτ : 0 ≤ τ) (hε : 0 < ε) (hε1 :
   unfold lcCorrectedQ
   exact hmaxle
 
+/-- Collects the corrected Jacobi-Anger count and polynomial approximation, existence of a
+certified phase-inversion program, coefficient-score stability, and legality of the computed
+cosine and sine inputs. The truncation component uses the QSP approximation framework of
+[LowChuang2017]. -/
 theorem clause11 :
 
   (∀ (τ ε : ℝ), 0 ≤ τ → 0 < ε → ε ≤ 1 →
@@ -303,6 +351,8 @@ theorem clause11 :
     have htol : 0 < computedSignalTolerance t k := hε
     refine ⟨⟨htol, hcd, hcp, hboundc⟩, htol, hsd, hsp, hbounds⟩
 
+/-- The single-X-gate flag program satisfies the gate-word, flag-index, and time-budget
+conditions of `SimulationLegal`. -/
 theorem identityFlagProgram_legal (m : ℕ) :
     SimulationLegal (identityFlagProgram m) := by
   show finiteWordLegal (m + 1) [FiniteGateCode.x m] = true ∧
@@ -310,6 +360,8 @@ theorem identityFlagProgram_legal (m : ℕ) :
   refine ⟨?_, by omega, by simp⟩
   simp [finiteWordLegal, finiteCodeLegal]
 
+/-- A cleanly embedded system state has zero amplitude on every register whose added flag is
+true. -/
 theorem systemInputState_zero_of_flag {m : ℕ} (ψ : QState (Reg m))
     (y : Reg (m + 1)) (hy : y ⟨m, Nat.lt_succ_self m⟩ = true) :
     systemInputState (Nat.le_succ m) ψ y = 0 := by
@@ -320,6 +372,8 @@ theorem systemInputState_zero_of_flag {m : ℕ} (ψ : QState (Reg m))
   rw [hy] at h
   simp at h
 
+/-- Flipping the last flag of a state supported on false-flag registers gives zero amplitude on
+false-flag outputs. -/
 theorem wireGate_mulVec_zero_of_flag_false {m : ℕ}
     (ψ' : QState (Reg (m + 1))) (z : Reg (m + 1))
     (hz : z ⟨m, Nat.lt_succ_self m⟩ = false)
@@ -342,22 +396,28 @@ theorem wireGate_mulVec_zero_of_flag_false {m : ℕ}
       norm_num
   · rw [if_neg hsupp, zero_mul]
 
+/-- Embeds an `m`-qubit basis register into `m + 1` qubits by preserving its system bits and
+setting the last flag to true. -/
 private def flagEmbed {m : ℕ} (x : Reg m) : Reg (m + 1) :=
   fun i => if h : i.1 < m then x ⟨i.1, h⟩ else true
 
+/-- Negates the last flag bit of an `m + 1`-qubit register and preserves every other bit. -/
 private def flagFlip {m : ℕ} (z : Reg (m + 1)) : Reg (m + 1) :=
   fun i => if i.1 = m then Bool.not (z i) else z i
 
+/-- Below the flag position, `flagEmbed` returns the corresponding original system bit. -/
 private theorem flagEmbed_apply_lt {m : ℕ} (x : Reg m) {i : Fin (m + 1)} (hi : i.1 < m) :
     flagEmbed x i = x ⟨i.1, hi⟩ := by
   show (if h : i.1 < m then x ⟨i.1, h⟩ else true) = x ⟨i.1, hi⟩
   rw [dif_pos hi]
 
+/-- The last flag bit of `flagEmbed x` is true. -/
 private theorem flagEmbed_apply_flag {m : ℕ} (x : Reg m) :
     flagEmbed x ⟨m, Nat.lt_succ_self m⟩ = true := by
   show (if h : m < m then x ⟨m, h⟩ else true) = true
   rw [dif_neg (Nat.lt_irrefl m)]
 
+/-- Restricting a flagged embedding to its system register recovers the original register. -/
 private theorem systemRestrict_flagEmbed {m : ℕ} (x : Reg m) :
     systemRestrict (Nat.le_succ m) (flagEmbed x) = x := by
   funext i
@@ -366,6 +426,8 @@ private theorem systemRestrict_flagEmbed {m : ℕ} (x : Reg m) :
   rw [flagEmbed_apply_lt _ hi]
   rfl
 
+/-- Every register with a true last flag is recovered by embedding its system restriction with
+that flag set to true. -/
 private theorem flagEmbed_of_eq {m : ℕ} (z : Reg (m + 1))
     (hz : z ⟨m, Nat.lt_succ_self m⟩ = true) :
     flagEmbed (systemRestrict (Nat.le_succ m) z) = z := by
@@ -381,11 +443,13 @@ private theorem flagEmbed_of_eq {m : ℕ} (z : Reg (m + 1))
     rw [hie]
     exact hz.symm
 
+/-- At the last flag position, `flagFlip` is Boolean negation. -/
 private theorem flagFlip_apply_flag {m : ℕ} (z : Reg (m + 1)) :
     flagFlip z ⟨m, Nat.lt_succ_self m⟩ = Bool.not (z ⟨m, Nat.lt_succ_self m⟩) := by
   show (if m = m then Bool.not (z ⟨m, Nat.lt_succ_self m⟩) else z ⟨m, Nat.lt_succ_self m⟩) = _
   rw [if_pos rfl]
 
+/-- The flag flip preserves each register bit away from the last flag position. -/
 private theorem flagFlip_apply_of_ne {m : ℕ} (z : Reg (m + 1)) {i : Fin (m + 1)}
     (hi : i ≠ (⟨m, Nat.lt_succ_self m⟩ : Fin (m + 1))) :
     flagFlip z i = z i := by
@@ -393,6 +457,7 @@ private theorem flagFlip_apply_of_ne {m : ℕ} (z : Reg (m + 1)) {i : Fin (m + 1
   show (if i.1 = m then Bool.not (z i) else z i) = z i
   rw [if_neg hi']
 
+/-- Flipping the last flag leaves the system restriction unchanged. -/
 private theorem systemRestrict_flagFlip {m : ℕ} (z : Reg (m + 1)) :
     systemRestrict (Nat.le_succ m) (flagFlip z) = systemRestrict (Nat.le_succ m) z := by
   funext i
@@ -405,6 +470,8 @@ private theorem systemRestrict_flagFlip {m : ℕ} (z : Reg (m + 1)) :
     omega
   exact flagFlip_apply_of_ne z hi
 
+/-- Execution of the identity flag program equals matrix-vector multiplication by Pauli X on the
+last wire. -/
 private theorem identityFlagProgram_runState_eq (m : ℕ) (ψ : QState (Reg (m + 1))) :
     simulationRunState (identityFlagProgram m) ψ
       = (wireGate (m + 1) ⟨m, Nat.lt_succ_self m⟩ PauliX).mulVec ψ := by
@@ -419,6 +486,8 @@ private theorem identityFlagProgram_runState_eq (m : ℕ) (ψ : QState (Reg (m +
   rw [hmat]
   rfl
 
+/-- The amplitude after Pauli X on the last wire equals the input amplitude at the register with
+that flag flipped. -/
 private theorem wireGate_pauliX_mulVec_apply {m : ℕ} (ψ' : QState (Reg (m + 1)))
     (z : Reg (m + 1)) :
     (Matrix.mulVec (wireGate (m + 1) ⟨m, Nat.lt_succ_self m⟩ PauliX) ψ') z
@@ -469,6 +538,8 @@ private theorem wireGate_pauliX_mulVec_apply {m : ℕ} (ψ' : QState (Reg (m + 1
     rw [h1, if_pos rfl]
   rw [hrew, hsum]
 
+/-- On a true-flag output register, the identity flag program applied to a clean input has the
+original amplitude at the system restriction. -/
 private theorem identityFlagProgram_runState_apply (m : ℕ) (ψ : QState (Reg m))
     (z : Reg (m + 1)) (hz : z ⟨m, Nat.lt_succ_self m⟩ = true) :
     simulationRunState (identityFlagProgram m) (systemInputState (Nat.le_succ m) ψ) z
@@ -487,6 +558,8 @@ private theorem identityFlagProgram_runState_apply (m : ℕ) (ψ : QState (Reg m
       = ψ (systemRestrict (Nat.le_succ m) z)
   rw [if_pos hwork, systemRestrict_flagFlip]
 
+/-- The success event of the identity flag program consists exactly of registers with a true
+last flag. -/
 private theorem identityFlagProgram_successEvent (m : ℕ) :
     simulationSuccessEvent (identityFlagProgram m)
       = Finset.univ.filter (fun z : Reg (m + 1) => z ⟨m, Nat.lt_succ_self m⟩ = true) := by
@@ -494,6 +567,8 @@ private theorem identityFlagProgram_successEvent (m : ℕ) :
       = Finset.univ.filter (fun z : Reg (m + 1) => z ⟨m, Nat.lt_succ_self m⟩ = true)
   rw [dif_pos (Nat.lt_succ_self m)]
 
+/-- Membership in the identity flag program's success event is equivalent to the last flag being
+true. -/
 private theorem mem_identityFlagProgram_successEvent {m : ℕ} (z : Reg (m + 1)) :
     z ∈ simulationSuccessEvent (identityFlagProgram m) ↔ z ⟨m, Nat.lt_succ_self m⟩ = true := by
   constructor
@@ -504,6 +579,8 @@ private theorem mem_identityFlagProgram_successEvent {m : ℕ} (z : Reg (m + 1))
     rw [identityFlagProgram_successEvent]
     exact Finset.mem_filter.mpr ⟨Finset.mem_univ z, h⟩
 
+/-- The identity flag program has zero failure probability on every cleanly embedded system
+input. -/
 private theorem identityFlagProgram_failureProb_zero (m : ℕ) (ψ : QState (Reg m)) :
     simulationFailureProb (identityFlagProgram m) (systemInputState (Nat.le_succ m) ψ) = 0 := by
   show MeasureProb (simulationRunState (identityFlagProgram m) (systemInputState (Nat.le_succ m) ψ))
@@ -527,6 +604,8 @@ private theorem identityFlagProgram_failureProb_zero (m : ℕ) (ψ : QState (Reg
   rw [hrun0]
   simp
 
+/-- The residual-work-zero condition holds for every register of the identity flag program,
+since its sole extra wire is the success flag. -/
 private theorem residualZero_identityFlagProgram {m : ℕ} (z : Reg (m + 1)) :
     residualZero m (identityFlagProgram m).successWire z := by
   show ∀ i : Fin (m + 1), m ≤ i.1 → i.1 ≠ (identityFlagProgram m).successWire → z i = false
@@ -534,6 +613,8 @@ private theorem residualZero_identityFlagProgram {m : ℕ} (z : Reg (m + 1)) :
   have : i.1 = m := by omega
   exact absurd this hne
 
+/-- Extracting the successful system vector after the identity flag program recovers the input
+vector exactly. -/
 private theorem identityFlagProgram_successSystemVector (m : ℕ) (ψ : QState (Reg m)) :
     successSystemVector (identityFlagProgram m) m (Nat.le_succ m) ψ = ψ := by
   funext x
@@ -582,6 +663,8 @@ private theorem identityFlagProgram_successSystemVector (m : ℕ) (ψ : QState (
         else 0) = ψ x
   exact h1.trans h2
 
+/-- For a normalized input, the conditional system state of the identity flag program equals the
+original state. -/
 private theorem identityFlagProgram_conditionalSystemState (m : ℕ) (ψ : QState (Reg m))
     (hψ : Normalized ψ) :
     conditionalSystemState (identityFlagProgram m) m (Nat.le_succ m) ψ = ψ := by
@@ -596,6 +679,8 @@ private theorem identityFlagProgram_conditionalSystemState (m : ℕ) (ψ : QStat
   rw [hnorm, hvec]
   rw [inv_one, one_smul]
 
+/-- For every normalized system state, the identity flag program is legal, has zero failure
+probability, and preserves the conditional system state. -/
 theorem identityFlagProgram_semantics :
     ∀ (m : ℕ) (ψ : QState (Reg m)), Normalized ψ →
       SimulationLegal (identityFlagProgram m) ∧

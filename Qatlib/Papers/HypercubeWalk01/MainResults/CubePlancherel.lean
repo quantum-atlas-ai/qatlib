@@ -9,6 +9,25 @@ import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
+
+/-!
+# Plancherel identities for the hypercube
+
+This module establishes dual character orthogonality and Plancherel identities for the Fourier
+convention used in [MooreRussell2001]. It bounds squared total variation by nonempty squared
+Fourier coefficients and groups subset sums by cardinality.
+
+## Main statements
+
+* `sum_fourierCoeff_mul`: proves the bilinear Plancherel identity.
+* `tvDist_sq_le`: bounds squared distance from uniform for a function of total mass one.
+* `sum_by_card_nonempty`: rewrites nonempty-subset sums using binomial coefficients.
+
+## References
+
+* [Moore and Russell, 2001][MooreRussell2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,8 +40,10 @@ open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 namespace Qatlib.Papers.HypercubeWalk01.MainResults
 
+/-- The cube vertex whose coordinates are all true. -/
 def allTrue (n : ℕ) : Cube n := fun _ => true
 
+/-- The sum of all subset characters at `z` is `2 ^ n` if `z = allTrue n` and zero otherwise. -/
 theorem sum_chi_all (n : ℕ) (z : Cube n) :
     (∑ S : Finset (Fin n), chi S z) = if z = allTrue n then (2 : ℝ) ^ n else 0 := by
   classical
@@ -58,6 +79,7 @@ theorem sum_chi_all (n : ℕ) (z : Cube n) :
       rw [hi]; norm_num
     exact Finset.prod_eq_zero (Finset.mem_univ i) hif
 
+/-- Summing `chi S x * chi S y` over subsets gives `2 ^ n` for `x = y` and zero otherwise. -/
 theorem sum_chi_mul_dual {n : ℕ} (x y : Cube n) :
     (∑ S : Finset (Fin n), chi S x * chi S y) = if x = y then (2 : ℝ) ^ n else 0 := by
   classical
@@ -79,15 +101,20 @@ theorem sum_chi_mul_dual {n : ℕ} (x y : Cube n) :
       simp [allTrue]
   rw [sum_chi_all, if_congr heq rfl rfl]
 
+/-- The Fourier coefficient of a pointwise difference is the difference of the Fourier
+coefficients. -/
 theorem fourierCoeff_sub {n : ℕ} (P Q : Cube n → ℝ) (S : Finset (Fin n)) :
     fourierCoeff (fun x => P x - Q x) S = fourierCoeff P S - fourierCoeff Q S := by
   simp only [fourierCoeff, sub_mul, Finset.sum_sub_distrib]
 
+/-- The Fourier coefficient of the constant function `c` is `c` times the sum of the
+corresponding character. -/
 theorem fourierCoeff_const {n : ℕ} (c : ℝ) (S : Finset (Fin n)) :
     fourierCoeff (fun _ : Cube n => c) S = c * (∑ x : Cube n, chi S x) := by
   simp only [fourierCoeff]
   rw [Finset.mul_sum]
 
+/-- The uniform mass function has coefficient one at the empty subset and zero elsewhere. -/
 theorem fourierCoeff_uniform {n : ℕ} (S : Finset (Fin n)) :
     fourierCoeff (fun _ : Cube n => uniformMass n) S = if S = ∅ then 1 else 0 := by
   rw [fourierCoeff_const]
@@ -105,6 +132,8 @@ theorem fourierCoeff_uniform {n : ℕ} (S : Finset (Fin n)) :
     have hne : S.Nonempty := Finset.nonempty_iff_ne_empty.mpr hS
     rw [sum_chi_eq_zero hne, mul_zero]
 
+/-- The sum of products of matching Fourier coefficients equals `2 ^ n` times the pointwise
+inner-product sum. -/
 theorem sum_fourierCoeff_mul {n : ℕ} (P Q : Cube n → ℝ) :
     (∑ S : Finset (Fin n), fourierCoeff P S * fourierCoeff Q S)
       = (2 : ℝ) ^ n * ∑ x, P x * Q x := by
@@ -149,20 +178,26 @@ theorem sum_fourierCoeff_mul {n : ℕ} (P Q : Cube n → ℝ) :
   · intro hx
     exact absurd (Finset.mem_univ x) hx
 
+/-- The sum of squared Fourier coefficients equals `2 ^ n` times the sum of squared function
+values. -/
 theorem sum_fourierCoeff_sq {n : ℕ} (P : Cube n → ℝ) :
     (∑ S : Finset (Fin n), (fourierCoeff P S) ^ 2)
       = (2 : ℝ) ^ n * ∑ x, (P x) ^ 2 := by
   have h := sum_fourierCoeff_mul P P
   simpa [pow_two] using h
 
+/-- The Boolean cube of dimension `n` has `2 ^ n` vertices. -/
 theorem card_cube (n : ℕ) : Fintype.card (Cube n) = 2 ^ n := by
   rw [Fintype.card_fun]
   simp
 
+/-- The Fourier coefficient at the empty subset is the total sum of the function. -/
 theorem fourierCoeff_empty {n : ℕ} (P : Cube n → ℝ) :
     fourierCoeff P (∅ : Finset (Fin n)) = ∑ x, P x := by
   simp [fourierCoeff, chi, cubeChar]
 
+/-- For a real function of total mass one, squared distance from uniform is at most one quarter
+of the sum of squared nonempty Fourier coefficients. -/
 theorem tvDist_sq_le {n : ℕ} (P : Cube n → ℝ) (hP : ∑ x, P x = 1) :
     (tvDist P) ^ 2 ≤ (1 / 4) * ∑ S ∈ Finset.univ.erase (∅ : Finset (Fin n)),
         (fourierCoeff P S) ^ 2 := by
@@ -224,6 +259,8 @@ theorem tvDist_sq_le {n : ℕ} (P : Cube n → ℝ) (hP : ∑ x, P x = 1) :
         have h2 : (2 : ℝ) ^ n ≠ 0 := by positivity
         field_simp
 
+/-- A sum over all subsets of a function of subset cardinality equals the corresponding
+binomially weighted sum over cardinalities from zero to `n`. -/
 theorem sum_by_card {n : ℕ} (g : ℕ → ℝ) :
     (∑ S : Finset (Fin n), g S.card)
       = ∑ k ∈ Finset.range (n + 1), (Nat.choose n k : ℝ) * g k := by
@@ -234,6 +271,8 @@ theorem sum_by_card {n : ℕ} (g : ℕ → ℝ) :
   rw [hunivp, Finset.sum_powerset_apply_card]
   simp [Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- A sum over nonempty subsets of a function of cardinality equals the binomially weighted sum
+over cardinalities from one to `n`. -/
 theorem sum_by_card_nonempty {n : ℕ} (g : ℕ → ℝ) :
     (∑ S ∈ Finset.univ.erase (∅ : Finset (Fin n)), g S.card)
       = ∑ k ∈ Finset.range n, (Nat.choose n (k + 1) : ℝ) * g (k + 1) := by

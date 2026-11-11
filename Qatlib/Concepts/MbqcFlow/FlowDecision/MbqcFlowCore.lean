@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Correctness of finite MBQC flow search
+
+This module proves that `mbqcFlowDecide` succeeds exactly when `MbqcHasFlow` holds, using
+predecessor cardinalities to turn a finite strict order into finite ranks. The causal flow
+conditions are those used for deterministic one-way computation [DanosKashefi2006].
+
+It also proves soundness of `mbqcGFlowDecide`, supplies rank witnesses under additional forward
+or total-order hypotheses, and constructs causal local Pauli corrections.
+`clause6Aux_clause4_branchObligation` names the separate branch-equality proposition; the
+correction theorem establishes Pauli membership and causality.
+
+## Main statements
+
+* `clause6_clause3a`: soundness and completeness of the causal flow search.
+* `clause6_clause3b_sound`: soundness of the generalized-flow search.
+* `clause6Aux_check_of_totalPrec`: a rank witness under the stated total-order hypotheses.
+* `clause6_clause4_pauli_causal`: causal local Pauli corrections for a returned flow witness.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+* [Browne et al., 2007][BrowneEtAl2007]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -22,12 +48,15 @@ open Qatlib.Concepts.ChannelTheory.Stinespring
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 
+/-- The local correction whose `X` factor is triggered by a true outcome mapped to `u` and whose
+`Z` factor is triggered by a true outcome mapped to a neighbor of `u` other than its source. -/
 noncomputable def flowCorrection {n : ℕ} (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (s : Fin n → Bool) (u : Fin n) : Operator 2 :=
   (if ∃ v : Fin n, s v = true ∧ f v = some u then pauliX else (1 : Operator 2)) *
     (if ∃ v w : Fin n, s v = true ∧ f v = some w ∧ u ≠ v ∧ mbqcAdj G w u then pauliZ
       else (1 : Operator 2))
 
+/-- Every `flowCorrection` is one of the four operators specified by `MbqcPauliWire`. -/
 theorem flowCorrection_pauliWire {n : ℕ} (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (s : Fin n → Bool) (u : Fin n) :
     MbqcPauliWire (flowCorrection G f s u) := by
@@ -46,6 +75,8 @@ theorem flowCorrection_pauliWire {n : ℕ} (G : MbqcGraph n) (f : Fin n → Opti
     · rw [if_neg hz, one_mul]
       exact Or.inl rfl
 
+/-- If all correction dependencies satisfy the stated F2 and F3 order conditions,
+`flowCorrection` depends only on preceding outcomes. -/
 theorem flowCorrection_causal {n : ℕ} (G : MbqcGraph n)
     (f : Fin n → Option (Fin n)) (prec : Fin n → Fin n → Prop)
     (hF2 : ∀ v u : Fin n, f v = some u → prec v u)
@@ -81,6 +112,8 @@ theorem flowCorrection_causal {n : ℕ} (G : MbqcGraph n)
       exact hv
   rw [if_congr hx (by rfl) (by rfl), if_congr hz (by rfl) (by rfl)]
 
+/-- A successful flow check places each non-output vertex strictly before its selected image in
+the rank order. -/
 theorem flow_F2_of_check {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (f : Fin n → Option (Fin n)) (r : Fin n → Fin n)
     (h : mbqcFlowCheck G I O f r) (v u : Fin n) (hv : v ∉ O) (hf : f v = some u) :
@@ -90,6 +123,8 @@ theorem flow_F2_of_check {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
   cases hfw
   exact hprec
 
+/-- A successful flow check places each non-output vertex strictly before every other neighbor
+of its selected image. -/
 theorem flow_F3_of_check {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (f : Fin n → Option (Fin n)) (r : Fin n → Fin n)
     (h : mbqcFlowCheck G I O f r) (v w u : Fin n) (hv : v ∉ O) (hf : f v = some w)
@@ -101,6 +136,7 @@ theorem flow_F3_of_check {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 
+/-- Strict comparison of finite ranks defines a strict order on the vertices. -/
 private theorem rankPrec_isStrictOrder {n : ℕ} (r : Fin n → Fin n) :
     IsStrictOrder (Fin n) (mbqcRankPrec r) where
   irrefl x h := by
@@ -110,6 +146,7 @@ private theorem rankPrec_isStrictOrder {n : ℕ} (r : Fin n → Fin n) :
     simp only [mbqcRankPrec] at h1 h2
     exact Nat.lt_trans h1 h2
 
+/-- For an irreflexive relation on `Fin n`, every vertex has fewer than `n` predecessors. -/
 private theorem predCard_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x) (v : Fin n) :
     (Finset.univ.filter (fun u => prec u v)).card < n := by
@@ -122,10 +159,14 @@ private theorem predCard_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
   have := Finset.card_lt_card hss
   rwa [Finset.card_univ, Fintype.card_fin] at this
 
+/-- The finite rank of a vertex given by the number of its predecessors in an irreflexive
+relation. -/
 private noncomputable def predRank {n : ℕ} (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x) (v : Fin n) : Fin n :=
   ⟨(Finset.univ.filter (fun u => prec u v)).card, predCard_lt prec hirr v⟩
 
+/-- For an irreflexive transitive relation, the predecessor-count rank strictly increases along
+every related pair. -/
 private theorem predRank_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x)
     (htrans : ∀ (a b c : Fin n), prec a b → prec b c → prec a c)
@@ -155,6 +196,8 @@ private theorem predRank_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
   simp only [predRank]
   exact hlt
 
+/-- A Boolean list search returns a value exactly when some element of the list satisfies its
+predicate. -/
 private theorem find_isSome_iff_exists {α : Type} (p : α → Bool) (l : List α) :
     (List.find? p l).isSome = true ↔ ∃ x ∈ l, p x = true := by
   constructor
@@ -166,6 +209,8 @@ private theorem find_isSome_iff_exists {α : Type} (p : α → Bool) (l : List �
     | none => exact absurd hp (List.find?_eq_none.mp hfind x hx)
     | some a => simp
 
+/-- The finite flow search succeeds exactly when the open graph possesses a causal flow in the
+sense of `MbqcHasFlow`. The flow conditions follow [DanosKashefi2006]. -/
 theorem clause6_clause3a :
     ∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)),
       (mbqcFlowDecide G I O).isSome = true ↔ MbqcHasFlow G I O := by
@@ -204,11 +249,15 @@ theorem clause6_clause3a :
     rw [hform, find_isSome_iff_exists]
     exact ⟨(f, predRank prec hirr), hp, hdec⟩
 
+/-- The propositional plane condition holds exactly when its Boolean form evaluates to true on
+the decisions of the two propositions. -/
 private theorem gflow_plane_iff_gen (p : MbqcPlane) {mem odd : Prop}
     [Decidable mem] [Decidable odd] :
     mbqcGFlowPlaneCond p mem odd ↔ mbqcGFlowPlaneCondB p (decide mem) (decide odd) = true := by
   cases p <;> simp [mbqcGFlowPlaneCond, mbqcGFlowPlaneCondB]
 
+/-- At a vertex, the propositional generalized-flow plane condition agrees with its Boolean test
+for correction-set and odd-neighborhood membership. -/
 private theorem gflow_plane_iff {n : ℕ} (lam : Fin n → MbqcPlane)
     (g : Fin n → Finset (Fin n)) (G : MbqcGraph n) (v : Fin n) :
     mbqcGFlowPlaneCond (lam v) (v ∈ g v) (v ∈ mbqcOdd G (g v))
@@ -216,6 +265,8 @@ private theorem gflow_plane_iff {n : ℕ} (lam : Fin n → MbqcPlane)
         = true :=
   gflow_plane_iff_gen (lam v)
 
+/-- If the finite generalized-flow search succeeds, the graph satisfies `MbqcHasGFlow` for the
+given input set, output set, and plane assignment; compare [BrowneEtAl2007]. -/
 theorem clause6_clause3b_sound :
     ∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)) (lam : Fin n → MbqcPlane),
       (mbqcGFlowDecide G I O lam).isSome = true → MbqcHasGFlow G I O lam := by
@@ -246,6 +297,8 @@ open scoped Classical
 set_option maxHeartbeats 400000
 set_option linter.unusedSimpArgs false
 
+/-- For an irreflexive relation on `Fin n`, the predecessor set of any vertex has cardinality
+less than `n`. -/
 theorem clause6Aux_predCard_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x) (v : Fin n) :
     (Finset.univ.filter (fun u => prec u v)).card < n := by
@@ -258,10 +311,13 @@ theorem clause6Aux_predCard_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
   have := Finset.card_lt_card hss
   rwa [Finset.card_univ, Fintype.card_fin] at this
 
+/-- The finite predecessor-count rank associated with an irreflexive vertex relation. -/
 noncomputable def clause6Aux_predRank {n : ℕ} (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x) (v : Fin n) : Fin n :=
   ⟨(Finset.univ.filter (fun u => prec u v)).card, clause6Aux_predCard_lt prec hirr v⟩
 
+/-- For an irreflexive transitive relation, `clause6Aux_predRank` strictly increases along every
+related pair. -/
 theorem clause6Aux_predRank_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x)
     (htrans : ∀ (a b c : Fin n), prec a b → prec b c → prec a c)
@@ -291,6 +347,8 @@ theorem clause6Aux_predRank_lt {n : ℕ} (prec : Fin n → Fin n → Prop)
   simp only [clause6Aux_predRank]
   exact hlt
 
+/-- A propositional generalized-flow plane condition implies that its Boolean test evaluates to
+true. -/
 theorem clause6Aux_planeCond_to_planeCondB {p : MbqcPlane} {mem odd : Prop} [Decidable mem]
     [Decidable odd] (h : mbqcGFlowPlaneCond p mem odd) :
     mbqcGFlowPlaneCondB p (decide mem) (decide odd) = true := by
@@ -305,6 +363,9 @@ theorem clause6Aux_planeCond_to_planeCondB {p : MbqcPlane} {mem odd : Prop} [Dec
     rw [decide_eq_true h1, decide_eq_false h2]
     decide
 
+/-- Correction sets and an irreflexive transitive relation satisfying input exclusion, forward
+correction dependencies, forward odd-neighborhood dependencies, and plane conditions pass
+the generalized-flow check with predecessor-count ranks. -/
 theorem clause6Aux_check_predRank_of_forwardOdd {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (lam : Fin n → MbqcPlane) (g : Fin n → Finset (Fin n)) (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x)
@@ -329,6 +390,9 @@ theorem clause6Aux_check_predRank_of_forwardOdd {n : ℕ} (G : MbqcGraph n) (I O
       omega
   · exact clause6Aux_planeCond_to_planeCondB (hC v hv)
 
+/-- If distinct vertices are comparable and earlier vertices are excluded from the odd
+neighborhood, each odd-neighborhood vertex is either the measured vertex itself or a later
+vertex. -/
 theorem clause6Aux_forwardOdd_of_totalPrec {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (g : Fin n → Finset (Fin n)) (prec : Fin n → Fin n → Prop)
     (htot : ∀ u v : Fin n, u ≠ v → prec u v ∨ prec v u)
@@ -341,6 +405,9 @@ theorem clause6Aux_forwardOdd_of_totalPrec {n : ℕ} (G : MbqcGraph n) (O : Fins
     · exact (hG2 v hv u hdown hu).elim
     · exact Or.inr hup
 
+/-- Under an irreflexive transitive relation comparing distinct vertices, the stated input,
+correction, odd-neighborhood, and plane conditions yield a rank assignment passing the
+generalized-flow check. -/
 theorem clause6Aux_check_of_totalPrec {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (lam : Fin n → MbqcPlane) (g : Fin n → Finset (Fin n)) (prec : Fin n → Fin n → Prop)
     (hirr : ∀ x : Fin n, ¬ prec x x)
@@ -355,10 +422,14 @@ theorem clause6Aux_check_of_totalPrec {n : ℕ} (G : MbqcGraph n) (I O : Finset 
   ⟨clause6Aux_predRank prec hirr, clause6Aux_check_predRank_of_forwardOdd G I O lam g prec hirr htrans
     hG0 hG1 (fun _ hv _ hu => clause6Aux_forwardOdd_of_totalPrec G O g prec htot hG2 hv hu) hC⟩
 
+/-- Replaces the flow map by `none` on output vertices and preserves it on every other vertex. -/
 def clause6Aux_outMaskedFlow {n : ℕ} (f : Fin n → Option (Fin n)) (O : Finset (Fin n)) :
     Fin n → Option (Fin n) :=
   fun v => if v ∈ O then none else f v
 
+/-- Whenever the finite flow search returns a witness, there exists a correction family
+consisting of local Pauli operators and depending only on outcomes earlier in the returned
+rank order. -/
 theorem clause6_clause4_pauli_causal :
     ∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)) (_a : Fin n → ℝ),
       match mbqcFlowDecide G I O with
@@ -398,6 +469,8 @@ theorem clause6_clause4_pauli_causal :
         · have hf' : f v = some w := by simpa [clause6Aux_outMaskedFlow, hv] using hf
           exact flow_F3_of_check G I O f r hcheck v w u hv hf' hne hadj
 
+/-- The proposition that a successful flow search gives equal XY-pattern branches on all density
+inputs when using the output-masked flow corrections. -/
 def clause6Aux_clause4_branchObligation : Prop :=
   ∀ (n : ℕ) (G : MbqcGraph n) (I O : Finset (Fin n)) (a : Fin n → ℝ),
     match mbqcFlowDecide G I O with

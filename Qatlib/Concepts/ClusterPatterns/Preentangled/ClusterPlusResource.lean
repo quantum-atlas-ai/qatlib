@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.PlusResource
+
+/-!
+# Plus-resource preparation interface
+
+This module exposes plus-resource state preparation through the preentangled cluster-pattern
+namespace. The three results provide exact four-step reachability, branch amplitudes and costs,
+and reduced branch densities for any normalized qubit vector, following the resource viewpoint
+of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_plus_any_state`: exact four-step preparation of any normalized qubit vector.
+* `cluster_plus_full_scheme`: preparation with branch semantics and resource counts.
+* `cluster_plus_output_density`: reduced densities and branch masses.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,12 +44,16 @@ namespace Qatlib.Concepts.ClusterPatterns.Preentangled
 open Matrix Qatlib
 open scoped ComplexOrder
 
+/-- Every normalized qubit vector is reached exactly from the plus state by four cluster steps
+with unit-modulus parameters. See [RaussendorfBriegel2000]. -/
 theorem cluster_plus_any_state :
     ∀ φ : QState (Fin 2), (∑ i : Fin 2, ‖φ i‖ * ‖φ i‖) = 1 →
       ∃ zs : List ℂ, zs.length = 4 ∧ (∀ z ∈ zs, ‖z‖ = 1) ∧
         clusterSequenceUnitary zs *ᵥ clusterPlusState = φ :=
   cluster_plus_word_surjectivity
 
+/-- Every normalized qubit vector has a four-step plus-resource preparation with explicit branch
+amplitudes and exact acceptance and resource counts. See [RaussendorfBriegel2000]. -/
 theorem cluster_plus_full_scheme :
     ∀ φ : QState (Fin 2), (∑ i : Fin 2, ‖φ i‖ * ‖φ i‖) = 1 →
       ∃ zs : List ℂ, zs.length = 4 ∧ (∀ z ∈ zs, ‖z‖ = 1) ∧
@@ -45,6 +69,9 @@ theorem cluster_plus_full_scheme :
           (observedLeaf 1 (clusterSequenceProgram zs) (clusterSequenceLeaf zs ω)).gates = 6 * zs.length - 1) :=
   cluster_plus_resource_preparation
 
+/-- Every normalized qubit vector has a four-step plus-resource preparation with its outer
+product as the reduced branch density up to the prescribed scalar, and branch mass `1 / 16`.
+See [RaussendorfBriegel2000]. -/
 theorem cluster_plus_output_density :
     ∀ φ : QState (Fin 2), (∑ i : Fin 2, ‖φ i‖ * ‖φ i‖) = 1 →
       ∃ zs : List ℂ, zs.length = 4 ∧ (∀ z ∈ zs, ‖z‖ = 1) ∧

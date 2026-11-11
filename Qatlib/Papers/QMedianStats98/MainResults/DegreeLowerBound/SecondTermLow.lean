@@ -8,6 +8,29 @@ import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.GridMarkov
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# The second degree term under a bounded interval norm
+
+This module proves the bounded-norm case of the second approximate-degree term in [NayakWu1998].
+The selected weight `mIndex` is the one farther from `n/2`, matching the real-valued `mSelect`
+used in the lower-bound expression.
+
+A mean-value argument locates a large derivative between the two normalized weight nodes. The
+algebraic Bernstein inequality and the identity for `1 - sourceGrid(n, k)²` then give
+`sqrt(m*(n-m)) / (6*Δ) ≤ d` when the polynomial has interval norm at most two.
+
+## Main statements
+
+- `mSelect_eq_mIndex`: identifies the integer and real selections of the farther weight.
+- `exists_deriv_ge_of_gap`: obtains an interior derivative lower bound from a value gap.
+- `source_second_term_low`: establishes the second degree term in the bounded-norm case.
+
+## References
+
+[Nayak and Wu, 1998][NayakWu1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,14 +41,19 @@ namespace Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound
 open Qatlib.Papers.QMedianStats98.MainResults.Model
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- Selects the weight among `lo` and `hi` that is farther from `n/2`, choosing `lo` when the
+distances are equal. -/
 def mIndex (n lo hi : ℕ) : ℕ :=
   if |(n : ℝ) / 2 - (lo : ℝ)| ≥ |(n : ℝ) / 2 - (hi : ℝ)| then lo else hi
 
+/-- The real-valued selection `mSelect n lo hi` is the real cast of the integer selection
+`mIndex n lo hi`. -/
 theorem mSelect_eq_mIndex (n lo hi : ℕ) :
     mSelect n lo hi = (mIndex n lo hi : ℝ) := by
   unfold mSelect mIndex
   split <;> rfl
 
+/-- For `n > 0`, the absolute normalized weight is `(2/n) * |k - n/2|`. -/
 theorem sourceGrid_abs_eq {n k : ℕ} (hn : 0 < n) :
     |sourceGrid n k| = (2 / (n : ℝ)) * |(k : ℝ) - (n : ℝ) / 2| := by
   have hnR : (0 : ℝ) < n := by exact_mod_cast hn
@@ -35,6 +63,8 @@ theorem sourceGrid_abs_eq {n k : ℕ} (hn : 0 < n) :
     field_simp
   rw [h, abs_mul, abs_of_pos (by positivity : (0 : ℝ) < 2 / (n : ℝ))]
 
+/-- For `n > 0`, both normalized endpoint magnitudes are bounded by the magnitude at the
+selected weight `mIndex n lo hi`. -/
 theorem sourceGrid_abs_le_mIndex {n lo hi : ℕ} (hn : 0 < n) :
     |sourceGrid n lo| ≤ |sourceGrid n (mIndex n lo hi)| ∧
       |sourceGrid n hi| ≤ |sourceGrid n (mIndex n lo hi)| := by
@@ -58,6 +88,8 @@ theorem sourceGrid_abs_le_mIndex {n lo hi : ℕ} (hn : 0 < n) :
       exact le_of_lt hlt
     · exact le_refl _
 
+/-- For `n > 0` and `k ≤ n`, the identity `1 - sourceGrid(n, k)² = (4/n²) * k * (n - k)` holds
+over the reals. -/
 theorem sourceGrid_sq_complement {n k : ℕ} (hn : 0 < n) (_hk : k ≤ n) :
     1 - (sourceGrid n k) ^ 2 =
       (4 / (n : ℝ) ^ 2) * ((k : ℝ) * ((n : ℝ) - (k : ℝ))) := by
@@ -66,10 +98,14 @@ theorem sourceGrid_sq_complement {n k : ℕ} (hn : 0 < n) (_hk : k ≤ n) :
   field_simp
   ring
 
+/-- If both candidate weights are at most `n`, then the selected weight `mIndex n lo hi` is also
+at most `n`. -/
 theorem mIndex_le {n lo hi : ℕ} (hl : lo ≤ n) (hh : hi ≤ n) : mIndex n lo hi ≤ n := by
   unfold mIndex
   split <;> assumption
 
+/-- The absolute value of a point strictly between real endpoints `p` and `q` is at most `max
+|p| |q|`. -/
 theorem abs_le_max_of_mem_Ioo {a p q : ℝ} (ha : a ∈ Set.Ioo p q) :
     |a| ≤ max |p| |q| := by
   rcases lt_or_ge a 0 with h0 | h0
@@ -86,6 +122,8 @@ theorem abs_le_max_of_mem_Ioo {a p q : ℝ} (ha : a ∈ Set.Ioo p q) :
       linarith
     exact (abs_of_nonneg h0).trans_le (hle.trans (le_max_right _ _))
 
+/-- If `u < v` and a polynomial has endpoint value difference at least `g`, some point strictly
+between `u` and `v` has derivative magnitude at least `g / (v - u)`. -/
 theorem exists_deriv_ge_of_gap {q : Polynomial ℝ} {u v g : ℝ}
     (huv : u < v) (hgap : g ≤ |q.eval v - q.eval u|) :
     ∃ a ∈ Set.Ioo u v, g / (v - u) ≤ |q.derivative.eval a| := by
@@ -99,6 +137,10 @@ theorem exists_deriv_ge_of_gap {q : Polynomial ℝ} {u v g : ℝ}
   rw [hdv, abs_div, abs_of_pos (sub_pos.mpr huv)]
   exact div_le_div_of_nonneg_right hgap (sub_pos.mpr huv).le
 
+/-- A polynomial of degree at most `d ≥ 1` with interval norm at most two, value at least `2/3`
+at the `lo` node, and value at most `1/3` at the distinct `hi` node satisfies `sqrt(m*(n-m))
+/ (6 * deltaL lo hi) ≤ d`, where `m = mSelect n lo hi`. This is the bounded-norm case of
+Lemma 2.2 in [NayakWu1998]. -/
 theorem source_second_term_low {n lo hi : ℕ} (hn : 0 < n)
     (hl : lo ≤ n) (hh : hi ≤ n) (hne : lo ≠ hi)
     (q : Polynomial ℝ) (d : ℕ) (hd1 : 1 ≤ d) (hdeg : q.natDegree ≤ d)

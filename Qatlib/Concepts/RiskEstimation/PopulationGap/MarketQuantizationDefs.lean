@@ -15,6 +15,31 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
+
+/-!
+# Market quantile grids and lower tail estimates
+
+This module defines population and empirical threshold crossings on a finite uniform grid and
+proves quantile rounding and sampling guarantees. Under a grid separation condition, uniformly
+accurate empirical CDF values select the same index as the population CDF, connecting finite
+grid estimation with the risk analysis setting of [WoernerEgger2019].
+
+`marketTailMoment` and `marketCVaR` use losses at or below the threshold. The subsequent window
+identities and regularity bounds control changes in this lower tail conditional mean.
+
+## Main statements
+
+* `marketGrid_quantization`: the selected grid threshold is within one grid spacing of the
+  quantile.
+* `marketGridRecordIndex_eq_of_good`: agreement of empirical and population crossing indices.
+* `marketGrid_uniform_sampling_bound`: a finite grid deviation probability bound.
+* `marketCVaR_deviation_le`: a conditional mean deviation bound under CDF regularity.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -47,22 +72,27 @@ variable {n N : ℕ}
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
+/-- The uniform grid threshold `i * Δ`. -/
 def gridThreshold (Δ : ℝ) (i : ℕ) : ℝ := (i : ℝ) * Δ
 
+/-- The zeroth grid threshold is zero. -/
 theorem gridThreshold_zero (Δ : ℝ) : gridThreshold Δ 0 = 0 := by
   simp only [gridThreshold, Nat.cast_zero, zero_mul]
 
+/-- Grid thresholds are monotone in their index when the spacing is nonnegative. -/
 theorem gridThreshold_mono {Δ : ℝ} (hΔ : 0 ≤ Δ) {i j : ℕ} (h : i ≤ j) :
     gridThreshold Δ i ≤ gridThreshold Δ j := by
   unfold gridThreshold
   exact mul_le_mul_of_nonneg_right (by exact_mod_cast h) hΔ
 
+/-- Increasing the grid index by one adds the spacing `Δ`. -/
 theorem gridThreshold_step (Δ : ℝ) (i : ℕ) :
     gridThreshold Δ (i+1) = gridThreshold Δ i + Δ := by
   unfold gridThreshold
   push_cast
   ring
 
+/-- The market CDF is monotone in its threshold. -/
 theorem marketCDF_mono {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) {t t' : ℝ} (ht : t ≤ t') :
     marketCDF p loss t ≤ marketCDF p loss t' := by
@@ -80,6 +110,7 @@ theorem marketCDF_mono {n : ℕ} (p : FinDist (Option (Fin n)))
       · simp [h1, h2]
   exact mul_le_mul_of_nonneg_left h (p.nonneg a)
 
+/-- For nonnegative losses, the market CDF vanishes at every negative threshold. -/
 theorem marketCDF_eq_zero_of_neg {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a) {t : ℝ} (ht : t < 0) :
     marketCDF p loss t = 0 := by
@@ -90,10 +121,13 @@ theorem marketCDF_eq_zero_of_neg {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [if_neg (not_le_of_gt hlt)]
   ring
 
+/-- States that `t` is a quantile at level `q`: its CDF reaches `q` and every smaller threshold
+has CDF strictly below `q`. -/
 def marketVaRAt {n : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℝ)
     (q t : ℝ) : Prop :=
   q ≤ marketCDF p loss t ∧ ∀ s < t, marketCDF p loss s < q
 
+/-- Two thresholds satisfying the same quantile specification cannot be strictly ordered. -/
 theorem marketVaRAt_unique {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) {q t t' : ℝ}
     (ht : marketVaRAt p loss q t) (ht' : marketVaRAt p loss q t') (h : t < t') : False := by
@@ -102,16 +136,20 @@ theorem marketVaRAt_unique {n : ℕ} (p : FinDist (Option (Fin n)))
   have h1 : marketCDF p loss t < q := ht's t h
   linarith [htq]
 
+/-- The finite set of grid indices at which the population CDF reaches level `q`. -/
 noncomputable def marketGridSet {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) : Finset (Fin (iT+1)) :=
   Finset.univ.filter (fun i : Fin (iT+1) => q ≤ marketCDF p loss (gridThreshold Δ i.1))
 
+/-- The least grid index reaching population CDF level `q`, or `iT + 1` if none does. -/
 noncomputable def marketGridIndex {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) : ℕ :=
   if h : (marketGridSet p loss Δ q iT).Nonempty then
     (Finset.min' (marketGridSet p loss Δ q iT) h).1
   else iT + 1
 
+/-- If the final grid threshold reaches level `q`, the selected index is within the grid,
+reaches `q`, and has no earlier crossing. -/
 theorem marketGridIndex_spec {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ)
     (hcap : q ≤ marketCDF p loss (gridThreshold Δ iT)) :
@@ -142,6 +180,8 @@ theorem marketGridIndex_spec {n : ℕ} (p : FinDist (Option (Fin n)))
     Fin.le_iff_val_le_val.mp hmin
   exact absurd (Nat.lt_of_lt_of_le hj hv) (Nat.lt_irrefl _)
 
+/-- For nonnegative losses and positive quantile level, the selected grid threshold brackets the
+quantile within its preceding grid interval, with a separate zero index case. -/
 theorem marketGrid_bracket {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) (t : ℝ)
     (hloss : ∀ a, 0 ≤ loss a) (hq : 0 < q)
@@ -195,6 +235,8 @@ theorem marketGrid_bracket {n : ℕ} (p : FinDist (Option (Fin n)))
       exact h
     linarith [hprev, hstep]
 
+/-- Under positive grid spacing and quantile level and a final threshold crossing, the selected
+threshold differs from the quantile by at most `Δ`. -/
 theorem marketGrid_quantization {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) (t : ℝ)
     (hloss : ∀ a, 0 ≤ loss a) (hΔ : 0 < Δ) (hq : 0 < q)
@@ -208,17 +250,21 @@ theorem marketGrid_quantization {n : ℕ} (p : FinDist (Option (Fin n)))
   · rw [abs_of_nonneg (sub_nonneg.mpr hhi)]
     linarith [hlow]
 
+/-- The finite set of grid indices at which the empirical CDF reaches level `q`. -/
 noncomputable def marketGridRecordSet {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) : Finset (Fin (iT+1)) :=
   Finset.univ.filter (fun i : Fin (iT+1) =>
     q ≤ marketEmpiricalCDF ω loss (gridThreshold Δ i.1))
 
+/-- The least grid index reaching empirical CDF level `q`, or `iT + 1` if none does. -/
 noncomputable def marketGridRecordIndex {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) : ℕ :=
   if h : (marketGridRecordSet ω loss Δ q iT).Nonempty then
     (Finset.min' (marketGridRecordSet ω loss Δ q iT) h).1
   else iT + 1
 
+/-- The empirical crossing index either lies in the grid and reaches `q`, or equals the sentinel
+and all grid CDF values lie below `q`. -/
 theorem marketGridRecordIndex_spec {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ q : ℝ) (iT : ℕ) :
     (marketGridRecordIndex ω loss Δ q iT ≤ iT ∧
@@ -247,18 +293,24 @@ theorem marketGridRecordIndex_spec {n N : ℕ} (ω : Fin N → Option (Fin n))
       Finset.mem_filter.mpr ⟨Finset.mem_univ _, hcon⟩
     exact hne ⟨⟨j, hfin⟩, hmem⟩
 
+/-- Requires empirical and population CDF values to differ by at most `ν` at every grid
+threshold. -/
 def marketGridGood {n N : ℕ} (p : FinDist (Option (Fin n))) (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℝ) (Δ ν : ℝ) (iT : ℕ) : Prop :=
   ∀ j : Fin (iT+1),
     |marketEmpiricalCDF ω loss (gridThreshold Δ j.1)
       - marketCDF p loss (gridThreshold Δ j.1)| ≤ ν
 
+/-- Requires the population CDF to exceed `q` by at least `ν` at its first crossing and to stay
+strictly below `q - ν` at earlier grid indices. -/
 def marketGridGap {n : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℝ)
     (Δ q ν : ℝ) (iT : ℕ) : Prop :=
   q + ν ≤ marketCDF p loss (gridThreshold Δ (marketGridIndex p loss Δ q iT)) ∧
   ∀ j : ℕ, j < marketGridIndex p loss Δ q iT →
     marketCDF p loss (gridThreshold Δ j) < q - ν
 
+/-- Uniform grid accuracy and the population grid gap imply equality of empirical and population
+crossing indices when the final threshold reaches `q`. -/
 theorem marketGridRecordIndex_eq_of_good {n N : ℕ} (p : FinDist (Option (Fin n)))
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q ν : ℝ) (iT : ℕ)
     (hcap : q ≤ marketCDF p loss (gridThreshold Δ iT))
@@ -299,6 +351,8 @@ theorem marketGridRecordIndex_eq_of_good {n N : ℕ} (p : FinDist (Option (Fin n
         (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hy'.2⟩))
   exact le_antisymm hmin_le hmin_ge
 
+/-- For positive sample size and tolerance, the probability of any grid CDF error exceeding `ν`
+is at most `(iT + 1) / (4 * N * ν ^ 2)`. -/
 theorem marketGrid_uniform_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ ν : ℝ) (iT : ℕ) (hN : 0 < N) (hν : 0 < ν) :
     FinDist.probEvent (L := N) p (fun ω : Fin N → Option (Fin n) =>
@@ -331,6 +385,8 @@ theorem marketGrid_uniform_sampling_bound {n N : ℕ} (p : FinDist (Option (Fin 
       push_cast
       ring
 
+/-- If the grid sampling bound is at most one half, the probability of any grid CDF error
+exceeding `ν` is at most one half. -/
 theorem marketGrid_sample_budget {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (Δ ν : ℝ) (iT : ℕ) (hN : 0 < N) (hν : 0 < ν)
     (hbudget : ((iT+1 : ℝ))/(4*(N : ℝ)*ν^2) ≤ 1/2) :
@@ -340,6 +396,8 @@ theorem marketGrid_sample_budget {n N : ℕ} (p : FinDist (Option (Fin n)))
             - marketCDF p loss (gridThreshold Δ j.1)|) ≤ 1/2 :=
   le_trans (marketGrid_uniform_sampling_bound p loss Δ ν iT hN hν) hbudget
 
+/-- Under the quantile, grid accuracy, and separation hypotheses, the empirical crossing equals
+the population crossing and its threshold is within `Δ` of the quantile. -/
 theorem marketGrid_quantization_of_good {n N : ℕ} (p : FinDist (Option (Fin n)))
     (ω : Fin N → Option (Fin n)) (loss : Option (Fin n) → ℝ) (Δ q ν : ℝ) (iT : ℕ) (t : ℝ)
     (hloss : ∀ a, 0 ≤ loss a) (hΔ : 0 < Δ) (hq : 0 < q)
@@ -353,14 +411,17 @@ theorem marketGrid_quantization_of_good {n N : ℕ} (p : FinDist (Option (Fin n)
   rw [marketGridRecordIndex_eq_of_good p ω loss Δ q ν iT hcap hgood hgap]
   exact marketGrid_quantization p loss Δ q iT t hloss hΔ hq hcap hv
 
+/-- The probability weighted loss sum restricted to outcomes with loss at most `t`. -/
 noncomputable def marketTailMoment {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (t : ℝ) : ℝ :=
   ∑ a, p.prob a * (if loss a ≤ t then loss a else 0)
 
+/-- The lower tail conditional mean expression `marketTailMoment p loss t / marketCDF p loss t`. -/
 noncomputable def marketCVaR {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (t : ℝ) : ℝ :=
   marketTailMoment p loss t / marketCDF p loss t
 
+/-- The lower tail moment is nonnegative when every loss is nonnegative. -/
 theorem marketTailMoment_nonneg {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a) (t : ℝ) :
     0 ≤ marketTailMoment p loss t := by
@@ -373,6 +434,8 @@ theorem marketTailMoment_nonneg {n : ℕ} (p : FinDist (Option (Fin n)))
   · simp only [if_neg h]
     exact mul_nonneg (p.nonneg a) (le_refl 0)
 
+/-- For nonnegative losses, the lower tail moment is at most the threshold times its cumulative
+probability. -/
 theorem marketTailMoment_le {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a) (t : ℝ) :
     marketTailMoment p loss t ≤ t * marketCDF p loss t := by
@@ -408,6 +471,7 @@ theorem marketTailMoment_le {n : ℕ} (p : FinDist (Option (Fin n)))
               intro a _
               ring
 
+/-- The lower tail moment is monotone in the threshold when losses are nonnegative. -/
 theorem marketTailMoment_mono {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a) {t g : ℝ} (ht : t ≤ g) :
     marketTailMoment p loss t ≤ marketTailMoment p loss g := by
@@ -424,6 +488,8 @@ theorem marketTailMoment_mono {n : ℕ} (p : FinDist (Option (Fin n)))
   unfold marketTailMoment
   exact Finset.sum_le_sum (fun a _ => mul_le_mul_of_nonneg_left (hpoint a) (p.nonneg a))
 
+/-- With nonnegative losses and positive cumulative probability, the lower tail conditional mean
+is at most the threshold. -/
 theorem marketCVaR_le {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a) (t : ℝ)
     (hF : 0 < marketCDF p loss t) : marketCVaR p loss t ≤ t := by
@@ -432,6 +498,8 @@ theorem marketCVaR_le {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [div_le_iff₀ hF]
   exact h
 
+/-- The difference of lower tail moments at ordered thresholds equals the weighted loss sum over
+the intervening half open window. -/
 theorem marketTailMoment_window {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) {t g : ℝ} (ht : t ≤ g) :
     marketTailMoment p loss g - marketTailMoment p loss t
@@ -466,6 +534,8 @@ theorem marketTailMoment_window {n : ℕ} (p : FinDist (Option (Fin n)))
           intro a _
           rw [hpoint a]
 
+/-- The CDF difference at ordered thresholds equals the probability mass of the intervening half
+open window. -/
 theorem marketCDF_window {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) {t g : ℝ} (ht : t ≤ g) :
     marketCDF p loss g - marketCDF p loss t
@@ -500,6 +570,8 @@ theorem marketCDF_window {n : ℕ} (p : FinDist (Option (Fin n)))
           intro a _
           rw [hpoint a]
 
+/-- If losses are at most one, the lower tail moment increase across an ordered window is
+bounded by its CDF increase. -/
 theorem marketTailMoment_window_le {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, loss a ≤ 1) {t g : ℝ} (ht : t ≤ g) :
     marketTailMoment p loss g - marketTailMoment p loss t
@@ -517,6 +589,8 @@ theorem marketTailMoment_window_le {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [marketTailMoment_window p loss ht, marketCDF_window p loss ht]
   exact hmain
 
+/-- The lower tail moment increase across an ordered window is at least its probability mass
+times the lower threshold. -/
 theorem marketTailMoment_window_ge {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) {t g : ℝ} (ht : t ≤ g) :
     t * (marketCDF p loss g - marketCDF p loss t)
@@ -543,6 +617,8 @@ theorem marketTailMoment_window_ge {n : ℕ} (p : FinDist (Option (Fin n)))
             ring
     _ ≤ ∑ a, p.prob a * (if t < loss a ∧ loss a ≤ g then loss a else 0) := hmain
 
+/-- For positive CDF values, clears the denominators in the difference of two lower tail
+conditional means. -/
 theorem marketCVaR_sub_cleared {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) {t g : ℝ}
     (hFt : 0 < marketCDF p loss t) (hFg : 0 < marketCDF p loss g) :
@@ -553,6 +629,8 @@ theorem marketCVaR_sub_cleared {n : ℕ} (p : FinDist (Option (Fin n)))
   unfold marketCVaR
   field_simp
 
+/-- For losses in `[0, 1]` and positive CDF values, the conditional mean increase is at most the
+window CDF increase divided by the upper CDF. -/
 theorem marketCVaR_window_deviation {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
     {t g : ℝ} (ht : t ≤ g)
@@ -585,6 +663,8 @@ theorem marketCVaR_window_deviation {n : ℕ} (p : FinDist (Option (Fin n)))
   rw [le_div_iff₀ hFg]
   nlinarith [hmul']
 
+/-- For losses in `[0, 1]`, ordered thresholds with equal positive CDF values have equal lower
+tail conditional means. -/
 theorem marketCVaR_flat_window_exact {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
     {t g : ℝ} (ht : t ≤ g)
@@ -604,10 +684,13 @@ theorem marketCVaR_flat_window_exact {n : ℕ} (p : FinDist (Option (Fin n)))
   have h1 : marketTailMoment p loss g = marketTailMoment p loss t := by linarith
   rw [h1, hflat]
 
+/-- Requires each ordered CDF increment to be at most `ρ` times the threshold increment. -/
 def marketCDFLipschitz {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (ρ : ℝ) : Prop :=
   ∀ a b : ℝ, a ≤ b → marketCDF p loss b - marketCDF p loss a ≤ ρ * (b - a)
 
+/-- Under the stated bounded loss, positivity, and CDF regularity hypotheses, the conditional
+mean increase is at most `ρ * (g - t) / marketCDF p loss g`. -/
 theorem marketCVaR_deviation_le {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℝ) (hloss : ∀ a, 0 ≤ loss a ∧ loss a ≤ 1)
     (ρ : ℝ) {t g : ℝ} (ht : t ≤ g) (hρ : 0 ≤ ρ)

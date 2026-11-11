@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OrderedOpExp08.MainResults.Defs
 
+/-!
+# Perturbation bounds for matrix products
+
+Controls the effect of perturbing each factor in a matrix product, assuming that the unperturbed
+factors have norm at most one. These estimates support the product-noise analysis in
+[WiebeEtAl2010].
+
+## Main statements
+
+* `lemma4_product_perturbation`: bounds the total error by `2 * δ` when each factor error is at
+  most `δ / length`.
+
+## References
+
+* [Wiebe et al., 2010][WiebeEtAl2010]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -16,6 +33,8 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 
+/-- For equal-length lists with contractive unperturbed factors and factor errors at most `e ≥
+0`, bounds the product difference by `V.length * e * (1 + e) ^ V.length`. -/
 theorem list_prod_diff_le {I : Type} [Fintype I] [DecidableEq I]
     (V W : List (Matrix I I ℂ)) (e : ℝ) (he : 0 ≤ e)
     (hlen : V.length = W.length)
@@ -72,6 +91,8 @@ theorem list_prod_diff_le {I : Type} [Fintype I] [DecidableEq I]
       rw [List.prod_cons, List.prod_cons, hex]
       simpa using! hbound.trans hstep
 
+/-- For nonempty equal-length lists, contractive unperturbed factors, and `0 ≤ δ < 1 / 2`,
+factor errors at most `δ / A.length` give product error at most `2 * δ` [WiebeEtAl2010]. -/
 theorem lemma4_product_perturbation {I : Type} [Fintype I] [DecidableEq I]
     (A B : List (Matrix I I ℂ)) (δ : ℝ)
     (hδ0 : 0 ≤ δ) (hδ : δ < 1 / 2)

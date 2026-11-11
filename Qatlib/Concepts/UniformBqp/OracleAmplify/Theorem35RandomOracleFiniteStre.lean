@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteStat
 import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleAux
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+
+/-!
+# Finite random-oracle failure theorem
+
+`theorem3_5RandomOracleFinite` proves the finite random-oracle failure bound associated with
+[BennettEtAl1997]. Query-slice charges bound the effect of a single oracle update, and finite
+counting converts this sensitivity bound into a constant fraction of failing oracles. The
+background is described in [BennettEtAl1997].
+
+## Main statements
+
+* `oracle_update_hybrid_energy`: squared-distance bound for a single-input oracle update.
+* `theorem3_5RandomOracleFinite`: the finite random-oracle failure guarantee.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,17 +43,21 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {K W : Type} [Fintype K] [DecidableEq K] [Fintype W] [DecidableEq W]
 
+/-- The accumulated pre-query probability mass on the query slice whose oracle input is `y`. -/
 private def oracleCharge (C : Circuit (QueryRegister K W)) (ψ : QState (QueryRegister K W))
     (A : (K → Bool) → (K → Bool)) (y : K → Bool) : ℝ :=
   ((oracleQueryInputs (bitQueryOf A) C ψ).map (fun φ =>
     MeasureProb φ (workspaceQuerySliceFiber (V := K → Bool) y))).sum
 
+/-- The accumulated query charge at any oracle input is nonnegative. -/
 private theorem oracleCharge_nonneg (C : Circuit (QueryRegister K W)) (ψ : QState (QueryRegister K W))
     (A : (K → Bool) → (K → Bool)) (y : K → Bool) : 0 ≤ oracleCharge C ψ A y :=
   List.sum_nonneg (fun z hz => by
     obtain ⟨φ, _, rfl⟩ := List.mem_map.mp hz
     exact measureProb_nonneg _ _)
 
+/-- For a unitary circuit and normalized input, the charges over all oracle inputs sum to the
+circuit's query count. -/
 private theorem oracleCharge_sum (C : Circuit (QueryRegister K W)) (ψ : QState (QueryRegister K W))
     (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) (A : (K → Bool) → (K → Bool)) :
     (∑ y : K → Bool, oracleCharge C ψ A y) = (QueryCount C : ℝ) := by
@@ -56,11 +79,15 @@ private theorem oracleCharge_sum (C : Circuit (QueryRegister K W)) (ψ : QState 
     _ = (L.length : ℝ) := by simp
     _ = _ := by exact_mod_cast hlen
 
+/-- Measurement probability is monotone under inclusion of finite events. -/
 private theorem measureProb_subset {R : Type} [Fintype R] (φ : QState R)
     (S T : Finset R) (hST : S ⊆ T) : MeasureProb φ S ≤ MeasureProb φ T := by
   unfold MeasureProb
   exact Finset.sum_le_sum_of_subset_of_nonneg hST (fun _ _ _ => by unfold BornProb; positivity)
 
+/-- Updating the oracle at `y` to the all-ones output changes the final state by squared
+Euclidean distance at most `4 * QueryCount C * oracleCharge C ψ A y` for a normalized input
+and unitary circuit. -/
 private theorem oracle_update_hybrid_energy (C : Circuit (QueryRegister K W)) (ψ : QState (QueryRegister K W))
     (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) (A : (K → Bool) → (K → Bool)) (y : K → Bool) :
     ‖toEuclidean_fromVec (Run (workspaceBitOracle (W := W) (bitQueryOf (Function.update A y allOnes))) C ψ-
@@ -89,6 +116,7 @@ private theorem oracle_update_hybrid_energy (C : Circuit (QueryRegister K W)) (�
   exact (workspace_mark_set_hybrid_energy (bitQueryOf A) (bitQueryOf B) C ψ hC hψ).trans
     (mul_le_mul_of_nonneg_left hmass (by positivity))
 
+/-- The squared sum of `sqrt (1/3)` and `sqrt (1/20)` is strictly less than `2/3`. -/
 private theorem sqrt_gap_numeric : (Real.sqrt (1/3)+Real.sqrt (1/20))^2 < (2/3 : ℝ) := by
   have hx : Real.sqrt (1/3) ≤ (7/12 : ℝ) := by
     have hs := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 1/3)
@@ -100,6 +128,9 @@ private theorem sqrt_gap_numeric : (Real.sqrt (1/3)+Real.sqrt (1/20))^2 < (2/3 :
       pow_le_pow_left₀ (by positivity : 0 ≤ Real.sqrt (1/3)+Real.sqrt (1/20)) (add_le_add hx hy) 2
   exact h.trans_lt (by norm_num : (7/12+9/40 : ℝ)^2 < 2/3)
 
+/-- Under the quadratic query bound in `Theorem3_5RandomOracleFinite`, at least one eighth of
+all finite oracles violate bounded-error all-ones image recognition [Bennett et al., Theorem
+3.5][BennettEtAl1997]. -/
 theorem theorem3_5RandomOracleFinite : Theorem3_5RandomOracleFinite := by
   intro K W _ _ _ _ C ψ E hC hψ hT hTN
   classical

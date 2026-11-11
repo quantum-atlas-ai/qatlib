@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
 import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+
+/-!
+# Counted simulation with clean workspace
+
+This module combines a counted Hamiltonian block-encoding circuit with scale-eight coherent
+amplification to approximate Hamiltonian evolution on the full encoded state, including its
+workspace. It records the exact amplification resource overhead and derives an arbitrary
+positive relative vector-error bound, connecting QSP simulation [LowChuang2017] with coherent
+use of block encodings [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `signal_simulation_actual_clean_counted_consumer` gives base counts of `4*n+1` queries and
+  `4*n+6` gates, amplified counts of `27*(4*n+1)` and `27*(4*n+6)+79`, and clean-workspace error
+  at most `η` times the input norm.
+- `scaleEight_demo_encoding` constructs an exact scale-eight encoding of the identity.
+* `scale_eight_rotation_actual_consumer` verifies exact clean action for the demonstration,
+  using 27 queries and 79 gates.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017], *Optimal Hamiltonian Simulation by Quantum Signal
+  Processing*.
+* [Gilyen, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019], *Quantum singular value
+  transformation and beyond: exponential improvements for quantum matrix arithmetics*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +61,11 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- For a Hermitian `A` with projected unitary encoding and any positive `η`, there is a
+well-formed Hamiltonian word with `4*n+1` queries and `4*n+6` gates whose scale-eight
+amplification uses `27*(4*n+1)` queries and `27*(4*n+6)+79` gates. On every encoded input,
+the amplified word approximates `hamiltonianEvolution A t` in the full workspace with vector
+error at most `η` times the input norm. -/
 theorem signal_simulation_actual_clean_counted_consumer (H I : Type)
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ) (t η : ℝ)
@@ -67,6 +99,9 @@ theorem signal_simulation_actual_clean_counted_consumer (H I : Type)
       rw [show (6750 : ℝ)*(η^2/6750) = η^2 by ring, Real.sqrt_sq hη.le]
     simpa only [hs] using! he
 
+/-- The tensor product of `scaleEightDemoRotation` with the one-dimensional identity is unitary
+and gives an exact scale-eight `BlockEncoding` of the identity in the frame
+`scaleEightFrame` of the identity. -/
 theorem scaleEight_demo_encoding :
     TensorGate scaleEightDemoRotation (1 : Matrix Unit Unit ℂ) ∈
       Matrix.unitaryGroup (Bool × Unit) ℂ ∧
@@ -86,6 +121,10 @@ theorem scaleEight_demo_encoding :
     norm_num [scaleEightDemoRotation, scaleEightRotation, compress, Complex.real_smul]
   rw [hc,sub_self,norm_zero]
 
+/-- For the one-forward-query demonstration word, `scaleEightAmplifyWord` uses exactly 27
+queries and 79 gates and acts identically on the specified encoded `Ket ()`. The
+demonstration oracle is unitary and provides an exact scale-eight `BlockEncoding` of the
+identity. -/
 theorem scale_eight_rotation_actual_consumer :
     let R := scaleEightFrame (1 : Matrix Unit Unit ℂ)
     let O := TensorGate scaleEightDemoRotation (1 : Matrix Unit Unit ℂ)

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.PottsTutte07.MainResults.Definitions
 import Qatlib.Papers.PottsTutte07.MainResults.Scales
+
+/-!
+# Operator expectations and additive estimates
+
+The scalar operator construction `operatorCircuit` recovers the Kauffman bracket through its
+single matrix entry. The remaining statements give normalized extensions of contractive output
+vectors and the existence of a complex estimate within a prescribed additive tolerance for the
+Potts partition expression [AharonovEtAl2007].
+
+## Main statements
+
+* `claim6_1`: The circuit entry equals the Kauffman bracket.
+* `claim6_2_efficient`: A vector of squared norm at most one extends to normalized amplitudes
+  with a Boolean index.
+* `theorem6_1_quantum_algorithm`: There exists an estimate satisfying the stated scaled error
+  bound.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,12 +37,15 @@ namespace Qatlib.Papers.PottsTutte07.MainResults
 
 open scoped BigOperators
 
+/-- The one-dimensional matrix obtained by applying the algebra homomorphism `ρ` to `psiOp`. -/
 def operatorCircuit {E : Type*} [Fintype E]
     {A : Type*} [CommRing A] [Algebra ℂ A]
     (ρ : A →ₐ[ℂ] Matrix (Fin 1) (Fin 1) ℂ) (loops : Finset E → ℕ) (d : ℂ) (u : E → ℂ) :
     Matrix (Fin 1) (Fin 1) ℂ :=
   ρ (psiOp (A := A) loops d u)
 
+/-- The single-entry expectation of `operatorCircuit` equals the Kauffman bracket
+[AharonovEtAl2007]. -/
 theorem claim6_1 {E : Type*} [Fintype E]
     {A : Type*} [CommRing A] [Algebra ℂ A]
     (ρ : A →ₐ[ℂ] Matrix (Fin 1) (Fin 1) ℂ) (loops : Finset E → ℕ) (d : ℂ) (u : E → ℂ) :
@@ -29,6 +54,8 @@ theorem claim6_1 {E : Type*} [Fintype E]
   rw [psiOp_eq_scalar_mul_one, map_smul, map_one]
   simp [Matrix.smul_apply]
 
+/-- A real number in `[0, 1]` can be completed by a real coordinate so that the sum of their
+squares is one [AharonovEtAl2007]. -/
 theorem claim6_2_aux_qubit_normalisation
     (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
     ∃ c : ℝ, r ^ 2 + c ^ 2 = 1 := by
@@ -37,6 +64,8 @@ theorem claim6_2_aux_qubit_normalisation
   rw [Real.sq_sqrt h1]
   ring
 
+/-- If the rescaled output `M.mulVec α / mnorm` has squared norm at most one, it extends to
+normalized amplitudes indexed by `Fin k × Bool` [AharonovEtAl2007]. -/
 theorem claim6_2_efficient
     (k : ℕ) (M : Matrix (Fin k) (Fin k) ℂ)
     (α : Fin k → ℂ) (hα : ∑ i, Complex.normSq (α i) = 1)
@@ -81,6 +110,8 @@ theorem claim6_2_efficient
     dsimp only [r]
     ring
 
+/-- There exists a complex estimate of the Potts partition expression with error at most the
+nonnegative scale divided by the prescribed polynomial value [AharonovEtAl2007]. -/
 theorem theorem6_1_quantum_algorithm
     {V E : Type*} [Fintype V] [Fintype E]
     (k : Finset E → ℕ) (u v : E → ℂ) (d q : ℂ)

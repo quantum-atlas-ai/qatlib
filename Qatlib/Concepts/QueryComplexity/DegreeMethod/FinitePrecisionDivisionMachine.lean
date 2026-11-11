@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionRejection
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+
+/-!
+# Uniform machine bounds for checked division
+
+This module bounds the statement size, stack execution length, and encoded output length of the
+rational division program. It then compiles the stack program to a single finite TM0 machine
+with quartic time and quadratic space bounds in `size`, uniformly over signs and operand words.
+
+The theorem `uniform_checked_division_machine` includes both successful cross products and the
+failure word selected by the parsed validity flag. The finite machine complexity framework has
+background in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `successSteps_bound`: bounds successful stack execution by `128 * size ^ 2`.
+* `uniform_bounded_runs`: transfers suitably bounded stack runs to one TM0 machine.
+* `uniform_checked_division_machine`: gives uniform time and space bounds for both outcomes.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,12 +53,14 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib
 
+/-- Embedding a stack statement as a subroutine call preserves its `stackNodes` count. -/
 theorem call_nodes {K J Λ Λ' σ ρ : Type} [DecidableEq K] [DecidableEq J]
     (sc : K → J) (lc : Λ → Λ') (ret : Λ') (get : ρ → σ) (put : ρ → σ → ρ)
     (q : TM2.Stmt (fun _ : K => Bool) Λ σ) :
     stackNodes (StackCall.stmt sc lc ret get put q)=stackNodes q := by
   induction q <;> simp_all only [StackCall.stmt,stackNodes]
 
+/-- Every statement in the multiplication program has at most five stack nodes. -/
 theorem mul_program_nodes : ∀l,stackNodes (Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program l)≤5 := by
   intro l
   cases l with
@@ -48,6 +73,7 @@ theorem mul_program_nodes : ∀l,stackNodes (Qatlib.Concepts.QueryComplexity.Deg
   | clear => norm_num [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program,stackNodes]
   | output => norm_num [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.program,stackNodes]
 
+/-- The maximum stack node count of the division program is at most five. -/
 theorem division_program_nodes : programNodes Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.program≤5 := by
   apply Finset.sup_le
   intro l _
@@ -77,14 +103,18 @@ theorem division_program_nodes : programNodes Qatlib.Concepts.QueryComplexity.De
   | reverseDenominator => norm_num [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.program,stackNodes]
   | denominator => norm_num [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.program,stackNodes]
 
+/-- The division program's sweep factor is at most `61`. -/
 theorem division_sweepFactor : sweepFactor Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.program≤61 := by
   have h := division_program_nodes
   have hh := Nat.mul_le_mul h (Nat.succ_le_succ h)
   dsimp only [sweepFactor]
   nlinarith
 
+/-- The division input size parameter, equal to one plus the sum of the four operand word
+lengths. -/
 def size (A D B C : Bits) : ℕ := 1+A.length+D.length+B.length+C.length
 
+/-- The multiplication stack step count is at most `32 * (1 + x.length + y.length) ^ 2`. -/
 theorem mul_sourceSteps_bound (x y : Bits) :
     sourceSteps x y≤32*(1+x.length+y.length)^2 := by
   let L := 1+x.length+y.length
@@ -103,6 +133,7 @@ theorem mul_sourceSteps_bound (x y : Bits) :
   change sourceSteps x y≤32*L^2
   nlinarith
 
+/-- The successful division stack step count is at most `128 * (size A D B C) ^ 2`. -/
 theorem successSteps_bound (A D B C : Bits) :
     successSteps A D B C≤128*(size A D B C)^2 := by
   let L := size A D B C
@@ -124,16 +155,21 @@ theorem successSteps_bound (A D B C : Bits) :
   change successSteps A D B C≤128*L^2
   nlinarith
 
+/-- The division input encoding has length `2 * A.length + 2 * D.length + 2 * B.length +
+C.length + 5`. -/
 theorem input_length (sa sb : Bool) (A D B C : Bits) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.input sa sb A D B C).length=2*A.length+2*D.length+2*B.length+C.length+5 := by
   simp only [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.input,List.length_reverse,List.length_cons,List.length_append,frame_length]
   omega
 
+/-- The successful division output encoding has length `2 * N.length + E.length + 3`. -/
 theorem output_length (sa sb : Bool) (N E : Bits) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.output sa sb N E).length=2*N.length+E.length+3 := by
   simp only [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.output,List.length_cons,List.length_append,frame_length]
   omega
 
+/-- The initial division configuration's maximum stack height is bounded by the encoded input
+length. -/
 theorem initialHeight_bound (sa sb : Bool) (A D B C : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight ((TM2.init (Sum.inr (4 : Fin 5) : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Slot)
       (Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.input sa sb A D B C).reverse : TM2.Cfg (fun _ : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Slot => Bool) Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Label Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Local).stk)≤
@@ -146,6 +182,10 @@ theorem initialHeight_bound (sa sb : Bool) (A D B C : Bits) :
   · simp only [TM2.init,Function.update_of_ne hk,List.length_nil]
     omega
 
+/-- There is a single finite TM0 machine that realizes every clean halted division stack run
+with at most `128 * size ^ 2` steps and `1 + out.length ≤ 4 * size`. A uniform positive
+constant bounds its time by that constant times `size ^ 4` and its space by that constant
+times `size ^ 2`. -/
 theorem uniform_bounded_runs :
     ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C₀ : ℕ),0<C₀ ∧
       ∀ (sa sb : Bool) (A D B C out : Bits) (n : ℕ),
@@ -218,6 +258,8 @@ theorem uniform_bounded_runs :
   · calc _≤D₀*(6000000*L^2) := Nat.mul_le_mul_left D₀ hspace
          _=C₀*L^2 := by dsimp [C₀]; ring
 
+/-- One plus the successful cross product output length is at most four times the division input
+size parameter. -/
 theorem success_output_bound (sa sb : Bool) (A D B C : Bits) :
     1+(Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.output sa sb (mulAcc A C C.length) (mulAcc D B B.length)).length ≤ 4*size A D B C := by
   have hN := mulAcc_length A C C.length
@@ -226,6 +268,9 @@ theorem success_output_bound (sa sb : Bool) (A D B C : Bits) :
   dsimp [size]
   omega
 
+/-- A single finite TM0 machine produces the successful cross product encoding whenever `D`,
+`B`, and `C` have positive binary values. A uniform positive constant gives quartic time and
+quadratic space bounds in `size A D B C`. -/
 theorem uniform_division_machine :
     ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C₀ : ℕ),0<C₀ ∧
       ∀ (sa sb : Bool) (A D B C : Bits),
@@ -241,6 +286,7 @@ theorem uniform_division_machine :
   exact hM sa sb A D B C _ _ (successSteps_bound A D B C)
     (success_output_bound sa sb A D B C) (raw_success sa sb A D B C hD hB hC)
 
+/-- The rejecting division stack step count is at most `128 * (size A D B C) ^ 2`. -/
 theorem rejectSteps_bound (A D B C : Bits) : rejectSteps A D B C ≤ 128*(size A D B C)^2 := by
   have hL : 1 ≤ size A D B C := by dsimp [size]; omega
   have hL2 : size A D B C ≤ (size A D B C)^2 := by nlinarith
@@ -248,6 +294,9 @@ theorem rejectSteps_bound (A D B C : Bits) : rejectSteps A D B C ≤ 128*(size A
     dsimp [rejectSteps,readerSteps,size]; omega
   nlinarith
 
+/-- A single finite TM0 machine produces the successful cross product encoding when the parsed
+validity flag is true and `[false]` otherwise. A uniform positive constant gives quartic
+time and quadratic space bounds in the input size parameter. -/
 theorem uniform_checked_division_machine :
     ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C₀ : ℕ),0<C₀ ∧
       ∀ (sa sb : Bool) (A D B C : Bits),

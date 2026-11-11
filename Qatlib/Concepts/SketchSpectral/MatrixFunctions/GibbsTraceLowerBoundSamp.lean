@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTraceLowerBoundStat
 import Mathlib.Analysis.SpecialFunctions.Exponential
+
+/-!
+# Spectral formulas and a Gibbs trace lower bound
+
+The module expresses the real exponential trace and squared Frobenius norm of a Hermitian matrix
+in terms of its ordered eigenvalues. `gibbsTraceLowerBound` uses these formulas to lower-bound
+the exponential trace by half the dimension under a squared Frobenius-energy bound, supporting
+the partition-function analysis in [ChiaEtAl2022].
+
+## Main statements
+
+* `hermitian_exp_trace`: The real trace of the exponential of a Hermitian matrix is the sum of
+  the exponentials of its ordered eigenvalues.
+* `hermitian_frobenius_sq`: The squared Frobenius norm of a Hermitian matrix equals the sum of
+  squares of its ordered eigenvalues.
+* `gibbsTraceLowerBound`: If a Hermitian matrix has squared Frobenius norm at most one quarter
+  of its dimension, its real exponential trace is at least half its dimension. See
+  [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -18,6 +42,8 @@ open Matrix NormedSpace Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
+/-- The real trace of the exponential of a Hermitian matrix is the sum of the exponentials of
+its ordered eigenvalues. -/
 theorem hermitian_exp_trace {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hH : H.IsHermitian) :
     (Matrix.trace (exp H)).re = ∑ i, Real.exp (orderedHermitianValues hH i) := by
@@ -30,6 +56,8 @@ theorem hermitian_exp_trace {I : Type} [Fintype I] [DecidableEq I]
   exact (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card I))).symm.sum_comp
     (fun i => Real.exp (orderedHermitianValues hH i))
 
+/-- The squared Frobenius norm of a Hermitian matrix equals the sum of squares of its ordered
+eigenvalues. -/
 theorem hermitian_frobenius_sq {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hH : H.IsHermitian) :
     spectralFrobenius H ^ 2 = ∑ i, orderedHermitianValues hH i ^ 2 := by
@@ -44,6 +72,8 @@ theorem hermitian_frobenius_sq {I : Type} [Fintype I] [DecidableEq I]
     Complex.normSq_ofReal, Finset.sum_ite_eq, Finset.mem_univ, if_true]
   simp only [pow_two]
 
+/-- If a Hermitian matrix has squared Frobenius norm at most one quarter of its dimension, its
+real exponential trace is at least half its dimension. See [ChiaEtAl2022]. -/
 theorem gibbsTraceLowerBound : GibbsTraceLowerBound := by
   intro I _ _ H hH henergy
   rw [hermitian_exp_trace H hH]

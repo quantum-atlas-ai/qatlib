@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.SingularValues
 import Mathlib.LinearAlgebra.Matrix.Irreducible.Defs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
+
+/-!
+# Uniqueness of the stationary singular value
+
+Proves that a finite irreducible stochastic chain with positive diagonal and a stationary
+probability distribution has exactly one discriminant singular value equal to one
+[MagniezNayakRolandSantha2011]. The proof uses the stationary square-root vector and two
+norm-preserving lifts to identify the corresponding eigenspace.
+
+## Main statements
+
+* `search_via_quantum_walk_proposition3`: A finite irreducible stochastic matrix with positive
+  diagonal and a normalized nonnegative stationary distribution has exactly one discriminant
+  singular value equal to one [Magniez et al., Proposition 3][MagniezNayakRolandSantha2011].
+* `eigenspace_eq_span`: The eigenspace of the adjoint discriminant composed with the
+  discriminant at eigenvalue one is exactly the span of the stationary square-root vector.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
 open scoped BigOperators
@@ -19,6 +41,8 @@ open Qatlib
 
 namespace search_via_quantum_walk_proposition3
 
+/-- Every entry of a nonnegative normalized stationary distribution of a finite irreducible
+matrix is strictly positive. -/
 lemma stationary_pos {X : Type*} [Fintype X] [DecidableEq X]
     {P : Matrix X X ℝ} {π : X → ℝ} (hP : P.IsIrreducible)
     (hπ : ∀ x, 0 ≤ π x) (hsum : ∑ x, π x = 1)
@@ -42,25 +66,33 @@ lemma stationary_pos {X : Type*} [Fintype X] [DecidableEq X]
   | nil => exact ha
   | cons p e ih => exact step _ _ ih e.down
 
+/-- The complex Euclidean vector whose coordinates are the square roots of the stationary
+weights `π`. -/
 noncomputable def stationaryVector {X : Type*} (π : X → ℝ) : EuclideanSpace ℂ X :=
   WithLp.toLp 2 (fun x => (Real.sqrt (π x) : ℂ))
 
+/-- Lifts a vector to ordered pairs with coordinates `u x * sqrt (P x y)`. -/
 noncomputable def leftLift {X : Type*} (P : Matrix X X ℝ)
     (u : EuclideanSpace ℂ X) : EuclideanSpace ℂ (X × X) :=
   WithLp.toLp 2 (fun p => u p.1 * (Real.sqrt (P p.1 p.2) : ℂ))
 
+/-- Lifts a vector to ordered pairs with coordinates `w y * sqrt (π x) * sqrt (P x y) / sqrt (π
+y)`. -/
 noncomputable def rightLift {X : Type*} (P : Matrix X X ℝ) (π : X → ℝ)
     (w : EuclideanSpace ℂ X) : EuclideanSpace ℂ (X × X) :=
   WithLp.toLp 2 (fun p => w p.2 * (Real.sqrt (π p.1) : ℂ) *
     (Real.sqrt (P p.1 p.2) : ℂ) / (Real.sqrt (π p.2) : ℂ))
 
+/-- For a nonnegative real number `a`, the squared complex norm of `Real.sqrt a` equals `a`. -/
 lemma norm_sqrt_sq {a : ℝ} (ha : 0 ≤ a) : ‖(Real.sqrt a : ℂ)‖ ^ 2 = a := by
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg a),
     Real.sq_sqrt ha]
 
+/-- The square root of a positive real number, viewed in `ℂ`, is nonzero. -/
 lemma sqrt_ne_zero {a : ℝ} (ha : 0 < a) : (Real.sqrt a : ℂ) ≠ 0 := by
   exact_mod_cast (ne_of_gt (Real.sqrt_pos.2 ha))
 
+/-- The square-root vector of nonnegative weights summing to one has norm one. -/
 lemma stationaryVector_norm {X : Type*} [Fintype X] {π : X → ℝ}
     (hπ : ∀ x, 0 ≤ π x) (hsum : ∑ x, π x = 1) :
     ‖stationaryVector π‖ = 1 := by
@@ -69,6 +101,7 @@ lemma stationaryVector_norm {X : Type*} [Fintype X] {π : X → ℝ}
     simpa only [stationaryVector, WithLp.ofLp_toLp, norm_sqrt_sq (hπ _)] using hsum
   nlinarith [norm_nonneg (stationaryVector π)]
 
+/-- For a nonnegative row-stochastic matrix, the left lift preserves the Euclidean norm. -/
 lemma leftLift_norm {X : Type*} [Fintype X] {P : Matrix X X ℝ}
     (hP : ∀ x y, 0 ≤ P x y) (hrow : ∀ x, ∑ y, P x y = 1)
     (u : EuclideanSpace ℂ X) : ‖leftLift P u‖ = ‖u‖ := by
@@ -78,6 +111,8 @@ lemma leftLift_norm {X : Type*} [Fintype X] {P : Matrix X X ℝ}
     simp only [← Finset.mul_sum, hrow, mul_one]
   nlinarith [norm_nonneg (leftLift P u), norm_nonneg u]
 
+/-- With nonnegative transition entries, positive stationary weights, and stationarity, the
+right lift preserves the Euclidean norm. -/
 lemma rightLift_norm {X : Type*} [Fintype X] {P : Matrix X X ℝ} {π : X → ℝ}
     (hP : ∀ x y, 0 ≤ P x y) (hπ : ∀ x, 0 < π x)
     (hstat : ∀ y, ∑ x, π x * P x y = π y)
@@ -93,6 +128,8 @@ lemma rightLift_norm {X : Type*} [Fintype X] {P : Matrix X X ℝ} {π : X → �
     exact mul_div_cancel_right₀ _ (ne_of_gt (hπ y))
   nlinarith [norm_nonneg (rightLift P π w), norm_nonneg w]
 
+/-- The inner product of the two lifts equals the pairing of `u` with the discriminant image of
+`w`. -/
 lemma lift_inner {X : Type*} [Fintype X] [DecidableEq X]
     {P : Matrix X X ℝ} {π : X → ℝ} (hP : ∀ x y, 0 ≤ P x y)
     (u w : EuclideanSpace ℂ X) :
@@ -114,6 +151,8 @@ lemma lift_inner {X : Type*} [Fintype X] [DecidableEq X]
       (Real.sqrt (P x y) : ℂ) ^ 2 / (Real.sqrt (π y) : ℂ)) := by ring
     _ = _ := by rw [hs]; ring
 
+/-- The discriminant fixes the stationary square-root vector when the transition rows sum to one
+and the stationary weights are positive. -/
 lemma discriminant_stationaryVector {X : Type*} [Fintype X] [DecidableEq X]
     {P : Matrix X X ℝ} {π : X → ℝ}
     (hrow : ∀ x, ∑ y, P x y = 1) (hπ : ∀ x, 0 < π x) :
@@ -126,6 +165,8 @@ lemma discriminant_stationaryVector {X : Type*} [Fintype X] [DecidableEq X]
     div_mul_cancel₀ _ (sqrt_ne_zero (hπ _)), ← Finset.mul_sum,
     ← Complex.ofReal_sum, hrow, Complex.ofReal_one, mul_one]
 
+/-- The adjoint of the discriminant fixes the stationary square-root vector under positivity and
+stationarity of the weights. -/
 lemma adjoint_stationaryVector {X : Type*} [Fintype X] [DecidableEq X]
     {P : Matrix X X ℝ} {π : X → ℝ} (hπ : ∀ x, 0 < π x)
     (hstat : ∀ y, ∑ x, π x * P x y = π y) :
@@ -152,6 +193,8 @@ lemma adjoint_stationaryVector {X : Type*} [Fintype X] [DecidableEq X]
   apply (div_eq_iff (ne_of_gt (Real.sqrt_pos.2 (hπ y)))).2
   nlinarith [Real.sq_sqrt (le_of_lt (hπ y))]
 
+/-- Equality of the two lifts forces the normalized coordinates `u x / sqrt (π x)` and `w y /
+sqrt (π y)` to agree along every positive transition. -/
 lemma lift_eq_edge {X : Type*} {P : Matrix X X ℝ} {π : X → ℝ}
     (hπ : ∀ x, 0 < π x) {u w : EuclideanSpace ℂ X}
     (h : leftLift P u = rightLift P π w) {x y : X} (hxy : 0 < P x y) :
@@ -170,6 +213,9 @@ lemma lift_eq_edge {X : Type*} {P : Matrix X X ℝ} {π : X → ℝ}
     _ = (u x * (Real.sqrt (P x y) : ℂ)) * (Real.sqrt (π y) : ℂ) := by ring
     _ = _ := he'
 
+/-- For the stated irreducible stochastic chain with positive diagonal, unit vectors whose
+discriminant pairing is one are the same scalar multiple of the stationary square-root
+vector. -/
 lemma unit_pair_eq {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     {P : Matrix X X ℝ} {π : X → ℝ} (hP : P.IsIrreducible)
     (hrow : ∀ x, ∑ y, P x y = 1) (hdiag : ∀ x, 0 < P x x)
@@ -206,6 +252,8 @@ lemma unit_pair_eq {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
   · ext y
     exact (eq_div_iff (sqrt_ne_zero (hπ y))).1 (hratio y) |>.symm
 
+/-- Every vector on which the discriminant preserves norm belongs to the span of the stationary
+square-root vector under the stated irreducibility and positive-diagonal hypotheses. -/
 lemma norm_preserving_mem_span {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     {P : Matrix X X ℝ} {π : X → ℝ} (hP : P.IsIrreducible)
     (hrow : ∀ x, ∑ y, P x y = 1) (hdiag : ∀ x, 0 < P x x)
@@ -239,6 +287,8 @@ lemma norm_preserving_mem_span {X : Type*} [Fintype X] [DecidableEq X] [Nonempty
   rw [← hrecover]
   exact Submodule.smul_mem _ _ hzmem
 
+/-- The eigenspace of the adjoint discriminant composed with the discriminant at eigenvalue one
+is exactly the span of the stationary square-root vector. -/
 lemma eigenspace_eq_span {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     {P : Matrix X X ℝ} {π : X → ℝ} (hP : P.IsIrreducible)
     (hrow : ∀ x, ∑ y, P x y = 1) (hdiag : ∀ x, 0 < P x x)
@@ -265,6 +315,8 @@ lemma eigenspace_eq_span {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     rw [LinearMap.comp_apply,
       discriminant_stationaryVector hrow hπ, adjoint_stationaryVector hπ hstat, one_smul]
 
+/-- If the eigenspace of `T.adjoint.comp T` at one has complex dimension one, then exactly one
+singular-value index of `T` has value one. -/
 lemma unique_singularValue_of_finrank_eigenspace
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
     (T : E →ₗ[ℂ] E)
@@ -301,6 +353,9 @@ lemma unique_singularValue_of_finrank_eigenspace
 
 end search_via_quantum_walk_proposition3
 
+/-- A finite irreducible stochastic matrix with positive diagonal and a normalized nonnegative
+stationary distribution has exactly one discriminant singular value equal to one [Magniez et
+al., Proposition 3][MagniezNayakRolandSantha2011]. -/
 theorem search_via_quantum_walk_proposition3 :
     ∀ (X : Type) [Fintype X] [DecidableEq X] [Nonempty X]
       (P : Matrix X X ℝ) (π : X → ℝ),

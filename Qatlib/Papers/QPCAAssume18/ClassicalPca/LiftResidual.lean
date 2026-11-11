@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualGramLaw
 import Mathlib.Analysis.InnerProductSpace.Adjoint
+
+/-!
+# Residual bounds for adjoint PCA lifts
+
+Studies the adjoint lift of a unit eigenvector of the small sketch Gram matrix. Row and column
+Gram perturbations control its norm and eigenvector residual, including the normalized lift used
+in classical PCA output analysis in [Tang2021].
+
+## Main statements
+
+* `pca_lift_residual`: The lifted vector's residual for `Aᴴ * A` is bounded by the row Gram
+  error times its norm plus the column Gram error times `‖R‖`.
+* `pcaUnitLift_residual`: The normalized lift has residual at most `etaRow + 2 * ‖R‖ * etaCol /
+  sigma` under the stated eigenvalue and Gram error assumptions.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,18 +37,22 @@ namespace Qatlib.Papers.QPCAAssume18.ClassicalPca
 open Matrix
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 
+/-- The Euclidean linear map of a matrix product acts by composition. -/
 theorem pca_matrix_mul {m n d : ℕ} (A : Matrix (Fin m) (Fin n) ℂ)
     (B : Matrix (Fin n) (Fin d) ℂ) (v : EuclideanSpace ℂ (Fin d)) :
     (A * B).toEuclideanLin v = A.toEuclideanLin (B.toEuclideanLin v) := by
   exact congrArg (fun f : EuclideanSpace ℂ (Fin d) →ₗ[ℂ] EuclideanSpace ℂ (Fin m) => f v)
     (Matrix.toLpLin_mul 2 2 2 A B)
 
+/-- The Euclidean linear map of a matrix difference acts by subtraction. -/
 theorem pca_matrix_sub {m d : ℕ} (A B : Matrix (Fin m) (Fin d) ℂ)
     (v : EuclideanSpace ℂ (Fin d)) :
     (A - B).toEuclideanLin v = A.toEuclideanLin v - B.toEuclideanLin v := by
   rw [map_sub]
   rfl
 
+/-- The squared norm of an adjoint lift is the real part of the corresponding Gram quadratic
+form. -/
 theorem pca_lift_norm_sq {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (w : EuclideanSpace ℂ (Fin q)) :
     ‖Rᴴ.toEuclideanLin w‖ ^ 2 = (inner ℂ w ((R * Rᴴ).toEuclideanLin w)).re := by
@@ -40,6 +64,8 @@ theorem pca_lift_norm_sq {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     _ = (inner ℂ w (R.toEuclideanLin (Rᴴ.toEuclideanLin w))).re := congrArg Complex.re h
     _ = _ := by rw [pca_matrix_mul]
 
+/-- A unit eigenvector of `W * Wᴴ` has adjoint-lift squared norm within `eta` of its eigenvalue
+when the column Gram error is at most `eta`. -/
 theorem pca_lift_norm_error {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (W : Matrix (Fin q) (Fin q) ℂ) (w : EuclideanSpace ℂ (Fin q)) (mu eta : ℝ)
     (hw : ‖w‖ = 1) (haction : (W * Wᴴ).toEuclideanLin w = (mu : ℂ) • w)
@@ -63,6 +89,8 @@ theorem pca_lift_norm_error {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
       mul_le_mul_of_nonneg_left (Matrix.l2_opNorm_mulVec _ w) (norm_nonneg _)
     _ ≤ eta := by rw [hw]; simpa only [mul_one, one_mul] using! hnorm
 
+/-- The stated eigenvalue lower bound and column Gram error bound imply that the adjoint lift
+has norm at least `sigma / 2`. -/
 theorem pca_lift_norm_lower {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (W : Matrix (Fin q) (Fin q) ℂ) (w : EuclideanSpace ℂ (Fin q)) (mu eta sigma : ℝ)
     (hw : ‖w‖ = 1) (haction : (W * Wᴴ).toEuclideanLin w = (mu : ℂ) • w)
@@ -73,6 +101,8 @@ theorem pca_lift_norm_lower {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
   have hn := norm_nonneg (Rᴴ.toEuclideanLin w)
   nlinarith
 
+/-- The lifted vector's residual for `Aᴴ * A` is bounded by the row Gram error times its norm
+plus the column Gram error times `‖R‖`. -/
 theorem pca_lift_residual {n q d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (R : Matrix (Fin q) (Fin d) ℂ) (W : Matrix (Fin q) (Fin q) ℂ)
     (w : EuclideanSpace ℂ (Fin q)) (mu etaRow etaCol : ℝ)
@@ -111,16 +141,20 @@ theorem pca_lift_residual {n q d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
       exact add_le_add (mul_le_mul_of_nonneg_right hrowOp (norm_nonneg _))
         (mul_le_mul_of_nonneg_left hcolOp (norm_nonneg R))
 
+/-- The adjoint lift scaled by the inverse of its norm. -/
 def pcaUnitLift {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (w : EuclideanSpace ℂ (Fin q)) : EuclideanSpace ℂ (Fin d) :=
   ((‖Rᴴ.toEuclideanLin w‖ : ℂ))⁻¹ • Rᴴ.toEuclideanLin w
 
+/-- A nonzero adjoint lift becomes a unit vector under `pcaUnitLift`. -/
 theorem pcaUnitLift_norm {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (w : EuclideanSpace ℂ (Fin q)) (hx : 0 < ‖Rᴴ.toEuclideanLin w‖) :
     ‖pcaUnitLift R w‖ = 1 := by
   rw [pcaUnitLift, norm_smul, norm_inv, Complex.norm_real, Real.norm_of_nonneg (norm_nonneg _)]
   exact inv_mul_cancel₀ hx.ne'
 
+/-- The normalized lift has residual at most `etaRow + 2 * ‖R‖ * etaCol / sigma` under the
+stated eigenvalue and Gram error assumptions. -/
 theorem pcaUnitLift_residual {n q d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (R : Matrix (Fin q) (Fin d) ℂ) (W : Matrix (Fin q) (Fin q) ℂ)
     (w : EuclideanSpace ℂ (Fin q)) (mu etaRow etaCol sigma : ℝ)

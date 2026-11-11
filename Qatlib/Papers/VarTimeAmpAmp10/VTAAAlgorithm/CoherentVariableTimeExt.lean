@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeCost
+
+/-!
+# Paid prefixes and coherent stopping histories
+
+This module relates the payload of a paid circuit prefix to the coherent stage state in the
+variable-time framework of [Ambainis2012]. It packages forward and reverse execution with exact
+prefix costs, and transfers stopped-history and fresh-stop mass identities to the circuit
+representation.
+
+## Main statements
+
+* `frontier1`: a legal reversible prefix with exact gate and access costs.
+* `paid_history_retained`: preservation of earlier stopped components.
+* `paid_complete_fresh_total`: total fresh-stop mass for complete stopping.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,20 +47,25 @@ noncomputable section
 set_option linter.unusedSectionVars false
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 
+/-- The payload state obtained by restricting a two-label workspace state to flag label zero. -/
 def payload (Φ : QState (Qatlib.Concepts.QlsReadoutSpec.Amplification.Space H 2)) : QState H :=
     fun h => Φ (h, 0)
 
+/-- Extracting the payload from a clean workspace embedding returns the original state. -/
 theorem payload_clean (ψ : QState H) : payload (Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) ψ) = ψ := by
   funext h
   change (if (0 : Fin 2) = 0 then ψ h else 0) = ψ h
   exact if_pos rfl
 
+/-- The payload of an executed paid prefix equals the corresponding coherent stage state. -/
 theorem paidPrefix_payload (f : CoherentVtFrame H m) (ψ : QState H)
     (n : ℕ) (hn : n ≤ m) :
     payload (Qatlib.Concepts.QlsReadoutSpec.Amplification.run (by decide : 0 < 2) (baseOracles f) (paidPrefix f n hn) ψ) =
       f.stageState ψ n hn := by
   rw [Qatlib.Concepts.QlsReadoutSpec.Amplification.run, paidPrefix_clean, payload_clean]
 
+/-- Every valid coherent prefix has a legal paid word implementing it cleanly and reversibly,
+with `4 * n` known gates and weighted access cost `2 ^ n - 1`. -/
 theorem frontier1 (f : CoherentVtFrame H m) (ψ : QState H) (n : ℕ) (hn : n ≤ m) :
     ∃ C : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 2, Qatlib.Concepts.QlsReadoutSpec.Amplification.legal m C ∧
       Qatlib.Concepts.QlsReadoutSpec.Amplification.wordMatrix (baseOracles f) C *ᵥ Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) ψ =
@@ -52,6 +77,7 @@ theorem frontier1 (f : CoherentVtFrame H m) (ψ : QState H) (n : ℕ) (hn : n �
     paidPrefix_reverse_clean f ψ n hn, paidPrefix_knownCount f n hn,
     paidPrefix_accessPrice f n hn⟩
 
+/-- Later paid prefixes preserve the component selected by an earlier stop projector. -/
 theorem paid_history_retained (f : CoherentVtFrame H m) (ψ : QState H)
     (j k : Fin m) (hjk : j.val ≤ k.val) :
     ApplyGate (f.stopAt j) (payload
@@ -61,6 +87,7 @@ theorem paid_history_retained (f : CoherentVtFrame H m) (ψ : QState H)
   rw [paidPrefix_payload, paidPrefix_payload]
   exact f.frozenFragment_frozen ψ j k hjk
 
+/-- The fresh-stop mass read from the paid prefix equals the coherent frame's fresh-stop mass. -/
 theorem paid_fresh_mass (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     MeasureProb (ApplyGate (f.freshStop j) (payload
       (Qatlib.Concepts.QlsReadoutSpec.Amplification.run (by decide : 0 < 2) (baseOracles f)
@@ -74,12 +101,15 @@ theorem paid_fresh_mass (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
   rw [f.stageState_succ, ← applyGate_mul, hstep, applyGate_mul]
   rfl
 
+/-- Executing the full paid prefix produces the clean embedding of `totalOp` applied to the
+input. -/
 theorem paid_total_state (f : CoherentVtFrame H m) (ψ : QState H) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.run (by decide : 0 < 2) (baseOracles f) (paidPrefix f m (by omega)) ψ =
       Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) (ApplyGate f.totalOp ψ) := by
   rw [Qatlib.Concepts.QlsReadoutSpec.Amplification.run, paidPrefix_clean,
       f.totalOp_apply_eq_stageState]
 
+/-- The final paid prefix retains each stopped component at its original stage value. -/
 theorem paid_history_final (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     ApplyGate (f.stopAt j) (payload
       (Qatlib.Concepts.QlsReadoutSpec.Amplification.run (by decide : 0 < 2) (baseOracles f) (paidPrefix f m (by omega)) ψ)) =
@@ -87,6 +117,8 @@ theorem paid_history_final (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m)
   rw [paid_total_state, payload_clean]
   exact totalOp_retains_stopHistory f ψ j
 
+/-- For a normalized input and a final stop projector equal to the identity, the fresh-stop
+masses extracted from paid prefixes sum to one. -/
 theorem paid_complete_fresh_total (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, by omega⟩ = 1) (hψ : Normalized ψ) :
     (∑ j : Fin m, MeasureProb (ApplyGate (f.freshStop j) (payload

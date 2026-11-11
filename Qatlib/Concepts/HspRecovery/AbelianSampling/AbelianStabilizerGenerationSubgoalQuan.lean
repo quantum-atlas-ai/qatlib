@@ -14,6 +14,27 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalStat
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalQuan
+
+/-!
+# Generation bounds for abelian stabilizer sampling
+
+This module proves the numerical estimate needed to turn near-uniform subgroup samples into a
+generation guarantee for the abelian stabilizer problem [Kitaev1995]. The generic near-uniform
+generation bound is instantiated with `n+4` samples and discrepancy `1/(6*k*(n+4))`.
+
+The resulting failure probability is at most `1/3` for a subgroup of cardinality at most `2^n`,
+as specified by `AbelianStabilizerGenerationSubgoal`.
+
+## Main statements
+
+* `asp_generation_numeric_bound`: the numerical failure estimate.
+* `abelianStabilizerGenerationSubgoal`: the subgroup-generation guarantee.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +44,7 @@ open Qatlib.Concepts.StabilizerAlg.NearUniformGen
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 open scoped Classical BigOperators
 
+/-- The real exponential satisfies `exp (1/3) ≤ 2`. -/
 theorem asp_exp_third_le_two : Real.exp (1/3) ≤ 2 := by
   have h3 : Real.exp (1/3)^3=Real.exp 1 := by
     rw [← Real.exp_nat_mul]
@@ -35,6 +57,8 @@ theorem asp_exp_third_le_two : Real.exp (1/3) ≤ 2 := by
   norm_num at hh
   linarith [Real.exp_one_lt_three]
 
+/-- For positive `k` and `m ≤ 2^n`, the stated sum of the discrepancy term and the
+maximal-subgroup failure term is at most `1/3`. -/
 theorem asp_generation_numeric_bound (n k m : ℕ) (hk : 0 < k) (hm : m ≤ 2^n) :
     ((n+4 : ℕ) : ℝ)*(1/(6*(k : ℝ)*((n+4 : ℕ) : ℝ)))+
       (m : ℝ)*(1/2+1/(6*(k : ℝ)*((n+4 : ℕ) : ℝ)))^(n+4) ≤ 1/3 := by
@@ -78,6 +102,9 @@ theorem asp_generation_numeric_bound (n k m : ℕ) (hk : 0 < k) (hm : m ≤ 2^n)
     (m : ℝ)*(1/2+1/(6*(k : ℝ)*(l : ℝ)))^l ≤ 1/3
   linarith
 
+/-- The abelian stabilizer generation specification holds: under its cardinality and
+near-uniformity hypotheses, `n+4` independent samples fail to generate the subgroup with
+probability at most `1/3`. -/
 theorem abelianStabilizerGenerationSubgoal : AbelianStabilizerGenerationSubgoal := by
   intro n k _hn hk G _ _ _ H hcard μ hnear
   obtain ⟨maxs,_hproper,_hcover,hcount,hfail⟩ := nearUniformGenerationSubgoal

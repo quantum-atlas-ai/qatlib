@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem3QuadraticSpeedupUnknownAQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+/-!
+# Expected query bound for search with a finite cutoff
+
+`corollary1ExpectedSearch` chooses a finite geometric search schedule with failure probability
+at most any prescribed positive tolerance. For a nonempty marked set of size at most half the
+domain, its expected phase-query cost is at most `50 * sqrt 2 * sqrt (N / S.card)`, in the
+search setting of [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `corollary1ExpectedSearch`: finite-cutoff failure control, expected phase-query cost, and
+  marked-output correctness.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +44,10 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib
 open scoped ENNReal
 
+/-- For a nonempty marked set with `S.card ≤ N / 2`, constructs a finite geometric search
+schedule with arbitrarily small positive failure tolerance, expected phase-query cost at
+most `50 * sqrt 2 * sqrt (N / S.card)`, and only marked successful outputs
+[BrassardHoyerTapp1998Counting]. -/
 theorem corollary1ExpectedSearch : Corollary1ExpectedSearch := by
   intro N S hN hS hS2 ε hε
   have hN0 : (0:ℝ) < (N:ℝ) := by exact_mod_cast hN

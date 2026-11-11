@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+/-!
+# Theorem 1 step count and query budget arithmetic
+
+This module selects `theorem1Steps` as the maximum of two natural ceilings and defines the
+corresponding parameter `theorem1Eps`. It proves that this parameter meets the Lemma 4 range and
+a scalar walk error bound, while `theorem1_repeat_query_budget` bounds the oracle count of a
+repeated circuit from an assumed per-step query bound.
+
+These estimates accompany the sparse simulation bound of Theorem 1 in [BerryChilds2012].
+
+## Main statements
+
+* `theorem1Eps_le_lemma4_range` bounds the selected parameter.
+* `theorem1_repeat_query_budget` bounds the oracle count of a repeated circuit.
+
+## References
+
+* [Berry and Childs, 2012][BerryChilds2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,8 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Inhabited ι] {D L : ℕ}
 
+/-- For nonnegative norm bounds and time and positive `δ`, the Theorem 1 query expression is
+strictly positive. -/
 theorem theorem1QueryExpr_pos {Λ Λmax t δ : ℝ}
     (hΛ0 : 0 ≤ Λ) (hΛmax0 : 0 ≤ Λmax) (hδ0 : 0 < δ) (ht : 0 ≤ t) (D : ℕ) :
     0 < theorem1QueryExpr Λ D Λmax t δ := by
@@ -31,9 +54,12 @@ theorem theorem1QueryExpr_pos {Λ Λmax t δ : ℝ}
     mul_nonneg (mul_nonneg (Nat.cast_nonneg D) hΛmax0) ht
   linarith
 
+/-- The maximum of the natural ceilings of `Λ * t / sqrt δ` and `Λmax * D * t`, used as the step
+count for Theorem 1. See [Berry and Childs, Theorem 1][BerryChilds2012]. -/
 def theorem1Steps (Λ Λmax t δ : ℝ) (D : ℕ) : ℕ :=
   max ⌈Λ * t / Real.sqrt δ⌉₊ ⌈Λmax * (D : ℝ) * t⌉₊
 
+/-- The selected step count is at least `Λ * t / sqrt δ`. -/
 theorem theorem1Steps_ge_first (Λ Λmax t δ : ℝ) (D : ℕ) :
     Λ * t / Real.sqrt δ ≤ (theorem1Steps Λ Λmax t δ D : ℝ) := by
   have h1 := Nat.le_ceil (Λ * t / Real.sqrt δ)
@@ -41,6 +67,7 @@ theorem theorem1Steps_ge_first (Λ Λmax t δ : ℝ) (D : ℕ) :
   calc Λ * t / Real.sqrt δ ≤ (⌈Λ * t / Real.sqrt δ⌉₊ : ℝ) := h1
     _ ≤ (theorem1Steps Λ Λmax t δ D : ℝ) := by exact_mod_cast h2
 
+/-- The selected step count is at least `Λmax * D * t`. -/
 theorem theorem1Steps_ge_second (Λ Λmax t δ : ℝ) (D : ℕ) :
     Λmax * (D : ℝ) * t ≤ (theorem1Steps Λ Λmax t δ D : ℝ) := by
   have h1 := Nat.le_ceil (Λmax * (D : ℝ) * t)
@@ -48,6 +75,7 @@ theorem theorem1Steps_ge_second (Λ Λmax t δ : ℝ) (D : ℕ) :
   calc Λmax * (D : ℝ) * t ≤ (⌈Λmax * (D : ℝ) * t⌉₊ : ℝ) := h1
     _ ≤ (theorem1Steps Λ Λmax t δ D : ℝ) := by exact_mod_cast h2
 
+/-- The selected step count is positive when `Λ`, `t`, and `δ` are positive. -/
 theorem theorem1Steps_pos {Λ Λmax t δ : ℝ} {D : ℕ}
     (hΛ0 : 0 < Λ) (ht : 0 < t) (hδ0 : 0 < δ) :
     0 < theorem1Steps Λ Λmax t δ D := by
@@ -56,6 +84,8 @@ theorem theorem1Steps_pos {Λ Λmax t δ : ℝ} {D : ℕ}
   have hc : 0 < ⌈Λ * t / Real.sqrt δ⌉₊ := Nat.ceil_pos.mpr ha
   exact lt_of_lt_of_le hc (le_max_left _ _)
 
+/-- For nonnegative norm bounds and time and positive `δ`, the selected step count is at most
+`theorem1QueryExpr + 1`. -/
 theorem theorem1Steps_le_queryExpr {Λ Λmax t δ : ℝ} {D : ℕ}
     (hΛ0 : 0 ≤ Λ) (hΛmax0 : 0 ≤ Λmax) (ht : 0 ≤ t) (hδ0 : 0 < δ) :
     (theorem1Steps Λ Λmax t δ D : ℝ) ≤ theorem1QueryExpr Λ D Λmax t δ + 1 := by
@@ -75,15 +105,20 @@ theorem theorem1Steps_le_queryExpr {Λ Λmax t δ : ℝ} {D : ℕ}
   unfold theorem1QueryExpr
   constructor <;> linarith
 
+/-- The parameter `Λ1 * t / theorem1Steps Λ Λmax t δ D` associated with the selected integer
+step count. See [Berry and Childs, Theorem 1][BerryChilds2012]. -/
 def theorem1Eps (Λ1 Λ Λmax t δ : ℝ) (D : ℕ) : ℝ :=
   Λ1 * t / (theorem1Steps Λ Λmax t δ D : ℝ)
 
+/-- The selected parameter `theorem1Eps` is positive when `Λ1`, `Λ`, `t`, and `δ` are positive. -/
 theorem theorem1Eps_pos {Λ1 Λ Λmax t δ : ℝ} {D : ℕ}
     (hΛ1 : 0 < Λ1) (hΛ0 : 0 < Λ) (ht : 0 < t) (hδ0 : 0 < δ) :
     0 < theorem1Eps Λ1 Λ Λmax t δ D := by
   unfold theorem1Eps
   exact div_pos (mul_pos hΛ1 ht) (Nat.cast_pos.mpr (theorem1Steps_pos hΛ0 ht hδ0))
 
+/-- Under the stated positive parameter hypotheses, `theorem1Eps ≤ Λ1 / (D * Λmax)`, the
+parameter range used in Lemma 4. -/
 theorem theorem1Eps_le_lemma4_range {Λ1 Λ Λmax t δ : ℝ} {D : ℕ}
     (hΛ1 : 0 < Λ1) (hΛ0 : 0 < Λ) (hΛmax0 : 0 < Λmax) (ht : 0 < t) (hδ0 : 0 < δ)
     (hD : 0 < D) :
@@ -100,6 +135,9 @@ theorem theorem1Eps_le_lemma4_range {Λ1 Λ Λmax t δ : ℝ} {D : ℕ}
     _ ≤ Λ1 * (theorem1Steps Λ Λmax t δ D : ℝ) :=
         mul_le_mul_of_nonneg_left hkey (le_of_lt hΛ1)
 
+/-- For positive `Λ`, `t`, and `δ` and nonzero `Λ1`, the selected parameter satisfies the scalar
+walk error bound `Λ ^ 2 * theorem1Eps ^ 2 / Λ1 ^ 2 ≤ δ`. See [Berry and Childs, Theorem
+1][BerryChilds2012]. -/
 theorem theorem1_walk_error_le {Λ1 Λ Λmax t δ : ℝ} {D : ℕ}
     (hΛ0 : 0 < Λ) (ht : 0 < t) (hδ0 : 0 < δ) (hΛ1 : Λ1 ≠ 0) :
     Λ ^ 2 * (theorem1Eps Λ1 Λ Λmax t δ D) ^ 2 / Λ1 ^ 2 ≤ δ := by
@@ -122,6 +160,9 @@ theorem theorem1_walk_error_le {Λ1 Λ Λmax t δ : ℝ} {D : ℕ}
   rw [hgoal, div_le_iff₀ (pow_pos hNpos 2)]
   nlinarith [hsq, hsq']
 
+/-- If a circuit uses at most a nonnegative cost `c` queries, repeating it `theorem1Steps` times
+uses at most `c * (theorem1QueryExpr + 1)` queries under the stated sign conditions. This
+gives a query count estimate associated with Theorem 1 of [BerryChilds2012]. -/
 theorem theorem1_repeat_query_budget {Λ Λmax t δ c : ℝ} {D : ℕ} (C : Circuit2 ι L)
     (hΛ0 : 0 ≤ Λ) (hΛmax0 : 0 ≤ Λmax) (ht : 0 ≤ t) (hδ0 : 0 < δ)
     (hc : 0 ≤ c) (hstep : (QueryCount2 C : ℝ) ≤ c) :

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLowerBound00.MainResults.Model.AdversaryD
+
+/-!
+# Finite-alphabet adversary lower bound
+
+`source_theorem6` gives a value-query lower bound using local mismatch degrees whose products
+are bounded by `lmax`. The statement includes the query trajectory, normalization, output
+success, and relation degree conditions for finite-alphabet inputs and a general output type.
+See [Ambainis2002] for the paper's setting.
+
+## Main statements
+
+* `source_theorem6`: For a value-query trajectory satisfying the stated initialization,
+  normalization, output-error, and relation-degree conditions, `(1 - 2*sqrt (ε*(1-ε))) * sqrt
+  (m*m') / 2 ≤ T * sqrt lmax`.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +38,9 @@ namespace Qatlib.Papers.QLowerBound00.MainResults.Theorem6
 open Qatlib.Papers.QLowerBound00.MainResults.Model
 open Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
+/-- For a value-query trajectory satisfying the stated initialization, normalization,
+output-error, and relation-degree conditions, `(1 - 2*sqrt (ε*(1-ε))) * sqrt (m*m') / 2 ≤ T
+* sqrt lmax`. See [Ambainis2002]. -/
 theorem source_theorem6 {n d Z : ℕ} (hd : 0 < d) {β : Type*} [DecidableEq β]
     (f : InputD n d → β)
     (X Y : Finset (InputD n d)) (R : Finset (InputD n d × InputD n d))

@@ -9,6 +9,24 @@ import Mathlib.RingTheory.ZMod.UnitsCyclic
 import Mathlib.GroupTheory.SpecificGroups.Cyclic
 import Mathlib.Data.Nat.Totient
 import Mathlib.Algebra.Group.Subgroup.Finite
+
+/-!
+# Order-p units modulo twice an odd prime power
+
+`shiftUnit` has order `p`, and the unit group modulo `2 * p ^ r` is cyclic for odd prime `p`.
+`proposition1_unit_order` characterizes every unit of order `p` as a nonidentity power of
+`shiftUnit` and gives its explicit residue. See [ChiKimLee2006] for the mathematical setting.
+
+## Main statements
+
+* `orderOf_shiftUnit_eq_p`: computes the order of the distinguished unit.
+* `proposition1_unit_order`: characterizes order-`p` units by powers and residues.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +38,7 @@ open SemidirectProduct
 
 variable {p r : ℕ}
 
+/-- For prime `p` and `r ≥ 2`, the `p`th power of `shiftUnit` is one. -/
 lemma shiftUnit_pow_eq_one (hp : p.Prime) (hr : 2 ≤ r) :
     shiftUnit p r hp hr ^ p = 1 := by
   apply Units.ext
@@ -30,6 +49,7 @@ lemma shiftUnit_pow_eq_one (hp : p.Prime) (hr : 2 ≤ r) :
     ring
   rw [h2, Nat.cast_add, Nat.cast_one, ZMod.natCast_self, zero_add]
 
+/-- For prime `p` and `r ≥ 2`, `shiftUnit` differs from one. -/
 lemma shiftUnit_ne_one (hp : p.Prime) (hr : 2 ≤ r) :
     shiftUnit p r hp hr ≠ 1 := by
   intro hone
@@ -50,11 +70,14 @@ lemma shiftUnit_ne_one (hp : p.Prime) (hr : 2 ≤ r) :
   have hpos : 0 < p ^ (r - 1) := pow_pos hp.pos _
   exact Nat.not_le_of_lt hlt (Nat.le_of_dvd hpos hprdvd)
 
+/-- For prime `p` and `r ≥ 2`, `shiftUnit` has order `p`. -/
 lemma orderOf_shiftUnit_eq_p (hp : p.Prime) (hr : 2 ≤ r) :
     orderOf (shiftUnit p r hp hr) = p := by
   haveI : Fact p.Prime := ⟨hp⟩
   exact orderOf_eq_prime (shiftUnit_pow_eq_one hp hr) (shiftUnit_ne_one hp hr)
 
+/-- For odd prime `p` and `r ≥ 2`, the unit group modulo `2 * p ^ r` has cardinality `p ^ (r -
+1) * (p - 1)`. -/
 lemma card_units_two_pow (hp : p.Prime) (hodd : p ≠ 2) (hr : 2 ≤ r) :
     Nat.card (ZMod (2 * p ^ r))ˣ = p ^ (r - 1) * (p - 1) := by
   haveI : NeZero (2 * p ^ r) :=
@@ -63,17 +86,23 @@ lemma card_units_two_pow (hp : p.Prime) (hodd : p ≠ 2) (hr : 2 ≤ r) :
     Nat.totient_two_mul_of_odd ((hp.odd_of_ne_two hodd).pow),
     Nat.totient_prime_pow hp (by omega)]
 
+/-- For odd prime `p` and `r ≥ 2`, `p` divides the cardinality of the unit group modulo `2 * p ^
+r`. -/
 lemma p_dvd_card_units (hp : p.Prime) (hodd : p ≠ 2) (hr : 2 ≤ r) :
     p ∣ Nat.card (ZMod (2 * p ^ r))ˣ := by
   rw [card_units_two_pow hp hodd hr]
   exact dvd_mul_of_dvd_left
     (by simpa using pow_dvd_pow p (show 1 ≤ r - 1 by omega)) _
 
+/-- For odd prime `p`, the unit group modulo `2 * p ^ r` is cyclic. -/
 lemma isCyclic_units_two_pow (hp : p.Prime) (hodd : p ≠ 2) :
     IsCyclic (ZMod (2 * p ^ r))ˣ := by
   rw [ZMod.isCyclic_units_two_mul_iff_of_odd (p ^ r) ((hp.odd_of_ne_two hodd).pow)]
   exact ZMod.isCyclic_units_of_prime_pow p hp hodd r
 
+/-- For odd prime `p` and `r ≥ 2`, a unit has order `p` exactly when it is `shiftUnit ^ i` for
+`1 ≤ i ≤ p - 1`, with residue `2 * i * p ^ (r - 1) + 1`. See [Chi et al., 2006, Proposition
+1][ChiKimLee2006]. -/
 theorem proposition1_unit_order
     {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r) (hodd : p ≠ 2) :
     ∀ α : (ZMod (2 * p ^ r))ˣ,

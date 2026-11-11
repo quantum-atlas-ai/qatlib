@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.PolyMethod01.SymDegree.SymmetricGamma
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Layer-change counts and counting-cost bounds
+
+The set `layerChangeLayers` collects weight layers at which a Boolean function changes. For a
+symmetric function, its cardinality bounds from below the degree of a polynomial approximating
+the function within one third; elementary inequalities also bound the counting-cost expression
+in the low- and high-weight regimes. These constructions support the symmetric-function analysis
+of [BealsEtAl2001].
+
+## Main statements
+
+* `layerChange_card_le_totalDegree`: For a symmetric Boolean function approximated within one
+  third by `p` on the Boolean cube, the number of changing layers is at most `p.totalDegree`.
+* `counting_cost_sqrt_le`: Under the low-weight condition `2 * (t + 1) + Γ ≤ N` and `t ≤ N`, the
+  square root of the counting-cost product is at most `sqrt (N * (N - Γ))`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,15 +43,21 @@ open scoped Classical BigOperators
 
 variable {n : ℕ}
 
+/-- The finite set of weights `k < n` at which `f` changes between layers `k` and `k + 1`. -/
 noncomputable def layerChangeLayers (f : (Fin n → Bool) → Bool) : Finset ℕ := by
   classical
   exact (Finset.range n).filter (fun k => LayerChange f k)
 
+/-- A weight belongs to `layerChangeLayers f` exactly when it is less than `n` and satisfies
+`LayerChange f k`. -/
 theorem mem_layerChangeLayers {f : (Fin n → Bool) → Bool} {k : ℕ} :
     k ∈ layerChangeLayers f ↔ k < n ∧ LayerChange f k := by
   classical
   simp [layerChangeLayers]
 
+/-- For a symmetric Boolean function approximated within one third by `p` on the Boolean cube,
+the number of changing layers is at most `p.totalDegree`. See [Beals et al.,
+2001][BealsEtAl2001]. -/
 theorem layerChange_card_le_totalDegree {f : (Fin n → Bool) → Bool} (hsym : Symmetric f)
     {p : MvPolynomial (Fin n) ℝ}
     (hyp : ∀ g : Fin n → Bool,
@@ -120,6 +148,8 @@ theorem layerChange_card_le_totalDegree {f : (Fin n → Bool) → Bool} (hsym : 
         have hzero : (Polynomial.C ((1 : ℝ) / 2)).natDegree = 0 := Polynomial.natDegree_C _
         omega
 
+/-- If `t ≤ N` and `2 * (t + 1) + Γ ≤ N`, the real counting-cost product `(t + 1) * (N - t + 1)`
+is at most `N * (N - Γ)`. -/
 theorem counting_cost_le {N Γ t : ℕ} (htN : t ≤ N) (h : 2 * (t + 1) + Γ ≤ N) :
     ((t + 1) * (N - t + 1) : ℝ) ≤ (N : ℝ) * ((N - Γ : ℕ) : ℝ) := by
   have hΓN : Γ ≤ N := by omega
@@ -140,10 +170,15 @@ theorem counting_cost_le {N Γ t : ℕ} (htN : t ≤ N) (h : 2 * (t + 1) + Γ �
   rw [hcast]
   nlinarith [h2, ht, hGnon, ht0, hΓnon, hNnon, hN2]
 
+/-- Under the low-weight condition `2 * (t + 1) + Γ ≤ N` and `t ≤ N`, the square root of the
+counting-cost product is at most `sqrt (N * (N - Γ))`. See [Beals et al.,
+2001][BealsEtAl2001]. -/
 theorem counting_cost_sqrt_le {N Γ t : ℕ} (htN : t ≤ N) (h : 2 * (t + 1) + Γ ≤ N) :
     Real.sqrt ((t + 1) * (N - t + 1) : ℝ) ≤ Real.sqrt ((N : ℝ) * ((N - Γ : ℕ) : ℝ)) :=
   Real.sqrt_le_sqrt (counting_cost_le htN h)
 
+/-- If `t ≤ N` and `2 * (N - t + 1) + Γ ≤ N`, the real counting-cost product `(t + 1) * (N - t +
+1)` is at most `N * (N - Γ)`. -/
 theorem counting_cost_le_of_high_weight {N Γ t : ℕ} (htN : t ≤ N)
     (h : 2 * (N - t + 1) + Γ ≤ N) :
     ((t + 1) * (N - t + 1) : ℝ) ≤ (N : ℝ) * ((N - Γ : ℕ) : ℝ) := by
@@ -152,6 +187,8 @@ theorem counting_cost_le_of_high_weight {N Γ t : ℕ} (htN : t ≤ N)
   rw [hsub] at hc
   nlinarith [hc]
 
+/-- Under the high-weight condition `2 * (N - t + 1) + Γ ≤ N` and `t ≤ N`, the square root of
+the counting-cost product is at most `sqrt (N * (N - Γ))`. -/
 theorem counting_cost_sqrt_le_of_high_weight {N Γ t : ℕ} (htN : t ≤ N)
     (h : 2 * (N - t + 1) + Γ ≤ N) :
     Real.sqrt ((t + 1) * (N - t + 1) : ℝ) ≤ Real.sqrt ((N : ℝ) * ((N - Γ : ℕ) : ℝ)) :=

@@ -56,23 +56,49 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Oriented selection and symmetric compression
+
+`select` places the two ordered products `R * S` and `S * R` in opposite off-diagonal blocks.
+For Hermitian involutions this matrix is itself a Hermitian unitary. The construction supplies
+an explicit compression identity for the linear-combination framework of [GilyenSuLowWiebe2019].
+
+`plusEmbedding` is the equal-superposition embedding into the two summands. Its compression of
+`select R S` is the symmetrized product `(R * S + S * R) / 2`.
+
+## Main statements
+
+* `select_unitary`: oriented selection of Hermitian involutions is unitary.
+* `plus_select_compression`: compute the equal-superposition compression.
+* `plus_select_one`: recover `R` when the second input is the identity.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.LcuPostselect.ScaledLCU.OrientedSelect
 open Matrix
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The off-diagonal block matrix with ordered products `R * S` and `S * R`. -/
 def select (R S : Matrix I I ℂ) : Matrix (Sum I I) (Sum I I) ℂ :=
   Matrix.fromBlocks 0 (R*S) (S*R) 0
 
+/-- The real amplitude `1 / √2`, regarded as a complex number. -/
 def plusAmplitude : ℂ := ((Real.sqrt 2)⁻¹ : ℝ)
 
+/-- The embedding with equal amplitude `1 / √2` in each of the two summands. -/
 def plusEmbedding : Matrix (Sum I I) I ℂ :=
   Matrix.fromRows (plusAmplitude • (1 : Matrix I I ℂ)) (plusAmplitude • 1)
 
+/-- The equal-superposition amplitude is fixed by complex conjugation. -/
 theorem plusAmplitude_star : star plusAmplitude=plusAmplitude := by
   simp [plusAmplitude]
 
+/-- The square of the equal-superposition amplitude is `1 / 2`. -/
 theorem plusAmplitude_square : plusAmplitude*plusAmplitude=(1/2:ℂ) := by
   have hr : (Real.sqrt 2)⁻¹*(Real.sqrt 2)⁻¹=(1/2:ℝ) := by
     rw [← pow_two,inv_pow,Real.sq_sqrt (by norm_num : (0:ℝ)≤2)]
@@ -81,6 +107,7 @@ theorem plusAmplitude_square : plusAmplitude*plusAmplitude=(1/2:ℂ) := by
   simpa only [Complex.ofReal_mul,Complex.ofReal_div,Complex.ofReal_one,
     Complex.ofReal_ofNat] using congrArg Complex.ofReal hr
 
+/-- Oriented selection is an involution when both input matrices are involutions. -/
 theorem select_square (R S : Matrix I I ℂ) (hR : R*R=1) (hS : S*S=1) :
     select R S*select R S=1 := by
   have hrs : R*S*(S*R)=1 := by
@@ -95,11 +122,13 @@ theorem select_square (R S : Matrix I I ℂ) (hR : R*R=1) (hS : S*S=1) :
 
 omit [DecidableEq I] in
 
+/-- Oriented selection is Hermitian when both input matrices are Hermitian. -/
 theorem select_hermitian (R S : Matrix I I ℂ) (hR : R.IsHermitian) (hS : S.IsHermitian) :
     (select R S).IsHermitian := by
   change (select R S)ᴴ=select R S
   simp [select,Matrix.fromBlocks_conjTranspose,Matrix.conjTranspose_mul,hR.eq,hS.eq]
 
+/-- Oriented selection of two Hermitian involutions is unitary. -/
 theorem select_unitary (R S : Matrix I I ℂ) (hR : R.IsHermitian) (hS : S.IsHermitian)
     (hRR : R*R=1) (hSS : S*S=1) :
     select R S∈Matrix.unitaryGroup (Sum I I) ℂ := by
@@ -108,6 +137,7 @@ theorem select_unitary (R S : Matrix I I ℂ) (hR : R.IsHermitian) (hS : S.IsHer
   rw [(select_hermitian R S hR hS).eq]
   exact select_square R S hRR hSS
 
+/-- The equal-superposition embedding has conjugate-transpose product equal to the identity. -/
 theorem plusEmbedding_isometry :
     (plusEmbedding (I:=I))ᴴ*plusEmbedding (I:=I)=1 := by
   simp only [plusEmbedding,Matrix.conjTranspose_fromRows_eq_fromCols_conjTranspose,
@@ -117,6 +147,7 @@ theorem plusEmbedding_isometry :
   rw [← add_smul]
   norm_num
 
+/-- Compression of oriented selection through `plusEmbedding` gives `(1 / 2) • (R * S + S * R)`. -/
 theorem plus_select_compression (R S : Matrix I I ℂ) :
     (plusEmbedding (I:=I))ᴴ*select R S*plusEmbedding (I:=I)=(1/2:ℂ) • (R*S+S*R) := by
   simp only [plusEmbedding,select,Matrix.conjTranspose_fromRows_eq_fromCols_conjTranspose,
@@ -126,6 +157,7 @@ theorem plus_select_compression (R S : Matrix I I ℂ) :
     Matrix.mul_one,smul_smul,plusAmplitude_square]
   module
 
+/-- Compression of `select R 1` through `plusEmbedding` recovers `R`. -/
 theorem plus_select_one (R : Matrix I I ℂ) :
     (plusEmbedding (I:=I))ᴴ*select R 1*plusEmbedding (I:=I)=R := by
   rw [plus_select_compression]

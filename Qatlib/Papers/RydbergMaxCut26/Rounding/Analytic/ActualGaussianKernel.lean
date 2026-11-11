@@ -9,6 +9,28 @@ import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceAffineIntegral
 import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceEulerChart
 import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.TiltedSource
 import Qatlib.Papers.RydbergMaxCut26.RatioBounds.EulerIntegral
+
+/-!
+# From Gaussian Laplace moments to the rounding kernel
+
+This module rewrites `weightedMoment` using `halfAffine`, evaluates one positive-line integral,
+and transforms the remaining Laplace integral into an Euler integral. `actualKernel_hypergeom`
+then derives the rank-three normalized Gaussian kernel formula for correlations with absolute
+value less than one.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `weightedMoment_first_integral`: performs the first Laplace integration.
+* `actualKernel_euler`: identifies the Euler integral.
+* `actualKernel_hypergeom`: obtains the interior hypergeometric formula.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +44,8 @@ open Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianPair
 open Qatlib.Papers.RydbergMaxCut26.Rounding.TiltedClosed
 open Qatlib.Papers.RydbergMaxCut26.Rounding.TiltedSource
 
+/-- For `|t| < 1` and nonnegative Laplace parameters, the weighted Gaussian moment is `(3*t/sqrt
+b)` times `halfAffine (1+2*b) (2+4*(1-t^2)*b) a`. -/
 theorem weightedMoment_affine (t a b : ℝ) (ht : |t|<1) (ha : 0≤a) (hb : 0≤b) :
     weightedMoment t (a,b)=(3*t/Real.sqrt b)*halfAffine (1+2*b) (2+4*(1-t^2)*b) a := by
   have hpa : a^(-(1/2:ℝ))=1/Real.sqrt a := (inverse_sqrt_rpow a ha).symm
@@ -33,6 +57,8 @@ theorem weightedMoment_affine (t a b : ℝ) (ht : |t|<1) (ha : 0≤a) (hb : 0≤
   simp only [div_eq_mul_inv,mul_inv_rev,one_mul]
   ring
 
+/-- For `|t| < 1` and `b > 0`, integrating `weightedMoment t (a, b)` over the positive `a` line
+gives `4*t*eulerLaplace t b`. -/
 theorem weightedMoment_first_integral (t b : ℝ) (ht : |t|<1) (hb : 0<b) :
     (∫ a,weightedMoment t (a,b) ∂positiveLine)=4*t*eulerLaplace t b := by
   have hs : 0≤1-t^2 := by rw [← noise_square t ht];positivity
@@ -48,6 +74,8 @@ theorem weightedMoment_first_integral (t b : ℝ) (ht : |t|<1) (hb : 0<b) :
   simp only [div_eq_mul_inv,mul_inv_rev,one_mul]
   ring
 
+/-- For `|t| < 1`, the actual Gaussian rounding kernel is `(4*t/π)` times the integral of
+`(1-u^2)/sqrt (1-t^2*u^2)` from zero to one. -/
 theorem actualKernel_euler (t : ℝ) (ht : |t|<1) :
     actualKernel t=(4*t/Real.pi)*∫ u in (0:ℝ)..1,(1-u^2)/Real.sqrt (1-t^2*u^2) := by
   have hh := abs_lt.mp ht
@@ -65,6 +93,8 @@ theorem actualKernel_euler (t : ℝ) (ht : |t|<1) :
       rw [integral_const_mul,eulerLaplace_integral t ht2]
       ring
 
+/-- For `|t| < 1`, the actual rank-three Gaussian rounding kernel equals `(8/(3*π))*t*₂F₁(1/2,
+1/2; 5/2; t^2)`, giving the interior kernel formula used in [CrostaSaubanereHuber2026]. -/
 theorem actualKernel_hypergeom (t : ℝ) (ht : |t|<1) :
     actualKernel t=(8/(3*Real.pi))*t*₂F₁ (1/2:ℝ) (1/2) (5/2) (t^2) := by
   have hh := abs_lt.mp ht

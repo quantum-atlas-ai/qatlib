@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CollisionProb97.MainResults.Theorem2RToOne
+
+/-!
+# Regular claw counts and scalar budgets
+
+This module proves the candidate counts and scalar budget statements associated with Theorem 5
+of [BrassardHoyerTapp1998Collision]. The theorem `rToOneClaw_count_and_budget` uses equal
+positive regular fiber sizes, the stated domain-to-codomain size relations, and a table with
+distinct values occupying at most half the codomain.
+
+The scalar search budget simplifies to a constant times `k` when `k³ = N / r`.
+
+## Main statements
+
+* `rToOneClaw_count_and_budget`: For the stated regular functions and distinct-value table,
+  proves `r * K.card` claw candidates, matching witnesses, the scalar search bound, and the
+  table and record estimates associated with Theorem 5 of [BrassardHoyerTapp1998Collision].
+* `rToOneClaw_real_cube_budget`: At `k³ = N / r` with positive `r` and `k ≥ 1`, the proposed
+  regular claw search budget is at most `groverCoefficient l * k`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +41,9 @@ open scoped BigOperators
 
 universe u
 
+/-- For the stated regular functions and distinct-value table, proves `r * K.card` claw
+candidates, matching witnesses, the scalar search bound, and the table and record estimates
+associated with Theorem 5 of [BrassardHoyerTapp1998Collision]. -/
 theorem rToOneClaw_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     ∃ C : ℝ, 0 < C ∧
       ∀ {X Y Z : Type u} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -57,6 +84,8 @@ theorem rToOneClaw_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     push_cast
     linarith
 
+/-- At `k³ = N / r` with positive `r` and `k ≥ 1`, the proposed regular claw search budget is at
+most `groverCoefficient l * k`. -/
 theorem rToOneClaw_real_cube_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3)
     {N k : ℝ} {r : ℕ} (hr : 0 < r) (hk : 1 ≤ k) (hcube : k ^ 3 = N / (r : ℝ)) :
     proposedClawBudget (groverCoefficient l) N ((r : ℝ) * k)

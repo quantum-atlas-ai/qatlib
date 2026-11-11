@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefined
 import Mathlib.Data.Fin.Rev
+
+/-!
+# Grouped ordered compositions
+
+The map `unparts` inverts the reversed list representation `sourceParts` of a finite
+multiplicity vector. These inverse laws support `grouped_sum_last`, which reindexes a sum over
+grouped compositions by separating the final positive part from the preceding multiplicities.
+For background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `sourceParts_injective`: injectivity of the multiplicity-list representation.
+* `grouped_sum_last`: decomposition of a grouped composition sum by its final part.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -17,6 +36,7 @@ open Qatlib
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- The sum of the list `sourceParts s r` equals the sum of the multiplicities `r i`. -/
 theorem sourceParts_sum (s : ℕ) (r : Fin s → ℕ) : (sourceParts s r).sum=∑ i,r i := by
   rw [sourceParts,List.sum_ofFn]
   calc
@@ -29,8 +49,11 @@ theorem sourceParts_sum (s : ℕ) (r : Fin s → ℕ) : (sourceParts s r).sum=�
       omega
     _ = _ := Equiv.sum_comp Fin.revPerm r
 
+/-- The multiplicity vector obtained by reading the first `s` list positions in reverse order,
+using zero for missing entries. -/
 def unparts (s : ℕ) (q : List ℕ) : Fin s → ℕ := fun i => q.getD (s-1-i.val) 0
 
+/-- Converting `sourceParts s r` back with `unparts s` recovers `r`. -/
 theorem unparts_sourceParts (s : ℕ) (r : Fin s → ℕ) : unparts s (sourceParts s r)=r := by
   funext i
   rw [unparts,clause49_sourceParts_getD r (s-1-i.val) (by omega)]
@@ -39,6 +62,8 @@ theorem unparts_sourceParts (s : ℕ) (r : Fin s → ℕ) : unparts s (sourcePar
   change s-1-(s-1-i.val)=i.val
   omega
 
+/-- For a list of length `s`, converting it to multiplicities with `unparts s` and back with
+`sourceParts s` recovers the list. -/
 theorem sourceParts_unparts (s : ℕ) (q : List ℕ) (hq : q.length=s) : sourceParts s (unparts s q)=q := by
   apply List.ext_get
   · simp [sourceParts,hq]
@@ -49,11 +74,14 @@ theorem sourceParts_unparts (s : ℕ) (q : List ℕ) (hq : q.length=s) : sourceP
     have he : s-1-(s-1-n)=n := by omega
     rw [he,List.getD_eq_getElem?_getD,List.getElem?_eq_getElem h2,Option.getD_some]
 
+/-- The map `sourceParts s` from multiplicity vectors to lists is injective. -/
 theorem sourceParts_injective (s : ℕ) : Function.Injective (sourceParts s) := by
   intro a b h
   have hh := congrArg (unparts s) h
   simpa only [unparts_sourceParts] using! hh
 
+/-- A sum over grouped compositions of total `p` and length `s + 1` equals the sum over prefix
+totals below `p` and their multiplicity vectors, appending the final part `p - n.val`. -/
 theorem grouped_sum_last {E : Type*} [AddCommMonoid E] (s p : ℕ) (f : List ℕ → E) :
     (∑ q∈groupedCompositions p (s+1),f q)=
       ∑ n : Fin p,∑ r∈pfCompositions s n.val,f (sourceParts s r++[p-n.val]) := by

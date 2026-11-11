@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
+
+/-!
+# Finite term-code precision in PRN payoffs
+
+`trueTarget` averages a payoff of the sum of real-valued terms evaluated at the generated PRN
+residues. The module compares this target with the finite-code target under a Lipschitz payoff
+and propagates either individual or uniform term-encoding errors. See [KanekoEtAl2020].
+
+## Main statements
+
+* `actual_code_error`: error bounded by the average sum of term-code discrepancies.
+* `uniform_code_error`: a uniform term error gives total error at most `L*2^d*eps`.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,10 +36,14 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.CodePrecision
 
+/-- The uniform sample average of the payoff applied to the sum of real-valued terms at their
+PRN residues. -/
 def trueTarget {n s d : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (f : Reg s → Reg d → ZMod (2^n) → ℝ) (g : ℝ → ℝ) : ℝ :=
   (1/(2:ℝ)^s)*∑ j : Reg s,g (∑ i : Reg d,f j i (residue a c seed j i))
 
+/-- For an `L`-Lipschitz payoff, the finite-code target error is bounded by the sample average
+of `L` times the sum of absolute term-encoding errors. -/
 theorem actual_code_error {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1))
     (f : Reg s → Reg d → ZMod (2^n) → ℝ) (g : ℝ → ℝ) (L : NNReal) (hg : LipschitzWith L g) :
@@ -40,6 +62,8 @@ theorem actual_code_error {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2
   rw [Real.dist_eq,Real.dist_eq,← Finset.sum_sub_distrib] at h
   exact h.trans (mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) L.coe_nonneg)
 
+/-- If every evaluated term code has error at most `eps`, an `L`-Lipschitz payoff has target
+error at most `L*2^d*eps`. See [KanekoEtAl2020]. -/
 theorem uniform_code_error {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1))
     (f : Reg s → Reg d → ZMod (2^n) → ℝ) (g : ℝ → ℝ) (L : NNReal) (hg : LipschitzWith L g)

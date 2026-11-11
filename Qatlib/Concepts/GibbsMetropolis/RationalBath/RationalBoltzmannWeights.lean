@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Data.Rat.Cast.Order
 import Qatlib.Concepts.FairRandomBits.RationalReject.CountedWeightedDecoder
+
+/-!
+# Rational Boltzmann weights from Taylor polynomials
+
+`rationalBoltzmannTaylor` approximates `exp (1 - E)` using rational arithmetic. On energies in
+`[0, 1]`, its value is at least one and its nonnegative approximation error decays geometrically
+with the truncation degree.
+
+`boltzmannIntegerWeights` clears all denominators, and the final normalization theorem
+identifies the resulting integer-weight probabilities with the normalized Taylor values. See
+[TemmeEtAl2011] for background.
+
+## Main statements
+
+* `rational_boltzmann_computed_positive_tail`: For energies in `[0, 1]`, the Taylor weight is at
+  least one and underestimates `exp (1 - E)` by at most `2 * (1 / 2) ^ K`.
+* `rational_boltzmann_exact_integer_normalization`: For a nonempty system with energies in `[0,
+  1]`, the integer weights have positive total and normalize exactly to the normalized Taylor
+  weights.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
 
@@ -15,20 +40,25 @@ open scoped BigOperators Classical
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
+/-- The degree-`K` rational Taylor sum for `exp (1 - E)`. -/
 def rationalBoltzmannTaylor (K : ℕ) (E : ℚ) : ℚ :=
   ∑ j ∈ Finset.range (K+1), (1-E)^j / (j.factorial : ℚ)
 
+/-- Casting the rational Boltzmann Taylor sum to the reals gives the corresponding real Taylor
+sum. -/
 theorem rationalBoltzmannTaylor_cast (K : ℕ) (E : ℚ) :
     (rationalBoltzmannTaylor K E : ℝ) =
       ∑ j ∈ Finset.range (K+1), (1-(E:ℝ))^j / (j.factorial : ℝ) := by
   simp [rationalBoltzmannTaylor]
 
+/-- For `E ≤ 1`, the rational Boltzmann Taylor sum is at least one. -/
 theorem rationalBoltzmannTaylor_one_le (K : ℕ) (E : ℚ) (hE : E ≤ 1) :
     1 ≤ rationalBoltzmannTaylor K E := by
   have ht (j : ℕ) : 0 ≤ (1-E)^j / (j.factorial : ℚ) := by positivity
   simpa using! (Finset.single_le_sum (fun j _ => ht j)
     (Finset.mem_range.mpr (Nat.zero_lt_succ K)))
 
+/-- The factorial of `K + 1` is at least `2 ^ K`. -/
 private theorem two_pow_le_factorial (K : ℕ) : 2^K ≤ (K+1).factorial := by
   induction K with
   | zero => simp
@@ -36,6 +66,8 @@ private theorem two_pow_le_factorial (K : ℕ) : 2^K ≤ (K+1).factorial := by
     rw [pow_succ, Nat.factorial_succ]
     nlinarith
 
+/-- For energies in `[0, 1]`, the Taylor weight is at least one and underestimates `exp (1 - E)`
+by at most `2 * (1 / 2) ^ K`. -/
 theorem rational_boltzmann_computed_positive_tail :
     ∀ (K : ℕ) (E : ℚ), 0 ≤ E → E ≤ 1 →
       1 ≤ rationalBoltzmannTaylor K E ∧
@@ -66,17 +98,23 @@ theorem rational_boltzmann_computed_positive_tail :
     have heq : 2 / (2:ℝ)^K = 2*(1/2:ℝ)^K := by rw [div_pow]; ring
     linarith
 
+/-- The product of the denominators of all rational Boltzmann Taylor weights. -/
 def boltzmannCommonDenominator {N : ℕ} (K : ℕ) (E : Fin N → ℚ) : ℕ :=
   ∏ i, (rationalBoltzmannTaylor K (E i)).den
 
+/-- The natural-number weights obtained by scaling the Taylor numerators to their common
+denominator. -/
 def boltzmannIntegerWeights {N : ℕ} (K : ℕ) (E : Fin N → ℚ) (i : Fin N) : ℕ :=
   (rationalBoltzmannTaylor K (E i)).num.toNat *
     (boltzmannCommonDenominator K E / (rationalBoltzmannTaylor K (E i)).den)
 
+/-- The common denominator of the rational Taylor weights is strictly positive. -/
 theorem boltzmannCommonDenominator_pos {N : ℕ} (K : ℕ) (E : Fin N → ℚ) :
     0 < boltzmannCommonDenominator K E :=
   Finset.prod_pos fun i _ => Rat.den_pos _
 
+/-- For energies at most one, each integer weight equals the common denominator times its
+rational Taylor weight after casting to the reals. -/
 theorem boltzmannIntegerWeights_cast {N : ℕ} (K : ℕ) (E : Fin N → ℚ)
     (hE : ∀ i, E i ≤ 1) (i : Fin N) :
     (boltzmannIntegerWeights K E i : ℝ) =
@@ -98,6 +136,8 @@ theorem boltzmannIntegerWeights_cast {N : ℕ} (K : ℕ) (E : Fin N → ℚ)
   rw [Rat.cast_def]
   ring
 
+/-- For a nonempty system with energies in `[0, 1]`, the integer weights have positive total and
+normalize exactly to the normalized Taylor weights. -/
 theorem rational_boltzmann_exact_integer_normalization :
     ∀ (N K : ℕ) (E : Fin N → ℚ), 0 < N → (∀ i, 0 ≤ E i ∧ E i ≤ 1) →
       0 < weightTotal (boltzmannIntegerWeights K E) ∧

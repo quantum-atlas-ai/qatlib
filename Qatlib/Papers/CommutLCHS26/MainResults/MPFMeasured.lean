@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MeasuredRounds
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAAccuracy
+
+/-!
+# Measured multi-product simulation guarantees
+
+This module defines the success probability, first-failure probability sum, and conditional
+output of the measured amplified multi-product procedure. For normalized inputs and 0 < ε ≤ 1,
+the procedure realizes a normalized approximation to the target unitary evolution with explicit
+probability and output-error bounds, for the implementation setting of [AftabAnTrivisa2026].
+
+## Main statements
+
+* `guarantees`: gives success, failure, conservation, and conditional-output bounds.
+* `chebyshev_guarantees`: specializes these guarantees to Chebyshev formulas.
+* `chebyshev_selective_output`: identifies a successful selective run with an embedded output
+  state.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -25,22 +46,29 @@ set_option warningAsError false
 
 variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K]
 
+/-- The mass of the successful measured amplified evolution over the chosen number of segments. -/
 def successProbability (xs : List (Matrix I I ℂ)) (q : K → ℕ) (a : K → ℝ)
     (m : ℕ) (T ε : ℝ) (ψ : QState I) : ℝ :=
   MeasuredRounds.mass (MPFOAALCU.amplified xs q a (T / segments xs a m T ε))
     (scaleEightFrame (MPFOAALCU.frame a)) (segments xs a m T ε) ψ
 
+/-- The sum of first-failure masses over all chosen simulation segments. -/
 def failureProbability (xs : List (Matrix I I ℂ)) (q : K → ℕ) (a : K → ℝ)
     (m : ℕ) (T ε : ℝ) (ψ : QState I) : ℝ :=
   ∑ j ∈ Finset.range (segments xs a m T ε),
     MeasuredRounds.firstFailure (MPFOAALCU.amplified xs q a (T / segments xs a m T ε))
       (scaleEightFrame (MPFOAALCU.frame a)) j ψ
 
+/-- The optional normalized output of the measured amplified evolution conditioned on successful
+rounds. -/
 def conditionalOutput (xs : List (Matrix I I ℂ)) (q : K → ℕ) (a : K → ℝ)
     (m : ℕ) (T ε : ℝ) (ψ : QState I) : Option (QState I) :=
   MeasuredRounds.output (MPFOAALCU.amplified xs q a (T / segments xs a m T ε))
     (scaleEightFrame (MPFOAALCU.frame a)) (segments xs a m T ε) ψ
 
+/-- For a normalized input and the stated Hermitian and cancellation hypotheses, success is at
+least (1 - ε/12)², failure is at most ε/6, and their sum is 1. Success is positive and the
+conditional output satisfies the target normalized-application bound ε/6. -/
 theorem guarantees (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (ha : ∑ j, a j = 1)
     (m : ℕ) (hm : 0 < m) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -73,6 +101,9 @@ theorem guarantees (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
 
 omit [Fintype K] [DecidableEq K] in
 
+/-- The measured Chebyshev construction has success at least (1 - ε/12)², failure at most ε/6,
+and total probability 1. Its conditional output exists and satisfies the normalized
+target-application bound ε/6. -/
 theorem chebyshev_guarantees (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (m : ℕ) (hm : 0 < m) (T ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ψ : QState I) (hψ : Normalized ψ) :
@@ -90,6 +121,8 @@ theorem chebyshev_guarantees (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, A
 
 omit [Fintype K] [DecidableEq K] in
 
+/-- For a normalized input, the selective measured Chebyshev run returns an embedded state
+satisfying the normalized target-evolution error bound ε/6 [AftabAnTrivisa2026]. -/
 theorem chebyshev_selective_output (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (m : ℕ) (hm : 0 < m) (T ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ψ : QState I) (hψ : Normalized ψ) :

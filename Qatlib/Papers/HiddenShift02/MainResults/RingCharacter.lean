@@ -9,6 +9,32 @@ import Mathlib.NumberTheory.GaussSum
 import Mathlib.NumberTheory.MulChar.Lemmas
 import Mathlib.Data.Nat.Totient
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Hidden shifts of characters over finite rings
+
+This module identifies the support fraction of a shifted multiplicative character with the unit
+fraction `unitFraction`. It computes `algorithmAmplitude` at the negative shift and, under a
+unit-norm Fourier coefficient hypothesis, derives measurement probabilities and the
+totient-ratio bound `source_theorem2`.
+
+The development follows [VanDamHallgrenIp2006].
+
+## Main statements
+
+* `prep_probability`: The support fraction of any shifted multiplicative character is
+  `unitFraction R`.
+* `measurement_probability`: With positive ring and unit cardinalities and a unit-norm Fourier
+  coefficient, the support-normalized squared amplitude at −s equals the unit fraction.
+* `source_theorem2`: Computes the preparation fraction φ(n)/n and normalized recovery squared
+  amplitude φ(ell)/ell under the stated Fourier norm hypotheses. If the first ratio is at most
+  the second, their displayed product is at least (φ(n)/n)³.
+
+## References
+
+* [van Dam et al., 2006][VanDamHallgrenIp2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,19 +45,24 @@ open scoped BigOperators ComplexConjugate
 
 namespace Qatlib.Papers.HiddenShift02.MainResults.RingCharacter
 
+/-- The real ratio of the number of units of `R` to the cardinality of `R`. -/
 noncomputable def unitFraction (R : Type*) [Monoid R] [Fintype R] [DecidableEq R] : ℝ :=
   (Fintype.card Rˣ : ℝ) / (Fintype.card R : ℝ)
 
+/-- For nonzero modulus n, the unit fraction of `ZMod n` is φ(n)/n ([Theorem
+2][VanDamHallgrenIp2006]). -/
 theorem unitFraction_zmod (n : ℕ) [NeZero n] :
     unitFraction (ZMod n) = (Nat.totient n : ℝ) / (n : ℝ) := by
   unfold unitFraction
   rw [ZMod.card_units_eq_totient, ZMod.card]
 
+/-- If 0 ≤ a ≤ b, then a³ ≤ ab². -/
 theorem cubic_bound {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) : a ^ 3 ≤ a * b ^ 2 := by
   have hb : 0 ≤ b := le_trans ha hab
   have h2 : a * a ≤ b * b := mul_self_le_mul_self ha hab
   nlinarith
 
+/-- A multiplicative character on a commutative ring is nonzero exactly on the units. -/
 theorem mulChar_apply_ne_zero_iff (R : Type*) [CommRing R] (χ : MulChar R ℂ) (x : R) :
     χ x ≠ 0 ↔ IsUnit x := by
   constructor
@@ -41,18 +72,24 @@ theorem mulChar_apply_ne_zero_iff (R : Type*) [CommRing R] (χ : MulChar R ℂ) 
   · intro hx h
     exact (hx.map χ.toMonoidHom).ne_zero h
 
+/-- The equivalence between units of a monoid and elements of the monoid equipped with a proof
+of being a unit. -/
 noncomputable def unitsEquivIsUnit (R : Type*) [Monoid R] : Rˣ ≃ {x : R // IsUnit x} where
   toFun u := ⟨u, u.isUnit⟩
   invFun x := x.2.unit
   left_inv u := Units.ext (IsUnit.unit_spec u.isUnit)
   right_inv x := Subtype.ext (IsUnit.unit_spec x.2)
 
+/-- The number of unit elements in a finite commutative ring equals the cardinality of its unit
+group. -/
 theorem card_units_filter (R : Type*) [CommRing R] [Fintype R] [DecidableEq R] :
     (Finset.univ.filter (fun x : R => IsUnit x)).card = Fintype.card Rˣ := by
   classical
   rw [← Fintype.card_subtype (fun x : R => IsUnit x)]
   exact Fintype.card_congr (unitsEquivIsUnit R).symm
 
+/-- The support of a shifted multiplicative character has the same cardinality as the unit group
+([Theorem 2][VanDamHallgrenIp2006]). -/
 theorem shifted_support_card (R : Type*) [CommRing R] [Fintype R] [DecidableEq R]
     (χ : MulChar R ℂ) (s : R) :
     (Finset.univ.filter (fun x : R => χ (x + s) ≠ 0)).card = Fintype.card Rˣ := by
@@ -75,6 +112,8 @@ theorem shifted_support_card (R : Type*) [CommRing R] [Fintype R] [DecidableEq R
       · abel
   rw [h2, card_units_filter R]
 
+/-- The support fraction of any shifted multiplicative character is `unitFraction R` ([Theorem
+2][VanDamHallgrenIp2006]). -/
 theorem prep_probability (R : Type*) [CommRing R] [Fintype R] [DecidableEq R]
     (χ : MulChar R ℂ) (s : R) :
     ((Finset.univ.filter (fun x : R => χ (x + s) ≠ 0)).card : ℝ) / (Fintype.card R : ℝ)
@@ -83,16 +122,22 @@ theorem prep_probability (R : Type*) [CommRing R] [Fintype R] [DecidableEq R]
   unfold unitFraction
   rfl
 
+/-- Inverting the multiplicatively shifted inverse additive character gives the shifted original
+character. -/
 theorem inv_mulShift_inv (R : Type*) [CommRing R] (ψ : AddChar R ℂ) (a : R) :
     ((ψ⁻¹).mulShift a)⁻¹ = ψ.mulShift a := by
   ext x
   simp [AddChar.mulShift_apply, mul_neg]
 
+/-- For an additive character on a finite commutative ring, complex conjugation of a value
+equals the value of the inverse character. -/
 theorem conj_addChar_eq_inv (R : Type*) [CommRing R] [Fintype R] (ψ : AddChar R ℂ) (a : R) :
     conj (ψ a) = ψ⁻¹ a := by
   have hR : 0 < ringChar R := Nat.pos_of_ne_zero (CharP.ringChar_ne_zero_of_finite R)
   exact AddChar.starComp_apply hR a
 
+/-- At a unit frequency multiplier `y`, the Fourier coefficient of `χ` equals `χ⁻¹ y` times its
+coefficient at `ψ`. -/
 theorem fourier_mulShift_char (R : Type*) [CommRing R] [Fintype R] (χ : MulChar R ℂ)
     (ψ : AddChar R ℂ) {y : R} (hy : IsUnit y) :
     fourier χ (ψ.mulShift y) = χ⁻¹ y * fourier χ ψ := by
@@ -121,11 +166,15 @@ theorem fourier_mulShift_char (R : Type*) [CommRing R] [Fintype R] (χ : MulChar
   rw [hcoe]
   ring
 
+/-- The scaled additive-character sum obtained from the Fourier transform of a shifted
+multiplicative character after multiplication by the character values. -/
 noncomputable def algorithmAmplitude (R : Type*) [CommRing R] [Fintype R]
     (χ : MulChar R ℂ) (ψ : AddChar R ℂ) (s x : R) : ℂ :=
   fourierScale R * ∑ y : R,
     (ψ.mulShift y) x * (χ y * fourier (fun z => χ (z + s)) (ψ.mulShift y))
 
+/-- At −s, the ring-character algorithm amplitude is `fourierScale R` times `fourier χ ψ` times
+the number of units ([Theorem 2][VanDamHallgrenIp2006]). -/
 theorem algorithm_amplitude_neg (R : Type*) [CommRing R] [Fintype R] [DecidableEq R]
     (χ : MulChar R ℂ) (ψ : AddChar R ℂ) (s : R) :
     algorithmAmplitude R χ ψ s (-s) =
@@ -182,6 +231,9 @@ theorem algorithm_amplitude_neg (R : Type*) [CommRing R] [Fintype R] [DecidableE
         rw [hsum]
         ring
 
+/-- With positive ring and unit cardinalities and a unit-norm Fourier coefficient, the
+support-normalized squared amplitude at −s equals the unit fraction ([Theorem
+2][VanDamHallgrenIp2006]). -/
 theorem measurement_probability (R : Type*) [CommRing R] [Fintype R] [DecidableEq R]
     (χ : MulChar R ℂ) (ψ : AddChar R ℂ) (s : R)
     (hR : 0 < Fintype.card R) (hU : 0 < Fintype.card Rˣ)
@@ -207,6 +259,9 @@ theorem measurement_probability (R : Type*) [CommRing R] [Fintype R] [DecidableE
   have hUne : (Fintype.card Rˣ : ℝ) ≠ 0 := ne_of_gt hUR
   field_simp
 
+/-- Computes the preparation fraction φ(n)/n and normalized recovery squared amplitude
+φ(ell)/ell under the stated Fourier norm hypotheses. If the first ratio is at most the
+second, their displayed product is at least (φ(n)/n)³ ([Theorem 2][VanDamHallgrenIp2006]). -/
 theorem source_theorem2 {n ell : ℕ} [NeZero n] [NeZero ell]
     (χ : MulChar (ZMod n) ℂ) (ψ : AddChar (ZMod n) ℂ) (s : ZMod n)
     (χ' : MulChar (ZMod ell) ℂ) (ψ' : AddChar (ZMod ell) ℂ) (s' : ZMod ell)

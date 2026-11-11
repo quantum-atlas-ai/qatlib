@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionStat
+
+/-!
+# Specification of the forced LCHS preparation-window bound
+
+`InhomogeneousTrapezoidOptimalPreparationCost` records the assumptions and conclusion of the
+trapezoidal forced-evolution window bound. It requires unitary input and source preparations, a
+prescribed positive time subdivision count, a bound on the source-mass correction, and a lower
+bound on the forced output norm.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `InhomogeneousTrapezoidOptimalPreparationCost`: specifies the `8 * q + 1` window estimate.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -29,6 +49,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that the computed trapezoidal forced-evolution schedule gives window size at
+most `8 * q + 1`, with `q = (1 + ∫ u in s..t, ‖toEuclidean_fromVec (b u)‖) / τ`, under the
+stated preparation, regularity, and source-mass hypotheses. -/
 def InhomogeneousTrapezoidOptimalPreparationCost : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L L' H H' : ℝ → Matrix I I ℂ)
     (b b' b'' : ℝ → QState I) (s t ε τ Λ β β₂ lamL lamH lamLd lamHd bmax : ℝ)

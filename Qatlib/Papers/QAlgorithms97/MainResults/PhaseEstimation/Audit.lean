@@ -8,9 +8,30 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Tactic
 
+/-!
+# A counterexample to the printed chord estimate
+
+This module records an explicit quarter-turn example relevant to the Appendix C estimates of
+[CleveEtAl1998]. The phase `1 / 4` satisfies the stated two-point grid conditions, while its
+complex chord length exceeds the printed linear bound with coefficient four.
+
+## Main statements
+
+* `appendixC_counter_grid`: the quarter-turn grid conditions.
+* `appendixC_printed_chord_counter`: failure of the printed chord inequality at phase one
+  quarter.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation
 
+/-- The phase `1 / 4` is positive, lies within the specified half-spacing bound, is absent from
+the two-point grid, and has zero as a nearest grid point, with zero in the stated integer
+interval. -/
 theorem appendixC_counter_grid :
     (0 : ℝ) < 1 / 4 ∧ (1 / 4 : ℝ) ≤ 1 / (2 : ℝ) ^ (1 + 1) ∧
       (∀ a : Fin 2, (a.val : ℝ) / 2 ≠ (1 / 4 : ℝ)) ∧
@@ -18,6 +39,9 @@ theorem appendixC_counter_grid :
       (-(2 : ℤ) ^ (1 - 1) ≤ 0 ∧ (0 : ℤ) < 2 ^ (1 - 1)) := by
   norm_num
 
+/-- At phase `1 / 4`, the chord length from one to the complex exponential is greater than `4 *
+(1 / 4)`, contradicting the printed chord estimate in the Appendix C discussion
+[CleveEtAl1998]. -/
 theorem appendixC_printed_chord_counter :
     ¬ ‖(1 : ℂ) - Complex.exp (2 * Real.pi * Complex.I * (1 / 4 : ℂ))‖ ≤
       4 * (1 / 4 : ℝ) := by

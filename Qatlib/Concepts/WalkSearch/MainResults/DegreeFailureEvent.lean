@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.DegreeConcentration
+
+/-!
+# Finite failure counts for degree tests
+
+`degreeTest_failure_card_positive` expresses the corrected degree test error guarantee as an
+integer cardinality inequality. It uses the prescribed logarithmic repetition count and rounded
+sample size; `degreeTest_failure_card` supplies the same statement under `64 ≤ n`. For
+background on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `degreeTest_failure_card_positive`: For positive `n`, `0 < δ < 1`, and the prescribed positive
+  sample size, the number of incorrect degree test tapes times `n^3` is at most twice the total
+  tape count.
+* `degreeTest_failure_card`: For `64 ≤ n`, `0 < δ < 1`, and the prescribed positive sample size,
+  the number of incorrect degree test tapes times `n^3` is at most twice the total tape count.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +37,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 
+/-- For positive `n`, `0 < δ < 1`, and the prescribed positive sample size, the number of
+incorrect degree test tapes times `n^3` is at most twice the total tape count. -/
 theorem degreeTest_failure_card_positive (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 0<δ) (hδ1 : δ<1) :
     let K : ℕ :=64*(Nat.log 2 n+2)
     let c : ℕ :=Nat.ceil ((n:ℝ)^δ)
@@ -39,6 +63,8 @@ theorem degreeTest_failure_card_positive (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 
       L.card*n^3≤Fintype.card (Fin K→Fin c→Fin n) at hh
   nlinarith [hh.1,hh.2]
 
+/-- For `64 ≤ n`, `0 < δ < 1`, and the prescribed positive sample size, the number of incorrect
+degree test tapes times `n^3` is at most twice the total tape count. -/
 theorem degreeTest_failure_card (n : ℕ) (δ : ℝ) (hn : 64≤n) (hδ : 0<δ) (hδ1 : δ<1) :
     let K : ℕ :=64*(Nat.log 2 n+2)
     let c : ℕ :=Nat.ceil ((n:ℝ)^δ)

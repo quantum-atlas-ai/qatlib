@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.FilterBounds
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# HHL filter distance and Lipschitz continuity
+
+`source_lemma2_distance_eq` expresses the distance between normalized filter vectors in terms of
+their real overlap. `source_lemma2_lipschitz` bounds that distance by `2 * κ` times the phase
+difference, giving the filter estimate associated with Lemma 2 of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `source_lemma2_distance_eq`: the overlap formula for filter distance.
+* `source_lemma2`: the distance identity and Lipschitz estimate together.
+
+## References
+
+* [Harrow et al., 2009, Lemma 2][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +38,8 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeSpecDefs.SinEnvelopeS
 open Qatlib.Foundations.PureStateMath
 open scoped Real
 
+/-- The distance between the two normalized three-state filter vectors equals the square root of
+twice one minus their real overlap; see [Harrow et al., Lemma 2][HarrowHassidimLloyd2009]. -/
 theorem source_lemma2_distance_eq (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) :
     Real.sqrt (∑ s : Fin 3, ‖sinEnvelopeHVector (1 / (2 * κ)) lam₁ s -
         sinEnvelopeHVector (1 / (2 * κ)) lam₂ s‖ ^ 2) =
@@ -52,12 +72,16 @@ theorem source_lemma2_distance_eq (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) :
             ring
   simpa only [ha, hb] using congrArg Real.sqrt hmain
 
+/-- For positive `κ` and distinct phases, the three-state filter distance is at most `2 * κ *
+|lam₁ - lam₂|`, as in [Harrow et al., Lemma 2][HarrowHassidimLloyd2009]. -/
 theorem source_lemma2_lipschitz (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) (hne : lam₁ ≠ lam₂) :
     Real.sqrt (∑ s : Fin 3, ‖sinEnvelopeHVector (1 / (2 * κ)) lam₁ s -
         sinEnvelopeHVector (1 / (2 * κ)) lam₂ s‖ ^ 2) ≤ 2 * κ * |lam₁ - lam₂| := by
   have h := source_filter_lipschitz κ lam₁ lam₂ hκ
   simpa only [Pi.sub_apply] using h
 
+/-- Combines the overlap formula for the three-state filter distance with its `2 * κ` Lipschitz
+bound; see [Harrow et al., Lemma 2][HarrowHassidimLloyd2009]. -/
 theorem source_lemma2 (κ lam₁ lam₂ : ℝ) (hκ : 0 < κ) (hne : lam₁ ≠ lam₂) :
     Real.sqrt (∑ s : Fin 3, ‖sinEnvelopeHVector (1 / (2 * κ)) lam₁ s -
         sinEnvelopeHVector (1 / (2 * κ)) lam₂ s‖ ^ 2) =

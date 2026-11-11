@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare
+
+/-!
+# Centered Gaussian tails from derivative energy
+
+This module combines the π²/8 Gaussian Poincare estimate with Chebyshev's inequality. It bounds
+centered deviations of one C¹ observable and the union of deviations of a finite family by their
+Gaussian squared-derivative integrals, providing concentration estimates for Gaussian
+interpolation applications [GohMuller2026].
+
+## Main statements
+
+* `centered_tail`: A centered deviation has probability at most π²/8 times derivative energy
+  divided by ε².
+* `finite_centered_tail`: A finite-family deviation is bounded by the sum of the derivative
+  energies.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -15,6 +36,9 @@ namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.Tail
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
   [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
 
+/-- For a C¹ Gaussian square-integrable function with integrable squared derivative norm and `ε
+> 0`, the probability of a centered absolute deviation at least `ε` is at most π²/8 times
+its derivative energy divided by ε². -/
 theorem centered_tail (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (hm : MemLp f 2 (stdGaussian E))
     (hgrad : Integrable (fun x:E=>‖fderiv ℝ f x‖^2) (stdGaussian E))
@@ -28,6 +52,9 @@ theorem centered_tail (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare.c1_gaussian_poincare_gradient f hf hm hgrad) (sq_nonneg ε)
   exact hr.trans hp
 
+/-- For a finite family of C¹ Gaussian square-integrable functions with integrable squared
+derivative norms, the probability that any centered absolute deviation reaches `ε > 0` is at
+most π²/(8ε²) times the sum of their derivative energies. -/
 theorem finite_centered_tail {J : Type} [Fintype J] (f : J→E→ℝ)
     (hf : ∀ j,ContDiff ℝ 1 (f j)) (hm : ∀ j,MemLp (f j) 2 (stdGaussian E))
     (hgrad : ∀ j,Integrable (fun x:E=>‖fderiv ℝ (f j) x‖^2) (stdGaussian E))

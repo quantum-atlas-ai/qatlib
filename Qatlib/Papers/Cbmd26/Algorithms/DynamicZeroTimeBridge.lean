@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelFamily
 import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+
+/-!
+# Exact state preparation at zero evolution time
+
+`dynamicZeroTimeWord` consists of one input-preparation step. Since the piecewise evolution at
+time zero is the identity, this word produces the initial state exactly, and projection onto the
+full system succeeds with probability one. The module covers the zero-time case of the dynamic
+construction in [WangEtAl2026].
+
+## Main statements
+
+* `dynamicZeroTimeWord_evaluate_and_counts`: evaluates the word and records its zero data
+  queries, one input query, and zero fixed gates.
+* `dynamic_zero_time_program`: packages exact normalized evolution and the certain heralding
+  event.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,15 +67,20 @@ namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator ENNReal
 
+/-- The zero-time circuit word consisting of a single forward input-preparation step. -/
 def dynamicZeroTimeWord (I : Type) : List (PreparedStep I) := [.prepareForward]
 
 section Matrices
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The piecewise evolution on the interval from zero to zero is the identity for every complex
+parameter. -/
 theorem dynamic_zero_time_identity {H L : ℝ → Matrix I I ℂ}
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u, L u)) 0 0) (z : ℂ) :
     P.evolution z 0 = 1 := P.evolution_initial z
 
+/-- The zero-time word is valid and evaluates to the input-preparation matrix `B`, using zero
+data queries, one input query, and zero fixed gates. -/
 theorem dynamicZeroTimeWord_evaluate_and_counts (O B : Matrix I I ℂ) :
     PreparedCircuitValid (dynamicZeroTimeWord I) ∧
     evaluatePrepared O B (dynamicZeroTimeWord I) = B ∧
@@ -68,6 +94,8 @@ theorem dynamicZeroTimeWord_evaluate_and_counts (O B : Matrix I I ℂ) :
     trivial
   · simp [dynamicZeroTimeWord, evaluatePrepared, preparedInstruction]
 
+/-- Projection onto the full system succeeds with probability one on a normalized state and
+leaves its conditional state equal to the original state. -/
 theorem fullSystemHerald_exact (ψ : QState I) (hψ : Normalized ψ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
       (projectiveHeraldLaw (Projector (Finset.univ : Finset I))
@@ -86,6 +114,9 @@ theorem fullSystemHerald_exact (ψ : QState I) (hψ : Normalized ψ) :
     simp only [ConditionalState, hp, zero_lt_one, if_true, postMeasure_univ_eq_smul, hn]
     simp
 
+/-- A unitary input-preparation matrix gives an exact normalized application of the zero-time
+evolution with zero data queries, one input query, and zero fixed gates. The full-system
+herald succeeds with probability one and returns the prepared state. -/
 theorem dynamic_zero_time_program {H L : ℝ → Matrix I I ℂ}
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u, L u)) 0 0)
     (O B : Matrix I I ℂ) (hunitary : B ∈ Matrix.unitaryGroup I ℂ)

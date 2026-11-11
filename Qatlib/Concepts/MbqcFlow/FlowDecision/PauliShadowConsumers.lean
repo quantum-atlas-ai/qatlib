@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+
+/-!
+# Concrete Pauli shadow estimates
+
+Evaluates Pauli shadow statistics on the zero-basis pure state and the maximally mixed qubit.
+The coefficient vector `thetaZ` selects the Pauli Z observable, giving explicit means,
+variances, and outcome probabilities.
+
+The module also specializes weighted independent sampling and a physical median-of-means
+concentration bound with operation counts. These constructions belong to the classical shadow
+framework of [HuangKuengPreskill2020].
+
+## Main statements
+
+* `pauli_non_iid_weighted_consumer`: a weighted example with two different input states.
+* `pauli_shadow_physical_mom_consumer`: a many-observable deviation bound and
+  measurement-resource counts.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -26,6 +49,8 @@ open scoped ComplexOrder
 set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 
+/-- The zero-basis pure state and the maximally mixed qubit are density operators, and the
+latter is not pure. -/
 theorem pauli_weighted_consumer_inputs :
     IsDensityOperator (outerProduct (Ket (0:Fin 2))) ∧ IsDensityOperator ((1/2:ℂ) • (1:Operator 2)) ∧ ¬ IsPureDensityOperator ((1/2:ℂ) • (1:Operator 2)) := by
   refine ⟨isDensityOperator_outerProduct (normalized_ket 0), ⟨?_, ?_⟩, ?_⟩
@@ -39,18 +64,22 @@ theorem pauli_weighted_consumer_inputs :
     rw [Matrix.mul_apply, Fin.sum_univ_two] at h
     simp [Matrix.smul_apply] at h
 
+/-- The Pauli Z expectation of the zero-basis pure state equals one. -/
 theorem pauliExpectation_z_outerProduct_ket_zero :
     pauliExpectation 2 (outerProduct (Ket (0 : Fin 2))) = 1 := by
   rw [pauliExpectation, pauliMatrix_two, trace_pauliZ_mul]
   simp [outerProduct, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The Pauli Z expectation of the maximally mixed qubit equals zero. -/
 theorem pauliExpectation_z_half :
     pauliExpectation 2 ((1/2:ℂ) • (1 : Operator 2)) = 0 := by
   rw [pauliExpectation, pauliMatrix_two, trace_pauliZ_mul]
   simp [Matrix.smul_apply]
 
+/-- The Pauli coefficient vector equal to one on the Z axis and zero on the other axes. -/
 def thetaZ : Fin 3 → ℝ := fun a => if a = 2 then 1 else 0
 
+/-- The sum of the squared coefficients of `thetaZ` equals one. -/
 theorem thetaZ_sq_sum : ∑ a : Fin 3, (thetaZ a)^2 = 1 := by
   have h1 : ∀ a : Fin 3, (thetaZ a)^2 = thetaZ a := fun a => by
     show (if a = 2 then (1:ℝ) else 0)^2 = if a = 2 then 1 else 0
@@ -59,6 +88,7 @@ theorem thetaZ_sq_sum : ∑ a : Fin 3, (thetaZ a)^2 = 1 := by
   simp only [thetaZ]
   rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
 
+/-- Weighting the Pauli expectations by `thetaZ` extracts the specified Z expectation. -/
 theorem thetaZ_weighted_expectation (ρ : Operator 2) (e : ℝ)
     (he : pauliExpectation 2 ρ = e) :
     ∑ a : Fin 3, thetaZ a * pauliExpectation a ρ = e := by
@@ -66,6 +96,7 @@ theorem thetaZ_weighted_expectation (ρ : Operator 2) (e : ℝ)
   rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
   exact he
 
+/-- The Z shadow statistic has mean one on the zero-basis pure state. -/
 theorem expect_pure_z (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2)))) :
     (pauliRecordDist (outerProduct (Ket (0 : Fin 2))) h₀).expect
       (pauliSnapshotValue 0 thetaZ) = 1 := by
@@ -73,6 +104,7 @@ theorem expect_pure_z (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2)))
   rw [thetaZ_weighted_expectation _ 1 pauliExpectation_z_outerProduct_ket_zero]
   ring
 
+/-- The Z shadow statistic has mean zero on the maximally mixed qubit. -/
 theorem expect_mixed_z (h₁ : IsDensityOperator ((1/2:ℂ) • (1 : Operator 2))) :
     (pauliRecordDist ((1/2:ℂ) • (1 : Operator 2)) h₁).expect
       (pauliSnapshotValue 0 thetaZ) = 0 := by
@@ -80,6 +112,7 @@ theorem expect_mixed_z (h₁ : IsDensityOperator ((1/2:ℂ) • (1 : Operator 2)
   rw [thetaZ_weighted_expectation _ 0 pauliExpectation_z_half]
   ring
 
+/-- The Z shadow statistic has variance two on the zero-basis pure state. -/
 theorem variance_pure_z (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2)))) :
     (pauliRecordDist (outerProduct (Ket (0 : Fin 2))) h₀).variance
       (pauliSnapshotValue 0 thetaZ) = 2 := by
@@ -87,6 +120,7 @@ theorem variance_pure_z (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2)
     thetaZ_weighted_expectation _ 1 pauliExpectation_z_outerProduct_ket_zero]
   ring
 
+/-- The Z shadow statistic has variance three on the maximally mixed qubit. -/
 theorem variance_mixed_z (h₁ : IsDensityOperator ((1/2:ℂ) • (1 : Operator 2))) :
     (pauliRecordDist ((1/2:ℂ) • (1 : Operator 2)) h₁).variance
       (pauliSnapshotValue 0 thetaZ) = 3 := by
@@ -94,6 +128,7 @@ theorem variance_mixed_z (h₁ : IsDensityOperator ((1/2:ℂ) • (1 : Operator 
     thetaZ_weighted_expectation _ 0 pauliExpectation_z_half]
   ring
 
+/-- The Z-axis positive outcome has probability one third on the zero-basis pure state. -/
 theorem prob_pure_z_plus (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2)))) :
     (pauliRecordDist (outerProduct (Ket (0 : Fin 2))) h₀).prob (2, true) = 1/3 := by
   show instrumentProb pauliShadowRecordInstrument _ (2, true) = 1/3
@@ -115,6 +150,7 @@ theorem prob_pure_z_plus (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2
   rw [htr]
   norm_num
 
+/-- The Z-axis positive outcome has probability one sixth on the maximally mixed qubit. -/
 theorem prob_mixed_z_plus (h₁ : IsDensityOperator ((1/2:ℂ) • (1 : Operator 2))) :
     (pauliRecordDist ((1/2:ℂ) • (1 : Operator 2)) h₁).prob (2, true) = 1/6 := by
   show instrumentProb pauliShadowRecordInstrument _ (2, true) = 1/6
@@ -136,6 +172,9 @@ theorem prob_mixed_z_plus (h₁ : IsDensityOperator ((1/2:ℂ) • (1 : Operator
   rw [htr]
   norm_num [Complex.ofReal_div]
 
+/-- For independent Pauli records from the zero-basis and maximally mixed states with respective
+weights one third and two thirds, proves that the distributions and weights differ and that
+the weighted Z statistic has mean one third and variance `14 / 9`. -/
 theorem pauli_non_iid_weighted_consumer
     (h₀ : IsDensityOperator (outerProduct (Ket (0 : Fin 2)))) (h₁ : IsDensityOperator ((1/2:ℂ) • (1:Operator 2))) :
     let p : Fin 2 → FinDist (Fin 3 × Bool) :=
@@ -183,6 +222,9 @@ theorem pauli_non_iid_weighted_consumer
     rw [variance_pure_z h₀, variance_mixed_z h₁]
     norm_num
 
+/-- Under the stated block-size variance budget, bounds the physical probability that any of `M`
+median-of-means estimates deviates by more than `ε` by `M * 3 ^ (K / 2) / 2 ^ K`. It also
+gives the exact fresh-measurement resource counts. -/
 theorem pauli_shadow_physical_mom_consumer (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (L K M : ℕ) (c : Fin M → ℝ) (θ : Fin M → Fin 3 → ℝ) (ε : ℝ)
     (hL : 0 < L) (hK : 0 < K) (hε : 0 < ε)

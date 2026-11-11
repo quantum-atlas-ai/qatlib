@@ -8,6 +8,31 @@ import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Order
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Square-root robustness of real polynomial QSVT
+
+This module proves the one-half Hölder estimate for positive matrix square roots and uses
+defect-square-root unitaries to encode rectangular contractions. The matrix square-root
+estimates are backgrounded by [Bhatia1997]. These estimates lead to the square-root
+singular-transform robustness bound in [GilyenSuLowWiebe2019].
+
+For a real polynomial bounded by one on `[-1, 1]`, with degree bound `d` and matching parity,
+the corresponding singular transforms differ by at most `4 * d * √‖A - B‖`.
+
+## Main statements
+
+* `positive_matrix_square_root_holder`: Bound square-root differences of positive semidefinite
+  matrices.
+* `real_singular_polynomial_root_robustness`: Bound real polynomial singular transforms for both
+  parities.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -37,11 +62,14 @@ open scoped Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 noncomputable local instance rootMatrixCStar {I : Type} [Fintype I] [DecidableEq I] :
     CStarAlgebra (Matrix I I ℂ) where
 
+/-- A nonnegative real scalar maps to a nonnegative scalar matrix. -/
 private theorem root_scalar_nonneg {I : Type} [Fintype I] [DecidableEq I]
     {r : ℝ} (hr : 0 ≤ r) : 0 ≤ algebraMap ℝ (Matrix I I ℂ) r := by
   rw [Algebra.algebraMap_eq_smul_one]
   exact ((Matrix.PosSemidef.one : (1 : Matrix I I ℂ).PosSemidef).smul hr).nonneg
 
+/-- A self-adjoint matrix between the scalar bounds `-r` and `r` has norm at most `r`, for
+nonnegative `r`. -/
 private theorem root_norm_of_order_bounds {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : IsSelfAdjoint X) (r : ℝ) (hr : 0 ≤ r)
     (hlo : algebraMap ℝ (Matrix I I ℂ) (-r) ≤ X)
@@ -56,6 +84,7 @@ private theorem root_norm_of_order_bounds {I : Type} [Fintype I] [DecidableEq I]
     have hzero : X = 0 := by ext i; exact isEmptyElim i
     simpa [hzero] using hr
 
+/-- For a nonnegative matrix `B` and nonnegative `δ`, `√(B + δ I) ≤ √B + √δ I`. -/
 private theorem root_sqrt_shift_le {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) (hB : 0 ≤ B) (δ : ℝ) (hδ : 0 ≤ δ) :
     CFC.sqrt (B + algebraMap ℝ (Matrix I I ℂ) δ) ≤
@@ -79,6 +108,7 @@ private theorem root_sqrt_shift_le {I : Type} [Fintype I] [DecidableEq I]
   have he : CFC.sqrt ((S+t)*(S+t)) = S+t := CFC.sqrt_mul_self (S+t) (add_nonneg hS ht)
   exact h.trans_eq he
 
+/-- Positive semidefinite matrix square roots satisfy `‖√A - √B‖ ≤ √‖A - B‖`. See [Bhatia1997]. -/
 theorem positive_matrix_square_root_holder :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ),
       A.PosSemidef → B.PosSemidef →
@@ -102,9 +132,11 @@ theorem positive_matrix_square_root_holder :
   rw [map_neg,neg_le]
   simpa only [neg_sub] using hlo
 
+/-- The defect square root `√(1 - X * X)` used in the robust unitary construction. -/
 private noncomputable def rootDefect {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : Matrix I I ℂ := CFC.sqrt (1-X*X)
 
+/-- The squared defect of a Hermitian contraction is nonnegative. -/
 private theorem rootDefect_positive {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.IsHermitian) (hn : ‖X‖ ≤ 1) : 0 ≤ 1-X*X := by
   have h := CStarAlgebra.star_mul_le_algebraMap_norm_sq (a := X)
@@ -115,15 +147,19 @@ private theorem rootDefect_positive {I : Type} [Fintype I] [DecidableEq I]
     nlinarith [norm_nonneg X]
   exact sub_nonneg.mpr (h.trans hscalar)
 
+/-- A matrix commutes with its defect square root. -/
 private theorem rootDefect_commute {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : X * rootDefect X = rootDefect X * X := by
   have hc : Commute (1-X*X) X := by change (1-X*X)*X=X*(1-X*X); noncomm_ring
   exact (hc.cfcₙ_nnreal NNReal.sqrt).eq.symm
 
+/-- The block unitary candidate with diagonal blocks `X` and `-X` and defect square roots off
+the diagonal. -/
 private noncomputable def rootUnitary {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) : Matrix (I⊕I) (I⊕I) ℂ :=
   Matrix.fromBlocks X (rootDefect X) (rootDefect X) (-X)
 
+/-- The defect block construction is unitary for a Hermitian contraction. -/
 private theorem rootUnitary_unitary {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.IsHermitian) (hn : ‖X‖ ≤ 1) :
     rootUnitary X ∈ Matrix.unitaryGroup (I⊕I) ℂ := by
@@ -139,6 +175,7 @@ private theorem rootUnitary_unitary {I : Type} [Fintype I] [DecidableEq I]
     hsq,hc,add_sub_cancel,add_neg_cancel,sub_add_cancel]
   exact Matrix.fromBlocks_one
 
+/-- The signed block diagonal matrix of a Hermitian `X` has norm at most `‖X‖`. -/
 private theorem root_signed_diagonal_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.IsHermitian) :
     ‖Matrix.fromBlocks X 0 0 (-X)‖ ≤ ‖X‖ := by
@@ -154,6 +191,7 @@ private theorem root_signed_diagonal_norm_le {I : Type} [Fintype I] [DecidableEq
     rw [hermitianDilation_norm]
     exact mul_le_of_le_one_left (norm_nonneg X) (unitary_norm_le_one hJ))
 
+/-- The squared defects of two contractions differ in norm by at most `2 * ‖X - Y‖`. -/
 private theorem root_square_distance {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (hX : ‖X‖ ≤ 1) (hY : ‖Y‖ ≤ 1) :
     ‖(1-X*X)-(1-Y*Y)‖ ≤ 2*‖X-Y‖ := by
@@ -167,6 +205,7 @@ private theorem root_square_distance {I : Type} [Fintype I] [DecidableEq I]
       (mul_le_mul_of_nonneg_left hY (norm_nonneg _))
     _ = _ := by ring
 
+/-- The defect block unitaries of two Hermitian contractions differ by at most `4 * √‖X - Y‖`. -/
 private theorem rootUnitary_distance {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) (hX : X.IsHermitian) (hY : Y.IsHermitian)
     (hnX : ‖X‖ ≤ 1) (hnY : ‖Y‖ ≤ 1) :
@@ -204,21 +243,27 @@ private theorem rootUnitary_distance {I : Type} [Fintype I] [DecidableEq I]
       exact add_le_add (root_signed_diagonal_norm_le (X-Y) (hX.sub hY)) hroot
     _ ≤ _ := by linarith
 
+/-- The Hermitian dilation of a rectangular matrix is Hermitian. -/
 private theorem root_dilation_hermitian {I O : Type} [Fintype I] [Fintype O]
     (A : Matrix O I ℂ) : (hermitianDilation A).IsHermitian := by
   unfold Matrix.IsHermitian hermitianDilation
   simp [Matrix.fromBlocks_conjTranspose]
 
+/-- The embedding into the first copy of the doubled Hermitian-dilation space. -/
 private noncomputable def rootFirst {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] : Matrix ((O⊕I)⊕(O⊕I)) (O⊕I) ℂ :=
   (dilationLeft (I := O⊕I) (O := O⊕I))ᴴ
+/-- The output frame for the defect-unitary encoding of a rectangular matrix. -/
 private noncomputable def rootLeft {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] : Matrix ((O⊕I)⊕(O⊕I)) O ℂ :=
   rootFirst (I := I) (O := O) * (dilationLeft (I := I) (O := O))ᴴ
+/-- The input frame for the defect-unitary encoding of a rectangular matrix. -/
 private noncomputable def rootRight {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] : Matrix ((O⊕I)⊕(O⊕I)) I ℂ :=
   rootFirst (I := I) (O := O) * (dilationRight (I := I) (O := O))ᴴ
 
+/-- A rectangular contraction has a projected encoding by the defect unitary of its Hermitian
+dilation. -/
 private theorem root_projectedEncoding {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (A : Matrix O I ℂ) (hn : ‖A‖ ≤ 1) :
     ProjectedUnitaryEncoding A (rootUnitary (hermitianDilation A)) rootLeft rootRight := by
@@ -242,6 +287,8 @@ private theorem root_projectedEncoding {I O : Type} [Fintype I] [Fintype O]
       simp only [Matrix.mul_assoc]
     _ = A := by rw [he,compress_dilation_selectors12]; rfl
 
+/-- For fixed orthogonal projectors, isometric frames, and unit phases, compressed real-part
+QSVT circuits differ by at most `zs.length * ‖U - V‖`. -/
 private theorem root_average_oracle_error {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     {U V P Q : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
@@ -270,6 +317,9 @@ private theorem root_average_oracle_error {H I O : Type} [Fintype H] [DecidableE
       mul_le_mul_of_nonneg_left (norm_add_le _ _) (by norm_num)
     _ ≤ _ := by dsimp only [a,b,c,e]; linarith
 
+/-- A bounded real polynomial of degree at most `d` and parity `d` transforms contractions with
+error at most `4 * d * √‖A - B‖`, using the parity-appropriate singular transform
+[GilyenSuLowWiebe2019]. -/
 theorem real_singular_polynomial_root_robustness :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A B : Matrix O I ℂ) (p : Polynomial ℝ) (d : ℕ),

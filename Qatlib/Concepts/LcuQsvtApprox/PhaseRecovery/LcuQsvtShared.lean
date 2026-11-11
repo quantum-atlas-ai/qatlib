@@ -21,6 +21,28 @@ import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
+
+/-!
+# Phase-synthesis counts and QSP perturbation bounds
+
+This module proves response-scaling identities, a quadratic bound for completed-pair synthesis,
+and stability estimates for phase-perturbed QSP words. In particular, `qspWord_entry_lipschitz`
+bounds entrywise error by the phase-list length times the uniform phase error.
+
+`lcCorrectedQ_bounds` supplies explicit bounds for the corrected Jacobi-Anger truncation degree
+used in the signal-processing framework of [LowChuang2017].
+
+## Main statements
+
+* `lqSynthCount_le_of_completed`: bound recursive synthesis operations.
+* `qspWord_entry_lipschitz`: control word entries under phase perturbations.
+* `lcCorrectedQ_bounds`: bound the corrected truncation degree.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -59,6 +81,7 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 
 namespace Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
 
+/-- Both response polynomials scale linearly with the initial complex phase parameter. -/
 private theorem response_base_linear' (base : ℂ) (zs : List ℂ) :
     responseP base zs = C base * responseP 1 zs ∧
     responseQ base zs = C base * responseQ 1 zs := by
@@ -68,6 +91,8 @@ private theorem response_base_linear' (base : ℂ) (zs : List ℂ) :
     simp only [responseP_cons, responseQ_cons, ih.1, ih.2]
     constructor <;> ring
 
+/-- For a unit-modulus initial phase, responses with initial value one are obtained by
+multiplication by its conjugate. -/
 theorem responseP_one_of_phase {z0 : ℂ} (hz0 : IsPhase z0) (zs : List ℂ) :
     responseP 1 zs = C (star z0) * responseP z0 zs ∧
     responseQ 1 zs = C (star z0) * responseQ z0 zs := by
@@ -82,6 +107,8 @@ theorem responseP_one_of_phase {z0 : ℂ} (hz0 : IsPhase z0) (zs : List ℂ) :
       _ = C (star z0 * z0) * responseQ 1 zs := by rw [hz0]
       _ = C (star z0) * (C z0 * responseQ 1 zs) := by rw [C_mul]; ring
 
+/-- For a completed polynomial pair, the recursive synthesis count is at most `lqSynthOpCount
+n`. -/
 theorem lqSynthCount_le_of_completed (n : ℕ) (P Q : Polynomial ℂ)
     (h : Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.CompletedPair n P Q) : lqSynthCount n P Q ≤ lqSynthOpCount n := by
   induction n generalizing P Q with
@@ -124,6 +151,8 @@ theorem lqSynthCount_le_of_completed (n : ℕ) (P Q : Polynomial ℂ)
 
 open scoped Matrix.Norms.L2Operator
 
+/-- The difference between two complex phase exponentials is at most twice the absolute
+difference of their real angles. -/
 private theorem norm_exp_I_sub_le (a a' : ℝ) :
     ‖Complex.exp ((a : ℂ) * Complex.I) - Complex.exp ((a' : ℂ) * Complex.I)‖
       ≤ 2 * |a - a'| := by
@@ -152,6 +181,8 @@ private theorem norm_exp_I_sub_le (a a' : ℝ) :
         have h2 := Real.abs_sin_sub_sin_le a a'
         linarith
 
+/-- A multiplicative left fold with initial accumulator `a` equals `a` times the fold starting
+at one. -/
 private theorem foldl_mul_prefix' {M : Type*} [Monoid M] (l : List M) (a : M) :
     List.foldl (· * ·) a l = a * List.foldl (· * ·) 1 l := by
   induction l generalizing a with
@@ -159,12 +190,14 @@ private theorem foldl_mul_prefix' {M : Type*} [Monoid M] (l : List M) (a : M) :
   | cons x xs ih =>
     rw [List.foldl_cons, List.foldl_cons, ih, ih (1 * x), one_mul, mul_assoc]
 
+/-- Expands a nonempty QSP word into its leading signal-phase factor and the remaining word. -/
 private theorem qspWord_cons (a : ℝ) (rest : List ℝ) (x : ℝ) :
     QSPWord (a :: rest) x
       = (SignalMatrix x * PhaseRotation a) * QSPWord rest x := by
   simp only [QSPWord, List.map_cons, List.foldl_cons, one_mul]
   exact foldl_mul_prefix' _ _
 
+/-- A two-dimensional unitary preserves the Euclidean norm of a vector. -/
 private theorem unitary_mulVec_norm {U : Matrix (Fin 2) (Fin 2) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin 2) ℂ) (v : Fin 2 → ℂ) :
     ‖toEuclidean_fromVec (U *ᵥ v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -172,6 +205,7 @@ private theorem unitary_mulVec_norm {U : Matrix (Fin 2) (Fin 2) ℂ}
       (Matrix.mem_unitaryGroup_iff').mp hU
   exact isometry_mulVec_norm hI v
 
+/-- The Euclidean norm of a sum of two vectors is bounded by the sum of their norms. -/
 private theorem norm_toEuclidean_add_le (u v : Fin 2 → ℂ) :
     ‖toEuclidean_fromVec (u + v)‖
       ≤ ‖toEuclidean_fromVec u‖ + ‖toEuclidean_fromVec v‖ := by
@@ -180,6 +214,8 @@ private theorem norm_toEuclidean_add_le (u v : Fin 2 → ℂ) :
   rw [h]
   exact norm_add_le _ _
 
+/-- Changing a phase-rotation angle from `a` to `a'` changes its action on `w` by at most `2 *
+|a - a'| * ‖w‖`. -/
 private theorem phaseRotation_sub_mulVec_norm (a a' : ℝ) (w : Fin 2 → ℂ) :
     ‖toEuclidean_fromVec (PhaseRotation a *ᵥ w - PhaseRotation a' *ᵥ w)‖
       ≤ 2 * |a - a'| * ‖toEuclidean_fromVec w‖ := by
@@ -235,6 +271,8 @@ private theorem phaseRotation_sub_mulVec_norm (a a' : ℝ) (w : Fin 2 → ℂ) :
     (by positivity : (0 : ℝ) ≤ 2 * |a - a'| * ‖toEuclidean_fromVec w‖)
   rwa [abs_of_nonneg (norm_nonneg _)] at hfin
 
+/-- Equal-length QSP words whose paired phases differ by at most `ε` act on a vector with error
+at most `2 * length * ε` times its norm. -/
 private theorem qspWord_sub_vec (φ φ' : List ℝ) (ε : ℝ) (hlen : φ.length = φ'.length)
     (_hε : 0 ≤ ε) (hzip : ∀ p ∈ φ.zip φ', |p.1 - p.2| ≤ ε)
     {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) (v : Fin 2 → ℂ) :
@@ -324,6 +362,8 @@ private theorem qspWord_sub_vec (φ φ' : List ℝ) (ε : ℝ) (hlen : φ.length
       _ ≤ (rest.length : ℝ) * (2 * ε) * ‖toEuclidean_fromVec v‖
           + 2 * ε * ‖toEuclidean_fromVec v‖ := add_le_add le_rfl h1
 
+/-- On `[-1, 1]`, corresponding entries of equal-length QSP words differ by at most `4 * length
+* ε` when each phase differs by at most `ε`. -/
 theorem qspWord_entry_lipschitz (φ φ' : List ℝ) (ε : ℝ) (hlen : φ.length = φ'.length)
     (hε : 0 ≤ ε) (hzip : ∀ p ∈ φ.zip φ', |p.1 - p.2| ≤ ε)
     {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) (i j : Fin 2) :
@@ -367,6 +407,7 @@ theorem qspWord_entry_lipschitz (φ φ' : List ℝ) (ε : ℝ) (hlen : φ.length
   have hlennn : (0 : ℝ) ≤ (φ.length : ℝ) := Nat.cast_nonneg _
   nlinarith
 
+/-- For nonnegative `u`, the logarithm satisfies `u / (1 + u) ≤ log (1 + u)`. -/
 private theorem log_one_add_ge_div (u : ℝ) (hu : 0 ≤ u) :
     u / (1 + u) ≤ Real.log (1 + u) := by
   have h1 : (0 : ℝ) < 1 + u := by linarith
@@ -382,6 +423,8 @@ private theorem log_one_add_ge_div (u : ℝ) (hu : 0 ≤ u) :
     exact (inv_le_inv₀ h1 (Real.exp_pos _)).mp hpre
   exact (Real.le_log_iff_exp_le h1).mpr key
 
+/-- For nonnegative time and `0 < ε ≤ 1`, the corrected truncation degree is at least `3 * τ`
+and satisfies the stated linear-logarithmic and logarithmic-ratio upper bounds. -/
 theorem lcCorrectedQ_bounds (τ ε : ℝ) (hτ : 0 ≤ τ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     3 * τ ≤ (lcCorrectedQ τ ε : ℝ) ∧
     (lcCorrectedQ τ ε : ℝ) ≤ 3 * τ + 3 * Real.log (32 / ε) + 8 ∧

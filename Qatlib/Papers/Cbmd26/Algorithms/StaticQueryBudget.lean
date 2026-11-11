@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.StaticExponentialBridge
+
+/-!
+# Static exponential degree and source-query bounds
+
+This module converts the dyadic truncation order for the oscillatory exponential into explicit
+logarithmic degree and source-query estimates. These estimates feed the static CBMD cost
+analysis of [WangEtAl2026].
+
+## Main statements
+
+* `static_exponential_degree_budget`: bounds the dyadic degree by a linear frequency term and a
+  logarithmic error term.
+* `static_exponential_source_query_budget`: gives the corresponding source-query bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +50,8 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- For `0 < ε ≤ 1`, the static exponential's dyadic order is at most `(2 * |τ| + Real.log (4 /
+ε)) / Real.log 2 + 1`. -/
 theorem static_exponential_degree_budget (τ ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     (dyadicOrder ((ε / 2) / (2 * Real.exp (2 * |τ|))) : ℝ) ≤
       (2 * |τ| + Real.log (4 / ε)) / Real.log 2 + 1 := by
@@ -50,6 +71,8 @@ theorem static_exponential_degree_budget (τ ε : ℝ) (hε : 0 < ε) (hε1 : ε
   rw [hi]
   exact (Nat.ceil_lt_add_one hn).le.trans_eq (by rw [hl])
 
+/-- For `0 < ε ≤ 1`, the static exponential source-query count is at most `16 * (2 * |τ| +
+Real.log (4 / ε)) / Real.log 2 + 24`. -/
 theorem static_exponential_source_query_budget (τ ε : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ((8 * (2 * dyadicOrder ((ε / 2) / (2 * Real.exp (2 * |τ|))) + 1) : ℕ) : ℝ) ≤

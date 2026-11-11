@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QDataFit12.SparseHHL.DataFittingDefs
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+/-!
+# Resource bounds for sparse quantum data fitting
+
+The cost expressions from `DataFittingDefs` are monotone in problem size and antitone in
+positive error tolerances. The endpoint theorems package these inequalities with the imported
+restricted parameter, quality, and concise-selection statements; fresh-copy bounds include
+loading and preparation costs. The mathematical context is [WiebeBraunLloyd2012].
+
+## Main statements
+
+* `clause23_headline_endpoint`: Package the size monotonicity, tolerance antitonicity, and
+  ledger domination bounds for the data-fitting resource expressions.
+* `clause26_complete_endpoint`: Package the comparison of full and reduced fresh-copy costs and
+  the lower bound by the cost of `k` successful copies.
+
+## References
+
+* [Wiebe et al., 2012][WiebeBraunLloyd2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
@@ -20,6 +41,8 @@ noncomputable section
 
 namespace Qatlib.Papers.QDataFit12.SparseHHL
 
+/-- Increasing the support size and repetition factor cannot decrease the concise tomography
+settings or total cost expressions. -/
 theorem clause22_concise_tomography_budget (M M' f f' : ℕ) (hM : M ≤ M') (hf : f ≤ f') :
     conciseTomographySettings M ≤ conciseTomographySettings M' ∧
       conciseTomographyTotal M f ≤ conciseTomographyTotal M' f' := by
@@ -49,6 +72,8 @@ theorem clause22_concise_tomography_budget (M M' f f' : ℕ) (hM : M ≤ M') (hf
     exact mul_le_mul (mul_le_mul hM' hsq (sq_nonneg _) (by positivity)) hf'
       (by positivity) (by positivity)
 
+/-- Package tomography-cost monotonicity together with the restricted parameter-estimation and
+fit-quality statements. -/
 theorem clause22_endpoint :
     (∀ M M' f f' : ℕ, M ≤ M' → f ≤ f' →
       conciseTomographySettings M ≤ conciseTomographySettings M' ∧
@@ -59,6 +84,7 @@ theorem clause22_endpoint :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.dataFitActualParameterRestricted,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.dataFitActualQualityRestricted⟩
 
+/-- The sparse-fit factor `s³κ⁶` is monotone in its natural-number parameters. -/
 theorem clause23_sparse_fit_headline (s s' κ κ' : ℕ) (hs : s ≤ s') (hκ : κ ≤ κ') :
     sparseFitHeadline s κ ≤ sparseFitHeadline s' κ' := by
   simp only [sparseFitHeadline]
@@ -66,11 +92,14 @@ theorem clause23_sparse_fit_headline (s s' κ κ' : ℕ) (hs : s ≤ s') (hκ : 
   have h6 : κ ^ 6 ≤ κ' ^ 6 := Nat.pow_le_pow_left hκ 6
   exact Nat.mul_le_mul h3 h6
 
+/-- For all ordered sparsity and condition parameters, the sparse-fit factor is ordered
+accordingly. -/
 theorem clause23_endpoint :
     ∀ s s' κ κ' : ℕ, s ≤ s' → κ ≤ κ' →
       sparseFitHeadline s κ ≤ sparseFitHeadline s' κ' :=
   fun s s' κ κ' hs hκ => clause23_sparse_fit_headline s s' κ κ' hs hκ
 
+/-- For `0 < a ≤ b` and nonnegative `c`, division gives `c/b ≤ c/a`. -/
 private theorem clause23_inv_mono (a b : ℝ) (ha : 0 < a) (hle : a ≤ b) (c : ℝ)
     (hc : 0 ≤ c) : c / b ≤ c / a := by
   have hinv : 1 / b ≤ 1 / a := one_div_le_one_div_of_le ha hle
@@ -78,12 +107,14 @@ private theorem clause23_inv_mono (a b : ℝ) (ha : 0 < a) (hle : a ≤ b) (c : 
   rw [div_eq_mul_inv, div_eq_mul_inv]
   exact mul_le_mul_of_nonneg_left h2 hc
 
+/-- For natural `N`, the logarithm `log (N+1)` is nonnegative. -/
 private theorem clause23_log_nonneg (N : ℕ) : 0 ≤ Real.log (N + 1) := by
   have h1 : (1:ℝ) ≤ (N:ℝ) + 1 := by
     have h2 : (1:ℕ) ≤ N + 1 := by omega
     exact_mod_cast h2
   exact Real.log_nonneg h1
 
+/-- Increasing a positive error tolerance cannot increase `fitHeadlineCost`. -/
 theorem clause23_fit_headline_anti_mono_eps (N s κ : ℕ) (ε ε' : ℝ) (hε : 0 < ε)
     (hle : ε ≤ ε') : fitHeadlineCost N s κ ε' ≤ fitHeadlineCost N s κ ε := by
   have hC : 0 ≤ Real.log (N + 1) * (s : ℝ) ^ 3 * (κ : ℝ) ^ 6 :=
@@ -92,6 +123,7 @@ theorem clause23_fit_headline_anti_mono_eps (N s κ : ℕ) (ε ε' : ℝ) (hε :
   unfold fitHeadlineCost
   exact clause23_inv_mono ε ε' hε hle _ hC
 
+/-- Increasing a positive error tolerance cannot increase `simulationHeadlineCost`. -/
 theorem clause23_simulation_headline_anti_mono_eps (N s κ : ℕ) (ε ε' : ℝ) (hε : 0 < ε)
     (hle : ε ≤ ε') :
     simulationHeadlineCost N s κ ε' ≤ simulationHeadlineCost N s κ ε := by
@@ -102,6 +134,8 @@ theorem clause23_simulation_headline_anti_mono_eps (N s κ : ℕ) (ε ε' : ℝ)
   unfold simulationHeadlineCost
   exact clause23_inv_mono (ε ^ 2) (ε' ^ 2) (sq_pos_of_pos hε) hsq _ hC
 
+/-- With positive error and accuracy parameters, increasing the error tolerance cannot increase
+`readoutHeadlineCost`. -/
 theorem clause23_readout_headline_anti_mono_eps (N s κ M' : ℕ) (ε ε' δ : ℝ) (hε : 0 < ε)
     (hδ : 0 < δ) (hle : ε ≤ ε') :
     readoutHeadlineCost N s κ M' ε' δ ≤ readoutHeadlineCost N s κ M' ε δ := by
@@ -122,6 +156,8 @@ theorem clause23_readout_headline_anti_mono_eps (N s κ M' : ℕ) (ε ε' δ : �
   unfold readoutHeadlineCost
   exact mul_le_mul_of_nonneg_left hsum hC
 
+/-- With positive error and accuracy parameters, increasing `δ` cannot increase
+`readoutHeadlineCost`. -/
 theorem clause23_readout_headline_anti_mono_delta (N s κ M' : ℕ) (ε δ δ' : ℝ) (hε : 0 < ε)
     (hδ : 0 < δ) (hδ' : 0 < δ') (hle : δ ≤ δ') :
     readoutHeadlineCost N s κ M' ε δ' ≤ readoutHeadlineCost N s κ M' ε δ := by
@@ -141,6 +177,7 @@ theorem clause23_readout_headline_anti_mono_delta (N s κ M' : ℕ) (ε δ δ' :
   unfold readoutHeadlineCost
   exact mul_le_mul_of_nonneg_left hsum hC
 
+/-- For natural `N ≤ N'`, `log (N+1) ≤ log (N'+1)` and the latter logarithm is nonnegative. -/
 private theorem clause23_log_mono (N N' : ℕ) (hN : N ≤ N') :
     Real.log (N + 1) ≤ Real.log (N' + 1) ∧ 0 ≤ Real.log (N' + 1) := by
   have hle : (N + 1 : ℝ) ≤ (N' + 1 : ℝ) := by
@@ -155,6 +192,8 @@ private theorem clause23_log_mono (N N' : ℕ) (hN : N ≤ N') :
     exact h1)
   exact ⟨hlog, h0'⟩
 
+/-- At fixed positive error tolerance, `fitHeadlineCost` is monotone in dimension, sparsity, and
+condition parameter. -/
 theorem clause23_fit_headline_mono (N N' s s' κ κ' : ℕ) (ε : ℝ) (hε : 0 < ε)
     (hN : N ≤ N') (hs : s ≤ s') (hκ : κ ≤ κ') :
     fitHeadlineCost N s κ ε ≤ fitHeadlineCost N' s' κ' ε := by
@@ -177,6 +216,8 @@ theorem clause23_fit_headline_mono (N N' s s' κ κ' : ℕ) (ε : ℝ) (hε : 0 
   rw [div_eq_mul_inv, div_eq_mul_inv]
   exact mul_le_mul_of_nonneg_right hnum hinv
 
+/-- At fixed positive error tolerance, `simulationHeadlineCost` is monotone in dimension,
+sparsity, and condition parameter. -/
 theorem clause23_simulation_headline_mono (N N' s s' κ κ' : ℕ) (ε : ℝ) (hε : 0 < ε)
     (hN : N ≤ N') (hs : s ≤ s') (hκ : κ ≤ κ') :
     simulationHeadlineCost N s κ ε ≤ simulationHeadlineCost N' s' κ' ε := by
@@ -198,6 +239,8 @@ theorem clause23_simulation_headline_mono (N N' s s' κ κ' : ℕ) (ε : ℝ) (h
   rw [div_eq_mul_inv, div_eq_mul_inv]
   exact mul_le_mul_of_nonneg_right hnum hinv
 
+/-- At fixed positive error and accuracy parameters, `readoutHeadlineCost` is monotone in
+dimension, sparsity, condition parameter, and selected support size. -/
 theorem clause23_readout_headline_mono (N N' s s' κ κ' M M' : ℕ) (ε δ : ℝ)
     (hε : 0 < ε) (hδ : 0 < δ)
     (hN : N ≤ N') (hs : s ≤ s') (hκ : κ ≤ κ') (hM : M ≤ M') :
@@ -239,9 +282,13 @@ theorem clause23_readout_headline_mono (N N' s s' κ κ' M M' : ℕ) (ε δ : �
     linarith
   · exact mul_nonneg hlog.2 (pow_nonneg (Nat.cast_nonneg s') 3)
 
+/-- The sparse-fit query cost is the product of the data-fitting query ledger and the sparse-fit
+factor. -/
 theorem clause23_sparse_fit_query_cost_eq (M r k s κ : ℕ) :
     sparseFitQueryCost M r k s κ = dataFitQueryLedger M r k * sparseFitHeadline s κ := rfl
 
+/-- When `M` and `r` are at least one, the sparse-fit query cost dominates the sparse-fit
+factor. -/
 theorem clause23_sparse_fit_query_cost_dominates (M r k s κ : ℕ)
     (hM : 1 ≤ M) (hr : 1 ≤ r) :
     sparseFitHeadline s κ ≤ sparseFitQueryCost M r k s κ := by
@@ -254,6 +301,7 @@ theorem clause23_sparse_fit_query_cost_dominates (M r k s κ : ℕ)
   have h4 := Nat.le_mul_of_pos_right (sparseFitHeadline s κ) h3
   simpa [Nat.mul_comm] using! h4
 
+/-- The sparse-fit query cost is monotone in all five natural-number parameters. -/
 theorem clause23_sparse_fit_query_cost_mono (M M' r r' k k' s s' κ κ' : ℕ)
     (hM : M ≤ M') (hr : r ≤ r') (hk : k ≤ k') (hs : s ≤ s') (hκ : κ ≤ κ') :
     sparseFitQueryCost M r k s κ ≤ sparseFitQueryCost M' r' k' s' κ' := by
@@ -261,6 +309,8 @@ theorem clause23_sparse_fit_query_cost_mono (M M' r r' k k' s s' κ κ' : ℕ)
   exact Nat.mul_le_mul (dataFitQueryLedger_mono M M' r r' k k' hM hr hk)
     (Nat.mul_le_mul (Nat.pow_le_pow_left hs 3) (Nat.pow_le_pow_left hκ 6))
 
+/-- Package the size monotonicity, tolerance antitonicity, and ledger domination bounds for the
+data-fitting resource expressions. -/
 theorem clause23_headline_endpoint :
     (∀ N N' s s' κ κ' : ℕ, ∀ (ε : ℝ), 0 < ε → N ≤ N' → s ≤ s' → κ ≤ κ' →
         fitHeadlineCost N s κ ε ≤ fitHeadlineCost N' s' κ' ε) ∧
@@ -302,17 +352,23 @@ theorem clause23_headline_endpoint :
     exact clause23_readout_headline_anti_mono_delta N s κ M' ε δ δ' hε hδ
       (lt_of_lt_of_le hδ hle) hle
 
+/-- The repeated data-loading gate expression is monotone in repetition count, sparsity, and bit
+precision. -/
 theorem clause24_general_data_loading (M M' s s' b b' : ℕ)
     (hM : M ≤ M') (hs : s ≤ s') (hb : b ≤ b') :
     M * dataLoadingGates s b ≤ M' * dataLoadingGates s' b' := by
   simp only [dataLoadingGates]
   exact Nat.mul_le_mul hM (Nat.mul_le_mul hs hb)
 
+/-- For all ordered loading parameters, the repeated data-loading gate expression is ordered
+accordingly. -/
 theorem clause24_endpoint :
     ∀ M M' s s' b b' : ℕ, M ≤ M' → s ≤ s' → b ≤ b' →
       M * dataLoadingGates s b ≤ M' * dataLoadingGates s' b' :=
   fun M M' s s' b b' hM hs hb => clause24_general_data_loading M M' s s' b b' hM hs hb
 
+/-- For ordered bit precisions, the phase-recovery gate count is at most its bit count, and both
+counts are monotone. -/
 theorem clause25_phase_recovery_counts (b b' : ℕ) (hb : b ≤ b') :
     phaseRecoveryGateCount b ≤ phaseRecoveryBitCount b ∧
       phaseRecoveryGateCount b ≤ phaseRecoveryGateCount b' ∧
@@ -320,6 +376,8 @@ theorem clause25_phase_recovery_counts (b b' : ℕ) (hb : b ≤ b') :
   simp only [phaseRecoveryGateCount, phaseRecoveryBitCount]
   omega
 
+/-- Package gate-versus-bit domination and monotonicity for all ordered phase-recovery
+precisions. -/
 theorem clause25_endpoint :
     ∀ b b' : ℕ, b ≤ b' →
       phaseRecoveryGateCount b ≤ phaseRecoveryBitCount b ∧
@@ -327,6 +385,8 @@ theorem clause25_endpoint :
         phaseRecoveryBitCount b ≤ phaseRecoveryBitCount b' :=
   fun b b' hb => clause25_phase_recovery_counts b b' hb
 
+/-- For success probability in `(0,1]` and nonnegative per-copy cost, the expected fresh-copy
+cost is at least `k*c`. -/
 theorem clause26_fresh_copy_total_cost (k : ℕ) (p c : ℝ) (hp : 0 < p) (hp1 : p ≤ 1) (hc : 0 ≤ c) :
     k * c ≤ freshCopyTotalCost k p c := by
   have hk : (k : ℝ) ≤ expectedFreshCopies k p := by
@@ -341,10 +401,14 @@ theorem clause26_fresh_copy_total_cost (k : ℕ) (p c : ℝ) (hp : 0 < p) (hp1 :
     nlinarith [mul_nonneg (sub_nonneg.mpr hk) hc]
   exact hprod
 
+/-- For all target copy counts, valid positive success probabilities, and nonnegative costs, the
+fresh-copy total dominates `k*c`. -/
 theorem clause26_endpoint :
     ∀ k : ℕ, ∀ p c : ℝ, 0 < p → p ≤ 1 → 0 ≤ c → k * c ≤ freshCopyTotalCost k p c :=
   fun k p c hp hp1 hc => clause26_fresh_copy_total_cost k p c hp hp1 hc
 
+/-- For positive success probability and nonnegative additional costs `g` and `b`, the full
+fresh-copy cost dominates the cost retaining only `c`. -/
 theorem clause26_full_cost_dominates_ledger (k : ℕ) (p g b c : ℝ)
     (hp : 0 < p) (hg : 0 ≤ g) (hb : 0 ≤ b) :
     freshCopyTotalCost k p c ≤ freshCopyTotalCostFull k p g b c := by
@@ -355,6 +419,8 @@ theorem clause26_full_cost_dominates_ledger (k : ℕ) (p g b c : ℝ)
   unfold freshCopyTotalCostFull freshCopyTotalCost
   exact mul_le_mul_of_nonneg_left h2 h1
 
+/-- For success probability in `(0,1]` and nonnegative cost components, the full expected
+fresh-copy cost is at least `k*(g+b+c)`. -/
 theorem clause26_full_cost_unconditional (k : ℕ) (p g b c : ℝ)
     (hp : 0 < p) (hp1 : p ≤ 1) (hg : 0 ≤ g) (hb : 0 ≤ b) (hc : 0 ≤ c) :
     k * (g + b + c) ≤ freshCopyTotalCostFull k p g b c := by
@@ -371,6 +437,8 @@ theorem clause26_full_cost_unconditional (k : ℕ) (p g b c : ℝ)
     nlinarith [mul_nonneg (sub_nonneg.mpr hk) hsum]
   exact hmul
 
+/-- Package the comparison of full and reduced fresh-copy costs and the lower bound by the cost
+of `k` successful copies. -/
 theorem clause26_complete_endpoint :
     (∀ k : ℕ, ∀ p g b c : ℝ, 0 < p → 0 ≤ g → 0 ≤ b →
       freshCopyTotalCost k p c ≤ freshCopyTotalCostFull k p g b c) ∧
@@ -382,11 +450,14 @@ theorem clause26_complete_endpoint :
   · intro k p g b c hp hp1 hg hb hc
     exact clause26_full_cost_unconditional k p g b c hp hp1 hg hb hc
 
+/-- The concise-selection sample expression is monotone in the selected support size. -/
 theorem clause27_concise_selection_samples (M' M'' : ℕ) (hM : M' ≤ M'') :
     conciseSelectionSamples M' ≤ conciseSelectionSamples M'' := by
   simp only [conciseSelectionSamples]
   exact hM
 
+/-- Package concise-selection sample monotonicity together with the imported restricted
+concise-selection statement. -/
 theorem clause27_endpoint :
     (∀ M' M'' : ℕ, M' ≤ M'' → conciseSelectionSamples M' ≤ conciseSelectionSamples M'') ∧
       Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedStat.QuantumDataFitting2012.DataFitConciseSelectionRestricted := by

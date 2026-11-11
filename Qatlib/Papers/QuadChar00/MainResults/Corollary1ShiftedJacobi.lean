@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QuadChar00.MainResults.Defs
+
+/-!
+# Uniqueness of the shift in a Jacobi character
+
+This module proves that distinct shifts of the Jacobi character modulo an odd squarefree integer
+greater than one give distinct functions. The argument detects equality of the shifts modulo
+every prime divisor using the zero set of the character, then combines the congruences over the
+squarefree modulus.
+
+The theorem `corollary1_shiftedJacobi_solved` chooses a left inverse of the shift-to-function
+map, giving a decoder from the complete shifted function to its shift. This is the functional
+recovery statement associated with Corollary 1 of [VanDamHallgren2000].
+
+## Main statements
+
+* `jacobiCharZMod_eq_zero_iff_not_isUnit`: the Jacobi character vanishes exactly at nonunits.
+* `shift_prime_congruent`: equal shifted functions have equal shifts modulo each prime divisor.
+* `corollary1_shift_injective`: injectivity of the shift-to-function map.
+* `corollary1_shiftedJacobi_solved`: existence of a decoder recovering every shift.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +39,9 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- For nonzero modulus, the Jacobi character of a residue is zero exactly when the residue is
+not a unit. This zero-set characterization supports the shift-recovery argument for
+Corollary 1 of [VanDamHallgren2000]. -/
 lemma jacobiCharZMod_eq_zero_iff_not_isUnit (n : ℕ) [NeZero n] (a : ZMod n) :
     jacobiCharZMod n a = 0 ↔ ¬ IsUnit a := by
   unfold jacobiCharZMod
@@ -23,6 +51,8 @@ lemma jacobiCharZMod_eq_zero_iff_not_isUnit (n : ℕ) [NeZero n] (a : ZMod n) :
     rw [ZMod.isUnit_iff_coprime]
   rw [hunit, Nat.coprime_iff_gcd_eq_one, Int.gcd_natCast_natCast]
 
+/-- Congruence modulo every member of a finite pairwise coprime family implies congruence modulo
+their product. -/
 lemma modEq_prod_of_forall {ι : Type*} (s : Finset ι) (f : ι → ℕ)
     (hcop : ∀ i ∈ s, ∀ j ∈ s, i ≠ j → (f i).Coprime (f j))
     {a b : ℕ} (h : ∀ i ∈ s, a ≡ b [MOD f i]) :
@@ -45,6 +75,9 @@ lemma modEq_prod_of_forall {ι : Type*} (s : Finset ι) (f : ι → ℕ)
     have hprod := ih hcopt ht
     exact (Nat.modEq_and_modEq_iff_modEq_mul hcop_it).mp ⟨hfi, hprod⟩
 
+/-- For an odd squarefree modulus greater than one, pointwise equality of two shifted Jacobi
+characters forces the shifts to be congruent modulo every prime divisor. This is the
+prime-modulus step in the Corollary 1 recovery argument of [VanDamHallgren2000]. -/
 lemma shift_prime_congruent {n : ℕ} [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (h1 : 1 < n) {s t : ZMod n}
     (hst : ∀ x : ZMod n, jacobiCharZMod n (x + s) = jacobiCharZMod n (x + t))
@@ -137,6 +170,9 @@ lemma shift_prime_congruent {n : ℕ} [NeZero n] (hn : Odd n) (hsq : Squarefree 
   rw [hzs] at this
   exact hnt this.symm
 
+/-- For an odd squarefree modulus greater than one, the map sending a shift to its full shifted
+Jacobi-character function is injective. This gives the uniqueness of shift required for
+Corollary 1 of [VanDamHallgren2000]. -/
 theorem corollary1_shift_injective (n : ℕ) [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) :
     Function.Injective
@@ -161,6 +197,10 @@ theorem corollary1_shift_injective (n : ℕ) [NeZero n] (hn : Odd n)
   rw [← ZMod.natCast_zmod_val s, ← ZMod.natCast_zmod_val t]
   exact (ZMod.natCast_eq_natCast_iff _ _ _).mpr hprod
 
+/-- For an odd squarefree modulus greater than one, there exists a decoder from complete
+integer-valued functions on the residue ring that recovers every Jacobi-character shift. The
+decoder is a chosen left inverse of the injective shift map, giving the functional recovery
+conclusion for Corollary 1 of [VanDamHallgren2000]. -/
 theorem corollary1_shiftedJacobi_solved (n : ℕ) [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) :
     ∃ D : (ZMod n → ℤ) → ZMod n,

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
 
+/-!
+# State error and grid budgets for Dyson products
+
+This module transfers the Dyson grid operator estimate to an error bound on every input vector.
+`dysonGridBudget` chooses a positive grid from a real error coefficient and tolerance, with
+`dysonGridBudget_error` proving the resulting scalar bound. The simulation context is the
+truncated Dyson framework of [LowWiebe2018].
+
+## Main statements
+
+* `dyson_grid_same_output_precision_consumer`: vector error at the supplied operator precision.
+* `dysonGridBudget_error`: positivity and accuracy of the ceiling-based grid budget.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +37,9 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- If the bounded Hermitian Lipschitz grid estimate is at most `ε`, applying the grid to any
+input vector has Euclidean error at most `ε` times its norm. This transfers the grid
+estimate in the setting of [LowWiebe2018] to states. -/
 theorem dyson_grid_same_output_precision_consumer :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H : ℝ → Matrix I I ℂ)
       (t Λ L ε : ℝ) (M : ℕ), Continuous H → 0 ≤ t → 0 ≤ Λ → 0 ≤ L → 0 < ε →
@@ -38,8 +59,11 @@ theorem dyson_grid_same_output_precision_consumer :
     (mul_le_mul_of_nonneg_right (herr.trans hbudget) (norm_nonneg _))
   simpa only [Matrix.sub_mulVec] using! h
 
+/-- Choose `max 1 ⌈C / (2 ε)⌉₊` as the grid size for coefficient `C` and tolerance `ε`. -/
 noncomputable def dysonGridBudget (C ε : ℝ) : ℕ := max 1 ⌈C / (2 * ε)⌉₊
 
+/-- For nonnegative `C` and positive `ε`, the chosen grid is positive and satisfies `C / (2 M) ≤
+ε`. -/
 theorem dysonGridBudget_error (C ε : ℝ) (_hC : 0 ≤ C) (hε : 0 < ε) :
     0 < dysonGridBudget C ε ∧ C / (2 * (dysonGridBudget C ε : ℝ)) ≤ ε := by
   have hpos : 0 < dysonGridBudget C ε := by

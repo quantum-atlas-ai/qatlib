@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+/-!
+# Prepared character table recovery and a modulo four example
+
+This module transports character table recovery guarantees to fresh Fourier sample probability
+mass functions and records the associated query, gate, and table read counts in
+`tableDecodedRun`. A concrete parity oracle on `ZMod 4` hides the even subgroup; the example
+computes its character labels, sampling law, and exact recovery failure probability.
+[Lomont2004]
+
+## Main statements
+
+* `tablePreparedRecoveryRun_consumer`: combines preparation semantics, the resource ledger, and
+  recovery probability at least `1 - 2⁻ᵏ`.
+* `character_table_mod_four_actual_consumer`: computes the modulo four example and its failure
+  probability `2⁻ᵐ`.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -33,6 +55,8 @@ variable {G R : Type}
   [AddCommGroup G] [Fintype G] [DecidableEq G]
   [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- Independent sample event probabilities for group labels equal the corresponding character
+sample event probabilities after applying `e.symm` to each character. -/
 theorem tableGroupRecordDist_probEvent_relabel (f : G → R) (e : G ≃ AddChar G ℂ)
     {m : ℕ} (E : (Fin m → G) → Prop) [DecidablePred E] :
     (tableGroupRecordDist f e).probEvent E =
@@ -58,6 +82,8 @@ theorem tableGroupRecordDist_probEvent_relabel (f : G → R) (e : G ≃ AddChar 
   · intro xs _
     rfl
 
+/-- The probability mass function obtained by decoding fresh character samples, paired with the
+summed sampling query, gate, and table read budgets. -/
 noncomputable def tableDecodedRun (tab : G → G → Bool) (f : G → R) (e : G ≃ AddChar G ℂ)
     (A : Matrix G G ℂ) (m : ℕ) : PMF (Finset G) × (ℕ × ℕ × ℕ) :=
   ((hiddenSubgroupFreshSamples f e m).map fun χs : Fin m → AddChar G ℂ =>
@@ -66,18 +92,23 @@ noncomputable def tableDecodedRun (tab : G → G → Bool) (f : G → R) (e : G 
      ∑ _i : Fin m, GateCount (tableSamplingCircuit (R := R) e A),
      ∑ _i : Fin m, Fintype.card G))
 
+/-- A decoded run using `m` samples has resource ledger `(m, 2*m, m * card G)` for queries,
+gates, and table reads. -/
 theorem tableDecodedRun_ledger (tab : G → G → Bool) (f : G → R) (e : G ≃ AddChar G ℂ)
     (A : Matrix G G ℂ) (m : ℕ) :
     (tableDecodedRun tab f e A m).2 = (m, 2 * m, m * Fintype.card G) := by
   simp [tableDecodedRun, tableSamplingCircuit, hiddenSubgroupSamplingCircuit,
     QueryCount, GateCount, mul_comm]
 
+/-- Decoding `m` relabeled character samples uses exactly `card G * m` table reads. -/
 theorem tableDecodedRun_reads (tab : G → G → Bool) (e : G ≃ AddChar G ℂ)
     (m : ℕ) (χs : Fin m → AddChar G ℂ) :
     (tableKernelDecode tab (List.ofFn fun i => e.symm (χs i))).2
       = Fintype.card G * m := by
   rw [tableKernelDecode_reads, List.length_ofFn]
 
+/-- For an oracle hiding `H` and a correct character kernel table, the fresh sample probability
+mass of lists decoding to `H` is at least `ENNReal.ofReal (1 - card G * 2⁻ᵐ)`. -/
 theorem tableFreshRecord_success_ge (tab : G → G → Bool) (f : G → R) (e : G ≃ AddChar G ℂ)
     (H : AddSubgroup G) (hf : HidesSubgroup f H)
     (htab : ∀ a y, tab a y = true ↔ e a y = 1) (m : ℕ) :
@@ -96,6 +127,8 @@ theorem tableFreshRecord_success_ge (tab : G → G → Bool) (f : G → R) (e : 
   exact ENNReal.ofReal_le_ofReal
     (character_table_actual_subgroup_recovery_probability f e tab H m hf htab)
 
+/-- Using `tableRecoverySamples (card G) k` fresh samples with a correct character table
+recovers the hidden subgroup with probability mass at least `ENNReal.ofReal (1 - 2⁻ᵏ)`. -/
 theorem tableFreshRecord_budget_ge (tab : G → G → Bool) (f : G → R) (e : G ≃ AddChar G ℂ)
     (A : Matrix G G ℂ) (H : AddSubgroup G) (hf : HidesSubgroup f H)
     (htab : ∀ a y, tab a y = true ↔ e a y = 1) (k : ℕ) :
@@ -111,6 +144,10 @@ theorem tableFreshRecord_budget_ge (tab : G → G → Bool) (f : G → R) (e : G
   apply ENNReal.ofReal_le_ofReal
   linarith
 
+/-- For a unitary preparation of the uniform state and a correct character kernel table, the
+computed sample budget yields a unitary sampling circuit with the stated preparation
+semantics, resource ledger `(m, 2*m, m * card G)`, and recovery probability at least `1 -
+2⁻ᵏ`. -/
 theorem tablePreparedRecoveryRun_consumer (tab : G → G → Bool) (f : G → R)
     (e : G ≃ AddChar G ℂ) (A : Matrix G G ℂ) (H : AddSubgroup G) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup G ℂ) (hprep : A *ᵥ Qatlib.Foundations.PureStateMath.Ket (0 : G) = Uniform G)
@@ -134,16 +171,23 @@ end Ledger
 
 section Four
 
+/-- The Boolean kernel table on `ZMod 4`, true exactly when `a * x = 0`. -/
 def fourTable (a x : ZMod 4) : Bool := decide (a * x = 0)
 
+/-- The standard equivalence labeling complex additive characters of `ZMod 4` by elements of
+`ZMod 4`. -/
 noncomputable def fourCharacterLabeling : ZMod 4 ≃ AddChar (ZMod 4) ℂ :=
   (AddChar.zmodAddEquiv (n := 4)).toEquiv
 
+/-- The character labeled by `a` evaluates at `x` as `primRoot 4` raised to the integer
+representative of `a * x`. -/
 theorem fourCharacterLabeling_apply (a x : ZMod 4) :
     fourCharacterLabeling a x = primRoot 4 ^ (((a * x).val : ℤ)) := by
   show (AddChar.zmodAddEquiv (n := 4)) a x = _
   rw [zmodAddEquiv_apply_stdAddChar, stdAddChar_eq_primRoot_zpow]
 
+/-- For nonzero modulus `N`, the standard character labeled by `a` takes value one at `x`
+exactly when `a * x = 0` in `ZMod N`. -/
 theorem zmodAddEquiv_apply_eq_one_iff {N : ℕ} [NeZero N] (a x : ZMod N) :
     (AddChar.zmodAddEquiv (n := N)).toEquiv a x = 1 ↔ a * x = 0 := by
   constructor
@@ -157,16 +201,21 @@ theorem zmodAddEquiv_apply_eq_one_iff {N : ℕ} [NeZero N] (a x : ZMod N) :
       zmodAddEquiv_apply_stdAddChar a x
     rw [h1, h, AddChar.map_zero_eq_one]
 
+/-- The modulo four kernel table is true exactly when the corresponding labeled character
+evaluates to one. -/
 theorem fourTable_correct (a x : ZMod 4) :
     fourTable a x = true ↔ fourCharacterLabeling a x = 1 := by
   rw [fourTable, decide_eq_true_eq]
   exact (zmodAddEquiv_apply_eq_one_iff a x).symm
 
+/-- An element of `ZMod 4` whose natural representative is `k < 4` equals the residue class of
+`k`. -/
 private theorem four_val_eq (k : ℕ) (hk : k < 4) (x : ZMod 4) (h : x.val = k) :
     x = ((k : ℕ) : ZMod 4) := by
   apply ZMod.val_injective
   rw [h, ZMod.val_natCast, Nat.mod_eq_of_lt hk]
 
+/-- Every element of `ZMod 4` equals zero, one, two, or three. -/
 private theorem four_val_cases (x : ZMod 4) : x = 0 ∨ x = 1 ∨ x = 2 ∨ x = 3 := by
   have hlt : x.val < 4 := ZMod.val_lt x
   rcases (show x.val = 0 ∨ x.val = 1 ∨ x.val = 2 ∨ x.val = 3 by omega) with h | h | h | h
@@ -175,6 +224,7 @@ private theorem four_val_cases (x : ZMod 4) : x = 0 ∨ x = 1 ∨ x = 2 ∨ x = 
   · exact Or.inr (Or.inr (Or.inl (four_val_eq 2 (by norm_num) x h)))
   · exact Or.inr (Or.inr (Or.inr (four_val_eq 3 (by norm_num) x h)))
 
+/-- An element of `ZMod 4` with even natural representative equals zero or two. -/
 private theorem four_even_cases (x : ZMod 4) (hx : x.val % 2 = 0) : x = 0 ∨ x = 2 := by
   rcases four_val_cases x with rfl | rfl | rfl | rfl
   · exact Or.inl rfl
@@ -182,11 +232,14 @@ private theorem four_even_cases (x : ZMod 4) (hx : x.val % 2 = 0) : x = 0 ∨ x 
   · exact Or.inr rfl
   · exact absurd hx (by decide)
 
+/-- The product of two elements of `ZMod 4` with even natural representatives has natural
+representative zero. -/
 private theorem four_even_mul (a x : ZMod 4) (ha : a.val % 2 = 0) (hx : x.val % 2 = 0) :
     (a * x).val = 0 := by
   rcases four_even_cases a ha with rfl | rfl <;>
     rcases four_even_cases x hx with rfl | rfl <;> decide
 
+/-- The additive subgroup of `ZMod 4` consisting of elements with even natural representatives. -/
 def fourEvenSubgroup : AddSubgroup (ZMod 4) where
   carrier := {x | x.val % 2 = 0}
   add_mem' := by
@@ -204,8 +257,11 @@ def fourEvenSubgroup : AddSubgroup (ZMod 4) where
     have hlt : a.val < 4 := ZMod.val_lt a
     omega
 
+/-- Membership in the even subgroup of `ZMod 4` is equivalent to having even natural
+representative. -/
 theorem mem_fourEvenSubgroup (x : ZMod 4) : x ∈ fourEvenSubgroup ↔ x.val % 2 = 0 := Iff.rfl
 
+/-- The even subgroup of `ZMod 4` has cardinality two. -/
 theorem card_fourEvenSubgroup : Fintype.card ↥fourEvenSubgroup = 2 := by
   have hfil : (Finset.univ.filter fun x : ZMod 4 => x.val % 2 = 0).card = 2 := by decide
   have heq : Fintype.card ↥fourEvenSubgroup
@@ -219,6 +275,7 @@ theorem card_fourEvenSubgroup : Fintype.card ↥fourEvenSubgroup = 2 := by
         right_inv := fun a => Subtype.ext rfl }
   exact heq.trans hfil
 
+/-- The character annihilator of the even subgroup of `ZMod 4` has cardinality two. -/
 theorem card_fourEvenAnnihilator :
     Fintype.card (characterAnnihilator fourEvenSubgroup) = 2 := by
   have h := card_characterAnnihilator fourEvenSubgroup
@@ -226,6 +283,7 @@ theorem card_fourEvenAnnihilator :
   have hG : Fintype.card (ZMod 4) = 4 := by simp
   omega
 
+/-- The parity map from `ZMod 4` to `ZMod 2` hides the even subgroup. -/
 theorem hidesSubgroup_fourParity :
     HidesSubgroup (fun x : ZMod 4 => (x.val : ZMod 2)) fourEvenSubgroup := by
   intro x y
@@ -249,6 +307,8 @@ theorem hidesSubgroup_fourParity :
     rw [ZMod.val_natCast, ZMod.val_natCast]
     exact h2
 
+/-- The character labeled by `a` annihilates the even subgroup of `ZMod 4` exactly when the
+natural representative of `a` is even. -/
 theorem fourCharacterLabeling_mem_ann_iff (a : ZMod 4) :
     fourCharacterLabeling a ∈ characterAnnihilator fourEvenSubgroup ↔ a.val % 2 = 0 := by
   constructor
@@ -270,6 +330,8 @@ theorem fourCharacterLabeling_mem_ann_iff (a : ZMod 4) :
     rw [fourCharacterLabeling_apply, four_even_mul a (hsub : ZMod 4) h hsub.property,
       Nat.cast_zero, zpow_zero]
 
+/-- Fourier sampling of the parity oracle on `ZMod 4` assigns probability one half to each even
+label and zero to each odd label. -/
 theorem four_record_dist_prob (a : ZMod 4) :
     (tableGroupRecordDist (fun x : ZMod 4 => (x.val : ZMod 2)) fourCharacterLabeling).prob a
       = if a.val % 2 = 0 then (1 : ℝ) / 2 else 0 := by
@@ -280,6 +342,8 @@ theorem four_record_dist_prob (a : ZMod 4) :
     fourCharacterLabeling_mem_ann_iff a, card_fourEvenAnnihilator]
   by_cases h : a.val % 2 = 0 <;> simp [h]
 
+/-- A list of even modulo four labels containing two decodes under `fourTable` to exactly the
+even subgroup. -/
 theorem four_decode_even_labels {m : ℕ} (xs : Fin m → ZMod 4)
     (hex : ∀ i, (xs i).val % 2 = 0) (htwo : ∃ i, xs i = 2) :
     ((tableKernelDecode fourTable (List.ofFn xs)).1 : Set (ZMod 4))
@@ -312,6 +376,8 @@ theorem four_decode_even_labels {m : ℕ} (xs : Fin m → ZMod 4)
       · rw [mul_zero]
       · decide
 
+/-- A list consisting entirely of zero labels leaves every element of `ZMod 4` in the decoded
+candidate set. -/
 theorem four_decode_univ_of_zero {m : ℕ} (xs : Fin m → ZMod 4) (h0 : ∀ i, xs i = 0) :
     ((tableKernelDecode fourTable (List.ofFn xs)).1 : Set (ZMod 4)) = Set.univ := by
   ext x
@@ -321,6 +387,7 @@ theorem four_decode_univ_of_zero {m : ℕ} (xs : Fin m → ZMod 4) (h0 : ∀ i, 
   obtain ⟨i, rfl⟩ := List.mem_ofFn.mp ha
   rw [h0 i, zero_mul]
 
+/-- The full set of `ZMod 4` differs from its even subgroup. -/
 theorem four_univ_ne_even :
     (Set.univ : Set (ZMod 4)) ≠ (fourEvenSubgroup : Set (ZMod 4)) := by
   intro h
@@ -346,6 +413,9 @@ open Qatlib
 open Matrix
 open scoped Classical
 
+/-- For the parity oracle on `ZMod 4`, the standard character labeling and even subgroup have
+the displayed formulas, and decoding `m` independent Fourier records fails to recover the
+even subgroup with probability exactly `2⁻ᵐ`. -/
 theorem character_table_mod_four_actual_consumer :
     (∀ a x : ZMod 4, fourCharacterLabeling a x = primRoot 4 ^ (((a*x).val:ℤ))) ∧
       (∀ x : ZMod 4, x∈fourEvenSubgroup ↔ x.val%2=0) ∧

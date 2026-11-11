@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.CleanQPEBands
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Phase readout with approximate clean subroutines
+
+This module compares physical and ideal phase-estimation circuits through an isometric frame.
+`CleanCircuitBridge` pairs gates that intertwine exactly and matches query locations; an
+approximate query intertwining relation then yields a telescoping execution bound.
+
+For a clean subroutine with error `η`, the full workspace error is at most `(M-1)*η` times the
+input norm. Born-probability stability gives a `2*(M-1)*η` bound for every spectral readout
+event on normalized spectral inputs, using the phase-estimation framework of [Kitaev1995].
+
+## Main statements
+
+* `CleanCircuitBridge.error`: query-count-weighted execution error.
+* `clean_qpe_full_workspace_leakage_telescope`: full workspace comparison for substituted clean
+  subroutines.
+* `clean_qpe_actual_spectral_born_event_error`: comparison with the ideal spectral kernel law.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.InstrumentCore.Measurement
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -45,6 +70,8 @@ open Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- A relation pairing physical and ideal circuit words with matching queries and unitary gates
+that intertwine through the frame matrix `R`. -/
 inductive CleanCircuitBridge {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (R : Matrix H I ℂ) : Circuit H → Circuit I → Prop
   | nil : CleanCircuitBridge R [] []
@@ -57,6 +84,7 @@ inductive CleanCircuitBridge {H I : Type} [Fintype H] [DecidableEq H]
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- Both circuits related by a clean circuit bridge satisfy `IsUnitaryCircuit`. -/
 theorem CleanCircuitBridge.unitary {R : Matrix H I ℂ} {C : Circuit H} {D : Circuit I}
     (h : CleanCircuitBridge R C D) : IsUnitaryCircuit C ∧ IsUnitaryCircuit D := by
   induction h with
@@ -64,6 +92,7 @@ theorem CleanCircuitBridge.unitary {R : Matrix H I ℂ} {C : Circuit H} {D : Cir
   | gate U T hU hT _ _ ih => simp [hU, hT, ih.1, ih.2]
   | query _ ih => simpa using! ih
 
+/-- Clean circuit bridges are preserved by concatenating the corresponding circuit pairs. -/
 theorem CleanCircuitBridge.append {R : Matrix H I ℂ} {C C' : Circuit H}
     {D D' : Circuit I} (h : CleanCircuitBridge R C D)
     (h' : CleanCircuitBridge R C' D') : CleanCircuitBridge R (C ++ C') (D ++ D') := by
@@ -72,6 +101,8 @@ theorem CleanCircuitBridge.append {R : Matrix H I ℂ} {C C' : Circuit H}
   | gate U T hU hT hR _ ih => exact .gate U T hU hT hR ih
   | query _ ih => exact .query ih
 
+/-- If the unitary query operators intertwine through `R` with norm defect at most `η`, bridged
+circuit executions differ by at most the ideal query count times `η` times the input norm. -/
 theorem CleanCircuitBridge.error {R : Matrix H I ℂ} {C : Circuit H} {D : Circuit I}
     (h : CleanCircuitBridge R C D) (O : Matrix H H ℂ) (V : Matrix I I ℂ)
     (hO : O ∈ Matrix.unitaryGroup H ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
@@ -119,6 +150,8 @@ theorem CleanCircuitBridge.error {R : Matrix H I ℂ} {C : Circuit H} {D : Circu
     simp only [QueryCount, Nat.cast_add, Nat.cast_one]
     nlinarith
 
+/-- The intertwining defect of controlled operators factors as the true-flag projector tensored
+with the original defect. -/
 private theorem controlled_frame_defect (W : Matrix H H ℂ) (V : Matrix I I ℂ)
     (R : Matrix H I ℂ) :
     controlOracle W * ((1 : Matrix Bool Bool ℂ) ⊗ₖ R) -
@@ -130,6 +163,8 @@ private theorem controlled_frame_defect (W : Matrix H H ℂ) (V : Matrix I I ℂ
     simp [controlOracle, select, Matrix.mul_apply, Fintype.sum_prod_type,
       Matrix.one_apply]
 
+/-- A pointwise frame-intertwining error bound `η` gives the same operator-norm defect bound for
+the parallel controlled query in the QPE frame. -/
 private theorem clean_frame_defect_bound (M : ℕ) (W : Matrix H H ℂ)
     (V : Matrix I I ℂ) (R : Matrix H I ℂ) (η : ℝ) (hη : 0 ≤ η)
     (he : ∀ ξ : QState I,
@@ -157,6 +192,7 @@ private theorem clean_frame_defect_bound (M : ℕ) (W : Matrix H H ℂ)
     _ ≤ 1 * (1 * η) := by gcongr
     _ = η := by ring
 
+/-- Phase-register gates intertwine exactly through the clean QPE frame. -/
 private theorem clean_phase_gate_bridge (M : ℕ) (R : Matrix H I ℂ)
     (T : Operator M) :
     TensorGate T (1 : Matrix (Bool × H) (Bool × H) ℂ) * cleanQPEFrame M R =
@@ -164,6 +200,7 @@ private theorem clean_phase_gate_bridge (M : ℕ) (R : Matrix H I ℂ)
   simp only [TensorGate, cleanQPEFrame, ← Matrix.mul_kronecker_mul,
     Matrix.one_mul, Matrix.mul_one]
 
+/-- Threshold-controlled flag flips intertwine exactly through the clean QPE frame. -/
 private theorem clean_threshold_gate_bridge (M k : ℕ) (R : Matrix H I ℂ) :
     permMatrix (phaseThresholdFlip (I := H) M k) * cleanQPEFrame M R =
       cleanQPEFrame M R * permMatrix (phaseThresholdFlip (I := I) M k) := by
@@ -182,6 +219,8 @@ private theorem clean_threshold_gate_bridge (M k : ℕ) (R : Matrix H I ℂ) :
       simp [cleanQPEFrame, phaseThresholdFlip, hx]
   · simp [cleanQPEFrame, phaseThresholdFlip, Matrix.one_apply, hxy]
 
+/-- For positive `M`, the physical and ideal counted phase circuits are related by a clean
+circuit bridge through `cleanQPEFrame`. -/
 private theorem clean_counted_circuit_bridge (M : ℕ) (hM : 0 < M) (R : Matrix H I ℂ) :
     CleanCircuitBridge (cleanQPEFrame M R)
       (countedPhaseCircuit (I := H) M) (countedPhaseCircuit (I := I) M) := by
@@ -207,11 +246,16 @@ private theorem clean_counted_circuit_bridge (M : ℕ) (hM : 0 < M) (R : Matrix 
   exact ((hg _ (qftMatrix_unitary hM)).append (hl (M - 1))).append
     (hg _ (conjTranspose_mem_unitaryGroup (qftMatrix_unitary hM)))
 
+/-- Applying the clean QPE frame to an initialized input equals initializing the framed data
+state. -/
 private theorem clean_frame_input (M : ℕ) (hM : 0 < M) (R : Matrix H I ℂ)
     (ψ : QState I) :
     cleanQPEFrame M R *ᵥ cleanQPEInput M hM ψ = cleanQPEInput M hM (R *ᵥ ψ) := by
   simp only [cleanQPEFrame, cleanQPEInput, kronecker_mulVec_tensorState, Matrix.one_mulVec]
 
+/-- Under the stated unitary and frame hypotheses, replacing each ideal query by a well-formed
+clean subroutine with error `η` gives full QPE workspace error at most `(M-1)*η` times the
+input norm. -/
 theorem clean_qpe_full_workspace_leakage_telescope
     (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 0 < M) (O : Matrix H H ℂ) (R : Matrix H I ℂ)
@@ -242,6 +286,8 @@ theorem clean_qpe_full_workspace_leakage_telescope
   rw [hn, (counted_offgrid_qpe_clean_flag M hM V ψ).2.1] at h
   exact h
 
+/-- Extending an isometric data frame to the phase and flag registers gives an isometric clean
+QPE frame. -/
 theorem cleanQPEFrame_isometry (M : ℕ) {R : Matrix H I ℂ} (hR : IsIsometry R) :
     IsIsometry (cleanQPEFrame M R) := by
   change Rᴴ * R = 1 at hR
@@ -249,6 +295,7 @@ theorem cleanQPEFrame_isometry (M : ℕ) {R : Matrix H I ℂ} (hR : IsIsometry R
     Matrix.conjTranspose_one, ← Matrix.mul_kronecker_mul, Matrix.one_mul, hR,
     Matrix.one_kronecker_one]
 
+/-- The clean QPE event mass equals the left marginal probability of the same phase-label event. -/
 private theorem clean_event_marginal (M : ℕ)
     (out : QState (Fin M × (Bool × H))) (E : Finset (Fin M)) :
     cleanQPEEventMass M out E = MarginalProbLeft out E := by
@@ -257,6 +304,8 @@ private theorem clean_event_marginal (M : ℕ)
   ext p
   simp
 
+/-- Each phase-label slice of a framed state is obtained by applying the flag identity tensored
+with `R` to the original slice. -/
 private theorem clean_frame_slice (M : ℕ) (R : Matrix H I ℂ)
     (ξ : QState (Fin M × (Bool × I))) (z : Fin M) :
     (fun p : Bool × H => (cleanQPEFrame M R *ᵥ ξ) (z,p)) =
@@ -265,6 +314,7 @@ private theorem clean_frame_slice (M : ℕ) (R : Matrix H I ℂ)
   simp [cleanQPEFrame, Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
     Matrix.one_apply]
 
+/-- An isometric clean QPE frame preserves every phase-label event mass. -/
 private theorem clean_event_frame (M : ℕ) {R : Matrix H I ℂ} (hR : IsIsometry R)
     (ξ : QState (Fin M × (Bool × I))) (E : Finset (Fin M)) :
     cleanQPEEventMass M (cleanQPEFrame M R *ᵥ ξ) E = cleanQPEEventMass M ξ E := by
@@ -282,6 +332,8 @@ private theorem clean_event_frame (M : ℕ) {R : Matrix H I ℂ} (hR : IsIsometr
   rw [← clean_frame_slice M R ξ z] at hn
   exact hn
 
+/-- For an orthonormal eigenfamily, the ideal counted QPE event mass equals the sum of squared
+coefficient norms times the corresponding kernel event masses. -/
 private theorem clean_ideal_event_spectral (M : ℕ) (hM : 0 < M) (V : Matrix I I ℂ)
     (J : Type) [Fintype J] [DecidableEq J] (v : J → QState I)
     (c : J → ℂ) (φ : J → ℝ)
@@ -308,6 +360,9 @@ private theorem clean_ideal_event_spectral (M : ℕ) (hM : 0 < M) (V : Matrix I 
   rw [Finset.sum_comm]
   simp only [Finset.mul_sum]
 
+/-- For normalized orthonormal spectral inputs and the stated clean-subroutine approximation
+hypotheses, every actual phase-label event mass differs from the ideal spectral kernel sum
+by at most `2*(M-1)*η`. -/
 theorem clean_qpe_actual_spectral_born_event_error
     (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (M : ℕ) (hM : 0 < M)

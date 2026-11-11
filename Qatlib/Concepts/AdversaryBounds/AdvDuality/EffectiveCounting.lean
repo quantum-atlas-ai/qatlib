@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+
+/-!
+# Effective witness counting and hash-fiber identities
+
+This module proves elementary bridges between the effective decision and counting predicates,
+gives a concrete head-bit language, and derives exact affine-hash seed and fiber counts. It also
+expresses finite sampler probabilities and events as counts of uniform Boolean seeds.
+
+The counting results include exact finite identities and an existence bound for a scaled zero
+fiber. The computational background is the classical and quantum complexity framework of
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `clause1_complete`: collects effective-class inclusions, witness-count bridges, and query
+  charges.
+* `clause2_complete`: collects hash-seed cardinalities and zero-fiber bounds.
+* `clause3_complete`: collects sampler probability, fiber, and event-count identities.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,10 +41,14 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCounting
 open scoped Classical BigOperators
 open Qatlib.Concepts.CountingClasses.ClassTransport
 
+/-- The cardinality of a predicate-filtered finite type equals the sum of its natural-number
+indicators. -/
 theorem ecCard_eq_sum {α : Type} [Fintype α] (P : α → Prop) [DecidablePred P] :
     (Finset.univ.filter P).card = ∑ a : α, if P a then 1 else 0 := by
   rw [Finset.card_eq_sum_ones, Finset.sum_filter]
 
+/-- Filtering a finite type by a constant Boolean condition yields its full cardinality when
+true and zero otherwise. -/
 theorem ecCard_filter_const {α : Type} [Fintype α] (c0 : Bool) :
     (Finset.univ.filter (fun _ : α => c0 = true)).card
       = if c0 then Fintype.card α else 0 := by
@@ -28,6 +56,8 @@ theorem ecCard_filter_const {α : Type} [Fintype α] (c0 : Bool) :
   · simp [hc]
   · simp [hc]
 
+/-- An effective NP language is characterized by positivity of some effective sharp-P
+witness-count function. -/
 theorem ecInNP_count_bridge {L : List Bool → Prop} (h : EcInNP L) :
     ∃ f : List Bool → ℕ, EcInSharpP f ∧ ∀ x : List Bool, (L x ↔ 0 < f x) := by
   rcases h with ⟨q, c, k, p, V, hpoly, hiff⟩
@@ -40,6 +70,8 @@ theorem ecInNP_count_bridge {L : List Bool → Prop} (h : EcInNP L) :
     obtain ⟨w, hw⟩ := Finset.card_pos.mp hpos
     exact ⟨w, (Finset.mem_filter.mp hw).2⟩
 
+/-- Every effective sharp-P function can be expressed by `EcInSharpPOracle` for a suitable
+Boolean oracle. -/
 theorem ecInSharpP_oracle_transport {f : List Bool → ℕ} (h : EcInSharpP f) :
     ∃ A : List Bool → Bool, EcInSharpPOracle A f := by
   rcases h with ⟨q, c, k, p, V, hpoly, heq⟩
@@ -48,6 +80,8 @@ theorem ecInSharpP_oracle_transport {f : List Bool → ℕ} (h : EcInSharpP f) :
   show EcWitnessCount V c k p x = EcOracleWitnessCount (fun z => ccAccepts V c k z) p x
   congr 1
 
+/-- An effective PP language has a polynomial-time program whose normalized acceptance count is
+greater than one half exactly on that language. -/
 theorem ecInPP_mass {L : List Bool → Prop} (h : EcInPP L) :
     ∃ (q c k : ℕ) (M : CcProgram q), CcPolyTime M c k ∧
       ∀ x : List Bool,
@@ -116,6 +150,8 @@ theorem ecInPP_mass {L : List Bool → Prop} (h : EcInPP L) :
     rw [hmul, ← hcast] at hgt'
     exact Nat.cast_lt.mp hgt'
 
+/-- The acceptance count at time budget `t` is at most the number `2 ^ t` of Boolean coin
+strings. -/
 theorem ecAcceptCount_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (x : List Bool) (t : ℕ) :
     ccAcceptCount P A x t ≤ 2 ^ t := by
@@ -124,6 +160,7 @@ theorem ecAcceptCount_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
   rw [← hcard']
   exact hcard
 
+/-- Every language satisfying `EcInP` also satisfies `EcInNP`. -/
 theorem ecInP_subset_ecInNP {L : List Bool → Prop} (h : EcInP L) : EcInNP L := by
   rcases h with ⟨q, c, k, M, hpoly, hdet⟩
   refine ⟨q, c, k, 0, M, hpoly, fun x => ?_⟩
@@ -164,6 +201,7 @@ theorem ecInP_subset_ecInNP {L : List Bool → Prop} (h : EcInP L) : EcInNP L :=
     · exact hLx
     · simp [hLx] at hdet'
 
+/-- Every language satisfying `EcInP` also satisfies `EcInPP`. -/
 theorem ecInP_subset_ecInPP {L : List Bool → Prop} (h : EcInP L) : EcInPP L := by
   rcases h with ⟨q, c, k, M, hpoly, hdet⟩
   refine ⟨q, c, k, M, hpoly, fun x => ?_⟩
@@ -210,6 +248,8 @@ theorem ecInP_subset_ecInPP {L : List Bool → Prop} (h : EcInP L) : EcInPP L :=
     · rw [if_neg hLx] at hgt
       omega
 
+/-- Alternating quantification over zero-length Boolean witnesses leaves the underlying
+predicate unchanged at every level. -/
 private theorem ecAlt_zero_len (D : List Bool → Prop) :
     ∀ (lev : ℕ) (z : List Bool) (ex : Bool), ccAlt ex 0 D lev z ↔ D z := by
   intro lev
@@ -227,6 +267,7 @@ private theorem ecAlt_zero_len (D : List Bool → Prop) :
       simp [ccAlt]
       exact ih z false
 
+/-- The first effective polynomial-hierarchy level is equivalent to `EcInNP`. -/
 theorem ecInPHLevel_one_iff {L : List Bool → Prop} : EcInPHLevel 1 L ↔ EcInNP L := by
   constructor
   · rintro ⟨q, c, k, p, V, hpoly, hiff⟩
@@ -249,6 +290,7 @@ theorem ecInPHLevel_one_iff {L : List Bool → Prop} : EcInPHLevel 1 L ↔ EcInN
     · rintro ⟨w, hw⟩
       exact ⟨w, by simpa [ccVerifies] using hw⟩
 
+/-- A language in the zeroth effective polynomial-hierarchy level lies in every effective level. -/
 theorem ecInPHLevel_zero_subset {L : List Bool → Prop} {lev : ℕ}
     (h : EcInPHLevel 0 L) : EcInPHLevel lev L := by
   rcases h with ⟨q, c, k, p, V, hpoly, hiff⟩
@@ -263,20 +305,27 @@ theorem ecInPHLevel_zero_subset {L : List Bool → Prop} {lev : ℕ}
   rw [htarget]
   exact hiff x
 
+/-- The first bit of the delimiter-extended input, defaulting to false. -/
 def EcHeadBit (x : List Bool) : Bool := (EcEncode x).getD 0 false
 
+/-- The language whose delimiter-extended input begins with a true bit. -/
 def EcBadL : List Bool → Prop := fun x => EcHeadBit x = true
 
+/-- The program that branches on the input head bit and then accepts or rejects accordingly. -/
 def EcBadLProgram : CcProgram 2 where
   states := fun i =>
     if (i : ℕ) = 0 then CcAct.branch ⟨1, by omega⟩ ⟨2, by omega⟩
     else if (i : ℕ) = 1 then CcAct.accept
     else CcAct.reject
 
+/-- The head-bit language contains exactly the empty input and the inputs whose first bit is
+true. -/
 theorem ecBadL_iff_old (x : List Bool) :
     EcBadL x ↔ (x = [] ∨ x.getD 0 false = true) := by
   rw [EcBadL, EcHeadBit, EcEncode_getD_zero]
 
+/-- After one step on an encoded input, the head-bit program is in its accepting or rejecting
+state according to `EcHeadBit`, with the displayed unchanged tape and resource counters. -/
 private theorem ecBadL_run1 {A : List Bool → Bool} {ρ : ℕ → Bool} {x : List Bool} :
     ccRun EcBadLProgram A ρ (EcEncode x) 1
       = { state := if EcHeadBit x then ⟨1, by omega⟩ else ⟨2, by omega⟩,
@@ -286,6 +335,7 @@ private theorem ecBadL_run1 {A : List Bool → Bool} {ρ : ℕ → Bool} {x : Li
   show ccStep EcBadLProgram A ρ (ccInit 2 (EcEncode x)) = _
   simp [ccStep, ccInit, EcBadLProgram, EcHeadBit]
 
+/-- After two steps on an encoded input, the head-bit program returns the value of `EcHeadBit`. -/
 private theorem ecBadL_result2 {A : List Bool → Bool} {ρ : ℕ → Bool} {x : List Bool} :
     ccResult EcBadLProgram A ρ (EcEncode x) 2
       = some (if EcHeadBit x then true else false) := by
@@ -301,6 +351,8 @@ private theorem ecBadL_result2 {A : List Bool → Bool} {ρ : ℕ → Bool} {x :
     simp [EcBadLProgram, ccStep]
     exact Bool.eq_false_of_not_eq_true hbit
 
+/-- The head-bit program terminates within the constant polynomial budget two and uses at most
+that much time. -/
 private theorem ecBadL_poly {A : List Bool → Bool} {ρ : ℕ → Bool} (x : List Bool) :
     ccResult EcBadLProgram A ρ x (1 * x.length ^ 0 + 1) ≠ none ∧
       ccTime EcBadLProgram A ρ x (1 * x.length ^ 0 + 1) ≤ 1 * x.length ^ 0 + 1 := by
@@ -323,6 +375,7 @@ private theorem ecBadL_poly {A : List Bool → Bool} {ρ : ℕ → Bool} (x : Li
   · rw [if_neg hbit]
     simp [EcBadLProgram, ccStep]
 
+/-- The head-bit language satisfies `EcInNP`. -/
 theorem ecBadL_in_ecInNP : EcInNP EcBadL := by
   refine ⟨2, 1, 0, 0, EcBadLProgram, ?_, fun x => ?_⟩
   · intro A ρ x
@@ -374,9 +427,12 @@ theorem ecBadL_in_ecInNP : EcInNP EcBadL := by
       · rw [if_neg hbit] at h2
         simp at h2
 
+/-- The exclusive-or of two Booleans is false exactly when they are equal. -/
 private theorem bool_xor_eq_false (u v : Bool) : Bool.xor u v = false ↔ u = v := by
   cases u <;> cases v <;> simp [Bool.xor]
 
+/-- A seed hashes a word to zero exactly when each offset bit equals the corresponding Boolean
+matrix-row sum against that word. -/
 private theorem ecHashZero_iff {L ℓ : ℕ} (mat : Fin ℓ → Fin L → Bool) (off : Fin ℓ → Bool)
     (w : Fin L → Bool) :
     EcHashZero (mat, off) w ↔ ∀ i : Fin ℓ, off i = ∑ j, (mat i j && w j) := by
@@ -392,6 +448,8 @@ private theorem ecHashZero_iff {L ℓ : ℕ} (mat : Fin ℓ → Fin L → Bool) 
       exact Iff.mpr (bool_xor_eq_false (∑ j, (mat i j && w j)) (off i)) huv
     simpa [EcHash, ccHash] using hxor
 
+/-- For a fixed length-`L` word, exactly `2 ^ (ℓ * L)` seeds of output length `ℓ` hash it to
+zero. -/
 theorem ecHashZero_seed_count {L ℓ : ℕ} (w : Fin L → Bool) :
     (Finset.univ.filter (fun s : EcHashSeed L ℓ => EcHashZero s w)).card = 2 ^ (ℓ * L) := by
   have hone : ∀ (mat : Fin ℓ → Fin L → Bool),
@@ -432,15 +490,19 @@ theorem ecHashZero_seed_count {L ℓ : ℕ} (w : Fin L → Bool) :
           rw [Fintype.card_fun, card_fin_fun_bool, Fintype.card_fin, hpow]
         simp [Finset.sum_const, hcard, Nat.mul_comm]
 
+/-- The sum of zero-hash indicators over all seeds equals `2 ^ (ℓ * L)` for every fixed word. -/
 theorem ecHashZero_seed_sum {L ℓ : ℕ} (w : Fin L → Bool) :
     (∑ s : EcHashSeed L ℓ, if EcHashZero s w then 1 else 0) = 2 ^ (ℓ * L) := by
   rw [← ecCard_eq_sum]
   exact ecHashZero_seed_count w
 
+/-- The relation count equals the sum of its membership indicators over all Boolean words. -/
 theorem ecRelCount_eq_sum {L : ℕ} (R : Set (Fin L → Bool)) :
     EcRelCount R = ∑ w : Fin L → Bool, if R w then 1 else 0 := by
   rw [EcRelCount, ecCard_eq_sum]
 
+/-- The zero-fiber count equals the sum of indicators for words belonging to the relation and
+hashing to zero. -/
 theorem ecRelFiberCount_eq_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashSeed L ℓ) :
     EcRelFiberCount R s = ∑ w : Fin L → Bool, if R w ∧ EcHashZero s w then 1 else 0 := by
   unfold EcRelFiberCount
@@ -449,6 +511,8 @@ theorem ecRelFiberCount_eq_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcH
   intro w _
   by_cases h : R w ∧ EcHashZero s w <;> simp [h]
 
+/-- Summing the zero-fiber counts over all seeds gives the relation count multiplied by `2 ^ (ℓ
+* L)`. -/
 theorem ecRelFiberCount_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ∑ s : EcHashSeed L ℓ, EcRelFiberCount R s = EcRelCount R * 2 ^ (ℓ * L) := by
   have h2 : ∀ s : EcHashSeed L ℓ,
@@ -482,6 +546,8 @@ theorem ecRelFiberCount_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
         rw [Finset.sum_mul]
     _ = EcRelCount R * 2 ^ (ℓ * L) := by rw [ecRelCount_eq_sum]
 
+/-- Summing witness zero-fiber counts over all seeds gives the witness count multiplied by `2 ^
+(ℓ * EcWitnessLen p x.length)`. -/
 theorem ecFiberCount_sum {q : ℕ} (V : CcProgram q) (c k p : ℕ) (x : List Bool) (ℓ : ℕ) :
     ∑ s : EcHashSeed (EcWitnessLen p x.length) ℓ, EcFiberCount V c k p x ℓ s
       = EcWitnessCount V c k p x * 2 ^ (ℓ * EcWitnessLen p x.length) := by
@@ -492,6 +558,7 @@ theorem ecFiberCount_sum {q : ℕ} (V : CcProgram q) (c k p : ℕ) (x : List Boo
   rw [hcount] at h
   exact h
 
+/-- If a relation has count zero, every hash zero fiber also has count zero. -/
 theorem ecRelFiberCount_zero {L ℓ : ℕ} {R : Set (Fin L → Bool)} (hR : EcRelCount R = 0)
     (s : EcHashSeed L ℓ) : EcRelFiberCount R s = 0 := by
   have hR' : (Finset.univ.filter (fun w : Fin L → Bool => R w)).card = 0 := by
@@ -510,6 +577,7 @@ theorem ecRelFiberCount_zero {L ℓ : ℕ} {R : Set (Fin L → Bool)} (hR : EcRe
   unfold EcRelFiberCount
   exact le_antisymm (hle.trans hR'.le) (Nat.zero_le _)
 
+/-- Every hash zero-fiber count is at most the full relation count. -/
 theorem ecRelFiberCount_le {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashSeed L ℓ) :
     EcRelFiberCount R s ≤ EcRelCount R := by
   have hle : (Finset.univ.filter (fun w : Fin L → Bool => R w ∧ EcHashZero s w)).card
@@ -520,6 +588,8 @@ theorem ecRelFiberCount_le {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashS
   unfold EcRelFiberCount EcRelCount
   exact hle
 
+/-- Some seed has scaled zero-fiber count at least the relation count and at most `2 ^ ℓ` times
+that count. -/
 theorem ecRelFiberCount_best {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ∃ s : EcHashSeed L ℓ,
       EcRelCount R ≤ 2 ^ ℓ * EcRelFiberCount R s ∧
@@ -564,20 +634,25 @@ theorem ecRelFiberCount_best {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
   have hle' : EcRelFiberCount R s0 ≤ EcRelCount R := ecRelFiberCount_le R s0
   exact Nat.mul_le_mul_left (2 ^ ℓ) hle'
 
+/-- The set of Boolean seeds on which the sampler outputs `y`. -/
 def EcSamplerSeedSet {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     Set (Fin L → Bool) := fun r => Sam.O r = y
 
+/-- A sampler's output probability is its matching-seed count divided by `2 ^ L`. -/
 theorem ecSamplerProb_count {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     EcSamplerProb Sam y = ((Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card : ℝ)
       / ((2 : ℕ) ^ L : ℝ) := by
   rw [EcSamplerProb, EcSamplerProb_numer]
 
+/-- The relation count of a sampler output's seed set equals its matching-seed cardinality. -/
 theorem ecSamplerSeedSet_card {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) :
     EcRelCount (EcSamplerSeedSet Sam y)
       = (Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card := by
   unfold EcRelCount EcSamplerSeedSet
   rfl
 
+/-- The sum of sampler-output zero-fiber counts over all seeds equals its matching-seed count
+multiplied by `2 ^ (ℓ * L)`. -/
 theorem ecSampler_stockmeyer {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out) (ℓ : ℕ) :
     ∑ s : EcHashSeed L ℓ, EcRelFiberCount (EcSamplerSeedSet Sam y) s
       = (Finset.univ.filter (fun r : Fin L → Bool => Sam.O r = y)).card * 2 ^ (ℓ * L) := by
@@ -585,6 +660,8 @@ theorem ecSampler_stockmeyer {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y :
   rw [ecSamplerSeedSet_card] at h
   exact h
 
+/-- For every sampler output, some hash seed has scaled zero-fiber count between its
+matching-seed count and `2 ^ ℓ` times that count. -/
 theorem ecSampler_multiplicative {L : ℕ} {Out : Type} (Sam : EcSampler L Out) (y : Out)
     (ℓ : ℕ) :
     ∃ s : EcHashSeed L ℓ,
@@ -596,6 +673,8 @@ theorem ecSampler_multiplicative {L : ℕ} {Out : Type} (Sam : EcSampler L Out) 
   rw [ecSamplerSeedSet_card] at h1 h2
   exact ⟨s, h1, h2⟩
 
+/-- The number of seeds producing an event equals the sum of output-fiber counts over outputs
+satisfying that event. -/
 theorem ecSamplerEventCount {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSampler L Out)
     (Ev : Out → Bool) :
     (∑ r : Fin L → Bool, if Ev (Sam.O r) = true then 1 else 0)
@@ -623,6 +702,8 @@ theorem ecSamplerEventCount {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSample
         · simp only [hE, if_pos]
         · simp [hE]
 
+/-- The counts of seeds satisfying an event and its complement sum to the full seed-space
+cardinality. -/
 theorem ecSamplerBadEventMass {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSampler L Out)
     (Ev : Out → Bool) :
     (∑ r : Fin L → Bool, if ¬ (Ev (Sam.O r) = true) then 1 else 0)
@@ -640,6 +721,9 @@ theorem ecSamplerBadEventMass {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSamp
     _ = (Finset.univ : Finset (Fin L → Bool)).card := by
         simp [Finset.sum_const, Finset.card_univ]
 
+/-- The effective decision and counting predicates satisfy the displayed witness bridges,
+inclusions, hierarchy identities, and query-charge bounds, and the explicit head-bit
+language is in effective NP. -/
 theorem clause1_complete :
     (∀ (L : List Bool → Prop), EcInNP L → ∃ f : List Bool → ℕ, EcInSharpP f ∧
         ∀ x : List Bool, (L x ↔ 0 < f x))
@@ -663,6 +747,9 @@ theorem clause1_complete :
   · intro q P A ρ x t
     exact EcCharge_queries_le_half_time P A ρ x t
 
+/-- The affine-hash family has the stated seed cardinalities, exact zero-hash and fiber sums,
+and an existing seed with the displayed scaled-fiber bounds; each fiber is bounded by the
+relation count and vanishes when that count is zero. -/
 theorem clause2_complete :
     (∀ (L ℓ : ℕ) (w : Fin L → Bool),
         (Finset.univ.filter (fun s : EcHashSeed L ℓ => EcHashZero s w)).card = 2 ^ (ℓ * L))
@@ -683,6 +770,9 @@ theorem clause2_complete :
   intro L ℓ R
   exact ecRelFiberCount_best R
 
+/-- Finite sampler probabilities are normalized output-fiber counts, and their hash fibers
+satisfy the displayed sum and existence bounds. Event counts decompose over outputs, and
+complementary event counts partition the seed space. -/
 theorem clause3_complete :
     (∀ (L : ℕ) (Out : Type) (Sam : EcSampler L Out) (y : Out),
         EcSamplerProb Sam y

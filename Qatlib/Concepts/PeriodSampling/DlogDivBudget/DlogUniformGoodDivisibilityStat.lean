@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogRecoveryPrograms
+
+/-!
+# Uniform-good divisibility contract
+
+Defines `DlogUniformGoodDivisibility`, a bound on the probability that a divisor of `p - 1`
+divides the recovered integer `dlogCprime`. Its scaled form avoids dividing by `q / 12` and
+supports the discrete-logarithm divisor estimates associated with [Shor1997].
+
+## Main statements
+
+* `DlogUniformGoodDivisibility`: Specifies the scaled single-sample divisibility bound.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +35,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogDivBudget
 
 open Qatlib
 
+/-- For the stated prime and modulus range and each divisor `w ≥ 2` of `p - 1`, requires the
+divisibility probability multiplied by `q / 12` to be at most `(p - 1) / w + 1`. -/
 def DlogUniformGoodDivisibility : Prop :=
   ∀ (p q : ℕ) [NeZero p] [NeZero q], Nat.Prime p → 3 ≤ p → (p : ℕ) < q → q < 2 * p →
     ∀ w : ℕ, 2 ≤ w → w ∣ p - 1 →

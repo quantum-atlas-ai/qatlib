@@ -8,6 +8,37 @@ import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
 import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+
+/-!
+# Adversary bounds for function composition
+
+This module proves an upper bound for the adversary value on compatible outer and independent
+inner inputs, together with a product lower bound for Boolean-valued inner functions. Filter
+identities for `weightedAdvGamma` and real feasible adversary matrices supply the lower-bound
+construction, following the composition framework of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceFunctionComposition_upper`: On compatible outer and independent inner inputs, the
+  composite adversary value is bounded by the outer adversary value times the inner rectangular
+  filtered value, under the stated finiteness or nonzero guard.
+
+* `sourceWeightedAlphabet_filter_norm`: For Hermitian outer and inner matrices with the inner
+  matrix vanishing on equal outputs, the filtered composite norm equals the filtered outer norm
+  times the filtered inner norm times `‖Gg‖ ^ (m - 1)`.
+
+* `sourceFunctionComposition_lower`: The adversary value of a function composed with independent
+  copies of a Boolean-valued inner function is at least the product of the outer and inner
+  adversary values.
+
+* `functionCompositionBounds`: The adversary value satisfies the bundled guarded upper
+  composition bound and Boolean-inner product lower bound [LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +55,8 @@ namespace Qatlib.Concepts.GramQueryCore.GammaDuality
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Embedding one filter family injectively into another cannot increase the rectangular
+filtered value. -/
 theorem sourceRectValue_filter_embed_le {R S : Type} {n k : ℕ}
     (A : Matrix R S ℂ) (Y : Fin n → Matrix R S ℂ) (Z : Fin k → Matrix R S ℂ)
     (e : Fin n → Fin k) (he : Function.Injective e) (hz : ∀ j, Z (e j)=Y j) :
@@ -62,6 +95,8 @@ theorem sourceRectValue_filter_embed_le {R S : Type} {n k : ℕ}
   exact ⟨d,u',v',fun r s => (ha r s).trans (heq r s).symm,fun r => by rw [hum]; exact hu r,
     fun s => by rw [hvm]; exact hv s⟩
 
+/-- Pulling back an inner function-evaluation matrix along one independent input slot gives a
+rectangular value bounded by the original inner value. -/
 theorem sourceRectValue_independent_pullback_le {X D E : Type} [DecidableEq E] {n m q : ℕ}
     (inner : X → Fin n → Fin (q+1)) (g : X → E)
     (xs : D → Fin m → X) (j : Fin m) :
@@ -77,6 +112,9 @@ theorem sourceRectValue_independent_pullback_le {X D E : Type} [DecidableEq E] {
     ext p r
     simp only [sourceAlphabetDelta,sourceIndependentInput,Equiv.symm_apply_apply,Matrix.submatrix_apply]
 
+/-- On compatible outer and independent inner inputs, the composite adversary value is bounded
+by the outer adversary value times the inner rectangular filtered value, under the stated
+finiteness or nonzero guard. -/
 theorem sourceFunctionComposition_upper {X Y E : Type}
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] [Fintype E] [DecidableEq E]
     {n m q a : ℕ} (inner : X → Fin n → Fin (q+1)) (g : X → Fin (a+1))
@@ -127,6 +165,8 @@ theorem sourceFunctionComposition_upper {X Y E : Type}
         _ ≤ sourceRectValue A W*(⨆ j, sourceRectValue (W j) Z) := sourceRectValue_composition A W Z (Or.inl hwi)
         _ ≤ sourceAdversary (sourceAlphabetDelta outer) f*b := mul_le_mul hw hb zero_le zero_le
 
+/-- Entrywise masking a Hermitian matrix by an alphabet query-difference filter preserves
+Hermitian symmetry. -/
 theorem sourceAlphabet_mask_isHermitian {X : Type} {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (G : Matrix X X ℂ) (hG : G.IsHermitian) (j : Fin n) :
     (G ⊙ sourceAlphabetDelta input j).IsHermitian := by
@@ -134,6 +174,9 @@ theorem sourceAlphabet_mask_isHermitian {X : Type} {n q : ℕ}
   simp only [Matrix.conjTranspose_apply,Matrix.hadamard_apply,star_mul,hG.apply]
   by_cases he : input x j=input y j <;> simp [sourceAlphabetDelta,he,eq_comm]
 
+/-- When the inner adversary vanishes on equal inner outputs, filtering the weighted composite
+at one query coordinate filters the matching outer coordinate and updates only the
+associated inner factor. -/
 theorem sourceWeightedAlphabet_filter_identity {X : Type} [Fintype X] [DecidableEq X]
     {n m q : ℕ} (inner : X → Fin n → Fin (q+1)) (g : X → Bool)
     (Gf : Matrix (Fin m → Bool) (Fin m → Bool) ℂ) (Gg : Matrix X X ℂ)
@@ -179,6 +222,9 @@ theorem sourceWeightedAlphabet_filter_identity {X : Type} [Fintype X] [Decidable
     · simp [hb,hg,hzg _ _ hg]
     · simp [hb,hbool,hg,hxy,Matrix.add_apply,Matrix.hadamard_apply,sourceAlphabetDelta]
 
+/-- For Hermitian outer and inner matrices with the inner matrix vanishing on equal outputs, the
+filtered composite norm equals the filtered outer norm times the filtered inner norm times
+`‖Gg‖ ^ (m - 1)`. -/
 theorem sourceWeightedAlphabet_filter_norm {X : Type} [Fintype X] [DecidableEq X]
     {n m q : ℕ} (inner : X → Fin n → Fin (q+1)) (g : X → Bool)
     (Gf : Matrix (Fin m → Bool) (Fin m → Bool) ℂ) (Gg : Matrix X X ℂ)
@@ -217,6 +263,7 @@ theorem sourceWeightedAlphabet_filter_norm {X : Type} [Fintype X] [DecidableEq X
   rw [hprod]
   ring
 
+/-- The adversary value of a constant function is zero for any filter family. -/
 theorem sourceAdversary_zero_of_constant {X E : Type} [Fintype X] [DecidableEq X]
     [DecidableEq E] {n : ℕ} (Z : Fin n → Matrix X X ℂ) (f : X → E)
     (h : ∀ x y, f x=f y) : sourceAdversary Z f=0 := by
@@ -227,6 +274,8 @@ theorem sourceAdversary_zero_of_constant {X E : Type} [Fintype X] [DecidableEq X
   have hg : G.val=0 := by ext x y; exact G.property.2.2.1 x y (h x y)
   simp [hg]
 
+/-- A weighted composite adversary has real entries when its outer and inner matrices have real
+entries. -/
 theorem sourceWeightedAlphabet_real {X : Type} [Fintype X] [DecidableEq X]
     {m : ℕ} (g : X → Bool) (Gf : Matrix (Fin m → Bool) (Fin m → Bool) ℂ)
     (Gg : Matrix X X ℂ) (hf : ∀ x y, (Gf x y).im=0) (hg : ∀ x y, (Gg x y).im=0) :
@@ -243,6 +292,8 @@ theorem sourceWeightedAlphabet_real {X : Type} [Fintype X] [DecidableEq X]
   intro i _
   by_cases he : x i=y i <;> simp [Matrix.diagonal,Matrix.add_apply,star_add,hg',he]
 
+/-- For a positive number of slots, real Hermitian feasible outer and Boolean-inner adversary
+matrices give a lower bound on the composite adversary value by the product of their norms. -/
 theorem sourceFunctionComposition_matrix_lower {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n m q : ℕ}
     (inner : X → Fin n → Fin (q+1)) (g : X → Bool) (f : (Fin m → Bool) → E)
@@ -300,6 +351,8 @@ theorem sourceFunctionComposition_matrix_lower {X E : Type}
     exact le_iSup_of_le ⟨C,hH.smul (IsSelfAdjoint.all _),hCr,hCz,hCf⟩ le_rfl
   simpa only [hCn,ENNReal.ofReal_mul (norm_nonneg Gf)] using! hh
 
+/-- The adversary value of a function composed with independent copies of a Boolean-valued inner
+function is at least the product of the outer and inner adversary values. -/
 theorem sourceFunctionComposition_lower {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n m q : ℕ}
     (inner : X → Fin n → Fin (q+1)) (g : X → Bool) (f : (Fin m → Bool) → E) :
@@ -325,6 +378,8 @@ theorem sourceFunctionComposition_lower {X E : Type}
   exact sourceFunctionComposition_matrix_lower inner g f hmp Gf.val Gg.val Gf.property.1 Gg.property.1
     Gf.property.2.1 Gg.property.2.1 Gf.property.2.2.1 Gg.property.2.2.1 Gf.property.2.2.2 Gg.property.2.2.2
 
+/-- The adversary value satisfies the bundled guarded upper composition bound and Boolean-inner
+product lower bound [LeeEtAl2011]. -/
 theorem functionCompositionBounds : FunctionCompositionBounds := by
   refine ⟨?_,?_⟩
   · intro X Y E _ _ _ _ _ _ n m q a inner g outer f

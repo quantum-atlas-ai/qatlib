@@ -9,6 +9,28 @@ import Qatlib.Concepts.CircuitImpl.SqrtApprox.UnitarySqrtChain
 import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78
 import Qatlib.Concepts.CircuitImpl.SqrtApprox.TruncatedMultiControl
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Elementary synthesis for approximate multi-controlled gates
+
+This module proves `lemma7_8`, the full-matrix approximation statement for multi-controlled
+single-qubit gates associated with Lemma 7.8 of [BarencoEtAl1995]. Auxiliary results cover zero
+truncation levels, exact synthesis within the available budget, small control counts, and the
+action of a recursive step when its last control is false.
+
+`lemma7_8_readout` uses the same legal query-free gate program to bound measurement-probability
+error on every normalized input state.
+
+## Main statements
+
+* `lemma7_8`: full-register operator-norm approximation with the prescribed gate bound.
+* `lemma7_8_readout`: measurement-probability error at most `2 * (π / 2^k)`.
+
+## References
+
+* [Barenco et al., 1995, Section 7][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +49,8 @@ namespace Qatlib.Concepts.CircuitImpl.SqrtApprox
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The residual-unitary approximation predicate for a fixed gate and control layout, including
+legality, gate counts, and the bound `‖V - 1‖ ≤ π / 2^k`. -/
 def elementaryApproxTable {N : ℕ} (m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (U : Matrix Bool Bool ℂ) : Prop :=
   ∃ gs : List (ReflectionGate N), reflectionLegal gs ∧
@@ -39,6 +63,8 @@ def elementaryApproxTable {N : ℕ} (m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
         (multiWireState t x φ) = multiWireState t x
           (ApplyGate (if noWorkPrefixAnd (fun i => x (c i)) m then U * V else 1) φ)
 
+/-- At zero truncation levels, every unitary target satisfies the residual-unitary approximation
+predicate. -/
 theorem lemma7_8_zero_levels {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
     elementaryApproxTable m 0 c t U := by
@@ -52,6 +78,8 @@ theorem lemma7_8_zero_levels {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (t : Fin N)
   rw [show U * Uᴴ = 1 from hU.2]
   simp [reflectionCompile]
 
+/-- Distinct controls avoiding the target permit the residual-unitary approximation whenever the
+stated gate budget covers the quadratic exact-synthesis bound. -/
 theorem lemma7_8_of_exact_budget {N : ℕ} (m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m, c i ≠ t)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ)
@@ -64,6 +92,8 @@ theorem lemma7_8_of_exact_budget {N : ℕ} (m k : ℕ) (c : ℕ → Fin N) (t : 
     positivity
   · simpa only [Matrix.mul_one] using! hrun
 
+/-- With distinct controls avoiding the target, `k ≥ 2 * (m + 1)` suffices for the
+residual-unitary approximation predicate. -/
 theorem lemma7_8_large_levels {N : ℕ} (m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m, c i ≠ t)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) (hk : 2 * (m + 1) ≤ k) :
@@ -71,6 +101,8 @@ theorem lemma7_8_large_levels {N : ℕ} (m k : ℕ) (c : ℕ → Fin N) (t : Fin
   apply lemma7_8_of_exact_budget m k c t hc hct U hU
   nlinarith [Nat.mul_le_mul_left (240 * (m + 1) + 20) hk]
 
+/-- A unitary gate with no controls satisfies the residual-unitary approximation predicate at
+every positive truncation level. -/
 theorem lemma7_8_no_controls {N : ℕ} (k : ℕ) (hk : 0 < k) (c : ℕ → Fin N) (t : Fin N)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
     elementaryApproxTable 0 k c t U := by
@@ -86,6 +118,8 @@ theorem lemma7_8_no_controls {N : ℕ} (k : ℕ) (hk : 0 < k) (c : ℕ → Fin N
       reflectionGateMatrix, Matrix.mul_one]
     simpa [noWorkPrefixAnd] using! multiWireState_single t x U φ
 
+/-- A unitary gate with one control distinct from its target satisfies the residual-unitary
+approximation predicate at every positive truncation level. -/
 theorem lemma7_8_one_control {N : ℕ} (k : ℕ) (hk : 0 < k) (c : ℕ → Fin N) (t : Fin N)
     (hct : c 0 ≠ t) (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
     elementaryApproxTable 1 k c t U := by
@@ -102,6 +136,7 @@ theorem lemma7_8_one_control {N : ℕ} (k : ℕ) (hk : 0 < k) (c : ℕ → Fin N
     rw [multiKnownPairSteps_action _ _ hct, hp, Matrix.mul_one]
     simp [noWorkPrefixAnd]
 
+/-- Boolean sequences agreeing on their first `m` entries have the same prefix conjunction. -/
 private theorem elementary_truncation_prefix_congr (a b : ℕ → Bool) (m : ℕ)
     (h : ∀ i < m, a i = b i) : noWorkPrefixAnd a m = noWorkPrefixAnd b m := by
   apply Bool.eq_iff_iff.mpr
@@ -114,6 +149,8 @@ private theorem elementary_truncation_prefix_congr (a b : ℕ → Bool) (m : ℕ
     rw [h i hi]
     exact hb i hi
 
+/-- When the prefix controls are true and the last control is false, the specified two-toggle
+gate sequence applies `Vᴴ` to the target-wire state. -/
 theorem elementary_truncated_step_false_control {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hct : ∀ i < m, c i ≠ t) (hccl : ∀ i < m, c i ≠ c m) (hlast : c m ≠ t)
     (V : Matrix Bool Bool ℂ) (hV : V ∈ unitaryGroup Bool ℂ)
@@ -155,6 +192,8 @@ theorem elementary_truncated_step_false_control {N : ℕ} (m : ℕ) (c : ℕ →
   rw [noWork_and_table_wireState c m (c m) t hlast hct xs hx, hrestore, hq, hb]
   simp [applyGate_one]
 
+/-- The full-matrix multi-controlled synthesis statement `Lemma7_8`, corresponding to [Barenco
+et al., Lemma 7.8][BarencoEtAl1995]. -/
 theorem lemma7_8 : Lemma7_8 := by
   intro N m k c t hc hct U hU
   obtain ⟨seq,hzero,hu,hs,hbound⟩ := unitary_sqrt_chain_spec Bool U hU
@@ -165,6 +204,9 @@ theorem lemma7_8 : Lemma7_8 := by
     exact herr'.trans (hbound k)
   · simpa only [hzero] using! hsem
 
+/-- A legal query-free program with the prescribed gate bound approximates the ideal
+multi-controlled gate so that every measurement event on a normalized input has probability
+error at most `2 * (π / 2^k)`. -/
 theorem lemma7_8_readout (N m k : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio m)) (hct : ∀ i < m,c i≠t)
     (U : Matrix Bool Bool ℂ) (hU : U∈unitaryGroup Bool ℂ) :

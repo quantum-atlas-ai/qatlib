@@ -13,6 +13,32 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversary
 import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
+
+/-!
+# POVM lifts and adversary constructions
+
+This module constructs label POVMs and the square root lift `povmLiftMatrix`, proving that the
+lift preserves inner products and reproduces measurement probabilities. It also derives the POVM
+`instrumentReadout` from an instrument's Kraus effects, using the measurement formalism in
+[Watrous2018].
+
+The remaining definitions provide a concrete four bit adversary matrix, phase query padding,
+recursive adversary composition, and flattened Boolean certificate constructions. The adversary
+constructions support the negative weight framework of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `isPovm_labelPovm`: label fibers form a POVM.
+* `povmLift_gram`: the square root lift is an isometry.
+* `povmLift_born`: measuring the lifted label reproduces the original POVM probability.
+* `instrumentReadout_prob`: instrument branch traces agree with the induced POVM readout.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -32,25 +58,30 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 open Qatlib
 
+/-- The finite set of basis indices whose label is the specified outcome. -/
 def outcomeEvent {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) (y : E) : Finset H :=
   Finset.filter (fun h => label h = y) Finset.univ
 
+/-- The family of computational basis projectors onto the fibers of a label map. -/
 noncomputable def labelPovm {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) : E → Matrix H H ℂ :=
   fun y => Matrix.diagonal fun h => if label h = y then 1 else 0
 
+/-- A label projector has diagonal entry one exactly on its label fiber and zero elsewhere. -/
 theorem labelPovm_apply {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) (y : E) (h h' : H) :
     labelPovm label y h h' = if h = h' then (if label h = y then 1 else 0) else 0 := by
   simp [labelPovm, Matrix.diagonal_apply]
 
+/-- Every projector in a label POVM is positive semidefinite. -/
 theorem labelPovm_posSemidef {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) (y : E) : Matrix.PosSemidef (labelPovm label y) := by
   refine Matrix.PosSemidef.diagonal ?_
   intro h
   by_cases hh : label h = y <;> simp [hh]
 
+/-- The entrywise sum of all label projectors has the entries of the identity matrix. -/
 private theorem labelPovm_sum_entries {H E : Type} [Fintype H] [DecidableEq H] [Fintype E]
     [DecidableEq E] (label : H → E) (h h' : H) :
     (∑ y, labelPovm label y) h h' = if h = h' then 1 else 0 := by
@@ -72,12 +103,14 @@ private theorem labelPovm_sum_entries {H E : Type} [Fintype H] [DecidableEq H] [
     · simp
   · simp [labelPovm, hh]
 
+/-- The label projectors sum to the identity matrix. -/
 theorem labelPovm_sum_one {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) : (∑ y, labelPovm label y) = (1 : Matrix H H ℂ) := by
   ext h h'
   rw [labelPovm_sum_entries label h h']
   simp [Matrix.one_apply]
 
+/-- The projectors onto the fibers of a label map form a POVM. -/
 theorem isPovm_labelPovm {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) : IsPovm (labelPovm label) := by
   refine ⟨fun y => labelPovm_posSemidef label y, ?_⟩
@@ -85,6 +118,8 @@ theorem isPovm_labelPovm {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [D
   rw [labelPovm_sum_entries label h h']
   simp [Matrix.one_apply]
 
+/-- Applying a label projector keeps the amplitudes in its label fiber and sets the others to
+zero. -/
 theorem labelPovm_mulVec {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) (y : E) (psi : QState H) (h : H) :
     (labelPovm label y *ᵥ psi) h = if label h = y then psi h else 0 := by
@@ -96,6 +131,8 @@ theorem labelPovm_mulVec {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [D
     simp [labelPovm, Ne.symm hj]
   · simp
 
+/-- The probability defined by a label POVM equals the computational basis probability of its
+label fiber. -/
 theorem labelPovm_povmProb {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) (y : E) (psi : QState H) :
     povmProb (labelPovm label) y psi = MeasureProb psi (outcomeEvent label y) := by
@@ -127,6 +164,8 @@ theorem labelPovm_povmProb {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] 
   rw [hre, Complex.ofReal_re]
   rfl
 
+/-- For Boolean inputs, a coordinate filter is the Hadamard product with the corresponding Gram
+disagreement filter. -/
 theorem genAdvFilter_eq_filterDelta {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (i : Fin n) :
     genAdvFilter input Gamma i = gramFilterDelta input i ⊙ Gamma := by
@@ -137,14 +176,19 @@ theorem genAdvFilter_eq_filterDelta {X : Type} [Fintype X] [DecidableEq X] {n : 
 section PovmDilation
 open scoped MatrixOrder
 
+/-- The adjoint product of the continuous functional calculus square root of a positive
+semidefinite matrix equals that matrix. -/
 theorem sqrt_gram {H : Type} [Fintype H] [DecidableEq H] (A : Matrix H H ℂ) (hA : A.PosSemidef) :
     (CFC.sqrt A)ᴴ * CFC.sqrt A = A := by
   rw [← Matrix.star_eq_conjTranspose, (CFC.sqrt_nonneg A).isSelfAdjoint.star_eq]
   exact CFC.sqrt_mul_sqrt_self A hA.nonneg
 
+/-- The rectangular matrix obtained by stacking the square roots of the output operators into
+labeled blocks. -/
 noncomputable def povmLiftMatrix {H Y : Type} [Fintype H] [DecidableEq H]
     (out : Y → Matrix H H ℂ) : Matrix (Y × H) H ℂ := fun yh h => CFC.sqrt (out yh.1) yh.2 h
 
+/-- The square root lift of a POVM has adjoint product equal to the identity. -/
 theorem povmLift_gram {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y]
     (out : Y → Matrix H H ℂ) (hout : IsPovm out) :
     (povmLiftMatrix out)ᴴ * povmLiftMatrix out = 1 := by
@@ -156,17 +200,20 @@ theorem povmLift_gram {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y]
   rw [← Matrix.sum_apply, hout.2]
   by_cases h : i = j <;> simp [Matrix.one_apply, h]
 
+/-- A rectangular matrix can be moved across the inner product by taking its adjoint. -/
 theorem lift_inner_rect {H K : Type} [Fintype H] [Fintype K]
     (V : Matrix K H ℂ) (u : QState H) (v : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (V *ᵥ u) v = Qatlib.Foundations.PureStateMath.Inner u (Vᴴ *ᵥ v) := by
   simp only [Qatlib.Foundations.PureStateMath.Inner]
   rw [Matrix.star_mulVec, dotProduct_mulVec]
 
+/-- The square root lift of a POVM preserves inner products. -/
 theorem povmLift_inner {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y]
     (out : Y → Matrix H H ℂ) (hout : IsPovm out) (u v : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (povmLiftMatrix out *ᵥ u) (povmLiftMatrix out *ᵥ v) = Qatlib.Foundations.PureStateMath.Inner u v := by
   rw [lift_inner_rect, Matrix.mulVec_mulVec, povmLift_gram out hout, Matrix.one_mulVec]
 
+/-- The square root lift of a POVM preserves normalized states. -/
 theorem povmLift_normalized {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y]
     (out : Y → Matrix H H ℂ) (hout : IsPovm out) (v : QState H) (hv : Normalized v) :
     Normalized (povmLiftMatrix out *ᵥ v) := by
@@ -174,6 +221,8 @@ theorem povmLift_normalized {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y]
   rw [normalized_iff_inner_self, povmLift_inner out hout]
   exact (normalized_iff_inner_self v).mp hv
 
+/-- Measuring the outcome label after the square root lift reproduces the original POVM
+probability [Watrous2018]. -/
 theorem povmLift_born {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (out : Y → Matrix H H ℂ) (hout : IsPovm out) (v : QState H) (y : Y) :
     MeasureProb (povmLiftMatrix out *ᵥ v) (outcomeEvent Prod.fst y) = povmProb out y v := by
@@ -195,10 +244,13 @@ theorem povmLift_born {H Y : Type} [Fintype H] [DecidableEq H] [Fintype Y] [Deci
 
 end PovmDilation
 
+/-- The input effect of an instrument outcome, obtained by summing the adjoint products of its
+Kraus operators. -/
 noncomputable def instrumentReadout {Y : Type} [Fintype Y] {D E : ℕ}
     (I : Instrument Y D E) (y : Y) : Operator D :=
   ∑ k : Fin E × Fin D, ((Qatlib.Concepts.Execution.KrausRefinement.Instrument.krausFamily I) (y,k))ᴴ * (Qatlib.Concepts.Execution.KrausRefinement.Instrument.krausFamily I) (y,k)
 
+/-- The input effects of an instrument's outcomes form a POVM. -/
 theorem instrumentReadout_isPovm {Y : Type} [Fintype Y] {D E : ℕ}
     (I : Instrument Y D E) : IsPovm (instrumentReadout I) := by
   constructor
@@ -212,6 +264,8 @@ theorem instrumentReadout_isPovm {Y : Type} [Fintype Y] {D E : ℕ}
       simpa only [instrumentReadout, Matrix.sum_apply, Fintype.sum_prod_type,
         Matrix.one_apply, he, ite_true, ite_false] using! h
 
+/-- The induced POVM probability on a pure state equals the real trace of the corresponding
+instrument branch output. -/
 theorem instrumentReadout_prob {Y : Type} [Fintype Y] {D E : ℕ}
     (I : Instrument Y D E) (y : Y) (psi : QState (Fin D)) :
     povmProb (instrumentReadout I) y psi = (Matrix.trace (I.branch y (outerProduct psi))).re := by
@@ -224,10 +278,13 @@ theorem instrumentReadout_prob {Y : Type} [Fintype Y] {D E : ℕ}
     exact (Matrix.trace_mul_cycle ((Qatlib.Concepts.Execution.KrausRefinement.Instrument.krausFamily I) (y,k)) (outerProduct psi) ((Qatlib.Concepts.Execution.KrausRefinement.Instrument.krausFamily I) (y,k))ᴴ).symm
   exact congrArg Complex.re h
 
+/-- Boolean words indexed by four coordinates. -/
 abbrev FourBitWord := Fin 4 → Bool
 
+/-- Encode a four bit word as a natural number with coordinate zero as the most significant bit. -/
 def fourBitCode (w : FourBitWord) : ℕ := ∑ i : Fin 4, if w i then 2 ^ (3-i.val) else 0
 
+/-- The explicit integer coefficient table used to construct the four bit adversary witness. -/
 private def fourBitIntegerTable : List (List ℤ) := [
   [0, 0, 578143, 0, 578143, 183237, 707052, 0, 0, 707052, 183237, -211669, 0, -211669, 0, 0],
   [0, 0, 707052, 0, 183237, 578143, -211669, 0, 0, 578143, -211669, 183237, 0, 707052, 0, 0],
@@ -246,49 +303,69 @@ private def fourBitIntegerTable : List (List ℤ) := [
   [0, 0, 707052, 0, 183237, -211669, 578143, 0, 0, -211669, 578143, 183237, 0, 707052, 0, 0],
   [0, 0, -211669, 0, -211669, 183237, 707052, 0, 0, 707052, 183237, 578143, 0, 578143, 0, 0]]
 
+/-- The integer matrix obtained by indexing the coefficient table with four bit word codes. -/
 def fourBitInteger : Matrix FourBitWord FourBitWord ℤ := fun x y =>
   ((fourBitIntegerTable.getD (fourBitCode x) []).getD (fourBitCode y) 0)
+/-- The rational four bit witness obtained by dividing the integer coefficients by `1000005`. -/
 def fourBitQ : Matrix FourBitWord FourBitWord ℚ := fun x y => (fourBitInteger x y : ℚ) / 1000005
+/-- The complex matrix obtained by casting the rational four bit witness entries. -/
 noncomputable def fourBitGamma : Matrix FourBitWord FourBitWord ℂ := fun x y => (fourBitQ x y : ℂ)
 
+/-- The phase query register enlarged by a workspace, a history register, and an auxiliary
+answer register. -/
 abbrev PhasePaddingSpace (n q : ℕ) (W H : Type) := (Fin n × Fin q) × (W × H × Fin q)
 
+/-- Keep active history sectors fixed and swap the answer register with the auxiliary answer
+register in inactive sectors. -/
 def phasePaddingSwap {n q : ℕ} {W H : Type} (active : H → Bool)
     (r : PhasePaddingSpace n q W H) : PhasePaddingSpace n q W H :=
   if active r.2.2.1 then r else ((r.1.1,r.2.2.2),r.2.1,r.2.2.1,r.1.2)
 
+/-- The conditional phase padding swap is an involution. -/
 theorem phasePaddingSwap_involutive {n q : ℕ} {W H : Type} (active : H → Bool) :
     Function.Involutive (phasePaddingSwap (n := n) (q := q) (W := W) active) := by
   rintro ⟨⟨i,p⟩,w,h,z⟩
   cases ha : active h <;> simp [phasePaddingSwap, ha]
 
+/-- A phase query enclosed by two copies of the conditional swap permutation gate. -/
 noncomputable def phasePaddingWord {n q : ℕ} {W H : Type}
     [Fintype W] [DecidableEq W] [Fintype H] [DecidableEq H] (active : H → Bool) :
     Circuit (PhasePaddingSpace n q W H) :=
   [.gate (permMatrix (phasePaddingSwap active)), .query, .gate (permMatrix (phasePaddingSwap active))]
 
+/-- Embed a state into the enlarged phase padding space with the auxiliary answer register fixed
+to zero. -/
 noncomputable def phasePaddingInput {n q : ℕ} [NeZero q] {W H : Type}
     (v : QState ((Fin n × Fin q) × (W × H))) : QState (PhasePaddingSpace n q W H) :=
   fun r => if r.2.2.2 = 0 then v (r.1,r.2.1,r.2.2.1) else 0
 
 open Qatlib
 
+/-- The zero one coordinate matrix of a map, with entry one when the target index is the image
+of the source index. -/
 def spectralDomainEmbedding {X Y : Type} [DecidableEq Y] (e : X → Y) : Matrix Y X ℂ :=
     fun y x => if e x=y then 1 else 0
 
+/-- Identify a flattened depth successor word with a family of words indexed by the outer block
+coordinates. -/
 def iteratedWordSplit (n d : ℕ) : (Fin (n^(d+1)) → Bool) ≃ (Fin n → (Fin (n^d) → Bool)) where
   toFun := fun w i j => w ((powIndexSplit n d).symm (j,i))
   invFun := fun bs c => bs ((powIndexSplit n d) c).2 ((powIndexSplit n d) c).1
   left_inv := by intro w; funext c; simp
   right_inv := by intro bs; funext i j; simp
 
+/-- The Boolean two by two matrix with zero diagonal and unit off diagonal entries. -/
 def booleanQueryGamma : Matrix Bool Bool ℂ := fun x y => if x ≠ y then 1 else 0
 
+/-- Identify a Boolean word of length `n ^ 0` with its unique bit. -/
 def zeroDepthWordEquiv (n : ℕ) : (Fin (n^0) → Bool) ≃ Bool := Equiv.funUnique (Fin 1) Bool
 
+/-- The Boolean query matrix reindexed by zero depth words. -/
 def zeroDepthGamma (n : ℕ) : Matrix (Fin (n^0) → Bool) (Fin (n^0) → Bool) ℂ :=
   booleanQueryGamma.submatrix (zeroDepthWordEquiv n) (zeroDepthWordEquiv n)
 
+/-- Compose an outer witness with identical inner witnesses, reindex flattened words, and scale
+by the inverse inner norm power. -/
 def iteratedAdversaryStep {n : ℕ} (f : (Fin n → Bool) → Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ) (d : ℕ)
     (B : Matrix (Fin (n^d) → Bool) (Fin (n^d) → Bool) ℂ) :
@@ -297,28 +374,39 @@ def iteratedAdversaryStep {n : ℕ} (f : (Fin n → Bool) → Bool)
     (weightedAdvGamma (fun (_ : Fin n) => iterateTotal f d) f A (fun _ => B)).submatrix
       (iteratedWordSplit n d) (iteratedWordSplit n d)
 
+/-- The recursively composed adversary matrix, starting from the Boolean query matrix at depth
+zero. -/
 def iteratedAdversaryGamma {n : ℕ} (f : (Fin n → Bool) → Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ) :
     (d : ℕ) → Matrix (Fin (n^d) → Bool) (Fin (n^d) → Bool) ℂ
   | 0 => zeroDepthGamma n
   | d+1 => iteratedAdversaryStep f A d (iteratedAdversaryGamma f A d)
 
+/-- Scale a word indexed adversary matrix by the reciprocal of its maximum coordinate filter
+norm. -/
 def normalizeWordAdversary {n : ℕ} (G : Matrix (Fin n → Bool) (Fin n → Bool) ℂ) :
     Matrix (Fin n → Bool) (Fin n → Bool) ℂ :=
   ((maxFilterNorm (fun w : Fin n → Bool => w) G)⁻¹ : ℝ) • G
 
+/-- Apply the inner Boolean function to each block of a flattened word, then apply the outer
+Boolean function. -/
 def flatBooleanCompose {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (f : (Fin n → Bool) → Bool) (g : (Fin m → Bool) → Bool) (w : Fin l → Bool) : Bool :=
   f (fun i => g (fun j => w (e.symm (j,i))))
 
+/-- The coordinates of a selected inner block whose flattened indices belong to the given finite
+set. -/
 def flatCertificateBlock {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (T : Finset (Fin l)) (i : Fin n) : Finset (Fin m) :=
   Finset.univ.filter (fun j => e.symm (j,i) ∈ T)
 
+/-- The flattened union of selected inner coordinate sets over a chosen set of outer blocks. -/
 def flatCertificateUnion {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (S : Finset (Fin n)) (T : Fin n → Finset (Fin m)) : Finset (Fin l) :=
   S.biUnion (fun i => (T i).image (fun j => e.symm (j,i)))
 
+/-- The outer block indices for which the selected flattened coordinates certify the inner
+function at the given input. -/
 def forcedOuterCertificate {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (g : (Fin m → Bool) → Bool) (w : Fin l → Bool) (T : Finset (Fin l)) : Finset (Fin n) :=
   Finset.univ.filter (fun i => IsCertificate g (fun j => w (e.symm (j,i))) (flatCertificateBlock e T i))

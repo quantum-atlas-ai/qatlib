@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedStat
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
+
+/-!
+# Failure events for separated quantiles
+
+`risk_stable_wrong_index` shows that a wrong output index must violate the approximate quantile
+bracket when the target index is separated from the target probability by the prescribed margin.
+The argument uses monotonicity of `riskCDF` along sorted thresholds and supports the bisection
+analysis in [WoernerEgger2019].
+
+## Main statements
+
+* `risk_stable_wrong_index`: include the wrong-index event in the approximate-bracket failure
+  event.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,9 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 
+/-- On sorted thresholds with the stated CDF separation at `v` and all earlier indices, every
+output index unequal to `v` is out of range or violates an approximate quantile-bracket
+inequality. -/
 theorem risk_stable_wrong_index {I : Type} [Fintype I] (A : Matrix I I ℂ) (j : I)
     (loss : I → ℚ) (xs : List ℚ) (q eps : ℝ) (v : ℕ) (hs : xs.SortedLE) (hv : v < xs.length)
     (habove : q+eps < riskCDF A j loss (xs.getD v 0))

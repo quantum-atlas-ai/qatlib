@@ -11,6 +11,33 @@ import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+
+/-!
+# Lifting and compiling local product formulas
+
+`partitionLift` extends an operator by the identity on a complementary register. This module
+proves its algebraic and norm properties and transports product-formula words through a fixed
+partition. It also assembles supplied reflection-gate implementations into a legal circuit with
+the product-formula matrix and an explicit gate bound.
+
+The mathematical setting is that of [Wiesner1996].
+
+## Main statements
+
+* `partitionLift_norm`: Lifting an operator by the identity on a nonempty complementary register
+  preserves its operator norm.
+* `first_order_common_partition`: Local Hermitian terms with a common nonnegative norm bound
+  retain those bounds under their supplied partitions, and the selected first-order formula
+  satisfies the stated unitarity, length, operator-error, and observable-error bounds.
+* `compiled_first_order_word`: Exact legal local implementations of length at most `C` assemble
+  into a legal, query-free reflection program realizing the first-order product formula with at
+  most `M * r * C` gates.
+
+## References
+
+* [Wiesner, 1996][Wiesner1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +55,7 @@ open scoped BigOperators Matrix.Norms.L2Operator Kronecker
 
 namespace Qatlib.Papers.ManyBodySim96.MainResults
 
+/-- Lifting to a partitioned register preserves matrix multiplication. -/
 theorem partitionLift_mul {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (U V : Matrix A A ℂ) :
@@ -39,6 +67,7 @@ theorem partitionLift_mul {S A B : Type*} [Fintype S] [DecidableEq S]
   congr 1
   rw [← Matrix.mul_kronecker_mul, Matrix.mul_one]
 
+/-- Lifting the identity matrix gives the identity on the full register. -/
 theorem partitionLift_one {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) :
@@ -47,6 +76,7 @@ theorem partitionLift_one {S A B : Type*} [Fintype S] [DecidableEq S]
     ((1 : Matrix A A ℂ) ⊗ₖ (1 : Matrix B B ℂ)) = 1
   rw [Matrix.one_kronecker_one, map_one]
 
+/-- Lifting to a partitioned register commutes with conjugate transpose. -/
 theorem partitionLift_conjTranspose {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (U : Matrix A A ℂ) :
@@ -54,6 +84,7 @@ theorem partitionLift_conjTranspose {S A B : Type*} [Fintype S] [DecidableEq S]
   simp only [partitionLift]
   rw [Matrix.conjTranspose_reindex, Matrix.conjTranspose_kronecker, Matrix.conjTranspose_one]
 
+/-- Lifting a Hermitian matrix preserves Hermiticity. -/
 theorem partitionLift_isHermitian {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) {U : Matrix A A ℂ} (hU : U.IsHermitian) :
@@ -61,6 +92,8 @@ theorem partitionLift_isHermitian {S A B : Type*} [Fintype S] [DecidableEq S]
   unfold Matrix.IsHermitian
   rw [partitionLift_conjTranspose, hU.eq]
 
+/-- Lifting an operator by the identity on a nonempty complementary register preserves its
+operator norm. -/
 theorem partitionLift_norm {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] [Nonempty B]
     (e : S ≃ A × B) (U : Matrix A A ℂ) :
@@ -68,6 +101,8 @@ theorem partitionLift_norm {S A B : Type*} [Fintype S] [DecidableEq S]
   have h : partitionLift e U = relabelGate e.symm (U ⊗ₖ (1 : Matrix B B ℂ)) := rfl
   rw [h, l2_norm_relabelGate, l2_norm_kronecker, l2_norm_one_eq, mul_one]
 
+/-- Lifting commutes with the left fold that multiplies each successive word matrix on the left
+of the accumulator. -/
 private theorem partitionLift_foldl {D a : ℕ} {B : Type*} [Fintype B] [DecidableEq B]
     (e : Fin D ≃ Fin (2 ^ a) × B) (xs : List (Operator (2 ^ a) × ℕ))
     (X : Operator (2 ^ a)) :
@@ -80,6 +115,8 @@ private theorem partitionLift_foldl {D a : ℕ} {B : Type*} [Fintype B] [Decidab
     simp only [List.foldl_cons, List.map_cons]
     rw [ih, partitionLift_mul]
 
+/-- Lifting the interpretation of a tagged matrix word equals interpreting the word after
+lifting each matrix. -/
 theorem partitionLift_pfInterpret {D a : ℕ} {B : Type*} [Fintype B] [DecidableEq B]
     (e : Fin D ≃ Fin (2 ^ a) × B) (xs : List (Operator (2 ^ a) × ℕ)) :
     partitionLift e (pfInterpret xs) =
@@ -87,6 +124,8 @@ theorem partitionLift_pfInterpret {D a : ℕ} {B : Type*} [Fintype B] [Decidable
   unfold pfInterpret
   rw [partitionLift_foldl, partitionLift_one]
 
+/-- The product-formula word of a lifted Hamiltonian family is obtained by lifting every matrix
+in the original word. -/
 theorem partitionLift_pfFamilyWord {D a : ℕ} {B : Type*} [Fintype B] [DecidableEq B]
     (e : Fin D ≃ Fin (2 ^ a) × B) {M : ℕ} (H : Fin M → Operator (2 ^ a))
     (t : ℝ) (r : ℕ) :
@@ -101,6 +140,8 @@ theorem partitionLift_pfFamilyWord {D a : ℕ} {B : Type*} [Fintype B] [Decidabl
   simp only [Function.comp_apply]
   rw [evolution_partitionLift]
 
+/-- The product formula for a lifted Hamiltonian family is the lift of the original product
+formula. -/
 theorem partitionLift_pfFamily {D a : ℕ} {B : Type*} [Fintype B] [DecidableEq B]
     (e : Fin D ≃ Fin (2 ^ a) × B) {M : ℕ} (H : Fin M → Operator (2 ^ a))
     (t : ℝ) (r : ℕ) :
@@ -109,6 +150,7 @@ theorem partitionLift_pfFamily {D a : ℕ} {B : Type*} [Fintype B] [DecidableEq 
   unfold pfFamily
   rw [partitionLift_pfFamilyWord, partitionLift_pfInterpret]
 
+/-- Lifting to a partitioned register preserves matrix addition. -/
 theorem partitionLift_add {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (U V : Matrix A A ℂ) :
@@ -120,6 +162,7 @@ theorem partitionLift_add {S A B : Type*} [Fintype S] [DecidableEq S]
   congr 1
   rw [Matrix.add_kronecker]
 
+/-- The sum of a finite family of lifted matrices is the lift of their sum. -/
 theorem partitionLift_sum {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) {M : ℕ} (H : Fin M → Matrix A A ℂ) :
@@ -131,6 +174,9 @@ theorem partitionLift_sum {S A B : Type*} [Fintype S] [DecidableEq S]
   | insert a s ha ih =>
       rw [Finset.sum_insert ha, Finset.sum_insert ha, partitionLift_add, ih]
 
+/-- Local Hermitian terms with a common nonnegative norm bound retain those bounds under their
+supplied partitions, and the selected first-order formula satisfies the stated unitarity,
+length, operator-error, and observable-error bounds. [Wiesner1996] -/
 theorem first_order_common_partition {D a M : ℕ} (B : Type*) [Fintype B]
     [DecidableEq B] [Nonempty B] (e : Fin M → Fin D ≃ Fin (2 ^ a) × B)
     (H : Fin M → Operator (2 ^ a)) (b T ε : ℝ) (O : Operator D)
@@ -162,6 +208,8 @@ theorem first_order_common_partition {D a M : ℕ} (B : Type*) [Fintype B]
   rw [← hpos]
   exact herr
 
+/-- The matrix of flattened reflection-program blocks is their successive left-multiplication
+fold starting from the identity. -/
 theorem reflectionProgramMatrix_flatten {b : ℕ}
     (blocks : List (List (ReflectionGate b))) :
     reflectionProgramMatrix blocks.flatten =
@@ -177,6 +225,9 @@ theorem reflectionProgramMatrix_flatten {b : ℕ}
         mul_assoc]
   simpa using! (h 1).symm
 
+/-- Replacing each label by a reflection program realizing its Hamiltonian evolution makes the
+evolution fold equal the relabeled matrix of the flattened program times the initial
+accumulator. -/
 theorem relabel_flatten_fold {b M : ℕ}
     (H : Fin M → Operator (2 ^ b)) (s : ℝ)
     (ws : Fin M → List (ReflectionGate b))
@@ -199,9 +250,12 @@ theorem relabel_flatten_fold {b M : ℕ}
       Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul,
       hreal j, ih, mul_assoc]
 
+/-- The concatenation of `r` copies of the ordered list of all `M` term labels. -/
 def segmentLabels (M r : ℕ) : List (Fin M) :=
   (List.replicate r (List.ofFn (fun j : Fin M => j))).flatten
 
+/-- The first-order product formula equals the fold of term evolutions at time `T / r` along the
+repeated segment labels. -/
 theorem pfFamily_eq_segmentFold {D M r : ℕ} (H : Fin M → Operator D) (T : ℝ) :
     pfFamily H T r =
       (segmentLabels M r).foldl (fun U j => HamiltonianEvolution (H j) (T / r) * U) 1 := by
@@ -213,6 +267,8 @@ theorem pfFamily_eq_segmentFold {D M r : ℕ} (H : Fin M → Operator D) (T : �
   unfold pfFamily pfInterpret
   rw [hlist, List.foldl_map]
 
+/-- Substituting a program of length at most `C` for each label gives a flattened program of
+length at most the label-list length times `C`. -/
 private theorem length_flatten_map_le {b M : ℕ} (ws : Fin M → List (ReflectionGate b))
     (C : ℕ) (hlen : ∀ j, (ws j).length ≤ C) :
     ∀ word : List (Fin M), ((word.map ws).flatten).length ≤ word.length * C := by
@@ -225,6 +281,9 @@ private theorem length_flatten_map_le {b M : ℕ} (ws : Fin M → List (Reflecti
     have h2 : (word.length + 1) * C = C + word.length * C := by ring
     omega
 
+/-- Exact legal local implementations of length at most `C` assemble into a legal, query-free
+reflection program realizing the first-order product formula with at most `M * r * C` gates.
+[Wiesner1996] -/
 theorem compiled_first_order_word {b M r : ℕ} (H : Fin M → Operator (2 ^ b)) (s : ℝ)
     (ws : Fin M → List (ReflectionGate b)) (C : ℕ)
     (hreal : ∀ j, relabelGate (bitVecEquiv b) (reflectionProgramMatrix (ws j)) =

@@ -13,6 +13,28 @@ import Mathlib.Data.Complex.BigOperators
 import Mathlib.Data.Matrix.Basic
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Tactic.Ring
+
+/-!
+# Coordinate moments of unitary matrices
+
+This module gives a unitary diagonalization with unit-modulus eigenvalues and uses it to
+represent each diagonal entry of every nonnegative integer power as a moment of a finite
+probability distribution. The construction is a finite-dimensional spectral representation in
+the matrix-analysis setting of [Bhatia1997].
+
+## Main statements
+
+* `exists_unitary_phase_diagonalization`: a unitary eigenbasis with eigenvalues on the unit
+  circle.
+* `unitary_diagonalization_pow`: powers computed in the same diagonalization.
+* `unitary_coordinate_moments`: diagonal power entries as moments with probability weights from
+  a row of the eigenbasis matrix.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
@@ -26,6 +48,8 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 
 open scoped Classical BigOperators Matrix
 
+/-- Every finite unitary matrix has a unitary diagonalization with all diagonal entries of
+modulus one. -/
 theorem exists_unitary_phase_diagonalization {d : ℕ} (U : Operator d)
     (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ) :
     ∃ (W : Operator d) (z : Fin d → ℂ),
@@ -146,6 +170,8 @@ theorem exists_unitary_phase_diagonalization {d : ℕ} (U : Operator d)
     rw [Complex.norm_def, hnormSq, Real.sqrt_one]
   exact ⟨W, z, hleft, hright, hz, hspec⟩
 
+/-- Powers of a matrix with the given unitary diagonalization are obtained by raising each
+diagonal entry to that power. -/
 theorem unitary_diagonalization_pow {d : ℕ} (U W : Operator d) (z : Fin d → ℂ)
     (hleft : W * W.conjTranspose = 1) (hright : W.conjTranspose * W = 1)
     (hspec : U = W * Matrix.diagonal z * W.conjTranspose) (t : ℕ) :
@@ -167,6 +193,8 @@ theorem unitary_diagonalization_pow {d : ℕ} (U W : Operator d) (z : Fin d → 
       _ = W * Matrix.diagonal (fun j => z j ^ (t + 1)) * W.conjTranspose := by
         simp only [Matrix.diagonal_mul_diagonal, pow_succ]
 
+/-- For every coordinate of a unitary matrix, its diagonal power entries are the moments of a
+finite probability distribution on unit-modulus complex numbers. -/
 theorem unitary_coordinate_moments {d : ℕ} (U : Operator d)
     (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ) (a : Fin d) :
     ∃ (p : FinDist (Fin d)) (z : Fin d → ℂ),

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.LinearAlgebra.Lagrange
 import Mathlib.Data.Complex.Basic
 
+/-!
+# Partial fractions for finite simple pole sets
+
+`finite_simple_pole_partial_fraction` decomposes the reciprocal of a finite product of distinct
+linear factors into simple fractions. Each coefficient is the reciprocal product of separations
+from the corresponding pole.
+
+`finite_pole_weight_eq_derivative_inv` identifies this coefficient with the reciprocal
+derivative of the Lagrange nodal polynomial at that pole. These algebraic identities provide the
+finite residue weights used in [WangEtAl2026].
+
+## Main statements
+
+* `finite_simple_pole_partial_fraction`: gives the finite simple-fraction expansion.
+* `finite_pole_weight_eq_derivative_inv`: relates pole weights to polynomial derivatives.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -17,6 +38,9 @@ namespace CBMD
 
 open scoped BigOperators
 
+/-- For a nonempty finite set of distinct poles and `z` away from them, the reciprocal pole
+product equals the sum of simple fractions with coefficients given by reciprocal
+pole-separation products. -/
 theorem finite_simple_pole_partial_fraction {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (v : ι → ℂ) (hs : s.Nonempty) (hv : Set.InjOn v s)
     (z : ℂ) (hz : ∀ i ∈ s, z ≠ v i) :
@@ -31,6 +55,8 @@ theorem finite_simple_pole_partial_fraction {ι : Type*} [DecidableEq ι]
   rw [mul_inv_cancel₀ hn]
   exact he
 
+/-- At a pole indexed by `i ∈ s`, the reciprocal product of separations from the other indexed
+poles equals the reciprocal derivative of the Lagrange nodal polynomial evaluated there. -/
 theorem finite_pole_weight_eq_derivative_inv {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (v : ι → ℂ) (i : ι) (hi : i ∈ s) :
     (∏ j ∈ s.erase i, (v i - v j))⁻¹ =

@@ -8,6 +8,31 @@ import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+/-!
+# Partial-swap density evolution
+
+This module defines the register swap, its partial-swap unitary `partialSwapMatrix`, and the
+reduced output `partialSwapOutput`. The exact output formula separates the input, reset, and
+commutator terms in the density-matrix exponentiation identity of [LloydMohseniRebentrost2014].
+
+`partialSwapChannel` packages the construction as a quantum channel for a density copy.
+`partialSwapReferenceOutput` extends the construction to an untouched reference register, with
+explicit positivity and trace preservation, and the final estimates bound its unreferenced
+first-order commutator approximation in operator norm.
+
+## Main statements
+
+* `partial_swap_unitary_laws`: the swap and partial-swap algebraic identities.
+* `partial_swap_actual_output_formula`: the exact reduced output.
+* `partial_swap_actual_reference_bridge`: agreement with channel reference extension.
+* `partial_swap_trig_and_quadratic_error`: the quadratic first-order error estimate.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Foundations.PureStateMath.BornBridge
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -26,24 +51,32 @@ open scoped ComplexOrder Kronecker Matrix.Norms.L2Operator
 
 set_option linter.unusedSectionVars false
 
+/-- The permutation matrix swapping two `D`-dimensional registers. -/
 def swapRegisterMatrix (D : ℕ) : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ :=
   permMatrix Prod.swap
 
+/-- A register-swap matrix entry is one precisely when the row index is the swap of the column
+index. -/
 theorem swapRegisterMatrix_apply (D : ℕ) (x y : Fin D × Fin D) :
     swapRegisterMatrix D x y = if x = Prod.swap y then (1 : ℂ) else 0 := rfl
 
+/-- The register-swap matrix squares to the identity. -/
 theorem swapRegisterMatrix_mul_self (D : ℕ) :
     swapRegisterMatrix D * swapRegisterMatrix D = 1 :=
   permMatrix_mul_self (fun _ => Prod.swap_swap _)
 
+/-- The register-swap matrix is equal to its conjugate transpose. -/
 theorem swapRegisterMatrix_conjTranspose (D : ℕ) :
     (swapRegisterMatrix D)ᴴ = swapRegisterMatrix D :=
   permMatrix_conjTranspose (fun _ => Prod.swap_swap _)
 
+/-- The partial-swap matrix `cos θ • 1 - (i sin θ) • swapRegisterMatrix D`. -/
 noncomputable def partialSwapMatrix (D : ℕ) (θ : ℝ) :
     Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ :=
   (Real.cos θ : ℂ) • 1 - (Complex.I * (Real.sin θ : ℂ)) • swapRegisterMatrix D
 
+/-- The entries of the partial-swap matrix are the cosine-scaled identity entries minus the
+imaginary sine-scaled swap entries. -/
 theorem partialSwapMatrix_apply (D : ℕ) (θ : ℝ) (x y : Fin D × Fin D) :
     partialSwapMatrix D θ x y =
       (Real.cos θ : ℂ) * (if x = y then (1 : ℂ) else 0) -
@@ -51,6 +84,8 @@ theorem partialSwapMatrix_apply (D : ℕ) (θ : ℝ) (x y : Fin D × Fin D) :
   simp only [partialSwapMatrix, Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul,
     Matrix.one_apply, swapRegisterMatrix_apply]
 
+/-- Multiplying two linear combinations of the identity and an involutive matrix gives the
+stated identity and involution coefficients. -/
 private theorem swap_combo_mul {I : Type*} [Fintype I] [DecidableEq I]
     (a b a' b' : ℂ) (S : Matrix I I ℂ) (hS : S * S = 1) :
     ((a • 1) - b • S) * ((a' • 1) - b' • S)
@@ -59,11 +94,13 @@ private theorem swap_combo_mul {I : Type*} [Fintype I] [DecidableEq I]
   rw [hS]
   module
 
+/-- The sum of the cosine square and sine square, cast to the complex numbers, is one. -/
 private theorem complex_cos_sq_add_sin_sq (θ : ℝ) :
     ((Real.cos θ : ℂ)) * ((Real.cos θ : ℂ)) + ((Real.sin θ : ℂ)) * ((Real.sin θ : ℂ)) = 1 := by
   rw [← pow_two, ← pow_two]
   exact_mod_cast Real.cos_sq_add_sin_sq θ
 
+/-- The partial swap at angle `-θ` is a right inverse of the partial swap at angle `θ`. -/
 theorem partialSwapMatrix_mul_neg (D : ℕ) (θ : ℝ) :
     partialSwapMatrix D θ * partialSwapMatrix D (-θ) = 1 := by
   have hI2 : Complex.I * Complex.I = -1 := Complex.I_mul_I
@@ -86,12 +123,14 @@ theorem partialSwapMatrix_mul_neg (D : ℕ) (θ : ℝ) :
     ring
   rw [hc, hb, one_smul, zero_smul, sub_zero]
 
+/-- The partial swap at angle `-θ` is a left inverse of the partial swap at angle `θ`. -/
 theorem partialSwapMatrix_neg_mul (D : ℕ) (θ : ℝ) :
     partialSwapMatrix D (-θ) * partialSwapMatrix D θ = 1 := by
   have h := partialSwapMatrix_mul_neg D (-θ)
   rw [neg_neg] at h
   exact h
 
+/-- The conjugate transpose of a partial swap is the partial swap with negated angle. -/
 theorem partialSwapMatrix_conjTranspose (D : ℕ) (θ : ℝ) :
     (partialSwapMatrix D θ)ᴴ = partialSwapMatrix D (-θ) := by
   have hc : (star (Real.cos θ : ℂ)) = (Real.cos θ : ℂ) := by
@@ -110,11 +149,13 @@ theorem partialSwapMatrix_conjTranspose (D : ℕ) (θ : ℝ) :
     swapRegisterMatrix_conjTranspose, hc, hb]
   module
 
+/-- The partial-swap matrix is unitary for every real angle. -/
 theorem partialSwapMatrix_unitary (D : ℕ) (θ : ℝ) :
     partialSwapMatrix D θ ∈ Matrix.unitaryGroup (Fin D × Fin D) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
     partialSwapMatrix_conjTranspose, partialSwapMatrix_neg_mul]
 
+/-- Multiplying partial swaps adds their angles. -/
 theorem partialSwapMatrix_mul (D : ℕ) (θ t : ℝ) :
     partialSwapMatrix D θ * partialSwapMatrix D t = partialSwapMatrix D (θ + t) := by
   have hI2 : Complex.I * Complex.I = -1 := Complex.I_mul_I
@@ -140,6 +181,8 @@ theorem partialSwapMatrix_mul (D : ℕ) (θ t : ℝ) :
   rw [h, hc, hb]
   simp only [partialSwapMatrix]
 
+/-- The swap is a Hermitian involution, and partial swaps are unitary with adjoint given by
+angle negation and composition given by angle addition. -/
 theorem partial_swap_unitary_laws (D : ℕ) (θ : ℝ) :
     swapRegisterMatrix D * swapRegisterMatrix D = 1 ∧ (swapRegisterMatrix D)ᴴ = swapRegisterMatrix D ∧
     partialSwapMatrix D θ ∈ Matrix.unitaryGroup (Fin D × Fin D) ℂ ∧
@@ -149,6 +192,8 @@ theorem partial_swap_unitary_laws (D : ℕ) (θ : ℝ) :
     partialSwapMatrix_unitary D θ, partialSwapMatrix_conjTranspose D θ,
     fun t => partialSwapMatrix_mul D θ t⟩
 
+/-- Right multiplication of a tensor product by the swap exchanges the column-register indices
+in its entry formula. -/
 private theorem tensor_swap_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D × Fin D) :
     (TensorGate σ ρ * swapRegisterMatrix D) x y = σ x.1 y.2 * ρ x.2 y.1 := by
   classical
@@ -158,6 +203,8 @@ private theorem tensor_swap_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D ×
   simp only [ite_true, mul_one]
   rfl
 
+/-- Left multiplication of a tensor product by the swap exchanges the row-register indices in
+its entry formula. -/
 private theorem swap_tensor_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D × Fin D) :
     (swapRegisterMatrix D * TensorGate σ ρ) x y = σ x.2 y.1 * ρ x.1 y.2 := by
   classical
@@ -168,6 +215,7 @@ private theorem swap_tensor_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D ×
   rw [Prod.swap_swap, if_pos rfl, one_mul]
   rfl
 
+/-- Conjugating a tensor product by the swap exchanges its two factors, entrywise. -/
 private theorem swap_tensor_swap_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin D × Fin D) :
     (swapRegisterMatrix D * TensorGate σ ρ * swapRegisterMatrix D) x y
       = σ x.2 y.2 * ρ x.1 y.1 := by
@@ -185,6 +233,8 @@ private theorem swap_tensor_swap_apply {D : ℕ} (σ ρ : Operator D) (x y : Fin
   simp only [swapRegisterMatrix_apply, ite_true, mul_one]
   rfl
 
+/-- The partial traces of the two swap cross terms are `σ * ρ` and `ρ * σ`; the swapped tensor
+product has partial trace `Matrix.trace σ • ρ`. -/
 theorem partial_swap_cross_partial_traces {D : ℕ} (σ ρ : Operator D) :
     PartialTrace (TensorGate σ ρ * swapRegisterMatrix D) = σ * ρ ∧
     PartialTrace (swapRegisterMatrix D * TensorGate σ ρ) = ρ * σ ∧
@@ -201,16 +251,21 @@ theorem partial_swap_cross_partial_traces {D : ℕ} (σ ρ : Operator D) :
     simp only [PartialTrace, swap_tensor_swap_apply, Matrix.smul_apply, smul_eq_mul,
       Matrix.trace, Matrix.diag_apply, Finset.sum_mul]
 
+/-- Partial trace preserves matrix subtraction. -/
 theorem partialTrace_sub {D E : ℕ}
     (ρ σ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTrace (ρ - σ) = PartialTrace ρ - PartialTrace σ := by
   ext i j
   simp only [PartialTrace, Matrix.sub_apply, Finset.sum_sub_distrib]
 
+/-- The system output after adjoining `ρ`, conjugating by a partial swap of angle `θ`, and
+tracing out the copy register. -/
 noncomputable def partialSwapOutput {D : ℕ} (ρ : Operator D) (θ : ℝ) (σ : Operator D) :
     Operator D :=
   PartialTrace (partialSwapMatrix D θ * TensorGate σ ρ * (partialSwapMatrix D θ)ᴴ)
 
+/-- Expanding the product of two identity-involution combinations around `X` gives the stated
+four matrix terms. -/
 private theorem sandwich_expand {I : Type*} [Fintype I] [DecidableEq I] (a b : ℂ)
     (S X : Matrix I I ℂ) :
     ((a • 1) - b • S) * X * ((a • 1) + b • S)
@@ -218,6 +273,9 @@ private theorem sandwich_expand {I : Type*} [Fintype I] [DecidableEq I] (a b : �
   simp only [sub_mul, mul_add, smul_mul_assoc, mul_smul_comm, one_mul, mul_one]
   module
 
+/-- The partial-swap output is the cosine-square input term plus the sine-square reset term
+minus the imaginary sine-cosine commutator term, with the respective trace factors. This is
+the density-matrix exponentiation identity of [LloydMohseniRebentrost2014]. -/
 theorem partial_swap_actual_output_formula {D : ℕ} (ρ σ : Operator D) (θ : ℝ) :
     partialSwapOutput ρ θ σ =
       ((Real.cos θ)^2 : ℂ) • (Matrix.trace ρ • σ) +
@@ -244,6 +302,7 @@ theorem partial_swap_actual_output_formula {D : ℕ} (ρ σ : Operator D) (θ : 
   rw [hcast, hcast', hb2]
   module
 
+/-- The matrix map adjoining `ρ` as the right copy register. -/
 noncomputable def tensorWithCopy {D : ℕ} (ρ : Operator D) :
     MatrixMap (Fin D) (Fin D × Fin D) ℂ where
   toFun M := TensorGate M ρ
@@ -256,13 +315,16 @@ noncomputable def tensorWithCopy {D : ℕ} (ρ : Operator D) :
     ext
     simp [TensorGate, mul_assoc]
 
+/-- The map `tensorWithCopy ρ` sends `M` to `TensorGate M ρ`. -/
 theorem tensorWithCopy_apply {D : ℕ} (ρ : Operator D) (M : Operator D) :
     tensorWithCopy ρ M = TensorGate M ρ := rfl
 
+/-- Adjoining a positive semidefinite copy operator is completely positive. -/
 theorem completelyPositive_tensorWithCopy {D : ℕ} {ρ : Operator D} (hρ : ρ.PosSemidef) :
     MatrixMap.IsCompletelyPositive (tensorWithCopy ρ) :=
   MatrixMap.kron_kronecker_const (A := Fin D) (d := Fin D) hρ
 
+/-- Adjoining a trace-one copy operator preserves trace. -/
 theorem tracePreserving_tensorWithCopy {D : ℕ} {ρ : Operator D}
     (hρ : Matrix.trace ρ = 1) : MatrixMap.IsTracePreserving (tensorWithCopy ρ) := by
   intro M
@@ -270,17 +332,21 @@ theorem tracePreserving_tensorWithCopy {D : ℕ} {ρ : Operator D}
   show Matrix.trace (M ⊗ₖ ρ) = Matrix.trace M
   rw [Matrix.trace_kronecker, hρ, mul_one]
 
+/-- Partial trace over the right copy register, packaged as a matrix map. -/
 noncomputable def traceRightLM (D : ℕ) : MatrixMap (Fin D × Fin D) (Fin D) ℂ :=
   (CPTPMap.traceRight (d₁ := Fin D) (d₂ := Fin D)).toLinearMap
 
+/-- The right partial-trace matrix map is completely positive. -/
 theorem completelyPositive_traceRightLM (D : ℕ) :
     MatrixMap.IsCompletelyPositive (traceRightLM D) :=
   (CPTPMap.traceRight (d₁ := Fin D) (d₂ := Fin D)).cp
 
+/-- The right partial-trace matrix map preserves trace. -/
 theorem tracePreserving_traceRightLM (D : ℕ) :
     MatrixMap.IsTracePreserving (traceRightLM D) :=
   (CPTPMap.traceRight (d₁ := Fin D) (d₂ := Fin D)).TP
 
+/-- Applying `traceRightLM` agrees with `Matrix.traceRight`. -/
 theorem traceRightLM_apply (D : ℕ) (M : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :
     traceRightLM D M = Matrix.traceRight M := by
   ext i j
@@ -289,28 +355,35 @@ theorem traceRightLM_apply (D : ℕ) (M : Matrix (Fin D × Fin D) (Fin D × Fin 
     Matrix.traceLeft]
   rfl
 
+/-- The finite-register operation `PartialTrace` equals `Matrix.traceRight`. -/
 theorem partialTrace_eq_traceRight {D E : ℕ}
     (A : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTrace A = Matrix.traceRight A := rfl
 
+/-- The matrix map conjugating by a partial-swap matrix. -/
 noncomputable def conjStep {D : ℕ} (θ : ℝ) :
     MatrixMap (Fin D × Fin D) (Fin D × Fin D) ℂ :=
   MatrixMap.conj (partialSwapMatrix D θ)
 
+/-- The map `conjStep θ` sends `M` to its conjugation by `partialSwapMatrix D θ`. -/
 theorem conjStep_apply {D : ℕ} (θ : ℝ) (M : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :
     conjStep θ M = partialSwapMatrix D θ * M * (partialSwapMatrix D θ)ᴴ := rfl
 
+/-- Conjugation by the partial-swap matrix is completely positive. -/
 theorem completelyPositive_conjStep (D : ℕ) (θ : ℝ) :
     MatrixMap.IsCompletelyPositive (conjStep (D := D) θ) :=
   MatrixMap.congruence_CP (A := Fin D × Fin D) (B := Fin D × Fin D)
     (partialSwapMatrix D θ)
 
+/-- The linear map composing copy extension, partial-swap conjugation, and right partial trace. -/
 noncomputable def partialSwapChannelMap {D : ℕ} (ρ : Operator D) (θ : ℝ) :
     Operator D →ₗ[ℂ] Operator D :=
   (traceRightLM D).comp ((conjStep θ).comp (tensorWithCopy ρ))
 
 set_option maxHeartbeats 400000 in
 
+/-- The matrix-map composition implementing a partial-swap step is completely positive for a
+positive semidefinite copy. -/
 theorem completelyPositive_partialSwapChannelMap_comp {D : ℕ} (ρ : Operator D)
     (hρ : ρ.PosSemidef) (θ : ℝ) :
     MatrixMap.IsCompletelyPositive
@@ -323,6 +396,8 @@ theorem completelyPositive_partialSwapChannelMap_comp {D : ℕ} (ρ : Operator D
 
 set_option maxHeartbeats 400000 in
 
+/-- The linear map implementing a partial-swap step is completely positive for a positive
+semidefinite copy. -/
 theorem completelyPositive_partialSwapChannelMap {D : ℕ} (ρ : Operator D)
     (hρ : ρ.PosSemidef) (θ : ℝ) :
     CompletelyPositive
@@ -330,6 +405,7 @@ theorem completelyPositive_partialSwapChannelMap {D : ℕ} (ρ : Operator D)
   (Qatlib.Concepts.ChannelTheory.Stinespring.completelyPositive_iff_physlib _).mpr
     (completelyPositive_partialSwapChannelMap_comp ρ hρ θ)
 
+/-- The partial-swap channel map preserves trace when the copy operator has trace one. -/
 theorem tracePreserving_partialSwapChannelMap {D : ℕ} (ρ : Operator D)
     (hρ : Matrix.trace ρ = 1) (θ : ℝ) :
     TracePreserving (partialSwapChannelMap ρ θ) := by
@@ -353,6 +429,7 @@ theorem tracePreserving_partialSwapChannelMap {D : ℕ} (ρ : Operator D)
     _ = Matrix.trace σ * Matrix.trace ρ := Matrix.trace_kronecker _ _
     _ = Matrix.trace σ := by rw [hρ, mul_one]
 
+/-- The partial-swap step packaged as a quantum channel for a density copy `ρ`. -/
 noncomputable def partialSwapChannel {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (θ : ℝ) : QuantumChannel D D where
   map := partialSwapChannelMap ρ θ
@@ -361,12 +438,15 @@ noncomputable def partialSwapChannel {D : ℕ} (ρ : Operator D) (hρ : IsDensit
     exact completelyPositive_partialSwapChannelMap ρ hρ.1 θ
   tracePreserving := tracePreserving_partialSwapChannelMap ρ hρ.2 θ
 
+/-- The underlying partial-swap quantum channel acts by `partialSwapOutput`. -/
 theorem partialSwapChannel_map {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (θ : ℝ) (σ : Operator D) :
     (partialSwapChannel ρ hρ θ).map σ = partialSwapOutput ρ θ σ := by
   rw [partialSwapChannel, partialSwapOutput, partialTrace_eq_traceRight]
   rfl
 
+/-- The partial-swap channel realizes `partialSwapOutput`, preserves its input trace, and sends
+density operators to density operators. -/
 theorem partial_swap_cptp_bridge {D : ℕ} (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (θ : ℝ) (σ : Operator D) :
     (partialSwapChannel ρ hρ θ).map σ = partialSwapOutput ρ θ σ ∧
@@ -379,18 +459,24 @@ theorem partial_swap_cptp_bridge {D : ℕ} (ρ : Operator D) (hρ : IsDensityOpe
     rw [← partialSwapChannel_map ρ hρ θ σ]
     exact (partialSwapChannel ρ hρ θ).preservesDensity hσ
 
+/-- The register equivalence regrouping system, copy, and reference registers so that the copy
+register comes last. -/
 def copyRelabel (D r : ℕ) : (Fin D × Fin D) × Fin r ≃ (Fin D × Fin r) × Fin D where
   toFun p := ((p.1.1, p.2), p.1.2)
   invFun q := ((q.1.1, q.2), q.1.2)
   left_inv p := by rcases p with ⟨⟨a, c⟩, b⟩; simp
   right_inv q := by rcases q with ⟨⟨a, b⟩, c⟩; simp
 
+/-- The copy relabeling sends `((system, copy), reference)` to `((system, reference), copy)`. -/
 theorem copyRelabel_apply (D r : ℕ) (p : (Fin D × Fin D) × Fin r) :
     copyRelabel D r p = ((p.1.1, p.2), p.1.2) := rfl
 
+/-- The inverse copy relabeling restores the grouping `((system, copy), reference)`. -/
 theorem copyRelabel_symm_apply (D r : ℕ) (q : (Fin D × Fin r) × Fin D) :
     (copyRelabel D r).symm q = ((q.1.1, q.2), q.1.2) := rfl
 
+/-- The partial-swap output on a system with an untouched reference register, computed by
+adjoining and tracing out a copy. -/
 noncomputable def partialSwapReferenceOutput {D : ℕ} (ρ : Operator D) (θ : ℝ) (r : ℕ)
     (σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
@@ -400,40 +486,49 @@ noncomputable def partialSwapReferenceOutput {D : ℕ} (ρ : Operator D) (θ : �
       (((TensorGate (partialSwapMatrix D θ) (1 : Operator r)).submatrix
         (copyRelabel D r).symm (copyRelabel D r).symm)).conjTranspose)
 
+/-- The extension of a matrix linear map that applies it to each pair of reference-register
+indices. -/
 private noncomputable def blockMap {I J R : Type*} [Fintype I] [Fintype J] [Fintype R]
     [DecidableEq I] [DecidableEq J]
     (T : Matrix I I ℂ →ₗ[ℂ] Matrix J J ℂ)
     (σ : Matrix (I × R) (I × R) ℂ) : Matrix (J × R) (J × R) ℂ :=
   fun x y => T (fun i j => σ (i, x.2) (j, y.2)) x.1 y.1
 
+/-- The reference extension `tensorLeft T` agrees with the blockwise map `blockMap T`. -/
 private theorem tensorLeft_eq_blockMap {D R : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft T σ = blockMap T σ := rfl
 
+/-- Blockwise reference extension preserves composition of matrix linear maps. -/
 private theorem blockMap_comp {I J K R : Type*} [Fintype I] [Fintype J] [Fintype K]
     [Fintype R] [DecidableEq I] [DecidableEq J] [DecidableEq K]
     (S : Matrix J J ℂ →ₗ[ℂ] Matrix K K ℂ) (T : Matrix I I ℂ →ₗ[ℂ] Matrix J J ℂ)
     (σ : Matrix (I × R) (I × R) ℂ) :
     blockMap (S.comp T) σ = blockMap S (blockMap T σ) := rfl
 
+/-- Reference extension preserves addition of matrix linear maps. -/
 theorem tensorLeft_map_add {D E R : ℕ} (S T : Operator D →ₗ[ℂ] Operator E)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (S + T) σ = tensorLeft S σ + tensorLeft T σ := by
   ext x y
   simp only [tensorLeft, LinearMap.add_apply, Matrix.add_apply]
 
+/-- Reference extension preserves subtraction of matrix linear maps. -/
 theorem tensorLeft_map_sub {D E R : ℕ} (S T : Operator D →ₗ[ℂ] Operator E)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (S - T) σ = tensorLeft S σ - tensorLeft T σ := by
   ext x y
   simp only [tensorLeft, LinearMap.sub_apply, Matrix.sub_apply]
 
+/-- Reference extension preserves complex scalar multiplication of matrix linear maps. -/
 theorem tensorLeft_map_smul {D E R : ℕ} (c : ℂ) (T : Operator D →ₗ[ℂ] Operator E)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (c • T) σ = c • tensorLeft T σ := by
   ext x y
   simp only [tensorLeft, LinearMap.smul_apply, Matrix.smul_apply, smul_eq_mul]
 
+/-- The blockwise copy-extension map is the Kronecker product with `ρ`, expressed using
+`copyRelabel`. -/
 private theorem blockMap_tensorWithCopy {D R : ℕ} (ρ : Operator D)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     blockMap (tensorWithCopy ρ) σ
@@ -442,6 +537,8 @@ private theorem blockMap_tensorWithCopy {D R : ℕ} (ρ : Operator D)
   simp only [blockMap, tensorWithCopy_apply, tensorGate_apply, Matrix.submatrix_apply,
     copyRelabel_apply, Matrix.kronecker_apply]
 
+/-- The blockwise extension of partial-swap conjugation is conjugation by the partial swap
+tensored with the reference identity. -/
 private theorem blockMap_conjStep {D R : ℕ} (θ : ℝ)
     (M : Matrix ((Fin D × Fin D) × Fin R) ((Fin D × Fin D) × Fin R) ℂ) :
     blockMap (conjStep θ) M
@@ -455,6 +552,8 @@ private theorem blockMap_conjStep {D R : ℕ} (θ : ℝ)
     mul_zero, mul_one, zero_mul, Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ,
     if_true]
 
+/-- The blockwise extension of the copy partial trace is the right partial trace after
+regrouping the registers. -/
 private theorem blockMap_traceRightLM {D R : ℕ}
     (M : Matrix ((Fin D × Fin D) × Fin R) ((Fin D × Fin D) × Fin R) ℂ) :
     blockMap (traceRightLM D) M
@@ -464,6 +563,8 @@ private theorem blockMap_traceRightLM {D R : ℕ}
     copyRelabel_symm_apply]
   rfl
 
+/-- For a density copy, the explicit reference-register partial-swap output agrees with
+`tensorLeft` of the partial-swap channel map. -/
 theorem partial_swap_actual_reference_bridge {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (θ : ℝ) (r : ℕ)
     (σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -488,6 +589,7 @@ theorem partial_swap_actual_reference_bridge {D : ℕ} (ρ : Operator D)
   rw [h1, h1, hss]
   rfl
 
+/-- The linear map sending an operator `τ` to `Matrix.trace τ • ρ`. -/
 noncomputable def traceSmulLeft {D : ℕ} (ρ : Operator D) :
     Operator D →ₗ[ℂ] Operator D where
   toFun τ := Matrix.trace τ • ρ
@@ -500,9 +602,12 @@ noncomputable def traceSmulLeft {D : ℕ} (ρ : Operator D) :
     ext i j
     simp [Matrix.trace_smul, Matrix.trace_smul, mul_assoc]
 
+/-- The map `traceSmulLeft ρ` acts by multiplying `ρ` by the input trace. -/
 theorem traceSmulLeft_apply {D : ℕ} (ρ τ : Operator D) :
     traceSmulLeft ρ τ = Matrix.trace τ • ρ := rfl
 
+/-- Extending the trace-and-prepare map by a reference register replaces the system by `ρ` and
+retains the left partial trace. -/
 theorem tensorLeft_traceSmulLeft {D R : ℕ} (ρ : Operator D)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (traceSmulLeft ρ) σ = TensorGate ρ (Matrix.traceLeft σ) := by
@@ -511,6 +616,8 @@ theorem tensorLeft_traceSmulLeft {D R : ℕ} (ρ : Operator D)
       = ρ i j * (∑ k : Fin D, σ (k, b) (k, b'))
   rw [mul_comm]
 
+/-- The reference extension of left multiplication by `ρ` is left multiplication by `TensorGate
+ρ 1`. -/
 theorem tensorLeft_mulLeft {D R : ℕ} (ρ : Operator D)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (LinearMap.mulLeft ℂ ρ) σ = TensorGate ρ (1 : Operator R) * σ := by
@@ -520,6 +627,8 @@ theorem tensorLeft_mulLeft {D R : ℕ} (ρ : Operator D)
     Matrix.one_apply, Fintype.sum_prod_type, mul_ite, ite_mul, mul_zero, zero_mul, mul_one,
     Finset.sum_ite_eq, Finset.mem_univ, if_true]
 
+/-- The reference extension of right multiplication by `ρ` is right multiplication by
+`TensorGate ρ 1`. -/
 theorem tensorLeft_mulRight {D R : ℕ} (ρ : Operator D)
     (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (LinearMap.mulRight ℂ ρ) σ = σ * TensorGate ρ (1 : Operator R) := by
@@ -529,6 +638,7 @@ theorem tensorLeft_mulRight {D R : ℕ} (ρ : Operator D)
     Matrix.one_apply, Fintype.sum_prod_type, mul_ite, mul_zero, mul_one,
     Finset.sum_ite_eq', Finset.mem_univ, if_true]
 
+/-- The reference extension of a trace-preserving map preserves trace. -/
 theorem tensorLeft_trace {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (hT : TracePreserving T) (σ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     Matrix.trace (tensorLeft T σ) = Matrix.trace σ := by
@@ -544,6 +654,9 @@ theorem tensorLeft_trace {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     _ = ∑ b : Fin R, ∑ i : Fin D, σ (i, b) (i, b) := rfl
     _ = ∑ i : Fin D, ∑ b : Fin R, σ (i, b) (i, b) := Finset.sum_comm
 
+/-- With a reference register, partial-swap output is the cosine-square input plus the
+sine-square reset term minus the sine-cosine commutator term. It preserves positivity and
+trace for a density copy. -/
 theorem partial_swap_reference_output_formula {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (θ : ℝ) (r : ℕ)
     (σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -576,14 +689,17 @@ theorem partial_swap_reference_output_formula {D : ℕ} (ρ : Operator D)
   · rw [partial_swap_actual_reference_bridge ρ hρ θ r σ]
     exact tensorLeft_trace _ (partialSwapChannel ρ hρ θ).tracePreserving σ
 
+/-- The left endpoint belongs to the real segment joining two real numbers. -/
 private theorem self_mem_segment_left (a b : ℝ) : a ∈ segment ℝ a b := by
   rw [← affineSegment_eq_segment]
   exact left_mem_affineSegment (R := ℝ) _ _
 
+/-- The right endpoint belongs to the real segment joining two real numbers. -/
 private theorem self_mem_segment_right (a b : ℝ) : b ∈ segment ℝ a b := by
   rw [← affineSegment_eq_segment]
   exact right_mem_affineSegment (R := ℝ) _ _
 
+/-- The trigonometric remainder `|θ - sin θ * cos θ|` is at most `2 * θ ^ 2`. -/
 private theorem abs_sub_sin_mul_cos_le (θ : ℝ) :
     |θ - Real.sin θ * Real.cos θ| ≤ 2 * θ ^ 2 := by
   rcases le_or_gt 1 |θ| with hbig | hsmall
@@ -634,6 +750,8 @@ private theorem abs_sub_sin_mul_cos_le (θ : ℝ) :
       simpa [Real.norm_eq_abs] using hMVT
     nlinarith [hsmall, hle, sq_nonneg θ]
 
+/-- The operator-norm error of the first-order commutator approximation is bounded by the stated
+squared-sine reset term and trigonometric commutator correction. -/
 theorem partial_swap_derived_first_order_error {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (σ : Operator D) (θ : ℝ) :
     ‖partialSwapOutput ρ θ σ - (σ - (Complex.I * (θ : ℂ)) • (ρ*σ-σ*ρ))‖ ≤
@@ -686,6 +804,8 @@ theorem partial_swap_derived_first_order_error {D : ℕ} (ρ : Operator D)
     _ = (Real.sin θ)^2 * (‖Matrix.trace σ‖ * ‖ρ‖ + ‖σ‖)
           + 2 * |θ - Real.sin θ * Real.cos θ| * ‖ρ‖ * ‖σ‖ := by ring
 
+/-- The sine-cosine remainder is bounded quadratically, yielding the stated `θ ^ 2`
+operator-norm bound for the first-order partial-swap approximation with a density copy. -/
 theorem partial_swap_trig_and_quadratic_error :
     (∀ θ : ℝ, |θ - Real.sin θ * Real.cos θ| ≤ 2 * θ^2) ∧
       (∀ {D : ℕ} (ρ : Operator D) (_hρ : IsDensityOperator ρ) (σ : Operator D) (θ : ℝ),

@@ -12,6 +12,32 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.MixedFeedbackConsumer
 import Mathlib.Tactic.FinCases
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderFairFeedback
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainderHybrid
+
+/-!
+# Execution laws for fair feedback and hybrid programs
+
+This module relates finite fair coin paths to probability laws and constructs instruments for
+`FairFeedback` and `HybridProgram`. It proves completeness, branch formulas, and agreement
+between recursive evaluation and leaf enumeration, using the quantum operation framework
+described in [Watrous2018].
+
+The execution records retain coin words, measurement outcomes, and resource counts. Sequential
+composition and bounded cuts preserve legality, and a concrete measured feedback example
+computes branch probabilities, coherence, and expected costs.
+
+## Main statements
+
+* `CoinCode.pathLaw_map`: path indices recover the costed coin law.
+* `FairFeedback.kraus_complete`: feedback Kraus operators sum to the identity in the
+  completeness relation.
+* `HybridProgram.eval_leaves`: recursive evaluation equals the weighted leaf sum.
+* `HybridProgram.cutQueries_bound`: a query cut bounds every leaf's query count.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -41,6 +67,7 @@ open scoped ENNReal
 namespace CoinCode
 variable {α : Type}
 
+/-- The weights of all terminating coin paths sum to one. -/
 theorem paths_normalized (p : CoinCode α) : (p.paths.map (fun z => wordWeight z.2)).sum = 1 := by
   induction p with
   | ret a => simp [paths, wordWeight]
@@ -49,6 +76,8 @@ theorem paths_normalized (p : CoinCode α) : (p.paths.map (fun z => wordWeight z
         List.sum_append, List.sum_map_mul_left, hp, hq]
       norm_num
 
+/-- Running on a listed path word returns its associated value and consumes exactly the word's
+length. -/
 theorem paths_run (p : CoinCode α) (z : α × List Bool) (hz : z ∈ p.paths) :
     p.run z.2 = (.ret z.1, z.2.length) := by
   induction p generalizing z with
@@ -62,6 +91,8 @@ theorem paths_run (p : CoinCode α) (z : α × List Bool) (hz : z ∈ p.paths) :
       · simp [run, hp y hy, Nat.add_comm]
       · simp [run, hq y hy, Nat.add_comm]
 
+/-- The expectation under the costed coin law equals the sum over paths weighted by their fair
+coin probabilities. -/
 theorem paths_expectation (p : CoinCode α) (F : α × ℕ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p.law F =
       (p.paths.map (fun z => (1 / 2 : ℝ≥0∞) ^ z.2.length * F (z.1, z.2.length))).sum := by
@@ -80,6 +111,7 @@ theorem paths_expectation (p : CoinCode α) (F : α × ℕ → ℝ≥0∞) :
         pow_succ', List.sum_append, mul_assoc, List.sum_map_mul_left, one_div, Nat.add_comm 1, Nat.cast_ofNat]
       exact add_comm _ _
 
+/-- The finite sum of coin word weights over path indices is one. -/
 theorem paths_weight_sum (p : CoinCode α) :
     (∑ c : Fin p.paths.length, wordWeight (p.paths.get c).2) = 1 := by
   have he := congrArg (fun L : List (α × List Bool) =>
@@ -90,11 +122,13 @@ theorem paths_weight_sum (p : CoinCode α) :
   rw [he]
   exact paths_normalized p
 
+/-- Every finite coin word has nonnegative weight. -/
 theorem wordWeight_nonneg (w : List Bool) : 0 ≤ wordWeight w := by
   unfold wordWeight
   positivity
 variable {β : Type}
 
+/-- The terminating coin words in `p.paths` have no duplicates. -/
 theorem paths_words_nodup (p : CoinCode α) : (p.paths.map Prod.snd).Nodup := by
   induction p with
   | ret a => simp [paths]
@@ -109,6 +143,7 @@ theorem paths_words_nodup (p : CoinCode α) : (p.paths.map Prod.snd).Nodup := by
     obtain ⟨v,_,rfl⟩ := List.mem_map.mp hb
     simp at he
 
+/-- Distinct path indices determine distinct coin words. -/
 theorem paths_word_get_injective (p : CoinCode α) :
     Function.Injective (fun i : Fin p.paths.length => (p.paths.get i).2) := by
   intro i j h
@@ -119,6 +154,8 @@ theorem paths_word_get_injective (p : CoinCode α) :
   have hv := (paths_words_nodup p).get_inj_iff.mp he
   exact Fin.ext (congrArg (fun k : Fin (p.paths.map Prod.snd).length => k.val) hv)
 
+/-- The paths of a sequential coin program concatenate each prefix word with a path word of its
+continuation. -/
 theorem paths_bind (p : CoinCode α) (f : α → CoinCode β) :
     (p.bind f).paths = p.paths.flatMap (fun x => (f x.1).paths.map (fun y => (y.1,x.2++y.2))) := by
   induction p with
@@ -127,6 +164,8 @@ theorem paths_bind (p : CoinCode α) (f : α → CoinCode β) :
     simp [bind,paths,hp,hq,List.flatMap_append,List.map_flatMap,List.flatMap_map,
       List.map_map,Function.comp_def]
 
+/-- A path belongs to a bound coin program exactly when it splits into a prefix path and a
+matching continuation path. -/
 theorem mem_paths_bind (p : CoinCode α) (f : α → CoinCode β) (y : β) (w : List Bool) :
     (y,w) ∈ (p.bind f).paths ↔ ∃ a u v, (a,u) ∈ p.paths ∧ (y,v) ∈ (f a).paths ∧ w = u++v := by
   rw [paths_bind]
@@ -142,18 +181,23 @@ theorem mem_paths_bind (p : CoinCode α) (f : α → CoinCode β) (y : β) (w : 
     apply List.mem_flatMap.mpr
     exact ⟨(a,u),hu,List.mem_map.mpr ⟨(y,v),hv,rfl⟩⟩
 
+/-- Mapping return values through a pure continuation preserves every path word. -/
 theorem paths_bind_ret (p : CoinCode α) (f : α → β) :
     (p.bind (fun a => .ret (f a))).paths = p.paths.map (fun z => (f z.1,z.2)) := by
   induction p with
   | ret a => rfl
   | bit p q hp hq => simp [bind,paths,hp,hq,List.map_map,Function.comp_def]
 
+/-- Converting an extended Boolean register to a list appends its final bit to the original
+register list. -/
 theorem ofFn_regSucc_symm (b : ℕ) (ω : Reg b) (x : Bool) :
     List.ofFn ((regSuccEquiv b).symm (ω,x)) = List.ofFn ω ++ [x] := by
   change List.ofFn (Fin.append ω (fun _ : Fin 1 => x)) = _
   rw [List.ofFn_fin_append]
   simp
 
+/-- The word of any path through a fixed coin block is the list of bits in its returned
+register. -/
 theorem block_path_word (b : ℕ) (ω : Reg b) (w : List Bool) (h : (ω,w) ∈ (block b).paths) :
     w = List.ofFn ω := by
   induction b generalizing w with
@@ -169,6 +213,7 @@ theorem block_path_word (b : ℕ) (ω : Reg b) (w : List Bool) (h : (ω,w) ∈ (
       Prod.mk.injEq] at hv
     rcases hv with ⟨rfl,rfl⟩ | ⟨rfl,rfl⟩ <;> simpa only [huw,ofFn_regSucc_symm] using hw
 
+/-- The extended nonnegative probabilities of all terminating paths sum to one. -/
 theorem paths_probability_sum (p : CoinCode α) :
     (∑ i : Fin p.paths.length, (1/2 : ℝ≥0∞) ^ (p.paths.get i).2.length) = 1 := by
   have hl : (p.paths.map (fun z => (1/2 : ℝ≥0∞)^z.2.length)).sum = 1 := by
@@ -179,12 +224,16 @@ theorem paths_probability_sum (p : CoinCode α) :
   rw [List.map_ofFn,List.sum_ofFn] at he
   exact he.trans hl
 
+/-- The probability mass function on path indices assigning each path the weight of its coin
+word. -/
 noncomputable def pathLaw (p : CoinCode α) : PMF (Fin p.paths.length) :=
   PMF.ofFintype (fun i => (1/2 : ℝ≥0∞)^(p.paths.get i).2.length) (paths_probability_sum p)
 
+/-- A path index has probability one half raised to the length of its word. -/
 theorem pathLaw_apply (p : CoinCode α) (i : Fin p.paths.length) :
     p.pathLaw i = (1/2 : ℝ≥0∞)^(p.paths.get i).2.length := rfl
 
+/-- Mapping each path index to its returned value and word length recovers the costed coin law. -/
 theorem pathLaw_map (p : CoinCode α) :
     p.pathLaw.map (fun i => ((p.paths.get i).1,(p.paths.get i).2.length)) = p.law := by
   classical
@@ -204,6 +253,8 @@ end CoinCode
 namespace FairFeedback
 variable {D : ℕ} {A : Type}
 
+/-- A feedback Kraus effect is the coin weight times the suffix effect conjugated by the prefix
+operator. -/
 theorem kraus_adjoint_mul (M : FairFeedback D A) (O : Operator D) (z : M.Outcome) :
     (M.kraus O z).conjTranspose * M.kraus O z =
       ((CoinCode.wordWeight (M.codeWord z) : ℝ) : ℂ) •
@@ -219,6 +270,8 @@ theorem kraus_adjoint_mul (M : FairFeedback D A) (O : Operator D) (z : M.Outcome
   rw [hs]
   simp only [Matrix.mul_assoc]
 
+/-- For legal feedback and a unitary oracle, summing suffix Kraus effects leaves the coin
+weighted prefix effect. -/
 theorem kraus_sum_suffix (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal)
     (i : Fin (observedLeafCount M.first)) (c : Fin (M.choose i).paths.length) :
@@ -231,6 +284,7 @@ theorem kraus_sum_suffix (M : FairFeedback D A) (O : Operator D)
     observedLeaf_complete O hO _ (hM.2 i (M.path i c).1)]
   simp
 
+/-- For legal feedback and a unitary oracle, the Kraus effects sum to the identity. -/
 theorem kraus_complete (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) :
     ∑ z : M.Outcome, (M.kraus O z).conjTranspose * M.kraus O z = 1 := by
@@ -248,6 +302,7 @@ theorem kraus_complete (M : FairFeedback D A) (O : Operator D)
   rw [Finset.sum_congr rfl (fun i _ => hi i)]
   exact observedLeaf_complete O hO M.first hM.1
 
+/-- The instrument formed from the Kraus operators of legal fair feedback with a unitary oracle. -/
 noncomputable def instrument (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) : Instrument M.Outcome D D :=
   Instrument.ofKraus (M.kraus O) (M.kraus_complete O hO hM)
@@ -256,6 +311,8 @@ end FairFeedback
 namespace CoinCode
 variable {α : Type}
 
+/-- The native coin tape execution on a path word returns the Boolean readout and uses exactly
+that many bits. -/
 theorem paths_native (p : CoinCode α) (z : α × List Bool) (hz : z ∈ p.paths)
     (f : α → Bool) (T : Turing.Tape (Option Bool)) :
     coinTapeRunAux p.nativeTable (p.nativeAccept f) z.2 ⟨p.root, T⟩ =
@@ -263,11 +320,13 @@ theorem paths_native (p : CoinCode α) (z : α × List Bool) (hz : z ∈ p.paths
   rw [native_run_root, paths_run p z hz]
   rfl
 
+/-- Native execution along a terminating coin word makes exactly one transition per bit. -/
 theorem paths_native_transitions (p : CoinCode α) (z : α × List Bool) (hz : z ∈ p.paths)
     (T : Turing.Tape (Option Bool)) :
     coinTapeTransitionCountAux p.nativeTable z.2 ⟨p.root, T⟩ = z.2.length := by
   rw [native_transition_count, atPosition_root, paths_run p z hz]
 
+/-- If one terminating path word is a prefix of another, the two paths are equal. -/
 theorem paths_prefix_free (p : CoinCode α) (x y : α × List Bool)
     (hx : x ∈ p.paths) (hy : y ∈ p.paths) (hpre : x.2.IsPrefix y.2) : x = y := by
   obtain ⟨w, hw⟩ := hpre
@@ -290,6 +349,8 @@ end CoinCode
 namespace FairFeedback
 variable {D : ℕ} {A : Type}
 
+/-- A feedback instrument branch is successive prefix and suffix conjugation scaled by the coin
+word weight. -/
 theorem branch_law (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal)
     (z : M.Outcome) (ρ : Operator D) :
@@ -307,6 +368,8 @@ theorem branch_law (M : FairFeedback D A) (O : Operator D)
   rw [hs]
   simp only [Matrix.mul_assoc]
 
+/-- A feedback outcome's probability is the coin weight times the suffix probability on the
+prefix branch state. -/
 theorem probability_law (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal)
     (z : M.Outcome) (ρ : Operator D) :
@@ -324,6 +387,8 @@ end FairFeedback
 namespace FairFeedback
 variable {D : ℕ} {A : Type}
 
+/-- Summing suffix outcome probabilities gives the prefix outcome probability multiplied by the
+selected coin path weight. -/
 theorem sum_suffix_probability (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (i : Fin (observedLeafCount M.first)) (c : Fin (M.choose i).paths.length) :
@@ -344,6 +409,8 @@ theorem sum_suffix_probability (M : FairFeedback D A) (O : Operator D)
       exact Finset.sum_congr rfl (fun j _ => probability_law M O hO hM ⟨i,c,j⟩ ρ)
     _ = _ := by rw [hsum, hp]
 
+/-- Marginalizing over coin paths and suffix outcomes recovers the observed prefix outcome
+probability. -/
 theorem prefix_probability (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (i : Fin (observedLeafCount M.first)) :
@@ -361,6 +428,8 @@ theorem prefix_probability (M : FairFeedback D A) (O : Operator D)
       change (∑ c : Fin (M.choose i).paths.length, CoinCode.wordWeight (M.path i c).2) = 1 at h
       rw [← Finset.sum_mul, h, one_mul]
 
+/-- The probability weighted coin length equals the prefix weighted mean coin length of each
+chosen coin program. -/
 theorem expected_coin_reads (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D) :
     (∑ z : M.Outcome, instrumentProb (M.instrument O hO hM) ρ z *
@@ -396,9 +465,12 @@ theorem expected_coin_reads (M : FairFeedback D A) (O : Operator D)
 
 end FairFeedback
 
+/-- The bit flip operator used in the measured feedback example is unitary. -/
 theorem measuredFeedbackFlip_unitary : measuredFeedbackFlip ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   Qatlib.Concepts.GateVocabulary.GateVocab.toFinGate_unitary pauliX_unitary
 
+/-- The measured feedback example satisfies the legality conditions for its prefix and
+continuations. -/
 theorem measuredFeedback_legal : measuredFeedback.Legal := by
   constructor
   · intro o
@@ -412,40 +484,49 @@ theorem measuredFeedback_legal : measuredFeedback.Legal := by
     · trivial
     · trivial
 
+/-- The example input is a density operator and is not pure. -/
 theorem measuredFeedbackInput_density : IsDensityOperator measuredFeedbackInput ∧
     ¬ IsPureDensityOperator measuredFeedbackInput := by
   simpa only [measuredFeedbackInput, mixedFeedbackInput] using
     (show IsDensityOperator mixedFeedbackInput ∧ ¬ IsPureDensityOperator mixedFeedbackInput from
       ⟨mixed_feedback_consumer_data.1, mixed_feedback_consumer_data.2.1⟩)
 
+/-- The example uses no coin bits after outcome zero and one fair bit after outcome one. -/
 theorem measuredFeedback_coin_paths :
     (measuredFeedbackCoins 0).paths = [((some 0, 1), [])] ∧
     (measuredFeedbackCoins 1).paths = [((some 0, 1), [false]), ((some 1, 2), [true])] := by
   decide
 
+/-- The measured feedback example has exactly three outcomes. -/
 theorem measuredFeedback_outcomes : Fintype.card measuredFeedback.Outcome = 3 := by
   decide +kernel
 
+/-- The zero outcome records acceptance, no coin reads or queries, one gate, and one
+measurement. -/
 theorem measuredFeedback_record_zero (O : Operator 2) :
     measuredFeedback.record O measuredFeedbackZero =
       ⟨(some 0, 1), false, true, [], 0, 1, 1, [(2, 0)], []⟩ := by
   rfl
 
+/-- The Hadamard outcome records acceptance, one false coin bit, one gate, and one measurement. -/
 theorem measuredFeedback_record_hadamard (O : Operator 2) :
     measuredFeedback.record O measuredFeedbackHadamard =
       ⟨(some 0, 1), true, true, [false], 0, 1, 1, [(2, 1)], []⟩ := by
   rfl
 
+/-- The query outcome records rejection, one true coin bit, one query, and one measurement. -/
 theorem measuredFeedback_record_query (O : Operator 2) :
     measuredFeedback.record O measuredFeedbackQuery =
       ⟨(some 1, 2), true, false, [true], 1, 0, 1, [(2, 1)], []⟩ := by
   rfl
 
+/-- Each prefix branch operator is the projector onto its measured computational basis value. -/
 theorem measuredFeedback_first_operator (O : Operator 2) (i : Fin 2) :
     (observedLeaf O measuredFeedbackFirst i).operator =
       Projector (Finset.univ.filter fun j : Fin 2 => j = i) := by
   fin_cases i <;> change (1 : Operator 2) * Projector _ = Projector _ <;> rw [Matrix.one_mul]
 
+/-- Each prefix measurement outcome has probability one half on the example input. -/
 theorem measuredFeedback_first_probability (O : Operator 2)
     (hO : O ∈ Matrix.unitaryGroup (Fin 2) ℂ) (i : Fin 2) :
     instrumentProb (observedInstrument O hO measuredFeedbackFirst measuredFeedback_legal.1)
@@ -456,9 +537,11 @@ theorem measuredFeedback_first_probability (O : Operator 2)
     projector_conjTranspose, projector_mul_self, Matrix.trace_smul]
   fin_cases i <;> norm_num [Projector, Matrix.trace, Fin.sum_univ_two]
 
+/-- The instrument of the measured feedback example with the bit flip operator as its oracle. -/
 noncomputable def measuredFeedbackInstrument :=
   measuredFeedback.instrument measuredFeedbackFlip measuredFeedbackFlip_unitary measuredFeedback_legal
 
+/-- The zero outcome of the example has probability one half. -/
 theorem measuredFeedback_probability_zero :
     instrumentProb measuredFeedbackInstrument measuredFeedbackInput measuredFeedbackZero = 1 / 2 := by
   have h := FairFeedback.sum_suffix_probability measuredFeedback measuredFeedbackFlip
@@ -473,6 +556,7 @@ theorem measuredFeedback_probability_zero :
   norm_num [CoinCode.wordWeight] at h
   exact h
 
+/-- The Hadamard outcome of the example has probability one quarter. -/
 theorem measuredFeedback_probability_hadamard :
     instrumentProb measuredFeedbackInstrument measuredFeedbackInput measuredFeedbackHadamard = 1 / 4 := by
   have h := FairFeedback.sum_suffix_probability measuredFeedback measuredFeedbackFlip
@@ -487,6 +571,7 @@ theorem measuredFeedback_probability_hadamard :
   norm_num [CoinCode.wordWeight] at h
   exact h
 
+/-- The query outcome of the example has probability one quarter. -/
 theorem measuredFeedback_probability_query :
     instrumentProb measuredFeedbackInstrument measuredFeedbackInput measuredFeedbackQuery = 1 / 4 := by
   have h := FairFeedback.sum_suffix_probability measuredFeedback measuredFeedbackFlip
@@ -501,6 +586,7 @@ theorem measuredFeedback_probability_query :
   norm_num [CoinCode.wordWeight] at h
   exact h
 
+/-- Every outcome of the example is the zero, Hadamard, or query outcome. -/
 theorem measuredFeedback_exhaustive (z : measuredFeedback.Outcome) :
     z = measuredFeedbackZero ∨ z = measuredFeedbackHadamard ∨ z = measuredFeedbackQuery := by
   rcases z with ⟨i,c,j⟩
@@ -520,6 +606,7 @@ theorem measuredFeedback_exhaustive (z : measuredFeedback.Outcome) :
       fin_cases j
       exact Or.inr (Or.inr rfl)
 
+/-- A sum over example outcomes is the sum of its zero, Hadamard, and query terms. -/
 theorem measuredFeedback_sum {B : Type} [AddCommMonoid B] (f : measuredFeedback.Outcome → B) :
     (∑ z, f z) = f measuredFeedbackZero + f measuredFeedbackHadamard + f measuredFeedbackQuery := by
   have hu : (Finset.univ : Finset measuredFeedback.Outcome) =
@@ -534,6 +621,9 @@ theorem measuredFeedback_sum {B : Type} [AddCommMonoid B] (f : measuredFeedback.
     Finset.sum_singleton]
   exact (add_assoc _ _ _).symm
 
+/-- The example has mean coin, query, gate, and measurement counts of `1 / 2`, `1 / 4`, `3 / 4`,
+and `1`. Its acceptance probability is `3 / 4` and the mean recorded second value is `5 /
+4`. -/
 theorem measuredFeedback_statistics :
     (∑ z, instrumentProb measuredFeedbackInstrument measuredFeedbackInput z *
       ((measuredFeedback.record measuredFeedbackFlip z).coinWord.length : ℝ)) = 1 / 2 ∧
@@ -552,25 +642,30 @@ theorem measuredFeedback_statistics :
       measuredFeedback_probability_query, measuredFeedback_record_zero,
       measuredFeedback_record_hadamard, measuredFeedback_record_query] <;> norm_num
 
+/-- The bit flip matrix has zero diagonal entries and unit off diagonal entries. -/
 theorem measuredFeedbackFlip_apply (i j : Fin 2) :
     measuredFeedbackFlip i j = if i = j then (0 : ℂ) else 1 := by
   fin_cases i <;> fin_cases j <;> rfl
 
+/-- The suffix operator of the zero outcome is the bit flip matrix. -/
 theorem measuredFeedback_suffix_zero (O : Operator 2) :
     (measuredFeedback.suffixLeaf O measuredFeedbackZero).operator = measuredFeedbackFlip := by
   change (1 : Operator 2) * measuredFeedbackFlip = _
   rw [Matrix.one_mul]
 
+/-- The suffix operator of the Hadamard outcome is `hadamardFin`. -/
 theorem measuredFeedback_suffix_hadamard (O : Operator 2) :
     (measuredFeedback.suffixLeaf O measuredFeedbackHadamard).operator = Qatlib.Concepts.GateVocabulary.GateVocab.hadamardFin := by
   change (1 : Operator 2) * Qatlib.Concepts.GateVocabulary.GateVocab.hadamardFin = _
   rw [Matrix.one_mul]
 
+/-- The suffix operator of the query outcome is the supplied oracle. -/
 theorem measuredFeedback_suffix_query (O : Operator 2) :
     (measuredFeedback.suffixLeaf O measuredFeedbackQuery).operator = O := by
   change (1 : Operator 2) * O = _
   rw [Matrix.one_mul]
 
+/-- The zero branch on the example input is one half times the projector onto basis state one. -/
 theorem measuredFeedback_state_zero :
     measuredFeedbackInstrument.branch measuredFeedbackZero measuredFeedbackInput =
       ((1 / 2 : ℝ) : ℂ) • Projector (Finset.univ.filter fun i : Fin 2 => i = 1) := by
@@ -586,6 +681,8 @@ theorem measuredFeedback_state_zero :
     Fin.sum_univ_two, Matrix.conjTranspose_apply, measuredFeedbackFlip_apply,
     measuredFeedbackInput, Projector, Matrix.smul_apply, Matrix.one_apply]
 
+/-- The query branch on the example input is one quarter times the projector onto basis state
+zero. -/
 theorem measuredFeedback_state_query :
     measuredFeedbackInstrument.branch measuredFeedbackQuery measuredFeedbackInput =
       ((1 / 4 : ℝ) : ℂ) • Projector (Finset.univ.filter fun i : Fin 2 => i = 0) := by
@@ -604,11 +701,14 @@ theorem measuredFeedback_state_query :
     Fin.sum_univ_two, Matrix.conjTranspose_apply, measuredFeedbackFlip_apply,
     measuredFeedbackInput, Projector, Matrix.smul_apply, Matrix.one_apply]
 
+/-- The entries of `hadamardFin` are the inverse square root of two, with a minus sign only at
+entry `(1, 1)`. -/
 theorem measuredFeedbackHadamard_apply (i j : Fin 2) :
     Qatlib.Concepts.GateVocabulary.GateVocab.hadamardFin i j =
       (Real.sqrt 2 : ℂ)⁻¹ * (if i = 1 ∧ j = 1 then -1 else 1) := by
   fin_cases i <;> fin_cases j <;> rfl
 
+/-- The `(0, 1)` entry of the Hadamard branch output is `-1 / 8`. -/
 theorem measuredFeedback_hadamard_coherence :
     (measuredFeedbackInstrument.branch measuredFeedbackHadamard measuredFeedbackInput) 0 1 = -1 / 8 := by
   have hp : (measuredFeedback.prefixLeaf measuredFeedbackFlip measuredFeedbackHadamard.1).operator =
@@ -627,6 +727,7 @@ theorem measuredFeedback_hadamard_coherence :
   rw [inv_pow, sqrt2_sq]
   norm_num
 
+/-- After summing all example branch outputs, the `(0, 1)` entry remains `-1 / 8`. -/
 theorem measuredFeedback_forgotten_coherence :
     (∑ z, measuredFeedbackInstrument.branch z measuredFeedbackInput) 0 1 = -1 / 8 := by
   rw [measuredFeedback_sum]
@@ -634,6 +735,7 @@ theorem measuredFeedback_forgotten_coherence :
     measuredFeedback_hadamard_coherence, Matrix.smul_apply]
   norm_num [Projector]
 
+/-- The Hadamard and query branches both vanish on the projector onto basis state zero. -/
 theorem measuredFeedback_zero_Born_branches :
     measuredFeedbackInstrument.branch measuredFeedbackHadamard
         (Projector (Finset.univ.filter fun i : Fin 2 => i = 0)) = 0 ∧
@@ -660,6 +762,8 @@ theorem measuredFeedback_zero_Born_branches :
 namespace CoinCode
 variable {A : Type}
 
+/-- For a nonnegative real statistic, applying `ENNReal.ofReal` to the weighted path sum gives
+its costed law expectation. -/
 theorem paths_real_expectation (p : CoinCode A) (F : A × ℕ → ℝ) (hF : ∀ x, 0 ≤ F x) :
     ENNReal.ofReal (∑ c : Fin p.paths.length,
       wordWeight (p.paths.get c).2 * F ((p.paths.get c).1, (p.paths.get c).2.length)) =
@@ -683,6 +787,8 @@ namespace FairFeedback
 open Classical
 variable {D : ℕ} {A : Type}
 
+/-- A classical statistic of the prefix outcome, coin value, and read count has the
+corresponding prefix weighted path sum. -/
 theorem classical_expectation (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (F : (i : Fin (observedLeafCount M.first)) → A × ℕ → ℝ) :
@@ -710,6 +816,8 @@ theorem classical_expectation (M : FairFeedback D A) (O : Operator D)
       intro c _
       ring
 
+/-- A nonnegative classical statistic has expectation equal to the prefix weighted real values
+of the chosen costed law expectations. -/
 theorem classical_expectation_toReal (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (F : (i : Fin (observedLeafCount M.first)) → A × ℕ → ℝ) (hF : ∀ i x, 0 ≤ F i x) :
@@ -727,6 +835,8 @@ theorem classical_expectation_toReal (M : FairFeedback D A) (O : Operator D)
     mul_nonneg (CoinCode.wordWeight_nonneg _) (hF i _)))] at he
   exact he
 
+/-- A classical event's weighted indicator sum equals the prefix weighted real event
+probabilities of the chosen coin laws. -/
 theorem classical_event (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (E : (i : Fin (observedLeafCount M.first)) → A × ℕ → Prop) :
@@ -747,6 +857,8 @@ namespace FairFeedback
 open scoped ComplexOrder
 variable {D : ℕ} {A : Type}
 
+/-- For positive semidefinite input and a nonnegative statistic, the extended expectation splits
+into prefix weights and coin law expectations. -/
 theorem classical_expectation_ofReal (M : FairFeedback D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hM : M.Legal) (ρ : Operator D)
     (hρ : ρ.PosSemidef)
@@ -771,6 +883,7 @@ namespace CoinCode
 open Classical
 variable {A : Type}
 
+/-- The real value of a coin law event is the sum of path weights times its event indicators. -/
 theorem paths_event_toReal (p : CoinCode A) (E : A × ℕ → Prop) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p.law E).toReal =
       ∑ c : Fin p.paths.length, wordWeight (p.paths.get c).2 *
@@ -793,17 +906,20 @@ end HybridLeaf
 namespace HybridLeaf
 variable {D : ℕ} {A : Type}
 
+/-- Prepending a quantum operator conjugates the leaf effect by that operator. -/
 theorem effect_quantum (U : Operator D) (q g m : ℕ) (out : List (ℕ × ℕ)) (leaf : HybridLeaf D A) :
     (leaf.quantum U q g m out).effect = U.conjTranspose * leaf.effect * U := by
   simp only [effect, quantum, Matrix.conjTranspose_mul, Matrix.smul_mul, Matrix.mul_smul,
     Matrix.mul_assoc]
 
+/-- Prepending a coin bit multiplies the leaf effect by one half. -/
 theorem effect_coin (b : Bool) (leaf : HybridLeaf D A) :
     (leaf.coin b).effect = (1 / 2 : ℂ) • leaf.effect := by
   simp only [effect, coin, Qatlib.Concepts.AdversaryBounds.AdvDuality.wordWeight_cons,
       Complex.ofReal_mul, smul_smul]
   norm_num
 
+/-- The adjoint product of a hybrid leaf's Kraus operator equals its effect. -/
 theorem kraus_adjoint_mul (leaf : HybridLeaf D A) :
     leaf.kraus.conjTranspose * leaf.kraus = leaf.effect := by
   have hs : star ((Real.sqrt (CoinCode.wordWeight leaf.coins) : ℝ) : ℂ) *
@@ -815,6 +931,8 @@ theorem kraus_adjoint_mul (leaf : HybridLeaf D A) :
   rw [mul_comm] at hs
   rw [hs]
 
+/-- Conjugation by a hybrid leaf's Kraus operator is conjugation by its recorded operator scaled
+by the coin weight. -/
 theorem kraus_branch (leaf : HybridLeaf D A) (ρ : Operator D) :
     conjBranch leaf.kraus ρ = ((CoinCode.wordWeight leaf.coins : ℝ) : ℂ) • conjBranch leaf.operator ρ := by
   have hs : ((Real.sqrt (CoinCode.wordWeight leaf.coins) : ℝ) : ℂ) *
@@ -827,6 +945,8 @@ theorem kraus_branch (leaf : HybridLeaf D A) (ρ : Operator D) :
   rw [mul_comm] at hs
   rw [hs]
 
+/-- The sum of effects after a common quantum update is the conjugation of the original effect
+sum. -/
 theorem sum_quantum (U : Operator D) (q g m : ℕ) (out : List (ℕ × ℕ)) (ls : List (HybridLeaf D A)) :
     ((ls.map (quantum U q g m out)).map effect).sum = U.conjTranspose * (ls.map effect).sum * U := by
   induction ls with
@@ -834,6 +954,7 @@ theorem sum_quantum (U : Operator D) (q g m : ℕ) (out : List (ℕ × ℕ)) (ls
   | cons leaf ls ih => simp only [List.map_cons, List.sum_cons, effect_quantum, ih,
       Matrix.mul_add, Matrix.add_mul]
 
+/-- Adding a common coin bit to a list of leaves halves the sum of their effects. -/
 theorem sum_coin (b : Bool) (ls : List (HybridLeaf D A)) :
     ((ls.map (coin b)).map effect).sum = (1 / 2 : ℂ) • (ls.map effect).sum := by
   induction ls with
@@ -844,10 +965,13 @@ end HybridLeaf
 namespace HybridProgram
 variable {D : ℕ} {A B : Type}
 
+/-- Coin execution leaves a program at a frontier unchanged and consumes no bits. -/
 theorem runCoins_frontier (bs : List Bool) (p : HybridProgram D A) (hp : p.Frontier) :
     p.runCoins bs = (p,0) := by
   cases bs <;> cases p <;> simp_all [runCoins, Frontier]
 
+/-- When continuations are frontiers, running an embedded coin program agrees with running its
+underlying `CoinCode`. -/
 theorem runCoins_ofCoins (bs : List Bool) (p : CoinCode B) (k : B → HybridProgram D A)
     (hk : ∀ a, (k a).Frontier) :
     (ofCoins p k).runCoins bs = (ofCoins (p.run bs).1 k, (p.run bs).2) := by
@@ -859,6 +983,8 @@ theorem runCoins_ofCoins (bs : List Bool) (p : CoinCode B) (k : B → HybridProg
       | cons b bs => cases b <;> simp only [ofCoins, runCoins, CoinCode.run, Bool.false_eq_true,
           ↓reduceIte, hp, hq]
 
+/-- Running on concatenated coin words equals running the first word and then the second on the
+residual program, adding the read counts. -/
 theorem runCoins_append (xs ys : List Bool) (p : HybridProgram D A) :
     p.runCoins (xs ++ ys) =
       let z := p.runCoins xs
@@ -876,6 +1002,7 @@ theorem runCoins_append (xs ys : List Bool) (p : HybridProgram D A) :
       | measure n label k => cases ys <;> simp [runCoins]
       | project P p q => cases ys <;> simp [runCoins]
 
+/-- The length of a program's leaf enumeration equals its syntactic leaf count. -/
 theorem leaves_length (O : Operator D) (p : HybridProgram D A) : (p.leaves O).length = p.leafCount := by
   induction p with
   | ret a => rfl
@@ -887,6 +1014,8 @@ theorem leaves_length (O : Operator D) (p : HybridProgram D A) : (p.leaves O).le
       exact Finset.sum_congr rfl (fun i _ => ih i)
   | project P p q hp hq => simp [leaves, leafCount, hp, hq]
 
+/-- Sequential composition preserves legality when the initial program and every continuation
+are legal. -/
 theorem bind_legal (p : HybridProgram D A) (hp : p.Legal) (k : A → HybridProgram D B)
     (hk : ∀ a, (k a).Legal) : (p.bind k).Legal := by
   induction p with
@@ -898,12 +1027,14 @@ theorem bind_legal (p : HybridProgram D A) (hp : p.Legal) (k : A → HybridProgr
   | measure n label next ih => exact fun i => ih i (hp i)
   | project P p q hpi hqi => exact ⟨hp.1,hpi hp.2.1,hqi hp.2.2⟩
 
+/-- Embedding a coin program with legal continuations produces a legal hybrid program. -/
 theorem ofCoins_legal (p : CoinCode B) (k : B → HybridProgram D A) (hk : ∀ a, (k a).Legal) :
     (ofCoins p k).Legal := by
   induction p with
   | ret a => exact hk a
   | bit p q hp hq => exact ⟨hp,hq⟩
 
+/-- Embedding a well formed observed circuit produces a legal hybrid program. -/
 theorem ofObserved_legal (p : ObservedCircuit (Fin D)) (hp : observedWellFormed p) :
     (ofObserved p).Legal := by
   induction p with
@@ -914,6 +1045,7 @@ theorem ofObserved_legal (p : ObservedCircuit (Fin D)) (hp : observedWellFormed 
   | measure n label next ih => exact fun i => ih i (hp i)
   | project P p q hpi hqi => exact ⟨hp.1,hpi hp.2.1,hqi hp.2.2⟩
 
+/-- Prepending a unitary circuit to a legal hybrid program preserves legality. -/
 theorem prependCircuit_legal (C : Circuit (Fin D)) (hC : IsUnitaryCircuit C)
     (p : HybridProgram D A) (hp : p.Legal) : (prependCircuit C p).Legal := by
   induction C with
@@ -922,6 +1054,7 @@ theorem prependCircuit_legal (C : Circuit (Fin D)) (hC : IsUnitaryCircuit C)
       | gate U => obtain ⟨hU,hC⟩ := (isUnitaryCircuit_gate U C).mp hC; exact ⟨hU,ih hC⟩
       | query => exact ih ((isUnitaryCircuit_query C).mp hC)
 
+/-- A bounded execution cut of a legal hybrid program is legal. -/
 theorem cut_legal (n : ℕ) (p : HybridProgram D A) (hp : p.Legal) : (p.cut n).Legal := by
   induction n generalizing p with
   | zero => cases p <;> trivial
@@ -935,9 +1068,12 @@ theorem cut_legal (n : ℕ) (p : HybridProgram D A) (hp : p.Legal) : (p.cut n).L
       | measure m label k => exact fun i => ih (k i) (hp i)
       | project P p q => exact ⟨hp.1,ih p hp.2.1,ih q hp.2.2⟩
 
+/-- Cutting a returned value yields that value in the completed side of the result sum. -/
 theorem cut_ret (n : ℕ) (a : A) : (ret a : HybridProgram D A).cut n = .ret (.inl a) := by
   cases n <;> rfl
 
+/-- A cut with combined fuel equals the first cut followed by cutting each residual program with
+the remaining fuel. -/
 theorem cut_add (n m : ℕ) (p : HybridProgram D A) :
     p.cut (n + m) = (p.cut n).bind
       (fun z => match z with | .inl a => .ret (.inl a) | .inr q => q.cut m) := by
@@ -951,6 +1087,7 @@ theorem cut_add (n m : ℕ) (p : HybridProgram D A) :
       | measure k label next => simp only [Nat.succ_add, cut, bind, ih]
       | project P p q => simp only [Nat.succ_add, cut, bind, ih]
 
+/-- The adjoint products of the projectors onto all label fibers sum to the identity. -/
 theorem basis_partition {n : ℕ} (label : Fin D → Fin n) :
     ∑ i : Fin n, (Projector (Finset.univ.filter fun x => label x = i)).conjTranspose *
       Projector (Finset.univ.filter fun x => label x = i) = (1 : Operator D) := by
@@ -961,6 +1098,7 @@ theorem basis_partition {n : ℕ} (label : Fin D → Fin n) :
     simp [Projector, Matrix.sum_apply]
   · simp [Projector, Matrix.sum_apply, hxy]
 
+/-- For a legal program and a unitary oracle, the sum of all leaf effects is the identity. -/
 theorem complete (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) :
     ((p.leaves O).map HybridLeaf.effect).sum = 1 := by
@@ -991,14 +1129,18 @@ theorem complete (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
       have hCs : (1 - P).conjTranspose = 1 - P := hC.2
       rw [hP, hp.1.1, hCs, hC.1]
       exact sub_add_cancel 1 P
+/-- The hybrid leaf selected by a finite index in the program's leaf enumeration. -/
 noncomputable def leaf (p : HybridProgram D A) (O : Operator D) (i : Fin p.leafCount) : HybridLeaf D A :=
   (p.leaves O).get (Fin.cast (p.leaves_length O).symm i)
 
+/-- Listing every indexed leaf recovers the program's leaf enumeration. -/
 theorem leaf_ofFn (p : HybridProgram D A) (O : Operator D) :
     List.ofFn (p.leaf O) = p.leaves O := by
   have h := List.ofFn_congr (p.leaves_length O) (p.leaves O).get
   simpa only [List.ofFn_get, leaf] using! h.symm
 
+/-- The Kraus effects of all indexed leaves of a legal program with a unitary oracle sum to the
+identity. -/
 theorem kraus_complete (p : HybridProgram D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : p.Legal) :
     ∑ i : Fin p.leafCount, (p.leaf O i).kraus.conjTranspose * (p.leaf O i).kraus = 1 := by
@@ -1007,10 +1149,13 @@ theorem kraus_complete (p : HybridProgram D A) (O : Operator D)
   rw [← p.leaf_ofFn O, List.map_ofFn, List.sum_ofFn] at h
   exact h
 
+/-- The instrument whose outcomes are the indexed leaves of a legal hybrid program with a
+unitary oracle. -/
 noncomputable def instrument (p : HybridProgram D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : p.Legal) : Instrument (Fin p.leafCount) D D :=
   Instrument.ofKraus (fun i => (p.leaf O i).kraus) (p.kraus_complete O hO hp)
 
+/-- An instrument branch is conjugation by the leaf operator scaled by the leaf's coin weight. -/
 theorem branch_law (p : HybridProgram D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : p.Legal) (ρ : Operator D) (i : Fin p.leafCount) :
     (p.instrument O hO hp).branch i ρ =
@@ -1018,6 +1163,8 @@ theorem branch_law (p : HybridProgram D A) (O : Operator D)
   rw [instrument, Instrument.ofKraus_branch]
   exact HybridLeaf.kraus_branch _ _
 
+/-- A leaf outcome's probability is its coin weight times the real trace of the corresponding
+conjugated input. -/
 theorem probability_law (p : HybridProgram D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : p.Legal) (ρ : Operator D) (i : Fin p.leafCount) :
     instrumentProb (p.instrument O hO hp) ρ i =
@@ -1026,6 +1173,8 @@ theorem probability_law (p : HybridProgram D A) (O : Operator D)
   simp only [smul_eq_mul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
     zero_mul, sub_zero]
 
+/-- The outcome weighted sum of a leaf statistic equals its explicit coin weighted trace sum
+over enumerated leaves. -/
 theorem statistic_law (p : HybridProgram D A) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : p.Legal) (ρ : Operator D)
     (F : HybridLeaf D A → ℝ) :
@@ -1035,6 +1184,7 @@ theorem statistic_law (p : HybridProgram D A) (O : Operator D)
   rw [← p.leaf_ofFn O, List.map_ofFn, List.sum_ofFn]
   exact Finset.sum_congr rfl (fun i _ => by rw [p.probability_law]; rfl)
 
+/-- A query bounded cut of a legal hybrid program is legal. -/
 theorem cutQueries_legal (n : ℕ) (p : HybridProgram D A) (hp : p.Legal) :
     (p.cutQueries n).Legal := by
   induction p generalizing n with
@@ -1048,6 +1198,7 @@ theorem cutQueries_legal (n : ℕ) (p : HybridProgram D A) (hp : p.Legal) :
   | measure m label k ih => exact fun i => ih i n (hp i)
   | project P p q hpi hqi => exact ⟨hp.1,hpi n hp.2.1,hqi n hp.2.2⟩
 
+/-- A cut with a combined query budget equals successive cuts of the residual program. -/
 theorem cutQueries_add (n m : ℕ) (p : HybridProgram D A) :
     p.cutQueries (n + m) = (p.cutQueries n).bind
       (fun z => match z with | .inl a => .ret (.inl a) | .inr q => q.cutQueries m) := by
@@ -1062,6 +1213,7 @@ theorem cutQueries_add (n m : ℕ) (p : HybridProgram D A) :
   | measure k label next ih => simp only [cutQueries,bind,ih]
   | project P p q hpi hqi => simp only [cutQueries,bind,hpi,hqi]
 
+/-- Every leaf produced by a query cut uses at most the given query budget. -/
 theorem cutQueries_bound (O : Operator D) (p : HybridProgram D A) (n : ℕ)
     (t : HybridLeaf D (A ⊕ HybridProgram D A)) (ht : t ∈ (p.cutQueries n).leaves O) :
     t.queries ≤ n := by
@@ -1091,6 +1243,7 @@ theorem cutQueries_bound (O : Operator D) (p : HybridProgram D A) (n : ℕ)
       · obtain ⟨z,hz,rfl⟩ := List.mem_map.mp ht; exact hpi n z hz
       · obtain ⟨z,hz,rfl⟩ := List.mem_map.mp ht; exact hqi n z hz
 
+/-- Converting the leaves of an embedded observed circuit recovers its observed Kraus leaves. -/
 theorem ofObserved_leaves {D : ℕ} (O : Operator D) (p : ObservedCircuit (Fin D)) :
     (((ofObserved p).leaves O).map HybridLeaf.toObserved) = observedKrausLeaves O p := by
   induction p with
@@ -1110,6 +1263,7 @@ theorem ofObserved_leaves {D : ℕ} (O : Operator D) (p : ObservedCircuit (Fin D
         Function.comp_def,Qatlib.Concepts.AdversaryBounds.AdvDuality.toObserved_quantum]
       rw [← Function.comp_def,← List.map_map,hp,← Function.comp_def,← List.map_map,hq]
 
+/-- Every leaf of an embedded observed circuit has an empty coin word. -/
 theorem ofObserved_no_coins {D : ℕ} (O : Operator D) (p : ObservedCircuit (Fin D))
     (t : HybridLeaf D Bool) (ht : t ∈ (ofObserved p).leaves O) : t.coins = [] := by
   induction p generalizing t with
@@ -1125,6 +1279,8 @@ theorem ofObserved_no_coins {D : ℕ} (O : Operator D) (p : ObservedCircuit (Fin
       · obtain ⟨z,hz,rfl⟩ := List.mem_map.mp ht; exact hp z hz
       · obtain ⟨z,hz,rfl⟩ := List.mem_map.mp ht; exact hq z hz
 
+/-- Recursive evaluation of sequential composition equals evaluation with each continuation
+evaluated at the intermediate state. -/
 theorem eval_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridProgram D B)
     (ψ : QState (Fin D)) (F : B → QState (Fin D) → ℝ) :
     (p.bind k).eval O ψ F = p.eval O ψ (fun a φ => (k a).eval O φ F) := by
@@ -1135,6 +1291,8 @@ theorem eval_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridProg
   | measure n label next ih => simp only [bind,eval,ih]
   | project P p q hp hq => simp only [bind,eval,hp,hq]
 
+/-- Recursive evaluation equals the sum of the terminal statistic over leaves weighted by their
+coin probabilities. -/
 theorem eval_leaves (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F : A → QState (Fin D) → ℝ) :
     p.eval O ψ F = ((p.leaves O).map (fun t => CoinCode.wordWeight t.coins *
@@ -1154,6 +1312,8 @@ theorem eval_leaves (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D
       simp only [eval,leaves,hp,hq,List.map_append,List.sum_append,List.map_map,
         Function.comp_def,HybridLeaf.quantum,applyGate_mul]
 
+/-- The instrument expectation of a returned value statistic equals recursive evaluation with
+terminal branch mass weighting. -/
 theorem eval_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ψ : QState (Fin D)) (f : A → ℝ) :
     (∑ i : Fin p.leafCount, instrumentProb (p.instrument O hO hp) (outerProduct ψ) i *
@@ -1168,6 +1328,8 @@ theorem eval_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D)
       (branchMass (ApplyGate (p.leaf O i).operator ψ) * f (p.leaf O i).value)
   exact mul_assoc _ _ _
 
+/-- Evaluating an embedded coin program averages its continuation evaluations over the weighted
+coin paths. -/
 theorem eval_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridProgram D A)
     (ψ : QState (Fin D)) (F : A → QState (Fin D) → ℝ) :
     (ofCoins p k).eval O ψ F =
@@ -1179,6 +1341,8 @@ theorem eval_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridProgram 
         List.map_map,Function.comp_def,Qatlib.Concepts.AdversaryBounds.AdvDuality.wordWeight_cons,mul_assoc]
       rw [mul_add,List.sum_map_mul_left,List.sum_map_mul_left]
 
+/-- Evaluating after prepending a circuit equals evaluating the program on the state produced by
+that circuit. -/
 theorem eval_prepend (O : Operator D) (C : Circuit (Fin D)) (p : HybridProgram D A)
     (ψ : QState (Fin D)) (F : A → QState (Fin D) → ℝ) :
     (prependCircuit C p).eval O ψ F = p.eval O (Run O C ψ) F := by
@@ -1186,6 +1350,8 @@ theorem eval_prepend (O : Operator D) (C : Circuit (Fin D)) (p : HybridProgram D
   | nil => rfl
   | cons s C ih => cases s <;> simp only [prependCircuit,eval,Run,ih]
 
+/-- Evaluating an embedded observed circuit equals summing the statistic over its observed
+traces. -/
 theorem eval_ofObserved (O : Operator D) (p : ObservedCircuit (Fin D))
     (ψ : QState (Fin D)) (F : Bool → QState (Fin D) → ℝ) :
     (ofObserved p).eval O ψ F = ((observedTraces O p ψ).map (fun t => F t.accepted t.state)).sum := by
@@ -1199,11 +1365,13 @@ theorem eval_ofObserved (O : Operator D) (p : ObservedCircuit (Fin D))
       simp only [ofObserved,eval,observedTraces,List.map_append,List.sum_append,List.map_map,
         Function.comp_def,ProjectiveBranch,hp,hq,Bool.false_eq_true,↓reduceIte]
 
+/-- Recursive evaluation is additive in its terminal statistic. -/
 theorem eval_add (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F G : A → QState (Fin D) → ℝ) :
     p.eval O ψ (fun a φ => F a φ + G a φ) = p.eval O ψ F + p.eval O ψ G := by
   simp only [eval_leaves,mul_add, List.sum_map_add]
 
+/-- A real scalar multiplying the terminal statistic factors out of recursive evaluation. -/
 theorem eval_mul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F : A → QState (Fin D) → ℝ) (c : ℝ) :
     p.eval O ψ (fun a φ => c * F a φ) = c * p.eval O ψ F := by
@@ -1214,6 +1382,8 @@ theorem eval_mul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
   intro t _
   ring
 
+/-- Scaling the input state by a complex scalar multiplies a branch mass weighted expectation by
+its squared norm. -/
 theorem eval_mass_smul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (f : A → ℝ) (c : ℂ) :
     p.eval O (c • ψ) (fun a φ => branchMass φ * f a) =
@@ -1225,6 +1395,8 @@ theorem eval_mass_smul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fi
   intro t _
   ring
 
+/-- A legal program with a unitary oracle preserves total branch mass under recursive
+evaluation. -/
 theorem eval_mass (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ψ : QState (Fin D)) :
     p.eval O ψ (fun _ φ => branchMass φ) = branchMass ψ := by
@@ -1235,6 +1407,7 @@ theorem eval_mass (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
 
 namespace Path
 
+/-- The value in a path's execution record equals its syntactic result. -/
 theorem record_value (O : Operator D) {p : HybridProgram D A} (h : Path p) :
     (h.record O).value = h.result := by
   induction h with
@@ -1246,6 +1419,7 @@ theorem record_value (O : Operator D) {p : HybridProgram D A} (h : Path p) :
   | projectFalse h ih => exact ih
   | projectTrue h ih => exact ih
 
+/-- The execution record of a syntactic path belongs to the program's leaf enumeration. -/
 theorem record_mem (O : Operator D) {p : HybridProgram D A} (h : Path p) :
     h.record O ∈ p.leaves O := by
   induction h with
@@ -1259,6 +1433,7 @@ theorem record_mem (O : Operator D) {p : HybridProgram D A} (h : Path p) :
   | projectFalse h ih => exact List.mem_append_left _ (List.mem_map.mpr ⟨_,ih,rfl⟩)
   | projectTrue h ih => exact List.mem_append_right _ (List.mem_map.mpr ⟨_,ih,rfl⟩)
 
+/-- Every syntactic path's execution record occurs at some indexed leaf. -/
 theorem record_index (O : Operator D) {p : HybridProgram D A} (h : Path p) :
     ∃ i : Fin p.leafCount, p.leaf O i = h.record O := by
   have hm := h.record_mem O
@@ -1272,18 +1447,22 @@ end HybridProgram
 namespace HybridLeaf
 variable {D : ℕ} {A B : Type}
 
+/-- Prepending a quantum operation to the first leaf commutes with joining a second leaf. -/
 theorem join_quantum (a : HybridLeaf D A) (b : HybridLeaf D B) (U : Operator D)
     (q g m : ℕ) (out : List (ℕ × ℕ)) :
     (a.quantum U q g m out).join b = (a.join b).quantum U q g m out := by
   simp only [join,quantum,Matrix.mul_assoc,Nat.add_assoc,List.append_assoc]
 
+/-- Prepending a coin bit to the first leaf commutes with joining a second leaf. -/
 theorem join_coin (a : HybridLeaf D A) (b : HybridLeaf D B) (c : Bool) :
     (a.coin c).join b = (a.join b).coin c := by
   simp only [join,coin,List.cons_append]
 
+/-- A quantum update preserves a leaf's returned value. -/
 theorem quantum_value (a : HybridLeaf D A) (U : Operator D)
     (q g m : ℕ) (out : List (ℕ × ℕ)) : (a.quantum U q g m out).value = a.value := rfl
 
+/-- Adding a coin bit preserves a leaf's returned value. -/
 theorem coin_value (a : HybridLeaf D A) (c : Bool) : (a.coin c).value = a.value := rfl
 
 end HybridLeaf
@@ -1291,12 +1470,15 @@ end HybridLeaf
 namespace HybridProgram
 variable {D : ℕ} {A B : Type}
 
+/-- Flat mapping a flattened list equals flattening the flat maps of its constituent lists. -/
 private theorem flatten_flatMap {X Y : Type} (ls : List (List X)) (f : X → List Y) :
     ls.flatten.flatMap f = (ls.map (fun l => l.flatMap f)).flatten := by
   induction ls with
   | nil => rfl
   | cons l ls ih => simp only [List.flatten_cons,List.flatMap_append,List.map_cons,ih]
 
+/-- Leaves of sequential composition are obtained by joining each prefix leaf to every leaf of
+its selected continuation. -/
 theorem leaves_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridProgram D B) :
     (p.bind k).leaves O = (p.leaves O).flatMap
       (fun a => ((k a.value).leaves O).map (a.join ·)) := by
@@ -1319,6 +1501,7 @@ theorem leaves_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridPr
       simp only [bind,leaves,hp,hq,List.flatMap_append,List.map_flatMap,
         List.flatMap_map,List.map_map,Function.comp_def,HybridLeaf.quantum_value,HybridLeaf.join_quantum]
 
+/-- Uniform query bounds for a program and its continuations add under sequential composition. -/
 theorem bind_queries_le (O : Operator D) (p : HybridProgram D A) (k : A → HybridProgram D B)
     (q r : ℕ) (hp : ∀ a ∈ p.leaves O, a.queries ≤ q)
     (hk : ∀ a, ∀ b ∈ (k a).leaves O, b.queries ≤ r)
@@ -1331,6 +1514,7 @@ theorem bind_queries_le (O : Operator D) (p : HybridProgram D A) (k : A → Hybr
   have h2 := hk a.value b hb
   omega
 
+/-- Embedding a coin program preserves a uniform query bound on its continuations. -/
 theorem ofCoins_queries_le (O : Operator D) (p : CoinCode B) (k : B → HybridProgram D A)
     (q : ℕ) (hk : ∀ a, ∀ t ∈ (k a).leaves O, t.queries ≤ q)
     (t : HybridLeaf D A) (ht : t ∈ (ofCoins p k).leaves O) : t.queries ≤ q := by
@@ -1341,6 +1525,8 @@ theorem ofCoins_queries_le (O : Operator D) (p : CoinCode B) (k : B → HybridPr
       · obtain ⟨u,hu,rfl⟩ := List.mem_map.mp ht; exact hp u hu
       · obtain ⟨u,hu,rfl⟩ := List.mem_map.mp ht; exact hr u hu
 
+/-- Each leaf after circuit prepending has the query count of an original leaf plus the
+circuit's query count. -/
 theorem prependCircuit_queries (O : Operator D) (C : Circuit (Fin D)) (p : HybridProgram D A)
     (t : HybridLeaf D A) (ht : t ∈ (prependCircuit C p).leaves O) :
     ∃ a ∈ p.leaves O, t.queries = a.queries + QueryCount C := by
@@ -1364,6 +1550,7 @@ end HybridProgram
 namespace HybridLeaf
 variable {D : ℕ} {A B : Type}
 
+/-- The Kraus branch of joined leaves equals successive application of their Kraus branches. -/
 theorem join_branch (a : HybridLeaf D A) (b : HybridLeaf D B) (ρ : Operator D) :
     conjBranch (a.join b).kraus ρ = conjBranch b.kraus (conjBranch a.kraus ρ) := by
   simp only [kraus_branch,join,CoinCode.wordWeight,List.length_append,pow_add,Complex.ofReal_mul,
@@ -1373,6 +1560,7 @@ end HybridLeaf
 namespace HybridProgram.Path
 variable {D : ℕ} {A B : Type}
 
+/-- The execution record of sequentially composed paths is the join of their execution records. -/
 theorem record_sequence (O : Operator D) {p : HybridProgram D A} (h : HybridProgram.Path p)
     (k : A → HybridProgram D B) (next : HybridProgram.Path (k h.result)) :
     (h.sequence k next).record O = (h.record O).join (next.record O) := by
@@ -1388,16 +1576,21 @@ end HybridProgram.Path
 
 namespace HybridCounts
 
+/-- Resource addition allows the last two summands to be interchanged. -/
 theorem plus_shuffle (a b c : HybridCounts) : a.plus (b.plus c) = (a.plus c).plus b := by
   simp only [plus,Nat.add_left_comm,Nat.add_comm]
 
+/-- Adding the zero resource record on the left preserves a resource record. -/
 theorem zero_plus (c : HybridCounts) : zero.plus c = c := by
   cases c
   simp [zero,plus]
 
+/-- Resource addition is associative. -/
 theorem plus_assoc (a b c : HybridCounts) : (a.plus b).plus c = a.plus (b.plus c) := by
   simp only [plus,Nat.add_assoc]
 
+/-- Charging the length of a nonempty coin word equals charging one read and then the tail's
+length. -/
 theorem read_cons (c : HybridCounts) (b : Bool) (w : List Bool) :
     c.plus ⟨0,0,0,(b :: w).length⟩ = (c.plus ⟨0,0,0,1⟩).plus ⟨0,0,0,w.length⟩ := by
   simp only [plus,List.length_cons,Nat.add_zero]
@@ -1408,27 +1601,36 @@ end HybridCounts
 namespace HybridLeaf
 variable {D : ℕ} {A : Type}
 
+/-- A quantum update adds its query, gate, and measurement increments to the leaf's resource
+counts. -/
 theorem counts_quantum (t : HybridLeaf D A) (U : Operator D) (q g m : ℕ) (out : List (ℕ × ℕ)) :
     (t.quantum U q g m out).counts = t.counts.plus ⟨q,g,m,0⟩ := rfl
 
+/-- Prepending a coin bit adds one read to a leaf's resource counts. -/
 theorem counts_coin (t : HybridLeaf D A) (b : Bool) :
     (t.coin b).counts = t.counts.plus ⟨0,0,0,1⟩ := by
   simp only [counts,coin,HybridCounts.plus,List.length_cons,Nat.add_zero]
 
+/-- A quantum update preserves a leaf's coin word. -/
 theorem quantum_coins (t : HybridLeaf D A) (U : Operator D) (q g m : ℕ) (out : List (ℕ × ℕ)) :
     (t.quantum U q g m out).coins = t.coins := rfl
 
+/-- A quantum update multiplies the leaf operator on the right by the prepended operator. -/
 theorem quantum_operator (t : HybridLeaf D A) (U : Operator D) (q g m : ℕ) (out : List (ℕ × ℕ)) :
     (t.quantum U q g m out).operator = t.operator * U := rfl
 
+/-- The coin word after a coin update is the new bit prepended to the original word. -/
 theorem coin_coins (t : HybridLeaf D A) (b : Bool) : (t.coin b).coins = b :: t.coins := rfl
 
+/-- A coin update preserves the leaf's quantum operator. -/
 theorem coin_operator (t : HybridLeaf D A) (b : Bool) : (t.coin b).operator = t.operator := rfl
 end HybridLeaf
 
 namespace HybridProgram
 variable {D : ℕ} {A B : Type}
 
+/-- Evaluation with resource counts respects sequential composition by passing the intermediate
+value, state, and counts to the continuation. -/
 theorem evalCounts_bind (O : Operator D) (p : HybridProgram D A) (k : A → HybridProgram D B)
     (ψ : QState (Fin D)) (c : HybridCounts) (F : B → QState (Fin D) → HybridCounts → ℝ) :
     (p.bind k).evalCounts O ψ c F = p.evalCounts O ψ c (fun a φ c' => (k a).evalCounts O φ c' F) := by
@@ -1439,6 +1641,8 @@ theorem evalCounts_bind (O : Operator D) (p : HybridProgram D A) (k : A → Hybr
   | measure n label k ih => simp only [bind,evalCounts,ih]
   | project P p q hp hq => simp only [bind,evalCounts,hp,hq]
 
+/-- Evaluation with resource counts equals the coin weighted leaf sum with each leaf's counts
+added to the initial counts. -/
 theorem evalCounts_leaves (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (F : A → QState (Fin D) → HybridCounts → ℝ) :
     p.evalCounts O ψ c F = ((p.leaves O).map (fun t => CoinCode.wordWeight t.coins *
@@ -1463,11 +1667,14 @@ theorem evalCounts_leaves (O : Operator D) (p : HybridProgram D A) (ψ : QState 
         Function.comp_def,HybridLeaf.counts_quantum,HybridCounts.plus_shuffle,
         HybridLeaf.quantum_value,HybridLeaf.quantum_coins,HybridLeaf.quantum_operator,applyGate_mul]
 
+/-- A terminal statistic that ignores counts gives the ordinary recursive evaluation. -/
 theorem evalCounts_ignore (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (F : A → QState (Fin D) → ℝ) :
     p.evalCounts O ψ c (fun a φ _ => F a φ) = p.eval O ψ F := by
   rw [evalCounts_leaves,eval_leaves]
 
+/-- The instrument expectation of a value and resource statistic equals recursive count
+evaluation weighted by terminal branch mass. -/
 theorem evalCounts_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ψ : QState (Fin D)) (f : A → HybridCounts → ℝ) :
     (∑ i : Fin p.leafCount, instrumentProb (p.instrument O hO hp) (outerProduct ψ) i *
@@ -1484,18 +1691,22 @@ theorem evalCounts_instrument (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (
       (branchMass (ApplyGate (p.leaf O i).operator ψ) * f (p.leaf O i).value (p.leaf O i).counts)
   exact mul_assoc _ _ _
 
+/-- Initial resource counts can be moved into the terminal statistic by adding them to counts
+accumulated from zero. -/
 theorem evalCounts_add_start (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (F : A → QState (Fin D) → HybridCounts → ℝ) :
     p.evalCounts O ψ c F = p.evalCounts O ψ HybridCounts.zero (fun a φ d => F a φ (c.plus d)) := by
   rw [evalCounts_leaves,evalCounts_leaves]
   simp only [HybridCounts.zero_plus]
 
+/-- Evaluation with resource counts is additive in the terminal statistic. -/
 theorem evalCounts_add (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (F G : A → QState (Fin D) → HybridCounts → ℝ) :
     p.evalCounts O ψ c (fun a φ d => F a φ d + G a φ d) =
       p.evalCounts O ψ c F + p.evalCounts O ψ c G := by
   simp only [evalCounts_leaves,mul_add,List.sum_map_add]
 
+/-- A real scalar multiplying the terminal count statistic factors out of evaluation. -/
 theorem evalCounts_mul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (F : A → QState (Fin D) → HybridCounts → ℝ) (r : ℝ) :
     p.evalCounts O ψ c (fun a φ d => r * F a φ d) = r * p.evalCounts O ψ c F := by
@@ -1506,6 +1717,8 @@ theorem evalCounts_mul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fi
   intro t _
   ring
 
+/-- Scaling the input state multiplies a branch mass weighted count expectation by the scalar's
+squared norm. -/
 theorem evalCounts_mass_smul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (f : A → HybridCounts → ℝ) (z : ℂ) :
     p.evalCounts O (z • ψ) c (fun a φ d => branchMass φ * f a d) =
@@ -1517,6 +1730,8 @@ theorem evalCounts_mass_smul (O : Operator D) (p : HybridProgram D A) (ψ : QSta
   intro t _
   ring
 
+/-- If all leaves have the same resource counts, count evaluation reduces to ordinary evaluation
+with those counts added initially. -/
 theorem evalCounts_fixed (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c d : HybridCounts) (hd : ∀ t ∈ p.leaves O, t.counts = d)
     (F : A → QState (Fin D) → HybridCounts → ℝ) :
@@ -1527,6 +1742,8 @@ theorem evalCounts_fixed (O : Operator D) (p : HybridProgram D A) (ψ : QState (
   intro t ht
   rw [hd t ht]
 
+/-- Each leaf after circuit prepending has an original leaf's counts plus the circuit's query
+and gate counts. -/
 theorem prependCircuit_counts (O : Operator D) (C : Circuit (Fin D)) (p : HybridProgram D A)
     (t : HybridLeaf D A) (ht : t ∈ (prependCircuit C p).leaves O) :
     ∃ a ∈ p.leaves O, t.counts = a.counts.plus ⟨QueryCount C,GateCount C,0,0⟩ := by
@@ -1547,6 +1764,8 @@ theorem prependCircuit_counts (O : Operator D) (C : Circuit (Fin D)) (p : Hybrid
           rw [HybridLeaf.counts_quantum,hc]
           simp [HybridCounts.plus,QueryCount,GateCount,Nat.add_assoc]
 
+/-- Evaluating an embedded coin program averages continuation evaluations with each path length
+added to the read count. -/
 theorem evalCounts_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridProgram D A)
     (ψ : QState (Fin D)) (c : HybridCounts) (F : A → QState (Fin D) → HybridCounts → ℝ) :
     (ofCoins p k).evalCounts O ψ c F =
@@ -1559,6 +1778,8 @@ theorem evalCounts_ofCoins (O : Operator D) (p : CoinCode B) (k : B → HybridPr
         List.map_map,Function.comp_def,Qatlib.Concepts.AdversaryBounds.AdvDuality.wordWeight_cons,HybridCounts.read_cons,mul_assoc]
       rw [mul_add,List.sum_map_mul_left,List.sum_map_mul_left]
 
+/-- Prepending a circuit transforms the input state and adds the circuit's query and gate counts
+before count evaluation. -/
 theorem evalCounts_prepend (O : Operator D) (C : Circuit (Fin D)) (p : HybridProgram D A)
     (ψ : QState (Fin D)) (c : HybridCounts) (F : A → QState (Fin D) → HybridCounts → ℝ) :
     (prependCircuit C p).evalCounts O ψ c F =
@@ -1573,6 +1794,8 @@ end HybridProgram
 namespace HybridProgram
 variable {D : ℕ} {A : Type}
 
+/-- For an additive resource statistic, initial counts contribute their charge times the input
+branch mass to the expected statistic. -/
 theorem evalCounts_statistic_start (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (p : HybridProgram D A) (hp : p.Legal) (ψ : QState (Fin D)) (c : HybridCounts)
     (f : HybridCounts → ℝ) (hf : ∀ a b, f (a.plus b) = f a + f b) :
@@ -1592,6 +1815,7 @@ end HybridProgram
 
 namespace HybridCounts
 
+/-- The linear resource charge is additive under componentwise resource addition. -/
 theorem charge_plus (q g m r : ℝ) (a b : HybridCounts) :
     charge q g m r (a.plus b) = charge q g m r a + charge q g m r b := by
   simp only [charge,plus,Nat.cast_add]
@@ -1601,6 +1825,7 @@ end HybridCounts
 namespace HybridProgram
 variable {D : ℕ} {A : Type}
 
+/-- Recursive evaluation preserves pointwise inequalities between terminal statistics. -/
 theorem eval_mono (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F G : A → QState (Fin D) → ℝ) (h : ∀ a φ, F a φ ≤ G a φ) :
     p.eval O ψ F ≤ p.eval O ψ G := by
@@ -1616,6 +1841,8 @@ end HybridProgram
 namespace CoinCode
 variable {A : Type}
 
+/-- The real mean coin read count, embedded into `ENNReal`, equals the expected cost of the coin
+law. -/
 theorem readMean_expectedCost (p : CoinCode A) :
     ENNReal.ofReal p.readMean = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost p.law := by
   have h := p.paths_real_expectation (fun x => (x.2 : ℝ)) (fun x => Nat.cast_nonneg x.2)
@@ -1623,10 +1850,13 @@ theorem readMean_expectedCost (p : CoinCode A) :
   rw [readMean,← List.ofFn_get p.paths,List.map_ofFn,List.sum_ofFn]
   exact h
 
+/-- The mean coin read count is nonnegative. -/
 theorem readMean_nonneg (p : CoinCode A) : 0 ≤ p.readMean := by
   rw [readMean,← List.ofFn_get p.paths,List.map_ofFn,List.sum_ofFn]
   exact Finset.sum_nonneg (fun i _ => mul_nonneg (wordWeight_nonneg _) (Nat.cast_nonneg _))
 
+/-- For a valid positive weight total, the capped sampler's mean reads equal the block length
+times a finite geometric rejection sum. -/
 theorem weightedSampler_readMean {N : ℕ} (w : Fin N → ℕ) (b cap : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     (weightedSampler w b cap).readMean = (b : ℝ) * ∑ t ∈ Finset.range cap, (rationalRejectMass w b).toReal ^ t := by
@@ -1646,6 +1876,7 @@ end CoinCode
 
 namespace HybridCounts
 
+/-- Nonnegative resource prices give a nonnegative charge for every resource record. -/
 theorem charge_nonneg (q g m r : ℝ) (hq : 0 ≤ q) (hg : 0 ≤ g) (hm : 0 ≤ m) (hr : 0 ≤ r)
     (c : HybridCounts) : 0 ≤ charge q g m r c := by
   unfold charge
@@ -1655,17 +1886,20 @@ end HybridCounts
 namespace HybridProgram
 variable {D : ℕ} {A : Type}
 
+/-- A pointwise nonnegative terminal count statistic has nonnegative recursive evaluation. -/
 theorem evalCounts_nonneg (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (c : HybridCounts) (F : A → QState (Fin D) → HybridCounts → ℝ)
     (hF : ∀ a φ d, 0 ≤ F a φ d) : 0 ≤ p.evalCounts O ψ c F := by
   rw [evalCounts_leaves,← p.leaf_ofFn O,List.map_ofFn,List.sum_ofFn]
   exact Finset.sum_nonneg (fun i _ => mul_nonneg (CoinCode.wordWeight_nonneg _) (hF _ _ _))
 
+/-- The identically zero terminal statistic evaluates to zero. -/
 theorem eval_zero (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D)) :
     p.eval O ψ (fun _ _ => 0) = 0 := by
   have h := p.eval_mul O ψ (fun _ _ => (0 : ℝ)) 0
   simpa only [zero_mul] using h
 
+/-- A pointwise nonnegative terminal statistic has nonnegative recursive evaluation. -/
 theorem eval_nonneg (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F : A → QState (Fin D) → ℝ) (hF : ∀ a φ, 0 ≤ F a φ) : 0 ≤ p.eval O ψ F := by
   have h := p.eval_mono O ψ (fun _ _ => 0) F hF
@@ -1675,6 +1909,8 @@ end HybridProgram
 namespace HybridProgram
 variable {D : ℕ} {A : Type}
 
+/-- For a terminal statistic homogeneous of degree two in the state, input scaling multiplies
+evaluation by the squared scalar norm. -/
 theorem eval_smul (O : Operator D) (p : HybridProgram D A) (ψ : QState (Fin D))
     (F : A → QState (Fin D) → ℝ) (hF : ∀ a (z : ℂ) φ, F a (z • φ) = ‖z‖ ^ 2 * F a φ) (z : ℂ) :
     p.eval O (z • ψ) F = ‖z‖ ^ 2 * p.eval O ψ F := by

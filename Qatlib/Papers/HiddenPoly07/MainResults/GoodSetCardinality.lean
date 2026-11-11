@@ -11,6 +11,27 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
 
+/-!
+# Cardinality of nonzero coordinate tuples
+
+This module defines `Xgood` as the finite set of tuples with nonzero coordinates. An equivalence
+between the field and optional units yields `card_units_eq`, from which `card_Xgood` and a
+uniform real lower bound follow.
+
+The development follows [DeckerDraismaWocjan2009].
+
+## Main statements
+
+* `mem_Xgood`: A tuple belongs to `Xgood F n` exactly when every coordinate is nonzero.
+* `card_Xgood`: For a finite field of cardinality d, the good tuple set has cardinality (d −
+  1)^n.
+* `card_Xgood_ge`: For d ≥ 2, the real number (d − 1)^n is at least d^n/2^n.
+
+## References
+
+* [Decker et al., 2009][DeckerDraismaWocjan2009]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -19,6 +40,8 @@ namespace Qatlib.Papers.HiddenPoly07.MainResults
 
 open scoped BigOperators
 
+/-- The equivalence from optional field units to the field, sending `none` to zero and `some u`
+to the underlying nonzero element. -/
 def optionUnitsEquiv (F : Type*) [Field F] [DecidableEq F] : Option Fˣ ≃ F where
   toFun o := o.elim 0 fun u => (u : F)
   invFun x := if h : x = 0 then none else some (Units.mk0 x h)
@@ -31,6 +54,7 @@ def optionUnitsEquiv (F : Type*) [Field F] [DecidableEq F] : Option Fˣ ≃ F wh
     intro x
     by_cases h : x = 0 <;> simp [h]
 
+/-- The unit group of a finite field has cardinality one less than the field. -/
 theorem card_units_eq (F : Type*) [Field F] [Fintype F] [DecidableEq F] :
     Fintype.card Fˣ = Fintype.card F - 1 := by
   have h : Fintype.card (Option Fˣ) = Fintype.card F :=
@@ -38,9 +62,12 @@ theorem card_units_eq (F : Type*) [Field F] [Fintype F] [DecidableEq F] :
   rw [Fintype.card_option] at h
   omega
 
+/-- The finite set of n-tuples obtained from units of `F`, equivalently the tuples whose
+coordinates are all nonzero. -/
 def Xgood (F : Type*) [Field F] [Fintype F] [DecidableEq F] (n : ℕ) : Finset (Fin n → F) :=
   Finset.univ.image fun x : Fin n → Fˣ => fun i => (x i : F)
 
+/-- A tuple belongs to `Xgood F n` exactly when every coordinate is nonzero. -/
 theorem mem_Xgood {F : Type*} [Field F] [Fintype F] [DecidableEq F] {n : ℕ}
     {x : Fin n → F} : x ∈ Xgood F n ↔ ∀ i, x i ≠ 0 := by
   simp only [Xgood, Finset.mem_image, Finset.mem_univ, true_and]
@@ -50,6 +77,8 @@ theorem mem_Xgood {F : Type*} [Field F] [Fintype F] [DecidableEq F] {n : ℕ}
   · intro hx
     exact ⟨fun i => Units.mk0 (x i) (hx i), by simp⟩
 
+/-- For a finite field of cardinality d, the good tuple set has cardinality (d − 1)^n
+([Proposition 4.1][DeckerDraismaWocjan2009]). -/
 theorem card_Xgood (F : Type*) [Field F] [Fintype F] [DecidableEq F] (n : ℕ) :
     (Xgood F n).card = (Fintype.card F - 1) ^ n := by
   classical
@@ -59,6 +88,8 @@ theorem card_Xgood (F : Type*) [Field F] [Fintype F] [DecidableEq F] (n : ℕ) :
     funext i
     exact Units.ext (congrFun huv i)
 
+/-- For d ≥ 2, the real number (d − 1)^n is at least d^n/2^n ([Proposition
+4.1][DeckerDraismaWocjan2009]). -/
 theorem card_Xgood_ge (F : Type*) [Field F] [Fintype F] [DecidableEq F] {n : ℕ}
     (hF : 2 ≤ Fintype.card F) :
     (Fintype.card F : ℝ) ^ n / 2 ^ n ≤ ((Fintype.card F - 1 : ℕ) : ℝ) ^ n := by

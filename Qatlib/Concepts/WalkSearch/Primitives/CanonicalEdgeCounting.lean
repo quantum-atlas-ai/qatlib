@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.GraphVocabulary
+
+/-!
+# Canonical ordered edge counting
+
+Defines `canonicalPairs n` as the increasing vertex pairs and bounds their number by `n.choose
+2`. The injectivity argument maps each ordered representative to its two-element vertex set,
+providing finite counting infrastructure for graph-search analyses; see [Ambainis2005] for the
+surrounding search setting.
+
+## Main statements
+
+* `canonical_pair_vertexset_injective`: On increasing vertex pairs, the map sending a pair to
+  its unordered two-element vertex set is injective.
+* `canonicalPairs_card_le_choose`: The number of increasing vertex pairs is at most `n.choose
+  2`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
@@ -12,8 +33,11 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 
+/-- The finite set of vertex pairs `(a, b)` with `a < b`. -/
 def canonicalPairs (n : ℕ) : Finset (Fin n×Fin n) := Finset.univ.filter (fun e=>e.1<e.2)
 
+/-- On increasing vertex pairs, the map sending a pair to its unordered two-element vertex set
+is injective. -/
 theorem canonical_pair_vertexset_injective (n : ℕ) :
     Set.InjOn (fun e : Fin n×Fin n=>({e.1,e.2}:Finset (Fin n))) (canonicalPairs n) := by
   intro ⟨a,b⟩ he ⟨c,d⟩ hf hh
@@ -32,6 +56,7 @@ theorem canonical_pair_vertexset_injective (n : ℕ) :
   · omega
   · omega
 
+/-- The number of increasing vertex pairs is at most `n.choose 2`. -/
 theorem canonicalPairs_card_le_choose (n : ℕ) : (canonicalPairs n).card≤n.choose 2 := by
   let f := fun e : Fin n×Fin n=>({e.1,e.2}:Finset (Fin n))
   have hi : (canonicalPairs n).image f⊆(Finset.univ : Finset (Fin n)).powersetCard 2 := by

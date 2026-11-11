@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixAlgebra.ParamWord.ExponentialLoss
+
+/-!
+# Smoothness bounds for parameterized quantum losses
+
+For a finite nonempty complex basis, `wordLoss` is the real expectation loss obtained from an
+ordered exponential circuit. With a unit input state, Hermitian generators of norm at most one,
+fixed unitary gates, and an observable of norm at most one, its absolute value is bounded by
+one.
+
+`actual_word_loss_contract` combines differentiability, continuity of the derivative, the
+derivative norm bound `2K`, and its global Lipschitz bound `4K²`. This provides the circuit-loss
+estimates associated with [TranEtAl2026].
+
+## Main statements
+
+* `wordLoss_fderiv_norm`: Derivative norm bounded by `2K`.
+* `wordLoss_fderiv_lipschitz`: Derivative Lipschitz bound with constant `4K²`.
+* `actual_word_loss_contract`: Combined smoothness and boundedness statement.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
@@ -21,9 +45,13 @@ local instance : InnerProductSpace ℝ (EuclideanSpace ℂ I) := InnerProductSpa
 
 omit [Nonempty I] in
 
+/-- Viewing a complex matrix as a real continuous linear map on complex Euclidean space
+preserves its operator norm. -/
 theorem observableCLM_norm (O : Matrix I I ℂ) : ‖observableCLM O‖=‖O‖ := by
   rw [observableCLM,ContinuousLinearMap.norm_restrictScalars,Matrix.l2_opNorm_toEuclideanCLM]
 
+/-- For a unit input state, Hermitian generators of norm at most one, and fixed unitary gates,
+the evolved state is globally Lipschitz with constant `K`. -/
 theorem wordState_lipschitz {K : ℕ} (G W : Fin K→Matrix I I ℂ) (ψ : EuclideanSpace ℂ I)
     (hψ : ‖ψ‖=1) (hG : ∀j,(G j).IsHermitian) (hGn : ∀j,‖G j‖≤1)
     (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ) : LipschitzWith (K:NNReal) (wordState G W ψ) := by
@@ -36,12 +64,15 @@ theorem wordState_lipschitz {K : ℕ} (G W : Fin K→Matrix I I ℂ) (ψ : Eucli
 
 omit [Nonempty I] in
 
+/-- The real expectation loss has Fréchet derivative `wordLossD` at every parameter vector. -/
 theorem wordLoss_hasFDerivAt {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I ℂ)
     (ψ : EuclideanSpace ℂ I) (θ : EuclideanSpace ℝ (Fin K)) :
     HasFDerivAt (wordLoss G W O ψ) (wordLossD G W O ψ θ) θ := by
   rw [wordLoss_eq_expectation]
   exact expectation_hasFDerivAt _ _ _ (wordState_hasFDerivAt G W ψ) θ
 
+/-- With a unit input state, Hermitian generators, fixed unitary gates, and an observable of
+norm at most one, the real loss has norm at most one. -/
 theorem wordLoss_norm {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I ℂ)
     (ψ : EuclideanSpace ℂ I) (hψ : ‖ψ‖=1) (hG : ∀j,(G j).IsHermitian)
     (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ) (hO : ‖O‖≤1) (θ : EuclideanSpace ℝ (Fin K)) :
@@ -50,6 +81,8 @@ theorem wordLoss_norm {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I �
   exact expectation_abs_le _ _ ((observableCLM_norm O).trans_le hO)
       (wordState_norm G W ψ hψ hG hW) θ
 
+/-- For a unit input state, Hermitian generators of norm at most one, fixed unitary gates, and
+an observable of norm at most one, the loss derivative has norm at most `2K`. -/
 theorem wordLoss_fderiv_norm {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I ℂ)
     (ψ : EuclideanSpace ℂ I) (hψ : ‖ψ‖=1) (hG : ∀j,(G j).IsHermitian)
     (hGn : ∀j,‖G j‖≤1) (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ) (hO : ‖O‖≤1)
@@ -59,6 +92,9 @@ theorem wordLoss_fderiv_norm {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matri
     (wordState_norm G W ψ hψ hG hW) K (Nat.cast_nonneg _)
     (wordStateD_norm G W ψ hψ hG hGn hW) θ
 
+/-- For a unit input state, Hermitian generators of norm at most one, fixed unitary gates, and
+an observable of norm at most one, the loss derivative is globally Lipschitz with constant
+`4K²`. -/
 theorem wordLoss_fderiv_lipschitz {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I ℂ)
     (ψ : EuclideanSpace ℂ I) (hψ : ‖ψ‖=1) (hG : ∀j,(G j).IsHermitian)
     (hGn : ∀j,‖G j‖≤1) (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ) (hO : ‖O‖≤1)
@@ -74,6 +110,8 @@ theorem wordLoss_fderiv_lipschitz {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : 
   convert! h using 1
   ring
 
+/-- For a unit input state, Hermitian generators of norm at most one, fixed unitary gates, and
+an observable of norm at most one, the loss derivative is continuous. -/
 theorem wordLoss_fderiv_continuous {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I ℂ)
     (ψ : EuclideanSpace ℂ I) (hψ : ‖ψ‖=1) (hG : ∀j,(G j).IsHermitian)
     (hGn : ∀j,‖G j‖≤1) (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ) (hO : ‖O‖≤1) :
@@ -84,6 +122,10 @@ theorem wordLoss_fderiv_continuous {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O :
     simpa only [dist_eq_norm] using! wordLoss_fderiv_lipschitz G W O ψ hψ hG hGn hW hO θ η
   exact hl.continuous
 
+/-- For a unit input state, Hermitian generators of norm at most one, fixed unitary gates, and
+an observable of norm at most one, the loss is differentiable with continuous derivative,
+loss norm at most one, derivative norm at most `2K`, and derivative Lipschitz constant
+`4K²`. See [Tran et al., Lemma 5][TranEtAl2026]. -/
 theorem actual_word_loss_contract {K : ℕ} (G W : Fin K→Matrix I I ℂ) (O : Matrix I I ℂ)
     (ψ : EuclideanSpace ℂ I) (hψ : ‖ψ‖=1) (hG : ∀j,(G j).IsHermitian)
     (hGn : ∀j,‖G j‖≤1) (hW : ∀j,W j∈Matrix.unitaryGroup I ℂ) (hO : ‖O‖≤1) :

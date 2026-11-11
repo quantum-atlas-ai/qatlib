@@ -10,6 +10,28 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Homology
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.MeromorphicLaurent
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
 import Mathlib.Analysis.Calculus.FDeriv.Measurable
+
+/-!
+# Polar-part decompositions over finite sets
+
+This module packages finite polar sums and a holomorphic remainder in `PolarPartDecomposition`.
+The construction `PolarPartDecomposition.ofMeromorphic` removes the chosen polar parts from a
+function holomorphic off finitely many meromorphic points and fills in the removable remainder,
+supplying decomposition data for the contour calculus supporting [WangEtAl2026].
+
+## Main statements
+
+* `PolarPartDecomposition.ofMeromorphic`: construction from local meromorphic data.
+* `PolarPartDecomposition.intervalIntegral_deriv_smul_analyticRemainder_eq_zero`: vanishing of
+  the analytic remainder integral.
+* `PolarPartDecomposition.intervalIntegrable_polarPart_mul_deriv_truncated`: integrability of
+  truncated polar contributions.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -24,6 +46,9 @@ open Filter MeasureTheory Set Topology
 
 open scoped Interval
 
+/-- A decomposition of `f` off a finite set `S` into finite polar parts centered at its points
+and a holomorphic remainder on `U`, with simple inverse-power coefficients equal to
+residues. -/
 structure PolarPartDecomposition (f : ℂ → ℂ) (S : Finset ℂ) (U : Set ℂ) where
 
   order : S → ℕ
@@ -49,6 +74,8 @@ namespace PolarPartDecomposition
 
 variable {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ}
 
+/-- Selecting the zero-index polar coefficient in a finite sum gives the residue multiplied by
+`c`. -/
 theorem sum_ite_coeff_eq_residue_mul (decomp : PolarPartDecomposition f S U) (s : S) (c : ℂ) :
     (∑ k : Fin (decomp.order s), if k.val = 0 then decomp.coeff s k * c else 0)
       = residue f s * c := by
@@ -65,6 +92,8 @@ theorem sum_ite_coeff_eq_residue_mul (decomp : PolarPartDecomposition f S U) (s 
     rw [Finset.sum_congr rfl fun k _ => h_pick k, Finset.sum_ite_eq' Finset.univ,
       if_pos (Finset.mem_univ _), decomp.residue_eq s, dif_pos h_pos]
 
+/-- The analytic remainder integrates to zero along a closed piecewise C¹ curve null-homologous
+in the open set `U`. -/
 theorem intervalIntegral_deriv_smul_analyticRemainder_eq_zero
     (decomp : PolarPartDecomposition f S U)
     (hU : IsOpen U) {γ : ℝ → ℂ} {a b : ℝ} (hγ_pc1 : IsPiecewiseC1On γ a b)
@@ -74,10 +103,12 @@ theorem intervalIntegral_deriv_smul_analyticRemainder_eq_zero
 
 end PolarPartDecomposition
 
+/-- The sum of the chosen meromorphic polar parts over the finite set of centers. -/
 def meromorphicPolarPartTotal {f : ℂ → ℂ} {S : Finset ℂ}
     (hMero : ∀ s ∈ S, MeromorphicAt f s) (z : ℂ) : ℂ :=
   ∑ s ∈ S.attach, meromorphicPolarPartAt (hMero s.1 s.2) z
 
+/-- Expands the total polar part as the sum over the attached finite set of centers. -/
 theorem meromorphicPolarPartTotal_eq_sum {f : ℂ → ℂ} {S : Finset ℂ}
     (hMero : ∀ s ∈ S, MeromorphicAt f s) (z : ℂ) :
     meromorphicPolarPartTotal hMero z =
@@ -85,6 +116,7 @@ theorem meromorphicPolarPartTotal_eq_sum {f : ℂ → ℂ} {S : Finset ℂ}
   unfold meromorphicPolarPartTotal
   rfl
 
+/-- The sum of polar parts centered at points other than `s` is analytic at `s`. -/
 private theorem otherPolar_analyticAt {f : ℂ → ℂ} {S : Finset ℂ}
     (hMero : ∀ s ∈ S, MeromorphicAt f s) (s : ℂ) :
     AnalyticAt ℂ (fun z => ∑ s' ∈ S.attach.filter (fun s' => s'.1 ≠ s),
@@ -93,6 +125,8 @@ private theorem otherPolar_analyticAt {f : ℂ → ℂ} {S : Finset ℂ}
   exact meromorphicPolarPartAt_analyticAt_of_ne (hMero s'.1 s'.2)
     ((Finset.mem_filter.mp hs').2).symm
 
+/-- Near any selected center, subtracting the total polar part agrees on a punctured
+neighborhood with a function analytic at that center. -/
 private theorem exists_analyticAt_sub_polarPartTotal {f : ℂ → ℂ} {S : Finset ℂ}
     (hMero : ∀ s ∈ S, MeromorphicAt f s) {s : ℂ} (hs : s ∈ S) :
     ∃ g : ℂ → ℂ, AnalyticAt ℂ g s ∧
@@ -120,6 +154,8 @@ private theorem exists_analyticAt_sub_polarPartTotal {f : ℂ → ℂ} {S : Fins
     exact ⟨fun h => Subtype.ext h, fun h => by rw [h]⟩]
   rw [Finset.sum_singleton]
 
+/-- Away from the finite center set, filling the remainder at those centers by punctured limits
+leaves it locally unchanged. -/
 private theorem remainder_eventuallyEq_off {f : ℂ → ℂ} {S : Finset ℂ}
     (hMero : ∀ s ∈ S, MeromorphicAt f s) {z : ℂ} (hz : z ∉ (↑S : Set ℂ)) :
     (fun w => if w ∈ (↑S : Set ℂ) then
@@ -129,6 +165,8 @@ private theorem remainder_eventuallyEq_off {f : ℂ → ℂ} {S : Finset ℂ}
   filter_upwards [(S.finite_toSet.isClosed.isOpen_compl).mem_nhds hz] with w hw
   rw [if_neg hw]
 
+/-- A punctured neighborhood of any complex point eventually avoids every point of a fixed
+finite set. -/
 private theorem eventually_notMem_nhdsNE (S : Finset ℂ) (z : ℂ) :
     ∀ᶠ w in 𝓝[≠] z, w ∉ (↑S : Set ℂ) := by
   have hcl : IsClosed ((↑S \ {z} : Set ℂ)) := (S.finite_toSet.subset diff_subset).isClosed
@@ -136,6 +174,8 @@ private theorem eventually_notMem_nhdsNE (S : Finset ℂ) (z : ℂ) :
     (hcl.isOpen_compl.mem_nhds (by simp)), self_mem_nhdsWithin] with w hwc hwne hwS
   exact hwc ⟨hwS, hwne⟩
 
+/-- The remainder filled at the selected centers by punctured limits is complex differentiable
+at each center. -/
 private theorem remainder_differentiableAt_mem {f : ℂ → ℂ} {S : Finset ℂ}
     (hMero : ∀ s ∈ S, MeromorphicAt f s) {z : ℂ} (hzS : z ∈ (↑S : Set ℂ)) :
     DifferentiableAt ℂ (fun w => if w ∈ (↑S : Set ℂ) then
@@ -165,6 +205,8 @@ private theorem remainder_differentiableAt_mem {f : ℂ → ℂ} {S : Finset ℂ
 
 namespace PolarPartDecomposition
 
+/-- Constructs a polar-part decomposition on an open set from holomorphicity off a finite set
+and meromorphicity at its points. -/
 noncomputable def ofMeromorphic {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ} (hU : IsOpen U)
     (hf : DifferentiableOn ℂ f (U \ (↑S : Set ℂ))) (hMero : ∀ s ∈ S, MeromorphicAt f s) :
     PolarPartDecomposition f S U where
@@ -205,28 +247,38 @@ noncomputable def ofMeromorphic {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ}
 variable {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ} {hU : IsOpen U}
   {hf : DifferentiableOn ℂ f (U \ (↑S : Set ℂ))} {hMero : ∀ s ∈ S, MeromorphicAt f s}
 
+/-- The decomposition constructed by `ofMeromorphic` uses `meromorphicPolarOrderAt` as its polar
+order at each center. -/
 @[simp] theorem ofMeromorphic_order (s : S) :
     (ofMeromorphic hU hf hMero).order s = meromorphicPolarOrderAt f s := by
   unfold ofMeromorphic
   rfl
 
+/-- The coefficients of the decomposition constructed by `ofMeromorphic` agree with
+`meromorphicPolarCoeffAt` after transporting the finite index. -/
 @[simp] theorem ofMeromorphic_coeff (s : S) (k : Fin ((ofMeromorphic hU hf hMero).order s)) :
     (ofMeromorphic hU hf hMero).coeff s k =
       meromorphicPolarCoeffAt (hMero s s.2) (Fin.cast (ofMeromorphic_order s) k) := by
   unfold ofMeromorphic
   rfl
 
+/-- The polar parts of the decomposition constructed by `ofMeromorphic` are the chosen
+meromorphic polar parts. -/
 @[simp] theorem ofMeromorphic_polarPart (s : S) (z : ℂ) :
     (ofMeromorphic hU hf hMero).polarPart s z = meromorphicPolarPartAt (hMero s s.2) z := by
   unfold ofMeromorphic
   rfl
 
+/-- Away from the finite center set, the analytic remainder constructed by `ofMeromorphic`
+equals `f` minus the total polar part. -/
 theorem ofMeromorphic_analyticRemainder {z : ℂ} (hz : z ∉ (↑S : Set ℂ)) :
     (ofMeromorphic hU hf hMero).analyticRemainder z =
       f z - meromorphicPolarPartTotal hMero z := by
   unfold ofMeromorphic
   exact if_neg hz
 
+/-- For a measurable curve with interval-integrable derivative, each polar part times the
+derivative is interval integrable after any positive distance truncation. -/
 theorem intervalIntegrable_polarPart_mul_deriv_truncated (decomp : PolarPartDecomposition f S U)
     (s : S) {γ : ℝ → ℂ} {a b : ℝ} (hγ_meas : Measurable γ)
     (hderiv_int : IntervalIntegrable (fun t => deriv γ t) MeasureTheory.volume a b)

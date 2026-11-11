@@ -10,6 +10,27 @@ import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrict
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
 import Mathlib.RingTheory.Polynomial.Chebyshev
 import Mathlib.Algebra.Polynomial.Roots
+
+/-!
+# Jacobi–Anger polynomial truncation
+
+The polynomials `lcJAA` and `lcJAQt` express truncated Jacobi–Anger responses through Chebyshev
+polynomials and Bessel coefficients. Their parity, degree, and trigonometric evaluation formulas
+yield `jacobiAngerTruncation`, with uniform error at most 4τ^q/(2^q q!) for 0 ≤ τ ≤ q − 1, as in
+[LowChuang2017].
+
+## Main statements
+
+* `lcJAA_even`: The cosine response polynomial is even.
+* `lcJAQt_odd`: The sine response polynomial is odd.
+* `jacobiAngerTruncation`: The truncated polynomial pair satisfies the required parity, degree,
+  and error bounds.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +48,7 @@ open Polynomial
 
 section Helpers
 
+/-- For real φ, exp(iφ) + exp(−iφ) equals 2 cos φ in ℂ. -/
 private theorem lcExpAddCos (φ : ℝ) :
     Complex.exp (Complex.I * ((φ : ℝ) : ℂ)) + Complex.exp (-(Complex.I * ((φ : ℝ) : ℂ)))
       = 2 * ((Real.cos φ : ℝ) : ℂ) := by
@@ -39,6 +61,7 @@ private theorem lcExpAddCos (φ : ℝ) :
   push_cast
   ring
 
+/-- For real φ, exp(−iφ) − exp(iφ) equals −2i sin φ. -/
 private theorem lcExpSubSin (φ : ℝ) :
     Complex.exp (-(Complex.I * ((φ : ℝ) : ℂ))) - Complex.exp (Complex.I * ((φ : ℝ) : ℂ))
       = -(2 * Complex.I * ((Real.sin φ : ℝ) : ℂ)) := by
@@ -51,12 +74,15 @@ private theorem lcExpSubSin (φ : ℝ) :
   push_cast
   ring
 
+/-- Every even natural power of −1 in ℂ equals one. -/
 private theorem lcNegOnePowEven (m : ℕ) : (-1 : ℂ) ^ (2 * m) = 1 := by
   rw [pow_mul, neg_one_pow_two, one_pow]
 
+/-- Every odd natural power of −1 in ℂ equals −1. -/
 private theorem lcNegOnePowOdd (m : ℕ) : (-1 : ℂ) ^ (2 * m + 1) = -1 := by
   rw [pow_add, lcNegOnePowEven, pow_one, one_mul]
 
+/-- The real polynomial 2X² − 1 is unchanged by substituting −X for X. -/
 private theorem lcQ_even :
     ((2 * X ^ 2 - 1 : Polynomial ℝ)).comp (-(X : Polynomial ℝ))
       = (2 * X ^ 2 - 1 : Polynomial ℝ) := by
@@ -65,6 +91,7 @@ private theorem lcQ_even :
     Polynomial.eval_natCast, Polynomial.eval_ofNat, Polynomial.eval_one]
   ring
 
+/-- The natural degree of the real polynomial 2X² − 1 is at most two. -/
 private theorem lcQ_natDegree : (2 * X ^ 2 - 1 : Polynomial ℝ).natDegree ≤ 2 := by
   have hEq : (2 * X ^ 2 - 1 : Polynomial ℝ)
       = (X : Polynomial ℝ) ^ 2 + (X : Polynomial ℝ) ^ 2 - 1 := by ring
@@ -77,12 +104,14 @@ private theorem lcQ_natDegree : (2 * X ^ 2 - 1 : Polynomial ℝ).natDegree ≤ 2
   have h2 : (1 : Polynomial ℝ).natDegree ≤ 2 := by simp
   omega
 
+/-- The Chebyshev polynomial of index 2m composed with 2X² − 1 is even. -/
 private theorem lcTQ_even (m : ℕ) :
     ((Polynomial.Chebyshev.T ℝ ((2 * m : ℕ) : ℤ)).comp (2 * X ^ 2 - 1 : Polynomial ℝ)).comp
         (-(X : Polynomial ℝ))
       = (Polynomial.Chebyshev.T ℝ ((2 * m : ℕ) : ℤ)).comp (2 * X ^ 2 - 1 : Polynomial ℝ) := by
   rw [Polynomial.comp_assoc, lcQ_even]
 
+/-- Split a complex sum over k < q into its even-indexed and odd-indexed terms. -/
 private theorem lcRangeEvenOdd {F : ℕ → ℂ} (q : ℕ) :
     ∑ k ∈ Finset.range q, F k
       = ∑ m ∈ Finset.range ((q + 1) / 2), F (2 * m)
@@ -106,17 +135,22 @@ private theorem lcRangeEvenOdd {F : ℕ → ℂ} (q : ℕ) :
 
 end Helpers
 
+/-- The even Jacobi–Anger truncation polynomial formed from the coefficients 2J₂ₘ(τ) and
+Chebyshev polynomials T₂ₘ(2X² − 1), with J₀(τ) subtracted. -/
 private noncomputable def lcJAA (τ : ℝ) (q : ℕ) : Polynomial ℝ :=
   (∑ m ∈ Finset.range ((q + 1) / 2),
       Polynomial.C (2 * lcBesselJ (2 * m) τ)
         * ((Polynomial.Chebyshev.T ℝ ((2 * m : ℕ) : ℤ)).comp (2 * X ^ 2 - 1)))
     - Polynomial.C (lcBesselJ 0 τ)
 
+/-- The odd Jacobi–Anger truncation polynomial formed by summing −4J₂ₘ₊₁(τ) times XU₂ₘ(2X² − 1)
+over m < q/2. -/
 private noncomputable def lcJAQt (τ : ℝ) (q : ℕ) : Polynomial ℝ :=
   ∑ m ∈ Finset.range (q / 2),
     Polynomial.C (-(4 * lcBesselJ (2 * m + 1) τ))
       * (X * ((Polynomial.Chebyshev.U ℝ ((2 * m : ℕ) : ℤ)).comp (2 * X ^ 2 - 1)))
 
+/-- The polynomial `lcJAA τ q` is even. -/
 private theorem lcJAA_even (τ : ℝ) (q : ℕ) :
     (lcJAA τ q).comp (-(X : Polynomial ℝ)) = lcJAA τ q := by
   rw [lcJAA, Polynomial.sub_comp, Polynomial.sum_comp, Polynomial.C_comp]
@@ -124,6 +158,7 @@ private theorem lcJAA_even (τ : ℝ) (q : ℕ) :
   refine Finset.sum_congr rfl fun m _ => ?_
   rw [Polynomial.mul_comp, Polynomial.C_comp, lcTQ_even]
 
+/-- The polynomial `lcJAQt τ q` is odd. -/
 private theorem lcJAQt_odd (τ : ℝ) (q : ℕ) :
     (lcJAQt τ q).comp (-(X : Polynomial ℝ)) = -(lcJAQt τ q) := by
   rw [lcJAQt, Polynomial.sum_comp, ← Finset.sum_neg_distrib]
@@ -131,6 +166,7 @@ private theorem lcJAQt_odd (τ : ℝ) (q : ℕ) :
   rw [Polynomial.mul_comp, Polynomial.C_comp, Polynomial.mul_comp, Polynomial.X_comp,
     Polynomial.comp_assoc, lcQ_even, neg_mul, mul_neg]
 
+/-- The degree of `lcJAA τ q` is at most 2(q − 1), with subtraction taken in ℕ. -/
 private theorem lcJAA_degree (τ : ℝ) (q : ℕ) :
     (lcJAA τ q).degree ≤ ((2 * (q - 1) : ℕ) : WithBot ℕ) := by
   rw [lcJAA]
@@ -162,6 +198,7 @@ private theorem lcJAA_degree (τ : ℝ) (q : ℕ) :
       Polynomial.degree_C_le
     exact le_trans h0 (by exact_mod_cast (by omega : (0 : ℕ) ≤ 2 * (q - 1)))
 
+/-- The degree of `lcJAQt τ q` is strictly below 2(q − 1), with subtraction taken in ℕ. -/
 private theorem lcJAQt_degree (τ : ℝ) (q : ℕ) :
     (lcJAQt τ q).degree < ((2 * (q - 1) : ℕ) : WithBot ℕ) := by
   rcases le_or_gt q 1 with hq | hq
@@ -204,6 +241,8 @@ private theorem lcJAQt_degree (τ : ℝ) (q : ℕ) :
     refine lt_of_le_of_lt (le_trans (Polynomial.degree_sum_le _ _) hsup) ?_
     exact_mod_cast (by omega : 2 * q - 3 < 2 * (q - 1))
 
+/-- Evaluating `lcJAA τ q` at cos(θ/2) gives the finite sum of 2J₂ₘ(τ) cos(2mθ), with J₀(τ)
+subtracted. -/
 private theorem lcJAA_eval (τ : ℝ) (q : ℕ) (θ : ℝ) :
     (lcJAA τ q).eval (Real.cos (θ / 2))
       = (∑ m ∈ Finset.range ((q + 1) / 2),
@@ -225,6 +264,8 @@ private theorem lcJAA_eval (τ : ℝ) (q : ℕ) (θ : ℝ) :
   push_cast
   ring
 
+/-- Multiplying the value of `lcJAQt τ q` at cos(θ/2) by sin(θ/2) gives the finite sum of
+−2J₂ₘ₊₁(τ) sin((2m + 1)θ). -/
 private theorem lcJAQt_sinmul_eval (τ : ℝ) (q : ℕ) (θ : ℝ) :
     Real.sin (θ / 2) * (lcJAQt τ q).eval (Real.cos (θ / 2))
       = ∑ m ∈ Finset.range (q / 2),
@@ -251,11 +292,14 @@ private theorem lcJAQt_sinmul_eval (τ : ℝ) (q : ℕ) (θ : ℝ) :
   rw [← hU]
   ring
 
+/-- For real φ, exp(−iφ) + exp(iφ) equals 2 cos φ in ℂ. -/
 private theorem lcExpCosPair (φ : ℝ) :
     Complex.exp (-(Complex.I * ((φ : ℝ) : ℂ))) + Complex.exp (Complex.I * ((φ : ℝ) : ℂ))
       = 2 * ((Real.cos φ : ℝ) : ℂ) := by
   rw [add_comm, lcExpAddCos]
 
+/-- For q ≥ 1, the complex response formed from `lcJAA` and `lcJAQt` equals the sum of the
+positive and negative Jacobi–Anger terms with indices below q, counting the zero term once. -/
 private theorem lcAmp_eq (τ : ℝ) (q : ℕ) (hq : 1 ≤ q) (θ : ℝ) :
     Complex.ofReal ((lcJAA τ q).eval (Real.cos (θ / 2)))
       + Complex.I * ((Real.sin (θ / 2) : ℝ) : ℂ)
@@ -346,6 +390,10 @@ private theorem lcAmp_eq (τ : ℝ) (q : ℕ) (hq : 1 ≤ q) (θ : ℝ) :
     mul_assoc, ← Complex.ofReal_mul, lcJAA_eval, lcJAQt_sinmul_eval,
     Complex.ofReal_sub, Complex.ofReal_sum, hR, hR']
 
+/-- For q ≥ 1 and 0 ≤ τ ≤ q − 1, there are even and odd real polynomials with degrees
+respectively at most and strictly below 2(q − 1) whose trigonometric response approximates
+exp(−iτ sin θ) within 4τ^q/(2^q q!). This is the truncation guarantee associated with [Low
+and Chuang, Eqs. (16)–(17)][LowChuang2017]. -/
 theorem jacobiAngerTruncation : JacobiAngerTruncation := by
   intro q τ hq hτ0 hτle
   refine ⟨lcJAA τ q, lcJAQt τ q, lcJAA_even τ q, lcJAQt_odd τ q,

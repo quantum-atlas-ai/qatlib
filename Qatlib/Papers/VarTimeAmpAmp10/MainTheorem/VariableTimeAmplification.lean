@@ -8,6 +8,30 @@ import Qatlib.Papers.VarTimeAmpAmp10.MainTheorem.VariableTimeAmplificationDefs
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverLowerBoundInstance
 import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.LowerBoundModels
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Overlap products and variable-time amplification bounds
+
+This module derives overlap identities, gain-product estimates, and stage-time bounds for the
+variable-time amplification analysis of [Ambainis2012]. The structure `VtOverlapChain` records
+the overlap recurrence and endpoint identities; these yield the Lemma 3 product bound and the
+equation (5) and (6) time estimates.
+
+The module also relates the Grover hard-family norm to `groverRatio` and selects a dimension
+whose ratio is comparable to a prescribed probability.
+
+## Main statements
+
+* `lemma3_product_bound`: Bound the remaining gain product using remaining stopping mass and
+  success probability.
+* `eq5_eq6_time_bounds`: Obtain both stagewise and unrolled time bounds.
+* `clause63_endpoint`: Combine the hard-family norm identities and dimension-selection estimate.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound
 open Qatlib.Concepts.BlockEncoding.Postselection
@@ -26,6 +50,8 @@ open Matrix Qatlib
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- A variable-time stage chain equipped with real overlaps satisfying a multiplicative step
+recurrence and specified initial and final overlap identities. -/
 structure VtOverlapChain (m : ℕ) where
 
   chain : VtStageChain m
@@ -44,6 +70,8 @@ structure VtOverlapChain (m : ℕ) where
   last : ∀ i, 1 ≤ i → i ≤ m →
     overlap i m = (chain.stage m).ampWeight * (chain.psuccUpTo i / chain.psucc)
 
+/-- For `1 ≤ i ≤ j ≤ m`, the overlap from `i` to `j` equals its initial overlap times the
+product of the intervening amplified-to-base weight ratios. -/
 theorem VtOverlapChain.overlap_unroll {m : ℕ} (oc : VtOverlapChain m) {i : ℕ}
     (h1 : 1 ≤ i) (h2 : i ≤ m) :
     ∀ j : ℕ, i ≤ j → j ≤ m →
@@ -70,6 +98,7 @@ theorem VtOverlapChain.overlap_unroll {m : ℕ} (oc : VtOverlapChain m) {i : ℕ
       rw [hprod]
       ring
 
+/-- Every initial overlap with index between one and `m` is strictly positive. -/
 theorem VtOverlapChain.head_pos {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) {i : ℕ}
     (h1 : 1 ≤ i) (h2 : i ≤ m) : 0 < oc.overlap i i := by
   have hamp : 0 < (oc.chain.stage i).ampWeight := by
@@ -96,6 +125,8 @@ theorem VtOverlapChain.head_pos {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m)
     div_pos hsucc hden
   exact mul_pos hamp hdiv
 
+/-- For `1 ≤ i ≤ m`, the product of amplified-to-base weight ratios after stage `i` equals the
+final overlap divided by the initial overlap. -/
 theorem VtOverlapChain.prod_eq_overlap_ratio {m : ℕ} (oc : VtOverlapChain m)
     (hm : 1 ≤ m) {i : ℕ} (h1 : 1 ≤ i) (h2 : i ≤ m) :
     (∏ k ∈ Finset.Ico (i + 1) (m + 1),
@@ -108,6 +139,9 @@ theorem VtOverlapChain.prod_eq_overlap_ratio {m : ℕ} (oc : VtOverlapChain m)
   rw [hunroll]
   ring
 
+/-- For `1 ≤ i ≤ m`, the final-to-initial overlap ratio factors into the final-to-stage
+amplified weight ratio and the ratio of accumulated success plus remaining stopping mass to
+total success. -/
 theorem VtOverlapChain.overlap_ratio_identity {m : ℕ} (oc : VtOverlapChain m)
     {i : ℕ} (h1 : 1 ≤ i) (h2 : i ≤ m) :
     oc.overlap i m / oc.overlap i i
@@ -139,6 +173,8 @@ theorem VtOverlapChain.overlap_ratio_identity {m : ℕ} (oc : VtOverlapChain m)
   rw [oc.last i h1 h2, oc.head i h1 h2]
   field_simp
 
+/-- For `1 ≤ i ≤ m`, the gain-ratio product after stage `i` is at most `3 * (1 +
+√(remainingStopMass / psucc))`, as in Lemma 3 of [Ambainis2012]. -/
 theorem lemma3_product_bound {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) {i : ℕ}
     (h1 : 1 ≤ i) (h2 : i ≤ m) :
     gainRatioProduct (fun j => (oc.chain.stage j).ampWeight)
@@ -309,6 +345,8 @@ theorem lemma3_product_bound {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) {i
       = lemma3Rhs (remainingStopMass m oc.chain.stopMass i) oc.chain.psucc := rfl
   exact hfinal.trans_eq hgoal
 
+/-- For `1 ≤ i ≤ m`, the gain product starting at `i` factors into the gain at `i` and the
+product starting at `i + 1`. -/
 theorem lemma3_product_bound_with_stage_gain {m : ℕ} (oc : VtOverlapChain m)
     (hm : 1 ≤ m) {i : ℕ} (h1 : 1 ≤ i) (h2 : i ≤ m) :
     gainRatioProduct (fun j => (oc.chain.stage j).ampWeight)
@@ -319,6 +357,8 @@ theorem lemma3_product_bound_with_stage_gain {m : ℕ} (oc : VtOverlapChain m)
   clause89_prod_peel (fun j => (oc.chain.stage j).ampWeight)
     (fun j => (oc.chain.stage j).baseWeight) i (m + 1) (by omega)
 
+/-- For a nonempty stage chain, establish the stagewise equation (5) time inequalities and the
+unrolled equation (6) bound with overhead `(1 + 1 / (3m - 1)) ^ m`. [Ambainis2012] -/
 theorem eq5_eq6_time_bounds {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) :
     (∀ i : ℕ, 1 ≤ i → i ≤ m →
       chain.time i ≤ eq5StageTimeBound m (chain.stage i).ampWeight
@@ -343,6 +383,8 @@ theorem eq5_eq6_time_bounds {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) :
   refine ⟨h.1, ?_⟩
   exact h.2
 
+/-- The product-weighted time sum in equation (6) is at most the sum of `3 * gainRatio` times `1
++ √(remainingStopMass / psucc)` and the corresponding dyadic stage cost. [Ambainis2012] -/
 theorem eq6_product_sum_le {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) :
     eq6ProductSum (fun j => (oc.chain.stage j).ampWeight)
       (fun j => (oc.chain.stage j).baseWeight) m
@@ -390,6 +432,8 @@ theorem eq6_product_sum_le {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) :
           (1 + Real.sqrt (remainingStopMass m oc.chain.stopMass i / oc.chain.psucc)) *
           (2 : ℝ) ^ ((i : ℕ) - 1)) := by rw [hrhs]; ring
 
+/-- Package the stagewise equation (5) inequalities and the unrolled equation (6) time estimate
+for a nonempty variable-time stage chain. [Ambainis2012] -/
 theorem clause89_endpoint {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) :
     (∀ i : ℕ, 1 ≤ i → i ≤ m →
       chain.time i ≤ eq5StageTimeBound m (chain.stage i).ampWeight
@@ -401,6 +445,8 @@ theorem clause89_endpoint {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) :
           (fun j => (chain.stage j).baseWeight) m) :=
   eq5_eq6_time_bounds chain hm
 
+/-- For an overlap chain and `1 ≤ i ≤ m`, the remaining gain product satisfies the Lemma 3 bound
+in terms of remaining stopping mass and total success. [Ambainis2012] -/
 theorem clause68_endpoint {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) {i : ℕ}
     (h1 : 1 ≤ i) (h2 : i ≤ m) :
     gainRatioProduct (fun j => (oc.chain.stage j).ampWeight)
@@ -408,6 +454,9 @@ theorem clause68_endpoint {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) {i : 
       ≤ lemma3Rhs (remainingStopMass m oc.chain.stopMass i) oc.chain.psucc :=
   lemma3_product_bound oc hm h1 h2
 
+/-- For a nonempty overlap chain, bound the final time by the overhead factor times the sum of
+the initial-time gain product and the explicit stopping-mass-weighted dyadic sum.
+[Ambainis2012] -/
 theorem clause64_endpoint {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) :
     oc.chain.time m ≤ (1 + 1 / (3 * (m : ℝ) - 1)) ^ m *
         (gainRatioProduct (fun j => (oc.chain.stage j).ampWeight)
@@ -440,6 +489,7 @@ theorem clause64_endpoint {m : ℕ} (oc : VtOverlapChain m) (hm : 1 ≤ m) :
         have hbase : 1 ≤ 1 + 1 / (3 * (m : ℝ) - 1) := by linarith
         positivity
 
+/-- The hard-family squared-norm expression in dimension `d` equals `d * groverRatio d`. -/
 theorem hard_family_norm_ratio_identity (d : ℕ) :
     hardFamilySolutionNormSq d = (d : ℝ) * groverRatio d := by
   rcases Nat.eq_zero_or_pos d with rfl | hd
@@ -447,6 +497,8 @@ theorem hard_family_norm_ratio_identity (d : ℕ) :
   · unfold hardFamilySolutionNormSq groverRatio
     field_simp
 
+/-- The hard-family squared-norm expression at the cardinality of a finite nonempty type equals
+the squared norm of the Grover-inverse target for any marked index. -/
 theorem hard_family_actual_norm {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (x : I) :
     hardFamilySolutionNormSq (Fintype.card I)
@@ -454,6 +506,7 @@ theorem hard_family_actual_norm {I : Type} [Fintype I] [DecidableEq I] [Nonempty
   have h := grover_solution_norm_sq x
   simpa [hardFamilySolutionNormSq] using! h.symm
 
+/-- For each `0 < p < 1`, there is a dimension `d ≥ 150` with `p / 38 ≤ groverRatio d ≤ 5 * p`. -/
 theorem hard_family_dimension_selection (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
     ∃ d : ℕ, 150 ≤ d ∧ p / 38 ≤ groverRatio d ∧ groverRatio d ≤ 5 * p := by
   have hceil_le : (1 / p : ℝ) ≤ Nat.ceil (1 / p) := Nat.le_ceil _
@@ -504,6 +557,9 @@ theorem hard_family_dimension_selection (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
       nlinarith [hdp1]
     linarith [hbounds.2]
 
+/-- Combine the hard-family norm-to-ratio identity, its realization as the squared norm of the
+Grover-inverse target, and dimension selection with `d ≥ 150` and ratio between `p / 38` and
+`5 * p` for every `0 < p < 1`. -/
 theorem clause63_endpoint :
     (∀ d : ℕ, hardFamilySolutionNormSq d = (d : ℝ) * groverRatio d) ∧
     (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I] (x : I),

@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleShadows
 import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+
+/-!
+# Biased single-qubit Pauli shadows
+
+This module computes the measurement map for a nonuniform distribution of Pauli axes and
+constructs its inverse `pauliInverseMap` when every axis has positive probability. The resulting
+`biasedPauliSnapshot` specializes the classical-shadow reconstruction framework of
+[HuangKuengPreskill2020].
+
+The Pauli Z statistic is unbiased and has second moment equal to the reciprocal Z-axis
+probability. The module also relates these snapshots to measurement-program leaves and combines
+their variance bounds with finite-record resource counts.
+
+## Main statements
+
+* `pauliInverseMap_inverse`: the explicit inverse is both a left and a right inverse.
+* `biased_pauli_inverse_and_real_consumer`: snapshot reconstruction and the exact Pauli Z
+  variance.
+* `biased_pauli_z_actual_variance_six_consumer`: the chosen biased distribution gives variance
+  six on the maximally mixed state.
+* `biased_pauli_variance_six_and_actual_work`: variance, moment-effect control, and fresh-record
+  resource counts.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,23 +55,31 @@ set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The ensemble projector for a Pauli basis is the corresponding signed Pauli projector, with
+outcome 0 selecting the positive sign. -/
 theorem ensembleProjector_pauliBasis (a : Fin 3) (b : Fin 2) :
     ensembleProjector pauliBasisMatrix (a, b) = PauliProjector a (decide (b = 0)) := by
   fin_cases b
   · exact axis_leaf_operator a true
   · exact axis_leaf_operator a false
 
+/-- Every two-dimensional complex operator expands in the identity and the three Pauli matrices,
+with coefficients given by their trace pairings. -/
 theorem pauli_expansion (B : Operator 2) :
     B = (1 / 2 : ℂ) • (Matrix.trace B • (1 : Operator 2)
       + ∑ a : Fin 3, Matrix.trace (pauliMatrix a * B) • pauliMatrix a) := by
   simpa only [Qatlib.Concepts.GateVocabulary.GateVocab.pauliAxis_legacy] using
       Qatlib.Concepts.GateVocabulary.GateVocab.pauli_axis_expansion B
 
+/-- The difference between the positive and negative projectors of a Pauli axis is its Pauli
+matrix. -/
 theorem pauliProjector_sub (a : Fin 3) :
     PauliProjector a true - PauliProjector a false = pauliMatrix a := by
   simp only [PauliProjector, if_true, Bool.false_eq_true, if_false]
   module
 
+/-- The sum of the two trace-weighted projectors for one Pauli axis equals half the identity
+trace component plus half the corresponding Pauli component. -/
 theorem ensembleProjector_sum_pauli (a : Fin 3) (B : Operator 2) :
     ∑ b : Fin 2, Matrix.trace (ensembleProjector pauliBasisMatrix (a, b) * B)
         • ensembleProjector pauliBasisMatrix (a, b)
@@ -71,8 +107,11 @@ theorem ensembleProjector_sum_pauli (a : Fin 3) (B : Operator 2) :
 
 local instance : HMul ℂ (Operator 2) (Operator 2) := ⟨fun c M => c • M⟩
 
+/-- Multiplication of an operator by a complex scalar agrees with complex scalar multiplication. -/
 theorem complex_mul_operator (c : ℂ) (M : Operator 2) : c * M = c • M := rfl
 
+/-- The biased Pauli measurement map preserves the identity trace component and weights each
+Pauli trace component by its axis probability. -/
 theorem ensembleMeasurementMap_pauli (p : FinDist (Fin 3)) (B : Operator 2) :
     ensembleMeasurementMap p pauliBasisMatrix B
       = ((1 / 2 : ℂ) * Matrix.trace B) • (1 : Operator 2)
@@ -105,6 +144,8 @@ theorem ensembleMeasurementMap_pauli (p : FinDist (Fin 3)) (B : Operator 2) :
       rw [← Finset.sum_mul, ← Finset.sum_div, ← Complex.ofReal_sum, p.sum_one]
       norm_num]
 
+/-- Each Pauli matrix is an eigenvector of the biased measurement map with eigenvalue equal to
+the probability of its axis. -/
 theorem ensembleMeasurementMap_pauliMatrix (p : FinDist (Fin 3)) (c : Fin 3) :
     ensembleMeasurementMap p pauliBasisMatrix (pauliMatrix c)
       = (p.prob c : ℂ) • pauliMatrix c := by
@@ -118,12 +159,16 @@ theorem ensembleMeasurementMap_pauliMatrix (p : FinDist (Fin 3)) (c : Fin 3) :
   · intro hc
     exact absurd (Finset.mem_univ c) hc
 
+/-- The inverse reconstruction map for positive Pauli-axis probabilities, obtained by dividing
+each Pauli trace coefficient by its axis probability. -/
 noncomputable def pauliInverseMap (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a) :
     Operator 2 → Operator 2 :=
   fun B => (1 / 2 : ℂ) • (Matrix.trace B • (1 : Operator 2)
     + ∑ a : Fin 3, ((p.prob a : ℂ)⁻¹ * Matrix.trace (pauliMatrix a * B))
         • pauliMatrix a)
 
+/-- The trace pairing with a Pauli matrix is scaled by its axis probability under the biased
+measurement map. -/
 theorem ensembleMeasurementMap_pauli_apply_pauli (p : FinDist (Fin 3)) (c : Fin 3)
     (B : Operator 2) :
     Matrix.trace (pauliMatrix c * ensembleMeasurementMap p pauliBasisMatrix B)
@@ -132,10 +177,13 @@ theorem ensembleMeasurementMap_pauli_apply_pauli (p : FinDist (Fin 3)) (c : Fin 
   rw [ensembleMeasurementMap_pauliMatrix, Matrix.smul_mul, Matrix.trace_smul] at h
   exact h
 
+/-- The identity operator on a two-dimensional space has trace two. -/
 theorem trace_one_fin_two : Matrix.trace (1 : Operator 2) = 2 := by
   rw [Matrix.trace_fin_two]
   norm_num
 
+/-- For strictly positive axis probabilities, `pauliInverseMap` is both a left and a right
+inverse of the biased Pauli measurement map. -/
 theorem pauliInverseMap_inverse (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a) :
     Function.LeftInverse (pauliInverseMap p hp) (ensembleMeasurementMap p pauliBasisMatrix) ∧
       Function.RightInverse (pauliInverseMap p hp)
@@ -235,11 +283,15 @@ theorem pauliInverseMap_inverse (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
         Finset.sum_congr rfl fun a _ => smul_smul _ _ _]
     rw [hsumσ, Finset.sum_congr rfl fun a _ => hcancel a, hcombine, ← pauli_expansion B]
 
+/-- The single-qubit snapshot for a measured Pauli axis and Boolean outcome, with its signed
+Pauli component rescaled by the reciprocal axis probability. -/
 noncomputable def biasedPauliSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (o : Fin 3 × Bool) : Operator 2 :=
   (1 / 2 : ℂ) • (1 : Operator 2)
     + ((if o.2 then 1 else -1 : ℂ) / (2 * (p.prob o.1 : ℂ))) • pauliMatrix o.1
 
+/-- A biased Pauli snapshot is half the identity plus the signed Pauli matrix divided by twice
+its axis probability. -/
 theorem biasedPauliSnapshot_eq (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (a : Fin 3) (b : Bool) :
     biasedPauliSnapshot p hp (a, b)
@@ -247,6 +299,7 @@ theorem biasedPauliSnapshot_eq (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
         + ((if b then 1 else -1 : ℂ) / (2 * (p.prob a : ℂ))) • pauliMatrix a :=
   rfl
 
+/-- Every biased Pauli snapshot has trace one. -/
 theorem trace_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (a : Fin 3) (b : Bool) :
     Matrix.trace (biasedPauliSnapshot p hp (a, b)) = 1 := by
@@ -254,6 +307,8 @@ theorem trace_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     Matrix.trace_smul, trace_pauliMatrix, smul_zero, add_zero, smul_eq_mul]
   norm_num
 
+/-- A Pauli trace pairing with a biased snapshot vanishes for different axes and equals the
+signed reciprocal axis probability for matching axes. -/
 theorem trace_pauliMatrix_mul_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (c a : Fin 3) (b : Bool) :
     Matrix.trace (pauliMatrix c * biasedPauliSnapshot p hp (a, b))
@@ -268,6 +323,8 @@ theorem trace_pauliMatrix_mul_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 
     field_simp
   · rw [if_neg h, smul_zero, if_neg h]
 
+/-- Applying the biased measurement map to a biased Pauli snapshot recovers its signed Pauli
+projector. -/
 theorem ensembleMeasurementMap_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (a : Fin 3) (b : Bool) :
     ensembleMeasurementMap p pauliBasisMatrix (biasedPauliSnapshot p hp (a, b))
@@ -288,6 +345,8 @@ theorem ensembleMeasurementMap_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a,
   · intro ha
     exact absurd (Finset.mem_univ a) ha
 
+/-- The real Pauli Z snapshot statistic is zero off the Z axis and otherwise equals the outcome
+sign divided by the Z-axis probability. -/
 theorem biased_pauli_statistic_value (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (o : Fin 3 × Fin 2) :
     (Matrix.trace (pauliZ * biasedPauliSnapshot p hp (o.1, decide (o.2 = 0)))).re
@@ -307,11 +366,15 @@ theorem biased_pauli_statistic_value (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.pr
   · rw [if_neg (Ne.symm h), if_neg h]
     rfl
 
+/-- The difference of the two signed Pauli-projector trace pairings equals the trace pairing
+with the Pauli matrix. -/
 theorem pauliProjector_tr_sub (a : Fin 3) (ρ : Operator 2) :
     Matrix.trace (PauliProjector a true * ρ) - Matrix.trace (PauliProjector a false * ρ)
       = Matrix.trace (pauliMatrix a * ρ) := by
   rw [← Matrix.trace_sub, ← Matrix.sub_mul, pauliProjector_sub]
 
+/-- The sum of the two signed Pauli-projector trace pairings equals the trace of the input
+operator. -/
 theorem pauliProjector_tr_add (a : Fin 3) (ρ : Operator 2) :
     Matrix.trace (PauliProjector a true * ρ) + Matrix.trace (PauliProjector a false * ρ)
       = Matrix.trace ρ := by
@@ -320,6 +383,8 @@ theorem pauliProjector_tr_add (a : Fin 3) (ρ : Operator 2) :
       rw [add_comm, ← sum_bool, ← pauliProjector_sum a],
     Matrix.one_mul]
 
+/-- For a density operator, the Pauli Z snapshot statistic has mean equal to the Pauli Z
+expectation and second moment equal to the reciprocal Z-axis probability. -/
 theorem biased_pauli_z_moments (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     (ensembleRecordLaw p pauliBasisMatrix pauliBasisMatrix_unitary ρ hρ).expect
@@ -411,6 +476,10 @@ theorem biased_pauli_z_moments (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     · intro h2
       exact absurd (Finset.mem_univ 2) h2
 
+/-- Strictly positive axis probabilities give a bijective Pauli measurement map and identify its
+ensemble snapshots with the explicit biased formula. The Pauli Z statistic has variance
+equal to the reciprocal Z-axis probability minus its squared mean, providing an explicit
+classical-shadow instance of [HuangKuengPreskill2020]. -/
 theorem biased_pauli_inverse_and_real_consumer (p : FinDist (Fin 3))
     (hp : ∀ a, 0 < p.prob a) :
     Function.Bijective (ensembleMeasurementMap p pauliBasisMatrix) ∧
@@ -441,6 +510,8 @@ theorem biased_pauli_inverse_and_real_consumer (p : FinDist (Fin 3))
       (fun o => (Matrix.trace (pauliZ
         * biasedPauliSnapshot p hp (o.1, decide (o.2 = 0)))).re), hsecond, hmean]
 
+/-- The Pauli-axis distribution assigning probabilities 1/2, 1/3, and 1/6 to axes 0, 1, and 2,
+respectively. -/
 noncomputable def biasedPauliAxisWeights : FinDist (Fin 3) where
   prob a := if a = 0 then 1 / 2 else if a = 1 then 1 / 3 else 1 / 6
   nonneg a := by
@@ -449,15 +520,21 @@ noncomputable def biasedPauliAxisWeights : FinDist (Fin 3) where
     simp [Fin.sum_univ_three]
     norm_num
 
+/-- The chosen biased Pauli-axis probabilities are 1/2 at axis 0, 1/3 at axis 1, and 1/6 at axis
+2. -/
 theorem biasedPauliAxisWeights_prob (a : Fin 3) :
     biasedPauliAxisWeights.prob a
       = if a = 0 then 1 / 2 else if a = 1 then 1 / 3 else 1 / 6 := rfl
 
+/-- Every axis has strictly positive probability under `biasedPauliAxisWeights`. -/
 theorem biasedPauliAxisWeights_pos : ∀ a, 0 < biasedPauliAxisWeights.prob a := by
   intro a
   rw [biasedPauliAxisWeights_prob]
   by_cases h0 : a = 0 <;> by_cases h1 : a = 1 <;> simp [h0, h1]
 
+/-- The axis probabilities are 1/2, 1/3, and 1/6, and the Pauli Z snapshot statistic has
+variance six on the maximally mixed qubit state. This is an explicit variance computation in
+the classical-shadow framework of [HuangKuengPreskill2020]. -/
 theorem biased_pauli_z_actual_variance_six_consumer :
     biasedPauliAxisWeights.prob 0 = 1 / 2 ∧ biasedPauliAxisWeights.prob 1 = 1 / 3 ∧
       biasedPauliAxisWeights.prob 2 = 1 / 6 ∧
@@ -480,6 +557,8 @@ theorem biased_pauli_z_actual_variance_six_consumer :
   rw [hvar, hw, htrZ, Complex.zero_re, zero_pow (by norm_num), sub_zero]
   norm_num
 
+/-- For any sequence of Pauli axes, the fresh-resource count is `(m, 2 * m, m, 0)`, and each
+signed observed leaf equals the corresponding ensemble projector. -/
 theorem biased_pauli_fresh_records_are_ensemble_leaves (m : ℕ) (axes : Fin m → Fin 3) :
     pauliFreshResourceCounts axes = (m, 2 * m, m, 0) ∧
       ∀ i : Fin m, ∀ b : Bool,
@@ -490,6 +569,8 @@ theorem biased_pauli_fresh_records_are_ensemble_leaves (m : ℕ) (axes : Fin m �
   rw [(pauli_axis_actual_leaf (axes i) b).1, ensembleProjector_pauliBasis]
   cases b <;> rfl
 
+/-- For a density operator, the variance of the real Pauli Z snapshot statistic is bounded by
+the norm of its ensemble moment effect. -/
 theorem biased_pauli_variance_le_effect (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
     (hM : Function.Bijective (ensembleMeasurementMap p pauliBasisMatrix)) (ρ : Operator 2)
     (hρ : IsDensityOperator ρ) :
@@ -515,6 +596,9 @@ theorem biased_pauli_variance_le_effect (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p
   rw [hfun] at hG4
   exact hG4
 
+/-- On the maximally mixed qubit state, the chosen biased ensemble has Pauli Z statistic
+variance six, bounded by the moment-effect norm. Any record sequence of length `m` has
+fresh-resource count `(m, 2 * m, m, 0)`. -/
 theorem biased_pauli_variance_six_and_actual_work (ρ : Operator 2)
     (hρ : IsDensityOperator ρ) (hmix : ρ = (1/2 : ℂ) • (1 : Operator 2))
     {m : ℕ} (ω : Fin m → Fin 3 × Fin 2) :

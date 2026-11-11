@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+
+/-!
+# Average score of the multiple-template measurement
+
+Defines the seed score matrix `wZero`, the constant measurement vector `muZero`, and its outer
+product `muProjector` for the multiple-template construction of [SasakiCarliniJozsa2001].
+Entry-sum identities reduce the trace pairing with this effect to a scalar expression.
+
+The theorem `maximumAverageScore` evaluates the resulting score as one half plus a finite sum of
+adjacent overlaps. Its statement computes this score for positive `M`.
+
+## Main statements
+
+* `trace_mul_muProjector`: reduces a trace pairing to `M⁻¹` times the sum of matrix entries.
+* `maximumAverageScore`: evaluates the score of the specified measurement effect.
+
+## References
+
+* [Sasaki et al., 2001][SasakiCarliniJozsa2001]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate
@@ -17,21 +38,27 @@ set_option autoImplicit false
 
 variable {d : ℕ}
 
+/-- The sum of all entries of a finite-dimensional operator. -/
 noncomputable def entrySum (A : Operator d) : ℂ := ∑ i : Fin d, ∑ j : Fin d, A i j
 
+/-- The sum of the entries of the zero operator is zero. -/
 lemma entrySum_zero : entrySum (0 : Operator d) = 0 := by
   simp [entrySum]
 
+/-- The sum of matrix entries is additive. -/
 lemma entrySum_add (A B : Operator d) : entrySum (A + B) = entrySum A + entrySum B := by
   simp only [entrySum, Matrix.add_apply, Finset.sum_add_distrib]
 
+/-- Taking the sum of matrix entries commutes with complex scalar multiplication. -/
 lemma entrySum_smul (c : ℂ) (A : Operator d) : entrySum (c • A) = c * entrySum A := by
   simp only [entrySum, Matrix.smul_apply, smul_eq_mul, Finset.mul_sum]
 
+/-- The sum of the entries of the identity operator is its dimension. -/
 lemma entrySum_one : entrySum (1 : Operator d) = (d : ℂ) := by
   simp only [entrySum, Matrix.one_apply]
   simp
 
+/-- The sum of the entries of a single-entry matrix is its specified entry. -/
 lemma entrySum_single (i j : Fin d) (c : ℂ) : entrySum (Matrix.single i j c) = c := by
   simp only [entrySum, Matrix.single_apply]
   have hrow : ∀ a : Fin d,
@@ -49,6 +76,7 @@ lemma entrySum_single (i j : Fin d) (c : ℂ) : entrySum (Matrix.single i j c) =
     rw [if_neg (show ¬ (i = a) from fun h => ha h.symm)]
   · intro hi; exact absurd (Finset.mem_univ i) hi
 
+/-- The entry sum of a finite sum of operators equals the sum of their entry sums. -/
 lemma entrySum_finset_sum {ι : Type*} (s : Finset ι) (f : ι → Operator d) :
     entrySum (∑ i ∈ s, f i) = ∑ i ∈ s, entrySum (f i) := by
   classical
@@ -57,9 +85,13 @@ lemma entrySum_finset_sum {ι : Type*} (s : Finset ι) (f : ι → Operator d) :
   · intro a s ha ih
     rw [Finset.sum_insert ha, Finset.sum_insert ha, entrySum_add, ih]
 
+/-- The adjacent overlap coefficient `√((N - k) * (k + 1))`, with the product formed in the
+natural numbers. -/
 noncomputable def overlap (N : ℕ) (k : Fin N) : ℝ :=
   Real.sqrt (((N - (k : ℕ)) * ((k : ℕ) + 1) : ℕ) : ℝ)
 
+/-- The seed score operator with a scaled identity term and symmetric adjacent entries weighted
+by `overlap`. -/
 noncomputable def wZero (N : ℕ) : Operator (N+1) :=
   ((2*((N:ℝ)+1) : ℝ)⁻¹ : ℂ) • (1 : Operator (N+1)) +
   ((2*((N:ℝ)+1)*((N:ℝ)+2) : ℝ)⁻¹ : ℂ) •
@@ -68,6 +100,8 @@ noncomputable def wZero (N : ℕ) : Operator (N+1) :=
         (Matrix.single (Fin.castSucc k) (Fin.succ k) 1 +
          Matrix.single (Fin.succ k) (Fin.castSucc k) 1))
 
+/-- Evaluates the sum of all entries of `wZero` as the identity contribution plus twice the
+scaled sum of adjacent overlaps. See [SasakiCarliniJozsa2001]. -/
 lemma entrySum_wZero (N : ℕ) :
     entrySum (wZero N)
       = (((N:ℝ)+1) * (2*((N:ℝ)+1))⁻¹ +
@@ -85,13 +119,17 @@ lemma entrySum_wZero (N : ℕ) :
   push_cast
   ring
 
+/-- The complex cast of the inverse real square root of the number of templates. -/
 noncomputable def muZeroAmp (M : ℕ) : ℂ := ((Real.sqrt (M:ℝ))⁻¹ : ℝ)
 
+/-- The vector in dimension `N + 1` with every coordinate equal to `muZeroAmp M`. -/
 noncomputable def muZero (N M : ℕ) : Fin (N+1) → ℂ := fun _ => muZeroAmp M
 
+/-- The outer product of the constant vector `muZero` with its conjugate. -/
 noncomputable def muProjector (N M : ℕ) : Operator (N+1) :=
   Matrix.vecMulVec (muZero N M) (star (muZero N M))
 
+/-- For nonzero `M`, the squared modulus of `muZeroAmp M` is `M⁻¹`. -/
 lemma muZeroAmp_mul_star (M : ℕ) (hM : (M:ℝ) ≠ 0) :
     muZeroAmp M * star (muZeroAmp M) = ((M:ℂ))⁻¹ := by
   have hnn : (0:ℝ) ≤ (M:ℝ) := Nat.cast_nonneg M
@@ -110,6 +148,8 @@ lemma muZeroAmp_mul_star (M : ℕ) (hM : (M:ℝ) ≠ 0) :
   push_cast
   rfl
 
+/-- For nonzero `M`, the trace of `A * muProjector N M` is `M⁻¹` times the sum of the entries of
+`A`. -/
 lemma trace_mul_muProjector (N M : ℕ) (hM : (M:ℝ) ≠ 0) (A : Operator (N+1)) :
     Matrix.trace (A * muProjector N M) = ((M:ℂ))⁻¹ * entrySum A := by
   rw [Matrix.trace]
@@ -125,6 +165,8 @@ lemma trace_mul_muProjector (N M : ℕ) (hM : (M:ℝ) ≠ 0) (A : Operator (N+1)
   rw [← Finset.mul_sum]
   rfl
 
+/-- Simplifies the scalar score expression to one half plus the sum of overlaps divided by `(N +
+1) * (N + 2)`. -/
 lemma scalar_identity (N : ℕ) :
     ((N:ℝ)+1) * (2*((N:ℝ)+1))⁻¹ +
         (2*((N:ℝ)+1)*((N:ℝ)+2))⁻¹ * ∑ k : Fin N, overlap N k * 2
@@ -139,6 +181,8 @@ lemma scalar_identity (N : ℕ) :
   have h2 : ((N:ℝ)+2) ≠ 0 := by positivity
   field_simp
 
+/-- For positive `M`, evaluates `M` times the real trace of `wZero * muProjector` as one half
+plus the normalized sum of adjacent overlaps. See [SasakiCarliniJozsa2001]. -/
 theorem maximumAverageScore (N M : ℕ) (hM : 0 < M) :
     (M : ℝ) * (Matrix.trace (wZero N * muProjector N M)).re
       = 1/2 + ∑ k : Fin N, overlap N k / (((N:ℝ)+1)*((N:ℝ)+2)) := by

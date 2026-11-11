@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.Quadrature.HighPrecisionLchsDefs
+
+/-!
+# High precision LCHS analytic and quadrature bounds
+
+This module establishes regularity of the high precision LCHS kernel, the Duhamel source
+decomposition, and composite Gauss quadrature bounds for nonunitary evolution. The simulation
+setting is described in [AnChildsLin2026]; the statements here expose explicit coefficient,
+precision, and evaluation-count estimates.
+
+It also proves normalization and elementary success-probability bounds for finite Gibbs inputs,
+together with a compact-cell supremum result used in remainder estimates.
+
+## Main statements
+
+* `clause30_source_integral_norm_le`: bound the propagated source integral in Euclidean norm.
+* `clause31_composite_precision_budget`: certify the composite quadrature parameters and
+  remainder budget.
+* `clause32_gibbs_probabilities_sum_to_one`: normalize the finite Gibbs probabilities.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Qatlib.Concepts.LchsSimulation.TimeOrdered
@@ -25,11 +50,13 @@ open Qatlib MeasureTheory Set Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- Complex differentiability on the closed lower half-plane implies continuity on that set. -/
 theorem clause30_closed_differentiable_gives_closed_continuity {f : ℂ → ℂ}
     (hf : DifferentiableOn ℂ f lowerClosedHalfPlane) :
     ContinuousOn f lowerClosedHalfPlane :=
   hf.continuousOn
 
+/-- The open lower half-plane is an open subset of the complex numbers. -/
 theorem clause30_lower_open_half_plane_is_open : IsOpen lowerOpenHalfPlane := by
   have h : lowerOpenHalfPlane = Complex.im ⁻¹' Set.Iio 0 := by
     ext z
@@ -37,6 +64,8 @@ theorem clause30_lower_open_half_plane_is_open : IsOpen lowerOpenHalfPlane := by
   rw [h]
   exact Complex.continuous_im.isOpen_preimage (Set.Iio 0) isOpen_Iio
 
+/-- Complex differentiability on the closed lower half-plane implies analyticity on the open
+lower half-plane. -/
 theorem clause30_closed_differentiable_gives_open_analyticity {f : ℂ → ℂ}
     (hf : DifferentiableOn ℂ f lowerClosedHalfPlane) :
     AnalyticOn ℂ f lowerOpenHalfPlane :=
@@ -45,30 +74,39 @@ theorem clause30_closed_differentiable_gives_open_analyticity {f : ℂ → ℂ}
     change z.im ≤ 0
     exact le_of_lt hz) clause30_lower_open_half_plane_is_open
 
+/-- The kernel `highKernelF β` is complex differentiable on the closed lower half-plane. -/
 theorem clause30_actual_kernel_closed_differentiable (β : ℝ) :
     DifferentiableOn ℂ (highKernelF β) lowerClosedHalfPlane := by
   intro z hz
   exact (highKernelF_analyticAt β z hz).differentiableAt.differentiableWithinAt
 
+/-- The kernel `highKernelF β` is continuous on the closed lower half-plane. -/
 theorem clause30_actual_kernel_closed_continuous (β : ℝ) :
     ContinuousOn (highKernelF β) lowerClosedHalfPlane :=
   highKernelF_continuousOn β
 
+/-- For `0 < β < 1`, the contour kernel is both complex differentiable and continuous on the
+closed lower half-plane. -/
 theorem clause30_contour_consumes_closed_differentiability (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1) :
     DifferentiableOn ℂ (highKernelF β) lowerClosedHalfPlane ∧
       ContinuousOn (highKernelF β) lowerClosedHalfPlane :=
   ⟨clause30_actual_kernel_closed_differentiable β, clause30_actual_kernel_closed_continuous β⟩
 
+/-- The forced LCHS response is the homogeneous propagated vector plus `lchsSourceIntegral`. -/
 theorem clause30_inhomogeneous_decomposition {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (s t : ℝ) (v : QState I) :
     lchsForcedResponse A b s v t =
       orderedEvolution A s t *ᵥ v + lchsSourceIntegral A b s t := by
   rfl
 
+/-- The LCHS source term equals the interval integral of the propagated source vector. -/
 theorem clause30_source_is_duhamel_integral {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (s t : ℝ) :
     lchsSourceIntegral A b s t = ∫ u in s..t, orderedEvolution A u t *ᵥ b u := rfl
 
+/-- For a continuous source and generator with positive semidefinite Hermitian part, the source
+integral's Euclidean norm is bounded by the integral of the source's Euclidean norm when `s
+≤ t`. -/
 theorem clause30_source_integral_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (s t : ℝ)
     (hA : Continuous A) (hb : Continuous b)
@@ -84,24 +122,31 @@ theorem clause30_source_integral_norm_le {I : Type} [Fintype I] [DecidableEq I]
   rw [h0, zero_add] at h
   exact h
 
+/-- The loaded `Q`-node Gauss rule integrates every real polynomial of degree at most `2 * Q -
+1` exactly on `[-1, 1]`. -/
 theorem clause31_loaded_rule_exact (Q : ℕ) (hQ : 1 ≤ Q) :
     ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
       ∫ x in (-1 : ℝ)..1, p.eval x =
         ∑ q, (loadedGaussRule Q hQ).weight q * p.eval ((loadedGaussRule Q hQ).node q) :=
   (loadedGaussRule Q hQ).exact
 
+/-- Every weight of the loaded Gauss rule is strictly positive. -/
 theorem clause31_loaded_rule_weight_pos (Q : ℕ) (hQ : 1 ≤ Q) (q : Fin Q) :
     0 < (loadedGaussRule Q hQ).weight q :=
   (loadedGaussRule Q hQ).weight_pos q
 
+/-- Every node of the loaded Gauss rule lies strictly between minus one and one. -/
 theorem clause31_loaded_rule_node_mem (Q : ℕ) (hQ : 1 ≤ Q) (q : Fin Q) :
     (loadedGaussRule Q hQ).node q ∈ Ioo (-1) 1 :=
   (loadedGaussRule Q hQ).node_mem q
 
+/-- The weights of the loaded Gauss rule sum to two. -/
 theorem clause31_loaded_rule_weight_sum (Q : ℕ) (hQ : 1 ≤ Q) :
     ∑ q, (loadedGaussRule Q hQ).weight q = 2 :=
   gauss_rule_weight_sum Q _ _ (loadedGaussRule Q hQ).exact
 
+/-- For `0 < β < 1` and a positive cell count, the total composite coefficient mass is at most
+`2 * K / highKernelC β`. -/
 theorem clause31_composite_coefficient_mass {Q M : ℕ} (K : ℕ) (β : ℝ)
     (hβ : 0 < β) (hβ1 : β < 1) (hM : 0 < M) (rule : GaussRule Q) :
     ∑ m : Fin M, ∑ q : Fin Q,
@@ -164,6 +209,8 @@ theorem clause31_composite_coefficient_mass {Q M : ℕ} (K : ℕ) (β : ℝ)
         field_simp [hM0, hcpos.ne']
         <;> ring
 
+/-- For fixed `0 < β < 1` and positive `K`, the composite node count times `log 4` is bounded by
+a constant plus `|log(1 / ε)|` for every positive `ε`. -/
 theorem clause31_node_count_polylog_in_precision (β K : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (hK : 0 < K) :
     ∃ c : ℝ, 0 < c ∧ ∀ ε : ℝ, 0 < ε →
@@ -219,6 +266,8 @@ theorem clause31_node_count_polylog_in_precision (β K : ℝ) (hβ : 0 < β) (h�
         + |Real.log (1 / ε)| := by
         field_simp [hlog4.ne']
 
+/-- Under the positive parameter assumptions, the composite cell and node counts are positive,
+the cell width meets the stated bound, and the explicit remainder expression is at most `ε`. -/
 theorem clause31_composite_precision_budget (β T Λ ε : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (hT : 0 < T) (hΛ : 0 < Λ) (hε : 0 < ε) (K : ℕ) (hK : 0 < K) :
     0 < (compositeCellCount T Λ K : ℝ) ∧ 0 < (compositeNodeCount β K ε : ℝ) ∧
@@ -229,10 +278,14 @@ theorem clause31_composite_precision_budget (β T Λ ε : ℝ) (hβ : 0 < β) (h
   simpa [compositeCellCount, compositeNodeCount] using!
     (composite_gauss_precision_budget β T Λ ε hβ hβ1 hT hΛ hε K hK)
 
+/-- The composite ledger's propagator evaluation count equals its cell count times its node
+count. -/
 theorem clause31_propagator_evaluation_count (β T Λ : ℝ) (K : ℕ) (ε : ℝ) :
     (compositeCostLedger β T Λ K ε).propagatorEvaluations =
       compositeCellCount T Λ K * compositeNodeCount β K ε := rfl
 
+/-- A finite nonempty Gibbs input at positive temperature has strictly positive partition
+function. -/
 theorem clause32_partition_function_positive {X : Type} [Fintype X] [Nonempty X] (g : GibbsInput X)
     (hT : 0 < g.temperature) :
     0 < partitionFunction g := by
@@ -241,6 +294,7 @@ theorem clause32_partition_function_positive {X : Type} [Fintype X] [Nonempty X]
     exact Real.exp_pos _
   · exact Finset.univ_nonempty
 
+/-- The probabilities of a finite nonempty Gibbs input at positive temperature sum to one. -/
 theorem clause32_gibbs_probabilities_sum_to_one {X : Type} [Fintype X] [Nonempty X] (g : GibbsInput X)
     (hT : 0 < g.temperature) :
     ∑ x, gibbsProbability g x = 1 := by
@@ -251,12 +305,14 @@ theorem clause32_gibbs_probabilities_sum_to_one {X : Type} [Fintype X] [Nonempty
   rw [hsum]
   exact div_self hZ.ne'
 
+/-- Every Gibbs probability is nonnegative at positive temperature. -/
 theorem clause32_gibbs_probability_nonneg {X : Type} [Fintype X] [Nonempty X]
     (g : GibbsInput X) (hT : 0 < g.temperature) (x : X) : 0 ≤ gibbsProbability g x := by
   have hZ := clause32_partition_function_positive g hT
   unfold gibbsProbability
   positivity
 
+/-- The filter success probability is at most one at positive temperature. -/
 theorem clause32_filter_success_probability_le_one {X : Type} [Fintype X] [Nonempty X] (g : GibbsInput X)
     (hT : 0 < g.temperature) :
     filterSuccessProbability g ≤ 1 := by
@@ -273,6 +329,7 @@ theorem clause32_filter_success_probability_le_one {X : Type} [Fintype X] [Nonem
       ≤ ∑ x : X, gibbsProbability g x := hle
     _ = 1 := hone
 
+/-- The filter success probability is nonnegative at positive temperature. -/
 theorem clause32_filter_success_probability_nonneg {X : Type} [Fintype X] [Nonempty X]
     (g : GibbsInput X) (hT : 0 < g.temperature) :
     0 ≤ filterSuccessProbability g := by
@@ -283,6 +340,8 @@ theorem clause32_filter_success_probability_nonneg {X : Type} [Fintype X] [Nonem
   · simp [h, clause32_gibbs_probability_nonneg g hT x]
   · simp [h]
 
+/-- At positive temperature, the absolute Gibbs observable expectation is bounded by
+`observableRange g`. -/
 theorem clause32_gibbs_observable_expectation_bounded {X : Type} [Fintype X] [Nonempty X] (g : GibbsInput X)
     (hT : 0 < g.temperature) :
     |gibbsObservableExpectation g| ≤ observableRange g := by
@@ -311,6 +370,8 @@ theorem clause32_gibbs_observable_expectation_bounded {X : Type} [Fintype X] [No
       unfold observableRange
       linarith
 
+/-- If the norm of the `2 * Q`th derivative is continuous, it attains its supremum on the closed
+cell of positive width. -/
 theorem clause30_correction_supremum_attained {I : Type} [Fintype I] [DecidableEq I] {Q : ℕ}
     (Φ : ℝ → Matrix I I ℂ) (a h : ℝ) (hpos : 0 < h)
     (hcont : Continuous fun k => ‖iteratedDeriv (2 * Q) Φ k‖) :
@@ -336,6 +397,7 @@ theorem clause30_correction_supremum_attained {I : Type} [Fintype I] [DecidableE
       obtain ⟨j, hj, rfl⟩ := hy
       exact hmax hj
 
+/-- A positive filter success probability at positive temperature has reciprocal at least one. -/
 theorem clause32_filter_success_fee {X : Type} [Fintype X] [Nonempty X]
     (g : GibbsInput X) (hT : 0 < g.temperature)
     (hp : 0 < filterSuccessProbability g) :

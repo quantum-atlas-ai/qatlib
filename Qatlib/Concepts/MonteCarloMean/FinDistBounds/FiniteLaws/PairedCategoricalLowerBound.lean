@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteAssouad
+
+/-!
+# Paired categorical laws and neighboring divergence
+
+The family `pairedLaw` associates a strictly positive categorical law to each Boolean cube
+vertex by splitting each coordinate mass into two biased outcomes. Flipping one bit gives an
+explicit relative entropy, bounded quadratically in the bias. These divergence calculations
+support finite testing arguments of the kind discussed in [Watrous2018].
+
+## Main statements
+
+* `paired_positive`: all outcome masses are strictly positive.
+* `neighbor_kl`: neighboring cube vertices have an explicit relative entropy.
+* `neighbor_kl_bound`: for bias at most one half, neighboring divergence is at most 4a²/m.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,8 @@ open FiniteInformationDivergence FiniteAssouad
 open scoped BigOperators Classical
 noncomputable section
 
+/-- The law on coordinate-bit pairs assigning mass (1 + a)/(2m) when the bit matches `theta` and
+(1 - a)/(2m) otherwise. -/
 def pairedLaw (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
     (theta : Cube m) : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin m × Bool) where
   prob x := (if x.2=theta x.1 then 1+a else 1-a)/(2*(m : ℝ))
@@ -28,12 +50,16 @@ def pairedLaw (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
       Fintype.card_fin, nsmul_eq_mul]
     exact mul_inv_cancel₀ hmR
 
+/-- Every mass of the paired categorical law is strictly positive when `m` is positive and the
+bias lies strictly between zero and one. -/
 theorem paired_positive (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
     (theta : Cube m) (x : Fin m × Bool) : 0 < (pairedLaw m hm a ha ha1 theta).prob x := by
   have hmR : 0 < (m : ℝ) := Nat.cast_pos.mpr hm
   dsimp [pairedLaw]
   split_ifs <;> positivity
 
+/-- Flipping one cube coordinate changes the paired law by relative entropy a/m times log(1 + a)
+- log(1 - a). -/
 theorem neighbor_kl (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
     (theta : Cube m) (i : Fin m) :
     kl (pairedLaw m hm a ha ha1 theta) (pairedLaw m hm a ha ha1 (flipAt i theta)) =
@@ -53,6 +79,8 @@ theorem neighbor_kl (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
     simp only [hf, sub_self, mul_zero, Finset.sum_const_zero]
   · simp
 
+/-- For positive bias at most one half, the relative entropy between neighboring paired laws is
+at most 4a²/m. -/
 theorem neighbor_kl_bound (m : ℕ) (hm : 0 < m) (a : ℝ)
     (ha : 0 < a) (ha2 : a ≤ 1/2) (theta : Cube m) (i : Fin m) :
     kl (pairedLaw m hm a ha (by linarith) theta)

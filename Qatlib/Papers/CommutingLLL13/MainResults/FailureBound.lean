@@ -9,6 +9,24 @@ import Qatlib.Papers.CommutingLLL13.MainResults.Defs
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Data.Nat.Cast.Basic
 import Mathlib.Tactic
+
+/-!
+# A ceiling-adjusted failure threshold
+
+This module controls the logarithmic numerator after rounding the natural-logarithm threshold to
+an integer. For positive `η` and `κ` satisfying `η * δ * κ = 1`, it bounds the resulting failure
+expression by `δ`, as in the threshold analysis of [SattathArad2015].
+
+## Main statements
+
+* `ceil_log_bound`: Bounds the numerator using the unrounded threshold plus one.
+* `eq5_le_delta`: Bounds the rounded threshold expression by the target `δ`.
+
+## References
+
+* [Sattath and Arad, 2015][SattathArad2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +36,8 @@ namespace Qatlib.Papers.CommutingLLL13.MainResults.FailureBound
 
 open Qatlib.Papers.CommutingLLL13.MainResults
 
+/-- For `m ≥ 2` and `η > 0`, `log(thresholdNoCeil m η + 1) + m ≤ 4 * m * log(η + 2)`,
+controlling the numerator after ceiling rounding. -/
 theorem ceil_log_bound (m : ℕ) (hm : 2 ≤ m) (η : ℝ) (hη : 0 < η) :
     Real.log (EtaBound.thresholdNoCeil m η + 1) + (m : ℝ)
       ≤ 4 * (m : ℝ) * Real.log (η + 2) := by
@@ -105,6 +125,9 @@ theorem ceil_log_bound (m : ℕ) (hm : 2 ≤ m) (η : ℝ) (hη : 0 < η) :
       rw [hLdef]; exact Real.log_lt_log (by norm_num) (by linarith)
     nlinarith [hlog_le, hlog4m1, hLlog2, Real.log_two_gt_d9, hmR]
 
+/-- For `m ≥ 2`, positive `η` and `κ`, and `η * δ * κ = 1`, the natural-logarithm failure
+expression at `thresholdNatural m η` is at most `δ`. This gives the ceiling-adjusted
+threshold estimate associated with [Sattath and Arad, Appendix A.2][SattathArad2015]. -/
 theorem eq5_le_delta
     (m : ℕ) (hm : 2 ≤ m) (η κ δ : ℝ) (hη : 0 < η) (hκ : 0 < κ)
     (hηδ : η * δ * κ = 1) :

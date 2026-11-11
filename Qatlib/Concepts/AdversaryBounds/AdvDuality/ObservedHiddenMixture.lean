@@ -8,6 +8,33 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironment
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
 import Qatlib.Foundations.BornMetrics.EventProbability
 import Mathlib.Tactic.SimpRw
+
+/-!
+# Statistics of hidden oracle mixtures
+
+This module evaluates an observed circuit coupled to `hiddenTableOracle` from a product input
+`TensorState psi gamma`. It shows that statistics visible through acceptance, query counts, and
+outcomes are sums of the individual oracle statistics weighted by the squared moduli of the
+environment amplitudes. For normalized environment states these are mixture weights, in the
+sense of [Watrous2018].
+
+`hidden_weighted_average` supplies the common calculation, using linearity of branch states and
+decomposition of mass into environment slices. The public results specialize it to expected
+queries and metadata events.
+
+## Main statements
+
+* `hidden_weighted_average` decomposes a general mass-weighted metadata statistic over oracle
+  blocks.
+* `observed_hiddenTable_expected_average` gives the weighted sum formula for expected query
+  counts.
+* `observed_hiddenTable_event_average` gives the corresponding formula for event mass.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,11 +54,14 @@ section Helpers
 
 variable {I E : Type*}
 
+/-- Multiplies a branch state by a complex scalar while retaining its classical trace fields. -/
 private def scaleTrace (c : ℂ) (t : BranchTrace I) : BranchTrace I :=
   { t with state := c • t.state }
 
 variable [Fintype I] [DecidableEq I]
 
+/-- Scaling the input state scales every terminal branch state by the same scalar and leaves the
+trace metadata unchanged. -/
 private theorem traces_smul (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi : QState I) (c : ℂ) :
     observedTraces O P (c • psi) = (observedTraces O P psi).map (scaleTrace c) := by
@@ -79,6 +109,8 @@ private theorem traces_smul (O : Matrix I I ℂ) (P : ObservedCircuit I)
               { t with measurements := t.measurements + 1, outcomes := (2, 1) :: t.outcomes }))
             (ihTrue (ProjectiveBranch Q true psi)))
 
+/-- Scaling a branch state by a complex scalar multiplies its mass by the scalar's squared
+modulus. -/
 private theorem mass_smul (c : ℂ) (psi : QState I) :
     branchMass (c • psi) = Complex.normSq c * branchMass psi := by
   simpa only [branchMass, Complex.normSq_eq_norm_sq] using!
@@ -86,11 +118,14 @@ private theorem mass_smul (c : ℂ) (psi : QState I) :
 
 variable [Fintype E] [DecidableEq E]
 
+/-- The mass of a product-register state is the sum of the masses of its fixed environment
+slices. -/
 private theorem mass_slices (psi : QState (I × E)) :
     branchMass psi = ∑ a, branchMass (fun i => psi (i, a)) := by
   simp only [branchMass, MeasureProb, BornProb, Fintype.sum_prod_type]
   exact Finset.sum_comm
 
+/-- Interchanges a list sum with a finite sum over environment coordinates. -/
 private theorem list_sum_finset_sum {A : Type*} (xs : List A) (f : A → E → ℝ) :
     (xs.map (fun x => ∑ a, f x a)).sum =
       ∑ a, (xs.map (fun x => f x a)).sum := by
@@ -99,6 +134,8 @@ private theorem list_sum_finset_sum {A : Type*} (xs : List A) (f : A → E → �
   | cons x xs ih =>
       simp only [List.map_cons, List.sum_cons, ih, Finset.sum_add_distrib]
 
+/-- For a product input, any branch mass statistic weighted by acceptance, query count, and
+outcomes decomposes over the hidden oracle blocks with weights `Complex.normSq (gamma a)`. -/
 private theorem hidden_weighted_average (O : E → Matrix I I ℂ)
     (P : ObservedCircuit I) (psi : QState I) (gamma : QState E)
     (weight : Bool → ℕ → List (ℕ × ℕ) → ℝ) :
@@ -129,6 +166,8 @@ private theorem hidden_weighted_average (O : E → Matrix I I ℂ)
 
 end Helpers
 
+/-- Expected queries for a hidden table oracle on a product input equal the sum of the
+individual oracle expectations weighted by the squared environment amplitudes. -/
 theorem observed_hiddenTable_expected_average
     {I E : Type*} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
     (O : E → Matrix I I ℂ) (P : ObservedCircuit I)
@@ -139,6 +178,8 @@ theorem observed_hiddenTable_expected_average
   simpa only [expectedObservedQueries_eq_sum] using!
     hidden_weighted_average O P psi gamma (fun _ queries _ => (queries : ℝ))
 
+/-- The mass of an acceptance-and-outcome event under a hidden table oracle on a product input
+is the corresponding weighted sum over its oracle blocks. -/
 theorem observed_hiddenTable_event_average
     {I E : Type*} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
     (O : E → Matrix I I ℂ) (P : ObservedCircuit I)

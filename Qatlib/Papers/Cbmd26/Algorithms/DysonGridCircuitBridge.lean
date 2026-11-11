@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.DysonCoefficientBridge
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.DysonMeanDerivativeGrid
+
+/-!
+# Counted circuits for truncated Dyson grid sums
+
+`gridWordCoefficients_dyson_target` identifies the finite word expansion with
+`dysonGridTruncatedSum`. `dysonGridLCUWord` implements that expansion using coherent fresh
+signal registers, giving an exact block encoding of scale two under the short-time
+coefficient-mass bound. This is the finite circuit component of the Dyson implementation
+associated with [WangEtAl2026].
+
+## Main statements
+
+* `gridWordCoefficients_dyson_target`: identifies the coefficient-weighted word sum with the
+  grid truncation.
+* `dyson_grid_lcu_counted`: provides well-formedness, unitarity, the block encoding, and exact
+  query and gate counts.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,6 +80,8 @@ open scoped BigOperators Matrix.Norms.L2Operator
 section Target
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- When the selected blocks equal the scaled Hamiltonian grid samples, the grid
+coefficient-weighted Taylor sum equals `dysonGridTruncatedSum`. -/
 theorem gridWordCoefficients_dyson_target (M K : ℕ) (t Λ : ℝ)
     (address : Fin M → J) (B : J → Matrix I I ℂ) (H : ℝ → Matrix I I ℂ)
     (hB : ∀ j, (Λ : ℂ) • B (address j) = H (t * j.val / M)) :
@@ -91,12 +115,17 @@ private instance dysonFreshLabelWorkspaceDecEq (K : ℕ) :
   @instDecidableEqProd (TaylorWordLabel J K) (FreshQueryWorkspace A J I K)
     inferInstance (dysonFreshWorkspaceDecEq K)
 
+/-- The coherent LCU word for the degree-`K` Dyson grid truncation, using sampled grid
+coefficients and fresh signal registers. -/
 def dysonGridLCUWord (j₀ : J) (M K : ℕ) (t Λ : ℝ) (address : Fin M → J) :
     List (AdjointStep (TaylorWordLabel J K × FreshQueryWorkspace A J I K)) :=
   coherentFreshLCUWord j₀ (taylorEmptyLabel J K) K (routedFreshChoices j₀ K K le_rfl)
     (routedPaddedCoefficients K
       (gridWordCoefficients (List.ofFn address) K (gridStepCoefficient t Λ M)))
 
+/-- Under exact sample encodings and the short-time mass bound, the Dyson grid word is well
+formed and gives an exact block encoding of `dysonGridTruncatedSum` with scale two and a
+unitary primitive oracle. It uses `K` queries and `2 * K + 3` fixed gates. -/
 theorem dyson_grid_lcu_counted (j₀ : J) (a₀ : A) (M K : ℕ) (t Λ : ℝ)
     (address : Fin M → J) (B : J → Matrix I I ℂ)
     (U : J → Matrix (A × I) (A × I) ℂ) (H : ℝ → Matrix I I ℂ)

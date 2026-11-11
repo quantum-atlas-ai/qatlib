@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
 import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.TrotterStep
+
+/-!
+# Trotter error at an exact step count
+
+This module derives accumulated Trotter error bounds from an assumed cubic single-step estimate
+and contraction bounds. The theorem `trotter_accumulation_two` controls an arbitrary number of
+steps, while `trotter_corollary_two_of_step` expresses the result at a target time exactly equal
+to the total step duration. The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `trotter_accumulation_two`: An assumed cubic Trotter step error accumulates at most linearly
+  over `N` steps when both step operators have norm at most one.
+* `trotter_corollary_two_of_step`: When `N * (2 * δ) = t`, the assumed cubic step estimate and
+  contraction bounds give total error at most `C * N * M * (δ * Λ) ^ 3` at time `t`.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +38,8 @@ open scoped Matrix.Norms.L2Operator ComplexOrder InnerProductSpace BigOperators
 
 namespace Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries
 
+/-- An assumed cubic Trotter step error accumulates at most linearly over `N` steps when both
+step operators have norm at most one [AharonovTaShma2007]. -/
 theorem trotter_accumulation_two {n M : ℕ} (Hs : Fin M → Ham n) (H : Ham n)
     (Λ δ C : ℝ) (N : ℕ)
     (hstep : ‖trotterStep Hs δ - timeEvolution H (2 * δ)‖ ≤ C * (M : ℝ) * (δ * Λ) ^ 3)
@@ -32,6 +55,8 @@ theorem trotter_accumulation_two {n M : ℕ} (Hs : Fin M → Ham n) (H : Ham n)
     _ ≤ (N : ℝ) * (C * (M : ℝ) * (δ * Λ) ^ 3) :=
         mul_le_mul_of_nonneg_left hstep (Nat.cast_nonneg N)
 
+/-- When `N * (2 * δ) = t`, the assumed cubic step estimate and contraction bounds give total
+error at most `C * N * M * (δ * Λ) ^ 3` at time `t` [AharonovTaShma2007]. -/
 theorem trotter_corollary_two_of_step {n M : ℕ} (Hs : Fin M → Ham n) (H : Ham n)
     (Λ δ t C : ℝ) (N : ℕ)
     (hstep : ‖trotterStep Hs δ - timeEvolution H (2 * δ)‖ ≤ C * (M : ℝ) * (δ * Λ) ^ 3)

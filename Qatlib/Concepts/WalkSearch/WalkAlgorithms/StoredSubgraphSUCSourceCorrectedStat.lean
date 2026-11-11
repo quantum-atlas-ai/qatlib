@@ -5,10 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphVocabulary
+
+/-!
+# Stored-subgraph setup, update, and checking contract
+
+`StoredSubgraphSUCSourceCorrected` records the induced-edge representation for symmetric
+loop-free adjacency. It requires edge membership, symmetry, absence of loops, a setup query list
+of size `U.card^2`, and an update query list of size `U.card`, together with exact insertion and
+replay identities.
+
+The contract also includes the fresh-checker cost bound when the solver constants are at least
+one. It supplies a concrete data-structure specification in the setup, update, and checking
+perspective on quantum-walk search [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `StoredSubgraphSUCSourceCorrected`: representation, query-count, replay, and checker-cost
+  requirements.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- The stored-subgraph contract for symmetric loop-free adjacency, specifying induced-edge
+invariants, exact setup and update query counts, replay reconstruction, and the
+fresh-checker cost bound under the solver-constant hypotheses. -/
 def StoredSubgraphSUCSourceCorrected : Prop :=
   ∀ (n : ℕ) (adj : Fin n → Fin n → Bool),
     (∀ a b, adj a b = adj b a) → (∀ a, adj a a = false) →

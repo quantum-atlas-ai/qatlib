@@ -43,10 +43,32 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 
+/-!
+# Coordinate model of the binary wreath product
+
+`Wreath n` models the binary wreath product using two length-`n` binary vectors and a binary
+swap coordinate. The module supplies its group operations, the base subgroup, the block-swap
+automorphism, and formulas for squares and cubes. `conjSub` transports subgroups by block
+swapping. This development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `mulW`, `oneW`, and `invW`: coordinate group operations.
+* `base`: the subgroup with zero final coordinate.
+* `cube_eq_swap`: cubing an element with final coordinate one swaps its blocks.
+* `conjSub_conjSub`: swapping a subgroup twice recovers it.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.NonabelianHSP98.MainResults.WreathGroup
 
+/-- The coordinate type of the binary wreath product, with two length-`n` binary vectors and one
+binary swap coordinate. -/
 structure Wreath (n : ℕ) where
   x : Fin n → ZMod 2
   y : Fin n → ZMod 2
@@ -58,6 +80,7 @@ namespace Wreath
 
 variable {n : ℕ}
 
+/-- Wreath-product elements are equal when their two vector blocks and final coordinates agree. -/
 @[ext]
 theorem ext {g h : Wreath n} (hx : g.x = h.x) (hy : g.y = h.y) (ha : g.a = h.a) : g = h := by
   cases g
@@ -67,13 +90,18 @@ theorem ext {g h : Wreath n} (hx : g.x = h.x) (hy : g.y = h.y) (ha : g.a = h.a) 
   cases ha
   rfl
 
+/-- The wreath-product multiplication, where the final coordinate of the right factor determines
+whether the left factor's blocks are swapped. -/
 def mulW (g h : Wreath n) : Wreath n :=
   ⟨fun i => g.x i + h.x i + h.a * (g.x i + g.y i),
    fun i => g.y i + h.y i + h.a * (g.x i + g.y i),
    g.a + h.a⟩
 
+/-- The wreath-product identity, with both vector blocks and the final coordinate zero. -/
 def oneW : Wreath n := ⟨0, 0, 0⟩
 
+/-- The wreath-product inverse, swapping the vector blocks exactly when the final coordinate is
+one. -/
 def invW (g : Wreath n) : Wreath n :=
   ⟨fun i => g.x i + g.a * (g.x i + g.y i),
    fun i => g.y i + g.a * (g.x i + g.y i),
@@ -83,44 +111,64 @@ instance : Mul (Wreath n) := ⟨mulW⟩
 instance : One (Wreath n) := ⟨oneW⟩
 instance : Inv (Wreath n) := ⟨invW⟩
 
+/-- The first block of `mulW g h` is given coordinatewise by `g.x i + h.x i + h.a * (g.x i + g.y
+i)`. -/
 @[simp] lemma mulW_x (g h : Wreath n) (i : Fin n) :
     (mulW g h).x i = g.x i + h.x i + h.a * (g.x i + g.y i) := rfl
 
+/-- The second block of `mulW g h` is given coordinatewise by `g.y i + h.y i + h.a * (g.x i +
+g.y i)`. -/
 @[simp] lemma mulW_y (g h : Wreath n) (i : Fin n) :
     (mulW g h).y i = g.y i + h.y i + h.a * (g.x i + g.y i) := rfl
 
+/-- The final coordinate of `mulW g h` is `g.a + h.a`. -/
 @[simp] lemma mulW_a (g h : Wreath n) : (mulW g h).a = g.a + h.a := rfl
 
+/-- Every coordinate in the first block of the identity is zero. -/
 @[simp] lemma oneW_x (i : Fin n) : (oneW : Wreath n).x i = 0 := rfl
 
+/-- Every coordinate in the second block of the identity is zero. -/
 @[simp] lemma oneW_y (i : Fin n) : (oneW : Wreath n).y i = 0 := rfl
 
+/-- The final coordinate of the identity is zero. -/
 @[simp] lemma oneW_a : (oneW : Wreath n).a = 0 := rfl
 
+/-- The first block of the inverse has coordinate `g.x i + g.a * (g.x i + g.y i)`. -/
 @[simp] lemma invW_x (g : Wreath n) (i : Fin n) :
     (invW g).x i = g.x i + g.a * (g.x i + g.y i) := rfl
 
+/-- The second block of the inverse has coordinate `g.y i + g.a * (g.x i + g.y i)`. -/
 @[simp] lemma invW_y (g : Wreath n) (i : Fin n) :
     (invW g).y i = g.y i + g.a * (g.x i + g.y i) := rfl
 
+/-- Inversion preserves the final coordinate. -/
 @[simp] lemma invW_a (g : Wreath n) : (invW g).a = g.a := rfl
 
+/-- The wreath-product element with zero vector blocks and final coordinate one. -/
 def t (n : ℕ) : Wreath n := ⟨0, 0, 1⟩
 
+/-- The first block of `t n` is zero. -/
 @[simp] lemma t_x (i : Fin n) : (t n).x i = 0 := rfl
 
+/-- The second block of `t n` is zero. -/
 @[simp] lemma t_y (i : Fin n) : (t n).y i = 0 := rfl
 
+/-- The final coordinate of `t n` is one. -/
 @[simp] lemma t_a : (t n).a = 1 := rfl
 
+/-- The operation swapping the two vector blocks while preserving the final coordinate. -/
 def swapFun (g : Wreath n) : Wreath n := ⟨g.y, g.x, g.a⟩
 
+/-- The first block of `swapFun g` is the second block of `g`. -/
 @[simp] lemma swapFun_x (g : Wreath n) (i : Fin n) : (swapFun g).x i = g.y i := rfl
 
+/-- The second block of `swapFun g` is the first block of `g`. -/
 @[simp] lemma swapFun_y (g : Wreath n) (i : Fin n) : (swapFun g).y i = g.x i := rfl
 
+/-- The operation `swapFun` preserves the final coordinate. -/
 @[simp] lemma swapFun_a (g : Wreath n) : (swapFun g).a = g.a := rfl
 
+/-- Swapping the vector blocks twice recovers the original element. -/
 @[simp] lemma swapFun_swapFun (g : Wreath n) : swapFun (swapFun g) = g := rfl
 
 macro "zring" : tactic => `(tactic| (ring_nf <;> reduce_mod_char))
@@ -133,14 +181,17 @@ macro "wclose" : tactic => `(tactic| (first
 
 macro "wext" : tactic => `(tactic| (apply Wreath.ext <;> (first | (funext i; wclose) | wclose)))
 
+/-- Block swapping preserves wreath-product multiplication. -/
 lemma swapFun_mul (g h : Wreath n) : swapFun (mulW g h) = mulW (swapFun g) (swapFun h) := by
   change swapFun (mulW g h) = mulW (swapFun g) (swapFun h)
   wext
 
+/-- Block swapping fixes the identity element. -/
 lemma swapFun_one : swapFun (oneW : Wreath n) = oneW := by
   change swapFun oneW = oneW
   wext
 
+/-- Block swapping commutes with inversion. -/
 lemma swapFun_inv (g : Wreath n) : swapFun (invW g) = invW (swapFun g) := by
   change swapFun (invW g) = invW (swapFun g)
   wext
@@ -169,6 +220,7 @@ instance : Fintype (Wreath n) :=
        fun p => by rcases p with ⟨x, y, a⟩; rfl⟩ :
       Wreath n ≃ ((Fin n → ZMod 2) × (Fin n → ZMod 2) × ZMod 2))).symm
 
+/-- The base subgroup consisting of elements whose final coordinate is zero. -/
 def base (n : ℕ) : Subgroup (Wreath n) where
   carrier := {g | g.a = 0}
   mul_mem' := by
@@ -185,17 +237,21 @@ def base (n : ℕ) : Subgroup (Wreath n) where
     simp only [invW_a]
     exact hg
 
+/-- Membership in the base subgroup is equivalent to having final coordinate zero. -/
 @[simp] lemma mem_base {g : Wreath n} : g ∈ base n ↔ g.a = 0 := Iff.rfl
 
+/-- The square of `t n` is the identity. -/
 lemma t_mul_t : t n * t n = 1 := by
   change mulW (t n) (t n) = oneW
   wext
 
+/-- An element with zero final coordinate has square equal to the identity. -/
 lemma mul_at_a_zero (x y : Fin n → ZMod 2) :
     (⟨x, y, 0⟩ : Wreath n) * ⟨x, y, 0⟩ = 1 := by
   change mulW ⟨x, y, 0⟩ ⟨x, y, 0⟩ = oneW
   wext
 
+/-- Every element of the base subgroup has square equal to the identity. -/
 lemma base_mul_self {g : Wreath n} (hg : g ∈ base n) : g * g = 1 := by
   have hga : g.a = 0 := hg
   have hg' : g = ⟨g.x, g.y, (0 : ZMod 2)⟩ := by
@@ -206,21 +262,27 @@ lemma base_mul_self {g : Wreath n} (hg : g ∈ base n) : g * g = 1 := by
   rw [hg']
   exact mul_at_a_zero g.x g.y
 
+/-- The square of `g` has both blocks equal to `g.a` times the sum of its blocks and has final
+coordinate zero. -/
 lemma mul_self (g : Wreath n) :
     g * g = ⟨fun i => g.a * (g.x i + g.y i), fun i => g.a * (g.x i + g.y i), 0⟩ := by
   change mulW g g = ⟨fun i => g.a * (g.x i + g.y i), fun i => g.a * (g.x i + g.y i), 0⟩
   wext
 
+/-- The square of every wreath-product element belongs to the base subgroup. -/
 lemma sq_mem_base (g : Wreath n) : g * g ∈ base n := by
   rw [mul_self]
   exact mem_base.mpr rfl
 
+/-- The square of `⟨x, y, 1⟩` has both blocks equal to `x + y` and final coordinate zero. -/
 lemma sq_at_a_one (x y : Fin n → ZMod 2) :
     (⟨x, y, 1⟩ : Wreath n) * ⟨x, y, 1⟩ = ⟨fun i => x i + y i, fun i => x i + y i, 0⟩ := by
   change mulW ⟨x, y, 1⟩ ⟨x, y, 1⟩
       = ⟨fun i => x i + y i, fun i => x i + y i, (0 : ZMod 2)⟩
   wext
 
+/-- An element with final coordinate one has square with both blocks equal to the sum of its
+original blocks and final coordinate zero. -/
 lemma sq_of_a_one {g : Wreath n} (hg : g.a = 1) :
     g * g = ⟨fun i => g.x i + g.y i, fun i => g.x i + g.y i, 0⟩ := by
   have hg' : g = ⟨g.x, g.y, (1 : ZMod 2)⟩ := by
@@ -231,11 +293,13 @@ lemma sq_of_a_one {g : Wreath n} (hg : g.a = 1) :
   rw [hg']
   exact sq_at_a_one g.x g.y
 
+/-- The product of three copies of `⟨x, y, 1⟩` is its block swap. -/
 lemma cube_at_a_one (x y : Fin n → ZMod 2) :
     (⟨x, y, 1⟩ : Wreath n) * ⟨x, y, 1⟩ * ⟨x, y, 1⟩ = swapFun ⟨x, y, 1⟩ := by
   change mulW (mulW ⟨x, y, 1⟩ ⟨x, y, 1⟩) ⟨x, y, 1⟩ = swapFun ⟨x, y, 1⟩
   wext
 
+/-- For final coordinate one, the product of three copies of `g` is `swapFun g`. -/
 lemma cube_of_a_one {g : Wreath n} (hg : g.a = 1) : g * g * g = swapFun g := by
   have hg' : g = ⟨g.x, g.y, (1 : ZMod 2)⟩ := by
     apply Wreath.ext
@@ -245,12 +309,14 @@ lemma cube_of_a_one {g : Wreath n} (hg : g.a = 1) : g * g * g = swapFun g := by
   rw [hg']
   exact cube_at_a_one g.x g.y
 
+/-- For final coordinate one, the cube `g ^ 3` equals `swapFun g`. -/
 lemma cube_eq_swap {g : Wreath n} (hg : g.a = 1) : g ^ 3 = swapFun g := by
   have h : g ^ 3 = g * g * g := by
     rw [show (3 : ℕ) = 2 + 1 from rfl, pow_succ, pow_two]
   rw [h]
   exact cube_of_a_one hg
 
+/-- The subgroup obtained by applying the block-swap automorphism to `U`. -/
 def conjSub (U : Subgroup (Wreath n)) : Subgroup (Wreath n) where
   carrier := swapFun '' (U : Set (Wreath n))
   mul_mem' := by
@@ -263,9 +329,11 @@ def conjSub (U : Subgroup (Wreath n)) : Subgroup (Wreath n) where
     rintro _ ⟨a, ha, rfl⟩
     exact ⟨a⁻¹, U.inv_mem ha, swapFun_inv a⟩
 
+/-- An element belongs to `conjSub U` exactly when it is the block swap of an element of `U`. -/
 @[simp] lemma mem_conjSub {U : Subgroup (Wreath n)} {g : Wreath n} :
     g ∈ conjSub U ↔ ∃ u ∈ U, swapFun u = g := Iff.rfl
 
+/-- Applying `conjSub` twice recovers the original subgroup. -/
 lemma conjSub_conjSub (U : Subgroup (Wreath n)) : conjSub (conjSub U) = U := by
   ext g
   constructor

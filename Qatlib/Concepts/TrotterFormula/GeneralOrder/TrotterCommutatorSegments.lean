@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.PolynomialPerturbation
+
+/-!
+# Segmented matched-order product formulas
+
+This module converts matched-order single-step commutator estimates into bounds for repeated
+segments. `pf_segment_word_prod` identifies the executed product with a power, and
+`pf_segment_ideal_pow` recovers the full ideal evolution for positive segment count.
+
+The resulting estimates scale as `|t| ^ (p + 1) / r ^ p`, with the explicit factorial
+normalization used in this development of commutator scaling [ChildsEtAl2021Trotter]. General
+matrices carry an additional exponential norm-inflation factor.
+
+## Main statements
+
+* `pf_matched_word_segmented_skew`: bounds the error for skew-Hermitian matched words.
+* `pf_matched_word_segmented_general`: bounds the error for general matched words.
+* `pf_segment_commutator_budget`: rewrites the accumulated local budget.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
@@ -19,10 +42,14 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The product of the flattened repeated segment word equals the `r`th power of the
+single-segment exponential word. -/
 theorem pf_segment_word_prod (xs : List (Matrix I I ℂ)) (t : ℝ) (r : ℕ) :
     ((List.replicate r (xs.map (fun X=>NormedSpace.exp ((t/r) • X)))).flatten).prod=
       suzukiExponentialWord xs (t/r)^r := by simp [List.prod_flatten,suzukiExponentialWord]
 
+/-- For positive `r`, the `r`th power of the ideal evolution at time `t / r` equals the ideal
+evolution at time `t`. -/
 theorem pf_segment_ideal_pow (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) (hr : 0<r) :
     NormedSpace.exp ((t/r) • H)^r=NormedSpace.exp (t • H) := by
   letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
@@ -33,6 +60,8 @@ theorem pf_segment_ideal_pow (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) (hr : 0<r)
   have hr0 : (r:ℝ)≠0 := by exact_mod_cast hr.ne'
   field_simp
 
+/-- The sum of `r` equal local commutator budgets rewrites as the factorial-normalized global
+budget with denominator `r ^ p`. -/
 theorem pf_segment_commutator_budget (α t : ℝ) (p r : ℕ) (hr : 0<r) :
     (r:ℝ)*(α*|t/r| ^(p+1)/(p+1:ℕ))=
       (p.factorial:ℝ)*α*|t| ^(p+1)/(((p+1).factorial:ℝ)*(r:ℝ)^p) := by
@@ -42,6 +71,8 @@ theorem pf_segment_commutator_budget (α t : ℝ) (p r : ℕ) (hr : 0<r) :
   field_simp
   ring
 
+/-- A segmented skew-Hermitian word matching coefficients through positive order `p` has error
+bounded by the stated commutator budget divided by `r ^ p`. -/
 theorem pf_matched_word_segmented_skew (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ)
     (p r : ℕ) (t : ℝ) (hp : 1≤p) (hr : 0<r)
     (hc : ∀ n≤p,suzukiSeries xs n=((n.factorial:ℝ)⁻¹) • H^n)
@@ -55,6 +86,8 @@ theorem pf_matched_word_segmented_skew (xs : List (Matrix I I ℂ)) (H : Matrix 
     (pf_matched_word_local_skew xs H p (t/r) hp hc hxs hH) (Nat.cast_nonneg r))).trans_eq
   exact pf_segment_commutator_budget _ t p r hr
 
+/-- The single-step exponential inflation and its propagation over `r` positive segments are
+bounded by `exp (4 * |t| * L)` for nonnegative `L`. -/
 theorem pf_segment_inflation_le (t L : ℝ) (r : ℕ) (hr : 0<r) (hL : 0≤L) :
     Real.exp (4*|t/r| *L)*(Real.exp (|t/r| *L))^(r-1)≤Real.exp (4*|t| *L) := by
   have hrR : (0:ℝ)<r := by exact_mod_cast hr
@@ -67,6 +100,8 @@ theorem pf_segment_inflation_le (t L : ℝ) (r : ℕ) (hr : 0<r) (hL : 0≤L) :
   calc _=(((r:ℝ)+3)/(r:ℝ))*|t| *L := by ring
        _≤4*|t| *L := mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hc (abs_nonneg _)) hL
 
+/-- A segmented matched-order word has the stated commutator error bound with exponential
+inflation `exp (4 * |t| * (suzukiMass xs + ‖H‖))`. -/
 theorem pf_matched_word_segmented_general (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ)
     (p r : ℕ) (t : ℝ) (hp : 1≤p) (hr : 0<r)
     (hc : ∀ n≤p,suzukiSeries xs n=((n.factorial:ℝ)⁻¹) • H^n) :

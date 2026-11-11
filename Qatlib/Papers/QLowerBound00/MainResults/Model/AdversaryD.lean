@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLowerBound00.MainResults.Model.ValueOracle
 import Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
+
+/-!
+# Adversary progress under finite-alphabet value queries
+
+Modular-shift invariance gives `mass_valueQuery` and preservation of Gram entries when queried
+symbols agree. A general overlap-change bound yields `progress_valueQuery_step_le_lmax`,
+extending the local-degree adversary estimate to the value-query model. See [Ambainis2002] for
+the paper's setting.
+
+## Main statements
+
+* `addFin_eq_add`: The explicit modular addition `addFin` agrees with addition in `Fin d` for
+  positive `d`.
+* `valueQuery_smul`: A value query commutes with multiplication by a complex amplitude depending
+  only on the input.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,10 +39,12 @@ namespace Qatlib.Papers.QLowerBound00.MainResults.Model
 
 open Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
+/-- The explicit modular addition `addFin` agrees with addition in `Fin d` for positive `d`. -/
 theorem addFin_eq_add {d : ℕ} (hd : 0 < d) (a b : Fin d) : addFin hd a b = a + b := by
   haveI : NeZero d := ⟨Nat.pos_iff_ne_zero.mp hd⟩
   rw [Fin.ext_iff, addFin, Fin.val_add]
 
+/-- A finite sum is unchanged by a modular translation of its index. -/
 theorem sum_addFin_shift {d : ℕ} {M : Type*} [AddCommMonoid M]
     (hd : 0 < d) (G : Fin d → M) (c : Fin d) :
     (∑ a : Fin d, G (addFin hd a c)) = ∑ a : Fin d, G a := by
@@ -30,12 +53,15 @@ theorem sum_addFin_shift {d : ℕ} {M : Type*} [AddCommMonoid M]
   simp_rw [h]
   exact Equiv.sum_comp (Equiv.addRight c) G
 
+/-- A sum over query index, response register, and workspace splits into the corresponding three
+iterated sums. -/
 theorem sum_iw_split {n d Z : ℕ} {M : Type*} [AddCommMonoid M]
     (F : ((Fin n × Fin d) × Fin Z) → M) :
     (∑ iw, F iw) = ∑ i' : Fin n, ∑ a : Fin d, ∑ z : Fin Z, F ((i', a), z) := by
   rw [Fintype.sum_prod_type]
   exact Fintype.sum_prod_type (fun p : Fin n × Fin d => ∑ z : Fin Z, F (p, z))
 
+/-- A value query preserves the squared workspace mass of every input column. -/
 theorem mass_valueQuery {n d Z : ℕ} (hd : 0 < d) (i : Fin n)
     (ψ : ((Fin n × Fin d) × Fin Z) → InputD n d → ℂ) (x : InputD n d) :
     mass (valueQuery hd i ψ) x = mass ψ x := by
@@ -58,6 +84,7 @@ theorem mass_valueQuery {n d Z : ℕ} (hd : 0 < d) (i : Fin n)
       simp [valueQuery, hi]
     simp only [hval]
 
+/-- A value query preserves the Gram entry between inputs agreeing at the queried coordinate. -/
 theorem rhoEntry_valueQuery_same {n d Z : ℕ} (hd : 0 < d) (i : Fin n)
     (ψ : ((Fin n × Fin d) × Fin Z) → InputD n d → ℂ) (x y : InputD n d)
     (hxy : x i = y i) :
@@ -84,6 +111,8 @@ theorem rhoEntry_valueQuery_same {n d Z : ℕ} (hd : 0 < d) (i : Fin n)
       simp [valueQuery, hi]
     simp only [hval]
 
+/-- The norm of the Gram-entry change under a value query is at most twice the product of the
+square roots of the two input-column masses. -/
 theorem rhoEntry_valueQuery_diff_le {n d Z : ℕ} (hd : 0 < d) (i : Fin n)
     (ψ : ((Fin n × Fin d) × Fin Z) → InputD n d → ℂ) (x y : InputD n d) :
     ‖rhoEntry (valueQuery hd i ψ) x y - rhoEntry ψ x y‖ ≤
@@ -101,6 +130,8 @@ theorem rhoEntry_valueQuery_diff_le {n d Z : ℕ} (hd : 0 < d) (i : Fin n)
           Real.sqrt (mass ψ x) * Real.sqrt (mass ψ y) := add_le_add h1 h2
     _ = 2 * (Real.sqrt (mass ψ x) * Real.sqrt (mass ψ y)) := by ring
 
+/-- Under the stated local mismatch-degree product bound and total-mass bound, the sum of
+Gram-entry changes from one value query is at most `sqrt lmax`. See [Ambainis2002]. -/
 theorem progress_valueQuery_step_le_lmax {n d Z : ℕ} (hd : 0 < d)
     (X Y : Finset (InputD n d)) (R : Finset (InputD n d × InputD n d)) (lmax : ℕ)
     (i : Fin n) (ψ : ((Fin n × Fin d) × Fin Z) → InputD n d → ℂ)
@@ -313,6 +344,8 @@ theorem progress_valueQuery_step_le_lmax {n d Z : ℕ} (hd : 0 < d)
         refine mul_le_mul_of_nonneg_left hmassA (Real.sqrt_nonneg _)
     _ = Real.sqrt (lmax : ℝ) := by ring
 
+/-- A value query commutes with multiplication by a complex amplitude depending only on the
+input. See [Ambainis2002]. -/
 theorem valueQuery_smul {n d Z : ℕ} (β : InputD n d → ℂ) (hd : 0 < d) (i : Fin n)
     (f : ((Fin n × Fin d) × Fin Z) → InputD n d → ℂ) :
     valueQuery hd i (fun iw x => β x * f iw x) =

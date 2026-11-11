@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformResidual
 import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.UniquePole
+
+/-!
+# Locating the lowest eigenvalues at the crossing
+
+When the diagonal cost has one zero entry and all other entries are at least one, the module
+excludes zero as an eigenvalue of a nonzero rank-one perturbation and classifies all eigenvalues
+below one using two secular roots. At the inverse-first-moment parameter,
+`crossing_actual_lowest_pair` locates the two lowest ordered eigenvalues in explicit intervals
+around zero [ZhouAnLiu2026].
+
+## Main statements
+
+* `rankOne_classify_below_one`: Every eigenvalue below one equals one of the specified secular
+  roots.
+* `crossing_actual_lowest_pair`: The two lowest eigenvalues lie on opposite sides of zero within
+  the moment-dependent bracket.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +39,8 @@ open Qatlib.Papers.ProjectorQAOA26.StageStability
 open Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- If exactly one diagonal cost is zero and all others are at least one, zero is not an
+eigenvalue of the rank-one operator with nonzero parameter. -/
 theorem rankOne_zero_not_eigenvalue (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (a : ℝ) (ha : a≠0) :
     ¬hasRealEigenvalue (rankOneOperator E a) 0 := by
@@ -29,6 +53,8 @@ theorem rankOne_zero_not_eigenvalue (E : I → ℝ) (zero : I) (hzero : E zero=0
   · intro i hi
     linarith [hE i hi]
 
+/-- Given a negative secular root `lo` and a secular root `hi` in `(0, 1)`, every eigenvalue
+below one is either `lo` or `hi` under the stated cost hypotheses. -/
 theorem rankOne_classify_below_one (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (a : ℝ) (ha : a≠0)
     (lo hi : ℝ) (hlo : lo<0) (hhi : hi∈Set.Ioo (0:ℝ) 1)
@@ -53,6 +79,8 @@ theorem rankOne_classify_below_one (E : I → ℝ) (zero : I) (hzero : E zero=0)
     exact Or.inr ((uniformCurve_strictMono_positive E zero hzero 1 (by norm_num) hE).injOn
       ⟨hz0,hz1⟩ hhi hcurve)
 
+/-- At rank-one parameter `1 / ec3A1`, the two lowest ordered eigenvalues lie in `[-b, 0)` and
+`(0, b]` when `0 < b ≤ 1 / 2` and `b² * ec3A2 = 4 / card I` [ZhouAnLiu2026]. -/
 theorem crossing_actual_lowest_pair (E : I → ℝ) (zero : I) (hzero : E zero=0)
     (hE : ∀ i,i≠zero → 1≤E i) (hL : 2≤Fintype.card I)
     (hA : ec3A1 zero E≠0) (b : ℝ) (hb : 0<b) (hbhalf : b≤1/2)

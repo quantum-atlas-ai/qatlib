@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.SpecialFuncs.KummerODE.KummerEquation
 import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+
+/-!
+# Kummer-function solution for the inverse schedule
+
+This module constructs `invAmplitude` from a logarithmic phase and a confluent hypergeometric
+function, as used in the inverse-schedule analysis of [KadowakiNishimori1998]. It computes first
+and second real-time derivatives and applies Kummer's differential equation.
+
+For positive time and nonzero `h`, the amplitude satisfies the displayed second-order equation.
+The companion expression `invAmplitudeA` also yields the `b` component of the inverse-schedule
+Schrödinger system when `c` is nonzero.
+
+## Main statements
+
+* `kummer_series_relation`: verifies the confluent hypergeometric differential equation.
+* `invAmplitude_second_order`: verifies the inverse-schedule second-order amplitude equation.
+* `invAmplitude_schrodinger_b`: verifies the `b` component with the companion amplitude.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +40,8 @@ open Qatlib.Foundations.SpecialFuncs.KummerODE
 
 namespace Qatlib.Papers.TITCMTReport98.MainResults.KummerSolution
 
+/-- At positive real `t`, the complex logarithm restricted to the real line has derivative `(t :
+ℂ)⁻¹`. -/
 theorem hasDerivAt_log_real (t : ℝ) (ht : 0 < t) :
     HasDerivAt (fun s : ℝ => Complex.log (s : ℂ)) ((t : ℂ)⁻¹) t := by
   have hlog : HasDerivAt Complex.log ((t : ℂ)⁻¹) (t : ℂ) :=
@@ -25,14 +50,19 @@ theorem hasDerivAt_log_real (t : ℝ) (ht : 0 < t) :
     Complex.ofRealCLM.hasDerivAt
   simpa only [Function.comp_apply, smul_eq_mul, one_mul] using! hlog.scomp t hof
 
+/-- The linear complex argument `-2iht` for the inverse-schedule confluent hypergeometric
+function. -/
 def invArg (h : ℝ) (t : ℝ) : ℂ := (-2 * Complex.I * (h : ℂ)) * (t : ℂ)
 
+/-- The real-time derivative of `invArg h` is the constant `-2ih`. -/
 theorem hasDerivAt_invArg (h t : ℝ) :
     HasDerivAt (invArg h) (-2 * Complex.I * (h : ℂ)) t := by
   have hlin : HasDerivAt (fun s : ℝ => (s : ℂ)) (1 : ℂ) t := Complex.ofRealCLM.hasDerivAt
   have := hlin.const_mul (-2 * Complex.I * (h : ℂ))
   simpa only [invArg, Function.comp_apply, smul_eq_mul, mul_one] using! this
 
+/-- Under the stated nonvanishing parameter conditions, the derivative of the confluent
+hypergeometric function along `invArg h` is `confHyperDeriv` times `-2ih`. -/
 theorem hasDerivAt_invF (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0) (hb : ∀ n : ℕ, b + n ≠ 0)
     (h : ℝ) (t : ℝ) :
     HasDerivAt (fun s => confHyper a b (invArg h s))
@@ -40,6 +70,9 @@ theorem hasDerivAt_invF (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0) (hb : ∀ n 
   have := (hasDerivAt_confHyper a b ha hb (invArg h t)).scomp t (hasDerivAt_invArg h t)
   simpa only [Function.comp_apply, smul_eq_mul, mul_comm] using! this
 
+/-- Under the stated nonvanishing parameter conditions, differentiating the first
+time-derivative expression along `invArg h` gives `confHyperSecond` times two factors of
+`-2ih`. -/
 theorem hasDerivAt_invF_deriv (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0) (hb : ∀ n : ℕ, b + n ≠ 0)
     (h : ℝ) (t : ℝ) :
     HasDerivAt (fun s => confHyperDeriv a b (invArg h s) * (-2 * Complex.I * (h : ℂ)))
@@ -49,9 +82,11 @@ theorem hasDerivAt_invF_deriv (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0) (hb : 
   have h2 := hd.mul_const (-2 * Complex.I * (h : ℂ))
   simpa only [Function.comp_apply, smul_eq_mul, mul_assoc, mul_comm, mul_left_comm] using h2
 
+/-- The complex phase `exp (i * (h * t + c * Complex.log t))`. -/
 def clockPhase (c h : ℝ) (t : ℝ) : ℂ :=
   Complex.exp (Complex.I * ((h : ℂ) * (t : ℂ) + (c : ℂ) * Complex.log (t : ℂ)))
 
+/-- At positive time, the derivative of the clock-phase exponent is `i * (h + c / t)`. -/
 theorem hasDerivAt_clockArg (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     HasDerivAt (fun s : ℝ => Complex.I * ((h : ℂ) * (s : ℂ) + (c : ℂ) * Complex.log (s : ℂ)))
       (Complex.I * ((h : ℂ) + (c : ℂ) * (t : ℂ)⁻¹)) t := by
@@ -65,6 +100,8 @@ theorem hasDerivAt_clockArg (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     hlin.add (hlog.const_mul (c : ℂ))
   simpa [mul_add] using hsum.const_mul Complex.I
 
+/-- At positive time, the derivative of `clockPhase c h` equals the phase times `i * (h + c /
+t)`. -/
 theorem hasDerivAt_clockPhase (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     HasDerivAt (clockPhase c h)
       (clockPhase c h t * (Complex.I * ((h : ℂ) + (c : ℂ) * (t : ℂ)⁻¹))) t := by
@@ -73,6 +110,7 @@ theorem hasDerivAt_clockPhase (c h : ℝ) (t : ℝ) (ht : 0 < t) :
   have hcomp := hexp.scomp t (hasDerivAt_clockArg c h t ht)
   simpa [clockPhase, mul_comm, mul_assoc, mul_left_comm] using! hcomp
 
+/-- At positive time, the derivative of `i * (h + c / t)` is `-ic / t ^ 2`. -/
 theorem hasDerivAt_clockLogDeriv (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     HasDerivAt (fun s : ℝ => Complex.I * ((h : ℂ) + (c : ℂ) * (s : ℂ)⁻¹))
       (Complex.I * (-(c : ℂ) * ((t : ℂ)⁻¹) ^ 2)) t := by
@@ -84,6 +122,8 @@ theorem hasDerivAt_clockLogDeriv (c h : ℝ) (t : ℝ) (ht : 0 < t) :
   have hsum := (hinv.const_mul (c : ℂ)).const_add (h : ℂ)
   simpa [mul_comm, mul_assoc, mul_left_comm] using hsum.const_mul Complex.I
 
+/-- At positive time, the derivative of the clock-phase derivative expression is the phase times
+the sum of the squared logarithmic derivative and `-ic / t ^ 2`. -/
 theorem hasDerivAt_clockPhase_deriv (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     HasDerivAt (fun s => clockPhase c h s * (Complex.I * ((h : ℂ) + (c : ℂ) * (s : ℂ)⁻¹)))
       (clockPhase c h t * ((Complex.I * ((h : ℂ) + (c : ℂ) * (t : ℂ)⁻¹)) ^ 2
@@ -94,10 +134,13 @@ theorem hasDerivAt_clockPhase_deriv (c h : ℝ) (t : ℝ) (ht : 0 < t) :
   convert hprod using 1
   ring
 
+/-- The confluent hypergeometric parameter `1 + ic`. -/
 def kummerA (c : ℝ) : ℂ := 1 + Complex.I * (c : ℂ)
 
+/-- The confluent hypergeometric parameter `1 + 2ic`. -/
 def kummerB (c : ℝ) : ℂ := 1 + 2 * Complex.I * (c : ℂ)
 
+/-- Adding any natural number to `kummerA c` gives a nonzero complex number. -/
 theorem kummerA_add_nat_ne_zero (c : ℝ) : ∀ n : ℕ, kummerA c + n ≠ 0 := by
   intro n hn
   have hre := congrArg Complex.re hn
@@ -105,6 +148,7 @@ theorem kummerA_add_nat_ne_zero (c : ℝ) : ∀ n : ℕ, kummerA c + n ≠ 0 := 
   have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
   linarith
 
+/-- Adding any natural number to `kummerB c` gives a nonzero complex number. -/
 theorem kummerB_add_nat_ne_zero (c : ℝ) : ∀ n : ℕ, kummerB c + n ≠ 0 := by
   intro n hn
   have hre := congrArg Complex.re hn
@@ -112,9 +156,13 @@ theorem kummerB_add_nat_ne_zero (c : ℝ) : ∀ n : ℕ, kummerB c + n ≠ 0 := 
   have hn0 : (0 : ℝ) ≤ (n : ℝ) := Nat.cast_nonneg n
   linarith
 
+/-- The product of `clockPhase c h t` and the confluent hypergeometric function with parameters
+`kummerA c`, `kummerB c` at `invArg h t`. -/
 def invAmplitude (c h : ℝ) (t : ℝ) : ℂ :=
   clockPhase c h t * confHyper (kummerA c) (kummerB c) (invArg h t)
 
+/-- At positive time, the inverse-schedule amplitude has the displayed product-rule derivative
+involving `confHyper` and `confHyperDeriv`. -/
 theorem hasDerivAt_invAmplitude (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     HasDerivAt (invAmplitude c h)
       (clockPhase c h t * (Complex.I * ((h : ℂ) + (c : ℂ) * (t : ℂ)⁻¹))
@@ -128,6 +176,8 @@ theorem hasDerivAt_invAmplitude (c h : ℝ) (t : ℝ) (ht : 0 < t) :
   have := h1.mul h2
   simpa [invAmplitude] using! this
 
+/-- At positive time, the first derivative expression for `invAmplitude` has the displayed
+second derivative involving the phase and the first two hypergeometric derivatives. -/
 theorem hasDerivAt_invAmplitude_deriv (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     HasDerivAt
       (fun s => clockPhase c h s * (Complex.I * ((h : ℂ) + (c : ℂ) * (s : ℂ)⁻¹))
@@ -156,6 +206,9 @@ theorem hasDerivAt_invAmplitude_deriv (c h : ℝ) (t : ℝ) (ht : 0 < t) :
   convert hsum using 1
   ring
 
+/-- Under the stated nonvanishing parameter conditions, `confHyper`, `confHyperDeriv`, and
+`confHyperSecond` satisfy Kummer's equation `wF'' + (b - w)F' - aF = 0`
+[KadowakiNishimori1998]. -/
 theorem kummer_series_relation (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (w : ℂ) :
     w * confHyperSecond a b w + (b - w) * confHyperDeriv a b w - a * confHyper a b w = 0 := by
@@ -169,6 +222,7 @@ theorem kummer_series_relation (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
   rw [hderiv2, hderiv1] at h
   exact h
 
+/-- The inverse-schedule argument is nonzero when `h` is nonzero and time is positive. -/
 theorem invArg_ne_zero (h : ℝ) (hh0 : h ≠ 0) (t : ℝ) (ht : 0 < t) :
     invArg h t ≠ 0 := by
   have htC : (t : ℂ) ≠ 0 := by exact_mod_cast ht.ne'
@@ -178,6 +232,8 @@ theorem invArg_ne_zero (h : ℝ) (hh0 : h ≠ 0) (t : ℝ) (ht : 0 < t) :
   simp only [invArg]
   exact mul_ne_zero (mul_ne_zero (mul_ne_zero h2 hI) hhC) htC
 
+/-- At positive time, gives the second derivative of `invAmplitude` as the sum of phase, mixed,
+and second hypergeometric derivative terms. -/
 theorem deriv_deriv_invAmplitude (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     deriv (deriv (invAmplitude c h)) t
       = (clockPhase c h t * ((Complex.I * ((h : ℂ) + (c : ℂ) * (t : ℂ)⁻¹)) ^ 2
@@ -200,6 +256,7 @@ theorem deriv_deriv_invAmplitude (c h : ℝ) (t : ℝ) (ht : 0 < t) :
   rw [hloc.deriv_eq]
   exact (hasDerivAt_invAmplitude_deriv c h t ht).deriv
 
+/-- At positive time, evaluates `deriv (invAmplitude c h)` by the product and chain rules. -/
 theorem deriv_invAmplitude (c h : ℝ) (t : ℝ) (ht : 0 < t) :
     deriv (invAmplitude c h) t
       = (clockPhase c h t * (Complex.I * ((h : ℂ) + (c : ℂ) * (t : ℂ)⁻¹))
@@ -209,6 +266,8 @@ theorem deriv_invAmplitude (c h : ℝ) (t : ℝ) (ht : 0 < t) :
               * (-2 * Complex.I * (h : ℂ)))) :=
   (hasDerivAt_invAmplitude c h t ht).deriv
 
+/-- For nonzero `h` and positive time, `invAmplitude` satisfies `b'' + b' / t + (h ^ 2 + c ^ 2 /
+t ^ 2 + ih / t) * b = 0` [KadowakiNishimori1998]. -/
 theorem invAmplitude_second_order (c h : ℝ) (hh0 : h ≠ 0) (t : ℝ) (ht : 0 < t) :
     deriv (deriv (invAmplitude c h)) t
       + (t : ℂ)⁻¹ * deriv (invAmplitude c h) t
@@ -242,10 +301,13 @@ theorem invAmplitude_second_order (c h : ℝ) (hh0 : h ≠ 0) (t : ℝ) (ht : 0 
   rw [div_eq_zero_iff] at hdiv
   exact hdiv.resolve_right hφ
 
+/-- The companion amplitude `(h * invAmplitude - i * deriv invAmplitude) / (c / t)`. -/
 def invAmplitudeA (c h : ℝ) (t : ℝ) : ℂ :=
   ((h : ℂ) * invAmplitude c h t - Complex.I * deriv (invAmplitude c h) t)
     / ((c : ℂ) / (t : ℂ))
 
+/-- For nonzero `c` and positive time, the inverse-schedule amplitudes satisfy `i * b' = -(c /
+t) * a + h * b` [KadowakiNishimori1998]. -/
 theorem invAmplitude_schrodinger_b (c h : ℝ) (hc : c ≠ 0) (t : ℝ) (ht : 0 < t) :
     Complex.I * deriv (invAmplitude c h) t
       = -((c : ℂ) / (t : ℂ)) * invAmplitudeA c h t + (h : ℂ) * invAmplitude c h t := by

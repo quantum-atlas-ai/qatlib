@@ -24,6 +24,28 @@ import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import Mathlib.Analysis.SpecialFunctions.Log.Summable
 import Mathlib.Algebra.Group.Submonoid.BigOperators
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+
+/-!
+# Mertens products and the totient lower limit
+
+This module develops integral comparisons, von Mangoldt and prime-sum estimates, and the Mertens
+product asymptotic needed for `totientLimInf_answer`. The final theorem computes the lower limit
+of `sourceTotientCarrier`, while `totientLimInf_false` refutes the separate reciprocal
+formulation `TotientLimInfOriginal` using powers of two. This development supports the treatment
+in [Cornwell2014].
+
+## Main statements
+
+* `M.eq`: the prime-series expression for the Mertens constant.
+* `E₃.bound''`: the Mertens product asymptotic.
+* `totientLimInf_false`: failure of the reciprocal lower-limit formulation.
+* `totientLimInf_answer`: the lower limit of `φ(N) * log(log N) / N` equals `exp(-γ)`.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -34,6 +56,8 @@ section LandauIntegralTest
 open Set MeasureTheory MeasureSpace intervalIntegral
 variable {f : ℝ → ℝ}
 
+/-- For an antitone function on `[a, b]` that is nonnegative and integrable on `(a, ∞)`, the sum
+of `f(n + 1)` for `a ≤ n < b` is bounded by the integral over `(a, ∞)`. -/
 lemma AntitoneOn.sum_Ico_le_integral {a b : ℕ} (anti : AntitoneOn f (Icc a b))
     (integrable : IntegrableOn f (Ioi a)) (nonneg : ∀ t ∈ Ioi (a : ℝ), 0 ≤ f t) :
     ∑ n ∈ .Ico a b, f ↑(n + 1) ≤ ∫ x in Ioi (a : ℝ), f x := by
@@ -43,6 +67,8 @@ lemma AntitoneOn.sum_Ico_le_integral {a b : ℕ} (anti : AntitoneOn f (Icc a b))
   apply setIntegral_mono_set integrable _ (Filter.Eventually.of_forall Ioc_subset_Ioi_self)
   exact ae_restrict_of_forall_mem measurableSet_Ioi nonneg
 
+/-- For an antitone function on `[0, N]` that is nonnegative and integrable on `(0, ∞)`, the sum
+of `f(n + 1)` for `n < N` is at most its integral over `(0, ∞)`. -/
 lemma AntitoneOn.sum_range_le_integral {N : ℕ} (anti : AntitoneOn f (Icc 0 (N : ℝ)))
     (integrable : IntegrableOn f (Ioi 0)) (nonneg : ∀ t ∈ Ioi 0, 0 ≤ f t) :
     ∑ n ∈ Finset.range N, f ((n + 1 : ℕ)) ≤ ∫ x in Ioi 0, f x := by
@@ -50,6 +76,8 @@ lemma AntitoneOn.sum_range_le_integral {N : ℕ} (anti : AntitoneOn f (Icc 0 (N 
   exact_mod_cast AntitoneOn.sum_Ico_le_integral (a := 0) (mod_cast anti)
     (mod_cast integrable) (mod_cast nonneg)
 
+/-- A real function that is antitone on `[N, ∞)`, nonnegative on `(N, ∞)`, and integrable there
+has summable values on the natural numbers. -/
 theorem AntitoneOn.summable_of_integrableOn_Ioi {N : ℕ} (anti : AntitoneOn f (Ici (N : ℝ)))
     (integrable : IntegrableOn f (Ioi (N : ℝ))) (nonneg : ∀ t ∈ Ioi (N : ℝ), 0 ≤ f t) :
     Summable (fun (n : ℕ) ↦ f n) := by
@@ -59,6 +87,8 @@ theorem AntitoneOn.summable_of_integrableOn_Ioi {N : ℕ} (anti : AntitoneOn f (
     _ = ∑ n ∈ Finset.Ico N (N + M), f (n + 1 : ℕ) := by rw [Finset.sum_Ico_eq_sum_range]; grind
     _ ≤ _ := AntitoneOn.sum_Ico_le_integral (anti.mono Icc_subset_Ici_self) integrable nonneg
 
+/-- An antitone function on `[0, ∞)` that is nonnegative and integrable on `(0, ∞)` has summable
+natural-number values. -/
 theorem AntitoneOn.summable_of_integrableOn_Ioi_zero (anti : AntitoneOn f (Ici 0))
     (integrable : IntegrableOn f (Ioi 0)) (nonneg : ∀ t ∈ Ioi 0, 0 ≤ f t) :
     Summable (fun (n : ℕ) ↦ f n) :=
@@ -66,6 +96,8 @@ theorem AntitoneOn.summable_of_integrableOn_Ioi_zero (anti : AntitoneOn f (Ici 0
 
 open Filter Finset in
 
+/-- For an antitone function on `[N, ∞)` that is nonnegative and integrable on `(N, ∞)`, the sum
+of `f(n + N + 1)` is at most the tail integral starting at `N`. -/
 theorem AntitoneOn.tsum_comp_add_le_integral (N : ℕ) (anti : AntitoneOn f (Ici (N : ℝ)))
     (integrable : IntegrableOn f (Ioi (N : ℝ))) (nonneg : ∀ t ∈ Ioi (N : ℝ), 0 ≤ f t) :
     ∑' (n : ℕ),  f (n + N + 1 : ℕ) ≤ ∫ x in Ioi (N : ℝ), f x := by
@@ -79,12 +111,16 @@ theorem AntitoneOn.tsum_comp_add_le_integral (N : ℕ) (anti : AntitoneOn f (Ici
       _ ≤ ∫ (x : ℝ) in Set.Ioi (N : ℝ), f x :=
         AntitoneOn.sum_Ico_le_integral (anti.mono <| by grind) integrable nonneg
 
+/-- For an antitone function on `[0, ∞)` that is nonnegative and integrable on `(0, ∞)`, the sum
+of `f(n + 1)` is bounded by its integral over `(0, ∞)`. -/
 theorem AntitoneOn.tsum_add_one_le_integral (anti : AntitoneOn f (Ici 0))
     (integrable : IntegrableOn f (Ioi 0)) (nonneg : ∀ t ∈ Ioi 0, 0 ≤ f t) :
     ∑' (n : ℕ),  f (n + 1 : ℕ) ≤ ∫ x in Ioi 0, f x  := by
   exact_mod_cast AntitoneOn.tsum_comp_add_le_integral 0 (mod_cast anti) (mod_cast integrable)
     (mod_cast nonneg)
 
+/-- Under the antitonicity, nonnegativity, and integrability hypotheses, the sum of the
+natural-number values of `f` is at most `f 0` plus its integral over `(0, ∞)`. -/
 theorem AntitoneOn.tsum_le_integral (anti : AntitoneOn f (Ici 0))
     (integrable : IntegrableOn f (Ioi 0)) (nonneg : ∀ t ∈ Ioi 0, 0 ≤ f t) :
     ∑' (n : ℕ),  f n ≤ f 0 + ∫ x in Ioi 0, f x  := by
@@ -98,11 +134,14 @@ open _root_.Real
 
 open Filter Asymptotics
 
+/-- The reciprocal logarithm is little-o of the constant function one as the argument tends to
+infinity. -/
 theorem inv_log_eq_o_one : (fun x ↦ 1 / log x) =o[atTop] (fun _ ↦ (1:ℝ)) := by
     rw [isLittleO_one_iff]
     convert! tendsto_log_atTop.inv_tendsto_atTop using 1
     ext; simp
 
+/-- The constant function one is little-o of the iterated logarithm at infinity. -/
 theorem one_eq_o_log_log : (fun _ ↦ (1:ℝ)) =o[atTop] (fun x ↦ log (log x)) := by
     simp only [isLittleO_one_left_iff, norm_eq_abs]
     exact tendsto_abs_atTop_atTop.comp (tendsto_log_atTop.comp tendsto_log_atTop)
@@ -112,6 +151,7 @@ end LogLimits
 section Issue1584
 open MeasureTheory Set Filter Topology
 
+/-- The function `log(v) * exp(-v)` is integrable on the positive real half-line. -/
 private lemma integrableOn_log_mul_exp_neg :
     IntegrableOn (fun v : ℝ => Real.log v * Real.exp (-v)) (Ioi 0) := by
   rw [← Set.Ioc_union_Ioi_eq_Ioi (zero_le_one' ℝ), integrableOn_union]
@@ -156,6 +196,8 @@ private lemma integrableOn_log_mul_exp_neg :
       rw [heq] at hstep
       exact hstep
 
+/-- The integral of `log(t) * exp(-t)` over positive reals equals the derivative of the real
+Gamma function at one. -/
 private lemma integral_log_mul_exp_neg_eq_deriv_Gamma :
     ∫ t in Ioi (0:ℝ), Real.log t * Real.exp (-t) = deriv Real.Gamma 1 := by
   set I : ℝ := ∫ t in Ioi (0:ℝ), Real.log t * Real.exp (-t) with hI
@@ -187,6 +229,8 @@ private lemma integral_log_mul_exp_neg_eq_deriv_Gamma :
     exact h3
   rw [← h4.deriv]
 
+/-- For `s > 1`, the integral of `log(log x) * x^(-s)` over `(1, ∞)`, multiplied by `s - 1`,
+equals `-log(s - 1)` plus the Gamma derivative at one. -/
 private theorem mul_integ_log_log_eq_aux (s : ℝ) (hs : 1 < s) :
     (s - 1) * ∫ x in Ioi (1:ℝ), Real.log (Real.log x) * x ^ (-s) =
       - Real.log (s - 1) + deriv Real.Gamma 1 := by
@@ -355,11 +399,14 @@ namespace Mertens
 open Real LogLimits Finset Filter Asymptotics Topology
 open ArithmeticFunction hiding log
 
+/-- For `x ≥ 1`, extending a sum from natural indices `(1, x]` to `(0, x]` does not change it
+when `f 1 = 0`. -/
 lemma sum_Ioc_one_eq_sum_Ioc_zero {f : ℕ → ℝ} {x : ℕ} (hx : 1 ≤ x) (hf : f 1 = 0) :
     ∑ n ∈ Ioc 1 x, f n = ∑ n ∈ Ioc 0 x, f n := by
   rw [(by rfl : Ioc 0 x = Icc 1 x), ← add_sum_Ioc_eq_sum_Icc hx]
   simpa
 
+/-- For `x ≥ 1`, the sum of `log n` over `1 ≤ n ≤ floor x` is at most `x * log x`. -/
 theorem sum_log_le {x : ℝ} (hx : 1 ≤ x) :
     ∑ n ∈ Ioc 0 ⌊ x ⌋₊, log n ≤ x * log x := by
   calc
@@ -373,6 +420,7 @@ theorem sum_log_le {x : ℝ} (hx : 1 ≤ x) :
     · exact log_nonneg hx
     · exact Nat.floor_le (by linarith)
 
+/-- For `1 ≤ a ≤ b`, the integral of the logarithm from `a` to `b` is at most `log b * (b - a)`. -/
 lemma integral_log_le {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     ∫ t in a..b, log t ≤ log b * (b - a) := by
   apply le_of_abs_le
@@ -384,6 +432,7 @@ lemma integral_log_le {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
   grw [← norm_eq_abs, intervalIntegral.norm_integral_le_of_norm_le_const this,
     abs_of_nonneg (by linarith)]
 
+/-- For `x ≥ 1`, the sum of `log n` over `1 ≤ n ≤ floor x` is at least `x * log x - 2 * x`. -/
 theorem sum_log_ge {x : ℝ} (hx : 1 ≤ x) :
     ∑ n ∈ Ioc 0 ⌊ x ⌋₊, log n ≥ x * log x - 2 * x := by
   have one_le_floor : 1 ≤ ⌊x⌋₊ := by simpa
@@ -414,6 +463,8 @@ theorem sum_log_ge {x : ℝ} (hx : 1 ≤ x) :
     tsub_le_iff_right, sub_add_cancel, le_add_iff_nonneg_right, zero_le_one]
   _ ≥ _ := by linarith [log_le_self (by linarith : 0 ≤ x)]
 
+/-- The sum of the logarithms of the positive natural numbers up to `floor x` equals the
+logarithm of its factorial. -/
 theorem sum_log_eq_log_factorial (x : ℝ) :
     ∑ n ∈ Ioc 0 ⌊ x ⌋₊, log n = log (Nat.floor x).factorial := by
     rw [← prod_Ico_id_eq_factorial, ← log_prod, prod_natCast]
@@ -421,16 +472,21 @@ theorem sum_log_eq_log_factorial (x : ℝ) :
     intro x hx
     simp at hx ⊢; grind
 
+/-- The logarithm sum up to `floor x` equals the sum of `Λ d * floor(x/d)` over the same
+positive natural indices. -/
 theorem sum_log_eq_sum_mangoldt {x : ℝ} :
     ∑ n ∈ Ioc 0 ⌊x⌋₊, log n = ∑ d ∈ Ioc 0 ⌊x⌋₊, Λ d * ⌊x / d⌋₊ := by
   have : ∀ n : ℕ, log n = (Λ * zeta) n := by simp [vonMangoldt_mul_zeta]
   simp_rw [this, sum_Ioc_mul_zeta_eq_sum, ← Nat.floor_div_natCast]
 
+/-- The error between the partial sum of `Λ d / d` up to `floor x` and `log x`. -/
 noncomputable abbrev E₁Λ (x : ℝ) : ℝ := ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / d - log x
 
+/-- The partial sum of `Λ d / d` equals `log x + E₁Λ x`. -/
 theorem sum_mangoldt_div_eq (x : ℝ) : ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / d = log x + E₁Λ x := by
     grind
 
+/-- For `x ≥ 1`, the von Mangoldt error `E₁Λ x` is at least `-2`. -/
 theorem E₁Λ.ge {x : ℝ} (hx : 1 ≤ x) :
     E₁Λ x  ≥ -2 := by
   unfold E₁Λ
@@ -447,6 +503,7 @@ theorem E₁Λ.ge {x : ℝ} (hx : 1 ≤ x) :
     sum_log_eq_sum_mangoldt ▸ sum_log_ge hx
   _ = _ := by ring
 
+/-- For `x ≥ 1`, the von Mangoldt error `E₁Λ x` is at most `log 4 + 4`. -/
 theorem E₁Λ.le {x : ℝ} (hx : 1 ≤ x) :
     E₁Λ x ≤ log 4 + 4 := by
   unfold E₁Λ
@@ -468,32 +525,42 @@ theorem E₁Λ.le {x : ℝ} (hx : 1 ≤ x) :
     · exact Chebyshev.psi_le_const_mul_self (by linarith)
   _ = _ := by ring
 
+/-- For `x ≥ 1`, the absolute difference between the partial sum of `Λ d / d` and `log x` is at
+most `log 4 + 4`. -/
 theorem sum_mangoldt_div_eq_log {x : ℝ} (hx : 1 ≤ x) :
     |∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / d - log x| ≤ log 4 + 4 := by
   grind [E₁Λ.le hx, E₁Λ.ge hx, log_nonneg]
 
+/-- There is a positive uniform bound on the absolute value of `E₁Λ x` for all `x ≥ 1`. -/
 theorem E₁Λ.bounded' : ∃ c > 0, ∀ x ≥ 1, |E₁Λ x| ≤ c := by
   exact ⟨log 4 + 4, (by positivity), fun x hx ↦ sum_mangoldt_div_eq_log hx⟩
 
+/-- The von Mangoldt error `E₁Λ` is big-O of one at infinity. -/
 theorem E₁Λ.bounded : E₁Λ =O[atTop] (fun _ ↦ (1:ℝ)) := by
   simp only [isBigO_iff, norm_eq_abs, norm_one, mul_one,
     eventually_atTop]
   exact ⟨log 4 + 4, 1, fun _ hx ↦ sum_mangoldt_div_eq_log hx⟩
 
+/-- The constant function one is little-o of the logarithm at infinity. -/
 theorem one_eq_o_log : (fun _ ↦ (1:ℝ)) =o[atTop] (fun x ↦ log x) := by
     simp only [isLittleO_one_left_iff, norm_eq_abs]
     exact tendsto_abs_atTop_atTop.comp tendsto_log_atTop
 
+/-- The partial sum of `Λ d / d` up to `floor x` is asymptotic to `log x` at infinity. -/
 theorem sum_mangoldt_div_eq_log' :
     (fun x ↦ ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / d) ~[atTop] (fun x ↦ log x) := by
     apply IsLittleO.isEquivalent (IsBigO.trans_isLittleO _ one_eq_o_log)
     convert! E₁Λ.bounded using 1
 
+/-- The error between the prime sum of `log p / p` up to `floor x` and `log x`. -/
 noncomputable abbrev E₁p (x : ℝ) : ℝ := ∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (log p) / p - log x
 
+/-- The partial prime sum of `log p / p` equals `log x + E₁p x`. -/
 theorem sum_log_prime_div_eq (x : ℝ) : ∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (log p) / p = log x + E₁p x := by
     grind
 
+/-- The prime logarithmic error is bounded above by the corresponding von Mangoldt error at
+every real argument. -/
 theorem E₁p.le_E₁Λ (x : ℝ) :
     E₁p x ≤ E₁Λ x := by
     unfold E₁p E₁Λ; rw [sum_filter]
@@ -503,12 +570,16 @@ theorem E₁p.le_E₁Λ (x : ℝ) :
     have : 0 ≤ Λ p := vonMangoldt_nonneg
     positivity
 
+/-- For `x ≥ 1`, the prime logarithmic error `E₁p x` is at most `log 4 + 4`. -/
 theorem E₁p.le {x : ℝ} (hx : 1 ≤ x) :
     E₁p x ≤ log 4 + 4 := by
     linarith [E₁Λ.le hx, E₁p.le_E₁Λ x]
 
+/-- The infinite prime sum of `log p / (p * (p - 1))`, represented with zero summands at
+nonprimes. -/
 noncomputable abbrev E₁ : ℝ := ∑' p : ℕ, if p.Prime then (log p) / (p*(p-1)) else 0
 
+/-- Each prime-filtered summand defining `E₁` is nonnegative. -/
 lemma E₁.summand_nonneg (p : ℕ) : 0 ≤ if p.Prime then (log p) / (p*(p-1)) else 0 := by
   split_ifs with h
   · refine div_nonneg (log_natCast_nonneg _) (mul_nonneg (Nat.cast_nonneg _) ?_)
@@ -516,6 +587,7 @@ lemma E₁.summand_nonneg (p : ℕ) : 0 ≤ if p.Prime then (log p) / (p*(p-1)) 
     exact_mod_cast h.one_le
   · rfl
 
+/-- The prime-filtered series of `log p / (p * (p - 1))` is summable. -/
 theorem E₁.summable : Summable (fun p : ℕ ↦ if p.Prime then (log p) / (p*(p-1)) else 0) := by
   refine (Real.summable_one_div_nat_rpow.mpr (by norm_num: 1 < (3 : ℝ) / 2)|>.const_div
     4).of_nonneg_of_le E₁.summand_nonneg fun n ↦ ?_
@@ -540,6 +612,7 @@ theorem E₁.summable : Summable (fun p : ℕ ↦ if p.Prime then (log p) / (p*(
       exact_mod_cast h.one_le
   · positivity
 
+/-- The function `log(t + 2) / (t + 2)^2` is antitone on the nonnegative real half-line. -/
 private lemma antitoneOn_log_div_sq :
     AntitoneOn (fun t ↦ log (t + 2) / (t + 2) ^ 2) (Set.Ici 0) := by
   apply antitoneOn_of_deriv_nonpos (convex_Ici 0)
@@ -562,10 +635,13 @@ private lemma antitoneOn_log_div_sq :
     gcongr
     nlinarith [exp_one_lt_three]
 
+/-- The function `log(t + 2) / (t + 2)^2` is nonnegative for positive `t`. -/
 private lemma log_div_sq_nonneg :
     ∀ t ∈ Set.Ioi 0, 0 ≤ log (t + 2) / (t + 2) ^ 2 := by
   exact fun t ht ↦  div_nonneg (log_nonneg (by simp_all; linarith)) (by positivity)
 
+/-- On the nonnegative half-line, the derivative of `(-log(t + 2) - 1)/(t + 2)` is `log(t +
+2)/(t + 2)^2`. -/
 private lemma log_div_sq_is_deriv :
     ∀ x ∈ Set.Ici 0, HasDerivAt (fun t ↦ (-log (t + 2) - 1) / (t + 2)) (log (x + 2) / (x + 2) ^ 2) x := by
   intro t ht
@@ -579,6 +655,7 @@ private lemma log_div_sq_is_deriv :
   · exact hasDerivAt_id _
   · linarith
 
+/-- The function `(-log(t + 2) - 1)/(t + 2)` tends to zero at infinity. -/
 private lemma tendsto_antideriv_log_div_sq :
     Tendsto (fun t ↦ (-log (t + 2) - 1) / (t + 2)) atTop (nhds 0) := by
   have : Tendsto (fun (t : ℝ) ↦ t + 2) atTop atTop := by
@@ -591,15 +668,18 @@ private lemma tendsto_antideriv_log_div_sq :
     · ext; ring
     · simp
 
+/-- The function `log(t + 2)/(t + 2)^2` is integrable over `(0, ∞)`. -/
 private lemma integrableOn_log_div_sq :
     MeasureTheory.IntegrableOn (fun t ↦ log (t + 2) / (t + 2) ^ 2) (Set.Ioi 0) := by
   exact MeasureTheory.integrableOn_Ioi_deriv_of_nonneg' log_div_sq_is_deriv log_div_sq_nonneg tendsto_antideriv_log_div_sq
 
+/-- The integral of `log(t + 2)/(t + 2)^2` over `(0, ∞)` equals `(log 2 + 1)/2`. -/
 private lemma integral_log_div_sq :
     ∫ t in Set.Ioi 0, log (t + 2) / (t + 2) ^ 2 = (log 2 + 1) / 2 := by
   rw [MeasureTheory.integral_Ioi_of_hasDerivAt_of_nonneg' log_div_sq_is_deriv log_div_sq_nonneg tendsto_antideriv_log_div_sq]
   ring_nf
 
+/-- The series with terms `log(n + 3)/(n + 3)^2` is summable. -/
 private lemma summable_log_div_sq :
     Summable (fun (n : ℕ)↦ log (n + 3) / (n + 3) ^ 2) := by
   let g : ℝ → ℝ := (fun n ↦ log (n + 2) / (n + 2) ^ 2)
@@ -610,6 +690,7 @@ private lemma summable_log_div_sq :
     ring_nf
   exact AntitoneOn.summable_of_integrableOn_Ioi_zero antitoneOn_log_div_sq integrableOn_log_div_sq log_div_sq_nonneg
 
+/-- The sum of `log(n + 3)/(n + 3)^2` is at most `(log 2 + 1)/2`. -/
 private lemma sum_log_div_sq_le :
     ∑' (n : ℕ), log (n + 3) / (n + 3) ^2 ≤ (log 2 + 1) / 2 := by
   let g : ℝ → ℝ := (fun n ↦ log (n + 2) / (n + 2) ^ 2)
@@ -624,6 +705,7 @@ private lemma sum_log_div_sq_le :
   _ = _ := by
     exact integral_log_div_sq
 
+/-- The prime-series constant `E₁` is at most `(5 * log 2 + 3)/4`. -/
 theorem E₁.le : E₁ ≤ (5 * log 2 + 3) / 4 := by
   unfold E₁
   calc
@@ -650,9 +732,11 @@ theorem E₁.le : E₁ ≤ (5 * log 2 + 3) / 4 := by
     ring_nf
     rfl
 
+/-- The prime-series constant `E₁` is nonnegative. -/
 theorem E₁.nonneg : E₁ ≥ 0 :=
   tsum_nonneg E₁.summand_nonneg
 
+/-- For `x ≥ 1`, the von Mangoldt error is at most the prime logarithmic error plus `E₁`. -/
 theorem E₁Λ.le_E₁p_add_E₁ {x : ℝ} (hx : 1 ≤ x) :
     E₁Λ x ≤ E₁p x + E₁ := by
   unfold E₁Λ E₁p
@@ -697,10 +781,13 @@ theorem E₁Λ.le_E₁p_add_E₁ {x : ℝ} (hx : 1 ≤ x) :
       rw [sum_filter]
       exact E₁.summable.sum_le_tsum _ fun p hp ↦ E₁.summand_nonneg p
 
+/-- For `x ≥ 1`, the prime logarithmic error is at least `-2 - E₁`. -/
 theorem E₁p.ge {x : ℝ} (hx : 1 ≤ x) :
     E₁p x ≥ -2 - E₁ := by
     linarith [E₁Λ.le_E₁p_add_E₁ hx, E₁Λ.ge hx]
 
+/-- For `x ≥ 1`, the prime sum of `log p / p` differs from `log x` by at most `log 4 + 4` in
+absolute value. -/
 theorem sum_log_prime_div_eq_log {x : ℝ} (hx : 1 ≤ x) :
     |∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (log p) / p - log x| ≤ log 4 + 4 := by
     rw [abs_le']
@@ -709,27 +796,38 @@ theorem sum_log_prime_div_eq_log {x : ℝ} (hx : 1 ≤ x) :
     have : log 4 = 2 * log 2 := by rw [← Real.log_rpow (by norm_num)]; norm_num
     grind [E₁p.ge hx, E₁.le]
 
+/-- There is a positive uniform bound on the absolute prime logarithmic error for all `x ≥ 1`. -/
 theorem E₁p.bounded : ∃ c > 0, ∀ x ≥ 1, |E₁p x| ≤ c := by
   exact ⟨log 4 + 4, (by positivity), fun _ hx ↦ sum_log_prime_div_eq_log  hx⟩
 
+/-- The prime logarithmic error `E₁p` is big-O of one at infinity. -/
 theorem sum_log_prime_div_eq_log' : E₁p =O[atTop] (fun _ ↦ (1:ℝ)) := by
     simp only [isBigO_iff, norm_eq_abs, one_mem, CStarRing.norm_of_mem_unitary, mul_one,
       eventually_atTop, E₁p]
     exact ⟨ log 4 + 4, 1, fun _ ↦ sum_log_prime_div_eq_log ⟩
 
+/-- The prime sum of `log p / p` up to `floor x` is asymptotic to `log x`. -/
 theorem sum_log_prime_div_eq_log'' : (fun x ↦ ∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (log p) / p) ~[atTop] (fun x ↦ log x) := by
     apply IsLittleO.isEquivalent (IsBigO.trans_isLittleO _ one_eq_o_log)
     convert! sum_log_prime_div_eq_log' using 1
 
+/-- The constant defined by the tail integral of `E₁Λ(t)/(t * (log t)^2)` above two, plus `1 -
+log(log 2)`. -/
 noncomputable abbrev γ : ℝ := (∫ t in Set.Ioi 2, E₁Λ t / (t * log t^2)) + 1 - log (log 2)
 
+/-- The error in the sum of `Λ d / (d * log d)` after subtracting `log(log x)` and the constant
+`γ`. -/
 noncomputable abbrev E₂Λ (x : ℝ) : ℝ := ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / (d * log d) - log (log x) - γ
 
+/-- For `x ≥ 1`, a sum over natural indices `(1, x]` equals the sum over `[0, x]` when the terms
+at zero and one vanish. -/
 lemma sum_Ioc_one_eq_sum_Icc_zero {f : ℕ → ℝ} {x : ℕ} (hx : 1 ≤ x) (hf1 : f 1 = 0) (hf0 : f 0 = 0) :
     ∑ n ∈ Ioc 1 x, f n = ∑ n ∈ Icc 0 x, f n := by
   rw [sum_Ioc_one_eq_sum_Ioc_zero hx hf1, ← add_sum_Ioc_eq_sum_Icc (by linarith)]
   simpa
 
+/-- For `x ≥ 2`, summation by parts expresses the sum of `f n / log n` as the endpoint partial
+sum divided by `log x` plus an integral of partial sums against `1/(t * (log t)^2)`. -/
 private theorem sum_div_log_eq {x : ℝ} (hx : 2 ≤ x) (f : ℕ → ℝ) :
     ∑ n ∈ Ioc 1 ⌊ x ⌋₊, f n / log n =
       (∑ n ∈ Ioc 1 ⌊ x ⌋₊, f n) / log x + ∫ t in 2..x, (∑ n ∈ Ioc 1 ⌊ t ⌋₊, f n) / (t * log t^2) := by
@@ -770,6 +868,7 @@ private theorem sum_div_log_eq {x : ℝ} (hx : 2 ≤ x) (f : ℕ → ℝ) :
     have : log t ^2 ≠ 0 := by simp; grind
     fun_prop (disch := grind)
 
+/-- For `x ≥ 2`, the function `c/(t * (log t)^2)` is integrable over `(x, ∞)`. -/
 private theorem integrable_const_div_mul_log_sq {x : ℝ} (c : ℝ) (hx : 2 ≤ x) :
     MeasureTheory.IntegrableOn (fun x ↦ c / (x * log x ^ 2)) (Set.Ioi x) MeasureTheory.volume := by
   conv => arg 1; ext t; rw [← mul_one_div]
@@ -789,6 +888,7 @@ private theorem integrable_const_div_mul_log_sq {x : ℝ} (c : ℝ) (hx : 2 ≤ 
 
 attribute [fun_prop] measurable_from_top
 
+/-- For `x ≥ 2`, the function `E₁Λ(t)/(t * (log t)^2)` is integrable over `(x, ∞)`. -/
 private theorem integrable_E₁Λ_div_mul_log_sq {x : ℝ} (hx : 2 ≤ x) :
     MeasureTheory.IntegrableOn (fun x ↦ E₁Λ x / (x * log x ^ 2)) (Set.Ioi x) MeasureTheory.volume := by
   obtain ⟨c, hc1, hc2⟩ := E₁Λ.bounded'
@@ -800,6 +900,7 @@ private theorem integrable_E₁Λ_div_mul_log_sq {x : ℝ} (hx : 2 ≤ x) :
     gcongr
     exact hc2 t (by linarith)
 
+/-- For `x ≥ 2`, the function `E₁p(t)/(t * (log t)^2)` is integrable over `(x, ∞)`. -/
 private theorem integrable_E₁p_div_mul_log_sq {x : ℝ} (hx : 2 ≤ x) :
     MeasureTheory.IntegrableOn (fun x ↦ E₁p x / (x * log x ^ 2)) (Set.Ioi x) MeasureTheory.volume := by
   obtain ⟨c, hc1, hc2⟩ := E₁p.bounded
@@ -811,11 +912,13 @@ private theorem integrable_E₁p_div_mul_log_sq {x : ℝ} (hx : 2 ≤ x) :
     gcongr
     exact hc2 t (by linarith)
 
+/-- For `x > 1`, the derivative of `log(log x)` equals `1/(x * log x)`. -/
 lemma deriv_log_log {x : ℝ} (hx : 1 < x) :
     deriv (fun t ↦ log (log t)) x = 1 / (x * log x) := by
   rw [deriv.log (differentiableAt_log (by linarith)) (by simp; grind), deriv_log]
   field
 
+/-- For `x ≥ 2`, the integral of `1/(t * log t)` from two to `x` is `log(log x) - log(log 2)`. -/
 lemma integral_one_div_mul_log {x : ℝ} (hx : 2 ≤ x) :
     ∫ t in 2..x, 1 / (t * log t) = log (log x) - log (log 2) := by
   rw [← intervalIntegral.integral_deriv_eq_sub (f := fun t ↦ log (log t))]
@@ -837,6 +940,7 @@ lemma integral_one_div_mul_log {x : ℝ} (hx : 2 ≤ x) :
       rw [Set.uIcc_of_le hx, Set.mem_Icc] at ht
       exact deriv_log_log (by linarith)
 
+/-- For `x ≥ 2`, the function `1/(t * log t)` is interval integrable from two to `x`. -/
 lemma intervalIntegrable_one_div_mul_log {x : ℝ} (hx : 2 ≤ x) :
     IntervalIntegrable (fun t ↦ 1 / (t * log t)) MeasureTheory.volume 2 x := by
   refine ContinuousOn.intervalIntegrable fun t ht ↦ ContinuousAt.continuousWithinAt ?_
@@ -844,6 +948,8 @@ lemma intervalIntegrable_one_div_mul_log {x : ℝ} (hx : 2 ≤ x) :
   have : log t ≠ 0 := by simp; grind
   fun_prop (disch := grind)
 
+/-- For `x ≥ 2`, the error `E₂Λ x` equals `E₁Λ x / log x` minus the tail integral of `E₁Λ(t)/(t
+* (log t)^2)`. -/
 theorem E₂Λ.eq {x : ℝ} (hx : 2 ≤ x) :
     E₂Λ x = E₁Λ x / log x - ∫ t in Set.Ioi x, E₁Λ t / (t * log t^2) := by
   unfold E₂Λ
@@ -869,6 +975,7 @@ theorem E₂Λ.eq {x : ℝ} (hx : 2 ≤ x) :
   · rw [intervalIntegrable_iff, Set.uIoc_of_le hx]
     exact integrable_E₁Λ_div_mul_log_sq (x := 2) (by rfl)|>.mono (by grind) (by rfl)
 
+/-- For `x ≥ 2`, the integral of `c/(t * (log t)^2)` over `(x, ∞)` equals `c/log x`. -/
 private theorem integ_div_mul_log_sq {x : ℝ} (c : ℝ) (hx : 2 ≤ x) :
     ∫ t in Set.Ioi x, c / (t * log t^2) = c / log x := by
     convert! MeasureTheory.integral_Ioi_of_hasDerivAt_of_tendsto' (m := 0) (f := fun x ↦ - c / log x) ?_
@@ -881,6 +988,7 @@ private theorem integ_div_mul_log_sq {x : ℝ} (c : ℝ) (hx : 2 ≤ x) :
     convert! tendsto_log_atTop.inv_tendsto_atTop.const_mul (-c) using 1
     simp
 
+/-- For `x ≥ 2`, the absolute value of `E₂Λ x` is at most `(log 4 + 6)/log x`. -/
 theorem E₂Λ.abs_le {x : ℝ} (hx : 2 ≤ x) :
     |E₂Λ x| ≤ (log 4 + 6) / log x := by
     have : 0 < log x := by apply log_pos; linarith
@@ -911,6 +1019,7 @@ theorem E₂Λ.abs_le {x : ℝ} (hx : 2 ≤ x) :
     grw [this]
     grind
 
+/-- The error `E₂Λ` is big-O of the reciprocal logarithm at infinity. -/
 theorem E₂Λ.bound : E₂Λ =O[atTop] (fun x ↦ 1 / log x) := by
     simp only [one_div, isBigO_iff, norm_eq_abs, norm_inv, eventually_atTop]
     use log 4 + 6, 2
@@ -919,8 +1028,11 @@ theorem E₂Λ.bound : E₂Λ =O[atTop] (fun x ↦ 1 / log x) := by
     have : 0 < log x := by apply log_pos; linarith
     grind [abs_of_pos this]
 
+/-- The error `E₂Λ` is little-o of one at infinity. -/
 theorem E₂Λ.bound' : E₂Λ =o[atTop] (fun _ ↦ (1:ℝ)) := E₂Λ.bound.trans_isLittleO inv_log_eq_o_one
 
+/-- For real `s > 1`, the logarithm of the real part of the Riemann zeta function equals the
+series of `Λ n / (n^s * log n)`. -/
 theorem log_zeta_eq_sum (s : ℝ) (hs : 1 < s) :
     log (riemannZeta (s:ℂ)).re = ∑' n, Λ n / (n^s * log n) := by
   have hsc : (1 : ℝ) < ((s : ℂ)).re := by simpa using hs
@@ -1046,15 +1158,20 @@ open MeasureTheory Set
 
 namespace LogZetaInteg
 
+/-- The coefficient `Λ d / (d * log d)` used in the zeta integral representation. -/
 private noncomputable def c (d : ℕ) : ℝ := Λ d / (d * Real.log d)
 
+/-- The coefficient `c d` times `x^(-s)` restricted by the indicator of `[d, ∞)`. -/
 private noncomputable def f (s : ℝ) (d : ℕ) (x : ℝ) : ℝ :=
     c d * (Set.Ici (d:ℝ)).indicator (fun x => x ^ (-s)) x
 
+/-- The coefficient `c` vanishes at zero. -/
 @[simp] private lemma c_zero : c 0 = 0 := by simp [c]
 
+/-- The coefficient `c` vanishes at one. -/
 @[simp] private lemma c_one : c 1 = 0 := by simp [c, vonMangoldt_apply_one]
 
+/-- Every coefficient `c d` is nonnegative. -/
 private lemma c_nonneg (d : ℕ) : 0 ≤ c d := by
   unfold c
   rcases Nat.eq_zero_or_pos d with hd | hd
@@ -1064,6 +1181,7 @@ private lemma c_nonneg (d : ℕ) : 0 ≤ c d := by
     have hlog : 0 ≤ Real.log d := Real.log_natCast_nonneg d
     positivity
 
+/-- For any real exponent `a` and `s > 1`, the series of `(log n)^a / n^s` is summable. -/
 private lemma summable_log_rpow_div_rpow (a : ℝ) {s : ℝ} (hs : 1 < s) :
     Summable (fun n : ℕ => (Real.log n) ^ a / (n:ℝ) ^ s) := by
   have hε : (0:ℝ) < (s - 1) / 2 := by linarith
@@ -1080,6 +1198,7 @@ private lemma summable_log_rpow_div_rpow (a : ℝ) {s : ℝ} (hs : 1 < s) :
       rw [← Real.rpow_sub hx]
     exact (hmul.trans_eventuallyEq heq).natCast_atTop
 
+/-- For `s > 1`, the series with terms `Λ n / n^s` is summable. -/
 private lemma summable_vonMangoldt_div_rpow (s : ℝ) (hs : 1 < s) :
     Summable (fun n : ℕ => (Λ n : ℝ) / (n:ℝ) ^ s) := by
   refine Summable.of_nonneg_of_le (fun n => div_nonneg vonMangoldt_nonneg (by positivity)) ?_
@@ -1089,6 +1208,7 @@ private lemma summable_vonMangoldt_div_rpow (s : ℝ) (hs : 1 < s) :
   gcongr
   exact vonMangoldt_le_log
 
+/-- For `s > 1`, the series with terms `c d * d^(1 - s)/(s - 1)` is summable. -/
 private lemma summable_c_term (s : ℝ) (hs : 1 < s) :
     Summable (fun d : ℕ => c d * ((d:ℝ) ^ (1 - s) / (s - 1))) := by
   have hs1 : (0:ℝ) < s - 1 := by linarith
@@ -1119,6 +1239,8 @@ private lemma summable_c_term (s : ℝ) (hs : 1 < s) :
           = Λ d / ((d:ℝ) ^ s * Real.log 2 * (s - 1)) from by field_simp]
       exact div_le_div_of_nonneg_left vonMangoldt_nonneg (by positivity) hcb
 
+/-- For `s > 1`, the logarithm of the real zeta value equals `s - 1` times the integral of
+`(log(log x) + γ + E₂Λ x) * x^(-s)` over `(1, ∞)`. -/
 theorem log_zeta_eq_integ_aux (s : ℝ) (hs : 1 < s) :
     Real.log (riemannZeta (s:ℂ)).re =
       (s - 1) * ∫ x in Set.Ioi 1, (Real.log (Real.log x) + γ + E₂Λ x) * x ^ (-s) := by
@@ -1232,18 +1354,25 @@ theorem log_zeta_eq_integ_aux (s : ℝ) (hs : 1 < s) :
 end LogZetaInteg
 end
 
+/-- For `s > 1`, the logarithm of the real zeta value has the integral representation with
+integrand `(log(log x) + γ + E₂Λ x) * x^(-s)` and prefactor `s - 1`. -/
 private theorem log_zeta_eq_integ (s : ℝ) (hs : 1 < s) :
     log (riemannZeta (s:ℂ)).re = (s - 1) * ∫ x in .Ioi 1, (log (log x) + γ + E₂Λ x) * x^(-s) :=
   LogZetaInteg.log_zeta_eq_integ_aux s hs
 
+/-- For `s > 1`, the scaled integral of `log(log x) * x^(-s)` over `(1, ∞)` equals `-log(s - 1)`
+plus the Gamma derivative at one. -/
 private theorem mul_integ_log_log_eq (s : ℝ) (hs : 1 < s) :
     (s - 1) * ∫ x in .Ioi 1, log (log x) * x^(-s) = - log (s - 1) + deriv Gamma 1 :=
   mul_integ_log_log_eq_aux s hs
 
+/-- For `s > 1`, the integral of `γ * x^(-s)` over `(1, ∞)`, multiplied by `s - 1`, equals `γ`. -/
 private theorem mul_integ_gamma_eq (s) (hs : 1 < s) : (s - 1) * ∫ x in .Ioi 1, γ * x^(-s) = γ := by
   rw [MeasureTheory.integral_const_mul γ (· ^ (-s)), @integral_Ioi_rpow_of_lt (-s), one_rpow] <;>
     grind
 
+/-- A measurable function bounded in absolute value by `B * x^a` on `(c, ∞)` has integrable
+product with `x^(-s)` there when `c > 0` and `a + 1 < s`. -/
 private theorem integrableOn_Ioi_mul_rpow_neg_of_abs_le
     {c B a s : ℝ} (hc : 0 < c) (has : a + 1 < s) {f : ℝ → ℝ} (hf : Measurable f)
     (hbound : ∀ x ∈ Set.Ioi c, |f x| ≤ B * x ^ a) :
@@ -1260,6 +1389,7 @@ private theorem integrableOn_Ioi_mul_rpow_neg_of_abs_le
         mul_le_mul_of_nonneg_right (hbound x hx) hxs.le
     _ = B * x ^ (a - s) := by rw [mul_assoc, ← Real.rpow_add hxpos, sub_eq_add_neg]
 
+/-- For `s > 1`, the function `log(log x) * x^(-s)` is integrable over `(1, ∞)`. -/
 private theorem integrableOn_log_log_mul_rpow (s : ℝ) (hs : 1 < s) :
     MeasureTheory.IntegrableOn (fun x => log (log x) * x ^ (-s)) (Set.Ioi 1) := by
   rw [← Set.Ioc_union_Ioi_eq_Ioi (by norm_num : (1:ℝ) ≤ 2)]
@@ -1305,10 +1435,12 @@ private theorem integrableOn_log_log_mul_rpow (s : ℝ) (hs : 1 < s) :
           have h1 : x ^ ε / ε = 1 / ε * x ^ ε := by ring
           rw [add_mul]; linarith
 
+/-- For `s > 1`, the function `γ * x^(-s)` is integrable over `(1, ∞)`. -/
 private theorem integrableOn_γ_mul_rpow (s : ℝ) (hs : 1 < s) :
     MeasureTheory.IntegrableOn (fun x => γ * x ^ (-s)) (Set.Ioi 1) := by
   exact (integrableOn_Ioi_rpow_of_lt (by linarith : -s < -1) one_pos).const_mul γ
 
+/-- For `s > 1`, the function `E₂Λ x * x^(-s)` is integrable over `(1, ∞)`. -/
 private theorem integrableOn_E₂Λ_mul_rpow (s : ℝ) (hs : 1 < s) :
     MeasureTheory.IntegrableOn (fun x => E₂Λ x * x ^ (-s)) (Set.Ioi 1) := by
   rw [← Set.Ioo_union_Ici_eq_Ioi (by norm_num : (1:ℝ) < 2)]
@@ -1341,6 +1473,8 @@ private theorem integrableOn_E₂Λ_mul_rpow (s : ℝ) (hs : 1 < s) :
       div_le_div_of_nonneg_left hc hlog2 (Real.log_le_log (by norm_num) (le_of_lt hx))
     exact (E₂Λ.abs_le (le_of_lt hx)).trans hb2
 
+/-- For `s > 1`, the logarithm of the real zeta value is `-log(s - 1) + deriv Gamma 1 + γ` plus
+the scaled integral of `E₂Λ x * x^(-s)`. -/
 private theorem log_zeta_eq (s : ℝ) (hs : 1 < s) :
     log (riemannZeta (s:ℂ)).re = - log (s - 1) + deriv Gamma 1 + γ + (s - 1) * ∫ x in Set.Ioi 1, E₂Λ x * x^(-s) := by
 
@@ -1362,6 +1496,8 @@ private theorem log_zeta_eq (s : ℝ) (hs : 1 < s) :
 
   rw [key, mul_add, mul_add, mul_integ_log_log_eq s hs, mul_integ_gamma_eq s hs]
 
+/-- As real `s` tends to one from above, `(s - 1)` times the real part of the zeta value tends
+to one. -/
 private lemma zeta_pole_mul_re_tendsto_one :
     Filter.Tendsto (fun s : ℝ => (s - 1) * (riemannZeta (s : ℂ)).re)
       (nhdsWithin 1 (Set.Ioi 1)) (nhds 1) := by
@@ -1385,6 +1521,8 @@ private lemma zeta_pole_mul_re_tendsto_one :
     (Complex.continuous_re.tendsto (1 : ℂ)).comp hcomplex
   simpa [Complex.ofReal_sub, Complex.ofReal_mul] using hreal
 
+/-- As real `s` tends to one from above, the logarithm of the real zeta value plus `log(s - 1)`
+tends to zero. -/
 private theorem log_zeta_limit :
     Filter.Tendsto
       (fun s : ℝ => Real.log (riemannZeta (s : ℂ)).re + Real.log (s - 1))
@@ -1410,8 +1548,10 @@ private theorem log_zeta_limit :
 section
 open MeasureTheory Set
 
+/-- The error function `E₂Λ` is measurable. -/
 private lemma measurable_E₂Λ : Measurable E₂Λ := by fun_prop
 
+/-- For `1 < x < 2`, the error `E₂Λ x` equals `-log(log x) - γ`. -/
 private lemma E₂Λ_eq_on_Ioo {x : ℝ} (hx : x ∈ Set.Ioo (1 : ℝ) 2) :
     E₂Λ x = - log (log x) - γ := by
   obtain ⟨h1, h2⟩ := hx
@@ -1422,6 +1562,7 @@ private lemma E₂Λ_eq_on_Ioo {x : ℝ} (hx : x ∈ Set.Ioo (1 : ℝ) 2) :
   rw [hf]
   simp
 
+/-- For `1 < x < 2`, the absolute error `E₂Λ x` is at most `|log(x - 1)| + log 2 + |γ|`. -/
 private lemma abs_E₂Λ_le_on_Ioo {x : ℝ} (hx : x ∈ Set.Ioo (1 : ℝ) 2) :
     |E₂Λ x| ≤ |log (x - 1)| + log 2 + |γ| := by
   obtain ⟨hx1, hx2⟩ := hx
@@ -1453,11 +1594,13 @@ private lemma abs_E₂Λ_le_on_Ioo {x : ℝ} (hx : x ∈ Set.Ioo (1 : ℝ) 2) :
     rwa [abs_neg] at h
   linarith
 
+/-- For `x ≥ 2`, the absolute error `E₂Λ x` is at most the constant `(log 4 + 6)/log 2`. -/
 private lemma abs_E₂Λ_le_const {x : ℝ} (hx : 2 ≤ x) :
     |E₂Λ x| ≤ (log 4 + 6) / log 2 :=
   (E₂Λ.abs_le hx).trans <| div_le_div_of_nonneg_left (by positivity)
     (Real.log_pos (by norm_num)) (Real.log_le_log (by norm_num) hx)
 
+/-- The logarithmic bound `|log(x - 1)| + log 2 + |γ|` is integrable over `(1, 2)`. -/
 private lemma integrableOn_log_sub_one_bound :
     IntegrableOn (fun x => |log (x - 1)| + log 2 + |γ|) (Set.Ioo 1 2) volume := by
   have hlog : IntegrableOn (fun x => |log (x - 1)|) (Set.Ioo 1 2) volume := by
@@ -1473,6 +1616,7 @@ private lemma integrableOn_log_sub_one_bound :
     hlog.add hc
   exact hsum.congr_fun (fun x _ => by ring) measurableSet_Ioo
 
+/-- For every `X ≥ 2`, the error `E₂Λ` is integrable over `(1, X)`. -/
 private lemma integrableOn_E₂Λ_Ioo {X : ℝ} (_hX : 2 ≤ X) :
     IntegrableOn E₂Λ (Set.Ioo 1 X) volume := by
   have hsub : Set.Ioo (1 : ℝ) X ⊆ Set.Ioo 1 2 ∪ Set.Icc 2 X := by
@@ -1493,6 +1637,8 @@ private lemma integrableOn_E₂Λ_Ioo {X : ℝ} (_hX : 2 ≤ X) :
     · filter_upwards [self_mem_ae_restrict measurableSet_Icc] with x hx
       rw [Real.norm_eq_abs]; exact abs_E₂Λ_le_const hx.1
 
+/-- As `s` tends to one from above, the integral of `E₂Λ x * x^(-s)` over `(1, ∞)`, multiplied
+by `s - 1`, tends to zero. -/
 private lemma sub_one_mul_integral_E₂Λ_tendsto :
     Filter.Tendsto (fun s : ℝ => (s - 1) * ∫ x in Set.Ioi 1, E₂Λ x * x ^ (-s))
       (nhdsWithin 1 (Set.Ioi 1)) (nhds 0) := by
@@ -1608,6 +1754,8 @@ private lemma sub_one_mul_integral_E₂Λ_tendsto :
 
 end
 
+/-- The derivative of the real Gamma function at one plus the integral-defined constant `γ`
+equals zero. -/
 theorem deriv_gamma_add_γ_eq_zero : deriv Gamma 1 + γ = 0 := by
 
   have key : ∀ s : ℝ, 1 < s →
@@ -1629,12 +1777,17 @@ theorem deriv_gamma_add_γ_eq_zero : deriv Gamma 1 + γ = 0 := by
   rw [sub_zero] at hlim
   exact tendsto_nhds_unique hconst hlim
 
+/-- The integral-defined constant `γ` equals the Euler–Mascheroni constant. -/
 theorem γ.eq_eulerMascheroni : γ = eulerMascheroniConstant := by
   linarith [Real.eulerMascheroniConstant_eq_neg_deriv, deriv_gamma_add_γ_eq_zero]
 
+/-- The partial sum of `Λ d / (d * log d)` equals `log(log x)` plus the Euler–Mascheroni
+constant and `E₂Λ x`. -/
 theorem sum_mangoldt_div_log_eq (x : ℝ) : ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / (d * log d) = log (log x) + eulerMascheroniConstant + E₂Λ x := by
     grind [γ.eq_eulerMascheroni]
 
+/-- The difference between the partial sum of `Λ d / (d * log d)` and `log(log x)` is uniformly
+bounded for `x ≥ 2`. -/
 theorem sum_mangoldt_div_log_eq_log_log : ∃ C, ∀ x, 2 ≤ x →
     |∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / (d * log d) - log (log x)| ≤ C := by
     use (log 4 + 6)/log 2 + |eulerMascheroniConstant|
@@ -1645,18 +1798,23 @@ theorem sum_mangoldt_div_log_eq_log_log : ∃ C, ∀ x, 2 ≤ x →
       _ ≤ (log 4 + 6)/log x + |eulerMascheroniConstant| := by grw [abs_add_le, E₂Λ.abs_le hx]
       _ ≤ _ := by gcongr
 
+/-- The partial sum of `Λ d / (d * log d)` minus `log(log x)` is big-O of one at infinity. -/
 theorem sum_mangoldt_div_log_eq_log_log' : (fun x ↦ ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / (d * log d) - log (log x)) =O[atTop] (fun _ ↦ (1:ℝ)) := by
     simp only [isBigO_iff, norm_eq_abs, one_mem, CStarRing.norm_of_mem_unitary, mul_one,
       eventually_atTop]
     obtain ⟨ C, _ ⟩ := sum_mangoldt_div_log_eq_log_log
     use C, 2
 
+/-- The partial sum of `Λ d / (d * log d)` up to `floor x` is asymptotic to `log(log x)`. -/
 theorem sum_mangoldt_div_log_eq_log_log'' : (fun x ↦ ∑ d ∈ Ioc 0 ⌊ x ⌋₊, (Λ d) / (d * log d)) ~[atTop] (fun x ↦ log (log x)) := by
     apply IsLittleO.isEquivalent (IsBigO.trans_isLittleO _ one_eq_o_log_log)
     convert! sum_mangoldt_div_log_eq_log_log' using 1
 
+/-- The constant defined by integrating `E₁p(t)/(t * (log t)^2)` above two and adding `1 -
+log(log 2)`. -/
 noncomputable def M : ℝ := (∫ t in Set.Ioi 2, E₁p t / (t * log t^2)) + 1 - log (log 2)
 
+/-- The constant `M` is at most `(log 4 + 4)/log 2 + 1 - log(log 2)`. -/
 theorem M.le : M ≤ (log 4 + 4) / log 2 + 1 - log (log 2) := calc
     _ ≤ (∫ t in Set.Ioi 2, (log 4 + 4) / (t * log t^2)) + 1 - log (log 2) := by
       unfold M; gcongr with x hx
@@ -1667,6 +1825,7 @@ theorem M.le : M ≤ (log 4 + 4) / log 2 + 1 - log (log 2) := calc
       simp at hx; exact E₁p.le (by linarith)
     _ = _ := by rw [integ_div_mul_log_sq _ (by norm_num)]
 
+/-- The constant `M` is at least `(-2 - E₁)/log 2 + 1 - log(log 2)`. -/
 theorem M.ge : M ≥ (-2 - E₁) / log 2 + 1 - log (log 2) := calc
     _ ≥ (∫ t in Set.Ioi 2, (-2 - E₁) / (t * log t^2)) + 1 - log (log 2) := by
       unfold M; gcongr with x hx
@@ -1677,11 +1836,15 @@ theorem M.ge : M ≥ (-2 - E₁) / log 2 + 1 - log (log 2) := calc
       simp at hx; exact E₁p.ge (by linarith)
     _ = _ := by rw [integ_div_mul_log_sq _ (by norm_num)]
 
+/-- The error in the partial sum of prime reciprocals after subtracting `log(log x)` and `M`. -/
 noncomputable abbrev E₂p (x : ℝ) : ℝ := ∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (1:ℝ) / p - log (log x) - M
 
+/-- The sum of prime reciprocals up to `floor x` equals `log(log x) + M + E₂p x`. -/
 theorem sum_prime_div_eq (x : ℝ) : ∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (1:ℝ) / p = log (log x) + M + E₂p x := by
     ring
 
+/-- For `x ≥ 2`, the error `E₂p x` equals `E₁p x / log x` minus the tail integral of `E₁p(t)/(t
+* (log t)^2)`. -/
 theorem E₂p.eq {x : ℝ} (hx : 2 ≤ x) :
     E₂p x = E₁p x / log x - ∫ t in Set.Ioi x, E₁p t / (t * log t^2) := by
   unfold E₂p
@@ -1715,6 +1878,7 @@ theorem E₂p.eq {x : ℝ} (hx : 2 ≤ x) :
   · rw [intervalIntegrable_iff, Set.uIoc_of_le hx]
     exact integrable_E₁p_div_mul_log_sq (x := 2) (by rfl)|>.mono (by grind) (by rfl)
 
+/-- For `x ≥ 2`, the absolute value of `E₂p x` is at most `(log 4 + 6 + E₁)/log x`. -/
 theorem E₂p.abs_le {x : ℝ} (hx : 2 ≤ x) :
     |E₂p x| ≤ (log 4 + 6 + E₁) / log x := by
     have : 0 < log x := by apply log_pos; linarith
@@ -1745,6 +1909,7 @@ theorem E₂p.abs_le {x : ℝ} (hx : 2 ≤ x) :
     grw [this]
     grind
 
+/-- The prime reciprocal error `E₂p` is big-O of the reciprocal logarithm at infinity. -/
 theorem E₂p.bound : E₂p =O[atTop] (fun x ↦ 1 / log x) := by
     simp only [one_div, isBigO_iff, norm_eq_abs, norm_inv, eventually_atTop]
     use log 4 + 6 + E₁, 2
@@ -1753,8 +1918,11 @@ theorem E₂p.bound : E₂p =O[atTop] (fun x ↦ 1 / log x) := by
     have : 0 < log x := by apply log_pos; linarith
     grind [abs_of_pos this]
 
+/-- The prime reciprocal error `E₂p` is little-o of one at infinity. -/
 theorem E₂p.bound' : E₂p =o[atTop] (fun _ ↦ (1:ℝ)) := E₂p.bound.trans_isLittleO inv_log_eq_o_one
 
+/-- The difference between the sum of prime reciprocals up to `floor x` and `log(log x)` is
+uniformly bounded for `x ≥ 2`. -/
 theorem sum_prime_div_eq_log_log : ∃ C, ∀ x, 2 ≤ x →
     |∑ p ∈ Ioc 0 ⌊x⌋₊ with p.Prime, (1:ℝ) / p - log (log x)| ≤ C := by
     use |M| + (log 4 + 6 + E₁) / log 2
@@ -1768,16 +1936,19 @@ theorem sum_prime_div_eq_log_log : ∃ C, ∀ x, 2 ≤ x →
         have : 0 < log 4 := by apply log_pos; norm_num
         linarith [E₁.nonneg]
 
+/-- The sum of prime reciprocals up to `floor x` minus `log(log x)` is big-O of one at infinity. -/
 theorem sum_prime_div_eq_log_log' : (fun x ↦ ∑ p ∈ Ioc 0 ⌊x⌋₊ with p.Prime, (1:ℝ) / p - log (log x)) =O[atTop] (fun _ ↦ (1:ℝ)) := by
     simp only [isBigO_iff, norm_eq_abs, one_mem, CStarRing.norm_of_mem_unitary, mul_one,
       eventually_atTop]
     obtain ⟨ C, hC ⟩ := sum_prime_div_eq_log_log
     use C, 2
 
+/-- The sum of prime reciprocals up to `floor x` is asymptotic to `log(log x)`. -/
 theorem sum_prime_div_eq_log_log'' : (fun x ↦ ∑ p ∈ Ioc 0 ⌊x⌋₊ with p.Prime, (1:ℝ) / p) ~[atTop] (fun x ↦ log (log x)) := by
     apply IsLittleO.isEquivalent (IsBigO.trans_isLittleO _ one_eq_o_log_log)
     convert! sum_prime_div_eq_log_log' using 1
 
+/-- For prime `p`, the series with terms `-1/((n + 1) * p^(n + 1))` has sum `log(1 - 1/p)`. -/
 lemma HasSum_log_one_sub_one_div_prime {p : ℕ} (hp : p.Prime) :
     HasSum (fun n : ℕ ↦ (-1 : ℝ) / (( n + 1) * p ^ (n + 1))) (log (1 - 1 / p)) := by
   convert! Real.hasSum_pow_div_log_of_abs_lt_one (x := 1 / p) _|>.neg using 1
@@ -1788,13 +1959,17 @@ lemma HasSum_log_one_sub_one_div_prime {p : ℕ} (hp : p.Prime) :
   · simp only [one_div, abs_inv, Nat.abs_cast]
     exact inv_lt_one_of_one_lt₀ (mod_cast hp.one_lt)
 
+/-- The difference of the von Mangoldt and prime reciprocal errors tends to zero at infinity. -/
 lemma E₂Λ_sub_E₂p_tendsto :
     Tendsto (E₂Λ - E₂p) atTop (nhds 0) := by
   exact isLittleO_one_iff ℝ|>.mp <| E₂Λ.bound'.sub E₂p.bound'
 
+/-- The coefficient `Λ n / (n * log n)` at nonprime indices, and zero at prime indices. -/
 noncomputable abbrev M_eq_f (n : ℕ) :=
     if ¬n.Prime then Λ n /(n * log n) else 0
 
+/-- The difference `E₂Λ x - E₂p x` is the partial sum of `M_eq_f` up to `floor x`, minus `γ -
+M`. -/
 lemma E₂Λ_sub_E₂p_eq (x : ℝ) :
     E₂Λ x - E₂p x = ∑ n ∈ Ioc 0 ⌊x⌋₊, M_eq_f n - (γ - M) := by
   calc
@@ -1809,6 +1984,8 @@ lemma E₂Λ_sub_E₂p_eq (x : ℝ) :
       field
     · ring
 
+/-- The positive-index partial sums of `M_eq_f` up to `floor x` tend to `γ - M` as `x` tends to
+infinity. -/
 lemma M_eq_f.sum_tendsto :
     Tendsto (fun (x : ℝ) ↦ ∑ n ∈ Ioc 0 ⌊x⌋₊, M_eq_f n) atTop (nhds (γ - M)) := by
   apply tendsto_sub_nhds_zero_iff.mp
@@ -1817,6 +1994,7 @@ lemma M_eq_f.sum_tendsto :
   rw [← E₂Λ_sub_E₂p_eq]
   simp
 
+/-- The partial sums of `M_eq_f` over natural indices below `N` tend to `γ - M`. -/
 lemma M_eq_f.sum_tendsto' :
     Tendsto (fun (N : ℕ) ↦ ∑ n ∈ range N, M_eq_f n) atTop (nhds (γ - M)) := by
   have : Tendsto (fun (N : ℕ) ↦ (∑ n ∈ Ioc 0 ⌊(N : ℝ)⌋₊, M_eq_f n)) atTop (nhds (γ - M)) :=
@@ -1826,6 +2004,7 @@ lemma M_eq_f.sum_tendsto' :
   filter_upwards [eventually_ge_atTop 1] with N hn
   rw [Nat.range_eq_Icc_zero_sub_one, ← add_sum_Ioc_eq_sum_Icc] <;> grind
 
+/-- The series `M_eq_f` has sum `γ - M`. -/
 lemma M_eq_f.HasSum :
     HasSum M_eq_f (γ - M) := by
   refine hasSum_iff_tendsto_nat_of_nonneg (fun n ↦ ?_) _|>.mpr M_eq_f.sum_tendsto'
@@ -1834,11 +2013,14 @@ lemma M_eq_f.HasSum :
   · rfl
   · exact div_nonneg vonMangoldt_nonneg (by positivity)
 
+/-- The sum of `M_eq_f` over the subtype of prime natural numbers is zero. -/
 lemma M_eq_f.sum_primes :
     ∑' (p : Nat.Primes), M_eq_f p = 0 := by
   convert! tsum_zero with p
   grind
 
+/-- An infinite sum over the subtype of primes equals the sum over all natural numbers with zero
+terms at nonprimes. -/
 lemma tsum_primes_eq_tsum_ite (f : ℕ → ℝ) :
     ∑' (n : Nat.Primes), f n = ∑' (n : ℕ), if n.Prime then f n else 0 := by
   convert! _root_.tsum_subtype Nat.Prime f using 2
@@ -1846,6 +2028,7 @@ lemma tsum_primes_eq_tsum_ite (f : ℕ → ℝ) :
   simp [Set.indicator]
   congr
 
+/-- The negative sum of `M_eq_f` equals the prime-filtered sum of `log(1 - 1/p) + 1/p`. -/
 lemma tsum_M_eq_f_eq_tsum :
     -∑' (n : ℕ), M_eq_f n = ∑' p : ℕ, if p.Prime then log (1 - 1 / p) + 1 / p else 0 := by
   rw [tsum_eq_tsum_primes_add_tsum_primes_of_support_subset_prime_powers M_eq_f.HasSum.summable
@@ -1871,13 +2054,18 @@ lemma tsum_M_eq_f_eq_tsum :
       ring_nf
   · ring
 
+/-- The constant `M` equals `γ` plus the prime-filtered series of `log(1 - 1/p) + 1/p`. -/
 theorem M.eq : M = γ + ∑' p : ℕ, if p.Prime then log (1 - 1 / p) + 1 / p else 0 := by
   rw [← tsum_M_eq_f_eq_tsum, M_eq_f.HasSum.tsum_eq]
   ring
 
+/-- The prime logarithmic product error obtained by adding `log(log x)` and the Euler–Mascheroni
+constant to the partial sum of `log(1 - 1/p)`. -/
 noncomputable def E₃ (x : ℝ) : ℝ :=
     ∑ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, log (1 - (1:ℝ) / p) + log (log x) + eulerMascheroniConstant
 
+/-- For `x > 1`, the product of `1 - 1/p` over primes up to `floor x` equals
+`exp(-eulerMascheroniConstant) * exp(E₃ x) / log x`. -/
 theorem prod_one_minus_div_prime_eq {x : ℝ} (hx : 1 < x) :
     ∏ p ∈ Ioc 0 ⌊x⌋₊ with p.Prime, (1 - (1 : ℝ) / p) =
       exp (-eulerMascheroniConstant) * exp (E₃ x) / log x := by
@@ -1889,8 +2077,10 @@ theorem prod_one_minus_div_prime_eq {x : ℝ} (hx : 1 < x) :
     prod_congr rfl fun p hp ↦ exp_log (hpos (mem_filter.mp hp).2)]
   field_simp
 
+/-- The prime-filtered summand `log(1 - 1/p) + 1/p`, with value zero at nonprimes. -/
 noncomputable abbrev M_eq_summand (p : ℕ) := if p.Prime then log (1 - 1 / p) + 1 / p else 0
 
+/-- The absolute value of `M_eq_summand n` is at most `2/n^2`. -/
 lemma M_eq_summand_bound (n : ℕ) :
     |M_eq_summand n| ≤ 2 / n ^ 2 := by
   unfold M_eq_summand
@@ -1910,15 +2100,18 @@ lemma M_eq_summand_bound (n : ℕ) :
   · rw [abs_zero]
     positivity
 
+/-- The prime-filtered correction series `M_eq_summand` is summable. -/
 lemma M_eq_summable : Summable M_eq_summand := by
   apply Summable.of_abs
   exact Summable.of_nonneg_of_le (by simp) M_eq_summand_bound (Summable.const_div (by simp) _)
 
+/-- The sum of `M_eq_summand` equals `M - γ`. -/
 lemma tsum_M_eq_summand_eq :
     ∑' (n : ℕ), M_eq_summand n = M - γ := by
   rw [M.eq]
   grind
 
+/-- For real `N ≥ 1`, the sum over natural `n` of `1/(n + N)^2` is at most `2/N`. -/
 lemma sum_one_div_sq_le {N : ℝ} (hN : 1 ≤ N) :
     ∑' (n : ℕ), (1 : ℝ) / (n + N) ^ 2 ≤ 2 / N := by
   grw [AntitoneOn.tsum_le_integral (f := (fun t ↦ 1 / (t + N) ^ 2))]
@@ -1946,6 +2139,8 @@ lemma sum_one_div_sq_le {N : ℝ} (hN : 1 ≤ N) :
     simp
   · exact fun _ _ ↦ (by positivity)
 
+/-- For positive natural `N`, the sum of `M_eq_summand` over indices below `N` differs from `M -
+γ` by at most `4/N`. -/
 lemma sum_M_eq_summand_le {N : ℕ} (hN : 0 < N) :
     |∑ n ∈ range N, M_eq_summand n - (M - γ)| ≤ 4 / N := by
   rw [← tsum_M_eq_summand_eq, ← M_eq_summable.sum_add_tsum_nat_add N]
@@ -1962,6 +2157,8 @@ lemma sum_M_eq_summand_le {N : ℕ} (hN : 0 < N) :
     rfl
   · exact (summable_nat_add_iff N|>.mpr (summable_one_div_nat_pow.mpr one_lt_two))|>.const_div _
 
+/-- For real `x ≥ 2`, the positive-index partial sum of `M_eq_summand` up to `floor x` differs
+from `M - γ` by at most `4/x`. -/
 lemma sum_M_eq_summand_le' {x : ℝ} (hx : 2 ≤ x) :
     |∑ n ∈ Ioc 0 ⌊x⌋₊, M_eq_summand n - (M - γ)| ≤ 4 / x := by
   have := sum_M_eq_summand_le (by grind : 0 < ⌊x⌋₊ + 1)
@@ -1972,6 +2169,7 @@ lemma sum_M_eq_summand_le' {x : ℝ} (hx : 2 ≤ x) :
   gcongr
   exact Nat.lt_floor_add_one _|>.le
 
+/-- There is a constant `C` such that `|E₃ x| ≤ C/log x` for every `x ≥ 2`. -/
 theorem E₃.abs_le : ∃ C, ∀ x, 2 ≤ x → |E₃ x| ≤ C / log x := by
   unfold E₃
   refine ⟨4 + (log 4 + 6 + E₁), fun x hx ↦ ?_⟩
@@ -1995,6 +2193,7 @@ theorem E₃.abs_le : ∃ C, ∀ x, 2 ≤ x → |E₃ x| ≤ C / log x := by
     grw [this]
     rw [← add_div]
 
+/-- The prime product error `E₃` is big-O of the reciprocal logarithm at infinity. -/
 theorem E₃.bound : E₃ =O[atTop] (fun x ↦ 1 / log x) := by
     simp only [isBigO_iff, norm_eq_abs, eventually_atTop]
     obtain ⟨ C, hC ⟩ := E₃.abs_le
@@ -2004,8 +2203,11 @@ theorem E₃.bound : E₃ =O[atTop] (fun x ↦ 1 / log x) := by
     have : 0 < 1 / log x := by positivity
     grind [abs_of_pos this]
 
+/-- The prime product error `E₃` is little-o of one at infinity. -/
 theorem E₃.bound' : E₃ =o[atTop] (fun _ ↦ (1:ℝ)) := E₃.bound.trans_isLittleO inv_log_eq_o_one
 
+/-- The product of `1 - 1/p` over primes up to `floor x` is asymptotic to
+`exp(-eulerMascheroniConstant)/log x`. -/
 theorem E₃.bound'' : (fun x ↦ ∏ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (1 - (1:ℝ) / p)) ~[atTop] (fun x ↦ exp (-eulerMascheroniConstant) / log x) := by
    rw [isEquivalent_iff_tendsto_one]
    · convert! Tendsto.congr' ?_ (Tendsto.rexp ((isLittleO_one_iff ℝ).mp E₃.bound')) using 2 with x
@@ -2017,6 +2219,8 @@ theorem E₃.bound'' : (fun x ↦ ∏ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (1 
    simp only [ne_eq, div_eq_zero_iff, exp_ne_zero, log_eq_zero, eventually_atTop]; use 2
    grind
 
+/-- The difference between the prime product and `exp(-eulerMascheroniConstant)/log x` is big-O
+of `1/(log x)^2`. -/
 theorem E₃.bound''' : (fun x ↦ ∏ p ∈ Ioc 0 ⌊ x ⌋₊ with p.Prime, (1 - (1:ℝ) / p) - exp (-eulerMascheroniConstant) / log x) =O[atTop] (fun x ↦ 1 / (log x)^2) := by
   obtain ⟨c, hc⟩ := E₃.abs_le
   rw [isBigO_iff]
@@ -2047,6 +2251,8 @@ end Qatlib.Papers.AmpTransform14.TotientLimInf
 open Filter
 namespace Qatlib.Papers.AmpTransform14.TotientLimInf.AmplifiedQuantumTransforms2014
 
+/-- The proposition that the lower limit of `(N/φ(N))/log(log N)` equals
+`exp(-eulerMascheroniConstant)`. -/
 def TotientLimInfOriginal : Prop :=
   Filter.liminf
     (fun N : ℕ => ((N : ℝ) / (Nat.totient N : ℝ)) /
@@ -2054,9 +2260,12 @@ def TotientLimInfOriginal : Prop :=
     Filter.atTop
     = Real.exp (-Real.eulerMascheroniConstant)
 
+/-- The reciprocal totient ratio `(N/φ(N))/log(log N)` as a real-valued function on the natural
+numbers. -/
 private noncomputable def totientRatio (N : ℕ) : ℝ :=
   ((N : ℝ) / (Nat.totient N : ℝ)) / Real.log (Real.log (N : ℝ))
 
+/-- At `N = 2^(m + 1)`, the reciprocal totient ratio equals `2/log(log(2^(m + 1)))`. -/
 theorem totientRatio_two_power (m : ℕ) :
     totientRatio (2^(m+1)) = 2 / Real.log (Real.log ((2 : ℝ)^(m+1))) := by
   unfold totientRatio
@@ -2066,6 +2275,7 @@ theorem totientRatio_two_power (m : ℕ) :
   have hp : (2 : ℝ)^m ≠ 0 := by positivity
   field_simp
 
+/-- The reciprocal totient ratio along positive powers of two tends to zero. -/
 theorem totientRatio_two_power_tendsto :
     Tendsto (fun m : ℕ => totientRatio (2^(m+1))) atTop (nhds 0) := by
   have hp : Tendsto (fun m : ℕ => (2 : ℝ)^(m+1)) atTop atTop :=
@@ -2074,6 +2284,7 @@ theorem totientRatio_two_power_tendsto :
   have hl := Real.tendsto_log_atTop.comp (Real.tendsto_log_atTop.comp hp)
   simpa only [totientRatio_two_power] using! tendsto_const_nhds.div_atTop hl
 
+/-- The lower limit of the reciprocal totient ratio is at most zero. -/
 theorem totientRatio_liminf_nonpos : liminf totientRatio atTop ≤ 0 := by
   have hb : atTop.IsBoundedUnder (· ≥ ·) totientRatio := by
     refine ⟨0, ?_⟩
@@ -2103,6 +2314,7 @@ theorem totientRatio_liminf_nonpos : liminf totientRatio atTop ≤ 0 := by
   rw [totientRatio_two_power_tendsto.liminf_eq] at hc
   exact hc
 
+/-- The reciprocal lower-limit proposition `TotientLimInfOriginal` is false. -/
 theorem totientLimInf_false : ¬ TotientLimInfOriginal := by
   intro h
   change liminf totientRatio atTop = _ at h
@@ -2110,9 +2322,12 @@ theorem totientLimInf_false : ¬ TotientLimInfOriginal := by
   rw [← h] at hp
   exact (not_lt_of_ge totientRatio_liminf_nonpos) hp
 
+/-- The normalized totient expression `φ(N) * log(log N) / N` as a real-valued function on the
+natural numbers. -/
 noncomputable def sourceTotientCarrier (N : ℕ) : ℝ :=
   (Nat.totient N : ℝ) * Real.log (Real.log (N : ℝ)) / (N : ℝ)
 
+/-- At `N = 2^(m + 1)`, the normalized totient carrier equals `log(log(2^(m + 1)))/2`. -/
 theorem sourceTotientCarrier_two_power (m : ℕ) :
     sourceTotientCarrier (2 ^ (m + 1)) =
       Real.log (Real.log ((2 : ℝ) ^ (m + 1))) / 2 := by
@@ -2123,6 +2338,7 @@ theorem sourceTotientCarrier_two_power (m : ℕ) :
   have hp : (2 : ℝ) ^ m ≠ 0 := by positivity
   field_simp
 
+/-- The normalized totient carrier along positive powers of two tends to positive infinity. -/
 theorem sourceTotientCarrier_two_power_tendsto :
     Tendsto (fun m : ℕ => sourceTotientCarrier (2 ^ (m + 1))) atTop atTop := by
   have hp : Tendsto (fun m : ℕ => (2 : ℝ) ^ (m + 1)) atTop atTop :=
@@ -2131,6 +2347,8 @@ theorem sourceTotientCarrier_two_power_tendsto :
   have hl := Real.tendsto_log_atTop.comp (Real.tendsto_log_atTop.comp hp)
   simpa only [sourceTotientCarrier_two_power] using! hl.atTop_div_const (by norm_num : (0 : ℝ) < 2)
 
+/-- For positive `N`, the normalized totient carrier equals `log(log N)` times the product of `1
+- 1/p` over the prime factors of `N`. -/
 theorem sourceTotientCarrier_euler_product (N : ℕ) (hN : 0 < N) :
     sourceTotientCarrier N = Real.log (Real.log (N : ℝ)) *
       ∏ p ∈ N.primeFactors, (1 - (p : ℝ)⁻¹) := by
@@ -2140,6 +2358,8 @@ theorem sourceTotientCarrier_euler_product (N : ℕ) (hN : 0 < N) :
   have hn : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
   field_simp
 
+/-- At a primorial, the normalized totient carrier equals its iterated logarithm times the
+product of `1 - 1/p` over primes up to the primorial cutoff. -/
 theorem sourceTotientCarrier_primorial (n : ℕ) :
     sourceTotientCarrier (primorial n) =
       Real.log (Real.log (primorial n : ℝ)) *
@@ -2157,6 +2377,8 @@ theorem sourceTotientCarrier_primorial (n : ℕ) :
       exact ⟨hh.2, hh.2.dvd_primorial_iff.mpr hh.1⟩
   rw [sourceTotientCarrier_euler_product _ (primorial_pos n), hf]
 
+/-- For factors `a p` in `[0, 1]`, the product of `1 - a p` over a finite set is at least one
+minus the sum of the `a p`. -/
 private theorem finite_product_one_sub_lower (S : Finset ℕ) (a : ℕ → ℝ)
     (ha : ∀ p ∈ S, 0 ≤ a p ∧ a p ≤ 1) :
     1 - ∑ p ∈ S, a p ≤ ∏ p ∈ S, (1 - a p) := by
@@ -2174,6 +2396,8 @@ private theorem finite_product_one_sub_lower (S : Finset ℕ) (a : ℕ → ℝ)
     rw [Finset.sum_insert hp, Finset.prod_insert hp]
     nlinarith [mul_nonneg hap.1 hsum]
 
+/-- For positive `N` and `x > 1`, the number of prime factors of `N` greater than `x`,
+multiplied by `log x`, is at most `log N`. -/
 theorem totient_large_prime_count_log_bound (N : ℕ) (hN : 0 < N)
     (x : ℝ) (hx : 1 < x) :
     ((N.primeFactors.filter (fun (p : ℕ) => x < (p : ℝ))).card : ℝ) * Real.log x ≤
@@ -2197,6 +2421,8 @@ theorem totient_large_prime_count_log_bound (N : ℕ) (hN : 0 < N)
         Real.log_le_log (by linarith : 0 < x) (Finset.mem_filter.mp h).2.le)
   exact hsum.trans hlog
 
+/-- For positive `N` and `x > 1`, the product of `1 - 1/p` over prime factors above `x` is at
+least `1 - log N/(x * log x)`. -/
 theorem totient_large_prime_product_lower (N : ℕ) (hN : 0 < N)
     (x : ℝ) (hx : 1 < x) :
     1 - Real.log (N : ℝ) / (x * Real.log x) ≤
@@ -2225,6 +2451,8 @@ theorem totient_large_prime_product_lower (N : ℕ) (hN : 0 < N)
     nlinarith
   exact (sub_le_sub_left (hsum.trans hcard) 1).trans hbase
 
+/-- For positive `N`, the totient fraction `φ(N)/N` equals the product of `1 - 1/p` over its
+distinct prime factors. -/
 theorem totient_fraction_euler_product (N : ℕ) (hN : 0 < N) :
     (Nat.totient N : ℝ) / N = ∏ p ∈ N.primeFactors, (1 - (p : ℝ)⁻¹) := by
   have hf := congrArg (fun q : ℚ => (q : ℝ)) (Nat.totient_eq_mul_prod_factors N)
@@ -2233,6 +2461,7 @@ theorem totient_fraction_euler_product (N : ℕ) (hN : 0 < N) :
   have hn : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
   field_simp
 
+/-- For prime `p`, the reciprocal factor `1 - 1/p` lies in `[0, 1]`. -/
 private theorem prime_reciprocal_factor_bounds (p : ℕ) (hp : p.Prime) :
     0 ≤ 1 - (p : ℝ)⁻¹ ∧ 1 - (p : ℝ)⁻¹ ≤ 1 := by
   have hpr : (1 : ℝ) < p := by exact_mod_cast hp.one_lt
@@ -2240,6 +2469,8 @@ private theorem prime_reciprocal_factor_bounds (p : ℕ) (hp : p.Prime) :
   have hi0 : 0 ≤ (p : ℝ)⁻¹ := by positivity
   constructor <;> linarith
 
+/-- For positive `N` and `x > 1`, the prime product up to `floor x`, multiplied by `1 - log N/(x
+* log x)`, is a lower bound for `φ(N)/N`. -/
 theorem totient_fraction_cutoff_lower (N : ℕ) (hN : 0 < N) (x : ℝ) (hx : 1 < x) :
     (∏ p ∈ Nat.primesLE ⌊x⌋₊, (1 - (p : ℝ)⁻¹)) *
         (1 - Real.log (N : ℝ) / (x * Real.log x)) ≤ (Nat.totient N : ℝ) / N := by
@@ -2277,6 +2508,8 @@ theorem totient_fraction_cutoff_lower (N : ℕ) (hN : 0 < N) (x : ℝ) (hx : 1 <
       mul_nonpos_of_nonneg_of_nonpos hfull0 (by linarith)
     exact hm.trans (by positivity)
 
+/-- When `N > 0` and `log N > 1`, the prime product up to `floor(log N)` times `log(log N) - 1`
+is a lower bound for the normalized totient carrier. -/
 theorem sourceTotientCarrier_log_cutoff (N : ℕ) (hN : 0 < N)
     (hlog : 1 < Real.log (N : ℝ)) :
     (∏ p ∈ Nat.primesLE ⌊Real.log (N : ℝ)⌋₊, (1 - (p : ℝ)⁻¹)) *
@@ -2298,6 +2531,8 @@ theorem sourceTotientCarrier_log_cutoff (N : ℕ) (hN : 0 < N)
 open Topology
 open scoped BigOperators
 
+/-- The primes up to `floor x` form the same finite set as the prime-filtered positive natural
+interval up to `floor x`. -/
 private theorem mertens_product_set (x : ℝ) :
     Nat.primesLE ⌊x⌋₊ = (Finset.Ioc 0 ⌊x⌋₊).filter Nat.Prime := by
   ext p
@@ -2309,9 +2544,12 @@ private theorem mertens_product_set (x : ℝ) :
   · rintro ⟨⟨_, hp⟩, hprime⟩
     exact ⟨hp, hprime⟩
 
+/-- The product of `1 - 1/p` over the primes up to the natural floor of a real cutoff. -/
 private noncomputable def mertensProduct (x : ℝ) : ℝ :=
   ∏ p ∈ Nat.primesLE ⌊x⌋₊, (1 - (p : ℝ)⁻¹)
 
+/-- The Mertens product times the logarithm of its cutoff tends to
+`exp(-eulerMascheroniConstant)`. -/
 private theorem mertens_product_log_tendsto :
     Tendsto (fun x : ℝ => mertensProduct x * Real.log x) atTop
       (nhds (Real.exp (-Real.eulerMascheroniConstant))) := by
@@ -2329,6 +2567,7 @@ private theorem mertens_product_log_tendsto :
     field_simp
   simpa using ht.congr' hh.symm
 
+/-- The normalized totient carrier is eventually nonnegative along the natural numbers. -/
 private theorem sourceTotientCarrier_eventually_nonneg :
     ∀ᶠ N : ℕ in atTop, 0 ≤ sourceTotientCarrier N := by
   filter_upwards [eventually_ge_atTop 3] with N hN
@@ -2341,6 +2580,8 @@ private theorem sourceTotientCarrier_eventually_nonneg :
     (ht.trans (Real.log_le_log (by norm_num) hn3))
   exact div_nonneg (mul_nonneg (Nat.cast_nonneg _) hln) (Nat.cast_nonneg _)
 
+/-- The logarithmic-cutoff lower bound for the normalized totient carrier tends to
+`exp(-eulerMascheroniConstant)`. -/
 private theorem landau_cutoff_tendsto :
     Tendsto (fun N : ℕ => mertensProduct (Real.log (N : ℝ)) *
       (Real.log (Real.log (N : ℝ)) - 1)) atTop
@@ -2360,6 +2601,7 @@ private theorem landau_cutoff_tendsto :
     field_simp [hN.ne']
   simpa using ht.congr' he.symm
 
+/-- The ratio `(log(x + 1) + 2 * sqrt x * log x)/x` tends to zero at infinity. -/
 private theorem theta_error_tendsto :
     Tendsto (fun x : ℝ => (Real.log (x + 1) + 2 * Real.sqrt x * Real.log x) / x)
       atTop (nhds 0) := by
@@ -2382,6 +2624,8 @@ private theorem theta_error_tendsto :
   field_simp [hx.ne', hsp, (by linarith : x + 1 ≠ 0)]
   nlinarith [congrArg (fun t : ℝ => Real.log x * t) hs]
 
+/-- For all sufficiently large natural `n`, Chebyshev's theta function lies between `(log 2)/2 *
+n` and `log 4 * n`. -/
 private theorem theta_eventual_linear_bounds :
     ∀ᶠ n : ℕ in atTop, (Real.log 2 / 2) * (n : ℝ) ≤ Chebyshev.theta n ∧
       Chebyshev.theta n ≤ Real.log 4 * (n : ℝ) := by
@@ -2394,6 +2638,8 @@ private theorem theta_eventual_linear_bounds :
   have ht := Chebyshev.theta_ge n
   exact ⟨by nlinarith, Chebyshev.theta_le_log4_mul_x hnr.le⟩
 
+/-- For positive `c`, the ratio `log(c * n)/log n` tends to one as natural `n` tends to
+infinity. -/
 private theorem log_constant_mul_ratio (c : ℝ) (hc : 0 < c) :
     Tendsto (fun n : ℕ => Real.log (c * (n : ℝ)) / Real.log (n : ℝ)) atTop (nhds 1) := by
   have hl := Real.tendsto_log_atTop.comp (tendsto_natCast_atTop_atTop (R := ℝ))
@@ -2408,6 +2654,7 @@ private theorem log_constant_mul_ratio (c : ℝ) (hc : 0 < c) :
   field_simp
   ring
 
+/-- The ratio of the iterated logarithm of the primorial of `n` to `log n` tends to one. -/
 private theorem log_log_primorial_ratio_tendsto :
     Tendsto (fun n : ℕ => Real.log (Real.log (primorial n : ℝ)) / Real.log (n : ℝ))
       atTop (nhds 1) := by
@@ -2433,6 +2680,8 @@ private theorem log_log_primorial_ratio_tendsto :
       (Real.log_le_log (lt_of_lt_of_le (mul_pos hc hn0) hb.1) hb.2)
         (Real.log_pos hn1).le
 
+/-- The normalized totient carrier along the primorials tends to
+`exp(-eulerMascheroniConstant)`. -/
 private theorem sourceTotientCarrier_primorial_tendsto :
     Tendsto (fun n : ℕ => sourceTotientCarrier (primorial n)) atTop
       (nhds (Real.exp (-Real.eulerMascheroniConstant))) := by
@@ -2449,6 +2698,8 @@ private theorem sourceTotientCarrier_primorial_tendsto :
   have hl : Real.log (n : ℝ) ≠ 0 := (Real.log_pos hn1).ne'
   field_simp
 
+/-- The lower limit of `φ(N) * log(log N) / N` is `exp(-eulerMascheroniConstant)`
+[Cornwell2014]. -/
 theorem totientLimInf_answer : TotientLimInf := by
   change liminf sourceTotientCarrier atTop = _
   have hb : atTop.IsBoundedUnder (· ≥ ·) sourceTotientCarrier :=

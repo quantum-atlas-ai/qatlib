@@ -8,6 +8,27 @@ import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Analysis.Calculus.Deriv.Mul
 import Mathlib.Probability.Independence.Basic
+
+/-!
+# Gaussian pair rotations and observable derivatives
+
+This module proves that `ContinuousLinearMap.rotation` preserves a pair of independent standard
+Gaussians in a finite-dimensional real inner product space. It also differentiates the rotated
+position and observables along it, establishing the change-of-variables and chain-rule
+ingredients for Gaussian interpolation estimates [GohMuller2026].
+
+## Main statements
+
+* `rotation_preserving`: Pair rotation preserves the standard Gaussian product measure.
+* `observable_rotation_deriv`: The derivative of a rotated observable is its directional
+  derivative along the rotated velocity.
+* `rotation_integral`: Gaussian pair integrals are invariant under rotation.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,12 +38,15 @@ namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.Rotation
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
   [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
 
+/-- Pair rotation by any real angle preserves the product of two standard Gaussian measures. -/
 theorem rotation_preserving (θ : ℝ) :
     MeasurePreserving (ContinuousLinearMap.rotation θ : E×E→L[ℝ] E×E)
       ((stdGaussian E).prod (stdGaussian E)) ((stdGaussian E).prod (stdGaussian E)) := by
   exact ⟨by fun_prop, IsGaussian.map_rotation_eq_self (integral_id_stdGaussian (E:=E)) θ⟩
 omit [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 
+/-- The derivative of the first coordinate of a rotated pair is its second coordinate at the
+same angle. -/
 theorem rotation_position_deriv (z : E×E) (θ : ℝ) :
     HasDerivAt (fun a : ℝ => (ContinuousLinearMap.rotation a z).1)
       (ContinuousLinearMap.rotation θ z).2 θ := by
@@ -30,6 +54,8 @@ theorem rotation_position_deriv (z : E×E) (θ : ℝ) :
     ((Real.hasDerivAt_cos θ).smul_const z.1).add ((Real.hasDerivAt_sin θ).smul_const z.2)
 omit [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 
+/-- If an observable is differentiable at the rotated position, its angular derivative is its
+derivative applied to the rotated velocity. -/
 theorem observable_rotation_deriv (f : E→ℝ) (z : E×E) (θ : ℝ)
     (hf : DifferentiableAt ℝ f (ContinuousLinearMap.rotation θ z).1) :
     HasDerivAt (fun a : ℝ => f (ContinuousLinearMap.rotation a z).1)
@@ -37,6 +63,8 @@ theorem observable_rotation_deriv (f : E→ℝ) (z : E×E) (θ : ℝ)
         (ContinuousLinearMap.rotation θ z).2) θ := by
   exact hf.hasFDerivAt.comp_hasDerivAt θ (rotation_position_deriv z θ)
 
+/-- Rotating the input leaves the Gaussian product integral of an almost everywhere strongly
+measurable real function unchanged. -/
 theorem rotation_integral (θ : ℝ) (g : E×E→ℝ) (hg : AEStronglyMeasurable g
     ((stdGaussian E).prod (stdGaussian E))) :
     (∫ z, g (ContinuousLinearMap.rotation θ z) ∂((stdGaussian E).prod (stdGaussian E))) =

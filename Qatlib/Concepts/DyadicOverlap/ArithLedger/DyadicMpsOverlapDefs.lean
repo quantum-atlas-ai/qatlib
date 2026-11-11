@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.DyadicOverlap.OverlapContract.DyadicMpsOverlap
 import Mathlib.Data.Nat.Log
+
+/-!
+# Width envelopes for logged MPS overlaps
+
+`widthBoundNext` and `magnitudeBoundNext` specify uniform envelopes for Gaussian-integer
+transfer contractions. `transferPrefix` and `rowPrefix` expose intermediate partial sums, and
+`eventBitWidth` measures the operands and result in each arithmetic event. Matrix product state
+contractions provide the tensor-network background [Schollwock2011].
+
+`clause3StatementNext` collects agreement of the logged and unlogged overlap computations,
+polynomial event counts, uniform magnitude bounds, and explicit empty-chain and
+zero-physical-dimension cases.
+
+## Main statements
+
+* `widthBoundNext`: the dimension- and precision-dependent width parameter.
+* `transferPrefix`, `rowPrefix`: intermediate contraction sums.
+* `clause3StatementNext`: the complete logged-overlap specification.
+
+## References
+
+* [Schollwock, 2011][Schollwock2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.DyadicOverlap.OverlapContract
@@ -19,16 +43,22 @@ open Matrix
 open scoped BigOperators
 open Qatlib.Concepts.DyadicProgram.DyadicContract (GI add mul run)
 
+/-- The explicit width parameter for Gaussian-integer overlap computations of length `n` with
+physical dimension `d` and bond dimensions bounded by `D`. -/
 def widthBoundNext (n d D w : ℕ) : ℕ :=
   n * (2 * w + 2 + 2 * Nat.clog 2 (D + 1) + Nat.clog 2 (d + 1))
 
+/-- The power of two determined by `widthBoundNext`, used as a uniform integer magnitude bound. -/
 def magnitudeBoundNext (n d D w : ℕ) : ℕ := 2 ^ widthBoundNext n d D w
 
+/-- The binary length of an integer's absolute value, with width zero for zero. -/
 def intBitWidth (z : ℤ) : ℕ := if z.natAbs = 0 then 0 else Nat.log 2 z.natAbs + 1
 
+/-- The maximum integer bit width among the two operands and result of an arithmetic event. -/
 def eventBitWidth (e : Ev) : ℕ :=
   max (intBitWidth e.a) (max (intBitWidth e.b) (intBitWidth e.r))
 
+/-- The sum of the first `k` conjugated products used to construct a transfer-matrix entry. -/
 def transferPrefix {d Da Db : ℕ}
     (A : Fin d → Matrix (Fin Da) (Fin Da) GI)
     (B : Fin d → Matrix (Fin Db) (Fin Db) GI)
@@ -36,6 +66,8 @@ def transferPrefix {d Da Db : ℕ}
   ((List.ofFn fun s : Fin d => mul (conjGI (A s a a')) (B s b b')).take k).foldl
     add ((0, 0) : GI)
 
+/-- The sum of the first `k` terms in the specified row update after the preceding transfer
+matrices. -/
 def rowPrefix {n d Da Db : ℕ}
     (A : Fin n → Fin d → Matrix (Fin Da) (Fin Da) GI)
     (B : Fin n → Fin d → Matrix (Fin Db) (Fin Db) GI)
@@ -44,6 +76,8 @@ def rowPrefix {n d Da Db : ℕ}
     mul ((run ((transferList A B).take (j : ℕ))) i) (transferMat (A j) (B j) i jj)
   (xs.take k).foldl add ((0, 0) : GI)
 
+/-- The combined overlap specification asserting output agreement, valid arithmetic logs,
+event-count bounds, uniform magnitude and bit-width bounds, and boundary cases. -/
 def clause3StatementNext : Prop :=
   ∀ (n d Da Db w : ℕ) [NeZero Da] [NeZero Db]
     (A : Fin n → Fin d → Matrix (Fin Da) (Fin Da) GI)

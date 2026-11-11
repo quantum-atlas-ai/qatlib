@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.UniformBqp.Phi3Compile.MachineSourceDefs
 import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine
+
+/-!
+# Machine-source and recursive Fourier-sampling estimates
+
+The module verifies the counted recursive Fourier-sampling recovery, a polynomial schedule in
+`2^l`, and the final transition of the Fourier machine. Product estimates for `rfsGamma` link
+sub-quasipolynomial time bounds to the classical comparison threshold used with
+[BernsteinVazirani1997]. The background is described in [BernsteinVazirani1997].
+
+## Main statements
+
+* `rfs_counted_value_recovery`: correct recovery with its exact node count.
+* `rfs_time_schedule_poly`: a polynomial bound in `2^l + 1`.
+* `cor814_classical_asymptotic_link`: eventual domination by the recursive-sampling comparison
+  threshold.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CircuitImpl.Phi3Universal
@@ -23,15 +44,21 @@ open Qatlib
 open Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine
 open Qatlib.Concepts.CircuitImpl.Phi3Universal
 
+/-- The counted recursive Fourier-sampling recovery has value `rfsValueOf f l x` and count
+`rfsNodeCount l`. -/
 theorem rfs_counted_value_recovery (f : RfsQuery → Bool) (l : ℕ) (x : RfsQuery) :
     (rfsRecoverCounted f l x).1 = rfsValueOf f l x ∧
       (rfsRecoverCounted f l x).2 = rfsNodeCount l :=
   rfsRecoverCounted_spec f l x
 
+/-- For fixed `c` and `d`, the recursive Fourier-sampling time schedule is bounded by a
+polynomial in `2^l + 1`. -/
 theorem rfs_time_schedule_poly (c d : ℕ) :
     ∃ c' d' : ℕ, ∀ l : ℕ, rfsTimeSchedule c d l ≤ c' * (2 ^ l + 1) ^ d' :=
   rfsTimeSchedule_polynomial c d
 
+/-- The final Fourier-machine state returns to `q0` by a right move without changing the scanned
+symbol, with amplitude one and all other outgoing amplitudes zero. -/
 theorem fourier_normal_form (a : FourierSymbol) :
     fourierRule.step FourierState.qf a QtmMove.right FourierState.q0 a = 1 ∧
       ∀ (d : QtmMove) (q' : FourierState) (b : FourierSymbol),
@@ -44,6 +71,8 @@ theorem fourier_normal_form (a : FourierSymbol) :
   · next h => exact (hne (by rw [h.1, h.2.1, h.2.2])).elim
   · rfl
 
+/-- Folding multiplication by factors `m / 2^i` that are all at least one cannot decrease the
+initial accumulator. -/
 private theorem foldl_suffix_ge (m : ℕ) (l : List ℕ)
     (hl : ∀ i ∈ l, 1 ≤ m / 2 ^ i) (acc : ℕ) :
     acc ≤ List.foldl (fun a i => a * (m / 2 ^ i)) acc l := by
@@ -55,6 +84,8 @@ private theorem foldl_suffix_ge (m : ℕ) (l : List ℕ)
       rw [List.foldl_cons]
       exact hstep.trans (ih (fun j hj => hl j (List.mem_cons_of_mem i hj)) _)
 
+/-- If every factor through index `k` is at least `2^k`, the product of the first `j` factors is
+at least `2^(k*j)` for `j ≤ k + 1`. -/
 private theorem foldl_range_prefix_ge (m k : ℕ)
     (hfactor : ∀ i : ℕ, i ≤ k → 2 ^ k ≤ m / 2 ^ i) :
     ∀ j : ℕ, j ≤ k + 1 → 2 ^ (k * j) ≤
@@ -72,6 +103,8 @@ private theorem foldl_range_prefix_ge (m k : ℕ)
       rw [hexp, Nat.pow_add]
       exact Nat.mul_le_mul hprev hfj
 
+/-- The products of prefixes of the factors `m / 2^i` are monotone in prefix length when every
+relevant factor is at least one. -/
 private theorem foldl_range_mono (m : ℕ) :
     ∀ j₂ j₁ : ℕ, (∀ i : ℕ, i < j₂ → 1 ≤ m / 2 ^ i) → j₁ ≤ j₂ →
       List.foldl (fun a i => a * (m / 2 ^ i)) 1 (List.range j₁)
@@ -93,6 +126,7 @@ private theorem foldl_range_mono (m : ℕ) :
         subst hj1
         rfl
 
+/-- For `m ≥ 2`, `rfsGamma m` is at least `2^((Nat.log 2 m / 2)^2)`. -/
 private theorem gamma_ge_two_pow (m : ℕ) (hm : 2 ≤ m) :
     2 ^ ((Nat.log 2 m / 2) ^ 2) ≤ rfsGamma m := by
   have hm0 : m ≠ 0 := by omega
@@ -122,6 +156,8 @@ private theorem gamma_ge_two_pow (m : ℕ) (hm : 2 ≤ m) :
           (List.range (Nat.log 2 m + 1)) :=
         foldl_range_mono m (Nat.log 2 m + 1) (Nat.log 2 m / 2 + 1) hall (by omega)
 
+/-- Any natural-valued time function eventually bounded by `n^(ε * log n)` for every positive
+`ε` is eventually strictly below `rfsGamma (n / 4) / 12` [BernsteinVazirani1997]. -/
 theorem cor814_classical_asymptotic_link :
     ∀ T : ℕ → ℕ,
       (∀ ε : ℝ, 0 < ε → ∃ N : ℕ, ∀ n ≥ N,

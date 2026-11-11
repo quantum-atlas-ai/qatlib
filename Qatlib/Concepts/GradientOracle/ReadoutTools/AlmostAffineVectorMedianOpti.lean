@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianStat
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutOpti
+
+/-!
+# Median amplification of gradient coordinates
+
+This module identifies fresh-register executions with product states and relates counted
+rational selection to real sorted medians. It proves simultaneous coordinate accuracy and
+explicit resource bounds for the median procedure associated with [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `almostAffineVectorMedian`: repeated readout has product outcome masses and failure at most `d
+  * (143/144)^r`, with a repetition choice achieving the requested tolerance.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,6 +59,8 @@ open scoped Classical BigOperators
 
 namespace AlmostAffineVectorMedianAux
 
+/-- Evaluating the reversed prepared translation of a circuit with data oracle `U` and identity
+input oracle has the same state action as `Run U` on the original circuit. -/
 private theorem gradient_bridge (d M : ℕ) (U : Matrix (GradientGrid d M) (GradientGrid d M) ℂ) :
     ∀ (L : List (Step (GradientGrid d M))) (ψ : QState (GradientGrid d M)),
       ApplyGate (evaluatePrepared U 1 (L.reverse.map fun s => match s with
@@ -73,6 +93,8 @@ private theorem gradient_bridge (d M : ℕ) (U : Matrix (GradientGrid d M) (Grad
       rw [hev, run_query]
       exact ih _
 
+/-- The fresh-register gradient output is the `R`-fold fresh product state of the single-run
+gradient readout. -/
 private theorem gradientFreshOutput_eq (d M : ℕ) (hM : 0 < M)
     (φ : GradientGrid d M → ℝ) (R : ℕ) :
     gradientFreshOutput d M hM φ R = freshState (gradientReadout d M hM φ) R := by
@@ -82,6 +104,8 @@ private theorem gradientFreshOutput_eq (d M : ℕ) (hM : 0 < M)
   congr 1
   exact gradient_bridge d M (gradientPhase d M φ) (gradientWord d M) (Ket (gradientZero d M hM))
 
+/-- The Born probability of a recorded tuple in a fresh product state equals the product of the
+individual outcome probabilities. -/
 private theorem freshState_BornProb {H : Type} [Fintype H] [DecidableEq H] (ψ : QState H) :
     ∀ (R : ℕ) (ω : Fin R → H),
       BornProb (freshState ψ R) (gradientFreshRecord ω) = ∏ t, BornProb ψ (ω t) := by
@@ -109,6 +133,8 @@ private theorem freshState_BornProb {H : Type} [Fintype H] [DecidableEq H] (ψ :
       = BornProb ψ (ω 0) * ∏ t : Fin R, BornProb ψ ((fun i => ω i.succ) t)
     rw [hL, ih]
 
+/-- For a normalized state, the probabilities of all recorded tuples in its fresh product state
+sum to one. -/
 private theorem freshState_mass_sum {H : Type} [Fintype H] [DecidableEq H] {ψ : QState H}
     (hψ : Normalized ψ) (R : ℕ) :
     ∑ ω : Fin R → H, BornProb (freshState ψ R) (gradientFreshRecord ω) = 1 := by
@@ -119,6 +145,8 @@ private theorem freshState_mass_sum {H : Type} [Fintype H] [DecidableEq H] {ψ :
     Finset.sum_congr rfl fun ω _ => freshState_BornProb ψ R ω
   rw [hrw, hp.sum_probOf]
 
+/-- The reversed prepared translation preserves data-query and fixed-gate counts and uses zero
+input queries. -/
 private theorem reverse_counts (d M : ℕ) :
     ∀ (L : List (Step (GradientGrid d M))),
       preparedDataQueries (L.reverse.map fun s => match s with
@@ -162,12 +190,16 @@ private theorem reverse_counts (d M : ℕ) :
       rw [h0.1, h0.2.1, h0.2.2, ih.1, ih.2.1, ih.2.2]
       simp [queryCount_query, gateCount_query]
 
+/-- The prepared gradient word has the data-query and gate counts of `gradientWord` and has no
+input queries. -/
 private theorem gradientPreparedWord_counts (d M : ℕ) :
     preparedDataQueries (gradientPreparedWord d M) = QueryCount (gradientWord d M) ∧
     preparedInputQueries (gradientPreparedWord d M) = 0 ∧
     preparedFixedGates (gradientPreparedWord d M) = GateCount (gradientWord d M) :=
   reverse_counts d M (gradientWord d M)
 
+/-- Pointwise equivalent predicates on outcome tuples have equal event probability under the
+same finite distribution. -/
 private theorem probEvent_of_iff {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X)
     {L : ℕ} {E E' : (Fin L → X) → Prop} [DecidablePred E] [DecidablePred E']
     (h : ∀ ω, E ω ↔ E' ω) : FinDist.probEvent p E = FinDist.probEvent p E' := by
@@ -178,6 +210,7 @@ private theorem probEvent_of_iff {X : Type} [Fintype X] [DecidableEq X] (p : Fin
   unfold FinDist.probEvent
   rw [hset]
 
+/-- Casting rational signed grid decoding to the reals gives `signedGridValue`. -/
 private theorem gradientSignedValueQ_cast (M : ℕ) (z : Fin M) :
     ((gradientSignedValueQ M z : ℚ) : ℝ) = signedGridValue M z := by
   by_cases h : 2*z.val ≤ M
@@ -188,6 +221,8 @@ private theorem gradientSignedValueQ_cast (M : ℕ) (z : Fin M) :
     push_cast
     ring
 
+/-- The real cast of the counted rational median equals the sorted-block median of the real
+signed coordinate outcomes. -/
 private theorem gradientMedianCounted_cast {d M : ℕ} (r : ℕ)
     (ω : Fin (2*r+1) → GradientGrid d M) (j : Fin d) :
     ((gradientMedianCounted r ω j).1 : ℝ)
@@ -200,6 +235,8 @@ private theorem gradientMedianCounted_cast {d M : ℕ} (r : ℕ)
   funext t
   exact gradientSignedValueQ_cast M (ω t j)
 
+/-- Selecting the counted median of `2*r+1` coordinate outcomes uses at most `10000*(2*r+1)`
+comparisons. -/
 private theorem gradientMedianCounted_count {d M : ℕ} (r : ℕ)
     (ω : Fin (2*r+1) → GradientGrid d M) (j : Fin d) :
     (gradientMedianCounted r ω j).2 ≤ 10000*(2*r+1) :=
@@ -209,6 +246,10 @@ private theorem gradientMedianCounted_count {d M : ℕ} (r : ℕ)
 end AlmostAffineVectorMedianAux
 open Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianAux
 
+/-- Proves normalized repeated readout with product outcome masses, simultaneous
+coordinate-median accuracy, and the stated circuit and comparison bounds. The failure bound
+`d*(143/144)^r` and its prescribed confidence choice implement amplification associated with
+[GilyenArunachalamWiebe2019]. -/
 theorem almostAffineVectorMedian : AlmostAffineVectorMedian := by
   intro d n hN φ g c S hg hbad hgood
   have hnormψ : Normalized (gradientReadout d (2^n) hN φ) :=

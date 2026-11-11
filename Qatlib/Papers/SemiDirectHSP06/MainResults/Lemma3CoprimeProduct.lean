@@ -11,6 +11,24 @@ import Mathlib.Data.Nat.ChineseRemainder
 import Mathlib.Data.Nat.ModEq
 import Mathlib.GroupTheory.OrderOfElement
 import Mathlib.Tactic
+
+/-!
+# Subgroups of products of finite groups of coprime orders
+
+`lemma3_coprime_product` identifies a subgroup of a product of finite groups of coprime orders
+with the product of its two projection images. The auxiliary power congruences allow the
+coordinates of a subgroup element to be isolated. See [ChiKimLee2006] for the mathematical
+setting.
+
+## Main statements
+
+* `lemma3_coprime_product`: expresses any subgroup as the product of its projection images.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +37,7 @@ noncomputable section
 
 namespace Qatlib.Papers.SemiDirectHSP06.MainResults
 
+/-- If `a ^ m = 1` and `k` is congruent to one modulo `m`, then `a ^ k = a`. -/
 private lemma pow_eq_pow_of_modEq_one {G : Type*} [Group G] {a : G} {m k : ℕ}
     (hm : a ^ m = 1) (hk : k ≡ 1 [MOD m]) : a ^ k = a := by
   rcases Nat.eq_zero_or_pos m with hm0 | hmpos
@@ -34,6 +53,7 @@ private lemma pow_eq_pow_of_modEq_one {G : Type*} [Group G] {a : G} {m k : ℕ}
       rw [Nat.mod_one, pow_zero]
       simpa using hm.symm
 
+/-- If `a ^ m = 1` and `k` is congruent to zero modulo `m`, then `a ^ k = 1`. -/
 private lemma pow_eq_one_of_modEq_zero {G : Type*} [Group G] {a : G} {m k : ℕ}
     (hm : a ^ m = 1) (hk : k ≡ 0 [MOD m]) : a ^ k = 1 := by
   rcases Nat.eq_zero_or_pos m with hm0 | hmpos
@@ -44,6 +64,8 @@ private lemma pow_eq_one_of_modEq_zero {G : Type*} [Group G] {a : G} {m k : ℕ}
     have hmod : k % m = 0 := by simpa [Nat.mod_zero] using! hk
     rw [hmod, pow_zero]
 
+/-- A subgroup of a product of finite groups of coprime orders is the product of its images
+under the two coordinate projections. See [Chi et al., 2006, Lemma 3][ChiKimLee2006]. -/
 theorem lemma3_coprime_product {G0 G1 : Type*} [Group G0] [Group G1] [Finite G0] [Finite G1]
     (hcop : Nat.Coprime (Nat.card G0) (Nat.card G1))
     (H : Subgroup (G0 × G1)) :

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
 import Mathlib.Analysis.SpecificLimits.Normed
+
+/-!
+# Known-success amplification and retry expectations
+
+`source_theorem2_quadratic_speedup` gives the known-success amplification bound for the standard
+iterate. The remaining identities evaluate geometric retry expectations and multiply them by the
+preparation-and-iteration application count. The mathematical context is
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `source_theorem2_quadratic_speedup`: For positive initial marked probability `a = sin² θ` with
+  `θ ∈ [0, π/2]`, applying the standard iterate `floor (π/(4θ))` times gives marked probability
+  at least `max (1-a) a` [BrassardHoyerTapp1998Counting].
+* `source_amplification_expected_applications`: For `0 ≤ a < 1`, multiplying the geometric
+  expected trial count by `2m + 1` gives expected application count `(2m + 1)/(1-a)`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +40,9 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 open scoped BigOperators
 
+/-- For positive initial marked probability `a = sin² θ` with `θ ∈ [0, π/2]`, applying the
+standard iterate `floor (π/(4θ))` times gives marked probability at least `max (1-a) a`
+[BrassardHoyerTapp1998Counting]. -/
 theorem source_theorem2_quadratic_speedup {n : ℕ}
     (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (hA : A * A.conjTranspose = 1) (θ : ℝ)
@@ -31,6 +56,8 @@ theorem source_theorem2_quadratic_speedup {n : ℕ}
           (fun i => A i 0)) i) :=
   zoo_counting_rankone_known_success_amplification n A g hA θ hθ0 hθπ hsin ha0
 
+/-- For `0 ≤ q < 1`, the geometric distribution with failure probability `q` has expected trial
+count `1/(1-q)`. -/
 theorem source_geometric_trials {q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) :
     (∑' k : ℕ, ((k : ℝ) + 1) * q ^ k * (1 - q)) = 1 / (1 - q) := by
   have hr : ‖q‖ < 1 := by
@@ -58,6 +85,8 @@ theorem source_geometric_trials {q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) :
   rw [hfun] at hmul
   exact hmul.tsum_eq
 
+/-- For `0 ≤ a < 1`, multiplying the geometric expected trial count by `2m + 1` gives expected
+application count `(2m + 1)/(1-a)`. See [BrassardHoyerTapp1998Counting]. -/
 theorem source_amplification_expected_applications {a : ℝ} (ha0 : 0 ≤ a) (ha1 : a < 1)
     (m : ℕ) :
     (∑' k : ℕ, ((k : ℝ) + 1) * a ^ k * (1 - a)) * (2 * (m : ℝ) + 1) =

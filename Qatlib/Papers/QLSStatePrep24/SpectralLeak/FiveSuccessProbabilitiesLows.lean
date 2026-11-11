@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLSStatePrep24.SpectralLeak.FiveSuccessProbabilitiesStat
+
+/-!
+# Comparison of five spectral success weights
+
+This module proves `Clause31FiveSuccessProbabilities`, comparing the single-band, inverse-band,
+near-band, full-band, and perturbed state weights. Continuation products, stopping-mass
+telescoping, and geometric error bounds provide the quantitative estimates. See [LowSu2026] for
+the paper context.
+
+## Main statements
+
+* `stopMass_telescope`: For a positive number of normalized rows with a deterministic terminal
+  stop, the squared norms of the stopping coefficients sum to one.
+* `Clause31FiveSuccessProbabilities_answer`: The five success weights satisfy the bounds
+  specified by `Clause31FiveSuccessProbabilities`, including near-band leakage control and the
+  `4 * εbm` perturbation estimate.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,11 +49,13 @@ open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Papers.QLSStateP
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators
 
+/-- The squared norms of the two components of a normalized state sum to one. -/
 private theorem normalized_two_eq {ψ : QState (Fin 2)} (h : Normalized ψ) :
     ‖ψ 0‖ ^ 2 + ‖ψ 1‖ ^ 2 = 1 := by
   have h2 : ∑ i : Fin 2, ‖ψ i‖ ^ 2 = 1 := h
   rwa [Fin.sum_univ_two] at h2
 
+/-- Each component of a normalized two-component state has squared norm at most one. -/
 private theorem normalized_two_le {ψ : QState (Fin 2)} (h : Normalized ψ) (b : Fin 2) :
     ‖ψ b‖ ^ 2 ≤ 1 := by
   have hs := normalized_two_eq h
@@ -41,28 +65,37 @@ private theorem normalized_two_le {ψ : QState (Fin 2)} (h : Normalized ψ) (b :
   · exact h0
   · exact h1
 
+/-- The product of squared continuation amplitudes through the first `t` steps for label `u`. -/
 private def contMass {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I) (t : ℕ) : ℝ :=
   ∏ l : Fin t, ‖ξ (l.val + 1) u 1‖ ^ 2
 
+/-- The continuation mass before any steps is one. -/
 private theorem contMass_zero {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I) :
     contMass ξ u 0 = 1 := by
   show (∏ l : Fin 0, ‖ξ (l.val + 1) u 1‖ ^ 2) = 1
   simp
 
+/-- The continuation mass equals the product over `i < t` of the squared continuation amplitude
+at step `i + 1`. -/
 private theorem contMass_eq_prod_range {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I) (t : ℕ) :
     contMass ξ u t = ∏ i ∈ Finset.range t, ‖ξ (i + 1) u 1‖ ^ 2 :=
   Fin.prod_univ_eq_prod_range (fun k : ℕ => ‖ξ (k + 1) u 1‖ ^ 2) t
 
+/-- The continuation mass through step `t + 1` is the previous mass times the squared
+continuation amplitude at that step. -/
 private theorem contMass_succ {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I) (t : ℕ) :
     contMass ξ u (t + 1) = contMass ξ u t * ‖ξ (t + 1) u 1‖ ^ 2 := by
   rw [contMass_eq_prod_range, contMass_eq_prod_range, Finset.prod_range_succ]
 
+/-- The continuation mass is nonnegative. -/
 private theorem contMass_nonneg {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I) (t : ℕ) :
     0 ≤ contMass ξ u t := by
   apply Finset.prod_nonneg
   intro i _
   exact sq_nonneg _
 
+/-- If the first `n` rows are normalized and `t ≤ n`, the continuation mass through `t` steps is
+at most one. -/
 private theorem contMass_le_one {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I)
     {n t : ℕ} (ht : t ≤ n) (hnorm : ∀ j : ℕ, j < n → Normalized (ξ (j + 1) u)) :
     contMass ξ u t ≤ 1 := by
@@ -72,6 +105,8 @@ private theorem contMass_le_one {I : Type} (ξ : ℕ → I → QState (Fin 2)) (
   · intro i _
     exact normalized_two_le (hnorm i.val (by omega)) 1
 
+/-- At a positive step `j`, the squared stopping amplitude is the squared stop component times
+the continuation mass through `j - 1` steps. -/
 private theorem stopCoefficient_sq {I : Type} {ξ : ℕ → I → QState (Fin 2)}
     (u : I) {j : ℕ} (hj : 0 < j) :
     ‖stopCoefficient ξ j u‖ ^ 2 = ‖ξ j u 0‖ ^ 2 * contMass ξ u (j - 1) := by
@@ -81,6 +116,8 @@ private theorem stopCoefficient_sq {I : Type} {ξ : ℕ → I → QState (Fin 2)
   rw [hsc, norm_mul, mul_pow, norm_prod, ← Finset.prod_pow]
   rfl
 
+/-- Reindexing the sum of `f(i + 1)` over `i < n` gives the sum of `f` over the integers from
+one to `n`. -/
 private theorem sum_range_add_one {α : Type} [AddCommMonoid α] (n : ℕ) (f : ℕ → α) :
     (∑ i ∈ Finset.range n, f (i + 1)) = ∑ l ∈ Finset.Icc 1 n, f l := by
   refine Finset.sum_bij (fun i _ => i + 1) ?_ ?_ ?_ ?_
@@ -97,10 +134,14 @@ private theorem sum_range_add_one {α : Type} [AddCommMonoid α] (n : ℕ) (f : 
   · intro i hi
     rfl
 
+/-- The sum of `f(j + 1)` over `Fin m` equals the sum of `f` over the natural interval from one
+to `m`. -/
 private theorem sum_fin_add_one {α : Type} [AddCommMonoid α] (m : ℕ) (f : ℕ → α) :
     (∑ j : Fin m, f (j.val + 1)) = ∑ l ∈ Finset.Icc 1 m, f l :=
   (Fin.sum_univ_eq_sum_range (fun k : ℕ => f (k + 1)) m).trans (sum_range_add_one m f)
 
+/-- For a positive number of normalized rows with a deterministic terminal stop, the squared
+norms of the stopping coefficients sum to one. -/
 private theorem stopMass_telescope {I : Type} (ξ : ℕ → I → QState (Fin 2)) (u : I) (m : ℕ)
     (hm : 0 < m) (hnorm : ∀ j : ℕ, j < m → Normalized (ξ (j + 1) u))
     (hstop : ξ m u = (fun b => if b = 0 then 1 else 0)) :
@@ -134,6 +175,8 @@ private theorem stopMass_telescope {I : Type} (ξ : ℕ → I → QState (Fin 2)
   rw [hm0]
   ring
 
+/-- If every `d t` lies in `[0, 1/3]`, the sum of `9^t` times the initial product of squared `d`
+values is at most the square of their sum. -/
 private theorem sum_pow_prod_sq_le_sq {T : ℕ} (d : ℕ → ℝ)
     (hd : ∀ t < T, 0 ≤ d t ∧ d t ≤ 1 / 3) :
     (∑ t ∈ Finset.range T, (9 : ℝ) ^ t * ∏ l ∈ Finset.range (t + 1), (d l) ^ 2)
@@ -171,6 +214,8 @@ private theorem sum_pow_prod_sq_le_sq {T : ℕ} (d : ℕ → ℝ)
     rw [hsum, hfac, Finset.sum_range_succ]
     nlinarith
 
+/-- Under the normalization and early-stop hypotheses, the squared stopping amplitude at step `j
++ 1` is at most `δ(j + 1)²`. -/
 private theorem stop_before_le {I : Type} {ξ : ℕ → I → QState (Fin 2)}
     (δ : ℕ → ℝ) (m : ℕ) (u : I)
     (hδ : ∀ j : ℕ, j < m → 0 ≤ δ (j + 1) ∧ δ (j + 1) ≤ 1 / 3)
@@ -194,6 +239,8 @@ private theorem stop_before_le {I : Type} {ξ : ℕ → I → QState (Fin 2)}
     mul_le_mul_of_nonneg_left hc (sq_nonneg _)
   linarith
 
+/-- Under the stated late-continuation hypotheses, a stopping step strictly beyond `k′ + 1` has
+squared amplitude at most `δ j²`. -/
 private theorem stop_after_le {I : Type} {ξ : ℕ → I → QState (Fin 2)}
     (δ : ℕ → ℝ) (m k' : ℕ) (u : I)
     (hδ : ∀ j : ℕ, j < m → 0 ≤ δ (j + 1) ∧ δ (j + 1) ≤ 1 / 3)
@@ -280,19 +327,24 @@ private theorem stop_after_le {I : Type} {ξ : ℕ → I → QState (Fin 2)}
     exact hstep1.trans hstep3
   linarith
 
+/-- Squaring `3^a / 3^b` gives `9^a / 9^b` over the reals. -/
 private theorem three_pow_div_sq (a b : ℕ) :
     ((3:ℝ)^a / (3:ℝ)^b) ^ 2 = (9:ℝ)^a / (9:ℝ)^b := by
   rw [div_pow, pow_two, pow_two, ← mul_pow, ← mul_pow]
   norm_num
 
+/-- Squaring the `n`th power of the reciprocal of three gives the `n`th power of the reciprocal
+of nine. -/
 private theorem inv_three_sq (n : ℕ) :
     ((3:ℝ)⁻¹ ^ n) ^ 2 = (9:ℝ)⁻¹ ^ n := by
   rw [pow_two, ← mul_pow, (by norm_num : (3:ℝ)⁻¹ * 3⁻¹ = 9⁻¹)]
 
+/-- The reciprocal of the `n`th power of the reciprocal of nine equals `9^n`. -/
 private theorem inv_pow_eq (n : ℕ) :
     1 / ((9:ℝ)⁻¹ ^ n) = (9:ℝ) ^ n := by
   rw [inv_pow, one_div, inv_inv]
 
+/-- For nonnegative terms on a finite set, the sum of squares is at most the square of the sum. -/
 private theorem sum_sq_le_sq_sum {α : Type} (s : Finset α) (f : α → ℝ)
     (hf : ∀ a ∈ s, 0 ≤ f a) : (∑ a ∈ s, f a ^ 2) ≤ (∑ a ∈ s, f a) ^ 2 := by
   induction s using Finset.induction_on with
@@ -306,6 +358,8 @@ private theorem sum_sq_le_sq_sum {α : Type} (s : Finset α) (f : α → ℝ)
     rw [Finset.sum_insert ha, Finset.sum_insert ha]
     nlinarith
 
+/-- For a nonempty tail of errors in `[0, 1/3]`, multiplying their squared product by `9^(b +
+1)` is bounded by `9^(n + 2) * δ b²`. -/
 private theorem tail_prod_weighted_le (δ : ℕ → ℝ) (n b : ℕ)
     (hδ : ∀ l, n + 1 ≤ l → l ≤ b → 0 ≤ δ l ∧ δ l ≤ 1 / 3) (hge : n + 1 ≤ b) :
     (∏ l ∈ Finset.Ico (n + 1) (b + 1), δ l ^ 2) * (9 : ℝ) ^ (b + 1)
@@ -344,6 +398,9 @@ private theorem tail_prod_weighted_le (δ : ℕ → ℝ) (n b : ℕ)
         apply mul_le_mul_of_nonneg_left hkey (pow_nonneg (by positivity) _)
     _ = (9 : ℝ) ^ (n + 2) * δ b ^ 2 := by ring
 
+/-- The five success weights satisfy the bounds specified by `Clause31FiveSuccessProbabilities`,
+including near-band leakage control and the `4 * εbm` perturbation estimate. See
+[LowSu2026]. -/
 theorem Clause31FiveSuccessProbabilities_answer : Clause31FiveSuccessProbabilities := by
   intro I _ m k σ γ ξ δ χ εbm hiv hγ hleg hε hχ hdiff
   obtain ⟨hm, hk, hδ, hstop, hnorm, hbefore, hafter⟩ := hleg

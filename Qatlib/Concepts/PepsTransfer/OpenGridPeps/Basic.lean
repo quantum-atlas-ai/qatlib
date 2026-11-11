@@ -8,6 +8,19 @@ import Mathlib.Data.Fin.Tuple.Basic
 import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.PepsTransfer.OpenGridPeps.Defs
+
+/-!
+# Open-grid PEPS contractions and row transfer matrices
+
+The explicit finite contraction evaluates a single-site grid, an empty grid,
+and tensors supported on zero virtual labels. Expanding a product of row
+transfer matrices as a sum over intermediate indices proves equality with the
+full grid amplitude. A row boundary of width `b` and bond dimension `D` has
+`D ^ b` possible virtual configurations.
+
+PEPS and transfer contractions are discussed in [VerstraeteWolfPerezGarciaCirac2006]
+and [Verstraete, Murg & Cirac, tensor-network methods][VerstraeteMurgCirac2008].
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,15 +31,20 @@ namespace Qatlib.Concepts.PepsTransfer.OpenGridPeps
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- On a single-cell grid, the PEPS amplitude is the local tensor evaluated with all four
+virtual indices fixed to zero. -/
 theorem amplitude_single (d D : ℕ) (hD : 0 < D) (A : Tensor 1 1 d D)
     (x : Fin 1 → Fin 1 → Fin d) :
     amplitude hD A x = A 0 0 (x 0 0) ⟨0,hD⟩ ⟨0,hD⟩ ⟨0,hD⟩ ⟨0,hD⟩ := by
   simp [amplitude, value]
 
+/-- The PEPS amplitude is one when the grid has no rows or no columns. -/
 theorem amplitude_empty (a b d D : ℕ) (hD : 0 < D) (A : Tensor a b d D)
     (x : Fin a → Fin b → Fin d) (h : a = 0 ∨ b = 0) : amplitude hD A x = 1 := by
   rcases h with rfl | rfl <;> simp [amplitude]
 
+/-- For tensors supported only on zero virtual indices, any nonzero horizontal bond assignment
+makes the product of local tensor values vanish. -/
 private theorem delta_horizontal_zero {a b d D : ℕ} (hD : 0 < D)
     (t : Fin a → Fin b → Fin d → ℂ) (x : Fin a → Fin b → Fin d)
     (h : Fin a × Fin (b-1) → Fin D) (v : Fin (a-1) × Fin b → Fin D)
@@ -48,6 +66,8 @@ private theorem delta_horizontal_zero {a b d D : ℕ} (hD : 0 < D)
   simp only [value, dif_pos hj, he]
   exact if_neg (fun hp => hn hp.2.2.2)
 
+/-- For tensors supported only on zero virtual indices, any nonzero vertical bond assignment
+makes the product of local tensor values vanish. -/
 private theorem delta_vertical_zero {a b d D : ℕ} (hD : 0 < D)
     (t : Fin a → Fin b → Fin d → ℂ) (x : Fin a → Fin b → Fin d)
     (h : Fin a × Fin (b-1) → Fin D) (v : Fin (a-1) × Fin b → Fin D)
@@ -69,6 +89,9 @@ private theorem delta_vertical_zero {a b d D : ℕ} (hD : 0 < D)
   simp only [value, dif_pos hi, he]
   exact if_neg (fun hp => hn hp.2.1)
 
+/-- Tensors supported only at zero virtual indices contract to a product of
+local amplitudes, the product-state case of PEPS; see
+[Verstraete, Murg & Cirac][VerstraeteMurgCirac2008]. -/
 theorem amplitude_product (a b d D : ℕ) (hD : 0 < D)
     (t : Fin a → Fin b → Fin d → ℂ) (x : Fin a → Fin b → Fin d) :
     amplitude hD (fun i j s u v l r =>
@@ -93,6 +116,8 @@ theorem amplitude_product (a b d D : ℕ) (hD : 0 < D)
   · intro hh
     exact (hh (Finset.mem_univ _)).elim
 
+/-- Collects the single-cell, empty-grid, and product-tensor amplitude identities for open-grid
+PEPS. -/
 theorem g1 :
     (∀ (d D : ℕ) (hD : 0<D) (A : Tensor 1 1 d D) (x : Fin 1→Fin 1→Fin d),
       amplitude hD A x = A 0 0 (x 0 0) ⟨0,hD⟩ ⟨0,hD⟩ ⟨0,hD⟩ ⟨0,hD⟩) ∧
@@ -104,6 +129,8 @@ theorem g1 :
           ∏ i, ∏ j, t i j (x i j)) :=
   ⟨amplitude_single, amplitude_empty, amplitude_product⟩
 
+/-- An entry of a product of `n + 1` finite square matrices is the sum over `n` intermediate
+indices of the products along the corresponding paths. -/
 theorem matrix_product_paths {S : Type*} [Fintype S] [DecidableEq S]
     (n : ℕ) (M : Fin (n+1) → Matrix S S ℂ) (u w : S) :
     (List.ofFn M).prod u w =
@@ -130,6 +157,8 @@ theorem matrix_product_paths {S : Type*} [Fintype S] [DecidableEq S]
         rw [← Fin.cons_snoc_eq_snoc_cons, Fin.prod_univ_succ]
         simp
 
+/-- Expresses a local PEPS value using curried bond assignments, with zero rows attached to the
+top and bottom vertical boundaries. -/
 private theorem value_curried {n b d D : ℕ} (hD : 0 < D)
     (A : Tensor (n+1) b d D) (x : Fin (n+1) → Fin b → Fin d)
     (H : Fin (n+1) → Fin (b-1) → Fin D) (V : Fin n → Fin b → Fin D)
@@ -153,6 +182,8 @@ private theorem value_curried {n b d D : ℕ} (hD : 0 < D)
   rw [← hu, ← hd]
   try (split_ifs <;> rfl)
 
+/-- The PEPS amplitude on `n + 1` rows is the sum over internal row-boundary configurations of
+the product of row-matrix entries. -/
 theorem amplitude_rows {n b d D : ℕ} (hD : 0 < D)
     (A : Tensor (n+1) b d D) (x : Fin (n+1) → Fin b → Fin d) :
     amplitude hD A x =
@@ -181,6 +212,8 @@ theorem amplitude_rows {n b d D : ℕ} (hD : 0 < D)
           (if hj : 0 < j.val then h ⟨j.val-1,by omega⟩ else ⟨0,hD⟩)
           (if hj : j.val+1 < b then h ⟨j.val,by omega⟩ else ⟨0,hD⟩))).symm
 
+/-- Row-matrix contraction equals the open-grid PEPS amplitude, and the row-boundary
+configuration space has cardinality `D ^ b`. -/
 theorem g2 :
     ∀ (a b d D : ℕ) (hD : 0<D) (A : Tensor a b d D) (x : Fin a→Fin b→Fin d),
       rowAmplitude hD A x = amplitude hD A x ∧

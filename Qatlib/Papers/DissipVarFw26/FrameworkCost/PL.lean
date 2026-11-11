@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DissipVarFw26.FrameworkCost.Descent
+
+/-!
+# Polyak–Łojasiewicz bounds for gradient iterates
+
+`gdIter` defines fixed-step gradient descent, and `PLCond` relates the squared gradient norm to
+a reference cost gap. Smoothness and a permitted step size give a one-step gap bound, followed
+by geometric and exponential estimates under the stated additional hypotheses.
+
+This development follows [YaoEtAl2026].
+
+## Main statements
+
+* `pl_one_step`: the next gap is at most `1 - η * μ` times the current gap.
+* `pl_iterate_geometric`: the one-step estimate iterates when `η * μ ≤ 1`.
+* `lemma3_pl_contraction`: a global lower bound allows an exponential gap estimate.
+
+## References
+
+* [Yao et al., 2026][YaoEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,13 +39,17 @@ open Qatlib.Papers.DissipVarFw26.FrameworkCost.Descent
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 
+/-- The gradient-descent sequence starting at `x0` with fixed step size `η`. -/
 def gdIter (f : E → ℝ) (η : ℝ) (x0 : E) : ℕ → E
   | 0 => x0
   | n + 1 => gdIter f η x0 n - η • ∇ f (gdIter f η x0 n)
 
+/-- The Polyak–Łojasiewicz condition `(1 / 2) * ‖∇ f x‖ ^ 2 ≥ μ * (f x - fstar)` at every point. -/
 def PLCond (f : E → ℝ) (μ fstar : ℝ) : Prop :=
   ∀ x, (1 / 2) * ‖∇ f x‖ ^ 2 ≥ μ * (f x - fstar)
 
+/-- For positive `β`, `SmoothGrad f β`, `PLCond f μ fstar`, and `0 < η ≤ 1 / β`, the gap after
+one gradient step is at most `(1 - η * μ)` times the current gap. -/
 theorem pl_one_step (f : E → ℝ) (β η μ fstar : ℝ) (hβ : 0 < β)
     (hsmooth : SmoothGrad f β) (hη0 : 0 < η) (hη : η ≤ 1 / β)
     (hpl : PLCond f μ fstar) (x : E) :
@@ -36,6 +61,8 @@ theorem pl_one_step (f : E → ℝ) (β η μ fstar : ℝ) (hβ : 0 < β)
     mul_le_mul_of_nonneg_left hplx hηle
   nlinarith [hdesc, hstep]
 
+/-- Under smoothness, the PL condition, `0 < η ≤ 1 / β`, and `η * μ ≤ 1`, the gap at iterate `n`
+is at most `(1 - η * μ) ^ n` times the initial gap. -/
 theorem pl_iterate_geometric (f : E → ℝ) (β η μ fstar : ℝ) (hβ : 0 < β)
     (hsmooth : SmoothGrad f β) (hη0 : 0 < η) (hη : η ≤ 1 / β)
     (hpl : PLCond f μ fstar) (hμη : η * μ ≤ 1) (x0 : E) :
@@ -54,6 +81,9 @@ theorem pl_iterate_geometric (f : E → ℝ) (β η μ fstar : ℝ) (hβ : 0 < �
             mul_le_mul_of_nonneg_left ih hnn
         _ = (1 - η * μ) ^ (m + 1) * (f x0 - fstar) := by rw [pow_succ]; ring
 
+/-- Under smoothness, the PL condition, a global lower bound `fstar`, `0 < η ≤ 1 / β`, and `η *
+μ ≤ 1`, the gap at iterate `n` is at most `exp (-(η * μ * n))` times the initial gap. See
+[YaoEtAl2026]. -/
 theorem lemma3_pl_contraction (f : E → ℝ) (β η μ fstar : ℝ) (hβ : 0 < β)
     (hsmooth : SmoothGrad f β) (hη0 : 0 < η) (hη : η ≤ 1 / β)
     (hpl : PLCond f μ fstar) (hmin : ∀ x, fstar ≤ f x) (hμη : η * μ ≤ 1)

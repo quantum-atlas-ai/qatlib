@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
+/-!
+# Gap and local schedule for adiabatic search
+
+This module defines the search gap and the local rate `localRate` from [RolandCerf2002]. It
+evaluates the reciprocal-gap integral as `localAdiabaticTime`, proves the minimum-gap bound, and
+rewrites the time in a form suited to its square-root asymptotic.
+
+## Main statements
+
+* `gap_ge_half`: Bounds the gap below by `1 / sqrt N`.
+* `gapSchedule_time_eq_integral`: Identifies the closed time formula with the schedule integral.
+* `localAdiabaticTime_div_sqrt`: Rewrites the time divided by `sqrt N`.
+
+## References
+
+* [Roland and Cerf, 2002][RolandCerf2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,18 +34,25 @@ open scoped Interval
 
 namespace Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule
 
+/-- The squared search gap `1 - 4 * ((N - 1) / N) * s * (1 - s)`. -/
 def gapSq (N s : ℝ) : ℝ := 1 - 4 * ((N - 1) / N) * (s * (1 - s))
 
+/-- The search gap, defined as the square root of `gapSq N s`. -/
 def gap (N s : ℝ) : ℝ := sqrt (gapSq N s)
 
+/-- The local schedule rate `ε * gapSq N s`. -/
 def localRate (ε N s : ℝ) : ℝ := ε * gapSq N s
 
+/-- The local adiabatic time integral, given by `1 / ε` times the integral of the reciprocal
+squared gap from zero to one. -/
 def localAdiabaticIntegral (ε N : ℝ) : ℝ :=
   (1 / ε) * ∫ s in (0 : ℝ)..1, 1 / gapSq N s
 
+/-- The closed local-time formula `N / (ε * sqrt (N - 1)) * arctan (sqrt (N - 1))`. -/
 def localAdiabaticTime (ε N : ℝ) : ℝ :=
   N / (ε * sqrt (N - 1)) * arctan (sqrt (N - 1))
 
+/-- For `N > 1`, the squared search gap is positive for every real schedule parameter. -/
 theorem gapSq_pos {N s : ℝ} (hN : 1 < N) : 0 < gapSq N s := by
   have hNpos : 0 < N := by linarith
   have hfac : 0 ≤ 4 * ((N - 1) / N) := by
@@ -44,15 +69,19 @@ theorem gapSq_pos {N s : ℝ} (hN : 1 < N) : 0 < gapSq N s := by
   unfold gapSq
   nlinarith [hb, hkey, hlt]
 
+/-- For positive `N`, the squared gap at `s = 1 / 2` is `1 / N`. -/
 theorem gapSq_half {N : ℝ} (hN : 0 < N) : gapSq N (1 / 2) = 1 / N := by
   unfold gapSq
   field_simp
   ring
 
+/-- For positive `N`, the gap at `s = 1 / 2` is `1 / sqrt N` [RolandCerf2002]. -/
 theorem gap_half {N : ℝ} (hN : 0 < N) : gap N (1 / 2) = 1 / sqrt N := by
   unfold gap
   rw [gapSq_half hN, Real.sqrt_div (by norm_num : (0 : ℝ) ≤ 1) N, Real.sqrt_one]
 
+/-- For `N > 1`, the gap at any real schedule parameter is at least `1 / sqrt N`
+[RolandCerf2002]. -/
 theorem gap_ge_half {N s : ℝ} (hN : 1 < N) :
     1 / sqrt N ≤ gap N s := by
   have hNpos : 0 < N := by linarith
@@ -75,6 +104,8 @@ theorem gap_ge_half {N s : ℝ} (hN : 1 < N) :
   unfold gapSq
   nlinarith [hb, hkey, hsplit]
 
+/-- For positive `ε` and `N > 1`, the closed local adiabatic time equals the reciprocal-gap
+schedule integral [RolandCerf2002]. -/
 theorem gapSchedule_time_eq_integral {ε N : ℝ} (hε : 0 < ε) (hN : 1 < N) :
     localAdiabaticTime ε N = localAdiabaticIntegral ε N := by
   have hNpos : 0 < N := by linarith
@@ -128,6 +159,8 @@ theorem gapSchedule_time_eq_integral {ε N : ℝ} (hε : 0 < ε) (hN : 1 < N) :
   field_simp [hε.ne', hcne, hNne]
   ring
 
+/-- For positive `ε` and `N > 1`, dividing the local adiabatic time by `sqrt N` gives `sqrt (N /
+(N - 1)) * arctan (sqrt (N - 1)) / ε` [RolandCerf2002]. -/
 theorem localAdiabaticTime_div_sqrt {ε N : ℝ} (hε : 0 < ε) (hN : 1 < N) :
     localAdiabaticTime ε N / sqrt N
       = sqrt (N / (N - 1)) * (arctan (sqrt (N - 1)) / ε) := by

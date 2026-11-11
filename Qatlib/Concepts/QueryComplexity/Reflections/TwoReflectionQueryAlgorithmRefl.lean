@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmStat
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ReflectionsQueryProgram
+
+/-!
+# A query algorithm from dual-feasible witnesses
+
+Proves `twoReflectionQueryAlgorithm`, producing a finite-workspace unitary bit-query circuit
+from source dual-feasible witnesses with budget `W ≥ 1` and a nonempty query register. The
+circuit starts in the specified basis state and computes the Boolean function with success
+probability at least two thirds.
+
+The formal resource bounds are `1000000 * Nat.ceil W` queries and `10000000 * Nat.ceil W` gates.
+This realizes the witness-to-algorithm conclusion associated with [Reichardt2011].
+
+## Main statements
+
+* `twoReflectionQueryAlgorithm`: constructs the bounded-error query circuit with explicit query
+  and gate budgets.
+
+## References
+
+* [Reichardt, Theorem 1.3][Reichardt2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +45,10 @@ namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 open scoped BigOperators
 
+/-- Source dual-feasible data with `W ≥ 1` yield a unitary bit-query circuit computing the
+Boolean function with success probability at least `2/3`, at most `1000000 * Nat.ceil W`
+queries, and at most `10000000 * Nat.ceil W` gates. See [Reichardt, Theorem
+1.3][Reichardt2011]. -/
 theorem twoReflectionQueryAlgorithm : TwoReflectionQueryAlgorithm := by
   intro X _ _ n m hn input f v W hv hW
   obtain ⟨Δ, hΔ, hker, _hCS⟩ := reflections_source_full_cs input f v W

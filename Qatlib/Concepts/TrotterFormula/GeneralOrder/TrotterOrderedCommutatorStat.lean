@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterOrderedCommutatorContracts
+
+/-!
+# Corrected ordered-commutator statement
+
+This module defines `TrotterOrderedCommutator`, combining the ordered conjugation coefficient
+expansion with bounds using `pfCommAlphaOrderedV2`. The remainder budget is divided by `p!`, and
+the general-matrix case includes exponential norm inflation, in the setting of Theorem 10 of
+[ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `TrotterOrderedCommutator`: specifies the corrected coefficient and remainder contract.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,8 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The corrected proposition combining the ordered coefficient expansion with remainder bounds
+based on `pfCommAlphaOrderedV2`. -/
 def TrotterOrderedCommutator : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ),

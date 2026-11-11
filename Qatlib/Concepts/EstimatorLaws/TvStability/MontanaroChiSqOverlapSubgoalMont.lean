@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqOverlapSubgoalStat
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroScheduleDefs
+
+/-!
+# Chi-squared divergence controls overlap
+
+Proves the lower bound on the overlap of two strictly positive finite probability laws in terms
+of their chi-squared divergence. The proof uses a tangent lower bound for the inverse square
+root, supporting the Gibbs overlap argument in [Montanaro2015].
+
+## Main statements
+
+* `inverse_sqrt_tangent` supplies the scalar inequality used after averaging.
+* `montanaroChiSqOverlapSubgoal` proves overlap is at least `1 / sqrt (chiSqDist ν π + 1)`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.EstimatorLaws.TvStability.Montanaro2015
 
 namespace Qatlib.Concepts.EstimatorLaws.TvStability
@@ -13,6 +31,8 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Bounds the tangent expression `(3 * v - u) / (2 * v * sqrt v)` by `1 / sqrt u` for positive
+`u` and `v`. -/
 private theorem inverse_sqrt_tangent (u v : ℝ) (hu : 0 < u) (hv : 0 < v) :
     (3*v-u)/(2*v*Real.sqrt v) ≤ 1/Real.sqrt u := by
   have ha := Real.sqrt_pos.2 hu
@@ -24,6 +44,8 @@ private theorem inverse_sqrt_tangent (u v : ℝ) (hu : 0 < u) (hv : 0 < v) :
   simp only [Real.sqrt_sq (Real.sqrt_nonneg u), Real.sqrt_sq (Real.sqrt_nonneg v)]
   nlinarith
 
+/-- Proves that the overlap of two strictly positive finite laws is at least `1 / sqrt
+(chiSqDist ν π + 1)`, as used in the Gibbs-state analysis of [Montanaro2015]. -/
 theorem montanaroChiSqOverlapSubgoal : MontanaroChiSqOverlapSubgoal := by
   intro X _ _ ν π hπ hν
   let g := fun x => ν.prob x / π.prob x

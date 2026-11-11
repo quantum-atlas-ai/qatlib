@@ -18,6 +18,29 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+/-!
+# Abelian factor groups and Fourier annihilators
+
+This module formalizes the character and group structure statements underlying the abelian
+factor group computation in Section 4.2 of [Watrous2001]. The equivalence
+`fourierAnnihilatorEquiv` identifies the kernel annihilator with the character group of the
+image; the module also proves the uniform Fourier outcome law on that annihilator and supplies
+finite generating sets and prime power cyclic decompositions.
+
+## Main statements
+
+* `fourierAnnihilatorEquiv`: Identifies the kernel annihilator with the character group of the
+  image.
+* `fig2OutcomeProb_eq_of_mem`: Computes the uniform Fourier probability on the annihilator.
+* `finite_abelian_primePower_decomposition`: Decomposes a finite abelian group into prime power
+  cyclic factors.
+
+## References
+
+* [Watrous, 2001][Watrous2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -33,6 +56,8 @@ section Annihilator
 variable {A B : Type*} [AddCommGroup A] [AddCommGroup B] [Fintype A] [Fintype B]
   (f : A →+ B)
 
+/-- A character in the kernel annihilator has equal values at two elements whose difference lies
+in the kernel. -/
 theorem annihilator_apply_eq_of_sub_mem_ker (χ : AddChar A ℂ)
     (hχ : χ ∈ characterAnnihilator f.ker) {a b : A} (h : a - b ∈ f.ker) :
     χ a = χ b := by
@@ -46,22 +71,27 @@ theorem annihilator_apply_eq_of_sub_mem_ker (χ : AddChar A ℂ)
     exact zero_ne_one h2
   exact (div_eq_one_iff_eq hb).mp h1
 
+/-- A character in the kernel annihilator is constant on fibers of f. -/
 theorem annihilator_apply_eq_of_apply_eq (χ : AddChar A ℂ)
     (hχ : χ ∈ characterAnnihilator f.ker) {a b : A} (hab : f a = f b) :
     χ a = χ b := by
   apply annihilator_apply_eq_of_sub_mem_ker f χ hχ
   rw [AddMonoidHom.mem_ker, map_sub, hab, sub_self]
 
+/-- The additive homomorphism f with codomain restricted to its range. -/
 def qRange : A →+ f.range where
   toFun a := ⟨f a, AddMonoidHom.mem_range.mpr ⟨a, rfl⟩⟩
   map_zero' := Subtype.ext (map_zero f)
   map_add' a b := Subtype.ext (map_add f a b)
 
+/-- The additive homomorphism taking a character of the range of f to its pullback along
+`qRange`. -/
 def precompHom : AddChar f.range ℂ →+ AddChar A ℂ where
   toFun ψ := ψ.compAddMonoidHom (qRange f)
   map_zero' := by ext a; simp
   map_add' ψ φ := by ext a; simp
 
+/-- Pulls back range characters to characters in the annihilator of the kernel. -/
 def rangeCharToAnnihilator : AddChar f.range ℂ →+ ↥(characterAnnihilator f.ker) where
   toFun ψ := ⟨precompHom f ψ, by
     rw [mem_characterAnnihilator]
@@ -74,9 +104,12 @@ def rangeCharToAnnihilator : AddChar f.range ℂ →+ ↥(characterAnnihilator f
   map_zero' := Subtype.ext (map_zero (precompHom f))
   map_add' ψ φ := Subtype.ext (map_add (precompHom f) ψ φ)
 
+/-- Evaluating a pulled back range character at a gives the original character evaluated at
+`qRange` f a. -/
 @[simp] theorem rangeCharToAnnihilator_apply (ψ : AddChar f.range ℂ) (a : A) :
     (rangeCharToAnnihilator f ψ).1 a = ψ (qRange f a) := rfl
 
+/-- Pullback from range characters to the kernel annihilator is injective. -/
 theorem rangeCharToAnnihilator_injective :
     Function.Injective (rangeCharToAnnihilator f) := by
   intro ψ φ h
@@ -89,12 +122,15 @@ theorem rangeCharToAnnihilator_injective :
   rw [hq] at h1
   exact h1
 
+/-- The cardinalities of the kernel annihilator and the kernel multiply to the cardinality of A. -/
 theorem annihilator_card_mul_ker_card :
     Nat.card ↥(characterAnnihilator f.ker) * Nat.card ↥f.ker = Nat.card A := by
   have h := card_characterAnnihilator (H := f.ker)
   simp only [Fintype.card_eq_nat_card] at h
   exact h
 
+/-- The kernel annihilator and the range of f have equal natural cardinalities. See
+[Watrous2001]. -/
 theorem natCard_annihilator_eq_card_range :
     Nat.card ↥(characterAnnihilator f.ker) = Nat.card ↥f.range := by
   have hrange : Nat.card ↥f.range * Nat.card ↥f.ker = Nat.card A := by
@@ -108,11 +144,13 @@ theorem natCard_annihilator_eq_card_range :
   exact Nat.eq_of_mul_eq_mul_right hkpos
     (by rw [annihilator_card_mul_ker_card f, hrange])
 
+/-- The kernel annihilator and the range of f have equal `Fintype` cardinalities. -/
 theorem card_annihilator_eq_card_range :
     Fintype.card ↥(characterAnnihilator f.ker) = Fintype.card ↥f.range := by
   simp only [Fintype.card_eq_nat_card]
   exact natCard_annihilator_eq_card_range f
 
+/-- Every character in the kernel annihilator is the pullback of a character of the range. -/
 theorem rangeCharToAnnihilator_surjective :
     Function.Surjective (rangeCharToAnnihilator f) := by
   by_contra hsurj
@@ -124,6 +162,8 @@ theorem rangeCharToAnnihilator_surjective :
   rw [hAcard, hanncard] at hlt
   exact Nat.lt_irrefl _ hlt
 
+/-- The additive equivalence from the kernel annihilator to the character group of the range,
+inverse to character pullback. See [Watrous2001]. -/
 noncomputable def fourierAnnihilatorEquiv :
     ↥(characterAnnihilator f.ker) ≃+ AddChar f.range ℂ :=
   (AddEquiv.ofBijective (rangeCharToAnnihilator f)
@@ -135,9 +175,13 @@ section FactorMap
 
 variable {G : Type*} [Group G]
 
+/-- The ordered product of the generators raised to the natural representatives of the supplied
+modular exponents. -/
 def factorExponentProduct {k N : ℕ} (gens : Fin k → G) (a : Fin k → ZMod N) : G :=
   (List.ofFn (fun j : Fin k => gens j ^ (a j).val)).prod
 
+/-- For a homomorphism agreeing with the generator exponent product in G/H, kernel membership is
+equivalent to the exponent product lying in H. -/
 theorem factorMap_ker_iff {k N : ℕ} [NeZero N] {H : Subgroup G} [H.Normal]
     (gens : Fin k → G) (f : (Fin k → ZMod N) →+ Additive (G ⧸ H))
     (hf : ∀ a, (f a).toMul
@@ -164,9 +208,13 @@ section Figure2
 variable {A B : Type*} [AddCommGroup A] [AddCommGroup B] [Fintype A] [Fintype B]
   (f : A →+ B)
 
+/-- The Born probability of a character after the abelian Fourier transform of the kernel coset
+state at zero. -/
 noncomputable def fig2OutcomeProb (χ : AddChar A ℂ) : ℝ :=
   BornProb (abelianQFT (abelianCosetState f.ker 0)) χ
 
+/-- A character in the kernel annihilator has Fourier outcome probability equal to the
+reciprocal of the annihilator cardinality. See [Watrous2001]. -/
 theorem fig2OutcomeProb_eq_of_mem (χ : AddChar A ℂ)
     (hχ : χ ∈ characterAnnihilator f.ker) :
     fig2OutcomeProb f χ =
@@ -197,6 +245,8 @@ theorem fig2OutcomeProb_eq_of_mem (χ : AddChar A ℂ)
   rw [mul_comm ((Nat.card ↥(characterAnnihilator f.ker) : ℝ)⁻¹) ((Nat.card A : ℝ)⁻¹)]
   rw [← mul_assoc, mul_inv_cancel₀ hAR, one_mul]
 
+/-- A character outside the kernel annihilator has Fourier outcome probability zero. See
+[Watrous2001]. -/
 theorem fig2OutcomeProb_eq_of_not_mem (χ : AddChar A ℂ)
     (hχ : χ ∉ characterAnnihilator f.ker) :
     fig2OutcomeProb f χ = 0 := by
@@ -206,11 +256,14 @@ end Figure2
 
 section Sampling
 
+/-- The additive homomorphism reducing each integer coordinate modulo N. -/
 def castPiHom (k N : ℕ) : (Fin k → ℤ) →+ (Fin k → ZMod N) where
   toFun v i := (v i : ZMod N)
   map_zero' := by funext i; simp
   map_add' a b := by funext i; simp
 
+/-- For nonzero N, every additive subgroup of k copies of `ZMod N` has a generating finite set
+of cardinality at most k. See [Watrous2001]. -/
 theorem addSubgroup_fin_generated_by_k {k N : ℕ} [NeZero N]
     (S : AddSubgroup (Fin k → ZMod N)) :
     ∃ T : Finset (Fin k → ZMod N), T.card ≤ k ∧
@@ -297,6 +350,8 @@ theorem addSubgroup_fin_generated_by_k {k N : ℕ} [NeZero N]
   · rw [← hmap, hgens_span]
     exact hS'
 
+/-- The subgroup of modular vectors whose coordinate pairing vanishes on every element of the
+kernel of f. -/
 def perpSubgroup {k N : ℕ} {B : Type*} [AddCommGroup B]
     (f : (Fin k → ZMod N) →+ B) : AddSubgroup (Fin k → ZMod N) where
   carrier := {b | ∀ a ∈ f.ker, ∑ j : Fin k, a j * b j = 0}
@@ -319,6 +374,8 @@ def perpSubgroup {k N : ℕ} {B : Type*} [AddCommGroup B]
     simp only [Pi.neg_apply]
     rw [hsum, hb a ha, neg_zero]
 
+/-- For nonzero N, the kernel orthogonal subgroup has a generating finite set of cardinality at
+most k. See [Watrous2001]. -/
 theorem perpSubgroup_generated_by_k {k N : ℕ} [NeZero N] {B : Type*} [AddCommGroup B]
     (f : (Fin k → ZMod N) →+ B) :
     ∃ T : Finset (Fin k → ZMod N), T.card ≤ k ∧
@@ -329,6 +386,8 @@ end Sampling
 
 section Decomposition
 
+/-- The additive equivalence on dependent function groups induced by reindexing along an
+equivalence. -/
 def piAddEquivOfEquiv {ι ι' : Type*} (P : ι → Type*) [∀ i, AddCommGroup (P i)]
     (e : ι' ≃ ι) : (∀ i : ι, P i) ≃+ (∀ j : ι', P (e j)) where
   toFun := Equiv.piCongrLeft' P e.symm
@@ -337,6 +396,8 @@ def piAddEquivOfEquiv {ι ι' : Type*} (P : ι → Type*) [∀ i, AddCommGroup (
   right_inv := (Equiv.piCongrLeft' P e.symm).right_inv
   map_add' _ _ := by funext j; rfl
 
+/-- The additive equivalence between iterated dependent functions and functions indexed by the
+corresponding sigma type. -/
 def piSigmaAddEquiv {ι : Type*} {α : ι → Type*} {β : ∀ i, α i → Type*}
     [∀ i j, AddCommGroup (β i j)] :
     ((i : ι) → (j : α i) → β i j) ≃+ ((x : Sigma α) → β x.1 x.2) where
@@ -346,6 +407,8 @@ def piSigmaAddEquiv {ι : Type*} {α : ι → Type*} {β : ∀ i, α i → Type*
   right_inv _ := rfl
   map_add' _ _ := rfl
 
+/-- Every finite abelian group is additively equivalent to a finite product of cyclic groups of
+positive prime power orders. See [Watrous2001]. -/
 theorem finite_abelian_primePower_decomposition (M : Type*) [AddCommGroup M] [Fintype M] :
     ∃ (m : ℕ) (q : Fin m → ℕ),
       (∀ j, ∃ p e : ℕ, p.Prime ∧ 0 < e ∧ q j = p ^ e) ∧
@@ -383,6 +446,8 @@ theorem finite_abelian_primePower_decomposition (M : Type*) [AddCommGroup M] [Fi
   show q' (eI.symm j) = p ^ (n i).factorization p
   rw [hx]
 
+/-- Chooses a finite family of positive prime power cyclic orders and an additive equivalence
+realizing a finite abelian group as their product. -/
 theorem abelian_structure_exists (M : Type*) [AddCommGroup M] [Fintype M] :
     ∃ (m : ℕ) (q : Fin m → ℕ) (θ : M ≃+ (∀ j : Fin m, ZMod (q j))),
       ∀ j, ∃ p e : ℕ, p.Prime ∧ 0 < e ∧ q j = p ^ e := by

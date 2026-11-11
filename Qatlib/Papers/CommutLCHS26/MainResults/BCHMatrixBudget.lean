@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHCommBudget
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordEval
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
+
+/-!
+# Matrix commutator bounds from formal brackets
+
+This module relates `rightBracket` to the reversed list convention of `pfNestedCommList` and
+identifies the finite family commutator profile with `pfCommAlphaSelf` on a matrix list.
+
+These identifications transfer the formal word logarithm estimate to the existing matrix
+logarithm in `norm_existing_word_log_le`, giving the reciprocal squared degree bound used in
+[AftabAnTrivisa2026].
+
+## Main statements
+
+* `rightBracket_eq_frozen_reverse`: reconciles the two nested commutator conventions.
+* `alphaComm_get_eq_frozen`: identifies the indexed and list commutator profiles.
+* `norm_existing_word_log_le`: bounds positive degree matrix logarithm coefficients.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +46,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- Appending one matrix to a nonempty list expresses its nested commutator as the commutator of
+that matrix with the original nested commutator. -/
 private theorem nested_append_singleton (xs : List (Matrix I I ℂ)) (hx : xs ≠ [])
     (A : Matrix I I ℂ) :
     pfNestedCommList (xs ++ [A]) = A * pfNestedCommList xs - pfNestedCommList xs * A := by
@@ -33,6 +57,7 @@ private theorem nested_append_singleton (xs : List (Matrix I I ℂ)) (hx : xs �
     simpa only [List.cons_append, List.replicate_one, pfAdPower_succ, pfAdPower_zero, pfComm]
       using! pfNestedCommList_append_replicate B A xs 1
 
+/-- The right nested bracket of a matrix list equals `pfNestedCommList` of its reversal. -/
 theorem rightBracket_eq_frozen_reverse (xs : List (Matrix I I ℂ)) :
     rightBracket xs = pfNestedCommList xs.reverse := by
   induction xs with
@@ -48,10 +73,13 @@ theorem rightBracket_eq_frozen_reverse (xs : List (Matrix I I ℂ)) :
 
 omit [DecidableEq I] in
 
+/-- The list selected by a finite index function equals the list formed from the corresponding
+matrix entries. -/
 private theorem chosen_eq_ofFn (xs : List (Matrix I I ℂ)) {n : ℕ}
     (f : Fin n → Fin xs.length) : pfChosenList xs f = List.ofFn (fun j => xs.get (f j)) := by
   simp only [pfChosenList, ← List.ofFn_eq_map, List.getD_eq_get]
 
+/-- Reversing finite indices reverses the list produced by `List.ofFn`. -/
 private theorem ofFn_reverse {α : Type} {n : ℕ} (f : Fin n → α) :
     List.ofFn (fun j => f j.rev) = (List.ofFn f).reverse := by
   apply List.ext_getElem
@@ -63,6 +91,8 @@ private theorem ofFn_reverse {α : Type} {n : ℕ} (f : Fin n → α) :
     simp only [Fin.val_rev]
     omega
 
+/-- The commutator profile of the entry function of a matrix list equals `pfCommAlphaSelf` of
+that list. -/
 theorem alphaComm_get_eq_frozen (xs : List (Matrix I I ℂ)) (n : ℕ) :
     alphaComm xs.get n = pfCommAlphaSelf xs n := by
   let e : (Fin n → Fin xs.length) ≃ (Fin n → Fin xs.length) :=
@@ -80,6 +110,9 @@ theorem alphaComm_get_eq_frozen (xs : List (Matrix I I ℂ)) (n : ℕ) :
   simp_rw [hr] at h
   simpa only [alphaComm, rightBracket_eq_frozen_reverse, pfCommAlphaSelf, chosen_eq_ofFn] using! h
 
+/-- For positive degree `n`, the matrix word logarithm coefficient has norm at most
+`pfCommAlphaSelf xs n / n^2`. This transfers the formal bracket bound to the matrix setting
+of [AftabAnTrivisa2026]. -/
 theorem norm_existing_word_log_le (xs : List (Matrix I I ℂ))
     (n : ℕ) (hn : 0 < n) :
     ‖BCHFormal.logCoefficient (SubdivisionPolynomial.wordSeries xs) n‖ ≤

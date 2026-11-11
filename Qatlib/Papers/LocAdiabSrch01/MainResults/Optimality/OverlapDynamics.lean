@@ -8,6 +8,27 @@ import Qatlib.Concepts.QueryComplexity.ContinuousAdv
 import Qatlib.Papers.LocAdiabSrch01.MainResults.Optimality.Basic
 import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+/-!
+# Overlap dynamics for adiabatic search optimality
+
+This module differentiates pairwise overlaps of Schrödinger trajectories and bounds the growth
+of `overlapFunctional`. The resulting estimate yields the runtime lower bound in the optimality
+argument of [RolandCerf2002] for rank-one search terms, a common symmetric driver, and a shared
+initial state.
+
+## Main statements
+
+* `overlap_functional_hasDerivAt_sum`: Differentiates the summed overlap functional.
+* `overlap_growth_le`: Bounds overlap growth by `4 * card ι * sqrt (card ι) * T`.
+* `optimality_lower_bound_of_overlap`: Converts final overlap separation into a runtime lower
+  bound.
+
+## References
+
+* [Roland and Cerf, 2002][RolandCerf2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +44,8 @@ open Qatlib.Concepts.QueryComplexity.ContinuousAdv
 variable {ι V : Type*} [Fintype ι]
   [NormedAddCommGroup V] [InnerProductSpace ℂ V]
 
+/-- For symmetric search terms and a common symmetric driver, the two Schrödinger contributions
+to the overlap derivative combine to `I * inner ℂ u (Hm v - Hm' v)` [RolandCerf2002]. -/
 theorem overlap_deriv_value
     (Hm Hm' HD : V → V)
     (hHm : ∀ x y, inner ℂ (Hm x) y = inner ℂ x (Hm y))
@@ -37,6 +60,8 @@ theorem overlap_deriv_value
     hHm u v, hHD u v, inner_sub_right, hconj]
   ring
 
+/-- The overlap of two Schrödinger trajectories has derivative `I` times the inner product with
+the difference of their search terms; the common symmetric driver cancels. -/
 theorem overlap_hasDerivAt
     (Hm Hm' HD : ℝ → V → V)
     (hHm : ∀ t x y, inner ℂ (Hm t x) y = inner ℂ x (Hm t y))
@@ -54,9 +79,13 @@ theorem overlap_hasDerivAt
   rw [add_comm]
   exact this.symm
 
+/-- The negative real part of `I * z` equals the imaginary part of `z`. -/
 theorem neg_re_I_mul (z : ℂ) : -(Complex.I * z).re = z.im := by
   simp [Complex.mul_re]
 
+/-- For the stated Schrödinger trajectories, the derivative of one minus the squared overlap
+norm is twice the imaginary part of the search-term overlap difference multiplied by the
+conjugate overlap [RolandCerf2002]. -/
 theorem overlap_functional_hasDerivAt
     (Hm Hm' HD : ℝ → V → V)
     (hHm : ∀ t x y, inner ℂ (Hm t x) y = inner ℂ x (Hm t y))
@@ -92,6 +121,8 @@ theorem overlap_functional_hasDerivAt
   rw [hval] at hfinal
   simpa only [p, q] using hfinal
 
+/-- For unit vectors, the absolute overlap-functional derivative expression is bounded by twice
+the sum of the two search-term inner-product norms [RolandCerf2002]. -/
 theorem overlap_deriv_abs_le
     (Hm Hm' : V → V) (u v : V)
     (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
@@ -125,6 +156,8 @@ theorem overlap_deriv_abs_le
         nlinarith [hp, hnn]
     _ = 2 * (‖inner ℂ u (Hm v)‖ + ‖inner ℂ u (Hm' v)‖) := by ring
 
+/-- For symmetric search terms and unit vectors, the absolute derivative expression is at most
+`2 * (‖Hm v‖ + ‖Hm' u‖)` [RolandCerf2002]. -/
 theorem overlap_deriv_abs_le_swap
     (Hm Hm' : V → V)
     (hHm : ∀ x y, inner ℂ (Hm x) y = inner ℂ x (Hm y))
@@ -166,6 +199,8 @@ theorem overlap_deriv_abs_le_swap
         nlinarith [hp, hnn]
     _ = 2 * (‖Hm v‖ + ‖Hm' u‖) := by ring
 
+/-- For nonnegative `E` and a unit vector, the sum of norms of the rank-one search actions over
+an orthonormal basis is at most `E * sqrt (Fintype.card ι)` [RolandCerf2002]. -/
 theorem sum_rankOneAction_norm_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (hE : 0 ≤ E)
     (ψ : V) (hψ : ‖ψ‖ = 1) :
     (∑ m, ‖rankOneAction b E m ψ‖) ≤ E * Real.sqrt (Fintype.card ι) := by
@@ -175,15 +210,20 @@ theorem sum_rankOneAction_norm_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (hE 
   rw [← Finset.mul_sum]
   exact mul_le_mul_of_nonneg_left (sum_norm_inner_le_sqrt_card b ψ hψ) hE
 
+/-- The sum over all ordered pairs of trajectories of one minus their squared overlap norm. -/
 def overlapFunctional (ψ : ι → ℝ → V) : ℝ → ℝ :=
   fun t => ∑ m, ∑ m', (1 - ‖inner ℂ (ψ m t) (ψ m' t)‖ ^ 2)
 
+/-- The sum of the pairwise imaginary-part expressions giving the derivative of
+`overlapFunctional` for rank-one search dynamics. -/
 def overlapDeriv (b : OrthonormalBasis ι ℂ V) (s : ℝ → ℝ) (ψ : ι → ℝ → V) : ℝ → ℝ :=
   fun t => ∑ m, ∑ m',
     2 * (inner ℂ (ψ m t)
           (rankOneAction b (s t) m (ψ m' t) - rankOneAction b (s t) m' (ψ m' t))
           * star (inner ℂ (ψ m t) (ψ m' t))).im
 
+/-- For trajectories driven by their rank-one search terms and a common symmetric driver,
+`overlapFunctional` has derivative `overlapDeriv`. -/
 theorem overlap_functional_hasDerivAt_sum
     (b : OrthonormalBasis ι ℂ V) (s : ℝ → ℝ) (HD : ℝ → V → V)
     (hHD : ∀ t x y, inner ℂ (HD t x) y = inner ℂ x (HD t y))
@@ -208,6 +248,8 @@ theorem overlap_functional_hasDerivAt_sum
   have h := HasDerivAt.sum (u := Finset.univ) (fun m _ => hinner m)
   simpa only [overlapFunctional, overlapDeriv, Finset.sum_fn] using! h
 
+/-- For normalized trajectories and nonnegative schedule, the summed overlap derivative is at
+most `4 * card ι * sqrt (card ι) * s t` [RolandCerf2002]. -/
 theorem overlap_deriv_sum_le
     (b : OrthonormalBasis ι ℂ V) (s : ℝ → ℝ) (ψ : ι → ℝ → V)
     (hs : ∀ t, 0 ≤ s t) (hψ_norm : ∀ m t, ‖ψ m t‖ = 1) (t : ℝ) :
@@ -267,6 +309,9 @@ theorem overlap_deriv_sum_le
           (mul_le_mul_of_nonneg_left hS2 (by norm_num))
     _ = 4 * c * r * s t := by ring
 
+/-- For normalized trajectories sharing an initial state and a schedule between zero and one,
+the overlap functional at nonnegative `T` is at most `4 * card ι * sqrt (card ι) * T`
+[RolandCerf2002]. -/
 theorem overlap_growth_le
     [Nonempty ι]
     (b : OrthonormalBasis ι ℂ V) (s : ℝ → ℝ) (HD : ℝ → V → V)
@@ -321,6 +366,9 @@ theorem overlap_growth_le
       (show T ∈ Set.Icc 0 T from ⟨hT, le_rfl⟩)
   simpa [hC] using hmain
 
+/-- A final overlap functional at least `ε * card ι * (card ι - 1)` forces runtime at least `ε *
+(card ι - 1) / (4 * sqrt (card ι))` under the stated normalized Schrödinger dynamics and
+schedule assumptions [RolandCerf2002]. -/
 theorem optimality_lower_bound_of_overlap
     [Nonempty ι]
     (b : OrthonormalBasis ι ℂ V) (s : ℝ → ℝ) (HD : ℝ → V → V)

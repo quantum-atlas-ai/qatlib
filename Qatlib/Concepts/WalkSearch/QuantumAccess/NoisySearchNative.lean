@@ -8,6 +8,29 @@ import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
 import Mathlib.Tactic.Linarith
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Native noisy-search diagnostics and coherent amplification
+
+The module refutes unrestricted native noisy-search realization on empty registers and proves
+that one normalized output cannot assign probability greater than one half to each of two
+disjoint singleton outcomes. It also constructs a coherent test amplifier by substituting a
+circuit body into an adjoint-query template.
+
+The amplifier's evaluation, exact resource counts, and success formula implement the
+amplitude-amplification framework of [BrassardEtAl2002].
+
+## Main statements
+
+* `noisySearchNative_obstruction`: refute the unrestricted native capability.
+* `coherentTestAmplifier_evaluate_and_cost`: evaluation and exact query and gate counts.
+* `coherentTestAmplifier_success`: the amplified sine-squared success formula.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.OperatorErrors.OperatorError
@@ -28,6 +51,8 @@ open Qatlib.Concepts.WalkSearch.Primitives
 open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- No noisy-search capability satisfies `NoisySearch.NativeRealized`, since the contract
+requires a normalized state on an empty register. -/
 theorem noisySearch_native_empty_obstruction (ncs : NoisySearch) :
     ¬ NoisySearch.NativeRealized ncs := by
   intro h
@@ -36,15 +61,20 @@ theorem noisySearch_native_empty_obstruction (ncs : NoisySearch) :
   have hn := hnorm (Classical.choice ncs.seedNe)
   simp [Normalized] at hn
 
+/-- The unrestricted native noisy-search capability proposition `NoisySearchNative` is false. -/
 theorem noisySearchNative_obstruction : ¬ NoisySearchNative := by
   intro h
   obtain ⟨ncs, _hexp, _hκ, hnative⟩ := h 3 (by decide)
   exact noisySearch_native_empty_obstruction ncs hnative
 
+/-- The constantly false test satisfies the implication from test acceptance to markedness for
+every marked predicate. -/
 theorem false_test_is_sound {N : ℕ} (marked : Fin N → Bool) :
     ∀ v, (false : Bool) = true → marked v = true := by
   simp
 
+/-- For a unitary circuit and normalized two-state input, the two singleton output probabilities
+cannot both be at least `1 - ε` when `ε < 1 / 2`. -/
 theorem sound_test_without_completeness_obstruction (C : Circuit (Fin 2))
     (hC : IsUnitaryCircuit C) (ψ : QState (Fin 2)) (hψ : Normalized ψ)
     (ε : ℝ) (hε : ε < 1 / 2) :
@@ -63,14 +93,20 @@ open scoped Classical BigOperators
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The adjoint-query word for `k` prepared amplitude-amplification iterations followed by one
+forward query. -/
 noncomputable def coherentTestTemplate (j : I) (accept : Finset I) (k : ℕ) : List (AdjointStep I) :=
   repeatAdjointWord [.forward, .gate (ReflectionAbout (outerProduct (Ket j))),
     .backward, .gate (preparedMark accept)] k ++ [.forward]
 
+/-- Substitutes the circuit body into the forward and backward query slots of
+`coherentTestTemplate`. -/
 noncomputable def coherentTestAmplifier (body : List (AdjointStep I))
     (j : I) (accept : Finset I) (k : ℕ) : List (AdjointStep I) :=
   substituteAdjointCircuit body (coherentTestTemplate j accept k)
 
+/-- Identifies the template evaluation as the prepared amplification iterate followed by
+preparation, with `2 * k + 1` queries, `2 * k` gates, and well-formedness. -/
 theorem coherentTestTemplate_actual (A : Matrix I I ℂ) (j : I) (accept : Finset I) (k : ℕ) :
     evaluate A (coherentTestTemplate j accept k) =
       (preparedAAIterate A j accept) ^ k * A ∧
@@ -95,6 +131,8 @@ theorem coherentTestTemplate_actual (A : Matrix I I ℂ) (j : I) (accept : Finse
         (prepared_aa_reflection_and_access (1 : Matrix I I ℂ) j accept (Submonoid.one_mem _)).1⟩
     · simp
 
+/-- Identifies the substituted amplifier evaluation and its exact query and gate counts, and
+preserves well-formedness from the body. -/
 theorem coherentTestAmplifier_evaluate_and_cost (O : Matrix I I ℂ)
     (body : List (AdjointStep I)) (j : I) (accept : Finset I) (k : ℕ) :
     evaluate O (coherentTestAmplifier body j accept k) =
@@ -111,6 +149,8 @@ theorem coherentTestAmplifier_evaluate_and_cost (O : Matrix I I ℂ)
     by rw [coherentTestAmplifier, hs.2.2.1, ht.2.2.1, ht.2.1],
     fun hb => hs.2.2.2 hb ht.2.2.2⟩
 
+/-- For a unitary oracle and well-formed body, applying the amplifier to `Ket j` equals running
+the corresponding prepared amplitude-amplification circuit. -/
 theorem coherentTestAmplifier_born (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (body : List (AdjointStep I)) (hb : WellFormedAdjointCircuit body)
     (j : I) (accept : Finset I) (k : ℕ) :
@@ -121,6 +161,8 @@ theorem coherentTestAmplifier_born (O : Matrix I I ℂ) (hO : O ∈ Matrix.unita
     (prepared_aa_actual_circuit (evaluate O body) j accept k hA).2.2.2]
   exact applyGate_mul _ _ _
 
+/-- If the prepared state's accepting mass is `sin θ ^ 2`, the amplified accepting mass is `sin
+((2 * k + 1) * θ) ^ 2` under the stated angle assumptions [BrassardEtAl2002]. -/
 theorem coherentTestAmplifier_success (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (body : List (AdjointStep I)) (hb : WellFormedAdjointCircuit body)
     (j : I) (accept : Finset I) (k : ℕ) (θ : ℝ)
@@ -132,6 +174,8 @@ theorem coherentTestAmplifier_success (O : Matrix I I ℂ) (hO : O ∈ Matrix.un
   exact prepared_aa_born_success (evaluate O body) j accept θ k
     (hb.evaluate_unitary hO) hθ0 hθ1 hmass
 
+/-- A prepared state with zero accepting mass retains zero accepting mass after coherent test
+amplification. -/
 theorem coherentTestAmplifier_zero (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (body : List (AdjointStep I)) (hb : WellFormedAdjointCircuit body)
     (j : I) (accept : Finset I) (k : ℕ)
@@ -141,6 +185,8 @@ theorem coherentTestAmplifier_zero (O : Matrix I I ℂ) (hO : O ∈ Matrix.unita
     (prepared_aa_endpoint_states (evaluate O body) j accept k (hb.evaluate_unitary hO)).1 hmass]
   exact hmass
 
+/-- A body with positive adjoint query count yields a coherent test amplifier with positive
+adjoint query count. -/
 theorem coherentTestAmplifier_queries_positive (body : List (AdjointStep I))
     (j : I) (accept : Finset I) (k : ℕ) (hq : 0 < adjointQueryCount body) :
     0 < adjointQueryCount (coherentTestAmplifier body j accept k) := by

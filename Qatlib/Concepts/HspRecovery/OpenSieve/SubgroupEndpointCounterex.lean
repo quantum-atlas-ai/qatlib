@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+
+/-!
+# A counterexample to subgroup-data recovery
+
+This module constructs distinct subgroup data `H0` and `H2` at modulus four with the same orbit
+relation. The parity oracle `f4` hides both descriptions, so an endpoint requiring recovery of
+the exact subgroup data cannot satisfy its specification.
+
+The example concerns the formal subgroup-data endpoint used in the dihedral recovery development
+associated with [Kuperberg2005]. It proves `not_subgroup_endpoint` for every resource ledger and
+rules out the indicated conjunction of subgroup and shift endpoints.
+
+## Main statements
+
+* `f4_hides_H0` and `f4_hides_H2`: the same oracle hides both data values.
+* `H0_ne_H2`: the data values are unequal.
+* `not_subgroup_endpoint`: the subgroup-data recovery specification fails at modulus four.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 open Qatlib.Concepts.HspRecovery.RecordExtract
 open Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian
 open scoped ENNReal Classical
@@ -12,13 +35,20 @@ open scoped ENNReal Classical
 set_option autoImplicit false
 set_option warningAsError false
 
+/-- Subgroup data at modulus four with rotation step two and reflection parameter zero. -/
 def H0 : DihedralSubgroupData 4 := ⟨2, by omega, some 0⟩
+/-- Subgroup data at modulus four with rotation step two and reflection parameter two. -/
 def H2 : DihedralSubgroupData 4 := ⟨2, by omega, some 2⟩
 
+/-- The oracle returning the parity of the rotation-coordinate representative as an element of
+`ZMod 8`. -/
 def f4 : DihedralReg 4 → ZMod 8 := fun p => ((p.1.val % 2 : ℕ) : ZMod 8)
 
+/-- The natural representative of two in `ZMod 4` is two. -/
 theorem val_two : (2 : ZMod 4).val = 2 := by decide
 
+/-- Two elements of `ZMod 4` differ by a natural multiple of two exactly when their
+representatives have the same parity. -/
 theorem two_mul_iff (a b : ZMod 4) :
     (∃ k : ℕ, b = a + ((k * 2 : ℕ) : ZMod 4)) ↔ a.val % 2 = b.val % 2 := by
   constructor
@@ -36,6 +66,8 @@ theorem two_mul_iff (a b : ZMod 4) :
     simp only [ZMod.val_add, ZMod.val_natCast]
     omega
 
+/-- Adding two and a natural multiple of two relates exactly the elements of `ZMod 4` whose
+representatives have equal parity. -/
 theorem two_mul_add_iff (a b : ZMod 4) :
     (∃ k : ℕ, b = a + 2 + ((k * 2 : ℕ) : ZMod 4)) ↔ a.val % 2 = b.val % 2 := by
   have hsum : (a + 2).val = (a.val + 2) % 4 := by
@@ -49,8 +81,11 @@ theorem two_mul_add_iff (a b : ZMod 4) :
         rw [hsum]
         omega
 
+/-- The additive inverse of two in `ZMod 4` equals two. -/
 theorem neg_two : (-(2 : ZMod 4)) = 2 := by decide
 
+/-- Subtracting two and then adding a natural multiple of two relates exactly the elements of
+`ZMod 4` whose representatives have equal parity. -/
 theorem two_mul_sub_iff (a b : ZMod 4) :
     (∃ k : ℕ, b = a - 2 + ((k * 2 : ℕ) : ZMod 4)) ↔ a.val % 2 = b.val % 2 := by
   have hsub : a - 2 = a + 2 := by
@@ -58,6 +93,8 @@ theorem two_mul_sub_iff (a b : ZMod 4) :
   rw [hsub]
   exact two_mul_add_iff a b
 
+/-- Two dihedral inputs have equal `f4` outputs exactly when their rotation-coordinate
+representatives have equal parity. -/
 theorem f4_parity (p q : DihedralReg 4) :
     f4 p = f4 q ↔ p.1.val % 2 = q.1.val % 2 := by
   rcases p with ⟨a, ta⟩
@@ -71,6 +108,8 @@ theorem f4_parity (p q : DihedralReg 4) :
   · intro h
     rw [h]
 
+/-- The orbit relation determined by `H0` is equality of parity of the rotation-coordinate
+representatives. -/
 theorem orbit_H0 (p q : DihedralReg 4) :
     DihedralSubgroupOrbit 4 H0 p q ↔ p.1.val % 2 = q.1.val % 2 := by
   rcases p with ⟨a, ta⟩
@@ -103,6 +142,8 @@ theorem orbit_H0 (p q : DihedralReg 4) :
     simp only [H0]
     exact two_mul_iff a b
 
+/-- The orbit relation determined by `H2` is equality of parity of the rotation-coordinate
+representatives. -/
 theorem orbit_H2 (p q : DihedralReg 4) :
     DihedralSubgroupOrbit 4 H2 p q ↔ p.1.val % 2 = q.1.val % 2 := by
   rcases p with ⟨a, ta⟩
@@ -135,30 +176,37 @@ theorem orbit_H2 (p q : DihedralReg 4) :
     simp only [H2]
     exact two_mul_iff a b
 
+/-- The oracle `f4` hides the subgroup data `H0`. -/
 theorem f4_hides_H0 : DihedralSubgroupHides f4 H0 := by
   intro p q
   rw [f4_parity p q, orbit_H0 p q]
 
+/-- The oracle `f4` hides the subgroup data `H2`. -/
 theorem f4_hides_H2 : DihedralSubgroupHides f4 H2 := by
   intro p q
   rw [f4_parity p q, orbit_H2 p q]
 
+/-- The subgroup data values `H0` and `H2` are unequal. -/
 theorem H0_ne_H2 : H0 ≠ H2 := by
   intro h
   have := congrArg DihedralSubgroupData.slope h
   simp [H0, H2] at this
   exact absurd this (by decide)
 
+/-- The subgroup data `H0` are unequal to the designated trivial subgroup data at modulus four. -/
 theorem H0_ne_trivial : H0 ≠ trivialSubgroup 4 := by
   intro h
   have := congrArg DihedralSubgroupData.period h
   simp [H0, trivialSubgroup] at this
 
+/-- The subgroup data `H2` are unequal to the designated trivial subgroup data at modulus four. -/
 theorem H2_ne_trivial : H2 ≠ trivialSubgroup 4 := by
   intro h
   have := congrArg DihedralSubgroupData.period h
   simp [H2, trivialSubgroup] at this
 
+/-- At modulus four, the subgroup recovery endpoint fails for every ledger because one oracle
+hides two distinct subgroup data values. -/
 theorem not_subgroup_endpoint (lg : RecoveryLedger) : ¬ SubgroupRecoveryEndpoint 4 lg := by
   intro hex
   obtain ⟨run, _, _, _, _, hall⟩ := hex
@@ -177,6 +225,8 @@ theorem not_subgroup_endpoint (lg : RecoveryLedger) : ¬ SubgroupRecoveryEndpoin
   rw [hzero] at hle
   exact absurd hle (by norm_num)
 
+/-- No ledger simultaneously satisfies the stated subgroup endpoint and shift endpoint at
+modulus four. -/
 theorem clause137_conjunct12_false :
     ¬ (∃ lg : RecoveryLedger,
         SubgroupRecoveryEndpoint (2 ^ 2) lg ∧ ShiftRecoveryEndpoint (2 ^ 2) (2 / 3) lg) := by

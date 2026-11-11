@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
 import Qatlib.Concepts.LchsSimulation.StaticLchs.FiniteTrigonometricSums
+
+/-!
+# Prepared amplitude amplification sampled with fair bits
+
+`preparedAATrial` measures a prepared amplitude amplification circuit and records its gate and
+query counts. `preparedAASampled` selects the iteration count using finite rejection sampling,
+retaining separate records for random bits, oracle queries, and gates. The results compute the
+window success probability, its lower bound, and the expected resource counts.
+
+The mathematical background is described in [BrassardEtAl2002].
+
+## Main statements
+
+* `prepared_aa_uniform_window`: computes the average success probability over an iteration
+  window.
+* `prepared_aa_sampled_three_ledgers`: computes the three expected resource counts.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Foundations.PureStateMath.Reflection
 set_option warningAsError false
 
@@ -27,6 +49,8 @@ namespace Qatlib.Concepts.LchsSimulation.StaticLchs
 open Matrix
 open scoped ENNReal Classical
 
+/-- The Born measurement law of the prepared amplitude amplification circuit with `i`
+iterations, carrying its gate count and oracle query cost. -/
 noncomputable def preparedAATrial {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     {m : ℕ} (i : Fin m) : CostedLaw (I × ℕ) :=
@@ -36,6 +60,8 @@ noncomputable def preparedAATrial {I : Type} [Fintype I] [DecidableEq I]
     fun y => ((y, GateCount (preparedAACircuit A j₀ (i : ℕ))),
       QueryCount (preparedAACircuit A j₀ (i : ℕ)))
 
+/-- The joint law obtained by finite fair-bit sampling of an iteration count followed by a
+prepared amplitude amplification trial, with separate bit and query costs. -/
 noncomputable def preparedAASampled {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (b m fuel : ℕ) : PMF (Option (I × ℕ) × ℕ × ℕ) :=
@@ -43,6 +69,8 @@ noncomputable def preparedAASampled {I : Type} [Fintype I] [DecidableEq I]
 
 section Sums
 
+/-- The sum of the natural indices in `Fin n`, cast to extended nonnegative reals, is `n * (n -
+1) / 2`. -/
 private theorem sum_fin_val' (n : ℕ) :
     (∑ i : Fin n, ((i : ℕ) : ℝ≥0∞)) = (((n : ℕ) : ℝ≥0∞)) * ((((n - 1 : ℕ) : ℝ≥0∞)) * ((2 : ℝ≥0∞))⁻¹) := by
   induction n with
@@ -84,6 +112,8 @@ private theorem sum_fin_val' (n : ℕ) :
                 * (((n : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞))⁻¹) := by ring
         rw [show (n + 1 - 1 : ℕ) = n from by omega, Nat.cast_add, Nat.cast_one]
 
+/-- The sum of `3 * i + 1` over `Fin n`, in extended nonnegative reals, is `n * (3 * (n - 1) / 2
++ 1)`. -/
 private theorem sum_fin_3add1 (n : ℕ) :
     (∑ i : Fin n, (((3*(i : ℕ)+1 : ℕ) : ℝ≥0∞)))
       = (((n : ℕ) : ℝ≥0∞)) * ((3 : ℝ≥0∞) * ((((n - 1 : ℕ) : ℝ≥0∞)) * ((2 : ℝ≥0∞))⁻¹) + 1) := by
@@ -97,6 +127,7 @@ private theorem sum_fin_3add1 (n : ℕ) :
     h1sum, sum_fin_val']
   ring
 
+/-- The sum of `2 * i + 1` over `Fin n`, in extended nonnegative reals, is `n * n`. -/
 private theorem sum_fin_2add1 (n : ℕ) :
     (∑ i : Fin n, (((2*(i : ℕ)+1 : ℕ) : ℝ≥0∞)))
       = (((n : ℕ) : ℝ≥0∞)) * (((n : ℕ) : ℝ≥0∞)) := by
@@ -115,10 +146,13 @@ private theorem sum_fin_2add1 (n : ℕ) :
         ring
   exact_mod_cast hnat
 
+/-- The image of the real number `1 / 4` under `ENNReal.ofReal` is the inverse of `4`. -/
 private theorem quarter_cast : ENNReal.ofReal ((1/4:ℝ)) = ((4:ℝ≥0∞))⁻¹ := by
   rw [ENNReal.ofReal_div_of_pos (by norm_num : (0:ℝ) < 4), ENNReal.ofReal_one, one_div]
   norm_num
 
+/-- A nonzero natural mass cancels between division and multiplication in the extended
+nonnegative reals. -/
 private theorem div_mul_natmass_cancel {c X : ℝ≥0∞} {n : ℕ} (hn : n ≠ 0) :
     (c / ((n : ℕ) : ℝ≥0∞)) * (((n : ℕ) : ℝ≥0∞) * X) = c * X := by
   rw [div_eq_mul_inv, mul_assoc,
@@ -129,9 +163,11 @@ private theorem div_mul_natmass_cancel {c X : ℝ≥0∞} {n : ℕ} (hn : n ≠ 
 
 end Sums
 
+/-- Expectation is the infinite sum of the observable weighted by the probability mass function. -/
 private theorem expectation_tsum' {α : Type} (p : PMF α) (f : α → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p f = ∑' a, p a * f a := rfl
 
+/-- The probability of membership in a finite set is the sum of the masses of its elements. -/
 private theorem event_mem_sum' {α : Type} [Fintype α] (p : PMF α) (T : Finset α) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun b => b ∈ T) = ∑ b ∈ T, p b := by
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, expectation_tsum',
@@ -152,6 +188,8 @@ private theorem event_mem_sum' {α : Type} [Fintype α] (p : PMF α) (T : Finset
   rw [Finset.sum_congr rfl hEq]
   exact hsub.symm.trans hS
 
+/-- For initial success probability `sin θ ^ 2` with `0 < θ < π / 2`, the average success over
+`m` prepared amplification iterations is `1 / 2 - sin (4 * m * θ) / (4 * m * sin (2 * θ))`. -/
 theorem prepared_aa_uniform_window {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (θ : ℝ) (m : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -201,6 +239,8 @@ theorem prepared_aa_uniform_window {I : Type} [Fintype I] [DecidableEq I]
   rw [hsum]
   field_simp
 
+/-- The average prepared amplification success is at least `1 / 4` when `m * sin (2 * θ) ≥ 1`
+and the initial success probability is `sin θ ^ 2` with `0 < θ < π / 2`. -/
 theorem prepared_aa_uniform_success_lower {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (θ : ℝ) (m : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -222,6 +262,8 @@ theorem prepared_aa_uniform_success_lower {I : Type} [Fintype I] [DecidableEq I]
     linarith
   linarith
 
+/-- A prepared trial has query cost `i`, gate count `3 * i + 1` on its support, and marked-event
+probability equal to the circuit Born probability. -/
 theorem prepared_aa_trial_actual_metadata {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     {m : ℕ} (i : Fin m) :
@@ -257,6 +299,8 @@ theorem prepared_aa_trial_actual_metadata {I : Type} [Fintype I] [DecidableEq I]
       event_mem_sum']
     exact bornDistribution_event _ _ S
 
+/-- For a nonempty window fitting in `b` bits, sampled prepared success equals the sum of
+iteration success probabilities times `(1 - coinRejectMass b m ^ fuel) / m`. -/
 theorem prepared_aa_sampled_success {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (b m fuel : ℕ) (hm : 0 < m) (hm2 : m ≤ 2^b) :
@@ -283,6 +327,9 @@ theorem prepared_aa_sampled_success {I : Type} [Fintype I] [DecidableEq I]
       rw [hmass i, (prepared_aa_trial_actual_metadata A j₀ S hA i).2.2]),
     ← Finset.mul_sum]
 
+/-- The sampled trial preserves the sampler expected bit cost and has expected query and gate
+costs `(1 - r ^ fuel) * (m - 1) / 2` and `(1 - r ^ fuel) * (3 * (m - 1) / 2 + 1)`, where `r
+= coinRejectMass b m`. -/
 theorem prepared_aa_sampled_three_ledgers {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (b m fuel : ℕ) (hm : 0 < m) (hm2 : m ≤ 2^b) :
@@ -334,6 +381,9 @@ theorem prepared_aa_sampled_three_ledgers {I : Type} [Fintype I] [DecidableEq I]
       ← Finset.mul_sum, sum_fin_3add1,
       div_mul_natmass_cancel (by omega : m ≠ 0), div_eq_mul_inv, mul_assoc]
 
+/-- The sampled success is at least one quarter of the sampler acceptance probability under the
+amplification window condition; initial success probabilities zero and one give zero and the
+acceptance probability, respectively. -/
 theorem prepared_aa_sampled_lower_and_endpoints {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (b m fuel : ℕ) (hm : 0 < m) (hm2 : m ≤ 2^b) :
@@ -403,6 +453,8 @@ theorem prepared_aa_sampled_lower_and_endpoints {I : Type} [Fintype I] [Decidabl
     rw [div_eq_mul_inv, mul_assoc, mul_comm ((m:ℕ):ℝ≥0∞)⁻¹ ((m:ℕ):ℝ≥0∞),
       ENNReal.mul_inv_cancel hme (ENNReal.natCast_ne_top _), mul_one]
 
+/-- The expected input-access count is `(1 - coinRejectMass b m ^ fuel) * m`, and every accepted
+output has gate count equal to its input-access count plus its query count. -/
 theorem prepared_aa_sampled_input_access_ledger {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (b m fuel : ℕ) (hm : 0 < m) (hm2 : m ≤ 2^b) :

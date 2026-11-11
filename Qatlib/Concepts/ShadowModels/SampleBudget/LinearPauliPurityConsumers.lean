@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.SampleBudget.RationalPauliMedian
+
+/-!
+# Concrete rational Pauli purity consumers
+
+This module specializes the rational Pauli purity estimator and its counted median to concrete
+inputs. It verifies the maximally mixed qubit example, the single-block median identity, and
+selection examples with repeated values, a large ordered list, and empty input. See
+[HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `native_pauli_mixed_density_actual_linear_median_consumer`: a concrete purity tail bound and
+  cost estimates.
+* `rational_selection_large_native_and_empty_consumers`: executable selection examples and the
+  single-block identity.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +38,8 @@ namespace Qatlib.Concepts.ShadowModels.SampleBudget
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- For the maximally mixed qubit and unit tolerance, the block budget is 1600, purity is one
+half, and the stated median failure bound and classical cost bounds hold for every `r`. -/
 theorem native_pauli_mixed_density_actual_linear_median_consumer : ∀ (r : ℕ),
     nativePauliBlockBudget 1=1600 ∧
     nativePauliBadMass 1600 r ((1/2 : ℂ) • (1 : Operator 2)) tensorPurityMixedDensity 1 ≤
@@ -35,6 +58,7 @@ theorem native_pauli_mixed_density_actual_linear_median_consumer : ∀ (r : ℕ)
     have h := native_pauli_linear_median_same_output_and_all_ledgers 1600 r ω
     exact ⟨by simpa only [Nat.choose_two_right] using h.2.1,h.2.2.2.1⟩
 
+/-- Counted insertion sort preserves the increasing list of rational casts of `List.range n`. -/
 theorem qSortCounted_range (n : ℕ) :
     (qSortCounted ((List.range n).map (fun k : ℕ => (k : ℚ)))).1=
       (List.range n).map (fun k : ℕ => (k : ℚ)) := by
@@ -46,6 +70,8 @@ theorem qSortCounted_range (n : ℕ) :
     (List.sortedLE_iff_pairwise.mp (qSortCounted_sorted _))
     (List.sortedLE_iff_pairwise.mp hs)
 
+/-- With one block, the native Pauli median equals that block's group estimator with its two
+counters and zero selection comparisons. -/
 theorem nativePauliMedian_single (m : ℕ) (ω : Fin 1 → Fin m → Fin 3 × Bool) :
     nativePauliMedian m 0 ω=((nativePauliGroup (ω 0)).1,
       (nativePauliGroup (ω 0)).2.1,(nativePauliGroup (ω 0)).2.2,0) := by
@@ -54,6 +80,9 @@ theorem nativePauliMedian_single (m : ℕ) (ω : Fin 1 → Fin m → Fin 3 × Bo
 
 set_option maxRecDepth 4096 in
 
+/-- The specified repeated-value, 1001-element, and empty-list selections return the stated
+values and cost bound; a single-block native median equals its group estimator with zero
+selection comparisons. -/
 theorem rational_selection_large_native_and_empty_consumers :
     (qSelect ([7,7,-3,0,7,-3] : List ℚ) 2).1=0 ∧
     (qSelect ((List.range 1001).map (fun k : ℕ => (k : ℚ))) 500).1=500 ∧

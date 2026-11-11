@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairDefs
+
+/-!
+# Specification of Haar pair circuit semantics
+
+`HaarPairWordSemantics` states the validity, query and gate counts, state formula, and
+normalization of the prepared Haar-pair circuit. It connects the circuit encoding to the
+amplified Haar-transform construction of [Cornwell2014].
+
+## Main statements
+
+* `HaarPairWordSemantics`: The Haar-pair circuit contract giving j data queries, one input
+  query, j+2 fixed gates, validity, normalization, and the phase-queried Grover-state output
+  formula.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -35,6 +54,8 @@ open Qatlib
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The Haar-pair circuit contract giving j data queries, one input query, j+2 fixed gates,
+validity, normalization, and the phase-queried Grover-state output formula. -/
 def HaarPairWordSemantics : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (T' : Matrix (I × Bool) (I × Bool) ℂ)
     (seed : I × Bool), T' ∈ Matrix.unitaryGroup (I × Bool) ℂ →

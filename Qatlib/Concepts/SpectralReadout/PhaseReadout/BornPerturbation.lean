@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+
+/-!
+# Born probability perturbation bounds
+
+This module bounds changes in `MeasureProb` by the Euclidean distance between pure-state
+amplitude vectors. Projection onto an event is contractive, giving a norm-weighted bound for
+arbitrary states and a factor-two bound for normalized states, as in the probability-stability
+estimates of [Itakura2005].
+
+The normalized bound also holds after applying a common unitary gate.
+
+## Main statements
+
+* `norm_toEuclidean_collapse_le`: contraction under event collapse.
+* `measureProb_sub_le_l2`: the norm-weighted event-probability bound.
+* `measureProb_applyGate_sub_le_two_mul_l2`: stability after a common unitary.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.InstrumentCore.Measurement
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -21,16 +44,19 @@ set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- Conversion of amplitude vectors to Euclidean space preserves subtraction. -/
 private theorem sub_toEuclidean_fromVec (ψ φ : QState I) :
     toEuclidean_fromVec ψ - toEuclidean_fromVec φ = toEuclidean_fromVec (ψ - φ) := by
   simp only [toEuclidean_fromVec, WithLp.toLp_sub]
 
+/-- Collapsing onto an event preserves subtraction of states. -/
 private theorem collapse_sub_collapse (ψ φ : QState I) (S : Finset I) :
     Collapse ψ S - Collapse φ S = Collapse (ψ - φ) S := by
   funext i
   simp only [collapse_apply, Pi.sub_apply]
   split_ifs <;> simp
 
+/-- Applying a matrix gate preserves subtraction of states. -/
 private theorem applyGate_sub_applyGate (U : Matrix I I ℂ) (ψ φ : QState I) :
     ApplyGate U ψ - ApplyGate U φ = ApplyGate U (ψ - φ) := by
   funext i
@@ -40,6 +66,7 @@ private theorem applyGate_sub_applyGate (U : Matrix I I ℂ) (ψ φ : QState I) 
     exact Finset.sum_congr rfl fun j _ => mul_sub _ _ _
   rw [hsplit]
 
+/-- Collapsing a state onto a basis event cannot increase its Euclidean norm. -/
 theorem norm_toEuclidean_collapse_le (ψ : QState I) (S : Finset I) :
     ‖toEuclidean_fromVec (Collapse ψ S)‖ ≤ ‖toEuclidean_fromVec ψ‖ := by
   have hsum : (∑ i, ‖Collapse ψ S i‖ ^ 2) ≤ ∑ i, ‖ψ i‖ ^ 2 := by
@@ -53,6 +80,8 @@ theorem norm_toEuclidean_collapse_le (ψ : QState I) (S : Finset I) :
     exact hsum
   exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp hsq
 
+/-- The absolute difference of event probabilities is bounded by the sum of the state norms
+times their Euclidean distance. -/
 theorem measureProb_sub_le_l2 (ψ φ : QState I) (S : Finset I) :
     |MeasureProb ψ S - MeasureProb φ S| ≤
       (‖toEuclidean_fromVec ψ‖ + ‖toEuclidean_fromVec φ‖) * ‖toEuclidean_fromVec (ψ - φ)‖ := by
@@ -91,6 +120,8 @@ theorem measureProb_sub_le_l2 (ψ φ : QState I) (S : Finset I) :
           * ‖toEuclidean_fromVec (ψ - φ)‖ :=
         mul_le_mul_of_nonneg_left hcollapseNorm (add_nonneg (norm_nonneg _) (norm_nonneg _))
 
+/-- For normalized states, every event-probability difference is at most twice their Euclidean
+distance. This is a pure-state probability-stability estimate related to [Itakura2005]. -/
 theorem measureProb_sub_le_two_mul_l2 (ψ φ : QState I) (S : Finset I)
     (hψ : Normalized ψ) (hφ : Normalized φ) :
     |MeasureProb ψ S - MeasureProb φ S| ≤ 2 * ‖toEuclidean_fromVec (ψ - φ)‖ := by
@@ -100,6 +131,8 @@ theorem measureProb_sub_le_two_mul_l2 (ψ φ : QState I) (S : Finset I)
   calc |MeasureProb ψ S - MeasureProb φ S| ≤ (1 + 1) * ‖toEuclidean_fromVec (ψ - φ)‖ := h
     _ = 2 * ‖toEuclidean_fromVec (ψ - φ)‖ := by ring
 
+/-- After a common unitary gate, the event-probability difference of normalized states is at
+most twice their original Euclidean distance. See [Itakura2005]. -/
 theorem measureProb_applyGate_sub_le_two_mul_l2 (U : Matrix I I ℂ) (ψ φ : QState I)
     (S : Finset I) (hU : U ∈ Matrix.unitaryGroup I ℂ) (hψ : Normalized ψ)
     (hφ : Normalized φ) :

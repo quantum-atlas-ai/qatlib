@@ -9,6 +9,31 @@ import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
 import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
 import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
 import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxSimulation
+
+/-!
+# Restricted Sparse Hamiltonian Simulation
+
+This module proves `sparseSimulationCorrectedRestricted`, a supplied-frame, eigenvector-level
+simulation result associated with the sparse Hamiltonian setting of Theorem 3 in
+[LowChuang2017]. It uses a corrected Jacobi-Anger degree, scalar source compilation, and the two
+walk eigenbranches to construct one phase list for all normalized eigenvectors of the given
+Hamiltonian.
+
+For `τ = t * d * b` and `0 < ε ≤ 1 / 2`, the list has length `2 * (lcCorrectedQ τ (ε / 8) - 1)`.
+Compression of `lcSimWord (lcWalk S L) phis` through `lcPlusFrame L` approximates each
+eigenvector's target phase with squared error at most `ε ^ 2` and output mass at least `1 - 2 *
+ε`, under the stated isometry and swap hypotheses.
+
+## Main statements
+
+* `sparseSimulationCorrectedRestricted` proves the restricted simulation contract, including
+  saturated walk eigenphases.
+
+## References
+
+- [Low and Chuang, 2017][LowChuang2017], Theorem 3.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +60,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- Proves the supplied-frame sparse simulation contract using corrected Jacobi-Anger truncation
+and an even-length compiled phase list. Its eigenvector squared-error and output-mass
+guarantees are a restricted realization of the setting of Theorem 3 of [LowChuang2017]. -/
 theorem sparseSimulationCorrectedRestricted : SparseSimulationCorrectedRestricted := by
   intro I W _ _ _ _ H d b hHerm hd hb hrows hcols hentries L R S hL hR hLR hSu hSd hS2 hSL
     t ε ht hε hεhalf

@@ -13,10 +13,31 @@ import Mathlib.Tactic.ByCases
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SimpRw
 
+/-!
+# Centered second moments of weighted hash buckets
+
+The module expands bucket energy into pair collisions and computes the average centered second
+moment of real and complex bucket weights. The only probabilistic hypothesis is that every
+distinct pair collides with average probability equal to the reciprocal bucket cardinality.
+
+Such second moment estimates provide finite aggregation tools related to the sampling based
+arithmetic setting of [ChiaEtAl2022].
+
+## Main statements
+
+* `real_hash_bucket_energy`: bucket squares expanded as a sum over colliding pairs.
+* `weighted_hash_centered_second_moment`: the exact complex centered second moment.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
 open scoped BigOperators
 
+/-- The finite hash average of a constant equals that constant when the seed type is nonempty. -/
 private theorem hash_average_const
     {H : Type} [Fintype H] [Nonempty H] (c : ℝ) :
     finiteHashAverage (fun _ : H => c) = c := by
@@ -24,23 +45,27 @@ private theorem hash_average_const
     exact_mod_cast Fintype.card_ne_zero
   simp [finiteHashAverage, nsmul_eq_mul, hn]
 
+/-- Finite hash averaging preserves addition. -/
 private theorem hash_average_add
     {H : Type} [Fintype H] (f g : H → ℝ) :
     finiteHashAverage (fun r => f r + g r) =
       finiteHashAverage f + finiteHashAverage g := by
   simp only [finiteHashAverage, Finset.sum_add_distrib, mul_add]
 
+/-- Finite hash averaging preserves subtraction. -/
 private theorem hash_average_sub
     {H : Type} [Fintype H] (f g : H → ℝ) :
     finiteHashAverage (fun r => f r - g r) =
       finiteHashAverage f - finiteHashAverage g := by
   simp only [finiteHashAverage, Finset.sum_sub_distrib, mul_sub]
 
+/-- A constant right factor can be taken outside a finite hash average. -/
 private theorem hash_average_mul
     {H : Type} [Fintype H] (f : H → ℝ) (c : ℝ) :
     finiteHashAverage (fun r => f r * c) = finiteHashAverage f * c := by
   simp only [finiteHashAverage, ← Finset.sum_mul, mul_assoc]
 
+/-- Finite hash averaging commutes with a finite sum. -/
 private theorem hash_average_sum
     {H I : Type} [Fintype H] [Fintype I] (f : H → I → ℝ) :
     finiteHashAverage (fun r => ∑ i, f r i) =
@@ -48,11 +73,13 @@ private theorem hash_average_sum
   unfold finiteHashAverage
   rw [Finset.sum_comm, Finset.mul_sum]
 
+/-- The sum of real input weights in a specified hash bucket. -/
 private noncomputable def realHashBucket
     {H X A : Type} [Fintype X] [DecidableEq A]
     (hash : H → X → A) (g : X → ℝ) (r : H) (a : A) : ℝ :=
   ∑ x, if hash r x = a then g x else 0
 
+/-- Summing real bucket masses over all buckets recovers the total input weight. -/
 private theorem real_hash_bucket_mass
     {H X A : Type} [Fintype X] [Fintype A] [DecidableEq A]
     (hash : H → X → A) (g : X → ℝ) (r : H) :
@@ -61,6 +88,8 @@ private theorem real_hash_bucket_mass
   rw [Finset.sum_comm]
   simp
 
+/-- The sum of squared real bucket masses equals the sum of products of weights over ordered
+colliding input pairs. -/
 private theorem real_hash_bucket_energy
     {H X A : Type} [Fintype X] [Fintype A] [DecidableEq A]
     (hash : H → X → A) (g : X → ℝ) (r : H) :
@@ -96,6 +125,8 @@ private theorem real_hash_bucket_energy
       rw [Finset.sum_comm]
     _ = _ := by simp_rw [hpair]
 
+/-- If distinct pairs collide with average probability `1 / |A|`, the average total squared
+bucket deviation from uniform mass is `(1 - 1 / |A|) * ∑ x, g x²`. -/
 private theorem real_hash_centered_second_moment
     (H X A : Type) [Fintype H] [Nonempty H] [Fintype X]
     [Fintype A] [Nonempty A] [DecidableEq A]
@@ -175,6 +206,8 @@ private theorem real_hash_centered_second_moment
   rw [hash_average_sub, hash_average_const, henergy]
   ring
 
+/-- If distinct pairs collide with average probability `1 / |A|`, the average total complex
+squared bucket deviation is `(1 - 1 / |A|) * ∑ x, Complex.normSq (f x)`. -/
 theorem weighted_hash_centered_second_moment
     (H X A : Type) [Fintype H] [Nonempty H] [Fintype X]
     [Fintype A] [Nonempty A] [DecidableEq A]

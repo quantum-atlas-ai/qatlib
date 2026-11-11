@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Clocked replacement of an inactive bank
+
+`program` replaces the inactive member of a pair of binary banks by incoming data. It drains the
+old contents and performs two transfers, preserving the active bank and clearing the incoming
+and temporary stacks.
+
+`source_exec` gives the full stack execution and `budget_bound` supplies a quadratic estimate in
+the old and incoming bank lengths.
+
+The computational background is described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `source_exec`: refreshes the inactive bank while retaining the active-bank flag.
+* `active_preserved`: the active bank's contents survive the refresh.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,12 +37,14 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 namespace Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.BankRefresh
 
+/-- Stack slots for the two Boolean-indexed banks, incoming data, and temporary storage. -/
 inductive Slot where
   | bank (b : Bool)
   | incoming
   | temp
   deriving DecidableEq, Fintype
 
+/-- Control labels for selecting a target bank, draining it, transferring data, and finishing. -/
 inductive Label where
   | start
   | drain (target : Bool) (l : Fin 1)
@@ -28,24 +53,36 @@ inductive Label where
   deriving DecidableEq, Fintype
 instance : Inhabited Label := ⟨.start⟩
 
+/-- Local data consisting of the active-bank flag and an optional I/O bit. -/
 abbrev Local := Bool × Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol
+/-- Configurations of the inactive-bank refresh stack machine. -/
 abbrev Config := TM2.Cfg (fun _ : Slot => Bool) Label Local
 
+/-- Extracts the optional I/O bit from the local state. -/
 def getIO (v : Local) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol := v.2
+/-- Replaces the optional I/O bit while preserving the active-bank flag. -/
 def putIO (v : Local) (bit : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol) :
     Local := (v.1, bit)
+/-- Assigns contents to both banks, the incoming stack, and temporary storage. -/
 def state (banks : Bool → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (incoming temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | .bank b => banks b
   | .incoming => incoming
   | .temp => temp
 
+/-- Selects the target bank as the sole stack of the drain subroutine. -/
 def drainCode (target : Bool) : Fin 1 → Slot := fun _ => .bank target
+/-- Selects the source and destination stacks for the incoming-to-temporary or temporary-to-bank
+transfer. -/
 def transferCode (target restore : Bool) : Fin 2 → Slot
   | 0 => if restore then .temp else .incoming
   | _ => if restore then .bank target else .temp
+/-- Chooses the restoration transfer after the first transfer and the final label after
+restoration. -/
 def afterTransfer (target restore : Bool) : Label :=
   if restore then .done else .transfer target true 0
 
+/-- The stack-machine program that drains the inactive bank and replaces it with incoming data
+while clearing temporary storage. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start => .goto (fun v => .drain (!v.1) 0)
   | .drain target l => Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.stmt (drainCode target) (Label.drain target)
@@ -55,15 +92,19 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
       getIO putIO (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.transferProgram l)
   | .done => .load (fun v => (v.1, none)) .halt
 
+/-- The single-stack drain assignment is injective. -/
 private theorem drainCode_inj (target : Bool) : Function.Injective (drainCode target) := by
   intro a b _
   exact Subsingleton.elim a b
 
+/-- The two-stack transfer assignment is injective for each target and transfer phase. -/
 private theorem transferCode_inj (target restore : Bool) :
     Function.Injective (transferCode target restore) := by
   cases restore <;> intro a b h <;> fin_cases a <;> fin_cases b <;>
     simp [transferCode] at h ⊢
 
+/-- A stack-call frame equals a proposed store when they agree on selected stacks and preserve
+all stacks outside the selection. -/
 private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot)
     (hinj : Function.Injective code) (S T : Slot → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (data : K → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hi : ∀ k, T (code k) = data k)
@@ -78,6 +119,8 @@ private theorem frame_eq {K : Type} [DecidableEq K] (code : K → Slot)
   · rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator.frame_outside code S data j (by simpa using h)]
     exact (ho j (by simpa using h)).symm
 
+/-- Lifts a drain or transfer execution into the refresh program with the same budget,
+preserving all unselected stacks. -/
 private theorem lift {K Λ : Type} [DecidableEq K]
     (code : K → Slot) (hinj : Function.Injective code) (labels : Λ → Label)
     (ret : Label) (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol)
@@ -104,11 +147,14 @@ private theorem lift {K Λ : Type} [DecidableEq K]
   · simpa only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall.cfg, Option.map_some, Option.getD_some, hv, hi]
       using hC.trans_le hc
 
+/-- The refresh budget obtained by adding the drain, two transfer, and control-step charges. -/
 def budget (old incoming : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : ℕ :=
   1 + (old.length ^ 2 + 3 * old.length + 3) +
     (incoming.length * (2 * incoming.length + 5) + 3) +
     (incoming.length * (2 * incoming.length + 5) + 3) + 1
 
+/-- The refresh program replaces the inactive bank by the incoming string, clears incoming and
+temporary stacks, and halts within `budget`. -/
 theorem source_exec (active : Bool) (banks : Bool → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (incoming : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program
       ⟨some .start, (active, none), state banks incoming []⟩
@@ -189,11 +235,14 @@ theorem source_exec (active : Bool) (banks : Bool → Qatlib.Concepts.BitWordCom
   simpa only [getIO, putIO, afterTransfer, Bool.false_eq_true, if_false, if_true,
     target, S0, S3, budget] using (((start.trans drain).trans transfer).trans restore).trans done
 
+/-- The refresh budget is at most twenty times the square of one plus the old and incoming
+lengths. -/
 theorem budget_bound (old incoming : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     budget old incoming ≤ 20 * (1 + old.length + incoming.length) ^ 2 := by
   dsimp [budget]
   nlinarith [Nat.zero_le (old.length * incoming.length)]
 
+/-- Replacing the inactive bank leaves the active bank's contents unchanged. -/
 theorem active_preserved (active : Bool) (banks : Bool → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (incoming : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     state (Function.update banks (!active) incoming) [] [] (.bank active) = banks active := by
   cases active <;> simp [state]

@@ -9,16 +9,48 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 
+/-!
+# Corrections to logarithmic primality-cost estimates
+
+This module gives an explicit counterexample to the double-logarithm sum inequality stated in
+[ChauLo1995]. The finite set `logCounterPrimes` makes the sum of the individual double
+logarithms strictly greater than the double logarithm of the product.
+
+It also proves valid bounds for the sum of prime logarithms and for the sum of their cubes under
+a prime-power factorization, providing estimates suitable for subsequent cost arguments.
+
+## Main statements
+
+* `double_log_sum_counterexample`: For `logCounterPrimes`, the double logarithm of the product
+  is strictly smaller than the sum of the individual double logarithms. This contradicts the
+  inequality stated in [Chau and Lo, Eq. (4b)][ChauLo1995].
+* `sum_log_le_log_of_factorization`: For a factorization of `N` into prime powers with positive
+  exponents, the sum of the distinct prime logarithms is at most `log N`.
+* `sum_cube_log_le_cube_log_of_factorization`: For a factorization of `N` into prime powers with
+  positive exponents, the sum of the cubes of the distinct prime logarithms is at most `(log
+  N)³`.
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Papers.QPrimality95.MainResults
 
+/-- The finite set `{11, 13, 17, 19, 23, 29, 31, 37}` used in the double-logarithm
+counterexample. -/
 def logCounterPrimes : Finset ℕ := {11,13,17,19,23,29,31,37}
 
+/-- Every element of `logCounterPrimes` is prime. -/
 theorem logCounterPrimes_prime : ∀ p ∈ logCounterPrimes, p.Prime := by
   norm_num [logCounterPrimes]
 
+/-- For `logCounterPrimes`, the double logarithm of the product is strictly smaller than the sum
+of the individual double logarithms. This contradicts the inequality stated in [Chau and Lo,
+Eq. (4b)][ChauLo1995]. -/
 theorem double_log_sum_counterexample :
     Real.log (Real.log (∏ p ∈ logCounterPrimes, (p : ℝ))) <
       ∑ p ∈ logCounterPrimes, Real.log (Real.log (p : ℝ)) := by
@@ -53,6 +85,8 @@ theorem double_log_sum_counterexample :
       _ ≤ _ := Finset.sum_le_sum (fun p hp => Real.log_le_log (by norm_num) (hlogp p hp))
   exact hr.trans_le hl
 
+/-- For a factorization of `N` into prime powers with positive exponents, the sum of the
+distinct prime logarithms is at most `log N`. -/
 theorem sum_log_le_log_of_factorization {N : ℕ} (S : Finset ℕ) (β : ℕ → ℕ)
     (hprime : ∀ p ∈ S, p.Prime) (hβ : ∀ p ∈ S, 0 < β p)
     (hN : N = ∏ p ∈ S, p ^ β p) :
@@ -76,6 +110,8 @@ theorem sum_log_le_log_of_factorization {N : ℕ} (S : Finset ℕ) (β : ℕ →
     push_cast
     exact pow_ne_zero _ (by exact_mod_cast (hprime p hp).ne_zero)
 
+/-- For a factorization of `N` into prime powers with positive exponents, the sum of the cubes
+of the distinct prime logarithms is at most `(log N)³`. -/
 theorem sum_cube_log_le_cube_log_of_factorization {N : ℕ} (S : Finset ℕ) (β : ℕ → ℕ)
     (hprime : ∀ p ∈ S, p.Prime) (hβ : ∀ p ∈ S, 0 < β p)
     (hN : N = ∏ p ∈ S, p ^ β p) :

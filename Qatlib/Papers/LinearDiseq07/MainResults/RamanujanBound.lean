@@ -97,6 +97,24 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.LinearDiseq07.MainResults.RamanujanSum
+
+/-!
+# Bounds for root-of-unity distance sums
+
+This module derives the normalized squared-distance bounds for a nontrivial root of unity in
+Lemma 2 of [Ivanyos2008]. The proof combines `sum_normSq_eq`, which expresses the distance sum
+through a Ramanujan sum, with elementary totient identities.
+
+## Main statements
+
+* `sum_normSq_eq`: Relates squared distances to the real part of a root sum.
+* `source_lemma2_root_sum_bound`: Places the normalized distance sum between one half and two.
+
+## References
+
+* [Ivanyos, 2008][Ivanyos2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -108,12 +126,15 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.LinearDiseq07.MainResults
 
+/-- A complex number whose positive power is one has squared norm one. -/
 lemma normSq_eq_one_of_pow_eq_one {ω : ℂ} {m : ℕ} (hm : 0 < m) (hω : ω ^ m = 1) :
     Complex.normSq ω = 1 := by
   have hpow : (Complex.normSq ω) ^ m = 1 := by
     rw [← map_pow, hω, Complex.normSq_one]
   exact (pow_eq_one_iff_of_nonneg (Complex.normSq_nonneg ω) hm.ne').mp hpow
 
+/-- For a complex number of squared norm one, `Complex.normSq (1 - ω^j)` equals `2 - 2 *
+(ω^j).re`, as used in Lemma 2 of [Ivanyos2008]. -/
 lemma normSq_one_sub_pow_eq {ω : ℂ} (hω : Complex.normSq ω = 1) (j : ℕ) :
     Complex.normSq (1 - ω ^ j) = 2 - 2 * (ω ^ j).re := by
   have hnorm : Complex.normSq (ω ^ j) = 1 := by
@@ -124,6 +145,8 @@ lemma normSq_one_sub_pow_eq {ω : ℂ} (hω : Complex.normSq ω = 1) (j : ℕ) :
   simp only [Complex.sub_re, Complex.sub_im, Complex.one_re, Complex.one_im]
   nlinarith [hnorm']
 
+/-- The sum of squared distances over residues coprime to `m` equals twice the totient minus
+twice the real part of the corresponding root sum [Ivanyos2008]. -/
 lemma sum_normSq_eq {m : ℕ} {ω : ℂ} (hω : Complex.normSq ω = 1) :
     (∑ j ∈ (Finset.range m).filter (fun j => Nat.Coprime j m),
         Complex.normSq (1 - ω ^ j))
@@ -139,6 +162,8 @@ lemma sum_normSq_eq {m : ℕ} {ω : ℂ} (hω : Complex.normSq ω = 1) :
   simp only [smul_eq_mul, nsmul_eq_mul]
   ring
 
+/-- For positive `m`, its totient is the product of `m` divided by its prime radical and the
+totient of that radical. -/
 lemma totient_eq_div_rad_mul_totient_rad {m : ℕ} (_hm : 0 < m) :
     Nat.totient m
       = (m / ∏ p ∈ m.primeFactors, p) * Nat.totient (∏ p ∈ m.primeFactors, p) := by
@@ -159,6 +184,8 @@ lemma totient_eq_div_rad_mul_totient_rad {m : ℕ} (_hm : 0 < m) :
   rw [← hrad] at hφm
   rw [hφrad, hφm]
 
+/-- If `m0` divides the prime radical of positive `m`, the totient of the radical factors into
+the totients of `m0` and its complementary factor. -/
 lemma totient_rad_eq_mul {m m0 : ℕ} (_hm : 0 < m)
     (hm0 : m0 ∣ ∏ p ∈ m.primeFactors, p) :
     Nat.totient (∏ p ∈ m.primeFactors, p)
@@ -176,6 +203,8 @@ lemma totient_rad_eq_mul {m m0 : ℕ} (_hm : 0 < m)
   have hcop : m0.Coprime (rad / m0) := Nat.coprime_of_squarefree_mul hsq2
   rw [← Nat.totient_mul hcop, hmul]
 
+/-- The totient of a natural number at least three is at least two, an estimate used in Lemma 2
+of [Ivanyos2008]. -/
 lemma totient_ge_two {n : ℕ} (hn : 3 ≤ n) : 2 ≤ Nat.totient n := by
   by_contra h
   have hle : Nat.totient n ≤ 1 := by omega
@@ -184,6 +213,9 @@ lemma totient_ge_two {n : ℕ} (hn : 3 ≤ n) : 2 ≤ Nat.totient n := by
   have hle2 : n ≤ 2 := Nat.le_of_dvd (by norm_num) hdvd
   omega
 
+/-- Lemma 2 of [Ivanyos2008]: for a nontrivial `m`-th root of unity with `m ≥ 2`, the sum of
+squared distances over coprime residues, divided by twice the totient, lies between `1 / 2`
+and `2`. -/
 theorem source_lemma2_root_sum_bound {m : ℕ} (hm : 2 ≤ m) {ω : ℂ}
     (hωm : ω ^ m = 1) (hω1 : ω ≠ 1) :
     (1 / 2 : ℝ) ≤ (1 / (2 * (Nat.totient m : ℝ)))

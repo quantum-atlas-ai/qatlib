@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.PaidSmallSvd
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.AccessBudget
+
+/-!
+# Correct and accessible classical PCA records
+
+Combines spectral accuracy with sample-and-query access for the actual PCA sketch. A good record
+has nonzero retained outputs with bounded rejection inflation, and the parameter choice gives
+simultaneous correctness and accessibility with high probability in the construction of
+[Tang2021].
+
+## Main statements
+
+* `pca_actual_record_access`: Under the cutoff, precision, and good Gram hypotheses, every
+  retained output is nonzero and has sample-and-query inflation at most `4 * q * K`.
+* `source_classical_pca_producer`: Under the stated cutoff and spectral gap assumptions, actual
+  PCA preprocessing produces a correct and accessible record with failure probability at most
+  `delta` [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,8 @@ open Matrix
 open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SqEstimation.RejectionSample
 
+/-- Under the cutoff, precision, and good Gram hypotheses, every retained output is nonzero and
+has sample-and-query inflation at most `4 * q * K`. -/
 theorem pca_actual_record_access {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k : ℕ) (hk : 1≤k) (hkn : k≤n) (hkd : k≤d)
     (sigma e delta : ℝ) (hsigma : 0<sigma)
@@ -56,6 +80,8 @@ theorem pca_actual_record_access {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   exact pca_actual_sq_inflation A hA (pcaGramSamples_rank K e delta).1 z.1 _ _ sigma (t*F) K
     hsigma hF hmu ht hcol
 
+/-- Accessibility of a sketch record: each retained output has positive norm and
+sample-and-query inflation at most `4 * q * K`. -/
 def pcaRecordAccessible {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k q : ℕ) (hkq : k≤q) (K : ℝ)
     (z : (Fin q→Fin n) × (Fin q→Fin d)) : Prop :=
@@ -63,6 +89,8 @@ def pcaRecordAccessible {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     0<‖pcaOutput (pcaRowSketch A hA q z.1) (pcaSmallMatrix A hA hd q z.1 z.2) (pcaRetainedIndex hkq i)‖ ∧
     pcaSQInflation A hA z.1 (pcaSmallMatrix A hA hd q z.1 z.2) (pcaRetainedIndex hkq i)≤4*(q:ℝ)*K
 
+/-- Under the stated cutoff and spectral gap assumptions, actual PCA preprocessing produces a
+correct and accessible record with failure probability at most `delta` [Tang2021]. -/
 theorem source_classical_pca_producer {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k : ℕ) (hk : 1≤k) (hkn : k≤n) (hkd : k≤d)
     (sigma eta s v delta : ℝ) (hsigma : 0<sigma) (heta : 0<eta) (hs : 0<s)

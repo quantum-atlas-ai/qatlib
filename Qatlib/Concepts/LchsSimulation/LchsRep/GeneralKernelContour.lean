@@ -9,6 +9,27 @@ import Mathlib.MeasureTheory.Integral.Asymptotics
 import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
 import Mathlib.Analysis.Normed.Module.Dual
 
+/-!
+# Cauchy contour formulas for power-decaying kernels
+
+The regularization `powerCauchyRegular` removes the contribution of the pole at `-Complex.I`.
+Power-decay estimates control its boundary integrals and yield
+`power_kernel_lower_cauchy_integral`, together with continuity and integrability of the
+Cauchy-weighted boundary kernel. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `power_kernel_weight_integrable`: A complex differentiable lower-half-plane kernel with
+  positive-order power decay has an integrable Cauchy-weighted real boundary value.
+* `power_kernel_lower_cauchy_integral`: For a complex differentiable kernel with the stated
+  positive-order power decay and boundary integrability, the Cauchy-weighted real-line integral
+  equals `2 * Real.pi * H (-Complex.I)`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 
 open Qatlib.Concepts.LchsSimulation.Kernel
 set_option autoImplicit false
@@ -19,9 +40,13 @@ namespace Qatlib.Concepts.LchsSimulation.LchsRep
 open MeasureTheory Set Filter
 open scoped Classical BigOperators Topology
 set_option warningAsError false
+/-- The regularized Cauchy expression formed from the divided slope of `H` at `-Complex.I` and
+its explicit pole-value correction. -/
 private noncomputable def powerCauchyRegular (H : ℂ → ℂ) (z : ℂ) : ℂ :=
   Complex.I * dslope H (-Complex.I) z - H (-Complex.I) / (1 + Complex.I * z)
 
+/-- Complex differentiability of `H` on the closed lower half-plane implies differentiability of
+`powerCauchyRegular H` there. -/
 private theorem powerCauchyRegular_differentiableOn (H : ℂ → ℂ)
     (hd : DifferentiableOn ℂ H {z : ℂ | z.im ≤ 0}) :
     DifferentiableOn ℂ (powerCauchyRegular H) {z : ℂ | z.im ≤ 0} := by
@@ -38,6 +63,9 @@ private theorem powerCauchyRegular_differentiableOn (H : ℂ → ℂ)
   exact ((differentiableAt_const Complex.I).differentiableWithinAt.mul (hs z hz)).sub
     ((differentiableAt_const (H (-Complex.I))).differentiableWithinAt.div ha hne)
 
+/-- Away from the stated denominator zeros, the regularized expression equals the
+Cauchy-weighted value minus `2 * H (-Complex.I) / ((1 - Complex.I * z) * (1 + Complex.I *
+z))`. -/
 private theorem powerCauchyRegular_eq (H : ℂ → ℂ) (z : ℂ)
     (hz : z ≠ -Complex.I) (hm : (1 : ℂ) - Complex.I * z ≠ 0)
     (hp : (1 : ℂ) + Complex.I * z ≠ 0) :
@@ -51,6 +79,8 @@ private theorem powerCauchyRegular_eq (H : ℂ → ℂ) (z : ℂ)
   simp only [Complex.I_sq, Complex.I_pow_three]
   ring
 
+/-- On the real axis, the regularized expression equals the Cauchy-weighted boundary value minus
+`(1 + k^2)⁻¹` times `2 * H (-Complex.I)`. -/
 private theorem powerCauchyRegular_real_eq (H : ℂ → ℂ) (k : ℝ) :
     powerCauchyRegular H (k : ℂ) = H (k : ℂ) / (1 - Complex.I * (k : ℂ)) -
       ((1 + k ^ 2)⁻¹ : ℝ) • (2 * H (-Complex.I)) := by
@@ -75,6 +105,8 @@ private theorem powerCauchyRegular_real_eq (H : ℂ → ℂ) (k : ℝ) :
   rw [he]
   simp [div_eq_mul_inv, mul_comm, Complex.real_smul]
 
+/-- If `‖z‖^α * ‖H z‖ ≤ C` on the closed lower half-plane, the regularized expression outside
+radius `R ≥ 2` has norm at most `2 * C / (R^α * R) + 8 * ‖H (-Complex.I)‖ / R^2`. -/
 private theorem powerCauchyRegular_norm_le (H : ℂ → ℂ) (α C R : ℝ)
     (hα : 0<α) (hC : 0≤C) (hR : 2≤R)
     (hH : ∀ z : ℂ,z.im≤0→‖z‖^α*‖H z‖≤C)
@@ -115,6 +147,8 @@ private theorem powerCauchyRegular_norm_le (H : ℂ → ℂ) (α C R : ℝ)
   field_simp
   ring
 
+/-- For differentiable `H` with the stated power decay, the real-segment integral of its
+regularization has norm at most `8 * C / R^α + 32 * ‖H (-Complex.I)‖ / R` when `R ≥ 2`. -/
 private theorem powerCauchyRegular_rectangle_norm_le (H : ℂ → ℂ) (α C R : ℝ)
     (hα : 0<α) (hC : 0≤C) (hR : 2 ≤ R)
     (hd : DifferentiableOn ℂ H {z : ℂ | z.im ≤ 0})
@@ -180,6 +214,8 @@ private theorem powerCauchyRegular_rectangle_norm_le (H : ℂ → ℂ) (α C R :
     _ ≤ (B * (2 * R) + B * R) + B * R := add_le_add (add_le_add hb hr) hl
     _ = _ := by dsimp [B]; field_simp; ring
 
+/-- A function complex differentiable on the closed lower half-plane has a continuous
+Cauchy-weighted restriction to the real axis. -/
 theorem power_kernel_weight_continuous (f : ℂ→ℂ)
     (hf : DifferentiableOn ℂ f {z : ℂ|z.im≤0}) :
     Continuous (fun k : ℝ=>f (k:ℂ)/(1-Complex.I*(k:ℂ))) := by
@@ -190,6 +226,8 @@ theorem power_kernel_weight_continuous (f : ℂ→ℂ)
   have hh := congrArg Complex.re h
   norm_num at hh
 
+/-- A power bound `‖z‖^α * ‖f z‖ ≤ C` on the lower half-plane gives the stated integrable power
+envelope for the Cauchy-weighted boundary value when `‖k‖ ≥ 1`. -/
 private theorem power_kernel_weight_tail (f : ℂ→ℂ) (α C : ℝ)
     (hα : 0<α) (hC : 0≤C)
     (hdecay : ∀ z : ℂ,z.im≤0→‖z‖^α*‖f z‖≤C) (k : ℝ) (hk : 1≤‖k‖) :
@@ -219,6 +257,8 @@ private theorem power_kernel_weight_tail (f : ℂ→ℂ) (α C : ℝ)
   calc _=C*((1+‖k‖)^(α+1)/‖k‖^(α+1)) := by ring
        _≤C*2^(α+1) := mul_le_mul_of_nonneg_left hratio hC
 
+/-- A complex differentiable lower-half-plane kernel with positive-order power decay has an
+integrable Cauchy-weighted real boundary value. -/
 theorem power_kernel_weight_integrable (f : ℂ→ℂ) (α C : ℝ)
     (hα : 0<α) (hC : 0≤C) (hf : DifferentiableOn ℂ f {z : ℂ|z.im≤0})
     (hdecay : ∀ z : ℂ,z.im≤0→‖z‖^α*‖f z‖≤C) :
@@ -232,6 +272,8 @@ theorem power_kernel_weight_integrable (f : ℂ→ℂ) (α C : ℝ)
   rw [Real.norm_of_nonneg (Real.rpow_nonneg (by positivity) _)]
   exact power_kernel_weight_tail f α C hα hC hdecay k hk
 
+/-- For a complex differentiable kernel with the stated positive-order power decay and boundary
+integrability, the Cauchy-weighted real-line integral equals `2 * Real.pi * H (-Complex.I)`. -/
 theorem power_kernel_lower_cauchy_integral (H : ℂ→ℂ) (α C : ℝ)
     (hα : 0<α) (hC : 0≤C) (hd : DifferentiableOn ℂ H {z : ℂ|z.im≤0})
     (hH : ∀ z : ℂ,z.im≤0→‖z‖^α*‖H z‖≤C)

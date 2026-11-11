@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Common imports for Trotter commutator estimates
+
+This module provides a common import surface for the Trotter commutator definitions and
+Euclidean operator-norm tools. Its imported API includes grouped integral remainders, segmented
+product words, multiplicative defects, and Gibbs normalization data used in the product-formula
+setting of [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `groupedIntegralRemainder`: imported grouped commutator-integral expression.
+* `segmentWord`: imported list of repeated exponential factors.
+* `segmentMultiplicativeDefect`: imported relative defect of a segmented product.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs

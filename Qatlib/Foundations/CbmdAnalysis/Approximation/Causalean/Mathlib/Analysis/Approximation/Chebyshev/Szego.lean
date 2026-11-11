@@ -11,6 +11,24 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
 import Mathlib.Algebra.Polynomial.CancelLeads
 import Mathlib.Topology.Algebra.Polynomial
 
+/-!
+# Bernstein–Szegő bound for cosine compositions
+
+This module places cosine compositions and Szegő interpolants in bounded-degree trigonometric
+polynomial spaces and develops the extremum-point identities needed for comparison. The theorem
+`szego_deriv_sq_bound` bounds the squared derivative together with the degree-weighted squared
+value, supporting the approximation analysis associated with [WangEtAl2026].
+
+## Main statements
+
+* `cosComp_isTrigPolyLE`: Transfer a polynomial degree bound to a cosine composition.
+* `szego_deriv_sq_bound`: Prove the combined derivative-and-value bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Approximation
 
 section
@@ -19,6 +37,7 @@ open Real Polynomial
 
 namespace Causalean.Mathlib.Analysis.BernsteinSzegoTrig
 
+/-- The Szegő interpolant is a trigonometric polynomial of degree at most `β`. -/
 theorem szegoInterp_isTrigPolyLE (β : ℕ) (Q₀ Q₁ t₀ : ℝ) :
     IsTrigPolyLE β (szegoInterp β Q₀ Q₁ t₀) := by
   let A : ℝ :=
@@ -38,6 +57,7 @@ theorem szegoInterp_isTrigPolyLE (β : ℕ) (Q₀ Q₁ t₀ : ℝ) :
   · intro hnot
     exact False.elim (hnot (Finset.mem_range.mpr (Nat.lt_succ_self β)))
 
+/-- The sum of two trigonometric polynomials of degree at most `n` has degree at most `n`. -/
 theorem IsTrigPolyLE.add {n : ℕ} {f g : ℝ → ℝ} (hf : IsTrigPolyLE n f)
     (hg : IsTrigPolyLE n g) : IsTrigPolyLE n (fun t => f t + g t) := by
   rcases hf with ⟨a, b, ha⟩
@@ -52,6 +72,7 @@ theorem IsTrigPolyLE.add {n : ℕ} {f g : ℝ → ℝ} (hf : IsTrigPolyLE n f)
   intro k hk
   ring
 
+/-- Multiplying a trigonometric polynomial by a real constant preserves its degree bound. -/
 theorem IsTrigPolyLE.const_mul {n : ℕ} {f : ℝ → ℝ} (c : ℝ)
     (hf : IsTrigPolyLE n f) : IsTrigPolyLE n (fun t => c * f t) := by
   rcases hf with ⟨a, b, ha⟩
@@ -65,11 +86,14 @@ theorem IsTrigPolyLE.const_mul {n : ℕ} {f : ℝ → ℝ} (c : ℝ)
   intro k hk
   ring
 
+/-- A function pointwise equal to a trigonometric polynomial satisfies the same degree bound. -/
 theorem IsTrigPolyLE.congr {n : ℕ} {f g : ℝ → ℝ} (hf : IsTrigPolyLE n f)
     (hfg : ∀ t, g t = f t) : IsTrigPolyLE n g := by
   rcases hf with ⟨a, b, ha⟩
   exact ⟨a, b, fun t => by rw [hfg t, ha t]⟩
 
+/-- The cosine harmonic of natural frequency `n` is a trigonometric polynomial of degree at most
+`n`. -/
 theorem cos_nat_mul_isTrigPolyLE (n : ℕ) :
     IsTrigPolyLE n (fun t => Real.cos ((n : ℝ) * t)) := by
   classical
@@ -82,6 +106,8 @@ theorem cos_nat_mul_isTrigPolyLE (n : ℕ) :
   · intro hn
     exact (hn (Finset.mem_range.mpr (Nat.lt_succ_self n))).elim
 
+/-- Evaluating a polynomial of degree at most `β` at cosine gives a trigonometric polynomial of
+degree at most `β`. -/
 theorem cosComp_isTrigPolyLE (R : Polynomial ℝ) (β : ℕ) (hβ : R.natDegree ≤ β) :
     IsTrigPolyLE β (fun t => R.eval (Real.cos t)) := by
   classical
@@ -140,12 +166,15 @@ theorem cosComp_isTrigPolyLE (R : Polynomial ℝ) (β : ℕ) (hβ : R.natDegree 
         field_simp [hTlc_ne]
         ring
 
+/-- The Szegő interpolant is continuous for every natural frequency. -/
 @[fun_prop]
 theorem szegoInterp_continuous (β : ℕ) (Q₀ Q₁ t₀ : ℝ) :
     Continuous (szegoInterp β Q₀ Q₁ t₀) := by
   unfold szegoInterp
   fun_prop
 
+/-- At the `k`th equally spaced extremum point, the shifted phase argument equals `k * π` when
+`β` is nonzero. -/
 private lemma szegoExtrema_arg {β : ℕ} (hβ : (β : ℝ) ≠ 0) (t₀ φ : ℝ) (k : ℤ) :
     (β : ℝ) *
         ((t₀ + φ / (β : ℝ) + (k : ℝ) * (Real.pi / (β : ℝ))) - t₀) - φ =
@@ -153,6 +182,7 @@ private lemma szegoExtrema_arg {β : ℕ} (hβ : (β : ℝ) ≠ 0) (t₀ φ : �
   field_simp [hβ]
   ring
 
+/-- For positive frequency, the integer-indexed extremum points are strictly increasing. -/
 private lemma szegoExtrema_strictMono {β : ℕ} (hβpos : 0 < (β : ℝ)) (t₀ φ : ℝ) :
     StrictMono (fun k : ℤ => t₀ + φ / (β : ℝ) + (k : ℝ) * (Real.pi / (β : ℝ))) := by
   intro k l hkl
@@ -161,6 +191,8 @@ private lemma szegoExtrema_strictMono {β : ℕ} (hβpos : 0 < (β : ℝ)) (t₀
   have hmul := mul_lt_mul_of_pos_right hcast hcoef
   linarith
 
+/-- Advancing the extremum index by `2 * β` translates the corresponding point by `2 * π` when
+`β` is nonzero. -/
 private lemma szegoExtrema_period {β : ℕ} (hβ : (β : ℝ) ≠ 0) (t₀ φ : ℝ)
     (m : ℤ) :
     t₀ + φ / (β : ℝ) + ((m + (2 * β : ℤ) : ℤ) : ℝ) * (Real.pi / (β : ℝ)) =
@@ -169,6 +201,8 @@ private lemma szegoExtrema_period {β : ℕ} (hβ : (β : ℝ) ≠ 0) (t₀ φ :
   norm_num
   ring
 
+/-- For positive frequency, `t₀` lies between the extremum points with indices `⌊-φ / π⌋` and
+`⌊-φ / π⌋ + 1`, including the left endpoint and excluding the right. -/
 private lemma szegoExtrema_floor_mem {β : ℕ} (hβpos : 0 < (β : ℝ)) (t₀ φ : ℝ) :
     let u : ℤ → ℝ := fun k => t₀ + φ / (β : ℝ) + (k : ℝ) * (Real.pi / (β : ℝ))
     let m : ℤ := ⌊(-φ) / Real.pi⌋
@@ -191,6 +225,9 @@ private lemma szegoExtrema_floor_mem {β : ℕ} (hβpos : 0 < (β : ℝ)) (t₀ 
     norm_num at hmul ⊢
     nlinarith [hpi]
 
+/-- If a polynomial has degree at most `β` and its cosine composition is bounded in absolute
+value by `M`, then the squared derivative plus `β ^ 2` times the squared value is at most `β
+^ 2 * M ^ 2`. -/
 theorem szego_deriv_sq_bound (R : Polynomial ℝ) (β : ℕ) (hβ : R.natDegree ≤ β)
     (M : ℝ) (hM : ∀ t, |R.eval (Real.cos t)| ≤ M) :
     ∀ t, (deriv (fun s => R.eval (Real.cos s)) t) ^ 2

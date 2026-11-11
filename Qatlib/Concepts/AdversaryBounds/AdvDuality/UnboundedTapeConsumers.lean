@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedCoinTape
 import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+
+/-!
+# Expected runtime of coin-tape machines
+
+`TapeExpectedBPP` expresses almost-sure termination, polynomial expected transition count, and
+bounded error for a fair coin-tape machine. The finite worst-path hypotheses imply these
+unbounded-execution guarantees and a cutoff tail bound, providing a concrete randomized
+computation model in the setting of [NielsenChuang2010].
+
+The machine `movingGeometricTape` moves right on a false coin and halts with output true on a
+true coin. Its survival and first-halting masses are computed explicitly, giving an unbounded
+execution with expected time two.
+
+## Main statements
+
+* `coinTape_worst_path_expected`: derive expected time and cutoff bounds from finite worst-path
+  halting.
+* `worst_path_bpp_actual_expected_time_and_cutoff`: transfer `TapeInBPP` to `TapeExpectedBPP`.
+* `moving_tape_geometric_actual_unbounded_consumer`: compute the geometric stopping law and
+  expected time.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.StoppingCore.BranchCostCore
@@ -19,6 +45,9 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal Classical
 
+/-- A language has a fair coin-tape decider with common halting states, almost-sure termination,
+a polynomial bound on expected transition count, and correct-output mass at least two thirds
+on every input. -/
 def TapeExpectedBPP (L : List Bool → Prop) : Prop :=
   ∃ (q : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (c k : ℕ),
@@ -31,6 +60,10 @@ def TapeExpectedBPP (L : List Bool → Prop) : Prop :=
       (2/3 : ℝ≥0∞) ≤ ∑' cost : ℕ, haltJoint next cfg
         (if L input then true else false) cost
 
+/-- If every length-`T` coin tape halts and the correct-output probability is at least two
+thirds, the induced kernel terminates almost surely with expected time at most `T`. Its
+correct-output mass is at least two thirds and its pending mass at cutoff `F` is at most `T
+/ (F + 1)`. -/
 theorem coinTape_worst_path_expected (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (input : List Bool) (T : ℕ) (b : Bool)
@@ -58,6 +91,8 @@ theorem coinTape_worst_path_expected (q : ℕ)
   · intro F
     exact (general_online_cutoff _ _ F).2.trans (ENNReal.div_le_div_right hb.2 _)
 
+/-- Every language in `TapeInBPP` belongs to `TapeExpectedBPP`, and finite worst-path halting
+yields the stated almost-sure termination, expected-time, correctness, and cutoff bounds. -/
 theorem worst_path_bpp_actual_expected_time_and_cutoff :
     (∀ L : List Bool → Prop, TapeInBPP L → TapeExpectedBPP L) ∧
     (∀ (q : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
@@ -82,27 +117,36 @@ theorem worst_path_bpp_actual_expected_time_and_cutoff :
     (coinTape_worst_path_expected q M accept input _ _ hcommon hh hc).2.1,
     (coinTape_worst_path_expected q M accept input _ _ hcommon hh hc).2.2.1⟩
 
+/-- A two-state tape machine that moves right in state zero on a false coin and writes a blank
+before entering the halting state on a true coin. -/
 def movingGeometricTape (c : Bool) : Turing.TM0.Machine (Option Bool) (Fin 2) :=
   fun ql _ => if ql = 0 then
     if c then some (1, Turing.TM0.Stmt.write none)
     else some (0, Turing.TM0.Stmt.move Turing.Dir.right)
   else none
 
+/-- Accept exactly control state one of the moving geometric tape machine. -/
 def movingTapeAccept (ql : Fin 2) : Bool := decide (ql = 1)
 
+/-- Move the tape head one cell to the right and set the control state to zero. -/
 def movingTapeRight (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2)) :
     Turing.TM0.Cfg (Option Bool) (Fin 2) :=
   ⟨0, cfg.Tape.move Turing.Dir.right⟩
 
+/-- The two coin choices of `movingGeometricTape` have the same halting state-symbol pairs. -/
 theorem movingGeometricTape_common (ql : Fin 2) (γ : Option Bool) :
     movingGeometricTape false ql γ = none ↔ movingGeometricTape true ql γ = none := by
   by_cases h : ql = 0 <;> simp [movingGeometricTape, h]
 
+/-- A configuration in control state zero remains a running configuration under normalization
+for the moving geometric machine. -/
 private theorem moving_normalize (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (h : cfg.q = 0) : coinTapeNormalize 1 movingGeometricTape movingTapeAccept cfg =
       Sum.inr cfg := by
   simp [coinTapeNormalize, coinHalt, movingGeometricTape, h]
 
+/-- From control state zero, a true coin produces the terminal value true, while a false coin
+continues at `movingTapeRight cfg`. -/
 private theorem moving_selected (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (h : cfg.q = 0) (c : Bool) :
     coinTapeSelected 1 movingGeometricTape movingTapeAccept cfg c =
@@ -110,6 +154,8 @@ private theorem moving_selected (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
   cases c <;> simp [coinTapeSelected, TM0_step_apply, movingGeometricTape, h,
     TM0StmtApply, coinTapeNormalize, coinHalt, movingTapeAccept, movingTapeRight]
 
+/-- The one-step kernel expectation from control state zero is the equal-weight average of the
+terminal true value and the right-shifted continuation value. -/
 private theorem moving_expectation (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (h : cfg.q = 0) (f : (Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin 2)) → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (coinTapeKernel 1 movingGeometricTape movingTapeAccept cfg) f =
@@ -121,6 +167,7 @@ private theorem moving_expectation (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
       Fintype.sum_bool]
   norm_num [PMF.bernoulli_apply]
 
+/-- Starting in control state zero, the mass still pending after `T` kernel steps is `2⁻ᵀ`. -/
 theorem moving_pending (T : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (h : cfg.q = 0) :
     generalPendingMass (coinTapeKernel 1 movingGeometricTape movingTapeAccept)
@@ -138,6 +185,8 @@ theorem moving_pending (T : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     rw [hi]
     simp [pow_succ, mul_comm]
 
+/-- No finite coin list produces output false when the moving geometric machine starts in
+control state zero. -/
 private theorem moving_no_false :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2)), cfg.q = 0 →
       (coinTapeRunAux movingGeometricTape movingTapeAccept coins cfg).1 ≠ some false := by
@@ -165,6 +214,7 @@ private theorem moving_no_false :
         coinTapeRunAux_of_coinHalt _ _ _ _ hh]
       simp [movingTapeAccept]
 
+/-- The joint mass of halting with output false at any cost is zero from control state zero. -/
 theorem moving_false_mass (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (h : cfg.q = 0) (k : ℕ) :
     haltJoint (coinTapeKernel 1 movingGeometricTape movingTapeAccept) (Sum.inr cfg) false k = 0 := by
@@ -176,6 +226,8 @@ theorem moving_false_mass (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
   intro he
   exact moving_no_false (List.ofFn w) cfg h (congrArg Prod.fst he.symm)
 
+/-- For a costed law with Boolean terminal values, the terminal event at cost `k` is the sum of
+the true and false point masses at that cost. -/
 private theorem bool_first_stop_event {S : Type} (p : CostedLaw (Bool ⊕ S)) (k : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun z => (∃ b, z.1 = Sum.inl b) ∧ z.2 = k) =
       p (Sum.inl true,k) + p (Sum.inl false,k) := by
@@ -189,6 +241,8 @@ private theorem bool_first_stop_event {S : Type} (p : CostedLaw (Bool ⊕ S)) (k
   | inl b => cases b <;> by_cases hj : j = k <;> simp [hj]
   | inr s => simp
 
+/-- From control state zero, the joint mass of halting with output true at cost `k` is zero at
+cost zero and `2⁻ᵏ` at positive costs. -/
 theorem moving_true_mass (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (h : cfg.q = 0) (k : ℕ) :
     haltJoint (coinTapeKernel 1 movingGeometricTape movingTapeAccept) (Sum.inr cfg) true k =
@@ -209,6 +263,9 @@ theorem moving_true_mass (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
       simp [ENNReal.inv_two_add_inv_two]
     exact WithTop.add_right_cancel (ENNReal.pow_ne_top (by simp) ) (hs.trans hh.symm)
 
+/-- On every input, the moving geometric machine has survival mass `2⁻ᵀ`, true-halting mass
+`2⁻ᵏ` at positive costs, and zero false-halting mass. It terminates almost surely and has
+expected time two. -/
 theorem moving_tape_geometric_actual_unbounded_consumer :
     ∀ input : List Bool,
       let accept := (fun ql : Fin 2 => decide (ql = 1))

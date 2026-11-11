@@ -7,13 +7,32 @@ Authors: Qatlib Contributors
 import Mathlib.Tactic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# qDRIFT exponential-count bound
+
+Defines `qdriftExponentials` and proves the explicit fourth-power coefficient-mass and
+inverse-precision bound associated with Appendix D of [LeeEtAl2021]. Bounding both shifted phase
+magnitudes by `2π` yields the constant `8π²`.
+
+## Main statements
+
+* `max_pi_shift_le`: bounds the shifted phase magnitudes for `|phi| ≤ π`.
+* `d14_scaling`: bounds the defined exponential-count expression for positive precision.
+
+## References
+
+* [Lee et al., 2021][LeeEtAl2021]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorHyper20.MainResults.QdriftScaling
 
+/-- The real-valued exponential-count expression `4 * phiMax^2 * lam^4 / (2 * eps^4)`. -/
 noncomputable def qdriftExponentials (phiMax lam eps : ℝ) : ℝ :=
   4 * phiMax ^ 2 * lam ^ 4 / (2 * eps ^ 4)
 
+/-- If `|phi| ≤ π`, then the maximum of `|π - phi|` and `|π + phi|` is at most `2π`. -/
 theorem max_pi_shift_le (phi : ℝ) (hphi : |phi| ≤ Real.pi) :
     max |Real.pi - phi| |Real.pi + phi| ≤ 2 * Real.pi := by
   have h := abs_le.mp hphi
@@ -21,6 +40,8 @@ theorem max_pi_shift_le (phi : ℝ) (hphi : |phi| ≤ Real.pi) :
   · exact abs_le.mpr ⟨by linarith [h.1], by linarith [h.2, Real.pi_pos]⟩
   · exact abs_le.mpr ⟨by linarith [h.1, Real.pi_pos], by linarith [h.2]⟩
 
+/-- For `|phi| ≤ π` and positive `eps`, the specified qDRIFT expression is at most `8π² * lam^4
+/ eps^4`. -/
 theorem d14_exponentials_bound (phi lam eps : ℝ) (hphi : |phi| ≤ Real.pi)
     (heps : 0 < eps) :
     qdriftExponentials (max |Real.pi - phi| |Real.pi + phi|) lam eps
@@ -49,6 +70,8 @@ theorem d14_exponentials_bound (phi lam eps : ℝ) (hphi : |phi| ≤ Real.pi)
           field_simp
           ring
 
+/-- For a phase in `[-π, π]` and positive precision, bounds the defined qDRIFT expression by
+`8π²` times `lam^4 / eps^4`. See [LeeEtAl2021]. -/
 theorem d14_scaling (phi lam eps : ℝ) (hphi : |phi| ≤ Real.pi)
     (heps : 0 < eps) :
     qdriftExponentials (max |Real.pi - phi| |Real.pi + phi|) lam eps

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.LatticeDefs
+
+/-!
+# Spectral expansions of search amplitudes
+
+This module expresses Hamiltonian transition amplitudes in the columns of a unitary spectral
+matrix, supporting the spectral analysis of [ChildsGoldstone2004]. It bounds the amplitude by
+the sum of overlap products and evaluates an explicit symmetric two-level expression.
+
+## Main statements
+
+* `amplitude_expansion`: spectral sum for a Hamiltonian transition amplitude.
+* `amplitude_norm_le_sum`: triangle-inequality bound on the spectral sum.
+* `two_level_amplitude_value`: exact sine formula for the two-level amplitude norm.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,11 +38,15 @@ namespace Qatlib.Papers.SpatialSearch03.MainResults
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- The state given by column `a` of the matrix `U`. -/
 noncomputable def spectralVector (U : Matrix ι ι ℂ) (a : ι) : QState ι := fun i => U i a
 
+/-- The inner product of column `a` of `U` with a state is coordinate `a` of the adjoint matrix
+applied to that state. -/
 theorem inner_spectralVector_eq_mulVec (U : Matrix ι ι ℂ) (a : ι) (s : QState ι) :
     Inner (spectralVector U a) s = (Uᴴ *ᵥ s) a := rfl
 
+/-- A state is the sum of its projections onto the columns of a unitary matrix. -/
 theorem eq_sum_spectralVector (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ)
     (s : QState ι) :
     s = ∑ a, Inner (spectralVector U a) s • spectralVector U a := by
@@ -44,12 +67,16 @@ theorem eq_sum_spectralVector (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryG
         intro a _
         ring
 
+/-- The inner product with a fixed state distributes over a finite sum in its second argument. -/
 theorem inner_sum_state (w : QState ι) (f : ι → QState ι) :
     Inner w (∑ a, f a) = ∑ a, Inner w (f a) := by
   unfold Qatlib.Foundations.PureStateMath.Inner
   simp only [dotProduct, Finset.sum_apply, Finset.mul_sum, Pi.star_apply]
   rw [Finset.sum_comm]
 
+/-- For a Hamiltonian with unitary spectral matrix `U` and real eigenvalues `lam`, the
+transition amplitude is the sum of the two spectral overlaps multiplied by the phases `exp
+(-i * t * lam a)`. -/
 theorem amplitude_expansion
     (U : Matrix ι ι ℂ) (lam : ι → ℝ) (hU : U ∈ Matrix.unitaryGroup ι ℂ)
     (H : Matrix ι ι ℂ) (s w : QState ι) (t : ℝ)
@@ -68,6 +95,8 @@ theorem amplitude_expansion
     inner_smul_state, inner_smul_state]
   ring
 
+/-- A transition amplitude for a unitarily diagonalized Hamiltonian has norm at most the sum of
+the products of its two spectral-overlap norms, as used in [ChildsGoldstone2004]. -/
 theorem amplitude_norm_le_sum
     (U : Matrix ι ι ℂ) (lam : ι → ℝ) (hU : U ∈ Matrix.unitaryGroup ι ℂ)
     (H : Matrix ι ι ℂ) (s w : QState ι) (t : ℝ)
@@ -88,6 +117,7 @@ theorem amplitude_norm_le_sum
     rw [norm_mul, norm_mul, hexp a, mul_one]
   rw [Finset.sum_congr rfl (fun a _ => hbank a)]
 
+/-- The norm of `exp (-i * θ) - exp (i * θ)` is `2 * |Real.sin θ|`. -/
 theorem norm_exp_neg_I_sub_exp_I (θ : ℝ) :
     ‖Complex.exp (-(Complex.I * (θ : ℂ))) - Complex.exp (Complex.I * (θ : ℂ))‖ =
       2 * |Real.sin θ| := by
@@ -111,6 +141,8 @@ theorem norm_exp_neg_I_sub_exp_I (θ : ℝ) :
     norm_num
   exact h2sin
 
+/-- For positive `N`, `E`, and `F'`, the displayed two-level complex amplitude has norm `2 /
+(Real.sqrt N * E * F') * |Real.sin (E * t)|` [ChildsGoldstone2004]. -/
 theorem two_level_amplitude_value
     (N : ℕ) (hN : 0 < N) (E F' t : ℝ) (hE : 0 < E) (hF' : 0 < F') :
     ‖-(((Real.sqrt (N : ℝ) : ℂ))⁻¹) *

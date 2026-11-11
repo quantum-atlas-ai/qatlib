@@ -8,6 +8,37 @@ import Qatlib.Concepts.MbqcFlow.FlowDecision.StoppingReference
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
 import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
 import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+/-!
+# Receipt laws and reference-preserving stopping
+
+This module constructs unbounded receipt laws that retain accumulated costs and reserve `none`
+for nontermination. It identifies finite instrument-path laws with costed mixed execution,
+proves convergence of halting-event probabilities, and partitions finite execution into
+within-budget, overflow, and pending events.
+
+For joint memory-reference states, `normalizeJoint` and the reference post-state lemmas describe
+conditional outputs, path mixtures, and their limits. These constructions use quantum
+instruments [DaviesLewis1970] and the density-operator and partial-trace framework of
+[Watrous2018].
+
+## Main statements
+
+* `FullLaw.fullPathLaw_eq`: compiled full path laws equal finite mixed execution laws.
+* `haltEventLimit_probability`: the limiting event trace equals its unbounded receipt
+  probability.
+* `referencePathMixture_tendsto`: finite conditional path mixtures converge when the limiting
+  event mass is positive.
+* `frontier1`: collects execution-law, limiting-map, and mass-conservation guarantees.
+* `frontier2`: collects the reference-event probability and conditional-state convergence
+  guarantees.
+
+## References
+
+* [Davies and Lewis, 1970][DaviesLewis1970]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
@@ -32,12 +63,16 @@ noncomputable section
 
 variable {S O : Type}
 
+/-- Moves an accumulated cost into the halted or running component of a configuration. -/
 def receiptEmbed (z : (O⊕S)×ℕ) : (O×ℕ)⊕(S×ℕ) :=
   z.1.map (fun o => (o,z.2)) (fun s => (s,z.2))
 
+/-- Lifts a costed transition to a transition on configurations carrying accumulated cost. -/
 def receiptMacroNext (next : S→PMF ((O⊕S)×ℕ)) (s : S×ℕ) : PMF ((O×ℕ)⊕(S×ℕ)) :=
   (next s.1).map (fun z => receiptEmbed (z.1,s.2+z.2))
 
+/-- The receipt-carrying macro execution agrees with costed execution after adding the initial
+accumulated cost and forgetting the macro step count. -/
 theorem receipt_macro_projection (next : S→PMF ((O⊕S)×ℕ)) (n : ℕ) (cfg : O⊕S) (a : ℕ) :
     (runFor (receiptMacroNext next) n (receiptEmbed (cfg,a))).map Prod.fst =
       (branchCostRun next n cfg).map (fun z => receiptEmbed (z.1,a+z.2)) := by
@@ -58,9 +93,12 @@ theorem receipt_macro_projection (next : S→PMF ((O⊕S)×ℕ)) (n : ℕ) (cfg 
       funext z
       simp only [Nat.add_assoc,receiptEmbed]
 
+/-- The unbounded law of halted outputs with accumulated costs, using `none` for nontermination. -/
 def receiptUnboundedLaw (next : S→PMF ((O⊕S)×ℕ)) (s : S) : PMF (Option (O×ℕ)) :=
   (generalUnboundedLaw (receiptMacroNext next) (.inr (s,0))).map (Option.map Prod.fst)
 
+/-- A sum of extended nonnegative real values over an option type splits into the `none` term
+and the sum over `some` values. -/
 theorem tsum_option_ennreal {α : Type} (F : Option α→ℝ≥0∞) :
     (∑' z : Option α, F z)=F none+∑' a : α, F (some a) := by
   let e := Equiv.optionEquivSumPUnit α
@@ -71,11 +109,14 @@ theorem tsum_option_ennreal {α : Type} (F : Option α→ℝ≥0∞) :
       simp [e]
     _ = _ := add_comm _ _
 
+/-- The `none` mass of the unbounded receipt law is the never-halting mass of the
+receipt-carrying transition. -/
 theorem receiptUnboundedLaw_never (next : S→PMF ((O⊕S)×ℕ)) (s : S) :
     receiptUnboundedLaw next s none = generalNeverMass (receiptMacroNext next) (.inr (s,0)) := by
   rw [receiptUnboundedLaw,PMF.map_apply,tsum_option_ennreal]
   simp [generalUnboundedLaw_apply,generalUnboundedMass]
 
+/-- The mass of a particular output and receipt is the sum of its exact halting-time masses. -/
 theorem receiptUnboundedLaw_some (next : S→PMF ((O⊕S)×ℕ)) (s : S) (o : O) (k : ℕ) :
     receiptUnboundedLaw next s (some (o,k)) =
       ∑' t : ℕ, haltJoint (receiptMacroNext next) (.inr (s,0)) (o,k) t := by
@@ -87,6 +128,7 @@ theorem receiptUnboundedLaw_some (next : S→PMF ((O⊕S)×ℕ)) (s : S) (o : O)
   · intro z hz
     simp [Ne.symm hz]
 
+/-- The total mass of halted receipts plus the never-halting mass is one. -/
 theorem receiptUnboundedLaw_conservation (next : S→PMF ((O⊕S)×ℕ)) (s : S) :
     (∑' z : O×ℕ, receiptUnboundedLaw next s (some z)) +
       generalNeverMass (receiptMacroNext next) (.inr (s,0)) = 1 := by
@@ -95,28 +137,36 @@ theorem receiptUnboundedLaw_conservation (next : S→PMF ((O⊕S)×ℕ)) (s : S)
   rw [tsum_option_ennreal] at h
   simpa only [add_comm] using! h
 
+/-- The unbounded receipt law of an instrument-controlled program, retaining both the output and
+conditional quantum state. -/
 def quantumReceiptLaw {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ) (c : C) (ρ : ClockDensity D) :
     PMF (Option ((O×ClockDensity D)×ℕ)) :=
   receiptUnboundedLaw (mixedNext I dest price) (c,ρ)
 
+/-- The total mass of quantum output receipts plus nontermination is one. -/
 theorem quantumReceiptLaw_conservation {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ) (c : C) (ρ : ClockDensity D) :
     (∑' z : (O×ClockDensity D)×ℕ, quantumReceiptLaw I dest price c ρ (some z)) +
       generalNeverMass (receiptMacroNext (mixedNext I dest price)) (.inr ((c,ρ),0)) = 1 :=
   receiptUnboundedLaw_conservation (mixedNext I dest price) (c,ρ)
 
+/-- The real trace of a finite event map equals its finite event probability. -/
 theorem finite_event_trace {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : Operator D) (Ev : (O⊕C)×ℕ→Prop) :
     (Matrix.trace (finiteEventMap I dest price n c Ev ρ)).re=finiteEventProb I dest price n c ρ Ev :=
   Qatlib.Concepts.AdversaryBounds.AdvDuality.eventBranchMap_trace_re _ _ _
 
+/-- The costed law obtained by measuring the finite path instrument and recording each leaf
+result and charge. -/
 def compiledReceiptLaw {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) : CostedLaw (O⊕C) :=
   (instrumentPMF (pathInstrument I dest n c) ρ.property).map (leafRecord dest price n c)
 
+/-- The mass of an event under the compiled receipt law equals the extended nonnegative real
+value of its finite event probability. -/
 theorem compiled_event_mass {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (Ev : (O⊕C)×ℕ→Prop) :
@@ -133,9 +183,13 @@ theorem compiled_event_mass {C L O : Type} [Fintype L] {D : ℕ}
   intro p _
   by_cases he : Ev (leafRecord dest price n c p) <;> simp [he]
 
+/-- Forgets the post-state in a halted or running receipt while retaining the classical
+configuration and cost. -/
 def forgetPostReceipt {C O Q : Type} (z : ((O×Q)⊕(C×Q))×ℕ) : (O⊕C)×ℕ :=
   (z.1.map Prod.fst Prod.fst,z.2)
 
+/-- A halted output-cost point after forgetting post-states has the mass of all original
+receipts with that output and cost. -/
 theorem forgetPost_halt_point {C O Q : Type} (p : CostedLaw ((O×Q)⊕(C×Q))) (o : O) (k : ℕ) :
     (p.map forgetPostReceipt) (.inl o,k) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun z => z.2=k ∧ ∃ q : Q, z.1=.inl (o,q)) := by
@@ -149,6 +203,8 @@ theorem forgetPost_halt_point {C O Q : Type} (p : CostedLaw ((O×Q)⊕(C×Q))) (
     simp [forgetPostReceipt,Prod.mk.injEq,eq_comm,and_comm]
   | inr c => simp [forgetPostReceipt]
 
+/-- The compiled receipt law and the finite mixed execution have the same halted output-cost
+masses after post-states are forgotten. -/
 theorem compiled_halt_point {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (o : O) (k : ℕ) :
@@ -159,6 +215,7 @@ theorem compiled_halt_point {C L O : Type} [Fintype L] {D : ℕ}
   rw [← GeneralExecution.event_point_mass,compiled_event_mass,← finite_event_trace,
     finite_event_mixedHaltMap]
 
+/-- The mass of a halted-output event is the sum of its selected output-cost point masses. -/
 theorem event_halt_decompose (p : CostedLaw (O⊕S)) (E : O×ℕ→Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (haltPredicate E) =
       ∑' o : O, ∑' k : ℕ, if E (o,k) then p (.inl o,k) else 0 := by
@@ -171,6 +228,8 @@ theorem event_halt_decompose (p : CostedLaw (O⊕S)) (E : O×ℕ→Prop) :
   intro k
   by_cases he : E (o,k) <;> simp [he]
 
+/-- The real trace of a finite halting-event map, embedded in the extended nonnegative reals,
+equals its mass in the costed mixed execution. -/
 theorem finiteHaltEvent_probability {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (E : O×ℕ→Prop) :
@@ -188,8 +247,11 @@ theorem finiteHaltEvent_probability {C L O : Type} [Fintype L] {D : ℕ}
   by_cases he : E (o,k) <;> simp only [he,if_true,if_false]
   exact compiled_halt_point I dest price n c ρ o k
 
+/-- Lifts a predicate to an option type, declaring `none` to be outside the event. -/
 def optionEvent {A : Type} (E : A→Prop) (z : Option A) : Prop := z.elim False E
 
+/-- The mass of a lifted option event is the sum of the `some` point masses satisfying its
+predicate. -/
 theorem option_event_mass {A : Type} (p : PMF (Option A)) (E : A→Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (optionEvent E) = ∑' a, if E a then p (some a) else 0 := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
@@ -199,6 +261,8 @@ theorem option_event_mass {A : Type} (p : PMF (Option A)) (E : A→Prop) :
   intro a
   by_cases he : E a <;> simp [he]
 
+/-- The mass of an unbounded receipt event is the sum of the selected output-cost exact
+halting-time masses. -/
 theorem receipt_event_mass (next : S→PMF ((O⊕S)×ℕ)) (s : S) (E : O×ℕ→Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (receiptUnboundedLaw next s) (optionEvent E) =
       ∑' out : O×ℕ, if E out then
@@ -209,6 +273,8 @@ theorem receipt_event_mass (next : S→PMF ((O⊕S)×ℕ)) (s : S) (E : O×ℕ�
   obtain ⟨o,k⟩ := out
   rw [receiptUnboundedLaw_some]
 
+/-- Finite-fuel halted-event probabilities converge to the sum of the selected exact
+halting-time masses. -/
 theorem macro_event_tendsto (next : S→PMF (O⊕S)) (cfg : O⊕S) (E : O→Prop) :
     Filter.Tendsto
       (fun N => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor next N cfg) (fun z => ∃ o, z.1=.inl o ∧ E o))
@@ -235,6 +301,8 @@ theorem macro_event_tendsto (next : S→PMF (O⊕S)) (cfg : O⊕S) (E : O→Prop
   exact (ENNReal.tendsto_nat_tsum (fun t => ∑' o, if E o then haltJoint next cfg o t else 0)).comp
     (Filter.tendsto_add_atTop_nat 1)
 
+/-- A finite halted-receipt event has the same mass under receipt-carrying macro execution and
+costed execution. -/
 theorem receipt_finite_event (next : S→PMF ((O⊕S)×ℕ)) (s : S) (N : ℕ) (E : O×ℕ→Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor (receiptMacroNext next) N (.inr (s,0)))
       (fun z => ∃ out, z.1=.inl out ∧ E out) =
@@ -248,6 +316,8 @@ theorem receipt_finite_event (next : S→PMF ((O⊕S)×ℕ)) (s : S) (N : ℕ) (
   obtain ⟨cfg,k⟩ := z
   cases cfg <;> simp [P,receiptEmbed,haltPredicate]
 
+/-- Finite-fuel receipt-event masses converge to the corresponding event mass in the unbounded
+receipt law. -/
 theorem receipt_event_tendsto (next : S→PMF ((O⊕S)×ℕ)) (s : S) (E : O×ℕ→Prop) :
     Filter.Tendsto
       (fun N => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (branchCostRun next N (.inr s)) (haltPredicate E))
@@ -256,6 +326,8 @@ theorem receipt_event_tendsto (next : S→PMF ((O⊕S)×ℕ)) (s : S) (E : O×�
   have h := macro_event_tendsto (receiptMacroNext next) (.inr (s,0)) E
   simpa only [receipt_finite_event] using! h
 
+/-- The real trace of the limiting halting-event map equals the corresponding event mass in the
+unbounded quantum receipt law. -/
 theorem haltEventLimit_probability {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (ρ : ClockDensity D) (E : O×ℕ→Prop) :
@@ -277,10 +349,13 @@ theorem haltEventLimit_probability {C L O : Type} [Fintype L] {D : ℕ}
     cases cfg <;> rfl
   exact tendsto_nhds_unique hcp (hlaw.congr' (Filter.Eventually.of_forall fun N => (heq N).symm))
 
+/-- The finite non-Zeno cost check succeeds exactly when every state cost is positive. -/
 theorem stateCost_check_iff {C : Type} [Fintype C] [DecidableEq C] (cost : C→ℕ) :
     Qatlib.Concepts.StoppingCore.InterruptBridge.nonZenoCheck cost=true ↔ ∀ c, 0 < cost c :=
   Qatlib.Concepts.AdversaryBounds.AdvDuality.clause14_nonZenoCheck_iff C cost
 
+/-- When the state-cost check succeeds, the map for halting at cost `k` stabilizes at fuel `k`
+and remains unchanged for larger fuel. -/
 theorem stateCost_positive_stabilization {C L O : Type} [Fintype C] [DecidableEq C] [Fintype L]
     [Fintype O] [DecidableEq O] {D : ℕ} (I : C→Instrument L D D) (dest : C→L→O⊕C) (cost : C→ℕ)
     (hc : Qatlib.Concepts.StoppingCore.InterruptBridge.nonZenoCheck cost=true)
@@ -289,20 +364,27 @@ theorem stateCost_positive_stabilization {C L O : Type} [Fintype C] [DecidableEq
   mixed_instrument_positive_clock_stabilization C L O D I dest (fun c _ => cost c)
     (fun c _ => (stateCost_check_iff cost).mp hc c) n k c o hk
 
+/-- Divides a matrix by its positive real trace, returning zero when that real trace is not
+positive. -/
 def normalizeJoint {J : Type} [Fintype J] (A : Matrix J J ℂ) : Matrix J J ℂ :=
   if 0 < (Matrix.trace A).re then ((Matrix.trace A).re : ℂ)⁻¹ • A else 0
 
+/-- The trace of a positive semidefinite complex matrix equals the complex embedding of its real
+part. -/
 theorem psd_trace_real {J : Type} [Fintype J] [DecidableEq J] (A : Matrix J J ℂ) (hA : A.PosSemidef) :
     Matrix.trace A = ((Matrix.trace A).re : ℂ) := by
   apply Complex.ext
   · rfl
   · exact (RCLike.nonneg_iff.mp hA.trace_nonneg).2
 
+/-- A positive semidefinite matrix with zero real trace is zero. -/
 theorem psd_re_trace_zero {J : Type} [Fintype J] [DecidableEq J] (A : Matrix J J ℂ)
     (hA : A.PosSemidef) (h0 : (Matrix.trace A).re=0) : A=0 := by
   apply (Matrix.PosSemidef.trace_eq_zero_iff hA).mp
   rw [psd_trace_real A hA,h0,Complex.ofReal_zero]
 
+/-- A positive semidefinite matrix is recovered by multiplying its normalized form by its real
+trace. -/
 theorem normalizeJoint_reconstruct {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A.PosSemidef) :
     ((Matrix.trace A).re : ℂ) • normalizeJoint A = A := by
@@ -312,6 +394,8 @@ theorem normalizeJoint_reconstruct {J : Type} [Fintype J] [DecidableEq J]
     rw [psd_re_trace_zero A hA hz]
     simp
 
+/-- Normalizing a positive semidefinite matrix of positive real trace yields a positive
+semidefinite matrix of trace one. -/
 theorem normalizeJoint_positive {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A.PosSemidef) (hp : 0 < (Matrix.trace A).re) :
     (normalizeJoint A).PosSemidef ∧ Matrix.trace (normalizeJoint A)=1 := by
@@ -324,22 +408,29 @@ theorem normalizeJoint_positive {J : Type} [Fintype J] [DecidableEq J]
     simp only [Complex.ofReal_re]
     exact inv_mul_cancel₀ (by exact_mod_cast ne_of_gt hp)
 
+/-- A positive semidefinite matrix of zero real trace and its normalized form both vanish. -/
 theorem normalizeJoint_zero {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A.PosSemidef) (h0 : (Matrix.trace A).re=0) :
     A=0 ∧ normalizeJoint A=0 := by
   have hz := psd_re_trace_zero A hA h0
   exact ⟨hz,by simp [normalizeJoint,h0]⟩
 
+/-- Applying a linear map on the memory register commutes with tracing out the reference
+register. -/
 theorem tensorLeft_partialTrace {D E R : ℕ} (T : Operator D→ₗ[ℂ]Operator E)
     (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
     PartialTrace (tensorLeft T X)=T (PartialTrace X) :=
   Qatlib.Concepts.TensorRegisters.RegisterModel.traceRight_local_linear T X
 
+/-- The trace of a reference-extended linear map equals the trace of that map applied to the
+memory marginal. -/
 theorem tensorLeft_trace_marginal {D E R : ℕ} (T : Operator D→ₗ[ℂ]Operator E)
     (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
     Matrix.trace (tensorLeft T X)=Matrix.trace (T (PartialTrace X)) := by
   rw [← trace_partialTrace (tensorLeft T X),tensorLeft_partialTrace]
 
+/-- The normalized sum of positive semidefinite matrices with positive total real trace is the
+mixture of their normalized forms weighted by relative real traces. -/
 theorem normalizeJoint_mixture {J K : Type} [Fintype J] [DecidableEq J] [DecidableEq K]
     (s : Finset K) (A : K→Matrix J J ℂ) (hA : ∀ i∈s, (A i).PosSemidef)
     (hq : 0 < (Matrix.trace (∑ i∈s,A i)).re) :
@@ -366,6 +457,7 @@ theorem normalizeJoint_mixture {J K : Type} [Fintype J] [DecidableEq J] [Decidab
       le_antisymm (not_lt.mp hp) (RCLike.nonneg_iff.mp (hA i hi).trace_nonneg).1
     rw [if_neg hp,psd_re_trace_zero (A i) (hA i hi) hz,smul_zero]
 
+/-- Normalization by real trace commutes with the partial trace. -/
 theorem normalizeJoint_partialTrace {D R : ℕ} (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
     PartialTrace (normalizeJoint X)=normalizeJoint (PartialTrace X) := by
   unfold normalizeJoint
@@ -374,6 +466,7 @@ theorem normalizeJoint_partialTrace {D R : ℕ} (X : Matrix (Fin D×Fin R) (Fin 
   · exact Matrix.traceRight_smul (A := X) (((Matrix.trace X).re : ℂ)⁻¹)
   · exact partialTrace_zero
 
+/-- Normalizing the finite event-map output gives the defined finite conditional post-state. -/
 theorem normalizeJoint_finiteEvent {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : Operator D) (Ev : (O⊕C)×ℕ→Prop) :
@@ -381,6 +474,8 @@ theorem normalizeJoint_finiteEvent {C L O : Type} [Fintype L] {D : ℕ}
   rw [normalizeJoint,finite_event_trace]
   rfl
 
+/-- The real trace of a reference-extended finite event map equals the event probability on the
+memory marginal. -/
 theorem reference_event_mass {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
@@ -388,6 +483,8 @@ theorem reference_event_mass {C L O : Type} [Fintype L] {D R : ℕ}
       finiteEventProb I dest price n c (PartialTrace X) Ev := by
   rw [tensorLeft_trace_marginal,finite_event_trace]
 
+/-- Tracing out the reference register of a normalized event output yields the conditional
+post-state computed from the memory marginal. -/
 theorem referencePost_memory {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
@@ -395,6 +492,8 @@ theorem referencePost_memory {C L O : Type} [Fintype L] {D R : ℕ}
       finitePost I dest price n c (PartialTrace X) Ev := by
   rw [normalizeJoint_partialTrace,tensorLeft_partialTrace,normalizeJoint_finiteEvent]
 
+/-- For a joint density operator and an event of positive probability, the conditional joint
+output is the probability-weighted mixture of normalized path outputs. -/
 theorem referencePost_path_mixture {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -426,6 +525,8 @@ theorem referencePost_path_mixture {C L O : Type} [Fintype L] {D R : ℕ}
     exact (pathProbability_eq I dest n c ⟨PartialTrace X,isDensityOperator_partialTrace hX htrace⟩ p).symm
   simpa only [hp,reference_event_mass] using! hmix
 
+/-- For a positive semidefinite joint input, an event of zero marginal probability has zero
+reference-extended output and zero normalized output. -/
 theorem referencePost_zero {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -435,6 +536,8 @@ theorem referencePost_zero {C L O : Type} [Fintype L] {D R : ℕ}
   normalizeJoint_zero _ (tensorLeft_posSemidef (finite_event_cp I dest price n c Ev) hX)
     ((reference_event_mass I dest price n c Ev X).trans hq)
 
+/-- For a positive semidefinite joint input, an event of positive marginal probability has a
+normalized reference-extended output that is positive semidefinite with trace one. -/
 theorem referencePost_positive {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -444,6 +547,8 @@ theorem referencePost_positive {C L O : Type} [Fintype L] {D R : ℕ}
   normalizeJoint_positive _ (tensorLeft_posSemidef (finite_event_cp I dest price n c Ev) hX)
     (by rw [reference_event_mass]; exact hq)
 
+/-- The reference-extended event output on a positive semidefinite input is its normalized
+output multiplied by the event probability on the memory marginal. -/
 theorem reference_event_reconstruct {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -456,6 +561,8 @@ theorem reference_event_reconstruct {C L O : Type} [Fintype L] {D R : ℕ}
   rw [reference_event_mass] at h
   exact h.symm
 
+/-- Any linear map applied after a reference-extended event factors into the event probability
+times its action on the normalized conditional output. -/
 theorem reference_downstream {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (Ev : (O⊕C)×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -467,6 +574,8 @@ theorem reference_downstream {C L O : Type} [Fintype L] {D R : ℕ}
   have h := congrArg T (reference_event_reconstruct I dest price n c Ev X hX)
   simpa only [map_smul] using! h
 
+/-- Normalization preserves convergence of a matrix sequence when the limiting real trace is
+positive. -/
 theorem normalizeJoint_tendsto {J : Type} [Fintype J] [DecidableEq J]
     (F : ℕ→Matrix J J ℂ) (A : Matrix J J ℂ)
     (h : Filter.Tendsto F Filter.atTop (nhds A)) (hq : 0 < (Matrix.trace A).re) :
@@ -484,6 +593,8 @@ theorem normalizeJoint_tendsto {J : Type} [Fintype J] [DecidableEq J]
     rw [normalizeJoint,if_pos hn]
   simpa only [normalizeJoint,if_pos hq] using! hh
 
+/-- When the limiting event mass is positive, normalized finite-fuel reference outputs converge
+to the normalized limiting output. -/
 theorem referencePost_limit_tendsto {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -492,6 +603,8 @@ theorem referencePost_limit_tendsto {C L O : Type} [Fintype L] {D R : ℕ}
       (nhds (normalizeJoint (tensorLeft (haltEventLimit I dest price c E) X))) :=
   normalizeJoint_tendsto _ _ (haltEventLimit_reference_tendsto I dest price c E R X) hq
 
+/-- A limiting reference-extended event output on a positive semidefinite input vanishes,
+together with its normalization, when its real trace is zero. -/
 theorem referencePost_limit_zero {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) (hX : X.PosSemidef)
@@ -500,6 +613,8 @@ theorem referencePost_limit_zero {C L O : Type} [Fintype L] {D R : ℕ}
       normalizeJoint (tensorLeft (haltEventLimit I dest price c E) X)=0 :=
   normalizeJoint_zero _ (tensorLeft_posSemidef (haltEventLimit_cp I dest price c E) hX) hq
 
+/-- A limiting reference-extended event output of positive real trace normalizes to a positive
+semidefinite matrix of trace one. -/
 theorem referencePost_limit_positive {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) (hX : X.PosSemidef)
@@ -510,6 +625,8 @@ theorem referencePost_limit_positive {C L O : Type} [Fintype L] {D R : ℕ}
 
 namespace FullLaw
 
+/-- A law on a finite dependent pair type with a product factorization can be pushed forward by
+first sampling the marginal and then the conditional law. -/
 theorem sigma_pushforward_bind {A Z : Type} [Fintype A]
     {B : A → Type} [∀ a, Fintype (B a)]
     (p : PMF ((a : A) × B a)) (q : PMF A) (r : ∀ a, PMF (B a))
@@ -527,6 +644,8 @@ theorem sigma_pushforward_bind {A Z : Type} [Fintype A]
   intro b _
   by_cases hz : z = f ⟨a,b⟩ <;> simp [hz,h a b]
 
+/-- The probability of a feed-forward instrument outcome factors into the first outcome
+probability and the conditional second outcome probability. -/
 theorem feedForward_clock_mass {A : Type} [Fintype A]
     {B : A → Type} [∀ a, Fintype (B a)] {D : ℕ}
     (I : Instrument A D D) (J : ∀ a, Instrument (B a) D D)
@@ -537,6 +656,8 @@ theorem feedForward_clock_mass {A : Type} [Fintype A]
   rw [instrumentProb_feedForward,← clockConditional_reconstruct I ρ a,
     instrumentProb_smul_ofReal]
 
+/-- A mapped feed-forward instrument law equals the bind of the first instrument law with the
+conditional second instrument laws. -/
 theorem feedForward_pmf_map {A Z : Type} [Fintype A]
     {B : A → Type} [∀ a, Fintype (B a)] {D : ℕ}
     (I : Instrument A D D) (J : ∀ a, Instrument (B a) D D)
@@ -551,6 +672,7 @@ theorem feedForward_pmf_map {A Z : Type} [Fintype A]
   rw [feedForward_clock_mass,
     ENNReal.ofReal_mul (instrumentProb_nonneg I ρ.property.1 a)]
 
+/-- The outcome law of the identity instrument is the point mass at the unique unit outcome. -/
 theorem identity_pmf {D : ℕ} (ρ : ClockDensity D) :
     instrumentPMF (identityInstrument D) ρ.property = PMF.pure () := by
   apply PMF.ext
@@ -560,6 +682,8 @@ theorem identity_pmf {D : ℕ} (ρ : ClockDensity D) :
 
 variable {C L O : Type} [Fintype L] {D : ℕ}
 
+/-- Records a path's halted or running result together with its conditional post-state and
+accumulated charge. -/
 def fullPathRecord (I : C → Instrument L D D) (dest : C → L → O⊕C)
     (price : C → L → ℕ) (n : ℕ) (c : C) (ρ : ClockDensity D)
     (p : Leaf dest n c) : ((O×ClockDensity D)⊕(C×ClockDensity D))×ℕ :=
@@ -568,12 +692,16 @@ def fullPathRecord (I : C → Instrument L D D) (dest : C → L → O⊕C)
       (fun c' => (c',pathPost I dest n c ρ p)),
     leafCharge dest price n c p)
 
+/-- The costed law of full path records, including conditional post-states, induced by the
+finite path instrument. -/
 def fullPathLaw (I : C → Instrument L D D) (dest : C → L → O⊕C)
     (price : C → L → ℕ) (n : ℕ) (c : C) (ρ : ClockDensity D) :
     CostedLaw ((O×ClockDensity D)⊕(C×ClockDensity D)) :=
   (instrumentPMF (pathInstrument I dest n c) ρ.property).map
     (fullPathRecord I dest price n c ρ)
 
+/-- One additional step of mixed execution samples an instrument outcome, updates the
+conditional state, and charges its cost before the remaining execution. -/
 theorem mixed_run_succ (I : C → Instrument L D D) (dest : C → L → O⊕C)
     (price : C → L → ℕ) (n : ℕ) (c : C) (ρ : ClockDensity D) :
     branchCostRun (mixedNext I dest price) (n+1) (.inr (c,ρ)) =
@@ -585,6 +713,7 @@ theorem mixed_run_succ (I : C → Instrument L D D) (dest : C → L → O⊕C)
   simp only [branchCostRun,branchCostTick,Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind,mixedNext,mixedReceipt,
     PMF.bind_map,Function.comp_def]
 
+/-- The full finite path law equals the costed execution law of the mixed instrument transition. -/
 theorem fullPathLaw_eq (I : C → Instrument L D D) (dest : C → L → O⊕C)
     (price : C → L → ℕ) (n : ℕ) (c : C) (ρ : ClockDensity D) :
     fullPathLaw I dest price n c ρ =
@@ -656,6 +785,7 @@ theorem fullPathLaw_eq (I : C → Instrument L D D) (dest : C → L → O⊕C)
 
 end FullLaw
 
+/-- Forgetting post-states from the full path law yields the compiled receipt law. -/
 theorem compiledReceiptLaw_projection {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) :
@@ -667,6 +797,8 @@ theorem compiledReceiptLaw_projection {C L O : Type} [Fintype L] {D : ℕ}
   unfold Function.comp forgetPostReceipt FullLaw.fullPathRecord leafRecord
   cases leafResult dest n c p <;> rfl
 
+/-- The real trace of a finite event map equals its probability in mixed execution after
+post-states are forgotten. -/
 theorem finite_event_probability {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (ρ : ClockDensity D) (Ev : (O⊕C)×ℕ→Prop) :
@@ -676,15 +808,20 @@ theorem finite_event_probability {C L O : Type} [Fintype L] {D : ℕ}
   rw [finite_event_trace,← compiled_event_mass,← compiledReceiptLaw_projection,
     FullLaw.fullPathLaw_eq,Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map]
 
+/-- The event that execution has halted with accumulated cost at most the budget. -/
 def budgetAccepted {C O : Type} (B : ℕ) (z : (O⊕C)×ℕ) : Prop :=
   match z.1 with | .inl _ => z.2≤B | .inr _ => False
 
+/-- The event that execution has halted with accumulated cost strictly greater than the budget. -/
 def budgetOverflow {C O : Type} (B : ℕ) (z : (O⊕C)×ℕ) : Prop :=
   match z.1 with | .inl _ => B<z.2 | .inr _ => False
 
+/-- The event that execution remains in a running configuration. -/
 def pendingEvent {C O : Type} (z : (O⊕C)×ℕ) : Prop :=
   match z.1 with | .inl _ => False | .inr _ => True
 
+/-- The accepted-budget, overflow, and pending event outputs sum to the output of the path
+instrument with outcomes forgotten. -/
 theorem budget_partition {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (B : ℕ) (ρ : Operator D) :
@@ -703,6 +840,7 @@ theorem budget_partition {C L O : Type} [Fintype L] {D : ℕ}
     · simp [hk,Nat.lt_of_not_ge hk]
   · simp
 
+/-- For a density input, the accepted-budget, overflow, and pending probabilities sum to one. -/
 theorem budget_partition_probability {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (B : ℕ) (ρ : ClockDensity D) :
@@ -714,6 +852,8 @@ theorem budget_partition_probability {C L O : Type} [Fintype L] {D : ℕ}
   simpa only [Matrix.trace_add,Complex.add_re,finite_event_trace,
     Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument.forget_apply,(pathInstrument I dest n c).total,ρ.property.2,Complex.one_re] using! hh
 
+/-- For a joint density input, the real trace of the reference-extended limiting event map
+equals the event mass in the quantum receipt law of its memory marginal. -/
 theorem haltEventLimit_reference_probability {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -726,6 +866,8 @@ theorem haltEventLimit_reference_probability {C L O : Type} [Fintype L] {D R : �
   exact haltEventLimit_probability I dest price c
     ⟨PartialTrace X,isDensityOperator_partialTrace hX htrace⟩ E
 
+/-- A linear map applied to a limiting reference event output factors as its real trace times
+the map applied to its normalized output. -/
 theorem reference_limit_downstream {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -738,6 +880,8 @@ theorem reference_limit_downstream {C L O : Type} [Fintype L] {D R : ℕ}
     (tensorLeft_posSemidef (haltEventLimit_cp I dest price c E) hX))
   simpa only [map_smul] using! h.symm
 
+/-- The mixture of normalized reference-extended path outputs for a finite halting event,
+weighted by their probabilities relative to the event probability. -/
 def referencePathMixture {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -749,6 +893,8 @@ def referencePathMixture {C L O : Type} [Fintype L] {D R : ℕ}
           normalizeJoint (tensorLeft ((pathInstrument I dest n c).branch p) X)
     else 0
 
+/-- When the limiting halting-event mass is positive, the finite conditional path mixtures
+converge to the normalized limiting reference output. -/
 theorem referencePathMixture_tendsto {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
@@ -767,6 +913,7 @@ theorem referencePathMixture_tendsto {C L O : Type} [Fintype L] {D R : ℕ}
   filter_upwards [he] with n hn
   exact referencePost_path_mixture I dest price n c (haltPredicate E) X hX htrace hn
 
+/-- The total limiting halting mass plus the never-halting mass is one. -/
 theorem haltEventLimit_total_never {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (ρ : ClockDensity D) :
@@ -775,6 +922,7 @@ theorem haltEventLimit_total_never {C L O : Type} [Fintype L] {D : ℕ}
   rw [haltEventLimit_probability,option_event_mass]
   simpa only [if_true] using! quantumReceiptLaw_conservation I dest price c ρ
 
+/-- A program whose every destination is a running state has zero finite halting-event map. -/
 theorem finiteHaltEvent_never {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (step : C→L→C) (price : C→L→ℕ)
     (n : ℕ) (c : C) (E : O×ℕ→Prop) :
@@ -787,6 +935,7 @@ theorem finiteHaltEvent_never {C L O : Type} [Fintype L] {D : ℕ}
     intro l _
     simp only [ih,LinearMap.zero_comp]
 
+/-- A program whose every destination is a running state has zero limiting halting-event map. -/
 theorem haltEventLimit_never {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (step : C→L→C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) :
@@ -801,6 +950,7 @@ theorem haltEventLimit_never {C L O : Type} [Fintype L] {D : ℕ}
       (tendsto_const_nhds : Filter.Tendsto (fun _ : ℕ => (0 : Operator D)) Filter.atTop (nhds 0))
   exact tendsto_nhds_unique h hz
 
+/-- An instrument-controlled program with no halted destinations has never-halting mass one. -/
 theorem quantum_never_loop {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (step : C→L→C) (price : C→L→ℕ)
     (c : C) (ρ : ClockDensity D) :
@@ -810,14 +960,18 @@ theorem quantum_never_loop {C L O : Type} [Fintype L] {D : ℕ}
   simpa only [haltEventLimit_never,LinearMap.zero_apply,Matrix.trace_zero,Complex.zero_re,
     ENNReal.ofReal_zero,zero_add] using! h
 
+/-- The retry destination that halts on `true` and returns to the unit state on `false`. -/
 def retryDest (_ : Unit) (b : Bool) : Unit⊕Unit := if b then .inl () else .inr ()
 
+/-- Applying the false branch before `n` continuation steps equals taking `n + 1` continuation
+steps. -/
 theorem loopContinueMap_shift {D : ℕ} (I : Instrument Bool D D) (n : ℕ) (ρ : Operator D) :
     loopContinueMap I n (I.branch false ρ)=loopContinueMap I (n+1) ρ := by
   induction n with
   | zero => rfl
   | succ n ih => simpa only [loopContinueMap_succ_apply] using! congrArg (I.branch false) ih
 
+/-- The exact halting layer of the retry program equals the corresponding loop halting map. -/
 theorem retry_exact_layer {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bool→ℕ) (n : ℕ) :
     exactEventLayer (fun _ => I) retryDest price n () (fun _ => True)=loopHaltAt I n := by
   apply LinearMap.ext
@@ -831,11 +985,13 @@ theorem retry_exact_layer {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bo
       LinearMap.comp_apply,LinearMap.zero_apply,zero_add]
     rw [ih,loopHaltAt_apply,loopHaltAt_apply,loopContinueMap_shift]
 
+/-- The finite halting-event map of the retry program equals the loop partial map. -/
 theorem retry_finite_map {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bool→ℕ) (n : ℕ) :
     finiteHaltEvent (fun _ => I) retryDest price n () (fun _ => True)=loopPartialMap I n := by
   rw [← exactEventLayer_sum]
   simp only [retry_exact_layer,loopPartialMap]
 
+/-- The limiting halting-event map of the retry program equals the loop terminal map. -/
 theorem retry_limit_map {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bool→ℕ) :
     haltEventLimit (fun _ => I) retryDest price () (fun _ => True)=loopTerminalMap I := by
   apply LinearMap.ext
@@ -844,6 +1000,9 @@ theorem retry_limit_map {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bool
   simp only [retry_finite_map] at h
   exact tendsto_nhds_unique h (loopTerminalMap_tendsto I ρ)
 
+/-- Combines equality of finite path and execution laws with complete positivity, trace
+nonincrease, convergence, probability identification, and conservation of halting and
+nontermination mass. -/
 theorem frontier1 {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (ρ : ClockDensity D) (E : O×ℕ→Prop) :
@@ -863,6 +1022,9 @@ theorem frontier1 {C L O : Type} [Fintype L] {D : ℕ}
     haltEventLimit_tendsto I dest price c E ρ.val,haltEventLimit_probability I dest price c ρ E,
     haltEventLimit_total_never I dest price c ρ⟩
 
+/-- For a joint density input with positive limiting event mass, identifies the event
+probability and proves that the normalized limiting output is a density operator approached
+by finite conditional path mixtures. -/
 theorem frontier2 {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)

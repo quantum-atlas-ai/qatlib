@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter
+
+/-!
+# A machine for appending framed register contents
+
+This module defines a stack-machine program that prepares `framed (R src)` in a buffer and
+transfers it to an output stack. The stack indices `Slot`, control states `Label`, and
+configuration constructor `store` support the composition of the existing numeric preparation
+writer with a transfer program. For general background on classical computation and resource
+bounds, see [KitaevShenVyalyi2002].
+
+The execution theorems `write_call` and `append_call` verify the two stages with explicit cost
+bounds. Their composition `complete` starts with the reversed output word on the output stack,
+appends the framed source word in the represented word order, clears the buffer, and halts
+within a cubic bound.
+
+## Main statements
+
+* `program`: the preparation, transfer, and halt stages of the machine.
+* `write_call`: prepare the framed source word while preserving the output stack.
+* `append_call`: empty the buffer into the output stack with a quadratic cost bound.
+* `complete`: append the framed source word and halt within `12000 * (1 + (R src).length +
+  out.length) ^ 3` cost.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,9 +48,13 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec (Bits framed)
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- The stack index type extending the numeric preparation writer's stack indices by one output
+stack. -/
 abbrev Slot (K : Type) :=
     Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot K ⊕ Fin 1
 
+/-- Control states for running the numeric preparation writer, transferring the buffer to the
+output stack, and halting. -/
 inductive Label where
   | write (l : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Label)
   | append (l : Fin 1)
@@ -32,10 +64,14 @@ instance : Inhabited Label := ⟨.write (.copy .emit)⟩
 
 variable {K : Type} [DecidableEq K]
 
+/-- Embeds the transfer program's two stack indices into `Slot K`, selecting the preparation
+writer's output buffer at index zero and the added output stack at index one. -/
 def appendCode : Fin 2 → Slot K
   | 0 => .inl (.inl .output)
   | _ => .inr 0
 
+/-- The stack-machine program that runs the numeric preparation writer on `src`, transfers the
+prepared buffer to the output stack, and then halts. -/
 def program (src : K) : Label → TM2.Stmt (fun _ : Slot K => Bool) Label Symbol
   | .write l => StackCall.stmt Sum.inl Label.write (.append 0) id (fun _ v => v)
       (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.program src l)
@@ -43,9 +79,14 @@ def program (src : K) : Label → TM2.Stmt (fun _ : Slot K => Bool) Label Symbol
       (transferProgram l)
   | .done => .halt
 
+/-- Extends `EffectiveNumericPrepareWriter.store R [] buffer` by assigning `out` to the added
+output stack. -/
 def store (R : K → Bits) (buffer out : Bits) : Slot K → Bits :=
   Sum.elim (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.store R [] buffer) (fun _ => out)
 
+/-- Starting with an empty buffer, the preparation stage produces `framed (R src)`, preserves
+the register and output contents, and reaches the append stage within cost `11000 * (1 + (R
+src).length) ^ 3`. -/
 theorem write_call (src : K) (R : K → Bits) (out : Bits) :
     Execution (program src)
       ⟨some (.write (.copy .emit)),none,store R [] out⟩
@@ -67,10 +108,14 @@ theorem write_call (src : K) (R : K → Bits) (out : Bits) :
 
 omit [DecidableEq K] in
 
+/-- The two transfer stack indices select distinct stacks under `appendCode`. -/
 theorem appendCode_injective : Function.Injective (appendCode (K:=K)) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [appendCode] at h ⊢
 
+/-- The append stage empties `buffer` into the output stack, producing `buffer.reverse ++ out`,
+preserving the registers, and reaching the done state with an empty symbol within cost `10 *
+(1 + buffer.length + out.length) ^ 2`. -/
 theorem append_call (src : K) (R : K → Bits) (buffer out : Bits) (v : Symbol) :
     Execution (program src) ⟨some (.append 0),v,store R buffer out⟩
       ⟨some .done,none,store R [] (buffer.reverse++out)⟩
@@ -108,6 +153,9 @@ theorem append_call (src : K) (R : K → Bits) (buffer out : Bits) (v : Symbol) 
   rw [hc,transfer_clock]
   nlinarith
 
+/-- Starting with an empty buffer and output stack `out.reverse`, the program halts with an
+empty buffer and output stack `(out ++ framed (R src)).reverse`, preserving the registers.
+Its cost is at most `12000 * (1 + (R src).length + out.length) ^ 3`. -/
 theorem complete (src : K) (R : K → Bits) (out : Bits) :
     Execution (program src)
       ⟨some (.write (.copy .emit)),none,store R [] out.reverse⟩

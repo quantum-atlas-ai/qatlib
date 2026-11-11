@@ -8,12 +8,31 @@ import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Union
 
+/-!
+# Union bound for exceptional degrees
+
+This module bounds a finite exceptional set covered by degree-indexed bad sets with
+geometrically decreasing cardinalities. The estimate collects high-degree errors in the
+central-difference analysis associated with [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_exceptional_union`: bounds `q * (1/16)^k` for degrees starting at least at three
+  give a total exceptional count at most `q/1000`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- If an exceptional predicate is covered by degree-indexed sets of cardinality at most
+`q*(1/16)^k` for `k ≥ N ≥ 3`, its cardinality is at most `q/1000`. -/
 theorem centralDiff_exceptional_union {α : Type*} [Fintype α]
     (E : α → Prop) (B : ℕ → α → Prop) (N : ℕ) (hN : 3≤N)
     (q : ℝ) (hq : 0≤q)

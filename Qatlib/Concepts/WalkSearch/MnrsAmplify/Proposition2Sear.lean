@@ -6,10 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition2Stat
 
+/-!
+# Four-update realization of a quantum walk
+
+Proves the MNRS walk-with-data realization as a product of reflections
+[MagniezNayakRolandSantha2011]. Conjugating zero-register reflections by the supplied
+preparation isometries yields the two walk reflections, and the resulting six-operation circuit
+contains four updates and two zero-register reflections.
+
+## Main statements
+
+* `mnrs_quantum_walk_with_data_cost_four_updates`: Under the stated chain and data-preparation
+  hypotheses, constructs a circuit realizing the two walk reflections with four updates, two
+  zero-register reflections, and accounted cost `4 • U` [Magniez et al., Proposition
+  2][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 
+/-- A linear isometric equivalence carrying each vector `f i` to `g i` maps the span of the
+range of `f` onto the span of the range of `g`. -/
 theorem mnrsQuantumWalkWithDataCostFourUpdates_map_span_eq
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     {ι : Type*} (f g : ι → H) (U : H ≃ₗᵢ[ℂ] H) (h : ∀ i, U (f i) = g i) :
@@ -21,6 +43,8 @@ theorem mnrsQuantumWalkWithDataCostFourUpdates_map_span_eq
   funext i
   exact h i
 
+/-- Conjugating reflection about `Z` by an isometric equivalence that maps `Z` onto `K` gives
+reflection about `K`. -/
 theorem mnrsQuantumWalkWithDataCostFourUpdates_block_eq_reflection
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     {Z K : Submodule ℂ H} [Z.HasOrthogonalProjection] [K.HasOrthogonalProjection]
@@ -31,6 +55,9 @@ theorem mnrsQuantumWalkWithDataCostFourUpdates_block_eq_reflection
   subst hmap
   rfl
 
+/-- Under the stated chain and data-preparation hypotheses, constructs a circuit realizing the
+two walk reflections with four updates, two zero-register reflections, and accounted cost `4
+• U` [Magniez et al., Proposition 2][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_quantum_walk_with_data_cost_four_updates :
     ∀ (X : Type*) (D : Type*) (C : Type*)
     [Fintype X] [DecidableEq X] [DecidableEq D] [AddCommMonoid C]

@@ -104,33 +104,64 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Sine eigenmodes of the finite Dirichlet Laplacian
+
+`difference` is the one-dimensional second-difference operator with zero boundary values, and
+`laplacian` scales its matrix by `(n + 1)²`. The vectors `sine n j` are nonzero eigenvectors
+with positive eigenvalues given by an exact half-angle sine formula.
+
+`eigenvalue_eq_cos` gives the equivalent cosine expression, while `sourceMode` introduces the
+conventional square-root scaling of the modes. These are the finite Dirichlet quantities used in
+[WangEtAl2020].
+
+## Main statements
+
+* `laplacian_sine`: Sine eigenvector equation.
+* `eigenvalue_eq_cos`: Exact cosine formula for each eigenvalue.
+* `sourceMode_hasEigenvector`: Eigenvector statement for the scaled modes.
+
+## References
+
+* [Wang et al., 2020][WangEtAl2020]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 noncomputable section
 open Matrix
 namespace Qatlib.Foundations.MatrixAlgebra.DirichletModes
 
+/-- The linear second-difference operator `2vᵢ - vᵢ₋₁ - vᵢ₊₁`, with missing boundary values set
+to zero. -/
 def difference (n : ℕ) : (Fin n → ℝ) →ₗ[ℝ] (Fin n → ℝ) where
   toFun v i := 2 * v i - (if h : 0 < i.val then v ⟨i.val - 1, by omega⟩ else 0) -
     (if h : i.val + 1 < n then v ⟨i.val + 1, h⟩ else 0)
   map_add' u v := by ext i; dsimp; split_ifs <;> ring
   map_smul' c v := by ext i; dsimp; split_ifs <;> ring
 
+/-- The Dirichlet second-difference matrix scaled by `(n + 1)²`. -/
 def laplacian (n : ℕ) : Matrix (Fin n) (Fin n) ℝ :=
   ((n + 1 : ℕ) : ℝ) ^ 2 • LinearMap.toMatrix' (difference n)
 
+/-- Multiplication by the Dirichlet Laplacian equals `(n + 1)²` times the second-difference
+operator. -/
 theorem laplacian_mulVec (n : ℕ) (v : Fin n → ℝ) :
     laplacian n *ᵥ v = ((n + 1 : ℕ) : ℝ) ^ 2 • difference n v := by
   rw [laplacian, Matrix.smul_mulVec, LinearMap.toMatrix'_mulVec]
 
+/-- The mode angle `(j.val + 1) * π / (n + 1)`. -/
 def angle (n : ℕ) (j : Fin n) : ℝ := ((j.val + 1 : ℕ) : ℝ) * Real.pi / (n + 1 : ℕ)
 
+/-- The discrete sine mode with entry `sin ((i.val + 1) * angle n j)`. -/
 def sine (n : ℕ) (j : Fin n) (i : Fin n) : ℝ :=
   Real.sin (((i.val + 1 : ℕ) : ℝ) * angle n j)
 
+/-- The eigenvalue `4 * (n + 1)² * sin² (angle n j / 2)`. -/
 def eigenvalue (n : ℕ) (j : Fin n) : ℝ :=
   4 * ((n + 1 : ℕ) : ℝ) ^ 2 * Real.sin (angle n j / 2) ^ 2
 
+/-- The sine mode vanishes at the two Dirichlet boundary positions. -/
 theorem sine_boundary (n : ℕ) (j : Fin n) :
     Real.sin (0 * angle n j) = 0 ∧ Real.sin (((n + 1 : ℕ) : ℝ) * angle n j) = 0 := by
   constructor
@@ -140,6 +171,7 @@ theorem sine_boundary (n : ℕ) (j : Fin n) :
       unfold angle; field_simp
     rw [h, Real.sin_nat_mul_pi]
 
+/-- The centered second difference of sine is `4 * sin² (t / 2) * sin x`. -/
 theorem sine_recurrence (t x : ℝ) :
     2 * Real.sin x - Real.sin (x - t) - Real.sin (x + t) =
       4 * Real.sin (t / 2) ^ 2 * Real.sin x := by
@@ -151,6 +183,8 @@ theorem sine_recurrence (t x : ℝ) :
   rw [hc]
   ring
 
+/-- The discrete sine mode is an eigenvector of the second-difference operator with eigenvalue
+`4 * sin² (angle n j / 2)`. -/
 theorem difference_sine (n : ℕ) (j : Fin n) :
     difference n (sine n j) = (4 * Real.sin (angle n j / 2) ^ 2) • sine n j := by
   ext i
@@ -181,6 +215,7 @@ theorem difference_sine (n : ℕ) (j : Fin n) :
   rw [left, right]
   exact sine_recurrence (angle n j) (((i.val + 1 : ℕ) : ℝ) * angle n j)
 
+/-- Applying the Dirichlet Laplacian to a sine mode multiplies it by its specified eigenvalue. -/
 theorem laplacian_sine (n : ℕ) (j : Fin n) :
     laplacian n *ᵥ sine n j = eigenvalue n j • sine n j := by
   rw [laplacian_mulVec, difference_sine, smul_smul]
@@ -188,6 +223,7 @@ theorem laplacian_sine (n : ℕ) (j : Fin n) :
   unfold eigenvalue
   ring
 
+/-- Every mode angle lies strictly between zero and `π`. -/
 theorem angle_bounds (n : ℕ) (j : Fin n) : 0 < angle n j ∧ angle n j < Real.pi := by
   have hn : (0 : ℝ) < (n + 1 : ℕ) := by positivity
   have hj : ((j.val + 1 : ℕ) : ℝ) < (n + 1 : ℕ) := by exact_mod_cast (by omega : j.val + 1 < n + 1)
@@ -197,6 +233,7 @@ theorem angle_bounds (n : ℕ) (j : Fin n) : 0 < angle n j ∧ angle n j < Real.
     rw [div_lt_iff₀ hn]
     nlinarith [Real.pi_pos]
 
+/-- Every indexed discrete sine mode is nonzero. -/
 theorem sine_ne_zero (n : ℕ) (j : Fin n) : sine n j ≠ 0 := by
   have hj := j.isLt
   have hn : 0 < n := by omega
@@ -206,6 +243,8 @@ theorem sine_ne_zero (n : ℕ) (j : Fin n) : sine n j ≠ 0 := by
   simp [sine] at hi
   linarith
 
+/-- Each sine mode is an eigenvector of the linear endomorphism represented by the Dirichlet
+Laplacian. -/
 theorem laplacian_hasEigenvector (n : ℕ) (j : Fin n) :
     Module.End.HasEigenvector (Matrix.toLin' (laplacian n)) (eigenvalue n j) (sine n j) := by
   constructor
@@ -213,6 +252,8 @@ theorem laplacian_hasEigenvector (n : ℕ) (j : Fin n) :
     exact laplacian_sine n j
   · exact sine_ne_zero n j
 
+/-- The Dirichlet Laplacian has diagonal entries `2 * (n + 1)²`, adjacent entries `-(n + 1)²`,
+and all other entries zero. -/
 theorem laplacian_apply (n : ℕ) (i j : Fin n) :
     laplacian n i j = ((n + 1 : ℕ) : ℝ) ^ 2 *
       ((if i = j then 2 else 0) - (if j.val + 1 = i.val then 1 else 0) -
@@ -222,12 +263,14 @@ theorem laplacian_apply (n : ℕ) (i j : Fin n) :
   simp only [difference, LinearMap.coe_mk, AddHom.coe_mk, Pi.single_apply]
   split_ifs <;> simp_all [Fin.ext_iff] <;> omega
 
+/-- The real Dirichlet Laplacian matrix is symmetric. -/
 theorem laplacian_symmetric (n : ℕ) : (laplacian n).IsSymm := by
   ext i j
   rw [Matrix.transpose_apply, laplacian_apply, laplacian_apply]
   simp only [eq_comm (a := j) (b := i)]
   ring
 
+/-- Every indexed Dirichlet eigenvalue is strictly positive. -/
 theorem eigenvalue_pos (n : ℕ) (j : Fin n) : 0 < eigenvalue n j := by
   have h := angle_bounds n j
   have hs : 0 < Real.sin (angle n j / 2) :=
@@ -235,6 +278,8 @@ theorem eigenvalue_pos (n : ℕ) (j : Fin n) : 0 < eigenvalue n j := by
   unfold eigenvalue
   positivity
 
+/-- The Dirichlet eigenvalue equals `2 * (n + 1)² * (1 - cos (angle n j))`, as in the eigenvalue
+formula of [WangEtAl2020]. -/
 theorem eigenvalue_eq_cos (n : ℕ) (j : Fin n) :
     eigenvalue n j = 2 * ((n + 1 : ℕ) : ℝ) ^ 2 * (1 - Real.cos (angle n j)) := by
   have hc := Real.cos_two_mul (angle n j / 2)
@@ -247,18 +292,23 @@ theorem eigenvalue_eq_cos (n : ℕ) (j : Fin n) :
         ((n + 1 : ℕ) : ℝ) ^ 2 * (4 * Real.sin (angle n j / 2) ^ 2) := by ring
     _ = 2 * ((n + 1 : ℕ) : ℝ) ^ 2 * (1 - Real.cos (angle n j)) := by rw [he]; ring
 
+/-- The discrete sine mode scaled by `sqrt (2 / (n + 1))`. -/
 def sourceMode (n : ℕ) (j : Fin n) : Fin n → ℝ :=
   Real.sqrt (2 / (n + 1 : ℕ)) • sine n j
 
+/-- The scaled source mode satisfies the Dirichlet Laplacian eigenvector equation. -/
 theorem laplacian_sourceMode (n : ℕ) (j : Fin n) :
     laplacian n *ᵥ sourceMode n j = eigenvalue n j • sourceMode n j := by
   rw [sourceMode, Matrix.mulVec_smul, laplacian_sine, smul_comm]
 
+/-- Every indexed scaled source mode is nonzero. -/
 theorem sourceMode_ne_zero (n : ℕ) (j : Fin n) : sourceMode n j ≠ 0 := by
   apply smul_ne_zero
   · exact ne_of_gt (Real.sqrt_pos.mpr (by positivity))
   · exact sine_ne_zero n j
 
+/-- Each scaled source mode is an eigenvector of the linear endomorphism represented by the
+Dirichlet Laplacian. -/
 theorem sourceMode_hasEigenvector (n : ℕ) (j : Fin n) :
     Module.End.HasEigenvector (Matrix.toLin' (laplacian n)) (eigenvalue n j) (sourceMode n j) := by
   constructor

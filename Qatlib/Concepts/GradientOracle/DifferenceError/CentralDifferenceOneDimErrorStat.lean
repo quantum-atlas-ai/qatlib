@@ -5,10 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
+
+/-!
+# One-dimensional central-difference error specification
+
+`CentralDifferenceOneDimError` states the high-order central-difference remainder bound for
+nonnegative step sizes. The derivative of order `2 * m + 1` is bounded on the full ordered
+interval containing the sample points. See [GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `CentralDifferenceOneDimError`: The proposition that, for `δ ≥ 0` and positive `m`, a bound
+  `B` on the `(2 * m + 1)`st derivative over the sample interval gives error at most `exp (-(1 /
+  2) * m) * B * |δ| ^ (2 * m + 1)`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
 namespace Qatlib.Concepts.GradientOracle.DifferenceError
 
+/-- The proposition that, for `δ ≥ 0` and positive `m`, a bound `B` on the `(2 * m + 1)`st
+derivative over the sample interval gives error at most `exp (-(1 / 2) * m) * B * |δ| ^ (2 *
+m + 1)`. -/
 def CentralDifferenceOneDimError : Prop :=
   ∀ (m : ℕ), 0 < m → ∀ (δ B : ℝ), 0 ≤ δ →
     ∀ (f : ℝ → ℝ), ContDiff ℝ (2 * m + 1) f →

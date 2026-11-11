@@ -14,12 +14,36 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Stat
+
+/-!
+# Generalized amplitude amplification phase action
+
+`zoo_amplitude_estimation_general_phase_action` proves the action of a generalized phase iterate
+on the good and bad components when their squared norms are strictly between zero and one.
+Supporting identities give the projection geometry, conjugation formula, and a unitary two
+dimensional change of coordinates. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `zoo_amplitude_estimation_general_phase_action`: For success probability strictly between zero
+  and one, the generalized phase iterate satisfies the good and bad component formulas of
+  [Brassard et al., Lemma 5][BrassardEtAl2002].
+* `zoo_amplitude_estimation_general_phase_action_contract`: The generalized phase component
+  action fulfills `Lemma5Spec.expected` from [Brassard et al., Lemma 5][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore
 
+/-- Conjugating a rank one phase update about `e₀` by `A` gives the same phase update about `A
+e₀`. -/
 lemma zoo_amplitude_estimation_general_phase_action_conjugation
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (A : H ≃ₗᵢ[ℂ] H) (e₀ w : H) (p : ℂ) :
@@ -27,6 +51,8 @@ lemma zoo_amplitude_estimation_general_phase_action_conjugation
       w + ((p - 1) * inner ℂ (A e₀) w) • A e₀ := by
   rw [map_add, map_smul, A.apply_symm_apply, A.inner_map_eq_flip]
 
+/-- The good and bad components have the stated projection identities and inner products with
+the original unit vector. -/
 lemma zoo_amplitude_estimation_general_phase_action_projection
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (G : ClosedSubmodule ℂ H) (ψ : H) (hψ : ‖ψ‖ = 1) :
@@ -51,11 +77,15 @@ lemma zoo_amplitude_estimation_general_phase_action_projection
   · rw [inner_sub_right, hgood, inner_self_eq_norm_sq_to_K, hψ]
     norm_num
 
+/-- The two dimensional real rotation matrix with entries formed from `sqrt a` and `sqrt (1 -
+a)`. -/
 noncomputable def zoo_amplitude_estimation_general_phase_action_matrix (a : ℝ) :
     Matrix (Fin 2) (Fin 2) ℂ :=
   !![(Real.sqrt a : ℂ), -(Real.sqrt (1 - a) : ℂ);
      (Real.sqrt (1 - a) : ℂ), (Real.sqrt a : ℂ)]
 
+/-- For `0 ≤ a ≤ 1`, the amplitude coordinate matrix multiplied by its conjugate transpose is
+the identity. -/
 lemma zoo_amplitude_estimation_general_phase_action_matrix_unitary
     (a : ℝ) (ha : 0 ≤ a) (ha' : a ≤ 1) :
     zoo_amplitude_estimation_general_phase_action_matrix a *
@@ -70,6 +100,7 @@ lemma zoo_amplitude_estimation_general_phase_action_matrix_unitary
       Matrix.conjTranspose_apply, Fin.sum_univ_two] <;>
     ring_nf <;> simp [hs, ht]
 
+/-- Expands the two phase action expressions into their coefficients on `x` and `y`. -/
 lemma zoo_amplitude_estimation_general_phase_action_transport
     {H : Type*} [AddCommGroup H] [Module ℂ H]
     (x y : H) (a : ℝ) (ha : 0 < a) (ha' : a < 1)
@@ -146,6 +177,9 @@ lemma zoo_amplitude_estimation_general_phase_action_transport
     simpa only [map_add, map_smul, map_neg, hTξ₁, hTξ₀, hTξ,
       neg_smul, sub_eq_add_neg, add_comm] using h
 
+/-- For success probability strictly between zero and one, the generalized phase iterate
+satisfies the good and bad component formulas of [Brassard et al., Lemma
+5][BrassardEtAl2002]. -/
 theorem zoo_amplitude_estimation_general_phase_action :
   ∀ (ι H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (basis : HilbertBasis ι ℂ H) (zeroIndex : ι)
@@ -221,6 +255,8 @@ theorem zoo_amplitude_estimation_general_phase_action :
     (Complex.norm_exp_ofReal_mul_I φ) (Complex.norm_exp_ofReal_mul_I ϕ)
   exact ⟨hgood.trans htransport.1, hbad.trans htransport.2⟩
 
+/-- The generalized phase component action fulfills `Lemma5Spec.expected` from [Brassard et al.,
+Lemma 5][BrassardEtAl2002]. -/
 theorem zoo_amplitude_estimation_general_phase_action_contract :
     Lemma5Spec.expected :=
   zoo_amplitude_estimation_general_phase_action

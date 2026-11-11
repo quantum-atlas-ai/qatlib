@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeCharacterKickbackStat
+
+/-!
+# Specification of full-range fixed-point precision
+
+`FullRangeFixedPointPrecision` packages the range, decoding, and basis-query guarantees for a
+dyadic value oracle. It states the finite-register precision conditions used in the gradient
+construction of [Jordan2005Gradient].
+
+## Main statements
+
+* `FullRangeFixedPointPrecision`: under a strict range guard, the stored integer is the
+  canonical modular label and decodes with the prescribed one-sided error.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,8 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical
 
+/-- The proposition that a guarded full-range encoding has in-range canonical labels, decoding
+error in `[0, 1/(s*2^k))`, and the stated basis-query action. -/
 def FullRangeFixedPointPrecision : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (K k : ℕ) (f : X → ℝ) (lo s R : ℝ),
     0 < s → 0 ≤ R → s*R < (2 : ℝ)^K →

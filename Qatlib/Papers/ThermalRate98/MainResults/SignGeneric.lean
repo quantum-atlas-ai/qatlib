@@ -42,21 +42,49 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Real amplitude recovery from connected edge data
+
+This module proves algebraic uniqueness statements for real amplitude recovery, related to the
+sign reconstruction discussion of [LidarWang1999]. Squared sums and differences determine the
+product of two amplitudes, and equality of edge products propagates equality from a root through
+a reachable relation when the reference amplitudes are nonzero.
+
+A positive root convention together with equal squared amplitudes supplies the root equality
+needed for uniqueness of the entire function.
+
+## Main statements
+
+* `edge_product_unique`: recovers equality of products from squared sum and difference data.
+* `sign_eq_of_connected`: propagates root equality along reachable edges with matching products.
+* `sign_function_eq_of_connected_pos`: derives function equality using positive root values.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 noncomputable section
 namespace Qatlib.Papers.ThermalRate98.MainResults
 
+/-- The product of two real numbers is one quarter of the difference between their squared sum
+and squared difference. See [LidarWang1999]. -/
 theorem edge_product_from_sums (a b : ℝ) :
     a * b = ((a + b) ^ 2 - (a - b) ^ 2) / 4 := by
   ring
 
+/-- Equal squared sums and equal squared differences of two real pairs force equality of their
+products. See [LidarWang1999]. -/
 theorem edge_product_unique (a b a' b' : ℝ)
     (hsum : (a' + b') ^ 2 = (a + b) ^ 2)
     (hdiff : (a' - b') ^ 2 = (a - b) ^ 2) :
     a' * b' = a * b := by
   nlinarith
 
+/-- If every vertex is reachable from the root, matching edge products and equal root values
+force pointwise equality when the reference function is everywhere nonzero. -/
 theorem sign_eq_of_connected {V : Type*} (r : V → V → Prop) (root : V)
     (s t : V → ℝ) (hs0 : ∀ v, s v ≠ 0)
     (hroot : s root = t root)
@@ -76,6 +104,8 @@ theorem sign_eq_of_connected {V : Type*} (r : V → V → Prop) (root : V)
   intro v
   exact key (hconn v) hroot
 
+/-- Two real functions are equal when their root values and edge products agree, every vertex is
+reachable from the root, and the reference function is everywhere nonzero. -/
 theorem sign_function_eq_of_connected {V : Type*} (r : V → V → Prop) (root : V)
     (s t : V → ℝ) (hs0 : ∀ v, s v ≠ 0)
     (hroot : s root = t root)
@@ -85,6 +115,9 @@ theorem sign_function_eq_of_connected {V : Type*} (r : V → V → Prop) (root :
   funext v
   exact sign_eq_of_connected r root s t hs0 hroot hedge hconn v
 
+/-- On a relation reachable from the root, equal squared amplitudes, equal edge products, and
+positive root values determine the same real function when the reference function is
+everywhere nonzero. See [LidarWang1999]. -/
 theorem sign_function_eq_of_connected_pos {V : Type*} (r : V → V → Prop) (root : V)
     (s t : V → ℝ) (hs0 : ∀ v, s v ≠ 0)
     (hroot : 0 < s root) (hroot' : 0 < t root)

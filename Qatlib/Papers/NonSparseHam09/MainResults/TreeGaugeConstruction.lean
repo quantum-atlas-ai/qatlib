@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonSparseHam09.MainResults.Prop1TreeGauge
+
+/-!
+# Diagonal gauges on rooted matrix forests
+
+`RootedForest` supplies parent and depth data for the nonzero off-diagonal entries of a matrix
+with zero diagonal. Its recursive `gauge` assigns unit complex phases to vertices. For Hermitian
+matrices, the resulting diagonal unitary conjugation replaces entries by their absolute values
+and preserves `specNorm`. This development accompanies [ChildsKothari2010].
+
+## Main statements
+
+* `RootedForest.gauge_entry_identity`: the gauge removes the phase of each entry.
+* `prop1_tree_conj`: diagonal gauge conjugation gives the entrywise absolute-value matrix.
+* `prop1_tree_specNorm`: the gauge transformation preserves the spectral norm.
+
+## References
+
+* [Childs and Kothari, 2010][ChildsKothari2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,9 +40,11 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 variable {H : Matrix ι ι ℂ}
 
+/-- The unit phase of a matrix entry, defined as one when the entry is zero. -/
 def edgePhase (H : Matrix ι ι ℂ) (i j : ι) : ℂ :=
   if H i j = 0 then 1 else H i j / (‖H i j‖ : ℂ)
 
+/-- Every edge phase has complex norm one. -/
 lemma edgePhase_norm_eq_one (H : Matrix ι ι ℂ) (i j : ι) : ‖edgePhase H i j‖ = 1 := by
   by_cases h : H i j = 0
   · simp [edgePhase, h]
@@ -30,17 +52,21 @@ lemma edgePhase_norm_eq_one (H : Matrix ι ι ℂ) (i j : ι) : ‖edgePhase H i
       Real.norm_of_nonneg (norm_nonneg _)]
     exact div_self (ne_of_gt (norm_pos_iff.mpr h))
 
+/-- For a nonzero entry, `edgePhase` is the entry divided by its norm. -/
 lemma edgePhase_of_ne (H : Matrix ι ι ℂ) (i j : ι) (h : H i j ≠ 0) :
     edgePhase H i j = H i j / (‖H i j‖ : ℂ) := by
   rw [edgePhase, if_neg h]
 
+/-- The product of a complex conjugate with the original number is the square of its norm. -/
 lemma star_mul_self_eq_sq (z : ℂ) : star z * z = ((‖z‖ : ℝ) : ℂ) ^ 2 := by
   rw [mul_comm]
   exact RCLike.mul_conj z
 
+/-- The product of a complex number with its conjugate is the square of its norm. -/
 lemma self_mul_star_eq_sq (z : ℂ) : z * star z = ((‖z‖ : ℝ) : ℂ) ^ 2 :=
   RCLike.mul_conj z
 
+/-- Multiplying a nonzero complex number by its conjugate divided by its norm gives its norm. -/
 lemma div_star_mul_self (z : ℂ) (hz : z ≠ 0) :
     (star z / ((‖z‖ : ℝ) : ℂ)) * z = ((‖z‖ : ℝ) : ℂ) := by
   have hpos : (0 : ℝ) < ‖z‖ := norm_pos_iff.mpr hz
@@ -48,6 +74,7 @@ lemma div_star_mul_self (z : ℂ) (hz : z ≠ 0) :
   rw [div_mul_eq_mul_div, star_mul_self_eq_sq]
   field_simp
 
+/-- A nonzero complex number times the conjugate of its normalized phase equals its norm. -/
 lemma mul_star_div_self (z : ℂ) (hz : z ≠ 0) :
     z * star (z / ((‖z‖ : ℝ) : ℂ)) = ((‖z‖ : ℝ) : ℂ) := by
   have hpos : (0 : ℝ) < ‖z‖ := norm_pos_iff.mpr hz
@@ -57,16 +84,21 @@ lemma mul_star_div_self (z : ℂ) (hz : z ≠ 0) :
   rw [star_div₀, hsr, ← mul_div_assoc, self_mul_star_eq_sq]
   field_simp
 
+/-- A unit complex factor cancels against its conjugate across the product `(a * b) * c`. -/
 lemma gauge_cancel_mid (a b c : ℂ) (ha : a * star a = 1) :
     (a * b) * c * star a = b * c := by
   have h : (a * b) * c * star a = (b * c) * (a * star a) := by ring
   rw [h, ha, mul_one]
 
+/-- A unit complex factor cancels against its conjugate in `a * b * (c * star a)`. -/
 lemma gauge_cancel_left (a b c : ℂ) (ha : a * star a = 1) :
     a * b * (c * star a) = b * c := by
   have h : a * b * (c * star a) = (b * c) * (a * star a) := by ring
   rw [h, ha, mul_one]
 
+/-- Parent and depth data for a matrix with zero diagonal, with nontrivial parent links
+following nonzero entries and decreasing depth, and every nonzero off-diagonal edge joining
+a vertex to its parent. -/
 structure RootedForest (H : Matrix ι ι ℂ) where
 
   parent : ι → ι
@@ -83,21 +115,27 @@ structure RootedForest (H : Matrix ι ι ℂ) where
 
 namespace RootedForest
 
+/-- The vertex phase obtained recursively by multiplying edge phases along parent links, with
+phase one at each root. -/
 noncomputable def gauge (F : RootedForest H) (i : ι) : ℂ :=
   if h : F.parent i = i then 1
   else gauge F (F.parent i) * edgePhase H (F.parent i) i
 termination_by F.depth i
 decreasing_by exact F.parent_depth i h
 
+/-- The gauge at a root is one. -/
 lemma gauge_eq_root (F : RootedForest H) {i : ι} (h : F.parent i = i) : F.gauge i = 1 := by
   rw [gauge]
   simp only [dif_pos h]
 
+/-- The gauge at a nonroot vertex is the parent gauge multiplied by the phase of the
+parent-to-child entry. -/
 lemma gauge_eq_child (F : RootedForest H) {i : ι} (h : F.parent i ≠ i) :
     F.gauge i = F.gauge (F.parent i) * edgePhase H (F.parent i) i := by
   rw [gauge]
   simp only [dif_neg h]
 
+/-- Every vertex gauge has complex norm one. See [ChildsKothari2010]. -/
 lemma gauge_norm_eq_one (F : RootedForest H) (i : ι) : ‖F.gauge i‖ = 1 := by
   classical
   have key : ∀ d, ∀ i : ι, F.depth i = d → ‖F.gauge i‖ = 1 := by
@@ -113,12 +151,15 @@ lemma gauge_norm_eq_one (F : RootedForest H) (i : ι) : ‖F.gauge i‖ = 1 := b
           mul_one]
   exact key (F.depth i) i rfl
 
+/-- A vertex gauge multiplied by its conjugate is one. -/
 lemma gauge_mul_star (F : RootedForest H) (i : ι) :
     F.gauge i * star (F.gauge i) = 1 := by
   have hz : F.gauge i * star (F.gauge i) = (‖F.gauge i‖ : ℂ) ^ 2 := RCLike.mul_conj _
   rw [hz, F.gauge_norm_eq_one i]
   norm_num
 
+/-- For Hermitian `H`, multiplying an entry by the gauge at its row and the conjugate gauge at
+its column gives the entry's norm. See [ChildsKothari2010]. -/
 lemma gauge_entry_identity (F : RootedForest H) (hH : H.IsHermitian) (i j : ι) :
     F.gauge i * H i j * star (F.gauge j) = ((‖H i j‖ : ℝ) : ℂ) := by
   classical
@@ -155,6 +196,9 @@ lemma gauge_entry_identity (F : RootedForest H) (hH : H.IsHermitian) (i j : ι) 
 
 end RootedForest
 
+/-- Conjugating a Hermitian matrix by the diagonal forest gauge gives its entrywise
+absolute-value matrix. This is the gauge identity underlying Proposition 1 of
+[ChildsKothari2010]. -/
 theorem prop1_tree_conj (hH : H.IsHermitian) (F : RootedForest H) :
     Matrix.diagonal F.gauge * H * (Matrix.diagonal F.gauge)ᴴ
       = (absMatrix H).map Complex.ofReal := by
@@ -162,6 +206,8 @@ theorem prop1_tree_conj (hH : H.IsHermitian) (F : RootedForest H) :
     fun i j => F.gauge_entry_identity hH i j
   exact diagonal_gauge_eq_abs F.gauge H hentry
 
+/-- The complex entrywise absolute-value matrix of a Hermitian matrix with a rooted forest
+structure has the same spectral norm as the original matrix. See [ChildsKothari2010]. -/
 theorem prop1_tree_specNorm (hH : H.IsHermitian) (F : RootedForest H) :
     specNorm ((absMatrix H).map Complex.ofReal) = specNorm H := by
   have hunit : ∀ i, ‖F.gauge i‖ = 1 := fun i => F.gauge_norm_eq_one i

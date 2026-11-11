@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+/-!
+# Scalar entanglement witnesses and contraction
+
+This module packages convex-mixture overlap data and derives the Bell and bounded-Schmidt
+overlap estimates used in [BhartiHaugTanggara2026]. It also iterates a supplied scalar
+entanglement contraction estimate and transfers the separable-state overlap bound to
+complete-erasure data.
+
+## Main statements
+
+* `bell_state_witness`: The overlap in separable two-qubit witness data is at most `1/2`, and
+  its trace-distance value is at least one.
+* `entanglement_contraction_iterated`: Iterating the assumed one-step contraction inequalities
+  bounds `E n` by the product of the first `n` contraction factors times `E 0`.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +36,8 @@ namespace Qatlib.Papers.SpacetimeLB26.ScalarSupport.Entanglement
 open scoped BigOperators
 open Finset
 
+/-- Scalar convex-mixture data for a two-qubit separability witness, with component overlaps at
+most `1/2` and a trace-distance lower bound. -/
 structure SeparableTwoQubit where
   overlap : ℝ
   traceDist : ℝ
@@ -30,6 +53,8 @@ structure SeparableTwoQubit where
 
   traceDist_lb : 2 * (1 - overlap) ≤ traceDist
 
+/-- The overlap in separable two-qubit witness data is at most `1/2`, and its trace-distance
+value is at least one. -/
 theorem bell_state_witness (σ : SeparableTwoQubit) :
     σ.overlap ≤ 1 / 2 ∧ 1 ≤ σ.traceDist := by
   have hoverlap : σ.overlap ≤ 1 / 2 := by
@@ -44,6 +69,7 @@ theorem bell_state_witness (σ : SeparableTwoQubit) :
   have : 1 ≤ 2 * (1 - σ.overlap) := by linarith
   linarith [σ.traceDist_lb]
 
+/-- Scalar convex-mixture data whose component overlaps are bounded by `d / D`. -/
 structure BoundedSchmidtState (D d : ℕ) where
   overlap : ℝ
   n : ℕ
@@ -55,6 +81,8 @@ structure BoundedSchmidtState (D d : ℕ) where
   prod_overlap_le : ∀ i, prodOverlap i ≤ (d : ℝ) / (D : ℝ)
   overlap_eq : overlap = ∑ i, w i * prodOverlap i
 
+/-- The overlap of bounded-Schmidt witness data is at most `d / D` when `D` is positive and `d ≤
+D`. See [BhartiHaugTanggara2026]. -/
 theorem singlet_fraction_from_schmidt
     {D d : ℕ} (hD : 0 < D) (_hDd : d ≤ D) (σ : BoundedSchmidtState D d) :
     σ.overlap ≤ (d : ℝ) / (D : ℝ) := by
@@ -67,6 +95,8 @@ theorem singlet_fraction_from_schmidt
     _ = (∑ i, σ.w i) * ((d : ℝ) / (D : ℝ)) := by rw [← Finset.sum_mul]
     _ = (d : ℝ) / (D : ℝ) := by rw [σ.w_sum, one_mul]
 
+/-- For `0 < κN ≤ 1` and positive integer `m`, the factor `1 - κN^m` is nonnegative, and the
+supplied contraction estimate holds. See [BhartiHaugTanggara2026]. -/
 theorem entanglement_contraction
     (m : ℕ) (hm : 1 ≤ m) (κN : ℝ) (hκ0 : 0 < κN) (hκ1 : κN ≤ 1)
     (Echi_before Echi_after : ℝ) (_hbefore : 0 ≤ Echi_before)
@@ -77,6 +107,8 @@ theorem entanglement_contraction
   have hle : κN ^ (m : ℝ) ≤ 1 := Real.rpow_le_one hκ0.le hκ1 (by positivity)
   linarith
 
+/-- Iterating the assumed one-step contraction inequalities bounds `E n` by the product of the
+first `n` contraction factors times `E 0`. See [BhartiHaugTanggara2026]. -/
 theorem entanglement_contraction_iterated
     (κ : ℝ) (hκ0 : 0 < κ) (hκ1 : κ ≤ 1) (ms : ℕ → ℕ) (E : ℕ → ℝ)
     (_hE0 : 0 ≤ E 0)
@@ -100,6 +132,7 @@ theorem entanglement_contraction_iterated
       _ = (∏ i ∈ Finset.range (n + 1), (1 - κ ^ ((ms i : ℕ) : ℝ))) * E 0 := by
           rw [Finset.prod_range_succ, mul_comm (1 - κ ^ ((ms n : ℕ) : ℝ))]
 
+/-- A final overlap identified with the overlap of separable two-qubit witness data. -/
 structure CompleteErasureData where
 
   finalOverlap : ℝ
@@ -108,6 +141,7 @@ structure CompleteErasureData where
 
   finalOverlap_eq : finalOverlap = separable.overlap
 
+/-- The final overlap in complete-erasure data is at most `1/2`. See [BhartiHaugTanggara2026]. -/
 theorem complete_erasure_removes_entanglement (d : CompleteErasureData) :
     d.finalOverlap ≤ 1 / 2 := by
   rw [d.finalOverlap_eq]

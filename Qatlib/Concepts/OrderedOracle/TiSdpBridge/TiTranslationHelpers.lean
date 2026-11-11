@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialHelpers
+
+/-!
+# Fourier diagonalization of cyclic translation
+
+This module computes the action of permutation matrices and diagonalizes `tiTranslation` with
+`QFTMatrix`. The cyclic symmetry is part of the invariant ordered-search setting in
+[FarhiEtAl1999] and the polynomial approach in [ChildsLandahlParrilo2007]. The eigenvalues are
+the inverse powers recorded by `tiMomentumRoot`.
+
+The same Fourier conjugation defines `tiPolynomialTransition`, so its diagonal phase matrix
+commutes with the diagonal translation matrix. Consequently, `ti_transition_commutes` holds for
+arbitrary coefficient vectors, without a rootwise norm or unitarity assumption.
+
+## Main statements
+
+- `ti_apply_permutation` evaluates a permuted state at the inverse image of a coordinate.
+- `ti_character_predecessor` computes the cyclic predecessor factor of a Fourier character.
+* `ti_translation_fourier` and `ti_translation_fourier_conjugate` give the Fourier
+  diagonalization identities.
+- `ti_transition_commutes` proves translation commutation for every polynomial transition.
+
+## References
+
+- [Farhi et al., 1999][FarhiEtAl1999], translation-invariant ordered-search algorithms.
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007], polynomial methods for ordered
+  search.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +46,8 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped Classical BigOperators
 
+/-- Computes the coordinate at `i` after applying a permutation matrix to a state as the
+original coordinate at `e.symm i`. -/
 theorem ti_apply_permutation {N : ℕ} (e : Fin N ≃ Fin N) (ψ : QState (Fin N)) (i : Fin N) :
     ApplyGate (permMatrix e) ψ i=ψ (e.symm i) := by
   simp only [ApplyGate,permMatrix,Matrix.mulVec,dotProduct,Matrix.of_apply]
@@ -32,6 +62,8 @@ theorem ti_apply_permutation {N : ℕ} (e : Fin N ≃ Fin N) (ψ : QState (Fin N
     simp [hne]
   · simp
 
+/-- Shows that evaluating a Fourier character at the cyclic predecessor multiplies its value at
+the original index by the inverse root factor for that character. -/
 theorem ti_character_predecessor (N : ℕ) [NeZero N] (i l : Fin N) :
     primRoot N^((((finShiftEquiv N).symm i).val:ℤ)*(l.val:ℤ)) =
       primRoot N^(-(l.val:ℤ))*primRoot N^((i.val:ℤ)*(l.val:ℤ)) := by
@@ -55,6 +87,8 @@ theorem ti_character_predecessor (N : ℕ) [NeZero N] (i l : Fin N) :
     congr 1
     ring
 
+/-- Shows that multiplying the Fourier matrix by cyclic translation on the left equals
+multiplying it by the diagonal momentum-root matrix on the right. -/
 theorem ti_translation_fourier (n : ℕ) [NeZero n] :
     tiTranslation n * QFTMatrix (2*n) =
       QFTMatrix (2*n)*Matrix.diagonal (tiMomentumRoot n) := by
@@ -67,6 +101,8 @@ theorem ti_translation_fourier (n : ℕ) [NeZero n] :
   unfold tiMomentumRoot
   ring
 
+/-- Expresses cyclic translation as the Fourier conjugate of the diagonal matrix of momentum
+roots. -/
 theorem ti_translation_fourier_conjugate (n : ℕ) [NeZero n] :
     tiTranslation n=QFTMatrix (2*n)*Matrix.diagonal (tiMomentumRoot n)*(QFTMatrix (2*n))ᴴ := by
   have hF := qftMatrix_unitary (by have := NeZero.pos n; omega : 0<2*n)
@@ -77,6 +113,8 @@ theorem ti_translation_fourier_conjugate (n : ℕ) [NeZero n] :
   rw [Matrix.mul_assoc,hFF,Matrix.mul_one] at he
   exact he
 
+/-- Proves that every polynomial transition matrix commutes with cyclic translation, for
+arbitrary coefficient vectors `a` and `b`. -/
 theorem ti_transition_commutes (n t : ℕ) [NeZero n] (a b : Fin n → ℂ) :
     tiTranslation n*tiPolynomialTransition n t a b =
       tiPolynomialTransition n t a b*tiTranslation n := by

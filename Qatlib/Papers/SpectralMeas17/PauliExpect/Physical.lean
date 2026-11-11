@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpectralMeas17.NativeWalk
+
+/-!
+# Physical Pauli expectation formula
+
+This module expresses the paired walk-state Pauli expectation identity using Hilbert-space inner
+products and states built from the original Hamiltonian coefficients. The formula specializes
+Equation (8) of [PoulinEtAl2018] to a normalized Hamiltonian eigenvector with `E ^ 2 < 1`.
+
+## Main statements
+
+* `physical_expectation`: both paired states have the same explicit scalar multiple of the
+  original eigenvector's Pauli expectation.
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,10 @@ open Qatlib.Foundations.MatrixGeometry.LcuFrame
 open Qatlib.Papers.SpectralMeas17.NativeWalk
 variable {J : Type*} [Fintype J] [DecidableEq J] {n : ℕ}
 
+/-- For positive coefficient scale and a normalized Hamiltonian eigenvector with `E ^ 2 < 1`,
+both coefficient-based paired walk states satisfy the Hilbert-space Pauli expectation
+formula with factor `1 / 2 * (1 + (gamma (coefficientAmplitude α) words q - E ^ 2) / (1 - E
+^ 2))` [Poulin et al., Equation (8)][PoulinEtAl2018]. -/
 theorem physical_expectation (α : J → ℝ) (words : J → PauliWord n) (q : PauliWord n)
     (φ : State (Fin n → Bool)) (E : ℝ) (hα : 0<coefficientScale α) (hφ : Normalized φ)
     (heig : normalizedHamiltonian α words *ᵥ φ=(E : ℂ) • φ) (hE : E^2<1) :

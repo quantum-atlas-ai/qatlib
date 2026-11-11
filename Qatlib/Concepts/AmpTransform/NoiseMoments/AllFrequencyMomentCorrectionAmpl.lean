@@ -6,11 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.NoiseMoments.AllFrequencyMomentCorrectionStat
 import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
+
+/-!
+# Second moments at every Fourier frequency
+
+`allFrequencyMomentCorrection_answer` proves separate second-moment formulas at zero and nonzero
+frequency for independent uniform noise labels. The distinction corrects the use of
+noise-intensity moments across all frequencies in the amplified-transform setting of
+[Cornwell2014].
+
+## Main statements
+
+* `allFrequencyMomentCorrection_answer`: Proves the all-frequency second-moment contract: the
+  zero-frequency sum is deterministically L, while a nonzero-frequency sum has mean squared norm
+  L and the stated affine-intensity mean; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments
 
+/-- Proves the all-frequency second-moment contract: the zero-frequency sum is deterministically
+L, while a nonzero-frequency sum has mean squared norm L and the stated affine-intensity
+mean; see [Cornwell2014]. -/
 theorem allFrequencyMomentCorrection_answer : AllFrequencyMomentCorrection := by
   intro N L _ c b y
   constructor

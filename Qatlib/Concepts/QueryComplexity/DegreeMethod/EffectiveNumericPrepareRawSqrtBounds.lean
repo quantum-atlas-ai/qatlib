@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrtExec
+
+/-!
+# Resource bounds for certified square roots
+
+The size measure `inputSize` controls preprocessing-word lengths, completed data width, output
+length, and stack height for the raw square-root program. The execution budget is bounded by a
+fixed constant times the fourth power of this size, giving the uniform Turing machine in
+`uniform_raw_machine`.
+
+The rational interface adds certified square-root intervals and a choice of precision for
+absolute error at most `1 / 2^b`. These explicit machine bounds use the classical computational
+setting described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `executionBudget_bound`: a quartic bound on the complete source execution budget.
+* `uniform_certified_sqrt`: one machine computes rational intervals of width `S / 2^k`.
+* `uniform_absolute_sqrt`: one machine computes intervals of width at most `1 / 2^b`.
+* `output_words_certified`: certification for arbitrary valid numerator and denominator words.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,19 +49,24 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib
 
+/-- One plus the iteration count and the encoded raw-input length. -/
 def inputSize (k : ℕ) (qN qD sN sD : Bits) : ℕ := 1+k+(input k qN qD sN sD).length
 
+/-- The sum of the five input payload lengths is at most the encoded input length. -/
 theorem input_lengths (k : ℕ) (qN qD sN sD : Bits) :
     k.bits.length+qN.length+qD.length+sN.length+sD.length ≤ (input k qN qD sN sD).length := by
   dsimp only [input,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.framed]
   simp only [List.length_append]
   omega
 
+/-- The binary square word has length at most three times its input length. -/
 theorem square_length (bits : Bits) : (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.square bits).length ≤ 3*bits.length := by
   have h := Qatlib.Concepts.QueryComplexity.DegreeMethod.mulAcc_length bits bits bits.length
   change (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.square bits).length≤bits.length+2*bits.length at h
   omega
 
+/-- The preprocessed numerator word has length at most the numerator length plus six times the
+scale-denominator length. -/
 theorem numerator_length (qN sD : Bits) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.numerator qN sD).length ≤ qN.length+6*sD.length := by
   have hs := square_length sD
@@ -46,10 +76,13 @@ theorem numerator_length (qN sD : Bits) :
     qN.length+2*(Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.square sD).length at h
   omega
 
+/-- The preprocessed denominator word has length at most the denominator length plus six times
+the scale-numerator length. -/
 theorem denominator_length (qD sN : Bits) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.denominator qD sN).length ≤ qD.length+6*sN.length :=
   numerator_length qD sN
 
+/-- The initial loop-data width is at most seven times the encoded input length plus two. -/
 theorem data_width_bound (k : ℕ) (qN qD sN sD : Bits) :
     (data qN qD sN sD).width ≤ 7*(input k qN qD sN sD).length+2 := by
   have hI := input_lengths k qN qD sN sD
@@ -59,6 +92,7 @@ theorem data_width_bound (k : ℕ) (qN qD sN sD : Bits) :
   simp only [List.length_nil,List.length_cons]
   omega
 
+/-- The completed loop-data width is at most twelve times `inputSize`. -/
 theorem completed_width_bound (k : ℕ) (qN qD sN sD : Bits) :
     (completedData k qN qD sN sD).width ≤ 12*inputSize k qN qD sN sD := by
   have h :=
@@ -68,6 +102,7 @@ theorem completed_width_bound (k : ℕ) (qN qD sN sD : Bits) :
   dsimp only [completedData,inputSize]
   omega
 
+/-- The encoded output length is at most nine times `inputSize`. -/
 theorem output_length_bound (k : ℕ) (qN qD sN sD : Bits) :
     (output k qN qD sN sD).length ≤ 9*inputSize k qN qD sN sD := by
   have hI := input_lengths k qN qD sN sD
@@ -85,6 +120,7 @@ theorem output_length_bound (k : ℕ) (qN qD sN sD : Bits) :
   dsimp only [inputSize]
   omega
 
+/-- The stack height before cleanup is at most twenty times `inputSize`. -/
 theorem lastMemory_height_bound (k : ℕ) (qN qD sN sD : Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (lastMemory k qN qD sN sD) ≤ 20*inputSize k qN qD sN sD := by
   let N := inputSize k qN qD sN sD
@@ -152,9 +188,13 @@ theorem lastMemory_height_bound (k : ℕ) (qN qD sN sD : Bits) :
   · exact hout
   · exact Nat.zero_le (20*N)
 
+/-- The fixed constant bounding the raw square-root execution budget by the fourth power of the
+input size. -/
 noncomputable def sourceConstant : ℕ :=
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.mulClockConstant+1001)*400+1000000000
 
+/-- The total execution budget is at most `sourceConstant` times the fourth power of
+`inputSize`. -/
 theorem executionBudget_bound (k : ℕ) (qN qD sN sD : Bits) :
     executionBudget k qN qD sN sD ≤ sourceConstant*(inputSize k qN qD sN sD)^4 := by
   let N := inputSize k qN qD sN sD
@@ -226,6 +266,8 @@ theorem executionBudget_bound (k : ℕ) (qN qD sN sD : Bits) :
       ((Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.mulClockConstant+1001)*400+1000000000)*N^4
   nlinarith only [hF,hP,hA,hB,hE,hC,hO,hOne]
 
+/-- A single finite-state Turing machine computes all raw square-root outputs with time and
+space bounded by a fixed positive constant times `inputSize^4`. -/
 theorem uniform_raw_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (k : ℕ) (qN qD sN sD : Bits),
@@ -266,9 +308,13 @@ theorem uniform_raw_machine :
       _ ≤ D*((sourceConstant+1000)*N^4) := Nat.mul_le_mul_left D hb
       _ = _ := by dsimp only [N]; ac_rfl
 
+/-- The raw input-size measure evaluated on the canonical binary words of the rational
+parameters. -/
 def rationalSize (q S : ℚ) (k : ℕ) : ℕ :=
   inputSize k q.num.natAbs.bits q.den.bits S.num.natAbs.bits S.den.bits
 
+/-- A single Turing machine computes certified rational square-root intervals for `0 ≤ q ≤ S *
+S` and `S > 0`, with width `S / 2^k` and quartic time and space bounds in `rationalSize`. -/
 theorem uniform_certified_sqrt :
     ∃ (states : ℕ) (M : TM0.Machine Symbol (Fin (states+1))) (C : ℕ), 0<C ∧
       ∀ (q S : ℚ) (k : ℕ), 0≤q → 0<S → q≤S*S →
@@ -282,6 +328,9 @@ theorem uniform_certified_sqrt :
   exact ⟨hM k q.num.natAbs.bits q.den.bits S.num.natAbs.bits S.den.bits,
     rationalOutput_certified q S k hq hS hSq⟩
 
+/-- A single Turing machine computes certified rational square-root intervals of width at most
+`1 / 2^b`, using `widthPrecision S b` and quartic time and space bounds in the corresponding
+`rationalSize`. -/
 theorem uniform_absolute_sqrt :
     ∃ (states : ℕ) (M : TM0.Machine Symbol (Fin (states+1))) (C : ℕ), 0<C ∧
       ∀ (q S : ℚ) (b : ℕ), 0≤q → 0<S → q≤S*S →
@@ -300,9 +349,13 @@ theorem uniform_absolute_sqrt :
   rw [hwidth]
   exact widthPrecision_spec S hS b
 
+/-- The rational value obtained by dividing the binary value of the numerator word by that of
+the denominator word. -/
 def wordValue (numerator denominator : Bits) : ℚ :=
   (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue numerator : ℚ)/(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue denominator : ℚ)
 
+/-- With positive radicand denominator and positive scale numerator and denominator, the raw
+output decodes to the corresponding `sqrtLo` and `sqrtHi` values. -/
 theorem output_words_decodes (k : ℕ) (qN qD sN sD : Bits)
     (hqD : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue qD)
     (hsN : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue sN)
@@ -348,6 +401,9 @@ theorem output_words_decodes (k : ℕ) (qN qD sN sD : Bits)
   rw [← hinterval]
   rfl
 
+/-- For words representing `0 ≤ q ≤ S * S` with positive denominators and positive scale, the
+output decodes to ordered endpoints in `[0, S]` whose squares enclose `q` and whose
+difference is `S / 2^k`. -/
 theorem output_words_certified (k : ℕ) (qN qD sN sD : Bits)
     (hqD : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue qD)
     (hsN : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue sN)

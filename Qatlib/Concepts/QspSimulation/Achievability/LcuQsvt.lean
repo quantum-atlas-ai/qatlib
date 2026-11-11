@@ -21,6 +21,26 @@ import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
+
+/-!
+# QSP simulation and phase synthesis imports
+
+This module collects imports for polynomial phase synthesis, restricted QSP compilation,
+Jacobi–Anger degree bounds, and sparse Hamiltonian simulation. It provides a common import
+surface for the QSP framework of [LowChuang2017] and the polynomial transformation framework of
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `QspCompilationRestricted`: The imported scalar compilation guarantee for restricted QSP
+  responses.
+* `JacobiAngerCorrectedDegree`: The imported specification of the corrected truncation degree.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 

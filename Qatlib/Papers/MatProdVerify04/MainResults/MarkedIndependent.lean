@@ -9,6 +9,25 @@ import Qatlib.Papers.MatProdVerify04.MainResults.TailMass
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Tactic
+
+/-!
+# Marked windows for independent error sets
+
+`IsIndependent` expresses that a finite set of matrix positions has at most one position in each
+row and column. The module computes inclusion probabilities for uniform subsets and the expected
+number of columns reached by sampled rows, yielding `lemma10_bound` under the stated window size
+condition. The paper context is [BuhrmanSpalek2006].
+
+## Main statements
+
+* `hitCols_expect`: expected number of columns reached by sampled rows.
+* `lemma10_bound`: lower bound on the mass of windows meeting an independent error set.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,10 +39,12 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 set_option warningAsError false
 
+/-- The rows containing an element of `W` in column `j`. -/
 def colRows {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) (j : Col) : Finset Row :=
   (W.filter (fun c => c.2 = j)).image (fun c => c.1)
 
+/-- A row belongs to `colRows W j` exactly when its position in column `j` belongs to `W`. -/
 theorem mem_colRows {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) (i : Row) (j : Col) :
     i ∈ colRows W j ↔ (i, j) ∈ W := by
@@ -39,10 +60,13 @@ theorem mem_colRows {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
   · intro h
     exact ⟨(i, j), ⟨h, rfl⟩, rfl⟩
 
+/-- The condition that `W` contains at most one position in every row and every column. -/
 def IsIndependent {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) : Prop :=
   (∀ i, (rowCols W i).card ≤ 1) ∧ (∀ j, (colRows W j).card ≤ 1)
 
+/-- If each row contains at most one position of `W`, then the number of positions equals the
+number of nonempty rows. -/
 theorem card_eq_nzRows_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col))
     (hind : ∀ i, (rowCols W i).card ≤ 1) :
@@ -63,6 +87,8 @@ theorem card_eq_nzRows_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
       Finset.card_eq_zero.mpr (Finset.not_nonempty_iff_eq_empty.mp h)
     rw [if_neg h, h0]
 
+/-- For positive `N` and `r ≤ N`, the ratio of the binomial coefficients `choose (N - 1) r` and
+`choose N r` is `(N - r) / N`. -/
 theorem choose_pred_ratio {N r : ℕ} (hN : 0 < N) (hr : r ≤ N) :
     ((N - 1).choose r : ℝ) / (N.choose r : ℝ) = ((N - r : ℕ) : ℝ) / (N : ℝ) := by
   have hpred : N = (N - 1) + 1 := (Nat.succ_pred_eq_of_pos hN).symm
@@ -81,6 +107,8 @@ theorem choose_pred_ratio {N r : ℕ} (hN : 0 < N) (hr : r ≤ N) :
     exact_mod_cast hid
   linarith
 
+/-- A fixed element of a nonempty finite type belongs to a uniform `r`-element subset with
+probability `r / Fintype.card V`. See [BuhrmanSpalek2006]. -/
 theorem uniformSubset_mem_mass {V : Type*} [Fintype V] [DecidableEq V]
     (r : ℕ) (hr : r ≤ Fintype.card V) (hV : 0 < Fintype.card V) (i : V) :
     eventMass (uniformSubset (V := V) r hr) (fun R => i ∈ R)
@@ -110,6 +138,8 @@ theorem uniformSubset_mem_mass {V : Type*} [Fintype V] [DecidableEq V]
   field_simp
   ring
 
+/-- The expected size of the intersection of `A` with a uniform `r`-element subset is `A.card *
+r / Fintype.card V`. -/
 theorem uniformSubset_expect_card_inter {V : Type*} [Fintype V] [DecidableEq V]
     (A : Finset V) (r : ℕ) (hr : r ≤ Fintype.card V) (hV : 0 < Fintype.card V) :
     (uniformSubset (V := V) r hr).expect (fun R => ((A ∩ R).card : ℝ))
@@ -140,10 +170,12 @@ theorem uniformSubset_expect_card_inter {V : Type*} [Fintype V] [DecidableEq V]
         rw [Finset.sum_const, nsmul_eq_mul]
         ring
 
+/-- The columns containing a position of `W` whose row belongs to `R`. -/
 def hitCols {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) (R : Finset Row) : Finset Col :=
   (W.filter (fun c => c.1 ∈ R)).image (fun c => c.2)
 
+/-- A window `R × S` meets `W` exactly when `S` meets the columns reached from `R`. -/
 theorem not_disjoint_windowCells_iff {Row Col : Type*} [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (R : Finset Row) (S : Finset Col) :
     ¬ Disjoint W (windowCells (R, S)) ↔ ¬ Disjoint S (hitCols W R) := by
@@ -161,6 +193,8 @@ theorem not_disjoint_windowCells_iff {Row Col : Type*} [DecidableEq Row]
     rw [windowCells, Finset.mem_product]
     exact ⟨hcR, by rw [hc2]; exact hjS⟩
 
+/-- For an independent error set, the number of columns reached from `R` equals the number of
+nonempty rows of `W` in `R`. See [BuhrmanSpalek2006]. -/
 theorem hitCols_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (R : Finset Row)
     (hind : IsIndependent W) :
@@ -211,6 +245,7 @@ theorem hitCols_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   rw [hitCols, Finset.card_image_of_injOn hsndInj]
   rw [← himg, Finset.card_image_of_injOn hfstInj]
 
+/-- A subset with nonzero probability under `uniformSubset r hr` has cardinality `r`. -/
 theorem uniformSubset_prob_ne_zero_card {V : Type*} [Fintype V] [DecidableEq V]
     (r : ℕ) (hr : r ≤ Fintype.card V) {R : Finset V}
     (h : (uniformSubset (V := V) r hr).prob R ≠ 0) : R.card = r := by
@@ -221,6 +256,8 @@ theorem uniformSubset_prob_ne_zero_card {V : Type*} [Fintype V] [DecidableEq V]
   · rw [if_neg hmem] at h
     exact absurd rfl h
 
+/-- Computes a uniform window event by first averaging over the sampled rows and then over the
+sampled columns. See [BuhrmanSpalek2006]. -/
 theorem eventMass_window_eq_rowFirst {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (r s : ℕ) (hr : r ≤ Fintype.card Row)
     (hs : s ≤ Fintype.card Col) (P : Finset Row → Finset Col → Prop)
@@ -249,6 +286,8 @@ theorem eventMass_window_eq_rowFirst {Row Col : Type*} [Fintype Row] [DecidableE
   refine Finset.sum_congr rfl (fun S _ => ?_)
   ring
 
+/-- For independent `W`, the expected number of columns reached by a uniform `r`-element row
+subset is `W.card * r / Fintype.card Row`. See [BuhrmanSpalek2006]. -/
 theorem hitCols_expect {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (r : ℕ)
     (hr : r ≤ Fintype.card Row) (hRow : 0 < Fintype.card Row)
@@ -264,6 +303,9 @@ theorem hitCols_expect {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   rw [uniformSubset_expect_card_inter (nzRows W) r hr hRow]
   rw [← card_eq_nzRows_card W hind.1]
 
+/-- For independent `W` and `s * r ≤ Fintype.card Col`, a uniform `r` by `s` window meets `W`
+with probability at least `W.card * r * s / (2 * Fintype.card Row * Fintype.card Col)`. See
+[BuhrmanSpalek2006]. -/
 theorem lemma10_bound {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (W : Finset (Row × Col)) (r s : ℕ)
     (hRow : 0 < Fintype.card Row) (hCol : 0 < Fintype.card Col)

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+
+/-!
+# Statement of polynomial extraction for invariant programs
+
+This module defines `TiInvariantProgramCharacterization`, a proposition asserting that a
+successful ordered search query program with translation-commuting unitary gates yields
+normalized polynomial data, explicit prefix states, and semidefinite feasibility. It records
+query and gate counts together with the mathematical characterization. The invariant and
+semidefinite viewpoints are studied in [FarhiEtAl1999] and [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `TiInvariantProgramCharacterization`: packages polynomial extraction and feasibility from a
+  successful invariant program.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+* [Childs, Landahl and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,9 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped BigOperators Classical
 
+/-- The proposition that an invariant program with unitary gates and readout success at least `1
+- ε` has the stated resource counts, normalized polynomial prefix representation, root
+matching, and polynomial and SDP feasibility. -/
 def TiInvariantProgramCharacterization : Prop :=
   ∀ (n k : ℕ) [NeZero n] (ε : ℝ)
     (U : ℕ → Matrix (Fin (2*n)) (Fin (2*n)) ℂ),

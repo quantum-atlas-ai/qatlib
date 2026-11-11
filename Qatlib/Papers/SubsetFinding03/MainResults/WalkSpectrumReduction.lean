@@ -13,6 +13,29 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Matrix.Mul
 import Mathlib.Tactic
+
+/-!
+# Spectrum of two-dimensional walk blocks
+
+This module defines the explicit two-dimensional walk block `walkBlock`, its phase, and its two
+candidate eigenvalues in the subset-finding analysis of [ChildsEisenberg2003]. It verifies the
+paper's eigenvectors and factors the characteristic determinant.
+
+When `1 ≤ j` and `4j ≤ M`, the phase is within `(j + 1) / M` of `2√(j / M)`. Under the stated
+range condition, the eigenvalues are unit complex exponentials.
+
+## Main statements
+
+* `walkBlockPhase_approx`: bounds the error in the leading phase expression.
+* `walkBlock_eigenvector_paper_plus` and `walkBlock_eigenvector_paper_minus`: verify the two
+  eigenvector identities.
+* `walkBlock_spectrum`: characterizes the zeros of the characteristic determinant.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,30 +47,42 @@ namespace Qatlib.Papers.SubsetFinding03.MainResults.WalkSpectrumReduction
 open Complex
 open scoped Matrix
 
+/-- The real parameter `1 / (M + 1)` used in the walk blocks. -/
 def walkBeta (M : ℕ) : ℝ := 1 / (M + 1)
 
+/-- The phase `2 * arcsin (√(walkBeta M * j))` of the walk block. -/
 def walkBlockPhase (M j : ℕ) : ℝ := 2 * Real.arcsin (Real.sqrt (walkBeta M * j))
 
+/-- The diagonal coefficient `1 - 2 * walkBeta M * j`. -/
 def walkBlockDiag (M j : ℕ) : ℝ := 1 - 2 * (walkBeta M * j)
 
+/-- The off-diagonal coefficient `2 * √(walkBeta M * j * (1 - walkBeta M * j))`. -/
 def walkBlockOffDiag (M j : ℕ) : ℝ := 2 * Real.sqrt (walkBeta M * j * (1 - walkBeta M * j))
 
+/-- The complex two-by-two matrix with diagonal `walkBlockDiag M j` and signed off-diagonal
+entries `walkBlockOffDiag M j`. -/
 def walkBlock (M j : ℕ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(walkBlockDiag M j : ℂ), -(walkBlockOffDiag M j : ℂ);
      (walkBlockOffDiag M j : ℂ), (walkBlockDiag M j : ℂ)]
 
+/-- The candidate eigenvalue `walkBlockDiag M j + i * walkBlockOffDiag M j`. -/
 def walkBlockEigPlus (M j : ℕ) : ℂ :=
   (walkBlockDiag M j : ℂ) + (walkBlockOffDiag M j : ℂ) * Complex.I
 
+/-- The candidate eigenvalue `walkBlockDiag M j - i * walkBlockOffDiag M j`. -/
 def walkBlockEigMinus (M j : ℕ) : ℂ :=
   (walkBlockDiag M j : ℂ) - (walkBlockOffDiag M j : ℂ) * Complex.I
 
+/-- The normalized vector `(i, 1) / √2` used for the plus eigenvalue. -/
 def paperKetPlus : Fin 2 → ℂ :=
   ![Complex.I / (Real.sqrt 2 : ℂ), 1 / (Real.sqrt 2 : ℂ)]
 
+/-- The normalized vector `(-i, 1) / √2` used for the minus eigenvalue. -/
 def paperKetMinus : Fin 2 → ℂ :=
   ![-Complex.I / (Real.sqrt 2 : ℂ), 1 / (Real.sqrt 2 : ℂ)]
 
+/-- When `0 ≤ walkBeta M * j ≤ 1`, the cosine of the block phase equals the diagonal
+coefficient. -/
 lemma walkBlockPhase_cos (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     (hx1 : walkBeta M * j ≤ 1) :
     Real.cos (walkBlockPhase M j) = walkBlockDiag M j := by
@@ -65,6 +100,8 @@ lemma walkBlockPhase_cos (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     _ = 1 - 2 * x := by ring
     _ = walkBlockDiag M j := by rw [walkBlockDiag, hx]
 
+/-- When `0 ≤ walkBeta M * j ≤ 1`, the sine of the block phase equals the off-diagonal
+coefficient. -/
 lemma walkBlockPhase_sin (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     (hx1 : walkBeta M * j ≤ 1) :
     Real.sin (walkBlockPhase M j) = walkBlockOffDiag M j := by
@@ -84,10 +121,12 @@ lemma walkBlockPhase_sin (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
         rw [Real.sqrt_mul hx0]; ring
     _ = walkBlockOffDiag M j := by rw [walkBlockOffDiag, hx]
 
+/-- Rewrites `walkBeta M * j` as the real quotient `j / (M + 1)`. -/
 lemma walkBeta_mul_eq (M j : ℕ) : walkBeta M * j = (j : ℝ) / ((M : ℝ) + 1) := by
   unfold walkBeta
   field_simp
 
+/-- For `0 ≤ s ≤ 1 / 2`, the absolute difference between `arcsin s` and `s` is at most `s ^ 3`. -/
 lemma abs_arcsin_sub_self_le_cube {s : ℝ} (hs0 : 0 ≤ s) (hs : s ≤ 1 / 2) :
     |Real.arcsin s - s| ≤ s ^ 3 := by
   have hs1 : s ≤ 1 := by linarith
@@ -132,6 +171,8 @@ lemma abs_arcsin_sub_self_le_cube {s : ℝ} (hs0 : 0 ≤ s) (hs : s ≤ 1 / 2) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- For `1 ≤ j` and `4 * j ≤ M`, the block phase differs from `2 * √(j / M)` by at most `(j + 1)
+/ M` [ChildsEisenberg2003]. -/
 lemma walkBlockPhase_approx (M j : ℕ) (hj : 1 ≤ j) (hM : 4 * j ≤ M) :
     |walkBlockPhase M j - 2 * Real.sqrt ((j : ℝ) / (M : ℝ))| ≤
       ((j : ℝ) + 1) / (M : ℝ) := by
@@ -251,6 +292,8 @@ lemma walkBlockPhase_approx (M j : ℕ) (hj : 1 ≤ j) (hM : 4 * j ≤ M) :
     linarith
   linarith [step1, step2, step3]
 
+/-- When `0 ≤ walkBeta M * j ≤ 1`, the plus eigenvalue equals the complex exponential of `i`
+times the block phase. -/
 lemma walkBlockEigPlus_eq_exp (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     (hx1 : walkBeta M * j ≤ 1) :
     walkBlockEigPlus M j = Complex.exp ((walkBlockPhase M j : ℂ) * Complex.I) := by
@@ -262,6 +305,8 @@ lemma walkBlockEigPlus_eq_exp (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     simp [walkBlockEigPlus, Complex.add_im, Complex.mul_im]
     rw [walkBlockPhase_sin M j hx0 hx1]
 
+/-- When `0 ≤ walkBeta M * j ≤ 1`, the minus eigenvalue equals the complex exponential of `-i`
+times the block phase. -/
 lemma walkBlockEigMinus_eq_exp (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     (hx1 : walkBeta M * j ≤ 1) :
     walkBlockEigMinus M j = Complex.exp (-((walkBlockPhase M j : ℂ)) * Complex.I) := by
@@ -276,12 +321,14 @@ lemma walkBlockEigMinus_eq_exp (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     simp [walkBlockEigMinus, Complex.sub_im, Complex.mul_im, Real.sin_neg]
     rw [walkBlockPhase_sin M j hx0 hx1]
 
+/-- The plus eigenvalue has norm one when `0 ≤ walkBeta M * j ≤ 1`. -/
 lemma walkBlockEigPlus_norm_one (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     (hx1 : walkBeta M * j ≤ 1) :
     ‖walkBlockEigPlus M j‖ = 1 := by
   rw [walkBlockEigPlus_eq_exp M j hx0 hx1]
   exact Complex.norm_exp_ofReal_mul_I _
 
+/-- The minus eigenvalue has norm one when `0 ≤ walkBeta M * j ≤ 1`. -/
 lemma walkBlockEigMinus_norm_one (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
     (hx1 : walkBeta M * j ≤ 1) :
     ‖walkBlockEigMinus M j‖ = 1 := by
@@ -292,6 +339,8 @@ lemma walkBlockEigMinus_norm_one (M j : ℕ) (hx0 : 0 ≤ walkBeta M * j)
   rw [h]
   exact Complex.norm_exp_ofReal_mul_I _
 
+/-- The vector `(i, 1)` is an eigenvector of the matrix with rows `(d, -b)` and `(b, d)`, with
+eigenvalue `d + bi`. -/
 lemma twoByTwo_mulVec_ketPlus (d b : ℝ) :
     (!![(d : ℂ), -(b : ℂ); (b : ℂ), (d : ℂ)]) *ᵥ (![Complex.I, 1] : Fin 2 → ℂ) =
       ((d : ℂ) + (b : ℂ) * Complex.I) • (![Complex.I, 1] : Fin 2 → ℂ) := by
@@ -302,6 +351,8 @@ lemma twoByTwo_mulVec_ketPlus (d b : ℝ) :
   · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- The vector `(-i, 1)` is an eigenvector of the matrix with rows `(d, -b)` and `(b, d)`, with
+eigenvalue `d - bi`. -/
 lemma twoByTwo_mulVec_ketMinus (d b : ℝ) :
     (!![(d : ℂ), -(b : ℂ); (b : ℂ), (d : ℂ)]) *ᵥ (![-Complex.I, 1] : Fin 2 → ℂ) =
       ((d : ℂ) - (b : ℂ) * Complex.I) • (![-Complex.I, 1] : Fin 2 → ℂ) := by
@@ -312,30 +363,38 @@ lemma twoByTwo_mulVec_ketMinus (d b : ℝ) :
   · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- The vector `(i, 1)` satisfies the walk-block eigenvector equation with eigenvalue
+`walkBlockEigPlus M j`. -/
 lemma walkBlock_mulVec_ketPlus (M j : ℕ) :
     walkBlock M j *ᵥ (![Complex.I, 1] : Fin 2 → ℂ) =
       walkBlockEigPlus M j • (![Complex.I, 1] : Fin 2 → ℂ) := by
   simpa [walkBlock, walkBlockEigPlus] using
     twoByTwo_mulVec_ketPlus (walkBlockDiag M j) (walkBlockOffDiag M j)
 
+/-- The vector `(-i, 1)` satisfies the walk-block eigenvector equation with eigenvalue
+`walkBlockEigMinus M j`. -/
 lemma walkBlock_mulVec_ketMinus (M j : ℕ) :
     walkBlock M j *ᵥ (![-Complex.I, 1] : Fin 2 → ℂ) =
       walkBlockEigMinus M j • (![-Complex.I, 1] : Fin 2 → ℂ) := by
   simpa [walkBlock, walkBlockEigMinus] using
     twoByTwo_mulVec_ketMinus (walkBlockDiag M j) (walkBlockOffDiag M j)
 
+/-- Expresses `paperKetPlus` as `(i, 1)` scaled by `1 / √2`. -/
 lemma paperKetPlus_eq_smul :
     paperKetPlus = (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • (![Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i <;>
     (simp [paperKetPlus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv] <;> ring)
 
+/-- Expresses `paperKetMinus` as `(-i, 1)` scaled by `1 / √2`. -/
 lemma paperKetMinus_eq_smul :
     paperKetMinus = (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • (![-Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i <;>
     (simp [paperKetMinus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv] <;> ring)
 
+/-- The normalized vector `paperKetPlus` satisfies the walk-block eigenvector equation for the
+plus eigenvalue [ChildsEisenberg2003]. -/
 lemma walkBlock_eigenvector_paper_plus (M j : ℕ) :
     walkBlock M j *ᵥ paperKetPlus = walkBlockEigPlus M j • paperKetPlus := by
   rw [paperKetPlus_eq_smul, Matrix.mulVec_smul, walkBlock_mulVec_ketPlus]
@@ -343,6 +402,8 @@ lemma walkBlock_eigenvector_paper_plus (M j : ℕ) :
   congr 1
   ring
 
+/-- The normalized vector `paperKetMinus` satisfies the walk-block eigenvector equation for the
+minus eigenvalue. -/
 lemma walkBlock_eigenvector_paper_minus (M j : ℕ) :
     walkBlock M j *ᵥ paperKetMinus = walkBlockEigMinus M j • paperKetMinus := by
   rw [paperKetMinus_eq_smul, Matrix.mulVec_smul, walkBlock_mulVec_ketMinus]
@@ -350,6 +411,8 @@ lemma walkBlock_eigenvector_paper_minus (M j : ℕ) :
   congr 1
   ring
 
+/-- Factors the determinant of `walkBlock M j - z • 1` as the product of `z` minus each of the
+two explicit eigenvalues. -/
 lemma walkBlock_charpoly (M j : ℕ) (z : ℂ) :
     Matrix.det (walkBlock M j - Matrix.scalar (Fin 2) z) =
       (z - walkBlockEigPlus M j) * (z - walkBlockEigMinus M j) := by
@@ -357,6 +420,8 @@ lemma walkBlock_charpoly (M j : ℕ) (z : ℂ) :
     Matrix.sub_apply, Matrix.scalar_apply]
   linear_combination ((walkBlockOffDiag M j : ℂ) ^ 2) * Complex.I_sq
 
+/-- The characteristic determinant of the walk block vanishes exactly at `walkBlockEigPlus M j`
+and `walkBlockEigMinus M j` [ChildsEisenberg2003]. -/
 theorem walkBlock_spectrum (M j : ℕ) (z : ℂ) :
     Matrix.det (walkBlock M j - Matrix.scalar (Fin 2) z) = 0 ↔
       z = walkBlockEigPlus M j ∨ z = walkBlockEigMinus M j := by

@@ -8,6 +8,32 @@ import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
 import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
 import Qatlib.Concepts.AmpTransform.NoiseMoments.NoiseSequenceMoments
 import Mathlib.NumberTheory.DiophantineApproximation.Basic
+
+/-!
+# Fresh noise tests for amplified period candidates
+
+This module analyzes the one-mark envelope, boundary cases of continued fraction recovery, and
+independent Bernoulli noise used to test period candidates. In particular,
+`aq_fresh_consistency_probability` gives the exact probability that a candidate survives fresh
+noise, and the disambiguation lemmas identify the true period when every competing candidate is
+refuted. See [Cornwell2014] for background.
+
+## Main statements
+
+* `aq_legendre_nonstrict_complete`: A reduced fraction with positive denominator satisfying the
+  nonstrict Legendre bound is a convergent, except possibly for denominator one at the lower
+  half-integer boundary.
+* `aq_fresh_consistency_probability`: A period candidate remains consistent with fresh Bernoulli
+  noise with probability `p` raised to its candidate separation.
+* `aq_fresh_disambiguation_succeeds`: If the candidate set contains the true period and every
+  other candidate is inconsistent, the compatible set is its singleton and disambiguation
+  returns it.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -22,6 +48,8 @@ namespace Qatlib.Concepts.AmplitudeCore.InvFreeSampling
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The general envelope at `M = 1` equals `aqM1Envelope`, apart from the possible exceptional
+value `L = -1`. -/
 theorem aq_envelope_bound_m1 (N : ℕ) (L : ℝ) :
     aqEnvelopeBound (N : ℝ) 1 L = aqM1Envelope (N : ℝ) L ∨ L = -1 := by
   by_cases h : L = -1
@@ -39,6 +67,7 @@ theorem aq_envelope_bound_m1 (N : ℕ) (L : ℝ) :
       apply (div_eq_div_iff hne2 hz).mpr
       ring
 
+/-- On the one-mark open window, the general envelope equals `aqM1Envelope`. -/
 theorem aq_envelope_bound_m1_open {N : ℕ} {L : ℝ} (h : aqM1OpenWindow N L) :
     aqEnvelopeBound (N : ℝ) 1 L = aqM1Envelope (N : ℝ) L := by
   have hne : L ≠ -1 := by
@@ -47,6 +76,7 @@ theorem aq_envelope_bound_m1_open {N : ℕ} {L : ℝ} (h : aqM1OpenWindow N L) :
     exact (lt_irrefl (-1 : ℝ)) h.1
   exact (aq_envelope_bound_m1 N L).resolve_right hne
 
+/-- For positive `N`, the one-mark envelope is strictly increasing on its open window. -/
 theorem aq_m1_envelope_strictly_increasing {N : ℕ} (hN : 0 < N) {L₁ L₂ : ℝ}
     (h₁ : aqM1OpenWindow N L₁) (h₂ : aqM1OpenWindow N L₂) (hlt : L₁ < L₂) :
     aqM1Envelope (N : ℝ) L₁ < aqM1Envelope (N : ℝ) L₂ := by
@@ -56,6 +86,8 @@ theorem aq_m1_envelope_strictly_increasing {N : ℕ} (hN : 0 < N) {L₁ L₂ : �
   unfold aqM1Envelope
   exact one_div_lt_one_div_of_lt hpos₂ hlt'
 
+/-- For positive `N`, every one-mark envelope value in the open window is strictly greater than
+`1 / N`. -/
 theorem aq_m1_envelope_gt_inv_N {N : ℕ} (hN : 0 < N) {L : ℝ} (h : aqM1OpenWindow N L) :
     (1 : ℝ) / N < aqM1Envelope (N : ℝ) L := by
   have hN' : (0 : ℝ) < N := by exact_mod_cast hN
@@ -65,6 +97,8 @@ theorem aq_m1_envelope_gt_inv_N {N : ℕ} (hN : 0 < N) {L : ℝ} (h : aqM1OpenWi
   unfold aqM1Envelope
   exact one_div_lt_one_div_of_lt hpos hlt
 
+/-- For positive `N`, one-mark envelope values in the open window approach `1 / N` from above
+arbitrarily closely. -/
 theorem aq_m1_envelope_infimum_approach {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0 < ε) :
     ∃ L, aqM1OpenWindow N L ∧ aqM1Envelope (N : ℝ) L < (1 : ℝ) / N + ε := by
   have hN' : (0 : ℝ) < N := by exact_mod_cast hN
@@ -100,6 +134,8 @@ theorem aq_m1_envelope_infimum_approach {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε :
     rw [hsplit]
     linarith
 
+/-- Every point in the one-mark open window has another point with a strictly smaller envelope
+value. -/
 theorem aq_m1_envelope_no_optimal {N : ℕ} (hN : 0 < N) {L : ℝ} (h : aqM1OpenWindow N L) :
     ∃ L', aqM1OpenWindow N L' ∧ aqM1Envelope (N : ℝ) L' < aqM1Envelope (N : ℝ) L := by
   have hN1 : (1 : ℝ) ≤ (N : ℝ) := by exact_mod_cast hN
@@ -113,6 +149,8 @@ theorem aq_m1_envelope_no_optimal {N : ℕ} (hN : 0 < N) {L : ℝ} (h : aqM1Open
       (L₁ := L - (L + 1) / 2) (L₂ := L)
       ⟨by linarith, by linarith [h.2]⟩ h hlt
 
+/-- On the physical range `0 ≤ L < N - 1` with `N > 1`, the one-mark envelope is at least `1 /
+(N - 1)`, with equality exactly when `L = 0`. -/
 theorem aq_m1_envelope_physical_minimum {N : ℕ} (hN : 1 < N) {L : ℝ}
     (hL : 0 ≤ L) (hL' : L < (N : ℝ) - 1) :
     (1 : ℝ) / (N - 1) ≤ aqM1Envelope (N : ℝ) L ∧
@@ -135,6 +173,8 @@ theorem aq_m1_envelope_physical_minimum {N : ℕ} (hN : 1 < N) {L : ℝ}
       unfold aqM1Envelope
       rw [show (N : ℝ) - 0 - 1 = N - 1 by ring]
 
+/-- An integer within distance `1 / 2` of a real number is a continued fraction convergent
+unless the real number is exactly that integer minus `1 / 2`. -/
 theorem aq_legendre_integer_window (ξ : ℝ) (u : ℤ) (h : |ξ - (u : ℝ)| ≤ 1 / 2) :
     (∃ n : ℕ, (u : ℚ) = ξ.convergent n) ∨ ξ = (u : ℝ) - 1 / 2 := by
   by_cases htie : ξ = (u : ℝ) - 1 / 2
@@ -160,6 +200,8 @@ theorem aq_legendre_integer_window (ξ : ℝ) (u : ℤ) (h : |ξ - (u : ℝ)| �
     rw [hq] at hn
     exact hn
 
+/-- A reduced fraction with denominator at least two and approximation error at most `1 / (2 *
+b^2)` is a continued fraction convergent. -/
 theorem aq_legendre_nonstrict_den_ge_two (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 2 ≤ b)
     (hc : Nat.Coprime b a.natAbs)
     (h : |ξ - (a : ℝ) / (b : ℝ)| ≤ 1 / (2 * (b : ℝ) ^ 2)) :
@@ -185,6 +227,8 @@ theorem aq_legendre_nonstrict_den_ge_two (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 2 
   rw [hq] at hn
   exact hn
 
+/-- A reduced fraction with positive denominator satisfying the nonstrict Legendre bound is a
+convergent, except possibly for denominator one at the lower half-integer boundary. -/
 theorem aq_legendre_nonstrict_complete (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 0 < b)
     (hc : Nat.Coprime b a.natAbs)
     (h : |ξ - (a : ℝ) / (b : ℝ)| ≤ 1 / (2 * (b : ℝ) ^ 2)) :
@@ -204,6 +248,8 @@ theorem aq_legendre_nonstrict_complete (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 0 < 
   · have h2 : 2 ≤ b := by omega
     exact Or.inl (aq_legendre_nonstrict_den_ge_two ξ a b h2 hc h)
 
+/-- A rational satisfying the nonstrict Legendre approximation bound is a convergent, except
+possibly when its denominator is one and the real number is that rational minus `1 / 2`. -/
 theorem aq_legendre_nonstrict_complete_rat (ξ : ℝ) (q : ℚ)
     (h : |ξ - (q : ℝ)| ≤ 1 / (2 * (q.den : ℝ) ^ 2)) :
     (∃ n : ℕ, q = ξ.convergent n) ∨ (q.den = 1 ∧ ξ = (q : ℝ) - 1 / 2) := by
@@ -262,6 +308,8 @@ theorem aq_legendre_nonstrict_complete_rat (ξ : ℝ) (q : ℚ)
     rw [hq] at hn
     exact hn
 
+/-- The expectation of a product of site functions under the Bernoulli stream law factors into
+the product of their site expectations. -/
 theorem aq_bernoulli_stream_independent (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (g : Fin N → Bool → ℝ) :
     (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ * ∏ i, g i (σ i))
@@ -271,6 +319,8 @@ theorem aq_bernoulli_stream_independent (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 
       (p := bernoulliSiteLaw p hp hp1) (L := N) g
   simpa only [bernoulliStreamLaw] using! h
 
+/-- The product of the marking indicators over `D` is the indicator that every element of `D` is
+marked by `σ`. -/
 private theorem aq_prod_ite_indicator (N : ℕ) (D : Finset (Fin N)) (σ : Fin N → Bool) :
     (∏ j : Fin N, (if j ∈ D then (if σ j then 1 else 0) else 1))
       = (if D ⊆ Finset.filter (fun i : Fin N => σ i = true) Finset.univ then (1 : ℝ) else 0) := by
@@ -292,6 +342,8 @@ private theorem aq_prod_ite_indicator (N : ℕ) (D : Finset (Fin N)) (σ : Fin N
     rw [h0]
     simp [h]
 
+/-- Independent Bernoulli marking with parameter `p` marks every element of `D` with probability
+`p^D.card`. -/
 theorem aq_bernoulli_all_marked (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (D : Finset (Fin N)) :
     (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
@@ -326,6 +378,7 @@ theorem aq_bernoulli_all_marked (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 
         simp
       rw [hprod]
 
+/-- Each site of the Bernoulli stream is marked with probability `p`. -/
 theorem aq_bernoulli_site_marginal (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (i : Fin N) :
     (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
@@ -352,6 +405,7 @@ theorem aq_bernoulli_site_marginal (N : ℕ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p �
     _ = p ^ ({i} : Finset (Fin N)).card := h
     _ = p := by simp
 
+/-- Containment of `s` in `t ∪ u` is equivalent to containment of `s \ t` in `u`. -/
 private theorem aq_subset_union_iff {α : Type} [DecidableEq α] (s t u : Finset α) :
     s ⊆ t ∪ u ↔ s \ t ⊆ u := by
   constructor
@@ -367,6 +421,8 @@ private theorem aq_subset_union_iff {α : Type} [DecidableEq α] (s t u : Finset
     · exact Or.inl hx'
     · exact Or.inr (hsub (Finset.mem_sdiff.mpr ⟨hx, hx'⟩))
 
+/-- A period candidate remains consistent with fresh Bernoulli noise with probability `p` raised
+to its candidate separation. -/
 theorem aq_fresh_consistency_probability (N s M P P' : ℕ) (p : ℝ) (hp : 0 ≤ p)
     (hp1 : p ≤ 1) :
     (∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
@@ -397,11 +453,14 @@ theorem aq_fresh_consistency_probability (N s M P P' : ℕ) (p : ℝ) (hp : 0 �
       simp [hc, hc']
   rw [hsum, aq_bernoulli_all_marked N p hp hp1 D, hcard]
 
+/-- The true period is consistent with every freshly marked set formed from its progression. -/
 theorem aq_true_period_always_consistent (N s M P : ℕ) (σ : Fin N → Bool) :
     aqCandidateConsistent N s M P (aqFreshMarked N s M P σ) := by
   unfold aqCandidateConsistent aqFreshMarked
   exact Finset.subset_union_left
 
+/-- If the candidate set contains the true period and every other candidate is inconsistent, the
+compatible set is its singleton and disambiguation returns it. -/
 theorem aq_fresh_disambiguation_succeeds (N s M P : ℕ) (p : ℝ) (cands : Finset ℕ)
     (hP : P ∈ cands) (σ : Fin N → Bool)
     (hrefute : ∀ P' ∈ cands \ {P},
@@ -429,6 +488,8 @@ theorem aq_fresh_disambiguation_succeeds (N s M P : ℕ) (p : ℝ) (cands : Fins
   rw [hcompat]
   simp [aqCandidateLikelihood]
 
+/-- If the compatible candidate set is not the singleton true period, some other candidate
+remains consistent. -/
 theorem aq_fresh_failure_contained (N s M P : ℕ) (cands : Finset ℕ) (hP : P ∈ cands)
     (σ : Fin N → Bool)
     (hne : aqFreshCompatible N s M cands (aqFreshMarked N s M P σ) ≠ {P}) :

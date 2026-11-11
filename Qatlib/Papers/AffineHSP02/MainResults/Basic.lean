@@ -17,6 +17,29 @@ import Mathlib.Data.Nat.Log
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.ZMod.Basic
 
+/-!
+# Reconstruction predicates and orbit counting
+
+Introduces finite probability laws, abstract reconstruction predicates, and the cardinality data
+`QHedral` for a group with a normal translation subgroup. These predicates specify finite laws
+and decoders without encoding computational running times.
+
+The analytic part defines roots of unity and orbit sums, then converts a bound on their norm
+into a lower bound on the number of orbit residues in the middle interval `(p/6, 5p/6)`. See
+[MooreEtAl2002].
+
+## Main statements
+
+* `MeasurementReconstructible`: finite laws distinguish subgroups injectively.
+* `counting_of_gauss_bound`: a character-sum bound forces many residues into the middle
+  interval.
+* `source_lemma1_of_gaussBound`: the counting result specialized to multiplicative orbits.
+
+## References
+
+* [Moore et al., 2002][MooreEtAl2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -24,6 +47,8 @@ namespace Qatlib.Papers.AffineHSP02.MainResults
 
 open scoped BigOperators
 
+/-- Cardinality data for a group of size `p * q` with a normal subgroup of size `p`, designated
+as the translation subgroup. -/
 structure QHedral (p q : ℕ) (G : Type) [Group G] where
 
   trans : Subgroup G
@@ -33,28 +58,37 @@ structure QHedral (p q : ℕ) (G : Type) [Group G] where
 
   group_card : Nat.card G = p * q
 
+/-- The conjugate of `H` by `b`, obtained as its image under conjugation. -/
 def conjugateSubgroup {G : Type} [Group G] (H : Subgroup G) (b : G) : Subgroup G :=
   H.map (MulAut.conj b).toMonoidHom
 
+/-- A finite probability law with nonnegative real weights summing to one. -/
 structure FinLaw (Ω : Type) [Fintype Ω] where
   prob : Ω → ℝ
   nonneg : ∀ x, 0 ≤ prob x
   total : ∑ x, prob x = 1
 
+/-- Half the sum of the absolute differences between the weights of two finite probability laws. -/
 noncomputable def totalVariation {Ω : Type} [Fintype Ω] (P Q : FinLaw Ω) : ℝ :=
   (1 / 2) * ∑ x, |P.prob x - Q.prob x|
 
+/-- An assignment of a finite probability law to each subgroup of `G`. -/
 structure SubgroupLaw (G Ω : Type) [Group G] [Fintype Ω] where
   law : Subgroup G → FinLaw Ω
 
+/-- The existence of finite probability laws whose assignment to subgroups is injective. -/
 def MeasurementReconstructible (G : Type) [Group G] : Prop :=
   ∃ (Ω : Type) (_ : Fintype Ω), ∃ M : SubgroupLaw G Ω, Function.Injective M.law
 
+/-- The existence of finite subgroup-dependent laws and a decoder that identifies every subgroup
+on an event of probability at least one half. -/
 def FullyReconstructible (G : Type) [Group G] : Prop :=
   ∃ (Ω : Type) (_ : Fintype Ω), ∃ M : SubgroupLaw G Ω, ∃ dec : Ω → Subgroup G,
     ∀ s : Subgroup G, ∃ F : Finset Ω,
       (∀ ω ∈ F, dec ω = s) ∧ (1 / 2 : ℝ) ≤ ∑ ω ∈ F, (M.law s).prob ω
 
+/-- The existence of finite laws for conjugate parameters with total variation at least a common
+`δ ∈ [1/4, 1]` whenever the conjugate subgroups differ. -/
 def HiddenConjugatesMeasurementReconstructible (G : Type) [Group G]
     (H : Subgroup G) : Prop :=
   ∃ (Ω : Type) (_ : Fintype Ω) (δ : ℝ) (law : G → FinLaw Ω),
@@ -62,20 +96,28 @@ def HiddenConjugatesMeasurementReconstructible (G : Type) [Group G]
     ∀ b b' : G, conjugateSubgroup H b ≠ conjugateSubgroup H b' →
       δ ≤ totalVariation (law b) (law b')
 
+/-- The existence of finite laws and a decoder that recovers each conjugating parameter on an
+event of probability at least one half. -/
 def HiddenConjugatesFullyReconstructible (G : Type) [Group G]
     (H : Subgroup G) : Prop :=
   ∃ (Ω : Type) (_ : Fintype Ω) (law : G → FinLaw Ω) (dec : Ω → G),
     ∀ b : G, ∃ F : Finset Ω,
       (∀ ω ∈ F, dec ω = b) ∧ (1 / 2 : ℝ) ≤ ∑ ω ∈ F, (law b).prob ω
 
+/-- The existence of positive natural `C` and natural `k` with `p - 1 ≤ C * q * (Nat.log 2 p +
+1)^k`. -/
 def IndexPolylog (p q : ℕ) : Prop :=
   ∃ C k : ℕ, 0 < C ∧ p - 1 ≤ C * q * (Nat.log 2 p + 1) ^ k
 
+/-- The existence of positive natural `C` and natural `k` with `n ≤ C * Nat.card H * (Nat.log 2
+n + 1)^k`. -/
 def IndexPolylogSub {G : Type} [Group G] (H : Subgroup G) (n : ℕ) : Prop :=
   ∃ C k : ℕ, 0 < C ∧ n ≤ C * Nat.card H * (Nat.log 2 n + 1) ^ k
 
+/-- The complex exponential `exp(2πi / p)` used for the orbit sums. -/
 noncomputable def qroot (p : ℕ) : ℂ := Complex.exp (2 * Real.pi * Complex.I / p)
 
+/-- The `t`th power of `qroot p` equals the complex exponential of `i * (2π * t / p)`. -/
 theorem qroot_pow_eq (p t : ℕ) :
     qroot p ^ t = Complex.exp (((2 * Real.pi * t / p : ℝ) : ℂ) * Complex.I) := by
   unfold qroot
@@ -84,12 +126,15 @@ theorem qroot_pow_eq (p t : ℕ) :
   push_cast
   ring
 
+/-- The real part of `qroot p ^ t` is `cos(2π * t / p)`. -/
 theorem re_qroot_pow (p t : ℕ) : (qroot p ^ t).re = Real.cos (2 * Real.pi * t / p) := by
   rw [qroot_pow_eq, Complex.exp_ofReal_mul_I_re]
 
+/-- The complex norm of every natural power of `qroot p` is one. -/
 theorem norm_qroot_pow (p t : ℕ) : ‖qroot p ^ t‖ = 1 := by
   rw [qroot_pow_eq, Complex.norm_exp_ofReal_mul_I]
 
+/-- The real part of every natural power of `qroot p` is at least −1. -/
 theorem re_qroot_pow_ge_neg_one (p t : ℕ) : -1 ≤ (qroot p ^ t).re := by
   have h1 : |(qroot p ^ t).re| ≤ ‖qroot p ^ t‖ := Complex.abs_re_le_norm _
   rw [norm_qroot_pow] at h1
@@ -98,6 +143,7 @@ theorem re_qroot_pow_ge_neg_one (p t : ℕ) : -1 ≤ (qroot p ^ t).re := by
     linarith
   exact h2
 
+/-- If `p > 0` and `x ≤ p/6`, then `cos(2π * x / p) ≥ 1/2`. -/
 theorem cos_ge_half_of_low (p x : ℕ) (hp : 0 < p) (hx : (x : ℝ) ≤ p / 6) :
     (1 / 2 : ℝ) ≤ Real.cos (2 * Real.pi * x / p) := by
   have hpR : (0 : ℝ) < p := by exact_mod_cast hp
@@ -111,6 +157,7 @@ theorem cos_ge_half_of_low (p x : ℕ) (hp : 0 < p) (hx : (x : ℝ) ≤ p / 6) :
   rw [Real.cos_pi_div_three] at h
   linarith
 
+/-- If `p > 0` and `5p/6 ≤ x < p`, then `cos(2π * x / p) ≥ 1/2`. -/
 theorem cos_ge_half_of_high (p x : ℕ) (hp : 0 < p) (hx : 5 * (p : ℝ) / 6 ≤ x)
     (hxp : (x : ℝ) < p) :
     (1 / 2 : ℝ) ≤ Real.cos (2 * Real.pi * x / p) := by
@@ -136,6 +183,8 @@ theorem cos_ge_half_of_high (p x : ℕ) (hp : 0 < p) (hx : 5 * (p : ℝ) / 6 ≤
   rw [Real.cos_pi_div_three] at h
   linarith
 
+/-- If a sum of `q` root-of-unity phases has norm at most `B ≤ (3/2) * ε * q`, at least `(1/3 -
+ε) * q` of the associated residues lie strictly between `p/6` and `5p/6`. -/
 theorem counting_of_gauss_bound
     (p q : ℕ) (hp : 0 < p) (f : ℕ → ℕ) (hf : ∀ t, f t < p)
     (ε B : ℝ) (hε : 0 < ε) (hB0 : 0 ≤ B)
@@ -212,18 +261,23 @@ theorem counting_of_gauss_bound
     nlinarith [hsplit, hBq, hε, hB0]
   exact hfin
 
+/-- The natural representative of the residue `a^t * k` modulo `p`. -/
 def orbitResidue (p : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) (t : ℕ) : ℕ :=
   (((a : ZMod p) ^ t) * k).val
 
+/-- The sum of `qroot p` raised to the orbit residues for `0 ≤ t < q`. -/
 noncomputable def gaussSum (p : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) (q : ℕ) : ℂ :=
   ∑ t ∈ Finset.range q, qroot p ^ (orbitResidue p a k t)
 
+/-- For positive `p`, every orbit residue is strictly smaller than `p`. -/
 theorem orbitResidue_lt (p : ℕ) (hp : 0 < p) (a : (ZMod p)ˣ) (k : ZMod p)
     (t : ℕ) : orbitResidue p a k t < p := by
   haveI : NeZero p := ⟨Nat.pos_iff_ne_zero.mp hp⟩
   unfold orbitResidue
   exact ZMod.val_lt _
 
+/-- A bound `B ≤ (3/2) * ε * q` on the orbit Gauss-sum norm forces at least `(1/3 - ε) * q`
+orbit indices into `(p/6, 5p/6)` [Moore et al., Lemma 1][MooreEtAl2002]. -/
 theorem source_lemma1_of_gaussBound
     (p q : ℕ) (hp : 0 < p) (a : (ZMod p)ˣ) (k : ZMod p)
     (ε B : ℝ) (hε : 0 < ε) (hB0 : 0 ≤ B)
@@ -236,6 +290,8 @@ theorem source_lemma1_of_gaussBound
   exact counting_of_gauss_bound p q hp (orbitResidue p a k)
     (orbitResidue_lt p hp a k) ε B hε hB0 hGauss hBq
 
+/-- A norm bound `C * sqrt(p)` gives at least `(1/3 - 2 * C * sqrt(p) / (3 * q)) * q` indices
+with residues in `(p/6, 5p/6)`. -/
 theorem counting_of_sqrt_gauss_bound
     (p q : ℕ) (hp : 0 < p) (f : ℕ → ℕ) (hf : ∀ t, f t < p)
     (C : ℝ) (hC : 0 < C) (hq : 1 ≤ q)

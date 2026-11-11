@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
 import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+/-!
+# Mixed state execution and continuation costs
+
+`MixedBranchTrace` records operator-valued branch states together with acceptance, resource
+counts, and outcomes. `observedMixedTraces` executes observed circuits by conjugating the input
+operator along each branch, and `mixedExpectedQueries` weights query counts by the real trace of
+each branch state. The connection with Kraus operators and quantum instruments follows the
+formalism in [Watrous2018].
+
+`continueObserved` replaces Boolean termination with a selected continuation. `mixedJoin`
+combines the resulting branch metadata, and the continuation theorems express both the complete
+branch list and its expected query cost.
+
+## Main statements
+
+* `observedMixedTraces_pure` agrees with pure state execution after taking outer products.
+* `observedMixedTraces_instrument` identifies branch states with instrument outputs.
+* `observedMixedTraces_mass_and_density` proves positivity and mass conservation under the
+  stated hypotheses.
+* `mixed_continuation_actual_cost` splits expected cost into the prefix cost and continuation
+  costs on its branch states.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +51,8 @@ open scoped ComplexOrder
 
 variable {D : ℕ}
 
+/-- A terminal branch record with an operator-valued state, acceptance flag, resource counts,
+and measurement outcomes. -/
 structure MixedBranchTrace (D : ℕ) where
   state : Operator D
   accepted : Bool
@@ -31,19 +61,28 @@ structure MixedBranchTrace (D : ℕ) where
   measurements : ℕ
   outcomes : List (ℕ × ℕ)
 
+/-- Applies a Kraus leaf's conjugation map to the input operator and records the leaf's
+classical metadata. -/
 noncomputable def leafMixedTrace (t : ObservedKrausLeaf D) (ρ : Operator D) :
     MixedBranchTrace D :=
   ⟨conjBranch t.operator ρ, t.accepted, t.queries, t.gates, t.measurements, t.outcomes⟩
 
+/-- Converts a pure branch trace into a mixed branch trace by taking the outer product of its
+state and retaining the metadata. -/
 noncomputable def pureTraceToMixed (t : BranchTrace (Fin D)) : MixedBranchTrace D :=
   ⟨outerProduct t.state, t.accepted, t.queries, t.gates, t.measurements, t.outcomes⟩
 
+/-- The real part of the trace of a mixed branch's state operator. -/
 noncomputable def mixedMass (t : MixedBranchTrace D) : ℝ := (Matrix.trace t.state).re
 
+/-- Combines a prefix trace with a continuation trace by adding resource counts and
+concatenating outcomes, using the continuation's state and acceptance flag. -/
 def mixedJoin (t u : MixedBranchTrace D) : MixedBranchTrace D :=
   ⟨u.state, u.accepted, t.queries + u.queries, t.gates + u.gates,
     t.measurements + u.measurements, t.outcomes ++ u.outcomes⟩
 
+/-- Enumerates operator-valued terminal branches of an observed circuit by conjugation along
+gates, queries, and measurement branches, accumulating resource counts and outcomes. -/
 noncomputable def observedMixedTraces (oracle : Operator D) :
     ObservedCircuit (Fin D) → Operator D → List (MixedBranchTrace D)
   | .halt accepted, ρ =>
@@ -73,10 +112,13 @@ noncomputable def observedMixedTraces (oracle : Operator D) :
         fun t => ⟨t.state, t.accepted, t.queries, t.gates, t.measurements + 1,
           (2, 1) :: t.outcomes⟩
 
+/-- The sum of each mixed branch's query count weighted by the real trace of its state operator. -/
 noncomputable def mixedExpectedQueries (oracle : Operator D) (program : ObservedCircuit (Fin D))
     (ρ : Operator D) : ℝ :=
   ((observedMixedTraces oracle program ρ).map fun t => mixedMass t * t.queries).sum
 
+/-- Replaces each Boolean halt of an observed circuit with the continuation selected by that
+Boolean result. -/
 def continueObserved {I : Type} :
     ObservedCircuit I → (Bool → ObservedCircuit I) → ObservedCircuit I
   | .halt a, k => k a
@@ -85,6 +127,8 @@ def continueObserved {I : Type} :
   | .project P onFalse onTrue, k =>
       .project P (continueObserved onFalse k) (continueObserved onTrue k)
 
+/-- Prepending an operator and metadata to a Kraus leaf agrees with first conjugating the input
+and then adding that metadata to the resulting mixed trace. -/
 private theorem leafMixedTrace_prepend (U : Operator D) (q g m : ℕ)
     (outcomes : List (ℕ × ℕ)) (leaf : ObservedKrausLeaf D) (ρ : Operator D) :
     (fun t => ⟨t.state, t.accepted, t.queries + q, t.gates + g, t.measurements + m,
@@ -96,6 +140,8 @@ private theorem leafMixedTrace_prepend (U : Operator D) (q g m : ℕ)
   simp only [leafMixedTrace, Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedKrausLeaf.prepend,
       hst]
 
+/-- Mixed execution equals the list obtained by applying `leafMixedTrace` to every observed
+Kraus leaf and the common input operator. -/
 private theorem observedMixedTraces_eq_krausLeaves (oracle : Operator D)
     (program : ObservedCircuit (Fin D)) (ρ : Operator D) :
     observedMixedTraces oracle program ρ =
@@ -140,6 +186,8 @@ private theorem observedMixedTraces_eq_krausLeaves (oracle : Operator D)
     · exact List.map_congr_left fun leaf _ => leafMixedTrace_prepend _ 0 0 1 [(2, 0)] leaf ρ
     · exact List.map_congr_left fun leaf _ => leafMixedTrace_prepend _ 0 0 1 [(2, 1)] leaf ρ
 
+/-- Mixed traces are precisely the indexed observed leaves applied to the input operator, and
+their list length is `observedLeafCount`. -/
 theorem observedMixedTraces_leaf_correspondence (O : Operator D) (P : ObservedCircuit (Fin D))
     (ρ : Operator D) :
     observedMixedTraces O P ρ = List.ofFn (fun i => leafMixedTrace (observedLeaf O P i) ρ) ∧
@@ -149,6 +197,8 @@ theorem observedMixedTraces_leaf_correspondence (O : Operator D) (P : ObservedCi
     rfl
   · rw [observedMixedTraces_eq_krausLeaves, List.length_map, observedKrausLeaves_length]
 
+/-- Executing on a pure state's outer product agrees with pure execution followed by converting
+each trace with `pureTraceToMixed`. -/
 theorem observedMixedTraces_pure (O : Operator D) (P : ObservedCircuit (Fin D))
     (ψ : QState (Fin D)) :
     observedMixedTraces O P (outerProduct ψ) = (observedTraces O P ψ).map pureTraceToMixed := by
@@ -158,6 +208,8 @@ theorem observedMixedTraces_pure (O : Operator D) (P : ObservedCircuit (Fin D))
   rw [conjBranch_outerProduct]
   rfl
 
+/-- For a unitary oracle and well-formed circuit, the indexed instrument branch outputs are
+exactly the state fields of the mixed trace list. -/
 theorem observedMixedTraces_instrument (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
     (hP : observedWellFormed P) (ρ : Operator D) :
@@ -166,6 +218,8 @@ theorem observedMixedTraces_instrument (O : Operator D)
   rw [(observedMixedTraces_leaf_correspondence O P ρ).1, List.map_ofFn]
   rfl
 
+/-- For a unitary oracle and well-formed circuit, total mixed branch mass equals the real trace
+of the input operator. -/
 theorem observedMixedTraces_mass_sum (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
     (hP : observedWellFormed P) (ρ : Operator D) :
@@ -177,6 +231,9 @@ theorem observedMixedTraces_mass_sum (O : Operator D)
         exact Finset.sum_congr rfl fun i _ => rfl
     _ = (Matrix.trace ρ).re := sum_instrumentProb (observedInstrument O hO P hP) ρ
 
+/-- For a unitary oracle and well-formed circuit, positive semidefinite inputs yield positive
+semidefinite branch states with nonnegative mass. Total mass is the input's real trace and
+equals one for density operators. -/
 theorem observedMixedTraces_mass_and_density (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
     (hP : observedWellFormed P) (ρ : Operator D) :
@@ -192,6 +249,9 @@ theorem observedMixedTraces_mass_and_density (O : Operator D)
   · rw [observedMixedTraces_mass_sum O hO P hP ρ, hρ.2]
     rfl
 
+/-- An instrument-probability-weighted statistic of indexed mixed leaves equals the
+mixed-mass-weighted trace statistic. The theorem also records the trace-sum formula for
+mixed expected queries. -/
 theorem observedMixedTraces_event_statistic (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
     (hP : observedWellFormed P) (ρ : Operator D) (f : MixedBranchTrace D → ℝ) :
@@ -205,6 +265,8 @@ theorem observedMixedTraces_event_statistic (O : Operator D)
   rw [(observedMixedTraces_leaf_correspondence O P ρ).1, List.map_ofFn, List.sum_ofFn]
   exact Finset.sum_congr rfl fun i _ => rfl
 
+/-- For a unitary oracle and well-formed circuit, mixed expected queries equal the indexed sum
+of instrument probabilities times leaf query counts. -/
 theorem mixedExpectedQueries_eq_instrumentProb (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
     (hP : observedWellFormed P) (ρ : Operator D) :
@@ -213,6 +275,8 @@ theorem mixedExpectedQueries_eq_instrumentProb (O : Operator D)
           instrumentProb (observedInstrument O hO P hP) ρ i * (observedLeaf O P i).queries :=
   (observedMixedTraces_event_statistic O hO P hP ρ fun t => (t.queries : ℝ)).1.symm
 
+/-- A trace update preserving state and acceptance and compatible with `mixedJoin` commutes with
+expanding a list through its selected continuations. -/
 private theorem observedMixedTraces_continue_update (O : Operator D)
     (k : Bool → ObservedCircuit (Fin D)) (u : MixedBranchTrace D → MixedBranchTrace D)
     (hstate : ∀ t, (u t).state = t.state) (hacc : ∀ t, (u t).accepted = t.accepted)
@@ -227,6 +291,8 @@ private theorem observedMixedTraces_continue_update (O : Operator D)
   congr 1
   exact funext fun x => hjoin t x
 
+/-- Flat-mapping a function over a flattened list of mixed trace lists equals flat-mapping it
+within each list and then concatenating. -/
 private theorem flatten_flatMap (L : List (List (MixedBranchTrace D)))
     (g : MixedBranchTrace D → List (MixedBranchTrace D)) :
     L.flatten.flatMap g = L.flatMap fun x => x.flatMap g := by
@@ -234,6 +300,9 @@ private theorem flatten_flatMap (L : List (List (MixedBranchTrace D)))
   | nil => simp
   | cons x L ih => simp [List.flatMap_append, ih]
 
+/-- Execution of a continued circuit expands each prefix trace through its selected continuation
+and joins their metadata. A well-formed prefix with well-formed continuations produces a
+well-formed continued circuit. -/
 theorem mixed_continuation_list_and_legality (O : Operator D) (P : ObservedCircuit (Fin D))
     (k : Bool → ObservedCircuit (Fin D)) (ρ : Operator D) :
     observedMixedTraces O (continueObserved P k) ρ =
@@ -355,12 +424,14 @@ theorem mixed_continuation_list_and_legality (O : Operator D) (P : ObservedCircu
     | project _ onFalse onTrue ihFalse ihTrue =>
       exact ⟨hP.1, ihFalse hP.2.1, ihTrue hP.2.2⟩
 
+/-- The sum of a flat-mapped list of real lists equals the sum of the individual list sums. -/
 private theorem sum_flatMap_weight {α : Type*} (l : List α) (f : α → List ℝ) :
     (l.flatMap f).sum = (l.map fun a => (f a).sum).sum := by
   induction l with
   | nil => simp
   | cons a l ih => simp [List.flatMap_cons, ih]
 
+/-- A list sum of pointwise real additions equals the sum of the two mapped list sums. -/
 private theorem sum_map_add {α : Type*} (l : List α) (f g : α → ℝ) :
     (l.map fun a => f a + g a).sum = (l.map f).sum + (l.map g).sum := by
   induction l with
@@ -370,6 +441,7 @@ private theorem sum_map_add {α : Type*} (l : List α) (f g : α → ℝ) :
     rw [ih]
     ring
 
+/-- Real-valued functions agreeing on every element of a list have equal mapped list sums. -/
 private theorem sum_map_congr {α : Type*} {f g : α → ℝ} (l : List α)
     (h : ∀ x ∈ l, f x = g x) : (l.map f).sum = (l.map g).sum := by
   induction l with
@@ -378,6 +450,7 @@ private theorem sum_map_congr {α : Type*} {f g : α → ℝ} (l : List α)
     simp only [List.map_cons, List.sum_cons]
     rw [h a List.mem_cons_self, ih (fun x hx => h x (List.mem_cons_of_mem a hx))]
 
+/-- A constant right factor can be pulled outside a real mapped list sum. -/
 private theorem sum_map_mul_const {α : Type*} (l : List α) (f : α → ℝ) (r : ℝ) :
     (l.map fun a => f a * r).sum = (l.map f).sum * r := by
   induction l with
@@ -389,6 +462,9 @@ private theorem sum_map_mul_const {α : Type*} (l : List α) (f : α → ℝ) (r
 
 set_option linter.unusedVariables false in
 
+/-- For a unitary oracle and well-formed prefix and continuations, expected queries of the
+continued circuit equal the prefix expectation plus the sum of continuation expectations on
+its unnormalized branch states. -/
 theorem mixed_continuation_actual_cost (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : ObservedCircuit (Fin D))
     (hP : observedWellFormed P) (k : Bool → ObservedCircuit (Fin D))

@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Filtered γ₂ values and weak duality
+
+This module defines the extended nonnegative filtered value `filteredGamma2`, the approximate
+target optimization `stateConversionSDP`, and `gramFunctionEvaluationMatrix`. Certificate
+bounds, a block witness-map factorization, and function-evaluation certificates establish weak
+duality and the comparison between masked and unmasked query filters used in [LeeEtAl2011].
+
+## Main statements
+
+* `filteredGamma2`: The extended nonnegative infimum of the budgets of Gram filtered
+  certificates for `A` relative to `Z`.
+
+* `stateConversionSDP`: The infimum of query-filtered γ₂ distances from `ρ` to positive
+  semidefinite targets `σ'` possessing an unfiltered certificate of budget `δ` for `σ' - σ`.
+
+* `filteredGamma2_dual_ge`: Every dual-feasible multiplier gives an operator-norm lower bound on
+  the filtered γ₂ value [Lee et al., Lemma A.1][LeeEtAl2011].
+
+* `filteredGamma2_queryDelta_le_of_evalRelaxed`: The unmasked query-filtered γ₂ value is bounded
+  by the output-masked value times `2 * (1 - 1 / Fintype.card E)` [Lee et al., Theorem
+  3.4][LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -28,28 +57,38 @@ section Definitions
 
 variable {X : Type} {n : ℕ}
 
+/-- The extended nonnegative infimum of the budgets of Gram filtered certificates for `A`
+relative to `Z`. -/
 noncomputable def filteredGamma2 (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) :
     ℝ≥0∞ :=
   sInf {W : ℝ≥0∞ | ∃ w : ℝ, W = ENNReal.ofReal w ∧ gramFilteredCert A Z w}
 
+/-- The infimum of query-filtered γ₂ distances from `ρ` to positive semidefinite targets `σ'`
+possessing an unfiltered certificate of budget `δ` for `σ' - σ`. -/
 noncomputable def stateConversionSDP (input : X → Fin n → Bool) (δ : ℝ)
     (ρ σ : Matrix X X ℂ) : ℝ≥0∞ :=
   ⨅ σ' : {σ' : Matrix X X ℂ // σ'.PosSemidef ∧
       gramFilteredCert (σ' - σ) (fun _ : Fin 1 => gramFilterAllOnes) δ},
     filteredGamma2 (ρ - σ'.1) (gramFilterDelta input)
 
+/-- The matrix with entry zero on pairs of equal outputs of `f` and one on pairs of different
+outputs. -/
 def gramFunctionEvaluationMatrix {E : Type} [DecidableEq E] (f : X → E) :
     Matrix X X ℂ :=
   fun x y => if f x = f y then 0 else 1
 
 end Definitions
 
+/-- A Gram filtered certificate of budget `w` bounds the filtered γ₂ value by `ENNReal.ofReal w`
+[LeeEtAl2011]. -/
 theorem filteredGamma2_le_of_gramFilteredCert {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {w : ℝ} (h : gramFilteredCert A Z w) :
     filteredGamma2 A Z ≤ ENNReal.ofReal w := by
   unfold filteredGamma2
   exact sInf_le ⟨w, rfl, h⟩
 
+/-- Every real budget strictly above the filtered γ₂ value possesses a Gram filtered certificate
+[LeeEtAl2011]. -/
 theorem gramFilteredCert_of_filteredGamma2_lt {X : Type} {n : ℕ} {A : Matrix X X ℂ}
     {Z : Fin n → Matrix X X ℂ} {W : ℝ}
     (h : filteredGamma2 A Z < ENNReal.ofReal W) : gramFilteredCert A Z W := by
@@ -67,6 +106,8 @@ theorem gramFilteredCert_of_filteredGamma2_lt {X : Type} {n : ℕ} {A : Matrix X
     exact absurd (le_antisymm hW₀lt.le (ENNReal.ofReal_le_ofReal hc)) hW₀lt.ne
   exact hcon (gramFilteredCert_mono hcert hw₀.le)
 
+/-- For nonnegative tolerance and a positive semidefinite target, the state-conversion SDP is
+bounded by the query-filtered γ₂ distance to that target [LeeEtAl2011]. -/
 theorem stateConversionSDP_le_queryDistance {X : Type} {n : ℕ} (input : X → Fin n → Bool)
     {δ : ℝ} (hδ : 0 ≤ δ) {ρ σ : Matrix X X ℂ} (hσ : σ.PosSemidef) :
     stateConversionSDP input δ ρ σ ≤ filteredGamma2 (ρ - σ) (gramFilterDelta input) := by
@@ -77,6 +118,7 @@ theorem stateConversionSDP_le_queryDistance {X : Type} {n : ℕ} (input : X → 
       gramFilteredCert (σ' - σ) (fun _ : Fin 1 => gramFilterAllOnes) δ} =>
       filteredGamma2 (ρ - σ'.1) (gramFilterDelta input)) ⟨σ, hσ, hz⟩
 
+/-- Increasing the tolerance can only decrease the state-conversion SDP value [LeeEtAl2011]. -/
 theorem stateConversionSDP_mono {X : Type} {n : ℕ} (input : X → Fin n → Bool)
     {δ δ' : ℝ} (h : δ ≤ δ') {ρ σ : Matrix X X ℂ} :
     stateConversionSDP input δ' ρ σ ≤ stateConversionSDP input δ ρ σ := by
@@ -86,6 +128,8 @@ theorem stateConversionSDP_mono {X : Type} {n : ℕ} (input : X → Fin n → Bo
       filteredGamma2 (ρ - σ''.1) (gramFilterDelta input))
     ⟨σ'.1, σ'.2.1, gramFilteredCert_mono σ'.2.2 h⟩
 
+/-- A finite sum with one distinguished summand equals that summand plus the common remaining
+value times the number of other indices. -/
 private theorem sum_if_single {E : Type} [DecidableEq E] [Fintype E] (e₀ : E) (a b : ℝ) :
     ∑ e : E, (if e₀ = e then a else b) = a + ((Fintype.card E - 1 : ℕ) : ℝ) * b := by
   classical
@@ -100,6 +144,8 @@ private theorem sum_if_single {E : Type} [DecidableEq E] [Fintype E] (e₀ : E) 
     Finset.card_erase_of_mem (Finset.mem_univ e₀), Finset.card_univ]
   ring
 
+/-- A finite sum with two distinct distinguished indices equals their two values plus the common
+remaining value times the number of other indices. -/
 private theorem sum_if_two {E : Type} [DecidableEq E] [Fintype E] {e₁ e₂ : E} (h : e₁ ≠ e₂)
     (hcard : 2 ≤ Fintype.card E) (a b c : ℝ) :
     ∑ e : E, (if e₁ = e then a else if e₂ = e then b else c)
@@ -129,6 +175,8 @@ private theorem sum_if_two {E : Type} [DecidableEq E] [Fintype E] {e₁ e₂ : E
     Finset.card_univ, hsub]
   ring
 
+/-- The function-evaluation matrix has an unfiltered certificate of budget `2 * (1 - 1 /
+Fintype.card E)` [LeeEtAl2011]. -/
 theorem gramFilteredCert_gramFunctionEvaluation {X E : Type} [Fintype E] [DecidableEq E]
     (f : X → E) :
     gramFilteredCert (gramFunctionEvaluationMatrix f) (fun _ : Fin 1 => gramFilterAllOnes)
@@ -313,6 +361,8 @@ section Dual
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The norm of a Hermitian pairing is bounded by the product of the square roots of the two
+squared-mass sums. -/
 private theorem abs_dotProduct_le {Q : Type} [Fintype Q] [DecidableEq Q] (a b : Q → ℂ) :
     ‖(star a ⬝ᵥ b : ℂ)‖ ≤ Real.sqrt (∑ q, Complex.normSq (a q)) *
       Real.sqrt (∑ q, Complex.normSq (b q)) := by
@@ -331,6 +381,8 @@ private theorem abs_dotProduct_le {Q : Type} [Fintype Q] [DecidableEq Q] (a b : 
     _ ≤ Real.sqrt (∑ q, Complex.normSq (a q)) * Real.sqrt (∑ q, Complex.normSq (b q)) := by
         rw [h1, h2]
 
+/-- A filtered factorization with budget `W` and a dual-feasible multiplier bound every entry of
+the resulting entrywise product by `max W 0`. -/
 private theorem hadamard_entry_le {Q : Type} [Fintype Q] [DecidableEq Q] {n : ℕ} (W : ℝ)
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (M : Matrix X X ℂ)
     (u v : Fin n → X → Q → ℂ)
@@ -398,6 +450,8 @@ private theorem hadamard_entry_le {Q : Type} [Fintype Q] [DecidableEq Q] {n : �
           Real.sqrt (∑ q, Complex.normSq (v j y q)) := Finset.sum_le_sum fun j _ => hterm j
     _ ≤ max W 0 := hsum
 
+/-- The operator norm of a dual-feasible entrywise product, viewed in the extended nonnegative
+reals, is bounded by the filtered γ₂ value. -/
 theorem filteredGamma2_entrywise_dual_ge {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (M : Matrix X X ℂ)
     (hM : ∀ j, ‖(fun x y => Z j x y * M x y : Matrix X X ℂ)‖ ≤ 1) :
@@ -421,10 +475,14 @@ theorem filteredGamma2_entrywise_dual_ge {X : Type} [Fintype X] [DecidableEq X] 
       rw [max_eq_right h.le, h0, ENNReal.ofReal_zero]
   rw [hmax]
 
+/-- The matrix placing each filtered witness in the block corresponding to its input index and
+zero in the other input blocks. -/
 private def filteredWitnessMap {Q : Type} [Fintype Q] {n : ℕ}
     (u : Fin n → X → Q → ℂ) : Matrix (X × (Fin n × Q)) X ℂ :=
   fun r y => if r.1 = y then u r.2.1 r.1 r.2.2 else 0
 
+/-- The Gram matrix of the block witness map is diagonal, with entries equal to the total
+squared witness mass at each input. -/
 private theorem filteredWitnessMap_gram {Q : Type} [Fintype Q] {n : ℕ}
     (u : Fin n → X → Q → ℂ) :
     (filteredWitnessMap u)ᴴ * filteredWitnessMap u =
@@ -443,6 +501,7 @@ private theorem filteredWitnessMap_gram {Q : Type} [Fintype Q] {n : ℕ}
     simp [hz]
   · simp
 
+/-- A witness map with squared-mass budget `W` has operator norm at most `Real.sqrt (max W 0)`. -/
 private theorem filteredWitnessMap_norm {Q : Type} [Fintype Q] {n : ℕ}
     (u : Fin n → X → Q → ℂ) (W : ℝ)
     (hu : ∀ x, ∑ j, ∑ q, Complex.normSq (u j x q) ≤ W) :
@@ -460,12 +519,15 @@ private theorem filteredWitnessMap_norm {Q : Type} [Fintype Q] {n : ℕ}
   have hs := Real.sq_sqrt (le_max_right W 0)
   nlinarith [norm_nonneg (filteredWitnessMap u),Real.sqrt_nonneg (max W 0)]
 
+/-- Applying a block-diagonal matrix acts on each block slice by the corresponding component
+matrix. -/
 private theorem blockDiagonal_slice {B : Type} [Fintype B] [DecidableEq B]
     (N : B → Matrix X X ℂ) (s : QState (X × B)) (x : X) (b : B) :
     (Matrix.blockDiagonal N *ᵥ s) (x,b) = (N b *ᵥ (fun y => s (y,b))) x := by
   simp only [Matrix.mulVec,dotProduct,Fintype.sum_prod_type,Matrix.blockDiagonal_apply]
   simp [ite_mul]
 
+/-- A block-diagonal matrix is a contraction when every component block is a contraction. -/
 private theorem blockDiagonal_contraction {B : Type} [Fintype B] [DecidableEq B]
     (N : B → Matrix X X ℂ) (hN : ∀ b, ‖N b‖ ≤ 1) :
     ‖Matrix.blockDiagonal N‖ ≤ 1 := by
@@ -487,6 +549,8 @@ private theorem blockDiagonal_contraction {B : Type} [Fintype B] [DecidableEq B]
   nlinarith [norm_nonneg (toEuclidean_fromVec (Matrix.blockDiagonal N *ᵥ s)),
     norm_nonneg (toEuclidean_fromVec s)]
 
+/-- A filtered factorization expresses `A ⊙ M` as the product of the adjoint row witness map,
+the block-diagonal filtered multipliers, and the column witness map. -/
 private theorem filteredWitnessMap_factor {Q : Type} [Fintype Q] [DecidableEq Q] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (M : Matrix X X ℂ)
     (u v : Fin n → X → Q → ℂ)
@@ -519,6 +583,8 @@ private theorem filteredWitnessMap_factor {Q : Type} [Fintype Q] [DecidableEq Q]
 
 set_option maxHeartbeats 800000 in
 
+/-- Every dual-feasible multiplier gives an operator-norm lower bound on the filtered γ₂ value
+[Lee et al., Lemma A.1][LeeEtAl2011]. -/
 theorem filteredGamma2_dual_ge {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (M : Matrix X X ℂ)
     (hM : ∀ j, ‖Z j ⊙ M‖ ≤ 1) :
@@ -549,6 +615,8 @@ theorem filteredGamma2_dual_ge {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
   simp only [ENNReal.ofReal_max,ENNReal.ofReal_zero]
   exact max_le le_rfl bot_le
 
+/-- A feasible matrix vanishing on pairs of equal function outputs has norm bounded by the
+query-filtered γ₂ value of the function-evaluation matrix [LeeEtAl2011]. -/
 theorem adversary_le_filteredGamma2_queryDelta {X : Type} [Fintype X] [DecidableEq X]
     {E : Type} [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E)
     (Γ : Matrix X X ℂ) (hzero : ∀ x y, f x = f y → Γ x y = 0)
@@ -562,6 +630,8 @@ theorem adversary_le_filteredGamma2_queryDelta {X : Type} [Fintype X] [Decidable
 
 end Dual
 
+/-- A certificate using output-masked query filters gives an unmasked certificate after
+multiplying its budget by `2 * (1 - 1 / Fintype.card E)` [LeeEtAl2011]. -/
 theorem gramFilteredCert_queryDelta_of_evalRelaxed {X : Type} [Fintype X] [DecidableEq X]
     {E : Type} [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E)
     {W : ℝ} (h : gramFilteredCert (gramFunctionEvaluationMatrix f)
@@ -570,6 +640,8 @@ theorem gramFilteredCert_queryDelta_of_evalRelaxed {X : Type} [Fintype X] [Decid
       (W * (2 * (1 - 1 / (Fintype.card E : ℝ)))) :=
   gramFilteredCert_hadamard_le h (gramFilteredCert_gramFunctionEvaluation f)
 
+/-- The unmasked query-filtered γ₂ value is bounded by the output-masked value times `2 * (1 - 1
+/ Fintype.card E)` [Lee et al., Theorem 3.4][LeeEtAl2011]. -/
 theorem filteredGamma2_queryDelta_le_of_evalRelaxed {X : Type} [Fintype X] [DecidableEq X]
     {E : Type} [Fintype E] [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     filteredGamma2 (gramFunctionEvaluationMatrix f) (gramFilterDelta input) ≤

@@ -9,6 +9,27 @@ import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Convex.Birkhoff
 import Mathlib.Algebra.Order.Rearrangement
+
+/-!
+# Ordered eigenvalue and singular value perturbation
+
+This module develops Frobenius identities, eigenbasis transport, and rearrangement estimates for
+finite complex matrices. These tools yield ordered Hermitian Weyl and Hoffman–Wielandt bounds
+and rectangular singular value Weyl and Mirsky bounds, as studied in [Bhatia1997].
+
+## Main statements
+
+* `ordered_hermitian_weyl_and_hoffman_wielandt`: bounds ordered Hermitian eigenvalue errors in
+  operator and Frobenius norms.
+* `rectangular_singular_weyl_and_mirsky`: gives the corresponding singular value estimates.
+* `spectralFrobenius_cross_difference`: expresses a spectral function difference through
+  eigenbasis overlaps.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -26,15 +47,21 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Module
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The Frobenius norm of a finite complex matrix, defined as the square root of the sum of
+squared entry norms. -/
 noncomputable def spectralFrobenius {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) : ℝ := Real.sqrt (∑ i,∑ j,Complex.normSq (A i j))
+/-- The real eigenvalues of a Hermitian matrix in decreasing order, indexed by its dimension. -/
 noncomputable def orderedHermitianValues {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) : Fin (Fintype.card I)→ℝ := hA.eigenvalues₀
+/-- The orthonormal eigenbasis associated with the ordered eigenvalues of a Hermitian matrix. -/
 noncomputable def orderedHermitianBasis {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) :
     OrthonormalBasis (Fin (Fintype.card I)) ℂ (EuclideanSpace ℂ I) :=
   (Matrix.isSymmetric_toEuclideanLin_iff.mpr hA).eigenvectorBasis finrank_euclideanSpace
 
+/-- For decreasing real sequences, transport by a nonnegative matrix with unit row and column
+sums gives an inner product at most the aligned inner product. -/
 theorem ordered_transport_rearrangement : ∀ (n : ℕ) (a b : Fin n→ℝ)
     (W : Matrix (Fin n) (Fin n) ℝ),
     Antitone a → Antitone b → (∀ i j,0 ≤  W i j) →
@@ -67,6 +94,8 @@ theorem ordered_transport_rearrangement : ∀ (n : ℕ) (a b : Fin n→ℝ)
       Finset.sum_le_sum (fun σ _ => mul_le_mul_of_nonneg_left (hperm σ) (hw σ))
     _=∑ i,a i*b i := by rw [← Finset.sum_mul,hw1,one_mul]
 
+/-- For nonnegative decreasing sequences, a nonnegative matrix with row and column sums at most
+one gives a weighted inner product at most the aligned inner product. -/
 theorem ordered_subtransport_rearrangement (n : ℕ) (a b : Fin n → ℝ)
     (W : Matrix (Fin n) (Fin n) ℝ) (ha : Antitone a) (hb : Antitone b)
     (ha0 : ∀ i,0 ≤ a i) (hb0 : ∀ i,0 ≤ b i) (hW : ∀ i j,0 ≤ W i j)
@@ -117,14 +146,18 @@ theorem ordered_subtransport_rearrangement (n : ℕ) (a b : Fin n → ℝ)
 section Frobenius
 variable {O I J K : Type} [Fintype O] [Fintype I] [Fintype J] [Fintype K]
 
+/-- The spectral Frobenius norm is nonnegative. -/
 @[simp] theorem spectralFrobenius_nonneg (A : Matrix O I ℂ) : 0 ≤  spectralFrobenius A :=
   Real.sqrt_nonneg _
 
+/-- The square of the spectral Frobenius norm is the sum of the squared norms of the matrix
+entries. -/
 theorem spectralFrobenius_sq (A : Matrix O I ℂ) :
     spectralFrobenius A^2=∑ i,∑ j,Complex.normSq (A i j) :=
   Real.sq_sqrt (Finset.sum_nonneg (fun _ _ => Finset.sum_nonneg
     (fun _ _ => Complex.normSq_nonneg _)))
 
+/-- The square of the spectral Frobenius norm is the real part of the trace of `Aᴴ * A`. -/
 theorem spectralFrobenius_sq_trace [DecidableEq I] (A : Matrix O I ℂ) :
     spectralFrobenius A^2=(Matrix.trace (Aᴴ*A)).re := by
   rw [spectralFrobenius_sq]
@@ -137,6 +170,7 @@ theorem spectralFrobenius_sq_trace [DecidableEq I] (A : Matrix O I ℂ) :
   simpa only [Complex.ofReal_re] using!
     congrArg Complex.re (Complex.normSq_eq_conj_mul_self (z := A j i))
 
+/-- Left multiplication by a matrix with `Uᴴ * U = 1` preserves the spectral Frobenius norm. -/
 theorem spectralFrobenius_left [DecidableEq O] [DecidableEq I] [DecidableEq J]
     (U : Matrix J O ℂ) (A : Matrix O I ℂ) (hU : Uᴴ*U=1) :
     spectralFrobenius (U*A)=spectralFrobenius A := by
@@ -145,6 +179,7 @@ theorem spectralFrobenius_left [DecidableEq O] [DecidableEq I] [DecidableEq J]
   congr 1
   rw [Matrix.mul_assoc,← Matrix.mul_assoc Uᴴ,hU,Matrix.one_mul]
 
+/-- Right multiplication by a matrix with `V * Vᴴ = 1` preserves the spectral Frobenius norm. -/
 theorem spectralFrobenius_right [DecidableEq O] [DecidableEq I] [DecidableEq J]
     (A : Matrix O I ℂ) (V : Matrix I J ℂ) (hV : V*Vᴴ=1) :
     spectralFrobenius (A*V)=spectralFrobenius A := by
@@ -154,6 +189,7 @@ theorem spectralFrobenius_right [DecidableEq O] [DecidableEq I] [DecidableEq J]
   rw [Matrix.mul_assoc,Matrix.trace_mul_comm Vᴴ,Matrix.mul_assoc,Matrix.mul_assoc,hV,
     Matrix.mul_one]
 
+/-- The operator norm of a finite complex matrix is at most its spectral Frobenius norm. -/
 theorem spectral_operator_norm_le_frobenius [DecidableEq I] (A : Matrix O I ℂ) :
     ‖A‖ ≤ spectralFrobenius A := by
   apply l2_opNorm_le_of_mulVec_le (spectralFrobenius_nonneg A) A
@@ -188,22 +224,29 @@ variable {I J K : Type} [Fintype I] [Fintype J] [Fintype K]
 
 omit [DecidableEq I] in
 
+/-- Multiplying a spectral diagonal matrix by its basis column matrix equals multiplying the
+basis column matrix by the coefficient diagonal. -/
 theorem spectralDiagonal_mul_basis (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (f : J → ℂ) : spectralDiagonal b f*basisColumns b=basisColumns b*diagonal f := by
   simp only [spectralDiagonal,Matrix.mul_assoc,basisColumns_adjoint_mul,Matrix.mul_one]
 
 omit [DecidableEq I] in
 
+/-- The adjoint basis column matrix intertwines a spectral diagonal matrix with its coefficient
+diagonal. -/
 theorem basis_adjoint_mul_spectralDiagonal (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (f : J → ℂ) : (basisColumns b)ᴴ*spectralDiagonal b f=diagonal f*(basisColumns b)ᴴ := by
   simp only [spectralDiagonal,← Matrix.mul_assoc,basisColumns_adjoint_mul,Matrix.one_mul]
 
+/-- Changing the row and column orthonormal bases preserves the spectral Frobenius norm. -/
 theorem spectralFrobenius_bases (A : Matrix I I ℂ)
     (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (c : OrthonormalBasis K ℂ (EuclideanSpace ℂ I)) :
     spectralFrobenius ((basisColumns b)ᴴ*A*basisColumns c)=spectralFrobenius A := by
   rw [spectralFrobenius_right _ _ (by simp),spectralFrobenius_left _ _ (by simp)]
 
+/-- The squared Frobenius distance between two spectral diagonal matrices is the sum of squared
+coefficient differences weighted by squared eigenbasis overlaps. -/
 theorem spectralFrobenius_cross_difference
     (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (c : OrthonormalBasis K ℂ (EuclideanSpace ℂ I)) (f : J → ℂ) (g : K → ℂ) :
@@ -226,6 +269,8 @@ theorem spectralFrobenius_cross_difference
   have he : f i*Q i j-Q i j*g j=Q i j*(f i-g j) := by ring
   rw [he,Complex.normSq_mul]
 
+/-- The squared overlap entries between two orthonormal bases have unit row sums and unit column
+sums. -/
 theorem spectralBasisTransport_marginals
     (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (c : OrthonormalBasis K ℂ (EuclideanSpace ℂ I)) :
@@ -264,12 +309,16 @@ theorem spectralBasisTransport_marginals
 
 end BasisTransport
 
+/-- The ordered Hermitian basis vector at index `i` is an eigenvector with eigenvalue
+`orderedHermitianValues hA i`. -/
 theorem orderedHermitianBasis_action {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) (i : Fin (Fintype.card I)) :
     A.toEuclideanLin (orderedHermitianBasis hA i)=
       (orderedHermitianValues hA i : ℂ) • orderedHermitianBasis hA i :=
   (Matrix.isSymmetric_toEuclideanLin_iff.mpr hA).apply_eigenvectorBasis finrank_euclideanSpace i
 
+/-- A Hermitian matrix equals its spectral diagonal reconstruction from the ordered eigenbasis
+and eigenvalues. -/
 theorem orderedHermitian_diagonal {I : Type} [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} (hA : A.IsHermitian) :
     A=spectralDiagonal (orderedHermitianBasis hA) (fun i => (orderedHermitianValues hA i : ℂ)) :=
@@ -278,12 +327,14 @@ theorem orderedHermitian_diagonal {I : Type} [Fintype I] [DecidableEq I]
 section OrderedRayleigh
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The subspace spanned by the basis vectors whose indices belong to the finite set `s`. -/
 noncomputable def spectralSpan (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ
     (EuclideanSpace ℂ I)) (s : Finset (Fin (Fintype.card I))) : Submodule ℂ (EuclideanSpace ℂ I) :=
   Submodule.span ℂ (b '' (s : Set (Fin (Fintype.card I))))
 
 omit [DecidableEq I] in
 
+/-- The dimension of the span of the basis vectors indexed by `s` equals `s.card`. -/
 theorem spectralSpan_finrank (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ
     (EuclideanSpace ℂ I)) (s : Finset (Fin (Fintype.card I))) :
     Module.finrank ℂ (spectralSpan b s)=s.card := by
@@ -298,6 +349,8 @@ theorem spectralSpan_finrank (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ
 
 omit [DecidableEq I] in
 
+/-- A vector in the span of basis vectors indexed by `s` has zero coordinates at indices outside
+`s`. -/
 theorem spectralSpan_repr_zero (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ
     (EuclideanSpace ℂ I)) (s : Finset (Fin (Fintype.card I)))
     {v : EuclideanSpace ℂ I} (hv : v ∈ spectralSpan b s) {j : Fin (Fintype.card I)}
@@ -312,12 +365,16 @@ theorem spectralSpan_repr_zero (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ
 
 omit [DecidableEq I] in
 
+/-- The squared norm of a vector is the sum of the squared norms of its coordinates in an
+orthonormal basis. -/
 theorem spectral_norm_sq_basis (b : OrthonormalBasis (Fin (Fintype.card I)) ℂ
     (EuclideanSpace ℂ I)) (v : EuclideanSpace ℂ I) :
     ‖v‖^2=∑ j,Complex.normSq (b.repr v j) := by
   rw [← b.repr.norm_map v,EuclideanSpace.norm_sq_eq]
   simp only [Complex.sq_norm]
 
+/-- The real Rayleigh form of a Hermitian matrix is the sum of its ordered eigenvalues weighted
+by squared eigenbasis coordinates. -/
 theorem orderedHermitian_rayleigh {A : Matrix I I ℂ} (hA : A.IsHermitian)
     (v : EuclideanSpace ℂ I) :
     (inner ℂ v (A.toEuclideanLin v)).re=∑ j,orderedHermitianValues hA j*
@@ -339,6 +396,7 @@ theorem orderedHermitian_rayleigh {A : Matrix I I ℂ} (hA : A.IsHermitian)
     ring
   simpa only [Complex.ofReal_re,mul_comm,mul_left_comm,mul_assoc] using! congrArg Complex.re he
 
+/-- The real Rayleigh form of a matrix at `v` is at most `‖A‖ * ‖v‖ ^ 2`. -/
 theorem spectral_rayleigh_norm_bound (A : Matrix I I ℂ) (v : EuclideanSpace ℂ I) :
     (inner ℂ v (A.toEuclideanLin v)).re ≤ ‖A‖*‖v‖^2 := by
   have hmap : ‖A.toEuclideanLin v‖ ≤ ‖A‖*‖v‖ := Matrix.l2_opNorm_mulVec A v
@@ -348,6 +406,8 @@ theorem spectral_rayleigh_norm_bound (A : Matrix I I ℂ) (v : EuclideanSpace �
     _ ≤ ‖v‖*(‖A‖*‖v‖) := mul_le_mul_of_nonneg_left hmap (norm_nonneg _)
     _=‖A‖*‖v‖^2 := by ring
 
+/-- The difference of corresponding ordered Hermitian eigenvalues is at most the operator norm
+of the matrix difference. -/
 theorem orderedHermitian_sub_le_norm (A B : Matrix I I ℂ) (hA : A.IsHermitian)
     (hB : B.IsHermitian) (i : Fin (Fintype.card I)) :
     orderedHermitianValues hA i-orderedHermitianValues hB i ≤ ‖A-B‖ := by
@@ -393,6 +453,8 @@ theorem orderedHermitian_sub_le_norm (A B : Matrix I I ℂ) (hA : A.IsHermitian)
 
 end OrderedRayleigh
 
+/-- The sum of squared differences of ordered Hermitian eigenvalues is at most the squared
+Frobenius norm of the matrix difference. -/
 theorem ordered_hermitian_hoffman_wielandt {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) :
     (∑ i,(orderedHermitianValues hA i-orderedHermitianValues hB i)^2) ≤
@@ -435,18 +497,22 @@ theorem ordered_hermitian_hoffman_wielandt {I : Type} [Fintype I] [DecidableEq I
 section SingularPerturbation
 variable {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- Equal symmetric endomorphisms have equal chosen orthonormal eigenvector bases. -/
 private theorem spectral_frame_congr (T S : Module.End ℂ (EuclideanSpace ℂ I))
     (hT : T.IsSymmetric) (hS : S.IsSymmetric) (h : T=S) :
     hT.eigenvectorBasis finrank_euclideanSpace=hS.eigenvectorBasis finrank_euclideanSpace := by
   subst S
   rfl
 
+/-- Equal symmetric endomorphisms have equal chosen eigenvalue families. -/
 private theorem spectral_values_congr (T S : Module.End ℂ (EuclideanSpace ℂ I))
     (hT : T.IsSymmetric) (hS : S.IsSymmetric) (h : T=S) :
     hT.eigenvalues finrank_euclideanSpace=hS.eigenvalues finrank_euclideanSpace := by
   subst S
   rfl
 
+/-- The ordered eigenbasis of `Aᴴ * A` is the right singular basis of `A`, and its ordered
+eigenvalues are the squared singular values. -/
 theorem singular_gram_ordered (A : Matrix O I ℂ) :
     orderedHermitianBasis (Matrix.isHermitian_conjTranspose_mul_self A)=rightSingularBasis A ∧
       ∀ i : Fin (Fintype.card I),
@@ -462,6 +528,8 @@ theorem singular_gram_ordered (A : Matrix O I ℂ) :
   intro i
   exact (congrFun hv i).trans (A.toEuclideanLin.sq_singularValues_fin finrank_euclideanSpace i).symm
 
+/-- The squared norm of `A v` is the sum of squared singular values weighted by squared
+coordinates in the right singular basis. -/
 theorem singular_norm_image_sq (A : Matrix O I ℂ) (v : EuclideanSpace ℂ I) :
     ‖A.toEuclideanLin v‖^2=∑ j : Fin (Fintype.card I),(matrixSingularValues A j)^2*
       Complex.normSq ((rightSingularBasis A).repr v j) := by
@@ -472,6 +540,8 @@ theorem singular_norm_image_sq (A : Matrix O I ℂ) (v : EuclideanSpace ℂ I) :
     (singular_gram_ordered A).1]
   simp_rw [(singular_gram_ordered A).2]
 
+/-- The difference of corresponding singular values is at most the operator norm of the matrix
+difference. -/
 theorem singular_sub_le_norm (A B : Matrix O I ℂ) (i : Fin (Fintype.card I)) :
     matrixSingularValues A i-matrixSingularValues B i ≤ ‖A-B‖ := by
   let S := spectralSpan (rightSingularBasis A) (Finset.Iic i)
@@ -523,6 +593,8 @@ theorem singular_sub_le_norm (A B : Matrix O I ℂ) (i : Fin (Fintype.card I)) :
   apply (mul_le_mul_iff_right₀ (norm_pos_iff.mpr hv0)).mp
   nlinarith
 
+/-- A square matrix with operator norm at most one has sums of squared entry norms at most one
+in every row and column. -/
 theorem contraction_normSq_marginals (n : ℕ) (Q : Matrix (Fin n) (Fin n) ℂ)
     (hQ : ‖Q‖ ≤ 1) :
     (∀ i,∑ j,Complex.normSq (Q i j) ≤ 1) ∧ (∀ j,∑ i,Complex.normSq (Q i j) ≤ 1) := by
@@ -545,6 +617,7 @@ theorem contraction_normSq_marginals (n : ℕ) (Q : Matrix (Fin n) (Fin n) ℂ)
   have h := hcol Qᴴ (by simpa only [Matrix.l2_opNorm_conjTranspose] using! hQ) i
   simpa only [Matrix.conjTranspose_apply,Complex.star_def,Complex.normSq_conj] using! h
 
+/-- The real part of `z * star w` is at most the average of the squared norms of `z` and `w`. -/
 theorem complex_overlap_real_le (z w : ℂ) :
     (z*star w).re ≤ (Complex.normSq z+Complex.normSq w)/2 := by
   have h := Complex.normSq_nonneg (z-w)
@@ -552,6 +625,8 @@ theorem complex_overlap_real_le (z w : ℂ) :
   simp only [Complex.star_def] at h ⊢
   linarith
 
+/-- Expand the real trace inner product of two factored matrices as a sum of coefficient
+products weighted by left and right factor overlaps. -/
 theorem singular_cross_trace (n : ℕ) (LA LB : Matrix O (Fin n) ℂ)
     (RA RB : Matrix I (Fin n) ℂ) (a b : Fin n → ℝ) :
     (Matrix.trace ((LA*diagonal (fun i => (a i : ℂ))*RAᴴ)ᴴ*
@@ -590,6 +665,7 @@ theorem singular_cross_trace (n : ℕ) (LA LB : Matrix O (Fin n) ℂ)
   simp only [Complex.mul_re,Complex.mul_im,Complex.ofReal_re,Complex.ofReal_im,mul_zero,zero_mul,sub_zero]
   ring
 
+/-- The trace of a spectral diagonal matrix is the sum of its spectral coefficients. -/
 theorem spectralDiagonal_trace (n : ℕ)
     (b : OrthonormalBasis (Fin n) ℂ (EuclideanSpace ℂ I)) (f : Fin n → ℂ) :
     Matrix.trace (spectralDiagonal b f)=∑ i,f i := by
@@ -597,6 +673,7 @@ theorem spectralDiagonal_trace (n : ℕ)
   rw [Matrix.trace_mul_comm,← Matrix.mul_assoc,basisColumns_adjoint_mul,Matrix.one_mul,
     Matrix.trace_diagonal]
 
+/-- The squared Frobenius norm is the sum of squared singular values over the input dimension. -/
 theorem spectralFrobenius_sq_singular (A : Matrix O I ℂ) :
     spectralFrobenius A^2=∑ i : Fin (Fintype.card I),(matrixSingularValues A i)^2 := by
   have hGram : Aᴴ*A=spectralDiagonal (rightSingularBasis A)
@@ -605,6 +682,8 @@ theorem spectralFrobenius_sq_singular (A : Matrix O I ℂ) :
   rw [spectralFrobenius_sq_trace,hGram,spectralDiagonal_trace]
   simp only [Complex.re_sum,← Complex.ofReal_pow,Complex.ofReal_re]
 
+/-- The squared Frobenius norm of `A - B` equals the sum of their squared Frobenius norms minus
+twice the real trace inner product. -/
 theorem spectralFrobenius_sq_sub (A B : Matrix O I ℂ) :
     spectralFrobenius (A-B)^2=spectralFrobenius A^2+spectralFrobenius B^2-
       2*(Matrix.trace (Aᴴ*B)).re := by
@@ -622,6 +701,8 @@ theorem spectralFrobenius_sq_sub (A B : Matrix O I ℂ) :
     Matrix.trace_sub,Matrix.trace_add,Matrix.trace_add,Complex.sub_re,Complex.add_re,Complex.add_re,ht]
   ring
 
+/-- The product `Cᴴ * D` of the adjoint of a contraction with a contraction has operator norm at
+most one. -/
 private theorem contraction_overlap_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (n : ℕ) (C D : Matrix X (Fin n) ℂ) (hC : ‖C‖ ≤ 1) (hD : ‖D‖ ≤ 1) :
     ‖Cᴴ*D‖ ≤ 1 := by
@@ -629,6 +710,8 @@ private theorem contraction_overlap_norm_le {X : Type} [Fintype X] [DecidableEq 
   exact (Matrix.l2_opNorm_mul _ _).trans
     ((mul_le_mul hCa hD (norm_nonneg _) zero_le_one).trans_eq (by norm_num))
 
+/-- The real trace inner product of two matrices is at most the sum of the products of their
+corresponding ordered singular values. -/
 theorem singular_cross_trace_le (A B : Matrix O I ℂ) :
     (Matrix.trace (Aᴴ*B)).re ≤ ∑ i : Fin (Fintype.card I),matrixSingularValues A i*matrixSingularValues B i := by
   let LA := leftSingularColumns A
@@ -678,6 +761,8 @@ theorem singular_cross_trace_le (A B : Matrix O I ℂ) :
       (fun _ _ h => B.toEuclideanLin.singularValues_antitone (Fin.le_iff_val_le_val.mp h))
       (fun i => matrixSingularValues_nonneg A i) (fun i => matrixSingularValues_nonneg B i) hnonneg hWr hWc
 
+/-- The sum of squared differences of corresponding singular values is at most the squared
+Frobenius norm of the matrix difference. -/
 theorem singular_mirsky_bound (A B : Matrix O I ℂ) :
     (∑ i : Fin (Fintype.card I),(matrixSingularValues A i-matrixSingularValues B i)^2) ≤
       spectralFrobenius (A-B)^2 := by
@@ -695,6 +780,8 @@ theorem singular_mirsky_bound (A B : Matrix O I ℂ) :
 
 end SingularPerturbation
 
+/-- Ordered Hermitian eigenvalue differences satisfy the absolute Weyl operator norm bound and
+the squared Hoffman–Wielandt Frobenius bound. -/
 theorem ordered_hermitian_weyl_and_hoffman_wielandt : ∀ (I : Type) [Fintype I]
     [DecidableEq I] (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian),
     (∀ i,|orderedHermitianValues hA i-orderedHermitianValues hB i| ≤ ‖A-B‖) ∧
@@ -709,6 +796,8 @@ theorem ordered_hermitian_weyl_and_hoffman_wielandt : ∀ (I : Type) [Fintype I]
   rw [norm_sub_rev] at hBA
   constructor <;> linarith
 
+/-- Rectangular matrix singular value differences satisfy the absolute Weyl operator norm bound
+at every natural index and the squared Mirsky Frobenius bound over the input dimension. -/
 theorem rectangular_singular_weyl_and_mirsky : ∀ (O I : Type) [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A B : Matrix O I ℂ),
     (∀ i : ℕ,|matrixSingularValues A i-matrixSingularValues B i| ≤ ‖A-B‖) ∧

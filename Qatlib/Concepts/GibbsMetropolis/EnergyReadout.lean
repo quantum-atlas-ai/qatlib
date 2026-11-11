@@ -10,6 +10,32 @@ import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
 import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+/-!
+# Compiled energy readout with resource counts
+
+`signalEnergyOracle` and `signalEnergyFrame` connect a projected unitary encoding to a compiled
+Hamiltonian-simulation program. Spectral formulas identify the eigenphases used by quantum phase
+estimation.
+
+The module proves a phase-window probability bound for the compiled QPE word with exact query
+and gate counts. A Pauli-Z superposition example gives explicit bounds for the two relevant
+outcomes. See [NielsenChuang2010] for background.
+
+## Main statements
+
+* `signal_energy_actual_compiled_qpe_window_and_resources`: The compiled energy QPE word has the
+  stated exact query and gate counts and assigns mass at least `8 / Real.pi ^ 2 - (1 / 2) ^ k`
+  to the eigenphase window of radius `1 / M`.
+* `signal_energy_z_superposition_actual_consumer`: For the equal Pauli-Z superposition, a
+  counted compiled QPE word concentrates mass on outcomes one and three, each within `(1 / 2) ^
+  k` of one half.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -46,11 +72,15 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The energy-readout oracle formed by tensoring an identity with the controlled parallel
+oracle for `U`. -/
 noncomputable def signalEnergyOracle {H : Type} [DecidableEq H]
     (U : Matrix H H ℂ) : Matrix (Bool × (Bool × (Bool × H)))
       (Bool × (Bool × (Bool × H))) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ) (controlOracle (parallelOracle (J := Bool) U))
 
+/-- The encoding frame obtained by applying the scale-eight frame construction to the
+Hamiltonian frame of `F`. -/
 noncomputable def signalEnergyFrame {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) :
     Matrix (Bool × (Bool × (Bool × H))) I ℂ :=
@@ -58,10 +88,13 @@ noncomputable def signalEnergyFrame {H I : Type} [Fintype H] [DecidableEq H]
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- The energy-readout frame is an isometry whenever the original frame is an isometry. -/
 private theorem signalEnergyFrame_isometry {F : Matrix H I ℂ} (hF : IsIsometry F) :
     IsIsometry (signalEnergyFrame F) :=
   scaleEightFrame_isometry _ (averageFrame_isIsometry (averageFrame_isIsometry hF))
 
+/-- A unitary diagonalization of `A` diagonalizes its time evolution with eigenvalues `exp (-I *
+t * eig i)`. -/
 theorem signalEnergy_evolution_spectral (D : ℕ) (A V : Operator D) (eig : Fin D → ℝ)
     (t : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : A = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) :
@@ -88,6 +121,8 @@ theorem signalEnergy_evolution_spectral (D : ℕ) (A V : Operator D) (eig : Fin 
   funext i
   rw [Pi.coe_exp, ← Complex.exp_eq_exp_ℂ]
 
+/-- Time evolution multiplies each supplied eigenvector by the phase corresponding to its
+energy. -/
 private theorem signalEnergy_eigen (D : ℕ) (A V : Operator D) (eig : Fin D → ℝ)
     (t : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : A = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) (i : Fin D) :
@@ -110,6 +145,8 @@ private theorem signalEnergy_eigen (D : ℕ) (A V : Operator D) (eig : Fin D →
     by_cases hj : j = i <;> simp [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, hj]
   rw [hd, Matrix.mulVec_smul, hp]
 
+/-- A Hermitian projected unitary encoding yields a well-formed amplified simulation word with
+explicit counts and state error at most `η` times the input norm. -/
 private theorem signalEnergy_program (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (t η : ℝ) (hA : A.IsHermitian)
     (h : ProjectedUnitaryEncoding A U F F) (hη : 0 < η) :
@@ -127,6 +164,8 @@ private theorem signalEnergy_program (A : Matrix I I ℂ) (U : Matrix H H ℂ)
   exact ⟨n, cs, hcs, (scale_eight_three_level_actual_counts _ _ _ cs
     (averageFrame_isIsometry (averageFrame_isIsometry h.right_isometry)) hcs).1, hq, hg, he⟩
 
+/-- The compiled energy QPE word has the stated exact query and gate counts and assigns mass at
+least `8 / Real.pi ^ 2 - (1 / 2) ^ k` to the eigenphase window of radius `1 / M`. -/
 theorem signal_energy_actual_compiled_qpe_window_and_resources
     (H : Type) [Fintype H] [DecidableEq H] (D M k : ℕ) (hM : 2 ≤ M)
     (A V : Operator D) (eig : Fin D → ℝ) (U : Matrix H H ℂ)
@@ -187,6 +226,8 @@ theorem signal_energy_actual_compiled_qpe_window_and_resources
     dsimp [E] at hh
     linarith
 
+/-- The Pauli-Z operator is Hermitian and has the identity-frame projected unitary encoding by
+itself. -/
 private theorem signalEnergy_Z_encoding :
     pauliZ.IsHermitian ∧ ProjectedUnitaryEncoding pauliZ pauliZ (1 : Operator 2) 1 := by
   have hh : pauliZᴴ = pauliZ := by
@@ -198,6 +239,8 @@ private theorem signalEnergy_Z_encoding :
     fin_cases i <;> fin_cases j <;> norm_num [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
   exact ⟨hh, hu, by simp [IsIsometry], by simp [IsIsometry], by simp [compress]⟩
 
+/-- For Pauli-Z evolution at time `Real.pi / 2`, the four-point QPE kernel is the basis ket at
+outcome three or one according to the eigenvalue. -/
 private theorem signalEnergy_Z_kernel (j : Fin 2) (z : Fin 4) :
     qpeKernel 4 (-(Real.pi / 2) * (if j = 0 then 1 else -1) / (2 * Real.pi)) z =
       Qatlib.Foundations.PureStateMath.Ket (if j = 0 then (3 : Fin 4) else 1) z := by
@@ -218,6 +261,8 @@ private theorem signalEnergy_Z_kernel (j : Fin 2) (z : Fin 4) :
     convert! (offgrid_phase_geometric_and_periodic 4 0 z (by norm_num)).2.2 (1 : Fin 4) using 1
     norm_num
 
+/-- For the equal Pauli-Z superposition, a counted compiled QPE word concentrates mass on
+outcomes one and three, each within `(1 / 2) ^ k` of one half. -/
 theorem signal_energy_z_superposition_actual_consumer (k : ℕ) :
     ∃ (n : ℕ) (cs : List (AdjointStep (Bool × (Bool × Fin 2)))),
       WellFormedAdjointCircuit cs ∧

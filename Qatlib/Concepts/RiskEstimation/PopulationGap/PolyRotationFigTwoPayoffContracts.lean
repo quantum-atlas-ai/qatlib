@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDefs
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+
+/-!
+# Polynomial rotation payoff contract
+
+This module defines `PolyRotationFigTwoPayoff`, a specification relating the compiled polynomial
+angle program to a payoff rotation with a squared sine payoff. For angles in `[0, π / 2]`, it
+requires equality of the embedded basis state outputs, supporting the payoff encoding used in
+[WoernerEgger2019].
+
+## Main definition
+
+* `PolyRotationFigTwoPayoff`: equality between the compiled negative angle program and the
+  embedded payoff rotation on an initially false flag.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +44,9 @@ namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 
 open Matrix
 
+/-- Specifies that, when the Taylor based payoff angle lies in `[0, π / 2]`, the compiled
+negative angle program acts on the embedded basis input exactly as the corresponding squared
+sine payoff rotation. -/
 def PolyRotationFigTwoPayoff : Prop :=
   ∀ (u n : ℕ) (c : ℝ) (fp : Polynomial ℝ) (x : Reg n),
     let φ : ℝ := c*riskSinTaylor u c (fp.eval (figTwoRegEval x : ℝ)) + Real.pi/4

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
+
+/-!
+# Scalar Taylor responses to coordinate sources
+
+This module evaluates `scalarJumpTerm` and `scalarBlockVal` on single-coordinate sources at time
+labels and positive Taylor orders. Uniform squared bounds for these responses prepare the column
+estimates for the scalar inverse. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylor_label_eq_iff`: For offsets `b, d ≤ k`, equality of labels `a*(k+1)+b` and `c*(k+1)+d`
+  is equivalent to equality of both block indices and offsets.
+* `scalarBlockVal_unit_positive_sq_le`: Under the stated degree, factorial, and left-half-disk
+  hypotheses, every boundary response to a positive-order unit source has squared norm at most
+  `(31/30)² * (87/32)`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,8 @@ open Qatlib
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- For offsets `b, d ≤ k`, equality of labels `a*(k+1)+b` and `c*(k+1)+d` is equivalent to
+equality of both block indices and offsets. -/
 theorem taylor_label_eq_iff (k a b c d : ℕ) (hb : b ≤ k) (hd : d ≤ k) :
     a*(k+1)+b = c*(k+1)+d ↔ a=c ∧ b=d := by
   have hdiv (u v : ℕ) (hv : v ≤ k) : (u*(k+1)+v)/(k+1)=u := by
@@ -28,6 +51,7 @@ theorem taylor_label_eq_iff (k a b c d : ℕ) (hb : b ≤ k) (hd : d ≤ k) :
         congrArg (fun v => v%(k+1)) h⟩
   · rintro ⟨rfl,rfl⟩; rfl
 
+/-- A unit source at time label `a*(k+1)` contributes one precisely to jump source `a`. -/
 theorem scalarJumpTerm_unit_time (k a s : ℕ) (z : ℂ) :
     scalarJumpTerm k z (Pi.single (a*(k+1)) 1) s = if s=a then 1 else 0 := by
   classical
@@ -50,6 +74,8 @@ theorem scalarJumpTerm_unit_time (k a s : ℕ) (z : ℂ) :
     rw [Finset.sum_eq_zero (fun i hi => by rw [hz i hi, mul_zero])]
     simp [Pi.single_apply, eq_comm, hmul]
 
+/-- A unit source at positive offset `b` contributes `taylorTransPoly k b z` precisely to jump
+source `a+1`. -/
 theorem scalarJumpTerm_unit_positive (k a b s : ℕ) (hb : 1 ≤ b) (hbk : b ≤ k) (z : ℂ) :
     scalarJumpTerm k z (Pi.single (a*(k+1)+b) 1) s =
       if s=a+1 then taylorTransPoly k b z else 0 := by
@@ -85,6 +111,8 @@ theorem scalarJumpTerm_unit_positive (k a b s : ℕ) (hb : 1 ≤ b) (hbk : b ≤
         show b-1+1=b by omega]
     · simp [hsa]
 
+/-- The boundary response to a unit time-label source is the appropriate power of `taylorPoly`,
+and is zero before that source. -/
 theorem scalarBlockVal_unit_time (k a d : ℕ) (z : ℂ) :
     scalarBlockVal k z (Pi.single (a*(k+1)) 1) d =
       if a ≤ d then taylorPoly k z ^ (d-a) else 0 := by
@@ -92,6 +120,8 @@ theorem scalarBlockVal_unit_time (k a d : ℕ) (z : ℂ) :
   simp_rw [scalarJumpTerm_unit_time, mul_ite, mul_one, mul_zero]
   simp [Finset.mem_range]
 
+/-- The boundary response to a positive-order unit source is a Taylor power times
+`taylorTransPoly k b z`, and is zero before boundary `a+1`. -/
 theorem scalarBlockVal_unit_positive (k a b d : ℕ) (hb : 1 ≤ b) (hbk : b ≤ k) (z : ℂ) :
     scalarBlockVal k z (Pi.single (a*(k+1)+b) 1) d =
       if a+1 ≤ d then taylorPoly k z ^ (d-(a+1))*taylorTransPoly k b z else 0 := by
@@ -99,6 +129,8 @@ theorem scalarBlockVal_unit_positive (k a b d : ℕ) (hb : 1 ≤ b) (hbk : b ≤
   simp_rw [scalarJumpTerm_unit_positive k a b _ hb hbk, mul_ite, mul_zero]
   simp [Finset.mem_range]
 
+/-- Under the factorial and left-half-disk hypotheses, every boundary response to a unit
+time-label source has squared norm at most `87 / 32`. -/
 theorem scalarBlockVal_unit_time_sq_le (k m a d : ℕ) (z : ℂ)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hd : d ≤ m)
     (hz : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
@@ -109,6 +141,8 @@ theorem scalarBlockVal_unit_time_sq_le (k m a d : ℕ) (z : ℂ)
     exact taylorPow_le hfac (by omega) z hz hre
   · norm_num
 
+/-- Under the stated degree, factorial, and left-half-disk hypotheses, every boundary response
+to a positive-order unit source has squared norm at most `(31/30)² * (87/32)`. -/
 theorem scalarBlockVal_unit_positive_sq_le (k m a b d : ℕ) (z : ℂ)
     (hk : 5 ≤ k) (hb : 1 ≤ b) (hbk : b ≤ k)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hd : d ≤ m)

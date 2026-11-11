@@ -9,6 +9,32 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalGaussianProgram
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalCacheProgram
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowProgram
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowsProgram
+
+/-!
+# Native execution costs for rational word programs
+
+This module compiles successful rational word-program executions to finite-state Turing machines
+with separate time and space bounds. `compiled_execution` supplies total and peak stack-machine
+clock bounds, and `native_program_polynomial` turns a payload-width bound into polynomial native
+resource bounds. The cache, row, batch, and matrix results add decoding correctness and exact
+source-field instruction counts; `SqRationalMachineCost.frontier1` combines the matrix execution
+statement with polynomial work and program-length bounds.
+
+The compilation results here use the machine and encodings developed in this library. For
+general background on Turing-machine computation and its resource measures, see
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `native_program_polynomial`: native execution with polynomial resource bounds.
+* `native_cache_polynomial`: polynomial execution bounds for cache programs.
+* `SqRationalMachineCost.frontier1`: matrix execution, decoding, and instruction counts.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002] *Classical and Quantum Computation*.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
@@ -23,6 +49,9 @@ open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- For any input and output stack slots, one finite-state native Turing machine simulates every
+terminating stack-machine execution with the stated time and space bounds. Both bounds use
+the execution clock budget and quadratic input and output overhead. -/
 theorem native_backend
     (inputStack outputStack : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot) :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
@@ -47,6 +76,9 @@ theorem native_backend
       (TM2.init inputStack input.reverse)).trans hc
     exact Nat.mul_le_mul_left C (Nat.add_le_add_right (Nat.add_le_add_left hp _) _)
 
+/-- A terminating stack-machine run has a native simulation whose time bound contains `steps *
+sweepFactor M * H` and whose space bound contains `sweepFactor M * H`, with the stated
+quadratic input and output overhead. -/
 theorem native_backend_separate_peak
     (inputStack outputStack : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot) :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
@@ -78,13 +110,19 @@ theorem native_backend_separate_peak
       (TM2.init inputStack input.reverse)
     exact Nat.mul_le_mul_left C (Nat.add_le_add_right (Nat.add_le_add_left hs _) _)
 
+/-- The total clock budget for initializing, executing, and finalizing a compiled instruction
+program. -/
 def compiledTime (p : List Instruction) (ps : List Bits) (s' : WordState) : ℕ :=
   bootBudget ps (programCode p)+programBudget p [] ⟨ps,[]⟩+finishBudget s'.parameters s'.values
 
+/-- The maximum of the initialization, program-execution, and finalization clock budgets. -/
 def compiledPeak (p : List Instruction) (ps : List Bits) (s' : WordState) : ℕ :=
   max (max (bootBudget ps (programCode p)) (programPeak p [] ⟨ps,[]⟩))
     (finishBudget s'.parameters s'.values)
 
+/-- A successful word-program run from parameters and an empty value stack yields a terminating
+stack-machine path with the encoded output values. Its total and peak clock budgets are
+`compiledTime` and `compiledPeak`. -/
 theorem compiled_execution (p : List Instruction) (ps : List Bits) (s' : WordState)
     (h : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost.run p ⟨ps,[]⟩=some s') :
     ∃ last,PathExecution (TM2.init (.inl .program) (inputCode ps (programCode p)).reverse)
@@ -96,6 +134,9 @@ theorem compiled_execution (p : List Instruction) (ps : List Bits) (s' : WordSta
   obtain ⟨last,h2⟩ := finish_execution s'.parameters s'.values w
   exact ⟨last,((path_of_execution h0).trans h1).trans (path_of_execution h2)⟩
 
+/-- A stack-machine path with total clock bound `T` and peak clock bound `P` has a uniform
+native simulation with time controlled by `T` and space controlled by `P`, plus quadratic
+input and output overhead. -/
 theorem native_backend_path (inputStack outputStack : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Slot) :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ (input output : Bits) (v : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs.Local) (T P : ℕ),
@@ -112,6 +153,9 @@ theorem native_backend_path (inputStack outputStack : Qatlib.Concepts.AdversaryB
   · exact Nat.mul_le_mul_left C (Nat.add_le_add_right (Nat.add_le_add_left hc _) _)
   · exact Nat.mul_le_mul_left C (Nat.add_le_add_right (Nat.add_le_add_left hp _) _)
 
+/-- One finite-state native Turing machine executes every successfully evaluated encoded
+instruction program. Its time and space bounds use `compiledTime` and `compiledPeak`,
+respectively, together with quadratic input and output overhead. -/
 theorem native_program :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ (p : List Instruction) (ps : List Bits) (s' : WordState),
@@ -127,6 +171,9 @@ theorem native_program :
   obtain ⟨last,hr⟩ := compiled_execution p ps s' h
   exact hN _ _ last _ _ hr
 
+/-- A successful program with payload bound `B` has compiled time at most `100000000 * (p.length
++ 2) * (pathEnvelope p ps B + 1)^4` and compiled peak at most `100000000 * (pathEnvelope p
+ps B + 1)^4`. Its encoded output length is at most `pathEnvelope p ps B`. -/
 theorem compiled_polynomial (p : List Instruction) (ps : List Bits) (s' : WordState) (B : ℕ)
     (he : Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost.run p ⟨ps,[]⟩=some s') (hb : PayloadBound B p ⟨ps,[]⟩) :
     compiledTime p ps s' ≤ 100000000*(p.length+2)*(pathEnvelope p ps B+1)^4 ∧
@@ -152,6 +199,9 @@ theorem compiled_polynomial (p : List Instruction) (ps : List Bits) (s' : WordSt
       (finishBudget s'.parameters s'.values) ≤ 100000000*(H+1)^4
     exact max_le (max_le (by omega) (by omega)) (by omega)
 
+/-- One finite-state native Turing machine executes every successful instruction program with a
+payload bound, using time at most `C * (p.length + 2) * (pathEnvelope p ps B + 1)^4` and
+space at most `C * (pathEnvelope p ps B + 1)^4` for one positive constant `C`. -/
 theorem native_program_polynomial :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ),0 < C ∧
       ∀ (p : List Instruction) (ps : List Bits) (s' : WordState) (B : ℕ),
@@ -178,6 +228,9 @@ theorem native_program_polynomial :
       _ ≤ C*((H+1)^4+100000000*(H+1)^4+(H+1)^4) := by gcongr
       _ = _ := by dsimp only [H]; ring
 
+/-- One finite-state native Turing machine executes compiled Gaussian expressions with the
+stated compiled time and peak bounds. Decoding the output yields the expression's evaluation
+on the binary parameter values with an empty remainder. -/
 theorem native_gaussian :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ (e : GaussianExpression) (ps : List Bits),
@@ -195,6 +248,8 @@ theorem native_gaussian :
     simpa only [List.append_nil] using! e.compile_run ps []
   · simpa only [List.append_nil] using! e.decode_words ps []
 
+/-- For valid evaluated operands, decoding the compiled product of the conjugate of `x` with `y`
+gives the product of the decoded conjugate of `x` and the decoded value of `y`. -/
 theorem decode_conjugate_scale (x y : GaussianExpression) (ps : List Bits)
     (hx : (x.eval (ps.map binaryValue)).Valid) (hy : (y.eval (ps.map binaryValue)).Valid) :
     (decodeGaussian (valueStack ((GaussianExpression.mul x.conjugate y).words ps))).1.decode =
@@ -205,6 +260,10 @@ theorem decode_conjugate_scale (x y : GaussianExpression) (ps : List Bits)
   simp only [GaussianExpression.eval_mul,GaussianExpression.eval_conjugate]
   rw [GaussianCode.decode_mul _ _ (GaussianCode.conjugate_valid _ hx) hy,GaussianCode.decode_conjugate]
 
+/-- One finite-state native Turing machine executes successful cache programs and returns the
+selected cache entry when its index is valid and at least `sourceCount`, with the stated
+compiled resource bounds. The output decodes with an empty remainder, and the compiled
+program contains exactly `5 * cacheSourceReads p` source-field instructions. -/
 theorem native_cache :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List GaussianCode) (output : ℕ),
@@ -229,25 +288,38 @@ theorem native_cache :
   obtain ⟨ps',hP,hR,hD⟩ := compileCache_output sourceCount p cs cs' output hr hout
   exact ⟨ps',hP,hN _ _ _ hR,hD,cacheOutput_source_fields sourceCount p cs cs' output hr hsafe⟩
 
+/-- The encoded initial cache together with the compiled cache program that emits the selected
+output entry. -/
 def cacheInput (p : List CacheOp) (cs : List GaussianCode) (output : ℕ) : Bits :=
   inputCode (encodeCache cs) (programCode (cacheOutputProgram p output))
+/-- The encoded value stack for the Gaussian expression selecting the cache entry beginning at
+parameter index `5 * output`. -/
 def cacheOutput (ps' : List Bits) (output : ℕ) : Bits :=
   valueStack ((GaussianExpression.parameter (5*output)).words ps')
+/-- The compiled clock budget for a cache-output program, augmented by quadratic input and
+output overhead. -/
 def cacheTime (p : List CacheOp) (cs : List GaussianCode) (ps' : List Bits) (output : ℕ) : ℕ :=
   (1+(cacheInput p cs output).length)^2+
     compiledTime (cacheOutputProgram p output) (encodeCache cs)
       ⟨ps',(GaussianExpression.parameter (5*output)).words ps'⟩+(1+(cacheOutput ps' output).length)^2
+/-- The compiled peak clock budget for a cache-output program, augmented by quadratic input and
+output overhead. -/
 def cachePeak (p : List CacheOp) (cs : List GaussianCode) (ps' : List Bits) (output : ℕ) : ℕ :=
   (1+(cacheInput p cs output).length)^2+
     compiledPeak (cacheOutputProgram p output) (encodeCache cs)
       ⟨ps',(GaussianExpression.parameter (5*output)).words ps'⟩+(1+(cacheOutput ps' output).length)^2
 
+/-- The fourth power of one plus the path envelope for the compiled cache-output program. -/
 def cachePolynomialWork (p : List CacheOp) (cs : List GaussianCode) (output B : ℕ) : ℕ :=
   (pathEnvelope (cacheOutputProgram p output) (encodeCache cs) B+1)^4
 
+/-- The polynomial work bound multiplied by two plus the length of the compiled cache-output
+program. -/
 def cachePolynomialTime (p : List CacheOp) (cs : List GaussianCode) (output B : ℕ) : ℕ :=
   ((cacheOutputProgram p output).length+2)*cachePolynomialWork p cs output B
 
+/-- The cache polynomial work bound is at most `625 * (1 + (cacheInput p cs output).length)^4 *
+(B + 1)^4`. -/
 theorem cachePolynomialWork_bound (p : List CacheOp) (cs : List GaussianCode) (output B : ℕ) :
     cachePolynomialWork p cs output B ≤ 625*(1+(cacheInput p cs output).length)^4*(B+1)^4 := by
   unfold cachePolynomialWork
@@ -256,6 +328,8 @@ theorem cachePolynomialWork_bound (p : List CacheOp) (cs : List GaussianCode) (o
       Nat.pow_le_pow_left (pathEnvelope_bound (cacheOutputProgram p output) (encodeCache cs) B) 4
     _ = _ := by ring
 
+/-- Compiling a cache program and appending output selection produces at most `68 * p.length +
+5` instructions. -/
 theorem cacheOutputProgram_length_le (p : List CacheOp) (output : ℕ) :
     (cacheOutputProgram p output).length ≤ 68*p.length+5 := by
   have h := compileCache_length_le p
@@ -264,6 +338,11 @@ theorem cacheOutputProgram_length_le (p : List CacheOp) (output : ℕ) :
   rw [he]
   omega
 
+/-- For a successful cache run with an in-range output outside the source prefix and a payload
+bound, one finite-state native Turing machine has time and space bounded by a uniform
+constant times `cachePolynomialTime` and `cachePolynomialWork`. The selected output decodes
+with an empty remainder, and the compiled program contains exactly `5 * cacheSourceReads p`
+source-field instructions. -/
 theorem native_cache_polynomial :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ),0 < C ∧
       ∀ (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List GaussianCode) (output B : ℕ),
@@ -282,6 +361,10 @@ theorem native_cache_polynomial :
   simpa only [cacheInput,cacheOutput,cachePolynomialTime,cachePolynomialWork,Nat.mul_assoc] using!
     hN (cacheOutputProgram p output) (encodeCache cs) ⟨ps',(GaussianExpression.parameter (5*output)).words ps'⟩ B hR hb
 
+/-- Under the stated index and validity hypotheses, one native machine executes a row plan and
+returns the selected `rowRatValue` with an empty decoding remainder and the stated cache
+time and peak bounds. The compiled output program contains exactly `5 * n` source-field
+instructions. -/
 theorem native_row :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ (sourceCount n source weight acc : ℕ) (cs : List GaussianCode) (choice : Option ℕ),
@@ -327,6 +410,8 @@ theorem native_row :
         (cf.getD (rowOutput n cs.length choice) GaussianCode.zero,[]) from hD]
   · simpa only [rowPlan_source_reads] using! hCount
 
+/-- Composing two native runs gives a run with time bound `Ts + Ta + 1` and space bound `max Ss
+Sa`. -/
 theorem paid_plan {a b : ℕ}
     (P : TM0.Machine Symbol (Fin (a+1))) (N : TM0.Machine Symbol (Fin (b+1)))
     (raw middle output : Bits) (Ts Ss Ta Sa : ℕ)
@@ -335,6 +420,11 @@ theorem paid_plan {a b : ℕ}
   compose_runs P N raw middle output Ts Ss Ta Sa (Ts+Ta+1) (max Ss Sa)
     hP hN (Nat.le_refl _) (Nat.le_max_left _ _) (Nat.le_max_right _ _)
 
+/-- For a successful cache run with an in-range output outside the source prefix, a native
+machine preparing the cache input can be composed with a uniform cache executor, with time
+bound `Ts + C * cacheTime p cs ps' output + 1` and space bound `max Ss (C * cachePeak p cs
+ps' output)`. The output decodes to the selected cache entry with an empty remainder, and
+the compiled program retains its exact source-field instruction count. -/
 theorem paid_cache {a : ℕ} (P : TM0.Machine Symbol (Fin (a+1))) :
     ∃ (q : ℕ) (Q : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0 < C ∧
       ∀ (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List GaussianCode) (output : ℕ)
@@ -353,6 +443,10 @@ theorem paid_cache {a : ℕ} (P : TM0.Machine Symbol (Fin (a+1))) :
   exact ⟨ps',hRep,@paid_plan a b P N raw (cacheInput p cs output) (cacheOutput ps' output)
     Ts Ss (C*cacheTime p cs ps' output) (C*cachePeak p cs ps' output) hP hNative,hDecode,hCount⟩
 
+/-- For valid row jobs, cache entries, and output choice, one native machine executes the batch
+plan and returns `batchRatValue` with an empty decoding remainder and the stated cache
+resource bounds. The compiled output program contains exactly `5 * n * jobs.length`
+source-field instructions. -/
 theorem native_batch :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ),0 < C ∧
       ∀ (sourceCount n : ℕ) (jobs : List RowJob) (cs : List GaussianCode) (fallback : ℕ)
@@ -387,6 +481,10 @@ theorem native_batch :
   · rw [batchPlan_source_reads] at hCount
     simpa only [Nat.mul_assoc] using! hCount
 
+/-- For valid matrix inputs and output choice, one native machine executes the associated
+row-job batch and returns its `batchRatValue` with an empty decoding remainder and the
+stated cache resource bounds. The compiled output program contains exactly `5 * q * n * r`
+source-field instructions. -/
 theorem native_matrix :
     ∃ (states : ℕ) (N : TM0.Machine Symbol (Fin (states+1))) (C : ℕ),0 < C ∧
       ∀ (matrixRows n q r : ℕ) (rows : Fin q → Fin r → Fin matrixRows)
@@ -429,6 +527,11 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Machine
 
+/-- Under the matrix validity, output-choice, and payload-bound hypotheses, one native machine
+returns the associated `batchRatValue` with polynomial time and space bounds and an empty
+decoding remainder. The statement also records exact source-read, multiplication, row-build,
+and source-field instruction counts, together with explicit work and compiled-program length
+bounds. -/
 theorem frontier1 :
     ∃ (states : ℕ) (N : TM0.Machine Symbol (Fin (states+1))) (C : ℕ),0 < C ∧
       ∀ (matrixRows n q r : ℕ) (rows : Fin q → Fin r → Fin matrixRows)

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ContDiscWalk08.SchemeAlgebra.BoseMesnerUnitary
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Phase choices and Paley search estimates
+
+The results select phases that align real coefficients and obtain scalar lower bounds for the
+Paley search expressions discussed in [Childs2010]. The estimates include a success expression
+bounded below by one quarter and two-sided square-root bounds on a norm-ratio expression.
+
+## Main statements
+
+* `exists_phase_sum_eq_sum_abs`: phases align a finite real sum.
+* `paley_success_ge_quarter`: the success expression is at least one quarter for `q ≥ 4`.
+* `paley_norm_ratio_bounds`: square-root scale bounds on the ratio expression.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +36,8 @@ namespace Qatlib.Papers.ContDiscWalk08.PaleySearch
 
 open Qatlib.Papers.ContDiscWalk08.SchemeAlgebra (phase)
 
+/-- There are phases making the norm of a finite phase-weighted sum of real coefficients equal
+to the sum of their absolute values. This is the phase-alignment step used in [Childs2010]. -/
 theorem exists_phase_sum_eq_sum_abs {m : ℕ} (a : Fin m → ℝ) :
     ∃ φ : Fin m → ℝ, ‖∑ j, phase (φ j) * (a j : ℂ)‖ = ∑ j, (|a j| : ℝ) := by
   refine ⟨fun j => if 0 ≤ a j then 0 else Real.pi, ?_⟩
@@ -49,6 +70,9 @@ theorem exists_phase_sum_eq_sum_abs {m : ℕ} (a : Fin m → ℝ) :
           rw [← Complex.ofReal_sum, Complex.norm_real, Real.norm_eq_abs,
             abs_of_nonneg (Finset.sum_nonneg fun j _ => abs_nonneg (a j))]
 
+/-- There are phases making the stated weighted squared phase-sum norm equal to the
+corresponding squared sum of absolute coefficients. See the search probability expression in
+[Childs2010]. -/
 theorem exists_phases_success {m : ℕ} (qji : Fin m → ℝ) (Ni N : ℝ) :
     ∃ φ : Fin m → ℝ,
       Ni / N ^ 2 * ‖∑ j, phase (φ j) * (qji j : ℂ)‖ ^ 2
@@ -56,6 +80,8 @@ theorem exists_phases_success {m : ℕ} (qji : Fin m → ℝ) (Ni N : ℝ) :
   obtain ⟨φ, hφ⟩ := exists_phase_sum_eq_sum_abs qji
   exact ⟨φ, by rw [hφ]⟩
 
+/-- For real `q ≥ 4`, the expression `(√q + 1) ^ 2 * (q - 1) ^ 2 / (4 * q ^ 3)` is at least one
+quarter. This is a scalar estimate for the Paley discussion in [Childs2010]. -/
 theorem quarter_le_paley_bound {q : ℝ} (hq : 4 ≤ q) :
     (1 / 4 : ℝ) ≤ (Real.sqrt q + 1) ^ 2 * (q - 1) ^ 2 / (4 * q ^ 3) := by
   have hq0 : 0 < q := by linarith
@@ -77,6 +103,8 @@ theorem quarter_le_paley_bound {q : ℝ} (hq : 4 ≤ q) :
   rw [le_div_iff₀ (by positivity : (0 : ℝ) < 4 * (s ^ 2) ^ 3)]
   nlinarith [hmain]
 
+/-- For real `q ≥ 4`, the displayed Paley success expression is at least one quarter. See
+[Childs2010]. -/
 theorem paley_success_ge_quarter {q : ℝ} (hq : 4 ≤ q) :
     (1 / 4 : ℝ) ≤ ((q - 1) / 2) ^ 2 * (Real.sqrt q + 1) ^ 2 / q ^ 3 := by
   have hq0 : 0 < q := by linarith
@@ -85,6 +113,8 @@ theorem paley_success_ge_quarter {q : ℝ} (hq : 4 ≤ q) :
   rw [le_div_iff₀ (by positivity : (0 : ℝ) < q ^ 3)]
   nlinarith [h]
 
+/-- For real `q ≥ 4`, the ratio expression `(√q + 1) * (q - 1) / (2 * q)` lies between `√q / 4`
+and `√q`. See the Paley norm comparison in [Childs2010]. -/
 theorem paley_norm_ratio_bounds {q : ℝ} (hq : 4 ≤ q) :
     Real.sqrt q / 4 ≤ (Real.sqrt q + 1) * (q - 1) / (2 * q) ∧
       (Real.sqrt q + 1) * (q - 1) / (2 * q) ≤ Real.sqrt q := by

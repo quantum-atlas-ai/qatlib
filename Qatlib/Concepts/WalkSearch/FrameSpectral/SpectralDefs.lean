@@ -22,6 +22,31 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonStat
 import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalQuan
 import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseEstimateSubgoalStat
+
+/-!
+# Spectral filtering and absorbing walk specifications
+
+This module defines the spectral bundles used for phase reflection, amplification, sine envelope
+filtering, band selection, and postselection stability. It also introduces the absorbing walk,
+its trap complement, and a threshold mass based on sampled walk powers.
+
+`lemma3Length` chooses the natural ceiling of `1000 / sqrt (δ * ε)`. The threshold counting
+argument gives a fraction of at least one sixth at this length, as required by
+`WalkSpectralClause38FullEndpoint`. The quantum walk spectral framework is developed in
+[Szegedy2004].
+
+## Main statements
+
+* `lemma3TrapComplement`: States vanishing on marked diagonal coordinates.
+* `lemma3_threshold_event`: A lower bound on the number of sampled powers satisfying the
+  threshold.
+* `WalkSpectralClause38FullEndpoint`: The combined absorbing walk endpoint specification.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -93,6 +118,8 @@ open Qatlib
 open Qatlib.Concepts.HspRecovery.KitaevReadout
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- For `M ≥ 2`, positive phase gap `η`, and `M * η ≥ 1`, the sine envelope zero-label
+probability is at most `10 / (M^2 * η^2)^2`. -/
 theorem sin_envelope_zero_label_gap_bound (M : ℕ) (hM : 2 ≤ M) (φ η : ℝ)
     (hη : 0 < η) (hfar : 1 ≤ (M : ℝ) * η) (hgap : η ≤ phaseDistance φ 0) :
     ‖sinEnvelopeKernel M φ (⟨0, by omega⟩ : Fin M)‖^2 ≤
@@ -119,6 +146,7 @@ theorem sin_envelope_zero_label_gap_bound (M : ℕ) (hM : 2 ≤ M) (φ η : ℝ)
   rw [hrew] at hle
   exact ht.trans hle
 
+/-- Making the states in `S` absorbing preserves the transition matrix property. -/
 theorem absorbingKernel_isTransitionMatrix {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (hP : IsTransitionMatrix P) :
     IsTransitionMatrix (absorbingKernel P S) := by
@@ -137,18 +165,23 @@ theorem absorbingKernel_isTransitionMatrix {I : Type} [Fintype I] [DecidableEq I
     · simp only [hx, ite_false]
       exact hP.2 x
 
+/-- The condition that a state vanishes at `(i, i)` for every marked vertex `i`. -/
 def lemma3TrapComplement {I : Type} [DecidableEq I] (S : Finset I)
     (z : QState (I × I)) : Prop := ∀ i ∈ S, z (i, i) = 0
 
+/-- The Szegedy walk associated with the transition kernel obtained by making `S` absorbing. -/
 noncomputable def lemma3AbsorbingWalk {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) : Matrix (I × I) (I × I) ℂ :=
   SzegedyWalk (absorbingKernel P S)
 
+/-- The fraction of sampled powers `1, …, L` for which the squared Euclidean norm of `u + W^k u`
+is at most three. -/
 noncomputable def lemma3ThresholdMass {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix (I × I) (I × I) ℂ) (u : QState (I × I)) (L : ℕ) : ℝ :=
   ((Finset.univ.filter (fun k : Fin L =>
       ‖toEuclidean_fromVec (u + W ^ (k.val + 1) *ᵥ u)‖ ^ 2 ≤ 3)).card : ℝ) / (L : ℝ)
 
+/-- The unmarked detection initial state vanishes at every marked diagonal coordinate. -/
 theorem detectionUnmarkedInitial_trapComplement {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) :
     lemma3TrapComplement S (detectionUnmarkedInitial P S) := by
@@ -158,8 +191,12 @@ theorem detectionUnmarkedInitial_trapComplement {I : Type} [Fintype I] [Decidabl
     simp [hi]
   rw [if_neg hnot]
 
+/-- The natural ceiling of `1000 / sqrt (δ * ε)`, used as the sampling length for the threshold
+estimate. -/
 noncomputable def lemma3Length (δ ε : ℝ) : ℕ := ⌈1000 / Real.sqrt (δ * ε)⌉₊
 
+/-- For positive `δ` and `ε`, the sampling length is positive and lies between `1000 / sqrt (δ *
+ε)` and that quantity plus one, with a strict upper bound. -/
 theorem lemma3Length_bounds (δ ε : ℝ) (hδ : 0 < δ) (hε : 0 < ε) :
     let L := lemma3Length δ ε
     0 < L ∧
@@ -178,6 +215,8 @@ theorem lemma3Length_bounds (δ ε : ℝ) (hδ : 0 < δ) (hε : 0 < ε) :
     linarith
   exact ⟨h0, h1, h2⟩
 
+/-- Under the stated average lower bound and pointwise upper bound, at least `L / 6` indices
+satisfy `1 - 4 * a ≤ X k`. -/
 private theorem lemma3_threshold_counting {L : ℕ} (X : Fin L → ℝ) (a η : ℝ)
     (hL : 0 < L) (ha : 0 ≤ a) (ha1 : a ≤ 1) (hη : 0 ≤ η) (hη1 : η ≤ 1 / 1000)
     (havg : (∑ k : Fin L, X k) / (L : ℝ) ≥ 2 * (1 - η) * (1 - a))
@@ -270,6 +309,9 @@ private theorem lemma3_threshold_counting {L : ℕ} (X : Fin L → ℝ) (a η : 
   rw [hgood, Nat.cast_sub hbad_le]
   linarith
 
+/-- For a symmetric chain with positive gap and marked fraction, at least `L / 6` sampled powers
+satisfy the squared norm threshold three when `L` is the prescribed sampling length
+[Szegedy2004]. -/
 theorem lemma3_threshold_event
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (L : ℕ)
@@ -398,6 +440,8 @@ theorem lemma3_threshold_event
     (markedFraction S) (1 / ((L : ℝ) * Real.sqrt (δ * markedFraction S)))
     hLpos ha0 ha1 hη hη1 havg hXle
 
+/-- The conjunction of reversible stationary state facts, Szegedy walk geometry and unitarity,
+approximate phase reflection bounds, and phase reflection and search circuit counts. -/
 def WalkSpectralClause6Prop : Prop :=
   (∀ {I : Type} [Fintype I] [DecidableEq I] {P : I → I → ℝ}
       (hP : IsTransitionMatrix P) {π : I → ℝ}
@@ -439,6 +483,8 @@ def WalkSpectralClause6Prop : Prop :=
   (∀ (M k t : ℕ) (hM : 2 ≤ M),
     phaseSearchLedger M k t = (2 * k * t * (M - 1), t, 1))
 
+/-- The conjunction of local amplification, its explicit cost bound, approximate phase search
+success and norm preservation, and the phase search ledger. -/
 def WalkSpectralClause32Prop : Prop :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3.{0} ∧
   (∀ (ε c₁ c₂ U C δ : ℝ) (tMax : ℕ)
@@ -468,6 +514,8 @@ def WalkSpectralClause32Prop : Prop :=
   (∀ (M k t : ℕ) (hM : 2 ≤ M),
     phaseSearchLedger M k t = (2 * k * t * (M - 1), t, 1))
 
+/-- The conjunction of sine envelope preparation and probability tail bounds with the specified
+forward, HHL, and amplified query estimates. -/
 def WalkSpectralClause33Prop : Prop :=
   (∀ (M : ℕ) (hM : 2 ≤ M),
     (∑ τ, ‖sinEnvelopeState M τ‖^2 = 1) ∧
@@ -498,6 +546,8 @@ def WalkSpectralClause33Prop : Prop :=
       (2 * ((Nat.ceil (1 / (5 * d)) : ℝ) + 1) + 1) * (2 * (M : ℝ)) +
         ((Nat.ceil (1 / (5 * d)) : ℝ) + 1))
 
+/-- The conjunction of phase band classification, accepted and reflected state error estimates,
+normalized branch guarantees, band sign unitarity, and reflection circuit counts. -/
 def WalkSpectralTunableQueryProp : Prop :=
   (∀ (J : Type) [Fintype J] [DecidableEq J] (M : ℕ) (bands : List (ℚ × ℚ))
       (phi : J → ℝ) (eta : ℝ), 2 ≤ M → 0 < eta → eta ≤ 1/16 →
@@ -542,6 +592,8 @@ def WalkSpectralTunableQueryProp : Prop :=
       adjointQueryCount (bandReflectionWord (I:=I) M S) = 2*(M-1) ∧
       adjointGateCount (bandReflectionWord (I:=I) M S) = 4 * (M - 1) + 5)
 
+/-- The conjunction of band reflection perturbation bounds, accepted branch mass and
+normalization estimates, and norm and isometry properties of orthonormal basis columns. -/
 def WalkSpectralOptimizedTunableProp : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin M))
       (U W : Matrix I I ℂ) (psi : QState I),
@@ -568,6 +620,8 @@ def WalkSpectralOptimizedTunableProp : Prop :=
       (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I)),
     (basisColumns b)ᴴ * basisColumns b = 1)
 
+/-- Selective outcome probability and normalized positive branch stability estimates in trace
+norm for equal-trace positive inputs, allowing an arbitrary reference system. -/
 def WalkSpectralClause36Prop : Prop :=
   (∀ {O : Type} [Fintype O] {D E R : ℕ} (J : Instrument O D E) (S : Finset O)
       (ρ τ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
@@ -594,6 +648,8 @@ def WalkSpectralClause36Prop : Prop :=
         - normalizedPositiveBranch (tensorLeft (selectiveMap J S) τ)) ≤
         η / (Matrix.trace (tensorLeft (selectiveMap J S) τ)).re)
 
+/-- The conjunction of degenerate zero phase detection probability and postselection bounds,
+postmeasurement norm control, and phase kernel expansions. -/
 def WalkSpectralClause37Prop : Prop :=
   (∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
@@ -635,6 +691,8 @@ def WalkSpectralClause37Prop : Prop :=
       degenerateZeroBranch W M k hM (∑ j, c j • v j) =
         ∑ j, (c j * (qpeKernel M (φ j) (⟨0, hM⟩ : Fin M)) ^ k) • v j)
 
+/-- The conjunction of the corrected walk random power estimate, unmarked initial state and
+absorbing kernel properties, sampling length bounds, and the threshold event count. -/
 def WalkSpectralClause38Prop : Prop :=
   (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I→I→ℝ) (S : Finset I) (δ : ℝ) (L : ℕ),
@@ -668,6 +726,9 @@ def WalkSpectralClause38Prop : Prop :=
           (correctedMarkedWalk P S) ^ (k.val + 1) *ᵥ detectionUnmarkedInitial P S)‖ ^ 2
           ≤ 3)).card)
 
+/-- The absorbing walk endpoint statement for marked fraction at most `1 / 8`, requiring the
+trap complement bridge, initial mass and length bounds, and threshold mass at least `1 / 6`
+for both walks. -/
 def WalkSpectralClause38FullEndpoint : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ),
@@ -690,6 +751,8 @@ def WalkSpectralClause38FullEndpoint : Prop :=
     (1 / 6 : ℝ) ≤ lemma3ThresholdMass (correctedMarkedWalk P S) u L ∧
     (1 / 6 : ℝ) ≤ lemma3ThresholdMass (lemma3AbsorbingWalk P S) u L
 
+/-- The conjunction of the eigenphase estimation subgoal, exact controlled power action on
+root-of-unity eigenstates, and a bound on phase decoding failure. -/
 def WalkSpectralClause39Prop : Prop :=
   EigenphaseEstimateSubgoal ∧
   (∀ {M : ℕ} {I : Type} [Fintype I] [DecidableEq I] {U : Matrix I I ℂ}

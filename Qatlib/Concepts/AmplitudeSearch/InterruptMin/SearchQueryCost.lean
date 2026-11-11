@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBoundary
+
+/-!
+# Boolean-query and source lookup search costs
+
+This module defines terminal Boolean-query cost and source lookup cost separately.
+`TerminalBooleanQueries` charges iterations plus one check per attempt, while
+`SourceLookupClock` charges twice the iteration cost plus those checks.
+
+Bounds on terminal attempt counts give expected costs of `(29 / 2) * √(card I / card A)` and `19
+* √(card I / card A)` respectively, supporting randomized search [BoyerEtAl1998] and minimum
+finding [DurrHoyer1996].
+
+## Main statements
+
+* `search_terminal_boolean_cost`: For any nonempty marked set, the expected terminal
+  Boolean-query count exists, is nonnegative, and is at most `(29 / 2) * √(card I / card A)`.
+* `search_terminal_source_lookup_cost`: For any nonempty marked set, the expected source lookup
+  clock exists, is nonnegative, and is at most `19 * √(card I / card A)`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,12 +42,17 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open scoped BigOperators
 open Qatlib
 
+/-- The terminal iteration cost plus one checking query for each attempt. -/
 def TerminalBooleanQueries {I : Type*} (sizes : ℕ → ℕ) (x : TerminalTrace I sizes) : ℕ :=
   TerminalCost sizes x + (x.1 + 1)
 
+/-- Twice the terminal iteration cost plus one check for each attempt, defining the source
+lookup clock used in minimum-search accounting [DurrHoyer1996]. -/
 def SourceLookupClock {I : Type*} (sizes : ℕ → ℕ) (x : TerminalTrace I sizes) : ℕ :=
   2 * TerminalCost sizes x + (x.1 + 1)
 
+/-- The terminal Boolean-query count equals the sum of the lifted search-circuit queries and one
+checking query over all attempts. -/
 theorem search_terminal_query_count {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ) (x : TerminalTrace I sizes) :
     TerminalBooleanQueries sizes x =
@@ -34,6 +64,7 @@ theorem search_terminal_query_count {I : Type*} [Fintype I] [DecidableEq I]
   simp [TerminalBooleanQueries, TerminalCost, TerminalIterations, HistoryIterations,
     Finset.sum_add_distrib, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm]
 
+/-- For `N ≥ 2`, every positive-stage exponential attempt size is at least two. -/
 theorem search_later_size_ge_two (N k : ℕ) (hN : 2 ≤ N) (hk : 0 < k) :
     2 ≤ ExponentialSizes N k := by
   have hNr : (1 : ℝ) < N := by exact_mod_cast (by omega : 1 < N)
@@ -46,6 +77,8 @@ theorem search_later_size_ge_two (N k : ℕ) (hN : 2 ≤ N) (hk : 0 < k) :
   have h : 1 < Nat.ceil (ExponentialWidth N k) := Nat.lt_ceil.mpr (by simpa using hw)
   exact h
 
+/-- For a nonempty proper marked set, the prefix sum of retry reach masses is at most one plus
+twice the retry phase prefix cost. -/
 theorem search_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hp : A.card < Fintype.card I) (n : ℕ) :
     (∑ s ∈ Finset.range n, RetryReach A (ExponentialSizes (Fintype.card I)) s) ≤
@@ -79,6 +112,8 @@ theorem search_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
       simp only [Finset.sum_ite_eq', Finset.mem_range]
       split_ifs <;> linarith
 
+/-- The first-success-weighted attempt count before stage `n`, plus `n` times the surviving
+mass, equals the sum of reach masses before `n`. -/
 theorem search_attempt_count_balance {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (n : ℕ) :
@@ -96,6 +131,8 @@ theorem search_attempt_count_balance {I : Type*} [Fintype I] [DecidableEq I]
     push_cast
     linear_combination ih + ((n : ℝ)+1)*hr
 
+/-- For a nonempty proper marked set, the mean terminal attempt count exists, is nonnegative,
+and is at most `1 + 9 * √(card I / card A)`. -/
 theorem search_terminal_attempts {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hp : A.card < Fintype.card I) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>
@@ -127,6 +164,8 @@ theorem search_terminal_attempts {I : Type*} [Fintype I] [DecidableEq I]
         Nat.cast_one]
     exact hsum.hasSum
 
+/-- For a nonempty proper marked set, the mean of `c` times terminal iteration cost plus attempt
+count is nonnegative and at most `(10 + c * (9 / 2)) * √(card I / card A)`. -/
 theorem search_terminal_linear_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hp : A.card < Fintype.card I) (c : ℕ) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>
@@ -151,6 +190,8 @@ theorem search_terminal_linear_cost {I : Type*} [Fintype I] [DecidableEq I]
   · have hmul := mul_le_mul_of_nonneg_left hib (Nat.cast_nonneg c)
     nlinarith
 
+/-- For any nonempty marked set, the mean of `c` times terminal iteration cost plus attempt
+count is nonnegative and at most `(10 + c * (9 / 2)) * √(card I / card A)`. -/
 theorem search_terminal_linear_cost_nonempty {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (c : ℕ) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>
@@ -183,6 +224,8 @@ theorem search_terminal_linear_cost_nonempty {I : Type*} [Fintype I] [DecidableE
       have hc : 0 ≤ (c : ℝ) := Nat.cast_nonneg c
       linarith
 
+/-- For any nonempty marked set, the expected terminal Boolean-query count exists, is
+nonnegative, and is at most `(29 / 2) * √(card I / card A)`. -/
 theorem search_terminal_boolean_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>
@@ -193,6 +236,8 @@ theorem search_terminal_boolean_cost {I : Type*} [Fintype I] [DecidableEq I]
   norm_num only [Nat.cast_one, one_mul, show (1 + 9 + 9/2 : ℝ) = 29/2 by norm_num] at h
   exact h
 
+/-- For any nonempty marked set, the expected source lookup clock exists, is nonnegative, and is
+at most `19 * √(card I / card A)`. -/
 theorem search_terminal_source_lookup_cost {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) :
     ∃ q : ℝ, HasSum (fun x : TerminalTrace I (ExponentialSizes (Fintype.card I)) =>

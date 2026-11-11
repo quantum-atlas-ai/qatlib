@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+
+/-!
+# Scalar Reduction of Controlled Walk Words
+
+This module reduces controlled-walk circuits to two-dimensional signal-processing words on a
+fixed walk eigenvector. `lcBranchVector a w` represents a product of an ancilla vector and a
+workspace vector, allowing the walk construction of [LowChuang2017] to be analyzed through
+scalar eigenphases.
+
+The branch lemmas identify ancilla gates, controlled walks, and adjoints with their
+two-dimensional actions. `lcUhat_source_branch` and its adjoint counterpart expose opposite
+half-angle phases; these cancel in pairs, giving `lcSimWord_branch` for an even phase-list
+length.
+
+## Main statements
+
+- `lcUhat_scalar` identifies the phase-conjugated controlled signal with an axis rotation.
+* `lcUhat_source_branch` and `lcUhat_source_adjoint_branch` compute the two types of source
+  factor.
+* `lcSimWord_branch` identifies the full even-length walk word with `lcWord` on each
+  eigenbranch.
+
+## References
+
+- [Low and Chuang, 2017][LowChuang2017].
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,9 +52,13 @@ namespace Qatlib.Concepts.SignalPrimitive.SparseSim
 
 open Matrix
 
+/-- The product vector with coordinate `(i, w)` equal to the ancilla amplitude `a i` times the
+workspace amplitude at `w`. -/
 def lcBranchVector {W : Type} (a : Fin 2 → ℂ) (w : W → ℂ) : Fin 2 × W → ℂ :=
   fun i => a i.1 * w i.2
 
+/-- Computes Hadamard conjugation of `diag (1, z)` as the two-dimensional matrix with diagonal
+entries `(1 + z) / 2` and off-diagonal entries `(1 - z) / 2`. -/
 theorem lcHad_diagonal_scalar (z : ℂ) :
     lcHad * Matrix.diagonal ![1, z] * lcHad =
       !![(1 + z) / 2, (1 - z) / 2; (1 - z) / 2, (1 + z) / 2] := by
@@ -45,6 +76,8 @@ theorem lcHad_diagonal_scalar (z : ℂ) :
   · linear_combination (1 - z) * hn
   · linear_combination (1 + z) * hn
 
+/-- Hadamard conjugation of `diag (1, exp (i θ))` equals `lcSignalStep θ` multiplied by the
+half-angle phase `exp (i θ / 2)`. -/
 theorem lcHad_controlled_scalar (θ : ℝ) :
     lcHad * Matrix.diagonal ![1, Complex.exp (Complex.I * (θ : ℂ))] * lcHad =
       Complex.exp (Complex.I * ((θ / 2 : ℝ) : ℂ)) • lcSignalStep θ := by
@@ -68,6 +101,8 @@ theorem lcHad_controlled_scalar (θ : ℝ) :
   all_goals linear_combination (-((1 : ℂ) / 2)) * hc +
     (((Complex.sin ((θ : ℂ) / 2)) ^ 2) / 2) * Complex.I_mul_I
 
+/-- Conjugating the Hadamard-controlled scalar signal by the phase rotations at `-φ / 2` and `φ
+/ 2` gives `exp (i θ / 2) • lcAxisRotation φ θ`. -/
 theorem lcUhat_scalar (φ θ : ℝ) :
     PhaseRotation (-(φ / 2)) *
       (lcHad * Matrix.diagonal ![1, Complex.exp (Complex.I * (θ : ℂ))] * lcHad) *
@@ -76,6 +111,8 @@ theorem lcUhat_scalar (φ θ : ℝ) :
   rw [lcHad_controlled_scalar, Matrix.mul_smul, Matrix.smul_mul, lcAxisRotation_factor]
   simp only [Matrix.mul_assoc]
 
+/-- The adjoint of the axis rotation with axis angle `φ + π` equals the axis rotation with axis
+angle `φ` and the same signal angle. -/
 theorem lcAxisRotation_add_pi_adjoint (φ θ : ℝ) :
     (lcAxisRotation (φ + Real.pi) θ)ᴴ = lcAxisRotation φ θ := by
   have hp : Complex.exp (Complex.I * (Real.pi : ℂ)) = -1 := by
@@ -108,6 +145,8 @@ section Branch
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- A matrix acting only on the ancilla transforms `lcBranchVector a w` into the branch with
+ancilla vector `M *ᵥ a` and the same workspace vector. -/
 theorem lcAncilla_mulVec (M : Matrix (Fin 2) (Fin 2) ℂ) (a : Fin 2 → ℂ) (w : W → ℂ) :
     (Matrix.of fun (i j : Fin 2 × W) => if i.2 = j.2 then M i.1 j.1 else 0) *ᵥ
       lcBranchVector a w = lcBranchVector (M *ᵥ a) w := by
@@ -118,14 +157,19 @@ theorem lcAncilla_mulVec (M : Matrix (Fin 2) (Fin 2) ℂ) (a : Fin 2 → ℂ) (w
   simp only [Finset.sum_ite_eq, Finset.mem_univ, if_true]
   simp only [← mul_assoc, ← Finset.sum_mul]
 
+/-- The lifted Hadamard gate acts on a product branch by applying `lcHad` to its ancilla vector. -/
 theorem lcHadAncilla_branch (a : Fin 2 → ℂ) (w : W → ℂ) :
     lcHadAncilla W *ᵥ lcBranchVector a w = lcBranchVector (lcHad *ᵥ a) w :=
   lcAncilla_mulVec lcHad a w
 
+/-- The lifted phase gate acts on a product branch by applying `PhaseRotation γ` to its ancilla
+vector. -/
 theorem lcPhaseAncilla_branch (γ : ℝ) (a : Fin 2 → ℂ) (w : W → ℂ) :
     lcPhaseAncilla γ W *ᵥ lcBranchVector a w = lcBranchVector (PhaseRotation γ *ᵥ a) w :=
   lcAncilla_mulVec (PhaseRotation γ) a w
 
+/-- On a workspace eigenvector of `V` with eigenvalue `z`, the controlled walk acts on the
+ancilla as `diag (1, z)`. -/
 theorem lcControlledWalk_branch (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
     (hw : V *ᵥ w = z • w) (a : Fin 2 → ℂ) :
     lcControlledWalk V *ᵥ lcBranchVector a w =
@@ -148,6 +192,8 @@ theorem lcControlledWalk_branch (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
         ring
       _ = _ := by rw [h]; ring
 
+/-- On a workspace eigenvector of eigenvalue `z`, `lcUhat φ V` reduces to the ancilla matrix
+obtained by phase conjugation of `lcHad * diag (1, z) * lcHad`. -/
 theorem lcUhat_branch (φ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
     (hw : V *ᵥ w = z • w) (a : Fin 2 → ℂ) :
     lcUhat φ V *ᵥ lcBranchVector a w =
@@ -157,6 +203,8 @@ theorem lcUhat_branch (φ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
   simp only [← Matrix.mulVec_mulVec, lcPhaseAncilla_branch,
     lcHadAncilla_branch, lcControlledWalk_branch V w z hw]
 
+/-- The frame `lcPlusFrame L` embeds `ψ` as a uniform ancilla product branch with workspace
+vector `L *ᵥ ψ`. -/
 theorem lcPlusFrame_branch (L : Matrix W I ℂ) (ψ : I → ℂ) :
     lcPlusFrame L *ᵥ ψ =
       lcBranchVector (fun _ => (((Real.sqrt 2)⁻¹ : ℝ) : ℂ)) (L *ᵥ ψ) := by
@@ -168,6 +216,8 @@ theorem lcPlusFrame_branch (L : Matrix W I ℂ) (ψ : I → ℂ) :
   intro y _
   ring
 
+/-- The adjoint of a lifted ancilla matrix acts on a product branch by applying `Mᴴ` to the
+ancilla vector. -/
 theorem lcAncilla_adjoint_mulVec (M : Matrix (Fin 2) (Fin 2) ℂ)
     (a : Fin 2 → ℂ) (w : W → ℂ) :
     (Matrix.of fun (i j : Fin 2 × W) => if i.2 = j.2 then M i.1 j.1 else 0)ᴴ *ᵥ
@@ -178,6 +228,7 @@ theorem lcAncilla_adjoint_mulVec (M : Matrix (Fin 2) (Fin 2) ℂ)
     by_cases h : i.2 = j.2 <;> simp [Matrix.conjTranspose_apply, h, eq_comm]
   rw [he, lcAncilla_mulVec]
 
+/-- Taking the adjoint of a controlled walk replaces its workspace matrix `V` by `Vᴴ`. -/
 theorem lcControlledWalk_adjoint (V : Matrix W W ℂ) :
     (lcControlledWalk V)ᴴ = lcControlledWalk Vᴴ := by
   ext i j
@@ -191,6 +242,8 @@ theorem lcControlledWalk_adjoint (V : Matrix W W ℂ) :
     · simp [lcControlledWalk, Matrix.conjTranspose_apply, ha]
   · simp [lcControlledWalk, Matrix.conjTranspose_apply, hab, Ne.symm hab]
 
+/-- For unitary `V`, an eigenvector with unit-modulus eigenvalue `z` is an eigenvector of `Vᴴ`
+with eigenvalue `conj z`. -/
 theorem lcWalk_adjoint_eigen (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
     (hV : V ∈ Matrix.unitaryGroup W ℂ) (hw : V *ᵥ w = z • w)
     (hz : star z * z = 1) : Vᴴ *ᵥ w = star z • w := by
@@ -202,6 +255,8 @@ theorem lcWalk_adjoint_eigen (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
     _ = star z • (Vᴴ *ᵥ (V *ᵥ w)) := by rw [hw]
     _ = star z • w := by rw [Matrix.mulVec_mulVec, hv, Matrix.one_mulVec]
 
+/-- On a unitary walk eigenbranch with unit-modulus eigenvalue, the adjoint of `lcUhat φ V`
+reduces to the adjoint of its two-dimensional scalar ancilla matrix. -/
 theorem lcUhat_adjoint_branch (φ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ)
     (hV : V ∈ Matrix.unitaryGroup W ℂ) (hw : V *ᵥ w = z • w)
     (hz : star z * z = 1) (a : Fin 2 → ℂ) :
@@ -221,11 +276,14 @@ theorem lcUhat_adjoint_branch (φ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ) (z
     lcControlledWalk_adjoint,
     lcControlledWalk_branch Vᴴ w (star z) (lcWalk_adjoint_eigen V w z hV hw hz), hdiag]
 
+/-- For real `θ`, the phase `exp (i θ)` satisfies `conj (exp (i θ)) * exp (i θ) = 1`. -/
 theorem lcExp_star_mul (θ : ℝ) :
     star (Complex.exp (Complex.I * (θ : ℂ))) * Complex.exp (Complex.I * (θ : ℂ)) = 1 := by
   rw [Complex.star_def, ← Complex.exp_conj, map_mul, Complex.conj_I, Complex.conj_ofReal,
     ← Complex.exp_add, neg_mul, neg_add_cancel, Complex.exp_zero]
 
+/-- On a walk eigenbranch of eigenphase `θ`, the source factor `lcUhat φ V` acts on the ancilla
+as `exp (i θ / 2) • lcAxisRotation φ θ`. -/
 theorem lcUhat_source_branch (φ θ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ)
     (hw : V *ᵥ w = Complex.exp (Complex.I * (θ : ℂ)) • w) (a : Fin 2 → ℂ) :
     lcUhat φ V *ᵥ lcBranchVector a w =
@@ -233,6 +291,8 @@ theorem lcUhat_source_branch (φ θ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ)
         lcAxisRotation φ θ) *ᵥ a) w := by
   rw [lcUhat_branch φ V w _ hw a, lcUhat_scalar]
 
+/-- On a unitary walk eigenbranch of eigenphase `θ`, the adjoint source factor with axis `φ + π`
+acts as `conj (exp (i θ / 2)) • lcAxisRotation φ θ`. -/
 theorem lcUhat_source_adjoint_branch (φ θ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ)
     (hV : V ∈ Matrix.unitaryGroup W ℂ)
     (hw : V *ᵥ w = Complex.exp (Complex.I * (θ : ℂ)) • w) (a : Fin 2 → ℂ) :
@@ -242,6 +302,9 @@ theorem lcUhat_source_adjoint_branch (φ θ : ℝ) (V : Matrix W W ℂ) (w : W �
   rw [lcUhat_adjoint_branch (φ + Real.pi) V w _ hV hw (lcExp_star_mul θ) a,
     lcUhat_scalar, Matrix.conjTranspose_smul, lcAxisRotation_add_pi_adjoint]
 
+/-- Splits the alternating source-factor product for a phase list beginning with `φ, ψ` into its
+first forward factor, first shifted adjoint factor, and the alternating product of the
+remaining list. -/
 theorem lcSimFactors_pair (V : Matrix W W ℂ) (φ ψ : ℝ) (ls : List ℝ) :
     ((φ :: ψ :: ls).mapIdx (fun j φ =>
       if j % 2 = 0 then lcUhat φ V else (lcUhat (φ + Real.pi) V)ᴴ)).prod =
@@ -257,6 +320,8 @@ theorem lcSimFactors_pair (V : Matrix W W ℂ) (φ ψ : ℝ) (ls : List ℝ) :
   have he : (i + 1 + 1) % 2 = i % 2 := by omega
   rw [he]
 
+/-- For an even-length phase list and a unitary walk eigenvector of eigenphase `θ`, `lcSimWord V
+phis` preserves the workspace branch and acts on its ancilla by `lcWord phis θ`. -/
 theorem lcSimWord_branch (V : Matrix W W ℂ) (w : W → ℂ) (θ : ℝ)
     (hV : V ∈ Matrix.unitaryGroup W ℂ)
     (hw : V *ᵥ w = Complex.exp (Complex.I * (θ : ℂ)) • w)

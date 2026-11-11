@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtLinearSolve.Waterfill
+
+/-!
+# Real levels for rational water-fill data
+
+The definitions `levelFill`, `levelMass`, and `levelDot` evaluate rational source and target
+data at real levels. The module proves monotonicity, increment identities, an overlap
+comparison, and strict fidelity decrease on a nondegenerate bracket for the water-fill
+construction associated with [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `levelFillCast`: Relate a rational level to the executable rational fill.
+* `levelOverlapLe`: Compare target overlap with source-box competitors.
+* `levelFidelityStrictAnti`: Prove strict fidelity decrease in cross-multiplied form.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,33 +36,44 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
 
 open scoped BigOperators
 
+/-- The real fill coordinate `min (π i) (γ * σ i)` for rational source and target at a real
+level. -/
 noncomputable def levelFill {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ) (i : Fin m) : ℝ :=
   min (π i : ℝ) (γ * (σ i : ℝ))
 
+/-- The sum of squares of the real filled coordinates for rational source and target. -/
 noncomputable def levelMass {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ) : ℝ :=
   ∑ i, (levelFill π σ γ i) ^ 2
 
+/-- The target-weighted sum of the real filled coordinates for rational source and target. -/
 noncomputable def levelDot {m : ℕ} (π σ : Fin m → ℚ) (γ : ℝ) : ℝ :=
   ∑ i, (σ i : ℝ) * levelFill π σ γ i
 
+/-- The square of the real overlap of the rational source and target. -/
 noncomputable def waterPmin {m : ℕ} (π σ : Fin m → ℚ) : ℝ :=
   (∑ i, (π i : ℝ) * (σ i : ℝ)) ^ 2
 
+/-- The sum of squared target coordinates over the positive support of the rational source. -/
 noncomputable def waterPmax {m : ℕ} (π σ : Fin m → ℚ) : ℝ :=
   ∑ i, if 0 < π i then (σ i : ℝ) ^ 2 else 0
 section FidelityHelpers
 
 set_option maxHeartbeats 2000000
 
+/-- For a strictly positive target, each real filled coordinate is monotone in the level. -/
 theorem levelFill_mono {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ i, 0 < σ i) {a b : ℝ}
     (hab : a ≤ b) (i : Fin m) : levelFill π σ a i ≤ levelFill π σ b i :=
   min_le_min (le_refl _)
     (mul_le_mul_of_nonneg_right hab (show (0 : ℝ) ≤ (σ i : ℝ) by exact_mod_cast (hσ i).le))
 
+/-- For a nonnegative source, strictly positive target, and nonnegative level, every real filled
+coordinate is nonnegative. -/
 theorem levelFill_nonneg {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 < σ i) {γ : ℝ} (hγ : 0 ≤ γ) (i : Fin m) : 0 ≤ levelFill π σ γ i :=
   le_min (by exact_mod_cast hπ i) (mul_nonneg hγ (by exact_mod_cast (hσ i).le))
 
+/-- For a nonnegative source and strictly positive target, `levelMass` is monotone on
+nonnegative levels. -/
 theorem levelMass_mono {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 < σ i) {a b : ℝ} (hγ : 0 ≤ a) (hab : a ≤ b) :
     levelMass π σ a ≤ levelMass π σ b := by
@@ -53,6 +84,8 @@ theorem levelMass_mono {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π 
     nlinarith [h1, h2]
   exact Finset.sum_le_sum fun i _ => per i
 
+/-- A fill increment multiplied by the earlier fill equals the same increment multiplied by the
+earlier level and target coordinate. -/
 private theorem fill_increment_mul {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ i, 0 < σ i)
     {a b : ℝ} (hab : a ≤ b) (i : Fin m) :
     levelFill π σ a i * (levelFill π σ b i - levelFill π σ a i) =
@@ -66,6 +99,8 @@ private theorem fill_increment_mul {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ 
     ring
   · rw [show levelFill π σ a i = a * (σ i : ℝ) from min_eq_right (le_of_not_ge hs)]
 
+/-- The mass at a later level equals the earlier mass plus twice the earlier level times the
+overlap increment and the squared norm of the fill increment. -/
 private theorem mass_increment {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ i, 0 < σ i)
     {a b : ℝ} (_ha : 0 ≤ a) (hab : a ≤ b) :
     levelMass π σ b = levelMass π σ a + 2 * a * (levelDot π σ b - levelDot π σ a) +
@@ -96,6 +131,8 @@ private theorem mass_increment {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀ i, 0
   unfold levelMass levelDot
   linarith [hsum]
 
+/-- For a nonnegative source and strictly positive target, the mass is at most the level times
+the overlap at a nonnegative level. -/
 private theorem mass_le_level_dot {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π i)
     (_hσ : ∀ i, 0 < σ i) {a : ℝ} (_ha : 0 ≤ a) :
     levelMass π σ a ≤ a * levelDot π σ a := by
@@ -112,6 +149,7 @@ private theorem mass_le_level_dot {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i
         Finset.sum_le_sum fun i _ => per i
     _ = a * levelDot π σ a := by rw [levelDot, Finset.mul_sum]
 
+/-- The square of a finite real dot product is at most the product of the two sums of squares. -/
 private theorem sum_mul_sq_le {m : ℕ} (f g : Fin m → ℝ) :
     (∑ i, f i * g i) ^ 2 ≤ (∑ i, f i ^ 2) * (∑ i, g i ^ 2) := by
   have h1 : |∑ i, f i * g i| ≤
@@ -136,6 +174,8 @@ private theorem sum_mul_sq_le {m : ℕ} (f g : Fin m → ℝ) :
     ‖(WithLp.toLp 2 g : EuclideanSpace ℝ (Fin m))‖ by positivity)]
   exact h1
 
+/-- For positive earlier level `a`, the squared overlap increment times `a` is bounded by the
+earlier overlap times the squared norm of the fill increment. -/
 private theorem dot_increment_bound {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 < σ i) {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     a * (levelDot π σ b - levelDot π σ a) ^ 2 ≤
@@ -169,6 +209,8 @@ private theorem dot_increment_bound {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀
     nlinarith [c1, c2]
   nlinarith [c3, ha]
 
+/-- The squared overlaps and masses satisfy the cross-multiplied fidelity monotonicity
+inequality between ordered positive levels. -/
 private theorem fidelity_anti_le {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 < σ i) {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     levelDot π σ b ^ 2 * levelMass π σ a ≤ levelDot π σ a ^ 2 * levelMass π σ b := by
@@ -231,6 +273,8 @@ private theorem fidelity_anti_le {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i,
     ring
   linarith [diff, term1, term2]
 
+/-- The cross-multiplied fidelity inequality is strict when a positive source coordinate is
+strictly saturated and another coordinate remains unsaturated at the earlier positive level. -/
 private theorem fidelity_anti_lt_core {m : ℕ} (π σ : Fin m → ℚ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 < σ i) {a b : ℝ} (ha : 0 < a) (hab : a < b)
     (h1 : ∃ j, 0 < (π j : ℝ) ∧ (π j : ℝ) < a * (σ j : ℝ))
@@ -343,6 +387,7 @@ private theorem fidelity_anti_lt_core {m : ℕ} (π σ : Fin m → ℚ) (hπ : �
     ring
   linarith [diff, term1, term2]
 
+/-- At a rational level, `levelFill` is the real cast of the rational `waterFill`. -/
 theorem levelFillCast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) (i : Fin m) :
     levelFill π σ (γ : ℝ) i = (waterFill π σ γ i : ℝ) := by
   by_cases h : π i ≤ γ * σ i
@@ -355,6 +400,8 @@ theorem levelFillCast {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) (i : Fin m) :
       show (waterFill π σ γ i : ℝ) = ((γ * σ i : ℚ) : ℝ) from by
         simp [waterFill, min_eq_right (le_of_not_ge h)], Rat.cast_mul]
 
+/-- A nonnegative vector bounded by the source and with squared norm at most `levelMass` has
+overlap at most `levelDot` at a positive level; see [OzolsRoettelerRoland2013]. -/
 theorem levelOverlapLe {m : ℕ} (π σ : Fin m → ℚ) (_hσ : ∀ i, 0 < σ i) {γ : ℝ}
     (hγ : 0 < γ) (v : Fin m → ℝ) (hv : ∀ i, 0 ≤ v i ∧ v i ≤ (π i : ℝ))
     (he : (∑ i, v i ^ 2) ≤ levelMass π σ γ) :
@@ -374,6 +421,8 @@ theorem levelOverlapLe {m : ℕ} (π σ : Fin m → ℚ) (_hσ : ∀ i, 0 < σ i
   unfold levelDot
   nlinarith [hh]
 
+/-- Between distinct levels in the specified nondegenerate bracket, squared overlaps and masses
+satisfy the strict cross-multiplied fidelity inequality; see [OzolsRoettelerRoland2013]. -/
 theorem levelFidelityStrictAnti (m : ℕ) (π σ : Fin m → ℚ) (γlo γhi : ℝ)
     (hπ : ∀ i, 0 ≤ π i) (hσ : ∀ i, 0 < σ i) (hlohi : γlo < γhi)
     (hlow : ∀ i, 0 < π i → γlo * (σ i : ℝ) ≤ (π i : ℝ))

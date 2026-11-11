@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
+
+/-!
+# Computed confidence budgets for local Pauli shadows
+
+`localShadowBlockBudget` and `localShadowRepetitions` choose explicit integer budgets from
+rational error and failure parameters. The resulting median estimates reuse a single collection
+of local Pauli records for many sparse observables, in the classical-shadow setting
+[HuangKuengPreskill2020].
+
+The module proves a joint failure-probability bound using support and operator-norm bounds, and
+records the total classical estimator work together with the shared quantum resource counts.
+
+## Main statements
+
+* `localShadowBlockBudget_spec`: positivity and the required block variance bound.
+* `local_pauli_same_records_computed_joint_confidence`: simultaneous confidence with computed
+  budgets.
+* `local_pauli_many_observables_shared_quantum_ledger`: estimator work and shared record
+  resource counts.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -21,11 +46,16 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The positive block size `max 1 ⌈16 · 4^k · B² / ε²⌉` used for local Pauli shadow estimation. -/
 def localShadowBlockBudget (k : ℕ) (B ε : ℚ) : ℕ := max 1 (Nat.ceil (16*4^k*B^2/ε^2))
 
+/-- The repetition parameter obtained by adding the base-two ceiling logarithms of `max 1 D` and
+`max 1 ⌈1/δ⌉`, plus two. -/
 def localShadowRepetitions (D : ℕ) (δ : ℚ) : ℕ :=
   Nat.clog 2 (max 1 D) + Nat.clog 2 (max 1 (Nat.ceil (1/δ))) + 2
 
+/-- For positive `ε`, the computed block size is positive and makes `4^k B² / m` at most `ε² /
+16`. -/
 theorem localShadowBlockBudget_spec (k : ℕ) (B ε : ℚ) (hε : 0 < ε) :
     0 < localShadowBlockBudget k B ε ∧
     (4:ℝ)^k*(B:ℝ)^2 / (localShadowBlockBudget k B ε : ℝ) ≤ (ε:ℝ)^2/16 := by
@@ -43,6 +73,7 @@ theorem localShadowBlockBudget_spec (k : ℕ) (B ε : ℚ) (hε : 0 < ε) :
   have hraw := (div_le_iff₀ (pow_pos he 2)).mp hr
   nlinarith
 
+/-- The median tail factor `2^(2r+1) (1/16)^(r+1)` is bounded by `(1/2)^r`. -/
 private theorem localShadow_tail (r : ℕ) :
     (2:ℝ)^(2*r+1)*(1/16:ℝ)^(r+1) ≤ (1/2:ℝ)^r := by
   induction r with
@@ -55,6 +86,8 @@ private theorem localShadow_tail (r : ℕ) :
     norm_num at ih ⊢
     nlinarith [pow_nonneg (by norm_num : (0:ℝ)≤1/2) r]
 
+/-- For positive `δ`, the computed repetition parameter makes the `D`-fold median tail bound at
+most `δ`. -/
 theorem localShadowRepetitions_spec (D : ℕ) (δ : ℚ) (hδ : 0<δ) :
     (D:ℝ)*((2:ℝ)^(2*localShadowRepetitions D δ+1)*
       (1/16:ℝ)^(localShadowRepetitions D δ+1)) ≤ (δ:ℝ) := by
@@ -84,6 +117,10 @@ theorem localShadowRepetitions_spec (D : ℕ) (δ : ℚ) (hδ : 0<δ) :
     _ = (D:ℝ)/(2:ℝ)^r := by simp only [div_eq_mul_inv,one_mul,inv_pow]
     _ ≤ (δ:ℝ) := (div_le_iff₀ (by positivity)).mpr (by simpa [mul_comm] using hr)
 
+/-- For `D` observables supported on at most `k` qubits and bounded in norm by `B`, the computed
+shared-record median estimates simultaneously have error at most `ε` except on an event of
+probability at most `δ`. The block size and repetition count are `localShadowBlockBudget`
+and `localShadowRepetitions`; see [HuangKuengPreskill2020] for the classical-shadow setting. -/
 theorem local_pauli_same_records_computed_joint_confidence
     (n q D k : ℕ) (S : Fin D → Finset (Fin n))
     (w : Fin D → Fin q → Fin n → Option (Fin 3)) (c : Fin D → Fin q → ℚ)
@@ -153,6 +190,10 @@ theorem local_pauli_same_records_computed_joint_confidence
     simpa [r] using localShadowRepetitions_spec D δ hδ
   simpa [p,θ] using hprob.trans ht
 
+/-- For the computed block and repetition budgets, summing over `D` estimators gives the stated
+exact evaluation count and comparison bound. The shared Pauli records have the displayed
+fresh-resource tuple independent of `D`, accompanying the simultaneous estimation setting of
+[HuangKuengPreskill2020]. -/
 theorem local_pauli_many_observables_shared_quantum_ledger
     (n q D k : ℕ) (w : Fin D → Fin q → Fin n → Option (Fin 3))
     (c : Fin D → Fin q → ℚ) (B ε δ : ℚ) :

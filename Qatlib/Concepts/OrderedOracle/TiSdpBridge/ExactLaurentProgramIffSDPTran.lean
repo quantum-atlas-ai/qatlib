@@ -8,6 +8,27 @@ import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ExactLaurentProgramIffSDPStat
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorTran
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ExactProgramFromSDPTran
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.Theorem9SDPCharacterizationTran
+
+/-!
+# Exact Laurent program and SDP equivalence proof
+
+This module proves `ExactLaurentProgramIffSDP` by constructing normalized polynomial factors
+from an `exactTIProgram` and combining that construction with the reverse SDP conversion.
+`exactLaurentProgram_to_polyConditions` supplies the intermediate zero-error polynomial
+conditions in the ordered-search framework of [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `exactLaurentProgram_to_polyConditions`: conversion of exact Laurent witnesses into zero-error
+  polynomial witnesses.
+* `exactLaurentProgramIffSDP`: equivalence of `exactTIProgram n k` and `tiSDPFeasible n k 0` for
+  nonzero size.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,8 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge Polynomial Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- An exact translation-invariant Laurent-program witness for nonzero size yields polynomial
+conditions with error parameter zero. -/
 theorem exactLaurentProgram_to_polyConditions (n k : ℕ) [NeZero n]
     (h : exactTIProgram n k) : tiPolyConditions n k 0 := by
   obtain ⟨q,hq0,hqk,hmean,hmatch,hnonneg⟩ := h
@@ -107,6 +130,8 @@ theorem exactLaurentProgram_to_polyConditions (n k : ℕ) [NeZero n]
       (hcircle t hti z hcz).symm.trans ((hmatch t ht z hz).trans (hcircle (t-1) hprev z hcz))
     exact (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp (Complex.ofReal_injective he)
 
+/-- Proves that the exact translation-invariant Laurent program is equivalent to zero-error
+translation-invariant SDP feasibility for every nonzero size. -/
 theorem exactLaurentProgramIffSDP : ExactLaurentProgramIffSDP := by
   intro n k _
   exact ⟨fun h => tiPolyConditions_implies_tiSDPFeasible n k 0

@@ -9,6 +9,27 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
 import Mathlib.Data.Fin.Basic
 import Mathlib.Tactic
 
+/-!
+# Exact-cover guards on assignment prefixes
+
+This module defines row counts, prefix legality, and the support of guards for Boolean
+exact-cover instances. For rows of size three, full prefix legality is equivalent to selecting
+exactly one entry in each row; bounded column incidence also gives a six-variable guard-support
+bound.
+
+These constructions accompany the results of [FarhiGutmann1998].
+
+## Main statements
+
+* `legal_iff_one`: characterizes legal full assignments by row sums equal to one.
+* `leaf_iff_cover`: equates existence of a legal leaf and an exact cover.
+* `support_card`: bounds guard support under row and column incidence assumptions.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,36 +39,50 @@ namespace Qatlib.Papers.DecisionTrees97.MainResults.ExactCoverGuards
 
 variable {m n : ℕ}
 
+/-- The finite set of columns whose entry in row `j` is true. -/
 def rowOnes (A : Fin m → Fin n → Bool) (j : Fin m) : Finset (Fin n) :=
   Finset.univ.filter (fun k => A j k = true)
 
+/-- The number of true selected entries in row `j` at column indices less than `i`. -/
 def prefixSum (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
     (j : Fin m) : ℕ :=
   ∑ k : Fin n, if k.val < i ∧ A j k = true ∧ x k = true then 1 else 0
 
+/-- The number of false selected bits at true entries of row `j` with column indices less than
+`i`. -/
 def prefixZeros (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
     (j : Fin m) : ℕ :=
   ∑ k : Fin n, if k.val < i ∧ A j k = true ∧ x k = false then 1 else 0
 
+/-- The number of columns at which both row `j` and the assignment are true. -/
 def rowSum (A : Fin m → Fin n → Bool) (x : Fin n → Bool) (j : Fin m) : ℕ :=
   ∑ k : Fin n, if A j k = true ∧ x k = true then 1 else 0
 
+/-- The condition that every row containing column `i` has no previously selected true entry. -/
 def allowedOne (A : Fin m → Fin n → Bool) (i : Fin n) (x : Fin n → Bool) : Prop :=
   ∀ j : Fin m, A j i = true → prefixSum A i.val x j = 0
 
+/-- The condition that no row containing column `i` has exactly two earlier true entries
+assigned false. -/
 def allowedZero (A : Fin m → Fin n → Bool) (i : Fin n) (x : Fin n → Bool) : Prop :=
   ∀ j : Fin m, A j i = true → prefixZeros A i.val x j ≠ 2
 
+/-- The guard at column `i`, selecting `allowedOne` or `allowedZero` according to the assigned
+bit. -/
 def allowedAt (A : Fin m → Fin n → Bool) (i : Fin n) (x : Fin n → Bool) : Prop :=
   if x i then allowedOne A i x else allowedZero A i x
 
+/-- The condition that all assignment guards at column indices below `i` hold. -/
 def legalAt (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool) : Prop :=
   ∀ k : Fin n, k.val < i → allowedAt A k x
 
+/-- The union, over rows containing column `i`, of their other true columns. -/
 def guardSupport (A : Fin m → Fin n → Bool) (i : Fin n) : Finset (Fin n) :=
   (Finset.univ.filter (fun j : Fin m => A j i = true)).biUnion
     (fun j => (rowOnes A j).erase i)
 
+/-- Expresses the prefix sum as the cardinality of the finite set of earlier columns where both
+the row and the assignment are true. -/
 theorem psum_card (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
     (j : Fin m) :
     prefixSum A i x j =
@@ -57,6 +92,8 @@ theorem psum_card (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
   simpa using (Finset.card_filter
     (fun k : Fin n => k.val < i ∧ A j k = true ∧ x k = true) Finset.univ).symm
 
+/-- Expresses the prefix zero count as the cardinality of the earlier true row entries assigned
+false. -/
 theorem pzero_card (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
     (j : Fin m) :
     prefixZeros A i x j =
@@ -66,6 +103,7 @@ theorem pzero_card (A : Fin m → Fin n → Bool) (i : ℕ) (x : Fin n → Bool)
   simpa using (Finset.card_filter
     (fun k : Fin n => k.val < i ∧ A j k = true ∧ x k = false) Finset.univ).symm
 
+/-- The row sum equals the prefix sum at the full assignment length. -/
 theorem rowSum_eq_psum (A : Fin m → Fin n → Bool) (x : Fin n → Bool)
     (j : Fin m) : rowSum A x j = prefixSum A n x j := by
   rw [rowSum, prefixSum]
@@ -73,6 +111,8 @@ theorem rowSum_eq_psum (A : Fin m → Fin n → Bool) (x : Fin n → Bool)
   intro k _
   simp [k.isLt]
 
+/-- Extending the prefix by one column increases its sum by one exactly when that row entry and
+assignment bit are both true. -/
 theorem psum_succ (A : Fin m → Fin n → Bool) (i : ℕ) (hi : i < n)
     (x : Fin n → Bool) (j : Fin m) :
     prefixSum A (i + 1) x j =
@@ -99,6 +139,7 @@ theorem psum_succ (A : Fin m → Fin n → Bool) (i : ℕ) (hi : i < n)
     simp
   rw [hsingle]
 
+/-- The prefix sum is monotone in the prefix length. -/
 theorem psum_mono (A : Fin m → Fin n → Bool) (x : Fin n → Bool) {i i' : ℕ}
     (h : i ≤ i') (j : Fin m) : prefixSum A i x j ≤ prefixSum A i' x j := by
   rw [prefixSum, prefixSum]
@@ -114,6 +155,7 @@ theorem psum_mono (A : Fin m → Fin n → Bool) (x : Fin n → Bool) {i i' : �
     rw [h0]
     exact Nat.zero_le _
 
+/-- If every row has three true entries, every assignment has row sum at most three. -/
 theorem rowSum_le_three (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool) (j : Fin m) :
     rowSum A x j ≤ 3 := by
@@ -128,6 +170,8 @@ theorem rowSum_le_three (A : Fin m → Fin n → Bool)
       ≤ (rowOnes A j).card := Finset.card_le_card hsub
     _ = 3 := hrow j
 
+/-- For rows with three true entries, legality of a prefix forces each row's prefix sum to be at
+most one. See [FarhiGutmann1998]. -/
 theorem psum_le_one (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool) :
     ∀ i, legalAt A i x → ∀ j, prefixSum A i x j ≤ 1 := by
@@ -162,6 +206,8 @@ theorem psum_le_one (A : Fin m → Fin n → Bool)
       rw [hEq]
       exact ih (fun k hk => hleg k (Nat.lt_trans hk (Nat.lt_succ_self i))) j
 
+/-- For rows with three true entries, a legal full assignment selects exactly one true entry in
+each row. -/
 theorem rowSum_one (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool)
     (hleg : legalAt A n x) (j : Fin m) : rowSum A x j = 1 := by
@@ -221,6 +267,8 @@ theorem rowSum_one (A : Fin m → Fin n → Bool)
   simp only [allowedAt, hrx, if_false] at hall
   exact hall j hrA hz2
 
+/-- For rows with three true entries, an assignment selecting exactly one true entry per row is
+legal at full length. -/
 theorem legal_of_one (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool)
     (hsum : ∀ j, rowSum A x j = 1) : legalAt A n x := by
@@ -292,11 +340,15 @@ theorem legal_of_one (A : Fin m → Fin n → Bool)
     rw [hsum j] at hzero
     exact absurd hzero (by norm_num)
 
+/-- For rows with three true entries, full assignment legality is equivalent to every row sum
+being one. See [FarhiGutmann1998]. -/
 theorem legal_iff_one (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3) (x : Fin n → Bool) :
     legalAt A n x ↔ ∀ j, rowSum A x j = 1 :=
   ⟨fun h j => rowSum_one A hrow x h j, fun h => legal_of_one A hrow x h⟩
 
+/-- For rows with three true entries, a legal full assignment exists exactly when an assignment
+with every row sum equal to one exists. See [FarhiGutmann1998]. -/
 theorem leaf_iff_cover (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3) :
     (∃ x : Fin n → Bool, legalAt A n x) ↔
@@ -307,6 +359,8 @@ theorem leaf_iff_cover (A : Fin m → Fin n → Bool)
   · rintro ⟨x, hx⟩
     exact ⟨x, (legal_iff_one A hrow x).mpr hx⟩
 
+/-- Legality through the next column is equivalent to legality of the preceding prefix together
+with the next guard. See [FarhiGutmann1998]. -/
 theorem legal_succ (A : Fin m → Fin n → Bool) (x : Fin n → Bool) {i : ℕ}
     (hi : i < n) :
     legalAt A (i + 1) x ↔ legalAt A i x ∧ allowedAt A ⟨i, hi⟩ x := by
@@ -325,6 +379,8 @@ theorem legal_succ (A : Fin m → Fin n → Bool) (x : Fin n → Bool) {i : ℕ}
       rw [hkeq]
       exact h2
 
+/-- If each row has three true entries and each column belongs to at most three rows, each guard
+support has cardinality at most six. See [FarhiGutmann1998]. -/
 theorem support_card (A : Fin m → Fin n → Bool)
     (hrow : ∀ j, (rowOnes A j).card = 3)
     (hcol : ∀ i, (Finset.univ.filter (fun j : Fin m => A j i = true)).card ≤ 3)
@@ -347,6 +403,8 @@ theorem support_card (A : Fin m → Fin n → Bool)
     _ ≤ 2 * 3 := Nat.mul_le_mul_left 2 (hcol i)
     _ = 6 := by norm_num
 
+/-- Assignments agreeing on the guard support have equal prefix sums in every row containing the
+guarded column. -/
 theorem psum_agree (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Bool}
     (h : ∀ k ∈ guardSupport A i, x k = y k) {j : Fin m} (hA : A j i = true) :
     prefixSum A i.val x j = prefixSum A i.val y j := by
@@ -387,6 +445,8 @@ theorem psum_agree (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → B
     have h2 : ¬ (k.val < i.val ∧ A j k = true ∧ y k = true) := by tauto
     rw [if_neg h1, if_neg h2]
 
+/-- Assignments agreeing on the guard support have equal prefix zero counts in every row
+containing the guarded column. -/
 theorem pzero_eq (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Bool}
     (h : ∀ k ∈ guardSupport A i, x k = y k) {j : Fin m} (hA : A j i = true) :
     prefixZeros A i.val x j = prefixZeros A i.val y j := by
@@ -427,6 +487,7 @@ theorem pzero_eq (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Boo
     have h2 : ¬ (k.val < i.val ∧ A j k = true ∧ y k = false) := by tauto
     rw [if_neg h1, if_neg h2]
 
+/-- The one-bit guard is unchanged by assignments agreeing on its guard support. -/
 theorem one_ext (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Bool}
     (h : ∀ k ∈ guardSupport A i, x k = y k) :
     allowedOne A i x ↔ allowedOne A i y := by
@@ -438,6 +499,7 @@ theorem one_ext (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Bool
     rw [psum_agree A i h hA]
     exact hy j hA
 
+/-- The zero-bit guard is unchanged by assignments agreeing on its guard support. -/
 theorem zero_ext (A : Fin m → Fin n → Bool) (i : Fin n) {x y : Fin n → Bool}
     (h : ∀ k ∈ guardSupport A i, x k = y k) :
     allowedZero A i x ↔ allowedZero A i y := by

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticDecodedWord
+
+/-!
+# Computational signal frames for static CBMD
+
+This module identifies the decoded static signal frame with a computational ancilla tag and
+expresses its range projector as a success event. It also lifts an input preparation unitary to
+the static workspace, supporting postselection in the algorithm of [WangEtAl2026].
+
+## Main statements
+
+* `originalStaticDecodedFrame_rangeProjector`: identifies the signal projector with the
+  computational success projector.
+* `originalStaticInputLift_prepare`: prepares the input embedded in the decoded signal frame.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,9 +73,12 @@ open scoped BigOperators Matrix.Norms.L2Operator
 section Tagged
 variable {K I : Type} [Fintype K] [DecidableEq K] [Fintype I] [DecidableEq I]
 
+/-- The computational basis event consisting of pairs whose first coordinate is `k₀`. -/
 def computationalTagEvent (k₀ : K) : Finset (K × I) :=
   Finset.univ.filter fun p => p.1 = k₀
 
+/-- The range projector of the identity frame tagged by `k₀` is the computational projector onto
+`computationalTagEvent k₀`. -/
 theorem computationalTag_rangeProjector (k₀ : K) :
     rangeProjector (tagFrame k₀ (1 : Matrix I I ℂ)) =
       Projector (computationalTagEvent (I := I) k₀) := by
@@ -67,6 +89,8 @@ theorem computationalTag_rangeProjector (k₀ : K) :
       hk, hl, hij, Prod.ext_iff]
   grind
 
+/-- Parallel application of an input preparation matrix to `(k₀, i₀)` prepares the state
+embedded in the identity frame tagged by `k₀`. -/
 theorem computationalTag_prepare (B : Matrix I I ℂ) (k₀ : K) (i₀ : I)
     (ψ : QState I) (hB : ApplyGate B (Ket i₀) = ψ) :
     ApplyGate (parallelOracle (J := K) B) (Ket (k₀,i₀)) =
@@ -88,8 +112,12 @@ variable {J Anc I : Type} [Fintype J] [DecidableEq J] [Fintype Anc] [DecidableEq
 local instance cbmdStaticComputationalFrameInstance1 : DecidableEq (OriginalStaticLabels J) :=
   inferInstanceAs (DecidableEq (J × (Fin 4 × (Bool × (Bool × Bool)))))
 
+/-- The ancilla type collecting the outer Boolean control, original static labels, and input
+ancilla register. -/
 abbrev OriginalStaticAncillas (J Anc : Type) := Bool × (OriginalStaticLabels J × Anc)
 
+/-- The reassociation equivalence separating the original static workspace into its ancilla
+registers and system register. -/
 def originalStaticComputationalEquiv : OriginalStaticSpace J (Anc × I) ≃
     OriginalStaticAncillas J Anc × I where
   toFun := fun ⟨b,l,a,i⟩ => ((b,l,a),i)
@@ -97,14 +125,20 @@ def originalStaticComputationalEquiv : OriginalStaticSpace J (Anc × I) ≃
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The clean static ancilla configuration with sample label `j₀`, zero branch, false control
+bits, and input ancilla `a₀`. -/
 def originalStaticCleanAncilla (j₀ : J) (a₀ : Anc) : OriginalStaticAncillas J Anc :=
   (false,((j₀,0,false,false,false),a₀))
 
+/-- The computational event in which the static workspace ancillas equal
+`originalStaticCleanAncilla j₀ a₀`. -/
 def originalStaticSuccessEvent (j₀ : J) (a₀ : Anc) :
     Finset (OriginalStaticSpace J (Anc × I)) :=
   Finset.univ.filter fun p =>
     (originalStaticComputationalEquiv p).1 = originalStaticCleanAncilla j₀ a₀
 
+/-- The input preparation matrix acting in parallel on the system register, reindexed to the
+original static workspace. -/
 def originalStaticInputLift (B : Matrix I I ℂ) :
     Matrix (OriginalStaticSpace J (Anc × I)) (OriginalStaticSpace J (Anc × I)) ℂ :=
   (parallelOracle (J := OriginalStaticAncillas J Anc) B).submatrix
@@ -112,6 +146,8 @@ def originalStaticInputLift (B : Matrix I I ℂ) :
 
 omit [Fintype J] [Fintype Anc] [Fintype I] in
 
+/-- The decoded static frame is the reindexed identity frame tagged by the clean static ancilla
+configuration. -/
 theorem originalStaticDecodedFrame_computational (j₀ : J) (a₀ : Anc) :
     originalStaticDecodedFrame (tagFrame a₀ (1 : Matrix I I ℂ)) j₀ =
       reindexFrame originalStaticComputationalEquiv
@@ -122,6 +158,8 @@ theorem originalStaticDecodedFrame_computational (j₀ : J) (a₀ : Anc) :
     Matrix.one_apply, Prod.ext_iff]
   split_ifs <;> simp_all
 
+/-- The decoded static frame's range projector equals the computational projector onto the
+static success event. -/
 theorem originalStaticDecodedFrame_rangeProjector (j₀ : J) (a₀ : Anc) :
     rangeProjector (originalStaticDecodedFrame (tagFrame a₀ (1 : Matrix I I ℂ)) j₀) =
       Projector (originalStaticSuccessEvent (I := I) j₀ a₀) := by
@@ -141,6 +179,7 @@ theorem originalStaticDecodedFrame_rangeProjector (j₀ : J) (a₀ : Anc) :
   simp [Projector, Matrix.diagonal_apply, computationalTagEvent,
     originalStaticSuccessEvent]
 
+/-- Lifting a unitary input preparation to the original static workspace preserves unitarity. -/
 theorem originalStaticInputLift_unitary (B : Matrix I I ℂ)
     (hB : B ∈ Matrix.unitaryGroup I ℂ) :
     originalStaticInputLift (J := J) (Anc := Anc) B ∈
@@ -148,6 +187,8 @@ theorem originalStaticInputLift_unitary (B : Matrix I I ℂ)
   exact relabelGate_mem_unitary (parallelOracle_unitary hB)
     originalStaticComputationalEquiv.symm
 
+/-- The lifted input preparation maps the clean initial basis state to the input state embedded
+in the decoded static frame. -/
 theorem originalStaticInputLift_prepare (B : Matrix I I ℂ) (j₀ : J) (a₀ : Anc) (i₀ : I)
     (ψ : QState I) (hB : ApplyGate B (Ket i₀) = ψ) :
     ApplyGate (originalStaticInputLift (J := J) (Anc := Anc) B)

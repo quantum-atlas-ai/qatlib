@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedMultiplicationData
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
+
+/-!
+# Sign-magnitude multiplication by Boolean DAGs
+
+`boolean_word_signed_mul_value` verifies exact multiplication of two sign-magnitude integers.
+The magnitude is the unsigned product, and the output sign is the XOR of the two input sign
+bits.
+
+The module also proves the zero-wire property, polynomial resource bounds, and the action of the
+compiled reversible circuit on basis states and arbitrary embedded states. The circuit
+background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `boolean_word_signed_mul_magnitude`: zero-wire, magnitude, and sign properties.
+* `boolean_word_signed_mul_value`: exact signed multiplication.
+* `boolean_word_signed_mul_resources`: polynomial circuit resource bounds.
+* `boolean_word_signed_mul_basis`, `boolean_word_signed_mul_coherent`: circuit action.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,11 +43,17 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- The node count of the unsigned multiplier embedded in the signed-multiplication graph. -/
 private abbrev smN0 (w : ℕ) := 0+(booleanWordMulProgram w).nodes
+/-- Embed the two unsigned magnitude words before the two sign inputs. -/
 private abbrev smRaw (w : ℕ) : Fin (2*w) → Fin (2*w+2+0) := fun j => j.castSucc.castSucc
+/-- Embed the unsigned multiplier in the input layout containing two magnitude words and two
+sign bits. -/
 private abbrev smG0 (w : ℕ) : BooleanDAG (2*w+2) (smN0 w) :=
   booleanDAGSplice .nil (smRaw w) (booleanWordMulProgram w).graph
 
+/-- Appending one Boolean node preserves earlier wire values and evaluates the new final wire
+using that node on the previous graph values. -/
 private theorem sm_snoc_value {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+(n+1))) :
     booleanDAGValue (g.snoc node) x j =
@@ -33,12 +63,14 @@ private theorem sm_snoc_value {m n : ℕ} (g : BooleanDAG m n)
   · simp [booleanDAGValue]
   · simp [booleanDAGValue]
 
+/-- Appending one Boolean node preserves the values of all earlier wires. -/
 private theorem sm_snoc_old {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) j) = booleanDAGValue g x j := by
   rw [sm_snoc_value]
   simp only [Fin.val_castLE,dif_pos j.isLt]
 
+/-- Every original input wire of a Boolean graph evaluates to the corresponding input bit. -/
 private theorem sm_input_value {m n : ℕ} (g : BooleanDAG m n)
     (x : Reg m) (j : Fin m) :
     booleanDAGValue g x (Fin.castLE (by omega) j) = x j := by
@@ -49,6 +81,8 @@ private theorem sm_input_value {m n : ℕ} (g : BooleanDAG m n)
     have hj : j.val < m+n := by have := j.isLt; omega
     simpa only [Fin.val_castLE,dif_pos hj] using! ih
 
+/-- The signed multiplier preserves the evaluated values of mapped wires from the underlying
+unsigned multiplier. -/
 private theorem sm_old_value (w : ℕ) (a b : Reg w) (sa sb : Bool)
     (j : Fin (2*w+(booleanWordMulProgram w).nodes)) :
     booleanDAGValue (booleanWordSignedMulProgram w).graph (booleanWordSignedMulInput w a b sa sb)
@@ -65,6 +99,7 @@ private theorem sm_old_value (w : ℕ) (a b : Reg w) (sa sb : Bool)
   exact (sm_snoc_old (smG0 w) _ (booleanWordSignedMulInput w a b sa sb)
     (booleanSpliceSource (smRaw w) j)).trans h
 
+/-- The signed multiplication magnitude word equals the unsigned multiplication result word. -/
 private theorem sm_magnitude_word (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     booleanWordSignedMulMagnitude w a b sa sb = booleanWordMulResult w a b := by
   funext j
@@ -72,6 +107,7 @@ private theorem sm_magnitude_word (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     Fin.val_castSucc,dif_pos j.isLt]
   exact sm_old_value w a b sa sb (booleanWordMulSelect w j)
 
+/-- The signed multiplication output sign is the XOR of the two input sign bits. -/
 private theorem sm_sign_value (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     booleanWordSignedMulSign w a b sa sb = (sa ^^ sb) := by
   have hn : ¬2*w+2+smN0 w < 2*w+2+smN0 w := by omega
@@ -89,6 +125,8 @@ private theorem sm_sign_value (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     simpa only [booleanWordSignedMulInput,Fin.snoc_last] using! h
   rw [ha,hb]
 
+/-- The signed multiplier has a false zero wire, output sign equal to the XOR of the input
+signs, and magnitude equal to the product of the input magnitudes. -/
 theorem boolean_word_signed_mul_magnitude (w : ℕ) (a b : Reg w) (negativeA negativeB : Bool) :
     let p := booleanWordSignedMulProgram w
     booleanDAGValue p.graph (booleanWordSignedMulInput w a b negativeA negativeB) p.zero = false ∧
@@ -100,6 +138,8 @@ theorem boolean_word_signed_mul_magnitude (w : ℕ) (a b : Reg w) (negativeA neg
       (boolean_word_mul_prefix w w (Nat.le_refl w) (booleanWordAdderInput w a b)).1
   · rw [sm_magnitude_word,boolean_word_mul_value]
 
+/-- The integer decoded from the signed multiplication output equals the product of the two
+input sign-magnitude integers. -/
 theorem boolean_word_signed_mul_value (w : ℕ) (a b : Reg w) (negativeA negativeB : Bool) :
     booleanWordSignedMulValue w a b negativeA negativeB =
       booleanWordSignedValue w a negativeA * booleanWordSignedValue w b negativeB := by
@@ -108,6 +148,9 @@ theorem boolean_word_signed_mul_value (w : ℕ) (a b : Reg w) (negativeA negativ
   rw [hs,hm]
   cases negativeA <;> cases negativeB <;> simp
 
+/-- The signed multiplier is legal with at most `11*w^2+w+2` nodes, `330*w^2+32*w+61` compiled
+gates, and `11*w^2+5*w+5` total wires. It uses zero oracle queries, and its gate count
+equals its reflection-step count. -/
 theorem boolean_word_signed_mul_resources (w : ℕ) :
     let p := booleanWordSignedMulProgram w
     let gs := booleanDAGSteps p.graph p.output
@@ -126,6 +169,8 @@ theorem boolean_word_signed_mul_resources (w : ℕ) :
   change (2*w+2)+p.nodes+(2*w+1) ≤ 11*w^2+5*w+5
   omega
 
+/-- On a basis state with initialized workspace, the compiled signed multiplier XORs its
+sign-magnitude product into the target and restores the workspace. -/
 theorem boolean_word_signed_mul_basis (w : ℕ) (a b : Reg w) (negativeA negativeB : Bool)
     (y : Reg (2*w+1)) :
     let p := booleanWordSignedMulProgram w
@@ -138,6 +183,8 @@ theorem boolean_word_signed_mul_basis (w : ℕ) (a b : Reg w) (negativeA negativ
         (fun j => y j ^^ booleanWordSignedMulResult w a b negativeA negativeB j)) :=
   boolean_dag_basis _ _ _ _
 
+/-- Packing the two magnitude views and two sign bits reconstructs the original
+signed-multiplication input. -/
 private theorem sm_input_views (w : ℕ) (x : Reg (2*w+2)) :
     booleanWordSignedMulInput w (booleanWordSignedMulLeft w x) (booleanWordSignedMulRight w x)
       (x ((Fin.last (2*w)).castSucc)) (x (Fin.last (2*w+1))) = x := by
@@ -158,6 +205,8 @@ private theorem sm_input_views (w : ℕ) (x : Reg (2*w+2)) :
     · simp only [Fin.snoc_last]
     · simp only [Fin.snoc_castSucc]
 
+/-- On an arbitrary embedded state, the compiled signed multiplier coherently XORs each
+sign-magnitude product into its target and restores the workspace. -/
 theorem boolean_word_signed_mul_coherent (w : ℕ) (ψ : QState (Reg (2*w+2) × Reg (2*w+1))) :
     let p := booleanWordSignedMulProgram w
     Run (1 : Matrix (Reg ((2*w+2)+p.nodes+(2*w+1))) (Reg ((2*w+2)+p.nodes+(2*w+1))) ℂ)

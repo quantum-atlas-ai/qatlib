@@ -55,6 +55,25 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Stability of Boolean postselection
+
+This module defines pointwise relative error by `MultiplicativeClose` and normalizes a Boolean
+slice using `postSelect`. A relative error of 1/10 gives conditional multiplicative bounds 9/11
+and 11/9, with explicit acceptance thresholds; conditional probabilities and postselected
+measurement outcomes are standard in quantum information [NielsenChuang2010].
+
+## Main statements
+
+* `postSelect_ratio`: Postselection preserves the stated multiplicative comparison.
+* `postSelect_thresholds`: Conditional probabilities at least 2/3 or at most 1/3 yield bounds
+  0.54 and 0.41.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 400000
 
@@ -65,9 +84,12 @@ open scoped BigOperators
 variable {ι : Type*}
 variable {θ : Type*}
 
+/-- Pointwise relative closeness of real-valued functions: `|p z - q z| ≤ ε * q z` for every
+`z`. -/
 def MultiplicativeClose (p q : θ → ℝ) (ε : ℝ) : Prop :=
   ∀ z, |p z - q z| ≤ ε * q z
 
+/-- Relative error at most 1/10 bounds `p z` between 9/10 and 11/10 times `q z`. -/
 theorem multiplicative_bounds {p q : θ → ℝ}
     (h : MultiplicativeClose p q (1/10)) (z : θ) :
     (9 / 10 : ℝ) * q z ≤ p z ∧ p z ≤ (11 / 10 : ℝ) * q z := by
@@ -76,9 +98,13 @@ theorem multiplicative_bounds {p q : θ → ℝ}
   have h2 := (abs_le.mp hz).2
   constructor <;> linarith
 
+/-- The normalized Boolean weight at `b` in the slice indexed by `r`, dividing `p (b, r)` by the
+sum of the two slice weights. -/
 noncomputable def postSelect (p : Bool × ι → ℝ) (r : ι) (b : Bool) : ℝ :=
   p (b, r) / (p (false, r) + p (true, r))
 
+/-- For nonnegative reference slice weights of positive total mass, relative error 1/10 bounds
+each postselected weight between 9/11 and 11/9 times its reference value. -/
 theorem postSelect_ratio_one {p q : Bool × ι → ℝ} {r : ι}
     (h : MultiplicativeClose p q (1/10))
     (hq0 : 0 ≤ q (false, r)) (hq1 : 0 ≤ q (true, r))
@@ -149,6 +175,8 @@ theorem postSelect_ratio_one {p q : Bool × ι → ℝ} {r : ι}
               / ((9 / 10 : ℝ) * (q (false, r) + q (true, r))) :=
             div_le_div_of_nonneg_left (mul_nonneg (by norm_num) hq1) hqSpos hSl
 
+/-- Under relative error 1/10 and nonnegative reference slice weights of positive total mass,
+postselection preserves multiplicative bounds 9/11 and 11/9. -/
 theorem postSelect_ratio {p q : Bool × ι → ℝ} {r : ι}
     (h : MultiplicativeClose p q (1/10))
     (hq0 : 0 ≤ q (false, r)) (hq1 : 0 ≤ q (true, r))
@@ -157,6 +185,8 @@ theorem postSelect_ratio {p q : Bool × ι → ℝ} {r : ι}
       postSelect p r b ≤ (11 / 9 : ℝ) * postSelect q r b :=
   postSelect_ratio_one h hq0 hq1 hqS b
 
+/-- The postselected true weight of `p` is nonnegative under the stated relative-error and
+reference-mass assumptions. -/
 theorem postSelect_nonneg {p q : Bool × ι → ℝ} {r : ι}
     (h : MultiplicativeClose p q (1/10))
     (_hq0 : 0 ≤ q (false, r)) (hq1 : 0 ≤ q (true, r))
@@ -170,6 +200,9 @@ theorem postSelect_nonneg {p q : Bool × ι → ℝ} {r : ι}
   have hp1nn : 0 ≤ p (true, r) := le_trans (mul_nonneg (by norm_num) hq1) hp1l
   exact div_nonneg hp1nn hTpos.le
 
+/-- Under relative error 1/10 and a nonnegative reference slice of positive mass, a reference
+true probability at least 2/3 yields a probability at least 0.54, while one at most 1/3
+yields a probability at most 0.41. -/
 theorem postSelect_thresholds {p q : Bool × ι → ℝ} {r : ι}
     (h : MultiplicativeClose p q (1/10))
     (hq0 : 0 ≤ q (false, r)) (hq1 : 0 ≤ q (true, r))
@@ -183,6 +216,8 @@ theorem postSelect_thresholds {p q : Bool × ι → ℝ} {r : ι}
   · intro hno
     nlinarith [hup, hno]
 
+/-- If the reference postselected true probability is at least 2/3, relative error 1/10 gives a
+postselected true probability at least 0.54 under the stated slice-mass assumptions. -/
 theorem postSelect_yes_lower {p q : Bool × ι → ℝ} {r : ι}
     (h : MultiplicativeClose p q (1/10))
     (hq0 : 0 ≤ q (false, r)) (hq1 : 0 ≤ q (true, r))
@@ -192,6 +227,8 @@ theorem postSelect_yes_lower {p q : Bool × ι → ℝ} {r : ι}
   obtain ⟨hlow, _⟩ := postSelect_ratio h hq0 hq1 hqS true
   nlinarith [hlow, hyes]
 
+/-- If the reference postselected true probability is at most 1/3, relative error 1/10 gives a
+postselected true probability at most 0.41 under the stated slice-mass assumptions. -/
 theorem postSelect_no_upper {p q : Bool × ι → ℝ} {r : ι}
     (h : MultiplicativeClose p q (1/10))
     (hq0 : 0 ≤ q (false, r)) (hq1 : 0 ≤ q (true, r))

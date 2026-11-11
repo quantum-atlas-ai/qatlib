@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedyCorrectedFoldedSpectrumStat
+
+/-!
+# Corrected marked walk folded spectrum
+
+This module proves `SzegedyCorrectedFoldedSpectrum` for symmetric transition matrices. The
+explicit equivalence `corrected_block_split` combines the positive and negative unmarked
+principal eigenspaces by component sums and differences.
+
+This source splitting yields the interior phase multiplicities and the two endpoint
+multiplicities of the corrected walk on the combined frame range, in the spectral setting of
+[Szegedy2004].
+
+## Main statements
+
+* `corrected_block_split`: explicit linear equivalence for folded source eigenspaces.
+* `szegedyCorrectedFoldedSpectrum`: the complete folded-spectrum contract.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -32,6 +54,9 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 set_option maxHeartbeats 2000000 in
 
+/-- For a symmetric transition matrix, the product of the unmarked principal eigenspaces at
+`lam` and `-lam` is linearly equivalent to the bipartite discriminant eigenspace at `lam`,
+via the component sum and difference. -/
 private theorem corrected_block_split (I : Type) [Fintype I] [DecidableEq I]
     (P : I→I→ℝ) (S : Finset I) (hP : IsTransitionMatrix P)
     (hsym : ∀ i j, P i j = P j i) (lam : ℝ) :
@@ -196,6 +221,8 @@ private theorem corrected_block_split (I : Type) [Fintype I] [DecidableEq I]
 
 set_option maxHeartbeats 2000000 in
 
+/-- Establish the corrected marked walk's folded spectrum, including source-space equivalences
+and interior and endpoint multiplicities [Szegedy2004]. -/
 theorem szegedyCorrectedFoldedSpectrum : SzegedyCorrectedFoldedSpectrum := by
   intro I _ _ P S hP hsym
   have hF : IsIsometry (unmarkedRowFrame P S) := unmarkedRowFrame_isIsometry P S hP

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ManyBodyFermi97.MainResults.Hopping
 import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
+
+/-!
+# Onsite and hopping circuits on a shared register
+
+`stateEquiv` identifies a linear occupation register with the site and spin occupation basis.
+Relabeling preserves circuit resources, unitarity, and gate action. `fullWord` concatenates the
+onsite and hopping passes on this shared basis and has at most `3 * m` gates.
+
+The mathematical setting is that of [AbramsLloyd1997].
+
+## Main statements
+
+* `run_relabelWord`: With identity query action, running a relabeled circuit agrees with
+  transporting its input and output along the basis equivalence.
+* `hoppingWord_correct`: The transported hopping pass is unitary, uses no queries, and has one
+  gate for each chain interaction pair.
+* `fullWord_correct`: The combined pass is unitary and query-free, has `m + (chainPairs (2 *
+  m)).card ≤ 3 * m` gates, and runs the hopping pass after the onsite pass.
+
+## References
+
+* [Abrams and Lloyd, 1997][AbramsLloyd1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,20 +42,28 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 open scoped Classical BigOperators
 
+/-- The shared occupation basis indexed by sites and Boolean spin labels. -/
 abbrev Shared (m : ℕ) :=
   Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord.Basis m
 
+/-- An equivalence between `2 * m` mode indices and pairs of a site index and a Boolean spin
+label. -/
 def modeEquiv (m : ℕ) : Fin (2*m) ≃ (Fin m × Bool) :=
   (finCongr (by ring : 2*m = m*2)).trans
     ((Equiv.prodCongr (Equiv.refl (Fin m))
       (Fintype.equivOfCardEq (by simp [Fintype.card_bool]))).trans finProdFinEquiv).symm
 
+/-- The induced equivalence between a `2 * m` bit occupation register and the site and spin
+occupation basis. -/
 def stateEquiv (m : ℕ) : Reg (2*m) ≃ Shared m :=
   Equiv.arrowCongr (modeEquiv m) (Equiv.refl Bool)
 
+/-- Transports a square matrix along an equivalence by reindexing both coordinates with its
+inverse. -/
 def relabel {I J : Type*} (e : I ≃ J) (U : Matrix I I ℂ) : Matrix J J ℂ :=
   U.submatrix (⇑e.symm) (⇑e.symm)
 
+/-- Relabeling a unitary matrix along an equivalence preserves unitarity. -/
 theorem relabel_unitary {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) :
@@ -43,6 +75,8 @@ theorem relabel_unitary {I J : Type*} [Fintype I] [DecidableEq I]
   rw [Matrix.submatrix_mul_equiv (star U) U (⇑e.symm) e.symm (⇑e.symm), hU]
   exact Matrix.submatrix_one_equiv e.symm
 
+/-- Applying a relabeled gate agrees with transporting the state to the original basis, applying
+the original gate, and transporting back. -/
 theorem applyGate_relabel {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (U : Matrix I I ℂ)
     (ψ : QState J) (x : J) :
@@ -55,19 +89,25 @@ theorem applyGate_relabel {I J : Type*} [Fintype I] [DecidableEq I]
   intro y
   simp
 
+/-- Relabels every gate in a circuit while retaining each query step. -/
 def relabelWord {I J : Type*} (e : I ≃ J) (C : Circuit I) : Circuit J :=
   C.map (fun s => match s with
     | .gate U => .gate (relabel e U)
     | .query => .query)
 
+/-- Relabeling a circuit beginning with a gate relabels that gate and then the remaining
+circuit. -/
 theorem relabelWord_gate {I J : Type*} (e : I ≃ J) (U : Matrix I I ℂ)
     (rest : Circuit I) :
     relabelWord e (Step.gate U :: rest) =
       Step.gate (relabel e U) :: relabelWord e rest := rfl
 
+/-- Relabeling a circuit beginning with a query keeps the query and relabels the remaining
+circuit. -/
 theorem relabelWord_query {I J : Type*} (e : I ≃ J) (rest : Circuit I) :
     relabelWord e (Step.query :: rest) = Step.query :: relabelWord e rest := rfl
 
+/-- Circuit relabeling preserves query count. -/
 theorem queryCount_relabelWord {I J : Type*} (e : I ≃ J) (C : Circuit I) :
     QueryCount (relabelWord e C) = QueryCount C := by
   induction C with
@@ -77,6 +117,7 @@ theorem queryCount_relabelWord {I J : Type*} (e : I ≃ J) (C : Circuit I) :
     | gate U => rw [relabelWord_gate]; simp [ih]
     | query => rw [relabelWord_query]; simp [ih]
 
+/-- Circuit relabeling preserves gate count. -/
 theorem gateCount_relabelWord {I J : Type*} (e : I ≃ J) (C : Circuit I) :
     GateCount (relabelWord e C) = GateCount C := by
   induction C with
@@ -86,6 +127,7 @@ theorem gateCount_relabelWord {I J : Type*} (e : I ≃ J) (C : Circuit I) :
     | gate U => rw [relabelWord_gate]; simp [ih]
     | query => rw [relabelWord_query]; simp [ih]
 
+/-- Circuit relabeling preserves unitarity. -/
 theorem relabelWord_unitary {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) {C : Circuit I}
     (hC : IsUnitaryCircuit C) : IsUnitaryCircuit (relabelWord e C) := by
@@ -102,6 +144,8 @@ theorem relabelWord_unitary {I J : Type*} [Fintype I] [DecidableEq I]
       rw [relabelWord_query, isUnitaryCircuit_query]
       exact ih h
 
+/-- With identity query action, running a relabeled circuit agrees with transporting its input
+and output along the basis equivalence. -/
 theorem run_relabelWord {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (C : Circuit I) (ψ : QState J) :
     Run 1 (relabelWord e C) ψ = fun x => Run 1 C (fun z => ψ (e z)) (e.symm x) := by
@@ -125,12 +169,16 @@ theorem run_relabelWord {I J : Type*} [Fintype I] [DecidableEq I]
       simp only [Run, applyGate_one]
       rw [ih]
 
+/-- The complete onsite phase pass on the shared occupation register. -/
 def onsiteWord (m : ℕ) (V : Fin m → ℝ) (time : ℝ) : Circuit (Shared m) :=
   OnsiteWord.word (Finset.univ.toList) V time
 
+/-- The chain hopping pass on `2 * m` modes transported to the shared occupation basis. -/
 def hoppingWord (m : ℕ) (t : ℝ) : Circuit (Shared m) :=
   relabelWord (stateEquiv m) (Hopping.hopPassWord (2*m) t)
 
+/-- The transported hopping pass is unitary, uses no queries, and has one gate for each chain
+interaction pair. -/
 theorem hoppingWord_correct (m : ℕ) (t : ℝ) :
     IsUnitaryCircuit (hoppingWord m t) ∧ QueryCount (hoppingWord m t) = 0 ∧
       GateCount (hoppingWord m t) = (chainPairs (2*m)).card := by
@@ -139,9 +187,13 @@ theorem hoppingWord_correct (m : ℕ) (t : ℝ) :
   · rw [hoppingWord, queryCount_relabelWord, hq]
   · rw [hoppingWord, gateCount_relabelWord, hg]
 
+/-- Concatenates the onsite phase pass and the transported chain hopping pass on the shared
+occupation basis. -/
 def fullWord (m : ℕ) (V : Fin m → ℝ) (t time : ℝ) : Circuit (Shared m) :=
   onsiteWord m V time ++ hoppingWord m t
 
+/-- The combined pass is unitary and query-free, has `m + (chainPairs (2 * m)).card ≤ 3 * m`
+gates, and runs the hopping pass after the onsite pass. [AbramsLloyd1997] -/
 theorem fullWord_correct (m : ℕ) (V : Fin m → ℝ) (t time : ℝ) :
     IsUnitaryCircuit (fullWord m V t time) ∧
       QueryCount (fullWord m V t time) = 0 ∧

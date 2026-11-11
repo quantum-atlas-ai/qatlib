@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersQuan
+
+/-!
+# Approximate state-conversion costs and output frames
+
+This module constructs a unitary output-tag flip and relates its action to clean targets and
+legal query words. It expresses coherent and noncoherent conversion costs as infima over words
+and supplies optimized cost bounds and witnessing programs for normalized state families, in the
+framework of [LeeEtAl2011].
+
+## Main statements
+
+* `source_output_frame_word`: appending the output flip preserves legality and query count.
+* `source_optimized_cost_bounds`: optimized Gram quantities bound coherent and noncoherent
+  costs.
+* `source_optimized_programs`: finite optimized bounds yield legal words with controlled overlap
+  and query count.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -31,23 +53,29 @@ open Qatlib.Concepts.QueryComplexity.StateConversion
 
 namespace Qatlib.Papers.StateConvLee10.ApproxCost
 
+/-- The permutation of the source space that flips the Boolean output tag. -/
 def source_output_tag_flip {H : Type} (n q r : ℕ)
     (p : SourceSpace n q H r) : SourceSpace n q H r :=
   (p.1, ((!p.2.1.1, p.2.1.2), p.2.2))
 
+/-- Flipping the output tag twice returns the original source-space index. -/
 theorem source_output_tag_involutive {H : Type} (n q r : ℕ) :
     Function.Involutive (source_output_tag_flip (H := H) n q r) := by
   intro p
   simp [source_output_tag_flip]
 
+/-- The permutation matrix implementing the output-tag flip. -/
 def source_output_gate {H : Type} [Fintype H] [DecidableEq H] (n q r : ℕ) :
     Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ :=
   permMatrix (source_output_tag_flip n q r)
 
+/-- The output-tag flip matrix is unitary. -/
 theorem source_output_gate_unitary {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) : source_output_gate (H := H) n q r ∈ Matrix.unitaryGroup _ ℂ := by
   exact permMatrix_unitary (source_output_tag_involutive n q r)
 
+/-- Applying the output gate to a clean tagged state flips its tag and preserves its payload
+[LeeEtAl2011]. -/
 theorem source_output_gate_clean {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0 < r) (tag : Bool) (ψ : QState H) :
     ApplyGate (source_output_gate n q r) (sourceClean n q r hr tag ψ) =
@@ -59,6 +87,8 @@ theorem source_output_gate_clean {H : Type} [Fintype H] [DecidableEq H]
   cases tag <;> cases h : p.2.1.1 <;>
     simp [source_output_tag_flip, sourceClean, TensorState, Ket, h]
 
+/-- The overlap of an output-flipped state with a false-tagged clean target equals its original
+overlap with the true-tagged target [LeeEtAl2011]. -/
 theorem source_output_frame_overlap {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0 < r) (out : QState (SourceSpace n q H r)) (σ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner
@@ -68,6 +98,8 @@ theorem source_output_frame_overlap {H : Type} [Fintype H] [DecidableEq H]
     (sourceClean n q r hr true σ)
   simpa only [source_output_gate_clean, Bool.not_true] using! h
 
+/-- Appending the output gate preserves word legality and query count, and applies the output
+flip after the original word [LeeEtAl2011]. -/
 theorem source_output_frame_word {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (O : Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ)
     (C : SourceWord (SourceSpace n q H r)) (hC : sourceWordLegal C) :
@@ -87,6 +119,8 @@ theorem source_output_frame_word {H : Type} [Fintype H] [DecidableEq H]
     rw [sourceWordMatrix_append]
     simp [sourceWordMatrix, ApplyGate, Matrix.mulVec_mulVec]
 
+/-- The property that `C` is legal and its outputs have real overlap at least `sqrt (1 - ε)`
+with the true-tagged clean targets [LeeEtAl2011]. -/
 def source_coherent_output {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -96,6 +130,8 @@ def source_coherent_output {X H : Type} [Fintype X] [DecidableEq X]
       sourceClean n q r hr false (ρ x)) p) * sourceClean n q r hr true (σ x) p).re ≥
         Real.sqrt (1-ε)
 
+/-- The property that `C` is legal and each output has overlap norm at least `sqrt (1 - ε)` with
+a target carrying some normalized auxiliary state [LeeEtAl2011]. -/
 def source_noncoherent_output {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ)
@@ -106,6 +142,8 @@ def source_noncoherent_output {X H : Type} [Fintype X] [DecidableEq X]
         sourceClean n q r hr false (ρ x)) p) * sourceGarbageTarget n q r (σ x) ξ p‖ ≥
           Real.sqrt (1-ε)
 
+/-- The coherent conversion cost is the infimum of query counts of words satisfying
+`source_coherent_output` [LeeEtAl2011]. -/
 theorem source_coherent_cost_eq {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -114,6 +152,8 @@ theorem source_coherent_cost_eq {X H : Type} [Fintype X] [DecidableEq X]
         b = (sourceWordCalls C : ℝ≥0∞) ∧ source_coherent_output input ρ σ ε r hr C} := by
   rfl
 
+/-- The noncoherent conversion cost is the infimum of query counts of words satisfying
+`source_noncoherent_output` [LeeEtAl2011]. -/
 theorem source_noncoherent_cost_eq {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -123,6 +163,9 @@ theorem source_noncoherent_cost_eq {X H : Type} [Fintype X] [DecidableEq X]
           source_noncoherent_output input ρ σ ε r hr C} := by
   rfl
 
+/-- For normalized families and `0 < ε ≤ 1 / 3`, a universal positive constant gives the
+displayed lower and upper comparisons between optimized Gram quantities and coherent and
+noncoherent query costs [LeeEtAl2011]. -/
 theorem source_optimized_cost_bounds :
   ∃ c : ℕ, 0<c ∧ ∀ (X H : Type) [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (n q : ℕ)
@@ -138,6 +181,9 @@ theorem source_optimized_cost_bounds :
       sourceQNoncoherentDelta input (ε^4/16) R S := by
   exact Qatlib.Concepts.QueryComplexity.StateConversion.optimizedConversionEndpoints
 
+/-- For normalized families and `0 < ε ≤ 1 / 3`, a finite optimized Gram bound `W ≥ 0` yields
+legal coherent or noncoherent words using at most `ceil (c * W * log (1 / ε) / ε²)` queries
+and satisfying the stated target-overlap guarantees [LeeEtAl2011]. -/
 theorem source_optimized_programs :
   ∃ c : ℕ, 0<c ∧ ∀ (X H : Type) [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (n q : ℕ)

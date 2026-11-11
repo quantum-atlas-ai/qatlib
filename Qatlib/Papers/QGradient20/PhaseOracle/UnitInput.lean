@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QGradient20.PhaseOracle.ActualRun
+
+/-!
+# Phase estimation on unit vector inputs
+
+The eigenbasis coefficients `coefficients` expand a Euclidean input vector and have total
+squared norm one for unit inputs. These identities give normalization and the spectral Born law
+for the executed counted phase circuit. See [GaoEtAl2021] for the paper context.
+
+## Main statements
+
+* `actual_input_expansion`: Summing the eigenvectors weighted by `coefficients` recovers the
+  coordinate function of `x`.
+* `coefficients_mass_one`: For a unit input vector, the squared norms of its eigenbasis
+  coefficients sum to one.
+* `actual_unit_input_Born`: For a unit input, the eigenbasis coefficients have total squared
+  norm one and the executed label probability is their QPE kernel mixture.
+
+## References
+
+* [Gao et al., 2021][GaoEtAl2021]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,25 +47,31 @@ open Qatlib.Papers.QGradient20.PhaseOracle Qatlib.Papers.QGradient20.PhaseOracle
 namespace Qatlib.Papers.QGradient20.PhaseOracle.UnitInput
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The coordinate function of a unit Euclidean vector is a normalized pure state. -/
 theorem unit_input_normalized (x : EuclideanSpace ℂ I) (hx : ‖x‖=1) : Normalized (WithLp.ofLp x) := by
   rw [normalized_iff_inner_self,← inner_euclidean_fromVec]
   change inner ℂ x x=1
   rw [inner_self_eq_norm_sq_to_K,hx]
   norm_num
 
+/-- The coordinates of `x` in the chosen eigenvector basis of the Hermitian matrix `D`. -/
 def coefficients (D : Matrix I I ℂ) (hD : D.IsHermitian) (x : EuclideanSpace ℂ I) (j : I) : ℂ :=
   inner ℂ (hD.eigenvectorBasis j) x
 
+/-- Summing the eigenvectors weighted by `coefficients` recovers the coordinate function of `x`. -/
 theorem actual_input_expansion (D : Matrix I I ℂ) (hD : D.IsHermitian) (x : EuclideanSpace ℂ I) :
     (∑ j,coefficients D hD x j•(hD.eigenvectorBasis j : I→ℂ))=WithLp.ofLp x := by
   funext i
   have h := congrArg (fun y : EuclideanSpace ℂ I => y i) (hD.eigenvectorBasis.sum_repr' x)
   simpa only [coefficients,WithLp.ofLp_sum,Finset.sum_apply,PiLp.smul_apply,Pi.smul_apply] using h
 
+/-- For a unit input vector, the squared norms of its eigenbasis coefficients sum to one. -/
 theorem coefficients_mass_one (D : Matrix I I ℂ) (hD : D.IsHermitian)
     (x : EuclideanSpace ℂ I) (hx : ‖x‖=1) : ∑ j,‖coefficients D hD x j‖^2=1 := by
   simpa only [coefficients,hx,one_pow] using hD.eigenvectorBasis.sum_sq_norm_inner_right x
 
+/-- The counted phase circuit preserves normalization when initialized with a unit input and the
+prescribed basis ancillas. -/
 theorem actual_unit_run_normalized (D : Matrix I I ℂ) (hD : D.IsHermitian) (τ : ℝ)
     (M : ℕ) (hM : 0<M) (x : EuclideanSpace ℂ I) (hx : ‖x‖=1) :
     Normalized
@@ -55,6 +83,8 @@ theorem actual_unit_run_normalized (D : Matrix I I ℂ) (hD : D.IsHermitian) (τ
   · exact normalized_tensorState (normalized_ket _) (normalized_tensorState (normalized_ket _)
       (unit_input_normalized x hx))
 
+/-- For a unit input, the eigenbasis coefficients have total squared norm one and the executed
+label probability is their QPE kernel mixture. -/
 theorem actual_unit_input_Born (D : Matrix I I ℂ) (hD : D.IsHermitian) (τ : ℝ)
     (M : ℕ) (hM : 0<M) (x : EuclideanSpace ℂ I) (hx : ‖x‖=1) (z : Fin M) :
     (∑ j,‖coefficients D hD x j‖^2=1) ∧

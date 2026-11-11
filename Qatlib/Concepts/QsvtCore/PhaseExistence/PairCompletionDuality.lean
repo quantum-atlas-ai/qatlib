@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.ComplexPolynomial
+
+/-!
+# Dual conditions for polynomial pair completion
+
+This module derives real- and imaginary-axis norm constraints for `CompletedPair` and constructs
+a completed pair from suitable conditions on its second polynomial. The resulting dual
+characterization is associated with [GilyenSuLowWiebe2019].
+
+The construction analyzes the real even residual `1 - (1 - X^2) * Q * conjugatePolynomial Q`,
+contracts it through the square variable, and controls the degree of a conjugate-product factor.
+
+## Main statements
+
+* `responsePairNorm_eval_real` and `responsePairNorm_eval_imag`: axis evaluation identities.
+* `CompletedPair.scaled_normSq_eval_le_one`: the second-response interval bound.
+* `CompletedPair.one_le_scaled_normSq_eval_imag`: the odd-order imaginary-axis bound.
+* `exists_completedPair_of_q_conditions`: completion from the second-response conditions.
+
+## References
+
+* [Gilyén et al., Theorem 4][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -21,6 +44,8 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open Qatlib
 
+/-- For a polynomial of response parity `m`, conjugate-polynomial evaluation on the imaginary
+axis equals `(-1)^m` times the conjugate of the original evaluation. -/
 theorem conjugatePolynomial_eval_imag {W : Polynomial ℂ} {m : ℕ}
     (hW : HasResponseParity m W) (y : ℝ) :
     (conjugatePolynomial W).eval ((y : ℂ) * Complex.I) =
@@ -34,6 +59,7 @@ theorem conjugatePolynomial_eval_imag {W : Polynomial ℂ} {m : ℕ}
   rw [hc, hpar]
   simp
 
+/-- At a real input, the polynomial `1 - X^2` evaluates to the complex embedding of `1 - x^2`. -/
 private theorem eval_one_sub_X_sq (x : ℝ) :
     (1 - X ^ 2 : Polynomial ℂ).eval (x : ℂ) = Complex.ofReal (1 - x ^ 2) := by
   simp only [eval_sub, eval_one, eval_pow, eval_X]
@@ -41,6 +67,8 @@ private theorem eval_one_sub_X_sq (x : ℝ) :
   · simp
   · simp
 
+/-- At a purely imaginary input `iy`, the polynomial `1 - X^2` evaluates to the complex
+embedding of `1 + y^2`. -/
 private theorem eval_one_sub_imag_sq (y : ℝ) :
     (1 - X ^ 2 : Polynomial ℂ).eval ((y : ℂ) * Complex.I) = Complex.ofReal (1 + y ^ 2) := by
   simp only [eval_sub, eval_one, eval_pow, eval_X]
@@ -54,33 +82,44 @@ private theorem eval_one_sub_imag_sq (y : ℝ) :
   · simp
   · simp
 
+/-- A complex number multiplied by its conjugate is its squared norm embedded in `ℂ`. -/
 private theorem imag_mul_conj (z : ℂ) : z * star z = Complex.ofReal (Complex.normSq z) := by
   rw [Complex.star_def, Complex.mul_conj]
 
+/-- Multiplying a complex number and its conjugate with a real factor gives the embedded real
+factor times its squared norm. -/
 private theorem mul_ofReal_mul_conj (z : ℂ) (c : ℝ) :
     z * (Complex.ofReal c * star z) = Complex.ofReal (c * Complex.normSq z) := by
   have h1 : z * (Complex.ofReal c * star z) = Complex.ofReal c * (z * star z) := by ring
   rw [h1, imag_mul_conj, Complex.ofReal_mul]
 
+/-- The displayed product with two real factors and a conjugate pair equals the embedding of the
+corresponding real squared-norm expression. -/
 private theorem ofReal_mul_ofReal_mul_conj (a c : ℝ) (z : ℂ) :
     Complex.ofReal a * (z * (Complex.ofReal c * star z)) =
       Complex.ofReal (a * (c * Complex.normSq z)) := by
   have h1 : z * (Complex.ofReal c * star z) = Complex.ofReal c * (z * star z) := by ring
   rw [h1, imag_mul_conj, Complex.ofReal_mul, Complex.ofReal_mul]
 
+/-- The constant polynomial `1` evaluates to the complex embedding of real `1`. -/
 private theorem eval_one_C (x : ℂ) : Polynomial.eval x (1 : Polynomial ℂ) = Complex.ofReal 1 := by
   simp
 
+/-- For real `x`, `1 - x^2` computed in `ℂ` is the embedding of the corresponding real
+expression. -/
 private theorem one_sub_sq_complex (x : ℝ) :
     (1 : ℂ) - (x : ℂ) ^ 2 = Complex.ofReal (1 - x ^ 2) := by
   apply Complex.ext <;> simp
 
+/-- For real `y`, `1 - (iy)^2` is the complex embedding of `1 + y^2`. -/
 private theorem one_sub_imag_sq_complex (y : ℝ) :
     (1 : ℂ) - ((y : ℂ) * Complex.I) ^ 2 = Complex.ofReal (1 + y ^ 2) := by
   have h := eval_one_sub_imag_sq y
   rw [eval_sub, eval_one, eval_pow, eval_X] at h
   exact h
 
+/-- The real part of the displayed product of real factors and a conjugate pair is `(a * c) *
+normSq z`. -/
 private theorem ofReal_mul_star_re (a c : ℝ) (z : ℂ) :
     (Complex.ofReal a * (z * (Complex.ofReal c * star z))).re
       = (a * c) * Complex.normSq z := by
@@ -95,6 +134,8 @@ private theorem ofReal_mul_star_re (a c : ℝ) (z : ℂ) :
       _ = Complex.ofReal ((a * c) * Complex.normSq z) := mul_ofReal_mul_conj z (a * c)
   rw [h, Complex.ofReal_re]
 
+/-- The real part of the left-associated product with two real factors and a conjugate pair is
+`(a * c) * normSq z`. -/
 private theorem ofReal_mul_star_re_l (a c : ℝ) (z : ℂ) :
     (Complex.ofReal a * z * (Complex.ofReal c * star z)).re
       = (a * c) * Complex.normSq z := by
@@ -102,6 +143,7 @@ private theorem ofReal_mul_star_re_l (a c : ℝ) (z : ℂ) :
       = Complex.ofReal a * (z * (Complex.ofReal c * star z)) := by ring
   rw [h, ofReal_mul_star_re]
 
+/-- The real part of a real multiple of `z * star z` is that multiple of `normSq z`. -/
 private theorem ofReal_mul_star_re' (a : ℝ) (z : ℂ) :
     (Complex.ofReal a * (z * star z)).re = a * Complex.normSq z := by
   have h : Complex.ofReal a * (z * star z) = Complex.ofReal (a * Complex.normSq z) := by
@@ -110,6 +152,8 @@ private theorem ofReal_mul_star_re' (a : ℝ) (z : ℂ) :
       _ = Complex.ofReal (a * Complex.normSq z) := mul_ofReal_mul_conj z a
   rw [h, Complex.ofReal_re]
 
+/-- At real inputs, the response pair norm evaluates to the embedded weighted sum `normSq P(x) +
+(1 - x^2) * normSq Q(x)`. -/
 theorem responsePairNorm_eval_real (P Q : Polynomial ℂ) (x : ℝ) :
     (responsePairNorm P Q).eval (x : ℂ) =
       Complex.ofReal (Complex.normSq (P.eval (x : ℂ))
@@ -123,6 +167,8 @@ theorem responsePairNorm_eval_real (P Q : Polynomial ℂ) (x : ℝ) :
   rw [imag_mul_conj (P.eval (x : ℂ)), imag_mul_conj (Q.eval (x : ℂ))]
   rw [← Complex.ofReal_mul, ← Complex.ofReal_add]
 
+/-- Under the response parity conditions, evaluates the response pair norm on the imaginary axis
+as the stated signed difference of squared norms. -/
 theorem responsePairNorm_eval_imag {n : ℕ} {P Q : Polynomial ℂ}
     (hP : HasResponseParity n P) (hQ : HasResponseParity (n + 1) Q) (y : ℝ) :
     (responsePairNorm P Q).eval ((y : ℂ) * Complex.I) =
@@ -147,6 +193,7 @@ theorem responsePairNorm_eval_imag {n : ℕ} {P Q : Polynomial ℂ}
 
 namespace PhaseSynthesis
 
+/-- The first polynomial of a completed pair has squared norm at most one on `[-1, 1]`. -/
 theorem CompletedPair.normSq_eval_le_one {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     Complex.normSq (P.eval (x : ℂ)) ≤ 1 := by
@@ -161,6 +208,7 @@ theorem CompletedPair.normSq_eval_le_one {n : ℕ} {P Q : Polynomial ℂ}
     nlinarith
   nlinarith
 
+/-- The first polynomial of a completed pair has squared norm at least one outside `(-1, 1)`. -/
 theorem CompletedPair.one_le_normSq_eval {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) {x : ℝ} (hx : x ∉ Set.Ioo (-1 : ℝ) 1) :
     1 ≤ Complex.normSq (P.eval (x : ℂ)) := by
@@ -175,6 +223,8 @@ theorem CompletedPair.one_le_normSq_eval {n : ℕ} {P Q : Polynomial ℂ}
     exact hx ⟨(by nlinarith [hsq]), (by nlinarith [hsq])⟩
   nlinarith
 
+/-- For a completed pair of even order, the first polynomial has squared norm at least one on
+the imaginary axis. -/
 theorem CompletedPair.one_le_normSq_eval_imag {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) (heven : n % 2 = 0) (y : ℝ) :
     1 ≤ Complex.normSq (P.eval ((y : ℂ) * Complex.I)) := by
@@ -188,6 +238,8 @@ theorem CompletedPair.one_le_normSq_eval_imag {n : ℕ} {P Q : Polynomial ℂ}
     mul_nonneg (by positivity) hq
   nlinarith [hpow, hpos]
 
+/-- The second polynomial of a completed pair satisfies `(1 - x^2) * normSq Q(x) ≤ 1` on `[-1,
+1]`. -/
 theorem CompletedPair.scaled_normSq_eval_le_one {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) {x : ℝ} (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     (1 - x ^ 2) * Complex.normSq (Q.eval (x : ℂ)) ≤ 1 := by
@@ -199,6 +251,8 @@ theorem CompletedPair.scaled_normSq_eval_le_one {n : ℕ} {P Q : Polynomial ℂ}
   have hxx : 0 ≤ 1 - x ^ 2 := by nlinarith [hx.1, hx.2]
   linarith
 
+/-- For a completed pair of odd order, the second polynomial satisfies `(1 + y^2) * normSq Q(iy)
+≥ 1`. -/
 theorem CompletedPair.one_le_scaled_normSq_eval_imag {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) (hodd : n % 2 = 1) (y : ℝ) :
     1 ≤ (1 + y ^ 2) * Complex.normSq (Q.eval ((y : ℂ) * Complex.I)) := by
@@ -213,12 +267,17 @@ theorem CompletedPair.one_le_scaled_normSq_eval_imag {n : ℕ} {P Q : Polynomial
 
 end PhaseSynthesis
 
+/-- The real polynomial formed by taking the real part of each coefficient of `P`. -/
 private noncomputable def dualResidualRealCoeffs (P : Polynomial ℂ) : Polynomial ℝ :=
   ⟨⟨P.toFinsupp.coeff.mapRange Complex.re Complex.zero_re⟩⟩
 
+/-- The coefficients of `dualResidualRealCoeffs P` are the real parts of the coefficients of
+`P`. -/
 private theorem dualResidual_real_coeff (P : Polynomial ℂ) (j : ℕ) :
     (dualResidualRealCoeffs P).coeff j = (P.coeff j).re := rfl
 
+/-- A polynomial fixed by coefficientwise conjugation is recovered by embedding its real
+coefficient polynomial into `ℂ`. -/
 private theorem dualResidual_real_map {P : Polynomial ℂ}
     (hs : conjugatePolynomial P = P) :
     (dualResidualRealCoeffs P).map Complex.ofRealHom = P := by
@@ -231,6 +290,8 @@ private theorem dualResidual_real_map {P : Polynomial ℂ}
   · simp only [Complex.ofReal_im]
     linarith
 
+/-- The dual residual `1 - (1 - X^2) * Q * conjugatePolynomial Q` is fixed by coefficientwise
+conjugation. -/
 private theorem dualResidual_self_conj (Q : Polynomial ℂ) :
     conjugatePolynomial (1 - (1 - X ^ 2) * Q * conjugatePolynomial Q) =
       1 - (1 - X ^ 2) * Q * conjugatePolynomial Q := by
@@ -238,6 +299,8 @@ private theorem dualResidual_self_conj (Q : Polynomial ℂ) :
     conjugatePolynomial_pow, conjugatePolynomial_X, conjugatePolynomial_conjugate]
   ring
 
+/-- If `Q` has the stated response parity, the real coefficient polynomial of its dual residual
+is even. -/
 private theorem dualResidual_real_even (Q : Polynomial ℂ) (n : ℕ)
     (hp : HasResponseParity (n + 1) Q) :
     (dualResidualRealCoeffs (1 - (1 - X ^ 2) * Q * conjugatePolynomial Q)).comp (-X) =
@@ -265,6 +328,8 @@ private theorem dualResidual_real_even (Q : Polynomial ℂ) (n : ℕ)
   simpa only [Polynomial.map_comp, Polynomial.map_neg, map_X, dualResidual_real_map
     (dualResidual_self_conj Q)] using! he
 
+/-- Composing the degree-two contraction of the real dual residual with `X^2` recovers that
+residual. -/
 private theorem dualResidual_comp_square_raw (Q : Polynomial ℂ) (n : ℕ)
     (hp : HasResponseParity (n + 1) Q) :
     (contract 2 (dualResidualRealCoeffs
@@ -272,6 +337,8 @@ private theorem dualResidual_comp_square_raw (Q : Polynomial ℂ) (n : ℕ)
       dualResidualRealCoeffs (1 - (1 - X ^ 2) * Q * conjugatePolynomial Q) :=
   comp_square_contract_of_even (dualResidual_real_even Q n hp)
 
+/-- Embedding the square-composed contracted real residual into `ℂ` recovers the complex dual
+residual. -/
 private theorem dualResidual_comp_square (Q : Polynomial ℂ) (n : ℕ)
     (hp : HasResponseParity (n + 1) Q) :
     ((contract 2 (dualResidualRealCoeffs
@@ -281,6 +348,7 @@ private theorem dualResidual_comp_square (Q : Polynomial ℂ) (n : ℕ)
   rw [dualResidual_comp_square_raw Q n hp,
     dualResidual_real_map (dualResidual_self_conj Q)]
 
+/-- At `x^2`, the contracted real dual residual evaluates to `1 - (1 - x^2) * normSq Q(x)`. -/
 private theorem dualResidual_square_eval (Q : Polynomial ℂ) (n : ℕ)
     (hp : HasResponseParity (n + 1) Q) (x : ℝ) :
     (contract 2 (dualResidualRealCoeffs (1 - (1 - X ^ 2) * Q * conjugatePolynomial Q))).eval
@@ -304,6 +372,8 @@ private theorem dualResidual_square_eval (Q : Polynomial ℂ) (n : ℕ)
   rw [hre] at hm
   exact hm
 
+/-- At `-y^2`, the contracted real dual residual evaluates to the stated parity-dependent
+imaginary-axis squared-norm expression. -/
 private theorem dualResidual_imag_eval (Q : Polynomial ℂ) (n : ℕ)
     (hp : HasResponseParity (n + 1) Q) (y : ℝ) :
     (contract 2 (dualResidualRealCoeffs (1 - (1 - X ^ 2) * Q * conjugatePolynomial Q))).eval
@@ -329,6 +399,8 @@ private theorem dualResidual_imag_eval (Q : Polynomial ℂ) (n : ℕ)
   rw [hr]
   ring
 
+/-- A real polynomial vanishing at zero, nonnegative on the nonnegative axis, and nonpositive on
+the nonpositive axis factors as `X` times an everywhere nonnegative polynomial. -/
 private theorem divide_X_nonneg (a : Polynomial ℝ)
     (hzero : a.eval 0 = 0)
     (hright : ∀ x : ℝ, 0 ≤ x → 0 ≤ a.eval x)
@@ -354,6 +426,8 @@ private theorem divide_X_nonneg (a : Polynomial ℝ)
       (fun t ht => ha t ht.1.ne') 0 ⟨le_rfl, by norm_num⟩
   · exact ha x hx
 
+/-- If `Q` has degree below `n` and `P` factors its dual residual as a conjugate product, then
+`P` has degree at most `n`. -/
 private theorem dual_degree_le (Q : Polynomial ℂ) (n : ℕ)
     (hdeg : Q.degree < (n : WithBot ℕ))
     (P : Polynomial ℂ) (hP : P * conjugatePolynomial P =
@@ -398,16 +472,21 @@ private theorem dual_degree_le (Q : Polynomial ℂ) (n : ℕ)
   apply degree_le_of_natDegree_le
   omega
 
+/-- Embedding real coefficients into `ℂ` commutes with composition by `X^2`. -/
 private theorem map_comp_pow_two (g : Polynomial ℝ) :
     (g.map Complex.ofRealHom).comp (X ^ 2) = (g.comp (X ^ 2)).map Complex.ofRealHom := by
   have h := @Polynomial.map_comp ℝ ℂ _ _ Complex.ofRealHom g (X ^ 2)
   rw [Polynomial.map_pow, Polynomial.map_X] at h
   exact h.symm
 
+/-- Coefficientwise conjugation commutes with composition by `X^2`. -/
 private theorem conjugate_comp_square (W : Polynomial ℂ) :
     conjugatePolynomial (W.comp (X ^ 2)) = (conjugatePolynomial W).comp (X ^ 2) := by
   simp [conjugatePolynomial, Polynomial.map_comp]
 
+/-- A polynomial `Q` satisfying the degree, parity, real-interval, and conditional
+imaginary-axis bounds extends to a completed pair of order `n`. See [Gilyén et al., Theorem
+4][GilyenSuLowWiebe2019]. -/
 theorem exists_completedPair_of_q_conditions (Q : Polynomial ℂ) (n : ℕ)
     (hdeg : Q.degree < (n : WithBot ℕ))
     (hpar : HasResponseParity (n + 1) Q)

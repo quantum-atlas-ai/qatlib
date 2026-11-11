@@ -8,6 +8,28 @@ import Mathlib.Analysis.InnerProductSpace.Spectrum
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Matrix.Spectrum
 
+/-!
+# Spectral gap bounds from finite-dimensional perturbations
+
+Develops quadratic-form and Rayleigh-quotient estimates for real symmetric operators. A
+comparison operator with two orthonormal vectors at its lowest energy gives an upper bound on
+the gap between the two smallest eigenvalues.
+
+The operator `erase` removes the coupling between a unit vector and its orthogonal complement.
+Rank-two norm estimates control this modification and yield gap bounds in terms of a
+perturbation action or a rank-one overlap. See [VanDamMoscaVazirani2001].
+
+## Main statements
+
+* `gap_perturb`: Bounds the lowest spectral gap by twice an operator-norm perturbation bound.
+* `norm_sub_erase_le`: Controls the erasure error by the component of `A e` orthogonal to `e`.
+* `gap_erase_le_amp`: Bounds the gap for a rank-one perturbation by a scalar overlap.
+
+## References
+
+* [van Dam et al., 2001][VanDamMoscaVazirani2001]
+-/
+
 noncomputable section
 set_option autoImplicit false
 open scoped RealInnerProductSpace BigOperators
@@ -23,18 +45,24 @@ namespace GapExamples
 
 namespace SpectralGap
 
+/-- The real Euclidean space with coordinates indexed by `Fin n`. -/
 abbrev Vec (n : ℕ) := EuclideanSpace ℝ (Fin n)
 
 variable {n : ℕ}
 
+/-- The real quadratic form `⟪T x, x⟫` of a continuous linear operator. -/
 def qform (T : Vec n →L[ℝ] Vec n) (x : Vec n) : ℝ := ⟪T x, x⟫
 
+/-- The quadratic form of `T` at `x` divided by `‖x‖ ^ 2`. -/
 def ray (T : Vec n →L[ℝ] Vec n) (x : Vec n) : ℝ := qform T x / ‖x‖ ^ 2
 
+/-- The difference of the quadratic forms of two operators is the quadratic form of their
+difference. -/
 lemma qform_sub (A B : Vec n →L[ℝ] Vec n) (x : Vec n) :
     qform A x - qform B x = qform (A - B) x := by
   simp [qform, ContinuousLinearMap.sub_apply, inner_sub_left]
 
+/-- The absolute quadratic form is at most the operator norm times the squared vector norm. -/
 lemma qform_abs_le (C : Vec n →L[ℝ] Vec n) (x : Vec n) :
     |qform C x| ≤ ‖C‖ * ‖x‖ ^ 2 := by
   have h₁ : |qform C x| ≤ ‖C x‖ * ‖x‖ := by
@@ -45,6 +73,8 @@ lemma qform_abs_le (C : Vec n →L[ℝ] Vec n) (x : Vec n) :
     nlinarith [norm_nonneg x, norm_nonneg (C x), h, hc, sq_nonneg ‖x‖]
   exact le_trans h₁ h₂
 
+/-- For a nonzero vector, the Rayleigh quotients of two operators differ by at most the norm of
+their difference. -/
 lemma ray_perturb (A B : Vec n →L[ℝ] Vec n) {x : Vec n} (hx : x ≠ 0) :
     |ray A x - ray B x| ≤ ‖A - B‖ := by
   have hx2 : 0 < ‖x‖ ^ 2 := by positivity
@@ -59,6 +89,8 @@ section Expansion
 variable (T : Vec n →L[ℝ] Vec n) (hT : (T : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
   (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
 
+/-- The quadratic form of a symmetric operator expands as the sum of its eigenvalues times
+squared eigenbasis coordinates. -/
 theorem qform_expand (x : Vec n) :
     qform T x = ∑ i, (hT.eigenvalues hn i) * (⟪hT.eigenvectorBasis hn i, x⟫) ^ 2 := by
   have h1 : qform T x = ∑ i, ⟪T x, hT.eigenvectorBasis hn i⟫ * ⟪hT.eigenvectorBasis hn i, x⟫ := by
@@ -75,6 +107,8 @@ theorem qform_expand (x : Vec n) :
     norm_cast
   rw [h2]; ring
 
+/-- The squared norm of a vector is the sum of its squared coordinates in the orthonormal
+eigenvector basis. -/
 theorem norm_sq_expand (x : Vec n) :
     ‖x‖ ^ 2 = ∑ i, (⟪hT.eigenvectorBasis hn i, x⟫) ^ 2 := by
   have h := OrthonormalBasis.sum_inner_mul_inner (hT.eigenvectorBasis hn) x x
@@ -85,6 +119,8 @@ theorem norm_sq_expand (x : Vec n) :
         intro i _
         rw [real_inner_comm x, sq]
 
+/-- The smallest eigenvalue of a symmetric operator is at most its Rayleigh quotient at any
+nonzero vector. -/
 theorem last_le_ray {x : Vec n} (hx : x ≠ 0) :
     hT.eigenvalues hn ⟨n - 1, by omega⟩ ≤ ray T x := by
   have hanti := hT.eigenvalues_antitone hn
@@ -107,6 +143,8 @@ theorem last_le_ray {x : Vec n} (hx : x ≠ 0) :
         rw [Finset.mul_sum]
     _ ≤ _ := hsum
 
+/-- On nonzero vectors orthogonal to the chosen lowest eigenvector, the Rayleigh quotient is at
+least the second-smallest eigenvalue. -/
 theorem second_le_ray {x : Vec n} (hx : x ≠ 0)
     (horth : ⟪hT.eigenvectorBasis hn ⟨n - 1, by omega⟩, x⟫ = 0) :
     hT.eigenvalues hn ⟨n - 2, by omega⟩ ≤ ray T x := by
@@ -147,6 +185,7 @@ section More
 variable (T : Vec n →L[ℝ] Vec n) (hT : (T : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
   (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
 
+/-- The Rayleigh quotient of an eigenbasis vector equals its corresponding eigenvalue. -/
 theorem ray_eigenvector (i : Fin n) :
     ray T (hT.eigenvectorBasis hn i) = hT.eigenvalues hn i := by
   have hnorm : ‖hT.eigenvectorBasis hn i‖ = 1 := by simp
@@ -158,6 +197,8 @@ theorem ray_eigenvector (i : Fin n) :
   rw [show (inner ℝ (hT.eigenvectorBasis hn i) (hT.eigenvectorBasis hn i)) = 1 from by simp]
   simp
 
+/-- On the span of two vectors with common eigenvalue `μ`, the quadratic form equals `μ` times
+the squared norm. -/
 theorem qform_span_eq (B : Vec n →L[ℝ] Vec n) {μ : ℝ} {u w x : Vec n}
     (huB : B u = μ • u) (hwB : B w = μ • w)
     (hx : x ∈ Submodule.span ℝ ({u, w} : Set (Vec n))) :
@@ -169,6 +210,8 @@ theorem qform_span_eq (B : Vec n →L[ℝ] Vec n) {μ : ℝ} {u w x : Vec n}
   rw [qform, hBx, inner_smul_left, real_inner_self_eq_norm_sq]
   norm_cast
 
+/-- Every nonzero vector in the span of two eigenvectors with common eigenvalue `μ` has Rayleigh
+quotient `μ`. -/
 theorem ray_span_eq (B : Vec n →L[ℝ] Vec n) {μ : ℝ} {u w x : Vec n}
     (huB : B u = μ • u) (hwB : B w = μ • w)
     (hx : x ∈ Submodule.span ℝ ({u, w} : Set (Vec n))) (hx0 : x ≠ 0) :
@@ -181,6 +224,8 @@ end More
 
 variable {n : ℕ}
 
+/-- A quadratic-form lower bound `μ * ‖x‖ ^ 2 ≤ qform B x` gives the Rayleigh-quotient lower
+bound `μ` on nonzero vectors. -/
 theorem ray_ge_of_lower (B : Vec n →L[ℝ] Vec n) {μ : ℝ}
     (hμ : ∀ x : Vec n, μ * ‖x‖ ^ 2 ≤ qform B x) {x : Vec n} (hx : x ≠ 0) :
     μ ≤ ray B x := by
@@ -193,6 +238,8 @@ section TwoDim
 variable (T : Vec n →L[ℝ] Vec n) (hT : (T : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
   (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
 
+/-- If the Rayleigh quotient is at most `c` on the nonzero vectors of a span of two nonzero
+orthogonal vectors, the second-smallest eigenvalue is at most `c`. -/
 theorem second_le_of_twoDim (c : ℝ) {p q : Vec n}
     (hp : p ≠ 0) (hq : q ≠ 0) (hpq : ⟪p, q⟫ = 0)
     (hbound : ∀ x : Vec n, x ∈ Submodule.span ℝ ({p, q} : Set (Vec n)) → x ≠ 0 →
@@ -235,6 +282,9 @@ open SpectralGap
 variable (A B : Vec n →L[ℝ] Vec n) (hA : (A : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
   (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
 
+/-- If `B` has quadratic-form lower bound `μ` and two orthonormal eigenvectors of eigenvalue
+`μ`, and `‖A - B‖ ≤ δ`, the gap between the two smallest eigenvalues of symmetric `A` is at
+most `2 * δ` [VanDamMoscaVazirani2001]. -/
 theorem gap_perturb (μ δ : ℝ) (hδ : ‖A - B‖ ≤ δ)
     (hμ : ∀ x : Vec n, μ * ‖x‖ ^ 2 ≤ qform B x)
     (u w : Vec n) (hu : ‖u‖ = 1) (hw : ‖w‖ = 1) (huw : ⟪u, w⟫ = 0)
@@ -275,22 +325,30 @@ section Erasure
 
 variable {n : ℕ}
 
+/-- The rank-one continuous linear operator `x ↦ ⟪e, x⟫ • e`. -/
 def proj (e : Vec n) : Vec n →L[ℝ] Vec n :=
   ContinuousLinearMap.smulRight (innerSL ℝ e) e
 
+/-- The rank-one operator sends `x` to `⟪e, x⟫ • e`. -/
 lemma proj_apply (e x : Vec n) : proj e x = ⟪e, x⟫ • e := by
   simp [proj, ContinuousLinearMap.smulRight_apply, innerSL_apply_apply]
 
+/-- The rank-one operator associated with a unit vector fixes that vector. -/
 lemma proj_self (e : Vec n) (he : ‖e‖ = 1) : proj e e = e := by
   rw [proj_apply, real_inner_self_eq_norm_sq, he]
   norm_num
 
+/-- The rank-one operator vanishes on vectors orthogonal to its defining vector. -/
 lemma proj_orth {e x : Vec n} (h : ⟪e, x⟫ = 0) : proj e x = 0 := by
   rw [proj_apply, h, zero_smul]
 
+/-- The operator `A - A ∘ proj e - proj e ∘ A + (2 * ⟪e, A e⟫) • proj e`, which decouples `e`
+when `e` is a unit vector. -/
 def erase (A : Vec n →L[ℝ] Vec n) (e : Vec n) : Vec n →L[ℝ] Vec n :=
   A - A.comp (proj e) - (proj e).comp A + (2 * ⟪e, A e⟫) • proj e
 
+/-- The action of `erase A e` expands into `A x` and the three explicit rank-one correction
+terms. -/
 lemma erase_apply (A : Vec n →L[ℝ] Vec n) (e x : Vec n) :
     erase A e x = A x - ⟪e, x⟫ • A e - ⟪e, A x⟫ • e
       + (2 * ⟪e, A e⟫) • (⟪e, x⟫ • e) := by
@@ -298,16 +356,20 @@ lemma erase_apply (A : Vec n →L[ℝ] Vec n) (e x : Vec n) :
     ContinuousLinearMap.comp_apply, ContinuousLinearMap.smul_apply, proj_apply,
     ContinuousLinearMap.map_smul]
 
+/-- For a unit vector `e`, the erased operator sends `e` to `⟪e, A e⟫ • e`. -/
 lemma erase_self (A : Vec n →L[ℝ] Vec n) (e : Vec n) (he : ‖e‖ = 1) :
     erase A e e = ⟪e, A e⟫ • e := by
   rw [erase_apply, real_inner_self_eq_norm_sq, he]
   module
 
+/-- On a vector orthogonal to `e`, erasure subtracts the component `⟪e, A x⟫ • e` from `A x`. -/
 lemma erase_of_orth (A : Vec n →L[ℝ] Vec n) {e x : Vec n} (h : ⟪e, x⟫ = 0) :
     erase A e x = A x - ⟪e, A x⟫ • e := by
   rw [erase_apply, h]
   simp
 
+/-- For symmetric `A`, the erasure difference is the sum of the two rank-one couplings between
+`e` and `A e - ⟪e, A e⟫ • e`. -/
 lemma sub_erase_apply (A : Vec n →L[ℝ] Vec n)
     (hA : (A : Vec n →ₗ[ℝ] Vec n).IsSymmetric) (e x : Vec n) :
     (A - erase A e) x
@@ -316,6 +378,8 @@ lemma sub_erase_apply (A : Vec n →L[ℝ] Vec n)
     inner_sub_left, real_inner_smul_left]
   module
 
+/-- If a unit vector `e` is orthogonal to `u`, the operator `x ↦ ⟪e, x⟫ • u + ⟪u, x⟫ • e` has
+norm at most `‖u‖`. -/
 theorem norm_le_of_rankTwo {M : Vec n →L[ℝ] Vec n} {e u : Vec n}
     (he : ‖e‖ = 1) (hu : ⟪e, u⟫ = 0)
     (hM : ∀ x : Vec n, M x = ⟪e, x⟫ • u + ⟪u, x⟫ • e) :
@@ -375,6 +439,8 @@ theorem norm_le_of_rankTwo {M : Vec n →L[ℝ] Vec n} {e u : Vec n}
   rwa [abs_of_nonneg (norm_nonneg _), abs_of_nonneg (mul_nonneg (norm_nonneg _) (norm_nonneg _))]
     at habs
 
+/-- For symmetric `A` and unit `e`, the erasure error is at most the norm of `A e - ⟪e, A e⟫ •
+e`. -/
 theorem norm_sub_erase_le (A : Vec n →L[ℝ] Vec n)
     (hA : (A : Vec n →ₗ[ℝ] Vec n).IsSymmetric) (e : Vec n) (he : ‖e‖ = 1) :
     ‖A - erase A e‖ ≤ ‖A e - ⟪e, A e⟫ • e‖ := by
@@ -384,6 +450,8 @@ theorem norm_sub_erase_le (A : Vec n →L[ℝ] Vec n)
   · intro x
     exact sub_erase_apply A hA e x
 
+/-- For symmetric `A` and unit `e`, the erasure error is at most `sqrt 2` times the norm of `A e
+- ⟪e, A e⟫ • e` [VanDamMoscaVazirani2001]. -/
 theorem norm_sub_erase_le_sqrt_two (A : Vec n →L[ℝ] Vec n)
     (hA : (A : Vec n →ₗ[ℝ] Vec n).IsSymmetric) (e : Vec n) (he : ‖e‖ = 1) :
     ‖A - erase A e‖ ≤ Real.sqrt 2 * ‖A e - ⟪e, A e⟫ • e‖ := by
@@ -400,6 +468,7 @@ section Perturbed
 
 variable {n : ℕ}
 
+/-- The rank-one operator `proj v` is symmetric. -/
 lemma proj_symm (v : Vec n) : (proj v : Vec n →ₗ[ℝ] Vec n).IsSymmetric := by
   intro x y
   rw [show (proj v : Vec n →ₗ[ℝ] Vec n) x = ⟪v, x⟫ • v from proj_apply v x,
@@ -407,6 +476,7 @@ lemma proj_symm (v : Vec n) : (proj v : Vec n →ₗ[ℝ] Vec n).IsSymmetric := 
     real_inner_smul_left, real_inner_smul_right, real_inner_comm x v]
   ring
 
+/-- Removing the component along a unit vector does not increase a vector's norm. -/
 lemma norm_sub_inner_smul_le (e v : Vec n) (he : ‖e‖ = 1) :
     ‖v - ⟪e, v⟫ • e‖ ≤ ‖v‖ := by
   have hsq : ‖v - ⟪e, v⟫ • e‖ ^ 2 = ‖v‖ ^ 2 - ⟪e, v⟫ ^ 2 := by
@@ -419,6 +489,8 @@ lemma norm_sub_inner_smul_le (e v : Vec n) (he : ‖e‖ = 1) :
   have habs : |‖v - ⟪e, v⟫ • e‖| ≤ |‖v‖| := sq_le_sq.mp h2
   rwa [abs_of_nonneg (norm_nonneg _), abs_of_nonneg (norm_nonneg _)] at habs
 
+/-- If symmetric `D` annihilates unit `e` and `v` is unit, the erasure error of `D - α • proj v`
+is at most `|α * ⟪v, e⟫|`. -/
 theorem norm_sub_erase_le_amp
     (D : Vec n →L[ℝ] Vec n) (hD : (D : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
     (e v : Vec n) (he : ‖e‖ = 1) (hv : ‖v‖ = 1) (hDe : D e = 0) (α : ℝ) :
@@ -450,6 +522,8 @@ section EqSix
 
 variable {n : ℕ}
 
+/-- If `D` annihilates unit `e` and `D + P` is symmetric, its erasure error is at most `‖P e‖`
+[VanDamMoscaVazirani2001]. -/
 theorem norm_sub_erase_le_pert (D P : Vec n →L[ℝ] Vec n)
     (hA : ((D + P : Vec n →L[ℝ] Vec n) : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
     (e : Vec n) (he : ‖e‖ = 1) (hDe : D e = 0) :
@@ -460,6 +534,9 @@ theorem norm_sub_erase_le_pert (D P : Vec n →L[ℝ] Vec n)
   rw [hAe]
   exact norm_sub_inner_smul_le e (P e) he
 
+/-- If the erased operator has a quadratic-form lower bound attained by two orthonormal
+eigenvectors, the lowest gap of symmetric `D + P` is at most `2 * ‖P e‖`, provided `D e = 0`
+and `e` is unit [VanDamMoscaVazirani2001]. -/
 theorem gap_erase_le (D P : Vec n →L[ℝ] Vec n)
     (hA : ((D + P : Vec n →L[ℝ] Vec n) : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
     (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
@@ -472,6 +549,8 @@ theorem gap_erase_le (D P : Vec n →L[ℝ] Vec n)
   exact le_trans (gap_perturb (D + P) (erase (D + P) e) hA hn hn2 μ ‖P e‖ hδ hμ u w hu hw huw huB hwB)
     (by linarith [norm_nonneg (P e)])
 
+/-- Under the stated erasure and degeneracy hypotheses, the lowest gap of `D + P` is at most `2
+* (sqrt 2 * ‖P e‖)`. -/
 theorem gap_erase_le_sqrt_two (D P : Vec n →L[ℝ] Vec n)
     (hA : ((D + P : Vec n →L[ℝ] Vec n) : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
     (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
@@ -492,6 +571,8 @@ theorem gap_erase_le_sqrt_two (D P : Vec n →L[ℝ] Vec n)
   exact gap_perturb (D + P) (erase (D + P) e) hA hn hn2 μ (Real.sqrt 2 * ‖P e‖) h1 hμ
     u w hu hw huw huB hwB
 
+/-- Under the stated erasure and degeneracy hypotheses, a bound `‖P e‖ ≤ c` gives a lowest
+spectral gap of at most `2 * c` for `D + P` [VanDamMoscaVazirani2001]. -/
 theorem gap_erase_le_of_bound (D P : Vec n →L[ℝ] Vec n)
     (hA : ((D + P : Vec n →L[ℝ] Vec n) : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
     (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
@@ -504,6 +585,9 @@ theorem gap_erase_le_of_bound (D P : Vec n →L[ℝ] Vec n)
   refine le_trans (gap_erase_le D P hA hn hn2 e he hDe μ hμ u w hu hw huw huB hwB) ?_
   linarith
 
+/-- If the erased operator has a quadratic-form lower bound attained by two orthonormal
+eigenvectors, the lowest gap of symmetric `A` is at most twice `‖A e - ⟪e, A e⟫ • e‖` for
+unit `e`. -/
 theorem gap_erase_self (A : Vec n →L[ℝ] Vec n)
     (hA : (A : Vec n →ₗ[ℝ] Vec n).IsSymmetric)
     (hn : Module.finrank ℝ (Vec n) = n) (hn2 : 2 ≤ n)
@@ -517,6 +601,9 @@ theorem gap_erase_self (A : Vec n →L[ℝ] Vec n)
   exact gap_perturb A (erase A e) hA hn hn2 μ ‖A e - ⟪e, A e⟫ • e‖ hδ hμ
     u w hu hw huw huB hwB
 
+/-- For a rank-one perturbation `D - α • proj v`, the stated unit-vector, kernel, and
+erased-ground-space hypotheses bound the lowest spectral gap by `2 * |α * ⟪v, e⟫|`
+[VanDamMoscaVazirani2001]. -/
 theorem gap_erase_le_amp (D : Vec n →L[ℝ] Vec n)
     (e v : Vec n) (α : ℝ)
     (he : ‖e‖ = 1) (hv : ‖v‖ = 1) (hDe : D e = 0)

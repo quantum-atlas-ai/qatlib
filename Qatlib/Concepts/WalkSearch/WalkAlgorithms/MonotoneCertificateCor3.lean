@@ -10,6 +10,30 @@ import Mathlib.Data.Nat.Log
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Monotone certificate-family search
+
+This module models finite edge patterns, injective copies, and the monotone property of
+containing a pattern from a certificate family. `PatternFinder` supplies sound per-pattern
+outputs, finite seed spaces, exceptional seed bounds, and costs; `runFamily` chooses a
+successful result from the family when one exists.
+
+The family results combine soundness and completeness outside exceptional sets with a union
+count and a summed cost bound. `corollary3_answer` packages these conclusions under explicit
+support-size and per-pattern cost assumptions. Quantum-walk search provides the surrounding
+algorithmic setting [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `satisfies_mono`: monotonicity under adding host edges.
+* `runFamily_fail_card`: the certificate-family failure-count bound.
+* `corollary3_answer`: the combined witness, failure, and cost guarantees.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,25 +43,34 @@ namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 variable {n k : ℕ}
 
+/-- The vertices occurring as either endpoint of an edge in the pattern. -/
 def patternSupport (P : Finset (Fin k × Fin k)) : Finset (Fin k) :=
   P.image Prod.fst ∪ P.image Prod.snd
 
+/-- An injective map from `Fin k` into `Fin n` that sends every pattern edge to an edge of the
+host relation. -/
 def PatternCopy (P : Finset (Fin k × Fin k)) (G : Finset (Fin n × Fin n))
     (f : Fin k → Fin n) : Prop :=
   Function.Injective f ∧ ∀ p ∈ P, (f p.1, f p.2) ∈ G
 
+/-- The existence of an injective edge-preserving copy of the pattern in the host relation. -/
 def PatternFound (P : Finset (Fin k × Fin k)) (G : Finset (Fin n × Fin n)) : Prop :=
   ∃ f, PatternCopy P G f
 
+/-- The property that the host relation contains a copy of at least one pattern in the
+certificate family. -/
 def Satisfies (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n)) : Prop :=
   ∃ P ∈ certs, PatternFound P G
 
+/-- Adding host edges preserves satisfaction of a pattern certificate family. -/
 theorem satisfies_mono {certs : Finset (Finset (Fin k × Fin k))}
     {G G' : Finset (Fin n × Fin n)} (hsub : G ⊆ G') (h : Satisfies certs G) :
     Satisfies certs G' := by
   obtain ⟨P, hP, f, hinj, hedges⟩ := h
   exact ⟨P, hP, f, hinj, fun p hp => hsub (hedges p hp)⟩
 
+/-- A pattern-finding interface with a finite nonempty seed type, a cost function, sound
+outputs, and exceptional seed sets whose sizes satisfy a uniform inverse-power bound. -/
 structure PatternFinder (n k : ℕ) where
 
   seed : Type
@@ -65,6 +98,8 @@ structure PatternFinder (n k : ℕ) where
 
 attribute [instance] PatternFinder.seedFin PatternFinder.seedNe
 
+/-- Choose a successful finder result for a pattern in the certificate family when one exists,
+and return `none` otherwise. -/
 noncomputable def runFamily (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n))
     (ρ : ff.seed) : Option (Fin k → Fin n) := by
@@ -72,6 +107,8 @@ noncomputable def runFamily (ff : PatternFinder n k)
   exact if h : ∃ P ∈ certs, ∃ f, ff.run P G ρ = some f then ff.run (Classical.choose h) G ρ
     else none
 
+/-- A result returned by the family finder is a valid copy of some pattern in the certificate
+family. -/
 theorem runFamily_sound (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n)) (ρ : ff.seed)
     {f : Fin k → Fin n} (h : runFamily ff certs G ρ = some f) :
@@ -83,6 +120,8 @@ theorem runFamily_sound (ff : PatternFinder n k)
   · rw [runFamily, dif_neg hex] at h
     exact absurd h (by simp)
 
+/-- If the host satisfies the certificate family and the seed avoids every member's exceptional
+set, the family finder returns a result. -/
 theorem runFamily_complete (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n)) (ρ : ff.seed)
     (hφ : Satisfies certs G) (hρ : ∀ P ∈ certs, ρ ∉ ff.misses P G) :
@@ -97,11 +136,14 @@ theorem runFamily_complete (ff : PatternFinder n k)
   obtain ⟨g, hg⟩ := (Classical.choose_spec hex).2
   exact ⟨g, by rw [runFamily, dif_pos hex]; exact hg⟩
 
+/-- The union of the exceptional seed sets over all patterns in the certificate family. -/
 def familyMisses (ff : PatternFinder n k) (certs : Finset (Finset (Fin k × Fin k)))
     (G : Finset (Fin n × Fin n)) : Finset ff.seed := by
   classical
   exact certs.biUnion fun P => ff.misses P G
 
+/-- When the host satisfies the family, a seed on which the family finder returns `none` belongs
+to the union of exceptional sets. -/
 theorem runFamily_fail_mem_familyMisses (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n)) (ρ : ff.seed)
     (hφ : Satisfies certs G) (h : runFamily ff certs G ρ = none) :
@@ -118,11 +160,15 @@ theorem runFamily_fail_mem_familyMisses (ff : PatternFinder n k)
   rw [hg] at h
   cases h
 
+/-- The seeds for which the host satisfies the certificate family but the family finder returns
+`none`. -/
 def familyFail (ff : PatternFinder n k) (certs : Finset (Finset (Fin k × Fin k)))
     (G : Finset (Fin n × Fin n)) : Finset ff.seed := by
   classical
   exact Finset.univ.filter fun ρ => Satisfies certs G ∧ runFamily ff certs G ρ = none
 
+/-- The number of family-failure seeds, multiplied by `n^ff.e`, is at most the number of
+certificates times the total seed count. -/
 theorem runFamily_fail_card (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n)) :
     (familyFail ff certs G).card * n ^ ff.e ≤ certs.card * Fintype.card ff.seed := by
@@ -149,10 +195,13 @@ theorem runFamily_fail_card (ff : PatternFinder n k)
           rw [Finset.sum_const, smul_eq_mul]
   exact (Nat.mul_le_mul_right _ hle).trans hbound
 
+/-- The sum of the per-pattern finder costs over the certificate family. -/
 def familyCost (ff : PatternFinder n k) (certs : Finset (Finset (Fin k × Fin k)))
     (G : Finset (Fin n × Fin n)) (ρ : ff.seed) : ℕ :=
   ∑ P ∈ certs, ff.cost P G ρ
 
+/-- If certificate supports have sizes between two and `k`, the assumed support-dependent costs
+give total family cost at most `certs.card * c * (Nat.log 2 n + 2)^3 * n^(2 - 2/k)`. -/
 theorem familyCost_le (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) (G : Finset (Fin n × Fin n)) (ρ : ff.seed)
     {c : ℝ} (hn : 1 ≤ n) (hc : 0 ≤ c)
@@ -189,6 +238,9 @@ theorem familyCost_le (ff : PatternFinder n k)
     _ = certs.card * (c * ((Nat.log 2 n : ℝ) + 2) ^ 3 * (n : ℝ) ^ (2 - 2 / (k : ℝ))) := by
         rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- Combine family-finder soundness, success outside all exceptional sets, the union
+failure-count bound, and the stated total cost bound under the support-size and per-pattern
+cost hypotheses. -/
 theorem corollary3_answer (ff : PatternFinder n k)
     (certs : Finset (Finset (Fin k × Fin k))) {c : ℝ} (hn : 1 ≤ n) (hc : 0 ≤ c)
     (hsupp : ∀ P ∈ certs, 2 ≤ (patternSupport P).card)

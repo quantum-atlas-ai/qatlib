@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
 import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.SingletConventionBridgeAuxiliary
+
+/-!
+# The singlet convention bridge contract
+
+`SingletConventionBridge` states the relation between singlet-prepared and standard
+teleportation branches. It also requires each corrected singlet branch to act as one quarter of
+the identity map. The singlet convention follows the qubit protocol of
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `SingletConventionBridge`: The conjunction of the signed outcome-relabeling identity for
+  singlet Kraus operators and exact recovery of one quarter of every input by each corrected
+  branch.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.QuditTeleport.DepolarizingLaw
 
 open Matrix
 
+/-- The conjunction of the signed outcome-relabeling identity for singlet Kraus operators and
+exact recovery of one quarter of every input by each corrected branch. -/
 def SingletConventionBridge : Prop :=
   (∀ o : Bool × Bool,
     singletBranchKraus o = singletSign o • teleportBranchKraus (singletSwap o)) ∧

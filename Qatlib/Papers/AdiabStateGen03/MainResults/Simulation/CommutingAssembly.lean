@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CircuitCalculus
 import Mathlib.Analysis.Normed.Algebra.Exponential
+
+/-!
+# Simulation of commuting Hamiltonian sums
+
+This module factors the evolution of commuting Hamiltonians with `timeEvolution_add_of_commute`
+and combines their approximating circuits. Operator norm and accuracy-rescaling estimates
+support `simulatable_add_of_commute`, which proves that a commuting sum of simulatable
+Hamiltonians is simulatable. The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `timeEvolution_add_of_commute`: The evolution of a sum of commuting Hamiltonians equals the
+  product of their evolutions at the same time.
+* `simulatable_add_of_commute`: The sum of two commuting simulatable Hamiltonians is
+  simulatable.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,11 +42,13 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- The operator of a circuit has norm at most one. -/
 theorem Circuit.norm_unitary_le_one (C : Circuit n) : ‖C.unitary‖ ≤ 1 := by
   refine ContinuousLinearMap.opNorm_le_bound _ zero_le_one ?_
   intro ψ
   simpa using C.contract ψ
 
+/-- Commuting Hamiltonian matrices induce commuting operators. -/
 theorem commute_toOp_of_mul_comm (H₁ H₂ : Ham n) (h : H₁ * H₂ = H₂ * H₁) :
     Commute (toOp H₁) (toOp H₂) := by
   have hmap : Matrix.toEuclideanCLM (n := Dim n) (𝕜 := ℂ) (H₁ * H₂)
@@ -39,6 +62,7 @@ theorem commute_toOp_of_mul_comm (H₁ H₂ : Ham n) (h : H₁ * H₂ = H₂ * H
   rw [← hmap, h]
   exact hmap'
 
+/-- Multiplying two commuting operators by the same complex scalar preserves commutation. -/
 theorem commute_smul_of_commute {A B : Op n} (c : ℂ) (h : A * B = B * A) :
     Commute (c • A) (c • B) := by
   show (c • A) * (c • B) = (c • B) * (c • A)
@@ -51,12 +75,16 @@ theorem commute_smul_of_commute {A B : Op n} (c : ℂ) (h : A * B = B * A) :
     simpa only [ContinuousLinearMap.mul_apply] using h'
   rw [hx]
 
+/-- Real scalar multiplication of a complex operator agrees with multiplication by the
+corresponding complex scalar. -/
 @[simp] theorem real_smul_op (r : ℝ) (X : Op n) : r • X = ((r : ℂ)) • X := by
   apply ContinuousLinearMap.ext
   intro x
   simp only [ContinuousLinearMap.smul_apply]
   simp
 
+/-- The evolution of a sum of commuting Hamiltonians equals the product of their evolutions at
+the same time [AharonovTaShma2007]. -/
 theorem timeEvolution_add_of_commute (H₁ H₂ : Ham n) (h : H₁ * H₂ = H₂ * H₁) (t : ℝ) :
     timeEvolution (H₁ + H₂) t = timeEvolution H₁ t * timeEvolution H₂ t := by
   have hc : Commute (toOp H₁) (toOp H₂) := commute_toOp_of_mul_comm H₁ H₂ h
@@ -77,6 +105,8 @@ theorem timeEvolution_add_of_commute (H₁ H₂ : Ham n) (h : H₁ * H₂ = H₂
     ((NormedSpace.expSeries_radius_eq_top ℂ (Op n)).symm ▸ edist_lt_top _ _)
     ((NormedSpace.expSeries_radius_eq_top ℂ (Op n)).symm ▸ edist_lt_top _ _)
 
+/-- A `PolySize3` bound at accuracy `α / 4` yields a `PolySize3` bound at positive accuracy `α`
+and positive time. -/
 theorem PolySize3.accuracy_scale_four {C : Circuit n} {t α : ℝ}
     (ht : 0 < t) (hα : 0 < α) (h : PolySize3 n t (α / 4) C) : PolySize3 n t α C := by
   obtain ⟨c, k, hc⟩ := h
@@ -106,6 +136,7 @@ theorem PolySize3.accuracy_scale_four {C : Circuit n} {t α : ℝ}
   push_cast
   nlinarith [hc, hstep, hBnn, pow_nonneg (show (0 : ℝ) ≤ 8 by norm_num) k, hc0]
 
+/-- The sum of two commuting simulatable Hamiltonians is simulatable. -/
 theorem simulatable_add_of_commute {H₁ H₂ : Ham n}
     (h : H₁ * H₂ = H₂ * H₁) (h₁ : Simulatable H₁) (h₂ : Simulatable H₂) :
     Simulatable (H₁ + H₂) := by

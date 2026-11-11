@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.GaussianPairTilt
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Closed forms for tilted Gaussian pair moments
+
+The polynomial `determinant` controls the Gaussian pair integrals with correlation parameter of
+absolute value less than one. The module proves its positivity and simplifies the tilted mass
+and cross moment to explicit inverse square-root expressions. See [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `pair_mass`: evaluates the tilted pair mass as `1 / √determinant`.
+* `pair_cross`: evaluates the tilted pair cross moment as `t / (determinant * √determinant)`.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -16,19 +34,25 @@ open MeasureTheory ProbabilityTheory Set Real
 namespace Qatlib.Papers.RydbergMaxCut26.Rounding.TiltedClosed
 open Qatlib.Papers.RydbergMaxCut26.Rounding.Laplace
 
+/-- The polynomial `1 + 2 * a + 2 * b + 4 * (1 - t²) * a * b` governing the tilted Gaussian pair
+integrals. -/
 def determinant (t a b : ℝ) : ℝ := 1+2*a+2*b+4*(1-t^2)*a*b
 
+/-- For `|t| < 1`, the square of the noise scale `√(1 - t²)` is `1 - t²`. -/
 theorem noise_square (t : ℝ) (ht : |t| < 1) : (Real.sqrt (1-t^2))^2=1-t^2 := by
   have h := abs_lt.mp ht
   have hsq : t^2 < 1 := by nlinarith [sq_nonneg (t+1),sq_nonneg (t-1)]
   exact Real.sq_sqrt (by linarith)
 
+/-- For `|t| < 1` and nonnegative tilt parameters, `determinant t a b` is positive. -/
 theorem determinant_positive (t a b : ℝ) (ht : |t| < 1) (ha : 0 ≤ a) (hb : 0 ≤ b) :
     0 < determinant t a b := by
   have hs : 0 ≤ 1-t^2 := by rw [← noise_square t ht];positivity
   unfold determinant
   nlinarith [mul_nonneg (mul_nonneg hs ha) hb]
 
+/-- For `|t| < 1` and nonnegative `b`, four times the product of the noise and outer precisions
+equals `determinant t a b`. -/
 theorem precisions_product (t a b : ℝ) (ht : |t| < 1) (hb : 0 ≤ b) :
     4*noisePrecision b (Real.sqrt (1-t^2))*outerPrecision t (Real.sqrt (1-t^2)) a b=determinant t a b := by
   have hden : 1+2*b*(Real.sqrt (1-t^2))^2 ≠ 0 := by positivity
@@ -37,6 +61,8 @@ theorem precisions_product (t a b : ℝ) (ht : |t| < 1) (hb : 0 ≤ b) :
   rw [noise_square t ht]
   ring
 
+/-- For `|t| < 1` and nonnegative tilt parameters, the product of the Gaussian normalization and
+precision factors equals `1 / √(determinant t a b)`. -/
 theorem prefactor_closed (t a b : ℝ) (ht : |t| < 1) (ha : 0 ≤ a) (hb : 0 ≤ b) :
     (Real.sqrt (2*Real.pi))⁻¹^2*Real.sqrt (Real.pi/noisePrecision b (Real.sqrt (1-t^2)))*
       Real.sqrt (Real.pi/outerPrecision t (Real.sqrt (1-t^2)) a b)=
@@ -65,10 +91,14 @@ theorem prefactor_closed (t a b : ℝ) (ht : |t| < 1) (ha : 0 ≤ a) (hb : 0 ≤
     rw [div_pow,one_pow,hsD]
   nlinarith [div_pos (by norm_num : (0:ℝ)<1) hsD0]
 
+/-- For `|t| < 1` and nonnegative tilt parameters, the tilted pair mass equals `1 /
+√(determinant t a b)`. -/
 theorem pair_mass (t a b : ℝ) (ht : |t| < 1) (ha : 0 ≤ a) (hb : 0 ≤ b) :
     pairTiltZero t (Real.sqrt (1-t^2)) a b=1/Real.sqrt (determinant t a b) := by
   rw [pairTiltZero_eval t _ a b hb,prefactor_closed t a b ht ha hb]
 
+/-- For `|t| < 1` and nonnegative tilt parameters, the tilted pair cross moment equals `t /
+(determinant t a b * √(determinant t a b))`. -/
 theorem pair_cross (t a b : ℝ) (ht : |t| < 1) (ha : 0 ≤ a) (hb : 0 ≤ b) :
     pairTiltCross t (Real.sqrt (1-t^2)) a b=t/(determinant t a b*Real.sqrt (determinant t a b)) := by
   rw [pairTiltCross_eval t _ a b ha hb,prefactor_closed t a b ht ha hb,

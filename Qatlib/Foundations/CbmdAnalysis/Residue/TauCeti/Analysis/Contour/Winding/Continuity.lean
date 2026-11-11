@@ -11,6 +11,27 @@ import Mathlib.Analysis.Calculus.FDeriv.Measurable
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Reverse
+
+/-!
+# Continuity of winding numbers off a curve
+
+Proves continuity of `windingNumber` in the reference point away from a continuous curve. The
+hypotheses use either an interval-integrable derivative or an interval-integrable logarithmic
+derivative at the point.
+
+These continuity tools support the contour analysis associated with [WangEtAl2026].
+
+## Main statements
+
+* `continuousAt_windingNumber_of_avoidance`: The winding number is continuous at an avoided
+  point when the curve is continuous and its logarithmic derivative about that point is interval
+  integrable.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -23,6 +44,8 @@ open scoped Interval
 
 namespace TauCeti.Contour
 
+/-- For ordered endpoints, the winding number is continuous at an avoided point when the curve
+is continuous and its derivative is interval integrable. -/
 private theorem continuousAt_windingNumber_of_avoidance_of_le {γ : ℝ → ℂ} {w₀ : ℂ} {a b : ℝ}
     (hab : a ≤ b) (hγ_cont : ContinuousOn γ (Icc a b)) (h_avoid : ∀ t ∈ Icc a b, γ t ≠ w₀)
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b) :
@@ -67,6 +90,8 @@ private theorem continuousAt_windingNumber_of_avoidance_of_le {γ : ℝ → ℂ}
     exact (((continuous_const.sub continuous_id).continuousAt).inv₀
       (h_ne w₀ (Metric.mem_ball_self hε_pos) t ht_Icc)).mul continuousAt_const
 
+/-- The winding number is continuous at an avoided point when the curve is continuous and its
+logarithmic derivative about that point is interval integrable. -/
 theorem continuousAt_windingNumber_of_avoidance {γ : ℝ → ℂ} {w₀ : ℂ} {a b : ℝ}
     (hγ_cont : ContinuousOn γ (Set.uIcc a b)) (h_avoid : ∀ t ∈ Set.uIcc a b, γ t ≠ w₀)
     (h_int : IntervalIntegrable (fun t ↦ (γ t - w₀)⁻¹ * deriv γ t) volume a b) :

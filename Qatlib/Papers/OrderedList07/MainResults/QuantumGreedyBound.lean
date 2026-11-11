@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Linarith
+
+/-!
+# Information-rate bounds for greedy ordered search
+
+Certifies the exact information value and the resulting six-query rate used in the greedy
+ordered-search comparison of [BenOrHassidim2007]. The arithmetic gives rate `32 / 99`, proves it
+is below `1 / 3`, and compares it with the printed decimal value 0.32.
+
+## Main statements
+
+* `source_theorem1_2_query_complexity`: bounds the query expression when the information
+  parameter is at least `fggsInfo`.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,20 +35,26 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch200
 
 namespace Qatlib.Papers.OrderedList07.MainResults
 
+/-- The greedy-search information quantity `fggsInfo` equals `297 / 16` [BenOrHassidim2007]. -/
 theorem source_theorem1_2_greedy_info_certificate : fggsInfo = 297 / 16 := rfl
 
+/-- The ratio of six queries to `fggsInfo` is `32 / 99`. -/
 theorem source_theorem1_2_six_queries_per_unit_info : (6 : ℝ) / fggsInfo = 32 / 99 := by
   rw [source_theorem1_2_greedy_info_certificate]
   norm_num
 
+/-- The ratio `6 / fggsInfo` is strictly less than one third [BenOrHassidim2007]. -/
 theorem source_theorem1_2_rate_below_one_third : (6 : ℝ) / fggsInfo < 1 / 3 := by
   rw [source_theorem1_2_six_queries_per_unit_info]
   norm_num
 
+/-- The printed value `32 / 100` is strictly smaller than `6 / fggsInfo` [BenOrHassidim2007]. -/
 theorem source_theorem1_2_printed_032_refuted : (32 : ℝ) / 100 < 6 / fggsInfo := by
   rw [source_theorem1_2_six_queries_per_unit_info]
   norm_num
 
+/-- For `n ≥ 16` and `Ir ≥ fggsInfo`, the query expression `6 * log₂ n / Ir` is strictly less
+than `log₂ n / 3` [BenOrHassidim2007]. -/
 theorem source_theorem1_2_query_complexity
     (n : ℕ) (hn : 16 ≤ n) (Ir : ℝ) (hIr : fggsInfo ≤ Ir) :
     6 * (Real.log n / Real.log 2) / Ir < (Real.log n / Real.log 2) / 3 := by

@@ -43,6 +43,28 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
 import Mathlib.Topology.Algebra.Polynomial
+
+/-!
+# Chebyshev–Lobatto derivative estimates
+
+This module develops Lagrange interpolation at Chebyshev–Lobatto nodes and controls
+the derivative weights on the interval from `cos (π / (2 * d))` to one.
+These estimates supply the endpoint part of the sharp Markov bound used in [NayakWu1998].
+
+`sharpLobattoA` relates the nodal polynomial to the derivative of a Chebyshev polynomial.
+Alternating signs identify the sum of absolute derivative weights with the Chebyshev derivative.
+
+## Main statements
+
+* `sharpLobatto_derivative_interpolation`: interpolate a polynomial derivative from node values.
+* `sharpLobatto_tail_derivative_mass`: identify the absolute derivative-weight sum.
+* `sharpLobatto_tail_bound`: the sharp Markov estimate on the right endpoint interval.
+
+## References
+
+* [Nayak and Wu, 1998, Fact A.5][NayakWu1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -52,19 +74,24 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Polynomial
 open scoped BigOperators
 
+/-- The `i`th Chebyshev–Lobatto node for degree `d`, indexed by `Fin (d + 1)`. -/
 noncomputable def sharpLobattoNode (d : ℕ) (i : Fin (d + 1)) : ℝ :=
   Polynomial.Chebyshev.node d i.val
+/-- The Lagrange basis polynomial at the `i`th Chebyshev–Lobatto node. -/
 noncomputable def sharpLobattoBasis (d : ℕ) (i : Fin (d + 1)) : ℝ[X] :=
   Lagrange.basis Finset.univ (sharpLobattoNode d) i
+/-- The auxiliary polynomial `(X ^ 2 - 1) * T_d'` for the degree-`d` Chebyshev polynomial. -/
 noncomputable def sharpLobattoA (d : ℕ) : ℝ[X] :=
   (X ^ 2 - 1) * (Polynomial.Chebyshev.T ℝ (d : ℤ)).derivative
 
+/-- The Chebyshev–Lobatto nodes indexed by `Fin (d + 1)` are distinct. -/
 theorem sharpLobattoNode_injective (d : ℕ) : Function.Injective (sharpLobattoNode d) := by
   intro i j hij
   apply Fin.ext
   exact (Polynomial.Chebyshev.strictAntiOn_node d).injOn
     (by simpa using i.isLt) (by simpa using j.isLt) hij
 
+/-- For `d ≥ 1`, the auxiliary polynomial vanishes at every Chebyshev–Lobatto node. -/
 theorem sharpLobattoA_eval_node (d : ℕ) (hd : 1 ≤ d) (i : Fin (d + 1)) :
     (sharpLobattoA d).eval (sharpLobattoNode d i) = 0 := by
   by_cases hi0 : i.val = 0
@@ -78,6 +105,8 @@ theorem sharpLobattoA_eval_node (d : ℕ) (hd : 1 ≤ d) (i : Fin (d + 1)) :
   rw [Polynomial.deriv] at hzero
   simp [sharpLobattoA, sharpLobattoNode, Polynomial.Chebyshev.node, hzero]
 
+/-- For `d ≥ 1`, the auxiliary polynomial is the Lobatto nodal polynomial scaled by `d * 2 ^ (d
+- 1)`. -/
 theorem sharpLobattoA_eq_nodal (d : ℕ) (hd : 1 ≤ d) :
     sharpLobattoA d = C ((d : ℝ) * 2 ^ (d - 1)) *
       Lagrange.nodal Finset.univ (sharpLobattoNode d) := by
@@ -105,6 +134,7 @@ theorem sharpLobattoA_eq_nodal (d : ℕ) (hd : 1 ≤ d) :
     rw [sharpLobattoA_eval_node d hd i, Polynomial.eval_mul, Polynomial.eval_C,
       Lagrange.eval_nodal_at_node (Finset.mem_univ i), mul_zero]
 
+/-- The derivative of the auxiliary polynomial at `x` equals `x * T_d'(x) + d ^ 2 * T_d(x)`. -/
 theorem sharpLobattoA_derivative (d : ℕ) (x : ℝ) :
     (sharpLobattoA d).derivative.eval x =
       x * (Polynomial.Chebyshev.T ℝ (d : ℤ)).derivative.eval x +
@@ -122,6 +152,7 @@ theorem sharpLobattoA_derivative (d : ℕ) (x : ℝ) :
   norm_num at he ⊢
   nlinarith [he]
 
+/-- For `d ≥ 1`, every Lobatto node other than the zeroth lies below `cos (π / (2 * d))`. -/
 theorem sharpLobattoNode_lt_tail (d : ℕ) (hd : 1 ≤ d)
     (i : Fin (d + 1)) (hi : i.val ≠ 0) :
     sharpLobattoNode d i < Real.cos (Real.pi / (2 * (d : ℝ))) := by
@@ -138,6 +169,8 @@ theorem sharpLobattoNode_lt_tail (d : ℕ) (hd : 1 ≤ d)
     rw [heq]
     nlinarith [Real.pi_pos]
 
+/-- For `d ≥ 1`, the degree-`d` Chebyshev polynomial and its derivative are nonnegative between
+`cos (π / (2 * d))` and one. -/
 theorem sharpLobatto_T_nonneg (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
     (hx : Real.cos (Real.pi / (2 * (d : ℝ))) ≤ x) (hx1 : x ≤ 1) :
     0 ≤ (Polynomial.Chebyshev.T ℝ (d : ℤ)).eval x ∧
@@ -183,6 +216,8 @@ theorem sharpLobatto_T_nonneg (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
       Polynomial.eval_intCast, Int.cast_natCast]
     exact mul_nonneg hdr.le hU
 
+/-- For `d ≥ 1`, the auxiliary polynomial is nonpositive and its derivative nonnegative between
+`cos (π / (2 * d))` and one. -/
 theorem sharpLobattoA_tail_signs (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
     (hx : Real.cos (Real.pi / (2 * (d : ℝ))) ≤ x) (hx1 : x ≤ 1) :
     (sharpLobattoA d).eval x ≤ 0 ∧ 0 ≤ (sharpLobattoA d).derivative.eval x := by
@@ -201,6 +236,8 @@ theorem sharpLobattoA_tail_signs (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
   · rw [sharpLobattoA_derivative]
     exact add_nonneg (mul_nonneg hx0 hT') (mul_nonneg (sq_nonneg _) hT)
 
+/-- Multiplying a Lobatto basis polynomial by its node's linear factor and the auxiliary
+derivative at that node recovers the auxiliary polynomial. -/
 theorem sharpLobattoBasis_factor (d : ℕ) (hd : 1 ≤ d) (i : Fin (d + 1)) :
     C ((sharpLobattoA d).derivative.eval (sharpLobattoNode d i)) *
       (X - C (sharpLobattoNode d i)) * sharpLobattoBasis d i = sharpLobattoA d := by
@@ -226,6 +263,8 @@ theorem sharpLobattoBasis_factor (d : ℕ) (hd : 1 ≤ d) (i : Fin (d + 1)) :
     (X - C (sharpLobattoNode d i)) *
     Lagrange.nodal (Finset.univ.erase i) (sharpLobattoNode d) * hh
 
+/-- The Lobatto basis derivative satisfies the identity obtained by differentiating its
+auxiliary-polynomial factorization and clearing the squared node difference. -/
 theorem sharpLobattoBasis_derivative_identity (d : ℕ) (hd : 1 ≤ d)
     (i : Fin (d + 1)) (x : ℝ) :
     (sharpLobattoA d).derivative.eval (sharpLobattoNode d i) *
@@ -243,6 +282,8 @@ theorem sharpLobattoBasis_derivative_identity (d : ℕ) (hd : 1 ≤ d)
     Polynomial.eval_X, Polynomial.eval_one] at hder
   linear_combination (x - sharpLobattoNode d i) * hder - hv
 
+/-- For `d ≥ 1`, multiplying the auxiliary derivative at node `i` by `(-1) ^ i.val` gives a
+strictly positive number. -/
 theorem sharpLobattoA_node_derivative_sign (d : ℕ) (hd : 1 ≤ d) (i : Fin (d + 1)) :
     0 < (-1 : ℝ) ^ i.val * (sharpLobattoA d).derivative.eval (sharpLobattoNode d i) := by
   have hdr : (0 : ℝ) < d := by positivity
@@ -277,6 +318,8 @@ theorem sharpLobattoA_node_derivative_sign (d : ℕ) (hd : 1 ≤ d) (i : Fin (d 
   calc _ = (d : ℝ) ^ 2 := by nlinarith [hs]
        _ > 0 := sq_pos_of_pos hdr
 
+/-- For `d ≥ 1`, the zeroth Lobatto basis derivative is nonnegative for every `x ≥ cos (π / (2 *
+d))`. -/
 theorem sharpLobattoBasis_zero_derivative_nonneg (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
     (hx : Real.cos (Real.pi / (2 * (d : ℝ))) ≤ x) :
     0 ≤ (sharpLobattoBasis d 0).derivative.eval x := by
@@ -308,6 +351,8 @@ theorem sharpLobattoBasis_zero_derivative_nonneg (d : ℕ) (hd : 1 ≤ d) (x : �
     exact (Finset.mem_erase.mp (Finset.mem_of_mem_erase hk)).1 (Fin.ext h)
   exact sub_nonneg.mpr (le_trans (sharpLobattoNode_lt_tail d hd k hk0).le hx)
 
+/-- For `d ≥ 1`, the Lobatto basis derivatives have alternating nonnegative signs on the
+interval from `cos (π / (2 * d))` to one. -/
 theorem sharpLobatto_tail_derivative_signs (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
     (hx : Real.cos (Real.pi / (2 * (d : ℝ))) ≤ x) (hx1 : x ≤ 1)
     (i : Fin (d + 1)) :
@@ -336,6 +381,8 @@ theorem sharpLobatto_tail_derivative_signs (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
           (sharpLobattoBasis d i).derivative.eval x * hs
        _ ≥ 0 := hprod
 
+/-- A polynomial of degree at most `d` has derivative equal to the sum of its Lobatto node
+values times the corresponding basis derivatives. -/
 theorem sharpLobatto_derivative_interpolation (d : ℕ) (p : ℝ[X])
     (hdeg : p.natDegree ≤ d) (x : ℝ) :
     p.derivative.eval x = ∑ i : Fin (d + 1),
@@ -349,6 +396,8 @@ theorem sharpLobatto_derivative_interpolation (d : ℕ) (p : ℝ[X])
   simpa [Lagrange.interpolate, Polynomial.derivative_sum, Polynomial.derivative_C_mul,
     Polynomial.eval_finsetSum, sharpLobattoBasis] using hdereq
 
+/-- For `d ≥ 1`, the sum of absolute Lobatto basis derivatives equals `T_d'(x)` on the right
+endpoint interval. -/
 theorem sharpLobatto_tail_derivative_mass (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
     (hx : Real.cos (Real.pi / (2 * (d : ℝ))) ≤ x) (hx1 : x ≤ 1) :
     (∑ i : Fin (d + 1), |(sharpLobattoBasis d i).derivative.eval x|) =
@@ -365,6 +414,8 @@ theorem sharpLobatto_tail_derivative_mass (d : ℕ) (hd : 1 ≤ d) (x : ℝ)
   rw [abs_of_nonneg hs] at he
   exact he.symm
 
+/-- A degree-at-most-`d` polynomial bounded by `C ≥ 0` on `[-1, 1]` has derivative bounded by `d
+^ 2 * C` between `cos (π / (2 * d))` and one when `d ≥ 1`. -/
 theorem sharpLobatto_tail_bound (d : ℕ) (p : ℝ[X]) (C : ℝ)
     (hd : 1 ≤ d) (hdeg : p.natDegree ≤ d) (hC : 0 ≤ C)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C)

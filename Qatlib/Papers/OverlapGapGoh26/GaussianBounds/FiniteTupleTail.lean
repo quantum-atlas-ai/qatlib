@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.TensorModel.TensorNorm
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
+
+/-!
+# Gaussian tails for finite Euclidean tensor tuples
+
+`actual_finite_tuple_tail` expresses the finite family Gaussian tail estimate using `tensorForm`
+on Euclidean unit vectors. For positive dimension, `actual_finite_tuple_scaled_tail` rewrites
+the threshold as `a√(N/N^r)` and the tail as `2 |J| exp(-a²N/2)`, as used in the Gaussian bounds
+supporting [GohMuller2026].
+
+## Main statements
+
+* `actual_finite_tuple_tail`: For a finite family of tuples of unit Euclidean vectors and `ε ≥
+  0`, the probability that some `tensorForm` has absolute value at least `ε` is bounded by the
+  displayed Gaussian tail times twice the family cardinality.
+* `actual_finite_tuple_scaled_tail`: For `N > 0` and `a ≥ 0`, a finite family of unit vector
+  tuples exceeds the threshold `a√(N/N^r)` in absolute tensor evaluation with probability at
+  most `2 |J| exp(-a²N/2)`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +43,9 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Linear
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.FiniteTupleTail
 
+/-- For a finite family of tuples of unit Euclidean vectors and `ε ≥ 0`, the probability that
+some `tensorForm` has absolute value at least `ε` is bounded by the displayed Gaussian tail
+times twice the family cardinality. -/
 theorem actual_finite_tuple_tail {r N : ℕ} {J : Type} [Fintype J]
     (z : J→Fin (r+1)→EuclideanSpace ℝ (Fin N)) (hz : ∀ j a,‖z j a‖=1)
     (ε : ℝ) (hε : 0≤ε) :
@@ -41,6 +67,9 @@ theorem actual_finite_tuple_tail {r N : ℕ} {J : Type} [Fintype J]
       Finset.sum_le_sum (fun j _ => hj j)
     _ = _ := by simp; ring
 
+/-- For `N > 0` and `a ≥ 0`, a finite family of unit vector tuples exceeds the threshold
+`a√(N/N^r)` in absolute tensor evaluation with probability at most `2 |J| exp(-a²N/2)`. See
+[GohMuller2026]. -/
 theorem actual_finite_tuple_scaled_tail {r N : ℕ} (hN : 0<N) {J : Type} [Fintype J]
     (z : J→Fin (r+1)→EuclideanSpace ℝ (Fin N)) (hz : ∀ j a,‖z j a‖=1)
     (a : ℝ) (ha : 0≤a) :

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.SecondOrderErrorRestrictedSubgoalStat
 import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixture
+
+/-!
+# Entrywise second order qDRIFT error
+
+This module proves `SecondOrderErrorRestrictedSubgoal` for quadratic branch and target
+expansions. Matrix entry estimates and weighted sum identities give an explicit error polynomial
+after the first order terms cancel, in the qDRIFT analysis setting of [Campbell2019].
+
+## Main statements
+
+* `conj_expand_mul`: the quadratic conjugation expansion.
+* `secondOrderErrorRestrictedSubgoal`: the restricted entrywise second order error estimate.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.ReferenceError.RefTraceError
 
@@ -14,11 +32,15 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Qatlib
 open Matrix
 
+/-- The norm of a matrix product entry is bounded by the sum of products of the corresponding
+entry norms. -/
 private theorem norm_entry_mul_le {I : Type} [Fintype I] (X Y : Matrix I I ℂ) (a b : I) :
     ‖(X * Y) a b‖ ≤ ∑ k, ‖X a k‖ * ‖Y k b‖ := by
   rw [Matrix.mul_apply]
   exact (norm_sum_le _ _).trans (Finset.sum_le_sum fun k _ => norm_mul_le ..)
 
+/-- Uniform entry bounds `x` and `y` give a product entry bound of the index cardinality times
+`x * y`. -/
 private theorem norm_entry_mul_le_of {I : Type} [Fintype I] (X Y : Matrix I I ℂ)
     {x y : ℝ} (hx : ∀ a b, ‖X a b‖ ≤ x) (hy : ∀ a b, ‖Y a b‖ ≤ y) (a b : I) :
     ‖(X * Y) a b‖ ≤ (Fintype.card I : ℝ) * (x * y) := by
@@ -29,6 +51,8 @@ private theorem norm_entry_mul_le_of {I : Type} [Fintype I] (X Y : Matrix I I �
     _ = (Fintype.card I : ℝ) * (x * y) := by
         simp [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
 
+/-- Uniform bounds on three matrix factors give an entry bound of the squared index cardinality
+times `x * (y * z)`. -/
 private theorem norm_entry_mul_mul_le_of {I : Type} [Fintype I] (X Y Z : Matrix I I ℂ)
     {x y z : ℝ} (hx : ∀ a b, ‖X a b‖ ≤ x) (hy : ∀ a b, ‖Y a b‖ ≤ y)
     (hz : ∀ a b, ‖Z a b‖ ≤ z) (a b : I) :
@@ -38,19 +62,23 @@ private theorem norm_entry_mul_mul_le_of {I : Type} [Fintype I] (X Y Z : Matrix 
         norm_entry_mul_le_of (X * Y) Z (norm_entry_mul_le_of X Y hx hy) hz a b
     _ = (Fintype.card I : ℝ) ^ 2 * (x * (y * z)) := by ring
 
+/-- A uniform entry norm bound is preserved by conjugate transpose. -/
 private theorem norm_entry_conjTranspose_le {I : Type} [Fintype I] (X : Matrix I I ℂ)
     {x : ℝ} (hx : ∀ a b, ‖X a b‖ ≤ x) (a b : I) : ‖Xᴴ a b‖ ≤ x := by
   simp only [Matrix.conjTranspose_apply, RCLike.star_def, RCLike.norm_conj]
   exact hx b a
 
+/-- Entry bounds on two matrices add to bound the corresponding entry of their sum. -/
 private theorem norm_entry_add_le {I : Type} [Fintype I] {X Y : Matrix I I ℂ} {x y : ℝ}
     (a b : I) (hx : ‖X a b‖ ≤ x) (hy : ‖Y a b‖ ≤ y) : ‖(X + Y) a b‖ ≤ x + y :=
   (norm_add_le _ _).trans (add_le_add hx hy)
 
+/-- Entry bounds on two matrices add to bound the corresponding entry of their difference. -/
 private theorem norm_entry_sub_le {I : Type} [Fintype I] {X Y : Matrix I I ℂ} {x y : ℝ}
     (a b : I) (hx : ‖X a b‖ ≤ x) (hy : ‖Y a b‖ ≤ y) : ‖(X - Y) a b‖ ≤ x + y :=
   (norm_sub_le _ _).trans (add_le_add hx hy)
 
+/-- A probability weighted sum preserves a common uniform matrix entry norm bound. -/
 private theorem norm_entry_weighted_sum_le {J I : Type} [Fintype J] [Fintype I]
     (p : J → ℝ) (hp : ∀ j, 0 ≤ p j) (hpsum : ∑ j, p j = 1)
     (X : J → Matrix I I ℂ) {m : ℝ} (hX : ∀ j a b, ‖(X j) a b‖ ≤ m) (a b : I) :
@@ -65,6 +93,8 @@ private theorem norm_entry_weighted_sum_le {J I : Type} [Fintype J] [Fintype I]
         mul_le_mul_of_nonneg_left (hX j a b) (hp j)
     _ = m := by rw [← Finset.sum_mul, hpsum, one_mul]
 
+/-- The entry norm of a sum of three scalar multiples is bounded by the sum of the scalar norms
+times the corresponding entry bounds. -/
 private theorem norm_entry_smul3_le {I : Type} [Fintype I]
     {u₂ u₃ u₄ : ℂ} {v₂ v₃ v₄ : ℝ} (hu₂ : ‖u₂‖ = v₂) (hu₃ : ‖u₃‖ = v₃) (hu₄ : ‖u₄‖ = v₄)
     (hv₂ : 0 ≤ v₂) (hv₃ : 0 ≤ v₃) (hv₄ : 0 ≤ v₄)
@@ -83,6 +113,7 @@ private theorem norm_entry_smul3_le {I : Type} [Fintype I]
         add_le_add (add_le_add (mul_le_mul_of_nonneg_left h₂ hv₂)
           (mul_le_mul_of_nonneg_left h₃ hv₃)) (mul_le_mul_of_nonneg_left h₄ hv₄)
 
+/-- Conjugate transpose preserves the real time coefficients in the quadratic branch expansion. -/
 private theorem qdriftBranchU_conjTranspose {J I : Type} [DecidableEq I] (dt : ℝ)
     (A R : J → Matrix I I ℂ) (j : J) :
     (QdriftBranchU dt A R j)ᴴ
@@ -90,12 +121,15 @@ private theorem qdriftBranchU_conjTranspose {J I : Type} [DecidableEq I] (dt : �
   simp only [QdriftBranchU, Matrix.conjTranspose_add, Matrix.conjTranspose_one,
     Matrix.conjTranspose_smul, RCLike.star_def, Complex.conj_ofReal]
 
+/-- Conjugate transpose preserves the real time coefficients in the quadratic target expansion. -/
 private theorem qdriftTargetV_conjTranspose {I : Type} [DecidableEq I] (dt : ℝ)
     (B S : Matrix I I ℂ) :
     (QdriftTargetV dt B S)ᴴ = 1 + (dt : ℂ) • Bᴴ + ((dt ^ 2 : ℝ) : ℂ) • Sᴴ := by
   simp only [QdriftTargetV, Matrix.conjTranspose_add, Matrix.conjTranspose_one,
     Matrix.conjTranspose_smul, RCLike.star_def, Complex.conj_ofReal]
 
+/-- Expand left and right multiplication by quadratic matrix expressions into constant through
+quartic scalar terms. -/
 private theorem conj_expand_mul {I : Type} [Fintype I] [DecidableEq I] (u₁ u₂ : ℂ)
     (X₁ X₂ ρ : Matrix I I ℂ) :
     (1 + u₁ • X₁ + u₂ • X₂) * ρ * ((1 : Matrix I I ℂ) + u₁ • X₁ᴴ + u₂ • X₂ᴴ)
@@ -106,6 +140,8 @@ private theorem conj_expand_mul {I : Type} [Fintype I] [DecidableEq I] (u₁ u�
   simp only [add_mul, mul_add, smul_mul_assoc, mul_smul_comm, one_mul, mul_one]
   module
 
+/-- Distribute a finite scalar weighted sum over a common constant matrix and four scalar matrix
+terms. -/
 private theorem weighted_sum_expansion {J I : Type} [Fintype J] [Fintype I]
     (p : J → ℂ) (u₁ u₂ u₃ u₄ : ℂ) (X₀ : Matrix I I ℂ) (X₁ X₂ X₃ X₄ : J → Matrix I I ℂ) :
     ∑ j, p j • (X₀ + u₁ • X₁ j + u₂ • X₂ j + u₃ • X₃ j + u₄ • X₄ j)
@@ -119,6 +155,9 @@ private theorem weighted_sum_expansion {J I : Type} [Fintype J] [Fintype I]
     ← Finset.sum_smul, ← Finset.smul_sum, ← Finset.smul_sum, ← Finset.smul_sum,
     ← Finset.smul_sum]
 
+/-- The importance sampled quadratic branch mixture and the quadratic target evolution satisfy
+the specified entrywise second order error polynomial under the stated uniform entry bounds
+[Campbell2019]. -/
 theorem secondOrderErrorRestrictedSubgoal : SecondOrderErrorRestrictedSubgoal := by
   intro J I _ _ _ _ h H Λ hΛ hΛpos dt r hdt _hr cH hcH A hA R S hR hS ρ cρ hcρ a b
 

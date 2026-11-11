@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
 import Mathlib.Analysis.Calculus.MeanValue
+
+/-!
+# Smooth Function Gradient Readout
+
+This module connects the finite-grid gradient construction of [Jordan2005Gradient] to twice
+continuously differentiable real functions on Euclidean space. A global Hessian norm bound `H`
+controls the Taylor remainder at `gradientGridOffset`, so the scaled phase differs from its
+affine gradient model by at most `M*H*h*d/8`.
+
+`gradient_smooth_function_actual_consumer` gives simultaneous signed-coordinate accuracy with
+probability at least `1 - 16*d/(M*w) - pi*M*H*h*d/2`, subject to the stated coordinate and
+window bounds. Affine and rank-one quadratic functions supply explicit consumers with one phase
+query and `2*d` coordinate Fourier gates.
+
+## Main statements
+
+- `gradient_second_derivative_remainder` gives the second-order Taylor bound.
+- `gradient_smooth_phase_remainder` bounds the sampled phase error.
+- `gradient_smooth_function_actual_consumer` gives the signed gradient window guarantee.
+* `gradient_affine_function_consumer` and `gradient_quadratic_function_consumer` instantiate
+  that guarantee.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient], *Fast Quantum Algorithm for Numerical Gradient
+  Estimation*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +49,9 @@ namespace Qatlib.Concepts.SignalPrimitive.GridGradient
 
 open scoped Classical BigOperators
 
+/-- A twice continuously differentiable function with Hessian norm bounded by `H` has
+first-order Taylor remainder at most `H*‖v‖^2/2`, providing a rigorous remainder bound for
+the local gradient model of [Jordan2005Gradient]. -/
 theorem gradient_second_derivative_remainder (d : ℕ)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (x v : EuclideanSpace ℝ (Fin d)) (H : ℝ)
     (hf : ContDiff ℝ 2 f) (_hH : 0 ≤ H)
@@ -66,10 +97,12 @@ theorem gradient_second_derivative_remainder (d : ℕ)
     (by simp [r]) hquad hbound (show (1 : ℝ) ∈ Set.Icc 0 1 by constructor <;> norm_num)
   simpa [r, Real.norm_eq_abs] using! hresult
 
+/-- The centered Euclidean grid offset with coordinate `h*((z j).val/M - 1/2)`. -/
 noncomputable def gradientGridOffset (d M : ℕ) (h : ℝ) (z : GradientGrid d M) :
     EuclideanSpace ℝ (Fin d) :=
   WithLp.toLp 2 (fun j => h*((z j).val/(M:ℝ)-1/2))
 
+/-- For positive `M`, the squared Euclidean norm of a centered grid offset is at most `d*h^2/4`. -/
 theorem gradient_grid_offset_norm_sq (d M : ℕ) (hM : 0 < M) (h : ℝ)
     (z : GradientGrid d M) : ‖gradientGridOffset d M h z‖^2 ≤ (d:ℝ)*h^2/4 := by
   have hMr : 0 < (M:ℝ) := by exact_mod_cast hM
@@ -87,6 +120,8 @@ theorem gradient_grid_offset_norm_sq (d M : ℕ) (hM : 0 < M) (h : ℝ)
       nlinarith [mul_le_mul_of_nonneg_left hs (sq_nonneg h)]
     _ = (d:ℝ)*h^2/4 := by simp; ring
 
+/-- A continuous real linear functional evaluates a coordinate vector as the sum of its
+coordinates times its values on the standard basis vectors. -/
 theorem gradient_linear_coordinates (d : ℕ)
     (L : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ) (a : Fin d → ℝ) :
     L (WithLp.toLp 2 a) = ∑ j : Fin d, a j * L (EuclideanSpace.single j 1) := by
@@ -101,6 +136,9 @@ theorem gradient_linear_coordinates (d : ℕ)
   intro j _
   simp
 
+/-- For positive `M` and `h`, a twice continuously differentiable function with Hessian norm
+bounded by nonnegative `H` has scaled grid phase error at most `M*H*h*d/8` relative to the
+affine model formed from its derivative at `x`. -/
 theorem gradient_smooth_phase_remainder (d M : ℕ) (hM : 0 < M)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d)) (H h : ℝ)
     (hf : ContDiff ℝ 2 f) (hH : 0 ≤ H)
@@ -139,6 +177,9 @@ theorem gradient_smooth_phase_remainder (d M : ℕ) (hM : 0 < M)
       exact gradient_grid_offset_norm_sq d M hM h z
     _ = (M:ℝ)*H*h*(d:ℝ)/8 := by field_simp; ring
 
+/-- Under the smoothness, Hessian, coordinate, and window hypotheses, the signed-gradient event
+probability for the sampled function phase is at least the affine circular-window
+probability minus `pi*M*H*h*d/2`. -/
 theorem gradient_smooth_function_event_transport (d M : ℕ) (hM : 0 < M)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d)) (H h w : ℝ)
     (hf : ContDiff ℝ 2 f) (hH : 0 ≤ H)
@@ -173,6 +214,10 @@ theorem gradient_smooth_function_event_transport (d M : ℕ) (hM : 0 < M)
   dsimp [S] at hlo hmono
   nlinarith
 
+/-- For a twice continuously differentiable function with Hessian norm bounded by nonnegative
+`H`, gradient coordinates bounded by `1/4`, positive `h`, `M ≥ 2`, and `0 < w ≤ 1/8`,
+signed-coordinate readout succeeds jointly with probability at least `1 - 16*d/(M*w) -
+pi*M*H*h*d/2`, quantifying the finite-grid method of [Jordan2005Gradient]. -/
 theorem gradient_smooth_function_actual_consumer (d M : ℕ) (hM : 0 < M)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (x : EuclideanSpace ℝ (Fin d)) (H h w : ℝ)
     (hf : ContDiff ℝ 2 f) (hH : 0 ≤ H)
@@ -192,6 +237,9 @@ theorem gradient_smooth_function_actual_consumer (d M : ℕ) (hM : 0 < M)
     ((M:ℝ)/h*f x-(M:ℝ)/2*∑ j : Fin d, g j) w hM2 hw0
   linarith
 
+/-- For an affine function with derivative coordinates bounded by `1/4`, the signed gradient
+window has probability at least `1 - 16*d/(M*w)` under the stated positive scale and window
+hypotheses. The circuit uses one phase query and `2*d` coordinate Fourier gates. -/
 theorem gradient_affine_function_consumer (d M : ℕ) (hM : 0 < M)
     (L : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ) (c : ℝ)
     (x : EuclideanSpace ℝ (Fin d)) (h w : ℝ)
@@ -218,10 +266,13 @@ theorem gradient_affine_function_consumer (d M : ℕ) (hM : 0 < M)
   simp only [zero_mul, mul_zero, zero_div, sub_zero] at hprob
   exact ⟨hprob, (gradient_coordinate_qft_word_unitarity d M hM).2⟩
 
+/-- The rank-one quadratic function `c + L y + (a/2)*(K y)^2`. -/
 noncomputable def gradientQuadraticFunction (d : ℕ) (c a : ℝ)
     (L K : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ) (y : EuclideanSpace ℝ (Fin d)) : ℝ :=
   c+L y+a/2*(K y)^2
 
+/-- The derivative of `gradientQuadraticFunction` at `y` is the linear functional `L + (a*K y) •
+K`. -/
 theorem gradient_quadratic_fderiv (d : ℕ) (c a : ℝ)
     (L K : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ) (y : EuclideanSpace ℝ (Fin d)) :
     fderiv ℝ (gradientQuadraticFunction d c a L K) y = L+(a*K y)•K := by
@@ -236,6 +287,8 @@ theorem gradient_quadratic_fderiv (d : ℕ) (c a : ℝ)
     ring
   exact he.fderiv
 
+/-- The Hessian operator norm of the rank-one quadratic function is bounded by `|a|*‖K‖^2` at
+every point. -/
 theorem gradient_quadratic_hessian (d : ℕ) (c a : ℝ)
     (L K : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ) (y : EuclideanSpace ℝ (Fin d)) :
     ‖fderiv ℝ (fderiv ℝ (gradientQuadraticFunction d c a L K)) y‖ ≤ |a| * ‖K‖^2 := by
@@ -267,6 +320,10 @@ theorem gradient_quadratic_hessian (d : ℕ) (c a : ℝ)
       exact K.le_opNorm v
     _ = (|a| * ‖K‖^2)*‖v‖ := by ring
 
+/-- For the rank-one quadratic function, the stated coordinate and window bounds give
+simultaneous gradient accuracy with probability at least `1 - 16*d/(M*w) -
+pi*M*(|a|*‖K‖^2)*h*d/2`, instantiating the quadratic local model of [Jordan2005Gradient].
+The same circuit uses one phase query and `2*d` coordinate Fourier gates. -/
 theorem gradient_quadratic_function_consumer (d M : ℕ) (hM : 0 < M)
     (c a : ℝ) (L K : EuclideanSpace ℝ (Fin d) →L[ℝ] ℝ)
     (x : EuclideanSpace ℝ (Fin d)) (h w : ℝ)

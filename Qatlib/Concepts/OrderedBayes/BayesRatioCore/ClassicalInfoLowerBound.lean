@@ -9,6 +9,26 @@ import Mathlib.Tactic.FinCases
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# A three cell obstruction to an information lower bound
+
+A deterministic comparison tree identifies each of three ordered cells with success probability
+one, while using one query on the all false oracle. These facts refute
+`ClassicalInfoLowerBoundContract`, clarifying the scope of a proposed contract motivated by
+ordered search information bounds in [BenOrHassidim2007]
+
+## Main statements
+
+* `threeCellTree_success`: proves exact identification for all three target cells.
+* `threeCellTree_cost`: computes one query on the all false oracle.
+* `classicalInfoLowerBound_obstruction`: refutes the lower bound contract.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,9 +39,13 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib
 
+/-- The three cell comparison tree that queries index one first and, on its true branch, queries
+index two to distinguish the remaining cells. -/
 def threeCellTree : BoolQueryTree (Fin 3) (Fin 3) :=
   .ask 1 (.halt 0) (.ask 2 (.halt 1) (.halt 2))
 
+/-- For every target cell `j : Fin 3`, the deterministic three cell tree returns `j` with
+probability one on the comparison oracle `c ≤ j`. -/
 theorem threeCellTree_success (j : Fin 3) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.SuccessProb (PMF.pure threeCellTree) (fun c => c ≤ j) (fun out => out = j) = 1 := by
   classical
@@ -31,12 +55,14 @@ theorem threeCellTree_success (j : Fin 3) :
     fin_cases j <;> rfl
   simp only [hrun, ite_true]
 
+/-- The deterministic three cell tree has expected query count one on the all false oracle. -/
 theorem threeCellTree_cost :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.ExpectedQueries (PMF.pure threeCellTree) (fun _ => false) = 1 := by
   classical
   simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.ExpectedQueries, PMF.pure_apply,
       threeCellTree, Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run]
 
+/-- The information lower bound contract `ClassicalInfoLowerBoundContract` is false. -/
 theorem classicalInfoLowerBound_obstruction : ¬ ClassicalInfoLowerBoundContract := by
   intro h
   have hI : 0 < queryInfo (3 / 4) := by

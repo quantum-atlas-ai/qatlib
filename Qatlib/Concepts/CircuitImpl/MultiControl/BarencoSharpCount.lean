@@ -9,6 +9,26 @@ import Mathlib.Topology.MetricSpace.HausdorffDimension
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
 import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+
+/-!
+# Legality and semantics of the Corollary 7.4 word
+
+This module verifies the elementary word `cor74Word` for the multi-control construction of
+[BarencoEtAl1995]. The package `cor74_word_package` combines legality, query and gate
+accounting, and the exact computational-basis action of the conjunction-controlled target toggle
+under the stated wire-separation hypotheses.
+
+## Main statements
+
+* `and_update`: Invariance of a control conjunction under an update to another wire.
+* `cor74_word_package`: Legality, compiled counts, and basis semantics.
+* `cor74Word_legal`: Legality of the expanded word.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +51,7 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpCount
 
+/-- Two Boolean sequences agreeing on the first `r` entries have the same prefix conjunction. -/
 private theorem and_congr (c d : ℕ → Bool) (r : ℕ) (h : ∀ i < r, c i = d i) :
     noWorkPrefixAnd c r = noWorkPrefixAnd d r := by
   apply Bool.eq_iff_iff.mpr
@@ -43,20 +64,28 @@ private theorem and_congr (c d : ℕ → Bool) (r : ℕ) (h : ∀ i < r, c i = d
     rw [h i hi]
     exact hd i hi
 
+/-- Updating a wire outside the first `r` control wires leaves their prefix conjunction
+unchanged. -/
 theorem and_update {N : ℕ} (c : ℕ → Fin N) (r : ℕ) (s : Fin N)
     (hc : ∀ i < r, c i ≠ s) (x : Reg N) (v : Bool) :
     noWorkPrefixAnd (fun i => Function.update x s v (c i)) r =
       noWorkPrefixAnd (fun i => x (c i)) r :=
   and_congr _ _ _ (fun i hi => Function.update_of_ne (hc i hi) _ _)
 
+/-- The conjunction over `a + b` entries splits into the conjunction of the first `a` entries
+and the next `b` entries. -/
 private theorem and_add (c : ℕ → Bool) (a b : ℕ) :
     noWorkPrefixAnd c (a+b) = (noWorkPrefixAnd c a && noWorkPrefixAnd (fun i => c (a+i)) b) := by
   simp [noWorkPrefixAnd, List.range_add, List.all_map, Function.comp_def]
 
+/-- A singleton word containing a unitary single-wire gate is legal. -/
 private theorem singleton_legal {N : ℕ} (s : Fin N) (U : Matrix Bool Bool ℂ)
     (hU : U ∈ unitaryGroup Bool ℂ) : reflectionLegal [.inl (s,U)] := by
   simpa [reflectionLegal, reflectionGateLegal] using! hU
 
+/-- For at least five distinct controls disjoint from the spectator and target, `cor74Word` is
+legal and query-free, its compiled gate count equals its length, and its basis action
+toggles the target by the control conjunction. -/
 theorem cor74_word_package {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     (hm : 5 ≤ m) (hc : Set.InjOn c (Set.Iio m))
     (hcs : ∀ i < m, c i ≠ s) (hct : ∀ i < m, c i ≠ t) (hst : s ≠ t) :
@@ -236,6 +265,8 @@ theorem cor74_word_package {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
   exact hquad x
 noncomputable section
 
+/-- The Corollary 7.4 word is legal when its at least five control wires are distinct and
+disjoint from its distinct spectator and target wires. -/
 theorem cor74Word_legal {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     (hm : 5 ≤ m) (hc : Set.InjOn c (Set.Iio m))
     (hcs : ∀ i < m, c i ≠ s) (hct : ∀ i < m, c i ≠ t) (hst : s ≠ t) :

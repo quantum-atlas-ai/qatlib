@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
 import Mathlib.Algebra.Order.Floor.Semiring
+
+/-!
+# Product-formula error and factor counts
+
+This module specializes the finite-family product-formula estimate to Hermitian Hamiltonian
+terms using `trotter_product_formula_error`. It defines the quadratic count expression
+`trotterFactorCount` and proves that a natural step count can meet the required real threshold
+with at most one extra step in `trotter_gate_count`. The mathematical context is
+[FarhiEtAl2000].
+
+## Main statements
+
+* `trotter_product_formula_error`: For Hermitian terms and a positive number of steps, the
+  product-formula error is at most `t ^ 2 / (2 * r) * pfCommutatorSum H`.
+* `trotter_gate_count`: For nonnegative `C`, positive `ε`, and positive `m`, there is a natural
+  step count meeting `T ^ 2 * C / (2 * ε)` whose factor count is at most `(T ^ 2 * C / (2 * ε) +
+  1) * m`.
+
+## References
+
+* [Farhi et al., 2000][FarhiEtAl2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,25 +44,35 @@ open Qatlib.Concepts.TrotterFormula.LieStrang
 open Qatlib.Papers.AdiabaticEvol00.MainResults
 open scoped Matrix.Norms.L2Operator ComplexOrder BigOperators
 
+/-- For Hermitian terms and a positive number of steps, the product-formula error is at most `t
+^ 2 / (2 * r) * pfCommutatorSum H` [FarhiEtAl2000]. -/
 theorem trotter_product_formula_error {D m r : ℕ} (H : Fin m → Operator D) (t : ℝ)
     (hr : 0 < r) (hH : ∀ j, (H j).IsHermitian) :
     ‖pfFamily H t r - HamiltonianEvolution (∑ j, H j) t‖ ≤
       t ^ 2 / (2 * r) * pfCommutatorSum H :=
   product_formula_finite_family_segmented D m r H t hr hH
 
+/-- The product-formula error is at most `ε` whenever its commutator error bound is at most `ε`,
+for Hermitian terms and positive step count [FarhiEtAl2000]. -/
 theorem trotter_error_le_of_steps {D m r : ℕ} (H : Fin m → Operator D) (t ε : ℝ)
     (hr : 0 < r) (hH : ∀ j, (H j).IsHermitian)
     (hstep : t ^ 2 / (2 * r) * pfCommutatorSum H ≤ ε) :
     ‖pfFamily H t r - HamiltonianEvolution (∑ j, H j) t‖ ≤ ε :=
   le_trans (trotter_product_formula_error H t hr hH) hstep
 
+/-- The real factor-count expression `k * T ^ 2 * m`. -/
 def trotterFactorCount (T k : ℝ) (m : ℕ) : ℝ := k * T ^ 2 * (m : ℝ)
 
+/-- For positive `m`, a step count at least `T ^ 2 * C / (2 * ε)` gives a factor count at least
+that threshold times `m` [FarhiEtAl2000]. -/
 theorem trotter_required_factors {T C ε : ℝ} {m r : ℕ} (hm : 0 < (m : ℝ))
     (hr : T ^ 2 * C / (2 * ε) ≤ (r : ℝ)) :
     T ^ 2 * C / (2 * ε) * (m : ℝ) ≤ (r : ℝ) * (m : ℝ) :=
   mul_le_mul_of_nonneg_right hr (le_of_lt hm)
 
+/-- For nonnegative `C`, positive `ε`, and positive `m`, there is a natural step count meeting
+`T ^ 2 * C / (2 * ε)` whose factor count is at most `(T ^ 2 * C / (2 * ε) + 1) * m`
+[FarhiEtAl2000]. -/
 theorem trotter_gate_count {T C ε : ℝ} {m : ℕ} (hm : 0 < (m : ℝ)) (hC : 0 ≤ C)
     (hε : 0 < ε) :
     ∃ r : ℕ, T ^ 2 * C / (2 * ε) ≤ (r : ℝ) ∧
@@ -51,6 +84,8 @@ theorem trotter_gate_count {T C ε : ℝ} {m : ℕ} (hm : 0 < (m : ℝ)) (hC : 0
     linarith
   exact mul_le_mul_of_nonneg_right h1 (le_of_lt hm)
 
+/-- For nonnegative `n`, the count expression with time `n ^ k` and one term equals `C * n ^ (2
+* k)` [FarhiEtAl2000]. -/
 theorem trotter_count_square (n : ℝ) (k C : ℝ) (hn : 0 ≤ n) :
     trotterFactorCount (n ^ k) C 1 = C * n ^ (2 * k) := by
   unfold trotterFactorCount

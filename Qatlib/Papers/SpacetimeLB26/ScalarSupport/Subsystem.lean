@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+/-!
+# Subsystem protection and circuit cost
+
+This module derives scalar distance and circuit-cost bounds from subsystem Singleton and
+locality inequalities. The pairing and vanishing-error arguments express conditional protection
+requirements in the subsystem analysis of [BhartiHaugTanggara2026].
+
+## Main statements
+
+* `accuracy_forces_distance`: The supplied failure lower bound and accuracy target force a
+  logarithmic distance lower bound, together with the corresponding maximum-form lower bounds on
+  subsystem size and circuit cost.
+* `vanishing_error_grows_protection`: If error tends to zero, the noise-ratio parameter stays
+  uniformly positive, and the stated failure and Singleton bounds hold, then both distance and
+  the excess `Nst - k - r` tend to infinity.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +37,8 @@ namespace Qatlib.Papers.SpacetimeLB26.ScalarSupport.Subsystem
 open scoped BigOperators
 open Finset
 
+/-- The assumed subsystem Singleton inequality and size-to-cost comparison imply the
+corresponding circuit-cost lower bound divided by `cloc`. See [BhartiHaugTanggara2026]. -/
 theorem subsystem_singleton_circuit_bound
     (Nst k r dst : ℕ) (cloc Cst : ℝ)
     (_hk : 1 ≤ k) (_hdst : 1 ≤ dst) (hcloc : 0 < cloc)
@@ -27,6 +51,8 @@ theorem subsystem_singleton_circuit_bound
   rw [ge_iff_le, div_le_iff₀ hcloc]
   linarith
 
+/-- A distance of at least `2*t + 1`, together with the supplied Singleton and locality bounds,
+forces circuit cost at least `(k + r + 4*t) / cloc`. See [BhartiHaugTanggara2026]. -/
 theorem cost_of_correcting_small_pauli_fault
     (k r t Nst dst : ℕ) (cloc Cst : ℝ)
     (hcloc : 0 < cloc) (hdst : 2 * t + 1 ≤ dst)
@@ -39,6 +65,8 @@ theorem cost_of_correcting_small_pauli_fault
   have hd : (dst : ℝ) ≥ 2 * (t : ℝ) + 1 := by exact_mod_cast hdst
   nlinarith [hH5, hAss24]
 
+/-- If positive `r` bounds the ratio of `x` and `y` in both directions as stated, then their
+minimum is at least `r / (1+r)` times their sum. See [BhartiHaugTanggara2026]. -/
 theorem min_mass_ge {x y r : ℝ} (_hx : 0 < x) (_hy : 0 < y) (hr : 0 < r) (_hr1 : r ≤ 1)
     (hxy : x ≤ y / r) (hyx : y ≤ x / r) :
     r / (1 + r) * (x + y) ≤ min x y := by
@@ -63,6 +91,9 @@ theorem min_mass_ge {x y r : ℝ} (_hx : 0 < x) (_hy : 0 < y) (hr : 0 < r) (_hr1
       ring
     exact hmul.trans_eq hsimpl
 
+/-- For a positive normalized mass function paired by an involution, the stated failure and
+ratio hypotheses give both a half-sum-of-minima lower bound and the bound `ρ^dst / (1 +
+ρ^dst)` on failure mass, with `ρ = qmin / qmax`. See [BhartiHaugTanggara2026]. -/
 theorem pauli_pairing_bound
     (_Nst k _r dst : ℕ) (qmin qmax : ℝ)
     (_hk : 1 ≤ k) (hqmin : 0 < qmin) (hqmax : 0 < qmax) (hqmin_le : qmin ≤ qmax)
@@ -169,6 +200,9 @@ theorem pauli_pairing_bound
   · linarith [hsummin, hsumpair]
   · linarith [hsummin, hsumpair, hminsum]
 
+/-- The supplied failure lower bound and accuracy target force a logarithmic distance lower
+bound, together with the corresponding maximum-form lower bounds on subsystem size and
+circuit cost. See [BhartiHaugTanggara2026]. -/
 theorem accuracy_forces_distance
     (dst Nst k r : ℕ) (qmin qmax ρ PL ε cloc Cst : ℝ)
     (hdst : 1 ≤ dst) (hcloc : 0 < cloc)
@@ -245,6 +279,9 @@ theorem accuracy_forces_distance
   rw [hdiv, div_le_iff₀ hcloc]
   nlinarith [hNmax, hAss24]
 
+/-- If error tends to zero, the noise-ratio parameter stays uniformly positive, and the stated
+failure and Singleton bounds hold, then both distance and the excess `Nst - k - r` tend to
+infinity. See [BhartiHaugTanggara2026]. -/
 theorem vanishing_error_grows_protection
     (Nst k r dst : ℕ → ℕ) (ρL PL : ℕ → ℝ) (ρ0 : ℝ)
     (hρ0 : 0 < ρ0) (hρ0le : ρ0 ≤ 1)

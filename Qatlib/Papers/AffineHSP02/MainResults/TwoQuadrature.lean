@@ -9,6 +9,25 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic
 
+/-!
+# Two quadratures distinguish opposite phases
+
+Defines cosine and sine outcome weights and combines them in `measProb` by choosing the
+quadrature uniformly. The cosine weights are unchanged under negation of the hidden parameter,
+while the sine outcomes are interchanged; a nonzero sine therefore gives positive total
+variation between the two distributions. See [MooreEtAl2002].
+
+## Main statements
+
+* `measProb_sum`: the four measurement weights sum to one.
+* `measProb_ne_neg_b`: a nonzero sine distinguishes opposite parameters.
+* `twoQuadrature_tv_pos`: the resulting total variation is positive.
+
+## References
+
+* [Moore et al., 2002][MooreEtAl2002]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -18,16 +37,22 @@ namespace Qatlib.Papers.AffineHSP02.MainResults
 
 noncomputable section
 
+/-- The real phase `2π * m * b / p`. -/
 def phase (p : ℕ) (m b : ℤ) : ℝ := 2 * π * ((m * b : ℤ) : ℝ) / (p : ℝ)
 
+/-- The positive cosine-quadrature weight `(1 + cos(phase p m b)) / 2`. -/
 def xPlus (p : ℕ) (m b : ℤ) : ℝ := (1 + Real.cos (phase p m b)) / 2
 
+/-- The negative cosine-quadrature weight `(1 - cos(phase p m b)) / 2`. -/
 def xMinus (p : ℕ) (m b : ℤ) : ℝ := (1 - Real.cos (phase p m b)) / 2
 
+/-- The positive sine-quadrature weight `(1 + sin(phase p m b)) / 2`. -/
 def yPlus (p : ℕ) (m b : ℤ) : ℝ := (1 + Real.sin (phase p m b)) / 2
 
+/-- The negative sine-quadrature weight `(1 - sin(phase p m b)) / 2`. -/
 def yMinus (p : ℕ) (m b : ℤ) : ℝ := (1 - Real.sin (phase p m b)) / 2
 
+/-- Negating `b` negates the phase. -/
 theorem phase_neg_b (p : ℕ) (m b : ℤ) : phase p m (-b) = -phase p m b := by
   unfold phase
   have : m * -b = -(m * b) := by ring
@@ -35,36 +60,45 @@ theorem phase_neg_b (p : ℕ) (m b : ℤ) : phase p m (-b) = -phase p m b := by
   push_cast
   ring
 
+/-- The positive cosine-quadrature weight is unchanged when `b` is negated. -/
 theorem xPlus_neg_b (p : ℕ) (m b : ℤ) : xPlus p m (-b) = xPlus p m b := by
   unfold xPlus
   rw [phase_neg_b, Real.cos_neg]
 
+/-- The negative cosine-quadrature weight is unchanged when `b` is negated. -/
 theorem xMinus_neg_b (p : ℕ) (m b : ℤ) : xMinus p m (-b) = xMinus p m b := by
   unfold xMinus
   rw [phase_neg_b, Real.cos_neg]
 
+/-- Negating `b` exchanges the positive sine weight with the negative sine weight. -/
 theorem yPlus_neg_b (p : ℕ) (m b : ℤ) : yPlus p m (-b) = yMinus p m b := by
   unfold yPlus yMinus
   rw [phase_neg_b, Real.sin_neg]
   ring
 
+/-- Negating `b` exchanges the negative sine weight with the positive sine weight. -/
 theorem yMinus_neg_b (p : ℕ) (m b : ℤ) : yMinus p m (-b) = yPlus p m b := by
   unfold yPlus yMinus
   rw [phase_neg_b, Real.sin_neg]
   ring
 
+/-- The two cosine-quadrature weights sum to one. -/
 theorem xOutcomes_sum (p : ℕ) (m b : ℤ) : xPlus p m b + xMinus p m b = 1 := by
   unfold xPlus xMinus
   ring
 
+/-- The two sine-quadrature weights sum to one. -/
 theorem yOutcomes_sum (p : ℕ) (m b : ℤ) : yPlus p m b + yMinus p m b = 1 := by
   unfold yPlus yMinus
   ring
 
+/-- The four outcome weights obtained by choosing the cosine or sine quadrature with probability
+one half and recording its Boolean outcome. -/
 def measProb (p : ℕ) (m b : ℤ) (q : Bool × Bool) : ℝ :=
   if q.1 then (if q.2 then xPlus p m b else xMinus p m b) / 2
   else (if q.2 then yPlus p m b else yMinus p m b) / 2
 
+/-- The four weights of `measProb p m b` sum to one. -/
 theorem measProb_sum (p : ℕ) (m b : ℤ) :
     ∑ q : Bool × Bool, measProb p m b q = 1 := by
   have hx := xOutcomes_sum p m b
@@ -73,14 +107,18 @@ theorem measProb_sum (p : ℕ) (m b : ℤ) :
     if_true, if_false]
   nlinarith [hx, hy]
 
+/-- Negating `b` leaves each cosine-quadrature measurement weight unchanged. -/
 theorem measProb_X_neg_b (p : ℕ) (m b : ℤ) (s : Bool) :
     measProb p m (-b) (true, s) = measProb p m b (true, s) := by
   cases s <;> simp [measProb, xPlus_neg_b, xMinus_neg_b]
 
+/-- Negating `b` flips the Boolean outcome in the sine-quadrature measurement weights. -/
 theorem measProb_Y_neg_b (p : ℕ) (m b : ℤ) (s : Bool) :
     measProb p m (-b) (false, s) = measProb p m b (false, !s) := by
   cases s <;> simp [measProb, yPlus_neg_b, yMinus_neg_b]
 
+/-- If the sine of the phase is nonzero, the measurement-weight functions for `b` and `-b`
+differ. -/
 theorem measProb_ne_neg_b (p : ℕ) (m b : ℤ)
     (hsin : Real.sin (phase p m b) ≠ 0) : measProb p m b ≠ measProb p m (-b) := by
   intro h
@@ -93,9 +131,11 @@ theorem measProb_ne_neg_b (p : ℕ) (m b : ℤ)
     linarith
   exact hsin hsin0
 
+/-- Half the sum of pointwise absolute differences between two real functions on a finite type. -/
 def tvDist {α : Type*} [Fintype α] (P Q : α → ℝ) : ℝ :=
   (1 / 2) * ∑ a, |P a - Q a|
 
+/-- Two distinct real functions on a finite type have strictly positive `tvDist`. -/
 theorem tvDist_pos_of_ne {α : Type*} [Fintype α] {P Q : α → ℝ} (h : P ≠ Q) :
     0 < tvDist P Q := by
   obtain ⟨a, ha⟩ := Function.ne_iff.mp h
@@ -106,6 +146,8 @@ theorem tvDist_pos_of_ne {α : Type*} [Fintype α] {P Q : α → ℝ} (h : P ≠
   have hsum := Finset.sum_pos' hnonneg ⟨a, Finset.mem_univ a, hpos⟩
   linarith
 
+/-- If the sine of the phase is nonzero, the two-quadrature distributions for `b` and `-b` have
+strictly positive total variation. -/
 theorem twoQuadrature_tv_pos (p : ℕ) (m b : ℤ) (hsin : Real.sin (phase p m b) ≠ 0) :
     0 < tvDist (measProb p m b) (measProb p m (-b)) :=
   tvDist_pos_of_ne (measProb_ne_neg_b p m b hsin)

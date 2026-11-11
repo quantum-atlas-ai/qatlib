@@ -9,6 +9,32 @@ import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+/-!
+# Frobenius concentration for compact sketches
+
+The module expresses compact sketch products as averages of probability-weighted row products
+and proves their mean and second-moment identities. Under one-source or joint row-norm
+domination, it establishes unbiasedness, Frobenius error bounds, and concentration estimates for
+the matrix arithmetic framework of [ChiaEtAl2022].
+
+## Main statements
+
+* `compact_sketch_unbiased_product_and_variances`: Domination of either source gives an unbiased
+  compact product and bounds both its expected squared Frobenius error and its expected cached
+  row-energy product sum by `φ * sketchSquared X * sketchSquared Y / r`. See [ChiaEtAl2022].
+* `compact_sketch_frobenius_norm_bounds_and_tail`: Row-energy domination bounds each sketched
+  row and total energy, gives exact total energy for supported samples when `φ = 1`, and
+  provides the stated two-sided energy tail bound. See [ChiaEtAl2022].
+* `compact_sketch_two_sided_source_frobenius_tail`: Under joint row-norm domination, the
+  probability that the Frobenius product error reaches `√(8 * φ² * log (2 / δ) / r) *
+  sketchRowProductMass X Y` is at most `δ`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
@@ -17,12 +43,15 @@ namespace Qatlib.Concepts.SketchArith.SketchBuild
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.Frobenius
 
+/-- Every squared row norm is nonnegative. -/
 theorem sketchRowSquared_nonneg {K C : Type} [Fintype C] (A : Matrix K C ℂ) (i : K) :
     0≤ sketchRowSquared A i := Finset.sum_nonneg fun _ _ => Complex.normSq_nonneg _
 
+/-- The squared Frobenius energy `sketchSquared A` is nonnegative. -/
 theorem sketchSquared_nonneg {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ) :
     0≤ sketchSquared A := Finset.sum_nonneg fun _ _ => sketchRowSquared_nonneg A _
 
+/-- The squared Frobenius norm of `A` equals the sum of its squared row norms. -/
 theorem sketch_frobenius_norm_sq {K C : Type} [Fintype K] [Fintype C] (A : Matrix K C ℂ) :
     ‖A‖^2=sketchSquared A := by
   rw [Matrix.frobenius_norm_def,← Real.sqrt_eq_rpow,Real.sq_sqrt]
@@ -33,6 +62,7 @@ theorem sketch_frobenius_norm_sq {K C : Type} [Fintype K] [Fintype C] (A : Matri
     intro j _
     exact Real.rpow_nonneg (norm_nonneg _) _
 
+/-- Every entry of a row with zero squared norm is zero. -/
 theorem sketchRowSquared_eq_zero_entry {K C : Type} [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (i : K) (h : sketchRowSquared A i=0) (j : C) : A i j=0 := by
   have hh : Complex.normSq (A i j)≤ sketchRowSquared A i :=
@@ -41,12 +71,14 @@ theorem sketchRowSquared_eq_zero_entry {K C : Type} [Fintype C] [DecidableEq C]
       le_antisymm (by simpa [h] using hh) (Complex.normSq_nonneg _)
   exact Complex.normSq_eq_zero.mp hz
 
+/-- The square of a compact sketch weight is the reciprocal of `r * p.prob (ω t)`. -/
 theorem compactSketch_scale_sq {K : Type} [Fintype K] (p : FinDist K) (r : ℕ)
     (ω : Fin r→K) (t : Fin r) :
     ((compactSketchData p r ω t).2)^2=((r : ℝ)*p.prob (ω t))⁻¹ := by
   change ((Real.sqrt ((r : ℝ)*p.prob (ω t)))⁻¹)^2=_
   rw [inv_pow,Real.sq_sqrt (mul_nonneg (Nat.cast_nonneg r) (p.nonneg _))]
 
+/-- The energy of sketched row `t` is the source row energy divided by `r * p.prob (ω t)`. -/
 theorem compactSketched_row_energy {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (r : ℕ) (ω : Fin r→K) (A : Matrix K C ℂ) (t : Fin r) :
     sketchRowSquared (compactSketched (compactSketchData p r ω) A) t =
@@ -60,10 +92,13 @@ theorem compactSketched_row_energy {K C : Type} [Fintype K] [Fintype C]
   rw [← Finset.mul_sum,hs]
   ring
 
+/-- The conjugate outer product of source row `k` from `X` and `Y`, scaled by the reciprocal of
+its sampling probability. -/
 noncomputable def sketchSampleMatrix {K C D : Type} [Fintype K]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (k : K) : Matrix C D ℂ :=
   fun i j => (p.prob k : ℂ)⁻¹ * (star (X k i)*Y k j)
 
+/-- Each sketch-product entry is the average of the corresponding weighted row-product entries. -/
 theorem sketchProduct_entry_average {K C D : Type} [Fintype K] (p : FinDist K)
     (r : ℕ) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (ω : Fin r→K) (i : C) (j : D) :
     sketchProduct p r X Y ω i j =
@@ -86,6 +121,8 @@ theorem sketchProduct_entry_average {K C D : Type} [Fintype K] (p : FinDist K)
     _ = ((s : ℂ)*(s : ℂ))*(star (X (ω t) i)*Y (ω t) j) := by ring
     _ = _ := by rw [hs]; simp only [mul_inv,sketchSampleMatrix]; ring
 
+/-- The real and imaginary parts of a sketch-product entry are the sample averages of the
+corresponding parts of `sketchSampleMatrix`. -/
 theorem sketchProduct_entry_parts {K C D : Type} [Fintype K] (p : FinDist K)
     (r : ℕ) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (ω : Fin r→K) (i : C) (j : D) :
     (sketchProduct p r X Y ω i j).re =
@@ -95,6 +132,7 @@ theorem sketchProduct_entry_parts {K C D : Type} [Fintype K] (p : FinDist K)
   rw [sketchProduct_entry_average]
   constructor <;> simp [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg,Complex.mul_re,Complex.mul_im,← Complex.ofReal_natCast] <;> ring
 
+/-- The variance of a real observable is at most its second moment. -/
 theorem sketch_variance_le_second {K : Type} [Fintype K] [DecidableEq K]
     (p : FinDist K) (f : K→ℝ) : p.variance f≤ p.expect (fun k=>(f k)^2) := by
   have he (k : K) : p.prob k*(f k)^2 =
@@ -107,16 +145,21 @@ theorem sketch_variance_le_second {K : Type} [Fintype K] [DecidableEq K]
   change p.variance f≤ p.variance f+2*p.expect f*0+(p.expect f)^2*1
   nlinarith [sq_nonneg (p.expect f)]
 
+/-- The entrywise expectation of the probability-weighted row-product matrix. -/
 noncomputable def sketchMeanMatrix {K C D : Type} [Fintype K]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) : Matrix C D ℂ :=
   fun i j => ∑ k,(p.prob k : ℂ)*sketchSampleMatrix p X Y k i j
 
+/-- The real and imaginary parts of `sketchMeanMatrix` equal the expectations of the
+corresponding parts of the sample matrix. -/
 private theorem sketchMean_parts {K C D : Type} [Fintype K] (p : FinDist K)
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (i : C) (j : D) :
     (sketchMeanMatrix p X Y i j).re=p.expect (fun k=>(sketchSampleMatrix p X Y k i j).re) ∧
     (sketchMeanMatrix p X Y i j).im=p.expect (fun k=>(sketchSampleMatrix p X Y k i j).im) := by
   constructor <;> simp [sketchMeanMatrix,Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect,Complex.mul_re,Complex.mul_im]
 
+/-- The mean squared error of a sketch-product entry about its mean is at most the sample-entry
+second moment divided by the positive sample size. -/
 theorem sketchProduct_entry_second_moment {K C D : Type} [Fintype K] [DecidableEq K]
     (p : FinDist K) (r : ℕ) (hr : 0<r) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (i : C) (j : D) :
     (∑ ω : Fin r→K,p.probOf ω*Complex.normSq ((sketchProduct p r X Y ω-sketchMeanMatrix p X Y) i j)) ≤
@@ -142,6 +185,8 @@ theorem sketchProduct_entry_second_moment {K C D : Type} [Fintype K] [DecidableE
   rw [hf]
   exact add_le_add h1 h2
 
+/-- The expected squared Frobenius error about `sketchMeanMatrix` is at most the sample-matrix
+second moment divided by the positive sample size. -/
 theorem sketchProduct_frobenius_second_moment {K C D : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [Fintype D] (p : FinDist K) (r : ℕ) (hr : 0<r)
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) :
@@ -164,6 +209,8 @@ theorem sketchProduct_frobenius_second_moment {K C D : Type} [Fintype K] [Decida
           apply Finset.sum_congr rfl; intro i _; rw [Finset.sum_comm]
         _ = _ := Finset.sum_comm
 
+/-- The expected weighted row product equals `Xᴴ * Y` if all row products outside the support of
+`p` vanish. -/
 theorem sketchMean_eq_product {K C D : Type} [Fintype K]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ)
     (hs : ∀ k,p.prob k=0→∀ i j,star (X k i)*Y k j=0) :
@@ -177,6 +224,8 @@ theorem sketchMean_eq_product {K C D : Type} [Fintype K]
     exact (hs k hp i j).symm
   · simp only [sketchSampleMatrix,← mul_assoc,mul_inv_cancel₀ (Complex.ofReal_ne_zero.mpr hp),one_mul]
 
+/-- The squared Frobenius norm of a sample matrix is the product of source row energies divided
+by the squared sampling probability. -/
 theorem sketchSample_norm_sq {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (k : K) :
     ‖sketchSampleMatrix p X Y k‖^2 =
@@ -187,6 +236,8 @@ theorem sketchSample_norm_sq {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
   simp only [← Finset.mul_sum,← Finset.sum_mul,← pow_two]
   ring
 
+/-- Multiplying the squared sample-matrix norm by its sampling probability gives the row-energy
+product divided by that probability. -/
 theorem sketchSample_weighted_norm {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (k : K) :
     p.prob k*‖sketchSampleMatrix p X Y k‖^2 =
@@ -196,6 +247,8 @@ theorem sketchSample_weighted_norm {K C D : Type} [Fintype K] [Fintype C] [Finty
   · simp [hp]
   · field_simp
 
+/-- Under row-energy domination and positive total energy, a row with zero sampling probability
+has zero energy. -/
 theorem sketch_dominance_zero_row {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ)
     (hφ : 1≤φ) (hA : 0<sketchSquared A)
@@ -206,6 +259,8 @@ theorem sketch_dominance_zero_row {K C : Type} [Fintype K] [Fintype C]
   rw [hp,zero_mul] at hh
   exact le_antisymm hh (sketchRowSquared_nonneg A k)
 
+/-- A domination bound `x / (φ * E) ≤ q` gives `x * y / q ≤ φ * E * y` under the stated sign
+conditions. -/
 private theorem sketch_ratio_bound (x y E φ q : ℝ)
     (hy : 0≤y) (hE : 0<E) (hφ : 1≤φ) (hq : 0≤q) (hd : x/(φ*E)≤q) :
     x*y/q≤φ*E*y := by
@@ -217,6 +272,8 @@ private theorem sketch_ratio_bound (x y E φ q : ℝ)
     apply (div_le_iff₀ hqp).mpr
     nlinarith
 
+/-- Domination of either source's normalized row energies bounds the sample-matrix second moment
+by `φ * sketchSquared X * sketchSquared Y`. -/
 theorem sketch_one_source_second_bound {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (φ : ℝ) (hφ : 1≤φ)
     (hs : ((0<sketchSquared X ∧ ∀ k,sketchRowSquared X k/(φ*sketchSquared X)≤ p.prob k) ∨
@@ -236,6 +293,8 @@ theorem sketch_one_source_second_bound {K C D : Type} [Fintype K] [Fintype C] [F
             (hY.2 k)
       _ = _ := by rw [← Finset.mul_sum]; change φ*sketchSquared Y*sketchSquared X=φ*sketchSquared X*sketchSquared Y; ring
 
+/-- For a positive sample size, the expected sketch-product entry equals the corresponding entry
+of `sketchMeanMatrix`. -/
 theorem sketchProduct_unbiased_mean {K C D : Type} [Fintype K] [DecidableEq K]
     (p : FinDist K) (r : ℕ) (hr : 0<r) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (i : C) (j : D) :
     (∑ ω : Fin r→K,(p.probOf ω : ℂ)*sketchProduct p r X Y ω i j)=sketchMeanMatrix p X Y i j := by
@@ -249,6 +308,8 @@ theorem sketchProduct_unbiased_mean {K C D : Type} [Fintype K] [DecidableEq K]
     simp_rw [(sketchProduct_entry_parts p r X Y _ i j).2]
     exact p.expect_avg _ hr
 
+/-- The expected sum of products of cached sketched row energies equals the sample-matrix second
+moment divided by the positive sample size. -/
 theorem sketch_cached_row_products_expectation {K C D : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [Fintype D] (p : FinDist K) (r : ℕ) (hr : 0<r)
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) :
@@ -273,6 +334,9 @@ theorem sketch_cached_row_products_expectation {K C D : Type} [Fintype K] [Decid
   simp only [hh,Finset.sum_const,nsmul_eq_mul,Finset.card_univ,Fintype.card_fin]
   field_simp [Nat.cast_ne_zero.mpr hr.ne']
 
+/-- Domination of either source gives an unbiased compact product and bounds both its expected
+squared Frobenius error and its expected cached row-energy product sum by `φ * sketchSquared
+X * sketchSquared Y / r`. See [ChiaEtAl2022]. -/
 theorem compact_sketch_unbiased_product_and_variances : ∀ (K C D : Type) [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] [Fintype D] [DecidableEq D] (p : FinDist K) (r : ℕ)
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (φ : ℝ),
@@ -306,6 +370,8 @@ theorem compact_sketch_unbiased_product_and_variances : ∀ (K C D : Type) [Fint
   · rw [sketch_cached_row_products_expectation p r hr X Y]
     exact hdiv
 
+/-- The energy of a compact sketch is the sample average of source row energy divided by
+sampling probability. -/
 theorem compactSketched_energy_avg {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (r : ℕ) (ω : Fin r→K) (A : Matrix K C ℂ) :
     sketchSquared (compactSketched (compactSketchData p r ω) A) =
@@ -316,6 +382,8 @@ theorem compactSketched_energy_avg {K C : Type} [Fintype K] [Fintype C]
   simp only [div_eq_mul_inv,mul_inv]
   ring
 
+/-- Row-energy domination with positive total energy makes the probability-weighted row-energy
+observable have expectation `sketchSquared A`. -/
 theorem sketch_energy_expectation {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (A : Matrix K C ℂ) (φ : ℝ) (hφ : 1≤φ) (hA : 0<sketchSquared A)
     (hdom : ∀ k,sketchRowSquared A k/(φ*sketchSquared A)≤ p.prob k) :
@@ -327,6 +395,8 @@ theorem sketch_energy_expectation {K C : Type} [Fintype K] [Fintype C]
     simp [hp,hz]
   · field_simp
 
+/-- Domination with factor one forces each row energy to equal the total energy multiplied by
+its sampling probability. -/
 theorem sketch_dominance_one_eq {K C : Type} [Fintype K] [Fintype C]
     (p : FinDist K) (A : Matrix K C ℂ) (hA : 0<sketchSquared A)
     (hdom : ∀ k,sketchRowSquared A k/sketchSquared A≤ p.prob k) :
@@ -342,6 +412,9 @@ theorem sketch_dominance_one_eq {K C : Type} [Fintype K] [Fintype C]
   have hh := (Finset.sum_eq_zero_iff_of_nonneg (fun k _=>hn k)).mp hs k (Finset.mem_univ k)
   linarith
 
+/-- Row-energy domination bounds each sketched row and total energy, gives exact total energy
+for supported samples when `φ = 1`, and provides the stated two-sided energy tail bound. See
+[ChiaEtAl2022]. -/
 theorem compact_sketch_frobenius_norm_bounds_and_tail : ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] (p : FinDist K) (r : ℕ) (A : Matrix K C ℂ) (φ : ℝ),
   0< r → 1≤φ → 0< sketchSquared A →
@@ -393,12 +466,15 @@ theorem compact_sketch_frobenius_norm_bounds_and_tail : ∀ (K C : Type) [Fintyp
         Real.sqrt_mul (by positivity),Real.sqrt_sq hA.le]
     simpa only [he,compactSketched_energy_avg] using ht
 
+/-- The square of the product of two row norms equals the product of their squared row norms. -/
 private theorem sketch_sqrt_row_product_sq {K C D : Type} [Fintype C] [Fintype D]
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (k : K) :
     (Real.sqrt (sketchRowSquared X k)*Real.sqrt (sketchRowSquared Y k))^2 =
       sketchRowSquared X k*sketchRowSquared Y k := by
   rw [mul_pow,Real.sq_sqrt (sketchRowSquared_nonneg X k),Real.sq_sqrt (sketchRowSquared_nonneg Y k)]
 
+/-- Joint row-norm domination bounds every sample-matrix Frobenius norm by `φ *
+sketchRowProductMass X Y`. -/
 theorem sketch_two_source_atom_bound {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (φ : ℝ)
     (hφ : 1≤φ) (hW : 0<sketchRowProductMass X Y)
@@ -421,6 +497,8 @@ theorem sketch_two_source_atom_bound {K C D : Type} [Fintype K] [Fintype C] [Fin
     apply (div_le_iff₀ (sq_pos_of_pos hqp)).mpr
     nlinarith
 
+/-- Joint row-norm domination bounds the sample-matrix second moment by `φ *
+(sketchRowProductMass X Y)²`. -/
 theorem sketch_two_source_second_bound {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (φ : ℝ)
     (hφ : 1≤φ) (hW : 0<sketchRowProductMass X Y)
@@ -437,6 +515,7 @@ theorem sketch_two_source_second_bound {K C D : Type} [Fintype K] [Fintype C] [F
         hW hφ (p.nonneg k) (hdom k)
     _ = _ := by rw [← Finset.mul_sum]; change φ*sketchRowProductMass X Y*sketchRowProductMass X Y=_; ring
 
+/-- Under joint row-norm domination, the sample-matrix mean equals `Xᴴ * Y`. -/
 theorem sketch_two_source_mean_eq {K C D : Type} [Fintype K] [Fintype C] [DecidableEq C]
     [Fintype D] [DecidableEq D] (p : FinDist K) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (φ : ℝ)
     (hφ : 1≤φ) (hW : 0<sketchRowProductMass X Y)
@@ -456,6 +535,7 @@ theorem sketch_two_source_mean_eq {K C D : Type} [Fintype K] [Fintype C] [Decida
       rw [← Real.sq_sqrt (sketchRowSquared_nonneg Y k),hy]; norm_num
     rw [sketchRowSquared_eq_zero_entry Y k hy0 j,mul_zero]
 
+/-- The compact sketch product is the matrix average of its weighted row-product samples. -/
 theorem sketchProduct_matrix_average {K C D : Type} [Fintype K]
     (p : FinDist K) (r : ℕ) (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (ω : Fin r→K) :
     sketchProduct p r X Y ω=(r : ℂ)⁻¹ • ∑ t : Fin r,sketchSampleMatrix p X Y (ω t) := by
@@ -463,6 +543,7 @@ theorem sketchProduct_matrix_average {K C D : Type} [Fintype K]
   simp only [Matrix.smul_apply,smul_eq_mul,Matrix.sum_apply]
   exact sketchProduct_entry_average p r X Y ω i j
 
+/-- The square of an expectation is at most the expectation of the square. -/
 theorem sketch_expect_sq_le {K : Type} [Fintype K] [DecidableEq K] (p : FinDist K) (f : K→ℝ) :
     (p.expect f)^2≤ p.expect (fun k=>(f k)^2) := by
   have hh := Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul (Finset.univ : Finset K)
@@ -472,6 +553,8 @@ theorem sketch_expect_sq_le {K : Type} [Fintype K] [DecidableEq K] (p : FinDist 
   simpa only [p.sum_one,one_mul,Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect] using
       hh
 
+/-- If sample-matrix norms are bounded by `B`, changing one sample changes the sketch product by
+Frobenius norm at most `2 * B / r`. -/
 private theorem sketchProduct_coord_difference {K C D : Type} [Fintype K] [Fintype C] [Fintype D]
     (p : FinDist K) (r : ℕ) (_hr : 0<r) (X : Matrix K C ℂ) (Y : Matrix K D ℂ)
     (B : ℝ) (hB : ∀ k,‖sketchSampleMatrix p X Y k‖≤B)
@@ -490,6 +573,8 @@ private theorem sketchProduct_coord_difference {K C D : Type} [Fintype K] [Finty
   have hh := mul_le_mul_of_nonneg_left hb (inv_nonneg.mpr (Nat.cast_nonneg r))
   convert! hh using 1 <;> ring
 
+/-- Under joint row-norm domination, the probability that the Frobenius product error reaches
+`√(8 * φ² * log (2 / δ) / r) * sketchRowProductMass X Y` is at most `δ`. See [ChiaEtAl2022]. -/
 theorem compact_sketch_two_sided_source_frobenius_tail : ∀ (K C D : Type) [Fintype K] [DecidableEq K] [Fintype C]
     [DecidableEq C] [Fintype D] [DecidableEq D] (p : FinDist K) (r : ℕ)
     (X : Matrix K C ℂ) (Y : Matrix K D ℂ) (φ δ : ℝ),

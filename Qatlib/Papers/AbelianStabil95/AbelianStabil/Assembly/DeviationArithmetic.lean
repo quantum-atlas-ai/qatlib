@@ -7,10 +7,28 @@ Authors: Qatlib Contributors
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Scalar deviation estimates
+
+`ScalarDeviationBound` expresses the conversion of a finite sum-of-squares bound into a bound on
+the sum of nonnegative deviations. `lemma_cauchy_schwarz_l1` supplies the Cauchy–Schwarz
+estimate used to prove this conversion. The development follows [Kitaev1995].
+
+## Main statements
+
+* `scalar_deviation_bound`: bounds the total deviation by `2 * sqrt (card Ω * ε)`.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.Assembly
 open scoped BigOperators
 
+/-- The sum of a finite nonnegative real family is bounded by the square root of its cardinality
+times its sum of squares. -/
 theorem lemma_cauchy_schwarz_l1 {Ω : Type} [Fintype Ω] (x : Ω → ℝ)
     (hx : ∀ V, 0 ≤ x V) :
     (∑ V, x V) ≤ Real.sqrt ((Fintype.card Ω : ℝ) * ∑ V, (x V) ^ 2) := by
@@ -21,12 +39,15 @@ theorem lemma_cauchy_schwarz_l1 {Ω : Type} [Fintype Ω] (x : Ω → ℝ)
   calc (∑ V, x V) = Real.sqrt ((∑ V, x V) ^ 2) := (Real.sqrt_sq hnn).symm
     _ ≤ Real.sqrt ((Fintype.card Ω : ℝ) * ∑ V, (x V) ^ 2) := Real.sqrt_le_sqrt hsq
 
+/-- The assertion that nonnegative deviations with sum of squares at most `4 * ε`, for
+nonnegative `ε`, have sum at most `2 * sqrt (card Ω * ε)`. -/
 def ScalarDeviationBound : Prop :=
   ∀ (Ω : Type) [Fintype Ω] (x : Ω → ℝ) (ε : ℝ),
     (∀ V, 0 ≤ x V) → 0 ≤ ε →
     (∑ V, (x V) ^ 2) ≤ 4 * ε →
     (∑ V, x V) ≤ 2 * Real.sqrt ((Fintype.card Ω : ℝ) * ε)
 
+/-- Establishes the scalar deviation bound from the finite Cauchy–Schwarz inequality. -/
 theorem scalar_deviation_bound : ScalarDeviationBound := by
   intro Ω _ x ε hx hε hS
   have hcard : (0 : ℝ) ≤ (Fintype.card Ω : ℝ) := by positivity

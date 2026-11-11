@@ -9,6 +9,26 @@ import Qatlib.Papers.Cbmd26.Algorithms.OuterBridge
 import Qatlib.Papers.Cbmd26.Algorithms.QueryCostBridge
 import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+
+/-!
+# Counted randomized amplitude amplification
+
+Compiles amplitude amplification into `countedAAWord` and defines the randomized schedule and
+projective success law `randomizedAAHerald`. It proves exact expected query counts, per-choice
+bounds, and block-encoding output guarantees up to a unit complex phase. These results support
+the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `countedAAWord_counts`: gives exact amplification resource counts.
+* `counted_blockEncoding_randomized_amplification`: combines heralded success, expected costs,
+  circuit semantics, and output accuracy.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -50,6 +70,8 @@ open scoped Matrix.Norms.L2Operator ENNReal Classical
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- Recursively builds a prepared word implementing `k` amplification rounds around a trial
+body, using its inverse and the input and success reflections. -/
 def countedAAWord (body : List (PreparedStep H)) (zero : H) (S : Finset H) :
     ℕ → List (PreparedStep H)
   | 0 => body
@@ -59,12 +81,15 @@ def countedAAWord (body : List (PreparedStep H)) (zero : H) (S : Finset H) :
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- Prepared data-query, input-query, and fixed-gate counts add under concatenation. -/
 private theorem aa_counts_append (cs ds : List (PreparedStep H)) :
     preparedDataQueries (cs ++ ds) = preparedDataQueries cs + preparedDataQueries ds ∧
     preparedInputQueries (cs ++ ds) = preparedInputQueries cs + preparedInputQueries ds ∧
     preparedFixedGates (cs ++ ds) = preparedFixedGates cs + preparedFixedGates ds :=
   preparedCounts_append cs ds
 
+/-- The counted amplification word evaluates to the `k`th power of the prepared amplification
+iterate followed by the trial body. -/
 theorem countedAAWord_evaluate (O B : Matrix H H ℂ) (body : List (PreparedStep H))
     (zero : H) (S : Finset H) (k : ℕ) :
     evaluatePrepared O B (countedAAWord body zero S k) =
@@ -76,6 +101,8 @@ theorem countedAAWord_evaluate (O B : Matrix H H ℂ) (body : List (PreparedStep
       preparedInstruction, Matrix.mul_one, Qatlib.Concepts.LcuPostselect.ScaledLCU.LCUFixedPoint.inverseWord_evaluate, ih,
       pow_succ', preparedAAIterate, Matrix.mul_assoc]
 
+/-- After `k` rounds, data and input queries are multiplied by `2 * k + 1`, and fixed gates
+equal that multiple of the body count plus `2 * k`. -/
 theorem countedAAWord_counts (body : List (PreparedStep H)) (zero : H) (S : Finset H)
     (k : ℕ) :
     preparedDataQueries (countedAAWord body zero S k) = (2 * k + 1) * preparedDataQueries body ∧
@@ -93,12 +120,14 @@ theorem countedAAWord_counts (body : List (PreparedStep H)) (zero : H) (S : Fins
     · ring
     constructor <;> ring
 
+/-- Concatenating valid prepared circuits gives a valid prepared circuit. -/
 private theorem aa_valid_append {cs ds : List (PreparedStep H)}
     (hc : PreparedCircuitValid cs) (hd : PreparedCircuitValid ds) :
     PreparedCircuitValid (cs ++ ds) := by
   intro c h
   exact (List.mem_append.mp h).elim (hc c) (hd c)
 
+/-- A valid prepared body yields a valid counted amplification word for every round count. -/
 theorem countedAAWord_valid (body : List (PreparedStep H)) (zero : H) (S : Finset H)
     (k : ℕ) (hbody : PreparedCircuitValid body) :
     PreparedCircuitValid (countedAAWord body zero S k) := by
@@ -121,6 +150,8 @@ theorem countedAAWord_valid (body : List (PreparedStep H)) (zero : H) (S : Finse
       (aa_valid_append (aa_valid_append (aa_valid_append hbody hzero)
         (Qatlib.Concepts.LcuPostselect.ScaledLCU.LCUFixedPoint.inverseWord_valid hbody)) hmark) ih
 
+/-- Applying the counted word to the initial basis state equals running the prepared
+amplitude-amplification circuit when the body evaluation is unitary. -/
 theorem countedAAWord_run (O B : Matrix H H ℂ) (body : List (PreparedStep H))
     (zero : H) (S : Finset H) (k : ℕ)
     (hA : evaluatePrepared O B body ∈ Matrix.unitaryGroup H ℂ) :
@@ -129,6 +160,8 @@ theorem countedAAWord_run (O B : Matrix H H ℂ) (body : List (PreparedStep H))
   rw [countedAAWord_evaluate, (prepared_aa_actual_circuit _ zero S k hA).2.2.2]
   simp only [preparedAAState, ApplyGate, Matrix.mulVec_mulVec]
 
+/-- An amplified prepared trial uses `(2 * k + 1)` times the original data queries, `2 * k + 1`
+input queries, and the corresponding gate multiple plus `2 * k`. -/
 theorem countedAAWord_preparedTrial_counts (cs : List (AdjointStep H)) (zero : H)
     (S : Finset H) (k : ℕ) :
     preparedDataQueries (countedAAWord (preparedTrial cs) zero S k) =
@@ -143,6 +176,8 @@ theorem countedAAWord_preparedTrial_counts (cs : List (AdjointStep H)) (zero : H
   rw [hg'] at hg
   exact ⟨hd, hb, hg⟩
 
+/-- Every probability strictly between zero and one is the squared sine of an angle strictly
+between zero and `π / 2`. -/
 theorem success_angle_exists (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
     ∃ θ : ℝ, 0 < θ ∧ θ < Real.pi / 2 ∧ p = (Real.sin θ) ^ 2 := by
   have hs0 := Real.sqrt_nonneg p
@@ -152,6 +187,8 @@ theorem success_angle_exists (p : ℝ) (hp : 0 < p) (hp1 : p < 1) :
     Real.arcsin_lt_pi_div_two.mpr hs1, ?_⟩
   rw [Real.sin_arcsin (by linarith) hs1.le, hsq]
 
+/-- If the initial success probability is at least `1 / r²` and the window is at least `r`, the
+half-initial, half-uniform amplification mixture succeeds with probability at least `1/8`. -/
 theorem randomized_prepared_aa_success (A : Matrix H H ℂ) (zero : H) (S : Finset H)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (r : ℝ) (hr : 0 < r)
     (hp : 1 / r ^ 2 ≤ MeasureProb (preparedAAState A zero) S)
@@ -192,6 +229,8 @@ theorem randomized_prepared_aa_success (A : Matrix H H ℂ) (zero : H) (S : Fins
     have hlow := prepared_aa_uniform_success_lower A zero S θ m hA hm0 hθ0 hθ1 hθp hms
     linarith
 
+/-- The successful projection after any amplification round is a complex scalar multiple of the
+initial successful projection. -/
 theorem prepared_aa_good_collinear (A : Matrix H H ℂ) (zero : H) (S : Finset H)
     (hA : A ∈ Matrix.unitaryGroup H ℂ)
     (hp : 0 < MeasureProb (preparedAAState A zero) S) (k : ℕ) :
@@ -222,6 +261,8 @@ theorem prepared_aa_good_collinear (A : Matrix H H ℂ) (zero : H) (S : Finset H
       by_cases hi : i ∈ S <;> simp [collapse_apply, hi]
     rw [hcol, hbad, hgood, smul_zero, zero_add]
 
+/-- Defines the Boolean probability law of the two branches of an orthogonal projective
+measurement on a normalized state. -/
 def projectiveHeraldLaw (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P)
     (ψ : QState H) (hψ : Normalized ψ) : PMF Bool :=
   PMF.ofFintype (fun b => ENNReal.ofReal (ProjectiveBranchMass P b ψ)) (by
@@ -229,6 +270,8 @@ def projectiveHeraldLaw (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P)
       (projectiveBranchMass_nonneg P false ψ) (projectiveBranchMass_nonneg P true ψ),
       projectiveBranchMass_add hP, measureProb_univ hψ, ENNReal.ofReal_one])
 
+/-- The true-event probability of the projective herald equals the successful projective branch
+mass. -/
 theorem projectiveHeraldLaw_success (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P)
     (ψ : QState H) (hψ : Normalized ψ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (projectiveHeraldLaw P hP ψ hψ) (fun b => b = true) =
@@ -236,12 +279,17 @@ theorem projectiveHeraldLaw_success (P : Matrix H H ℂ) (hP : IsOrthogonalProje
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation, tsum_fintype, projectiveHeraldLaw]
 
+/-- Uses the sampled index as the round count when the schedule bit is true and zero rounds
+otherwise. -/
 def aaRounds {m : ℕ} (choice : Bool × Fin m) : ℕ :=
   if choice.1 then choice.2.val else 0
 
+/-- Defines the uniform law on a Boolean choice and a finite amplification-window index. -/
 def aaSchedule (m : ℕ) [NeZero m] : PMF (Bool × Fin m) :=
   PMF.uniformOfFintype' (Bool × Fin m)
 
+/-- Samples an amplification schedule and then a projective success bit, retaining both the
+schedule and the herald. -/
 def randomizedAAHerald (A : Matrix H H ℂ) (hA : A ∈ Matrix.unitaryGroup H ℂ)
     (zero : H) (S : Finset H) (m : ℕ) [NeZero m] : PMF ((Bool × Fin m) × Bool) :=
   (aaSchedule m).bind fun choice =>
@@ -251,6 +299,8 @@ def randomizedAAHerald (A : Matrix H H ℂ) (hA : A ∈ Matrix.unitaryGroup H �
         (prepared_aa_reflection_and_access A zero S hA).1 (normalized_ket zero))).map
       (fun success => (choice, success))
 
+/-- The expectation of a nonnegative round observable is half its zero-round value plus half its
+uniform-window average. -/
 theorem aaSchedule_expectation (m : ℕ) [NeZero m] (f : ℕ → ℝ)
     (hf : ∀ k, 0 ≤ f k) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (aaSchedule m) (fun c => ENNReal.ofReal (f (aaRounds c))) =
@@ -269,6 +319,8 @@ theorem aaSchedule_expectation (m : ℕ) [NeZero m] (f : ℕ → ℝ)
   field_simp
   ring
 
+/-- The randomized herald's success probability is the half-initial, half-uniform average of the
+amplification success probabilities. -/
 theorem randomizedAAHerald_success (A : Matrix H H ℂ) (hA : A ∈ Matrix.unitaryGroup H ℂ)
     (zero : H) (S : Finset H) (m : ℕ) [NeZero m] :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (randomizedAAHerald A hA zero S m) (fun x => x.2 = true) =
@@ -294,6 +346,8 @@ theorem randomizedAAHerald_success (A : Matrix H H ℂ) (hA : A ∈ Matrix.unita
         (fun k => measureProb_nonneg _ _)]
       congr 2
 
+/-- The randomized herald succeeds with probability at least `1/8` when the initial probability
+and window meet the stated inverse-square threshold. -/
 theorem randomizedAAHerald_success_lower (A : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (zero : H) (S : Finset H)
     (r : ℝ) (hr : 0 < r)
@@ -304,6 +358,8 @@ theorem randomizedAAHerald_success_lower (A : Matrix H H ℂ)
   rw [randomizedAAHerald_success]
   exact ENNReal.ofReal_le_ofReal (randomized_prepared_aa_success A zero S hA r hr hp m hm)
 
+/-- A successful amplified state decoded through the success isometry equals the initial
+normalized decoded state up to a unit complex phase. -/
 theorem prepared_aa_decoded_phase {D : Type} [Fintype D] [DecidableEq D]
     (A : Matrix H H ℂ) (zero : H) (S : Finset H) (hA : A ∈ Matrix.unitaryGroup H ℂ)
     (L : Matrix H D ℂ) (hL : IsIsometry L) (hproject : rangeProjector L = Projector S)
@@ -338,6 +394,8 @@ theorem prepared_aa_decoded_phase {D : Type} [Fintype D] [DecidableEq D]
   rw [hdecoded]
   exact hy
 
+/-- An observable depending only on the schedule has the same expectation before and after
+sampling the success herald. -/
 theorem randomizedAAHerald_schedule_observable (A : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (zero : H) (S : Finset H)
     (m : ℕ) [NeZero m] (f : Bool × Fin m → ℝ≥0∞) :
@@ -346,6 +404,7 @@ theorem randomizedAAHerald_schedule_observable (A : Matrix H H ℂ)
   simp [randomizedAAHerald, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
+/-- The sum of the first `m` odd real numbers is `m²`. -/
 theorem sum_odd_indices (m : ℕ) :
     (∑ i : Fin m, (2 * (i.val : ℝ) + 1)) = (m : ℝ) ^ 2 := by
   induction m with
@@ -357,6 +416,8 @@ theorem sum_odd_indices (m : ℕ) :
     push_cast
     ring
 
+/-- The expected number of input queries in a randomized amplified prepared trial is `(m + 1) /
+2`. -/
 theorem randomizedAAHerald_input_cost (O B : Matrix H H ℂ)
     (cs : List (AdjointStep H)) (zero : H) (S : Finset H)
     (hA : evaluatePrepared O B (preparedTrial cs) ∈ Matrix.unitaryGroup H ℂ)
@@ -382,6 +443,8 @@ theorem randomizedAAHerald_input_cost (O B : Matrix H H ℂ)
   field_simp
   ring
 
+/-- The expected data-query count is `(m + 1) / 2` times the original adjoint word's query
+count. -/
 theorem randomizedAAHerald_data_cost (O B : Matrix H H ℂ)
     (cs : List (AdjointStep H)) (zero : H) (S : Finset H)
     (hA : evaluatePrepared O B (preparedTrial cs) ∈ Matrix.unitaryGroup H ℂ)
@@ -407,6 +470,8 @@ theorem randomizedAAHerald_data_cost (O B : Matrix H H ℂ)
   field_simp
   ring
 
+/-- Every schedule choice uses at most `2 * m - 1` input queries and that multiple of the
+original data-query count. -/
 theorem randomizedAA_path_budget (cs : List (AdjointStep H)) (zero : H) (S : Finset H)
     (m : ℕ) [NeZero m] (choice : Bool × Fin m) :
     preparedInputQueries (countedAAWord (preparedTrial cs) zero S (aaRounds choice)) ≤ 2 * m - 1 ∧
@@ -422,6 +487,8 @@ theorem randomizedAA_path_budget (cs : List (AdjointStep H)) (zero : H) (S : Fin
     (countedAAWord_preparedTrial_counts cs zero S _).2.1]
   exact ⟨hcount, Nat.mul_le_mul_right _ hcount⟩
 
+/-- Prepared-state event probability and decoded vector coincide with the block-encoding
+postselection probability and vector for the specified preparation and success projector. -/
 theorem blockEncoding_prepared_identification {I D : Type} [Fintype I] [DecidableEq I]
     [Fintype D] [DecidableEq D]
     (V B : Matrix H H ℂ) (L : Matrix H D ℂ) (R : Matrix H I ℂ)
@@ -441,6 +508,8 @@ theorem blockEncoding_prepared_identification {I D : Type} [Fintype I] [Decidabl
     simp only [postselectionVector, compress, ApplyGate, Matrix.mulVec_mulVec,
       Matrix.mul_assoc]
 
+/-- A block encoding with error at most `η / 2` and target output norm at least `η` has prepared
+success probability at least `1 / (2 * scale / η)²`. -/
 theorem blockEncoding_prepared_success_lower {I D : Type} [Fintype I] [DecidableEq I]
     [Fintype D] [DecidableEq D]
     (target : Matrix D I ℂ) (V B : Matrix H H ℂ)
@@ -467,6 +536,8 @@ theorem blockEncoding_prepared_success_lower {I D : Type} [Fintype I] [Decidable
     field_simp
   exact heq.trans_le (hsquare.trans hp)
 
+/-- A block encoding with the stated error and output-norm bounds achieves randomized heralding
+probability at least `1/8` with window at least `2 * scale / η`. -/
 theorem blockEncoding_randomized_success {I D : Type} [Fintype I] [DecidableEq I]
     [Fintype D] [DecidableEq D]
     (target : Matrix D I ℂ) (V B : Matrix H H ℂ)
@@ -485,6 +556,9 @@ theorem blockEncoding_randomized_success {I D : Type} [Fintype I] [DecidableEq I
   exact blockEncoding_prepared_success_lower target V B L R scale error η henc zero S ψ hψ
     hprepare hproject hη htarget herror
 
+/-- Every amplification round with positive success probability yields a normalized decoded
+output accurate up to phase, with error at most twice the encoding error divided by the
+target output norm. -/
 theorem blockEncoding_randomized_output {I D : Type} [Fintype I] [DecidableEq I]
     [Fintype D] [DecidableEq D]
     (target : Matrix D I ℂ) (V B : Matrix H H ℂ)
@@ -521,6 +595,7 @@ theorem blockEncoding_randomized_output {I D : Type} [Fintype I] [DecidableEq I]
   rw [halign, hnormed]
   exact hspec
 
+/-- If a probability at most one is at least `1 / r²` for positive `r`, then `r ≥ 1`. -/
 theorem aa_budget_scale_ge_one (r p : ℝ) (hr : 0 < r) (hp : p ≤ 1)
     (hlower : 1 / r ^ 2 ≤ p) : 1 ≤ r := by
   have hsq : 1 ≤ r ^ 2 := by
@@ -528,6 +603,8 @@ theorem aa_budget_scale_ge_one (r p : ℝ) (hr : 0 < r) (hp : p ≤ 1)
     simpa using! h
   exact (sq_le_sq₀ (by norm_num : (0 : ℝ) ≤ 1) hr.le).mp (by simpa using! hsq)
 
+/-- For `r ≥ 1`, its natural ceiling is positive, dominates `r`, and satisfies the displayed
+mean and path multiplicity bounds. -/
 theorem aa_ceil_window_bounds (r : ℝ) (hr : 1 ≤ r) :
     0 < Nat.ceil r ∧ r ≤ (Nat.ceil r : ℝ) ∧
     (((Nat.ceil r : ℝ) + 1) / 2 ≤ (3 / 2 : ℝ) * r) ∧
@@ -537,6 +614,8 @@ theorem aa_ceil_window_bounds (r : ℝ) (hr : 1 ≤ r) :
   have hposR : (0 : ℝ) < Nat.ceil r := by linarith
   exact ⟨by exact_mod_cast hposR, hceil, by linarith, by linarith⟩
 
+/-- An inverse-square initial success bound gives a positive ceiling window with the displayed
+mean and path multiplicity bounds. -/
 theorem prepared_aa_known_window_bounds (A : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (zero : H) (S : Finset H)
     (r : ℝ) (hr : 0 < r)
@@ -548,6 +627,9 @@ theorem prepared_aa_known_window_bounds (A : Matrix H H ℂ)
   exact aa_budget_scale_ge_one r _ hr
     (measureProb_le_one (prepared_aa_reflection_and_access A zero S hA).2.1 S) hp
 
+/-- Combines success probability at least `1/8`, exact expected input and data query counts,
+valid circuit semantics, and phase-qualified normalized output accuracy for a block-encoding
+trial [WangEtAl2026]. -/
 theorem counted_blockEncoding_randomized_amplification
     {I D : Type} [Fintype I] [DecidableEq I] [Fintype D] [DecidableEq D]
     (target : Matrix D I ℂ) (O B : Matrix H H ℂ) (cs : List (AdjointStep H))
@@ -597,6 +679,8 @@ theorem counted_blockEncoding_randomized_amplification
       henc hB zero S ψ hψ hprepare hproject _ k hk
     linarith
 
+/-- The weighted sample encoding and stated contour, auxiliary, and tail bounds yield an outer
+LCU unitary whose randomized amplification succeeds with probability at least `1/8`. -/
 theorem outer_randomized_success_of_residue_bounds
     {J W I D : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] [Fintype D] [DecidableEq D]
@@ -629,6 +713,8 @@ theorem outer_randomized_success_of_residue_bounds
   exact blockEncoding_randomized_success target _ B _ _ _ _ η houter hB zero S ψ hψ
     hprepare hproject hη htarget herror m hwindow
 
+/-- A supported outcome with true herald has strictly positive success probability for its
+chosen amplification round count. -/
 theorem randomizedAAHerald_support_success (A : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (zero : H) (S : Finset H)
     (m : ℕ) [NeZero m] (choice : Bool × Fin m)
@@ -653,6 +739,8 @@ theorem randomizedAAHerald_support_success (A : Matrix H H ℂ)
     sum_normSq_collapse _ _
   exact heqMass ▸ hmass
 
+/-- Every supported successful herald yields a normalized decoded output with error at most
+twice the encoding error divided by the target output norm, up to phase. -/
 theorem blockEncoding_randomized_supported_output
     {I D : Type} [Fintype I] [DecidableEq I] [Fintype D] [DecidableEq D]
     (target : Matrix D I ℂ) (V B : Matrix H H ℂ)

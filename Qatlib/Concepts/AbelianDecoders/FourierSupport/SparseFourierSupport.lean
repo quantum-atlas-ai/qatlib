@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
 import Mathlib.LinearAlgebra.Vandermonde
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+/-!
+# Sparse support bounds for the cyclic Fourier transform
+
+This module defines `sparseFourierSupport` and proves support-sensitive bounds for `zmodQFT`. It
+combines cyclic-window nonvanishing, preservation of squared norm, and a pointwise Fourier
+weight estimate to obtain the support-product uncertainty inequality. For background, see
+[Cornwell2014].
+
+## Main statements
+
+* `sparse_fourier_circular_window`: Every cyclic Fourier window of length equal to the support
+  size of a nonzero state contains a nonzero Fourier coefficient.
+* `sparse_fourier_support_product`: For a nonzero state on `ZMod N`, the product of its support
+  size and its Fourier support size is at least `N`.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,13 +41,16 @@ namespace Qatlib.Concepts.AbelianDecoders.FourierSupport
 
 open scoped Classical
 
+/-- The finite set of coordinates where the state `ψ` has nonzero amplitude. -/
 noncomputable def sparseFourierSupport {I : Type*} [Fintype I] (ψ : QState I) : Finset I :=
   Finset.univ.filter (fun x => ψ x ≠ 0)
 
+/-- A coordinate belongs to `sparseFourierSupport ψ` exactly when its amplitude is nonzero. -/
 @[simp] theorem mem_sparseFourierSupport {I : Type*} [Fintype I]
     (ψ : QState I) (x : I) : x ∈ sparseFourierSupport ψ ↔ ψ x ≠ 0 := by
   simp [sparseFourierSupport]
 
+/-- A nonzero state has strictly positive support cardinality. -/
 theorem sparseFourierSupport_card_pos {I : Type*} [Fintype I]
     {ψ : QState I} (hψ : ψ ≠ 0) : 0 < (sparseFourierSupport ψ).card := by
   rw [Finset.card_pos]
@@ -37,6 +61,7 @@ theorem sparseFourierSupport_card_pos {I : Type*} [Fintype I]
     simpa using (not_exists.mp h x)
   exact ⟨x, (mem_sparseFourierSupport ψ x).mpr hx⟩
 
+/-- A weighted sum against `ψ` may be restricted to the nonzero support of `ψ`. -/
 theorem sum_mul_sparseFourierSupport {I : Type*} [Fintype I]
     (ψ c : QState I) : ∑ x, c x * ψ x = ∑ x ∈ sparseFourierSupport ψ, c x * ψ x := by
   symm
@@ -45,6 +70,7 @@ theorem sum_mul_sparseFourierSupport {I : Type*} [Fintype I]
   have hzero : ψ x = 0 := by simpa using hx
   simp [hzero]
 
+/-- The standard additive character of `ZMod N` is injective. -/
 theorem stdAddChar_injective {N : ℕ} [NeZero N] :
     Function.Injective (ZMod.stdAddChar (N := N)) := by
   intro x y h
@@ -53,6 +79,8 @@ theorem stdAddChar_injective {N : ℕ} [NeZero N] :
   exact ZMod.val_injective (n := N) ((isPrimitiveRoot_primRoot (NeZero.ne N)).pow_inj
     (ZMod.val_lt x) (ZMod.val_lt y) h)
 
+/-- Every cyclic Fourier window of length equal to the support size of a nonzero state contains
+a nonzero Fourier coefficient. -/
 theorem sparse_fourier_circular_window {N : ℕ} [NeZero N]
     (ψ : QState (ZMod N)) (hψ : ψ ≠ 0) (a : ZMod N) :
     ∃ t : Fin (sparseFourierSupport ψ).card,
@@ -101,6 +129,8 @@ theorem sparse_fourier_circular_window {N : ℕ} [NeZero N]
     norm_num at hn
   exact (mul_ne_zero hc hj) (congrFun hv j)
 
+/-- Summing the squared coordinate norms over the support gives the same result as summing over
+all coordinates. -/
 theorem sum_sq_norm_sparseFourierSupport {I : Type*} [Fintype I] (ψ : QState I) :
     ∑ x ∈ sparseFourierSupport ψ, ‖ψ x‖ ^ 2 = ∑ x, ‖ψ x‖ ^ 2 := by
   apply Finset.sum_subset (Finset.filter_subset _ _)
@@ -108,11 +138,13 @@ theorem sum_sq_norm_sparseFourierSupport {I : Type*} [Fintype I] (ψ : QState I)
   have hzero : ψ x = 0 := by simpa using hx
   simp [hzero]
 
+/-- The cyclic quantum Fourier transform preserves the sum of squared coordinate norms. -/
 theorem sum_sq_norm_zmodQFT {N : ℕ} [NeZero N] (ψ : QState (ZMod N)) :
     ∑ y, ‖zmodQFT ψ y‖ ^ 2 = ∑ x, ‖ψ x‖ ^ 2 := by
   simp_rw [← Complex.normSq_eq_norm_sq, ← applyGate_zmodQFTGate]
   exact sum_normSq_mulVec_of_mem_unitaryGroup (zmodQFTGate_unitary (NeZero.pos N)) ψ
 
+/-- Each Fourier coefficient satisfies `N * ‖zmodQFT ψ k‖² ≤ |supp ψ| * ∑ x, ‖ψ x‖²`. -/
 theorem sparse_fourier_point_weight {N : ℕ} [NeZero N]
     (ψ : QState (ZMod N)) (k : ZMod N) :
     (N : ℝ) * ‖zmodQFT ψ k‖ ^ 2 ≤
@@ -139,6 +171,8 @@ theorem sparse_fourier_point_weight {N : ℕ} [NeZero N]
   have hsquare := mul_self_le_mul_self (mul_nonneg hs.le hb) htriangle
   nlinarith
 
+/-- For a nonzero state on `ZMod N`, the product of its support size and its Fourier support
+size is at least `N`. -/
 theorem sparse_fourier_support_product {N : ℕ} [NeZero N]
     (ψ : QState (ZMod N)) (hψ : ψ ≠ 0) :
     N ≤ (sparseFourierSupport ψ).card * (sparseFourierSupport (zmodQFT ψ)).card := by

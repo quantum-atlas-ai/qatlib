@@ -9,6 +9,26 @@ import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
 import Mathlib.Tactic.NormNum.RealSqrt
+
+/-!
+# Trigonometric windows for record-driven amplification
+
+This module supplies inverse-sine estimates and sine-squared gain bounds for the record-driven
+round searches. The final perturbation estimate turns a first estimated crossing of success `1 /
+2` into true success at least `2 / 5`, supporting the variable-time amplification analysis
+associated with [Ambainis2012].
+
+## Main statements
+
+* `rdvt_crossing_window`: a true-angle window from a relative-error estimate.
+* `rdvt_window_gain`: a quantitative lower bound on amplified success.
+* `rdvt_final_success`: stability of the final success crossing.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +46,7 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 noncomputable section
 
+/-- For `0 ≤ t < 1`, `arcsin t ≤ t / sqrt (1 - t²)`. -/
 theorem rdvt_arcsin_le_div {t : ℝ} (ht : 0 ≤ t) (ht1 : t < 1) :
     Real.arcsin t ≤ t/Real.sqrt (1-t^2) := by
   have h0 : 0 ≤ Real.arcsin t := (Real.arcsin_nonneg).2 ht
@@ -38,6 +59,8 @@ theorem rdvt_arcsin_le_div {t : ℝ} (ht : 0 ≤ t) (ht1 : t < 1) :
 end
 noncomputable section
 
+/-- For `m ≥ 17` and `n ≥ 3`, an estimate within relative error `1 / 100` and estimated gain at
+most `3 / (2 * m)` imply true squared rotation angle at most `8 / (5 * m)`. -/
 theorem rdvt_crossing_window {a est : ℝ} {n m : ℕ} (hm : 17 ≤ m) (hn : 3 ≤ n)
     (hest : |est-a| ≤ a/100)
     (hhigh : (n:ℝ)^2*est ≤ 3/(2*(m:ℝ))) :
@@ -169,6 +192,8 @@ theorem rdvt_crossing_window {a est : ℝ} {n m : ℕ} (hm : 17 ≤ m) (hn : 3 �
 end
 noncomputable section
 
+/-- For `m ≥ 17`, `N ≥ 1`, and `a ∈ [0, 1]` in the stated angle window, the amplified
+sine-squared mass is at least `(1 - 4 / (5 * m)) * N² * a`. -/
 theorem rdvt_window_gain {a : ℝ} {N m : ℕ} (hm : 17 ≤ m) (hN : 1 ≤ N) (ha0 : 0 ≤ a)
     (ha1 : a ≤ 1)
     (hwin : ((N:ℝ)*Real.arcsin (Real.sqrt a))^2 ≤ 8/(5*(m:ℝ))) :
@@ -248,6 +273,7 @@ theorem rdvt_window_gain {a : ℝ} {N m : ℕ} (hm : 17 ≤ m) (hN : 1 ≤ N) (h
 end
 noncomputable section
 
+/-- The function `x ↦ sin² x` is Lipschitz with constant one on `ℝ`. -/
 theorem rdvt_sin_sq_abs_sub_le (x y : ℝ) :
     |(Real.sin x)^2-(Real.sin y)^2| ≤ |x-y| := by
   have hid : (Real.sin x)^2-(Real.sin y)^2 = Real.sin (x+y)*Real.sin (x-y) := by
@@ -266,6 +292,7 @@ theorem rdvt_sin_sq_abs_sub_le (x y : ℝ) :
 end
 noncomputable section
 
+/-- For `π / 4 ≤ x ≤ 3 * π / 4`, `sin² x` is at least `1 / 2`. -/
 theorem rdvt_sin_sq_ge_of_window {x : ℝ} (h1 : Real.pi/4 ≤ x) (h2 : x ≤ 3*Real.pi/4) :
     1/2 ≤ (Real.sin x)^2 := by
   have hpi : (0:ℝ) < Real.pi := Real.pi_pos
@@ -308,6 +335,7 @@ theorem rdvt_sin_sq_ge_of_window {x : ℝ} (h1 : Real.pi/4 ≤ x) (h2 : x ≤ 3*
 end
 noncomputable section
 
+/-- For `0 ≤ x < π / 4`, `sin² x` is strictly less than `1 / 2`. -/
 theorem rdvt_sin_sq_lt_of_lt {x : ℝ} (h0 : 0 ≤ x) (h : x < Real.pi/4) :
     (Real.sin x)^2 < 1/2 := by
   have hpi : (0:ℝ) < Real.pi := Real.pi_pos
@@ -336,6 +364,8 @@ theorem rdvt_sin_sq_lt_of_lt {x : ℝ} (h0 : 0 ≤ x) (h : x < Real.pi/4) :
 end
 noncomputable section
 
+/-- On `[0, u]` with `0 ≤ u < 1`, inverse sine satisfies the difference bound `|arcsin s -
+arcsin t| ≤ |s - t| / sqrt (1 - u²)`. -/
 theorem rdvt_arcsin_lipschitz {s t u : ℝ} (h0 : 0 ≤ u) (hu1 : u < 1) (hs : 0 ≤ s) (ht : 0 ≤ t)
     (hsu : s ≤ u) (htu : t ≤ u) :
     |Real.arcsin s-Real.arcsin t| ≤ |s-t|/Real.sqrt (1-u^2) := by
@@ -377,6 +407,9 @@ theorem rdvt_arcsin_lipschitz {s t u : ℝ} (h0 : 0 ≤ u) (hu1 : u < 1) (hs : 0
 end
 noncomputable section
 
+/-- If a positive true mass is estimated within relative error `1 / 100` by an estimate below `1
+/ 2`, then a first estimated success crossing at round `k ≥ 1` guarantees true amplified
+success at least `2 / 5`. -/
 theorem rdvt_final_success {g est : ℝ} {k : ℕ} (hk : 1 ≤ k) (hg0 : 0 < g)
     (hgest : |est-g| ≤ g/100) (hest : est < 1/2)
     (hcross : 1/2 ≤ (Real.sin ((2*(k:ℝ)+1)*Real.arcsin (Real.sqrt est)))^2)

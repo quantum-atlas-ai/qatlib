@@ -7,6 +7,37 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
 import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
 import Mathlib.Analysis.Convex.Cone.Dual
+
+/-!
+# Finite semidefinite geometry of filtered γ₂
+
+This module develops fixed-width certificates, compact budget sets, and closed SDP epigraphs for
+finite filtered γ₂ optimization. The cone `gamma2SDPEpigraphCone` supports separation into
+positive semidefinite dual blocks, and `gamma2_psd_operator_polar` converts normalized block
+certificates into feasible Schur multipliers for the duality framework of [LeeEtAl2011].
+
+## Main statements
+
+* `filteredGamma2_fixed_budget_boundary`: For a nonnegative budget `W`, the filtered γ₂ value is
+  at most `ENNReal.ofReal W` exactly when a Gram filtered certificate with budget `W` exists.
+
+* `gamma2_budget_set_compact`: The set of matrices possessing a Gram filtered certificate with a
+  fixed nonnegative budget is compact.
+
+* `gamma2SDPEpigraph_closed`: The epigraph of feasible filtered SDP target–budget pairs is
+  closed.
+
+* `gamma2_psd_separation`: For a supported target with no certificate at a nonnegative budget,
+  there are positive semidefinite dual blocks with nonnegative weights of total mass one and
+  pairing strictly above that budget.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,9 +54,12 @@ namespace Qatlib.Concepts.GramQueryCore.GammaDuality
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Families of complex square matrices indexed by `X ⊕ X`, one for each of `n` filters. -/
 abbrev Gamma2FixedFamily (X : Type) (n : ℕ) :=
   Fin n → (X ⊕ X) → (X ⊕ X) → ℂ
 
+/-- Every Gram filtered certificate has witnesses indexed by `X ⊕ X`, preserving the filtered
+factorization and the budget bound. -/
 theorem gramFilteredCert_fixed_width {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} {A : Matrix X X ℂ} {Z : Fin n → Matrix X X ℂ} {W : ℝ}
     (h : gramFilteredCert A Z W) :
@@ -59,6 +93,8 @@ theorem gramFilteredCert_fixed_width {X : Type} [Fintype X] [DecidableEq X]
     simp_rw [hinner]
     exact huv x y
 
+/-- For a nonnegative budget `W`, the filtered γ₂ value is at most `ENNReal.ofReal W` exactly
+when a Gram filtered certificate with budget `W` exists. -/
 theorem filteredGamma2_fixed_budget_boundary (X : Type) [Fintype X] [DecidableEq X]
     (n : ℕ) (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (W : ℝ) (hW : 0 ≤ W) :
     filteredGamma2 A Z ≤ ENNReal.ofReal W ↔ gramFilteredCert A Z W := by
@@ -138,6 +174,8 @@ theorem filteredGamma2_fixed_budget_boundary (X : Type) [Fintype X] [DecidableEq
     rw [hA]
     exact gramFilteredCert_zero Z hW
 
+/-- A nonnegative squared-mass budget `W` bounds the elementwise norm of a fixed witness family
+by `Real.sqrt W`. -/
 theorem gamma2_fixed_family_norm_bound {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (w : Gamma2FixedFamily X n) (W : ℝ) (hW : 0 ≤ W)
     (hw : ∀ z, ∑ j, ∑ q, Complex.normSq (w j z q) ≤ W) :
@@ -158,6 +196,8 @@ theorem gamma2_fixed_family_norm_bound {X : Type} [Fintype X] [DecidableEq X] {n
   rw [Complex.normSq_eq_norm_sq] at hs
   nlinarith [Real.sq_sqrt hW, norm_nonneg (w j z q)]
 
+/-- The set of matrices possessing a Gram filtered certificate with a fixed nonnegative budget
+is compact. -/
 theorem gamma2_budget_set_compact (X : Type) [Fintype X] [DecidableEq X] (n : ℕ)
     (Z : Fin n → Matrix X X ℂ) (W : ℝ) (hW : 0 ≤ W) :
     IsCompact {A : Matrix X X ℂ | gramFilteredCert A Z W} := by
@@ -199,6 +239,8 @@ theorem gamma2_budget_set_compact (X : Type) [Fintype X] [DecidableEq X] (n : �
   rw [← himage]
   exact hSk.image hL
 
+/-- The set of matrices possessing a Gram filtered certificate at a fixed budget is convex over
+the reals. -/
 theorem gamma2_budget_set_convex {X : Type} {n : ℕ} (Z : Fin n → Matrix X X ℂ) (W : ℝ) :
     Convex ℝ {A : Matrix X X ℂ | gramFilteredCert A Z W} := by
   intro A hA B hB a b ha hb hab
@@ -210,6 +252,8 @@ theorem gamma2_budget_set_convex {X : Type} {n : ℕ} (Z : Fin n → Matrix X X 
 section BudgetSeparation
 open scoped Matrix.Norms.Elementwise
 
+/-- A matrix with no certificate at a given nonnegative budget is strictly separated from all
+certified matrices by a continuous real linear functional. -/
 theorem gamma2_budget_separator (X : Type) [Fintype X] [DecidableEq X] (n : ℕ)
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (W : ℝ) (hW : 0 ≤ W)
     (hA : ¬gramFilteredCert A Z W) :
@@ -224,6 +268,8 @@ end BudgetSeparation
 open scoped Matrix.Norms.L2Operator MatrixOrder
 set_option backward.isDefEq.respectTransparency false
 
+/-- A zero diagonal entry of a positive semidefinite matrix forces the corresponding column to
+vanish. -/
 theorem gamma2_psd_zero_column {X : Type} [Fintype X] [DecidableEq X]
     (B : Matrix X X ℂ) (hB : B.PosSemidef) (j : X) (hj : B j j = 0) :
     ∀ i, B i j = 0 := by
@@ -233,12 +279,15 @@ theorem gamma2_psd_zero_column {X : Type} [Fintype X] [DecidableEq X]
   intro i
   simpa using congrFun hv i
 
+/-- The real part of the Hermitian self-pairing of a vector is its squared Euclidean norm. -/
 theorem gamma2_vec_dot_norm_sq {X : Type} [Fintype X] [DecidableEq X] (v : X → ℂ) :
     (star v ⬝ᵥ v).re = ‖toEuclidean_fromVec v‖^2 := by
   rw [norm_toEuclidean_fromVec_sq]
   simp only [dotProduct, Pi.star_apply, Complex.re_sum, Complex.star_def,
     ← Complex.normSq_eq_conj_mul_self, Complex.ofReal_re, Complex.normSq_eq_norm_sq]
 
+/-- A matrix whose Hermitian block matrix with identity diagonal blocks is positive semidefinite
+has operator norm at most one. -/
 theorem gamma2_psd_unit_block_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ)
     (hT : (Matrix.fromBlocks (1 : Matrix X X ℂ) T Tᴴ 1).PosSemidef) : ‖T‖ ≤ 1 := by
@@ -257,6 +306,8 @@ theorem gamma2_psd_unit_block_norm_le {X : Type} [Fintype X] [DecidableEq X]
   simp only [one_mul]
   nlinarith [norm_nonneg (toEuclidean_fromVec v), norm_nonneg (toEuclidean_fromVec (T*ᵥv))]
 
+/-- For nonnegative `a`, rescaling by its inverse square root gives one after adding the
+indicator of `a = 0`. -/
 theorem gamma2_inverse_sqrt_diagonal {a : ℝ} (ha : 0 ≤ a) :
     (Real.sqrt a)⁻¹*a*(Real.sqrt a)⁻¹ + (if a=0 then 1 else 0) = 1 := by
   by_cases hz : a=0
@@ -266,6 +317,8 @@ theorem gamma2_inverse_sqrt_diagonal {a : ℝ} (ha : 0 ≤ a) :
     field_simp
     nlinarith [Real.sq_sqrt ha]
 
+/-- The off-diagonal block of a positive semidefinite matrix becomes a contraction after
+entrywise division by the square roots of its nonnegative diagonal weights. -/
 theorem gamma2_psd_diagonal_rescale_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (a b : X → ℝ) (T : Matrix X X ℂ) (ha : ∀ x, 0 ≤ a x) (hb : ∀ x, 0 ≤ b x)
     (hT : (Matrix.fromBlocks (Matrix.diagonal fun x => (a x : ℂ)) T Tᴴ
@@ -315,6 +368,7 @@ theorem gamma2_psd_diagonal_rescale_norm_le {X : Type} [Fintype X] [DecidableEq 
   rw [he] at hK
   exact gamma2_psd_unit_block_norm_le R hK
 
+/-- Entrywise complex conjugation does not increase the matrix operator norm. -/
 theorem gamma2_entry_conj_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (M : Matrix X X ℂ) : ‖Matrix.of (fun x y => star (M x y))‖ ≤ ‖M‖ := by
   have hs (v : X → ℂ) : ‖toEuclidean_fromVec (star v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -332,15 +386,20 @@ theorem gamma2_entry_conj_norm_le {X : Type} [Fintype X] [DecidableEq X]
   rw [hs] at hh
   exact hh
 
+/-- The real Hilbert–Schmidt pairing of the target matrix `A` with the multiplier `N`. -/
 def gamma2SDPPairing {X : Type} [Fintype X] (A N : Matrix X X ℂ) : ℝ :=
   ∑ x, ∑ y, (star (N x y)*A x y).re
 
+/-- The Hermitian dual block matrix with diagonal weights `a` and `b` and upper-right entries
+`-star (Z x y) * N x y / 2`. -/
 def gamma2SDPDualBlock {X : Type} [DecidableEq X] (a b : X → ℝ)
     (Z N : Matrix X X ℂ) : Matrix (X ⊕ X) (X ⊕ X) ℂ :=
   let T : Matrix X X ℂ := fun x y => -(star (Z x y)*N x y)/2
   Matrix.fromBlocks (Matrix.diagonal fun x => (a x : ℂ)) T Tᴴ
     (Matrix.diagonal fun y => (b y : ℂ))
 
+/-- Positive semidefinite dual blocks with nonnegative diagonal weights produce a dual-feasible
+multiplier by dividing `star (N x y)` by `2 * Real.sqrt (a x) * Real.sqrt (b y)`. -/
 theorem gamma2_psd_polar_multiplier_feasible {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (Z : Fin n → Matrix X X ℂ) (a b : X → ℝ) (N : Matrix X X ℂ)
     (ha : ∀ x, 0 ≤ a x) (hb : ∀ x, 0 ≤ b x)
@@ -360,6 +419,8 @@ theorem gamma2_psd_polar_multiplier_feasible {X : Type} [Fintype X] [DecidableEq
   rw [he, norm_neg]
   exact (gamma2_entry_conj_norm_le R).trans hr
 
+/-- A zero row-side or column-side diagonal weight in a positive semidefinite block matrix
+forces the corresponding off-diagonal entry to vanish. -/
 theorem gamma2_psd_zero_weight_entry {X : Type} [Fintype X] [DecidableEq X]
     (a b : X → ℝ) (T : Matrix X X ℂ)
     (hB : (Matrix.fromBlocks (Matrix.diagonal fun x => (a x : ℂ)) T Tᴴ
@@ -372,6 +433,8 @@ theorem gamma2_psd_zero_weight_entry {X : Type} [Fintype X] [DecidableEq X]
     exact star_eq_zero.mp hs
   · exact gamma2_psd_zero_column _ hB (Sum.inr y) (by simp [hy]) (Sum.inl x)
 
+/-- For a target supported by the filters, positive semidefinite dual blocks force the entrywise
+target pairing to vanish wherever either diagonal weight is zero. -/
 theorem gamma2_psd_zero_weight_pairing {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hsupport : ∀ x y, (∀ j, Z j x y=0) → A x y=0)
@@ -390,6 +453,9 @@ theorem gamma2_psd_zero_weight_pairing {X : Type} [Fintype X] [DecidableEq X]
     have hn : N x y=0 := (mul_eq_zero.mp hprod).resolve_left (star_ne_zero.mpr hj)
     simp [hn]
 
+/-- For a supported target and nonnegative diagonal weights of total mass one, positive
+semidefinite dual blocks bound the real SDP pairing by the operator norm of the rescaled
+entrywise product. -/
 theorem gamma2_psd_polar_pairing_bound {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hsupport : ∀ x y, (∀ j, Z j x y=0) → A x y=0)
@@ -445,6 +511,8 @@ theorem gamma2_psd_polar_pairing_bound {X : Type} [Fintype X] [DecidableEq X]
     _ ≤ 1*‖A⊙M‖ := mul_le_mul_of_nonneg_right hcs (norm_nonneg _)
     _ = _ := one_mul _
 
+/-- Normalized positive semidefinite dual blocks for a supported target yield a dual-feasible
+multiplier whose operator-norm objective dominates the real SDP pairing. -/
 theorem gamma2_psd_operator_polar {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ)
     (hsupport : ∀ x y, (∀ j, Z j x y=0) → A x y=0)
@@ -457,6 +525,8 @@ theorem gamma2_psd_operator_polar {X : Type} [Fintype X] [DecidableEq X]
     gamma2_psd_polar_pairing_bound A Z hsupport a b N (fun x => (hab x).1)
       (fun x => (hab x).2) hbudget hB⟩
 
+/-- The squared norm of an entry of a positive semidefinite matrix is bounded by the product of
+the real diagonal entries at its endpoints. -/
 theorem gamma2_psd_entry_norm_sq {Y : Type} [Fintype Y] [DecidableEq Y]
     (B : Matrix Y Y ℂ) (hB : B.PosSemidef) (x y : Y) :
     ‖B x y‖^2 ≤ (B x x).re*(B y y).re := by
@@ -476,6 +546,8 @@ theorem gamma2_psd_entry_norm_sq {Y : Type} [Fintype Y] [DecidableEq Y]
   rw [hentry, hdiag, hdiag]
   nlinarith [norm_nonneg (star (v x) ⬝ᵥ v y)]
 
+/-- A uniform nonnegative bound on the real diagonal entries of a positive semidefinite matrix
+bounds the norm of every entry. -/
 theorem gamma2_psd_entry_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
     (B : Matrix Y Y ℂ) (hB : B.PosSemidef) (R : ℝ) (hR : 0 ≤ R)
     (hdiag : ∀ z, (B z z).re ≤ R) (x y : Y) : ‖B x y‖ ≤ R := by
@@ -485,6 +557,7 @@ theorem gamma2_psd_entry_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
   have hm := mul_le_mul (hdiag x) (hdiag y) hy hR
   nlinarith [norm_nonneg (B x y)]
 
+/-- The set of positive semidefinite complex matrices is closed. -/
 theorem gamma2_psd_set_closed (Y : Type) [Fintype Y] [DecidableEq Y] :
     IsClosed {B : Matrix Y Y ℂ | B.PosSemidef} := by
   simp only [Matrix.posSemidef_iff_dotProduct_mulVec]
@@ -500,10 +573,14 @@ theorem gamma2_psd_set_closed (Y : Type) [Fintype Y] [DecidableEq Y] :
     simp only [dotProduct, Matrix.mulVec, Pi.star_apply]
     fun_prop
 
+/-- The matrix obtained by summing the upper-right blocks of a family after entrywise
+multiplication by the corresponding filters. -/
 def gamma2SDPImage {X : Type} [Fintype X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) (B : Gamma2FixedFamily X n) : Matrix X X ℂ :=
   fun x y => ∑ j, Z j x y * B j (Sum.inl x) (Sum.inr y)
 
+/-- The target–budget pairs realized by positive semidefinite block families with the prescribed
+filtered image and coordinatewise diagonal bounds. -/
 def gamma2SDPEpigraph {X : Type} [Fintype X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) : Set (Matrix X X ℂ × ((X ⊕ X) → ℝ)) :=
   {c | ∃ B : Gamma2FixedFamily X n, (∀ j, Matrix.PosSemidef (B j)) ∧
@@ -513,6 +590,8 @@ section EpigraphClosure
 open scoped Matrix.Norms.Elementwise
 open Filter Topology
 
+/-- A norm bound on the diagonal budget bounds the elementwise norm of every positive
+semidefinite family satisfying that budget. -/
 theorem gamma2_psd_family_norm_bound {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (B : Gamma2FixedFamily X n) (hB : ∀ j, Matrix.PosSemidef (B j))
     (d : (X ⊕ X) → ℝ) (hd : ∀ z, ∑ j, (B j z z).re ≤ d z)
@@ -530,6 +609,7 @@ theorem gamma2_psd_family_norm_bound {X : Type} [Fintype X] [DecidableEq X] {n :
   exact hs.trans ((hd z).trans ((le_abs_self (d z)).trans
     ((norm_le_pi_norm d z).trans hbound)))
 
+/-- The epigraph of feasible filtered SDP target–budget pairs is closed. -/
 theorem gamma2SDPEpigraph_closed {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) : IsClosed (gamma2SDPEpigraph Z) := by
   apply IsSeqClosed.isClosed
@@ -568,18 +648,21 @@ end EpigraphClosure
 section EpigraphSeparation
 open scoped Matrix.Norms.Elementwise
 
+/-- The filtered SDP image preserves addition of matrix families. -/
 theorem gamma2SDPImage_add {X : Type} [Fintype X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) (B D : Gamma2FixedFamily X n) :
     gamma2SDPImage Z (B+D)=gamma2SDPImage Z B+gamma2SDPImage Z D := by
   ext x y
   simp [gamma2SDPImage, mul_add, Finset.sum_add_distrib]
 
+/-- The filtered SDP image preserves real scalar multiplication. -/
 theorem gamma2SDPImage_smul {X : Type} [Fintype X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) (a : ℝ) (B : Gamma2FixedFamily X n) :
     gamma2SDPImage Z (a • B)=a • gamma2SDPImage Z B := by
   ext x y
   simp [gamma2SDPImage, Finset.smul_sum, mul_left_comm]
 
+/-- The filtered SDP epigraph equipped with its real pointed cone structure. -/
 def gamma2SDPEpigraphCone {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) :
     PointedCone ℝ (Matrix X X ℂ × ((X ⊕ X) → ℝ)) where
@@ -610,6 +693,8 @@ def gamma2SDPEpigraphCone {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
       simpa only [Complex.real_smul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
         zero_mul, sub_zero, ← Finset.mul_sum] using mul_le_mul_of_nonneg_left (hbudget z) a.property
 
+/-- A point outside the filtered SDP epigraph is strictly separated by a continuous real linear
+functional that is nonnegative on the epigraph. -/
 theorem gamma2SDPEpigraph_separator {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (Z : Fin n → Matrix X X ℂ) (c : Matrix X X ℂ × ((X ⊕ X) → ℝ))
     (hc : c ∉ gamma2SDPEpigraph Z) :
@@ -622,11 +707,15 @@ theorem gamma2SDPEpigraph_separator {X : Type} [Fintype X] [DecidableEq X] {n : 
   exact K.hyperplane_separation_point hc
 end EpigraphSeparation
 
+/-- The real diagonal entry of `Vᴴ * V` is the sum of the squared norms in the corresponding
+column of `V`. -/
 theorem gamma2_gram_diagonal_re {Y : Type} [Fintype Y] [DecidableEq Y]
     (V : Matrix Y Y ℂ) (z : Y) : ((Vᴴ*V) z z).re=∑ q, Complex.normSq (V q z) := by
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Complex.re_sum, Complex.star_def,
     ← Complex.normSq_eq_conj_mul_self, Complex.ofReal_re]
 
+/-- A target paired with the constant budget `t` lies in the SDP epigraph exactly when it has a
+Gram filtered certificate of budget `t`. -/
 theorem gamma2SDPEpigraph_const_iff {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (t : ℝ) :
     (A,fun _ => t) ∈ gamma2SDPEpigraph Z ↔ gramFilteredCert A Z t := by
@@ -665,6 +754,8 @@ theorem gamma2SDPEpigraph_const_iff {X : Type} [Fintype X] [DecidableEq X] {n : 
       simp_rw [gamma2_gram_diagonal_re]
       exact hw z
 
+/-- Every continuous real linear functional on target–budget pairs is a weighted budget sum
+minus a real matrix pairing. -/
 theorem gamma2_real_functional_coordinates {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y]
     (l : StrongDual ℝ (Matrix X X ℂ × (Y → ℝ))) :
@@ -721,6 +812,8 @@ theorem gamma2_real_functional_coordinates {X Y : Type} [Fintype X] [DecidableEq
   rw [hsplit,hA,hd]
   ring
 
+/-- The real quadratic form of a real diagonal matrix is the sum of its weights times the
+squared coordinate norms. -/
 theorem gamma2_weighted_diagonal_quad {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℝ) (u : X → ℂ) :
     (star u ⬝ᵥ ((Matrix.diagonal fun x => (a x : ℂ))*ᵥu)).re=
@@ -732,6 +825,8 @@ theorem gamma2_weighted_diagonal_quad {X : Type} [Fintype X] [DecidableEq X]
   rw [he]
   simp [← Complex.normSq_eq_conj_mul_self]
 
+/-- The real cross term for the negative half-weighted dual block equals minus half the SDP
+pairing with the filtered rank-one matrix. -/
 theorem gamma2_polar_cross_quad {X : Type} [Fintype X] [DecidableEq X]
     (Z N : Matrix X X ℂ) (u v : X → ℂ) :
     let T : Matrix X X ℂ := fun x y => -(star (Z x y)*N x y)/2
@@ -756,6 +851,8 @@ theorem gamma2_polar_cross_quad {X : Type} [Fintype X] [DecidableEq X]
   norm_num [Complex.star_def, Complex.div_re, Complex.normSq]
   ring
 
+/-- The quadratic form of the dual block equals the two weighted squared-mass sums minus the SDP
+pairing with the filtered rank-one matrix. -/
 theorem gamma2_polar_block_quad {X : Type} [Fintype X] [DecidableEq X]
     (a b : X → ℝ) (Z N : Matrix X X ℂ) (u v : X → ℂ) :
     (star (Sum.elim u v) ⬝ᵥ ((gamma2SDPDualBlock a b Z N)*ᵥSum.elim u v)).re=
@@ -781,6 +878,8 @@ theorem gamma2_polar_block_quad {X : Type} [Fintype X] [DecidableEq X]
 section SeparatorMultipliers
 open scoped Matrix.Norms.Elementwise
 
+/-- Failure of a Gram filtered certificate yields nonnegative diagonal weights and positive
+semidefinite dual blocks whose pairing exceeds the budget times their total weight. -/
 theorem gamma2_psd_separator_unnormalized {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (t : ℝ)
     (hcert : ¬gramFilteredCert A Z t) :
@@ -873,6 +972,8 @@ theorem gamma2_psd_separator_unnormalized {X : Type} [Fintype X] [DecidableEq X]
   linarith
 end SeparatorMultipliers
 
+/-- Simultaneously scaling both diagonal weight functions and the multiplier by a real scalar
+scales the entire SDP dual block. -/
 theorem gamma2SDPDualBlock_smul {X : Type} [DecidableEq X]
     (a b : X → ℝ) (Z N : Matrix X X ℂ) (r : ℝ) :
     gamma2SDPDualBlock (r • a) (r • b) Z (r • N)=r • gamma2SDPDualBlock a b Z N := by
@@ -881,11 +982,15 @@ theorem gamma2SDPDualBlock_smul {X : Type} [DecidableEq X]
     simp [gamma2SDPDualBlock, Matrix.diagonal_apply, Matrix.conjTranspose_apply,
       Complex.real_smul] <;> ring
 
+/-- Real scalar multiplication of the multiplier scales the SDP pairing by that scalar. -/
 theorem gamma2SDPPairing_smul {X : Type} [Fintype X]
     (A N : Matrix X X ℂ) (r : ℝ) :
     gamma2SDPPairing A (r • N)=r*gamma2SDPPairing A N := by
   simp [gamma2SDPPairing, Complex.real_smul, mul_assoc, Finset.mul_sum]
 
+/-- For a supported target with no certificate at a nonnegative budget, there are positive
+semidefinite dual blocks with nonnegative weights of total mass one and pairing strictly
+above that budget. -/
 theorem gamma2_psd_separation {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (t : ℝ) (_ht : 0 ≤ t)
     (hsupport : ∀ x y, (∀ j, Z j x y=0) → A x y=0)
@@ -933,9 +1038,11 @@ theorem gamma2_psd_separation {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     rw [mul_comm, ← div_eq_mul_inv]
     exact (lt_div_iff₀ hγ).mpr hsep
 
+/-- The complex matrix obtained by taking the real part of each entry. -/
 def gamma2RealPart {X : Type} (T : Matrix X X ℂ) : Matrix X X ℂ :=
   Matrix.of fun x y => ((T x y).re : ℂ)
 
+/-- Taking entrywise real parts does not increase the matrix operator norm. -/
 theorem gamma2RealPart_norm_le {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ) : ‖gamma2RealPart T‖ ≤ ‖T‖ := by
   let S : Matrix X X ℂ := Matrix.of fun x y => star (T x y)
@@ -951,6 +1058,8 @@ theorem gamma2RealPart_norm_le {X : Type} [Fintype X] [DecidableEq X]
   norm_num
   linarith
 
+/-- Taking entrywise real parts preserves the real quadratic form on vectors with real
+coordinates. -/
 theorem gamma2RealPart_real_rayleigh {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ) (d : X → ℝ) :
     let dc : X → ℂ := fun x => (d x : ℂ)
@@ -963,6 +1072,7 @@ theorem gamma2RealPart_real_rayleigh {X : Type} [Fintype X] [DecidableEq X]
   intro y _
   simp [gamma2RealPart, Complex.mul_re]
 
+/-- Taking entrywise real parts preserves Hermitian symmetry. -/
 theorem gamma2RealPart_isHermitian {X : Type} (T : Matrix X X ℂ) (hT : T.IsHermitian) :
     (gamma2RealPart T).IsHermitian := by
   ext x y

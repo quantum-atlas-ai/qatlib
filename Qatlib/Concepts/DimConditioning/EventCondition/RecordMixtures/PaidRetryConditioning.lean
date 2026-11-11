@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.PaidRetryExecution
 import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.AcceptedRecordMixture
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+/-!
+# Conditioning after bounded fresh state retries
+
+This module analyzes bounded retries in which a preparation channel replaces each input by a
+fresh copy of a fixed density operator. It gives exact accepted and exhausted branch formulas
+and geometric terminal probabilities.
+
+`conditional_eq` identifies the accepted retry conditional with the single attempt conditional,
+and `posterior_bound` transfers the accepted record error bound to retries. Replacement channels
+and conditional states fit the instrument framework of [Watrous2018].
+
+## Main statements
+
+* `terminal_probabilities`: geometric exhaustion and acceptance probabilities.
+* `conditional_eq`: accepted retries preserve the single attempt conditional state.
+* `posterior_bound`: the posterior trace distance bound for any positive retry count.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,15 +45,19 @@ open RecordForgottenInstrument
 
 variable {R : Type} [Fintype R] {N D : ℕ}
 
+/-- The preparation channel maps every operator `A` to `trace A • ρ`. -/
 def Fresh (P : QuantumChannel D N) (ρ : Operator N) : Prop :=
   ∀ A, P.map A = trace A • ρ
 
+/-- The quantum replacement channel preparing the fixed density operator `ρ` from a nonzero
+input dimension. -/
 def replacement [NeZero D] (ρ : Operator N) (hρ : IsDensityOperator ρ) :
     QuantumChannel D N :=
   Qatlib.Concepts.ChannelTheory.Stinespring.ofPhyslib
     (CPTPMap.replacement
       (Qatlib.Foundations.PureStateMath.BornBridge.densityOperatorEquivMState N ⟨ρ, hρ⟩))
 
+/-- The replacement channel satisfies `Fresh` for its prepared density operator. -/
 theorem replacement_fresh [NeZero D] (ρ : Operator N) (hρ : IsDensityOperator ρ) :
     Fresh (replacement (D := D) ρ hρ) ρ := by
   intro A
@@ -38,10 +65,14 @@ theorem replacement_fresh [NeZero D] (ρ : Operator N) (hρ : IsDensityOperator 
   change (∑ k : Fin D, A k k * ρ i j) = (∑ k : Fin D, A k k) * ρ i j
   exact (Finset.sum_mul _ _ _).symm
 
+/-- The finite geometric sum defined by zero initial value and recurrence `retryWeight q (n + 1)
+= 1 + q * retryWeight q n`. -/
 def retryWeight (q : ℝ) : ℕ → ℝ
   | 0 => 0
   | n + 1 => 1 + q * retryWeight q n
 
+/-- A stopped Boolean branch is the sum of transcript execution maps whose acceptance flag
+equals that branch. -/
 theorem stopped_branch (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (n : ℕ) (b : Bool) (A : Operator D) :
     (stopped I P n).branch b A =
@@ -53,11 +84,15 @@ theorem stopped_branch (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
   intro t _
   split_ifs <;> rfl
 
+/-- With zero attempts, the accepted branch is zero and the exhausted branch is the input
+operator. -/
 theorem stopped_zero (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (b : Bool) (A : Operator D) :
     (stopped I P 0).branch b A = if b then 0 else A := by
   cases b <;> simp [stopped_branch, Transcript, accepted, execute]
 
+/-- A retry step splits into immediate acceptance and the remaining stopped execution applied to
+the rejected prepared output. -/
 theorem stopped_succ (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (n : ℕ) (b : Bool) (A : Operator D) :
     (stopped I P (n + 1)).branch b A =
@@ -77,6 +112,8 @@ theorem stopped_succ (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
   rw [htail]
   cases b <;> simp [RecordForgottenInstrument.branch]
 
+/-- With fresh preparation, the accepted branch equals the single attempt accepted output scaled
+by the input trace and the geometric retry weight. -/
 theorem accepted_branch (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (ρ : Operator N) (hρ : IsDensityOperator ρ) (hP : Fresh P ρ)
     (n : ℕ) (A : Operator D) :
@@ -93,6 +130,8 @@ theorem accepted_branch (I : Instrument (R × Bool) N D) (P : QuantumChannel D N
     simp only [retryWeight, Complex.ofReal_add, Complex.ofReal_one, Complex.ofReal_mul]
     ring
 
+/-- With fresh preparation, the exhausted branch trace equals the input trace times the single
+attempt rejection probability raised to the retry count. -/
 theorem exhausted_trace (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (ρ : Operator N) (hρ : IsDensityOperator ρ) (hP : Fresh P ρ)
     (n : ℕ) (A : Operator D) :
@@ -105,6 +144,9 @@ theorem exhausted_trace (I : Instrument (R × Bool) N D) (P : QuantumChannel D N
       trace_smul, trace_branch_eq (forgetRecord I) hρ.1 false, pow_succ]
     ring
 
+/-- For fresh preparation and density input, exhaustion has probability `(1 - p) ^ n` and
+acceptance has probability `1 - (1 - p) ^ n`, where `p` is the single attempt acceptance
+probability. -/
 theorem terminal_probabilities (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (ρ : Operator N) (hρ : IsDensityOperator ρ) (hP : Fresh P ρ)
     (n : ℕ) (σ : Operator D) (hσ : IsDensityOperator σ) :
@@ -126,6 +168,8 @@ theorem terminal_probabilities (I : Instrument (R × Bool) N D) (P : QuantumChan
   rw [hq] at he
   exact ⟨he, by linarith⟩
 
+/-- If a fresh single attempt has zero acceptance probability, every stopped retry accepted
+output and its associated probability are zero. -/
 theorem zero_acceptance (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (ρ : Operator N) (hρ : IsDensityOperator ρ) (hP : Fresh P ρ)
     (hp : instrumentProb (forgetRecord I) ρ true = 0) (n : ℕ) (A : Operator D) :
@@ -135,6 +179,7 @@ theorem zero_acceptance (I : Instrument (R × Bool) N D) (P : QuantumChannel D N
     rw [accepted_branch I P ρ hρ hP, hb, smul_zero]
   exact ⟨hz, by rw [instrumentProb, hz, trace_zero, Complex.zero_re]⟩
 
+/-- The geometric retry weight is positive for nonnegative `q` and a positive retry count. -/
 theorem retryWeight_pos {q : ℝ} (hq : 0 ≤ q) {n : ℕ} (hn : 0 < n) :
     0 < retryWeight q n := by
   have hnonneg : ∀ k, 0 ≤ retryWeight q k := by
@@ -145,6 +190,8 @@ theorem retryWeight_pos {q : ℝ} (hq : 0 ≤ q) {n : ℕ} (hn : 0 < n) :
   obtain ⟨k, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hn)
   exact add_pos_of_pos_of_nonneg zero_lt_one (mul_nonneg hq (hnonneg k))
 
+/-- Positive single attempt acceptance and a positive retry count give positive stopped
+acceptance for fresh preparation and density input. -/
 theorem accepted_probability_pos (I : Instrument (R × Bool) N D)
     (P : QuantumChannel D N) (ρ : Operator N) (hρ : IsDensityOperator ρ)
     (hP : Fresh P ρ) {n : ℕ} (hn : 0 < n) (σ : Operator D)
@@ -162,6 +209,8 @@ theorem accepted_probability_pos (I : Instrument (R × Bool) N D)
   rw [he]
   exact mul_pos hw hp
 
+/-- With fresh preparation and positive single attempt and stopped acceptance probabilities, the
+stopped accepted conditional state equals the single attempt accepted conditional state. -/
 theorem conditional_eq (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
     (ρ : Operator N) (hρ : IsDensityOperator ρ) (hP : Fresh P ρ)
     (n : ℕ) (σ : Operator D) (hσ : IsDensityOperator σ)
@@ -185,6 +234,9 @@ theorem conditional_eq (I : Instrument (R × Bool) N D) (P : QuantumChannel D N)
   congr 1
   field_simp
 
+/-- Under fresh preparation and the good record error and mass assumptions, any positive retry
+count has acceptance probability `1 - (1 - p) ^ n` and accepted trace distance at most `η +
+ζ / (1 - ζ - δ)`. -/
 theorem posterior_bound [DecidableEq R] (I : Instrument (R × Bool) N D)
     (P : QuantumChannel D N) (ρ : Operator N) (hρ : IsDensityOperator ρ)
     (hP : Fresh P ρ) (σ : Operator D) (hσ : IsDensityOperator σ)

@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Dual filtered norm SDP and closure laws
+
+This module proves attained semidefinite formulations of the rectangular dual filtered norm and
+its laws under filter extension, Hadamard multiplication, and tensor products. The compact
+budget set `sourceSDPBudget` and closed cone `sourceSDPHypographCone` supply the optimization
+and separation arguments for the filtered γ₂ framework of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceRectCert_iff_psd_family`: A rectangular filtered certificate of budget `w` is
+  equivalent to a positive semidefinite block family with image `B` and total diagonal entries
+  bounded by `w`.
+
+* `sourceDualNorm_maxSDP`: For a nonempty filter family, the dual filtered norm is half the
+  attained maximum trace objective over positive semidefinite families with unit diagonal sums.
+
+* `sourceDualNorm_minSDP`: The dual filtered norm is half the attained minimum trace of a
+  positive semidefinite diagonal matrix dominating every filtered Hermitian lift.
+
+* `sourceDualNorm_tensor`: The dual filtered norm is multiplicative for tensor products with
+  tensor-product filters.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,13 +52,17 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators ENNReal ComplexOrder Kronecker
 
+/-- The sum of the upper-right blocks of `Y j`, weighted entrywise by the filters `Z j`. -/
 def sourceSDPImage {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
     (Z : Fin n → Matrix R S ℂ) (Y : Fin n → Matrix (R ⊕ S) (R ⊕ S) ℂ) : Matrix R S ℂ :=
   fun r s => ∑ j, Z j r s*Y j (.inl r) (.inr s)
 
+/-- The real part of the Hilbert–Schmidt pairing of two rectangular complex matrices. -/
 def sourceDualPairing {R S : Type} [Fintype R] [Fintype S]
     (A B : Matrix R S ℂ) : ℝ := (∑ r, ∑ s, star (A r s)*B r s).re
 
+/-- A rectangular filtered certificate of budget `w` is equivalent to a positive semidefinite
+block family with image `B` and total diagonal entries bounded by `w`. -/
 theorem sourceRectCert_iff_psd_family {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (w : ℝ) :
@@ -75,6 +108,8 @@ theorem sourceRectCert_iff_psd_family {R S : Type}
       simpa only [Matrix.mul_apply,Matrix.conjTranspose_apply,Complex.star_def,← Complex.normSq_eq_conj_mul_self,
         Complex.re_sum,Complex.ofReal_re] using! hd
 
+/-- The rectangular filtered unit ball consists exactly of images of positive semidefinite block
+families whose total diagonal entries are at most one. -/
 theorem sourceUnitBall_iff_psd_family {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -84,6 +119,7 @@ theorem sourceUnitBall_iff_psd_family {R S : Type}
   rw [← ENNReal.ofReal_one,sourceRectValue_budget_boundary B Z 1 zero_le_one]
   exact sourceRectCert_iff_psd_family B Z 1
 
+/-- Adding filters weakly increases the dual filtered norm. -/
 theorem sourceDualNorm_filterUnion_le {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n m : ℕ} (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -93,6 +129,8 @@ theorem sourceDualNorm_filterUnion_le {R S : Type}
   intro B
   exact le_iSup_of_le ⟨B.val,(sourceRectValue_filterUnion_le B.val Y Z).trans B.property⟩ le_rfl
 
+/-- Adding a linear combination of the filters with coefficient norms summing to at most one
+preserves the dual filtered norm. -/
 theorem sourceDualNorm_convexFilter {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (p : Fin n → ℂ)
@@ -113,6 +151,8 @@ theorem sourceDualNorm_convexFilter {R S : Type}
       exact B.property
     exact le_iSup_of_le ⟨B.val,hf⟩ le_rfl
 
+/-- Pairing a Hermitian matrix with the Hermitian lift of `C` gives twice the real pairing of
+`C` with its upper-right block. -/
 theorem sourceHermitianLift_pairing {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (C : Matrix R S ℂ) (Y : Matrix (R ⊕ S) (R ⊕ S) ℂ) (hY : Y.IsHermitian) :
@@ -137,6 +177,8 @@ theorem sourceHermitianLift_pairing {R S : Type}
   simp only [Complex.add_re,Complex.star_def,Complex.conj_re]
   ring
 
+/-- The sum of trace pairings with the filtered Hermitian lifts equals twice the pairing with
+`sourceSDPImage`. -/
 theorem sourceSDPImage_pairing {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
@@ -159,6 +201,8 @@ theorem sourceSDPImage_pairing {R S : Type}
   congr 1
   ring
 
+/-- The set of positive semidefinite matrix families whose diagonal sums are bounded by one at
+every coordinate. -/
 def sourceSDPBudget {K : Type} [Fintype K] {n : ℕ} :
     Set (Fin n → Matrix K K ℂ) :=
   {Y | (∀ j, (Y j).PosSemidef) ∧ ∀ i, ∑ j, (Y j i i).re ≤ 1}
@@ -166,6 +210,7 @@ def sourceSDPBudget {K : Type} [Fintype K] {n : ℕ} :
 section CompactPrimal
 open scoped Matrix.Norms.Elementwise
 
+/-- The cone of positive semidefinite complex matrices is closed. -/
 theorem sourcePSD_closed {K : Type} [Fintype K] [DecidableEq K] :
     IsClosed {B : Matrix K K ℂ | B.PosSemidef} := by
   simp only [Matrix.posSemidef_iff_dotProduct_mulVec]
@@ -179,6 +224,7 @@ theorem sourcePSD_closed {K : Type} [Fintype K] [DecidableEq K] :
     simp only [dotProduct,Matrix.mulVec,Pi.star_apply]
     fun_prop
 
+/-- The set of positive semidefinite matrix families with unit diagonal budgets is compact. -/
 theorem sourceSDPBudget_compact {K : Type} [Fintype K] [DecidableEq K] (n : ℕ) :
     IsCompact (sourceSDPBudget (K := K) (n := n)) := by
   have hc : IsClosed (sourceSDPBudget (K := K) (n := n)) := by
@@ -209,6 +255,8 @@ theorem sourceSDPBudget_compact {K : Type} [Fintype K] [DecidableEq K] (n : ℕ)
   exact (Finset.single_le_sum
     (fun j _ => (Complex.nonneg_iff.mp (hY.1 j).diag_nonneg).1) (Finset.mem_univ j)).trans (hY.2 i)
 
+/-- The dual filtered norm is attained by an SDP budget family maximizing the real pairing with
+its filtered image. -/
 theorem sourceDualNorm_psd_attained {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -236,6 +284,8 @@ theorem sourceDualNorm_psd_attained {R S : Type}
     exact le_iSup (fun B : {B : Matrix R S ℂ // sourceRectValue B Z ≤ 1} =>
       ENNReal.ofReal (sourceDualPairing A B.val)) ⟨sourceSDPImage Z Y,hf⟩
 
+/-- A bound on the norm of a nonnegative diagonal budget bounds the elementwise norm of every
+positive semidefinite family satisfying that budget. -/
 theorem sourcePsdFamily_norm_bound {K : Type} [Fintype K] [DecidableEq K] {n : ℕ}
     (Y : Fin n → Matrix K K ℂ) (hY : ∀ j, (Y j).PosSemidef)
     (d : K → ℝ) (hd : ∀ i, ∑ j, (Y j i i).re ≤ d i)
@@ -251,6 +301,8 @@ theorem sourcePsdFamily_norm_bound {K : Type} [Fintype K] [DecidableEq K] {n : �
   exact (Finset.single_le_sum (fun j _ => (Complex.nonneg_iff.mp (hY j).diag_nonneg).1)
     (Finset.mem_univ j)).trans ((hd i).trans ((le_abs_self (d i)).trans ((norm_le_pi_norm d i).trans hbound)))
 
+/-- The pairs of diagonal budgets and objective lower bounds realized by a positive semidefinite
+block family. -/
 def sourceSDPHypograph {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) : Set (((R ⊕ S) → ℝ) × ℝ) :=
   {c | ∃ Y : Fin n → Matrix (R ⊕ S) (R ⊕ S) ℂ,
@@ -259,6 +311,7 @@ def sourceSDPHypograph {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
 
 open Filter Topology in
 
+ /-- The hypograph of the positive semidefinite budget optimization is closed. -/
  theorem sourceSDPHypograph_closed {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -289,12 +342,14 @@ open Filter Topology in
     have hl := (continuous_snd.tendsto s |>.comp ht).comp hφ.tendsto_atTop
     exact le_of_tendsto_of_tendsto hl hr (Filter.Eventually.of_forall fun k => hp (φ k))
 
+/-- The filtered SDP image preserves addition of block families. -/
 theorem sourceSDPImage_add {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
     (Z : Fin n → Matrix R S ℂ) (Y W : Fin n → Matrix (R ⊕ S) (R ⊕ S) ℂ) :
     sourceSDPImage Z (Y+W)=sourceSDPImage Z Y+sourceSDPImage Z W := by
   ext r s
   simp [sourceSDPImage,Finset.sum_add_distrib,mul_add]
 
+/-- The filtered SDP image preserves real scalar multiplication. -/
 theorem sourceSDPImage_smul {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
     (Z : Fin n → Matrix R S ℂ) (Y : Fin n → Matrix (R ⊕ S) (R ⊕ S) ℂ) (c : ℝ) :
     sourceSDPImage Z (c • Y)=c • sourceSDPImage Z Y := by
@@ -304,10 +359,12 @@ theorem sourceSDPImage_smul {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
   intro j _
   ring
 
+/-- The real matrix pairing is additive in its second argument. -/
 theorem sourceDualPairing_add {R S : Type} [Fintype R] [Fintype S]
     (A B C : Matrix R S ℂ) : sourceDualPairing A (B+C)=sourceDualPairing A B+sourceDualPairing A C := by
   simp [sourceDualPairing,mul_add,Finset.sum_add_distrib]
 
+/-- The real matrix pairing respects real scalar multiplication in its second argument. -/
 theorem sourceDualPairing_smul {R S : Type} [Fintype R] [Fintype S]
     (A B : Matrix R S ℂ) (c : ℝ) : sourceDualPairing A (c • B)=c*sourceDualPairing A B := by
   simp only [sourceDualPairing,Matrix.smul_apply,Complex.real_smul,Complex.re_sum,Finset.mul_sum]
@@ -318,6 +375,7 @@ theorem sourceDualPairing_smul {R S : Type} [Fintype R] [Fintype S]
   simp only [Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,Complex.mul_im]
   ring
 
+/-- The SDP hypograph equipped with its structure as a real pointed cone. -/
 def sourceSDPHypographCone {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -342,6 +400,8 @@ def sourceSDPHypographCone {R S : Type}
     · simpa only [sourceSDPImage_smul,sourceDualPairing_smul,Prod.smul_snd,smul_eq_mul] using!
         mul_le_mul_of_nonneg_left hp a.property
 
+/-- Every point outside the SDP hypograph is strictly separated by a continuous real linear
+functional that is nonnegative on the hypograph. -/
 theorem sourceSDPHypograph_separator {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (c : ((R ⊕ S) → ℝ) × ℝ)
@@ -353,6 +413,8 @@ theorem sourceSDPHypograph_separator {R S : Type}
     ⟨sourceSDPHypographCone A Z,sourceSDPHypograph_closed A Z⟩
   exact K.hyperplane_separation_point hc
 
+/-- Every continuous real linear functional on budget–objective pairs is a weighted sum of the
+budget coordinates and the objective coordinate. -/
 theorem sourceBudget_functional_coordinates {K : Type} [Fintype K] [DecidableEq K]
     (l : StrongDual ℝ ((K → ℝ) × ℝ)) : ∃ α : K → ℝ, ∃ c : ℝ,
       ∀ d : K → ℝ, ∀ t : ℝ, l (d,t)=(∑ i, α i*d i)+c*t := by
@@ -378,16 +440,21 @@ theorem sourceBudget_functional_coordinates {K : Type} [Fintype K] [DecidableEq 
     ring
   rw [show (d,t)=(d,0)+(0,t) by simp,map_add,hd,ht]
 
+/-- The Hermitian lift of a rectangular complex matrix is Hermitian. -/
 theorem sourceHermitianLift_isHermitian {R S : Type} (C : Matrix R S ℂ) :
     (sourceHermitianLift C).IsHermitian := by
   ext i j
   cases i <;> cases j <;> simp [Matrix.conjTranspose_apply,sourceHermitianLift]
 
+/-- The trace pairing with the rank-one matrix generated by `v` equals the quadratic form of `H`
+at `v`. -/
 theorem sourceTrace_rankOne {K : Type} [Fintype K] (H : Matrix K K ℂ) (v : K → ℂ) :
     Matrix.trace ((Matrix.vecMulVec v (star v))ᴴ*H)=star v ⬝ᵥ (H*ᵥv) := by
   rw [(Matrix.posSemidef_vecMulVec_self_star v).isHermitian.eq,
     Matrix.trace_mul_comm,Matrix.mul_vecMulVec,Matrix.trace_vecMulVec,dotProduct_comm]
 
+/-- Every strict upper bound `w` on the dual filtered norm yields a nonnegative diagonal
+majorant of the filtered Hermitian lifts with total weight less than `2 * w`. -/
 theorem sourceDualNorm_minApprox {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (w : ℝ)
@@ -487,6 +554,7 @@ theorem sourceDualNorm_minApprox {R S : Type}
     dsimp only [scale]
     rw [div_mul_cancel₀ _ (neg_ne_zero.mpr hcneg.ne)]
 
+/-- The real trace pairing of two positive semidefinite matrices is nonnegative. -/
 theorem sourcePSD_trace_mul_nonneg {K : Type} [Fintype K] [DecidableEq K]
     (Y T : Matrix K K ℂ) (hY : Y.PosSemidef) (hT : T.PosSemidef) :
     0 ≤ (Matrix.trace (Yᴴ*T)).re := by
@@ -496,6 +564,8 @@ theorem sourcePSD_trace_mul_nonneg {K : Type} [Fintype K] [DecidableEq K]
   rw [hY.isHermitian.eq,← hC]
   exact (Complex.nonneg_iff.mp hp).1
 
+/-- Pairing a matrix with a real diagonal matrix gives the weighted sum of the real diagonal
+entries. -/
 theorem sourceDiagonal_trace_pairing {K : Type} [Fintype K] [DecidableEq K]
     (Y : Matrix K K ℂ) (α : K → ℝ) :
     (Matrix.trace (Yᴴ*Matrix.diagonal (fun i => (α i : ℂ)))).re=∑ i, α i*(Y i i).re := by
@@ -505,6 +575,8 @@ theorem sourceDiagonal_trace_pairing {K : Type} [Fintype K] [DecidableEq K]
   simp only [Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,mul_zero,sub_zero,Complex.star_def,Complex.conj_re]
   ring
 
+/-- A nonnegative diagonal majorant of every filtered Hermitian lift bounds the dual filtered
+norm by half its total weight. -/
 theorem sourceDualNorm_le_diagonal {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (α : (R ⊕ S) → ℝ)
@@ -534,6 +606,7 @@ theorem sourceDualNorm_le_diagonal {R S : Type}
   change sourceDualPairing A B.val ≤ _
   linarith
 
+/-- The dual filtered norm of finite rectangular matrices is finite. -/
 theorem sourceDualNorm_finite {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) : sourceDualNorm A Z ≠ ⊤ := by
@@ -543,6 +616,8 @@ theorem sourceDualNorm_finite {R S : Type}
 
 open Filter Topology in
 
+ /-- The dual filtered norm equals half the total weight of an optimal nonnegative diagonal
+ majorant. -/
  theorem sourceDualNorm_diagonal_attained {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -595,6 +670,8 @@ open Filter Topology in
 
 end CompactPrimal
 
+/-- For a nonempty filter family, an SDP budget family can be replaced by a positive
+semidefinite family with every diagonal sum equal to one and the same filtered image. -/
 theorem sourceSDPBudget_saturate {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (hn : 0<n) (Z : Fin n → Matrix R S ℂ)
@@ -637,6 +714,8 @@ theorem sourceSDPBudget_saturate {R S : Type}
     intro j _
     by_cases he : j=j0 <;> simp [he,D,Matrix.diagonal]
 
+/-- For a nonempty filter family, the dual filtered norm is half the attained maximum trace
+objective over positive semidefinite families with unit diagonal sums. -/
 theorem sourceDualNorm_maxSDP {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (hn : 0<n) :
@@ -663,6 +742,8 @@ theorem sourceDualNorm_maxSDP {R S : Type}
     have hh := congrArg Complex.re (hd' i)
     simpa only [Complex.re_sum,Complex.one_re] using! hh.le
 
+/-- The dual filtered norm is half the attained minimum trace of a positive semidefinite
+diagonal matrix dominating every filtered Hermitian lift. -/
 theorem sourceDualNorm_minSDP {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -704,6 +785,8 @@ theorem sourceDualNorm_minSDP {R S : Type}
     rw [htrace]
     linarith
 
+/-- Multiplying every filter entrywise by `B` sends the original filtered unit ball onto the new
+one by entrywise multiplication with `B`. -/
 theorem sourceUnitBall_hadamard_image {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (C B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -726,6 +809,8 @@ theorem sourceUnitBall_hadamard_image {R S : Type}
   · rintro ⟨P,hP,rfl⟩
     exact (sourceRectValue_hadamard_filters_le P B Z).trans hP
 
+/-- Entrywise multiplication of the target by `B` can be transferred to entrywise multiplication
+of the filters by the conjugate of `B` in the dual norm. -/
 theorem sourceDualNorm_hadamard_transport {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -752,12 +837,15 @@ theorem sourceDualNorm_hadamard_transport {R S : Type}
     exact le_iSup_of_le ⟨P,hP⟩
         (by change ENNReal.ofReal (sourceDualPairing A C.val) ≤ _; rw [he,← hp]; exact le_rfl)
 
+/-- Every diagonal entry of a positive semidefinite complex matrix is real. -/
 theorem sourcePSD_diag_real {K : Type} [Fintype K] [DecidableEq K]
     (G : Matrix K K ℂ) (hG : G.PosSemidef) (i : K) : G i i=((G i i).re : ℂ) := by
   have hh := congrFun (congrFun hG.isHermitian i) i
   simp only [Matrix.conjTranspose_apply,Complex.star_def,Complex.conj_eq_iff_im] at hh
   exact Complex.ext (by simp) (by simpa using! hh)
 
+/-- The entrywise product of a real diagonal matrix with a positive semidefinite matrix is the
+diagonal matrix of the weighted real diagonal entries. -/
 theorem sourceDiagonal_hadamard {K : Type} [Fintype K] [DecidableEq K]
     (α : K → ℝ) (G : Matrix K K ℂ) (hG : G.PosSemidef) :
     Matrix.diagonal (fun i => (α i : ℂ)) ⊙ G=
@@ -770,6 +858,8 @@ theorem sourceDiagonal_hadamard {K : Type} [Fintype K] [DecidableEq K]
     _ = ((G i i).re : ℂ)*(α i : ℂ) := congrArg (fun z : ℂ => z*(α i : ℂ)) (sourcePSD_diag_real G hG i)
     _ = _ := by push_cast; ring
 
+/-- Entrywise multiplication of a Hermitian lift by a Hermitian matrix with upper-right block
+`B` produces the lift of the entrywise product with `B`. -/
 theorem sourceHermitianLift_hadamard {R S : Type}
     (C B : Matrix R S ℂ) (G : Matrix (R ⊕ S) (R ⊕ S) ℂ)
     (hG : G.IsHermitian) (hcorner : ∀ r s, G (.inl r) (.inr s)=B r s) :
@@ -780,6 +870,8 @@ theorem sourceHermitianLift_hadamard {R S : Type}
   ext i j
   cases i <;> cases j <;> simp [sourceHermitianLift,Matrix.hadamard_apply,hcorner,hlower]
 
+/-- The dual filtered norm of an entrywise product is bounded by the dual filtered norm of the
+first factor times the unfiltered norm of the second. -/
 theorem sourceDualNorm_hadamard_le {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -822,6 +914,7 @@ theorem sourceDualNorm_hadamard_le {R S : Type}
     _ = sourceDualNorm A Z*sourceUnfiltered B := by
       rw [ENNReal.ofReal_mul (div_nonneg (Finset.sum_nonneg fun i _ => hα i) (by norm_num)),← hval,hb]
 
+/-- The dual filtered norm is homogeneous under nonnegative real scalar multiplication. -/
 theorem sourceDualNorm_real_smul {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (t : ℝ) (ht : 0 ≤ t) :
     sourceDualNorm (t • A) Z=ENNReal.ofReal t*sourceDualNorm A Z := by
@@ -845,6 +938,8 @@ theorem sourceDualNorm_real_smul {R S : Type} [Fintype R] [Fintype S] {n : ℕ}
       (sourceDualPairing A P.val)
   rw [hp,ENNReal.ofReal_mul ht]
 
+/-- Scaling the rectangular matrix by a real number preserves diagonal domination when the
+row-side diagonal weights are scaled by its square. -/
 theorem sourceDiagonal_scaledPSD {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (C : Matrix R S ℂ) (α : (R ⊕ S) → ℝ) (t : ℝ)
@@ -866,6 +961,8 @@ theorem sourceDiagonal_scaledPSD {R S : Type}
   rw [he] at hh
   exact hh
 
+/-- An optimal nonnegative diagonal majorant has equal total weight on the row and column
+coordinates. -/
 theorem sourceDiagonal_balanced {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (α : (R ⊕ S) → ℝ)
@@ -912,6 +1009,7 @@ theorem sourceDiagonal_balanced {R S : Type}
   have he : t*(2*L)=L+T := by dsimp [t]; field_simp
   nlinarith [sq_nonneg (L-T)]
 
+/-- The tensor product of two positive semidefinite complex matrices is positive semidefinite. -/
 theorem sourcePSD_tensor {K L : Type} [Fintype K] [DecidableEq K] [Fintype L] [DecidableEq L]
     (P : Matrix K K ℂ) (Q : Matrix L L ℂ) (hP : P.PosSemidef) (hQ : Q.PosSemidef) :
     (sourceTensor P Q).PosSemidef := by
@@ -921,6 +1019,7 @@ theorem sourcePSD_tensor {K L : Type} [Fintype K] [DecidableEq K] [Fintype L] [D
   rw [← hC,← hD,Matrix.mul_kronecker_mul,← Matrix.conjTranspose_kronecker]
   exact Matrix.posSemidef_conjTranspose_mul_self _
 
+/-- A diagonal majorant of a Hermitian lift also majorizes its negative. -/
 theorem sourceDiagonal_plusPSD {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (C : Matrix R S ℂ) (α : (R ⊕ S) → ℝ)
@@ -931,6 +1030,9 @@ theorem sourceDiagonal_plusPSD {R S : Type}
   ext i j
   cases i <;> cases j <;> simp [sourceHermitianLift,Matrix.diagonal]
 
+/-- Positive semidefinite diagonal majorants of two Hermitian lifts give a diagonal majorant of
+the lift of their tensor product, using products of the corresponding row and column
+weights. -/
 theorem sourceDiagonal_tensorPSD {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V]
@@ -969,6 +1071,8 @@ theorem sourceDiagonal_tensorPSD {R S U V : Type}
   rw [hm] at ht
   exact ht
 
+/-- The dual filtered norm of a tensor product is at most the product of the dual norms for the
+two filter families. -/
 theorem sourceDualNorm_tensor_le {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V] {n m : ℕ}
@@ -1012,6 +1116,8 @@ theorem sourceDualNorm_tensor_le {R S U V : Type}
     _ = sourceDualNorm A Y*sourceDualNorm B Z := by
       rw [hcost,ENNReal.ofReal_mul (div_nonneg (Finset.sum_nonneg fun i _ => hα i) (by norm_num)),← hαval,← hβval]
 
+/-- The dual filtered norm is attained on the filtered unit ball with a real nonnegative complex
+pairing. -/
 theorem sourceDualNorm_real_pair_attained {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
@@ -1054,6 +1160,8 @@ theorem sourceDualNorm_real_pair_attained {R S : Type}
       ENNReal.ofReal (sourceDualPairing A B.val)) ⟨c • P,hf'⟩
     simpa only [sourceDualPairing,hp,Complex.ofReal_re] using! hh
 
+/-- The product of two dual filtered norms is bounded by the dual norm of the tensor product
+with tensor-product filters. -/
 theorem sourceDualNorm_tensor_ge {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V] {n m : ℕ}
@@ -1088,6 +1196,7 @@ theorem sourceDualNorm_tensor_ge {R S U V : Type}
     ENNReal.ofReal (sourceDualPairing (sourceTensor A B) C.val)) ⟨sourceTensor P Q,hf⟩
   simpa only [he] using! hh
 
+/-- The dual filtered norm is multiplicative for tensor products with tensor-product filters. -/
 theorem sourceDualNorm_tensor {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V] {n m : ℕ}
@@ -1096,6 +1205,8 @@ theorem sourceDualNorm_tensor {R S U V : Type}
     sourceDualNorm (sourceTensor A B) (sourceFilterTensor Y Z)=sourceDualNorm A Y*sourceDualNorm B Z :=
   le_antisymm (sourceDualNorm_tensor_le A B Y Z) (sourceDualNorm_tensor_ge A B Y Z)
 
+/-- The dual filtered norm satisfies the bundled SDP characterizations and closure laws
+[LeeEtAl2011]. -/
 theorem dualNormSDPAndClosure : DualNormSDPAndClosure := by
   refine ⟨?_,?_,?_,?_⟩
   · intro R S _ _ _ _ n A Z

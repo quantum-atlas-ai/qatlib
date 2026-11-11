@@ -9,6 +9,29 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.PolarPart.Decomposition
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Basic
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.PerWindow.HigherOrder
+
+/-!
+# Residue theorem for null-homologous contours
+
+Integrates finite polar-part decompositions along closed piecewise C1 curves. The analytic
+remainder vanishes under the null-homology hypothesis, yielding
+`classicalResidueTheorem_nullHomologous` with winding-number weights.
+
+The result supplies a scalar contour-integration foundation for the methods of [WangEtAl2026].
+
+## Main statements
+
+* `intervalIntegral_deriv_smul_polarPart`: The integral of one polar part along a closed
+  piecewise C1 curve avoiding its pole is `2πi` times its winding number and residue.
+* `classicalResidueTheorem_nullHomologous`: The classical residue theorem for a closed piecewise
+  C1 curve null homologous in an open set, with finitely many possible meromorphic singularities
+  avoided by the curve.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -25,6 +48,8 @@ namespace PolarPartDecomposition
 
 variable {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ}
 
+/-- The integral of one polar part along a closed piecewise C1 curve avoiding its pole is `2πi`
+times its winding number and residue. -/
 theorem intervalIntegral_deriv_smul_polarPart (decomp : PolarPartDecomposition f S U) (s : S)
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : IsPiecewiseC1On γ a b) (hclosed : γ a = γ b)
     (h_ne : ∀ t ∈ uIcc a b, γ t ≠ (s : ℂ)) :
@@ -65,6 +90,8 @@ theorem intervalIntegral_deriv_smul_polarPart (decomp : PolarPartDecomposition f
   rw [hsplit, Finset.sum_congr rfl fun k _ => hval k, decomp.sum_ite_coeff_eq_residue_mul s]
   ring
 
+/-- Splits the integral of a function with a polar-part decomposition into the analytic
+remainder integral and the winding-weighted sum of residues. -/
 theorem intervalIntegral_deriv_smul_eq_analyticRemainder_add_sum
     (decomp : PolarPartDecomposition f S U) {γ : ℝ → ℂ} {a b : ℝ}
     (hγ : IsPiecewiseC1On γ a b) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U) (hclosed : γ a = γ b)
@@ -107,6 +134,8 @@ theorem intervalIntegral_deriv_smul_eq_analyticRemainder_add_sum
       fun s => 2 * (Real.pi : ℂ) * Complex.I * (windingNumber γ a b s * residue f s)]
   exact congrArg _ (Finset.sum_congr rfl fun s _ => by ring)
 
+/-- For a closed piecewise C1 curve null homologous in an open set, a polar-part decomposition
+gives the residue formula with winding-number weights. -/
 theorem intervalIntegral_deriv_smul_eq_sum_windingNumber_mul_residue
     (decomp : PolarPartDecomposition f S U) (hU : IsOpen U) {γ : ℝ → ℂ} {a b : ℝ}
     (hγ : IsPiecewiseC1On γ a b) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U) (hclosed : γ a = γ b)
@@ -118,6 +147,8 @@ theorem intervalIntegral_deriv_smul_eq_sum_windingNumber_mul_residue
 
 end PolarPartDecomposition
 
+/-- The classical residue theorem for a closed piecewise C1 curve null homologous in an open
+set, with finitely many possible meromorphic singularities avoided by the curve. -/
 theorem classicalResidueTheorem_nullHomologous {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ}
     (hU : IsOpen U) (hf : DifferentiableOn ℂ f (U \ (↑S : Set ℂ)))
     (hmero : ∀ s ∈ S, s ∈ U → MeromorphicAt f s) {γ : ℝ → ℂ} {a b : ℝ} (hγ : IsPiecewiseC1On γ a b)

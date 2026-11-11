@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.SearchPreflight
+
+/-!
+# Budgeted graph classification
+
+Defines `classifyScanBudgeted`, which reserves the cost of degree tests and neighborhood
+searches before executing the corresponding classification branches. Its result records whether
+the scan timed out, and `classifyScanBudgeted_cost` proves that the recorded query count stays
+within budget in the graph-search setting of [Ambainis2005].
+
+## Main statements
+
+* `classifyScanBudgeted`: The recursive graph classification scan with budget checks before
+  degree tests and high-degree neighborhood searches, returning its accumulated classification
+  data and timeout flag.
+* `classifyScanBudgeted_cost`: For a positive vertex count, the query count returned by the
+  budgeted classification scan is at most its supplied budget.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,10 +38,15 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- A classification run result together with a Boolean flag recording whether execution timed
+out. -/
 structure ClassificationBudgetResult (n : ℕ) where
   result : ClassificationRun n
   timedOut : Bool
 
+/-- The recursive graph classification scan with budget checks before degree tests and
+high-degree neighborhood searches, returning its accumulated classification data and timeout
+flag. -/
 def classifyScanBudgeted (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed) :
     List (Fin n)→SymmetricPairSet n→ℕ→ClassificationBudgetResult n
@@ -49,6 +76,8 @@ def classifyScanBudgeted (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
       else ⟨⟨none,Sd.edges,Td,∅,K*c,1,0⟩,true⟩
     else ⟨⟨none,Sd.edges,Td,∅,0,0,0⟩,true⟩
 
+/-- For a positive vertex count, the query count returned by the budgeted classification scan is
+at most its supplied budget. -/
 theorem classifyScanBudgeted_cost (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) (budget : ℕ) (hn : 0< n) :

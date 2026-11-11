@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+/-!
+# Uniformity testing estimates
+
+This module estimates the probability that the sample sum of a nonuniform distribution exceeds
+its uniform benchmark. It treats distributions with no big elements, many big elements, or few
+big elements, using variance bounds and conditioning away from the big set. It also proves
+repetition estimates and existence of integer parameters satisfying the displayed uniformity
+testing bounds.
+
+The mathematical setting follows [BravyiHarrowHassidim2011].
+
+## Main statements
+
+* `lemma3_no_big` and `lemma5_many_big`: lower bounds for the first two cases.
+* `lemma4_few_big_exp`: an exponential lower bound for the few big elements case.
+* `theorem2_uniformity`: existence of bounded positive integer parameters.
+
+## References
+
+* [Bravyi et al., 2011][BravyiHarrowHassidim2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,16 +45,22 @@ namespace Qatlib.Papers.DistTesting09.MainResults.Uniformity
 
 variable {N M : ℕ}
 
+/-- The parameter `256 / ε^4` used to distinguish few and many big elements. -/
 def alpha (ε : ℝ) : ℝ := 256 / ε ^ 4
 
+/-- The condition that the mass of the big elements is at most `alpha ε / M`. -/
 def fewBig (p : Dist N) (M : ℕ) (ε : ℝ) : Prop := wBig p M ≤ alpha ε / (M : ℝ)
 
+/-- The condition that the mass of the big elements exceeds `alpha ε / M`. -/
 def manyBig (p : Dist N) (M : ℕ) (ε : ℝ) : Prop := alpha ε / (M : ℝ) < wBig p M
 
+/-- The sample sum is the independent weighted sum of the point probability statistic with unit
+weights. -/
 theorem sampleSum_eq_weightedSum (p : Dist N) (S : Fin M → Fin N) :
     sampleSum p S = weightedSum (fun _ : Fin M => (1 : ℝ)) (fun _ (x : Fin N) => p.prob x) S := by
   simp [sampleSum, weightedSum]
 
+/-- The expected sample sum for `M` independent samples from `p` is `M * inner p p`. -/
 theorem expect_sampleSum (p : Dist N) :
     (independent (fun _ : Fin M => p)).expect (fun S => sampleSum p S) = (M : ℝ) * inner p p := by
   rw [show (fun S : Fin M → Fin N => sampleSum p S)
@@ -42,6 +71,8 @@ theorem expect_sampleSum (p : Dist N) :
   simp only [one_mul, h1, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
     nsmul_eq_mul]
 
+/-- For positive `t`, the probability that the sample sum deviates from its mean by at least `t`
+is at most `M` times the point probability variance divided by `t²`. -/
 theorem sampleSum_chebyshev (p : Dist N) (t : ℝ) (ht : 0 < t) :
     p.probEvent (L := M) (fun S => t ≤ |sampleSum p S - (M : ℝ) * inner p p|)
       ≤ ((M : ℝ) * p.variance p.prob) / t ^ 2 := by
@@ -98,6 +129,9 @@ theorem sampleSum_chebyshev (p : Dist N) (t : ℝ) (ht : 0 < t) :
   rw [hpred, hcongr hev, eventMass_independent_const] at h
   simpa [hvar, one_pow, one_mul] using! h
 
+/-- Under the stated cubic sample size relation, an `ε`-nonuniform distribution with no big
+elements exceeds the uniformity score threshold with probability at least three quarters.
+See [Bravyi et al., 2011, Lemma 3][BravyiHarrowHassidim2011]. -/
 theorem lemma3_no_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hM : 0 < M) (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)
     (hnu : nonuniform ε p) (hnb : noBigElements p M) :
@@ -214,6 +248,8 @@ theorem lemma3_no_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 : 
   unfold probSampleSumGe
   linarith
 
+/-- The expected number of hits in `B` among `M` independent samples is `M` times the mass of
+`B`. -/
 theorem hitCount_expect (p : Dist N) (B : Finset (Fin N)) :
     (independent (fun _ : Fin M => p)).expect (fun S => hitCount B S)
       = (M : ℝ) * (∑ x ∈ B, p.prob x) := by
@@ -229,6 +265,7 @@ theorem hitCount_expect (p : Dist N) (B : Finset (Fin N)) :
   rw [h1]
   simp only [one_mul, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- The variance of the hit count in `B` is at most `M` times the mass of `B`. -/
 theorem hitCount_variance_le (p : Dist N) (B : Finset (Fin N)) :
     (independent (fun _ : Fin M => p)).variance (fun S => hitCount B S)
       ≤ (M : ℝ) * (∑ x ∈ B, p.prob x) := by
@@ -248,6 +285,9 @@ theorem hitCount_variance_le (p : Dist N) (B : Finset (Fin N)) :
     _ = (M : ℝ) * (∑ x ∈ B, p.prob x) := by
         simp [Finset.sum_const, nsmul_eq_mul]
 
+/-- Under the stated sample size and parameter conditions, a distribution with many big elements
+has sample sum at least `2 * M / N` with probability at least one half. See [Bravyi et al.,
+2011, Lemma 5][BravyiHarrowHassidim2011]. -/
 theorem lemma5_many_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hM : 0 < M) (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)
     (hmany : manyBig p M ε) :
@@ -378,6 +418,9 @@ theorem lemma5_many_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 
   unfold probSampleSumGe
   exact le_trans hge (probEvent_mono p _ _ hsub₂)
 
+/-- Conditioning an `ε`-nonuniform distribution away from its big set preserves nonuniformity
+with parameter `ε - 2 * wBig p M`. See [Bravyi et al., 2011, Proposition
+3][BravyiHarrowHassidim2011]. -/
 theorem prop3_renormalize_nonuniform [NeZero N] (p : Dist N) (ε : ℝ)
     (h : massOf p (bigSet p M) < 1) (hnu : nonuniform ε p) :
     nonuniform (ε - 2 * wBig p M) (renormalizeOff p (bigSet p M) h) := by
@@ -387,6 +430,8 @@ theorem prop3_renormalize_nonuniform [NeZero N] (p : Dist N) (ε : ℝ)
   have hw : massOf p (bigSet p M) = wBig p M := rfl
   linarith
 
+/-- The stated large domain and cubic sample size conditions imply `4 * alpha ε ≤ ε * M`. See
+[Bravyi et al., 2011, Proposition 3][BravyiHarrowHassidim2011]. -/
 theorem correction_small (ε : ℝ) (hε : 0 < ε) (hM : 0 < M)
     (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)
     (hNbig : (2 : ℝ) ^ 25 ≤ ε ^ 11 * (N : ℝ)) :
@@ -410,6 +455,9 @@ theorem correction_small (ε : ℝ) (hε : 0 < ε) (hM : 0 < M)
   rw [div_le_iff₀ (by positivity : (0 : ℝ) < ε ^ 4)]
   nlinarith [h3]
 
+/-- If the big elements have sufficiently small mass and the correction bound holds, the
+corrected nonuniformity parameter is at least `ε / 2`. See [Bravyi et al., 2011, Proposition
+3][BravyiHarrowHassidim2011]. -/
 theorem prop3_half [NeZero N] (p : Dist N) (ε : ℝ) (hM : 0 < M)
     (hfew : fewBig p M ε) (hcorr : 4 * alpha ε ≤ ε * (M : ℝ)) :
     ε / 2 ≤ ε - 2 * wBig p M := by
@@ -423,6 +471,9 @@ theorem prop3_half [NeZero N] (p : Dist N) (ε : ℝ) (hM : 0 < M)
     nlinarith [hcorr]
   linarith
 
+/-- For an `ε`-nonuniform distribution with no big elements or many big elements, the
+probability of reaching the stated score threshold is at least `exp (-alpha ε) / 2` under
+the sample size conditions. See [Bravyi et al., 2011, Lemma 2][BravyiHarrowHassidim2011]. -/
 theorem lemma2_main [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hM : 0 < M) (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)
     (hnu : nonuniform ε p)
@@ -454,6 +505,9 @@ theorem lemma2_main [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε) (hε1 : ε
       nlinarith [hexp1]
     linarith
 
+/-- For an event forcing every sample to avoid `B`, its probability equals `(1 - massOf p B)^M`
+times its probability under the renormalized distribution. See [Bravyi et al., 2011, Lemma
+4][BravyiHarrowHassidim2011]. -/
 theorem probEvent_avoid_eq (p : Dist N) (B : Finset (Fin N))
     (h : massOf p B < 1) (M : ℕ) (E : (Fin M → Fin N) → Prop) [DecidablePred E]
     (hE : ∀ S, E S → ∀ a, S a ∉ B) :
@@ -489,6 +543,7 @@ theorem probEvent_avoid_eq (p : Dist N) (B : Finset (Fin N))
           ∑ S ∈ Finset.univ.filter E, (renormalizeOff p B h).probOf S :=
         (Finset.mul_sum _ _ _).symm
 
+/-- For `0 ≤ x ≤ 1/2`, the inequality `log (1 - x) ≥ -2 * x` holds. -/
 theorem log_one_sub_ge_neg_two_mul {x : ℝ} (hx0 : 0 ≤ x) (hx : x ≤ 1 / 2) :
     Real.log (1 - x) ≥ -(2 * x) := by
   have hpos : 0 < 1 - x := by linarith
@@ -503,6 +558,8 @@ theorem log_one_sub_ge_neg_two_mul {x : ℝ} (hx0 : 0 ≤ x) (hx : x ≤ 1 / 2) 
   rw [hinv] at h
   linarith
 
+/-- For `0 ≤ w ≤ 1/2`, the avoidance factor `(1 - w)^M` is at least `exp (-2 * M * w)`. See
+[Bravyi et al., 2011, Lemma 4][BravyiHarrowHassidim2011]. -/
 theorem pow_one_sub_ge_exp_neg (w : ℝ) (hw0 : 0 ≤ w) (hw : w ≤ 1 / 2) (M : ℕ) :
     Real.exp (-(2 * (M : ℝ) * w)) ≤ (1 - w) ^ M := by
   have hpos : 0 < 1 - w := by linarith
@@ -513,6 +570,9 @@ theorem pow_one_sub_ge_exp_neg (w : ℝ) (hw0 : 0 ≤ w) (hw : w ≤ 1 / 2) (M :
     nlinarith [h, hMnn]
   exact (Real.le_log_iff_exp_le (pow_pos hpos M)).mp hxlog
 
+/-- For `0 < ε ≤ 1/2` and `0 ≤ w ≤ ε² / 64`, the rescaled score threshold is bounded by the
+stated expression in the corrected parameter `ε - 2 * w`. See [Bravyi et al., 2011, Lemma
+4][BravyiHarrowHassidim2011]. -/
 theorem few_big_threshold (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
     (hw0 : 0 ≤ w) (hw : w ≤ ε ^ 2 / 64) :
     (1 + ε ^ 2 / 2) / (1 - w)
@@ -553,6 +613,8 @@ theorem few_big_threshold (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
   rw [hfin] at hstep
   linarith [hcore, hstep]
 
+/-- For `0 < ε ≤ 1/2` and `0 ≤ w ≤ ε² / 64`, the ratio `ε^4 / (4 * (1 - w) * (ε - 2 * w)^4)` is
+at most one half. See [Bravyi et al., 2011, Lemma 4][BravyiHarrowHassidim2011]. -/
 theorem few_big_ratio (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
     (hw0 : 0 ≤ w) (hw : w ≤ ε ^ 2 / 64) :
     ε ^ 4 / (4 * (1 - w) * (ε - 2 * w) ^ 4) ≤ 1 / 2 := by
@@ -571,6 +633,8 @@ theorem few_big_ratio (ε w : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
   have hbase : (1 : ℝ) ≤ 2 * (255 / 256) * (63 / 64) ^ 4 := by norm_num
   nlinarith [hprod, hbase, pow_pos hε 4]
 
+/-- A per-run success probability at least `exp (-α) / 2` yields success probability at least
+`5/6` after `L` repetitions when the stated failure power is at most `1/6`. -/
 theorem theorem2_repetition_bound (α : ℝ) (hα : 0 ≤ α) (L : ℕ) (pper : ℝ)
     (hpper0 : 0 ≤ pper) (hpper1 : pper ≤ 1)
     (hpper : (1 : ℝ) / 2 * Real.exp (-α) ≤ pper)
@@ -583,6 +647,9 @@ theorem theorem2_repetition_bound (α : ℝ) (hα : 0 ≤ α) (L : ℕ) (pper : 
     linarith
   linarith
 
+/-- For `0 < ε ≤ 1`, there exist positive integers `M`, `K`, and `L` satisfying the stated cubic
+bounds on `M` and `K` and the interval bound on `L`. See [Bravyi et al., 2011, Theorem
+2][BravyiHarrowHassidim2011]. -/
 theorem theorem2_uniformity [NeZero N] (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ∃ (M K L : ℕ), 0 < M ∧ 0 < K ∧ 0 < L ∧
       (M : ℝ) ^ 3 ≤ 32 * (N : ℝ) / ε ^ 4 ∧
@@ -620,6 +687,8 @@ theorem theorem2_uniformity [NeZero N] (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 
   refine ⟨1, 1, Nat.ceil (4 * Real.exp (alpha ε)), by norm_num, by norm_num,
     hceilpos, h1M, h1K, hleceil, hltceil⟩
 
+/-- The self collision inner product of a distribution on nonzero `N` outcomes is at least
+`N⁻¹`. -/
 theorem inner_self_ge_inv [NeZero N] (p : Dist N) : (N : ℝ)⁻¹ ≤ inner p p := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
   have hNne : (N : ℝ) ≠ 0 := hNpos.ne'
@@ -639,6 +708,9 @@ theorem inner_self_ge_inv [NeZero N] (p : Dist N) : (N : ℝ)⁻¹ ≤ inner p p
   rw [hin, show (N : ℝ)⁻¹ = 1 / (N : ℝ) by rw [one_div]]
   exact (div_le_iff₀ hNpos).mpr (by nlinarith [hmain])
 
+/-- An upper bound `D` on point probabilities outside `B` becomes the bound `D / (1 - massOf p
+B)` after conditioning away from `B`. See [Bravyi et al., 2011, Lemma
+4][BravyiHarrowHassidim2011]. -/
 theorem renormalizeOff_le_sup (p : Dist N) (B : Finset (Fin N))
     (h : massOf p B < 1) (D : ℝ) (hD0 : 0 ≤ D) (hD : ∀ i, i ∉ B → p.prob i ≤ D)
     (i : Fin N) : (renormalizeOff p B h).prob i ≤ D / (1 - massOf p B) := by
@@ -652,6 +724,8 @@ theorem renormalizeOff_le_sup (p : Dist N) (B : Finset (Fin N))
     rw [hval]
     exact div_le_div_of_nonneg_right (hD i hi) h1w.le
 
+/-- Two sample events have equal probabilities if they differ only on sample tuples of
+probability zero. -/
 theorem probEvent_congr_of_probOf_zero (p : Dist N) (M : ℕ)
     (E F : (Fin M → Fin N) → Prop) [DecidablePred E] [DecidablePred F]
     (h : ∀ S, E S ≠ F S → p.probOf S = 0) :
@@ -676,6 +750,9 @@ theorem probEvent_congr_of_probOf_zero (p : Dist N) (M : ℕ)
   rw [hEe, hFe]
   exact Finset.sum_congr rfl fun S _ => hpt S
 
+/-- Under the point probability and nonuniformity bounds, a threshold below the stated fraction
+of the mean has lower tail probability at most `16 * D * N / (ε'^4 * M)`. See [Bravyi et
+al., 2011, Lemma 4][BravyiHarrowHassidim2011]. -/
 theorem probSampleSumGe_of_thr [NeZero N] (p : Dist N) (thr ε' : ℝ)
     (hε' : 0 < ε') (M : ℕ) (hM : 0 < M) (D : ℝ) (hD0 : 0 ≤ D)
     (hD : ∀ i, p.prob i ≤ D) (hnu : nonuniform ε' p)
@@ -744,9 +821,12 @@ theorem probSampleSumGe_of_thr [NeZero N] (p : Dist N) (thr ε' : ℝ)
     _ ≤ 16 * D / (ε' ^ 4 * (M : ℝ) * inner p p) := hratio
     _ ≤ 16 * D * (N : ℝ) / (ε' ^ 4 * (M : ℝ)) := hstep
 
+/-- The total mass of the big elements is nonnegative. -/
 theorem wBig_nonneg (p : Dist N) (M : ℕ) : 0 ≤ wBig p M :=
   Finset.sum_nonneg fun i _ => p.nonneg i
 
+/-- On a sample tuple avoiding `B`, the renormalized sample sum is the original sample sum
+divided by `1 - massOf p B`. See [Bravyi et al., 2011, Lemma 4][BravyiHarrowHassidim2011]. -/
 theorem sampleSum_renormalizeOff (p : Dist N) (B : Finset (Fin N))
     (h : massOf p B < 1) (S : Fin M → Fin N) (hS : ∀ a, S a ∉ B) :
     sampleSum (renormalizeOff p B h) S = sampleSum p S / (1 - massOf p B) := by
@@ -756,12 +836,15 @@ theorem sampleSum_renormalizeOff (p : Dist N) (B : Finset (Fin N))
     rw [show (renormalizeOff p B h).prob (S a) = p.prob (S a) / (1 - massOf p B) from by
       simp [renormalizeOff, hS a], div_eq_mul_inv]
 
+/-- A sample tuple has probability zero if one of its coordinates has point probability zero. -/
 theorem probOf_eq_zero_of_coord_zero (q : Dist N) (S : Fin M → Fin N)
     (h : ∃ a, q.prob (S a) = 0) : q.probOf S = 0 := by
   obtain ⟨a, ha⟩ := h
   simp only [FinDist.probOf]
   exact Finset.prod_eq_zero (Finset.mem_univ a) ha
 
+/-- A sample tuple containing an outcome in `B` has probability zero under the distribution
+conditioned away from `B`. -/
 theorem renormalizeOff_probOf_of_not_avoid (p : Dist N) (B : Finset (Fin N))
     (h : massOf p B < 1) (S : Fin M → Fin N) (hS : ¬ ∀ a, S a ∉ B) :
     (renormalizeOff p B h).probOf S = 0 := by
@@ -770,6 +853,8 @@ theorem renormalizeOff_probOf_of_not_avoid (p : Dist N) (B : Finset (Fin N))
   obtain ⟨a, ha⟩ := hS
   exact ⟨a, by simp [renormalizeOff, ha]⟩
 
+/-- The few big elements condition and the stated sample size and large domain bounds imply
+`wBig p M ≤ ε² / 64`. See [Bravyi et al., 2011, Lemma 4][BravyiHarrowHassidim2011]. -/
 theorem wBig_le_eps_sq (p : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hM : 0 < M) (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)
     (hfew : fewBig p M ε) (hNlarge : (2 : ℝ) ^ 37 ≤ ε ^ 14 * (N : ℝ)) :
@@ -796,6 +881,9 @@ theorem wBig_le_eps_sq (p : Dist N) (ε : ℝ) (hε : 0 < ε)
     _ = 256 / (ε ^ 4 * (M : ℝ)) := by rw [div_div]
     _ ≤ ε ^ 2 / 64 := hstep
 
+/-- Under the few big elements and large domain hypotheses, the score threshold is reached with
+probability at least `(1 - wBig p M)^M / 2`. See [Bravyi et al., 2011, Lemma
+4][BravyiHarrowHassidim2011]. -/
 theorem lemma4_few_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hε2 : ε ≤ 1 / 2) (hM : 0 < M)
     (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)
@@ -976,6 +1064,9 @@ theorem lemma4_few_big [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε)
         rw [hcond, hmass]
     _ ≤ probSampleSumGe p M ((1 + ε ^ 2 / 2) * (M : ℝ) / (N : ℝ)) := hmono
 
+/-- Under the few big elements and large domain hypotheses, the score threshold is reached with
+probability at least `exp (-2 * alpha ε) / 2`. See [Bravyi et al., 2011, Lemma
+4][BravyiHarrowHassidim2011]. -/
 theorem lemma4_few_big_exp [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hε2 : ε ≤ 1 / 2) (hM : 0 < M)
     (hM3 : (M : ℝ) ^ 3 = 32 * (N : ℝ) / ε ^ 4)

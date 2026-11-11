@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabBounds06.MainResults.Defs
+
+/-!
+# Intertwining for an adiabatic comparison evolution
+
+Differentiating a projector identity gives the commutator relation between the
+projector and the adiabatic comparison generator. Under the stated continuity,
+differentiability, and Hamiltonian-commutation hypotheses, the comparison
+propagator transports the initial projector to the current projector. ODE
+uniqueness proves the intertwining identity.
+
+The adiabatic approximation framework is [JansenRuskaiSeiler2007]. This is the
+comparison-evolution identity, prior to any final approximation-error estimate.
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +32,8 @@ namespace Qatlib.Papers.AdiabBounds06.MainResults
 
 variable {n : ℕ}
 
+/-- If a differentiable idempotent family commutes with `H`, its commutator with the adiabatic
+generator satisfies `P * adiGenerator - adiGenerator * P = Pdot`. -/
 theorem P_comm_adiGenerator (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ)
     (hComm : ∀ s, H s * P s = P s * H s)
     (hProj : ∀ s, P s * P s = P s)
@@ -60,6 +75,8 @@ theorem P_comm_adiGenerator (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n
   rw [mul_sub, sub_mul, Matrix.mul_smul, Matrix.smul_mul]
   exact hkey
 
+/-- The adiabatic comparison propagator intertwines `P 0` and `P s`, as used in
+[Jansen, Ruskai & Seiler][JansenRuskaiSeiler2007]. -/
 theorem intertwining (τ : ℝ) (H P Pdot : ℝ → Matrix (Fin n) (Fin n) ℂ)
     (hComm : ∀ s, H s * P s = P s * H s)
     (hProj : ∀ s, P s * P s = P s)

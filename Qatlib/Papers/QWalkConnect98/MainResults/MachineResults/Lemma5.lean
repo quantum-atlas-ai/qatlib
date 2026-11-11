@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QWalkConnect98.MainResults.Connectivity
 import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
 import Qatlib.Papers.QWalkConnect98.MainResults.MachineResults.MachineDefs
+
+/-!
+# A machine interface for regular graph connectivity
+
+`walkAcceptProb` is the squared diagonal-to-diagonal entry of a projected walk on a
+`GraphInstance`. Connected instances have acceptance bounded below after the mixing threshold,
+while disconnected instances have zero acceptance.
+
+An explicit polynomial step count packages these bounds into a `USTCONMachine` record with
+logarithmic space and polynomial time bounds in the abstract interface. The final results
+discharge the spectral-gap hypothesis using regularity. The formalization follows [Watrous1998].
+
+## Main statements
+
+* `lemma5_acceptance_connected_uncond`: positive acceptance for connected instances after the
+  stated threshold.
+* `lemma5_acceptance_disconnected`: zero acceptance for disconnected instances.
+* `lemma5_dUSTCON_machine_uncond`: existence of a machine record with the required resource and
+  acceptance bounds.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.MachineResults
@@ -20,21 +45,27 @@ open scoped BigOperators
 set_option autoImplicit false
 noncomputable section
 
+/-- The squared entry of `walkQ ^ k` from the diagonal source state to the diagonal target state
+of a graph instance. -/
 def walkAcceptProb {d : ℕ} (I : GraphInstance d) (k : ℕ) : ℝ := by
   letI := I.instFintype
   letI := I.instDecEq
   letI := I.instDecRel
   exact ((walkQ I.G (d : ℝ) ^ k) (I.t, I.t) (I.s, I.s)) ^ 2
 
+/-- The component spectral-gap predicate for the graph of an instance at its source vertex. -/
 def InstanceSpectralGap {d : ℕ} (I : GraphInstance d) : Prop := by
   letI := I.instFintype
   letI := I.instDecEq
   letI := I.instDecRel
   exact SpectralGap I.G (d : ℝ) I.s
 
+/-- The polynomial step count `(d * (d + 1) ^ 2 + 1) * (InstanceSize I + 1) ^ 4`. -/
 private def stepCount (d : ℕ) (I : GraphInstance d) : ℕ :=
   (d * (d + 1) ^ 2 + 1) * (InstanceSize I + 1) ^ 4
 
+/-- For a connected instance of degree at least two with the assumed spectral gap, acceptance
+exceeds `1 / (4 * InstanceSize I ^ 2)` after the stated step threshold. -/
 theorem lemma5_acceptance_connected {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance d)
     (hconn : InstanceConnected I) (hg : InstanceSpectralGap I) (k : ℕ)
     (hk : ((d : ℝ) * ((d : ℝ) + 1) ^ 2 * (InstanceSize I : ℝ) ^ 2 / 8) *
@@ -50,6 +81,8 @@ theorem lemma5_acceptance_connected {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance 
   have hgap : SpectralGap I.G (d : ℝ) I.s := hg
   exact corollary4_overlap I.G hreg hdR I.s I.t hconn hgap k hk
 
+/-- A disconnected instance has zero walk acceptance probability at every step count. See
+[Watrous1998]. -/
 theorem lemma5_acceptance_disconnected {d : ℕ} (I : GraphInstance d) (k : ℕ)
     (h : ¬ InstanceConnected I) : walkAcceptProb I k = 0 := by
   letI := I.instFintype
@@ -62,6 +95,8 @@ theorem lemma5_acceptance_disconnected {d : ℕ} (I : GraphInstance d) (k : ℕ)
   rw [hval, hzero]
   ring
 
+/-- The `USTCONMachine` record with zero space function, step count `stepCount`, and walk
+acceptance clipped above at one. -/
 private def ustconMachine (d : ℕ) : USTCONMachine d where
   space := fun _ => 0
   steps := fun I => stepCount d I
@@ -71,6 +106,9 @@ private def ustconMachine (d : ℕ) : USTCONMachine d where
     exact le_min (by norm_num) (sq_nonneg _)
   acceptProb_le_one := fun I => min_le_left _ _
 
+/-- Assuming component spectral gaps for all degree-`d` instances and `2 ≤ d`, a
+logarithmic-space, polynomial-time machine record has the stated positive acceptance on
+connected instances and zero acceptance on disconnected instances. -/
 theorem lemma5_dUSTCON_machine (d : ℕ) (hd : 2 ≤ d)
     (hgap : ∀ I : GraphInstance d, InstanceSpectralGap I) :
     ∃ M : USTCONMachine d, M.LogSpace ∧ M.PolyTime ∧
@@ -161,6 +199,7 @@ theorem lemma5_dUSTCON_machine (d : ℕ) (hd : 2 ≤ d)
     rw [lemma5_acceptance_disconnected I (stepCount d I) hdis]
     exact min_eq_right zero_le_one
 
+/-- Every graph instance of degree at least two satisfies `InstanceSpectralGap`. -/
 private theorem instanceSpectralGap {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance d) :
     InstanceSpectralGap I := by
   letI := I.instFintype
@@ -172,6 +211,8 @@ private theorem instanceSpectralGap {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance 
     exact_mod_cast this
   exact spectralGap_of_regular I.G hreg hdR I.s
 
+/-- For a connected instance of degree at least two, acceptance exceeds `1 / (4 * InstanceSize I
+^ 2)` after the stated step threshold. See [Watrous1998]. -/
 theorem lemma5_acceptance_connected_uncond {d : ℕ} (hd : 2 ≤ d) (I : GraphInstance d)
     (hconn : InstanceConnected I) (k : ℕ)
     (hk : ((d : ℝ) * ((d : ℝ) + 1) ^ 2 * (InstanceSize I : ℝ) ^ 2 / 8) *
@@ -179,6 +220,9 @@ theorem lemma5_acceptance_connected_uncond {d : ℕ} (hd : 2 ≤ d) (I : GraphIn
     1 / (4 * (InstanceSize I : ℝ) ^ 2) < walkAcceptProb I k :=
   lemma5_acceptance_connected hd I hconn (instanceSpectralGap hd I) k hk
 
+/-- For `2 ≤ d`, there exists a logarithmic-space, polynomial-time `USTCONMachine d` record with
+acceptance greater than `1 / (4 * InstanceSize I ^ 2)` on connected instances and zero on
+disconnected instances. See [Watrous1998]. -/
 theorem lemma5_dUSTCON_machine_uncond (d : ℕ) (hd : 2 ≤ d) :
     ∃ M : USTCONMachine d, M.LogSpace ∧ M.PolyTime ∧
       (∀ I : GraphInstance d, InstanceConnected I →

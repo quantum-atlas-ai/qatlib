@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
 import Mathlib.Data.Finset.Card
 import Mathlib.Tactic
+
+/-!
+# Edge-constrained triangle-search guarantees
+
+`lemma1_answer` collects the guarantees supplied by an `EdgeTriSearch`: sound output, rejection
+when no suitable triangle exists, a finite-seed failure bound, and a query-cost bound. The
+underlying search perspective is described in [Grover1996].
+
+## Main statements
+
+* `lemma1_answer`: correctness, failure-count, and cost guarantees conditional on an
+  `EdgeTriSearch`.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +34,8 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 
 open Qatlib.Concepts.WalkSearch.Primitives
 
+/-- Collects soundness, rejection, the inverse-power failure-count bound, and the stated
+logarithmic square-root cost bound of an `EdgeTriSearch`. -/
 theorem lemma1_answer (ets : EdgeTriSearch) {n : ℕ} (G : UGraph n)
     (E : Finset (Fin n × Fin n)) (floor : ℕ) :
     (∀ (ρ : ets.seed) {a b c : Fin n}, ets.run G E floor ρ = some (a, b, c) →

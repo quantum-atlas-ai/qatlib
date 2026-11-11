@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.FeeRecurrence
+
+/-!
+# Plain search trial laws and fees
+
+The unit-window experiment samples the prepared state without amplification or finite-coin
+rejection. The module identifies its exact Born masses, failure probability, and five resource
+fees, including immediate success when the marked mass is one.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `plain_failure`: With exact validation, the plain-trial failure probability is one minus the
+  prepared-state marked mass in extended nonnegative reals.
+* `plain_five_fees`: A plain trial has expected phase-query and bit fees zero, and expected
+  validation, preparation, and macro-gate fees one.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -24,13 +46,16 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- Running zero amplification iterations prepares exactly `preparedAAState U seed`. -/
 theorem zero_run (U:Matrix I I ℂ) (seed:I) (S:Finset I) :
     Run (preparedMark S) (preparedAACircuit U seed 0) (Ket seed)=preparedAAState U seed := by
   simp [preparedAACircuit,RepeatCircuit,Run,preparedAAState]
 
+/-- The finite-coin rejection mass for the unit window with zero sampled bits is zero. -/
 theorem plain_reject_zero : coinRejectMass (Nat.clog 2 1) 1=0 := by
   norm_num [coinRejectMass]
 
+/-- A plain sampled trial returns candidate `i` with its prepared-state Born probability. -/
 theorem plain_candidate_point (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I) (i:I) :
     event (preparedAASampled U hU seed S (Nat.clog 2 1) 1 3) (fun out=>∃g,out.1=some (i,g))=
       ENNReal.ofReal (BornProb (preparedAAState U seed) i) := by
@@ -46,6 +71,8 @@ theorem plain_candidate_point (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I �
   simp_rw [hc,one_mul,Qatlib.Papers.QAOAScaling23.SearchPrimitive.trial_point]
   simp only [Fin.sum_univ_one,Fin.val_zero,zero_run]
 
+/-- The probability that a plain sampled trial produces a marked candidate equals the
+prepared-state marked mass. -/
 theorem plain_marked_mass (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I) :
     event (preparedAASampled U hU seed S (Nat.clog 2 1) 1 3)
       (fun out=>∃y g,out.1=some (y,g) ∧ y∈S)=ENNReal.ofReal (MeasureProb (preparedAAState U seed) S) := by
@@ -53,12 +80,15 @@ theorem plain_marked_mass (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) 
   simp only [zero_pow (by norm_num : (3:ℕ)≠0),tsub_zero,Nat.cast_one,div_one,one_mul,
     Fin.sum_univ_one,Fin.val_zero,zero_run]
 
+/-- A plain sampled trial has zero probability of producing no candidate. -/
 theorem plain_pending_zero (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I) :
     event (preparedAASampled U hU seed S (Nat.clog 2 1) 1 3) (fun out=>out.1=none)=0 := by
   rw [preparedAASampled,finite_coin_attempt_pending,(finite_coin_return_and_pending _ _ _ (by norm_num) (by norm_num)).1,
     plain_reject_zero]
   norm_num
 
+/-- With exact validation, the plain-trial failure probability is one minus the prepared-state
+marked mass in extended nonnegative reals. -/
 theorem plain_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) :
     fail U hU seed S valid 1=1-ENNReal.ofReal (MeasureProb (preparedAAState U seed) S) := by
@@ -66,6 +96,8 @@ theorem plain_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (see
   rw [slot_success_event_congr U hU seed S valid 1 hvalid,plain_marked_mass] at h
   exact ENNReal.eq_sub_of_add_eq ENNReal.ofReal_ne_top h
 
+/-- A plain trial has expected phase-query and bit fees zero, and expected validation,
+preparation, and macro-gate fees one. -/
 theorem plain_five_fees (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I) :
     slot U hU seed S .phase 1=0 ∧ slot U hU seed S .bits 1=0 ∧
       slot U hU seed S .validation 1=1 ∧ slot U hU seed S .prepare 1=1 ∧ slot U hU seed S .gates 1=1 := by
@@ -98,6 +130,7 @@ theorem plain_five_fees (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (s
     rcases out with ⟨a,b,c⟩
     cases a <;>rfl
 
+/-- With exact validation and marked mass one, a plain trial has failure probability zero. -/
 theorem plain_Q_one (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (hQ:MeasureProb (preparedAAState U seed) S=1) :
     fail U hU seed S valid 1=0 := by rw [plain_failure U hU seed S valid hvalid,hQ];simp

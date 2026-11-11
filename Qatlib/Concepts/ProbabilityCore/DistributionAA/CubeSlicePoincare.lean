@@ -15,6 +15,32 @@ import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubePermutationAverage
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSwapInfluence
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
+
+/-!
+# Slice Poincaré bounds from permutations
+
+The module embeds weighted cube functions into a Euclidean space and controls permutation
+differences by decomposing permutations into coordinate swaps. An upper bound on every
+coordinate flip influence then bounds every permutation energy.
+
+Averaging gives a coordinate influence estimate for uniform slices and combines it with the
+product cube estimate. These finite variance bounds support the analysis of Boolean functions in
+the polynomial query setting of [BealsEtAl2001].
+
+## Main statements
+
+* `cube_permutation_energy_le`: permutation energy is at most `4 * n² * M` under a uniform
+  influence bound.
+* `cube_nu_exists_large_influence`: slice variance is at most `2 * n²` times some coordinate
+  influence.
+* `cube_both_exists_large_influence`: corresponding existence statements for product and slice
+  weights.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,14 +50,18 @@ noncomputable section
 namespace Qatlib.Concepts.ProbabilityCore.DistributionAA
 open scoped Classical BigOperators
 
+/-- The Euclidean vector with coordinate `x` equal to `Real.sqrt (w x) * f x`. -/
 def cubeWeightedVector {n : ℕ} (w : (Fin n → Bool) → ℝ) (f : (Fin n → Bool) → ℝ) :
     EuclideanSpace ℝ (Fin n → Bool) := WithLp.toLp 2 (fun x => Real.sqrt (w x)*f x)
 
+/-- The weighted vector construction preserves subtraction of functions. -/
 theorem cube_weighted_vector_sub {n : ℕ} (w : (Fin n → Bool) → ℝ) (f g : (Fin n → Bool) → ℝ) :
     cubeWeightedVector w (fun x => f x-g x)=cubeWeightedVector w f-cubeWeightedVector w g := by
   ext x
   simp [cubeWeightedVector,mul_sub]
 
+/-- Under a cube probability weight, the squared Euclidean norm of the weighted vector equals
+the weighted second moment. -/
 theorem cube_weighted_vector_norm_sq {n : ℕ} {w : (Fin n → Bool) → ℝ} (hw : CubeWeight n w)
     (f : (Fin n → Bool) → ℝ) : ‖cubeWeightedVector w f‖^2=cubeExpect n w (fun x => f x^2) := by
   rw [EuclideanSpace.real_norm_sq_eq]
@@ -40,6 +70,8 @@ theorem cube_weighted_vector_norm_sq {n : ℕ} {w : (Fin n → Bool) → ℝ} (h
   change (Real.sqrt (w x)*f x)^2=w x*f x^2
   rw [mul_pow,Real.sq_sqrt (hw.1 x)]
 
+/-- For `0 < p < 1`, permuting coordinates of a function preserves its weighted vector norm
+under `nuWeight p n`. -/
 theorem cube_weighted_permutation_norm {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (e : Equiv.Perm (Fin n)) (f : (Fin n → Bool) → ℝ) :
     ‖cubeWeightedVector (nuWeight p n) (fun x => f (cubePermute e x))‖ =
@@ -49,6 +81,8 @@ theorem cube_weighted_permutation_norm {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : 
     cube_weighted_vector_norm_sq (nuWeight_cubeWeight hp0 hp1 n)]
   exact cube_expect_permutation p e (fun x => f x^2)
 
+/-- The swap factor list produced from a list containing every moved point has length at most
+that list's length. -/
 theorem cube_swap_factors_length {α : Type} [DecidableEq α] (l : List α) (e : Equiv.Perm α)
     (he : ∀ {x}, e x ≠ x → x ∈ l) : (Equiv.Perm.swapFactorsAux l e he).val.length ≤ l.length := by
   induction l generalizing e with
@@ -64,6 +98,8 @@ theorem cube_swap_factors_length {α : Type} [DecidableEq α] (l : List α) (e :
           (he (Equiv.Perm.ne_and_ne_of_swap_mul_apply_ne_self hy).1)
       simpa only [List.length_cons] using Nat.succ_le_succ (ih _ hf)
 
+/-- For `0 < p < 1`, if all slice coordinate influences are bounded by `M ≥ 0`, every
+permutation has expected squared function difference at most `4 * n² * M`. -/
 theorem cube_permutation_energy_le {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (f : (Fin n → Bool) → ℝ) (M : ℝ) (hM0 : 0 ≤ M)
     (hM : ∀ i, cubeInf n (nuWeight p n) f i ≤ M) (e : Equiv.Perm (Fin n)) :
@@ -144,6 +180,8 @@ theorem cube_permutation_energy_le {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 
       (norm_nonneg (cubeWeightedVector w (fun x => f x-f (cubePermute e x)))) hbound
   nlinarith only [hsq,hs]
 
+/-- For `n > 0` and `0 < p < 1`, the variance on the selected uniform slice is at most `2 * n²`
+times some coordinate flip influence. -/
 theorem cube_nu_exists_large_influence {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (hn : 0 < n) (f : (Fin n → Bool) → ℝ) :
     ∃ i : Fin n, cubeVar n (nuWeight p n) f ≤ 2*(n : ℝ)^2*cubeInf n (nuWeight p n) f i := by
@@ -162,6 +200,8 @@ theorem cube_nu_exists_large_influence {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : 
   simp only [Finset.sum_const,nsmul_eq_mul,Finset.card_univ,← mul_assoc,inv_mul_cancel₀ hc,one_mul] at havg
   exact ⟨i,by dsimp [M] at havg; linarith only [havg]⟩
 
+/-- For `n > 0` and `0 < p < 1`, both product and slice variances are bounded by `2 * n²` times
+a coordinate influence, with a coordinate chosen separately for each law. -/
 theorem cube_both_exists_large_influence {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (hn : 0 < n) (f : (Fin n → Bool) → ℝ) :
     (∃ i : Fin n, cubeVar n (muWeight p n) f ≤ 2*(n : ℝ)^2*cubeInf n (muWeight p n) f i) ∧

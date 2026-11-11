@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSelectFourData
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAddition
+
+/-!
+# Selection among four Boolean words
+
+`boolean_select_four_value` verifies a graph of three multiplexers that selects one of four
+width `H` words using two control bits. `boolean_select_four_input_value` gives the same
+statement for explicitly packed inputs.
+
+The compiled circuit XORs the selected word into its target and restores the workspace, with
+linear gate and register bounds. The circuit background is described in [NielsenChuang2010].
+
+## Main statements
+
+* `boolean_select_four_value`, `boolean_select_four_input_value`: selection correctness.
+* `boolean_select_four_resources`: at most `271*H` steps on `14*H+2` wires.
+* `boolean_select_four_basis`, `boolean_select_four_coherent`: compiled circuit action.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +42,8 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 attribute [local irreducible] booleanWordMuxDAG
 
+/-- Applying a Boolean-valued map to the multiplexer source layout produces the corresponding
+packed multiplexer input. -/
 private theorem s4_sources_map {α : Type*} (H : ℕ) (a b : Fin H → α) (c : α) (f : α → Bool) :
     (fun j => f (booleanMuxSources H a b c j)) =
       booleanWordMuxInput H (fun j => f (a j)) (fun j => f (b j)) (f c) := by
@@ -32,6 +56,8 @@ private theorem s4_sources_map {α : Type*} (H : ℕ) (a b : Fin H → α) (c : 
     · simp [booleanMuxSources,booleanWordAdderInput,hk]
     · simp [booleanMuxSources,booleanWordAdderInput,hk,k.isLt]
 
+/-- A spliced word multiplexer evaluates to its first selected source word when the control is
+true, and its second otherwise. -/
 private theorem s4_mux {M K H : ℕ} (g : BooleanDAG M K) (a b : Fin H → Fin (M+K))
     (c : Fin (M+K)) (x : Reg M) :
     (fun j => booleanDAGValue (booleanDAGSplice g (booleanMuxSources H a b c) (booleanWordMuxDAG H)) x
@@ -47,6 +73,7 @@ private theorem s4_mux {M K H : ℕ} (g : BooleanDAG M K) (a b : Fin H → Fin (
     rfl
   rw [hr,boolean_word_mux_value]
 
+/-- Every Boolean graph preserves the values of its original input wires. -/
 private theorem s4_raw {M K : ℕ} (g : BooleanDAG M K) (x : Reg M) (j : Fin M) :
     booleanDAGValue g x (Fin.castLE (by omega) j) = x j := by
   induction g with
@@ -56,31 +83,39 @@ private theorem s4_raw {M K : ℕ} (g : BooleanDAG M K) (x : Reg M) (j : Fin M) 
         (Fin.castSucc (Fin.castLE (Nat.le_add_right M K) j)) = x j
     simpa only [booleanDAGValue,Fin.lastCases_castSucc] using! ih
 
+/-- Evaluating the raw wires of a selected row recovers that row's input word. -/
 private theorem s4_raw_word (H K : ℕ) (g : BooleanDAG (4*H+2) K) (x : Reg (4*H+2)) (row : Fin 4) :
     (fun j => booleanDAGValue g x (booleanSelectFourRaw H K row j)) = booleanSelectFourWord H x row := by
   funext j
   exact s4_raw g x (booleanSelectFourRaw H 0 row j)
 
+/-- The embedded low selector wire retains its input value in any graph of this input width. -/
 private theorem s4_low (H K : ℕ) (g : BooleanDAG (4*H+2) K) (x : Reg (4*H+2)) :
     booleanDAGValue g x (booleanSelectFourLow H K) = x (booleanSelectFourLow H 0) :=
   s4_raw g x (booleanSelectFourLow H 0)
 
+/-- The embedded high selector wire retains its input value in any graph of this input width. -/
 private theorem s4_high (H K : ℕ) (g : BooleanDAG (4*H+2) K) (x : Reg (4*H+2)) :
     booleanDAGValue g x (booleanSelectFourHigh H K) = x (booleanSelectFourHigh H 0) :=
   s4_raw g x (booleanSelectFourHigh H 0)
 
+/-- The first multiplexer selects row one when the low selector is true, and row zero otherwise. -/
 private theorem s4_first (H : ℕ) (x : Reg (4*H+2)) :
     (fun j => booleanDAGValue (booleanSelectFourFirst H) x
       (booleanSpliceSource (booleanSelectFourFirstInputs H) (booleanWordMuxSelect H j))) =
       if x (booleanSelectFourLow H 0) then booleanSelectFourWord H x 1 else booleanSelectFourWord H x 0 := by
   rw [booleanSelectFourFirst,booleanSelectFourFirstInputs,s4_mux,s4_low,s4_raw_word,s4_raw_word]
 
+/-- The second multiplexer selects row three when the low selector is true, and row two
+otherwise. -/
 private theorem s4_second (H : ℕ) (x : Reg (4*H+2)) :
     (fun j => booleanDAGValue (booleanSelectFourSecond H) x
       (booleanSpliceSource (booleanSelectFourSecondInputs H) (booleanWordMuxSelect H j))) =
       if x (booleanSelectFourLow H 0) then booleanSelectFourWord H x 3 else booleanSelectFourWord H x 2 := by
   rw [booleanSelectFourSecond,booleanSelectFourSecondInputs,s4_mux,s4_low,s4_raw_word,s4_raw_word]
 
+/-- After appending the second multiplexer, the first multiplexer still selects row one or row
+zero according to the low selector. -/
 private theorem s4_first_old (H : ℕ) (x : Reg (4*H+2)) :
     (fun j => booleanDAGValue (booleanSelectFourSecond H) x
       (Fin.castLE (by omega) (booleanSpliceSource (booleanSelectFourFirstInputs H) (booleanWordMuxSelect H j)))) =
@@ -93,6 +128,7 @@ private theorem s4_first_old (H : ℕ) (x : Reg (4*H+2)) :
     exact boolean_dag_splice_prefix _ _ _ _ _
   rw [he,s4_first]
 
+/-- The four-way selection graph returns the row indexed by the two input selector bits. -/
 theorem boolean_select_four_value (H : ℕ) (x : Reg (4*H+2)) :
     booleanSelectFourResult H x = booleanSelectFourWord H x
       (booleanSelectFourRow (x (booleanSelectFourHigh H 0)) (x (booleanSelectFourLow H 0))) := by
@@ -102,6 +138,8 @@ theorem boolean_select_four_value (H : ℕ) (x : Reg (4*H+2)) :
   cases hh : x (booleanSelectFourHigh H 0) <;> cases hl : x (booleanSelectFourLow H 0) <;>
     simp only [booleanSelectFourRow,Bool.false_eq_true,ite_false,ite_true]
 
+/-- Extracting a row from explicitly packed four-way selection inputs recovers the supplied word
+for that row. -/
 private theorem s4_input_raw (H : ℕ) (a : Fin 4 → Reg H) (high low : Bool) (row : Fin 4) :
     booleanSelectFourWord H (booleanSelectFourInput H a high low) row = a row := by
   funext j
@@ -113,19 +151,27 @@ private theorem s4_input_raw (H : ℕ) (a : Fin 4 → Reg H) (high low : Bool) (
     simp only [Nat.add_mod,Nat.mul_mod_left,zero_add,Nat.mod_eq_of_lt j.isLt]
   simp only [booleanSelectFourWord,booleanSelectFourRaw,booleanSelectFourInput,Fin.val_mk,dif_pos hlt,hd,hm]
 
+/-- The high selector of an explicitly packed four-way selection input equals the supplied high
+bit. -/
 private theorem s4_input_high (H : ℕ) (a : Fin 4 → Reg H) (high low : Bool) :
     booleanSelectFourInput H a high low (booleanSelectFourHigh H 0) = high := by
   simp [booleanSelectFourInput,booleanSelectFourHigh]
 
+/-- The low selector of an explicitly packed four-way selection input equals the supplied low
+bit. -/
 private theorem s4_input_low (H : ℕ) (a : Fin 4 → Reg H) (high low : Bool) :
     booleanSelectFourInput H a high low (booleanSelectFourLow H 0) = low := by
   have hn : ¬4*H+1 < 4*H := by omega
   simp [booleanSelectFourInput,booleanSelectFourLow,hn]
 
+/-- On explicitly packed inputs, the four-way selector returns the supplied word indexed by
+`booleanSelectFourRow high low`. -/
 theorem boolean_select_four_input_value (H : ℕ) (a : Fin 4 → Reg H) (high low : Bool) :
     booleanSelectFourResult H (booleanSelectFourInput H a high low) = a (booleanSelectFourRow high low) := by
   rw [boolean_select_four_value,s4_input_high,s4_input_low,s4_input_raw]
 
+/-- The four-way selector is legal and uses at most `271*H` reflection steps, zero oracle
+queries, and exactly `14*H+2` total wires. Its compiled gate count equals its step count. -/
 theorem boolean_select_four_resources (H : ℕ) :
     let gs := booleanDAGSteps (booleanSelectFourDAG H) (booleanSelectFourOutput H)
     reflectionLegal gs ∧ gs.length ≤ 271*H ∧
@@ -136,6 +182,8 @@ theorem boolean_select_four_resources (H : ℕ) :
   refine ⟨hl,?_,hq,hc,by omega⟩
   omega
 
+/-- On a basis state with initialized workspace, the compiled four-way selector XORs the
+selected word into the target and restores the workspace. -/
 theorem boolean_select_four_basis (H : ℕ) (x : Reg (4*H+2)) (y : Reg H) :
     let K := ((0+3*H)+3*H)+3*H
     Run (1 : Matrix (Reg (4*H+2+K+H)) (Reg (4*H+2+K+H)) ℂ)
@@ -144,6 +192,8 @@ theorem boolean_select_four_basis (H : ℕ) (x : Reg (4*H+2)) (y : Reg H) :
       Ket (booleanDAGInput (4*H+2) K H x (fun j => y j ^^ booleanSelectFourResult H x j)) :=
   boolean_dag_basis _ _ _ _
 
+/-- On an arbitrary embedded state, the compiled four-way selector coherently XORs each selected
+word into its target and restores the workspace. -/
 theorem boolean_select_four_coherent (H : ℕ) (ψ : QState (Reg (4*H+2) × Reg H)) :
     let K := ((0+3*H)+3*H)+3*H
     Run (1 : Matrix (Reg (4*H+2+K+H)) (Reg (4*H+2+K+H)) ℂ)

@@ -52,6 +52,29 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite spectral flux correlation sums
+
+This module defines the finite spectral correlation `sourceFluxCorrelation` and the flux matrix
+elements `sourceFluxMatrixElement` appearing in [LidarWang1999]. For real surface weights,
+conjugate symmetry of the weighted overlaps converts a product of flux entries into a squared
+energy gap times a squared overlap magnitude.
+
+The resulting weighted double sum reproduces the algebraic form of Equation 16, and its diagonal
+terms vanish.
+
+## Main statements
+
+* `source_overlap_conj`: reversing overlap indices takes complex conjugates for real weights.
+* `source_flux_correlation_eq16`: expands the correlation into thermal and dynamical weights,
+  squared gaps, and squared overlap magnitudes.
+* `source_flux_offdiagonal`: removing the diagonal does not change the weighted double sum.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -59,16 +82,22 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ThermalRate98.MainResults
 
+/-- The finite spectral flux correlation, summing thermal weights, energy-gap phases, and
+products `F n m * F m n` over both energy indices. -/
 def sourceFluxCorrelation {I : Type*} [Fintype I] (β t ħ : ℝ) (E : I → ℝ)
     (F : I → I → ℂ) : ℂ :=
   ∑ n, ∑ m, Complex.exp (-(β * (E n + E m)) / 2) *
     Complex.exp (Complex.I * ((E m - E n) * t / ħ)) * F n m * F m n
 
+/-- The flux matrix element `(i/ħ) (E n - E m)` times the surface-weighted overlap of
+coefficient columns `n` and `m`. -/
 def sourceFluxMatrixElement {J I : Type*} [Fintype J] (ħ : ℝ) (E : I → ℝ)
     (h : J → ℂ) (A : J → I → ℂ) (n m : I) : ℂ :=
   Complex.I / (ħ : ℂ) * ((E n - E m : ℝ) : ℂ) *
     (∑ j : J, star (A j n) * A j m * h j)
 
+/-- For surface weights with zero imaginary part, reversing the two coefficient indices in the
+weighted overlap takes its complex conjugate. -/
 theorem source_overlap_conj {J I : Type*} [Fintype J] (A : J → I → ℂ) (h : J → ℂ)
     (hh : ∀ j, (h j).im = 0) (n m : I) :
     (∑ j : J, star (A j m) * A j n * h j) =
@@ -86,6 +115,9 @@ theorem source_overlap_conj {J I : Type*} [Fintype J] (A : J → I → ℂ) (h :
   intro j _
   exact (hstar j).symm
 
+/-- For real surface weights, the product of reversed flux matrix elements equals `ħ⁻²` times
+the squared energy gap and the squared magnitude of the weighted overlap, as in Equation 16
+of [LidarWang1999]. -/
 theorem source_flux_term_eq16 {J I : Type*} [Fintype J] (ħ : ℝ)
     (E : I → ℝ) (A : J → I → ℂ) (h : J → ℂ) (hh : ∀ j, (h j).im = 0) (n m : I) :
     sourceFluxMatrixElement ħ E h A n m * sourceFluxMatrixElement ħ E h A m n =
@@ -133,6 +165,9 @@ theorem source_flux_term_eq16 {J I : Type*} [Fintype J] (ħ : ℝ)
   push_cast
   ring
 
+/-- For real surface weights, the finite spectral flux correlation is `ħ⁻²` times the double sum
+of thermal weights, dynamical phases, squared energy gaps, and squared overlap magnitudes.
+This is the algebraic finite-sum form of Equation 16 in [LidarWang1999]. -/
 theorem source_flux_correlation_eq16 {J I : Type*} [Fintype J] [Fintype I]
     (β t ħ : ℝ) (E : I → ℝ) (A : J → I → ℂ) (h : J → ℂ)
     (hh : ∀ j, (h j).im = 0) :
@@ -169,6 +204,8 @@ theorem source_flux_correlation_eq16 {J I : Type*} [Fintype J] [Fintype I]
             (Complex.normSq (∑ j : J, star (A j n) * A j m * h j) : ℂ)) := by
         ring
 
+/-- The weighted squared-gap double sum is unchanged when each diagonal term `m = n` is omitted,
+since its energy gap vanishes. -/
 theorem source_flux_offdiagonal {I : Type*} [Fintype I] [DecidableEq I]
     (β t ħ : ℝ) (E : I → ℝ) (S : I → I → ℂ) :
     (∑ n, ∑ m ∈ Finset.univ.erase n,
@@ -187,6 +224,8 @@ theorem source_flux_offdiagonal {I : Type*} [Fintype I] [DecidableEq I]
     simp
   rw [hdiag, add_zero]
 
+/-- The dimension identity `2 ^ (l * M) = (2 ^ l) ^ M` expresses the size of a register with `M`
+coordinates of `l` qubits each. -/
 theorem source_register_dimension (l M : ℕ) :
     (2 : ℕ) ^ (l * M) = ((2 : ℕ) ^ l) ^ M := by
   rw [pow_mul]

@@ -13,12 +13,34 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma16Stat
 
+/-!
+# Trigonometric identity for amplified Fourier amplitudes
+
+`amplified_qft_lemma16` rewrites the scaled difference between marked and unmarked Grover
+amplitudes as a tangent times a sine. The auxiliary identity treats a general angle, and
+`amplified_qft_lemma16_contract` supplies the specification corresponding to Lemma 16 of
+[Cornwell2014].
+
+## Main statements
+
+* `amplified_qft_lemma16`: Establishes (T/√N)(aₖ−bₖ) = tan θ · sin(2kθ) for the amplified
+  Fourier parameters N = 2ⁿ, T = L+M, and k = ⌊π/(4θ)⌋; see [Cornwell, Lemma 16][Cornwell2014].
+* `amplified_qft_lemma16_contract`: Provides `Lemma16Spec.expected`, the scaled
+  marked-minus-unmarked amplitude identity of [Cornwell, Lemma 16][Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 open Qatlib.Concepts.AmpTransform.ErrorStream.Lemma16Spec
 
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
 open Real
 
+/-- For θ = arcsin √(T/N) with 0 < T < N, rewrites (T/√N)(sin x/√T − cos x/√(N−T)) as tan θ ·
+sin(x−θ). -/
 private theorem amplified_qft_lemma16_aux
     {N T θ : ℝ} (hN : 0 < N) (hT : 0 < T) (hTN : T < N)
     (hθ : θ = Real.arcsin (Real.sqrt (T / N))) (x : ℝ) :
@@ -87,6 +109,8 @@ private theorem amplified_qft_lemma16_aux
     _ = Real.tan θ * Real.sin (x - θ) := by
         rw [Real.sin_sub]
 
+/-- Establishes (T/√N)(aₖ−bₖ) = tan θ · sin(2kθ) for the amplified Fourier parameters N = 2ⁿ, T
+= L+M, and k = ⌊π/(4θ)⌋; see [Cornwell, Lemma 16][Cornwell2014]. -/
 theorem amplified_qft_lemma16 :
     ∀ (n L M : ℕ), 0 < L + M → L + M < 2 ^ n →
       let N : ℝ := ((2 ^ n : ℕ) : ℝ)
@@ -115,6 +139,8 @@ theorem amplified_qft_lemma16 :
   rw [e]
   exact amplified_qft_lemma16_aux hN hT hTN rfl _
 
+/-- Provides `Lemma16Spec.expected`, the scaled marked-minus-unmarked amplitude identity of
+[Cornwell, Lemma 16][Cornwell2014]. -/
 theorem amplified_qft_lemma16_contract :
     Lemma16Spec.expected :=
   amplified_qft_lemma16

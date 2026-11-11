@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SpinObstruction
 import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.CostConvention
+
+/-!
+# Overlap gap obstructions for maximizing spin energies
+
+`interpolate_neg` identifies tensor interpolation under simultaneous sign reversal. Applying the
+overlap gap condition to the negated tensors gives `actual_maximizing_spin_obstruction`: a
+continuous nonzero spin path with decorrelated endpoints must fall below the cube maximum by
+more than the prescribed margin somewhere. This states the maximizing energy form of the
+obstruction associated with [GohMuller2026].
+
+## Main statements
+
+* `interpolate_neg`: Interpolating two negated tensors gives the negative of their
+  interpolation.
+* `actual_maximizing_spin_obstruction`: If the negated tensor pair satisfies the ensemble
+  overlap gap condition with `ν₁ < ν₂ < 1`, then a nonzero spin path with endpoint overlap at
+  most `ν₁` has energy strictly below the interpolated cube maximum minus `μ` at some parameter.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +41,7 @@ open Qatlib.Papers.OverlapGapGoh26.AmpDynamics.CostConvention
 
 namespace Qatlib.Papers.OverlapGapGoh26.OgpBridge.MaximizingSpin
 
+/-- Interpolating two negated tensors gives the negative of their interpolation. -/
 theorem interpolate_neg {q N : ℕ} (J K : Tensor q N) (τ : ℝ) :
     interpolate (-J) (-K) τ= -(interpolate J K τ) := by
   ext k
@@ -25,6 +49,9 @@ theorem interpolate_neg {q N : ℕ} (J K : Tensor q N) (τ : ℝ) :
   simp only [Pi.neg_apply]
   ring
 
+/-- If the negated tensor pair satisfies the ensemble overlap gap condition with `ν₁ < ν₂ < 1`,
+then a nonzero spin path with endpoint overlap at most `ν₁` has energy strictly below the
+interpolated cube maximum minus `μ` at some parameter. See [GohMuller2026]. -/
 theorem actual_maximizing_spin_obstruction {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ)
     (J K : Tensor (r+1) N) (seed : Fin N → ℝ) (μ ν₁ ν₂ : ℝ)
     (hogp : ensembleOGP (-J) (-K) μ ν₁ ν₂) (hgap : ν₁<ν₂) (hhigh : ν₂<1)

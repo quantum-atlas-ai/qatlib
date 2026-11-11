@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 import Mathlib.MeasureTheory.Function.JacobianOneDim
 import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+
+/-!
+# A change of variables for the positive half-line
+
+The rational map `positiveChart c` sends the open unit interval bijectively onto the positive
+half-line when `c > 0`. Its derivative supplies a change-of-variables formula used to obtain the
+Euler representation of the Gaussian rounding kernel. See [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `positiveChart_image`: identifies the image of the open unit interval.
+* `positiveChart_integral`: gives the integral substitution with its explicit derivative.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,11 +36,14 @@ open MeasureTheory Set Real
 
 namespace Qatlib.Papers.RydbergMaxCut26.Rounding.Laplace
 
+/-- The rational substitution `c * u² / (1 - u²)`. -/
 def positiveChart (c u : ℝ) : ℝ := c*u^2/(1-u^2)
 
+/-- The denominator `1 - u²` is positive on the open unit interval. -/
 theorem chart_den_pos {u : ℝ} (hu : u∈Ioo (0:ℝ) 1) : 0<1-u^2 := by
   nlinarith [hu.1,hu.2]
 
+/-- On the open unit interval, `positiveChart c` has derivative `2 * c * u / (1 - u²)²`. -/
 theorem positiveChart_deriv (c u : ℝ) (hu : u∈Ioo (0:ℝ) 1) :
     HasDerivAt (positiveChart c) (2*c*u/(1-u^2)^2) u := by
   have hd := ((hasDerivAt_pow 2 u).const_mul c).div
@@ -32,6 +53,7 @@ theorem positiveChart_deriv (c u : ℝ) (hu : u∈Ioo (0:ℝ) 1) :
   (try field_simp [(chart_den_pos hu).ne'])
   ring
 
+/-- For positive `c`, `positiveChart c` is injective on the open unit interval. -/
 theorem positiveChart_inj {c : ℝ} (hc : 0<c) : InjOn (positiveChart c) (Ioo (0:ℝ) 1) := by
   intro x hx y hy he
   have hdx := (chart_den_pos hx).ne'
@@ -44,6 +66,8 @@ theorem positiveChart_inj {c : ℝ} (hc : 0<c) : InjOn (positiveChart c) (Ioo (0
   have hs := (mul_eq_zero.mp hz).resolve_left hc.ne'
   nlinarith [hx.1,hy.1]
 
+/-- For positive `c`, the image of the open unit interval under `positiveChart c` is the
+positive half-line. -/
 theorem positiveChart_image {c : ℝ} (hc : 0<c) : positiveChart c '' Ioo (0:ℝ) 1=Ioi 0 := by
   ext x
   constructor
@@ -63,6 +87,8 @@ theorem positiveChart_image {c : ℝ} (hc : 0<c) : positiveChart c '' Ioo (0:ℝ
     field_simp
     simp [hc.ne']
 
+/-- For positive `c`, integration over the positive half-line can be rewritten on the open unit
+interval using `positiveChart c` and the Jacobian `2 * c * u / (1 - u²)²`. -/
 theorem positiveChart_integral {c : ℝ} (hc : 0<c) (f : ℝ→ℝ) :
     (∫ x in Ioi (0:ℝ),f x)=
       ∫ u in Ioo (0:ℝ) 1,(2*c*u/(1-u^2)^2)*f (positiveChart c u) := by

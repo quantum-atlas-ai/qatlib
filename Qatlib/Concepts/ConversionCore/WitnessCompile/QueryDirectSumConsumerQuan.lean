@@ -9,6 +9,29 @@ import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
 import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
+
+/-!
+# Direct sums of function evaluation queries
+
+Coordinate lifts combine a single-instance adversary matrix into an adversary for independent
+copies, with norm scaling linearly in the copy count. Prefix labels provide a matching
+linear-budget construction for rectangular filtered certificates.
+
+`queryDirectSumConsumer` combines these estimates with the function evaluation adversary
+characterization to compare the query cost of `m` independent evaluations with `m` times the
+single-instance cost. This realizes the direct-sum conclusion of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceIndependentAdversary_norm`: linear norm scaling for the summed coordinate lifts.
+* `sourceRectCert_independent`: linear-budget certificates for independent copies.
+* `queryDirectSumConsumer`: complexity comparison and actual evaluation words.
+
+## References
+
+* [Lee et al., 2011, Corollary 5.3][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,11 +52,15 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The matrix acting as `G` on coordinate `j` and as identity on all other coordinates of an
+`m`-tuple. -/
 def sourceCoordinateLift {X : Type} [DecidableEq X] {m : ℕ}
     (G : Matrix X X ℂ) (j : Fin m) : Matrix (Fin m → X) (Fin m → X) ℂ :=
   relabelGate (Equiv.funSplitAt j X).symm
     (sourceTensor G (1 : Matrix ({i : Fin m // i≠j} → X) ({i : Fin m // i≠j} → X) ℂ))
 
+/-- The coordinate lift has entry `G (x j) (y j)` when all other coordinates agree, and zero
+otherwise. -/
 theorem sourceCoordinateLift_apply {X : Type} [DecidableEq X] {m : ℕ}
     (G : Matrix X X ℂ) (j : Fin m) (x y : Fin m → X) :
     sourceCoordinateLift G j x y=G (x j) (y j)*(if ∀ i, i≠j → x i=y i then 1 else 0) := by
@@ -47,11 +74,13 @@ theorem sourceCoordinateLift_apply {X : Type} [DecidableEq X] {m : ℕ}
   simp only [sourceCoordinateLift,relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,sourceTensor,
     Equiv.symm_symm,Equiv.funSplitAt_apply,Matrix.one_apply,he]
 
+/-- The operator norm of a coordinate lift is at most the operator norm of the original matrix. -/
 theorem sourceCoordinateLift_norm_le {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
     (G : Matrix X X ℂ) (j : Fin m) : ‖sourceCoordinateLift G j‖ ≤ ‖G‖ := by
   rw [sourceCoordinateLift,l2_norm_relabelGate,sourceTensor_norm]
   exact (mul_le_mul_of_nonneg_left l2_norm_one_le (norm_nonneg G)).trans (by simp)
 
+/-- Lifting a Hermitian matrix to one coordinate preserves Hermitian symmetry. -/
 theorem sourceCoordinateLift_isHermitian {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
     (G : Matrix X X ℂ) (hG : G.IsHermitian) (j : Fin m) : (sourceCoordinateLift G j).IsHermitian := by
   ext x y
@@ -60,9 +89,13 @@ theorem sourceCoordinateLift_isHermitian {X : Type} [Fintype X] [DecidableEq X] 
     constructor <;> intro h i hi <;> exact (h i hi).symm
   by_cases hr : ∀ i, i≠j → x i=y i <;> simp [he,hr]
 
+/-- The adversary matrix for `m` independent inputs obtained by summing the coordinate lifts of
+`G`. -/
 def sourceIndependentAdversary {X : Type} [Fintype X] [DecidableEq X] (m : ℕ)
     (G : Matrix X X ℂ) : Matrix (Fin m → X) (Fin m → X) ℂ := ∑ j, sourceCoordinateLift G j
 
+/-- Filtering the independent adversary at coordinate `(p,k)` gives the coordinate-`p` lift of
+the single-instance adversary filtered at `k`. -/
 theorem sourceIndependentAdversary_filter {X : Type} [Fintype X] [DecidableEq X]
     {n m q : ℕ} (input : X → Fin n → Fin (q+1)) (G : Matrix X X ℂ)
     (p : Fin m) (k : Fin n) :
@@ -80,6 +113,8 @@ theorem sourceIndependentAdversary_filter {X : Type} [Fintype X] [DecidableEq X]
     · simp [he]
   · simp
 
+/-- The tensor power state splits at any coordinate into that state and the tensor power on the
+remaining coordinates, up to relabeling. -/
 theorem sourcePiState_split {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
     (u : QState X) (j : Fin m) :
     PiTensorState (fun _ : Fin m => u)=relabelState (Equiv.funSplitAt j X).symm
@@ -90,6 +125,8 @@ theorem sourcePiState_split {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
   congr 1
   exact Finset.prod_subtype (Finset.univ.erase j) (by simp) (fun i => u (x i))
 
+/-- If `u` is an eigenvector of `G` with eigenvalue `c`, its tensor power is an eigenvector with
+eigenvalue `c` of every coordinate lift. -/
 theorem sourceCoordinateLift_eigen {X : Type} [Fintype X] [DecidableEq X] {m : ℕ}
     (G : Matrix X X ℂ) (u : QState X) (c : ℂ) (he : G*ᵥu=c • u) (j : Fin m) :
     sourceCoordinateLift G j *ᵥ PiTensorState (fun _ : Fin m => u)=
@@ -105,6 +142,7 @@ theorem sourceCoordinateLift_eigen {X : Type} [Fintype X] [DecidableEq X] {m : �
   simp only [relabelState,TensorState,Function.comp_apply,Pi.smul_apply]
   ring
 
+/-- For Hermitian `G`, the norm of the sum of its `m` coordinate lifts is `m*‖G‖`. -/
 theorem sourceIndependentAdversary_norm {X : Type} [Fintype X] [DecidableEq X]
     (m : ℕ) (G : Matrix X X ℂ) (hG : G.IsHermitian) :
     ‖sourceIndependentAdversary m G‖=(m : ℝ)*‖G‖ := by
@@ -139,6 +177,8 @@ theorem sourceIndependentAdversary_norm {X : Type} [Fintype X] [DecidableEq X]
 
 set_option maxHeartbeats 1000000 in
 
+/-- The adversary value for `m` independent evaluations is at least `m` times the
+single-instance adversary value. -/
 theorem sourceAdversary_independent_ge {X E : Type} [Fintype X] [DecidableEq X]
     [DecidableEq E] {n m q : ℕ} (input : X → Fin n → Fin (q+1)) (f : X → E) :
     (m : ℝ≥0∞)*sourceAdversary (sourceAlphabetDelta input) f ≤
@@ -177,9 +217,13 @@ theorem sourceAdversary_independent_ge {X E : Type} [Fintype X] [DecidableEq X]
   rw [← hm]
   exact le_iSup_of_le ⟨H,hH,hreal,hzero,hf⟩ le_rfl
 
+/-- The output tuple restricted to coordinates strictly before `j`, with `none` at all later
+coordinates. -/
 def sourceOutputPrefix {E : Type} {m : ℕ} (a : Fin m → E) (j : Fin m) : Fin m → Option E :=
   fun i => if i.val<j.val then some (a i) else none
 
+/-- Two output prefixes at `j` agree exactly when the original tuples agree at every coordinate
+before `j`. -/
 theorem sourceOutputPrefix_eq_iff {E : Type} {m : ℕ} (a b : Fin m → E) (j : Fin m) :
     sourceOutputPrefix a j=sourceOutputPrefix b j ↔ ∀ i, i<j → a i=b i := by
   constructor
@@ -191,6 +235,8 @@ theorem sourceOutputPrefix_eq_iff {E : Type} {m : ℕ} (a b : Fin m → E) (j : 
     · simp [sourceOutputPrefix,show i.val<j.val from he,h i he]
     · simp [sourceOutputPrefix,show ¬i.val<j.val from he]
 
+/-- The sum of the indicators that `j` is the first differing coordinate equals zero for equal
+tuples and one otherwise. -/
 theorem sourceFirstDifference_sum {E : Type} [DecidableEq E] {m : ℕ} (a b : Fin m → E) :
     (∑ j : Fin m, (if sourceOutputPrefix a j=sourceOutputPrefix b j then
       (if a j=b j then (0 : ℂ) else 1) else 0))=if a=b then 0 else 1 := by
@@ -218,13 +264,17 @@ theorem sourceFirstDifference_sum {E : Type} [DecidableEq E] {m : ℕ} (a b : Fi
       simp [hp]
   · simp
 
+/-- The sum of squared absolute values of a basis ket is one. -/
 theorem sourceKet_normSq_sum {T : Type} [Fintype T] [DecidableEq T] (a : T) :
     (∑ t, Complex.normSq (Ket a t))=1 := by simp [Ket]
 
+/-- The inner product of two basis kets is one when their labels agree and zero otherwise. -/
 theorem sourceKet_inner {T : Type} [Fintype T] [DecidableEq T] (a b : T) :
     (∑ t, star (Ket a t)*Ket b t)=if a=b then (1 : ℂ) else 0 := by
   simp [Ket,eq_comm]
 
+ /-- A rectangular filtered certificate of budget `w` for one evaluation yields a certificate of
+ budget `m*w` for `m` independent evaluations. -/
  theorem sourceRectCert_independent {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n m q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) (w : ℝ)
@@ -298,6 +348,8 @@ theorem sourceKet_inner {T : Type} [Fintype T] [DecidableEq T] (a b : T) :
     simp_rw [hmass]
     exact (Finset.sum_le_sum fun j _ => hv (ys j)).trans (by simp)
 
+/-- The rectangular filtered value for `m` independent evaluations is at most `m` times the
+single-instance value. -/
 theorem sourceRectValue_independent_le {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n m q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) :
@@ -322,6 +374,8 @@ theorem sourceRectValue_independent_le {X E : Type}
     (sourceRectCert_independent (m := m) input f w hc)
   simpa only [ENNReal.ofReal_mul (Nat.cast_nonneg m),ENNReal.ofReal_natCast,ENNReal.ofReal_toReal ht] using! hh
 
+/-- The rectangular filtered value of a function evaluation matrix is at most twice its general
+adversary value. -/
 theorem sourceRectValue_function_le_two_adversary {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) :
@@ -336,6 +390,8 @@ theorem sourceRectValue_function_le_two_adversary {X E : Type}
       _ = 2 := by norm_num
   exact hh.trans (mul_le_mul hc le_rfl zero_le zero_le)
 
+/-- The adversary value for `m` independent evaluations is at most `2*m` times the
+single-instance adversary value. -/
 theorem sourceAdversary_independent_le {X E : Type}
     [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n m q : ℕ}
     (input : X → Fin n → Fin (q+1)) (f : X → E) :
@@ -351,6 +407,8 @@ theorem sourceAdversary_independent_le {X E : Type}
       mul_le_mul le_rfl (sourceRectValue_function_le_two_adversary input f) zero_le zero_le
     _ = _ := by ring
 
+ /-- The function evaluation adversary characterization implies the direct-sum query comparison
+ and its budgeted word construction. -/
  theorem queryDirectSumConsumer_of_functionEvaluation
     (h19 : FunctionEvaluationAdversaryAlgorithm) : QueryDirectSumConsumer := by
   obtain ⟨c,hc,h19⟩ := h19
@@ -403,6 +461,9 @@ theorem sourceAdversary_independent_le {X E : Type}
     have he : (c : ℝ)*(2*m*c*Q)=((2*c*c : ℕ) : ℝ)*m*Q := by push_cast; ring
     simpa only [he] using! hCalls
 
+/-- The query complexity of independent function evaluations scales linearly in the copy count
+up to a universal constant, with actual budgeted evaluation words. This is the direct-sum
+statement of [Lee et al., Corollary 5.3][LeeEtAl2011]. -/
 theorem queryDirectSumConsumer : QueryDirectSumConsumer :=
   queryDirectSumConsumer_of_functionEvaluation functionEvaluationAdversaryAlgorithm
 

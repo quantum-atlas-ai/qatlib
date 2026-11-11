@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableEstStat
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasQuan
 import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+
+/-!
+# Median-of-means estimation of hybrid observables
+
+`hybridObservable_sample_bound` and `hybridObservable_sample_expect` give the magnitude and mean
+of the pairwise observable sample. A logarithmic repetition bound controls the median-of-means
+failure factor, and `proposition20HybridObservableEstimation` proves the estimation contract
+with its explicit group sizes and deterministic bias allowance. See [AnChildsLin2026] for the
+paper context.
+
+## Main statements
+
+* `hybridObservable_sample_expect`: With positive coefficient-norm sum, the mean hybrid sample
+  equals the real reconstructed observable quadratic form divided by the square of that sum.
+* `hybridObservable_mom_log_bound`: If positive `δ` and natural `M` satisfy the stated
+  logarithmic lower bound, then `3 ^ (M / 2) / 2 ^ M ≤ δ`, with natural division in the exponent
+  of three.
+* `proposition20HybridObservableEstimation`: The hybrid observable estimation contract holds:
+  the specified median-of-means estimator exceeds total error `ε` with probability at most `δ`
+  under its bias and sample-size hypotheses.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +57,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- For unitary summands and a unit input vector, every hybrid observable sample has absolute
+value at most `‖O‖`. -/
 theorem hybridObservable_sample_bound {I : Type} [Fintype I] [DecidableEq I]
     {N : ℕ} (c : Fin N → ℂ) (W : Fin N → Matrix I I ℂ) (O : Matrix I I ℂ)
     (x : QState I) (hx : ‖toEuclidean_fromVec x‖ = 1)
@@ -55,6 +83,8 @@ theorem hybridObservable_sample_bound {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ (‖c a.1‖ * ‖c a.2‖) * ‖O‖ := mul_le_mul_of_nonneg_left hi hd.le
       _ = _ := mul_comm _ _
 
+/-- With positive coefficient-norm sum, the mean hybrid sample equals the real reconstructed
+observable quadratic form divided by the square of that sum. -/
 theorem hybridObservable_sample_expect {I : Type} [Fintype I] [DecidableEq I]
     {N : ℕ} (c : Fin N → ℂ) (hγ : 0 < ∑ j, ‖c j‖)
     (W : Fin N → Matrix I I ℂ) (O : Matrix I I ℂ) (x : QState I) :
@@ -81,6 +111,8 @@ theorem hybridObservable_sample_expect {I : Type} [Fintype I] [DecidableEq I]
   simpa only [Fintype.sum_prod_type, Complex.re_sum] using!
     congrArg Complex.re (hybridObservable_double_sum c W O x)
 
+/-- If positive `δ` and natural `M` satisfy the stated logarithmic lower bound, then `3 ^ (M /
+2) / 2 ^ M ≤ δ`, with natural division in the exponent of three. -/
 theorem hybridObservable_mom_log_bound (M : ℕ) (δ : ℝ) (hδ : 0 < δ)
     (hM : Real.log (1 / δ) / Real.log (2 / Real.sqrt 3) ≤ (M : ℝ)) :
     (3 : ℝ)^(M / 2) / 2^M ≤ δ := by
@@ -106,6 +138,9 @@ theorem hybridObservable_mom_log_bound (M : ℕ) (δ : ℝ) (hδ : 0 < δ)
     _ = (Real.sqrt 3 / 2)^M := (div_pow _ _ _).symm
     _ ≤ δ := htail
 
+/-- The hybrid observable estimation contract holds: the specified median-of-means estimator
+exceeds total error `ε` with probability at most `δ` under its bias and sample-size
+hypotheses [An et al., Proposition 20][AnChildsLin2026]. -/
 theorem proposition20HybridObservableEstimation : Proposition20HybridObservableEstimation := by
   intro I _ _ N c W B i₀ O target ε δ Lm Mm hW hB _hO hε hδ hLm hMm hγ
   (try dsimp only)

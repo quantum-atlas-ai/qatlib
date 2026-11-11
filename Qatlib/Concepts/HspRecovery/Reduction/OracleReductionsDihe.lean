@@ -6,17 +6,42 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Reduction.OracleReductionsStat
 import Mathlib.Tactic.Abel
+
+/-!
+# Hidden shift and reflection oracle reductions
+
+This module proves the oracle promise transformations collected in `SourceOracleReductions`. It
+constructs reflection promises from hidden shifts, establishes injectivity of paired reflection
+values under a nontrivial doubling condition, and combines the reductions.
+
+The reductions correspond to the setting of [Kuperberg2005], including its comparison of hidden
+shift and hidden reflection problems.
+
+## Main statements
+
+* `source_shift_dihedral`: transforms a hidden shift into a dihedral reflection hiding promise.
+* `source_shift_reflection`: constructs an abelian reflection promise.
+* `sourceOracleReductions`: assembles the oracle reductions.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
+/-- For a hidden shift promise, `f a = g b` holds exactly when `b = a + s`. -/
 private theorem shift_cross {A S : Type*} [AddCommGroup A] {f g : A → S} {s : A}
     (h : HiddenShift f g s) (a b : A) : f a = g b ↔ b = a + s := by
   rw [h.2.2 a]
   exact h.2.1.eq_iff.trans eq_comm
 
+/-- A hidden shift promise makes `shiftToDihedralOracle f g` hide the reflection specified by
+`s`. -/
 theorem source_shift_dihedral {A S : Type*} [AddCommGroup A] {f g : A → S} {s : A}
     (h : HiddenShift f g s) : AbelianReflectionHides (shiftToDihedralOracle f g) s := by
   rintro ⟨a, ta⟩ ⟨b, tb⟩
@@ -27,6 +52,8 @@ theorem source_shift_dihedral {A S : Type*} [AddCommGroup A] {f g : A → S} {s 
       shift_cross h b a
   · simpa [shiftToDihedralOracle, abelianReflect, eq_comm] using h.2.1.eq_iff (a := a) (b := b)
 
+/-- A hidden shift promise makes `shiftToReflectionOracle f g` satisfy the abelian reflection
+promise for `s`. -/
 theorem source_shift_reflection {A S : Type*} [AddCommGroup A] {f g : A → S} {s : A}
     (h : HiddenShift f g s) : AbelianReflection (shiftToReflectionOracle f g) s := by
   intro a b
@@ -45,6 +72,8 @@ theorem source_shift_reflection {A S : Type*} [AddCommGroup A] {f g : A → S} {
         apply (shift_cross h (- (s - a)) a).mpr
         abel
 
+/-- For a reflection oracle, pairing values at `a` and `a - v` gives an injective map when `v +
+v ≠ 0`. -/
 private theorem reflection_pair_injective {A S : Type*} [AddCommGroup A]
     {h : A → S} {s v : A} (hh : AbelianReflection h s) (hv : v + v ≠ 0) :
     Function.Injective (fun a => (h a, h (a - v))) := by
@@ -67,6 +96,9 @@ private theorem reflection_pair_injective {A S : Type*} [AddCommGroup A]
     calc v + v = v + -v := by rw [he]
          _ = 0 := add_neg_cancel v
 
+/-- The hidden shift, abelian reflection, dihedral reflection, and exponent-two Simon promise
+reductions satisfy `SourceOracleReductions`. See [Kuperberg, Proposition
+6.1][Kuperberg2005]. -/
 theorem sourceOracleReductions : SourceOracleReductions := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro A S _ f g s hh

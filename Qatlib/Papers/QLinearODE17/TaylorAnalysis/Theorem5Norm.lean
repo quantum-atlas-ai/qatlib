@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Columns
+
+/-!
+# Operator norm of diagonal Taylor inverses
+
+This module passes from squared entry bounds to operator norms and controls the number of
+history labels. The scalar inverse estimate is then lifted coordinatewise to the inverse V2
+Taylor system for diagonal matrices. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylor_opNorm_le_of_entry_sq`: A bound `c²` on the sum of squared entry norms implies the
+  operator-norm bound `‖M‖ ≤ c` for nonnegative `c`.
+* `taylorV2_diagonal_inverse_norm_le`: For diagonal `D` with entries in the left unit half-disk
+  and the stated parameter bounds, the inverse V2 Taylor matrix has norm at most `3 * sqrt k *
+  (m+p)`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,8 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- A bound `c²` on the sum of squared entry norms implies the operator-norm bound `‖M‖ ≤ c` for
+nonnegative `c`. -/
 theorem taylor_opNorm_le_of_entry_sq {I : Type} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (c : ℝ) (hc : 0 ≤ c)
     (hM : (∑ i,∑ j,‖M i j‖^2) ≤ c^2) : ‖M‖ ≤ c := by
@@ -32,6 +55,7 @@ theorem taylor_opNorm_le_of_entry_sq {I : Type} [Fintype I] [DecidableEq I]
     _ = (∑ i,∑ j,‖M i j‖^2)*(∑ j,‖x j‖^2) := (Finset.sum_mul _ _ _).symm
     _ ≤ _ := mul_le_mul_of_nonneg_right hM (Finset.sum_nonneg (fun _ _ => by positivity))
 
+/-- For `k ≥ 5` and `p > 0`, the number of Taylor labels is at most `(6/5) * k * (m+p)`. -/
 theorem taylor_label_count_le (m k p : ℕ) (hk : 5 ≤ k) (hp : 0 < p) :
     (m*(k+1)+p+1 : ℕ) ≤ (6/5 : ℝ)*(k : ℝ)*((m+p : ℕ) : ℝ) := by
   have hkr : (5 : ℝ) ≤ k := by exact_mod_cast hk
@@ -42,6 +66,8 @@ theorem taylor_label_count_le (m k p : ℕ) (hk : 5 ≤ k) (hp : 0 < p) :
   push_cast
   nlinarith
 
+/-- Under the degree, factorial, padding, and left-half-disk hypotheses, the scalar inverse norm
+is at most `3 * sqrt k * (m+p)`. -/
 theorem scalarInverseMatrix_norm_le (m k p : ℕ) (hk : 5 ≤ k) (hp : 0 < p) (z : ℂ)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hz : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖scalarInverseMatrix m k p z‖ ≤ 3*Real.sqrt (k : ℝ)*((m+p : ℕ) : ℝ) := by
@@ -61,6 +87,8 @@ theorem scalarInverseMatrix_norm_le (m k p : ℕ) (hk : 5 ≤ k) (hp : 0 < p) (z
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- The action of `taylorV2InvDiag` on each fixed state coordinate is the corresponding scalar
+inverse-matrix action on its label coordinates. -/
 theorem taylorV2InvDiag_mulVec (m k p : ℕ) (D : Matrix N N ℂ)
     (x : Fin (m*(k+1)+p+1) × N → ℂ) (l : Fin (m*(k+1)+p+1)) (n : N) :
     (taylorV2InvDiag m k p D *ᵥ x) (l,n) =
@@ -68,6 +96,8 @@ theorem taylorV2InvDiag_mulVec (m k p : ℕ) (D : Matrix N N ℂ)
   simp [taylorV2InvDiag,Matrix.blockDiagonal_apply,Matrix.mulVec,dotProduct,
     Fintype.sum_prod_type,ite_mul]
 
+/-- For diagonal `D` with entries in the left unit half-disk and the stated parameter bounds,
+the inverse V2 Taylor matrix has norm at most `3 * sqrt k * (m+p)`. -/
 theorem taylorV2_diagonal_inverse_norm_le (m k p : ℕ) (D : Matrix N N ℂ)
     (hm : 0 < m) (hk : 5 ≤ k) (hp : 0 < p) (hfac : 2*m ≤ Nat.factorial (k+1))
     (hd : ∀ i j : N,i≠j → D i j=0) (hz : ∀ n,‖D n n‖ ≤ 1) (hre : ∀ n,(D n n).re ≤ 0) :

@@ -8,6 +8,23 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Real.Sqrt
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostDefs
+
+/-!
+# Expected cost specification for approximate counting
+
+`Theorem15ExpectedCostSpec.expected` states explicit bounds for the expected total cost of the
+adaptive approximate counter in [BrassardEtAl2002]. It separates the empty-set scale `sqrt N /
+ε` from the nonempty-set scale `sqrt (N / t) / ε`, where `t` is the marked cardinality.
+
+## Main statements
+
+* `Theorem15ExpectedCostSpec.expected`: the empty and nonempty expected-cost bounds.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +34,8 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostSpec
 
+/-- Specifies explicit lower and upper expected-cost bounds for relative error in `(0, 1]`, with
+scales `sqrt N / ε` for an empty marked set and `sqrt (N / S.card) / ε` otherwise. -/
 def expected : Prop :=
   ∀ (N : ℕ) (S : Finset (Fin N)) (hN : 0 < N) (ε : ℝ), 0 < ε → ε ≤ 1 →
     (S.card = 0 →

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QSingValue19.Implementation.QlsQsvtDefs
+
+/-!
+# QSVT linear systems implementation guarantees
+
+The theorem `clause17_endpoint` assembles phase existence, polynomial approximation,
+pseudoinverse, robustness, and Hamiltonian simulation results in the framework of
+[GilyenSuLowWiebe2019]. Supporting results prove the access ledger counts, corrected window
+estimates, phase recovery certificate, controlled walk identities, and consistency of the
+declared program budget.
+
+## Main statements
+
+* `clause17_near_optimal_window_count`: Gives explicit lower and upper bounds on the corrected
+  window count.
+* `clause17_efficient_phase_recovery`: Certifies inversion for legal phase recovery input.
+* `clause17_endpoint`: Collects the implementation guarantees and supporting QSVT results.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -28,6 +50,8 @@ namespace Qatlib.Papers.QSingValue19.Implementation
 open Qatlib
 open Matrix
 
+/-- The access ledger has d data queries, d adjoint queries, 2⌊d/2⌋ projector negations, and d
+phase gates. -/
 theorem clause17_access_ledger_counts (d bitTime peakWorkspace : ℕ) :
     (qlsQsvtAccessLedger d bitTime peakWorkspace).dataQueries = d ∧
       (qlsQsvtAccessLedger d bitTime peakWorkspace).adjointQueries = d ∧
@@ -35,6 +59,8 @@ theorem clause17_access_ledger_counts (d bitTime peakWorkspace : ℕ) :
       (qlsQsvtAccessLedger d bitTime peakWorkspace).phaseGates = d := by
   exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-- The scalar expression κ² log(1/ε) is monotone under the stated nonnegative condition number
+and logarithmic accuracy inequalities. -/
 theorem clause17_near_optimal_degree_mono (κ κ' : ℝ) (ε ε' : ℝ)
     (hκ : 0 ≤ κ) (hκ' : 0 ≤ κ') (hε : 0 < ε) (hε1 : ε < 1) (hε' : 0 < ε') (hε'1 : ε' < 1)
     (hle : κ ≤ κ') (hlog : Real.log (1 / ε) ≤ Real.log (1 / ε')) :
@@ -49,6 +75,8 @@ theorem clause17_near_optimal_degree_mono (κ κ' : ℝ) (ε ε' : ℝ)
       mul_le_mul_of_nonneg_right hsq hlog0
     _ ≤ κ' ^ 2 * Real.log (1 / ε') := mul_le_mul_of_nonneg_left hlog (sq_nonneg _)
 
+/-- An inequality between the real degree expressions implies the same inequality between their
+natural ceiling budgets. -/
 theorem clause17_near_optimal_degree_ceil (κ κ' : ℝ) (ε ε' : ℝ)
     (h : κ ^ 2 * Real.log (1 / ε) ≤ κ' ^ 2 * Real.log (1 / ε')) :
     nearOptimalDegreeBudget κ ε ≤ nearOptimalDegreeBudget κ' ε' := by
@@ -58,6 +86,8 @@ theorem clause17_near_optimal_degree_ceil (κ κ' : ℝ) (ε ε' : ℝ)
     exact_mod_cast (Nat.le_ceil _)
   exact (Nat.ceil_le).2 (h.trans hceil)
 
+/-- For nonnegative τ and ε ∈ (0, 1], the corrected window count is at least τ + 1 and at most
+the stated logarithmic expression with constant eleven. -/
 theorem clause17_near_optimal_window_count (τ ε : ℝ) (hτ : 0 ≤ τ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     τ + 1 ≤ (nearOptimalWindowCount τ ε : ℝ) ∧
       (nearOptimalWindowCount τ ε : ℝ) ≤
@@ -65,31 +95,42 @@ theorem clause17_near_optimal_window_count (τ ε : ℝ) (hτ : 0 ≤ τ) (hε :
   unfold nearOptimalWindowCount
   exact ⟨lcCorrectedQ_length_budget τ ε, lcCorrectedQ_upper τ ε hτ hε hε1⟩
 
+/-- Legal rational polynomial and precision input yields a `PhaseInversionCertified` result for
+`efficientInversion`. -/
 theorem clause17_efficient_phase_recovery (p : List ℚ) (d : ℕ) (eps : ℚ)
     (hleg : PhaseInversionLegal p d eps) :
     PhaseInversionCertified efficientInversion p d eps :=
   efficientInversion_certified p d eps hleg
 
+/-- Hadamard conjugation of the controlled scalar phase equals the signal step multiplied by the
+global phase exp(iθ/2). -/
 theorem clause17_single_ancilla_realization (θ : ℝ) :
     lcHad * Matrix.diagonal ![1, Complex.exp (Complex.I * (θ : ℂ))] * lcHad =
       Complex.exp (Complex.I * ((θ / 2 : ℝ) : ℂ)) • lcSignalStep θ :=
   lcHad_controlled_scalar θ
 
+/-- The plus frame embeds a state as the equal amplitude two branch vector of its image under L. -/
 theorem clause17_effective_frame_prepare {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] (L : Matrix W I ℂ) (ψ : I → ℂ) :
     lcPlusFrame L *ᵥ ψ = lcBranchVector (fun _ => (((Real.sqrt 2)⁻¹ : ℝ) : ℂ)) (L *ᵥ ψ) :=
   lcPlusFrame_branch L ψ
 
+/-- On a walk eigenvector with eigenvalue z, the controlled walk acts on the branch amplitudes
+by the diagonal matrix with entries one and z. -/
 theorem clause17_controlled_walk_branch {W : Type} [Fintype W] [DecidableEq W]
     (V : Matrix W W ℂ) (w : W → ℂ) (z : ℂ) (hw : V *ᵥ w = z • w) (a : Fin 2 → ℂ) :
     lcControlledWalk V *ᵥ lcBranchVector a w =
       lcBranchVector ((Matrix.diagonal ![1, z]) *ᵥ a) w :=
   lcControlledWalk_branch V w z hw a
 
+/-- A legal gate level simulation has base gate cost at most its bit time and a success wire
+within its qubit range. -/
 theorem clause17_gate_level_budget (P : GateLevelSimulation) (h : SimulationLegal P) :
     baseGateCost P ≤ P.bitTime ∧ P.successWire < P.qubitCount := by
   exact ⟨h.2.2, h.2.1⟩
 
+/-- For a legal simulation, the program budget has gate count equal to the base gate cost,
+bounded by its bit time, and qubit count equal to the simulation qubit count. -/
 theorem clause17_program_budget_consistent (P : GateLevelSimulation) (classicalBits : ℕ)
     (h : SimulationLegal P) :
     (qlsQsvtProgramBudget P classicalBits).gateCount = baseGateCost P ∧
@@ -99,6 +140,9 @@ theorem clause17_program_budget_consistent (P : GateLevelSimulation) (classicalB
   obtain ⟨hcost, hwire⟩ := clause17_gate_level_budget P h
   exact ⟨rfl, hcost, rfl⟩
 
+/-- Collects QSVT phase and approximation results, pseudoinverse and simulation bounds,
+conditional singular transform robustness, window estimates, phase recovery, branch
+identities, and legal gate budget bounds. See [GilyenSuLowWiebe2019]. -/
 theorem clause17_endpoint :
     Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistence ∧
       Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3Characterization ∧

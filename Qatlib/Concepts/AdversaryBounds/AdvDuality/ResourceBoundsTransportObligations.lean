@@ -9,6 +9,33 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCo
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportGrowth
 import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
+
+/-!
+# Completed resource-bound transport obligations
+
+This module packages and proves four groups of resource-bound obligations: fresh-copy execution
+accounting, search implementation, asymptotic growth, and dynamic live-wire accounting.
+`Clause1TransportSpec` through `Clause4TransportSpec` make the relevant execution identities,
+bounds, and counterexamples explicit. For the underlying quantum circuit resource model, see
+[NielsenChuang2010].
+
+The completion theorems combine each imported clause claim with its transport specification. The
+size-axis statements additionally record matching query and gate growth estimates for singleton
+search.
+
+## Main statements
+
+* `clause1_spec_complete`: The first clause claim and its fresh-copy transport specification.
+* `clause2_spec_complete`: The second clause claim and its search implementation specification.
+* `clause3_spec_complete`: The third clause claim and its precision- and size-growth
+  specification.
+* `clause4_spec_complete`: The fourth clause claim and its dynamic-wire specification.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +61,8 @@ open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabul
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportObligations
 noncomputable section
 
+/-- The conjunction of fresh-copy execution identities, work and peak transport laws, repetition
+formulas, and counterexamples to identifying local-gate or peak costs with copy counts. -/
 def Clause1TransportSpec : Prop :=
     (∀ {n M : ℕ} (ρ : Operator (2 ^ n)) (C : Circuit (Qatlib.Concepts.FreshCopyExec.QpeConsumers.Register n M)),
     copyQPEProgramResources n C =
@@ -129,6 +158,8 @@ def Clause1TransportSpec : Prop :=
 end
 noncomputable section
 
+/-- The conjunction of the singleton-search Born-probability lower bound, query-count upper
+bound, and resource-budget implementation statement for `n ≥ 2`. -/
 def Clause2TransportSpec : Prop :=
     (∀ (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] (w : W) (_hn : 2 ≤ n) (x : Reg n),
     MeasureProb (Run (workspaceBitOracle (W := W) (fun y : Reg n => decide (y = x)))
@@ -143,6 +174,8 @@ def Clause2TransportSpec : Prop :=
 end
 noncomputable section
 
+/-- The exact singleton-search query and macro-gate counts, angle and iteration estimates, and
+matching asymptotic growth bounds along the input-size filter. -/
 def Clause3SizeAxis : Prop :=
 
     (∀ (n : ℕ), (searchAccount n).queries = singletonSearchIterations n) ∧
@@ -156,6 +189,8 @@ def Clause3SizeAxis : Prop :=
 end
 noncomputable section
 
+/-- The lower-bound and matching-growth transport laws, explicit lower-cost accounting,
+fixed-bit-cost transport, and the singleton-search size-axis specification. -/
 def Clause3TransportSpec : Prop :=
     (∀ {α : Type*} (F : Filter α) (f : α → ℝ),
     BigOmega F f f) ∧
@@ -173,6 +208,8 @@ def Clause3TransportSpec : Prop :=
 end
 noncomputable section
 
+/-- The dynamic-wire specifications for reset, uncomputation, release, classical-bit charges,
+concrete peak ledgers, and the LCU dynamic word. -/
 def Clause4TransportSpec : Prop :=
     (∀ (live : List ℕ) (w : ℕ),
     applyLive live (DynStep.reset w) = live) ∧
@@ -212,6 +249,8 @@ def Clause4TransportSpec : Prop :=
 end
 noncomputable section
 
+/-- All fresh-copy execution, resource transport, repetition, and counterexample statements in
+`Clause1TransportSpec` hold. -/
 theorem clause1_transport_complete : Clause1TransportSpec :=
   ⟨copyDriven_same_execution,
     localCopy_same_execution,
@@ -239,6 +278,8 @@ theorem clause1_transport_complete : Clause1TransportSpec :=
 end
 noncomputable section
 
+/-- The singleton-search probability, query-count, and implementation statements in
+`Clause2TransportSpec` hold. -/
 theorem clause2_transport_complete : Clause2TransportSpec :=
   ⟨search_born_mass,
     search_query_count_le,
@@ -246,6 +287,8 @@ theorem clause2_transport_complete : Clause2TransportSpec :=
 end
 noncomputable section
 
+/-- The exact singleton-search resource formulas and asymptotic size bounds in `Clause3SizeAxis`
+hold. -/
 theorem clause3_size_axis_complete : Clause3SizeAxis :=
   ⟨search_account_queries,
     search_account_gates,
@@ -258,6 +301,8 @@ theorem clause3_size_axis_complete : Clause3SizeAxis :=
 end
 noncomputable section
 
+/-- The precision-growth, lower-cost transport, and search size-axis statements in
+`Clause3TransportSpec` hold. -/
 theorem clause3_transport_complete : Clause3TransportSpec :=
   ⟨bigOmega_refl,
     bigOmega_trans,
@@ -268,6 +313,8 @@ theorem clause3_transport_complete : Clause3TransportSpec :=
 end
 noncomputable section
 
+/-- The dynamic-wire update, charging, peak-accounting, and LCU statements in
+`Clause4TransportSpec` hold. -/
 theorem clause4_transport_complete : Clause4TransportSpec :=
   ⟨applyLive_reset,
     applyLive_uncompute,
@@ -282,22 +329,29 @@ theorem clause4_transport_complete : Clause4TransportSpec :=
 end
 noncomputable section
 
+/-- Establishes the imported first resource-bound clause `Clause1Claim`. -/
 theorem clause1_complete : Clause1Claim := g1
 end
 noncomputable section
 
+/-- Establishes `Clause2Claim`, combining implementation counterexamples and circuit counts with
+the search upper-bound and parity lower-bound consumers. -/
 theorem clause2_complete : Clause2Claim :=
   ⟨never_not_implements, timeout_not_implements, constant_not_implements,
     ofCircuit_counts, search_upper_bound_consumer, parity_lower_bound_consumer⟩
 end
 noncomputable section
 
+/-- Establishes `Clause3Claim`, including elementary asymptotic rules and polylogarithmic gate
+and bit-time bounds. -/
 theorem clause3_complete : Clause3Claim :=
   ⟨bigO_refl, bigOWith_abs, bigO_trans, bigO_smul, bigTheta_iff, polylog_bigO,
     gate_budget_bigO, bit_time_bigO, lower_premises_explicit, bit_time_bigTheta⟩
 end
 noncomputable section
 
+/-- Establishes `Clause4Claim`, combining balanced-word exchange, reference-error composition,
+consumer ledgers, and a dynamic peak-space example. -/
 theorem clause4_complete : Clause4Claim :=
   ⟨balanced_nil, account_work_exchange_conj,
     fun base a b ha hb =>
@@ -309,21 +363,29 @@ theorem clause4_complete : Clause4Claim :=
 end
 noncomputable section
 
+/-- The first resource-bound clause holds together with its full fresh-copy transport
+specification. -/
 theorem clause1_spec_complete : Clause1Claim ∧ Clause1TransportSpec :=
   ⟨clause1_complete, clause1_transport_complete⟩
 end
 noncomputable section
 
+/-- The second resource-bound clause holds together with its search implementation transport
+specification. -/
 theorem clause2_spec_complete : Clause2Claim ∧ Clause2TransportSpec :=
   ⟨clause2_complete, clause2_transport_complete⟩
 end
 noncomputable section
 
+/-- The third resource-bound clause holds together with its precision- and size-growth transport
+specification. -/
 theorem clause3_spec_complete : Clause3Claim ∧ Clause3TransportSpec :=
   ⟨clause3_complete, clause3_transport_complete⟩
 end
 noncomputable section
 
+/-- The fourth resource-bound clause holds together with its dynamic-wire transport
+specification. -/
 theorem clause4_spec_complete : Clause4Claim ∧ Clause4TransportSpec :=
   ⟨clause4_complete, clause4_transport_complete⟩
 end

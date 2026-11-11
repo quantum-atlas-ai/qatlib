@@ -9,6 +9,25 @@ import Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
 import Qatlib.Papers.QWalkGraphs00.MainResults.Times
 import Mathlib.Algebra.Star.BigOperators
 import Mathlib.Analysis.Complex.Norm
+
+/-!
+# Quantitative convergence to spectral limits
+
+The spectral expression `limitingDist` retains pairs with equal eigenvalues. Bounds on geometric
+averages give pointwise, ℓ¹, and total variation estimates for convergence to this expression,
+with inverse eigenvalue separations controlling the error as in [AharonovEtAl2001Walks].
+
+## Main statements
+
+* `abs_avgNodeProb_sub_limitingDist_le`: bounds each vertex error by spectral terms.
+* `sum_v_abs_avgNodeProb_sub_limitingDist_le`: sums the error using normalized eigenvectors.
+* `lemma_4_3`: gives the total variation estimate in terms of squared coefficient norms.
+
+## References
+
+* [Aharonov et al., 2001][AharonovEtAl2001Walks]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,16 +43,19 @@ open Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
 
 variable {Coin V : Type*} [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V]
 
+/-- The ℓ¹ distance between two real functions on the vertex set. -/
 def l1Dist (p q : V → ℝ) : ℝ := ∑ v, |p v - q v|
 
 omit [DecidableEq V] in
 
+/-- Total variation distance is bounded above by ℓ¹ distance. -/
 theorem tvDistance_le_l1Dist (p q : V → ℝ) : tvDistance p q ≤ l1Dist p q := by
   unfold tvDistance l1Dist
   have h0 : (0 : ℝ) ≤ ∑ v, |p v - q v| :=
     Finset.sum_nonneg (fun v _ => abs_nonneg _)
   nlinarith
 
+/-- The real spectral expression summing coefficient overlaps over pairs with equal eigenvalues. -/
 def limitingDist (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
     (a : (Coin × V) → ℂ) (v : V) : ℝ :=
   (∑ i, ∑ j, if lam i = lam j then
@@ -42,12 +64,15 @@ def limitingDist (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V)
 
 omit [DecidableEq Coin] [DecidableEq V] in
 
+/-- For a positive averaging length, the geometric average of one is one. -/
 theorem geomAvg_one (T : ℕ) (hT : 0 < T) : geomAvg (1 : ℂ) T = 1 := by
   have hT0 : (T : ℂ) ≠ 0 := by
     exact_mod_cast (Nat.pos_iff_ne_zero.mp hT)
   simp only [geomAvg, one_pow, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
   field_simp
 
+/-- The equal-eigenvalue formula for `limitingDist` can be written as a coin-coordinate triple
+sum with an equality indicator. -/
 theorem limitingDist_eq_spectral
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
     (a : (Coin × V) → ℂ) (v : V) :
@@ -71,6 +96,8 @@ theorem limitingDist_eq_spectral
 
 omit [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V] in
 
+/-- For unit-modulus eigenvalues, their conjugate product has norm one and equals one exactly
+when the eigenvalues coincide. -/
 theorem norm_mul_star_eq_one_iff (lam : (Coin × V) → ℂ) (hlam : ∀ j, ‖lam j‖ = 1)
     (i j : Coin × V) :
     ‖lam i * star (lam j)‖ = 1 ∧ (lam i * star (lam j) = 1 ↔ lam i = lam j) := by
@@ -97,6 +124,9 @@ theorem norm_mul_star_eq_one_iff (lam : (Coin × V) → ℂ) (hlam : ∀ j, ‖l
     · intro h
       rw [h, hj]
 
+/-- For a state expanded in eigenvectors with unit-modulus eigenvalues and `T > 0`, the vertex
+error is bounded by weighted inverse eigenvalue gaps with factors `2 / T`, omitting
+equal-eigenvalue pairs. -/
 theorem abs_avgNodeProb_sub_limitingDist_le
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -205,6 +235,8 @@ theorem abs_avgNodeProb_sub_limitingDist_le
     simp only [hC, norm_mul, norm_star]
   simpa only [hnormC] using hstep1
 
+/-- The finite sums over vertices, coin coordinates, and two spectral indices can be reordered
+to put the spectral indices first. -/
 private theorem sum_swap_vcij {α : Type*} [Fintype α]
     (G : V → Coin → α → α → ℝ) :
     ∑ v, ∑ c, ∑ i : α, ∑ j : α, G v c i j = ∑ i, ∑ j, ∑ v, ∑ c, G v c i j := by
@@ -222,6 +254,8 @@ private theorem sum_swap_vcij {α : Type*} [Fintype α]
         apply Finset.sum_congr rfl; intro i _
         rw [Finset.sum_comm]
 
+/-- For normalized eigenvectors with unit-modulus eigenvalues and `T > 0`, the ℓ¹ error is at
+most the sum over unequal-eigenvalue pairs of `2 * ‖a i‖ * ‖a j‖ / (T * ‖lam i - lam j‖)`. -/
 theorem sum_v_abs_avgNodeProb_sub_limitingDist_le
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -321,6 +355,9 @@ theorem sum_v_abs_avgNodeProb_sub_limitingDist_le
           (if lam i = lam j then (0 : ℝ) else 2 / ((T : ℝ) * ‖lam i - lam j‖)) := by ring
   exact hswap
 
+/-- For normalized eigenvectors with unit-modulus eigenvalues and `T > 0`, total variation error
+is at most twice the sum of `normSq (a i) / (T * ‖lam i - lam j‖)` over unequal-eigenvalue
+pairs. See [Aharonov et al., Lemma 4.3][AharonovEtAl2001Walks]. -/
 theorem lemma_4_3
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)

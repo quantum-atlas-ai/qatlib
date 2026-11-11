@@ -8,6 +8,33 @@ import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+/-!
+# Modular order circuits and phase readout
+
+This module represents multiplication by a modular unit as `modularOrderMatrix` and builds
+`modularOrderCircuit` using a block oracle, clock-label swaps, uniform preparation, and the
+inverse Fourier transform. Its action on the initial state agrees with quantum phase estimation,
+as in the order-finding construction of [Shor1997].
+
+The orbit Fourier states diagonalize modular multiplication and decompose the target basis state
+uniformly. This gives `modularOrderLaw` as an equal-weight mixture of phase-estimation kernel
+probabilities, together with exact oracle-query and macro-gate counts.
+
+## Main statements
+
+* `modular_order_actual_unitary_and_controlled_power_run`: unitarity and agreement with the
+  phase-estimation output.
+* `modular_order_exact_query_macro_ledger`: exact resource counts in the block-oracle circuit
+  model.
+* `modular_order_born_uniform_orbit_spectrum`: the uniform spectral-mixture formula for the
+  clock distribution.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +61,7 @@ namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 open Matrix
 open scoped Classical
 
+/-- Multiplication by a unit modulo `N` is injective on `ZMod N`. -/
 theorem modularMulPerm_injective (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     Function.Injective fun x : ZMod N => (a : ZMod N) * x := by
   intro x y h
@@ -42,13 +70,16 @@ theorem modularMulPerm_injective (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
   rwa [← mul_assoc, ← mul_assoc, ← Units.val_mul, inv_mul_cancel, Units.val_one,
     one_mul, one_mul] at h2
 
+/-- The permutation matrix implementing multiplication by the modular unit `a`. -/
 def modularOrderMatrix (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) : Matrix (ZMod N) (ZMod N) ℂ :=
   permMatrix fun x : ZMod N => (a : ZMod N) * x
 
+/-- The modular multiplication matrix `modularOrderMatrix N a` is unitary. -/
 theorem modularOrderMatrix_unitary (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     modularOrderMatrix N a ∈ Matrix.unitaryGroup (ZMod N) ℂ :=
   permMatrix_unitary_of_injective (modularMulPerm_injective N a)
 
+/-- Modular multiplication sends the basis state at `x` to the basis state at `a * x`. -/
 theorem applyGate_modularOrderMatrix_ket (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (x : ZMod N) :
     ApplyGate (modularOrderMatrix N a) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket ((a : ZMod N) * x) := by
@@ -61,6 +92,8 @@ theorem applyGate_modularOrderMatrix_ket (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     simp [hk]
   · simp
 
+/-- Applying the modular multiplication matrix evaluates the input amplitude at multiplication
+by `a⁻¹`. -/
 theorem applyGate_modularOrderMatrix (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (φ : QState (ZMod N)) (x : ZMod N) :
     ApplyGate (modularOrderMatrix N a) φ x = φ (((a⁻¹ : (ZMod N)ˣ) : ZMod N) * x) := by
@@ -82,6 +115,8 @@ theorem applyGate_modularOrderMatrix (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     simp
   · simp
 
+/-- The `k`th power of the modular multiplication matrix sends the basis state at `x` to that at
+`a ^ k * x`. -/
 theorem applyGate_modularOrderMatrix_pow_ket (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (k : ℕ)
     (x : ZMod N) :
     ApplyGate ((modularOrderMatrix N a) ^ k) (Qatlib.Foundations.PureStateMath.Ket x) =
@@ -94,6 +129,7 @@ theorem applyGate_modularOrderMatrix_pow_ket (N : ℕ) [NeZero N] (a : (ZMod N)�
     congr 1
     rw [← mul_assoc, ← Units.val_mul, ← pow_succ]
 
+/-- Multiplication of `x` by `a⁻ᵏ` equals one exactly when `x` is the residue of `a ^ k`. -/
 theorem inv_pow_mul_eq_one_iff (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (k : ℕ) (x : ZMod N) :
     ((((a⁻¹ : (ZMod N)ˣ) ^ k : (ZMod N)ˣ) : ZMod N) * x = 1) ↔
       x = ((a ^ k : (ZMod N)ˣ) : ZMod N) := by
@@ -109,10 +145,13 @@ theorem inv_pow_mul_eq_one_iff (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (k : ℕ) (
     rw [h, ← Units.val_mul, show (a⁻¹ : (ZMod N)ˣ) ^ k * a ^ k = 1 from by
       rw [inv_pow, inv_mul_cancel], Units.val_one]
 
+/-- The block-diagonal oracle applying modular multiplication on the last clock label and
+identity on every other label. -/
 noncomputable def modularOrderOracle (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     Matrix (Fin M × ZMod N) (Fin M × ZMod N) ℂ :=
   BlockDiag fun y : Fin M => if y.val + 1 = M then modularOrderMatrix N a else 1
 
+/-- The last-label modular multiplication oracle is unitary. -/
 theorem modularOrderOracle_unitary (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     modularOrderOracle N M a ∈ Matrix.unitaryGroup (Fin M × ZMod N) ℂ := by
   apply blockDiag_unitary
@@ -121,6 +160,8 @@ theorem modularOrderOracle_unitary (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
   · exact modularOrderMatrix_unitary N a
   · exact Submonoid.one_mem _
 
+/-- On each clock fiber, the oracle applies modular multiplication at the last label and
+identity elsewhere. -/
 theorem applyGate_modularOrderOracle (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (Ψ : QState (Fin M × ZMod N)) (w : Fin M) (x : ZMod N) :
     ApplyGate (modularOrderOracle N M a) Ψ (w, x) =
@@ -136,6 +177,8 @@ theorem applyGate_modularOrderOracle (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     simp only [BlockDiag, Matrix.of_apply, if_neg (Ne.symm hu), zero_mul]
   · simp
 
+/-- The oracle replaces the target argument by `a⁻¹ * x` on the last clock fiber and leaves all
+other amplitudes unchanged. -/
 theorem applyGate_modularOrderOracle_fiber (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (Ψ : QState (Fin M × ZMod N)) (w : Fin M) (x : ZMod N) :
     ApplyGate (modularOrderOracle N M a) Ψ (w, x) =
@@ -147,9 +190,11 @@ theorem applyGate_modularOrderOracle_fiber (N M : ℕ) [NeZero N] (a : (ZMod N)�
   · rw [if_neg hw, if_neg hw]
     exact congrFun (applyGate_one _) x
 
+/-- Swaps two clock labels while preserving the modular target register. -/
 def modularOrderSwapPerm (N M : ℕ) (y last : Fin M) : Fin M × ZMod N → Fin M × ZMod N :=
   fun p => (Equiv.swap y last p.1, p.2)
 
+/-- The clock-label swap permutation is an involution. -/
 theorem modularOrderSwapPerm_involutive (N M : ℕ) (y last : Fin M) :
     Function.Involutive (modularOrderSwapPerm N M y last) := by
   rintro ⟨z, x⟩
@@ -158,6 +203,8 @@ theorem modularOrderSwapPerm_involutive (N M : ℕ) (y last : Fin M) :
   show Equiv.swap y last (Equiv.swap y last z) = z
   rw [← Equiv.trans_apply, Equiv.swap_swap, Equiv.refl_apply]
 
+/-- When `last` is the final clock label, swapping `y` and `last` sends `z` to the final label
+exactly when `z = y`. -/
 theorem modularOrderSwapPerm_last_iff (M : ℕ) (y last z : Fin M)
     (hlast : last.val + 1 = M) :
     (Equiv.swap y last z).val + 1 = M ↔ z = y := by
@@ -176,16 +223,20 @@ theorem modularOrderSwapPerm_last_iff (M : ℕ) (y last z : Fin M)
     rw [Equiv.swap_apply_left]
     exact hlast
 
+/-- A circuit that swaps a chosen clock label with the last label, queries the oracle, and swaps
+back. -/
 def modularOrderSwapBlock (N M : ℕ) [NeZero N] (y last : Fin M) :
     Circuit (Fin M × ZMod N) :=
   [Step.gate (permMatrix (modularOrderSwapPerm N M y last)), Step.query,
     Step.gate (permMatrix (modularOrderSwapPerm N M y last))]
 
+/-- The permutation matrix swapping two clock labels is unitary. -/
 theorem modularOrderSwapGate_unitary (N M : ℕ) [NeZero N] (y last : Fin M) :
     permMatrix (modularOrderSwapPerm N M y last) ∈
       Matrix.unitaryGroup (Fin M × ZMod N) ℂ :=
   permMatrix_unitary (modularOrderSwapPerm_involutive N M y last)
 
+/-- The swap-query-swap block is a unitary circuit. -/
 theorem isUnitaryCircuit_modularOrderSwapBlock (N M : ℕ) [NeZero N] (y last : Fin M) :
     IsUnitaryCircuit (modularOrderSwapBlock N M y last) := by
   intro U hU
@@ -197,11 +248,14 @@ theorem isUnitaryCircuit_modularOrderSwapBlock (N M : ℕ) [NeZero N] (y last : 
   · obtain rfl := Step.gate.inj hU
     exact modularOrderSwapGate_unitary N M y last
 
+/-- The swap-query-swap block uses one oracle query and two gates. -/
 theorem modularOrderSwapBlock_counts (N M : ℕ) [NeZero N] (y last : Fin M) :
     QueryCount (modularOrderSwapBlock N M y last) = 1 ∧
       GateCount (modularOrderSwapBlock N M y last) = 2 :=
   ⟨rfl, rfl⟩
 
+/-- When `last` is the final clock label, the swap-query-swap block applies inverse-argument
+modular multiplication only on clock fiber `y`. -/
 theorem run_modularOrderSwapBlock (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y last : Fin M)
     (hlast : last.val + 1 = M) (Φ : QState (Fin M × ZMod N)) :
     Run (modularOrderOracle N M a) (modularOrderSwapBlock N M y last) Φ =
@@ -227,6 +281,8 @@ theorem run_modularOrderSwapBlock (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y las
   · rw [if_neg (fun h => hz ((modularOrderSwapPerm_last_iff M y last z hlast).mp h)),
       if_neg hz]
 
+/-- Repeating the swap-query-swap block `k` times shifts target arguments by `a⁻ᵏ` only on clock
+fiber `y`, assuming `last` is final. -/
 theorem run_modularOrderSwapBlock_repeat (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (y last : Fin M) (hlast : last.val + 1 = M) (k : ℕ) (Φ : QState (Fin M × ZMod N)) :
     Run (modularOrderOracle N M a)
@@ -249,18 +305,21 @@ theorem run_modularOrderSwapBlock_repeat (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
       rw [← mul_assoc, ← Units.val_mul, ← pow_succ']
     · simp only [hz, if_false]
 
+/-- The increasing list of nonzero clock labels in `Fin M`. -/
 def modularOrderLabels (M : ℕ) : List (Fin M) :=
   (List.range' 1 (M - 1)).attach.map fun y =>
     ⟨y.val, by
       have hy := (List.mem_range'_1).mp y.property
       omega⟩
 
+/-- The values of `modularOrderLabels M` form the list `List.range' 1 (M - 1)`. -/
 theorem modularOrderLabels_map_val (M : ℕ) :
     (modularOrderLabels M).map Fin.val = List.range' 1 (M - 1) := by
   simp only [modularOrderLabels, List.map_map]
   change (List.range' 1 (M - 1)).attach.map Subtype.val = _
   simp
 
+/-- The list of nonzero clock labels contains no duplicates. -/
 theorem modularOrderLabels_nodup (M : ℕ) : (modularOrderLabels M).Nodup := by
   apply List.Nodup.map _ (List.nodup_attach.mpr _)
   · intro a b hab
@@ -268,6 +327,7 @@ theorem modularOrderLabels_nodup (M : ℕ) : (modularOrderLabels M).Nodup := by
   · rw [List.range'_eq_map_range]
     exact List.Nodup.map (fun a b h => Nat.add_left_cancel h) (List.nodup_range)
 
+/-- A clock label belongs to `modularOrderLabels M` exactly when its value is nonzero. -/
 theorem mem_modularOrderLabels {M : ℕ} {y : Fin M} :
     y ∈ modularOrderLabels M ↔ y.val ≠ 0 := by
   simp only [modularOrderLabels, List.mem_map, List.mem_attach, true_and, Subtype.exists]
@@ -279,6 +339,7 @@ theorem mem_modularOrderLabels {M : ℕ} {y : Fin M} :
   · intro hy
     exact ⟨y.val, (List.mem_range'_1).mpr ⟨by omega, by omega⟩, Fin.ext rfl⟩
 
+/-- Twice the sum of the integers from one through `n` equals `n * (n + 1)`. -/
 theorem sum_range'_one_mul_two (n : ℕ) : (List.range' 1 n).sum * 2 = n * (n + 1) := by
   induction n with
   | zero => rfl
@@ -295,6 +356,7 @@ theorem sum_range'_one_mul_two (n : ℕ) : (List.range' 1 n).sum * 2 = n * (n + 
       _ = n * (n + 1) + (n + 1) * 2 := by rw [ih]
       _ = (n + 1) * (n + 2) := by ring
 
+/-- Twice the sum of the nonzero clock-label values equals `M * (M - 1)`. -/
 theorem sum_modularOrderLabels_val_mul_two (M : ℕ) :
     ((modularOrderLabels M).map Fin.val).sum * 2 = M * (M - 1) := by
   rw [modularOrderLabels_map_val]
@@ -306,6 +368,7 @@ theorem sum_modularOrderLabels_val_mul_two (M : ℕ) :
   rw [h3] at h2
   exact h2
 
+/-- The sum of the nonzero clock-label values equals `M * (M - 1) / 2`. -/
 theorem sum_modularOrderLabels_val (M : ℕ) :
     ((modularOrderLabels M).map Fin.val).sum = M * (M - 1) / 2 := by
   have h2 := sum_modularOrderLabels_val_mul_two M
@@ -314,10 +377,13 @@ theorem sum_modularOrderLabels_val (M : ℕ) :
         by omega
     _ = M * (M - 1) / 2 := by rw [h2]
 
+/-- Concatenates the swap-query-swap blocks, repeating the block for each nonzero label as many
+times as its value. -/
 def modularOrderLoop (N M : ℕ) [NeZero N] (last : Fin M) : Circuit (Fin M × ZMod N) :=
   (modularOrderLabels M).flatMap fun y =>
     RepeatCircuit (modularOrderSwapBlock N M y last) y.val
 
+/-- The query count of concatenated circuits equals the sum of their query counts. -/
 theorem queryCount_flatMap {I : Type} [Fintype I] [DecidableEq I] {α : Type}
     (l : List α) (f : α → Circuit I) :
     QueryCount (l.flatMap f) = (l.map fun x => QueryCount (f x)).sum := by
@@ -325,6 +391,7 @@ theorem queryCount_flatMap {I : Type} [Fintype I] [DecidableEq I] {α : Type}
   | nil => rfl
   | cons x xs ih => simp [List.flatMap_cons, queryCount_append, ih]
 
+/-- The gate count of concatenated circuits equals the sum of their gate counts. -/
 theorem gateCount_flatMap {I : Type} [Fintype I] [DecidableEq I] {α : Type}
     (l : List α) (f : α → Circuit I) :
     GateCount (l.flatMap f) = (l.map fun x => GateCount (f x)).sum := by
@@ -332,6 +399,7 @@ theorem gateCount_flatMap {I : Type} [Fintype I] [DecidableEq I] {α : Type}
   | nil => rfl
   | cons x xs ih => simp [List.flatMap_cons, gateCount_append, ih]
 
+/-- Concatenating a list of unitary circuits gives a unitary circuit. -/
 theorem isUnitaryCircuit_flatMap {I : Type} [Fintype I] [DecidableEq I] {α : Type}
     (l : List α) (f : α → Circuit I) (h : ∀ x ∈ l, IsUnitaryCircuit (f x)) :
     IsUnitaryCircuit (l.flatMap f) := by
@@ -341,6 +409,7 @@ theorem isUnitaryCircuit_flatMap {I : Type} [Fintype I] [DecidableEq I] {α : Ty
     rw [List.flatMap_cons, isUnitaryCircuit_append]
     exact ⟨h x (List.mem_cons_self), ih (fun y hy => h y (List.mem_cons_of_mem x hy))⟩
 
+/-- Summing twice each clock-label value equals twice the sum of those values. -/
 theorem list_sum_two_mul_val {M : ℕ} (l : List (Fin M)) :
     (l.map fun y => 2 * y.val).sum = 2 * (l.map Fin.val).sum := by
   induction l with
@@ -349,6 +418,7 @@ theorem list_sum_two_mul_val {M : ℕ} (l : List (Fin M)) :
     simp only [List.map_cons, List.sum_cons, ih]
     ring
 
+/-- The modular-order loop uses `M * (M - 1) / 2` oracle queries and `M * (M - 1)` gates. -/
 theorem modularOrderLoop_counts (N M : ℕ) [NeZero N] (last : Fin M) :
     QueryCount (modularOrderLoop N M last) = M * (M - 1) / 2 ∧
       GateCount (modularOrderLoop N M last) = M * (M - 1) := by
@@ -373,6 +443,7 @@ theorem modularOrderLoop_counts (N M : ℕ) [NeZero N] (last : Fin M) :
     have h2 := sum_modularOrderLabels_val_mul_two M
     rw [mul_comm 2, h2]
 
+/-- The modular-order loop is a unitary circuit. -/
 theorem isUnitaryCircuit_modularOrderLoop (N M : ℕ) [NeZero N] (last : Fin M) :
     IsUnitaryCircuit (modularOrderLoop N M last) := by
   rw [modularOrderLoop]
@@ -381,12 +452,16 @@ theorem isUnitaryCircuit_modularOrderLoop (N M : ℕ) [NeZero N] (last : Fin M) 
   apply IsUnitaryCircuit.repeatCircuit
   exact isUnitaryCircuit_modularOrderSwapBlock N M y last
 
+/-- Shifts target arguments on the listed clock fibers by the inverse power of `a` specified by
+each clock value. -/
 def fiberPowShift (N : ℕ) [NeZero N] {M : ℕ} (a : (ZMod N)ˣ) (L : List (Fin M))
     (Φ : QState (Fin M × ZMod N)) : QState (Fin M × ZMod N) :=
   fun p => if p.1 ∈ L then
     Φ (p.1, ((((a⁻¹ : (ZMod N)ˣ) ^ p.1.val : (ZMod N)ˣ) : ZMod N) * p.2))
     else Φ p
 
+/-- Adding a label absent from the remaining list separates its inverse-power shift from the
+shifts on the remaining fibers. -/
 theorem fiberPowShift_cons (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y : Fin M)
     (ys : List (Fin M)) (hny : y ∉ ys) (Φ : QState (Fin M × ZMod N)) :
     fiberPowShift N a (y :: ys) Φ =
@@ -403,6 +478,8 @@ theorem fiberPowShift_cons (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (y : Fin M)
     · rw [if_pos (Or.inr hzys), if_pos hzys, if_neg hzy]
     · rw [if_neg (not_or.mpr ⟨hzy, hzys⟩), if_neg hzys, if_neg hzy]
 
+/-- For a duplicate-free label list and a final `last` label, the repeated swap-query-swap
+blocks implement `fiberPowShift`. -/
 theorem run_modularOrderLoop_list (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (last : Fin M)
     (hlast : last.val + 1 = M) :
     ∀ (L : List (Fin M)), L.Nodup → ∀ (Φ : QState (Fin M × ZMod N)),
@@ -424,6 +501,8 @@ theorem run_modularOrderLoop_list (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (last 
       run_modularOrderSwapBlock_repeat N M a y last hlast, ih hys]
     exact (fiberPowShift_cons N M a y ys hny Φ).symm
 
+/-- With `last` equal to the final clock label, the modular-order loop implements the
+inverse-power shifts on all nonzero clock fibers. -/
 theorem run_modularOrderLoop (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (last : Fin M)
     (hlast : last.val + 1 = M) (Φ : QState (Fin M × ZMod N)) :
     Run (modularOrderOracle N M a) (modularOrderLoop N M last) Φ =
@@ -433,6 +512,8 @@ theorem run_modularOrderLoop (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (last : Fin
         RepeatCircuit (modularOrderSwapBlock N M y last) y.val) Φ = _
   exact run_modularOrderLoop_list N M a last hlast _ (modularOrderLabels_nodup M) Φ
 
+/-- Shifting a uniform clock state tensored with the target basis state at one gives amplitude
+`1 / √M` exactly at target residue `a ^ z.val`. -/
 theorem fiberPowShift_tensorState_uniform_ket_one (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (z : Fin M) (x : ZMod N) :
     fiberPowShift N a (modularOrderLabels M)
@@ -453,6 +534,8 @@ theorem fiberPowShift_tensorState_uniform_ket_one (N M : ℕ) [NeZero N] (a : (Z
     congr 1
     rw [hzv, pow_zero, Units.val_one]
 
+/-- Controlled modular powers on the uniform clock and target basis state at one give amplitude
+`1 / √M` at residue `a ^ z.val` and zero elsewhere. -/
 theorem controlledPowers_modularOrderMatrix_tensorState_ket_one_apply (N M : ℕ)
     [NeZero N] (a : (ZMod N)ˣ) (z : Fin M) (x : ZMod N) :
     (ControlledPowers (modularOrderMatrix N a) M *ᵥ
@@ -485,12 +568,16 @@ theorem controlledPowers_modularOrderMatrix_tensorState_ket_one_apply (N M : ℕ
     simp
   · simp
 
+/-- The final element of `Fin M` for positive `M`. -/
 def modularLast (M : ℕ) (hM : 0 < M) : Fin M := ⟨M - 1, Nat.sub_lt hM Nat.one_pos⟩
 
+/-- The value of `modularLast M hM` plus one equals `M`. -/
 theorem modularLast_val_add_one (M : ℕ) (hM : 0 < M) :
     (modularLast M hM).val + 1 = M :=
   Nat.sub_add_cancel hM
 
+/-- Prepares the uniform clock, runs the modular-order loop, and applies the inverse clock
+Fourier transform; for `M = 0` it is empty. -/
 noncomputable def modularOrderCircuit (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     Circuit (Fin M × ZMod N) :=
   if hM : 0 < M then
@@ -501,15 +588,18 @@ noncomputable def modularOrderCircuit (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     [Step.gate (TensorGate (QFTMatrix M)ᴴ (1 : Matrix (ZMod N) (ZMod N) ℂ))]
   else []
 
+/-- Every entry `1 / √M` of the real uniform clock vector is nonnegative. -/
 theorem uniformVector_nonneg (M : ℕ) : ∀ _ : Fin M, 0 ≤ (Real.sqrt (M : ℝ))⁻¹ :=
   fun _ => by positivity
 
+/-- For positive `M`, the sum of the squared uniform clock entries is one. -/
 theorem uniformVector_sum_sq (M : ℕ) (hM : 0 < M) :
     ∑ _j : Fin M, ((Real.sqrt (M : ℝ))⁻¹) ^ 2 = 1 := by
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, inv_pow,
     Real.sq_sqrt (by positivity : (0 : ℝ) ≤ (M : ℝ))]
   exact mul_inv_cancel₀ (by exact_mod_cast hM.ne' : (M : ℝ) ≠ 0)
 
+/-- For positive `M`, uniform clock preparation tensored with the target identity is unitary. -/
 theorem prepGate_unitary (N M : ℕ) [NeZero N] (hM : 0 < M) :
     TensorGate (Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare (fun _ : Fin M => (Real.sqrt (M : ℝ))⁻¹)
         ⟨0, hM⟩) (1 : Matrix (ZMod N) (ZMod N) ℂ) ∈
@@ -519,15 +609,20 @@ theorem prepGate_unitary (N M : ℕ) [NeZero N] (hM : 0 < M) :
       (uniformVector_sum_sq M hM))
     (Submonoid.one_mem _)
 
+/-- For positive `M`, the inverse clock Fourier transform tensored with the target identity is
+unitary. -/
 theorem invQFTGate_unitary (N M : ℕ) [NeZero N] (hM : 0 < M) :
     TensorGate (QFTMatrix M)ᴴ (1 : Matrix (ZMod N) (ZMod N) ℂ) ∈
       Matrix.unitaryGroup (Fin M × ZMod N) ℂ :=
   tensorGate_unitary (conjTranspose_mem_unitaryGroup (qftMatrix_unitary hM))
     (Submonoid.one_mem _)
 
+/-- The clock state with constant complex amplitude `1 / √M`. -/
 noncomputable def orderClockState (M : ℕ) : QState (Fin M) :=
   fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹
 
+/-- Uniform clock preparation sends the initial clock basis state and target basis state at one
+to their specified tensor state. -/
 theorem applyGate_prepGate_ket_zero (N M : ℕ) [NeZero N] (hM : 0 < M) :
     ApplyGate (TensorGate (Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare
         (fun _ : Fin M => (Real.sqrt (M : ℝ))⁻¹) ⟨0, hM⟩)
@@ -545,6 +640,8 @@ theorem applyGate_prepGate_ket_zero (N M : ℕ) [NeZero N] (hM : 0 < M) :
   dsimp only [orderClockState]
   rw [Complex.ofReal_inv]
 
+/-- The modular-order loop on the uniform clock and target basis state at one agrees with
+controlled powers of modular multiplication. -/
 theorem run_modularOrderCircuit_loop (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) :
     Run (modularOrderOracle N M a) (modularOrderLoop N M (modularLast M hM))
         (TensorState (orderClockState M) (Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N))) =
@@ -557,6 +654,8 @@ theorem run_modularOrderCircuit_loop (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM
   rw [fiberPowShift_tensorState_uniform_ket_one N M a z x,
     controlledPowers_modularOrderMatrix_tensorState_ket_one_apply N M a z x]
 
+/-- Running the modular-order circuit from clock zero and target one produces `qpeOutput` for
+modular multiplication. -/
 theorem run_modularOrderCircuit (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) :
     Run (modularOrderOracle N M a) (modularOrderCircuit N M a)
         (TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0, hM⟩ : Fin M)) (Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N))) =
@@ -567,6 +666,8 @@ theorem run_modularOrderCircuit (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 
   rw [applyGate_prepGate_ket_zero N M hM, run_modularOrderCircuit_loop N M a hM]
   rfl
 
+/-- The modular multiplication matrix and block oracle are unitary, and for positive clock size
+the circuit output equals the phase-estimation output on target one [Shor1997]. -/
 theorem modular_order_actual_unitary_and_controlled_power_run :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M),
       modularOrderMatrix N a ∈ Matrix.unitaryGroup (ZMod N) ℂ ∧
@@ -578,6 +679,8 @@ theorem modular_order_actual_unitary_and_controlled_power_run :
   exact ⟨modularOrderMatrix_unitary N a, modularOrderOracle_unitary N M a,
     run_modularOrderCircuit N M a hM⟩
 
+/-- For positive `M`, the modular-order circuit is unitary and uses exactly `M * (M - 1) / 2`
+oracle queries and `M * (M - 1) + 2` macro gates [Shor1997]. -/
 theorem modular_order_exact_query_macro_ledger :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ), 0 < M →
       IsUnitaryCircuit (modularOrderCircuit N M a) ∧
@@ -605,6 +708,8 @@ theorem modular_order_exact_query_macro_ledger :
     simp [GateCount]
     omega
 
+/-- The probability distribution obtained by measuring the clock after running the modular-order
+circuit from clock zero and target one. -/
 noncomputable def modularOrderLaw (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) :
     FinDist (Fin M) where
   prob y := MarginalProbLeft (Run (modularOrderOracle N M a) (modularOrderCircuit N M a)
@@ -620,18 +725,23 @@ noncomputable def modularOrderLaw (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 
     rw [← Fintype.sum_prod_type]
     exact hnorm
 
+/-- The probability of clock label `y` under `modularOrderLaw` equals the corresponding left
+marginal probability of the circuit output. -/
 theorem modularOrderLaw_prob (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     (y : Fin M) :
     (modularOrderLaw N M a hM).prob y =
       MarginalProbLeft (Run (modularOrderOracle N M a) (modularOrderCircuit N M a)
         (TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0, hM⟩ : Fin M)) (Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N)))) {y} := rfl
 
+/-- The multiplicative order of a modular unit is positive. -/
 theorem modular_order_pos (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) : 0 < orderOf a :=
   (isOfFinOrder_of_finite a).orderOf_pos
 
+/-- The residue of `a ^ j.val`, indexed by one period of the multiplicative order. -/
 def modularOrbit (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (j : Fin (orderOf a)) : ZMod N :=
   ((a ^ j.val : (ZMod N)ˣ) : ZMod N)
 
+/-- The orbit map indexed by `Fin (orderOf a)` is injective. -/
 theorem modularOrbit_injective (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     Function.Injective (modularOrbit N a) := by
   intro j k h
@@ -639,10 +749,13 @@ theorem modularOrbit_injective (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
   apply pow_injOn_Iio_orderOf j.isLt k.isLt
   exact Units.ext h
 
+/-- Embeds a state indexed by the order into the modular register by summing its amplitudes
+against orbit basis states. -/
 noncomputable def modularOrbitLift (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (f : QState (Fin (orderOf a))) : QState (ZMod N) :=
   ∑ j, f j • Qatlib.Foundations.PureStateMath.Ket (modularOrbit N a j)
 
+/-- The orbit lift preserves inner products. -/
 theorem inner_modularOrbitLift (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (f g : QState (Fin (orderOf a))) :
     Qatlib.Foundations.PureStateMath.Inner (modularOrbitLift N a f) (modularOrbitLift N a g) = Qatlib.Foundations.PureStateMath.Inner f g := by
@@ -655,10 +768,13 @@ theorem inner_modularOrbitLift (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   simp_rw [inner_ket_ket, (modularOrbit_injective N a).eq_iff]
   simp [dotProduct, mul_ite, mul_comm]
 
+/-- The orbit lift of the conjugated Fourier column indexed by `s`. -/
 noncomputable def modularOrbitFourier (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (s : Fin (orderOf a)) : QState (ZMod N) :=
   modularOrbitLift N a (fun j => star (QFTMatrix (orderOf a) j s))
 
+/-- The orbit Fourier states have inner product one for equal indices and zero for distinct
+indices. -/
 theorem modularOrbitFourier_orthonormal (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (s t : Fin (orderOf a)) :
     Qatlib.Foundations.PureStateMath.Inner (modularOrbitFourier N a s) (modularOrbitFourier N a t) =
@@ -670,11 +786,14 @@ theorem modularOrbitFourier_orthonormal (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   simpa [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Matrix.mul_apply, Matrix.conjTranspose_apply,
     Matrix.one_apply, mul_comm, eq_comm] using! he
 
+/-- The orbit lift sends the basis state at index zero to the modular basis state at one. -/
 theorem modularOrbitLift_ket_zero (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     modularOrbitLift N a (Qatlib.Foundations.PureStateMath.Ket (⟨0, modular_order_pos N a⟩ : Fin (orderOf a))) =
       Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N) := by
   simp [modularOrbitLift, Qatlib.Foundations.PureStateMath.Ket, modularOrbit]
 
+/-- The modular basis state at one is the sum of all orbit Fourier states with common
+coefficient `1 / √(orderOf a)`. -/
 theorem modularOrbitFourier_decomposition (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     (∑ s : Fin (orderOf a), (Real.sqrt (orderOf a : ℝ) : ℂ)⁻¹ •
       modularOrbitFourier N a s) = Qatlib.Foundations.PureStateMath.Ket (1 : ZMod N) := by
@@ -699,6 +818,8 @@ theorem modularOrbitFourier_decomposition (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) 
   simp_rw [← Finset.sum_smul, hc]
   rfl
 
+/-- A cyclic rotation of an orbit Fourier coefficient introduces the factor `primRoot r ^ s.val`
+for positive `r`. -/
 theorem orbitFourier_coeff_rotate (r : ℕ) (hr : 0 < r) (s j : Fin r) :
     star (QFTMatrix r j s) = primRoot r ^ s.val *
       star (QFTMatrix r (finRotate r j) s) := by
@@ -730,6 +851,7 @@ theorem orbitFourier_coeff_rotate (r : ℕ) (hr : 0 < r) (s j : Fin r) :
       congr 1
       ring
 
+/-- Multiplication by `a` rotates the modular orbit index by one. -/
 theorem modularOrbit_rotate (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (j : Fin (orderOf a)) :
     (a : ZMod N) * modularOrbit N a j = modularOrbit N a (finRotate (orderOf a) j) := by
@@ -747,6 +869,8 @@ theorem modularOrbit_rotate (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
       rw [← Units.val_mul, ← pow_succ', ← he, pow_orderOf_eq_one, Units.val_one]
     · rw [if_neg hj, ← Units.val_mul, ← pow_succ']
 
+/-- The orbit Fourier state indexed by `s` is an eigenvector of modular multiplication with
+eigenvalue `primRoot (orderOf a) ^ s.val`. -/
 theorem modularOrbitFourier_eigen_root (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (s : Fin (orderOf a)) :
     ApplyGate (modularOrderMatrix N a) (modularOrbitFourier N a s) =
@@ -767,6 +891,8 @@ theorem modularOrbitFourier_eigen_root (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     primRoot (orderOf a) ^ s.val •
       (star (QFTMatrix (orderOf a) j s) • Qatlib.Foundations.PureStateMath.Ket (modularOrbit N a j)))
 
+/-- The orbit Fourier state indexed by `s` has modular multiplication eigenvalue `exp(2πi *
+s.val / orderOf a)`. -/
 theorem modularOrbitFourier_eigen (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (s : Fin (orderOf a)) :
     ApplyGate (modularOrderMatrix N a) (modularOrbitFourier N a s) =
@@ -777,12 +903,15 @@ theorem modularOrbitFourier_eigen (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   push_cast
   ring
 
+/-- The squared norm of the common orbit Fourier coefficient is `1 / orderOf a`. -/
 theorem modularOrbitFourier_weight (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) :
     ‖(Real.sqrt (orderOf a : ℝ) : ℂ)⁻¹‖ ^ 2 = 1 / (orderOf a : ℝ) := by
   rw [norm_inv, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (Real.sqrt_nonneg _), inv_pow,
     Real.sq_sqrt (by positivity), one_div]
 
+/-- For `1 < N`, the modular-order clock probability is the uniform average of the squared
+phase-estimation kernels at phases `s / orderOf a` [Shor1997]. -/
 theorem modular_order_born_uniform_orbit_spectrum :
     ∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (y : Fin M),
       1 < N → (modularOrderLaw N M a hM).prob y =

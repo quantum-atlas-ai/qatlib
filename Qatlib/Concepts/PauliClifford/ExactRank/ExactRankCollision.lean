@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PauliClifford.ExactRank.CubeCombinatorics
+
+/-!
+# Unequal-weight collisions for functions of small stabilizer rank
+
+This module combines affine dimension estimates, quadratic Boolean derivatives, and Hamming-ball
+counting to prove `exact_rank_collision`. For the function class measured by `stabilizerRank`,
+rank at most `r` with `1 ≤ n` and `100 * r ≤ n` forces equal function values at two Boolean
+vectors of different Hamming weights. The linear, quadratic, and affine-support representation
+of stabilizer data is motivated by [DehaeneDeMoor2003].
+
+## Main statements
+
+* `stabilizer_constant_affine_region` makes finitely many Boolean linear forms and
+  affine-support membership conditions constant with dimension loss at most `2 * r`.
+* `quadFun_directional_affine` expresses a directional difference of a Boolean quadratic
+  function as an affine function.
+* `exact_rank_collision` produces an unequal-weight pair with equal values under the rank and
+  dimension bounds.
+
+## References
+
+* [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,9 +37,12 @@ open Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
 namespace Qatlib.Concepts.PauliClifford.ExactRank
 open scoped Classical BigOperators
 
+/-- The vector space `BooleanVec n` has dimension `n` over `ZMod 2`. -/
 private theorem cube_finrank (n : ℕ) : Module.finrank (ZMod 2) (BooleanVec n)=n := by
   simp [BooleanVec]
 
+/-- Intersecting a submodule with the kernel of a linear map loses at most the dimension of the
+codomain. -/
 private theorem inf_ker_codim {V W : Type} [AddCommGroup V] [Module (ZMod 2) V]
     [AddCommGroup W] [Module (ZMod 2) W] [FiniteDimensional (ZMod 2) V]
     [FiniteDimensional (ZMod 2) W] (D : Submodule (ZMod 2) V) (L : V →ₗ[ZMod 2] W) :
@@ -27,6 +54,8 @@ private theorem inf_ker_codim {V W : Type} [AddCommGroup V] [Module (ZMod 2) V]
   have hr := (LinearMap.range L).finrank_le
   omega
 
+/-- The affine space through `p` with direction `D` is contained in `U` when `p` belongs to `U`
+and `D` is contained in its direction. -/
 private theorem affine_subregion {n : ℕ} (U : AffineSubspace (ZMod 2) (BooleanVec n))
     (p : BooleanVec n) (hp : p ∈ U) (D : Submodule (ZMod 2) (BooleanVec n)) (hD : D ≤ U.direction) :
     AffineSubspace.mk' p D ≤ U := by
@@ -35,6 +64,8 @@ private theorem affine_subregion {n : ℕ} (U : AffineSubspace (ZMod 2) (Boolean
   have he := AffineSubspace.vadd_mem_of_mem_direction (hD hv) hp
   simpa only [vadd_eq_add,sub_add_cancel] using he
 
+/-- Through any point of `U`, there is an affine subspace contained in `U` on which the given
+Boolean linear form is constant. The direction dimension loss is at most one. -/
 private theorem linear_level_region {n : ℕ} (U : AffineSubspace (ZMod 2) (BooleanVec n))
     (p : BooleanVec n) (hp : p ∈ U) (L : BooleanVec n →ₗ[ZMod 2] ZMod 2) :
     ∃ W : AffineSubspace (ZMod 2) (BooleanVec n),
@@ -55,6 +86,8 @@ private theorem linear_level_region {n : ℕ} (U : AffineSubspace (ZMod 2) (Bool
     have hyp : L y=L p := sub_eq_zero.mp (by simpa only [map_sub] using hy0)
     exact hxp.trans hyp.symm
 
+/-- A nonempty affine space `U` contains a nonempty affine subspace on which membership in `A`
+is constant, with direction dimension loss at most one. -/
 private theorem support_constant_region {n : ℕ}
     (U A : AffineSubspace (ZMod 2) (BooleanVec n)) (hU : (U : Set (BooleanVec n)).Nonempty) :
     ∃ W : AffineSubspace (ZMod 2) (BooleanVec n),
@@ -93,6 +126,7 @@ private theorem support_constant_region {n : ℕ}
     intro x _ y _
     exact iff_of_false (fun hx => hA ⟨x,hx⟩) (fun hy => hA ⟨y,hy⟩)
 
+/-- Packages the Boolean dot product with `a` as a linear map over `ZMod 2`. -/
 private def dotLinear {n : ℕ} (a : BooleanVec n) : BooleanVec n →ₗ[ZMod 2] ZMod 2 where
   toFun := booleanDot a
   map_add' x y := (Qatlib.Concepts.PauliClifford.ExactRank.booleanDotHom a).map_add x y
@@ -102,6 +136,9 @@ private def dotLinear {n : ℕ} (a : BooleanVec n) : BooleanVec n →ₗ[ZMod 2]
     intro i _
     ring
 
+/-- A nonempty affine space contains a nonempty affine subspace where all `r` specified dot
+products and affine-support membership conditions are constant. The direction dimension loss
+is at most `2 * r`. -/
 theorem stabilizer_constant_affine_region {n r : ℕ} (a : Fin r → BooleanVec n)
     (A : Fin r → AffineSubspace (ZMod 2) (BooleanVec n))
     (U : AffineSubspace (ZMod 2) (BooleanVec n)) (hU : (U : Set (BooleanVec n)).Nonempty) :
@@ -126,6 +163,8 @@ theorem stabilizer_constant_affine_region {n r : ℕ} (a : Fin r → BooleanVec 
     exact ⟨hphase x (hTV (hWT hx)) y (hTV (hWT hy)),
       hsupport x (hWT hx) y (hWT hy)⟩
 
+/-- Defines the linear cross-term map associated with `Q` and direction `v`, summing `Q i j * (x
+i * v j + v i * x j)` over both coordinates. -/
 private def derivativeLinear {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (v : BooleanVec n) :
     BooleanVec n →ₗ[ZMod 2] ZMod 2 where
   toFun x := ∑ i, ∑ j, Q i j*(x i*v j+v i*x j)
@@ -150,6 +189,8 @@ private def derivativeLinear {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2)) (v 
     intro j _
     ring
 
+/-- For any direction `v`, the sum of a Boolean quadratic function at `x` and `x + v` is an
+affine function of `x`. -/
 theorem quadFun_directional_affine {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2))
     (b : BooleanVec n) (c : ZMod 2) (v : BooleanVec n) :
     ∃ L : BooleanVec n →ₗ[ZMod 2] ZMod 2, ∃ d : ZMod 2,
@@ -182,6 +223,8 @@ theorem quadFun_directional_affine {n : ℕ} (Q : Matrix (Fin n) (Fin n) (ZMod 2
       simp only [CharTwo.add_self_eq_zero AA,CharTwo.add_self_eq_zero DD,
         CharTwo.add_self_eq_zero c,zero_add,add_zero,add_assoc]
 
+/-- Translation by a chosen point `p` identifies the points of an affine subspace with the
+vectors in its direction subspace. -/
 private noncomputable def affine_direction_equiv {n : ℕ}
     (U : AffineSubspace (ZMod 2) (BooleanVec n)) (p : BooleanVec n) (hp : p ∈ U) :
     ↥U ≃ ↥U.direction where
@@ -190,12 +233,16 @@ private noncomputable def affine_direction_equiv {n : ℕ}
   left_inv x := by apply Subtype.ext; simp
   right_inv v := by apply Subtype.ext; simp
 
+/-- A nonempty Boolean affine subspace has cardinality two raised to the dimension of its
+direction. -/
 private theorem affine_card {n : ℕ} (U : AffineSubspace (ZMod 2) (BooleanVec n))
     (hU : (U : Set (BooleanVec n)).Nonempty) :
     Fintype.card ↥U=2^(Module.finrank (ZMod 2) ↥U.direction) := by
   obtain ⟨p,hp⟩ := hU
   rw [Fintype.card_congr (affine_direction_equiv U p hp),Module.card_eq_pow_finrank (K := ZMod 2),ZMod.card]
 
+/-- A map between finite types with nonempty codomain has a fiber whose size, multiplied by the
+codomain cardinality, is at least the domain cardinality. -/
 private theorem largest_fiber {X Y : Type} [Fintype X] [Fintype Y] [DecidableEq Y]
     [Nonempty Y] (f : X → Y) :
     ∃ y, Fintype.card X ≤ Fintype.card Y*Fintype.card {x : X // f x=y} := by
@@ -207,6 +254,9 @@ private theorem largest_fiber {X Y : Type} [Fintype X] [Fintype Y] [DecidableEq 
     _ ≤ ∑ _ : Y, Fintype.card {x : X // f x=y} := Finset.sum_le_sum (fun z _ => hy z)
     _ = _ := by simp
 
+/-- If a nonempty affine subspace has direction dimension at least `n - 2 * r`, with `1 ≤ n` and
+`100 * r ≤ n`, it contains two vectors at Hamming distance greater than `8 * r` on which all
+`r` specified quadratic functions agree. -/
 private theorem quadratic_far_pair {n r : ℕ} (U : AffineSubspace (ZMod 2) (BooleanVec n))
     (hU : (U : Set (BooleanVec n)).Nonempty)
     (hdim : n-2*r ≤ Module.finrank (ZMod 2) ↥U.direction)
@@ -249,10 +299,13 @@ private theorem quadratic_far_pair {n r : ℕ} (U : AffineSubspace (ZMod 2) (Boo
     (Nat.pow_le_pow_right (by decide : 1 ≤ (2 : ℕ)) (by omega)).trans hcard
   exact (not_le_of_gt (card_ball_lt hn hrn)) (hlower.trans hball)
 
+/-- Adding any Boolean vector to itself gives the zero vector. -/
 private theorem cube_add_self {n : ℕ} (x : BooleanVec n) : x+x=0 := by
   ext i
   exact CharTwo.add_self_eq_zero (x i)
 
+/-- Under `1 ≤ n` and `100 * r ≤ n`, two Boolean vectors of different Hamming weights agree on
+every specified dot product, quadratic value, and affine-support membership condition. -/
 private theorem stabilizer_data_collision {n r : ℕ} (a : Fin r → BooleanVec n)
     (Q : Fin r → Matrix (Fin n) (Fin n) (ZMod 2)) (b : Fin r → BooleanVec n)
     (c : Fin r → ZMod 2) (A : Fin r → AffineSubspace (ZMod 2) (BooleanVec n))
@@ -317,6 +370,8 @@ private theorem stabilizer_data_collision {n r : ℕ} (a : Fin r → BooleanVec 
   intro j
   exact ⟨(hconst j y hyU z hzU).1,hq j,(hconst j y hyU z hzU).2⟩
 
+/-- If `stabilizerRank F ≤ r`, `1 ≤ n`, and `100 * r ≤ n`, then `F` takes the same value at two
+Boolean vectors of different Hamming weights. -/
 theorem exact_rank_collision {n r : ℕ} (F : BooleanVec n → ℂ) (hn : 1 ≤ n)
     (hrn : 100*r ≤ n) (hF : stabilizerRank F ≤ r) :
     ∃ y z : BooleanVec n, cubeWeight y ≠ cubeWeight z ∧ F y=F z := by

@@ -14,12 +14,36 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Analysis.Normed.Ring.Units
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Topology.Instances.Matrix
+
+/-!
+# Grover interpolation via secular equations
+
+This module proves `GroverInterpolation` by analyzing the resolvent of a unitary walk and its
+product with a reflection. The scalar `groverSecularScalar` encodes the eigenphase equation;
+spectral decompositions and normalization estimates give an iteration bound and a lower bound on
+the target overlap.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `grover_small_overlap_root`: constructs a secular root in an explicit phase interval.
+* `groverInterpolation`: proves the interpolation statement for a walk with the stated phase
+  gap.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.WalkFind.GroverInterp
 
 open Matrix
 
+/-- If the initial overlap is at least `ε^3 / 1000`, zero iterations satisfy the required
+overlap and iteration bounds. -/
 theorem groverInterpolation_at_zero (m : ℕ) (ε α : ℝ)
     (hε : 0 < ε) (hα : 0 < α) (hbig : ε^3 / 1000 ≤ α)
     (Uf Uw : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
@@ -32,6 +56,8 @@ theorem groverInterpolation_at_zero (m : ℕ) (ε α : ℝ)
   · simpa only [pow_zero, Matrix.one_mulVec, hoverlap, Complex.norm_real,
       Real.norm_eq_abs, abs_of_pos hα] using! hbig
 
+/-- For `0 < ε ≤ 1`, an initial overlap of at least `ε^2 / 200` already satisfies the
+interpolation conclusion. -/
 theorem groverInterpolation_large_overlap (m : ℕ) (ε α : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hα : 0 < α) (hlarge : ε^2 / 200 ≤ α)
     (Uf Uw : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
@@ -42,6 +68,8 @@ theorem groverInterpolation_large_overlap (m : ℕ) (ε α : ℝ)
   have hmul := mul_nonneg (sq_nonneg ε) (sub_nonneg.mpr hε1)
   nlinarith [sq_nonneg ε]
 
+/-- A map that negates the unit vector `good` and fixes its orthogonal complement acts by
+subtracting twice the projection onto `good`. -/
 theorem groverReflection_action {m : ℕ} (Uf : Matrix (Fin m) (Fin m) ℂ)
     (good : Fin m → ℂ) (hn : (∑ i, ‖good i‖^2) = 1)
     (hgood : Uf *ᵥ good = -good)
@@ -65,6 +93,7 @@ theorem groverReflection_action {m : ℕ} (Uf : Matrix (Fin m) (Fin m) ℂ)
     _ = (v-c • good)-c • good := eq_sub_iff_add_eq.mpr h
     _ = _ := by module
 
+/-- Distinct ordered phases in `[0, 2π)` have distinct complex exponentials. -/
 theorem grover_phase_ne_of_order (a b : ℝ) (ha : 0 ≤ a) (hab : a < b)
     (hb : b < 2 * Real.pi) :
     Complex.exp (Complex.I * a) ≠ Complex.exp (Complex.I * b) := by
@@ -78,6 +107,8 @@ theorem grover_phase_ne_of_order (a b : ℝ) (ha : 0 ≤ a) (hab : a < b)
   have hnhi' : n < 0 := by exact_mod_cast hnhi
   omega
 
+/-- An eigenvector of a unitary matrix with eigenvalue different from one is orthogonal to every
+fixed vector. -/
 theorem grover_eigenvector_orthogonal_start (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start w : Fin m → ℂ) (z : ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -101,6 +132,8 @@ theorem grover_eigenvector_orthogonal_start (m : ℕ)
     simpa [dotProduct, star_sum, star_mul, mul_comm] using! hc0
   exact star_eq_zero.mp hs
 
+/-- The resolvent matrix at a phase strictly between zero and `ε` is invertible under the stated
+spectral phase condition. -/
 theorem grover_resolvent_isUnit (m : ℕ) (ε β : ℝ) (_hε : 0 < ε) (hε1 : ε ≤ 1)
     (hβ : 0 < β) (hβε : β < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start : Fin m → ℂ)
@@ -133,6 +166,8 @@ theorem grover_resolvent_isUnit (m : ℕ) (ε β : ℝ) (_hε : 0 < ε) (hε1 : 
     rw [Matrix.mulVec_sub, hxy, sub_self]
   exact sub_eq_zero.mp (hker (x - y) hw)
 
+/-- A resolvent vector whose overlap with `good` equals one half is a nonzero eigenvector of `U
+* Uf` with eigenvalue `z`. -/
 theorem grover_resolvent_search_eigenvector (m : ℕ)
     (Uf U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (z : ℂ)
     (hn : (∑ i, ‖good i‖ ^ 2) = 1) (hgood : Uf *ᵥ good = -good)
@@ -166,6 +201,8 @@ theorem grover_resolvent_search_eigenvector (m : ℕ)
   · intro hzero
     simp [hzero] at hc
 
+/-- For a unitary matrix, a unit target vector, and a resolvent parameter on the unit circle,
+the resolvent overlap has real part one half. -/
 theorem grover_resolvent_real_part (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (z : ℂ)
     (hu : star U * U = 1) (hgood : (∑ i, ‖good i‖ ^ 2) = 1)
@@ -206,12 +243,15 @@ theorem grover_resolvent_real_part (m : ℕ)
   simp only [Complex.sub_re, Complex.star_def, Complex.conj_re, Complex.one_re] at hre
   linarith
 
+/-- The imaginary part of the overlap of `good` with the resolvent vector at phase `β`. -/
 noncomputable def groverSecularScalar (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (β : ℝ) : ℝ :=
   (star good ⬝ᵥ
     ((U - Complex.exp (Complex.I * β) • (1 : Matrix (Fin m) (Fin m) ℂ))⁻¹ *ᵥ
       (U *ᵥ good))).im
 
+/-- Under the spectral phase condition, the secular scalar is continuous on the open interval
+`(0, ε)`. -/
 theorem grover_secular_continuousOn (m : ℕ) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -237,6 +277,8 @@ theorem grover_secular_continuousOn (m : ℕ) (ε : ℝ) (hε : 0 < ε) (hε1 : 
     fun_prop
   exact (hF.continuousAt.comp hinv).continuousWithinAt
 
+/-- The resolvent overlap splits into the fixed-vector contribution `α^2 / (1 - z)` and the
+contribution from `good - α • start`. -/
 theorem grover_resolvent_overlap_decomposition (m : ℕ) (α : ℝ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ) (z : ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -311,18 +353,23 @@ theorem grover_resolvent_overlap_decomposition (m : ℕ) (α : ℝ)
     dotProduct_smul, hbs, smul_zero, zero_add, smul_eq_mul]
   ring
 
+/-- Entrywise complex conjugation commutes with the matrix inverse. -/
 theorem grover_conjugate_inverse (m : ℕ) (A : Matrix (Fin m) (Fin m) ℂ) :
     (A⁻¹).map star = (A.map star)⁻¹ := by
   have h := Matrix.conjTranspose_nonsing_inv A.transpose
   rw [← Matrix.transpose_nonsing_inv] at h
   simpa only [Matrix.conjTranspose_transpose] using! h
 
+/-- Complex conjugation of a matrix-vector product equals the product of the entrywise
+conjugates. -/
 private theorem conjugate_mulVec (m : ℕ) (A : Matrix (Fin m) (Fin m) ℂ)
     (v : Fin m → ℂ) :
     star (A *ᵥ v) = A.map star *ᵥ star v := by
   funext i
   simp [Matrix.mulVec,dotProduct,star_sum,star_mul,mul_comm]
 
+/-- For real matrix and vector entries, conjugating the resolvent overlap conjugates its
+spectral parameter. -/
 theorem grover_resolvent_overlap_conjugate (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (z : ℂ)
     (hU : ∀ i j, (U i j).im = 0) (hg : ∀ i, (good i).im = 0) :
@@ -346,6 +393,7 @@ theorem grover_resolvent_overlap_conjugate (m : ℕ)
   rw [hs,conjugate_mulVec,grover_conjugate_inverse,he,conjugate_mulVec,hUr]
   simp only [hgr]
 
+/-- For real matrix and target entries, the secular scalar is an odd function of the phase. -/
 theorem grover_secular_neg (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ)
     (hU : ∀ i j, (U i j).im = 0) (hg : ∀ i, (good i).im = 0) (β : ℝ) :
     groverSecularScalar m U good (-β) = -groverSecularScalar m U good β := by
@@ -356,6 +404,8 @@ theorem grover_secular_neg (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (good : Fi
   have he := congrArg Complex.im h
   simpa [groverSecularScalar,Complex.star_def] using! he.symm
 
+ /-- For an entrywise real matrix, invertibility of a resolvent is preserved by conjugating its
+ parameter. -/
  theorem grover_real_resolvent_isUnit_conjugate (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (z : ℂ)
     (hU : ∀ i j, (U i j).im = 0)
@@ -377,6 +427,8 @@ theorem grover_secular_neg (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (good : Fi
   rw [← hm]
   exact hs
 
+/-- The symmetric resolvent matrix is invertible, and its inverse expresses the secular scalar
+after multiplication by `sin β`. -/
 theorem grover_secular_symmetric_resolvent (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (β : ℝ)
     (hu : star U * U = 1) (hU : ∀ i j, (U i j).im = 0)
@@ -419,6 +471,8 @@ theorem grover_secular_symmetric_resolvent (m : ℕ)
   change (star good ⬝ᵥ ((U-z • 1)⁻¹ *ᵥ (U *ᵥ good))).im = _
   linarith
 
+/-- Opposite weak endpoint signs yield a secular root in `[a, b]` and a nonzero search
+eigenvector at that phase. -/
 theorem grover_secular_root_of_signs (m : ℕ) (ε a b : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (ha : 0 < a) (hab : a ≤ b) (hb : b < ε)
     (Uf U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
@@ -460,6 +514,7 @@ theorem grover_secular_root_of_signs (m : ℕ) (ε a b : ℝ)
   have he := grover_resolvent_search_eigenvector m Uf U good z hgn hgood hfix hi hcomplex
   exact ⟨β, hβ, hroot, hcomplex, he⟩
 
+/-- The imaginary part of `α^2 / (1 - exp (I * β))` equals `α^2 * sin β / (2 * (1 - cos β))`. -/
 theorem grover_fixed_pole_im (α β : ℝ) :
     (((α : ℂ)^2 / (1 - Complex.exp (Complex.I * β))).im) =
       α^2 * Real.sin β / (2 * (1 - Real.cos β)) := by
@@ -478,6 +533,8 @@ theorem grover_fixed_pole_im (α β : ℝ) :
     Complex.one_im, hre, him]
   ring
 
+/-- An orthonormal eigenbasis expresses the secular scalar as a sum weighted by the squared
+target coefficients. -/
 theorem grover_secular_eigenbasis (m : ℕ)
     (U B : Matrix (Fin m) (Fin m) ℂ) (μ : Fin m → ℂ)
     (good : Fin m → ℂ) (β : ℝ)
@@ -511,6 +568,8 @@ theorem grover_secular_eigenbasis (m : ℕ)
   rw [← Finset.sum_div]
   ring
 
+/-- The secular scalar splits into the explicit fixed-vector pole and the scalar for the
+orthogonal residual target. -/
 theorem grover_secular_orthogonal_decomposition (m : ℕ) (α β : ℝ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -528,6 +587,8 @@ theorem grover_secular_orthogonal_decomposition (m : ℕ) (α β : ℝ)
   rw [Complex.add_im, grover_fixed_pole_im] at hi
   exact hi
 
+/-- After removing the fixed-vector component, the secular scalar is the fixed pole minus a sum
+over nonfixed eigenvalues, scaled by `sin β / 2`. -/
 theorem grover_secular_nonfixed_eigenbasis (m : ℕ) (α β : ℝ)
     (U B : Matrix (Fin m) (Fin m) ℂ) (μ : Fin m → ℂ)
     (start good : Fin m → ℂ)
@@ -569,6 +630,8 @@ theorem grover_secular_nonfixed_eigenbasis (m : ℕ) (α β : ℝ)
   simp only [div_eq_mul_inv, _root_.mul_inv_rev]
   ring
 
+/-- The secular scalar is expressed using separate fixed and nonfixed spectral weights and the
+modified real eigenvalue denominators. -/
 theorem grover_secular_gap_weights (m : ℕ)
     (U B : Matrix (Fin m) (Fin m) ℂ) (μ : Fin m → ℂ)
     (good : Fin m → ℂ) (α β : ℝ) (w s : Fin m → ℝ)
@@ -587,6 +650,9 @@ theorem grover_secular_gap_weights (m : ℕ)
   simp_rw [hweights]
   rw [grover_weighted_pole_split m μ w s α (Real.cos β) hw hs hsum]
 
+/-- Under the small-overlap and spectral hypotheses, a secular root lies between `ε * α / sqrt
+(2π)` and `13 * α / 5` and yields a nonzero search eigenvector
+[Ambainis2007ElementDistinctness]. -/
 theorem grover_small_overlap_root (m : ℕ) (ε α : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hα : 0 < α) (hsmall : α ≤ ε^2 / 200)
     (Uf U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
@@ -645,6 +711,7 @@ theorem grover_small_overlap_root (m : ℕ) (ε α : ℝ)
   exact grover_secular_root_of_signs m ε lo hi hε hε1 hlop hab hhieps Uf U start good
     hu hstart hgn hgood hfix hphase hscalarlo hscalarhi
 
+/-- The reflection about an entrywise real unit vector has entrywise real matrix coefficients. -/
 theorem groverReflection_real (m : ℕ) (Uf : Matrix (Fin m) (Fin m) ℂ)
     (good : Fin m → ℂ) (hn : (∑ i, ‖good i‖^2) = 1)
     (hg : ∀ i, (good i).im = 0) (hgood : Uf *ᵥ good = -good)
@@ -657,6 +724,8 @@ theorem groverReflection_real (m : ℕ) (Uf : Matrix (Fin m) (Fin m) ℂ)
   rw [h]
   by_cases hij : i = j <;> simp [hij, Complex.sub_im, Complex.mul_im, hg]
 
+/-- For an entrywise real matrix and target, conjugating the resolvent vector conjugates its
+parameter. -/
 theorem grover_conjugate_resolvent_vector (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (z : ℂ)
     (hU : ∀ i j, (U i j).im = 0) (hg : ∀ i, (good i).im = 0) :
@@ -680,6 +749,8 @@ theorem grover_conjugate_resolvent_vector (m : ℕ)
     simp [Matrix.mulVec,dotProduct,star_sum,star_mul,mul_comm]
   rw [hconj,grover_conjugate_inverse,hmap,hconj,hUr,hgr]
 
+/-- The imaginary part of the resolvent vector equals `sin β` times the symmetric resolvent
+inverse applied to `good`. -/
 theorem grover_resolvent_imaginary_vector (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (good : Fin m → ℂ) (β : ℝ)
     (hu : star U * U = 1) (hU : ∀ i j, (U i j).im = 0)
@@ -715,6 +786,8 @@ theorem grover_resolvent_imaginary_vector (m : ℕ)
   change _ = (Real.sin β : ℂ)*_
   field_simp
 
+/-- The product of the given real unitary walk and target reflection is unitary and entrywise
+real. -/
 theorem grover_search_real_unitary (m : ℕ) (Uf U : Matrix (Fin m) (Fin m) ℂ)
     (good : Fin m → ℂ) (huf : star Uf * Uf = 1) (hu : star U * U = 1)
     (hU : ∀ i j, (U i j).im = 0) (hn : (∑ i, ‖good i‖^2) = 1)
@@ -729,6 +802,8 @@ theorem grover_search_real_unitary (m : ℕ) (Uf U : Matrix (Fin m) (Fin m) ℂ)
     simp only [Matrix.mul_apply,Complex.im_sum,Complex.mul_im,hU,hf,mul_zero,zero_mul,
       add_zero,Finset.sum_const_zero]
 
+/-- The squared Euclidean norm of the imaginary resolvent vector is a weighted sum of squared
+inverse spectral denominators. -/
 theorem grover_resolvent_imaginary_norm_sq (m : ℕ)
     (U B : Matrix (Fin m) (Fin m) ℂ) (μ : Fin m → ℂ)
     (good : Fin m → ℂ) (α β : ℝ) (w s : Fin m → ℝ)
@@ -773,6 +848,7 @@ theorem grover_resolvent_imaginary_norm_sq (m : ℕ)
   rw [← Finset.sum_div, grover_weighted_pole_split_sq m μ w s α (Real.cos β) hw hs hsum]
   ring
 
+/-- The overlap of the fixed vector `start` with the resolvent vector is `α / (1 - z)`. -/
 theorem grover_resolvent_start_overlap (m : ℕ) (α : ℝ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ) (z : ℂ)
     (hu : star U*U=1) (hstart : U *ᵥ start=start)
@@ -805,6 +881,7 @@ theorem grover_resolvent_start_overlap (m : ℕ) (α : ℝ)
   apply (eq_div_iff (sub_ne_zero.mpr hz.symm)).mpr
   linear_combination h
 
+/-- The imaginary part of `α / (1 - exp (I * β))` equals `α * sin β / (2 * (1 - cos β))`. -/
 theorem grover_fixed_resolvent_im (α β : ℝ) :
     (((α : ℂ) / (1 - Complex.exp (Complex.I * β))).im) =
       α * Real.sin β / (2 * (1 - Real.cos β)) := by
@@ -815,6 +892,8 @@ theorem grover_fixed_resolvent_im (α β : ℝ) :
   rw [Complex.mul_im,Complex.ofReal_re,Complex.ofReal_im,zero_mul,add_zero,h]
   ring
 
+/-- Taking the imaginary part commutes with the Hermitian pairing against an entrywise real
+vector. -/
 theorem grover_real_left_imag_dot (m : ℕ) (start y : Fin m → ℂ)
     (hsr : ∀ i, (start i).im = 0) :
     star start ⬝ᵥ (fun i => ((y i).im : ℂ)) = ((star start ⬝ᵥ y).im : ℂ) := by
@@ -823,6 +902,8 @@ theorem grover_real_left_imag_dot (m : ℕ) (start y : Fin m → ℂ)
     Complex.ofReal_re,Complex.ofReal_im,hsr,neg_zero,mul_zero,zero_mul,sub_zero,add_zero,
     Finset.sum_const_zero]
 
+/-- The overlap of `start` with the imaginary resolvent vector equals `α * sin β / (2 * (1 - cos
+β))`. -/
 theorem grover_resolvent_imaginary_start_overlap (m : ℕ) (α β : ℝ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
     (hu : star U*U=1) (hstart : U *ᵥ start=start) (hsr : ∀ i, (start i).im=0)
@@ -837,6 +918,8 @@ theorem grover_resolvent_imaginary_start_overlap (m : ℕ) (α β : ℝ)
     grover_resolvent_start_overlap m α U start good _ hu hstart hoverlap hz hinv,
     grover_fixed_resolvent_im]
 
+/-- Subtracting the real projection onto a unit vector reduces the squared Euclidean norm by the
+square of that projection coefficient. -/
 theorem grover_norm_sq_projection_residual (m : ℕ) (start v : Fin m → ℂ) (C : ℝ)
     (hsn : (∑ i, ‖start i‖^2)=1) (hproj : star start ⬝ᵥ v = (C:ℂ)) :
     (∑ i, ‖(v-(C:ℂ) • start) i‖^2) = (∑ i, ‖v i‖^2)-C^2 := by
@@ -854,6 +937,9 @@ theorem grover_norm_sq_projection_residual (m : ℕ) (start v : Fin m → ℂ) (
 
 set_option maxHeartbeats 800000 in
 
+/-- At a small-overlap secular root, the start projection coefficient is positive, the imaginary
+vector has squared norm at most `36 / ε^2`, and its projection residual satisfies the stated
+bound. -/
 theorem grover_small_overlap_normalization_bounds (m : ℕ) (ε α β : ℝ)
     (hε : 0<ε) (hε1 : ε≤1) (hα : 0<α) (hsmall : α≤ε^2/200)
     (hβbounds : β ∈ Set.Icc (ε*α/Real.sqrt (2*Real.pi)) ((13/5:ℝ)*α))
@@ -962,6 +1048,7 @@ theorem grover_small_overlap_normalization_bounds (m : ℕ) (ε α β : ℝ)
         apply div_le_div_of_nonneg_right _ hεsq.le
         nlinarith [sq_nonneg β]
 
+/-- Taking the real part commutes with the Hermitian pairing against an entrywise real vector. -/
 theorem grover_real_left_real_dot (m : ℕ) (good y : Fin m → ℂ)
     (hg : ∀i,(good i).im=0) :
     star good ⬝ᵥ (fun i => ((y i).re:ℂ)) = ((star good ⬝ᵥ y).re:ℂ) := by
@@ -972,6 +1059,8 @@ theorem grover_real_left_real_dot (m : ℕ) (good y : Fin m → ℂ)
 
 set_option maxHeartbeats 1000000 in
 
+/-- A real unitary walk satisfying the stated phase gap and reflection hypotheses achieves
+overlap at least `ε^3 / 1000` within `8 / (ε * α)` iterations. -/
 theorem groverInterpolation : GroverInterpolation := by
   intro m ε α hε hε1 hα _ Uf U start good huf hu hU hsr hgr hsn hgn hoverlap hgood hfix hstart hphase
   by_cases hlarge : ε^2/200≤α
@@ -1082,6 +1171,8 @@ theorem groverInterpolation : GroverInterpolation := by
   change ε^3/1000≤‖((W^t) *ᵥ start) ⬝ᵥ star good‖ at htarget
   simpa only [dotProduct_comm] using! htarget
 
+/-- The Grover interpolation statement follows from `groverInterpolation`
+[Ambainis2007ElementDistinctness]. -/
 theorem groverInterpolation_answer : GroverInterpolation := groverInterpolation
 
 end Qatlib.Concepts.WalkFind.GroverInterp

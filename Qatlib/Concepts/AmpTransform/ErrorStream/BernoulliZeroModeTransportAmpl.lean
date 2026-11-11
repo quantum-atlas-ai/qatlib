@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportStat
+
+/-!
+# Zero-mode transport for Bernoulli error streams
+
+This module proves the zero-frequency counterpart of Bernoulli Fourier-case transport. The QFT
+of the prepared uniform state and its marked restriction yields the exact Born probability `cos
+(2 * k * θ) ^ 2` for `conditionalAmplifiedQFTCircuit` under the marked-density angle condition.
+
+`bernoulliErrorStreamZeroModeTransport` combines this identity with progression cardinalities,
+conditional noise means, binomial layer mixing, and the full disjoint-noise transport formula.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `bernoulliErrorStreamZeroModeTransport`: exact zero-mode probabilities and Bernoulli
+  transport.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -23,10 +46,12 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open Matrix
 open scoped Classical BigOperators
 
+/-- Every entry of the QFT-prepared state from `Ket 0` equals the inverse square root of `N`. -/
 private theorem uniform_entry (N : ℕ) [NeZero N] (x : ZMod N) :
     preparedAAState (zmodQFTGate (N := N)) 0 x = (Real.sqrt (N : ℝ) : ℂ)⁻¹ := by
   simp [preparedAAState, ApplyGate, Matrix.mulVec, dotProduct, Ket, zmodQFTGate_apply]
 
+/-- The QFT-prepared uniform state assigns mass `S.card / N` to a finite set `S`. -/
 private theorem uniform_mass (N : ℕ) [NeZero N] (S : Finset (ZMod N)) :
     MeasureProb (preparedAAState (zmodQFTGate (N := N)) 0) S = (S.card : ℝ)/N := by
   simp only [MeasureProb, BornProb, uniform_entry, norm_inv,
@@ -34,6 +59,8 @@ private theorem uniform_mass (N : ℕ) [NeZero N] (S : Finset (ZMod N)) :
     Real.sq_sqrt (Nat.cast_nonneg N), Finset.sum_const, nsmul_eq_mul]
   ring
 
+/-- The QFT of the unnormalized restriction of the uniform state to `S` has amplitude `N⁻¹ *
+distinctNoiseFourier S y` at `y`. -/
 private theorem qft_selected (N : ℕ) [NeZero N]
     (S : Finset (ZMod N)) (y : ZMod N) :
     ApplyGate zmodQFTGate (Collapse (preparedAAState (zmodQFTGate (N := N)) 0) S) y =
@@ -54,6 +81,8 @@ private theorem qft_selected (N : ℕ) [NeZero N]
   rw [Finset.sum_ite_mem_eq, ← Finset.mul_sum]
   rfl
 
+/-- At zero frequency, the QFT of the unnormalized uniform-state restriction to `S` has
+amplitude `S.card / N`. -/
 private theorem qft_selected_zero (N : ℕ) [NeZero N] (S : Finset (ZMod N)) :
     ApplyGate zmodQFTGate (Collapse (preparedAAState (zmodQFTGate (N := N)) 0) S) 0 =
       (((S.card : ℝ)/N : ℝ) : ℂ) := by
@@ -63,6 +92,7 @@ private theorem qft_selected_zero (N : ℕ) [NeZero N] (S : Finset (ZMod N)) :
   push_cast
   ring
 
+/-- Applying the QFT to the QFT-prepared uniform state gives amplitude one at zero frequency. -/
 private theorem qft_uniform_zero (N : ℕ) [NeZero N] :
     ApplyGate zmodQFTGate (preparedAAState (zmodQFTGate (N := N)) 0) 0 = 1 := by
   have hc : Collapse (preparedAAState (zmodQFTGate (N := N)) 0) Finset.univ =
@@ -72,6 +102,8 @@ private theorem qft_uniform_zero (N : ℕ) [NeZero N] :
   rw [← hc, qft_selected_zero]
   simp [ZMod.card, (NeZero.ne N)]
 
+/-- For an angle in `(0, π / 2)` whose sine squared equals the marked density, the actual
+amplified-QFT zero-mode Born probability is `cos (2 * k * θ) ^ 2`. -/
 private theorem amplified_zero_born (N k : ℕ) [NeZero N]
     (B : Finset (ZMod N)) (θ : ℝ) (hθ : 0 < θ) (hθp : θ < Real.pi/2)
     (hm : (Real.sin θ)^2 = (B.card : ℝ)/N) :
@@ -109,6 +141,8 @@ private theorem amplified_zero_born (N k : ℕ) [NeZero N]
     exact_mod_cast he
   rw [BornProb, ha, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- A positive-step progression with its last site below `N` has exactly `M` elements in `ZMod
+N`. -/
 private theorem progression_card (N s M P : ℕ) [NeZero N] (hP : 0 < P)
     (hbound : s+(M-1)*P < N) :
     ((Finset.range M).image (fun r : ℕ => (s+r*P : ZMod N))).card = M := by
@@ -122,6 +156,9 @@ private theorem progression_card (N s M P : ℕ) [NeZero N] (hP : 0 < P)
   rw [ZMod.val_natCast_of_lt (hlabel r hr), ZMod.val_natCast_of_lt (hlabel t ht)] at h
   exact mul_right_cancel₀ hP.ne' (Nat.add_left_cancel h)
 
+/-- Establish the actual zero-mode Born identity, conditional layer means, circuit costs, and
+Bernoulli complement transport in `BernoulliErrorStreamZeroModeTransport`; see [Cornwell,
+Section 3.4.4][Cornwell2014]. -/
 theorem bernoulliErrorStreamZeroModeTransport : BernoulliErrorStreamZeroModeTransport := by
   intro N k _ p _hp _hp1 d hd s M P θ _hM hP hbound _hMN hθ
   (try dsimp only)

@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Multiplicative defects of product formulas
+
+This module factors product-formula words and their segmented products into the target
+exponential and one plus a multiplicative defect. It relates the segmented defect to the
+additive error and bounds it using raw commutator estimates with explicit norm growth, following
+the multiplicative-error viewpoint of [ChildsEtAl2021Trotter].
+
+An inverse perturbation estimate controls `Ring.inverse (1 + M)` when `‖M‖ ≤ η < 1`. The final
+results compute the leading two-generator coefficient and compare it with the raw commutator
+budget.
+
+## Main statements
+
+* `suzuki_multiplicative_representation`: factorization of a single word by its target
+  exponential.
+* `segment_multiplicative_representation`: factorization of the segmented product.
+* `inverse_stability_of_norm_le`: inverse perturbation estimate below norm one.
+* `segmentMultiplicativeDefect_norm_le`: segmented multiplicative defect bound.
+* `clause22_leading_coeff_pair`: half-commutator leading coefficient.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 
@@ -28,11 +55,14 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open scoped ComplexOrder
 
+/-- The identity matrix has Euclidean operator norm at most one, including for an empty index
+type. -/
 theorem l2_opNorm_one_le {I : Type} [Fintype I] [DecidableEq I] :
     ‖(1 : Matrix I I ℂ)‖ ≤ 1 :=
   l2_opNorm_le_of_mulVec_le zero_le_one (1 : Matrix I I ℂ) (fun v => by
     simp [Matrix.one_mulVec])
 
+/-- The Euclidean operator norm of `A^n` is at most `‖A‖^n`. -/
 theorem l2_opNorm_pow_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (n : ℕ) : ‖A ^ n‖ ≤ ‖A‖ ^ n := by
   induction n with
@@ -44,6 +74,8 @@ theorem l2_opNorm_pow_le {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ ‖A‖ * ‖A‖ ^ n := mul_le_mul_of_nonneg_left ih (norm_nonneg _)
       _ = ‖A‖ ^ (n + 1) := (pow_succ' _ _).symm
 
+/-- Adding the identity to `multiplicativeDefect` recovers the ordered evolution of the negative
+word multiplicative field. -/
 theorem multiplicativeDefect_one_add {I : Type} [Fintype I]
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (t : ℝ) :
     1 + multiplicativeDefect xs H t =
@@ -51,6 +83,8 @@ theorem multiplicativeDefect_one_add {I : Type} [Fintype I]
   unfold multiplicativeDefect
   abel
 
+/-- The product-formula word factors as the target exponential multiplied by one plus its
+multiplicative defect. -/
 theorem suzuki_multiplicative_representation {I : Type} [Fintype I]
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (t : ℝ) :
     suzukiExponentialWord xs t =
@@ -60,11 +94,14 @@ theorem suzuki_multiplicative_representation {I : Type} [Fintype I]
   rw [multiplicativeDefect_one_add]
   exact h
 
+/-- A matrix exponential multiplied by its ring inverse is the identity. -/
 theorem exp_mul_inverse_cancel {I : Type} [Fintype I] (H : Matrix I I ℂ) (t : ℝ) :
     NormedSpace.exp (t • H) * Ring.inverse (NormedSpace.exp (t • H)) = 1 := by
   letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   exact Ring.mul_inverse_cancel _ (NormedSpace.isUnit_exp (t • H))
 
+/-- The segmented word product factors as the target exponential multiplied by one plus its
+segmented multiplicative defect. -/
 theorem segment_multiplicative_representation {I : Type} [Fintype I]
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) :
     (segmentWord xs t r).prod =
@@ -79,6 +116,8 @@ theorem segment_multiplicative_representation {I : Type} [Fintype I]
     rw [h1, ← mul_assoc, hcancel, one_mul]
   exact hkey.symm
 
+/-- If `‖M‖ ≤ η < 1`, the inverse-propagation window holds and the norm of the inverse of `1+M`
+is at most `(1-η)⁻¹`. -/
 theorem inverse_stability_of_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (η : ℝ) (hM : ‖M‖ ≤ η) (hη : η < 1) :
     inversePropagationWindow η ∧
@@ -116,6 +155,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 variable {S ι : Type} [Fintype S] [Fintype ι]
 
+/-- The segmented multiplicative defect equals the inverse target exponential multiplied by the
+additive segmented error. -/
 theorem segmentMultiplicativeDefect_eq_inverse_mul_sub
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) :
     segmentMultiplicativeDefect xs H t r =
@@ -127,6 +168,9 @@ theorem segmentMultiplicativeDefect_eq_inverse_mul_sub
   unfold segmentMultiplicativeDefect
   rw [mul_sub, hmul]
 
+/-- For a positive segment count and a word matching through positive order `p`, bounds the
+segmented multiplicative defect by the raw commutator error coefficient times the stated
+exponential growth factor. -/
 theorem segmentMultiplicativeDefect_norm_le
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p r : ℕ) (t : ℝ)
     (hp : 1 ≤ p) (hr : 0 < r)
@@ -163,6 +207,8 @@ theorem segmentMultiplicativeDefect_norm_le
       mul_le_mul hnorm hadd (norm_nonneg _) (Real.exp_pos _).le
     _ = _ := by rw [Real.exp_add]; ring
 
+/-- The degree-two coefficient error of the two-generator product equals one half of `pfComm X
+Y`. -/
 theorem clause22_leading_coeff_pair {I : Type} [Fintype I] [DecidableEq I] (X Y : Matrix I I ℂ) :
     suzukiSeries [X, Y] 2 - (((2:ℕ).factorial : ℝ)⁻¹) • (X + Y) ^ 2 =
       (1 / 2 : ℝ) • pfComm X Y := by
@@ -177,10 +223,14 @@ theorem clause22_leading_coeff_pair {I : Type} [Fintype I] [DecidableEq I] (X Y 
   simp only [pow_two, add_mul, mul_add, pfComm, smul_add, smul_sub]
   module
 
+/-- The selected two-letter nested commutators for tuples `![0,1]` and `![1,0]` are `pfComm Y X`
+and `pfComm X Y`, respectively. -/
 theorem clause22_pair_word_comm (X Y : Matrix I I ℂ) :
     pfNestedCommList (pfChosenList [X, Y] ![0, 1]) = pfComm Y X ∧
       pfNestedCommList (pfChosenList [X, Y] ![1, 0]) = pfComm X Y := ⟨rfl, rfl⟩
 
+/-- The norm of one half of the two-generator commutator is at most one half of the order-two
+raw commutator budget. -/
 theorem clause22_leading_budget_pair {I : Type} [Fintype I] [DecidableEq I] (X Y : Matrix I I ℂ) :
     ‖(1 / 2 : ℝ) • pfComm X Y‖ ≤ pfCommAlphaSelf [X, Y] 2 / 2 := by
   have hne : (![0, 1] : Fin 2 → Fin 2) ≠ ![1, 0] := by

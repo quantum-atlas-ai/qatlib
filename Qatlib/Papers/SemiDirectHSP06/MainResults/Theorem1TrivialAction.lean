@@ -12,6 +12,28 @@ import Mathlib.GroupTheory.OrderOfElement
 import Mathlib.GroupTheory.SemidirectProduct
 import Mathlib.Data.Nat.Totient
 import Mathlib.Tactic
+
+/-!
+# Trivial cyclic actions and direct-product splittings
+
+`mulAutZModEquivUnits` identifies cyclic-group automorphisms with modular units, giving the
+automorphism-group cardinality as Euler’s totient. A prime-order cyclic group acts trivially
+when that prime does not divide this cardinality; the resulting semidirect products split as
+direct products. See [ChiKimLee2006] for the mathematical setting.
+
+## Main statements
+
+* `theorem1_cyclic_factor_action_trivial`: proves triviality for a distinct prime-power factor
+  under the stated divisibility restriction.
+* `theorem1_cyclic_factor_split`: produces the corresponding direct-product isomorphism.
+* `semidirectProductTrivialEquiv`: constructs a direct-product equivalence for any trivial
+  action.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,14 +44,20 @@ namespace Qatlib.Papers.SemiDirectHSP06.MainResults
 
 open Multiplicative
 
+/-- The multiplicative equivalence between automorphisms of the cyclic group modulo `n` and
+units modulo `n`. -/
 def mulAutZModEquivUnits (n : ℕ) :
     MulAut (Multiplicative (ZMod n)) ≃* (ZMod n)ˣ :=
   (MulAutMultiplicative (ZMod n)).trans (ZMod.AddAutEquivUnits n).toMultiplicative
 
+/-- For nonzero `n`, the automorphism group of the cyclic group modulo `n` has cardinality
+`n.totient`. See [Chi et al., 2006, Theorem 1][ChiKimLee2006]. -/
 theorem card_mulAut_multiplicative_zmod (n : ℕ) [NeZero n] :
     Fintype.card (MulAut (Multiplicative (ZMod n))) = n.totient := by
   rw [Fintype.card_congr (mulAutZModEquivUnits n).toEquiv, ZMod.card_units_eq_totient]
 
+/-- Every homomorphism from a cyclic group of prime order `p` to a finite group of cardinality
+coprime to `p` is trivial. See [Chi et al., 2006, Theorem 1][ChiKimLee2006]. -/
 theorem monoidHom_zmod_prime_eq_one_of_coprime_card
     {B : Type*} [Group B] [Fintype B] {p : ℕ} (hp : p.Prime)
     (hcop : Nat.Coprime p (Fintype.card B))
@@ -61,6 +89,9 @@ theorem monoidHom_zmod_prime_eq_one_of_coprime_card
   rw [hgen x, map_pow, hgpow, one_pow]
   rfl
 
+/-- For distinct primes `p` and `q`, positive `r`, and `p` not dividing `q - 1`, every action of
+the cyclic group of order `p` on the cyclic group of order `q ^ r` is trivial. See [Chi et
+al., 2006, Theorem 1][ChiKimLee2006]. -/
 theorem theorem1_cyclic_factor_action_trivial
     {p q r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q) (hr : 0 < r)
     (hq1 : ¬ p ∣ q - 1)
@@ -76,6 +107,9 @@ theorem theorem1_cyclic_factor_action_trivial
   · exact hqnp (hp.dvd_of_dvd_pow h1)
   · exact hq1 h2
 
+/-- For prime `p` and nonzero `n`, every cyclic order-`p` action on the cyclic group modulo `n`
+is trivial if `p` does not divide `n.totient`. See [Chi et al., 2006, Theorem
+1][ChiKimLee2006]. -/
 theorem theorem1_action_trivial_of_not_dvd_totient
     {n p : ℕ} (hp : p.Prime) [NeZero n] (hn : ¬ p ∣ n.totient)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod n))) : φ = 1 := by
@@ -83,6 +117,8 @@ theorem theorem1_action_trivial_of_not_dvd_totient
   rw [card_mulAut_multiplicative_zmod]
   exact (Nat.Prime.coprime_iff_not_dvd hp).mpr hn
 
+/-- The multiplicative equivalence from a semidirect product with trivial action to the direct
+product of its factors. -/
 def semidirectProductTrivialEquiv (N G : Type*) [Group N] [Group G] :
     SemidirectProduct N G (1 : G →* MulAut N) ≃* N × G where
   toFun x := (x.left, x.right)
@@ -92,6 +128,9 @@ def semidirectProductTrivialEquiv (N G : Type*) [Group N] [Group G] :
   map_mul' x y := by
     ext <;> simp [SemidirectProduct.mul_left, SemidirectProduct.mul_right]
 
+/-- For distinct primes `p` and `q`, positive `r`, and `p` not dividing `q - 1`, the semidirect
+product for any such cyclic action is isomorphic to the direct product. See [Chi et al.,
+2006, Theorem 1][ChiKimLee2006]. -/
 theorem theorem1_cyclic_factor_split
     {p q r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q) (hr : 0 < r)
     (hq1 : ¬ p ∣ q - 1)
@@ -102,6 +141,7 @@ theorem theorem1_cyclic_factor_split
   rw [theorem1_cyclic_factor_action_trivial hp hq hpq hr hq1 φ]
   exact ⟨semidirectProductTrivialEquiv _ _⟩
 
+/-- A semidirect product of commutative groups with trivial action has commuting elements. -/
 theorem semidirectProduct_comm_of_trivial_action
     {N G : Type*} [CommGroup N] [CommGroup G]
     (a b : SemidirectProduct N G (1 : G →* MulAut N)) : a * b = b * a := by

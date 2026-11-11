@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzStat
+
+/-!
+# Lipschitz continuity of pure-state events
+
+This module proves that the probability of a computational-basis event changes by at most the
+Euclidean distance between normalized pure states. The result is a finite-dimensional
+measurement stability estimate in the setting of [Watrous2018].
+
+## Main statements
+
+* `pureStateEventLipschitz`: every event probability is Lipschitz with constant one on
+  normalized state vectors.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
@@ -19,6 +37,8 @@ open Qatlib
 open scoped Classical
 set_option warningAsError false
 
+/-- The difference of squared complex norms equals the real part of the conjugate difference
+multiplied by the sum. -/
 private theorem re_star_sub_mul_add (a b : ℂ) :
     ‖a‖^2 - ‖b‖^2 = Complex.re (starRingEnd ℂ (a - b) * (a + b)) := by
   have h1 : starRingEnd ℂ (a - b) * (a + b)
@@ -37,6 +57,8 @@ private theorem re_star_sub_mul_add (a b : ℂ) :
   rw [h1, Complex.add_re, Complex.sub_re, h3, h3, h2]
   ring
 
+/-- For normalized finite pure states, every computational-basis event-probability difference is
+bounded by the Euclidean norm of the state difference. See [Watrous2018]. -/
 theorem pureStateEventLipschitz : PureStateEventLipschitz := by
   intro I _ _ u v hu hv E
   have hu' : ∑ i, ‖u i‖^2 = 1 := hu

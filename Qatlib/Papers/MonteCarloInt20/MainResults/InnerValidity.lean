@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
+
+/-!
+# Unitarity of the inner preparation circuits
+
+This module proves the circuit-level validity of the native PRN stage, term computation, and
+complete inner preparation used for [KanekoEtAl2020]. The lifting lemmas transport unitarity to
+larger register spaces, and `bodyCircuit_unitary` verifies the full compute-rotate-uncompute
+circuit.
+
+## Main statements
+
+* `knownLift_unitary`: transports circuit validity through a map preserving unitary matrices.
+* `computeCircuit_unitary`: verifies the term-computation circuit.
+* `bodyCircuit_unitary`: verifies the complete inner body circuit.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -32,6 +52,8 @@ namespace Qatlib.Papers.MonteCarloInt20.MainResults.InnerValidity
 noncomputable local instance bodyDecision (n s d p : ℕ) : DecidableEq (BodyReg n s d p) :=
     instDecidableEqProd
 
+/-- A known-gate lift is a unitary circuit when the original circuit and oracle are unitary and
+the matrix homomorphism preserves unitarity. -/
 theorem knownLift_unitary {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (f : Matrix I I ℂ →* Matrix J J ℂ)
     (hf : ∀ U,U ∈ unitaryGroup I ℂ → f U ∈ unitaryGroup J ℂ)
@@ -46,6 +68,7 @@ theorem knownLift_unitary {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [
   | query => exact hO
   | gate V => exact hC V hs
 
+/-- Extending a native PRN matrix by spectator identities preserves unitarity. -/
 theorem nativeLiftHom_unitary (n s d p : ℕ)
     (U : Matrix (Reg (width n (s+d+1))) (Reg (width n (s+d+1))) ℂ)
     (hU : U ∈ unitaryGroup (Reg (width n (s+d+1))) ℂ) :
@@ -54,27 +77,33 @@ theorem nativeLiftHom_unitary (n s d p : ℕ)
     (tensorGate_unitary hU (unitaryGroup (Reg (p+1)) ℂ).one_mem))
     (unitaryGroup Bool ℂ).one_mem
 
+/-- The lifted compiled native PRN stage is a unitary circuit. -/
 theorem nativeStage_unitary {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) :
     IsUnitaryCircuit (nativeStage (s:=s) (d:=d) (p:=p) a c) :=
   knownLift_unitary (nativeLiftHom n s d p) (nativeLiftHom_unitary n s d p) 1 (unitaryGroup (Reg (width n (s+d+1))) ℂ).one_mem
     (reflectionCompile (nativeWord a c (List.ofFn (fun q : Fin (s+d+1) => q)))) (native_unitary a c _)
 
+/-- The term-query oracle extended by the flag identity is unitary. -/
 theorem bodyOracle_unitary {n s d p : ℕ}
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
     bodyOracle termCode j ∈ unitaryGroup (BodyReg n s d p) ℂ :=
   tensorGate_unitary (queryOracle_unitary (k:=s+d+1) termCode j) (unitaryGroup Bool ℂ).one_mem
 
+/-- The selected XOR loader on the inner body registers is unitary. -/
 theorem loaderGate_unitary {n s d p : ℕ} (seed : ZMod (2^n)) (j : Reg s) :
     loaderGate (d:=d) (p:=p) seed j ∈ unitaryGroup (BodyReg n s d p) ℂ :=
   tensorGate_unitary (select_unitary _ (fun _ => tensorGate_unitary (xorMatrix_unitary _)
     (unitaryGroup (Reg (p+1)) ℂ).one_mem)) (unitaryGroup Bool ℂ).one_mem
 
+/-- The PRN-loading and term-query computation is a unitary circuit. -/
 theorem computeCircuit_unitary {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     IsUnitaryCircuit (computeCircuit (d:=d) (p:=p) a c seed j) := by
   simp only [computeCircuit,isUnitaryCircuit_append,isUnitaryCircuit_gate,isUnitaryCircuit_query,
     isUnitaryCircuit_nil,and_true]
   exact ⟨loaderGate_unitary (d:=d) (p:=p) seed j,nativeStage_unitary (s:=s) (d:=d) (p:=p) a c⟩
 
+/-- The complete inner compute-rotate-uncompute preparation is a unitary circuit
+[KanekoEtAl2020]. -/
 theorem bodyCircuit_unitary {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     IsUnitaryCircuit (bodyCircuit (d:=d) (p:=p) a c seed j) := by
   have hC := computeCircuit_unitary (d:=d) (p:=p) a c seed j

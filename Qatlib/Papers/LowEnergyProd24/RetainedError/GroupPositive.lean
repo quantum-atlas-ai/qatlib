@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdTolerance
+
+/-!
+# Retained bounds under positivity of Hamiltonian groups
+
+This module establishes compressed-group and nested-commutator bounds assuming positivity of the
+grouped Hamiltonians. The cutoff recursion and tolerance result implement the retained-error
+estimates of [HejaziZiniArrazola2024] under this grouped positivity hypothesis.
+
+## Main statements
+
+* `compressed_group`: Bounds a positive group compressed below `Λ` by `Λ`.
+* `psd_tolerance_cutoffs`: Chooses a positive cutoff gap making the chain remainder smaller than
+  a prescribed tolerance.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,11 +37,15 @@ open Qatlib.Papers.LowEnergyProd24.ImaginaryLeak
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- If every grouped Hamiltonian is positive semidefinite, a group compressed below a
+nonnegative cutoff `Λ` has operator norm at most `Λ`. -/
 theorem compressed_group (h : Hamiltonian N R M k d J) (hp : ∀ m, (h.grouped m).PosSemidef)
     (m : Fin M) (Λ : ℝ) (hΛ : 0 ≤ Λ) :
     ‖low h.total h.total_hermitian Λ*h.grouped m*low h.total h.total_hermitian Λ‖ ≤ Λ :=
   psd_group_compression h.grouped hp m Λ hΛ
 
+/-- Under positivity of every group, one nested-commutator step at `Δ` is bounded by a `2 * Λ`
+compressed term and explicit exponential leakage for `Δ ≤ Λ`. -/
 theorem nested_cutoff_step (h : Hamiltonian N R M k d J)
     (hp : ∀ m, (h.grouped m).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (a seed : Fin M) (xs : List (Fin M))
@@ -68,6 +91,8 @@ theorem nested_cutoff_step (h : Hamiltonian N R M k d J)
       rw [hx]
       ring
 
+/-- Under grouped positivity, the depth-`xs.length` commutator compressed at `Δ` is bounded by
+`2 ^ xs.length * (Δ + xs.length * gap) ^ (xs.length + 1)` plus `chainRemainder`. -/
 theorem psd_cutoff_chain (h : Hamiltonian N R M k d J)
     (hp : ∀ m, (h.grouped m).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (seed : Fin M) (xs : List (Fin M))
@@ -103,6 +128,9 @@ theorem psd_cutoff_chain (h : Hamiltonian N R M k d J)
         rw [add_sub_cancel_left]
         nlinarith only [hlead]
 
+/-- Under grouped positivity, every positive tolerance possesses a positive cutoff gap for which
+the compressed nested-commutator norm is bounded by the enlarged-cutoff leading term plus
+that tolerance. -/
 theorem psd_tolerance_cutoffs (h : Hamiltonian N R M k d J)
     (hp : ∀ m, (h.grouped m).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (seed : Fin M) (xs : List (Fin M))

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QuadChar00.MainResults.Defs
 import Mathlib.LinearAlgebra.Basis.Defs
+
+/-!
+# Trace coordinates over finite fields
+
+The trace pairing against a basis over the prime field defines a bijective coordinate map. The
+module proves its reversibility and records a polynomial bound for the cubic linear solve cost
+used in the trace Fourier construction. See [VanDamHallgren2000].
+
+## Main statements
+
+* `lemma2_traceFourier_bijective`: The trace coordinate map associated with a basis of `F` over
+  its prime field is bijective.
+* `lemma2_traceFourier_reversible`: The trace coordinate map associated with `hb` possesses a
+  left inverse.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +35,8 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- The map sending `x` to the trace coordinates `Tr(x * hb i)` is injective over the finite
+field `F`. See [VanDamHallgren2000]. -/
 theorem lemma2_traceFourier_injective
     (F : Type*) [Field F] [Fintype F] [DecidableEq F]
     [Algebra (ZMod (ringChar F)) F]
@@ -42,6 +64,8 @@ theorem lemma2_traceFourier_injective
     rw [Algebra.mul_smul_comm, map_smul, hzero i, smul_zero]
   exact hz hz0
 
+/-- The trace coordinate map associated with a basis of `F` over its prime field is bijective.
+See [VanDamHallgren2000]. -/
 theorem lemma2_traceFourier_bijective
     (F : Type*) [Field F] [Fintype F] [DecidableEq F]
     [Algebra (ZMod (ringChar F)) F]
@@ -58,6 +82,8 @@ theorem lemma2_traceFourier_bijective
   rw [Module.card_eq_pow_finrank (K := ZMod (ringChar F)) (V := F),
     Fintype.card_fun, Fintype.card_fin, ZMod.card]
 
+/-- The trace coordinate map associated with `hb` possesses a left inverse. See
+[VanDamHallgren2000]. -/
 theorem lemma2_traceFourier_reversible
     (F : Type*) [Field F] [Fintype F] [DecidableEq F]
     [Algebra (ZMod (ringChar F)) F]
@@ -71,6 +97,7 @@ theorem lemma2_traceFourier_reversible
             Algebra.trace (ZMod (ringChar F)) F (x * hb i)) :=
   (lemma2_traceFourier_injective F hb).hasLeftInverse
 
+/-- The function `r ↦ (r + 1) ^ 3` is polynomially bounded. See [VanDamHallgren2000]. -/
 theorem lemma2_traceFourier_linearSolveCost :
     PolynomiallyBounded (fun r => (r + 1) ^ 3) :=
   ⟨1, 3, fun n => by simp⟩

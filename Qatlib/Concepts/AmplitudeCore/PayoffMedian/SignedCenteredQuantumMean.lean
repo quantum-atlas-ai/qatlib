@@ -8,6 +8,33 @@ import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
 import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+/-!
+# Signed and relative quantum mean estimation
+
+`signedMeanLaw` samples a center and estimates the positive and negative centered payoffs with
+layer circuits. The module proves additive error and fresh median guarantees under a variance
+bound, a relative error guarantee using a sampled scale, and explicit preparation, measurement,
+query, and gate ledgers for these programs. See [Montanaro2015] for background.
+
+## Main statements
+
+* `signed_centered_same_program_mean_guarantee`: For `k ≥ 4`, positive `σ`, and variance at most
+  `σ^2`, the signed estimator has error at most `8 * σ * (1 / 2)^k` with probability at least `2
+  / 3`. See [Montanaro2015].
+* `relative_variance_actual_conditional_estimator`: For nonnegative payoff, positive mean, and
+  variance at most `B` times the squared mean, the conditional estimator attains the stated
+  relative error with probability at least `2 / 3` when `B ≥ 1` and `k ≥ 4`. See
+  [Montanaro2015].
+* `signed_centered_full_resources`: The signed estimator uses one source preparation and `2 * q`
+  layer copies, with all measurement, forward, inverse, query, and gate counts given by the
+  displayed resource record.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -28,20 +55,27 @@ set_option autoImplicit false
 set_option maxHeartbeats 2000000
 set_option linter.unusedSectionVars false
 
+/-- The record of repeated amplitude estimation outcomes for the `k + 2` payoff layers at the
+grid and repetition counts specified by `k`. -/
 abbrev LayerRecord (k : ℕ) := Fin (k+2) → Fin (2*layerRepetitions k+1) → Fin (layerGrid k)
 
+/-- The positive part of the centered payoff `(f i - f x) / (4 * σ)`. -/
 noncomputable def centerPositive {I : Type} (f : I → ℝ) (σ : ℝ) (x i : I) : ℝ :=
   max ((f i-f x)/(4*σ)) 0
 
+/-- The positive part of the oppositely centered payoff `(f x - f i) / (4 * σ)`. -/
 noncomputable def centerNegative {I : Type} (f : I → ℝ) (σ : ℝ) (x i : I) : ℝ :=
   max ((f x-f i)/(4*σ)) 0
 
+/-- The finite Born distribution obtained by preparing `A *ᵥ Ket j` with unitary `A`. -/
 noncomputable def signedMeanSource {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ) : FinDist I where
   prob i := BornProb (ApplyGate A (Ket j)) i
   nonneg _ := bornProb_nonneg _ _
   sum_one := bornProb_sum_eq_one (normalized_applyGate hA (normalized_ket j))
 
+/-- The joint law of a Born sampled center and two conditionally independent layer records for
+its positive and negative centered payoffs. -/
 noncomputable def signedMeanLaw {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (σ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) : FinDist (I × (LayerRecord k × LayerRecord k)) where
@@ -68,14 +102,19 @@ noncomputable def signedMeanLaw {I : Type} [Fintype I] [DecidableEq I]
           _ = _ := by rw [P.sum_one, N.sum_one]; ring
       _ = 1 := (signedMeanSource A j hA).sum_one
 
+/-- The signed mean estimate obtained by adding `4 * σ` times the difference of the two layer
+estimates to the sampled center value. -/
 noncomputable def signedMeanEstimate {I : Type} (k : ℕ) (f : I → ℝ) (σ : ℝ)
     (ω : I × (LayerRecord k × LayerRecord k)) : ℝ :=
   f ω.1 + 4*σ*(layerEstimate k ω.2.1-layerEstimate k ω.2.2)
 
+/-- The sorted median of `2 * r + 1` signed mean estimates. -/
 noncomputable def signedMeanMedian {I : Type} (k r : ℕ) (f : I → ℝ) (σ : ℝ)
     (ω : Fin (2*r+1) → I × (LayerRecord k × LayerRecord k)) : ℝ :=
   sortedBlockMedian r (fun i => signedMeanEstimate k f σ (ω i))
 
+/-- The joint signed estimator probability factors into the Born probability of the center and
+the two conditional layer record probabilities. See [Montanaro2015]. -/
 theorem signed_centered_actual_joint_law (I : Type) [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (σ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (x : I) (u v : LayerRecord k) :
@@ -83,15 +122,20 @@ theorem signed_centered_actual_joint_law (I : Type) [Fintype I] [DecidableEq I]
       (layerLaw k A j (centerPositive f σ x) hA (fun _ => le_max_right _ _)).prob u *
       (layerLaw k A j (centerNegative f σ x) hA (fun _ => le_max_right _ _)).prob v := rfl
 
+/-- The sample average of `f` over the `32 * B` seed observations. -/
 noncomputable def relativeMeanCenter {I : Type} (B : ℕ) (f : I → ℝ)
     (ω : Fin (32*B) → I) : ℝ := Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg f ω
 
+/-- The relative estimator scale `2 * sqrt (B + 1)` times the seed sample average. -/
 noncomputable def relativeMeanScale {I : Type} (B : ℕ) (f : I → ℝ)
     (ω : Fin (32*B) → I) : ℝ := 2*Real.sqrt (B+1 : ℝ)*relativeMeanCenter B f ω
 
+/-- The payoff normalized by the scale computed from the seed record. -/
 noncomputable def relativeMeanPayoff {I : Type} (B : ℕ) (f : I → ℝ)
     (ω : Fin (32*B) → I) (i : I) : ℝ := f i/relativeMeanScale B f ω
 
+/-- A pointwise nonnegative payoff remains nonnegative after division by the seed based relative
+mean scale. -/
 theorem relativeMeanPayoff_nonneg {I : Type} (B : ℕ) (f : I → ℝ)
     (hf : ∀ i, 0 ≤ f i) (ω : Fin (32*B) → I) : ∀ i, 0 ≤ relativeMeanPayoff B f ω i := by
   have hc : 0 ≤ relativeMeanCenter B f ω := by
@@ -99,6 +143,8 @@ theorem relativeMeanPayoff_nonneg {I : Type} (B : ℕ) (f : I → ℝ)
   intro i
   exact div_nonneg (hf i) (mul_nonneg (mul_nonneg (by norm_num) (Real.sqrt_nonneg _)) hc)
 
+/-- The joint law of `32 * B` independent source samples and a conditional layer record for the
+payoff normalized by their computed scale. -/
 noncomputable def relativeMeanLaw {I : Type} [Fintype I] [DecidableEq I]
     (B k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i) :
@@ -119,6 +165,8 @@ noncomputable def relativeMeanLaw {I : Type} [Fintype I] [DecidableEq I]
         rw [← Finset.mul_sum, P.sum_one, mul_one]
       _ = 1 := (signedMeanSource A j hA).sum_probOf (32*B)
 
+/-- The relative mean estimate obtained by multiplying the conditional layer estimate by the
+seed based scale. -/
 noncomputable def relativeMeanEstimate {I : Type} (B k : ℕ) (f : I → ℝ)
     (ω : (Fin (32*B) → I) × LayerRecord k) : ℝ :=
   relativeMeanScale B f ω.1 * layerEstimate k ω.2
@@ -126,8 +174,10 @@ noncomputable def relativeMeanEstimate {I : Type} (B k : ℕ) (f : I → ℝ)
 namespace SignedMean
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The total probability mass of a predicate under a finite distribution. -/
 noncomputable def mass (p : FinDist I) (E : I → Prop) : ℝ := ∑ x with E x, p.prob x
 
+/-- The masses of a predicate and its complement sum to one. -/
 theorem mass_complement (p : FinDist I) (E : I → Prop) :
     mass p E + mass p (fun x => ¬E x)=1 := by
   unfold mass
@@ -136,6 +186,7 @@ theorem mass_complement (p : FinDist I) (E : I → Prop) :
     _ = ∑ x, p.prob x := Finset.sum_congr rfl (fun x _ => by by_cases hx : E x <;> simp [hx])
     _ = 1 := p.sum_one
 
+/-- Probability mass is monotone under inclusion of predicates. -/
 theorem mass_mono (p : FinDist I) {E F : I → Prop} (h : ∀ x, E x → F x) :
     mass p E ≤ mass p F := by
   apply Finset.sum_le_sum_of_subset_of_nonneg
@@ -144,6 +195,8 @@ theorem mass_mono (p : FinDist I) {E F : I → Prop} (h : ∀ x, E x → F x) :
   · intro x _ _
     exact p.nonneg x
 
+/-- The second moment about `c` is the variance plus the squared difference between the mean and
+`c`. -/
 theorem shifted_second_moment (p : FinDist I) (f : I → ℝ) (c : ℝ) :
     (∑ i, p.prob i*(f i-c)^2) = p.variance f + (p.expect f-c)^2 := by
   have he (i : I) : p.prob i*(f i-c)^2 =
@@ -155,10 +208,14 @@ theorem shifted_second_moment (p : FinDist I) (f : I → ℝ) (c : ℝ) :
   simp [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.variance,
       Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect]
 
+/-- For positive `ε`, the mass where `f` differs from its mean by more than `ε` is at most its
+variance divided by `ε^2`. -/
 theorem chebyshev (p : FinDist I) (f : I → ℝ) (ε : ℝ) (hε : 0 < ε) :
     mass p (fun x => ε < |f x-p.expect f|) ≤ p.variance f/ε^2 :=
   ProbabilityInterfaces.chebyshev_strict p f ε hε
 
+/-- For two conditionally independent records, the mass of the three specified events factors
+into a sum of the center weight times the two conditional event masses. -/
 theorem conditional_two_event {J K : Type} [Fintype J] [Fintype K]
     (p : FinDist I) (q : I → FinDist J) (z : I → FinDist K)
     (E : I → Prop) (F : I → J → Prop) (G : I → K → Prop) :
@@ -181,6 +238,8 @@ theorem conditional_two_event {J K : Type} [Fintype J] [Fintype K]
     by_cases hu : F x u <;> by_cases hv : G x v <;> simp [hx, hu, hv, mul_assoc]
   · simp [hx]
 
+/-- A nonnegative function bounded below by nonnegative `t` on an event of mass at least `s` has
+expectation at least `s * t`. -/
 theorem conditional_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
     (s t : ℝ) (ht : 0 ≤ t) (hv : ∀ x, 0 ≤ v x)
     (hE : s ≤ mass p E) (hgood : ∀ x, E x → t ≤ v x) :
@@ -193,9 +252,12 @@ theorem conditional_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
     _ ≤ _ := Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
       (fun x _ _ => mul_nonneg (p.nonneg x) (hv x))
 
+/-- The mass of every predicate under a finite distribution is nonnegative. -/
 theorem mass_nonneg (p : FinDist I) (E : I → Prop) : 0 ≤ mass p E :=
   Finset.sum_nonneg (fun x _ => p.nonneg x)
 
+/-- The weighted sum of a function over an event of mass at least `s` is at least `s * t` when
+the function is at least nonnegative `t` on that event. -/
 theorem conditional_good_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
     (s t : ℝ) (ht : 0 ≤ t)
     (hE : s ≤ mass p E) (hgood : ∀ x, E x → t ≤ v x) :
@@ -206,6 +268,9 @@ theorem conditional_good_lower (p : FinDist I) (E : I → Prop) (v : I → ℝ)
     _ ≤ _ := Finset.sum_le_sum
       (fun x hx => mul_le_mul_of_nonneg_left (hgood x (Finset.mem_filter.mp hx).2) (p.nonneg x))
 
+/-- If an estimate has failure mass at most `1 / 3`, the sorted median of `2 * r + 1`
+independent estimates has failure probability at most `(8 / 9)^r`. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem sorted_median_failure (p : FinDist I) (v : I → ℝ) (r : ℕ) (μ ε : ℝ)
     (hε : 0 ≤ ε) (hb : mass p (fun x => ε < |v x-μ|) ≤ 1/3) :
     p.probEvent (fun ω : Fin (2*r+1) → I =>
@@ -258,6 +323,8 @@ theorem sorted_median_failure (p : FinDist I) (v : I → ℝ) (r : ℕ) (μ ε :
       have hp : 0 ≤ (8/9 : ℝ)^r := by positivity
       nlinarith
 
+/-- The mass of a source event and a conditional record event is the source weighted sum of the
+conditional event masses. -/
 theorem conditional_one_event {J : Type} [Fintype J]
     (p : FinDist I) (q : I → FinDist J) (E : I → Prop) (F : I → J → Prop) :
     (∑ ω : I × J with E ω.1 ∧ F ω.1 ω.2, p.prob ω.1*(q ω.1).prob ω.2) =
@@ -275,6 +342,9 @@ theorem conditional_one_event {J : Type} [Fintype J]
   · simp [hx]
 end SignedMean
 
+/-- Under variance at most positive `σ^2`, a sampled center lies within `3 * σ` of the mean with
+mass at least `8 / 9`, and each normalized centered payoff then has second moment at most
+one. See [Montanaro2015]. -/
 theorem signed_center_good_mass_and_second_moments (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (σ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hσ : 0 < σ) :
@@ -336,6 +406,8 @@ theorem signed_center_good_mass_and_second_moments (I : Type) [Fintype I] [Decid
       · rw [max_eq_right (le_of_not_ge hi)]
         simpa only [zero_pow (by decide : 2 ≠ 0)] using! sq_nonneg ((f i-f x)/(4*σ))
 
+/-- The positive and negative layer circuit families together use exactly `2 * q * (layerGrid k
+- 1)` queries, where `q = (k + 2) * (2 * layerRepetitions k + 1)`. See [Montanaro2015]. -/
 theorem signed_centered_actual_access_ledger (I : Type) [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j x : I) (f : I → ℝ) (σ : ℝ) :
     let q := (k+2)*(2*layerRepetitions k+1)
@@ -348,6 +420,7 @@ theorem signed_centered_actual_access_ledger (I : Type) [Fintype I] [DecidableEq
   rw [layered_quantum_mean_actual_query_ledger, layered_quantum_mean_actual_query_ledger]
   ring
 
+/-- The difference of the positive and negative centered payoffs equals `(f i - f x) / (4 * σ)`. -/
 theorem signed_center_difference {I : Type} (f : I → ℝ) (σ : ℝ) (x i : I) :
     centerPositive f σ x i-centerNegative f σ x i=(f i-f x)/(4*σ) := by
   unfold centerPositive centerNegative
@@ -359,6 +432,8 @@ theorem signed_center_difference {I : Type} (f : I → ℝ) (σ : ℝ) (x i : I)
     rw [max_eq_right hn, max_eq_left (neg_nonneg.mpr hn)]
     ring
 
+/-- For positive `σ`, recombining the exact centered payoff expectations recovers the original
+mean. -/
 theorem signed_center_expectation {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℝ) (σ : ℝ) (x : I) (hσ : 0 < σ) :
     f x+4*σ*(p.expect (centerPositive f σ x)-p.expect (centerNegative f σ x))=p.expect f := by
@@ -375,6 +450,8 @@ theorem signed_center_expectation {I : Type} [Fintype I] [DecidableEq I]
   field_simp
   ring
 
+/-- If both centered layer estimates have error at most `ε`, the reconstructed signed mean has
+error at most `8 * σ * ε`. -/
 theorem signed_center_record_error {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (k : ℕ) (f : I → ℝ) (σ ε : ℝ) (x : I) (u v : LayerRecord k)
     (hσ : 0 < σ)
@@ -396,6 +473,8 @@ theorem signed_center_record_error {I : Type} [Fintype I] [DecidableEq I]
     linarith
   exact (mul_le_mul_of_nonneg_left hh (by positivity)).trans_eq (by ring)
 
+/-- For `k ≥ 4`, positive `σ`, and variance at most `σ^2`, the signed estimator has error at
+most `8 * σ * (1 / 2)^k` with probability at least `2 / 3`. See [Montanaro2015]. -/
 theorem signed_centered_same_program_mean_guarantee (I : Type) [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (σ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hk : 4 ≤ k) (hσ : 0 < σ) :
@@ -457,6 +536,8 @@ theorem signed_centered_same_program_mean_guarantee (I : Type) [Fintype I] [Deci
     exact hm.symm ▸ hl
   exact (by norm_num : (2/3 : ℝ) ≤ (8/9)*(15/16)^2).trans (hl'.trans hi)
 
+/-- Under the signed estimator variance and parameter hypotheses, the median of `2 * r + 1`
+fresh estimates exceeds error `8 * σ * (1 / 2)^k` with probability at most `(8 / 9)^r`. -/
 theorem signed_centered_fresh_median_failure (I : Type) [Fintype I] [DecidableEq I]
     (k r : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (σ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hk : 4 ≤ k) (hσ : 0 < σ) :
@@ -477,11 +558,15 @@ theorem signed_centered_fresh_median_failure (I : Type) [Fintype I] [DecidableEq
   change 2/3 ≤ SignedMean.mass _ _ at hg
   linarith
 
+/-- The independent source sampling law for the `32 * B` observations used to choose the
+relative mean scale. -/
 noncomputable def relativeMeanSeedLaw {I : Type} [Fintype I] [DecidableEq I]
     (B : ℕ) (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     FinDist (Fin (32*B) → I) :=
   independentSampleLaw (fun _ => signedMeanSource A j hA)
 
+/-- For positive mean and variance at most `B` times its square, the seed average is within half
+the mean with probability at least `7 / 8` when `B ≥ 1`. -/
 theorem relativeMean_seed_good {I : Type} [Fintype I] [DecidableEq I]
     (B : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (hB : 1 ≤ B) (hμ : 0 < (signedMeanSource A j hA).expect f)
@@ -508,6 +593,8 @@ theorem relativeMean_seed_good {I : Type} [Fintype I] [DecidableEq I]
   simp only [not_le] at hc
   linarith
 
+/-- A seed average within half a positive mean gives a positive scale at most `3 * sqrt (B + 1)`
+times the mean and a normalized payoff second moment at most one. -/
 theorem relativeMean_good_seed_second_moment {I : Type} [Fintype I] [DecidableEq I]
     (B : ℕ) (p : FinDist I) (f : I → ℝ) (ω : Fin (32*B) → I)
     (hμ : 0 < p.expect f) (hv : p.variance f ≤ (B : ℝ)*(p.expect f)^2)
@@ -548,6 +635,8 @@ theorem relativeMean_good_seed_second_moment {I : Type} [Fintype I] [DecidableEq
     rw [hssq]
     exact hraw.trans (by nlinarith [mul_le_mul_of_nonneg_left hcsq (by positivity : 0 ≤ (B+1 : ℝ))])
 
+/-- A layer estimate accurate to `(1 / 2)^k` under the stated scale bounds yields relative mean
+error at most `3 * sqrt (B + 1) * (1 / 2)^k` times the mean. -/
 theorem relativeMean_good_record_error {I : Type} [Fintype I] [DecidableEq I]
     (B k : ℕ) (p : FinDist I) (f : I → ℝ) (ω : Fin (32*B) → I) (u : LayerRecord k)
     (hscale : 0 < relativeMeanScale B f ω)
@@ -570,6 +659,9 @@ theorem relativeMean_good_record_error {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_right hscale' (by positivity)
     _ = _ := by ring
 
+/-- For nonnegative payoff, positive mean, and variance at most `B` times the squared mean, the
+conditional estimator attains the stated relative error with probability at least `2 / 3`
+when `B ≥ 1` and `k ≥ 4`. See [Montanaro2015]. -/
 theorem relative_variance_actual_conditional_estimator (I : Type) [Fintype I] [DecidableEq I]
     (B k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, 0 ≤ f i)
@@ -615,12 +707,16 @@ theorem relative_variance_actual_conditional_estimator (I : Type) [Fintype I] [D
   · intro ω _ _
     exact (relativeMeanLaw B k A j f hA hf).nonneg ω
 
+/-- The list of counted amplitude estimation circuits for all payoff layers, each repeated
+according to `layerRepetitions`. -/
 noncomputable def meanAEPrograms {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) :
     List (Circuit (Fin (layerGrid k) × (Bool × (I × Bool)))) :=
   (List.ofFn (fun l : Fin (k+2) => List.replicate (2*layerRepetitions k+1)
     (countedAECircuit (layerGrid k) (payoffPreparation A (layerPayoff f l.val)) (j,false)))).flatten
 
+/-- The layer program list has `q` circuits, `q * (layerGrid k - 1)` queries, and `q * (5 *
+(layerGrid k - 1) + 3)` gates, where `q = (k + 2) * (2 * layerRepetitions k + 1)`. -/
 theorem meanAEPrograms_counts {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) :
     let q := (k+2)*(2*layerRepetitions k+1)
@@ -640,6 +736,8 @@ theorem meanAEPrograms_counts {I : Type} [Fintype I] [DecidableEq I]
         hquery, hgate, nsmul_eq_mul, Finset.sum_const, Finset.card_univ, Fintype.card_fin]
     all_goals push_cast; ring
 
+/-- Resource counts for source preparations, layer copies, measurements, forward and inverse
+layer accesses, queries, and gates. -/
 @[ext] structure QuantumMeanResources where
   sourcePreparations : ℕ
   layerCopies : ℕ
@@ -650,6 +748,7 @@ theorem meanAEPrograms_counts {I : Type} [Fintype I] [DecidableEq I]
   gates : ℕ
   deriving DecidableEq
 
+/-- Collects source preparation and layer circuit counts into a `QuantumMeanResources` record. -/
 noncomputable def meanProgramResources {I : Type} [Fintype I] [DecidableEq I]
     (k m : ℕ) (A : Matrix I I ℂ)
     (C : List (Circuit (Fin (layerGrid k) × (Bool × (I × Bool))))) : QuantumMeanResources where
@@ -661,15 +760,21 @@ noncomputable def meanProgramResources {I : Type} [Fintype I] [DecidableEq I]
   queries := (C.map QueryCount).sum
   gates := GateCount (List.replicate m (Step.gate A))+(C.map GateCount).sum
 
+/-- The resource ledger for one source preparation and the positive and negative centered layer
+program families. -/
 noncomputable def signedMeanResources {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j x : I) (f : I → ℝ) (σ : ℝ) : QuantumMeanResources :=
   meanProgramResources k 1 A
     (meanAEPrograms k A j (centerPositive f σ x) ++ meanAEPrograms k A j (centerNegative f σ x))
 
+/-- The resource ledger for `32 * B` source preparations and the conditional normalized payoff
+layer programs. -/
 noncomputable def relativeMeanResources {I : Type} [Fintype I] [DecidableEq I]
     (B k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (ω : Fin (32*B) → I) : QuantumMeanResources :=
   meanProgramResources k (32*B) A (meanAEPrograms k A j (relativeMeanPayoff B f ω))
 
+/-- The collected ledger has `m` source preparations, `C.length * layerGrid k` forward layer
+accesses, and `C.length * (layerGrid k - 1)` inverse layer accesses. -/
 theorem meanProgramResources_labels {I : Type} [Fintype I] [DecidableEq I]
     (k m : ℕ) (A : Matrix I I ℂ)
     (C : List (Circuit (Fin (layerGrid k) × (Bool × (I × Bool))))) :
@@ -683,6 +788,8 @@ theorem meanProgramResources_labels {I : Type} [Fintype I] [DecidableEq I]
     | succ m ih => simp [List.replicate_succ, ih]
   simp [meanProgramResources, hs.1, hs.2.1, hsource]
 
+/-- Given the stated length, query, and gate totals for `C`, the full ledger equals the explicit
+seven-field resource record. -/
 theorem meanProgramResources_eq {I : Type} [Fintype I] [DecidableEq I]
     (k m : ℕ) (A : Matrix I I ℂ)
     (C : List (Circuit (Fin (layerGrid k) × (Bool × (I × Bool))))) (q : ℕ)
@@ -702,6 +809,9 @@ theorem meanProgramResources_eq {I : Type} [Fintype I] [DecidableEq I]
   · change (meanProgramResources k m A C).sourcePreparations+(C.map GateCount).sum=_
     rw [hl.1, hgate]
 
+/-- The signed estimator uses one source preparation and `2 * q` layer copies, with all
+measurement, forward, inverse, query, and gate counts given by the displayed resource
+record. -/
 theorem signed_centered_full_resources {I : Type} [Fintype I] [DecidableEq I]
     (k : ℕ) (A : Matrix I I ℂ) (j x : I) (f : I → ℝ) (σ : ℝ) :
     let q := (k+2)*(2*layerRepetitions k+1)
@@ -718,6 +828,8 @@ theorem signed_centered_full_resources {I : Type} [Fintype I] [DecidableEq I]
   · rw [List.map_append, List.sum_append, hp.2.2, hn.2.2]
     ring
 
+/-- The relative estimator uses `32 * B` source preparations and `q` layer copies, with all
+remaining counts given by the displayed resource record. -/
 theorem relative_variance_full_resources {I : Type} [Fintype I] [DecidableEq I]
     (B k : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (ω : Fin (32*B) → I) :
     let q := (k+2)*(2*layerRepetitions k+1)
@@ -727,12 +839,15 @@ theorem relative_variance_full_resources {I : Type} [Fintype I] [DecidableEq I]
   have hc := meanAEPrograms_counts k A j (relativeMeanPayoff B f ω)
   exact meanProgramResources_eq k (32*B) A _ _ hc.1 hc.2.1 hc.2.2
 
+/-- The aggregate resource ledger for the `2 * r + 1` signed estimator runs used by the median. -/
 noncomputable def signedMeanMedianResources {I : Type} [Fintype I] [DecidableEq I]
     (k r : ℕ) (A : Matrix I I ℂ) (j : I) (x : Fin (2*r+1) → I) (f : I → ℝ) (σ : ℝ) :
     QuantumMeanResources := meanProgramResources k (2*r+1) A
       (List.ofFn (fun a : Fin (2*r+1) => meanAEPrograms k A j (centerPositive f σ (x a)) ++
         meanAEPrograms k A j (centerNegative f σ (x a)))).flatten
 
+/-- The fresh median ledger multiplies every signed estimator resource count by `2 * r + 1`,
+with `q = (k + 2) * (2 * layerRepetitions k + 1)`. -/
 theorem signed_centered_fresh_full_resources {I : Type} [Fintype I] [DecidableEq I]
     (k r : ℕ) (A : Matrix I I ℂ) (j : I) (x : Fin (2*r+1) → I) (f : I → ℝ) (σ : ℝ) :
     let q := (k+2)*(2*layerRepetitions k+1)

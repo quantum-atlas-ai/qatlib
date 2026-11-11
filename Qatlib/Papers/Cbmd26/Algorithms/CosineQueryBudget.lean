@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineMassLower
+
+/-!
+# Explicit cosine degree and query budgets
+
+Chooses `cosineChosenMass`, `cosineWeightedAccuracy`, and `cosineAAOrder` for cosine-based
+second-order algorithms. It bounds the resulting polynomial degree and source-query costs using
+`cosineRelativeEnvelope` and explicit logarithmic factors. These results support the
+contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `cosineChosenDegree_le`: bounds the selected polynomial degree.
+* `cosineExpectedSourceQueries_le`: bounds the mean amplification multiplicity times the
+  source-query count.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,16 +50,23 @@ noncomputable section
 namespace CBMD
 open scoped BigOperators
 
+/-- Defines the exponential envelope `exp (τ * sqrt (γ / 2))` divided by the output-norm
+estimate `η`. -/
 def cosineRelativeEnvelope (γ τ η : ℝ) : ℝ := Real.exp (τ * Real.sqrt (γ / 2)) / η
 
+/-- Defines the finite cosine weight mass at truncation accuracy `ε * η / 8`. -/
 def cosineChosenMass (γ τ ε η : ℝ) : ℝ :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineFiniteWeightMass γ τ (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineRetainedCount γ τ (ε * η / 8))
 
+/-- Defines the sample accuracy `ε * η / (16 * cosineChosenMass γ τ ε η)`. -/
 def cosineWeightedAccuracy (γ τ ε η : ℝ) : ℝ := ε * η / (16 * cosineChosenMass γ τ ε η)
 
+/-- The chosen cosine weight mass is positive for positive `γ` and `τ`. -/
 theorem cosineChosenMass_pos {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (ε η : ℝ) :
     0 < cosineChosenMass γ τ ε η := _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineFiniteWeightMass_pos hγ hτ _
 
+/-- The chosen mass divided by `η` is at most sixteen times the relative envelope times `log (2
++ γ * τ²)`. -/
 theorem cosineChosenMass_ratio_le {γ τ η : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hη : 0 < η) (ε : ℝ) :
     cosineChosenMass γ τ ε η / η ≤
@@ -51,18 +78,21 @@ theorem cosineChosenMass_ratio_le {γ τ η : ℝ}
   dsimp only [cosineRelativeEnvelope]
   ring
 
+/-- The weighted sample accuracy is positive when `γ`, `τ`, `ε`, and `η` are positive. -/
 theorem cosineWeightedAccuracy_pos {γ τ ε η : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hε : 0 < ε) (hη : 0 < η) :
     0 < cosineWeightedAccuracy γ τ ε η := by
   unfold cosineWeightedAccuracy
   exact div_pos (mul_pos hε hη) (mul_pos (by norm_num) (cosineChosenMass_pos hγ hτ ε η))
 
+/-- Twice the weighted accuracy times the chosen mass equals `ε * η / 8`. -/
 theorem cosineWeightedAccuracy_error {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (ε η : ℝ) :
     2 * cosineWeightedAccuracy γ τ ε η * cosineChosenMass γ τ ε η = ε * η / 8 := by
   unfold cosineWeightedAccuracy
   field_simp [(cosineChosenMass_pos hγ hτ ε η).ne']
   ring
 
+/-- The weighted accuracy is at most one when `ε ≤ 1` and `η` is at most twice the chosen mass. -/
 theorem cosineWeightedAccuracy_le_one {γ τ ε η : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hε : ε ≤ 1) (hη : 0 < η)
     (hηS : η ≤ 2 * cosineChosenMass γ τ ε η) :
@@ -72,6 +102,8 @@ theorem cosineWeightedAccuracy_le_one {γ τ ε η : ℝ}
   apply (div_le_one (by positivity)).mpr
   nlinarith
 
+/-- Bounds `log (4 / cosineWeightedAccuracy γ τ ε η)` by the displayed logarithmic expression
+involving the relative envelope. -/
 theorem cosineWeightedAccuracy_log_le {γ τ ε η : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hε : 0 < ε) (hη : 0 < η) :
     Real.log (4 / cosineWeightedAccuracy γ τ ε η) ≤
@@ -90,6 +122,8 @@ theorem cosineWeightedAccuracy_log_le {γ τ ε η : ℝ}
   rw [heR] at h
   linarith
 
+/-- Bounds the integer second-order degree budget by the explicit time, scale, accuracy, and
+condition-parameter expression. -/
 theorem secondOrderDegreeBudget_le (kind : SecondOrderFamily) {t b κ δq : ℝ}
     (ht : 0 ≤ t) (_hb : 0 ≤ b) (hκ : 0 < κ) (hδq : 0 < δq) (hδq1 : δq ≤ 1) :
     (secondOrderDegreeBudget kind t b κ⁻¹ δq : ℝ) ≤
@@ -109,9 +143,13 @@ theorem secondOrderDegreeBudget_le (kind : SecondOrderFamily) {t b κ δq : ℝ}
     ring
   simpa only [secondOrderDegreeBudget, hl, div_inv_eq_mul] using! h
 
+/-- Defines the uniform sample scale bound `Lnorm + 1352 * Hnorm * cosineRelativeEnvelope γ τ η
+/ ε`. -/
 def cosineSelectedBmax (Lnorm Hnorm γ τ ε η : ℝ) : ℝ :=
   Lnorm + 1352 * Hnorm * cosineRelativeEnvelope γ τ η / ε
 
+/-- The selected sample scale bound is nonnegative for nonnegative norm bounds and positive `ε`
+and `η`. -/
 theorem cosineSelectedBmax_nonneg {Lnorm Hnorm γ τ ε η : ℝ}
     (hL : 0 ≤ Lnorm) (hH : 0 ≤ Hnorm) (hε : 0 < ε) (hη : 0 < η) :
     0 ≤ cosineSelectedBmax Lnorm Hnorm γ τ ε η := by
@@ -120,6 +158,7 @@ theorem cosineSelectedBmax_nonneg {Lnorm Hnorm γ τ ε η : ℝ}
 
 open scoped Matrix.Norms.L2Operator in
 
+/-- Every retained cosine sample's norm-based scale is bounded by `cosineSelectedBmax`. -/
 theorem cosineSelectedBmax_bounds_samples {n : Type*} [Fintype n] [DecidableEq n]
     (L H : Matrix n n ℂ) {γ τ ε η : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hε : 0 < ε) (hη : 0 < η) (k : ℕ)
@@ -132,6 +171,7 @@ theorem cosineSelectedBmax_bounds_samples {n : Type*} [Fintype n] [DecidableEq n
   unfold cosineSelectedBmax cosineRelativeEnvelope
   ring
 
+/-- The second-order time scale is positive for every family at positive time. -/
 theorem secondOrderTimeScale_pos (kind : SecondOrderFamily) {t : ℝ} (ht : 0 < t) :
     0 < secondOrderTimeScale kind t := by
   cases kind
@@ -139,11 +179,15 @@ theorem secondOrderTimeScale_pos (kind : SecondOrderFamily) {t : ℝ} (ht : 0 < 
   · exact ht
   · exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyTimeScale_pos_of_pos ht
 
+/-- Defines the explicit real degree bound using the selected sample scale, logarithmic accuracy
+term, and affine condition factor. -/
 def cosineDisplayedDegreeBound (Lnorm Hnorm γ τ ε η κ : ℝ) : ℝ :=
   ((τ * Real.sqrt (2 * cosineSelectedBmax Lnorm Hnorm γ τ ε η) +
     Real.log (2 + 1024 * cosineRelativeEnvelope γ τ η * Real.log (2 + γ * τ ^ 2) / ε)) /
       Real.log 2 + 1) * (5 + 2048 * κ)
 
+/-- The chosen second-order degree budget is at most the displayed cosine degree bound under the
+stated positivity and mass conditions. -/
 theorem cosineChosenDegree_le (kind : SecondOrderFamily) {Lnorm Hnorm γ t ε η κ : ℝ}
     (hL : 0 ≤ Lnorm) (hH : 0 ≤ Hnorm) (hγ : 0 < γ) (ht : 0 < t)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hκ : 0 < κ)
@@ -162,6 +206,8 @@ theorem cosineChosenDegree_le (kind : SecondOrderFamily) {Lnorm Hnorm γ t ε η
       (add_le_add le_rfl (cosineWeightedAccuracy_log_le hγ hτ hε hη))
       (Real.log_pos (by norm_num : (1 : ℝ) < 2)).le) le_rfl) (by positivity)
 
+/-- The chosen source-query count `8 * D + 2` is bounded by the same expression with the
+displayed real degree bound. -/
 theorem cosineChosenSourceQueries_le (kind : SecondOrderFamily) {Lnorm Hnorm γ t ε η κ : ℝ}
     (hL : 0 ≤ Lnorm) (hH : 0 ≤ Hnorm) (hγ : 0 < γ) (ht : 0 < t)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hη : 0 < η) (hκ : 0 < κ)
@@ -174,6 +220,8 @@ theorem cosineChosenSourceQueries_le (kind : SecondOrderFamily) {Lnorm Hnorm γ 
   push_cast
   linarith
 
+/-- If the true output norm lies between `η` and `C * η`, the envelope based on `η` lies between
+the true-output envelope and `C` times it. -/
 theorem cosineRelativeEnvelope_compare_output {γ τ η v C : ℝ}
     (hη : 0 < η) (hηv : η ≤ v) (hvC : v ≤ C * η) :
     Real.exp (τ * Real.sqrt (γ / 2)) / v ≤ cosineRelativeEnvelope γ τ η ∧
@@ -191,6 +239,8 @@ theorem cosineRelativeEnvelope_compare_output {γ τ η v C : ℝ}
     convert! h using 1
     ring
 
+/-- Bounds the odd amplification multiplicity from the rounded mass-to-output ratio by the
+displayed envelope and logarithm expression. -/
 theorem cosineAmplificationMultiplier_le {γ τ ε η c : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hη : 0 < η) (hc : 0 ≤ c)
     (hηS : η ≤ 2 * cosineChosenMass γ τ ε η) :
@@ -212,6 +262,8 @@ theorem cosineAmplificationMultiplier_le {γ τ ε η c : ℝ}
     _ ≤ (2 * c + 6) * (16 * cosineRelativeEnvelope γ τ η * Real.log (2 + γ * τ ^ 2)) := hm
     _ = _ := by ring
 
+/-- Bounds the product of the rounded amplification multiplicity and the chosen source-query
+count by the displayed envelope and degree expression. -/
 theorem cosineAmplifiedSourceQueries_le (kind : SecondOrderFamily)
     {Lnorm Hnorm γ t ε η κ c : ℝ}
     (hL : 0 ≤ Lnorm) (hH : 0 ≤ Hnorm) (hγ : 0 < γ) (ht : 0 < t)
@@ -229,14 +281,19 @@ theorem cosineAmplifiedSourceQueries_le (kind : SecondOrderFamily)
   rw [Nat.cast_mul]
   exact mul_le_mul hA hQ (Nat.cast_nonneg _) ((Nat.cast_nonneg _).trans hA)
 
+/-- Defines the positive amplification window as the ceiling of eight times the mass-to-output
+ratio, plus one. -/
 def cosineAAOrder (γ τ ε η : ℝ) : ℕ := ⌈8 * cosineChosenMass γ τ ε η / η⌉₊ + 1
 
+/-- Defines the mean trial multiplicity as `(cosineAAOrder γ τ ε η + 1) / 2`. -/
 def cosineAAMeanMultiplicity (γ τ ε η : ℝ) : ℝ := ((cosineAAOrder γ τ ε η : ℝ) + 1) / 2
 
+/-- The chosen cosine amplification window is positive. -/
 theorem cosineAAOrder_pos (γ τ ε η : ℝ) : 0 < cosineAAOrder γ τ ε η := by
   unfold cosineAAOrder
   omega
 
+/-- The chosen amplification window is at least eight times the mass-to-output ratio. -/
 theorem cosineAAOrder_threshold (γ τ ε η : ℝ) :
     8 * cosineChosenMass γ τ ε η / η ≤ (cosineAAOrder γ τ ε η : ℝ) := by
   have h := Nat.le_ceil (8 * cosineChosenMass γ τ ε η / η)
@@ -244,6 +301,8 @@ theorem cosineAAOrder_threshold (γ τ ε η : ℝ) :
   push_cast
   linarith
 
+/-- The mean amplification multiplicity is at most `112` times the relative envelope times `log
+(2 + γ * τ²)`. -/
 theorem cosineAAMeanMultiplicity_le {γ τ ε η : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hη : 0 < η)
     (hηS : η ≤ 2 * cosineChosenMass γ τ ε η) :
@@ -267,6 +326,8 @@ theorem cosineAAMeanMultiplicity_le {γ τ ε η : ℝ}
     _ ≤ 7 * (16 * cosineRelativeEnvelope γ τ η * Real.log (2 + γ * τ ^ 2)) := hm
     _ = _ := by ring
 
+/-- The mean amplification multiplicity times the chosen source-query count satisfies the
+displayed cosine query bound [WangEtAl2026]. -/
 theorem cosineExpectedSourceQueries_le (kind : SecondOrderFamily)
     {Lnorm Hnorm γ t ε η κ : ℝ}
     (hL : 0 ≤ Lnorm) (hH : 0 ≤ Hnorm) (hγ : 0 < γ) (ht : 0 < t)

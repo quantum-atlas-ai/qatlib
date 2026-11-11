@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+
+/-!
+# Autocorrelation and duality of bent functions
+
+Relates squared Walsh coefficients to Boolean derivative sums and proves the vanishing
+autocorrelation of bent functions. These identities yield orthogonality of shifted sign vectors,
+Walsh inversion, and bentness of dual functions under the stated power identity. See
+[Roetteler2008].
+
+## Main statements
+
+* `bent_autocorrelation`: a bent function has zero autocorrelation at every nonzero shift.
+* `bent_gram`: distinct shifted sign vectors are orthogonal.
+* `bent_dual_bent`: a dual function is bent when the normalization powers agree.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,13 +35,16 @@ open Finset
 
 namespace Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- Every element of `ZMod 2` sums with itself to zero. -/
 lemma add_self_zmod2 (a : ZMod 2) : a + a = 0 := by
   rcases zmod2_cases a with h | h <;> simp [h, one_add_one_zmod2]
 
+/-- Every binary vector sums with itself to zero. -/
 lemma add_self_bvec {n : ℕ} (u : BVec n) : u + u = 0 := by
   funext i
   exact add_self_zmod2 (u i)
 
+/-- The sum of two binary vectors is zero exactly when they are equal. -/
 lemma add_eq_zero_iff_eq_bvec {n : ℕ} (a b : BVec n) : a + b = 0 ↔ a = b := by
   constructor
   · intro h
@@ -30,15 +53,18 @@ lemma add_eq_zero_iff_eq_bvec {n : ℕ} (a b : BVec n) : a + b = 0 ↔ a = b := 
   · intro h
     rw [h, add_self_bvec]
 
+/-- Right translation by a binary vector is injective. -/
 lemma shift_injective {n : ℕ} (s : BVec n) :
     Function.Injective (fun x : BVec n => x + s) := by
   intro a b h
   exact add_right_cancel h
 
+/-- Right translation by a binary vector is bijective. -/
 lemma shift_bijective {n : ℕ} (s : BVec n) :
     Function.Bijective (fun x : BVec n => x + s) :=
   (shift_injective s).bijective_of_finite
 
+/-- Left translation by a binary vector is bijective. -/
 lemma lshift_bijective {n : ℕ} (s : BVec n) :
     Function.Bijective (fun x : BVec n => s + x) := by
   have hinj : Function.Injective (fun x : BVec n => s + x) := by
@@ -46,27 +72,34 @@ lemma lshift_bijective {n : ℕ} (s : BVec n) :
     exact add_left_cancel h
   exact hinj.bijective_of_finite
 
+/-- The binary dot product distributes over addition in its second argument. -/
 lemma dot_add_dot {n : ℕ} (w x y : BVec n) :
     dot w (x + y) = dot w x + dot w y := by
   show dotProduct w (x + y) = dotProduct w x + dotProduct w y
   rw [dotProduct_add]
 
+/-- Adding the dot products of `w` with `x` and `x + z` leaves the dot product with `z`. -/
 lemma dot_add_self {n : ℕ} (w x z : BVec n) :
     dot w x + dot w (x + z) = dot w z := by
   show dotProduct w x + dotProduct w (x + z) = dotProduct w z
   rw [dotProduct_add, ← add_assoc, add_self_zmod2, zero_add]
 
+/-- Moving a matrix across the binary dot product replaces it by its transpose. -/
 lemma dot_mulVec {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2)) (x y : BVec n) :
     dot (A.mulVec x) y = dot x (Aᵀ.mulVec y) := by
   calc dot (A.mulVec x) y = dot y (A.mulVec x) := dotProduct_comm _ _
     _ = dot x (Aᵀ.mulVec y) := (Matrix.dotProduct_transpose_mulVec A x y).symm
 
+/-- Summing dot-product characters over all frequencies gives `2 ^ n` at the zero vector and
+zero elsewhere. -/
 lemma sum_w_eps_dot {n : ℕ} (v : BVec n) :
     ∑ w : BVec n, eps (dot w v) = if v = 0 then 2 ^ n else 0 := by
   rw [show (∑ w : BVec n, eps (dot w v)) = ∑ w : BVec n, eps (dot v w) from
     Finset.sum_congr rfl (fun w _ => by simp only [dot]; rw [dotProduct_comm])]
   exact sum_eps_dot v
 
+/-- Translating the input of a Boolean function multiplies its Walsh coefficient by the
+character of the shift. -/
 lemma walsh_shift {n : ℕ} (f : BVec n → ZMod 2) (s : BVec n) (w : BVec n) :
     walsh (fun x => f (x + s)) w = eps (dot s w) * walsh f w := by
   rw [walsh, walsh]
@@ -89,6 +122,8 @@ lemma walsh_shift {n : ℕ} (f : BVec n → ZMod 2) (s : BVec n) (w : BVec n) :
   simp only [dot]
   rw [dotProduct_comm w s]
 
+/-- The square of a Walsh coefficient expands as a double sum of the signs of the paired phase
+exponents. -/
 lemma walsh_sq_expand {n : ℕ} (f : BVec n → ZMod 2) (w : BVec n) :
     walsh f w ^ 2 = ∑ x : BVec n, ∑ y : BVec n,
       eps (dot w x + f x + (dot w y + f y)) := by
@@ -99,6 +134,8 @@ lemma walsh_sq_expand {n : ℕ} (f : BVec n → ZMod 2) (w : BVec n) :
   intro y _
   rw [← eps_add]
 
+/-- A triple finite integer sum is unchanged by cyclically moving the outer summation to the
+innermost position. -/
 lemma sum_swap3 {α : Type} [Fintype α] (F : α → α → α → ℤ) :
     (∑ a, ∑ b, ∑ c, F a b c) = ∑ b, ∑ c, ∑ a, F a b c := by
   conv_lhs => rw [Finset.sum_comm]
@@ -106,6 +143,8 @@ lemma sum_swap3 {α : Type} [Fintype α] (F : α → α → α → ℤ) :
   intro b _
   conv_lhs => rw [Finset.sum_comm]
 
+/-- The squared Walsh coefficient is the character-weighted sum of Boolean derivative sign sums
+over shifts. -/
 lemma walsh_sq_deriv {n : ℕ} (f : BVec n → ZMod 2) (w : BVec n) :
     walsh f w ^ 2 =
       ∑ z : BVec n, eps (dot w z) * ∑ x : BVec n, eps (f x + f (x + z)) := by
@@ -138,6 +177,8 @@ lemma walsh_sq_deriv {n : ℕ} (f : BVec n → ZMod 2) (w : BVec n) :
   intro z _
   rw [Finset.mul_sum]
 
+/-- The character-weighted sum of squared Walsh coefficients equals `2 ^ n` times the derivative
+sign sum at the specified shift. -/
 lemma walsh_sq_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
     ∑ w : BVec n, walsh f w ^ 2 * eps (dot w u)
       = (2 : ℤ) ^ n * ∑ x : BVec n, eps (f x + f (x + u)) := by
@@ -201,6 +242,8 @@ lemma walsh_sq_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
   simp only [hcol]
   rw [Finset.mul_sum]
 
+/-- The derivative sign sum of a bent function is `2 ^ n` at zero shift and zero at each nonzero
+shift. -/
 lemma bent_autocorrelation {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) (u : BVec n) :
     ∑ x : BVec n, eps (f x + f (x + u)) = if u = 0 then 2 ^ n else 0 := by
   have h := walsh_sq_mul f u
@@ -214,6 +257,8 @@ lemma bent_autocorrelation {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) (u : 
   have h2n : (2 : ℤ) ^ n ≠ 0 := pow_ne_zero n (by norm_num)
   exact (mul_left_cancel₀ h2n h).symm
 
+/-- The inner product of two translated sign vectors of a bent function is `2 ^ n` when their
+shifts agree and zero otherwise. -/
 lemma bent_gram {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) (x x' : BVec n) :
     ∑ y : BVec n, eps (f (x + y) + f (x' + y)) = if x = x' then 2 ^ n else 0 := by
   have hmain : (∑ y : BVec n, eps (f (x + y) + f (x' + y)))
@@ -237,6 +282,8 @@ lemma bent_gram {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) (x x' : BVec n) 
     intro hzero
     exact h ((add_eq_zero_iff_eq_bvec x x').mp hzero)
 
+/-- Walsh inversion recovers `2 ^ n * eps (f u)` by summing the Walsh coefficients against the
+character at `u`. -/
 lemma sum_walsh_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
     ∑ w : BVec n, eps (dot u w) * walsh f w = (2 : ℤ) ^ n * eps (f u) := by
   have h1 : (∑ w : BVec n, eps (dot u w) * walsh f w)
@@ -278,6 +325,8 @@ lemma sum_walsh_mul {n : ℕ} (f : BVec n → ZMod 2) (u : BVec n) :
   · intro hmem
     simp at hmem
 
+/-- A Boolean dual is bent provided the product of the two half-dimension normalization powers
+equals `2 ^ n`. -/
 lemma bent_dual_bent {n : ℕ} {f ft : BVec n → ZMod 2}
     (hd : IsDual f ft)
     (hpow : (2 : ℤ) ^ (n / 2) * (2 : ℤ) ^ (n / 2) = (2 : ℤ) ^ n) :
@@ -303,6 +352,7 @@ lemma bent_dual_bent {n : ℕ} {f ft : BVec n → ZMod 2}
   rw [hval, mul_pow, eps_sq, mul_one, pow_two]
   exact hpow
 
+/-- For even `n`, the product of two integer powers `2 ^ (n / 2)` equals `2 ^ n`. -/
 lemma pow_half_mul {n : ℕ} (hn : Even n) :
     (2 : ℤ) ^ (n / 2) * (2 : ℤ) ^ (n / 2) = (2 : ℤ) ^ n := by
   obtain ⟨k, hk⟩ := hn

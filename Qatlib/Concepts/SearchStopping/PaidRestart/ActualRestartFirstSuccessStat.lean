@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.RestartSearchDefs
+
+/-!
+# Statement of the restart first-success law
+
+Defines `ActualRestartFirstSuccess`, the joint law of the returned address and total receipt in
+a fixed-price Grover restart process. The mass after `r` failed attempts is the failure
+probability to power `r` times the marked address's Born mass, and only positive multiples of
+the price can occur. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `ActualRestartFirstSuccess`: The proposition specifying geometric first-success masses at
+  receipts `(r + 1) * price`, zero mass on unmarked addresses, and zero mass at all other
+  receipts for positive-price restarts.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -20,6 +40,9 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- The proposition specifying geometric first-success masses at receipts `(r + 1) * price`,
+zero mass on unmarked addresses, and zero mass at all other receipts for positive-price
+restarts. -/
 def ActualRestartFirstSuccess : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     ∀ (T' : Matrix I I ℂ) (v : QState I), T' ∈ Matrix.unitaryGroup I ℂ →

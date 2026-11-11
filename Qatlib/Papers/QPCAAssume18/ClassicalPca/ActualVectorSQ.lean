@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualColumnAccess
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.OutputAccuracy
+
+/-!
+# Proposal laws for lifted PCA vectors
+
+Expresses lifted PCA vectors as linear combinations of conjugated sketch rows and constructs
+their coordinate proposal and rejection coin. Weighted cached row energies identify the envelope
+distribution and the query count required for the output access model in [Tang2021].
+
+## Main statements
+
+* `pcaVectorProposal_probability`: For positive `q`, the vector proposal equals the normalized
+  squared-amplitude distribution of the linear envelope.
+* `pca_vector_query_count`: Querying one coordinate of the linear combination returns its exact
+  value and records exactly `q` row-coordinate queries.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,16 +38,22 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SqEstimation.RejectionSample
 
+/-- The small-sketch eigenvector coordinates scaled by the inverse square root of the
+corresponding squared singular value. -/
 def pcaOutputCoefficients {q : ℕ} (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) (t : Fin q) : ℂ :=
   (Real.sqrt (pcaSmallValue W i) : ℂ)⁻¹ * pcaSmallVector W i t
 
+/-- The coordinatewise conjugate of a row of `R`. -/
 def pcaConjugateRows {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ) (t : Fin q) (j : Fin d) : ℂ :=
   star (R t j)
 
+/-- The sum of coefficient squared magnitudes weighted by cached sketch row energies. -/
 def pcaWeightedEnergy {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (rows : Fin q → Fin n) (c : Fin q → ℂ) : ℝ :=
   ∑ t, Complex.normSq (c t)*pcaCachedRowEnergy A hA q rows t
 
+/-- The cached weighted energy equals the sum of coefficient squared magnitudes times the
+energies of the conjugated sketch rows. -/
 theorem pcaWeightedEnergy_spec {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (rows : Fin q → Fin n) (c : Fin q → ℂ) :
     pcaWeightedEnergy A hA rows c = ∑ t, Complex.normSq (c t)*
@@ -35,6 +61,8 @@ theorem pcaWeightedEnergy_spec {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   simp only [pcaWeightedEnergy,pcaCachedRowEnergy_spec,sketchRowSquared,pcaConjugateRows,
     Complex.star_def,Complex.normSq_conj]
 
+/-- The squared magnitude of a linear combination is bounded coordinatewise by that of its
+sampling envelope. -/
 theorem pca_linear_dominance {q d : ℕ} (c : Fin q → ℂ) (u : Fin q → Fin d → ℂ) (j : Fin d) :
     Complex.normSq (sqLinearValue c u j) ≤ Complex.normSq (sqLinearEnvelope c u j) := by
   rw [sqLinearEnvelope_normSq,Complex.normSq_eq_norm_sq,sqLinearValue]
@@ -46,6 +74,7 @@ theorem pca_linear_dominance {q d : ℕ} (c : Fin q → ℂ) (u : Fin q → Fin 
     _ ≤ _ := hc
     _ = _ := by simp_rw [← Complex.normSq_eq_norm_sq]; ring
 
+/-- The total squared envelope magnitude equals `q` times the weighted row energy. -/
 theorem pca_envelope_energy {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (rows : Fin q → Fin n) (c : Fin q → ℂ) :
     (∑ j, Complex.normSq (sqLinearEnvelope c (pcaConjugateRows (pcaRowSketch A hA q rows)) j)) =
@@ -55,6 +84,7 @@ theorem pca_envelope_energy {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   rw [← Finset.mul_sum,Finset.sum_comm]
   simp only [Fintype.card_fin,← Finset.mul_sum]
 
+/-- A linear combination with positive energy has positive weighted row energy. -/
 theorem pca_weighted_energy_pos {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (rows : Fin q → Fin n) (c : Fin q → ℂ)
     (hu : 0 < ∑ j,Complex.normSq (sqLinearValue c (pcaConjugateRows (pcaRowSketch A hA q rows)) j)) :
@@ -66,6 +96,8 @@ theorem pca_weighted_energy_pos {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   have hnonneg : 0≤(q:ℝ) := Nat.cast_nonneg q
   nlinarith
 
+/-- The coordinate proposal formed by mixing raw row coordinate laws with weights proportional
+to coefficient squared magnitudes times cached row energies. -/
 def pcaVectorProposal {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (rows : Fin q → Fin n) (c : Fin q → ℂ)
     (hweight : 0 < pcaWeightedEnergy A hA rows c) : FinDist (Fin d) where
@@ -79,6 +111,8 @@ def pcaVectorProposal {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     simp only [← Finset.mul_sum,(pcaRawCoordinateLaw A hd _).sum_one,mul_one,← Finset.sum_div]
     exact div_self hweight.ne'
 
+/-- For positive `q`, the vector proposal equals the normalized squared-amplitude distribution
+of the linear envelope. -/
 theorem pcaVectorProposal_probability {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (hq : 0<q)
     (rows : Fin q → Fin n) (c : Fin q → ℂ) (hweight : 0 < pcaWeightedEnergy A hA rows c) (j : Fin d) :
@@ -100,6 +134,7 @@ theorem pcaVectorProposal_probability {n d q : ℕ} (A : Matrix (Fin n) (Fin d) 
       simp only [pcaConjugateRows,Complex.normSq_mul,Complex.star_def,Complex.normSq_conj]
       field_simp
 
+/-- The Boolean coin with success probability equal to the output-to-envelope acceptance ratio. -/
 def pcaVectorCoin {q d : ℕ} (c : Fin q → ℂ) (u : Fin q → Fin d → ℂ)
     (hen : SQEnvelope (sqLinearValue c u) (sqLinearEnvelope c u)) (j : Fin d) : FinDist Bool where
   prob b := if b then sqRatio (sqLinearValue c u) (sqLinearEnvelope c u) j else
@@ -110,10 +145,13 @@ def pcaVectorCoin {q d : ℕ} (c : Fin q → ℂ) (u : Fin q → Fin d → ℂ)
     · exact (sqRatio_range _ _ hen j).1
   sum_one := by simp
 
+/-- The success probability of `pcaVectorCoin` is the corresponding `sqRatio`. -/
 theorem pcaVectorCoin_probability {q d : ℕ} (c : Fin q → ℂ) (u : Fin q → Fin d → ℂ)
     (hen : SQEnvelope (sqLinearValue c u) (sqLinearEnvelope c u)) (j : Fin d) :
     (pcaVectorCoin c u hen j).prob true=sqRatio (sqLinearValue c u) (sqLinearEnvelope c u) j := rfl
 
+/-- Querying one coordinate of the linear combination returns its exact value and records
+exactly `q` row-coordinate queries. -/
 theorem pca_vector_query_count {q d : ℕ} (c : Fin q → ℂ) (u : Fin q → Fin d → ℂ) (j : Fin d) :
     (sqLinearQuery c u j).1=sqLinearValue c u j ∧ (sqLinearQuery c u j).2=q := by
   simpa only [Fintype.card_fin] using! sqLinearQuery_value_count c u j

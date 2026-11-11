@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ProjectorQAOA26.StageStability.ProjectorDistance
+
+/-!
+# Triangle and perturbation bounds for phase distance
+
+This module proves the triangle inequality for `phaseDist` using the Euclidean triangle
+inequality and optimal phase alignment. It also bounds the phase distance between matrix images
+of a normalized vector by the operator distance, supporting the state comparison in
+[ZhouAnLiu2026].
+
+## Main statements
+
+* `phaseDist_triangle`: Phase distance satisfies the triangle inequality.
+* `phaseDist_mulVec_perturb`: For a normalized vector, the phase distance between its images
+  under two matrices is at most the operator norm of the matrix difference.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,17 +35,20 @@ variable {I : Type*} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- The explicit Euclidean norm satisfies the triangle inequality. -/
 theorem l2norm_add_le (x y : I → ℂ) : l2norm (x+y)≤l2norm x+l2norm y := by
   rw [← norm_toLp,← norm_toLp,← norm_toLp]
   exact norm_add_le (WithLp.toLp 2 x : EuclideanSpace ℂ I) (WithLp.toLp 2 y)
 
 omit [DecidableEq I] in
 
+/-- Phase distance is at most the Euclidean norm of the unaligned vector difference. -/
 theorem phaseDist_le_difference (u v : I → ℂ) : phaseDist u v≤l2norm (u-v) := by
   simpa only [one_smul] using phaseDist_le_of_unit u v (z:=1) (by norm_num)
 
 omit [DecidableEq I] in
 
+/-- Phase distance satisfies the triangle inequality. -/
 theorem phaseDist_triangle (u v w : I → ℂ) : phaseDist u w≤phaseDist u v+phaseDist v w := by
   let z:=phaseFactor u v
   let q:=phaseFactor v w
@@ -40,6 +63,8 @@ theorem phaseDist_triangle (u v w : I → ℂ) : phaseDist u w≤phaseDist u v+p
       rw [l2norm_smul,hz,Real.sqrt_one,one_mul]
       rfl
 
+/-- For a normalized vector, the phase distance between its images under two matrices is at most
+the operator norm of the matrix difference. -/
 theorem phaseDist_mulVec_perturb (A B : Matrix I I ℂ) (v : I → ℂ) (hv : l2norm v=1) :
     phaseDist (A*ᵥv) (B*ᵥv)≤‖A-B‖ := by
   calc

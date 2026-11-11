@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.InterleaveComparison
 import Qatlib.Papers.QAOAScaling23.SearchFees.AngleSplit
+
+/-!
+# Resource bounds for small marked mass
+
+The geometric-search resource estimate is transferred to each non-stage ledger using the
+single-window cost bounds. Combining it with the interleaving comparison yields the inverse-sine
+resource bound for marked mass at most one half.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `original_resource_400`: With exact validation, marked mass `sin θ` squared for `0 < θ < π/2`,
+  and `M * sin (2 * θ) ≥ 1`, each non-stage ledger of geometric search has expectation at most
+  `ENNReal.ofReal (400 / sin (2 * θ))`.
+* `lowQ_interleaved_budget`: With exact validation, marked mass `sin θ` squared at most `1/2`,
+  and `M * sin θ ≥ 1`, each non-stage ledger of interleaved geometric search has expectation at
+  most `ENNReal.ofReal (1000 / sin θ)`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -18,12 +42,16 @@ open Qatlib.Concepts.WalkSearch.QuantumAccess
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- Every window in a geometric search schedule is positive. -/
 theorem geometric_schedule_positive (M T:ℕ) : ∀m∈geometricSearchSchedule M T,0<m := by
   intro m hm
   obtain ⟨i,hi⟩:=List.mem_ofFn.mp hm
   rw [← hi]
   exact geometric_window_pos M i.val
 
+/-- With exact validation, marked mass `sin θ` squared for `0 < θ < π/2`, and `M * sin (2 * θ) ≥
+1`, each non-stage ledger of geometric search has expectation at most `ENNReal.ofReal (400 /
+sin (2 * θ))`. -/
 theorem original_resource_400 (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M T:ℕ) (θ:ℝ)
     (h0:0<θ) (h1:θ<Real.pi/2) (hmass:MeasureProb (preparedAAState U seed) S=(Real.sin θ)^2)
@@ -43,6 +71,9 @@ theorem original_resource_400 (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I �
   | gates=>exact hb.2.2.2.2
   | stages=>exact (hf rfl).elim
 
+/-- With exact validation, marked mass `sin θ` squared at most `1/2`, and `M * sin θ ≥ 1`, each
+non-stage ledger of interleaved geometric search has expectation at most `ENNReal.ofReal
+(1000 / sin θ)`. -/
 theorem lowQ_interleaved_budget (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M T:ℕ) (θ:ℝ)
     (h0:0<θ) (h1:θ<Real.pi/2) (hmass:MeasureProb (preparedAAState U seed) S=(Real.sin θ)^2)

@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+
+/-!
+# Subset-controlled rotation syntax and basis transport
+
+This module defines subset controls, Toffoli folds, and the original Figure 2 rotation-word
+construction. It proves basis-state transport and the final conjunction value for the recursive
+fold under its disjointness and clean-work hypotheses, and records that the original frame
+excludes empty control lists.
+
+The polynomial payoff-rotation setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `subsetAndFold_basis_transport`: The compiled `subsetAndFold` transports each basis ket to the
+  ket of `subsetFoldBasis` under the stated wire-disjointness hypotheses.
+* `subsetAndFold_basis_last`: With equally long control and clean-work lists and the stated
+  disjointness, the last fold flag equals the conjunction of the initial flag and all controls.
+* `subsetRotationFrame_empty_false`: No empty control list satisfies the original
+  `subsetRotationFrame`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,32 +50,43 @@ open Matrix
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The Boolean conjunction of the register bits on the listed control wires. -/
 def subsetControlTrue {N : ℕ} (S : List (Fin N)) (x : Reg N) : Bool :=
   S.all (fun w => x w)
 
+/-- The original subset-rotation frame, requiring distinct control and work wires, separation
+from the target, disjoint control and work lists, and `works.length + 1 = S.length`. -/
 def subsetRotationFrame {N : ℕ} (S : List (Fin N)) (target : Fin N)
     (works : List (Fin N)) : Prop :=
   S.Nodup ∧ works.Nodup ∧ works.length + 1 = S.length ∧
     (∀ w ∈ S, w ≠ target) ∧ (∀ w ∈ works, w ≠ target) ∧
     (∀ w ∈ S, ∀ u ∈ works, w ≠ u)
 
+/-- The recursive Toffoli gate list that combines a running flag with successive controls into
+successive work wires. -/
 noncomputable def subsetAndFold {N : ℕ} (flag : Fin N) :
     List (Fin N) → List (Fin N) → List (ReflectionGate N)
   | c :: cs, w :: ws => toffoliLocalSteps flag c w ++ subsetAndFold w cs ws
   | _, _ => []
 
+/-- The original Toffoli ladder, initialized by the first two controls and continued with the
+list beginning at the second control. -/
 noncomputable def subsetAndLadder {N : ℕ} (S works : List (Fin N)) :
     List (ReflectionGate N) :=
   match S, works with
   | c0 :: c1 :: cs, w :: ws => toffoliLocalSteps c0 c1 w ++ subsetAndFold w (c1 :: cs) ws
   | _, _ => []
 
+/-- The selected flag wire: the first control, with target fallback, when there are no work
+wires, or the last work wire otherwise. -/
 def subsetFlagWire {N : ℕ} (S : List (Fin N)) (target : Fin N)
     (works : List (Fin N)) : Fin N :=
   match works with
   | [] => S.headD target
   | _ => works.getLastD target
 
+/-- The original subset-controlled rotation word, using an unconditional target rotation for an
+empty control list and a ladder, controlled rotation, and inverse ladder otherwise. -/
 noncomputable def subsetRotationSteps {N : ℕ} (S : List (Fin N)) (target : Fin N)
     (works : List (Fin N)) (θ : ℝ) : List (ReflectionGate N) :=
   match S with
@@ -59,31 +95,42 @@ noncomputable def subsetRotationSteps {N : ℕ} (S : List (Fin N)) (target : Fin
       multiKnownPairSteps (subsetFlagWire S target works) target ⟨0, 0, θ, 0⟩ ++
       reflectionAdjoint (subsetAndLadder S works)
 
+/-- The sum of angles of terms whose control subsets are true in the given register. -/
 def subsetRotationAngle {N : ℕ} (terms : List (List (Fin N) × ℝ)) (x : Reg N) : ℝ :=
   ((terms.filter (fun p => subsetControlTrue p.1 x)).map Prod.snd).sum
 
+/-- The concatenation of the original subset-rotation words for all listed angle terms. -/
 noncomputable def figTwoRotationSteps {N : ℕ} (target : Fin N) (works : List (Fin N))
     (terms : List (List (Fin N) × ℝ)) : List (ReflectionGate N) :=
   terms.flatMap (fun p => subsetRotationSteps p.1 target works p.2)
 
+/-- The basis-register update that XORs the conjunction of wires `a` and `c` into wire `w`. -/
 noncomputable def subsetStageBasis {N : ℕ} (y : Reg N) (a c w : Fin N) : Reg N :=
   Function.update y w (y w ^^ (y a && y c))
 
+/-- The basis-register transformation produced by recursively folding control bits into work
+wires. -/
 noncomputable def subsetFoldBasis {N : ℕ} (f : Fin N) :
     List (Fin N) → List (Fin N) → Reg N → Reg N
   | c :: cs, w :: ws, y => subsetFoldBasis w cs ws (subsetStageBasis y f c w)
   | _, _, y => y
 
+/-- The last element with fallback of a nonempty list equals that of its tail with the head as
+fallback. -/
 private theorem getLastD_cons_cons {α : Type} (w : α) (ws : List α) (f : α) :
     (w :: ws).getLastD f = ws.getLastD w := by
   cases ws <;> simp [List.getLastD]
 
+/-- The compiled local Toffoli on three distinct wires acts on a basis ket by
+`subsetStageBasis`. -/
 private theorem subsetStage_action {N : ℕ} (a c w : Fin N) (hac : a ≠ c) (haw : a ≠ w)
     (hcw : c ≠ w) (y : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (toffoliLocalSteps a c w))
         (Ket y) = Ket (subsetStageBasis y a c w) :=
   (local_toffoli_fifteen_exact N a c w hac haw hcw).2.2 y
 
+/-- Under the stated wire-disjointness conditions, the compiled Toffoli fold maps each basis ket
+according to `subsetFoldBasis`. -/
 private theorem subsetFold_action {N : ℕ} :
     ∀ (cs ws : List (Fin N)) (_hdis : ∀ u ∈ cs, ∀ v ∈ ws, u ≠ v) (_hwnodup : ws.Nodup)
       (f : Fin N) (_hflag : ∀ v, (v ∈ cs ∨ v ∈ ws) → f ≠ v) (y : Reg N),
@@ -120,6 +167,8 @@ private theorem subsetFold_action {N : ℕ} :
           rw [subsetStage_action f c w hfc hfw hcw]
           exact ih ws hdis' hwnodup' w hwflag _
 
+/-- For equal-length control and clean-work lists satisfying the stated disjointness conditions,
+the final fold flag is the conjunction of the initial flag and all control bits. -/
 private theorem subsetFold_last {N : ℕ} :
     ∀ (cs ws : List (Fin N)) (_hlen : cs.length = ws.length)
       (_hdis : ∀ u ∈ cs, ∀ v ∈ ws, u ≠ v) (_hwnodup : ws.Nodup) (y : Reg N) (f : Fin N)
@@ -175,18 +224,23 @@ private theorem subsetFold_last {N : ℕ} :
             refine ⟨⟨hfc, h c (by simp)⟩, fun u hu => ?_⟩
             rw [hne' u (hne u hu)]; exact h u (List.mem_cons_of_mem _ hu)
 
+/-- The compiled `subsetAndFold` transports each basis ket to the ket of `subsetFoldBasis` under
+the stated wire-disjointness hypotheses. -/
 theorem subsetAndFold_basis_transport {N : ℕ} (cs ws : List (Fin N))
     (hdis : ∀ u∈cs,∀ v∈ws,u≠v) (hwn : ws.Nodup) (f : Fin N)
     (hf : ∀ v,v∈cs ∨ v∈ws → f≠v) (y : Reg N) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (subsetAndFold f cs ws)) (Ket y)=
       Ket (subsetFoldBasis f cs ws y) := subsetFold_action cs ws hdis hwn f hf y
 
+/-- With equally long control and clean-work lists and the stated disjointness, the last fold
+flag equals the conjunction of the initial flag and all controls. -/
 theorem subsetAndFold_basis_last {N : ℕ} (cs ws : List (Fin N)) (hlen : cs.length=ws.length)
     (hdis : ∀ u∈cs,∀ v∈ws,u≠v) (hwn : ws.Nodup) (y : Reg N) (f : Fin N)
     (hc : ∀ w∈ws,y w=false) :
     subsetFoldBasis f cs ws y (ws.getLastD f)=decide (y f=true ∧ ∀ c∈cs,y c=true) :=
   subsetFold_last cs ws hlen hdis hwn y f hc
 
+/-- No empty control list satisfies the original `subsetRotationFrame`. -/
 theorem subsetRotationFrame_empty_false {N : ℕ} (t : Fin N) (ws : List (Fin N)) :
     ¬subsetRotationFrame [] t ws := by
   intro h

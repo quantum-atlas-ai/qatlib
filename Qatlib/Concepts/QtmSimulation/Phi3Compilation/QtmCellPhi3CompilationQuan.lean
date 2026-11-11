@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationStat
 import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3RoundCompilation
+
+/-!
+# Compilation of QTM cell windows into Φ3 gates
+
+This module compiles local QTM window rounds into finite Φ3 gate lists with no oracle queries.
+It composes local reflection tables, repeats them, and proves the explicit gate-budget and
+full-state simulation contract motivated by [Yao1993].
+
+## Main statements
+
+* `qtmRound_local_table`: A legal reflection table for one window round.
+* `qtmCellPhi3Compilation`: The repeated-round Φ3 compilation contract.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +44,8 @@ namespace Qatlib.Concepts.QtmSimulation.Phi3Compilation
 open Matrix
 open scoped Classical
 
+/-- Zero QTM rounds are simulated by an empty unitary Φ3 circuit with no queries or gates,
+preserving every encoded input state. -/
 theorem qtmPhi3_compilation_zeroRounds
     (Q : Type) [Fintype Q] [DecidableEq Q] (A : Type) [Fintype A] [DecidableEq A]
     (b t : ℕ) (e : CellState Q A → Reg b)
@@ -39,6 +59,9 @@ theorem qtmPhi3_compilation_zeroRounds
   intro ψ
   rfl
 
+/-- For a positive cell-code width and an injective encoding, a unitary local QTM update has a
+legal reflection table simulating one round on all encoded states within the stated padding
+budget. -/
 theorem qtmRound_local_table (Q : Type) [Fintype Q] [DecidableEq Q]
     (A : Type) [Fintype A] [DecidableEq A] (t b : ℕ) (hb : 0 < b)
     (e : CellState Q A → Reg b) (he : Function.Injective e)
@@ -87,22 +110,27 @@ theorem qtmRound_local_table (Q : Type) [Fintype Q] [DecidableEq Q]
     rw [qtmMarker_sweep]
     simp only [kRoundCircuit,run_append,run_gate,run_nil]
 
+/-- Concatenate a reflection-gate list with itself the specified number of times. -/
 private def qtmRepeatRef {N : ℕ} (gs : List (ReflectionGate N)) : ℕ → List (ReflectionGate N)
   | 0 => []
   | k+1 => gs++qtmRepeatRef gs k
 
+/-- Repeating a legal reflection-gate list preserves legality. -/
 private theorem qtmRepeatRef_legal {N : ℕ} (gs : List (ReflectionGate N))
     (hgs : reflectionLegal gs) (k : ℕ) : reflectionLegal (qtmRepeatRef gs k) := by
   induction k with
   | zero => simp [qtmRepeatRef,reflectionLegal]
   | succ k ih => exact (reflectionLegal_append gs (qtmRepeatRef gs k)).mpr ⟨hgs,ih⟩
 
+/-- Repeating a reflection-gate list `k` times multiplies its length by `k`. -/
 private theorem qtmRepeatRef_length {N : ℕ} (gs : List (ReflectionGate N)) (k : ℕ) :
     (qtmRepeatRef gs k).length = k*gs.length := by
   induction k with
   | zero => simp [qtmRepeatRef]
   | succ k ih => simp [qtmRepeatRef,ih,Nat.succ_mul,Nat.add_comm]
 
+/-- If a reflection table simulates a circuit through an embedding, its `k`fold repetition
+simulates `k` repetitions of that circuit through the same embedding. -/
 private theorem qtmRepeatRef_run {I : Type} [Fintype I] [DecidableEq I] {N : ℕ}
     (embed : QState I → QState (Reg N)) (C : Circuit I) (gs : List (ReflectionGate N))
     (hr : ∀ ψ, Run 1 (reflectionCompile gs) (embed ψ) = embed (Run 1 C ψ))
@@ -115,6 +143,9 @@ private theorem qtmRepeatRef_run {I : Type} [Fintype I] [DecidableEq I] {N : ℕ
     simp only [qtmRepeatRef,reflectionCompile_append,RepeatCircuit,run_append]
     rw [hr,ih]
 
+/-- Establish the zero-query Φ3 compilation contract for repeated QTM window rounds, including
+the explicit gate-list bound and equality on all encoded states. This supplies the local
+compilation component associated with [Yao, Theorem 2][Yao1993]. -/
 theorem qtmCellPhi3Compilation : QtmCellPhi3Compilation := by
   intro Q _ _ A _ _ b t k e G he hG
   rcases isEmpty_or_nonempty (CellState Q A) with hEmpty | hNonempty

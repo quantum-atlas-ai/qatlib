@@ -8,6 +8,27 @@ import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceQua
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindowConsumers
 import Mathlib.Logic.Equiv.Fin.Basic
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionDefs
+
+/-!
+# Specification of the prepared forced LCHS output
+
+`InhomogeneousTrapezoidPreparedSolution` states a conditional density error estimate for the
+unified trapezoidal LCHS circuit. Given an approximation to the forced solution with vector
+error at most `ε` and solution norm at least `τ`, each positive-success amplification output has
+density error at most `4 * ε / τ` when `ε ≤ τ / 2`.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `InhomogeneousTrapezoidPreparedSolution`: specifies the error of the postselected
+  forced-solution density.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -39,6 +60,9 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 end InhomogeneousTrapezoidUnifiedDefinitions
 
+/-- The proposition that, under the stated unitary preparation and raw approximation hypotheses
+with `ε ≤ τ / 2`, every positive-success unified circuit output has density trace norm error
+at most `4 * ε / τ` from the forced solution. -/
 def InhomogeneousTrapezoidPreparedSolution : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s t ε τ : ℝ) (K N Mt : ℕ) (B : Matrix I I ℂ) (P : Fin (Mt + 1) → Matrix I I ℂ)

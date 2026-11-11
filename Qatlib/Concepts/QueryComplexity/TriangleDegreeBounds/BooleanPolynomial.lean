@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.Support
 import Mathlib.Combinatorics.Nullstellensatz
+
+/-!
+# Integer polynomial representatives of Boolean functions
+
+This module constructs `integerBooleanRepresentative` from Boolean point indicators and proves
+its evaluation and multilinearity properties. Mapping its coefficients to the reals gives the
+unique multilinear representative, whose total degree is the exact real degree; reduction modulo
+two cannot increase that degree.
+
+The mathematical background is described in [BealsEtAl2001].
+
+## Main statements
+
+* `integerBooleanRepresentative_real_degree_eq`: the real representative has exact degree.
+* `boolean_mod_two_representation`: a representation over `ZMod 2` bounded by exact real degree.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,16 +37,23 @@ namespace Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds
 open MvPolynomial
 open scoped BigOperators
 
+/-- Maps a Boolean assignment to its zero-one assignment in a type with zero and one. -/
 noncomputable def booleanPoint {I R : Type} [Zero R] [One R] (x : I → Bool) : I → R :=
   fun i => if x i then 1 else 0
 
+/-- The product polynomial selecting a fixed Boolean assignment, with factor `X i` or `1 - X i`
+according to its bit. -/
 noncomputable def booleanIndicator {I R : Type} [Fintype I] [CommRing R] (x : I → Bool) :
     MvPolynomial I R := ∏ i, if x i then X i else 1-X i
 
+/-- The integer polynomial obtained by summing the Boolean indicators of all inputs on which `f`
+is true. -/
 noncomputable def integerBooleanRepresentative {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) : MvPolynomial I ℤ :=
   ∑ x : I → Bool, if f x then booleanIndicator x else 0
 
+/-- A Boolean indicator evaluates to one at its chosen assignment and to zero at every other
+Boolean assignment. -/
 private theorem booleanIndicator_eval {I R : Type} [Fintype I] [DecidableEq I]
     [CommRing R] (x y : I → Bool) :
     eval (booleanPoint y) (booleanIndicator x : MvPolynomial I R)=if x=y then 1 else 0 := by
@@ -43,6 +71,8 @@ private theorem booleanIndicator_eval {I R : Type} [Fintype I] [DecidableEq I]
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     cases hx : x i <;> cases hy : y i <;> simp_all [booleanPoint]
 
+/-- The integer Boolean representative evaluates to the zero-one value of `f` at each Boolean
+assignment. -/
 theorem integerBooleanRepresentative_eval {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) (y : I → Bool) :
     eval (booleanPoint y) (integerBooleanRepresentative f)=if f y then 1 else 0 := by
@@ -56,6 +86,7 @@ theorem integerBooleanRepresentative_eval {I : Type} [Fintype I] [DecidableEq I]
     cases f x <;> simp [hxy]
   · simp
 
+/-- A Boolean indicator has degree at most one in each variable. -/
 private theorem booleanIndicator_degreeOf {I R : Type} [Fintype I] [DecidableEq I]
     [CommRing R] [Nontrivial R] (x : I → Bool) (i : I) :
     (booleanIndicator x : MvPolynomial I R).degreeOf i ≤ 1 := by
@@ -72,6 +103,7 @@ private theorem booleanIndicator_degreeOf {I R : Type} [Fintype I] [DecidableEq 
       · simp [degreeOf_X]
     _ = 1 := by simp
 
+/-- The integer Boolean representative has degree at most one in every variable. -/
 private theorem integerBooleanRepresentative_degreeOf {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) (i : I) : (integerBooleanRepresentative f).degreeOf i ≤ 1 := by
   classical
@@ -83,6 +115,8 @@ private theorem integerBooleanRepresentative_degreeOf {I : Type} [Fintype I] [De
   · simp
   · exact booleanIndicator_degreeOf x i
 
+/-- Mapping the integer representative into a commutative ring gives the sum of its true-input
+Boolean indicators over that ring. -/
 private theorem representative_map {I R : Type} [Fintype I] [DecidableEq I] [CommRing R]
     (f : (I → Bool) → Bool) :
     map (Int.castRingHom R) (integerBooleanRepresentative f)=
@@ -90,6 +124,8 @@ private theorem representative_map {I R : Type} [Fintype I] [DecidableEq I] [Com
   classical
   simp [integerBooleanRepresentative,booleanIndicator,apply_ite]
 
+/-- The coefficient-mapped integer representative evaluates to the zero-one value of `f` in any
+commutative ring. -/
 theorem integerBooleanRepresentative_map_eval {I R : Type} [Fintype I] [DecidableEq I]
     [CommRing R] (f : (I → Bool) → Bool) (x : I → Bool) :
     eval (booleanPoint x) (map (Int.castRingHom R) (integerBooleanRepresentative f))=
@@ -103,6 +139,8 @@ theorem integerBooleanRepresentative_map_eval {I R : Type} [Fintype I] [Decidabl
     cases f y <;> simp [hyx]
   · simp
 
+/-- Two real polynomials of degree at most one in each variable are equal if their values agree
+on every Boolean assignment. -/
 private theorem multilinear_unique {I : Type} [Fintype I] [DecidableEq I]
     (p q : MvPolynomial I ℝ) (hp : ∀ i, p.degreeOf i ≤ 1) (hq : ∀ i, q.degreeOf i ≤ 1)
     (he : ∀ x : I → Bool, eval (booleanPoint x) p=eval (booleanPoint x) q) : p=q := by
@@ -121,6 +159,8 @@ private theorem multilinear_unique {I : Type} [Fintype I] [DecidableEq I]
       rcases hi with hi | hi <;> simp [booleanPoint,y,hi]
     rw [← hy, map_sub, he y, sub_self]
 
+/-- The real coefficient image of the integer representative equals the multilinearization of
+any real polynomial representing `f` on the Boolean cube. -/
 theorem integerBooleanRepresentative_real_eq {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) (p : MvPolynomial I ℝ)
     (hp : ∀ x, Qatlib.Concepts.QueryComplexity.DegreeMethod.boolEval p x=if f x then 1 else 0) :
@@ -140,12 +180,15 @@ theorem integerBooleanRepresentative_real_eq {I : Type} [Fintype I] [DecidableEq
     · intro i
       cases x i <;> simp [booleanPoint]
 
+/-- Mapping coefficients along a semiring homomorphism cannot increase total degree. -/
 private theorem mapped_totalDegree_le {I R S : Type} [CommSemiring R] [CommSemiring S]
     (h : R →+* S) (p : MvPolynomial I R) : (map h p).totalDegree ≤ p.totalDegree := by
   classical
   unfold totalDegree
   exact Finset.sup_mono (support_map_subset h p)
 
+/-- The integer representative's total degree is at most that of any real polynomial
+representing the same Boolean function. -/
 theorem integerBooleanRepresentative_degree_le {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) (p : MvPolynomial I ℝ)
     (hp : ∀ x, Qatlib.Concepts.QueryComplexity.DegreeMethod.boolEval p x=if f x then 1 else 0) :
@@ -158,12 +201,16 @@ theorem integerBooleanRepresentative_degree_le {I : Type} [Fintype I] [Decidable
   rw [← hd, integerBooleanRepresentative_real_eq f p hp]
   exact multilinearize_totalDegree_le p
 
+/-- The coefficient image of the integer representative in any commutative ring has degree at
+most that of any real representative of `f`. -/
 theorem integerBooleanRepresentative_map_degree_le {I R : Type} [Fintype I] [DecidableEq I]
     [CommRing R] (f : (I → Bool) → Bool) (p : MvPolynomial I ℝ)
     (hp : ∀ x, Qatlib.Concepts.QueryComplexity.DegreeMethod.boolEval p x=if f x then 1 else 0) :
     (map (Int.castRingHom R) (integerBooleanRepresentative f)).totalDegree ≤ p.totalDegree :=
   (mapped_totalDegree_le _ _).trans (integerBooleanRepresentative_degree_le f p hp)
 
+/-- Every Boolean function has a real polynomial representative whose total degree is exactly
+`exactDegree f`. -/
 theorem exactDegree_representative {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) : ∃ p : MvPolynomial I ℝ,
       (∀ x, Qatlib.Concepts.QueryComplexity.DegreeMethod.boolEval p x=if f x then 1 else 0) ∧
@@ -178,6 +225,8 @@ theorem exactDegree_representative {I : Type} [Fintype I] [DecidableEq I]
   obtain ⟨p,hp,hd⟩ := Nat.sInf_mem hn
   exact ⟨p,hp,hd⟩
 
+/-- Every Boolean function has a polynomial representative over `ZMod 2` of total degree at most
+its exact real degree. -/
 theorem boolean_mod_two_representation {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) : ∃ p : MvPolynomial I (ZMod 2),
       (∀ x, eval (booleanPoint x) p=if f x then 1 else 0) ∧
@@ -187,6 +236,8 @@ theorem boolean_mod_two_representation {I : Type} [Fintype I] [DecidableEq I]
     integerBooleanRepresentative_map_eval f, ?_⟩
   exact (integerBooleanRepresentative_map_degree_le f q hq).trans hd.le
 
+/-- The real coefficient image of the integer Boolean representative has total degree exactly
+`exactDegree f`. -/
 theorem integerBooleanRepresentative_real_degree_eq {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) :
     (map (Int.castRingHom ℝ) (integerBooleanRepresentative f)).totalDegree=
@@ -198,6 +249,8 @@ theorem integerBooleanRepresentative_real_degree_eq {I : Type} [Fintype I] [Deci
   · exact csInf_le' ⟨map (Int.castRingHom ℝ) (integerBooleanRepresentative f),
       integerBooleanRepresentative_map_eval f,rfl⟩
 
+/-- The real coefficient image of the integer representative has degree at most one in each
+variable. -/
 theorem integerBooleanRepresentative_real_degreeOf {I : Type} [Fintype I] [DecidableEq I]
     (f : (I → Bool) → Bool) (i : I) :
     (map (Int.castRingHom ℝ) (integerBooleanRepresentative f)).degreeOf i ≤ 1 := by

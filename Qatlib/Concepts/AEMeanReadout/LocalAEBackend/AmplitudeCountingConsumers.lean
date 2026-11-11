@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+/-!
+# Amplitude estimation consumers for quantum counting
+
+This module specializes amplitude estimation to a uniform state prepared by `QFTMatrix`. It
+identifies the marked probability with the marked fraction and derives a cardinality error bound
+from [BrassardEtAl2002], together with an exact-grid example on four elements.
+
+## Main statements
+
+* `amplitude_counting_actual_consumer`: gives the counting error window with success mass at
+  least `8/π²`.
+* `amplitude_counting_exact_grid_consumer`: proves exact estimation of one quarter when `6 ∣ M`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,8 @@ open Matrix
 open scoped Classical
 set_option autoImplicit false
 
+/-- The marked probability in the QFT preparation from label zero is the marked cardinality
+divided by `N`. -/
 theorem prepared_qft_mark_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
     MeasureProb (preparedAAState (QFTMatrix N) (⟨0,hN⟩ : Fin N)) S =
       (S.card : ℝ)/(N : ℝ) := by
@@ -31,6 +52,9 @@ theorem prepared_qft_mark_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
   simp only [MeasureProb,BornProb,hn,Finset.sum_const,nsmul_eq_mul]
   ring
 
+/-- QFT-prepared amplitude estimation approximates the marked cardinality within
+`2*π*√(t*(N-t))/M + π²*N/M²` with probability at least `8/π²`, where `t` is the marked
+cardinality [BrassardEtAl2002]. -/
 theorem amplitude_counting_actual_consumer (N M : ℕ) (hN : 0 < N) (hM : 2 ≤ M)
     (S : Finset (Fin N)) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -74,6 +98,8 @@ theorem amplitude_counting_actual_consumer (N M : ℕ) (hN : 0 < N) (hM : 2 ≤ 
   · intro z _ _
     exact (aeLaw M (QFTMatrix N) ⟨0,hN⟩ S (qftMatrix_unitary hN) hM).nonneg z
 
+/-- For one marked element among four and `6 ∣ M`, amplitude estimation returns the estimate
+`1/4` with probability one. -/
 theorem amplitude_counting_exact_grid_consumer (M : ℕ) (hM : 2 ≤ M) (hdiv : 6 ∣ M) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M => aeEstimate M z=1/4),
       (aeLaw M (QFTMatrix 4) (0 : Fin 4) {0} (qftMatrix_unitary (by omega)) hM).prob z=1 := by

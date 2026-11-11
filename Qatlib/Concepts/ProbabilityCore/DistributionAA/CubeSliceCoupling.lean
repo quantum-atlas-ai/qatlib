@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
+
+/-!
+# Couplings between adjacent Hamming slices
+
+The module counts edges between adjacent Hamming slices by deleting a true coordinate or
+inserting a false coordinate. Double counting yields the adjacent cardinality identity and
+expectation formulas for these operations.
+
+The resulting finite coupling identities express differences of neighboring slice means as
+averages of coordinate flip differences. They provide slice probability infrastructure for
+Boolean cube analysis in the polynomial query setting of [BealsEtAl2001].
+
+## Main statements
+
+* `cube_slice_adjacent_card_identity`: the edge count relating neighboring slice cardinalities.
+* `cube_slice_delete_expect` and `cube_slice_insert_expect`: expectation transport between
+  adjacent slices.
+* `cube_slice_difference_down` and `cube_slice_difference_up`: differences of adjacent slice
+  means.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ProbabilityCore.DistributionAA
@@ -15,16 +40,20 @@ noncomputable section
 namespace Qatlib.Concepts.ProbabilityCore.DistributionAA
 open scoped Classical BigOperators
 
+/-- Flipping the same Boolean coordinate twice recovers the original input. -/
 theorem cube_flip_involution {n : ℕ} (x : Fin n → Bool) (i : Fin n) : cubeFlip (cubeFlip x i) i = x := by
   ext j
   by_cases hj : j=i <;> simp [cubeFlip,hj]
 
+/-- The involutive equivalence of Boolean inputs obtained by flipping a fixed coordinate. -/
 def cubeFlipEquiv {n : ℕ} (i : Fin n) : (Fin n → Bool) ≃ (Fin n → Bool) where
   toFun := fun x => cubeFlip x i
   invFun := fun x => cubeFlip x i
   left_inv x := cube_flip_involution x i
   right_inv x := cube_flip_involution x i
 
+/-- Flipping a true coordinate decreases Hamming weight by one, while flipping a false
+coordinate increases it by one, expressed as an additive balance identity. -/
 theorem cube_hamming_flip_balance {n : ℕ} (x : Fin n → Bool) (i : Fin n) :
     cubeHamming (cubeFlip x i)+(if x i then 1 else 0) = cubeHamming x+(if x i then 0 else 1) := by
   have hx := Finset.sum_erase_add (Finset.univ : Finset (Fin n))
@@ -40,6 +69,7 @@ theorem cube_hamming_flip_balance {n : ℕ} (x : Fin n → Bool) (i : Fin n) :
   rw [← cube_hamming_eq_sum] at hx hy
   cases hi : x i <;> simp [cubeFlip,hi] at hy hx ⊢ <;> omega
 
+/-- The number of false coordinates plus the Hamming weight equals the input length. -/
 theorem cube_zero_count {n : ℕ} (x : Fin n → Bool) :
     (Finset.univ.filter (fun i : Fin n => x i=false)).card+cubeHamming x = n := by
   rw [cube_hamming_eq_sum]
@@ -54,6 +84,8 @@ theorem cube_zero_count {n : ℕ} (x : Fin n → Bool) :
     cases x i <;> simp
   simp only [hf, Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul, mul_one]
 
+/-- For `0 < k ≤ n`, summing a function after deleting each true bit from every input in the `k`
+slice counts every input in the `k - 1` slice `n - k + 1` times. -/
 theorem cube_slice_delete_double_sum (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (Fin n → Bool) → ℝ) :
     (∑ x : Fin n → Bool, if cubeHamming x=k then
       ∑ i : Fin n, if x i then f (cubeFlip x i) else 0 else 0) =
@@ -92,10 +124,13 @@ theorem cube_slice_delete_double_sum (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f
     simp [hy, Finset.sum_ite, Finset.sum_const, hc]
   · simp [hy]
 
+/-- The sum of the real zero and one encodings of the input coordinates equals the real cast of
+its Hamming weight. -/
 theorem cube_hamming_cast_sum {n : ℕ} (x : Fin n → Bool) :
     (∑ i : Fin n, if x i then (1 : ℝ) else 0) = (cubeHamming x : ℝ) :=
   Finset.sum_boole (R := ℝ) _ _
 
+/-- The Hamming `k` slice is nonempty when `k ≤ n`. -/
 theorem cube_slice_card_pos (n k : ℕ) (hk : k ≤ n) :
     0 < (Finset.univ.filter (fun x : Fin n → Bool => cubeHamming x=k)).card := by
   let S := Finset.univ.filter (fun x : Fin n → Bool => cubeHamming x=k)
@@ -110,6 +145,8 @@ theorem cube_slice_card_pos (n k : ℕ) (hk : k ≤ n) :
   simp only [hz, Finset.sum_const_zero] at hs
   norm_num at hs
 
+/-- Slice expectation is the reciprocal slice cardinality times the sum of function values on
+that slice. -/
 theorem cube_slice_expect_uniform (n k : ℕ) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n k) f =
       ((Finset.univ.filter (fun x : Fin n → Bool => cubeHamming x=k)).card : ℝ)⁻¹ *
@@ -120,6 +157,8 @@ theorem cube_slice_expect_uniform (n k : ℕ) (f : (Fin n → Bool) → ℝ) :
   intro x _
   split_ifs <;> simp
 
+/-- For `0 < k ≤ n`, the `k` slice cardinality times `k` equals the `k - 1` slice cardinality
+times `n - k + 1`. -/
 theorem cube_slice_adjacent_card_identity (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) :
     ((Finset.univ.filter (fun x : Fin n → Bool => cubeHamming x=k)).card : ℝ)*(k : ℝ) =
       ((Finset.univ.filter (fun x : Fin n → Bool => cubeHamming x=k-1)).card : ℝ)*(n-k+1 : ℕ) := by
@@ -134,6 +173,8 @@ theorem cube_slice_adjacent_card_identity (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 
   rw [hl, Finset.sum_boole] at he
   linarith
 
+/-- For `0 < k ≤ n`, the expected sum of function values after deleting a true bit from the `k`
+slice equals `k` times its mean on the `k - 1` slice. -/
 theorem cube_slice_delete_expect (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n k) (fun x => ∑ i : Fin n, if x i then f (cubeFlip x i) else 0) =
       (k : ℝ)*cubeExpect n (sliceWeight n (k-1)) f := by
@@ -149,6 +190,8 @@ theorem cube_slice_delete_expect (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (
     linarith only [he]
   rw [← mul_assoc, hr, mul_assoc]
 
+/-- For `k > 0`, the sum of any function of adjacent slice endpoints is unchanged when deletion
+edges are enumerated as insertion edges. -/
 theorem cube_slice_edge_balance (n k : ℕ) (hk0 : 0 < k)
     (g : (Fin n → Bool) → (Fin n → Bool) → ℝ) :
     (∑ x : Fin n → Bool, if cubeHamming x=k then
@@ -184,6 +227,8 @@ theorem cube_slice_edge_balance (n k : ℕ) (hk0 : 0 < k)
   intro y _
   by_cases hy : cubeHamming y=k-1 <;> simp [hy]
 
+/-- The expected sum of a function over true coordinates on the `k` slice is `k` times its slice
+expectation. -/
 theorem cube_slice_ones_expect (n k : ℕ) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n k) (fun x => ∑ i : Fin n, if x i then f x else 0) =
       (k : ℝ)*cubeExpect n (sliceWeight n k) f := by
@@ -202,6 +247,8 @@ theorem cube_slice_ones_expect (n k : ℕ) (f : (Fin n → Bool) → ℝ) :
     rw [hx]
   · simp
 
+/-- For `0 < k ≤ n`, the expected sum of function values after inserting a true bit into the `k
+- 1` slice equals `n - k + 1` times its mean on the `k` slice. -/
 theorem cube_slice_insert_expect (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n (k-1)) (fun y => ∑ i : Fin n, if y i=false then f (cubeFlip y i) else 0) =
       (n-k+1 : ℕ)*cubeExpect n (sliceWeight n k) f := by
@@ -231,6 +278,8 @@ theorem cube_slice_insert_expect (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (
     linarith only [hc]
   rw [← mul_assoc, hr, mul_assoc]
 
+/-- When `k ≤ n`, the expected sum of a function over false coordinates on the `k` slice is `n -
+k` times its slice expectation. -/
 theorem cube_slice_zeros_expect (n k : ℕ) (hk : k ≤ n) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n k) (fun x => ∑ i : Fin n, if x i=false then f x else 0) =
       (n-k : ℕ)*cubeExpect n (sliceWeight n k) f := by
@@ -250,6 +299,8 @@ theorem cube_slice_zeros_expect (n k : ℕ) (hk : k ≤ n) (f : (Fin n → Bool)
     rw [hc]
   · simp
 
+/-- For `0 < k ≤ n`, the expected sum of differences from deleting true bits on the `k` slice is
+`k` times the difference between the `k` and `k - 1` slice means. -/
 theorem cube_slice_difference_down (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n k) (fun x => ∑ i : Fin n, if x i then f x-f (cubeFlip x i) else 0) =
       (k : ℝ)*(cubeExpect n (sliceWeight n k) f-cubeExpect n (sliceWeight n (k-1)) f) := by
@@ -263,6 +314,8 @@ theorem cube_slice_difference_down (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f :
   rw [cube_expect_sub, cube_slice_ones_expect, cube_slice_delete_expect n k hk0 hk]
   ring
 
+/-- For `0 < k ≤ n`, the expected sum of differences from inserting true bits on the `k - 1`
+slice is `n - k + 1` times the difference between the `k` and `k - 1` slice means. -/
 theorem cube_slice_difference_up (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ n) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (sliceWeight n (k-1)) (fun x => ∑ i : Fin n, if x i=false then f (cubeFlip x i)-f x else 0) =
       (n-k+1 : ℕ)*(cubeExpect n (sliceWeight n k) f-cubeExpect n (sliceWeight n (k-1)) f) := by

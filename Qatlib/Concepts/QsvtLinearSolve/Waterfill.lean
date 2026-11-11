@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.WaterFilling
 import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+/-!
+# Coherent water filling and amplification
+
+This module proves conditional-output accuracy and resource bounds for ideal and computed
+coherent water filling. It quantifies approximation error through amplitude amplification and
+treats exact proportional reweighting, in the quantum rejection-sampling setting of
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `coherent_waterfill_conditional_target_fidelity_and_bias`: Conditional target error including
+  water-filling bias.
+* `coherent_waterfill_actual_paid_aa_and_robustness`: Amplification counts and propagated
+  preparation error.
+* `coherent_waterfill_computed_exact_proportional_consumer`: A safe proportional scale and a
+  conditional-output estimate.
+
+## References
+
+* [Ozols, Roetteler and Roland, 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -32,6 +55,8 @@ set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option maxHeartbeats 2000000
 
+/-- For normalized component states, the squared norm of the real-weighted family supported on
+the true flag equals the sum of squared weights. -/
 private theorem water_real_family_normSq (m D : ℕ) (c : Fin m → ℝ)
     (xi : Fin m → QState (Fin D)) (hxi : ∀ i, Normalized (xi i)) :
     ‖toEuclidean_fromVec (fun p : (Fin m × Fin D) × Bool => if p.2 then (c p.1.1 : ℂ)*xi p.1.1 p.1.2 else 0)‖^2 =
@@ -43,6 +68,8 @@ private theorem water_real_family_normSq (m D : ℕ) (c : Fin m → ℝ)
   have hxisum (i : Fin m) : ∑ d, ‖xi i d‖^2 = 1 := hxi i
   simp_rw [← Finset.mul_sum, hxisum, mul_one]
 
+/-- For positive water-filling mass, the ideal conditional state's distance from the normalized
+target is the square root of two minus twice the normalized water-filled overlap. -/
 theorem water_ideal_conditional_distance (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (xi : Fin m → QState (Fin D)) (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) (hsigma : (∑ i, (sigma i : ℝ)^2) = 1)
@@ -86,6 +113,9 @@ theorem water_ideal_conditional_distance (m D : ℕ) (pi sigma : Fin m → ℚ) 
   rw [← hn]
   exact (Real.sqrt_sq (norm_nonneg _)).symm
 
+/-- When `e = 32 / 2^k` is smaller than the square root of the water-filling mass, the computed
+success mass is at least `(sqrt p - e)^2`. Its conditional target error is bounded by `2 * e
+/ sqrt p` plus the ideal water-filling bias. -/
 theorem coherent_waterfill_conditional_target_fidelity_and_bias
     (m D k : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (xi : Fin m → QState (Fin D)) (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)
@@ -132,6 +162,8 @@ theorem coherent_waterfill_conditional_target_fidelity_and_bias
     simp only [toEuclidean_fromVec, ← WithLp.toLp_sub] at htri
     exact htri.trans (add_le_add hpost.2 hid.le)
 
+/-- Replacing a unitary preparation by another within operator error `e` changes a valid
+prepared-word evaluation by at most its input-query count times `e`. -/
 private theorem water_eval_error {H : Type} [Fintype H] [DecidableEq H]
     (U B C : Matrix H H ℂ) (cs : List (PreparedStep H)) (e : ℝ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hB : B ∈ Matrix.unitaryGroup H ℂ) (hC : C ∈ Matrix.unitaryGroup H ℂ)
@@ -164,12 +196,17 @@ private theorem water_eval_error {H : Type} [Fintype H] [DecidableEq H]
         ((mul_le_mul_of_nonneg_right hhead (norm_nonneg _)).trans (by simpa using! ht))
       _ = _ := by cases s <;> simp [preparedInputQueries, Nat.cast_add] <;> ring
 
+/-- The prepared amplification word has `t + 1` forward preparations, `t` backward preparations,
+and length `4 * t + 1`. -/
 theorem water_aa_word_counts {H : Type} [Fintype H] [DecidableEq H] (j : H) (t : ℕ) :
     ((preparedAAWord j t).countP (fun s => match s with | .prepareForward => true | _ => false)) = t+1 ∧
     ((preparedAAWord j t).countP (fun s => match s with | .prepareBackward => true | _ => false)) = t ∧
     (preparedAAWord j t).length = 4*t+1 := by
   simp [preparedAAWord, List.countP_flatten, List.sum_replicate, List.length_flatten, Nat.mul_comm]
 
+/-- The computed amplification circuit has `t` marking queries and `3 * t + 1` gates, with `t +
+1` forward and `t` backward preparations. Its output differs from ideal-preparation
+amplification by at most `(2 * t + 1) * 32 / 2^k`. -/
 theorem coherent_waterfill_actual_paid_aa_and_robustness
     (m D k t : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)
@@ -210,6 +247,9 @@ theorem coherent_waterfill_actual_paid_aa_and_robustness
   rw [hlin]
   exact herr.trans (by convert! he using 1; push_cast; ring)
 
+/-- If the computed preparation has success mass `sin² theta` for `0 < theta < π / 2`, then `t`
+amplification rounds have success mass `sin² ((2 * t + 1) * theta)`. The prepared word has
+length `4 * t + 1`. -/
 theorem coherent_waterfill_actual_aa_success_and_preparation_cost
     (m D k t : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D) (theta : ℝ)
@@ -223,6 +263,8 @@ theorem coherent_waterfill_actual_aa_success_and_preparation_cost
     (coherent_waterfill_actual_numeric_gate_and_error m D k pi sigma lam A h hlam hA).1 htheta htheta1 hmass,
     (water_aa_word_counts (j,false) t).2.2⟩
 
+/-- For nonnegative rational coefficients, `waterSafeScale` is positive and scales every
+coefficient to at most one. -/
 theorem waterSafeScale_bounds (m : ℕ) (c : Fin m → ℚ) (hc : ∀ i, 0 ≤ c i) :
     0 < waterSafeScale c ∧ ∀ i, waterSafeScale c*c i ≤ 1 := by
   have hs : (0:ℚ) ≤ ∑ i, c i := Finset.sum_nonneg fun i _ => hc i
@@ -234,6 +276,9 @@ theorem waterSafeScale_bounds (m : ℕ) (c : Fin m → ℚ) (hc : ∀ i, 0 ≤ c
   rw [hscale, one_div_mul_eq_div]
   exact (div_le_one hden).mpr (by linarith)
 
+/-- For a normalized nonnegative proportional target, the safe scale gives exactly proportional
+water filling and mass equal to its square. If `32 / 2^k` is smaller than that scale, the
+computed conditional-output error is at most `64 / (2^k * lam)`. -/
 theorem coherent_waterfill_computed_exact_proportional_consumer
     (m D k : ℕ) (pi c : Fin m → ℚ)
     (xi : Fin m → QState (Fin D)) (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)

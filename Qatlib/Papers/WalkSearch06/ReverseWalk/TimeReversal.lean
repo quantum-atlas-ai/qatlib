@@ -49,6 +49,27 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Time reversal and walk discriminants
+
+This module defines the time reversal of a real transition matrix relative to a weight vector
+and proves its basic algebraic and stochastic identities. It defines the forward/reverse
+discriminant, identifies its diagonal similarity formula for positive weights, and proves
+symmetry under detailed balance.
+
+For quantum-walk search background, see [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `timeReversal_involutive`: reversing twice recovers the original matrix for positive weights.
+* `timeReversal_row_sum`: stationary positive weights give unit reversed row sums.
+* `discriminant_eq_similarity`: entrywise diagonal similarity formula.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
@@ -58,14 +79,19 @@ open scoped BigOperators
 
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+/-- The time-reversed matrix with entries `π y * P y x / π x`, using real division for all
+weight vectors. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/
 noncomputable def timeReversal (P : Matrix X X ℝ) (π : X → ℝ) : Matrix X X ℝ :=
   fun x y => π y * P y x / π x
 
 omit [Fintype X] [DecidableEq X] in
 
+/-- The entry of the time-reversed matrix at `(x, y)` is `π y * P y x / π x`. -/
 theorem timeReversal_apply (P : Matrix X X ℝ) (π : X → ℝ) (x y : X) :
     timeReversal P π x y = π y * P y x / π x := rfl
 
+/-- With positive weights, detailed balance makes the time-reversed matrix equal to the original
+matrix. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/
 theorem timeReversal_eq_of_detailedBalance (P : Matrix X X ℝ) (π : X → ℝ)
     (hπ : ∀ x, 0 < π x)
     (hdb : ∀ x y, π x * P x y = π y * P y x) :
@@ -75,6 +101,7 @@ theorem timeReversal_eq_of_detailedBalance (P : Matrix X X ℝ) (π : X → ℝ)
   rw [mul_comm (P x y) (π x)]
   exact (hdb x y).symm
 
+/-- Nonnegative transition entries and positive weights give nonnegative time-reversed entries. -/
 theorem timeReversal_nonneg (P : Matrix X X ℝ) (π : X → ℝ)
     (hP : ∀ x y, 0 ≤ P x y) (hπ : ∀ x, 0 < π x) :
     ∀ x y, 0 ≤ timeReversal P π x y := by
@@ -82,6 +109,7 @@ theorem timeReversal_nonneg (P : Matrix X X ℝ) (π : X → ℝ)
   rw [timeReversal_apply]
   exact div_nonneg (mul_nonneg (hπ y).le (hP y x)) (hπ x).le
 
+/-- For positive stationary weights, every row of the time-reversed matrix sums to one. -/
 theorem timeReversal_row_sum (P : Matrix X X ℝ) (π : X → ℝ)
     (hπ : ∀ x, 0 < π x) (hstat : ∀ y, ∑ x, π x * P x y = π y) :
     ∀ x, ∑ y, timeReversal P π x y = 1 := by
@@ -95,6 +123,8 @@ theorem timeReversal_row_sum (P : Matrix X X ℝ) (π : X → ℝ)
   rw [hsum, hstat x]
   exact div_self hx
 
+/-- For positive weights and unit row sums of `P`, the same weights are stationary for the
+time-reversed matrix. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/
 theorem timeReversal_stationary (P : Matrix X X ℝ) (π : X → ℝ)
     (hπ : ∀ x, 0 < π x) (hrow : ∀ x, ∑ y, P x y = 1) :
     ∀ y, ∑ x, π x * timeReversal P π x y = π y := by
@@ -110,6 +140,7 @@ theorem timeReversal_stationary (P : Matrix X X ℝ) (π : X → ℝ)
     _ = π y * ∑ x, P y x := by rw [Finset.mul_sum]
     _ = π y := by rw [hrow y, mul_one]
 
+/-- Time reversal relative to positive weights is involutive. -/
 theorem timeReversal_involutive (P : Matrix X X ℝ) (π : X → ℝ)
     (hπ : ∀ x, 0 < π x) :
     timeReversal (timeReversal P π) π = P := by
@@ -119,9 +150,12 @@ theorem timeReversal_involutive (P : Matrix X X ℝ) (π : X → ℝ)
   have hy : π y ≠ 0 := (hπ y).ne'
   field_simp
 
+/-- The matrix whose `(x, y)` entry is the square root of `P x y * timeReversal P π y x`. -/
 noncomputable def discriminant (P : Matrix X X ℝ) (π : X → ℝ) : Matrix X X ℝ :=
   fun x y => Real.sqrt (P x y * timeReversal P π y x)
 
+/-- For nonnegative transitions and positive weights, each discriminant entry is `sqrt (π x) * P
+x y / sqrt (π y)`. See [Definition 1 (Quantum walk)][MagniezNayakRolandSantha2011]. -/
 theorem discriminant_eq_similarity (P : Matrix X X ℝ) (π : X → ℝ)
     (hP : ∀ x y, 0 ≤ P x y) (hπ : ∀ x, 0 < π x) :
     ∀ x y, discriminant P π x y = Real.sqrt (π x) * P x y / Real.sqrt (π y) := by
@@ -139,6 +173,7 @@ theorem discriminant_eq_similarity (P : Matrix X X ℝ) (π : X → ℝ)
     ring
   rw [discriminant, hprod, hsq]
 
+/-- Positive weights and detailed balance make the discriminant symmetric. -/
 theorem discriminant_symm (P : Matrix X X ℝ) (π : X → ℝ)
     (hπ : ∀ x, 0 < π x)
     (hdb : ∀ x y, π x * P x y = π y * P y x) :

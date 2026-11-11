@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
+
+/-!
+# Stopping tails and dyadic sums
+
+This module supplies probability complements and finite-sum estimates for the growing-history
+stopping model. It relates running mass to `reachedStoppedMass` and bounds dyadically weighted
+stopping tails by a stopping-time second moment.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `growing_running_mass_complement`: running mass is the complement of reached stopped mass.
+* `stopping_tail_weighted_sum`: dyadic second-moment bound for nonnegative stopping increments.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +37,8 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Matrix
 open scoped Classical BigOperators
 
+/-- For a legal growing-history run satisfying the support condition, running mass at a valid
+prefix equals one minus reached stopped mass. -/
 theorem growing_running_mass_complement {C : Type} [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (hl : GrowingVtLegal stages history) (j₀ : VtSpace C)
@@ -39,6 +61,8 @@ theorem growing_running_mass_complement {C : Type} [Fintype C] [DecidableEq C]
   rw [growing_supported_stopping_mass stages history j₀ hs k hk]
   exact eq_sub_of_add_eq (by simpa only [stoppedMass, add_comm] using he.symm)
 
+/-- The sum of successive differences from index `i` through `m - 1` equals `f m - f i` when `i
+≤ m`. -/
 theorem finite_stop_tail_telescopes (f : ℕ → ℝ) (m i : ℕ) (hi : i ≤ m) :
     (∑ j ∈ Finset.range m, if i ≤ j then f (j+1)-f j else 0) = f m-f i := by
   induction m generalizing i with
@@ -57,6 +81,7 @@ theorem finite_stop_tail_telescopes (f : ℕ → ℝ) (m i : ℕ) (hi : i ≤ m)
       intro j hj
       exact if_neg (by have := Finset.mem_range.mp hj; omega)
 
+/-- The sum of squared powers of two below `n` is at most the square of `2^n`. -/
 theorem dyadic_geometric_square_bound (n : ℕ) :
     (∑ i ∈ Finset.range n, ((2 : ℝ)^i)^2) ≤ ((2 : ℝ)^n)^2 := by
   induction n with
@@ -66,6 +91,8 @@ theorem dyadic_geometric_square_bound (n : ℕ) :
     norm_num only [sq] at *
     nlinarith [sq_nonneg ((2 : ℝ)^n)]
 
+/-- For nonnegative stopping increments, the sum of squared dyadic weights times tail masses is
+bounded by the next-step stopping-time second moment. -/
 theorem stopping_tail_weighted_sum (p : ℕ → ℝ) (m : ℕ)
     (hp : ∀ j, j < m → 0 ≤ p j) :
     (∑ i ∈ Finset.range m, ((2 : ℝ)^i)^2 *

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
 import Mathlib.LinearAlgebra.Matrix.Kronecker
+
+/-!
+# Haar averages of conjugated states
+
+This module proves Haar integration identities used in the variance analysis of [CaiEtAl2026].
+It evaluates entrywise and trace averages of unitary conjugation and defines coordinate
+projectors `seed` and their unitary conjugates `pureState`.
+
+For qubits, tensor and swap trace identities give the second moment of a pure-state trace
+pairing and the entrywise condition `PureEntrySecondMoment`. These statements concern the
+specified Haar moments of the conjugated coordinate state.
+
+## Main statements
+
+* `conjugation_average`: computes the entrywise first moment of unitary conjugation.
+* `conjugation_trace_average`: computes the averaged trace pairing.
+* `qubit_pure_second`: evaluates the squared trace-pairing average.
+* `qubit_pure_entry_second`: establishes the qubit entrywise second-moment formula.
+
+## References
+
+* [Cai et al., 2026][CaiEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +46,8 @@ local instance measurableMatrix (m n : Type*) [Fintype m] [Fintype n] :
 local instance borelMatrix (m n : Type*) [Fintype m] [Fintype n] :
     BorelSpace (Matrix m n ℂ) := inferInstanceAs (BorelSpace (m → n → ℂ))
 
+/-- Each entry of `V * A * V.conjTranspose` is the double sum of the entries of `A` times the
+corresponding conjugated products of entries of `V`. -/
 theorem conj_entry_expand {n : Type*} [Fintype n] [DecidableEq n]
     (V A : Matrix n n ℂ) (i j : n) :
     (V * A * V.conjTranspose) i j =
@@ -32,6 +58,8 @@ theorem conj_entry_expand {n : Type*} [Fintype n] [DecidableEq n]
   refine Finset.sum_congr rfl fun b _ => ?_
   ring
 
+/-- Each entry of a fixed matrix conjugated by a unitary matrix is integrable with respect to
+the unitary Haar measure. -/
 theorem conjugation_integrable {n : Type*} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (i j : n) :
     Integrable (fun V : Matrix.unitaryGroup n ℂ =>
@@ -41,6 +69,8 @@ theorem conjugation_integrable {n : Type*} [Fintype n] [DecidableEq n]
   exact integrable_finsetSum _ fun a _ => integrable_finsetSum _ fun b _ =>
     (haarIntegrable_entryPair n a b i j).const_mul _
 
+/-- The Haar average of an entry of a unitary conjugate is the trace divided by the dimension on
+the diagonal and zero off the diagonal. -/
 theorem conjugation_average {n : Type*} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (i j : n) :
     (∫ V : Matrix.unitaryGroup n ℂ,
@@ -66,6 +96,8 @@ theorem conjugation_average {n : Type*} [Fintype n] [DecidableEq n]
     rfl
   · simp [hij]
 
+/-- The Haar average of `trace (B * V * A * Vᴴ)` equals the product of the two traces divided by
+the dimension. [CaiEtAl2026]. -/
 theorem conjugation_trace_average {n : Type*} [Fintype n] [DecidableEq n]
     (A B : Matrix n n ℂ) :
     (∫ V : Matrix.unitaryGroup n ℂ,
@@ -85,18 +117,24 @@ theorem conjugation_trace_average {n : Type*} [Fintype n] [DecidableEq n]
   rw [← Finset.sum_mul]
   simp only [Matrix.trace, Matrix.diag_apply, div_eq_mul_inv, mul_assoc]
 
+/-- The coordinate projector with a single nonzero entry, equal to one at `(a, a)`. -/
 def seed {n : Type*} [DecidableEq n] (a : n) : Matrix n n ℂ := Matrix.single a a 1
 
+/-- The coordinate projector `seed a` conjugated by the unitary matrix `V`. -/
 def pureState {n : Type*} [Fintype n] [DecidableEq n]
     (a : n) (V : Matrix.unitaryGroup n ℂ) : Matrix n n ℂ :=
   (V : Matrix n n ℂ) * seed a * (V : Matrix n n ℂ).conjTranspose
 
+/-- The tensor product of two qubit zero-coordinate projectors has trace one, and its product
+with the swap operator also has trace one. -/
 theorem qubit_tensor_seed :
     let P := Matrix.kroneckerMap (· * ·) (seed (0 : Fin 2)) (seed (0 : Fin 2))
     P.trace = 1 ∧ (P * swapOp (Fin 2)).trace = 1 := by
   simp [seed, Matrix.trace, Matrix.diag_apply, Fintype.sum_prod_type, Fin.sum_univ_two,
     Matrix.mul_apply, Matrix.kroneckerMap_apply, swapOp, permMatrix]
 
+/-- Conjugating the two-qubit seed by `V ⊗ V` gives the tensor square of the pure state obtained
+from `V`. -/
 theorem qubit_pure_tensor (V : Matrix.unitaryGroup (Fin 2) ℂ) :
     unitaryKronecker V *
         Matrix.kroneckerMap (· * ·) (seed (0 : Fin 2)) (seed (0 : Fin 2)) *
@@ -105,10 +143,12 @@ theorem qubit_pure_tensor (V : Matrix.unitaryGroup (Fin 2) ℂ) :
   simp only [unitaryKronecker, Matrix.conjTranspose_kronecker,
     kroneckerMap_mul, pureState]
 
+/-- The trace of the tensor product of two qubit matrices is the product of their traces. -/
 theorem tensor_trace (A B : Matrix (Fin 2) (Fin 2) ℂ) :
     (Matrix.kroneckerMap (· * ·) A B).trace = A.trace * B.trace :=
   Matrix.trace_kronecker A B
 
+/-- The trace of the swap operator times `A ⊗ B` equals the trace of `A * B`. -/
 theorem swap_tensor_trace (A B : Matrix (Fin 2) (Fin 2) ℂ) :
     (swapOp (Fin 2) * Matrix.kroneckerMap (· * ·) A B).trace = (A * B).trace := by
   simp only [Matrix.trace, Matrix.diag_apply, swapOp_mul_apply,
@@ -117,6 +157,8 @@ theorem swap_tensor_trace (A B : Matrix (Fin 2) (Fin 2) ℂ) :
   dsimp only [Prod.swap]
   rw [Finset.sum_comm]
 
+/-- The Haar average of the square of `trace (pureState 0 V * A)` for a qubit is `(A.trace ^ 2 +
+(A ^ 2).trace) / 6`. [CaiEtAl2026]. -/
 theorem qubit_pure_second (A : Matrix (Fin 2) (Fin 2) ℂ) :
     (∫ V : Matrix.unitaryGroup (Fin 2) ℂ, (pureState 0 V * A).trace ^ 2
       ∂haarUnitaryGroup (Fin 2)) = (A.trace ^ 2 + (A ^ 2).trace) / 6 := by
@@ -145,6 +187,8 @@ theorem qubit_pure_second (A : Matrix (Fin 2) (Fin 2) ℂ) :
       simp only [smul_eq_mul, pow_two]
       ring
 
+/-- The condition that products of two entries of a Haar-random coordinate pure state have the
+stated second-moment formula with denominator `d * (d + 1)`. -/
 def PureEntrySecondMoment (d : ℕ) (a : Fin d) : Prop :=
   ∀ i j k l : Fin d,
     (∫ V : Matrix.unitaryGroup (Fin d) ℂ,
@@ -153,6 +197,7 @@ def PureEntrySecondMoment (d : ℕ) (a : Fin d) : Prop :=
           (if i = l then 1 else 0) * (if k = j then 1 else 0)) : ℂ) /
           ((d : ℂ) * (d + 1))
 
+/-- The qubit zero-coordinate pure state satisfies `PureEntrySecondMoment 2 0`. -/
 theorem qubit_pure_entry_second : PureEntrySecondMoment 2 0 := by
   intro i j k l
   let P := Matrix.kroneckerMap (· * ·) (seed (0 : Fin 2)) (seed (0 : Fin 2))

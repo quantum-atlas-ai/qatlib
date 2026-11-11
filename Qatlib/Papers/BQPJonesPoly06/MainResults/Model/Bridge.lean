@@ -8,6 +8,27 @@ import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.ApproxProducts
 import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
 import Mathlib.Analysis.InnerProductSpace.Adjoint
+
+/-!
+# Bridge generators and finite-word approximation
+
+This module defines subspace special unitaries extended by the identity, a bridge mixing
+condition, and approximation by finite words in continuous linear maps. It proves basic closure
+and norm properties of this approximation relation and a dimension argument producing a
+preserved vector in the larger complementary subspace. See [AharonovArad2011].
+
+## Main statements
+
+* `ApproximableBy.comp`: composition preserves approximability under nonexpansion bounds.
+* `exists_preserved_vector`: a larger complementary subspace contains a nonzero vector whose
+  image remains there.
+* `specialUnitary_norm`: extended subspace special unitaries preserve norms.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,29 +39,41 @@ open scoped Classical
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
 
+/-- The continuous linear maps acting as a determinant-one linear isometry on `A` and as the
+identity on its orthogonal complement. -/
 def SpecialUnitary (A : Submodule ℂ E) : Set (E →L[ℂ] E) :=
   { T | ∃ U : A ≃ₗᵢ[ℂ] A, LinearMap.det (U : A →ₗ[ℂ] A) = 1 ∧
       ∀ x, T x = ((U (A.orthogonalProjection x) : A) : E) + (x - A.starProjection x) }
 
+/-- The continuous linear maps induced by determinant-one linear isometric equivalences of the
+ambient space. -/
 def SpecialUnitaryTop : Set (E →L[ℂ] E) :=
   { T | ∃ U : E ≃ₗᵢ[ℂ] E, LinearMap.det (U : E →ₗ[ℂ] E) = 1 ∧ ∀ x, T x = U x }
 
+/-- Some unit vector in `A` has image under `W` with nonzero inner product against a vector in
+`B`. -/
 def IsBridge (A B : Submodule ℂ E) (W : E ≃ₗᵢ[ℂ] E) : Prop :=
   ∃ u ∈ A, ‖u‖ = 1 ∧ ∃ b ∈ B, inner ℂ (W u : E) b ≠ 0
 
+/-- The map `T` can be approximated to every positive uniform relative tolerance by finite words
+of maps from `S`. -/
 def ApproximableBy (S : Set (E →L[ℂ] E)) (T : E →L[ℂ] E) : Prop :=
   ∀ ε : ℝ, 0 < ε → ∃ L : List (E →L[ℂ] E), (∀ Q ∈ L, Q ∈ S) ∧
     FunDistLE (evalWord (fun Q : E →L[ℂ] E => (Q : E → E)) L) (T : E → E) ε
 
+/-- The union of the special unitary maps on `A`, those on `B`, and the single bridge map `W`. -/
 def bridgeGenerators (A B : Submodule ℂ E) (W : E ≃ₗᵢ[ℂ] E) : Set (E →L[ℂ] E) :=
   SpecialUnitary A ∪ SpecialUnitary B ∪ {(W : E →L[ℂ] E)}
 
+/-- Evaluating concatenated words is composition of their evaluations, with the first word
+acting after the second. -/
 theorem evalWord_append {ι : Type*} (ρ : ι → E → E) (w₁ w₂ : List ι) (x : E) :
     evalWord ρ (w₁ ++ w₂) x = evalWord ρ w₁ (evalWord ρ w₂ x) := by
   induction w₁ with
   | nil => rfl
   | cons i w ih => simp only [List.cons_append, evalWord_cons, ih]
 
+/-- A word of maps that do not increase norms also does not increase norms. -/
 theorem evalWord_norm_le {ι : Type*} (ρ : ι → E → E) (w : List ι)
     (h : ∀ i ∈ w, ∀ x, ‖ρ i x‖ ≤ ‖x‖) (x : E) :
     ‖evalWord ρ w x‖ ≤ ‖x‖ := by
@@ -52,6 +85,7 @@ theorem evalWord_norm_le {ι : Type*} (ρ : ι → E → E) (w : List ι)
       have hw : ∀ j ∈ w, ∀ x, ‖ρ j x‖ ≤ ‖x‖ := fun j hj => h j (by simp [hj])
       exact (hi _).trans (ih hw)
 
+/-- The identity map is approximable by words from any generator set. -/
 theorem ApproximableBy.id (S : Set (E →L[ℂ] E)) :
     ApproximableBy S (1 : E →L[ℂ] E) := by
   intro ε hε
@@ -63,6 +97,7 @@ theorem ApproximableBy.id (S : Set (E →L[ℂ] E)) :
   rw [hnil, hone, sub_self, norm_zero]
   exact mul_nonneg (le_of_lt hε) (norm_nonneg x)
 
+/-- Every member of a generator set is approximable by words from that set. -/
 theorem ApproximableBy.of_mem {S : Set (E →L[ℂ] E)} {T : E →L[ℂ] E} (hT : T ∈ S) :
     ApproximableBy S T := by
   intro ε hε
@@ -73,6 +108,8 @@ theorem ApproximableBy.of_mem {S : Set (E →L[ℂ] E)} {T : E →L[ℂ] E} (hT 
   rw [hval, sub_self, norm_zero]
   exact mul_nonneg (le_of_lt hε) (norm_nonneg x)
 
+/-- Approximable maps remain approximable under composition when all generators and the left
+target map do not increase norms. -/
 theorem ApproximableBy.comp {S : Set (E →L[ℂ] E)} {T U : E →L[ℂ] E}
     (hS : ∀ Q ∈ S, ∀ x : E, ‖Q x‖ ≤ ‖x‖)
     (hTnorm : ∀ x : E, ‖T x‖ ≤ ‖x‖)
@@ -127,6 +164,9 @@ theorem ApproximableBy.comp {S : Set (E →L[ℂ] E)} {T U : E →L[ℂ] E}
           exact add_le_add (mul_le_mul_of_nonneg_left hw₂ hε2) le_rfl
       _ = ε * ‖x‖ := by ring
 
+/-- If `B` is the orthogonal complement of `A` and has larger dimension, every linear isometric
+equivalence maps some nonzero vector of `B` into `B`. See [Aharonov and Arad, Lemma
+6.1][AharonovArad2011]. -/
 theorem exists_preserved_vector {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (hAB : Module.finrank ℂ A < Module.finrank ℂ B) (W : E ≃ₗᵢ[ℂ] E) :
     ∃ v ∈ B, v ≠ 0 ∧ (W v : E) ∈ B := by
@@ -162,6 +202,8 @@ theorem exists_preserved_vector {A B : Submodule ℂ E} (hBA : Aᗮ = B)
       rwa [hproj, sub_zero] at horth
     exact hBA ▸ hmem
 
+/-- Every map in `SpecialUnitary A` preserves the norm of every ambient vector. See [Aharonov
+and Arad, Lemma 4.1][AharonovArad2011]. -/
 theorem specialUnitary_norm {A : Submodule ℂ E} {T : E →L[ℂ] E}
     (hT : T ∈ SpecialUnitary A) (x : E) : ‖T x‖ = ‖x‖ := by
   obtain ⟨U, _hdet, hTx⟩ := hT

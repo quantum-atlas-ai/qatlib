@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+
+/-!
+# Strict-threshold QAE payoff bounds
+
+`strictStep` records whether a value strictly exceeds a threshold. A positive separation between
+the target and the threshold turns threshold errors into squared readout errors, giving a payoff
+bound from the raw QAE second moment. See [KanekoEtAl2020].
+
+## Main statements
+
+* `step_margin_pointwise`: threshold disagreement is controlled by squared displacement.
+* `step_payoff_margin_error`: expected threshold error at most `D^2/(M*δ^2)`.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,8 +32,11 @@ open scoped BigOperators Classical
 open Qatlib.Papers.MonteCarloInt20.QaeLaw.Fourier Qatlib.Papers.MonteCarloInt20.QaeLaw.Payoff
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.Step
 
+/-- The strict-threshold indicator, equal to one when `τ < x` and zero otherwise. -/
 def strictStep (τ x : ℝ) : ℝ := if τ < x then 1 else 0
 
+/-- If `a` is at least `δ > 0` from the threshold, strict-step disagreement is at most
+`(x-a)^2/δ^2`. -/
 theorem step_margin_pointwise (τ a x δ : ℝ) (hδ : 0 < δ) (hm : δ ≤ |a-τ|) :
     |strictStep τ x-strictStep τ a| ≤ (x-a)^2/δ^2 := by
   by_cases ha : τ<a <;> by_cases hx : τ<x
@@ -33,6 +54,7 @@ theorem step_margin_pointwise (τ a x δ : ℝ) (hδ : 0 < δ) (hm : δ ≤ |a-�
   · simp only [strictStep,ha,hx,↓reduceIte,sub_self,abs_zero]
     positivity
 
+/-- The raw-law squared error of the scaled estimate has expectation at most `D^2/M`. -/
 theorem raw_scaled_second_moment (M : ℕ) (θ D : ℝ) (hM : 0 < M) :
     (∑ k,rawMass M θ k*(D*estimate M k-D*target θ)^2) ≤ D^2/(M:ℝ) := by
   have he := raw_expectation_eq_single M θ hM
@@ -48,6 +70,8 @@ theorem raw_scaled_second_moment (M : ℕ) (θ D : ℝ) (hM : 0 < M) :
     _ ≤ D^2*(1/(M:ℝ)) := mul_le_mul_of_nonneg_left (second_moment_bound M θ hM) (sq_nonneg _)
     _ = _ := by ring
 
+/-- If the scaled target is at least `δ > 0` from the threshold, the raw-law strict-step payoff
+error is at most `D^2/(M*δ^2)`. See [KanekoEtAl2020]. -/
 theorem step_payoff_margin_error (M : ℕ) (θ D τ δ : ℝ) (hM : 0 < M)
     (hδ : 0 < δ) (hmargin : δ ≤ |D*target θ-τ|) :
     |(∑ k,rawMass M θ k*strictStep τ (D*estimate M k))-strictStep τ (D*target θ)| ≤

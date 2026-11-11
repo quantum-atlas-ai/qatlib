@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Nat.Log
 import Mathlib.Tactic
 
+/-!
+# Explicit space bounds for neural QCBO encodings
+
+This module defines the twelve-family spin count `spinCount` and the logarithmic space
+expressions `eq9Poly` and `eq10Poly` corresponding to equations (9) and (10) of [SongEtAl2023].
+Elementary bounds for natural base-two logarithms yield explicit constants in the full and
+simplified space estimates.
+
+## Main statements
+
+* `space_complexity_eq9`: bounds `spinCount` by `40 * eq9Poly`.
+* `space_complexity_eq10_explicit`: bounds the full expression by a multiple of the simplified
+  expression.
+* `space_complexity_simplified`: combines the two bounds for the actual spin count.
+
+## References
+
+* [Song et al., 2023][SongEtAl2023]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 
@@ -14,6 +34,7 @@ namespace Qatlib.Papers.IsingNeural23.MainResults
 
 open Nat
 
+/-- The sum of the twelve coordinate-family sizes in the neural-network QCBO encoding. -/
 def spinCount (n m B H L N : ℕ) : ℕ :=
   n * H
   + H * ((n * 2 ^ (B + 1)).log2 + 1)
@@ -28,27 +49,35 @@ def spinCount (n m B H L N : ℕ) : ℕ :=
   + N * ((L - 1) * H)
   + N * (m * ((4 * H).log2 + 1))
 
+/-- The natural-valued logarithmic space expression corresponding to equation (9) of
+[SongEtAl2023]. -/
 def eq9Poly (n m B H L N : ℕ) : ℕ :=
   n * H + m * N * H.log2 + H * N * n.log2 + H ^ 2 * L + B * H * N
     + m * H * H.log2 + H * L * N * H.log2
 
+/-- The simplified space expression `H ^ 2 * L + H * L * N * H.log2` corresponding to equation
+(10) of [SongEtAl2023]. -/
 def eq10Poly (H L N : ℕ) : ℕ :=
   H ^ 2 * L + H * L * N * H.log2
 
+/-- The real-valued version of `eq9Poly`, with natural logarithm values coerced to real numbers. -/
 def eq9Real (n m B H L N : ℕ) : ℝ :=
   (n : ℝ) * H + (m : ℝ) * N * (H.log2 : ℝ) + (H : ℝ) * N * (n.log2 : ℝ)
     + (H : ℝ) ^ 2 * L + (B : ℝ) * H * N + (m : ℝ) * H * (H.log2 : ℝ)
     + (H : ℝ) * L * N * (H.log2 : ℝ)
 
+/-- The real expression `eq9Real` equals the natural expression `eq9Poly` coerced to the reals. -/
 lemma eq9Real_eq_cast (n m B H L N : ℕ) :
     eq9Real n m B H L N = (eq9Poly n m B H L N : ℝ) := by
   unfold eq9Real eq9Poly
   push_cast
   ring
 
+/-- For nonzero `m`, multiplying by two increases the natural base-two logarithm by one. -/
 lemma log2_mul_two (m : ℕ) (hm : m ≠ 0) : (m * 2).log2 = m.log2 + 1 := by
   rw [Nat.log2_eq_log_two, Nat.log_mul_base Nat.one_lt_two hm, ← Nat.log2_eq_log_two]
 
+/-- For nonzero `n`, multiplying by `2 ^ k` increases the natural base-two logarithm by `k`. -/
 lemma log2_mul_two_pow (n k : ℕ) (hn : n ≠ 0) : (n * 2 ^ k).log2 = n.log2 + k := by
   induction k with
   | zero => simp
@@ -58,10 +87,13 @@ lemma log2_mul_two_pow (n k : ℕ) (hn : n ≠ 0) : (n * 2 ^ k).log2 = n.log2 + 
     rw [h1, log2_mul_two (n * 2 ^ k) (by positivity), ih]
     ring
 
+/-- The natural base-two logarithm is monotone. -/
 lemma log2_mono {m n : ℕ} (h : m ≤ n) : m.log2 ≤ n.log2 := by
   rw [Nat.log2_eq_log_two, Nat.log2_eq_log_two]
   exact Nat.log_mono (by norm_num : 1 < 2) (le_refl 2) h
 
+/-- For nonzero `n`, the natural base-two logarithm of `3 * n * 2 ^ k` is at most `n.log2 + k +
+2`. -/
 lemma log2_three_mul_two_pow_le (n k : ℕ) (hn : n ≠ 0) :
     (3 * n * 2 ^ k).log2 ≤ n.log2 + (k + 2) := by
   have hle : 3 * n * 2 ^ k ≤ n * 2 ^ (k + 2) := by
@@ -71,10 +103,13 @@ lemma log2_three_mul_two_pow_le (n k : ℕ) (hn : n ≠ 0) :
   calc (3 * n * 2 ^ k).log2 ≤ (n * 2 ^ (k + 2)).log2 := log2_mono hle
     _ = n.log2 + (k + 2) := log2_mul_two_pow n (k + 2) hn
 
+/-- A nonnegative real number is at most its product with any real number at least one. -/
 lemma le_mul_of_one_le_right {a b : ℝ} (ha : 0 ≤ a) (hb : 1 ≤ b) : a ≤ a * b := by
   calc a = a * 1 := (mul_one a).symm
     _ ≤ a * b := mul_le_mul_of_nonneg_left hb ha
 
+/-- Under the stated size assumptions, the real coercion of `spinCount` is at most `40 *
+eq9Real`. -/
 theorem masterR (n m B H L N : ℕ) (hn : 1 ≤ n) (hm : 1 ≤ m) (hB : 1 ≤ B)
     (hH : 2 ≤ H) (hL : 2 ≤ L) (hN : 1 ≤ N) :
     (spinCount n m B H L N : ℝ) ≤ 40 * eq9Real n m B H L N := by
@@ -330,6 +365,8 @@ theorem masterR (n m B H L N : ℕ) (hn : 1 ≤ n) (hm : 1 ≤ m) (hB : 1 ≤ B)
   rw [hS]
   linarith [t1, t2, t3, t4, t5, t6, t7, t8R, t7, t10R, t11, t12]
 
+/-- Under the stated size assumptions, `spinCount` is at most `40 * eq9Poly`, giving an explicit
+form of the equation (9) space bound in [SongEtAl2023]. -/
 theorem space_complexity_eq9 (n m B H L N : ℕ) (hn : 1 ≤ n) (hm : 1 ≤ m)
     (hB : 1 ≤ B) (hH : 2 ≤ H) (hL : 2 ≤ L) (hN : 1 ≤ N) :
     spinCount n m B H L N ≤ 40 * eq9Poly n m B H L N := by
@@ -337,6 +374,7 @@ theorem space_complexity_eq9 (n m B H L N : ℕ) (hn : 1 ≤ n) (hm : 1 ≤ m)
   rw [eq9Real_eq_cast] at h
   exact_mod_cast h
 
+/-- For `H ≥ 2` and `L ≥ 2`, the simplified space expression bounds `H`. -/
 lemma H_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     H ≤ eq10Poly H L N := by
   calc H = H * 1 := (Nat.mul_one H).symm
@@ -344,10 +382,12 @@ lemma H_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     _ = H ^ 2 * L := by ring
     _ ≤ eq10Poly H L N := by unfold eq10Poly; exact Nat.le_add_right _ _
 
+/-- For `H ≥ 2` and `L ≥ 2`, the simplified space expression bounds `H.log2`. -/
 lemma log2_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     H.log2 ≤ eq10Poly H L N :=
   le_trans (Nat.log2_le_self H) (H_le_eq10Poly hH hL)
 
+/-- For `H ≥ 2` and `L ≥ 2`, the simplified space expression bounds `H * N`. -/
 lemma HN_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     H * N ≤ eq10Poly H L N := by
   have hlog : 1 ≤ H.log2 := (Nat.le_log2 (by omega)).2 (by simpa using hH)
@@ -356,6 +396,7 @@ lemma HN_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     _ = H * L * N * H.log2 := by ring
     _ ≤ eq10Poly H L N := by unfold eq10Poly; exact Nat.le_add_left _ _
 
+/-- For `H ≥ 2` and `L ≥ 2`, the simplified space expression bounds `N * H.log2`. -/
 lemma N_log2_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     N * H.log2 ≤ eq10Poly H L N := by
   calc N * H.log2 = N * H.log2 * 1 := (Nat.mul_one _).symm
@@ -363,6 +404,7 @@ lemma N_log2_le_eq10Poly {H L N : ℕ} (hH : 2 ≤ H) (hL : 2 ≤ L) :
     _ = H * L * N * H.log2 := by ring
     _ ≤ eq10Poly H L N := by unfold eq10Poly; exact Nat.le_add_left _ _
 
+/-- For `L ≥ 2`, the simplified space expression bounds `H * H.log2`. -/
 lemma H_log2_le_eq10Poly {H L N : ℕ} (hL : 2 ≤ L) :
     H * H.log2 ≤ eq10Poly H L N := by
   have h1 : H * H.log2 ≤ H * H := Nat.mul_le_mul_left H (Nat.log2_le_self H)
@@ -372,6 +414,7 @@ lemma H_log2_le_eq10Poly {H L N : ℕ} (hL : 2 ≤ L) :
       _ ≤ H ^ 2 * L := Nat.mul_le_mul_left _ (by omega)
   exact le_trans h1 (le_trans h2 (by unfold eq10Poly; exact Nat.le_add_right _ _))
 
+/-- For `H ≥ 2` and `L ≥ 2`, `eq9Poly` is at most `(2 * n + 2 * m + B + 2) * eq10Poly H L N`. -/
 theorem space_complexity_eq10_explicit (n m B H L N : ℕ) (hH : 2 ≤ H) (hL : 2 ≤ L) :
     eq9Poly n m B H L N ≤ (2 * n + 2 * m + B + 2) * eq10Poly H L N := by
   have h1 : n * H ≤ n * eq10Poly H L N := Nat.mul_le_mul_left n (H_le_eq10Poly hH hL)
@@ -405,12 +448,16 @@ theorem space_complexity_eq10_explicit (n m B H L N : ℕ) (hH : 2 ≤ H) (hL : 
   unfold eq9Poly
   omega
 
+/-- For fixed `n`, `m`, and `B`, there is a natural constant uniformly bounding `eq9Poly` by a
+multiple of `eq10Poly` whenever `H ≥ 2` and `L ≥ 2`. -/
 theorem space_complexity_eq10 (n m B : ℕ) :
     ∃ C : ℕ, ∀ H L N : ℕ, 2 ≤ H → 2 ≤ L →
       eq9Poly n m B H L N ≤ C * eq10Poly H L N :=
   ⟨2 * n + 2 * m + B + 2, fun H L N hH hL =>
     space_complexity_eq10_explicit n m B H L N hH hL⟩
 
+/-- Under the stated size assumptions, the spin count is at most `40 * (2 * n + 2 * m + B + 2) *
+eq10Poly H L N`, as required for the simplified space bound of [SongEtAl2023]. -/
 theorem space_complexity_simplified (n m B H L N : ℕ) (hn : 1 ≤ n) (hm : 1 ≤ m)
     (hB : 1 ≤ B) (hH : 2 ≤ H) (hL : 2 ≤ L) (hN : 1 ≤ N) :
     spinCount n m B H L N ≤ (40 * (2 * n + 2 * m + B + 2)) * eq10Poly H L N := by

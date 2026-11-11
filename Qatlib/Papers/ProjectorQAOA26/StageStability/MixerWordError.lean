@@ -8,6 +8,29 @@ import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 import Mathlib.Tactic
+
+/-!
+# Perturbation bounds for mixer exponential words
+
+This module applies contractive evolution estimates to `mixerExp` and telescopes perturbations
+through products of matrix contractions. The resulting `mixer_word_error_bound` controls a
+change of Hermitian mixer by the sum of absolute mixer angles, providing the word estimate used
+in [ZhouAnLiu2026].
+
+## Main statements
+
+* `norm_mixerExp_sub_le`: For Hermitian generators, the distance between mixer exponentials is
+  at most the absolute angle times the distance between the generators.
+* `wordProd_pair_sub_le`: For paired lists of contractions with specified nonnegative factor
+  error bounds, the product distance is at most the sum of those bounds.
+* `mixer_word_error_bound`: For Hermitian mixer and cost generators, the paired word distance is
+  bounded by the sum of absolute mixer angles times `‖R - R'‖`.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,11 +46,15 @@ namespace Qatlib.Papers.ProjectorQAOA26.StageStability
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 
+/-- The matrix evolution `evolution (Complex.I • R) β` associated with a mixer generator and a
+real angle. -/
 def mixerExp (R : Matrix ι ι ℂ) (β : ℝ) : Matrix ι ι ℂ :=
   evolution (Complex.I • R) β
 
 omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 
+/-- Multiplying a Hermitian matrix by the imaginary unit gives a matrix whose conjugate
+transpose is its negative. -/
 theorem conjTranspose_I_smul (R : Matrix ι ι ℂ) (hR : Rᴴ = R) :
     (Complex.I • R)ᴴ = -(Complex.I • R) := by
   rw [Matrix.conjTranspose_smul, hR]
@@ -37,6 +64,8 @@ theorem conjTranspose_I_smul (R : Matrix ι ι ℂ) (hR : Rᴴ = R) :
 
 omit [Fintype ι] [DecidableEq ι] [Nonempty ι] in
 
+/-- For a matrix whose conjugate transpose is its negative, its sum with its conjugate transpose
+is positive semidefinite. -/
 theorem posSemidef_of_conjTranspose_eq_neg {A : Matrix ι ι ℂ} (hA : Aᴴ = -A) :
     (A + Aᴴ).PosSemidef := by
   have hzero : A + Aᴴ = 0 := by rw [hA, add_neg_cancel]
@@ -45,6 +74,7 @@ theorem posSemidef_of_conjTranspose_eq_neg {A : Matrix ι ι ℂ} (hA : Aᴴ = -
 
 omit [Nonempty ι] in
 
+/-- The mixer exponential can be written using the negated generator and negated time. -/
 theorem mixerExp_eq_neg_gen (R : Matrix ι ι ℂ) (β : ℝ) :
     mixerExp R β = evolution (-(Complex.I • R)) (-β) := by
   unfold mixerExp evolution
@@ -53,6 +83,8 @@ theorem mixerExp_eq_neg_gen (R : Matrix ι ι ℂ) (β : ℝ) :
 
 omit [Nonempty ι] in
 
+/-- For Hermitian generators, the distance between mixer exponentials is at most the absolute
+angle times the distance between the generators. -/
 theorem norm_mixerExp_sub_le (R R' : Matrix ι ι ℂ) (hR : Rᴴ = R) (hR' : R'ᴴ = R')
     (β : ℝ) :
     ‖mixerExp R β - mixerExp R' β‖ ≤ |β| * ‖R - R'‖ := by
@@ -86,6 +118,7 @@ theorem norm_mixerExp_sub_le (R R' : Matrix ι ι ℂ) (hR : Rᴴ = R) (hR' : R'
 
 omit [Nonempty ι] in
 
+/-- The mixer exponential of a Hermitian generator has operator norm at most one. -/
 theorem norm_mixerExp_le_one (R : Matrix ι ι ℂ) (hR : Rᴴ = R) (β : ℝ) :
     ‖mixerExp R β‖ ≤ 1 := by
   by_cases hβ : 0 ≤ β
@@ -99,10 +132,13 @@ theorem norm_mixerExp_le_one (R : Matrix ι ι ℂ) (hR : Rᴴ = R) (β : ℝ) :
     exact norm_evolution_le_one (-(Complex.I • R))
       (posSemidef_of_conjTranspose_eq_neg hskew) hβ'
 
+/-- The ordered product of a list of matrices, with the empty product equal to the identity. -/
 def wordProd : List (Matrix ι ι ℂ) → Matrix ι ι ℂ
   | [] => 1
   | A :: rest => A * wordProd rest
 
+/-- A product of matrix factors with operator norms at most one also has operator norm at most
+one. -/
 theorem wordProd_norm_le_one : ∀ (l : List (Matrix ι ι ℂ)),
     (∀ A ∈ l, ‖A‖ ≤ 1) → ‖wordProd l‖ ≤ 1
   | [], _ => by
@@ -117,6 +153,8 @@ theorem wordProd_norm_le_one : ∀ (l : List (Matrix ι ι ℂ)),
           (norm_nonneg _) zero_le_one
       _ = 1 := one_mul 1
 
+/-- For paired lists of contractions with specified nonnegative factor error bounds, the product
+distance is at most the sum of those bounds. -/
 theorem wordProd_pair_sub_le (l : List (Matrix ι ι ℂ × Matrix ι ι ℂ × ℝ))
     (hA : ∀ p ∈ l, ‖p.1‖ ≤ 1) (hB : ∀ p ∈ l, ‖p.2.1‖ ≤ 1)
     (hAB : ∀ p ∈ l, ‖p.1 - p.2.1‖ ≤ p.2.2)
@@ -166,10 +204,13 @@ theorem wordProd_pair_sub_le (l : List (Matrix ι ι ℂ × Matrix ι ι ℂ × 
           (mul_le_mul hAB' hY (norm_nonneg _) hc')
       _ = c + (t.map (fun p => p.2.2)).sum := by ring
 
+/-- The real mixer and cost angles specifying one alternating layer. -/
 structure MixerLayer where
   β : ℝ
   γ : ℝ
 
+/-- The paired layer matrices for two mixer generators, each accompanied by the bound `|β| * ‖R
+- R'‖`. -/
 def mixerLayerFactors (l : List MixerLayer) (R R' C : Matrix ι ι ℂ) :
     List (Matrix ι ι ℂ × Matrix ι ι ℂ × ℝ) :=
   l.map (fun d =>
@@ -177,6 +218,8 @@ def mixerLayerFactors (l : List MixerLayer) (R R' C : Matrix ι ι ℂ) :
      mixerExp R' d.β * mixerExp C d.γ,
      |d.β| * ‖R - R'‖))
 
+/-- Summing absolute mixer angles multiplied by a common scalar equals the angle sum multiplied
+by that scalar. -/
 theorem sum_abs_beta_mul (l : List MixerLayer) (δ : ℝ) :
     (l.map (fun d => |d.β| * δ)).sum = (l.map (fun d => |d.β|)).sum * δ := by
   induction l with
@@ -185,6 +228,8 @@ theorem sum_abs_beta_mul (l : List MixerLayer) (δ : ℝ) :
     simp only [List.map_cons, List.sum_cons, ih]
     ring
 
+/-- For Hermitian mixer and cost generators, the paired word distance is bounded by the sum of
+absolute mixer angles times `‖R - R'‖`. -/
 theorem mixer_word_error_bound (l : List MixerLayer) (R R' C : Matrix ι ι ℂ)
     (hR : Rᴴ = R) (hR' : R'ᴴ = R') (hC : Cᴴ = C) :
     ‖wordProd ((mixerLayerFactors l R R' C).map (fun p => p.1))

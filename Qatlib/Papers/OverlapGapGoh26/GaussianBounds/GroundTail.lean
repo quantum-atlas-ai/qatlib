@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.GaussianObstruction
+
+/-!
+# Gaussian lower tails of the binary ground energy
+
+`binarySpin` embeds Boolean configurations as real spins of magnitude one. Subgaussian bounds
+for each fixed configuration and a finite union bound yield lower tails for `binaryGround`,
+including the threshold `-2N`; the module also proves integrability of the ground energy and its
+density. These estimates concern the Gaussian optimization model associated with
+[GohMuller2026].
+
+## Main statements
+
+* `binary_ground_left_tail`: For `N > 0` and `a ≥ 0`, the probability that the binary ground
+  energy is at most `-aN` is at most `2^N exp(-a²N/2)`.
+* `actual_binary_ground_exponential_tail`: For `N > 0`, the probability that the binary ground
+  energy is at most `-2N` is at most `exp(-N)`.
+* `binaryGround_integrable`: For `N > 0`, the binary ground energy is integrable under the
+  Gaussian tensor law.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,8 +43,12 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Gaussian
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTail
 
+/-- The real spin configuration taking value `1` at true coordinates and `-1` at false
+coordinates. -/
 def binarySpin {N : ℕ} (z : Fin N → Bool) : Fin N → ℝ := fun i => if z i then 1 else -1
 
+/-- For `N > 0`, the energy of a fixed binary spin configuration has subgaussian parameter `N`
+under `gaussianTensorLaw`. -/
 theorem binary_energy_subgaussian {r N : ℕ} (hN : 0<N) (z : Fin N → Bool) :
     HasSubgaussianMGF (fun A : Tensor (r+1) N => tensorEnergy A (binarySpin z))
       (N:NNReal) (gaussianTensorLaw r N) := by
@@ -43,6 +71,8 @@ theorem binary_energy_subgaussian {r N : ℕ} (hN : 0<N) (z : Fin N → Bool) :
   rw [hc] at h
   simpa only [gaussianTensorLaw, tensorEnergy, mul_comm] using h
 
+/-- For `N > 0` and `a ≥ 0`, a fixed binary configuration has energy at most `-aN` with
+probability at most `exp(-a²N/2)`. -/
 theorem binary_energy_left_tail {r N : ℕ} (hN : 0<N) (z : Fin N → Bool)
     (a : ℝ) (ha : 0≤a) :
     (gaussianTensorLaw r N).real {A | tensorEnergy A (binarySpin z)≤-a*(N:ℝ)}≤
@@ -57,6 +87,8 @@ theorem binary_energy_left_tail {r N : ℕ} (hN : 0<N) (z : Fin N → Bool)
   simp only [NNReal.coe_natCast]
   field_simp
 
+/-- For `N > 0` and `a ≥ 0`, the probability that the binary ground energy is at most `-aN` is
+at most `2^N exp(-a²N/2)`. -/
 theorem binary_ground_left_tail {r N : ℕ} (hN : 0<N) (a : ℝ) (ha : 0≤a) :
     (gaussianTensorLaw r N).real {A | binaryGround A≤-a*(N:ℝ)}≤
       (2:ℝ)^N*Real.exp (-a^2*(N:ℝ)/2) := by
@@ -73,6 +105,8 @@ theorem binary_ground_left_tail {r N : ℕ} (hN : 0<N) (a : ℝ) (ha : 0≤a) :
       Finset.sum_le_sum (fun z _ => binary_energy_left_tail hN z a ha)
     _ = _ := by simp
 
+/-- For `N > 0`, the probability that the binary ground energy is at most `-2N` is at most
+`exp(-N)`. -/
 theorem actual_binary_ground_exponential_tail {r N : ℕ} (hN : 0<N) :
     (gaussianTensorLaw r N).real {A | binaryGround A≤-2*(N:ℝ)}≤Real.exp (-(N:ℝ)) := by
   have h := binary_ground_left_tail (r:=r) hN 2 (by norm_num)
@@ -87,6 +121,7 @@ theorem actual_binary_ground_exponential_tail {r N : ℕ} (hN : 0<N) :
       mul_le_mul_of_nonneg_right hp (by positivity)
     _ = _ := by rw [← Real.exp_add]; congr 1; ring
 
+/-- For `N > 0`, the binary ground energy is integrable under the Gaussian tensor law. -/
 theorem binaryGround_integrable {r N : ℕ} (hN : 0<N) :
     Integrable (fun A : Tensor (r+1) N => binaryGround A) (gaussianTensorLaw r N) := by
   let f := fun z : Fin N → Bool => fun A : Tensor (r+1) N => tensorEnergy A (binarySpin z)
@@ -101,6 +136,8 @@ theorem binaryGround_integrable {r N : ℕ} (hN : 0<N) :
   rw [he]
   exact hi
 
+/-- For `N > 0`, the binary ground energy divided by `N` is integrable under the Gaussian tensor
+law. -/
 theorem gaussianGroundDensity_integrable {r N : ℕ} (hN : 0<N) :
     Integrable (fun A : Tensor (r+1) N => binaryGround A/(N:ℝ)) (gaussianTensorLaw r N) :=
   (binaryGround_integrable hN).div_const _

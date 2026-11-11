@@ -16,6 +16,29 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
 
+/-!
+# Finite-field counting estimates
+
+This module supplies finite-set fiber counting, the cardinality of injective tuples, and
+polynomial zero-counting estimates. The bounds `card_zeros_le` and `good_set_card_ge` control
+the nonvanishing sets used in hidden-polynomial success estimates.
+
+The development follows [DeckerDraismaWocjan2009].
+
+## Main statements
+
+* `card_le_mul_card_image`: If every fiber of `f` restricted to `s` has cardinality at most D,
+  then the cardinality of `s` is at most D times that of its image.
+* `card_injective_tuples`: The number of injective n-tuples over a finite field is the
+  descending factorial of the field cardinality.
+* `good_set_card_ge`: If the field cardinality d is at least twice the total degree of a nonzero
+  polynomial in n ≥ 1 variables, its nonvanishing locus has at least d^n/2^n points.
+
+## References
+
+* [Decker et al., 2009][DeckerDraismaWocjan2009]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -24,6 +47,8 @@ namespace Qatlib.Papers.HiddenPoly07.MainResults
 
 open scoped BigOperators
 
+/-- If every fiber of `f` restricted to `s` has cardinality at most D, then the cardinality of
+`s` is at most D times that of its image. -/
 theorem card_le_mul_card_image {α β : Type*} [DecidableEq β] (s : Finset α) (f : α → β)
     (D : ℕ) (hD : ∀ b ∈ s.image f, (s.filter (fun a => f a = b)).card ≤ D) :
     s.card ≤ D * (s.image f).card := by
@@ -34,6 +59,8 @@ theorem card_le_mul_card_image {α β : Type*} [DecidableEq β] (s : Finset α) 
     _ = (s.image f).card * D := by rw [Finset.sum_const, Nat.nsmul_eq_mul]
     _ = D * (s.image f).card := by rw [mul_comm]
 
+/-- The number of injective n-tuples over a finite field is the descending factorial of the
+field cardinality ([Proposition 4.1][DeckerDraismaWocjan2009]). -/
 theorem card_injective_tuples (F : Type*) [Field F] [Fintype F] [DecidableEq F] (n : ℕ) :
     (Finset.univ.filter (fun b : Fin n → F => Function.Injective b)).card
       = (Fintype.card F).descFactorial n := by
@@ -43,6 +70,8 @@ theorem card_injective_tuples (F : Type*) [Field F] [Fintype F] [DecidableEq F] 
     Equiv.subtypeInjectiveEquivEmbedding (Fin n) F
   rw [Fintype.card_congr e, Fintype.card_embedding_eq, Fintype.card_fin]
 
+/-- If 2n ≤ d, the real value of d.descFactorial(n) is at least d^n/2^n ([Proposition
+4.1][DeckerDraismaWocjan2009]). -/
 theorem descFactorial_ge_half_pow {d n : ℕ} (hn : 2 * n ≤ d) :
     (d : ℝ) ^ n / 2 ^ n ≤ (d.descFactorial n : ℝ) := by
   have hnd : n ≤ d := by omega
@@ -60,6 +89,8 @@ theorem descFactorial_ge_half_pow {d n : ℕ} (hn : 2 * n ≤ d) :
         exact pow_le_pow_left₀ (by positivity) hbase n
     _ ≤ (d.descFactorial n : ℝ) := hcast
 
+/-- A nonzero polynomial in n ≥ 1 variables over a field of cardinality d has at most
+deg(p)d^(n−1) zeros. -/
 theorem card_zeros_le {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (hn : 1 ≤ n) (p : MvPolynomial (Fin n) F) (hp : p ≠ 0) :
     ((Finset.univ.filter (fun b : Fin n → F => MvPolynomial.eval b p = 0)).card : ℝ)
@@ -94,6 +125,8 @@ theorem card_zeros_le {F : Type*} [Field F] [Fintype F] [DecidableEq F]
   rw [hstep] at hz
   simpa [z, e] using hz
 
+/-- The nonvanishing locus of a nonzero polynomial in n ≥ 1 variables has cardinality at least
+d^n − deg(g)d^(n−1) ([Proposition 4.3][DeckerDraismaWocjan2009]). -/
 theorem good_set_card_ge_raw {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (hn : 1 ≤ n) (g : MvPolynomial (Fin n) F) (hg : g ≠ 0) :
     (Fintype.card F : ℝ) ^ n - (g.totalDegree : ℝ) * (Fintype.card F : ℝ) ^ (n - 1)
@@ -124,6 +157,9 @@ theorem good_set_card_ge_raw {F : Type*} [Field F] [Fintype F] [DecidableEq F]
   rw [hgood_eq]
   linarith [hz_le]
 
+/-- If the field cardinality d is at least twice the total degree of a nonzero polynomial in n ≥
+1 variables, its nonvanishing locus has at least d^n/2^n points ([Proposition
+4.6][DeckerDraismaWocjan2009]). -/
 theorem good_set_card_ge {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (hn : 1 ≤ n) (g : MvPolynomial (Fin n) F) (hg : g ≠ 0)
     (hbig : 2 * g.totalDegree ≤ Fintype.card F) :

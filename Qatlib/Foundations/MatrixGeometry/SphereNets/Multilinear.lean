@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
 import Mathlib.Analysis.Normed.Module.Multilinear.Basic
+
+/-!
+# Multilinear norm bounds from sphere nets
+
+Bounds real-valued continuous multilinear maps by their values on tuples of unit vectors and
+then on tuples from a finite sphere net. The estimate `unit_tuple_net_bound` loses at most `‖f‖
+* q * ε`, and `opnorm_le_twice_net` absorbs that loss for radius `1 / (2 * q)`. See
+[GohMuller2026] for related background.
+
+## Main statements
+
+* `unit_tuple_net_bound`: If a finite ε-net on the unit sphere bounds all net-tuple values by
+  `C`, every unit-tuple value has absolute value at most `C + ‖f‖ * q * ε` for `ε ≥ 0`.
+* `opnorm_le_twice_net`: For positive arity `q`, a nonnegative bound `C` on tuples from a sphere
+  net of radius `1 / (2 * q)` implies the operator-norm bound `‖f‖ ≤ 2 * C`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
@@ -14,6 +35,8 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.SphereNets.Multilinear
 variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E]
 
+/-- A nonnegative uniform bound for the absolute value of a continuous multilinear map on tuples
+of unit vectors also bounds its operator norm. -/
 theorem opnorm_le_of_sphere {q : ℕ} (f : ContinuousMultilinearMap ℝ (fun _ : Fin q=>E) ℝ)
     (C : ℝ) (hC : 0≤C)
     (hbound : ∀ u : Fin q→E,(∀ i,‖u i‖=1)→|f u|≤C) : ‖f‖≤C := by
@@ -38,6 +61,8 @@ theorem opnorm_le_of_sphere {q : ℕ} (f : ContinuousMultilinearMap ℝ (fun _ :
     have hp : 0≤∏ i,‖m i‖ := Finset.prod_nonneg (fun i _=>norm_nonneg (m i))
     nlinarith [hbound u hu]
 
+/-- If a finite ε-net on the unit sphere bounds all net-tuple values by `C`, every unit-tuple
+value has absolute value at most `C + ‖f‖ * q * ε` for `ε ≥ 0`. -/
 theorem unit_tuple_net_bound {q : ℕ} (f : ContinuousMultilinearMap ℝ (fun _ : Fin q=>E) ℝ)
     (s : Finset E) (ε C : ℝ) (hε : 0≤ε)
     (hs : ∀ y∈s,‖y‖=1)
@@ -65,6 +90,8 @@ theorem unit_tuple_net_bound {q : ℕ} (f : ContinuousMultilinearMap ℝ (fun _ 
   have hb : |f v|≤C := hnet (fun i=>⟨v i,hvS i⟩)
   linarith [abs_sub_abs_le_abs_sub (f u) (f v)]
 
+/-- For positive arity `q`, a nonnegative bound `C` on tuples from a sphere net of radius `1 /
+(2 * q)` implies the operator-norm bound `‖f‖ ≤ 2 * C`. -/
 theorem opnorm_le_twice_net {q : ℕ} (hq : 0<q)
     (f : ContinuousMultilinearMap ℝ (fun _ : Fin q=>E) ℝ)
     (s : Finset E) (C : ℝ) (hC : 0≤C)

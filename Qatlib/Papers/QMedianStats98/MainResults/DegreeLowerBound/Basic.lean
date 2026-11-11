@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# The bounded-norm case of the first degree term
+
+This module isolates the Markov-inequality argument for the bounded-norm case of Lemma 2.1 in
+[NayakWu1998]. A large derivative at a point of `[-1, 1]`, together with a uniform bound
+strictly below two, forces a degree of at least `sqrt(n / (12 * Δ))`.
+
+## Main statements
+
+* `lemma_2_1_case_a`: converts the derivative lower bound into the first square-root degree
+  bound.
+
+## References
+
+[Nayak and Wu, 1998][NayakWu1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +32,10 @@ namespace Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound
 open Qatlib.Papers.QMedianStats98.MainResults.Model
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
+/-- A polynomial of degree at most `d`, uniformly bounded by `0 ≤ C < 2` on `[-1, 1]`, has
+`sqrt(n / (12 * Δ)) ≤ d` whenever its derivative has magnitude at least `n / (6 * Δ)` at a
+point of that interval and `Δ > 0`. This is the bounded-norm case of Lemma 2.1 in
+[NayakWu1998]. -/
 theorem lemma_2_1_case_a {d n : ℕ} {Δ C : ℝ} (hΔ : 0 < Δ) (hC0 : 0 ≤ C) (hC2 : C < 2)
     (p : Polynomial ℝ) (hdeg : p.natDegree ≤ d)
     (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C)

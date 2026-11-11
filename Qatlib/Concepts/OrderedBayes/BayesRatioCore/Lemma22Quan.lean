@@ -8,10 +8,28 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic.NormNum
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma22Stat
 
+/-!
+# Entropy lower bound from a mass cap
+
+This module proves the base-two entropy bound used in the ordered search analysis of
+[BenOrHassidim2007]. A nonnegative normalized finite prior with all masses below ε has entropy
+at least log₂(1/ε). The helper `zoo_bayes_weighted_log_le` compares each weighted logarithm with
+the logarithm of the cap.
+
+## Main statements
+
+* `zoo_bayes_entropy_lower_bound`: the mass cap yields the stated entropy lower bound.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.2][BenOrHassidim2007]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- For 0 ≤ x ≤ ε and ε > 0, the weighted logarithm x log₂ x is at most x log₂ ε. -/
 lemma zoo_bayes_weighted_log_le (x ε : ℝ) (hx : 0 ≤ x) (hε : 0 < ε)
     (hxe : x ≤ ε) :
     x * (Real.log x / Real.log 2) ≤ x * (Real.log ε / Real.log 2) := by
@@ -21,6 +39,8 @@ lemma zoo_bayes_weighted_log_le (x ε : ℝ) (hx : 0 ≤ x) (hε : 0 < ε)
       (div_le_div_of_nonneg_right ((Real.log_le_log_iff hpos hε).2 hxe)
         (le_of_lt (Real.log_pos (by norm_num)))) hx
 
+/-- A nonnegative normalized finite prior with every weight below a positive ε has base-two
+entropy at least log₂(1/ε) [Ben-Or and Hassidim, Lemma 2.2][BenOrHassidim2007]. -/
 theorem zoo_bayes_entropy_lower_bound :
     ∀ (n : ℕ) (a : Fin n → ℝ) (ε : ℝ),
     (∀ i, 0 ≤ a i) → (∑ i, a i) = 1 → 0 < ε → (∀ i, a i < ε) →

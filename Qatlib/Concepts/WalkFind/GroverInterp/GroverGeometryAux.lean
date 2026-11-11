@@ -10,12 +10,36 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Normed.Group.Real
 import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Tactic.Linarith
+
+/-!
+# Geometric estimates for Grover amplitudes
+
+This module bounds the effect of normalization and approximate norm-preserving evolution on
+target amplitudes. It also proves that a unitary matrix preserves the Euclidean norm, providing
+the geometric estimates used in Grover interpolation.
+
+For background, see [Grover1996].
+
+## Main statements
+
+* `grover_normalize_near_unit`: normalization doubles the relative approximation bound at most.
+* `grover_amplitude_of_near_rotation`: transfer of a target overlap through approximate
+  evolution.
+* `grover_unitary_euclidean_norm`: Euclidean norm preservation by a unitary matrix.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.GroverInterp
 
+/-- If a nonzero vector is within `η * C` of a positive multiple `C` of a unit vector, its
+normalization is within `2 * η` of that unit vector. -/
 theorem grover_normalize_near_unit {V : Type*} [NormedAddCommGroup V]
     [NormedSpace ℝ V] (s v : V) (C η : ℝ) (hs : ‖s‖ = 1)
     (hC : 0 < C) (hv : v ≠ 0) (hclose : ‖v - C • s‖ ≤ η * C) :
@@ -48,6 +72,9 @@ theorem grover_normalize_near_unit {V : Type*} [NormedAddCommGroup V]
     _ ≤ ‖s - a‖ + ‖a - NormedSpace.normalize a‖ := norm_sub_le_norm_sub_add_norm_sub s a _
     _ ≤ 2 * η := by rw [norm_sub_rev s a, han]; linarith
 
+/-- For a norm-preserving complex linear map, approximating the input within `η` and its image
+within `β` lowers the target overlap norm by at most `η + β` when the target norm is at most
+one. -/
 theorem grover_amplitude_of_near_rotation {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℂ E] (L : E →ₗ[ℂ] E) (hnorm : ∀ x, ‖L x‖ = ‖x‖)
     (s v u g : E) (η β : ℝ) (hg : ‖g‖ ≤ 1)
@@ -67,6 +94,8 @@ theorem grover_amplitude_of_near_rotation {E : Type*} [NormedAddCommGroup E]
   have h := norm_sub_norm_le (inner ℂ g u) (inner ℂ g (L s))
   linarith
 
+/-- A complex matrix satisfying `star U * U = 1` preserves the Euclidean norm under its
+associated linear map. -/
 theorem grover_unitary_euclidean_norm (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (hu : star U * U = 1)
     (x : EuclideanSpace ℂ (Fin m)) : ‖U.toEuclideanLin x‖ = ‖x‖ := by

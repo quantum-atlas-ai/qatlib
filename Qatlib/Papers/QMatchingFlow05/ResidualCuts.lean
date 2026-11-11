@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMatchingFlow05.SearchTools.Defs
+
+/-!
+# Layer-size inequalities for residual flow bounds
+
+This module proves the averaging estimates for residual-layer cut bounds in
+[AmbainisSpalek2006]. A bound on the total vertex-layer size supplies a small adjacent product,
+while a bound on the total edge-layer size supplies a small edge layer.
+
+When the supplied flow is bounded by every layer capacity, these estimates yield separate vertex
+and edge bounds and their minimum.
+
+## Main statements
+
+* `exists_small_adjacent_product`: some adjacent product is at most `(2 * n / k) ^ 2`.
+* `exists_small_edge_layer`: some edge-layer size is at most `m / k`.
+* `residual_flow_min_bound`: combines the two assumed layer-capacity bounds.
+
+## References
+
+* [Ambainis and Špalek, 2006][AmbainisSpalek2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,8 @@ namespace Qatlib.Papers.QMatchingFlow05.ResidualCuts
 
 open Qatlib.Papers.QMatchingFlow05.SearchTools
 
+/-- For `k ≥ 1`, nonnegative sizes of `k + 1` layers with total at most nonnegative `n` have an
+adjacent product at most `(2 * n / k) ^ 2`. See [AmbainisSpalek2006]. -/
 theorem exists_small_adjacent_product (n : ℝ) (k : ℕ) (hk : 1 ≤ k)
     (sz : ℕ → ℝ) (hsz : ∀ i, 0 ≤ sz i)
     (hsum : (∑ i ∈ Finset.range (k + 1), sz i) ≤ n) (hn : 0 ≤ n) :
@@ -66,6 +90,8 @@ theorem exists_small_adjacent_product (n : ℝ) (k : ℕ) (hk : 1 ≤ k)
   rw [hconst] at hlt
   linarith [hlt, hupper]
 
+/-- For `k ≥ 1`, edge-layer sizes with total at most `m` have some value at most `m / k`. See
+[AmbainisSpalek2006]. -/
 theorem exists_small_edge_layer (k m : ℕ) (hk : 1 ≤ k) (ec : ℕ → ℝ)
     (_hec : ∀ i, 0 ≤ ec i) (hsum : (∑ i ∈ Finset.range k, ec i) ≤ (m : ℝ)) :
     ∃ i ∈ Finset.range k, ec i ≤ (m : ℝ) / (k : ℝ) := by
@@ -83,6 +109,8 @@ theorem exists_small_edge_layer (k m : ℕ) (hk : 1 ≤ k) (ec : ℕ → ℝ)
   rw [hconst] at hlt
   linarith [hsum]
 
+/-- If the flow is at most `U` times every adjacent layer-size product and `U ≥ 0`, then the
+stated layer-size hypotheses give `flow ≤ U * (2 * n / k) ^ 2`. See [AmbainisSpalek2006]. -/
 theorem residual_flow_vertex_bound (n k : ℕ) (U flow : ℝ) (hk : 1 ≤ k)
     (sz : ℕ → ℝ) (hsz : ∀ i, 0 ≤ sz i)
     (hsum : (∑ i ∈ Finset.range (k + 1), sz i) ≤ (n : ℝ))
@@ -96,6 +124,8 @@ theorem residual_flow_vertex_bound (n k : ℕ) (U flow : ℝ) (hk : 1 ≤ k)
     mul_le_mul_of_nonneg_left hprod hU
   exact le_trans (hflow i hi) hUle
 
+/-- If the flow is at most `U` times every edge-layer size and `U ≥ 0`, then the stated
+total-size hypothesis gives `flow ≤ U * (m / k)`. See [AmbainisSpalek2006]. -/
 theorem residual_flow_edge_bound (k m : ℕ) (U flow : ℝ) (hk : 1 ≤ k)
     (ec : ℕ → ℝ) (hec : ∀ i, 0 ≤ ec i)
     (hsum : (∑ i ∈ Finset.range k, ec i) ≤ (m : ℝ))
@@ -107,6 +137,8 @@ theorem residual_flow_edge_bound (k m : ℕ) (U flow : ℝ) (hk : 1 ≤ k)
     mul_le_mul_of_nonneg_left hle hU
   exact le_trans (hflow i hi) hUle
 
+/-- Under the stated nonnegative layer-size and capacity hypotheses, the flow is at most `min (U
+* (2 * n / k) ^ 2) (U * (m / k))`. See [AmbainisSpalek2006]. -/
 theorem residual_flow_min_bound (n k m : ℕ) (U flow : ℝ) (hk : 1 ≤ k)
     (sz : ℕ → ℝ) (hsz : ∀ i, 0 ≤ sz i)
     (hsumv : (∑ i ∈ Finset.range (k + 1), sz i) ≤ (n : ℝ))

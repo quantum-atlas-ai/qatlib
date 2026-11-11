@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AmpInvReqTang26.AccessModel.ActualAccess
+
+/-!
+# Conditional scaling of inverse-free amplitude lower bounds
+
+These results convert an assumed reduction bound involving a maximum of amplitude and dimension
+scales into a lower bound proportional to their minimum. The reduction hypothesis remains
+explicit in both the amplification and estimation statements. This development supports the
+treatment in [TangWright2025].
+
+## Main statements
+
+* `conditional_amplification_scaling`: conditional `min(d, 1/a^2)` scaling.
+* `conditional_estimation_scaling`: conditional `min(d, 1/ε^2)` scaling.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ namespace Qatlib.Papers.AmpInvReqTang26.MainResults
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 
+/-- Assuming the stated reduction bound, there are uniform positive constants giving `n ≥ c *
+min(d, 1/a^2)` for amplification algorithms in the specified small-amplitude and
+large-dimension regime [TangWright2025]. -/
 theorem conditional_amplification_scaling
     (hred : ∃ C : ℝ, 1 ≤ C ∧
       ∀ (d anc : ℕ) (a : ℝ) (n : ℕ) (Alg : PreparationAlgorithm (Fin d) (Fin anc)),
@@ -70,6 +92,9 @@ theorem conditional_amplification_scaling
       _ = 1 / (4800 * a ^ 2) := by field_simp
       _ ≤ (n : ℝ) := hn
 
+/-- Assuming the stated reduction bound, there are uniform positive constants giving `n ≥ c *
+min(d, 1/ε^2)` for estimation algorithms in the specified error and dimension regime
+[TangWright2025]. -/
 theorem conditional_estimation_scaling
     (hred : ∃ C : ℝ, 1 ≤ C ∧
       ∀ (d anc : ℕ) (ε : ℝ) (n : ℕ) (Alg : PreparationAlgorithm (Fin d) (Fin anc)),

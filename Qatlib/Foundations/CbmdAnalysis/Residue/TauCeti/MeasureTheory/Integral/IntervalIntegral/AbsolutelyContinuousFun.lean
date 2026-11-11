@@ -17,6 +17,32 @@ import Mathlib.Analysis.Calculus.Deriv.Comp
 import Mathlib.Analysis.LocallyConvex.SeparatingDual
 import Mathlib.MeasureTheory.SpecificCodomains.Pi
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+
+/-!
+# Integration along absolutely continuous curves
+
+Proves fundamental-theorem and integration-by-parts formulas for absolutely continuous
+functions, including finite-dimensional derivative integrability and endpoint recovery. The
+module also treats logarithmic derivatives, integrated hazards, and absolute continuity of
+indefinite integrals.
+
+These analytic tools support the contour calculations associated with [WangEtAl2026].
+
+## Main statements
+
+* `integral_eq_sub_of_ae_hasDerivAt`: The integral of an almost-everywhere derivative of a
+  finite-dimensional absolutely continuous curve equals its endpoint displacement.
+* `integral_mul_deriv_eq_deriv_mul_of_ae_hasDerivAt`: Integration by parts for absolutely
+  continuous functions equipped with almost-everywhere derivatives.
+* `ContinuousOn.absolutelyContinuousOnInterval_of_hasDerivAt_off_countable`: A continuous
+  function with an interval-integrable derivative specified outside a countable subset of the
+  interval interior is absolutely continuous.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -29,6 +55,9 @@ namespace AbsolutelyContinuousOnInterval
 
 variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] {γ V : ℝ → F} {a b : ℝ}
 
+/-- For an absolutely continuous curve with almost-everywhere derivative `V`, integrating the
+differential of a continuously differentiable real-valued function along `V` gives its
+endpoint difference. -/
 theorem integral_fderiv_apply_eq_sub (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hV : ∀ᵐ t, t ∈ uIoc a b → HasDerivAt γ (V t) t) {φ : F → ℝ} (hφ : ContDiff ℝ 1 φ) :
     ∫ t in a..b, fderiv ℝ φ (γ t) (V t) = φ (γ b) - φ (γ a) := by
@@ -38,6 +67,8 @@ theorem integral_fderiv_apply_eq_sub (hγ : AbsolutelyContinuousOnInterval γ a 
   exact (HasFDerivAt.comp_hasDerivAt t (hφ.differentiable one_ne_zero (γ t)).hasFDerivAt
     (ht hmem)).deriv.symm
 
+/-- An almost-everywhere derivative of a finite-dimensional absolutely continuous curve is
+interval integrable. -/
 theorem intervalIntegrable_of_ae_hasDerivAt [FiniteDimensional ℝ F]
     (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hV : ∀ᵐ t, t ∈ uIoc a b → HasDerivAt γ (V t) t) :
@@ -53,6 +84,7 @@ theorem intervalIntegrable_of_ae_hasDerivAt [FiniteDimensional ℝ F]
   filter_upwards [hV] with t ht hmem
   exact (L.hasFDerivAt.comp_hasDerivAt t (ht hmem)).deriv
 
+/-- The derivative of a finite-dimensional absolutely continuous curve is interval integrable. -/
 theorem intervalIntegrable_deriv_of_finiteDimensional [FiniteDimensional ℝ F]
     (hγ : AbsolutelyContinuousOnInterval γ a b) :
     IntervalIntegrable (deriv γ) volume a b := by
@@ -60,6 +92,8 @@ theorem intervalIntegrable_deriv_of_finiteDimensional [FiniteDimensional ℝ F]
   filter_upwards [hγ.boundedVariationOn.ae_differentiableAt_of_mem_uIcc] with t ht hmem
   exact (ht (uIoc_subset_uIcc hmem)).hasDerivAt
 
+/-- The integral of an almost-everywhere derivative of a finite-dimensional absolutely
+continuous curve equals its endpoint displacement. -/
 theorem integral_eq_sub_of_ae_hasDerivAt [FiniteDimensional ℝ F]
     (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hV : ∀ᵐ t, t ∈ uIoc a b → HasDerivAt γ (V t) t) :
@@ -69,6 +103,8 @@ theorem integral_eq_sub_of_ae_hasDerivAt [FiniteDimensional ℝ F]
   simpa [g.fderiv] using
       (AbsolutelyContinuousOnInterval.integral_fderiv_apply_eq_sub hγ) hV g.contDiff
 
+/-- The integral of the derivative of a finite-dimensional absolutely continuous curve equals
+its endpoint displacement. -/
 theorem integral_deriv_eq_sub_of_finiteDimensional [FiniteDimensional ℝ F]
     (hγ : AbsolutelyContinuousOnInterval γ a b) :
     ∫ t in a..b, deriv γ t = γ b - γ a := by
@@ -76,6 +112,8 @@ theorem integral_deriv_eq_sub_of_finiteDimensional [FiniteDimensional ℝ F]
   filter_upwards [hγ.boundedVariationOn.ae_differentiableAt_of_mem_uIcc] with t ht hmem
   exact (ht (uIoc_subset_uIcc hmem)).hasDerivAt
 
+/-- Two finite-dimensional absolutely continuous curves agreeing at `a` differ at any `t ∈ Icc a
+b` by at most the integral of the norm of their derivative difference. -/
 theorem norm_sub_le_integral_norm_deriv_sub [FiniteDimensional ℝ F] {p : ℝ → F}
     (hp : AbsolutelyContinuousOnInterval p a b) (hγ : AbsolutelyContinuousOnInterval γ a b)
     (ha : p a = γ a) {t : ℝ} (ht : t ∈ Icc a b) :
@@ -94,6 +132,8 @@ theorem norm_sub_le_integral_norm_deriv_sub [FiniteDimensional ℝ F] {p : ℝ �
     (intervalIntegral.integral_mono_interval le_rfl ht.1 ht.2
       (Filter.Eventually.of_forall fun _ ↦ norm_nonneg _) (hpI.sub hγI).norm)
 
+/-- The derivative of a finite-dimensional absolutely continuous curve is integrable on `Ioc a
+b`. -/
 theorem integrableOn_deriv_Ioc [FiniteDimensional ℝ F]
     (hγ : AbsolutelyContinuousOnInterval γ a b) :
     IntegrableOn (deriv γ) (Ioc a b) :=
@@ -106,6 +146,8 @@ namespace AbsolutelyContinuousOnInterval
 variable {A : Type*} [NormedRing A] [NormedAlgebra ℝ A] [FiniteDimensional ℝ A]
   {f f' g g' : ℝ → A} {a b : ℝ}
 
+/-- Integration by parts for absolutely continuous functions equipped with almost-everywhere
+derivatives. -/
 theorem integral_mul_deriv_eq_deriv_mul_of_ae_hasDerivAt
     (hf : AbsolutelyContinuousOnInterval f a b)
     (hg : AbsolutelyContinuousOnInterval g a b)
@@ -134,17 +176,23 @@ namespace AbsolutelyContinuousOnInterval
 
 variable {f V : ℝ → ℝ} {a b : ℝ}
 
+/-- An almost-everywhere derivative `V` of a nonvanishing real function gives the
+almost-everywhere logarithmic derivative `V / f`. -/
 private theorem ae_hasDerivAt_log (h0 : ∀ t ∈ uIcc a b, f t ≠ 0)
     (hV : ∀ᵐ t, t ∈ uIoc a b → HasDerivAt f (V t) t) :
     ∀ᵐ t, t ∈ uIoc a b → HasDerivAt (fun t ↦ Real.log (f t)) (V t / f t) t := by
   filter_upwards [hV] with t ht hmem
   exact (ht hmem).log (h0 t (uIoc_subset_uIcc hmem))
 
+/-- The quotient `V / f` is interval integrable when `f` is nonvanishing and absolutely
+continuous with almost-everywhere derivative `V`. -/
 theorem intervalIntegrable_div_of_ae_hasDerivAt (hf : AbsolutelyContinuousOnInterval f a b)
     (h0 : ∀ t ∈ uIcc a b, f t ≠ 0) (hV : ∀ᵐ t, t ∈ uIoc a b → HasDerivAt f (V t) t) :
     IntervalIntegrable (fun t ↦ V t / f t) volume a b :=
   AbsolutelyContinuousOnInterval.intervalIntegrable_of_ae_hasDerivAt (AbsolutelyContinuousOnInterval.log hf h0) (ae_hasDerivAt_log h0 hV)
 
+/-- The integral of `V / f` equals the difference of endpoint logarithms for a nonvanishing
+absolutely continuous function with almost-everywhere derivative `V`. -/
 theorem integral_div_eq_log_sub_log (hf : AbsolutelyContinuousOnInterval f a b)
     (h0 : ∀ t ∈ uIcc a b, f t ≠ 0) (hV : ∀ᵐ t, t ∈ uIoc a b → HasDerivAt f (V t) t) :
     ∫ t in a..b, V t / f t = Real.log (f b) - Real.log (f a) :=
@@ -156,6 +204,9 @@ namespace TauCeti.Probability
 
 variable {f : ℝ → ℝ} {a x : ℝ}
 
+/-- A positive absolutely continuous survival function with almost-everywhere derivative `-f`
+has integrable hazard `f / S` and equals its initial value times the exponential of the
+negative integrated hazard. -/
 theorem survival_eq_exp_integral_hazard {S : ℝ → ℝ}
     (hS : AbsolutelyContinuousOnInterval S a x) (hpos : ∀ t ∈ uIcc a x, 0 < S t)
     (hderiv : ∀ᵐ t, t ∈ uIoc a x → HasDerivAt S (-f t) t) :
@@ -178,6 +229,8 @@ theorem survival_eq_exp_integral_hazard {S : ℝ → ℝ}
 
 end TauCeti.Probability
 
+/-- The indefinite interval integral of an interval-integrable function is absolutely continuous
+when its basepoint lies between the interval endpoints. -/
 theorem IntervalIntegrable.absolutelyContinuousOnInterval_intervalIntegral'
     {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     {f : ℝ → F} {a b c : ℝ} (hf : IntervalIntegrable f volume a b) (hc : c ∈ uIcc a b) :
@@ -198,6 +251,8 @@ theorem IntervalIntegrable.absolutelyContinuousOnInterval_intervalIntegral'
     Real.dist_eq, intervalIntegral.integral_interval_sub_left hx.norm hy.norm]
   exact intervalIntegral.norm_integral_le_abs_integral_norm
 
+/-- A continuous function with an interval-integrable derivative specified outside a countable
+subset of the interval interior is absolutely continuous. -/
 theorem ContinuousOn.absolutelyContinuousOnInterval_of_hasDerivAt_off_countable
     {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
     {f f' : ℝ → F} {a b : ℝ} {s : Set ℝ} (hf : ContinuousOn f (uIcc a b))

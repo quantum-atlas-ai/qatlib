@@ -8,6 +8,32 @@ import Qatlib.Concepts.ClassicalTape.FairCoinTape
 import Mathlib.Data.List.GetD
 import Mathlib.Data.Fin.Tuple.Basic
 import Mathlib.Tactic.FinCases
+
+/-!
+# Parity decision by deterministic and randomized tape machines
+
+`parityTapeMachine` scans a Boolean word and computes parity in a number of transitions equal to
+the word length. `parityNoisyCoinMachine` first uses two coins to select a possible output flip
+and then performs the same scan, giving success probability `3 / 4` and path time `x.length + 2`
+for every coin assignment.
+
+The module proves invariance under equivalences of machine labels and derives membership of
+parity in `TapeInP` and of parity and its complement in `TapeInBPP`. These explicit classical
+machines provide examples in the computation framework discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `parity_tape_actual_linear_halt`: gives the deterministic parity output and exact halting
+  configuration.
+* `parity_noisy_coin_actual_error_and_worst_path_time`: gives success probability `3 / 4` and
+  the time of every randomized path.
+* `parity_real_tape_p_bpp_consumers`: establishes the stated tape-complexity memberships.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
@@ -19,12 +45,16 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open scoped BigOperators Classical
 
+/-- The parity of a Boolean list, computed by folding exclusive-or from false. -/
 def parityBool (x : List Bool) : Bool := x.foldl Bool.xor false
 
+/-- The deterministic tape machine that accumulates exclusive-or while moving right and halts on
+the first blank symbol. -/
 def parityTapeMachine : Turing.TM0.Machine (Option Bool) Bool
   | _, none => none
   | q, some b => some (Bool.xor q b, Turing.TM0.Stmt.move Turing.Dir.right)
 
+/-- A fixed left exclusive-or factor can be pulled out of a left fold of exclusive-or. -/
 private theorem foldl_xor (l : List Bool) (p q : Bool) :
     (l.foldl Bool.xor (Bool.xor p q)) = Bool.xor p (l.foldl Bool.xor q) := by
   induction l generalizing q with
@@ -34,6 +64,7 @@ private theorem foldl_xor (l : List Bool) (p q : Bool) :
       rw [Bool.xor_assoc]
       exact ih _
 
+/-- The parity of `b :: l` is the exclusive-or of `b` and the parity of `l`. -/
 theorem parityBool_cons (b : Bool) (l : List Bool) :
     parityBool (b :: l) = Bool.xor b (parityBool l) := by
   unfold parityBool
@@ -41,11 +72,14 @@ theorem parityBool_cons (b : Bool) (l : List Bool) :
   conv_lhs => rw [← Bool.xor_false b]
   exact foldl_xor l b false
 
+/-- After moving right `j` times from a tape initialized by `l`, the head contains `l.getI j`. -/
 theorem tape_iterate_move_right_head (l : List (Option Bool)) (j : ℕ) :
     ((Turing.Tape.move Turing.Dir.right)^[j] (Turing.Tape.mk₁ l)).head = l.getI j := by
   rw [Turing.Tape.move_right_n_head]
   simp [Turing.Tape.mk₁, Turing.Tape.mk₂]
 
+/-- After `j ≤ x.length` steps, the parity machine's state is the parity of the first `j` bits
+and its head has moved right `j` positions. -/
 theorem parityTapeMachine_after (x : List Bool) (j : ℕ) (hj : j ≤ x.length) :
     BitMachineAfter parityTapeMachine (x.map some) j =
       some ⟨(x.take j).foldl Bool.xor false,
@@ -78,6 +112,8 @@ theorem parityTapeMachine_after (x : List Bool) (j : ℕ) (hj : j ≤ x.length) 
         simp
       · rw [Function.iterate_succ_apply']
 
+/-- The parity machine returns `parityBool x` at time `x.length` and is then in a configuration
+whose next transition halts. -/
 theorem parity_tape_actual_linear_halt :
     ∀ x : List Bool,
       parityBool x = x.foldl Bool.xor false ∧
@@ -105,12 +141,16 @@ theorem parity_tape_actual_linear_halt :
   exact ⟨x.length, ⟨(x.take x.length).foldl Bool.xor false, Tn⟩, le_refl _, hafter, hstepN,
     by rw [hq]; rfl⟩
 
+/-- The control label recording the first coin of the noisy parity machine. -/
 def parityNoisyStageOneLabel (c₁ : Bool) : Fin 8 :=
   ⟨1 + c₁.toNat, by cases c₁ <;> decide⟩
 
+/-- The control label encoding a fixed noise bit and the current parity accumulator. -/
 def parityNoisyScanLabel (n p : Bool) : Fin 8 :=
   ⟨3 + 2 * n.toNat + p.toNat, by cases n <;> cases p <;> decide⟩
 
+/-- A coin-indexed tape machine that selects a noise bit from its first two coins, scans the
+input parity, and halts on a blank. -/
 def parityNoisyCoinMachine (coin : Bool) : Turing.TM0.Machine (Option Bool) (Fin 8)
   | ⟨0, _⟩, γ => some (⟨1 + coin.toNat, by cases coin <;> decide⟩, Turing.TM0.Stmt.write γ)
   | ⟨1, _⟩, γ => some (parityNoisyScanLabel false false, Turing.TM0.Stmt.write γ)
@@ -129,32 +169,44 @@ def parityNoisyCoinMachine (coin : Bool) : Turing.TM0.Machine (Option Bool) (Fin
       Turing.TM0.Stmt.move Turing.Dir.right)
   | ⟨_, _⟩, _ => none
 
+/-- The acceptance map for noisy parity labels, accepting labels four and five. -/
 def parityNoisyAccept : Fin 8 → Bool
   | ⟨4, _⟩ => true
   | ⟨5, _⟩ => true
   | _ => false
 
+/-- On a scan label, the acceptance map returns the exclusive-or of the parity accumulator and
+the noise bit. -/
 theorem parityNoisyAccept_scanLabel (n p : Bool) :
     parityNoisyAccept (parityNoisyScanLabel n p) = Bool.xor p n := by
   cases n <;> cases p <;> rfl
 
+/-- At label zero, the noisy parity machine records the current coin and rewrites the current
+tape symbol unchanged. -/
 theorem parityNoisyCoinMachine_zero (coin : Bool) (γ : Option Bool) (h : 0 < 8) :
     parityNoisyCoinMachine coin ⟨0, h⟩ γ =
       some (parityNoisyStageOneLabel coin, Turing.TM0.Stmt.write γ) := rfl
 
+/-- At label one, the noisy parity machine begins scanning with false noise and false parity. -/
 theorem parityNoisyCoinMachine_one (coin : Bool) (γ : Option Bool) (h : 1 < 8) :
     parityNoisyCoinMachine coin ⟨1, h⟩ γ =
       some (parityNoisyScanLabel false false, Turing.TM0.Stmt.write γ) := rfl
 
+/-- At label two, the noisy parity machine begins scanning with the current coin as noise and
+false parity. -/
 theorem parityNoisyCoinMachine_two (coin : Bool) (γ : Option Bool) (h : 2 < 8) :
     parityNoisyCoinMachine coin ⟨2, h⟩ γ =
       some (parityNoisyScanLabel coin false, Turing.TM0.Stmt.write γ) := rfl
 
+/-- The second setup transition selects noise equal to the conjunction of the two setup coins
+and starts with false parity. -/
 theorem parityNoisyCoinMachine_stageOne (coin c₁ : Bool) (γ : Option Bool) :
     parityNoisyCoinMachine coin (parityNoisyStageOneLabel c₁) γ =
       some (parityNoisyScanLabel (c₁ && coin) false, Turing.TM0.Stmt.write γ) := by
   cases c₁ <;> rfl
 
+/-- In a scan state, a blank halts the machine; a Boolean symbol updates parity by exclusive-or
+and moves the head right. -/
 theorem parityNoisyCoinMachine_scanLabel (coin n p : Bool) (γ : Option Bool) :
     parityNoisyCoinMachine coin (parityNoisyScanLabel n p) γ =
       match γ with
@@ -163,12 +215,15 @@ theorem parityNoisyCoinMachine_scanLabel (coin n p : Bool) (γ : Option Bool) :
           Turing.TM0.Stmt.move Turing.Dir.right) := by
   cases n <;> cases p <;> cases γ <;> rfl
 
+/-- A noisy parity scan configuration satisfies `coinHalt` exactly when its tape head is blank. -/
 theorem coinHalt_noisy_scan (n p : Bool) (T : Turing.Tape (Option Bool)) :
     coinHalt parityNoisyCoinMachine ⟨parityNoisyScanLabel n p, T⟩ = T.head.isNone := by
   cases h : T.head with
   | none => simp [coinHalt, parityNoisyCoinMachine_scanLabel, h]
   | some b => simp [coinHalt, parityNoisyCoinMachine_scanLabel, h]
 
+/-- Scanning the remaining `m` input bits with `m` supplied coins consumes exactly `m` steps and
+applies `accept` to the label containing the accumulated suffix parity. -/
 theorem parityNoisy_scan_run (x : List Bool) (accept : Fin 8 → Bool) (noise : Bool) :
     ∀ (m : ℕ) (j : ℕ), j + m = x.length → ∀ (p : Bool) (coins : List Bool),
       coins.length = m →
@@ -230,6 +285,8 @@ theorem parityNoisy_scan_run (x : List Bool) (accept : Fin 8 → Bool) (noise : 
           rw [hdrop, ← Bool.xor_assoc]
           rfl
 
+/-- A full noisy parity run uses exactly `x.length + 2` steps and returns the acceptance value
+for noise `c₁ && c₂` and parity `parityBool x`. -/
 theorem parityNoisy_full_run (x : List Bool) (accept : Fin 8 → Bool) (c₁ c₂ : Bool)
     (rest : List Bool) (hc : rest.length = x.length) :
     coinTapeRunAux parityNoisyCoinMachine accept (c₁ :: c₂ :: rest)
@@ -264,16 +321,22 @@ theorem parityNoisy_full_run (x : List Bool) (accept : Fin 8 → Bool) (c₁ c�
   rw [List.drop_zero, Bool.false_xor]
   rfl
 
+/-- Enumerating a finite function built with `Fin.cons` gives the head value followed by the
+enumeration of its tail. -/
 theorem ofFn_cons {α : Type*} {t : ℕ} (b : α) (v : Fin t → α) :
     List.ofFn (Fin.cons b v) = b :: List.ofFn v := by
   rw [List.ofFn_succ, Fin.cons_zero]
   congr 1
 
+/-- Enumerating a function on `Fin (n + 2)` gives its first two values followed by the
+enumeration of the twice-shifted tail. -/
 theorem List_ofFn_add_two (n : ℕ) (ω : Fin (n + 2) → Bool) :
     List.ofFn ω = ω 0 :: (fun i : Fin (n + 1) => ω i.succ) 0 ::
       List.ofFn (fun i : Fin n => ω i.succ.succ) := by
   rw [List.ofFn_succ, List.ofFn_succ]
 
+/-- Taking the first `m ≤ n` values of `List.ofFn f` agrees with enumerating the restriction of
+`f` to `Fin m`. -/
 theorem List_take_ofFn {α : Type*} {n : ℕ} (f : Fin n → α) (m : ℕ) (h : m ≤ n) :
     (List.ofFn f).take m = List.ofFn (fun i : Fin m => f ⟨i.val, by omega⟩) := by
   apply List.ext_getElem
@@ -281,6 +344,8 @@ theorem List_take_ofFn {α : Type*} {n : ℕ} (f : Fin n → α) (m : ℕ) (h : 
   · intro i hi1 hi2
     simp [List.getElem_take]
 
+/-- Every coin sequence of length at least `x.length + 2` makes the noisy parity machine return
+a value. -/
 theorem parityNoisy_all_terminate (x : List Bool) (accept : Fin 8 → Bool) :
     ∀ t : ℕ, x.length + 2 ≤ t → ∀ ω : Fin t → Bool,
       ((coinTapeRun parityNoisyCoinMachine accept (x.map some) (List.ofFn ω)).1).isSome := by
@@ -305,6 +370,8 @@ theorem parityNoisy_all_terminate (x : List Bool) (accept : Fin 8 → Bool) :
   rw [happ]
   rfl
 
+/-- The equivalence between a Boolean head with a `Fin t`-indexed tail and a Boolean function on
+`Fin (t + 1)`. -/
 def finBoolConsEquiv (t : ℕ) : Bool × (Fin t → Bool) ≃ (Fin (t + 1) → Bool) where
   toFun p := Fin.cons p.1 p.2
   invFun w := (w 0, Fin.tail w)
@@ -315,17 +382,24 @@ def finBoolConsEquiv (t : ℕ) : Bool × (Fin t → Bool) ≃ (Fin (t + 1) → B
     · simp [Fin.tail_cons]
   right_inv w := Fin.cons_self_tail w
 
+/-- The equivalence between two Boolean heads with a `Fin n`-indexed tail and a Boolean function
+on `Fin (n + 2)`. -/
 private def finBoolBoolProdEquiv (n : ℕ) : Bool × Bool × (Fin n → Bool) ≃ (Fin (n + 2) → Bool) :=
   ((Equiv.refl Bool).prodCongr (finBoolConsEquiv n)).trans (finBoolConsEquiv (n + 1))
 
+/-- Enumerating the two-head finite-function equivalence gives the two heads followed by the
+enumerated tail. -/
 theorem ofFn_finBoolBoolProdEquiv (n : ℕ) (b₀ b₁ : Bool) (v : Fin n → Bool) :
     List.ofFn (finBoolBoolProdEquiv n (b₀, b₁, v)) = b₀ :: b₁ :: List.ofFn v := by
   show List.ofFn (Fin.cons b₀ (Fin.cons b₁ v)) = _
   rw [ofFn_cons, ofFn_cons]
 
+/-- Exclusive-or with `c` leaves a Boolean `p` unchanged exactly when `c` is false. -/
 private theorem xor_eq_self_iff (p c : Bool) : (Bool.xor p c = p) ↔ (c = false) := by
   cases p <;> cases c <;> decide
 
+/-- The noisy parity machine has fair-coin success probability `3 / 4`. Every coin assignment of
+length `x.length + 2` returns a value in exactly that many steps. -/
 theorem parity_noisy_coin_actual_error_and_worst_path_time :
     ∀ x : List Bool,
       fairTapeSuccess parityNoisyCoinMachine parityNoisyAccept (x.map some) (x.length + 2)
@@ -407,9 +481,13 @@ theorem parity_noisy_coin_actual_error_and_worst_path_time :
 
 variable {Γ Λ Λ' : Type*} [Inhabited Γ] [Inhabited Λ] [Inhabited Λ']
 
+/-- Transport a tape machine's control labels along an equivalence, preserving its tape alphabet
+and tape operations. -/
 def TM0Relabel (e : Λ' ≃ Λ) (M : Turing.TM0.Machine Γ Λ) : Turing.TM0.Machine Γ Λ' :=
   fun l γ => (M (e l) γ).map fun p => (e.symm p.1, p.2)
 
+/-- A step of the relabeled tape machine is the corresponding original step with its resulting
+control label mapped back by the equivalence. -/
 theorem step_TM0Relabel (e : Λ' ≃ Λ)
     (M : Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     Turing.TM0.step (TM0Relabel e M) ⟨e.symm cfg.q, cfg.Tape⟩ =
@@ -419,6 +497,8 @@ theorem step_TM0Relabel (e : Λ' ≃ Λ)
   simp only [TM0Relabel, Equiv.apply_symm_apply, Option.map_map]
   congr 1
 
+/-- Bounded decision runs commute with relabeling when the acceptance map is transported along
+the label equivalence. -/
 theorem tapeDecisionRun_TM0Relabel (e : Λ' ≃ Λ)
     (M : Turing.TM0.Machine Γ Λ) (accept : Λ' → Bool) :
     ∀ (t : ℕ) (cfg : Turing.TM0.Cfg Γ Λ),
@@ -441,6 +521,8 @@ theorem tapeDecisionRun_TM0Relabel (e : Λ' ≃ Λ)
           simp only [Option.map_some]
           exact ih cfg₁
 
+/-- If the label equivalence preserves the default initial label, tape decisions are unchanged
+after transporting the acceptance map. -/
 theorem tapeDecision_TM0Relabel (e : Λ' ≃ Λ)
     (M : Turing.TM0.Machine Γ Λ) (accept : Λ' → Bool)
     (hinit : e.symm default = default) (input : List Γ) (t : ℕ) :
@@ -450,12 +532,16 @@ theorem tapeDecision_TM0Relabel (e : Λ' ≃ Λ)
   conv_lhs => rw [show (default : Λ') = e.symm (default : Λ) from hinit.symm]
   exact tapeDecisionRun_TM0Relabel e M accept t ⟨default, Turing.Tape.mk₁ input⟩
 
+/-- For every label and tape symbol, the noisy parity machine halts independently of the current
+coin value. -/
 theorem parityNoisyCoinMachine_halt_iff (l : Fin 8) (γ : Option Bool) :
     (parityNoisyCoinMachine false l γ = none) ↔ (parityNoisyCoinMachine true l γ = none) := by
   fin_cases l <;> cases γ with
   | none => decide
   | some b => cases b <;> decide
 
+/-- Postcomposing the acceptance function with `g` maps the returned Boolean by `g` and
+preserves the consumed-step count. -/
 theorem coinTapeRunAux_accept_map (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (g : Bool → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ),
@@ -490,6 +576,8 @@ theorem coinTapeRunAux_accept_map (M : Bool → Turing.TM0.Machine Γ Λ) (accep
             rcases coinTapeRunAux M accept cs cfg' with ⟨r, k⟩
             rfl
 
+/-- The language of odd-parity Boolean words belongs to `TapeInP` and `TapeInBPP`, and its
+even-parity complement belongs to `TapeInBPP`. -/
 theorem parity_real_tape_p_bpp_consumers :
     TapeInP (fun x => parityBool x = true) ∧
       TapeInBPP (fun x => parityBool x = true) ∧

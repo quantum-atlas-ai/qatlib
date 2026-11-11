@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.NoisyLeastSquaresConsumer
+
+/-!
+# Threshold postselection and concrete outputs
+
+`threshold_postselected_subspace_output` converts a noisy threshold-filter approximation into a
+nonzero conditional vector, a success-mass lower bound, and a normalized-state error bound when
+the target norm exceeds the total error. Its hypotheses impose a gap between squared singular
+values and the squared threshold.
+
+The module checks the zero operator, the exact threshold boundary, and the rectangular rank-one
+example. These consumers instantiate the singular-value filtering framework of
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `threshold_postselected_subspace_output`: obtain output guarantees from the spectral gap and
+  noise bound.
+* `threshold_exact_boundary_half_response_consumer`: compute the response at the discontinuity.
+* `threshold_rank_one_actual_output_consumer`: certify the concrete rank-one output and query
+  count.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -47,6 +73,9 @@ section GeneralOutput
 variable {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   [Fintype O] [DecidableEq O]
 
+/-- Under the squared-singular-value gap and oracle-noise bound, if the total filter error `ε`
+is below the threshold-projected input norm, the actual vector is nonzero, has mass at least
+`(‖x‖ - ε)^2`, and has normalized error at most `2 * ε / ‖x‖`. -/
 theorem threshold_postselected_subspace_output (A : Matrix O I ℂ) (U V : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (τ γ δ : ℝ) (k : ℕ) (b : QState I)
     (h : ProjectedUnitaryEncoding A U L R) (hV : V ∈ Matrix.unitaryGroup H ℂ)
@@ -79,6 +108,8 @@ theorem threshold_postselected_subspace_output (A : Matrix O I ℂ) (U V : Matri
   · rw [stateVector_postMeasure_univ]
     exact hout
 
+/-- For a zero operator and a positive threshold gap, the right threshold projection vanishes
+and the compressed filter norm is at most `signPolynomialError γ k / 2`. -/
 theorem threshold_zero_operator_full_kernel_consumer (τ γ : ℝ) (k : ℕ)
     (hτ : τ ∈ Set.Icc (0 : ℝ) 1) (hγ : 0 < γ) (hγτ : γ ≤ τ ^ 2) (hγ1 : γ ≤ 1) :
     rightThresholdProjection (0 : Matrix O I ℂ) τ = 0 ∧
@@ -99,6 +130,8 @@ theorem threshold_zero_operator_full_kernel_consumer (τ γ : ℝ) (k : ℕ)
 
 end GeneralOutput
 
+/-- At the exact threshold, the real response is `1 / 2`, whereas the strict threshold indicator
+is zero. -/
 theorem threshold_exact_boundary_half_response_consumer (τ : ℝ) (k : ℕ)
     (hτ : τ ∈ Set.Icc (0 : ℝ) 1) :
     ((responseP (thresholdBase τ k) (thresholdPhases τ k)).eval (τ : ℂ)).re = 1 / 2 ∧
@@ -106,6 +139,7 @@ theorem threshold_exact_boundary_half_response_consumer (τ : ℝ) (k : ℕ)
   exact ⟨(threshold_phase_word_response τ k hτ).2.2.2 τ |>.trans
     (thresholdPolynomial_eval_threshold τ k), thresholdIndicator_self τ⟩
 
+/-- If `Aᴴ * A` is idempotent, every squared singular value of `A` is zero or one. -/
 private theorem squared_singularValues_of_idempotent_gram
     {I O : Type} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
     (A : Matrix O I ℂ) (hP : (Aᴴ * A) * (Aᴴ * A) = Aᴴ * A)
@@ -130,12 +164,15 @@ private theorem squared_singularValues_of_idempotent_gram
   · exact Or.inl h0
   · exact Or.inr (sub_eq_zero.mp h1)
 
+/-- The Gram matrix of the rectangular rank-one example is idempotent. -/
 private theorem lsExample_gram_idempotent :
     (lsExampleAᴴ * lsExampleA) * (lsExampleAᴴ * lsExampleA) = lsExampleAᴴ * lsExampleA := by
   rw [lsExampleA_conjTranspose_mul]
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The squared singular values of the rank-one example are separated from the squared threshold
+`(1 / 2)^2` by at least `1 / 4`. -/
 theorem threshold_rank_one_gap : ∀ i : Fin (Fintype.card (Fin 2)),
     (1 / 4 : ℝ) ≤ |(matrixSingularValues lsExampleA i) ^ 2 - (1 / 2 : ℝ) ^ 2| := by
   intro i
@@ -144,6 +181,7 @@ theorem threshold_rank_one_gap : ∀ i : Fin (Fintype.card (Fin 2)),
   · rw [h0]; norm_num
   · rw [h1]; norm_num
 
+/-- The right threshold projection of the rank-one example at `1 / 2` equals its Gram matrix. -/
 theorem threshold_rank_one_projection :
     rightThresholdProjection lsExampleA (1 / 2) = lsExampleAᴴ * lsExampleA := by
   change spectralDiagonal (rightSingularBasis lsExampleA)
@@ -164,6 +202,7 @@ theorem threshold_rank_one_projection :
     exact_mod_cast hr
   rw [hc]
 
+/-- The relabeled Hadamard input has both amplitudes equal to `1 / √2`. -/
 private theorem threshold_rank_one_input_amplitudes :
     relabelState boolEquivFin2 (ApplyGate Hadamard (Qatlib.Foundations.PureStateMath.Ket false)) =
       fun _ : Fin 2 => (Real.sqrt 2 : ℂ)⁻¹ := by
@@ -171,6 +210,7 @@ private theorem threshold_rank_one_input_amplitudes :
   funext i
   fin_cases i <;> simp [relabelState, boolEquivFin2, Plus, Hadamard]
 
+/-- The rank-one threshold projection sends the Hadamard input to `1 / √2` times ket zero. -/
 private theorem threshold_rank_one_target :
     rightThresholdProjection lsExampleA (1 / 2) *ᵥ
         relabelState boolEquivFin2 (ApplyGate Hadamard (Qatlib.Foundations.PureStateMath.Ket false)) =
@@ -180,11 +220,13 @@ private theorem threshold_rank_one_target :
   funext i
   fin_cases i <;> simp [Matrix.mulVec, dotProduct, Fin.sum_univ_two, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The norm of `1 / √2` times ket zero is `1 / √2`. -/
 private theorem threshold_rank_one_target_norm :
     ‖stateVector ((Real.sqrt 2 : ℂ)⁻¹ • Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))‖ = (Real.sqrt 2)⁻¹ := by
   rw [stateVector_smul_ket_norm, norm_inv, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (Real.sqrt_nonneg 2)]
 
+/-- The normalized state vector of `1 / √2` times ket zero is the state vector of ket zero. -/
 private theorem threshold_rank_one_target_direction :
     NormedSpace.normalize (stateVector ((Real.sqrt 2 : ℂ)⁻¹ • Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) =
       stateVector (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2)) := by
@@ -197,6 +239,8 @@ private theorem threshold_rank_one_target_direction :
       (Real.sqrt_pos_of_pos (show (0 : ℝ) < 2 by norm_num)).ne')
   rw [hs, one_smul]
 
+/-- The rank-one threshold word has a nonzero output, the stated success-mass and normalized
+error bounds relative to ket zero, and exactly `2 * 3^k` adjoint queries. -/
 theorem threshold_rank_one_actual_output_consumer (k : ℕ) :
     let ε := signPolynomialError (1 / 4) k / 2
     let b :=

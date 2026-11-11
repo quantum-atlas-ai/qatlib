@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MCMontanaro15.MonteCarlo.MonteCarloRefinedDefs
+
+/-!
+# Refined Monte Carlo truncation and resource bounds
+
+This module assembles finite-law identities and estimates used in quantum
+Monte Carlo analysis: truncation bias and second-moment tails, centered
+variance, band-mean reconstruction, pilot-certified median budgets, and
+partition-function and walk ledgers. Each endpoint states its required
+positivity, logarithm-domain, or supplied-estimator hypotheses explicitly.
+
+The source framework is [Montanaro2015]. Exact constants and the bit, memory,
+and stopping ledgers refer to the local models.
+-/
 set_option warningAsError false
 open Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -25,6 +38,8 @@ set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- Combines the partition-limit comparison, exponential tail and reflection-error identity with
+the explicit Theorem 11 walk, reflection, and copy cost expressions. -/
 theorem clause51_endpoint {Ω : Type} [Fintype Ω] (H : Ω → ℕ) (l : WalkLedger)
     (hR : 0 < l.reflections) (hg : 0 ≤ l.gamma) (ε δ : ℝ) (hε : 0 < ε) (hδ : 0 < δ) :
     partitionFnLimit H ≤ partitionFn H l.gamma ∧
@@ -46,6 +61,8 @@ theorem clause51_endpoint {Ω : Type} [Fintype Ω] (H : Ω → ℕ) (l : WalkLed
   exact ⟨partitionFnLimit_le_partitionFn H l.gamma, clause51_walk_state_error l hR,
     hgap.1, hgap.2, rfl, rfl, rfl⟩
 
+/-- Truncation bias is exactly the expectation in the discarded tail, the
+decomposition used in [Montanaro, Monte Carlo estimation][Montanaro2015]. -/
 theorem clause52_truncation_error {X : Type} [Fintype X] (p : FinDist X) (f : X → ℝ)
     (k : ℕ) :
     p.expect f - truncatedExpectation p f k = tailAbove p f (truncationThreshold k) := by
@@ -60,6 +77,9 @@ theorem clause52_truncation_error {X : Type} [Fintype X] (p : FinDist X) (f : X 
   · rw [if_neg h, if_neg h]
     ring
 
+/-- The truncation error equals the upper-tail contribution and satisfies its second-moment
+bound. For B ≥ 1, the reciprocal lies in (0, 1], and the same bound holds after adding the
+layer error. -/
 theorem clause52_endpoint (p : FinDist X) (f : X → ℝ) (k : ℕ) (γ : ℝ) (B : ℝ)
     (hf : ∀ x, 0 ≤ f x) (hm : 0 < (2 : ℝ) ^ k) (hB : 1 ≤ B) :
     p.expect f - truncatedExpectation p f k = tailAbove p f (truncationThreshold k) ∧
@@ -72,6 +92,8 @@ theorem clause52_endpoint (p : FinDist X) (f : X → ℝ) (k : ℕ) (γ : ℝ) (
     tailAbove_le_secondMoment_div p f hf (truncationThreshold k) hm,
     clause52_overlap_domain B hB, clause52_error_ledger p f k γ hf hm⟩
 
+/-- Collects the exact threshold for 1/9 + 2δ ≤ 3/10, the transport and printed baseline
+identities, their complementary success expression, and the sum 1/9 + 2/9 = 1/3. -/
 theorem clause53_endpoint (δ : ℝ) (T : ℕ) (γ : ℝ) :
     ((1 : ℝ) / 9 + 2 * δ ≤ 3 / 10 ↔ δ ≤ 17 / 180) ∧
       sourceLemma18Transport T γ = (T : ℝ) * (Real.pi ^ 2 / Real.sqrt 6) * Real.sqrt γ ∧
@@ -84,6 +106,7 @@ theorem clause53_endpoint (δ : ℝ) (T : ℕ) (γ : ℝ) :
     clause53_baseline_split T γ, (clause53_sourceSuccessRate T γ).1,
     (clause53_sourcePrintedThreeTenths (1 / 9)).2.1⟩
 
+/-- For positive σ and ε with log(σ/ε) > 1, the iterated logarithm log(log(σ/ε)) is positive. -/
 theorem clause54_parameter_domain {σ ε : ℝ} (hσ : 0 < σ) (hε : 0 < ε)
     (hlog : 1 < Real.log (σ / ε)) :
     0 < σ ∧ 0 < ε ∧ 1 < Real.log (σ / ε) ∧ 0 < Real.log (Real.log (σ / ε)) := by
@@ -91,6 +114,9 @@ theorem clause54_parameter_domain {σ ε : ℝ} (hσ : 0 < σ) (hε : 0 < ε)
   refine ⟨hσ, hε, hlog, ?_⟩
   exact Real.log_pos hlog
 
+/-- Under the positive logarithm domain and band-mean error bounds, combines reconstruction
+error at most 8σε with the 2/3 success arithmetic, explicit Theorem 5 costs, and seven-copy
+ledger identity. -/
 theorem clause54_endpoint (p : FinDist X) (f : X → ℝ) (σ m muNeg muPos ε : ℝ)
     (hσ : 0 < σ) (hε : 0 < ε) (hlog : 1 < Real.log (σ / ε))
     (hneg : |bandMeanBelow p f σ m - muNeg| ≤ ε)
@@ -106,6 +132,7 @@ theorem clause54_endpoint (p : FinDist X) (f : X → ℝ) (σ m muNeg muPos ε :
     (clause54_algorithm3_success (1 / 9) (by norm_num)).2,
     clause54_parameter_domain hσ hε hlog, rfl, rfl, rfl⟩
 
+/-- For nonzero σ, scaling a payoff by 1/σ and shifting by m divides its variance by σ². -/
 theorem clause55_centered_variance {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (σ m : ℝ) (hσ : σ ≠ 0) :
     p.variance (fun x => f x / σ - m) = p.variance f / σ ^ 2 := by
@@ -155,6 +182,9 @@ theorem clause55_centered_variance {X : Type} [Fintype X] [DecidableEq X]
   unfold FinDist.variance
   rw [hexp, hmain, hdiv]
 
+/-- Combines the two-level opaque-sampler obstruction, pilot variance and concentration bounds,
+certified sample-size identity, and variance bound for a payoff bounded by one. It also
+gives the variance formula for every nonzero scaling centered at the scaled mean. -/
 theorem clause55_endpoint (alg : OpaqueSampler) (law : FinDist X) (f : X → ℝ)
     (ω : DrawRecord n₀ X) (t : ℝ) (p : ℝ) (hp : 0 < p) (hp1 : p ≤ 1)
     (hdraw : (1 - p) ^ alg.draws > 1 / 3)
@@ -181,6 +211,8 @@ theorem clause55_endpoint (alg : OpaqueSampler) (law : FinDist X) (f : X → ℝ
     clause56_variance_le_one_of_bounded law f hf,
     fun σ' hσ' => clause55_centered_variance law f σ' (law.expect f / σ') hσ'⟩
 
+/-- For a nonnegative payoff with the stated second-moment bound, the truncation error equals
+the upper tail, this tail is at most ε, and the variance is at most the second moment. -/
 theorem clause56_endpoint (p : FinDist X) (f : X → ℝ) (k : ℕ) (ε : ℝ)
     (hf : ∀ x, 0 ≤ f x) (hm : 0 < (2 : ℝ) ^ k)
     (hbound : p.expect (fun x => f x ^ 2) ≤ (2 : ℝ) ^ k * ε) :
@@ -191,17 +223,22 @@ theorem clause56_endpoint (p : FinDist X) (f : X → ℝ) (k : ℕ) (ε : ℝ)
   refine ⟨clause56_optimal_truncation p f k ε hf hm hbound, ?_⟩
   exact (_root_.Qatlib.Papers.MCMontanaro15.MonteCarlo.Basic.StageBMONTECARLO.clause56_endpoint p f k ε hf hm hbound).2.2
 
+/-- Replicating the stated layer ledger k times multiplies each nonzero resource count by k. -/
 theorem clause56_stopping_ledger (k perLayer medianCount : ℕ) :
     (⟨1 + 2 * perLayer, 2 * perLayer, 2 * medianCount, 0⟩ : CostLedger).replicate k
       = ⟨k * (1 + 2 * perLayer), k * (2 * perLayer), k * (2 * medianCount), 0⟩ := by
   exact clause56_adaptive_stopping_ledger k perLayer medianCount
 
+/-- A single repetition of the specified layer ledger uses 1 + 2 times `perLayer` copies. -/
 theorem clause56_stopping_copies (perLayer : ℕ) :
     (CostLedger.replicate
         (⟨1 + 2 * perLayer, 2 * perLayer, 2 * perLayer, 0⟩ : CostLedger) 1).copies
       = 1 + 2 * perLayer := by
   simp [CostLedger.replicate]
 
+/-- A positive pilot variance certificate yields a median failure bound and a
+sufficient positive per-group sample budget. This local certification supports
+the estimation framework of [Montanaro2015]. -/
 theorem clause56_median_budget (p : FinDist X) (f : X → ℝ)
     (ω : DrawRecord n₀ X) (t ε : ℝ) (M : ℕ)
     (hε : 0 < ε) (hM : 0 < M)
@@ -216,6 +253,8 @@ theorem clause56_median_budget (p : FinDist X) (f : X → ℝ)
       0 < certifiedSamplesPerGroup f t ε ω :=
   (clause56_endpoint_median_budget p f ω t ε M hε hM hB hvar)
 
+/-- Unfolds the relative-estimation copy, reflection, classical sample, and schedule sample cost
+formulas together with the stated parameter domain and 3/4 success arithmetic. -/
 theorem clause57_endpoint (l : WalkLedger) (B ε : ℝ) (hB : 1 ≤ B) (hε : 0 < ε)
     (hdom : ε < 27 * B / 4) :
     (theorem6Copies B ε = B + Real.log (1 / ε) * Real.log (Real.log (1 / ε))) ∧
@@ -230,6 +269,7 @@ theorem clause57_endpoint (l : WalkLedger) (B ε : ℝ) (hB : 1 ≤ B) (hε : 0 
         1 - ((1 : ℝ) / 4) = (3 : ℝ) / 4) := by
   refine ⟨rfl, rfl, rfl, rfl, clause57_theorem6_scope B ε hB hε hdom⟩
 
+/-- Two table-selection outputs are at most k, and equal input results give equal outputs. -/
 theorem clause58_table_select (k : ℕ) (m₁ m₂ : ℝ) :
     tableSelectProgram k m₁ ≤ k ∧ tableSelectProgram k m₂ ≤ k ∧
       (m₁ = m₂ → tableSelectProgram k m₁ = tableSelectProgram k m₂) := by
@@ -237,6 +277,8 @@ theorem clause58_table_select (k : ℕ) (m₁ m₂ : ℝ) :
   intro h
   simp [tableSelectProgram, h]
 
+/-- Combines the numerator sum bound and selected-band bound with the explicit classical bit,
+table-selection, memory, persistent-space, and greatest-common-divisor gate formulas. -/
 theorem clause58_endpoint (N k Q maxAbs : ℕ) (num : Fin N → ℤ)
     (hnum : ∀ i, 0 ≤ num i) (habs : ∀ i, num i ≤ maxAbs) :
     (∑ i, num i) ≤ (N : ℤ) * (maxAbs : ℤ) ∧

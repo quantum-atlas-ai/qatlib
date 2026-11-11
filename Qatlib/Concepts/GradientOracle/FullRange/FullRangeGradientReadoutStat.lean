@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeFixedPointPrecisionStat
+
+/-!
+# Specification of full-range gradient readout
+
+`FullRangeGradientReadout` states the resource and measurement guarantees for the full-range
+value-oracle program. The specification includes a clean character register, event stability,
+and a cosine-squared success bound for an exact affine phase, as motivated by
+[Jordan2005Gradient].
+
+## Main statements
+
+* `FullRangeGradientReadout`: the guarded encoding gives normalized one-query output with
+  controlled measurement error.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +37,9 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition that guarded full-range readout is normalized, uses one query and `2*d+1`
+gates, factors through a clean character state, and satisfies the stated event and affine
+success bounds for `k ≥ 2`. -/
 def FullRangeGradientReadout : Prop :=
   ∀ (d M : ℕ) (hM : 0 < M) (K k : ℕ) (f : GradientGrid d M → ℝ) (lo s R : ℝ),
     2 ≤ k → 0 < s → 0 ≤ R → s*R < (2 : ℝ)^K →

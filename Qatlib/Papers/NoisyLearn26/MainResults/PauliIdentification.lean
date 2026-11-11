@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+/-!
+# Scalar bounds for noisy Pauli identification
+
+Defines the expressions `nscLower` and `ntcUpper` and relates them through
+`corollary27Exponent`. The results establish positivity of the noise polynomial, an upper bound
+on the exponent, and elementary size and zero-noise identities. See [CotlerGongKannan2025] for
+the surrounding analysis.
+
+## Main statements
+
+* `corollary27_exponent_identity`: For positive `n` and `0 < lam < 1`, raising `ntcUpper n lam`
+  to `corollary27Exponent n lam` yields `nscLower n lam`.
+* `corollary27_exponent_le_inv_lambda`: For `n ≥ 1` and `0 < lam ≤ 1 / 2`, the exponent
+  `corollary27Exponent n lam` is at most `log 4 / (4 * lam)`.
+* `nsc_exponential_in_n`: For `lam` in `[0, 1]`, the expression `nscLower n lam` is at least
+  `2^n`.
+
+## References
+
+* [Cotler et al., 2025][CotlerGongKannan2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,19 +37,25 @@ namespace Qatlib.Papers.NoisyLearn26.MainResults.PauliIdentification
 
 open Qatlib.Papers.NoisyLearn26.MainResults
 
+/-- The single-copy lower-bound expression `(2 / fLambda lam) ^ (n : ℝ)`. -/
 def nscLower (n : ℕ) (lam : ℝ) : ℝ := (2 / fLambda lam) ^ (n : ℝ)
 
+/-- The two-copy upper-bound expression `twoCopySampleCost n lam`. -/
 def ntcUpper (n : ℕ) (lam : ℝ) : ℝ := (n : ℝ) * (1 - lam) ^ (-(4 * (n : ℝ)))
 
+/-- The noise polynomial `fLambda lam` is positive for `lam` in `[0, 1]`. -/
 theorem fLambda_pos {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) : 0 < fLambda lam := by
   unfold fLambda
   nlinarith [sq_nonneg (lam - 1)]
 
+/-- The noise polynomial `fLambda lam` is at least `1 / 2` for `lam` in `[0, 1]`. -/
 theorem half_le_fLambda {lam : ℝ} (_h0 : 0 ≤ lam) (_h1 : lam ≤ 1) :
     (1 : ℝ) / 2 ≤ fLambda lam := by
   unfold fLambda
   nlinarith [sq_nonneg (lam - 1)]
 
+/-- For positive `n` and `0 < lam < 1`, raising `ntcUpper n lam` to `corollary27Exponent n lam`
+yields `nscLower n lam` [CotlerGongKannan2025]. -/
 theorem corollary27_exponent_identity {n : ℕ} (hn : 0 < n) {lam : ℝ}
     (hlam0 : 0 < lam) (hlam1 : lam < 1) :
     ntcUpper n lam ^ corollary27Exponent n lam = nscLower n lam := by
@@ -59,6 +88,8 @@ theorem corollary27_exponent_identity {n : ℕ} (hn : 0 < n) {lam : ℝ}
   rw [Real.rpow_def_of_pos hbase, hlogNTC, hcancel, nscLower,
     Real.rpow_def_of_pos (by positivity : (0:ℝ) < 2 / fLambda lam)]
 
+/-- For `n ≥ 1` and `0 < lam ≤ 1 / 2`, the exponent `corollary27Exponent n lam` is at most `log
+4 / (4 * lam)` [CotlerGongKannan2025]. -/
 theorem corollary27_exponent_le_inv_lambda {n : ℕ} (hn : 1 ≤ n) {lam : ℝ}
     (hlam0 : 0 < lam) (hlamh : lam ≤ 1 / 2) :
     corollary27Exponent n lam ≤ Real.log 4 / (4 * lam) := by
@@ -106,6 +137,8 @@ theorem corollary27_exponent_le_inv_lambda {n : ℕ} (hn : 1 ≤ n) {lam : ℝ}
     linarith
   exact hmain
 
+/-- For `lam` in `[0, 1]`, the expression `nscLower n lam` is at least `2^n`
+[CotlerGongKannan2025]. -/
 theorem nsc_exponential_in_n {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) :
     (2 : ℝ) ^ (n : ℝ) ≤ nscLower n lam := by
   unfold nscLower
@@ -118,6 +151,7 @@ theorem nsc_exponential_in_n {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam �
     nlinarith
   exact Real.rpow_le_rpow (by norm_num) hbase (by positivity)
 
+/-- At zero noise, `ntcUpper n 0` equals `n` [CotlerGongKannan2025]. -/
 theorem ntc_at_zero_noise (n : ℕ) : ntcUpper n 0 = (n : ℝ) := by
   unfold ntcUpper
   simp

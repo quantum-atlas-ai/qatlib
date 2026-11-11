@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ResourceBounds.AsymBounds.EffectiveAccessDefs
 import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+/-!
+# Exact state preparation and finite access circuits
+
+This module verifies Householder-based preparation of dense and nonzero sparse amplitude data.
+It proves unitarity of the completion and its action on a designated basis vector, then packages
+exact preparation as a circuit with one arbitrary unitary gate and no oracle queries. The
+finite-dimensional circuit model is described in [NielsenChuang2010].
+
+The module also realizes a sparse-support flag oracle, its controlled and adjoint forms, and an
+index-loading permutation by circuits with at most one arbitrary unitary gate and no oracle
+queries. Together these constructions establish the stated `HasEffectiveAccess` property.
+
+## Main statements
+
+* `g1`: exact dense and sparse state preparation with the stated gate and query counts.
+* `g2`: unitary circuits for the finite access operators and the resulting effective-access
+  property.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -26,35 +50,50 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccess
 open Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccess Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The total squared norm of the amplitude function represented by sparse access data. -/
 private noncomputable def sparseNorm {N b : ℕ} (s : SparseAccessData N b) : ℝ :=
   ∑ i, ‖sparseValue s i‖ ^ 2
 
+/-- The sparse amplitude vector divided by the square root of its total squared norm. -/
 private noncomputable def sparseTarget {N b : ℕ} (s : SparseAccessData N b) :
     QState (Fin N) :=
   fun i => sparseValue s i / ((Real.sqrt (sparseNorm s) : ℝ) : ℂ)
 
+/-- The circuit consisting of one Householder-completion gate for the sparse target, using basis
+index zero as the initial vector. -/
 private noncomputable def prepareWordSparse {N b : ℕ} (s : SparseAccessData N b)
     (hN : 0 < N) : Circuit (Fin N) :=
   [Step.gate (householderCompletion (⟨0, hN⟩ : Fin N) (sparseTarget s))]
 
+/-- The `b`-bit encoding of an index when the index range fits in `2 ^ b` addresses. -/
 private def addrBits {N b : ℕ} (hN : N ≤ 2 ^ b) (i : Fin N) : Reg b :=
   (bitVecEquiv b).symm ⟨i.val, lt_of_lt_of_le i.isLt hN⟩
 
+/-- The bit-register encoding of an address and a Boolean target, with the target following the
+`b` address bits. -/
 private def pairBits {N b : ℕ} (hN : N ≤ 2 ^ b) (p : Fin N × Bool) : Reg (b + 1) :=
   fun j => if h : (j : ℕ) < b then addrBits hN p.1 ⟨j, h⟩ else p.2
 
+/-- The bit-register encoding of an address-target pair followed by an additional Boolean
+control bit. -/
 private def ctlBits {N b : ℕ} (hN : N ≤ 2 ^ b)
     (q : Bool × (Fin N × Bool)) : Reg (b + 2) :=
   fun j => if h : (j : ℕ) < b + 1 then pairBits hN q.2 ⟨j, h⟩ else q.1
 
+/-- The register formed by concatenating the `b`-bit address encoding with a `b`-bit payload
+register. -/
 private def indexBits {N b : ℕ} (hN : N ≤ 2 ^ b) (p : Fin N × Reg b) : Reg (b + b) :=
   fun j => if h : (j : ℕ) < b then addrBits hN p.1 ⟨j, h⟩
     else p.2 ⟨(j : ℕ) - b, by have := j.isLt; omega⟩
 
+/-- The extension of a state along a map into a bit register, using zero as the default
+amplitude outside its image. -/
 private noncomputable def extendState {w : ℕ} {I : Type} [Fintype I] [DecidableEq I]
     (ι : I → Reg w) (ψ : QState I) : QState (Reg w) :=
   Function.extend ι ψ 0
 
+/-- The conjunction of polynomial bounds on local-gate count, encoded program length, and
+register width plus program length, in terms of `2 ^ w + w + k + 1`. -/
 private def SynthBudget {w : ℕ} (gs : List (LocalQFTGate w)) (k Cg Dg Cb Db : ℕ) :
     Prop :=
   gs.length ≤ Cg * (2 ^ w + w + k + 1) ^ Dg ∧
@@ -63,25 +102,37 @@ private def SynthBudget {w : ℕ} (gs : List (LocalQFTGate w)) (k Cg Dg Cb Db : 
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The unit complex phase given by the argument of the designated state component. -/
 private noncomputable def hhPhase (i₀ : I) (v : QState I) : ℂ :=
   Complex.exp (Complex.arg (v i₀) * Complex.I)
 
+/-- The vector obtained by removing `hhPhase` from the state and subtracting the designated
+computational-basis vector. -/
 private noncomputable def hhW (i₀ : I) (v : QState I) : QState I :=
   fun i => (hhPhase i₀ v)⁻¹ * v i - Ket i₀ i
 
+/-- The sum of the squared component norms of the Householder difference vector `hhW`. -/
 private noncomputable def hhNrm (i₀ : I) (v : QState I) : ℝ :=
   ∑ i, ‖hhW i₀ v i‖ ^ 2
 
+/-- The outer product of a complex vector with its conjugate, with entries `w i * starRingEnd ℂ
+(w j)`. -/
 private noncomputable def hhOuter (w : QState I) : Matrix I I ℂ :=
   Matrix.of fun i j => w i * starRingEnd ℂ (w j)
 
+/-- The Householder matrix formed by subtracting twice the outer product of `hhW`, divided by
+its squared norm, from the identity. -/
 private noncomputable def hhReflect (i₀ : I) (v : QState I) : Matrix I I ℂ :=
   1 - ((2 : ℂ) / ((hhNrm i₀ v : ℝ) : ℂ)) • hhOuter (hhW i₀ v)
 
+/-- Each entry of the Householder matrix is the corresponding identity entry minus the scaled
+outer-product entry. -/
 private theorem hhReflect_entry (i₀ : I) (v : QState I) (i j : I) :
     hhReflect i₀ v i j = (if i = j then (1 : ℂ) else 0)
       - (((2 : ℂ) / ((hhNrm i₀ v : ℝ) : ℂ)) * (hhW i₀ v i * starRingEnd ℂ (hhW i₀ v j))) := rfl
 
+/-- The completion entries are a phase times the identity when `hhNrm` vanishes, and otherwise
+include the explicit scaled Householder correction. -/
 private theorem householderCompletion_entry (i₀ : I) (v : QState I) (i j : I) :
     householderCompletion i₀ v i j =
       (if hhNrm i₀ v = 0 then hhPhase i₀ v * (if i = j then (1 : ℂ) else 0)
@@ -89,6 +140,7 @@ private theorem householderCompletion_entry (i₀ : I) (v : QState I) (i j : I) 
           - ((2 : ℂ) / ((hhNrm i₀ v : ℝ) : ℂ)) * hhPhase i₀ v * hhW i₀ v i
             * starRingEnd ℂ (hhW i₀ v j)) := rfl
 
+/-- The Householder completion equals `hhReflect` multiplied by the scalar phase `hhPhase`. -/
 private theorem householderCompletion_eq_smul (i₀ : I) (v : QState I) :
     householderCompletion i₀ v = hhPhase i₀ v • hhReflect i₀ v := by
   ext i j
@@ -101,36 +153,45 @@ private theorem householderCompletion_eq_smul (i₀ : I) (v : QState I) :
   · rw [if_neg hn]
     ring
 
+/-- The phase used in the Householder construction has norm one. -/
 private theorem hhPhase_norm_one (i₀ : I) (v : QState I) : ‖hhPhase i₀ v‖ = 1 :=
   Complex.norm_exp_ofReal_mul_I _
 
+/-- The phase used in the Householder construction is nonzero. -/
 private theorem hhPhase_ne_zero (i₀ : I) (v : QState I) : hhPhase i₀ v ≠ 0 := by
   intro h0
   have h1 : ‖hhPhase i₀ v‖ = 1 := hhPhase_norm_one i₀ v
   rw [h0, norm_zero] at h1
   exact zero_ne_one h1
 
+/-- The product of the conjugate Householder phase with the phase itself is one. -/
 private theorem hhPhase_star_mul (i₀ : I) (v : QState I) :
     starRingEnd ℂ (hhPhase i₀ v) * hhPhase i₀ v = 1 := by
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
     hhPhase_norm_one i₀ v, one_pow, Complex.ofReal_one]
 
+/-- Multiplication by the inverse Householder phase preserves the norm of a complex number. -/
 private theorem hhPhase_inv_mul_norm (i₀ : I) (v : QState I) (z : ℂ) :
     ‖((hhPhase i₀ v)⁻¹ * z)‖ = ‖z‖ := by
   rw [norm_mul, norm_inv, hhPhase_norm_one, inv_one, one_mul]
 
+/-- The outer product `hhOuter w` is equal to its conjugate transpose. -/
 private theorem hhOuter_star (w : QState I) : (hhOuter w)ᴴ = hhOuter w := by
   ext i j
   simp only [Matrix.conjTranspose_apply, hhOuter, Matrix.of_apply, RCLike.star_def,
     map_mul, Complex.conj_conj]
   ring
 
+/-- The sum of the conjugate-self products of vector components equals the complex cast of the
+sum of their squared norms. -/
 private theorem sum_star_mul_self (w : QState I) :
     ∑ i, starRingEnd ℂ (w i) * w i = ((∑ i, ‖w i‖ ^ 2 : ℝ) : ℂ) := by
   rw [Complex.ofReal_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+/-- Squaring the outer-product matrix multiplies it by the sum of the squared component norms of
+its defining vector. -/
 private theorem hhOuter_mul (w : QState I) :
     hhOuter w * hhOuter w = ((∑ i, ‖w i‖ ^ 2 : ℝ) : ℂ) • hhOuter w := by
   ext i j
@@ -140,6 +201,7 @@ private theorem hhOuter_mul (w : QState I) :
   rw [Finset.sum_congr rfl (fun k _ => hrew k), ← Finset.mul_sum, sum_star_mul_self]
   ring
 
+/-- The Householder matrix `hhReflect` is equal to its conjugate transpose. -/
 private theorem hhReflect_star (i₀ : I) (v : QState I) :
     (hhReflect i₀ v)ᴴ = hhReflect i₀ v := by
   rw [hhReflect, Matrix.conjTranspose_sub, Matrix.conjTranspose_one,
@@ -148,6 +210,8 @@ private theorem hhReflect_star (i₀ : I) (v : QState I) :
       (Complex.ofReal_div _ _).symm,
     Complex.conj_ofReal]
 
+/-- Summing a complex function against a left identity-entry selector returns its value at the
+selected index. -/
 private theorem sum_ite_mul_left (i : I) (f : I → ℂ) :
     ∑ k, (if i = k then (1 : ℂ) else 0) * f k = f i := by
   rw [Finset.sum_eq_single i
@@ -155,6 +219,8 @@ private theorem sum_ite_mul_left (i : I) (f : I → ℂ) :
     (by simp)]
   rw [if_pos rfl, one_mul]
 
+/-- Summing a complex function against a right identity-entry selector returns its value at the
+selected index. -/
 private theorem sum_ite_mul_right (j : I) (f : I → ℂ) :
     ∑ k, f k * (if k = j then (1 : ℂ) else 0) = f j := by
   rw [Finset.sum_eq_single j
@@ -162,6 +228,8 @@ private theorem sum_ite_mul_right (j : I) (f : I → ℂ) :
     (by simp)]
   rw [if_pos rfl, mul_one]
 
+/-- The square of the Householder matrix is the identity, including when its defining difference
+vector has zero norm. -/
 private theorem hhReflect_mul_self (i₀ : I) (v : QState I) :
     hhReflect i₀ v * hhReflect i₀ v = 1 := by
   ext i j
@@ -227,6 +295,7 @@ private theorem hhReflect_mul_self (i₀ : I) (v : QState I) :
       h2]
     ring
 
+/-- The Householder completion is unitary for every input vector and designated basis index. -/
 private theorem householderCompletion_mem_unitaryGroup (i₀ : I) (v : QState I) :
     householderCompletion i₀ v ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
@@ -234,22 +303,30 @@ private theorem householderCompletion_mem_unitaryGroup (i₀ : I) (v : QState I)
     hhReflect_star, Matrix.mul_smul, Matrix.smul_mul, smul_smul, hhReflect_mul_self,
     mul_comm, hhPhase_star_mul, one_smul]
 
+/-- Multiplying a matrix by a computational-basis vector selects the corresponding matrix
+column. -/
 private theorem mulVec_ket_apply (M : Matrix I I ℂ) (i₀ : I) (j : I) :
     (M *ᵥ Ket i₀) j = M j i₀ := by
   simp only [Matrix.mulVec, dotProduct, ket_apply]
   rw [Finset.sum_eq_single i₀ (fun i _ hi => by rw [if_neg hi, mul_zero]) (by simp)]
   rw [if_pos rfl, mul_one]
 
+/-- Under the reciprocal and difference identities, the diagonal Householder column expression
+simplifies to `c * ((a - 1) + 1)`. -/
 private theorem hh_col_diag {c t x a : ℂ} (hk : t * x = 1) (hx : a - 1 = -x) :
     c * 1 - t * c * (a - 1) * (a - 1) = c * ((a - 1) + 1) := by
   rw [hx]
   linear_combination (-c) * x * hk
 
+/-- Under the reciprocal and difference identities, the off-diagonal Householder column
+expression simplifies to `c * (u + 0)`. -/
 private theorem hh_col_offdiag {c t x a u : ℂ} (hk : t * x = 1) (hx : a - 1 = -x) :
     c * 0 - t * c * u * (a - 1) = c * (u + 0) := by
   rw [hx]
   linear_combination c * u * hk
 
+/-- For a normalized target vector, its Householder completion maps the designated
+computational-basis vector exactly to that target. -/
 private theorem householderCompletion_mulVec_ket (i₀ : I) {v : QState I}
     (hv : Normalized v) : householderCompletion i₀ v *ᵥ Ket i₀ = v := by
   have hmod : ∀ i : I, ‖(hhPhase i₀ v)⁻¹ * v i‖ = ‖v i‖ :=
@@ -353,6 +430,7 @@ private theorem householderCompletion_mulVec_ket (i₀ : I) {v : QState I}
     · rw [if_neg hj, hstarW, hWself, hvW j, hWother j hj, ket_ne hj]
       exact hh_col_offdiag hkey hxneg
 
+/-- The rescaled sparse target is normalized when its total squared amplitude norm is positive. -/
 private theorem sparseTarget_normalized {N b : ℕ} (s : SparseAccessData N b)
     (h : 0 < sparseNorm s) : Normalized (sparseTarget s) := by
   have hnb : 0 ≤ sparseNorm s := le_of_lt h
@@ -366,6 +444,10 @@ private theorem sparseTarget_normalized {N b : ℕ} (s : SparseAccessData N b)
   rw [← Finset.sum_div, Real.sq_sqrt hnb,
     show (∑ i, ‖sparseValue s i‖ ^ 2 : ℝ) = sparseNorm s from rfl, div_self (ne_of_gt h)]
 
+/-- Dense normalized data and sparse data with positive total squared norm possess exact
+preparation circuits with one arbitrary unitary gate and zero queries. The theorem also
+records unitarity, the action on arbitrary inputs, and zero preparation error from the
+designated basis vector. -/
 theorem g1 :
   (∀ (n : ℕ) (d : DenseAmplitudeData n) (ε : ℝ), 0 ≤ ε →
     IsUnitaryCircuit (prepareWordDense d) ∧
@@ -413,16 +495,21 @@ theorem g1 :
       hpu, fun ψ => rfl, ?_⟩
     rw [hrun, sub_self, norm_zero]
 
+/-- The map that leaves the address fixed and flips a Boolean target exactly when the addressed
+sparse amplitude is nonzero. -/
 private noncomputable def oracleFlip {N b : ℕ} (d : SparseAccessData N b) (p : Fin N × Bool) :
     Fin N × Bool :=
   (p.1, Bool.xor p.2 (sparseValue d p.1 ≠ 0))
 
+/-- Applying the sparse-support target flip twice returns the original address-target pair. -/
 private theorem oracleFlip_involutive {N b : ℕ} (d : SparseAccessData N b) :
     Function.Involutive (oracleFlip d) := by
   intro ⟨i, β⟩
   show (i, Bool.xor (Bool.xor β (sparseValue d i ≠ 0)) (sparseValue d i ≠ 0)) = (i, β)
   rw [Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
 
+/-- The sparse value oracle is the permutation matrix of the support-controlled Boolean flip
+`oracleFlip`. -/
 private theorem sparseValueOracle_eq_permMatrix {N b : ℕ} (d : SparseAccessData N b) :
     sparseValueOracle d = permMatrix (oracleFlip d) := by
   ext x y
@@ -444,16 +531,21 @@ private theorem sparseValueOracle_eq_permMatrix {N b : ℕ} (d : SparseAccessDat
     refine hxy ⟨h1, ?_⟩
     rw [h1, h2, Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
 
+/-- The sparse-support flag oracle is unitary. -/
 private theorem sparseValueOracle_mem_unitaryGroup {N b : ℕ} (d : SparseAccessData N b) :
     sparseValueOracle d ∈ Matrix.unitaryGroup (Fin N × Bool) ℂ := by
   rw [sparseValueOracle_eq_permMatrix]
   exact permMatrix_unitary (oracleFlip_involutive d)
 
+/-- For each fixed address, the map exchanges the zero payload with the encoded address and
+leaves every other payload fixed. -/
 private def indexFlip {N b : ℕ} (enc : Fin N → Reg b) (p : Fin N × Reg b) :
     Fin N × Reg b :=
   (p.1, if p.2 = ZeroStr b then enc p.1
         else if p.2 = enc p.1 then ZeroStr b else p.2)
 
+/-- Applying the address-dependent payload exchange twice returns the original address and
+payload. -/
 private theorem indexFlip_involutive {N b : ℕ} (enc : Fin N → Reg b) :
     Function.Involutive (indexFlip enc) := by
   intro ⟨i, r⟩
@@ -468,12 +560,17 @@ private theorem indexFlip_involutive {N b : ℕ} (enc : Fin N → Reg b) :
       simp [h0]
     · simp [h0, he]
 
+/-- The index-loading oracle is unitary for every address encoding. -/
 private theorem indexLoadOracle_mem_unitaryGroup {N b : ℕ} (enc : Fin N → Reg b) :
     indexLoadOracle enc ∈ Matrix.unitaryGroup (Fin N × Reg b) ℂ := by
   have hEq : indexLoadOracle enc = permMatrix (indexFlip enc) := rfl
   rw [hEq]
   exact permMatrix_unitary (indexFlip_involutive enc)
 
+/-- Under the address-capacity, error, and weight bounds, the sparse-support oracle, its
+controlled and adjoint forms, and every index-loading oracle possess exact circuits with
+zero queries and at most one arbitrary unitary gate. The sparse data also satisfy
+`HasEffectiveAccess d ε 0`. -/
 theorem g2 : ∀ (N b : ℕ) (d : SparseAccessData N b) (ε : ℝ),
     N ≤ 2 ^ b → 0 ≤ ε →
     (d.entries.map (fun e => ‖e.2‖ ^ 2)).sum ≤ d.weightBound →

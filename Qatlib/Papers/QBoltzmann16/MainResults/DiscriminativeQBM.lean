@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QBoltzmann16.MainResults.TraceExpDerivative
 import Qatlib.Papers.QBoltzmann16.MainResults.BoundBasedQBM
+
+/-!
+# Input-dependent Gibbs loss bounds and gradients
+
+For an input-dependent family of finite Hermitian Hamiltonians, this module proves the
+compressed-partition lower bounds and weighted negative-log upper bound used for discriminative
+training in [AminEtAl2018]. The theorem `log_gibbs_hasDerivAt` differentiates the log partition
+function without a commutation hypothesis.
+
+The derivative `source_eq51_parameter_gradient` expresses the bound-loss gradient as a
+data-weighted difference of compressed and full Gibbs averages of the Hamiltonian derivative.
+
+## Main statements
+
+* `source_discriminative_qbm_main`: the probability lower bounds and loss upper bound.
+* `log_gibbs_hasDerivAt`: the log-partition derivative.
+* `source_eq51_parameter_gradient`: the derivative of the input-dependent bound loss.
+
+## References
+
+* [Amin et al., 2018][AminEtAl2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -15,6 +38,9 @@ open scoped BigOperators ComplexOrder Topology Matrix Matrix.Norms.L2Operator
 set_option warningAsError false
 namespace Qatlib.Papers.QBoltzmann16.MainResults
 
+/-- For a Hermitian input Hamiltonian in positive dimension and an isometric embedding, the
+compressed partition ratio bounds the corresponding `conditionalProbability` from below
+[Amin et al., Equations (48)-(49)][AminEtAl2018]. -/
 theorem source_eq48_49_conditional_probability_lower_bound {D E : ℕ}
     (Hx : Operator D) (V : Matrix (Fin D) (Fin E) ℂ)
     (hD : 0 < D) (hHx : Hx.IsHermitian) (hV : Vᴴ*V = 1) :
@@ -22,6 +48,9 @@ theorem source_eq48_49_conditional_probability_lower_bound {D E : ℕ}
       conditionalProbability D Hx (V*Vᴴ) :=
   clamped_trace_probability_lower_bound Hx V hD hHx hV
 
+/-- For positive dimensions, Hermitian input Hamiltonians, isometric output embeddings, and
+nonnegative joint data weights, the discriminative negative-log loss is at most the
+compressed-partition-ratio loss [Amin et al., Equation (50)][AminEtAl2018]. -/
 theorem source_eq50_discriminative_negative_log_likelihood_upper_bound
     {X Y : Type*} [Fintype X] [Fintype Y] {D E : ℕ}
     (hD : 0 < D) (hE : 0 < E) (Hx : X → Operator D)
@@ -42,6 +71,9 @@ theorem source_eq50_discriminative_negative_log_likelihood_upper_bound
         (source_eq48_49_conditional_probability_lower_bound (Hx x) (V y) hD (hHx x) (hV y))) (hd x y)
   linarith
 
+/-- For a differentiable Hermitian Hamiltonian family in positive dimension with derivative
+continuous at `theta`, the log-partition derivative is the negative Gibbs average of the
+Hamiltonian derivative [AminEtAl2018]. -/
 theorem log_gibbs_hasDerivAt (D : ℕ) (hD : 0 < D) (H Hprime : ℝ → Operator D)
     (theta : ℝ) (hH : ∀t,HasDerivAt H (Hprime t) t)
     (hc : ContinuousAt Hprime theta) (hHerm : ∀t,(H t).IsHermitian) :
@@ -51,6 +83,10 @@ theorem log_gibbs_hasDerivAt (D : ℕ) (hD : 0 < D) (H Hprime : ℝ → Operator
     (gibbsPartition_pos D (H theta) hD (hHerm theta)).ne'
   simpa only [boltzmannAverage,Complex.neg_re,neg_div] using! h
 
+/-- For the stated differentiable Hermitian families with continuous derivatives at `theta` and
+positive dimensions, the compressed-partition bound loss has derivative equal to the
+data-weighted compressed Gibbs average minus the full Gibbs average of the Hamiltonian
+derivative [Amin et al., Equation (51)][AminEtAl2018]. -/
 theorem source_eq51_parameter_gradient
     {X Y : Type*} [Fintype X] [Fintype Y] {D E : ℕ}
     (hD : 0 < D) (hE : 0 < E) (Hx Hprime : X → ℝ → Operator D)
@@ -112,6 +148,9 @@ theorem source_eq51_parameter_gradient
   intro y _
   ring
 
+/-- For Hermitian input Hamiltonians, isometric embeddings, positive dimensions, and nonnegative
+joint data weights, the compressed partition ratios give pointwise probability lower bounds
+and an upper bound on the discriminative negative-log loss [AminEtAl2018]. -/
 theorem source_discriminative_qbm_main
     {X Y : Type*} [Fintype X] [Fintype Y] {D E : ℕ}
     (hD : 0 < D) (hE : 0 < E) (Hx : X → Operator D)

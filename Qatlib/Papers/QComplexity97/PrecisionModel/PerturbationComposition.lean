@@ -8,6 +8,33 @@ import Qatlib.Papers.QComplexity97.MachineModel.QtmPrecision
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.SpecialFunctions.Exponential
+
+/-!
+# Accumulation of transition perturbations
+
+This module develops finite-state perturbation estimates for the precision analysis of
+[BernsteinVazirani1997]. Starting from `op_pow_telescope`, it controls the difference of
+iterated linear maps when the reference map preserves `stateNorm` and the perturbation has a
+uniform relative bound.
+
+The estimates `corollary_3_4_4_bound` and `observation_accuracy_bound` specialize the local
+error to `ε / (12 * T)` and bound the resulting state and Born-weight errors. The final lemmas
+also control individual columns of native transition rules.
+
+## Main statements
+
+* `stateNorm_perturbed_powers`: bounds accumulated state error by geometric growth.
+* `corollary_3_4_4_bound`: bounds normalized-input state error by `ε / 4` under the stated
+  precision assumptions.
+* `observation_accuracy_bound`: bounds total variation of the resulting Born weights by `ε`.
+* `rule_column_perturb_le`: bounds a native rule-column difference from entrywise amplitude
+  errors.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +49,8 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open scoped BigOperators
 
+/-- In any ring, the difference `U' ^ T - U ^ T` is the sum of `U' ^ (T - 1 - k) * (U' - U) * U
+^ k` over `k < T`. -/
 theorem op_pow_telescope {A : Type*} [Ring A] (U U' : A) (T : ℕ) :
     U' ^ T - U ^ T =
       ∑ k ∈ Finset.range T, U' ^ (T - 1 - k) * (U' - U) * U ^ k := by
@@ -49,6 +78,7 @@ theorem op_pow_telescope {A : Type*} [Ring A] (U U' : A) (T : ℕ) :
         rw [h1, h2]
       · simp
 
+/-- The state norm of a finite sum is at most the sum of the state norms. -/
 theorem stateNorm_sum_le {I J : Type*} [Fintype I] (s : Finset J) (f : J → QState I) :
     stateNorm (∑ j ∈ s, f j) ≤ ∑ j ∈ s, stateNorm (f j) := by
   have hmap : (EuclideanSpace.equiv I ℂ).symm (∑ j ∈ s, f j) =
@@ -58,6 +88,8 @@ theorem stateNorm_sum_le {I J : Type*} [Fintype I] (s : Finset J) (f : J → QSt
   have := norm_sum_le s (fun j => (EuclideanSpace.equiv I ℂ).symm (f j))
   simpa [stateNorm] using this
 
+/-- Every natural power of a state-norm-preserving linear map has output state norm at most the
+input state norm. -/
 theorem stateNorm_pow_le {I : Type*} [Fintype I]
     (U : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ) (k : ℕ) :
     ∀ ψ : QState I, stateNorm ((U ^ k) ψ) ≤ stateNorm ψ := by
@@ -68,6 +100,8 @@ theorem stateNorm_pow_le {I : Type*} [Fintype I]
       rw [pow_succ, Module.End.mul_apply]
       exact (ih (U ψ)).trans (le_of_eq (hU ψ))
 
+/-- If `U` preserves state norm and `(U' - U)` has relative state-norm bound `δ`, then `U'`
+grows state norm by at most the factor `1 + δ`. -/
 theorem stateNorm_step_le {I : Type*} [Fintype I]
     (U U' : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ)
     {δ : ℝ} (hΔ : ∀ ψ, stateNorm ((U' - U) ψ) ≤ δ * stateNorm ψ) (ψ : QState I) :
@@ -81,6 +115,8 @@ theorem stateNorm_step_le {I : Type*} [Fintype I]
         rw [hU]; exact add_le_add le_rfl (hΔ ψ)
     _ = (1 + δ) * stateNorm ψ := by ring
 
+/-- If `U` preserves state norm and its perturbation has nonnegative relative bound `δ`, the
+`k`th power of `U'` grows state norm by at most `(1 + δ) ^ k`. -/
 theorem stateNorm_pow_le' {I : Type*} [Fintype I]
     (U U' : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ)
     {δ : ℝ} (hδ : 0 ≤ δ)
@@ -96,6 +132,8 @@ theorem stateNorm_pow_le' {I : Type*} [Fintype I]
             mul_le_mul_of_nonneg_left (stateNorm_step_le U U' hU hΔ ψ) (by positivity)
         _ = (1 + δ) ^ (k + 1) * stateNorm ψ := by rw [pow_succ]; ring
 
+/-- If `U` preserves state norm and `(U' - U)` has nonnegative relative bound `δ`, then the
+error after `T` iterations is at most `((1 + δ) ^ T - 1) * stateNorm x`. -/
 theorem stateNorm_perturbed_powers {I : Type*} [Fintype I]
     (U U' : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ)
     {δ : ℝ} (hδ : 0 ≤ δ)
@@ -137,6 +175,8 @@ theorem stateNorm_perturbed_powers {I : Type*} [Fintype I]
         rw [show (1 + δ) - 1 = δ by ring] at hg
         exact hg
 
+/-- For `δ ≥ 0`, the geometric increment `(1 + δ) ^ T - 1` is at most `T * δ * (1 + δ) ^ (T -
+1)`. -/
 theorem geometric_growth_bound {δ : ℝ} (hδ : 0 ≤ δ) (T : ℕ) :
     (1 + δ) ^ T - 1 ≤ (T : ℝ) * δ * (1 + δ) ^ (T - 1) := by
   rcases Nat.eq_zero_or_pos T with hT | hT
@@ -160,6 +200,7 @@ theorem geometric_growth_bound {δ : ℝ} (hδ : 0 ≤ δ) (T : ℕ) :
           mul_le_mul_of_nonneg_right hsum hδ
       _ = (T : ℝ) * δ * (1 + δ) ^ (T - 1) := by ring
 
+/-- For `δ ≥ 0`, `1 ≤ T`, and `δ * T ≤ 1`, the factor `(1 + δ) ^ (T - 1)` is at most `3`. -/
 theorem one_add_pow_le_three {δ : ℝ} (hδ : 0 ≤ δ) {T : ℕ} (hT : 1 ≤ T)
     (hδT : δ * T ≤ 1) : (1 + δ) ^ (T - 1) ≤ 3 := by
   have hTreal : (1 : ℝ) ≤ (T : ℝ) := by exact_mod_cast hT
@@ -178,6 +219,7 @@ theorem one_add_pow_le_three {δ : ℝ} (hδ : 0 ≤ δ) {T : ℕ} (hT : 1 ≤ T
     _ ≤ Real.exp 1 := Real.exp_le_exp.mpr hδT
     _ ≤ 3 := le_of_lt Real.exp_one_lt_three
 
+/-- For `δ ≥ 0` and `δ * T ≤ 1`, the factor `(1 + δ) ^ T` is at most `3`. -/
 theorem one_add_pow_le_three_T {δ : ℝ} (hδ : 0 ≤ δ) {T : ℕ} (hδT : δ * T ≤ 1) :
     (1 + δ) ^ T ≤ 3 := by
   have hexp : (1 + δ) ^ T ≤ Real.exp (δ * T) := by
@@ -190,6 +232,8 @@ theorem one_add_pow_le_three_T {δ : ℝ} (hδ : 0 ≤ δ) {T : ℕ} (hδT : δ 
     _ ≤ Real.exp 1 := Real.exp_le_exp.mpr hδT
     _ ≤ 3 := le_of_lt Real.exp_one_lt_three
 
+/-- For a normalized input, a state-norm-preserving `U`, and a perturbation of relative size `δ
+≥ 0` with `1 ≤ T` and `δ * T ≤ 1`, the error after `T` iterations is at most `3 * T * δ`. -/
 theorem stateNorm_accuracy_bound {I : Type*} [Fintype I]
     (U U' : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ)
     {δ : ℝ} (hδ : 0 ≤ δ)
@@ -204,6 +248,9 @@ theorem stateNorm_accuracy_bound {I : Type*} [Fintype I]
     _ ≤ (T : ℝ) * δ * 3 := by
         exact mul_le_mul_of_nonneg_left (one_add_pow_le_three hδ hT hδT) (by positivity)
 
+/-- For normalized input, norm-preserving `U`, `1 ≤ T`, and `0 < ε ≤ 12`, a relative
+perturbation bound `ε / (12 * T)` yields state error at most `ε / 4` after `T` iterations.
+This is the finite-state precision estimate used for [BernsteinVazirani1997]. -/
 theorem corollary_3_4_4_bound {I : Type*} [Fintype I]
     (U U' : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ)
     {T : ℕ} {ε : ℝ} (hT : 1 ≤ T) (hε : 0 < ε) (hε12 : ε ≤ 12)
@@ -224,6 +271,8 @@ theorem corollary_3_4_4_bound {I : Type*} [Fintype I]
     ring
   rwa [harith] at hmain
 
+/-- If the state norms of `ψ` and `φ` are bounded by nonnegative `a` and `b` and their distance
+is at most `g`, their Born weights have total variation at most `(a + b) * g / 2`. -/
 theorem totalVariation_born_le_of_bounds {I : Type*} [Fintype I] (ψ φ : QState I)
     {a b g : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b)
     (hψ : stateNorm ψ ≤ a) (hφ : stateNorm φ ≤ b) (h : stateNorm (ψ - φ) ≤ g) :
@@ -235,6 +284,10 @@ theorem totalVariation_born_le_of_bounds {I : Type*} [Fintype I] (ψ φ : QState
   rw [totalVariation]
   nlinarith
 
+/-- For normalized input, norm-preserving `U`, `1 ≤ T`, and `0 < ε ≤ 12`, a relative
+perturbation bound `ε / (12 * T)` yields total variation at most `ε` between the Born
+weights after `T` iterations, as required in the precision analysis of
+[BernsteinVazirani1997]. -/
 theorem observation_accuracy_bound {I : Type*} [Fintype I]
     (U U' : QState I →ₗ[ℂ] QState I) (hU : ∀ ψ, stateNorm (U ψ) = stateNorm ψ)
     {T : ℕ} {ε : ℝ} (hT : 1 ≤ T) (hε : 0 < ε) (hε12 : ε ≤ 12)
@@ -263,11 +316,14 @@ theorem observation_accuracy_bound {I : Type*} [Fintype I]
   rw [harith] at htv
   linarith
 
+/-- The basis ket of a native machine configuration has norm `1`. -/
 theorem ket_norm {Q A : Type*} {blank : A} (c : Config Q A blank) : ‖ket c‖ = 1 := by
   classical
   rw [ket, lp.norm_single (by norm_num)]
   simp
 
+/-- For a fixed source configuration, distinct move-state-symbol triples give distinct target
+configurations. -/
 theorem target_injective {Q A : Type*} {blank : A} (c : Config Q A blank) :
     Function.Injective (fun t : Move × Q × A => target c t.1 t.2.1 t.2.2) := by
   rintro ⟨m, q, a⟩ ⟨m', q', a'⟩ h
@@ -283,6 +339,8 @@ theorem target_injective {Q A : Type*} {blank : A} (c : Config Q A blank) :
     simpa [target, Tape.write_same] using hh
   subst hm; subst hq; subst ha; rfl
 
+/-- If every transition amplitude changes by at most `b`, the norm of each rule-column
+difference is at most `Fintype.card (Move × Q × A) * b`. -/
 theorem rule_column_perturb_le {Q A : Type*} [Fintype Q] [Fintype A]
     {blank : A} (ampl ampl' : Q → A → Move → Q → A → ℂ) {b : ℝ}
     (hb : ∀ (q : Q) (a : A) (m : Move) (q' : Q) (a' : A),

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GameTree09.MainResults.Composition
 import Mathlib.Data.Fin.SuccPred
+
+/-!
+# Comb formulas and maximal-false inputs
+
+This module proves the combinatorics of the comb formulas used in the game-tree span-program
+construction [Reichardt2009]. It verifies leaf paths, recursive evaluation, and the behavior of
+the explicit candidate false inputs under extension of the comb.
+
+`comb_maximal_false_iff` and `comb_maximal_false_bijection` identify maximal-false assignments
+with the eligible leaf indices. `comb_witness` supplies the corresponding negative witnesses.
+
+## Main statements
+
+* `comb_nodeAt`: The designated comb path reaches the corresponding leaf.
+* `comb_maximal_false_iff`: Characterization by an eligible explicit false input.
+* `comb_maximal_false_bijection`: Existence and uniqueness of the indexing.
+* `comb_witness`: Negative witnesses for the comb span program.
+
+## References
+
+* [Reichardt, 2009][Reichardt2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +44,8 @@ namespace Formula
 
 variable {m n : ℕ}
 
+/-- Evaluating a formula after relabeling its leaves equals evaluating the original formula on
+the pulled-back assignment. -/
 theorem eval_mapLeaf (f : Fin m → Fin n) (ψ : Formula m) (x : Fin n → Bool) :
     (ψ.mapLeaf f).eval x = ψ.eval (fun i => x (f i)) := by
   induction ψ with
@@ -28,6 +53,7 @@ theorem eval_mapLeaf (f : Fin m → Fin n) (ψ : Formula m) (x : Fin n → Bool)
   | and a b ha hb => simp [mapLeaf, eval, ha, hb]
   | or a b ha hb => simp [mapLeaf, eval, ha, hb]
 
+/-- Leaf relabeling commutes with looking up a node along a Boolean path. -/
 theorem nodeAt_mapLeaf (f : Fin m → Fin n) (ψ : Formula m) (p : List Bool) :
     (ψ.mapLeaf f).nodeAt p = (ψ.nodeAt p).map (Formula.mapLeaf f) := by
   induction ψ generalizing p with
@@ -44,6 +70,7 @@ theorem nodeAt_mapLeaf (f : Fin m → Fin n) (ψ : Formula m) (p : List Bool) :
       | nil => simp [mapLeaf, nodeAt]
       | cons c rest => cases c <;> simp [mapLeaf, nodeAt, ha rest, hb rest]
 
+/-- Every AND/OR formula evaluates to true on the all-true assignment. -/
 theorem eval_allTrue (ψ : Formula n) : ψ.eval (fun _ => true) = true := by
   induction ψ with
   | leaf i => simp [eval]
@@ -52,6 +79,8 @@ theorem eval_allTrue (ψ : Formula n) : ψ.eval (fun _ => true) = true := by
 
 end Formula
 
+/-- When `J > 0`, the parent gate of an inherited leaf in an extended comb equals its parent
+gate in the smaller comb with the shifted gate sequence. -/
 theorem parentGate_castSucc {J : ℕ} (hJ : 0 < J) (g : Fin (J + 1) → Bool)
     (k : Fin (J + 1)) :
     parentGate (J + 1) g k.castSucc = parentGate J (fun i => g i.succ) k := by
@@ -60,11 +89,14 @@ theorem parentGate_castSucc {J : ℕ} (hJ : 0 < J) (g : Fin (J + 1) → Bool)
   rw [dif_neg (by omega)]
   congr 1
 
+/-- The last leaf of an extended comb has parent gate `g 0`. -/
 theorem parentGate_last {J : ℕ} (g : Fin (J + 1) → Bool) :
     parentGate (J + 1) g (Fin.last (J + 1)) = some (g 0) := by
   conv_lhs => unfold parentGate
   rw [dif_pos (Fin.val_last (J + 1))]
 
+/-- An extended comb joins the relabeled smaller comb to the last leaf using AND when `g 0` is
+true and OR otherwise. -/
 theorem comb_succ_eq (J : ℕ) (g : Fin (J + 1) → Bool) :
     comb (J + 1) g =
       (if g 0 then Formula.and (Formula.mapLeaf Fin.castSucc (comb J (fun i => g i.succ)))
@@ -72,8 +104,10 @@ theorem comb_succ_eq (J : ℕ) (g : Fin (J + 1) → Bool) :
        else Formula.or (Formula.mapLeaf Fin.castSucc (comb J (fun i => g i.succ)))
           (Formula.leaf (Fin.last (J + 1)))) := rfl
 
+/-- The restriction of an assignment to all indices except the final one. -/
 def pref {J : ℕ} (x : Fin (J + 2) → Bool) : Fin (J + 1) → Bool := fun i => x i.castSucc
 
+/-- The path `combPath J k` in the comb reaches exactly `Formula.leaf k`. See [Reichardt2009]. -/
 theorem comb_nodeAt (J : ℕ) (g : Fin J → Bool) (k : Fin (J + 1)) :
     (comb J g).nodeAt (combPath J k) = some (Formula.leaf k) := by
   induction J with
@@ -108,6 +142,8 @@ theorem comb_nodeAt (J : ℕ) (g : Fin J → Bool) (k : Fin (J + 1)) :
             ih (fun i => g i.succ) k']
           simp [Formula.mapLeaf]
 
+/-- Evaluation of an extended comb combines the smaller-comb evaluation on the prefix with the
+final input, using the root gate `g 0`. -/
 theorem comb_eval_succ (J : ℕ) (g : Fin (J + 1) → Bool) (x : Fin (J + 2) → Bool) :
     (comb (J + 1) g).eval x =
       (if g 0 then (comb J (fun i => g i.succ)).eval (pref x) && x (Fin.last (J + 1))
@@ -117,6 +153,8 @@ theorem comb_eval_succ (J : ℕ) (g : Fin (J + 1) → Bool) (x : Fin (J + 2) →
   · simp only [Formula.eval]; rw [Formula.eval_mapLeaf]; rfl
   · simp only [Formula.eval]; rw [Formula.eval_mapLeaf]; rfl
 
+/-- An inherited candidate false input restricts on inherited indices to the corresponding
+candidate for the smaller comb. -/
 theorem combFalseInput_castSucc_apply {J : ℕ} (g : Fin (J + 1) → Bool)
     (j k : Fin (J + 1)) :
     combFalseInput (J + 1) g j.castSucc k.castSucc =
@@ -131,6 +169,7 @@ theorem combFalseInput_castSucc_apply {J : ℕ} (g : Fin (J + 1) → Bool)
       simp only [Fin.val_castSucc, hlt, heq, if_false]
       rw [hpg]
 
+/-- An inherited candidate false input takes value `g 0` at the new last leaf. -/
 theorem combFalseInput_castSucc_last {J : ℕ} (g : Fin (J + 1) → Bool)
     (j : Fin (J + 1)) :
     combFalseInput (J + 1) g j.castSucc (Fin.last (J + 1)) = g 0 := by
@@ -142,6 +181,7 @@ theorem combFalseInput_castSucc_last {J : ℕ} (g : Fin (J + 1) → Bool)
   rw [if_neg hl, if_neg he, parentGate_last]
   rfl
 
+/-- The candidate indexed by the new last leaf is false at that leaf and true everywhere else. -/
 theorem combFalseInput_last {J : ℕ} (g : Fin (J + 1) → Bool) (k : Fin (J + 2)) :
     combFalseInput (J + 1) g (Fin.last (J + 1)) k =
       if k = Fin.last (J + 1) then false else true := by
@@ -154,6 +194,8 @@ theorem combFalseInput_last {J : ℕ} (g : Fin (J + 1) → Bool) (k : Fin (J + 2
       have := k.isLt; omega
     simp [Fin.val_last, hlt, hk]
 
+/-- Eligibility of an inherited leaf is unchanged by extending the comb and shifting its gate
+sequence. -/
 theorem inTF_castSucc {J : ℕ} (g : Fin (J + 1) → Bool) (j : Fin (J + 1)) :
     InTF (J + 1) g j.castSucc ↔ InTF J (fun i => g i.succ) j := by
   unfold InTF
@@ -164,12 +206,15 @@ theorem inTF_castSucc {J : ℕ} (g : Fin (J + 1) → Bool) (j : Fin (J + 1)) :
     simp only [Fin.val_castSucc, hj]
     rw [hpg]
 
+/-- The new last leaf is eligible exactly when the new root gate is AND. -/
 theorem inTF_last {J : ℕ} (g : Fin (J + 1) → Bool) :
     InTF (J + 1) g (Fin.last (J + 1)) ↔ g 0 = true := by
   unfold InTF
   rw [parentGate_last]
   simp [Fin.val_last]
 
+/-- Updating an inherited coordinate and then restricting to the prefix equals updating the
+restricted assignment. -/
 theorem pref_update {J : ℕ} (x : Fin (J + 2) → Bool) (i : Fin (J + 1)) (b : Bool) :
     pref (Function.update x i.castSucc b) = Function.update (pref x) i b := by
   funext k
@@ -180,14 +225,18 @@ theorem pref_update {J : ℕ} (x : Fin (J + 2) → Bool) (i : Fin (J + 1)) (b : 
     rw [Function.update_of_ne hcast b x, Function.update_of_ne hk b (pref x)]
     rfl
 
+/-- Updating an inherited coordinate leaves the last coordinate unchanged. -/
 theorem update_castSucc_last {J : ℕ} (x : Fin (J + 2) → Bool) (i : Fin (J + 1)) (b : Bool) :
     Function.update x i.castSucc b (Fin.last (J + 1)) = x (Fin.last (J + 1)) :=
   Function.update_of_ne (Fin.castSucc_ne_last i).symm b x
 
+/-- Updating the last coordinate leaves every inherited coordinate unchanged. -/
 theorem update_last_castSucc {J : ℕ} (x : Fin (J + 2) → Bool) (i : Fin (J + 1)) (b : Bool) :
     Function.update x (Fin.last (J + 1)) b i.castSucc = x i.castSucc :=
   Function.update_of_ne (Fin.castSucc_ne_last i) b x
 
+/-- An OR root with a new final leaf is maximal-false exactly when its prefix is maximal-false
+for the original formula and its final input is false. -/
 theorem isMaximalFalse_or_root {J : ℕ} (ψ : Formula (J + 1)) (x : Fin (J + 2) → Bool) :
     (Formula.or (ψ.mapLeaf Fin.castSucc) (Formula.leaf (Fin.last (J + 1)))).IsMaximalFalse x ↔
       ψ.IsMaximalFalse (pref x) ∧ x (Fin.last (J + 1)) = false := by
@@ -220,6 +269,8 @@ theorem isMaximalFalse_or_root {J : ℕ} (ψ : Formula (J + 1)) (x : Fin (J + 2)
       · rw [Function.update_self]
         simp
 
+/-- An AND root with a new final leaf is maximal-false exactly when the final input is false and
+the prefix is all true, or the prefix is maximal-false and the final input is true. -/
 theorem isMaximalFalse_and_root {J : ℕ} (ψ : Formula (J + 1)) (x : Fin (J + 2) → Bool) :
     (Formula.and (ψ.mapLeaf Fin.castSucc) (Formula.leaf (Fin.last (J + 1)))).IsMaximalFalse x ↔
       (x (Fin.last (J + 1)) = false ∧ ∀ i, pref x i = true) ∨
@@ -290,6 +341,7 @@ theorem isMaximalFalse_and_root {J : ℕ} (ψ : Formula (J + 1)) (x : Fin (J + 2
         · rw [hlast] at hk
           exact absurd hk (by simp)
 
+/-- Every candidate false input indexed by an eligible comb leaf is maximal-false. -/
 theorem comb_false_input_iff (J : ℕ) (g : Fin J → Bool) (j : Fin (J + 1))
     (hj : InTF J g j) :
     (comb J g).IsMaximalFalse (combFalseInput J g j) := by
@@ -340,6 +392,8 @@ theorem comb_false_input_iff (J : ℕ) (g : Fin J → Bool) (j : Fin (J + 1))
           funext i; exact combFalseInput_castSucc_apply g j' i]
         exact ih (fun i => g i.succ) j' hsub
 
+/-- A comb assignment is maximal-false exactly when it equals `combFalseInput J g j` for some
+eligible index `j`. -/
 theorem comb_maximal_false_iff (J : ℕ) (g : Fin J → Bool) (x : Fin (J + 1) → Bool) :
     (comb J g).IsMaximalFalse x ↔
       ∃ j : Fin (J + 1), InTF J g j ∧ x = combFalseInput J g j := by
@@ -398,6 +452,7 @@ theorem comb_maximal_false_iff (J : ℕ) (g : Fin J → Bool) (x : Fin (J + 1) �
           exact (isMaximalFalse_or_root (comb J (fun i => g i.succ))
             (combFalseInput (J + 1) g j)).mp h
 
+/-- The map from a comb leaf index to its candidate false input is injective. -/
 theorem comb_false_input_injective (J : ℕ) (g : Fin J → Bool) {j j' : Fin (J + 1)}
     (h : combFalseInput J g j = combFalseInput J g j') : j = j' := by
   rcases lt_trichotomy j.val j'.val with hlt | heq | hgt
@@ -415,6 +470,8 @@ theorem comb_false_input_injective (J : ℕ) (g : Fin J → Bool) {j j' : Fin (J
     rw [h1, h2] at this
     exact absurd this (by simp)
 
+/-- Eligible comb indices give maximal-false inputs, every maximal-false input arises this way,
+and its eligible index is unique. See [Reichardt2009]. -/
 theorem comb_maximal_false_bijection (J : ℕ) (g : Fin J → Bool) :
     (∀ j, InTF J g j → (comb J g).IsMaximalFalse (combFalseInput J g j)) ∧
       (∀ x, (comb J g).IsMaximalFalse x →
@@ -425,6 +482,8 @@ theorem comb_maximal_false_bijection (J : ℕ) (g : Fin J → Bool) :
    fun x hx => (comb_maximal_false_iff J g x).mp hx,
    fun j j' _ _ h => comb_false_input_injective J g h⟩
 
+/-- For every maximal-false comb input, the vector supported at that input with value the
+reciprocal target coordinate is a negative witness. See [Reichardt2009]. -/
 theorem comb_witness (J : ℕ) (g : Fin J → Bool) :
     ∀ u : (comb J g).MaxFalse,
       SpanProgram.NegWitness (Pphi (comb J g) (combPath J)) u.val

@@ -8,6 +8,31 @@ import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Mathlib.Logic.Equiv.Fintype
 import Mathlib.Data.Finset.Sort
 import Mathlib.Data.Nat.Choose.Bounds
+
+/-!
+# Native query algorithms and compact collision memory
+
+This module constructs `nativeReadAll`, which reads an entire input through the alphabet oracle
+and produces a verified collision result, together with the zero-query rejection algorithm
+`nativeReject`. It proves correctness, exact query counts, and work-register bounds in the query
+model of [NielsenChuang2010].
+
+`NativeCompactMemory` stores a Johnson-walk state and its associated input values in a finite
+bit register. These encodings and the full-input algorithm supply the large-memory case of the
+collision-search tradeoff considered in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `nativeReadAll_correct`: correctness of complete input interrogation.
+* `nativeCompactMemory_encoding`: an injective bit-register encoding of compact walk memory.
+* `generalQueryMemory_large_memory`: query and memory bounds when `N ≤ 2*r`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,11 +55,14 @@ namespace Qatlib.Concepts.WalkFind.UniqueCollision
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 open scoped Classical BigOperators
 
+/-- An input containing a collision of size `k` has at least `k` addresses. -/
 theorem hasCollision_card_bound {N M k : ℕ} (x : Fin N → ZMod M) (h : HasCollision k x) : k ≤ N := by
   obtain ⟨S,hS,_⟩ := h
   rw [← hS]
   exact (Finset.card_le_card (Finset.subset_univ S)).trans_eq (by simp)
 
+/-- The single-seed algorithm with no work bits and an empty circuit, initialized with a
+negative output. -/
 def nativeReject (N M k : ℕ) [NeZero M] (hN : 0 < N) : RandomQueryAlgorithm N M k where
   seeds := 1
   positiveSeeds := by decide
@@ -43,9 +71,11 @@ def nativeReject (N M k : ℕ) [NeZero M] (hN : 0 < N) : RandomQueryAlgorithm N 
   start := fun _ => ((⟨0,hN⟩,0),(ZeroStr 0,false,fun _ => ⟨0,hN⟩))
   unitary := fun _ => by simp
 
+/-- The rejection algorithm uses zero oracle queries. -/
 theorem nativeReject_queries (N M k : ℕ) [NeZero M] (hN : 0 < N) (s : Fin 1) :
     QueryCount ((nativeReject N M k hN).program s) = 0 := rfl
 
+/-- The rejection algorithm is correct when `N < k`, since a collision of size `k` cannot occur. -/
 theorem nativeReject_correct (N M k : ℕ) [NeZero M] (hN : 0 < N) (hNk : N < k) :
     algorithmCorrect (nativeReject N M k hN) := by
   letI : Inhabited (Fin N) := ⟨⟨0,hN⟩⟩
@@ -69,17 +99,21 @@ theorem nativeReject_correct (N M k : ℕ) [NeZero M] (hN : 0 < N) (hNk : N < k)
   · intro _ s
     simpa [nativeReject,Run,yesOutput,verifiedOutput] using! hre yesOutput (by simp [yesOutput])
 
+/-- All length-`N` inputs over `ZMod M` fit in a register of `N * Nat.clog 2 (M+1)` bits. -/
 theorem interrogation_record_capacity (N M : ℕ) [NeZero M] :
     Fintype.card (Fin N → ZMod M) ≤ 2^(N*Nat.clog 2 (M+1)) := by
   rw [Fintype.card_fun,Fintype.card_fin,ZMod.card,Nat.mul_comm N, pow_mul]
   have hM := Nat.le_pow_clog (by decide : 1 < 2) (M+1)
   exact Nat.pow_le_pow_left (by omega) N
 
+/-- An injective encoding of the entire input into `N * Nat.clog 2 (M+1)` work bits. -/
 def interrogationCode (N M : ℕ) [NeZero M] :
     (Fin N → ZMod M) ↪ Reg (N*Nat.clog 2 (M+1)) :=
   ⟨finiteBasisCode _ _ (interrogation_record_capacity N M),
     finiteBasisCode_injective (interrogation_record_capacity N M)⟩
 
+/-- Embed an oracle register and a full input record into the output space, with a negative flag
+and constant address tuple. -/
 def interrogationEmbedding (N M k : ℕ) [NeZero M] (j : Fin N) :
     ((Fin N × ZMod M) × (Fin N → ZMod M)) ↪ OutputSpace N M k (N*Nat.clog 2 (M+1)) where
   toFun p := (p.1,(interrogationCode N M p.2,false,fun _ => j))
@@ -90,11 +124,14 @@ def interrogationEmbedding (N M k : ℕ) [NeZero M] (j : Fin N) :
     · apply (interrogationCode N M).injective
       exact congrArg (fun z => z.2.1) h
 
+/-- Extend a permutation of the interrogation labels to a permutation of the full output space. -/
 def interrogationPerm (N M k : ℕ) [NeZero M] (j : Fin N)
     (e : Equiv.Perm ((Fin N × ZMod M) × (Fin N → ZMod M))) :
     Equiv.Perm (OutputSpace N M k (N*Nat.clog 2 (M+1))) :=
   e.viaFintypeEmbedding (interrogationEmbedding N M k j)
 
+/-- The extended interrogation permutation acts on encoded basis states by the original
+permutation. -/
 theorem interrogationPerm_semantics (N M k : ℕ) [NeZero M] (j : Fin N)
     (e : Equiv.Perm ((Fin N × ZMod M) × (Fin N → ZMod M)))
     (p : (Fin N × ZMod M) × (Fin N → ZMod M)) :
@@ -104,6 +141,7 @@ theorem interrogationPerm_semantics (N M k : ℕ) [NeZero M] (j : Fin N)
   ext z
   simp [Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,permMatrix,interrogationPerm]
 
+/-- On encoded interrogation basis states, the alphabet oracle implements `alphabetShift`. -/
 theorem interrogationEmbedding_query (N M k : ℕ) [NeZero M] (j : Fin N)
     (x : Fin N → ZMod M) (p : (Fin N × ZMod M) × (Fin N → ZMod M)) :
     alphabetOracle x *ᵥ Qatlib.Foundations.PureStateMath.Ket (interrogationEmbedding N M k j p) =
@@ -113,17 +151,22 @@ theorem interrogationEmbedding_query (N M k : ℕ) [NeZero M] (j : Fin N)
   simp [alphabetOracle,permMatrix,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,
     alphabetShift,interrogationEmbedding]
 
+/-- The circuit that queries address `i`, swaps the answer into the record, and restores the
+address register to `j`. -/
 def interrogationNativeRound (N M k : ℕ) [NeZero M] (j i : Fin N) :
     Circuit (OutputSpace N M k (N*Nat.clog 2 (M+1))) :=
   [.gate (permMatrix (interrogationPerm N M k j (alphabetAddressSwap j i))),.query,
     .gate (permMatrix (interrogationPerm N M k j (alphabetStoreSwap i))),
     .gate (permMatrix (interrogationPerm N M k j (alphabetAddressSwap j i)))]
 
+/-- Concatenate one interrogation round for each address in a list. -/
 def interrogationNativeList (N M k : ℕ) [NeZero M] (j : Fin N) :
     List (Fin N) → Circuit (OutputSpace N M k (N*Nat.clog 2 (M+1)))
   | [] => []
   | i :: is => interrogationNativeRound N M k j i ++ interrogationNativeList N M k j is
 
+/-- If record entry `i` is zero, an interrogation round stores `x i` there and restores the
+oracle register. -/
 theorem interrogationNativeRound_run (N M k : ℕ) [NeZero M] (j i : Fin N)
     (x s : Fin N → ZMod M) (hi : s i = 0) :
     Run (alphabetOracle x) (interrogationNativeRound N M k j i)
@@ -140,6 +183,8 @@ theorem interrogationNativeRound_run (N M k : ℕ) [NeZero M] (j i : Fin N)
   rw [interrogationPerm_semantics]
   simp [alphabetAddressSwap,Equiv.prodCongr,Prod.map]
 
+/-- For a list of distinct addresses with initially zero record entries, interrogation fills
+precisely those entries with the corresponding input values. -/
 theorem interrogationNativeList_run (N M k : ℕ) [NeZero M] (j : Fin N)
     (is : List (Fin N)) (hn : is.Nodup) (x s : Fin N → ZMod M)
     (hz : ∀ i ∈ is, s i = 0) :
@@ -162,6 +207,7 @@ theorem interrogationNativeList_run (N M k : ℕ) [NeZero M] (j : Fin N)
     · subst t; simp [hnot]
     · simp [ht,Function.update]
 
+/-- The interrogation circuit is unitary and uses one oracle query per list entry. -/
 theorem interrogationNativeList_resources (N M k : ℕ) [NeZero M] (j : Fin N) (is : List (Fin N)) :
     IsUnitaryCircuit (interrogationNativeList N M k j is) ∧
       QueryCount (interrogationNativeList N M k j is) = is.length := by
@@ -175,6 +221,8 @@ theorem interrogationNativeList_resources (N M k : ℕ) [NeZero M] (j : Fin N) (
     refine ⟨(isUnitaryCircuit_append _ _).mpr ⟨hround i,ih.1⟩,?_⟩
     simp [interrogationNativeList,interrogationNativeRound,QueryCount,ih.2]
 
+/-- A collision of size `k` yields an injective tuple of `k` addresses on which the input is
+constant. -/
 theorem collisionTuple_exists {N M k : ℕ} (x : Fin N → ZMod M) (h : HasCollision k x) :
     ∃ addresses : Fin k → Fin N, Function.Injective addresses ∧
       ∃ v : ZMod M, ∀ i, x (addresses i) = v := by
@@ -182,6 +230,8 @@ theorem collisionTuple_exists {N M k : ℕ} (x : Fin N → ZMod M) (h : HasColli
   exact ⟨S.orderEmbOfFin hcard,(S.orderEmbOfFin hcard).injective,v,
     fun i => hv _ (S.orderEmbOfFin_mem hcard i)⟩
 
+/-- There is a unitary circuit using exactly `N` queries that encodes the entire input in the
+work register and leaves the output flag negative. -/
 theorem native_readAll_actual (N M k : ℕ) [NeZero M] (hN : 0 < N) :
     ∃ (C : Circuit (OutputSpace N M k (N*Nat.clog 2 (M+1))))
       (start : OutputSpace N M k (N*Nat.clog 2 (M+1))),
@@ -198,9 +248,12 @@ theorem native_readAll_actual (N M k : ℕ) [NeZero M] (hN : 0 < N) :
         interrogationNativeList_run N M k j is (Finset.nodup_toList _) x (fun _ => 0) (by simp)
     simpa [is,interrogationEmbedding,j] using! h
 
+/-- Decode a valid full-input code, returning the zero input when the register is outside the
+encoding range. -/
 def interrogationDecode (N M : ℕ) [NeZero M] (z : Reg (N*Nat.clog 2 (M+1))) : Fin N → ZMod M :=
   if h : ∃ x, interrogationCode N M x = z then Classical.choose h else fun _ => 0
 
+/-- Decoding an encoded input recovers that input. -/
 theorem interrogationDecode_code (N M : ℕ) [NeZero M] (x : Fin N → ZMod M) :
     interrogationDecode N M (interrogationCode N M x) = x := by
   unfold interrogationDecode
@@ -209,16 +262,23 @@ theorem interrogationDecode_code (N M : ℕ) [NeZero M] (x : Fin N → ZMod M) :
   exact Classical.choose_spec
       (show ∃ y, interrogationCode N M y = interrogationCode N M x from ⟨x,rfl⟩)
 
+/-- Choose an injective tuple of addresses witnessing the given collision. -/
 def nativeCollisionTuple {N M k : ℕ} (x : Fin N → ZMod M) (h : HasCollision k x) : Fin k → Fin N :=
   Classical.choose (collisionTuple_exists x h)
 
+/-- The chosen collision tuple is injective, and the input has a common value at all its
+addresses. -/
 theorem nativeCollisionTuple_valid {N M k : ℕ} (x : Fin N → ZMod M) (h : HasCollision k x) :
     Function.Injective (nativeCollisionTuple x h) ∧ ∃ v : ZMod M, ∀ i, x (nativeCollisionTuple x h i) = v :=
   Classical.choose_spec (collisionTuple_exists x h)
 
+/-- Return a positive flag and a collision tuple when a collision exists, and a negative flag
+with the constant tuple at `j` otherwise. -/
 def nativeVerifiedResult (N M k : ℕ) (j : Fin N) (x : Fin N → ZMod M) : Bool × (Fin k → Fin N) :=
   if h : HasCollision k x then (true,nativeCollisionTuple x h) else (false,fun _ => j)
 
+/-- The involutive permutation that swaps the default output with the verified result determined
+by the decoded work register. -/
 def nativeVerifyPermutation (N M k : ℕ) [NeZero M] (j : Fin N) :
     Equiv.Perm (OutputSpace N M k (N*Nat.clog 2 (M+1))) where
   toFun p :=
@@ -232,15 +292,20 @@ def nativeVerifyPermutation (N M k : ℕ) [NeZero M] (j : Fin N) :
   left_inv p := by simp
   right_inv p := by simp
 
+/-- The output basis label containing the encoded input and its verified collision result. -/
 def nativeVerifiedLabel (N M k : ℕ) [NeZero M] (j : Fin N) (x : Fin N → ZMod M) :
     OutputSpace N M k (N*Nat.clog 2 (M+1)) :=
   ((j,0),(interrogationCode N M x,nativeVerifiedResult N M k j x))
 
+/-- The verified label has a positive output flag exactly when the input contains a collision of
+size `k`. -/
 theorem nativeVerifiedLabel_yes (N M k : ℕ) [NeZero M] (j : Fin N) (x : Fin N → ZMod M) :
     yesOutput (nativeVerifiedLabel N M k j x) ↔ HasCollision k x := by
   simp only [yesOutput,nativeVerifiedLabel,nativeVerifiedResult]
   split_ifs <;> simp_all
 
+/-- The verified label satisfies `verifiedOutput` exactly when the input contains a collision of
+size `k`. -/
 theorem nativeVerifiedLabel_verified (N M k : ℕ) [NeZero M] (j : Fin N) (x : Fin N → ZMod M) :
     verifiedOutput x (nativeVerifiedLabel N M k j x) ↔ HasCollision k x := by
   by_cases h : HasCollision k x
@@ -248,6 +313,8 @@ theorem nativeVerifiedLabel_verified (N M k : ℕ) [NeZero M] (j : Fin N) (x : F
     simp [verifiedOutput,nativeVerifiedLabel,nativeVerifiedResult,h,ht.1,ht.2]
   · simp [verifiedOutput,nativeVerifiedLabel,nativeVerifiedResult,h]
 
+/-- There is a unitary circuit using exactly `N` queries that produces the verified full-input
+label on every input. -/
 theorem native_readAll_verified (N M k : ℕ) [NeZero M] (hN : 0 < N) :
     ∃ (C : Circuit (OutputSpace N M k (N*Nat.clog 2 (M+1))))
       (start : OutputSpace N M k (N*Nat.clog 2 (M+1))),
@@ -266,6 +333,8 @@ theorem native_readAll_verified (N M k : ℕ) [NeZero M] (hN : 0 < N) :
     simp [Run,ApplyGate,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,permMatrix,e,nativeVerifyPermutation,
       interrogationDecode_code,nativeVerifiedLabel,Equiv.swap_apply_left]
 
+/-- The single-seed collision algorithm obtained by complete input interrogation followed by
+verification. -/
 def nativeReadAll (N M k : ℕ) [NeZero M] (hN : 0 < N) : RandomQueryAlgorithm N M k :=
   let C := Classical.choose (native_readAll_verified N M k hN)
   let start := Classical.choose (Classical.choose_spec (native_readAll_verified N M k hN))
@@ -276,10 +345,12 @@ def nativeReadAll (N M k : ℕ) [NeZero M] (hN : 0 < N) : RandomQueryAlgorithm N
     start := fun _ => start
     unitary := fun _ => (Classical.choose_spec (Classical.choose_spec (native_readAll_verified N M k hN))).1 }
 
+/-- Complete input interrogation uses exactly `N` oracle queries. -/
 theorem nativeReadAll_queries (N M k : ℕ) [NeZero M] (hN : 0 < N) (s : Fin 1) :
     QueryCount ((nativeReadAll N M k hN).program s) = N :=
   (Classical.choose_spec (Classical.choose_spec (native_readAll_verified N M k hN))).2.1
 
+/-- The complete input interrogation algorithm satisfies `algorithmCorrect`. -/
 theorem nativeReadAll_correct (N M k : ℕ) [NeZero M] (hN : 0 < N) :
     algorithmCorrect (nativeReadAll N M k hN) := by
   dsimp only [algorithmCorrect,nativeReadAll]
@@ -323,6 +394,7 @@ theorem nativeReadAll_correct (N M k : ℕ) [NeZero M] (hN : 0 < N) :
       exact h hh
     simp [BornProb,Qatlib.Foundations.PureStateMath.Ket,hne]
 
+/-- The work register of complete input interrogation uses at most `N * dataBits N M` bits. -/
 theorem nativeReadAll_memory (N M k : ℕ) [NeZero M] (hN : 0 < N) :
     (nativeReadAll N M k hN).workBits ≤ N*dataBits N M := by
   dsimp only [nativeReadAll]
@@ -330,6 +402,8 @@ theorem nativeReadAll_memory (N M k : ℕ) [NeZero M] (hN : 0 < N) :
   unfold dataBits
   omega
 
+/-- The average positive-output probability of complete input interrogation is one on collision
+inputs and zero otherwise. -/
 theorem nativeReadAll_probability (N M k : ℕ) [NeZero M] (hN : 0 < N) (x : Fin N → ZMod M) :
     averageSuccess (nativeReadAll N M k hN) x = if HasCollision k x then 1 else 0 := by
   dsimp only [averageSuccess,nativeReadAll]
@@ -356,18 +430,26 @@ theorem nativeReadAll_probability (N M k : ℕ) [NeZero M] (hN : 0 < N) (x : Fin
       simp [BornProb,Qatlib.Foundations.PureStateMath.Ket,hne]
   simp [hm]
 
+/-- A Johnson-walk state paired with `r+1` alphabet values for its stored addresses. -/
 abbrev NativeCompactMemory (N M r : ℕ) := JRState N r × (Fin (r+1) → ZMod M)
 
+/-- The stored domain formed by adjoining the distinguished address to the Johnson state's
+subset. -/
 def nativeCompactDomain {N r : ℕ} (p : JRState N r) : Finset (Fin N) := insert p.val.2 p.val.1
 
+/-- The compact memory domain contains exactly `r+1` addresses. -/
 theorem nativeCompactDomain_card {N r : ℕ} (p : JRState N r) :
     (nativeCompactDomain p).card = r+1 := by
   rw [nativeCompactDomain,Finset.card_insert_of_notMem p.property.2,p.property.1]
 
+/-- Place the stored values at the ordered addresses of the compact domain and set all other
+input coordinates to zero. -/
 def nativeCompactDecode {N M r : ℕ} (p : JRState N r) (values : Fin (r+1) → ZMod M) : Fin N → ZMod M :=
   fun i => if h : i ∈ nativeCompactDomain p then
     values ((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p) |>.symm |>.toEquiv <| ⟨i,h⟩) else 0
 
+/-- Decoding compact memory returns each stored value at its corresponding ordered domain
+address. -/
 theorem nativeCompactDecode_at {N M r : ℕ} (p : JRState N r) (values : Fin (r+1) → ZMod M) (j : Fin (r+1)) :
     nativeCompactDecode p values (((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p) j).val) = values j := by
   unfold nativeCompactDecode
@@ -375,6 +457,7 @@ theorem nativeCompactDecode_at {N M r : ℕ} (p : JRState N r) (values : Fin (r+
   congr 1
   exact ((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p)).symm_apply_apply j
 
+/-- For a fixed Johnson state, decoding compact values is injective. -/
 theorem nativeCompactDecode_injective {N M r : ℕ} (p : JRState N r) :
     Function.Injective (nativeCompactDecode (M:=M) p) := by
   intro values values' he
@@ -382,6 +465,8 @@ theorem nativeCompactDecode_injective {N M r : ℕ} (p : JRState N r) :
   have h := congrFun he (((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p) j).val)
   simpa only [nativeCompactDecode_at] using! h
 
+/-- The number of compact memory states is bounded by the capacity of `(r+1) * (Nat.clog 2 (N+1)
++ Nat.clog 2 (M+1))` bits. -/
 theorem nativeCompactMemory_capacity (N M r : ℕ) [NeZero M] :
     Fintype.card (NativeCompactMemory N M r) ≤
       2^((r+1)*(Nat.clog 2 (N+1)+Nat.clog 2 (M+1))) := by
@@ -402,18 +487,23 @@ theorem nativeCompactMemory_capacity (N M r : ℕ) [NeZero M] :
   rw [hrhs] at hp
   exact (Nat.mul_le_mul_right (M^(r+1)) hJ).trans hp
 
+/-- Compact memory states possess an injective encoding into the prescribed address-and-value
+bit register. -/
 theorem nativeCompactMemory_encoding (N M r : ℕ) [NeZero M] :
     ∃ e : NativeCompactMemory N M r → Reg ((r+1)*(Nat.clog 2 (N+1)+Nat.clog 2 (M+1))),
       Function.Injective e :=
   ⟨finiteBasisCode _ _ (nativeCompactMemory_capacity N M r),
     finiteBasisCode_injective (nativeCompactMemory_capacity N M r)⟩
 
+/-- For `r ≥ 1`, the compact memory encoding width is at most `2*r*dataBits N M`. -/
 theorem nativeCompactMemory_width (N M r : ℕ) (hr : 1 ≤ r) :
     (r+1)*(Nat.clog 2 (N+1)+Nat.clog 2 (M+1)) ≤ 2*r*dataBits N M := by
   have h := Nat.mul_le_mul (show r+1 ≤ 2*r by omega)
     (show Nat.clog 2 (N+1)+Nat.clog 2 (M+1) ≤ dataBits N M by unfold dataBits; omega)
   simpa only [Nat.mul_assoc] using! h
 
+/-- When `2 ≤ k ≤ r ≤ N` and `N ≤ 2*r`, a correct algorithm uses at most `2*queryScale k N r`
+queries per seed and at most `2*r*dataBits N M` work bits. -/
 theorem generalQueryMemory_large_memory (k N M r : ℕ) [NeZero M]
     (hk : 2 ≤ k) (hkr : k ≤ r) (hrN : r ≤ N) (hlarge : N ≤ 2*r) :
     ∃ A : RandomQueryAlgorithm N M k, algorithmCorrect A ∧

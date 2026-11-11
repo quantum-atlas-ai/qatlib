@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
 
+/-!
+# Quantum counting accuracy
+
+The definitions `periodCount`, `angleFromPeriod`, and `countEstimate` relate Fourier period
+estimates to marked item counts. The estimates formalize the error bounds and precision
+tradeoffs from Section 5 of [BoyerEtAl1998], including exact recovery by rounding once the error
+is below one half.
+
+## Main statements
+
+* `count_error_bound`: Bounds the count error using angular accuracy π/P.
+* `count_error_lt_half`: Gives sufficient second pass precision for error below one half.
+* `count_round_eq_of_error_lt_half`: Recovers an integer count by rounding.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -14,12 +33,16 @@ namespace Qatlib.Papers.QSearchBoyer98.MainResults
 
 open Real
 
+/-- The Fourier period parameter Pθ/π associated with angle θ. -/
 def periodCount (P theta : ℝ) : ℝ := P * theta / Real.pi
 
+/-- The angle estimate obtained by multiplying a period estimate by π/P. -/
 def angleFromPeriod (P fEst : ℝ) : ℝ := fEst * Real.pi / P
 
+/-- The marked count estimate N sin² θ determined by an angle θ. -/
 def countEstimate (N theta : ℝ) : ℝ := N * Real.sin theta ^ 2
 
+/-- For positive P, period error strictly below one gives angular error strictly below π/P. -/
 theorem angle_error_of_period_error (P theta fEst : ℝ) (hP : 0 < P)
     (hf : |periodCount P theta - fEst| < 1) :
     |theta - angleFromPeriod P fEst| < Real.pi / P := by
@@ -31,6 +54,8 @@ theorem angle_error_of_period_error (P theta fEst : ℝ) (hP : 0 < P)
   have : (0:ℝ) < Real.pi / P := by positivity
   nlinarith [hf]
 
+/-- For angles in [0, π] at distance less than π/P, bounds the count error by (2π/P)√(tN) +
+(π/P)²N, where t is the original count estimate. See [BoyerEtAl1998]. -/
 theorem count_error_bound (N P theta thetaEst : ℝ) (hN : 0 < N) (hP : 0 < P)
     (htheta : 0 ≤ theta) (htheta_pi : theta ≤ Real.pi)
     (hthetaEst : 0 ≤ thetaEst) (hthetaEst_pi : thetaEst ≤ Real.pi)
@@ -86,6 +111,8 @@ theorem count_error_bound (N P theta thetaEst : ℝ) (hN : 0 < N) (hP : 0 < P)
   rw [hrhs] at hmul
   exact hmul
 
+/-- At angular precision π/(c√N), bounds the count error by (2π/c)√t + (π/c)² for positive N and
+c. -/
 theorem count_error_bound_scaled (N c theta thetaEst : ℝ) (hN : 0 < N) (hc : 0 < c)
     (htheta : 0 ≤ theta) (htheta_pi : theta ≤ Real.pi)
     (hthetaEst : 0 ≤ thetaEst) (hthetaEst_pi : thetaEst ≤ Real.pi)
@@ -115,6 +142,8 @@ theorem count_error_bound_scaled (N c theta thetaEst : ℝ) (hN : 0 < N) (hc : 0
   rw [hterm1, hterm2] at hmain
   exact hmain
 
+/-- At angular precision π/(c√(N/t)), bounds the absolute count error by t((1 + π/c)² − 1),
+assuming the original estimate equals positive t. -/
 theorem count_error_bound_relative (N t c theta thetaEst : ℝ) (hN : 0 < N)
     (ht : 0 < t) (hc : 0 < c)
     (htheta : 0 ≤ theta) (htheta_pi : theta ≤ Real.pi)
@@ -153,6 +182,8 @@ theorem count_error_bound_relative (N t c theta thetaEst : ℝ) (hN : 0 < N)
   rw [hsqexpand]
   nlinarith [hmain]
 
+/-- At angular precision π/(c√(tN)), bounds the count error by 2π/c + π²/(c²t), assuming the
+original estimate equals positive t. -/
 theorem count_error_bound_second_pass (N t c theta thetaEst : ℝ) (hN : 0 < N)
     (ht : 0 < t) (hc : 0 < c)
     (htheta : 0 ≤ theta) (htheta_pi : theta ≤ Real.pi)
@@ -184,6 +215,8 @@ theorem count_error_bound_second_pass (N t c theta thetaEst : ℝ) (hN : 0 < N)
   rw [hterm1, hterm2] at hmain
   exact hmain
 
+/-- For c ≥ 14 and t ≥ 1, the second pass error bound 2π/c + π²/(c²t) is strictly below one
+half. -/
 theorem second_pass_error_lt_half {c t : ℝ} (hc : 14 ≤ c) (ht : 1 ≤ t) :
     2 * Real.pi / c + Real.pi ^ 2 / (c ^ 2 * t) < 1 / 2 := by
   have hcpos : (0:ℝ) < c := by linarith
@@ -200,6 +233,8 @@ theorem second_pass_error_lt_half {c t : ℝ} (hc : 14 ≤ c) (ht : 1 ≤ t) :
     · nlinarith [ht, hc]
   nlinarith [h1, h2, hpi_sq]
 
+/-- For t ≥ 1 and c ≥ 14, angular error below π/(c√(tN)) makes the count error strictly below
+one half. See [BoyerEtAl1998]. -/
 theorem count_error_lt_half (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht : 1 ≤ t)
     (hc : 14 ≤ c)
     (htheta : 0 ≤ theta) (htheta_pi : theta ≤ Real.pi)
@@ -212,6 +247,8 @@ theorem count_error_lt_half (N t c theta thetaEst : ℝ) (hN : 0 < N) (ht : 1 �
       htheta htheta_pi hthetaEst hthetaEst_pi hcount hclose)
     (le_of_lt (second_pass_error_lt_half hc ht))
 
+/-- Rounding an estimate within strictly one half of a natural number recovers that number as an
+integer. See [BoyerEtAl1998]. -/
 theorem count_round_eq_of_error_lt_half {t tEst : ℝ} {n : ℕ} (hn : t = n)
     (hclose : |tEst - t| < 1 / 2) : ⌊tEst + 1 / 2⌋ = (n : ℤ) := by
   have h1 : (n : ℝ) ≤ tEst + 1 / 2 := by

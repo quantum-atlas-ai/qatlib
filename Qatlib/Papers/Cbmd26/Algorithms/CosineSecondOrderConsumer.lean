@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.SeparateSecondOrderConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.CosineQueryBudget
+
+/-!
+# Cosine sample circuits for second-order propagators
+
+Instantiates the cosine contour expansion with the second-order propagator families through
+`cosineCoefficients`, `cosineScales`, and `secondOrderNumerator`. The chosen finite sum
+approximates the target propagator, and `cosine_secondOrder_operator` compiles it into a valid
+circuit using separate Hermitian-component encodings. These results support the contour-based
+algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `cosine_secondOrder_chosen_error`: bounds the chosen finite-sample approximation error.
+* `cosine_secondOrder_operator`: constructs a block encoding with exact circuit counts.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,17 +65,22 @@ namespace CBMD
 open Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Defines the optional retained-sample labels at the chosen cosine truncation accuracy. -/
 abbrev CosineSampleLabels (γ τ δ : ℝ) :=
     Option (Fin (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineRetainedCount γ τ δ))
 
+/-- Assigns the regulator coefficient to the optional base label and the negative regulated
+sample coefficient to each retained sample. -/
 def cosineCoefficients (γ τ : ℝ) (N : ℕ) : Option (Fin N) → ℂ
   | none => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineRegulator γ τ 1
   | some k => -(_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineRegulator γ τ 1 * _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineSampleCoefficient γ τ k)
 
+/-- Assigns scale zero to the base label and the cosine sample scale to each retained sample. -/
 def cosineScales (γ τ : ℝ) (N : ℕ) : Option (Fin N) → ℝ
   | none => 0
   | some k => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineSampleScale γ τ k
 
+/-- The absolute mass of the cosine coefficients equals the finite cosine weight mass. -/
 theorem cosineCoefficients_mass (γ τ : ℝ) (N : ℕ) :
     coefficientMass (cosineCoefficients γ τ N) = _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineFiniteWeightMass γ τ N := by
   simp only [coefficientMass, Fintype.sum_option, cosineCoefficients, norm_neg, norm_mul]
@@ -64,16 +89,21 @@ theorem cosineCoefficients_mass (γ τ : ℝ) (N : ℕ) :
   simp only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineFiniteWeightMass]
   ring
 
+/-- All cosine sample scales are nonnegative for positive `γ` and `τ`. -/
 theorem cosineScales_nonneg {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (N : ℕ) (j : Option (Fin N)) : 0 ≤ cosineScales γ τ N j := by
   cases j with
   | none => exact le_rfl
   | some k => exact (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineSampleScale_pos hγ hτ k).le
 
+/-- Defines the complex-parameter numerator by applying the second-order propagator to `L + (i *
+z) • H`. -/
 def secondOrderNumerator {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E]
     (kind : SecondOrderFamily) (L H : E) (t : ℝ) (z : ℂ) : E :=
   secondOrderPropagator kind (L + (Complex.I * z) • H) t
 
+/-- The finite weighted sum of real-parameter second-order propagators equals the cosine
+approximation of the complex-parameter numerator. -/
 theorem cosine_secondOrder_sum {I : Type} [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (L H : Matrix I I ℂ) (t γ τ : ℝ) (N : ℕ) :
     (∑ j : Option (Fin N), cosineCoefficients γ τ N j •
@@ -88,6 +118,8 @@ theorem cosine_secondOrder_sum {I : Type} [Fintype I] [DecidableEq I]
   rw [Fin.sum_univ_eq_sum_range (fun k => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineSampleCoefficient γ τ k •
     secondOrderPropagator kind (L + (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineSampleScale γ τ k : ℂ) • H) t) N]
 
+/-- The chosen finite cosine sample sum approximates the second-order propagator of `L + iH`
+within operator error `δ` under the stated positivity and norm assumptions [WangEtAl2026]. -/
 theorem cosine_secondOrder_chosen_error {I : Type} [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (L H : Matrix I I ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t δ : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hδ : 0 < δ) (hγH : ‖H‖ ≤ γ) :
@@ -103,9 +135,12 @@ theorem cosine_secondOrder_chosen_error {I : Type} [Fintype I] [DecidableEq I]
   · exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.bessel_cbmd_chosen_error L H hL hH hγ ht hδ hγH
   · exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airy_cbmd_chosen_error L H hL hH hγ ht hδ hγH
 
+/-- Defines the uniform cosine sample scale bound from component norm bounds and truncation
+accuracy. -/
 def cosineSampleUpperScale (βL βH γ τ δ : ℝ) : ℝ :=
   βL + 169 * βH * Real.exp (τ * Real.sqrt (γ / 2)) / δ
 
+/-- Every chosen cosine sample has component scale at most `cosineSampleUpperScale`. -/
 theorem cosineScales_bound {γ τ δ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (hδ : 0 < δ)
     (βL βH : ℝ) (hβH : 0 ≤ βH) (j : CosineSampleLabels γ τ δ) :
     βL + cosineScales γ τ (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.cosineRetainedCount γ τ δ) j * βH ≤
@@ -120,6 +155,9 @@ theorem cosineScales_bound {γ τ δ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (hδ :
     dsimp only [cosineScales, cosineSampleUpperScale]
     convert! add_le_add_left hh βL using 1 <;> ring
 
+/-- Constructs phase data for a valid separate-oracle encoding of the second-order propagator
+with scale four times the chosen mass, error `ε * η / 4`, `8 * D + 2` queries to each
+component oracle, and `80 * D + 33` fixed gates [WangEtAl2026]. -/
 theorem cosine_secondOrder_operator
     (kind : SecondOrderFamily) (t βL βH μL μH γ ε η : ℝ)
     (ht : 0 < t) (hβL : 0 < βL) (hβH : 0 < βH)

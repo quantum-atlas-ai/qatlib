@@ -5,6 +5,37 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
+
+/-!
+# Schmidt-diagonal measurements and entropy bounds
+
+This module relates pure-state entanglement entropy to the reduced-density Schmidt spectrum and
+proves average-entropy bounds for diagonal instruments in the Schmidt basis.
+`diagonalInstrument_average_entropy_le_state` gives the one-round bound, and
+`treeAverageEntropy_le` extends it to finite diagonal measurement trees. The entanglement and
+local-measurement background is developed in [Wilde2017].
+
+Schmidt-basis measurement gives zero average branch entropy and a strict decrease for
+positive-entropy inputs, including Bell states. The module also proves rotation and
+two-coordinate mixing identities, constructs filtered branches with prescribed transformed
+spectra, and verifies `TTransformCriterion` under explicit positivity and filter hypotheses.
+
+## Main statements
+
+* `entropy_eq_schmidtEntropy`: equality of entanglement entropy and the Schmidt-spectrum entropy
+  expression.
+* `diagonalInstrument_average_entropy_le_state`: the average-entropy bound for a diagonal
+  instrument.
+* `treeAverageEntropy_le`: the bound for a finite diagonal measurement tree.
+* `tTransformCriterion`: realization of a two-coordinate transformed spectrum in a selected
+  branch.
+* `schmidtSpectrum_apply_tensorRight`: invariance under a right-local unitary.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -28,6 +59,8 @@ open scoped BigOperators ComplexOrder
 
 variable {D E n : ℕ}
 
+/-- Every entry of the reduced-density Schmidt spectrum of a normalized bipartite pure state is
+nonnegative. -/
 theorem schmidtSpectrum_nonneg (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) (j : Fin D) :
     0 ≤ schmidtSpectrum ψ hψ j := by
   have hM : 0 ≤ (Qatlib.Concepts.QuantumEntropy.EntropyCalculus.state (Qatlib.Concepts.UnbiasedBases.ThreeBasis.reducedDensity ψ hψ)).M := by
@@ -35,6 +68,7 @@ theorem schmidtSpectrum_nonneg (ψ : QState (Fin D × Fin E)) (hψ : Normalized 
     exact (Qatlib.Concepts.UnbiasedBases.ThreeBasis.reducedDensity ψ hψ).property.1
   exact HermitianMat.eigenvalues_nonneg hM j
 
+/-- The reduced-density Schmidt spectrum of a normalized bipartite pure state sums to one. -/
 theorem schmidtSpectrum_sum_eq_one (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     (∑ j, schmidtSpectrum ψ hψ j) = 1 := by
   have h1 : (∑ j, schmidtSpectrum ψ hψ j)
@@ -50,12 +84,15 @@ theorem schmidtSpectrum_sum_eq_one (ψ : QState (Fin D × Fin E)) (hψ : Normali
   rw [htr]
   simp
 
+/-- The pure-state entanglement entropy equals the Shannon entropy expression of its
+reduced-density Schmidt spectrum. -/
 theorem entropy_eq_schmidtEntropy (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     Qatlib.Concepts.UnbiasedBases.ThreeBasis.entropy ψ hψ = schmidtEntropy ψ hψ := by
   unfold Qatlib.Concepts.UnbiasedBases.ThreeBasis.entropy Qatlib.Concepts.QuantumEntropy.EntropyCalculus.entropy schmidtEntropy
   rw [Sᵥₙ_eq_trace_cfc_negMulLog, HermitianMat.trace_cfc_eq]
   rfl
 
+/-- The conjugate transpose of the Schmidt eigenvector unitary belongs to the unitary group. -/
 theorem schmidtUnitary_conjTranspose_mem (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     (schmidtUnitary ψ hψ).val.conjTranspose ∈ Matrix.unitaryGroup (Fin D) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
@@ -63,6 +100,7 @@ theorem schmidtUnitary_conjTranspose_mem (ψ : QState (Fin D × Fin E)) (hψ : N
   have hU := Unitary.mul_star_self_of_mem (schmidtUnitary ψ hψ).2
   rwa [Matrix.star_eq_conjTranspose] at hU
 
+/-- Rotating a normalized state into the chosen Schmidt basis preserves normalization. -/
 theorem schmidtRotated_normalized (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     Normalized (schmidtRotated ψ hψ) := by
   unfold schmidtRotated
@@ -71,6 +109,8 @@ theorem schmidtRotated_normalized (ψ : QState (Fin D × Fin E)) (hψ : Normaliz
       (by rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
         Matrix.conjTranspose_one]; simp)) hψ
 
+/-- The first reduced density matrix is the diagonal Schmidt spectrum conjugated by the Schmidt
+eigenvector unitary. -/
 theorem reducedDensity_eq_conj_diagonal (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     (Qatlib.Concepts.UnbiasedBases.ThreeBasis.reducedDensity ψ hψ).val
       = (schmidtUnitary ψ hψ).val
@@ -87,6 +127,8 @@ theorem reducedDensity_eq_conj_diagonal (ψ : QState (Fin D × Fin E)) (hψ : No
   rw [hval] at hmat
   exact hmat
 
+/-- The first marginal of the Schmidt-rotated state is the diagonal matrix of its Schmidt
+spectrum. -/
 theorem partialTrace_outerProduct_schmidtRotated
     (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     PartialTrace (outerProduct (schmidtRotated ψ hψ))
@@ -121,11 +163,13 @@ theorem partialTrace_outerProduct_schmidtRotated
       _ = Matrix.diagonal (fun j => ((schmidtSpectrum ψ hψ j : ℝ) : ℂ)) := by
         rw [hU2, hU, Matrix.mul_one]
 
+/-- A diagonal-instrument branch has nonnegative mass on a nonnegative input spectrum. -/
 theorem branchMass_nonneg (I : DiagonalInstrument D n) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) (i : Fin n) : 0 ≤ branchMass I spec i := by
   unfold branchMass
   exact Finset.sum_nonneg fun j _ => mul_nonneg (sq_nonneg _) (hspec j)
 
+/-- The sum of all diagonal-instrument branch masses equals the sum of the input spectrum. -/
 theorem branchMass_sum_eq_spec (I : DiagonalInstrument D n) (spec : Fin D → ℝ) :
     (∑ i, branchMass I spec i) = (∑ j, spec j) := by
   have hswap : (∑ i, ∑ j, I.entry i j ^ 2 * spec j)
@@ -145,10 +189,13 @@ theorem branchMass_sum_eq_spec (I : DiagonalInstrument D n) (spec : Fin D → �
         rw [I.hcomplete j]
         ring
 
+/-- A diagonal instrument produces branch masses summing to one when the input spectrum sums to
+one. -/
 theorem branchMass_sum_eq_one (I : DiagonalInstrument D n) (spec : Fin D → ℝ)
     (hsum : (∑ j, spec j) = 1) : (∑ i, branchMass I spec i) = 1 := by
   rw [branchMass_sum_eq_spec, hsum]
 
+/-- Every normalized branch-spectrum entry is nonnegative for a nonnegative input spectrum. -/
 theorem branchSpectrum_nonneg (I : DiagonalInstrument D n) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) (i : Fin n) (j : Fin D) : 0 ≤ branchSpectrum I spec i j := by
   unfold branchSpectrum
@@ -156,6 +203,7 @@ theorem branchSpectrum_nonneg (I : DiagonalInstrument D n) (spec : Fin D → ℝ
   · simp [hp]
   · exact div_nonneg (mul_nonneg (sq_nonneg _) (hspec j)) (branchMass_nonneg I spec hspec i)
 
+/-- The normalized spectrum of a positive-mass branch sums to one. -/
 theorem branchSpectrum_sum_eq_one (I : DiagonalInstrument D n) (spec : Fin D → ℝ) (i : Fin n)
     (hp : 0 < branchMass I spec i) : (∑ j, branchSpectrum I spec i j) = 1 := by
   unfold branchSpectrum
@@ -174,6 +222,8 @@ theorem branchSpectrum_sum_eq_one (I : DiagonalInstrument D n) (spec : Fin D →
     rw [mul_comm, hmul, hnum, mul_one]
   exact mul_left_cancel₀ hp.ne' h'
 
+/-- For a nonnegative input spectrum, multiplying a branch-spectrum entry by its branch mass
+recovers the unnormalized weight `I.entry i j ^ 2 * spec j`. -/
 theorem branchMass_mul_branchSpectrum (I : DiagonalInstrument D n) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) (i : Fin n) (j : Fin D) :
     branchMass I spec i * branchSpectrum I spec i j = I.entry i j ^ 2 * spec j := by
@@ -192,6 +242,8 @@ theorem branchMass_mul_branchSpectrum (I : DiagonalInstrument D n) (spec : Fin D
   · unfold branchSpectrum
     field_simp
 
+/-- Averaging the normalized branch spectra with their branch masses recovers each entry of a
+nonnegative input spectrum. -/
 theorem weighted_branchSpectrum_eq_spec (I : DiagonalInstrument D n) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) (j : Fin D) :
     (∑ i, branchMass I spec i * branchSpectrum I spec i j) = spec j := by
@@ -202,6 +254,8 @@ theorem weighted_branchSpectrum_eq_spec (I : DiagonalInstrument D n) (spec : Fin
         rw [Finset.sum_mul]
     _ = spec j := by rw [I.hcomplete j]; ring
 
+/-- The first marginal of an unnormalized Schmidt-basis branch is diagonal with entries `I.entry
+i j ^ 2 * schmidtSpectrum ψ hψ j`. -/
 theorem branch_partialTrace (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n) :
     PartialTrace (outerProduct (schmidtBranch ψ hψ I i))
@@ -220,6 +274,8 @@ theorem branch_partialTrace (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     ring
   · simp [Matrix.diagonal_apply, Matrix.mul_apply, DiagonalInstrument.op, h]
 
+/-- The density operator with diagonal entries given by a nonnegative real vector summing to
+one. -/
 noncomputable def diagonalDensity {I : Type} [Fintype I] [DecidableEq I] (c : I → ℝ)
     (hc : ∀ i, 0 ≤ c i) (hsum : (∑ i, c i) = 1) : Qatlib.Concepts.QuantumEntropy.EntropyCalculus.Density I := by
   have hpsd : (Matrix.diagonal (fun i => (c i : ℂ))).PosSemidef := by
@@ -231,6 +287,8 @@ noncomputable def diagonalDensity {I : Type} [Fintype I] [DecidableEq I] (c : I 
     norm_num
   exact ⟨Matrix.diagonal (fun i => (c i : ℂ)), ⟨hpsd, htr⟩⟩
 
+/-- The von Neumann entropy of a diagonal density operator is the sum of `Real.negMulLog` over
+its diagonal entries. -/
 theorem entropy_diagonal {I : Type} [Fintype I] [DecidableEq I] (c : I → ℝ)
     (hc : ∀ i, 0 ≤ c i) (hsum : (∑ i, c i) = 1) :
     Qatlib.Concepts.QuantumEntropy.EntropyCalculus.entropy (diagonalDensity c hc hsum) = ∑ i, Real.negMulLog (c i) := by
@@ -241,6 +299,8 @@ theorem entropy_diagonal {I : Type} [Fintype I] [DecidableEq I] (c : I → ℝ)
   rw [Sᵥₙ_eq_trace_cfc_negMulLog, hM, HermitianMat.cfc_diagonal, HermitianMat.trace_diagonal]
   rfl
 
+/-- The entropy of the diagonal density operator associated with a positive-mass branch is the
+Shannon entropy expression of its normalized branch spectrum. -/
 theorem branch_entropy (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n) (hp : 0 < branchMass I (schmidtSpectrum ψ hψ) i) :
     Qatlib.Concepts.QuantumEntropy.EntropyCalculus.entropy
@@ -250,6 +310,8 @@ theorem branch_entropy (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
       = ∑ j, Real.negMulLog (branchSpectrum I (schmidtSpectrum ψ hψ) i j) :=
   entropy_diagonal _ _ _
 
+/-- The function `Real.negMulLog` satisfies the weighted Jensen inequality for nonnegative
+inputs and nonnegative weights summing to one. -/
 theorem negMulLog_jensen {m k : ℕ} (w : Fin m → ℝ) (x : Fin m → Fin k → ℝ)
     (hw : ∀ i, 0 ≤ w i) (hw0 : (∑ i, w i) = 1) (hx : ∀ i j, 0 ≤ x i j) (j : Fin k) :
     (∑ i, w i * Real.negMulLog (x i j)) ≤ Real.negMulLog (∑ i, w i * x i j) := by
@@ -258,6 +320,8 @@ theorem negMulLog_jensen {m k : ℕ} (w : Fin m → ℝ) (x : Fin m → Fin k �
     (fun i _ => hw i) (by simp [hw0]) (fun i _ => hx i j)
   simpa using h
 
+/-- For a nonnegative spectrum summing to one, the branch-mass-weighted entropy after a diagonal
+instrument is at most the input entropy expression. -/
 theorem diagonalInstrument_average_entropy_le
     (I : DiagonalInstrument D n) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) (hsum : (∑ j, spec j) = 1) :
@@ -284,6 +348,8 @@ theorem diagonalInstrument_average_entropy_le
         refine Finset.sum_congr rfl fun j _ => ?_
         rw [weighted_branchSpectrum_eq_spec I spec hspec j]
 
+/-- For a normalized bipartite pure state, the average branch entropy of a Schmidt-diagonal
+instrument is at most its initial entanglement entropy. -/
 theorem diagonalInstrument_average_entropy_le_state
     (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) (I : DiagonalInstrument D n) :
     (∑ i, branchMass I (schmidtSpectrum ψ hψ) i *
@@ -293,6 +359,8 @@ theorem diagonalInstrument_average_entropy_le_state
   exact diagonalInstrument_average_entropy_le I (schmidtSpectrum ψ hψ)
     (schmidtSpectrum_nonneg ψ hψ) (schmidtSpectrum_sum_eq_one ψ hψ)
 
+/-- A finite branching measurement tree whose internal nodes carry diagonal instruments and
+whose leaves halt. -/
 inductive DiagonalLoccTree (D : ℕ) : Type
 
   | halt : DiagonalLoccTree D
@@ -300,11 +368,15 @@ inductive DiagonalLoccTree (D : ℕ) : Type
   | node (n : ℕ) (I : DiagonalInstrument D n) (next : Fin n → DiagonalLoccTree D) :
       DiagonalLoccTree D
 
+/-- The recursive average entropy of a diagonal measurement tree, weighting each continuation by
+its branch mass. -/
 noncomputable def treeAverageEntropy : DiagonalLoccTree D → (Fin D → ℝ) → ℝ
   | .halt, spec => ∑ j, Real.negMulLog (spec j)
   | .node n I next, spec =>
       ∑ i, branchMass I spec i * treeAverageEntropy (next i) (branchSpectrum I spec i)
 
+/-- A finite diagonal measurement tree has average terminal entropy at most the entropy of its
+nonnegative normalized input spectrum. -/
 theorem treeAverageEntropy_le (T : DiagonalLoccTree D) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) (hsum : (∑ j, spec j) = 1) :
     treeAverageEntropy T spec ≤ ∑ j, Real.negMulLog (spec j) := by
@@ -325,17 +397,22 @@ theorem treeAverageEntropy_le (T : DiagonalLoccTree D) (spec : Fin D → ℝ)
         _ ≤ ∑ j, Real.negMulLog (spec j) :=
           diagonalInstrument_average_entropy_le I spec hspec hsum
 
+/-- The diagonal instrument with one outcome per basis index and entries given by the equality
+indicator. -/
 def schmidtBasisInstrument (D : ℕ) : DiagonalInstrument D D where
   entry := fun i j => if i = j then 1 else 0
   hcomplete := by
     intro j
     simp [Finset.sum_ite_eq', Finset.mem_univ]
 
+/-- The mass of outcome `i` in the Schmidt-basis instrument is `spec i`. -/
 theorem schmidtBasis_branchMass (D : ℕ) (spec : Fin D → ℝ) (i : Fin D) :
     branchMass (schmidtBasisInstrument D) spec i = spec i := by
   unfold branchMass
   simp [schmidtBasisInstrument, Finset.mem_univ]
 
+/-- A positive-mass outcome of the Schmidt-basis instrument has the point-mass spectrum at its
+outcome index. -/
 theorem schmidtBasis_branchSpectrum (D : ℕ) (spec : Fin D → ℝ) (i : Fin D)
     (hp : 0 < branchMass (schmidtBasisInstrument D) spec i) :
     branchSpectrum (schmidtBasisInstrument D) spec i
@@ -351,6 +428,7 @@ theorem schmidtBasis_branchSpectrum (D : ℕ) (spec : Fin D → ℝ) (i : Fin D)
     simp [schmidtBasisInstrument, hpos.ne']
   · simp [schmidtBasisInstrument, h]
 
+/-- Every positive-mass Schmidt-basis outcome has zero branch entropy. -/
 theorem schmidtBasis_branch_entropy_zero (D : ℕ) (spec : Fin D → ℝ) (i : Fin D)
     (hp : 0 < branchMass (schmidtBasisInstrument D) spec i) :
     (∑ j, Real.negMulLog (branchSpectrum (schmidtBasisInstrument D) spec i j)) = 0 := by
@@ -362,6 +440,8 @@ theorem schmidtBasis_branch_entropy_zero (D : ℕ) (spec : Fin D → ℝ) (i : F
     simp
   · simp [h]
 
+/-- The average branch entropy of the Schmidt-basis instrument is zero for a nonnegative input
+spectrum. -/
 theorem schmidtBasis_average_entropy_zero (D : ℕ) (spec : Fin D → ℝ)
     (hspec : ∀ j, 0 ≤ spec j) :
     (∑ i, branchMass (schmidtBasisInstrument D) spec i *
@@ -373,6 +453,8 @@ theorem schmidtBasis_average_entropy_zero (D : ℕ) (spec : Fin D → ℝ)
       lt_of_le_of_ne (branchMass_nonneg (schmidtBasisInstrument D) spec hspec i) (Ne.symm hp)
     rw [schmidtBasis_branch_entropy_zero D spec i hpos, mul_zero]
 
+/-- Schmidt-basis measurement strictly decreases average entropy when the normalized input
+state's entanglement entropy is positive. -/
 theorem schmidtBasis_strict (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (hpos : 0 < Qatlib.Concepts.UnbiasedBases.ThreeBasis.entropy ψ hψ) :
     (∑ i, branchMass (schmidtBasisInstrument D) (schmidtSpectrum ψ hψ) i *
@@ -383,6 +465,8 @@ theorem schmidtBasis_strict (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (schmidtSpectrum_nonneg ψ hψ)]
   exact hpos
 
+/-- Schmidt-basis measurement strictly decreases the average entanglement entropy of each Bell
+state. -/
 theorem bell_schmidtBasis_strict (s : Bool × Bool) :
     (∑ i, branchMass (schmidtBasisInstrument 2)
         (schmidtSpectrum (Qatlib.Concepts.FiniteLocc.LOCCProgram.bell s)
@@ -401,15 +485,21 @@ theorem bell_schmidtBasis_strict (s : Bool × Bool) :
     simpa using this
   exact this
 
+/-- The outcome-bit field of a diagonal-round ledger is the natural ceiling of `Real.log n /
+Real.log 2`. -/
 theorem roundLedger_outcomeBits (D E n : ℕ) :
     (diagonalRoundLedger D E n).outcomeBits
       = Nat.ceil (Real.log ((n : ℝ)) / Real.log 2) := rfl
 
+/-- The bit cost of a left-local protocol step is its outcome cost plus the largest bit cost
+among its continuations. -/
 theorem loccBits_stepA (D E : ℕ) (n : ℕ) (ks : Fin n → Operator D)
     (next : Fin n → Qatlib.Concepts.FiniteLocc.LOCCProgram.LoccProtocol D E) :
     Qatlib.Concepts.FiniteLocc.LOCCProgram.LoccBits (.stepA n ks next)
       = outcomeCostBits n + Finset.univ.sup (fun i => Qatlib.Concepts.FiniteLocc.LOCCProgram.LoccBits (next i)) := rfl
 
+/-- Package a positive-mass diagonal branch as an execution record containing its outcome, mass,
+entropy, and round ledger. -/
 noncomputable def branchExecution (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n)
     (hp : 0 < branchMass I (schmidtSpectrum ψ hψ) i) : LoccExecution D E n where
@@ -418,11 +508,14 @@ noncomputable def branchExecution (ψ : QState (Fin D × Fin E)) (hψ : Normaliz
   entropy := ∑ j, Real.negMulLog (branchSpectrum I (schmidtSpectrum ψ hψ) i j)
   ledger := diagonalRoundLedger D E n
 
+/-- The mass stored in a diagonal branch execution record is its branch mass. -/
 theorem branchExecution_mass (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n)
     (hp : 0 < branchMass I (schmidtSpectrum ψ hψ) i) :
     (branchExecution ψ hψ I i hp).mass = branchMass I (schmidtSpectrum ψ hψ) i := rfl
 
+/-- The entropy stored in a positive-mass branch execution record equals the entropy of the
+diagonal density operator of its normalized branch spectrum. -/
 theorem branchExecution_entropy (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n)
     (hp : 0 < branchMass I (schmidtSpectrum ψ hψ) i) :
@@ -434,13 +527,19 @@ theorem branchExecution_entropy (ψ : QState (Fin D × Fin E)) (hψ : Normalized
   rw [branch_entropy (ψ) (hψ) (I) (i) hp]
   rfl
 
+/-- The proposition that the input spectrum majorizes every branch spectrum of the diagonal
+instrument. -/
 def MeasurementMajorization (I : DiagonalInstrument D n) (spec : Fin D → ℝ) : Prop :=
   ∀ i, Qatlib.Concepts.FiniteLocc.LOCCProgram.Majorizes spec (branchSpectrum I spec i)
 
+/-- The proposition that majorization of finite real vectors implies the corresponding
+inequality for their `Real.negMulLog` sums. -/
 def SchurConcavityShannon : Prop :=
   ∀ (a b : Fin D → ℝ), Qatlib.Concepts.FiniteLocc.LOCCProgram.Majorizes a b →
     (∑ j, Real.negMulLog (a j)) ≤ ∑ j, Real.negMulLog (b j)
 
+/-- The branch-mass-weighted entropy inequality holds for a diagonal instrument on a nonnegative
+normalized spectrum. -/
 theorem schmidtDiagonal_is_the_specialized_instance
     (I : DiagonalInstrument D n) (spec : Fin D → ℝ) (hspec : ∀ j, 0 ≤ spec j)
     (hsum : (∑ j, spec j) = 1) :
@@ -448,6 +547,8 @@ theorem schmidtDiagonal_is_the_specialized_instance
       ≤ ∑ j, Real.negMulLog (spec j) :=
   diagonalInstrument_average_entropy_le I spec hspec hsum
 
+/-- A rotation weight equals the squared complex norm of the corresponding rotation-vector
+entry. -/
 theorem rotationWeight_eq (c s : ℝ) (k l : Fin D) (dir : Fin 2) (j : Fin D) :
     rotationWeight c s k l dir j = Complex.normSq (rotationVector c s k l dir j) := by
   classical
@@ -467,6 +568,7 @@ theorem rotationWeight_eq (c s : ℝ) (k l : Fin D) (dir : Fin 2) (j : Fin D) :
         simp [rotationWeight, rotationVector, hd, hjk, Complex.normSq_ofReal, pow_two]
       · simp [rotationWeight, rotationVector, hd, hjk, hjl, Complex.normSq_zero]
 
+/-- For distinct indices and `c ^ 2 + s ^ 2 = 1`, the rotation weights sum to one. -/
 theorem rotationWeight_sum_eq_one (c s : ℝ) (k l : Fin D) (dir : Fin 2)
     (hkl : k ≠ l) (hrot : c ^ 2 + s ^ 2 = 1) :
     (∑ j : Fin D, rotationWeight c s k l dir j) = 1 := by
@@ -509,12 +611,15 @@ theorem rotationWeight_sum_eq_one (c s : ℝ) (k l : Fin D) (dir : Fin 2)
     rw [hsplit, hk, hl]
     simpa [add_comm] using hrot
 
+/-- The operator `rotationProjector c s k l dir` is equal to its conjugate transpose. -/
 theorem rotationProjector_conjTranspose (c s : ℝ) (k l : Fin D) (dir : Fin 2) :
     (rotationProjector c s k l dir).conjTranspose = rotationProjector c s k l dir := by
   ext i j
   simp [rotationProjector, outerProduct_apply, Matrix.conjTranspose_apply]
   ring
 
+/-- For a normalized two-coordinate rotation with distinct indices, the squared norm of the
+rotated branch equals its spectral branch-mass formula. -/
 theorem rotationBranchMass_eq (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (c s : ℝ) (k l : Fin D) (dir : Fin 2) (hkl : k ≠ l) (hrot : c ^ 2 + s ^ 2 = 1) :
     (∑ i, ‖rotationBranchState ψ hψ c s k l dir i‖ ^ 2)
@@ -633,6 +738,8 @@ theorem rotationBranchMass_eq (ψ : QState (Fin D × Fin E)) (hψ : Normalized �
   rw [hnormmass, htrace, hred, hherm, hmain]
   simp [Complex.ofReal_re]
 
+/-- For distinct indices, the two rotation branch masses are the respective mixtures with
+weights `c ^ 2` and `s ^ 2` of `spec k` and `spec l`. -/
 theorem rotationBranchMass_tTransform (spec : Fin D → ℝ) (c s : ℝ) (k l : Fin D)
     (dir : Fin 2) (hkl : k ≠ l) :
     rotationBranchMass spec c s k l dir
@@ -673,11 +780,13 @@ theorem rotationBranchMass_tTransform (spec : Fin D → ℝ) (c s : ℝ) (k l : 
       Fintype.sum_ite_eq' l (fun j => c ^ 2 * spec j)]
     simp [hd]
 
+/-- A two-coordinate mixing transform leaves entries outside its two selected indices unchanged. -/
 theorem tTransformSpectrum_of_ne (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) (j : Fin D)
     (hjk : j ≠ k) (hjl : j ≠ l) :
     tTransformSpectrum spec θ k l j = spec j := by
   simp [tTransformSpectrum, hjk, hjl]
 
+/-- At index `k`, the transformed spectrum is `θ * spec k + (1 - θ) * spec l`. -/
 theorem tTransformSpectrum_k (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     tTransformSpectrum spec θ k l k = θ * spec k + (1 - θ) * spec l := by
   by_cases hkl : k = l
@@ -688,6 +797,7 @@ theorem tTransformSpectrum_k (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     simp [tTransformSpectrum, hkl]
     ring
 
+/-- At index `l`, the transformed spectrum is `(1 - θ) * spec k + θ * spec l`. -/
 theorem tTransformSpectrum_l (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     tTransformSpectrum spec θ k l l = (1 - θ) * spec k + θ * spec l := by
   by_cases hkl : k = l
@@ -698,6 +808,7 @@ theorem tTransformSpectrum_l (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     simp [tTransformSpectrum, hkl']
     ring
 
+/-- A two-coordinate mixing transform preserves the sum of the spectrum. -/
 theorem tTransformSpectrum_sum_eq_spec (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     (∑ j, tTransformSpectrum spec θ k l j) = (∑ j, spec j) := by
   classical
@@ -712,6 +823,8 @@ theorem tTransformSpectrum_sum_eq_spec (spec : Fin D → ℝ) (θ : ℝ) (k l : 
         rw [Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_add_distrib]
     _ = (∑ j, spec j) := by rw [h1, h2]; ring
 
+/-- A two-coordinate mixing transform with parameter in `[0, 1]` preserves entrywise
+nonnegativity. -/
 theorem tTransformSpectrum_nonneg (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D)
     (hspec : ∀ j, 0 ≤ spec j) (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) (j : Fin D) :
     0 ≤ tTransformSpectrum spec θ k l j := by
@@ -728,6 +841,8 @@ theorem tTransformSpectrum_nonneg (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D
     · rw [tTransformSpectrum_of_ne spec θ k l j hjk hjl]
       exact hspec j
 
+/-- The squared entry of outcome zero in the two-outcome instrument equals the prescribed filter
+value when that value lies in `[0, 1]`. -/
 theorem tTransformInstrument_entry_zero (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
     (hfilter0 : ∀ j, 0 ≤ tTransformFilter spec p θ k l j) (j : Fin D) :
@@ -738,6 +853,8 @@ theorem tTransformInstrument_entry_zero (spec : Fin D → ℝ) (p θ : ℝ) (k l
     simp [tTransformInstrument]
   rw [h, Real.sq_sqrt (hfilter0 j)]
 
+/-- The squared entry of outcome one in the two-outcome instrument equals one minus the
+prescribed filter value. -/
 theorem tTransformInstrument_entry_one (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
     (hfilter0 : ∀ j, 0 ≤ tTransformFilter spec p θ k l j) (j : Fin D) :
@@ -748,6 +865,8 @@ theorem tTransformInstrument_entry_one (spec : Fin D → ℝ) (p θ : ℝ) (k l 
     simp [tTransformInstrument]
   rw [h, Real.sq_sqrt (by have := hfilter j; linarith)]
 
+/-- For a strictly positive normalized spectrum and a filter in `[0, 1]`, outcome zero of the
+two-coordinate instrument has mass `p`. -/
 theorem tTransform_branchMass (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
     (hfilter0 : ∀ j, 0 ≤ tTransformFilter spec p θ k l j)
@@ -773,6 +892,8 @@ theorem tTransform_branchMass (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
   rw [branchMass, hmain, hmul, tTransformSpectrum_sum_eq_spec spec θ k l, hsum]
   ring
 
+/-- For a strictly positive normalized spectrum, positive `p`, and a filter in `[0, 1]`, outcome
+zero has normalized spectrum `tTransformSpectrum spec θ k l`. -/
 theorem tTransform_branchSpectrum (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
     (hfilter0 : ∀ j, 0 ≤ tTransformFilter spec p θ k l j)
@@ -790,6 +911,9 @@ theorem tTransform_branchSpectrum (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin
   have hp0 : p ≠ 0 := ne_of_gt hp
   field_simp
 
+/-- When the input Schmidt spectrum is `spec`, is strictly positive and normalized, and the
+filter lies in `[0, 1]`, the first reduced operator of outcome zero is diagonal with entries
+`p * tTransformSpectrum spec θ k l j`. -/
 theorem tTransform_branch_partialTrace (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
@@ -812,6 +936,8 @@ theorem tTransform_branch_partialTrace (ψ : QState (Fin D × Fin E)) (hψ : Nor
     field_simp
   · simp only [Matrix.diagonal_apply, h, if_false]
 
+/-- Under the stated positivity and filter bounds, the entropy of outcome zero's normalized
+diagonal density operator equals the entropy expression of the transformed Schmidt spectrum. -/
 theorem tTransform_branch_entropy (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter (schmidtSpectrum ψ hψ) p θ k l j ≤ 1)
@@ -841,6 +967,8 @@ theorem tTransform_branch_entropy (ψ : QState (Fin D × Fin E)) (hψ : Normaliz
       (tTransformInstrument D (schmidtSpectrum ψ hψ) p θ k l hfilter hfilter0) 0 hmass]
   rw [hbspec]
 
+/-- A two-coordinate mixing transform with parameter in `[0, 1]` cannot decrease the
+`Real.negMulLog` sum of a nonnegative spectrum. -/
 theorem tTransformSpectrum_entropy_ge (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D)
     (hspec : ∀ j, 0 ≤ spec j) (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) :
     (∑ j, Real.negMulLog (tTransformSpectrum spec θ k l j))
@@ -956,6 +1084,8 @@ theorem tTransformSpectrum_entropy_ge (spec : Fin D → ℝ) (θ : ℝ) (k l : F
       simp only [Finset.sum_sub_distrib]
     linarith [hsplit, hpair]
 
+/-- The mass of a Schmidt-diagonal branch equals the sum of the squared norms of its state
+amplitudes. -/
 theorem branchMass_eq_norm (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (I : DiagonalInstrument D n) (i : Fin n) :
     (∑ j, ‖schmidtBranch ψ hψ I i j‖ ^ 2) = branchMass I (schmidtSpectrum ψ hψ) i := by
@@ -971,6 +1101,8 @@ theorem branchMass_eq_norm (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
   rw [trace_outerProduct] at htrace
   exact Complex.ofReal_inj.mp htrace
 
+/-- For a strictly positive normalized input Schmidt spectrum and a filter in `[0, 1]`, the
+squared norm of outcome zero is `p`. -/
 theorem tTransform_branchProbability (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
@@ -983,6 +1115,8 @@ theorem tTransform_branchProbability (ψ : QState (Fin D × Fin E)) (hψ : Norma
   rw [hspec]
   exact tTransform_branchMass spec p θ k l hfilter hfilter0 hpos hsum
 
+/-- The average branch entropy of the two-coordinate filter instrument is at most the normalized
+input state's entanglement entropy. -/
 theorem tTransform_average_entropy_le (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
@@ -995,6 +1129,9 @@ theorem tTransform_average_entropy_le (ψ : QState (Fin D × Fin E)) (hψ : Norm
   diagonalInstrument_average_entropy_le_state ψ hψ
     (tTransformInstrument D spec p θ k l hfilter hfilter0)
 
+/-- The conjunction of spectrum positivity and normalization, filter bounds, positive `p`, and
+existence of a two-outcome diagonal instrument realizing the transformed spectrum with mass
+`p` and a nondecreasing entropy expression. -/
 def TTransformCriterion (D E : ℕ) (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D) : Prop :=
   (∀ j, 0 < spec j) ∧
   (∀ j, 0 ≤ tTransformFilter spec p θ k l j) ∧
@@ -1010,6 +1147,8 @@ def TTransformCriterion (D E : ℕ) (spec : Fin D → ℝ) (p θ : ℝ) (k l : F
       (∑ j, Real.negMulLog (tTransformSpectrum spec θ k l j))
         ≥ (∑ j, Real.negMulLog (spec j)))
 
+/-- A strictly positive normalized spectrum, positive `p`, filter values in `[0, 1]`, and a
+mixing parameter in `[0, 1]` satisfy `TTransformCriterion`. -/
 theorem tTransformCriterion (D E : ℕ) (spec : Fin D → ℝ) (p θ : ℝ) (k l : Fin D)
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)
     (hfilter0 : ∀ j, 0 ≤ tTransformFilter spec p θ k l j)
@@ -1028,12 +1167,14 @@ theorem tTransformCriterion (D E : ℕ) (spec : Fin D → ℝ) (p θ : ℝ) (k l
     simp
   · exact tTransformSpectrum_entropy_ge spec θ k l (fun j => le_of_lt (hpos j)) hθ0 hθ1
 
+/-- Equal Hermitian matrices have equal eigenvalue functions. -/
 theorem hermitian_eigenvalues_congr {A B : Matrix (Fin D) (Fin D) ℂ}
     (hA : A.IsHermitian) (hB : B.IsHermitian) (h : A = B) :
     hA.eigenvalues = hB.eigenvalues := by
   subst h
   rfl
 
+/-- Applying a unitary to the right subsystem preserves the reduced-density Schmidt spectrum. -/
 theorem schmidtSpectrum_apply_tensorRight (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (V : Matrix (Fin E) (Fin E) ℂ) (hV : V ∈ Matrix.unitaryGroup (Fin E) ℂ)
     (hψ' : Normalized (ApplyGate (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V) ψ)) :

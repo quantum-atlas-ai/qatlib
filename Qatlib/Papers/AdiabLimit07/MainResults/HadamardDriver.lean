@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.Qubit
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.InnerProductSpace.Calculus
+
+/-!
+# Hadamard basis dynamics and runtime bounds
+
+Defines the real Walsh signs and `hadBasisDriver`, a diagonal matrix with a rank-one Walsh
+correction, and derives the evolution of the zero-string probability. Finite-dimensional inner
+product estimates, a two-vector probability bound, and norm conservation give bounds on the
+final Hadamard-transformed amplitude and on the required runtime. See [IoannouMosca2008].
+
+## Main statements
+
+* `twoAmplitudeBound`: Bounds two squared overlaps using the overlap of the two unit vectors.
+* `eq30_success_bound_normalized`: Bounds success probability for evolution starting at the
+  zero-string basis vector.
+* `runtime_lower_bound_normalized`: Converts the success estimate into a runtime lower bound.
+
+## References
+
+* [Ioannou and Mosca, 2008][IoannouMosca2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,11 +44,15 @@ open Qatlib.Foundations.PureStateMath
 
 variable {n : ℕ}
 
+/-- The real Walsh sign given by the product of `-1` over coordinates where both strings are
+true. -/
 def hadWalshChar (w x : Reg n) : ℝ := ∏ i, if w i && x i then (-1 : ℝ) else 1
 
+/-- The Walsh sign against the zero string is one. -/
 @[simp] theorem hadWalshChar_zeroStr (w : Reg n) : hadWalshChar w (ZeroStr n) = 1 := by
   simp [hadWalshChar, ZeroStr]
 
+/-- The square of every real Walsh sign is one. -/
 theorem hadWalshChar_sq (w x : Reg n) : hadWalshChar w x ^ 2 = 1 := by
   unfold hadWalshChar
   rw [← Finset.prod_pow]
@@ -35,16 +60,20 @@ theorem hadWalshChar_sq (w x : Reg n) : hadWalshChar w x ^ 2 = 1 := by
   intro i _
   split_ifs <;> norm_num
 
+/-- The Hadamard basis driver with diagonal energies `(1 - s) * F x + s * E1` and the rank-one
+Walsh correction scaled by `s * E1 / 2 ^ n`. -/
 def hadBasisDriver (F : Reg n → ℝ) (E1 s : ℝ) (w : Reg n) :
     Matrix (Reg n) (Reg n) ℂ :=
   Matrix.of fun x y =>
     (((1 - s) * F x + s * E1 : ℝ) : ℂ) * (if x = y then (1 : ℂ) else 0)
       - (((s * E1 / (2 : ℝ) ^ n) * (hadWalshChar w x * hadWalshChar w y) : ℝ) : ℂ)
 
+/-- The action of `hadBasisDriver` on the time-dependent state at time `t`. -/
 def hadBasisAction (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (t : ℝ) : QState (Reg n) :=
   (hadBasisDriver F E1 (s t) w).mulVec (β t)
 
+/-- The zero-string row of the driver consists of its diagonal term minus the scaled Walsh sign. -/
 theorem hadBasisDriver_zeroStr_apply (F : Reg n → ℝ) (E1 s : ℝ) (w y : Reg n) :
     hadBasisDriver F E1 s w (ZeroStr n) y =
       (((1 - s) * F (ZeroStr n) + s * E1 : ℝ) : ℂ) *
@@ -53,6 +82,8 @@ theorem hadBasisDriver_zeroStr_apply (F : Reg n → ℝ) (E1 s : ℝ) (w y : Reg
   unfold hadBasisDriver
   simp only [Matrix.of_apply, hadWalshChar_zeroStr, one_mul]
 
+/-- The zero-string component of the driver action is its diagonal contribution minus a scaled
+Walsh-weighted amplitude sum. -/
 theorem hadBasisAction_zeroStr (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (t : ℝ) :
     hadBasisAction F E1 w s β t (ZeroStr n) =
@@ -74,6 +105,8 @@ theorem hadBasisAction_zeroStr (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : �
   · simp only [Complex.ofReal_mul, mul_assoc]
     rw [← Finset.mul_sum]
 
+/-- The real inner product expression for the derivative of a squared amplitude equals `-(2 * B)
+* im (conj a * S)`. -/
 theorem inner_val (a S : ℂ) (A B : ℝ) :
     2 * inner ℝ a ((-Complex.I) * ((A : ℂ) * a - (B : ℂ) * S)) =
       -(2 * B) * (star a * S).im := by
@@ -88,6 +121,8 @@ theorem inner_val (a S : ℂ) (A B : ℝ) :
     Complex.conj_re, Complex.conj_im, Complex.star_def]
   ring
 
+/-- The imaginary part of a conjugated amplitude times a real-weighted sum equals the
+corresponding sum of imaginary parts. -/
 theorem im_star_mul_sum (a : ℂ) (χ : Reg n → ℝ) (b : Reg n → ℂ) :
     (star a * ∑ y, ((χ y : ℝ) : ℂ) * b y).im =
       ∑ y, χ y * (star a * b y).im := by
@@ -98,6 +133,8 @@ theorem im_star_mul_sum (a : ℂ) (χ : Reg n → ℝ) (b : Reg n → ℂ) :
   simp only [Complex.mul_im, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- The squared zero-string amplitude has derivative given by the scaled Walsh-weighted
+imaginary coupling sum under the stated vector differential equation [IoannouMosca2008]. -/
 theorem hadBasis_zero_deriv (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n))
     (hode : ∀ t, HasDerivAt β (fun x => (-Complex.I) * hadBasisAction F E1 w s β t x) t)
@@ -115,6 +152,8 @@ theorem hadBasis_zero_deriv (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ 
   rw [inner_val, im_star_mul_sum]
   ring
 
+/-- If the squared norm of `b` is at most one, the absolute Walsh-weighted imaginary coupling
+sum is at most `sqrt (2 ^ n)`. -/
 theorem flow_sum_abs_le (w : Reg n) (b : QState (Reg n))
     (hb : ∑ y, ‖b y‖ ^ 2 ≤ 1) :
     |∑ y, hadWalshChar w y * ((star (b (ZeroStr n))) * b y).im| ≤
@@ -166,6 +205,8 @@ theorem flow_sum_abs_le (w : Reg n) (b : QState (Reg n))
           mul_le_mul_of_nonneg_left hb (by positivity)
     _ = Real.sqrt ((2 : ℝ) ^ n) := by ring
 
+/-- Under the evolution, schedule, and norm bounds, an initial zero-string amplitude of one
+yields final squared amplitude at least `1 - 2 * E1 * T / sqrt (2 ^ n)` [IoannouMosca2008]. -/
 theorem hadBasis_start_lower (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (T : ℝ) (hT : 0 ≤ T)
     (hE1 : 0 ≤ E1) (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)
@@ -223,16 +264,20 @@ theorem hadBasis_start_lower (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The complex coordinate inner product `PureStateMath.Inner` on finite quantum states. -/
 abbrev QInner (ψ φ : QState I) : ℂ :=
   Qatlib.Foundations.PureStateMath.Inner ψ φ
 
+/-- The sum of squared complex norms of the coordinates of a state. -/
 def nrmSq (ψ : QState I) : ℝ := ∑ i, ‖ψ i‖ ^ 2
 
+/-- The coordinate inner product is additive in its second argument. -/
 theorem inner_add_right (ψ φ χ : QState I) :
     QInner ψ (φ + χ) = QInner ψ φ + QInner ψ χ := by
   simp only [QInner, Qatlib.Foundations.PureStateMath.Inner,
     Pi.add_apply, mul_add, Finset.sum_add_distrib, dotProduct]
 
+/-- The coordinate inner product is complex linear in its second argument. -/
 theorem inner_smul_right (ψ φ : QState I) (a : ℂ) :
     QInner ψ (a • φ) = a * QInner ψ φ := by
   simp only [QInner, Qatlib.Foundations.PureStateMath.Inner,
@@ -241,6 +286,7 @@ theorem inner_smul_right (ψ φ : QState I) (a : ℂ) :
   intro i _
   ring
 
+/-- The coordinate inner product is conjugate symmetric. -/
 theorem inner_conj_symm (ψ φ : QState I) : QInner ψ φ = star (QInner φ ψ) := by
   simp only [QInner, Qatlib.Foundations.PureStateMath.Inner, dotProduct]
   rw [star_sum]
@@ -248,18 +294,23 @@ theorem inner_conj_symm (ψ φ : QState I) : QInner ψ φ = star (QInner φ ψ) 
   intro i _
   simp [mul_comm, star_mul]
 
+/-- The coordinate inner product is additive in its first argument. -/
 theorem inner_add_left (ψ φ χ : QState I) :
     QInner (ψ + φ) χ = QInner ψ χ + QInner φ χ := by
   rw [inner_conj_symm, inner_add_right, star_add, ← inner_conj_symm, ← inner_conj_symm]
 
+/-- Scaling the first argument multiplies the inner product by the conjugate scalar. -/
 theorem inner_smul_left (ψ φ : QState I) (a : ℂ) :
     QInner (a • ψ) φ = (star a) * QInner ψ φ := by
   rw [inner_conj_symm, inner_smul_right, star_mul, ← inner_conj_symm, mul_comm]
 
+/-- The inner product of a state with itself is the complex coercion of its squared norm. -/
 theorem inner_self_nrmSq (ψ : QState I) : QInner ψ ψ = (nrmSq ψ : ℂ) := by
   rw [QInner, Qatlib.Foundations.PureStateMath.inner_self,
     nrmSq, Complex.ofReal_sum]
 
+/-- The norm of the inner product is at most the product of the square roots of the two squared
+norms. -/
 theorem inner_norm_le (ψ φ : QState I) :
     ‖QInner ψ φ‖ ≤ Real.sqrt (nrmSq ψ) * Real.sqrt (nrmSq φ) := by
   rw [QInner, Qatlib.Foundations.PureStateMath.Inner, dotProduct]
@@ -273,17 +324,21 @@ theorem inner_norm_le (ψ φ : QState I) :
         Real.sum_mul_le_sqrt_mul_sqrt _ _ _
     _ = Real.sqrt (nrmSq ψ) * Real.sqrt (nrmSq φ) := by rw [nrmSq, nrmSq]
 
+/-- The coordinate inner product preserves subtraction in its second argument. -/
 theorem inner_sub_right (ψ φ χ : QState I) :
     QInner ψ (φ - χ) = QInner ψ φ - QInner ψ χ := by
   rw [sub_eq_add_neg, inner_add_right, ← neg_one_smul ℂ χ, inner_smul_right]
   ring
 
+/-- The coordinate inner product preserves subtraction in its first argument. -/
 theorem inner_sub_left (ψ φ χ : QState I) :
     QInner (ψ - φ) χ = QInner ψ χ - QInner φ χ := by
   rw [sub_eq_add_neg, inner_add_left, ← neg_one_smul ℂ φ, inner_smul_left]
   simp
   rw [sub_eq_add_neg]
 
+/-- For two orthonormal vectors, the sum of squared overlaps with any vector is at most its
+squared norm. -/
 theorem bessel2 (e f z : QState I)
     (he : QInner e e = 1) (hf : QInner f f = 1) (hef : QInner e f = 0) :
     ‖QInner e z‖ ^ 2 + ‖QInner f z‖ ^ 2 ≤ nrmSq z := by
@@ -322,9 +377,11 @@ theorem bessel2 (e f z : QState I)
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The squared coordinate norm is nonnegative. -/
 theorem nrmSq_nonneg (ψ : QState I) : 0 ≤ nrmSq ψ := by
   unfold nrmSq; positivity
 
+/-- Scaling a state by a real number multiplies its squared norm by the square of that number. -/
 theorem nrmSq_real_smul (c : ℝ) (ψ : QState I) :
     nrmSq ((c : ℂ) • ψ) = c ^ 2 * nrmSq ψ := by
   unfold nrmSq
@@ -338,6 +395,8 @@ example (M : ℂ) : ‖star M‖ = ‖M‖ := by simp
 
 example (a b : ℝ) (h : (a : ℂ) = (b : ℂ)) : a = b := Complex.ofReal_inj.mp h
 
+/-- For unit vectors `x` and `y`, their squared overlaps with `z` sum to at most `(1 + ‖QInner x
+y‖) * nrmSq z` [IoannouMosca2008]. -/
 theorem twoAmplitudeBound (x y z : QState I)
     (hx : nrmSq x = 1) (hy : nrmSq y = 1) :
     ‖QInner x z‖ ^ 2 + ‖QInner y z‖ ^ 2 ≤ (1 + ‖QInner x y‖) * nrmSq z := by
@@ -459,6 +518,8 @@ theorem twoAmplitudeBound (x y z : QState I)
             linarith
     simpa [ha, hb, hρ, hp] using hfin
 
+/-- If `x` and `y` are unit vectors and `nrmSq z ≤ 1`, their squared overlaps with `z` sum to at
+most `1 + ‖QInner x y‖` [IoannouMosca2008]. -/
 theorem eq29_twoState (x y z : QState I)
     (hx : nrmSq x = 1) (hy : nrmSq y = 1) (hz : nrmSq z ≤ 1) :
     ‖QInner x z‖ ^ 2 + ‖QInner y z‖ ^ 2 ≤ 1 + ‖QInner x y‖ := by
@@ -470,8 +531,10 @@ theorem eq29_twoState (x y z : QState I)
 
 variable {n : ℕ}
 
+/-- The column of the register Hadamard matrix indexed by `w`, viewed as a state. -/
 def hadamardColumn (w : Reg n) : QState (Reg n) := fun z => HadamardN n z w
 
+/-- The register Hadamard matrix is symmetric in its two indices. -/
 theorem hadamardN_symm (y z : Reg n) : HadamardN n y z = HadamardN n z y := by
   rw [hadamardN_apply, hadamardN_apply]
   congr 1
@@ -479,6 +542,7 @@ theorem hadamardN_symm (y z : Reg n) : HadamardN n y z = HadamardN n z y := by
   intro i _
   rw [Bool.and_comm]
 
+/-- The zero-string basis state has squared coordinate norm one. -/
 theorem nrmSq_ket_zeroStr : nrmSq (Ket (ZeroStr n) : QState (Reg n)) = 1 := by
   unfold nrmSq
   rw [Finset.sum_eq_single (ZeroStr n)]
@@ -488,6 +552,7 @@ theorem nrmSq_ket_zeroStr : nrmSq (Ket (ZeroStr n) : QState (Reg n)) = 1 := by
   · intro h
     exact absurd (Finset.mem_univ (ZeroStr n)) h
 
+/-- Every column of the register Hadamard matrix has squared coordinate norm one. -/
 theorem nrmSq_hadamardColumn (w : Reg n) : nrmSq (hadamardColumn (n := n) w) = 1 := by
   unfold nrmSq hadamardColumn
   have hU := sum_normSq_mulVec_of_mem_unitaryGroup (I := Reg n) (U := HadamardN n)
@@ -520,11 +585,15 @@ theorem nrmSq_hadamardColumn (w : Reg n) : nrmSq (hadamardColumn (n := n) w) = 1
         rw [hL i]
     _ = 1 := hU
 
+/-- Taking the inner product with the zero-string basis state extracts the zero-string
+amplitude. -/
 theorem QInner_ket_zeroStr (β : QState (Reg n)) :
     QInner (Ket (ZeroStr n) : QState (Reg n)) β = β (ZeroStr n) := by
   unfold QInner Qatlib.Foundations.PureStateMath.Inner
   simp [dotProduct, Ket]
 
+/-- The inner product with Hadamard column `w` equals coordinate `w` of the Hadamard-transformed
+state. -/
 theorem QInner_hadamardColumn (w : Reg n) (β : QState (Reg n)) :
     QInner (hadamardColumn w) β = (HadamardN n).mulVec β w := by
   unfold QInner Qatlib.Foundations.PureStateMath.Inner hadamardColumn
@@ -534,6 +603,7 @@ theorem QInner_hadamardColumn (w : Reg n) (β : QState (Reg n)) :
   simp only [Pi.star_apply]
   rw [Complex.star_def, hadamardN_conj, hadamardN_symm z w]
 
+/-- The norm of the `n`th power of the complex inverse square root of two is `1 / sqrt (2 ^ n)`. -/
 theorem norm_inv_sqrt2_pow (n : ℕ) :
     ‖((Real.sqrt 2 : ℂ)⁻¹) ^ n‖ = 1 / Real.sqrt ((2 : ℝ) ^ n) := by
   have h2 : ‖((Real.sqrt 2 : ℂ)⁻¹)‖ = (Real.sqrt 2)⁻¹ := by
@@ -546,15 +616,21 @@ theorem norm_inv_sqrt2_pow (n : ℕ) :
     | succ k ih => rw [pow_succ, Real.sqrt_mul (by positivity), ih, pow_succ]]
   rw [one_div]
 
+/-- The norm of every entry in the zero-string row of the register Hadamard matrix is `1 / sqrt
+(2 ^ n)`. -/
 theorem norm_hadamardN_zero_left (w : Reg n) :
     ‖HadamardN n (ZeroStr n) w‖ = 1 / Real.sqrt ((2 : ℝ) ^ n) := by
   rw [hadamardN_apply_zero_left, norm_inv_sqrt2_pow]
 
+/-- The overlap norm between the zero-string basis vector and a Hadamard column is `1 / sqrt (2
+^ n)`. -/
 theorem norm_inner_ket_column (w : Reg n) :
     ‖QInner (Ket (ZeroStr n) : QState (Reg n)) (hadamardColumn w)‖ =
       1 / Real.sqrt ((2 : ℝ) ^ n) := by
   rw [QInner_ket_zeroStr, hadamardColumn, norm_hadamardN_zero_left]
 
+/-- Under the stated differential equation, schedule bounds, norm bound, and initial amplitude,
+the final transformed probability at `w` is at most `(2 * E1 * T + 1) / sqrt (2 ^ n)`. -/
 theorem eq30_success_bound (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (T : ℝ) (hT : 0 ≤ T)
     (hE1 : 0 ≤ E1) (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)
@@ -570,6 +646,8 @@ theorem eq30_success_bound (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ �
   rw [QInner_ket_zeroStr, QInner_hadamardColumn, norm_inner_ket_column] at hb
   linarith
 
+/-- For positive `E1`, achieving transformed probability at least `c` under the stated evolution
+hypotheses requires `(c * sqrt (2 ^ n) - 1) / (2 * E1) ≤ T`. -/
 theorem runtime_lower_bound_eq30 (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (T c : ℝ) (hT : 0 ≤ T)
     (hE1 : 0 < E1) (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)
@@ -590,6 +668,8 @@ theorem runtime_lower_bound_eq30 (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s :
   rw [div_le_iff₀ hE1pos]
   linarith
 
+/-- A probability upper bound of the form in equation (30), together with success probability at
+least `c`, gives `(c - 1 / sqrt N) * sqrt N / (2 * E1) ≤ T`. -/
 theorem runtime_ge_from_eq30 {E1 T c N : ℝ} (ψ : QState (Reg n)) (w : Reg n)
     (hN : 0 < N) (hE1 : 0 < E1)
     (h30 : BornProb ψ w ≤ 2 * E1 * T / Real.sqrt N + 1 / Real.sqrt N)
@@ -604,6 +684,7 @@ theorem runtime_ge_from_eq30 {E1 T c N : ℝ} (ψ : QState (Reg n)) (w : Reg n)
   rw [div_le_iff₀ (by positivity : 0 < 2 * E1)]
   nlinarith [hmul]
 
+/-- The Hadamard basis driver equals its conjugate transpose entrywise. -/
 theorem hadBasisDriver_star (F : Reg n → ℝ) (E1 s : ℝ) (w x y : Reg n) :
     star (hadBasisDriver F E1 s w y x) = hadBasisDriver F E1 s w x y := by
   unfold hadBasisDriver
@@ -613,6 +694,7 @@ theorem hadBasisDriver_star (F : Reg n → ℝ) (E1 s : ℝ) (w x y : Reg n) :
   · have hyx : ¬ y = x := fun hyx => h hyx.symm
     simp [h, hyx, mul_comm]
 
+/-- The quadratic form of a matrix equal to its conjugate transpose has zero imaginary part. -/
 theorem quadForm_im_zero (H : Matrix (Reg n) (Reg n) ℂ)
     (hsym : ∀ x y, star (H y x) = H x y) (b : QState (Reg n)) :
     (∑ i, star (b i) * (H.mulVec b) i).im = 0 := by
@@ -652,6 +734,8 @@ theorem quadForm_im_zero (H : Matrix (Reg n) (Reg n) ℂ)
   rw [Complex.star_def] at hconj
   exact Complex.conj_eq_iff_im.mp hconj
 
+/-- A state satisfying the Schrödinger derivative equation for a Hermitian matrix has squared
+norm derivative zero at that time. -/
 theorem nrmSq_hasDeriv_zero_at (Ht : Matrix (Reg n) (Reg n) ℂ)
     (hsym : ∀ x y, star (Ht y x) = Ht x y)
     (b : ℝ → QState (Reg n)) (t : ℝ)
@@ -694,6 +778,8 @@ theorem nrmSq_hasDeriv_zero_at (Ht : Matrix (Reg n) (Reg n) ℂ)
   rw [hval] at hsum
   simpa [nrmSq] using hsum
 
+/-- Evolution by the Hadamard basis driver from the zero-string basis vector preserves squared
+norm one throughout `[0,T]` [IoannouMosca2008]. -/
 theorem nrmSq_eq_one_of_hode (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (T : ℝ) (hT : 0 ≤ T)
     (hode : ∀ t, HasDerivAt β (fun x => (-Complex.I) * hadBasisAction F E1 w s β t x) t)
@@ -715,6 +801,8 @@ theorem nrmSq_eq_one_of_hode (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ
     exact sub_eq_zero.mp (norm_eq_zero.mp hzero)
   rw [heq, hβ0, nrmSq_ket_zeroStr]
 
+/-- Evolution starting at the zero-string basis vector satisfies the equation (30) success
+bound, with normalization supplied by norm conservation [IoannouMosca2008]. -/
 theorem eq30_success_bound_normalized (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (T : ℝ) (hT : 0 ≤ T)
     (hE1 : 0 ≤ E1) (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)
@@ -730,6 +818,9 @@ theorem eq30_success_bound_normalized (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n)
     simp [Ket]
   exact eq30_success_bound F E1 w s β T hT hE1 hs0 hs1 hode hnorm hstart
 
+/-- For positive `E1`, normalized evolution from the zero-string basis vector with final
+transformed probability at least `c` requires `(c * sqrt (2 ^ n) - 1) / (2 * E1) ≤ T`
+[IoannouMosca2008]. -/
 theorem runtime_lower_bound_normalized (F : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s : ℝ → ℝ)
     (β : ℝ → QState (Reg n)) (T c : ℝ) (hT : 0 ≤ T)
     (hE1 : 0 < E1) (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)

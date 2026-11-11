@@ -8,6 +8,29 @@ import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+/-!
+# Norm and singular-gap bounds after preconditioning
+
+This module bounds the operator norm of the pseudoinverse of a state-preconditioned matrix by `2
+* c ^ 2 * κ`, using consistency, a lower bound on nonzero singular values, and an upper estimate
+on the solution norm. It also converts any positive pseudoinverse norm bound into the reciprocal
+lower bound on nonzero singular values.
+
+The norm estimates use singular values, rank-one operators, and orthogonal projections
+[Bhatia1997].
+
+## Main statements
+
+* `preconditioned_pseudoinverse_norm`: Bounds the norm of the preconditioned pseudoinverse.
+* `singular_gap_of_pseudoinverse_norm`: Converts a pseudoinverse norm bound into a nonzero
+  singular-value gap.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,6 +63,8 @@ variable {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 
 omit [DecidableEq I] in
 
+/-- For normalized `b`, the operator norm of `B * outerProduct b` equals the Euclidean norm of
+`B *ᵥ b`. -/
 theorem solved_outerProduct_norm (B : Matrix I O ℂ) (b : QState O) (hb : Normalized b) :
     ‖B*outerProduct b‖=‖stateVector (B*ᵥb)‖ := by
   have he : B*outerProduct b=Matrix.vecMulVec (B*ᵥb) (star b) := by
@@ -64,6 +89,8 @@ theorem solved_outerProduct_norm (B : Matrix I O ℂ) (b : QState O) (hb : Norma
   have hy : ‖y‖=1 := (normalized_iff_stateVector_norm b).mp hb
   rw [hy,mul_one]
 
+/-- For normalized `b`, the complementary state projector `1 - outerProduct b` has operator norm
+at most one. -/
 theorem state_complement_norm_le_one (b : QState O) (hb : Normalized b) :
     ‖(1-outerProduct b:Matrix O O ℂ)‖≤1 := by
   have hp:=isOrthogonalProjector_outerProduct hb
@@ -77,6 +104,9 @@ theorem state_complement_norm_le_one (b : QState O) (hb : Normalized b) :
   · change (1-outerProduct b)ᴴ=1-outerProduct b
     simp only [Matrix.conjTranspose_sub,Matrix.conjTranspose_one,hpstar]
 
+/-- For a normalized consistent right-hand side, nonzero singular values at least `κ⁻¹`, `κ >
+1`, `c > 1`, `t > 0`, scale `s = t / (c * κ)`, and solution norm below `c * t`, the
+preconditioned pseudoinverse has norm at most `2 * c ^ 2 * κ`. -/
 theorem preconditioned_pseudoinverse_norm (A : Matrix O I ℂ) (b : QState O) (κ t c s : ℝ)
     (hb : Normalized b) (hκ : 1<κ) (hc : 1< c) (ht : 0< t) (hs : s=t/(c*κ))
     (hgap : ∀ i : Fin (Fintype.card I),0< matrixSingularValues A i → κ⁻¹≤ matrixSingularValues A i)
@@ -106,6 +136,8 @@ theorem preconditioned_pseudoinverse_norm (A : Matrix O I ℂ) (b : QState O) (�
   have hc2 : 1≤ c^2 := by nlinarith
   nlinarith
 
+/-- If the pseudoinverse norm is at most a positive `K`, every nonzero singular value of the
+matrix is at least `K⁻¹`. -/
 theorem singular_gap_of_pseudoinverse_norm (B : Matrix O I ℂ) (K : ℝ) (hK : 0< K)
     (hB : ‖matrixPseudoinverse B‖≤ K) :
     ∀ i : Fin (Fintype.card I),0< matrixSingularValues B i → K⁻¹≤ matrixSingularValues B i := by

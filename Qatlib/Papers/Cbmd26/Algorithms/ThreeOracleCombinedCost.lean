@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderCertificateBudget
+
+/-!
+# Combined matrix-query costs
+
+This module combines the two matrix-oracle bounds contained in a `ThreeOracleOutputCertificate`.
+It records expected and pathwise bounds for their sum, as used in the separate-oracle complexity
+statements of [WangEtAl2026].
+
+## Main statements
+
+* `ThreeOracleOutputCertificate.combined_matrix_queries`: bounds the expected total by twice the
+  matrix budget and every path by eight times that budget.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,6 +67,9 @@ open scoped ENNReal
 
 variable {W I : Type} [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
 
+/-- A three-oracle output certificate with nonnegative matrix budget bounds the expected sum of
+the two matrix-query counts by `2 * matrixBudget` and every random choice by `8 *
+matrixBudget`. This combines the separate-oracle cost guarantees used in [WangEtAl2026]. -/
 theorem ThreeOracleOutputCertificate.combined_matrix_queries
     {target : Matrix I I ℂ} {O1 O2 B : Matrix W W ℂ} {cs : List (PreparedStep W)}
     {F : Matrix W I ℂ} {zero : W} {S : Finset W} {ψ : QState I} {ε : ℝ}

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseMoments.IntensityGeometricSpecializationStat
+
+/-!
+# Normalized intensity moments away from resonance
+
+`normalized_unresonant_moments` evaluates the mean and variance of a shifted character-sum
+intensity divided by (M+L)² when y and 2y are nonzero. `intensityGeometricSpecialization_answer`
+specializes these formulas to zero and real signal shifts and establishes decay bounds relevant
+to the noise analysis of [Cornwell2014].
+
+## Main statements
+
+* `normalized_unresonant_moments`: For y ≠ 0 and 2y ≠ 0, the normalized intensity ‖c+S‖²/T² has
+  mean (‖c‖²+L)/T² and variance (L²−L+2L‖c‖²)/T⁴, where T=M+L.
+* `intensityGeometricSpecialization_answer`: Proves the normalized signal and noise intensity
+  means, variance bounds away from resonance, the stated envelope inequality, and decay of the
+  noise mean and variance bound as L grows; see [Cornwell, Corollaries 6 and 8][Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -15,6 +37,8 @@ set_option maxHeartbeats 1000000
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments
 
+/-- For y ≠ 0 and 2y ≠ 0, the normalized intensity ‖c+S‖²/T² has mean (‖c‖²+L)/T² and variance
+(L²−L+2L‖c‖²)/T⁴, where T=M+L. -/
 theorem normalized_unresonant_moments (N L M : ℕ) [NeZero N] (y : ZMod N)
     (c : ℂ) (hy : y ≠ 0) (hres : 2*y ≠ 0) :
     let T : ℝ := (M+L : ℕ)
@@ -40,6 +64,9 @@ theorem normalized_unresonant_moments (N L M : ℕ) [NeZero N] (y : ZMod N)
     congr 1
     ring
 
+/-- Proves the normalized signal and noise intensity means, variance bounds away from resonance,
+the stated envelope inequality, and decay of the noise mean and variance bound as L grows;
+see [Cornwell, Corollaries 6 and 8][Cornwell2014]. -/
 theorem intensityGeometricSpecialization_answer : IntensityGeometricSpecialization := by
   intro N L M _ y hy _hT
   (try dsimp only)

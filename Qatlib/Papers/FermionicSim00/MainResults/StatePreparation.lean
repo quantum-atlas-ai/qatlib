@@ -11,17 +11,40 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Tactic
 
+/-!
+# State-preparation probabilities and construction costs
+
+The module evaluates the normalized-coefficient success expression and the geometric
+waiting-time series with success parameter `1 / N`. Algebraic estimates bound the construction
+cost `N ^ 2 * n * Ne`, including a polynomial bound when `N ≤ n ^ k`.
+
+These constructions belong to the formalization of [OrtizEtAl2001].
+
+## Main statements
+
+* `expected_trials_eq`: evaluates the waiting-time series as `N`.
+* `construction_cost_polynomial`: bounds the construction cost by `2 * n ^ (2 * k + 2)`.
+
+## References
+
+* [Ortiz et al., 2001][OrtizEtAl2001]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
 
 namespace Qatlib.Papers.FermionicSim00.MainResults
 
+/-- If the squared coefficient norms sum to one, their sum divided by `N` equals `1 / N`. See
+[OrtizEtAl2001]. -/
 theorem state_preparation_success_probability {N : ℕ} (_hN : 0 < N) (a : Fin N → ℂ)
     (ha : ∑ α, ‖a α‖ ^ 2 = 1) :
     (∑ α, ‖a α‖ ^ 2) / (N : ℝ) = 1 / (N : ℝ) := by
   rw [ha]
 
+/-- For `N ≥ 2`, the geometric waiting-time series with success probability `1 / N` has
+expectation `N`. See [OrtizEtAl2001]. -/
 theorem expected_trials_eq (N : ℕ) (hN : 2 ≤ N) :
     ∑' k : ℕ, ((k : ℝ) + 1) * ((1 : ℝ) - 1 / (N : ℝ)) ^ k * (1 / (N : ℝ)) = (N : ℝ) := by
   set r : ℝ := 1 - 1 / (N : ℝ) with hrdef
@@ -61,18 +84,24 @@ theorem expected_trials_eq (N : ℕ) (hN : 2 ≤ N) :
         rw [hpdef]
         field_simp
 
+/-- If `Ne ≤ 2 * n`, the expression `N ^ 2 * n * Ne` is bounded by `2 * (N ^ 2 * n ^ 2)`. See
+[OrtizEtAl2001]. -/
 theorem construction_cost_le (N n Ne : ℕ) (hNe : Ne ≤ 2 * n) :
     N ^ 2 * n * Ne ≤ 2 * (N ^ 2 * n ^ 2) := by
   have h1 : N ^ 2 * n * Ne ≤ N ^ 2 * n * (2 * n) := Nat.mul_le_mul_left _ hNe
   calc N ^ 2 * n * Ne ≤ N ^ 2 * n * (2 * n) := h1
     _ = 2 * (N ^ 2 * n ^ 2) := by ring
 
+/-- If `Ne ≤ n`, the expression `N ^ 2 * n * Ne` is bounded by `N ^ 2 * n ^ 2`. See
+[OrtizEtAl2001]. -/
 theorem construction_cost_le_of_le (N n Ne : ℕ) (hNe : Ne ≤ n) :
     N ^ 2 * n * Ne ≤ N ^ 2 * n ^ 2 := by
   have h1 : N ^ 2 * n * Ne ≤ N ^ 2 * n * n := Nat.mul_le_mul_left _ hNe
   calc N ^ 2 * n * Ne ≤ N ^ 2 * n * n := h1
     _ = N ^ 2 * n ^ 2 := by ring
 
+/-- If `N ≤ n ^ k` and `Ne ≤ 2 * n`, the construction-cost expression is bounded by `2 * n ^ (2
+* k + 2)`. [OrtizEtAl2001] -/
 theorem construction_cost_polynomial (N n Ne k : ℕ) (hN : N ≤ n ^ k) (hNe : Ne ≤ 2 * n) :
     N ^ 2 * n * Ne ≤ 2 * n ^ (2 * k + 2) := by
   have hbase : N ^ 2 ≤ n ^ (2 * k) := by

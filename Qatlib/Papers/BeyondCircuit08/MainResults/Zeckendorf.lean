@@ -35,6 +35,28 @@ import Mathlib.Tactic.NormNum.Ineq
 import Mathlib.Tactic.NormNum.NatFib
 import Mathlib.Tactic.NormNum.Result
 
+/-!
+# Zeckendorf encoding of Fibonacci strings
+
+This module defines `Allowed` Boolean strings with no adjacent true entries and their
+Fibonacci-weighted value `starWeight`. For allowed strings of length `n`, the values are exactly
+the natural numbers strictly below `Nat.fib (n + 2)`, with each value represented uniquely.
+
+The map `zMap` and the equivalence `zEquiv` package this correspondence as the finite-string
+bijection in Proposition 4 of [Jordan2008].
+
+## Main statements
+
+* `starWeight_lt_fib`: the Fibonacci bound for an allowed string of fixed length.
+* `exists_allowed_of_lt`: existence of an allowed representation below that bound.
+* `allowed_injective`: uniqueness among allowed strings of the same length.
+* `proposition4_zeckendorf_bijection`: bijectivity of `zMap`.
+
+## References
+
+* [Jordan, 2008][Jordan2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -42,28 +64,37 @@ open Nat
 
 namespace Qatlib.Papers.BeyondCircuit08.MainResults.Zeckendorf
 
+/-- The Fibonacci-weighted value of a Boolean list, with the head of a list of length `n`
+carrying weight `Nat.fib (n + 1)` when true. -/
 def starWeight : List Bool → ℕ
   | [] => 0
   | b :: t => starWeight t + if b then Nat.fib (t.length + 2) else 0
 
+/-- The condition that a Boolean list contains no pair of adjacent true entries. -/
 def Allowed : List Bool → Prop
   | [] => True
   | [_] => True
   | b :: c :: t => ¬ (b = true ∧ c = true) ∧ Allowed (c :: t)
 
+/-- Prepending a false entry leaves the Fibonacci-weighted value unchanged. -/
 lemma starWeight_false_cons (t : List Bool) :
     starWeight (false :: t) = starWeight t := by
   simp [starWeight]
 
+/-- Prepending a true entry adds the Fibonacci weight `Nat.fib (t.length + 2)` to the value of
+the tail. -/
 lemma starWeight_true_cons (t : List Bool) :
     starWeight (true :: t) = starWeight t + Nat.fib (t.length + 2) := by
   simp [starWeight]
 
+/-- A list beginning with false is allowed exactly when its tail is allowed. -/
 lemma allowed_false_cons (t : List Bool) : Allowed (false :: t) ↔ Allowed t := by
   cases t with
   | nil => simp [Allowed]
   | cons c u => simp [Allowed]
 
+/-- A list beginning with true is allowed exactly when its tail is empty or begins with false
+followed by an allowed list. -/
 lemma allowed_true_cons (t : List Bool) :
     Allowed (true :: t) ↔ (t = [] ∨ ∃ u, t = false :: u ∧ Allowed u) := by
   cases t with
@@ -73,11 +104,14 @@ lemma allowed_true_cons (t : List Bool) :
     · simp [Allowed, allowed_false_cons]
     · simp [Allowed]
 
+/-- The tail of an allowed list beginning with true is allowed. -/
 lemma allowed_of_true_cons {t : List Bool} (h : Allowed (true :: t)) : Allowed t := by
   rcases (allowed_true_cons t).1 h with rfl | ⟨u, rfl, hu⟩
   · trivial
   · exact (allowed_false_cons u).2 hu
 
+/-- An allowed Boolean list of length `L` has Fibonacci-weighted value strictly below `Nat.fib
+(L + 2)`. -/
 theorem starWeight_lt_fib : ∀ L (l : List Bool), l.length = L → Allowed l →
     starWeight l < Nat.fib (L + 2) := by
   intro L
@@ -120,6 +154,8 @@ theorem starWeight_lt_fib : ∀ L (l : List Bool), l.length = L → Allowed l �
           rw [hlen2, Nat.fib_add_two (n := L)]
           omega
 
+/-- Every natural number strictly below `Nat.fib (L + 2)` is the Fibonacci-weighted value of an
+allowed Boolean list of length `L`. -/
 theorem exists_allowed_of_lt : ∀ L (v : ℕ), v < Nat.fib (L + 2) →
     ∃ l : List Bool, l.length = L ∧ Allowed l ∧ starWeight l = v := by
   intro L
@@ -166,6 +202,7 @@ theorem exists_allowed_of_lt : ∀ L (v : ℕ), v < Nat.fib (L + 2) →
               omega
             rw [hlen2, hzu, Nat.sub_add_cancel hge]
 
+/-- Two allowed Boolean lists of the same length with equal Fibonacci-weighted values are equal. -/
 theorem allowed_injective : ∀ L (l₁ l₂ : List Bool), l₁.length = L → l₂.length = L →
     Allowed l₁ → Allowed l₂ → starWeight l₁ = starWeight l₂ → l₁ = l₂ := by
   intro L
@@ -224,14 +261,18 @@ theorem allowed_injective : ∀ L (l₁ l₂ : List Bool), l₁.length = L → l
             have htu : t = u := ih m (by omega) t u ht hu hait haiu hw'
             simp [htu]
 
+/-- The type of allowed Boolean lists of length `n`. -/
 def PStrings (n : ℕ) : Type := {l : List Bool // l.length = n ∧ Allowed l}
 
+/-- The Fibonacci-weighted value of an allowed length-`n` string, regarded as an element of `Fin
+(Nat.fib (n + 2))`. -/
 def zMap {n : ℕ} (s : PStrings n) : Fin (Nat.fib (n + 2)) :=
   ⟨starWeight s.1, by
     have hl : s.1.length = n := s.2.1
     have := starWeight_lt_fib n s.1 hl s.2.2
     simpa using this⟩
 
+/-- The Fibonacci encoding `zMap` is injective on allowed strings of a fixed length. -/
 theorem zMap_injective {n : ℕ} : Function.Injective (zMap (n := n)) := by
   intro a b hab
   apply Subtype.ext
@@ -240,6 +281,7 @@ theorem zMap_injective {n : ℕ} : Function.Injective (zMap (n := n)) := by
     simpa [zMap] using this
   exact allowed_injective n a.1 b.1 a.2.1 b.2.1 a.2.2 b.2.2 hw
 
+/-- The Fibonacci encoding `zMap` reaches every natural number below `Nat.fib (n + 2)`. -/
 theorem zMap_surjective {n : ℕ} : Function.Surjective (zMap (n := n)) := by
   intro v
   obtain ⟨l, hl, ha, hz⟩ := exists_allowed_of_lt n v.1 v.2
@@ -247,9 +289,13 @@ theorem zMap_surjective {n : ℕ} : Function.Surjective (zMap (n := n)) := by
   apply Fin.ext
   simpa [zMap] using hz
 
+/-- The Fibonacci encoding of allowed length-`n` strings is bijective onto `Fin (Nat.fib (n +
+2))`, as in [Jordan, Proposition 4][Jordan2008]. -/
 theorem proposition4_zeckendorf_bijection (n : ℕ) : Function.Bijective (zMap (n := n)) :=
   ⟨zMap_injective, zMap_surjective⟩
 
+/-- The equivalence between allowed length-`n` Boolean strings and `Fin (Nat.fib (n + 2))`
+induced by [Jordan, Proposition 4][Jordan2008]. -/
 def zEquiv (n : ℕ) : PStrings n ≃ Fin (Nat.fib (n + 2)) :=
   Equiv.ofBijective zMap (proposition4_zeckendorf_bijection n)
 

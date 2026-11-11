@@ -18,6 +18,32 @@ import Mathlib.Tactic.NormNum.BigOperators
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesCorrectedStat
+
+/-!
+# Bounds for rounded multiproduct nodes
+
+This module proves `lemma12IntegerNodesCorrected`, collecting separation and growth estimates
+for `integerNode`, bounds for `correctedGamma`, coefficient-mass estimates, and repetition and
+cost bounds. Auxiliary exponential and logarithmic inequalities control the rounding when 0.305
+< η < 0.312 and k ≥ 1. See [ChildsWiebe2012] for the multiproduct and linear-combination
+simulation framework.
+
+## Main statements
+
+* `lemma12IntegerNodesCorrected`: Establishes the rounded-node parameter, coefficient,
+  repetition, and cost bounds in `Lemma12IntegerNodesCorrected`, supporting the analysis of
+  Lemma 12 in [ChildsWiebe2012].
+* `coeff_consequences`: Under normalization and the stated coefficient bounds, with 0.305 < η <
+  0.312 and k ≥ 1, the first k absolute coefficients sum to at most 1 / 8, every coefficient has
+  magnitude at most 2, and eight times the negative mass is at most the positive mass.
+* `retry_bounds`: For k ≥ 1, m ≥ 1, positive h, t, ε, and 0 < β < 1, `retryCount` is at least 1
+  and dominates both the accuracy-dependent bound and 13 log(2 / β).
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
@@ -25,69 +51,84 @@ namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open Real
 open scoped BigOperators
 
+/-- For nonnegative x, each finite initial sum of the exponential series is at most exp x. -/
 private lemma exp_ge_partial (x : ℝ) (hx : 0 ≤ x) (n : ℕ) :
     (∑ i ∈ Finset.range n, x ^ i / (i.factorial : ℝ)) ≤ Real.exp x :=
   Real.sum_le_exp_of_nonneg hx n
 
+/-- For nonnegative x, the quadratic Taylor polynomial 1 + x + x² / 2 is at most exp x. -/
 private lemma exp_ge_three_terms {x : ℝ} (hx : 0 ≤ x) :
     1 + x + x ^ 2 / 2 ≤ Real.exp x :=
   Real.quadratic_le_exp_of_nonneg hx
 
+/-- For nonnegative x, the cubic Taylor polynomial of the exponential at zero is at most exp x. -/
 private lemma exp_ge_four_terms {x : ℝ} (hx : 0 ≤ x) :
     1 + x + x ^ 2 / 2 + x ^ 3 / 6 ≤ Real.exp x := by
   have h := exp_ge_partial x hx 4
   simpa [Finset.sum_range_succ] using! h
 
+/-- For nonnegative x, the degree-four Taylor polynomial of the exponential at zero is at most
+exp x. -/
 private lemma exp_ge_five_terms {x : ℝ} (hx : 0 ≤ x) :
     1 + x + x ^ 2 / 2 + x ^ 3 / 6 + x ^ 4 / 24 ≤ Real.exp x := by
   have h := exp_ge_partial x hx 5
   simpa [Finset.sum_range_succ] using! h
 
+/-- The exponential at 4 / 5 is at least 2. -/
 private lemma two_le_exp_four_fifths : (2:ℝ) ≤ Real.exp (4/5) := by
   have h := exp_ge_three_terms (by norm_num : (0:ℝ) ≤ 4/5)
   norm_num at h
   linarith
 
+/-- The exponential at 6 / 5 is at least 200 / 61. -/
 private lemma exp_six_fifths_ge : (200:ℝ)/61 ≤ Real.exp (6/5) := by
   have h := exp_ge_five_terms (by norm_num : (0:ℝ) ≤ 6/5)
   norm_num at h
   linarith
 
+/-- The exponential at 7 / 10 is at least 2. -/
 private lemma two_le_exp_seven_tenths : (2:ℝ) ≤ Real.exp (7/10) := by
   have h := exp_ge_four_terms (by norm_num : (0:ℝ) ≤ 7/10)
   norm_num at h
   linarith
 
+/-- The exponential at 1 is at least 543 / 200. -/
 private lemma exp_one_ge : (543:ℝ)/200 ≤ Real.exp 1 := by
   have h := exp_ge_partial 1 zero_le_one 7
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 1 is at least 163 / 60. -/
 private lemma exp_one_ge163 : (163:ℝ)/60 ≤ Real.exp 1 := by
   have h := exp_ge_partial 1 zero_le_one 6
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 1 / 4 is at least 985 / 768. -/
 private lemma exp_quarter_ge : (985:ℝ)/768 ≤ Real.exp (1/4) := by
   have h := exp_ge_four_terms (by norm_num : (0:ℝ) ≤ 1/4)
   norm_num at h
   linarith
 
+/-- The exponential at 1 is at most 1699 / 625. -/
 private lemma exp_one_le : Real.exp 1 ≤ (1699:ℝ)/625 := by
   have h := Real.exp_bound' zero_le_one (le_refl 1) (n := 8) (by norm_num)
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 4 / 25 is at most 7335 / 6250. -/
 private lemma exp_four25_le : Real.exp (4/25) ≤ (7335:ℝ)/6250 := by
   have h := Real.exp_bound' (by norm_num : (0:ℝ) ≤ 4/25) (by norm_num) (n := 6) (by norm_num)
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 431 / 2500 is at most 5941 / 5000. -/
 private lemma exp_1704_le : Real.exp (431/2500) ≤ (5941:ℝ)/5000 := by
   have h := Real.exp_bound' (by norm_num : (0:ℝ) ≤ 431/2500) (by norm_num) (n := 5) (by norm_num)
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 29 / 25 is at most 125 / 39. -/
 private lemma exp_29_25_le : Real.exp (29/25) ≤ (125:ℝ)/39 := by
   have h1 : Real.exp (29/25) = Real.exp 1 * Real.exp (4/25) := by
     rw [← Real.exp_add]
@@ -101,6 +142,7 @@ private lemma exp_29_25_le : Real.exp (29/25) ≤ (125:ℝ)/39 := by
         mul_le_mul_of_nonneg_left exp_four25_le hA
     _ ≤ (125:ℝ)/39 := by norm_num
 
+/-- The exponential at 54 / 25 is at most 9. -/
 private lemma exp_54_25_le : Real.exp (54/25) ≤ (9:ℝ) := by
   have h1 : Real.exp (54/25) = Real.exp 2 * Real.exp (4/25) := by
     rw [← Real.exp_add]
@@ -122,6 +164,7 @@ private lemma exp_54_25_le : Real.exp (54/25) ≤ (9:ℝ) := by
         mul_le_mul_of_nonneg_left exp_four25_le hAA
     _ ≤ 9 := by norm_num
 
+/-- The exponential at 21 / 4 is at least 882 / 5. -/
 private lemma exp_21_4_ge : (882:ℝ)/5 ≤ Real.exp (21/4) := by
   have h1 : Real.exp (21/4) = Real.exp 5 * Real.exp (1/4) := by
     rw [← Real.exp_add]
@@ -142,10 +185,12 @@ private lemma exp_21_4_ge : (882:ℝ)/5 ≤ Real.exp (21/4) := by
     _ ≤ (Real.exp 1) ^ 5 * Real.exp (1/4) := hlow
     _ = Real.exp (21/4) := by rw [h1, h5]
 
+/-- The natural logarithm of 2 is at most 7 / 10. -/
 private lemma log_two_le : Real.log 2 ≤ 7/10 := by
   rw [Real.log_le_iff_le_exp two_pos]
   exact two_le_exp_seven_tenths
 
+/-- For every positive natural number k, twice k is at most 2^k. -/
 private lemma two_mul_le_two_pow : ∀ k : ℕ, 1 ≤ k → 2 * k ≤ 2 ^ k
   | 1, _ => by norm_num
   | k + 2, _ => by
@@ -155,6 +200,7 @@ private lemma two_mul_le_two_pow : ∀ k : ℕ, 1 ≤ k → 2 * k ≤ 2 ^ k
         _ ≤ 2 ^ (k + 1) + 2 ^ (k + 1) := by omega
         _ = 2 ^ (k + 2) := h
 
+/-- If 0.305 < η < 0.312, then −6 / 5 ≤ log η ≤ −29 / 25. -/
 private lemma eta_log_bounds {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) :
     -(6/5:ℝ) ≤ Real.log η ∧ Real.log η ≤ -(29/25:ℝ) := by
   constructor
@@ -175,11 +221,13 @@ private lemma eta_log_bounds {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000
     rw [Real.exp_neg]
     exact h2.le.trans hiv
 
+/-- If 0.305 < η < 0.312, then 1 + log η / 2 is at least 2 / 5. -/
 private lemma one_add_half_ge {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) :
     (2:ℝ)/5 ≤ 1 + Real.log η/2 := by
   have := (eta_log_bounds h1 h2).1
   linarith
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, then `gammaReq η k` is at most 329 / 200. -/
 private lemma gammaReq_le {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ} (hk : 1 ≤ k) :
     gammaReq η k ≤ 329/200 := by
   have hlog := (eta_log_bounds h1 h2).2
@@ -216,6 +264,7 @@ private lemma gammaReq_le {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {
   unfold gammaReq
   linarith
 
+/-- For k ≥ 1, expands (k + 1) · `gammaReq η k` into its base term and logarithmic correction. -/
 private lemma kp1_gammaReq_split (η : ℝ) {k : ℕ} (hk : 1 ≤ k) :
     ((k+1:ℕ):ℝ) * gammaReq η k
       = ((k+1:ℕ):ℝ) * (1 + Real.log η/2)
@@ -227,6 +276,7 @@ private lemma kp1_gammaReq_split (η : ℝ) {k : ℕ} (hk : 1 ≤ k) :
   unfold gammaReq
   field_simp
 
+/-- For k ≥ 1, exponentiating half of log(2 (2k)^(5/2)) gives 2^(1/2) (2k)^(5/4). -/
 private lemma exp_half_log (k : ℕ) (hk : 1 ≤ k) :
     Real.exp (((1:ℝ)/2) * Real.log (2 * ((2*(k:ℝ)):ℝ)^(5/2:ℝ)))
       = ((2:ℝ)^(1/2:ℝ)) * ((2*(k:ℝ)):ℝ)^(5/4:ℝ) := by
@@ -244,6 +294,8 @@ private lemma exp_half_log (k : ℕ) (hk : 1 ≤ k) :
       show ((5:ℝ)/2)*((1:ℝ)/2) = (5:ℝ)/4 by norm_num]
   rw [hstep1, hstep2, hstep3]
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, the unrounded terminal node exp((k + 1) · `gammaReq η k`) is
+at least 4k. -/
 private lemma exp_gammaReq_node_ge {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ}
     (hk : 1 ≤ k) : (4:ℝ)*(k:ℝ) ≤ Real.exp (((k+1:ℕ):ℝ) * gammaReq η k) := by
   have hK1 : (1:ℝ) ≤ (k:ℝ) := by exact_mod_cast hk
@@ -307,6 +359,8 @@ private lemma exp_gammaReq_node_ge {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 31
           mul_le_mul_of_nonneg_right hexp45 hcand
     _ ≤ Real.exp (((k+1:ℕ):ℝ) * gammaReq η k) := hmono
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, `integerNode η k` is at least 2, exceeds k, and has square
+at least 2k². -/
 private lemma node_bounds {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ} (hk : 1 ≤ k) :
     (2:ℝ) ≤ ((integerNode η k : ℤ):ℝ) ∧ (k:ℝ) < ((integerNode η k : ℤ):ℝ)
     ∧ 2*((k:ℝ))^2 ≤ ((integerNode η k : ℤ):ℝ)^2 := by
@@ -321,6 +375,8 @@ private lemma node_bounds {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {
     · nlinarith
     · nlinarith [h4k, hK1]
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, rounding the terminal node gives `gammaReq η k ≤
+correctedGamma η k`. -/
 private lemma gamma_ge_gammaReq {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ}
     (hk : 1 ≤ k) : gammaReq η k ≤ correctedGamma η k := by
   have hpos : (0:ℝ) < ((integerNode η k : ℤ):ℝ) := by
@@ -336,6 +392,7 @@ private lemma gamma_ge_gammaReq {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1
   rw [le_div_iff₀ hkp1, mul_comm]
   exact hlog
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, the corrected exponent is at most 2. -/
 private lemma gamma_le_two {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ} (hk : 1 ≤ k) :
     correctedGamma η k ≤ 2 := by
   have hpos : (0:ℝ) < ((integerNode η k : ℤ):ℝ) := by
@@ -371,6 +428,8 @@ private lemma gamma_le_two {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) 
     linarith
   linarith [hlog, hlog32, hG]
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, exponentiating (k + 1) · `correctedGamma η k` recovers the
+rounded integer node. -/
 private lemma exp_log_node {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ} (hk : 1 ≤ k) :
     Real.exp (correctedGamma η k * ((k+1:ℕ):ℝ)) = ((integerNode η k : ℤ):ℝ) := by
   have hpos : (0:ℝ) < ((integerNode η k : ℤ):ℝ) := by
@@ -383,6 +442,7 @@ private lemma exp_log_node {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) 
     linarith
   rw [correctedGamma, div_mul_cancel₀ _ hkp1, Real.exp_log hpos]
 
+/-- For k ≥ 1, rewrites 2^(1/2) (2k)^(5/4) as 2^(7/4) k^(5/4). -/
 private lemma rpow_two_k (k : ℕ) (hk : 1 ≤ k) :
     ((2:ℝ)^(1/2:ℝ))*((2*(k:ℝ)):ℝ)^(5/4:ℝ) = (2:ℝ)^(7/4:ℝ)*(k:ℝ)^(5/4:ℝ) := by
   have hK0 : (0:ℝ) < (k:ℝ) := by
@@ -392,6 +452,7 @@ private lemma rpow_two_k (k : ℕ) (hk : 1 ≤ k) :
     Real.mul_rpow (by norm_num) hK0.le
   rw [h1, ← mul_assoc, ← Real.rpow_add two_pos, show (1:ℝ)/2 + 5/4 = 7/4 by norm_num]
 
+/-- For k ≥ 1, rewrites 2 (2k)^(5/2) as 2^(7/2) k^(5/2). -/
 private lemma two_pow_term (k : ℕ) (hk : 1 ≤ k) :
     (2:ℝ)*((2*(k:ℝ)):ℝ)^(5/2:ℝ) = (2:ℝ)^(7/2:ℝ)*(k:ℝ)^(5/2:ℝ) := by
   have hK0 : (0:ℝ) < (k:ℝ) := by
@@ -405,6 +466,7 @@ private lemma two_pow_term (k : ℕ) (hk : 1 ≤ k) :
     norm_num
   rw [h1, ← mul_assoc, h2]
 
+/-- For k ≥ 1, the quotient 2^(1/2) k^(3/2) / (2 (2k)^(5/2)) equals 1 / (8k). -/
 private lemma coeff_bound_identity (k : ℕ) (hk : 1 ≤ k) :
     ((2:ℝ)^(1/2:ℝ))*((k:ℝ)^(3/2:ℝ)) / (2*((2*(k:ℝ)):ℝ)^(5/2:ℝ)) = 1/(8*(k:ℝ)) := by
   have hK1 : (1:ℝ) ≤ (k:ℝ) := by exact_mod_cast hk
@@ -425,6 +487,8 @@ private lemma coeff_bound_identity (k : ℕ) (hk : 1 ≤ k) :
     show ((k:ℝ)^(5/2:ℝ)) = ((k:ℝ)^(3/2:ℝ))*((k:ℝ):ℝ) from e1.symm]
   ring
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, exp(k · `correctedGamma η k`) is at most 2^(11/4) k^(5/4)
+exp(k(1 + log η / 2)). -/
 private lemma exp_gammak_le {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ} (hk : 1 ≤ k) :
     Real.exp (correctedGamma η k * (k:ℝ))
       ≤ ((2:ℝ)^(11/4:ℝ))*((k:ℝ)^(5/4:ℝ))*Real.exp ((k:ℝ)*(1 + Real.log η/2)) := by
@@ -488,6 +552,7 @@ private lemma exp_gammak_le {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000)
           rw [hconv]
           ring
 
+/-- For k ≥ 1, exp(2k · `gammaReq η k`) factors as exp(2k(1 + log η / 2)) times 2 (2k)^(5/2). -/
 private lemma exp_2k_gammaReq (η : ℝ) {k : ℕ} (hk : 1 ≤ k) :
     Real.exp (2*(k:ℝ) * gammaReq η k)
       = Real.exp (2*(k:ℝ)*(1 + Real.log η/2)) * (2*((2*(k:ℝ)):ℝ)^(5/2:ℝ)) := by
@@ -503,6 +568,8 @@ private lemma exp_2k_gammaReq (η : ℝ) {k : ℕ} (hk : 1 ≤ k) :
     mul_pos (by norm_num) (Real.rpow_pos_of_pos (by nlinarith) _)
   rw [hsplit, Real.exp_add, Real.exp_log hpos]
 
+/-- If 0.305 < η < 0.312 and k ≥ 1, the rounded node is at most (3 / 2) 2^(7/4) k^(5/4) exp(k(1
++ log η / 2)) exp 2. -/
 private lemma node_le_exp_bound {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ}
     (hk : 1 ≤ k) : ((integerNode η k : ℤ):ℝ)
       ≤ (3:ℝ)/2 * (((2:ℝ)^(7/4:ℝ))*((k:ℝ)^(5/4:ℝ))
@@ -551,6 +618,8 @@ private lemma node_le_exp_bound {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1
     _ = (3:ℝ)/2 * (((2:ℝ)^(7/4:ℝ))*((k:ℝ)^(5/4:ℝ))
         * Real.exp ((k:ℝ)*(1 + Real.log η/2)) * Real.exp 2) := by ring
 
+/-- For k ≥ 1, splits the sum over the integer interval from 1 to k + 1 into its last term and
+the sum from 1 to k. -/
 private lemma Icc_split {k : ℕ} (hk : 1 ≤ k) (C : ℕ → ℝ) :
     ∑ q ∈ Finset.Icc 1 (k+1), C q = C (k+1) + ∑ q ∈ Finset.Icc 1 k, C q := by
   have hset : Finset.Icc 1 (k+1) = insert (k+1) (Finset.Icc 1 k) := by
@@ -560,6 +629,9 @@ private lemma Icc_split {k : ℕ} (hk : 1 ≤ k) (C : ℕ → ℝ) :
     omega
   rw [hset, Finset.sum_insert (by simp [Finset.mem_Icc])]
 
+/-- Under normalization and the stated coefficient bounds, with 0.305 < η < 0.312 and k ≥ 1, the
+first k absolute coefficients sum to at most 1 / 8, every coefficient has magnitude at most
+2, and eight times the negative mass is at most the positive mass. -/
 private lemma coeff_consequences {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ}
     (hk : 1 ≤ k) {C : ℕ → ℝ} (hsum : ∑ q ∈ Finset.Icc 1 (k+1), C q = 1)
     (hbd : ∀ q ∈ Finset.Icc 1 k, |C q| ≤ 2^(1/2:ℝ) * (k:ℝ)^(3/2:ℝ)
@@ -690,6 +762,8 @@ private lemma coeff_consequences {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/
       linarith
   · linarith [hpart1, hneg]
 
+/-- For k ≥ 1, m ≥ 1, positive h, t, ε, and 0 < β < 1, `retryCount` is at least 1 and dominates
+both the accuracy-dependent bound and 13 log(2 / β). -/
 private lemma retry_bounds {m h t ε β : ℝ} (hm : 1 ≤ m) (hh : 0 < h) (ht : 0 < t)
     (hε : 0 < ε) (hβ : 0 < β) (hβ1 : β < 1) {k : ℕ} (hk : 1 ≤ k) :
     1 ≤ retryCount m h t ε β k
@@ -712,6 +786,8 @@ private lemma retry_bounds {m h t ε β : ℝ} (hm : 1 ≤ m) (hh : 0 < h) (ht :
     positivity
   exact_mod_cast this
 
+/-- For 0.305 < η < 0.312, k ≥ 1, m ≥ 1, and integer r ≥ 1, bounds 10m · 5^(k − 1) · k ·
+`integerNode η k` · r by 1000m · 5^(k − 1) · k^(9/4) · exp((1 + log η / 2)k) · r. -/
 private lemma cost_67 {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : ℕ} (hk : 1 ≤ k)
     {m : ℝ} (hm : 1 ≤ m) {r : ℤ} (hr : 1 ≤ r) :
     10 * m * ((5:ℝ)^(k-1)) * (k:ℝ) * ((integerNode η k : ℤ):ℝ) * ((r:ℤ):ℝ)
@@ -779,6 +855,8 @@ private lemma cost_67 {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/1000) {k : 
     _ = 1000 * m * ((5:ℝ)^(k-1)) * ((k:ℝ)^(9/4:ℝ))
         * Real.exp ((1 + Real.log η/2) * (k:ℝ)) * ((r:ℤ):ℝ) := by ring
 
+/-- Establishes the rounded-node parameter, coefficient, repetition, and cost bounds in
+`Lemma12IntegerNodesCorrected`, supporting the analysis of Lemma 12 in [ChildsWiebe2012]. -/
 theorem lemma12IntegerNodesCorrected : Lemma12IntegerNodesCorrected := by
   intro η hηlo hηhi k hk m h t ε β hm hh ht hε hβ0 hβ1 C hCsum hCbd
   obtain ⟨hN2, hkN, hN2k2⟩ := node_bounds hηlo hηhi hk
@@ -789,27 +867,32 @@ theorem lemma12IntegerNodesCorrected : Lemma12IntegerNodesCorrected := by
     ⟨hr1, hrw, hrv, cost_67 hηlo hηhi hk hm hr1⟩⟩
   exact_mod_cast (show ((1:ℝ)) ≤ ((integerNode η k : ℤ):ℝ) by linarith)
 
+/-- The exponential at 22 / 25 is at most 603 / 250. -/
 private lemma exp_22_25_le : Real.exp (22/25) ≤ (603:ℝ)/250 := by
   have h := Real.exp_bound' (by norm_num : (0:ℝ) ≤ 22/25) (by norm_num) (n := 6) (by norm_num)
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 43 / 250 is at most 11877 / 10000. -/
 private lemma exp_43_250_le : Real.exp (43/250) ≤ (11877:ℝ)/10000 := by
   have h := Real.exp_bound' (by norm_num : (0:ℝ) ≤ 43/250) (by norm_num) (n := 5) (by norm_num)
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The exponential at 12 / 5 is at least 10. -/
 private lemma exp_12_5_ge : (10:ℝ) ≤ Real.exp (12/5) := by
   have h := exp_ge_partial (12/5) (by norm_num) 6
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- The natural logarithm of 6 is at most 91 / 50. -/
 private lemma log_6_le : Real.log 6 ≤ (91:ℝ)/50 := by
   rw [Real.log_le_iff_le_exp (by norm_num : (0:ℝ) < 6)]
   have h := exp_ge_partial (91/50) (by norm_num) 6
   norm_num [Finset.sum_range_succ, Nat.factorial] at h
   linarith
 
+/-- For k ≥ 1, the factor 2 (2k)^(5/2) is at least 1. -/
 private lemma one_le_node_term (k : ℕ) (hk : 1 ≤ k) :
     (1:ℝ) ≤ 2 * ((2*(k:ℝ)):ℝ)^(5/2:ℝ) := by
   have hK1 : (1:ℝ) ≤ (k:ℝ) := by exact_mod_cast hk

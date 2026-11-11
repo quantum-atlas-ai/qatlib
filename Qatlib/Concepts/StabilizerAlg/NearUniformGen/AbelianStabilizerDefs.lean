@@ -10,6 +10,30 @@ import Qatlib.Concepts.StabilizerAlg.NearUniformGen.CompositeMeasurementNearUnif
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalQuan
 import Qatlib.Concepts.HspRecovery.AbelianSampling.MeasuredGenerationSubgoalQuan
 import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierBasis
+
+/-!
+# Measurement records and bisection for abelian stabilizers
+
+`AspRecordKernel` packages a branch law and conditional output laws, with their joint and
+marginal distributions. The module supplies uniform subgroup and Fourier-character branch laws,
+exact and bounded-error conditional laws, and independent sample records.
+
+`AspBisectionState` records a dyadic interval through its level and binary prefix together with
+a query count equal to the level. Its update and run definitions implement the corresponding
+Boolean-observation bisection process. For background, see [Kitaev1995].
+
+## Main statements
+
+* `AspRecordKernel.marginal`: forms the output mixture over measurement branches.
+* `aspOrbitBranchLaw_uniform`: identifies Fourier-character branch probabilities with the
+  reciprocal group order.
+* `aspBisectionRun`: performs the specified number of dyadic refinements.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.HspRecovery.AbelianSampling
 open Qatlib.Foundations.PureStateMath
@@ -24,6 +48,8 @@ namespace Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open Qatlib
 open scoped BigOperators Classical
 
+/-- A finite branch distribution together with a finite conditional output distribution for each
+branch. -/
 structure AspRecordKernel (Ω G : Type*) [Fintype Ω] [DecidableEq Ω]
     [Fintype G] [DecidableEq G] where
 
@@ -35,9 +61,13 @@ namespace AspRecordKernel
 
 variable {Ω G : Type*} [Fintype Ω] [DecidableEq Ω] [Fintype G] [DecidableEq G]
 
+/-- The joint mass of a branch and output, equal to the branch probability times its conditional
+output probability. -/
 def joint (k : AspRecordKernel Ω G) (V : Ω) (y : G) : ℝ :=
   k.branchLaw.prob V * (k.conditional V).prob y
 
+/-- The output distribution obtained by summing branch-weighted conditional output laws, as in
+the composite measurement setting of [Kitaev, Lemma 8][Kitaev1995]. -/
 def marginal (k : AspRecordKernel Ω G) : FinDist G where
   prob y := ∑ V, k.joint V y
   nonneg y := by
@@ -63,11 +93,14 @@ def marginal (k : AspRecordKernel Ω G) : FinDist G where
           refine Finset.sum_congr rfl fun V _ => mul_one _
       _ = 1 := k.branchLaw.sum_one
 
+/-- The branch-weighted conditional output masses sum to one, verifying normalization of the
+measurement mixture in [Kitaev, Lemma 8][Kitaev1995]. -/
 theorem marginal_total_mass (k : AspRecordKernel Ω G) :
     (∑ y : G, ∑ V : Ω, k.branchLaw.prob V * (k.conditional V).prob y) = 1 := by
   have h := k.marginal.sum_one
   simpa [AspRecordKernel.marginal, AspRecordKernel.joint] using h
 
+/-- The finite joint distribution retaining both the sampled branch and its conditional output. -/
 def jointLaw (k : AspRecordKernel Ω G) : FinDist (Ω × G) where
   prob p := k.joint p.1 p.2
   nonneg p := mul_nonneg (k.branchLaw.nonneg p.1) ((k.conditional p.1).nonneg p.2)
@@ -81,6 +114,7 @@ def jointLaw (k : AspRecordKernel Ω G) : FinDist (Ω × G) where
 
 end AspRecordKernel
 
+/-- The uniform finite distribution on a nonempty branch type. -/
 noncomputable def aspUniformBranchLaw (Ω : Type*) [Fintype Ω] [Nonempty Ω] : FinDist Ω where
   prob _ := (Fintype.card Ω : ℝ)⁻¹
   nonneg _ := by positivity
@@ -90,33 +124,43 @@ noncomputable def aspUniformBranchLaw (Ω : Type*) [Fintype Ω] [Nonempty Ω] : 
     rw [Finset.sum_const, nsmul_eq_mul, Finset.card_univ]
     exact mul_inv_cancel₀ (ne_of_gt hcard)
 
+/-- The uniform finite distribution on the elements of an additive subgroup. -/
 noncomputable def aspUniformGroupBranchLaw (G : Type*) [AddCommGroup G] [Fintype G]
     [DecidableEq G] (H : AddSubgroup G) : FinDist ↥H :=
   aspUniformBranchLaw ↥H
 
+/-- The Fourier Born distribution on complex additive characters of a finite abelian group. -/
 noncomputable def aspOrbitBranchLaw (E : Type) [AddCommGroup E] [Fintype E]
     [DecidableEq E] : FinDist (AddChar E ℂ) :=
   Qatlib.Concepts.HspRecovery.AbelianSampling.fourierBornDist E
 
+/-- The complex additive character group of a finite abelian group has the same cardinality as
+the group. -/
 theorem aspCharacterGroup_card (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E] :
     Fintype.card (AddChar E ℂ) = Fintype.card E :=
   AddChar.card_eq
 
+/-- Every character has orbit-branch probability equal to the reciprocal of the group
+cardinality. -/
 theorem aspOrbitBranchLaw_uniform (E : Type) [AddCommGroup E] [Fintype E]
     [DecidableEq E] (χ : AddChar E ℂ) :
     (aspOrbitBranchLaw E).prob χ = (Fintype.card E : ℝ)⁻¹ :=
   Qatlib.Concepts.HspRecovery.AbelianSampling.fourierBornDist_apply E χ
 
+/-- Each branch produces its prescribed output with probability at least `1 - ε` under the
+conditional output law. -/
 def aspMeasuresWithError {Ω G : Type*} [Fintype Ω] [DecidableEq Ω] [Fintype G]
     [DecidableEq G] (k : AspRecordKernel Ω G) (F : Ω → G) (ε : ℝ) : Prop :=
   ∀ V, 1 - ε ≤ (k.conditional V).prob (F V)
 
+/-- The distribution of a length-`l` record of independent samples from a finite distribution. -/
 def aspProductRecordLaw {G : Type*} [Fintype G] [DecidableEq G] (μ : FinDist G)
     (l : ℕ) : FinDist (Fin l → G) where
   prob ω := μ.probOf ω
   nonneg ω := Finset.prod_nonneg fun i _ => μ.nonneg (ω i)
   sum_one := FinDist.sum_probOf μ l
 
+/-- The conditional output law concentrated at the prescribed value `F V` for each branch `V`. -/
 noncomputable def aspPointConditional {Ω G : Type*} [Fintype Ω] [DecidableEq Ω] [Fintype G]
     [DecidableEq G] (F : Ω → G) : Ω → FinDist G := fun V =>
   { prob := fun y => if y = F V then (1 : ℝ) else 0
@@ -127,6 +171,7 @@ noncomputable def aspPointConditional {Ω G : Type*} [Fintype Ω] [DecidableEq �
       rw [Finset.sum_ite_eq']
       simp }
 
+/-- The uniform finite distribution on a nonempty output type. -/
 noncomputable def aspUniformLaw (G : Type*) [Fintype G] [Nonempty G] : FinDist G where
   prob _ := (Fintype.card G : ℝ)⁻¹
   nonneg _ := by positivity
@@ -136,6 +181,8 @@ noncomputable def aspUniformLaw (G : Type*) [Fintype G] [Nonempty G] : FinDist G
     rw [Finset.sum_const, nsmul_eq_mul, Finset.card_univ]
     exact mul_inv_cancel₀ (ne_of_gt hcard)
 
+/-- The convex mixture of finite distributions `μ` and `ν` with weights `w` and `1 - w`,
+respectively. -/
 noncomputable def finDistMix {G : Type*} [Fintype G] [DecidableEq G] (μ ν : FinDist G)
     (w : ℝ) (hw : 0 ≤ w) (hw1 : w ≤ 1) : FinDist G where
   prob x := w * μ.prob x + (1 - w) * ν.prob x
@@ -153,12 +200,16 @@ noncomputable def finDistMix {G : Type*} [Fintype G] [DecidableEq G] (μ ν : Fi
       _ = w * 1 + (1 - w) * 1 := by rw [hμ, hν]
       _ = 1 := by ring
 
+/-- The conditional law mixing the prescribed point output with weight `1 - ε` and uniform
+output noise with weight `ε`. -/
 noncomputable def aspBoundedErrorConditional {Ω G : Type*} [Fintype Ω] [DecidableEq Ω]
     [Fintype G] [DecidableEq G] [Nonempty G] (F : Ω → G) (ε : ℝ) (hε : 0 ≤ ε)
     (hε1 : ε ≤ 1) : Ω → FinDist G :=
   fun V =>
     finDistMix (aspPointConditional F V) (aspUniformLaw G) (1 - ε) (by linarith) (by linarith)
 
+/-- A dyadic bisection state with a level, a binary prefix below `2^level`, and a query count
+equal to the level. -/
 structure AspBisectionState where
 
   level : ℕ
@@ -175,12 +226,17 @@ namespace AspBisectionState
 
 variable {s : AspBisectionState}
 
+/-- The lower endpoint of the dyadic interval encoded by the bisection state. -/
 noncomputable def lower (s : AspBisectionState) : ℝ := (s.bits : ℝ) / 2 ^ s.level
 
+/-- The dyadic interval width `1 / 2^level` of a bisection state. -/
 noncomputable def width (s : AspBisectionState) : ℝ := 1 / 2 ^ s.level
 
+/-- The midpoint of the dyadic interval encoded by a bisection state. -/
 noncomputable def mid (s : AspBisectionState) : ℝ := s.lower + s.width / 2
 
+/-- Refine a dyadic interval by appending the Boolean observation to its binary prefix and
+incrementing the level and query count. -/
 def step (s : AspBisectionState) (b : Bool) : AspBisectionState where
   level := s.level + 1
   bits := 2 * s.bits + b.toNat
@@ -203,6 +259,7 @@ def step (s : AspBisectionState) (b : Bool) : AspBisectionState where
 
 end AspBisectionState
 
+/-- The level-zero bisection state with binary prefix zero and no queries. -/
 def aspBisectionInitial : AspBisectionState where
   level := 0
   bits := 0
@@ -210,14 +267,18 @@ def aspBisectionInitial : AspBisectionState where
   queries := 0
   queries_eq_level := rfl
 
+/-- The bisection state after the first `k` observations of a Boolean sequence. -/
 def aspBisectionStateAt : (ℕ → Bool) → ℕ → AspBisectionState
   | _, 0 => aspBisectionInitial
   | o, k + 1 => (aspBisectionStateAt o k).step (o k)
 
+/-- Perform the specified number of bisection updates from an arbitrary state, reading each
+observation at the current level. -/
 def aspBisectionAux : (ℕ → Bool) → ℕ → AspBisectionState → AspBisectionState
   | _, 0, s => s
   | o, n + 1, s => aspBisectionAux o n (s.step (o s.level))
 
+/-- The bisection state after `l + 2` observations from the initial state. -/
 def aspBisectionRun (l : ℕ) (o : ℕ → Bool) : AspBisectionState :=
   aspBisectionStateAt o (l + 2)
 

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualPaidRestartSearchStat
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceiptTigh
+
+/-!
+# Paid restart search with known marked count
+
+Combines the circuit execution and receipt laws to establish `actualPaidRestartSearch`. A
+suitable fixed Grover iteration count yields almost-sure termination, bounds for paid query and
+gate clocks, and zero mass on unmarked outputs in the known-count search setting. For the
+quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `actualPaidRestartSearch`: Establishes `ActualPaidRestartSearch` by choosing a fixed Grover
+  iteration count and bounding the expected paid query, gate, and attempt costs, with zero
+  probability of unmarked outputs.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -21,6 +41,9 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- Establishes `ActualPaidRestartSearch` by choosing a fixed Grover iteration count and
+bounding the expected paid query, gate, and attempt costs, with zero probability of unmarked
+outputs. See [BoyerEtAl1998]. -/
 theorem actualPaidRestartSearch : ActualPaidRestartSearch := by
   intro I _ _ hN T' seed hT hprep t θ hθ hθupper hangle
   (try dsimp only)

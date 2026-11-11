@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchPrimitive.NativeResult
+
+/-!
+# Born-weight factorization of native search results
+
+Validation identifies accepted point and success events with the corresponding sampled
+marked-output events. The shared relative Born weight of a marked candidate survives both one
+native stage and the first-success composition over an arbitrary search schedule.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `native_slot_factor`: With exact validation and marked mass `sin θ` squared for `0 < θ < π/2`,
+  a marked candidate has native-stage mass equal to success mass times its relative prepared
+  Born weight.
+* `native_search_biased_law`: With exact validation and marked mass `sin θ` squared for `0 < θ <
+  π/2`, every marked output mass of scheduled search equals total success mass times its
+  relative prepared Born weight.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +43,8 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchPrimitive
 
+/-- For a candidate that passes validation, acceptance as `some i` is equivalent to the sampled
+output containing `i` with some gate count. -/
 theorem accepted_point {I : Type} [DecidableEq I] (valid : I→Bool) (i : I)
     (hi : valid i=true) (out : Option (I×ℕ)×ℕ×ℕ) :
     acceptedResult valid out=some i ↔∃g,out.1=some (i,g) := by
@@ -34,6 +60,8 @@ theorem accepted_point {I : Type} [DecidableEq I] (valid : I→Bool) (i : I)
       · simp [acceptedResult,hv,hy]
       · simp [acceptedResult,hv,hy]
 
+/-- With exact marked-set validation, acceptance is equivalent to the sampled output containing
+a marked candidate with some gate count. -/
 theorem accepted_some {I : Type} (valid : I→Bool) (S : Finset I)
     (hvalid : ∀i,valid i=true ↔ i∈S) (out : Option (I×ℕ)×ℕ×ℕ) :
     (acceptedResult valid out).isSome ↔∃y g,out.1=some (y,g) ∧ y∈S := by
@@ -48,6 +76,8 @@ theorem accepted_some {I : Type} (valid : I→Bool) (S : Finset I)
     · have hy : y∉S := fun h=>(hv ((hvalid y).mpr h))
       simp [acceptedResult,hv,hy]
 
+/-- With exact validation and marked mass `sin θ` squared for `0 < θ < π/2`, a marked candidate
+has native-stage mass equal to success mass times its relative prepared Born weight. -/
 theorem native_slot_factor {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (valid : I→Bool) (hvalid : ∀y,valid y=true ↔ y∈S)
@@ -72,6 +102,8 @@ theorem native_slot_factor {I : Type} [Fintype I] [DecidableEq I]
       congr 1
       exact (event_congr (accepted_some valid S hvalid)).symm
 
+/-- With exact validation and marked mass `sin θ` squared for `0 < θ < π/2`, every marked output
+mass of scheduled search equals total success mass times its relative prepared Born weight. -/
 theorem native_search_biased_law {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup I ℂ) (seed : I) (S : Finset I)
     (valid : I→Bool) (hvalid : ∀y,valid y=true ↔ y∈S)

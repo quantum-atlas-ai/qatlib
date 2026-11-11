@@ -8,6 +8,34 @@ import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionExt
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Matchgate conjugation of Majorana operators
+
+This module proves that a matchgate on distinct modes with an anti-Hermitian generator acts
+linearly on Majorana operators. `ad_exp_conjugation` identifies the conjugation with
+`frameRotation` by comparing solutions of the commutator differential equation. This is the
+covariance evolution mechanism for fermionic linear optics in [Bravyi2005Fermionic].
+
+The single-gate identity extends to well-formed circuits through `frameRotationRun` and
+`covarianceRun`. For inputs of the form `gaussianInput gl x`, the module also proves the
+measurement update at a mode avoided by every gate of `gl`.
+
+## Main statements
+
+* `ad_exp_conjugation`: the Majorana conjugation formula for one well-formed matchgate.
+* `covarianceMatrix_matchGateCircuit`: complete covariance propagation for a well-formed
+  circuit.
+* `matchGateCircuit_conj_majorana`: the Majorana frame action of a circuit.
+* `covarianceMatrix_measurement_gaussianInput`: the measurement identity for a prepared input at
+  an avoided mode.
+
+## References
+
+* [Bravyi, 2005][Bravyi2005Fermionic]
+* [Terhal and DiVincenzo, 2002][TerhalDiVincenzo2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +56,8 @@ open Qatlib.Concepts.MpsAdaptation.MpsTransfer.Fermion
 
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
 
+/-- The real-parameter derivative of `exp (s • H)` is `H * exp (t • H)` at `t`, with real
+scalars cast to complex scalars. -/
 theorem hasDerivAt_exp_smul_const_ofReal {n : ℕ} (H : Matrix (Reg n) (Reg n) ℂ) (t : ℝ) :
     HasDerivAt (fun s : ℝ => NormedSpace.exp ((s : ℂ) • H))
       (H * NormedSpace.exp ((t : ℂ) • H)) t := by
@@ -52,6 +82,8 @@ theorem hasDerivAt_exp_smul_const_ofReal {n : ℕ} (H : Matrix (Reg n) (Reg n) �
   have h3 := (h2.congr_fderiv heq).hasDerivAt
   exact hfin ▸ h3
 
+/-- The real-parameter derivative of `exp (s • H)` is `exp (t • H) * H` at `t`, with real
+scalars cast to complex scalars. -/
 theorem hasDerivAt_exp_smul_const_ofReal' {n : ℕ} (H : Matrix (Reg n) (Reg n) ℂ) (t : ℝ) :
     HasDerivAt (fun s : ℝ => NormedSpace.exp ((s : ℂ) • H))
       (NormedSpace.exp ((t : ℂ) • H) * H) t := by
@@ -65,6 +97,8 @@ theorem hasDerivAt_exp_smul_const_ofReal' {n : ℕ} (H : Matrix (Reg n) (Reg n) 
   rw [hcomm] at h1
   exact h1
 
+/-- The four local Majorana indices give the even and odd Majorana operators of `i`, followed by
+those of `j`. -/
 theorem majorana_localIndices_eq {n : ℕ} (i j : Fin n) :
     majorana (localIndices i j 0) = majoranaEven i
       ∧ majorana (localIndices i j 1) = majoranaOdd i
@@ -80,6 +114,8 @@ theorem majorana_localIndices_eq {n : ℕ} (i j : Fin n) :
   · have h : localIndices i j 3 = ⟨2 * j.val + 1, by omega⟩ := rfl
     rw [h]; exact majorana_odd_eq _ j
 
+/-- An anti-Hermitian two-by-two matrix has purely imaginary diagonal entries and lower
+off-diagonal entry equal to minus the conjugate of the upper one. -/
 theorem antiHermitean_facts {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
     (A 0 0).re = 0 ∧ (A 1 1).re = 0 ∧ A 1 0 = -star (A 0 1) := by
   have h00 : star (A 0 0) = -(A 0 0) := by
@@ -112,6 +148,7 @@ theorem antiHermitean_facts {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
   · show (A 1 0).im = (-star (A 0 1)).im
     rw [RCLike.star_def, Complex.neg_im, Complex.conj_im, hrim.2]; ring
 
+/-- For real `c`, the complex product `Complex.I * (c * Complex.I)` equals `-c`. -/
 private theorem I_mul_c_mul_I {c : ℝ} :
     Complex.I * (((c : ℝ) : ℂ) * Complex.I) = -((c : ℝ) : ℂ) := by
   rw [show Complex.I * (((c : ℝ) : ℂ) * Complex.I)
@@ -119,11 +156,14 @@ private theorem I_mul_c_mul_I {c : ℝ} :
     Complex.I_mul_I]
   ring
 
+/-- Casting a real number divided by 2 to the complex numbers commutes with division by 2. -/
 private theorem ofReal_div_two {c : ℝ} :
     (((c / 2 : ℝ) : ℂ)) = (((c : ℝ) : ℂ) / 2) := by
   rw [Complex.ofReal_div]
   norm_num
 
+/-- For an anti-Hermitian two-by-two matrix, the four stated complex coefficient expressions
+equal the casts of the corresponding half real or imaginary parts. -/
 theorem coef_real_cast {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
     (-(Complex.I) * A 0 0 / 2 : ℂ) = (((A 0 0).im / 2 : ℝ) : ℂ)
       ∧ (-(Complex.I) * A 1 1 / 2 : ℂ) = (((A 1 1).im / 2 : ℝ) : ℂ)
@@ -176,6 +216,8 @@ theorem coef_real_cast {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
       all_goals ring
     rw [hd, ← ofReal_div_two]
 
+/-- For distinct modes and anti-Hermitian `A`, the quadratic generator is the scalar half-trace
+term plus the upper-triangular Majorana-pair sum determined by `localFormSym A`. -/
 theorem quadraticGenerator_eq_localForm {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     quadraticGenerator i j A
@@ -209,6 +251,7 @@ theorem quadraticGenerator_eq_localForm {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   simp only [neg_smul]
   abel
 
+/-- Every Majorana operator squares to the identity. -/
 theorem majorana_sq {n : ℕ} (a : Fin (2 * n)) :
     majorana a * majorana a = 1 := by
   have h0 := majorana_clifford n a a
@@ -219,6 +262,7 @@ theorem majorana_sq {n : ℕ} (a : Fin (2 * n)) :
     exact h0
   exact (smul_right_injective _ two_ne_zero) h2
 
+/-- Majorana operators at distinct indices anticommute. -/
 theorem majorana_anticommute {n : ℕ} (a b : Fin (2 * n)) (h : a ≠ b) :
     majorana a * majorana b = -(majorana b * majorana a) := by
   have hc : majorana a * majorana b + majorana b * majorana a
@@ -228,6 +272,8 @@ theorem majorana_anticommute {n : ℕ} (a b : Fin (2 * n)) (h : a ≠ b) :
     exact h2
   exact eq_neg_of_add_eq_zero_left hc
 
+/-- A Majorana operator commutes with a product of two Majorana operators when its index differs
+from both factor indices. -/
 theorem majorana_mul_two_mul {n : ℕ} (x y z : Fin (2 * n)) (hxy : x ≠ y) (hxz : x ≠ z) :
     majorana x * (majorana y * majorana z)
       = majorana y * majorana z * majorana x := by
@@ -244,6 +290,7 @@ theorem majorana_mul_two_mul {n : ℕ} (x y z : Fin (2 * n)) (hxy : x ≠ y) (hx
     _ = majorana y * (majorana z * majorana x) := by
         rw [Matrix.mul_neg, neg_neg]
 
+/-- For distinct indices, `majorana p * majorana q * majorana p` equals `-majorana q`. -/
 theorem majorana_mul_mul_self {n : ℕ} (p q : Fin (2 * n)) (hpq : p ≠ q) :
     majorana p * majorana q * majorana p = -majorana q := by
   calc majorana p * majorana q * majorana p
@@ -254,6 +301,8 @@ theorem majorana_mul_mul_self {n : ℕ} (p q : Fin (2 * n)) (hpq : p ≠ q) :
     _ = -(1 * majorana q) := by rw [majorana_sq p]
     _ = -majorana q := by rw [Matrix.one_mul]
 
+/-- The commutator of a Majorana operator with a pair of distinct local Majorana operators is
+twice the signed sum selected by matching indices. -/
 theorem majorana_pair_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (p q : Fin 4) (hpq : p ≠ q) (r : Fin (2 * n)) :
     majorana r * (majorana (localIndices i j p) * majorana (localIndices i j q))
@@ -313,27 +362,34 @@ theorem majorana_pair_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
       rw [if_neg (Ne.symm hr), if_neg (Ne.symm hr2), sub_zero]
       rw [key, sub_self, smul_zero]
 
+/-- Embeds a four-by-four real matrix into the selected Majorana block, setting every entry
+outside that block to zero. -/
 def frameZeroExtend {n : ℕ} (i j : Fin n) (K : Matrix (Fin 4) (Fin 4) ℝ) :
     Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ :=
   Matrix.of fun a b =>
     if isLocalMajorana i j a ∧ isLocalMajorana i j b then K (localSlot i j a) (localSlot i j b)
     else 0
 
+/-- At local row and column indices, zero extension returns the corresponding entry of the
+original matrix. -/
 theorem frameZeroExtend_apply_local {n : ℕ} (i j : Fin n) (K : Matrix (Fin 4) (Fin 4) ℝ)
     (a b : Fin (2 * n)) (ha : isLocalMajorana i j a) (hb : isLocalMajorana i j b) :
     frameZeroExtend i j K a b = K (localSlot i j a) (localSlot i j b) := by
   simp [frameZeroExtend, ha, hb]
 
+/-- A row outside the selected modes is zero in `frameZeroExtend`. -/
 theorem frameZeroExtend_apply_of_not_local {n : ℕ} (i j : Fin n) (K : Matrix (Fin 4) (Fin 4) ℝ)
     (a b : Fin (2 * n)) (ha : ¬ isLocalMajorana i j a) :
     frameZeroExtend i j K a b = 0 := by
   simp [frameZeroExtend, ha]
 
+/-- A column outside the selected modes is zero in `frameZeroExtend`. -/
 theorem frameZeroExtend_apply_of_not_local' {n : ℕ} (i j : Fin n) (K : Matrix (Fin 4) (Fin 4) ℝ)
     (a b : Fin (2 * n)) (hb : ¬ isLocalMajorana i j b) :
     frameZeroExtend i j K a b = 0 := by
   simp [frameZeroExtend, hb]
 
+/-- Zero extension preserves addition of local matrices. -/
 theorem frameZeroExtend_add {n : ℕ} (i j : Fin n) (K K' : Matrix (Fin 4) (Fin 4) ℝ) :
     frameZeroExtend i j (K + K') = frameZeroExtend i j K + frameZeroExtend i j K' := by
   ext a b
@@ -347,6 +403,7 @@ theorem frameZeroExtend_add {n : ℕ} (i j : Fin n) (K K' : Matrix (Fin 4) (Fin 
       frameZeroExtend_apply_of_not_local i j K a b ha,
       frameZeroExtend_apply_of_not_local i j K' a b ha, add_zero]
 
+/-- Zero extension commutes with multiplication by a real scalar. -/
 theorem frameZeroExtend_smul {n : ℕ} (i j : Fin n) (t : ℝ) (K : Matrix (Fin 4) (Fin 4) ℝ) :
     frameZeroExtend i j (t • K) = t • frameZeroExtend i j K := by
   ext a b
@@ -358,6 +415,8 @@ theorem frameZeroExtend_smul {n : ℕ} (i j : Fin n) (t : ℝ) (K : Matrix (Fin 
   · rw [Matrix.smul_apply, frameZeroExtend_apply_of_not_local i j (t • K) a b ha,
       frameZeroExtend_apply_of_not_local i j K a b ha, smul_zero]
 
+/-- For distinct selected modes, the product of two zero-extended matrices is the zero extension
+of their product. -/
 theorem frameZeroExtend_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (K K' : Matrix (Fin 4) (Fin 4) ℝ) :
     frameZeroExtend i j K * frameZeroExtend i j K' = frameZeroExtend i j (K * K') := by
@@ -387,6 +446,7 @@ theorem frameZeroExtend_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     exact Finset.sum_eq_zero fun c _ => by
       rw [frameZeroExtend_apply_of_not_local i j K a c ha, zero_mul]
 
+/-- Zero extension sends the zero matrix to the zero matrix. -/
 theorem frameZeroExtend_zero {n : ℕ} (i j : Fin n) :
     frameZeroExtend i j 0 = 0 := by
   ext a b
@@ -397,6 +457,7 @@ theorem frameZeroExtend_zero {n : ℕ} (i j : Fin n) :
     · rw [frameZeroExtend_apply_of_not_local' i j 0 a b hb, Matrix.zero_apply]
   · rw [frameZeroExtend_apply_of_not_local i j 0 a b ha, Matrix.zero_apply]
 
+/-- For distinct selected modes, zero extension commutes with every positive power. -/
 theorem frameZeroExtend_pow {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (K : Matrix (Fin 4) (Fin 4) ℝ) {m : ℕ} (hm : m ≠ 0) :
     (frameZeroExtend i j K) ^ m = frameZeroExtend i j (K ^ m) := by
@@ -409,23 +470,27 @@ theorem frameZeroExtend_pow {n : ℕ} (i j : Fin n) (hij : i ≠ j)
       · rw [pow_succ, ih, frameZeroExtend_mul i j hij, pow_succ]
         exact hm0
 
+/-- Zero extension preserves negation. -/
 theorem frameZeroExtend_neg {n : ℕ} (i j : Fin n) (K : Matrix (Fin 4) (Fin 4) ℝ) :
     frameZeroExtend i j (-K) = -(frameZeroExtend i j K) := by
   have h : frameZeroExtend i j (-K) + frameZeroExtend i j K = 0 := by
     rw [← frameZeroExtend_add, neg_add_cancel, frameZeroExtend_zero]
   exact eq_neg_of_add_eq_zero_left h
 
+/-- Zero extension preserves subtraction. -/
 theorem frameZeroExtend_sub {n : ℕ} (i j : Fin n) (K K' : Matrix (Fin 4) (Fin 4) ℝ) :
     frameZeroExtend i j (K - K') = frameZeroExtend i j K - frameZeroExtend i j K' := by
   conv_lhs => rw [sub_eq_add_neg]
   rw [frameZeroExtend_add, frameZeroExtend_neg, sub_eq_add_neg]
 
+/-- The additive homomorphism given by zero extension into the selected Majorana block. -/
 def frameZeroExtendHom {n : ℕ} (i j : Fin n) :
     Matrix (Fin 4) (Fin 4) ℝ →+ Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ where
   toFun := frameZeroExtend i j
   map_zero' := frameZeroExtend_zero i j
   map_add' := frameZeroExtend_add i j
 
+/-- Zero extension of local real matrices is continuous. -/
 theorem continuous_frameZeroExtend {n : ℕ} (i j : Fin n) :
     Continuous (frameZeroExtend i j) := by
   have hlin : ∃ f : Matrix (Fin 4) (Fin 4) ℝ →ₗ[ℝ] Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ,
@@ -438,6 +503,8 @@ theorem continuous_frameZeroExtend {n : ℕ} (i j : Fin n) :
   rw [hf] at hc
   exact hc
 
+/-- For distinct selected modes, the exponential of a zero-extended matrix is the identity plus
+the zero extension of its exponential minus the local identity. -/
 theorem frameZeroExtend_exp {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (Y : Matrix (Fin 4) (Fin 4) ℝ) :
     NormedSpace.exp (frameZeroExtend i j Y)
@@ -490,11 +557,14 @@ theorem frameZeroExtend_exp {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   rw [hexpFz, frameZeroExtend_sub]
   abel
 
+/-- A local Majorana index differs from an index outside the selected modes. -/
 theorem local_ne_away {n : ℕ} (i j : Fin n) {a b : Fin (2 * n)}
     (ha : isLocalMajorana i j a) (hb : ¬ isLocalMajorana i j b) : a ≠ b := by
   intro h
   exact hb (by rw [← h]; exact ha)
 
+/-- For distinct modes, extending `X` by the identity equals the full identity plus the zero
+extension of `X - 1`. -/
 theorem frameExtend_eq_one_add {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (X : Matrix (Fin 4) (Fin 4) ℝ) :
     frameExtend i j X = 1 + frameZeroExtend i j (X - 1) := by
@@ -520,6 +590,8 @@ theorem frameExtend_eq_one_add {n : ℕ} (i j : Fin n) (hij : i ≠ j)
         if_neg (Ne.symm (local_ne_away i j hb ha))]
     · rw [frameExtend_apply_away i j X a b ha hb]
 
+/-- For distinct modes, `frameRotation` is the exponential of the zero extension of twice the
+local skew-symmetric form. -/
 theorem frameRotation_eq_exp {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     frameRotation i j A
@@ -528,6 +600,7 @@ theorem frameRotation_eq_exp {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   rw [← frameExtend_localRotation i j A, frameExtend_eq_one_add i j hij, hR,
     ← frameZeroExtend_exp i j hij]
 
+/-- The entry `localFormSym A p q` vanishes unless `p < q`. -/
 theorem localFormSym_eq_zero_of_not_lt {A : Matrix (Fin 2) (Fin 2) ℂ} {p q : Fin 4}
     (h : ¬ p < q) : localFormSym A p q = 0 := by
   unfold localFormSym
@@ -541,6 +614,8 @@ theorem localFormSym_eq_zero_of_not_lt {A : Matrix (Fin 2) (Fin 2) ℂ} {p q : F
   · obtain ⟨e1, e2⟩ := h6; subst e1; subst e2; exact absurd (by decide) h
   · rfl
 
+/-- The upper-triangular indicators can be removed from the antisymmetrized entries of
+`localFormSym`. -/
 theorem localFormSym_ite_sub {A : Matrix (Fin 2) (Fin 2) ℂ} (s d : Fin 4) :
     ((if s < d then localFormSym A s d else 0) - (if d < s then localFormSym A d s else 0) : ℝ)
       = localFormSym A s d - localFormSym A d s := by
@@ -551,6 +626,8 @@ theorem localFormSym_ite_sub {A : Matrix (Fin 2) (Fin 2) ℂ} (s d : Fin 4) :
     · rw [if_neg h1, if_neg h2, localFormSym_eq_zero_of_not_lt h1,
         localFormSym_eq_zero_of_not_lt h2]
 
+/-- A factor of 2 can be factored out of the difference of the two indicated triangular
+coefficients. -/
 theorem ite_coef_sub {f : Fin 4 → Fin 4 → ℝ} (s d : Fin 4) :
     ((if s < d then 2 * f s d else 0) - (if d < s then 2 * f d s else 0) : ℝ)
       = 2 * ((if s < d then f s d else 0) - (if d < s then f d s else 0)) := by
@@ -558,6 +635,8 @@ theorem ite_coef_sub {f : Fin 4 → Fin 4 → ℝ} (s d : Fin 4) :
   all_goals simp [h1, h2]
   all_goals ring
 
+/-- A real coefficient acting on twice a complex matrix equals twice that coefficient acting on
+the matrix. -/
 private theorem coef_two_smul {n : ℕ} (x : ℝ) (γ : Matrix (Reg n) (Reg n) ℂ) :
     ((x : ℝ) : ℂ) • ((2 : ℂ) • γ) = (((2 * x : ℝ) : ℂ)) • γ := by
   rw [smul_smul]
@@ -565,6 +644,8 @@ private theorem coef_two_smul {n : ℕ} (x : ℝ) (γ : Matrix (Reg n) (Reg n) �
   push_cast
   ring
 
+/-- For distinct modes, the commutator with an upper-triangular Majorana-pair sum is the
+Majorana row combination with twice the antisymmetrized coefficients. -/
 theorem majorana_pairSum_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (f : Fin 4 → Fin 4 → ℝ) (s : Fin 4) :
     majorana (localIndices i j s)
@@ -637,6 +718,8 @@ theorem majorana_pairSum_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   refine Finset.sum_congr rfl fun d _ => ?_
   rw [← ite_coef_sub, Complex.ofReal_sub, sub_smul]
 
+/-- For distinct modes and anti-Hermitian `A`, the commutator with `quadraticGenerator i j A`
+has Majorana coefficients given by the zero-extended matrix `2 • localFormMatrix A`. -/
 theorem majorana_generator_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) (r : Fin (2 * n)) :
     majorana r * quadraticGenerator i j A - quadraticGenerator i j A * majorana r
@@ -689,6 +772,8 @@ theorem majorana_generator_commutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     simp only [Matrix.mul_sum, Matrix.sum_mul, ← Finset.sum_sub_distrib,
       Algebra.mul_smul_comm, smul_mul_assoc, hterm, Finset.sum_const_zero, hrow]
 
+/-- The continuous real-linear map taking a real matrix to the Majorana combination specified by
+its row `a`. -/
 noncomputable def majoranaRowCLM {n : ℕ} (a : Fin (2 * n)) :
     Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ →L[ℝ] Matrix (Reg n) (Reg n) ℂ :=
   LinearMap.toContinuousLinearMap
@@ -702,10 +787,12 @@ noncomputable def majoranaRowCLM {n : ℕ} (a : Fin (2 * n)) :
           rw [RCLike.real_smul_eq_coe_smul (K := ℂ), smul_smul]
           rfl }
 
+/-- The row continuous linear map evaluates to `majoranaInBasis X a`. -/
 theorem majoranaRowCLM_apply {n : ℕ} (a : Fin (2 * n))
     (X : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) :
     majoranaRowCLM a X = majoranaInBasis X a := rfl
 
+/-- Using the identity frame in `majoranaInBasis` returns the original Majorana operator. -/
 theorem majoranaInBasis_one {n : ℕ} (a : Fin (2 * n)) :
     majoranaInBasis (1 : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) a = majorana a := by
   simp only [majoranaInBasis, Matrix.one_apply, apply_ite, Complex.ofReal_one,
@@ -715,6 +802,8 @@ theorem majoranaInBasis_one {n : ℕ} (a : Fin (2 * n)) :
   · intro b _ hb; rw [if_neg (Ne.symm hb)]
   · intro hb; exact absurd (Finset.mem_univ a) hb
 
+/-- The derivative of the Majorana combination in frame `exp (s • K)` is the combination in
+frame `exp (t • K) * K`. -/
 theorem hasDerivAt_majoranaInBasis_exp {n : ℕ}
     (K : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (a : Fin (2 * n)) (t : ℝ) :
     HasDerivAt (fun s : ℝ => majoranaInBasis (NormedSpace.exp (s • K)) a)
@@ -728,6 +817,8 @@ theorem hasDerivAt_majoranaInBasis_exp {n : ℕ}
     (l' := majoranaRowCLM a) (f := fun s : ℝ => NormedSpace.exp (s • K))
     (f' := NormedSpace.exp (t • K) * K) (x := t) h1 h2
 
+/-- If commutators with `H` are represented by `K`, the Majorana combination in frame `E * K`
+equals the commutator of the combination in frame `E` with `H`. -/
 theorem majoranaInBasis_mul_apply {n : ℕ}
     (K : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (H : Matrix (Reg n) (Reg n) ℂ)
@@ -748,6 +839,8 @@ theorem majoranaInBasis_mul_apply {n : ℕ}
       smul_smul]
   rw [hL, hR, Finset.sum_comm]
 
+/-- The derivative of `exp (-s • H) * majorana a * exp (s • H)` is its product with `H` minus
+the product in the opposite order. -/
 theorem hasDerivAt_conjCurve {n : ℕ} (H : Matrix (Reg n) (Reg n) ℂ) (a : Fin (2 * n))
     (u : ℝ) :
     HasDerivAt (fun s : ℝ => NormedSpace.exp ((s : ℂ) • (-H)) * majorana a
@@ -777,6 +870,8 @@ theorem hasDerivAt_conjCurve {n : ℕ} (H : Matrix (Reg n) (Reg n) ℂ) (a : Fin
     abel
   rwa [heq] at h4
 
+/-- Two matrix-valued curves satisfying the same constant commutator differential equation and
+agreeing at zero agree at every real parameter. -/
 theorem eq_of_hasDerivAt_adTransport {n : ℕ} (H : Matrix (Reg n) (Reg n) ℂ)
     (P C : ℝ → Matrix (Reg n) (Reg n) ℂ)
     (hP : ∀ s : ℝ, HasDerivAt P (P s * H - H * P s) s)
@@ -879,6 +974,8 @@ theorem eq_of_hasDerivAt_adTransport {n : ℕ} (H : Matrix (Reg n) (Reg n) ℂ)
     rw [hD, h1, mul_zero, zero_mul]
   exact sub_eq_zero.mp hfinal
 
+/-- For distinct modes and anti-Hermitian `A`, conjugating a Majorana operator by `matchGate i j
+A` gives its combination in the frame `frameRotation i j A`. -/
 theorem ad_exp_conjugation {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) (a : Fin (2 * n)) :
     (matchGate i j A)ᴴ * majorana a * matchGate i j A
@@ -938,20 +1035,26 @@ theorem ad_exp_conjugation {n : ℕ} (i j : Fin n) (hij : i ≠ j)
       quadraticGenerator_skewHermitian i j A hA]
   rw [hL, hfin, frameRotation_eq_exp i j hij A]
 
+/-- The condition that a gate uses distinct modes and an anti-Hermitian two-by-two generator. -/
 def matchGateWellFormed {n : ℕ} (g : Fin n × Fin n × Matrix (Fin 2) (Fin 2) ℂ) : Prop :=
   g.1 ≠ g.2.1 ∧ g.2.2ᴴ = -(g.2.2)
 
+/-- A well-formed matchgate satisfies the Majorana conjugation condition `matchGateBridged`. -/
 theorem matchGateBridged_of_wellFormed {n : ℕ}
     {g : Fin n × Fin n × Matrix (Fin 2) (Fin 2) ℂ} (h : matchGateWellFormed g) :
     matchGateBridged g :=
   ⟨h.2, fun a => ad_exp_conjugation g.1 g.2.1 h.1 g.2.2 h.2 a⟩
 
+/-- A circuit of well-formed matchgates transforms the covariance matrix according to the
+complete updates of `covarianceRun`, as in the fermionic linear-optics evolution of
+[Bravyi2005Fermionic]. -/
 theorem covarianceMatrix_matchGateCircuit {n : ℕ} (gl : MatchGateCircuit n)
     (h : ∀ g ∈ gl, matchGateWellFormed g) (M : Matrix (Reg n) (Reg n) ℂ) :
     covarianceMatrix (matchGateCircuitOp gl * M) = covarianceRun gl (covarianceMatrix M) :=
   covarianceMatrix_matchGateCircuit_of_bridged gl
     (fun g hg => matchGateBridged_of_wellFormed (h g hg)) M
 
+/-- A matchgate circuit with anti-Hermitian generator matrices has a unitary circuit operator. -/
 theorem matchGateCircuitOp_mem_unitaryGroup {n : ℕ} (gl : MatchGateCircuit n)
     (h : ∀ g ∈ gl, g.2.2ᴴ = -(g.2.2)) :
     matchGateCircuitOp gl ∈ Matrix.unitaryGroup (Reg n) ℂ := by
@@ -963,6 +1066,8 @@ theorem matchGateCircuitOp_mem_unitaryGroup {n : ℕ} (gl : MatchGateCircuit n)
       have hr := ih (fun q hq => h q (List.mem_cons_of_mem _ hq))
       exact Submonoid.mul_mem _ hg hr
 
+/-- The Majorana combination in frame `S * T` is the row combination, with coefficients from
+`S`, of the Majorana combinations in frame `T`. -/
 theorem majoranaInBasis_mul {n : ℕ} (S T : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (a : Fin (2 * n)) :
     majoranaInBasis (S * T) a
@@ -971,11 +1076,15 @@ theorem majoranaInBasis_mul {n : ℕ} (S T : Matrix (Fin (2 * n)) (Fin (2 * n)) 
     Finset.sum_smul, Finset.smul_sum, smul_smul]
   rw [Finset.sum_comm]
 
+/-- The product of the full Majorana frame rotations of a circuit in list order, with the empty
+product equal to the identity. -/
 def frameRotationRun {n : ℕ} : MatchGateCircuit n
     → Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ
   | [] => 1
   | (i, j, A) :: rest => frameRotation i j A * frameRotationRun rest
 
+/-- Conjugation by a well-formed matchgate circuit sends the Majorana combination in frame `S`
+to that in frame `S * frameRotationRun gl`. -/
 theorem matchGateCircuitOp_conj_majoranaInBasis {n : ℕ} (gl : MatchGateCircuit n)
     (h : ∀ g ∈ gl, matchGateWellFormed g) (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (a : Fin (2 * n)) :
@@ -1013,6 +1122,8 @@ theorem matchGateCircuitOp_conj_majoranaInBasis {n : ℕ} (gl : MatchGateCircuit
         simp only [Matrix.mul_assoc]
       rw [hregroup, hstep, ih hrest (S * frameRotation i j A), ← Matrix.mul_assoc]
 
+/-- Conjugating a Majorana operator by a well-formed matchgate circuit gives the corresponding
+row combination in `frameRotationRun gl`. -/
 theorem matchGateCircuit_conj_majorana {n : ℕ} (gl : MatchGateCircuit n)
     (h : ∀ g ∈ gl, matchGateWellFormed g) (a : Fin (2 * n)) :
     (matchGateCircuitOp gl)ᴴ * majorana a * matchGateCircuitOp gl
@@ -1021,6 +1132,8 @@ theorem matchGateCircuit_conj_majorana {n : ℕ} (gl : MatchGateCircuit n)
   rw [Matrix.one_mul, majoranaInBasis_one] at h
   exact h
 
+/-- The frame rotation of a matchgate leaves every Majorana operator outside its two modes
+unchanged. -/
 theorem majoranaInBasis_frameRotation_of_not_local {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) {a : Fin (2 * n)} (ha : ¬ isLocalMajorana i j a) :
     majoranaInBasis (frameRotation i j A) a = majorana a := by
@@ -1037,6 +1150,8 @@ theorem majoranaInBasis_frameRotation_of_not_local {n : ℕ} (i j : Fin n)
   · intro hna
     exact absurd (Finset.mem_univ a) hna
 
+/-- The number operator is half the identity minus `Complex.I / 4` times the commutator of the
+mode's two Majorana operators. -/
 theorem numberOp_eq_half_sub_commutator {n : ℕ} (k : Fin n) :
     numberOp k = (1 / 2 : ℂ) • (1 : Matrix (Reg n) (Reg n) ℂ)
       - (Complex.I / 4) • (majorana (majoranaIndices k 0) * majorana (majoranaIndices k 1)
@@ -1059,6 +1174,8 @@ theorem numberOp_eq_half_sub_commutator {n : ℕ} (k : Fin n) :
   rw [h1, ← two_smul ℂ (numberOp k), smul_smul]
   norm_num
 
+/-- A well-formed matchgate leaves the number operator of a distinct third mode invariant under
+conjugation. -/
 theorem matchGate_conj_numberOp {n : ℕ} (i j k : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) (hik : i ≠ k) (hjk : j ≠ k) :
     (matchGate i j A)ᴴ * numberOp k * matchGate i j A = numberOp k := by
@@ -1112,9 +1229,12 @@ theorem matchGate_conj_numberOp {n : ℕ} (i j k : Fin n) (hij : i ≠ j)
     rw [Algebra.mul_smul_comm, Algebra.smul_mul_assoc, hC]
   rw [hs1, hs2]
 
+/-- The condition that neither of a gate's two mode indices equals `k`. -/
 def avoidsMode {n : ℕ} (k : Fin n) (g : Fin n × Fin n × Matrix (Fin 2) (Fin 2) ℂ) : Prop :=
   g.1 ≠ k ∧ g.2.1 ≠ k
 
+/-- A measurement projector commutes with a well-formed matchgate whose two modes differ from
+the measured mode. -/
 theorem measurementProjector_mul_matchGate {n : ℕ} (k : Fin n) (b : Bool)
     {i j : Fin n} (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A)
     (hik : i ≠ k) (hjk : j ≠ k) :
@@ -1138,6 +1258,8 @@ theorem measurementProjector_mul_matchGate {n : ℕ} (k : Fin n) (b : Bool)
         = matchGate i j A * (1 - numberOp k)
       rw [one_sub_mul, mul_one_sub, hnu]
 
+/-- A measurement projector commutes with a circuit when every gate is well formed and avoids
+the measured mode. -/
 theorem measurementProjector_mul_matchGateCircuitOp {n : ℕ} (k : Fin n) (b : Bool)
     (gl : MatchGateCircuit n)
     (h : ∀ g ∈ gl, matchGateWellFormed g ∧ avoidsMode k g) :
@@ -1155,12 +1277,15 @@ theorem measurementProjector_mul_matchGateCircuitOp {n : ℕ} (k : Fin n) (b : B
         measurementProjector_mul_matchGate k b hwf.1 A hwf.2 hav.1 hav.2,
         Matrix.mul_assoc, hrest, ← Matrix.mul_assoc]
 
+/-- The diagonal rank-one matrix selecting the register configuration `x`. -/
 def fockProjector {n : ℕ} (x : Reg n) : Matrix (Reg n) (Reg n) ℂ :=
   Matrix.of fun y z => if y = x ∧ z = x then 1 else 0
 
+/-- An entry of `fockProjector x` is 1 when both indices equal `x`, and is 0 otherwise. -/
 theorem fockProjector_apply {n : ℕ} (x y z : Reg n) :
     fockProjector x y z = if y = x ∧ z = x then 1 else 0 := rfl
 
+/-- The Fock basis projector is Hermitian. -/
 theorem fockProjector_hermitian {n : ℕ} (x : Reg n) :
     (fockProjector x)ᴴ = fockProjector x := by
   ext y z
@@ -1170,6 +1295,7 @@ theorem fockProjector_hermitian {n : ℕ} (x : Reg n) :
   · rw [if_pos h, if_pos ⟨h.2, h.1⟩, star_one]
   · rw [if_neg h, if_neg (fun hh => h ⟨hh.2, hh.1⟩), star_zero]
 
+/-- The Fock basis projector is idempotent. -/
 theorem fockProjector_idem {n : ℕ} (x : Reg n) :
     fockProjector x * fockProjector x = fockProjector x := by
   ext y z
@@ -1181,9 +1307,12 @@ theorem fockProjector_idem {n : ℕ} (x : Reg n) :
   · intro hna
     exact absurd (Finset.mem_univ x) hna
 
+/-- The Fock basis projector has trace 1. -/
 theorem fockProjector_trace {n : ℕ} (x : Reg n) : Matrix.trace (fockProjector x) = 1 := by
   simp [Matrix.trace, fockProjector]
 
+/-- A mode measurement projector preserves `fockProjector x` if `x k = b` and annihilates it
+otherwise. -/
 theorem measurementProjector_mul_fockProjector {n : ℕ} (k : Fin n) (b : Bool) (x : Reg n) :
     measurementProjector k b * fockProjector x
       = (if x k = b then (1 : ℂ) else 0) • fockProjector x := by
@@ -1201,10 +1330,13 @@ theorem measurementProjector_mul_fockProjector {n : ℕ} (k : Fin n) (b : Bool) 
   · intro hna
     exact absurd (Finset.mem_univ x) hna
 
+/-- The matrix obtained by multiplying the circuit operator by the Fock basis projector for `x`. -/
 def gaussianInput {n : ℕ} (gl : MatchGateCircuit n) (x : Reg n) :
     Matrix (Reg n) (Reg n) ℂ :=
   matchGateCircuitOp gl * fockProjector x
 
+/-- If every gate is well formed and avoids `k`, projection of `gaussianInput gl x` at `k`
+preserves it when `x k = b` and gives zero otherwise. -/
 theorem measurementProjector_mul_gaussianInput {n : ℕ} (k : Fin n) (b : Bool)
     (gl : MatchGateCircuit n) (x : Reg n)
     (h : ∀ g ∈ gl, matchGateWellFormed g ∧ avoidsMode k g) :
@@ -1217,6 +1349,8 @@ theorem measurementProjector_mul_gaussianInput {n : ℕ} (k : Fin n) (b : Bool)
     Matrix.mul_assoc, measurementProjector_mul_fockProjector k b x,
     Algebra.mul_smul_comm]
 
+/-- For a well-formed preparation circuit avoiding `k`, the outcome weight of `gaussianInput gl
+x` is 1 when `x k = b` and 0 otherwise. -/
 theorem bornWeight_gaussianInput {n : ℕ} (k : Fin n) (b : Bool) (gl : MatchGateCircuit n)
     (x : Reg n) (hwf : ∀ g ∈ gl, matchGateWellFormed g) (hav : ∀ g ∈ gl, avoidsMode k g) :
     bornWeight (gaussianInput gl x) k b = if x k = b then (1 : ℝ) else 0 := by
@@ -1238,6 +1372,8 @@ theorem bornWeight_gaussianInput {n : ℕ} (k : Fin n) (b : Bool) (gl : MatchGat
     rw [hM, fockProjector_trace, Complex.one_re, if_pos hxk]
   · simp [hxk]
 
+/-- For a well-formed preparation circuit avoiding `k`, projection scales each external
+covariance entry by its outcome weight. -/
 theorem measurement_hAway_gaussianInput {n : ℕ} (k : Fin n) (b : Bool)
     (gl : MatchGateCircuit n) (x : Reg n)
     (hwf : ∀ g ∈ gl, matchGateWellFormed g) (hav : ∀ g ∈ gl, avoidsMode k g)
@@ -1276,6 +1412,8 @@ theorem measurement_hAway_gaussianInput {n : ℕ} (k : Fin n) (b : Bool)
       mul_zero, Complex.zero_re, bornWeight_gaussianInput k b gl x hwf hav, if_neg hxk,
       zero_mul]
 
+/-- For a well-formed preparation circuit avoiding `k`, the covariance after projection at `k`
+equals its outcome weight times `measurementUpdate`. -/
 theorem covarianceMatrix_measurement_gaussianInput {n : ℕ} (k : Fin n) (b : Bool)
     (gl : MatchGateCircuit n) (x : Reg n)
     (hwf : ∀ g ∈ gl, matchGateWellFormed g) (hav : ∀ g ∈ gl, avoidsMode k g) :
@@ -1285,6 +1423,8 @@ theorem covarianceMatrix_measurement_gaussianInput {n : ℕ} (k : Fin n) (b : Bo
   covarianceMatrix_measurement_eq_update _ k b
     (measurement_hAway_gaussianInput k b gl x hwf hav)
 
+/-- Collects covariance propagation and Majorana conjugation for well-formed circuits, together
+with the measurement update for prepared inputs at a mode avoided by every gate. -/
 theorem frontier1 :
     (∀ (n : ℕ) (gl : MatchGateCircuit n) (_h : ∀ g ∈ gl, matchGateWellFormed g)
         (M : Matrix (Reg n) (Reg n) ℂ),

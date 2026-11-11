@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.Complex.Basic
+
+/-!
+# Positive semidefinite overlap bound
+
+The theorem `psd_weighted_overlap_diagonal` bounds a weighted quadratic form of a positive
+semidefinite complex matrix using only its real diagonal entries. Nonnegative weights turn
+entrywise positivity bounds into a bound by a squared diagonal sum, as used in water-fill
+overlap estimates related to [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `psd_weighted_overlap_diagonal`: Bound weighted overlap by the squared weighted diagonal-root
+  sum.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +34,9 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity
 open Matrix
 open scoped BigOperators ComplexOrder
 
+/-- For a positive semidefinite complex matrix and nonnegative real weights, the real part of
+the weighted quadratic sum is at most the square of the weighted sum of square roots of its
+diagonal entries. -/
 theorem psd_weighted_overlap_diagonal (m : ℕ) (M : Matrix (Fin m) (Fin m) ℂ)
     (σ : Fin m → ℝ) (hM : M.PosSemidef) (hσ : ∀ i, 0 ≤ σ i) :
     (∑ i, ∑ j, (σ i : ℂ) * M i j * (σ j : ℂ)).re ≤

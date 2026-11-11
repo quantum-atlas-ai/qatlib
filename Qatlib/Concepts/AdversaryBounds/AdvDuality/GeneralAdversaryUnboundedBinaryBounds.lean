@@ -19,6 +19,40 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+
+/-!
+# Expected Query Bounds for Instrument Machines
+
+This module transfers adversary lower bounds for phase queries through observed, Kraus, and
+instrument circuits to instrument machines with unbounded running time. It uses the
+negative-weight adversary method of [HoyerLeeSpalek2007], with density operators and instruments
+as in [Watrous2018]. Finite approximations and query truncation relate successful halting mass
+to a uniform expected query bound.
+
+For error at most `1/32`, the machine adversary value is bounded by `512` times the expected
+query budget. For binary outputs and error strictly below `1/2`,
+`phase_machine_binary_actual_expected_bound` gives an explicit positive error-dependent multiple
+of `advPmValue` bounded by the supremum of the actual infinite expected query costs.
+
+## Main statements
+
+* `phase_instrument_mixed_binary_query_lower_bound` gives the binary final progress bound for
+  mixed instrument circuits.
+* `phase_machine_finite_approx` produces a finite unrolling with arbitrarily small additional
+  error and the same expected query cap.
+* `phase_instrument_expected_binary_truncation_bound` controls the error increase from a finite
+  query cutoff.
+* `phase_machine_small_error_actual_expected_bound` and
+  `phase_machine_binary_actual_expected_bound` express lower bounds using actual infinite
+  expected costs.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007], Negative weights make adversaries
+  stronger.
+* [Watrous, 2018][Watrous2018], The Theory of Quantum Information.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -61,6 +95,9 @@ variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 set_option maxRecDepth 100000 in
 noncomputable section
 
+/-- A well-formed observed phase-query circuit computing a binary output with error `0 ≤ eps ≤
+1/2` satisfies `(1 - 2 * sqrt (eps * (1 - eps))) * ‖Gamma‖ ≤ 2 * observedQueryDepth P *
+maxFilterNorm input Gamma` for every feasible Hermitian adversary matrix. -/
 theorem phase_observed_decoded_binary_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (input : X → Fin n → Fin q) (f : X → Y) (Gamma : Matrix X X ℂ)
@@ -89,6 +126,10 @@ theorem phase_observed_decoded_binary_query_lower_bound
 end
 noncomputable section
 
+/-- A well-formed observed phase-query circuit initialized in a density operator and computing a
+binary output with error `0 ≤ eps ≤ 1/2` satisfies the adversary progress bound for feasible
+Hermitian matrices, with coefficient `1 - 2 * sqrt (eps * (1 - eps))` and budget
+`observedQueryBudget P`. -/
 theorem phase_observed_mixed_binary_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -132,6 +173,9 @@ theorem phase_observed_mixed_binary_query_lower_bound
 end
 noncomputable section
 
+/-- A well-formed mixed-state Kraus circuit computing a binary output with error `0 ≤ eps ≤ 1/2`
+obeys the adversary bound for feasible Hermitian matrices, with coefficient `1 - 2 * sqrt
+(eps * (1 - eps))` and query budget `krausCircuitBudget P`. -/
 theorem phase_kraus_mixed_binary_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
@@ -169,6 +213,10 @@ theorem phase_kraus_mixed_binary_query_lower_bound
 end
 noncomputable section
 
+/-- A well-formed mixed-state instrument circuit computing a binary output with error `0 ≤ eps ≤
+1/2` satisfies `(1 - 2 * sqrt (eps * (1 - eps))) * ‖Gamma‖ ≤ 2 *
+instrumentCircuitQueryBudget P * maxFilterNorm input Gamma` for every feasible Hermitian
+adversary matrix. -/
 theorem phase_instrument_mixed_binary_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -205,6 +253,9 @@ theorem phase_instrument_mixed_binary_query_lower_bound
 end
 noncomputable section
 
+/-- For a well-formed mixed-state instrument circuit computing a binary output with error `0 ≤
+eps ≤ 1/2`, the adversary value multiplied by `(1 - 2 * sqrt (eps * (1 - eps))) / 2` is at
+most its query budget, in extended nonnegative reals. -/
 theorem phase_instrument_mixed_binary_value_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -242,6 +293,9 @@ set_option maxRecDepth 100000 in
 variable {n q d : ℕ} [NeZero q] {W : Type} [Fintype W]
 noncomputable section
 
+/-- Decodes an unrolled machine output by replaying its measurement record to recover the halted
+control state. Failed replay or a pending endpoint uses the default value `decode c false
+[]`. -/
 def instrumentMachineOutputDecoder {C Y : Type} (M : InstrumentMachine d C) (T : ℕ) (c : C)
     (decode : C → Bool → List (ℕ×ℕ) → Y) (b : Bool) (rec : List (ℕ×ℕ)) : Y :=
   match instrumentMachineReplay M T c rec with
@@ -250,6 +304,8 @@ def instrumentMachineOutputDecoder {C Y : Type} (M : InstrumentMachine d C) (T :
 end
 noncomputable section
 
+/-- Pointwise domination on a list implies domination of the sums of the mapped real-valued
+functions. -/
 theorem source_event_sum_mono {A : Type} (xs : List A) (f g : A → ℝ)
     (h : ∀ x∈xs,f x≤g x) : (xs.map f).sum≤(xs.map g).sum := by
   induction xs with
@@ -260,6 +316,8 @@ theorem source_event_sum_mono {A : Type} (xs : List A) (f g : A → ℝ)
 end
 noncomputable section
 
+/-- The mass of halted machine executions decoding to `y` is at most the event mass decoding to
+`y` in the finite unrolling with `instrumentMachineOutputDecoder`. -/
 theorem instrumentMachineHaltMass_le_decoded_unroll {C Y : Type} [DecidableEq Y]
     (M : InstrumentMachine d C) (O : Operator d) (T : ℕ) (c : C) (rho : Operator d)
     (hrho : rho.PosSemidef) (decode : C → Bool → List (ℕ×ℕ) → Y) (y : Y) :
@@ -285,6 +343,9 @@ end
 noncomputable section
 omit [Fintype W] in
 
+/-- A machine with success mass at least `1 - eps` and uniform infinite expected query cost at
+most `Q` has a well-formed finite unrolling with success at least `1 - (eps + delta)` and
+expected cost at most `Q`, for every positive `delta`. -/
 theorem phase_machine_finite_approx
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -320,6 +381,9 @@ theorem phase_machine_finite_approx
 end
 noncomputable section
 
+/-- If a well-formed phase-query machine computes the function with error at most `1/32` and
+uniform infinite expected query cost at most `Q`, every feasible Hermitian adversary matrix
+satisfies `‖G‖ ≤ 512 * Q * maxFilterNorm input G`. -/
 theorem phase_machine_small_error_expected_lower_bound
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -340,6 +404,8 @@ theorem phase_machine_small_error_expected_lower_bound
 end
 noncomputable section
 
+/-- A well-formed phase-query machine with error at most `1/32` and uniform infinite expected
+query cost at most `Q` satisfies `advPmValue input f ≤ ENNReal.ofReal (512 * Q)`. -/
 theorem phase_machine_small_error_expected_value_bound
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -359,6 +425,9 @@ theorem phase_machine_small_error_expected_value_bound
 end
 noncomputable section
 
+/-- A well-formed mixed-state instrument circuit with expected query cost at most `T` and binary
+error `eps` satisfies the adversary bound for feasible Hermitian matrices at query cutoff
+`K`, with error increased to `eps + T / (K + 1)`, provided this is at most one half. -/
 theorem phase_instrument_expected_binary_truncation_bound
     {n q : ℕ} [NeZero q] {W X Y : Type} [Fintype W]
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -393,6 +462,8 @@ theorem phase_instrument_expected_binary_truncation_bound
 end
 noncomputable section
 
+/-- For `0 ≤ eps < 1/2`, the coefficient `((1/2 - eps) / 4) * (1 - 2 * sqrt (eta * (1 - eta)))`
+is positive, where `eta = (eps + 1/2) / 2`. -/
 theorem binary_unbounded_progress_pos (eps : ℝ) (he0 : 0≤eps) (he : eps<1/2) :
     0<((1/2-eps)/4)*(1-2*Real.sqrt (((eps+1/2)/2)*(1-(eps+1/2)/2))) := by
   have hη : (eps+1/2)/2<1/2 := by linarith
@@ -407,6 +478,10 @@ theorem binary_unbounded_progress_pos (eps : ℝ) (he0 : 0≤eps) (he : eps<1/2)
 end
 noncomputable section
 
+/-- A well-formed binary phase-query machine with error `0 ≤ eps < 1/2` and uniform infinite
+expected query cost at most `Q` satisfies `a * ‖G‖ ≤ 2 * Q * maxFilterNorm input G` for
+every feasible Hermitian adversary matrix. Here `a = ((1/2 - eps) / 4) * (1 - 2 * sqrt (eta
+* (1 - eta)))` and `eta = (eps + 1/2) / 2`. -/
 theorem phase_machine_binary_expected_lower_bound
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -458,6 +533,8 @@ theorem phase_machine_binary_expected_lower_bound
 end
 noncomputable section
 
+/-- A bound `a * ‖G‖ ≤ 2 * Q * maxFilterNorm input G` for every feasible Hermitian matrix
+implies `ENNReal.ofReal (a / 2) * advPmValue input f ≤ ENNReal.ofReal Q`. -/
 theorem adversary_value_of_real_multiplicative_bound
     {X Y : Type} [Fintype X] [DecidableEq X] {n q : ℕ} [NeZero q]
     (input : X → Fin n → Fin q) (f : X → Y) (a : ℝ) (Q : ℝ)
@@ -490,6 +567,10 @@ theorem adversary_value_of_real_multiplicative_bound
 end
 noncomputable section
 
+/-- For a well-formed binary phase-query machine initialized in a density operator, with error
+`0 ≤ eps < 1/2` and uniform infinite expected query cost at most `Q`, `ENNReal.ofReal (a /
+2) * advPmValue input f ≤ ENNReal.ofReal Q`. Here `a = ((1/2 - eps) / 4) * (1 - 2 * sqrt
+(eta * (1 - eta)))` and `eta = (eps + 1/2) / 2`. -/
 theorem phase_machine_binary_expected_value_bound
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -506,6 +587,8 @@ theorem phase_machine_binary_expected_value_bound
 end
 noncomputable section
 
+/-- The adversary value is at most `512` times the supremum over inputs of the actual infinite
+expected query costs of a well-formed phase-query machine with error at most `1/32`. -/
 theorem phase_machine_small_error_actual_expected_bound
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -533,6 +616,10 @@ theorem phase_machine_small_error_actual_expected_bound
 end
 noncomputable section
 
+/-- For a well-formed binary phase-query machine initialized in a density operator and with
+error `0 ≤ eps < 1/2`, `ENNReal.ofReal (a / 2) * advPmValue input f` is at most the supremum
+of its infinite expected query costs. Here `a = ((1/2 - eps) / 4) * (1 - 2 * sqrt (eta * (1
+- eta)))` and `eta = (eps + 1/2) / 2`. -/
 theorem phase_machine_binary_actual_expected_bound
     {X Y C : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)

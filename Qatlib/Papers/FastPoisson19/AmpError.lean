@@ -61,11 +61,34 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Amplitude-error bounds for reciprocal rotation
+
+This module bounds the reciprocal error from a one-sided eigenvalue estimate and the difference
+between a reciprocal and the implemented reciprocal-square-root amplitude. Their combination
+gives a maximum-based total-error bound, together with a concrete counterexample to the printed
+difference-based expression. These statements concern the formulas and models in [WangEtAl2020].
+
+## Main statements
+
+* `source_total_amplitude_error`: bounds the actual amplitude error by the maximum of two powers
+  of one half.
+* `total_error_main_limit`: simplifies that maximum for `f ≥ 4`.
+* `printed_display_counterexample`: proves the printed expression is too small at the stated
+  parameters.
+
+## References
+
+* [Wang et al., 2020][WangEtAl2020]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.FastPoisson19.AmpError
 
+/-- For an underestimate `lamhat ≥ 8` with error below `2^(-f)`, the reciprocal error is
+nonnegative and strictly below `2^(-(f + 6))`. -/
 theorem phase_estimation_reciprocal_error (f : ℕ) {lam lamhat : ℝ}
     (h8 : 8 ≤ lamhat) (hle : lamhat ≤ lam) (hdelta : lam - lamhat < (1 / 2 : ℝ) ^ f) :
     0 ≤ 1 / lamhat - 1 / lam ∧ 1 / lamhat - 1 / lam < (1 / 2 : ℝ) ^ (f + 6) := by
@@ -93,6 +116,8 @@ theorem phase_estimation_reciprocal_error (f : ℕ) {lam lamhat : ℝ}
     linarith
   exact ⟨hnonneg, hlt⟩
 
+/-- For `x ≥ 8`, the difference `1 / sqrt (1 + x^2) - 1 / x` lies strictly between `-2^(-10)`
+and zero. -/
 theorem sqrt_reciprocal_sub_reciprocal_bounds (x : ℝ) (hx : 8 ≤ x) :
     -(1 / 2 : ℝ) ^ 10 < 1 / Real.sqrt (1 + x ^ 2) - 1 / x ∧
       1 / Real.sqrt (1 + x ^ 2) - 1 / x < 0 := by
@@ -142,6 +167,9 @@ theorem sqrt_reciprocal_sub_reciprocal_bounds (x : ℝ) (hx : 8 ≤ x) :
     linarith
   · exact sub_neg.mpr (one_div_lt_one_div_of_lt hx0 hsx)
 
+/-- Under the one-sided phase-estimation error assumptions, the absolute amplitude error is less
+than the maximum of `2^(-(f + 6))` and `2^(-10)`. This bounds the implemented amplitude
+expression from [WangEtAl2020]. -/
 theorem source_total_amplitude_error (f : ℕ) {lam lamhat : ℝ}
     (h8 : 8 ≤ lamhat) (hle : lamhat ≤ lam) (hdelta : lam - lamhat < (1 / 2 : ℝ) ^ f) :
     |1 / Real.sqrt (1 + lamhat ^ 2) - 1 / lam| <
@@ -162,6 +190,7 @@ theorem source_total_amplitude_error (f : ℕ) {lam lamhat : ℝ}
       linarith [h1.2, h2.2]
     exact lt_of_lt_of_le hlt (le_max_left ((1 / 2 : ℝ) ^ (f + 6)) ((1 / 2 : ℝ) ^ 10))
 
+/-- The absolute difference of the two displayed error scales is at most their maximum. -/
 theorem paper_total_error_display_le_max (f : ℕ) :
     |(1 / 2 : ℝ) ^ (f + 6) - (1 / 2 : ℝ) ^ 10| ≤
       max ((1 / 2 : ℝ) ^ (f + 6)) ((1 / 2 : ℝ) ^ 10) := by
@@ -173,6 +202,7 @@ theorem paper_total_error_display_le_max (f : ℕ) :
   · rw [max_eq_right h, abs_of_nonpos (by linarith)]
     linarith
 
+/-- For `f ≥ 4`, the maximum of the two error scales is `2^(-10)`. -/
 theorem total_error_main_limit (f : ℕ) (hf : 4 ≤ f) :
     max ((1 / 2 : ℝ) ^ (f + 6)) ((1 / 2 : ℝ) ^ 10) = (1 / 2 : ℝ) ^ 10 := by
   apply max_eq_right
@@ -180,6 +210,8 @@ theorem total_error_main_limit (f : ℕ) (hf : 4 ≤ f) :
     pow_le_pow_of_le_one (by norm_num) (by norm_num) (by omega)
   exact h
 
+/-- At eigenvalue eight and `f = 4`, the actual amplitude error is strictly greater than the
+printed difference-based error expression from [WangEtAl2020]. -/
 theorem printed_display_counterexample :
     |1 / Real.sqrt (1 + (8 : ℝ) ^ 2) - 1 / 8| >
       |(1 / 2 : ℝ) ^ (4 + 6 : ℕ) - (1 / 2 : ℝ) ^ 10| := by

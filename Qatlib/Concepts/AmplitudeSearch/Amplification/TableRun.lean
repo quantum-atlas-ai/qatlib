@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
 import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+
+/-!
+# Minimum attainment along table runs
+
+This module turns ranked call outcomes into the clocked table trace `tableClockedTrace` and
+connects positive run mass to minimum attainment. A completed run of positive mass ends at a
+minimum value, and a run fitting the budget retains a minimum after any further checked update,
+supporting the budgeted minimum-finding analysis [DurrHoyer1996].
+
+## Main statements
+
+* `tableClockedTrace_clock`: identifies the table-trace clock with the ranked run clock.
+* `positive_initial_run_is_minimum`: proves minimum attainment for initial runs of positive
+  mass.
+* `fitting_initial_run_preserves_minimum`: preserves a minimum under budget truncation and a
+  checked update.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,16 +42,20 @@ namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
 variable {N : ℕ} {Ω : Type} {α : Type*} [LinearOrder α]
 
+/-- The clocked trace of table indices obtained by mapping each call output rank through
+`T.indexOfRank` and pairing it with its duration. -/
 noncomputable def tableClockedTrace (T : SortedRankedTable N α) (law : RankedCallLaw N Ω)
     (xs : List Ω) : ClockedTrace (Fin N) :=
   xs.map (fun x => (T.indexOfRank (law.outputRank x), law.duration x))
 
+/-- Every duration in the table clocked trace is nonnegative. -/
 theorem tableClockedTrace_nonneg (T : SortedRankedTable N α) (law : RankedCallLaw N Ω)
     (xs : List Ω) : ∀ x ∈ tableClockedTrace T law xs, 0 ≤ x.2 := by
   intro x hx
   obtain ⟨y, _, rfl⟩ := List.mem_map.mp hx
   exact law.duration_nonneg y
 
+/-- The total clock of the table trace equals the accumulated clock of the ranked call outcomes. -/
 theorem tableClockedTrace_clock (T : SortedRankedTable N α) (law : RankedCallLaw N Ω)
     (xs : List Ω) : traceClock (tableClockedTrace T law xs) = law.runClock xs := by
   induction xs with
@@ -38,6 +64,8 @@ theorem tableClockedTrace_clock (T : SortedRankedTable N α) (law : RankedCallLa
     simpa only [tableClockedTrace, List.map_cons, traceClock, RankedCallLaw.runClock,
       add_right_inj] using ih
 
+/-- A completed ranked run of positive mass, started at the skip threshold of `initial`, yields
+a minimum table value after all checked updates. -/
 theorem positive_run_is_minimum (T : SortedRankedTable N α) (law : RankedCallLaw N Ω)
     (initial : Fin N) (xs : List Ω)
     (hm : 0 < law.runMass T.skip (T.skip.next initial) xs) :
@@ -68,6 +96,8 @@ theorem positive_run_is_minimum (T : SortedRankedTable N α) (law : RankedCallLa
     · simp only [RankedCallLaw.runMass, if_neg ht, if_neg hx] at hm
       linarith
 
+/-- For a nonempty table, every initial run of positive mass yields an index whose value is at
+most every table value. -/
 theorem positive_initial_run_is_minimum (T : SortedRankedTable N α) (law : RankedCallLaw N Ω)
     (hN : 0 < N) (x : Fin N × List Ω) (hm : 0 < law.initialMass T.skip x) :
     ∀ j, T.value (finalCheckedIndex T.value (T.indexOfRank x.1)
@@ -75,6 +105,8 @@ theorem positive_initial_run_is_minimum (T : SortedRankedTable N α) (law : Rank
   apply positive_run_is_minimum T law x.1 x.2
   exact (div_pos_iff_of_pos_right (by exact_mod_cast hN : (0 : ℝ) < N)).mp hm
 
+/-- If an initial run has positive mass and its clock fits the budget, its budget-prefix index
+remains a minimum after a checked update with any candidate. -/
 theorem fitting_initial_run_preserves_minimum (T : SortedRankedTable N α)
     (law : RankedCallLaw N Ω) (hN : 0 < N) (x : Fin N × List Ω)
     (hm : 0 < law.initialMass T.skip x) (budget : ℝ) (hb : law.runClock x.2 ≤ budget)

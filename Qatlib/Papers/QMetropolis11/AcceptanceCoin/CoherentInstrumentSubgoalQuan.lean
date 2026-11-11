@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
+
+/-!
+# Correctness of the coherent Metropolis coin
+
+This module proves the controlled-coin formulas associated with Eqs. (2)-(3) of [TemmeEtAl2011].
+For arbitrary energy tables and inverse temperatures, the gate is unitary, its action on the
+energy superposition has the stated acceptance and rejection amplitudes, and the accepting coin
+mass is the proposal-weighted acceptance sum.
+
+## Main statements
+
+* `metropolisControlledCoin_unitary` proves unitarity of the controlled gate.
+* `metropolisControlledCoin_coherent_state` computes the state after the coin operation.
+* `metropolisControlledCoin_accept_mass` computes the mass of the coin-one outcomes.
+* `coherentInstrumentSubgoal` assembles the three conclusions for normalized proposal
+  amplitudes.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011], *Quantum Metropolis Sampling*, Eqs. (2)-(3).
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
@@ -17,6 +39,8 @@ open Matrix
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.GibbsMetropolis.RationalBath
 
+/-- Applying the controlled gate at a fixed output tuple reduces to the sum over the two input
+coin values, with all system and energy labels fixed. -/
 theorem metropolisControlledCoin_apply {D : ℕ} (E : Fin D → ℝ) (β : ℝ)
     (ψ : QState (Fin D × Fin D × Fin D × Fin 2)) (p : Fin D × Fin D × Fin D × Fin 2) :
     ApplyGate (metropolisControlledCoin E β) ψ p =
@@ -29,6 +53,9 @@ theorem metropolisControlledCoin_apply {D : ℕ} (E : Fin D → ℝ) (β : ℝ)
   simp_rw [ite_and, ite_mul, zero_mul]
   simp
 
+/-- The energy-controlled Metropolis coin is unitary for every finite energy table and every
+real inverse temperature. This verifies the controlled operation used in Eq. (2) of
+[TemmeEtAl2011]. -/
 theorem metropolisControlledCoin_unitary {D : ℕ} (E : Fin D → ℝ) (β : ℝ) :
     metropolisControlledCoin E β ∈ Matrix.unitaryGroup _ ℂ := by
   classical
@@ -55,6 +82,10 @@ theorem metropolisControlledCoin_unitary {D : ℕ} (E : Fin D → ℝ) (β : ℝ
     · simp [hb, eq_comm]
   · simp [ha, eq_comm]
 
+/-- On the input energy superposition, the accepting amplitude at `(k, i, k, 1)` is `x k * sqrt
+(thermalAcceptance E β i k)` and the rejecting amplitude uses the complementary square root.
+All other system and energy configurations have zero amplitude, as in Eqs. (2)-(3) of
+[TemmeEtAl2011]. -/
 theorem metropolisControlledCoin_coherent_state {D : ℕ} (E : Fin D → ℝ) (β : ℝ)
     (i : Fin D) (x : Fin D → ℂ) :
     ApplyGate (metropolisControlledCoin E β) (coherentEnergySuperposition i x) =
@@ -75,6 +106,8 @@ theorem metropolisControlledCoin_coherent_state {D : ℕ} (E : Fin D → ℝ) (�
     · simp [coherentEnergySuperposition, hc]
   · simp [coherentEnergySuperposition, hb]
 
+/-- The total Born mass of the coin-one outcomes is the sum of `‖x k‖ ^ 2 * thermalAcceptance E
+β i k` over proposal labels. This identity holds without a normalization hypothesis on `x`. -/
 theorem metropolisControlledCoin_accept_mass {D : ℕ} (E : Fin D → ℝ) (β : ℝ)
     (i : Fin D) (x : Fin D → ℂ) :
     MeasureProb (ApplyGate (metropolisControlledCoin E β) (coherentEnergySuperposition i x))
@@ -93,6 +126,9 @@ theorem metropolisControlledCoin_accept_mass {D : ℕ} (E : Fin D → ℝ) (β :
   rw [abs_of_nonneg (Real.sqrt_nonneg _), mul_pow,
     Real.sq_sqrt (thermalAcceptance_pos E β i k).le]
 
+/-- The coherent Metropolis instrument satisfies its specification: unitarity, the explicit
+output amplitudes, and the accepting Born mass for normalized proposal amplitudes. These are
+the coherent acceptance conclusions of Eqs. (2)-(3) in [TemmeEtAl2011]. -/
 theorem coherentInstrumentSubgoal : CoherentInstrumentSubgoal := by
   intro D E β i x _
   exact ⟨metropolisControlledCoin_unitary E β,

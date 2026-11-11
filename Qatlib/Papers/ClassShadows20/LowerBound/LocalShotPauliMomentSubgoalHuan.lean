@@ -8,6 +8,29 @@ import Qatlib.Papers.ClassShadows20.LowerBound.LocalMomentContracts
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalStat
 import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductMoments
+
+/-!
+# Local Pauli moment identities
+
+`no_local_real_second_moment_ensemble` rules out the proposed real-part second-moment identity
+when it is required for all complex operators. With the Hermitian restriction,
+`local_wire_pauli_moments` gives Pauli mean zero and second moment one third, and
+`localShotPauliMomentSubgoal` establishes the corresponding product-shot contract.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `no_local_real_second_moment_ensemble`: refutes the unrestricted complex-operator moment
+  condition.
+* `localShotPauliMomentSubgoal`: proves the local shot moment proposition with Hermitian
+  second-moment tests.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +47,8 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators
 
+/-- No finite qubit ensemble satisfies the stated real-part second-moment identity for every
+pure density operator and every pair of complex test operators. -/
 theorem no_local_real_second_moment_ensemble {J : Type} [Fintype J]
     (κ : FinDist J) (Uf : J → Operator 2) :
     ¬ (∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A B : Operator 2,
@@ -39,6 +64,8 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound.HuangKuengPreskill2020
 open Matrix
 open scoped Classical BigOperators
 
+/-- The supplied first-moment and Hermitian second-moment identities imply that each rotated
+Pauli overlap has mean zero and second moment one third. -/
 theorem local_wire_pauli_moments {J : Type} [Fintype J]
     (κ : FinDist J) (Uf : J → Operator 2)
     (hκ1 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A : Operator 2,
@@ -67,6 +94,8 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound.HuangKuengPreskill2020
 open Matrix
 open scoped Classical BigOperators
 
+/-- The local shot moment proposition holds: under its ensemble and code assumptions, the shot
+mean is `w` and the second moment is at most `w² * (1 + 9ε² / 3^k)`. -/
 theorem localShotPauliMomentSubgoal : LocalShotPauliMomentSubgoal := by
   intro n k J _ _ κ Uf hκU hκ1 hκ2 w _hw ψ hψ a hk hS ε _hε _hε1
   have hwire := fun j b => local_wire_pauli_moments κ Uf hκ1 hκ2 (ψ j) (hψ j) b

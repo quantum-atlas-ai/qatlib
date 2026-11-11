@@ -19,6 +19,32 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Mathlib.Topology.Algebra.Polynomial
+
+/-!
+# Hamming-layer symmetrization and the parity degree bound
+
+This module averages real multivariate polynomials over Boolean inputs of a fixed Hamming
+weight. The polynomial `avgPoly` represents these layer averages without increasing total
+degree, using counting identities and the binomial polynomials `binomPoly`.
+
+For a polynomial approximating parity within `1 / 3`, consecutive layers force roots of the
+centered average polynomial. This gives the full parity degree lower bound and the corresponding
+quantum query bound from the polynomial method of [BealsEtAl2001].
+
+## Main statements
+
+* `layerAverage_eq_avgPoly`: Layer averages are evaluations of a univariate polynomial.
+* `avgPoly_natDegree_le`: Symmetrization does not increase degree.
+* `parity_boolean_approximation_degree`: Approximating parity within `1 / 3` requires degree at
+  least the input size.
+* `parity_actual_bounded_error_query_lower_bound`: A circuit approximating parity requires at
+  least half the input size in queries.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -33,10 +59,13 @@ set_option linter.unusedVariables false
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The finite set of indices at which a Boolean input is true. -/
 def boolSupp (f : I → Bool) : Finset I := Finset.univ.filter fun i => f i = true
 
+/-- The Hamming weight of a Boolean input, defined as the cardinality of its true support. -/
 def boolWeight (f : I → Bool) : ℕ := (boolSupp f).card
 
+/-- The equivalence between Boolean inputs of weight `k` and finite subsets of cardinality `k`. -/
 def weightEquiv' (k : ℕ) : {f : I → Bool // boolWeight f = k} ≃ {t : Finset I // t.card = k} where
   toFun f := ⟨boolSupp f.1, by
     show (boolSupp f.1).card = k
@@ -59,6 +88,8 @@ def weightEquiv' (k : ℕ) : {f : I → Bool // boolWeight f = k} ≃ {t : Finse
     ext i
     simp only [boolSupp, Finset.mem_filter, Finset.mem_univ, true_and, decide_eq_true_eq])
 
+/-- The number of Boolean inputs of weight `k` on an index type of cardinality `n` is
+`Nat.choose n k`. -/
 theorem card_weight_eq_choose (n : ℕ) (hn : Fintype.card I = n) (k : ℕ) :
     Fintype.card {f : I → Bool // boolWeight f = k} = Nat.choose n k := by
   have h1 : Fintype.card {f : I → Bool // boolWeight f = k}
@@ -73,6 +104,7 @@ theorem card_weight_eq_choose (n : ℕ) (hn : Fintype.card I = n) (k : ℕ) :
       hn]
   rw [h1, h2]
 
+/-- If `S` is contained in `g`, adjoining the difference `g \ S` to `S` recovers `g`. -/
 theorem union_sdiff (S g : Finset I) (h : S ⊆ g) : S ∪ (g \ S) = g := by
   ext i
   simp only [Finset.mem_union, Finset.mem_sdiff]
@@ -86,6 +118,7 @@ theorem union_sdiff (S g : Finset I) (h : S ⊆ g) : S ∪ (g \ S) = g := by
     · exact Or.inl hiS
     · exact Or.inr ⟨hi, hiS⟩
 
+/-- A finite subset of the complement of `S` is unchanged by removing `S`. -/
 theorem sdiff_eq_of_subset (S g : Finset I) (hg : g ⊆ Finset.univ \ S) :
     g \ S = g := by
   ext i
@@ -95,6 +128,7 @@ theorem sdiff_eq_of_subset (S g : Finset I) (hg : g ⊆ Finset.univ \ S) :
   · intro hi
     exact ⟨hi, (Finset.mem_sdiff.mp (hg hi)).2⟩
 
+/-- Removing `S` from `S ∪ g` recovers `g` when `g` lies in the complement of `S`. -/
 theorem sdiff_union_left (S g : Finset I) (hg : g ⊆ Finset.univ \ S) :
     (S ∪ g) \ S = g := by
   ext i
@@ -107,6 +141,8 @@ theorem sdiff_union_left (S g : Finset I) (hg : g ⊆ Finset.univ \ S) :
   · intro hi
     exact ⟨Finset.mem_union_right _ hi, (Finset.mem_sdiff.mp (hg hi)).2⟩
 
+/-- Identifies cardinality-`k` supersets of `S` with cardinality-`k - S.card` subsets of the
+complement of `S`, assuming `S.card ≤ k`. -/
 noncomputable def aboveEquiv (k : ℕ) (S : Finset I) (h : S.card ≤ k) :
     {t : Finset I // t.card = k ∧ S ⊆ t} ≃
       {u : Finset I // u.card = k - S.card ∧ u ⊆ Finset.univ \ S} :=
@@ -140,10 +176,13 @@ noncomputable def aboveEquiv (k : ℕ) (S : Finset I) (h : S.card ≤ k) :
           exact sdiff_union_left S u.1 (fun i hi =>
             Finset.mem_sdiff.mpr (Finset.mem_sdiff.mp (u.2.2 hi))))))
 
+/-- The number of cardinality-`k` subsets of the finite index type is the corresponding binomial
+coefficient. -/
 theorem card_level_finset (k : ℕ) :
     Fintype.card {t : Finset I // t.card = k} = Nat.choose (Fintype.card I) k := by
   rw [Fintype.card_congr (weightEquiv' k).symm, card_weight_eq_choose _ rfl k]
 
+/-- The number of cardinality-`k` finite subsets contained in `J` is `Nat.choose J.card k`. -/
 theorem card_level_subset (J : Finset I) (k : ℕ) :
     Fintype.card {t : Finset I // t.card = k ∧ t ⊆ J} = Nat.choose J.card k := by
   have e : {t : Finset I // t.card = k ∧ t ⊆ J} ≃
@@ -155,6 +194,8 @@ theorem card_level_subset (J : Finset I) (k : ℕ) :
       right_inv := fun _ => Subtype.ext rfl }
   rw [Fintype.card_congr e, Fintype.card_coe, Finset.card_powersetCard]
 
+/-- Counts the cardinality-`k` subsets containing `S` by choosing the remaining elements outside
+`S`. -/
 theorem card_level_containing (k : ℕ) (S : Finset I) (h : S.card ≤ k) :
     Fintype.card {t : Finset I // t.card = k ∧ S ⊆ t}
       = Nat.choose (Fintype.card I - S.card) (k - S.card) := by
@@ -169,10 +210,12 @@ theorem card_level_containing (k : ℕ) (S : Finset I) (h : S.card ≤ k) :
     exact (card_level_subset (Finset.univ \ S) (k - S.card)).trans (by rw [hcard])
   rw [h1, h2]
 
+/-- Expresses the real cast of `n!` as the product of the first `n` positive integers. -/
 theorem natFactorial_eq_prod (n : ℕ) :
     (Nat.factorial n : ℝ) = ∏ i ∈ Finset.range n, ((i : ℝ) + 1) := by
   exact_mod_cast Nat.factorial_eq_prod_range_add_one n
 
+/-- Expresses the real binomial coefficient as a falling-factorial product divided by `s!`. -/
 theorem choose_eq_falling (k s : ℕ) :
     (Nat.choose k s : ℝ) = (∏ u ∈ Finset.range s, ((k : ℝ) - u)) * (Nat.factorial s : ℝ)⁻¹ := by
   by_cases hs : s ≤ k
@@ -208,6 +251,7 @@ theorem choose_eq_falling (k s : ℕ) :
       norm_num
     rw [hC, hz, zero_mul]
 
+/-- The degree of a finite product of real polynomials is at most the sum of their degrees. -/
 private theorem natDegree_prod_le {ι : Type} (s : Finset ι) (f : ι → Polynomial ℝ) :
     (s.prod f).natDegree ≤ s.sum fun i => (f i).natDegree := by
   induction s using Finset.induction_on with
@@ -217,6 +261,7 @@ private theorem natDegree_prod_le {ι : Type} (s : Finset ι) (f : ι → Polyno
       exact le_trans Polynomial.natDegree_mul_le
         (Nat.add_le_add_left ih (f a).natDegree)
 
+/-- A finite sum of real polynomials has degree at most a common bound on the summands' degrees. -/
 private theorem natDegree_sum_le {ι : Type} {s : Finset ι} {f : ι → Polynomial ℝ} {M : ℕ}
     (hM : ∀ i ∈ s, (f i).natDegree ≤ M) : (s.sum f).natDegree ≤ M := by
   induction s using Finset.induction_on with
@@ -227,18 +272,22 @@ private theorem natDegree_sum_le {ι : Type} {s : Finset ι} {f : ι → Polynom
         (Nat.max_le.mpr ⟨hM a (Finset.mem_insert_self a s),
           ih fun i hi => hM i (Finset.mem_insert_of_mem hi)⟩)
 
+/-- The real polynomial given by the falling factorial of length `s` divided by `s!`. -/
 noncomputable def binomPoly (s : ℕ) : Polynomial ℝ :=
   Polynomial.C (Nat.factorial s : ℝ)⁻¹ *
     (∏ u ∈ Finset.range s, (Polynomial.X - Polynomial.C (u : ℝ)))
 
+/-- The binomial polynomial of order zero is the constant polynomial one. -/
 @[simp] theorem binomPoly_zero : binomPoly 0 = 1 := by
   simp [binomPoly]
 
+/-- Evaluating the order-`s` binomial polynomial at a natural number `k` gives `Nat.choose k s`. -/
 theorem binomPoly_eval (s k : ℕ) : (binomPoly s).eval (k : ℝ) = (Nat.choose k s : ℝ) := by
   rw [binomPoly, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_prod]
   simp only [Polynomial.eval_sub, Polynomial.eval_X, Polynomial.eval_C]
   rw [mul_comm, ← choose_eq_falling k s]
 
+/-- The order-`s` binomial polynomial has degree at most `s`. -/
 theorem binomPoly_natDegree_le (s : ℕ) : (binomPoly s).natDegree ≤ s := by
   have h0 : ((Nat.factorial s : ℝ)⁻¹ : ℝ) ≠ 0 := inv_ne_zero (by positivity)
   have hp := natDegree_prod_le (Finset.range s) (fun u => Polynomial.X - Polynomial.C (u : ℝ))
@@ -249,14 +298,19 @@ theorem binomPoly_natDegree_le (s : ℕ) : (binomPoly s).natDegree ≤ s := by
   rw [binomPoly, Polynomial.natDegree_C_mul h0]
   simpa using hp
 
+/-- Boolean inputs of weight `k` whose true support contains `S`. -/
 abbrev WeightCont (S : Finset I) (k : ℕ) : Type :=
   {f : I → Bool // boolWeight f = k ∧ S ⊆ boolSupp f}
 
+/-- Embeds a Boolean input into real coordinates by sending false to zero and true to one. -/
 def boolPoint (f : I → Bool) : I → ℝ := fun i => if f i = true then 1 else 0
 
+/-- An index belongs to the true support exactly when its input bit is true. -/
 theorem boolSupp_mem_iff (f : I → Bool) (i : I) : i ∈ boolSupp f ↔ f i = true := by
   simp only [boolSupp, Finset.mem_filter, Finset.mem_univ, true_and]
 
+/-- A monomial evaluated on a Boolean point is one exactly when its exponent support is
+contained in the true support, and zero otherwise. -/
 theorem eval_monomial_indicator (m : I →₀ ℕ) (f : I → Bool) :
     (∏ i, (boolPoint f i) ^ m i) = if m.support ⊆ boolSupp f then 1 else 0 := by
   classical
@@ -292,15 +346,19 @@ theorem eval_monomial_indicator (m : I →₀ ℕ) (f : I → Bool) :
         (i := i) hiS hz
   rw [h1, h2]
 
+/-- The true support of the membership indicator of a finite set is that set. -/
 theorem boolSupp_decide (t : Finset I) : boolSupp (fun i => decide (i ∈ t)) = t := by
   ext i
   simp only [boolSupp, Finset.mem_filter, Finset.mem_univ, true_and, decide_eq_true_eq]
 
+/-- Converting a cardinality-`k` finite set back to a weight-`k` input preserves its support. -/
 theorem boolSupp_invFun (k : ℕ) (t : {t : Finset I // t.card = k}) :
     boolSupp ((weightEquiv' k).invFun t).1 = t.1 := by
   show boolSupp (fun i => decide (i ∈ t.1)) = t.1
   exact boolSupp_decide t.1
 
+/-- Counts weight-`k` Boolean inputs whose support contains `S` using the ratio of the
+corresponding binomial coefficients, when `k` and `S.card` do not exceed the input size. -/
 theorem card_containing_real (S : Finset I) (k : ℕ) (hk : k ≤ Fintype.card I)
     (hS : S.card ≤ Fintype.card I) :
     (Fintype.card {f : I → Bool // boolWeight f = k ∧ S ⊆ boolSupp f} : ℝ)
@@ -353,11 +411,14 @@ theorem card_containing_real (S : Finset I) (k : ℕ) (hk : k ≤ Fintype.card I
       exact Nat.choose_eq_zero_of_lt hlt
     rw [hzero, Nat.cast_zero, hcz, Nat.cast_zero, mul_zero, zero_mul]
 
+/-- A constant factor can be pulled out of a sum over a finite type. -/
 private theorem fintype_mul_sum {X : Type} [Fintype X] (c : ℝ) (h : X → ℝ) :
     (∑ x : X, c * h x) = c * ∑ x : X, h x := by
   show (∑ x ∈ (Finset.univ : Finset X), c * h x) = c * ∑ x ∈ (Finset.univ : Finset X), h x
   exact (Finset.mul_sum (R := ℝ) _ _ _).symm
 
+/-- The sum of monomial-support indicators on a Hamming layer equals the number of inputs in
+that layer containing the support. -/
 theorem layer_indicator_sum (m : I →₀ ℕ) (k : ℕ) :
     (∑ f : {f : I → Bool // boolWeight f = k}, (if m.support ⊆ boolSupp f then (1 : ℝ) else 0))
       = (Fintype.card {f : I → Bool // boolWeight f = k ∧ m.support ⊆ boolSupp f} : ℝ) := by
@@ -390,18 +451,24 @@ theorem layer_indicator_sum (m : I →₀ ℕ) (k : ℕ) :
   rw [← hone, ← h1, ← h0, h2, hfilter, Finset.sum_const, nsmul_eq_mul, mul_one,
     Finset.card_eq_sum_ones]
 
+/-- The sum of a real polynomial's evaluations over the Boolean Hamming layer of weight `k`. -/
 noncomputable def layerSum (p : MvPolynomial I ℝ) (k : ℕ) : ℝ :=
   ∑ f : {f : I → Bool // boolWeight f = k}, p.eval (boolPoint f.1)
 
+/-- The Hamming-layer sum divided by the binomial coefficient counting that layer. -/
 noncomputable def layerAverage (p : MvPolynomial I ℝ) (k : ℕ) : ℝ :=
   layerSum p k * (Nat.choose (Fintype.card I) k : ℝ)⁻¹
 
+/-- The univariate polynomial formed by replacing each monomial with its normalized support-size
+binomial polynomial. -/
 noncomputable def avgPoly (p : MvPolynomial I ℝ) : Polynomial ℝ :=
   p.support.sum fun m : I →₀ ℕ =>
     Polynomial.C (p.coeff m)
       * Polynomial.C (Nat.choose (Fintype.card I) m.support.card : ℝ)⁻¹
       * binomPoly m.support.card
 
+/-- On each layer with weight at most the input size, the layer average equals evaluation of
+`avgPoly` at that weight. -/
 theorem layerAverage_eq_avgPoly (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype.card I) :
     layerAverage p k = (avgPoly p).eval (k : ℝ) := by
   classical
@@ -476,6 +543,8 @@ theorem layerAverage_eq_avgPoly (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ F
           rw [Polynomial.eval_mul, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_C,
             binomPoly_eval]
 
+/-- The support size of an exponent occurring in a polynomial is bounded by the polynomial's
+total degree. -/
 private theorem support_card_le_totalDegree (p : MvPolynomial I ℝ) (m : I →₀ ℕ)
     (hm : m ∈ p.support) : m.support.card ≤ p.totalDegree := by
   refine le_trans ?_ (MvPolynomial.le_totalDegree hm)
@@ -484,6 +553,8 @@ private theorem support_card_le_totalDegree (p : MvPolynomial I ℝ) (m : I →�
       Nat.one_le_iff_ne_zero.mpr (Finsupp.mem_support_iff.mp hi)
     _ = m.sum fun _ e => e := rfl
 
+/-- The degree of the univariate layer-average polynomial is at most the original polynomial's
+total degree. -/
 theorem avgPoly_natDegree_le (p : MvPolynomial I ℝ) : (avgPoly p).natDegree ≤ p.totalDegree := by
   refine natDegree_sum_le fun m hm => ?_
   have hne : (p.coeff m : ℝ) ≠ 0 := Finsupp.mem_support_iff.mp hm
@@ -495,22 +566,29 @@ theorem avgPoly_natDegree_le (p : MvPolynomial I ℝ) : (avgPoly p).natDegree �
     exact binomPoly_natDegree_le _
   exact le_trans hnd (support_card_le_totalDegree p m hm)
 
+/-- The absolute value of a finite real sum is at most the sum of the absolute values. -/
 private theorem fintype_abs_sum_le {X : Type} [Fintype X] (h : X → ℝ) :
     |∑ x : X, h x| ≤ ∑ x : X, |h x| := by
   show |∑ x ∈ (Finset.univ : Finset X), h x| ≤ ∑ x ∈ (Finset.univ : Finset X), |h x|
   exact Finset.abs_sum_le_sum_abs _ _
 
+/-- Pointwise comparison of real functions implies comparison of their sums over a finite type. -/
 private theorem fintype_sum_le {X : Type} [Fintype X] {f g : X → ℝ} (h : ∀ x, f x ≤ g x) :
     (∑ x : X, f x) ≤ ∑ x : X, g x := by
   show (∑ x ∈ (Finset.univ : Finset X), f x) ≤ ∑ x ∈ (Finset.univ : Finset X), g x
   exact Finset.sum_le_sum fun x _ => h x
 
+/-- The real parity value of a layer, equal to one for odd weight and zero for even weight. -/
 def layerParity (k : ℕ) : ℝ := if k % 2 = 1 then 1 else 0
 
+/-- The real cardinality of the weight-`k` Boolean layer is the corresponding binomial
+coefficient. -/
 theorem card_level_real (k : ℕ) :
     (Fintype.card {f : I → Bool // boolWeight f = k} : ℝ) = Nat.choose (Fintype.card I) k := by
   exact_mod_cast (card_weight_eq_choose (Fintype.card I) rfl k)
 
+/-- Uniform approximation of parity within `1 / 3` on the Boolean cube implies the same
+approximation by each valid layer average. -/
 theorem layerAverage_close (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype.card I)
     (hyp : ∀ f : I → Bool,
       |p.eval (boolPoint f) - (if boolWeight f % 2 = 1 then (1 : ℝ) else 0)| ≤ 1 / 3) :
@@ -562,6 +640,8 @@ theorem layerAverage_close (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintyp
       rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
     _ = 1 / 3 := by rw [card_level_real k]; field_simp [hck]
 
+/-- On a valid even-parity layer, the symmetrized approximation minus one half is strictly
+negative. -/
 theorem eval_sub_half_neg (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype.card I)
     (hyp : ∀ f : I → Bool,
       |p.eval (boolPoint f) - (if boolWeight f % 2 = 1 then (1 : ℝ) else 0)| ≤ 1 / 3)
@@ -572,6 +652,8 @@ theorem eval_sub_half_neg (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype
   have h2 := le_abs_self ((avgPoly p).eval (k : ℝ))
   linarith
 
+/-- On a valid odd-parity layer, the symmetrized approximation minus one half is strictly
+positive. -/
 theorem eval_sub_half_pos (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype.card I)
     (hyp : ∀ f : I → Bool,
       |p.eval (boolPoint f) - (if boolWeight f % 2 = 1 then (1 : ℝ) else 0)| ≤ 1 / 3)
@@ -582,6 +664,8 @@ theorem eval_sub_half_pos (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype
   have h2 := neg_le_abs ((avgPoly p).eval (k : ℝ) - 1)
   linarith
 
+/-- A polynomial approximating parity within `1 / 3` has a root of its centered layer average
+strictly between each pair of consecutive valid integer weights. -/
 theorem root_between (p : MvPolynomial I ℝ) (k : ℕ) (hk : k < Fintype.card I)
     (hyp : ∀ f : I → Bool,
       |p.eval (boolPoint f) - (if boolWeight f % 2 = 1 then (1 : ℝ) else 0)| ≤ 1 / 3) :
@@ -651,6 +735,8 @@ theorem root_between (p : MvPolynomial I ℝ) (k : ℕ) (hk : k < Fintype.card I
       exact ⟨hc'.1.lt_of_ne hne1.symm, hc'.2.lt_of_ne hne2⟩
     · rw [Polynomial.eval_sub, hcv, Polynomial.eval_C, sub_self]
 
+/-- Subtracting one half from the layer-average polynomial leaves its degree bounded by the
+original total degree. -/
 theorem sub_half_natDegree_le (p : MvPolynomial I ℝ) :
     (avgPoly p - Polynomial.C ((1 : ℝ) / 2)).natDegree ≤ p.totalDegree := by
   have h2 : (avgPoly p - Polynomial.C ((1 : ℝ) / 2)).natDegree
@@ -665,6 +751,8 @@ theorem sub_half_natDegree_le (p : MvPolynomial I ℝ) :
   rw [hneg] at h1
   exact le_trans h1 (Nat.max_le.mpr ⟨avgPoly_natDegree_le p, Nat.zero_le _⟩)
 
+/-- The centered layer-average polynomial of a parity approximation has at least as many roots,
+counted with multiplicity, as there are input indices. -/
 theorem card_roots_ge (p : MvPolynomial I ℝ)
     (hyp : ∀ f : I → Bool,
       |p.eval (boolPoint f) - (if boolWeight f % 2 = 1 then (1 : ℝ) else 0)| ≤ 1 / 3) :
@@ -774,6 +862,8 @@ theorem card_roots_ge (p : MvPolynomial I ℝ)
     _ ≤ (avgPoly p - Polynomial.C ((1 : ℝ) / 2)).roots.card :=
       Multiset.toFinset_card_le _
 
+/-- Every real polynomial uniformly approximating Boolean parity within `1 / 3` has total degree
+at least the number of input variables [BealsEtAl2001]. -/
 theorem parity_boolean_approximation_degree (p : MvPolynomial I ℝ)
     (hyp : ∀ f : I → Bool,
       |MvPolynomial.eval (fun i => if f i then (1 : ℝ) else 0) p
@@ -788,6 +878,8 @@ theorem parity_boolean_approximation_degree (p : MvPolynomial I ℝ)
   exact le_trans hcard (le_trans (Polynomial.card_roots'
     (avgPoly p - Polynomial.C ((1 : ℝ) / 2))) (sub_half_natDegree_le p))
 
+/-- A unitary query circuit on a normalized state whose acceptance probability approximates
+parity within `1 / 3` satisfies `Fintype.card I ≤ 2 * QueryCount C` [BealsEtAl2001]. -/
 theorem parity_actual_bounded_error_query_lower_bound
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))
     (E : Finset (PolynomialWorkspace I W)) (_hU : IsUnitaryCircuit C) (_hN : Normalized ψ)

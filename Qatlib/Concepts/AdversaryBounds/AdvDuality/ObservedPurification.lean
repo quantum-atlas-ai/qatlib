@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironmentStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
 import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+
+/-!
+# Purification of observed mixed executions
+
+`observed_purification_traces` identifies mixed-state execution with the partial traces of a
+pure execution on an extended space. The same correspondence preserves masses of events
+determined by acceptance and outcomes, expected query counts, and the structural query budget.
+These are finite-dimensional purification and partial trace identities in the framework of
+[Watrous2018].
+
+## Main statements
+
+* `observed_purification_traces`: Reducing the extended pure traces gives the mixed traces.
+* `observed_purification_event`: Classical event masses agree under reduction.
+* `observed_purification_expected`: Expected query counts agree under reduction.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,18 +45,24 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
+/-- Sums the masses of mixed execution traces whose acceptance flag and outcome history satisfy
+the specified event. -/
 noncomputable def mixedObservedEventMass {d : ℕ} (O : Operator d)
     (P : ObservedCircuit (Fin d)) (rho : Operator d)
     (event : Bool → List (ℕ × ℕ) → Bool) : ℝ :=
   ((observedMixedTraces O P rho).map
     (fun t => if event t.accepted t.outcomes then mixedMass t else 0)).sum
 
+/-- Applying `G` on the system factor and then taking the partial trace of the pure outer
+product equals conjugating the reduced operator by `G`. -/
 private theorem purification_apply {d e : ℕ} (G : Operator d)
     (psi : QState (Fin d × Fin e)) :
     PartialTrace (outerProduct (ApplyGate (TensorGate G (1 : Operator e)) psi)) =
       conjBranch G (PartialTrace (outerProduct psi)) :=
   partialTrace_outerProduct_apply_tensorLeft d e G psi
 
+/-- Tensoring `1 - G` with the environment identity equals the complement of `G` tensored with
+that identity. -/
 private theorem purification_complement {d e : ℕ} (G : Operator d) :
     TensorGate (1 - G) (1 : Operator e) =
       1 - TensorGate G (1 : Operator e) := by
@@ -48,6 +75,8 @@ private theorem purification_complement {d e : ℕ} (G : Operator d) :
     simp only [tensorGate_apply, Matrix.sub_apply, sub_mul]
   simpa only [tensorGate_one] using h
 
+/-- The projector onto a system measurement fiber in the extended space is the tensor product of
+the system fiber projector and the environment identity. -/
 private theorem purification_label_projector {d e n : ℕ}
     (label : Fin d → Fin n) (o : Fin n) :
     Projector (Finset.univ.filter (fun x : Fin d × Fin e => label x.1 = o)) =
@@ -60,6 +89,8 @@ private theorem purification_label_projector {d e n : ℕ}
     simp [Projector, tensorGate_apply, Matrix.diagonal_apply,
       Matrix.one_apply, Prod.mk.injEq, hij, hab]
 
+/-- Collapsing a pure state onto a system measurement fiber and reducing the result equals
+conjugating its reduced operator by the fiber projector. -/
 private theorem purification_collapse {d e n : ℕ}
     (label : Fin d → Fin n) (o : Fin n) (psi : QState (Fin d × Fin e)) :
     PartialTrace (outerProduct
@@ -69,6 +100,8 @@ private theorem purification_collapse {d e n : ℕ}
   simpa only [Collapse, purification_label_projector] using
     purification_apply (Projector (Finset.univ.filter (fun i : Fin d => label i = o))) psi
 
+/-- Reducing a pure projective branch in the extended space equals conjugating the reduced input
+by `G` or `1 - G`, according to the outcome. -/
 private theorem purification_project {d e : ℕ} (G : Operator d)
     (outcome : Bool) (psi : QState (Fin d × Fin e)) :
     PartialTrace (outerProduct (ProjectiveBranch (TensorGate G (1 : Operator e))
@@ -82,6 +115,8 @@ private theorem purification_project {d e : ℕ} (G : Operator d)
     exact purification_apply (1 - G) psi
   | true => exact purification_apply G psi
 
+/-- Reducing each trace of the environment-lifted pure execution gives exactly the mixed
+execution traces of the reduced input operator. -/
 theorem observed_purification_traces {d e : ℕ} (O : Operator d)
     (P : ObservedCircuit (Fin d)) (psi : QState (Fin d × Fin e)) :
     (observedTraces (TensorGate O (1 : Operator e))
@@ -136,6 +171,7 @@ theorem observed_purification_traces {d e : ℕ} (O : Operator d)
       rw [purification_project] at h
       simpa only [List.map_map, Function.comp_def, reduceEnvironmentTrace] using! h
 
+/-- The mass of a reduced environment trace equals the squared norm mass of its pure state. -/
 private theorem purification_mass {d e : ℕ} (t : BranchTrace (Fin d × Fin e)) :
     mixedMass (reduceEnvironmentTrace t) = branchMass t.state := by
   unfold mixedMass reduceEnvironmentTrace
@@ -144,6 +180,8 @@ private theorem purification_mass {d e : ℕ} (t : BranchTrace (Fin d × Fin e))
   simp only [Complex.ofReal_re]
   rfl
 
+/-- Events depending on acceptance and outcome history have equal mass in the extended pure
+execution and the mixed execution of its reduced input. -/
 theorem observed_purification_event {d e : ℕ} (O : Operator d)
     (P : ObservedCircuit (Fin d)) (psi : QState (Fin d × Fin e))
     (event : Bool → List (ℕ × ℕ) → Bool) :
@@ -160,6 +198,8 @@ theorem observed_purification_event {d e : ℕ} (O : Operator d)
     (if event t.accepted t.outcomes then mixedMass (reduceEnvironmentTrace t) else 0)
   rw [purification_mass]
 
+/-- The extended pure execution and the mixed execution of its reduced input have the same
+expected query count. -/
 theorem observed_purification_expected {d e : ℕ} (O : Operator d)
     (P : ObservedCircuit (Fin d)) (psi : QState (Fin d × Fin e)) :
     expectedObservedQueries (TensorGate O (1 : Operator e))
@@ -175,6 +215,8 @@ theorem observed_purification_expected {d e : ℕ} (O : Operator d)
     mixedMass (reduceEnvironmentTrace t) * (t.queries : ℝ)
   rw [purification_mass]
 
+/-- Lifting an observed circuit to an additional environment preserves its structural query
+budget. -/
 theorem liftObservedEnvironment_budget
     {I E : Type*} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
     (P : ObservedCircuit I) :

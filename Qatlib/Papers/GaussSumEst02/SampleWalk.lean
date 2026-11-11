@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+/-!
+# Character walks and their sampling bias
+
+This module studies the complex steps `walkStep` formed by multiplying multiplicative and
+additive character values. It computes their total displacement, mean magnitude, squared norms,
+and shifted correlations, including the small mean captured by `biasSq_mul_lt_one`. See
+[VanDamSeroussi2002].
+
+## Main statements
+
+* `norm_meanStep`: For a nontrivial multiplicative character, the mean step has norm `√(card K)
+  / (card K - 1)`.
+* `biasSq_mul_lt_one`: If `M < (card K - 1)² / card K`, then `M` times the squared mean-step
+  norm is less than one.
+* `sum_walkStep_conj_shift`: For a nontrivial multiplicative character and nonzero shift `s`,
+  the summed correlation of `walkStep x` with `walkStep (x + s)` is `-e(-s)`.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,30 +45,39 @@ open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
 variable {K : Type*} [Field K]
 
+/-- The complex walk step `χ(x) * e(x)` associated to the two characters [VanDamSeroussi2002]. -/
 def walkStep (χ : MultChar K) (e : AddChar K) (x : K) : ℂ :=
   χ.toFun x * e.toFun x
 
+/-- The character walk step at zero vanishes. -/
 theorem walkStep_zero (χ : MultChar K) (e : AddChar K) : walkStep χ e 0 = 0 := by
   simp [walkStep, χ.map_zero']
 
+/-- Every nonzero-index character walk step has norm one [VanDamSeroussi2002]. -/
 theorem norm_walkStep [Fintype K] (χ : MultChar K) (e : AddChar K) {x : K} (hx : x ≠ 0) :
     ‖walkStep χ e x‖ = 1 := by
   rw [walkStep, norm_mul, χ.norm_eq_one x hx, e.norm_eq_one x, one_mul]
 
+/-- The sum of all character walk steps is the Gauss sum at frequency one. -/
 theorem sum_walkStep_eq_gaussSum [Fintype K] (χ : MultChar K) (e : AddChar K) :
     (∑ x : K, walkStep χ e x) = gaussSum χ.toFun e 1 := by
   rw [gaussSum]
   refine Finset.sum_congr rfl fun x _ => ?_
   simp [walkStep]
 
+/-- For a nontrivial multiplicative character, the total walk displacement has norm `√(card K)`
+[VanDamSeroussi2002]. -/
 theorem norm_sum_walkStep [Fintype K] (χ : MultChar K) (e : AddChar K)
     (hnt : χ.IsNontrivial) :
     ‖∑ x : K, walkStep χ e x‖ = Real.sqrt (Fintype.card K : ℝ) := by
   rw [sum_walkStep_eq_gaussSum, gaussSum_norm χ e hnt one_ne_zero]
 
+/-- The Gauss sum at frequency one divided by the number of nonzero field elements. -/
 def meanStep [Fintype K] (χ : MultChar K) (e : AddChar K) : ℂ :=
   gaussSum χ.toFun e 1 / (((Fintype.card K - 1 : ℕ) : ℝ) : ℂ)
 
+/-- For a nontrivial multiplicative character, the mean step has norm `√(card K) / (card K - 1)`
+[VanDamSeroussi2002]. -/
 theorem norm_meanStep [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : χ.IsNontrivial) :
     ‖meanStep χ e‖
       = Real.sqrt (Fintype.card K : ℝ) / (((Fintype.card K - 1 : ℕ) : ℝ)) := by
@@ -58,6 +90,8 @@ theorem norm_meanStep [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : χ.Is
   rw [meanStep, norm_div, gaussSum_norm χ e hnt one_ne_zero, Complex.norm_real,
     Real.norm_eq_abs, abs_of_pos hpos]
 
+/-- The sum of the squared step norms is the number of nonzero field elements
+[VanDamSeroussi2002]. -/
 theorem sum_normSq_walkStep [Fintype K] (χ : MultChar K) (e : AddChar K) :
     (∑ x : K, ‖walkStep χ e x‖ ^ 2) = (((Fintype.card K - 1 : ℕ) : ℝ)) := by
   classical
@@ -79,6 +113,8 @@ theorem sum_normSq_walkStep [Fintype K] (χ : MultChar K) (e : AddChar K) :
     Finset.sum_const, nsmul_eq_mul, Finset.card_erase_of_mem (Finset.mem_univ (0 : K)),
     Finset.card_univ, mul_one]
 
+/-- For a nontrivial character, multiplying the squared mean-step norm by `M` gives `M * card K
+/ (card K - 1)²`. -/
 theorem biasSq_mul [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : χ.IsNontrivial) (M : ℝ) :
     M * ‖meanStep χ e‖ ^ 2
       = M * ((Fintype.card K : ℝ) / (((Fintype.card K - 1 : ℕ) : ℝ)) ^ 2) := by
@@ -90,6 +126,8 @@ theorem biasSq_mul [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : χ.IsNon
     exact_mod_cast this
   rw [norm_meanStep χ e hnt, div_pow, Real.sq_sqrt (by positivity)]
 
+/-- If `M < (card K - 1)² / card K`, then `M` times the squared mean-step norm is less than one
+[VanDamSeroussi2002]. -/
 theorem biasSq_mul_lt_one [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : χ.IsNontrivial)
     {M : ℝ} (hM : M < ((Fintype.card K - 1 : ℕ) : ℝ) ^ 2 / (Fintype.card K : ℝ)) :
     M * ‖meanStep χ e‖ ^ 2 < 1 := by
@@ -108,6 +146,8 @@ theorem biasSq_mul_lt_one [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : �
   rw [mul_div_assoc', div_lt_one hpos2]
   exact hM'
 
+/-- For a nontrivial character and nonzero shift `s`, the sum of `χ(x / (x + s))` over indices
+with `x` and `x + s` nonzero is `-1`. -/
 theorem sum_char_mul_conj_shift [Fintype K] (χ : MultChar K) (hnt : χ.IsNontrivial) {s : K}
     (hs : s ≠ 0) :
     (∑ x ∈ Finset.univ.filter (fun x : K => x ≠ 0 ∧ x + s ≠ 0),
@@ -188,6 +228,8 @@ theorem sum_char_mul_conj_shift [Fintype K] (χ : MultChar K) (hnt : χ.IsNontri
     linear_combination h
   exact hfin
 
+/-- For a nontrivial multiplicative character and nonzero shift `s`, the summed correlation of
+`walkStep x` with `walkStep (x + s)` is `-e(-s)` [VanDamSeroussi2002]. -/
 theorem sum_walkStep_conj_shift [Fintype K] (χ : MultChar K) (e : AddChar K) (hnt : χ.IsNontrivial)
     {s : K} (hs : s ≠ 0) :
     (∑ x : K, walkStep χ e x * conj (walkStep χ e (x + s))) = - e.toFun (-s) := by

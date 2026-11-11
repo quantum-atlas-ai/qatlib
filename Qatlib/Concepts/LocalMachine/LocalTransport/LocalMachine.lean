@@ -9,6 +9,32 @@ import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
 import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridges
+
+/-!
+# Local machine transport and precision bounds
+
+This module relates locally well-formed quantum Turing rules to `LocalQTM` structures and
+collects validity, encoding, and resource properties of uniform finite gate words. It also
+bounds acceptance-weight error caused by entrywise gate approximations, in the quantum
+complexity framework of [BernsteinVazirani1997].
+
+The concrete `fourierRule` is shown to fail local well-formedness, with its halt-state
+transition described explicitly. Recursive Fourier sampling definitions are accompanied by
+counted evaluation and a polynomial bound for the time schedule.
+
+## Main statements
+
+* `precision_probability_error`: bound the acceptance error of finite-precision gate products.
+* `g3`: collect local-machine transport and uniform gate-word properties.
+* `fourierRule_not_localWellformed`: the specified Fourier transition rule fails local
+  well-formedness.
+* `rfsTimeSchedule_polynomial`: bound the recursive schedule polynomially in `2^l + 1`.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.StandardDefs.WindowSim
@@ -35,6 +61,8 @@ open Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
 open Qatlib.Foundations.StandardDefs.WindowSim
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Word factors within operator distance `δ` of contractions satisfy the stated product norm
+bounds and accumulated product error bound. -/
 private theorem approximate_word_bounds {α I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (cs : List α) (A B : α → Matrix I I ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     (hB : ∀ c ∈ cs, ‖B c‖ ≤ 1) (hE : ∀ c ∈ cs, ‖A c - B c‖ ≤ δ) :
@@ -77,6 +105,8 @@ private theorem approximate_word_bounds {α I : Type} [Fintype I] [DecidableEq I
           ring
         _ ≤ _ := by nlinarith [mul_le_mul_of_nonneg_left hp hδ]
 
+/-- A matrix on `q` qubits with all entries bounded in norm by `δ` has operator norm at most
+`2^q * δ`. -/
 private theorem entry_error_operator_bound (q : ℕ) (A : Matrix (Reg q) (Reg q) ℂ)
     (δ : ℝ) (hδ : 0 ≤ δ) (hA : ∀ i j, ‖A i j‖ ≤ δ) :
     ‖A‖ ≤ ((2 ^ q : ℕ) : ℝ) * δ := by
@@ -86,6 +116,8 @@ private theorem entry_error_operator_bound (q : ℕ) (A : Matrix (Reg q) (Reg q)
   rw [hc, Nat.cast_mul, Real.sqrt_mul_self (Nat.cast_nonneg _)] at h
   exact h
 
+/-- Running a finite-code circuit with identity oracle equals applying the reverse product of
+its gate matrices. -/
 private theorem finiteCode_run_product (q : ℕ) (gs : List FiniteGateCode) (ψ : QState (Reg q)) :
     Run (1 : Matrix (Reg q) (Reg q) ℂ) (finiteCodeCircuit q gs) ψ =
       ((gs.map (finiteCodeMatrix q)).reverse.prod) *ᵥ ψ := by
@@ -97,6 +129,8 @@ private theorem finiteCode_run_product (q : ℕ) (gs : List FiniteGateCode) (ψ 
     simp only [List.map_cons, List.reverse_cons, List.prod_append, List.prod_singleton,
       ApplyGate, Matrix.mulVec_mulVec]
 
+/-- An entrywise precision guarantee for a gate occurring in the word yields operator error at
+most `2^q * 2^(-P.lam)`. -/
 private theorem precision_operator_error (q : ℕ) (gs : List FiniteGateCode)
     (P : PrecisionGateApprox q gs) (g : FiniteGateCode) (hg : g ∈ gs) :
     ‖P.approx g - finiteCodeMatrix q g‖ ≤
@@ -104,6 +138,8 @@ private theorem precision_operator_error (q : ℕ) (gs : List FiniteGateCode)
   apply entry_error_operator_bound q _ _ (by positivity)
   exact P.entryClose g hg
 
+/-- For a legal finite gate word, the absolute difference between approximate and exact
+acceptance weights is bounded by `acceptProbPrecisionBound`. -/
 theorem precision_probability_error (q : ℕ) (gs : List FiniteGateCode)
     (x : Reg q) (P : PrecisionGateApprox q gs) (hlegal : finiteWordLegal q gs = true) :
     |P.acceptProb x - uniformBqpAcceptProb q gs x| ≤ acceptProbPrecisionBound q P.lam gs := by
@@ -169,6 +205,9 @@ theorem precision_probability_error (q : ℕ) (gs : List FiniteGateCode)
       rw [Nat.mul_comm 2 gs.length, pow_mul]
       ring
 
+/-- Collect the equivalence between local rule well-formedness and matching `LocalQTM` data,
+together with uniform generator validity, resource and encoding properties,
+finite-digit-to-dyadic backend premises, and finite-precision acceptance estimates. -/
 theorem g3 :
 
   (∀ (Q A : Type) [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
@@ -244,6 +283,7 @@ theorem g3 :
       (normalized_ket x)
   · exact precision_probability_error
 
+/-- The transition rule `fourierRule` does not satisfy `QtmRule.LocalWellformed`. -/
 theorem fourierRule_not_localWellformed : ¬ fourierRule.LocalWellformed := by
   intro h
   have hc := h.2.2.2.2 FourierState.qb FourierSymbol.bit0 FourierState.qa
@@ -258,6 +298,8 @@ theorem fourierRule_not_localWellformed : ¬ fourierRule.LocalWellformed := by
   apply (inv_ne_zero (show ((Real.sqrt 2 : ℝ) : ℂ) ≠ 0 from ?_)) hc
   exact_mod_cast (Real.sqrt_pos.mpr (show (0 : ℝ) < 2 by norm_num)).ne'
 
+/-- From `qf`, the Fourier rule moves right to `q0`, preserves the scanned symbol, and has zero
+amplitude for every other transition. -/
 theorem fourierRule_halt_reset (a : FourierSymbol) :
     fourierRule.step FourierState.qf a QtmMove.right FourierState.q0 a = 1 ∧
       ∀ (d : QtmMove) (q' : FourierState) (b : FourierSymbol),
@@ -271,6 +313,8 @@ theorem fourierRule_halt_reset (a : FourierSymbol) :
     exact (h rfl).elim
   · rfl
 
+/-- Counted recursive Fourier sampling evaluation returns `rfsValueOf` and the exact count
+`rfsNodeCount`. -/
 theorem rfsRecoverCounted_spec (f : RfsQuery → Bool) (l : ℕ) (x : RfsQuery) :
     (rfsRecoverCounted f l x).1 = rfsValueOf f l x ∧
       (rfsRecoverCounted f l x).2 = rfsNodeCount l := by
@@ -283,6 +327,8 @@ theorem rfsRecoverCounted_spec (f : RfsQuery → Bool) (l : ℕ) (x : RfsQuery) 
     simp_rw [(ih _).2]
     simp [rfsNodeCount]
 
+/-- For any coefficients `c` and `d`, the recursive time schedule is bounded by a polynomial in
+`2^l + 1`. -/
 theorem rfsTimeSchedule_polynomial (c d : ℕ) :
     ∃ c' d' : ℕ, ∀ l : ℕ, rfsTimeSchedule c d l ≤ c' * (2^l + 1)^d' := by
   have hlin : ∀ l : ℕ, l + 2 ≤ 2^(l + 1) := by

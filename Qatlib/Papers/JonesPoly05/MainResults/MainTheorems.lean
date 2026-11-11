@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.JonesPoly05.MainResults.PlatAlgorithm
+
+/-!
+# Conditional Jones trace and plat approximation
+
+`theorem11_trace_closure_approximation` and `theorem12_plat_closure_approximation` combine the
+assumed local compilation of generator matrices with concentration for bounded observations. The
+conclusions provide a matrix word, a length bound, and a positive sample count satisfying the
+stated approximation guarantee. See [AharonovJonesLandau2009].
+
+## Main statements
+
+* `theorem11_trace_closure_approximation`: Assuming local compilation and bounded observations
+  with the specified Markov-trace means, there exist an exact braid-operator implementation with
+  the stated polynomial-form length bound and a positive sample count giving failure probability
+  at most δ at error threshold ε‖d^(n − 1)‖.
+* `theorem12_plat_closure_approximation`: Assuming local compilation, a nonzero scale κ, and
+  bounded observations with the specified plat expectation, there exist an exact braid-operator
+  implementation with the stated polynomial-form length bound and a positive sample count giving
+  error probability at most δ at threshold acc.
+
+## References
+
+* [Aharonov et al., 2009][AharonovJonesLandau2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +47,10 @@ open Qatlib.Papers.JonesPoly05.MainResults.Estimator
 open Qatlib.Papers.JonesPoly05.MainResults.TraceAlgorithm
 open Qatlib.Papers.JonesPoly05.MainResults.PlatAlgorithm
 
+/-- Assuming local compilation and bounded observations with the specified Markov-trace means,
+there exist an exact braid-operator implementation with the stated polynomial-form length
+bound and a positive sample count giving failure probability at most δ at error threshold
+ε‖d^(n − 1)‖; see [AharonovJonesLandau2009]. -/
 theorem theorem11_trace_closure_approximation
     (φ : ∀ n : ℕ, Fin (n - 1) → Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     {n : ℕ} (c k : ℕ) (B : BraidWord n) (h32 : LocalCompiles φ c n k)
@@ -42,6 +71,10 @@ theorem theorem11_trace_closure_approximation
     theorem31_trace_closure_algorithm hd hA B X p re im hre him hre_mean him_mean hε hδ
   exact ⟨Q, L, hL, hQ, ⟨C, hlen⟩, hprob⟩
 
+/-- Assuming local compilation, a nonzero scale κ, and bounded observations with the specified
+plat expectation, there exist an exact braid-operator implementation with the stated
+polynomial-form length bound and a positive sample count giving error probability at most δ
+at threshold acc; see [AharonovJonesLandau2009]. -/
 theorem theorem12_plat_closure_approximation
     (φ : ∀ n : ℕ, Fin (n - 1) → Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     {n : ℕ} (c k : ℕ) (B : BraidWord n) (h32 : LocalCompiles φ c n k)

@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
 import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Rational rotations for bounded payoffs
+
+The bisection routine `rationalSqrtBracket` constructs rational square-root brackets with an
+exact comparison count. A rational stereographic parameter gives `rationalPayoffCS` on the unit
+circle and the controlled rotation `rationalPayoffRotation`.
+
+For payoffs in [0, 1], the encoded probability differs by at most 64/2^k and the rotation
+differs from the ideal one in operator norm by at most 32/2^k. This provides a rational payoff
+encoding for the bounded-mean construction of [Montanaro2015].
+
+## Main statements
+
+* `rational_sqrt_bracket_actual_interval_and_comparisons`: bisection gives a bracket of width
+  2^(-k) after `k` comparisons.
+* `rationalPayoffCS_circle`: the rational rotation parameters lie exactly on the unit circle.
+* `rational_payoff_unitary_value_and_operator_error`: the rotation is unitary with explicit
+  probability and operator error bounds.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -24,21 +49,31 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 
+/-- Rational bisection from [0, 1], returning lower and upper square-root bracket endpoints and
+the number of comparisons. -/
 def rationalSqrtBracket (q : ℚ) : ℕ → ℚ × ℚ × ℕ
   | 0 => (0, 1, 0)
   | k+1 => let s := rationalSqrtBracket q k
            let m := (s.1+s.2.1)/2
            if m*m ≤ q then (m,s.2.1,s.2.2+1) else (s.1,m,s.2.2+1)
 
+/-- The rational stereographic parameter formed from the lower square-root bracket for `q`
+divided by one plus the lower bracket for `1 - q`. -/
 def rationalPayoffParameter (q : ℚ) (k : ℕ) : ℚ :=
   (rationalSqrtBracket q k).1 / (1+(rationalSqrtBracket (1-q) k).1)
 
+/-- The rational cosine-sine pair obtained from `rationalPayoffParameter` by the unit-circle
+stereographic formulas. -/
 def rationalPayoffCS (q : ℚ) (k : ℕ) : ℚ × ℚ :=
   let t := rationalPayoffParameter q k
   ((1-t^2)/(1+t^2),2*t/(1+t^2))
 
+/-- The encoded rational payoff probability, defined as the square of the sine component of
+`rationalPayoffCS`. -/
 def rationalPayoffValue (q : ℚ) (k : ℕ) : ℚ := (rationalPayoffCS q k).2^2
 
+/-- The controlled real rotation on an ancilla whose two-by-two blocks use the rational
+cosine-sine pair for each payoff value. -/
 def rationalPayoffRotation {I : Type} [DecidableEq I] (f : I → ℚ) (k : ℕ) :
     Matrix (I×Bool) (I×Bool) ℂ := fun p q =>
   if p.1=q.1 then
@@ -49,6 +84,8 @@ def rationalPayoffRotation {I : Type} [DecidableEq I] (f : I → ℚ) (k : ℕ) 
     | true,true => (rationalPayoffCS (f p.1) k).1
   else 0
 
+/-- For `q` in [0, 1], rational bisection produces ordered endpoints in [0, 1] whose squares
+enclose `q`, with width 2^(-k) and comparison count `k`. -/
 private theorem bracket_rat (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     let s := rationalSqrtBracket q k;
     0 ≤ s.1 ∧ s.1 ≤ s.2.1 ∧ s.2.1 ≤ 1 ∧ s.1 ^ 2 ≤ q ∧ q ≤ s.2.1 ^ 2 ∧
@@ -71,6 +108,8 @@ private theorem bracket_rat (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
         _ = ((rationalSqrtBracket q k).2.1 - (rationalSqrtBracket q k).1) / 2 := by ring
         _ = _ := by rw [hw]; ring
 
+/-- For `q` in [0, 1], the rational bracket has width 2^(-k), uses exactly `k` comparisons,
+encloses sqrt(q), and approximates it at the lower endpoint within 2^(-k). -/
 theorem rational_sqrt_bracket_actual_interval_and_comparisons (q : ℚ) (k : ℕ)
     (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     let s : ℚ × ℚ × ℕ := rationalSqrtBracket q k;
@@ -97,6 +136,7 @@ theorem rational_sqrt_bracket_actual_interval_and_comparisons (q : ℚ) (k : ℕ
   rw [abs_of_nonpos (by linarith)]
   linarith
 
+/-- For `q` in [0, 1], the rational stereographic payoff parameter also lies in [0, 1]. -/
 private theorem payoff_parameter_interval (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     0 ≤ rationalPayoffParameter q k ∧ rationalPayoffParameter q k ≤ 1 := by
   have h := bracket_rat q k hq hq1
@@ -105,6 +145,8 @@ private theorem payoff_parameter_interval (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq
   have hd : 0 < 1 + (rationalSqrtBracket (1 - q) k).1 := by linarith [h'.1]
   exact ⟨div_nonneg h.1 hd.le, (div_le_one hd).mpr (by linarith [h.2.1, h.2.2.1, h'.1])⟩
 
+/-- The squares of the rational cosine and sine components sum exactly to one for every input
+and precision. -/
 theorem rationalPayoffCS_circle (q : ℚ) (k : ℕ) :
     (rationalPayoffCS q k).1 ^ 2 + (rationalPayoffCS q k).2 ^ 2 = 1 := by
   have hd : (1 + rationalPayoffParameter q k ^ 2 : ℚ) ≠ 0 := by positivity
@@ -112,6 +154,8 @@ theorem rationalPayoffCS_circle (q : ℚ) (k : ℕ) :
   field_simp
   ring
 
+/-- For `q` in [0, 1], both rational rotation components are nonnegative and the encoded payoff
+lies in [0, 1]. -/
 theorem rationalPayoffCS_probability (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     0 ≤ (rationalPayoffCS q k).1 ∧ 0 ≤ (rationalPayoffCS q k).2 ∧
       0 ≤ rationalPayoffValue q k ∧ rationalPayoffValue q k ≤ 1 := by
@@ -123,6 +167,8 @@ theorem rationalPayoffCS_probability (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q
   dsimp only [rationalPayoffValue]
   nlinarith [rationalPayoffCS_circle q k, sq_nonneg (rationalPayoffCS q k).1]
 
+/-- For bounded rational payoffs, the rational rotation equals the ideal payoff rotation for its
+encoded rational probability values. -/
 theorem rationalPayoffRotation_eq_payoffRotation
     {I : Type} [Fintype I] [DecidableEq I] (f : I → ℚ) (k : ℕ)
     (hf : ∀ i, 0 ≤ f i ∧ f i ≤ 1) :
@@ -146,6 +192,8 @@ theorem rationalPayoffRotation_eq_payoffRotation
       simp [rationalPayoffRotation, (hcs i).1, (hcs i).2]
   · cases b <;> cases c <;> simp [rationalPayoffRotation, hij]
 
+/-- For parameters in [0, 1] separated by at most a nonnegative `Δ`, each stereographic
+unit-circle component differs by at most 4Δ. -/
 private theorem cayley_lipschitz (t u Δ : ℝ) (ht : 0 ≤ t) (ht1 : t ≤ 1)
     (hu : 0 ≤ u) (hu1 : u ≤ 1) (hΔ : 0 ≤ Δ) (hdiff : |t - u| ≤ Δ) :
     |(1 - t ^ 2) / (1 + t ^ 2) - (1 - u ^ 2) / (1 + u ^ 2)| ≤ 4 * Δ ∧
@@ -178,6 +226,8 @@ private theorem cayley_lipschitz (t u Δ : ℝ) (ht : 0 ≤ t) (ht1 : t ≤ 1)
       _ ≤ 2 * Δ * 1 := mul_le_mul (by nlinarith) hprod (abs_nonneg _) (by positivity)
       _ ≤ 4 * Δ * D := by nlinarith
 
+/-- For nonnegative unit-circle coordinates `s` and `c`, the stereographic parameter s/(1 + c)
+recovers `c` and `s` by the rational circle formulas. -/
 private theorem sqrt_stereographic (s c : ℝ) (hs : 0 ≤ s) (hc : 0 ≤ c)
     (hcircle : s ^ 2 + c ^ 2 = 1) :
     (1 - (s / (1 + c)) ^ 2) / (1 + (s / (1 + c)) ^ 2) = c ∧
@@ -190,6 +240,8 @@ private theorem sqrt_stereographic (s c : ℝ) (hs : 0 ≤ s) (hc : 0 ≤ c)
   · field_simp
     nlinarith [hcircle]
 
+/-- For `q` in [0, 1], the rational cosine and sine approximate sqrt(1 - q) and sqrt(q),
+respectively, within 16/2^k. -/
 theorem rationalPayoffCS_sqrt_error (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     |((rationalPayoffCS q k).1 : ℝ) - Real.sqrt (1 - (q : ℝ))| ≤ 16 / 2 ^ k ∧
       |((rationalPayoffCS q k).2 : ℝ) - Real.sqrt (q : ℝ)| ≤ 16 / 2 ^ k := by
@@ -260,6 +312,7 @@ theorem rationalPayoffCS_sqrt_error (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q 
   rw [show 4 * (4 * d) = 16 / 2 ^ k by dsimp [d]; ring] at he
   exact he
 
+/-- For `q` in [0, 1], the encoded rational probability differs from `q` by at most 64/2^k. -/
 theorem rationalPayoffValue_error (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q ≤ 1) :
     |(rationalPayoffValue q k : ℝ) - (q : ℝ)| ≤ 64 / 2 ^ k := by
   let b : ℝ := (rationalPayoffCS q k).2
@@ -290,6 +343,8 @@ theorem rationalPayoffValue_error (q : ℚ) (k : ℕ) (hq : 0 ≤ q) (hq1 : q �
       rw [show (16 : ℝ) / 2 ^ k * 2 = 32 / 2 ^ k by ring]
       exact div_le_div_of_nonneg_right (by norm_num) (by positivity)
 
+/-- For rational payoffs in [0, 1], the operator norm distance between the rational and ideal
+payoff rotations is at most 32/2^k. -/
 theorem rationalPayoffRotation_error {I : Type} [Fintype I] [DecidableEq I]
     (f : I → ℚ) (k : ℕ) (hf : ∀ i, 0 ≤ f i ∧ f i ≤ 1) :
     ‖rationalPayoffRotation f k - payoffRotation (fun i => (f i : ℝ))‖ ≤ 32 / 2 ^ k := by
@@ -332,6 +387,9 @@ theorem rationalPayoffRotation_error {I : Type} [Fintype I] [DecidableEq I]
       ((norm_mul_le _ _).trans (mul_le_mul hS hX (norm_nonneg X) (by positivity)))
     _ = _ := by ring
 
+/-- For bounded rational payoffs, the rational rotation is unitary, its encoded probabilities
+lie in [0, 1] with error at most 64/2^k, and its operator norm error is at most 32/2^k. This
+supports the payoff encoding of [Montanaro2015, Algorithm 1][Montanaro2015]. -/
 theorem rational_payoff_unitary_value_and_operator_error
     (I : Type) [Fintype I] [DecidableEq I] (f : I → ℚ) (k : ℕ)
     (hf : ∀ i, 0 ≤ f i ∧ f i ≤ 1) :

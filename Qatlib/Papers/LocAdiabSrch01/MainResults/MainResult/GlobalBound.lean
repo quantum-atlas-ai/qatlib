@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Spectrum
+
+/-!
+# A global adiabatic condition for search
+
+This module verifies a scalar sufficient condition for the global search schedule discussed in
+[RolandCerf2002]. If the squared minimum gap is `1 / N`, the derivative magnitude is at most
+one, and `T ≥ N / ε`, then `global_adiabatic_condition` bounds the resulting adiabatic ratio by
+`ε`.
+
+## Main statements
+
+* `global_adiabatic_condition`: Bounds the derivative-to-gap ratio under the stated runtime
+  condition.
+
+## References
+
+* [Roland and Cerf, 2002][RolandCerf2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +33,8 @@ open Real
 
 namespace Qatlib.Papers.LocAdiabSrch01.MainResults.MainResult
 
+/-- For positive `N`, `ε`, and `T`, a squared gap `1 / N`, derivative magnitude at most one, and
+runtime `T ≥ N / ε` imply `|dHds| / (T * gmin^2) ≤ ε` [RolandCerf2002]. -/
 theorem global_adiabatic_condition
     {N ε gmin dHds T : ℝ} (hN : 0 < N) (hε : 0 < ε) (hT : 0 < T)
     (hgmin : gmin ^ 2 = 1 / N)

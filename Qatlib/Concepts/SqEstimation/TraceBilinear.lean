@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+
+/-!
+# Trace and bilinear-form estimation consumers
+
+This module applies finite complex inner-product estimation to matrix traces and bilinear forms.
+`sqMatrix_sampler_factorization` splits an entry sampler into row and conditional column
+samplers, while `sqMatrixRunCalls` and `sqBilinearRunCalls` translate the access ledger into
+matrix and vector operations.
+
+`sqBilinearEstimate` conjugates the componentwise median to estimate xᴴAy. A two-dimensional
+example has a nonreal trace target and an explicit constant-envelope access record. For
+background, see [ChiaEtAl2022].
+
+## Main statements
+
+* `finite_sq_matrix_trace_same_record_and_query_consumer`: combines trace identification,
+  sampler factorization, query counts, and an error bound.
+* `finite_sq_bilinear_query_consumer`: gives the bilinear target, norm factorization, access
+  counts, and failure bound.
+* `finite_sq_nonreal_two_matrix_consumer`: instantiates the estimator at target 3 + i.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,28 +43,41 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Concepts.SqEstimation.TraceBilinear
 
+/-- The row marginal of the finite matrix-entry sampling distribution. -/
 noncomputable def sqMatrixRowProbability {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (i : Fin n) : ℝ := ∑ j, a.samples.prob (i,j)
+/-- The conditional column probability given a row, using a point mass at column zero when the
+row marginal is zero. -/
 noncomputable def sqMatrixColumnProbability {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (i j : Fin n) : ℝ :=
   if sqMatrixRowProbability a i=0 then (if j.val=0 then 1 else 0) else
     a.samples.prob (i,j)/sqMatrixRowProbability a i
+/-- The trace-estimation access ledger obtained by replacing each envelope-entry sample with a
+row sample followed by a column sample. -/
 noncomputable def sqMatrixRunCalls {n : ℕ} (a : FiniteSQInput (Fin n × Fin n)) (A : Operator n)
     (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin n × Fin n) : List SQCall :=
   (sqRunCalls a (fun p => A p.1 p.2) m r ω).flatMap (fun c =>
     if c=.sampleEnvelope then [.sampleRow,.sampleColumn] else [c])
+/-- The two-dimensional test matrix with rows `(1, i)` and `(0, 1)`. -/
 noncomputable def sqConsumerA : Operator 2 := ![![1,Complex.I],![0,1]]
+/-- The two-dimensional test matrix with rows `(1, 1)` and `(0, 2)`. -/
 noncomputable def sqConsumerB : Operator 2 := ![![1,1],![0,2]]
 
+/-- The conjugate of the componentwise median inner-product estimator applied to the
+outer-product entries `x i * star (y j)`. -/
 noncomputable def sqBilinearEstimate {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (x y : Fin n → ℂ) (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin n × Fin n) : ℂ :=
   star (sqMedian a (fun p => x p.1*star (y p.2)) m r ω)
+/-- The bilinear-estimation ledger replacing envelope samples by row and column samples and
+outer-product queries by left- and right-vector entry queries. -/
 noncomputable def sqBilinearRunCalls {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (x y : Fin n → ℂ) (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin n × Fin n) : List SQCall :=
   (sqRunCalls a (fun p => x p.1*star (y p.2)) m r ω).flatMap (fun c =>
     if c=.sampleEnvelope then [.sampleRow,.sampleColumn] else
       if c=.otherEntry then [.leftVectorEntry,.rightVectorEntry] else [c])
 
+/-- A finite matrix-entry sampler factors into a row marginal and conditional column
+distributions with the prescribed probabilities. -/
 theorem sqMatrix_sampler_factorization {n : ℕ} (a : FiniteSQInput (Fin n × Fin n)) :
     ∃ (rows : FinDist (Fin n)) (cols : Fin n → FinDist (Fin n)),
       ∀ i j, rows.prob i = sqMatrixRowProbability a i ∧
@@ -87,12 +126,16 @@ theorem sqMatrix_sampler_factorization {n : ℕ} (a : FiniteSQInput (Fin n × Fi
     simp [hi, hz]
   · simp [sqMatrixColumnProbability, hi, mul_div_cancel₀ _ hi]
 
+/-- When the access target is `B`, its inner product with the entries of `A` equals the trace of
+ABᴴ. -/
 theorem sqInnerTarget_matrix_trace {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (A B : Operator n) (hB : ∀ p, a.target p = B p.1 p.2) :
     sqInnerTarget a.target (fun p => A p.1 p.2) = Matrix.trace (A*Bᴴ) := by
   simp only [sqInnerTarget, Matrix.trace, Matrix.diag_apply, Matrix.mul_apply, Matrix.conjTranspose_apply,
     Fintype.sum_prod_type, hB, mul_comm]
 
+/-- When the access target is `A`, its inner product with the entries of xyᴴ is the complex
+conjugate of xᴴAy. -/
 theorem sqInnerTarget_bilinear {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (A : Operator n) (hA : ∀ p, a.target p = A p.1 p.2) (x y : Fin n → ℂ) :
     sqInnerTarget a.target (fun p => x p.1 * star (y p.2)) =
@@ -104,6 +147,8 @@ theorem sqInnerTarget_bilinear {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
   intro j _
   ring
 
+/-- The squared norm of the vectorized outer product xyᴴ is the product of the squared norms of
+`x` and `y`. -/
 theorem sqSquaredNorm_outer {n : ℕ} (x y : Fin n → ℂ) :
     sqSquaredNorm (fun p : Fin n × Fin n => x p.1*star (y p.2)) =
       sqSquaredNorm x * sqSquaredNorm y := by
@@ -111,6 +156,8 @@ theorem sqSquaredNorm_outer {n : ℕ} (x y : Fin n → ℂ) :
     Complex.star_def, Complex.normSq_conj, Finset.mul_sum, Finset.sum_mul]
   exact Finset.sum_comm
 
+/-- Expanding each envelope sample into row and column samples adds the original envelope-sample
+count to each corresponding sample count. -/
 private theorem sq_matrix_calls_counts (xs : List SQCall) :
     (xs.flatMap (fun c => if c = .sampleEnvelope then [.sampleRow,.sampleColumn] else [c])).count .sampleRow =
       xs.count .sampleEnvelope + xs.count .sampleRow ∧
@@ -121,6 +168,8 @@ private theorem sq_matrix_calls_counts (xs : List SQCall) :
   | cons c xs ih =>
     cases c <;> simp_all [List.flatMap_cons] <;> omega
 
+/-- The matrix-estimation ledger has exactly `(2*r+1)*m` row samples and the same number of
+column samples. -/
 theorem sqMatrixRunCalls_counts {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (A : Operator n) (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin n × Fin n) :
     (sqMatrixRunCalls a A m r ω).count .sampleRow = (2*r+1)*m ∧
@@ -128,6 +177,10 @@ theorem sqMatrixRunCalls_counts {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
   have h := sq_matrix_calls_counts (sqRunCalls a (fun p => A p.1 p.2) m r ω)
   simpa [sqMatrixRunCalls, sqRunCalls_count] using! h
 
+/-- For access target `B`, the matrix-entry sampler factors into row and column laws, the
+inner-product target is tr(ABᴴ), and each sample category has count `(2*r+1)*m`. Positive
+block size and tolerance satisfying the stated norm budget give the complex median failure
+bound from [Chia et al., Lemma 4.12][ChiaEtAl2022]. -/
 theorem finite_sq_matrix_trace_same_record_and_query_consumer (n : ℕ)
     (a : FiniteSQInput (Fin n × Fin n)) (A B : Operator n)
     (hB : ∀ p, a.target p = B p.1 p.2) (m r : ℕ) (ε : ℝ)
@@ -151,6 +204,8 @@ theorem finite_sq_matrix_trace_same_record_and_query_consumer (n : ℕ)
   simpa only [sqBadMass, sqInnerTarget_matrix_trace a A B hB] using!
     finite_sq_component_median_complex_guarantee _ a (fun p => A p.1 p.2) m r ε hm hε hb
 
+/-- Expanding envelope samples and outer-product queries adds their original counts to the row,
+column, left-vector, and right-vector categories as specified. -/
 private theorem sq_bilinear_calls_counts (xs : List SQCall) :
     let ys := xs.flatMap (fun c => if c = .sampleEnvelope then [.sampleRow,.sampleColumn] else
       if c = .otherEntry then [.leftVectorEntry,.rightVectorEntry] else [c])
@@ -163,6 +218,8 @@ private theorem sq_bilinear_calls_counts (xs : List SQCall) :
   | cons c xs ih =>
     cases c <;> simp_all [List.flatMap_cons] <;> omega
 
+/-- The bilinear ledger uses exactly `(2*r+1)*m` row samples, column samples, left-vector
+queries, and right-vector queries. -/
 theorem sqBilinearRunCalls_counts {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
     (x y : Fin n → ℂ) (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin n × Fin n) :
     (sqBilinearRunCalls a x y m r ω).count .sampleRow = (2*r+1)*m ∧
@@ -172,6 +229,10 @@ theorem sqBilinearRunCalls_counts {n : ℕ} (a : FiniteSQInput (Fin n × Fin n))
   have h := sq_bilinear_calls_counts (sqRunCalls a (fun p => x p.1 * star (y p.2)) m r ω)
   simpa [sqBilinearRunCalls, sqRunCalls_count] using! h
 
+/-- For access target `A`, the inner-product target is the conjugate of xᴴAy and the
+outer-product squared norm factors into the vector squared norms. The ledger has the stated
+four equal access counts, and the norm-budget hypotheses give the median failure bound for
+xᴴAy from [Chia et al., Lemma 4.12][ChiaEtAl2022]. -/
 theorem finite_sq_bilinear_query_consumer (n : ℕ) (a : FiniteSQInput (Fin n × Fin n))
     (A : Operator n) (hA : ∀ p, a.target p = A p.1 p.2) (x y : Fin n → ℂ)
     (m r : ℕ) (ε : ℝ) (ω : Fin (2*r+1) → Fin m → Fin n × Fin n) :
@@ -207,6 +268,8 @@ theorem finite_sq_bilinear_query_consumer (n : ℕ) (a : FiniteSQInput (Fin n ×
     rw [← norm_star, star_sub, star_star]
   simpa only [heq] using! h
 
+/-- Finite access to `sqConsumerB` using the constant envelope two, uniform entry sampling, and
+cached squared envelope norm sixteen. -/
 noncomputable def sqConsumerInput : FiniteSQInput (Fin 2 × Fin 2) where
   target p := sqConsumerB p.1 p.2
   envelope _ := 2
@@ -224,6 +287,10 @@ noncomputable def sqConsumerInput : FiniteSQInput (Fin 2 × Fin 2) where
     intro p
     norm_num [sqSquaredNorm, Fintype.sum_prod_type, Fin.sum_univ_two]
 
+/-- There exists constant-envelope, uniform-entry access to `sqConsumerB` whose inner-product
+target with `sqConsumerA` is `3 + Complex.I`. Under positive block size and tolerance with
+`3072 ≤ m * ε²`, it satisfies the stated median failure bound, instantiating [Chia et al.,
+Lemma 4.12][ChiaEtAl2022]. -/
 theorem finite_sq_nonreal_two_matrix_consumer :
     ∃ a : FiniteSQInput (Fin 2 × Fin 2),
       (∀ p, a.target p = sqConsumerB p.1 p.2) ∧ (∀ p, a.envelope p = 2) ∧

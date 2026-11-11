@@ -11,6 +11,29 @@ import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsLows
+
+/-!
+# Forward and reverse bounds for tunable schedules
+
+This module proves `Clause8TunableUniversality_answer`. Forward bounds express minimal round
+counts using a natural ceiling and control total loss by the sum of thresholds; reverse bounds
+reconstruct thresholds from sufficiently small positive pre-amplitudes and bound their sum by
+the negative logarithm of total loss.
+
+The schedule analysis supports variable-time amplitude amplification [Ambainis2012]. For
+universality of tunable VTAA, see [LowSu2026].
+
+## Main statements
+
+* `Clause8TunableUniversality_answer`: Proves the forward schedule formulas and reverse
+  threshold guarantees.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +53,7 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators
 
+/-- For `α` in the unit interval, `(5 / 6) ^ α ≤ 1 - α / 6`. -/
 private theorem rpow_five_six_le (α : ℝ) (h0 : 0 ≤ α) (h1 : α ≤ 1) :
     (5 / 6 : ℝ) ^ α ≤ 1 - α / 6 := by
   have h := Real.geom_mean_le_arith_mean2_weighted (w₁ := α) (w₂ := 1 - α)
@@ -39,6 +63,8 @@ private theorem rpow_five_six_le (α : ℝ) (h0 : 0 ≤ α) (h1 : α ≤ 1) :
   rw [hone, mul_one] at h
   nlinarith
 
+/-- For a positive real base, a finite product of real powers equals the base raised to the sum
+of the exponents. -/
 private theorem prod_rpow {ι : Type} [Fintype ι] (b : ℝ) (hb : 0 < b) (f : ι → ℝ) :
     (∏ i, b ^ f i) = b ^ ∑ i, f i := by
   have hdef : ∀ x : ℝ, b ^ x = Real.exp (Real.log b * x) := fun x =>
@@ -49,12 +75,15 @@ private theorem prod_rpow {ι : Type} [Fintype ι] (b : ℝ) (hb : 0 < b) (f : �
     _ = Real.exp (Real.log b * ∑ i, f i) := by rw [← Finset.mul_sum]
     _ = b ^ ∑ i, f i := (hdef _).symm
 
+/-- For real `u < 1`, `u ≤ -Real.log (1 - u)`. -/
 private theorem neg_log_one_sub_le (u : ℝ) (_h0 : 0 ≤ u) (h1 : u < 1) :
     u ≤ -Real.log (1 - u) := by
   have hpos : 0 < 1 - u := by linarith
   have h := Real.log_le_sub_one_of_pos hpos
   nlinarith
 
+/-- For a natural factor at least one, a linearized amplitude at most one implies an amplified
+arcsine angle at most `Real.pi / 2`. -/
 private theorem mul_arcsin_le_pi_div_two (ρ : ℕ) (a : ℝ) (hρ : 1 ≤ ρ)
     (_ha : 0 ≤ a) (hle : (ρ : ℝ) * a ≤ 1) :
     (ρ : ℝ) * Real.arcsin a ≤ Real.pi / 2 := by
@@ -83,21 +112,27 @@ private theorem mul_arcsin_le_pi_div_two (ρ : ℕ) (a : ℝ) (hρ : 1 ≤ ρ)
     field_simp
   nlinarith [mul_le_mul_of_nonneg_left harc (le_of_lt hρpos)]
 
+/-- The natural ceiling of a nonpositive real number is zero. -/
 private theorem ceil_eq_zero_of_nonpos {x : ℝ} (hx : x ≤ 0) : Nat.ceil x = 0 :=
   Nat.ceil_eq_zero.mpr hx
 
+/-- A real number strictly above `n - 1` and at most a nonzero natural `n` has natural ceiling
+`n`. -/
 private theorem ceil_eq_of_mem {x : ℝ} {n : ℕ} (hn : n ≠ 0)
     (hlo : ((n - 1 : ℕ) : ℝ) < x) (hhi : x ≤ (n : ℝ)) : Nat.ceil x = n :=
   (Nat.ceil_eq_iff hn).mpr ⟨hlo, hhi⟩
 
+/-- The squared vector norm equals the sum of squared coordinate norms. -/
 private theorem normVec_sq_eq {H : Type} [Fintype H] (v : QState H) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   show ‖toEuclidean_fromVec v‖ ^ 2 = _
   exact norm_toEuclidean_fromVec_sq v
 
+/-- The vector norm is nonnegative. -/
 private theorem normVec_nonneg' {H : Type} [Fintype H] (v : QState H) :
     0 ≤ normVec v := norm_nonneg _
 
+/-- Real scalar multiplication scales the vector norm by the scalar's absolute value. -/
 private theorem normVec_smul_real {H : Type} [Fintype H] (r : ℝ) (v : QState H) :
     normVec ((r : ℂ) • v) = |r| * normVec v := by
   have hkey : normVec ((r : ℂ) • v) ^ 2 = (|r| * normVec v) ^ 2 := by
@@ -109,6 +144,7 @@ private theorem normVec_smul_real {H : Type} [Fintype H] (r : ℝ) (v : QState H
   · exact le_of_sq_le_sq hkey.le (mul_nonneg (abs_nonneg _) (norm_nonneg _))
   · exact le_of_sq_le_sq hkey.ge (norm_nonneg _)
 
+/-- An orthogonal projector cannot increase the vector norm. -/
 private theorem normVec_mul_proj_le {H : Type} [Fintype H] [DecidableEq H]
     (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) (v : QState H) :
     normVec (G *ᵥ v) ≤ normVec v := by
@@ -119,6 +155,7 @@ private theorem normVec_mul_proj_le {H : Type} [Fintype H] [DecidableEq H]
   have h3 := (h2.mp hG') v
   simpa [Matrix.one_mulVec] using! h3
 
+/-- A legal word of unitary oracles sends a normalized input to a clock state of norm one. -/
 private theorem normVec_clockState_eq_one {H : Type} [Fintype H] [DecidableEq H]
     {slots : ℕ} (U : ℕ → Matrix H H ℂ) (C : Word H 1) (ω : QState H)
     (hU : ∀ j < slots, U j ∈ Matrix.unitaryGroup H ℂ)
@@ -138,6 +175,7 @@ private theorem normVec_clockState_eq_one {H : Type} [Fintype H] [DecidableEq H]
   have hnn : 0 ≤ normVec (clockState U C ω) := norm_nonneg _
   nlinarith
 
+/-- A fully controlled matrix acts on the unique clock slice by its underlying data matrix. -/
 private theorem controlled_univ_apply {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (v : QState (Space H 1)) (h : H) :
     (controlled U Finset.univ *ᵥ v) (h, (0 : Fin 1))
@@ -154,6 +192,7 @@ private theorem controlled_univ_apply {H : Type} [Fintype H] [DecidableEq H]
   simp_rw [hfin]
   rfl
 
+/-- Appending a stage word applies its oracle to the current clock state. -/
 private theorem clockState_append_call {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (C : Word H 1) (k : ℕ) (ω : QState H) :
     clockState U (C ++ stageWord k) ω = U k *ᵥ clockState U C ω := by
@@ -172,18 +211,23 @@ private theorem clockState_append_call {H : Type} [Fintype H] [DecidableEq H]
   rw [hL, controlled_univ_apply]
   rfl
 
+/-- The next plain prefix appends the next stage word to the preceding plain prefix. -/
 private theorem plainPrefix_succ {H : Type} (k : ℕ) :
     plainPrefix (k + 1) = (plainPrefix k ++ stageWord (k + 1) : Word H 1) := by
   simp [plainPrefix, stageWord, List.range_succ, List.map_append]
 
+/-- The plain prefix at zero is the stage-zero word. -/
 private theorem plainPrefix_zero {H : Type} : plainPrefix 0 = (stageWord 0 : Word H 1) := by
   simp [plainPrefix, stageWord, List.range_succ]
 
+/-- The nested word at zero is the stage-zero word. -/
 private theorem nestedWord_zero {H : Type} [Fintype H] [DecidableEq H]
     {P : ℕ → Matrix H H ℂ} {bad : Matrix H H ℂ}
     {ω : QState H} {rounds : ℕ → ℕ} :
     nestedWord P bad ω rounds 0 = stageWord 0 := rfl
 
+/-- The next nested word amplifies the current nested word followed by the next stage, using the
+next potential and round count. -/
 private theorem nestedWord_succ {H : Type} [Fintype H] [DecidableEq H]
     {P : ℕ → Matrix H H ℂ} {bad : Matrix H H ℂ}
     {ω : QState H} {rounds : ℕ → ℕ} (k : ℕ) :
@@ -191,6 +235,8 @@ private theorem nestedWord_succ {H : Type} [Fintype H] [DecidableEq H]
       = aaWord (nestedWord P bad ω rounds k ++ stageWord (k + 1)) ω
           (potential (P (k + 1)) bad) (rounds (k + 1)) := rfl
 
+/-- For amplitudes and thresholds at most one, a minimal round count reaching the square-root
+threshold divided by three has linearized amplitude at most one. -/
 private theorem schedule_bound (r : ℕ) (a β αk : ℝ)
     (_ha : 0 ≤ a) (ha1 : a ≤ 1) (_hα0 : 0 ≤ αk) (hα1 : αk ≤ 1)
     (hb : β = Real.sqrt αk)
@@ -236,6 +282,8 @@ private theorem schedule_bound (r : ℕ) (a β αk : ℝ)
       linarith
     nlinarith [ha2, hsum, hle, _ha, hρpos]
 
+/-- For positive amplitude `a`, the minimal round count reaching `β / 3` is `Nat.ceil (β / (6 *
+a) - 1 / 2)` when `β` is the square root of the threshold. -/
 private theorem schedule_ceil (r : ℕ) (a β αk : ℝ)
     (ha : 0 < a) (_hα0 : 0 ≤ αk)
     (hb : β = Real.sqrt αk)
@@ -291,6 +339,8 @@ private theorem schedule_ceil (r : ℕ) (a β αk : ℝ)
       linarith
     exact (ceil_eq_of_mem hr0 hlo hhi).symm
 
+/-- For a positive minimal round count, the squared linearized amplitude is strictly below the
+threshold used in the stopping criterion. -/
 private theorem schedule_sq_lt (r : ℕ) (a β αk : ℝ)
     (_ha : 0 ≤ a) (hα0 : 0 ≤ αk) (hr : 1 ≤ r)
     (hb : β = Real.sqrt αk)
@@ -316,6 +366,9 @@ private theorem schedule_sq_lt (r : ℕ) (a β αk : ℝ)
     exact Real.sq_sqrt hα0
   nlinarith [hβsq]
 
+/-- Establishes the ceiling formula and loss lower bound for tunable schedules, together with
+reverse-threshold tunability and a logarithmic loss bound, as specified by
+`Clause8TunableUniversality`. See [Low and Su, Proposition 4][LowSu2026]. -/
 theorem Clause8TunableUniversality_answer : Clause8TunableUniversality := by
   intro H _instF _instD m P bad U ω α rs hclock hstage hnorm hplain
   (try dsimp only)

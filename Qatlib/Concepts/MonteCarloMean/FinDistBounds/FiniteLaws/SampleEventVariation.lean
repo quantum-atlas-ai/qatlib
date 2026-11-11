@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteDistributionVariation
 import Mathlib.Data.Fin.Tuple.Basic
+
+/-!
+# Total variation for sample events
+
+Total variation between independent sample records grows by at most the record length. The event
+bound `event_distance` and transport result `risk_transfer` convert approximation of a
+single-observation law into risk bounds for arbitrary decidable record events. For the
+connection with statistical distinguishability, see [Watrous2018].
+
+## Main statements
+
+* `record_tv`: record total variation is at most `n` times single-observation total variation.
+* `event_distance`: sample-event probabilities differ by at most the same quantity.
+* `risk_transfer`: risk bounds transfer with additive error n·eps.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +38,8 @@ open scoped BigOperators
 
 variable {X : Type} [Fintype X]
 
+/-- The L1 distance between two product laws is at most the sum of the L1 distances between
+their respective factors. -/
 theorem product_l1 {Y : Type} [Fintype Y] (p q : FinDist X) (r s : FinDist Y) :
     (∑ x, ∑ y, |p.prob x * r.prob y - q.prob x * s.prob y|) ≤
       (∑ x, |p.prob x - q.prob x|) + ∑ y, |r.prob y - s.prob y| := by
@@ -38,6 +60,8 @@ theorem product_l1 {Y : Type} [Fintype Y] (p q : FinDist X) (r s : FinDist Y) :
       simp only [Finset.sum_add_distrib, ← Finset.mul_sum, r.sum_one, mul_one]
       rw [← Finset.sum_mul, q.sum_one, one_mul]
 
+/-- The L1 distance for records of length `n + 1` equals the double sum obtained by separating
+the first observation from the remaining record. -/
 theorem record_l1_succ (p q : FinDist X) (n : ℕ) :
     (∑ w : Fin (n + 1) → X, |p.probOf w - q.probOf w|) =
       ∑ x : X, ∑ w : Fin n → X,
@@ -54,6 +78,8 @@ theorem record_l1_succ (p q : FinDist X) (n : ℕ) :
 
 variable [DecidableEq X]
 
+/-- The L1 distance between length-`n` independent record laws is at most `n` times the
+single-observation L1 distance. -/
 theorem record_l1 (p q : FinDist X) (n : ℕ) :
     (∑ w : Fin n → X, |p.probOf w - q.probOf w|) ≤
       (n : ℝ) * ∑ x, |p.prob x - q.prob x| := by
@@ -67,6 +93,8 @@ theorem record_l1 (p q : FinDist X) (n : ℕ) :
     have h' := h.trans (add_le_add_right ih _)
     simpa only [Nat.cast_add, Nat.cast_one, add_mul, one_mul, add_comm] using h'
 
+/-- The total variation distance between `n`-observation record laws is at most `n` times the
+total variation distance of their underlying laws. -/
 theorem record_tv (p q : FinDist X) (n : ℕ) :
     tv (records p n) (records q n) ≤ (n : ℝ) * tv p q := by
   have h := div_le_div_of_nonneg_right (record_l1 p q n) (by norm_num : (0 : ℝ) ≤ 2)
@@ -74,6 +102,8 @@ theorem record_tv (p q : FinDist X) (n : ℕ) :
     (n : ℝ) * ((∑ x, |p.prob x - q.prob x|) / 2)
   simpa only [mul_div_assoc] using h
 
+/-- The probabilities of any decidable event on `n` observations differ by at most `n` times the
+single-observation total variation distance. -/
 theorem event_distance (p q : FinDist X) (n : ℕ)
     (E : (Fin n → X) → Prop) [DecidablePred E] :
     |p.probEvent E - q.probEvent E| ≤ (n : ℝ) * tv p q := by
@@ -81,6 +111,8 @@ theorem event_distance (p q : FinDist X) (n : ℕ)
     (Finset.univ.filter E)
   exact h.trans (record_tv p q n)
 
+/-- An event risk bound under `q` transfers to `p` with additive error n·eps when their
+single-observation total variation is at most `eps`. -/
 theorem risk_transfer (p q : FinDist X) (n : ℕ)
     (E : (Fin n → X) → Prop) [DecidablePred E] (risk eps : ℝ)
     (hrisk : q.probEvent E ≤ risk) (happrox : tv p q ≤ eps) :

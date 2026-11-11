@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+
+/-!
+# Arithmetic and workspace implementation checks
+
+This module proves correctness bounds for the fuelled Euclidean algorithm and constructs a
+greatest common divisor machine over a natural pair alphabet. It also bounds the peak space of
+valid live word schedules and packages arithmetic, access, and loading ledgers in `clause11`.
+The surrounding quantum circuit setting follows [NielsenChuang2010].
+
+The final results refute unrestricted real and complex quantization guarantees for the natural
+floor based quantizer, and use the real counterexample to refute the combined implementation
+target `not_thresholdGoal`.
+
+## Main statements
+
+* `euclid_gcd_fuel`: correctness with `2 * L + 1` steps for inputs below `2 ^ L`.
+* `peakSpace_le`: the live workspace bound.
+* `clause11`: the combined implementation accounting statement.
+* `not_thresholdGoal`: failure of the unrestricted implementation conjunction.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -39,24 +64,30 @@ open Qatlib.Concepts.RiskEstimation.PopulationGap Qatlib.Concepts.PeriodSampling
 open Matrix
 open scoped Classical BigOperators
 
+/-- Unfolds one step of the fuelled Euclidean algorithm, returning `a` if `b` is zero and
+otherwise recursing on `b` and `a % b`. -/
 theorem euclidGcd_succ (fuel a b : ℕ) :
     euclidGcd (fuel + 1) a b = if b = 0 then a else euclidGcd fuel b (a % b) := rfl
 
+/-- The greatest common divisor is unchanged by replacing `(a, b)` with `(b, a % b)`. -/
 theorem gcd_swap (a b : ℕ) : Nat.gcd a b = Nat.gcd b (a % b) := by
   rw [Nat.gcd_comm, Nat.gcd_rec]
   exact Nat.gcd_comm _ _
 
+/-- If `b ≤ a < 2 * b`, the remainder of `a` modulo `b` equals `a - b`. -/
 theorem mod_eq_sub_of_half (a b : ℕ) (h1 : b ≤ a) (h2 : a < 2 * b) :
     a % b = a - b := by
   have hsub : a % b = (a - b) % b := Nat.mod_eq_sub_mod h1
   have hlt : a - b < b := by omega
   rw [hsub, Nat.mod_eq_of_lt hlt]
 
+/-- If `b ≤ a < 2 * b` and `a % b = 0`, then `a = b`. -/
 theorem eq_of_mod_zero_of_half (a b : ℕ) (h1 : b ≤ a) (h2 : a < 2 * b)
     (h3 : a % b = 0) : a = b := by
   have key : a % b = a - b := mod_eq_sub_of_half a b h1 h2
   omega
 
+/-- If `b ≤ a < 2 ^ (c + 1)` and `a < 2 * b` with positive `b`, then `a % b < 2 ^ c`. -/
 theorem mod_lt_half (a b c : ℕ) (h : a < 2 ^ (c + 1)) (h1 : b ≤ a) (h2 : 2 * b > a)
     (hb : 0 < b) : a % b < 2 ^ c := by
   have key : a % b = a - b := mod_eq_sub_of_half a b h1 h2
@@ -64,12 +95,15 @@ theorem mod_lt_half (a b c : ℕ) (h : a < 2 ^ (c + 1)) (h1 : b ≤ a) (h2 : 2 *
   rw [hpow] at h
   omega
 
+/-- If `a < 2 ^ (c + 1)` and `2 * b ≤ a`, then `b < 2 ^ c`. -/
 theorem euclidGcd_lt_half_le (a b c : ℕ) (h : a < 2 ^ (c + 1)) (hle : 2 * b ≤ a) :
     b < 2 ^ c := by
   have hpow : 2 ^ (c + 1) = 2 * 2 ^ c := pow_succ' 2 c
   rw [hpow] at h
   omega
 
+/-- For ordered inputs `b ≤ a < 2 ^ c`, at least `2 * c` units of fuel suffice to compute
+`Nat.gcd`. -/
 theorem euclidGcd_canon (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c ≤ fuel →
     b ≤ a → a < 2 ^ c → euclidGcd fuel a b = Nat.gcd a b := by
   induction c with
@@ -117,6 +151,8 @@ theorem euclidGcd_canon (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c ≤ fuel →
           rw [euclidGcd_succ, if_neg hmb0, ih f' (a % b) (b % (a % b)) hf'' hmble hmb2]
           exact ((gcd_swap b (a % b)).symm.trans (gcd_swap a b).symm)
 
+/-- For two inputs below `2 ^ c`, at least `2 * c + 1` units of fuel suffice to compute
+`Nat.gcd`. -/
 theorem euclidGcd_gen (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c + 1 ≤ fuel →
     a < 2 ^ c → b < 2 ^ c → euclidGcd fuel a b = Nat.gcd a b := by
   intro fuel a b hf ha hb
@@ -134,32 +170,44 @@ theorem euclidGcd_gen (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c + 1 ≤ fuel →
     rw [euclidGcd_canon c f b (a % b) hstep hle hb]
     exact (gcd_swap a b).symm
 
+/-- The Euclidean algorithm with fuel `2 * L + 1` computes the greatest common divisor of any
+two inputs below `2 ^ L`. -/
 theorem euclid_gcd_fuel (L a b : ℕ) (ha : a < 2 ^ L) (hb : b < 2 ^ L) :
     euclidGcd (2 * L + 1) a b = Nat.gcd a b :=
   euclidGcd_gen L (2 * L + 1) a b le_rfl ha hb
 
+/-- A machine over natural pair symbols that writes the greatest common divisor of the head pair
+in one transition and then halts. -/
 def gcdNativeMachine : Turing.TM0.Machine (ℕ × ℕ) Bool
   | false, g => some (true, Turing.TM0.Stmt.write (0, Nat.gcd g.1 g.2))
   | true, _ => none
 
+/-- Encodes an input pair as a singleton tape input, independently of the size parameter. -/
 def gcdNativeEncode (_N : ℕ) (p : ℕ × ℕ) : List (ℕ × ℕ) := [p]
 
+/-- Reads the second component of the tape head as the decoded output. -/
 def gcdNativeDecode (_N : ℕ) (cfg : Turing.TM0.Cfg (ℕ × ℕ) Bool) : ℕ :=
   cfg.Tape.head.2
 
+/-- From the false control state, the machine writes the head pair's greatest common divisor and
+enters the true control state. -/
 theorem gcdNative_step_head (T : Turing.Tape (ℕ × ℕ)) :
     Turing.TM0.step gcdNativeMachine ⟨false, T⟩ =
       some ⟨true, Turing.Tape.write (0, Nat.gcd T.head.1 T.head.2) T⟩ := by
   simp [Turing.TM0.step, gcdNativeMachine, Turing.Tape.write]
 
+/-- The greatest common divisor machine has no transition from the true control state. -/
 theorem gcdNative_step_halt (T : Turing.Tape (ℕ × ℕ)) :
     Turing.TM0.step gcdNativeMachine ⟨true, T⟩ = none :=
   rfl
 
+/-- The head of a tape constructed from a list equals the list's inhabited head. -/
 theorem gcdNative_head_mk₁ (l : List (ℕ × ℕ)) :
     (Turing.Tape.mk₁ l).head = List.headI l := by
   simp [Turing.Tape.mk₁, Turing.Tape.mk₂, Turing.Tape.mk', Turing.ListBlank.head_mk]
 
+/-- On a singleton pair input, the first transition writes `(0, Nat.gcd a b)` and enters the
+halting control state. -/
 theorem gcdNative_step_init (a b : ℕ) :
     Turing.TM0.step gcdNativeMachine (Turing.TM0.init [(a, b)]) =
       some ⟨true, Turing.Tape.write (0, Nat.gcd a b) (Turing.Tape.mk₁ [(a, b)])⟩ := by
@@ -168,10 +216,13 @@ theorem gcdNative_step_init (a b : ℕ) :
   simp only [gcdNative_head_mk₁, List.headI_cons] at h
   exact h
 
+/-- The initialized tape head is the inhabited head of its input list. -/
 theorem gcdNative_init_head (input : List (ℕ × ℕ)) :
     (Turing.Tape.mk₁ input).head = List.headI input :=
   gcdNative_head_mk₁ input
 
+/-- The natural pair alphabet machine computes the greatest common divisor using the specified
+encoder and decoder. -/
 theorem gcdNative_computes (N : ℕ) :
     MachineComputesGcd gcdNativeMachine (gcdNativeEncode N) (gcdNativeDecode N) := by
   intro a b
@@ -185,6 +236,8 @@ theorem gcdNative_computes (N : ℕ) :
       ⟨true, Turing.Tape.write (0, Nat.gcd a b) (Turing.Tape.mk₁ [(a, b)])⟩ = _
     rfl
 
+/-- The natural pair alphabet machine reaches a configuration with no outgoing transition after
+one step on every input list. -/
 theorem gcdNative_haltAt (input : List (ℕ × ℕ)) :
     ∃ final : Turing.TM0.Cfg (ℕ × ℕ) Bool,
       BitMachineAfter gcdNativeMachine input 1 = some final ∧
@@ -198,6 +251,8 @@ theorem gcdNative_haltAt (input : List (ℕ × ℕ)) :
     rw [gcdNative_step_head, gcdNative_init_head]
   · exact gcdNative_step_halt _
 
+/-- There exists a uniformly bounded family of greatest common divisor machines in the stated
+inhabited alphabet model. -/
 theorem uniformGcdGeneration : UniformGcdGeneration := by
   refine ⟨ℕ × ℕ, Bool, inferInstance, inferInstance,
     ⟨fun _ => gcdNativeMachine, gcdNativeEncode, gcdNativeDecode⟩, ?_, ?_⟩
@@ -208,6 +263,8 @@ theorem uniformGcdGeneration : UniformGcdGeneration := by
     obtain ⟨final, hrun, hstop⟩ := gcdNative_haltAt input
     exact ⟨1, final, hrun, hstop, by omega⟩
 
+/-- A right fold taking maxima from zero stays below any common upper bound on the values at the
+listed indices. -/
 theorem foldr_max_bound (live : ℕ → ℕ) (xs : List ℕ) (b : ℕ)
     (hb : ∀ i ∈ xs, live i ≤ b) : xs.foldr (fun i acc => max (live i) acc) 0 ≤ b := by
   induction xs with
@@ -217,6 +274,7 @@ theorem foldr_max_bound (live : ℕ → ℕ) (xs : List ℕ) (b : ℕ)
     apply Nat.max_le.mpr
     exact ⟨hb x (by simp), ih (fun i hi => hb i (List.mem_cons_of_mem x hi))⟩
 
+/-- Folding the maximum of indices in `List.range e` from `b` yields `max b (e - 1)`. -/
 theorem foldr_id_succ_range (e : ℕ) : ∀ (b : ℕ),
     (List.range e).foldr (fun i acc => max i acc) b = max b (e - 1) := by
   induction e with
@@ -228,6 +286,8 @@ theorem foldr_id_succ_range (e : ℕ) : ∀ (b : ℕ),
       Nat.max_eq_left (Nat.sub_le e 1)]
     rw [Nat.add_sub_cancel e 1]
 
+/-- In a correct space schedule, the live word count at each recorded event is at most its
+index. -/
 theorem spaceSchedule_live_le (S : SpaceSchedule) (h : SpaceSchedule.Correct S) :
     ∀ i, i < S.events → S.live i ≤ i := by
   intro i hi
@@ -241,6 +301,7 @@ theorem spaceSchedule_live_le (S : SpaceSchedule) (h : SpaceSchedule.Correct S) 
     have hprev := ih hlt
     omega
 
+/-- The peak space of a correct schedule is at most its word length times its event count. -/
 theorem peakSpace_le (S : SpaceSchedule) (h : SpaceSchedule.Correct S) :
     S.peakSpace ≤ S.wordLen * S.events := by
   have hfold : (List.range S.events).foldr (fun i acc => max (S.live i) acc) 0 ≤
@@ -254,6 +315,8 @@ theorem peakSpace_le (S : SpaceSchedule) (h : SpaceSchedule.Correct S) :
   rw [Nat.mul_comm S.wordLen S.events]
   exact this
 
+/-- For every word length `w` and event count `e`, a correct schedule attains peak space `w * (e
+- 1)`. -/
 theorem peakSpace_realize (w e : ℕ) :
     ∃ S : SpaceSchedule,
       S.wordLen = w ∧ S.events = e ∧ SpaceSchedule.Correct S ∧
@@ -266,6 +329,8 @@ theorem peakSpace_realize (w e : ℕ) :
     rw [foldr_id_succ_range, Nat.zero_max]
     exact Nat.mul_comm _ _
 
+/-- Combines Euclidean correctness and cost identities, uniform greatest common divisor
+generation, workspace bounds, compiled access counts, and matrix loading ledgers. -/
 theorem clause11 :
   ((∀ (N a b : ℕ), a < 2 ^ shorBitLength N → b < 2 ^ shorBitLength N →
       euclidGcd (euclidStepBound N) a b = Nat.gcd a b) ∧
@@ -357,6 +422,8 @@ theorem clause11 :
       show 0 < (entries + 1) * 4 * (bits + 1) ^ 3
       positivity
 
+/-- The real quantization slack cannot satisfy the stated nonnegative dyadic error and positive
+bit count guarantees for all real inputs. -/
 theorem thresholdGoal_quantization_conjunct_refutable :
     ¬ (∀ (k : ℕ) (x : ℝ),
         0 ≤ realQuantizeSlack k x ∧ realQuantizeSlack k x < (1 / 2 : ℝ) ^ k ∧
@@ -371,6 +438,8 @@ theorem thresholdGoal_quantization_conjunct_refutable :
   rw [hs] at h
   norm_num at h
 
+/-- The componentwise natural floor quantizer cannot satisfy the stated dyadic norm error bound
+for every complex input. -/
 theorem thresholdGoal_complexQuantize_refutable :
     ¬ (∀ (d : ℕ) (z : ℂ), ‖z - complexQuantize d z‖ ≤ Real.sqrt 2 * (1 / 2 : ℝ) ^ d) := by
   intro hall
@@ -407,6 +476,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The combined implementation target is false because it includes an unrestricted real
+quantization guarantee contradicted by negative inputs. -/
 theorem not_thresholdGoal : ¬ (
 
   (∀ (k : ℕ) (x : ℝ),

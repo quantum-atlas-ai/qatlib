@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+/-!
+# Query lower bounds through Gram changes
+
+This module bounds the filtered Gram change of legal query words and relates approximate state
+overlaps to unfiltered Gram distance. It also constructs a zero-query conversion from an
+unfiltered Gram bound and records the budget-two certificate for one Boolean oracle query, in
+the setting of [LeeEtAl2011].
+
+## Main statements
+
+* `source_query_gram_bounds`: query count, state overlap, and zero-query conversion satisfy the
+  displayed Gram bounds.
+* `source_bit_query_certificate`: one Boolean query has filtered certificate budget two.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,6 +50,10 @@ open Qatlib.Concepts.GramQueryCore.LowerBoundTools
 
 namespace Qatlib.Papers.StateConvLee10.QueryLower
 
+/-- Legal words on normalized families have filtered Gram change at most twice their query
+count; the stated overlap condition bounds unfiltered Gram distance, and an unfiltered bound
+`δ ≥ 0` yields a legal zero-query word with state error at most `sqrt (2 * δ)`
+[LeeEtAl2011]. -/
 theorem source_query_gram_bounds :
   (∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
       (n q r : ℕ) (hr : 0<r) (input : X → Fin n → Fin (q+1)) (ρ : X → QState H)
@@ -55,6 +79,8 @@ theorem source_query_gram_bounds :
           sourceClean 0 0 r hr false (ρ x)-sourceClean 0 0 r hr true (σ x))‖ ≤ Real.sqrt (2*δ)) := by
   exact Qatlib.Concepts.GramQueryCore.LowerBoundTools.generalOutputGramBridges
 
+/-- One workspace Boolean oracle query on a normalized family yields a filtered certificate of
+budget two for the resulting Gram-matrix difference. -/
 theorem source_bit_query_certificate {X : Type} [Fintype X] [DecidableEq X]
     {n R : ℕ} (input : X → Fin n → Bool)
     {ψ : X → QState ((Fin n × Bool) × Fin R)} (hψ : ∀ x, Normalized (ψ x)) :

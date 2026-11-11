@@ -8,6 +8,30 @@ import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+
+/-!
+# Actual and ideal dihedral sieve laws
+
+This module connects actual dihedral-qubit extraction and readout to the ideal label sieve of
+[Kuperberg2005]. The invariant `FamilyList` tracks normalized record states up to a scalar of
+norm one, while `negPow` aligns actual difference labels with the ideal convention.
+
+The probability analysis represents layers by finite binary tapes, proves size-survival bounds,
+and uses signed ancestor sets to control the final top bits. `dihedralSieveIdealHit` supplies
+the explicit half-period hit bound at the square-root stage count.
+
+## Main statements
+
+* `dihedralSieveBridge`: equality of actual and ideal output distributions for reflection-hiding
+  oracles.
+* `dihedralSieveWrongAnswerZero`: zero probability of an incorrect parity answer.
+* `dihedralSieveIdealHit`: a quantitative lower bound on half-period hit probability.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,6 +55,8 @@ namespace Qatlib.Concepts.HspRecovery.SieveAlgorithm
 open Matrix
 open scoped Classical BigOperators
 
+/-- At the half-period label modulo `2^(n+1)`, the dihedral phase is minus one for odd `s.val`
+and one otherwise. -/
 private theorem dihedral_half_phase_succ (n : ℕ) (s : ZMod (2^(n+1))) :
     dihedralQubitPhase (2^(n+1)) s ((2^n : ℕ) : ZMod (2^(n+1))) =
       if s.val%2=1 then -1 else 1 := by
@@ -57,6 +83,7 @@ private theorem dihedral_half_phase_succ (n : ℕ) (s : ZMod (2^(n+1))) :
   · rw [h]
     simpa only [Nat.cast_one,mul_one,if_pos rfl] using! Complex.exp_pi_mul_I
 
+/-- The dihedral phase at label `2^(n-1)` modulo `2^n` is determined by the parity of `s.val`. -/
 private theorem dihedral_half_phase (n : ℕ) (s : ZMod (2^n)) :
     dihedralQubitPhase (2^n) s ((2^(n-1) : ℕ) : ZMod (2^n)) =
       if s.val%2=1 then -1 else 1 := by
@@ -69,6 +96,8 @@ private theorem dihedral_half_phase (n : ℕ) (s : ZMod (2^n)) :
     simp [dihedralQubitPhase_eq_stdAddChar]
   | succ n => simpa only [Nat.succ_eq_add_one,Nat.add_sub_cancel] using! dihedral_half_phase_succ n s
 
+/-- Parity readout of the half-period dihedral qubit returns the parity of `s.val` with
+probability one, as used in the sieve algorithm of [Kuperberg2005]. -/
 theorem dihedralParityReadoutPure (n : ℕ) (s : ZMod (2^n)) :
     parityReadout (dihedralQubitState (2^n) s ((2^(n-1) : ℕ) : ZMod (2^n)))
       (normalized_dihedralQubitState (2^n) s ((2^(n-1) : ℕ) : ZMod (2^n))) =
@@ -94,6 +123,8 @@ theorem dihedralParityReadoutPure (n : ℕ) (s : ZMod (2^n)) :
   · simp [h]
   · simp [h]
 
+/-- Ideal readout assigns zero probability to a Boolean answer different from the parity of
+`s.val`. -/
 private theorem idealReadout_wrong_zero (n : ℕ) (s : ZMod (2^n)) (L : List (ZMod (2^n)))
     (b : Bool) (hb : b ≠ decide (s.val%2=1)) : idealReadout n s L (some b)=0 := by
   unfold idealReadout
@@ -109,6 +140,7 @@ private theorem idealReadout_wrong_zero (n : ℕ) (s : ZMod (2^n)) (L : List (ZM
     rw [dihedralParityReadoutPure,PMF.pure_map]
     simp [PMF.pure_apply,hb]
 
+/-- The dihedral sieve assigns zero probability to an incorrect parity answer. -/
 theorem dihedralSieveWrongAnswerZero (n m : ℕ) (s : ZMod (2^n)) (b : Bool)
     (hb : b ≠ decide (s.val%2=1)) : (dihedralSieveRun n m s).1 (some b)=0 := by
   unfold dihedralSieveRun
@@ -117,9 +149,13 @@ theorem dihedralSieveWrongAnswerZero (n m : ℕ) (s : ZMod (2^n)) (b : Bool)
   intro L
   rw [idealReadout_wrong_zero n s L b hb,mul_zero]
 
+/-- The resource triple of `dihedralSieveRun` is exactly `(24*2^(3*m), 48*2^(3*m)+1,
+48*2^(3*m)+1)`. -/
 theorem dihedralSieveBudget (n m : ℕ) (s : ZMod (2^n)) :
     (dihedralSieveRun n m s).2=(24*2^(3*m),48*2^(3*m)+1,48*2^(3*m)+1) := rfl
 
+/-- For an oracle hiding the reflection indexed by `s`, the label marginal of an actual record
+equals `dihedralIdealRecordLaw`. -/
 theorem dihedralActualRecordLabelLaw (n : ℕ) {S : Type*} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg (2^n) → S) (s : ZMod (2^n))
     (hf : DihedralReflectionHides (2^n) f s) :
@@ -151,6 +187,8 @@ theorem dihedralActualRecordLabelLaw (n : ℕ) {S : Type*} [Fintype S] [Decidabl
   rw [dihedralIdealRecordLaw,PMF.uniformOfFintype'_apply]
   simp
 
+/-- The label lists of fresh actual records have the ideal fresh-record distribution for a
+reflection-hiding oracle. -/
 theorem dihedralFreshRecordLabels (n : ℕ) {S : Type} [Fintype S] [DecidableEq S] [AddCommGroup S]
     (f : DihedralReg (2^n) → S) (s : ZMod (2^n)) (hf : DihedralReflectionHides (2^n) f s) (i : ℕ) :
     (actualFreshRecords (2^n) f i).map (List.map Prod.fst)=idealFreshRecords n i := by
@@ -174,6 +212,7 @@ theorem dihedralFreshRecordLabels (n : ℕ) {S : Type} [Fintype S] [DecidableEq 
     rw [← PMF.bind_map,dihedralActualRecordLabelLaw n f s hf]
     rfl
 
+/-- The number of records consumed by the selected pairs is at most the input list length. -/
 theorem sievePairWith_length_bound (n : ℕ) {α : Type} [DecidableEq α] (label : α → ZMod (2^n)) (w t : ℕ) (L : List α) :
     2*(sievePairWith n label w t L).length ≤ L.length := by
   fun_induction sievePairWith n label w t L
@@ -186,9 +225,13 @@ theorem sievePairWith_length_bound (n : ℕ) {α : Type} [DecidableEq α] (label
     simp only [List.length_cons]
     omega
 
+/-- The integer formed by the `w` label bits starting at position `t`, computed as `(label
+r).val / 2^t % 2^w`. -/
 private def sieveWindowKey {n : ℕ} {α : Type} (label : α → ZMod (2^n)) (w t : ℕ) (r : α) : ℕ :=
   (label r).val/2^t%2^w
 
+/-- The number of selected pairs in a window class is the input count in that class divided by
+two. -/
 private theorem sievePairWith_class_count (n : ℕ) {α : Type} [DecidableEq α] (label : α → ZMod (2^n)) (w t : ℕ) (L : List α) :
     ∀ u : ℕ,
     (sievePairWith n label w t L).countP (fun p => decide (sieveWindowKey label w t p.1=u)) =
@@ -224,6 +267,7 @@ private theorem sievePairWith_class_count (n : ℕ) {α : Type} [DecidableEq α]
       rw [List.countP_cons,List.countP_cons,ih u,List.countP_erase]
       simp [hu,hu',hm]
 
+/-- Summing the counts of all possible bounded keys gives the list length. -/
 private theorem sieve_class_count_sum {α : Type} (key : α → ℕ) (R : ℕ)
     (hk : ∀ a, key a < R) (L : List α) :
     (∑ u ∈ Finset.range R, L.countP (fun a => decide (key a=u)))=L.length := by
@@ -234,6 +278,7 @@ private theorem sieve_class_count_sum {α : Type} (key : α → ℕ) (R : ℕ)
     rw [Finset.sum_add_distrib,ih]
     simp [Finset.sum_ite_eq,Finset.mem_range,hk a]
 
+/-- Pairing leaves at most `2^w` records unaccounted for by twice the number of selected pairs. -/
 theorem sievePairWith_pair_coverage (n : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod (2^n)) (w t : ℕ) (L : List α) :
     L.length ≤ 2*(sievePairWith n label w t L).length+2^w := by
@@ -257,28 +302,35 @@ theorem sievePairWith_pair_coverage (n : ℕ) {α : Type} [DecidableEq α]
 
 section G3
 
+/-- Iteration of negation `j` times on labels modulo `2^n`. -/
 def negPow (n j : ℕ) : ZMod (2 ^ n) → ZMod (2 ^ n) :=
   (fun k : ZMod (2 ^ n) => -k)^[j]
 
+/-- One additional iteration of negation is obtained by negating the input before applying
+`negPow n j`. -/
 theorem negPow_succ (n j : ℕ) (k : ZMod (2 ^ n)) : negPow n (j + 1) k = negPow n j (-k) := by
   unfold negPow
   rw [Function.iterate_succ_apply]
 
+/-- Iterated negation commutes with negation of the label. -/
 theorem negPow_neg (n j : ℕ) (k : ZMod (2 ^ n)) :
     negPow n j (-k) = -(negPow n j k) := by
   induction j generalizing k with
   | zero => rfl
   | succ j ih => rw [negPow_succ, negPow_succ, neg_neg, ih, neg_neg]
 
+/-- Applying the same iterated negation twice returns the original label. -/
 theorem negPow_invol (n j : ℕ) (k : ZMod (2 ^ n)) : negPow n j (negPow n j k) = k := by
   induction j generalizing k with
   | zero => rfl
   | succ j ih =>
       rw [negPow_succ, negPow_succ, negPow_neg, negPow_neg, negPow_neg, neg_neg, ih]
 
+/-- Iterated negation is injective on labels modulo `2^n`. -/
 theorem negPow_injective (n j : ℕ) : Function.Injective (negPow n j) :=
   Function.LeftInverse.injective (negPow_invol n j)
 
+/-- The label `2^(n-1)` modulo `2^n` equals its own negative. -/
 private theorem clause3_neg_half (n : ℕ) :
     (-((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n))) = ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) := by
   cases n with
@@ -300,23 +352,28 @@ private theorem clause3_neg_half (n : ℕ) :
       rw [ZMod.neg_val, if_neg hne, ZMod.val_cast_of_lt hlt]
       omega
 
+/-- Iterated negation fixes the half-period label. -/
 theorem negPow_halfPeriod (n j : ℕ) :
     negPow n j ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) = ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) := by
   induction j with
   | zero => rfl
   | succ j ih => rw [negPow_succ, clause3_neg_half, ih]
 
+/-- Multiplication by a complex scalar of norm one preserves normalization of a quantum state. -/
 private theorem clause3_unit_norm {I : Type*} [Fintype I] {u : ℂ} (hu : ‖u‖ = 1)
     {ξ : QState I} (hξ : Normalized ξ) : Normalized (u • ξ) := by
   unfold Normalized
   simp only [Pi.smul_apply, smul_eq_mul, norm_mul, hu, one_mul]
   exact hξ
 
+/-- Scaling a state by `c` multiplies every measurement-event probability by `‖c‖^2`. -/
 private theorem clause3_measureProb_smul {I : Type*} [Fintype I] (c : ℂ) (ψ : QState I)
     (S : Finset I) : MeasureProb (c • ψ) S = ‖c‖ ^ 2 * MeasureProb ψ S := by
   simp only [MeasureProb, BornProb, Pi.smul_apply, smul_eq_mul, norm_mul, mul_pow]
   rw [← Finset.mul_sum]
 
+/-- For a nonzero scalar and positive total measurement probability, post-measurement
+normalization preserves the scalar's phase `c / ‖c‖`. -/
 private theorem clause3_postMeasure_smul {I : Type*} [Fintype I] [DecidableEq I]
     {c : ℂ} (hc : c ≠ 0) {β : QState I} (hm : 0 < MeasureProb β Finset.univ) :
     PostMeasure (c • β) Finset.univ = (c / ‖c‖) • PostMeasure β Finset.univ := by
@@ -335,6 +392,8 @@ private theorem clause3_postMeasure_smul {I : Type*} [Fintype I] [DecidableEq I]
   push_cast
   ring
 
+/-- The conditional state of a nonzero scalar multiple is the normalized original state
+multiplied by `c / ‖c‖`, provided its total measurement probability is positive. -/
 private theorem clause3_conditionalState_smul {I : Type*} [Fintype I] [DecidableEq I]
     {c : ℂ} (hc : c ≠ 0) {β : QState I} (hm : 0 < MeasureProb β Finset.univ) :
     ConditionalState (c • β) = some ((c / ‖c‖) • PostMeasure β Finset.univ) := by
@@ -342,6 +401,8 @@ private theorem clause3_conditionalState_smul {I : Type*} [Fintype I] [Decidable
   rw [clause3_measureProb_smul, if_pos (mul_pos (pow_pos (norm_pos_iff.mpr hc) 2) hm),
     clause3_postMeasure_smul hc hm]
 
+/-- Multiplication by a scalar of norm one transports the actual normalized record state by the
+same scalar when the original total measurement probability is positive. -/
 private theorem clause3_recordState_smul (c : ℂ) (hc : ‖c‖ = 1) (β : QState Bool)
     (hβ : 0 < MeasureProb β Finset.univ) (ξ : QState Bool) (hξ : Normalized ξ)
     (h : actualRecordState β = ⟨ξ, hξ⟩) :
@@ -361,9 +422,12 @@ private theorem clause3_recordState_smul (c : ℂ) (hc : ‖c‖ = 1) (β : QSta
     rw [h3, hpm, show c / ‖c‖ = c from by rw [hc]; norm_num]
   exact actualRecordState_eq_of_some _ _ (clause3_unit_norm hc hξ) hcond'
 
+/-- The property that every record state is a scalar of norm one times the dihedral qubit state
+associated with its label and hidden shift `s`. -/
 def FamilyList (n : ℕ) (s : ZMod (2 ^ n)) (A : List (ZMod (2 ^ n) × NormQ)) : Prop :=
   ∀ r ∈ A, ∃ u : ℂ, ‖u‖ = 1 ∧ r.2.1 = u • dihedralQubitState (2 ^ n) s r.1
 
+/-- Prepending a record from the same dihedral state family preserves `FamilyList`. -/
 theorem FamilyList.cons {n : ℕ} {s : ZMod (2 ^ n)} {r : ZMod (2 ^ n) × NormQ}
     {A : List (ZMod (2 ^ n) × NormQ)} (hr : ∃ u : ℂ, ‖u‖ = 1 ∧ r.2.1
       = u • dihedralQubitState (2 ^ n) s r.1) (hA : FamilyList n s A) :
@@ -373,17 +437,21 @@ theorem FamilyList.cons {n : ℕ} {s : ZMod (2 ^ n)} {r : ZMod (2 ^ n) × NormQ}
   · exact h ▸ hr
   · exact hA x h
 
+/-- A scalar of norm one leaves the extended-nonnegative Born probability of each outcome
+unchanged. -/
 private theorem clause3_born_smul {I : Type*} [Fintype I] {c : ℂ} (hc : ‖c‖ = 1)
     (χ : QState I) (x : I) :
     ENNReal.ofReal (BornProb (c • χ) x) = ENNReal.ofReal (BornProb χ x) := by
   simp only [BornProb, Pi.smul_apply, smul_eq_mul, norm_mul, hc, one_mul]
 
+/-- A scalar of norm one leaves the Born distribution unchanged. -/
 private theorem clause3_bornDistribution_smul {I : Type*} [Fintype I] {c : ℂ} (hc : ‖c‖ = 1)
     {χ : QState I} (hχ : Normalized χ) :
     bornDistribution (c • χ) (clause3_unit_norm hc hχ) = bornDistribution χ hχ := by
   ext x
   rw [bornDistribution_apply, bornDistribution_apply, clause3_born_smul hc χ x]
 
+/-- Matrix gate application commutes with complex scalar multiplication of a state. -/
 private theorem clause3_applyGate_smul {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (c : ℂ) (χ : QState I) :
     ApplyGate U (c • χ) = c • ApplyGate U χ := by
@@ -392,9 +460,12 @@ private theorem clause3_applyGate_smul {I : Type*} [Fintype I] [DecidableEq I]
   rw [eq_comm, Finset.mul_sum]
   exact Finset.sum_congr rfl fun j _ => by ring
 
+/-- The product of two complex scalars of norm one has norm one. -/
 private theorem clause3_norm_mul {u u' : ℂ} (hu : ‖u‖ = 1) (hu' : ‖u'‖ = 1) : ‖u * u'‖ = 1 := by
   rw [norm_mul, hu, hu']; norm_num
 
+/-- The extraction bit has the distribution of the second computational-basis outcome after
+applying CNOT to the tensor product of the input states. -/
 private theorem clause3_extraction_fst_eq (ψ φ : QState Bool) (hψ : Normalized ψ)
     (hφ : Normalized φ) :
     (dihedralExtraction ψ φ hψ hφ).map Prod.fst
@@ -403,6 +474,8 @@ private theorem clause3_extraction_fst_eq (ψ φ : QState Bool) (hψ : Normalize
   simp only [dihedralExtraction, PMF.map_comp]
   rfl
 
+/-- Extraction from two dihedral qubits, including arbitrary scalar phases of norm one, yields a
+uniform Boolean outcome. -/
 theorem dihedralExtraction_fair (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' : ℂ)
     (hu : ‖u‖ = 1) (hu' : ‖u'‖ = 1) :
     (dihedralExtraction (u • dihedralQubitState N s k) (u' • dihedralQubitState N s ℓ)
@@ -487,6 +560,8 @@ theorem dihedralExtraction_fair (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' : 
         · rw [if_neg (fun h => hb h.symm)]
       exact (tsum_eq_single ((true, ⟨xiMinus, hMinus⟩) : Bool × NormQ) hrest).trans hmain
 
+/-- The mass of an input point is bounded by the mass of its image under a mapped probability
+mass function. -/
 private theorem clause3_map_single_le {α β : Type} (p : PMF α) (f : α → β) (x : α) :
     p x ≤ (p.map f) (f x) := by
   classical
@@ -495,6 +570,7 @@ private theorem clause3_map_single_le {α β : Type} (p : PMF α) (f : α → β
     _ ≤ ∑' a, (fun a => if f x = f a then p a else 0) a := ENNReal.le_tsum (f := fun a => if f x = f a then p a else 0) x
     _ = (p.map f) (f x) := (PMF.map_apply f p (f x)).symm
 
+/-- A point of positive mapped probability has a preimage of positive probability. -/
 private theorem clause3_map_pos_witness {α β : Type} (p : PMF α) (f : α → β) (y : β)
     (hy : 0 < (p.map f) y) : ∃ x : α, f x = y ∧ 0 < p x := by
   classical
@@ -509,6 +585,8 @@ private theorem clause3_map_pos_witness {α β : Type} (p : PMF α) (f : α → 
   rw [PMF.map_apply, ENNReal.tsum_eq_zero.2 hterm] at hy
   simp at hy
 
+/-- A positive outcome of binding a distribution to a mapped independent distribution has a pair
+of positive-probability input witnesses. -/
 private theorem clause3_bind_map_pos_witness {α β γ : Type} (p : PMF α) (q : PMF β)
     (g : α → β → γ) (z : γ) (hz : 0 < (p.bind fun a => q.map (g a)) z) :
     ∃ a b, g a b = z ∧ 0 < p a ∧ 0 < q b := by
@@ -530,6 +608,7 @@ private theorem clause3_bind_map_pos_witness {α β γ : Type} (p : PMF α) (q :
   rw [PMF.bind_apply, ENNReal.tsum_eq_zero.2 hterm] at hz
   simp at hz
 
+/-- Post-measurement normalization over the whole basis fixes an already normalized state. -/
 private theorem clause3_postMeasure_self {I : Type*} [Fintype I] [DecidableEq I] {ψ : QState I}
     (hψ : Normalized ψ) : PostMeasure ψ Finset.univ = ψ := by
   have hm : MeasureProb ψ Finset.univ = 1 := by
@@ -539,6 +618,8 @@ private theorem clause3_postMeasure_self {I : Type*} [Fintype I] [DecidableEq I]
   simp only [PostMeasure, collapse_apply, if_pos (Finset.mem_univ i), hm]
   simp
 
+/-- Every positive-probability extraction record is, up to a scalar of norm one, the dihedral
+qubit with label `k - ℓ` for a true outcome and `k + ℓ` otherwise. -/
 theorem dihedralExtraction_family (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' : ℂ)
     (hu : ‖u‖ = 1) (hu' : ‖u'‖ = 1) (q : Bool × NormQ)
     (hq : 0 < (dihedralExtraction (u • dihedralQubitState N s k)
@@ -678,6 +759,8 @@ theorem dihedralExtraction_family (N : ℕ) [NeZero N] (s k ℓ : ZMod N) (u u' 
   · rw [if_neg hsel] at hbasepos
     simp at hbasepos
 
+/-- Every positive-probability actual record of a reflection-hiding oracle has its label's
+dihedral qubit state up to a scalar of norm one. -/
 theorem dihedralActualRecord_family (n : ℕ) {S : Type} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg (2 ^ n) → S) (s : ZMod (2 ^ n))
     (hf : DihedralReflectionHides (2 ^ n) f s)
@@ -767,6 +850,8 @@ theorem dihedralActualRecord_family (n : ℕ) {S : Type} [Fintype S] [DecidableE
   rw [show r.2.2.1 = (γ q₀.2 / ‖γ q₀.2‖) • dihedralQubitState (2 ^ n) s q₀.1.1 from by
     rw [h2]]
 
+/-- Every positive-probability list of fresh records from a reflection-hiding oracle satisfies
+`FamilyList`. -/
 theorem actualFreshRecords_family (n : ℕ) {S : Type} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg (2 ^ n) → S) (s : ZMod (2 ^ n))
     (hf : DihedralReflectionHides (2 ^ n) f s) (i : ℕ)
@@ -793,6 +878,8 @@ theorem actualFreshRecords_family (n : ℕ) {S : Type} [Fintype S] [DecidableEq 
       obtain ⟨u, hu, hufam⟩ := dihedralActualRecord_family n f s hf q hq
       exact FamilyList.cons ⟨u, hu, hufam⟩ (ih L' hL')
 
+/-- Iterated negation of `k - ℓ` at step `j+1` equals the difference of the step-`j` images in
+reversed order. -/
 theorem negPow_sub_succ (n j : ℕ) (k ℓ : ZMod (2 ^ n)) :
     negPow n (j + 1) (k - ℓ) = negPow n j ℓ - negPow n j k := by
   induction j generalizing k ℓ with
@@ -803,6 +890,8 @@ theorem negPow_sub_succ (n j : ℕ) (k ℓ : ZMod (2 ^ n)) :
       rw [negPow_succ, neg_sub, ih, negPow_succ, negPow_succ, negPow_neg, negPow_neg,
         neg_sub_neg]
 
+/-- If `m` is positive and divides `M`, subtraction from `M` preserves and reflects equality of
+residues modulo `m` for numbers at most `M`. -/
 private theorem clause3_mod_sub_iff (M m a b : ℕ) (hm : 0 < m) (hdvd : m ∣ M)
     (ha : a ≤ M) (hb : b ≤ M) :
     (M - a) % m = (M - b) % m ↔ a % m = b % m := by
@@ -848,6 +937,7 @@ private theorem clause3_mod_sub_iff (M m a b : ℕ) (hm : 0 < m) (hdvd : m ∣ M
     rcases hsa with ⟨ha0, hX0⟩ | haS <;>
       rcases hsb with ⟨hb0, hY0⟩ | hbS <;> omega
 
+/-- Negating a label preserves vanishing of its lowest `t` bits when `t ≤ n`. -/
 private theorem clause3_neg_zeroBits (n t : ℕ) (ht : t ≤ n) (k : ZMod (2 ^ n))
     (hk : k.val % 2 ^ t = 0) : (-k).val % 2 ^ t = 0 := by
   by_cases hk0 : k = 0
@@ -856,6 +946,8 @@ private theorem clause3_neg_zeroBits (n t : ℕ) (ht : t ≤ n) (k : ZMod (2 ^ n
   · rw [ZMod.neg_val, if_neg hk0, Nat.mod_eq_zero_of_dvd]
     exact Nat.dvd_sub (Nat.pow_dvd_pow _ ht) (Nat.dvd_of_mod_eq_zero hk)
 
+/-- For a label with `t` zero low bits, the quotient of its negative by `2^t` is the modular
+negative of the original quotient modulo `2^(n-t)`. -/
 private theorem clause3_neg_div (n t : ℕ) (ht : t ≤ n) (k : ZMod (2 ^ n))
     (hk : k.val % 2 ^ t = 0) :
     (-k).val / 2 ^ t = (2 ^ (n - t) - k.val / 2 ^ t) % 2 ^ (n - t) := by
@@ -887,6 +979,8 @@ private theorem clause3_neg_div (n t : ℕ) (ht : t ≤ n) (k : ZMod (2 ^ n))
     rw [ZMod.neg_val, if_neg hk0, hsub, Nat.mul_div_cancel _ hp,
       Nat.mod_eq_of_lt (by omega)]
 
+/-- Simultaneously negating two labels preserves and reflects window agreement when their lowest
+`t` bits vanish and `w+t ≤ n`. -/
 theorem windowAgree_neg (n w t : ℕ) (k ℓ : ZMod (2 ^ n))
     (hk : k.val % 2 ^ t = 0) (hℓ : ℓ.val % 2 ^ t = 0) (hw : w + t ≤ n) :
     windowAgree n w t k ℓ ↔ windowAgree n w t (-k) (-ℓ) := by
@@ -910,6 +1004,8 @@ theorem windowAgree_neg (n w t : ℕ) (k ℓ : ZMod (2 ^ n))
     Nat.mod_mod_of_dvd _ hdvd, Nat.mod_mod_of_dvd _ hdvd]
   exact (clause3_mod_sub_iff _ _ _ _ (show 0 < 2 ^ w by positivity) hdvd hκle hℓle).symm
 
+/-- Iterated negation preserves and reflects window agreement under the zero-low-bit and
+window-size hypotheses. -/
 theorem windowAgree_negPow (n w t j : ℕ) (k ℓ : ZMod (2 ^ n))
     (hk : k.val % 2 ^ t = 0) (hℓ : ℓ.val % 2 ^ t = 0) (hw : w + t ≤ n) :
     windowAgree n w t k ℓ ↔ windowAgree n w t (negPow n j k) (negPow n j ℓ) := by
@@ -921,6 +1017,8 @@ theorem windowAgree_negPow (n w t j : ℕ) (k ℓ : ZMod (2 ^ n))
       exact (windowAgree_neg n w t k ℓ hk hℓ hw).trans (ih (-k) (-ℓ)
         (clause3_neg_zeroBits n t ht k hk) (clause3_neg_zeroBits n t ht ℓ hℓ))
 
+/-- The canonical residue of a label difference is computed by adding the complement of the
+subtrahend modulo `2^n`. -/
 private theorem clause3_val_sub_mod (n : ℕ) (k ℓ : ZMod (2 ^ n)) :
     (k - ℓ).val % 2 ^ n = (k.val + (2 ^ n - ℓ.val)) % 2 ^ n := by
   rw [sub_eq_add_neg, ZMod.val_add, Nat.mod_mod_of_dvd _ (Nat.dvd_refl _), ZMod.neg_val]
@@ -929,6 +1027,7 @@ private theorem clause3_val_sub_mod (n : ℕ) (k ℓ : ZMod (2 ^ n)) :
     simp
   · rw [if_neg hℓ]
 
+/-- Subtracting labels whose lowest `c` bits vanish preserves that property when `c ≤ n`. -/
 private theorem clause3_zmod_sub_zeroBits (n c : ℕ) (hc : c ≤ n) (k ℓ : ZMod (2 ^ n))
     (hk : k.val % 2 ^ c = 0) (hℓ : ℓ.val % 2 ^ c = 0) :
     (k - ℓ).val % 2 ^ c = 0 := by
@@ -942,6 +1041,8 @@ private theorem clause3_zmod_sub_zeroBits (n c : ℕ) (hc : c ≤ n) (k ℓ : ZM
     clause3_val_sub_mod n k ℓ, Nat.mod_mod_of_dvd _ hnd, hEq]
   exact Nat.mod_eq_zero_of_dvd (Nat.dvd_sub (Nat.dvd_add hkd hnd) hℓd)
 
+/-- For labels with `t` zero low bits, window agreement is equivalent to congruence modulo
+`2^(t+w)`. -/
 theorem windowAgree_iff_modEq (n w t : ℕ) (k ℓ : ZMod (2 ^ n))
     (hk : k.val % 2 ^ t = 0) (hℓ : ℓ.val % 2 ^ t = 0) :
     windowAgree n w t k ℓ ↔ k.val ≡ ℓ.val [MOD 2 ^ (t + w)] := by
@@ -967,6 +1068,8 @@ theorem windowAgree_iff_modEq (n w t : ℕ) (k ℓ : ZMod (2 ^ n))
     rw [hkval, hℓval, ← hmod] at h
     exact h.mul_right_cancel' (show (2 ^ t : ℕ) ≠ 0 by positivity)
 
+/-- The difference of window-agreeing labels with `t` zero low bits has `t+w` zero low bits when
+the window fits within `n` bits. -/
 theorem windowAgree_sub_zeroBits (n w t : ℕ) (k ℓ : ZMod (2 ^ n))
     (hk : k.val % 2 ^ t = 0) (hℓ : ℓ.val % 2 ^ t = 0)
     (hag : windowAgree n w t k ℓ) (htw : t + w ≤ n) :
@@ -987,6 +1090,8 @@ theorem windowAgree_sub_zeroBits (n w t : ℕ) (k ℓ : ZMod (2 ^ n))
   exact Nat.mod_eq_zero_of_dvd ((Nat.modEq_zero_iff_dvd (a := k.val + 2 ^ n - ℓ.val)
     (n := 2 ^ (t + w))).1 h2)
 
+/-- Erasing the image of a record commutes with mapping when that record is the first element
+found with the specified image. -/
 private theorem clause3_erase_map {α β : Type} [DecidableEq α] [DecidableEq β]
     (f : α → β) (r' : α) :
     ∀ (l : List α), l.find? (fun a => decide (f a = f r')) = some r' →
@@ -1016,6 +1121,7 @@ private theorem clause3_erase_map {α β : Type} [DecidableEq α] [DecidableEq �
         simp [hne]
       rw [hL, hR, ih h2]
 
+/-- Predicates that agree on every list element produce the same first matching element. -/
 private theorem clause3_find?_congr {α : Type} (p q : α → Bool) :
     ∀ (l : List α), (∀ a ∈ l, p a = q a) → l.find? p = l.find? q := by
   intro l
@@ -1031,6 +1137,8 @@ private theorem clause3_find?_congr {α : Type} (p q : α → Bool) :
           rw [List.find?_cons, List.find?_cons, hqa, hq]
           exact ih (fun x hx => h x (by simp [hx]))
 
+/-- If `q` implies `p` on a list, and the first `p` match also satisfies `q`, it is the first
+`q` match. -/
 private theorem clause3_find?_of_imp {α : Type} (p q : α → Bool) :
     ∀ (l : List α) (r' : α), (∀ a ∈ l, q a = true → p a = true) →
     l.find? p = some r' → q r' = true → l.find? q = some r' := by
@@ -1058,6 +1166,8 @@ private theorem clause3_find?_of_imp {α : Type} (p q : α → Bool) :
         rw [hqa]
         exact ih r' (fun a' ha' => h a' (by simp [ha'])) hfind hq
 
+/-- Pair selection commutes with an injective label transformation that preserves window
+agreement on labels with the specified zero low bits. -/
 theorem sievePairWith_transport (n w t e : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod (2 ^ n)) (σ : ZMod (2 ^ n) → ZMod (2 ^ n))
     (hσ : Function.Injective σ)
@@ -1173,6 +1283,8 @@ theorem sievePairWith_transport (n w t e : ℕ) {α : Type} [DecidableEq α]
   intro L htailL
   exact main L.length L (Nat.le_refl _) htailL
 
+/-- Mapping a uniform element of `Fin 2` to the test for equality to one gives a uniform
+Boolean. -/
 private theorem clause3_fin2_bool :
     (PMF.uniformOfFintype' (Fin 2)).map (fun b : Fin 2 => decide (b = 1))
       = PMF.uniformOfFintype' Bool := by
@@ -1180,6 +1292,8 @@ private theorem clause3_fin2_bool :
   simp only [PMF.map_apply, tsum_fintype, PMF.uniformOfFintype'_apply]
   cases c <;> simp [Fin.sum_univ_two, Fintype.card_bool]
 
+/-- A computation depending only on a fair extraction bit can be expressed using a uniform
+element of `Fin 2`. -/
 private theorem clause3_coin_split {γ : Type} (P : PMF (Bool × NormQ))
     (hfair : P.map Prod.fst = PMF.uniformOfFintype' Bool) (F : Bool → PMF γ) :
     P.bind (fun q => F q.1)
@@ -1189,6 +1303,7 @@ private theorem clause3_coin_split {γ : Type} (P : PMF (Bool × NormQ))
   rw [h1, hfair, ← clause3_fin2_bool, PMF.bind_map]
   rfl
 
+/-- Two probability kernels have equal binds if they agree at every positive-probability input. -/
 private theorem clause3_bind_congr {α β : Type} {p : PMF α} {f g : α → PMF β}
     (h : ∀ a, 0 < p a → f a = g a) : p.bind f = p.bind g := by
   ext b
@@ -1199,11 +1314,14 @@ private theorem clause3_bind_congr {α β : Type} {p : PMF α} {f g : α → PMF
   · have hz : p a = 0 := le_antisymm (not_lt.mp hpos) zero_le
     rw [hz, zero_mul, zero_mul]
 
+/-- Every pair of labels agrees on a window of width zero. -/
 private theorem clause3_windowAgree_zero (n t : ℕ) (k ℓ : ZMod (2 ^ n)) :
     windowAgree n 0 t k ℓ := by
   unfold windowAgree
   rw [Nat.pow_zero, Nat.mod_one, Nat.mod_one]
 
+/-- Both components of every selected pair belong to the input list, under the stated length
+bound. -/
 private theorem clause3_pairWith_mem (n : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod (2 ^ n)) (w t : ℕ) :
     ∀ (N : ℕ) (L : List α), L.length ≤ N →
@@ -1247,6 +1365,8 @@ private theorem clause3_pairWith_mem (n : ℕ) {α : Type} [DecidableEq α]
                 have h2 : p.2 ∈ rest := List.mem_of_mem_erase hm.2
                 exact ⟨by simp [h1], by simp [h2]⟩
 
+/-- The two Boolean coercion forms of the keep-or-discard test define the same mapped list
+distribution. -/
 private theorem clause3_layer_coin_head {γ : Type} (Q : PMF (List γ)) (x : γ) :
     ∀ b : Fin 2,
       Q.map (fun T => if decide (b = 1) then x :: T else T)
@@ -1255,6 +1375,8 @@ private theorem clause3_layer_coin_head {γ : Type} (Q : PMF (List γ)) (x : γ)
   ext T
   by_cases hb : b = 1 <;> simp [hb]
 
+/-- For pairs of dihedral-family records, mapping output labels by `negPow n (j+1)` turns actual
+auxiliary extraction into ideal extraction on labels transformed by `negPow n j`. -/
 private theorem clause3_layerAux_transport (n j : ℕ) (s : ZMod (2 ^ n))
     (ps : List ((ZMod (2 ^ n) × NormQ) × (ZMod (2 ^ n) × NormQ)))
     (hfam : ∀ p ∈ ps, ∃ u u' : ℂ, ‖u‖ = 1 ∧ ‖u'‖ = 1 ∧
@@ -1333,6 +1455,8 @@ private theorem clause3_layerAux_transport (n j : ℕ) (s : ZMod (2 ^ n))
           rw [PMF.map_comp, hco q, ← PMF.map_comp,
             ih (fun p hp => hfam p (by simp [hp]))])
 
+/-- Adding the current window width to `m*j`, capped at `n-1`, gives the next capped bit
+threshold. -/
 private theorem clause3_child_window (n m j : ℕ) :
     min (m * j + sieveWindowWidth n m j) (n - 1) = min (m * (j + 1)) (n - 1) := by
   unfold sieveWindowWidth
@@ -1342,6 +1466,8 @@ private theorem clause3_child_window (n m j : ℕ) :
     omega
   · rw [Nat.min_eq_left (by omega : m ≤ n - 1 - m * j)]
 
+/-- Actual layer labels follow the ideal layer after iterated negation when the stated
+window-agreement, zero-low-bit, and paired-state family hypotheses hold. -/
 private theorem clause3_layer_step_of (n m j e : ℕ) (s : ZMod (2 ^ n))
     (A : List (ZMod (2 ^ n) × NormQ))
     (hagree : ∀ (x y : ZMod (2 ^ n) × NormQ),
@@ -1365,6 +1491,8 @@ private theorem clause3_layer_step_of (n m j e : ℕ) (s : ZMod (2 ^ n))
   rw [actualLayer, idealLayer, hmap, htp]
   exact clause3_layerAux_transport n j s _ hfamA
 
+/-- On a family list satisfying the stage's zero-low-bit invariant, the actual layer's
+transformed label law equals the corresponding ideal layer law. -/
 private theorem clause3_layer_step (n m j : ℕ) (s : ZMod (2 ^ n))
     (A : List (ZMod (2 ^ n) × NormQ)) (hfam : FamilyList n s A)
     (htail : ∀ r ∈ A, r.1.val % 2 ^ (min (m * j) (n - 1)) = 0) :
@@ -1404,6 +1532,8 @@ private theorem clause3_layer_step (n m j : ℕ) (s : ZMod (2 ^ n))
     have h := htail x hx
     rwa [hmin] at h
 
+/-- Auxiliary extraction from pairs in the dihedral state family produces only lists in the same
+family at positive probability. -/
 private theorem clause3_layerAux_fam (n : ℕ) (s : ZMod (2 ^ n))
     (ps : List ((ZMod (2 ^ n) × NormQ) × (ZMod (2 ^ n) × NormQ)))
     (hfam : ∀ p ∈ ps, ∃ u u' : ℂ, ‖u‖ = 1 ∧ ‖u'‖ = 1 ∧
@@ -1452,6 +1582,8 @@ private theorem clause3_layerAux_fam (n : ℕ) (s : ZMod (2 ^ n))
           subst hBdef
           exact hih T hT
 
+/-- Every pair selected by `sievePairWith` has window-agreeing labels, under the stated input
+length bound. -/
 private theorem clause3_pairWith_agree (n : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod (2 ^ n)) (w t : ℕ) :
     ∀ (N : ℕ) (L : List α), L.length ≤ N →
@@ -1492,6 +1624,8 @@ private theorem clause3_pairWith_agree (n : ℕ) {α : Type} [DecidableEq α]
                   decide (windowAgree n w t (label r) (label x))) heq)
               · exact ih (rest.erase r') herase p hrest
 
+/-- Auxiliary extraction from window-agreeing pairs with `t` zero low bits produces only labels
+with `t+w` zero low bits when `t+w ≤ n`. -/
 private theorem clause3_layerAux_tail_wpos (n w t : ℕ) (htw : t + w ≤ n)
     (ps : List ((ZMod (2 ^ n) × NormQ) × (ZMod (2 ^ n) × NormQ)))
     (hagree : ∀ (k : ZMod (2 ^ n)) (χ : NormQ) (ℓ : ZMod (2 ^ n)) (χ' : NormQ),
@@ -1542,6 +1676,8 @@ private theorem clause3_layerAux_tail_wpos (n w t : ℕ) (htw : t + w ≤ n)
           subst hBdef
           exact hih T hT
 
+/-- Auxiliary extraction preserves `c` zero low bits when both labels of every input pair
+satisfy that property and `c ≤ n`. -/
 private theorem clause3_layerAux_tail_w0 (n c : ℕ) (hc : c ≤ n)
     (ps : List ((ZMod (2 ^ n) × NormQ) × (ZMod (2 ^ n) × NormQ)))
     (htail : ∀ (k : ZMod (2 ^ n)) (χ : NormQ) (ℓ : ZMod (2 ^ n)) (χ' : NormQ),
@@ -1588,6 +1724,8 @@ private theorem clause3_layerAux_tail_w0 (n c : ℕ) (hc : c ≤ n)
           subst hBdef
           exact hih T hT
 
+/-- A positive-probability outcome of a bind has an intermediate value with positive outer and
+conditional probability. -/
 private theorem clause3_bind_pos_witness {α β : Type} (p : PMF α) (q : α → PMF β) (z : β)
     (hz : 0 < p.bind q z) : ∃ a, 0 < p a ∧ 0 < q a z := by
   classical
@@ -1603,6 +1741,8 @@ private theorem clause3_bind_pos_witness {α β : Type} (p : PMF α) (q : α →
   rw [PMF.bind_apply, ENNReal.tsum_eq_zero.2 hterm] at hz
   simp at hz
 
+/-- Every positive-probability actual layer output preserves the input's dihedral family
+property. -/
 private theorem clause3_layer_fam (n m j : ℕ) (s : ZMod (2 ^ n))
     (A : List (ZMod (2 ^ n) × NormQ)) (hfam : FamilyList n s A) (B)
     (hB : 0 < actualLayer n (sieveWindowWidth n m j) (m * j) A B) :
@@ -1616,6 +1756,8 @@ private theorem clause3_layer_fam (n m j : ℕ) (s : ZMod (2 ^ n))
   obtain ⟨u', hu', hu2⟩ := hfam p.2 hmem.2
   exact ⟨u, u', hu, hu', hu1, hu2⟩
 
+/-- Every positive-probability actual layer output satisfies the next stage's capped
+zero-low-bit invariant. -/
 private theorem clause3_layer_tail (n m j : ℕ)
     (A : List (ZMod (2 ^ n) × NormQ))
     (htail : ∀ r ∈ A, r.1.val % 2 ^ (min (m * j) (n - 1)) = 0) (B)
@@ -1649,6 +1791,8 @@ private theorem clause3_layer_tail (n m j : ℕ)
       rw [hmin] at htail
       exact ⟨htail (k, χ) h1, htail (ℓ, χ') h2⟩
 
+/-- Recursive actual sieving from a family list preserves the family property and enforces the
+stage's capped zero-low-bit invariant on every positive-probability output. -/
 private theorem clause3_sieve_rec_support (n m : ℕ) {S : Type} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg (2 ^ n) → S) (s : ZMod (2 ^ n)) :
     ∀ (j : ℕ) (A : List (ZMod (2 ^ n) × NormQ)), FamilyList n s A →
@@ -1675,6 +1819,8 @@ private theorem clause3_sieve_rec_support (n m : ℕ) {S : Type} [Fintype S] [De
       exact ⟨clause3_layer_fam n m j s A' hfamA' B hB'pos,
         clause3_layer_tail n m j A' htailA' B hB'pos⟩
 
+/-- Mapping recursive actual output labels by the stage's iterated negation gives the ideal
+recursive label distribution for a family-list input. -/
 private theorem clause3_sieve_rec_transport (n m : ℕ) {S : Type} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg (2 ^ n) → S) (s : ZMod (2 ^ n)) :
     ∀ (j : ℕ) (A : List (ZMod (2 ^ n) × NormQ)), FamilyList n s A →
@@ -1698,17 +1844,20 @@ private theorem clause3_sieve_rec_transport (n m : ℕ) {S : Type} [Fintype S] [
       obtain ⟨hfamA', htailA'⟩ := clause3_sieve_rec_support n m f s j A hfam A' hpos
       exact clause3_layer_step n m j s A' hfamA' htailA'
 
+/-- Equal normalized state vectors determine equal Born distributions. -/
 private theorem clause3_bornDistribution_congr {I : Type*} [Fintype I] {ψ φ : QState I}
     (hψ : Normalized ψ) (hφ : Normalized φ) (h : ψ = φ) :
     bornDistribution ψ hψ = bornDistribution φ hφ := by
   subst h
   rfl
 
+/-- Equal normalized qubit state vectors determine equal parity-readout distributions. -/
 private theorem clause3_parityReadout_congr {ψ φ : QState Bool} (hψ : Normalized ψ)
     (hφ : Normalized φ) (h : ψ = φ) : parityReadout ψ hψ = parityReadout φ hφ := by
   subst h
   rfl
 
+/-- A scalar of norm one leaves parity readout unchanged. -/
 private theorem clause3_parityReadout_smul {u : ℂ} (hu : ‖u‖ = 1) (χ : QState Bool)
     (hχ : Normalized χ) :
     parityReadout (u • χ) (clause3_unit_norm hu hχ) = parityReadout χ hχ := by
@@ -1721,6 +1870,7 @@ private theorem clause3_parityReadout_smul {u : ℂ} (hu : ‖u‖ = 1) (χ : QS
   unfold parityReadout
   exact hstep.trans hsmul
 
+/-- Actual readout of a family list equals ideal readout on labels transformed by `negPow n m`. -/
 private theorem clause3_readout_transport (n m : ℕ) (s : ZMod (2 ^ n))
     (A : List (ZMod (2 ^ n) × NormQ)) (hfam : FamilyList n s A) :
     actualReadout n A
@@ -1762,6 +1912,8 @@ private theorem clause3_readout_transport (n m : ℕ) (s : ZMod (2 ^ n))
         (normalized_dihedralQubitState (2 ^ n) s
           ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)))]
 
+/-- For a reflection-hiding oracle, the actual dihedral sieve output distribution equals the
+idealized sieve distribution indexed by the hidden shift [Kuperberg2005]. -/
 theorem dihedralSieveBridge (n m : ℕ) (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg (2 ^ n) → S) (s : ZMod (2 ^ n))
     (hf : DihedralReflectionHides (2 ^ n) f s) :
@@ -1809,15 +1961,18 @@ end G3
 
 noncomputable section
 
+/-- The real power of two with exponent two equals four. -/
 private theorem num_checkpt_two_pow_two : (2:ℝ) ^ ((2:ℝ)) = 4 := by
   have h := Real.rpow_natCast (2:ℝ) 2
   simp only [Nat.cast_ofNat] at h
   rw [h, pow_two]
   norm_num
 
+/-- The real power of two with exponent minus two equals one quarter. -/
 private theorem num_checkpt_two_pow_neg_two : (2:ℝ) ^ (-(2:ℝ)) = 1 / 4 := by
   rw [Real.rpow_neg (by norm_num : (0:ℝ) ≤ 2), num_checkpt_two_pow_two, inv_eq_one_div]
 
+/-- Every natural power of a real number in `[0,1]` is at most one. -/
 private theorem num_checkpt_pow_le_one {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) : ∀ n : ℕ, a ^ n ≤ 1 := by
   intro n
   induction n with
@@ -1828,6 +1983,7 @@ private theorem num_checkpt_pow_le_one {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) :
       _ = a := by ring
       _ ≤ 1 := h1
 
+/-- Every positive natural power of a real number in `[0,1]` is at most that number. -/
 private theorem num_checkpt_pow_le_self {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) {n : ℕ} (hn : 1 ≤ n) :
     a ^ n ≤ a := by
   obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
@@ -1835,6 +1991,7 @@ private theorem num_checkpt_pow_le_self {a : ℝ} (h0 : 0 ≤ a) (h1 : a ≤ 1) 
     _ ≤ 1 * a := mul_le_mul_of_nonneg_right (num_checkpt_pow_le_one h0 h1 k) h0
     _ = a := by ring
 
+/-- If `0 < E ≤ 1` and `p*(2-E) ≤ E`, then `(1-E/2)^m*(1-p)` is at least `(1-E)^m` for `m ≥ 1`. -/
 private theorem num_checkpt_merge_aux {E p : ℝ} (hE0 : 0 < E) (hE1 : E ≤ 1)
     (hkey : p * (2 - E) ≤ E) (m : ℕ) (hm : 1 ≤ m) :
     (1 - E / 2) ^ m * (1 - p) ≥ (1 - E) ^ m := by
@@ -1855,6 +2012,8 @@ private theorem num_checkpt_merge_aux {E p : ℝ} (hE0 : 0 < E) (hE1 : E ≤ 1)
   rw [hsplit, mul_pow]
   exact hfinal
 
+/-- For `m ≥ 1`, the doubly exponential top-bit failure term satisfies the comparison needed to
+merge it with the exponential layer error. -/
 private theorem num_checkpt_epsTail (m : ℕ) (hm : 1 ≤ m) :
     (2:ℝ) ^ (-((2 ^ m : ℕ) : ℝ)) * (2 - Real.exp (-(2:ℝ) ^ ((m:ℝ) / 3 - 2)))
       ≤ Real.exp (-(2:ℝ) ^ ((m:ℝ) / 3 - 2)) := by
@@ -1905,6 +2064,8 @@ private theorem num_checkpt_epsTail (m : ℕ) (hm : 1 ≤ m) :
     mul_nonneg (by positivity) (Real.exp_pos _).le
   linarith [hfin, hmain, hpE]
 
+/-- For `m ≥ 1`, multiplying the layer-survival bound by the top-bit success factor is bounded
+below by `(1-exp(-2^(m/3-2)))^m`. -/
 private theorem num_checkpt_merge (m : ℕ) (hm : 1 ≤ m) :
     (1 - Real.exp (-(2:ℝ) ^ ((m:ℝ) / 3 - 2)) / 2) ^ m
       * (1 - (2:ℝ) ^ (-((2 ^ m : ℕ) : ℝ)))
@@ -1913,6 +2074,7 @@ private theorem num_checkpt_merge (m : ℕ) (hm : 1 ≤ m) :
     (Real.exp_le_one_iff.mpr (neg_nonpos.mpr (by positivity)))
     (num_checkpt_epsTail m hm) m hm
 
+/-- For `m ≥ 1` and `j ≤ m-1`, the sum of `2^(i-4*m/3)` over `i < j` is at most `2^(-m/3-1)`. -/
 private theorem num_checkpt_sumB (m j : ℕ) (hm : 1 ≤ m) (hj : j ≤ m - 1) :
     (∑ i ∈ Finset.range j, (2:ℝ) ^ ((i:ℝ) - 4 * (m:ℝ) / 3))
       ≤ (2:ℝ) ^ (-(m:ℝ) / 3 - 1) := by
@@ -1948,6 +2110,8 @@ private theorem num_checkpt_sumB (m j : ℕ) (hm : 1 ≤ m) (hj : j ≤ m - 1) :
         refine Real.rpow_le_rpow_of_exponent_le (by norm_num : (1:ℝ) ≤ 2) ?_
         linarith [hcast, hm3]
 
+/-- For `m ≥ 1` and `j ≤ m-1`, the stated concentration exponent is at least `2^(m/3-2) + log
+2`. -/
 private theorem num_checkpt_hoeffding (m j : ℕ) (hm : 1 ≤ m) (hj : j ≤ m - 1) :
     (6 * (2:ℝ) ^ (3 * (m:ℝ) - 2 * (j:ℝ)) - (2:ℝ) ^ ((m:ℝ) - 1))
       * (2:ℝ) ^ (2 * (j:ℝ) - 8 * (m:ℝ) / 3 - 1)
@@ -1992,6 +2156,8 @@ private theorem num_checkpt_hoeffding (m j : ℕ) (hm : 1 ≤ m) (hj : j ≤ m -
     mul_le_mul_of_nonneg_left hq (by positivity)
   linarith [hprod, hw, Real.log_two_lt_d9]
 
+/-- A nonzero mass in a bind has an intermediate value with nonzero outer and conditional
+masses. -/
 private theorem exists_of_bind_ne_zero {α β : Type} {p : PMF α} {f : α → PMF β} {b : β}
     (h : p.bind f b ≠ 0) : ∃ a, p a ≠ 0 ∧ f a b ≠ 0 := by
   rw [PMF.bind_apply] at h
@@ -2006,6 +2172,7 @@ private theorem exists_of_bind_ne_zero {α β : Type} {p : PMF α} {f : α → P
       exact hcon ⟨a, ha, h2⟩
     rw [h2, mul_zero]
 
+/-- A point with nonzero mapped mass has a preimage of nonzero mass. -/
 private theorem exists_of_map_ne_zero {α β : Type} {p : PMF α} {f : α → β} {b : β}
     (h : p.map f b ≠ 0) : ∃ a, p a ≠ 0 ∧ f a = b := by
   rw [PMF.map_apply] at h
@@ -2019,11 +2186,14 @@ private theorem exists_of_map_ne_zero {α β : Type} {p : PMF α} {f : α → β
     exact hcon ⟨a, ha0, hb.symm⟩
   · rw [if_neg hb]
 
+/-- A point with nonzero mass in a pure distribution equals its distinguished value. -/
 private theorem eq_of_pure_ne_zero {α : Type} {a b : α} (h : PMF.pure a b ≠ 0) : b = a := by
   by_contra hab
   rw [PMF.pure_apply, if_neg hab] at h
   exact h rfl
 
+/-- Subtracting window-agreeing labels with `t` zero low bits gives `t+w` zero low bits when the
+window fits in the label. -/
 private theorem zeroBitsGE_sub_of_windowAgree {n t w : ℕ} {r r' : ZMod (2 ^ n)}
     (hr : zeroBitsGE n t r) (hr' : zeroBitsGE n t r') (hw : windowAgree n w t r r')
     (htw : t + w ≤ n) : zeroBitsGE n (t + w) (r' - r) := by
@@ -2072,6 +2242,7 @@ private theorem zeroBitsGE_sub_of_windowAgree {n t w : ℕ} {r r' : ZMod (2 ^ n)
       rw [hval, hfact]
       exact Nat.mul_mod_right _ _
 
+/-- Each selected pair consists of input elements whose labels agree in the selected window. -/
 private theorem sievePairWith_mem_window {n : ℕ} {α : Type} [DecidableEq α]
     {label : α → ZMod (2^n)} {w t : ℕ} {L : List α} :
     ∀ p : α × α, p ∈ sievePairWith n label w t L →
@@ -2096,6 +2267,8 @@ private theorem sievePairWith_mem_window {n : ℕ} {α : Type} [DecidableEq α]
       exact ⟨List.mem_cons_of_mem _ (List.mem_of_mem_erase h1),
         List.mem_cons_of_mem _ (List.mem_of_mem_erase h2), h3⟩
 
+/-- Every label in a nonzero-probability ideal auxiliary output is the second label minus the
+first label of some input pair. -/
 private theorem idealLayerAux_mem {n : ℕ} :
     ∀ (ps : List (ZMod (2^n) × ZMod (2^n))) {L : List (ZMod (2^n))},
       (idealLayerAux n ps) L ≠ 0 → ∀ k ∈ L, ∃ p ∈ ps, k = p.2 - p.1 := by
@@ -2129,6 +2302,8 @@ private theorem idealLayerAux_mem {n : ℕ} :
       obtain ⟨p', hp', hk'⟩ := hrec k hk
       exact ⟨p', List.mem_cons_of_mem _ hp', hk'⟩
 
+/-- Every nonzero-probability ideal auxiliary output has length at most the number of input
+pairs. -/
 private theorem idealLayerAux_len_le {n : ℕ} :
     ∀ (ps : List (ZMod (2^n) × ZMod (2^n))) {L : List (ZMod (2^n))},
       (idealLayerAux n ps) L ≠ 0 → L.length ≤ ps.length := by
@@ -2156,6 +2331,8 @@ private theorem idealLayerAux_len_le {n : ℕ} :
     · rw [if_neg hb, List.length_cons]
       omega
 
+/-- Every label in a nonzero-probability ideal recursive output has at least the stage's capped
+number of zero low bits. -/
 private theorem idealSieveRec_zeroBits {n m : ℕ} :
     ∀ (j : ℕ) {L L' : List (ZMod (2^n))},
       (idealSieveRec n m j L) L' ≠ 0 → ∀ k ∈ L', zeroBitsGE n (min (m * j) (n - 1)) k := by
@@ -2208,6 +2385,8 @@ private theorem idealSieveRec_zeroBits {n m : ℕ} :
         exact Nat.sub_le n 1)
       rwa [Nat.add_zero] at hz
 
+/-- If `n ≥ 1` and `n-1 ≤ m*m`, every label remaining after `m` ideal sieve stages is zero or
+the half-period label. -/
 private theorem idealSieveRec_zero_or_half {n m : ℕ} (hn : 1 ≤ n) (hmm : n - 1 ≤ m * m)
     {L L' : List (ZMod (2^n))} (h : (idealSieveRec n m m L) L' ≠ 0) :
     ∀ k ∈ L', k = 0 ∨ k = ((2 ^ (n - 1) : ℕ) : ZMod (2^n)) := by
@@ -2236,11 +2415,15 @@ private theorem idealSieveRec_zero_or_half {n m : ℕ} (hn : 1 ≤ n) (hmm : n -
     rw [hdecomp, hq1, mul_one]
     exact (ZMod.val_cast_of_lt (by rw [h2n]; omega : 2 ^ (n - 1) < 2 ^ n)).symm
 
+/-- The deterministic list of child records obtained by retaining a pair's child exactly when
+its corresponding tape entry equals one. -/
 private def layerRunGen {α : Type} (child : α × α → α) :
     List (α × α) → (ℕ → Fin 2) → List α
   | [], _ => []
   | p :: ps, c => (if c 0 = 1 then [child p] else []) ++ layerRunGen child ps (fun i => c (i + 1))
 
+/-- Deterministic layer execution depends only on tape entries indexed below the number of input
+pairs. -/
 private theorem layerRunGen_congr {α : Type} (child : α × α → α) :
     ∀ (ps : List (α × α)) (c₁ c₂ : ℕ → Fin 2),
       (∀ i, i < ps.length → c₁ i = c₂ i) → layerRunGen child ps c₁ = layerRunGen child ps c₂ := by
@@ -2257,12 +2440,16 @@ private theorem layerRunGen_congr {α : Type} (child : α × α → α) :
       (if c₂ 0 = 1 then [child p] else []) ++ layerRunGen child ps (fun i => c₂ (i + 1))
     rw [h0, ih _ _ hrest]
 
+/-- Extension of a finite binary tape to natural indices by setting every entry beyond its
+length to zero. -/
 private def coinLift {k : ℕ} (c : Fin k → Fin 2) : ℕ → Fin 2 :=
   fun i => if h : i < k then c ⟨i, h⟩ else 0
 
+/-- The extended tape agrees with the original finite tape at every in-range index. -/
 private theorem coinLift_lt {k : ℕ} (c : Fin k → Fin 2) {i : ℕ} (hi : i < k) :
     coinLift c i = c ⟨i, hi⟩ := dif_pos hi
 
+/-- The two successor-index representations give the same sum of binary keep indicators. -/
 private theorem sum_succ_shift_eq {P : ℕ} (c : ℕ → Fin 2) :
     (∑ i : Fin P, (if c ((i : ℕ) + 1) = 1 then (1 : ℕ) else 0)) =
       ∑ i : Fin P, (if c ((i.succ : ℕ)) = 1 then 1 else 0) := by
@@ -2270,6 +2457,7 @@ private theorem sum_succ_shift_eq {P : ℕ} (c : ℕ → Fin 2) :
   intro i _
   rw [Fin.val_succ]
 
+/-- The deterministic layer output length equals the sum of its binary keep indicators. -/
 private theorem layerRunGen_length {α : Type} (child : α × α → α) :
     ∀ (ps : List (α × α)) (c : ℕ → Fin 2),
       (layerRunGen child ps c).length = ∑ i : Fin ps.length, (if c i = 1 then 1 else 0) := by
@@ -2295,6 +2483,8 @@ private theorem layerRunGen_length {α : Type} (child : α × α → α) :
     · have h1' : ¬c ((0 : Fin (ps.length + 1)) : ℕ) = 1 := h1
       rw [if_neg h1, if_neg h1', List.length_nil]
 
+/-- The real-valued deterministic layer output length equals the sum of its real-valued keep
+indicators. -/
 private theorem layerRunGen_length_real {α : Type} (child : α × α → α)
     (ps : List (α × α)) (c : ℕ → Fin 2) :
     ((layerRunGen child ps c).length : ℝ) =
@@ -2305,30 +2495,41 @@ private theorem layerRunGen_length_real {α : Type} (child : α × α → α)
   intro i _
   by_cases h : c i = 1 <;> simp [h]
 
+/-- The finite probability distribution assigning probability one half to each element of `Fin
+2`. -/
 private def uniformFin2 : FinDist (Fin 2) where
   prob := fun _ => 1 / 2
   nonneg := fun _ => by norm_num
   sum_one := by rw [Fin.sum_univ_two]; norm_num
 
+/-- Each outcome of `uniformFin2` has probability one half. -/
 private theorem uniformFin2_prob (x : Fin 2) : uniformFin2.prob x = 1 / 2 := rfl
 
+/-- The keep indicator has expectation one half under `uniformFin2`. -/
 private theorem uniformFin2_expect_keep :
     uniformFin2.expect (fun x => if x = 1 then (1 : ℝ) else 0) = 1 / 2 := by
   rw [FinDist.expect, Fin.sum_univ_two]
   norm_num [uniformFin2]
 
+/-- Prepending a value to a function indexed by `Fin k`, producing a function indexed by `Fin
+(k+1)`. -/
 private def consFn {X : Type} {k : ℕ} (x : X) (ω : Fin k → X) : Fin (k + 1) → X :=
   Fin.cons x ω
 
+/-- The value at zero of `consFn x ω` is `x`. -/
 private theorem consFn_zero {X : Type} {k : ℕ} (x : X) (ω : Fin k → X) :
     consFn x ω 0 = x := rfl
 
+/-- The successor entries of `consFn x ω` are the entries of `ω`. -/
 private theorem consFn_succ {X : Type} {k : ℕ} (x : X) (ω : Fin k → X) (i : Fin k) :
     consFn x ω i.succ = ω i := rfl
 
+/-- Prepending a finite function's first value to its tail reconstructs the function. -/
 private theorem consFn_self_tail {X : Type} {k : ℕ} (ω : Fin (k + 1) → X) :
     consFn (ω 0) (Fin.tail ω) = ω := Fin.cons_self_tail ω
 
+/-- A uniform finite function can be sampled by independently sampling its first entry and its
+remaining entries. -/
 private theorem uniform_fin_succ_split (X : Type) [Fintype X] [Nonempty X] (k : ℕ) :
     PMF.uniformOfFintype' (Fin (k + 1) → X) =
       (PMF.uniformOfFintype' X).bind fun x =>
@@ -2364,6 +2565,8 @@ private theorem uniform_fin_succ_split (X : Type) [Fintype X] [Nonempty X] (k : 
     rw [hcard, Nat.cast_mul]
     exact ENNReal.mul_inv (Or.inl ha0) (Or.inl haT)
 
+/-- The ideal auxiliary layer law is the image of a uniform finite binary tape under
+deterministic keep-or-discard execution. -/
 private theorem idealLayerAux_eq_map_run {n : ℕ} :
     ∀ (ps : List (ZMod (2^n) × ZMod (2^n))),
       idealLayerAux n ps = (PMF.uniformOfFintype' (Fin ps.length → Fin 2)).map
@@ -2438,6 +2641,8 @@ private theorem idealLayerAux_eq_map_run {n : ℕ} :
       · simp [hb]
     rw [hfun, ← PMF.map_comp, ← ih]
 
+/-- The probability of an event under a mapped probability mass function equals the probability
+of its preimage. -/
 private theorem pmf_map_event {α β : Type} (μ : PMF α) (f : α → β) (Q : β → Prop) [DecidablePred Q] :
     (∑' b, if Q b then μ.map f b else 0) = ∑' a, if Q (f a) then μ a else 0 := by
   have step : ∀ b, (if Q b then μ.map f b else 0) =
@@ -2472,6 +2677,8 @@ private theorem pmf_map_event {α β : Type} (μ : PMF α) (f : α → β) (Q : 
       · rw [if_pos hQb, if_neg hb]
       · rw [if_neg hQb]
 
+/-- For `b > 0`, the probability that an ideal auxiliary layer keeps at most `(1-b)` times half
+the input pairs is at most `exp(-b^2*ps.length/2)`. -/
 private theorem layer_len_tail {n : ℕ} (ps : List (ZMod (2^n) × ZMod (2^n))) (b : ℝ) (hb : 0 < b) :
     (∑' L : List (ZMod (2^n)),
       if ((L.length : ℝ) ≤ (1 - b) * ((ps.length : ℝ) / 2)) then (idealLayerAux n ps) L else 0)
@@ -2625,6 +2832,7 @@ private theorem layer_len_tail {n : ℕ} (ps : List (ZMod (2^n) × ZMod (2^n))) 
     rw [hcard]
     exact ENNReal.ofReal_le_ofReal htail
 
+/-- Every nonzero-probability list of `i` ideal fresh records has length exactly `i`. -/
 private theorem idealFreshRecords_length {n : ℕ} :
     ∀ (i : ℕ) {L : List (ZMod (2^n))}, (idealFreshRecords n i) L ≠ 0 → L.length = i := by
   intro i
@@ -2643,11 +2851,14 @@ private theorem idealFreshRecords_length {n : ℕ} :
     have h3' : r :: L' = L := h3
     rw [← h3', List.length_cons, ih hL']
 
+/-- The recursive real retention threshold starting at one and incorporating each stage's
+multiplicative loss and window-class correction. -/
 private noncomputable def ρChain (n m : ℕ) : ℕ → ℝ
   | 0 => 1
   | j + 1 => (1 - (2:ℝ)^((j:ℝ) - 4*(m:ℝ)/3)) *
       (ρChain n m j - (2:ℝ)^(sieveWindowWidth n m j) / (24 * (2:ℝ)^(3*m - 2*j)))
 
+/-- The real cube root of two is at least `18/17`. -/
 private theorem two_rpow_third_ge : (18:ℝ)/17 ≤ (2:ℝ)^((1:ℝ)/3) := by
   have hx3 : ((2:ℝ)^((1:ℝ)/3)) ^ 3 = 2 := by
     rw [← Real.rpow_natCast _ 3, ← Real.rpow_mul (by norm_num : (0:ℝ) ≤ 2)]
@@ -2660,6 +2871,7 @@ private theorem two_rpow_third_ge : (18:ℝ)/17 ≤ (2:ℝ)^((1:ℝ)/3) := by
   rw [hx3] at h2
   norm_num at h2
 
+/-- The reciprocal real cube root of two is at most `17/18`. -/
 private theorem two_rpow_neg_third_le : (2:ℝ)^(-(1:ℝ)/3) ≤ 17/18 := by
   have h := two_rpow_third_ge
   have hxpos : (0:ℝ) < (2:ℝ)^((1:ℝ)/3) := by positivity
@@ -2669,6 +2881,7 @@ private theorem two_rpow_neg_third_le : (2:ℝ)^(-(1:ℝ)/3) ≤ 17/18 := by
   have h17 : ((17/18 : ℝ))⁻¹ = 18/17 := by norm_num
   rwa [h17]
 
+/-- The real power `2^(-4/3)` is at most `35/72`. -/
 private theorem two_rpow_neg43_le : (2:ℝ)^(-(4:ℝ)/3) ≤ 35/72 := by
   have h1 : (2:ℝ)^(-(4:ℝ)/3) = (2:ℝ)^(-(1:ℝ)/3) / 2 := by
     rw [show (-(4:ℝ)/3) = (-(1:ℝ)/3) - 1 from by ring, Real.rpow_sub (by norm_num : (0:ℝ) < 2)]
@@ -2677,6 +2890,7 @@ private theorem two_rpow_neg43_le : (2:ℝ)^(-(4:ℝ)/3) ≤ 35/72 := by
   have h := two_rpow_neg_third_le
   linarith
 
+/-- For `m ≥ 1`, the real power `2^(-m/3)` is at most `17/18`. -/
 private theorem two_rpow_m3_le (m : ℕ) (hm1 : 1 ≤ m) : (2:ℝ)^(-(m:ℝ)/3) ≤ 17/18 := by
   have h1 : (2:ℝ)^(-(m:ℝ)/3) ≤ (2:ℝ)^(-(1:ℝ)/3) := by
     apply Real.rpow_le_rpow_of_exponent_le (by norm_num : (1:ℝ) ≤ 2)
@@ -2684,6 +2898,8 @@ private theorem two_rpow_m3_le (m : ℕ) (hm1 : 1 ≤ m) : (2:ℝ)^(-(m:ℝ)/3) 
     linarith
   exact le_trans h1 two_rpow_neg_third_le
 
+/-- For `m ≥ 1` and `j ≤ m`, the cumulative window-class correction through stage `j` is at most
+`1/72`. -/
 private theorem dStep_sum_le (n m : ℕ) (hm1 : 1 ≤ m) :
     ∀ j : ℕ, j ≤ m →
       (∑ i ∈ Finset.range j, ((2:ℝ)^(sieveWindowWidth n m i) / (24 * (2:ℝ)^(3*m - 2*i))))
@@ -2732,6 +2948,7 @@ private theorem dStep_sum_le (n m : ℕ) (hm1 : 1 ≤ m) :
           show (1:ℝ)/72 * (72 * (4:ℝ)^m) = (4:ℝ)^m from by ring]
         linarith [h4j]
 
+/-- For `m ≥ 1`, the sum of `2^(i-4*m/3)` over `i < m` is at most `2^(-m/3)`. -/
 private theorem bStep_sum_le_m (m : ℕ) (hm1 : 1 ≤ m) :
     (∑ i ∈ Finset.range m, (2:ℝ)^((i:ℝ) - 4*(m:ℝ)/3)) ≤ (2:ℝ)^(-(m:ℝ)/3) := by
   cases m with
@@ -2750,6 +2967,8 @@ private theorem bStep_sum_le_m (m : ℕ) (hm1 : 1 ≤ m) :
     rw [h2] at hsum ⊢
     linarith [hsum]
 
+/-- Through stage `m`, the retention threshold is at least one minus the cumulative
+multiplicative-loss and window-class corrections, for `m ≥ 1`. -/
 private theorem ρChain_lower (n m : ℕ) (hm1 : 1 ≤ m) :
     ∀ j : ℕ, j ≤ m →
       1 - (∑ i ∈ Finset.range j, ((2:ℝ)^((i:ℝ) - 4*(m:ℝ)/3)
@@ -2791,6 +3010,8 @@ private theorem ρChain_lower (n m : ℕ) (hm1 : 1 ≤ m) :
     refine le_trans ?_ h1
     nlinarith [mul_nonneg hb0 (add_nonneg hS0 hδ0)]
 
+/-- Under the stated stage, input-size, retention, and target-threshold hypotheses, an ideal
+layer reaches the target length with probability at least `1-exp(-2^(m/3-2))/2`. -/
 private theorem idealLayer_survival (n m j : ℕ) (hm1 : 1 ≤ m) (hj : j ≤ m - 1)
     (ρ : ℝ) (hρ2 : 1 / 2 ≤ ρ)
     (L : List (ZMod (2^n))) (hL : (24 * (2:ℝ)^(3*m - 2*j)) * ρ ≤ L.length)
@@ -2924,6 +3145,8 @@ private theorem idealLayer_survival (n m j : ℕ) (hm1 : 1 ≤ m) (hj : j ≤ m 
   refine le_trans hsum_le ?_
   exact add_le_add (le_refl _) hbad2
 
+/-- The event probability after binding is the outer-probability-weighted sum of conditional
+event probabilities. -/
 private theorem pmf_bind_event {α β : Type} (μ : PMF α) (F : α → PMF β) (Q : β → Prop)
     [DecidablePred Q] :
     (∑' b, if Q b then (μ.bind F) b else 0) = ∑' a, μ a * (∑' b, if Q b then F a b else 0) := by
@@ -2947,6 +3170,7 @@ private theorem pmf_bind_event {α β : Type} (μ : PMF α) (F : α → PMF β) 
   intro a
   rw [← ENNReal.tsum_mul_left]
 
+/-- The layer-survival factor `1-exp(-2^(m/3-2))/2` is nonnegative. -/
 private theorem one_sub_eps_half_nonneg (m : ℕ) :
     (0:ℝ) ≤ 1 - Real.exp (-(2:ℝ)^((m:ℝ)/3 - 2)) / 2 := by
   have h0 : (0:ℝ) ≤ (2:ℝ)^((m:ℝ)/3 - 2) := by positivity
@@ -2956,6 +3180,8 @@ private theorem one_sub_eps_half_nonneg (m : ℕ) :
   have hpos := Real.exp_pos (-(2:ℝ)^((m:ℝ)/3 - 2))
   linarith [heps1, hpos]
 
+/-- For `m ≥ 1` and `j ≤ m`, the probability of meeting the stage-`j` retention threshold is at
+least the `j`th power of the layer-survival factor. -/
 private theorem idealSieve_size_chain (n m : ℕ) (hm1 : 1 ≤ m) :
     ∀ j : ℕ, j ≤ m →
       ENNReal.ofReal ((1 - Real.exp (-(2:ℝ)^((m:ℝ)/3 - 2)) / 2) ^ j) ≤
@@ -3075,6 +3301,7 @@ private theorem idealSieve_size_chain (n m : ℕ) (hm1 : 1 ≤ m) :
           · rw [if_neg hE]
             simp
 
+/-- For `m ≥ 1`, the final retention threshold `ρChain n m m` is at least `1/24`. -/
 private theorem ρChain_m_ge (n m : ℕ) (hm1 : 1 ≤ m) :
     (1:ℝ)/24 ≤ ρChain n m m := by
   have hlow := ρChain_lower n m hm1 m (le_refl m)
@@ -3086,6 +3313,9 @@ private theorem ρChain_m_ge (n m : ℕ) (hm1 : 1 ≤ m) :
   rw [Finset.sum_add_distrib] at hlow
   linarith [hlow, hsum_b, hsum_d, hnum]
 
+/-- Starting with `24*2^(3*m)` fresh ideal records, the probability of retaining at least `2^m`
+records after `m` stages is bounded below by the stated product of layer-survival factors
+for `m ≥ 1`. -/
 private theorem idealSieve_size_final (n m : ℕ) (hm1 : 1 ≤ m) :
     ENNReal.ofReal ((1 - Real.exp (-(2:ℝ)^((m:ℝ)/3 - 2)) / 2) ^ m) ≤
       ∑' L : List (ZMod (2^n)),
@@ -3111,6 +3341,8 @@ private theorem idealSieve_size_final (n m : ℕ) (hm1 : 1 ≤ m) :
   · rw [if_neg hc]
     simp
 
+/-- For `m ≥ 1`, the assumed top-bit success estimate and the final size bound imply half-period
+hit probability at least `(1-exp(-2^(m/3-2)))^m`. -/
 private theorem idealHit_of_topbit (n m : ℕ) (hm1 : 1 ≤ m)
     (htop : (∑' L : List (ZMod (2^n)),
         if (2^m : ℕ) ≤ L.length
@@ -3141,9 +3373,12 @@ private theorem idealHit_of_topbit (n m : ℕ) (hm1 : 1 ≤ m)
         mul_le_mul' hsize (le_refl _)
     _ ≤ _ := htop
 
+/-- The extension of a finite binary tape is zero outside its original range. -/
 private theorem coinLift_ge {k : ℕ} (c : Fin k → Fin 2) {i : ℕ} (hi : ¬ i < k) :
     coinLift c i = 0 := dif_neg hi
 
+/-- A bijection between nonempty finite types maps the uniform distribution to the uniform
+distribution. -/
 private theorem uni_bij {α β : Type} [Fintype α] [Fintype β] [Nonempty α] [Nonempty β]
     (f : α → β) (hf : Function.Bijective f) :
     (PMF.uniformOfFintype' α).map f = PMF.uniformOfFintype' β := by
@@ -3158,6 +3393,8 @@ private theorem uni_bij {α β : Type} [Fintype α] [Fintype β] [Nonempty α] [
     exact ha' (hf.1 ha.symm))]
   rw [if_pos ha.symm, PMF.uniformOfFintype'_apply, PMF.uniformOfFintype'_apply, hcard]
 
+/-- Independent uniform samples from two nonempty finite types give the uniform distribution on
+their product. -/
 private theorem uni_bind_prod {A B : Type} [Fintype A] [Fintype B] [Nonempty A] [Nonempty B] :
     (PMF.uniformOfFintype' A).bind (fun a => (PMF.uniformOfFintype' B).map (fun b => (a, b)))
       = PMF.uniformOfFintype' (A × B) := by
@@ -3185,6 +3422,8 @@ private theorem uni_bind_prod {A B : Type} [Fintype A] [Fintype B] [Nonempty A] 
     PMF.uniformOfFintype'_apply, Fintype.card_prod, Nat.cast_mul]
   exact (ENNReal.mul_inv (Or.inl hA) (Or.inl hAT)).symm
 
+/-- Applying a binary function to two independent uniform samples equals mapping that function
+over a uniform product sample. -/
 private theorem uni_bind_map_prod {A B : Type} [Fintype A] [Fintype B] [Nonempty A] [Nonempty B]
     {γ : Type} (F : A → B → γ) :
     (PMF.uniformOfFintype' A).bind (fun a => (PMF.uniformOfFintype' B).map (F a))
@@ -3194,21 +3433,28 @@ private theorem uni_bind_map_prod {A B : Type} [Fintype A] [Fintype B] [Nonempty
   rw [PMF.map_comp]
   rfl
 
+/-- The initial `N` entries of a binary tape of length `N+K`. -/
 private def takeTape {N K : ℕ} (d : Fin (N + K) → Fin 2) : Fin N → Fin 2 :=
   fun i => d (Fin.castLE (Nat.le_add_right N K) i)
 
+/-- The final `K` entries of a binary tape of length `N+K`. -/
 private def dropTape {N K : ℕ} (d : Fin (N + K) → Fin 2) : Fin K → Fin 2 :=
   fun i => d (Fin.natAdd N i)
 
+/-- Concatenation of two finite binary tapes of lengths `N` and `K`. -/
 private def glueTape {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) : Fin (N + K) → Fin 2 :=
   fun j => if h : (j : ℕ) < N then c ⟨(j : ℕ), h⟩ else c' ⟨(j : ℕ) - N, by omega⟩
 
+/-- A concatenated tape reads from its first component at indices below `N`. -/
 private theorem glue_apply_lt {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) {j : Fin (N + K)}
     (hj : (j : ℕ) < N) : glueTape c c' j = c ⟨(j : ℕ), hj⟩ := dif_pos hj
 
+/-- A concatenated tape reads from its second component, with index shifted by `N`, at indices
+at least `N`. -/
 private theorem glue_apply_ge {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) {j : Fin (N + K)}
     (hj : ¬ (j : ℕ) < N) : glueTape c c' j = c' ⟨(j : ℕ) - N, by omega⟩ := dif_neg hj
 
+/-- Taking the prefix of a concatenated tape recovers the first tape. -/
 private theorem take_glue {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) :
     takeTape (glueTape c c') = c := by
   funext i
@@ -3217,6 +3463,7 @@ private theorem take_glue {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 
   rw [glue_apply_lt c c' hi]
   exact congrArg c (Fin.ext rfl)
 
+/-- Dropping the prefix of a concatenated tape recovers the second tape. -/
 private theorem drop_glue {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 2) :
     dropTape (glueTape c c') = c' := by
   funext i
@@ -3229,6 +3476,7 @@ private theorem drop_glue {N K : ℕ} (c : Fin N → Fin 2) (c' : Fin K → Fin 
     show ((Fin.natAdd N i : Fin (N + K)) : ℕ) - N = (i : ℕ)
     simp))
 
+/-- Concatenating a tape's prefix and suffix reconstructs the tape. -/
 private theorem glue_take_drop {N K : ℕ} (d : Fin (N + K) → Fin 2) :
     glueTape (takeTape d) (dropTape d) = d := by
   funext j
@@ -3247,6 +3495,7 @@ private theorem glue_take_drop {N K : ℕ} (d : Fin (N + K) → Fin 2) :
       Fin.ext (by show N + ((j : ℕ) - N) = (j : ℕ); omega)
     rw [h2]
 
+/-- Concatenation is a bijection from pairs of binary tapes to tapes of the combined length. -/
 private theorem glue_bij {N K : ℕ} :
     Function.Bijective (fun p : (Fin N → Fin 2) × (Fin K → Fin 2) => glueTape p.1 p.2) := by
   constructor
@@ -3260,6 +3509,7 @@ private theorem glue_bij {N K : ℕ} :
   · intro d
     exact ⟨(takeTape d, dropTape d), glue_take_drop d⟩
 
+/-- The prefix and suffix of a uniform binary tape can be sampled as independent uniform tapes. -/
 private theorem uni_glue {N K : ℕ} {γ : Type} (G : (Fin N → Fin 2) → (Fin K → Fin 2) → γ) :
     (PMF.uniformOfFintype' (Fin (N + K) → Fin 2)).map (fun d => G (takeTape d) (dropTape d))
       = (PMF.uniformOfFintype' (Fin N → Fin 2)).bind
@@ -3270,6 +3520,7 @@ private theorem uni_glue {N K : ℕ} {γ : Type} (G : (Fin N → Fin 2) → (Fin
   simp only [Function.comp]
   rw [take_glue p.1 p.2, drop_glue p.1 p.2]
 
+/-- The prefix of a uniform binary tape is uniformly distributed. -/
 private theorem uni_restrict_add (N K : ℕ) :
     (PMF.uniformOfFintype' (Fin (N + K) → Fin 2)).map takeTape
       = PMF.uniformOfFintype' (Fin N → Fin 2) := by
@@ -3286,6 +3537,8 @@ private theorem uni_restrict_add (N K : ℕ) :
     exact PMF.map_const _ c
   rw [hfam, PMF.bind_pure]
 
+/-- Restricting a uniform binary tape to its first `k` entries gives a uniform tape of length
+`k` when `k ≤ R`. -/
 private theorem uni_marginal {k R : ℕ} (h : k ≤ R) :
     (PMF.uniformOfFintype' (Fin R → Fin 2)).map (fun d i => d (Fin.castLE h i))
       = PMF.uniformOfFintype' (Fin k → Fin 2) := by
@@ -3298,6 +3551,8 @@ private theorem uni_marginal {k R : ℕ} (h : k ≤ R) :
     rfl
   rw [hfun, uni_restrict_add]
 
+/-- A function of the first `k` entries of a longer uniform tape has the same law as on a
+uniform tape of length `k`. -/
 private theorem uni_lift {k R : ℕ} (h : k ≤ R) {γ : Type} (F : (Fin k → Fin 2) → γ) :
     (PMF.uniformOfFintype' (Fin R → Fin 2)).map (fun d => F (fun i => d (Fin.castLE h i)))
       = (PMF.uniformOfFintype' (Fin k → Fin 2)).map F := by
@@ -3305,6 +3560,8 @@ private theorem uni_lift {k R : ℕ} (h : k ≤ R) {γ : Type} (F : (Fin k → F
         = (F ∘ (fun d : Fin R → Fin 2 => fun i => d (Fin.castLE h i))) from rfl,
     ← PMF.map_comp, uni_marginal h]
 
+/-- Converting a prepended finite function to a list gives the prepended value followed by the
+original function's list. -/
 private theorem ofFn_consFn {X : Type} {k : ℕ} (x : X) (ω : Fin k → X) :
     List.ofFn (consFn x ω) = x :: List.ofFn ω := by
   rw [List.ofFn_succ]
@@ -3315,6 +3572,7 @@ private theorem ofFn_consFn {X : Type} {k : ℕ} (x : X) (ω : Fin k → X) :
     rw [hfun]
   rw [htail, consFn_zero x ω]
 
+/-- Pointwise equal finite functions give equal lists under `List.ofFn`. -/
 private theorem ofFn_congr {X : Type} {k : ℕ} {f g : Fin k → X} (h : ∀ i, f i = g i) :
     List.ofFn f = List.ofFn g := by
   induction k with
@@ -3322,6 +3580,8 @@ private theorem ofFn_congr {X : Type} {k : ℕ} {f g : Fin k → X} (h : ∀ i, 
   | succ k ih =>
     rw [List.ofFn_succ, List.ofFn_succ, h 0, ih fun i => h i.succ]
 
+/-- Ideal fresh records have the law of the list obtained from a uniformly sampled finite label
+table. -/
 private theorem fresh_table (n : ℕ) : ∀ i : ℕ,
     idealFreshRecords n i
       = (PMF.uniformOfFintype' (Fin i → ZMod (2^n))).map (fun a => List.ofFn a) := by
@@ -3358,6 +3618,8 @@ private theorem fresh_table (n : ℕ) : ∀ i : ℕ,
       rw [PMF.map_comp, hfun]
     rw [dihedralIdealRecordLaw, hfam, hR]
 
+/-- Deterministic recursive sieving using pair differences and a binary tape divided into stage
+blocks of length `R`. -/
 private def detSieveRun (n m R : ℕ) :
     ℕ → List (ZMod (2 ^ n)) → (ℕ → Fin 2) → List (ZMod (2 ^ n))
   | 0, L, _ => L
@@ -3366,6 +3628,7 @@ private def detSieveRun (n m R : ℕ) :
       (sievePair n (sieveWindowWidth n m j) (m * j) (detSieveRun n m R j L C))
       (fun i => C (j * R + i))
 
+/-- Deterministic layer execution produces at most one child per input pair. -/
 private theorem layerRunGen_length_le {α : Type} (child : α × α → α) :
     ∀ (ps : List (α × α)) (c : ℕ → Fin 2), (layerRunGen child ps c).length ≤ ps.length := by
   intro ps
@@ -3383,6 +3646,7 @@ private theorem layerRunGen_length_le {α : Type} (child : α × α → α) :
     rw [List.length_append]
     omega
 
+/-- Deterministic recursive sieving never increases the input list length. -/
 private theorem detSieveRun_length_le (n m R : ℕ) :
     ∀ (j : ℕ) (L : List (ZMod (2^n))) (C : ℕ → Fin 2),
       (detSieveRun n m R j L C).length ≤ L.length := by
@@ -3405,6 +3669,8 @@ private theorem detSieveRun_length_le (n m R : ℕ) :
       (fun i => C (j * R + i))).length ≤ L.length
     omega
 
+/-- For an input list of length at most `R`, the first `j*R` tape entries determine execution of
+`j` deterministic sieve stages. -/
 private theorem detSieveRun_congr (n m R : ℕ) (L : List (ZMod (2^n))) (hL : L.length ≤ R) :
     ∀ (j : ℕ) (C₁ C₂ : ℕ → Fin 2), (∀ i, i < j * R → C₁ i = C₂ i) →
       detSieveRun n m R j L C₁ = detSieveRun n m R j L C₂ := by
@@ -3435,6 +3701,8 @@ private theorem detSieveRun_congr (n m R : ℕ) (L : List (ZMod (2^n))) (hL : L.
     have hlt : j * R + i < (j + 1) * R := by omega
     exact hC _ hlt
 
+/-- For input length at most `R`, the ideal recursive sieve law is deterministic sieve execution
+driven by a uniform tape of length `j*R`. -/
 private theorem idealSieveRec_eq_map_det (n m R : ℕ) :
     ∀ (j : ℕ) (L : List (ZMod (2^n))) (_hL : L.length ≤ R),
       idealSieveRec n m j L = (PMF.uniformOfFintype' (Fin (j * R) → Fin 2)).map
@@ -3517,6 +3785,8 @@ private theorem idealSieveRec_eq_map_det (n m R : ℕ) :
     rw [hrest, hcoins]
     rfl
 
+/-- For `R > 0`, fresh-label sampling followed by `m` ideal stages equals deterministic
+execution on a uniformly sampled label table and binary tape. -/
 private theorem mu_factorized (n m R : ℕ) (_hR : 0 < R) :
     (idealFreshRecords n R).bind (idealSieveRec n m m) =
     (PMF.uniformOfFintype' ((Fin R → ZMod (2^n)) × (Fin (m * R) → Fin 2))).map
@@ -3530,27 +3800,33 @@ private theorem mu_factorized (n m R : ℕ) (_hR : 0 < R) :
   rw [idealSieveRec_eq_map_det n m R m (List.ofFn a)
     (by rw [List.length_ofFn])]
 
+/-- Reduction of a label modulo `2^n` to its residue modulo `2^(n-1)`. -/
 private def lowb {n : ℕ} (x : ZMod (2 ^ n)) : ZMod (2 ^ (n - 1)) :=
   ((x.val % 2 ^ (n - 1) : ℕ) : ZMod (2 ^ (n - 1)))
 
+/-- The canonical value of `lowb x` is `x.val % 2^(n-1)`. -/
 private theorem lowb_val {n : ℕ} (x : ZMod (2 ^ n)) :
     (lowb x).val = x.val % 2 ^ (n - 1) := by
   rw [lowb, ZMod.val_natCast, Nat.mod_eq_of_lt (Nat.mod_lt _ (by positivity))]
 
+/-- The natural power `2^(n-1)` divides `2^n`. -/
 private theorem pow_sub_dvd {n : ℕ} : (2 : ℕ) ^ (n - 1) ∣ 2 ^ n :=
   pow_dvd_pow 2 (Nat.sub_le n 1)
 
+/-- Reduction by `lowb` preserves addition. -/
 private theorem lowb_add {n : ℕ} (x y : ZMod (2 ^ n)) :
     lowb (x + y) = lowb x + lowb y := by
   apply ZMod.val_injective
   rw [lowb_val, ZMod.val_add, Nat.mod_mod_of_dvd _ pow_sub_dvd, ZMod.val_add, lowb_val,
     lowb_val, Nat.add_mod]
 
+/-- Reduction by `lowb` preserves subtraction. -/
 private theorem lowb_sub {n : ℕ} (x y : ZMod (2 ^ n)) :
     lowb (x - y) = lowb x - lowb y := by
   refine eq_sub_of_add_eq ?_
   rw [← lowb_add, sub_add_cancel]
 
+/-- Dividing the residue modulo `2^(t+w)` by `2^t` gives the quotient modulo `2^w`. -/
 private theorem mod_div_split (a t w : ℕ) :
     (a % 2 ^ (t + w)) / 2 ^ t = (a / 2 ^ t) % 2 ^ w := by
   have h1 : 2 ^ t * (a / 2 ^ t) + a % 2 ^ t = a := Nat.div_add_mod a (2 ^ t)
@@ -3579,6 +3855,8 @@ private theorem mod_div_split (a t w : ℕ) :
     Nat.div_eq_of_lt hvt]
   simp
 
+/-- A window contained in the lowest `n-1` bits has the same agreement test before and after
+applying `lowb`. -/
 private theorem windowAgree_low {n w t : ℕ} (htw : t + w ≤ n - 1)
     (x y : ZMod (2 ^ n)) :
     windowAgree n w t x y ↔ windowAgree (n - 1) w t (lowb x) (lowb y) := by
@@ -3600,10 +3878,13 @@ private theorem windowAgree_low {n w t : ℕ} (htw : t + w ≤ n - 1)
     rw [key x, key y]
     exact h'
 
+/-- Reconstruction of an `n`-bit label table from a table of its lowest `n-1` bits and a binary
+top-bit table. -/
 private def tabCombine {n R : ℕ} (ℓ : Fin R → ZMod (2 ^ (n - 1))) (t : Fin R → Fin 2) :
     Fin R → ZMod (2 ^ n) :=
   fun i => ((ℓ i).val + 2 ^ (n - 1) * (t i).val : ℕ)
 
+/-- For `n ≥ 1`, two copies of `2^(n-1)` sum to `2^n`. -/
 private theorem h2pow {n : ℕ} (hn : 1 ≤ n) : 2 ^ (n - 1) + 2 ^ (n - 1) = 2 ^ n := by
   obtain ⟨k, hk⟩ := Nat.exists_eq_add_of_le hn
   subst hk
@@ -3612,6 +3893,7 @@ private theorem h2pow {n : ℕ} (hn : 1 ≤ n) : 2 ^ (n - 1) + 2 ^ (n - 1) = 2 ^
   rw [Nat.pow_succ]
   ring
 
+/-- For `n ≥ 1`, each integer reconstructed from a low residue and a top bit is less than `2^n`. -/
 private theorem tabCombine_val_lt {n R : ℕ} (hn : 1 ≤ n) (ℓ : Fin R → ZMod (2 ^ (n - 1)))
     (t : Fin R → Fin 2) (i : Fin R) :
     (ℓ i).val + 2 ^ (n - 1) * (t i).val < 2 ^ n := by
@@ -3621,11 +3903,14 @@ private theorem tabCombine_val_lt {n R : ℕ} (hn : 1 ≤ n) (ℓ : Fin R → ZM
   · rw [h0, Nat.mul_zero, Nat.add_zero]; omega
   · rw [h1, Nat.mul_one]; omega
 
+/-- For `n ≥ 1`, the canonical value of a reconstructed table entry is its low value plus
+`2^(n-1)` times its top bit. -/
 private theorem tabCombine_val {n R : ℕ} (hn : 1 ≤ n) (ℓ : Fin R → ZMod (2 ^ (n - 1)))
     (t : Fin R → Fin 2) (i : Fin R) :
     (tabCombine ℓ t i).val = (ℓ i).val + 2 ^ (n - 1) * (t i).val :=
   ZMod.val_cast_of_lt (tabCombine_val_lt hn ℓ t i)
 
+/-- For `n ≥ 1`, reducing a reconstructed table entry recovers its low residue. -/
 private theorem lowb_tabCombine {n R : ℕ} (hn : 1 ≤ n) (ℓ : Fin R → ZMod (2 ^ (n - 1)))
     (t : Fin R → Fin 2) (i : Fin R) :
     lowb (tabCombine ℓ t i) = ℓ i := by
@@ -3633,15 +3918,19 @@ private theorem lowb_tabCombine {n R : ℕ} (hn : 1 ≤ n) (ℓ : Fin R → ZMod
   rw [lowb_val, tabCombine_val hn, Nat.add_mul_mod_self_left,
     Nat.mod_eq_of_lt (ZMod.val_lt _)]
 
+/-- The binary top-bit table of labels modulo `2^n`, defined when `n ≥ 1`. -/
 private def tabTop {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n)) : Fin R → Fin 2 :=
   fun i => ⟨(a i).val / 2 ^ (n - 1), by
     have h := ZMod.val_lt (a i)
     have h2 : 2 * 2 ^ (n - 1) = 2 ^ n := by rw [← h2pow hn]; omega
     exact Nat.div_lt_of_lt_mul (by omega : (a i).val < 2 ^ (n - 1) * 2)⟩
 
+/-- The table obtained by reducing each label with `lowb`. -/
 private def tabLow {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) : Fin R → ZMod (2 ^ (n - 1)) :=
   fun i => lowb (a i)
 
+/-- For `n ≥ 1`, combining a label table's low and top-bit tables reconstructs the original
+table. -/
 private theorem tabCombine_tabLow {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n)) :
     tabCombine (tabLow a) (tabTop hn a) = a := by
   funext i
@@ -3649,6 +3938,7 @@ private theorem tabCombine_tabLow {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod
   rw [tabCombine_val hn, show tabLow a i = lowb (a i) from rfl, lowb_val,
     show ((tabTop hn a i) : ℕ) = (a i).val / 2 ^ (n - 1) from rfl, Nat.mod_add_div]
 
+/-- For `n ≥ 1`, combining low residues and top bits is a bijection onto full label tables. -/
 private theorem tabCombine_bij {n R : ℕ} (hn : 1 ≤ n) :
     Function.Bijective
       (fun p : (Fin R → ZMod (2 ^ (n - 1))) × (Fin R → Fin 2) => tabCombine p.1 p.2) := by
@@ -3690,22 +3980,33 @@ private theorem tabCombine_bij {n R : ℕ} (hn : 1 ≤ n) :
   · intro a
     exact ⟨(tabLow a, tabTop hn a), tabCombine_tabLow hn a⟩
 
+/-- For `n ≥ 1`, combining uniformly sampled low residues and top bits gives a uniform full
+label table. -/
 private theorem table_split {n R : ℕ} (hn : 1 ≤ n) :
     (PMF.uniformOfFintype' ((Fin R → ZMod (2 ^ (n - 1))) × (Fin R → Fin 2))).map
         (fun p => tabCombine p.1 p.2)
       = PMF.uniformOfFintype' (Fin R → ZMod (2 ^ n)) :=
   uni_bij _ (tabCombine_bij hn)
 
+/-- A full-label record paired with finite sets of positive and negative ancestor indices. -/
 private abbrev ERec (n R : ℕ) : Type := ZMod (2 ^ n) × Finset (Fin R) × Finset (Fin R)
 
+/-- A reduced-label record paired with finite sets of positive and negative ancestor indices. -/
 private abbrev SRec (n R : ℕ) : Type := ZMod (2 ^ (n - 1)) × Finset (Fin R) × Finset (Fin R)
 
+/-- The full-label difference record whose positive ancestors are the second positive and first
+negative ancestors, and whose negative ancestors are the second negative and first positive
+ancestors. -/
 private def eChild {n R : ℕ} (p : ERec n R × ERec n R) : ERec n R :=
   (p.2.1 - p.1.1, p.2.2.1 ∪ p.1.2.2, p.2.2.2 ∪ p.1.2.1)
 
+/-- The reduced-label difference record with the corresponding unions of positive and negative
+ancestor indices. -/
 private def sChild {n R : ℕ} (p : SRec n R × SRec n R) : SRec n R :=
   (p.2.1 - p.1.1, p.2.2.1 ∪ p.1.2.2, p.2.2.2 ∪ p.1.2.1)
 
+/-- Deterministic full-label sieving that carries signed ancestor sets through every retained
+pair difference. -/
 private def eRun (n m R : ℕ) :
     ℕ → List (ERec n R) → (ℕ → Fin 2) → List (ERec n R)
   | 0, E, _ => E
@@ -3715,6 +4016,8 @@ private def eRun (n m R : ℕ) :
         (eRun n m R j E C))
       (fun i => C (j * R + i))
 
+/-- Deterministic reduced-label sieving that carries signed ancestor sets and uses the full
+sieve's stage windows. -/
 private def sRun (n m R : ℕ) :
     ℕ → List (SRec n R) → (ℕ → Fin 2) → List (SRec n R)
   | 0, S, _ => S
@@ -3724,16 +4027,23 @@ private def sRun (n m R : ℕ) :
         (sRun n m R j S C))
       (fun i => C (j * R + i))
 
+/-- The initial full-label record list, assigning each table entry its own positive singleton
+ancestor and no negative ancestors. -/
 private def eInit {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) : List (ERec n R) :=
   List.ofFn (fun i : Fin R => (a i, {i}, (∅ : Finset (Fin R))))
 
+/-- The initial reduced-label record list, assigning each table entry its own positive singleton
+ancestor and no negative ancestors. -/
 private def sInit {n R : ℕ} (ℓ : Fin R → ZMod (2 ^ (n - 1))) : List (SRec n R) :=
   List.ofFn (fun i : Fin R => (ℓ i, {i}, (∅ : Finset (Fin R))))
 
+/-- An element occurring in a list without duplicates has count one. -/
 private theorem count_eq_one_fix {α : Type} [DecidableEq α] {L : List α} {x : α}
     (hx : x ∈ L) (hnodup : L.Nodup) : L.count x = 1 :=
   List.count_eq_one_of_mem hnodup hx
 
+/-- Erasing a present element from a list without duplicates leaves exactly the other original
+elements. -/
 private theorem mem_erase_nodup {α : Type} [DecidableEq α] {L : List α} (hL : L.Nodup)
     {b : α} (hb : b ∈ L) : ∀ x : α, x ∈ L.erase b ↔ (x ∈ L ∧ x ≠ b) := by
   intro x
@@ -3751,6 +4061,7 @@ private theorem mem_erase_nodup {α : Type} [DecidableEq α] {L : List α} (hL :
   · rintro ⟨hxL, hxb⟩
     exact (List.mem_erase_of_ne hxb).2 hxL
 
+/-- Predicates agreeing on all elements of a list have the same first matching element. -/
 private theorem find?_congr' {α : Type} (p q : α → Bool) :
     ∀ (L : List α), (∀ x ∈ L, p x = q x) → L.find? p = L.find? q := by
   intro L
@@ -3770,6 +4081,7 @@ private theorem find?_congr' {α : Type} (p q : α → Bool) :
       rw [List.find?_cons, List.find?_cons, hp', hq']
       exact ih fun y hy => h y (List.mem_cons_of_mem _ hy)
 
+/-- Erasing a mapped first match commutes with mapping the list after erasing that match. -/
 private theorem pair_erase_map {α β : Type} [DecidableEq α] [DecidableEq β] (Q : α → Bool)
     (f : β → α) : ∀ (L : List β) (r' : β), L.find? (fun x => Q (f x)) = some r' →
       (L.map f).erase (f r') = (L.erase r').map f := by
@@ -3802,6 +4114,7 @@ private theorem pair_erase_map {α β : Type} [DecidableEq α] [DecidableEq β] 
         List.erase_cons_tail (by simpa using! hxe.symm), ihL]
       rfl
 
+/-- Pair selection skips the head when no remaining label agrees with its window. -/
 private theorem pairWith_cons_none {n w t : ℕ} {α : Type} [DecidableEq α]
     (lab : α → ZMod (2 ^ n)) (r : α) {rest : List α}
     (h : rest.find? (fun x => decide (windowAgree n w t (lab r) (lab x))) = none) :
@@ -3813,6 +4126,8 @@ private theorem pairWith_cons_none {n w t : ℕ} {α : Type} [DecidableEq α]
     have hc := h.symm.trans hsome
     simp at hc
 
+/-- Pair selection pairs the head with the first window-agreeing record, then recurses after
+erasing that record. -/
 private theorem pairWith_cons_some {n w t : ℕ} {α : Type} [DecidableEq α]
     (lab : α → ZMod (2 ^ n)) (r : α) {rest : List α} {r' : α}
     (h : rest.find? (fun x => decide (windowAgree n w t (lab r) (lab x))) = some r') :
@@ -3831,6 +4146,8 @@ private theorem pairWith_cons_some {n w t : ℕ} {α : Type} [DecidableEq α]
     have ha : a = r' := (Option.some.inj (h2.symm.trans hsome)).symm
     rw [ha]
 
+/-- Pair selection commutes with mapping records when the labeling function is composed with
+that map. -/
 private theorem pair_map {n w t : ℕ} {α β : Type} [DecidableEq α] [DecidableEq β]
     (f : β → α) (lab : α → ZMod (2 ^ n)) :
     ∀ (L : List β), sievePairWith n lab w t (L.map f)
@@ -3862,6 +4179,7 @@ private theorem pair_map {n w t : ℕ} {α β : Type} [DecidableEq α] [Decidabl
     rw [List.map_cons, pairWith_cons_some lab (f r) hsome, List.map_cons, hemap]
     exact congr (congrArg List.cons rfl) ih
 
+/-- Labelings with equivalent window-agreement tests produce identical selected pairs. -/
 private theorem pair_label_congr {n n' w t : ℕ} {α : Type} [DecidableEq α]
     (lab : α → ZMod (2 ^ n)) (lab' : α → ZMod (2 ^ n'))
     (h : ∀ x y : α, windowAgree n w t (lab x) (lab y) ↔ windowAgree n' w t (lab' x) (lab' y)) :
@@ -3892,6 +4210,8 @@ private theorem pair_label_congr {n n' w t : ℕ} {α : Type} [DecidableEq α]
     rw [pairWith_cons_some lab' r (hc.symm.trans hfx)]
     exact congr (congrArg List.cons rfl) ih
 
+/-- Mapping deterministic layer outputs commutes with layer execution when the map intertwines
+the two child functions. -/
 private theorem layerRunGen_map {α β : Type} (child : α × α → α) (child₂ : β × β → β)
     (g : α → β) (hg : ∀ p : α × α, g (child p) = child₂ (g p.1, g p.2)) :
     ∀ (ps : List (α × α)) (C : ℕ → Fin 2),
@@ -3912,6 +4232,7 @@ private theorem layerRunGen_map {α β : Type} (child : α × α → α) (child�
     · simp only [h, if_false, List.map_nil, ih (fun i => C (i + 1)),
       List.map_cons, layerRunGen, List.nil_append]
 
+/-- Every deterministic layer output is the child of some input pair. -/
 private theorem layerRunGen_mem {α : Type} (child : α × α → α) :
     ∀ (ps : List (α × α)) (C : ℕ → Fin 2) (x : α), x ∈ layerRunGen child ps C →
       ∃ p ∈ ps, x = child p := by
@@ -3931,6 +4252,8 @@ private theorem layerRunGen_mem {α : Type} (child : α × α → α) :
     · obtain ⟨p', hp', hx'⟩ := ih _ x hx
       exact ⟨p', List.mem_cons_of_mem _ hp', hx'⟩
 
+/-- A deterministic layer output has no duplicates if the input pairs have no duplicates and the
+child function is injective on those pairs. -/
 private theorem layerRunGen_nodup {α : Type} (child : α × α → α) :
     ∀ (ps : List (α × α)) (C : ℕ → Fin 2),
       ps.Nodup → (∀ p ∈ ps, ∀ p' ∈ ps, child p = child p' → p = p') →
@@ -3957,6 +4280,7 @@ private theorem layerRunGen_nodup {α : Type} (child : α × α → α) :
     · rw [if_neg h]
       exact hrec
 
+/-- Distinct pairs selected from a list without duplicates share no component. -/
 private theorem pair_sep {n w t : ℕ} {α : Type} [DecidableEq α] (lab : α → ZMod (2 ^ n)) :
     ∀ (L : List α), L.Nodup → ∀ p p' : α × α,
       p ∈ sievePairWith n lab w t L → p' ∈ sievePairWith n lab w t L → p ≠ p' →
@@ -4001,6 +4325,7 @@ private theorem pair_sep {n w t : ℕ} {α : Type} [DecidableEq α] (lab : α �
           fun hcon => hz2.2 hcon⟩
       · exact ih hnodup_er p p' hp hp' hne
 
+/-- Pair selection from a list without duplicates produces a list without duplicate pairs. -/
 private theorem pair_nodup {n w t : ℕ} {α : Type} [DecidableEq α] (lab : α → ZMod (2 ^ n)) :
     ∀ (L : List α), L.Nodup → (sievePairWith n lab w t L).Nodup := by
   intro L
@@ -4019,6 +4344,7 @@ private theorem pair_nodup {n w t : ℕ} {α : Type} [DecidableEq α] (lab : α 
     have h1 := sievePairWith_mem_window (r, r') hcon
     exact hrnot (List.mem_of_mem_erase h1.1)
 
+/-- The two components of each pair selected from a list without duplicates are distinct. -/
 private theorem pair_ne {n w t : ℕ} {α : Type} [DecidableEq α] (lab : α → ZMod (2 ^ n)) :
     ∀ (L : List α), L.Nodup → ∀ p : α × α,
       p ∈ sievePairWith n lab w t L → p.1 ≠ p.2 := by
@@ -4042,13 +4368,18 @@ private theorem pair_ne {n w t : ℕ} {α : Type} [DecidableEq α] (lab : α →
       exact hrnot (by rw [hcon]; exact hr'mem)
     · exact ih hnodup_er p hp
 
+/-- The signed sum of table entries over positive and negative ancestor sets. -/
 private def valOf {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) (P N : Finset (Fin R)) : ZMod (2 ^ n) :=
   (∑ i ∈ P, a i) - (∑ i ∈ N, a i)
 
+/-- A singleton positive ancestor and an empty negative ancestor set evaluate to the
+corresponding table entry. -/
 private theorem valOf_eInit {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) (i : Fin R) :
     valOf a {i} (∅ : Finset (Fin R)) = a i := by
   rw [valOf, Finset.sum_empty, sub_zero, Finset.sum_singleton]
 
+/-- For disjoint ancestor supports, the child ancestor sets evaluate to the second signed sum
+minus the first. -/
 private theorem valOf_child {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) {P1 P2 N1 N2 : Finset (Fin R)}
     (hd : Disjoint (P1 ∪ N1) (P2 ∪ N2)) :
     valOf a (P2 ∪ N1) (N2 ∪ P1) = valOf a P2 N2 - valOf a P1 N1 := by
@@ -4060,6 +4391,7 @@ private theorem valOf_child {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) {P1 P2 N1 N
   rw [Finset.sum_union hd1, Finset.sum_union hd2]
   ring
 
+/-- The ancestor support of a child is the union of its two parent supports. -/
 private theorem eChild_supp {n R : ℕ} (p : ERec n R × ERec n R) :
     (eChild p).2.1 ∪ (eChild p).2.2
       = (p.1.2.1 ∪ p.1.2.2) ∪ (p.2.2.1 ∪ p.2.2.2) := by
@@ -4067,6 +4399,8 @@ private theorem eChild_supp {n R : ℕ} (p : ERec n R × ERec n R) :
   simp only [eChild, Finset.mem_union]
   tauto
 
+/-- A full-label child preserves representation by the signed ancestor sum when the parent
+representations hold and their supports are disjoint. -/
 private theorem eChild_val {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) (p : ERec n R × ERec n R)
     (h1 : p.1.1 = valOf a p.1.2.1 p.1.2.2) (h2 : p.2.1 = valOf a p.2.2.1 p.2.2.2)
     (hd : Disjoint (p.1.2.1 ∪ p.1.2.2) (p.2.2.1 ∪ p.2.2.2)) :
@@ -4075,6 +4409,9 @@ private theorem eChild_val {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) (p : ERec n 
   rw [h1, h2]
   exact (valOf_child a hd).symm
 
+/-- Every stage of initialized full-label sieving preserves signed-sum labels, nonempty
+supports, disjoint positive and negative ancestors, absence of duplicate records, and
+disjoint supports for distinct records. -/
 private theorem eRun_inv {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) (m : ℕ) (C : ℕ → Fin 2) :
     ∀ j : ℕ, (∀ e ∈ eRun n m R j (eInit a) C,
         e.1 = valOf a e.2.1 e.2.2 ∧ (e.2.1 ∪ e.2.2).Nonempty ∧ Disjoint e.2.1 e.2.2)
@@ -4187,6 +4524,8 @@ private theorem eRun_inv {n R : ℕ} (a : Fin R → ZMod (2 ^ n)) (m : ℕ) (C :
       · exact Finset.disjoint_union_right.2
           ⟨ih3 _ hq2 _ hq1' t3, ih3 _ hq2 _ hq2' t4⟩
 
+/-- Forgetting ancestor sets from full-label sieving gives the deterministic label-only sieve
+run. -/
 private theorem eRun_map (n m R : ℕ) :
     ∀ (j : ℕ) (E : List (ERec n R)) (C : ℕ → Fin 2),
       (eRun n m R j E C).map (fun e => e.1) = detSieveRun n m R j (E.map (fun e => e.1)) C := by
@@ -4213,6 +4552,8 @@ private theorem eRun_map (n m R : ℕ) :
     rw [hpair, ih E C]
     rfl
 
+/-- Window agreement for the width capped at `n-1-t` is unchanged by reducing labels with
+`lowb`. -/
 private theorem windowAgree_low_any {n w t : ℕ} (x y : ZMod (2 ^ n)) :
     windowAgree n (min w (n - 1 - t)) t x y
       ↔ windowAgree (n - 1) (min w (n - 1 - t)) t (lowb x) (lowb y) := by
@@ -4233,6 +4574,8 @@ private theorem windowAgree_low_any {n w t : ℕ} (x y : ZMod (2 ^ n)) :
       show (x.val / 2 ^ t) % 2 ^ 0 = (y.val / 2 ^ t) % 2 ^ 0
       rw [pow_zero, Nat.mod_one, Nat.mod_one]
 
+/-- For `n ≥ 1`, reducing full-label sieve records and retaining their ancestor sets gives the
+reduced-label sieve run. -/
 private theorem eRun_skel {n : ℕ} (_hn : 1 ≤ n) (m R : ℕ) (a : Fin R → ZMod (2 ^ n))
     (C : ℕ → Fin 2) :
     ∀ j : ℕ, (eRun n m R j (eInit a) C).map (fun e => (lowb e.1, e.2.1, e.2.2))
@@ -4278,21 +4621,25 @@ private theorem eRun_skel {n : ℕ} (_hn : 1 ≤ n) (m R : ℕ) (a : Fin R → Z
     rw [hpair, ih]
     rfl
 
+/-- The highest binary digit of a label modulo `2^n`, defined for `n ≥ 1`. -/
 private def topBit {n : ℕ} (hn : 1 ≤ n) (x : ZMod (2 ^ n)) : Fin 2 :=
   ⟨(x.val / 2 ^ (n - 1)), by
     have h := ZMod.val_lt x
     have h2 : 2 ^ (n - 1) * 2 = 2 ^ n := by rw [← h2pow hn]; omega
     exact Nat.div_lt_of_lt_mul (by omega : x.val < 2 ^ (n - 1) * 2)⟩
 
+/-- The natural value of a label's top bit is its canonical value divided by `2^(n-1)`. -/
 private theorem topBit_val {n : ℕ} (hn : 1 ≤ n) (x : ZMod (2 ^ n)) :
     (topBit hn x).val = x.val / 2 ^ (n - 1) := rfl
 
+/-- The top bit of the zero label is zero. -/
 private theorem topBit_zero {n : ℕ} (hn : 1 ≤ n) : topBit hn (0 : ZMod (2 ^ n)) = 0 := by
   apply Fin.ext
   show (0 : ZMod (2 ^ n)).val / 2 ^ (n - 1) = (0 : Fin 2).val
   rw [ZMod.val_zero, Nat.zero_div]
   decide
 
+/-- For `n ≥ 1`, a label is reconstructed from its low residue and its top bit. -/
 private theorem zmod_eq_low_add_top {n : ℕ} (hn : 1 ≤ n) (x : ZMod (2 ^ n)) :
     x = (((lowb x).val + 2 ^ (n - 1) * (topBit hn x).val : ℕ) : ZMod (2 ^ n)) := by
   apply ZMod.val_injective
@@ -4305,6 +4652,7 @@ private theorem zmod_eq_low_add_top {n : ℕ} (hn : 1 ≤ n) (x : ZMod (2 ^ n)) 
     omega
   rw [ZMod.val_cast_of_lt hblt, lowb_val, topBit_val, Nat.mod_add_div]
 
+/-- Adding a binary multiple of the half-period label adds that bit to the top bit modulo two. -/
 private theorem topBit_add {n : ℕ} (hn : 1 ≤ n) (x : ZMod (2 ^ n)) (d : Fin 2) :
     topBit hn (x + ((2 ^ (n - 1) * (d.val : ℕ) : ℕ) : ZMod (2 ^ n))) = topBit hn x + d := by
   have hv := ZMod.val_lt x
@@ -4350,6 +4698,7 @@ private theorem topBit_add {n : ℕ} (hn : 1 ≤ n) (x : ZMod (2 ^ n)) (d : Fin 
       Nat.mod_eq_of_lt (by omega : r < 2 ^ (n - 1) * 2),
       Nat.div_eq_of_lt hr, Nat.mod_self]
 
+/-- The natural value of a sum in `Fin 2` is the sum of natural values modulo two. -/
 private theorem fin2_sum_val {α : Type} (s : Finset α) (f : α → Fin 2) :
     (∑ i ∈ s, f i).val = (∑ i ∈ s, (f i).val) % 2 := by
   induction s using Finset.induction with
@@ -4360,12 +4709,14 @@ private theorem fin2_sum_val {α : Type} (s : Finset α) (f : α → Fin 2) :
     rw [Finset.sum_insert ha, Finset.sum_insert ha, Fin.val_add, ih]
     omega
 
+/-- Every element of `Fin 2` added to itself is zero. -/
 private theorem fin2_self_add (x : Fin 2) : x + x = 0 := by
   apply Fin.ext
   show (x.val + x.val) % 2 = 0
   have h : x.val ≤ 1 := by have := x.isLt; omega
   omega
 
+/-- For `n ≥ 1`, a multiple of the half-period label depends only on the multiplier's parity. -/
 private theorem half_pow_mul_cast {n : ℕ} (hn : 1 ≤ n) (S : ℕ) :
     ((2 ^ (n - 1) * S : ℕ) : ZMod (2 ^ n)) = ((2 ^ (n - 1) * (S % 2) : ℕ) : ZMod (2 ^ n)) := by
   conv_lhs => rw [show S = S % 2 + 2 * (S / 2) from (Nat.mod_add_div S 2).symm]
@@ -4377,6 +4728,8 @@ private theorem half_pow_mul_cast {n : ℕ} (hn : 1 ≤ n) (S : ℕ) :
     rw [Nat.cast_mul, ZMod.natCast_self, zero_mul]
   rw [hkill, add_zero]
 
+/-- For `n ≥ 1`, separating low residues and top-bit contributions in a signed ancestor sum
+gives the stated equality of labels. -/
 private theorem valOf_tab_split {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n))
     (P N : Finset (Fin R)) :
     valOf a P N + ((2 ^ (n - 1) * (∑ i ∈ N, (topBit hn (a i)).val) : ℕ) : ZMod (2 ^ n))
@@ -4410,6 +4763,8 @@ private theorem valOf_tab_split {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (
   rw [valOf, valOf, hsum P, hsum N, e1, e2]
   ring
 
+/-- The top bit of a signed ancestor sum is the top bit of its low-residue sum plus all positive
+and negative ancestor top bits modulo two. -/
 private theorem topBit_valOf {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n))
     (P N : Finset (Fin R)) :
     topBit hn (valOf a P N)
@@ -4443,6 +4798,8 @@ private theorem topBit_valOf {n R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^
           + ((∑ i ∈ P, topBit hn (a i)) + (∑ i ∈ N, topBit hn (a i))) := by
         rw [add_assoc]
 
+/-- The initialized deterministic sieve equals initialized full-label sieving with ancestor sets
+forgotten. -/
 private theorem detSieveRun_eq_eRun_map {n m R : ℕ}
     (a : Fin R → ZMod (2 ^ n)) (c : Fin (m * R) → Fin 2) :
     detSieveRun n m R m (List.ofFn a) (coinLift c)
@@ -4454,6 +4811,8 @@ private theorem detSieveRun_eq_eRun_map {n m R : ℕ}
     rw [eInit, List.map_ofFn]
     rfl]
 
+/-- The union of positive and negative ancestors of the specified final reduced-label record,
+using empty sets for a missing record. -/
 private def ancIdx {n m R : ℕ} (a : Fin R → ZMod (2 ^ n)) (c : Fin (m * R) → Fin 2)
     (j : Fin (2 ^ m)) : Finset (Fin R) :=
   (((sRun n m R m (sInit (fun i' => lowb (a i'))) (coinLift c)).getD ↑j
@@ -4461,15 +4820,19 @@ private def ancIdx {n m R : ℕ} (a : Fin R → ZMod (2 ^ n)) (c : Fin (m * R) �
     ∪ ((sRun n m R m (sInit (fun i' => lowb (a i'))) (coinLift c)).getD ↑j
       ((0, ∅, ∅) : SRec n R)).2.2)
 
+/-- The binary indicator for the least ancestor of a final reduced record selected by the target
+bit table `u`. -/
 private def flipTop {n m R : ℕ} (a : Fin R → ZMod (2 ^ n)) (c : Fin (m * R) → Fin 2)
     (u : Fin (2 ^ m) → Fin 2) (i : Fin R) : Fin 2 :=
   if (∃ j : Fin (2 ^ m), u j = 1 ∧ i ∈ ancIdx a c j ∧ ∀ i' ∈ ancIdx a c j, i ≤ i')
   then 1 else 0
 
+/-- The label table obtained by adding the half-period label at positions marked by `flipTop`. -/
 private def flipTable {n m R : ℕ} (_hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n))
     (c : Fin (m * R) → Fin 2) (u : Fin (2 ^ m) → Fin 2) : Fin R → ZMod (2 ^ n) :=
   fun i => a i + ((2 ^ (n - 1) * ((flipTop a c u i).val : ℕ) : ℕ) : ZMod (2 ^ n))
 
+/-- For `n ≥ 1`, reducing a binary multiple of the half-period label with `lowb` gives zero. -/
 private theorem lowb_shift {n : ℕ} (hn : 1 ≤ n) (v : ℕ) (hv : v ≤ 1) :
     lowb (((2 ^ (n - 1) * v : ℕ)) : ZMod (2 ^ n)) = 0 := by
   apply ZMod.val_injective
@@ -4481,6 +4844,7 @@ private theorem lowb_shift {n : ℕ} (hn : 1 ≤ n) (v : ℕ) (hv : v ≤ 1) :
       omega)]
   rw [lowb_val, hcast, Nat.mul_mod_right, ZMod.val_zero]
 
+/-- For `n ≥ 1`, twice any multiple of the half-period label is zero modulo `2^n`. -/
 private theorem shift_self_add {n : ℕ} (hn : 1 ≤ n) (v : ℕ) :
     ((2 ^ (n - 1) * v : ℕ) : ZMod (2 ^ n)) + ((2 ^ (n - 1) * v : ℕ) : ZMod (2 ^ n)) = 0 := by
   rw [← Nat.cast_add]
@@ -4488,6 +4852,7 @@ private theorem shift_self_add {n : ℕ} (hn : 1 ≤ n) (v : ℕ) :
   rw [show 2 ^ (n - 1) * v + 2 ^ (n - 1) * v = 2 ^ n * v from by rw [← h2pow hn]; ring]
   rw [Nat.cast_mul, ZMod.natCast_self, zero_mul]
 
+/-- Four binary summands can be regrouped by exchanging the two middle summands. -/
 private theorem fin2_rearr (x y z w : Fin 2) : (x + y) + (z + w) = x + z + (y + w) := by
   apply Fin.ext
   simp only [Fin.val_add]
@@ -4497,6 +4862,9 @@ private theorem fin2_rearr (x y z w : Fin 2) : (x + y) + (z + w) = x + z + (y + 
   have hw : w.val ≤ 1 := by have := w.isLt; omega
   omega
 
+/-- If a deterministic run retains at least `2^m` labels and all are zero, the prescribed table
+flips preserve low residues and that length bound while setting the first `2^m` output top
+bits to `u`. -/
 private theorem flip_bundle {n m R : ℕ} (hn : 1 ≤ n) (_hR : 0 < R)
     (a : Fin R → ZMod (2 ^ n)) (c : Fin (m * R) → Fin 2)
     (hlen : (2 ^ m : ℕ) ≤ (detSieveRun n m R m (List.ofFn a) (coinLift c)).length)
@@ -4721,6 +5089,8 @@ private theorem flip_bundle {n m R : ℕ} (hn : 1 ≤ n) (_hR : 0 < R)
       exact hzero _ hmemrun
     rw [← hv, hzeroj, topBit_zero, zero_add]
 
+/-- Tables with identical low residues produce identical flip indicators for the same tape and
+target bits. -/
 private theorem flipTop_congr {n m R : ℕ} (a1 a2 : Fin R → ZMod (2 ^ n))
     (c : Fin (m * R) → Fin 2) (u : Fin (2 ^ m) → Fin 2)
     (h : ∀ i, lowb (a1 i) = lowb (a2 i)) (i : Fin R) :
@@ -4729,6 +5099,7 @@ private theorem flipTop_congr {n m R : ℕ} (a1 a2 : Fin R → ZMod (2 ^ n))
   unfold flipTop ancIdx
   rw [hfun]
 
+/-- The table flips preserve every entry's low residue. -/
 private theorem lowb_flipTable {n m R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n))
     (c : Fin (m * R) → Fin 2) (u : Fin (2 ^ m) → Fin 2) (i : Fin R) :
     lowb (flipTable hn a c u i) = lowb (a i) := by
@@ -4736,6 +5107,7 @@ private theorem lowb_flipTable {n m R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod 
     have := (flipTop a c u i).isLt
     omega), add_zero]
 
+/-- Applying the same table flip twice restores the original label table. -/
 private theorem flipTable_invol {n m R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod (2 ^ n))
     (c : Fin (m * R) → Fin 2) (u : Fin (2 ^ m) → Fin 2) :
     flipTable hn (flipTable hn a c u) c u = a := by
@@ -4744,6 +5116,8 @@ private theorem flipTable_invol {n m R : ℕ} (hn : 1 ≤ n) (a : Fin R → ZMod
     flipTop_congr _ _ _ _ (fun i' => lowb_flipTable hn a c u i') i
   rw [flipTable, flipTable, hcon, add_assoc, shift_self_add hn _, add_zero]
 
+/-- The probability of an event under a uniform finite distribution is its cardinality divided
+by the type's cardinality. -/
 private theorem htop_uniform_event {D : Type} [Fintype D] [Nonempty D] (Q : D → Prop)
     [DecidablePred Q] :
     (∑' x : D, if Q x then (PMF.uniformOfFintype' D) x else 0)
@@ -4753,6 +5127,8 @@ private theorem htop_uniform_event {D : Type} [Fintype D] [Nonempty D] (Q : D �
   rw [← Finset.sum_filter]
   simp [Finset.sum_const]
 
+/-- For `n ≥ 1` and `R > 0`, the number of inputs with at least `2^m` all-zero outputs,
+multiplied by `2^(2^m)`, is at most the number with at least `2^m` outputs. -/
 private theorem htop_card_bound {n m R : ℕ} (hn : 1 ≤ n) (hR : 0 < R) :
     (Finset.univ.filter (fun p : (Fin R → ZMod (2 ^ n)) × (Fin (m * R) → Fin 2) =>
         (2 ^ m : ℕ) ≤ (detSieveRun n m R m (List.ofFn p.1) (coinLift p.2)).length ∧
@@ -4802,6 +5178,8 @@ private theorem htop_card_bound {n m R : ℕ} (hn : 1 ≤ n) (hR : 0 < R) :
     _ ≤ Fintype.card {p // Qg p} := hle
     _ = (Finset.univ.filter Qg).card := hGc
 
+/-- For `n ≥ 1` and `R > 0`, the probability of retaining at least `2^m` all-zero labels is at
+most `2^(-2^m)` times the probability of retaining at least `2^m` labels. -/
 private theorem htop_cond {n m R : ℕ} (hn : 1 ≤ n) (hR : 0 < R) :
     (∑' L : List (ZMod (2^n)),
         if (2^m : ℕ) ≤ L.length ∧ ∀ k ∈ L, k = 0
@@ -4883,6 +5261,7 @@ private theorem htop_cond {n m R : ℕ} (hn : 1 ≤ n) (hR : 0 < R) :
           then ((idealFreshRecords n R).bind (idealSieveRec n m m)) L else 0)
         * ((2 ^ (2 ^ m : ℕ) : ℕ) : ENNReal)⁻¹ := by rw [mu_factorized n m R hR]
 
+/-- The probability of any event in a probability mass function is at most one. -/
 private theorem pmf_event_le_one {α : Type} (μ : PMF α) (Q : α → Prop) [DecidablePred Q] :
     (∑' a, if Q a then μ a else 0) ≤ 1 := by
   calc (∑' a, if Q a then μ a else 0) ≤ ∑' a, μ a :=
@@ -4890,6 +5269,8 @@ private theorem pmf_event_le_one {α : Type} (μ : PMF α) (Q : α → Prop) [De
           by_cases h : Q a <;> simp [h]
     _ = 1 := PMF.tsum_coe μ
 
+/-- For finite event masses with `a ≤ b+c` and `c ≤ a*e`, where `e ∈ [0,1]`, the mass `b` is at
+least `a*(1-e)`. -/
 private theorem htop_finish {e : ℝ} (he0 : 0 ≤ e) (he1 : e ≤ 1) {a b c : ENNReal}
     (ha : a ≤ 1) (hb : b ≤ 1) (hc : c ≤ 1)
     (hE : a ≤ b + c) (hZ : c ≤ a * ENNReal.ofReal e) :
@@ -4912,6 +5293,8 @@ private theorem htop_finish {e : ℝ} (he0 : 0 ≤ e) (he1 : e ≤ 1) {a b c : E
   rw [hEq]
   linarith
 
+/-- For `n ≥ 2` and `m = ceil(sqrt(n-1))`, the half-period hit probability is at least the final
+size-event probability times `1-2^(-2^m)`. -/
 private theorem htop_main (n m : ℕ) (hn : 2 ≤ n) (hm : m = Nat.ceil (Real.sqrt (n - 1))) :
     (∑' L : List (ZMod (2^n)),
         if (2^m : ℕ) ≤ L.length
@@ -5026,6 +5409,8 @@ private theorem htop_main (n m : ℕ) (hn : 2 ≤ n) (hm : m = Nat.ceil (Real.sq
   rw [hnum] at hZcond
   exact htop_finish (Real.rpow_pos_of_pos (by norm_num) _).le hε1 hE1 hh1 hz1 hE hZcond
 
+/-- For `n ≥ 2` and `m = ceil(sqrt(n-1))`, the ideal sieve hits the half-period label with
+probability at least `(1-exp(-2^(m/3-2)))^m` [Kuperberg2005]. -/
 theorem dihedralSieveIdealHit (n m : ℕ) (hn : 2 ≤ n) (hm : m = Nat.ceil (Real.sqrt (n - 1))) :
     ENNReal.ofReal ((1 - Real.exp (-(2:ℝ)^((m:ℝ)/3 - 2))) ^ m) ≤
       ∑' L : List (ZMod (2^n)),

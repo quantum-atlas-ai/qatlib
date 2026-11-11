@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
+
+/-!
+# Output transport for interior QSVT
+
+This module converts operator-norm errors between odd singular responses into output-norm and
+normalized-state estimates. It then applies `interiorRate` under the interior conditions of the
+QSVT robustness analysis in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `interior_complex_output_of_operator_error`: Transfer a supplied operator-error bound to a
+  unit input's outputs.
+* `interior_complex_response_actual_conditional_consumer`: Apply the transfer with the interior
+  response rate.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.BlockEncoding.Postselection
 set_option warningAsError false
 
@@ -31,6 +51,8 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- An odd-transform operator error at most `η` on a unit input gives output squared norm at
+least `(‖v‖ - η) ^ 2` and normalized error at most `2 * η / ‖v‖`, when `η < ‖v‖`. -/
 theorem interior_complex_output_of_operator_error {I O : Type}
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (base : ℂ) (zs : List ℂ) (ψ : I → ℂ) (η : ℝ)
@@ -65,6 +87,9 @@ theorem interior_complex_output_of_operator_error {I O : Type}
   apply (sq_le_sq₀ (by linarith) (norm_nonneg _)).mpr
   linarith
 
+/-- Under the interior robustness conditions and odd list parity, the response outputs satisfy
+the success-norm and normalized-error estimates with `η = interiorRate A B zs.length`
+[GilyenSuLowWiebe2019]. -/
 theorem interior_complex_response_actual_conditional_consumer :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A B : Matrix O I ℂ) (base : ℂ) (zs : List ℂ) (ψ : I → ℂ),

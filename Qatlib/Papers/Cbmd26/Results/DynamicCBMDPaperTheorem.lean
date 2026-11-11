@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBudget
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicZeroTimeBridge
+
+/-!
+# Dynamic CBMD with output-norm query bounds
+
+This module gives the dynamic preparation result in terms of the actual output norm and a
+fixed-factor estimate. Its hypotheses include piecewise-continuous dissipative coefficients,
+exact original-matrix encodings, a monotone supplied time grid, and a weighted grid-error bound,
+as required for the dynamic construction of [WangEtAl2026].
+
+## Main statements
+
+* `dynamic_cbmd_paper_theorem4`: supplies the budgeted computational amplification result with
+  explicit input and data query envelopes.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,6 +93,11 @@ local instance cbmdDynamicCBMDPaperTheoremInstance5 (F Anc J : Type) (K : ℕ) [
     [DecidableEq J] : DecidableEq (DynamicFreshAux F Anc J K) :=
   inferInstanceAs (DecidableEq (Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × Anc))))
 
+/-- Piecewise-continuous dissipative coefficients with exact original-matrix encodings, a
+monotone time grid satisfying the weighted sample-error bound, and a fixed-factor output
+estimate yield a `BudgetedComputationalAmplificationResult` for the dynamic propagator. Its
+explicit input and data budgets use the actual output norm, giving the dynamic preparation
+statement of [Wang et al., Theorem 4][WangEtAl2026]. -/
 theorem dynamic_cbmd_paper_theorem4
     (a₀ : Anc) (α T ε η c : ℝ) (hα : 0 < α) (hT : 0 < T)
     (hε : 0 < ε) (hεhalf : ε ≤ 1/2) (hη : 0 < η) (hc : 1 ≤ c)

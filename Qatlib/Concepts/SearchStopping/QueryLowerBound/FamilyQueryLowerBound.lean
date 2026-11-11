@@ -6,10 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
 
+/-!
+# Query lower bounds for families of marked sets
+
+Extends the hybrid argument to families of possibly overlapping query sets. A bound on their
+total projected mass yields `family_hybrid_deficit`; combining this with average success and an
+overlap budget gives the quadratic lower bound `family_fixed_query_quadratic`. For the
+quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `family_hybrid_deficit`: For a normalized initial state, agreement off the query sets and a
+  total projected-mass bound `c` imply that the summed final projection deficit is at most `2 *
+  r ^ 2 * c`.
+* `family_fixed_query_quadratic`: For a nonempty family with normalized initial state, overlap
+  budget `m * c ≤ Fintype.card J`, the stated agreement and mass bounds, and average success at
+  least one half, `(1 - Real.sqrt 2 / 2) * m - Real.sqrt m ≤ 2 * r ^ 2`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 
 open scoped BigOperators
 
+/-- For a normalized initial state, agreement off the query sets and a total projected-mass
+bound `c` imply that the summed final projection deficit is at most `2 * r ^ 2 * c`. -/
 theorem family_hybrid_deficit {C J : Type*}
     [Fintype C] [DecidableEq C] [Fintype J]
     (U : ℕ → EuclideanSpace ℂ C ≃ₗᵢ[ℂ] EuclideanSpace ℂ C)
@@ -49,6 +73,9 @@ theorem family_hybrid_deficit {C J : Type*}
       exact Finset.sum_le_sum (fun n hn => hmass n (Finset.mem_range.mp hn))
     _ = _ := by simp; ring
 
+/-- For a nonempty family with normalized initial state, overlap budget `m * c ≤ Fintype.card
+J`, the stated agreement and mass bounds, and average success at least one half, `(1 -
+Real.sqrt 2 / 2) * m - Real.sqrt m ≤ 2 * r ^ 2`. -/
 theorem family_fixed_query_quadratic {C J : Type*}
     [Fintype C] [DecidableEq C] [Fintype J] [Nonempty J]
     (U : ℕ → EuclideanSpace ℂ C ≃ₗᵢ[ℂ] EuclideanSpace ℂ C)

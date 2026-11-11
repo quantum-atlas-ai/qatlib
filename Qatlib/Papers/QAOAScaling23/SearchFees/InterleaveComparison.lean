@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.PlainSlot
+
+/-!
+# Comparing interleaved and original search costs
+
+Interleaving a plain trial before every scheduled window increases an expected ledger by at most
+the original expected stage count. An exact preparation-fee formula bounds that stage count by
+twice the expected preparation calls for schedules with positive windows.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `interleave_expected_le_original`: The expected charge of an interleaved schedule is at most
+  the original expected charge plus the original expected stage count.
+* `stages_le_twice_prepare`: For a schedule of positive windows, the expected stage count is at
+  most twice the expected preparation charge.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -20,16 +42,19 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- The failure probability of a sampled search stage is at most one. -/
 theorem fail_le_one (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (m:ℕ) : fail U hU seed S valid m≤1 := by
   have h:=event_compl (preparedAASampled U hU seed S (Nat.clog 2 m) m 3) (searchSlotFail valid)
   exact (le_add_right le_rfl).trans h.le
 
+/-- The expected stage-count increment of one sampled search stage is one. -/
 theorem slot_stages (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I) (m:ℕ) :
     slot U hU seed S .stages m=1 := by
   simpa only [slot,increment,Nat.cast_one] using
       expectation_const (preparedAASampled U hU seed S (Nat.clog 2 m) m 3) 1
 
+/-- A plain trial has expected charge at most one in every resource ledger. -/
 theorem plain_slot_le_one (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I) (f:Fee) :
     slot U hU seed S f 1≤1 := by
   have h:=plain_five_fees U hU seed S
@@ -41,6 +66,8 @@ theorem plain_slot_le_one (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) 
   | gates=>rw [h.2.2.2.2]
   | stages=>rw [slot_stages]
 
+/-- The expected charge of an interleaved schedule is at most the original expected charge plus
+the original expected stage count. -/
 theorem interleave_expected_le_original (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (f:Fee) (ms:List ℕ) :
     expected U hU seed S valid f (interleavePlain ms)≤
@@ -57,6 +84,8 @@ theorem interleave_expected_le_original (U:Matrix I I ℂ) (hU:U∈Matrix.unitar
             (add_le_add le_rfl (mul_le_mul_right ih (fail U hU seed S valid m))))
       _ = _ := by ring
 
+/-- For positive `m`, the expected preparation charge is `m` times the probability that at least
+one of the three finite-coin attempts accepts. -/
 theorem slot_prepare_formula (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (m:ℕ) (hm:0<m) :
     slot U hU seed S .prepare m=(1-(coinRejectMass (Nat.clog 2 m) m)^3)*(m:ℝ≥0∞) := by
@@ -66,6 +95,7 @@ theorem slot_prepare_formula (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I �
   rcases out with ⟨a,b,c⟩
   cases a <;>rfl
 
+/-- For a positive window, twice the expected preparation charge is at least one. -/
 theorem one_le_twice_slot_prepare (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (m:ℕ) (hm:0<m) : 1≤2*slot U hU seed S .prepare m := by
   let q:=coinRejectMass (Nat.clog 2 m) m
@@ -90,6 +120,8 @@ theorem one_le_twice_slot_prepare (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup
       exact (ENNReal.mul_inv_cancel (by norm_num) (by finiteness)).symm
     _ ≤ _ := mul_le_mul_right (mul_le_mul' ha hm1) 2
 
+/-- For a schedule of positive windows, the expected stage count is at most twice the expected
+preparation charge. -/
 theorem stages_le_twice_prepare (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (ms:List ℕ) (hms:∀m∈ms,0<m) :
     expected U hU seed S valid .stages ms≤2*expected U hU seed S valid .prepare ms := by

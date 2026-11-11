@@ -9,6 +9,26 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux2
 import Mathlib.Analysis.Calculus.Taylor
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Scalar Taylor polynomial bounds
+
+This module bounds Taylor remainders in the closed left half-plane and controls
+`taylorTransPoly`. Factorial estimates and bounds for powers of `taylorPoly` supply constants
+for the inverse-matrix analysis. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorExp_iteratedDeriv`: The `n`th real derivative of `t ↦ exp(t * z)` is `t ↦ z^n * exp(t *
+  z)`.
+* `taylorPow_le`: If `2*m ≤ (k+1)!` and `d ≤ m`, then `‖taylorPoly k z‖^(2*d) ≤ 87 / 32` on the
+  left unit half-disk.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,7 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Set MeasureTheory
 set_option warningAsError false
 
+/-- The `n`th real derivative of `t ↦ exp(t * z)` is `t ↦ z^n * exp(t * z)`. -/
 theorem taylorExp_iteratedDeriv (z : ℂ) (n : ℕ) :
     iteratedDeriv n (fun t : ℝ => Complex.exp (t * z)) =
       fun t : ℝ => z ^ n * Complex.exp (t * z) := by
@@ -33,6 +54,8 @@ theorem taylorExp_iteratedDeriv (z : ℂ) (n : ℕ) :
     simp only [pow_succ]
     ring
 
+/-- The Taylor polynomial of `t ↦ exp(t * z)` about zero, evaluated at one on `[0, 1]`, equals
+`taylorPoly k z`. -/
 theorem taylorExp_within (z : ℂ) (k : ℕ) :
     taylorWithinEval (fun t : ℝ => Complex.exp (t * z)) k (Icc 0 1) 0 1 =
       taylorPoly k z := by
@@ -44,6 +67,7 @@ theorem taylorExp_within (z : ℂ) (k : ℕ) :
     hc.contDiffAt (by simp), taylorExp_iteratedDeriv]
   simp [Complex.real_smul, div_eq_mul_inv, mul_comm]
 
+/-- For `Re z ≤ 0`, the degree-`k` exponential Taylor remainder is at most `‖z‖^(k+1) / (k+1)!`. -/
 theorem taylorPoly_defect_halfPlane (k : ℕ) (z : ℂ) (hre : z.re ≤ 0) :
     ‖Complex.exp z - taylorPoly k z‖ ≤
       ‖z‖ ^ (k + 1) / (Nat.factorial (k + 1) : ℝ) := by
@@ -81,6 +105,7 @@ theorem taylorPoly_defect_halfPlane (k : ℕ) (z : ℂ) (hre : z.re ≤ 0) :
     rw [Nat.factorial_succ, Nat.cast_mul, Nat.cast_add, Nat.cast_one]
     field_simp
 
+/-- For `‖z‖ ≤ 1` and `Re z ≤ 0`, the norm of `taylorPoly k z` is at most `1 + 1 / (k+1)!`. -/
 theorem taylorPoly_le (k : ℕ) (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖taylorPoly k z‖ ≤ 1 + 1 / (Nat.factorial (k + 1) : ℝ) := by
   have hdef := taylorPoly_defect_halfPlane k z hre
@@ -92,6 +117,8 @@ theorem taylorPoly_le (k : ℕ) (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0
     hdef.trans (div_le_div_of_nonneg_right hp (by positivity))
   linarith
 
+/-- Multiplying `taylorTransPoly k b z` by `z^b` gives `b!` times the difference of the
+degree-`k` and degree-`b-1` Taylor polynomials, for `1 ≤ b ≤ k`. -/
 theorem taylorTransPoly_mul_pow {k b : ℕ} (hb : 1 ≤ b) (hbk : b ≤ k) (z : ℂ) :
     z ^ b * taylorTransPoly k b z =
       (Nat.factorial b : ℂ) * (taylorPoly k z - taylorPoly (b - 1) z) := by
@@ -112,6 +139,8 @@ theorem taylorTransPoly_mul_pow {k b : ℕ} (hb : 1 ≤ b) (hbk : b ≤ k) (z : 
       = (Nat.factorial b : ℂ) * (z ^ b * z ^ (j - b)) / (Nat.factorial j : ℂ) := by ring
     _ = (Nat.factorial b : ℂ) * (z ^ j / (Nat.factorial j : ℂ)) := by rw [hp]; ring
 
+/-- For `1 ≤ b ≤ k` in the left unit half-disk, the norm of `taylorTransPoly k b z` is at most
+`1 + b! / (k+1)!`. -/
 theorem taylorTransPoly_le {k b : ℕ} (hb : 1 ≤ b) (hbk : b ≤ k)
     (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖taylorTransPoly k b z‖ ≤ 1 + (Nat.factorial b : ℝ) / (Nat.factorial (k + 1) : ℝ) := by
@@ -157,6 +186,8 @@ theorem taylorTransPoly_le {k b : ℕ} (hb : 1 ≤ b) (hbk : b ≤ k)
       _ = _ := by field_simp; ring
   nlinarith [hle]
 
+/-- For `k ≥ 5` and `1 ≤ b ≤ k` in the left unit half-disk, the translated Taylor polynomial has
+norm at most `31 / 30`. -/
 theorem taylorTransPoly_uniform {k b : ℕ} (hk : 5 ≤ k) (hb : 1 ≤ b) (hbk : b ≤ k)
     (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖taylorTransPoly k b z‖ ≤ 31 / 30 := by
@@ -183,6 +214,7 @@ theorem taylorTransPoly_uniform {k b : ℕ} (hk : 5 ≤ k) (hb : 1 ≤ b) (hbk :
   have hbound := taylorTransPoly_le hb hbk z h1 hre
   linarith
 
+/-- The factorial `(n+i)!` is at least `n! * (n+1)^i`. -/
 theorem factorial_tail_growth (n i : ℕ) :
     Nat.factorial n * (n + 1) ^ i ≤ Nat.factorial (n + i) := by
   induction i with
@@ -195,6 +227,7 @@ theorem factorial_tail_growth (n i : ℕ) :
       _ ≤ (n + i + 1) * Nat.factorial (n + i) := by
           nlinarith
 
+/-- Every initial sum of squared reciprocal factorials is at most `57 / 25`. -/
 theorem factorial_recip_sq_sum_le (k : ℕ) :
     ∑ j ∈ Finset.range (k + 1), ((Nat.factorial j : ℝ)⁻¹ ^ 2) ≤ 57 / 25 := by
   by_cases hk : k < 2
@@ -229,9 +262,11 @@ theorem factorial_recip_sq_sum_le (k : ℕ) :
   simp only [inv_pow] at htail
   linarith
 
+/-- The real exponential at one is at most `87 / 32`. -/
 theorem exp_one_le : Real.exp 1 ≤ 87 / 32 := by
   linarith [Real.exp_one_lt_d9]
 
+/-- For nonnegative `x` with `x * n ≤ 1`, the power `(1+x)^n` is at most `exp 1`. -/
 theorem one_add_pow_le_exp_one {x : ℝ} {n : ℕ} (hx : 0 ≤ x) (hxn : x * n ≤ 1) :
     (1 + x) ^ n ≤ Real.exp 1 := by
   calc (1 + x) ^ n ≤ (Real.exp x) ^ n := by
@@ -240,6 +275,8 @@ theorem one_add_pow_le_exp_one {x : ℝ} {n : ℕ} (hx : 0 ≤ x) (hxn : x * n �
     _ = Real.exp (x * n) := by rw [← Real.exp_nat_mul]; congr 1; ring
     _ ≤ Real.exp 1 := Real.exp_le_exp.mpr hxn
 
+/-- If `2*m ≤ (k+1)!` and `d ≤ m`, then `‖taylorPoly k z‖^(2*d) ≤ 87 / 32` on the left unit
+half-disk. -/
 theorem taylorPow_le {k m d : ℕ} (hfac : 2 * m ≤ Nat.factorial (k + 1)) (hd : d ≤ m)
     (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖taylorPoly k z‖ ^ (2 * d) ≤ 87 / 32 := by

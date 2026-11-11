@@ -87,6 +87,29 @@ import Mathlib.Tactic.Ring.RingNF
 import Mathlib.Tactic.Zify
 import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
 import Qatlib.Papers.HiddenSubgrp04.MainResults.AppendixASets
+
+/-!
+# Equal cardinality and disjointness of rounded cells
+
+This module develops periodicity, symmetry, and the triangle inequality for `distMod`, together
+with cyclic shifts of natural-number residues. It uses shifts to prove equal cardinalities of
+cells and separation of their rounded centers to prove `lemma_A4_disjoint`.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `lemma_A4_card`: For positive M, every pair of cells has equal cardinality.
+* `distMod_center_sep_ordered`: For positive N and M ≥ 2N, two ordered distinct valid rounded
+  centers have modular distance at least M/N − 1.
+* `lemma_A4_disjoint`: For positive N and M ≥ 2N, cells with distinct indices below N are
+  disjoint.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -97,10 +120,12 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- Nearest-integer rounding commutes with addition of an integer. -/
 theorem nearInt_add_intCast (x : ℝ) (z : ℤ) : nearInt (x + (z : ℝ)) = nearInt x + z := by
   unfold nearInt
   rw [show x + (z : ℝ) + 1 / 2 = (x + 1 / 2) + (z : ℝ) by ring, Int.floor_add_intCast]
 
+/-- For nonzero modulus M, adding any integer multiple of M preserves `distMod M`. -/
 theorem distMod_periodic {M : ℝ} (hM : M ≠ 0) (x : ℝ) (z : ℤ) :
     distMod M (x + M * (z : ℝ)) = distMod M x := by
   unfold distMod
@@ -108,6 +133,8 @@ theorem distMod_periodic {M : ℝ} (hM : M ≠ 0) (x : ℝ) (z : ℤ) :
   rw [hdiv, nearInt_add_intCast, Int.cast_add]
   ring_nf
 
+/-- For positive M, the modular distance of `x` is at most its distance from any integer
+multiple of M. -/
 theorem distMod_le_any {M : ℝ} (hM : 0 < M) (x : ℝ) (z : ℤ) :
     distMod M x ≤ |x - M * (z : ℝ)| := by
   unfold distMod
@@ -122,6 +149,7 @@ theorem distMod_le_any {M : ℝ} (hM : 0 < M) (x : ℝ) (z : ℤ) :
     abs_sub_comm (z : ℝ) (x / M)] at h
   exact h
 
+/-- For positive modulus M, negating the argument preserves modular distance. -/
 theorem distMod_neg {M : ℝ} (hM : 0 < M) (x : ℝ) : distMod M (-x) = distMod M x := by
   apply le_antisymm
   · calc distMod M (-x)
@@ -141,6 +169,7 @@ theorem distMod_neg {M : ℝ} (hM : 0 < M) (x : ℝ) : distMod M (-x) = distMod 
                 = -((-x) - M * (nearInt ((-x) / M) : ℝ)) by push_cast; ring]
           rw [abs_neg]
 
+/-- For positive M, the modular distance of a sum is at most the sum of the modular distances. -/
 theorem distMod_add_le {M : ℝ} (hM : 0 < M) (x y : ℝ) :
     distMod M (x + y) ≤ distMod M x + distMod M y := by
   have hkey : distMod M (x + y) ≤
@@ -156,8 +185,10 @@ theorem distMod_add_le {M : ℝ} (hM : 0 < M) (x y : ℝ) :
         abs_add_le _ _
     _ = distMod M x + distMod M y := rfl
 
+/-- The natural representative of the integer b + d reduced modulo M. -/
 def shiftMod (M : ℕ) (d : ℤ) (b : ℕ) : ℕ := (((b : ℤ) + d) % (M : ℤ)).toNat
 
+/-- For positive M, the shifted residue `shiftMod M d b` is less than M. -/
 theorem shiftMod_lt (M : ℕ) (d : ℤ) (b : ℕ) (hM : 0 < M) : shiftMod M d b < M := by
   unfold shiftMod
   have hMz : (0 : ℤ) < (M : ℤ) := by exact_mod_cast hM
@@ -167,6 +198,8 @@ theorem shiftMod_lt (M : ℕ) (d : ℤ) (b : ℕ) (hM : 0 < M) : shiftMod M d b 
     rw [Int.toNat_of_nonneg hnonneg]; exact hlt
   exact_mod_cast hcast
 
+/-- Shifting a residue by the difference of two integer centers preserves its modular distance
+relative to the corresponding center, for positive M. -/
 theorem distMod_shiftMod (M : ℕ) (hM : 0 < M) (d : ℤ) (b : ℕ) (c1 c2 : ℤ)
     (hd : d = c2 - c1) :
     distMod (M : ℝ) (((shiftMod M d b : ℕ) : ℝ) - (c2 : ℝ))
@@ -197,6 +230,8 @@ theorem distMod_shiftMod (M : ℕ) (hM : 0 < M) (d : ℤ) (b : ℕ) (c1 c2 : ℤ
     ring
   rw [hc]
 
+/-- For positive M, equality of two residues shifted by the same integer implies equality of the
+original representatives below M. -/
 theorem shiftMod_injective (M : ℕ) (hM0 : 0 < M) (d : ℤ) (b1 b2 : ℕ)
     (h1 : b1 < M) (h2 : b2 < M) (heq : shiftMod M d b1 = shiftMod M d b2) :
     b1 = b2 := by
@@ -237,12 +272,15 @@ theorem shiftMod_injective (M : ℕ) (hM0 : 0 < M) (d : ℤ) (b1 b2 : ℕ)
     linarith
   omega
 
+/-- A natural number belongs to a cell exactly when it is below M and satisfies the strict
+modular-distance bound from its rounded center. -/
 theorem mem_cell_iff (M N : ℕ) (i b : ℕ) :
     b ∈ cell M N i ↔ b < M ∧
       distMod (M : ℝ) ((b : ℝ) - (nearInt ((M : ℝ) / (N : ℝ) * (i : ℝ)) : ℝ))
         < (M : ℝ) / (2 * (N : ℝ)) - 1 / 2 := by
   simp only [cell, Finset.mem_filter, Finset.mem_range]
 
+/-- For positive M, every pair of cells has equal cardinality ([Lemma A.4][Lomont2004]). -/
 theorem lemma_A4_card (M N : ℕ) (hM0 : 0 < M) (i1 i2 : ℕ) :
     (cell M N i1).card = (cell M N i2).card := by
   set c1 : ℤ := nearInt ((M : ℝ) / (N : ℝ) * (i1 : ℝ)) with hc1
@@ -273,6 +311,8 @@ theorem lemma_A4_card (M N : ℕ) (hM0 : 0 < M) (i1 i2 : ℕ) :
       rw [mem_cell_iff] at hb1 hb2
       exact shiftMod_injective M hM0 (c1 - c2) b1 b2 hb1.1 hb2.1 heq
 
+/-- If a > 0, a < M, and a ≤ d ≤ M − a, then the distance from d to every integer multiple of
+positive M is at least a. -/
 theorem distMod_int_sep {M : ℝ} (hM : 0 < M) (a : ℝ) (ha0 : 0 < a) (_haM : a < M)
     (d : ℝ) (hd : a ≤ d) (hdM : d ≤ M - a) (z : ℤ) :
     a ≤ |d - M * (z : ℝ)| := by
@@ -287,6 +327,8 @@ theorem distMod_int_sep {M : ℝ} (hM : 0 < M) (a : ℝ) (ha0 : 0 < a) (_haM : a
     rw [abs_of_neg hneg]
     nlinarith
 
+/-- For positive N and M ≥ 2N, two ordered distinct valid rounded centers have modular distance
+at least M/N − 1. -/
 theorem distMod_center_sep_ordered (M N : ℕ) (hN : 0 < N) (hM : 2 * N ≤ M)
     (i1 i2 : ℕ) (h1 : i1 < N) (h2 : i2 < N) (hlt : i1 < i2) :
     (M : ℝ) / (N : ℝ) - 1 ≤
@@ -356,6 +398,8 @@ theorem distMod_center_sep_ordered (M N : ℕ) (hN : 0 < N) (hM : 2 * N ≤ M)
   rw [hgoal]
   exact key
 
+/-- For positive N and M ≥ 2N, cells with distinct indices below N are disjoint ([Lemma
+A.4][Lomont2004]). -/
 theorem lemma_A4_disjoint (M N : ℕ) (hN : 0 < N) (hM : 2 * N ≤ M)
     (i1 i2 : ℕ) (h1 : i1 < N) (h2 : i2 < N) (hne : i1 ≠ i2) :
     Disjoint (cell M N i1) (cell M N i2) := by

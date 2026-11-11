@@ -10,6 +10,34 @@ import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessScaledSize
 import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessHermitian
 import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessFullSpace
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeNorm
+
+/-!
+# Normalization of history Hamiltonian encodings
+
+The encoding `normalizedEncoding` rescales the generated history Hamiltonian by a dyadic
+denominator. Its embedded terms are Hermitian, have operator norm at most one, and act on at
+most five wires. The theorem `padded_normalized_contract` transports completeness and soundness
+bounds to the normalized encoding with an explicit positive threshold gap. See
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `normalizedEncoding_schema`: The normalized encoding is five-local and Hermitian, and all its
+  embedded terms have operator norm at most one.
+* `normalizedEncoding_semantics`: The Hamiltonian of the normalized encoding is `scale C` times
+  the flattened full physical Hamiltonian.
+* `padded_normalized_contract`: Under the stated parameter bounds, acceptance of a legal
+  normalized witness with probability at least `a` yields a normalized padded encoding state
+  with energy at most `yesThreshold`, while acceptance at most `ε` for every legal normalized
+  witness gives energy at least `noThreshold` for every normalized encoding state. The
+  thresholds have a positive gap equal to the completeness threshold; this supports the
+  reduction in [KempeKitaevRegev2006].
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -33,35 +61,49 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 noncomputable section
 
+/-- The integer local terms generated from the circuit using the precision `qmaClause2Bits C`. -/
 def baseTerms (C : QmaHistoryCircuit) : List (IntegerLocalTerm (C.gates.length+C.qubits)) :=
   outputTerms C.qubits (qmaClause2Bits C) C.gates C.initZeroWires C.outputWire
 
+/-- The additional dyadic precision `scaleBits (nativeJ C)` used to normalize the local terms. -/
 def extraBits (C : QmaHistoryCircuit) : ℕ := scaleBits (nativeJ C)
+/-- The dyadic normalization denominator `scaleDen (nativeJ C)`. -/
 def denominator (C : QmaHistoryCircuit) : ℕ := scaleDen (nativeJ C)
 
+/-- The scaled local Hamiltonian encoding of the circuit at precision `qmaClause2Bits C`. -/
 abbrev normalizedEncoding (C : QmaHistoryCircuit) : LhEncoding :=
   scaledEncoding C.qubits (qmaClause2Bits C) C.gates C.initZeroWires C.outputWire
 
+/-- The normalized encoding consists of `baseTerms C` encoded at width `qmaClause2Bits C + 1 +
+extraBits C`. -/
 theorem normalizedEncoding_def (C : QmaHistoryCircuit) :
     normalizedEncoding C = toLhEncoding (qmaClause2Bits C+1+extraBits C) (baseTerms C) := rfl
 
+/-- The reciprocal of the normalization denominator, viewed as a real scaling factor. -/
 def scale (C : QmaHistoryCircuit) : ℝ := 1/(denominator C : ℝ)
+/-- The completeness cutoff `yesCut C` divided by the normalization denominator. -/
 def yesThreshold (C : QmaHistoryCircuit) : ℝ := yesCut C/(denominator C : ℝ)
+/-- The soundness cutoff `noCut C` divided by the normalization denominator. -/
 def noThreshold (C : QmaHistoryCircuit) : ℝ := noCut C/(denominator C : ℝ)
 
+/-- The normalization denominator is strictly positive. -/
 theorem denominator_pos (C : QmaHistoryCircuit) : 0 < denominator C := by
   have h := (scaleDen_bounds (nativeJ C)).1
   change 32 ≤ denominator C at h
   omega
 
+/-- The real normalization factor is strictly positive. -/
 theorem scale_pos (C : QmaHistoryCircuit) : 0 < scale C := by
   unfold scale
   exact one_div_pos.mpr (by exact_mod_cast denominator_pos C)
 
+/-- The normalization factor equals the reciprocal of `2^(extraBits C)`. -/
 theorem scale_eq_inv_power (C : QmaHistoryCircuit) :
     scale C = ((2:ℝ)^extraBits C)⁻¹ := by
   simp [scale, denominator, scaleDen, extraBits, one_div, Nat.cast_pow]
 
+/-- Summing a list after multiplying each matrix by a complex scalar equals scaling its matrix
+sum. -/
 theorem matrixSum_smul {I : Type} [Fintype I] [DecidableEq I]
     (c : ℂ) (xs : List (Matrix I I ℂ)) :
     matrixSum (xs.map (fun M => c • M)) = c • matrixSum xs := by
@@ -71,6 +113,8 @@ theorem matrixSum_smul {I : Type} [Fintype I] [DecidableEq I]
       change c • M + matrixSum (xs.map (fun M => c • M)) = c • (M+matrixSum xs)
       rw [ih, smul_add]
 
+/-- The Hamiltonian of the normalized encoding is `scale C` times the flattened full physical
+Hamiltonian. -/
 theorem normalizedEncoding_semantics (C : QmaHistoryCircuit) :
     lhHamiltonian (normalizedEncoding C) =
       (scale C:ℂ) • Matrix.reindex (flattenEquiv C.gates.length C.qubits).symm
@@ -95,6 +139,8 @@ theorem normalizedEncoding_semantics (C : QmaHistoryCircuit) :
   change matrixSum ((baseTerms C).map (value (qmaClause2Bits C+1))) = _ at he
   rw [he]
 
+/-- Reindexing a matrix along an equivalence preserves an absolute energy bound by `B` times the
+state mass. -/
 theorem reindex_quadratic {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I≃J) (H : Matrix I I ℂ) (B : ℝ)
     (hQ : ∀ψ : QState I, |energy H ψ| ≤ B*mass ψ) :
@@ -110,6 +156,7 @@ theorem reindex_quadratic {I J : Type} [Fintype I] [DecidableEq I]
   rw [he', ← hm']
   exact hQ φ
 
+/-- Multiplying a Hermitian complex matrix by a real scalar preserves Hermiticity. -/
 theorem real_smul_hermitian {I : Type} [DecidableEq I]
     (r : ℝ) (H : Matrix I I ℂ) (hH : Matrix.IsHermitian H) :
     Matrix.IsHermitian ((r:ℂ) • H) := by
@@ -117,6 +164,8 @@ theorem real_smul_hermitian {I : Type} [DecidableEq I]
   simp only [Matrix.conjTranspose_smul, hH.eq]
   simp
 
+/-- If a term represents a Hermitian matrix with absolute energy bounded by `B` times mass and
+`B ≤ 2^q`, increasing its width by `q` gives a Hermitian value of operator norm at most one. -/
 theorem shifted_value_good {m n : ℕ} (w q : ℕ) (t : IntegerLocalTerm (m+n))
     (H : Matrix (Clock m×Reg n) (Clock m×Reg n) ℂ) (B : ℝ)
     (hv : value w t=Matrix.reindex (flattenEquiv m n).symm (flattenEquiv m n).symm H)
@@ -136,6 +185,7 @@ theorem shifted_value_good {m n : ℕ} (w q : ℕ) (t : IntegerLocalTerm (m+n))
   intro ψ
   simpa only [one_mul] using! scaled_quadratic_bound (value w t) q B hB hq0 ψ
 
+/-- The power `2^(extraBits C)` bounds both `32` and the natural clock penalty `nativeJ C`. -/
 theorem extraBits_bounds (C : QmaHistoryCircuit) :
     (32:ℝ) ≤ (2:ℝ)^extraBits C ∧ (nativeJ C:ℝ) ≤ (2:ℝ)^extraBits C := by
   have h0 : (32:ℝ) ≤ (scaleDen (nativeJ C):ℝ) := by
@@ -144,6 +194,8 @@ theorem extraBits_bounds (C : QmaHistoryCircuit) :
     exact_mod_cast (scaleDen_bounds (nativeJ C)).2.1
   simpa only [scaleDen, extraBits, Nat.cast_pow, Nat.cast_ofNat] using! And.intro h0 h1
 
+/-- Each base term, interpreted at the normalized width, is Hermitian and has operator norm at
+most one. -/
 theorem normalized_terms_good (C : QmaHistoryCircuit) :
     ∀t∈baseTerms C,
       Matrix.IsHermitian (value (qmaClause2Bits C+1+extraBits C) t) ∧
@@ -185,6 +237,7 @@ theorem normalized_terms_good (C : QmaHistoryCircuit) :
       (clockPairTerm_value C.qubits (qmaClause2Bits C) (nativeJ C) i j)
       (clockPair_hermitian (nativeJ C) i j) hJ (clockPair_energy_abs (nativeJ C) i j)
 
+/-- Every embedded term of the normalized encoding has operator norm at most one. -/
 theorem normalizedEncoding_term_norm (C : QmaHistoryCircuit) :
     ∀t∈(normalizedEncoding C).terms,
       ‖Matrix.toEuclideanCLM (𝕜:=ℂ)
@@ -197,6 +250,7 @@ theorem normalizedEncoding_term_norm (C : QmaHistoryCircuit) :
   rw [lhEmbedTerm_toLhTerm (qmaClause2Bits C+1+extraBits C) t]
   exact (normalized_terms_good C t ht).2
 
+/-- Every embedded term of the normalized encoding is Hermitian. -/
 theorem normalizedEncoding_term_hermitian (C : QmaHistoryCircuit) :
     ∀t∈(normalizedEncoding C).terms,
       Matrix.IsHermitian (lhEmbedTerm (normalizedEncoding C).width t) := by
@@ -207,16 +261,20 @@ theorem normalizedEncoding_term_hermitian (C : QmaHistoryCircuit) :
   rw [lhEmbedTerm_toLhTerm (qmaClause2Bits C+1+extraBits C) t]
   exact (normalized_terms_good C t ht).1
 
+/-- The normalized encoding is five-local. -/
 theorem normalizedEncoding_local (C : QmaHistoryCircuit) :
     lhLocal 5 (normalizedEncoding C) :=
   toLhEncoding_local _ 5 _ (outputTerms_local _ _ _ _ _)
 
+/-- The normalized encoding satisfies the integer-field Hermiticity predicate `lhHermitian`. -/
 theorem normalizedEncoding_lhHermitian (C : QmaHistoryCircuit) :
     lhHermitian (normalizedEncoding C) := by
   rw [normalizedEncoding_def]
   exact outputEncoding_anyWidth_hermitian C.qubits (qmaClause2Bits C)
     (qmaClause2Bits C+1+extraBits C) C.gates C.initZeroWires C.outputWire
 
+/-- The normalized encoding is five-local and Hermitian, and all its embedded terms have
+operator norm at most one. -/
 theorem normalizedEncoding_schema (C : QmaHistoryCircuit) :
     lhLocal 5 (normalizedEncoding C) ∧ lhHermitian (normalizedEncoding C) ∧
     (∀t∈(normalizedEncoding C).terms,
@@ -225,6 +283,8 @@ theorem normalizedEncoding_schema (C : QmaHistoryCircuit) :
   ⟨normalizedEncoding_local C, normalizedEncoding_lhHermitian C,
     normalizedEncoding_term_norm C⟩
 
+/-- The normalized encoding energy of the flattened state is `scale C` times its full physical
+Hamiltonian energy. -/
 theorem normalized_energy_transport (C : QmaHistoryCircuit) (ψ : QState (Phys C)) :
     energy (lhHamiltonian (normalizedEncoding C))
       (fun x => ψ (flattenEquiv C.gates.length C.qubits x)) =
@@ -239,6 +299,7 @@ theorem normalized_energy_transport (C : QmaHistoryCircuit) (ψ : QState (Phys C
   apply hscale.trans
   simpa only [Equiv.symm_symm] using! congrArg (fun r : ℝ => scale C*r) he
 
+/-- Flattening a normalized physical state preserves normalization. -/
 theorem flattened_normalized (C : QmaHistoryCircuit) (ψ : QState (Phys C))
     (hψ : Normalized ψ) :
     Normalized (fun x => ψ (flattenEquiv C.gates.length C.qubits x)) := by
@@ -246,6 +307,7 @@ theorem flattened_normalized (C : QmaHistoryCircuit) (ψ : QState (Phys C))
   have hm := mass_reindex (flattenEquiv C.gates.length C.qubits).symm ψ
   simpa only [Equiv.symm_symm] using! hm.trans hψ
 
+/-- The normalization denominator is at most `130 * restLength C`. -/
 theorem denominator_le_poly (C : QmaHistoryCircuit) :
     denominator C ≤ 130*restLength C := by
   have h := (scaleDen_bounds (nativeJ C)).2.2.1
@@ -254,6 +316,8 @@ theorem denominator_le_poly (C : QmaHistoryCircuit) :
   dsimp only [nativeJ, restLength] at hL h ⊢
   omega
 
+/-- The normalized completeness threshold is positive, and the difference between the soundness
+and completeness thresholds equals the completeness threshold. -/
 theorem gap_positive (C : QmaHistoryCircuit) :
     0 < yesThreshold C ∧ noThreshold C-yesThreshold C=yesThreshold C := by
   constructor
@@ -262,6 +326,8 @@ theorem gap_positive (C : QmaHistoryCircuit) :
   · unfold noThreshold yesThreshold
     rw [← sub_div, (cut_gap C).2]
 
+/-- The normalized completeness threshold is bounded below by the reciprocal of `2^13 * 130 *
+restLength C * (C.gates.length + 1)^3`. -/
 theorem gap_inverse_poly (C : QmaHistoryCircuit) :
     1 / ((2:ℝ)^13*130*(restLength C:ℝ)*((C.gates.length:ℝ)+1)^3)  ≤  yesThreshold C := by
   have hS : 0 < (denominator C:ℝ) := by exact_mod_cast denominator_pos C
@@ -278,6 +344,11 @@ theorem gap_inverse_poly (C : QmaHistoryCircuit) :
     (by positivity : (0:ℝ) ≤ (2:ℝ)^13*((C.gates.length:ℝ)+1)^3)
   nlinarith
 
+/-- Under the stated parameter bounds, acceptance of a legal normalized witness with probability
+at least `a` yields a normalized padded encoding state with energy at most `yesThreshold`,
+while acceptance at most `ε` for every legal normalized witness gives energy at least
+`noThreshold` for every normalized encoding state. The thresholds have a positive gap equal
+to the completeness threshold; this supports the reduction in [KempeKitaevRegev2006]. -/
 theorem padded_normalized_contract (C : QmaHistoryCircuit) (a ε : ℝ)
     (hε : ε ≤ 1/4)
     (ha : 1-a ≤ 1/((2:ℝ)^14*(((paid64 C).gates.length:ℝ)+1)^2)) :

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux5
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Forward
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux2
+
+/-!
+# Column bounds for the scalar Taylor inverse
+
+Explicit coordinate-source formulas for `scalarSolve` separate history and padding
+contributions. Summing their squared norms yields the uniform estimate
+`scalarInverseMatrix_column_sq_le` used to bound the inverse operator norm. See
+[BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `scalarSolve_unit_time_hist`: The history response to a unit time-label source is its boundary
+  response multiplied by `z^j / j!`.
+* `scalarInverseMatrix_column_sq_le`: Every column of `scalarInverseMatrix` has squared
+  Euclidean norm at most `(31/30)² * (87/32) * (57/25) * (m+p)` under the stated hypotheses.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,8 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The history response to a unit time-label source is its boundary response multiplied by `z^j
+/ j!`. -/
 theorem scalarSolve_unit_time_hist (m k p a d j : ℕ) (hd : d < m) (hj : j ≤ k) (z : ℂ) :
     scalarSolve m k p z (Pi.single (a*(k+1)) 1) (d*(k+1)+j) =
       (z^j/(Nat.factorial j : ℂ)) *
@@ -35,6 +58,8 @@ theorem scalarSolve_unit_time_hist (m k p a d j : ℕ) (hd : d < m) (hj : j ≤ 
     simp [Ne.symm hne]
   rw [Finset.sum_eq_zero (fun t ht => by rw [hzero t ht,mul_zero]),add_zero]
 
+/-- The history response to a positive-order unit source is the propagated boundary response
+plus the direct contribution within the source block. -/
 theorem scalarSolve_unit_positive_hist (m k p a b d j : ℕ)
     (hb : 1 ≤ b) (hbk : b ≤ k) (hd : d < m) (hj : j ≤ k) (z : ℂ) :
     scalarSolve m k p z (Pi.single (a*(k+1)+b) 1) (d*(k+1)+j) =
@@ -67,6 +92,8 @@ theorem scalarSolve_unit_positive_hist (m k p a b d j : ℕ)
     rw [if_neg h]
     exact Finset.sum_eq_zero (fun t ht => by (try dsimp only); rw [if_neg (hn t ht),mul_zero])
 
+/-- A source in a history block produces a constant response throughout the terminal padding
+region. -/
 theorem scalarSolve_unit_history_pad (m k p a b q : ℕ) (ha : a < m) (hb : b ≤ k)
     (hq : q ≤ p) (z : ℂ) :
     scalarSolve m k p z (Pi.single (a*(k+1)+b) 1) (m*(k+1)+q) =
@@ -85,6 +112,8 @@ theorem scalarSolve_unit_history_pad (m k p a b q : ℕ) (ha : a < m) (hb : b �
       simp [hne]
     rw [Finset.sum_eq_zero hz,add_zero]
 
+/-- Under the factorial and left-half-disk hypotheses, the squared mass in one history block
+from a unit time-label source is at most `(87/32) * (57/25)`. -/
 theorem scalarSolve_unit_time_hist_mass (m k p a d : ℕ) (hd : d < m) (z : ℂ)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hz : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     (∑ j∈Finset.range (k+1),
@@ -109,6 +138,7 @@ theorem scalarSolve_unit_time_hist_mass (m k p a d : ℕ) (hd : d < m) (z : ℂ)
       (Finset.mul_sum _ _ _).symm
     _ ≤ _ := mul_le_mul_of_nonneg_left (factorial_recip_sq_sum_le k) (by norm_num)
 
+/-- For `‖z‖ ≤ 1`, the sum of squared direct factorial-ratio contributions is at most `57 / 25`. -/
 theorem scalar_unit_direct_mass (k b : ℕ) (z : ℂ) (hz : ‖z‖ ≤ 1) :
     (∑ j∈Finset.range (k+1), if b ≤ j then
       ‖z^(j-b)*(Nat.factorial b : ℂ)/(Nat.factorial j : ℂ)‖^2 else 0) ≤ 57/25 := by
@@ -156,6 +186,8 @@ theorem scalar_unit_direct_mass (k b : ℕ) (z : ℂ) (hz : ‖z‖ ≤ 1) :
       Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono (Nat.sub_le _ _)) (fun _ _ _ => by positivity)
     _ ≤ _ := factorial_recip_sq_sum_le k
 
+/-- Under the stated hypotheses, the squared mass in one history block from a positive-order
+source is at most `(31/30)² * (87/32) * (57/25)`. -/
 theorem scalarSolve_unit_positive_hist_mass (m k p a b d : ℕ)
     (hk : 5 ≤ k) (hb : 1 ≤ b) (hbk : b ≤ k) (hd : d < m) (z : ℂ)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hz : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
@@ -195,6 +227,9 @@ theorem scalarSolve_unit_positive_hist_mass (m k p a b d : ℕ)
         (Finset.mul_sum _ _ _).symm
       _ ≤ _ := mul_le_mul_of_nonneg_left (factorial_recip_sq_sum_le k) (by norm_num)
 
+/-- The total squared response to any history-coordinate unit source is at most `(31/30)² *
+(87/32) * (57/25) * (m+p)` under the stated degree, padding, and scalar stability
+hypotheses. -/
 theorem scalarSolve_unit_history_column_sq_le (m k p a b : ℕ)
     (ha : a < m) (hb : b ≤ k) (hk : 5 ≤ k) (hp : 0 < p) (z : ℂ)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hz : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
@@ -229,6 +264,7 @@ theorem scalarSolve_unit_history_column_sq_le (m k p a b : ℕ)
   norm_num [B,Nat.cast_add,Nat.cast_one] at hhistSum hpadSum ⊢
   linarith
 
+/-- A boundary response vanishes if its unit source lies strictly after the boundary label. -/
 theorem scalarBlockVal_unit_above (k c d : ℕ) (z : ℂ) (hc : d*(k+1) < c) :
     scalarBlockVal k z (Pi.single c 1) d=0 := by
   have hr (l : ℕ) (hl : l ≤ d*(k+1)) : (Pi.single (M := fun _ : ℕ => ℂ) c 1) l=0 := by
@@ -251,6 +287,7 @@ theorem scalarBlockVal_unit_above (k c d : ℕ) (z : ℂ) (hc : d*(k+1) < c) :
   unfold scalarBlockVal
   exact Finset.sum_eq_zero (fun s hs => by rw [hJ s hs,mul_zero])
 
+/-- A unit source at or after the terminal boundary has zero response in every history block. -/
 theorem scalarSolve_unit_padding_hist (m k p b d j : ℕ) (hd : d < m) (hj : j ≤ k) (z : ℂ) :
     scalarSolve m k p z (Pi.single (m*(k+1)+b) 1) (d*(k+1)+j)=0 := by
   rw [scalarSolve_hist m k p z _ d j hd hj]
@@ -270,6 +307,8 @@ theorem scalarSolve_unit_padding_hist (m k p b d j : ℕ) (hd : d < m) (hj : j �
     simp [show d*(k+1)+t+1≠m*(k+1)+b by omega]
   rw [hz,mul_zero]
 
+/-- The norm of each padding coordinate in the response to a terminal-region unit source is at
+most one. -/
 theorem scalarSolve_unit_padding_pad_norm (m k p b q : ℕ) (hq : q ≤ p) (z : ℂ) :
     ‖scalarSolve m k p z (Pi.single (m*(k+1)+b) 1) (m*(k+1)+q)‖ ≤ 1 := by
   have hblock : scalarBlockVal k z (Pi.single (m*(k+1)+b) 1) m = if b=0 then 1 else 0 := by
@@ -299,6 +338,8 @@ theorem scalarSolve_unit_padding_pad_norm (m k p b q : ℕ) (hq : q ≤ p) (z : 
       rw [Finset.sum_ite_eq']
       split_ifs <;> norm_num
 
+/-- For positive padding length, the total squared response to a terminal-region unit source
+satisfies the same uniform column bound as the history sources. -/
 theorem scalarSolve_unit_padding_column_sq_le (m k p b : ℕ) (hp : 0 < p) (z : ℂ) :
     (∑ l∈Finset.range (m*(k+1)+p+1),
       ‖scalarSolve m k p z (Pi.single (m*(k+1)+b) 1) l‖^2) ≤
@@ -327,6 +368,8 @@ theorem scalarSolve_unit_padding_column_sq_le (m k p b : ℕ) (hp : 0 < p) (z : 
   norm_num [Nat.cast_add,Nat.cast_one] at hs ⊢
   linarith
 
+/-- Every column of `scalarInverseMatrix` has squared Euclidean norm at most `(31/30)² * (87/32)
+* (57/25) * (m+p)` under the stated hypotheses. -/
 theorem scalarInverseMatrix_column_sq_le (m k p : ℕ) (hk : 5 ≤ k) (hp : 0 < p) (z : ℂ)
     (hfac : 2*m ≤ Nat.factorial (k+1)) (hz : ‖z‖ ≤ 1) (hre : z.re ≤ 0)
     (c : Fin (m*(k+1)+p+1)) :

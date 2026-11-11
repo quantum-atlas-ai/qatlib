@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.Failure
+
+/-!
+# Geometric schedule confidence bounds
+
+The growth estimate for powers of `6/5` shows that the geometric window reaches its positive cap
+by stage `5 * M`. Subsequent stages give the confidence estimates `lowQ_source_confidence` and
+`source_confidence` for interleaved search.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `geometric_at_cap`: For a positive cap `M`, the geometric window at stage `5 * M` equals `M`.
+* `source_confidence`: With exact validation, marked mass `sin θ` squared for `0 < θ < π/2`, and
+  `M * sin θ ≥ 1`, interleaved search with `5 * M + L` stages has real failure probability at
+  most `(25/32)^L`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -16,6 +38,7 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Concepts.WalkSearch.QuantumAccess
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 
+/-- For every natural `n`, `(6/5)^n` is at least `1 + n/5`. -/
 theorem geometric_growth_lower (n:ℕ) : 1+(n:ℝ)/5≤(6/5:ℝ)^n := by
   induction n with
   | zero=>norm_num
@@ -26,6 +49,7 @@ theorem geometric_growth_lower (n:ℕ) : 1+(n:ℝ)/5≤(6/5:ℝ)^n := by
       _ ≤ (6/5:ℝ)*(1+(n:ℝ)/5) := by push_cast;nlinarith
       _ ≤ _ := mul_le_mul_of_nonneg_left ih (by norm_num)
 
+/-- For a positive cap `M`, the geometric window at stage `5 * M` equals `M`. -/
 theorem geometric_at_cap (M:ℕ) (hM:0<M) : geometricWindow M (5*M)=M := by
   have hm:(0:ℝ)<M:=by exact_mod_cast hM
   have hm1:(1:ℝ)≤M:=by exact_mod_cast hM
@@ -46,6 +70,8 @@ theorem geometric_at_cap (M:ℕ) (hM:0<M) : geometricWindow M (5*M)=M := by
   exact le_antisymm hhi (by exact_mod_cast hlo)
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- With exact validation, marked mass `sin θ` squared at most `1/2`, and `M * sin θ ≥ 1`,
+interleaved search with `5 * M + L` stages has real failure probability at most `(25/32)^L`. -/
 theorem lowQ_source_confidence (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M L:ℕ) (θ:ℝ)
     (h0:0<θ) (h1:θ<Real.pi/2) (hmass:MeasureProb (preparedAAState U seed) S=(Real.sin θ)^2)
@@ -62,6 +88,8 @@ theorem lowQ_source_confidence (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I 
   simpa only [Nat.add_sub_cancel_left] using
       lowQ_failure_cutoff U hU seed S valid hvalid M (5*M+L) (5*M) θ h0 h1 hmass hwin
 
+/-- With exact validation, marked mass `sin θ` squared for `0 < θ < π/2`, and `M * sin θ ≥ 1`,
+interleaved search with `5 * M + L` stages has real failure probability at most `(25/32)^L`. -/
 theorem source_confidence (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M L:ℕ) (θ:ℝ)
     (h0:0<θ) (h1:θ<Real.pi/2) (hmass:MeasureProb (preparedAAState U seed) S=(Real.sin θ)^2)

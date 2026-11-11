@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
+
+/-!
+# Matching workspace search query bounds
+
+This module combines the workspace hybrid lower bound from [BennettEtAl1997] with the explicit
+Grover upper bound from [BrassardEtAl2002]. For `n ≥ 3`, a unitary circuit that identifies every
+singleton with probability at least 2/3 satisfies N ≤ 64Q², and the constructed circuit achieves
+the same success threshold using at most π√N/4 queries.
+
+## Main statements
+
+* `workspace_search_matching_actual_consumer`: combine the search lower bound with an explicit
+  successful Grover circuit.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +35,10 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QueryComplexity.AdversarySearch
 
+/-- For `n ≥ 3`, any unitary workspace search circuit identifying every singleton with
+probability at least 2/3 satisfies N ≤ 64Q², while the explicit workspace Grover circuit
+succeeds with probability at least 2/3 using at most π√N/4 queries. The lower bound follows
+the hybrid method of [BennettEtAl1997]. -/
 theorem workspace_search_matching_actual_consumer {W : Type} [Fintype W] [DecidableEq W]
     (n : ℕ) (w : W) (C : Circuit ((Reg n × Bool) × W)) (ψ : QState ((Reg n × Bool) × W))
     (decode : ((Reg n × Bool) × W) → Option (Reg n))

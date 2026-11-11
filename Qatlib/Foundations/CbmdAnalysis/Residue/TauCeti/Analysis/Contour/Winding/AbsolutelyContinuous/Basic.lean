@@ -11,12 +11,40 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Function.Ab
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.LebesgueDifferentiationThm
 import Mathlib.Analysis.Complex.RealDeriv
+
+/-!
+# Integer winding numbers for absolutely continuous curves
+
+Proves the almost-everywhere derivative formula for complex indefinite integrals and the
+exponential identity for winding numbers of absolutely continuous curves. Closed curves avoiding
+the reference point consequently have integer winding number.
+
+These results support the contour-integration framework associated with [WangEtAl2026].
+
+## Main statements
+
+* `IntervalIntegrable.ae_hasDerivAt_integral_complex`: The indefinite integral of an
+  interval-integrable complex function has derivative `f x` at almost every `x` in the interval,
+  for every basepoint in that interval.
+* `AbsolutelyContinuousOnInterval.exp_two_pi_I_mul_windingNumber`: For an absolutely continuous
+  curve avoiding `z`, exponentiating `2πi` times its winding number gives the ratio of its
+  endpoint displacements from `z`.
+* `AbsolutelyContinuousOnInterval.exists_int_windingNumber`: The winding number of a closed
+  absolutely continuous curve about a point outside its image is an integer.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
 
 section
 
+/-- The indefinite integral of an interval-integrable complex function has derivative `f x` at
+almost every `x` in the interval, for every basepoint in that interval. -/
 theorem IntervalIntegrable.ae_hasDerivAt_integral_complex {f : ℝ → ℂ} {a b : ℝ}
     (hf : IntervalIntegrable f MeasureTheory.volume a b) :
     ∀ᵐ x, x ∈ Set.uIcc a b → ∀ c ∈ Set.uIcc a b,
@@ -47,6 +75,8 @@ open Complex MeasureTheory Set
 
 namespace TauCeti.Contour
 
+/-- For an absolutely continuous curve avoiding `z`, exponentiating `2πi` times its winding
+number gives the ratio of its endpoint displacements from `z`. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInterval.exp_two_pi_I_mul_windingNumber
     {γ : ℝ → ℂ} {a b : ℝ} {z : ℂ} (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hz : z ∉ γ '' uIcc a b) :
@@ -91,6 +121,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInt
     ← mul_assoc, mul_inv_cancel₀ Complex.two_pi_I_ne_zero, one_mul]
   exact hratio
 
+/-- The winding number of a closed absolutely continuous curve about a point outside its image
+is an integer. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.AbsolutelyContinuousOnInterval.exists_int_windingNumber
     {γ : ℝ → ℂ} {a b : ℝ} {z : ℂ} (hγ : AbsolutelyContinuousOnInterval γ a b)
     (hclosed : γ a = γ b) (hz : z ∉ γ '' uIcc a b) :

@@ -6,20 +6,51 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryAmpl
 
+/-!
+# Complete boundary of the Legendre approximation window
+
+This module defines `aqLegendreWindow` and proves that a rational in the closed window is a
+continued-fraction convergent exactly when it avoids the exceptional integer half-tie. It also
+constructs the correct rounded numerator for modular period recovery, completing the boundary
+analysis relevant to the Fourier recovery method of [Cornwell2014].
+
+## Main statements
+
+* `aqNext_legendre_window_complete`: A rational in the closed Legendre window is a
+  continued-fraction convergent or has denominator one with ξ exactly one half below it.
+* `aqNext_residue_window_complete`: When P² ≤ N and the modular distance is at most ⌊P/2⌋, the
+  rounded numerator divided by P reduces to a continued-fraction convergent of y/N whose
+  denominator divides P.
+* `clause25_accepted`: Combines `clause25_endpoint` with the exact characterization of
+  closed-window convergents by exclusion of the integer half-tie. See [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.AmpTransform.LegendreWindow
 
+/-- The closed Legendre approximation condition |ξ−q| ≤ 1/(2 · den(q)²). -/
 def aqLegendreWindow (ξ : ℝ) (q : ℚ) : Prop :=
   |ξ - (q : ℝ)| ≤ 1 / (2 * (q.den : ℝ) ^ 2)
 
+/-- The distance from P · y to the nearest multiple of N, computed as the smaller modular
+residue distance. -/
 def aqResidueDistance (N P y : ℕ) : ℕ :=
   min ((P * y) % N) (N - (P * y) % N)
 
+/-- The integer quotient of P · y by N, rounded up exactly when the remainder exceeds its
+complementary distance. -/
 def aqResidueNumerator (N P y : ℕ) : ℕ :=
   (P * y) / N + if (P * y) % N ≤ N - (P * y) % N then 0 else 1
 
+/-- The combined closed-window contract: convergent recovery up to the exceptional integer
+half-tie, failure of the unconditional closed-window claim, and recovery using the rounded
+modular numerator. -/
 def clause25_endpoint : Prop :=
   (∀ (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 0 < b) (hc : Nat.Coprime b a.natAbs),
       |ξ - (a : ℝ) / (b : ℝ)| ≤ 1 / (2 * (b : ℝ) ^ 2) →
@@ -35,6 +66,8 @@ def clause25_endpoint : Prop :=
         ((a : ℚ) / b = (aqResidueNumerator N P y : ℚ) / P) ∧
         ∃ n : ℕ, ((a : ℚ) / b) = ((y : ℝ) / N).convergent n)
 
+/-- The claim that every rational in the closed Legendre window is a continued-fraction
+convergent is false. -/
 theorem aqNext_legendre_window_fails_at_tie :
     ¬ (∀ (ξ : ℝ) (q : ℚ), aqLegendreWindow ξ q → ∃ n : ℕ, q = ξ.convergent n) := by
   intro h
@@ -52,6 +85,8 @@ theorem aqNext_legendre_window_fails_at_tie :
     rw [hi] at hn
     norm_num at hn
 
+/-- A reduced fraction a/b with b ≥ 2 in the closed Legendre window is a continued-fraction
+convergent of ξ. -/
 theorem aqNext_legendre_window_den_ge_two (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 2 ≤ b)
     (hc : Nat.Coprime b a.natAbs)
     (h : |ξ - (a : ℝ) / (b : ℝ)| ≤ 1 / (2 * (b : ℝ) ^ 2)) :
@@ -77,6 +112,8 @@ theorem aqNext_legendre_window_den_ge_two (ξ : ℝ) (a : ℤ) (b : ℕ) (hb : 2
   rw [hq] at hn
   exact hn
 
+/-- An integer within distance 1/2 of ξ is a continued-fraction convergent unless ξ is exactly
+one half below it. -/
 theorem aqNext_legendre_integer_window (ξ : ℝ) (u : ℤ) (h : |ξ - (u : ℝ)| ≤ 1 / 2) :
     (∃ n : ℕ, (u : ℚ) = ξ.convergent n) ∨ ξ = (u : ℝ) - 1 / 2 := by
   by_cases htie : ξ = (u : ℝ) - 1 / 2
@@ -102,6 +139,8 @@ theorem aqNext_legendre_integer_window (ξ : ℝ) (u : ℤ) (h : |ξ - (u : ℝ)
     rw [hq] at hn
     exact hn
 
+/-- A rational in the closed Legendre window is a continued-fraction convergent or has
+denominator one with ξ exactly one half below it. -/
 theorem aqNext_legendre_window_complete (ξ : ℝ) (q : ℚ) (h : aqLegendreWindow ξ q) :
     (∃ n : ℕ, q = ξ.convergent n) ∨
       (q.den = 1 ∧ ξ = (q : ℝ) - 1 / 2) := by
@@ -154,6 +193,8 @@ theorem aqNext_legendre_window_complete (ξ : ℝ) (q : ℚ) (h : aqLegendreWind
     rw [hq]
     exact hn
 
+/-- When P² ≤ N and the modular distance is at most ⌊P/2⌋, the rounded numerator divided by P
+reduces to a continued-fraction convergent of y/N whose denominator divides P. -/
 theorem aqNext_residue_window_complete {N P y : ℕ} (hN : 0 < N) (hP : 0 < P)
     (hsize : P ^ 2 ≤ N)
     (hd : aqResidueDistance N P y ≤ P / 2) :
@@ -216,6 +257,7 @@ theorem aqNext_residue_window_complete {N P y : ℕ} (hN : 0 < N) (hP : 0 < P)
     rw [heq]
     exact hn
 
+/-- Proves the combined closed-window and modular-numerator contract `clause25_endpoint`. -/
 theorem clause25_endpoint_holds : clause25_endpoint := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro ξ a b hb hc hwin
@@ -240,6 +282,7 @@ theorem clause25_endpoint_holds : clause25_endpoint := by
   · intro N P y hN hP hsize hd
     exact aqNext_residue_window_complete hN hP hsize hd
 
+/-- No continued-fraction convergent of u−1/2 equals the integer u. -/
 theorem aqNext_legendre_integer_tie_ne_convergent (u : ℤ) (n : ℕ) :
     (u : ℚ) ≠ ((u : ℝ) - 1 / 2).convergent n := by
   have hfloor : ⌊(u : ℝ) - 1 / 2⌋ = u - 1 := by
@@ -265,6 +308,8 @@ theorem aqNext_legendre_integer_tie_ne_convergent (u : ℤ) (n : ℕ) :
     norm_num
     linarith
 
+/-- Within the closed Legendre window, q is a continued-fraction convergent exactly when the
+exceptional denominator-one half-tie does not occur. -/
 theorem aqNext_legendre_window_convergent_iff (ξ : ℝ) (q : ℚ)
     (h : aqLegendreWindow ξ q) :
     (∃ n : ℕ, q = ξ.convergent n) ↔
@@ -283,6 +328,8 @@ theorem aqNext_legendre_window_convergent_iff (ξ : ℝ) (q : ℚ)
     · exact hconv
     · exact False.elim (hnot htie)
 
+/-- Combines `clause25_endpoint` with the exact characterization of closed-window convergents by
+exclusion of the integer half-tie. See [Cornwell2014]. -/
 theorem clause25_accepted :
     clause25_endpoint ∧
     (∀ (ξ : ℝ) (q : ℚ), aqLegendreWindow ξ q →

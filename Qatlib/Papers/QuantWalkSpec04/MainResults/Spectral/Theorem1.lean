@@ -9,6 +9,25 @@ import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
 import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
 import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
+
+/-!
+# Spectral structure of the bipartite walk
+
+This module assembles the spectral description of the product of two reflections on their
+combined range. `szegedyTheorem1_eigenstructure` supplies an orthonormal eigenbasis, transformed
+discriminant eigenvectors, and the endpoint eigenvalue dimension identities. See [Szegedy2004].
+
+## Main statements
+
+* `szegedyTheorem1_eigenstructure`: For two isometries, the bipartite walk has an orthonormal
+  eigenbasis on their combined range with eigenvalues among one, minus one, and `bipartitePhase
+  lam s` for `0 < lam < 1`, together with the stated eigenvector and multiplicity identities.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +48,7 @@ open scoped ComplexOrder
 
 namespace Qatlib.Papers.QuantWalkSpec04.MainResults.Spectral
 
+/-- The bipartite discriminant acts on a sum indexed vector by the two cross Gram matrices. -/
 private theorem theorem1_disc_mulVec_eq_sumElim
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -39,6 +59,7 @@ private theorem theorem1_disc_mulVec_eq_sumElim
   rw [bipartiteDiscriminant, Matrix.fromBlocks_mulVec]
   simp only [Matrix.zero_mulVec, zero_add, add_zero, Function.comp_def]
 
+/-- The discriminant kernel is linearly equivalent to the product of the two cross Gram kernels. -/
 private noncomputable def theorem1_discKerEquiv {H I J : Type} [Fintype H]
     [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) :
@@ -84,6 +105,7 @@ private noncomputable def theorem1_discKerEquiv {H I J : Type} [Fintype H]
   map_smul' c u := by
     apply Prod.ext <;> apply Subtype.ext <;> funext x <;> simp
 
+/-- The discriminant kernel dimension equals `card I + card J - 2 * rank (Aᴴ * B)`. -/
 private theorem theorem1_finrank_ker_discriminant
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) :
@@ -103,6 +125,9 @@ private theorem theorem1_finrank_ker_discriminant
       Matrix.conjTranspose_conjTranspose]
   omega
 
+/-- For two isometries, the bipartite walk has an orthonormal eigenbasis on their combined range
+with eigenvalues among one, minus one, and `bipartitePhase lam s` for `0 < lam < 1`,
+together with the stated eigenvector and multiplicity identities. -/
 theorem szegedyTheorem1_eigenstructure
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)

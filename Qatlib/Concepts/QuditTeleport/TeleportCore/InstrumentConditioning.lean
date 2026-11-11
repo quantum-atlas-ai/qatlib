@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+/-!
+# Conditioning and probability laws for instruments
+
+This module relates conditional output states to unnormalized instrument branches.
+`weightedConditionalBranch` handles zero probability outcomes by assigning zero, and positivity
+ensures that these weighted outputs reconstruct both the individual branches and their forgotten
+sum.
+
+The feed forward and sequential probability identities express the product rule for conditioned
+quantum operations in the finite dimensional instrument setting of [Watrous2018].
+
+## Main statements
+
+* `Instrument.conditionalState_reconstruction`: recovers a branch from its probability and
+  conditional state.
+* `Instrument.weightedConditional_reconstruction`: reconstruction including zero probability
+  outcomes.
+* `instrumentProb_feedForward_conditional_laws`: conditional product rule for feed forward
+  instruments.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +42,8 @@ namespace Qatlib.Concepts.QuditTeleport.TeleportCore
 open Matrix
 open scoped ComplexOrder
 
+/-- Scaling an instrument input by a real scalar scales every outcome probability by that
+scalar. -/
 theorem instrumentProb_smul_ofReal {O : Type*} [Fintype O] {E F : ℕ}
     (J : Instrument O E F) (r : ℝ) (ψ : Operator E) (o : O) :
     instrumentProb J (((r : ℝ) : ℂ) • ψ) o = r * instrumentProb J ψ o := by
@@ -23,6 +51,9 @@ theorem instrumentProb_smul_ofReal {O : Type*} [Fintype O] {E F : ℕ}
   simp only [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
   ring
 
+/-- Multiplying a positive probability conditional state by its outcome probability reconstructs
+the branch operator. If the input is a density operator, the conditional state is also a
+density operator. -/
 theorem Instrument.conditionalState_reconstruction {O : Type*} [Fintype O] {D E : ℕ}
     (I : Instrument O D E) (ρ : Operator D) (o : O) (h : 0 < instrumentProb I ρ o) :
     ((instrumentProb I ρ o : ℝ) : ℂ) • I.conditionalState ρ o h = I.branch o ρ ∧
@@ -32,12 +63,16 @@ theorem Instrument.conditionalState_reconstruction {O : Type*} [Fintype O] {D E 
   refine ⟨?_, fun hρ => I.isDensityOperator_conditionalState hρ o h⟩
   rw [Instrument.conditionalState, smul_smul, mul_inv_cancel₀ hne, one_smul]
 
+/-- The conditional state weighted by its outcome probability when that probability is positive,
+and zero otherwise. -/
 noncomputable def weightedConditionalBranch {O : Type*} [Fintype O] {D E : ℕ}
     (I : Instrument O D E) (ρ : Operator D) (o : O) : Operator E := by
   classical
   exact if h : 0 < instrumentProb I ρ o then
     ((instrumentProb I ρ o : ℝ) : ℂ) • I.conditionalState ρ o h else 0
 
+/-- For a positive semidefinite input, each weighted conditional branch equals the corresponding
+instrument branch, and their sum is the forgotten instrument output. -/
 theorem Instrument.weightedConditional_reconstruction {O : Type*} [Fintype O] {D E : ℕ}
     (I : Instrument O D E) (ρ : Operator D) (hρ : ρ.PosSemidef) :
     (∀ o, weightedConditionalBranch I ρ o = I.branch o ρ) ∧
@@ -56,6 +91,9 @@ theorem Instrument.weightedConditional_reconstruction {O : Type*} [Fintype O] {D
   refine Finset.sum_congr rfl fun o _ => ?_
   exact hbranch o
 
+/-- For a positive semidefinite input, a feed forward outcome probability factors into the first
+outcome probability and the conditional second probability whenever the first is positive. A
+zero first outcome probability gives zero joint probability. -/
 theorem instrumentProb_feedForward_conditional_laws {O : Type*} [Fintype O]
     {Q : O → Type*} [∀ o, Fintype (Q o)] {D E F : ℕ} (I : Instrument O D E)
     (J : ∀ o, Instrument (Q o) E F) (ρ : Operator D) (hρ : ρ.PosSemidef) (o : O)
@@ -73,6 +111,9 @@ theorem instrumentProb_feedForward_conditional_laws {O : Type*} [Fintype O]
 
 set_option linter.unusedVariables false in
 
+/-- For a positive semidefinite input and a positive first outcome probability, a sequential
+outcome probability is the first probability times the second instrument's probability on
+the conditional state. -/
 theorem instrumentProb_seq_conditional {O P : Type*} [Fintype O] [Fintype P]
     [DecidableEq P] {D E F : ℕ} (I : Instrument O D E) (J : Instrument P E F)
     (ρ : Operator D) (hρ : ρ.PosSemidef) (o : O) (p : P)

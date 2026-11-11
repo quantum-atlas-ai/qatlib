@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+/-!
+# Compressed Bernoulli query oracles
+
+This module defines a coherent Bernoulli table, its decompression transform and the conjugated
+query operator `compressedOracle`. Theorems relate compressed execution to ordinary phase
+queries, establish the reduced state identity, and show that each query changes only the
+addressed database bit.
+
+The database support and binomial moment bounds quantify how recorded information grows with the
+number of queries. The construction also includes the Hadamard conversion from bit query
+circuits to phase query circuits.
+
+The mathematical context is discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `compressed_marginal`: The reduced state equals the Bernoulli average of ordinary oracle
+  executions.
+* `compressed_oracle_entry`: The exact local query matrix entries with the required locality
+  condition.
+* `database_support_bound`: Database size is bounded by the number of queries.
+* `database_moment_bound`: Binomial database moments are bounded in terms of the query count.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,18 +53,27 @@ open scoped ComplexOrder
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The product Bernoulli weight of the Boolean table `x`, with parameter `p` at each address. -/
 def bernoulliPmf (p : ℝ) (x : I → Bool) : ℝ := ∏ j, if x j then p else 1 - p
 
+/-- The coherent Boolean table state whose amplitudes are the nonnegative square roots of
+`bernoulliPmf p`. -/
 def bernoulliState (p : ℝ) : QState (I → Bool) :=
   fun x => Complex.ofReal (Real.sqrt (bernoulliPmf p x))
 
+/-- The one-bit decompression matrix entry, with columns (√(1 − p), √p) and (√p, −√(1 − p)) in
+the false/true basis. -/
 def decompressEntry (p : ℝ) (b d : Bool) : ℂ :=
   if b then (if d then -Complex.ofReal (Real.sqrt (1 - p)) else Complex.ofReal (Real.sqrt p))
     else (if d then Complex.ofReal (Real.sqrt p) else Complex.ofReal (Real.sqrt (1 - p)))
 
+/-- The product decompression transform on Boolean tables, formed from `decompressEntry` at
+every address. -/
 def decompressGate (p : ℝ) : Matrix (I → Bool) (I → Bool) ℂ :=
   Matrix.of fun x d => ∏ j, decompressEntry p (x j) (d j)
 
+/-- The one-bit compressed phase query matrix with diagonal entries 1 − 2p and 2p − 1 and
+off-diagonal entries 2√(p(1 − p)). -/
 def compressedQueryEntry (p : ℝ) (d d' : Bool) : ℂ :=
   if d then
     (if d' then Complex.ofReal (2 * p - 1)
@@ -44,47 +82,65 @@ def compressedQueryEntry (p : ℝ) (d d' : Bool) : ℂ :=
     (if d' then Complex.ofReal (2 * Real.sqrt (p * (1 - p)))
       else Complex.ofReal (1 - 2 * p))
 
+/-- The finite set of addresses where the Boolean database is true. -/
 def databaseSupport (d : I → Bool) : Finset I := Finset.univ.filter (fun j => d j)
 
+/-- The number of true entries in the Boolean database. -/
 def databaseCard (d : I → Bool) : ℕ := (databaseSupport d).card
 
+/-- The phase oracle controlled by the Boolean target register, acting trivially on the
+workspace. -/
 def workspacePhaseOracle (x : I → Bool) : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ :=
   TensorGate (PhaseOracle fun jb : I × Bool => jb.2 && x jb.1) 1
 
+/-- The diagonal oracle applying a sign when the target bit and the table bit at the query
+address are both true. -/
 def jointPhaseOracle : Matrix (((I × Bool) × W) × (I → Bool))
     (((I × Bool) × W) × (I → Bool)) ℂ :=
   Matrix.diagonal fun q => if q.1.1.2 && q.2 q.1.1.1 then (-1 : ℂ) else 1
 
+/-- Lift an algorithm step to include a database register by tensoring gates with the identity
+and retaining query steps. -/
 def tensorLiftStep (s : Step ((I × Bool) × W)) :
     Step (((I × Bool) × W) × (I → Bool)) :=
   match s with
   | Step.gate U => Step.gate (TensorGate U (1 : Matrix (I → Bool) (I → Bool) ℂ))
   | Step.query => Step.query
 
+/-- Lift each step of a circuit to the joint algorithm and database space. -/
 def tensorLiftCircuit (C : Circuit ((I × Bool) × W)) :
     Circuit (((I × Bool) × W) × (I → Bool)) := C.map tensorLiftStep
 
+/-- The joint phase oracle conjugated by decompression on the database register. -/
 def compressedOracle (p : ℝ) : Matrix (((I × Bool) × W) × (I → Bool))
     (((I × Bool) × W) × (I → Bool)) ℂ :=
   (TensorGate (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) (decompressGate p)ᴴ) *
     jointPhaseOracle *
     (TensorGate (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) (decompressGate p))
 
+/-- Run the lifted circuit with the compressed oracle, starting from the algorithm state
+tensored with the empty database. -/
 def compressedRunState (p : ℝ) (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) :
     QState (((I × Bool) × W) × (I → Bool)) :=
   Run (compressedOracle p) (tensorLiftCircuit C) (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket (fun _ => false)))
 
+/-- The Hadamard gate on the Boolean target register, with identity on the address and workspace
+registers. -/
 def controlHadamard : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ :=
   TensorGate (TensorGate (1 : Matrix I I ℂ) Hadamard) (1 : Matrix W W ℂ)
 
+/-- Replace a query step by Hadamard, query and Hadamard steps, retaining each ordinary gate. -/
 def bitToPhaseStep (s : Step ((I × Bool) × W)) : Circuit ((I × Bool) × W) :=
   match s with
   | Step.gate U => [Step.gate U]
   | Step.query => [Step.gate controlHadamard, Step.query, Step.gate controlHadamard]
 
+/-- The phase query circuit obtained by an initial target Hadamard followed by the stepwise
+Hadamard conversion of `C`. -/
 def bitToPhaseCircuit (C : Circuit ((I × Bool) × W)) : Circuit ((I × Bool) × W) :=
   Step.gate controlHadamard :: (C.flatMap bitToPhaseStep)
 
+/-- For `p` in [0, 1], the columns of the one-bit decompression matrix are orthonormal. -/
 private theorem decompressEntry_gram (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (a a' : Bool) :
     ∑ b : Bool, star (decompressEntry p b a) * decompressEntry p b a'
       = if a = a' then 1 else 0 := by
@@ -98,14 +154,20 @@ private theorem decompressEntry_gram (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (
     | simp [mul_comm]
     | (rw [← Complex.ofReal_mul, ← Complex.ofReal_mul, ← Complex.ofReal_add, hs1, hs2]; simp)
 
+/-- A sum over Boolean tables of a product of complex coordinate factors equals the product of
+the two-term coordinate sums. -/
 private theorem sum_prod_swap (g : I → Bool → ℂ) :
     (∑ d : I → Bool, ∏ j, g j (d j)) = ∏ j, ∑ b : Bool, g j b := by
   rw [Finset.prod_univ_sum, Fintype.piFinset_univ]
 
+/-- A sum over Boolean tables of a product of real coordinate factors equals the product of the
+two-term coordinate sums. -/
 private theorem sum_prod_swap_real (g : I → Bool → ℝ) :
     (∑ d : I → Bool, ∏ j, g j (d j)) = ∏ j, ∑ b : Bool, g j b := by
   rw [Finset.prod_univ_sum, Fintype.piFinset_univ]
 
+/-- For `p` in [0, 1], the conjugate transpose of the decompression matrix multiplied by that
+matrix is the identity. -/
 theorem decompressGate_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     (decompressGate (I := I) p)ᴴ * decompressGate p = 1 := by
   ext x x'
@@ -127,6 +189,7 @@ theorem decompressGate_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
       exact hxx (funext hall)
     rw [Finset.prod_eq_zero (Finset.mem_univ j₀) (by rw [if_neg hj₀]), if_neg hxx]
 
+/-- The coherent Bernoulli table state is normalized when `p` lies in [0, 1]. -/
 theorem bernoulliState_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     Normalized (bernoulliState (I := I) p) := by
   have h1 : (0 : ℝ) ≤ 1 - p := by linarith
@@ -148,6 +211,8 @@ theorem bernoulliState_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     _ = ∏ j, ∑ b : Bool, if b then p else 1 - p := hswap
     _ = 1 := by simp
 
+/-- For `p` in [0, 1], decompression sends the all-false database ket to the coherent Bernoulli
+table state. -/
 theorem decompressGate_empty_database (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     ApplyGate (decompressGate (I := I) p) (Qatlib.Foundations.PureStateMath.Ket (fun _ => false)) = bernoulliState p := by
   have h1 : (0 : ℝ) ≤ 1 - p := by linarith
@@ -178,6 +243,7 @@ theorem decompressGate_empty_database (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) 
     rw [if_neg (fun h : d = fun _ => false => hd h)]
   · simp
 
+/-- The conversion from bit query circuits to phase query circuits preserves the query count. -/
 theorem bitToPhaseCircuit_queryCount (C : Circuit ((I × Bool) × W)) :
     QueryCount (bitToPhaseCircuit C) = QueryCount C := by
   have flat : ∀ C : Circuit ((I × Bool) × W),
@@ -209,18 +275,22 @@ theorem bitToPhaseCircuit_queryCount (C : Circuit ((I × Bool) × W)) :
           have := flat C
           omega
 
+/-- The target Hadamard gate squares to the identity. -/
 theorem controlHadamard_mul_self :
     (controlHadamard (I := I) (W := W)) * controlHadamard = 1 := by
   unfold controlHadamard
   rw [tensorGate_mul, tensorGate_mul, Matrix.one_mul, Matrix.one_mul, hadamard_mul_self,
     tensorGate_one, tensorGate_one]
 
+/-- Two finite matrices are equal if their actions on every basis ket agree. -/
 private theorem matrix_eq_of_mulVec_ket {H : Type} [Fintype H] [DecidableEq H]
     (M N : Matrix H H ℂ) (h : ∀ i : H, M *ᵥ Qatlib.Foundations.PureStateMath.Ket i = N *ᵥ Qatlib.Foundations.PureStateMath.Ket i) : M = N := by
   ext i j
   simpa [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, mul_ite, mul_one, mul_zero,
     Finset.sum_ite_eq'] using congrFun (h j) i
 
+/-- Multiplication by `A * Matrix.diagonal χ` equals multiplication by `A` after scaling each
+vector coordinate by `χ`. -/
 private theorem mulVec_diag {H : Type} [Fintype H] [DecidableEq H] (A : Matrix H H ℂ)
     (χ : H → ℂ) (v : QState H) :
     (A * Matrix.diagonal χ) *ᵥ v = A *ᵥ (fun r => χ r * v r) := by
@@ -228,6 +298,8 @@ private theorem mulVec_diag {H : Type} [Fintype H] [DecidableEq H] (A : Matrix H
   simp [Matrix.mulVec, dotProduct, Matrix.mul_apply, Matrix.diagonal_apply, mul_ite,
     mul_zero, Finset.sum_ite_eq', mul_assoc]
 
+/-- The identity-address tensor Hadamard acts by summing over the Boolean target coordinate at
+the fixed address. -/
 private theorem tensorGate_one_hadamard_mulVec (g : QState (I × Bool)) (j : I) (b : Bool) :
     ((TensorGate (1 : Matrix I I ℂ) Hadamard) *ᵥ g) (j, b)
       = ∑ c : Bool, Hadamard b c * g (j, c) := by
@@ -240,6 +312,7 @@ private theorem tensorGate_one_hadamard_mulVec (g : QState (I × Bool)) (j : I) 
     simp
   · simp
 
+/-- Conjugating the controlled phase oracle by the target Hadamard gives the Boolean bit oracle. -/
 theorem tensor_hadamard_conj_phase (f : I → Bool) :
     (TensorGate (1 : Matrix I I ℂ) Hadamard) *
         (PhaseOracle fun jb : I × Bool => jb.2 && f jb.1) *
@@ -302,6 +375,8 @@ theorem tensor_hadamard_conj_phase (f : I → Bool) :
           if_neg (fun h : (j₁, b₁) = (j₀, b₀ ^^ f j₀) => hj (congrArg Prod.fst h))]
     rw [hket]
 
+/-- Conjugating the workspace phase oracle by the target Hadamard gives the workspace bit
+oracle. -/
 theorem controlHadamard_mul_phase_mul_controlHadamard (f : I → Bool) :
     (controlHadamard (I := I) (W := W)) * workspacePhaseOracle f * controlHadamard
       = workspaceBitOracle f := by
@@ -310,6 +385,8 @@ theorem controlHadamard_mul_phase_mul_controlHadamard (f : I → Bool) :
   exact congrArg (fun M : Matrix (I × Bool) (I × Bool) ℂ => TensorGate M 1)
     (tensor_hadamard_conj_phase f)
 
+/-- Running the converted circuit with a phase oracle on the Hadamard-transformed input equals
+running the original circuit with the bit oracle. -/
 theorem run_bitToPhaseCircuit (f : I → Bool) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) :
     Run (workspacePhaseOracle f) (bitToPhaseCircuit C) (ApplyGate controlHadamard ψ)
@@ -342,6 +419,7 @@ theorem run_bitToPhaseCircuit (f : I → Bool) (C : Circuit ((I × Bool) × W))
   rw [← applyGate_mul, controlHadamard_mul_self, applyGate_one]
   exact main C ψ
 
+/-- An identity tensor gate acts on each fixed left-coordinate slice by its right factor. -/
 private theorem tensor_one_right_slice {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (M : Matrix B B ℂ) (v : QState (A × B)) (a : A) (b : B) :
     ApplyGate (TensorGate (1 : Matrix A A ℂ) M) v (a,b)
@@ -349,6 +427,8 @@ private theorem tensor_one_right_slice {A B : Type} [Fintype A] [DecidableEq A]
   simp [ApplyGate, TensorGate, Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
     Matrix.one_apply]
 
+/-- A gate tensored with the identity acts on each fixed right-coordinate slice by its left
+factor. -/
 private theorem tensor_one_left_slice {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (M : Matrix A A ℂ) (v : QState (A × B)) (a : A) (b : B) :
     ApplyGate (TensorGate M (1 : Matrix B B ℂ)) v (a,b)
@@ -356,6 +436,8 @@ private theorem tensor_one_left_slice {A B : Type} [Fintype A] [DecidableEq A]
   simp [ApplyGate, TensorGate, Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
     Matrix.one_apply]
 
+/-- At a fixed table, the joint phase oracle acts on the algorithm slice as the corresponding
+workspace phase oracle. -/
 private theorem joint_phase_slice (v : QState (((I × Bool) × W) × (I → Bool)))
     (q : (I × Bool) × W) (x : I → Bool) :
     ApplyGate jointPhaseOracle v (q,x)
@@ -363,6 +445,8 @@ private theorem joint_phase_slice (v : QState (((I × Bool) × W) × (I → Bool
   rw [workspacePhaseOracle, tensor_one_left_slice]
   simp [ApplyGate, jointPhaseOracle, PhaseOracle, Matrix.mulVec_diagonal]
 
+/-- The joint phase oracle applies the table-specific workspace phase oracle to the algorithm
+factor while leaving the table ket fixed. -/
 theorem joint_phase_oracle_fiber (φ : QState ((I × Bool) × W)) (x : I → Bool) :
     jointPhaseOracle (W := W) *ᵥ TensorState φ (Qatlib.Foundations.PureStateMath.Ket x)
       = TensorState (workspacePhaseOracle (W := W) x *ᵥ φ) (Qatlib.Foundations.PureStateMath.Ket x) := by
@@ -376,6 +460,7 @@ theorem joint_phase_oracle_fiber (φ : QState ((I × Bool) × W)) (x : I → Boo
   · simp [TensorState, Qatlib.Foundations.PureStateMath.Ket, h, ApplyGate, Matrix.mulVec,
       dotProduct]
 
+/-- Circuit execution commutes with multiplying the initial state by a complex scalar. -/
 private theorem compressed_run_scalar {A : Type} [Fintype A] [DecidableEq A]
     (O : Matrix A A ℂ) (C : Circuit A) (c : ℂ) (ψ : QState A) :
     Run O C (fun q => c * ψ q) = fun q => c * Run O C ψ q := by
@@ -392,6 +477,8 @@ private theorem compressed_run_scalar {A : Type} [Fintype A] [DecidableEq A]
         ring]
       exact ih _
 
+/-- At a fixed table, a lifted circuit run with the joint phase oracle equals the original
+circuit run with that table as its phase oracle. -/
 private theorem joint_run_slice (C : Circuit ((I × Bool) × W))
     (v : QState (((I × Bool) × W) × (I → Bool))) (x : I → Bool) :
     (fun q => Run jointPhaseOracle (tensorLiftCircuit C) v (q,x))
@@ -413,6 +500,8 @@ private theorem joint_run_slice (C : Circuit ((I × Bool) × W))
       funext q
       exact joint_phase_slice v q x
 
+/-- Execution from the coherent Bernoulli table state has amplitude equal to the table amplitude
+times the corresponding ordinary phase oracle execution amplitude. -/
 theorem joint_run_expansion (p : ℝ) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (q : (I × Bool) × W) (x : I → Bool) :
     Run (jointPhaseOracle (W := W)) (tensorLiftCircuit C)
@@ -424,11 +513,14 @@ theorem joint_run_expansion (p : ℝ) (C : Circuit ((I × Bool) × W))
   rw [compressed_run_scalar] at h
   exact h
 
+/-- The decompression matrix belongs to the unitary group for `p` in [0, 1]. -/
 private theorem decompressGate_mem_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     decompressGate (I := I) p ∈ Matrix.unitaryGroup (I → Bool) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   exact decompressGate_unitary p hp0 hp1
 
+/-- For `p` in [0, 1], applying inverse decompression before a compressed circuit run equals
+applying it after the corresponding joint phase oracle run. -/
 private theorem compressed_run_conjugate (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (φ : QState (((I × Bool) × W) × (I → Bool))) :
     Run (compressedOracle p) (tensorLiftCircuit C)
@@ -466,6 +558,8 @@ private theorem compressed_run_conjugate (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 
       rw [← applyGate_mul, hquery, applyGate_mul]
       exact ih _
 
+/-- For `p` in [0, 1], compressed execution from the empty database equals inverse decompression
+of joint phase oracle execution from the coherent Bernoulli state. -/
 theorem compressed_run_from_empty (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) :
     Run (compressedOracle (I := I) (W := W) p) (tensorLiftCircuit C)
@@ -480,6 +574,8 @@ theorem compressed_run_from_empty (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   have h := compressed_run_conjugate p hp0 hp1 C (TensorState ψ (bernoulliState p))
   rwa [applyGate_tensorGate, applyGate_one, hinit] at h
 
+/-- For `p` in [0, 1], tracing out the compressed database gives the Bernoulli-weighted sum of
+the algorithm outer products from ordinary phase oracle executions. -/
 theorem compressed_marginal (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (q q' : (I × Bool) × W) :
@@ -520,14 +616,17 @@ theorem compressed_marginal (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
         Run (workspacePhaseOracle x) C ψ q * star (Run (workspacePhaseOracle x) C ψ q') := by ring
     _ = _ := by rw [hs]
 
+/-- The one-bit decompression matrix is symmetric. -/
 private theorem decompressEntry_symmetric (p : ℝ) (a b : Bool) :
     decompressEntry p a b = decompressEntry p b a := by
   cases a <;> cases b <;> rfl
 
+/-- Every one-bit decompression matrix entry is fixed by complex conjugation. -/
 private theorem decompressEntry_star (p : ℝ) (a b : Bool) :
     star (decompressEntry p a b) = decompressEntry p a b := by
   cases a <;> cases b <;> simp [decompressEntry]
 
+/-- The product decompression matrix is equal to its conjugate transpose. -/
 private theorem decompressGate_selfadjoint (p : ℝ) :
     (decompressGate (I := I) p)ᴴ = decompressGate p := by
   ext x y
@@ -536,6 +635,8 @@ private theorem decompressGate_selfadjoint (p : ℝ) :
   intro j _
   rw [decompressEntry_star, decompressEntry_symmetric]
 
+/-- The compressed oracle is block diagonal in the algorithm basis, with each database block
+given by the conjugated table-dependent phase. -/
 private theorem compressed_oracle_block (p : ℝ) (q q' : (I × Bool) × W)
     (d d' : I → Bool) :
     compressedOracle p (q,d) (q',d') =
@@ -556,11 +657,14 @@ private theorem compressed_oracle_block (p : ℝ) (q q' : (I × Bool) × W)
     simp only [if_neg (Ne.symm hr), zero_mul, Finset.sum_const_zero]
   · simp
 
+/-- A compressed oracle entry is zero when its algorithm basis indices differ. -/
 theorem compressed_oracle_offdiag (p : ℝ) (q q' : (I × Bool) × W)
     (d d' : I → Bool) (h : q ≠ q') :
     compressedOracle p (q,d) (q',d') = 0 := by
   rw [compressed_oracle_block, if_neg h]
 
+/-- For `p` in [0, 1], conjugating the one-bit sign phase by decompression gives
+`compressedQueryEntry`. -/
 private theorem decompressEntry_phase_gram (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (a a' : Bool) :
     (∑ b : Bool, star (decompressEntry p b a) *
@@ -579,6 +683,8 @@ private theorem decompressEntry_phase_gram (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p �
     | (rw [hs0, hs1]; push_cast; ring)
     | ring
 
+/-- For `p` in [0, 1], an active query uses `compressedQueryEntry` only when the databases agree
+away from the addressed bit; an inactive query is the identity on the database. -/
 theorem compressed_oracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (j : I) (b : Bool) (w : W) (d d' : I → Bool) :
     compressedOracle p (((j,b),w),d) (((j,b),w),d') =
@@ -639,6 +745,8 @@ theorem compressed_oracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
         simp [hkj, hdd]
       rw [he, mul_zero]
 
+/-- For `p` in [0, 1], a compressed oracle entry within an algorithm block is zero unless the
+databases agree away from the query address. -/
 theorem compressed_oracle_locality (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (q : (I × Bool) × W) (d d' : I → Bool) :
     (∀ k, k ≠ q.1.1 → d k = d' k) ∨ compressedOracle p (q,d) (q,d') = 0 := by
@@ -652,9 +760,12 @@ theorem compressed_oracle_locality (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
       simp [hne]
     · simp only [↓reduceIte, if_neg h]
 
+/-- The all-false database has cardinality zero. -/
 private theorem databaseCard_empty : databaseCard (I := I) (fun _ => false) = 0 := by
   simp [databaseCard, databaseSupport]
 
+/-- If two Boolean databases agree away from one address, the first cardinality is at most the
+second plus one. -/
 private theorem databaseCard_le_of_local {d d' : I → Bool} (j : I)
     (h : ∀ k, k ≠ j → d k = d' k) : databaseCard d ≤ databaseCard d' + 1 := by
   have hsub : databaseSupport d ⊆ insert j (databaseSupport d') := by
@@ -666,6 +777,8 @@ private theorem databaseCard_le_of_local {d d' : I → Bool} (j : I)
         h k hkj] using hk
   exact (Finset.card_le_card hsub).trans (Finset.card_insert_le _ _)
 
+/-- A gate acting only on algorithm registers preserves vanishing amplitudes on databases of
+cardinality greater than `t`. -/
 private theorem tensor_gate_preserves_database_support (U : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ)
     (v : QState (((I × Bool) × W) × (I → Bool))) (t : ℕ)
     (h : ∀ q d, t < databaseCard d → v (q,d) = 0) :
@@ -678,6 +791,8 @@ private theorem tensor_gate_preserves_database_support (U : Matrix ((I × Bool) 
   intro r _
   rw [h r d hd, mul_zero]
 
+/-- For `p` in [0, 1], a compressed query maps states supported on databases of size at most `t`
+to states supported on databases of size at most `t + 1`. -/
 private theorem query_preserves_database_support (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (v : QState (((I × Bool) × W) × (I → Bool))) (t : ℕ)
     (h : ∀ q d, t < databaseCard d → v (q,d) = 0) :
@@ -697,6 +812,8 @@ private theorem query_preserves_database_support (p : ℝ) (hp0 : 0 ≤ p) (hp1 
     · rw [hz, zero_mul]
   · rw [compressed_oracle_offdiag p q q' d d' hq, zero_mul]
 
+/-- For `p` in [0, 1], compressed execution from the empty database has zero amplitude on
+databases larger than any upper bound `t` on the circuit query count. -/
 theorem database_support_bound (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) (t : ℕ)
     (ht : QueryCount C ≤ t) (q : (I × Bool) × W) (d : I → Bool)
@@ -733,9 +850,12 @@ theorem database_support_bound (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
           (QueryCount C) ih q d hd
   exact h C q d (lt_of_le_of_lt ht hd)
 
+/-- The sum of squared state amplitudes weighted by the `i`th binomial coefficient of the
+database cardinality. -/
 private def databaseMoment (i : ℕ) (v : QState (((I × Bool) × W) × (I → Bool))) : ℝ :=
   ∑ q, ∑ d, (Nat.choose (databaseCard d) i : ℝ) * ‖v (q,d)‖ ^ 2
 
+/-- If a² + s² = 1, then s(x² − y²) − 2axy is at most x² + y². -/
 private theorem two_bit_real_progress (a s x y : ℝ) (hu : a^2+s^2=1) :
     s*(x^2-y^2)-2*a*x*y ≤ x^2+y^2 := by
   have hc : (s*(x^2-y^2)-a*(2*x*y))^2 ≤
@@ -747,6 +867,8 @@ private theorem two_bit_real_progress (a s x y : ℝ) (hu : a^2+s^2=1) :
   rw [one_mul,he] at hc
   nlinarith [sq_nonneg x, sq_nonneg y]
 
+/-- The two-coordinate transformation with rows (a, s) and (s, −a) preserves squared complex
+Euclidean norm when a² + s² = 1. -/
 private theorem two_bit_energy (a s : ℝ) (hu : a^2+s^2=1) (z₀ z₁ : ℂ) :
     ‖(a : ℂ)*z₀+(s : ℂ)*z₁‖^2+‖(s : ℂ)*z₀-(a : ℂ)*z₁‖^2
       = ‖z₀‖^2+‖z₁‖^2 := by
@@ -755,6 +877,8 @@ private theorem two_bit_energy (a s : ℝ) (hu : a^2+s^2=1) (z₀ z₁ : ℂ) :
     Complex.ofReal_re,Complex.ofReal_im,zero_mul,sub_zero,add_zero]
   linear_combination (z₀.re^2+z₀.im^2+z₁.re^2+z₁.im^2)*hu
 
+/-- For nonnegative `s` with a² + s² = 1, the increase in the second-coordinate squared norm
+under the two-bit transformation is at most `s` times the original total squared norm. -/
 private theorem two_bit_progress (a s : ℝ) (hs : 0 ≤ s) (hu : a^2+s^2=1) (z₀ z₁ : ℂ) :
     ‖(s : ℂ)*z₀-(a : ℂ)*z₁‖^2-‖z₁‖^2 ≤ s*(‖z₀‖^2+‖z₁‖^2) := by
   have hr := two_bit_real_progress a s z₀.re z₁.re hu
@@ -771,16 +895,22 @@ private theorem two_bit_progress (a s : ℝ) (hs : 0 ≤ s) (hu : a^2+s^2=1) (z�
   simp only [Complex.sq_norm,Complex.normSq_apply]
   convert! hbound using 1; ring
 
+/-- Reconstruct a Boolean database from a selected bit at `j` and the values at all other
+addresses. -/
 private def databaseAt (j : I) (r : {k : I // k ≠ j} → Bool) (b : Bool) : I → Bool :=
   (Equiv.funSplitAt j Bool).symm (b,r)
 
+/-- The reconstructed database has value `b` at the selected address `j`. -/
 private theorem databaseAt_self (j : I) (r : {k : I // k ≠ j} → Bool) (b : Bool) :
     databaseAt j r b j = b := by simp [databaseAt,Equiv.funSplitAt,Equiv.piSplitAt]
 
+/-- Away from the selected address, `databaseAt` equals the supplied residual database. -/
 private theorem databaseAt_other (j k : I) (hk : k ≠ j)
     (r : {k : I // k ≠ j} → Bool) (b : Bool) : databaseAt j r b k = r ⟨k,hk⟩ := by
   simp [databaseAt,Equiv.funSplitAt,Equiv.piSplitAt,hk]
 
+/-- Two reconstructed databases agree away from the selected address exactly when their residual
+databases are equal. -/
 private theorem databaseAt_local_iff (j : I) (r r' : {k : I // k ≠ j} → Bool)
     (b b' : Bool) :
     (∀ k, k ≠ j → databaseAt j r b k = databaseAt j r' b' k) ↔ r = r' := by
@@ -792,6 +922,8 @@ private theorem databaseAt_local_iff (j : I) (r r' : {k : I // k ≠ j} → Bool
     subst r'
     simp only [databaseAt_other j k hk]
 
+/-- Changing the selected reconstructed bit from false to true increases the database
+cardinality by one. -/
 private theorem databaseAt_card (j : I) (r : {k : I // k ≠ j} → Bool) :
     databaseCard (databaseAt j r true) = databaseCard (databaseAt j r false) + 1 := by
   have he : databaseSupport (databaseAt j r true) = insert j (databaseSupport (databaseAt j r false)) := by
@@ -804,6 +936,8 @@ private theorem databaseAt_card (j : I) (r : {k : I // k ≠ j} → Bool) :
     simp [databaseSupport,databaseAt_self]
   simp only [databaseCard,he,Finset.card_insert_of_notMem hn]
 
+/-- The compressed oracle acts on a fixed algorithm basis index by summing only over database
+indices. -/
 private theorem compressed_query_block_apply (p : ℝ)
     (v : QState (((I × Bool) × W) × (I → Bool))) (q : (I × Bool) × W) (d : I → Bool) :
     ApplyGate (compressedOracle p) v (q,d) =
@@ -816,6 +950,8 @@ private theorem compressed_query_block_apply (p : ℝ)
     rw [compressed_oracle_offdiag p q q' d d' (Ne.symm hq),zero_mul]
   · simp
 
+/-- For an active target bit and `p` in [0, 1], the query acts on the two databases with a fixed
+residual part by `compressedQueryEntry`. -/
 private theorem compressed_query_pair (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (v : QState (((I × Bool) × W) × (I → Bool))) (j : I) (w : W)
     (r : {k : I // k ≠ j} → Bool) (b : Bool) :
@@ -832,6 +968,8 @@ private theorem compressed_query_pair (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   simp only [↓reduceIte,databaseAt_self,databaseAt_local_iff]
   simp [ite_mul]
 
+/-- For `p` in [0, 1], a compressed query leaves every amplitude with false target bit
+unchanged. -/
 private theorem compressed_query_idle (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (v : QState (((I × Bool) × W) × (I → Bool))) (j : I) (w : W) (d : I → Bool) :
     ApplyGate (compressedOracle p) v (((j,false),w),d) = v (((j,false),w),d) := by
@@ -839,11 +977,15 @@ private theorem compressed_query_idle (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   simp_rw [compressed_oracle_entry p hp0 hp1]
   simp [ite_mul]
 
+/-- For `p` in [0, 1], the squared diagonal parameter (1 − 2p)² and squared coupling (2√(p(1 −
+p)))² sum to one. -/
 private theorem compressedQuery_parameters (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     (1-2*p)^2+(2*Real.sqrt (p*(1-p)))^2=1 := by
   have hp : 0 ≤ p*(1-p) := mul_nonneg hp0 (by linarith)
   nlinarith [Real.sq_sqrt hp]
 
+/-- Within one active two-database block, the order-`i + 1` binomial moment after a query is at
+most its previous value plus 2√(p(1 − p)) times the order-`i` moment. -/
 private theorem compressed_query_pair_moment (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (v : QState (((I × Bool) × W) × (I → Bool))) (j : I) (w : W)
     (r : {k : I // k ≠ j} → Bool) (i : ℕ) :
@@ -881,6 +1023,8 @@ private theorem compressed_query_pair_moment (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p 
   dsimp only [n,z₀,z₁,a,s] at he hp hweight hmono ⊢
   nlinarith [hweight,hmono]
 
+/-- For `p` in [0, 1], a compressed query increases the order-`i + 1` database moment by at most
+2√(p(1 − p)) times the order-`i` moment. -/
 private theorem compressed_query_moment_step (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (v : QState (((I × Bool) × W) × (I → Bool))) (i : ℕ) :
     databaseMoment (i+1) (ApplyGate (compressedOracle p) v)
@@ -913,6 +1057,7 @@ private theorem compressed_query_moment_step (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p 
   rw [Finset.mul_sum,← Finset.sum_add_distrib]
   exact Finset.sum_le_sum (fun q _ => hq q)
 
+/-- A finite unitary matrix preserves the sum of squared absolute values of state amplitudes. -/
 private theorem unitary_mass {A : Type} [Fintype A] [DecidableEq A]
     (U : Matrix A A ℂ) (hU : U ∈ Matrix.unitaryGroup A ℂ) (ψ : QState A) :
     (∑ q, ‖ApplyGate U ψ q‖^2) = ∑ q, ‖ψ q‖^2 := by
@@ -920,6 +1065,7 @@ private theorem unitary_mass {A : Type} [Fintype A] [DecidableEq A]
   rw [inner_self,inner_self,← Complex.ofReal_sum,← Complex.ofReal_sum] at h
   exact Complex.ofReal_injective h
 
+/-- A unitary gate on the algorithm registers preserves every binomial database moment. -/
 private theorem databaseMoment_gate (i : ℕ) (U : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ)
     (hU : U ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ)
     (v : QState (((I × Bool) × W) × (I → Bool))) :
@@ -933,12 +1079,14 @@ private theorem databaseMoment_gate (i : ℕ) (U : Matrix ((I × Bool) × W) ((I
   simp_rw [tensor_one_left_slice]
   rw [← Finset.mul_sum,← Finset.mul_sum,unitary_mass U hU]
 
+/-- The joint phase oracle belongs to the unitary group. -/
 private theorem jointPhaseOracle_unitary :
     jointPhaseOracle (I := I) (W := W) ∈
       Matrix.unitaryGroup (((I × Bool) × W) × (I → Bool)) ℂ :=
   phaseOracle_unitary (fun q : (((I × Bool) × W) × (I → Bool)) =>
     q.1.1.2 && q.2 q.1.1.1)
 
+/-- The compressed oracle belongs to the unitary group for `p` in [0, 1]. -/
 private theorem compressedOracle_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     compressedOracle (I := I) (W := W) p ∈
       Matrix.unitaryGroup (((I × Bool) × W) × (I → Bool)) ℂ := by
@@ -950,6 +1098,8 @@ private theorem compressedOracle_unitary (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 
     (Submonoid.mul_mem _ (tensorGate_unitary (Submonoid.one_mem _) hF') jointPhaseOracle_unitary)
     (tensorGate_unitary (Submonoid.one_mem _) hF)
 
+/-- Lifting a unitary algorithm circuit to include the database register preserves circuit
+unitarity. -/
 private theorem tensorLiftCircuit_unitary (C : Circuit ((I × Bool) × W))
     (hC : IsUnitaryCircuit C) : IsUnitaryCircuit (tensorLiftCircuit C) := by
   induction C with
@@ -965,6 +1115,8 @@ private theorem tensorLiftCircuit_unitary (C : Circuit ((I × Bool) × W))
       apply (isUnitaryCircuit_query (tensorLiftCircuit C)).mpr
       exact ih ((isUnitaryCircuit_query C).mp hC)
 
+/-- For `p` in [0, 1], compressed execution of a unitary circuit from a normalized algorithm
+state is normalized. -/
 private theorem compressedRunState_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (hC : IsUnitaryCircuit C)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ) :
@@ -972,6 +1124,7 @@ private theorem compressedRunState_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p
   normalized_run _ (compressedOracle_unitary p hp0 hp1) _ (tensorLiftCircuit_unitary C hC)
     (normalized_tensorState hψ (normalized_ket _))
 
+/-- The zeroth binomial database moment of a normalized state is one. -/
 private theorem databaseMoment_zero (v : QState (((I × Bool) × W) × (I → Bool)))
     (hv : Normalized v) : databaseMoment 0 v = 1 := by
   unfold databaseMoment
@@ -981,6 +1134,8 @@ private theorem databaseMoment_zero (v : QState (((I × Bool) × W) × (I → Bo
   rw [Fintype.sum_prod_type] at h
   exact h
 
+/-- For a normalized algorithm state tensored with the empty database, the order-`i` database
+moment is `Nat.choose 0 i`. -/
 private theorem databaseMoment_empty (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ)
     (i : ℕ) : databaseMoment i (TensorState ψ (Qatlib.Foundations.PureStateMath.Ket (fun _ => false))) = (Nat.choose 0 i : ℝ) := by
   unfold databaseMoment
@@ -996,6 +1151,8 @@ private theorem databaseMoment_empty (ψ : QState ((I × Bool) × W)) (hψ : Nor
   simp_rw [hd]
   rw [← Finset.mul_sum,hψ,mul_one]
 
+/-- For `p` in [0, 1], a unitary circuit with at most `t` queries started in a normalized state
+has order-`i` binomial database moment at most `Nat.choose t i * (2√(p(1 − p)))^i`. -/
 theorem database_moment_bound (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (hC : IsUnitaryCircuit C)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ) (i t : ℕ)
@@ -1051,6 +1208,8 @@ theorem database_moment_bound (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   exact (hmain C hC i).trans (mul_le_mul_of_nonneg_right
     (by exact_mod_cast Nat.choose_le_choose i ht) (pow_nonneg hs i))
 
+/-- At `p = 0`, the specified entry between two databases differing at an unqueried address is
+zero, although the corresponding local `compressedQueryEntry` is one. -/
 theorem compressed_oracle_unfiltered_entry_counterexample :
     compressedOracle (I := Bool) (W := Unit) 0
         (((false,true),()),fun _ => false) (((false,true),()),fun k => k) = 0 ∧

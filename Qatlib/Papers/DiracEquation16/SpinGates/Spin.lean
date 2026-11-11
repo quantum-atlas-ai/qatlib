@@ -10,6 +10,29 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Spin conjugation identities for Dirac evolution
+
+`Smat` is the normalized sum of two anticommuting involutions. Abstract identities show that it
+exchanges the two generators by conjugation and transports their matrix exponentials, while
+Hermitian hypotheses give the corresponding unitarity identities. The four-dimensional
+specialization supplies explicit Dirac matrices and axis-specific consequences.
+
+This development follows [FillionGourdeauMacLeanLaflamme2017].
+
+## Main statements
+
+* `Smat_mul_Smat`: the spin transform squares to the identity.
+* `Q_eq_exp_alpha`: spin conjugation converts beta-generated evolution to alpha-generated
+  evolution under a commutation hypothesis.
+* `Qx_unitary`, `Qy_unitary`, and `Qz_unitary`: the concrete conjugated evolution matrices
+  satisfy `Qᴴ * Q = 1`.
+
+## References
+
+* [Fillion-Gourdeau et al., 2017][FillionGourdeauMacLeanLaflamme2017]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -23,10 +46,13 @@ section Abstract
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- The complex normalization coefficient `1 / sqrt 2`. -/
 def sCoeff : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
 
+/-- The normalized sum `sCoeff • (β + α)` of two matrices. -/
 def Smat (α β : Matrix ι ι ℂ) : Matrix ι ι ℂ := sCoeff • (β + α)
 
+/-- The normalization coefficient has square one half. -/
 lemma sCoeff_sq : sCoeff * sCoeff = (1 / 2 : ℂ) := by
   have h : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = 2 := by
     rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
@@ -35,17 +61,22 @@ lemma sCoeff_sq : sCoeff * sCoeff = (1 / 2 : ℂ) := by
   rw [← mul_inv, h]
   norm_num
 
+/-- The sum of two anticommuting involutions squares to twice the identity matrix. -/
 lemma beta_add_alpha_sq {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β = 1)
     (hac : α * β = -(β * α)) : (β + α) * (β + α) = (2 : ℂ) • 1 := by
   rw [add_mul, mul_add, mul_add, hβ, hα, hac, two_smul]
   abel
 
+/-- For anticommuting involutions `α` and `β`, the spin transform `Smat α β` squares to the
+identity. -/
 theorem Smat_mul_Smat {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β = 1)
     (hac : α * β = -(β * α)) : Smat α β * Smat α β = 1 := by
   unfold Smat
   rw [Matrix.smul_mul, Matrix.mul_smul, smul_smul, beta_add_alpha_sq hα hβ hac,
     sCoeff_sq, smul_smul, show ((1 / 2 : ℂ) * 2) = 1 by norm_num, one_smul]
 
+/-- For anticommuting involutions `x` and `y`, sandwiching `x` between two copies of `x + y`
+gives twice `y`. -/
 lemma sandwich {x y : Matrix ι ι ℂ} (hx : x * x = 1) (hy : y * y = 1)
     (hxy : x * y = -(y * x)) : (x + y) * x * (x + y) = (2 : ℂ) • y := by
   rw [add_mul, add_mul, mul_add, mul_add]
@@ -57,6 +88,7 @@ lemma sandwich {x y : Matrix ι ι ℂ} (hx : x * x = 1) (hy : y * y = 1)
   rw [h1, h2, h3, h4, two_smul]
   abel
 
+/-- For anticommuting involutions, conjugating `α` by `Smat α β` yields `β`. -/
 theorem Smat_mul_alpha_mul {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β = 1)
     (hac : α * β = -(β * α)) : Smat α β * α * Smat α β = β := by
   unfold Smat
@@ -64,6 +96,7 @@ theorem Smat_mul_alpha_mul {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ :
     sandwich hα hβ hac, sCoeff_sq, smul_smul,
     show ((1 / 2 : ℂ) * 2) = 1 by norm_num, one_smul]
 
+/-- For anticommuting involutions, conjugating `β` by `Smat α β` yields `α`. -/
 theorem Smat_mul_beta_mul {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β = 1)
     (hac : α * β = -(β * α)) : Smat α β * β * Smat α β = α := by
   unfold Smat
@@ -73,6 +106,7 @@ theorem Smat_mul_beta_mul {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : 
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- The spin transform of two Hermitian matrices is Hermitian. -/
 theorem Smat_hermitian {α β : Matrix ι ι ℂ} (hα : αᴴ = α) (hβ : βᴴ = β) :
     (Smat α β)ᴴ = Smat α β := by
   unfold Smat
@@ -87,6 +121,7 @@ section ExpConj
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- Matrix exponentiation commutes with conjugation by a matrix `U` satisfying `U * U = 1`. -/
 theorem exp_conj_of_sq_one (U A : Matrix ι ι ℂ) (hU : U * U = 1) :
     exp (U * A * U) = U * exp A * U := by
   have h := Matrix.exp_units_conj (⟨U, U, hU, hU⟩ : (Matrix ι ι ℂ)ˣ) A
@@ -98,6 +133,8 @@ section Rotation
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- For anticommuting involutions and a matrix `D` commuting with the spin transform, spin
+conjugation sends `exp (-θ • (β * D))` to `exp (-θ • (α * D))`. -/
 theorem Q_eq_exp_alpha {α β D : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β = 1)
     (hac : α * β = -(β * α)) (hD : Commute D (Smat α β)) (θ : ℂ) :
     Smat α β * exp (-θ • (β * D)) * Smat α β = exp (-θ • (α * D)) := by
@@ -116,6 +153,8 @@ section Unitary
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- The exponential of a Hermitian matrix scaled by a scalar with `star θ = -θ` satisfies the
+conjugate-transpose identity `Tᴴ * T = 1`. -/
 theorem unitary_of_skew {H : Matrix ι ι ℂ} (hH : Hᴴ = H) (θ : ℂ)
     (hθ : star θ = -θ) : (exp (θ • H))ᴴ * exp (θ • H) = 1 := by
   have hstar : (exp (θ • H))ᴴ = exp (-θ • H) := by
@@ -132,12 +171,14 @@ theorem unitary_of_skew {H : Matrix ι ι ℂ} (hH : Hᴴ = H) (θ : ℂ)
   rw [← Matrix.exp_add_of_commute (-θ • H) (θ • H) hcomm, h0]
   exact NormedSpace.exp_zero
 
+/-- For real `dt` and Hermitian `H`, the matrix `exp ((i * dt) • H)` satisfies `Tᴴ * T = 1`. -/
 theorem T_unitary {H : Matrix ι ι ℂ} (hH : Hᴴ = H) (dt : ℝ) :
     (exp ((Complex.I * (dt : ℂ)) • H))ᴴ * exp ((Complex.I * (dt : ℂ)) • H) = 1 := by
   have hθ : star (Complex.I * (dt : ℂ)) = -(Complex.I * (dt : ℂ)) := by
     apply Complex.ext <;> simp
   exact unitary_of_skew hH _ hθ
 
+/-- Conjugation by a Hermitian involution preserves the identity `Tᴴ * T = 1`. -/
 theorem unitary_conj {U T : Matrix ι ι ℂ} (hU2 : U * U = 1) (hUH : Uᴴ = U)
     (hT : Tᴴ * T = 1) : (U * T * U)ᴴ * (U * T * U) = 1 := by
   rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul, hUH]
@@ -149,6 +190,8 @@ theorem unitary_conj {U T : Matrix ι ι ℂ} (hU2 : U * U = 1) (hUH : Uᴴ = U)
     _ = U * 1 * U := by rw [hT]
     _ = 1 := by rw [mul_one, hU2]
 
+/-- For Hermitian anticommuting involutions and Hermitian `H`, conjugating `exp ((i * dt) • H)`
+by their spin transform gives a matrix satisfying `Qᴴ * Q = 1`. -/
 theorem Q_unitary {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β = 1)
     (hac : α * β = -(β * α)) (hαH : αᴴ = α) (hβH : βᴴ = β)
     {H : Matrix ι ι ℂ} (hH : Hᴴ = H) (dt : ℝ) :
@@ -158,6 +201,8 @@ theorem Q_unitary {α β : Matrix ι ι ℂ} (hα : α * α = 1) (hβ : β * β 
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- The product of two matrices satisfying the conjugate-transpose identity also satisfies that
+identity. -/
 theorem unitary_mul {A B : Matrix ι ι ℂ} (hA : Aᴴ * A = 1) (hB : Bᴴ * B = 1) :
     (A * B)ᴴ * (A * B) = 1 := by
   rw [Matrix.conjTranspose_mul]
@@ -170,129 +215,166 @@ end Unitary
 
 namespace FourD
 
+/-- The four-dimensional diagonal Dirac beta matrix with diagonal entries `1, 1, -1, -1`. -/
 def beta4 : Matrix (Fin 4) (Fin 4) ℂ := !![1, 0, 0, 0; 0, 1, 0, 0; 0, 0, -1, 0; 0, 0, 0, -1]
 
+/-- The explicit four-dimensional Dirac alpha matrix for the x direction. -/
 def alphaX4 : Matrix (Fin 4) (Fin 4) ℂ :=
   !![0, 0, 0, 1; 0, 0, 1, 0; 0, 1, 0, 0; 1, 0, 0, 0]
 
+/-- The explicit four-dimensional Dirac alpha matrix for the y direction. -/
 def alphaY4 : Matrix (Fin 4) (Fin 4) ℂ :=
   !![0, 0, 0, -Complex.I; 0, 0, Complex.I, 0; 0, -Complex.I, 0, 0;
      Complex.I, 0, 0, 0]
 
+/-- The explicit four-dimensional Dirac alpha matrix for the z direction. -/
 def alphaZ4 : Matrix (Fin 4) (Fin 4) ℂ :=
   !![0, 0, 1, 0; 0, 0, 0, -1; 1, 0, 0, 0; 0, -1, 0, 0]
 
+/-- The matrix `beta4` squares to the identity. -/
 lemma beta4_sq : beta4 * beta4 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [beta4, Matrix.mul_apply, Fin.sum_univ_four]
 
+/-- The matrix `alphaX4` squares to the identity. -/
 lemma alphaX4_sq : alphaX4 * alphaX4 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [alphaX4, Matrix.mul_apply, Fin.sum_univ_four]
 
+/-- The matrix `alphaY4` squares to the identity. -/
 lemma alphaY4_sq : alphaY4 * alphaY4 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [alphaY4, Matrix.mul_apply, Fin.sum_univ_four, Complex.I_mul_I]
 
+/-- The matrix `alphaZ4` squares to the identity. -/
 lemma alphaZ4_sq : alphaZ4 * alphaZ4 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [alphaZ4, Matrix.mul_apply, Fin.sum_univ_four]
 
+/-- The matrix `alphaX4` anticommutes with `beta4`. -/
 lemma alphaX4_anticomm : alphaX4 * beta4 = -(beta4 * alphaX4) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [alphaX4, beta4, Matrix.mul_apply, Fin.sum_univ_four]
 
+/-- The matrix `alphaY4` anticommutes with `beta4`. -/
 lemma alphaY4_anticomm : alphaY4 * beta4 = -(beta4 * alphaY4) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [alphaY4, beta4, Matrix.mul_apply, Fin.sum_univ_four]
 
+/-- The matrix `alphaZ4` anticommutes with `beta4`. -/
 lemma alphaZ4_anticomm : alphaZ4 * beta4 = -(beta4 * alphaZ4) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [alphaZ4, beta4, Matrix.mul_apply, Fin.sum_univ_four]
 
+/-- The matrix `beta4` is Hermitian. -/
 lemma beta4_hermitian : beta4ᴴ = beta4 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [beta4]
 
+/-- The matrix `alphaX4` is Hermitian. -/
 lemma alphaX4_hermitian : alphaX4ᴴ = alphaX4 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [alphaX4]
 
+/-- The matrix `alphaY4` is Hermitian. -/
 lemma alphaY4_hermitian : alphaY4ᴴ = alphaY4 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [alphaY4, Complex.conj_I]
 
+/-- The matrix `alphaZ4` is Hermitian. -/
 lemma alphaZ4_hermitian : alphaZ4ᴴ = alphaZ4 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [alphaZ4]
 
+/-- The x-axis spin transform squares to the identity. -/
 theorem Sx_mul_Sx : Smat alphaX4 beta4 * Smat alphaX4 beta4 = 1 :=
   Smat_mul_Smat alphaX4_sq beta4_sq alphaX4_anticomm
 
+/-- The y-axis spin transform squares to the identity. -/
 theorem Sy_mul_Sy : Smat alphaY4 beta4 * Smat alphaY4 beta4 = 1 :=
   Smat_mul_Smat alphaY4_sq beta4_sq alphaY4_anticomm
 
+/-- The z-axis spin transform squares to the identity. -/
 theorem Sz_mul_Sz : Smat alphaZ4 beta4 * Smat alphaZ4 beta4 = 1 :=
   Smat_mul_Smat alphaZ4_sq beta4_sq alphaZ4_anticomm
 
+/-- The x-axis spin transform conjugates `alphaX4` to `beta4`. -/
 theorem Sx_conj_alpha : Smat alphaX4 beta4 * alphaX4 * Smat alphaX4 beta4 = beta4 :=
   Smat_mul_alpha_mul alphaX4_sq beta4_sq alphaX4_anticomm
 
+/-- The y-axis spin transform conjugates `alphaY4` to `beta4`. -/
 theorem Sy_conj_alpha : Smat alphaY4 beta4 * alphaY4 * Smat alphaY4 beta4 = beta4 :=
   Smat_mul_alpha_mul alphaY4_sq beta4_sq alphaY4_anticomm
 
+/-- The z-axis spin transform conjugates `alphaZ4` to `beta4`. -/
 theorem Sz_conj_alpha : Smat alphaZ4 beta4 * alphaZ4 * Smat alphaZ4 beta4 = beta4 :=
   Smat_mul_alpha_mul alphaZ4_sq beta4_sq alphaZ4_anticomm
 
+/-- The x-axis spin transform is Hermitian. -/
 theorem Sx_hermitian : (Smat alphaX4 beta4)ᴴ = Smat alphaX4 beta4 :=
   Smat_hermitian alphaX4_hermitian beta4_hermitian
 
+/-- The y-axis spin transform is Hermitian. -/
 theorem Sy_hermitian : (Smat alphaY4 beta4)ᴴ = Smat alphaY4 beta4 :=
   Smat_hermitian alphaY4_hermitian beta4_hermitian
 
+/-- The z-axis spin transform is Hermitian. -/
 theorem Sz_hermitian : (Smat alphaZ4 beta4)ᴴ = Smat alphaZ4 beta4 :=
   Smat_hermitian alphaZ4_hermitian beta4_hermitian
 
+/-- If `D` commutes with the x-axis spin transform, conjugating `exp (-θ • (beta4 * D))` by that
+transform gives `exp (-θ • (alphaX4 * D))`. -/
 theorem Qx_eq_exp_alpha (D : Matrix (Fin 4) (Fin 4) ℂ) (hD : Commute D (Smat alphaX4 beta4))
     (θ : ℂ) :
     Smat alphaX4 beta4 * exp (-θ • (beta4 * D)) * Smat alphaX4 beta4 =
       exp (-θ • (alphaX4 * D)) :=
   Q_eq_exp_alpha alphaX4_sq beta4_sq alphaX4_anticomm hD θ
 
+/-- If `D` commutes with the y-axis spin transform, conjugating `exp (-θ • (beta4 * D))` by that
+transform gives `exp (-θ • (alphaY4 * D))`. -/
 theorem Qy_eq_exp_alpha (D : Matrix (Fin 4) (Fin 4) ℂ) (hD : Commute D (Smat alphaY4 beta4))
     (θ : ℂ) :
     Smat alphaY4 beta4 * exp (-θ • (beta4 * D)) * Smat alphaY4 beta4 =
       exp (-θ • (alphaY4 * D)) :=
   Q_eq_exp_alpha alphaY4_sq beta4_sq alphaY4_anticomm hD θ
 
+/-- If `D` commutes with the z-axis spin transform, conjugating `exp (-θ • (beta4 * D))` by that
+transform gives `exp (-θ • (alphaZ4 * D))`. -/
 theorem Qz_eq_exp_alpha (D : Matrix (Fin 4) (Fin 4) ℂ) (hD : Commute D (Smat alphaZ4 beta4))
     (θ : ℂ) :
     Smat alphaZ4 beta4 * exp (-θ • (beta4 * D)) * Smat alphaZ4 beta4 =
       exp (-θ • (alphaZ4 * D)) :=
   Q_eq_exp_alpha alphaZ4_sq beta4_sq alphaZ4_anticomm hD θ
 
+/-- For Hermitian `H` and real `dt`, conjugating `exp ((i * dt) • H)` by the x-axis spin
+transform gives a matrix satisfying `Qᴴ * Q = 1`. -/
 theorem Qx_unitary {H : Matrix (Fin 4) (Fin 4) ℂ} (hH : Hᴴ = H) (dt : ℝ) :
     (Smat alphaX4 beta4 * exp ((Complex.I * (dt : ℂ)) • H) * Smat alphaX4 beta4)ᴴ *
       (Smat alphaX4 beta4 * exp ((Complex.I * (dt : ℂ)) • H) * Smat alphaX4 beta4) = 1 :=
   Q_unitary alphaX4_sq beta4_sq alphaX4_anticomm alphaX4_hermitian beta4_hermitian hH dt
 
+/-- For Hermitian `H` and real `dt`, conjugating `exp ((i * dt) • H)` by the y-axis spin
+transform gives a matrix satisfying `Qᴴ * Q = 1`. -/
 theorem Qy_unitary {H : Matrix (Fin 4) (Fin 4) ℂ} (hH : Hᴴ = H) (dt : ℝ) :
     (Smat alphaY4 beta4 * exp ((Complex.I * (dt : ℂ)) • H) * Smat alphaY4 beta4)ᴴ *
       (Smat alphaY4 beta4 * exp ((Complex.I * (dt : ℂ)) • H) * Smat alphaY4 beta4) = 1 :=
   Q_unitary alphaY4_sq beta4_sq alphaY4_anticomm alphaY4_hermitian beta4_hermitian hH dt
 
+/-- For Hermitian `H` and real `dt`, conjugating `exp ((i * dt) • H)` by the z-axis spin
+transform gives a matrix satisfying `Qᴴ * Q = 1`. -/
 theorem Qz_unitary {H : Matrix (Fin 4) (Fin 4) ℂ} (hH : Hᴴ = H) (dt : ℝ) :
     (Smat alphaZ4 beta4 * exp ((Complex.I * (dt : ℂ)) • H) * Smat alphaZ4 beta4)ᴴ *
       (Smat alphaZ4 beta4 * exp ((Complex.I * (dt : ℂ)) • H) * Smat alphaZ4 beta4) = 1 :=
   Q_unitary alphaZ4_sq beta4_sq alphaZ4_anticomm alphaZ4_hermitian beta4_hermitian hH dt
 
+/-- The matrices `alphaY4` and `alphaZ4` anticommute. -/
 theorem alphaY4_alphaZ4_anticomm : alphaY4 * alphaZ4 = -(alphaZ4 * alphaY4) := by
   ext i j
   fin_cases i <;> fin_cases j <;>

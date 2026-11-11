@@ -8,6 +8,27 @@ import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
 import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteOutputDistinguishability
+
+/-!
+# Finite POVMs contract trace distance
+
+`recordMap` encodes a finite POVM as a positive trace-preserving map to diagonal outcome
+matrices. Trace-norm contraction then bounds the total variation and distinguishing advantage of
+its record laws by the input trace distance, including after a common positive trace-preserving
+map. See [FuchsVanDeGraaf1999].
+
+## Main statements
+
+* `measured_tv_le`: measurement total variation is at most quantum trace distance.
+* `measured_advantage_le`: the same bound for finite-output advantage.
+* `after_common_channel`: the bound after common positive trace-preserving processing.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,11 +39,13 @@ open scoped BigOperators Classical ComplexOrder
 noncomputable section
 variable {O : Type} [Fintype O] [DecidableEq O] {d : ℕ}
 
+/-- The matrix map sending an operator to the diagonal matrix of its POVM effect traces. -/
 def recordMap (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) : MatrixMap (Fin d) O ℂ where
   toFun A := Matrix.diagonal fun o => Matrix.trace (E.effect o * A)
   map_add' := by intro A B; ext i j; by_cases h : i=j <;> simp [Matrix.mul_add, Matrix.trace_add, Matrix.diagonal_apply,h]
   map_smul' := by intro c A; ext i j; simp [Matrix.trace_smul, Matrix.diagonal_apply, mul_ite]
 
+/-- The diagonal POVM record map is positive. -/
 theorem record_positive (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) : (Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePOVMTraceDistance.recordMap E).IsPositive := by
   intro A hA
   apply Matrix.posSemidef_diagonal_iff.mpr
@@ -37,12 +60,15 @@ theorem record_positive (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementSt
   rw [he]
   exact mul_nonneg (by exact_mod_cast E.weight_nonneg o) hp.trace_nonneg
 
+/-- The diagonal POVM record map preserves trace. -/
 theorem record_tracePreserving (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) : (Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePOVMTraceDistance.recordMap E).IsTracePreserving := by
   intro A
   simp only [Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePOVMTraceDistance.recordMap,
       LinearMap.coe_mk, AddHom.coe_mk, Matrix.trace_diagonal]
   rw [← Matrix.trace_sum, ← Finset.sum_mul, E.effect_sum, Matrix.one_mul]
 
+/-- On a density operator, the record map is the diagonal matrix of the finite POVM's outcome
+probabilities. -/
 theorem record_density (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) (A : Qatlib.Foundations.PureStateMath.Operator d) (hA : Qatlib.Foundations.PureStateMath.IsDensityOperator A) :
     Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePOVMTraceDistance.recordMap E A = Matrix.diagonal (fun o => ((Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.povmRecordLaw E A hA).prob o : ℂ)) := by
   change Matrix.diagonal (fun o => Matrix.trace (E.effect o*A)) = _
@@ -50,6 +76,8 @@ theorem record_density (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementSta
   funext o
   exact Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.povmBorn_trace_real E A hA o
 
+/-- The trace norm of a real diagonal matrix is the sum of the absolute values of its diagonal
+entries. -/
 private theorem diagonal_norm (v : O → ℝ) :
     Matrix.traceNorm (Matrix.diagonal fun o => (v o : ℂ)) = ∑ o, |v o| := by
   open MatrixOrder in
@@ -69,6 +97,9 @@ private theorem diagonal_norm (v : O → ℝ) :
   rw [hs]
   simp
 
+/-- The total variation between the outcome laws of a finite POVM on two density operators is at
+most half the trace norm of their difference; compare [Fuchs and van de Graaf, Proposition
+3][FuchsVanDeGraaf1999]. -/
 theorem measured_tv_le (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) (A B : Qatlib.Foundations.PureStateMath.Operator d)
     (hA : Qatlib.Foundations.PureStateMath.IsDensityOperator A) (hB : Qatlib.Foundations.PureStateMath.IsDensityOperator B) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteInformationDivergence.tv (Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.povmRecordLaw E A hA) (Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.povmRecordLaw E B hB) ≤
@@ -81,6 +112,8 @@ theorem measured_tv_le (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementSta
   rw [diagonal_norm] at hc
   exact div_le_div_of_nonneg_right hc (by norm_num)
 
+/-- The distinguishing advantage between two finite POVM record laws is at most the trace
+distance of their density inputs. -/
 theorem measured_advantage_le (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O d) (A B : Qatlib.Foundations.PureStateMath.Operator d)
     (hA : Qatlib.Foundations.PureStateMath.IsDensityOperator A) (hB : Qatlib.Foundations.PureStateMath.IsDensityOperator B) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteOutputDistinguishability.advantage (Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.povmRecordLaw E A hA) (Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.povmRecordLaw E B hB) ≤
@@ -88,6 +121,8 @@ theorem measured_advantage_le (E : Qatlib.Concepts.MbqcFlow.FlowDecision.Measure
   rw [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteOutputDistinguishability.advantage_eq_tv]
   exact Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePOVMTraceDistance.measured_tv_le E A B hA hB
 
+/-- Applying a common positive trace-preserving map before a finite POVM gives outcome
+distinguishing advantage at most the original input trace distance. -/
 theorem after_common_channel {k : ℕ} (E : Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt.FinitePOVM O k)
     (T : MatrixMap (Fin d) (Fin k) ℂ) (hpos : T.IsPositive) (htp : T.IsTracePreserving)
     (A B : Qatlib.Foundations.PureStateMath.Operator d) (hA : Qatlib.Foundations.PureStateMath.IsDensityOperator A) (hB : Qatlib.Foundations.PureStateMath.IsDensityOperator B) :

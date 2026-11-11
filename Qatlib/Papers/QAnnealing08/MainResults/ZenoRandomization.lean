@@ -11,6 +11,28 @@ import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 import Qatlib.Papers.QAnnealing08.MainResults.SzegedyPhaseGap
+
+/-!
+# Randomized phases and annealing error budgets
+
+The finite exponential average `randomExpAvg` models suppression of an off-phase component under
+randomized evolution. Geometric-sum and sine estimates bound its norm and repeated powers in
+terms of phase separation, as used in [SommaEtAl2008].
+
+The remaining scalar lemmas combine the off-phase and Gibbs error budgets and compare
+logarithmic final-temperature expressions.
+
+## Main statements
+
+* `norm_randomExpAvg_le`: the inverse-sine suppression bound.
+* `decoherenceFactor_le_sqrt_delta`: a bound from a positive gap.
+* `qsa_final_error_bound`: the combined final error estimate.
+
+## References
+
+* [Somma et al., 2008][SommaEtAl2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,9 +42,12 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QAnnealing08.MainResults.ZenoRandomization
 
+/-- The average of the phases `exp (irθ)` for integers `r` from zero to `N - 1`. -/
 def randomExpAvg (N : ℕ) (θ : ℝ) : ℂ :=
   (1 / (N : ℂ)) * ∑ r ∈ Finset.range N, Complex.exp (Complex.I * ((r : ℂ) * (θ : ℂ)))
 
+/-- For positive `N` and nonzero `sin (θ / 2)`, the exponential average has norm at most `1 / (N
+* |sin (θ / 2)|)` [SommaEtAl2008]. -/
 theorem norm_randomExpAvg_le (N : ℕ) (hN : 0 < N) (θ : ℝ)
     (hsin : Real.sin (θ / 2) ≠ 0) :
     ‖randomExpAvg N θ‖ ≤ 1 / ((N : ℝ) * |Real.sin (θ / 2)|) := by
@@ -75,12 +100,15 @@ theorem norm_randomExpAvg_le (N : ℕ) (hN : 0 < N) (θ : ℝ)
         have hsne : |Real.sin (θ / 2)| ≠ 0 := ne_of_gt hsinpos
         field_simp
 
+/-- The norm of the `s`th power of the exponential average is bounded by the `s`th power of the
+inverse-sine bound [SommaEtAl2008]. -/
 theorem norm_randomExpAvg_pow_le (N : ℕ) (hN : 0 < N) (θ : ℝ) (s : ℕ)
     (hsin : Real.sin (θ / 2) ≠ 0) :
     ‖(randomExpAvg N θ) ^ s‖ ≤ (1 / ((N : ℝ) * |Real.sin (θ / 2)|)) ^ s := by
   rw [Complex.norm_pow]
   exact pow_le_pow_left₀ (norm_nonneg _) (norm_randomExpAvg_le N hN θ hsin) s
 
+/-- For `0 < φ ≤ π / 2` and positive `N`, the inverse-sine factor is at most `π / (2Nφ)`. -/
 theorem decoherenceFactor_le_pi (N : ℕ) (hN : 0 < N) (φ : ℝ)
     (hφ0 : 0 < φ) (hφπ : φ ≤ Real.pi / 2) :
     1 / ((N : ℝ) * |Real.sin φ|) ≤ Real.pi / (2 * (N : ℝ) * φ) := by
@@ -100,6 +128,8 @@ theorem decoherenceFactor_le_pi (N : ℕ) (hN : 0 < N) (φ : ℝ)
     field_simp
   exact h1.trans_eq h2
 
+/-- If `0 < φ ≤ π / 2` and `φ ≥ sqrt (2δ)` for positive `δ`, the inverse-sine factor is at most
+`π / (2N * sqrt (2δ))` [SommaEtAl2008]. -/
 theorem decoherenceFactor_le_sqrt_delta (N : ℕ) (hN : 0 < N) (φ δ : ℝ)
     (hφ0 : 0 < φ) (hφπ : φ ≤ Real.pi / 2)
     (hδ0 : 0 < δ) (hδ : Real.sqrt (2 * δ) ≤ φ) :
@@ -114,6 +144,8 @@ theorem decoherenceFactor_le_sqrt_delta (N : ℕ) (hN : 0 < N) (φ δ : ℝ)
     _ ≤ Real.pi / (2 * (N : ℝ) * Real.sqrt (2 * δ)) :=
         div_le_div_of_nonneg_left (le_of_lt Real.pi_pos) (by positivity) hle
 
+/-- The condition `8 * (k + 1) ≤ 4 ^ s` implies `(1 / 2) ^ s ≤ 1 / (2 * sqrt (2 * (k + 1)))`
+[SommaEtAl2008]. -/
 theorem pow_half_le_sqrt_inv {s k : ℕ} (h : 8 * (k + 1) ≤ 4 ^ s) :
     (1 / 2 : ℝ) ^ s ≤ 1 / (2 * Real.sqrt (2 * (k + 1))) := by
   have hT2 : (4 : ℝ) ^ s = ((2 : ℝ) ^ s) ^ 2 := by
@@ -136,6 +168,8 @@ theorem pow_half_le_sqrt_inv {s k : ℕ} (h : 8 * (k + 1) ≤ 4 ^ s) :
   rw [hgoal]
   exact one_div_le_one_div_of_le (by positivity) hs8'
 
+/-- The stated nonnegative decay factor and bounds on `ν'` and `β ^ s` imply `ν' * β ^ s ≤ μ /
+2` [SommaEtAl2008]. -/
 theorem zeno_offphase_step (μ ν' β : ℝ) (k s : ℕ)
     (hμ : 0 ≤ μ) (hβ0 : 0 ≤ β)
     (hν : ν' ≤ Real.sqrt (2 * (k + 1)) * μ)
@@ -152,6 +186,8 @@ theorem zeno_offphase_step (μ ν' β : ℝ) (k s : ℕ)
     _ = μ / 2 := by
         field_simp
 
+/-- For positive `Q` and `ε`, the per-step bound `μ2 ≤ ε / (4Q)` implies `2Q * μ2 ≤ ε / 2`
+[SommaEtAl2008]. -/
 theorem zeno_success_accumulation (Q : ℕ) (hQ : 0 < Q) (μ2 ε : ℝ)
     (hε : 0 < ε) (hμ : μ2 ≤ ε / (4 * Q)) :
     2 * (Q : ℝ) * μ2 ≤ ε / 2 := by
@@ -166,16 +202,21 @@ theorem zeno_success_accumulation (Q : ℕ) (hQ : 0 < Q) (μ2 ε : ℝ)
   rw [heq] at hstep
   exact hstep
 
+/-- Two real error terms each bounded by `ε / 2` have sum at most `ε`. -/
 theorem total_error_le (orth gibbs ε : ℝ) (h1 : orth ≤ ε / 2) (h2 : gibbs ≤ ε / 2) :
     orth + gibbs ≤ ε := by
   linarith
 
+/-- For positive `Q` and `ε`, a per-step bound `μ2 ≤ ε / (4Q)` and Gibbs error at most `ε / 2`
+make the combined expression at most `ε` [SommaEtAl2008]. -/
 theorem qsa_final_error_bound (Q : ℕ) (μ2 gibbs ε : ℝ)
     (hQ : 0 < Q) (hε : 0 < ε)
     (hμ : μ2 ≤ ε / (4 * Q)) (hg : gibbs ≤ ε / 2) :
     2 * (Q : ℝ) * μ2 + gibbs ≤ ε :=
   total_error_le _ _ _ (zeno_success_accumulation Q hQ μ2 ε hε hμ) hg
 
+/-- For positive `d`, `ε`, and `γ`, replacing `d / (2ε)` by `d / ε` increases the logarithmic
+inverse-temperature expression [SommaEtAl2008]. -/
 theorem beta_f_le_log (d ε γ : ℝ) (hd : 0 < d) (hε : 0 < ε) (hγ : 0 < γ) :
     Real.log (d / (2 * ε)) / γ ≤ Real.log (d / ε) / γ := by
   have hle : d / (2 * ε) ≤ d / ε := by

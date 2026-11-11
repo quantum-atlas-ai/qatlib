@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.ResourceBudget
 import Qatlib.Papers.QAOAScaling23.SearchFees.Confidence
+
+/-!
+# Actual search ledger and confidence bounds
+
+The five native search ledgers track bits, phase queries, validation queries, preparation calls,
+and macro gates. For positive marked mass and a sufficient cap, their expectations have
+inverse-square-root bounds, their sum `totalLedger` has bound `5000 / sqrt Q`, and increasing
+repetitions drives search failure to zero.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `actual_aggregate_budget`: With exact validation, positive marked mass `Q`, and `M * sqrt Q ≥
+  1`, the expected total ledger of interleaved geometric search is at most `ENNReal.ofReal (5000
+  / sqrt Q)`.
+* `actual_source_confidence`: With exact validation, positive marked mass `Q`, and `M * sqrt Q ≥
+  1`, using `5 * M + L` geometric stages gives real failure probability at most `(25/32)^L`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -20,6 +44,9 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- With exact marked-set validation, positive marked mass `Q`, and `M * sqrt Q ≥ 1`, each of
+the five expected ledgers of the interleaved geometric search is at most `ENNReal.ofReal
+(1000 / sqrt Q)`. -/
 theorem actual_five_ledger_budgets (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M T:ℕ)
     (hQ:0<MeasureProb (preparedAAState U seed) S)
@@ -36,9 +63,12 @@ theorem actual_five_ledger_budgets (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGrou
     actual_sqrt_mass_budget U hU seed S valid hvalid M T hQ hcap .prepare (by decide),
     actual_sqrt_mass_budget U hU seed S valid hvalid M T hQ hcap .gates (by decide)⟩
 
+/-- The sum of bit, phase-query, validation-query, preparation-call, and macro-gate counts in a
+capped search trace. -/
 def totalLedger (tr:CappedSearchTrace I) : ℕ :=
   tr.bits+tr.phaseQueries+tr.validationQueries+tr.prepareCalls+tr.macroGates
 
+/-- The expected total ledger is the sum of the five individual expected resource ledgers. -/
 theorem aggregate_expectation (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (ms:List ℕ) :
     expectation (searchForSchedule U hU seed S valid ms) (fun tr=>(totalLedger tr:ℝ≥0∞))=
@@ -50,6 +80,9 @@ theorem aggregate_expectation (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I �
   rw [expectation_add,expectation_add,expectation_add,expectation_add]
   rfl
 
+/-- With exact validation, positive marked mass `Q`, and `M * sqrt Q ≥ 1`, the expected total
+ledger of interleaved geometric search is at most `ENNReal.ofReal (5000 / sqrt Q)`. See
+[ShaydulinEtAl2024]. -/
 theorem actual_aggregate_budget (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M T:ℕ)
     (hQ:0<MeasureProb (preparedAAState U seed) S)
@@ -73,6 +106,8 @@ theorem actual_aggregate_budget (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I
       congr 1
       ring
 
+/-- With exact validation and marked mass one, interleaved geometric search with a positive
+repetition count has failure probability zero. -/
 theorem Q_one_geometric_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (hQ:MeasureProb (preparedAAState U seed) S=1)
     (M T:ℕ) (hT:0<T) :
@@ -81,6 +116,9 @@ theorem Q_one_geometric_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I
   | zero=>omega
   | succ T=>rw [← schedFrom_zero,schedFrom_succ,Q_one_failure U hU seed S valid hvalid hQ]
 
+/-- With exact validation, positive marked mass `Q`, and `M * sqrt Q ≥ 1`, using `5 * M + L`
+geometric stages gives real failure probability at most `(25/32)^L`. See
+[ShaydulinEtAl2024]. -/
 theorem actual_source_confidence (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M L:ℕ)
     (hQ:0<MeasureProb (preparedAAState U seed) S)
@@ -101,6 +139,8 @@ theorem actual_source_confidence (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup 
     have hc:1≤(M:ℝ)*Real.sin θ:=by simpa only [hθ] using hcap
     exact source_confidence U hU seed S valid hvalid M L θ h0 h1 hmass hc
 
+/-- For exact validation, positive marked mass, and a sufficient cap, real failure probability
+tends to zero as the repetition excess `L` tends to infinity. -/
 theorem actual_failure_tendsto_zero (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M:ℕ)
     (hQ:0<MeasureProb (preparedAAState U seed) S)

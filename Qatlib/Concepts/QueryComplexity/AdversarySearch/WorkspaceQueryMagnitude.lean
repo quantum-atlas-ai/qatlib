@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+/-!
+# Workspace query magnitude estimates
+
+This module extends Boolean bit oracles by an auxiliary workspace and records query input states
+for execution with the identity oracle. Their query fiber masses yield singleton hybrid bounds
+and an aggregate squared deviation estimate, implementing the query magnitude method of
+[BennettEtAl1997].
+
+## Main statements
+
+* `workspace_query_inputs_accounting`: identity oracle query states are normalized and have
+  total query fiber mass one.
+* `workspace_query_magnitude_hybrid`: marked query masses control a singleton oracle's final
+  deviation.
+* `workspace_query_hybrid_energy`: the summed squared singleton deviations are at most 4Q².
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -28,30 +50,40 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The Boolean bit oracle tensored with the identity on an auxiliary workspace. -/
 noncomputable def workspaceBitOracle (f : I → Bool) :
     Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ :=
   TensorGate (BitOracleOn f) 1
 
+/-- The workspace basis states with query index `x`, allowing arbitrary target and workspace
+values. -/
 def workspaceQueryFiber (x : I) : Finset ((I × Bool) × W) :=
   Finset.univ.filter fun p : (I × Bool) × W => p.1.1 = x
 
+/-- The states immediately before query steps when a circuit is executed with the identity
+oracle. -/
 noncomputable def nullQueryInputs {H : Type} [Fintype H] [DecidableEq H] :
     Circuit H → QState H → List (QState H)
   | [], _ => []
   | Step.gate U :: C, ψ => nullQueryInputs C (ApplyGate U ψ)
   | Step.query :: C, ψ => ψ :: nullQueryInputs C ψ
 
+/-- An empty circuit has no recorded query inputs. -/
 @[simp] theorem nullQueryInputs_nil {H : Type} [Fintype H] [DecidableEq H] (ψ : QState H) :
     nullQueryInputs [] ψ = [] := rfl
 
+/-- A leading gate updates the state before recording the remaining query inputs. -/
 @[simp] theorem nullQueryInputs_gate {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (C : Circuit H) (ψ : QState H) :
     nullQueryInputs (Step.gate U :: C) ψ = nullQueryInputs C (ApplyGate U ψ) := rfl
 
+/-- A leading identity query records the current state before continuing. -/
 @[simp] theorem nullQueryInputs_query {H : Type} [Fintype H] [DecidableEq H]
     (C : Circuit H) (ψ : QState H) :
     nullQueryInputs (Step.query :: C) ψ = ψ :: nullQueryInputs C ψ := rfl
 
+/-- A gate tensored with the workspace identity acts separately on each fixed workspace slice of
+a state. -/
 theorem applyGate_tensorGate_one (U : Matrix (I × Bool) (I × Bool) ℂ)
     (ψ : QState ((I × Bool) × W)) (p : (I × Bool) × W) :
     ApplyGate (TensorGate U (1 : Matrix W W ℂ)) ψ p
@@ -64,6 +96,7 @@ theorem applyGate_tensorGate_one (U : Matrix (I × Bool) (I × Bool) ℂ)
     ring
   · rw [Matrix.one_apply_ne (fun h => hw h.symm), mul_zero, zero_mul]
 
+/-- The workspace bit oracle acts by XORing `f` at the query index into the target coordinate. -/
 theorem applyGate_workspaceBitOracle (f : I → Bool) (ψ : QState ((I × Bool) × W))
     (p : (I × Bool) × W) :
     ApplyGate (workspaceBitOracle (W := W) f) ψ p
@@ -71,11 +104,14 @@ theorem applyGate_workspaceBitOracle (f : I → Bool) (ψ : QState ((I × Bool) 
   rw [workspaceBitOracle, applyGate_tensorGate_one]
   exact applyGate_bitOracleOn f (fun j => ψ (j, p.2)) p.1
 
+/-- At the basis coordinate `((i, b), w)`, the workspace bit oracle reads the input amplitude at
+`((i, b ^^ f i), w)`. -/
 theorem applyGate_workspaceBitOracle_mk (f : I → Bool) (ψ : QState ((I × Bool) × W))
     (i : I) (b : Bool) (w : W) :
     ApplyGate (workspaceBitOracle (W := W) f) ψ ((i, b), w) = ψ ((i, b ^^ f i), w) :=
   applyGate_workspaceBitOracle f ψ ((i, b), w)
 
+/-- For a normalized state, the masses of all workspace query fibers sum to one. -/
 theorem measureProb_sum_workspaceQueryFiber {ψ : QState ((I × Bool) × W)}
     (hψ : Normalized ψ) :
     ∑ x : I, MeasureProb ψ (workspaceQueryFiber (W := W) x) = 1 := by
@@ -90,6 +126,9 @@ theorem measureProb_sum_workspaceQueryFiber {ψ : QState ((I × Bool) × W)}
     _ = ∑ p : (I × Bool) × W, BornProb ψ p := h
     _ = 1 := hψ
 
+/-- For a unitary circuit and normalized input, identity oracle query states number exactly
+`QueryCount C`, are normalized, and have total query fiber mass one. This supplies the query
+accounting used in [BennettEtAl1997]. -/
 theorem workspace_query_inputs_accounting (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) :
     (nullQueryInputs C ψ).length = QueryCount C ∧
@@ -116,16 +155,21 @@ theorem workspace_query_inputs_accounting (C : Circuit ((I × Bool) × W))
           exact ⟨hψ, measureProb_sum_workspaceQueryFiber hψ⟩
         · exact hmem φ hφC
 
+/-- The workspace bit oracle for the constantly false function is the identity matrix. -/
 theorem workspaceBitOracle_null : workspaceBitOracle (I := I) (W := W) (fun _ => false) = 1 := by
   have hbit : BitOracleOn (fun _ : I => false) = 1 := by
     ext ⟨i, b⟩ ⟨j, c⟩
     simp [BitOracleOn, permMatrix, BitFlip, Matrix.one_apply]
   rw [workspaceBitOracle, hbit, tensorGate_one]
 
+/-- Every workspace bit oracle is unitary. -/
 theorem workspaceBitOracle_unitary (f : I → Bool) :
     workspaceBitOracle (W := W) f ∈ Matrix.unitaryGroup ((I × Bool) × W) ℂ :=
   tensorGate_unitary (bitOracleOn_unitary f) (Submonoid.one_mem _)
 
+/-- The null workspace oracle is the identity, all workspace bit oracles are unitary, and a
+singleton oracle changes a state by norm at most twice the square root of its query fiber
+mass. See [Bennett et al., Theorem 3.3][BennettEtAl1997]. -/
 theorem workspace_single_mark_query_l2 :
     (workspaceBitOracle (I := I) (W := W) (fun _ => false) = 1) ∧
     (∀ f : I → Bool,
@@ -186,6 +230,9 @@ theorem workspace_single_mark_query_l2 :
     _ = 2 * Real.sqrt (MeasureProb ψ (workspaceQueryFiber (W := W) x)) := by
         rw [norm_toEuclidean_collapse_eq_sqrt_measureProb]
 
+/-- For a unitary circuit, the final deviation between a singleton oracle and the identity
+oracle is at most twice the sum of the square roots of the marked query masses along the
+identity execution. See [Bennett et al., Theorem 3.3][BennettEtAl1997]. -/
 theorem workspace_query_magnitude_hybrid (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (x : I) (hC : IsUnitaryCircuit C) :
     ‖toEuclidean_fromVec
@@ -243,6 +290,9 @@ theorem workspace_query_magnitude_hybrid (C : Circuit ((I × Bool) × W))
             rw [nullQueryInputs_query, List.map_cons, List.sum_cons]
             ring
 
+/-- For a unitary circuit and normalized initial state, the sum over all singleton marks of
+squared final deviations from the identity execution is at most four times the squared query
+count. See [Bennett et al., Theorem 3.3][BennettEtAl1997]. -/
 theorem workspace_query_hybrid_energy (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) :
     (∑ x : I, ‖toEuclidean_fromVec

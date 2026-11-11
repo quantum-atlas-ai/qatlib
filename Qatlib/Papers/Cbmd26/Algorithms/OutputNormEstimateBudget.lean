@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+
+/-!
+# Query Budgets from Output Norm Estimates
+
+This module compares resource bounds expressed using a positive output norm estimate `η` with
+bounds expressed using a true norm `ν`, under `η ≤ ν ≤ c * η`. Reciprocal factors lose at most
+`c`, while `outputEstimateLogFactor` controls the accompanying logarithmic factors.
+
+`static_true_output_query_bound` combines these comparisons for the static paper query envelope.
+It replaces the estimated norm by the true output norm at the cost of the explicit multiplier `c
+* outputEstimateLogFactor c`. See [WangEtAl2026].
+
+## Main statements
+
+* `output_estimate_inverse_bound` and `output_estimate_envelope_bound` compare inverse-norm
+  factors.
+* `output_estimate_log_bound` and `output_estimate_log_two_add_bound` compare logarithmic
+  factors.
+* `static_true_output_query_bound` transfers the complete static query envelope to the true
+  norm.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,8 +60,11 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- The logarithmic comparison factor `1 + Real.log c / Real.log 2` used when replacing an
+output norm estimate by a factor-`c` comparable norm. -/
 def outputEstimateLogFactor (c : ℝ) : ℝ := 1 + Real.log c / Real.log 2
 
+/-- The output-estimate logarithmic comparison factor is positive whenever `c ≥ 1`. -/
 theorem outputEstimateLogFactor_pos {c : ℝ} (hc : 1 ≤ c) :
     0 < outputEstimateLogFactor c := by
   have hd : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -43,6 +72,8 @@ theorem outputEstimateLogFactor_pos {c : ℝ} (hc : 1 ≤ c) :
   unfold outputEstimateLogFactor
   positivity
 
+/-- If the positive estimate `η` satisfies `η ≤ ν ≤ c * η`, then `1 / η` lies between `1 / ν`
+and `c / ν`. -/
 theorem output_estimate_inverse_bound {η ν c : ℝ}
     (hη : 0 < η) (hην : η ≤ ν) (hνc : ν ≤ c * η) :
     1 / ν ≤ 1 / η ∧ 1 / η ≤ c / ν := by
@@ -52,6 +83,8 @@ theorem output_estimate_inverse_bound {η ν c : ℝ}
   · apply (div_le_div_iff₀ hη hν).mpr
     simpa only [one_mul] using! hνc
 
+/-- For nonnegative `E` and `η ≤ ν ≤ c * η` with `η > 0`, the envelope `E / η` lies between `E /
+ν` and `c * (E / ν)`. -/
 theorem output_estimate_envelope_bound {η ν c E : ℝ}
     (hη : 0 < η) (hην : η ≤ ν) (hνc : ν ≤ c * η) (hE : 0 ≤ E) :
     E / ν ≤ E / η ∧ E / η ≤ c * (E / ν) := by
@@ -60,6 +93,8 @@ theorem output_estimate_envelope_bound {η ν c E : ℝ}
   · simpa only [mul_one_div] using! mul_le_mul_of_nonneg_left hl hE
   · convert! mul_le_mul_of_nonneg_left hu hE using 1 <;> ring
 
+/-- Bounds `Real.log (2 / (ε * η))` by `outputEstimateLogFactor c` times the corresponding
+expression using `ν`, under the positive comparable-norm and unit-upper-bound assumptions. -/
 theorem output_estimate_log_bound {η ν c ε : ℝ}
     (hη : 0 < η) (hην : η ≤ ν) (hνc : ν ≤ c * η) (hc : 1 ≤ c)
     (hν1 : ν ≤ 1) (hε : 0 < ε) (hε1 : ε ≤ 1) :
@@ -84,6 +119,8 @@ theorem output_estimate_log_bound {η ν c ε : ℝ}
   unfold outputEstimateLogFactor
   nlinarith
 
+/-- For nonnegative `x` and `y` with `x ≤ c * y` and `c ≥ 1`, bounds `Real.log (2 + x)` by
+`outputEstimateLogFactor c * Real.log (2 + y)`. -/
 theorem output_estimate_log_two_add_bound {x y c : ℝ}
     (hx : 0 ≤ x) (hxy : x ≤ c * y) (hy : 0 ≤ y) (hc : 1 ≤ c) :
     Real.log (2 + x) ≤ outputEstimateLogFactor c * Real.log (2 + y) := by
@@ -99,6 +136,9 @@ theorem output_estimate_log_two_add_bound {x y c : ℝ}
   unfold outputEstimateLogFactor
   nlinarith
 
+/-- Replaces the positive estimated output norm `η` in the static query envelope by a true norm
+`ν` satisfying `η ≤ ν ≤ c * η`. The resulting bound increases the constant by `c *
+outputEstimateLogFactor c` under the stated scale, time, and accuracy assumptions. -/
 theorem static_true_output_query_bound {α t ε η ν c : ℝ}
     (hα : 0 ≤ α) (ht : 0 ≤ t) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hην : η ≤ ν) (hνc : ν ≤ c * η) (hc : 1 ≤ c) (hν1 : ν ≤ 1) :

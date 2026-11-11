@@ -18,6 +18,37 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Finset.Dedup
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Addressing functions far from juntas
+
+This module formalizes the addressing-function construction underlying the rejecting family in
+[AticiServedio2007], Lemma III.6. `addressingFun` reads a leaf coordinate selected by address
+bits, while `IsAddressingShape` embeds distinct address and leaf coordinates into an ambient
+Boolean cube.
+
+The address slices `addrSlice` isolate each fixed address. `addrSlice_sum_half` shows that a
+comparison function ignoring the selected leaf disagrees on exactly half of such a slice;
+counting these slices gives `addressing_far_one_six` under the stated address, leaf, and
+junta-size assumptions.
+
+## Main statements
+
+- `addressing_dependsOnlyOn` bounds dependence by the designated address and leaf coordinates.
+- `addressing_support_card` and `addressing_support_card_of_shape` count their union as `r + R`.
+* `addrSliceEquiv` identifies a fixed address slice with assignments to the remaining
+  coordinates, giving `addrSlice_card`.
+* `addrSlice_sum_half` proves exact half-slice disagreement when the selected leaf is absent
+  from the comparison support.
+* `addressing_far_one_six` proves distance at least `1 / 6` from every `k`-junta for the
+  specified parameters.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007], Quantum Algorithms for Learning and Testing
+  Juntas, Lemma III.6.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,16 +62,22 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- The Boolean addressing function that reads the first `r` bits, uses `dec` to select one of
+the next `R` bits, and returns that selected leaf bit. -/
 def addressingFun (r R : ℕ) (dec : (Fin r → Bool) → Fin R)
     (x : Fin (r + R) → Bool) : Bool :=
   x (Fin.natAdd r (dec (fun j => x (Fin.castAdd R j))))
 
+/-- The property that `f` returns a leaf bit selected by the address bits through `dec`, with
+injective address and leaf coordinate maps having disjoint images. -/
 def IsAddressingShape (r R : ℕ) (addr : Fin r → Fin n) (leaf : Fin R → Fin n)
     (dec : (Fin r → Bool) → Fin R) (f : (Fin n → Bool) → Bool) : Prop :=
   Function.Injective addr ∧ Function.Injective leaf ∧
     (∀ i j, addr i ≠ leaf j) ∧
     ∀ x, f x = x (leaf (dec (fun j => x (addr j))))
 
+/-- A function of addressing shape depends only on the union of its designated address and leaf
+coordinates. -/
 theorem addressing_dependsOnlyOn {r R : ℕ} {addr : Fin r → Fin n}
     {leaf : Fin R → Fin n} {dec : (Fin r → Bool) → Fin R}
     {f : (Fin n → Bool) → Bool}
@@ -56,6 +93,8 @@ theorem addressing_dependsOnlyOn {r R : ℕ} {addr : Fin r → Fin n}
   exact hxy (leaf (dec (fun j => y (addr j))))
     (Finset.mem_union_right _ (Finset.mem_image.mpr ⟨_, Finset.mem_univ _, rfl⟩))
 
+/-- If the address and leaf coordinate maps are injective and have disjoint images, their union
+contains exactly `r + R` coordinates. -/
 theorem addressing_support_card {r R : ℕ} {addr : Fin r → Fin n}
     {leaf : Fin R → Fin n}
     (haddr : Function.Injective addr) (hleaf : Function.Injective leaf)
@@ -74,6 +113,8 @@ theorem addressing_support_card {r R : ℕ} {addr : Fin r → Fin n}
     exact hdisj i j hj.symm
   rw [Finset.card_union_of_disjoint hdisj', hcardA, hcardL]
 
+/-- For a function of addressing shape, the union of the designated address and leaf coordinates
+has cardinality `r + R`. -/
 theorem addressing_support_card_of_shape {r R : ℕ} {addr : Fin r → Fin n}
     {leaf : Fin R → Fin n} {dec : (Fin r → Bool) → Fin R}
     {f : (Fin n → Bool) → Bool}
@@ -88,15 +129,21 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- The finite set of Boolean-cube inputs whose coordinates selected by `addr` agree with the
+fixed address assignment `a`. -/
 def addrSlice {n r : ℕ} (addr : Fin r → Fin n) (a : Fin r → Bool) :
     Finset (Fin n → Bool) :=
   Finset.univ.filter (fun x => ∀ j, x (addr j) = a j)
 
+/-- An input belongs to an address slice exactly when every designated address coordinate has
+its prescribed value. -/
 theorem mem_addrSlice {n r : ℕ} {addr : Fin r → Fin n} {a : Fin r → Bool}
     {x : Fin n → Bool} :
     x ∈ addrSlice addr a ↔ ∀ j, x (addr j) = a j := by
   simp [addrSlice]
 
+/-- For an injective address map, identifies inputs with fixed address bits with arbitrary
+Boolean assignments to coordinates outside the address image. -/
 noncomputable def addrSliceEquiv {n r : ℕ} {addr : Fin r → Fin n}
     (hadj : Function.Injective addr) (a : Fin r → Bool) :
     {x : Fin n → Bool // ∀ j, x (addr j) = a j} ≃
@@ -124,6 +171,8 @@ noncomputable def addrSliceEquiv {n r : ℕ} {addr : Fin r → Fin n}
     ext i
     simp only [dif_neg i.2]
 
+/-- Fixing the `r` coordinates of an injective address map leaves exactly `2 ^ (n - r)`
+Boolean-cube inputs. -/
 theorem addrSlice_card {n r : ℕ} {addr : Fin r → Fin n}
     (hadj : Function.Injective addr) (a : Fin r → Bool) :
     (addrSlice addr a).card = 2 ^ (n - r) := by
@@ -144,6 +193,8 @@ theorem addrSlice_card {n r : ℕ} {addr : Fin r → Fin n}
   rw [h1, Fintype.card_congr (addrSliceEquiv hadj a), Fintype.card_fun, hfree]
   simp [Fintype.card_bool]
 
+/-- On an address slice selecting leaf `l`, a function of addressing shape disagrees with any
+comparison function ignoring that leaf on exactly half of the slice. -/
 theorem addrSlice_sum_half {n r R : ℕ} {addr : Fin r → Fin n}
     {leaf : Fin R → Fin n} {dec : (Fin r → Bool) → Fin R}
     {f : (Fin n → Bool) → Bool}
@@ -219,6 +270,9 @@ theorem addrSlice_sum_half {n r R : ℕ} {addr : Fin r → Fin n}
   rw [eq_div_iff (by norm_num : (2 : ℝ) ≠ 0)]
   linarith
 
+/-- An addressing-shape function is at distance at least `1 / 6` from every `k`-junta when `dec`
+is surjective, `r ≥ 1`, `R = 2 ^ r`, `k = r + R / 2`, and `6 * r < R`. This gives the
+addressing-function separation associated with Lemma III.6 of [AticiServedio2007]. -/
 theorem addressing_far_one_six {n r R k : ℕ} {addr : Fin r → Fin n}
     {leaf : Fin R → Fin n} {dec : (Fin r → Bool) → Fin R}
     {f : (Fin n → Bool) → Bool}

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Expectation lower bounds from good events
+
+The theorem `expect_ge_on_good` lower-bounds a finite expectation using a pointwise lower bound
+on a good event and a lower bound on its probability. Nonnegativity controls the contribution
+outside that event. Such finite expectation estimates support the Monte Carlo setting of
+[Montanaro2015].
+
+## Main statements
+
+* `expect_ge_on_good`: a nonnegative payoff bounded below by `a` on an event of mass at least
+  `b` has expectation at least a·b.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -15,6 +34,8 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 set_option warningAsError false
 
+/-- A nonnegative function that is at least a nonnegative `a` on an event of mass at least `b`
+has expectation at least a·b. -/
 theorem expect_ge_on_good {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) [DecidablePred E] (f : X → ℝ)
     (hf0 : ∀x,0≤f x) (a b : ℝ) (ha : 0≤a)

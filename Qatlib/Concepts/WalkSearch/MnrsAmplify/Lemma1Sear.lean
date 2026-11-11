@@ -22,6 +22,30 @@ import Mathlib.Tactic.NormNum.BigOperators
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Stat
+
+/-!
+# Approximate recursive amplitude amplification
+
+Proves the projection and cost bounds for approximate recursive amplitude amplification in the
+MNRS framework [MagniezNayakRolandSantha2011]. The analysis works in a fixed invariant subspace
+and controls the homogeneous reflection error with `betaAt`; auxiliary results describe the
+exact two-dimensional dynamics and the first amplification window.
+
+## Main statements
+
+* `mnrs_approximate_raa_lemma_one`: Establishes `Lemma1`, the approximate recursive
+  amplitude-amplification projection and cost guarantees under the stated invariant-subspace
+  hypotheses [Magniez et al., Lemma 1][MagniezNayakRolandSantha2011].
+* `mnrs_raa_step`: Under the homogeneous reflection-error and invariance hypotheses, one
+  amplification step approximates the triple-angle marked amplitude with error at most `betaAt γ
+  (j + 1) * |sin (2 * arcsin p)|`, where `p` is the current marked projection norm. The next
+  state remains in `Rs`.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -33,15 +57,19 @@ open scoped Real ComplexConjugate
 
 variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
 
+/-- The marked-subspace projection `markProj M` is the orthogonal projection `M.starProjection`. -/
 theorem mnrs_mark_projection_eq (M : Submodule ℂ W) : markProj M = M.starProjection := rfl
 
 omit [FiniteDimensional ℂ W] in
 
+/-- The line projection `lineProj u` is the orthogonal projection onto the complex span of `u`. -/
 theorem mnrs_line_projection_eq (u : W) :
     lineProj u = (Submodule.span ℂ {u}).starProjection := rfl
 
 omit [FiniteDimensional ℂ W] in
 
+/-- A linear isometry with a uniform absolute reflection-error bound on the orthogonal part of
+`Rs` acts there as negation. -/
 theorem mnrs_frozen_reflection_exact_on_orthogonal (u : W) (Rs : Submodule ℂ W)
     (R : W ≃ₗᵢ[ℂ] W) (β : ℝ)
     (hbound : ∀ ψ ∈ Rs, ψ ∈ (Submodule.span ℂ {u})ᗮ →
@@ -69,6 +97,8 @@ theorem mnrs_frozen_reflection_exact_on_orthogonal (u : W) (Rs : Submodule ℂ W
 
 omit [FiniteDimensional ℂ W] in
 
+/-- If `R` fixes `u` and has a uniform absolute reflection-error bound on the orthogonal part of
+`Rs`, then it equals reflection about the span of `u` on `Rs`. -/
 theorem mnrs_frozen_reflection_exact (u : W) (Rs : Submodule ℂ W)
     (R : W ≃ₗᵢ[ℂ] W) (β : ℝ) (hu : u ∈ Rs) (hfix : R u = u)
     (hbound : ∀ ψ ∈ Rs, ψ ∈ (Submodule.span ℂ {u})ᗮ →
@@ -93,10 +123,12 @@ theorem mnrs_frozen_reflection_exact (u : W) (Rs : Submodule ℂ W)
 
 omit [FiniteDimensional ℂ W] in
 
+/-- Every recursive amplitude-amplification state has the same norm as its initial state. -/
 theorem mnrs_raa_state_norm (unmarkRefl : W ≃ₗᵢ[ℂ] W) (R : ℕ → W ≃ₗᵢ[ℂ] W)
     (x₀ : W) (i : ℕ) : ‖raaState unmarkRefl R x₀ i‖ = ‖x₀‖ :=
   (raaUnitary unmarkRefl R i).norm_map x₀
 
+/-- The logarithmic schedule constant satisfies `Real.log (4 * Real.pi ^ 3 / 18) ≤ 2`. -/
 private theorem mnrs_log_schedule_constant : Real.log (4*Real.pi^3/18) ≤ 2 := by
   have hp : Real.pi^3 ≤ (3.15 : ℝ)^3 :=
     pow_le_pow_left₀ Real.pi_pos.le (Real.pi_lt_d2).le 3
@@ -107,6 +139,8 @@ private theorem mnrs_log_schedule_constant : Real.log (4*Real.pi^3/18) ≤ 2 := 
     exact hs
   exact (Real.log_le_iff_le_exp (by positivity : 0 < 4*Real.pi^3/18)).mpr (hc.trans he)
 
+/-- For positive `γ` and `i ≥ 1`, the logarithmic accuracy cost at level `i` is at most
+`Real.log (1 / γ) + 2 * i`. -/
 theorem mnrs_schedule_log_bound (γ : ℝ) (hγ : 0 < γ) (i : ℕ) (hi : 1 ≤ i) :
     Real.log (1/betaAt γ i) ≤ Real.log (1/γ)+2*(i : ℝ) := by
   have hiR : (0 : ℝ) < i := by exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_one hi)
@@ -118,6 +152,8 @@ theorem mnrs_schedule_log_bound (γ : ℝ) (hγ : 0 < γ) (i : ℕ) (hi : 1 ≤ 
   have hl := Real.log_le_sub_one_of_pos hiR
   linarith only [hl, mnrs_log_schedule_constant]
 
+/-- Bounds the recursive amplification cost by the stated closed expression when reflection
+costs follow the logarithmic accuracy schedule and the marking cost is bounded by `c₂`. -/
 theorem mnrs_raa_cost_bound (γ c₁ c₂ : ℝ) (hγ : 0 < γ) (hc₁ : 0 ≤ c₁)
     (costR : ℕ → ℝ) (costMark : ℝ) (t : ℕ)
     (hcost : ∀ i, 1 ≤ i → i ≤ t → costR i ≤ c₁*Real.log (1/betaAt γ i))
@@ -139,6 +175,8 @@ theorem mnrs_raa_cost_bound (γ c₁ c₂ : ℝ) (hγ : 0 < γ) (hc₁ : 0 ≤ c
 
 omit [FiniteDimensional ℂ W] in
 
+/-- On an orthonormal good-bad plane, reflecting the phase-flipped state about its original line
+triples its angle. -/
 theorem mnrs_triple_angle_step (g v : W) (hg : ‖g‖ = 1) (hv : ‖v‖ = 1)
     (ho : inner ℂ g v = 0) (U : W ≃ₗᵢ[ℂ] W) (hUg : U g = -g) (hUv : U v = v)
     (a : ℝ) (hn : ‖(Real.sin a : ℂ) • g+(Real.cos a : ℂ) • v‖ = 1) :
@@ -179,6 +217,9 @@ theorem mnrs_triple_angle_step (g v : W) (hg : ‖g‖ = 1) (hv : ‖v‖ = 1)
 
 omit [FiniteDimensional ℂ W] in
 
+/-- If each level fixes the preceding state and satisfies the uniform absolute reflection bound
+on `Rs`, the recursive states in the good-bad plane have angle `3 ^ i * θ` through level
+`t`. -/
 theorem mnrs_raa_plane_state (g v : W) (hg : ‖g‖ = 1) (hv : ‖v‖ = 1)
     (ho : inner ℂ g v = 0) (U : W ≃ₗᵢ[ℂ] W) (hUg : U g = -g) (hUv : U v = v)
     (Rs : Submodule ℂ W) (hgRs : g ∈ Rs) (hvRs : v ∈ Rs)
@@ -217,6 +258,7 @@ theorem mnrs_raa_plane_state (g v : W) (hg : ‖g‖ = 1) (hv : ‖v‖ = 1)
     have hangle : 3*((3 : ℝ)^i*θ) = (3 : ℝ)^(i+1)*θ := by rw [pow_succ]; ring
     rw [hangle]
 
+/-- The sine is at least `1 / Real.sqrt 2` throughout the interval `[π / 4, 3 * π / 4]`. -/
 private theorem mnrs_sin_final_window (a : ℝ) (ha : a ∈ Set.Icc (π/4) (3*π/4)) :
     1/Real.sqrt 2 ≤ Real.sin a := by
   have hs : Real.sin (π/4) ≤ Real.sin a := by
@@ -233,6 +275,8 @@ private theorem mnrs_sin_final_window (a : ℝ) (ha : a ∈ Set.Icc (π/4) (3*π
     field_simp; nlinarith only [hsq]
   rwa [he] at hs
 
+/-- A unit vector with nonzero marked and unmarked components decomposes into orthonormal marked
+and unmarked vectors in `Rs`, with angle determined by its marked projection norm. -/
 theorem mnrs_initial_good_bad_plane (M Rs : Submodule ℂ W) (x : W) (hn : ‖x‖ = 1)
     (hxRs : x ∈ Rs) (hclosed : ∀ z ∈ Rs, markProj M z ∈ Rs)
     (hy : markProj M x ≠ 0) (hz : x-markProj M x ≠ 0) :
@@ -283,6 +327,8 @@ theorem mnrs_initial_good_bad_plane (M Rs : Submodule ℂ W) (x : W) (hn : ‖x�
 
 omit [FiniteDimensional ℂ W] in
 
+/-- Under the stated fixed-state and uniform absolute reflection bounds, each recursive
+amplification unitary through level `t` preserves the subspace `K`. -/
 theorem mnrs_raa_invariant_subspace (K Rs : Submodule ℂ W) (hKR : K ≤ Rs)
     (U : W ≃ₗᵢ[ℂ] W) (hU : ∀ z ∈ K, U z ∈ K) (x₀ : W) (hx : x₀ ∈ K)
     (R : ℕ → W ≃ₗᵢ[ℂ] W) (γ : ℝ) (t : ℕ)
@@ -313,6 +359,8 @@ theorem mnrs_raa_invariant_subspace (K Rs : Submodule ℂ W) (hKR : K ≤ Rs)
     exact (Submodule.span_le.mpr (by simpa using hφ))
       (Submodule.orthogonalProjection (Submodule.span ℂ {raaState U R x₀ i}) _).property
 
+/-- Factors the difference of two triple-angle sines as the difference of their sines times a
+quadratic expression. -/
 theorem mnrs_sin_three_sub (A B : ℝ) :
     Real.sin (3 * A) - Real.sin (3 * B) =
       (Real.sin A - Real.sin B) *
@@ -320,6 +368,7 @@ theorem mnrs_sin_three_sub (A B : ℝ) :
   rw [Real.sin_three_mul, Real.sin_three_mul]
   ring
 
+/-- Every finite sum of reciprocal squares from `1` to `n` is at most `2`. -/
 theorem mnrs_sum_inv_sq_le_two (n : ℕ) :
     ∑ l ∈ Finset.Icc 1 n, (1 : ℝ) / (l : ℝ) ^ 2 ≤ 2 := by
   have hstep : ∀ m : ℕ, 1 ≤ m →
@@ -354,21 +403,25 @@ theorem mnrs_sum_inv_sq_le_two (n : ℕ) :
     have h1 : (0 : ℝ) ≤ 1 / (n : ℝ) := by positivity
     linarith [h, h1]
 
+/-- The quantities `Real.sqrt 2 / 2` and `1 / Real.sqrt 2` coincide. -/
 private theorem mnrs_sqrt_two_div_two : Real.sqrt 2 / 2 = 1 / Real.sqrt 2 := by
   have hn : Real.sqrt 2 ≠ 0 := (Real.sqrt_pos.mpr (by norm_num : (0 : ℝ) < 2)).ne'
   have hsq := Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)
   field_simp
   nlinarith only [hsq]
 
+/-- The square root of `2` is bounded above by `99 / 70`. -/
 private theorem mnrs_sqrt_two_le : Real.sqrt 2 ≤ 99 / 70 := by
   apply (sq_le_sq₀ (Real.sqrt_nonneg 2) (by norm_num : (0 : ℝ) ≤ 99 / 70)).mp
   rw [Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   norm_num
 
+/-- The reciprocal square root of `2` is bounded above by `99 / 140`. -/
 private theorem mnrs_one_div_sqrt_two_le : 1 / Real.sqrt 2 ≤ 99 / 140 := by
   rw [← mnrs_sqrt_two_div_two]
   linarith [mnrs_sqrt_two_le]
 
+/-- A nonnegative real number whose square is at most `3 / 4` has arcsine at most `π / 3`. -/
 theorem mnrs_arcsin_le_pi_div_three {x : ℝ} (hx0 : 0 ≤ x) (hx : x ^ 2 ≤ 3 / 4) :
     Real.arcsin x ≤ π / 3 := by
   have h1 : x ≤ Real.sqrt 3 / 2 := by
@@ -381,8 +434,13 @@ theorem mnrs_arcsin_le_pi_div_three {x : ℝ} (hx0 : 0 ≤ x) (hx : x ^ 2 ≤ 3 
     _ = Real.arcsin (Real.sin (π / 3)) := by rw [Real.sin_pi_div_three]
     _ = π / 3 := Real.arcsin_sin (by linarith [Real.pi_pos]) (by linarith [Real.pi_pos])
 
+/-- The `RCLike.ofReal` and `Complex.ofReal` embeddings agree for real scalars in `ℂ`. -/
 private theorem mnrs_ofReal_eq (r : ℝ) : (RCLike.ofReal r : ℂ) = Complex.ofReal r := rfl
 
+/-- Under the homogeneous reflection-error and invariance hypotheses, one amplification step
+approximates the triple-angle marked amplitude with error at most `betaAt γ (j + 1) * |sin
+(2 * arcsin p)|`, where `p` is the current marked projection norm. The next state remains in
+`Rs`. -/
 theorem mnrs_raa_step
     (Mr Rs : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)
     (hMneg : ∀ z ∈ Mr, unmarkRefl z = -z)
@@ -670,6 +728,8 @@ theorem mnrs_raa_step
     rw [hUφ]
     exact Rs.add_mem (Rs.smul_mem _ hμRs) (Rs.smul_mem _ hνRs)
 
+/-- At the first level whose ideal angle reaches `[π / 4, 3 * π / 4]`, the marked projection
+norm is at least `1 / Real.sqrt 2 - γ` under the stated homogeneous reflection-error bounds. -/
 theorem mnrs_projection_lower
     (Mr Rs : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W)
     (hMneg : ∀ z ∈ Mr, unmarkRefl z = -z)
@@ -1348,6 +1408,9 @@ theorem mnrs_projection_lower
       linarith [h]
     linarith [hsin_win, hetγ, hfin]
 
+/-- Establishes `Lemma1`, the approximate recursive amplitude-amplification projection and cost
+guarantees under the stated invariant-subspace hypotheses [Magniez et al., Lemma
+1][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_approximate_raa_lemma_one : Lemma1 := by
   intro W _ _ _ Mr unmarkRefl hMneg hMid x₀ hx₀ γ hγ0 hγ1 t R c₁ c₂ hc₁ hc₂
     costR costMark Rs hxRs hclose hRRs hfix hbound hcost hmark hwin hmin

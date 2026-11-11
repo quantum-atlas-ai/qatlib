@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteStat
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
+
+/-!
+# Support bound for conditional-risk call counts
+
+This module proves a uniform support bound for the call-count component returned by `riskCVaR`.
+It extracts the bisection count and includes the two additional estimation stages in the
+conditional-risk construction associated with [WoernerEgger2019].
+
+## Main statements
+
+* `riskCVaR_support_calls`: every supported result records at most `Nat.clog 2 xs.length + 3`
+  calls.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,8 @@ open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 
 namespace Qatlib.Concepts.NativeNumerics.EmpiricalRisk
 
+/-- Every supported output of `riskCVaR` has recorded call count at most `Nat.clog 2 xs.length +
+3`. -/
 theorem riskCVaR_support_calls {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (xs : List ℚ) (q eps : ℝ) (k M r : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hloss : ∀ i, 0 ≤ loss i ∧ loss i ≤ 1) (hM : 2 ≤ M) :

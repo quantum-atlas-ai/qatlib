@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+/-!
+# Gate initialization of the signal simulator frame
+
+`word` gives a six-gate initialization using Hadamard, Pauli X, and T gates on three simulator
+flags. It maps the zero-flag embedding `baseFrame` to `BinaryClockSignalWord.simulatorFrame`.
+
+The forward and adjoint words use no oracle queries and have exactly six explicit gates. The
+elementary gate conventions follow [NielsenChuang2010].
+
+## Main statements
+
+* `intertwining`: the initialization matrix takes the base frame to the simulator frame.
+* `inverse_intertwining`: the adjoint initialization returns the simulator frame to the base
+  frame.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -49,13 +70,17 @@ open Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 open scoped Classical BigOperators
 
+/-- The three-flag signal simulator register over the underlying space `H`. -/
 abbrev SimulatorSpace (H : Type) := BinaryClockSignalWord.SimulatorSpace H
 
+/-- Rectangular complex matrix multiplication with its intermediate finite index type specified
+explicitly. -/
 private noncomputable abbrev matmul {X Y Z : Type} [Fintype Y]
     (M : Matrix X Y ℂ) (N : Matrix Y Z ℂ) : Matrix X Z ℂ :=
   @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid M N
 
+/-- Embed `F` into the simulator register with all three flags false. -/
 noncomputable def baseFrame {H I : Type} (F : Matrix H I ℂ) :
     Matrix (SimulatorSpace H) I ℂ := fun x i =>
   if x.1 = false then
@@ -66,40 +91,53 @@ noncomputable def baseFrame {H I : Type} (F : Matrix H I ℂ) :
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- Apply a Boolean gate to the first simulator flag and the identity to the remaining
+registers. -/
 noncomputable def gateA (U : Matrix Bool Bool ℂ) :
     Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ :=
   TensorGate U (TensorGate (1 : Matrix Bool Bool ℂ)
     (TensorGate (1 : Matrix Bool Bool ℂ) (1 : Matrix H H ℂ)))
 
+/-- Apply a Boolean gate to the second simulator flag and the identity to the remaining
+registers. -/
 noncomputable def gateB (U : Matrix Bool Bool ℂ) :
     Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ)
     (TensorGate U (TensorGate (1 : Matrix Bool Bool ℂ) (1 : Matrix H H ℂ)))
 
+/-- Apply a Boolean gate to the third simulator flag and the identity to the remaining
+registers. -/
 noncomputable def gateC (U : Matrix Bool Bool ℂ) :
     Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ)
     (TensorGate (1 : Matrix Bool Bool ℂ) (TensorGate U (1 : Matrix H H ℂ)))
 
+/-- The six-gate initialization word implementing two Hadamard gates and the first-flag phase
+adjustment. -/
 noncomputable def word : List (AdjointStep (SimulatorSpace H)) :=
   [.gate (gateC Hadamard), .gate (gateB Hadamard), .gate (gateA PauliX),
     .gate (gateA tGate), .gate (gateA tGate), .gate (gateA PauliX)]
 
+/-- Extending a unitary Boolean gate to the first simulator flag gives a unitary matrix. -/
 private theorem gateA_unitary (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) : gateA (H := H) U ∈ Matrix.unitaryGroup _ ℂ :=
   tensorGate_unitary hU (tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary (Submonoid.one_mem _) (Submonoid.one_mem _)))
 
+/-- Extending a unitary Boolean gate to the second simulator flag gives a unitary matrix. -/
 private theorem gateB_unitary (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) : gateB (H := H) U ∈ Matrix.unitaryGroup _ ℂ :=
   tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary hU (tensorGate_unitary (Submonoid.one_mem _) (Submonoid.one_mem _)))
 
+/-- Extending a unitary Boolean gate to the third simulator flag gives a unitary matrix. -/
 private theorem gateC_unitary (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) : gateC (H := H) U ∈ Matrix.unitaryGroup _ ℂ :=
   tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary (Submonoid.one_mem _) (tensorGate_unitary hU (Submonoid.one_mem _)))
 
+/-- The initialization word is well formed, has length six, makes no oracle queries, and
+contains six gates. -/
 theorem resources : WellFormedAdjointCircuit (word (H := H)) ∧
     (word (H := H)).length = 6 ∧ adjointQueryCount (word (H := H)) = 0 ∧
     adjointGateCount (word (H := H)) = 6 := by
@@ -110,6 +148,7 @@ theorem resources : WellFormedAdjointCircuit (word (H := H)) ∧
     gateA_unitary _ pauliX_unitary, gateA_unitary _ tGate_mem_unitary,
     gateA_unitary _ tGate_mem_unitary, gateA_unitary _ pauliX_unitary⟩
 
+/-- The square of the T gate is diagonal with entries one and `i`. -/
 private theorem t_square : tGate * tGate =
     Matrix.diagonal (fun b : Bool => if b then Complex.I else 1) := by
   unfold tGate Rz
@@ -127,6 +166,8 @@ private theorem t_square : tGate * tGate =
           ring,
       Complex.exp_pi_div_two_mul_I]
 
+/-- Conjugating the square of the T gate by Pauli X gives the diagonal matrix with entries `i`
+and one. -/
 theorem phase_matrix : PauliX * (tGate * (tGate * PauliX)) =
     Matrix.diagonal (fun b : Bool => if b then 1 else Complex.I) := by
   rw [← Matrix.mul_assoc tGate tGate PauliX, t_square]
@@ -134,6 +175,8 @@ theorem phase_matrix : PauliX * (tGate * (tGate * PauliX)) =
   cases a <;> cases b <;>
     simp [Matrix.mul_apply, PauliX, permMatrix, Matrix.diagonal_apply]
 
+/-- The initialization evaluates to the first-flag phase matrix tensored with Hadamard gates on
+the second and third flags. -/
 theorem evaluate_matrix (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ) :
     evaluate W word =
       TensorGate (Matrix.diagonal (fun b : Bool => if b then 1 else Complex.I))
@@ -141,6 +184,7 @@ theorem evaluate_matrix (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ) :
   simp only [word, evaluate, instructionMatrix, gateA, gateB, gateC,
     Matrix.mul_one, tensorGate_mul, Matrix.one_mul, phase_matrix]
 
+/-- The initialization word evaluates to a unitary matrix for every choice of oracle matrix. -/
 theorem evaluate_unitary (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ) :
     evaluate W word ∈ Matrix.unitaryGroup (SimulatorSpace H) ℂ := by
   have hi := resources.1.evaluate_unitary
@@ -148,6 +192,8 @@ theorem evaluate_unitary (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ) 
   rw [evaluate_matrix] at hi ⊢
   exact hi
 
+/-- The two Hadamard amplitudes multiplied by `i` equal the product of the real-part frame
+amplitudes. -/
 private theorem two_h_phase (b c : Bool) :
     Complex.I * Hadamard b false * Hadamard c false =
       realPartAmplitude b * realPartAmplitude c := by
@@ -164,16 +210,21 @@ variable {I : Type} [Fintype I]
 
 omit [Fintype I] in
 
+/-- An average-frame matrix entry is the real-part amplitude times the corresponding entry of
+`F`. -/
 private theorem averageFrame_entry (F : Matrix H I ℂ) (b : Bool) (h : H) (i : I) :
     averageFrame F (b,h) i = realPartAmplitude b * F h i := by
   simp [averageFrame, Matrix.mul_apply, prepareLift, ite_mul]
 
+/-- The simulator frame vanishes unless the first flag is false, and otherwise factors into two
+real-part amplitudes and an entry of `F`. -/
 theorem simulatorFrame_entry (F : Matrix H I ℂ) (a b c : Bool) (h : H) (i : I) :
     BinaryClockSignalWord.simulatorFrame F (a,(b,(c,h))) i =
       if a = false then realPartAmplitude b * (realPartAmplitude c * F h i) else 0 := by
   simp only [BinaryClockSignalWord.simulatorFrame, scaleEightFrame, hamiltonianFrame,
       averageFrame_entry]
 
+/-- Multiplying the initialization matrix by `baseFrame F` gives the signal simulator frame. -/
 theorem intertwining (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ)
     (F : Matrix H I ℂ) : matmul (evaluate W word) (baseFrame F) = BinaryClockSignalWord.simulatorFrame F := by
   rw [evaluate_matrix]
@@ -186,6 +237,8 @@ theorem intertwining (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ)
   · simp [matmul, Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,
       baseFrame, Matrix.diagonal_apply, Matrix.one_apply, mul_ite, ite_mul]
 
+/-- The initialization word sends every state embedded by `baseFrame F` to the same state
+embedded by the simulator frame. -/
 theorem coherent (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ)
     (F : Matrix H I ℂ) (psi : QState I) :
     evaluate W word *ᵥ (baseFrame F *ᵥ psi) = BinaryClockSignalWord.simulatorFrame F *ᵥ psi := by
@@ -193,6 +246,7 @@ theorem coherent (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ)
     _ = matmul (evaluate W word) (baseFrame F) *ᵥ psi := Matrix.mulVec_mulVec _ _ _
     _ = _ := by rw [intertwining W F]
 
+/-- The adjoint initialization word maps the simulator frame back to `baseFrame F`. -/
 theorem inverse_intertwining
     (W : Matrix (SimulatorSpace H) (SimulatorSpace H) ℂ) (F : Matrix H I ℂ) :
     matmul (evaluate W (adjointCircuit word)) (BinaryClockSignalWord.simulatorFrame F) = baseFrame F := by
@@ -207,6 +261,8 @@ theorem inverse_intertwining
 
 end Frames
 
+/-- The adjoint initialization is well formed, has length six, makes no oracle queries, and
+contains six gates. -/
 theorem inverse_resources : WellFormedAdjointCircuit (adjointCircuit (word (H := H))) ∧
     (adjointCircuit (word (H := H))).length = 6 ∧
     adjointQueryCount (adjointCircuit (word (H := H))) = 0 ∧

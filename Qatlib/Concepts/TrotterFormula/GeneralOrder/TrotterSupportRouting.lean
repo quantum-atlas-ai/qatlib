@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefined
 
+/-!
+# Support counting and wire routing for product formulas
+
+This module shows that nonzero nested commutators of a finite-range family have successively
+attached supports and bounds the number of such words using support size and site occupancy.
+These estimates describe the support combinatorics underlying commutator scaling in
+[ChildsEtAl2021Trotter].
+
+It also constructs swap lists that gather supports into consecutive wire intervals. `frontier1`
+and `frontier1_layers` route a disjoint-support layer with an explicit swap budget.
+
+## Main statements
+
+* `nested_ne_zero_imp_supportAttached`: nonzero nested commutators require attached supports.
+* `nonzeroNestedWords_card_le`: a product bound on the number of nonzero nested words.
+* `gatherSwapPairs_spec`: gathering a nonempty support with at most its size minus one swaps.
+* `frontier1`: routing a disjoint-support layer into disjoint intervals.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 900000
 set_option backward.isDefEq.respectTransparency false
@@ -34,6 +57,7 @@ section Attached
 
 variable {D Λ : ℕ}
 
+/-- The matrix commutator vanishes exactly when the two matrices commute. -/
 theorem pfComm_eq_zero_iff_commute {I : Type} [Fintype I] (X Y : Matrix I I ℂ) :
     pfComm X Y = 0 ↔ X * Y = Y * X := by
   constructor
@@ -44,6 +68,7 @@ theorem pfComm_eq_zero_iff_commute {I : Type} [Fintype I] (X Y : Matrix I I ℂ)
     unfold pfComm
     rw [h, sub_self]
 
+/-- A matrix commuting with `X` and `Y` also commutes with their product. -/
 private theorem comm_mul_right_of_comm {I : Type} [Fintype I] {Z X Y : Matrix I I ℂ}
     (hZX : Z * X = X * Z) (hZY : Z * Y = Y * Z) :
     Z * (X * Y) = (X * Y) * Z := by
@@ -53,6 +78,8 @@ private theorem comm_mul_right_of_comm {I : Type} [Fintype I] {Z X Y : Matrix I 
     _ = X * (Y * Z) := by rw [hZY]
     _ = (X * Y) * Z := by rw [← mul_assoc]
 
+/-- A matrix commuting with every list entry and the initial accumulator commutes with the
+iterated commutator fold. -/
 private theorem commutes_fold_pfComm {I : Type} [Fintype I] (Z : Matrix I I ℂ) :
     ∀ (l : List (Matrix I I ℂ)) (acc : Matrix I I ℂ),
       (∀ Y ∈ l, Z * Y = Y * Z) → Z * acc = acc * Z →
@@ -74,6 +101,7 @@ private theorem commutes_fold_pfComm {I : Type} [Fintype I] (Z : Matrix I I ℂ)
       have hfold := ih (pfComm Y acc) hzt hstep
       simpa only [List.foldl_cons] using! hfold
 
+/-- A matrix commuting with every entry of a list commutes with its nested commutator. -/
 theorem pfNestedCommList_commute_of_forall {I : Type} [Fintype I]
     (Z : Matrix I I ℂ) (l : List (Matrix I I ℂ))
     (h : ∀ Y ∈ l, Z * Y = Y * Z) :
@@ -85,6 +113,7 @@ theorem pfNestedCommList_commute_of_forall {I : Type} [Fintype I]
       have ht : ∀ Y ∈ t, Z * Y = Y * Z := fun Y hY => h Y (List.mem_cons_of_mem _ hY)
       exact commutes_fold_pfComm Z t X ht hX
 
+/-- An iterated commutator fold starting at zero remains zero. -/
 private theorem foldl_pfComm_zero {I : Type} [Fintype I] :
     ∀ (l : List (Matrix I I ℂ)), l.foldl (fun D Y => pfComm Y D) 0 = 0 := by
   intro l
@@ -95,15 +124,21 @@ private theorem foldl_pfComm_zero {I : Type} [Fintype I] :
       rw [show pfComm Y 0 = 0 by simp [pfComm]]
       exact ih
 
+/-- The property that each successive term support meets the union of the initial region and the
+preceding supports. -/
 def attachedAfter (F : Fin Λ → LocalTerm D Λ) :
     Finset (Fin Λ) → List (Fin Λ) → Prop
   | _, [] => True
   | S, i :: t => (F i).support ∩ S ≠ ∅ ∧ attachedAfter F ((F i).support ∪ S) t
 
+/-- The property that a word is empty or every support after the first attaches to the
+accumulated preceding supports. -/
 def IsSupportAttached (F : Fin Λ → LocalTerm D Λ) : List (Fin Λ) → Prop
   | [] => True
   | i :: t => attachedAfter F (F i).support t
 
+/-- Accumulating supports from an initial union `A ∪ B` equals adjoining `A` to the accumulation
+from `B`. -/
 private theorem nestedSupport_union (F : Fin Λ → LocalTerm D Λ) :
     ∀ (w : List (Fin Λ)) (A B : Finset (Fin Λ)),
       w.foldl (fun acc i => acc ∪ (F i).support) (A ∪ B)
@@ -116,6 +151,8 @@ private theorem nestedSupport_union (F : Fin Λ → LocalTerm D Λ) :
       simp only [List.foldl_cons]
       rw [Finset.union_assoc, ih A (B ∪ (F i).support)]
 
+/-- The accumulated support of `i :: t` is the union of the support of `i` with the accumulated
+support of `t`. -/
 theorem nestedSupport_cons (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ) (t : List (Fin Λ)) :
     nestedSupport F ∅ (i :: t) = (F i).support ∪ nestedSupport F ∅ t := by
   show (i :: t).foldl (fun acc k => acc ∪ (F k).support) ∅
@@ -125,6 +162,7 @@ theorem nestedSupport_cons (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ) (t : Lis
       Finset.union_comm ∅ (F i).support,
     nestedSupport_union F t (F i).support ∅]
 
+/-- The support of any label occurring in a word is contained in the word's accumulated support. -/
 theorem support_subset_nestedSupport (F : Fin Λ → LocalTerm D Λ) :
     ∀ (u : List (Fin Λ)) (k : Fin Λ), k ∈ u →
       (F k).support ⊆ nestedSupport F ∅ u := by
@@ -138,6 +176,8 @@ theorem support_subset_nestedSupport (F : Fin Λ → LocalTerm D Λ) :
       · rw [← hk']; exact fun a ha => Finset.mem_union.mpr (Or.inl ha)
       · exact (ih k hk').trans (fun a ha => Finset.mem_union.mpr (Or.inr ha))
 
+/-- Failure of successive attachment gives a decomposition with a term disjoint from the initial
+region and all preceding supports. -/
 theorem exists_detached_of_not_attachedAfter (F : Fin Λ → LocalTerm D Λ) :
     ∀ (t : List (Fin Λ)) (S : Finset (Fin Λ)),
       ¬ attachedAfter F S t →
@@ -165,6 +205,8 @@ theorem exists_detached_of_not_attachedAfter (F : Fin Λ → LocalTerm D Λ) :
         rw [hnil, Finset.union_empty]
         exact of_not_not hstep
 
+/-- For a family commuting on disjoint supports, every word with nonzero nested commutator has
+successively attached supports. -/
 theorem nested_ne_zero_imp_supportAttached (F : Fin Λ → LocalTerm D Λ)
     (hF : IsFiniteRangeFamily F) (w : List (Fin Λ))
     (hnz : pfNestedCommList (w.map (fun i => (F i).op)) ≠ 0) :
@@ -218,10 +260,12 @@ theorem nested_ne_zero_imp_supportAttached (F : Fin Λ → LocalTerm D Λ)
       rw [hzero]
       exact foldl_pfComm_zero _
 
+/-- The finite set of term labels whose supports intersect `S`. -/
 def meetingLabels (F : Fin Λ → LocalTerm D Λ) (S : Finset (Fin Λ)) :
     Finset (Fin Λ) :=
   Finset.univ.filter (fun i => (F i).support ∩ S ≠ ∅)
 
+/-- If each site belongs to at most `occ` supports, at most `occ * S.card` labels meet `S`. -/
 theorem meetingLabels_card_le (F : Fin Λ → LocalTerm D Λ) (occ : ℕ)
     (hocc : ∀ s : Fin Λ, (Finset.univ.filter (fun i => s ∈ (F i).support)).card ≤ occ)
     (S : Finset (Fin Λ)) :
@@ -247,6 +291,7 @@ theorem meetingLabels_card_le (F : Fin Λ → LocalTerm D Λ) (occ : ℕ)
     _ = S.card * occ := by rw [Finset.sum_const, Nat.nsmul_eq_mul]
     _ = occ * S.card := Nat.mul_comm _ _
 
+/-- Adjoining a set of size at most `d` that meets `S` increases cardinality by at most `d - 1`. -/
 theorem card_union_le_of_meets {d : ℕ} {S T : Finset (Fin Λ)}
     (hcard : T.card ≤ d) (hne : S ∩ T ≠ ∅) :
     (S ∪ T).card ≤ S.card + d - 1 := by
@@ -263,6 +308,8 @@ theorem card_union_le_of_meets {d : ℕ} {S T : Finset (Fin Λ)}
     omega
   omega
 
+/-- Successively adjoining supports of size at most `d` to `S` increases its size by at most `(d
+- 1)` times the word length. -/
 theorem attachedAfter_union_growth (F : Fin Λ → LocalTerm D Λ) (d : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d) :
     ∀ (t : List (Fin Λ)) (S : Finset (Fin Λ)), attachedAfter F S t →
@@ -288,6 +335,8 @@ theorem attachedAfter_union_growth (F : Fin Λ → LocalTerm D Λ) (d : ℕ)
         ring
       omega
 
+/-- An attached word of supports of size at most `d` has union cardinality at most `1 + (d - 1)
+* w.length`. -/
 theorem attached_union_card_le (F : Fin Λ → LocalTerm D Λ) (d : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d) {w : List (Fin Λ)}
     (hw : IsSupportAttached F w) :
@@ -306,6 +355,7 @@ theorem attached_union_card_le (F : Fin Λ → LocalTerm D Λ) (d : ℕ)
       have hxle : (F x).support.card ≤ 1 + (d - 1) := by omega
       omega
 
+/-- Every nonempty list can be written as a prefix followed by a singleton. -/
 private theorem exists_concat {α : Type} : ∀ (l : List α), l ≠ [] →
     ∃ (u : List α) (a : α), l = u ++ [a]
   | [], h => absurd rfl h
@@ -314,11 +364,14 @@ private theorem exists_concat {α : Type} : ∀ (l : List α), l ≠ [] →
       obtain ⟨u, c, h⟩ := exists_concat (b :: t) (List.cons_ne_nil b t)
       exact ⟨a :: u, c, by rw [h, List.cons_append]⟩
 
+/-- The finite set of all words of a given length over `Fin Λ`, constructed by appending one
+label at each step. -/
 def allWordsOfLength (Λ : ℕ) : ℕ → Finset (List (Fin Λ))
   | 0 => {[]}
   | k + 1 => (allWordsOfLength Λ k).biUnion
       (fun u => Finset.univ.image (fun i => u ++ [i]))
 
+/-- Membership in `allWordsOfLength Λ k` is equivalent to having length `k`. -/
 theorem mem_allWordsOfLength_iff {Λ : ℕ} :
     ∀ (k : ℕ) (w : List (Fin Λ)), w ∈ allWordsOfLength Λ k ↔ w.length = k := by
   intro k
@@ -353,6 +406,8 @@ theorem mem_allWordsOfLength_iff {Λ : ℕ} :
         · rw [Finset.mem_image]
           exact ⟨i, Finset.mem_univ i, hw.symm⟩
 
+/-- Successive attachment of a concatenated word implies successive attachment of its initial
+part. -/
 theorem attachedAfter_append_init (F : Fin Λ → LocalTerm D Λ) :
     ∀ (t₁ t₂ : List (Fin Λ)) (S : Finset (Fin Λ)),
       attachedAfter F S (t₁ ++ t₂) → attachedAfter F S t₁ := by
@@ -364,6 +419,8 @@ theorem attachedAfter_append_init (F : Fin Λ → LocalTerm D Λ) :
       rw [List.cons_append] at h
       exact ⟨h.1, ih t₂ ((F i).support ∪ S) h.2⟩
 
+/-- The last support of an attached extension meets the union of the initial region and the
+preceding word supports. -/
 theorem attachedAfter_append_last (F : Fin Λ → LocalTerm D Λ) :
     ∀ (t₁ : List (Fin Λ)) (i : Fin Λ) (S : Finset (Fin Λ)),
       attachedAfter F S (t₁ ++ [i]) →
@@ -384,6 +441,7 @@ theorem attachedAfter_append_last (F : Fin Λ → LocalTerm D Λ) :
         simp only [Finset.union_assoc, Finset.union_comm]
       rwa [hset] at hrec
 
+/-- Removing the final label from an attached word preserves attachment. -/
 theorem isSupportAttached_append_prefix (F : Fin Λ → LocalTerm D Λ) :
     ∀ (u : List (Fin Λ)) (i : Fin Λ),
       IsSupportAttached F (u ++ [i]) → IsSupportAttached F u := by
@@ -394,6 +452,8 @@ theorem isSupportAttached_append_prefix (F : Fin Λ → LocalTerm D Λ) :
       show attachedAfter F (F x).support u'
       exact attachedAfter_append_init F u' [i] (F x).support h
 
+/-- For a nonempty prefix, attachment after appending a label forces its support to meet the
+prefix support union. -/
 theorem isSupportAttached_append_meets (F : Fin Λ → LocalTerm D Λ) :
     ∀ (u : List (Fin Λ)) (i : Fin Λ), u ≠ [] →
       IsSupportAttached F (u ++ [i]) →
@@ -405,15 +465,19 @@ theorem isSupportAttached_append_meets (F : Fin Λ → LocalTerm D Λ) :
       rw [nestedSupport_cons]
       exact attachedAfter_append_last F u' i (F x).support h
 
+/-- The finite set of support-attached label words of length `k`. -/
 def attachedWordsOfLength (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     Finset (List (Fin Λ)) :=
   (allWordsOfLength Λ k).filter (fun w => IsSupportAttached F w)
 
+/-- The finite set of length-`k` label words whose associated nested commutators are nonzero. -/
 def nonzeroNestedWords (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     Finset (List (Fin Λ)) :=
   (allWordsOfLength Λ k).filter
     (fun w => pfNestedCommList (w.map (fun i => (F i).op)) ≠ 0)
 
+/-- For positive `k`, the number of attached words is at most `Λ` times the product of the
+occupancy and accumulated-support bounds over the remaining `k - 1` positions. -/
 theorem attachedWords_card_le (F : Fin Λ → LocalTerm D Λ) (d occ : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d)
     (hocc : ∀ s : Fin Λ, (Finset.univ.filter (fun i => s ∈ (F i).support)).card ≤ occ) :
@@ -532,6 +596,8 @@ theorem attachedWords_card_le (F : Fin Λ → LocalTerm D Λ) (d occ : ℕ)
           _ = Λ * ∏ j ∈ Finset.range ((m + 2) - 1), occ * (1 + (d - 1) * (j + 1)) := by
               rw [show (m + 2) - 1 = m + 1 by omega]
 
+/-- For a finite-range family and positive word length, the number of nonzero nested commutators
+satisfies the same support-size and occupancy product bound as attached words. -/
 theorem nonzeroNestedWords_card_le (F : Fin Λ → LocalTerm D Λ)
     (hF : IsFiniteRangeFamily F) (d occ : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d)
@@ -551,30 +617,41 @@ section Routing
 
 variable {D Λ : ℕ}
 
+/-- The wires whose contents under the assignment `ρ` lie in the site set `S`. -/
 def supportWires (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ)) : Finset (Fin Λ) :=
   Finset.univ.filter (fun w => ρ w ∈ S)
 
+/-- The wires in `Fin Λ` with indices in the half-open interval from `a` to `a + s`. -/
 def wireInterval (Λ a s : ℕ) : Finset (Fin Λ) :=
   Finset.univ.filter (fun w => a ≤ w.val ∧ w.val < a + s)
 
+/-- A wire belongs to `wireInterval Λ a s` exactly when its index is at least `a` and less than
+`a + s`. -/
 theorem mem_wireInterval_iff {Λ a s : ℕ} {w : Fin Λ} :
     w ∈ wireInterval Λ a s ↔ a ≤ w.val ∧ w.val < a + s := by
   simp [wireInterval]
 
+/-- The wire assignment obtained by exchanging the contents of `w₁` and `w₂`. -/
 def wireSwapContents (w₁ w₂ : Fin Λ) (ρ : Fin Λ → Fin Λ) : Fin Λ → Fin Λ :=
   fun w => if w = w₁ then ρ w₂ else if w = w₂ then ρ w₁ else ρ w
 
+/-- The function exchanging wires `w₁` and `w₂` and fixing all other wires. -/
 def wireSwapFn (w₁ w₂ : Fin Λ) : Fin Λ → Fin Λ :=
   fun w => if w = w₁ then w₂ else if w = w₂ then w₁ else w
 
+/-- The wire permutation represented by a list of swaps, with the head transposition composed on
+the left. -/
 def swapWordFn : List (Fin Λ × Fin Λ) → Fin Λ → Fin Λ
   | [] => id
   | p :: rest => wireSwapFn p.1 p.2 ∘ swapWordFn rest
 
+/-- The assignment obtained by applying a list of content swaps in list order. -/
 def swapWordApply : List (Fin Λ × Fin Λ) → (Fin Λ → Fin Λ) → Fin Λ → Fin Λ
   | [], ρ => ρ
   | p :: rest, ρ => swapWordApply rest (wireSwapContents p.1 p.2 ρ)
 
+/-- Swapping wire contents equals precomposing the assignment with the corresponding wire
+transposition. -/
 private theorem wireSwapContents_apply (w₁ w₂ : Fin Λ) (ρ : Fin Λ → Fin Λ)
     (w : Fin Λ) : wireSwapContents w₁ w₂ ρ w = ρ (wireSwapFn w₁ w₂ w) := by
   unfold wireSwapContents wireSwapFn
@@ -584,6 +661,8 @@ private theorem wireSwapContents_apply (w₁ w₂ : Fin Λ) (ρ : Fin Λ → Fin
     · rw [if_neg h1, if_pos h2, if_pos h2, if_neg h1]
     · rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
 
+/-- Applying a swap word to an assignment evaluates as the original assignment composed with
+`swapWordFn`. -/
 theorem swapWordApply_apply (W : List (Fin Λ × Fin Λ)) (ρ : Fin Λ → Fin Λ)
     (w : Fin Λ) : swapWordApply W ρ w = ρ (swapWordFn W w) := by
   induction W generalizing ρ w with
@@ -593,12 +672,15 @@ theorem swapWordApply_apply (W : List (Fin Λ × Fin Λ)) (ρ : Fin Λ → Fin �
         wireSwapContents_apply p.1 p.2 ρ (swapWordFn rest w), swapWordFn,
         Function.comp_apply]
 
+/-- The permutation of a concatenated swap word is the composition of the permutations of its
+two parts. -/
 theorem swapWordFn_append (W₁ W₂ : List (Fin Λ × Fin Λ)) :
     swapWordFn (W₁ ++ W₂) = swapWordFn W₁ ∘ swapWordFn W₂ := by
   induction W₁ with
   | nil => rfl
   | cons p t ih => rw [List.cons_append, swapWordFn, swapWordFn, ih]; rfl
 
+/-- Exchanging the same pair of wires twice fixes every wire. -/
 theorem wireSwapFn_involution (w₁ w₂ : Fin Λ) (w : Fin Λ) :
     wireSwapFn w₁ w₂ (wireSwapFn w₁ w₂ w) = w := by
   unfold wireSwapFn
@@ -614,6 +696,7 @@ theorem wireSwapFn_involution (w₁ w₂ : Fin Λ) (w : Fin Λ) :
       · exact absurd h3 h2
       · rw [if_neg h1, if_neg h3]
 
+/-- Every wire transposition is bijective. -/
 theorem wireSwapFn_bijective (w₁ w₂ : Fin Λ) :
     Function.Bijective (wireSwapFn w₁ w₂) := by
   constructor
@@ -624,12 +707,14 @@ theorem wireSwapFn_bijective (w₁ w₂ : Fin Λ) :
   · intro b
     exact ⟨wireSwapFn w₁ w₂ b, wireSwapFn_involution w₁ w₂ b⟩
 
+/-- The wire function of every swap word is bijective. -/
 theorem swapWordFn_bijective (W : List (Fin Λ × Fin Λ)) :
     Function.Bijective (swapWordFn W) := by
   induction W with
   | nil => exact Function.bijective_id
   | cons p t ih => rw [swapWordFn]; exact (wireSwapFn_bijective p.1 p.2).comp ih
 
+/-- A wire absent from both endpoints of every swap is fixed by the swap word. -/
 theorem swapWordFn_eq_of_untouched : ∀ (W : List (Fin Λ × Fin Λ)) (w : Fin Λ),
     (∀ p ∈ W, p.1 ≠ w ∧ p.2 ≠ w) → swapWordFn W w = w := by
   intro W
@@ -645,6 +730,7 @@ theorem swapWordFn_eq_of_untouched : ∀ (W : List (Fin Λ × Fin Λ)) (w : Fin 
         if_neg (Fin.ne_of_val_ne (by
           have := h p (List.mem_cons_self ..); omega))]
 
+/-- A swap word using only endpoints at or above `M` fixes all wires below `M`. -/
 theorem swapWordFn_low_fix : ∀ (W : List (Fin Λ × Fin Λ)) (M : ℕ),
     (∀ p ∈ W, M ≤ p.1.val ∧ M ≤ p.2.val) →
     ∀ w : Fin Λ, w.val < M → swapWordFn W w = w := by
@@ -659,6 +745,8 @@ theorem swapWordFn_low_fix : ∀ (W : List (Fin Λ × Fin Λ)) (M : ℕ),
         if_neg (Fin.ne_of_val_ne (by omega)),
         if_neg (Fin.ne_of_val_ne (by omega))]
 
+/-- A swap word using only endpoints at or above `M` maps every wire at or above `M` to that
+region. -/
 theorem swapWordFn_high_preserve : ∀ (W : List (Fin Λ × Fin Λ)) (M : ℕ),
     (∀ p ∈ W, M ≤ p.1.val ∧ M ≤ p.2.val) →
     ∀ w : Fin Λ, M ≤ w.val → M ≤ (swapWordFn W w).val := by
@@ -684,6 +772,8 @@ theorem swapWordFn_high_preserve : ∀ (W : List (Fin Λ × Fin Λ)) (M : ℕ),
       · rw [hcase]; exact hp.1
       · rw [hcase]; exact hp.2
 
+/-- A bijective wire assignment preserves the cardinality of each support when expressed as
+occupied wires. -/
 theorem supportWires_card (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (S : Finset (Fin Λ)) : (supportWires ρ S).card = S.card := by
   classical
@@ -703,12 +793,15 @@ theorem supportWires_card (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
         (Finset.card_image_of_injOn (fun a _ b _ hab => hρ.1 hab)).symm
     _ = S.card := by rw [himg]
 
+/-- The embedding of `Fin s` into `Fin Λ` sending `j` to `a + j`, given that the interval fits. -/
 private def intervalFin (Λ a s : ℕ) (_h : a + s ≤ Λ) (j : Fin s) : Fin Λ :=
   ⟨a + j.val, by have := j.isLt; omega⟩
 
+/-- The index of the interval embedding of `j` is `a + j.val`. -/
 private theorem intervalFin_val {Λ a s : ℕ} (h : a + s ≤ Λ) (j : Fin s) :
     (intervalFin Λ a s h j).val = a + j.val := rfl
 
+/-- An interval starting at `a` with length `s` has cardinality `s` when `a + s ≤ Λ`. -/
 theorem wireInterval_card (Λ a s : ℕ) (h : a + s ≤ Λ) :
     (wireInterval Λ a s).card = s := by
   classical
@@ -738,6 +831,7 @@ theorem wireInterval_card (Λ a s : ℕ) (h : a + s ≤ Λ) :
       omega),
     Finset.card_univ, Fintype.card_fin]
 
+/-- Two wire intervals are disjoint when the first ends at or before the start of the second. -/
 theorem wireInterval_disjoint (Λ a₁ s₁ a₂ s₂ : ℕ) (h : a₁ + s₁ ≤ a₂) :
     Disjoint (wireInterval Λ a₁ s₁) (wireInterval Λ a₂ s₂) := by
   rw [Finset.disjoint_iff_ne]
@@ -746,26 +840,32 @@ theorem wireInterval_disjoint (Λ a₁ s₁ a₂ s₂ : ℕ) (h : a₁ + s₁ �
   obtain ⟨hm3, hm4⟩ := mem_wireInterval_iff.mp hw2
   exact Fin.ne_of_val_ne (by omega)
 
+/-- The least wire index carrying a site of `S`, with default value zero when no such wire
+exists. -/
 def minWire (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ)) : ℕ :=
   if h : (supportWires ρ S).Nonempty then ((supportWires ρ S).min' h).val else 0
 
+/-- Under a bijective assignment, a nonempty support occupies a nonempty set of wires. -/
 theorem supportWires_nonempty (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (S : Finset (Fin Λ)) (hS : S.Nonempty) : (supportWires ρ S).Nonempty := by
   obtain ⟨s, hs⟩ := hS
   obtain ⟨w, hw⟩ := hρ.2 s
   exact ⟨w, Finset.mem_filter.mpr ⟨Finset.mem_univ w, hw.symm ▸ hs⟩⟩
 
+/-- The least occupied wire index is at most the index of any occupied wire. -/
 theorem minWire_le (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (hne : (supportWires ρ S).Nonempty) {w : Fin Λ} (hw : w ∈ supportWires ρ S) :
     minWire ρ S ≤ w.val := by
   rw [minWire, dif_pos hne]
   exact Fin.le_def.mp ((supportWires ρ S).min'_le w hw)
 
+/-- For a nonempty occupied-wire set, its least index is less than `Λ`. -/
 theorem minWire_lt (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (hne : (supportWires ρ S).Nonempty) : minWire ρ S < Λ := by
   rw [minWire, dif_pos hne]
   exact ((supportWires ρ S).min' hne).isLt
 
+/-- The wire with index `minWire ρ S` belongs to the nonempty occupied-wire set. -/
 theorem minWire_mem (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (hne : (supportWires ρ S).Nonempty) :
     (⟨minWire ρ S, minWire_lt ρ S hne⟩ : Fin Λ) ∈ supportWires ρ S := by
@@ -773,6 +873,8 @@ theorem minWire_mem (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
   convert! h using 1
   simp only [minWire, dif_pos hne]
 
+/-- For a bijective assignment and nonempty support, the interval starting at its least wire and
+having its cardinality fits within `Fin Λ`. -/
 theorem minWire_fit (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (S : Finset (Fin Λ)) (hS : S.Nonempty) : minWire ρ S + S.card ≤ Λ := by
   classical
@@ -802,6 +904,7 @@ theorem minWire_fit (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
   rw [hTcard, Finset.card_range] at hle
   omega
 
+/-- The first component of an entry in a zipped list belongs to the left list. -/
 private theorem mem_zip_left {α β : Type} : ∀ (l₁ : List α) (l₂ : List β)
     (p : α × β), p ∈ l₁.zip l₂ → p.1 ∈ l₁
   | [], _, _, hp => by simp at hp
@@ -811,6 +914,7 @@ private theorem mem_zip_left {α β : Type} : ∀ (l₁ : List α) (l₂ : List 
       · exact hp' ▸ List.mem_cons_self ..
       · exact List.mem_cons_of_mem _ (mem_zip_left t₁ t₂ p hp')
 
+/-- The second component of an entry in a zipped list belongs to the right list. -/
 private theorem mem_zip_right {α β : Type} : ∀ (l₁ : List α) (l₂ : List β)
     (p : α × β), p ∈ l₁.zip l₂ → p.2 ∈ l₂
   | [], _, _, hp => by simp at hp
@@ -820,10 +924,13 @@ private theorem mem_zip_right {α β : Type} : ∀ (l₁ : List α) (l₂ : List
       · exact hp' ▸ List.mem_cons_self ..
       · exact List.mem_cons_of_mem _ (mem_zip_right t₁ t₂ p hp')
 
+/-- Swapping two wire contents leaves the contents of every other wire unchanged. -/
 private theorem wireSwapContents_of_ne (ρ : Fin Λ → Fin Λ) (h x w : Fin Λ)
     (w1 : w ≠ h) (w2 : w ≠ x) : wireSwapContents h x ρ w = ρ w := by
   rw [wireSwapContents, if_neg w1, if_neg w2]
 
+/-- Swapping a wire outside the support with a wire inside it replaces the latter occupied wire
+by the former. -/
 private theorem supportWires_single_swap (S : Finset (Fin Λ)) (ρ : Fin Λ → Fin Λ)
     (h x : Fin Λ) (hρh : ρ h ∉ S) (hρx : ρ x ∈ S) :
     supportWires (wireSwapContents h x ρ) S
@@ -857,6 +964,8 @@ private theorem supportWires_single_swap (S : Finset (Fin Λ)) (ρ : Fin Λ → 
         · exact absurd hc hw1
         · exact hc.2
 
+/-- Swapping paired distinct holes and occupied wires replaces the listed occupied wires by the
+listed holes, under the stated equal-length and disjointness conditions. -/
 theorem supportWires_swap_zip (S : Finset (Fin Λ)) :
     ∀ (hs xs : List (Fin Λ)) (ρ : Fin Λ → Fin Λ),
       hs.length = xs.length → hs.Nodup → xs.Nodup →
@@ -927,21 +1036,26 @@ theorem supportWires_swap_zip (S : Finset (Fin Λ)) :
             exact hnt' (hwh ▸ hmem)
           tauto
 
+/-- A wire occupies support `S` exactly when its assigned site lies in `S`. -/
 theorem mem_supportWires_iff {ρ : Fin Λ → Fin Λ} {S : Finset (Fin Λ)} {w : Fin Λ} :
     w ∈ supportWires ρ S ↔ ρ w ∈ S := by
   rw [supportWires, Finset.mem_filter]
   exact ⟨fun h => h.2, fun h => ⟨Finset.mem_univ _, h⟩⟩
 
+/-- The list representation of a finite wire set has length equal to its cardinality. -/
 private theorem finset_toList_length (s : Finset (Fin Λ)) : s.toList.length = s.card := by
   rw [Finset.toList, Multiset.length_toList]
   rfl
 
+/-- Applying a concatenated swap word is equivalent to applying its first part and then its
+second part. -/
 theorem swapWordApply_append (W₁ W₂ : List (Fin Λ × Fin Λ)) (ρ : Fin Λ → Fin Λ) :
     swapWordApply (W₁ ++ W₂) ρ = swapWordApply W₂ (swapWordApply W₁ ρ) := by
   induction W₁ generalizing ρ with
   | nil => rfl
   | cons p t ih => rw [List.cons_append, swapWordApply, swapWordApply, ih]
 
+/-- Applying any swap word preserves bijectivity of a wire assignment. -/
 theorem swapWordApply_bijective (W : List (Fin Λ × Fin Λ)) (ρ : Fin Λ → Fin Λ)
     (hρ : Function.Bijective ρ) : Function.Bijective (swapWordApply W ρ) := by
   have hfun : swapWordApply W ρ = ρ ∘ swapWordFn W :=
@@ -949,10 +1063,14 @@ theorem swapWordApply_bijective (W : List (Fin Λ × Fin Λ)) (ρ : Fin Λ → F
   rw [hfun]
   exact hρ.comp (swapWordFn_bijective W)
 
+/-- The swap list pairing holes in the target interval with occupied support wires outside that
+interval. -/
 def gatherSwapPairs (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ)) : List (Fin Λ × Fin Λ) :=
   ((wireInterval Λ (minWire ρ S) S.card \ supportWires ρ S).toList).zip
     ((supportWires ρ S \ wireInterval Λ (minWire ρ S) S.card).toList)
 
+/-- For a nonempty support under a bijective assignment, the target interval has as many holes
+as there are occupied wires outside it. -/
 theorem gatherSwapPairs_holes_outside (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (S : Finset (Fin Λ)) (hS : S.Nonempty) :
     ((wireInterval Λ (minWire ρ S) S.card \ supportWires ρ S).toList).length
@@ -962,6 +1080,7 @@ theorem gatherSwapPairs_holes_outside (ρ : Fin Λ → Fin Λ) (hρ : Function.B
     wireInterval_card Λ (minWire ρ S) S.card (minWire_fit ρ hρ S hS),
     Finset.inter_comm]
 
+/-- The least occupied wire belongs both to the support wires and to their target interval. -/
 theorem anchor_mem_inter (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (S : Finset (Fin Λ)) (hS : S.Nonempty) :
     (⟨minWire ρ S, minWire_lt ρ S (supportWires_nonempty ρ hρ S hS)⟩ : Fin Λ)
@@ -972,6 +1091,8 @@ theorem anchor_mem_inter (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
   show minWire ρ S ≤ minWire ρ S ∧ minWire ρ S < minWire ρ S + S.card
   omega
 
+/-- An occupied wire outside the target interval lies at or beyond the interval's upper
+endpoint. -/
 theorem outsideWire_ge (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
     (hne : (supportWires ρ S).Nonempty) {w : Fin Λ} (hw : w ∈ supportWires ρ S)
     (hni : w ∉ wireInterval Λ (minWire ρ S) S.card) :
@@ -980,6 +1101,8 @@ theorem outsideWire_ge (ρ : Fin Λ → Fin Λ) (S : Finset (Fin Λ))
   rw [mem_wireInterval_iff] at hni
   omega
 
+/-- Under distinctness, disjointness, and sufficient right-list length, each left endpoint of a
+zipped swap word is mapped to some right endpoint. -/
 theorem swapWordFn_zip_apply_left (hs : List (Fin Λ)) :
     ∀ (xs : List (Fin Λ)) (_hlen : hs.length ≤ xs.length),
       hs.Nodup → xs.Nodup → (∀ h ∈ hs, ∀ x ∈ xs, h ≠ x) →
@@ -1025,6 +1148,8 @@ theorem swapWordFn_zip_apply_left (hs : List (Fin Λ)) :
               if_neg e1, if_neg e2]
             exact ⟨xk, List.mem_cons_of_mem _ hxk, rfl⟩
 
+/-- Under distinctness, disjointness, and sufficient left-list length, each right endpoint of a
+zipped swap word is mapped to some left endpoint. -/
 theorem swapWordFn_zip_apply_right (xs : List (Fin Λ)) :
     ∀ (hs : List (Fin Λ)) (_hlen : xs.length ≤ hs.length),
       hs.Nodup → xs.Nodup → (∀ h ∈ hs, ∀ x ∈ xs, h ≠ x) →
@@ -1072,6 +1197,8 @@ theorem swapWordFn_zip_apply_right (xs : List (Fin Λ)) :
               if_neg e2, if_neg e1]
             exact ⟨hk, List.mem_cons_of_mem _ hhk, rfl⟩
 
+/-- Gathering a nonempty support uses fewer swaps than its cardinality, fills its target
+interval exactly, and pairs only target holes with occupied wires outside. -/
 theorem gatherSwapPairs_spec (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (S : Finset (Fin Λ)) (hS : S.Nonempty) :
     (gatherSwapPairs ρ S).length + 1 ≤ S.card
@@ -1130,6 +1257,8 @@ theorem gatherSwapPairs_spec (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective 
       exact ⟨Finset.mem_toList.mp (mem_zip_left _ _ p hp),
              Finset.mem_toList.mp (mem_zip_right _ _ p hp)⟩
 
+/-- Gathering a support with least anchor among two disjoint nonempty supports leaves all wires
+of the other support beyond the gathered interval. -/
 theorem gatherSwapPairs_other_low (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (Sstar Si : Finset (Fin Λ)) (hSstar : Sstar.Nonempty) (hSi : Si.Nonempty)
     (hdisj : Disjoint Sstar Si)
@@ -1207,6 +1336,8 @@ theorem gatherSwapPairs_other_low (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijec
       rw [mem_wireInterval_iff] at hwI
       omega
 
+/-- In a list without duplicates, membership after erasing `a` implies original membership and
+inequality with `a`. -/
 private theorem mem_erase_imp {Λ : ℕ} : ∀ (l : List (Fin Λ)) (a b : Fin Λ),
     l.Nodup → b ∈ l.erase a → b ≠ a ∧ b ∈ l := by
   intro l
@@ -1230,6 +1361,7 @@ private theorem mem_erase_imp {Λ : ℕ} : ∀ (l : List (Fin Λ)) (a b : Fin Λ
         · have this := ih a b (List.nodup_cons.mp hndup).2 h'
           exact ⟨this.1, List.mem_cons_of_mem _ this.2⟩
 
+/-- A list member distinct from the erased element remains in the erased list. -/
 private theorem mem_of_ne_erase {Λ : ℕ} {l : List (Fin Λ)} {a x : Fin Λ}
     (hx : x ∈ l) (hxa : x ≠ a) : x ∈ l.erase a := by
   induction l with
@@ -1249,6 +1381,8 @@ private theorem mem_of_ne_erase {Λ : ℕ} {l : List (Fin Λ)} {a x : Fin Λ}
         · exact h' ▸ List.mem_cons_self ..
         · exact List.mem_cons_of_mem _ (ih h')
 
+/-- For a duplicate-free list containing `a`, its finite set is obtained by inserting `a` into
+the finite set of the erased list. -/
 private theorem toFinset_erase_insert {Λ : ℕ} {l : List (Fin Λ)} {a : Fin Λ}
     (hndup : l.Nodup) (h : a ∈ l) : l.toFinset = insert a (l.erase a).toFinset := by
   classical
@@ -1265,6 +1399,8 @@ private theorem toFinset_erase_insert {Λ : ℕ} {l : List (Fin Λ)} {a : Fin Λ
     · exact hx ▸ h
     · exact (mem_erase_imp l a x hndup hx).2
 
+/-- A duplicate-free layer of disjoint nonempty supports above frontier `M` can be gathered into
+disjoint intervals using the stated swap budget and only wires at or above `M`. -/
 private theorem layer_compile_aux {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
     ∀ (n : ℕ) (l : List (Fin Λ)) (ρ : Fin Λ → Fin Λ) (M : ℕ),
       (∀ i ∈ l, ∀ j ∈ l, i ≠ j → Disjoint (F i).support (F j).support) →
@@ -1466,6 +1602,8 @@ end Routing
 
 end Attached
 
+/-- A duplicate-free layer of pairwise disjoint nonempty supports can be routed into disjoint
+consecutive intervals with at most `clause52LayerRouteSwaps F l` swaps. -/
 theorem frontier1 {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (l : List (Fin Λ))
     (ρ : Fin Λ → Fin Λ)
     (hF : ∀ i ∈ l, ∀ j ∈ l, i ≠ j → Disjoint (F i).support (F j).support)
@@ -1484,6 +1622,8 @@ theorem frontier1 {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (l : List (Fin Λ
       (fun _ _ _ _ => Nat.zero_le _)
   refine ⟨W, anchor, hlen, fun i hi => ⟨(hfinal i hi).1, (hfinal i hi).2.2⟩, hdisj⟩
 
+/-- Every layer in `clause52Schedule F L` can be routed within its swap budget so that its
+nonempty supports occupy pairwise disjoint consecutive intervals. -/
 theorem frontier1_layers {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
     (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (l : List (Fin Λ)) (hl : l ∈ clause52Schedule F L) :

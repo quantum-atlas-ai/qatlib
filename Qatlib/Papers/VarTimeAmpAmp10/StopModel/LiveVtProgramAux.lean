@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgram
+
+/-!
+# Semantics and cost of live program words
+
+This module proves matrix composition, adjoint, legality, and access-time laws for `DataVtStep`
+words. It identifies `liveAAWord` with prepared amplitude amplification and establishes legality
+and normalization of scheduled cascade prefixes.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `liveAAWord_matrix`: matrix semantics of live amplification.
+* `cascadeWord_time`: exact recursive access time.
+* `cascadeWord_legal` and `cascadeWord_normalized`: cascade validity.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +45,8 @@ open Matrix
 open scoped Classical
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- Folding instruction matrices from an accumulator equals the word matrix multiplied by that
+accumulator. -/
 private theorem dataVtFold_acc (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (word : List DataVtStep)
     (A : Matrix (VtSpace C) (VtSpace C) ℂ) :
@@ -41,9 +64,12 @@ private theorem dataVtFold_acc (stages : List (Matrix (VtSpace C) (VtSpace C) �
       rw [ih, mul_one]
     rw [hc, mul_assoc]
 
+/-- The matrix of the empty data-register word is the identity. -/
 @[simp] theorem dataVtWordMatrix_nil (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) : dataVtWordMatrix stages history j₀ [] = 1 := rfl
 
+/-- The matrix of a concatenated word is the matrix of the second word multiplied by that of the
+first. -/
 theorem dataVtWordMatrix_append (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (u v : List DataVtStep) :
     dataVtWordMatrix stages history j₀ (u++v) =
@@ -51,11 +77,14 @@ theorem dataVtWordMatrix_append (stages : List (Matrix (VtSpace C) (VtSpace C) �
   rw [dataVtWordMatrix, List.foldl_append, dataVtFold_acc]
   rfl
 
+/-- The matrix of a singleton word is the matrix of its instruction. -/
 @[simp] theorem dataVtWordMatrix_singleton (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (s : DataVtStep) :
     dataVtWordMatrix stages history j₀ [s] = dataVtStepMatrix stages history j₀ s := by
   simp [dataVtWordMatrix]
 
+/-- Every legal instruction has a unitary matrix when the stage sequence is growing-history
+legal. -/
 theorem dataVtStepMatrix_unitary (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (s : DataVtStep) (hs : DataVtStepLegal stages s) :
@@ -73,6 +102,8 @@ theorem dataVtStepMatrix_unitary (stages : List (Matrix (VtSpace C) (VtSpace C) 
   | liveReflection => exact hmark _
   | reachedReflection i => exact hmark _
 
+/-- Every legal data-register word has a unitary matrix for a growing-history legal stage
+sequence. -/
 theorem dataVtWordMatrix_unitary (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (word : List DataVtStep) (hw : DataVtWordLegal stages word) :
@@ -85,17 +116,22 @@ theorem dataVtWordMatrix_unitary (stages : List (Matrix (VtSpace C) (VtSpace C) 
       (ih (fun t ht => hw t (List.mem_cons_of_mem s ht)))
       (dataVtStepMatrix_unitary stages history j₀ hl s (hw s List.mem_cons_self))
 
+/-- Replacing an instruction by its inverse preserves its access time. -/
 @[simp] theorem dataVtStepTime_inverse (s : DataVtStep) :
     dataVtStepTime (dataVtStepInverse s) = dataVtStepTime s := by cases s <;> rfl
 
+/-- Inverting a data-register word preserves its access time. -/
 theorem dataVtWordTime_inverse (word : List DataVtStep) :
     dataVtWordTime (dataVtWordInverse word) = dataVtWordTime word := by
   simp [dataVtWordTime, dataVtWordInverse, List.map_reverse, List.map_map, Function.comp_def]
 
+/-- Access time is additive under concatenation of data-register words. -/
 @[simp] theorem dataVtWordTime_append (u v : List DataVtStep) :
     dataVtWordTime (u++v) = dataVtWordTime u+dataVtWordTime v := by
   simp [dataVtWordTime]
 
+/-- The access time of `k` live amplification rounds with preparation is `2 * k + 1` times the
+preparation time. -/
 theorem liveAAWord_time (word : List DataVtStep) (k : ℕ) :
     dataVtWordTime (liveAAWord word k) = (2*k+1)*dataVtWordTime word := by
   have hr : dataVtWordTime (liveAARound word) = 2*dataVtWordTime word := by
@@ -111,16 +147,21 @@ theorem liveAAWord_time (word : List DataVtStep) (k : ℕ) :
   rw [liveAAWord, dataVtWordTime_append, hf, hr]
   ring
 
+/-- The next cascade's access time is the previous time plus the next dyadic stage time,
+multiplied by the scheduled odd amplification factor. -/
 theorem cascadeWord_time (schedule : ℕ → ℕ) (i : ℕ) :
     dataVtWordTime (cascadeWord schedule (i+1)) =
       (2*schedule i+1)*(dataVtWordTime (cascadeWord schedule i)+2^i) := by
   rw [cascadeWord, liveAAWord_time, dataVtWordTime_append]
   rfl
 
+/-- The marking matrix of a finite set is self-adjoint. -/
 private theorem data_mark_selfadjoint (S : Finset (VtSpace C)) :
     (preparedMark S)ᴴ = preparedMark S := by
   simp [preparedMark, projector_conjTranspose]
 
+/-- The matrix of an inverse instruction is the conjugate transpose of the original instruction
+matrix. -/
 theorem dataVtStepMatrix_inverse (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (s : DataVtStep) :
     dataVtStepMatrix stages history j₀ (dataVtStepInverse s) =
@@ -134,6 +175,7 @@ theorem dataVtStepMatrix_inverse (stages : List (Matrix (VtSpace C) (VtSpace C) 
   | liveReflection => exact (data_mark_selfadjoint _).symm
   | reachedReflection i => exact (data_mark_selfadjoint _).symm
 
+/-- The matrix of an inverse word is the conjugate transpose of the original word matrix. -/
 theorem dataVtWordMatrix_inverse (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (word : List DataVtStep) :
     dataVtWordMatrix stages history j₀ (dataVtWordInverse word) =
@@ -149,6 +191,7 @@ theorem dataVtWordMatrix_inverse (stages : List (Matrix (VtSpace C) (VtSpace C) 
 
 omit [DecidableEq C] in
 
+/-- Inverting a legal data-register word preserves legality. -/
 theorem dataVtWordInverse_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (word : List DataVtStep) (hw : DataVtWordLegal stages word) :
     DataVtWordLegal stages (dataVtWordInverse word) := by
@@ -157,6 +200,8 @@ theorem dataVtWordInverse_legal (stages : List (Matrix (VtSpace C) (VtSpace C) �
   have h := hw t (List.mem_reverse.mp ht)
   cases t <;> exact h
 
+/-- The matrix of one live amplification round equals the prepared amplification iterate for the
+word matrix and live set. -/
 theorem liveAARound_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (word : List DataVtStep) :
     dataVtWordMatrix stages history j₀ (liveAARound word) =
@@ -165,6 +210,8 @@ theorem liveAARound_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     dataVtWordMatrix_inverse, dataVtStepMatrix, preparedAAIterate]
   noncomm_ring
 
+/-- The live amplification word has matrix equal to the `k`th power of the prepared iterate
+followed by the preparation matrix. -/
 theorem liveAAWord_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (word : List DataVtStep) (k : ℕ) :
     dataVtWordMatrix stages history j₀ (liveAAWord word k) =
@@ -180,6 +227,8 @@ theorem liveAAWord_matrix (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
   exact (dataVtWordMatrix_append stages history j₀ _ _).trans (congrArg
     (fun A => A*dataVtWordMatrix stages history j₀ word) (hr k))
 
+/-- For legal stages and preparation, the live amplification word produces the state of the
+corresponding prepared amplitude-amplification circuit. -/
 theorem liveAAWord_state (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (word : List DataVtStep) (hw : DataVtWordLegal stages word) (k : ℕ) :
@@ -192,6 +241,7 @@ theorem liveAAWord_state (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 
 omit [DecidableEq C] in
 
+/-- Live amplification of a legal preparation word remains legal for every number of rounds. -/
 theorem liveAAWord_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (word : List DataVtStep) (hw : DataVtWordLegal stages word) (k : ℕ) :
     DataVtWordLegal stages (liveAAWord word k) := by
@@ -212,6 +262,7 @@ theorem liveAAWord_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 
 omit [DecidableEq C] in
 
+/-- Every cascade prefix whose length is at most the stage count is a legal data-register word. -/
 theorem cascadeWord_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (schedule : ℕ → ℕ) (i : ℕ) (hi : i ≤ stages.length) :
     DataVtWordLegal stages (cascadeWord schedule i) := by
@@ -226,6 +277,8 @@ theorem cascadeWord_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
       subst s
       exact (by omega : i < stages.length)
 
+/-- For a growing-history legal stage sequence, every valid cascade prefix sends the source ket
+to a normalized state. -/
 theorem cascadeWord_normalized (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (hl : GrowingVtLegal stages history)
     (schedule : ℕ → ℕ) (i : ℕ) (hi : i ≤ stages.length) :

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationStat
 import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+
+/-!
+# Amplitude amplification words and exact costs
+
+Proves the matrix action and resource counts of `aaWord`, starting from a legal word, a
+normalized seed state, and an orthogonal good-state projector. The proof reduces the
+one-dimensional clock space to the underlying state space and establishes the two-component
+rotation formula, including zero and unit success amplitude cases.
+
+`Clause5ActualNestedAmplification_answer` packages the projected sine law, legality, and exact
+call, gate, and weighted query costs used in the amplification construction of [LowSu2026].
+
+## Main statements
+
+* `round_orbit`: computes the good and bad components after repeated amplification rounds.
+* `sine_law`: gives the projected amplified state through `gainLoss`.
+* `Clause5ActualNestedAmplification_answer`: proves the amplification action and cost contract.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,9 +50,12 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Restricts a matrix on the state space with a singleton clock to its underlying state-space
+entries. -/
 private def projH {H : Type} (M : Matrix (Space H 1) (Space H 1) ℂ) : Matrix H H ℂ :=
   fun h h' => M (h, (0 : Fin 1)) (h', (0 : Fin 1))
 
+/-- Restriction to the singleton clock commutes with matrix multiplication. -/
 private theorem projH_mul {H : Type} [Fintype H] [DecidableEq H]
     (M N : Matrix (Space H 1) (Space H 1) ℂ) :
     projH (M * N) = projH M * projH N := by
@@ -44,11 +70,14 @@ private theorem projH_mul {H : Type} [Fintype H] [DecidableEq H]
   rw [Finset.sum_congr rfl fun x _ => hk x]
   rfl
 
+/-- Restriction to the singleton clock commutes with a product of five matrices. -/
 private theorem projH_mul5 {H : Type} [Fintype H] [DecidableEq H]
     (A B C D E : Matrix (Space H 1) (Space H 1) ℂ) :
     projH (A * B * C * D * E) = projH A * projH B * projH C * projH D * projH E := by
   rw [projH_mul, projH_mul, projH_mul, projH_mul]
 
+/-- The restriction of the identity on the singleton-clock space is the identity on the state
+space. -/
 private theorem projH_one {H : Type} [Fintype H] [DecidableEq H] :
     projH (1 : Matrix (Space H 1) (Space H 1) ℂ) = (1 : Matrix H H ℂ) := by
   ext h h'
@@ -57,6 +86,7 @@ private theorem projH_one {H : Type} [Fintype H] [DecidableEq H] :
     simp [projH]
   · simp [projH, hh]
 
+/-- Restriction to the singleton clock commutes with conjugate transpose. -/
 private theorem projH_conjTranspose {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix (Space H 1) (Space H 1) ℂ) :
     projH (Mᴴ) = (projH M)ᴴ := by
@@ -64,6 +94,7 @@ private theorem projH_conjTranspose {H : Type} [Fintype H] [DecidableEq H]
   show star (M (h', (0 : Fin 1)) (h, (0 : Fin 1))) = star (M (h', (0 : Fin 1)) (h, (0 : Fin 1)))
   rfl
 
+/-- The restriction of minus the identity is minus the state-space identity. -/
 private theorem projH_neg_one {H : Type} [Fintype H] [DecidableEq H] :
     projH (-1 : Matrix (Space H 1) (Space H 1) ℂ) = (-1 : Matrix H H ℂ) := by
   ext h h'
@@ -72,6 +103,8 @@ private theorem projH_neg_one {H : Type} [Fintype H] [DecidableEq H] :
     simp [projH]
   · simp [projH, hh]
 
+/-- Restricting an operator controlled on the entire singleton clock recovers the operator
+itself. -/
 private theorem projH_controlled_univ {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) :
     projH (controlled U Finset.univ) = U := by
@@ -81,6 +114,8 @@ private theorem projH_controlled_univ {H : Type} [Fintype H] [DecidableEq H]
     = U h h'
   simp
 
+/-- The restriction of a unitary singleton-clock matrix multiplied by its conjugate transpose is
+the identity. -/
 private theorem projH_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix (Space H 1) (Space H 1) ℂ) (hM : M ∈ Matrix.unitaryGroup (Space H 1) ℂ) :
     projH M * (projH M)ᴴ = 1 := by
@@ -91,6 +126,8 @@ private theorem projH_mul_conjTranspose {H : Type} [Fintype H] [DecidableEq H]
   rw [projH_mul, projH_conjTranspose, projH_one] at key
   exact key
 
+/-- The conjugate transpose of the restriction of a unitary singleton-clock matrix multiplied by
+the restriction is the identity. -/
 private theorem projH_conjTranspose_mul {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix (Space H 1) (Space H 1) ℂ) (hM : M ∈ Matrix.unitaryGroup (Space H 1) ℂ) :
     (projH M)ᴴ * projH M = 1 := by
@@ -99,6 +136,7 @@ private theorem projH_conjTranspose_mul {H : Type} [Fintype H] [DecidableEq H]
   rw [projH_mul, projH_conjTranspose, projH_one] at key
   exact key
 
+/-- The clock state of a word is the restricted word matrix applied to the seed state. -/
 private theorem clockState_eq_projH {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (C : Word H 1) (ω : QState H) :
     clockState U C ω = projH (wordMatrix U C) *ᵥ ω := by
@@ -119,6 +157,7 @@ private theorem clockState_eq_projH {H : Type} [Fintype H] [DecidableEq H]
   rw [Finset.sum_congr rfl fun x _ => hk x]
   rfl
 
+/-- Legal words with unitary oracle slots preserve normalization of the seed state. -/
 private theorem normalized_clockState {H : Type} [Fintype H] [DecidableEq H]
     (slots : ℕ) (U : ℕ → Matrix H H ℂ) (C : Word H 1) (ω : QState H)
     (hU : ∀ j < slots, U j ∈ Matrix.unitaryGroup H ℂ)
@@ -135,17 +174,21 @@ private theorem normalized_clockState {H : Type} [Fintype H] [DecidableEq H]
   rw [Finset.sum_congr rfl fun x _ => hk x] at hsum
   exact hsum
 
+/-- The matrix of the empty singleton-clock word is the identity. -/
 private theorem wordMatrix_nil {H : Type} [Fintype H] [DecidableEq H]
     (oracles : ℕ → Matrix H H ℂ) : wordMatrix oracles ([] : Word H 1) = 1 := by
   unfold wordMatrix
   simp
 
+/-- The matrix of a word containing one known gate is that gate's matrix. -/
 private theorem wordMatrix_singleton_known {H : Type} [Fintype H] [DecidableEq H]
     (oracles : ℕ → Matrix H H ℂ) (V : Matrix (Space H 1) (Space H 1) ℂ) :
     wordMatrix oracles [.known V] = V := by
   unfold wordMatrix
   simp
 
+/-- The matrix of five concatenated words is the product of their matrices in reverse execution
+order. -/
 private theorem wordMatrix_append5 {H : Type} [Fintype H] [DecidableEq H]
     (oracles : ℕ → Matrix H H ℂ) (A B C D E : Word H 1) :
     wordMatrix oracles (A ++ B ++ C ++ D ++ E)
@@ -154,21 +197,26 @@ private theorem wordMatrix_append5 {H : Type} [Fintype H] [DecidableEq H]
   rw [wordMatrix_append, wordMatrix_append, wordMatrix_append, wordMatrix_append]
   simp only [mul_assoc]
 
+/-- A singleton known-gate word makes no calls to any oracle slot. -/
 private theorem calls_singleton_known {H : Type} {r : ℕ}
     (V : Matrix (Space H r) (Space H r) ℂ) (j : ℕ) :
     calls [.known V] j = 0 := rfl
 
+/-- A singleton known-gate word has gate count one. -/
 private theorem gateCount_singleton_known {H : Type} {r : ℕ}
     (V : Matrix (Space H r) (Space H r) ℂ) :
     gateCount [.known V] = 1 := rfl
 
+/-- A singleton known-gate word has zero weighted oracle cost. -/
 private theorem weightedCost_singleton_known {H : Type} {r : ℕ}
     (prices : ℕ → ℕ) (V : Matrix (Space H r) (Space H r) ℂ) :
     weightedCost prices [.known V] = 0 := rfl
 
+/-- Gate count is additive under word concatenation. -/
 private theorem gateCount_append {H : Type} {r : ℕ} (C D : Word H r) :
     gateCount (C ++ D) = gateCount C + gateCount D := List.countP_append
 
+/-- Weighted oracle cost is additive under word concatenation. -/
 private theorem weightedCost_append {H : Type} {r : ℕ}
     (prices : ℕ → ℕ) (C D : Word H r) :
     weightedCost prices (C ++ D) = weightedCost prices C + weightedCost prices D := by
@@ -178,6 +226,7 @@ private theorem weightedCost_append {H : Type} {r : ℕ}
         + ((D.map (fun (s : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H r) => match s with | .call j _ _ => prices j | _ => 0)).sum)
   rw [List.map_append, List.sum_append]
 
+/-- Taking the adjoint of a word preserves its gate count. -/
 private theorem gateCount_wordAdjoint {H : Type} {r : ℕ} (C : Word H r) :
     gateCount (wordAdjoint C) = gateCount C := by
   have hdef : ∀ D : Word H r, gateCount D =
@@ -190,6 +239,7 @@ private theorem gateCount_wordAdjoint {H : Type} {r : ℕ} (C : Word H r) :
   | known V => rfl
   | call i T a => rfl
 
+/-- Taking the adjoint of a word preserves its weighted oracle cost. -/
 private theorem weightedCost_wordAdjoint {H : Type} {r : ℕ}
     (prices : ℕ → ℕ) (C : Word H r) :
     weightedCost prices (wordAdjoint C) = weightedCost prices C := by
@@ -208,6 +258,7 @@ private theorem weightedCost_wordAdjoint {H : Type} {r : ℕ}
     | true => rfl
     | false => rfl
 
+/-- A concatenation is legal exactly when both component words are legal. -/
 private theorem legal_append {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     (slots : ℕ) (C D : Word H r) :
     legal slots (C ++ D) ↔ legal slots C ∧ legal slots D := by
@@ -220,6 +271,7 @@ private theorem legal_append {H : Type} [Fintype H] [DecidableEq H] {r : ℕ}
     · exact h.1 t ht
     · exact h.2 t ht
 
+/-- A singleton known gate is legal when its matrix is unitary. -/
 private theorem legal_singleton_known {H : Type} [Fintype H] [DecidableEq H]
     (slots : ℕ) (V : Matrix (Space H 1) (Space H 1) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Space H 1) ℂ) : legal slots [.known V] := by
@@ -228,22 +280,28 @@ private theorem legal_singleton_known {H : Type} [Fintype H] [DecidableEq H]
   subst ht'
   exact hV
 
+/-- Minus the identity matrix is unitary. -/
 private theorem neg_one_unitary {n : Type} [Fintype n] [DecidableEq n] :
     (-1 : Matrix n n ℂ) ∈ Matrix.unitaryGroup n ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
   show (-1 : Matrix n n ℂ) * star (-1) = 1
   rw [star_neg, star_one, neg_mul_neg, one_mul]
 
+/-- One amplification round, built from the good reflection, the adjoint preparation word, the
+seed reflection, the preparation word, and a final minus identity. -/
 private def aaRound {H : Type} [Fintype H] [DecidableEq H]
     (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) : Word H 1 :=
   ([.known (controlled (ReflectionAbout G) Finset.univ)] ++ wordAdjoint B ++
       [.known (controlled (ReflectionAbout (seedProjector ω)) Finset.univ)] ++ B ++
       [.known (-1)] : Word H 1)
 
+/-- The amplified word consists of the preparation word followed by `s` concatenated
+amplification rounds. -/
 private theorem aaWord_eq {H : Type} [Fintype H] [DecidableEq H]
     (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) (s : ℕ) :
     aaWord B ω G s = B ++ (List.replicate s (aaRound B ω G)).flatten := rfl
 
+/-- One amplification round calls each oracle slot twice as often as the preparation word. -/
 private theorem calls_aaRound {H : Type} [Fintype H] [DecidableEq H]
     (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) (j : ℕ) :
     calls (aaRound B ω G) j = 2 * calls B j := by
@@ -254,6 +312,7 @@ private theorem calls_aaRound {H : Type} [Fintype H] [DecidableEq H]
     calls_singleton_known, calls_singleton_known, calls_singleton_known]
   ring
 
+/-- One amplification round has gate count `2 * gateCount B + 3`. -/
 private theorem gateCount_aaRound {H : Type} [Fintype H] [DecidableEq H]
     (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) :
     gateCount (aaRound B ω G) = 2 * gateCount B + 3 := by
@@ -265,6 +324,7 @@ private theorem gateCount_aaRound {H : Type} [Fintype H] [DecidableEq H]
     gateCount_wordAdjoint]
   ring
 
+/-- One amplification round has twice the weighted oracle cost of the preparation word. -/
 private theorem weightedCost_aaRound {H : Type} [Fintype H] [DecidableEq H]
     (prices : ℕ → ℕ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) :
     weightedCost prices (aaRound B ω G) = 2 * weightedCost prices B := by
@@ -277,6 +337,8 @@ private theorem weightedCost_aaRound {H : Type} [Fintype H] [DecidableEq H]
     weightedCost_wordAdjoint]
   ring
 
+/-- An amplification round is legal when its preparation word is legal, the seed is normalized,
+and the good matrix is an orthogonal projector. -/
 private theorem legal_aaRound {H : Type} [Fintype H] [DecidableEq H]
     (slots : ℕ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ)
     (hG : IsOrthogonalProjector G) (hω : Normalized ω) (hB : legal slots B) :
@@ -312,6 +374,8 @@ private theorem legal_aaRound {H : Type} [Fintype H] [DecidableEq H]
   · subst h
     exact neg_one_unitary
 
+/-- Concatenating `s` identical amplification rounds multiplies every oracle-slot call count by
+`s`. -/
 private theorem calls_flatten_replicate {H : Type} [Fintype H] [DecidableEq H]
     (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) (s j : ℕ) :
     calls ((List.replicate s (aaRound B ω G)).flatten) j = s * calls (aaRound B ω G) j := by
@@ -324,6 +388,7 @@ private theorem calls_flatten_replicate {H : Type} [Fintype H] [DecidableEq H]
     rw [List.replicate_succ, List.flatten_cons, calls_append, ih]
     ring
 
+/-- Concatenating `s` identical amplification rounds multiplies their gate count by `s`. -/
 private theorem gateCount_flatten_replicate {H : Type} [Fintype H] [DecidableEq H]
     (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) (s : ℕ) :
     gateCount ((List.replicate s (aaRound B ω G)).flatten) = s * gateCount (aaRound B ω G) := by
@@ -336,6 +401,8 @@ private theorem gateCount_flatten_replicate {H : Type} [Fintype H] [DecidableEq 
     rw [List.replicate_succ, List.flatten_cons, gateCount_append, ih]
     ring
 
+/-- Concatenating `s` identical amplification rounds multiplies their weighted oracle cost by
+`s`. -/
 private theorem weightedCost_flatten_replicate {H : Type} [Fintype H] [DecidableEq H]
     (prices : ℕ → ℕ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) (s : ℕ) :
     weightedCost prices ((List.replicate s (aaRound B ω G)).flatten)
@@ -349,6 +416,7 @@ private theorem weightedCost_flatten_replicate {H : Type} [Fintype H] [Decidable
     rw [List.replicate_succ, List.flatten_cons, weightedCost_append, ih]
     ring
 
+/-- Any finite concatenation of a legal amplification round is legal. -/
 private theorem legal_flatten_replicate {H : Type} [Fintype H] [DecidableEq H]
     (slots : ℕ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ) (s : ℕ)
     (h : legal slots (aaRound B ω G)) :
@@ -361,10 +429,13 @@ private theorem legal_flatten_replicate {H : Type} [Fintype H] [DecidableEq H]
     rw [List.replicate_succ, List.flatten_cons, legal_append]
     exact ⟨h, ih⟩
 
+/-- The amplification operator given by minus the product of the reflection about `ψ` and the
+reflection about `G`. -/
 private def roundOp {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) : Matrix H H ℂ :=
   -((ReflectionAbout (outerProduct ψ)) * (ReflectionAbout G))
 
+/-- Conjugating the outer product of `φ` by any matrix `A` gives the outer product of `A *ᵥ φ`. -/
 private theorem outerProduct_conj {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (φ : QState I) :
     A * outerProduct φ * Aᴴ = outerProduct (A *ᵥ φ) := by
@@ -378,14 +449,18 @@ private theorem outerProduct_conj {I : Type} [Fintype I] [DecidableEq I]
   conv_rhs => rw [star_mul]
   ring
 
+/-- The seed projector is the outer product of the seed vector with itself. -/
 private theorem seedProjector_eq_outerProduct {H : Type} (ω : QState H) :
     seedProjector ω = outerProduct ω := pureDensity_eq_outerProduct ω
 
+/-- Reassociates a product of five matrices to group its middle three factors. -/
 private theorem mul5_reassoc {n : Type} [Fintype n] [DecidableEq n]
     (A B C D E : Matrix n n ℂ) :
     A * B * C * D * E = A * (B * C * D) * E := by
   simp only [mul_assoc]
 
+/-- The restricted matrix of one legal amplification round equals `roundOp` for the prepared
+state and good projector. -/
 private theorem projH_wordMatrix_aaRound {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ)
     (_hG : IsOrthogonalProjector G) (slots : ℕ)
@@ -434,6 +509,8 @@ private theorem projH_wordMatrix_aaRound {H : Type} [Fintype H] [DecidableEq H]
   exact (neg_eq_neg_one_mul
     (ReflectionAbout (outerProduct (clockState U B ω)) * ReflectionAbout G)).symm
 
+/-- The restricted matrix of `s` repeated legal amplification rounds is the `s`th power of
+`roundOp`. -/
 private theorem projH_wordMatrix_flatten {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ)
     (hG : IsOrthogonalProjector G) (slots : ℕ)
@@ -450,6 +527,8 @@ private theorem projH_wordMatrix_flatten {H : Type} [Fintype H] [DecidableEq H]
     rw [List.replicate_succ, List.flatten_cons, wordMatrix_append, projH_mul, hR, ih]
     exact (pow_succ (roundOp (clockState U B ω) G) s).symm
 
+/-- The amplified clock state is the `s`th power of the round operator applied to the prepared
+state. -/
 private theorem clockState_aaWord {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ)
     (hG : IsOrthogonalProjector G) (slots : ℕ)
@@ -459,47 +538,60 @@ private theorem clockState_aaWord {H : Type} [Fintype H] [DecidableEq H]
   rw [aaWord_eq, clockState_eq_projH, wordMatrix_append, projH_mul, ← Matrix.mulVec_mulVec,
     projH_wordMatrix_flatten U B ω G hG slots hU hB s, ← clockState_eq_projH]
 
+/-- The state inner product is additive in its first argument. -/
 private theorem inner_add_left' {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (ψ + φ) χ = Qatlib.Foundations.PureStateMath.Inner ψ χ + Qatlib.Foundations.PureStateMath.Inner φ χ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.add_apply, Pi.star_apply, RCLike.star_def, map_add,
     add_mul, Finset.sum_add_distrib]
 
+/-- The inner product of the zero state with any state is zero. -/
 private theorem inner_zero_left' {I : Type} [Fintype I] (φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (0 : QState I) φ = 0 := by
   simp [Qatlib.Foundations.PureStateMath.Inner]
 
+/-- The inner product of any state with the zero state is zero. -/
 private theorem inner_zero_right' {I : Type} [Fintype I] (ψ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (0 : QState I) = 0 := by
   simp [Qatlib.Foundations.PureStateMath.Inner]
 
+/-- Reversing the arguments of the state inner product takes its complex conjugate. -/
 private theorem inner_conj_symm' {I : Type} [Fintype I] (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ φ = star (Qatlib.Foundations.PureStateMath.Inner φ ψ) := by
   rw [inner_apply, inner_apply, star_sum]
   exact Finset.sum_congr rfl fun i _ => by
     rw [Complex.star_def, map_mul, starRingEnd_self_apply, mul_comm]
 
+/-- The state inner product is additive in its second argument. -/
 private theorem inner_add_right' {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (φ + χ) = Qatlib.Foundations.PureStateMath.Inner ψ φ + Qatlib.Foundations.PureStateMath.Inner ψ χ := by
   rw [inner_conj_symm' ψ (φ + χ), inner_add_left', star_add,
     ← inner_conj_symm' ψ φ, ← inner_conj_symm' ψ χ]
 
+/-- Moving a matrix from the second argument of the inner product to the first replaces it by
+its conjugate transpose. -/
 private theorem inner_mulVec_conjTranspose_right' {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (A *ᵥ φ) = Qatlib.Foundations.PureStateMath.Inner (Aᴴ *ᵥ ψ) φ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner]
   rw [Matrix.dotProduct_mulVec, Matrix.star_mulVec, Matrix.conjTranspose_conjTranspose]
 
+/-- Moving a matrix from the first argument of the inner product to the second replaces it by
+its conjugate transpose. -/
 private theorem inner_mulVec_left' {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (A *ᵥ ψ) φ = Qatlib.Foundations.PureStateMath.Inner ψ (Aᴴ *ᵥ φ) := by
   rw [inner_conj_symm', inner_mulVec_conjTranspose_right', inner_conj_symm', star_star]
 
+/-- The inner product of a state with itself is the complex cast of its squared vector norm. -/
 private theorem inner_self_eq_normVec_sq {I : Type} [Fintype I] (ψ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ ψ = (((normVec ψ) ^ 2 : ℝ) : ℂ) := by
   rw [inner_self, ← Complex.ofReal_sum]
   congr 1
   exact (norm_toEuclidean_fromVec_sq ψ).symm
 
+/-- For a normalized state and orthogonal projector, the good and bad components sum to the
+state, are orthogonal, and have squared norms equal to the success probability and its
+complement. -/
 private theorem good_bad_geometry {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) (hψ : Normalized ψ) :
     let g := G *ᵥ ψ
@@ -565,6 +657,7 @@ private theorem good_bad_geometry {H : Type} [Fintype H] [DecidableEq H]
     nlinarith [h, sq_nonneg (normVec g - 1), hgnonneg]
   exact ⟨hsum, horth, horth2, hgg, hbb, hψg, hψb, hgnonneg, hgle⟩
 
+/-- Reflection about an orthogonal projector fixes the projected good component. -/
 private theorem reflection_good_fixed {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) :
     ReflectionAbout G *ᵥ (G *ᵥ ψ) = G *ᵥ ψ := by
@@ -572,6 +665,7 @@ private theorem reflection_good_fixed {H : Type} [Fintype H] [DecidableEq H]
   show G *ᵥ (G *ᵥ ψ) = G *ᵥ ψ
   rw [Matrix.mulVec_mulVec, hG.1]
 
+/-- Reflection about an orthogonal projector negates the complementary bad component. -/
 private theorem reflection_bad_neg {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) :
     ReflectionAbout G *ᵥ (((1 : Matrix H H ℂ) - G) *ᵥ ψ) = -(((1 : Matrix H H ℂ) - G) *ᵥ ψ) := by
@@ -579,6 +673,8 @@ private theorem reflection_bad_neg {H : Type} [Fintype H] [DecidableEq H]
   show G *ᵥ (((1 : Matrix H H ℂ) - G) *ᵥ ψ) = 0
   rw [Matrix.mulVec_mulVec, mul_sub, mul_one, hG.1, sub_self, Matrix.zero_mulVec]
 
+/-- Computes the action of one amplification round on the good and bad components in terms of
+the squared good amplitude. -/
 private theorem round_two_component {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) (hψ : Normalized ψ) :
     let g := G *ᵥ ψ
@@ -619,6 +715,7 @@ private theorem round_two_component {H : Type} [Fintype H] [DecidableEq H]
     module
   exact ⟨hstepg, hstepb⟩
 
+/-- The cosine of an angle strictly between zero and `π / 2` is positive. -/
 private theorem cos_pos_of_lt_half_pi {θ : ℝ} (h0 : 0 < θ) (h1 : θ < Real.pi / 2) :
     0 < Real.cos θ := by
   have hsin : 0 < Real.sin (Real.pi / 2 - θ) :=
@@ -626,6 +723,8 @@ private theorem cos_pos_of_lt_half_pi {θ : ℝ} (h0 : 0 < θ) (h1 : θ < Real.p
   rw [Real.sin_pi_div_two_sub θ] at hsin
   exact hsin
 
+/-- Combines two linear combinations of the same good and bad vectors using the supplied scalar
+coefficient identities. -/
 private theorem two_component_comb {V : Type} [AddCommMonoid V] [Module ℂ V]
     (bad good : V) (r1 r2 c1 c2 c3 c4 α' β' : ℂ)
     (h1 : r1 * c1 + r2 * c3 = α') (h2 : r1 * c2 + r2 * c4 = β') :
@@ -637,6 +736,8 @@ private theorem two_component_comb {V : Type} [AddCommMonoid V] [Module ℂ V]
     abel
   rw [hsplit, h1, h2]
 
+/-- The bad-component coefficient recurrence advances the rotation angle from `x` to `x + 2 *
+θ`, when `cos θ` is nonzero. -/
 private theorem orbit_coef_bad (θ x : ℝ) (_hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) :
     (Real.cos x / Real.cos θ) * (1 - 2 * (Real.sin θ) ^ 2)
       + (Real.sin x / Real.sin θ) * (-2 * (Real.sin θ) ^ 2)
@@ -648,6 +749,8 @@ private theorem orbit_coef_bad (θ x : ℝ) (_hs : Real.sin θ ≠ 0) (hc : Real
   rw [Real.cos_add, Real.cos_two_mul, Real.sin_two_mul, h1]
   ring
 
+/-- The good-component coefficient recurrence advances the rotation angle from `x` to `x + 2 *
+θ`, when `sin θ` is nonzero. -/
 private theorem orbit_coef_good (θ x : ℝ) (hs : Real.sin θ ≠ 0) (_hc : Real.cos θ ≠ 0) :
     (Real.cos x / Real.cos θ) * (2 * (1 - (Real.sin θ) ^ 2))
       + (Real.sin x / Real.sin θ) * (1 - 2 * (Real.sin θ) ^ 2)
@@ -662,6 +765,8 @@ private theorem orbit_coef_good (θ x : ℝ) (hs : Real.sin θ ≠ 0) (_hc : Rea
   rw [Real.sin_add, Real.cos_two_mul, Real.sin_two_mul, h1, h2]
   ring
 
+/-- For an angle strictly between zero and `π / 2` with the specified squared sine, expresses
+the state after `k` rounds using cosine and sine ratios at angle `(2 * k + 1) * θ`. -/
 private theorem round_orbit {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) (hψ : Normalized ψ)
     (θ : ℝ) (k : ℕ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -701,6 +806,8 @@ private theorem round_orbit {H : Type} [Fintype H] [DecidableEq H]
     · exact_mod_cast orbit_coef_bad θ ((2 * (k : ℝ) + 1) * θ) hs hc
     · exact_mod_cast orbit_coef_good θ ((2 * (k : ℝ) + 1) * θ) hs hc
 
+/-- Under the rotation-angle hypotheses, the good projection after `k` rounds is multiplied by
+`sin ((2 * k + 1) * θ) / sin θ`. -/
 private theorem good_amplified {H : Type} [Fintype H] [DecidableEq H]
     (ψ : QState H) (G : Matrix H H ℂ) (hG : IsOrthogonalProjector G) (hψ : Normalized ψ)
     (θ : ℝ) (k : ℕ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -715,6 +822,7 @@ private theorem good_amplified {H : Type} [Fintype H] [DecidableEq H]
     rw [Matrix.mulVec_mulVec, hG.1]
   simp only [hGb, hGg, smul_zero, zero_add]
 
+/-- For nonzero `a`, multiplying `gainLoss ρ a` by `ρ` gives `sin (ρ * arcsin a) / a`. -/
 private theorem gainLoss_mul (ρ : ℕ) (a : ℝ) (ha : a ≠ 0) :
     ((ρ : ℝ) * gainLoss ρ a) = Real.sin ((ρ : ℝ) * Real.arcsin a) / a := by
   unfold gainLoss
@@ -725,6 +833,8 @@ private theorem gainLoss_mul (ρ : ℕ) (a : ℝ) (ha : a ≠ 0) :
   · have hρ0 : (ρ : ℝ) ≠ 0 := by exact_mod_cast (Nat.pos_iff_ne_zero.mp hρ)
     field_simp [ha, hρ0]
 
+/-- For nonzero amplitude, rewrites the complex amplification coefficient through the
+corresponding sine ratio. -/
 private theorem coeff_eq (s : ℕ) (a : ℝ) (ha : a ≠ 0) :
     (((2 * s + 1 : ℕ) : ℂ) * (((gainLoss (2 * s + 1) a : ℝ) : ℂ)))
       = (((Real.sin (((2 * s + 1 : ℕ) : ℝ) * Real.arcsin a) / a : ℝ) : ℂ)) := by
@@ -733,6 +843,7 @@ private theorem coeff_eq (s : ℕ) (a : ℝ) (ha : a ≠ 0) :
   congr 1
   exact gainLoss_mul (2 * s + 1) a ha
 
+/-- A state with vector norm zero is the zero state. -/
 private theorem normVec_eq_zero {I : Type} [Fintype I] (v : QState I) :
     normVec v = 0 → v = 0 := by
   intro h
@@ -745,12 +856,14 @@ private theorem normVec_eq_zero {I : Type} [Fintype I] (v : QState I) :
   have := hi i
   exact norm_eq_zero.mp (pow_eq_zero_iff (two_ne_zero) |>.mp this)
 
+/-- If a matrix fixes a state, every natural power of the matrix fixes that state. -/
 private theorem pow_mulVec_fix {n : Type} [Fintype n] [DecidableEq n]
     (Q : Matrix n n ℂ) (x : QState n) (h : Q *ᵥ x = x) (k : ℕ) : Q ^ k *ᵥ x = x := by
   induction k with
   | zero => simp
   | succ k ih => rw [pow_succ', ← Matrix.mulVec_mulVec, ih, h]
 
+/-- If a matrix negates a state, its `k`th power multiplies the state by `(-1) ^ k`. -/
 private theorem pow_mulVec_neg {n : Type} [Fintype n] [DecidableEq n]
     (Q : Matrix n n ℂ) (x : QState n) (h : Q *ᵥ x = -x) (k : ℕ) :
     Q ^ k *ᵥ x = (((-1 : ℂ) ^ k)) • x := by
@@ -760,6 +873,7 @@ private theorem pow_mulVec_neg {n : Type} [Fintype n] [DecidableEq n]
     rw [pow_succ', ← Matrix.mulVec_mulVec, ih, Matrix.mulVec_smul, h,
       ← neg_one_smul ℂ x, smul_smul, ← pow_succ]
 
+/-- The sine of `(2 * s + 1) * π / 2` is `(-1) ^ s`. -/
 private theorem sin_nat_mul_pi_div_two (s : ℕ) :
     Real.sin (((2 * s + 1 : ℕ) : ℝ) * (Real.pi / 2)) = ((-1 : ℝ) ^ s) := by
   have h : (((2 * s + 1 : ℕ) : ℝ) * (Real.pi / 2))
@@ -767,6 +881,9 @@ private theorem sin_nat_mul_pi_div_two (s : ℕ) :
   rw [h, Real.sin_add, Real.sin_pi_div_two, Real.cos_pi_div_two, mul_zero, zero_add, mul_one]
   exact Real.cos_nat_mul_pi s
 
+/-- For a legal preparation word, unitary oracle slots, normalized seed, and orthogonal good
+projector, the amplified good state is the original good state multiplied by `(2 * s + 1) *
+gainLoss (2 * s + 1) a`. -/
 private theorem sine_law {H : Type} [Fintype H] [DecidableEq H]
     (slots : ℕ) (U : ℕ → Matrix H H ℂ) (B : Word H 1) (ω : QState H) (G : Matrix H H ℂ)
     (s : ℕ) (hU : ∀ j < slots, U j ∈ Matrix.unitaryGroup H ℂ)
@@ -876,6 +993,9 @@ private theorem sine_law {H : Type} [Fintype H] [DecidableEq H]
       exact_mod_cast hre
     rw [hscalar]
 
+/-- Establishes legality, the projected amplification sine law, and exact oracle, gate, and
+weighted query costs under the no-overshoot hypothesis for `aaWord`; see [Low and Su,
+Definition 2][LowSu2026]. -/
 theorem Clause5ActualNestedAmplification_answer : Clause5ActualNestedAmplification := by
   intro H _instF _instD slots U B ω G s hU hlegal hω hG ψ a _hangle
   refine ⟨?_, ?_, ?_, ?_, ?_⟩

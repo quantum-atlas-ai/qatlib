@@ -207,6 +207,30 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoa
 import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesDiscriminationSubgoalStat
 import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
+
+/-!
+# Oracle phase conventions and readout specifications
+
+This module defines the diagonal probability phase operator, converts its radian phase to the
+Fourier gradient convention, and defines the signed `readoutDecoder`. These interfaces support
+numerical gradient estimation in the setting of [Jordan2005Gradient].
+
+The two specification propositions package value kickback semantics, probability phase
+implementation and perturbation bounds, and actual Fourier readout guarantees, including
+accuracy, dyadic outputs, and resource counts.
+
+## Main statements
+
+* `probabilityPhaseOperator`: diagonal coefficients `exp (i * p x)`.
+* `probabilityReadoutPhase`: division by `2 * π` for the gradient phase convention.
+* `stageB_gradient_oracle_clause2_spec` and `stageB_gradient_oracle_clause8_spec`: oracle and
+  readout contracts.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -236,16 +260,22 @@ open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 
+/-- The diagonal operator with coefficient `exp (i * p x)` at each basis label. -/
 noncomputable def probabilityPhaseOperator {X : Type} [Fintype X] [DecidableEq X]
     (p : X → ℝ) : Matrix X X ℂ :=
   Matrix.diagonal (fun x => Complex.exp (Complex.I * (p x : ℂ)))
 
+/-- Converts a phase measured in radians to the gradient phase convention by division by `2 *
+π`. -/
 noncomputable def probabilityReadoutPhase {X : Type} (p : X → ℝ) : X → ℝ :=
   fun x => p x / (2 * Real.pi)
 
+/-- Decodes each Fourier grid coordinate using its signed grid value. -/
 noncomputable def readoutDecoder {d M : ℕ} (z : GradientGrid d M) : Fin d → ℝ :=
   fun j => signedGridValue M (z j)
 
+/-- The specification combining value kickback semantics and costs, phase perturbation bounds,
+probability phase semantics, and framed probability phase implementation. -/
 def stageB_gradient_oracle_clause2_spec : Prop :=
   (∀ (d M Q : ℕ) [NeZero Q] (v : GradientGrid d M → ZMod Q) (x : GradientGrid d M),
       (evaluate (gradientValueOracle Q v) (valueComputeKickbackUncomputeWord d M Q)) *ᵥ
@@ -291,6 +321,9 @@ def stageB_gradient_oracle_clause2_spec : Prop :=
                   (probabilityPhaseOperator (probabilityMass U a₀ good) *ᵥ ψ))‖
             ≤ (1/2 : ℝ)^k * ‖toEuclidean_fromVec ψ‖)
 
+/-- The specification combining the actual Fourier readout word, signed decoding accuracy, joint
+success probability, dyadic outputs, a zero precision obstruction, and bit and circuit
+ledgers. -/
 def stageB_gradient_oracle_clause8_spec : Prop :=
   (∀ (d M : ℕ) (hM : 0 < M) (φ : GradientGrid d M → ℝ),
       gradientReadout d M hM φ =

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.Spectral
 import Mathlib.Order.Interval.Finset.Nat
+
+/-!
+# Centered lattice coordinates and box counts
+
+This module equips periodic lattice indices with absolute centered coordinates and a maximum
+coordinate norm. It compares dispersion with this norm and bounds the number of lattice points
+in a centered box, providing estimates for the lattice sums in [ChildsGoldstone2004].
+
+It also defines reciprocal-square differences and proves their telescoping and decay bounds.
+
+## Main statements
+
+* `dispersion_ge_maxNorm_sq` and `inv_dispersion_le`: dispersion estimates in terms of the
+  maximum coordinate norm.
+* `telescope` and `dfun_le`: reciprocal-square telescoping and cubic decay.
+* `card_le_box`: at most `(2 * s + 1) ^ d` lattice indices have maximum norm at most `s`.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,15 +40,22 @@ open Finset
 
 variable {d : ℕ}
 
+/-- The natural absolute values of the centered integer representatives of a periodic lattice
+index. -/
 def coordNat (n : ℕ) (m : Fin d → ZMod n) : Fin d → ℕ := fun j => (m j).valMinAbs.natAbs
 
+/-- The maximum absolute centered coordinate of a periodic lattice index, with value zero when
+there are no coordinates. -/
 def maxNorm (n : ℕ) (m : Fin d → ZMod n) : ℕ :=
   (Finset.univ : Finset (Fin d)).sup (fun j => coordNat n m j)
 
+/-- Each absolute centered coordinate is bounded by the maximum coordinate norm. -/
 theorem coordNat_le_maxNorm (n : ℕ) (m : Fin d → ZMod n) (j : Fin d) :
     coordNat n m j ≤ maxNorm n m :=
   Finset.le_sup (Finset.mem_univ j)
 
+/-- For nonzero side length, the maximum coordinate norm vanishes exactly at the zero lattice
+index. -/
 theorem maxNorm_eq_zero_iff {n : ℕ} [NeZero n] (m : Fin d → ZMod n) :
     maxNorm n m = 0 ↔ m = 0 := by
   constructor
@@ -45,6 +74,8 @@ theorem maxNorm_eq_zero_iff {n : ℕ} [NeZero n] (m : Fin d → ZMod n) :
     intro j _
     simp [coordNat]
 
+/-- For nonzero side length and dimension, twice the maximum absolute centered coordinate is at
+most the side length. -/
 theorem maxNorm_le_half {n : ℕ} [NeZero n] [NeZero d] (m : Fin d → ZMod n) :
     2 * maxNorm n m ≤ n := by
   have hd : 0 < d := Nat.pos_of_ne_zero (NeZero.ne d)
@@ -57,16 +88,22 @@ theorem maxNorm_le_half {n : ℕ} [NeZero n] [NeZero d] (m : Fin d → ZMod n) :
   have hc : coordNat n m j * 2 ≤ n := hc0
   omega
 
+/-- For nonzero side length and dimension, the maximum coordinate norm is at most the side
+length. -/
 theorem maxNorm_le_n {n : ℕ} [NeZero n] [NeZero d] (m : Fin d → ZMod n) : maxNorm n m ≤ n := by
   have := maxNorm_le_half m
   omega
 
+/-- A nonzero lattice index has maximum coordinate norm at least one when the side length is
+nonzero. -/
 theorem maxNorm_pos_of_ne_zero {n : ℕ} [NeZero n] {m : Fin d → ZMod n} (hm : m ≠ 0) :
     1 ≤ maxNorm n m := by
   rcases Nat.eq_zero_or_pos (maxNorm n m) with h | h
   · exact absurd (maxNorm_eq_zero_iff m |>.mp h) hm
   · exact h
 
+/-- In nonzero dimension, the square of the maximum coordinate norm is at most the sum of the
+squared absolute centered coordinates. -/
 theorem sq_maxNorm_le_sum [NeZero d] (n : ℕ) (m : Fin d → ZMod n) :
     ((maxNorm n m : ℝ)) ^ 2 ≤ ∑ j, ((coordNat n m j : ℕ) : ℝ) ^ 2 := by
   have hd : 0 < d := Nat.pos_of_ne_zero (NeZero.ne d)
@@ -80,6 +117,8 @@ theorem sq_maxNorm_le_sum [NeZero d] (n : ℕ) (m : Fin d → ZMod n) :
   rw [hmax]
   exact this
 
+/-- The square of a wave-vector coordinate equals `4 * Real.pi ^ 2 / n ^ 2` times the square of
+its absolute centered lattice coordinate. -/
 theorem waveVector_sq (n : ℕ) (m : Fin d → ZMod n) (j : Fin d) :
     (waveVector n m j) ^ 2
       = (4 * Real.pi ^ 2 / (n : ℝ) ^ 2) * ((coordNat n m j : ℕ) : ℝ) ^ 2 := by
@@ -90,6 +129,8 @@ theorem waveVector_sq (n : ℕ) (m : Fin d → ZMod n) (j : Fin d) :
   field_simp
   ring
 
+/-- For positive side length and nonzero dimension, the dispersion at a lattice wave vector is
+at least `16 / n ^ 2` times the square of the maximum coordinate norm. -/
 theorem dispersion_ge_maxNorm_sq {n : ℕ} [NeZero d] (hn : 0 < n) (m : Fin d → ZMod n) :
     (16 / (n : ℝ) ^ 2) * ((maxNorm n m : ℝ)) ^ 2 ≤ dispersion (waveVector n m) := by
   haveI : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
@@ -117,6 +158,8 @@ theorem dispersion_ge_maxNorm_sq {n : ℕ} [NeZero d] (hn : 0 < n) (m : Fin d �
     _ = (4 / Real.pi ^ 2) * ∑ j, (waveVector n m j) ^ 2 := by rw [hsum]
     _ ≤ dispersion (waveVector n m) := hbase
 
+/-- At a nonzero lattice index with positive side length and nonzero dimension, the inverse
+dispersion is at most `n ^ 2 / (16 * maxNorm n m ^ 2)`. -/
 theorem inv_dispersion_le {n : ℕ} [NeZero d] (hn : 0 < n) {m : Fin d → ZMod n} (hm : m ≠ 0) :
     (dispersion (waveVector n m))⁻¹
       ≤ (n : ℝ) ^ 2 / (16 * ((maxNorm n m : ℝ)) ^ 2) := by
@@ -133,16 +176,23 @@ theorem inv_dispersion_le {n : ℕ} [NeZero d] (hn : 0 < n) {m : Fin d → ZMod 
     field_simp
   rwa [heq] at this
 
+/-- The square of the real reciprocal of a natural index, using the totalized reciprocal at
+zero. -/
 def gfun (s : ℕ) : ℝ := ((s : ℝ))⁻¹ ^ 2
 
+/-- The difference between consecutive values of the reciprocal-square function `gfun`. -/
 def dfun (s : ℕ) : ℝ := gfun s - gfun (s + 1)
 
+/-- The reciprocal-square function `gfun` is nonnegative at every natural index. -/
 theorem gfun_nonneg (s : ℕ) : 0 ≤ gfun s := by unfold gfun; positivity
 
+/-- The value of `gfun s` is `1 / (s : ℝ) ^ 2`. -/
 theorem gfun_eq (s : ℕ) : gfun s = 1 / (s : ℝ) ^ 2 := by
   unfold gfun
   rw [inv_pow, one_div]
 
+/-- For `r ≤ n`, summing `dfun` over the inclusive interval from `r` to `n` gives `gfun r - gfun
+(n + 1)`. -/
 theorem telescope {r n : ℕ} (hrn : r ≤ n) :
     ∑ s ∈ Finset.Icc r n, dfun s = gfun r - gfun (n + 1) := by
   have h := Finset.sum_Icc_sub (f := gfun) hrn
@@ -157,6 +207,8 @@ theorem telescope {r n : ℕ} (hrn : r ≤ n) :
     _ = -(gfun (n + 1) - gfun r) := by rw [h]
     _ = gfun r - gfun (n + 1) := by ring
 
+/-- For `s ≥ 1`, the consecutive reciprocal-square difference is `(2 * s + 1) / (s ^ 2 * (s + 1)
+^ 2)` over the reals. -/
 theorem dfun_eq (s : ℕ) (hs : 1 ≤ s) :
     dfun s = (2 * (s : ℝ) + 1) / ((s : ℝ) ^ 2 * ((s : ℝ) + 1) ^ 2) := by
   have hsR : (0:ℝ) < (s:ℝ) := by exact_mod_cast hs
@@ -167,6 +219,7 @@ theorem dfun_eq (s : ℕ) (hs : 1 ≤ s) :
   field_simp
   ring
 
+/-- For `s ≥ 1`, the reciprocal-square difference `dfun s` is at most `3 / (s : ℝ) ^ 3`. -/
 theorem dfun_le (s : ℕ) (hs : 1 ≤ s) : dfun s ≤ 3 / (s : ℝ) ^ 3 := by
   have hsR : (0:ℝ) < (s:ℝ) := by exact_mod_cast hs
   have hs1 : (1:ℝ) ≤ (s:ℝ) := by exact_mod_cast hs
@@ -185,6 +238,8 @@ theorem dfun_le (s : ℕ) (hs : 1 ≤ s) : dfun s ≤ 3 / (s : ℝ) ^ 3 := by
     _ = 3 / (s : ℝ) ^ 3 := by
         field_simp
 
+/-- If a lattice index has maximum coordinate norm at most `s`, adding `s` to any centered
+integer coordinate gives a nonnegative integer. -/
 theorem coord_add_nonneg (n s : ℕ) (m : Fin d → ZMod n) (hm : maxNorm n m ≤ s) (j : Fin d) :
     0 ≤ (m j).valMinAbs + (s : ℤ) := by
   have hc : ((m j).valMinAbs.natAbs : ℕ) ≤ s := le_trans (coordNat_le_maxNorm n m j) hm
@@ -195,6 +250,8 @@ theorem coord_add_nonneg (n s : ℕ) (m : Fin d → ZMod n) (hm : maxNorm n m �
   have := (abs_le.mp habs).1
   linarith
 
+/-- Encode a centered coordinate shifted by `s` as an element of `Fin (2 * s + 1)` when the
+maximum norm is at most `s`, and return zero otherwise. -/
 def finOfCoord (n s : ℕ) (m : Fin d → ZMod n) (j : Fin d) : Fin (2 * s + 1) :=
   if h : maxNorm n m ≤ s then
     ⟨((m j).valMinAbs + (s : ℤ)).toNat, by
@@ -213,6 +270,8 @@ def finOfCoord (n s : ℕ) (m : Fin d → ZMod n) (j : Fin d) : Fin (2 * s + 1) 
       omega⟩
   else 0
 
+/-- Two lattice indices of maximum norm at most `s` are equal if their `finOfCoord` encodings
+agree at every coordinate. -/
 theorem finOfCoord_injOn (n s : ℕ) {x y : Fin d → ZMod n}
     (hx : maxNorm n x ≤ s) (hy : maxNorm n y ≤ s)
     (hxy : (fun j : Fin d => finOfCoord n s x j) = (fun j : Fin d => finOfCoord n s y j)) :
@@ -257,6 +316,8 @@ theorem finOfCoord_injOn (n s : ℕ) {x y : Fin d → ZMod n}
   have : (x j).valMinAbs = (y j).valMinAbs := by linarith
   exact ZMod.valMinAbs_inj.mp this
 
+/-- For nonzero side length, at most `(2 * s + 1) ^ d` periodic lattice indices have maximum
+coordinate norm at most `s`. -/
 theorem card_le_box {n : ℕ} [NeZero n] (s : ℕ) :
     (Finset.univ.filter (fun m : Fin d → ZMod n => maxNorm n m ≤ s)).card ≤ (2 * s + 1) ^ d := by
   have hmaps : Set.MapsTo (fun (m : Fin d → ZMod n) (j : Fin d) => finOfCoord n s m j)

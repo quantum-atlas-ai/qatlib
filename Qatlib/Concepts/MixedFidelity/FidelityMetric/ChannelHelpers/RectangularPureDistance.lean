@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+/-!
+# Pure-state measurement bounds for rectangular isometries
+
+`matrixIsometry` realizes a rectangular matrix with identity Gram matrix as a linear isometry
+between finite Euclidean spaces. Coordinate Born distributions of normalized vectors satisfy a
+total-variation bound determined by their overlap, and the same bound holds after applying this
+isometry. See [FuchsVanDeGraaf1999].
+
+## Main statements
+
+* `matrixIsometry`: the linear isometry induced by a matrix with orthonormal columns.
+* `rectangular_born_tv_le_sqrt_fidelity`: the overlap bound for output Born distributions.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,10 +40,13 @@ variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
 
 omit [DecidableEq I] in
 
+/-- The Euclidean inner product of coordinate vectors equals their conjugate dot product. -/
 private theorem inner_vec (x y : I → ℂ) :
     inner ℂ (WithLp.toLp 2 x) (WithLp.toLp 2 y) = star x ⬝ᵥ y := by
   rw [EuclideanSpace.inner_toLp_toLp, dotProduct_comm]
 
+/-- The inner product of `A x` and `B y` equals the inner product of `x` with `Aᴴ * B` applied
+to `y`. -/
 theorem matrix_inner (A B : Matrix J I ℂ) (x y : EuclideanSpace ℂ I) :
     inner ℂ (A.toEuclideanLin x) (B.toEuclideanLin y) =
       inner ℂ x ((Aᴴ * B).toEuclideanLin y) := by
@@ -33,11 +55,13 @@ theorem matrix_inner (A B : Matrix J I ℂ) (x y : EuclideanSpace ℂ I) :
   rw [inner_vec, inner_vec]
   simp only [Matrix.star_mulVec, Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul]
 
+/-- The linear map of the identity matrix fixes every Euclidean vector. -/
 private theorem matrix_one_apply (x : EuclideanSpace ℂ I) :
     (1 : Matrix I I ℂ).toEuclideanLin x = x := by
   change WithLp.toLp 2 ((1 : Matrix I I ℂ) *ᵥ x.ofLp) = x
   rw [Matrix.one_mulVec]
 
+/-- The complex linear isometry induced by a rectangular matrix satisfying `Aᴴ * A = 1`. -/
 def matrixIsometry (A : Matrix J I ℂ) (hA : Aᴴ * A = 1) :
     EuclideanSpace ℂ I →ₗᵢ[ℂ] EuclideanSpace ℂ J :=
   A.toEuclideanLin.isometryOfInner (by
@@ -45,6 +69,7 @@ def matrixIsometry (A : Matrix J I ℂ) (hA : Aᴴ * A = 1) :
     rw [Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.matrix_inner, hA,
         matrix_one_apply])
 
+/-- The bundled matrix isometry acts by the underlying matrix's Euclidean linear map. -/
 theorem matrixIsometry_apply (A : Matrix J I ℂ) (hA : Aᴴ * A = 1)
     (x : EuclideanSpace ℂ I) : Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.matrixIsometry A hA x = A.toEuclideanLin x := rfl
 
@@ -56,6 +81,7 @@ variable {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
 omit [DecidableEq I] [Fintype J] [DecidableEq J] in
 
+/-- The coordinates of a unit Euclidean vector satisfy `Normalized`. -/
 private theorem normalized_coordinates (x : EuclideanSpace ℂ I) (hx : ‖x‖ = 1) :
     Qatlib.Foundations.PureStateMath.Normalized x.ofLp := by
   change ∑ i : I, ‖x.ofLp i‖ ^ 2 = 1
@@ -65,6 +91,7 @@ private theorem normalized_coordinates (x : EuclideanSpace ℂ I) (hx : ‖x‖ 
 
 omit [DecidableEq I] [Fintype J] [DecidableEq J] in
 
+/-- The coordinate-state inner product agrees with the Euclidean inner product. -/
 private theorem coordinates_inner (x y : EuclideanSpace ℂ I) :
     Qatlib.Foundations.PureStateMath.Inner x.ofLp y.ofLp = inner ℂ x y := by
   rw [EuclideanSpace.inner_eq_star_dotProduct]
@@ -72,6 +99,8 @@ private theorem coordinates_inner (x y : EuclideanSpace ℂ I) :
 
 omit [Fintype J] [DecidableEq J] in
 
+/-- The coordinate Born distributions of unit Euclidean vectors have total variation at most
+`Real.sqrt (1 - ‖inner ℂ x y‖ ^ 2)`. -/
 theorem euclidean_basis_born_tv (x y : EuclideanSpace ℂ I)
     (hx : ‖x‖ = 1) (hy : ‖y‖ = 1) :
     (1 / 2 : ℝ) * ∑ z : I, |Qatlib.Foundations.PureStateMath.BornProb x.ofLp z - Qatlib.Foundations.PureStateMath.BornProb y.ofLp z| ≤
@@ -82,6 +111,8 @@ theorem euclidean_basis_born_tv (x y : EuclideanSpace ℂ I)
   simpa only [Qatlib.Foundations.PureStateMath.ApplyGate, Matrix.one_mulVec,
       coordinates_inner] using h
 
+/-- Applying a rectangular matrix with orthonormal columns to unit vectors gives Born
+distributions with total variation at most `Real.sqrt (1 - ‖inner ℂ x y‖ ^ 2)`. -/
 theorem rectangular_born_tv_le_sqrt_fidelity (A : Matrix J I ℂ) (hA : Aᴴ * A = 1)
     (x y : EuclideanSpace ℂ I) (hx : ‖x‖ = 1) (hy : ‖y‖ = 1) :
     (1 / 2 : ℝ) * ∑ z : J,

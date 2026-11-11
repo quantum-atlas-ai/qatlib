@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Mathlib.Tactic.Ring
 
+/-!
+# Product laws for finite kernel sums
+
+This module factors coordinatewise sums over pairs of Boolean strings and applies the
+factorization to a product-distribution kernel self-term. It also proves the subset-sum identity
+used to bound weighted correlation mass. See [RudolphEtAl2024].
+
+## Main statements
+
+* `sum_pi_prod_factor`: a double sum of coordinatewise products factors into coordinate sums.
+* `mmdQQ_factor`: the product-model kernel self-term factors over coordinates.
+* `sum_powerset_pow_factor`: the subset expansion of `(c + d)^n`.
+
+## References
+
+* [Rudolph et al., 2024][RudolphEtAl2024]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
@@ -14,6 +32,8 @@ namespace Qatlib.Papers.Trainability23.VarianceScaling
 
 open scoped BigOperators
 
+/-- A double sum over Boolean strings of a coordinatewise product factors into the product of
+the two-bit sums at each coordinate. -/
 theorem sum_pi_prod_factor {n : ℕ} (f : (i : Fin n) → Bool → Bool → ℝ) :
     (∑ x : Fin n → Bool, ∑ y : Fin n → Bool, ∏ i, f i (x i) (y i))
       = ∏ i, (∑ a : Bool, ∑ b : Bool, f i a b) := by
@@ -26,6 +46,8 @@ theorem sum_pi_prod_factor {n : ℕ} (f : (i : Fin n) → Bool → Bool → ℝ)
   rw [Finset.prod_univ_sum (fun _ : Fin n => (Finset.univ : Finset Bool))
     (fun i b => f i (x i) b), hpi]
 
+/-- The kernel self-term for a product of finite Boolean distributions and a product kernel
+factors into its coordinatewise self-terms. -/
 theorem mmdQQ_factor {n : ℕ} (q : Fin n → FinDist Bool) (K : Fin n → Bool → Bool → ℝ) :
     (∑ x : Fin n → Bool, ∑ y : Fin n → Bool,
         (∏ i, (q i).prob (x i)) * (∏ i, (q i).prob (y i)) * (∏ i, K i (x i) (y i)))
@@ -34,6 +56,7 @@ theorem mmdQQ_factor {n : ℕ} (q : Fin n → FinDist Bool) (K : Fin n → Bool 
   refine Finset.sum_congr rfl fun x _ => Finset.sum_congr rfl fun y _ => ?_
   rw [← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib]
 
+/-- Summing `c^(n - A.card) * d^A.card` over all subsets of `Fin n` gives `(c + d)^n`. -/
 theorem sum_powerset_pow_factor (n : ℕ) (c d : ℝ) :
     (∑ A ∈ (Finset.univ : Finset (Fin n)).powerset, c ^ (n - A.card) * d ^ A.card)
       = (c + d) ^ n := by

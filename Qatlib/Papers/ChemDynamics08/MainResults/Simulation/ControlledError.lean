@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.LieStrang.ProductFormulaConsumers
+
+/-!
+# Controlled split-operator error
+
+For finite-dimensional Hermitian operators, `controlled_error_polynomial_cost` chooses a
+positive Strang step count attaining any positive operator-norm tolerance. The same statement
+counts the three evolution factors in each step; it does not give an explicit polynomial upper
+bound on the chosen step count.
+
+These constructions support the treatment in [KassalEtAl2008].
+
+## Main statements
+
+* `controlled_error_polynomial_cost`: gives an error-controlled Strang approximation with
+  exactly `3 * r` evolution factors.
+
+## References
+
+* [Kassal et al., 2008][KassalEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,9 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.ChemDynamics08.MainResults.Simulation
 
+/-- For Hermitian `T` and `V` and positive tolerance, some positive step count gives a Strang
+approximation within that tolerance and a flattened evolution list of length `3 * r`
+[KassalEtAl2008]. -/
 theorem controlled_error_polynomial_cost
     (D : ℕ) (T V : Operator D) (t eps : ℝ)
     (hT : T.IsHermitian) (hV : V.IsHermitian) (heps : 0 < eps) :

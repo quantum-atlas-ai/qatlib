@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.AttemptAuxiliary
+
+/-!
+# Success probability of unit-based factoring attempts
+
+Expands the single-attempt success mass as a finite sum over units and pairs of order samples.
+This identity proves `sampledAttemptSuccess`, combining the random-base and order-recovery
+success bounds with factor soundness in the model associated with [Shor1997].
+
+## Main statements
+
+* `attempt_single_mass`: Expands success probability over units and successful sample pairs.
+* `sampledAttemptSuccess`: Establishes the single-attempt success lower bound and factor
+  soundness.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,8 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- The single-attempt success probability equals `2⁻ᵏ` times the sum, over units and successful
+sample pairs, of the products of their two order-sampling probabilities. -/
 private theorem attempt_single_mass (N M k : ℕ) [NeZero N] (hM : 0 < M)
     (hk : Fintype.card (ZMod N)ˣ ≤ 2 ^ k) :
     (attemptLaw N M k hM hk).probEvent (L := 1)
@@ -41,6 +62,8 @@ private theorem attempt_single_mass (N M k : ℕ) [NeZero N] (hM : 0 < M)
   · simp [h, attemptLaw, attemptMass]
   · simp [h]
 
+/-- Establishes the lower bound `shorAttemptBound N k` for a unit-based sampled attempt and
+soundness of all returned factors in the probability model associated with [Shor1997]. -/
 theorem sampledAttemptSuccess : SampledAttemptSuccess := by
   intro N M k _ hM hk hN hodd hs hsize
   refine ⟨?_, attemptFactor_sound N M⟩

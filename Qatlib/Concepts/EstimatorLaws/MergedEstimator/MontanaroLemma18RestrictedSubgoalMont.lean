@@ -8,6 +8,26 @@ import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedS
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18AELawTVSubgoalMont
 import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
 
+/-!
+# Restricted signed-estimator transport
+
+Proves the restricted Lemma 18 transport bound for the native signed rational estimator. The
+proof compresses its initial sample to a payoff value, controls each centered
+amplitude-estimation record, and transfers the median failure event through independent product
+laws, following the stability argument of [Montanaro2015].
+
+## Main statements
+
+* `montanaroLemma18RestrictedSubgoal` bounds failure under the first preparation around the
+  second preparation's mean by intrinsic median failure plus explicit terms in `γ` and `sqrt γ`.
+* `layer_ae_l1`, `centered_layer_l1`, and `compressed_record_l1` propagate payoff-value
+  perturbations through the estimator records.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 set_option backward.isDefEq.respectTransparency false
@@ -32,6 +52,8 @@ open Matrix
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- Bounds the difference of expectations of a test valued in `[0, 1]` by half the L1 distance
+between two finite probability laws. -/
 private theorem bounded_test_tv {X : Type} [Fintype X] [DecidableEq X]
     (p q : FinDist X) (w : X → ℝ) (hw : ∀ x, 0 ≤ w x ∧ w x ≤ 1) :
     |p.expect w - q.expect w| ≤ (1 / 2 : ℝ) * ∑ x, |p.prob x - q.prob x| := by
@@ -51,6 +73,8 @@ private theorem bounded_test_tv {X : Type} [Fintype X] [DecidableEq X]
       exact abs_le.mpr ⟨by linarith [(hw x).1], by linarith [(hw x).2]⟩
     _ = _ := by rw [← Finset.sum_mul]; ring
 
+/-- Identifies the expectation of a test on independent samples from a pushforward law with its
+expectation after applying the map coordinatewise to independent source samples. -/
 private theorem fresh_pushforward_test {X Y : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (p : FinDist X) (q : FinDist Y) (g : X → Y)
     (hq : ∀ y, q.prob y = ∑ x, if g x = y then p.prob x else 0)
@@ -86,12 +110,15 @@ private theorem fresh_pushforward_test {X Y : Type} [Fintype X] [DecidableEq X]
     _ = _ := Finset.prod_univ_sum (t := fun _ : Fin n => (Finset.univ : Finset X))
       (f := fun i x => if g x = η i then p.prob x else 0)
 
+/-- The finite subtype of rational values attained by the payoff function. -/
 private abbrev Values {I : Type} [Fintype I] (f : I → ℚ) :=
   ↥(Finset.image f Finset.univ)
 
+/-- Maps a basis outcome to its payoff value in the finite image subtype. -/
 private def valueMap {I : Type} [Fintype I] (f : I → ℚ) (i : I) : Values f :=
   ⟨f i, Finset.mem_image.mpr ⟨i, Finset.mem_univ _, rfl⟩⟩
 
+/-- Regroups a finite weighted payoff sum into sums over fibers of the payoff function. -/
 private theorem value_fiber_sum {I : Type} [Fintype I] [DecidableEq I]
     (f : I → ℚ) (p : I → ℝ) (w : ℚ → ℝ) :
     (∑ i, p i * w (f i)) = ∑ v ∈ Finset.image f Finset.univ,
@@ -107,6 +134,8 @@ private theorem value_fiber_sum {I : Type} [Fintype I] [DecidableEq I]
   intro i hi
   rw [(Finset.mem_filter.mp hi).2]
 
+/-- Bounds the change of a `[0, 1]`-valued payoff test by the unhalved payoff-value L1 distance
+between two preparations. -/
 private theorem value_weight_shift {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (w : ℚ → ℝ)
     (hw : ∀ v, 0 ≤ w v ∧ w v ≤ 1) :
@@ -125,6 +154,8 @@ private theorem value_weight_shift {I : Type} [Fintype I] [DecidableEq I]
       rw [← sub_mul, abs_mul, abs_of_nonneg (hw v).1]
       exact mul_le_of_le_one_right (abs_nonneg _) (hw v).2
 
+/-- The native layered law for the nonnegative positive or negative part of a payoff centered at
+`v` and divided by `4 * σ`. -/
 private noncomputable def centeredLayerLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (v : ℚ) (positive : Bool) : FinDist (LayerRecord k) :=
@@ -132,6 +163,8 @@ private noncomputable def centeredLayerLaw {I : Type} [Fintype I] [DecidableEq I
     ((if positive then f i - v else v - f i) / (4 * σ))) k
     (fun l => nativeLayerPrepare_unitary A _ k l hA (fun _ => le_max_left _ _))
 
+/-- The native signed law using the standard unitarity proofs for its positive and negative
+centered layer preparations. -/
 private noncomputable def canonicalSignedLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :=
@@ -139,10 +172,14 @@ private noncomputable def canonicalSignedLaw {I : Type} [Fintype I] [DecidableEq
     (fun x l => nativeLayerPrepare_unitary A (fun i => max 0 ((f i - f x) / (4 * σ))) k l hA (fun _ => le_max_left _ _))
     (fun x l => nativeLayerPrepare_unitary A (fun i => max 0 ((f x - f i) / (4 * σ))) k l hA (fun _ => le_max_left _ _))
 
+/-- Replaces the initial basis index in a signed estimator record by its payoff value while
+retaining both layer records. -/
 private def recordValueMap {I : Type} [Fintype I] (f : I → ℚ) (k : ℕ)
     (ω : I × (LayerRecord k × LayerRecord k)) : Values f × (LayerRecord k × LayerRecord k) :=
   (valueMap f ω.1, ω.2)
 
+/-- Factors the probability of a compressed signed record into the measurement mass of its
+payoff fiber and the two centered layer probabilities. -/
 private theorem native_value_record_fiber {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -179,6 +216,7 @@ private theorem native_value_record_fiber {I : Type} [Fintype I] [DecidableEq I]
   rw [Finset.sum_filter]
   simp only [Finset.sum_mul, ite_mul, zero_mul]
 
+/-- Rewrites the square-root transport coefficient as `π² / sqrt 6 * sqrt γ`. -/
 private theorem transport_constant (γ : ℝ) :
     (Real.pi ^ 2 / (2 * Real.sqrt 3)) * Real.sqrt (2 * γ) =
       (Real.pi ^ 2 / Real.sqrt 6) * Real.sqrt γ := by
@@ -192,6 +230,9 @@ private theorem transport_constant (γ : ℝ) :
   field_simp
   nlinarith [congrArg (fun x : ℝ => x * Real.sqrt γ) h2]
 
+/-- Bounds the L1 distance between corresponding native amplitude-estimation layer laws when the
+payoff-value L1 distance is at most `2 * γ`. This is a single-layer transport step for Lemma
+18 of [Montanaro2015]. -/
 private theorem layer_ae_l1 {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (g : ℚ → ℚ)
     (k l : ℕ) (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ)
@@ -239,6 +280,8 @@ private theorem layer_ae_l1 {I : Type} [Fintype I] [DecidableEq I]
   rw [he] at hb
   linarith
 
+/-- Bounds the L1 distance between centered layered records by the number of
+amplitude-estimation trials times the single-trial perturbation bound. -/
 private theorem centered_layer_l1 {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ)
@@ -279,6 +322,9 @@ private theorem centered_layer_l1 {I : Type} [Fintype I] [DecidableEq I]
   simpa only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
     Nat.cast_mul, mul_assoc] using! hs
 
+/-- Bounds the L1 difference of two conditional pair laws by the L1 difference of their outer
+weights plus a uniform conditional error. The second outer weight is assumed nonnegative and
+normalized. -/
 private theorem conditional_joint_l1 {V X : Type} [Fintype V] [DecidableEq V]
     [Fintype X] [DecidableEq X] (p q : V → ℝ) (hq0 : ∀ v, 0 ≤ q v)
     (hqsum : ∑ v, q v = 1) (P₁ P₂ N₁ N₂ : V → FinDist X)
@@ -310,6 +356,8 @@ private theorem conditional_joint_l1 {V X : Type} [Fintype V] [DecidableEq V]
       (fun v _ => add_le_add le_rfl (mul_le_mul_of_nonneg_left (hδ v) (hq0 v)))
     _ = _ := by rw [Finset.sum_add_distrib, ← Finset.sum_mul, hqsum, one_mul]
 
+/-- Bounds the L1 distance between compressed signed records by the initial payoff-value
+perturbation plus the errors of both centered layer records. -/
 private theorem compressed_record_l1 {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ)
@@ -368,6 +416,8 @@ private theorem compressed_record_l1 {I : Type} [Fintype I] [DecidableEq I]
   exact (conditional_joint_l1 c₁ c₂ hc₂0 hc₂sum P₁ P₂ N₁ N₂ δ hδ).trans
     (add_le_add hc le_rfl)
 
+/-- Expresses an event probability on independent samples as the expectation of its indicator
+under the independent sample law. -/
 private theorem probEvent_as_test {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (n : ℕ) (E : (Fin n → X) → Prop) :
     p.probEvent E = (independentSampleLaw (fun _ : Fin n => p)).expect
@@ -375,6 +425,9 @@ private theorem probEvent_as_test {X : Type} [Fintype X] [DecidableEq X]
   simp only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, Finset.sum_filter,
     independentSampleLaw, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf, mul_ite, mul_one, mul_zero]
 
+/-- Proves the restricted signed-estimator stability statement associated with Lemma 18 of
+[Montanaro2015]. A payoff-value L1 bound and a variance bound for the second preparation
+yield the stated median failure bound under the first preparation. -/
 theorem montanaroLemma18RestrictedSubgoal : MontanaroLemma18RestrictedSubgoal := by
   intro I _ _ A₁ A₂ j f σ k r γ hA₁ hA₂ hk hσ hγ hd
   (try dsimp only)

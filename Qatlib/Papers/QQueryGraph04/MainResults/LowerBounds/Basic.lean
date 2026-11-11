@@ -12,6 +12,33 @@ import Qatlib.Concepts.AdversaryBounds.AdvWitness
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
 import Qatlib.Papers.QQueryGraph04.MainResults.LowerBounds.AdversaryFamily
+
+/-!
+# Adversary lower bounds for graph queries
+
+This module converts a Hermitian adversary matrix and a positive filter bound into explicit
+lower bounds on `QueryCount`. The named graph bounds instantiate this conversion at the scales
+appearing in Theorems 19–24, conditional on the stated matrix norm estimates;
+`theorem19_d_one_case` supplies the concrete star-input search case.
+
+The source paper is [DurrEtAl2006].
+
+## Main statements
+
+* `query_lower_bound_from_adversary`: A normalized unitary decision circuit with error at most
+  `eps` satisfies B(1 − 2√(eps(1 − eps))) ≤ 2 times its query count, given the Hermitian
+  adversary and filter norm hypotheses.
+* `theorem19_d_one_case`: Distinguishing the empty input from each singleton star input with
+  error at most 1/10 requires at least √N/5 queries for positive N.
+* `theorem23_lower_bound`: For inputs indexed by n² bits, the stated Hermitian adversary witness
+  at scale cn√n yields a query lower bound cn√n/5 for normalized unitary decision circuits with
+  error at most 1/10.
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +57,7 @@ section Transfer
 
 variable {X W : Type} [Fintype X] [DecidableEq X] [Nonempty X] [Fintype W] [DecidableEq W]
 
+/-- The factor 1 − 2√(eps(1 − eps)) is nonnegative when 0 ≤ eps ≤ 1/2. -/
 theorem one_sub_two_sqrt_nonneg {eps : ℝ} (_he0 : 0 ≤ eps) (he1 : eps ≤ 1 / 2) :
     0 ≤ 1 - 2 * Real.sqrt (eps * (1 - eps)) := by
   have hle : Real.sqrt (eps * (1 - eps)) ≤ 1 / 2 := by
@@ -39,6 +67,8 @@ theorem one_sub_two_sqrt_nonneg {eps : ℝ} (_he0 : 0 ≤ eps) (he1 : eps ≤ 1 
     nlinarith
   linarith
 
+/-- A normalized unitary decision circuit with error at most `eps` satisfies B(1 − 2√(eps(1 −
+eps))) ≤ 2 times its query count, given the Hermitian adversary and filter norm hypotheses. -/
 theorem query_lower_bound_from_adversary
     (n : ℕ) (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (f : X → Bool)
     (C : Circuit ((Fin n × Bool) × W)) (psi : QState ((Fin n × Bool) × W))
@@ -71,6 +101,8 @@ theorem query_lower_bound_from_adversary
     rw [e1, e2]; exact h1
   exact (mul_le_mul_iff_right₀ hF).mp h1'
 
+/-- A normalized unitary decision circuit with error at most 1/10 uses at least B/5 queries when
+the supplied adversary matrix has norm at least B times its positive filter bound. -/
 theorem query_lower_bound_omega
     (n : ℕ) (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ) (f : X → Bool)
     (C : Circuit ((Fin n × Bool) × W)) (psi : QState ((Fin n × Bool) × W))
@@ -93,6 +125,8 @@ theorem query_lower_bound_omega
 
 end Transfer
 
+/-- Distinguishing the empty input from each singleton star input with error at most 1/10
+requires at least √N/5 queries for positive N [DurrEtAl2006]. -/
 theorem theorem19_d_one_case (N : ℕ) (hN : 0 < N) {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit ((Fin N × Bool) × W)) (psi : QState ((Fin N × Bool) × W))
     (E : Finset ((Fin N × Bool) × W))
@@ -109,6 +143,9 @@ theorem theorem19_d_one_case (N : ℕ) (hN : 0 < N) {W : Type} [Fintype W] [Deci
   rw [hfac] at h
   linarith
 
+/-- A Hermitian adversary witness with norm at least c√(dN) times its positive filter bound
+forces every normalized unitary decision circuit of error at most 1/10 to use at least
+c√(dN)/5 queries [DurrEtAl2006]. -/
 theorem theorem19_lower_bound (d N : ℕ) (_hd : 0 < d) (_hN : d ≤ N)
     (M : ℕ) (hM : 0 < M) (input : Fin M → Fin N → Bool)
     (Gamma : Matrix (Fin M) (Fin M) ℂ) (f : Fin M → Bool) (c : ℝ)
@@ -127,6 +164,9 @@ theorem theorem19_lower_bound (d N : ℕ) (_hd : 0 < d) (_hN : d ≤ N)
   exact query_lower_bound_omega N input Gamma f C psi E (c * Real.sqrt ((d : ℝ) * (N : ℝ)))
     hG hz hC hpsi hs hF hnorm
 
+/-- A Hermitian adversary witness with norm at least cn times its positive filter bound forces
+every normalized unitary decision circuit of error at most 1/10 to use at least cn/5 queries
+[DurrEtAl2006]. -/
 theorem lemma20_lower_bound (n : ℕ) (_hn : 0 < n)
     (M : ℕ) (hM : 0 < M) (input : Fin M → Fin n → Bool)
     (Gamma : Matrix (Fin M) (Fin M) ℂ) (f : Fin M → Bool) (c : ℝ)
@@ -144,6 +184,8 @@ theorem lemma20_lower_bound (n : ℕ) (_hn : 0 < n)
   intro W _ _ C psi E hC hpsi hs
   exact query_lower_bound_omega n input Gamma f C psi E (c * (n : ℝ)) hG hz hC hpsi hs hF hnorm
 
+/-- Under the stated Hermitian adversary and filter hypotheses at scale cn, every normalized
+unitary decision circuit with error at most 1/10 uses at least cn/5 queries [DurrEtAl2006]. -/
 theorem corollary21_lower_bound (n : ℕ) (_hn : 0 < n)
     (M : ℕ) (hM : 0 < M) (input : Fin M → Fin n → Bool)
     (Gamma : Matrix (Fin M) (Fin M) ℂ) (f : Fin M → Bool) (c : ℝ)
@@ -161,6 +203,9 @@ theorem corollary21_lower_bound (n : ℕ) (_hn : 0 < n)
   intro W _ _ C psi E hC hpsi ps
   exact query_lower_bound_omega n input Gamma f C psi E (c * (n : ℝ)) hG hz hC hpsi ps hF hnorm
 
+/-- For m = kn, the stated Hermitian adversary witness at scale c√(nm) yields a query lower
+bound c√(nm)/5 for normalized unitary decision circuits with error at most 1/10
+[DurrEtAl2006]. -/
 theorem theorem22_lower_bound (n m k : ℕ) (_hn : 0 < n) (_hk : 0 < k) (_hm : m = k * n)
     (M : ℕ) (hM : 0 < M) (input : Fin M → Fin n → Bool)
     (Gamma : Matrix (Fin M) (Fin M) ℂ) (f : Fin M → Bool) (c : ℝ)
@@ -179,6 +224,9 @@ theorem theorem22_lower_bound (n m k : ℕ) (_hn : 0 < n) (_hk : 0 < k) (_hm : m
   exact query_lower_bound_omega n input Gamma f C psi E (c * Real.sqrt ((n : ℝ) * (m : ℝ)))
     hG hz hC hpsi hs hF hnorm
 
+/-- For inputs indexed by n² bits, the stated Hermitian adversary witness at scale cn√n yields a
+query lower bound cn√n/5 for normalized unitary decision circuits with error at most 1/10
+[DurrEtAl2006]. -/
 theorem theorem23_lower_bound (n : ℕ) (_hn : 0 < n)
     (M : ℕ) (hM : 0 < M) (input : Fin M → Fin (n * n) → Bool)
     (Gamma : Matrix (Fin M) (Fin M) ℂ) (f : Fin M → Bool) (c : ℝ)
@@ -197,6 +245,9 @@ theorem theorem23_lower_bound (n : ℕ) (_hn : 0 < n)
   exact query_lower_bound_omega (n * n) input Gamma f C psi E
     (c * (n : ℝ) * Real.sqrt (n : ℝ)) hG hz hC hpsi hs hF hnorm
 
+/-- For m = k(n + 1), the stated Hermitian adversary witness at scale c√(nm) yields a query
+lower bound c√(nm)/5 for normalized unitary decision circuits with error at most 1/10
+[DurrEtAl2006]. -/
 theorem theorem24_lower_bound (n m k : ℕ) (_hn : 0 < n) (_hk : 0 < k) (_hm : m = k * (n + 1))
     (M : ℕ) (hM : 0 < M) (input : Fin M → Fin n → Bool)
     (Gamma : Matrix (Fin M) (Fin M) ℂ) (f : Fin M → Bool) (c : ℝ)

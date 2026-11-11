@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualPolynomial
+
+/-!
+# Normalization of forward-query circuit outputs
+
+The squared norm of `run` is preserved by the interleaved unitary steps when every oracle phase
+has norm one. The two Boolean outcomes defined by `outProb` consequently have total probability
+one. This development supports the treatment in [TangWright2025].
+
+## Main statements
+
+* `unitary_normSq`: preservation of squared Euclidean norm.
+* `actual_run_normSq`: normalization after any number of forward queries.
+* `actual_outProb_total`: normalization of the Boolean output distribution.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -15,6 +34,8 @@ namespace Qatlib.Papers.AmpInvReqTang26.ForwardHist
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 set_option warningAsError false
 
+/-- A matrix satisfying `Mᴴ * M = 1` preserves the sum of squared coordinate norms under
+matrix-vector multiplication. -/
 theorem unitary_normSq {I : Type*} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (hM : Mᴴ*M=1) (v : I → ℂ) :
     ∑ i, ‖(M *ᵥ v) i‖^2 = ∑ i, ‖v i‖^2 := by
@@ -26,6 +47,8 @@ theorem unitary_normSq {I : Type*} [Fintype I] [DecidableEq I]
   apply Complex.ofReal_injective
   simpa only [dotProduct, Pi.star_apply, hcast, ← Complex.ofReal_sum] using! hs
 
+/-- The state produced by `n` forward queries has squared norm one when every oracle phase has
+norm one. -/
 theorem actual_run_normSq {d a : ℕ} {S : Type} (phi : S → ℂ)
     (hphi : ∀s,‖phi s‖=1) (Alg : ForwardQueryAlgorithm d a)
     (n : ℕ) (U : Fin d → S) : ∑x, ‖run phi Alg n U x‖^2=1 := by
@@ -49,6 +72,8 @@ theorem actual_run_normSq {d a : ℕ} {S : Type} (phi : S → ℂ)
     rw [unitary_normSq _ (Alg.hstep (n+1)), unitary_normSq _ hQ]
     exact ih
 
+/-- For unit-modulus oracle phases, the probabilities of the two Boolean circuit outputs sum to
+one. -/
 theorem actual_outProb_total {d a : ℕ} {S : Type} (phi : S → ℂ)
     (hphi : ∀s,‖phi s‖=1) (Alg : ForwardQueryAlgorithm d a)
     (n : ℕ) (U : Fin d → S) : outProb phi Alg n U false + outProb phi Alg n U true = 1 := by

@@ -9,6 +9,31 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminati
 import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
 import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedQuan
 import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+/-!
+# Quantum PCA readout specifications
+
+This module defines maximal score selection with deterministic tie breaking and aliases the
+shared loading and spectrum specifications. The three endpoint propositions package loading,
+Gram matrix exponentiation, and finite copy discrimination results used by the paper readout
+layer. See [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `clusterAssignment`: The least index attaining the maximal supplied score, used to resolve
+  ties deterministically.
+* `clause17EndpointSpec`: The proposition combining the shared spectrum specification,
+  restricted low rank exponentiation, and normalization, partial trace, and density identities
+  for weighted Gram states.
+* `clause19EndpointSpec`: The proposition collecting finite copy discrimination, two species
+  resource and error formulas, the equal state discrimination limit, maximal score assignment,
+  and monotonicity and positivity of the norm dependent copy budget.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
@@ -28,23 +53,30 @@ namespace Qatlib.Papers.QuantumPCA14.FeatureReadout
 open Matrix Qatlib
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
+/-- An abbreviation for the shared self tomography loading endpoint specification
+`walkGoalEndpointSpec`. -/
 abbrev sharedLoadingSpec :=
   Qatlib.Concepts.CopyEvolution.SelfTomography.walkGoalEndpointSpec
 
+/-- An abbreviation for the shared self tomography spectral endpoint specification
+`clause16EndpointSpec`. -/
 abbrev sharedSpectrumSpec :=
   Qatlib.Concepts.CopyEvolution.SelfTomography.clause16EndpointSpec
 
+/-- The finite set of indices attaining the maximum supplied score at `x`. -/
 noncomputable def maximalScoreIndices {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]
     [Nonempty (Fin m)] (score : S → Fin m → ℝ) (x : S) : Finset (Fin m) :=
   Finset.univ.filter (fun i =>
     score x i = Finset.max' (Finset.image (fun i => score x i) Finset.univ)
       (Finset.image_nonempty.mpr Finset.univ_nonempty))
 
+/-- The maximum of the supplied scores over the nonempty finite cluster index set. -/
 noncomputable def maximalObservableScore {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]
     [Nonempty (Fin m)] (score : S → Fin m → ℝ) (x : S) : ℝ :=
   Finset.max' (Finset.image (fun i => score x i) Finset.univ)
     (Finset.image_nonempty.mpr Finset.univ_nonempty)
 
+/-- At least one index attains the maximal supplied score. -/
 theorem maximalScoreIndices_nonempty {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]
     [Nonempty (Fin m)] (score : S → Fin m → ℝ) (x : S) :
     (maximalScoreIndices score x).Nonempty := by
@@ -55,17 +87,24 @@ theorem maximalScoreIndices_nonempty {m : ℕ} {S : Type*} [Fintype S] [Decidabl
   simp only [maximalScoreIndices, Finset.mem_filter]
   exact ⟨Finset.mem_univ i, hi.2⟩
 
+/-- The least index attaining the maximal supplied score, used to resolve ties
+deterministically. -/
 noncomputable def clusterAssignment {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]
     [Nonempty (Fin m)] (score : S → Fin m → ℝ) (x : S) : Fin m :=
   Finset.min' (maximalScoreIndices score x) (maximalScoreIndices_nonempty score x)
 
+/-- The hypothesis index given by `clusterAssignment`. -/
 noncomputable def learnedHypothesis {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]
     [Nonempty (Fin m)] (score : S → Fin m → ℝ) (x : S) : Fin m :=
   clusterAssignment score x
 
+/-- The proposition asserting the shared loading endpoint specification. -/
 def clause16EndpointSpec : Prop :=
   sharedLoadingSpec
 
+/-- The proposition combining the shared spectrum specification, restricted low rank
+exponentiation, and normalization, partial trace, and density identities for weighted Gram
+states. -/
 def clause17EndpointSpec : Prop :=
   sharedSpectrumSpec ∧
   LowRankExponentiationRestricted ∧
@@ -75,6 +114,9 @@ def clause17EndpointSpec : Prop :=
     PartialTrace (outerProduct (gramState ψ w)) = gramMatrix ψ w ∧
     IsDensityOperator (gramMatrix ψ w))
 
+/-- The proposition collecting finite copy discrimination, two species resource and error
+formulas, the equal state discrimination limit, maximal score assignment, and monotonicity
+and positivity of the norm dependent copy budget. -/
 def clause19EndpointSpec : Prop :=
 
   FiniteCopyHelstromDiscrimination ∧

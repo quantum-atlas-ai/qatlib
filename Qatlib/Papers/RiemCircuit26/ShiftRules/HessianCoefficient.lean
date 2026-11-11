@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RiemCircuit26.ShiftRules.GradientCoefficient
+
+/-!
+# Hessian parameter-shift coefficients
+
+Defines the two-parameter trace cost from successive conjugations and computes its pure and
+mixed second derivatives at the origin. Hermitian involutions yield exact shift formulas: a
+three-evaluation central difference for the pure derivative and a four-corner difference for the
+mixed derivative. See [LaiEtAl2026].
+
+## Main statements
+
+* `hessian_second_xx_parameterShift`: gives the pure second-derivative shift formula.
+* `hessian_second_xy_parameterShift`: gives the mixed second-derivative shift formula.
+
+## References
+
+* [Lai et al., 2026][LaiEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,9 +38,13 @@ open scoped Matrix.Norms.L2Operator
 namespace Qatlib.Papers.RiemCircuit26.ShiftRules
 open Qatlib.Papers.RiemCircuit26.HessianGeometry
 
+/-- The trace cost after conjugating `ψ` first by the `P` evolution at `x` and then by the `Q`
+evolution at `y`. -/
 noncomputable def hessianCost {p : ℕ} (O ψ P Q : Mat p) (x y : ℝ) : ℂ :=
   (O * conjEvol (halfI Q) (conjEvol (halfI P) ψ x) y).trace
 
+/-- For Hermitian `P`, differentiating the two-parameter cost in `x` replaces the initial matrix
+by `comm (halfI P) ψ` inside the two conjugations. -/
 theorem hasDerivAt_hessianCost_x {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (x y : ℝ) :
     HasDerivAt (fun x' : ℝ => hessianCost O ψ P Q x' y)
       ((O * conjEvol (halfI Q) (conjEvol (halfI P) (HessianGeometry.comm (halfI P) ψ) x) y).trace) x := by
@@ -45,11 +68,15 @@ theorem hasDerivAt_hessianCost_x {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (x
   rw [hfun, ← hval]
   exact h
 
+/-- For Hermitian `P`, the `x` derivative at zero is the trace cost of the `Q` conjugation of
+`comm (halfI P) ψ`. -/
 theorem hasDerivAt_hessianCost_x_zero {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (y : ℝ) :
     HasDerivAt (fun x : ℝ => hessianCost O ψ P Q x y)
       ((O * conjEvol (halfI Q) (HessianGeometry.comm (halfI P) ψ) y).trace) 0 := by
   simpa using hasDerivAt_hessianCost_x O ψ P Q hP 0 y
 
+/-- Transfers a nested commutator through the trace: `trace (O * comm A (comm B ψ)) = -trace (ψ
+* comm (comm A O) B)`. -/
 theorem trace_O_comm_comm_general {p : ℕ} (O ψ A B : Mat p) :
     (O * HessianGeometry.comm A (HessianGeometry.comm B ψ)).trace = -((ψ * HessianGeometry.comm (HessianGeometry.comm A O) B).trace) := by
   have h1 : (O * HessianGeometry.comm A (HessianGeometry.comm B ψ)).trace = (HessianGeometry.comm B ψ * HessianGeometry.comm O A).trace :=
@@ -63,6 +90,8 @@ theorem trace_O_comm_comm_general {p : ℕ} (O ψ A B : Mat p) :
     rw [trace_commutator_cycle (HessianGeometry.comm A O) B ψ, Matrix.trace_mul_comm]
   rw [h1, h2, h3, h4]
 
+/-- Expresses the repeated `halfI P` commutator trace as one quarter of `(ψ * comm (comm P O)
+P).trace`. -/
 theorem trace_halfI_xx {p : ℕ} (O ψ P : Mat p) :
     (O * HessianGeometry.comm (halfI P) (HessianGeometry.comm (halfI P) ψ)).trace =
       (1 / 4 : ℂ) * (ψ * HessianGeometry.comm (HessianGeometry.comm P O) P).trace := by
@@ -78,6 +107,8 @@ theorem trace_halfI_xx {p : ℕ} (O ψ P : Mat p) :
   rw [hcc]
   ring
 
+/-- Expresses the mixed `halfI Q`, `halfI P` commutator trace as one quarter of `(ψ * comm (comm
+Q O) P).trace`. -/
 theorem trace_halfI_xy {p : ℕ} (O ψ P Q : Mat p) :
     (O * HessianGeometry.comm (halfI Q) (HessianGeometry.comm (halfI P) ψ)).trace =
       (1 / 4 : ℂ) * (ψ * HessianGeometry.comm (HessianGeometry.comm Q O) P).trace := by
@@ -93,6 +124,8 @@ theorem trace_halfI_xy {p : ℕ} (O ψ P Q : Mat p) :
   rw [hcc]
   ring
 
+/-- For Hermitian `P`, the pure `x` second derivative at the origin is one quarter of `(ψ * comm
+(comm P O) P).trace` [LaiEtAl2026]. -/
 theorem hessian_second_xx {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) :
     deriv (fun x : ℝ => deriv (fun x' : ℝ => hessianCost O ψ P Q x' 0) x) 0 =
       (1 / 4 : ℂ) * (ψ * HessianGeometry.comm (HessianGeometry.comm P O) P).trace := by
@@ -105,6 +138,8 @@ theorem hessian_second_xx {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) :
   rw [hd.deriv]
   exact trace_halfI_xx O ψ P
 
+/-- For Hermitian `P` and `Q`, the derivative at `y = 0` of the `x` derivative at zero is the
+trace of the nested half-generator commutator. -/
 theorem hasDerivAt_hessianCost_xy_zero {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P)
     (hQ : Qᴴ = Q) :
     HasDerivAt (fun y : ℝ => deriv (fun x : ℝ => hessianCost O ψ P Q x y) 0)
@@ -117,6 +152,8 @@ theorem hasDerivAt_hessianCost_xy_zero {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ =
   exact hasDerivAt_trace_conjEvol_zero (halfI Q) O (HessianGeometry.comm (halfI P) ψ)
       (halfI_star Q hQ)
 
+/-- For Hermitian `P` and `Q`, the mixed derivative at the origin, differentiating in `x` then
+`y`, is one quarter of `(ψ * comm (comm Q O) P).trace` [LaiEtAl2026]. -/
 theorem hessian_second_xy {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (hQ : Qᴴ = Q) :
     deriv (fun y : ℝ => deriv (fun x : ℝ => hessianCost O ψ P Q x y) 0) 0 =
       (1 / 4 : ℂ) * (ψ * HessianGeometry.comm (HessianGeometry.comm Q O) P).trace := by
@@ -124,10 +161,13 @@ theorem hessian_second_xy {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (hQ : Q�
   rw [h.deriv]
   exact trace_halfI_xy O ψ P Q
 
+/-- At `y = 0`, the two-parameter cost reduces to `gradientCost O ψ P x`. -/
 theorem hessianCost_y_zero {p : ℕ} (O ψ P Q : Mat p) (x : ℝ) :
     hessianCost O ψ P Q x 0 = gradientCost O ψ P x := by
   simp [hessianCost, gradientCost]
 
+/-- For a Hermitian involution `P`, the sum of the conjugated matrices at shifts ±π/2 is `ψ + P
+* ψ * P`. -/
 theorem conjEvol_add_pi_div_two {p : ℕ} (P ψ : Mat p) (hP : Pᴴ = P) (hP2 : P * P = 1) :
     conjEvol (halfI P) ψ (Real.pi / 2) + conjEvol (halfI P) ψ (-(Real.pi / 2)) =
       ψ + P * ψ * P := by
@@ -147,6 +187,8 @@ theorem conjEvol_add_pi_div_two {p : ℕ} (P ψ : Mat p) (hP : Pᴴ = P) (hP2 : 
   rw [hexp, smul_smul]
   simp
 
+/-- For a Hermitian involution `P`, the sum of the two `x`-shifted costs minus twice the origin
+cost equals `(O * (P * ψ * P - ψ)).trace`. -/
 theorem hessianCost_xx_centralDiff {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P)
     (hP2 : P * P = 1) :
     hessianCost O ψ P Q (Real.pi / 2) 0 + hessianCost O ψ P Q (-(Real.pi / 2)) 0 -
@@ -162,6 +204,8 @@ theorem hessianCost_xx_centralDiff {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P)
   rw [conjEvol_add_pi_div_two P ψ hP hP2, two_smul]
   abel
 
+/-- For an involution `P`, one quarter of the repeated commutator trace equals one half of `(O *
+(P * ψ * P - ψ)).trace`. -/
 theorem trace_comm_comm_eq {p : ℕ} (O ψ P : Mat p) (hP2 : P * P = 1) :
     (1 / 4 : ℂ) * (ψ * HessianGeometry.comm (HessianGeometry.comm P O) P).trace =
       (1 / 2 : ℂ) * (O * (P * ψ * P - ψ)).trace := by
@@ -183,6 +227,8 @@ theorem trace_comm_comm_eq {p : ℕ} (O ψ P : Mat p) (hP2 : P * P = 1) :
   rw [hcomm, Matrix.mul_smul, Matrix.trace_smul, smul_eq_mul, htr]
   ring
 
+/-- For a Hermitian involution `P`, the pure `x` second derivative at the origin is one half of
+the central cost difference at shifts ±π/2 [LaiEtAl2026]. -/
 theorem hessian_second_xx_parameterShift {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (hP2 : P * P = 1) :
     deriv (fun x : ℝ => deriv (fun x' : ℝ => hessianCost O ψ P Q x' 0) x) 0 =
       (1 / 2 : ℂ) * (hessianCost O ψ P Q (Real.pi / 2) 0 +
@@ -190,6 +236,8 @@ theorem hessian_second_xx_parameterShift {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ
   rw [hessian_second_xx O ψ P Q hP, hessianCost_xx_centralDiff O ψ P Q hP hP2]
   exact trace_comm_comm_eq O ψ P hP2
 
+/-- For a Hermitian involution `Q`, the difference of the `y`-shifted costs at fixed `x` equals
+the trace of `O` times `Complex.I • comm Q (conjEvol (halfI P) ψ x)`. -/
 theorem hessianCost_y_diff {p : ℕ} (O ψ P Q : Mat p) (hQ : Qᴴ = Q) (hQ2 : Q * Q = 1)
     (x : ℝ) :
     hessianCost O ψ P Q x (Real.pi / 2) - hessianCost O ψ P Q x (-(Real.pi / 2)) =
@@ -198,6 +246,8 @@ theorem hessianCost_y_diff {p : ℕ} (O ψ P Q : Mat p) (hQ : Qᴴ = Q) (hQ2 : Q
   rw [← Matrix.trace_sub, ← Matrix.mul_sub,
     conjEvol_sub_eq Q (conjEvol (halfI P) ψ x) hQ hQ2]
 
+/-- For Hermitian involutions `P` and `Q`, the signed four-corner cost difference at shifts ±π/2
+equals `(ψ * comm (comm Q O) P).trace`. -/
 theorem fourCorner_eq {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (hQ : Qᴴ = Q)
     (hP2 : P * P = 1) (hQ2 : Q * Q = 1) :
     hessianCost O ψ P Q (Real.pi / 2) (Real.pi / 2) -
@@ -233,6 +283,8 @@ theorem fourCorner_eq {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (hQ : Qᴴ = 
     trace_O_comm_comm_general O ψ Q P]
   ring
 
+/-- For Hermitian involutions `P` and `Q`, the mixed derivative at the origin is one quarter of
+the signed four-corner cost difference at shifts ±π/2 [LaiEtAl2026]. -/
 theorem hessian_second_xy_parameterShift {p : ℕ} (O ψ P Q : Mat p) (hP : Pᴴ = P) (hQ : Qᴴ = Q) (hP2 : P * P = 1) (hQ2 : Q * Q = 1) :
     deriv (fun y : ℝ => deriv (fun x : ℝ => hessianCost O ψ P Q x y) 0) 0 =
       (1 / 4 : ℂ) * (hessianCost O ψ P Q (Real.pi / 2) (Real.pi / 2) -

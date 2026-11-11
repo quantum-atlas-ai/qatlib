@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientAux
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientDiagnostics
+
+/-!
+# Positive and negative multiproduct coefficient masses
+
+This module bounds the positive and negative masses of `mCoeff` when N > k ≥ 1.
+`multiproduct_kappa_of_coefficient_bound` converts a uniform bound on the first k coefficients
+into a comparison between scaled negative mass and positive mass. See [ChildsWiebe2012] for the
+multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `multiproduct_positive_mass_ge_one`: For k ≥ 1 and N > k, the sum of the positive multiproduct
+  coefficients is at least 1.
+* `multiproduct_negative_mass_le`: For k ≥ 1 and N > k, if the first k coefficient magnitudes
+  are bounded by B, the total absolute mass of negative coefficients is at most kB.
+* `multiproduct_kappa_of_coefficient_bound`: For k ≥ 1 and N > k, a uniform first-k coefficient
+  bound B and a nonnegative scale with kB · scale ≤ 1 imply that scaled negative mass is at most
+  positive mass.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +37,7 @@ set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical
 
+/-- For k ≥ 1 and N > k, the sum of the positive multiproduct coefficients is at least 1. -/
 theorem multiproduct_positive_mass_ge_one (k : ℕ) (hk : 1 ≤ k)
     (N : ℝ) (hN : (k : ℝ) < N) :
     1 ≤ ∑ q ∈ Finset.univ.filter (fun q : Fin (k+1) => 0 < mCoeff k N q),
@@ -25,6 +50,8 @@ theorem multiproduct_positive_mass_ge_one (k : ℕ) (hk : 1 ≤ k)
   · simp only [Finset.mem_filter, Finset.mem_univ, true_and]
     linarith
 
+/-- For k ≥ 1 and N > k, if the first k coefficient magnitudes are bounded by B, the total
+absolute mass of negative coefficients is at most kB. -/
 theorem multiproduct_negative_mass_le (k : ℕ) (hk : 1 ≤ k)
     (N : ℝ) (hN : (k : ℝ) < N) (B : ℝ)
     (hB : ∀ q : Fin (k+1), q.val < k → |mCoeff k N q| ≤ B) :
@@ -51,6 +78,8 @@ theorem multiproduct_negative_mass_le (k : ℕ) (hk : 1 ≤ k)
       exact hB q (by omega)
     _ = _ := by simp
 
+/-- For k ≥ 1 and N > k, a uniform first-k coefficient bound B and a nonnegative scale with kB ·
+scale ≤ 1 imply that scaled negative mass is at most positive mass. -/
 theorem multiproduct_kappa_of_coefficient_bound (k : ℕ) (hk : 1 ≤ k)
     (N : ℝ) (hN : (k : ℝ) < N) (B scale : ℝ) (hscale : 0 ≤ scale)
     (hB : ∀ q : Fin (k+1), q.val < k → |mCoeff k N q| ≤ B)

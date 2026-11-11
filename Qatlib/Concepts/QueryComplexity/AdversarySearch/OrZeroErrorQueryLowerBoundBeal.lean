@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalBeal
+
+/-!
+# Zero error OR query lower bound
+
+This module proves `orZeroErrorQueryLowerBound` by extracting a nonzero output amplitude on the
+all false input and constructing an exact polynomial for OR. On a nonempty index type, an event
+that occurs with positive probability only on the all false input forces at least one query per
+input position, following the polynomial method of [BealsEtAl2001].
+
+## Main statements
+
+* `orZeroErrorQueryLowerBound`: a conclusive zero event for OR forces at least N queries.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -16,6 +34,10 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.AdversarySearch
 open MvPolynomial
 
+/-- Any circuit with a conclusive zero event that has positive probability on the all false
+input and zero probability on every nonzero input requires at least as many queries as input
+positions, provided the index type is nonempty. This is the OR lower bound underlying [Beals
+et al., Proposition 6.1 and Corollary 6.2][BealsEtAl2001]. -/
 theorem orZeroErrorQueryLowerBound : OrZeroErrorQueryLowerBound := by
   classical
   intro I W _ _ _ _ C ψ E0 hn hno hpos

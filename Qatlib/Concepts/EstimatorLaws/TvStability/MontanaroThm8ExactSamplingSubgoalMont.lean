@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm8ExactSamplingSubgoalStat
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8FactorSubgoalMont
+
+/-!
+# Exact-sampling partition-function estimator
+
+Proves the exact-Gibbs-sampling form of the partition-function estimator in Theorem 8 of
+[Montanaro2015]. Exponential ratio observables have partition-function moments; the
+cooling-schedule inequality bounds relative variance, amplified factor estimates compose by a
+union bound, and their target ratios telescope to the final partition function.
+
+## Main statements
+
+* `theorem8_product_failure` turns the factor failure budgets into a product failure bound of
+  one quarter.
+* `theorem8_ratio_product` proves the finite telescoping identity for positive successive
+  ratios.
+* `montanaroTheorem8ExactSamplingSubgoal` proves relative error at most `ε` except with
+  probability at most one quarter.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,6 +43,8 @@ open Qatlib
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- Bounds the relative error of a product by `ε` when each positive target factor is estimated
+to relative error at most `ε / (2 * ℓ)`, for `ℓ > 0` and `0 < ε < 1`. -/
 private theorem product_accuracy (ℓ : ℕ) (hℓ : 0 < ℓ) (v μ : Fin ℓ → ℝ)
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε < 1) (hμ : ∀ i, 0 < μ i)
     (hgood : ∀ i, |v i - μ i| ≤ (ε/(2*ℓ))*μ i) :
@@ -76,6 +101,7 @@ private theorem product_accuracy (ℓ : ℕ) (hℓ : 0 < ℓ) (v μ : Fin ℓ �
   apply abs_le.mpr
   constructor <;> nlinarith
 
+/-- Expresses the probability of an event on one sample as the expectation of its indicator. -/
 private theorem event_one_expect {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) [DecidablePred E] :
     p.probEvent (fun ω : Fin 1 → X => E (ω 0)) = p.expect (fun x => if E x then 1 else 0) := by
@@ -95,6 +121,8 @@ private theorem event_one_expect {X : Type} [Fintype X] [DecidableEq X]
       Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, mul_ite, mul_one, mul_zero]
   rfl
 
+/-- Shows that pointwise implication between events on one sample preserves the ordering of
+their probabilities. -/
 private theorem event_mono {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X)
     (E F : (Fin 1 → X) → Prop) [DecidablePred E] [DecidablePred F]
     (h : ∀ ω, E ω → F ω) : p.probEvent E ≤ p.probEvent F := by
@@ -104,6 +132,8 @@ private theorem event_mono {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X
   · intro ω _ _
     exact Finset.prod_nonneg fun _ _ => p.nonneg _
 
+/-- Bounds product relative-error failure by `1 / 4` from per-factor failure bounds `1 / (4 *
+ℓ)` at relative tolerance `ε / (2 * ℓ)` under the independent product law. -/
 theorem theorem8_product_failure {X : Type} [Fintype X] [DecidableEq X]
     (ℓ : ℕ) (ps : Fin ℓ → FinDist X) (obs : Fin ℓ → X → ℝ)
     (means : Fin ℓ → ℝ) (hℓ : 0 < ℓ) (ε : ℝ) (hε : 0 < ε) (hε1 : ε < 1)
@@ -140,6 +170,8 @@ theorem theorem8_product_failure {X : Type} [Fintype X] [DecidableEq X]
       have hℓ0 : (ℓ : ℝ) ≠ 0 := by exact_mod_cast (by omega : ℓ ≠ 0)
       field_simp
 
+/-- Proves that multiplying the initial positive value by all successive ratios yields the final
+value of a finite sequence. -/
 theorem theorem8_ratio_product (ℓ : ℕ) (z : Fin (ℓ+1) → ℝ) (hz : ∀ i, 0 < z i) :
     z 0 * (∏ i : Fin ℓ, z i.succ / z i.castSucc) = z (Fin.last ℓ) := by
   have hden : (∏ i : Fin ℓ, z i.castSucc) ≠ 0 :=
@@ -149,6 +181,10 @@ theorem theorem8_ratio_product (ℓ : ℕ) (z : Fin (ℓ+1) → ℝ) (hz : ∀ i
   have h := (Fin.prod_univ_succ z).symm.trans (Fin.prod_univ_castSucc z)
   simpa only [mul_comm] using! h
 
+/-- Proves the exact-sampling form of Theorem 8 of [Montanaro2015] under the stated
+Gibbs-preparation, cooling-schedule, and estimator-accuracy assumptions. The
+cardinality-scaled product of factor medians has relative-error failure probability at most
+`1 / 4`. -/
 theorem montanaroTheorem8ExactSamplingSubgoal : MontanaroTheorem8ExactSamplingSubgoal := by
   intro Ω _ _ H ℓ β As js B ε N k r hℓ hβ0 hβ hAs hB hε hε1 hN hk hwindow hr hZ hBorn hCheb
   let Y := fun (i : Fin ℓ) (x : Ω) => Real.exp (-((β i.succ-β i.castSucc)*(H x : ℝ)))

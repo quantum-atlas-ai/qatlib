@@ -14,6 +14,28 @@ import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Counterexamples to unrestricted amplification bounds
+
+This module constructs explicit counterexamples for overly broad cost and gain-product
+formulations in the variable-time framework. The examples exhibit negative `tightAccessCost`,
+arbitrarily large legal access time, and a gain-ratio product exceeding the proposed right-hand
+side.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `clause64_tightAccessCost_negative`: stopping data with negative cost expression.
+* `clause67_unbounded_legal_accessTime`: unbounded costs of legal programs.
+* `clause68_gainRatioProduct_counterexample`: explicit failure of a gain-product inequality.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,6 +84,8 @@ open Qatlib
 open Qatlib
 noncomputable section
 
+/-- There exist stopping-time data and a positive success parameter for which `tightAccessCost`
+is negative. -/
 lemma clause64_tightAccessCost_negative :
     ∃ (m : ℕ) (p t : Fin m → ℝ) (Tmax Tav psucc : ℝ),
       stopTimeData m p t Tmax Tav ∧ 0 < psucc ∧ tightAccessCost Tmax Tav psucc < 0 := by
@@ -72,6 +96,8 @@ lemma clause64_tightAccessCost_negative :
 end
 noncomputable section
 
+/-- For every finite state space and natural bound, there is a legal two-slot program with
+positive register size whose unit-price access time meets that bound. -/
 lemma clause67_unbounded_legal_accessTime :
     ∀ (H : Type) [Fintype H] [DecidableEq H] (n : ℕ),
       ∃ prog : VtAmpProgram H, 0 < prog.r ∧ legal 2 prog.word ∧
@@ -90,13 +116,20 @@ lemma clause67_unbounded_legal_accessTime :
     rw [hacc]
 end
 
+/-- The sequence equal to `1 / 9` at index one and zero elsewhere, used in the gain-product
+counterexample. -/
 private noncomputable def g68rs : ℕ → ℝ := fun j => if j = 1 then 1 / 9 else 0
 
+/-- The sequence equal to `1 / 900` at index one and zero elsewhere, used in the gain-product
+counterexample. -/
 private noncomputable def g68rs' : ℕ → ℝ := fun j => if j = 1 then 1 / 900 else 0
 
+/-- The identically zero stopping-mass sequence used in the gain-product counterexample. -/
 private noncomputable def g68pstop : ℕ → ℝ := fun _ => 0
 noncomputable section
 
+/-- The explicit sequences satisfy the displayed local gain conditions, but their gain-ratio
+product is `10` while the proposed bound is `3`. -/
 lemma clause68_gainRatioProduct_counterexample :
     (1 / (9 * (1:ℝ)) ≤ g68rs 1 ∧ 0 ≤ g68rs' 1) ∧
       (g68rs 1 = g68rs' 1 ∨

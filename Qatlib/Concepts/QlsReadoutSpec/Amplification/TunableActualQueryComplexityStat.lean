@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Specification of tunable amplification query costs
+
+`TunableQueryTunableActualQueryComplexity` specifies actual oracle costs for legal tunable
+amplification with positive final plain amplitude `a` and total threshold budget at most `B`. It
+bounds slot-zero calls by `(6 / 5) ^ B / a`, bounds the number of amplified stages
+logarithmically, and requires a weighted-cost estimate for every increasing marker sequence
+identifying those stages.
+
+The model follows the cost-accounting viewpoint of variable-time amplification [Ambainis2012].
+For tunable VTAA query complexity, see [LowSu2026].
+
+## Main statements
+
+* `TunableQueryTunableActualQueryComplexity`: States legality and quantitative call-count and
+  weighted-cost guarantees.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +50,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The specification requires legality, at most `(6 / 5) ^ B / a` slot-zero calls, at most `(B
+* Real.log (6 / 5) + Real.log (1 / a)) / Real.log 3` amplified stages, and a marker-grouped
+weighted-cost bound for tunable schedules of budget at most `B` and positive final plain
+amplitude `a`. -/
 def TunableQueryTunableActualQueryComplexity : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.SearchFees.PlainSlot
 import Qatlib.Papers.QAOAScaling23.SearchFees.AngleSplit
+
+/-!
+# Failure probabilities of interleaved search
+
+`failure` records the probability that a scheduled search produces no result and satisfies a
+multiplicative recurrence. Plain-trial interleaving improves this probability, leading to
+separate bounds for large marked mass and for schedules whose amplification windows pass the
+low-mass cutoff.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `highQ_failure`: With exact validation and marked mass at least `1/2`, interleaved geometric
+  search with `T` stages has failure probability at most `(1/2)^T`.
+* `lowQ_failure_cutoff`: With exact validation and marked mass `sin θ` squared for `0 < θ <
+  π/2`, a window satisfying `geometricWindow M j * sin (2 * θ) ≥ 1` bounds real failure
+  probability by `(25/32)^(T - j)`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -19,20 +43,24 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 namespace Qatlib.Papers.QAOAScaling23.SearchFees
 variable {I:Type} [Fintype I] [DecidableEq I]
 
+/-- The probability that scheduled search returns no candidate. -/
 def failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (ms:List ℕ) : ℝ≥0∞ := event (searchForSchedule U hU seed S valid ms) (fun tr=>tr.result=none)
 
+/-- Failure on a nonempty schedule is the product of first-stage failure and tail failure. -/
 theorem failure_cons (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (m:ℕ) (ms:List ℕ) :
     failure U hU seed S valid (m::ms)=fail U hU seed S valid m*failure U hU seed S valid ms :=
   search_event_none_recursion U hU seed S valid m ms
 
+/-- Search with an empty schedule fails with probability one. -/
 theorem failure_nil (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) : failure U hU seed S valid []=1 := by
   unfold failure searchForSchedule
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq,expectation_pure]
   simp [emptySearchTrace]
 
+/-- Interleaving plain trials cannot increase the failure probability of a schedule. -/
 theorem interleaved_failure_le_original (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (ms:List ℕ) :
     failure U hU seed S valid (interleavePlain ms)≤failure U hU seed S valid ms := by
@@ -48,6 +76,8 @@ theorem interleaved_failure_le_original (U:Matrix I I ℂ) (hU:U∈Matrix.unitar
           exact (le_add_right le_rfl).trans h.le) (mul_le_mul_right ih _)
       _ = _ := one_mul _
 
+/-- The failure probability of an interleaved schedule is at most the plain-trial failure
+probability raised to the original schedule length. -/
 theorem interleaved_failure_plain_power (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (ms:List ℕ) :
     failure U hU seed S valid (interleavePlain ms)≤(fail U hU seed S valid 1)^ms.length := by
@@ -63,6 +93,8 @@ theorem interleaved_failure_plain_power (U:Matrix I I ℂ) (hU:U∈Matrix.unitar
         mul_le_mul_right (mul_le_mul' hm ih) _
       _ = _ := by rw [one_mul,pow_succ']
 
+/-- With exact validation and marked mass at least `1/2`, interleaved geometric search with `T`
+stages has failure probability at most `(1/2)^T`. -/
 theorem highQ_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (hQ:(1/2:ℝ)≤MeasureProb (preparedAAState U seed) S)
     (M T:ℕ) :
@@ -82,6 +114,9 @@ theorem highQ_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (see
     exact hs.trans_eq he.symm
   simpa only [geometricSearchSchedule,List.length_ofFn] using h.trans (ENNReal.pow_le_pow_left hf)
 
+/-- With exact validation and marked mass `sin θ` squared for `0 < θ < π/2`, a window satisfying
+`geometricWindow M j * sin (2 * θ) ≥ 1` bounds real failure probability by `(25/32)^(T -
+j)`. -/
 theorem lowQ_failure_cutoff (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (M T j:ℕ) (θ:ℝ)
     (h0:0<θ) (h1:θ<Real.pi/2) (hmass:MeasureProb (preparedAAState U seed) S=(Real.sin θ)^2)
@@ -95,6 +130,8 @@ theorem lowQ_failure_cutoff (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ
   exact (ENNReal.toReal_mono hf hle).trans
     (geometric_search_actual_cutoff_failure_probability U hU seed S valid M T j θ hvalid h0 h1 hmass hwin)
 
+/-- With exact validation and marked mass one, interleaving any nonempty schedule gives failure
+probability zero. -/
 theorem Q_one_failure (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)
     (valid:I→Bool) (hvalid:∀y,valid y=true↔y∈S) (hQ:MeasureProb (preparedAAState U seed) S=1)
     (m:ℕ) (ms:List ℕ) : failure U hU seed S valid (interleavePlain (m::ms))=0 := by

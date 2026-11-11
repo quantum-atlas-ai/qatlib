@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
 import Qatlib.Foundations.OperatorErrors.OperatorError
+
+/-!
+# Oracle perturbation bounds for adjoint circuits
+
+For a `WellFormedAdjointCircuit`, replacing a unitary oracle U by a unitary oracle V changes the
+evaluated operator by at most the number of oracle queries times ‖V − U‖. The bound counts both
+forward and adjoint queries through `adjointQueryCount`, providing the elementary error
+accumulation estimate used in quantum circuit analysis [NielsenChuang2010].
+
+## Main statements
+
+* `evaluate_operator_error_le_queries`: A per-query perturbation δ yields total operator error
+  at most the query count times δ.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -18,6 +37,9 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Replacing U by V in a well-formed adjoint circuit changes its evaluated operator by at most
+`adjointQueryCount cs` times δ, provided both oracles are unitary and ‖V − U‖ ≤ δ with δ ≥
+0. -/
 theorem evaluate_operator_error_le_queries {H : Type*} [Fintype H] [DecidableEq H]
     (cs : List (AdjointStep H)) (U V : Matrix H H ℂ) (δ : ℝ)
     (hcs : WellFormedAdjointCircuit cs) (hU : U ∈ Matrix.unitaryGroup H ℂ)

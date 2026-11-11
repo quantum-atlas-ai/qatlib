@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterCZInstrument
 import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterWire
+
+/-!
+# Counted cluster CZ execution
+
+This module defines the observed four-qubit CZ program, including its outcome-dependent physical
+Pauli feedback. Exact leaf formulas preserve the outcome-dependent sign at vector level, and
+tracing out the measured pair identifies each physical branch with `clusterCZInstrument`.
+
+Every logical branch is one quarter of CZ conjugation, also with an arbitrary reference system.
+The final resource theorem counts thirteen gates and two measurements per branch for this
+implementation of the cluster gate scheme in [RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_cz_actual_leaf_frame_with_outcome_phase`: exact physical branch amplitudes and signs.
+* `cluster_cz_actual_program_instrument_bridge`: agreement between the observed program and the
+  logical instrument.
+* `cluster_cz_actual_reference_channel`: branch and forgotten-channel formulas with references.
+* `cluster_cz_actual_program_and_feedback_cost`: well-formedness, leaf enumeration, and exact
+  resource counts.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -31,97 +57,121 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The partial trace over the first Boolean pair preserves addition of four-qubit matrices. -/
 theorem traceLeft_add4 (A B : Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ) :
     Matrix.traceLeft (A + B) = Matrix.traceLeft A + Matrix.traceLeft B := by
   ext c c'
   simp only [Matrix.traceLeft, Matrix.of_apply, Matrix.add_apply, Finset.sum_add_distrib]
 
+/-- The partial trace over the first Boolean pair commutes with complex scalar multiplication. -/
 theorem traceLeft_smul4 (r : ℂ)
     (A : Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ) :
     Matrix.traceLeft (r • A) = r • Matrix.traceLeft A := by
   ext c' c''
   simp only [Matrix.traceLeft, Matrix.of_apply, Matrix.smul_apply, Finset.mul_sum, smul_eq_mul]
 
+/-- The CZ matrix is diagonal in Boolean-pair coordinates, with a negative entry only when both
+bits are true. -/
 theorem clusterCZ_tele_entry (b c x y : Bool) :
     clusterCZ (teleportOutcomeEquiv (b, c)) (teleportOutcomeEquiv (x, y))
       = if (b, c) = (x, y) then (if b && c then (-1 : ℂ) else 1) else 0 := by
   simp [clusterCZ, relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply,
     Equiv.symm_apply_apply, clusterCZb, Matrix.diagonal_apply]
 
+/-- The measurement label reading physical vertex `a` from a finite-index four-qubit basis
+state. -/
 def clusterCZLabelA (r : Fin 16) : Fin 2 :=
   boolEquivFin2 (clusterCZRegisterEquiv.symm r).1.1
 
+/-- The measurement label reading physical vertex `d` from a finite-index four-qubit basis
+state. -/
 def clusterCZLabelD (r : Fin 16) : Fin 2 :=
   boolEquivFin2 (clusterCZRegisterEquiv.symm r).1.2
 
+/-- The optional Pauli X on output vertex `b` in Boolean product coordinates. -/
 noncomputable def clusterCZXbB (a : Bool) :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (TensorGate (if a then PauliX else 1) (1 : Matrix Bool Bool ℂ))
 
+/-- The optional Pauli Z on output vertex `b` in Boolean product coordinates. -/
 noncomputable def clusterCZZbB (d : Bool) :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (TensorGate (if d then PauliZ else 1) (1 : Matrix Bool Bool ℂ))
 
+/-- The optional Pauli X on output vertex `c` in Boolean product coordinates. -/
 noncomputable def clusterCZXcB (d : Bool) :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (TensorGate (1 : Matrix Bool Bool ℂ) (if d then PauliX else 1))
 
+/-- The optional Pauli Z on output vertex `c` in Boolean product coordinates. -/
 noncomputable def clusterCZZcB (a : Bool) :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
     (TensorGate (1 : Matrix Bool Bool ℂ) (if a then PauliZ else 1))
 
+/-- The optional Pauli X on vertex `b` relabeled to `Fin 16`. -/
 noncomputable def clusterCZXbGate (a : Bool) : Operator 16 :=
   relabelGate clusterCZRegisterEquiv (clusterCZXbB a)
 
+/-- The optional Pauli Z on vertex `b` relabeled to `Fin 16`. -/
 noncomputable def clusterCZZbGate (d : Bool) : Operator 16 :=
   relabelGate clusterCZRegisterEquiv (clusterCZZbB d)
 
+/-- The optional Pauli X on vertex `c` relabeled to `Fin 16`. -/
 noncomputable def clusterCZXcGate (d : Bool) : Operator 16 :=
   relabelGate clusterCZRegisterEquiv (clusterCZXcB d)
 
+/-- The optional Pauli Z on vertex `c` relabeled to `Fin 16`. -/
 noncomputable def clusterCZZcGate (a : Bool) : Operator 16 :=
   relabelGate clusterCZRegisterEquiv (clusterCZZcB a)
 
+/-- Choosing either Pauli X or the identity according to a Boolean bit gives a unitary matrix. -/
 theorem clusterCZPauliChoiceX_unitary (a : Bool) :
     (if a then PauliX else (1 : Matrix Bool Bool ℂ)) ∈ Matrix.unitaryGroup Bool ℂ := by
   cases a
   · exact Submonoid.one_mem _
   · exact pauliX_unitary
 
+/-- Choosing either Pauli Z or the identity according to a Boolean bit gives a unitary matrix. -/
 theorem clusterCZPauliChoiceZ_unitary (d : Bool) :
     (if d then PauliZ else (1 : Matrix Bool Bool ℂ)) ∈ Matrix.unitaryGroup Bool ℂ := by
   cases d
   · exact Submonoid.one_mem _
   · exact pauliZ_unitary
 
+/-- The optional physical X correction on vertex `b` is unitary. -/
 theorem clusterCZXbGate_unitary (a : Bool) :
     clusterCZXbGate a ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary (Submonoid.one_mem _)
       (tensorGate_unitary (clusterCZPauliChoiceX_unitary a) (Submonoid.one_mem _))) _
 
+/-- The optional physical Z correction on vertex `b` is unitary. -/
 theorem clusterCZZbGate_unitary (d : Bool) :
     clusterCZZbGate d ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary (Submonoid.one_mem _)
       (tensorGate_unitary (clusterCZPauliChoiceZ_unitary d) (Submonoid.one_mem _))) _
 
+/-- The optional physical X correction on vertex `c` is unitary. -/
 theorem clusterCZXcGate_unitary (d : Bool) :
     clusterCZXcGate d ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary (Submonoid.one_mem _)
       (tensorGate_unitary (Submonoid.one_mem _) (clusterCZPauliChoiceX_unitary d))) _
 
+/-- The optional physical Z correction on vertex `c` is unitary. -/
 theorem clusterCZZcGate_unitary (a : Bool) :
     clusterCZZcGate a ∈ Matrix.unitaryGroup (Fin 16) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary (Submonoid.one_mem _)
       (tensorGate_unitary (Submonoid.one_mem _) (clusterCZPauliChoiceZ_unitary a))) _
 
+/-- The observed CZ program comprising resource preparation, decoding, two measurements, and
+four outcome-dependent Pauli correction gates. -/
 noncomputable def clusterCZProgram : ObservedCircuit (Fin 16) :=
   .step (.gate clusterCZHaGate) (.step (.gate clusterCZHdGate)
     (.step (.gate clusterCZHbGate) (.step (.gate clusterCZHcGate)
@@ -136,12 +186,16 @@ noncomputable def clusterCZProgram : ObservedCircuit (Fin 16) :=
                       (.step (.gate (clusterCZZcGate (boolEquivFin2.symm ka)))
                         (.halt true)))))))))))))))
 
+/-- The CZ program leaf selected by its two Boolean measurement outcomes. -/
 noncomputable def clusterCZLeaf (a d : Bool) :
     Fin (observedLeafCount clusterCZProgram) :=
   Fin.cast (by rfl) (teleportOutcomeEquiv (a, d))
 
+/-- The two-bit classical message containing the CZ measurement outcomes in order. -/
 def clusterCZMessage (a d : Bool) : List Bool := [a, d]
 
+/-- The CZ leaf operator is the ordered product of its preparation, decoding, selected outcome
+projectors, and Pauli feedback gates. -/
 theorem clusterCZLeafOperator_eq (a d : Bool) :
     (observedLeaf 1 clusterCZProgram (clusterCZLeaf a d)).operator
       = (((((((((((((((1 : Operator 16)
@@ -157,6 +211,7 @@ theorem clusterCZLeafOperator_eq (a d : Bool) :
           * clusterCZHdGate) * clusterCZHaGate := by
   cases a <;> cases d <;> rfl
 
+/-- The optional X correction on `b` acts by XOR with its control bit in that output coordinate. -/
 theorem clusterCZXbB_apply (a : Bool) (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate (clusterCZXbB a) ψ = fun p => ψ (p.1, (p.2.1 ^^ a, p.2.2)) := by
   rw [show clusterCZXbB a = TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
@@ -171,6 +226,8 @@ theorem clusterCZXbB_apply (a : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
   · simp only [if_true]
     exact (applyGate_permMatrix Bool.not_not _ _).trans (by rw [Bool.xor_true])
 
+/-- The optional Z correction on `b` multiplies an amplitude by minus one exactly when its
+control and the `b` bit are true. -/
 theorem clusterCZZbB_apply (d : Bool) (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate (clusterCZZbB d) ψ
       = fun p => (if d && p.2.1 then (-1 : ℂ) else 1) * ψ p := by
@@ -192,6 +249,7 @@ theorem clusterCZZbB_apply (d : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
     rw [hz]
     cases b0 <;> simp
 
+/-- The optional X correction on `c` acts by XOR with its control bit in that output coordinate. -/
 theorem clusterCZXcB_apply (d : Bool) (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate (clusterCZXcB d) ψ = fun p => ψ (p.1, (p.2.1, p.2.2 ^^ d)) := by
   rw [show clusterCZXcB d = TensorGate (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
@@ -206,6 +264,8 @@ theorem clusterCZXcB_apply (d : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
   · simp only [if_true]
     exact (applyGate_permMatrix Bool.not_not _ _).trans (by rw [Bool.xor_true])
 
+/-- The optional Z correction on `c` multiplies an amplitude by minus one exactly when its
+control and the `c` bit are true. -/
 theorem clusterCZZcB_apply (a : Bool) (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate (clusterCZZcB a) ψ
       = fun p => (if a && p.2.2 then (-1 : ℂ) else 1) * ψ p := by
@@ -229,6 +289,8 @@ theorem clusterCZZcB_apply (a : Bool) (ψ : QState ((Bool × Bool) × (Bool × B
 
 set_option maxHeartbeats 4000000 in
 
+/-- Each CZ leaf column is supported on its measured pair and equals the logical CZ column times
+one half and the sign determined by the two outcomes. -/
 theorem clusterCZLeafColumn (a d x y : Bool) :
     ApplyGate ((observedLeaf 1 clusterCZProgram (clusterCZLeaf a d)).operator)
         (relabelState clusterCZRegisterEquiv (Ket ((x, y), (false, false))))
@@ -301,6 +363,8 @@ theorem clusterCZLeafColumn (a d x y : Bool) :
   cases a <;> cases d <;> cases a' <;> cases d' <;> cases b <;> cases c <;>
     cases x <;> cases y <;> simp <;> norm_num
 
+/-- The physical CZ leaf composed with the input frame has support only on its outcome pair and
+equals the logical CZ matrix scaled by `(-1)^(a * d) / 2`. -/
 theorem cluster_cz_actual_leaf_frame_with_outcome_phase :
     ∀ (a d a' d' : Bool) (c i : Fin 4),
       ((observedLeaf 1 clusterCZProgram (clusterCZLeaf a d)).operator
@@ -320,9 +384,12 @@ theorem cluster_cz_actual_leaf_frame_with_outcome_phase :
   simp only [relabelState, Function.comp_apply, Equiv.symm_apply_apply,
     Equiv.apply_symm_apply]
 
+/-- The four-dimensional matrix unit with a single one in row `i` and column `j`. -/
 noncomputable def clusterCZMatUnit (i j : Fin 4) : Operator 4 :=
   Matrix.of fun c c' => if c = i ∧ c' = j then (1 : ℂ) else 0
 
+/-- Every four-dimensional operator is the sum of its entries multiplied by their corresponding
+matrix units. -/
 theorem clusterCZMatUnit_decomp (ρ : Operator 4) :
     ρ = ∑ p : Fin 4 × Fin 4, ρ p.1 p.2 • clusterCZMatUnit p.1 p.2 := by
   ext c c'
@@ -343,6 +410,8 @@ theorem clusterCZMatUnit_decomp (ρ : Operator 4) :
       exact ⟨hc.1.symm, hc.2.symm⟩
     rw [if_neg hnc]
 
+/-- Embedding a matrix unit by the CZ input frame gives the outer product of the corresponding
+frame columns. -/
 theorem clusterCZFrame_matUnit (i j : Fin 4) :
     clusterCZInitialFrame * clusterCZMatUnit i j * clusterCZInitialFrame.conjTranspose
       = matOuter (fun r => clusterCZInitialFrame r i)
@@ -371,6 +440,8 @@ theorem clusterCZFrame_matUnit (i j : Fin 4) :
   · intro k hk
     rw [if_neg hk, zero_mul]
 
+/-- Conjugating a matrix unit by `M` gives the outer product of `M` applied to its two basis
+vectors. -/
 theorem clusterCZ_mul_matUnit_conj (M : Operator 4) (i j : Fin 4) :
     M * clusterCZMatUnit i j * M.conjTranspose = matOuter (M *ᵥ Ket i) (M *ᵥ Ket j) := by
   have hu : clusterCZMatUnit i j = matOuter (Ket i) (Ket j) := by
@@ -380,6 +451,8 @@ theorem clusterCZ_mul_matUnit_conj (M : Operator 4) (i j : Fin 4) :
   rw [hu, matOuter_sandwich]
   rfl
 
+/-- The logical output of a physical CZ branch obtained by input embedding, branch conjugation,
+and tracing out the measured pair. -/
 noncomputable def clusterCZActualBranchCore (a d : Bool) (ρ : Operator 4) : Operator 4 :=
   relabelGate teleportOutcomeEquiv (Matrix.traceLeft
     (relabelGate clusterCZRegisterEquiv.symm
@@ -387,6 +460,7 @@ noncomputable def clusterCZActualBranchCore (a d : Bool) (ρ : Operator 4) : Ope
         * (clusterCZInitialFrame * ρ * clusterCZInitialFrame.conjTranspose)
         * (observedLeaf 1 clusterCZProgram (clusterCZLeaf a d)).operator.conjTranspose)))
 
+/-- The complex-linear map packaging `clusterCZActualBranchCore`. -/
 noncomputable def clusterCZActualBranchMap (a d : Bool) : Operator 4 →ₗ[ℂ] Operator 4 where
   toFun := clusterCZActualBranchCore a d
   map_add' := by
@@ -399,6 +473,8 @@ noncomputable def clusterCZActualBranchMap (a d : Bool) : Operator 4 →ₗ[ℂ]
     simp only [Matrix.mul_smul, Matrix.smul_mul, relabelGate_smul', traceLeft_smul4,
       RingHom.id_apply]
 
+/-- On every matrix unit, the physical CZ branch equals one quarter of conjugation by the
+logical CZ. -/
 theorem clusterCZActualBranchCore_matUnit (a d : Bool) (i j : Fin 4) :
     clusterCZActualBranchCore a d (clusterCZMatUnit i j)
       = (1 / 4 : ℂ) • (clusterCZ * clusterCZMatUnit i j * clusterCZ.conjTranspose) := by
@@ -446,6 +522,7 @@ theorem clusterCZActualBranchCore_matUnit (a d : Bool) (i j : Fin 4) :
     relabelGate_matOuter, htr, hcol (x, y), hcol (x', y'), hsymm _, relabelGate_matOuter,
     matOuter_smul_smul, hεreal, hεsq, ← clusterCZ_mul_matUnit_conj]
 
+/-- Each physical CZ branch map equals one quarter of conjugation by `clusterCZ`. -/
 theorem clusterCZActualBranchMap_apply (a d : Bool) (ρ : Operator 4) :
     clusterCZActualBranchMap a d ρ = (1 / 4 : ℂ) • conjBranch clusterCZ ρ := by
   have hsmul : ∀ p : Fin 4 × Fin 4,
@@ -472,6 +549,8 @@ theorem clusterCZActualBranchMap_apply (a d : Bool) (ρ : Operator 4) :
   refine Finset.sum_congr rfl fun p _ => ?_
   rw [conjBranch_apply, Matrix.mul_smul, Matrix.smul_mul, smul_smul]
 
+/-- Each physical CZ branch map equals the corresponding branch of `clusterCZInstrument` and is
+one quarter of CZ conjugation. -/
 theorem cluster_cz_actual_program_instrument_bridge :
     ∀ a d : Bool,
       clusterCZActualBranchMap a d = clusterCZInstrument.branch (a, d) ∧
@@ -483,6 +562,9 @@ theorem cluster_cz_actual_program_instrument_bridge :
   intro ρ
   rw [clusterCZActualBranchMap_apply a d ρ, clusterCZInstrument_branch_apply ρ a d]
 
+/-- Each physical CZ branch acts on an arbitrary reference extension as one quarter of CZ
+conjugation tensored with the identity, and summing the branches gives the full unitary
+channel. See [RaussendorfBriegel2000]. -/
 theorem cluster_cz_actual_reference_channel :
     ∀ (r : ℕ) (ρ : Matrix (Fin 4 × Fin r) (Fin 4 × Fin r) ℂ) (a d : Bool),
       tensorLeft (clusterCZActualBranchMap a d) ρ =
@@ -502,6 +584,8 @@ theorem cluster_cz_actual_reference_channel :
   · rw [Finset.sum_congr rfl fun o _ => by rw [hgen o.1 o.2, tensorLeft_conjBranch],
       sum_univ_boolPair_smul, show ((4 : ℂ) * (1 / 4)) = 1 from by norm_num, one_smul]
 
+/-- The CZ program is well formed and has four bijectively indexed accepting, query-free leaves,
+each with thirteen gates, two measurements, and an injective two-bit message. -/
 theorem cluster_cz_actual_program_and_feedback_cost :
     observedWellFormed clusterCZProgram ∧ observedLeafCount clusterCZProgram = 4 ∧
       Function.Bijective (fun o : Bool × Bool => clusterCZLeaf o.1 o.2) ∧

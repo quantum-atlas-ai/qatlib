@@ -8,6 +8,31 @@ import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
 import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
 import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Single-wire cluster gates and instruments
+
+This module constructs the one-wire cluster measurement step `clusterJ` from a phase gate and a
+Hadamard. It defines the two-qubit input and prepared frames, the raw measurement Kraus
+operators, and their outcome-dependent X correction.
+
+For unit-modulus phase parameters, each corrected branch has probability one half on density
+inputs and implements the same logical gate after conditioning. The forgotten channel and its
+arbitrary reference extensions agree with unitary conjugation, as in [RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_wire_preparation_frames`: isometric preparation of the input tensored with plus.
+* `cluster_wire_raw_and_corrected_kraus`: raw byproducts, corrected Kraus operators, and
+  completeness.
+* `cluster_wire_reference_channel`: corrected branch and forgotten-channel action with a
+  reference system.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,12 +57,14 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- Summing the same scalar multiple over both Boolean values multiplies its scalar by two. -/
 theorem sum_univ_bool_smul {M : Type*} [AddCommMonoid M] [Module ℂ M] (c : ℂ) (x : M) :
     (∑ _b : Bool, c • x) = ((2 : ℂ) * c) • x := by
   rw [Fintype.sum_bool, ← add_smul]
   congr 1
   ring
 
+/-- An optional Pauli X gate squares to the identity. -/
 theorem pauliXChoice_mul_self (b : Bool) : pauliXChoice b * pauliXChoice b = 1 := by
   cases b
   · rw [pauliXChoice_false, Matrix.one_mul]
@@ -45,6 +72,7 @@ theorem pauliXChoice_mul_self (b : Bool) : pauliXChoice b * pauliXChoice b = 1 :
       show PauliX * PauliX = 1 from permMatrix_mul_self Bool.not_not,
       teleportRelabelGate_one]
 
+/-- Scaling a matrix by a real scalar scales its conjugation map by the square of that scalar. -/
 theorem conjBranch_real_smul {D : ℕ} (c : ℝ) (M : Operator D) (ρ : Operator D) :
     conjBranch (((c : ℝ) : ℂ) • M) ρ = ((c * c : ℝ) : ℂ) • conjBranch M ρ := by
   simp only [conjBranch_apply, Matrix.smul_mul, Matrix.mul_smul, conjTranspose_smul,
@@ -55,47 +83,64 @@ theorem conjBranch_real_smul {D : ℕ} (c : ℝ) (M : Operator D) (ρ : Operator
     exact h.symm
   rw [hc]
 
+/-- The one-qubit diagonal phase matrix with entries one and `ζ`. -/
 noncomputable def clusterPhase (ζ : ℂ) : Operator 2 :=
   Matrix.diagonal fun i : Fin 2 => if i = 0 then 1 else ζ
 
+/-- The one-qubit cluster step consisting of `clusterPhase ζ` followed by a Hadamard. -/
 noncomputable def clusterJ (ζ : ℂ) : Operator 2 :=
   relabelGate boolEquivFin2 Hadamard * clusterPhase ζ
 
+/-- The Boolean-coordinate CZ matrix, diagonal with a negative sign only on the all-true basis
+pair. -/
 noncomputable def clusterCZb : Matrix (Bool × Bool) (Bool × Bool) ℂ :=
   Matrix.diagonal fun p => if p.1 && p.2 then (-1 : ℂ) else 1
 
+/-- The logical CZ matrix relabeled to `Fin 4`. -/
 noncomputable def clusterCZ : Operator 4 := relabelGate teleportOutcomeEquiv clusterCZb
 
+/-- The Hadamard on the second qubit in Boolean pair coordinates. -/
 noncomputable def clusterWireHbB : Matrix (Bool × Bool) (Bool × Bool) ℂ :=
   TensorGate (1 : Matrix Bool Bool ℂ) Hadamard
 
+/-- The second-qubit Hadamard relabeled to `Fin 4`. -/
 noncomputable def clusterWireHbGate : Operator 4 :=
   relabelGate teleportOutcomeEquiv clusterWireHbB
 
+/-- The Hadamard on the first qubit in Boolean pair coordinates. -/
 noncomputable def clusterWireHaB : Matrix (Bool × Bool) (Bool × Bool) ℂ :=
   TensorGate Hadamard (1 : Matrix Bool Bool ℂ)
 
+/-- The first-qubit Hadamard relabeled to `Fin 4`. -/
 noncomputable def clusterWireHaGate : Operator 4 :=
   relabelGate teleportOutcomeEquiv clusterWireHaB
 
+/-- The phase gate with parameter `ζ` acting on the first qubit of a Boolean pair. -/
 noncomputable def clusterWirePhaseB (ζ : ℂ) : Matrix (Bool × Bool) (Bool × Bool) ℂ :=
   TensorGate (Matrix.diagonal fun a : Bool => if a then ζ else 1) (1 : Matrix Bool Bool ℂ)
 
+/-- The first-qubit phase gate relabeled to `Fin 4`. -/
 noncomputable def clusterWirePhaseGate (ζ : ℂ) : Operator 4 :=
   relabelGate teleportOutcomeEquiv (clusterWirePhaseB ζ)
 
+/-- The embedding of a logical qubit into the first physical qubit with the second initialized
+to zero. -/
 def clusterWireInitialFrame : Matrix (Fin 4) (Fin 2) ℂ :=
   Matrix.of fun r i =>
     if r = teleportOutcomeEquiv (boolEquivFin2.symm i, false) then 1 else 0
 
+/-- The input frame after a Hadamard prepares the second physical qubit in the plus state. -/
 noncomputable def clusterWirePreparedFrame : Matrix (Fin 4) (Fin 2) ℂ :=
   clusterWireHbGate * clusterWireInitialFrame
 
+/-- The logical Kraus operator extracted at first-qubit outcome `b` after phase application,
+entanglement, and Hadamard decoding. -/
 noncomputable def clusterWireRawKraus (ζ : ℂ) (b : Bool) : Operator 2 :=
   Matrix.of fun c i =>
     (clusterWireHaGate * clusterCZ * clusterWirePhaseGate ζ * clusterWirePreparedFrame)
       (teleportOutcomeEquiv (b, boolEquivFin2.symm c)) i
 
+/-- The cluster phase matrix is unitary when its phase parameter has modulus one. -/
 theorem clusterPhase_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
     clusterPhase ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   unfold clusterPhase
@@ -106,12 +151,14 @@ theorem clusterPhase_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
   · rw [if_neg h]
     exact hζ
 
+/-- The cluster step `clusterJ ζ` is unitary when `ζ` has modulus one. -/
 theorem clusterJ_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
     clusterJ ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   Submonoid.mul_mem _
     (teleportRelabelGate_mem_unitaryGroup hadamard_unitary boolEquivFin2)
     (clusterPhase_unitary hζ)
 
+/-- The Boolean-coordinate CZ matrix is self-adjoint. -/
 theorem clusterCZb_conjTranspose : clusterCZbᴴ = clusterCZb := by
   unfold clusterCZb
   rw [Matrix.diagonal_conjTranspose]
@@ -120,6 +167,7 @@ theorem clusterCZb_conjTranspose : clusterCZbᴴ = clusterCZb := by
   obtain ⟨a, b⟩ := p
   cases a <;> cases b <;> simp
 
+/-- The logical CZ matrix is unitary. -/
 theorem clusterCZ_unitary : clusterCZ ∈ Matrix.unitaryGroup (Fin 4) ℂ := by
   unfold clusterCZ
   refine teleportRelabelGate_mem_unitaryGroup ?_ _
@@ -128,6 +176,7 @@ theorem clusterCZ_unitary : clusterCZ ∈ Matrix.unitaryGroup (Fin 4) ℂ := by
   obtain ⟨a, b⟩ := p
   cases a <;> cases b <;> simp
 
+/-- The logical CZ matrix squares to the identity. -/
 theorem clusterCZ_mul_self : clusterCZ * clusterCZ = 1 := by
   have h := (Matrix.mem_unitaryGroup_iff').mp clusterCZ_unitary
   rw [Matrix.star_eq_conjTranspose] at h
@@ -136,6 +185,7 @@ theorem clusterCZ_mul_self : clusterCZ * clusterCZ = 1 := by
       teleportRelabelGate_conjTranspose, clusterCZb_conjTranspose]
   rwa [hc] at h
 
+/-- CZ acts pointwise by a negative sign exactly on the basis vector with both bits true. -/
 theorem clusterCZ_apply (w : QState (Fin 4)) :
     ApplyGate clusterCZ w = fun r =>
       (if (teleportOutcomeEquiv.symm r).1 && (teleportOutcomeEquiv.symm r).2
@@ -156,6 +206,8 @@ theorem clusterCZ_apply (w : QState (Fin 4)) :
     rw [hentry r k, if_neg hk, zero_mul]),
     hentry r r, if_pos rfl]
 
+/-- For a unit-modulus phase parameter, the phase and cluster-step gates are unitary, and CZ is
+a unitary involution with its stated computational-basis signs. -/
 theorem cluster_phase_and_entangler_laws :
     ∀ ζ : ℂ, ‖ζ‖ = 1 →
       clusterPhase ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧
@@ -176,6 +228,8 @@ theorem cluster_phase_and_entangler_laws :
     simp only [h1, h2, if_pos h, mul_one]
   · simp [if_neg h]
 
+/-- Each column of the wire input frame is the relabeled basis pair with its logical bit first
+and a false ancillary bit. -/
 theorem clusterWireInitialFrame_column (i : Fin 2) (r : Fin 4) :
     clusterWireInitialFrame r i
       = relabelState teleportOutcomeEquiv (Qatlib.Foundations.PureStateMath.Ket (boolEquivFin2.symm i, false)) r := by
@@ -190,6 +244,7 @@ theorem clusterWireInitialFrame_column (i : Fin 2) (r : Fin 4) :
       rwa [Equiv.apply_symm_apply] at h3
     simp [clusterWireInitialFrame, relabelState, Qatlib.Foundations.PureStateMath.Ket, h, h2]
 
+/-- The wire input frame is an isometry. -/
 theorem clusterWireInitialFrame_isometry : IsIsometry clusterWireInitialFrame := by
   have hInj : ∀ i j : Fin 2,
       teleportOutcomeEquiv (boolEquivFin2.symm i, false)
@@ -233,24 +288,29 @@ theorem clusterWireInitialFrame_isometry : IsIsometry clusterWireInitialFrame :=
       simp [hij]
   exact h
 
+/-- The second-qubit Hadamard is unitary. -/
 theorem clusterWireHbGate_unitary : clusterWireHbGate ∈ Matrix.unitaryGroup (Fin 4) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary (Submonoid.one_mem _) hadamard_unitary) _
 
+/-- The first-qubit Hadamard is unitary. -/
 theorem clusterWireHaGate_unitary : clusterWireHaGate ∈ Matrix.unitaryGroup (Fin 4) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary hadamard_unitary (Submonoid.one_mem _)) _
 
+/-- The Boolean-coordinate first-qubit phase gate is unitary for a unit-modulus phase parameter. -/
 theorem clusterWirePhaseB_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
     clusterWirePhaseB ζ ∈ Matrix.unitaryGroup (Bool × Bool) ℂ := by
   unfold clusterWirePhaseB
   exact tensorGate_unitary (diagonal_mem_unitaryGroup _ fun a => by
     cases a <;> simp [hζ]) (Submonoid.one_mem _)
 
+/-- The finite-index first-qubit phase gate is unitary for a unit-modulus phase parameter. -/
 theorem clusterWirePhaseGate_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
     clusterWirePhaseGate ζ ∈ Matrix.unitaryGroup (Fin 4) ℂ :=
   teleportRelabelGate_mem_unitaryGroup (clusterWirePhaseB_unitary hζ) _
 
+/-- The plus-prepared wire frame is an isometry. -/
 theorem clusterWirePreparedFrame_isometry : IsIsometry clusterWirePreparedFrame := by
   have hU : clusterWireHbGateᴴ * clusterWireHbGate = 1 := by
     have h := (Matrix.mem_unitaryGroup_iff').mp clusterWireHbGate_unitary
@@ -261,6 +321,8 @@ theorem clusterWirePreparedFrame_isometry : IsIsometry clusterWirePreparedFrame 
     Matrix.one_mul]
   exact clusterWireInitialFrame_isometry
 
+/-- Applying a Hadamard to the second qubit of `(x, false)` gives the tensor product of the
+basis state `x` and plus. -/
 theorem clusterWireHbB_ket (x : Bool) :
     ApplyGate clusterWireHbB (Qatlib.Foundations.PureStateMath.Ket (x, false)) = TensorState (Qatlib.Foundations.PureStateMath.Ket x) Plus := by
   rw [show (Qatlib.Foundations.PureStateMath.Ket (x, false) : QState (Bool × Bool)) = TensorState (Qatlib.Foundations.PureStateMath.Ket x) (Qatlib.Foundations.PureStateMath.Ket false) from
@@ -268,6 +330,8 @@ theorem clusterWireHbB_ket (x : Bool) :
     show clusterWireHbB = TensorGate (1 : Matrix Bool Bool ℂ) Hadamard from rfl,
     applyGate_tensorGate, applyGate_one, applyGate_hadamard_ket_false]
 
+/-- The initial and plus-prepared wire frames are isometries, and the prepared frame embeds any
+input as that input tensored with plus. -/
 theorem cluster_wire_preparation_frames :
     IsIsometry clusterWireInitialFrame ∧
       clusterWirePreparedFrame = clusterWireHbGate * clusterWireInitialFrame ∧
@@ -325,6 +389,8 @@ theorem cluster_wire_preparation_frames :
     show clusterWireHbB = TensorGate (1 : Matrix Bool Bool ℂ) Hadamard from rfl,
     applyGate_tensorGate, applyGate_one, applyGate_hadamard_ket_false]
 
+/-- The first-qubit Hadamard forms the normalized sum or difference of the two first-qubit
+amplitudes. -/
 theorem clusterWireHaB_apply (ψ : QState (Bool × Bool)) :
     ApplyGate clusterWireHaB ψ
       = fun p => ((Real.sqrt 2 : ℂ)⁻¹) *
@@ -336,6 +402,8 @@ theorem clusterWireHaB_apply (ψ : QState (Bool × Bool)) :
     Fintype.sum_bool]
   cases p.1 <;> cases p.2 <;> simp <;> ring
 
+/-- Preparing the second qubit in plus and applying a first-qubit phase gives the stated
+basis-state amplitudes. -/
 theorem clusterWirePreparedB (ζ : ℂ) (x : Bool) :
     ApplyGate (clusterWirePhaseB ζ * clusterWireHbB) (Qatlib.Foundations.PureStateMath.Ket (x, false))
       = fun p => (if x then ζ else 1) * Qatlib.Foundations.PureStateMath.Ket x p.1 * ((Real.sqrt 2 : ℂ)⁻¹) := by
@@ -347,6 +415,8 @@ theorem clusterWirePreparedB (ζ : ℂ) (x : Bool) :
   simp only [TensorState, Plus, hadamard_apply_false, ket_apply]
   cases p.1 <;> cases x <;> simp
 
+/-- The decoded wire circuit has the displayed amplitudes in terms of the input bit, phase
+parameter, and XOR of the output bits. -/
 theorem clusterWireDecodedColumn (ζ : ℂ) (x : Bool) :
     ApplyGate (clusterWireHaB * clusterCZb * clusterWirePhaseB ζ * clusterWireHbB)
         (Qatlib.Foundations.PureStateMath.Ket (x, false))
@@ -360,6 +430,8 @@ theorem clusterWireDecodedColumn (ζ : ℂ) (x : Bool) :
   cases p.1 <;> cases p.2 <;> cases x <;>
     simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm, mul_left_comm]
 
+/-- Each raw wire Kraus entry is one half of the displayed phase-weighted expression determined
+by the input, output, and measurement bits. -/
 theorem clusterWireRawKraus_apply (ζ : ℂ) (b : Bool) (c i : Fin 2) :
     clusterWireRawKraus ζ b c i
       = (1 / 2 : ℂ) * ((if boolEquivFin2.symm i then (0 : ℂ) else 1)
@@ -379,6 +451,7 @@ theorem clusterWireRawKraus_apply (ζ : ℂ) (b : Bool) (c i : Fin 2) :
     applyGate_relabelGate, clusterWireDecodedColumn]
   simp only [relabelState, Function.comp_apply, Equiv.symm_apply_apply]
 
+/-- The cluster-step matrix has rows `(1, ζ) / √2` and `(1, -ζ) / √2`. -/
 theorem clusterJ_entry (ζ : ℂ) (c i : Fin 2) :
     clusterJ ζ c i = ((Real.sqrt 2 : ℂ)⁻¹) *
       (if c = 0 then (if i = 0 then 1 else ζ)
@@ -388,6 +461,8 @@ theorem clusterJ_entry (ζ : ℂ) (c i : Fin 2) :
       clusterPhase, Matrix.mul_apply, Matrix.diagonal_apply, Fin.sum_univ_two, Hadamard,
       boolEquivFin2, mul_comm]
 
+/-- For a unit-modulus parameter, the adjoint of the phase matrix multiplied by the matrix
+equals the identity. -/
 theorem clusterPhase_conj_mul (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
     (clusterPhase ζ)ᴴ * clusterPhase ζ = 1 := by
   unfold clusterPhase
@@ -405,6 +480,8 @@ theorem clusterPhase_conj_mul (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
   · simp only [if_neg h0]
     exact hz
 
+/-- For a unit-modulus parameter, the adjoint of the cluster-step matrix multiplied by the
+matrix equals the identity. -/
 theorem clusterJ_conj_mul (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
     (clusterJ ζ)ᴴ * clusterJ ζ = 1 := by
   have hH : (relabelGate boolEquivFin2 Hadamard)ᴴ * relabelGate boolEquivFin2 Hadamard = 1 := by
@@ -416,6 +493,8 @@ theorem clusterJ_conj_mul (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
       (relabelGate boolEquivFin2 Hadamard) (clusterPhase ζ), hH, Matrix.one_mul,
     clusterPhase_conj_mul ζ hζ]
 
+/-- For a unit-modulus parameter, the raw Kraus operator is `X^b * clusterJ ζ / √2`, X feedback
+removes the byproduct, and the corrected family is complete. See [RaussendorfBriegel2000]. -/
 theorem cluster_wire_raw_and_corrected_kraus :
     ∀ (ζ : ℂ) (b : Bool), ‖ζ‖ = 1 →
       clusterWireRawKraus ζ b = ((Real.sqrt 2 : ℂ)⁻¹) • (pauliXChoice b * clusterJ ζ) ∧
@@ -448,16 +527,21 @@ theorem cluster_wire_raw_and_corrected_kraus :
   rw [Fintype.sum_bool, hcorr true, hcorr false, hterm, ← add_smul,
     show (1 / 2 + 1 / 2 : ℂ) = 1 from by norm_num, one_smul]
 
+/-- The raw wire Kraus operator followed by the Pauli X correction selected by the outcome bit. -/
 noncomputable def clusterWireCorrectedKraus (ζ : ℂ) (b : Bool) : Operator 2 :=
   pauliXChoice b * clusterWireRawKraus ζ b
 
+/-- For a unit-modulus phase parameter, the corrected wire Kraus operators satisfy completeness. -/
 theorem clusterWireKrausComplete (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
     ∑ b : Bool, (clusterWireCorrectedKraus ζ b)ᴴ * clusterWireCorrectedKraus ζ b = 1 :=
   (cluster_wire_raw_and_corrected_kraus ζ false hζ).2.2
 
+/-- The binary instrument defined by the corrected wire Kraus operators for a unit-modulus phase
+parameter. -/
 noncomputable def clusterWireInstrument (ζ : ℂ) (hζ : ‖ζ‖ = 1) : Instrument Bool 2 2 :=
   Instrument.ofKraus (clusterWireCorrectedKraus ζ) (clusterWireKrausComplete ζ hζ)
 
+/-- Each corrected wire branch is one half of conjugation by `clusterJ ζ`. -/
 theorem clusterWireInstrument_branch_apply (ζ : ℂ) (hζ : ‖ζ‖ = 1) (ρ : Operator 2)
     (b : Bool) :
     (clusterWireInstrument ζ hζ).branch b ρ = (1 / 2 : ℂ) • conjBranch (clusterJ ζ) ρ := by
@@ -472,6 +556,8 @@ theorem clusterWireInstrument_branch_apply (ζ : ℂ) (hζ : ‖ζ‖ = 1) (ρ :
   simp only [conjBranch_apply, Matrix.smul_mul, Matrix.mul_smul, conjTranspose_smul,
     smul_smul, hconj, sqrt2_inv_sq]
 
+/-- Each corrected wire branch is one half of cluster-step conjugation, its probability is the
+real input trace divided by two, and forgetting outcomes gives cluster-step conjugation. -/
 theorem cluster_wire_instrument_probability :
     ∀ (ζ : ℂ) (hζ : ‖ζ‖ = 1) (ρ : Operator 2) (b : Bool),
       (clusterWireInstrument ζ hζ).branch b ρ = (1 / 2 : ℂ) • conjBranch (clusterJ ζ) ρ ∧
@@ -490,6 +576,8 @@ theorem cluster_wire_instrument_probability :
 
 set_option linter.unusedVariables false in
 
+/-- For a density input, both wire outcomes have probability one half and their conditional
+output is conjugation by `clusterJ ζ`. -/
 theorem cluster_wire_conditional_output :
     ∀ (ζ : ℂ) (hζ : ‖ζ‖ = 1) (ρ : Operator 2) (hρ : IsDensityOperator ρ) (b : Bool),
       instrumentProb (clusterWireInstrument ζ hζ) ρ b = 1 / 2 ∧
@@ -509,6 +597,9 @@ theorem cluster_wire_conditional_output :
   have hscaled := congrArg (fun σ : Operator 2 => (2 : ℂ) • σ) hrecon
   simpa only [smul_smul, show (2 : ℂ) * (1 / 2) = 1 from by norm_num, one_smul] using hscaled
 
+/-- Each corrected wire branch acts as one half of cluster-step conjugation tensored with the
+reference identity, and summing outcomes gives the full reference-extended unitary channel.
+See [RaussendorfBriegel2000]. -/
 theorem cluster_wire_reference_channel :
     ∀ (ζ : ℂ) (hζ : ‖ζ‖ = 1) (r : ℕ)
       (ρ : Matrix (Fin 2 × Fin r) (Fin 2 × Fin r) ℂ) (b : Bool),

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ExactSimon97.MainResults.ShrinkLemma
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+/-!
+# Walsh transforms of phased binary coset states
+
+This module defines Boolean characters and normalized phased coset states, then computes their
+Walsh–Hadamard transforms. Character orthogonality and the identity `|K| * |ortho K| = 2 ^ n`
+give the resulting phase, support, and normalization. The development follows
+[BrassardHoyer1997].
+
+## Main statements
+
+* `sum_charFun_submodule`: evaluates character sums on a binary submodule.
+* `card_mul_card_ortho`: relates the cardinalities of a submodule and its orthogonal.
+* `walshHadamard_phaseCoset`: transforms a phased coset state into a phased coset state of the
+  orthogonal submodule.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,54 +45,71 @@ open Qatlib.Concepts.HspRecovery.Distinguisher
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The Boolean additive character `x ↦ ZMod.stdAddChar (dot a x)`. -/
 def charFun {n : ℕ} (a : BoolVec n) : BoolVec n → ℂ :=
   fun x => ZMod.stdAddChar (dot a x)
 
+/-- Evaluating `charFun a` at `x` gives the standard additive character of their binary dot
+product. -/
 @[simp] theorem charFun_apply {n : ℕ} (a x : BoolVec n) :
     charFun a x = ZMod.stdAddChar (dot a x) := rfl
 
+/-- The Boolean character pairing is symmetric. -/
 theorem charFun_comm {n : ℕ} (a x : BoolVec n) : charFun a x = charFun x a := by
   simp [charFun, dot, mul_comm]
 
+/-- Addition of character labels corresponds to pointwise multiplication of Boolean characters. -/
 theorem charFun_add {n : ℕ} (a b x : BoolVec n) :
     charFun (a + b) x = charFun a x * charFun b x := by
   simp only [charFun, dot, Pi.add_apply, add_mul, Finset.sum_add_distrib,
     AddChar.map_add_eq_mul]
 
+/-- Each Boolean character sends addition of inputs to multiplication. -/
 theorem charFun_add_right {n : ℕ} (a x y : BoolVec n) :
     charFun a (x + y) = charFun a x * charFun a y := by
   simp only [charFun, dot, Pi.add_apply, mul_add, Finset.sum_add_distrib,
     AddChar.map_add_eq_mul]
 
+/-- The complex sign given by the standard additive character of the binary dot product. -/
 def signPair {n : ℕ} (g h : BoolVec n) : ℂ :=
   ZMod.stdAddChar (dot g h)
 
+/-- The sign pairing agrees with evaluation of `charFun`. -/
 theorem signPair_eq_charFun {n : ℕ} (g h : BoolVec n) :
     signPair g h = charFun g h := rfl
 
+/-- The sign pairing is symmetric. -/
 theorem signPair_comm {n : ℕ} (g h : BoolVec n) : signPair g h = signPair h g := by
   simp [signPair, dot, mul_comm]
 
+/-- The normalized character-weighted state supported on the coset `x₀ + S`. -/
 def phaseCoset {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
     (x₀ g : BoolVec n) : BoolVec n → ℂ :=
   fun x => if x - x₀ ∈ S then normFactor S * charFun g x else 0
 
+/-- On its supporting coset, a phased coset state equals the normalization factor times its
+character. -/
 theorem phaseCoset_apply_mem {n : ℕ} {S : Submodule (ZMod 2) (BoolVec n)}
     {x₀ g x : BoolVec n} (hx : x - x₀ ∈ S) :
     phaseCoset S x₀ g x = normFactor S * charFun g x := by
   simp [phaseCoset, hx]
 
+/-- A phased coset state vanishes outside its supporting coset. -/
 theorem phaseCoset_apply_not_mem {n : ℕ} {S : Submodule (ZMod 2) (BoolVec n)}
     {x₀ g x : BoolVec n} (hx : x - x₀ ∉ S) :
     phaseCoset S x₀ g x = 0 := by
   simp [phaseCoset, hx]
 
+/-- The normalization constant `1 / √(2 ^ n)` for the ambient binary vector space. -/
 def ambientNorm (n : ℕ) : ℂ :=
   ((Real.sqrt ((2 : ℝ) ^ n) : ℂ))⁻¹
 
+/-- The Walsh–Hadamard transform obtained by summing against Boolean characters with ambient
+normalization. -/
 def walshHadamard {n : ℕ} (f : BoolVec n → ℂ) : BoolVec n → ℂ :=
   fun y => ambientNorm n * ∑ x, charFun y x * f x
 
+/-- A sum over the coset `x₀ + S` can be reindexed as a sum over the elements of `S`. -/
 theorem sum_coset_eq_sum_submodule {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
     (x₀ : BoolVec n) (F : BoolVec n → ℂ) :
     (∑ x, if x - x₀ ∈ S then F x else 0) = ∑ s : S, F (x₀ + s) := by
@@ -107,6 +145,8 @@ theorem sum_coset_eq_sum_submodule {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n)
       change F x.1 = F (x₀ + (e x).1)
       rw [hex, show x₀ + (x.1 - x₀) = x.1 by abel]
 
+/-- The character sum over `S` is `|S|` when its label lies in `ortho S`, and zero otherwise.
+See [BrassardHoyer1997]. -/
 theorem sum_charFun_submodule {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
     (r : BoolVec n) :
     (∑ s : S, charFun r s) =
@@ -132,6 +172,7 @@ theorem sum_charFun_submodule {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
   · rfl
   · rfl
 
+/-- Submodule orthogonality agrees with Boolean subgroup orthogonality. -/
 theorem mem_ortho_iff_mem_booleanOrthogonal {n : ℕ}
     (S : Submodule (ZMod 2) (BoolVec n)) (x : BoolVec n) :
     x ∈ ortho S ↔ x ∈ booleanOrthogonal S.toAddSubgroup := by
@@ -142,10 +183,13 @@ theorem mem_ortho_iff_mem_booleanOrthogonal {n : ℕ}
   · intro h s hs
     exact h ⟨s, hs⟩
 
+/-- The equivalence between `ortho S` and the Boolean orthogonal of its underlying additive
+subgroup. -/
 def orthoEquivBooleanOrthogonal {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n)) :
     ortho S ≃ booleanOrthogonal S.toAddSubgroup :=
   Equiv.subtypeEquivRight (fun x => mem_ortho_iff_mem_booleanOrthogonal S x)
 
+/-- The orthogonal submodule and the character annihilator have equal cardinality. -/
 theorem card_ortho_eq_card_characterAnnihilator {n : ℕ}
     (S : Submodule (ZMod 2) (BoolVec n)) :
     Fintype.card (ortho S) = Fintype.card (characterAnnihilator S.toAddSubgroup) := by
@@ -157,6 +201,8 @@ theorem card_ortho_eq_card_characterAnnihilator {n : ℕ}
     _ = Fintype.card (characterAnnihilator S.toAddSubgroup) :=
       Fintype.card_congr (booleanOrthogonalCharacterEquiv S.toAddSubgroup).toEquiv
 
+/-- The cardinalities of a binary submodule and its orthogonal multiply to `2 ^ n`. See
+[BrassardHoyer1997]. -/
 theorem card_mul_card_ortho {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n)) :
     Fintype.card S * Fintype.card (ortho S) = 2 ^ n := by
   classical
@@ -175,6 +221,8 @@ theorem card_mul_card_ortho {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n)) :
     _ = Fintype.card (BooleanVec n) := hann
     _ = 2 ^ n := hambient
 
+/-- The ambient Fourier normalization times `|S|` times the normalization of `S` equals the
+normalization of `ortho S`. -/
 theorem ambientNorm_mul_card_mul_normFactor {n : ℕ}
     (S : Submodule (ZMod 2) (BoolVec n)) :
     ambientNorm n * (Fintype.card S : ℂ) * normFactor S = normFactor (ortho S) := by
@@ -233,6 +281,7 @@ theorem ambientNorm_mul_card_mul_normFactor {n : ℕ}
       push_cast
       ring
 
+/-- A sum weighted by a phased coset state can be reindexed over the underlying submodule. -/
 theorem sum_phaseCoset_eq {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
     (x₀ g : BoolVec n) (F : BoolVec n → ℂ) :
     (∑ x, F x * phaseCoset S x₀ g x) =
@@ -294,14 +343,18 @@ theorem sum_phaseCoset_eq {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n))
       intro s _
       ring
 
+/-- Every element of `ZMod 2` equals its additive inverse. -/
 theorem neg_eq_self_zmod2 (a : ZMod 2) : -a = a :=
   neg_eq_of_add_eq_zero_right (CharTwo.add_self_eq_zero a)
 
+/-- Subtraction of binary vectors equals addition. -/
 theorem boolVec_sub_eq_add {n : ℕ} (x h : BoolVec n) : x - h = x + h := by
   ext i
   show x i - h i = x i + h i
   rw [sub_eq_add_neg, neg_eq_self_zmod2]
 
+/-- The Walsh–Hadamard transform of `phaseCoset K g h` is `phaseCoset (ortho K) h g` multiplied
+by `signPair g h`. See [BrassardHoyer1997]. -/
 theorem walshHadamard_phaseCoset {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
     (g h : BoolVec n) :
     walshHadamard (phaseCoset K g h) =

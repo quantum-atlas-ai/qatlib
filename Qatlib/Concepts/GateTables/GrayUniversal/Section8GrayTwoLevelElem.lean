@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GateTables.GrayUniversal.Section8GrayTwoLevelStat
 import Qatlib.Concepts.GateTables.GrayUniversal.GrayPhaseSynthesis
+
+/-!
+# Exact Gray two-level synthesis
+
+`section8GrayTwoLevel` proves the uniform synthesis specification `Section8GrayTwoLevel`. It
+combines arbitrary-pair and single-address phase tables to implement every legal two-level
+instruction on the original register.
+
+The construction has zero oracle queries and an explicit word-length bound, in the elementary
+gate synthesis setting of [BarencoEtAl1995].
+
+## Main statements
+
+* `section8GrayTwoLevel`: establishes the full legality, count, and whole-state semantics
+  specification.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.GateTables.GrayUniversal
 open Matrix
 open scoped Classical BigOperators
 
+/-- For every `n ≥ 1`, each legal two-level instruction has a legal reflection-word
+implementation of length at most `(2 * n - 1) * (256 * n^2 + 2 * n - 2)`. The circuit has
+zero queries, one gate per word entry, and the required action on every state. -/
 theorem section8GrayTwoLevel : Section8GrayTwoLevel := by
   intro n hn
   cases n with

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.CyclicQubitizationStat
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Cyclic subspaces for qubitization
+
+This module proves the cyclic-subspace structure associated with a Hermitian compression of a
+unitary through an isometry. Under the compressed-square identity, an embedded eigenvector
+generates a one- or two-dimensional invariant subspace, according to whether its eigenvalue has
+absolute value one or less than one. Related mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `Clause11CyclicQubitization_answer`: Cyclic-subspace, dimension, and invariance identities
+  from Lemma 17.
+
+## References
+
+* [Low and Su, 2026, Lemma 17][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,11 +52,13 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
   Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
+/-- The squared vector norm is the sum of squared coordinate norms. -/
 private theorem normVec_sq {H : Type} [Fintype H] (v : H → ℂ) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   show ‖toEuclidean_fromVec v‖ ^ 2 = _
   exact norm_toEuclidean_fromVec_sq v
 
+/-- A normalized state has vector norm one. -/
 private theorem normVec_eq_one_of_normalized {I : Type} [Fintype I]
     {φ : QState I} (hφ : Normalized φ) : normVec φ = 1 := by
   have h2 : normVec φ ^ 2 = 1 := by
@@ -45,12 +66,14 @@ private theorem normVec_eq_one_of_normalized {I : Type} [Fintype I]
   have hn : 0 ≤ normVec φ := norm_nonneg _
   nlinarith
 
+/-- An isometric matrix preserves the vector norm. -/
 private theorem normVec_isometry {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] {L : Matrix H I ℂ} (hL : IsIsometry L) (v : QState I) :
     normVec (L *ᵥ v) = normVec v := by
   show ‖toEuclidean_fromVec (L *ᵥ v)‖ = ‖toEuclidean_fromVec v‖
   exact isometry_mulVec_norm hL v
 
+/-- A unitary matrix preserves the vector norm. -/
 private theorem normVec_unitary {H : Type} [Fintype H] [DecidableEq H]
     {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) (v : QState H) :
     normVec (U *ᵥ v) = normVec v := by
@@ -59,6 +82,7 @@ private theorem normVec_unitary {H : Type} [Fintype H] [DecidableEq H]
     rwa [Matrix.star_eq_conjTranspose] at h
   exact normVec_isometry (L := U) hUHU v
 
+/-- The vector norm of a complex scalar multiple is the scalar norm times the vector norm. -/
 private theorem normVec_smul {H : Type} [Fintype H] (c : ℂ) (v : QState H) :
     normVec (c • v) = ‖c‖ * normVec v := by
   show ‖toEuclidean_fromVec (c • v)‖ = ‖c‖ * normVec v
@@ -66,6 +90,7 @@ private theorem normVec_smul {H : Type} [Fintype H] (c : ℂ) (v : QState H) :
   rw [h, norm_smul]
   rfl
 
+/-- A state with vector norm zero is the zero state. -/
 private theorem normVec_eq_zero {H : Type} [Fintype H] {v : QState H}
     (h : normVec v = 0) : v = 0 := by
   have h2 : ∑ i, ‖v i‖ ^ 2 = 0 := by
@@ -80,19 +105,27 @@ private theorem normVec_eq_zero {H : Type} [Fintype H] {v : QState H}
     exact norm_eq_zero.mp hn
   exact funext h4
 
+/-- The pure-state inner product is complex-linear in its second argument under scalar
+multiplication. -/
 private theorem inner_smul_right' {I : Type} [Fintype I] (c : ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (c • φ) = c * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct_smul, smul_eq_mul]
 
+/-- The pure-state inner product is conjugate-linear in its first argument under scalar
+multiplication. -/
 private theorem inner_smul_left' {I : Type} [Fintype I] (c : ℂ) (ψ φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (c • ψ) φ = (starRingEnd ℂ) c * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, star_smul, smul_dotProduct, smul_eq_mul,
       RCLike.star_def]
 
+/-- The pure-state inner product distributes over subtraction in its second argument. -/
 private theorem inner_sub_right' {I : Type} [Fintype I] (ψ φ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner ψ (φ - χ) = Qatlib.Foundations.PureStateMath.Inner ψ φ - Qatlib.Foundations.PureStateMath.Inner ψ χ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct_sub]
 
+/-- For a Hermitian compression of a unitary through an isometry, the compressed-square identity
+gives the stated cyclic-span, eigenvalue, dimension, and invariance properties. See [Low and
+Su, Lemma 17][LowSu2026]. -/
 theorem Clause11CyclicQubitization_answer : Clause11CyclicQubitization := by
   intro H I _fH _dH _fI _dI U G hU hGiso hHerm
   have hUU : U * Uᴴ = 1 := by

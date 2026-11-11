@@ -6,11 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientAux
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientDiagnostics
+
+/-!
+# Normalization and moments of multiproduct coefficients
+
+This module proves `multiproductMoment` for positive terminal nodes satisfying `NodesDistinct`.
+Positivity and injectivity of the squared nodes justify the interpolation argument yielding
+coefficient normalization and vanishing reciprocal-node moments. See [ChildsWiebe2012] for the
+multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `multiproductMoment`: For N > 0 and `NodesDistinct k N`, the multiproduct coefficients sum to
+  1 and their weighted reciprocal-node moments of orders 2m vanish for 1 ≤ m ≤ k.
+* `multiproduct_squared_nodes_injective`: If N > 0 and `NodesDistinct k N` holds, the squared
+  multiproduct nodes form an injective family.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators
 
+/-- If N > 0, every multiproduct node `mNode k N q` is positive. -/
 theorem multiproduct_node_pos (k : ℕ) (N : ℝ) (hN : 0 < N) (q : Fin (k+1)) :
     0 < mNode k N q := by
   unfold mNode
@@ -18,6 +40,8 @@ theorem multiproduct_node_pos (k : ℕ) (N : ℝ) (hN : 0 < N) (q : Fin (k+1)) :
   · positivity
   · exact hN
 
+/-- If N > 0 and `NodesDistinct k N` holds, the squared multiproduct nodes form an injective
+family. -/
 theorem multiproduct_squared_nodes_injective (k : ℕ) (N : ℝ) (hN : 0 < N)
     (hd : NodesDistinct k N) : Function.Injective (fun q => mNode k N q^2) := by
   intro i j h
@@ -36,6 +60,8 @@ theorem multiproduct_squared_nodes_injective (k : ℕ) (N : ℝ) (hN : 0 < N)
   · apply Fin.ext
     omega
 
+/-- For N > 0 and `NodesDistinct k N`, the multiproduct coefficients sum to 1 and their weighted
+reciprocal-node moments of orders 2m vanish for 1 ≤ m ≤ k. See [ChildsWiebe2012]. -/
 theorem multiproductMoment : MultiproductMoment := by
   intro k N hN hd
   exact multiproduct_moments_of_squared_distinct k N

@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+/-!
+# Bell teleportation instruments and conditional recovery
+
+This module packages the raw and Pauli corrected Bell branch operators as quantum instruments.
+Kraus completeness gives valid instruments, and each corrected branch is exactly one quarter of
+its input operator.
+
+For density operators the four outcomes are uniform and every conditional corrected state is the
+input. The same branch and channel identities hold with an arbitrary finite reference,
+expressing the mixed and entangled extensions of teleportation in
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `bell_raw_kraus_complete`: completeness of raw and corrected branch families.
+* `bell_corrected_channel_and_mass`: branch formulas, probabilities, and the identity channel.
+* `bell_conditional_recovery`: exact recovery conditioned on an outcome.
+* `bell_reference_channel_identity`: recovery with a reference register.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +47,8 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- Summing a fixed scalar multiple over the four Boolean outcome pairs multiplies its scalar by
+four. -/
 theorem sum_univ_boolPair_smul {M : Type*} [AddCommMonoid M] [Module ℂ M] (c : ℂ) (x : M) :
     (∑ _o : Bool × Bool, c • x) = ((4 : ℂ) * c) • x := by
   rw [← Finset.smul_sum, Finset.sum_const, Finset.card_univ, Fintype.card_prod,
@@ -29,8 +56,11 @@ theorem sum_univ_boolPair_smul {M : Type*} [AddCommMonoid M] [Module ℂ M] (c :
   congr 1
   ring
 
+/-- The Pauli X matrix equals its conjugate transpose. -/
 theorem pauliX_conjTranspose : PauliXᴴ = PauliX := permMatrix_conjTranspose Bool.not_not
 
+/-- The adjoint of the conditional Pauli product `X^b Z^a` multiplied by that product is the
+identity. -/
 theorem teleportPauliProd_conj_mul (a b : Bool) :
     (((if b then PauliX else 1) * (if a then PauliZ else 1))ᴴ *
       ((if b then PauliX else 1) * (if a then PauliZ else 1))) = 1 := by
@@ -52,6 +82,7 @@ theorem teleportPauliProd_conj_mul (a b : Bool) :
     ← Matrix.mul_assoc (if b then PauliX else 1) (if b then PauliX else 1)
       (if a then PauliZ else 1), hXX, Matrix.one_mul, hZZ]
 
+/-- Each raw Bell branch Kraus operator has Gram matrix equal to one quarter of the identity. -/
 theorem teleportBranchKraus_conj_mul (o : Bool × Bool) :
     (teleportBranchKraus o)ᴴ * teleportBranchKraus o = (1/4:ℂ) • (1:Operator 2) := by
   rw [bell_decoded_branch_operators.2 o, Matrix.conjTranspose_smul,
@@ -60,6 +91,8 @@ theorem teleportBranchKraus_conj_mul (o : Bool × Bool) :
   congr 1
   norm_num
 
+/-- Each corrected Bell branch Kraus operator has Gram matrix equal to one quarter of the
+identity. -/
 theorem teleportCorrectedKraus_conj_mul (o : Bool × Bool) :
     (teleportCorrection o * teleportBranchKraus o)ᴴ
       * (teleportCorrection o * teleportBranchKraus o) = (1/4:ℂ) • (1:Operator 2) := by
@@ -68,6 +101,8 @@ theorem teleportCorrectedKraus_conj_mul (o : Bool × Bool) :
   congr 1
   norm_num
 
+/-- Both the raw Bell branch operators and their corrected counterparts satisfy the Kraus
+completeness relation. -/
 theorem bell_raw_kraus_complete :
     (∑ o : Bool × Bool, (teleportBranchKraus o)ᴴ * teleportBranchKraus o) = 1 ∧
       (∑ o : Bool × Bool, (teleportCorrection o * teleportBranchKraus o)ᴴ *
@@ -78,13 +113,19 @@ theorem bell_raw_kraus_complete :
   · rw [Finset.sum_congr rfl (fun o _ => teleportCorrectedKraus_conj_mul o),
       sum_univ_boolPair_smul, show ((4 : ℂ) * (1 / 4 : ℂ)) = 1 from by norm_num, one_smul]
 
+/-- The four outcome quantum instrument formed from the uncorrected Bell teleportation branch
+operators. -/
 noncomputable def teleportRawInstrument : Instrument (Bool × Bool) 2 2 :=
   Instrument.ofKraus teleportBranchKraus bell_raw_kraus_complete.1
 
+/-- The four outcome quantum instrument formed by composing each Bell branch operator with Bob's
+Pauli correction. -/
 noncomputable def teleportCorrectedInstrument : Instrument (Bool × Bool) 2 2 :=
   Instrument.ofKraus (fun o => teleportCorrection o * teleportBranchKraus o)
     bell_raw_kraus_complete.2
 
+/-- The raw instrument branch is conjugation by its decoded Kraus operator, and the corrected
+branch is obtained by conjugating the raw branch with Bob's correction. -/
 theorem bell_instrument_branches :
     ∀ (ρ : Operator 2) (o : Bool × Bool),
       teleportRawInstrument.branch o ρ = conjBranch (teleportBranchKraus o) ρ ∧
@@ -99,6 +140,7 @@ theorem bell_instrument_branches :
   rw [Matrix.conjTranspose_mul]
   simp [Matrix.mul_assoc]
 
+/-- Every corrected Bell instrument branch sends an operator to one quarter of itself. -/
 theorem teleportCorrectedInstrument_branch_apply (ρ : Operator 2) (o : Bool × Bool) :
     teleportCorrectedInstrument.branch o ρ = (1/4:ℂ) • ρ := by
   show (teleportCorrection o * teleportBranchKraus o) * ρ
@@ -108,6 +150,9 @@ theorem teleportCorrectedInstrument_branch_apply (ρ : Operator 2) (o : Bool × 
   congr 1
   norm_num
 
+/-- Every corrected Bell branch is one quarter of the input, its probability is one quarter of
+the real input trace, and forgetting the outcome gives the identity channel
+[BennettEtAl1993Teleportation]. -/
 theorem bell_corrected_channel_and_mass :
     ∀ (ρ : Operator 2),
       (∀ o, teleportCorrectedInstrument.branch o ρ = (1/4:ℂ) • ρ ∧
@@ -126,6 +171,8 @@ theorem bell_corrected_channel_and_mass :
 
 set_option linter.unusedVariables false in
 
+/-- For every density operator, each Bell outcome has probability one quarter and its
+conditional corrected state equals the input [BennettEtAl1993Teleportation]. -/
 theorem bell_conditional_recovery :
     ∀ (ρ : Operator 2) (hρ : IsDensityOperator ρ) (o : Bool × Bool),
       instrumentProb teleportCorrectedInstrument ρ o = 1/4 ∧
@@ -144,6 +191,8 @@ theorem bell_conditional_recovery :
   norm_num [smul_smul] at hc
   exact hc
 
+/-- With any finite reference register, each corrected Bell branch is one quarter of the joint
+operator and their sum recovers that operator. -/
 theorem bell_reference_channel_identity :
     ∀ (R : ℕ) (ρ : Matrix (Fin 2 × Fin R) (Fin 2 × Fin R) ℂ) (o : Bool × Bool),
       tensorLeft (teleportCorrectedInstrument.branch o) ρ = (1/4:ℂ) • ρ ∧

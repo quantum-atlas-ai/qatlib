@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+
+/-!
+# Flow injections and the cardinality consequence of bi-flow
+
+The flow conditions of [DanosKashefi2006] imply an injection from nonoutput vertices to noninput
+vertices and hence `I.card ≤ O.card`. Flow in both directions gives equal interface
+cardinalities. The module also records the square-isometry implication and defines
+`PatternRealizes` by equality of every corrected density branch with a prescribed matrix map.
+
+## Main statements
+
+* `flow_card_le`: If an MBQC graph has flow from inputs `I` to outputs `O`, then `I.card ≤
+  O.card`.
+* `biFlow_card_eq`: An MBQC graph with bi-flow has equally many inputs and outputs.
+* `biFlow_unitary_core`: Bi-flow gives equal input and output cardinalities, and every isometry
+  on the input register also satisfies the opposite unitary identity.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,12 +39,15 @@ open scoped Classical BigOperators ComplexOrder
 
 namespace Qatlib.Papers.OneWayDanos05.MainResults
 
+/-- The adjacency relation of an MBQC graph is symmetric. -/
 theorem mbqcAdj_comm {n : ℕ} (G : MbqcGraph n) (i j : Fin n) :
     mbqcAdj G i j = mbqcAdj G j i := by
   unfold mbqcAdj
   by_cases h1 : (i, j) ∈ G.edges <;> by_cases h2 : (j, i) ∈ G.edges <;>
     simp [h1, h2]
 
+/-- Under the strict-order flow conditions, two nonoutput vertices with the same flow successor
+are equal [DanosKashefi2006]. -/
 theorem flow_injective_on_compl {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     {f : Fin n → Option (Fin n)} {prec : Fin n → Fin n → Prop}
     (hord : IsStrictOrder (Fin n) prec)
@@ -50,6 +75,7 @@ theorem flow_injective_on_compl {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n
     exact hadj₂
   exact hord.irrefl v (hord.trans v v' v hprec₁ hprec₂)
 
+/-- An MBQC flow gives an injection from the nonoutput vertices into the noninput vertices. -/
 theorem flow_compl_injection {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     (h : MbqcHasFlow G I O) :
     ∃ φ : {v : Fin n // v ∉ O} → {w : Fin n // w ∉ I}, Function.Injective φ := by
@@ -63,6 +89,7 @@ theorem flow_compl_injection {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
   have hval : (hF v.1 v.2).choose = (hF v'.1 v'.2).choose := congrArg Subtype.val hvv
   rw [(hF v'.1 v'.2).choose_spec.1, hval]
 
+/-- If an MBQC graph has flow from inputs `I` to outputs `O`, then `I.card ≤ O.card`. -/
 theorem flow_card_le {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     (h : MbqcHasFlow G I O) : I.card ≤ O.card := by
   classical
@@ -83,19 +110,25 @@ theorem flow_card_le {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     simpa using this
   omega
 
+/-- The predicate that the graph has flow both from `I` to `O` and from `O` to `I`. -/
 def MbqcHasBiFlow {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n)) : Prop :=
   MbqcHasFlow G I O ∧ MbqcHasFlow G O I
 
+/-- An MBQC graph with bi-flow has equally many inputs and outputs [DanosKashefi2006]. -/
 theorem biFlow_card_eq {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     (h : MbqcHasBiFlow G I O) : I.card = O.card := by
   have h1 : I.card ≤ O.card := flow_card_le h.1
   have h2 : O.card ≤ I.card := flow_card_le h.2
   omega
 
+/-- A square complex matrix satisfying `Uᴴ * U = 1` also satisfies `U * Uᴴ = 1`
+[DanosKashefi2006]. -/
 theorem square_isometry_is_unitary {d : ℕ} (U : Matrix (Fin d) (Fin d) ℂ)
     (h : U.conjTranspose * U = 1) : U * U.conjTranspose = 1 :=
   mul_eq_one_comm.mp h
 
+/-- Bi-flow gives equal input and output cardinalities, and every isometry on the input register
+also satisfies the opposite unitary identity [DanosKashefi2006]. -/
 theorem biFlow_unitary_core {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
     (hbi : MbqcHasBiFlow G I O) :
     I.card = O.card ∧
@@ -105,6 +138,8 @@ theorem biFlow_unitary_core {n : ℕ} {G : MbqcGraph n} {I O : Finset (Fin n)}
   intro U hU
   exact square_isometry_is_unitary U hU
 
+/-- The existence of a measurement order and Pauli wire corrections making every XY-plane
+density branch equal to conjugation by the prescribed matrix `U`. -/
 def PatternRealizes {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n)) (a : Fin n → ℝ)
     (U : Matrix (Fin (2 ^ O.card)) (Fin (2 ^ I.card)) ℂ) : Prop :=
   ∃ (r : Fin n → Fin n) (corr : (Fin n → Bool) → Fin n → Operator 2),

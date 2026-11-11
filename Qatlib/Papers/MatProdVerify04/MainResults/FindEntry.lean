@@ -8,6 +8,27 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic
 
+/-!
+# Arithmetic bounds for finding an incorrect entry
+
+This module proves two numerical estimates used in recursive localization of a wrong
+matrix-product entry. `findEntry_sum_bound` bounds the sum of level costs by the number of
+levels times the initial cost, and `quadrant_shrink` controls the size-to-error parameter after
+selecting a quadrant.
+
+The mathematical setting is that of [BuhrmanSpalek2006].
+
+## Main statements
+
+* `findEntry_sum_bound`: For positive `n` and `q` and nonnegative `m`, the sum of the first `L`
+  shrinking-level costs is at most `4 * (n ^ 2 / q) ^ (1 / 3) * m * L`.
+* `quadrant_shrink`: If `q > 0` and `q' ≥ q / 4`, then `(n / 2) ^ 2 / q' ≤ n ^ 2 / q`.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,6 +36,8 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Finset
 
+/-- For positive `n` and `q` and nonnegative `m`, the sum of the first `L` shrinking-level costs
+is at most `4 * (n ^ 2 / q) ^ (1 / 3) * m * L`. [BuhrmanSpalek2006] -/
 theorem findEntry_sum_bound {n q m : ℝ} (hn : 0 < n) (hq : 0 < q) (hm : 0 ≤ m)
     (L : ℕ) :
     (∑ l ∈ Finset.range L, 4 * (((n / (2 : ℝ) ^ l) ^ 2 / q) ^ ((1 : ℝ) / 3)) * m)
@@ -48,6 +71,7 @@ theorem findEntry_sum_bound {n q m : ℝ} (hn : 0 < n) (hq : 0 < q) (hm : 0 ≤ 
         rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
         ring
 
+/-- If `q > 0` and `q' ≥ q / 4`, then `(n / 2) ^ 2 / q' ≤ n ^ 2 / q`. [BuhrmanSpalek2006] -/
 theorem quadrant_shrink {n q q' : ℝ} (hq : 0 < q)
     (hq' : q / 4 ≤ q') : (n / 2) ^ 2 / q' ≤ n ^ 2 / q := by
   have hn2 : (0 : ℝ) ≤ n ^ 2 := sq_nonneg n

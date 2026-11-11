@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.FairBitSampling.CappedWeightedCoinPath
 import Qatlib.Concepts.RandCompile.ReferenceModel.QDriftReferenceSimulation
+
+/-!
+# Fair-bit qDRIFT circuits and reference errors
+
+This module constructs qDRIFT circuits from capped fair-bit weighted samples and defines their
+averaged output with an arbitrary ancilla. It connects that average to a power of the sampled
+mixture channel and compares the capped sampler with the ideal importance law, in the randomized
+compilation framework of [Campbell2019].
+
+The final error bound adds a quadratic-in-time analytic term to the accumulated capped-sampling
+error. Separate path ledgers record unitarity, gates, oracle queries, fair bits, and
+comparisons.
+
+## Main statements
+
+* `fair_bit_qdrift_actual_fresh_channel_bridge`: identifies the averaged circuit output with the
+  iterated mixture.
+* `fair_bit_qdrift_actual_quantum_and_classical_path_counts`: bounds each sampled circuit and
+  its classical sampling costs.
+* `fair_bit_qdrift_derived_sampling_and_analytic_error`: combines analytic and sampling
+  trace-norm errors.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +51,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The circuit of `n` Hamiltonian evolution gates selected by capped fair-bit weighted samples,
+with an empty circuit when the total weight is zero. -/
 noncomputable def fairQdriftCircuit {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ)
     (ω : Fin n → Fin R → Reg (Nat.clog 2 (weightTotal w))) : Circuit (Fin D) :=
@@ -31,6 +60,8 @@ noncomputable def fairQdriftCircuit {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     mixturePathCircuit (fun j => HamiltonianEvolution (K j) (t*(weightTotal w : ℝ)/(n : ℝ)))
       (fun k => (fairQdriftPick w j0 R (ω k)).1)
 
+/-- The average ancillary output of independently sampled fair-bit qDRIFT paths, returning the
+input unchanged at zero total weight. -/
 noncomputable def fairQdriftReferenceOutput {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) (r : ℕ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -46,6 +77,8 @@ noncomputable def fairQdriftReferenceOutput {L D : ℕ} (w : Fin L → ℕ) (j0 
           (fun bits => HamiltonianEvolution (K (fairQdriftPick w j0 R bits).1)
             (t*(weightTotal w : ℝ)/(n : ℝ))) ω) (1 : Operator r))ᴴ)
 
+/-- Zero total weight gives an empty circuit, zero total sampled bit and comparison costs, and
+reference output equal to the input. -/
 theorem fairQdrift_zero_protocol {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ)
     (ω : Fin n → Fin R → Reg (Nat.clog 2 (weightTotal w))) (r : ℕ)
@@ -56,6 +89,8 @@ theorem fairQdrift_zero_protocol {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
       fairQdriftReferenceOutput w j0 n R K t r X = X := by
   simp [fairQdriftCircuit, fairQdriftPick, fairQdriftReferenceOutput, hW]
 
+/-- Relabeling a finite mixture through a function equals using the pushforward distribution on
+the target labels. -/
 private theorem referenceMixture_pushforward {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] {D : ℕ} (d : FinDist A) (f : A → B)
     (U : B → Operator D) (r : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -68,6 +103,8 @@ private theorem referenceMixture_pushforward {A B : Type} [Fintype A] [Decidable
   intro a _
   simp [eq_comm]
 
+/-- Every power of a relabeled reference mixture equals the corresponding power formed from the
+pushforward distribution. -/
 private theorem referenceMixturePower_pushforward {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] {D : ℕ} (d : FinDist A) (f : A → B)
     (U : B → Operator D) (r n : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -79,6 +116,9 @@ private theorem referenceMixturePower_pushforward {A B : Type} [Fintype A] [Deci
     exact referenceMixture_pushforward d f U r Y
   simp only [referenceMixturePower, he]
 
+/-- For positive total weight, the averaged fair-bit circuit output equals the `n`th power of
+the mixture with law `fairQdriftLaw` and evolution time `t * weightTotal w / n` per gate.
+See [Campbell2019]. -/
 theorem fair_bit_qdrift_actual_fresh_channel_bridge (L D n R r : ℕ)
     (w : Fin L → ℕ) (j0 : Fin L) (K : Fin L → Operator D) (t : ℝ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) (hW : 0 < weightTotal w) :
@@ -92,6 +132,9 @@ theorem fair_bit_qdrift_actual_fresh_channel_bridge (L D n R r : ℕ)
   exact (mixture_fresh_paths_reference_output d (fun bits => U (f bits)) n r X).symm.trans
     (referenceMixturePower_pushforward d f U r n X)
 
+/-- With positive total weight and Hermitian terms, every fair-bit qDRIFT path is unitary, uses
+zero oracle queries and `n` gates, and has bit and comparison counts bounded by `n *
+Nat.clog 2 (weightTotal w) * R` and `n * L * R`. See [Campbell2019]. -/
 theorem fair_bit_qdrift_actual_quantum_and_classical_path_counts (L D n R : ℕ)
     (w : Fin L → ℕ) (j0 : Fin L) (K : Fin L → Operator D) (t : ℝ)
     (ω : Fin n → Fin R → Reg (Nat.clog 2 (weightTotal w)))
@@ -113,6 +156,8 @@ theorem fair_bit_qdrift_actual_quantum_and_classical_path_counts (L D n R : ℕ)
         Finset.sum_le_sum (fun k _ => (fair_bit_qdrift_actual_coin_path_cost L R w j0 hW).1 (ω k) |>.2)
       _ = _ := by simp [Nat.mul_assoc]
 
+/-- The ideal importance distribution assigning each label its weight divided by the positive
+total weight. -/
 noncomputable def fairQdriftImportanceLaw {L : ℕ} (w : Fin L → ℕ)
     (hW : 0 < weightTotal w) : FinDist (Fin L) where
   prob j := (w j : ℝ)/(weightTotal w : ℝ)
@@ -122,6 +167,8 @@ noncomputable def fairQdriftImportanceLaw {L : ℕ} (w : Fin L → ℕ)
     have hs : (∑ j, (w j : ℝ)) = (weightTotal w : ℝ) := by simp [weightTotal]
     rw [hs, div_self (by positivity)]
 
+/-- The importance-law qDRIFT Hamiltonian scaled by the total weight equals the weighted sum of
+the Hamiltonian terms. -/
 private theorem importance_hamiltonian {L D : ℕ} (w : Fin L → ℕ)
     (hW : 0 < weightTotal w) (K : Fin L → Operator D) :
     qdriftHamiltonian (fairQdriftImportanceLaw w hW) K (weightTotal w : ℝ) =
@@ -133,6 +180,9 @@ private theorem importance_hamiltonian {L D : ℕ} (w : Fin L → ℕ)
   simp only [smul_smul, fairQdriftImportanceLaw, Complex.ofReal_div, Complex.ofReal_natCast]
   rw [mul_div_cancel₀ _ (by exact_mod_cast (ne_of_gt hW))]
 
+/-- For unitary branches and positive weight mass, replacing the ideal importance law by the
+capped sampler changes one ancillary mixture output by at most `2 * (1/2)^R` times the input
+trace norm. -/
 private theorem fairQdrift_one_step_sampling_error {L D : ℕ} (w : Fin L → ℕ)
     (j0 : Fin L) (R : ℕ) (hW : 0 < weightTotal w) (U : Fin L → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (r : ℕ)
@@ -180,6 +230,8 @@ private theorem fairQdrift_one_step_sampling_error {L D : ℕ} (w : Fin L → �
       mul_le_mul_of_nonneg_right hab (mul_nonneg (by norm_num) (Matrix.traceNorm_nonneg X))
     _ = _ := by ring
 
+/-- For unitary branches and positive weight mass, the trace-norm error between the capped and
+ideal mixture powers is at most `2 * n * (1/2)^R` times the input trace norm. -/
 private theorem fairQdrift_iterated_sampling_error {L D : ℕ} (w : Fin L → ℕ)
     (j0 : Fin L) (R : ℕ) (hW : 0 < weightTotal w) (U : Fin L → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (r n : ℕ)
@@ -211,6 +263,9 @@ private theorem fairQdrift_iterated_sampling_error {L D : ℕ} (w : Fin L → �
     have h2' := h2.trans (mul_le_mul_of_nonneg_left hB (by positivity))
     exact ((Matrix.traceNorm_add_le _ _).trans (add_le_add h1 h2')).trans_eq (by push_cast; ring)
 
+/-- For positive total weight and step count and Hermitian contraction terms, the ancillary
+output error relative to the weighted Hamiltonian evolution is at most `(4 * (weightTotal
+w)^2 * t^2 / n + 2 * n * (1/2)^R)` times the input trace norm. See [Campbell2019]. -/
 theorem fair_bit_qdrift_derived_sampling_and_analytic_error (L D n R r : ℕ)
     (w : Fin L → ℕ) (j0 : Fin L) (K : Fin L → Operator D) (t : ℝ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)

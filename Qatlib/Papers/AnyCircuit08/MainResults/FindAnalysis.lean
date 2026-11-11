@@ -65,10 +65,30 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Recurrence and repetition estimates for FIND
+
+The recurrence `findQ` has a geometric-sum expression and a polynomial bound when the recursion
+depth is logarithmic in the input parameter. The module also gives scalar failure and success
+estimates at the logarithmic repetition threshold used in the FIND analysis
+[HallgrenHarrow2008].
+
+## Main statements
+
+* `findQ_eq_sum`: expresses the query recurrence as a geometric sum.
+* `findQ_polynomial`: bounds the recurrence under `2 ^ ℓ ≤ n`.
+* `find_failure_amplitude`: bounds the square root of the repetition failure expression.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
 
+/-- Every natural number `n` satisfies `n ≤ 2 ^ n`. -/
 theorem le_two_pow : ∀ n : ℕ, n ≤ 2 ^ n
   | 0 => by simp
   | n + 1 => by
@@ -81,12 +101,16 @@ theorem le_two_pow : ∀ n : ℕ, n ≤ 2 ^ n
         _ = 2 * 2 ^ n := by ring
         _ = 2 ^ (n + 1) := by rw [pow_succ, Nat.mul_comm]
 
+/-- The query-count recurrence with initial value zero and step `findQ m (j + 1) = 2 * m * findQ
+m j + 2 * m`. -/
 def findQ (m : ℕ) : ℕ → ℕ
   | 0 => 0
   | j + 1 => 2 * m * findQ m j + 2 * m
 
+/-- The successor value of `findQ` equals `2 * m * findQ m j + 2 * m`. -/
 theorem findQ_succ (m j : ℕ) : findQ m (j + 1) = 2 * m * findQ m j + 2 * m := rfl
 
+/-- The value `findQ m j` is the sum of `(2 * m) ^ (i + 1)` for `i < j` [HallgrenHarrow2008]. -/
 theorem findQ_eq_sum (m : ℕ) : ∀ j : ℕ,
     findQ m j = ∑ i ∈ Finset.range j, (2 * m) ^ (i + 1)
   | 0 => by simp [findQ]
@@ -99,6 +123,7 @@ theorem findQ_eq_sum (m : ℕ) : ∀ j : ℕ,
       rw [Finset.sum_congr rfl hterm]
       simp
 
+/-- For `m ≥ 1`, the recurrence `findQ m j` is bounded by `(2 * m) ^ (j + 1)`. -/
 theorem findQ_le_pow (m : ℕ) (hm : 1 ≤ m) (j : ℕ) :
     findQ m j ≤ (2 * m) ^ (j + 1) := by
   rw [findQ_eq_sum]
@@ -113,6 +138,8 @@ theorem findQ_le_pow (m : ℕ) (hm : 1 ≤ m) (j : ℕ) :
         _ ≤ (2 * m) * (2 * m) ^ (j + 1) := Nat.mul_le_mul_right _ ha
         _ = (2 * m) ^ (j + 1 + 1) := (pow_succ' (2 * m) (j + 1)).symm
 
+/-- For `m ≥ 1` and `2 ^ ℓ ≤ n`, the recurrence satisfies `findQ m ℓ ≤ 2 * m * n ^ (2 * m)`
+[HallgrenHarrow2008]. -/
 theorem findQ_polynomial (m ℓ n : ℕ) (hm : 1 ≤ m) (hℓ : 2 ^ ℓ ≤ n) :
     findQ m ℓ ≤ 2 * m * n ^ (2 * m) := by
   have hbase := findQ_le_pow m hm ℓ
@@ -125,6 +152,8 @@ theorem findQ_polynomial (m ℓ n : ℕ) (hm : 1 ≤ m) (hℓ : 2 ^ ℓ ≤ n) :
     _ = 2 * m * (2 * m) ^ ℓ := by rw [pow_succ']
     _ ≤ 2 * m * n ^ (2 * m) := Nat.mul_le_mul_left _ hpow
 
+/-- For `0 < δ ≤ 1`, the logarithmic repetition threshold bounds the square root of `(1 - δ / 2)
+^ m` by `δ / 8` [HallgrenHarrow2008]. -/
 theorem find_failure_amplitude (δ : ℝ) (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) (m : ℕ)
     (hm : (4 / δ) * Real.log (8 / δ) ≤ (m : ℝ)) :
     Real.sqrt ((1 - δ / 2) ^ m) ≤ δ / 8 := by
@@ -163,6 +192,8 @@ theorem find_failure_amplitude (δ : ℝ) (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) (m 
   calc Real.sqrt ((1 - δ / 2) ^ m) ≤ Real.sqrt ((δ / 8) ^ 2) := Real.sqrt_le_sqrt hsquares
     _ = δ / 8 := Real.sqrt_sq h8
 
+/-- For `0 < δ ≤ 1`, the logarithmic repetition threshold gives `1 - (1 - δ / 2) ^ m ≥ 1 - (δ /
+8) ^ 2` [HallgrenHarrow2008]. -/
 theorem find_level_success (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (m : ℕ)
     (hm : (4 / δ) * Real.log (8 / δ) ≤ (m : ℝ)) :
     1 - (1 - δ / 2) ^ m ≥ 1 - (δ / 8) ^ 2 := by
@@ -175,12 +206,16 @@ theorem find_level_success (δ : ℝ) (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (m : ℕ
       _ ≤ (δ / 8) ^ 2 := pow_le_pow_left₀ (Real.sqrt_nonneg _) h 2
   linarith
 
+/-- For `0 < δ ≤ 1`, subtracting `4 * sqrt ((δ / 8) ^ 2)` from `δ` leaves at least `δ / 2`
+[HallgrenHarrow2008]. -/
 theorem find_success_amplitude (δ : ℝ) (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) :
     δ - 4 * Real.sqrt ((δ / 8) ^ 2) ≥ δ / 2 := by
   have h8 : 0 ≤ δ / 8 := by positivity
   rw [Real.sqrt_sq h8]
   linarith
 
+/-- For `0 < δ ≤ 1`, a nonnegative error at most `(δ / 8) ^ 2` has square root at most `δ / 8`
+[HallgrenHarrow2008]. -/
 theorem find_error_step (δ : ℝ) (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) (ε' : ℝ) (_hε'0 : 0 ≤ ε')
     (hε' : ε' ≤ (δ / 8) ^ 2) :
     Real.sqrt ε' ≤ δ / 8 := by

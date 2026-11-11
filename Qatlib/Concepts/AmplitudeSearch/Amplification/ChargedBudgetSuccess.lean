@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedClock
 import Qatlib.Concepts.AmplitudeSearch.Amplification.InitializedBudgetCoupling
+
+/-!
+# Success at a charged minimum-finding budget
+
+`chargedInitialSuccess` averages initialized budgeted success over a uniform initial index. The
+module bounds this average between zero and one, couples charged completion to actual success,
+and obtains success at least one half at `chargedBudget`.
+
+The probability estimate uses the mean-clock and timeout argument for quantum minimum finding
+associated with [DurrHoyer1996].
+
+## Main statements
+
+* `chargedCompletion_le_actual_success`: transfers the charged completion bound to the actual
+  procedure.
+* `charged_initial_success_half`: proves the one-half success guarantee.
+
+## References
+
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +42,13 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The uniform initial average of minimum-finding success probabilities with initialization
+charge `initCharge N`. -/
 noncomputable def chargedInitialSuccess {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (budget : ℕ) : ℝ :=
   (∑ current : Fin N, minimumBudgetSuccessWithInit T (initCharge N) budget current) / (N : ℝ)
 
+/-- For a nonempty table, charged initial success lies between zero and one. -/
 theorem chargedInitialSuccess_bounds {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) :
     0 ≤ chargedInitialSuccess T budget ∧ chargedInitialSuccess T budget ≤ 1 := by
@@ -39,6 +64,8 @@ theorem chargedInitialSuccess_bounds {N : ℕ} {α : Type*} [LinearOrder α]
     simpa only [chargedInitialSuccess, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
       nsmul_eq_mul, mul_one, div_self hn] using! h
 
+/-- The completion mass of the charged ranked run is bounded by the actual success probability
+with the corresponding initialization charge. -/
 theorem chargedCompletion_le_actual_success {N : ℕ} {α : Type*} [LinearOrder α]
     (T : SortedRankedTable N α) (hN : 0 < N) (initial : Fin N) (budget : ℕ) :
     (chargedBBHTLaw T.indexOfRank hN).completionMass T.skip (chargedCallCost N)
@@ -47,6 +74,8 @@ theorem chargedCompletion_le_actual_success {N : ℕ} {α : Type*} [LinearOrder 
   simpa only [chargedBBHTLaw, chargedCallCost, initializedBBHTLaw] using!
     initializedCompletion_le_actual_success T hN (initCharge N) initial budget
 
+/-- A nonempty table has charged initial success probability at least `1 / 2` at `chargedBudget
+N` [DurrHoyer1996]. -/
 theorem charged_initial_success_half {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) :
     (1 / 2 : ℝ) ≤ chargedInitialSuccess T (chargedBudget N) := by

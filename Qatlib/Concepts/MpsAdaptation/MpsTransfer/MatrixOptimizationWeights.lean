@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalBoltzmannWeights
+
+/-!
+# Rational weights and mixture stability
+
+`commonDen` and `intWeights` turn a finite family of nonnegative rational weights into natural
+weights with the same normalization. `blockWidth` supplies a power-of-two capacity for the
+resulting rejection sampler.
+
+The module also bounds the effect of weight perturbations on normalized vectors and mixtures of
+probability vectors. These finite sampling ingredients are relevant to the sampling-based matrix
+algorithms discussed in [ChiaEtAl2022].
+
+## Main statements
+
+* `intWeights_normalization`: Clearing denominators preserves normalized weights and gives a
+  positive total.
+* `blockWidth_capacity`: The chosen bit width covers the total weight.
+* `normalized_l1_bound`: Normalization has an explicit ℓ¹ perturbation bound.
+* `mixture_weight_l1`: Mixing probability vectors does not increase ℓ¹ weight error.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.FairRandomBits.RationalReject
@@ -14,14 +39,20 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Qatlib
 open scoped BigOperators
 
+/-- The product of the denominators of a finite family of rational numbers. -/
 def commonDen {N : ℕ} (q : Fin N → ℚ) : ℕ := ∏ i, (q i).den
 
+/-- Natural weights formed from nonnegative numerator parts after scaling to the product of all
+denominators. -/
 def intWeights {N : ℕ} (q : Fin N → ℚ) (i : Fin N) : ℕ :=
   (q i).num.toNat * (commonDen q / (q i).den)
 
+/-- The product of the denominators of a finite rational family is strictly positive. -/
 theorem commonDen_pos {N : ℕ} (q : Fin N → ℚ) : 0 < commonDen q :=
   Finset.prod_pos fun i _ => Rat.den_pos (q i)
 
+/-- For nonnegative rational weights, each integer weight equals the original weight multiplied
+by the common denominator after casting to the reals. -/
 theorem intWeights_cast {N : ℕ} (q : Fin N → ℚ)
     (hq : ∀ i, 0 ≤ q i) (i : Fin N) :
     (intWeights q i : ℝ) = (commonDen q : ℝ) * (q i : ℝ) := by
@@ -40,6 +71,8 @@ theorem intWeights_cast {N : ℕ} (q : Fin N → ℚ)
   rw [Rat.cast_def]
   ring
 
+/-- Clearing denominators of nonnegative rational weights with positive total produces positive
+total integer weight and preserves each normalized weight. -/
 theorem intWeights_normalization {N : ℕ} (q : Fin N → ℚ)
     (hq : ∀ i, 0 ≤ q i) (hSum : 0 < ∑ i, (q i : ℝ)) :
     0 < weightTotal (intWeights q) ∧
@@ -57,12 +90,17 @@ theorem intWeights_normalization {N : ℕ} (q : Fin N → ℚ)
   · intro i
     rw [hc i, ht, mul_div_mul_left _ _ (ne_of_gt hD)]
 
+/-- The binary logarithm of the total integer weight plus one, used as a rejection-sampling
+block width. -/
 def blockWidth {N : ℕ} (w : Fin N → ℕ) : ℕ := Nat.log 2 (weightTotal w) + 1
 
+/-- The total integer weight is at most `2 ^ blockWidth w`. -/
 theorem blockWidth_capacity {N : ℕ} (w : Fin N → ℕ) :
     weightTotal w ≤ 2 ^ blockWidth w := by
   exact (Nat.lt_pow_succ_log_self (by decide : 1 < 2) (weightTotal w)).le
 
+/-- For nonnegative `u` and positive totals of `u` and `v`, the ℓ¹ distance between their
+normalizations is at most twice their ℓ¹ difference divided by the total of `v`. -/
 theorem normalized_l1_bound {N : ℕ} (u v : Fin N → ℝ)
     (hu : ∀ i, 0 ≤ u i) (hU : 0 < ∑ i, u i) (hV : 0 < ∑ i, v i) :
     (∑ i, |u i / (∑ j, u j) - v i / (∑ j, v j)|) ≤
@@ -100,6 +138,8 @@ theorem normalized_l1_bound {N : ℕ} (u v : Fin N → ℝ)
       (div_le_div_of_nonneg_right hdiff hVp.le) _
     _ = 2 * E / V := by ring
 
+/-- Mixing a family of probability vectors with two real weight vectors bounds the output ℓ¹
+difference by the ℓ¹ difference of the weights. -/
 theorem mixture_weight_l1 {N M : ℕ} (u v : Fin N → ℝ)
     (q : Fin N → Fin M → ℝ) (hq : ∀ t i, 0 ≤ q t i)
     (hs : ∀ t, ∑ i, q t i = 1) :

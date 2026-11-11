@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
+
+/-!
+# Finite grid HHL examples
+
+This module evaluates finite grid HHL circuits on two dimensional inputs. It computes the
+pseudoinverse response, success probability, normalized output, and gate count for a two
+eigenvalue example and for an inconsistent rank one system. The mathematical background is
+developed in [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `grid_hhl_two_eigenvalue_actual_consumer`: success probability `5 / 8`, the explicit solution
+  state, and seven gates.
+* `gridHHL_recovers_projected_system`: pseudoinversion recovers the range projection of the
+  right hand side.
+* `grid_hhl_low_rank_inconsistent_actual_consumer`: the rank one inconsistent example with
+  probability `1 / 2`.
+
+## References
+
+* [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,11 +56,15 @@ open scoped Classical
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- The two eigenvalue labels one and two in a four point grid. -/
 noncomputable def gridHHLLabel2 : Fin 2 → Fin 4 := fun i => if i = 0 then 1 else 2
 
+/-- The equal superposition of the two coordinate basis states, scaled by `√2` inverse. -/
 noncomputable def gridHHLb2 : QState (Fin 2) :=
   (Real.sqrt 2 : ℂ)⁻¹ • (Ket (0 : Fin 2) + Ket (1 : Fin 2))
 
+/-- The grid pseudoinverse sends the equal superposition to `√2` inverse times the vector with
+coordinates four and two. -/
 theorem gridHHLb2_pseudoinverse (hM : 0 < (4 : ℕ)) :
     matrixPseudoinverse (gridHHLMatrix gridHHLLabel2 (1 : Operator 2)) *ᵥ gridHHLb2
       = (Real.sqrt 2 : ℂ)⁻¹ • ((4 : ℂ) • Ket (0 : Fin 2) + (2 : ℂ) • Ket (1 : Fin 2)) := by
@@ -65,6 +92,7 @@ theorem gridHHLb2_pseudoinverse (hM : 0 < (4 : ℕ)) :
   | 0 => simp [Ket]
   | 1 => simp [Ket]
 
+/-- The total measurement weight of the vector with coordinates four and two is twenty. -/
 theorem gridHHLb2_block_measure :
     MeasureProb ((4 : ℂ) • Ket (0 : Fin 2) + (2 : ℂ) • Ket (1 : Fin 2))
       Finset.univ = 20 := by
@@ -73,6 +101,7 @@ theorem gridHHLb2_block_measure :
   simp [smul_def', Pi.add_apply, Ket]
   ring_nf
 
+/-- The total measurement weight of the inverse response to the equal superposition is ten. -/
 theorem gridHHLb2_successBlock_measure :
     MeasureProb ((Real.sqrt 2 : ℂ)⁻¹
       • ((4 : ℂ) • Ket (0 : Fin 2) + (2 : ℂ) • Ket (1 : Fin 2))) Finset.univ = 10 := by
@@ -81,6 +110,7 @@ theorem gridHHLb2_successBlock_measure :
     abs_of_nonneg (by positivity : (0 : ℝ) ≤ Real.sqrt 2),
     Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
 
+/-- The two eigenvalue grid HHL example with scale `1 / 4` succeeds with probability `5 / 8`. -/
 theorem gridHHLb2_probability :
     gridHHLProbability gridHHLLabel2 (1 : Operator 2) (1 / 4) gridHHLb2 = 5 / 8 := by
   have hV : (1 : Operator 2) ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
@@ -91,6 +121,7 @@ theorem gridHHLb2_probability :
     gridHHLb2_pseudoinverse (by norm_num), gridHHLb2_successBlock_measure]
   norm_num
 
+/-- The product `√10 * √2` equals `2 * √5`. -/
 theorem gridHHLb2_sqrt_key : (Real.sqrt 10 : ℝ) * Real.sqrt 2 = 2 * Real.sqrt 5 := by
   calc Real.sqrt 10 * Real.sqrt 2 = Real.sqrt (10 * 2 : ℝ) :=
       (Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 10) 2).symm
@@ -100,10 +131,14 @@ theorem gridHHLb2_sqrt_key : (Real.sqrt 10 : ℝ) * Real.sqrt 2 = 2 * Real.sqrt 
     _ = Real.sqrt ((2 : ℝ) ^ 2) * Real.sqrt 5 := Real.sqrt_mul (sq_nonneg 2) 5
     _ = 2 * Real.sqrt 5 := by rw [Real.sqrt_sq_eq_abs, abs_of_nonneg (by norm_num)]
 
+/-- The product of the complex inverses of two real numbers equals the complex inverse of their
+real product. -/
 theorem inv_cast_mul (a b : ℝ) :
     ((a : ℂ)⁻¹ * (b : ℂ)⁻¹) = ((a * b : ℝ) : ℂ)⁻¹ := by
   rw [← _root_.mul_inv_rev, ← Complex.ofReal_mul, mul_comm b a]
 
+/-- The two eigenvalue grid HHL output is the normalized vector `√5` inverse times the vector
+with coordinates two and one. -/
 theorem gridHHLb2_output :
     gridHHLOutput gridHHLLabel2 (1 : Operator 2) (1 / 4) gridHHLb2
       = some ((Real.sqrt 5 : ℂ)⁻¹ • ((2 : ℂ) • Ket (0 : Fin 2) + Ket (1 : Fin 2))) := by
@@ -141,6 +176,8 @@ theorem gridHHLb2_output :
   | 0 => simp [Ket]; rw [← mul_assoc, hinv, hpoint, h4]
   | 1 => simp [Ket]; rw [← mul_assoc, hinv, hpoint]; norm_num
 
+/-- The two eigenvalue example has probability `5 / 8`, normalized output proportional to the
+vector with coordinates two and one, and gate count seven. -/
 theorem grid_hhl_two_eigenvalue_actual_consumer :
     gridHHLProbability gridHHLLabel2 (1 : Operator 2) (1 / 4) gridHHLb2 = 5 / 8 ∧
     gridHHLOutput gridHHLLabel2 (1 : Operator 2) (1 / 4) gridHHLb2
@@ -149,6 +186,8 @@ theorem grid_hhl_two_eigenvalue_actual_consumer :
   refine ⟨gridHHLb2_probability, gridHHLb2_output, ?_⟩
   simp [gridHHLCircuit, gridHHLQPEBlock, gridHHLQPEBlockInv]
 
+/-- For a unitary eigenbasis and positive grid size, applying the grid matrix to its
+pseudoinverse response gives the range projection of the input. -/
 theorem gridHHL_recovers_projected_system {D M : ℕ} (hM : 0 < M) (label : Fin D → Fin M)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (b : QState (Fin D)) :
     gridHHLMatrix label V *ᵥ (matrixPseudoinverse (gridHHLMatrix label V) *ᵥ b)
@@ -156,8 +195,11 @@ theorem gridHHL_recovers_projected_system {D M : ℕ} (hM : 0 < M) (label : Fin 
   rw [← grid_hhl_spectral_reciprocal_eq_pseudoinverse hM label V hV,
     Matrix.mulVec_mulVec, gridHHLMatrix_mul_reciprocal hM label V hV]
 
+/-- The labels zero and one in a four point grid, defining the rank one example. -/
 def gridHHLRankOneLabel : Fin 2 → Fin 4 := fun i => if i = 0 then 0 else 1
 
+/-- The rank one grid pseudoinverse sends the equal superposition to `4 / √2` times the second
+basis state. -/
 theorem gridHHL_rank_one_inverse_input :
     matrixPseudoinverse (gridHHLMatrix gridHHLRankOneLabel (1 : Operator 2)) *ᵥ gridHHLb2
       = ((4 / Real.sqrt 2 : ℝ) : ℂ) • Ket (1 : Fin 2) := by
@@ -169,6 +211,8 @@ theorem gridHHL_rank_one_inverse_input :
     simp [Matrix.mulVec, dotProduct, Fin.sum_univ_two, gridHHLReciprocalScale,
       gridHHLRankOneLabel, gridHHLb2, Ket, div_eq_mul_inv, mul_comm]
 
+/-- The rank one example has a normalized inconsistent right hand side, success probability `1 /
+2`, output the second basis state, and seven gates. -/
 theorem grid_hhl_low_rank_inconsistent_actual_consumer :
     Normalized gridHHLb2 ∧
     (¬ ∃ x : QState (Fin 2), gridHHLMatrix gridHHLRankOneLabel (1 : Operator 2) *ᵥ x

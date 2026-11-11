@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeHybridCallReturnDefs
+
+/-!
+# Native call-return execution laws
+
+This module proves the execution and probability laws for `ReturnCall` and `JointRecord`. The
+results describe suspended calls, decoded returns, resumed execution, and the separation of
+native, quantum, and communication costs; the quantum instrument interpretation follows the
+standard framework in [Watrous2018].
+
+The `jointLaw` results retain nontermination and failed decoding as explicit outcomes, factor
+returned outcomes into native and quantum probabilities, and identify the fair-bit weights of
+supported native traces.
+
+## Main statements
+
+* `law_weight` and `haltedMass_weight` compute native trace probabilities from consumed fair
+  bits.
+* `run_branch_eq_instrument` and `run_bornMass_eq_instrumentProb` identify returned quantum
+  branches and their probabilities.
+* `jointLaw_returned`, `jointLaw_total`, and `jointLaw_fiber` give factorization, normalization,
+  and native marginals.
+* `fair_source_split` and `clause16_complete` collect fair-source, execution, and resource
+  guarantees.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -35,6 +64,8 @@ variable {D : ℕ} {A V : Type}
 
 omit [Inhabited Λ] in
 
+/-- Prepending the same native tick to two results preserves enough information to recover
+equality of the original results. -/
 private theorem prepend_injective {r s : NativeTape.Result Γ Λ} (e : NativeTape.Tick Γ Λ)
     (h : NativeTape.Result.prepend e r = NativeTape.Result.prepend e s) : r = s := by
   cases r with
@@ -51,6 +82,8 @@ private theorem prepend_injective {r s : NativeTape.Result Γ Λ} (e : NativeTap
 
 omit [Inhabited Λ] in
 
+/-- Equal results obtained by prepending coin ticks at the same configuration have equal
+prepended coin bits. -/
 private theorem prepend_some_eq {b b' : Bool} (cfg : Turing.TM0.Cfg Γ Λ)
     (t t' : NativeTape.Result Γ Λ)
     (h : NativeTape.Result.prepend (cfg, some b) t = NativeTape.Result.prepend (cfg, some b') t') :
@@ -63,6 +96,8 @@ private theorem prepend_some_eq {b b' : Bool} (cfg : Turing.TM0.Cfg Γ Λ)
 
 omit [Inhabited Λ] in
 
+/-- Mapping a native-result distribution by prepending a fixed tick preserves the mass of each
+result at its image. -/
 private theorem map_prepend_apply {p : PMF (NativeTape.Result Γ Λ)} (e : NativeTape.Tick Γ Λ)
     (r s : NativeTape.Result Γ Λ) (h : r = NativeTape.Result.prepend e s) :
     p.map (NativeTape.Result.prepend e) r = p s := by
@@ -86,6 +121,8 @@ private theorem map_prepend_apply {p : PMF (NativeTape.Result Γ Λ)} (e : Nativ
 
 omit [Inhabited Λ] in
 
+/-- The distribution obtained by prepending a fixed tick assigns zero mass to any result outside
+the image of that operation. -/
 private theorem map_prepend_apply_ne {p : PMF (NativeTape.Result Γ Λ)} (e : NativeTape.Tick Γ Λ)
     (r : NativeTape.Result Γ Λ) (hne : ∀ t, NativeTape.Result.prepend e t ≠ r) :
     p.map (NativeTape.Result.prepend e) r = 0 := by
@@ -98,6 +135,8 @@ private theorem map_prepend_apply_ne {p : PMF (NativeTape.Result Γ Λ)} (e : Na
   have hne' : r ≠ NativeTape.Result.prepend e a := fun heq => hne a heq.symm
   simp [hne']
 
+/-- If only one input can assign nonzero conditional mass to an output, the bound distribution's
+mass there is the product of that input's mass and its conditional mass. -/
 private theorem bind_apply_eq {α β : Type} {p : PMF α} {f : α → PMF β} {b : β} {a : α}
     (hzero : ∀ x, x ≠ a → f x b = 0) :
     (p.bind f) b = p a * f a b := by
@@ -114,6 +153,8 @@ private theorem bind_apply_eq {α β : Type} {p : PMF α} {f : α → PMF β} {b
 
 omit [Inhabited Λ] in
 
+/-- Every supported result of a bounded native execution has probability one half raised to the
+number of fair bits it consumed. -/
 theorem law_weight (M : NativeTape.Program Γ Λ) :
     ∀ (n : ℕ) (cfg : Turing.TM0.Cfg Γ Λ) (r : NativeTape.Result Γ Λ),
       r ∈ (NativeTape.law M n cfg).support →
@@ -178,6 +219,8 @@ theorem law_weight (M : NativeTape.Program Γ Λ) :
       simp only [List.length_cons]
       rw [pow_succ, mul_comm]
 
+/-- A result supported by the native terminal law has halted mass one half raised to its
+consumed-bit count. -/
 theorem haltedMass_weight (M : NativeTape.Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (r : NativeTape.Result Γ Λ) (hr : some r ∈ (NativeTape.terminalLaw M cfg).support) :
     NativeTape.haltedMass M cfg r = (1 / 2 : ℝ≥0∞)^r.bits.length := by
@@ -210,16 +253,23 @@ theorem haltedMass_weight (M : NativeTape.Program Γ Λ) (cfg : Turing.TM0.Cfg �
       exact bot_le
   exact le_antisymm hupp hlow
 
+/-- A native result that has not halted yields neither a decoded value nor a selected quantum
+continuation. -/
 theorem decoded_of_suspended {c : ReturnCall Γ Λ D A V} {r : NativeTape.Result Γ Λ}
     (h : r.stop ≠ NativeTape.Stop.halted) :
     c.decoded r = none ∧ c.selected r = none := by
   simp [ReturnCall.decoded, h, ReturnCall.selected]
 
+/-- For a halted native result, decoding uses its final configuration and continuation selection
+maps the decoder's value through the continuation function. -/
 theorem decoded_of_halted {c : ReturnCall Γ Λ D A V} {r : NativeTape.Result Γ Λ}
     (h : r.stop = NativeTape.Stop.halted) :
     c.decoded r = c.decode r.cfg ∧ c.selected r = (c.decode r.cfg).map c.next := by
   simp [ReturnCall.decoded, h, ReturnCall.selected]
 
+/-- A suspended call retains its native result, has no decoded value or quantum leaf, and has
+zero branch and action. Its ledger records native costs and quantum space with zero quantum
+counts and communication. -/
 theorem run_suspended {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
     (h : c.native.stop ≠ NativeTape.Stop.halted) (ρ : Operator D) :
@@ -239,6 +289,8 @@ theorem run_suspended {c : ReturnCall Γ Λ D A V} {O : Operator D}
   simp [ReturnCall.run, hdec, JointRecord.branch, JointRecord.action, runClocks,
     HybridCounts.zero]
 
+/-- When the native run halts and decodes to a value, the joint record stores that value, the
+chosen continuation leaf, and the original native result. -/
 theorem run_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
     (h : c.native.stop = NativeTape.Stop.halted) {v : V} (hv : c.decode c.native.cfg = some v) :
@@ -249,6 +301,8 @@ theorem run_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     simp [ReturnCall.decoded, h, hv]
   simp [ReturnCall.run, hdec]
 
+/-- After a halted call decodes successfully, its action is left multiplication by the operator
+of the chosen continuation leaf. -/
 theorem run_action_of_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
     (h : c.native.stop = NativeTape.Stop.halted) {v : V} (hv : c.decode c.native.cfg = some v)
@@ -258,6 +312,8 @@ theorem run_action_of_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     simp [ReturnCall.decoded, h, hv]
   simp [ReturnCall.run, hdec, JointRecord.action, nativeAction]
 
+/-- For a unitary oracle and legal continuations, a successfully returned call has the same
+branch as an instrument index representing its chosen quantum leaf. -/
 theorem run_branch_eq_instrument {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
@@ -277,6 +333,8 @@ theorem run_branch_eq_instrument {c : ReturnCall Γ Λ D A V} {O : Operator D}
   simp only []
   rw [HybridProgram.branch_law _ O hO (hp v) ρ i, hi]
 
+/-- For a unitary oracle and legal continuations, the Born mass of a successfully returned call
+equals the instrument probability at an index representing its chosen leaf. -/
 theorem run_bornMass_eq_instrumentProb {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
@@ -299,6 +357,8 @@ theorem run_bornMass_eq_instrumentProb {c : ReturnCall Γ Λ D A V} {O : Operato
   simp [Matrix.trace_smul, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, zero_mul,
     sub_zero]
 
+/-- Summing pointwise sums of two natural-valued functions over a list equals the sum of their
+separate list sums. -/
 private theorem sum_map_add {α : Type} (f g : α → ℕ) :
     ∀ l : List α, (l.map (fun a => f a + g a)).sum = (l.map f).sum + (l.map g).sum
   | [] => rfl
@@ -307,6 +367,7 @@ private theorem sum_map_add {α : Type} (f g : α → ℕ) :
     rw [sum_map_add f g l]
     omega
 
+/-- Summing a list after replacing every entry by one gives the list's length. -/
 private theorem sum_map_one {α : Type} (l : List α) :
     (l.map (fun _ => (1 : ℕ))).sum = l.length := by
   induction l with
@@ -316,6 +377,8 @@ private theorem sum_map_one {α : Type} (l : List α) :
     rw [ih]
     omega
 
+/-- The duplicate-free native cursor trace starting at zero always contains its starting
+position. -/
 private theorem mem_cursorTrace_origin {M : NativeTape.Program Γ Λ} :
     ∀ (es : List (NativeTape.Tick Γ Λ)), 0 ∈ (NativeTape.cursorTrace M 0 es).eraseDups := by
   intro es
@@ -326,6 +389,8 @@ private theorem mem_cursorTrace_origin {M : NativeTape.Program Γ Λ} :
   | cons e es ih =>
     simp [NativeTape.cursorTrace, List.scanl]
 
+/-- Native CPU time equals the step count plus the sum of the absolute cursor displacements of
+the recorded ticks. -/
 theorem nativeCpuTime_eq (M : NativeTape.Program Γ Λ) (r : NativeTape.Result Γ Λ) :
     nativeCpuTime M r =
       r.steps + (r.trace.map (fun e => (NativeTape.tickDisplacement M e).natAbs)).sum := by
@@ -336,11 +401,13 @@ theorem nativeCpuTime_eq (M : NativeTape.Program Γ Λ) (r : NativeTape.Result �
   unfold nativeCpuTime nativeInstructionCost
   rw [h, h1, h2]
 
+/-- The native CPU cost of a result is at least its recorded step count. -/
 theorem nativeCpuTime_ge_steps (M : NativeTape.Program Γ Λ) (r : NativeTape.Result Γ Λ) :
     r.steps ≤ nativeCpuTime M r := by
   rw [nativeCpuTime_eq]
   exact Nat.le_add_right _ _
 
+/-- Native peak space is positive because the cursor trace includes its initial position. -/
 theorem nativePeakSpace_pos (M : NativeTape.Program Γ Λ) (r : NativeTape.Result Γ Λ) :
     0 < nativePeakSpace M r := by
   have h : 0 ∈ (NativeTape.cursorTrace M 0 r.trace).eraseDups :=
@@ -355,6 +422,9 @@ theorem nativePeakSpace_pos (M : NativeTape.Program Γ Λ) (r : NativeTape.Resul
   unfold nativePeakSpace
   exact hlen
 
+/-- A successfully returned call records its native steps, consumed bits, CPU time, and visited
+cursor positions together with the selected quantum counts. Quantum space is the operator
+dimension, and communication is the decoded value's declared width. -/
 theorem run_ledger_of_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
     (h : c.native.stop = NativeTape.Stop.halted) {v : V} (hv : c.decode c.native.cfg = some v) :
@@ -369,6 +439,9 @@ theorem run_ledger_of_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     simp [ReturnCall.decoded, h, hv]
   simp [ReturnCall.run, hdec, runClocks, HybridLeaf.counts]
 
+/-- For a successfully returned call, native CPU time bounds native steps and peak space is the
+sum of native and quantum space. Query counts come from the selected quantum leaf, and
+communication equals the decoded value's width. -/
 theorem run_ledger_separated {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
     (h : c.native.stop = NativeTape.Stop.halted) {v : V} (hv : c.decode c.native.cfg = some v) :
@@ -389,10 +462,13 @@ theorem run_ledger_separated {c : ReturnCall Γ Λ D A V} {O : Operator D}
     exact nativeCpuTime_ge_steps c.program c.native
   · simp only [Ledger.peakSpace]
 
+/-- The native execution attached to a return call uses at most the call's step budget. -/
 theorem run_native_steps_le {c : ReturnCall Γ Λ D A V} :
     c.native.steps ≤ c.budget := by
   exact NativeTape.run_steps_le_budget c.program c.budget c.bits c.config
 
+/-- Resuming a return call stopped for lack of fuel preserves the partition of the original
+supplied bits into consumed and unread bits. -/
 theorem resume_bits_partition {c : ReturnCall Γ Λ D A V} (extra : ℕ)
     (h : c.native.stop = NativeTape.Stop.fuel) :
     (NativeTape.resume c.program extra c.native).bits ++
@@ -401,6 +477,8 @@ theorem resume_bits_partition {c : ReturnCall Γ Λ D A V} (extra : ℕ)
   have hr := NativeTape.run_bits_partition c.program c.budget c.bits c.config
   simpa [ReturnCall.native] using hr
 
+/-- The resumed joint record stores the resumed native result, its halted-only decoded value,
+and the corresponding optional continuation leaf. -/
 theorem run_resume {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v)) (extra : ℕ) :
     (c.resume O extra paths).native = NativeTape.resume c.program extra c.native ∧
@@ -412,6 +490,9 @@ theorem run_resume {c : ReturnCall Γ Λ D A V} {O : Operator D}
   | none => simp [ReturnCall.resume, hd]
   | some v => simp [ReturnCall.resume, hd]
 
+/-- If resumed native execution halts and decodes successfully, its joint branch equals an
+instrument branch representing the chosen continuation leaf, assuming a unitary oracle and
+legal continuations. -/
 theorem resume_branch_eq_instrument {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (paths : ∀ v : V, HybridProgram.Path (c.next v)) (extra : ℕ)
@@ -432,6 +513,8 @@ theorem resume_branch_eq_instrument {c : ReturnCall Γ Λ D A V} {O : Operator D
   simp only []
   rw [HybridProgram.branch_law _ O hO (hp v) ρ i, hi]
 
+/-- Supplying more bits stores the resulting native execution and the value obtained by decoding
+that result only if it has halted. -/
 theorem run_supply {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v)) (more : List Bool) :
     (c.supply O more paths).native = NativeTape.supply c.program c.budget more c.native ∧
@@ -440,6 +523,8 @@ theorem run_supply {c : ReturnCall Γ Λ D A V} {O : Operator D}
   | none => simp [ReturnCall.supply, hd]
   | some v => simp [ReturnCall.supply, hd]
 
+/-- The action of a successfully returned call is left multiplication by a single operator that
+does not depend on the input operator. -/
 theorem run_action_state_independent {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (paths : ∀ v : V, HybridProgram.Path (c.next v))
     (h : c.native.stop = NativeTape.Stop.halted) {v : V} (hv : c.decode c.native.cfg = some v) :
@@ -450,12 +535,16 @@ theorem run_action_state_independent {c : ReturnCall Γ Λ D A V} {O : Operator 
   intro ρ
   simp [ReturnCall.run, hdec, JointRecord.action, nativeAction]
 
+/-- If the decoder always returns one fixed value, every halted native result selects that
+value's continuation. -/
 theorem selected_of_constant_decode {c : ReturnCall Γ Λ D A V} {r : NativeTape.Result Γ Λ}
     {v : V} (hv : ∀ cfg : Turing.TM0.Cfg Γ Λ, c.decode cfg = some v)
     (h : r.stop = NativeTape.Stop.halted) :
     c.selected r = some (c.next v) := by
   simp [ReturnCall.selected, ReturnCall.decoded, h, hv]
 
+/-- Mapping a probability mass function through an injective function preserves each input's
+mass at its image. -/
 private theorem map_inj_apply {α β : Type} {p : PMF α} {f : α → β} (hf : Function.Injective f)
     (y : α) : p.map f (f y) = p y := by
   classical
@@ -470,6 +559,8 @@ private theorem map_inj_apply {α β : Type} {p : PMF α} {f : α → β} (hf : 
       simp [hne]
     _ = p y := if_pos rfl
 
+/-- The joint law's nontermination outcome has exactly the mass of the native terminal law's
+nontermination outcome. -/
 theorem jointLaw_never {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ) :
@@ -493,6 +584,8 @@ theorem jointLaw_never {c : ReturnCall Γ Λ D A V} {O : Operator D}
     _ = (NativeTape.terminalLaw c.program c.config) none := by
           simp [conditionalLaw, PMF.pure_apply]
 
+/-- If a native result's final configuration fails to decode, its undecoded joint outcome has
+the same mass as that native terminal result. -/
 theorem jointLaw_undecoded {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ)
@@ -521,6 +614,8 @@ theorem jointLaw_undecoded {c : ReturnCall Γ Λ D A V} {O : Operator D}
     _ = (NativeTape.terminalLaw c.program c.config) (some r) := by
           simp [conditionalLaw, hv, PMF.pure_apply]
 
+/-- For a successfully decoded native result, the mass of a returned joint outcome factors as
+its native terminal mass times the selected quantum leaf's probability. -/
 theorem jointLaw_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ)
@@ -553,6 +648,8 @@ theorem jointLaw_returned {c : ReturnCall Γ Λ D A V} {O : Operator D}
           rw [map_inj_apply (f := fun t' => JointOutcome.returned r v t')
             (by intro a b hab; exact (JointOutcome.returned.inj hab).2.2) t]
 
+/-- A native result whose final configuration fails to decode assigns zero joint mass to every
+returned outcome carrying that result. -/
 theorem jointLaw_returned_of_undecoded {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ)
@@ -579,12 +676,15 @@ theorem jointLaw_returned_of_undecoded {c : ReturnCall Γ Λ D A V} {O : Operato
             (f := conditionalLaw c O hO hp ρ hρ) (b := .returned r v t) (a := some r) hz
     _ = 0 := by simp [conditionalLaw, hv, PMF.pure_apply]
 
+/-- The joint law sums to one across nontermination, undecoded, and returned outcomes. -/
 theorem jointLaw_total {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ) :
     (∑' z : JointOutcome Γ Λ D A V, (jointLaw c O hO hp ρ hρ) z) = 1 :=
   PMF.tsum_coe (jointLaw c O hO hp ρ hρ)
 
+/-- Summing returned joint outcomes over all quantum leaves for a fixed decoded native result
+recovers that result's native terminal mass. -/
 theorem jointLaw_fiber {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ)
@@ -597,6 +697,10 @@ theorem jointLaw_fiber {c : ReturnCall Γ Λ D A V} {O : Operator D}
   rw [PMF.tsum_coe]
   simp
 
+/-- For a supported native terminal result that decodes successfully, native mass and returned
+joint mass expose the fair-bit weight of its consumed word. Each selected-continuation
+instrument probability similarly factors into its leaf's fair-coin weight and
+conjugated-operator trace mass. -/
 theorem fair_source_split {c : ReturnCall Γ Λ D A V} {O : Operator D}
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)
     (ρ : Operator D) (hρ : IsDensityOperator ρ)
@@ -617,11 +721,17 @@ theorem fair_source_split {c : ReturnCall Γ Λ D A V} {O : Operator D}
   · rw [HybridProgram.probability_law _ O hO (hp v) ρ i]
     simp [CoinCode.wordWeight]
 
+/-- The combined fair word has length equal to the native consumed-bit count plus the quantum
+leaf's coin count. -/
 theorem fairWord_length {Γ Λ : Type} [Inhabited Γ] {D : ℕ} {A : Type}
     (r : NativeTape.Result Γ Λ) (t : HybridLeaf D A) :
     (fairWord r t).length = r.bits.length + t.coins.length := by
   simp [fairWord]
 
+/-- For a halted call with a decoded return, collect native budget and bit conservation,
+joint-law normalization, continuation selection, and instrument-branch compatibility. The
+conclusion also identifies the action and the separate native, quantum, and communication
+ledger entries. -/
 theorem clause16_complete {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ] {D : ℕ} {A V : Type}
     (c : ReturnCall Γ Λ D A V) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (hp : ∀ v : V, (c.next v).Legal)

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingStat
 import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3UniversalityTheorem1Quan
+
+/-!
+# Exact Phi3 synthesis after finite-basis padding
+
+`finiteBasisPhi3Padding` combines an injective finite-basis encoding with exact unitary
+synthesis on three extra wires. The separate zero-data case preserves the scalar phase of a
+zero-qubit unitary and completes the same cost and execution guarantees at width zero. The
+background is described in [Yao1993].
+
+## Main statements
+
+* `phi3_zero_data_synthesis`: exact synthesis for zero data qubits.
+* `finiteBasisPhi3Padding`: the full encoding, padding, and synthesis guarantee.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +42,9 @@ namespace Qatlib.Concepts.UniformBqp.Phi3Compile
 open Matrix
 open scoped Classical BigOperators
 
+/-- Every unitary on the zero-qubit register has an exact Phi3 implementation on three auxiliary
+wires, with no queries, gate count equal to word length, and length bounded by
+`phi3PaddingBudget 0`. -/
 theorem phi3_zero_data_synthesis (U : Matrix (Reg 0) (Reg 0) ℂ)
     (hU : U ∈ unitaryGroup (Reg 0) ℂ) :
     ∃ gs : List (Phi3Gate (0+3)),
@@ -70,6 +92,9 @@ theorem phi3_zero_data_synthesis (U : Matrix (Reg 0) (Reg 0) ℂ)
   simp only [phi3Compile, List.map_cons, List.map_nil, Run, ApplyGate, hg,
     Matrix.smul_mulVec, Matrix.one_mulVec, hscalar, knownWireEmbed_smul]
 
+/-- Finite basis encoding, unitary padding, and exact Phi3 synthesis satisfy
+`FiniteBasisPhi3Padding`, including preservation of normalized embedded states and the
+stated word-length budget [Yao1993]. -/
 theorem finiteBasisPhi3Padding : FiniteBasisPhi3Padding := by
   constructor
   · intro I _ b hb

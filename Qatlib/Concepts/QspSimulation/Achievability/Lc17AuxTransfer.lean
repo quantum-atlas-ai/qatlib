@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
 import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+
+/-!
+# Transferring response polynomials to repository words
+
+This module relates polynomial response recurrences to the repository matrix-word convention for
+quantum signal processing [LowChuang2017]. The phase exponential `lcExp` is identified with
+`anglePhase`, and elementary conjugation and matrix identities support the recursive matrix
+construction `lcRespWord`.
+
+For `x` in `[-1, 1]`, `lcRespWord_eq` expresses all four matrix entries through `responseP` and
+`responseQ`. Rewriting this matrix as a repository word with shifted angles yields
+`lcRepoAmp_of_response`, which extracts the real parts of the two response polynomials into the
+desired scalar amplitude.
+
+## Main statements
+
+* `lcExp_eq_anglePhase` identifies the phase conventions.
+* `lcRespWord_eq` gives the response-polynomial matrix representation.
+* `lcRespWord_eq_repoWord` rewrites a nonempty response word using `lcQspTilde` and endpoint
+  rotations.
+* `lcRepoAmp_of_response` transfers the response polynomials to the repository amplitude.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,76 +53,96 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 
 open Matrix
 
+/-- The complex phase exponential `Complex.exp (a * Complex.I)` of a real angle `a`. -/
 noncomputable def lcExp (a : ℝ) : ℂ := Complex.exp (a * Complex.I)
 
+/-- Rewrites the complex exponential of an embedded real angle times `Complex.I` as `lcExp`. -/
 theorem lcExp_unfold (a : ℝ) :
     Complex.exp (((a : ℝ) : ℂ) * Complex.I) = lcExp a := rfl
 
+/-- Rewrites the complex exponential of the negative embedded angle times `Complex.I` as `lcExp
+(-a)`. -/
 theorem lcExp_unfold_neg (a : ℝ) :
     Complex.exp (-(((a : ℝ) : ℂ)) * Complex.I) = lcExp (-a) := by
   show Complex.exp (-(((a : ℝ) : ℂ)) * Complex.I)
       = Complex.exp ((((-a : ℝ) : ℂ)) * Complex.I)
   rw [Complex.ofReal_neg]
 
+/-- Multiplying the phase exponentials of `a` and `b` gives the phase exponential of `a + b`. -/
 theorem lcExp_add (a b : ℝ) : lcExp a * lcExp b = lcExp (a + b) := by
   simp only [lcExp, ← Complex.exp_add]
   congr 1
   rw [Complex.ofReal_add]
   ring
 
+/-- Complex conjugation of a phase exponential negates its angle. -/
 theorem lcExp_conj (a : ℝ) : star (lcExp a) = lcExp (-a) := by
   rw [RCLike.star_def]
   simp only [lcExp]
   rw [← Complex.exp_conj, map_mul, Complex.conj_I, Complex.conj_ofReal,
     Complex.ofReal_neg, mul_neg, neg_mul]
 
+/-- The phase exponential at `Real.pi / 2` equals `Complex.I`. -/
 theorem lcExp_pi_half : lcExp (Real.pi / 2) = Complex.I := by
   apply Complex.ext <;>
     simp [lcExp, Complex.exp_re, Complex.exp_im, Complex.exp_zero, Real.cos_pi_div_two,
       Real.sin_pi_div_two, Complex.mul_re, Complex.mul_im]
 
+/-- The exponential phase convention `lcExp` agrees with `anglePhase`. -/
 theorem lcExp_eq_anglePhase (a : ℝ) :
     lcExp a = Qatlib.Concepts.PhaseGeometry.Phase.anglePhase a := by
   apply Complex.ext <;>
     simp [lcExp, Complex.exp_re, Complex.exp_im, Complex.exp_zero,
       Qatlib.Concepts.PhaseGeometry.Phase.anglePhase, Complex.mul_re, Complex.mul_im]
 
+/-- Complex conjugation fixes a real number embedded in the complex numbers. -/
 theorem lcStar_ofReal (r : ℝ) : star ((r : ℝ) : ℂ) = ((r : ℝ) : ℂ) := by
   simp [RCLike.star_def]
 
+/-- Complex conjugation sends `Complex.I` to `-Complex.I`. -/
 theorem lcStar_I : star (Complex.I) = -(Complex.I) := by
   rw [RCLike.star_def]
   exact Complex.conj_I
 
+/-- The square of `Complex.I` equals `-1`. -/
 theorem lcI_pow_two : Complex.I ^ 2 = -1 := by
   rw [pow_two, Complex.I_mul_I]
 
+/-- The cube of `Complex.I` equals `-Complex.I`. -/
 theorem lcI_pow_three : Complex.I ^ 3 = -Complex.I := by
   show Complex.I ^ (2 + 1) = -Complex.I
   rw [pow_add, lcI_pow_two]
   ring
 
+/-- The fourth power of `Complex.I` equals one. -/
 theorem lcI_pow_four : Complex.I ^ 4 = 1 := by
   show Complex.I ^ (2 * 2) = 1
   rw [pow_mul, lcI_pow_two]
   norm_num
 
+/-- The sum of the conjugate of a complex number and the number itself is twice its embedded
+real part. -/
 theorem lcStar_add_self (z : ℂ) : star z + z = 2 * ((z.re : ℝ) : ℂ) := by
   rw [RCLike.star_def, add_comm, Complex.add_conj, Complex.ofReal_mul]
   push_cast
   ring
 
+/-- The complex embedding of the real number `1 / 2` equals the complex number `1 / 2`. -/
 theorem lcHalf_ofReal : (((1 : ℝ) / 2 : ℝ) : ℂ) = ((1 : ℂ) / 2) := by
   rw [Complex.ofReal_div, Complex.ofReal_one]
   push_cast
   ring
 
+/-- Two complex matrices indexed by `Fin 2` are equal when their four corresponding entries are
+equal. -/
 private theorem lcMat2_eq_of_entries {M N : Matrix (Fin 2) (Fin 2) ℂ}
     (e00 : M 0 0 = N 0 0) (e01 : M 0 1 = N 0 1) (e10 : M 1 0 = N 1 0)
     (e11 : M 1 1 = N 1 1) : M = N := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [e00, e01, e10, e11]
 
+/-- A left multiplication fold with initial value `a` equals `a` multiplied by the same fold
+with initial value one. -/
 private theorem lcFoldl_mul_prefix {M : Type*} [Monoid M] (a : M) (l : List M) :
     List.foldl (· * ·) a l = a * List.foldl (· * ·) 1 l := by
   induction l generalizing a with
@@ -103,6 +150,8 @@ private theorem lcFoldl_mul_prefix {M : Type*} [Monoid M] (a : M) (l : List M) :
   | cons g l' ih =>
     rw [List.foldl_cons, ih, List.foldl_cons, ih (1 * g), one_mul, mul_assoc]
 
+/-- Prepending a phase to `lcQspTilde` left-multiplies the remaining word by the adjoint signal
+matrix followed by that phase rotation. -/
 theorem lcQspTilde_cons (q : ℝ) (qs : List ℝ) (x : ℝ) :
     lcQspTilde (q :: qs) x =
       ((Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation q) *
@@ -110,6 +159,9 @@ theorem lcQspTilde_cons (q : ℝ) (qs : List ℝ) (x : ℝ) :
   simp only [lcQspTilde, List.map_cons, List.foldl_cons, one_mul]
   exact lcFoldl_mul_prefix _ _
 
+/-- The recursive response matrix word, with terminal rotation `PhaseRotation (-c)` and each
+phase adding a shifted phase rotation, an adjoint signal matrix, and a final rotation by
+`-Real.pi / 2`. -/
 noncomputable def lcRespWord : List ℝ → ℝ → ℝ → Matrix (Fin 2) (Fin 2) ℂ
   | [], c, _ => Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-c)
   | a :: as, c, x =>
@@ -117,6 +169,9 @@ noncomputable def lcRespWord : List ℝ → ℝ → ℝ → Matrix (Fin 2) (Fin 
         ((Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose *
           (lcRespWord as c x * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(Real.pi / 2))))
 
+/-- For `x` in `[-1, 1]`, the diagonal entries of `lcRespWord` are the conjugate and the value
+of `responseP`, respectively. The off-diagonal entries are `Complex.I * sqrt (1 - x^2)`
+times `responseQ` and its conjugate, using the phase exponentials of the supplied angles. -/
 theorem lcRespWord_eq (x : ℝ) (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     ∀ (as : List ℝ) (c : ℝ),
       lcRespWord as c x =
@@ -273,8 +328,12 @@ theorem lcRespWord_eq (x : ℝ) (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
           neg_one_mul, one_mul, neg_neg, mul_neg]
       all_goals ring
 
+/-- The `lcQspTilde` word of an empty phase list is the identity matrix. -/
 theorem lcQspTilde_nil (x : ℝ) : lcQspTilde [] x = 1 := rfl
 
+/-- A nonempty response word equals a product of an initial shifted phase rotation, `lcQspTilde`
+with each remaining angle replaced by `Real.pi / 2 - b`, an adjoint signal matrix, and the
+stated terminal rotation. -/
 theorem lcRespWord_eq_repoWord (x : ℝ) :
     ∀ (as : List ℝ) (a c : ℝ),
       lcRespWord (a :: as) c x =
@@ -317,6 +376,10 @@ theorem lcRespWord_eq_repoWord (x : ℝ) :
       rw [hmerge]
       simp only [List.map_cons, lcQspTilde_cons, Matrix.mul_assoc]
 
+/-- For `x` in `[-1, 1]`, the repository amplitude with the specified shifted and endpoint
+angles is the real part of `responseP` plus `Complex.I * sqrt (1 - x^2)` times the real part
+of `responseQ`. Both response polynomials use base `lcExp c` and the phase exponentials of
+`a :: as`. -/
 theorem lcRepoAmp_of_response (a : ℝ) (as : List ℝ) (c x : ℝ)
     (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     lcRepoAmp (Real.pi / 2 - a) (-c - (((a :: as).length : ℝ)) * (Real.pi / 2))

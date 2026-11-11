@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalStat
 import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalHuan
+
+/-!
+# Clifford basis shadow second-moment bound
+
+This module bounds density-state expectations of operator squares and the norm of a positive
+semidefinite matrix by its trace. These estimates combine with the stated third-moment identity
+to prove `cliffordBasisShadowNormSubgoal`, bounding the Born-weighted second moment for
+traceless Hermitian observables. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `clifford_square_density_trace_le`: a density-weighted square trace bound.
+* `cliffordBasisShadowNormSubgoal`: the Clifford shadow second moment is at most three times the
+  square trace.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,12 +41,16 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The real density-state expectation of `O * O` is bounded above by the operator norm of `O *
+O`. -/
 theorem clifford_square_expectation_norm {d : ℕ} (σ O : Operator d)
     (hσ : IsDensityOperator σ) :
     (Matrix.trace (σ*(O*O))).re ≤ ‖O*O‖ := by
   rw [Matrix.trace_mul_comm]
   exact (le_abs_self _).trans (abs_trace_density_le_norm (O*O) σ hσ.1 hσ.2)
 
+/-- Cyclicity of trace rewrites the Born weight after conjugating the state as a trace against
+the backward-conjugated basis projector. -/
 theorem clifford_norm_weight_cycle {d : ℕ} (σ U : Operator d) (b : Fin d) :
     Matrix.trace (basisProjector b*(U*σ*Uᴴ)) =
       Matrix.trace (σ*(Uᴴ*basisProjector b*U)) := by
@@ -35,6 +59,8 @@ theorem clifford_norm_weight_cycle {d : ℕ} (σ U : Operator d) (b : Fin d) :
       simpa only [Matrix.mul_assoc] using! Matrix.trace_mul_cycle (basisProjector b*U) σ Uᴴ
     _ = _ := Matrix.trace_mul_comm _ _
 
+/-- In positive dimension, the operator norm of a positive semidefinite matrix is at most the
+real part of its trace. -/
 theorem clifford_psd_norm_le_trace {d : ℕ} (hd : 0 < d) (A : Operator d)
     (hA : A.PosSemidef) : ‖A‖ ≤ (Matrix.trace A).re := by
   letI : Nonempty (Fin d) := Fin.pos_iff_nonempty.mp hd
@@ -69,6 +95,8 @@ theorem clifford_psd_norm_le_trace {d : ℕ} (hd : 0 < d) (A : Operator d)
     _ ≤ ∑ i, ev i := hdiag
     _ = (Matrix.trace A).re := ht.symm
 
+/-- In dimension at least two, the density-weighted trace of a Hermitian operator's square is at
+most the trace of that square. -/
 theorem clifford_square_density_trace_le {d : ℕ} (hd : 2 ≤ d) (σ O : Operator d)
     (hσ : IsDensityOperator σ) (hO : O.IsHermitian) :
     (Matrix.trace (σ*(O*O))).re ≤ (Matrix.trace (O*O)).re := by
@@ -78,6 +106,8 @@ theorem clifford_square_density_trace_le {d : ℕ} (hd : 2 ≤ d) (σ O : Operat
   exact (clifford_square_expectation_norm σ O hσ).trans
     (clifford_psd_norm_le_trace (by omega) (O*O) hp)
 
+/-- The stated third-moment identity gives the actual Born-weighted reconstruction second-moment
+bound `3 * re (trace (Oo * Oo))` for traceless Hermitian `Oo`. -/
 theorem cliffordBasisShadowNormSubgoal : CliffordBasisShadowNormSubgoal := by
   intro d hd I _ _ μ Uf _ h36 σ hσ O hO hO0
   let D : ℝ := (d : ℝ)*((d : ℝ)+1)*((d : ℝ)+2)

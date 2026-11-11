@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+/-!
+# Consequences of finite product-formula error bounds
+
+This module derives reference-system trace-norm error, a tolerance guarantee for segmented
+Strang evolution, and exact factorization for two generators acting on distinct tensor factors.
+The error estimates use the commutator bounds of [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `product_formula_entangled_reference_segmented`: a trace-norm bound with an arbitrary finite
+  reference.
+* `product_formula_strang_paid_precision`: a budgeted Strang accuracy bound and a `3 * r` word
+  length.
+* `product_formula_disjoint_local_tensor_consumer`: exact tensor evolution for disjoint factors.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,12 +39,16 @@ namespace Qatlib.Concepts.TrotterFormula.LieStrang
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The sum of a finite family of Hermitian operators is Hermitian. -/
 private theorem pf_sum_hermitian {D m : ℕ} (H : Fin m → Operator D)
     (hH : ∀ j, (H j).IsHermitian) : (∑ j, H j).IsHermitian := by
   change (∑ j, H j)ᴴ = _
   rw [Matrix.conjTranspose_sum]
   exact Finset.sum_congr rfl fun j _ => (hH j).eq
 
+/-- For Hermitian family terms and positive `r`, the product-formula and exact conjugations
+tensored with a reference identity differ in trace norm by at most `t² / r * pfCommutatorSum
+H * Matrix.traceNorm X`; see [ChildsEtAl2021Trotter] for the simulation bound. -/
 theorem product_formula_entangled_reference_segmented
     (D m r a : ℕ) (H : Fin m → Operator D) (t : ℝ)
     (X : Matrix (Fin D × Fin a) (Fin D × Fin a) ℂ) (hr : 0 < r)
@@ -39,6 +64,8 @@ theorem product_formula_entangled_reference_segmented
     (mul_le_mul_of_nonneg_left (product_formula_finite_family_segmented D m r H t hr hH) (by norm_num))
       (Matrix.traceNorm_nonneg X)).trans_eq (by ring))
 
+/-- If the nested-commutator budget is at most `eps`, `r` Strang segments have error at most
+`eps` and an explicit word of length `3 * r`, using the bounds of [ChildsEtAl2021Trotter]. -/
 theorem product_formula_strang_paid_precision
     (D r : ℕ) (A B : Operator D) (t eps : ℝ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hr : 0 < r) (_heps : 0 ≤ eps)
@@ -68,6 +95,7 @@ theorem product_formula_strang_paid_precision
     field_simp
   · simp [List.length_flatten, List.map_replicate, Nat.mul_comm]
 
+/-- The complex algebra homomorphism tensoring an operator on the left with the right identity. -/
 private noncomputable def pfTensorLeft (D E : ℕ) :
     Operator D →ₐ[ℂ] Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ where
   toFun A := TensorGate A 1
@@ -80,6 +108,7 @@ private noncomputable def pfTensorLeft (D E : ℕ) :
     change c • TensorGate (1 : Operator D) (1 : Operator E) = c • 1
     rw [tensorGate_one]
 
+/-- The complex algebra homomorphism tensoring an operator on the right with the left identity. -/
 private noncomputable def pfTensorRight (D E : ℕ) :
     Operator E →ₐ[ℂ] Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ where
   toFun B := TensorGate 1 B
@@ -92,6 +121,8 @@ private noncomputable def pfTensorRight (D E : ℕ) :
     change c • TensorGate (1 : Operator D) (1 : Operator E) = c • 1
     rw [tensorGate_one]
 
+/-- Hamiltonian evolution of `A` tensored with identity equals the evolution of `A` tensored
+with identity. -/
 private theorem pfEvolution_tensor_left (D E : ℕ) (A : Operator D) (t : ℝ) :
     HamiltonianEvolution (TensorGate A (1 : Operator E)) t =
       TensorGate (HamiltonianEvolution A t) (1 : Operator E) := by
@@ -101,6 +132,8 @@ private theorem pfEvolution_tensor_left (D E : ℕ) (A : Operator D) (t : ℝ) :
   rw [map_smul] at h
   exact h.symm
 
+/-- Hamiltonian evolution of identity tensored with `B` equals identity tensored with the
+evolution of `B`. -/
 private theorem pfEvolution_tensor_right (D E : ℕ) (B : Operator E) (t : ℝ) :
     HamiltonianEvolution (TensorGate (1 : Operator D) B) t =
       TensorGate (1 : Operator D) (HamiltonianEvolution B t) := by
@@ -110,12 +143,15 @@ private theorem pfEvolution_tensor_right (D E : ℕ) (B : Operator E) (t : ℝ) 
   rw [map_smul] at h
   exact h.symm
 
+/-- A natural power of a tensor product equals the tensor product of the corresponding powers. -/
 private theorem pfTensor_pow (D E : ℕ) (A : Operator D) (B : Operator E) (r : ℕ) :
     (TensorGate A B)^r = TensorGate (A^r) (B^r) := by
   induction r with
   | zero => exact tensorGate_one.symm
   | succ r ih => rw [pow_succ, ih, tensorGate_mul, pow_succ, pow_succ]
 
+/-- The two generators acting on separate tensor factors commute, and their positive-segment
+product formula equals the tensor product of their full-time evolutions. -/
 theorem product_formula_disjoint_local_tensor_consumer
     (D E r : ℕ) (A : Operator D) (B : Operator E) (t : ℝ)
     (_hA : A.IsHermitian) (_hB : B.IsHermitian) (hr : 0 < r) :

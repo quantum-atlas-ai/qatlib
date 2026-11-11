@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralDefs
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
+
+/-!
+# Bounds for native amplifier cutoffs
+
+The rational cutoff `nativeAmplifierCutoff` achieves the required real sign polynomial error and
+an explicit degree bound. The logarithmic budget is also bounded in terms of the real tolerance,
+connecting the native construction to the polynomial transformation framework of
+[GilyenSuLowWiebe2019]
+
+## Main statements
+
+* `nativeAmplifierCutoff_bounds`: bounds the sign error, amplifier degree, and logarithmic
+  budget.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +35,7 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 
 namespace Qatlib.Concepts.NonNormalSpec.ResolventWord
 
+/-- For positive `n`, rounding up to a power of two gives at most `2 * n`. -/
 private theorem two_pow_clog_le_two_mul (n : ℕ) (hn : 0 < n) :
     2 ^ Nat.clog 2 n ≤ 2 * n := by
   by_cases hn1 : n = 1
@@ -32,6 +52,9 @@ private theorem two_pow_clog_le_two_mul (n : ℕ) (hn : 0 < n) :
   rw [hpow]
   omega
 
+/-- Under the stated parameter bounds, the native cutoff achieves the integrated threshold
+tolerance and has degree at most `1 + 8192 * γ⁸ / δ⁴ * B²`. The logarithmic budget `B` is at
+most `2 + log (1 / tolerance) / log 2`. -/
 theorem nativeAmplifierCutoff_bounds (γ δ ε : ℚ)
     (hγ : 1 ≤ γ) (hδ : 0 < δ) (hδ1 : δ ≤ 1 / 2)
     (hε : 0 < ε) (_hε1 : ε ≤ 1 / 2) :

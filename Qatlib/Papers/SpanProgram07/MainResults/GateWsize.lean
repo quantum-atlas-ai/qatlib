@@ -8,6 +8,26 @@ import Qatlib.Papers.SpanProgram07.MainResults.Maj3
 import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
+
+/-!
+# Witness sizes for three-input majority
+
+This module computes exact witness sizes for `maj3Program` under the phase and normalization
+conditions used in [ReichardtSpalek2008]. The proofs cover both accepting sets of sizes two and
+three and rejecting sets of sizes zero and one.
+
+## Main statements
+
+* `wsize_true_two`: Under the stated normalization and phase conditions, the unit-weight
+  positive witness size on any two distinct available columns is exactly two.
+* `maj3_witness_size`: Collect the exact unit-weight majority witness sizes: two on `{0, 1}`,
+  one on all columns, one on the empty set, and two on `{0}`.
+
+## References
+
+* [Reichardt and Spalek, 2008][ReichardtSpalek2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,10 +44,14 @@ namespace maj3Program
 
 variable {w : ℂ} {α : Fin 3 → ℂ}
 
+/-- Every majority-program column has target coordinate `w`. -/
 @[simp] theorem v_none (j : Fin 3) : (maj3Program w α).v j none = w := rfl
 
+/-- The auxiliary coordinate of column `j` is `α j`. -/
 @[simp] theorem v_some (j : Fin 3) : (maj3Program w α).v j (some ()) = α j := rfl
 
+/-- Expand the pairing with a majority-program column into its target and auxiliary coordinate
+contributions. -/
 theorem pair_eq (b : Option Unit → ℂ) (j : Fin 3) :
     (maj3Program w α).pair b j
       = (starRingEnd ℂ) w * b none + (starRingEnd ℂ) (α j) * b (some ()) := by
@@ -35,6 +59,8 @@ theorem pair_eq (b : Option Unit → ℂ) (j : Fin 3) :
   rw [Fintype.sum_option]
   simp [maj3Program, mul_comm]
 
+/-- Distinct entries in a unit-modulus triple summing to zero have squared difference norm
+three. See [ReichardtSpalek2008]. -/
 theorem normSq_sub_eq_three (hα1 : ∀ j, Complex.normSq (α j) = 1)
     (hsum : ∑ j, α j = 0) {j k : Fin 3} (hjk : j ≠ k) :
     Complex.normSq (α k - α j) = 3 := by
@@ -81,6 +107,8 @@ theorem normSq_sub_eq_three (hα1 : ∀ j, Complex.normSq (α j) = 1)
   rw [hsub, hconj, hre]
   ring
 
+/-- For unit-modulus phases summing to zero and target coordinate one, the sum of squared column
+pairings is `3 * ‖w‖² + 3 * ‖b (some ())‖²`. -/
 theorem false_value (hα1 : ∀ j, Complex.normSq (α j) = 1) (hsum : ∑ j, α j = 0)
     (b : Option Unit → ℂ) (hb : b none = 1) :
     ∑ j, ‖(maj3Program w α).pair b j‖ ^ 2
@@ -116,6 +144,8 @@ theorem false_value (hα1 : ∀ j, Complex.normSq (α j) = 1) (hsum : ∑ j, α 
   simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   ring
 
+/-- Under the stated normalization and phase conditions, the unit-weight positive witness size
+on any two distinct available columns is exactly two. See [ReichardtSpalek2008]. -/
 theorem wsize_true_two (hw : Complex.normSq w = 1 / 3)
     (hα1 : ∀ j, Complex.normSq (α j) = 1) (hsum : ∑ j, α j = 0)
     (hinj : Function.Injective α) {j k : Fin 3} (hjk : j ≠ k) :
@@ -216,6 +246,8 @@ theorem wsize_true_two (hw : Complex.normSq w = 1 / 3)
       rw [hnormdiv, hnormneg, hα1 k, hα1 j]
       norm_num
 
+/-- If `w` has squared norm `1/3` and the phases sum to zero, the unit-weight positive witness
+size on a three-element column set is exactly one. See [ReichardtSpalek2008]. -/
 theorem wsize_true_three (hw : Complex.normSq w = 1 / 3) (hsum : ∑ j, α j = 0)
     {S : Finset (Fin 3)} (hS : S.card = 3) :
     (maj3Program w α).WsizeTrueAt (fun _ => 1) S 1 := by
@@ -285,6 +317,8 @@ theorem wsize_true_three (hw : Complex.normSq w = 1 / 3) (hsum : ∑ j, α j = 0
         Fintype.card_fin, nsmul_eq_mul]
       norm_num
 
+/-- Under the stated normalization and phase conditions, the unit-weight negative witness size
+with no available columns is exactly one. See [ReichardtSpalek2008]. -/
 theorem wsize_false_none (hw : Complex.normSq w = 1 / 3)
     (hα1 : ∀ j, Complex.normSq (α j) = 1) (hsum : ∑ j, α j = 0) :
     (maj3Program w α).WsizeFalseAt (fun _ => 1) (∅ : Finset (Fin 3)) 1 := by
@@ -302,6 +336,8 @@ theorem wsize_false_none (hw : Complex.normSq w = 1 / 3)
       rw [false_value hα1 hsum (fun k => Option.rec 1 (fun _ => 0) k) rfl]
       simp [hw2]
 
+/-- Under the stated normalization and phase conditions, the unit-weight negative witness size
+with only column `j` available is exactly two. See [ReichardtSpalek2008]. -/
 theorem wsize_false_one (hw : Complex.normSq w = 1 / 3)
     (hα1 : ∀ j, Complex.normSq (α j) = 1) (hsum : ∑ j, α j = 0) (j : Fin 3) :
     (maj3Program w α).WsizeFalseAt (fun _ => 1) ({j} : Finset (Fin 3)) 2 := by
@@ -353,6 +389,8 @@ theorem wsize_false_one (hw : Complex.normSq w = 1 / 3)
         ← Complex.normSq_eq_norm_sq, hc2, hw]
       norm_num
 
+/-- Collect the exact unit-weight majority witness sizes: two on `{0, 1}`, one on all columns,
+one on the empty set, and two on `{0}`. See [ReichardtSpalek2008]. -/
 theorem maj3_witness_size (hw : Complex.normSq w = 1 / 3)
     (hα1 : ∀ j, Complex.normSq (α j) = 1) (hsum : ∑ j, α j = 0)
     (hinj : Function.Injective α) :

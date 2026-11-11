@@ -10,6 +10,24 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Tactic
+
+/-!
+# Marked windows for sparse error sets
+
+`rowCols`, `nzRows`, and `maxRowW` record the row support and maximal row occupancy of a finite
+error set. Averaging first over columns and then over rows yields `lemma9_bound`, with explicit
+conditions on the two window dimensions. The paper context is [BuhrmanSpalek2006].
+
+## Main statements
+
+* `window_prob_factor`: factorization of uniform row and column sampling.
+* `lemma9_bound`: marked window bound controlled by row sparsity.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +39,7 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 set_option warningAsError false
 
+/-- Pointwise equivalent predicates have equal event mass under a finite distribution. -/
 theorem eventMass_congr' {X : Type*} [Fintype X] (p : FinDist X)
     {E F : X → Prop} [DecidablePred E] [DecidablePred F]
     (h : ∀ x, E x ↔ F x) : eventMass p E = eventMass p F := by
@@ -28,10 +47,13 @@ theorem eventMass_congr' {X : Type*} [Fintype X] (p : FinDist X)
   unfold eventMass
   exact Finset.sum_congr (Finset.filter_congr (fun x _ => h x)) (fun _ _ => rfl)
 
+/-- The columns occupied by positions of `W` in row `i`. -/
 def rowCols {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) (i : Row) : Finset Col :=
   (W.filter (fun c => c.1 = i)).image (fun c => c.2)
 
+/-- A column belongs to `rowCols W i` exactly when the corresponding matrix position belongs to
+`W`. -/
 theorem mem_rowCols {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) (i : Row) (j : Col) :
     j ∈ rowCols W i ↔ (i, j) ∈ W := by
@@ -47,6 +69,7 @@ theorem mem_rowCols {Row Col : Type*} [DecidableEq Row] [DecidableEq Col]
   · intro h
     exact ⟨(i, j), ⟨h, rfl⟩, rfl⟩
 
+/-- The sum of the row occupancies equals the cardinality of `W`. See [BuhrmanSpalek2006]. -/
 theorem sum_rowCols_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) :
     (∑ i, (rowCols W i).card) = W.card := by
@@ -65,18 +88,22 @@ theorem sum_rowCols_card {Row Col : Type*} [Fintype Row] [DecidableEq Row]
       rw [Finset.mem_coe, Finset.mem_filter] at ha hb
       exact Prod.ext (ha.2.trans hb.2.symm) h)
 
+/-- The largest row occupancy of the finite set `W`. -/
 def maxRowW {Row Col : Type*} [Fintype Row] [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) : ℕ :=
   Finset.univ.sup (fun i => (rowCols W i).card)
 
+/-- The finite set of rows containing at least one position of `W`. -/
 def nzRows {Row Col : Type*} [Fintype Row] [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) : Finset Row :=
   Finset.univ.filter (fun i => (rowCols W i).Nonempty)
 
+/-- The rows of `W` containing a position whose column lies in `S`. -/
 def markRows {Row Col : Type*} [Fintype Row] [DecidableEq Row] [DecidableEq Col]
     (W : Finset (Row × Col)) (S : Finset Col) : Finset Row :=
   Finset.univ.filter (fun i => ¬ Disjoint (rowCols W i) S)
 
+/-- Every row marked by a column subset is a nonempty row of `W`. -/
 theorem markRows_subset_nzRows {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (S : Finset Col) :
     markRows W S ⊆ nzRows W := by
@@ -89,6 +116,7 @@ theorem markRows_subset_nzRows {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   obtain ⟨j, hjN, -⟩ := hi.2
   exact ⟨j, hjN⟩
 
+/-- A nonempty error set has a positive number of nonempty rows. -/
 theorem nzRows_card_pos {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (hW : W.Nonempty) :
     0 < (nzRows W).card := by
@@ -99,6 +127,7 @@ theorem nzRows_card_pos {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   rw [nzRows, Finset.mem_filter]
   exact ⟨Finset.mem_univ _, ⟨j, (mem_rowCols W i j).mpr hp⟩⟩
 
+/-- A nonempty error set has positive maximal row occupancy. -/
 theorem maxRowW_pos {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (hW : W.Nonempty) :
     0 < maxRowW W := by
@@ -111,12 +140,15 @@ theorem maxRowW_pos {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     exact Finset.le_sup (f := fun j => (rowCols W j).card) (Finset.mem_univ i)
   omega
 
+/-- Every row occupancy is bounded by `maxRowW W`. -/
 theorem rowCols_card_le_maxRowW {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (i : Row) :
     (rowCols W i).card ≤ maxRowW W := by
   rw [maxRowW]
   exact Finset.le_sup (f := fun j => (rowCols W j).card) (Finset.mem_univ i)
 
+/-- A rectangular window meets `W` exactly when its row subset meets the rows marked by its
+column subset. -/
 theorem not_disjoint_window_iff {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [DecidableEq Col] (W : Finset (Row × Col)) (RS : Finset Row × Finset Col) :
     ¬ Disjoint W (windowCells RS) ↔ ¬ Disjoint RS.1 (markRows W RS.2) := by
@@ -138,6 +170,8 @@ theorem not_disjoint_window_iff {Row Col : Type*} [Fintype Row] [DecidableEq Row
     · exact (mem_rowCols W i j).mp hjN
     · exact Finset.mem_product.mpr ⟨hiR, hjS⟩
 
+/-- The probability of a uniform window factors into the probabilities of its row and column
+subsets. -/
 theorem window_prob_factor {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (r s : ℕ) (hr : r ≤ Fintype.card Row)
     (hs : s ≤ Fintype.card Col) (RS : Finset Row × Finset Col) :
@@ -171,6 +205,8 @@ theorem window_prob_factor {Row Col : Type*} [Fintype Row] [DecidableEq Row]
       exact h1 (Finset.mem_product.mp h).1
     rw [if_neg hmem, if_neg h1, zero_mul]
 
+/-- Computes a uniform window event by averaging column subsets against the corresponding row
+event masses. See [BuhrmanSpalek2006]. -/
 theorem eventMass_window_eq {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (r s : ℕ) (hr : r ≤ Fintype.card Row)
     (hs : s ≤ Fintype.card Col) (P : Finset Row → Finset Col → Prop)
@@ -200,6 +236,8 @@ theorem eventMass_window_eq {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   refine Finset.sum_congr rfl (fun R _ => ?_)
   ring
 
+/-- The expected number of marked rows equals the sum of the individual row marking
+probabilities. See [BuhrmanSpalek2006]. -/
 theorem markRows_expect_eq {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (W : Finset (Row × Col)) (s : ℕ)
     (hs : s ≤ Fintype.card Col) :
@@ -218,6 +256,10 @@ theorem markRows_expect_eq {Row Col : Type*} [Fintype Row] [DecidableEq Row]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [eventMass_ite]
 
+/-- If `r` is at most the row count divided by the number of nonempty rows and `s` is at most
+the column count divided by the maximal row occupancy, a uniform window meets `W` with
+probability at least one quarter of `W.card * r * s` divided by the number of positions. See
+[BuhrmanSpalek2006]. -/
 theorem lemma9_bound {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (W : Finset (Row × Col)) (r s : ℕ)
     (hRow : 0 < Fintype.card Row) (hCol : 0 < Fintype.card Col)

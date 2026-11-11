@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphLayout
+
+/-!
+# Correctness of preentangled graph compilation
+
+This module proves that compiling a legal graph word with all entangling edges prepared in
+advance gives the same branch operators as the sequential construction. It develops history
+indexing, logical and spectator coordinates, and amplitude envelopes to relate physical circuit
+leaves to the logical network matrix.
+
+The reference-system branch formula and the resulting instrument show that each measurement
+history has uniform probability and that forgetting the history implements the logical unitary
+channel. These statements formalize the preentangled resource approach of
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `preentangled_graph_actual_leaf_retiming`: sequential and preentangled branch operators agree.
+* `preentangled_graph_actual_reference_branch`: exact branch action with an arbitrary reference
+  system.
+* `preentangled_graph_actual_cp_instrument_and_forget`: the branch instrument, uniform
+  probabilities, and its forgotten channel.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +54,7 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder Kronecker
 namespace Qatlib.Concepts.ClusterPatterns.Preentangled
 
+/-- Overlaying logical bits leaves every physical coordinate outside the layout unchanged. -/
 theorem graphOverlay_spectator (n L : ℕ) (lay : Fin n → Fin (n+L))
     (z : Reg (n+L)) (y : Reg n) (q : Fin (n+L)) (hq : ∀ i, q ≠ lay i) :
     graphOverlay n L lay z y q = z q := by
@@ -40,6 +68,8 @@ theorem graphOverlay_spectator (n L : ℕ) (lay : Fin n → Fin (n+L))
       simp only [List.foldl_cons, ih, Function.update_of_ne (hq i)]
   exact h _ z
 
+/-- For an injective layout, overlaying logical bits sets each active physical coordinate to its
+corresponding logical bit. -/
 theorem graphOverlay_active (n L : ℕ) (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (z : Reg (n+L)) (y : Reg n) (i : Fin n) :
     graphOverlay n L lay z y (lay i) = y i := by
@@ -69,15 +99,18 @@ theorem graphOverlay_active (n L : ℕ) (lay : Fin n → Fin (n+L))
       · exact ih _ hi
   exact set _ z (List.mem_ofFn.mpr ⟨i,rfl⟩)
 
+/-- The zero Pauli frame requires no graph correction gates. -/
 theorem graphCorrectionGates_zero {n L : ℕ} (gs : GraphWord n L) :
     graphCorrectionGates gs (zeroPauliFrame n) = [] := by
   simp [graphCorrectionGates, zeroPauliFrame, List.ofFn_const]
 
+/-- Compiling an empty graph word yields the accepting halt circuit. -/
 theorem graphProgram_empty (n : ℕ) (pre : Bool) :
     graphProgram pre (Fin.elim0 : GraphWord n 0) = .halt true := by
   cases pre <;> simp [graphProgram, graphFreshGates, graphEdgeGates, graphTail,
     graphCorrectionGates_zero, graphPrepend]
 
+/-- The input frame with no extra graph vertices is the identity operator. -/
 theorem graphInputFrame_empty (n : ℕ) : graphInputFrame n 0 = (1 : Operator (2^n)) := by
   ext r j
   rw [graphInputFrame_entry]
@@ -88,6 +121,8 @@ theorem graphInputFrame_empty (n : ℕ) : graphInputFrame n 0 = (1 : Operator (2
       (fun _ : Fin 0 => false) i
   simp [hi, Matrix.one_apply]
 
+/-- Discarding spectators from an empty graph layout leaves the operator and reference system
+unchanged. -/
 theorem graphDiscardReference_empty (n R : ℕ)
     (A : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ) :
     graphDiscardReference n 0 R (Fin.castAdd 0) A = A := by
@@ -105,9 +140,13 @@ theorem graphDiscardReference_empty (n R : ℕ)
   simp only [he, ho]
   simp
 
+/-- The natural number represented by a Boolean list in binary, with the first bit most
+significant. -/
 def graphBitsIndex (bs : List Bool) : ℕ :=
   bs.foldl (fun a b => 2*a+(if b then 1 else 0)) 0
 
+/-- Binary accumulation from an initial value equals that value shifted by the list length plus
+the binary index of the list. -/
 theorem graphBitsIndex_acc (bs : List Bool) (a : ℕ) :
     bs.foldl (fun a b => 2*a+(if b then 1 else 0)) a =
       2^bs.length*a+graphBitsIndex bs := by
@@ -119,12 +158,14 @@ theorem graphBitsIndex_acc (bs : List Bool) (a : ℕ) :
     rw [ih, ih, pow_succ]
     ring
 
+/-- Prepending a bit adds its contribution at position `bs.length` to the binary index. -/
 theorem graphBitsIndex_cons (b : Bool) (bs : List Bool) :
     graphBitsIndex (b::bs) = (if b then 2^bs.length else 0)+graphBitsIndex bs := by
   change bs.foldl _ (2*0+(if b then 1 else 0)) = _
   rw [graphBitsIndex_acc]
   cases b <;> simp
 
+/-- The binary index of a Boolean list is less than two to the power of its length. -/
 theorem graphBitsIndex_lt (bs : List Bool) : graphBitsIndex bs < 2^bs.length := by
   induction bs with
   | nil => simp [graphBitsIndex]
@@ -133,6 +174,7 @@ theorem graphBitsIndex_lt (bs : List Bool) : graphBitsIndex bs < 2^bs.length := 
     cases b <;> simp only [Bool.false_eq_true, if_false, if_true, zero_add] <;>
       omega
 
+/-- Boolean lists of equal length with the same binary index are equal. -/
 theorem graphBitsIndex_injective (bs cs : List Bool) (hlen : bs.length=cs.length)
     (he : graphBitsIndex bs=graphBitsIndex cs) : bs=cs := by
   induction bs generalizing cs with
@@ -151,21 +193,28 @@ theorem graphBitsIndex_injective (bs cs : List Bool) (hlen : bs.length=cs.length
       have hi : graphBitsIndex bs=graphBitsIndex cs := by omega
       exact congrArg (List.cons b) (ih cs hl hi)
 
+/-- A graph history index is less than the number `2^(graphWireCount gs)` of measurement
+branches. -/
 theorem graphHistoryIndex_lt {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     graphHistoryIndex gs h < 2^(graphWireCount gs) := by
   simpa [graphHistoryIndex, graphBitsIndex, graphMessage_length] using!
     graphBitsIndex_lt (graphMessage gs h)
 
+/-- The graph history index uniquely determines the measurement history. -/
 theorem graphHistoryIndex_injective {n L : ℕ} (gs : GraphWord n L) :
     Function.Injective (graphHistoryIndex gs) := by
   intro h k he
   apply graphMessage_injective gs
   exact graphBitsIndex_injective _ _ (by rw [graphMessage_length, graphMessage_length]) he
 
+/-- The observed leaf obtained by prepending a list of gates to a leaf, including their gate
+costs. -/
 noncomputable def graphPrependLeaf {D : ℕ} (Us : List (Operator D))
     (leaf : ObservedKrausLeaf D) : ObservedKrausLeaf D :=
   Us.foldr (fun U leaf => leaf.prepend U 0 1 0 []) leaf
 
+/-- Prepending a gate list preserves leaf positions and transforms the selected leaf by
+`graphPrependLeaf`. -/
 theorem graphPrependLeaf_get {D : ℕ} (Us : List (Operator D))
     (P : ObservedCircuit (Fin D)) (k : ℕ) (leaf : ObservedKrausLeaf D)
     (hk : (observedKrausLeaves 1 P)[k]?=some leaf) :
@@ -178,6 +227,7 @@ theorem graphPrependLeaf_get {D : ℕ} (Us : List (Operator D))
     rw [List.getElem?_map, ih]
     rfl
 
+/-- Prepending one gate preserves leaf positions and adds that gate to the selected leaf. -/
 theorem graphGateLeaf_get {D : ℕ} (U : Operator D) (P : ObservedCircuit (Fin D))
     (k : ℕ) (leaf : ObservedKrausLeaf D)
     (hk : (observedKrausLeaves 1 P)[k]?=some leaf) :
@@ -186,6 +236,8 @@ theorem graphGateLeaf_get {D : ℕ} (U : Operator D) (P : ObservedCircuit (Fin D
   rw [List.getElem?_map, hk]
   rfl
 
+/-- The observed branch leaf of a graph-program tail for a fixed history and incoming Pauli
+frame. -/
 noncomputable def graphTailLeaf {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     (h : GraphHistory gs) : List (Fin L) → PauliFrame n → ObservedKrausLeaf (2^(n+L))
   | [], F => graphPrependLeaf (graphCorrectionGates gs F) ⟨1,true,0,0,0,[]⟩
@@ -202,10 +254,12 @@ noncomputable def graphTailLeaf {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     if pre then measured else measured.prepend
       (networkCzGate (graphEdgeEndpoints gs t).1 (graphEdgeEndpoints gs t).2) 0 1 0 []
 
+/-- The measurement bits selected by the wire slots in a list of graph-word positions. -/
 def graphTailMessage {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) : List Bool :=
   ts.filterMap (fun t => if graphWireAt gs t then some (h.1 t) else none)
 
+/-- The tail message contains exactly one bit for each wire slot. -/
 theorem graphTailMessage_length {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) : (graphTailMessage gs h ts).length=graphSlotCount gs ts := by
   induction ts with
@@ -215,6 +269,8 @@ theorem graphTailMessage_length {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
     cases ht : graphWireAt gs t <;>
       simp [graphTailMessage, graphSlotCount, ht, ih, Nat.add_comm]
 
+/-- A binary measurement places a selected continuation leaf at the outcome-block offset and
+prepends its projector, measurement cost, and outcome record. -/
 theorem graphMeasurementLeaf_get {D : ℕ} (label : Fin D → Fin 2)
     (next : Fin 2 → ObservedCircuit (Fin D)) (a : Bool) (k N : ℕ)
     (hlen : ∀ o, (observedKrausLeaves 1 (next o)).length=N) (hk : k<N)
@@ -238,6 +294,7 @@ theorem graphMeasurementLeaf_get {D : ℕ} (label : Fin D → Fin 2)
       (Option.map (ObservedKrausLeaf.prepend
         (Projector (Finset.univ.filter (fun i => label i=1))) 0 0 1 [(2,1)])) he
 
+/-- Indexing the graph-tail leaf list by its binary measurement message selects `graphTailLeaf`. -/
 theorem graphTailLeaf_get {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     (h : GraphHistory gs) (ts : List (Fin L)) (F : PauliFrame n) :
     (observedKrausLeaves 1 (graphTail pre gs ts F))[graphBitsIndex (graphTailMessage gs h ts)]?=
@@ -281,18 +338,21 @@ theorem graphTailLeaf_get {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
       · simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, if_true] using!
           ih (graphCzFrame F i j)
 
+/-- Prepending gates preserves the acceptance flag of an observed leaf. -/
 @[simp] theorem graphPrependLeaf_accepted {D : ℕ} (Us : List (Operator D))
     (leaf : ObservedKrausLeaf D) : (graphPrependLeaf Us leaf).accepted=leaf.accepted := by
   induction Us with
   | nil => rfl
   | cons U Us ih => simpa [graphPrependLeaf, ObservedKrausLeaf.prepend] using! ih
 
+/-- Prepending gates preserves the query count of an observed leaf. -/
 @[simp] theorem graphPrependLeaf_queries {D : ℕ} (Us : List (Operator D))
     (leaf : ObservedKrausLeaf D) : (graphPrependLeaf Us leaf).queries=leaf.queries := by
   induction Us with
   | nil => rfl
   | cons U Us ih => simpa [graphPrependLeaf, ObservedKrausLeaf.prepend] using! ih
 
+/-- Prepending a gate list increases the leaf gate count by the list length. -/
 @[simp] theorem graphPrependLeaf_gates {D : ℕ} (Us : List (Operator D))
     (leaf : ObservedKrausLeaf D) : (graphPrependLeaf Us leaf).gates=leaf.gates+Us.length := by
   induction Us with
@@ -301,12 +361,15 @@ theorem graphTailLeaf_get {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     change (graphPrependLeaf Us leaf).gates+1=leaf.gates+(Us.length+1)
     rw [ih, Nat.add_assoc]
 
+/-- Prepending gates preserves the measurement count of an observed leaf. -/
 @[simp] theorem graphPrependLeaf_measurements {D : ℕ} (Us : List (Operator D))
     (leaf : ObservedKrausLeaf D) : (graphPrependLeaf Us leaf).measurements=leaf.measurements := by
   induction Us with
   | nil => rfl
   | cons U Us ih => simpa [graphPrependLeaf, ObservedKrausLeaf.prepend] using! ih
 
+/-- A preentangled tail branch accepts with no queries, one measurement and two gates per wire
+slot, plus the final Pauli-frame correction cost. -/
 theorem graphTailLeaf_resources {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs)
     (ts : List (Fin L)) (F : PauliFrame n) :
     (graphTailLeaf true gs h ts F).accepted=true ∧
@@ -336,6 +399,8 @@ theorem graphTailLeaf_resources {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
       simpa only [graphTailLeaf, hg, if_true, graphFrameAdvance, hc, List.foldl_cons] using!
         ih (graphCzFrame F i j)
 
+/-- A graph-program leaf consists of fresh-state preparation followed by the selected tail, with
+the edge gates prepended in the preentangled case. -/
 theorem graphProgramLeaf_eq {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     (h : GraphHistory gs) :
     graphProgramLeaf pre gs h = graphPrependLeaf (graphFreshGates n L)
@@ -354,9 +419,11 @@ theorem graphProgramLeaf_eq {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
   rw [graphProgramLeaf, List.getD_eq_getElem?_getD, he]
   rfl
 
+/-- The circuit-order product of a list of gates, with earlier gates acting first. -/
 noncomputable def graphGateProduct {D : ℕ} (Us : List (Operator D)) : Operator D :=
   Us.foldr (fun U K => K*U) 1
 
+/-- Prepending gates multiplies the leaf operator on the right by their circuit-order product. -/
 theorem graphPrependLeaf_operator {D : ℕ} (Us : List (Operator D))
     (leaf : ObservedKrausLeaf D) :
     (graphPrependLeaf Us leaf).operator=leaf.operator*graphGateProduct Us := by
@@ -366,6 +433,7 @@ theorem graphPrependLeaf_operator {D : ℕ} (Us : List (Operator D))
     change (graphPrependLeaf Us leaf).operator*U=leaf.operator*(graphGateProduct Us*U)
     rw [ih, Matrix.mul_assoc]
 
+/-- A matrix commuting with every gate in a list commutes with their circuit-order product. -/
 theorem graphGateProduct_commute {D : ℕ} (Us : List (Operator D)) (A : Operator D)
     (hcomm : ∀ U ∈ Us, U*A=A*U) : graphGateProduct Us*A=A*graphGateProduct Us := by
   induction Us with
@@ -375,6 +443,9 @@ theorem graphGateProduct_commute {D : ℕ} (Us : List (Operator D)) (A : Operato
     rw [Matrix.mul_assoc, hcomm U (by simp), ← Matrix.mul_assoc,
       ih (fun V hV => hcomm V (by simp [hV])), Matrix.mul_assoc]
 
+/-- For a legal graph word and an increasing list of positions, the sequential tail operator
+equals the preentangled tail operator followed on the right by the corresponding edge
+product. -/
 theorem graphTailLeaf_retiming {n L : ℕ} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs)
     (ts : List (Fin L)) (horder : ts.Pairwise (· < ·)) (F : PauliFrame n) :
@@ -438,6 +509,7 @@ theorem graphTailLeaf_retiming {n L : ℕ} (gs : GraphWord n L)
       rw [← Matrix.mul_assoc E, hP, Matrix.mul_assoc, ← Matrix.mul_assoc E, hH,
         Matrix.mul_assoc, ← Matrix.mul_assoc E, hPhase, Matrix.mul_assoc]
 
+/-- Prepending unitary gates preserves well-formedness of an observed circuit. -/
 theorem graphPrepend_wellFormed {D : ℕ} (Us : List (Operator D))
     (P : ObservedCircuit (Fin D)) (hUs : ∀ U ∈ Us, U ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hP : observedWellFormed P) : observedWellFormed (graphPrepend Us P) := by
@@ -446,14 +518,17 @@ theorem graphPrepend_wellFormed {D : ℕ} (Us : List (Operator D))
   | cons U Us ih =>
     exact ⟨hUs U (by simp), ih (fun V hV => hUs V (by simp [hV]))⟩
 
+/-- A Hadamard gate on any physical graph vertex is unitary. -/
 theorem graphPhysicalH_unitary (n L : ℕ) (q : Fin (n+L)) :
     graphPhysicalH n L q ∈ Matrix.unitaryGroup (Fin (2^(n+L))) ℂ :=
   tensorPauliWireGate_unitary _ _ _ (teleportRelabelGate_mem_unitaryGroup hadamard_unitary _)
 
+/-- A physical graph phase gate with a unit-modulus parameter is unitary. -/
 theorem graphPhysicalPhase_unitary (n L : ℕ) (q : Fin (n+L)) (ζ : ℂ) (hζ : ‖ζ‖=1) :
     graphPhysicalPhase n L q ζ ∈ Matrix.unitaryGroup (Fin (2^(n+L))) ℂ :=
   tensorPauliWireGate_unitary _ _ _ (clusterPhase_unitary hζ)
 
+/-- Every physical gate implementing a graph Pauli-frame correction is unitary. -/
 theorem graphCorrectionGates_unitary {n L : ℕ} (gs : GraphWord n L) (F : PauliFrame n) :
     ∀ U ∈ graphCorrectionGates gs F, U ∈ Matrix.unitaryGroup (Fin (2^(n+L))) ℂ := by
   have hx : pauliX = relabelGate boolEquivFin2 PauliX := by
@@ -478,6 +553,7 @@ theorem graphCorrectionGates_unitary {n L : ℕ} (gs : GraphWord n L) (F : Pauli
         (hz.symm ▸ teleportRelabelGate_mem_unitaryGroup pauliZ_unitary boolEquivFin2)
     · simp at hU
 
+/-- Every tail compiled from a legal graph word is well formed for either entanglement schedule. -/
 theorem graphTail_wellFormed {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (ts : List (Fin L)) (F : PauliFrame n) :
     observedWellFormed (graphTail pre gs ts F) := by
@@ -509,6 +585,8 @@ theorem graphTail_wellFormed {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
       · exact ⟨networkCzGate_unitary _ _,ih _⟩
       · exact ih _
 
+/-- The full circuit compiled from a legal graph word is well formed for either entanglement
+schedule. -/
 theorem graphProgram_wellFormed {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) : observedWellFormed (graphProgram pre gs) := by
   apply graphPrepend_wellFormed
@@ -523,6 +601,9 @@ theorem graphProgram_wellFormed {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
         exact networkCzGate_unitary _ _
       · exact graphTail_wellFormed true gs hlegal _ _
 
+/-- For a legal graph word, the sequential and preentangled programs are well formed and have
+equal operators for each history, with valid and injective history indices. See
+[RaussendorfBriegel2000]. -/
 theorem preentangled_graph_actual_leaf_retiming :
     ∀ (n L : ℕ) (gs : GraphWord n L), networkLegal (List.ofFn gs) →
     observedWellFormed (graphProgram false gs) ∧ observedWellFormed (graphProgram true gs) ∧
@@ -542,9 +623,12 @@ theorem preentangled_graph_actual_leaf_retiming :
   · rw [observedKrausLeaves_length, graphProgram_leafCount]
     exact graphHistoryIndex_lt gs h
 
+/-- The physical graph vertices outside the image of the logical layout. -/
 abbrev GraphSpectator {n L : ℕ} (lay : Fin n → Fin (n+L)) :=
   {q : Fin (n+L) // ∀ i, q ≠ lay i}
 
+/-- The equivalence separating a physical register into logical bits and spectator bits for an
+injective layout. -/
 noncomputable def graphCoordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) : Reg (n+L) ≃ Reg n × (GraphSpectator lay → Bool) where
   toFun z := (fun i => z (lay i),fun q => z q.1)
@@ -570,6 +654,8 @@ noncomputable def graphCoordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
         exact q.2 i hi.symm
       rw [dif_neg h]
 
+/-- Overlaying logical bits replaces the logical component of `graphCoordinates` and preserves
+the spectator component. -/
 theorem graphCoordinates_overlay {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (z : Reg (n+L)) (y : Reg n) :
     graphCoordinates lay hlay (graphOverlay n L lay z y)=
@@ -580,6 +666,8 @@ theorem graphCoordinates_overlay {n L : ℕ} (lay : Fin n → Fin (n+L))
   · funext q
     exact graphOverlay_spectator n L lay z y q.1 q.2
 
+/-- Discarding graph spectators is a sum over their bit assignments in logical and spectator
+coordinates, leaving the reference indices intact. -/
 theorem graphDiscardReference_coordinates (n L R : ℕ) (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay)
     (A : Matrix (Fin (2^(n+L)) × Fin R) (Fin (2^(n+L)) × Fin R) ℂ)
@@ -610,6 +698,8 @@ theorem graphDiscardReference_coordinates (n L R : ℕ) (lay : Fin n → Fin (n+
   simp only [hrestrict, hover]
   simp
 
+/-- Left multiplication by a one-wire gate is a sum over the two possible input bits on that
+wire. -/
 theorem graphWireB_mul_rows {N : ℕ} {J : Type*} (q : Fin N) (U : Operator 2)
     (A : Matrix (Reg N) J ℂ) (z : Reg N) (j : J) :
     (pauliProductDensity (fun k => if k=q then U else 1)*A) z j =
@@ -643,14 +733,19 @@ theorem graphWireB_mul_rows {N : ℕ} {J : Type*} (q : Fin N) (U : Operator 2)
       · simp
     rw [hg]
 
+/-- The matrix obtained by reading logical rows through a physical layout and multiplying each
+row by an amplitude envelope. -/
 noncomputable def graphRowLiftB {n L : ℕ} {J : Type*} (lay : Fin n → Fin (n+L))
     (f : Reg (n+L) → ℂ) (A : Matrix (Reg n) J ℂ) : Matrix (Reg (n+L)) J ℂ :=
   fun z j => f z*A (fun i => z (lay i)) j
 
+/-- The finite-index version of `graphRowLiftB`, obtained through the bit-vector equivalence. -/
 noncomputable def graphRowLift {n L : ℕ} {J : Type*} (lay : Fin n → Fin (n+L))
     (f : Reg (n+L) → ℂ) (A : Matrix (Reg n) J ℂ) : Matrix (Fin (2^(n+L))) J ℂ :=
   fun r j => graphRowLiftB lay f A ((bitVecEquiv (n+L)).symm r) j
 
+/-- Left multiplication by a physical one-wire gate sums the two rows obtained by updating that
+physical bit. -/
 theorem graphPhysicalWire_mul_rows {N : ℕ} {J : Type*} (q : Fin N) (U : Operator 2)
     (A : Matrix (Fin (2^N)) J ℂ) (z : Reg N) (j : J) :
     (tensorPauliWireGate N q U*A) ((bitVecEquiv N) z) j =
@@ -661,6 +756,8 @@ theorem graphPhysicalWire_mul_rows {N : ℕ} {J : Type*} (q : Fin N) (U : Operat
     Matrix.reindex_apply, Matrix.submatrix_apply, Equiv.symm_apply_apply] using!
     graphWireB_mul_rows q U (fun y j => A ((bitVecEquiv N) y) j) z j
 
+/-- Updating an active physical bit induces the corresponding update of logical coordinates
+under an injective layout. -/
 theorem graphLogicalCoords_update {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (i : Fin n) (z : Reg (n+L)) (b : Bool) :
     (fun k => Function.update z (lay i) b (lay k))=
@@ -670,6 +767,8 @@ theorem graphLogicalCoords_update {n L : ℕ} (lay : Fin n → Fin (n+L))
   · subst k; simp
   · simp [hk, Function.update_of_ne (fun he => hk (hlay he))]
 
+/-- A physical gate on an active wire acts on the logical matrix inside a row lift when the
+envelope is independent of that wire. -/
 theorem graphRowLift_active_wire {n L : ℕ} {J : Type*}
     (lay : Fin n → Fin (n+L)) (hlay : Function.Injective lay) (i : Fin n)
     (f : Reg (n+L) → ℂ) (hf : ∀ z b, f (Function.update z (lay i) b)=f z)
@@ -686,6 +785,8 @@ theorem graphRowLift_active_wire {n L : ℕ} {J : Type*}
   intro b _
   ring
 
+/-- A physical CZ between active vertices acts as the corresponding logical CZ inside a row
+lift. -/
 theorem graphRowLift_active_cz {n L : ℕ} {J : Type*}
     (lay : Fin n → Fin (n+L)) (i j : Fin n) (f : Reg (n+L) → ℂ)
     (A : Matrix (Reg n) J ℂ) :
@@ -696,6 +797,8 @@ theorem graphRowLift_active_cz {n L : ℕ} {J : Type*}
     graphRowLift, graphRowLiftB, Matrix.diagonal_mul]
   ring
 
+/-- A physical phase gate multiplies each row by its phase parameter exactly when the selected
+bit is true. -/
 theorem graphPhysicalPhase_mul_rows {n L : ℕ} {J : Type*} (v : Fin (n+L)) (ζ : ℂ)
     (A : Matrix (Fin (2^(n+L))) J ℂ) (z : Reg (n+L)) (j : J) :
     (graphPhysicalPhase n L v ζ*A) ((bitVecEquiv (n+L)) z) j =
@@ -704,6 +807,8 @@ theorem graphPhysicalPhase_mul_rows {n L : ℕ} {J : Type*} (v : Fin (n+L)) (ζ 
   cases hv : z v <;>
     simp [clusterPhase, Matrix.diagonal_apply, boolEquivFin2, ← hv]
 
+/-- A physical outcome projector keeps precisely the rows with the selected bit equal to the
+outcome. -/
 theorem graphPhysicalProjector_mul_rows {n L : ℕ} {J : Type*} (v : Fin (n+L)) (a : Bool)
     (A : Matrix (Fin (2^(n+L))) J ℂ) (z : Reg (n+L)) (j : J) :
     (graphPhysicalProjector n L v a*A) ((bitVecEquiv (n+L)) z) j =
@@ -711,6 +816,7 @@ theorem graphPhysicalProjector_mul_rows {n L : ℕ} {J : Type*} (v : Fin (n+L)) 
   rw [graph_physical_projector_diagonal, Matrix.diagonal_mul]
   simp [graphPhysicalLabel, (boolEquivFin2.injective.eq_iff)]
 
+/-- A physical CZ multiplies a row by minus one exactly when both selected bits are true. -/
 theorem graphPhysicalCz_mul_rows {N : ℕ} {J : Type*} (v q : Fin N)
     (A : Matrix (Fin (2^N)) J ℂ) (z : Reg N) (j : J) :
     (networkCzGate v q*A) ((bitVecEquiv N) z) j =
@@ -718,6 +824,8 @@ theorem graphPhysicalCz_mul_rows {N : ℕ} {J : Type*} (v q : Fin N)
   rw [graph_cz_numeric_diagonal, Matrix.diagonal_mul]
   simp
 
+/-- The local Hadamard, phase, and CZ entry factors equal the entry of the outcome-corrected
+cluster gate. -/
 theorem graphLocalJ_entry (ζ : ℂ) (a b c : Bool) :
     relabelGate boolEquivFin2 Hadamard (boolEquivFin2 a) (boolEquivFin2 b) *
       (if b then ζ else 1)*(if b && c then (-1 : ℂ) else 1) =
@@ -727,9 +835,13 @@ theorem graphLocalJ_entry (ζ : ℂ) (a b c : Bool) :
       Matrix.submatrix_apply, Matrix.mul_apply, Fin.sum_univ_two, Hadamard, PauliX,
       permMatrix, boolEquivFin2]
 
+/-- The amplitude envelope restricted to configurations having a specified bit value at a
+physical vertex. -/
 def graphSelectEnvelope {N : ℕ} (f : Reg N → ℂ) (v : Fin N) (a : Bool) : Reg N → ℂ :=
   fun z => if z v=a then f z else 0
 
+/-- After moving one logical wire to a new physical vertex, updating that logical coordinate
+recovers the coordinates obtained by updating its old vertex. -/
 theorem graphLogicalCoords_move {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (i : Fin n) (q : Fin (n+L))
     (z : Reg (n+L)) (b : Bool) :
@@ -740,6 +852,8 @@ theorem graphLogicalCoords_move {n L : ℕ} (lay : Fin n → Fin (n+L))
   · subst k; simp
   · simp [hk, Function.update_of_ne (fun he => hk (hlay he))]
 
+/-- A physical CZ, phase, Hadamard, and measurement step moves the logical wire, selects the
+envelope, and applies the outcome-corrected cluster gate. -/
 theorem graphRowLift_actual_J {n L : ℕ} {J : Type*}
     (lay : Fin n → Fin (n+L)) (hlay : Function.Injective lay) (i : Fin n)
     (q : Fin (n+L)) (hq : q ≠ lay i) (f : Reg (n+L) → ℂ)
@@ -768,9 +882,12 @@ theorem graphRowLift_actual_J {n L : ℕ} {J : Type*}
       (Function.update (fun k => z (Function.update lay i q k)) i b) j)
   · simp [graphRowLift, graphRowLiftB, graphSelectEnvelope, ha]
 
+/-- The condition that an amplitude envelope is independent of every active physical coordinate
+in the layout. -/
 def GraphEnvelopeInvariant {n L : ℕ} (lay : Fin n → Fin (n+L))
     (f : Reg (n+L) → ℂ) : Prop := ∀ i z b, f (Function.update z (lay i) b)=f z
 
+/-- An invariant envelope is unchanged by overlaying any logical register. -/
 theorem graphEnvelope_overlay {n L : ℕ} (lay : Fin n → Fin (n+L))
     (f : Reg (n+L) → ℂ) (hf : GraphEnvelopeInvariant lay f)
     (z : Reg (n+L)) (y : Reg n) : f (graphOverlay n L lay z y)=f z := by
@@ -782,6 +899,8 @@ theorem graphEnvelope_overlay {n L : ℕ} (lay : Fin n → Fin (n+L))
     | cons i ts ih => intro z; rw [List.foldl_cons, ih, hf]
   exact h _ z
 
+/-- For an invariant envelope, its value in logical and spectator coordinates depends only on
+the spectator assignment. -/
 theorem graphEnvelope_coordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (f : Reg (n+L) → ℂ)
     (hf : GraphEnvelopeInvariant lay f) (x y : Reg n) (s : GraphSpectator lay → Bool) :
@@ -793,9 +912,12 @@ theorem graphEnvelope_coordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
     rw [graphCoordinates_overlay, Equiv.apply_symm_apply, Equiv.apply_symm_apply]
   rw [← he, graphEnvelope_overlay lay f hf]
 
+/-- The sum of squared envelope magnitudes divided by `2^n`, represented as a complex scalar. -/
 noncomputable def graphEnvelopeMass {N : ℕ} (n : ℕ) (f : Reg N → ℂ) : ℂ :=
   (2^n : ℂ)⁻¹ * ∑ z : Reg N, f z*star (f z)
 
+/-- For an invariant envelope and injective layout, its mass is the sum of squared magnitudes
+over spectator assignments with fixed zero logical bits. -/
 theorem graphEnvelopeMass_coordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (f : Reg (n+L) → ℂ)
     (hf : GraphEnvelopeInvariant lay f) :
@@ -809,6 +931,7 @@ theorem graphEnvelopeMass_coordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
     Nat.cast_ofNat]
   rw [← mul_assoc, inv_mul_cancel₀ (pow_ne_zero _ (by norm_num : (2 : ℂ)≠0)), one_mul]
 
+/-- Selecting either value of a bit on which an envelope is independent halves its mass. -/
 theorem graphEnvelopeMass_select {N : ℕ} (n : ℕ) (v : Fin N) (a : Bool)
     (f : Reg N → ℂ) (hf : ∀ z b, f (Function.update z v b)=f z) :
     graphEnvelopeMass n (graphSelectEnvelope f v a)=(1/2 : ℂ)*graphEnvelopeMass n f := by
@@ -830,6 +953,8 @@ theorem graphEnvelopeMass_select {N : ℕ} (n : ℕ) (v : Fin N) (a : Bool)
   simp_rw [hv, he]
   cases a <;> simp [Finset.mul_sum] <;> ring
 
+/-- Selecting the old active bit preserves envelope invariance after moving the logical wire to
+a distinct vertex on which the envelope is independent. -/
 theorem graphEnvelopeInvariant_select_move {n L : ℕ} (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (i : Fin n) (q : Fin (n+L)) (hq : q≠lay i)
     (f : Reg (n+L) → ℂ) (hf : GraphEnvelopeInvariant lay f)
@@ -848,6 +973,8 @@ theorem graphEnvelopeInvariant_select_move {n L : ℕ} (lay : Fin n → Fin (n+L
     rw [Function.update_of_ne (fun he => hk (hlay he.symm)), hf]
     rfl
 
+/-- Conjugation by a lifted matrix tensored with the reference identity factors entrywise into
+envelope values and the logical conjugation. -/
 theorem graphRowLift_reference_entry {n L D R : ℕ} (lay : Fin n → Fin (n+L))
     (f : Reg (n+L) → ℂ) (A : Matrix (Reg n) (Fin D) ℂ)
     (X : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ)
@@ -869,6 +996,8 @@ theorem graphRowLift_reference_entry {n L D R : ℕ} (lay : Fin n → Fin (n+L))
   intro v _
   ring
 
+/-- Discarding spectators after conjugation by an invariant row lift yields logical conjugation
+scaled by the envelope mass, with any reference system preserved. -/
 theorem graphDiscardReference_rowLift (n L D R : ℕ) (lay : Fin n → Fin (n+L))
     (hlay : Function.Injective lay) (f : Reg (n+L) → ℂ)
     (hf : GraphEnvelopeInvariant lay f) (A : Matrix (Reg n) (Fin D) ℂ)
@@ -891,6 +1020,8 @@ theorem graphDiscardReference_rowLift (n L D R : ℕ) (lay : Fin n → Fin (n+L)
   rw [← Finset.sum_mul, ← graphEnvelopeMass_coordinates lay hlay f hf]
   rfl
 
+/-- Applying the same one-qubit gate on distinct wires equals the tensor product using that gate
+on those wires and the identity elsewhere. -/
 theorem graphGateProduct_distinct_wires {N : ℕ} (qs : List (Fin N)) (hqs : qs.Nodup)
     (U : Operator 2) :
     graphGateProduct (qs.map (fun q => tensorPauliWireGate N q U))=
@@ -907,6 +1038,8 @@ theorem graphGateProduct_distinct_wires {N : ℕ} (qs : List (Fin N)) (hqs : qs.
     · subst k; simp [hq]
     · simp [hk]
 
+/-- Fresh Hadamard preparation turns the input frame into a row lift with constant envelope `(1
+/ √2)^L`. -/
 theorem graphFreshPreparation (n L : ℕ) :
     graphGateProduct (graphFreshGates n L)*graphInputFrame n L =
       graphRowLift (Fin.castAdd L) (fun _ => ((Real.sqrt 2 : ℂ)⁻¹)^L)
@@ -959,6 +1092,7 @@ theorem graphFreshPreparation (n L : ℕ) :
   rw [hid]
   simp [graphRowLift, graphRowLiftB, mul_comm]
 
+/-- The initial constant envelope `(1 / √2)^L` on `n + L` bits has mass one. -/
 theorem graphEnvelopeMass_initial (n L : ℕ) :
     graphEnvelopeMass n (fun _ : Reg (n+L) => ((Real.sqrt 2 : ℂ)⁻¹)^L)=1 := by
   have hc : (Real.sqrt 2 : ℂ)⁻¹*star ((Real.sqrt 2 : ℂ)⁻¹)=(1/2 : ℂ) := by
@@ -970,6 +1104,8 @@ theorem graphEnvelopeMass_initial (n L : ℕ) :
   rw [mul_assoc ((2 : ℂ)^n) (2^L) ((1/2)^L),hp,mul_one,
     inv_mul_cancel₀ (pow_ne_zero _ (by norm_num : (2 : ℂ)≠0))]
 
+/-- Updating a Pauli frame across a CZ changes its phase sign by the two cross terms determined
+by the X-frame bits. -/
 theorem graphCzFrame_sign {n : ℕ} (F : PauliFrame n) (i j : Fin n) (hij : i≠j)
     (v : Reg n) :
     frameSign (graphCzFrame F i j) v =
@@ -989,6 +1125,8 @@ theorem graphCzFrame_sign {n : ℕ} (F : PauliFrame n) (i j : Fin n) (hij : i≠
   simp_rw [he, Finset.prod_mul_distrib]
   simp
 
+/-- A CZ transports a Pauli frame to `graphCzFrame`, up to the sign determined by the two
+X-frame bits. -/
 theorem graphCzFrameTransportB {n : ℕ} (F : PauliFrame n) (i j : Fin n) (hij : i≠j) :
     networkCzGateB i j*pauliFrameGateB F =
       frameBitSign (F.1 i) (F.1 j) •
@@ -1005,6 +1143,8 @@ theorem graphCzFrameTransportB {n : ℕ} (F : PauliFrame n) (i j : Fin n) (hij :
       simp [frameShift, frameBitSign, hi, hj, hvi, hvj] <;> ring
   · simp [hw]
 
+/-- The gate product of an appended list is the product of the second list followed on the right
+by that of the first. -/
 theorem graphGateProduct_append {D : ℕ} (Us Vs : List (Operator D)) :
     graphGateProduct (Us++Vs)=graphGateProduct Vs*graphGateProduct Us := by
   induction Us with
@@ -1013,11 +1153,16 @@ theorem graphGateProduct_append {D : ℕ} (Us Vs : List (Operator D)) :
     change graphGateProduct (Us++Vs)*U=graphGateProduct Vs*(graphGateProduct Us*U)
     rw [ih, Matrix.mul_assoc]
 
+/-- The circuit-order product of an empty gate list is the identity. -/
 @[simp] theorem graphGateProduct_nil {D : ℕ} : graphGateProduct ([] : List (Operator D))=1 := rfl
 
+/-- The circuit-order product of a gate followed by a list is the tail product multiplied on the
+right by that gate. -/
 @[simp] theorem graphGateProduct_cons {D : ℕ} (U : Operator D) (Us : List (Operator D)) :
     graphGateProduct (U::Us)=graphGateProduct Us*U := rfl
 
+/-- Physical correction gates act inside an invariant row lift as the adjoint of the logical
+Pauli-frame gate. -/
 theorem graphCorrection_rowLift {n L : ℕ} {J : Type*} (gs : GraphWord n L)
     (hlay : Function.Injective (graphLayoutFinal gs)) (F : PauliFrame n)
     (f : Reg (n+L) → ℂ) (hf : GraphEnvelopeInvariant (graphLayoutFinal gs) f)
@@ -1081,9 +1226,12 @@ theorem graphCorrection_rowLift {n L : ℕ} {J : Type*} (gs : GraphWord n L)
   simpa only [graphCorrectionGates, frameCorrectionSteps, List.flatMap, List.map_ofFn,
     Function.comp_def] using! hh
 
+/-- The logical layout obtained by advancing through a specified list of graph-word positions. -/
 def graphLayoutList {n L : ℕ} (gs : GraphWord n L) (ps : List (Fin L)) :
     Fin n → Fin (n+L) := ps.foldl (graphAdvance gs) (Fin.castAdd L)
 
+/-- The layout before a position is the layout obtained by processing the preceding prefix of
+positions. -/
 theorem graphLayoutBefore_prefix {n L : ℕ} (gs : GraphWord n L)
     (ps ts : List (Fin L)) (t : Fin L)
     (hall : List.ofFn (fun s : Fin L => s)=ps++t::ts) :
@@ -1099,6 +1247,8 @@ theorem graphLayoutBefore_prefix {n L : ℕ} (gs : GraphWord n L)
   unfold graphLayoutBefore graphLayoutList
   rw [← hv, hall, List.take_left]
 
+/-- The logical tail matrix in Boolean coordinates, including adaptive wire gates, CZ gates, and
+the final frame correction. -/
 noncomputable def graphLogicalTailB {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     List (Fin L) → PauliFrame n → Matrix (Reg n) (Reg n) ℂ
   | [], F => relabelGate (bitVecEquiv n).symm ((pauliFrameGate n F)ᴴ)
@@ -1109,6 +1259,8 @@ noncomputable def graphLogicalTailB {n L : ℕ} (gs : GraphWord n L) (h : GraphH
           pauliXChoice (h.1 t)*clusterJ (if F.1 i then star ζ else ζ) else 1)
     | .inr (i,j) => graphLogicalTailB gs h ts (graphCzFrame F i j)*networkCzGateB i j
 
+/-- The envelope obtained by restricting measured vertices to the history outcomes along a
+graph-word tail. -/
 def graphTailEnvelope {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
     List (Fin L) → (Reg (n+L) → ℂ) → (Reg (n+L) → ℂ)
   | [], f => f
@@ -1117,6 +1269,8 @@ def graphTailEnvelope {n L : ℕ} (gs : GraphWord n L) (h : GraphHistory gs) :
         (graphSelectEnvelope f (graphLayoutBefore gs t i) (h.1 t))
     | .inr _ => graphTailEnvelope gs h ts f
 
+/-- A legal sequential tail transfers a row lift to the final layout with the logical tail
+matrix, preserves envelope invariance, and halves its mass at each wire slot. -/
 theorem graphTail_actual_transfer {n L : ℕ} {J : Type*} (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs)
     (ts ps : List (Fin L)) (hall : List.ofFn (fun s : Fin L => s)=ps++ts)
@@ -1217,14 +1371,19 @@ theorem graphTail_actual_transfer {n L : ℕ} {J : Type*} (gs : GraphWord n L)
       · simpa only [graphTailEnvelope,hg] using! hinv
       · simpa [graphTailEnvelope,hg,graphSlotCount,graphWireAt] using! hmass
 
+/-- The Boolean-coordinate Pauli-frame matrix is the relabeling of the finite-index Pauli-frame
+gate. -/
 theorem graphPauliFrameB_eq (n : ℕ) (F : PauliFrame n) :
     pauliFrameGateB F=relabelGate (bitVecEquiv n).symm (pauliFrameGate n F) := by
   unfold pauliFrameGateB pauliFrameGate
   rw [relabelGate_relabelGate]
 
+/-- Relabeling a matrix commutes with scalar multiplication. -/
 theorem graphRelabel_smul {I J : Type*} (e : I ≃ J) (c : ℂ) (U : Matrix I I ℂ) :
     relabelGate e (c • U)=c • relabelGate e U := rfl
 
+/-- An adaptive wire gate transports an incoming Pauli frame to the updated frame times the
+intended logical wire gate, up to `wireFramePhase`. -/
 theorem graphWireFrameTransportB (n : ℕ) (i : Fin n) (ζ : ℂ) (hζ : ‖ζ‖=1)
     (F : PauliFrame n) (a : Bool) :
     pauliProductDensity (fun k => if k=i then
@@ -1237,11 +1396,14 @@ theorem graphWireFrameTransportB (n : ℕ) (i : Fin n) (ζ : ℂ) (hζ : ‖ζ�
     ← rawNetworkWireGateB_eq, ← networkWireGateB_eq, rawNetworkWireGateB,
     frameUpdate, graphWireFrame] using! he
 
+/-- Every Boolean-coordinate Pauli-frame matrix is unitary. -/
 theorem graphPauliFrameB_unitary (n : ℕ) (F : PauliFrame n) :
     pauliFrameGateB F ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   rw [graphPauliFrameB_eq]
   exact teleportRelabelGate_mem_unitaryGroup (pauliFrameGate_unitary n F) _
 
+/-- For a legal word, the logical tail composed with its incoming frame equals the intended
+logical tail matrix up to a unit-modulus scalar. -/
 theorem graphLogicalTailB_correct (n L : ℕ) (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs)
     (ts : List (Fin L)) (F : PauliFrame n) :
@@ -1287,9 +1449,13 @@ theorem graphLogicalTailB_correct (n L : ℕ) (gs : GraphWord n L)
           rw [networkCzGate,relabelGate_relabelGate]
         rw [← hb,mul_comm c]
 
+/-- The identity change-of-coordinates matrix from finite logical indices to Boolean logical
+registers. -/
 noncomputable def graphInitialLogicalRows (n : ℕ) : Matrix (Reg n) (Fin (2^n)) ℂ :=
   fun y k => if (bitVecEquiv n) y=k then 1 else 0
 
+/-- Multiplication by the initial logical row matrix converts its column index through the
+inverse bit-vector equivalence. -/
 theorem graphLogicalRows_init_mul (n : ℕ) (B : Matrix (Reg n) (Reg n) ℂ)
     (x : Reg n) (j : Fin (2^n)) :
     (B*graphInitialLogicalRows n) x j=
@@ -1297,6 +1463,7 @@ theorem graphLogicalRows_init_mul (n : ℕ) (B : Matrix (Reg n) (Reg n) ℂ)
   rw [Matrix.mul_apply, ← (bitVecEquiv n).symm.sum_comp]
   simp [graphInitialLogicalRows]
 
+/-- Multiplying a matrix by a unit-modulus scalar does not change its conjugation action. -/
 theorem graphConj_phase {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (hc : ‖c‖=1)
     (U X : Matrix I I ℂ) : (c • U)*X*(c • U)ᴴ=U*X*Uᴴ := by
   have hh : star c*c=1 := by
@@ -1306,6 +1473,9 @@ theorem graphConj_phase {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (hc : 
   simp only [Matrix.conjTranspose_smul, Matrix.smul_mul, Matrix.mul_smul, smul_smul,
     hh, one_smul]
 
+/-- Each history of a legal preentangled graph program acts on an arbitrary reference extension
+as the logical unitary conjugation scaled by `(1 / 2)^(graphWireCount gs)`. See
+[RaussendorfBriegel2000]. -/
 theorem preentangled_graph_actual_reference_branch :
     ∀ (n L R : ℕ) (gs : GraphWord n L), networkLegal (List.ofFn gs) →
     ∀ (h : GraphHistory gs) (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ),
@@ -1368,6 +1538,8 @@ theorem preentangled_graph_actual_reference_branch :
     ring
   rw [hk,graphConj_phase c hc]
 
+/-- Each actual preentangled branch of a legal graph word equals logical unitary conjugation
+scaled by `(1 / 2)^(graphWireCount gs)`. -/
 theorem graphActualBranch_formula (n L : ℕ) (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (h : GraphHistory gs) (ρ : Operator (2^n)) :
     graphActualBranch true gs h ρ=(1/2 : ℂ)^(graphWireCount gs) •
@@ -1378,21 +1550,27 @@ theorem graphActualBranch_formula (n L : ℕ) (gs : GraphWord n L)
     Matrix.smul_apply]
   simp only [TensorGate,Matrix.kronecker_apply,Matrix.one_apply_eq,mul_one]
 
+/-- The conjugate of `(1 / √2)^w` times itself equals `(1 / 2)^w`. -/
 theorem graphAmplitude_square (w : ℕ) :
     star (((Real.sqrt 2 : ℂ)⁻¹)^w)*((Real.sqrt 2 : ℂ)⁻¹)^w=(1/2 : ℂ)^w := by
   rw [star_pow,← mul_pow]
   congr 1
   simpa using! sqrt2_inv_sq
 
+/-- The product of `2^w` and `(1 / 2)^w` equals one as a complex scalar. -/
 theorem graphProbability_sum_scalar (w : ℕ) : (2 : ℂ)^w*(1/2 : ℂ)^w=1 := by
   rw [← mul_pow]
   norm_num
 
+/-- The product of `(1 / √2)^w` and its conjugate equals `(1 / 2)^w`. -/
 theorem graphAmplitude_square_rev (w : ℕ) :
     ((Real.sqrt 2 : ℂ)⁻¹)^w*star (((Real.sqrt 2 : ℂ)⁻¹)^w)=(1/2 : ℂ)^w := by
   rw [mul_comm]
   exact graphAmplitude_square w
 
+/-- The actual branches of a legal preentangled graph word form an instrument with uniform
+history probabilities, and summing its reference-extended branches gives the intended
+logical unitary channel. See [RaussendorfBriegel2000]. -/
 theorem preentangled_graph_actual_cp_instrument_and_forget :
     ∀ (n L : ℕ) (gs : GraphWord n L), networkLegal (List.ofFn gs) →
     ∃ I : Instrument (GraphHistory gs) (2^n) (2^n),
@@ -1442,6 +1620,8 @@ theorem preentangled_graph_actual_cp_instrument_and_forget :
     simp only [Nat.cast_pow,Nat.cast_ofNat]
     rw [← mul_assoc,graphProbability_sum_scalar,one_mul]
 
+/-- Summing all actual preentangled branches of a legal graph word gives conjugation by its
+logical network matrix. -/
 theorem graphActualBranch_forget (n L : ℕ) (gs : GraphWord n L)
     (hlegal : networkLegal (List.ofFn gs)) (ρ : Operator (2^n)) :
     (∑ h : GraphHistory gs,graphActualBranch true gs h ρ)=

@@ -10,6 +10,29 @@ import Mathlib.Data.Finset.Card
 import Mathlib.Tactic.Abel
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.FieldSimp
+
+/-!
+# Greedy syndrome decoding bounds
+
+This module proves invariants and resource bounds for `greedyDecode`, together with a CSS
+correction criterion below half the code distance. It also supplies deterministic stability
+bounds for repeated noise and a union bound for correlated round failures.
+
+These finite decoding estimates support fault tolerance analyses such as
+[BhartiHaugTanggara2026].
+
+## Main statements
+
+* `greedyDecode_syndrome`: the residual syndrome equals the input syndrome plus the correction
+  syndrome.
+* `greedyDecode_checks`: a bound on the number of candidate tests.
+* `correction_succeeds_below_half_distance`: a sufficient condition for a stabilizer residual.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 open Qatlib.Concepts.CodingDecoding.CssTesters
 open Qatlib
@@ -23,6 +46,8 @@ open Matrix
 
 open scoped BigOperators
 
+/-- The Hamming weight of the sum of two binary vectors is at most the sum of their Hamming
+weights. -/
 theorem bitWeight_add_le {ι : Type*} [Fintype ι] (x y : ι → ZMod 2) :
     bitWeight (x + y) ≤ bitWeight x + bitWeight y := by
   classical
@@ -34,12 +59,15 @@ theorem bitWeight_add_le {ι : Type*} [Fintype ι] (x y : ι → ZMod 2) :
   push Not at h
   exact hi (by simp [h.1, h.2])
 
+/-- Adding a correction to the data error adds its syndrome to the noisy syndrome. -/
 theorem noisy_syndrome_update {ι κ : Type*} [Fintype ι]
     (H : Matrix κ ι (ZMod 2)) (e correction : ι → ZMod 2) (noise : κ → ZMod 2) :
     H *ᵥ (e + correction) + noise = H *ᵥ e + noise + H *ᵥ correction := by
   rw [Matrix.mulVec_add]
   abel
 
+/-- A correction with the same X syndrome and no greater weight than the error leaves a Z
+stabilizer residual when twice the error weight is strictly below the CSS distance. -/
 theorem correction_succeeds_below_half_distance
     {ι κX κZ : Type*} [Fintype ι] [Fintype κX] [Fintype κZ] [DecidableEq ι]
     (c : CssData ι κX κZ) (e correction : ι → ZMod 2)
@@ -66,6 +94,8 @@ theorem correction_succeeds_below_half_distance
     exact_mod_cast hw
   exact (not_lt_of_ge (hd.trans hw')) hradius
 
+/-- Under the contraction, source, and budget hypotheses, every residual is at most `(α * R + β
+* S) / (1 - α) * n`. -/
 theorem repeatedNoise_stable (α β R S A B C n : ℝ)
     (hα : 0 ≤ α) (hα1 : α < 1) (hβ : 0 ≤ β)
     (hR : 0 ≤ R) (hS : 0 ≤ S) (hA : 0 ≤ A) (hB : 0 ≤ B) (hn : 0 ≤ n)
@@ -102,6 +132,7 @@ theorem repeatedNoise_stable (α β R S A B C n : ℝ)
       _ = (α * (L + R) + β * S) * n := by ring
       _ = L * n := by rw [hfix]
 
+/-- A returned flip belongs to the candidate list and strictly reduces the syndrome weight. -/
 theorem chooseReducingFlip_spec {ι κ : Type*} [Fintype ι] [Fintype κ]
     (H : Matrix κ ι (ZMod 2)) (s : κ → ZMod 2) (moves : List (ι → ZMod 2))
     (f : ι → ZMod 2) (h : (chooseReducingFlip H s moves).1 = some f) :
@@ -116,6 +147,7 @@ theorem chooseReducingFlip_spec {ι κ : Type*} [Fintype ι] [Fintype κ]
     · obtain ⟨hm, hw⟩ := ih h
       exact ⟨List.mem_cons_of_mem _ hm, hw⟩
 
+/-- Searching for a reducing flip tests at most the length of the candidate list. -/
 theorem chooseReducingFlip_checks {ι κ : Type*} [Fintype ι] [Fintype κ]
     (H : Matrix κ ι (ZMod 2)) (s : κ → ZMod 2) (moves : List (ι → ZMod 2)) :
     (chooseReducingFlip H s moves).2 ≤ moves.length := by
@@ -127,6 +159,8 @@ theorem chooseReducingFlip_checks {ι κ : Type*} [Fintype ι] [Fintype κ]
     · exact Nat.succ_le_succ (Nat.zero_le _)
     · exact Nat.succ_le_succ ih
 
+/-- The final syndrome equals the initial syndrome plus the syndrome of the accumulated
+correction. -/
 theorem greedyDecode_syndrome {ι κ : Type*} [Fintype ι] [Fintype κ]
     (H : Matrix κ ι (ZMod 2)) (moves : List (ι → ZMod 2)) (fuel : ℕ) (s : κ → ZMod 2) :
     (greedyDecode H moves fuel s).syndrome = s + H *ᵥ (greedyDecode H moves fuel s).correction := by
@@ -139,6 +173,8 @@ theorem greedyDecode_syndrome {ι κ : Type*} [Fintype ι] [Fintype κ]
     · rw [ih, Matrix.mulVec_add]
       abel
 
+/-- With fuel at least the initial syndrome weight, no candidate strictly reduces the final
+syndrome weight. -/
 theorem greedyDecode_terminal {ι κ : Type*} [Fintype ι] [Fintype κ]
     (H : Matrix κ ι (ZMod 2)) (moves : List (ι → ZMod 2)) (fuel : ℕ)
     (s : κ → ZMod 2) (hfuel : bitWeight s ≤ fuel) :
@@ -159,6 +195,7 @@ theorem greedyDecode_terminal {ι κ : Type*} [Fintype ι] [Fintype κ]
       have hw := (chooseReducingFlip_spec H s moves f h).2
       exact ih _ (by omega)
 
+/-- Greedy decoding performs at most `fuel * moves.length` candidate tests. -/
 theorem greedyDecode_checks {ι κ : Type*} [Fintype ι] [Fintype κ]
     (H : Matrix κ ι (ZMod 2)) (moves : List (ι → ZMod 2)) (fuel : ℕ) (s : κ → ZMod 2) :
     (greedyDecode H moves fuel s).candidateChecks ≤ fuel * moves.length := by
@@ -175,6 +212,8 @@ theorem greedyDecode_checks {ι κ : Type*} [Fintype ι] [Fintype κ]
       simp only [Nat.succ_mul]
       omega
 
+/-- The stated upper bounds on the data and syndrome source rates imply the repeated noise
+budget inequality. -/
 theorem repeatedNoise_source_budget (α β A B C R S : ℝ)
     (hα1 : α < 1) (hβ : 0 ≤ β) (hA : 0 < A) (hB : 0 < B)
     (hR : R ≤ (1 - α) * C / (2 * A))
@@ -192,6 +231,8 @@ theorem repeatedNoise_source_budget (α β A B C R S : ℝ)
   rw [hid]
   nlinarith only [hR', hS']
 
+/-- The total nonnegative weight of the union of round failure events is at most the sum of
+their individual bounds. -/
 theorem correlated_round_failure_bound {Ω : Type*} [Fintype Ω] (M : ℕ)
     (p : Ω → ℝ) (hp : ∀ ω, 0 ≤ p ω) (bad : Fin M → Ω → Prop)
     [∀ i, DecidablePred (bad i)] (bound : Fin M → ℝ)

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OrderedInsert99.MainResults.LowerBound
+
+/-!
+# Normalized exact stages for ordered insertion
+
+This module counts the odd and even index classes and proves normalization of `targetAmp`. An
+`ExactStage` therefore has `successProbability` equal to one. These finite normalization results
+support the exact invariant ordered-insertion algorithms of [FarhiEtAl1999].
+
+## Main statements
+
+* `card_filter_parity`: For positive `N` and parity zero or one, exactly `N` indices have the
+  specified parity.
+* `targetAmp_sum_sq`: For positive `N` and parity zero or one, the squared moduli of the target
+  amplitudes sum to one.
+* `exactStage_prob`: An exact stage of an invariant ordered-insertion algorithm with positive
+  `N` has success probability one.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,12 +37,14 @@ namespace Qatlib.Papers.OrderedInsert99.MainResults
 
 open scoped BigOperators
 
+/-- For positive `N`, the odd index set has cardinality `N`. -/
 lemma oddIdx_card (N : ℕ) (hN : 0 < N) : (oddIdx N).card = N := by
   have h := test_sum hN (fun _ => (1 : ℝ))
   have h1 : (↑(oddIdx N).card : ℝ) = (N : ℝ) := by
     simpa using h
   exact_mod_cast h1
 
+/-- For positive `N` and parity zero or one, exactly `N` indices have the specified parity. -/
 lemma card_filter_parity (N parity : ℕ) (hN : 0 < N) (hpar : parity < 2) :
     (Finset.univ.filter (fun p : Idx N => p.val % 2 = parity)).card = N := by
   have hcode : parity = 0 ∨ parity = 1 := by omega
@@ -43,6 +67,8 @@ lemma card_filter_parity (N parity : ℕ) (hN : 0 < N) (hpar : parity < 2) :
     rw [heq]
     exact oddIdx_card N hN
 
+/-- For positive `N` and parity zero or one, the squared moduli of the target amplitudes sum to
+one. -/
 lemma targetAmp_sum_sq (N parity : ℕ) (hN : 0 < N) (hpar : parity < 2) :
     ∑ p : Idx N, ‖targetAmp N parity p‖ ^ 2 = 1 := by
   have hsq : ((Real.sqrt (N : ℝ))⁻¹) ^ 2 = (1 : ℝ) / N := by
@@ -61,6 +87,8 @@ lemma targetAmp_sum_sq (N parity : ℕ) (hN : 0 < N) (hpar : parity < 2) :
   have hNR : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
   field_simp
 
+/-- An exact stage of an invariant ordered-insertion algorithm with positive `N` has success
+probability one. -/
 lemma exactStage_prob (N k : ℕ) (hN : 0 < N) (α : ℕ → Idx N → ℝ)
     (h : ExactStage N k α) : successProbability N k α = 1 := by
   have hψ : ∀ p, psi N α k p = targetAmp N (k % 2) p := h

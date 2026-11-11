@@ -20,6 +20,30 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAStat
+
+/-!
+# Exact amplification with known success probability
+
+`zoo_amplitude_amplification_known_a_exact` constructs an ancillary mixing parameter and a
+finite instruction program that achieve success probability one when the initial positive
+probability is known. The proof analyzes the program as a two dimensional rotation and bounds
+its preparation calls by constant multiples of `1 / sqrt a`. See [BrassardEtAl2002] for
+background.
+
+## Main statements
+
+* `parameters`: For `0 < a < 1`, the chosen angle and ratio are valid, give an exact final angle
+  of `π / 2`, and place the call count between the stated multiples of `1 / sqrt a`.
+* `zoo_amplitude_amplification_known_a_exact`: There is a design achieving success probability
+  one for every known positive initial success probability `a`, with preparation and inverse
+  preparation call count bounded above and below by positive constant multiples of `1 / sqrt a`,
+  as in [Brassard et al., Theorem 4][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore
@@ -28,6 +52,8 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 namespace zoo_amplitude_amplification_known_a_exact
 
+/-- For a unit vector, orthogonal projection is idempotent on its image, its inner product with
+the original vector is its squared norm, and that squared norm is at most one. -/
 lemma projection {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     [CompleteSpace H] (S : Submodule ℂ H) [S.HasOrthogonalProjection] (ψ : H)
     (hψ : ‖ψ‖ = 1) :
@@ -44,9 +70,12 @@ lemma projection {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     rw [hψ] at h
     nlinarith [sq_nonneg (‖ψ - S.starProjection ψ‖)]
 
+/-- The exact amplification program with an initial preparation and ancillary rotation followed
+by `m` six instruction amplification blocks. -/
 def program (m : ℕ) : List (Fin 6) :=
   [0, 2] ++ (List.replicate m [5, 3, 1, 4, 0, 2]).flatten
 
+/-- The exact amplification program uses `2 * m + 1` preparation or inverse preparation calls. -/
 lemma program_calls (m : ℕ) : Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.calls (program m) = 2 * m + 1 := by
   induction m with
   | zero => simp [program, Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.calls]
@@ -56,6 +85,8 @@ lemma program_calls (m : ℕ) : Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactA
     norm_num at *
     omega
 
+/-- The linear operator on vector pairs representing a good component reflection followed by the
+prepared pair reflection with coefficients `c` and `s`. -/
 noncomputable def operator {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (ψ : H) (P : H →L[ℂ] H) (c s : ℝ) : (H × H) →ₗ[ℂ] (H × H) where
   toFun v :=
@@ -70,6 +101,8 @@ noncomputable def operator {H : Type} [NormedAddCommGroup H] [InnerProductSpace 
     simp only [Prod.smul_fst, Prod.smul_snd, map_smul, inner_sub_right, inner_smul_right]
     ext <;> dsimp <;> module
 
+/-- For `0 ≤ r ≤ 1`, execution of one six instruction block equals the pair operator with
+coefficients `sqrt (1 - r)` and `sqrt r`. -/
 lemma block {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (A : H ≃ₗᵢ[ℂ] H) (e : H) (P : H →L[ℂ] H) (r : ℝ)
     (hr : 0 ≤ r) (hr1 : r ≤ 1) (v : H × H) :
@@ -93,6 +126,8 @@ lemma block {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     solve | ring | linear_combination hcs | linear_combination -hcs |
       linear_combination 2*hcs
 
+/-- The stated action on good and bad vectors yields the sine and cosine ratio formula after `m`
+iterations. -/
 lemma rotation {E : Type} [AddCommGroup E] [Module ℂ E]
     (Q : E →ₗ[ℂ] E) (g b : E) (θ a : ℝ)
     (hsq : Real.sin θ ^ 2 = a) (hcq : Real.cos θ ^ 2 = 1-a)
@@ -116,13 +151,19 @@ lemma rotation {E : Type} [AddCommGroup E] [Module ℂ E]
     push_cast
     module
 
+/-- The natural ceiling iteration count `ceil (π / (4 * arcsin (sqrt a)) - 1 / 2)` for exact
+amplification. -/
 noncomputable def iterations (a : ℝ) : ℕ :=
   Nat.ceil (Real.pi / (4 * Real.arcsin (Real.sqrt a)) - 1/2)
 
+/-- The adjusted success angle `π / (4 * iterations a + 2)`. -/
 noncomputable def angle (a : ℝ) : ℝ := Real.pi / (4*(iterations a : ℝ)+2)
 
+/-- The ancillary success scaling factor `sin (angle a)^2 / a`. -/
 noncomputable def ratio (a : ℝ) : ℝ := Real.sin (angle a)^2 / a
 
+/-- For `0 < a < 1`, the chosen angle and ratio are valid, give an exact final angle of `π / 2`,
+and place the call count between the stated multiples of `1 / sqrt a`. -/
 lemma parameters (a : ℝ) (ha : 0 < a) (ha1 : a < 1) :
     0 < angle a ∧ angle a < Real.pi/2 ∧
     0 ≤ ratio a ∧ ratio a ≤ 1 ∧
@@ -191,6 +232,8 @@ lemma parameters (a : ℝ) (ha : 0 < a) (ha1 : a < 1) :
     have hmul := mul_nonneg (show 0 ≤ 2*(m:ℝ)-1 by linarith) (sub_nonneg.mpr hsinle)
     nlinarith
 
+/-- On the specified pair components, the pair operator has the Grover coefficient action with
+effective success probability `s^2 * a`. -/
 lemma action {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (ψ : H) (P : H →L[ℂ] H) (c s a : ℝ)
     (hψ : ‖ψ‖ = 1) (hP : P (P ψ) = P ψ)
@@ -206,6 +249,8 @@ lemma action {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     match_scalars <;>
     solve | ring | linear_combination 2*(c:ℂ)*hcsC | linear_combination 2*(s:ℂ)*hcsC
 
+/-- Executing the exact amplification program equals iterating the pair operator on the prepared
+and mixed initial pair. -/
 lemma execution {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (A : H ≃ₗᵢ[ℂ] H) (e : H) (P : H →L[ℂ] H) (r : ℝ)
     (hr : 0 ≤ r) (hr1 : r ≤ 1) (m : ℕ) :
@@ -228,6 +273,8 @@ lemma execution {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
   simpa [Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.step] using hfold m
     ((Real.sqrt (1-r):ℂ) • A e, (Real.sqrt r:ℂ) • A e)
 
+/-- When the adjusted angle reaches `π / 2` after `m` iterations, the executed pair has total
+squared norm one and good projected squared norm one. -/
 lemma exact_state {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (A : H ≃ₗᵢ[ℂ] H) (e : H) (P : H →L[ℂ] H) (a r δ : ℝ) (m : ℕ)
     (hψ : ‖A e‖ = 1) (hP : P (P (A e)) = P (A e))
@@ -266,11 +313,17 @@ lemma exact_state {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
   rw [hv]
   simpa [map_smul, show P (P ψ) = P ψ from hP] using And.intro hn hn
 
+/-- Chooses the mixing ratio and exact amplification program from `a`, using a single
+preparation when `a = 1`. -/
 noncomputable def design (a : ℝ) : ℝ × List (Fin 6) :=
   if a = 1 then (0, [0]) else (ratio a, program (iterations a))
 
 end zoo_amplitude_amplification_known_a_exact
 
+/-- There is a design achieving success probability one for every known positive initial success
+probability `a`, with preparation and inverse preparation call count bounded above and below
+by positive constant multiples of `1 / sqrt a`, as in [Brassard et al., Theorem
+4][BrassardEtAl2002]. -/
 theorem zoo_amplitude_amplification_known_a_exact :
     ∃ (design : ℝ → ℝ × List (Fin 6)) (c C : ℝ),
   0 < c ∧ 0 < C ∧

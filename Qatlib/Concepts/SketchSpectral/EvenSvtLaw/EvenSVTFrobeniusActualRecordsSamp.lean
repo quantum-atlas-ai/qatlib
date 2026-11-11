@@ -8,6 +8,28 @@ import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.OriginalActualRecords
 
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsStat
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusRecordTools
+
+/-!
+# Frobenius accuracy for actual even SVT records
+
+The module proves `evenSVTFrobeniusActualRecords_proof` for positive row and column sample
+counts with exact squared-norm sampling laws and explicit error budgets. It also exhibits a
+zero-record counterexample to `evenSVTFrobeniusActualRecordsLegacy`, clarifying the sample-size
+hypotheses in the record formulation of even singular value transformation [ChiaEtAl2022].
+
+## Main statements
+
+* `not_evenSVTFrobeniusActualRecords`: The legacy actual-record Frobenius guarantee without
+  positive sample-size hypotheses is false.
+* `evenSVTFrobeniusActualRecords_proof`: Exact row and conditional-column sampling with positive
+  sample sizes and the stated regularity and budgets yields a joint record law with Frobenius
+  failure probability at most `δ`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -26,16 +48,21 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The unique probability distribution on `Unit`, assigning mass one to its single element. -/
 private def unitLaw : FinDist Unit where
   prob := fun _ => 1
   nonneg := fun _ => by norm_num
   sum_one := by simp
 
+/-- Applying the identity scalar function through Hermitian functional calculus returns the
+original matrix. -/
 theorem hermitianFunction_id {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) :
     hermitianFunction A hA (fun x => (x : ℂ)) = A :=
   (orderedHermitian_diagonal hA).symm
 
+/-- For the specified `1 × 1` identity input and empty row and column records, the Frobenius
+approximation error equals one. -/
 private theorem zero_records_error (v w : Fin 0 → Unit) :
     spectralFrobenius
       ((compactSketched (compactSketchData unitLaw 0 v) (1 : Matrix Unit Unit ℂ))ᴴ *
@@ -52,6 +79,8 @@ private theorem zero_records_error (v w : Fin 0 → Unit) :
   rw [hermitianFunction_id]
   norm_num [Matrix.mul_apply, spectralFrobenius, Matrix.one_apply]
 
+/-- The legacy actual-record Frobenius guarantee without positive sample-size hypotheses is
+false. -/
 theorem not_evenSVTFrobeniusActualRecords : ¬ evenSVTFrobeniusActualRecordsLegacy := by
   intro h
   obtain ⟨Q, _hQ, hbad⟩ := h Unit Unit (1 : Matrix Unit Unit ℂ) 0 0
@@ -77,12 +106,16 @@ theorem not_evenSVTFrobeniusActualRecords : ¬ evenSVTFrobeniusActualRecordsLega
   simp_rw [zero_records_error] at hbad
   norm_num [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent, Q.sum_probOf 1] at hbad
 
+/-- Hermitian functional calculus gives equal outputs for equal Hermitian matrix arguments. -/
 private theorem hermitianFunction_congr_matrix {I : Type} [Fintype I] [DecidableEq I]
     {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ)
     (h : A = B) : hermitianFunction A hA f = hermitianFunction B hB f := by
   subst B
   rfl
 
+/-- Exact row and conditional-column sampling with positive sample sizes and the stated
+regularity and budgets yields a joint record law with Frobenius failure probability at most
+`δ`. See [ChiaEtAl2022]. -/
 theorem evenSVTFrobeniusActualRecords_proof : EvenSVTFrobeniusActualRecords := by
   intro K C _ _ _ _ A r c f fbar L Lbar d ε δ η₁ η₂ qs condQ
     hr hc hL hLb _hd hε hδ hδ1 hA hη₁ hη₂ _hbudget hε₁ hε₂ hband hqs hcond hLip hLipb hcons

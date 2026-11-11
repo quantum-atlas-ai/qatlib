@@ -12,6 +12,35 @@ import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
+
+/-!
+# Finite data loading and access guarantees
+
+This module verifies the rational phase and state-preparation constructions of
+`FiniteDataAccessDefs`. It proves explicit operator and Euclidean state error bounds,
+correctness and rejection properties for dense and sparse loading, and last-write semantics for
+Boolean tables.
+
+The finite-register circuit language follows the setting of [NielsenChuang2010].
+Preparation-word counts, physical reflection synthesis, clean scoped oracle execution,
+dense-read lower bounds, and access charges are stated for the concrete resource accounts
+defined here.
+
+## Main statements
+
+* `prepareState_error_le_epsilon`: loaded-state preparation at a chosen positive tolerance.
+* `physPrepare_synthesis`: bounded reflection synthesis of the physical preparation matrix.
+* `scopedAccess_clean`: logical execution with the workspace bit returned to false.
+* `dense_reading_lower_bound`: every universally correct dense loader reads at least the table
+  size.
+* `clause1_complete`, `clause2_complete`, and `clause3_complete`: collected preparation, access,
+  and resource guarantees.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -63,6 +92,7 @@ open Qatlib
 
 set_option autoImplicit false
 
+/-- The squared norm of a complex number with real coordinates `x` and `y` is `x ^ 2 + y ^ 2`. -/
 private theorem complexAbs_sq (x y : ℝ) :
     ‖(Complex.ofReal x + Complex.ofReal y * Complex.I)‖ ^ 2 = x ^ 2 + y ^ 2 := by
   rw [Complex.sq_norm, Complex.normSq_apply]
@@ -70,6 +100,8 @@ private theorem complexAbs_sq (x y : ℝ) :
     Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im]
   ring
 
+/-- The squared distance between two complex numbers is the sum of the squared differences of
+their real and imaginary coordinates. -/
 private theorem complexDiff_sq (a b p q : ℝ) :
     ‖(Complex.ofReal a + Complex.ofReal b * Complex.I)
         - (Complex.ofReal p + Complex.ofReal q * Complex.I)‖ ^ 2
@@ -80,6 +112,7 @@ private theorem complexDiff_sq (a b p q : ℝ) :
     Complex.I_re, Complex.I_im]
   ring
 
+/-- A nonzero rational complex number has positive squared modulus. -/
 private theorem ratSq_pos_of_ne (z : RatComplex) (hz : z ≠ ratZero) : (0 : ℚ) < ratSq z := by
   have hnonneg : 0 ≤ ratSq z := ratSq_nonneg z
   by_contra h
@@ -101,14 +134,18 @@ private theorem ratSq_pos_of_ne (z : RatComplex) (hz : z ≠ ratZero) : (0 : ℚ
   simp only [ratZero]
   exact Prod.ext h1 h2
 
+/-- The rational sign chosen by `ratSign` has square one. -/
 private theorem ratSign_sq (q : ℚ) : (ratSign q) ^ 2 = 1 := by
   unfold ratSign
   split_ifs <;> ring
 
+/-- The real absolute value of `ratSign q` is one. -/
 private theorem ratSign_abs (q : ℚ) : |(ratSign q : ℝ)| = 1 := by
   unfold ratSign
   split_ifs <;> simp
 
+/-- The square root of a rational squared coordinate divided by a positive mass equals its
+absolute value divided by the square root of that mass. -/
 private theorem sqrt_sq_over_mass (a : ℚ) (r2 : ℚ) (_hr2 : (0 : ℚ) < r2) :
     Real.sqrt ((a ^ 2 / r2 : ℚ) : ℝ) = |(a : ℝ)| / Real.sqrt (r2 : ℝ) := by
   have hcast : ((a ^ 2 / r2 : ℚ) : ℝ) = ((a : ℝ) ^ 2) / (r2 : ℝ) := by
@@ -116,6 +153,8 @@ private theorem sqrt_sq_over_mass (a : ℚ) (r2 : ℚ) (_hr2 : (0 : ℚ) < r2) :
     ring
   rw [hcast, Real.sqrt_div (sq_nonneg _) (r2 : ℝ), Real.sqrt_sq_eq_abs]
 
+/-- For positive squared modulus, one minus the normalized squared real coordinate equals the
+normalized squared imaginary coordinate. -/
 private theorem one_sub_ratio (z : RatComplex) (hr2 : (0 : ℚ) < ratSq z) :
     1 - z.1 ^ 2 / ratSq z = z.2 ^ 2 / ratSq z := by
   have hne : ratSq z ≠ 0 := ne_of_gt hr2
@@ -123,6 +162,7 @@ private theorem one_sub_ratio (z : RatComplex) (hr2 : (0 : ℚ) < ratSq z) :
   field_simp
   ring
 
+/-- The rational phase approximation lies exactly on the unit circle. -/
 theorem phaseApprox_unit (z : RatComplex) (k : ℕ) :
     (phaseApprox z k).1 ^ 2 + (phaseApprox z k).2 ^ 2 = 1 := by
   by_cases hz : z = ratZero
@@ -136,6 +176,8 @@ theorem phaseApprox_unit (z : RatComplex) (k : ℕ) :
     rw [h1, h2]
     nlinarith [hc]
 
+/-- For nonzero input, the real coordinate of the phase approximation differs from the
+normalized real coordinate by at most `16 / 2 ^ k`. -/
 private theorem phaseApprox_re_abs (z : RatComplex) (k : ℕ) (hz : z ≠ ratZero) :
     |((phaseApprox z k).1 : ℝ) - (z.1 : ℝ) / Real.sqrt (ratSq z : ℝ)| ≤ 16 / 2 ^ k := by
   have hr2 : (0 : ℚ) < ratSq z := ratSq_pos_of_ne z hz
@@ -183,6 +225,8 @@ private theorem phaseApprox_re_abs (z : RatComplex) (k : ℕ) (hz : z ≠ ratZer
   rw [hkey, abs_mul, ratSign_abs, one_mul]
   exact hcs
 
+/-- For nonzero input, the imaginary coordinate of the phase approximation differs from the
+normalized imaginary coordinate by at most `16 / 2 ^ k`. -/
 private theorem phaseApprox_im_abs (z : RatComplex) (k : ℕ) (hz : z ≠ ratZero) :
     |((phaseApprox z k).2 : ℝ) - (z.2 : ℝ) / Real.sqrt (ratSq z : ℝ)| ≤ 16 / 2 ^ k := by
   have hr2 : (0 : ℚ) < ratSq z := ratSq_pos_of_ne z hz
@@ -234,6 +278,7 @@ private theorem phaseApprox_im_abs (z : RatComplex) (k : ℕ) (hz : z ≠ ratZer
   rw [hkey, abs_mul, ratSign_abs, one_mul]
   exact hcs
 
+/-- The exact phase of a nonzero rational complex number has norm one. -/
 theorem exactPhase_norm (z : RatComplex) (hz : z ≠ ratZero) : ‖exactPhase z‖ = 1 := by
   have hr2 : (0 : ℚ) < ratSq z := ratSq_pos_of_ne z hz
   have hr2r : (0 : ℝ) < (ratSq z : ℝ) := by exact_mod_cast hr2
@@ -252,10 +297,13 @@ theorem exactPhase_norm (z : RatComplex) (hz : z ≠ ratZero) : ‖exactPhase z�
     rw [hsq, hcast] <;> ring
   nlinarith
 
+/-- The phase assigned to zero has norm one. -/
 theorem exactPhase_zero : ‖exactPhase ratZero‖ = 1 := by
   rw [exactPhase, if_pos rfl]
   simp
 
+/-- The complex phase approximation differs from the exact phase by at most `32 / 2 ^ k` in
+norm. -/
 theorem phaseApprox_error (z : RatComplex) (k : ℕ) :
     ‖ratToComplex (phaseApprox z k) - exactPhase z‖ ≤ 32 / 2 ^ k := by
   by_cases hz : z = ratZero
@@ -299,6 +347,7 @@ theorem phaseApprox_error (z : RatComplex) (k : ℕ) :
       sq_le_sq.mp hsq''
     simpa [abs_of_nonneg hnonneg, abs_of_nonneg hc] using! h1
 
+/-- The exact phase diagonal has operator norm at most one. -/
 theorem exactPhaseDiagonal_norm_le {D : ℕ} (amp : Option (Fin D) → RatComplex) :
     ‖exactPhaseDiagonal amp‖ ≤ 1 := by
   rw [exactPhaseDiagonal, Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (by norm_num)]
@@ -307,6 +356,8 @@ theorem exactPhaseDiagonal_norm_le {D : ℕ} (amp : Option (Fin D) → RatComple
   · rw [exactPhase, if_pos hz] <;> simp
   · rw [exactPhase_norm _ hz] <;> norm_num
 
+/-- The approximate phase diagonal differs from the exact phase diagonal by at most `32 / 2 ^ k`
+in operator norm. -/
 theorem phaseDiagonal_error {D : ℕ} (k : ℕ) (amp : Option (Fin D) → RatComplex) :
     ‖phaseDiagonal k amp - exactPhaseDiagonal amp‖ ≤ 32 / 2 ^ k := by
   have hsub : phaseDiagonal k amp - exactPhaseDiagonal amp
@@ -320,6 +371,8 @@ theorem phaseDiagonal_error {D : ℕ} (k : ℕ) (amp : Option (Fin D) → RatCom
   intro a
   exact phaseApprox_error (amp a) k
 
+/-- For nonnegative weights of positive total mass, the preparation matrix has operator error at
+most `32 * (D + 1) / 2 ^ k`. -/
 theorem prepareMatrix_error {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
     (hm : 0 < rationalWeightMass w) :
@@ -354,8 +407,11 @@ theorem prepareMatrix_error {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
       · gcongr
     _ = 32 * (D + 1) / 2 ^ k := by ring
 
+/-- The real modulus of a rational complex number, computed as the square root of `ratSq`. -/
 noncomputable def ratAbs (z : RatComplex) : ℝ := Real.sqrt (ratSq z : ℝ)
 
+/-- Multiplication by a real scalar scales the real and imaginary coordinates of a complex
+number. -/
 private theorem ofReal_scale (a b c : ℝ) :
     (Complex.ofReal a + Complex.ofReal b * Complex.I) * (c : ℂ)
       = Complex.ofReal (a * c) + Complex.ofReal (b * c) * Complex.I := by
@@ -363,6 +419,8 @@ private theorem ofReal_scale (a b c : ℝ) :
     simp [Complex.ofReal_re, Complex.ofReal_im, Complex.mul_re, Complex.mul_im,
       Complex.I_re, Complex.I_im]
 
+/-- Multiplying the exact phase by the modulus recovers the rational complex number embedded in
+`ℂ`. -/
 theorem exactPhase_mul_abs (z : RatComplex) :
     exactPhase z * ratAbs z = ratToComplex z := by
   by_cases hz : z = ratZero
@@ -376,11 +434,14 @@ theorem exactPhase_mul_abs (z : RatComplex) :
     rw [ofReal_scale, ratToComplex]
     field_simp
 
+/-- Positive loaded mass implies positive total rational weight. -/
 theorem LoadedInput.mass_pos {D : ℕ} (L : LoadedInput D) (h : 0 < L.mass) :
     0 < rationalWeightMass L.weights := by
   rw [LoadedInput.mass_eq]
   exact h
 
+/-- For positive loaded mass, the exact preparation matrix sends the `none` basis state to the
+loaded target state. -/
 theorem exactPrepareMatrix_target {D : ℕ} (L : LoadedInput D) (hpos : 0 < L.mass) :
     exactPrepareMatrix L.weights L.amp *ᵥ Qatlib.Foundations.PureStateMath.Ket none = loadedTarget L := by
   have hw : ∀ a, 0 ≤ L.weights a := L.weights_nonneg
@@ -422,6 +483,8 @@ theorem exactPrepareMatrix_target {D : ℕ} (L : LoadedInput D) (hpos : 0 < L.ma
     rw [hsqrt, Complex.ofReal_div, hkey]
     simp [loadedTarget, LoadedInput.mass_eq]
 
+/-- For positive loaded mass, preparation from the `none` basis state has Euclidean error at
+most `32 * (D + 1) / 2 ^ k`. -/
 theorem prepareMatrix_state_error {D : ℕ} (k : ℕ) (L : LoadedInput D) (hpos : 0 < L.mass) :
     ‖stateVector (prepareMatrix k L.weights L.amp *ᵥ Qatlib.Foundations.PureStateMath.Ket none)
         - stateVector (loadedTarget L)‖ ≤ 32 * (D + 1) / 2 ^ k := by
@@ -446,6 +509,7 @@ theorem prepareMatrix_state_error {D : ℕ} (k : ℕ) (L : LoadedInput D) (hpos 
   rw [htarget] at hclose
   simpa only [stateVector, WithLp.toLp_sub] using! hclose.trans herr
 
+/-- For every natural number `n`, `n + 1 ≤ 2 ^ n`. -/
 private theorem succ_le_two_pow (n : ℕ) : n + 1 ≤ 2 ^ n := by
   induction n with
   | zero => simp
@@ -456,6 +520,7 @@ private theorem succ_le_two_pow (n : ℕ) : n + 1 ≤ 2 ^ n := by
       _ ≤ 2 * 2 ^ n := h1
       _ = 2 ^ (n + 1) := by rw [pow_succ, Nat.mul_comm]
 
+/-- Every natural number `n` is at most `2 ^ n`. -/
 private theorem le_two_pow (n : ℕ) : n ≤ 2 ^ n := by
   cases n with
   | zero => simp
@@ -463,6 +528,8 @@ private theorem le_two_pow (n : ℕ) : n ≤ 2 ^ n := by
     have h := succ_le_two_pow n
     omega
 
+/-- For positive rational tolerance, `precisionFor` makes the preparation error bound at most
+that tolerance. -/
 theorem prepError_le_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε) :
     (32 * (D + 1) : ℝ) / 2 ^ precisionFor D ε ≤ (ε : ℝ) := by
   have hεr : (0 : ℝ) < (ε : ℝ) := by exact_mod_cast hε
@@ -486,6 +553,8 @@ theorem prepError_le_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε) :
       _ = (ε : ℝ) / 2 * (2 ^ precisionFor D ε : ℝ) := by ring
   linarith
 
+/-- At precision `precisionFor D ε`, preparation with nonnegative weights and positive mass has
+operator error at most `ε`. -/
 theorem prepareError_le_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w) :
@@ -494,6 +563,8 @@ theorem prepareError_le_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
   have hbound := prepError_le_epsilon (D := D) ε hε
   linarith
 
+/-- At precision `precisionFor D ε`, a positive-mass loaded input is prepared within Euclidean
+error `ε`. -/
 theorem prepareState_error_le_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
     (L : LoadedInput D) (hpos : 0 < L.mass) :
     ‖stateVector (prepareMatrix (precisionFor D ε) L.weights L.amp *ᵥ Qatlib.Foundations.PureStateMath.Ket none)
@@ -502,12 +573,14 @@ theorem prepareState_error_le_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
   have hbound := prepError_le_epsilon (D := D) ε hε
   linarith
 
+/-- Evaluating the phase word with identity oracle gives the approximate phase diagonal. -/
 theorem phaseWord_eval {D : ℕ} (k : ℕ) (amp : Option (Fin D) → RatComplex) :
     evaluate 1 (phaseWord k amp) = phaseDiagonal k amp := by
   have h : evaluate 1 (.gate (phaseDiagonal k amp) :: []) = phaseDiagonal k amp := by
     simp only [evaluate, instructionMatrix, Matrix.mul_one]
   rw [phaseWord, h]
 
+/-- Evaluating the preparation word with identity oracle gives the preparation matrix. -/
 theorem prepareWord_eval {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) :
     evaluate 1 (prepareWord k w amp) = prepareMatrix k w amp := by
@@ -515,6 +588,7 @@ theorem prepareWord_eval {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
   rw [prepareWord, evaluate_append, h]
   rfl
 
+/-- The gate count of concatenated adjoint words is the sum of their gate counts. -/
 private theorem adjointGateCount_append {H : Type} (cs ds : List (AdjointStep H)) :
     adjointGateCount (cs ++ ds) = adjointGateCount cs + adjointGateCount ds := by
   induction cs with
@@ -522,6 +596,7 @@ private theorem adjointGateCount_append {H : Type} (cs ds : List (AdjointStep H)
   | cons c cs ih =>
     cases c <;> simp [adjointGateCount, ih] <;> ring
 
+/-- The query count of concatenated adjoint words is the sum of their query counts. -/
 private theorem adjointQueryCount_append {H : Type} (cs ds : List (AdjointStep H)) :
     adjointQueryCount (cs ++ ds) = adjointQueryCount cs + adjointQueryCount ds := by
   induction cs with
@@ -529,6 +604,7 @@ private theorem adjointQueryCount_append {H : Type} (cs ds : List (AdjointStep H
   | cons c cs ih =>
     cases c <;> simp [adjointQueryCount, ih] <;> ring
 
+/-- An adjoint word containing only gates has gate count equal to its length. -/
 private theorem adjointGateCount_eq_length {H : Type} :
     ∀ (cs : List (AdjointStep H)),
       (∀ c ∈ cs, match c with | .gate _ => True | _ => False) →
@@ -545,6 +621,7 @@ private theorem adjointGateCount_eq_length {H : Type} :
     | forward => exact (h .forward (by simp)).elim
     | backward => exact (h .backward (by simp)).elim
 
+/-- An adjoint word containing only gates has zero query count. -/
 private theorem adjointQueryCount_eq_zero {H : Type} :
     ∀ (cs : List (AdjointStep H)),
       (∀ c ∈ cs, match c with | .gate _ => True | _ => False) →
@@ -561,6 +638,7 @@ private theorem adjointQueryCount_eq_zero {H : Type} :
     | forward => exact (h .forward (by simp)).elim
     | backward => exact (h .backward (by simp)).elim
 
+/-- The rational weight preparation word contains exactly `D` gates. -/
 theorem rationalWeightWord_gateCount {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) :
     adjointGateCount (rationalWeightWord w k) = D := by
   have h : adjointGateCount (rationalWeightWord w k) = (rationalWeightWord w k).length := by
@@ -573,6 +651,7 @@ theorem rationalWeightWord_gateCount {D : ℕ} (k : ℕ) (w : Option (Fin D) →
   rw [h]
   simp [rationalWeightWord, List.length_ofFn, List.length_reverse]
 
+/-- The rational weight preparation word uses no oracle queries. -/
 theorem rationalWeightWord_queryCount {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) :
     adjointQueryCount (rationalWeightWord w k) = 0 := by
   apply adjointQueryCount_eq_zero
@@ -582,6 +661,7 @@ theorem rationalWeightWord_queryCount {D : ℕ} (k : ℕ) (w : Option (Fin D) �
   subst hj
   simp
 
+/-- The preparation word contains exactly `D + 1` gates and uses no oracle queries. -/
 theorem prepareWord_counts {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) :
     adjointGateCount (prepareWord k w amp) = D + 1 ∧
@@ -594,15 +674,18 @@ theorem prepareWord_counts {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
   · rw [prepareWord, adjointGateCount_append, hg, rationalWeightWord_gateCount] <;> ring
   · rw [prepareWord, adjointQueryCount_append, hq, rationalWeightWord_queryCount] <;> ring
 
+/-- The dense loader rejects a table with zero total squared modulus. -/
 theorem loadDense_rejects_zero_mass (D : ℕ) (xs : DenseTable D)
     (hm : (∑ i : Fin D, ratSq (xs i)) = 0) : loadDense D xs = none := by
   simp [loadDense, hm]
 
+/-- For positive mass, dense loading preserves all amplitudes and records exactly `D` reads. -/
 theorem loadDense_spec (D : ℕ) (xs : DenseTable D)
     (hm : 0 < (∑ i : Fin D, ratSq (xs i))) :
     (loadDense D xs).map (fun L => (L.amplitude, L.reads)) = some (xs, D) := by
   simp [loadDense, hm.ne']
 
+/-- The sparse loader rejects any list containing an entry whose position is outside the table. -/
 theorem loadSparse_rejects_illegal (D : ℕ) (es : List SparseEntry) (e : SparseEntry)
     (hmem : e ∈ es) (hp : D ≤ e.position) : loadSparse D es = none := by
   have hne : ¬ (∀ e ∈ es, e.position < D) := by
@@ -611,6 +694,8 @@ theorem loadSparse_rejects_illegal (D : ℕ) (es : List SparseEntry) (e : Sparse
     omega
   rw [loadSparse, if_neg hne]
 
+/-- For legal positions and nonzero resolved mass, sparse loading returns the resolved
+amplitudes and charges one read per list entry. -/
 theorem loadSparse_spec (D : ℕ) (es : List SparseEntry)
     (hleg : ∀ e ∈ es, e.position < D)
     (hm : (∑ i : Fin D, ratSq (sparseResolve es i)) ≠ 0) :
@@ -619,23 +704,29 @@ theorem loadSparse_spec (D : ℕ) (es : List SparseEntry)
   rw [loadSparse, if_pos hleg, if_neg hm]
   rfl
 
+/-- The scoped bit oracle has the stated XOR matrix entries and is unitary. -/
 theorem scopedAccess_query (n : ℕ) (f : Reg n → Bool) (a b : Bool) (x y : Reg n) :
     scopedBitOracle f (a, x) (b, y) = (if x = y ∧ a = (b ^^ f y) then 1 else 0) ∧
       scopedBitOracle f ∈ Matrix.unitaryGroup (Bool × Reg n) ℂ :=
   scoped_bit_oracle_actual_toggle_unitary n f a b x y
 
+/-- Compiling a single scoped phase step uses two oracle queries and one gate. -/
 theorem scopedAccess_step_cost (n : ℕ) (z : ℂ) :
     QueryCount (scopedCompile [ScopedOracleStep.phase (n := n) z]) = 2 ∧
       GateCount (scopedCompile [ScopedOracleStep.phase (n := n) z]) = 1 := by
   rw [scoped_phase_word_actual_compile]
   constructor <;> rfl
 
+/-- Running a compiled scoped program on a false workspace bit implements its logical matrix and
+returns the workspace bit to false. -/
 theorem scopedAccess_clean (n : ℕ) (f : Reg n → Bool) (w : List (ScopedOracleStep n))
     (ψ : QState (Reg n)) :
     Run (scopedBitOracle f) (scopedCompile w) (TensorState (Qatlib.Foundations.PureStateMath.Ket false) ψ)
       = TensorState (Qatlib.Foundations.PureStateMath.Ket false) (scopedLogicalMatrix f w *ᵥ ψ) :=
   scoped_run_clean f w ψ
 
+/-- The scoped allocation frame is isometric, initializes a false workspace bit, and gives the
+stated wire trace with peak `n + 1`. -/
 theorem scopedAccess_peak_space (n : ℕ) (w : List (ScopedOracleStep n)) :
     (scopedAllocationFrame n)ᴴ * scopedAllocationFrame n = 1 ∧
       (∀ ψ : QState (Reg n), scopedAllocationFrame n *ᵥ ψ = TensorState (Qatlib.Foundations.PureStateMath.Ket false) ψ) ∧
@@ -643,6 +734,8 @@ theorem scopedAccess_peak_space (n : ℕ) (w : List (ScopedOracleStep n)) :
       (scopedWireTrace w).foldl max 0 = n + 1 :=
   scoped_allocation_release_and_peak_trace n w
 
+/-- The conjugate product of a complex number with real coordinates `a` and `b` equals `a ^ 2 +
+b ^ 2`. -/
 private theorem star_ofReal_add_mul_I (a b : ℝ) :
     (starRingEnd ℂ) (Complex.ofReal a + Complex.ofReal b * Complex.I)
       * (Complex.ofReal a + Complex.ofReal b * Complex.I) = (a ^ 2 + b ^ 2 : ℂ) := by
@@ -651,6 +744,8 @@ private theorem star_ofReal_add_mul_I (a b : ℝ) :
     Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im]
   ring
 
+/-- A diagonal matrix is unitary when the conjugate product of each diagonal entry with itself
+is one. -/
 private theorem diagonal_unitaryGroup {n : Type*} [Fintype n] [DecidableEq n] (d : n → ℂ)
     (hd : ∀ i, starRingEnd ℂ (d i) * d i = 1) :
     Matrix.diagonal d ∈ Matrix.unitaryGroup n ℂ := by
@@ -672,6 +767,7 @@ private theorem diagonal_unitaryGroup {n : Type*} [Fintype n] [DecidableEq n] (d
       simp [Matrix.star_apply, Matrix.diagonal_apply, hxy, Ne.symm hxy]
     · simp [Matrix.star_apply, Matrix.diagonal_apply, hkx, Ne.symm hkx]
 
+/-- The phase diagonal on the physical register is unitary. -/
 theorem physPhaseDiagonal_unitary (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     physPhaseDiagonal D w xs k ∈ Matrix.unitaryGroup (Reg w) ℂ := by
   have hdiag : Matrix.diagonal (fun x => ratToComplex (phaseApprox (physAmp D w xs x) k))
@@ -683,6 +779,7 @@ theorem physPhaseDiagonal_unitary (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
   rw [physPhaseDiagonal]
   exact hdiag
 
+/-- The magnitude preparation matrix on the physical register is unitary. -/
 theorem physMag_unitary (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     physMag D w xs k ∈ Matrix.unitaryGroup (Reg w) ℂ :=
   (relabelGate_mem_unitaryGroup (slotEquiv w).symm
@@ -690,11 +787,15 @@ theorem physMag_unitary (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     (rational_weight_numerical_word_unitary_and_error (2 ^ w - 1) k (slotWeight D w xs)
       (fun _ => ratSq_nonneg _)).2.1
 
+/-- The full preparation matrix on the physical register is unitary. -/
 theorem physPrepare_unitary (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     physPrepare D w xs k ∈ Matrix.unitaryGroup (Reg w) ℂ :=
   (Matrix.unitaryGroup (Reg w) ℂ).mul_mem (physPhaseDiagonal_unitary D w xs k)
     (physMag_unitary D w xs k)
 
+/-- The physical preparation matrix has a legal reflection circuit with at most `128 * (w + 1) ^
+2 * 4 ^ w` gates and no queries, acting correctly on every state embedded by
+`knownFrameEmbed`. -/
 theorem physPrepare_synthesis (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     ∃ gs : List (ReflectionGate (w + (w + 1))), reflectionLegal gs ∧
       gs.length ≤ 128 * (w + 1) ^ 2 * 4 ^ w ∧
@@ -706,6 +807,8 @@ theorem physPrepare_synthesis (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
   known_unitary_actual_clean_local_synthesis w (physPrepare D w xs k)
     (physPrepare_unitary D w xs k)
 
+/-- For positive `D`, the register size selected by `addressBitsFor D` has at most `2 * D` basis
+states. -/
 theorem slotCount_le (D : ℕ) (hD : 0 < D) : 2 ^ addressBitsFor D ≤ 2 * D := by
   have hlog : 2 ^ Nat.log2 D ≤ D :=
     (Nat.le_log2 (n := D) (k := Nat.log2 D) (Nat.ne_of_gt hD)).mp le_rfl
@@ -714,6 +817,8 @@ theorem slotCount_le (D : ℕ) (hD : 0 < D) : 2 ^ addressBitsFor D ≤ 2 * D := 
   rw [addressBitsFor, hexp]
   nlinarith
 
+/-- For positive `D` and the selected address width, the reflection gate bound is at most `512 *
+(w + 1) ^ 2 * D ^ 2`. -/
 theorem physGateCount_le (D w : ℕ) (hD : 0 < D) (hw : w = addressBitsFor D) :
     128 * (w + 1) ^ 2 * 4 ^ w ≤ 512 * (w + 1) ^ 2 * D ^ 2 := by
   have h2 : 2 ^ w ≤ 2 * D := by rw [hw]; exact slotCount_le D hD
@@ -725,6 +830,8 @@ theorem physGateCount_le (D w : ℕ) (hD : 0 < D) (hw : w = addressBitsFor D) :
       _ = 4 * D ^ 2 := by ring
   nlinarith [h4]
 
+/-- The scoped logical matrix is unitary when every data gate is unitary and every phase
+parameter has norm one. -/
 theorem scopedLogicalMatrix_unitary {n : ℕ} (f : Reg n → Bool) (w : List (ScopedOracleStep n))
     (hU : ∀ U, ScopedOracleStep.data U ∈ w → U ∈ Matrix.unitaryGroup (Reg n) ℂ)
     (hz : ∀ z, ScopedOracleStep.phase z ∈ w → ‖z‖ = 1) :
@@ -761,6 +868,9 @@ theorem scopedLogicalMatrix_unitary {n : ℕ} (f : Reg n → Bool) (w : List (Sc
     rw [scopedLogicalMatrix]
     exact (Matrix.unitaryGroup (Reg n) ℂ).mul_mem (ih hUw hzw) hstep
 
+/-- Under the unitary data-gate and unit-modulus phase hypotheses, the scoped logical matrix has
+a legal reflection circuit with at most `128 * (n + 1) ^ 2 * 4 ^ n` gates and no queries on
+the known embedded frame. -/
 theorem scopedAccess_synthesis {n : ℕ} (f : Reg n → Bool) (w : List (ScopedOracleStep n))
     (hU : ∀ U, ScopedOracleStep.data U ∈ w → U ∈ Matrix.unitaryGroup (Reg n) ℂ)
     (hz : ∀ z, ScopedOracleStep.phase z ∈ w → ‖z‖ = 1) :
@@ -774,20 +884,24 @@ theorem scopedAccess_synthesis {n : ℕ} (f : Reg n → Bool) (w : List (ScopedO
   known_unitary_actual_clean_local_synthesis n (scopedLogicalMatrix f w)
     (scopedLogicalMatrix_unitary f w hU hz)
 
+/-- The amplitude at a nonpivot option slot equals its physical slot amplitude. -/
 theorem slotAmpW_some (D w : ℕ) (xs : DenseTable D) (j : Fin (2 ^ w - 1)) :
     slotAmpW D w xs (some j) = physSlotAmp D w xs j := by
   rfl
 
+/-- An in-range physical slot carries the corresponding dense-table amplitude. -/
 theorem physSlotAmp_of_lt (D w : ℕ) (xs : DenseTable D) (j : Fin (2 ^ w - 1))
     (hj : j.val < D) :
     physSlotAmp D w xs j = xs ⟨j.val, hj⟩ := by
   simp [physSlotAmp, hj]
 
+/-- A physical slot outside the dense-table range carries zero amplitude. -/
 theorem physSlotAmp_of_not_lt (D w : ℕ) (xs : DenseTable D) (j : Fin (2 ^ w - 1))
     (hj : ¬ j.val < D) :
     physSlotAmp D w xs j = ratZero := by
   simp [physSlotAmp, hj]
 
+/-- The loaded physical input has mass `slotMass D w xs`. -/
 theorem physLoaded_mass (D w : ℕ) (xs : DenseTable D) :
     (physLoaded D w xs).mass = slotMass D w xs := by
   have hamp : (physLoaded D w xs).amplitude = physSlotAmp D w xs := rfl
@@ -802,6 +916,7 @@ theorem physLoaded_mass (D w : ℕ) (xs : DenseTable D) :
   rw [Fintype.sum_option, hnone, zero_add]
   exact Finset.sum_congr rfl fun j _ => hsome j
 
+/-- The loaded physical input has weights `slotWeight D w xs`. -/
 theorem physLoaded_weights (D w : ℕ) (xs : DenseTable D) :
     (physLoaded D w xs).weights = slotWeight D w xs := by
   funext a
@@ -813,6 +928,7 @@ theorem physLoaded_weights (D w : ℕ) (xs : DenseTable D) :
     rw [slotAmpW_some]
     rfl
 
+/-- The loaded physical input has amplitudes `slotAmpW D w xs`. -/
 theorem physLoaded_amp (D w : ℕ) (xs : DenseTable D) :
     (physLoaded D w xs).amp = slotAmpW D w xs := by
   funext a
@@ -823,6 +939,8 @@ theorem physLoaded_amp (D w : ℕ) (xs : DenseTable D) :
     rw [slotAmpW_some]
     rfl
 
+/-- When `D < 2 ^ w`, dense-table indices correspond bijectively to the nonpivot slot indices
+below `D`. -/
 def usedSlotsEquiv (D : ℕ) {w : ℕ} (hD : D < 2 ^ w) :
     Fin D ≃ {j : Fin (2 ^ w - 1) // j.val < D} where
   toFun i :=
@@ -841,6 +959,8 @@ def usedSlotsEquiv (D : ℕ) {w : ℕ} (hD : D < 2 ^ w) :
     apply Fin.ext
     rfl
 
+/-- When the register has room for all entries and the pivot, slot mass equals the total squared
+modulus of the dense table. -/
 theorem slotMass_eq (D w : ℕ) (xs : DenseTable D) (hD : D < 2 ^ w) :
     slotMass D w xs = ∑ j : Fin D, ratSq (xs j) := by
   have hA : (∑ i : {j : Fin (2 ^ w - 1) // j.val < D}, ratSq (physSlotAmp D w xs i))
@@ -873,23 +993,28 @@ theorem slotMass_eq (D w : ℕ) (xs : DenseTable D) (hD : D < 2 ^ w) :
     exact congrArg (fun z : Fin D => ratSq (xs z)) hx
   exact (physLoaded_mass D w xs).symm.trans (hsplit.trans hfin)
 
+/-- A positive-mass dense table has positive slot mass when all its entries fit in the register. -/
 theorem slotMass_pos (D w : ℕ) (xs : DenseTable D) (hD : D < 2 ^ w)
     (hm : 0 < ∑ j : Fin D, ratSq (xs j)) :
     0 < slotMass D w xs := by
   rw [slotMass_eq D w xs hD]
   exact hm
 
+/-- Relabeling a matrix evaluates its entries at the inverse images of the new row and column
+indices. -/
 private theorem relabelGate_apply {I J : Type*} (e : I ≃ J) (U : Matrix I I ℂ) (j i : J) :
     relabelGate e U j i = U (e.symm j) (e.symm i) := by
   show Matrix.reindex e e U j i = _
   rw [Matrix.reindex_apply, Matrix.submatrix_apply]
 
+/-- Matrix action commutes with simultaneous relabeling of the matrix and state. -/
 private theorem relabelGate_mulVec_relabelState {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (e : I ≃ J) (U : Matrix I I ℂ) (v : QState I) :
     relabelGate e U *ᵥ relabelState e v = relabelState e (U *ᵥ v) := by
   have h := applyGate_relabelGate e U v
   rwa [ApplyGate] at h
 
+/-- Relabeling a basis state sends its label through the indexing equivalence. -/
 private theorem relabelState_ket {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (e : I ≃ J) (x : I) :
     relabelState e (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (e x) := by
@@ -899,6 +1024,7 @@ private theorem relabelState_ket {I J : Type*} [Fintype I] [Fintype J]
   · rw [if_pos h, if_pos ((Equiv.symm_apply_eq e).mp h)]
   · rw [if_neg h, if_neg (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
 
+/-- Relabeling a finite state preserves its Euclidean norm. -/
 private theorem stateVector_relabelState_norm {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (e : I ≃ J) (v : QState I) :
     ‖stateVector (relabelState e v)‖ = ‖stateVector v‖ := by
@@ -919,6 +1045,7 @@ private theorem stateVector_relabelState_norm {I J : Type*} [Fintype I] [Fintype
   have hn2 := norm_nonneg (stateVector v)
   nlinarith
 
+/-- Relabeling two finite states preserves their Euclidean distance. -/
 private theorem stateVector_sub_relabelState_norm {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (e : I ≃ J) (v w : QState I) :
     ‖stateVector (relabelState e v) - stateVector (relabelState e w)‖
@@ -933,6 +1060,7 @@ private theorem stateVector_sub_relabelState_norm {I J : Type*} [Fintype I] [Fin
   rw [hdiff]
   exact stateVector_relabelState_norm e (v - w)
 
+/-- The physical phase diagonal is the option-slot phase diagonal relabeled onto the register. -/
 theorem physPhaseDiagonal_eq (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     physPhaseDiagonal D w xs k
       = relabelGate (slotEquiv w).symm (phaseDiagonal k (slotAmpW D w xs)) := by
@@ -948,6 +1076,8 @@ theorem physPhaseDiagonal_eq (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
       exact (slotEquiv w).injective h
     simp only [if_neg hne, if_neg hjj]
 
+/-- The physical preparation matrix is the option-slot preparation matrix relabeled onto the
+register. -/
 theorem physPrepare_eq (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     physPrepare D w xs k
       = relabelGate (slotEquiv w).symm
@@ -955,6 +1085,8 @@ theorem physPrepare_eq (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
   rw [physPrepare, physPhaseDiagonal_eq, physMag, prepareMatrix]
   rw [← CircuitRelabel.relabelGate_mul]
 
+/-- Preparation of the physical pivot state is the relabeling of preparation from the `none`
+slot. -/
 theorem physPrepare_ket (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     physPrepare D w xs k *ᵥ Qatlib.Foundations.PureStateMath.Ket (pivotSlot w)
       = relabelState (slotEquiv w).symm
@@ -964,6 +1096,7 @@ theorem physPrepare_ket (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
     rfl
   rw [physPrepare_eq, ← hpiv, relabelGate_mulVec_relabelState]
 
+/-- The physical target is the relabeling of the loaded option-slot target. -/
 theorem physTarget_eq (D w : ℕ) (xs : DenseTable D) :
     physTarget D w xs = relabelState (slotEquiv w).symm (loadedTarget (physLoaded D w xs)) := by
   have hmass : (physLoaded D w xs).mass = slotMass D w xs := physLoaded_mass D w xs
@@ -980,6 +1113,8 @@ theorem physTarget_eq (D w : ℕ) (xs : DenseTable D) :
     have hamp2 : (physLoaded D w xs).amplitude j' = physSlotAmp D w xs j' := rfl
     rw [hamp2, hmass]
 
+/-- For positive slot mass, physical preparation from the pivot has Euclidean error at most `32
+* 2 ^ w / 2 ^ k`. -/
 theorem physPrepare_state_error (D w : ℕ) (xs : DenseTable D) (k : ℕ)
     (hmass : 0 < slotMass D w xs) :
     ‖stateVector (physPrepare D w xs k *ᵥ Qatlib.Foundations.PureStateMath.Ket (pivotSlot w))
@@ -1007,6 +1142,8 @@ theorem physPrepare_state_error (D w : ℕ) (xs : DenseTable D) (k : ℕ)
         ≤ 32 * ((((2 ^ w - 1 : ℕ) : ℝ)) + 1) / 2 ^ k := herr
     _ = 32 * ((2 ^ w : ℕ) : ℝ) / 2 ^ k := by rw [hid]
 
+/-- For positive `D`, its selected address width, and positive slot mass, physical preparation
+error is at most `64 * D / 2 ^ k`. -/
 theorem physPrepare_state_error_le (D w : ℕ) (xs : DenseTable D) (k : ℕ)
     (hD : 0 < D) (hw : w = addressBitsFor D) (hmass : 0 < slotMass D w xs) :
     ‖stateVector (physPrepare D w xs k *ᵥ Qatlib.Foundations.PureStateMath.Ket (pivotSlot w))
@@ -1020,11 +1157,15 @@ theorem physPrepare_state_error_le (D w : ℕ) (xs : DenseTable D) (k : ℕ)
     _ ≤ 32 * ((2 * D : ℕ) : ℝ) / 2 ^ k := by gcongr
     _ = 64 * D / 2 ^ k := by rw [Nat.cast_mul]; ring
 
+/-- The physical resource account has bit-time charge `(2 * (2 ^ w - 1) * k + 2 * D * k) * (b +
+1)`. -/
 theorem physAccount_bitTime (D w : ℕ) (k b : ℕ) :
     (physAccount D w k b).bitTime
       = (2 * (2 ^ w - 1) * k + 2 * D * k) * (b + 1) := by
   simp [ResourceAccount.bitTime, physAccount, phaseComparisons]
 
+/-- For nonzero input, each of the two square-root bracket computations used for phase
+approximation records exactly `k` comparisons. -/
 theorem phaseApprox_bracket_comparisons (z : RatComplex) (k : ℕ) (hz : z ≠ ratZero) :
     (rationalSqrtBracket (z.1 ^ 2 / ratSq z) k).2.2 = k ∧
       (rationalSqrtBracket (1 - z.1 ^ 2 / ratSq z) k).2.2 = k := by
@@ -1053,10 +1194,13 @@ theorem phaseApprox_bracket_comparisons (z : RatComplex) (k : ℕ) (hz : z ≠ r
   (try dsimp only at h2)
   exact ⟨h1.2.2.2.2.2.2.left, h2.2.2.2.2.2.2.left⟩
 
+/-- The phase comparison charge is the number of entries times the per-label comparison charge. -/
 theorem phaseComparisons_eq (D k : ℕ) : phaseComparisons D k = D * phaseLabelComparisons k := by
   simp only [phaseComparisons, phaseLabelComparisons]
   ring
 
+/-- For positive `D` and its selected address width, the physical bit-time charge is bounded by
+`(2 * (2 * D) * k + 2 * D * k) * (b + 1)`. -/
 theorem physAccount_bitTime_le (D w : ℕ) (hD : 0 < D) (hw : w = addressBitsFor D)
     (k b : ℕ) :
     (physAccount D w k b).bitTime ≤ (2 * (2 * D) * k + 2 * D * k) * (b + 1) := by
@@ -1068,14 +1212,19 @@ theorem physAccount_bitTime_le (D w : ℕ) (hD : 0 < D) (hw : w = addressBitsFor
   have h4 := Nat.mul_le_mul_right (b + 1) h3
   simpa [ResourceAccount.bitTime, physAccount, phaseComparisons] using! h4
 
+/-- The physical resource account records `w + (w + 1)` peak qubits and `D` peak classical
+cells. -/
 theorem physAccount_peak (D w : ℕ) (k b : ℕ) :
     (physAccount D w k b).peakQubits = w + (w + 1) ∧
       (physAccount D w k b).peakCells = D := ⟨rfl, rfl⟩
 
+/-- The maximum wire count in the scoped program trace is `n + 1`. -/
 theorem scopedAccess_peakQubits (n : ℕ) (w : List (ScopedOracleStep n)) :
     (scopedWireTrace w).foldl max 0 = n + 1 :=
   (scopedAccess_peak_space n w).2.2.2
 
+/-- A conditional-update fold leaves its initial value unchanged if no entry has the requested
+key. -/
 private theorem foldl_noMatch {α β : Type} (key : α → ℕ) (val : α → β) (a : ℕ) :
     ∀ (z : β) (l : List α),
       (∀ p ∈ l, key p ≠ a) →
@@ -1092,6 +1241,8 @@ private theorem foldl_noMatch {α β : Type} (key : α → ℕ) (val : α → β
     rw [List.foldl_cons, ih _ hl]
     simp [hp]
 
+/-- A conditional-update fold returns a selected entry's value when that entry matches the key
+and no later entry matches. -/
 private theorem foldl_lastWrite {α β : Type} (key : α → ℕ) (val : α → β) :
     ∀ (a : ℕ) (v : β) (pre post : List α),
       (∀ p ∈ post, key p ≠ a) →
@@ -1110,6 +1261,8 @@ private theorem foldl_lastWrite {α β : Type} (key : α → ℕ) (val : α → 
     rw [List.cons_append, List.foldl_cons,
       ih post hpost ((fun acc p => if key p = a then val p else acc) z e0) e hkey hval]
 
+/-- A legal Boolean entry list builds a table whose values are computed by a last-write fold
+starting from false. -/
 theorem buildBoolTable_spec (D : ℕ) (es : List (ℕ × Bool))
     (hleg : ∀ p ∈ es, p.1 < D) :
     ∃ T : Fin D → Bool, buildBoolTable D es = some T ∧
@@ -1119,6 +1272,8 @@ theorem buildBoolTable_spec (D : ℕ) (es : List (ℕ × Bool))
   · intro a
     rfl
 
+/-- For legal Boolean entries, the last write to an address determines the built table's value
+there. -/
 theorem buildBoolTable_repeated (D : ℕ) (es : List (ℕ × Bool)) (a : Fin D) (v : Bool)
     (hleg : ∀ p ∈ es, p.1 < D)
     (hpreL hpostL : List (ℕ × Bool))
@@ -1131,6 +1286,7 @@ theorem buildBoolTable_repeated (D : ℕ) (es : List (ℕ × Bool)) (a : Fin D) 
   exact foldl_lastWrite (fun e : ℕ × Bool => e.1) (fun e : ℕ × Bool => e.2)
     a.val v hpreL hpostL hnoLater false (a.val, v) rfl rfl
 
+/-- The last sparse entry at an address determines its resolved rational complex amplitude. -/
 theorem sparseResolve_lastWrite (D : ℕ) (es : List SparseEntry) (a : Fin D) (v : RatComplex)
     (hpreL hpostL : List SparseEntry)
     (hes : es = hpreL ++ ⟨a.val, v⟩ :: hpostL)
@@ -1141,6 +1297,7 @@ theorem sparseResolve_lastWrite (D : ℕ) (es : List SparseEntry) (a : Fin D) (v
     (fun e : SparseEntry => e.value) a.val v hpreL hpostL hnoLater ratZero ⟨a.val, v⟩
     rfl rfl
 
+/-- The Boolean table builder rejects a list containing an out-of-range address. -/
 theorem buildBoolTable_rejects_illegal (D : ℕ) (es : List (ℕ × Bool)) (p : ℕ) (v : Bool)
     (hmem : (p, v) ∈ es) (hp : D ≤ p) : buildBoolTable D es = none := by
   have hne : ¬ (∀ p ∈ es, p.1 < D) := by
@@ -1149,39 +1306,49 @@ theorem buildBoolTable_rejects_illegal (D : ℕ) (es : List (ℕ × Bool)) (p : 
     omega
   rw [buildBoolTable, if_neg hne]
 
+/-- The chosen address width provides strictly more basis states than the table size. -/
 theorem addressBitsFor_covers (D : ℕ) : D < 2 ^ addressBitsFor D :=
   addressBitsFor_sufficient D
 
+/-- The Boolean table oracle preserves the address and XORs the addressed table value into the
+target bit. -/
 theorem controlledAccess_ket (D : ℕ) (T : Fin D → Bool) (a : Fin D) (b : Bool) :
     BitOracleOn T *ᵥ Qatlib.Foundations.PureStateMath.Ket (a, b) = Qatlib.Foundations.PureStateMath.Ket (a, b ^^ T a) := by
   have h := applyGate_bitOracleOn_ket T a b
   simpa [ApplyGate] using! h
 
+/-- Applying the Boolean table oracle twice gives the identity matrix. -/
 theorem controlledAccess_inv (D : ℕ) (T : Fin D → Bool) :
     BitOracleOn T * BitOracleOn T = 1 :=
   bitOracleOn_mul_self T
 
+/-- The Boolean table oracle is unitary. -/
 theorem controlledAccess_unitary (D : ℕ) (T : Fin D → Bool) :
     BitOracleOn T ∈ Matrix.unitaryGroup (Fin D × Bool) ℂ :=
   bitOracleOn_unitary T
 
+/-- An access contract's table oracle XORs the addressed table value into the target bit. -/
 theorem AccessContract_query (D : ℕ) (c : AccessContract D) (a : Fin D) (b : Bool) :
     BitOracleOn c.table *ᵥ Qatlib.Foundations.PureStateMath.Ket (a, b) = Qatlib.Foundations.PureStateMath.Ket (a, b ^^ c.table a) :=
   controlledAccess_ket D c.table a b
 
+/-- An access contract's table oracle is its own inverse. -/
 theorem AccessContract_inverse (D : ℕ) (c : AccessContract D) :
     BitOracleOn c.table * BitOracleOn c.table = 1 :=
   controlledAccess_inv D c.table
 
+/-- A contract constructed from a table satisfies its precondition obligation. -/
 theorem constructedContract_obligation (D : ℕ) (T : Fin D → Bool) (paid : ℕ) :
     (constructedContract D T paid).preconditionObligation :=
   Or.inl rfl
 
+/-- A granted contract satisfies its obligation when its declared access preconditions hold. -/
 theorem grantedContract_obligation (D : ℕ) (T : Fin D → Bool) (p : AccessPreconditions)
     (paid : ℕ) (h : p.satisfiedBy) :
     (grantedContract D T p paid).preconditionObligation :=
   Or.inr h
 
+/-- A granted contract fails its obligation when its declared access preconditions do not hold. -/
 theorem grantedContract_obligation_ne (D : ℕ) (T : Fin D → Bool) (p : AccessPreconditions)
     (paid : ℕ) (h : ¬ p.satisfiedBy) :
     ¬ (grantedContract D T p paid).preconditionObligation := by
@@ -1190,24 +1357,34 @@ theorem grantedContract_obligation_ne (D : ℕ) (T : Fin D → Bool) (p : Access
   · simp [grantedContract] at hk
   · exact h hs
 
+/-- For nonnegative weights, rational magnitude preparation records exactly `2 * D * k`
+comparisons. -/
 theorem magnitudeComparisons {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) (hw : ∀ a, 0 ≤ w a) :
     rationalWeightComparisons w k = 2 * D * k :=
   (rational_weight_data_ranges_and_actual_comparisons D k w hw).2.2
 
+/-- The sum of two comparison charges of `2 * D * k`, for magnitude and phase processing. -/
 def totalComparisons (D : ℕ) (k : ℕ) : ℕ := 2 * D * k + 2 * D * k
 
+/-- The workspace count `D + (D + 1)` assigned to a table of size `D`. -/
 def peakWorkspace (D : ℕ) : ℕ := D + (D + 1)
 
+/-- Any dense loader that recovers every table entry on every input must read at least `D`
+distinct entries. -/
 theorem dense_reading_lower_bound (D : ℕ) (L : DenseLoader D)
     (h : ∀ (xs : DenseTable D) (a : Fin D), L.run xs a = xs a) :
     D ≤ L.reads.card :=
   denseLoader_reads_card_ge D L h
 
+/-- A compiled scoped program uses twice its phase-step count in queries and one gate per source
+step. -/
 theorem scopedAccess_counts (n : ℕ) (w : List (ScopedOracleStep n)) :
     QueryCount (scopedCompile w) = 2 * scopedPhaseCount w ∧
       GateCount (scopedCompile w) = w.length :=
   (scoped_program_actual_query_and_gate_counts n w).2
 
+/-- The total access charge splits into paid entries and the charge for `m` accesses, and bounds
+each part separately. -/
 theorem accessContract_charge_split (D : ℕ) (c : AccessContract D) (m : ℕ) :
     c.totalCharge m = c.paidEntries + m * (Nat.log2 D + 1 + c.perAccess) ∧
       c.paidEntries ≤ c.totalCharge m ∧
@@ -1220,17 +1397,22 @@ theorem accessContract_charge_split (D : ℕ) (c : AccessContract D) (m : ℕ) :
   · rw [h]
     omega
 
+/-- A contract charged by a universally correct dense loader's read count pays for at least `D`
+entries. -/
 theorem denseBuild_charges_reads (D : ℕ) (T : Fin D → Bool) (L : DenseLoader D)
     (h : ∀ (xs : DenseTable D) (a : Fin D), L.run xs a = xs a) :
     D ≤ (constructedContract D T L.reads.card).paidEntries := by
   rw [constructedContract]
   exact dense_reading_lower_bound D L h
 
+/-- A contract built using the full dense loader pays for exactly `D` entries. -/
 theorem denseBuild_paidEntries (D : ℕ) (T : Fin D → Bool) :
     (constructedContract D T (fullDenseLoader D).reads.card).paidEntries = D := by
   rw [constructedContract]
   simp [fullDenseLoader_reads]
 
+/-- A contract charged for `D` constructed entries has total charge at least `D`, with the
+stated setup-plus-access formula. -/
 theorem totalCharge_not_poly_log (D : ℕ) (T : Fin D → Bool) (m : ℕ)
     (_hD : 0 < D) :
     D ≤ (constructedContract D T D).totalCharge m ∧
@@ -1244,6 +1426,8 @@ theorem totalCharge_not_poly_log (D : ℕ) (T : Fin D → Bool) (m : ℕ)
     omega
   · rw [hsplit.1, hpaid, hper]
 
+/-- The conjunction of the stated squared-modulus, exact phase normalization, read-count,
+comparison-count, bit-time, and preparation-word counting conventions. -/
 def DeclaredConventions : Prop :=
 
   (∀ z : RatComplex, ratSq z = z.1 ^ 2 + z.2 ^ 2) ∧
@@ -1267,6 +1451,7 @@ def DeclaredConventions : Prop :=
     (rationalSqrtBracket (z.1 ^ 2 / ratSq z) k).2.2 = k ∧
       (rationalSqrtBracket (1 - z.1 ^ 2 / ratSq z) k).2.2 = k)
 
+/-- The finite data-access definitions satisfy `DeclaredConventions`. -/
 theorem declaredConventions_hold : DeclaredConventions := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro z
@@ -1286,6 +1471,8 @@ theorem declaredConventions_hold : DeclaredConventions := by
   · intro z k hz
     exact phaseApprox_bracket_comparisons z k hz
 
+/-- Collects phase normalization, dense and sparse loading specifications, exact target
+preparation, and operator and state error bounds for abstract and physical preparation. -/
 theorem clause1_complete :
     (∀ (z : RatComplex) (k : ℕ), (phaseApprox z k).1 ^ 2 + (phaseApprox z k).2 ^ 2 = 1) ∧
     (∀ {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -1343,6 +1530,8 @@ theorem clause1_complete :
   · intro D w xs k hD hw hmass
     exact physPrepare_state_error_le D w xs k hD hw hmass
 
+/-- Collects Boolean and sparse last-write semantics, invalid-address rejection, oracle action
+and inverse laws, access obligations, and clean scoped execution with its workspace trace. -/
 theorem clause2_complete :
     (∀ (D : ℕ) (es : List (ℕ × Bool)) (p : ℕ) (v : Bool),
       (p, v) ∈ es → D ≤ p → buildBoolTable D es = none) ∧
@@ -1405,6 +1594,9 @@ theorem clause2_complete :
   · exact scopedAccess_clean
   · exact scopedAccess_peak_space
 
+/-- Collects preparation counts, dense-read lower bounds, declared conventions, reflection
+synthesis and physical resource bounds, scoped counts, access charges, and slot-mass
+preservation. -/
 theorem clause3_complete :
     (∀ {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex),
       adjointGateCount (prepareWord k w amp) = D + 1 ∧

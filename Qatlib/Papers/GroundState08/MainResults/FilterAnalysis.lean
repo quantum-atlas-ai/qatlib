@@ -9,6 +9,26 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.BigOperators.Field
+
+/-!
+# Energy-filter overlap and success bounds
+
+This module defines an energy band `inBand` and the squared-amplitude sum `filterOverlap` used
+in the filter analysis of [PoulinWocjan2009]. Under explicit amplitude and support assumptions,
+it proves overlap lower bounds, an inverse-square-root bound, and concentration of the expected
+energy within the band.
+
+## Main statements
+
+* `inBand_amplitude_ge_half`: a lower bound for repeated momentum-filter amplitudes near the
+  target phase.
+* `energy_filter_main_result`: the combined overlap, iteration, energy, and empty-band bounds.
+
+## References
+
+* [Poulin and Wocjan, 2009][PoulinWocjan2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,16 +41,21 @@ namespace Qatlib.Papers.GroundState08.MainResults.FilterAnalysis
 
 variable {N : ℕ}
 
+/-- The indices whose energies differ from the target `μ` by at most `ε`. -/
 def inBand (μ ε : ℝ) (φ : Fin N → ℝ) : Finset (Fin N) :=
   Finset.univ.filter (fun a => |φ a - μ| ≤ ε)
 
+/-- Membership in the energy band is equivalent to `|φ a - μ| ≤ ε`. -/
 lemma mem_inBand {μ ε : ℝ} {φ : Fin N → ℝ} {a : Fin N} :
     a ∈ inBand μ ε φ ↔ |φ a - μ| ≤ ε := by
   simp [inBand]
 
+/-- The sum of `α a ^ 2 * w a ^ 2` over indices in the target energy band. -/
 def filterOverlap (μ ε : ℝ) (φ : Fin N → ℝ) (α w : Fin N → ℝ) : ℝ :=
   ∑ a ∈ inBand μ ε φ, α a ^ 2 * w a ^ 2
 
+/-- For `N > 0`, squared initial amplitudes at least `1/N` and in-band filter amplitudes at
+least `1/2` give overlap at least the band cardinality divided by `4N` [PoulinWocjan2009]. -/
 theorem overlap_lower_bound (μ ε : ℝ) (φ : Fin N → ℝ) (α w : Fin N → ℝ)
     (hN : 0 < N)
     (hα : ∀ a, 1 / (N : ℝ) ≤ α a ^ 2)
@@ -57,6 +82,7 @@ theorem overlap_lower_bound (μ ε : ℝ) (φ : Fin N → ℝ) (α w : Fin N →
         field_simp
     _ ≤ filterOverlap μ ε φ α w := hsum
 
+/-- If `N > 0` and `q ≥ 1/N`, then `1 / √q ≤ √N` [PoulinWocjan2009]. -/
 theorem grover_iterations_le_sqrt (q : ℝ) (hN : 0 < N) (hq : 1 / (N : ℝ) ≤ q) :
     1 / Real.sqrt q ≤ Real.sqrt (N : ℝ) := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
@@ -70,6 +96,8 @@ theorem grover_iterations_le_sqrt (q : ℝ) (hN : 0 < N) (hq : 1 / (N : ℝ) ≤
   apply Real.sqrt_le_sqrt
   linarith [hqN]
 
+/-- A nonnegative probability distribution supported in the target energy band has expected
+energy within `ε` of `μ` [PoulinWocjan2009]. -/
 theorem success_energy_within_band (μ ε : ℝ) (φ : Fin N → ℝ) (p : Fin N → ℝ)
     (hpnn : ∀ a, 0 ≤ p a)
     (hpsum : (∑ a, p a) = 1)
@@ -100,6 +128,8 @@ theorem success_energy_within_band (μ ε : ℝ) (φ : Fin N → ℝ) (p : Fin N
     _ = ε := by
         rw [← Finset.sum_mul, hpsum, one_mul]
 
+/-- For `N > 0`, an empty energy band gives filter overlap strictly below `1/N^2`
+[PoulinWocjan2009]. -/
 theorem empty_band_aborts (μ ε : ℝ) (φ : Fin N → ℝ) (α w : Fin N → ℝ)
     (hN : 0 < N) (hempty : inBand μ ε φ = ∅) :
     filterOverlap μ ε φ α w < 1 / (N : ℝ) ^ 2 := by
@@ -110,16 +140,22 @@ theorem empty_band_aborts (μ ε : ℝ) (φ : Fin N → ℝ) (α w : Fin N → �
   rw [hzero]
   linarith
 
+/-- If `2^k = ε⁻¹` with positive `ε`, then the reciprocal of `2^k` equals `ε`. -/
 theorem filter_width_parameter (k : ℕ) (ε : ℝ) (_hε : 0 < ε) (hk : (2 : ℝ) ^ k = ε⁻¹) :
     ((2 : ℝ) ^ k)⁻¹ = ε := by
   rw [hk, inv_inv]
 
+/-- Within the band of width `2⁻ᵏ / (2π√η)`, the momentum-overlap norm raised to a positive
+integer power `η` is at least `1/2` [PoulinWocjan2009]. -/
 theorem inBand_amplitude_ge_half (k η : ℕ) (hη : 0 < η) (φ : Fin N → ℝ) (μ : ℝ) :
     ∀ a ∈ inBand μ (((2 : ℕ) ^ k : ℝ)⁻¹ / (2 * Real.pi * Real.sqrt (η : ℝ))) φ,
       (1 / 2 : ℝ) ≤ ‖momentumInner k (φ a) μ‖ ^ η := by
   intro a ha
   exact momentumInner_pow_ge_half k η hη (φ a) μ (mem_inBand.mp ha)
 
+/-- The stated amplitude, overlap, and support assumptions imply the band-cardinality overlap
+bound, the `√N` inverse-square-root bound, the energy expectation bound, and the empty-band
+implication [PoulinWocjan2009]. -/
 theorem energy_filter_main_result (μ ε : ℝ) (φ : Fin N → ℝ) (α w p : Fin N → ℝ)
     (hN : 0 < N)
     (hα : ∀ a, 1 / (N : ℝ) ≤ α a ^ 2)

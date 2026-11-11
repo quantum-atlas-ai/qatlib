@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TITCMTReport98.MainResults.Defs
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+
+/-!
+# Gamma-function modulus for the inverse schedule
+
+This module proves a squared-modulus identity for the gamma function on the nonzero imaginary
+axis. It applies that identity to the coefficient `inverseScheduleCoeff` used in the
+inverse-schedule formulas of [KadowakiNishimori1998].
+
+## Main statements
+
+* `gamma_imag_norm_sq`: evaluates `‖Γ(iy)‖²` for nonzero real `y`.
+* `inverseScheduleCoeff_norm_sq`: evaluates the coefficient norm as a ratio of hyperbolic sines.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +33,7 @@ namespace Qatlib.Papers.TITCMTReport98.MainResults
 
 open Complex
 
+/-- For nonzero real `y`, the squared norm of `Γ(iy)` equals `π / (y * sinh (πy))`. -/
 theorem gamma_imag_norm_sq (y : ℝ) (hy : y ≠ 0) :
     ‖Complex.Gamma (I * (y : ℂ))‖ ^ 2
       = Real.pi / (y * Real.sinh (Real.pi * y)) := by
@@ -82,6 +101,8 @@ theorem gamma_imag_norm_sq (y : ℝ) (hy : y ≠ 0) :
     rw [hre, hconj, mul_comm]
   rw [hns, hkey, Complex.ofReal_re]
 
+/-- For positive `h` and `c`, the squared norm of `inverseScheduleCoeff h c` equals `sinh (πc) /
+sinh (2πc)` [KadowakiNishimori1998]. -/
 theorem inverseScheduleCoeff_norm_sq (h c : ℝ) (hh : 0 < h) (hc : 0 < c) :
     ‖inverseScheduleCoeff h c‖ ^ 2
       = Real.sinh (Real.pi * c) / Real.sinh (2 * Real.pi * c) := by

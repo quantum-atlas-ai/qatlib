@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.ElementaryUnitaries
+
+/-!
+# Block formulas for elementary Fibonacci synthesis
+
+`diag2` specifies a two-dimensional diagonal block. The module rewrites `Mn` and `Mdiag` in the
+common `blockDiag5` form and constructs a finite product of allowed elementary matrices with the
+stated final phase block. See [ShorJordan2008].
+
+## Main statements
+
+* `Mn_eq_blockDiag5`: The matrix `Mn` has scalar blocks bFib, aFib, aFib and final block with
+  entries eFib, dFib, dFib, cFib.
+* `lemma3_diagBlock`: For every α, some finite product of matrices of the form `Mdiag α'` or
+  `Mn` has `blockDiag5` form with final block diag(exp(iα/2), exp(−iα/2)).
+
+## References
+
+* [Shor and Jordan, 2008][ShorJordan2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,9 +35,12 @@ namespace Qatlib.Papers.JonesPolyShor07.MainResults.Synthesis
 open Definitions Matrix
 open scoped BigOperators
 
+/-- The 2 × 2 diagonal matrix with diagonal entries u and v. -/
 def diag2 (u v : ℂ) : Matrix (Fin 2) (Fin 2) ℂ :=
   fun i j => if i = j then (if i.val = 0 then u else v) else 0
 
+/-- The matrix `Mn` has scalar blocks bFib, aFib, aFib and final block with entries eFib, dFib,
+dFib, cFib; see [ShorJordan2008]. -/
 theorem Mn_eq_blockDiag5 :
     Mn = blockDiag5 bFib aFib (fun i j =>
       match i.val, j.val with
@@ -29,6 +52,8 @@ theorem Mn_eq_blockDiag5 :
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Mn, blockDiag5]
 
+/-- The matrix `Mdiag α` has the displayed `blockDiag5` decomposition with final diagonal
+entries exp(iα/2) and exp(−iα/2); see [ShorJordan2008]. -/
 theorem Mdiag_eq_blockDiag5 (α : ℝ) :
     Mdiag α = blockDiag5 (Complex.exp ((α / 2) * Complex.I))
       (Complex.exp ((α / 2) * Complex.I))
@@ -36,6 +61,8 @@ theorem Mdiag_eq_blockDiag5 (α : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Mdiag, blockDiag5, diag2]
 
+/-- For every α, some finite product of matrices of the form `Mdiag α'` or `Mn` has `blockDiag5`
+form with final block diag(exp(iα/2), exp(−iα/2)); see [ShorJordan2008]. -/
 theorem lemma3_diagBlock (α : ℝ) :
     ∃ (r : ℕ) (P : Matrix (Fin 5) (Fin 5) ℂ) (φ1 φ2 : ℂ),
       (∃ l : List (Matrix (Fin 5) (Fin 5) ℂ),

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
 import Qatlib.Papers.OverlapGapGoh26.GaussianModel.NormRegion
+
+/-!
+# Ground and maximum energies along Gaussian paths
+
+`ground` is the Hilbert-cube minimum energy density, and `maximum` is obtained by negating the
+input and the minimum. Finite-grid smoothing, norm localization, and Gaussian rotation bounds
+control their continuum excursions along `inputPath` in the random tensor setting of
+[GohMuller2026].
+
+## Main statements
+
+* `actual_ground_continuum_tail`: the ground-energy path has an explicit continuum tail bound.
+* `actual_maximum_continuum_tail`: the maximum-energy path satisfies the same bound.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,8 +43,11 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Path
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.GroundPath
 
+/-- The Hilbert-cube minimum energy of the source tensor, divided by the system size `N`. -/
 def ground {r N : ℕ} (x : Input r N) : ℝ := cubeOpt (sourceTensor (tensorCoords x).ofLp)/(N:ℝ)
 
+/-- For positive `ε`, there are positive mesh and inverse-temperature parameters making both the
+mesh error and entropy error at most `ε / 4`. -/
 theorem approximation_parameters (r : ℕ) (ε : ℝ) (hε : 0<ε) :
     ∃ m : ℕ,∃ β : ℝ,0 < m ∧ 0<β ∧
       4*normBound r*((r+1:ℕ):ℝ)/(m:ℝ)≤ε/4 ∧ Real.log (m+1:ℝ)/β≤ε/4 := by
@@ -50,6 +72,8 @@ theorem approximation_parameters (r : ℕ) (ε : ℝ) (hε : 0<ε) :
   rw [hcalc]
   linarith
 
+/-- Under the stated mesh, entropy, positivity, and norm-scale bounds, `smoothGround`
+approximates `ground` within `ε / 4`. -/
 theorem smoothGround_approx {r N m : ℕ} (hr : 0<r) (hN : 0<N) (hm : 0 < m)
     (β ε : ℝ) (hβ : 0<β)
     (hmesh : 4*normBound r*((r+1:ℕ):ℝ)/(m:ℝ)≤ε/4)
@@ -62,6 +86,8 @@ theorem smoothGround_approx {r N m : ℕ} (hr : 0<r) (hN : 0<N) (hm : 0 < m)
   apply abs_le.mpr
   constructor <;> linarith
 
+/-- For positive `r`, `N`, and `ε`, the Gaussian probability of a ground-energy excursion by at
+least `ε` anywhere on the interpolation path is at most `4 * exp (−N) + π² / (N * ε²)`. -/
 theorem actual_ground_continuum_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) (ε : ℝ) (hε : 0<ε) :
     ((stdGaussian (Input r N)).prod (stdGaussian (Input r N))).real
       {w | ∃ τ∈Set.Icc (0:ℝ) 1,ε≤|ground (inputPath w.1 w.2 τ)-ground w.1|}≤
@@ -95,6 +121,8 @@ theorem actual_ground_continuum_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) (ε : ℝ
   have htail := smoothGround_rotation_tail (r:=r) hN hm β hβ (ε/2) (by positivity)
   exact (add_le_add (pairRegion_failure hr hN) htail).trans_eq (by ring)
 
+/-- For positive `N`, the ground-energy density is Lipschitz with constant `1 / sqrt N` in the
+input norm. -/
 theorem ground_lipschitz {r N : ℕ} (hN : 0<N) :
     LipschitzWith (⟨1/Real.sqrt (N:ℝ),by positivity⟩ : ℝ≥0) (ground (r:=r) (N:=N)) := by
   apply LipschitzWith.of_dist_le_mul
@@ -112,29 +140,38 @@ theorem ground_lipschitz {r N : ℕ} (hN : 0<N) :
   have hb := hh.trans (div_le_div_of_nonneg_right hg (Real.sqrt_nonneg _))
   simpa only [Real.dist_eq,dist_eq_norm,div_eq_mul_inv,one_mul,mul_comm,ground] using! hb
 
+/-- Negating the input negates its source tensor. -/
 theorem sourceTensor_input_neg {r N : ℕ} (x : Input r N) :
     sourceTensor (tensorCoords (-x)).ofLp= -(sourceTensor (tensorCoords x).ofLp) := by
   funext k
   change Real.sqrt (((N:ℝ)^r)⁻¹)*(-x (Sum.inl k))= -(Real.sqrt (((N:ℝ)^r)⁻¹)*x (Sum.inl k))
   ring
 
+/-- Simultaneously negating both endpoints negates the interpolated input path. -/
 theorem inputPath_neg {r N : ℕ} (x y : Input r N) (τ : ℝ) :
     inputPath (-x) (-y) τ= -(inputPath x y τ) := by
   unfold inputPath
   module
 
+/-- The maximum energy density defined as `−ground (−x)`. -/
 def maximum {r N : ℕ} (x : Input r N) : ℝ := -ground (-x)
 
+/-- The maximum energy density equals the negative cube minimum of the negated source tensor,
+divided by `N`. -/
 theorem maximum_formula {r N : ℕ} (x : Input r N) :
     maximum x= -cubeOpt (-(sourceTensor (tensorCoords x).ofLp))/(N:ℝ) := by
   unfold maximum ground
   rw [sourceTensor_input_neg]
   ring
 
+/-- Negation preserves the standard Gaussian measure on the input space. -/
 theorem input_neg_preserving (r N : ℕ) : MeasurePreserving (fun x : Input r N => -x)
     (stdGaussian (Input r N)) (stdGaussian (Input r N)) :=
   ⟨by fun_prop,stdGaussian_map (LinearIsometryEquiv.neg ℝ)⟩
 
+/-- For positive `r`, `N`, and `ε`, the Gaussian probability of a maximum-energy excursion by at
+least `ε` anywhere on the interpolation path is at most `4 * exp (−N) + π² / (N * ε²)`. See
+[GohMuller2026]. -/
 theorem actual_maximum_continuum_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) (ε : ℝ) (hε : 0<ε) :
     ((stdGaussian (Input r N)).prod (stdGaussian (Input r N))).real
       {w | ∃ τ∈Set.Icc (0:ℝ) 1,ε≤|maximum (inputPath w.1 w.2 τ)-maximum w.1|}≤

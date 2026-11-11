@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
 import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+
+/-!
+# Endpoint fidelities for real water fills
+
+This module proves a source-box overlap comparison and identifies real water-fill fidelities at
+bracket endpoints under the stated positivity, normalization, and support assumptions. It also
+handles zero mass and gives `gext1_endpoint_conjunct_refutable`, showing that the displayed
+endpoint package does not follow from `ClosedBracket` alone, in the setting of
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `realFidelity_bracket_low`: Identify the lower endpoint fidelity when its mass is positive.
+* `realFidelity_bracket_high`: Identify the upper endpoint fidelity under the support condition.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -46,6 +66,8 @@ namespace Qatlib.Concepts.Waterfill.LevelFidelity
 variable {m : ℕ} (π σ : Fin m → ℝ)
 variable {m : ℕ} (π σ : Fin m → ℚ)
 
+/-- A vector in `SourceBox π` whose squared norm is at most `realMass π σ γ` has target overlap
+at most `realDot π σ γ`, for a positive level and nonnegative source and target. -/
 theorem real_overlap_le {m : ℕ} (π σ : Fin m → ℝ) (_hπ : ∀ i, 0 ≤ π i) (_hσ : ∀ i, 0 ≤ σ i)
     {γ : ℝ} (hγ : 0 < γ) (v : Fin m → ℝ) (hv : SourceBox π v)
     (he : (∑ i, v i ^ 2) ≤ realMass π σ γ) :
@@ -64,6 +86,8 @@ theorem real_overlap_le {m : ℕ} (π σ : Fin m → ℝ) (_hπ : ∀ i, 0 ≤ �
   unfold realDot
   nlinarith
 
+/-- At a nonnegative lower bracket endpoint with positive mass, `realFidelity` equals `realPmax`
+for nonnegative source and target. -/
 theorem realFidelity_bracket_low {m : ℕ} (π σ : Fin m → ℝ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 ≤ σ i) {γlo : ℝ} (hγlo : 0 ≤ γlo) (hlow : BracketLow π σ γlo)
     (hmass : 0 < realMass π σ γlo) :
@@ -115,6 +139,8 @@ theorem realFidelity_bracket_low {m : ℕ} (π σ : Fin m → ℝ) (hπ : ∀ i,
   rw [if_neg (ne_of_gt hmass), hmassE, hdot]
   field_simp [ne_of_gt hpmax, hγ, ne_of_gt hmass]
 
+/-- At an upper bracket endpoint, `realFidelity` equals `realPmin` when the source has squared
+norm one and vanishes wherever the nonnegative target vanishes. -/
 theorem realFidelity_bracket_high {m : ℕ} (π σ : Fin m → ℝ) (_hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 ≤ σ i) (hπ1 : (∑ i, π i ^ 2) = 1)
     {γhi : ℝ} (hhigh : BracketHigh π σ γhi) (hsupp : ∀ i, σ i = 0 → π i = 0) :
@@ -139,6 +165,8 @@ theorem realFidelity_bracket_high {m : ℕ} (π σ : Fin m → ℝ) (_hπ : ∀ 
   rw [hmass, hdot]
   norm_num
 
+/-- If the mass at the upper endpoint is zero, both mass and target overlap vanish at every
+nonnegative level below that endpoint. -/
 theorem realMass_zero_boundary {m : ℕ} (π σ : Fin m → ℝ) (hπ : ∀ i, 0 ≤ π i)
     (hσ : ∀ i, 0 ≤ σ i) {γlo γhi : ℝ} (_hbr : ClosedBracket π σ γlo γhi)
     (hmass : realMass π σ γhi = 0) :
@@ -160,10 +188,16 @@ theorem realMass_zero_boundary {m : ℕ} (π σ : Fin m → ℝ) (hπ : ∀ i, 0
   unfold realDot
   exact Finset.sum_eq_zero fun i _ => by rw [hper i, mul_zero]
 
+/-- The two-coordinate source vector with entries zero and one used in the endpoint
+counterexample. -/
 private def gext1CounterPi : Fin 2 → ℝ := fun i => (i.val : ℝ)
 
+/-- The two-coordinate target vector with entries one and zero used in the endpoint
+counterexample. -/
 private def gext1CounterSig : Fin 2 → ℝ := fun i => 1 - (i.val : ℝ)
 
+/-- The two endpoint fidelity identities do not hold universally for normalized nonnegative
+vectors under `ClosedBracket` alone. -/
 theorem gext1_endpoint_conjunct_refutable :
     ¬ (∀ (m : ℕ) (π σ : Fin m → ℝ),
         (∀ i, 0 ≤ π i) → (∀ i, 0 ≤ σ i) →

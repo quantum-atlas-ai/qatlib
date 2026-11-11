@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Qatlib.Concepts.TensorNetwork.GaugeInvariance
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationProofs
+
+/-!
+# Open-boundary MPS overlaps and examples
+
+This module identifies `mpsAmplitude` with the zero-to-zero matrix entry of `word`, then
+evaluates `transferWord` as an open-boundary inner product and squared norm. It also
+characterizes a zero squared norm by vanishing of every physical-word amplitude.
+
+Explicit complex, Bell, zero, and diagonal examples check conjugation and distinguish open from
+periodic boundary contractions. These constructions use the matrix product state setting of
+[PerezGarciaEtAl2007].
+
+## Main statements
+
+* `mpsAmplitude_eq_word`: Open-boundary amplitudes are zero-to-zero ordered-product entries.
+* `transferWord_inner`: Mixed-transfer contraction equals the sum of conjugate amplitude
+  products.
+* `normSq_sum_eq_zero_iff`: The squared norm vanishes exactly when every amplitude vanishes.
+* `open_overlap_and_consumers`: The identities and boundary examples are assembled, including a
+  counterexample to the stated evaluator specification.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +44,8 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 
 open scoped Kronecker
 
+/-- An entry of an ordered product of `m + 1` matrices is the sum over all `m` internal indices
+of the products of the corresponding matrix entries. -/
 private theorem ofFn_prod_apply {D : ℕ} :
     ∀ (m : ℕ) (M : Fin (m + 1) → Matrix (Fin D) (Fin D) ℂ) (a b : Fin D),
     (List.ofFn M).prod a b
@@ -68,6 +96,7 @@ private theorem ofFn_prod_apply {D : ℕ} :
       rw [hsnoc]
       simp only [Fin.cons_zero, Fin.cons_succ]
 
+/-- The left bond-index function is the internal-index word prefixed by the zero boundary index. -/
 private theorem mpsLeftIdx_eq_cons {D : ℕ} [NeZero D] {m : ℕ} (α : Fin m → Fin D)
     (i : Fin (m + 1)) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsLeftIdx (n := m + 1) α i
@@ -80,6 +109,8 @@ private theorem mpsLeftIdx_eq_cons {D : ℕ} [NeZero D] {m : ℕ} (α : Fin m �
         dif_pos (by rw [Fin.val_succ, Nat.succ_sub_one]; have := j.isLt; omega)]
       exact congrArg α (Fin.ext (by simp [Fin.val_succ]))
 
+/-- The right bond-index function is the internal-index word suffixed by the zero boundary
+index. -/
 private theorem mpsRightIdx_eq_snoc {D : ℕ} [NeZero D] {m : ℕ} (α : Fin m → Fin D)
     (i : Fin (m + 1)) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx (n := m + 1) α i
@@ -92,6 +123,8 @@ private theorem mpsRightIdx_eq_snoc {D : ℕ} [NeZero D] {m : ℕ} (α : Fin m �
     rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsRightIdx, dif_neg (by omega), Fin.eq_last_of_not_lt h,
       Fin.snoc_last]
 
+/-- The open-boundary MPS amplitude equals the zero-to-zero entry of the ordered matrix product
+for the physical word. -/
 theorem mpsAmplitude_eq_word {n d D : ℕ} [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (x : Fin n → Fin d) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude A x = word A x 0 0 := by
@@ -126,6 +159,8 @@ theorem mpsAmplitude_eq_word {n d D : ℕ} [NeZero D]
       rw [← ofFn_prod_apply m (fun i => A i (x i)) 0 0]
       rfl
 
+/-- The zero-boundary entry of the mixed-transfer product equals the sum of conjugated
+amplitudes of `A` times amplitudes of `B`. -/
 theorem transferWord_inner {n d D : ℕ} [NeZero D]
     (A B : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     transferWord A B (0, 0) (0, 0)
@@ -136,6 +171,8 @@ theorem transferWord_inner {n d D : ℕ} [NeZero D]
   rw [Matrix.kronecker_apply, Matrix.map_apply, mpsAmplitude_eq_word, mpsAmplitude_eq_word]
   rfl
 
+/-- The zero-boundary self-transfer entry equals the complex embedding of the sum of squared
+amplitude norms. -/
 theorem transferWord_norm {n d D : ℕ} [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     transferWord A A (0, 0) (0, 0)
@@ -144,6 +181,8 @@ theorem transferWord_norm {n d D : ℕ} [NeZero D]
   refine Finset.sum_congr rfl fun x _ => ?_
   exact (Complex.normSq_eq_conj_mul_self (z := Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude A x)).symm
 
+/-- The sum of squared MPS amplitude norms is zero if and only if every physical-word amplitude
+is zero. -/
 theorem normSq_sum_eq_zero_iff {n d D : ℕ} [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     (∑ x : Fin n → Fin d, Complex.normSq (Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude A x) = 0)
@@ -156,17 +195,21 @@ theorem normSq_sum_eq_zero_iff {n d D : ℕ} [NeZero D]
   · intro h
     exact Finset.sum_eq_zero fun x _ => by rw [h x, Complex.normSq_zero]
 
+/-- The squared complex norm of a natural power equals the corresponding power of the squared
+norm. -/
 private theorem normSq_pow (z : ℂ) : ∀ n : ℕ, Complex.normSq (z ^ n) = Complex.normSq z ^ n := by
   intro n
   induction n with
   | zero => simp
   | succ n ih => rw [pow_succ, Complex.normSq_mul, ih, pow_succ]
 
+/-- Every physical-word amplitude of `plusISite n` equals `(1 + Complex.I) ^ n`. -/
 private theorem plusI_amp (n : ℕ) (x : Fin n → Fin 1) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude (plusISite n) x = (1 + Complex.I) ^ n := by
   rw [show plusISite n = (fun _ _ => Matrix.of fun _ _ => (1 + Complex.I : ℂ)) from rfl,
     Qatlib.Concepts.TensorNetwork.GaugeInvariance.mpsAmplitude_product, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+/-- The sum of squared amplitude norms for `plusISite n` is `2 ^ n`. -/
 theorem plusI_norm_sum (n : ℕ) :
     (∑ x : Fin n → Fin 1, Complex.normSq (Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude (plusISite n) x))
       = (2 : ℝ) ^ n := by
@@ -180,17 +223,21 @@ theorem plusI_norm_sum (n : ℕ) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The zero-boundary self-transfer entry for `plusISite n` is the complex embedding of `2 ^ n`. -/
 theorem plusI_transfer (n : ℕ) :
     transferWord (plusISite n) (plusISite n) (0, 0) (0, 0)
       = Complex.ofReal ((2 : ℝ) ^ n) := by
   rw [transferWord_norm, plusI_norm_sum]
 
+/-- The two-site Bell tensor has amplitude one on equal physical symbols and zero on unequal
+symbols. -/
 private theorem bell_amp_cons (a b : Fin 2) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude bellSite (Fin.cons (α := fun _ => Fin 2) a (fun _ => b))
       = if a = b then (1 : ℂ) else 0 := by
   rw [Qatlib.Concepts.TensorNetwork.GaugeInvariance.mpsAmplitude_two_site]
   fin_cases a <;> fin_cases b <;> simp [bellSite]
 
+/-- The equivalence between a pair of binary symbols and a binary word of length two. -/
 private def pairWordEquiv : Fin 2 × Fin 2 ≃ (Fin 2 → Fin 2) where
   toFun p := Fin.cons (α := fun _ => Fin 2) p.1 (fun _ => p.2)
   invFun x := (x 0, x ⟨1, by omega⟩)
@@ -207,6 +254,7 @@ private def pairWordEquiv : Fin 2 × Fin 2 ≃ (Fin 2 → Fin 2) where
         exact Fin.cons_succ (α := fun _ => Fin 2) (x 0) (fun _ => x ⟨1, by omega⟩)
           ⟨0, Nat.zero_lt_one⟩
 
+/-- The unnormalized Bell tensor has total squared amplitude norm two. -/
 theorem bell_norm_sum :
     (∑ x : Fin 2 → Fin 2, Complex.normSq (Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude bellSite x)) = 2 := by
   rw [← Fintype.sum_equiv pairWordEquiv
@@ -223,20 +271,26 @@ theorem bell_norm_sum :
   rw [Fin.sum_univ_two, Fin.sum_univ_two]
   norm_num
 
+/-- The zero-boundary self-transfer entry of the Bell tensor equals two. -/
 theorem bell_transfer :
     transferWord bellSite bellSite (0, 0) (0, 0) = Complex.ofReal 2 := by
   rw [transferWord_norm, bell_norm_sum]
 
+/-- The amplitude of `phiSite` is the product of the indicators that each physical symbol is
+zero. -/
 private theorem phi_amp (x : Fin 2 → Fin 2) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude phiSite x = ∏ i, (if (x i).val = 0 then (1 : ℂ) else 0) := by
   rw [show phiSite = (fun _ j => Matrix.of fun _ _ => if j.val = 0 then (1 : ℂ) else 0) from rfl,
     Qatlib.Concepts.TensorNetwork.GaugeInvariance.mpsAmplitude_product]
 
+/-- The amplitude of `psiSite` is the product of the indicators that each physical symbol is
+one. -/
 private theorem psi_amp (x : Fin 2 → Fin 2) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude psiSite x = ∏ i, (if (x i).val = 1 then (1 : ℂ) else 0) := by
   rw [show psiSite = (fun _ j => Matrix.of fun _ _ => if j.val = 1 then (1 : ℂ) else 0) from rfl,
     Qatlib.Concepts.TensorNetwork.GaugeInvariance.mpsAmplitude_product]
 
+/-- The zero-boundary mixed-transfer overlap of `phiSite` with `psiSite` is zero. -/
 theorem phi_psi_cross : transferWord phiSite psiSite (0, 0) (0, 0) = 0 := by
   rw [transferWord_inner]
   refine Finset.sum_eq_zero fun x _ => ?_
@@ -250,6 +304,8 @@ theorem phi_psi_cross : transferWord phiSite psiSite (0, 0) (0, 0) = 0 := by
       Finset.prod_eq_zero (Finset.mem_univ (0 : Fin 2)) (by rw [if_neg hx0])
     rw [hφ, star_zero, zero_mul]
 
+/-- The zero-boundary overlap of the scalar imaginary-unit tensor with the scalar identity
+tensor is `-Complex.I`. -/
 theorem i_one_transfer : transferWord iSite oneSite (0, 0) (0, 0) = -Complex.I := by
   rw [transferWord_inner]
   have key : ∀ b : Fin 1 → Fin 1, b = (fun _ => (0 : Fin 1)) :=
@@ -265,6 +321,7 @@ theorem i_one_transfer : transferWord iSite oneSite (0, 0) (0, 0) = -Complex.I :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- An identically zero tensor family of positive length has zero total squared amplitude norm. -/
 theorem zero_site_norm_sum (n' d' D' : ℕ) (hn : 0 < n') [NeZero D'] :
     (∑ x : Fin n' → Fin d', Complex.normSq (Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude (zeroSite n' d' D') x))
       = 0 := by
@@ -275,11 +332,13 @@ theorem zero_site_norm_sum (n' d' D' : ℕ) (hn : 0 < n') [NeZero D'] :
     rw [peel, zero_mul]
   rw [mpsAmplitude_eq_word, h0, Matrix.zero_apply, Complex.normSq_zero]
 
+/-- The zero-boundary self-transfer contraction of the auxiliary tensor `g14rA4` is zero. -/
 theorem clause14Aux_transfer :
     transferWord Qatlib.Concepts.TensorNetwork.GaugeInvariance.g14rA4 Qatlib.Concepts.TensorNetwork.GaugeInvariance.g14rA4 (0, 0) (0, 0) = 0 := by
   rw [transferWord_inner]
   exact Qatlib.Concepts.TensorNetwork.GaugeInvariance.clause14Aux_amp_pair_sum
 
+/-- The open-boundary amplitude of `diagSite` equals one. -/
 theorem diag_open (x : Fin 1 → Fin 1) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.mpsAmplitude diagSite x = 1 := by
   rw [mpsAmplitude_eq_word]
@@ -287,6 +346,7 @@ theorem diag_open (x : Fin 1 → Fin 1) :
   rw [peel, List.ofFn_zero, List.prod_nil, Matrix.mul_one]
   simp [diagSite]
 
+/-- The periodic amplitude of `diagSite` equals three. -/
 theorem diag_periodic (x : Fin 1 → Fin 1) :
     Qatlib.Concepts.MpsAdaptation.MpsTransfer.periodicMpsAmplitude diagSite x = 3 := by
   rw [Qatlib.Concepts.MpsAdaptation.MpsTransfer.periodicMpsAmplitude]
@@ -304,6 +364,9 @@ theorem diag_periodic (x : Fin 1 → Fin 1) :
   rw [Fin.sum_univ_two]
   norm_num [diagSite]
 
+/-- The open-boundary product, overlap, and norm identities hold together with empty cases and
+explicit tensor examples. The auxiliary example refutes the stated universal
+correctness-and-cost specification for `mpsInnerEvalWithCount`. -/
 theorem open_overlap_and_consumers :
     (∀ (n d D : ℕ) [NeZero D],
       ∀ (A B : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ),

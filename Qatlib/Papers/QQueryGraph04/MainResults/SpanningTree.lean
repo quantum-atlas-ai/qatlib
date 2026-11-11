@@ -85,6 +85,31 @@ import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.SupportBounds
 import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+
+/-!
+# Spanning-tree cost and component bounds
+
+This module proves numerical cost and error estimates for Borůvka and connectivity expressions,
+and establishes the existence of a minimum-weight spanning tree from a supplied spanning tree.
+It also constructs a partition into connected sets satisfying `DegreeBound` and bounds the
+associated sum of square-root degree costs.
+
+The source paper is [DurrEtAl2006].
+
+## Main statements
+
+* `exists_min_spanning_tree`: If a finite graph possesses a spanning tree, it possesses a
+  spanning tree of minimum total natural-number edge weight.
+* `lemma10_component_partition`: For degrees given by symmetrized adjacency, the vertices
+  possess a pairwise disjoint covering by nonempty connected finite sets satisfying
+  `DegreeBound`, with at most as many parts as vertices.
+* `theorem9_query_cost`: The matrix-connectivity cost expression is at most 2n√n.
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -95,9 +120,12 @@ open Finset
 open Qatlib.Papers.QQueryGraph04.MainResults.Model
 open Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
 
+/-- The accumulated Borůvka phase error is at most 1/4 [DurrEtAl2006]. -/
 theorem theorem8_error (M : ℕ) : boruvkaError M ≤ 1 / 4 :=
   boruvkaError_le M
 
+/-- For the given phase count and graph sizes, a positive constant bounds the Borůvka cost by
+that constant times √(nm) [DurrEtAl2006]. -/
 theorem theorem8_array_cost (M n m : ℕ) :
     ∃ C : ℝ, 0 < C ∧ boruvkaCost M n m ≤ C * Real.sqrt ((n : ℝ) * (m : ℝ)) := by
   refine ⟨24, by norm_num, ?_⟩
@@ -127,6 +155,8 @@ theorem theorem8_array_cost (M n m : ℕ) :
         exact mul_le_mul_of_nonneg_left (boruvkaGeomSum_le M) (Real.sqrt_nonneg _)
     _ = 24 * Real.sqrt ((n : ℝ) * (m : ℝ)) := by ring
 
+/-- With m = n(n − 1), a positive constant bounds the Borůvka cost by that constant times n√n
+[DurrEtAl2006]. -/
 theorem theorem8_matrix_cost (M n : ℕ) :
     ∃ C : ℝ, 0 < C ∧
       boruvkaCost M n (n * (n - 1)) ≤ C * (n : ℝ) * Real.sqrt (n : ℝ) := by
@@ -151,6 +181,8 @@ theorem theorem8_matrix_cost (M n : ℕ) :
         exact mul_le_mul_of_nonneg_left hsqrt hC.le
     _ = C * (n : ℝ) * Real.sqrt (n : ℝ) := by ring
 
+/-- If a finite graph possesses a spanning tree, it possesses a spanning tree of minimum total
+natural-number edge weight [DurrEtAl2006]. -/
 theorem exists_min_spanning_tree {n : ℕ} (adj : Fin n → Fin n → Bool)
     (w : Fin n → Fin n → ℕ) (h : ∃ T, IsSpanningTree adj T) :
     ∃ T, IsMST adj w T := by
@@ -164,6 +196,7 @@ theorem exists_min_spanning_tree {n : ℕ} (adj : Fin n → Fin n → Bool)
   · simpa [S] using (Finset.mem_filter.mp hT).2
   · exact hmin S' (by simp [S, hS'])
 
+/-- The matrix-connectivity cost expression is at most 2n√n [DurrEtAl2006]. -/
 theorem theorem9_query_cost (n : ℕ) :
     matrixConnectivityCost n ≤ 2 * (n : ℝ) * Real.sqrt (n : ℝ) := by
   rcases Nat.eq_zero_or_pos n with hn | hn
@@ -192,6 +225,9 @@ theorem theorem9_query_cost (n : ℕ) :
     _ ≤ 2 * Real.sqrt ((n : ℝ) ^ 3) := by linarith [hmono]
     _ = 2 * (n : ℝ) * Real.sqrt (n : ℝ) := by rw [hsqrt3]; ring
 
+/-- For degrees given by symmetrized adjacency, the vertices possess a pairwise disjoint
+covering by nonempty connected finite sets satisfying `DegreeBound`, with at most as many
+parts as vertices [DurrEtAl2006]. -/
 theorem lemma10_component_partition {V : Type*} [Fintype V] [DecidableEq V]
     (adj : V → V → Bool) (deg : V → ℕ)
     (hdeg : ∀ v, deg v = (Finset.univ.filter fun w => (adj v w || adj w v)).card) :
@@ -271,6 +307,8 @@ theorem lemma10_component_partition {V : Type*} [Fintype V] [DecidableEq V]
           Finset.card_image_le
       _ = Fintype.card V := Finset.card_univ
 
+/-- If each component satisfies `DegreeBound` and the sum of component cardinalities is at most
+n, the sum of square roots of total component degrees is at most n [DurrEtAl2006]. -/
 theorem theorem11_query_cost {ι V : Type*} [Fintype ι] (deg : V → ℕ)
     (C : ι → Finset V) (n : ℕ) (hbound : ∀ i, DegreeBound deg (C i))
     (hcover : (∑ i, (C i).card) ≤ n) :

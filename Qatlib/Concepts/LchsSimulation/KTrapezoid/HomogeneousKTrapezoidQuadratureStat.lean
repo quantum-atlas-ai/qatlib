@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSWindow
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureDefs
+
+/-!
+# Homogeneous trapezoidal LCHS specification
+
+`HomogeneousKTrapezoidQuadrature` specifies the operator-norm error of `kTrapSum` for forward
+dissipative evolution. The bound separates the Cauchy tail from a second-order parameter-grid
+error depending on the integral of `‖L u‖`. See [AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `HomogeneousKTrapezoidQuadrature`: The homogeneous trapezoidal LCHS error specification with
+  tail `2 / (Real.pi * K)` and the stated second-order grid term involving the integral of `‖L
+  u‖`.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -30,6 +49,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 end HomogeneousKTrapezoidDefinitions
 
+/-- The homogeneous trapezoidal LCHS error specification with tail `2 / (Real.pi * K)` and the
+stated second-order grid term involving the integral of `‖L u‖`. -/
 def HomogeneousKTrapezoidQuadrature : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ)
     (s t : ℝ) (K M : ℕ),

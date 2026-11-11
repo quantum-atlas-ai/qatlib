@@ -17,6 +17,37 @@ import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+/-!
+# General Adversary Witnesses and Label Measurements
+
+This module collects witness comparisons, attainment statements, and measurement facts for the
+general adversary method of [HoyerLeeSpalek2007] and its filtered norm formulation in
+[LeeEtAl2011]. The results compare individual adversary matrices with `generalAdversaryValue`,
+`advPmValue`, and `filteredGamma2`, including the case of a vanishing maximum filter norm.
+
+The label measurement lemmas identify computational basis outcome probabilities with `povmProb`
+and supply the corresponding final progress estimate. The numbered
+`stageA_general_adversary_clause16` through `stageA_general_adversary_clause21` package these
+statements for subsequent use.
+
+## Main statements
+
+* `adversary_ratio_le_sdp` bounds a witness norm ratio by the general adversary value.
+* `stageA_general_adversary_clause18` includes attainment by a real symmetric feasible matrix
+  when the value is finite.
+* `stageA_general_adversary_clause20` compares the adversary value and feasible witnesses with
+  the filtered gamma-two norm.
+* `labelPovm_orthogonal`, `labelPovm_idem`, and `stageA_general_adversary_clause21` describe the
+  projective label measurement.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007], Negative weights make adversaries
+  stronger.
+* [Lee et al., 2011][LeeEtAl2011], Quantum Query Complexity of State Conversion.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -37,6 +68,8 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 noncomputable section
 
+/-- The POVM induced by a basis labeling satisfies the final adversary progress bound for
+function evaluation. -/
 theorem povm_final_progress_label {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (Gamma : Matrix X X ℂ) (f : X → Y) (label : H → Y) (eps : ℝ) :
@@ -54,6 +87,8 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- Packages the final progress bound for label POVMs and its explicit estimate with coefficient
+`2 * sqrt (eps * (1 - eps)) + 2 * eps` for error between zero and one half. -/
 theorem stageA_general_adversary_clause16 :
     (∀ {X H Y : Type} [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
       [Fintype Y] [DecidableEq Y] (Gamma : Matrix X X ℂ) (f : X → Y) (label : H → Y)
@@ -77,6 +112,8 @@ end
 set_option linter.unusedVariables false in
 noncomputable section
 
+/-- The norm ratio of a Hermitian adversary matrix vanishing on equal outputs is bounded by
+`generalAdversaryValue` when its maximum filter norm is positive. -/
 theorem adversary_ratio_le_sdp {X E : Type} [Fintype X] [DecidableEq X] [Fintype E]
     [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) (Gamma : Matrix X X ℂ)
     (hG : Gamma.IsHermitian) (hz : ∀ x y, f x = f y → Gamma x y = 0)
@@ -126,6 +163,8 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- The norm of a Hermitian matrix vanishing on pairs of equal outputs and with all query filter
+norms at most one is bounded by `generalAdversaryValue`. -/
 theorem adversary_witness_le_sdp {X E : Type} [Fintype X] [DecidableEq X] [Fintype E]
     [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) (Gamma : Matrix X X ℂ)
     (hG : Gamma.IsHermitian) (hz : ∀ x y, f x = f y → Gamma x y = 0)
@@ -138,6 +177,8 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- Every query-filtered matrix is zero when the maximum filter norm of the adversary matrix is
+zero. -/
 theorem adversary_degenerate_filter {X E : Type} [Fintype X] [DecidableEq X] [Fintype E]
     [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) (Gamma : Matrix X X ℂ)
     (hG : Gamma.IsHermitian) (hz : ∀ x y, f x = f y → Gamma x y = 0) (hne : Gamma ≠ 0)
@@ -153,6 +194,9 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- Collects the normalized witness and positive-denominator ratio comparisons with
+`generalAdversaryValue`, the zero-filter conclusion, and the comparison of an individual
+witness value with `advPmValue`. -/
 theorem stageA_general_adversary_clause17 :
     (∀ {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
       (input : X → Fin n → Bool) (f : X → E) (Gamma : Matrix X X ℂ)
@@ -183,6 +227,7 @@ theorem stageA_general_adversary_clause17 :
 end
 noncomputable section
 
+/-- A nonzero adversary matrix with zero maximum filter norm has infinite `advPmWitnessValue`. -/
 theorem stageA_general_adversary_clause17_degenerate
     {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
     (input : X → Fin n → Bool) (f : X → E) (Gamma : Matrix X X ℂ)
@@ -204,6 +249,8 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- Combines the comparison of individual witnesses with `advPmValue` and attainment of a finite
+`generalAdversaryValue` by a real symmetric feasible matrix. -/
 theorem stageA_general_adversary_clause18 :
     (∀ {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
       (input : X → Fin n → Bool) (f : X → E) (Gamma : Matrix X X ℂ)
@@ -228,6 +275,8 @@ theorem stageA_general_adversary_clause18 :
 end
 noncomputable section
 
+/-- The condition that an adversary matrix vanish on pairs of equal outputs is invariant under
+an equivalence of output types. -/
 theorem adversary_feasible_relabel {X E E' : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] [Fintype E'] [DecidableEq E']
     (sigma : E ≃ E') (f : X → E) (Gamma : Matrix X X ℂ) :
@@ -246,6 +295,8 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- Pairs invariance of adversary feasibility under output relabeling with the identity
+implication for a zero maximum filter norm. -/
 theorem stageA_general_adversary_clause19 :
     (∀ {X E E' : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E]
       [Fintype E'] [DecidableEq E'] (sigma : E ≃ E') (f : X → E) (Gamma : Matrix X X ℂ),
@@ -262,6 +313,8 @@ end
 noncomputable section
 set_option linter.unusedVariables false in
 
+/-- Bounds `generalAdversaryValue` and the norm of every normalized feasible Hermitian witness
+by the filtered gamma-two norm of the function evaluation matrix. -/
 theorem stageA_general_adversary_clause20 :
     (∀ {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
       (input : X → Fin n → Bool) (f : X → E),
@@ -278,6 +331,7 @@ theorem stageA_general_adversary_clause20 :
 end
 noncomputable section
 
+/-- Effects for distinct outputs of a basis-label POVM have zero product. -/
 theorem labelPovm_orthogonal {H E : Type} [Fintype H] [DecidableEq H] [Fintype E]
     [DecidableEq E] (label : H → E) (y y' : E) (hne : y ≠ y') :
     labelPovm label y * labelPovm label y' = 0 := by
@@ -307,6 +361,7 @@ theorem labelPovm_orthogonal {H E : Type} [Fintype H] [DecidableEq H] [Fintype E
 end
 noncomputable section
 
+/-- Each effect of a basis-label POVM is idempotent. -/
 theorem labelPovm_idem {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) (y : E) : labelPovm label y * labelPovm label y = labelPovm label y := by
   ext h h'
@@ -317,6 +372,8 @@ theorem labelPovm_idem {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [Dec
 end
 noncomputable section
 
+/-- Collects the POVM property, orthogonality of distinct label effects, and equality of POVM
+probabilities with the corresponding basis-event probabilities. -/
 theorem stageA_general_adversary_clause21 :
     (∀ {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
       (label : H → E), IsPovm (labelPovm label)) ∧

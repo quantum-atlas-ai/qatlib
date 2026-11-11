@@ -8,6 +8,26 @@ import Qatlib.Papers.QAlgorithms97.MainResults.DeutschJozsa
 import Mathlib.Data.ZMod.Basic
 import Qatlib.Papers.SingleQuery97.MainResults.FourierLayers
 import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
+
+/-!
+# Recovering binary affine coefficients
+
+Binary affine maps are represented both over `ZMod 2` and as Boolean registers. The character
+identities reduce a selected combination of output bits to a parity secret, and the explicit
+one-query circuit `affineWord` recovers that secret with certainty, giving all rows in `m`
+queries as in [CleveEtAl1998].
+
+## Main statements
+
+* `affine_parity_constant_iff`: constant output parity is equivalent to vanishing column sums.
+* `affineWord_run`: the exact final state of the affine-query circuit.
+* `affine_all_rows`: deterministic recovery of every row with total query count `m`.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,23 +40,32 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
 namespace Qatlib.Papers.QAlgorithms97.MainResults.AffineCoefficients
 
+/-- The value of a Boolean bit in the field `ZMod 2`. -/
 def bitVal (b : Bool) : ZMod 2 := if b then 1 else 0
 
+/-- A Boolean register viewed as a vector over `ZMod 2`. -/
 def regVec {n : ℕ} (x : Reg n) : Fin n → ZMod 2 := fun i => bitVal (x i)
 
+/-- Matrix-vector multiplication over `ZMod 2` for a finite rectangular matrix. -/
 def matVec {m n : ℕ} (A : Fin m → Fin n → ZMod 2) (v : Fin n → ZMod 2) :
     Fin m → ZMod 2 :=
   fun i => ∑ j, A i j * v j
 
+/-- The vector obtained by summing all rows of a matrix over `ZMod 2`. -/
 def rowSum {m n : ℕ} (A : Fin m → Fin n → ZMod 2) : Fin n → ZMod 2 :=
   fun j => ∑ i, A i j
 
+/-- The affine image of a Boolean register under the matrix `A` and offset `b`, computed over
+`ZMod 2`. -/
 def affineVec {m n : ℕ} (A : Fin m → Fin n → ZMod 2) (b : Fin m → ZMod 2)
     (x : Reg n) : Fin m → ZMod 2 :=
   fun i => matVec A (regVec x) i + b i
 
+/-- The sum of the coordinates of a finite vector over `ZMod 2`. -/
 def vecSum {m : ℕ} (v : Fin m → ZMod 2) : ZMod 2 := ∑ i, v i
 
+/-- The coordinate sum of an affine image is the dot product with the sum of the rows, plus the
+coordinate sum of the offset. -/
 lemma vecSum_affineVec {m n : ℕ} (A : Fin m → Fin n → ZMod 2)
     (b : Fin m → ZMod 2) (x : Reg n) :
     vecSum (affineVec A b x) =
@@ -48,6 +77,8 @@ lemma vecSum_affineVec {m n : ℕ} (A : Fin m → Fin n → ZMod 2)
   intro j _
   rw [← Finset.sum_mul]
 
+/-- The coordinate sum of an affine image is always the offset sum if and only if every
+coordinate of the sum of the rows vanishes. -/
 theorem affine_parity_constant_iff {m n : ℕ} (A : Fin m → Fin n → ZMod 2)
     (b : Fin m → ZMod 2) :
     (∀ x : Reg n, vecSum (affineVec A b x) = vecSum b) ↔
@@ -78,17 +109,23 @@ theorem affine_parity_constant_iff {m n : ℕ} (A : Fin m → Fin n → ZMod 2)
     rw [Finset.sum_eq_zero (fun j _ => hzero j)]
     simp
 
+/-- The Boolean parity of a finite bit vector, true exactly when its number of true coordinates
+is odd. -/
 def boolParity {k : ℕ} (v : Fin k → Bool) : Bool :=
   decide ((Finset.univ.filter fun i => v i).card % 2 = 1)
 
+/-- The Boolean affine output bit given by the parity of rowwise products with `x`, followed by
+addition of the offset bit. -/
 def affineBit {m n : ℕ} (A : Fin m → Reg n) (b : Reg m) (i : Fin m)
     (x : Reg n) : Bool :=
   boolParity (fun j => A i j && x j) != b i
 
+/-- The parity of the affine output coordinates selected by the mask `c`. -/
 def affinePhaseBit {m n : ℕ} (c : Reg m) (A : Fin m → Reg n) (b : Reg m) :
     Reg n → Bool :=
   fun x => boolParity (fun i => c i && affineBit A b i x)
 
+/-- The bit vector obtained by taking the parity of the rows of `A` selected by `c`. -/
 def recoveredSecret {m n : ℕ} (c : Reg m) (A : Fin m → Reg n) : Reg n :=
   fun j => boolParity (fun i => c i && A i j)
 
@@ -96,12 +133,15 @@ open OracleInterfaces
 open Qatlib.Concepts.UniformBqp.BvParityBound
 open Qatlib.Papers.QComplexity97.XorSeparation
 
+/-- Boolean conjunction becomes multiplication in `ZMod 2`. -/
 theorem bitVal_and (a b : Bool) : bitVal (a && b) = bitVal a * bitVal b := by
   cases a <;> cases b <;> decide
 
+/-- Boolean inequality becomes addition in `ZMod 2`. -/
 theorem bitVal_ne (a b : Bool) : bitVal (a != b) = bitVal a + bitVal b := by
   cases a <;> cases b <;> decide
 
+/-- The value of Boolean parity in `ZMod 2` is the sum of the values of the input bits. -/
 theorem bitVal_boolParity {k : ℕ} (v : Reg k) :
     bitVal (boolParity v) = ∑ i, bitVal (v i) := by
   have hs : (∑ i, bitVal (v i)) =
@@ -112,11 +152,14 @@ theorem bitVal_boolParity {k : ℕ} (v : Reg k) :
   interval_cases h : (Finset.univ.filter fun i => v i).card % 2 <;>
     simp [boolParity, bitVal, h]
 
+/-- The standard additive character of a Boolean value is one for false and minus one for true. -/
 theorem bit_character (b : Bool) :
     ZMod.stdAddChar (bitVal b) = (if b then (-1 : ℂ) else 1) := by
   cases b <;> simp [bitVal,
     Qatlib.Papers.SingleQuery97.MainResults.FourierLayers.binary_character_one]
 
+/-- The binary character equals the standard additive character evaluated at the binary dot
+product. -/
 theorem binaryCharacter_dot {k : ℕ} (c v : Reg k) :
     binaryCharacter c v = ZMod.stdAddChar (∑ i, bitVal (c i) * bitVal (v i)) := by
   rw [Qatlib.Papers.SingleQuery97.MainResults.CharacterSum.map_finsetSum_eq_prod]
@@ -124,6 +167,8 @@ theorem binaryCharacter_dot {k : ℕ} (c v : Reg k) :
   intro i _
   rw [← bitVal_and, bit_character]
 
+/-- The selected sum of affine output bits splits into the dot product with `recoveredSecret`
+and the selected offset sum over `ZMod 2`. -/
 theorem affine_selected_sum {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) (x : Reg n) :
     (∑ i, bitVal (c i) * bitVal (affineBit A b i x)) =
       (∑ j, bitVal (recoveredSecret c A j) * bitVal (x j)) +
@@ -139,16 +184,21 @@ theorem affine_selected_sum {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) (x :
   intro i _
   ring
 
+/-- The character of an affine output factors into the offset character and the character of the
+recovered secret evaluated on the input. -/
 theorem binaryCharacter_affine {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) (x : Reg n) :
     binaryCharacter c (fun i => affineBit A b i x) =
       binaryCharacter c b * binaryCharacter (recoveredSecret c A) x := by
   rw [binaryCharacter_dot, affine_selected_sum, AddChar.map_add_eq_mul,
     ← binaryCharacter_dot, ← binaryCharacter_dot, mul_comm]
 
+/-- Every binary character value has complex norm one. -/
 theorem binaryCharacter_norm {m : ℕ} (c b : Reg m) : ‖binaryCharacter c b‖ = 1 := by
   rw [binaryCharacter_dot]
   exact ZMod.stdAddChar.norm_apply (∑ i, bitVal (c i) * bitVal (b i))
 
+/-- The sign determined by `affinePhaseBit` equals the corresponding binary character of the
+affine output. -/
 theorem affinePhase_character {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) (x : Reg n) :
     (if affinePhaseBit c A b x then (-1 : ℂ) else 1) =
       binaryCharacter c (fun i => affineBit A b i x) := by
@@ -156,6 +206,8 @@ theorem affinePhase_character {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) (x
   simp only [bitVal_and]
   exact (binaryCharacter_dot _ _).symm
 
+/-- The Hadamard transform of the character-weighted uniform state is the basis state of
+`recoveredSecret`, multiplied by the offset character. -/
 theorem affine_character_readout {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
     ApplyGate (HadamardN n)
       (fun x => binaryCharacter c (fun i => affineBit A b i x) * Uniform (Reg n) x) =
@@ -175,6 +227,8 @@ theorem affine_character_readout {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m)
   rw [← applyGate_mul, bv_hadamard_square, applyGate_one]
   rfl
 
+/-- For every output mask, the phase-oracle circuit prepares the recovered secret basis state up
+to a complex scalar of norm one. -/
 theorem affine_coefficients_recoverable {n m : ℕ} (A : Fin m → Reg n)
     (b : Reg m) :
     ∀ c : Reg m, ∃ θ : ℂ, ‖θ‖ = 1 ∧
@@ -192,20 +246,26 @@ theorem affine_coefficients_recoverable {n m : ℕ} (A : Fin m → Reg n)
   rw [hp]
   exact affine_character_readout A b c
 
+/-- The affine-query circuit consisting of Hadamards on both registers, one output-oracle query,
+and Hadamards on the input register. -/
 def affineWord (n m : ℕ) : Circuit (Reg n × Reg m) :=
   [Step.gate (TensorGate (HadamardN n) (HadamardN m)), Step.query,
    Step.gate (TensorGate (HadamardN n) 1)]
 
+/-- The affine-query word contains exactly one query and two gate steps. -/
 theorem affineWord_resources (n m : ℕ) :
     QueryCount (affineWord n m) = 1 ∧ GateCount (affineWord n m) = 2 := by
   constructor <;> rfl
 
+/-- Every gate step of `affineWord` is unitary. -/
 theorem affineWord_unitary (n m : ℕ) : IsUnitaryCircuit (affineWord n m) := by
   simp only [affineWord, isUnitaryCircuit_gate, isUnitaryCircuit_query,
     isUnitaryCircuit_nil, and_true]
   exact ⟨tensorGate_unitary (hadamardN_unitary n) (hadamardN_unitary m),
     tensorGate_unitary (hadamardN_unitary n) (Matrix.unitaryGroup (Reg m) ℂ).one_mem⟩
 
+/-- The affine output-oracle circuit sends the zero input and mask basis state to the recovered
+secret with the offset character as a phase, tensored with `outputAnswer c` [CleveEtAl1998]. -/
 theorem affineWord_run {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
     Run (outputOracle (fun x => fun i => affineBit A b i x)) (affineWord n m)
       (TensorState (Ket (ZeroStr n)) (Ket c)) =
@@ -217,6 +277,8 @@ theorem affineWord_run {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
       (TensorState (Uniform (Reg n)) (outputAnswer c))) = _
   rw [outputOracle_kickback, applyGate_tensorGate, applyGate_one, affine_character_readout]
 
+/-- Measuring the input register of the affine-query output yields `recoveredSecret c A` with
+probability one. -/
 theorem affineWord_readout {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
     MeasureProb
       (Run (outputOracle (fun x => fun i => affineBit A b i x)) (affineWord n m)
@@ -226,6 +288,7 @@ theorem affineWord_readout {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
   simp [MeasureProb, BornProb, Qatlib.Foundations.PureStateMath.Ket,
     binaryCharacter_norm]
 
+/-- The output of the affine-query circuit on the specified basis-state input is normalized. -/
 theorem affineWord_normalized {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
     Normalized
       (Run (outputOracle (fun x => fun i => affineBit A b i x)) (affineWord n m)
@@ -233,8 +296,10 @@ theorem affineWord_normalized {n m : ℕ} (A : Fin m → Reg n) (b c : Reg m) :
   (affineWord_unitary n m).normalized_run (outputOracle_unitary _)
     (normalized_tensorState (normalized_ket _) (normalized_ket _))
 
+/-- The Boolean mask selecting exactly the coordinate `i`. -/
 def rowSelector {m : ℕ} (i : Fin m) : Reg m := fun j => decide (j = i)
 
+/-- Selecting a single row makes the recovered secret equal that row of `A`. -/
 theorem recoveredSecret_row {n m : ℕ} (A : Fin m → Reg n) (i : Fin m) :
     recoveredSecret (rowSelector i) A = A i := by
   funext j
@@ -247,6 +312,8 @@ theorem recoveredSecret_row {n m : ℕ} (A : Fin m → Reg n) (i : Fin m) :
   simp_rw [hsel, ite_mul, one_mul, zero_mul]
   simp
 
+/-- Each row of the affine matrix is measured with probability one using its row selector, and
+the total query count of the `m` runs is `m` [Cleve et al., Section 3][CleveEtAl1998]. -/
 theorem affine_all_rows {n m : ℕ} (A : Fin m → Reg n) (b : Reg m) :
     (∀ i : Fin m,
       MeasureProb

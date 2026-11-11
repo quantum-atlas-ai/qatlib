@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
 import Qatlib.Concepts.OperatorErrors.Robustness
 import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+
+/-!
+# QSVT encodings and counted realizations
+
+This module packages the polynomial block identities of phased alternating sequences as
+projected unitary encodings. It covers odd cross-frame responses and even responses on either
+frame in the QSVT framework of [GilyenSuLowWiebe2019].
+
+The counted realization theorems give one query per phase-list entry and one additional fixed
+gate. Replacing the oracle by a nearby unitary gives an odd-response block encoding with error
+bounded by the phase-list length times the oracle error.
+
+## Main statements
+
+* `qsvt_odd_projectedEncoding`: odd responses encode the upper-right polynomial dilation block.
+* `qsvt_even_right_projectedEncoding`: even adjoint-oracle responses encode the lower-right
+  block.
+* `qsvt_odd_counted_realization`: odd responses have an explicitly counted oracle word.
+* `qsvt_odd_oracleReplacement`: oracle replacement incurs at most the linear query error budget.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -27,6 +52,9 @@ open Qatlib
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/-- With unit phases and odd phase-list length, the phased sequence gives a projected unitary
+encoding of the upper-right response polynomial block of the Hermitian dilation. This is the
+odd encoding form of [Gilyén et al., Theorem 17][GilyenSuLowWiebe2019]. -/
 theorem qsvt_odd_projectedEncoding {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -40,6 +68,8 @@ theorem qsvt_odd_projectedEncoding {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     h.left_isometry, h.right_isometry, ?_⟩
   exact qsvt_odd_eq_dilation h base zs hodd
 
+/-- With unit phases and even phase-list length, the phased sequence gives a projected unitary
+encoding of the upper-left response polynomial block using the left frame twice. -/
 theorem qsvt_even_left_projectedEncoding {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -53,6 +83,9 @@ theorem qsvt_even_left_projectedEncoding {A : Matrix O I ℂ} {U : Matrix H H �
     h.left_isometry, h.left_isometry, ?_⟩
   exact qsvt_even_left_eq_dilation h base zs heven
 
+/-- With unit phases and even phase-list length, the adjoint-oracle sequence encodes the
+lower-right response polynomial block using the right frame twice. This is the right-frame
+even form of [Gilyén et al., Theorem 17][GilyenSuLowWiebe2019]. -/
 theorem qsvt_even_right_projectedEncoding {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -66,6 +99,8 @@ theorem qsvt_even_right_projectedEncoding {A : Matrix O I ℂ} {U : Matrix H H �
     h.right_isometry, h.right_isometry, ?_⟩
   exact qsvt_even_right_eq_dilation h base zs heven
 
+/-- An odd phased response has an oracle-word realization encoding its upper-right dilation
+block with `zs.length` queries and `zs.length + 1` fixed gates. -/
 theorem qsvt_odd_counted_realization {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -80,6 +115,8 @@ theorem qsvt_odd_counted_realization {A : Matrix O I ℂ} {U : Matrix H H ℂ}
   rw [evaluate_compileQSVT]
   exact qsvt_odd_projectedEncoding h hb zs hzs hodd
 
+/-- An even right-frame response has an oracle-word realization encoding its lower-right
+dilation block with `zs.length` queries and `zs.length + 1` fixed gates. -/
 theorem qsvt_even_right_counted_realization {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -100,6 +137,8 @@ section SpectralNorm
 
 open scoped Matrix.Norms.L2Operator
 
+/-- Replacing the oracle by a unitary within norm distance `δ` gives a scale-one encoding of the
+original odd polynomial block with error at most `zs.length * δ`. -/
 theorem qsvt_odd_oracleReplacement {A : Matrix O I ℂ} {U V : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) (hV : V ∈ Matrix.unitaryGroup H ℂ)

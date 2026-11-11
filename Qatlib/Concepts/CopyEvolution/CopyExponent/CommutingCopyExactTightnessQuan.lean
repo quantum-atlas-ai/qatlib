@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessStat
 import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+
+/-!
+# Exact commuting examples for copy exponentiation
+
+This module analyzes fresh-copy partial-swap evolution for a two-dimensional commuting family.
+One step rescales the second diagonal weight by cos² θ, so repeated equal-angle steps give an
+exact error formula.
+
+`commutingCopyExactTightness` also supplies a lower bound on the resulting cosine deficit,
+illustrating the copy dependence of density-matrix exponentiation [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `diag_run`: computes the repeated partial-swap output on the diagonal family.
+* `commutingCopyExactTightness`: proves the exact error and cosine lower-bound specification.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,11 +43,14 @@ open Matrix
 open scoped ComplexOrder
 set_option autoImplicit false
 
+/-- The two-dimensional diagonal projector with diagonal entries one and zero. -/
 private noncomputable def rho2 : Operator 2 :=
   Matrix.diagonal fun b => if b=0 then 1 else 0
+/-- The two-dimensional diagonal operator with diagonal entries `1 - s` and `s`. -/
 private noncomputable def sigma2 (s : ℝ) : Operator 2 :=
   Matrix.diagonal fun b => if b=0 then ((1-s:ℝ):ℂ) else (s:ℂ)
 
+/-- The diagonal projector `rho2` is a density operator. -/
 private theorem rho2_density : IsDensityOperator rho2 := by
   constructor
   · apply Matrix.posSemidef_diagonal_iff.mpr
@@ -34,6 +58,8 @@ private theorem rho2_density : IsDensityOperator rho2 := by
     split <;> norm_num
   · simp [rho2, Matrix.trace]
 
+/-- A partial-swap step on the diagonal family replaces `s` by `cos² θ * s`, with a
+one-dimensional reference factor. -/
 private theorem diag_step (θ s : ℝ) :
     partialSwapReferenceOutput rho2 θ 1 (TensorGate (sigma2 s) (1:Operator 1)) =
       TensorGate (sigma2 ((Real.cos θ)^2*s)) (1:Operator 1) := by
@@ -58,6 +84,8 @@ private theorem diag_step (θ s : ℝ) :
     exact hh
   linear_combination hc
 
+/-- Repeating the same partial-swap angle `n` times replaces the diagonal weight `s` by `cos θ`
+to the power `2 * n` times `s`. -/
 private theorem diag_run (θ s : ℝ) (n : ℕ) :
     freshCopyReferenceRun rho2 (List.replicate n θ) 1
       (TensorGate (sigma2 s) (1:Operator 1)) =
@@ -72,6 +100,7 @@ private theorem diag_run (θ s : ℝ) (n : ℕ) :
     rw [show 2*(n+1)=2*n+2 by omega, pow_add]
     ring
 
+/-- For `0 ≤ y ≤ 1` and `n * y ≤ 1`, the deficit `1 - (1 - y)^n` is at least `n * y / 2`. -/
 private theorem bernoulli_lower (y : ℝ) (hy0 : 0 ≤ y) (hy1 : y ≤ 1)
     (n : ℕ) (hny : (n:ℝ)*y ≤ 1) :
     (n:ℝ)*y/2 ≤ 1-(1-y)^n := by
@@ -94,6 +123,7 @@ private theorem bernoulli_lower (y : ℝ) (hy0 : 0 ≤ y) (hy1 : y ≤ 1)
   have hh : 0 ≤ (1-(n:ℝ)*y)*(1-(1-y)^n) := mul_nonneg (by linarith) (by linarith)
   nlinarith
 
+/-- For `t ≥ 0`, `n > 0`, and `t² ≤ n`, the deficit `1 - cos(t/n)^(2n)` is at least `t²/(8n)`. -/
 private theorem cosine_lower (t : ℝ) (n : ℕ) (ht : 0 ≤ t) (hn : 0 < n)
     (hsq : t^2 ≤ (n:ℝ)) :
     t^2/(8*(n:ℝ)) ≤ 1-(Real.cos (t/(n:ℝ)))^(2*n) := by
@@ -129,6 +159,9 @@ private theorem cosine_lower (t : ℝ) (n : ℕ) (ht : 0 ≤ t) (hn : 0 < n)
   dsimp [τ]
   field_simp
 
+/-- Proves the exact commuting-family output and trace-norm formulas together with the cosine
+deficit lower bound. This quantifies the fresh-copy error in the density-matrix
+exponentiation setting of [LloydMohseniRebentrost2014]. -/
 theorem commutingCopyExactTightness : CommutingCopyExactTightness := by
   intro t n s ht hn hsq hs0 _hs1
   let q := (Real.cos (t/(n:ℝ)))^(2*n)

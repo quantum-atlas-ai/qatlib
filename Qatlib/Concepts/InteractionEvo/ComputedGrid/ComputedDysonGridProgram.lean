@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonSourceParametersHami
 import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+
+/-!
+# Computed Dyson grid parameters and operation counts
+
+This module defines explicit cutoff and grid-size choices for a finite Dyson grid computation.
+`computedDysonGridRun` records sampled increments, the truncated strict-sublist sum, and sample
+and matrix multiplication counts.
+
+The cutoff satisfies a dyadic factorial-tail estimate and a logarithmic rate bound, providing
+parameter data for the analysis of [LowWiebe2018].
+
+## Main statements
+
+* `computedDysonCutoff_tail_and_rate`: the factorial-tail estimate and cutoff rate.
+* `computedDysonGridRun_structure`: grid bounds, the approximation identity, and exact operation
+  counts.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,12 +41,17 @@ namespace Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The factorial Taylor cutoff at precision parameter `k + 2` used for the Dyson grid
+truncation. -/
 def computedDysonCutoff (k : ℕ) : ℕ := factorialTaylorCutoff (k + 2)
 
+/-- The maximum of one, the squared computed cutoff, and the ceiling of `16 t² (χ + Λ²) 2^k`. -/
 def computedDysonGridSize (t Λ χ : ℝ) (k : ℕ) : ℕ :=
   max (max 1 ((computedDysonCutoff k) ^ 2))
     (Nat.ceil (16 * t ^ 2 * (χ + Λ ^ 2) * (2 : ℝ) ^ k))
 
+/-- Data for a finite Dyson grid computation, including its grid size, cutoff, increments,
+approximation, and operation counts. -/
 structure ComputedDysonGridRun (I : Type) where
   gridSize : ℕ
   cutoff : ℕ
@@ -33,6 +60,8 @@ structure ComputedDysonGridRun (I : Type) where
   sampleReads : ℕ
   matrixMultiplications : ℕ
 
+/-- Construct the sampled increments and sum their reverse-order sublist products through the
+computed cutoff, recording sample reads and matrix multiplications. -/
 def computedDysonGridRun {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t Λ χ : ℝ) (k : ℕ) : ComputedDysonGridRun I :=
   let M := computedDysonGridSize t Λ χ k
@@ -48,6 +77,9 @@ def computedDysonGridRun {I : Type} [Fintype I] [DecidableEq I]
     matrixMultiplications := ((List.range (K + 1)).map
       (fun l => l * (increments.reverse.sublistsLen l).length)).sum }
 
+/-- The computed cutoff bounds the factorial tail by `2⁻ᵏ / 2` for `0 ≤ x ≤ log 2` and satisfies
+the stated logarithmic rate estimate. These parameter estimates support the Dyson truncation
+analysis of [LowWiebe2018]. -/
 theorem computedDysonCutoff_tail_and_rate :
     (∀ (k : ℕ) (x : ℝ), 0 ≤  x → x ≤  Real.log 2 →
       (2 : ℝ)*x^(computedDysonCutoff k+1)/(Nat.factorial (computedDysonCutoff k+1):ℝ) ≤
@@ -73,6 +105,9 @@ theorem computedDysonCutoff_tail_and_rate :
   · obtain ⟨C,m0,hC,hm0,hrate⟩ := factorial_taylor_native_cutoff_and_rate.2
     exact ⟨C,m0,hC,hm0,fun k hk => hrate (k+2) hk⟩
 
+/-- The computed run has a positive grid at least the squared cutoff, equals the truncated
+strict Dyson sum, uses one sample per grid point, and records `∑ l ≤ K, l * choose M l`
+multiplications. This describes the finite grid construction used with [LowWiebe2018]. -/
 theorem computedDysonGridRun_structure :
     ∀ (I : Type) [Fintype I] [DecidableEq I]
       (H : ℝ → Matrix I I ℂ) (t Λ χ : ℝ) (k : ℕ),

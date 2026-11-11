@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineApplications
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Explicit cutoffs for cosine sampling
+
+This module chooses `cosineCutoff` and `cosineRetainedCount` from a positive error budget and
+defines the resulting `cosineApproximation`. It bounds the retained count, sample scales, and
+matrix normalization terms, and proves error at most the requested budget for wave, Bessel, and
+Airy targets. These explicit choices quantify the sampling constructions in [WangEtAl2026].
+
+## Main statements
+
+* `cosineCutoff_tail_budget`: the chosen cutoff satisfies the inverse-square tail budget.
+* `cosine_chosen_target_error_le`: the chosen finite approximation has error at most `δ` under
+  the analytic sampling hypotheses.
+* `cosineRetained_sampleScale_le`: bounds every retained sampling scale.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -16,6 +37,7 @@ namespace CBMD
 open Complex Filter Metric
 open scoped Topology BigOperators
 
+/-- For positive `γ` and `τ`, the sum of all sample coefficient norms is at most `γ * τ ^ 2`. -/
 theorem cosineSampleCoefficient_norm_tsum_le_scale {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) :
     (∑' k : ℕ, ‖cosineSampleCoefficient γ τ k‖) ≤ γ * τ ^ 2 := by
@@ -42,12 +64,18 @@ theorem cosineSampleCoefficient_norm_tsum_le_scale {γ τ : ℝ}
     _ = 20 * γ * τ ^ 2 / Real.pi ^ 3 := by ring
     _ ≤ _ := hc
 
+/-- The natural ceiling of `sqrt (γ * τ ^ 2 * exp (τ * sqrt (γ / 2)) / (π ^ 3 * δ))` used to
+meet the cosine tail budget. -/
 def cosineCutoff (γ τ δ : ℝ) : ℕ :=
   ⌈Real.sqrt (γ * τ ^ 2 * Real.exp (τ * Real.sqrt (γ / 2)) / (Real.pi ^ 3 * δ))⌉₊
 
+/-- The retained sample count, equal to zero when the full weighted-series bound is at most `δ`,
+and to `cosineCutoff γ τ δ + 1` otherwise. -/
 def cosineRetainedCount (γ τ δ : ℝ) : ℕ :=
   if γ * τ ^ 2 * Real.exp (τ * Real.sqrt (γ / 2)) ≤ δ then 0 else cosineCutoff γ τ δ + 1
 
+/-- For positive `γ`, `τ`, and `δ`, the inverse-square weighted tail bound at `cosineCutoff γ τ
+δ` is at most `δ`. -/
 theorem cosineCutoff_tail_budget {γ τ δ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hδ : 0 < δ) :
     ‖cosineRegulator γ τ 1‖ * γ * τ ^ 2 /
@@ -65,6 +93,8 @@ theorem cosineCutoff_tail_budget {γ τ δ : ℝ}
   have hb := (div_le_iff₀ (show 0 < Real.pi ^ 3 * δ by positivity)).mp hsq
   nlinarith
 
+/-- For positive `γ`, `τ`, and `δ`, the retained count is at most `sqrt (γ * τ ^ 2 * exp (τ *
+sqrt (γ / 2)) / (π ^ 3 * δ)) + 2`. -/
 theorem cosineRetainedCount_le {γ τ δ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hδ : 0 < δ) :
     (cosineRetainedCount γ τ δ : ℝ) ≤
@@ -79,6 +109,8 @@ theorem cosineRetainedCount_le {γ τ δ : ℝ}
     push_cast
     linarith
 
+/-- For positive `γ`, `τ`, and `δ`, every retained sample scale is at most `169 * exp (τ * sqrt
+(γ / 2)) / δ`. -/
 theorem cosineRetained_sampleScale_le {γ τ δ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hδ : 0 < δ) (k : ℕ)
     (hk : k < cosineRetainedCount γ τ δ) :
@@ -125,11 +157,15 @@ theorem cosineRetained_sampleScale_le {γ τ δ : ℝ}
 section Banach
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- The regulator-weighted baseline value minus the regulator-weighted sum of the first `N`
+cosine samples. -/
 def cosineApproximation (γ τ : ℝ) (N : ℕ) (U : ℂ → E) : E :=
   cosineRegulator γ τ 1 • U 0 - cosineRegulator γ τ 1 • cosineLCUSum γ τ N U
 
 omit [CompleteSpace E] in
 
+/-- For positive parameters and sample values of norm at most one, the norm of the
+regulator-weighted infinite sample series is at most `γ * τ ^ 2 * exp (τ * sqrt (γ / 2))`. -/
 theorem cosineSample_full_weighted_norm_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (U : ℂ → E) (hUsample : ∀ k, ‖U (cosineSamplePole γ τ k)‖ ≤ 1) :
     ‖cosineRegulator γ τ 1 • ∑' k : ℕ, cosineSample γ τ U k‖ ≤
@@ -151,6 +187,9 @@ theorem cosineSample_full_weighted_norm_le {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0
   convert! hh using 1
   ring
 
+/-- For positive parameters and error budget, a complex differentiable numerator with bounded
+samples and an eventual circle comparison has target error at most `δ` at the chosen
+retained count. -/
 theorem cosine_chosen_target_error_le {γ τ δ C : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) (hδ : 0 < δ) (hC : 0 ≤ C)
     (U : ℂ → E) (hUanalytic : Differentiable ℂ U)
@@ -177,6 +216,8 @@ section Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- For positive semidefinite `L`, positive definite `H`, positive `γ`, time, and budget with
+`‖H‖ ≤ γ`, the wave cosine approximation at the chosen retained count has error at most `δ`. -/
 theorem wave_cbmd_chosen_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t δ : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hδ : 0 < δ) (hγH : ‖H‖ ≤ γ) :
     ‖wavePropagator (L + I • H) (t : ℂ) -
@@ -187,6 +228,9 @@ theorem wave_cbmd_chosen_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : 
       (waveCosineNumerator_sample_norm_le_one L H hL hH.posSemidef hγ ht t)
       (waveCosineNumerator_circle_comparison L H hH hγ ht hγH)
 
+/-- For positive semidefinite `L`, positive definite `H`, positive `γ`, time, and budget with
+`‖H‖ ≤ γ`, the Bessel cosine approximation at the chosen retained count has error at most
+`δ`. -/
 theorem bessel_cbmd_chosen_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t δ : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hδ : 0 < δ) (hγH : ‖H‖ ≤ γ) :
     ‖besselPropagator (L + I • H) (t : ℂ) -
@@ -197,6 +241,9 @@ theorem bessel_cbmd_chosen_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH 
       (besselCosineNumerator_sample_norm_le_one L H hL hH.posSemidef hγ ht t)
       (besselCosineNumerator_circle_comparison L H hH hγ ht hγH)
 
+/-- For positive semidefinite `L`, positive definite `H`, positive `γ`, time, and budget with
+`‖H‖ ≤ γ`, the Airy cosine approximation using `airyTimeScale t` and the chosen retained
+count has error at most `δ`. -/
 theorem airy_cbmd_chosen_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t δ : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hδ : 0 < δ) (hγH : ‖H‖ ≤ γ) :
     ‖airyPropagator (L + I • H) (t : ℂ) -
@@ -210,6 +257,8 @@ theorem airy_cbmd_chosen_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : 
         (airyTimeScale_pos_of_pos ht) t ht.le)
       (airyCosineNumerator_circle_comparison L H hH hγ ht hγH)
 
+/-- For positive parameters and error budget, every retained index satisfies `‖L‖ +
+cosineSampleScale γ τ k * ‖H‖ ≤ ‖L‖ + 169 * ‖H‖ * exp (τ * sqrt (γ / 2)) / δ`. -/
 theorem cosineRetained_blockNormalization_le (L H : Matrix n n ℂ)
     {γ τ δ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ) (hδ : 0 < δ) (k : ℕ)
     (hk : k < cosineRetainedCount γ τ δ) :

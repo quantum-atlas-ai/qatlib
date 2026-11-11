@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderStat
+
+/-!
+# Equivalent order criteria for orthogonal projectors
+
+This module proves `Clause2ProjectorOrder_answer`, identifying equivalent descriptions of
+containment between orthogonal projectors. The proof relates range and kernel inclusion,
+absorption identities, positivity of the difference, and pointwise comparison of projected
+vector norms using quadratic forms and the orthogonal Pythagorean identity.
+
+Positive semidefinite matrix order supplies the linear-algebraic background [Bhatia1997]. For
+partially ordered projections, see [LowSu2026].
+
+## Main statements
+
+* `Clause2ProjectorOrder_answer`: Proves all the projector-order equivalences in the
+  specification.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +42,8 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators ComplexOrder
 
+/-- The product of the complex conjugate of a scalar with that scalar is the complex cast of its
+squared norm. -/
 private theorem star_mul_self_coe (z : ℂ) :
     star z * z = (((‖z‖ ^ 2 : ℝ) : ℂ)) := by
   rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self]
@@ -26,11 +51,13 @@ private theorem star_mul_self_coe (z : ℂ) :
     (Complex.norm_mul_self_eq_normSq z).symm.trans (pow_two ‖z‖).symm
   rw [h]
 
+/-- The squared vector norm equals the sum of squared coordinate norms. -/
 private theorem normVec_sq {H : Type} [Fintype H] (v : H → ℂ) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   show ‖toEuclidean_fromVec v‖ ^ 2 = _
   exact norm_toEuclidean_fromVec_sq v
 
+/-- The conjugate dot product of a vector with itself is the complex cast of its squared norm. -/
 private theorem star_dotProduct_self {H : Type} [Fintype H] (u : H → ℂ) :
     star u ⬝ᵥ u = (((normVec u) ^ 2 : ℝ) : ℂ) := by
   have hpt : ∀ i : H, star (u i) * (u i) = (((‖u i‖ ^ 2 : ℝ) : ℂ)) := fun i =>
@@ -39,10 +66,13 @@ private theorem star_dotProduct_self {H : Type} [Fintype H] (u : H → ℂ) :
   simp only [Pi.star_apply]
   rw [Finset.sum_congr rfl fun i _ => hpt i, ← Complex.ofReal_sum, normVec_sq]
 
+/-- A Hermitian matrix can be moved across the conjugate dot product. -/
 private theorem quad_symm {H : Type} [Fintype H] {R : Matrix H H ℂ} (hR : Rᴴ = R)
     (a b : H → ℂ) : star a ⬝ᵥ (R *ᵥ b) = star (R *ᵥ a) ⬝ᵥ b := by
   rw [Matrix.dotProduct_mulVec, Matrix.star_mulVec, hR]
 
+/-- The quadratic form of an orthogonal projection equals the complex cast of the squared norm
+of the projected vector. -/
 private theorem quad_proj {H : Type} [Fintype H] {R : Matrix H H ℂ}
     (hR : IsStarProjection R) (x : H → ℂ) :
     star x ⬝ᵥ (R *ᵥ x) = (((normVec (R *ᵥ x)) ^ 2 : ℝ) : ℂ) := by
@@ -71,6 +101,8 @@ private theorem quad_proj {H : Type} [Fintype H] {R : Matrix H H ℂ}
     _ = star (R *ᵥ x) ⬝ᵥ (R *ᵥ x) := by rw [add_zero]
     _ = (((normVec (R *ᵥ x)) ^ 2 : ℝ) : ℂ) := star_dotProduct_self _
 
+/-- The squared norm of a vector is the sum of the squared norms of its projection and
+complementary projection. -/
 private theorem pythagorean {H : Type} [Fintype H] [DecidableEq H] {R : Matrix H H ℂ}
     (hR : IsStarProjection R) (y : H → ℂ) :
     normVec y ^ 2 = normVec (R *ᵥ y) ^ 2 + normVec ((1 - R) *ᵥ y) ^ 2 := by
@@ -84,6 +116,7 @@ private theorem pythagorean {H : Type} [Fintype H] [DecidableEq H] {R : Matrix H
     ← Complex.ofReal_add] at hmain
   exact Complex.ofReal_inj.mp hmain
 
+/-- An orthogonal projection is contractive for `normVec`. -/
 private theorem normVec_mulVec_le {H : Type} [Fintype H] [DecidableEq H] {R : Matrix H H ℂ}
     (hR : IsStarProjection R) (x : H → ℂ) : normVec (R *ᵥ x) ≤ normVec x := by
   have hp := pythagorean hR x
@@ -91,6 +124,7 @@ private theorem normVec_mulVec_le {H : Type} [Fintype H] [DecidableEq H] {R : Ma
   have hle : normVec (R *ᵥ x) ^ 2 ≤ normVec x ^ 2 := by linarith
   exact le_of_sq_le_sq hle (norm_nonneg (toEuclidean_fromVec x))
 
+/-- A vector whose squared norm is zero is the zero vector. -/
 private theorem normVec_sq_eq_zero {H : Type} [Fintype H] {v : H → ℂ}
     (h : normVec v ^ 2 = 0) : v = 0 := by
   have h2 : ∑ i, ‖v i‖ ^ 2 = 0 := by rwa [normVec_sq v] at h
@@ -102,10 +136,14 @@ private theorem normVec_sq_eq_zero {H : Type} [Fintype H] {v : H → ℂ}
   funext i
   exact norm_eq_zero.mp (h3 i)
 
+/-- Two matrices are equal when they act identically on every vector. -/
 private theorem eq_of_mulVec_eq {H : Type} [Fintype H] [DecidableEq H] {A B : Matrix H H ℂ}
     (h : ∀ x : H → ℂ, A *ᵥ x = B *ᵥ x) : A = B :=
   Matrix.ext_of_mulVec_single (fun i => h (Pi.single i 1))
 
+/-- Establishes the equivalent range, kernel, absorption, positivity, and norm criteria for
+ordering orthogonal projectors in `Clause2ProjectorOrder`. See [Low and Su, Lemma
+10][LowSu2026]. -/
 theorem Clause2ProjectorOrder_answer : Clause2ProjectorOrder := by
   intro H _ _ P Q hP hQ
   have hPi : P * P = P := hP.1

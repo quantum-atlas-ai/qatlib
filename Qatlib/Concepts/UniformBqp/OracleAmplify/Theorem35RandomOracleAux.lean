@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteStat
+
+/-!
+# Counting lemmas for random-oracle failure
+
+The module provides finite counting estimates used in the random-oracle lower bound of
+[BennettEtAl1997]. A single-value update argument relates target-avoiding functions to failures,
+and an elementary power bound compares target avoidance with the full function space. The
+background is described in [BennettEtAl1997].
+
+## Main statements
+
+* `random_oracle_failure_count`: failure counting from single-input updates.
+* `random_oracle_avoid_card`: exact target-avoidance count.
+* `even_oracle_avoid_count`: comparison with all functions on an even-sized set.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +34,8 @@ noncomputable section
 namespace Qatlib.Concepts.UniformBqp.OracleAmplify
 open scoped Classical BigOperators
 
+/-- The number of elements satisfying `p` splits into those also satisfying `q` and those
+satisfying its negation. -/
 private theorem predicate_card_partition {X : Type} [Fintype X] (p q : X → Prop) :
     Fintype.card {x : X // p x} = Fintype.card {x : X // p x ∧ q x}+
       Fintype.card {x : X // p x ∧ ¬q x} := by
@@ -29,6 +51,9 @@ private theorem predicate_card_partition {X : Type} [Fintype X] (p q : X → Pro
         | inr x => (try dsimp only); simp only [Sum.elim_inr]; rw [dif_neg x.property.2] }
   simpa only [Fintype.card_sum] using Fintype.card_congr e
 
+/-- If each successful oracle avoiding `t` has at most half the domain marked and updating any
+unmarked input to `t` causes failure, then the number of oracles avoiding `t` is at most
+twice the total number of failing oracles. -/
 theorem random_oracle_failure_count {V : Type} [Fintype V] [DecidableEq V]
     (t : V) (fails : (V → V) → Prop) (S : (V → V) → Finset V)
     (hsmall : ∀ A, (∀ x, A x ≠ t) → ¬fails A → 2*(S A).card ≤ Fintype.card V)
@@ -105,6 +130,8 @@ theorem random_oracle_failure_count {V : Type} [Fintype V] [DecidableEq V]
   change Nat.card {A : V → V // avoid A} ≤ 2*Nat.card {A : V → V // fails A}
   omega
 
+/-- The number of functions from a finite type to itself that avoid a fixed target is
+`(Fintype.card V - 1)^(Fintype.card V)`. -/
 theorem random_oracle_avoid_card {V : Type} [Fintype V] [DecidableEq V] (t : V) :
     Fintype.card {A : V → V // ∀ x, A x ≠ t} = (Fintype.card V-1)^(Fintype.card V) := by
   classical
@@ -116,6 +143,8 @@ theorem random_oracle_avoid_card {V : Type} [Fintype V] [DecidableEq V] (t : V) 
   have hc := Fintype.card_congr e
   simpa only [Fintype.card_fun, Fintype.card_subtype_compl, Fintype.card_subtype_eq] using hc
 
+/-- For positive `m`, the total count `(2*m)^(2*m)` is at most four times the target-avoiding
+count `(2*m - 1)^(2*m)`. -/
 theorem even_oracle_avoid_count (m : ℕ) (hm : 0 < m) :
     (2*m)^(2*m) ≤ 4*(2*m-1)^(2*m) := by
   let N := 2*m

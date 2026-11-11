@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveMeanDerivativeGridErrorHami
+
+/-!
+# Dyadic segment parameters for Dyson accuracy
+
+This module proves that effective segment parameters supply a positive dyadic grid at least as
+large as the squared cutoff. It also gives a ceiling-logarithm cutoff rate and the segment error
+bound obtained from the integrated derivative estimate. The parameter choices serve the
+short-segment Dyson analysis of [LowWiebe2018].
+
+## Main statements
+
+* `effectiveSegment_grid_structure`: positivity and the squared-cutoff grid bound.
+* `effectiveDysonParameters_error`: error at most `2^(-(precision + 6))`.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +40,8 @@ namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Segment parameters satisfying the domain conditions have positive grid size and squared
+cutoff at most the grid size. -/
 theorem effectiveSegment_grid_structure (p : EffectiveSegmentParameters)
     (hp : effectiveSegmentDomain p) :
     0 < effectiveSegmentM p ∧ (effectiveSegmentK p)^2 ≤ effectiveSegmentM p := by
@@ -29,6 +50,8 @@ theorem effectiveSegment_grid_structure (p : EffectiveSegmentParameters)
   · exact (le_max_right 1 ((effectiveSegmentK p)^2)).trans
       ((le_max_left _ _).trans hp.2.2.2.2)
 
+/-- For all sufficiently large `k`, the cutoff at `k + 8` times `Nat.clog 2 (k + 2)` is bounded
+by a constant times `k + 2`. -/
 theorem effectiveDysonCutoff_clog_rate : ∃ C m0 : ℕ, ∀ k : ℕ, m0 ≤ k →
     computedDysonCutoff (k+8)*Nat.clog 2 (k+2) ≤ C*(k+2) := by
   obtain ⟨C,m0,_hC,_hm0,hr⟩ := computedDysonCutoff_tail_and_rate.2
@@ -48,6 +71,8 @@ theorem effectiveDysonCutoff_clog_rate : ∃ C m0 : ℕ, ∀ k : ℕ, m0 ≤ k �
     _ ≤ 2*(C*(k+10)) := Nat.mul_le_mul_left _ hrate
     _ ≤ (10*C)*(k+2) := by nlinarith
 
+/-- Under the segment domain and field hypotheses, the computed truncated grid has operator
+error at most `(1 / 2)^(p.precision + 6)`. -/
 theorem effectiveDysonParameters_error (p : EffectiveSegmentParameters)
     (H Hd : ℝ → Matrix (Reg p.ns) (Reg p.ns) ℂ)
     (hp : effectiveSegmentDomain p) (hF : EffectiveField p H Hd) :

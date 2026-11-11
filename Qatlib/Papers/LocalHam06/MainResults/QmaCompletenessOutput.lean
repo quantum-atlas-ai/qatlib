@@ -11,6 +11,28 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Data.Finset.Sort
+
+/-!
+# Semantics of generated history Hamiltonians
+
+The list `physicalList` enumerates propagation, boundary, and weighted clock penalty matrices.
+The results identify the values of the generated integer terms with this list after flattening
+and show in `outputTerms_value_sum` that their sum represents `fullHamiltonian`. See
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `output_values_list`: The dyadic values of the generated output terms equal the physical
+  matrix list reindexed by the inverse flattening equivalence.
+* `physicalList_sum`: The sum of the matrices in `physicalList C` is `fullHamiltonian C`.
+* `outputTerms_value_sum`: The sum of the generated dyadic term values equals the flattened full
+  physical Hamiltonian.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -30,6 +52,7 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 noncomputable section
 
+/-- The matrix sum of a concatenation is the sum of the two matrix sums. -/
 theorem matrixSum_append {I : Type} [Fintype I] [DecidableEq I]
     (xs ys : List (Matrix I I ℂ)) :
     matrixSum (xs ++ ys) = matrixSum xs + matrixSum ys := by
@@ -40,9 +63,12 @@ theorem matrixSum_append {I : Type} [Fintype I] [DecidableEq I]
       rw [ih]
       exact (add_assoc _ _ _).symm
 
+/-- The sum of a singleton matrix list is its sole matrix. -/
 theorem matrixSum_singleton {I : Type} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) : matrixSum [M] = M := by simp [matrixSum]
 
+/-- Summing a flattened list of matrix lists equals summing the matrix sums of the individual
+lists. -/
 theorem matrixSum_flatMap {A I : Type} [Fintype I] [DecidableEq I]
     (xs : List A) (f : A → List (Matrix I I ℂ)) :
     matrixSum (xs.flatMap f) = matrixSum (xs.map (fun a => matrixSum (f a))) := by
@@ -54,12 +80,15 @@ theorem matrixSum_flatMap {A I : Type} [Fintype I] [DecidableEq I]
         matrixSum (f a) + matrixSum (xs.map (fun a => matrixSum (f a)))
       rw [ih]
 
+/-- Summing matrices over `List.finRange m` agrees with the finite sum over `Fin m`. -/
 theorem matrixSum_finRange {I : Type} [Fintype I] [DecidableEq I]
     (m : ℕ) (f : Fin m → Matrix I I ℂ) :
     matrixSum ((List.finRange m).map f) = ∑ i, f i := by
   change ((List.finRange m).map f).sum = ∑ i, f i
   exact (Fin.sum_univ_def f).symm
 
+/-- Summing a matrix list enumerated over all ordered pairs in `Fin m` agrees with the
+corresponding double finite sum. -/
 theorem matrixSum_allPairs {I : Type} [Fintype I] [DecidableEq I]
     (m : ℕ) (f : Fin m → Fin m → Matrix I I ℂ) :
     matrixSum ((List.finRange m).flatMap (fun i => (List.finRange m).map (f i))) =
@@ -75,12 +104,15 @@ theorem matrixSum_allPairs {I : Type} [Fintype I] [DecidableEq I]
       exact matrixSum_finRange m (f i)
     _ = ∑ i, ∑ j, f i j := matrixSum_finRange m _
 
+/-- Summing matrices over the sorted elements of a finite set agrees with summing over its list
+representation. -/
 theorem matrixSum_sort_toList {A I : Type} [LinearOrder A]
     [Fintype I] [DecidableEq I] (s : Finset A) (f : A → Matrix I I ℂ) :
     matrixSum (s.sort.map f) = matrixSum (s.toList.map f) := by
   change (s.sort.map f).sum = (s.toList.map f).sum
   exact ((Finset.sort_perm_toList s (· ≤ ·)).map f).sum_eq
 
+/-- Reindexing every matrix in a list commutes with taking the matrix sum. -/
 theorem matrixSum_reindex {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (xs : List (Matrix I I ℂ)) :
     matrixSum (xs.map (Matrix.reindex e e)) = Matrix.reindex e e (matrixSum xs) := by
@@ -92,14 +124,18 @@ theorem matrixSum_reindex {I J : Type} [Fintype I] [DecidableEq I]
       rw [ih]
       rfl
 
+/-- The natural clock penalty weight `32 * (C.gates.length + C.initZeroWires.card + 1) + 1`. -/
 def nativeJ (C : QmaHistoryCircuit) : ℕ :=
   32 * (C.gates.length + C.initZeroWires.card + 1) + 1
 
+/-- The complex casts of the natural penalty `nativeJ C` and real penalty `clockJ C` coincide. -/
 theorem nativeJ_cast (C : QmaHistoryCircuit) : (nativeJ C : ℂ) = (clockJ C : ℂ) := by
   unfold nativeJ clockJ restK restLength
   push_cast
   ring
 
+/-- Rounding the gate at index `i` agrees with evaluating the circuit family `qmaRoundedGates`
+at that index. -/
 theorem rounded_get_eq (C : QmaHistoryCircuit) (b : ℕ) (i : Fin C.gates.length) :
     qmaRoundedGate C.qubits b (C.gates.get i) = qmaRoundedGates C b i := by
   unfold qmaRoundedGates
@@ -107,6 +143,8 @@ theorem rounded_get_eq (C : QmaHistoryCircuit) (b : ℕ) (i : Fin C.gates.length
   change C.gates[i.val] = qmaGateAt C.gates i.val
   exact (clause2Aux_qmaGateAt_getElem C.gates i.val i.isLt).symm
 
+/-- The ordered list of physical propagation terms, input penalties, output penalty, and
+weighted clock pair penalties. -/
 def physicalList (C : QmaHistoryCircuit) : List (Matrix (Phys C) (Phys C) ℂ) :=
   ((List.finRange C.gates.length).map fun i =>
     physicalPropagation i (qmaRoundedGates C (qmaClause2Bits C) i)) ++
@@ -117,6 +155,8 @@ def physicalList (C : QmaHistoryCircuit) : List (Matrix (Phys C) (Phys C) ℂ) :
       (nativeJ C : ℂ) • TensorGate (pairPenalty i j)
         (1 : Matrix (Reg C.qubits) (Reg C.qubits) ℂ))
 
+/-- The dyadic values of the generated output terms equal the physical matrix list reindexed by
+the inverse flattening equivalence. -/
 theorem output_values_list (C : QmaHistoryCircuit) :
     (outputTerms C.qubits (qmaClause2Bits C) C.gates C.initZeroWires C.outputWire).map
       (value (qmaClause2Bits C + 1)) =
@@ -146,6 +186,8 @@ theorem output_values_list (C : QmaHistoryCircuit) :
     intro j _
     exact clockPairTerm_value C.qubits (qmaClause2Bits C) (nativeJ C) i j
 
+/-- The physical remainder is the sum of the propagation matrices, the input penalties in sorted
+wire order, and the output penalty. -/
 theorem rest_sorted (C : QmaHistoryCircuit) :
     rest C =
       matrixSum ((List.finRange C.gates.length).map fun i =>
@@ -156,6 +198,8 @@ theorem rest_sorted (C : QmaHistoryCircuit) :
     List.map_cons, List.map_nil, matrixSum_append, matrixSum_singleton]
   rw [matrixSum_sort_toList]
 
+/-- The sum of all weighted clock pair penalties tensored with the data identity equals the
+weighted full clock penalty tensor. -/
 theorem pair_sum (m n J : ℕ) :
     matrixSum ((List.finRange m).flatMap fun i => (List.finRange m).map fun j =>
       (J:ℂ) • TensorGate (pairPenalty i j) (1 : Matrix (Reg n) (Reg n) ℂ)) =
@@ -165,6 +209,7 @@ theorem pair_sum (m n J : ℕ) :
   simp only [Fintype.sum_prod_type, Matrix.sum_apply, Matrix.smul_apply, smul_eq_mul,
     tensorGate_apply, Finset.mul_sum, Finset.sum_mul]
 
+/-- The sum of the matrices in `physicalList C` is `fullHamiltonian C`. -/
 theorem physicalList_sum (C : QmaHistoryCircuit) :
     matrixSum (physicalList C) = fullHamiltonian C := by
   unfold physicalList
@@ -173,6 +218,7 @@ theorem physicalList_sum (C : QmaHistoryCircuit) :
   rw [← rest_sorted]
   rfl
 
+/-- The sum of the generated dyadic term values equals the flattened full physical Hamiltonian. -/
 theorem outputTerms_value_sum (C : QmaHistoryCircuit) :
     matrixSum ((outputTerms C.qubits (qmaClause2Bits C) C.gates C.initZeroWires C.outputWire).map
       (value (qmaClause2Bits C + 1))) =

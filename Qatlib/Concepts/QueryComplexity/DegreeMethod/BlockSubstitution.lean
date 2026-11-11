@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+/-!
+# Polynomial substitution along sensitive blocks
+
+This module turns block flips around a Boolean input into affine coordinate substitutions. The
+polynomial `sensitiveBlockPolynomial` evaluates the original polynomial at the resulting
+block-controlled input and does not increase total degree. This construction supports block
+sensitivity arguments in the polynomial method [BealsEtAl2001].
+
+For a sensitive family, a single active block variable realizes the corresponding block flip.
+The module also records basic facts about Hamming weights zero and one and bounds on layer
+averages.
+
+## Main statements
+
+* `sensitiveBlockPolynomial_eval`: polynomial substitution agrees with block-controlled Boolean
+  evaluation.
+* `sensitiveBlockPoint_singleton`: a singleton block input realizes the specified sensitive
+  block flip.
+* `sensitiveBlockPolynomial_totalDegree`: block substitution preserves the degree bound.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
@@ -17,25 +43,33 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib
 open scoped Classical BigOperators
 
+/-- An optional choice of a block in `F` containing coordinate `i`, returning `none` when no
+such block exists. -/
 def sensitiveBlockIndex {n : ℕ} (F : Finset (Finset (Fin n))) (i : Fin n) : Option F :=
   if h : ∃ B : F, i ∈ B.val then some (Classical.choose h) else none
 
+/-- The Boolean input obtained from `x` by flipping each coordinate according to the variable of
+its chosen containing block. -/
 def sensitiveBlockPoint {n : ℕ} (x : Fin n → Bool) (F : Finset (Finset (Fin n)))
     (y : F → Bool) (i : Fin n) : Bool :=
   match sensitiveBlockIndex F i with
   | none => x i
   | some B => Bool.xor (x i) (y B)
 
+/-- The affine real polynomial expressing one coordinate of `sensitiveBlockPoint` in the block
+variables. -/
 def sensitiveBlockCoordinate {n : ℕ} (x : Fin n → Bool) (F : Finset (Finset (Fin n)))
     (i : Fin n) : MvPolynomial F ℝ :=
   match sensitiveBlockIndex F i with
   | none => MvPolynomial.C (if x i then 1 else 0)
   | some B => if x i then 1-MvPolynomial.X B else MvPolynomial.X B
 
+/-- The polynomial obtained by substituting the affine block coordinate polynomials into `p`. -/
 def sensitiveBlockPolynomial {n : ℕ} (x : Fin n → Bool) (F : Finset (Finset (Fin n)))
     (p : MvPolynomial (Fin n) ℝ) : MvPolynomial F ℝ :=
   p.eval₂ MvPolynomial.C (sensitiveBlockCoordinate x F)
 
+/-- A block returned by `sensitiveBlockIndex F i` contains coordinate `i`. -/
 lemma sensitiveBlockIndex_mem {n : ℕ} (F : Finset (Finset (Fin n))) (i : Fin n) (B : F)
     (h : sensitiveBlockIndex F i = some B) : i ∈ B.val := by
   unfold sensitiveBlockIndex at h
@@ -43,6 +77,7 @@ lemma sensitiveBlockIndex_mem {n : ℕ} (F : Finset (Finset (Fin n))) (i : Fin n
   · have he : Classical.choose hi = B := Option.some.inj h
     simpa only [he] using Classical.choose_spec hi
 
+/-- For a sensitive family, a coordinate in block `B` has chosen block index `some B`. -/
 lemma sensitiveBlockIndex_eq {n : ℕ} (f : (Fin n → Bool) → Bool) (x : Fin n → Bool)
     (F : Finset (Finset (Fin n))) (hF : SensitiveFamily f x F) (i : Fin n) (B : F)
     (hi : i ∈ B.val) : sensitiveBlockIndex F i = some B := by
@@ -58,6 +93,8 @@ lemma sensitiveBlockIndex_eq {n : ℕ} (f : (Fin n → Bool) → Bool) (x : Fin 
   rw [hd] at hm
   simp at hm
 
+/-- Evaluating a block coordinate polynomial at a Boolean block assignment gives the zero-one
+encoding of the corresponding block-controlled input coordinate. -/
 theorem sensitiveBlockCoordinate_eval {n : ℕ} (x : Fin n → Bool)
     (F : Finset (Finset (Fin n))) (y : F → Bool) (i : Fin n) :
     MvPolynomial.eval (fun B => if y B then (1 : ℝ) else 0) (sensitiveBlockCoordinate x F i) =
@@ -67,6 +104,8 @@ theorem sensitiveBlockCoordinate_eval {n : ℕ} (x : Fin n → Bool)
   | none => simp
   | some B => cases x i <;> cases hyB : y B <;> simp [hyB]
 
+/-- Evaluating the substituted polynomial at a Boolean block assignment equals evaluating the
+original polynomial at `sensitiveBlockPoint`. -/
 theorem sensitiveBlockPolynomial_eval {n : ℕ} (x : Fin n → Bool)
     (F : Finset (Finset (Fin n))) (p : MvPolynomial (Fin n) ℝ) (y : F → Bool) :
     MvPolynomial.eval (fun B => if y B then (1 : ℝ) else 0) (sensitiveBlockPolynomial x F p) =
@@ -76,12 +115,14 @@ theorem sensitiveBlockPolynomial_eval {n : ℕ} (x : Fin n → Bool)
   funext i
   exact sensitiveBlockCoordinate_eval x F y i
 
+/-- Setting every block variable to false leaves the base input unchanged. -/
 theorem sensitiveBlockPoint_zero {n : ℕ} (x : Fin n → Bool) (F : Finset (Finset (Fin n))) :
     sensitiveBlockPoint x F (fun _ => false) = x := by
   funext i
   unfold sensitiveBlockPoint
   cases sensitiveBlockIndex F i <;> simp
 
+/-- For a sensitive family, activating only block `B` produces `flipBlock x B.val`. -/
 theorem sensitiveBlockPoint_singleton {n : ℕ} (f : (Fin n → Bool) → Bool) (x : Fin n → Bool)
     (F : Finset (Finset (Fin n))) (hF : SensitiveFamily f x F) (B : F) :
     sensitiveBlockPoint x F (fun C => decide (C = B)) = flipBlock x B.val := by
@@ -96,6 +137,8 @@ theorem sensitiveBlockPoint_singleton {n : ℕ} (f : (Fin n → Bool) → Bool) 
       have hne : C ≠ B := by intro hn; subst C; exact hi hC
       simp [sensitiveBlockPoint,he,flipBlock,hi,hne]
 
+/-- Substituting polynomials of total degree at most one into a multivariate polynomial does not
+increase its total degree. -/
 theorem affine_substitution_totalDegree {I J : Type} [DecidableEq I] [DecidableEq J]
     (p : MvPolynomial I ℝ) (v : I → MvPolynomial J ℝ) (hv : ∀ i, (v i).totalDegree ≤ 1) :
     (p.eval₂ MvPolynomial.C v).totalDegree ≤ p.totalDegree := by
@@ -111,16 +154,19 @@ theorem affine_substitution_totalDegree {I J : Type} [DecidableEq I] [DecidableE
   simp only [MvPolynomial.totalDegree_C,zero_add] at hm
   exact hm.trans (hp.trans (MvPolynomial.le_totalDegree hd))
 
+/-- Negation does not increase the total degree of a real multivariate polynomial. -/
 lemma block_neg_totalDegree {I : Type} (p : MvPolynomial I ℝ) : (-p).totalDegree ≤ p.totalDegree := by
   rw [← neg_one_smul ℝ p]
   exact MvPolynomial.totalDegree_smul_le _ _
 
+/-- Replacing a real multivariate polynomial `p` by `1 - p` does not increase its total degree. -/
 lemma block_complement_totalDegree {I : Type} (p : MvPolynomial I ℝ) :
     (1-p).totalDegree ≤ p.totalDegree := by
   rw [sub_eq_add_neg]
   exact (MvPolynomial.totalDegree_add _ _).trans
     (max_le (by simp only [MvPolynomial.totalDegree_one]; exact Nat.zero_le _) (block_neg_totalDegree p))
 
+/-- Substitution by sensitive block coordinate polynomials does not increase total degree. -/
 theorem sensitiveBlockPolynomial_totalDegree {n : ℕ} (x : Fin n → Bool)
     (F : Finset (Finset (Fin n))) (p : MvPolynomial (Fin n) ℝ) :
     (sensitiveBlockPolynomial x F p).totalDegree ≤ p.totalDegree := by
@@ -134,6 +180,7 @@ theorem sensitiveBlockPolynomial_totalDegree {n : ℕ} (x : Fin n → Bool)
     · exact (block_complement_totalDegree _).trans (by simp)
     · simp
 
+/-- A Boolean input of Hamming weight zero is the constant false input. -/
 theorem block_zero_weight {I : Type} [Fintype I] [DecidableEq I] (y : I → Bool)
     (hy : boolWeight y = 0) : y = fun _ => false := by
   have hs : boolSupp y = ∅ := Finset.card_eq_zero.mp hy
@@ -144,6 +191,7 @@ theorem block_zero_weight {I : Type} [Fintype I] [DecidableEq I] (y : I → Bool
     rw [hs] at hm
     simp at hm
 
+/-- A Boolean input of Hamming weight one is the indicator of a single coordinate. -/
 theorem block_one_weight {I : Type} [Fintype I] [DecidableEq I] (y : I → Bool)
     (hy : boolWeight y = 1) : ∃ j : I, y = fun i => decide (i = j) := by
   obtain ⟨j,hj⟩ := Finset.card_eq_one.mp hy
@@ -159,6 +207,8 @@ theorem block_one_weight {I : Type} [Fintype I] [DecidableEq I] (y : I → Bool)
       rw [hj] at hm
       simp [hij] at hm
 
+/-- Bounds valid at every Boolean point of an existing Hamming layer also bound the polynomial
+average over that layer. -/
 theorem block_layerAverage_bounds {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℝ) (k : ℕ) (hk : k ≤ Fintype.card I) (l u : ℝ)
     (hb : ∀ y : I → Bool, boolWeight y = k →

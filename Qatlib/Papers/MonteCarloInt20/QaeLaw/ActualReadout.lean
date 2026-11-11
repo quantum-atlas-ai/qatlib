@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.MonteCarloInt20.QaeLaw.SmoothPayoff
 import Qatlib.Papers.MonteCarloInt20.QaeLaw.StepPayoff
+
+/-!
+# Payoff error for actual amplitude-estimation readout
+
+This module transfers Fourier-kernel payoff estimates to the actual law `aeLaw` of a unitary
+amplitude preparation. For success probability `sin (θ*π)^2` with `0 < θ < 1/2`, it proves
+smooth, quadratic, and strict-threshold payoff bounds using `aeEstimate`. See [KanekoEtAl2020].
+
+## Main statements
+
+* `actual_smooth_payoff_error`: smooth error controlled by the derivative and its Lipschitz
+  constant.
+* `actual_quadratic_payoff_error`: specialization to the square payoff.
+* `actual_step_payoff_error`: threshold error under a positive margin.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,11 +41,14 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.Actual
 
+/-- The local sine-squared readout `estimate` agrees with `aeEstimate`. -/
 theorem estimate_eq_aeEstimate (M : ℕ) (k : Fin M) : estimate M k=aeEstimate M k := by
   unfold estimate aeEstimate
   congr 2
   ring
 
+/-- For an interior prepared amplitude and `M ≥ 2`, the actual QAE law satisfies the smooth
+payoff bound determined by the derivative and its Lipschitz constant. -/
 theorem actual_smooth_payoff_error {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < 1/2)
@@ -42,6 +65,8 @@ theorem actual_smooth_payoff_error {I : Type} [Fintype I] [DecidableEq I]
   rw [he]
   exact smooth_payoff_error M θ D (by omega) g gp K hg hgp
 
+/-- For an interior prepared amplitude, the actual QAE law satisfies the stated `1/M` error
+bound for the quadratic payoff. -/
 theorem actual_quadratic_payoff_error {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < 1/2)
@@ -56,6 +81,8 @@ theorem actual_quadratic_payoff_error {I : Type} [Fintype I] [DecidableEq I]
     rw [Real.dist_eq,Real.dist_eq,← mul_sub,abs_mul]
     norm_num
 
+/-- With a positive margin `δ` from the threshold, the actual QAE strict-step payoff error is at
+most `D^2/(M*δ^2)`. -/
 theorem actual_step_payoff_error {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < 1/2)

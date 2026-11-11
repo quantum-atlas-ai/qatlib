@@ -12,6 +12,28 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 import Qatlib.Foundations.PureStateMath.Qubit
 
+/-!
+# Subgroup states and order output annotations
+
+This module defines uniform subgroup states and proves that a finite group order factors as the
+product of consecutive indices along a chain from the trivial subgroup to the whole group. In
+the setting of [Watrous2001], `OrderOutputAnnotation` records an order and state output with a
+gate cost, and the final theorem constructs an annotation satisfying correctness and the
+declared polynomial cost bound for solvable groups.
+
+## Main statements
+
+* `normalized_uniformSubgroupState`: Proves normalization of the uniform subgroup state.
+* `chain_order_product`: Expresses the group cardinality as a product of consecutive chain
+  indices.
+* `solvable_order_output_annotation`: Provides a correct annotation with a polynomial bound on
+  its declared cost.
+
+## References
+
+* [Watrous, 2001][Watrous2001]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -21,10 +43,12 @@ namespace Qatlib.Papers.QSolvableGrp00.MainResults.OrderFinding
 
 variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
 
+/-- The state with amplitude 1/√|H| on subgroup elements and zero elsewhere. -/
 noncomputable def uniformSubgroupState (H : Subgroup G) : QState G := by
   classical
   exact fun g => if g ∈ H then ((Real.sqrt (Nat.card ↥H) : ℝ) : ℂ)⁻¹ else 0
 
+/-- The uniform state of a subgroup is normalized. See [Watrous2001]. -/
 theorem normalized_uniformSubgroupState (H : Subgroup G) :
     Normalized (uniformSubgroupState H) := by
   classical
@@ -53,10 +77,13 @@ theorem normalized_uniformSubgroupState (H : Subgroup G) :
   rw [hfilt]
   exact mul_inv_cancel₀ hpos.ne'
 
+/-- The uniform subgroup state has inner product one with itself. -/
 theorem inner_uniformSubgroupState_self (H : Subgroup G) :
     Inner (uniformSubgroupState H) (uniformSubgroupState H) = 1 :=
   (normalized_iff_inner_self _).mp (normalized_uniformSubgroupState H)
 
+/-- For an increasing subgroup chain starting at the trivial subgroup, the final subgroup
+cardinality is the product of consecutive relative indices. -/
 private theorem card_eq_prod_relIndex_aux (m : ℕ) (H : ℕ → Subgroup G)
     (hbot : H 0 = ⊥) (hmono : ∀ j < m, H j ≤ H (j + 1)) :
     Nat.card ↥(H m) = ∏ j ∈ Finset.range m, (H j).relIndex (H (j + 1)) := by
@@ -91,6 +118,8 @@ private theorem card_eq_prod_relIndex_aux (m : ℕ) (H : ℕ → Subgroup G)
       Nat.eq_of_mul_eq_mul_right hidx hmul
     rw [Finset.prod_range_succ, hkey, ih']
 
+/-- For a subgroup chain from the trivial subgroup to the whole finite group, the group order
+equals the product of consecutive relative indices. See [Watrous2001]. -/
 theorem chain_order_product (m : ℕ) (H : ℕ → Subgroup G)
     (hbot : H 0 = ⊥) (htop : H m = ⊤) (hmono : ∀ j < m, H j ≤ H (j + 1)) :
     Nat.card G = ∏ j ∈ Finset.range m, (H j).relIndex (H (j + 1)) := by
@@ -103,18 +132,24 @@ theorem chain_order_product (m : ℕ) (H : ℕ → Subgroup G)
   rw [← htopcard, ← htop]
   exact card_eq_prod_relIndex_aux m H hbot hmono
 
+/-- The natural logarithmic size parameter floor(log₂ |G|) + 1, expressed using `Nat.log`. -/
 noncomputable def encodingLength (G : Type*) [Group G] [Fintype G] : ℕ :=
   Nat.log 2 (Nat.card G) + 1
 
+/-- The scalar expression √(1 − |⟨ψ, φ⟩|²) for two state vectors. -/
 noncomputable def pureTraceDistance (ψ φ : QState G) : ℝ :=
   Real.sqrt (1 - ‖Inner ψ φ‖ ^ 2)
 
+/-- An output map from finite generator sets and real tolerances to an order and state, together
+with a declared natural gate cost. -/
 structure OrderOutputAnnotation (G : Type*) [Group G] [Fintype G] where
 
   run : Finset G → ℝ → ℕ × QState G
 
   gateCost : Finset G → ℝ → ℕ
 
+/-- The requirement that generating sets and tolerances in (0, 1] give the correct group order
+and a state within the tolerance of the uniform group state. -/
 structure OrderOutputAnnotation.Correct (A : OrderOutputAnnotation G) : Prop where
 
   order_correct : ∀ (s : Finset G) (ε : ℝ),
@@ -124,10 +159,14 @@ structure OrderOutputAnnotation.Correct (A : OrderOutputAnnotation G) : Prop whe
     Subgroup.closure (s : Set G) = ⊤ → 0 < ε → ε ≤ 1 →
       pureTraceDistance (A.run s ε).2 (uniformSubgroupState ⊤) ≤ ε
 
+/-- The existence of a positive coefficient and natural exponent giving a polynomial bound on
+the declared gate cost in the encoding length and the ceiling of log(1/ε). -/
 def OrderOutputAnnotation.PolyBounded (A : OrderOutputAnnotation G) : Prop :=
   ∃ (C e : ℕ), 0 < C ∧ ∀ (s : Finset G) (ε : ℝ), 0 < ε → ε ≤ 1 →
     A.gateCost s ε ≤ C * (encodingLength G + 1 + Nat.ceil (Real.log (1 / ε))) ^ e
 
+/-- A finite solvable group possesses a correct order and state output annotation with a
+polynomial bound on its declared gate cost. See [Watrous2001]. -/
 theorem solvable_order_output_annotation (hG : IsSolvable G) :
     ∃ A : OrderOutputAnnotation G, A.Correct ∧ A.PolyBounded := by
   classical

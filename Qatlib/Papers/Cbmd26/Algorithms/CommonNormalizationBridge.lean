@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.CoherentSampleBridge
+
+/-!
+# Common normalization of sample encodings
+
+Introduces `reindexAdjointWord` and coherent Boolean padding through `coherentPaddingWord`.
+Padding raises a block-encoding normalization to a common bound while retaining its error, and
+gives uniformly normalized sample and first-order words from an original matrix oracle. These
+results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `commonNormalization_blockEncoding`: raises the normalization using a Boolean LCU.
+* `original_oracle_common_first_order`: packages first-order sample encodings and their exact
+  circuit costs.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -43,14 +63,19 @@ open scoped Matrix.Norms.L2Operator
 section Reindex
 variable {H K : Type} [Fintype H] [DecidableEq H] [Fintype K] [DecidableEq K]
 
+/-- Reindexes the gate matrix of an adjoint instruction while preserving forward and backward
+query tags. -/
 def reindexAdjointStep (e : K ≃ H) : AdjointStep H → AdjointStep K
   | .gate V => .gate (V.submatrix e e)
   | .forward => .forward
   | .backward => .backward
 
+/-- Reindexes every instruction of an adjoint word along an equivalence of basis types. -/
 def reindexAdjointWord (e : K ≃ H) (cs : List (AdjointStep H)) : List (AdjointStep K) :=
   cs.map (reindexAdjointStep e)
 
+/-- Evaluating a reindexed word against the reindexed oracle equals reindexing the original
+evaluation. -/
 theorem reindexAdjointWord_evaluate (e : K ≃ H) (U : Matrix H H ℂ)
     (cs : List (AdjointStep H)) :
     evaluate (U.submatrix e e) (reindexAdjointWord e cs) =
@@ -66,6 +91,7 @@ theorem reindexAdjointWord_evaluate (e : K ≃ H) (U : Matrix H H ℂ)
 
 omit [Fintype H] [DecidableEq H] [Fintype K] [DecidableEq K] in
 
+/-- Reindexing preserves both the query count and the gate count of an adjoint word. -/
 theorem reindexAdjointWord_cost (e : K ≃ H) (cs : List (AdjointStep H)) :
     adjointQueryCount (reindexAdjointWord e cs) = adjointQueryCount cs ∧
     adjointGateCount (reindexAdjointWord e cs) = adjointGateCount cs := by
@@ -75,6 +101,7 @@ theorem reindexAdjointWord_cost (e : K ≃ H) (cs : List (AdjointStep H)) :
     cases c <;> simp [reindexAdjointWord, reindexAdjointStep,
       adjointQueryCount, adjointGateCount] at ih ⊢ <;> exact ih
 
+/-- Reindexing preserves well-formedness of adjoint circuits. -/
 theorem reindexAdjointWord_wellFormed (e : K ≃ H) {cs : List (AdjointStep H)}
     (hcs : WellFormedAdjointCircuit cs) :
     WellFormedAdjointCircuit (reindexAdjointWord e cs) := by
@@ -93,9 +120,12 @@ section Padding
 variable {J H I : Type} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I]
 
+/-- Defines the Boolean coefficients `(r + 1) / 2` and `(r - 1) / 2` used for normalization
+padding. -/
 def paddingCoefficients (r : ℝ) (b : Bool) : ℂ :=
   if b then ((r - 1) / 2 : ℝ) else ((r + 1) / 2 : ℝ)
 
+/-- For `r` in the unit interval, the padding coefficients have total absolute mass one. -/
 theorem paddingCoefficients_mass (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
     coefficientMass (paddingCoefficients r) = 1 := by
   simp only [coefficientMass, Fintype.sum_bool, paddingCoefficients, Bool.false_eq_true,
@@ -103,15 +133,19 @@ theorem paddingCoefficients_mass (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
   rw [abs_of_nonpos (by linarith), abs_of_nonneg (by linarith)]
   ring
 
+/-- The two padding coefficients sum to `r`. -/
 theorem paddingCoefficients_sum (r : ℝ) :
     (∑ b, paddingCoefficients r b) = (r : ℂ) := by
   simp [paddingCoefficients]
   ring
 
+/-- Adds a Boolean spectator register to a selected word and reorders the registers. -/
 def insertPaddingWord (cs : List (AdjointStep (J × H))) :
     List (AdjointStep (J × (Bool × H))) :=
   reindexAdjointWord (controlSpectatorEquiv J H).symm (spectatorLiftWord Bool cs)
 
+/-- If a word evaluates to `select V`, inserting padding evaluates to the selected family of
+Boolean spectator lifts of `V`. -/
 theorem insertPaddingWord_evaluate (O : Matrix H H ℂ)
     (cs : List (AdjointStep (J × H))) (V : J → Matrix H H ℂ)
     (he : evaluate (parallelOracle O) cs = select V) :
@@ -130,16 +164,20 @@ theorem insertPaddingWord_evaluate (O : Matrix H H ℂ)
 
 omit [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] in
 
+/-- Inserting the padding register preserves query and gate counts. -/
 theorem insertPaddingWord_cost (cs : List (AdjointStep (J × H))) :
     adjointQueryCount (insertPaddingWord cs) = adjointQueryCount cs ∧
     adjointGateCount (insertPaddingWord cs) = adjointGateCount cs := by
   exact ⟨(reindexAdjointWord_cost _ _).1.trans (spectatorLiftWord_cost _ _).1,
     (reindexAdjointWord_cost _ _).2.trans (spectatorLiftWord_cost _ _).2⟩
 
+/-- Inserting the padding register preserves well-formedness. -/
 theorem insertPaddingWord_wellFormed {cs : List (AdjointStep (J × H))}
     (hcs : WellFormedAdjointCircuit cs) : WellFormedAdjointCircuit (insertPaddingWord cs) :=
   reindexAdjointWord_wellFormed _ (spectatorLiftWord_wellFormed Bool hcs)
 
+/-- Surrounds a word with label-controlled coefficient preparation and phase gates for Boolean
+normalization padding. -/
 def coherentPaddingWord (r : J → ℝ) (cs : List (AdjointStep (J × H))) :
     List (AdjointStep (J × (Bool × H))) :=
   [.gate (select (fun j => (prepareRegister (I := H)
@@ -149,6 +187,7 @@ def coherentPaddingWord (r : J → ℝ) (cs : List (AdjointStep (J × H))) :
   [.gate (select (fun j => prepareRegister (I := H)
     (coefficientPrepare (paddingCoefficients (r j)) false)))]
 
+/-- Coherent padding evaluates to the selected family of padding LCU unitaries. -/
 theorem coherentPaddingWord_evaluate (r : J → ℝ) (O : Matrix H H ℂ)
     (cs : List (AdjointStep (J × H))) (V : J → Matrix H H ℂ)
     (he : evaluate (parallelOracle O) cs = select V) :
@@ -173,12 +212,15 @@ theorem coherentPaddingWord_evaluate (r : J → ℝ) (O : Matrix H H ℂ)
 
 omit [Fintype J] [Fintype H] [Fintype I] [DecidableEq I] in
 
+/-- Coherent padding preserves the query count and adds exactly three gates. -/
 theorem coherentPaddingWord_cost (r : J → ℝ) (cs : List (AdjointStep (J × H))) :
     adjointQueryCount (coherentPaddingWord r cs) = adjointQueryCount cs ∧
     adjointGateCount (coherentPaddingWord r cs) = adjointGateCount cs + 3 := by
   simp [coherentPaddingWord, (insertPaddingWord_cost cs).1,
     (insertPaddingWord_cost cs).2, adjointQueryCount, adjointGateCount]
 
+/-- Coherent padding of a well-formed word is well formed when every padding ratio lies in the
+unit interval. -/
 theorem coherentPaddingWord_wellFormed (r : J → ℝ)
     (hr : ∀ j, r j ∈ Set.Icc (0 : ℝ) 1) {cs : List (AdjointStep (J × H))}
     (hcs : WellFormedAdjointCircuit cs) :
@@ -196,6 +238,8 @@ theorem coherentPaddingWord_wellFormed (r : J → ℝ)
     · exact insertPaddingWord_wellFormed hcs
   · simpa using select_unitary _ hp
 
+/-- Compressing the padding LCU on the false-tagged frame multiplies the original compression by
+`r` for `0 ≤ r ≤ 1`. -/
 theorem padding_compress (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r ≤ 1)
     (V : Matrix H H ℂ) (F : Matrix H I ℂ) :
     compress (tagFrame false F)
@@ -206,6 +250,8 @@ theorem padding_compress (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r ≤ 1)
   simp only [Complex.ofReal_one, div_one, ← Finset.sum_smul, paddingCoefficients_sum]
   simp only [Matrix.mul_smul, Matrix.smul_mul, compress]
 
+/-- A block encoding with normalization `β ≤ Λ` yields a padded block encoding with
+normalization `Λ` and the same error. -/
 theorem commonNormalization_blockEncoding (A : Matrix I I ℂ) (V : Matrix H H ℂ)
     (F : Matrix H I ℂ) (β Λ ε : ℝ) (henc : BlockEncoding A V F F β ε)
     (hβΛ : β ≤ Λ) :
@@ -234,32 +280,39 @@ section Samples
 variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I]
 
+/-- Pads a sample input unitary using the ratio `α * sqrt (1 + s²) / Λ`. -/
 def paddedSampleInputUnitary (U : Matrix W W ℂ) (α Λ s : ℝ) :
     Matrix (Bool × (Bool × W)) (Bool × (Bool × W)) ℂ :=
   coefficientLCUUnitary (paddingCoefficients (α * Real.sqrt (1 + s ^ 2) / Λ))
     (fun _ : Bool => sampleInputUnitary U α s) false
 
+/-- Coherently pads the sample input word to the proposed common normalization `Λ`. -/
 def paddedSampleInputWord (α Λ : ℝ) (s : J → ℝ) :
     List (AdjointStep (J × (Bool × (Bool × W)))) :=
   coherentPaddingWord (fun j => α * Real.sqrt (1 + (s j) ^ 2) / Λ)
     (coherentSampleInputWord α s)
 
+/-- Pads a first-order input unitary using the ratio `α * sqrt (1 + s²) / Λ`. -/
 def paddedFirstOrderInputUnitary (U : Matrix W W ℂ) (α Λ s : ℝ) :
     Matrix (Bool × (Bool × W)) (Bool × (Bool × W)) ℂ :=
   coefficientLCUUnitary (paddingCoefficients (α * Real.sqrt (1 + s ^ 2) / Λ))
     (fun _ : Bool => firstOrderInputUnitary U α s) false
 
+/-- Coherently pads the first-order input word to the proposed common normalization `Λ`. -/
 def paddedFirstOrderInputWord (α Λ : ℝ) (s : J → ℝ) :
     List (AdjointStep (J × (Bool × (Bool × W)))) :=
   coherentPaddingWord (fun j => α * Real.sqrt (1 + (s j) ^ 2) / Λ)
     (coherentFirstOrderInputWord α s)
 
+/-- The padded sample input word evaluates to the selected family of padded sample unitaries. -/
 theorem paddedSampleInputWord_evaluate (α Λ : ℝ) (s : J → ℝ) (U : Matrix W W ℂ) :
     evaluate (parallelOracle (J := J) (parallelOracle (J := Bool) (controlOracle U)))
         (paddedSampleInputWord α Λ s) =
       select (fun j => paddedSampleInputUnitary U α Λ (s j)) :=
   coherentPaddingWord_evaluate _ _ _ _ (coherentSampleInputWord_evaluate α s U)
 
+/-- The padded first-order input word evaluates to the selected family of padded first-order
+unitaries. -/
 theorem paddedFirstOrderInputWord_evaluate (α Λ : ℝ) (s : J → ℝ) (U : Matrix W W ℂ) :
     evaluate (parallelOracle (J := J) (parallelOracle (J := Bool) (controlOracle U)))
         (paddedFirstOrderInputWord α Λ s) =
@@ -268,6 +321,7 @@ theorem paddedFirstOrderInputWord_evaluate (α Λ : ℝ) (s : J → ℝ) (U : Ma
 
 omit [Fintype J] [Fintype W] [Fintype I] [DecidableEq I] in
 
+/-- The padded sample input word uses exactly two queries and eight gates. -/
 theorem paddedSampleInputWord_cost (α Λ : ℝ) (s : J → ℝ) :
     adjointQueryCount (paddedSampleInputWord (W := W) α Λ s) = 2 ∧
     adjointGateCount (paddedSampleInputWord (W := W) α Λ s) = 8 := by
@@ -279,6 +333,7 @@ theorem paddedSampleInputWord_cost (α Λ : ℝ) (s : J → ℝ) :
 
 omit [Fintype J] [Fintype W] [Fintype I] [DecidableEq I] in
 
+/-- The padded first-order input word uses exactly two queries and eight gates. -/
 theorem paddedFirstOrderInputWord_cost (α Λ : ℝ) (s : J → ℝ) :
     adjointQueryCount (paddedFirstOrderInputWord (W := W) α Λ s) = 2 ∧
     adjointGateCount (paddedFirstOrderInputWord (W := W) α Λ s) = 8 := by
@@ -288,6 +343,8 @@ theorem paddedFirstOrderInputWord_cost (α Λ : ℝ) (s : J → ℝ) :
   rw [(coherentFirstOrderInputWord_cost α s).2] at hg
   exact ⟨hq, hg⟩
 
+/-- Positive normalizations and the pointwise sample bound make the padded sample input word
+well formed. -/
 theorem paddedSampleInputWord_wellFormed (α Λ : ℝ) (s : J → ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ j, α * Real.sqrt (1 + (s j) ^ 2) ≤ Λ) :
     WellFormedAdjointCircuit (paddedSampleInputWord (W := W) α Λ s) := by
@@ -296,6 +353,8 @@ theorem paddedSampleInputWord_wellFormed (α Λ : ℝ) (s : J → ℝ)
   exact ⟨div_nonneg (mul_nonneg hα.le (Real.sqrt_nonneg _)) hΛ.le,
     (div_le_one hΛ).2 (hbound j)⟩
 
+/-- Positive normalizations and the pointwise sample bound make the padded first-order input
+word well formed. -/
 theorem paddedFirstOrderInputWord_wellFormed (α Λ : ℝ) (s : J → ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ j, α * Real.sqrt (1 + (s j) ^ 2) ≤ Λ) :
     WellFormedAdjointCircuit (paddedFirstOrderInputWord (W := W) α Λ s) := by
@@ -304,6 +363,9 @@ theorem paddedFirstOrderInputWord_wellFormed (α Λ : ℝ) (s : J → ℝ)
   exact ⟨div_nonneg (mul_nonneg hα.le (Real.sqrt_nonneg _)) hΛ.le,
     (div_le_one hΛ).2 (hbound j)⟩
 
+/-- An original block encoding of `L + iH` yields well-formed selected encodings of `L + sH`
+with normalization `Λ`, error `ε * sqrt (1 + s²)`, two queries, and eight gates
+[WangEtAl2026]. -/
 theorem original_oracle_common_sample (L H : Matrix I I ℂ)
     (hL : L.IsHermitian) (hH : H.IsHermitian) (U : Matrix W W ℂ)
     (R : Matrix W I ℂ) (α Λ ε : ℝ) (s : J → ℝ)
@@ -324,6 +386,9 @@ theorem original_oracle_common_sample (L H : Matrix I I ℂ)
   exact commonNormalization_blockEncoding _ _ _ _ Λ _
     (original_oracle_sample_blockEncoding L H hL hH U R α ε (s j) henc) (hbound j)
 
+/-- An original block encoding of `L + iH` yields well-formed selected encodings of `H + sL`
+with normalization `Λ`, error `ε * sqrt (1 + s²)`, two queries, and eight gates
+[WangEtAl2026]. -/
 theorem original_oracle_common_first_order (L H : Matrix I I ℂ)
     (hL : L.IsHermitian) (hH : H.IsHermitian) (U : Matrix W W ℂ)
     (R : Matrix W I ℂ) (α Λ ε : ℝ) (s : J → ℝ)

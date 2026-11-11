@@ -9,6 +9,29 @@ import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapQuan
 import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmStat
 import Qatlib.Concepts.WalkFind.UniqueCollision.QueryScaleAux
 import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
+
+/-!
+# Optimized Johnson-walk query bounds
+
+This module derives explicit bounds for the query count from the iteration estimate, the marked
+overlap `jwAlpha`, and the inner walk length `jwT2`. The descending-factorial expression for
+`jwAlpha` supplies the lower bound needed at the scale `N^(k/(k+1))`
+[Ambainis2007ElementDistinctness].
+
+The theorem `queryComplexity` combines these scalar bounds with `ElementDistinctnessAlgorithm`
+to prove the thresholded reduced-search proposition `QueryComplexity`.
+
+## Main statements
+
+* `jwAlpha_descFactorial`: the exact descending-factorial identity for the marked overlap.
+* `jwQueryCount_optimized_scalar`: an explicit query bound at the optimized scale.
+* `queryComplexity`: the reduced-search query-complexity proposition.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.WalkSpectrum
 
@@ -18,6 +41,7 @@ namespace Qatlib.Concepts.WalkFind.UniqueCollision
 
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- An iteration bound `t1 ≤ 8/(ε*α)` gives the query bound `r + 2*t1*t2 ≤ r + 16*t2/(ε*α)`. -/
 theorem jwQueryCount_of_iteration_bound (r t1 t2 : ℕ) (ε α : ℝ)
     (ht : (t1 : ℝ) ≤ 8 / (ε * α)) :
     ((r + 2 * t1 * t2 : ℕ) : ℝ) ≤ (r : ℝ) + 16 * (t2 : ℝ) / (ε * α) := by
@@ -28,6 +52,7 @@ theorem jwQueryCount_of_iteration_bound (r t1 t2 : ℕ) (ε α : ℝ)
     _ ≤ (r : ℝ) + (8 / (ε * α)) * (2 * t2) := add_le_add (le_refl (r : ℝ)) h
     _ = (r : ℝ) + 16 * (t2 : ℝ) / (ε * α) := by ring
 
+/-- For `1 ≤ k ≤ r`, the reciprocal arc parameter is at most `3*π*sqrt k / ((π-1)*π-3)`. -/
 theorem jwEpsArc_reciprocal_bound (k r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r) :
     1/jwEpsArc k r ≤
       3*Real.pi*Real.sqrt (k : ℝ)/((Real.pi-1)*Real.pi-3) := by
@@ -50,6 +75,7 @@ theorem jwEpsArc_reciprocal_bound (k r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r) :
       one_div_le_one_div_of_le hlo heps
     _ = _ := by field_simp
 
+/-- If `1 ≤ R` and `r ≤ R`, the inner walk count is at most `(sqrt 2*π/6+1)*sqrt R`. -/
 theorem jwT2_sqrt_scale_bound (k r : ℕ) (hk : 1 ≤ k) (R : ℝ)
     (hR : 1 ≤ R) (hr : (r : ℝ) ≤ R) :
     (jwT2 k r : ℝ) ≤ (Real.sqrt 2*Real.pi/6+1)*Real.sqrt R := by
@@ -68,6 +94,8 @@ theorem jwT2_sqrt_scale_bound (k r : ℕ) (hk : 1 ≤ k) (R : ℝ)
       exact div_le_div₀ (by positivity) (by gcongr) (by norm_num) (by linarith)
     _ = _ := by ring
 
+/-- Under `1 ≤ k ≤ r` and `k < N-r`, the squared marked overlap times `N.descFactorial k` equals
+`r.descFactorial k`. -/
 theorem jwAlpha_descFactorial (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkNr : k < N-r) :
     jwAlpha k N r^2*(N.descFactorial k : ℝ) = (r.descFactorial k : ℝ) := by
@@ -83,6 +111,8 @@ theorem jwAlpha_descFactorial (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
   field_simp
   nlinarith [hmul]
 
+/-- The squared marked overlap satisfies `(r+1-k)^k ≤ jwAlpha k N r^2 * N^k` under the stated
+physical size assumptions. -/
 theorem jwAlpha_probability_lower (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkNr : k < N-r) :
     ((r+1-k : ℕ) : ℝ)^k ≤ jwAlpha k N r^2*(N : ℝ)^k := by
@@ -93,6 +123,8 @@ theorem jwAlpha_probability_lower (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
   rw [← jwAlpha_descFactorial k N r hk hkr hkNr] at hlo
   exact hlo.trans (mul_le_mul_of_nonneg_left hhi (sq_nonneg _))
 
+/-- At a positive scale satisfying `R^(k+1) = N^k` and `R/4 ≤ r+1-k`, the marked overlap is at
+least `1/(2^k*sqrt R)`. -/
 theorem jwAlpha_optimized_scale_lower (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkNr : k < N-r) (R : ℝ) (hR : 0 < R)
     (hscale : R^(k+1) = (N : ℝ)^k)
@@ -120,6 +152,8 @@ theorem jwAlpha_optimized_scale_lower (k N r : ℕ) (hk : 1 ≤ k) (hkr : k ≤ 
     exact (mul_le_mul_iff_right₀ hp).mp h
   nlinarith
 
+/-- The stated optimized-scale and iteration assumptions bound the search query count by the
+displayed explicit `k`-dependent constant times `R`. -/
 theorem jwQueryCount_optimized_scalar (k N r t1 : ℕ) (hk : 1 ≤ k) (hkr : k ≤ r)
     (hkNr : k < N-r) (R : ℝ) (hR : 1 ≤ R) (hr : (r : ℝ) ≤ R)
     (hscale : R^(k+1) = (N : ℝ)^k)
@@ -164,6 +198,8 @@ theorem jwQueryCount_optimized_scalar (k N r t1 : ℕ) (hk : 1 ≤ k) (hkr : k �
       exact add_le_add hr hmul
     _ = _ := by rw [Real.rpow_natCast]; dsimp [A,B]; ring
 
+/-- The reduced element-distinctness search guarantee implies the optimized query-complexity
+proposition. -/
 theorem queryComplexity_from_algorithm (hAlg : ElementDistinctnessAlgorithm) : QueryComplexity := by
   intro k N hk hN I hI
   let X : ℝ := (N : ℝ)^((k : ℝ)/(k+1))
@@ -179,9 +215,13 @@ theorem queryComplexity_from_algorithm (hAlg : ElementDistinctnessAlgorithm) : Q
   exact jwQueryCount_optimized_scalar k N r t1 hk hkr hkNr X hX
     (Nat.floor_le (by linarith)) hscale hmem ht
 
+/-- The optimized reduced-search query bound holds with the explicit threshold and
+success-amplitude conditions in `QueryComplexity` [Ambainis2007ElementDistinctness]. -/
 theorem queryComplexity : QueryComplexity :=
   queryComplexity_from_algorithm elementDistinctnessAlgorithm_answer
 
+/-- The proposition `QueryComplexity` holds, supplying the restricted optimized-scale conclusion
+associated with [Ambainis2007ElementDistinctness]. -/
 theorem queryComplexity_answer : QueryComplexity := queryComplexity
 
 end Qatlib.Concepts.WalkFind.UniqueCollision

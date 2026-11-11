@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+/-!
+# Noise accumulation and sensing estimates
+
+Defines scalar jump probabilities, decoherence time, and precision expressions for interstitial
+noise. Elementary exponential bounds and the contractive-channel estimate
+`channel_telescoping_bound` provide finite-step controls used in the sensing analysis. See
+[CotlerGongKannan2025] for the surrounding analysis.
+
+## Main statements
+
+* `noiseJumpProb_interstitial`: Substituting interstitial noise into `noiseJumpProb` gives `1 -
+  exp(-4 * η * τ * n)`.
+* `channel_telescoping_bound`: If `Φ = (1 - p) • Ψ + p • χ` and the stated pairwise bound holds
+  on the unit ball, the difference between the `N`-fold iterates of `Ψ` and `Φ` has norm at most
+  `2 * p * N` for nonnegative `p`.
+* `heisenberg_threshold_noise`: For positive `η` and `τ`, the stated small-noise hypotheses give
+  decoherence time at most `1 / (4 * η * n)` and precision expression at most `8 * η * n` for `n
+  ≥ 1`.
+
+## References
+
+* [Cotler et al., 2025][CotlerGongKannan2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,16 +39,22 @@ namespace Qatlib.Papers.NoisyLearn26.MainResults.Sensing
 
 open Qatlib.Papers.NoisyLearn26.MainResults
 
+/-- The scalar jump probability `1 - (1 - lam)^n`. -/
 def noiseJumpProb (lam : ℝ) (n : ℕ) : ℝ := 1 - (1 - lam) ^ n
 
+/-- The interstitial noise parameter `1 - exp(-4 * η * τ)`. -/
 def interstitialLam (η τ : ℝ) : ℝ := 1 - Real.exp (-(4 * η * τ))
 
+/-- The scalar decoherence-time expression `τ / (2 * noiseJumpProb (interstitialLam η τ) n)`. -/
 def sensingDecoherenceTime (η τ : ℝ) (n : ℕ) : ℝ :=
   τ / (2 * noiseJumpProb (interstitialLam η τ) n)
 
+/-- The scalar precision expression `2 * noiseJumpProb (interstitialLam η τ) n / τ`. -/
 def sensingPrecision (η τ : ℝ) (n : ℕ) : ℝ :=
   2 * noiseJumpProb (interstitialLam η τ) n / τ
 
+/-- Substituting interstitial noise into `noiseJumpProb` gives `1 - exp(-4 * η * τ * n)`
+[CotlerGongKannan2025]. -/
 theorem noiseJumpProb_interstitial (η τ : ℝ) (n : ℕ) :
     noiseJumpProb (interstitialLam η τ) n = 1 - Real.exp (-(4 * η * τ * n)) := by
   unfold noiseJumpProb interstitialLam
@@ -33,6 +64,7 @@ theorem noiseJumpProb_interstitial (η τ : ℝ) (n : ℕ) :
   push_cast
   ring
 
+/-- For `0 ≤ y ≤ 1`, the quantity `1 - exp(-y)` is at least `y / 2`. -/
 theorem one_sub_exp_neg_ge {y : ℝ} (h0 : 0 ≤ y) (h1 : y ≤ 1) :
     y / 2 ≤ 1 - Real.exp (-y) := by
   have hpos : (0 : ℝ) < 1 + y := by linarith
@@ -48,10 +80,13 @@ theorem one_sub_exp_neg_ge {y : ℝ} (h0 : 0 ≤ y) (h1 : y ≤ 1) :
   rw [hneg]
   linarith
 
+/-- For nonnegative `y`, the quantity `1 - exp(-y)` is at most `y`. -/
 theorem one_sub_exp_neg_le {y : ℝ} (h0 : 0 ≤ y) : 1 - Real.exp (-y) ≤ y := by
   have h := Real.add_one_le_exp (-y)
   linarith
 
+/-- Every iterate of a contractive channel maps a vector of norm at most one to a vector of norm
+at most one. -/
 theorem norm_iterate_le_one {E : Type*} [NormedAddCommGroup E] [Module ℝ E]
     (Φ : Channel E) {x : E} (hx : ‖x‖ ≤ 1) (N : ℕ) :
     ‖Channel.iterate Φ N x‖ ≤ 1 := by
@@ -62,6 +97,9 @@ theorem norm_iterate_le_one {E : Type*} [NormedAddCommGroup E] [Module ℝ E]
       rw [hstep]
       exact le_trans (Φ.contract _) ih
 
+/-- If `Φ = (1 - p) • Ψ + p • χ` and the stated pairwise bound holds on the unit ball, the
+difference between the `N`-fold iterates of `Ψ` and `Φ` has norm at most `2 * p * N` for
+nonnegative `p` [CotlerGongKannan2025]. -/
 theorem channel_telescoping_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (Ψ Φ χ : Channel E) (p : ℝ) (hp : 0 ≤ p)
     (hΦ : ∀ x, Φ.toFun x = (1 - p) • Ψ.toFun x + p • χ.toFun x)
@@ -103,6 +141,9 @@ theorem channel_telescoping_bound {E : Type*} [NormedAddCommGroup E] [NormedSpac
         _ = 2 * p * ((N : ℝ) + 1) := by ring
         _ = 2 * p * ((N + 1 : ℕ) : ℝ) := by push_cast; ring
 
+/-- For positive `η` and `τ`, the stated small-noise hypotheses give decoherence time at most `1
+/ (4 * η * n)` and precision expression at most `8 * η * n` for `n ≥ 1`
+[CotlerGongKannan2025]. -/
 theorem heisenberg_threshold_noise {η τ : ℝ} (hη : 0 < η) (hτ : 0 < τ) :
     (∀ n : ℕ, 1 ≤ n → 4 * η * τ * n ≤ 1 →
         sensingDecoherenceTime η τ n ≤ 1 / (4 * η * n)) ∧

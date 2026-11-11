@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.NativeSpectrum
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.LiftResidual
 import Qatlib.Foundations.MatrixAlgebra.SpectralPerturb
+
+/-!
+# Phase accuracy of lifted PCA outputs
+
+Defines the singular-value-scaled PCA output and its target right singular vector. Rescaling
+estimates and isolation in the native Hermitian spectrum convert Gram perturbations into a
+vector error bound up to complex phase, supporting [Tang2021].
+
+## Main statements
+
+* `pca_output_rescale`: The scaled PCA output differs from the normalized adjoint lift by at
+  most `eta / pcaSmallValue W i` under the stated positivity and Gram error assumptions.
+* `pca_output_phase`: Under the stated gap, eigenvalue proximity, and Gram error bounds, the PCA
+  output is within the explicit rescaling-plus-residual error of the target vector up to a unit
+  complex phase [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,14 +42,19 @@ open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib.Foundations.MatrixAlgebra.SpectralPerturb.PhaseResidual
 
+/-- The adjoint lift of a small-sketch eigenvector divided by the square root of its squared
+singular value. -/
 def pcaOutput {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) : EuclideanSpace ℂ (Fin d) :=
   (Real.sqrt (pcaSmallValue W i) : ℂ)⁻¹ • Rᴴ.toEuclideanLin (pcaSmallVector W i)
 
+/-- The ordered unit eigenvector of `Aᴴ * A` at index `i`. -/
 def pcaTarget {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) (i : Fin d) :
     EuclideanSpace ℂ (Fin d) :=
   orderedHermitianBasis (Matrix.isHermitian_conjTranspose_mul_self A) (pcaNativeIndex i)
 
+/-- If `a ≥ 0`, `mu > 0`, and `a^2` is within `eta` of `mu`, then `a / sqrt mu` is within `eta /
+mu` of one. -/
 theorem pca_sqrt_rescale (a mu eta : ℝ) (ha : 0 ≤ a) (hmu : 0 < mu)
     (herr : |a ^ 2 - mu| ≤ eta) : |a / Real.sqrt mu - 1| ≤ eta / mu := by
   have hs : 0 < Real.sqrt mu := Real.sqrt_pos.mpr hmu
@@ -42,6 +68,8 @@ theorem pca_sqrt_rescale (a mu eta : ℝ) (ha : 0 ≤ a) (hmu : 0 < mu)
   apply (le_div_iff₀ hmu).mpr
   nlinarith [mul_le_mul_of_nonneg_left hden (abs_nonneg (a / Real.sqrt mu - 1))]
 
+/-- The scaled PCA output differs from the normalized adjoint lift by at most `eta /
+pcaSmallValue W i` under the stated positivity and Gram error assumptions. -/
 theorem pca_output_rescale {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) (eta : ℝ)
     (hmu : 0 < pcaSmallValue W i)
@@ -68,6 +96,8 @@ theorem pca_output_rescale {q d : ℕ} (R : Matrix (Fin q) (Fin d) ℂ)
     (pca_lift_norm_error R W (pcaSmallVector W i) (pcaSmallValue W i) eta
       (pcaSmallVector_norm W i) (pcaSmallVector_action W i) hgram)
 
+/-- Consecutive squared-singular-value gaps on a retained prefix isolate its corresponding
+native Hermitian eigenvalue from every other eigenvalue by at least `g`. -/
 theorem pca_native_gap {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) (k : ℕ) (g : ℝ)
     (hgap : ∀ i ∈ Finset.range k,
       g ≤ matrixSingularValues A i ^ 2 - matrixSingularValues A (i + 1) ^ 2)
@@ -82,6 +112,9 @@ theorem pca_native_gap {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ) (k : ℕ) (g
   rw [(singular_gram_ordered A).2 l, (singular_gram_ordered A).2 ⟨l.val + 1, hnext⟩]
   exact hgap l.val (Finset.mem_range.mpr hl)
 
+/-- Under the stated gap, eigenvalue proximity, and Gram error bounds, the PCA output is within
+the explicit rescaling-plus-residual error of the target vector up to a unit complex phase
+[Tang2021]. -/
 theorem pca_output_phase {n q d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (R : Matrix (Fin q) (Fin d) ℂ) (W : Matrix (Fin q) (Fin q) ℂ)
     (k : ℕ) (i : Fin d) (iq : Fin q) (hik : i.val < k)

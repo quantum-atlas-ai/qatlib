@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Finite phase synthesis and postselection examples
+
+This module verifies the default finite-synthesis packets for the identity and linear responses
+and transfers them to projected unitary encodings. A concrete Hadamard example connects the
+synthesized packets to postselection probabilities, conditional output states, and exact gate
+and query counts. Background and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `default_word_encodings`: encodings obtained from the two default phase packets.
+* `finite_phase_default_and_kernel_consumers`: combines synthesis and encoding guarantees.
+* `finite_phase_hadamard_actual_born_consumer`: a concrete postselection and resource
+  calculation.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 
@@ -39,12 +60,18 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomia
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The default phase packet `⟨gone, [gone]⟩` has zero score for the linear target with rational
+coefficients `[0, 1]` at degree one. -/
 theorem default_X_score : (scoreData ([0,1]:List ℚ) 1 ⟨gone,[gone]⟩).1.1 = 0 := by
   norm_num [scoreData,responseData,gscale,gaddList,gsubList,gshift,gconj,gzero,gone,gmul,gadd,gsub,scoreLoop]
 
+/-- The default phase packet `⟨gone, []⟩` has zero score for the constant target with rational
+coefficients `[1]` at degree zero. -/
 theorem default_one_score : (scoreData ([1]:List ℚ) 0 ⟨gone,[]⟩).1.1 = 0 := by
   norm_num [scoreData,responseData,gzero,gone,scoreLoop]
 
+/-- For every rational tolerance, finite phase synthesis of the linear target returns the
+default packet after testing one candidate and making no backend calls. -/
 theorem synthesis_default_X (eps : ℚ) :
     (finitePhaseSynthesis ([0,1]:List ℚ) 1 eps).value = some (⟨gone,[gone]⟩:PhaseData) ∧
     (finitePhaseSynthesis ([0,1]:List ℚ) 1 eps).backendCalls = 0 ∧
@@ -54,6 +81,8 @@ theorem synthesis_default_X (eps : ℚ) :
   simp only [finitePhaseSynthesis,show List.replicate 1 gone = [gone] from rfl,hs,ite_true]
   simp
 
+/-- For every rational tolerance, finite phase synthesis of the constant-one target returns the
+default packet and makes no backend calls. -/
 theorem synthesis_default_one (eps : ℚ) :
     (finitePhaseSynthesis ([1]:List ℚ) 0 eps).value = some (⟨gone,[]⟩:PhaseData) ∧
     (finitePhaseSynthesis ([1]:List ℚ) 0 eps).backendCalls = 0 := by
@@ -62,6 +91,8 @@ theorem synthesis_default_one (eps : ℚ) :
   simp only [finitePhaseSynthesis,List.replicate_zero,hs,ite_true]
   simp
 
+/-- The default linear and constant-one phase packets yield projected unitary encodings of `A`
+and the identity, respectively, in the corresponding averaged frames. -/
 theorem default_word_encodings {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (henc : ProjectedUnitaryEncoding A U L R) :
@@ -79,6 +110,8 @@ theorem default_word_encodings {H I O : Type} [Fintype H] [DecidableEq H] [Finty
   · simpa [computedPhaseWord,complex_gone,evaluate_compileRealPartQSVT,responseP_singleton,oddSingularTransform_id] using hX
   · simpa [computedPhaseWord,complex_gone,evaluate_compileRealPartQSVT,rightSingularTransform_const] using hOne
 
+/-- Combines the positive-tolerance synthesis guarantees for the default linear and constant-one
+packets with their projected unitary encoding guarantees. -/
 theorem finite_phase_default_and_kernel_consumers :
   (∀ (eps : ℚ), 0<eps → (finitePhaseSynthesis ([0,1]:List ℚ) 1 eps).value =
     some (⟨gone,[gone]⟩ : PhaseData) ∧ (finitePhaseSynthesis ([0,1]:List ℚ) 1 eps).backendCalls=0 ∧
@@ -101,20 +134,27 @@ theorem finite_phase_default_and_kernel_consumers :
   · intro H I O _ _ _ _ _ _ A U L R henc
     exact default_word_encodings A U L R henc
 
+/-- The isometric frame embedding the one-dimensional `Unit` register into the `false`
+coordinate of the Boolean register. -/
 noncomputable def enumExampleFrame : Matrix Bool Unit ℂ := Matrix.of (fun b _ => if b then 0 else 1)
 
+/-- The example frame `enumExampleFrame` is an isometry. -/
 theorem enumExampleFrame_isometry : IsIsometry enumExampleFrame := by
   change enumExampleFrameᴴ*enumExampleFrame = 1
   ext i j
   cases i; cases j
   norm_num [enumExampleFrame,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_bool]
 
+/-- Compression by `enumExampleFrame` extracts the `false, false` entry of a Boolean-indexed
+matrix as a one-dimensional matrix. -/
 theorem enumExampleFrame_corner (U : Matrix Bool Bool ℂ) :
     compress enumExampleFrame U enumExampleFrame = Matrix.of (fun _ _ : Unit => U false false) := by
   ext i j
   cases i; cases j
   simp [enumExampleFrame,compress,Matrix.mul_apply,Matrix.conjTranspose_apply]
 
+/-- In the example frame, the Hadamard matrix encodes the scalar 1/√2 and `PauliX` encodes the
+zero matrix. -/
 theorem enumExampleFrame_encodings :
     ProjectedUnitaryEncoding (Matrix.of (fun _ _ : Unit => (Real.sqrt 2:ℂ)⁻¹)) Hadamard enumExampleFrame enumExampleFrame ∧
     ProjectedUnitaryEncoding (0:Matrix Unit Unit ℂ) PauliX enumExampleFrame enumExampleFrame := by
@@ -127,6 +167,8 @@ theorem enumExampleFrame_encodings :
     cases i; cases j
     simp [PauliX,permMatrix]
 
+/-- Conditioning the one-dimensional vector scaled by 1/√2 yields the normalized basis state
+`Ket ()`. -/
 theorem enum_scalar_conditional : ConditionalState ((Real.sqrt 2:ℂ)⁻¹ • (Ket ():QState Unit)) = some (Ket ()) := by
   have hsR : 0 < Real.sqrt (2:ℝ) := Real.sqrt_pos.mpr (by norm_num)
   have hsC : (Real.sqrt 2:ℂ) ≠ 0 := by exact_mod_cast hsR.ne'
@@ -145,6 +187,10 @@ theorem enum_scalar_conditional : ConditionalState ((Real.sqrt 2:ℂ)⁻¹ • (
   cases i
   simp [Pi.smul_apply,Ket,Complex.real_smul,smul_eq_mul,hsC]
 
+/-- Provides synthesized packets at tolerance 1/8 whose Hadamard consumer succeeds with
+probability 1/2 and returns `Ket ()`, using one query and two fixed gates. The
+constant-response consumer for `PauliX` succeeds with probability one using no queries and
+one fixed gate. -/
 theorem finite_phase_hadamard_actual_born_consumer : ∃ (data data0 : PhaseData),
   (finitePhaseSynthesis ([0,1]:List ℚ) 1 (1/8)).value = some data ∧
   (finitePhaseSynthesis ([1]:List ℚ) 0 (1/8)).value = some data0 ∧

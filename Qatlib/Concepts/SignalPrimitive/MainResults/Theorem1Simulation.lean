@@ -8,6 +8,32 @@ import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
 import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
 import Mathlib.Analysis.CStarAlgebra.Spectrum
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+/-!
+# Taylor Response Words for Hamiltonian Evolution
+
+This module proves `theorem1Simulation` by realizing bounded real polynomials as compressed
+Hermitian QSVT response words and splitting the exponential Taylor polynomial into cosine and
+sine parts. It gives a concrete Taylor-based construction in the encoded Hamiltonian setting of
+Theorem 1 of [LowChuang2019].
+
+The cosine and sine polynomials are scaled by one quarter for realization; `restore_quarter`
+recovers the desired polynomial values. The Hermitian spectral theorem transfers scalar Taylor
+error to operator norm, yielding two words with query counts `2 * n` and `2 * n + 1` whose
+fourfold scaled compressed responses approximate `exp (-i t H)`.
+
+## Main statements
+
+* `realize_polynomial` realizes a bounded parity-compatible real polynomial with exact query
+  counts.
+- `taylor_operator_error` bounds the matrix Taylor approximation on a Hermitian contraction.
+- `theorem1Simulation` proves the encoded Hamiltonian simulation contract.
+
+## References
+
+- [Low and Chuang, 2019][LowChuang2019], Theorem 1.
+-/
+
 set_option warningAsError false
 
 
@@ -42,6 +68,9 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Realizes a real polynomial of degree at most `d`, parity `d`, and absolute value at most one
+on `[-1, 1]` as the exact compression of a Hermitian response word. The word has `d` adjoint
+queries and `d + 1` gates. -/
 private theorem realize_polynomial {W I : Type} [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (V : Matrix W W ℂ)
     (F : Matrix W I ℂ) (hA : A.IsHermitian) (hV : ProjectedUnitaryEncoding A V F F)
@@ -76,6 +105,8 @@ private theorem realize_polynomial {W I : Type} [Fintype W] [DecidableEq W]
       exact h
   exact hencoding.encoded
 
+/-- Splits the complex exponential Taylor polynomial into the complexified cosine Taylor
+polynomial minus `i` times the complexified sine Taylor polynomial. -/
 private theorem taylor_parts (τ : ℝ) (n : ℕ) :
     exponentialTaylorPolynomial τ n =
       (cosineTaylorPolynomial τ n).map Complex.ofRealHom -
@@ -88,6 +119,8 @@ private theorem taylor_parts (τ : ℝ) (n : ℕ) :
   congr 1
   apply Complex.ext <;> simp
 
+/-- For a Hermitian matrix with spectrum in `[-1, 1]`, bounds the operator-norm error of its
+exponential Taylor polynomial by `exponentialTaylorError τ n`, assuming `2 * |τ| ≤ n + 1`. -/
 private theorem taylor_operator_error {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (τ : ℝ) (n : ℕ)
     (hspec : ∀ i, hA.eigenvalues i ∈ Set.Icc (-1 : ℝ) 1)
@@ -129,6 +162,8 @@ private theorem taylor_operator_error {I : Type} [Fintype I] [DecidableEq I]
   intro i
   exact exponentialTaylorPolynomial_error_le τ n hcut (hspec i)
 
+/-- Multiplying the matrix evaluation of the complexified polynomial `p / 4` by four recovers
+the matrix evaluation of the complexified polynomial `p`. -/
 private theorem restore_quarter {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (p : Polynomial ℝ) :
     (4 : ℂ) • aeval A ((C (1/4 : ℝ) * p).map Complex.ofRealHom) =
@@ -137,6 +172,9 @@ private theorem restore_quarter {I : Type} [Fintype I] [DecidableEq I]
     Polynomial.aeval_C, Algebra.algebraMap_eq_smul_one, smul_mul_assoc, one_mul, smul_smul]
   norm_num
 
+/-- Proves `Theorem1Simulation` by realizing the scaled cosine and sine Taylor polynomials and
+transferring their scalar error bound through the Hermitian spectral decomposition. This
+gives the stated two-word approximation in the setting of Theorem 1 of [LowChuang2019]. -/
 theorem theorem1Simulation : Theorem1Simulation := by
   intro J I _ _ _ _ H V j₀ α t ε n hH hα _hHnorm _hε hε1 hV hcut htail
   let A := ((α⁻¹ : ℝ) : ℂ) • H

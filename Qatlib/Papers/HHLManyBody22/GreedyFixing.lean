@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HHLManyBody22.HomOverlap.BornReadout
 import Mathlib.Data.Finset.Max
+
+/-!
+# Greedy conditional fixing of clock bits
+
+The greedy procedure `greedyFix` repeatedly chooses a remaining bit and Boolean value with
+maximal retained clock mass. It continues only when the current mass is positive and the chosen
+child reaches the specified fraction of that mass.
+
+The module bounds the number of choices by the supplied fuel and the final event mass by the
+threshold raised to the number of choices. `greedyFix_event` characterizes the event as the
+initial set restricted by all recorded choices. See [BaskaranEtAl2023].
+
+## Main statements
+
+* `greedyFix_mass`: For a nonnegative threshold, the final event mass is at least the initial
+  mass times the threshold raised to the number of recorded choices.
+* `greedyFix_event`: A clock assignment belongs to the final event exactly when it belongs to
+  the initial event and satisfies every recorded choice.
+* `greedyFix_choice_remaining`: Every clock index appearing in the recorded choices belongs to
+  the initial set of remaining indices.
+
+## References
+
+* [Baskaran et al., 2023][BaskaranEtAl2023]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,25 +40,32 @@ noncomputable section
 open scoped BigOperators Classical
 namespace Qatlib.Papers.HHLManyBody22.GreedyFixing
 
+/-- Boolean assignments to the `n` clock positions. -/
 abbrev ClockBits (n : ℕ) := Fin n→Bool
 
+/-- The total weight of the clock assignments in `S`. -/
 def clockMass {n : ℕ} (w : ClockBits n→ℝ) (S : Finset (ClockBits n)) : ℝ := ∑x∈S,w x
 
+/-- The subset of `S` satisfying the specified bit and Boolean value. -/
 def fixChild {n : ℕ} (S : Finset (ClockBits n)) (c : Fin n×Bool) : Finset (ClockBits n) :=
   S.filter (fun x => x c.1=c.2)
 
+/-- The pairs of a remaining clock index with either Boolean value. -/
 def fixCandidates {n : ℕ} (R : Finset (Fin n)) : Finset (Fin n×Bool) := R×ˢFinset.univ
 
+/-- A nonempty set of remaining indices gives a nonempty set of fixing candidates. -/
 theorem fixCandidates_nonempty {n : ℕ} (R : Finset (Fin n)) (hR : R.Nonempty) :
     (fixCandidates R).Nonempty := by
   obtain ⟨i,hi⟩ := hR
   exact ⟨(i,false),by simp [fixCandidates,hi]⟩
 
+/-- A candidate bit and value maximizing the weight retained from `S`. -/
 def bestFixPair {n : ℕ} (w : ClockBits n→ℝ) (S : Finset (ClockBits n))
     (R : Finset (Fin n)) (hR : R.Nonempty) : Fin n×Bool :=
   Classical.choose (Finset.exists_max_image (fixCandidates R)
     (fun c => clockMass w (fixChild S c)) (fixCandidates_nonempty R hR))
 
+/-- The chosen pair is a candidate and its child mass is maximal among all candidates. -/
 theorem bestFixPair_spec {n : ℕ} (w : ClockBits n→ℝ) (S : Finset (ClockBits n))
     (R : Finset (Fin n)) (hR : R.Nonempty) :
     bestFixPair w S R hR∈fixCandidates R ∧
@@ -41,10 +74,13 @@ theorem bestFixPair_spec {n : ℕ} (w : ClockBits n→ℝ) (S : Finset (ClockBit
   Classical.choose_spec (Finset.exists_max_image (fixCandidates R)
     (fun c => clockMass w (fixChild S c)) (fixCandidates_nonempty R hR))
 
+/-- The final clock event together with the ordered list of fixed bit values. -/
 structure GreedyFixResult (n : ℕ) where
   event : Finset (ClockBits n)
   choices : List (Fin n×Bool)
 
+/-- The fuel bounded procedure that greedily fixes a remaining bit when its maximal child has at
+least the threshold fraction of a positive current mass. -/
 def greedyFix {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ) :
     ℕ→Finset (Fin n)→Finset (ClockBits n)→GreedyFixResult n
   | 0,_,S => ⟨S,[]⟩
@@ -57,6 +93,8 @@ def greedyFix {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ) :
       else ⟨S,[]⟩
     else ⟨S,[]⟩
 
+/-- For a nonnegative threshold, the final event mass is at least the initial mass times the
+threshold raised to the number of recorded choices. -/
 theorem greedyFix_mass {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     (ht : 0≤threshold) (fuel : ℕ) (R : Finset (Fin n)) (S : Finset (ClockBits n)) :
     threshold^(greedyFix w threshold fuel R S).choices.length*clockMass w S≤
@@ -74,6 +112,7 @@ theorem greedyFix_mass {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     · simp
     · simp
 
+/-- The number of choices recorded by greedy fixing is at most its fuel. -/
 theorem greedyFix_length {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     (fuel : ℕ) (R : Finset (Fin n)) (S : Finset (ClockBits n)) :
     (greedyFix w threshold fuel R S).choices.length≤fuel := by
@@ -86,6 +125,8 @@ theorem greedyFix_length {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     · simp
     · simp
 
+/-- If the total clock weight is one and the threshold is nonnegative, the final event mass is
+at least the threshold raised to the number of choices. See [BaskaranEtAl2023]. -/
 theorem greedyFix_normalized_event {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     (ht : 0≤threshold) (hNorm : ∑x,w x=1) :
     threshold^(greedyFix w threshold n Finset.univ Finset.univ).choices.length≤
@@ -93,6 +134,7 @@ theorem greedyFix_normalized_event {n : ℕ} (w : ClockBits n→ℝ) (threshold 
   have h := greedyFix_mass w threshold ht n Finset.univ Finset.univ
   simpa only [clockMass,hNorm,mul_one] using h
 
+/-- Greedy fixing leaves an event of zero mass unchanged and records no choices. -/
 theorem greedyFix_zero_mass {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     (fuel : ℕ) (R : Finset (Fin n)) (S : Finset (ClockBits n))
     (hz : clockMass w S=0) : greedyFix w threshold fuel R S=⟨S,[]⟩ := by
@@ -100,6 +142,8 @@ theorem greedyFix_zero_mass {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
   | zero => rfl
   | succ fuel => simp [greedyFix,hz]
 
+/-- A clock assignment belongs to the final event exactly when it belongs to the initial event
+and satisfies every recorded choice. See [BaskaranEtAl2023]. -/
 theorem greedyFix_event {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     (fuel : ℕ) (R : Finset (Fin n)) (S : Finset (ClockBits n)) (x : ClockBits n) :
     x∈(greedyFix w threshold fuel R S).event ↔ x∈S ∧
@@ -116,6 +160,8 @@ theorem greedyFix_event {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     · simp
     · simp
 
+/-- Every clock index appearing in the recorded choices belongs to the initial set of remaining
+indices. -/
 theorem greedyFix_choice_remaining {n : ℕ} (w : ClockBits n→ℝ) (threshold : ℝ)
     (fuel : ℕ) (R : Finset (Fin n)) (S : Finset (ClockBits n)) :
     ∀c∈(greedyFix w threshold fuel R S).choices,c.1∈R := by

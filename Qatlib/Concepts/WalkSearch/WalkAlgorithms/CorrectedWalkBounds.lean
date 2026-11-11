@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
+
+/-!
+# Arithmetic bounds for corrected walk costs
+
+This module supplies integer subset-size windows and arithmetic estimates for graph-search
+resource bounds. `correctedSubsetWindow` brackets a positive integer by consecutive powers,
+while logarithm and division lemmas transfer discrete cost expressions to real inequalities.
+
+`corrected_hAlg_real_cost` bounds the graph-search subroutine cost, and `corrected_gc_budget`
+specializes a collision budget at a cube-root window. These estimates support quantitative
+analyses in the quantum-walk search setting [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `correctedSubsetWindow`: an integer power window.
+* `corrected_hAlg_real_cost`: a real cost bound for the graph subroutine.
+* `corrected_gc_budget`: the explicit `n^(2/3)` collision budget.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -12,6 +35,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- For positive `N` and `k`, there is a positive integer `r` whose `k`th power is at least `N`
+while `(r - 1)^k` is below `N`. -/
 theorem correctedSubsetWindow (N k : ℕ) (hN : 0 < N) (hk : 0 < k) :
     ∃ r : ℕ, 1 ≤ r ∧ N ≤ r ^ k ∧ (r - 1) ^ k < N := by
   have hex : ∃ r : ℕ, N ≤ r ^ k := ⟨N, Nat.le_self_pow hk.ne' N⟩
@@ -25,17 +50,22 @@ theorem correctedSubsetWindow (N k : ℕ) (hN : 0 < N) (hk : 0 < k) :
   refine ⟨r, hr, hp, ?_⟩
   exact Nat.lt_of_not_ge (Nat.find_min hex (show r - 1 < r by omega))
 
+/-- For positive `n`, `Nat.log 2 (n + 1) + 2` is at most twice `Nat.log 2 n + 2`. -/
 theorem corrected_log_succ_le (n : ℕ) (hn : 0 < n) :
     Nat.log 2 (n + 1) + 2 ≤ 2 * (Nat.log 2 n + 2) := by
   have h := Nat.log_mono_right (b := 2) (show n + 1 ≤ n * 2 by omega)
   rw [Nat.log_mul_base (by decide) hn.ne'] at h
   omega
 
+/-- For positive `r`, natural-number division `n / r`, cast to the reals, is at most the real
+quotient. -/
 theorem corrected_cast_div_le (n r : ℕ) (hr : 0 < r) :
     ((n / r : ℕ) : ℝ) ≤ (n : ℝ) / r := by
   apply (le_div_iff₀ (by exact_mod_cast hr)).mpr
   exact_mod_cast Nat.div_mul_le_self n r
 
+/-- For positive graph size and `r ≥ 1`, bound the real-valued cost of `hAlg` by the stated
+cubic-logarithmic factor times its setup, collision, and verification terms. -/
 theorem corrected_hAlg_real_cost {n k : ℕ} (hn : 0 < n)
     (adj : Fin n → Fin n → Bool) (H : OGraph k) (hv : Fin k)
     (kcs : KCollisionSolver) (r qH : ℕ) (hr : 1 ≤ r) (stape : ℕ → kcs.seed) :
@@ -79,6 +109,8 @@ theorem corrected_hAlg_real_cost {n k : ℕ} (hn : 0 < n)
     exact_mod_cast hraw
   exact hrawR.trans (mul_le_mul hfactor hsum (by positivity) (by positivity))
 
+/-- When `r` brackets the cube root of `n^2`, the stated integer collision-cost bound implies a
+real cost at most `2 * κ * (Nat.log 2 n + 2)^2 * n^(2/3)`. -/
 theorem corrected_gc_budget (n r κ q : ℕ) (hn : 0 < n) (hr : 1 ≤ r) (hκ : 1 ≤ κ)
     (hl : n^2 ≤ r^3) (hu : (r-1)^3 < n^2)
     (hq : q ≤ κ*(Nat.log 2 (n+1)+2)*(r+(n/r)*Nat.sqrt r)+2) :

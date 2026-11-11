@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.EffectiveBesselCutoff
 import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
+
+/-!
+# Effective Bessel truncation for trigonometric polynomials
+
+This module proves factorial bounds for parity-restricted Bessel tails and uses a rational
+cutoff certificate to approximate cosine and sine uniformly on `[-1, 1]`. `cutoff_polynomials`
+records parity, degree, and approximation error for the resulting compact polynomials.
+
+`cutoff_source_budget` and `source_truncation_rate` relate the cutoff to a real radius
+satisfying a scalar cost equation, with explicit degree estimates in the QSP simulation setting
+of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `bessel_factorial_tail`: bounds the Bessel tail by its first factorial majorant.
+* `cutoff_polynomials`: certifies the trigonometric approximation at the effective cutoff.
+* `cutoff_source_budget`: compares the cutoff with the source radius and bounds its degree
+  budget.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -27,6 +51,8 @@ open Qatlib
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- For 0 ≤ a ≤ q/2, twice the sum of the parity-restricted factorial tail starting at q is at
+most `(8 / 3) * (a ^ q / q.factorial)`. -/
 theorem parity_factorial_tail (q : ℕ) (a : ℝ) (ha : 0 ≤ a) (haq : a ≤ (q:ℝ)/2) :
     2 * (∑' k : ℕ, a^(q+2*k)/((q+2*k).factorial:ℝ)) ≤
       (8/3:ℝ)*(a^q/(q.factorial:ℝ)) := by
@@ -39,6 +65,8 @@ theorem parity_factorial_tail (q : ℕ) (a : ℝ) (ha : 0 ≤ a) (haq : a ≤ (q
   norm_num at hsum
   linarith
 
+/-- When |t| ≤ q, twice the sum of absolute Bessel coefficients at orders q + 2k is at most `(8
+/ 3) * ((|t| / 2) ^ q / q.factorial)`. -/
 theorem bessel_factorial_tail (q : ℕ) (t : ℝ) (ht : |t| ≤ q) :
     2*(∑' k : ℕ, |besselInt (q+2*k) t|) ≤
       (8/3:ℝ)*((|t|/2)^q/(q.factorial:ℝ)) := by
@@ -50,6 +78,7 @@ theorem bessel_factorial_tail (q : ℕ) (t : ℝ) (ht : |t| ≤ q) :
     (by norm_num : (0:ℝ) ≤ 2)).trans
       (parity_factorial_tail q (|t|/2) (by positivity) (by linarith))
 
+/-- For 0 ≤ a ≤ q/2, the factorial term a^(q+1)/(q+1)! is at most a^q/q!. -/
 theorem next_factorial_le (q : ℕ) (a : ℝ) (ha : 0 ≤ a) (haq : a ≤ (q:ℝ)/2) :
     a^(q+1)/((q+1).factorial:ℝ) ≤ a^q/(q.factorial:ℝ) := by
   have hd : (0:ℝ) < (q:ℝ)+1 := by positivity
@@ -60,6 +89,8 @@ theorem next_factorial_le (q : ℕ) (a : ℝ) (ha : 0 ≤ a) (haq : a ≤ (q:ℝ
     (mul_nonneg (pow_nonneg ha q) hf.le)
   nlinarith only [h]
 
+/-- A rational cutoff guard implies the corresponding real inequalities for the first omitted
+order and its factorial tail bound. -/
 theorem guard_cast (t ε : ℚ) (R : ℕ) (h : Guard t ε R) :
     |(t:ℝ)| ≤ firstOmitted R ∧
       (8/3:ℝ)*((|(t:ℝ)|/2)^firstOmitted R/((firstOmitted R).factorial:ℝ)) ≤ ε := by
@@ -69,6 +100,9 @@ theorem guard_cast (t ε : ℚ) (R : ℕ) (h : Guard t ε R) :
     simpa only [tailBound, Rat.cast_mul, Rat.cast_div, Rat.cast_ofNat, Rat.cast_pow,
       Rat.cast_abs, Rat.cast_natCast] using! hc
 
+/-- For rational t and positive rational ε, the effective cutoff yields even cosine and odd sine
+polynomials of degrees at most 2R and 2R + 1, respectively. Both approximate their
+corresponding trigonometric functions within ε uniformly on [-1, 1]. -/
 theorem cutoff_polynomials (t ε : ℚ) (hε : 0 < ε) :
     let R := cutoff t ε hε
     (compactCosPoly (t:ℝ) R).comp (-Polynomial.X) = compactCosPoly (t:ℝ) R ∧
@@ -95,6 +129,8 @@ theorem cutoff_polynomials (t ε : ℚ) (hε : 0 < ε) :
   rw [hq] at ho
   exact (compact_sin_error _ _ hx _).trans ho
 
+/-- For nonzero rational t, a radius r at least e|t|/2 satisfying `(e|t|/(2r)) ^ r = (5/4)ε`
+makes `Nat.floor (r / 2)` satisfy the rational cutoff guard. -/
 theorem source_radius_guard (t ε : ℚ) (ht : t ≠ 0) (r : ℝ)
     (hsr : Real.exp 1*|(t:ℝ)|/2 ≤ r)
     (he : Real.rpow ((Real.exp 1*|(t:ℝ)|/2)/r) r = (5/4)*(ε:ℝ)) :
@@ -129,6 +165,10 @@ theorem source_radius_guard (t ε : ℚ) (ht : t ≠ 0) (r : ℝ)
         Rat.cast_abs, Rat.cast_natCast] using! hb
     exact Rat.cast_le.mp hb'
 
+/-- For nonzero rational t and 0 < ε < 1/e, provides the unique radius r ≥ e|t|/2 satisfying the
+scalar cost equation and bounds the effective cutoff by `Nat.floor (r / 2)`. It also gives
+the two regime-dependent degree estimates and a degree bound for every positive auxiliary
+scale. -/
 theorem cutoff_source_budget (t ε : ℚ) (hε : 0 < ε) (ht : t ≠ 0)
     (hε1 : (ε:ℝ) < 1/Real.exp 1) :
     let s := Real.exp 1*|(t:ℝ)|/2
@@ -165,6 +205,10 @@ theorem cutoff_source_budget (t ε : ℚ) (hε : 0 < ε) (ht : t ≠ 0)
   · intro u hu
     exact hcut.trans (add_le_add (hb.2.2 u hu) (le_refl _))
 
+/-- For nonzero real t and 0 < ε < 1/e, constructs a radius satisfying the scalar cost equation
+whose rounded truncation yields cosine and sine approximations within ε on [-1, 1]. The
+result includes degree bounds in both parameter regimes and for every positive auxiliary
+scale [GilyenSuLowWiebe2019]. -/
 theorem source_truncation_rate (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
     (hε1 : ε < 1/Real.exp 1) :
     let s := Real.exp 1*|t|/2
@@ -199,6 +243,9 @@ theorem source_truncation_rate (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
   · intro u hu
     exact hcut.trans (add_le_add (hb.2.2 u hu) (le_refl _))
 
+/-- For nonzero rational t and 0 < ε < 1/e, packages the effective cutoff guard, cosine and sine
+degree and error bounds, and a source radius bounding the cutoff. It also records the
+degree-budget estimate for every positive auxiliary scale. -/
 theorem frontier1 (t ε : ℚ) (hε : 0 < ε) (ht : t ≠ 0)
     (hε1 : (ε:ℝ) < 1/Real.exp 1) :
     let R := cutoff t ε hε

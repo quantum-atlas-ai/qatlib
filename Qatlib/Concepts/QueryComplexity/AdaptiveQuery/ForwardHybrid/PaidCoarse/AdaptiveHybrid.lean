@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardHybrid.PaidCoarse.ObservedRisk
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalControlledCopy
+
+/-!
+# Oracle hybrid bounds for adaptive record statistics
+
+This module gives recursion formulas for `observedRecordExpectation` through gates, queries, and
+measurements. It uses trace norm stability to compare the effect of different unitary queries on
+positive semidefinite inputs.
+
+The theorem `observed_record_oracle_hybrid` bounds the change of any record statistic valued in
+`[0, 1]` by the query budget times the operator norm difference and input trace mass. This is an
+adaptive record version of the hybrid comparison used in [BennettEtAl1997].
+
+## Main statements
+
+* `observed_record_query_error`: a bound for changing a single query before a fixed
+  continuation.
+* `observed_record_oracle_hybrid`: a bound for replacing the oracle throughout an observed
+  circuit.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +42,8 @@ open scoped ComplexOrder Matrix.Norms.L2Operator
 
 variable {d : ℕ}
 
+/-- A gate step passes its conjugated input to the continuation without changing the record
+statistic. -/
 theorem recordExpectation_gate (O G : Qatlib.Foundations.PureStateMath.Operator d) (P : Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d))
     (ρ : Qatlib.Foundations.PureStateMath.Operator d) (f : List (ℕ × ℕ) → ℝ) :
     Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.observedRecordExpectation O (.step (.gate G) P) ρ f =
@@ -25,6 +51,8 @@ theorem recordExpectation_gate (O G : Qatlib.Foundations.PureStateMath.Operator 
   simp [Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.observedRecordExpectation, Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces, List.map_map, Function.comp_def,
     Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass]
 
+/-- A query step passes the oracle conjugated input to the continuation without changing the
+record statistic. -/
 theorem recordExpectation_query (O : Qatlib.Foundations.PureStateMath.Operator d) (P : Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d))
     (ρ : Qatlib.Foundations.PureStateMath.Operator d) (f : List (ℕ × ℕ) → ℝ) :
     Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.observedRecordExpectation O (.step .query P) ρ f =
@@ -32,6 +60,8 @@ theorem recordExpectation_query (O : Qatlib.Foundations.PureStateMath.Operator d
   simp [Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.observedRecordExpectation, Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces, List.map_map, Function.comp_def,
     Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass]
 
+/-- A partition measurement splits the record expectation into a sum over projected inputs,
+prefixing each outcome to its continuation record. -/
 theorem recordExpectation_measure (O : Qatlib.Foundations.PureStateMath.Operator d) (n : ℕ) (label : Fin d → Fin n)
     (next : Fin n → Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d)) (ρ : Qatlib.Foundations.PureStateMath.Operator d)
     (f : List (ℕ × ℕ) → ℝ) :
@@ -42,6 +72,8 @@ theorem recordExpectation_measure (O : Qatlib.Foundations.PureStateMath.Operator
   simp [Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.observedRecordExpectation, Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces, List.map_flatten, List.sum_flatten,
     List.map_ofFn, List.sum_ofFn, List.map_map, Function.comp_def, Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass]
 
+/-- A projective measurement splits the record expectation into false and true branches,
+prefixing the corresponding binary outcome to each continuation record. -/
 theorem recordExpectation_project (O Q : Qatlib.Foundations.PureStateMath.Operator d)
     (onFalse onTrue : Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d)) (ρ : Qatlib.Foundations.PureStateMath.Operator d)
     (f : List (ℕ × ℕ) → ℝ) :
@@ -53,6 +85,8 @@ theorem recordExpectation_project (O Q : Qatlib.Foundations.PureStateMath.Operat
   simp [Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.observedRecordExpectation, Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces, List.map_append, List.sum_append,
     List.map_map, Function.comp_def, Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass]
 
+/-- The real traces of all partition projected inputs sum to the real trace of the original
+input. -/
 private theorem measurement_input_mass (O : Qatlib.Foundations.PureStateMath.Operator d)
     (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ) (n : ℕ) (label : Fin d → Fin n)
     (ρ : Qatlib.Foundations.PureStateMath.Operator d) :
@@ -64,6 +98,8 @@ private theorem measurement_input_mass (O : Qatlib.Foundations.PureStateMath.Ope
   simpa [Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces, Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass, List.map_flatten, List.sum_flatten,
     List.map_ofFn, List.sum_ofFn, List.map_map, Function.comp_def] using! hm
 
+/-- For an orthogonal projector, the real traces of its complementary projected inputs sum to
+the real trace of the original input. -/
 private theorem binary_input_mass (O Q : Qatlib.Foundations.PureStateMath.Operator d)
     (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ) (hQ : Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement.IsOrthogonalProjector Q)
     (ρ : Qatlib.Foundations.PureStateMath.Operator d) :
@@ -73,6 +109,9 @@ private theorem binary_input_mass (O Q : Qatlib.Foundations.PureStateMath.Operat
   simpa [Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces, Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass, List.map_append, List.sum_append,
     List.map_map, Function.comp_def] using! hm
 
+/-- For a fixed well formed continuation with unitary oracle `U`, replacing its input
+conjugation by `U` with conjugation by unitary `V` changes a record statistic in `[0, 1]` by
+at most `‖U - V‖` times the positive semidefinite input's real trace. -/
 theorem observed_record_query_error (U V : Qatlib.Foundations.PureStateMath.Operator d)
     (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ)
@@ -92,6 +131,9 @@ theorem observed_record_query_error (U V : Qatlib.Foundations.PureStateMath.Oper
       Qatlib.Concepts.FreshCopyExec.QpeConsumers.numeric_conjugation_error U V ρ hU hV
   linarith
 
+/-- For a well formed observed circuit on a positive semidefinite input, replacing unitary
+oracle `U` by `V` changes a record statistic in `[0, 1]` by at most `observedQueryBudget P *
+‖U - V‖` times the real input trace. -/
 theorem observed_record_oracle_hybrid (U V : Qatlib.Foundations.PureStateMath.Operator d)
     (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ)

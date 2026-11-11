@@ -5,6 +5,37 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMetropolis11.GibbsMixing.GibbsMetropolisDefs
+
+/-!
+# Finite-precision Metropolis bounds
+
+This module develops a dyadic acceptance approximation in the quantum Metropolis setting of
+[TemmeEtAl2011]. It proves completeness and trace identities for QPE readout branches split by
+the finite-bit coin, together with stochasticity, approximate Gibbs stationarity, and a
+conditional Gibbs minorization for the associated finite-state kernel.
+
+The iteration estimates bound the accumulated L1 defect by the initial defect plus `n * D *
+fairBitGrid k`. A resource ledger records explicit symbolic counts and is combined with this
+finite-precision error budget.
+
+## Main statements
+
+* `qpeFairBitKraus_complete` and `qpeFairBit_total` establish completeness and total trace
+  preservation.
+* `fairBitKernel_approxStationary` bounds each Gibbs stationarity defect by the dyadic grid
+  spacing.
+* `fairBitKernel_minorization` gives an explicit minorization under bounded nonnegative energies
+  and a sufficiently fine grid.
+* `fairBitEvolve_defect_le` and `gibbsRunLedger_of_budget` combine accumulated error control
+  with ledger counts.
+* `fairBitKernel_bridge` relates the finite-bit kernel to the ideal thermal kernel.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011], *Quantum Metropolis Sampling*, Eqs. (2)-(3), Section 3.2,
+  and the detailed-balance discussion.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -24,6 +55,7 @@ namespace StageBGIBBSMETROPOLIS
 open Matrix Qatlib
 open scoped Classical BigOperators ComplexOrder
 
+/-- For an acceptance parameter in `[0, 1]`, its finite-bit approximation also lies in `[0, 1]`. -/
 theorem fairBitAccept_mem (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) :
     0 ≤ fairBitAccept k f ∧ fairBitAccept k f ≤ 1 := by
   unfold fairBitAccept Qatlib.Concepts.RiskEstimation.PopulationGap.fairBitAcceptMass
@@ -38,6 +70,8 @@ theorem fairBitAccept_mem (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) :
   · rw [div_le_one h2]
     exact hfloor.trans hx1
 
+/-- For `0 ≤ f ≤ 1`, the absolute error of the finite-bit acceptance approximation is at most
+the dyadic grid spacing `fairBitGrid k`. -/
 theorem fairBitAccept_error (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) :
     |fairBitAccept k f - f| ≤ fairBitGrid k := by
   unfold fairBitAccept Qatlib.Concepts.RiskEstimation.PopulationGap.fairBitAcceptMass
@@ -58,21 +92,27 @@ theorem fairBitAccept_error (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) 
   rw [one_div] at hlt
   exact hlt.le
 
+/-- The finite-bit acceptance rule assigns zero mass to the zero acceptance parameter. -/
 theorem fairBitAccept_zero (k : ℕ) : fairBitAccept k 0 = 0 := by
   unfold fairBitAccept Qatlib.Concepts.RiskEstimation.PopulationGap.fairBitAcceptMass
   have h2 : (0 : ℝ) < (2 : ℝ) ^ k := by positivity
   rw [mul_zero, Nat.floor_zero, Nat.cast_zero, zero_div]
 
+/-- At acceptance parameter one, the finite-bit acceptance mass is at least `1 - fairBitGrid k`. -/
 theorem fairBitAccept_one_lower (k : ℕ) : 1 - fairBitGrid k ≤ fairBitAccept k 1 := by
   have hmem := fairBitAccept_mem k 1 (by norm_num) (by norm_num)
   have herr := fairBitAccept_error k 1 (by norm_num) (by norm_num)
   rw [abs_le] at herr
   linarith
 
+/-- The rejecting and accepting branch masses sum to one for every real acceptance parameter. -/
 theorem fairBitBranchMass_sum (k : ℕ) (f : ℝ) :
     fairBitBranchMass k f false + fairBitBranchMass k f true = 1 := by
   simp [fairBitBranchMass]
 
+/-- The QPE readout Kraus operator for label `z`, scaled by the square root of the finite-bit
+coin branch mass. The branch acceptance compares the old label with `z` through their label
+energies. -/
 noncomputable def qpeFairBitKraus {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (β : ℝ) (k : ℕ) (old : Fin G.levels) :
     Fin G.levels × Bool → Matrix (QpeSpace G D) (QpeSpace G D) ℂ :=
@@ -81,6 +121,8 @@ noncomputable def qpeFairBitKraus {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
       (Qatlib.Concepts.RiskEstimation.PopulationGap.labelAcceptance O.time G.levels β old zb.1) zb.2)
       • (qpeKraus O G zb.1)
 
+/-- For `0 ≤ f ≤ 1`, splitting a fixed QPE readout into the two finite-bit coin branches
+preserves its effect operator: the branch sum of `Kᴴ * K` equals the original QPE effect. -/
 theorem qpeFairBit_branch_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (k : ℕ) (z : Fin G.levels) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) :
     ∑ b : Bool, (acceptScale (fairBitBranchMass k f b) • (qpeKraus O G z))ᴴ
@@ -115,6 +157,8 @@ theorem qpeFairBit_branch_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid
           rw [hreorder, fairBitBranchMass_sum]
           simp
 
+/-- The finite-bit QPE branch operators are complete: the sum of `Kᴴ * K` over readout labels
+and Boolean outcomes is the identity. -/
 theorem qpeFairBitKraus_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (β : ℝ) (k : ℕ) (old : Fin G.levels) :
     (∑ zb : Fin G.levels × Bool,
@@ -149,6 +193,8 @@ theorem qpeFairBitKraus_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
           exact hbranch z
     _ = 1 := hqpe
 
+/-- For any input matrix, the output of a finite-bit QPE branch equals its real branch mass
+times the unscaled QPE readout output. -/
 theorem qpeFairBit_branch_eq {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (β : ℝ) (k : ℕ) (old : Fin G.levels) (z : Fin G.levels) (b : Bool)
     (ρ : Matrix (QpeSpace G D) (QpeSpace G D) ℂ) :
@@ -178,6 +224,8 @@ theorem qpeFairBit_branch_eq {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
   rw [Matrix.smul_mul, Matrix.mul_smul, Matrix.smul_mul, smul_smul]
   rw [acceptScale_sq hm0]
 
+/-- The trace of a finite-bit QPE branch output equals its branch mass times the trace of the
+corresponding unscaled QPE readout output. The equality holds for arbitrary input matrices. -/
 theorem qpeFairBit_branchMass {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (β : ℝ) (k : ℕ) (old : Fin G.levels) (ρ : Matrix (QpeSpace G D) (QpeSpace G D) ℂ)
     (z : Fin G.levels) (b : Bool) :
@@ -208,6 +256,9 @@ theorem qpeFairBit_branchMass {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
   rw [acceptScale_sq hm0, Matrix.trace_smul]
   rfl
 
+/-- The absolute detailed-balance defect of the finite-bit acceptance rule is bounded by
+`fairBitGrid k` times the sum of the two unnormalized Gibbs weights. The bound compares the
+rounded rule with the exact Metropolis acceptance of Eq. (3) in [TemmeEtAl2011]. -/
 theorem fairBitAccept_detailed_balance_error {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (i j : Fin D) :
     |Real.exp (-β * E i) * fairBitAccept k (thermalAcceptance E β i j)
@@ -252,11 +303,15 @@ theorem fairBitAccept_detailed_balance_error {D : ℕ} (E : Fin D → ℝ) (β :
   · linarith
   · linarith
 
+/-- For distinct states in a nonempty state space, the transition entry is the finite-bit
+thermal acceptance divided by the number of states. -/
 theorem fairBitKernel_offdiag {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (hD : 0 < D) (i j : Fin D) (hij : i ≠ j) :
     fairBitKernel E β k i j = fairBitAccept k (thermalAcceptance E β i j) / (D : ℝ) := by
   simp [fairBitKernel, hij]
 
+/-- Every off-diagonal entry of the finite-bit Metropolis kernel is nonnegative when the state
+space is nonempty. -/
 theorem fairBitKernel_offdiag_nonneg {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (hD : 0 < D) (i j : Fin D) (hij : i ≠ j) :
     0 ≤ fairBitKernel E β k i j := by
@@ -265,6 +320,7 @@ theorem fairBitKernel_offdiag_nonneg {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k
     (le_of_lt (thermalAcceptance_pos E β i j)) (thermalAcceptance_le_one E β i j)
   exact div_nonneg hmem.1 (by exact_mod_cast hD.le)
 
+/-- Each row of the finite-bit Metropolis kernel sums to one when the state space is nonempty. -/
 theorem fairBitKernel_row_sum {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (i : Fin D) : ∑ j : Fin D, fairBitKernel E β k i j = 1 := by
   have hins : (Finset.univ : Finset (Fin D)) = insert i (Finset.univ.erase i) :=
@@ -287,6 +343,8 @@ theorem fairBitKernel_row_sum {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
   rw [hsumdiv]
   ring
 
+/-- Every diagonal entry of the finite-bit Metropolis kernel is strictly positive when the state
+space is nonempty. -/
 theorem fairBitKernel_diag_pos {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (i : Fin D) : 0 < fairBitKernel E β k i i := by
   have hDpos : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
@@ -323,6 +381,9 @@ theorem fairBitKernel_diag_pos {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ
     exact hcast
   linarith
 
+/-- The symbolic resource ledger for `n` steps: `n` energy measurements and proposal gates, `n *
+levels` controlled powers and inverse-QFT gates, and `n * k` coin bits. Its quantum and
+classical peak entries are `levels + D` and `k`, respectively. -/
 noncomputable def gibbsRunLedger (D levels k n : ℕ) : GibbsRunLedger where
   energyMeasurements := n
   controlledPowers := n * levels
@@ -332,6 +393,9 @@ noncomputable def gibbsRunLedger (D levels k n : ℕ) : GibbsRunLedger where
   quantumPeak := levels + D
   classicalPeak := k
 
+/-- All seven entries of the run ledger equal their defining symbolic counts for measurements,
+controlled powers, inverse-QFT gates, proposals, coin bits, and peak quantum and classical
+space. -/
 theorem gibbsRunLedger_counts (D levels k n : ℕ) :
     (gibbsRunLedger D levels k n).energyMeasurements = n ∧
       (gibbsRunLedger D levels k n).controlledPowers = n * levels ∧
@@ -342,9 +406,12 @@ theorem gibbsRunLedger_counts (D levels k n : ℕ) :
       (gibbsRunLedger D levels k n).classicalPeak = k :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- The run ledger records exactly `n * k` coin bits for `n` steps with coin precision `k`. -/
 theorem gibbsRunLedger_coinBits (D levels k n : ℕ) :
     (gibbsRunLedger D levels k n).coinBits = n * k := rfl
 
+/-- Summing the traces of all finite-bit QPE branch outputs preserves the trace of any input
+matrix. -/
 theorem qpeFairBit_total {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) (β : ℝ) (k : ℕ)
     (old : Fin G.levels) (ρ : Matrix (QpeSpace G D) (QpeSpace G D) ℂ) :
     (∑ zb : Fin G.levels × Bool,
@@ -371,6 +438,8 @@ theorem qpeFairBit_total {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) (β : �
     _ = Matrix.trace (1 * ρ) := by rw [qpeFairBitKraus_complete O G β k old]
     _ = Matrix.trace ρ := by rw [Matrix.one_mul]
 
+/-- If the input matrix has trace one, the traces of all finite-bit QPE branch outputs sum to
+one. -/
 theorem qpeFairBit_total_eq {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) (β : ℝ) (k : ℕ)
     (old : Fin G.levels) (ρ : Matrix (QpeSpace G D) (QpeSpace G D) ℂ)
     (hρ : Matrix.trace ρ = 1) :
@@ -380,6 +449,10 @@ theorem qpeFairBit_total_eq {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid) (β :
   rw [qpeFairBit_total O G β k old ρ]
   exact hρ
 
+/-- The scalar acceptance weight for proposal `c`: its ensemble weight times thermal acceptance
+when both endpoints are the least-index representatives of their energies, and zero
+otherwise. This is the scalar factor used in the acceptance-map expression associated with
+[TemmeEtAl2011]. -/
 noncomputable def temmeAcceptWeight {D : ℕ} (E : Fin D → ℝ)
     (ens : Qatlib.Concepts.RiskEstimation.PopulationGap.ProposalEnsemble D)
     (β : ℝ) (i j : Fin D) (c : Fin ens.count) : ℝ :=
@@ -387,6 +460,8 @@ noncomputable def temmeAcceptWeight {D : ℕ} (E : Fin D → ℝ)
       ∧ Qatlib.Concepts.RiskEstimation.PopulationGap.isEnergyRep E j then (1 : ℝ) else 0)
     * ens.weight c * thermalAcceptance E β i j)
 
+/-- The representative-restricted scalar acceptance weight is nonnegative for a legal proposal
+ensemble. -/
 theorem temmeAcceptWeight_nonneg {D : ℕ} (E : Fin D → ℝ)
     (ens : Qatlib.Concepts.RiskEstimation.PopulationGap.ProposalEnsemble D)
     (β : ℝ) (hEns : Qatlib.Concepts.RiskEstimation.PopulationGap.proposalEnsembleLegal ens)
@@ -402,6 +477,9 @@ theorem temmeAcceptWeight_nonneg {D : ℕ} (E : Fin D → ℝ)
   · rw [if_neg h]
     positivity
 
+/-- For each proposal in a legal ensemble, the scalar acceptance weights satisfy detailed
+balance with the unnormalized Gibbs weights. This is a scalar identity for the acceptance
+factors associated with [TemmeEtAl2011]. -/
 theorem temmeAccept_detailed_balance {D : ℕ} (E : Fin D → ℝ)
     (ens : Qatlib.Concepts.RiskEstimation.PopulationGap.ProposalEnsemble D)
     (β : ℝ) (hEns : Qatlib.Concepts.RiskEstimation.PopulationGap.proposalEnsembleLegal ens)
@@ -426,11 +504,15 @@ theorem temmeAccept_detailed_balance {D : ℕ} (E : Fin D → ℝ)
     simp only [temmeAcceptWeight, if_neg hab, if_neg hnba]
     ring
 
+/-- The diagonal Gibbs probability at a state is its Boltzmann weight `exp (-β * E i)` divided
+by the diagonal Gibbs partition function. -/
 theorem fairBitKernel_gibbsProb {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (hD : 0 < D) (i : Fin D) :
     (diagonalGibbsDist D hD E β).prob i
       = Real.exp (-β * E i) / diagonalGibbsPartition D E β :=
   diagonalGibbsDist_prob D hD E β i
 
+/-- For two states, the normalized Gibbs-weighted acceptance imbalance is at most `fairBitGrid
+k` times the sum of their Gibbs probabilities. -/
 private theorem fairBit_pair_defect {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (i j : Fin D) :
     |(diagonalGibbsDist D hD E β).prob i * fairBitAccept k (thermalAcceptance E β i j)
@@ -460,6 +542,8 @@ private theorem fairBit_pair_defect {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k 
   rw [h1, h2, ← sub_div, hquot, ← add_div, ← mul_div_assoc]
   exact (div_le_div_iff_of_pos_right hZ).2 herr
 
+/-- Applying the finite-bit kernel to the diagonal Gibbs distribution changes each coordinate by
+at most `fairBitGrid k`. -/
 theorem fairBitKernel_approxStationary {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (hD : 0 < D) (j : Fin D) :
     |(∑ i : Fin D, (diagonalGibbsDist D hD E β).prob i * fairBitKernel E β k i j)
@@ -647,6 +731,8 @@ theorem fairBitKernel_approxStationary {D : ℕ} (E : Fin D → ℝ) (β : ℝ) 
     exact le_of_eq heq
   exact hfin1.trans (hfin2.trans hfin3)
 
+/-- With nonnegative inverse temperature and nonnegative energies, thermal acceptance from any
+state to `j` is at least `exp (-β * E j)`. -/
 private theorem accept_lower_bound {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (hβ : 0 ≤ β)
     (hE : ∀ i, 0 ≤ E i) (i j : Fin D) :
     Real.exp (-β * E j) ≤ thermalAcceptance E β i j := by
@@ -680,6 +766,8 @@ private theorem accept_lower_bound {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (hβ
       linarith
     simpa using Real.exp_le_exp.mpr hle
 
+/-- If `0 ≤ E i ≤ R`, `β ≥ 0`, and `fairBitGrid k < exp (-β * R)`, then `exp (-β * R) * (exp (-β
+* R) - fairBitGrid k)` lies strictly between zero and one. -/
 theorem fairBitKernel_minorization_const {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (hD : 0 < D) (R : ℝ) (hβ : 0 ≤ β) (hE : ∀ i, 0 ≤ E i) (hER : ∀ i, E i ≤ R)
     (hgrid : fairBitGrid k < Real.exp (-β * R)) :
@@ -703,6 +791,9 @@ theorem fairBitKernel_minorization_const {D : ℕ} (E : Fin D → ℝ) (β : ℝ
       nlinarith [hgridpos]
     nlinarith [hexpR1]
 
+/-- For nonnegative inverse temperature, energies in `[0, R]`, and `fairBitGrid k < exp (-β *
+R)`, every transition entry dominates the target Gibbs probability times `exp (-β * R) *
+(exp (-β * R) - fairBitGrid k)`. -/
 theorem fairBitKernel_minorization {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (hD : 0 < D) (R : ℝ) (hβ : 0 ≤ β) (hE : ∀ i, 0 ≤ E i) (hER : ∀ i, E i ≤ R)
     (hgrid : fairBitGrid k < Real.exp (-β * R)) (i j : Fin D) :
@@ -828,6 +919,8 @@ theorem fairBitKernel_minorization {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k :
       div_le_div_of_nonneg_right haccept (by exact_mod_cast hD.le)
     exact hkey.trans (h3.trans_eq hoff.symm)
 
+/-- Every entry of the finite-bit Metropolis kernel is nonnegative when the state space is
+nonempty. -/
 theorem fairBitKernel_nonneg {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (i j : Fin D) : 0 ≤ fairBitKernel E β k i j := by
   by_cases hij : i = j
@@ -835,6 +928,8 @@ theorem fairBitKernel_nonneg {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) 
     exact (fairBitKernel_diag_pos E β k hD i).le
   · exact fairBitKernel_offdiag_nonneg E β k hD i j hij
 
+/-- Every entry of the finite-bit Metropolis kernel is at most one when the state space is
+nonempty. -/
 theorem fairBitKernel_le_one {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (i j : Fin D) : fairBitKernel E β k i j ≤ 1 := by
   have hsum := fairBitKernel_row_sum E β k hD i
@@ -850,6 +945,8 @@ theorem fairBitKernel_le_one {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) 
   rw [heq] at hsum
   linarith
 
+/-- One finite-bit Metropolis step increases the L1 distance from the diagonal Gibbs probability
+vector by at most `D * fairBitGrid k`. The estimate holds for any real input vector. -/
 theorem fairBitStep_defect_le {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (p : Fin D → ℝ) :
     (∑ j, |fairBitStep E β k p j - (diagonalGibbsDist D hD E β).prob j|)
@@ -945,6 +1042,8 @@ theorem fairBitStep_defect_le {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     positivity
   linarith
 
+/-- After `n` finite-bit Metropolis steps, the L1 distance from the diagonal Gibbs probability
+vector is at most the initial distance plus `n * D * fairBitGrid k`. -/
 theorem fairBitEvolve_defect_le {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (n : ℕ) (p : Fin D → ℝ) :
     (∑ j, |fairBitEvolve E β k n p j - (diagonalGibbsDist D hD E β).prob j|)
@@ -966,6 +1065,8 @@ theorem fairBitEvolve_defect_le {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : �
       rw [hmono]
       linarith
 
+/-- If the initial L1 defect is at most `δ₀` and `n * D * fairBitGrid k ≤ ε - δ₀`, the L1 defect
+after `n` steps is at most `ε`. -/
 theorem fairBitEvolve_error_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (δ₀ ε : ℝ) (n : ℕ) (p : Fin D → ℝ)
     (hδ : (∑ i, |p i - (diagonalGibbsDist D hD E β).prob i|) ≤ δ₀)
@@ -974,6 +1075,8 @@ theorem fairBitEvolve_error_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k :
   have h := fairBitEvolve_defect_le E β k hD n p
   linarith
 
+/-- The budget inequality `n * D * fairBitGrid k ≤ ε - δ₀` bounds the step count by `(ε - δ₀) /
+(D * fairBitGrid k)` for a nonempty state space. -/
 theorem fairBitEvolve_step_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (δ₀ ε : ℝ) (n : ℕ) (p : Fin D → ℝ)
     (hbudget : (n : ℝ) * ((D : ℝ) * fairBitGrid k) ≤ ε - δ₀) :
@@ -986,6 +1089,9 @@ theorem fairBitEvolve_step_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : 
   rw [le_div_iff₀ hden]
   nlinarith
 
+/-- Under the initial-defect and accumulated-error budget hypotheses, the final L1 defect is at
+most `ε`. The same statement records `n` measurements, `n * levels` controlled powers, `n *
+k` coin bits, and quantum peak `levels + D` in the symbolic ledger. -/
 theorem gibbsRunLedger_of_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
     (levels : ℕ) (δ₀ ε : ℝ) (n : ℕ) (p : Fin D → ℝ)
     (hδ : (∑ i, |p i - (diagonalGibbsDist D hD E β).prob i|) ≤ δ₀)
@@ -997,6 +1103,8 @@ theorem gibbsRunLedger_of_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : �
       (∑ j, |fairBitEvolve E β k n p j - (diagonalGibbsDist D hD E β).prob j|) ≤ ε :=
   ⟨rfl, rfl, rfl, rfl, fairBitEvolve_error_budget E β k hD δ₀ ε n p hδ hbudget⟩
 
+/-- For distinct states in a nonempty state space, the finite-bit kernel entry differs from the
+ideal thermal-kernel entry by at most `fairBitGrid k / D`. -/
 theorem fairBitKernel_close_thermalKernel {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     (hD : 0 < D) (i j : Fin D) (hij : i ≠ j) :
     |fairBitKernel E β k i j - thermalKernel D E β i j| ≤ fairBitGrid k / (D : ℝ) := by
@@ -1012,6 +1120,8 @@ theorem fairBitKernel_close_thermalKernel {D : ℕ} (E : Fin D → ℝ) (β : �
   rw [hquot]
   exact div_le_div_of_nonneg_right herr (by positivity)
 
+/-- Both the finite-bit and ideal thermal kernels have row sums one, and their off-diagonal
+entries differ by at most `fairBitGrid k / D` when the state space is nonempty. -/
 theorem fairBitKernel_bridge {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D) :
     (∀ i : Fin D, (∑ j, fairBitKernel E β k i j) = 1) ∧
       (∀ i : Fin D, (∑ j, thermalKernel D E β i j) = 1) ∧

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
 import Qatlib.Papers.Cbmd26.Algorithms.IndexedQSVTBridge
 import Mathlib.Data.List.OfFn
+
+/-!
+# Common-degree QSVT phases
+
+This module assigns fixed even and odd degrees to the four real-parity branches of a complex
+polynomial. It constructs normalized-approximation QSVT phases with these lengths and transposes
+equal-length phase lists into label-dependent phase columns for the coherent algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `normalized_approximation_qsvt_common_degree`: gives a normalization-four encoding with error
+  `2 * η`.
+* `phaseColumns_map`: recovers each original phase list by evaluating the phase columns at its
+  label.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -50,12 +71,16 @@ open Matrix Polynomial
 
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The four common branch degrees `2 * D`, `2 * D + 1`, `2 * D`, and `2 * D + 1`. -/
 def uniformBranchDegree (D : ℕ) : Fin 4 → ℕ := ![2 * D, 2 * D + 1, 2 * D, 2 * D + 1]
 
+/-- The sum of the four common branch degrees is `8 * D + 2`. -/
 theorem uniformBranchDegree_sum (D : ℕ) : (∑ k, uniformBranchDegree D k) = 8 * D + 2 := by
   simp [uniformBranchDegree, Fin.sum_univ_succ]
   omega
 
+/-- Each real branch of a complex polynomial has the parity specified by its common branch
+degree. -/
 theorem branches_uniform_parity (P : Polynomial ℂ) (D : ℕ) (k : Fin 4) :
     HasRealParity (uniformBranchDegree D k) (ComplexPolynomialSplit.branches P k) := by
   fin_cases k
@@ -64,12 +89,18 @@ theorem branches_uniform_parity (P : Polynomial ℂ) (D : ℕ) (k : Fin 4) :
   · exact ComplexPolynomialSplit.evenPart_parity (ComplexPolynomialSplit.imP P) D
   · exact ComplexPolynomialSplit.oddPart_parity (ComplexPolynomialSplit.imP P) D
 
+/-- If the complex polynomial has natural degree at most `D`, each real branch has degree at
+most its corresponding `uniformBranchDegree D k`. -/
 theorem branches_uniform_degree (P : Polynomial ℂ) (D : ℕ) (hD : P.natDegree ≤ D) (k : Fin 4) :
     (ComplexPolynomialSplit.branches P k).degree ≤ (uniformBranchDegree D k : WithBot ℕ) := by
   apply (ComplexPolynomialSplit.branches_degree P k).trans
   apply WithBot.coe_le_coe.mpr
   fin_cases k <;> simp [ComplexPolynomialSplit.branchDegrees, uniformBranchDegree] <;> omega
 
+/-- A degree-`D` polynomial bounded by `1 + η` on `[-1, 1]` and approximating a unit-bounded
+target within `η` on `s` yields unit-modulus QSVT phases of common branch lengths. Uniformly
+over Hermitian projected encodings with spectrum in `s`, the resulting LCU encodes the
+target functional calculus with normalization four and error `2 * η`. -/
 theorem normalized_approximation_qsvt_common_degree
     (P : Polynomial ℂ) (D : ℕ) (hD : P.natDegree ≤ D)
     (g : ℝ → ℂ) (s : Set ℝ) (η : ℝ) (hη : 0 ≤ η)
@@ -120,14 +151,18 @@ theorem normalized_approximation_qsvt_common_degree
   simp only [zero_add] at h
   exact h.mono (div_le_self (by positivity) (by linarith))
 
+/-- The transpose of an equal-length family of complex lists, represented as a list of
+label-dependent complex functions. -/
 def phaseColumns {J : Type*} (d : ℕ) (zs : J → List ℂ) (hlen : ∀ j, (zs j).length = d) :
     List (J → ℂ) :=
   List.ofFn (fun k : Fin d => fun j => (zs j)[k.val]'(by rw [hlen j]; exact k.isLt))
 
+/-- Transposing phase lists of common length `d` produces a list of length `d`. -/
 theorem phaseColumns_length {J : Type*} (d : ℕ) (zs : J → List ℂ)
     (hlen : ∀ j, (zs j).length = d) : (phaseColumns d zs hlen).length = d := by
   simp [phaseColumns]
 
+/-- Evaluating each phase column at a fixed label recovers that label's original phase list. -/
 theorem phaseColumns_map {J : Type*} (d : ℕ) (zs : J → List ℂ)
     (hlen : ∀ j, (zs j).length = d) (j : J) :
     (phaseColumns d zs hlen).map (fun z => z j) = zs j := by
@@ -136,6 +171,8 @@ theorem phaseColumns_map {J : Type*} (d : ℕ) (zs : J → List ℂ)
   · intro i hi hj
     simp [phaseColumns, List.getElem_ofFn]
 
+/-- If every entry of every original list is a phase, every phase-column value at every label is
+a phase. -/
 theorem phaseColumns_phase {J : Type*} (d : ℕ) (zs : J → List ℂ)
     (hlen : ∀ j, (zs j).length = d) (hp : ∀ j, ∀ z ∈ zs j, IsPhase z) :
     ∀ z ∈ phaseColumns d zs hlen, ∀ j, IsPhase (z j) := by

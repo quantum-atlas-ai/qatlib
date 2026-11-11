@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationPartition
+
+/-!
+# Exhaustion of classification remainders
+
+Defines `avoidsVertex` and proves that a classification scan returning no triangle leaves no
+pair incident to a processed vertex. Scanning all vertices therefore leaves the remaining pair
+set empty, completing a termination invariant for graph classification; see [Ambainis2005] for
+the search setting.
+
+## Main statements
+
+* `classifyScan_processed`: If a classification scan returns no triangle, its remaining pairs
+  avoid every vertex in the processed list.
+* `classifyScan_full_left_empty`: If the scan over all vertices returns no triangle, its
+  remaining pair set is empty.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,12 +37,15 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The condition that neither endpoint of any pair in `S` equals `v`. -/
 def avoidsVertex (S : Finset (Fin n×Fin n)) (v : Fin n) : Prop :=
   ∀ a b,(a,b)∈S→a≠v ∧ b≠v
 
+/-- A subset of a pair set avoiding `v` also avoids `v`. -/
 theorem avoidsVertex_mono {S T : Finset (Fin n×Fin n)} {v : Fin n} (h : S⊆T)
     (ht : avoidsVertex T v) : avoidsVertex S v := fun a b hab=>ht a b (h hab)
 
+/-- If `pairsAt S v` is empty, no pair in `S` has `v` as an endpoint. -/
 theorem avoidsVertex_of_no_pairs (S : Finset (Fin n×Fin n)) (v : Fin n) (h : pairsAt S v=∅) :
     avoidsVertex S v := by
   intro a b hab
@@ -32,6 +56,7 @@ theorem avoidsVertex_of_no_pairs (S : Finset (Fin n×Fin n)) (v : Fin n) (h : pa
     exact Finset.notMem_empty _ hm
   exact not_or.mp hn
 
+/-- The low-degree remainder contains no pair incident to the processed vertex. -/
 theorem lowRemaining_avoids (S : SymmetricPairSet n) (v : Fin n) : avoidsVertex (lowRemaining S v).edges v := by
   intro a b hab
   have hh:=Finset.mem_sdiff.mp hab
@@ -39,6 +64,7 @@ theorem lowRemaining_avoids (S : SymmetricPairSet n) (v : Fin n) : avoidsVertex 
   · intro hv;exact hh.2 (Finset.mem_filter.mpr ⟨hh.1,Or.inl hv⟩)
   · intro hv;exact hh.2 (Finset.mem_filter.mpr ⟨hh.1,Or.inr hv⟩)
 
+/-- The high-degree remainder contains no pair incident to the processed vertex. -/
 theorem highRemaining_avoids (G : UGraph n) (S : SymmetricPairSet n) (v : Fin n) : avoidsVertex (highRemaining G S v).edges v := by
   intro a b hab
   have hh:=Finset.mem_sdiff.mp hab
@@ -46,6 +72,8 @@ theorem highRemaining_avoids (G : UGraph n) (S : SymmetricPairSet n) (v : Fin n)
   · intro hv;exact hh.2 (Finset.mem_filter.mpr ⟨hh.1,Or.inl hv⟩)
   · intro hv;exact hh.2 (Finset.mem_filter.mpr ⟨hh.1,Or.inr (Or.inl hv)⟩)
 
+/-- If a classification scan returns no triangle, its remaining pairs avoid every vertex in the
+processed list. -/
 theorem classifyScan_processed (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n)
@@ -89,6 +117,7 @@ theorem classifyScan_processed (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ
         · exact ha
         · exact ih _ hnone x hx
 
+/-- If the scan over all vertices returns no triangle, its remaining pair set is empty. -/
 theorem classifyScan_full_left_empty (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (S : SymmetricPairSet n)

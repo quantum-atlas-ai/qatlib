@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAmplification
+
+/-!
+# Stage weights for variable-time amplification
+
+`VtStage` records the weights, angle, and odd call multiplier of an amplification stage.
+`VtStageChain` packages the gain windows, trigonometric identities, and time recurrence used to
+bound amplified weights and square-root gain ratios.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `VtStageChain.ampWindow`: lower bound on the amplified weight in terms of the ideal gain.
+* `VtStageChain.ampFloor` and `VtStageChain.ampCap`: stage weight bounds.
+* `VtStageChain.gainRatio_le_oddCalls`: comparison of gain and call count.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Papers.VarTimeAmpAmp10.CoherentAA
 open Qatlib.Papers.VarTimeAmpAmp10.StopModel
@@ -22,6 +43,7 @@ open Matrix Qatlib
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- The absolute sine of `n * θ` is at most `n` times the absolute sine of `θ`. -/
 theorem abs_sin_nsmul_le (n : ℕ) (θ : ℝ) :
     |Real.sin ((n : ℝ) * θ)| ≤ (n : ℝ) * |Real.sin θ| := by
   induction n with
@@ -54,6 +76,7 @@ theorem abs_sin_nsmul_le (n : ℕ) (θ : ℝ) :
           linarith
         _ = ((n : ℝ) + 1) * |Real.sin θ| := by ring
 
+/-- The squared sine of `n * θ` is at most `n²` times the squared sine of `θ`. -/
 theorem sin_sq_le_nsmul_sq (n : ℕ) (θ : ℝ) :
     Real.sin ((n : ℝ) * θ) ^ 2 ≤ (n : ℝ) ^ 2 * Real.sin θ ^ 2 := by
   have h := abs_sin_nsmul_le n θ
@@ -71,6 +94,7 @@ theorem sin_sq_le_nsmul_sq (n : ℕ) (θ : ℝ) :
   rw [hlhs, hrhs] at hsq
   exact hsq
 
+/-- For nonnegative `x`, the square root of `1 + x` is at most `1 + √x`. -/
 theorem sqrt_one_add_le (x : ℝ) (hx : 0 ≤ x) : Real.sqrt (1 + x) ≤ 1 + Real.sqrt x := by
   have hnonneg : 0 ≤ 1 + Real.sqrt x := by positivity
   have hrhs : 0 ≤ 1 + x := by linarith
@@ -81,6 +105,8 @@ theorem sqrt_one_add_le (x : ℝ) (hx : 0 ≤ x) : Real.sqrt (1 + x) ≤ 1 + Rea
   have h := (Real.sqrt_le_sqrt_iff (by positivity : 0 ≤ (1 + Real.sqrt x) ^ 2)).2 hsq
   rwa [Real.sqrt_sq hnonneg] at h
 
+/-- A finite product of square roots of nonnegative real numbers equals the square root of their
+product. -/
 theorem prod_sqrt (s : Finset ℕ) (f : ℕ → ℝ) (hf : ∀ a ∈ s, 0 ≤ f a) :
     (∏ a ∈ s, Real.sqrt (f a)) = Real.sqrt (∏ a ∈ s, f a) := by
   induction s using Finset.induction with
@@ -90,12 +116,15 @@ theorem prod_sqrt (s : Finset ℕ) (f : ℕ → ℝ) (hf : ∀ a ∈ s, 0 ≤ f 
       have hfs : ∀ b ∈ s, 0 ≤ f b := fun b hb => hf b (Finset.mem_insert_of_mem hb)
       rw [Finset.prod_insert ha, Finset.prod_insert ha, ih hfs, Real.sqrt_mul hfa]
 
+/-- Distinguishes a base stage from an amplified stage. -/
 inductive VtStageKind
 
   | base
 
   | amplified
 
+/-- Records a stage kind, base and amplified weights, an amplification angle, and the natural
+parameter of an odd call multiplier. -/
 structure VtStage where
 
   kind : VtStageKind
@@ -108,10 +137,14 @@ structure VtStage where
 
   angle : ℝ
 
+/-- The natural call multiplier `2 * s.oddMultiplier + 1` of a stage. -/
 def VtStage.oddCallsNat (s : VtStage) : ℕ := 2 * s.oddMultiplier + 1
 
+/-- The real-valued odd call multiplier `2 * s.oddMultiplier + 1` of a stage. -/
 def VtStage.oddCalls (s : VtStage) : ℝ := ((2 * s.oddMultiplier + 1 : ℕ) : ℝ)
 
+/-- A sequence of stage data with gain bounds, amplification identities, a time recurrence, and
+positivity and comparison conditions for success weights. -/
 structure VtStageChain (m : ℕ) where
 
   stage : ℕ → VtStage
@@ -152,6 +185,7 @@ structure VtStageChain (m : ℕ) where
 
   psuccPos : 0 < psucc
 
+/-- For `m ≥ 1`, the amplification loss factor `1 - 1 / (3 * m)` is positive. -/
 theorem one_sub_inv_three_mul_pos (m : ℕ) (hm : 1 ≤ m) : 0 < 1 - 1 / (3 * (m : ℝ)) := by
   have hm' : (1 : ℝ) ≤ m := by exact_mod_cast hm
   have hmm : (0 : ℝ) < m := by linarith
@@ -160,6 +194,7 @@ theorem one_sub_inv_three_mul_pos (m : ℕ) (hm : 1 ≤ m) : 0 < 1 - 1 / (3 * (m
   rw [heq]
   exact div_pos (by linarith) (by positivity)
 
+/-- Every stage with index between `1` and `m` has positive base weight. -/
 theorem VtStageChain.baseWeight_pos {m : ℕ} (chain : VtStageChain m) {j : ℕ}
     (h1 : 1 ≤ j) (h2 : j ≤ m) : 0 < (chain.stage j).baseWeight := by
   have hf := chain.gainFloor j h1 h2
@@ -179,6 +214,8 @@ theorem VtStageChain.baseWeight_pos {m : ℕ} (chain : VtStageChain m) {j : ℕ}
     positivity
   exact (mul_pos_iff_of_pos_left hsqpos).1 hmul
 
+/-- For `m ≥ 1`, the amplified weight is at least the ideal odd-multiplier gain times `1 - 1 /
+(3 * m)`. -/
 theorem VtStageChain.ampWindow {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) {j : ℕ}
     (h1 : 1 ≤ j) (h2 : j ≤ m) :
     (1 - 1 / (3 * (m : ℝ))) * (chain.stage j).oddCalls ^ 2 * (chain.stage j).baseWeight
@@ -228,6 +265,7 @@ theorem VtStageChain.ampWindow {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m)
         all_goals ring
     _ ≤ (chain.stage j).ampWeight := hloss
 
+/-- The amplified weight is at most the squared odd call multiplier times the base weight. -/
 theorem VtStageChain.amp_le_gain {m : ℕ} (chain : VtStageChain m) {j : ℕ}
     (h1 : 1 ≤ j) (h2 : j ≤ m) :
     (chain.stage j).ampWeight ≤ (chain.stage j).oddCalls ^ 2 * (chain.stage j).baseWeight := by
@@ -242,6 +280,8 @@ theorem VtStageChain.amp_le_gain {m : ℕ} (chain : VtStageChain m) {j : ℕ}
       exact hgain
     _ = (chain.stage j).oddCalls ^ 2 * (chain.stage j).baseWeight := by rw [hbase]
 
+/-- For `m ≥ 1`, each stage with index between `1` and `m` has amplified weight at least `1 / (9
+* m)`. -/
 theorem VtStageChain.ampFloor {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) {j : ℕ}
     (h1 : 1 ≤ j) (h2 : j ≤ m) : 1 / (9 * (m : ℝ)) ≤ (chain.stage j).ampWeight := by
   have hf := chain.gainFloor j h1 h2
@@ -265,12 +305,14 @@ theorem VtStageChain.ampFloor {m : ℕ} (chain : VtStageChain m) (hm : 1 ≤ m) 
     all_goals ring
   linarith
 
+/-- Each stage with index between `1` and `m` has amplified weight at most `1 / m`. -/
 theorem VtStageChain.ampCap {m : ℕ} (chain : VtStageChain m) {j : ℕ}
     (h1 : 1 ≤ j) (h2 : j ≤ m) : (chain.stage j).ampWeight ≤ 1 / (m : ℝ) := by
   have hgain := chain.amp_le_gain h1 h2
   have hcap := chain.gainCap j h1 h2
   linarith
 
+/-- The square-root gain ratio of a stage is at most its odd call multiplier. -/
 theorem VtStageChain.gainRatio_le_oddCalls {m : ℕ} (chain : VtStageChain m) {j : ℕ}
     (h1 : 1 ≤ j) (h2 : j ≤ m) :
     gainRatio (chain.stage j).ampWeight (chain.stage j).baseWeight

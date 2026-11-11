@@ -13,6 +13,34 @@ import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
 import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreNativePhasePort
+
+/-!
+# QSVT synthesis and implementation guarantees
+
+This module develops polynomial synthesis, frame transport, and workspace realization statements
+for quantum singular value transformation. It combines real and imaginary parts with even and
+odd polynomial components, using the polynomial-transformation framework of
+[GilyenSuLowWiebe2019] and quantum signal processing [LowChuang2017].
+
+The main results provide numerical polynomial approximation with a derivative bound, a unitary
+initialization-action-discard realization, frame preparation guarantees, and mixed-parity
+reconstruction. The module also proves that a local backend without any register wires cannot
+realize the minus-identity target with error at most one.
+
+## Main statements
+
+* `clause44`: numerical synthesis with uniform approximation and derivative control.
+* `clause49` and `clause45`: physical workspace realization and frame transport.
+* `clause43`: mixed-parity reconstruction and a compressed implementation error bound.
+* `clause12_zero_register_false`: failure of the stated universal compilation guarantee when
+  zero-width registers are included.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -37,15 +65,20 @@ namespace Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexInnerProductSpace
 
+/-- Two orthogonal projectors sum to identity and their products vanish in both orders. -/
 private def IsSignalSectorPair {H : Type} [Fintype H] [DecidableEq H]
     (Pblk Qblk : Matrix H H ℂ) : Prop :=
   Pblk + Qblk = 1 ∧ Pblk * Qblk = 0 ∧ Qblk * Pblk = 0 ∧
     IsOrthogonalProjector Pblk ∧ IsOrthogonalProjector Qblk
 
+/-- The projector parameter is zero or identity and `U` is a unit-modulus scalar multiple of
+identity. -/
 private def IsBase1ConstantTriple {H : Type} [Fintype H] [DecidableEq H]
     (U Q : Matrix H H ℂ) : Prop :=
   (Q = 1 ∨ Q = 0) ∧ ∃ γ : ℂ, Qatlib.Concepts.PhaseGeometry.Phase.IsPhase γ ∧ U = γ • 1
 
+/-- On each input operator tensored with the seed state, the reindexed channel and conjugation
+by `U` have equal partial traces. -/
 private noncomputable def InitActDiscardForm {D Ds Da : ℕ}
     (channel : QuantumChannel D D) (e : Fin D ≃ (Fin Ds × Fin Da))
     (U : Matrix (Fin Ds × Fin Da) (Fin Ds × Fin Da) ℂ)
@@ -59,6 +92,8 @@ section ThresholdMaterials
 
 open Polynomial
 
+/-- The coefficient of the ideal polynomial at index `i` equals the list entry with default
+zero. -/
 private theorem idealPoly_coeff (coeffs : List ℂ) (i : ℕ) :
     (phaseInversionIdealPoly coeffs).coeff i = coeffs.getD i 0 := by
   simp only [phaseInversionIdealPoly]
@@ -66,6 +101,8 @@ private theorem idealPoly_coeff (coeffs : List ℂ) (i : ℕ) :
   · simp [hi]
   · simp [hi]
 
+/-- A degree bound by the natural number `d` for the ideal polynomial implies the corresponding
+natural-degree bound. -/
 private theorem idealPoly_natDegree_le {coeffs : List ℂ} {d : ℕ}
     (hdeg : (phaseInversionIdealPoly coeffs).degree ≤ (d : WithBot ℕ)) :
     (phaseInversionIdealPoly coeffs).natDegree ≤ d := by
@@ -74,10 +111,14 @@ private theorem idealPoly_natDegree_le {coeffs : List ℂ} {d : ℕ}
   · rw [Polynomial.degree_eq_natDegree hz] at hdeg
     exact_mod_cast hdeg
 
+/-- A complex number times its conjugate equals its squared norm embedded into the complex
+numbers. -/
 private theorem star_mul_normSq (z : ℂ) : z * star z = ((Complex.normSq z : ℝ) : ℂ) := by
   show z * starRingEnd ℂ z = _
   rw [Complex.mul_conj]
 
+/-- The first polynomial in a completed synthesis pair has norm at most one at every real point
+of `[-1, 1]`. -/
 private theorem completedPair_norm_le_one {d : ℕ} {P Q : Polynomial ℂ}
     (h : Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.CompletedPair d P Q) {x : ℝ}
     (hx1 : -1 ≤ x) (hx2 : x ≤ 1) : ‖P.eval (x : ℂ)‖ ≤ 1 := by
@@ -103,6 +144,7 @@ private theorem completedPair_norm_le_one {d : ℕ} {P Q : Polynomial ℂ}
   have h1 : (1 : ℝ) < ‖P.eval (x : ℂ)‖ ^ 2 := by nlinarith [hgt1, sq (‖P.eval (x : ℂ)‖)]
   linarith
 
+/-- The coefficients of `polyRealPart P` are the real parts of the coefficients of `P`. -/
 private theorem polyRealPart_coeff (P : Polynomial ℂ) (i : ℕ) :
     (polyRealPart P).coeff i = (P.coeff i).re := by
   simp only [polyRealPart]
@@ -111,6 +153,7 @@ private theorem polyRealPart_coeff (P : Polynomial ℂ) (i : ℕ) :
   · have hc : P.coeff i = 0 := Polynomial.coeff_eq_zero_of_natDegree_lt (by omega)
     simp [hi, hc]
 
+/-- The coefficients of `polyImagPart P` are the imaginary parts of the coefficients of `P`. -/
 private theorem polyImagPart_coeff (P : Polynomial ℂ) (i : ℕ) :
     (polyImagPart P).coeff i = (P.coeff i).im := by
   simp only [polyImagPart]
@@ -119,6 +162,8 @@ private theorem polyImagPart_coeff (P : Polynomial ℂ) (i : ℕ) :
   · have hc : P.coeff i = 0 := Polynomial.coeff_eq_zero_of_natDegree_lt (by omega)
     simp [hi, hc]
 
+/-- Evaluating the real-part polynomial at a real number gives the real part of the original
+polynomial's value. -/
 private theorem polyRealPart_eval (P : Polynomial ℂ) (x : ℝ) :
     (polyRealPart P).eval x = (P.eval (x : ℂ)).re := by
   have hsum : P.eval (x : ℂ) = ∑ i ∈ Finset.range (P.natDegree + 1), P.coeff i * (x : ℂ) ^ i :=
@@ -129,6 +174,8 @@ private theorem polyRealPart_eval (P : Polynomial ℂ) (x : ℝ) :
     simp only [← Complex.ofReal_pow, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im]
     ring
 
+/-- Evaluating the imaginary-part polynomial at a real number gives the imaginary part of the
+original polynomial's value. -/
 private theorem polyImagPart_eval (P : Polynomial ℂ) (x : ℝ) :
     (polyImagPart P).eval x = (P.eval (x : ℂ)).im := by
   have hsum : P.eval (x : ℂ) = ∑ i ∈ Finset.range (P.natDegree + 1), P.coeff i * (x : ℂ) ^ i :=
@@ -139,6 +186,7 @@ private theorem polyImagPart_eval (P : Polynomial ℂ) (x : ℝ) :
     simp only [← Complex.ofReal_pow, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
     ring
 
+/-- Taking coefficientwise real parts commutes with polynomial differentiation. -/
 private theorem polyRealPart_derivative (P : Polynomial ℂ) :
     (polyRealPart P).derivative = polyRealPart P.derivative := by
   ext n
@@ -146,6 +194,7 @@ private theorem polyRealPart_derivative (P : Polynomial ℂ) :
     Polynomial.coeff_derivative, Complex.mul_re]
   simp
 
+/-- Taking coefficientwise imaginary parts commutes with polynomial differentiation. -/
 private theorem polyImagPart_derivative (P : Polynomial ℂ) :
     (polyImagPart P).derivative = polyImagPart P.derivative := by
   ext n
@@ -153,6 +202,7 @@ private theorem polyImagPart_derivative (P : Polynomial ℂ) :
     Polynomial.coeff_derivative, Complex.mul_im]
   simp
 
+/-- Taking coefficientwise real parts does not increase a polynomial's natural degree. -/
 private theorem polyRealPart_natDegree_le (P : Polynomial ℂ) :
     (polyRealPart P).natDegree ≤ P.natDegree := by
   refine Polynomial.natDegree_le_of_degree_le
@@ -162,6 +212,7 @@ private theorem polyRealPart_natDegree_le (P : Polynomial ℂ) :
     exact_mod_cast hm)]
   simp
 
+/-- Taking coefficientwise imaginary parts does not increase a polynomial's natural degree. -/
 private theorem polyImagPart_natDegree_le (P : Polynomial ℂ) :
     (polyImagPart P).natDegree ≤ P.natDegree := by
   refine Polynomial.natDegree_le_of_degree_le
@@ -171,6 +222,8 @@ private theorem polyImagPart_natDegree_le (P : Polynomial ℂ) :
     exact_mod_cast hm)]
   simp
 
+/-- A numerical coefficient list of length at most `d + 1` defines a data polynomial of natural
+degree at most `d`. -/
 private theorem dataPolynomial_natDegree_le {γ : List GaussianRat} {d : ℕ}
     (hlen : γ.length ≤ d + 1) : (Qatlib.Concepts.NativeNumerics.PhaseSynthesis.dataPolynomial γ).natDegree ≤ d := by
   refine Polynomial.natDegree_le_of_degree_le
@@ -184,6 +237,10 @@ private theorem dataPolynomial_natDegree_le {γ : List GaussianRat} {d : ℕ}
 
 end ThresholdMaterials
 
+/-- For an ideal polynomial of degree at most `d` possessing a completed synthesis pair and `0 <
+ε ≤ 1 / 2`, there is a result satisfying `PhaseInversionSuccess`. Its data-polynomial
+derivative has norm at most `2 * (res.phases.length + d + 1)² * (1 + ε)` on `[-1, 1]`
+[GilyenSuLowWiebe2019]. -/
 theorem clause44 : ∀ (d : ℕ) (coeffs : List ℂ) (ε : ℝ),
     (phaseInversionIdealPoly coeffs).degree ≤ (d : WithBot ℕ) →
     (∃ Qc : Polynomial ℂ,
@@ -393,6 +450,7 @@ theorem clause44 : ∀ (d : ℕ) (coeffs : List ℂ) (ε : ℝ),
 
 section PaidWalkMaterials
 
+/-- Reindexing square matrices by an equivalence preserves matrix multiplication. -/
 private theorem reindex_mul_eq {m n : Type} [Fintype m] [Fintype n] [DecidableEq m]
     [DecidableEq n] (E : m ≃ n) (A B : Matrix m m ℂ) :
     Matrix.reindex E E (A * B) = Matrix.reindex E E A * Matrix.reindex E E B := by
@@ -400,6 +458,7 @@ private theorem reindex_mul_eq {m n : Type} [Fintype m] [Fintype n] [DecidableEq
   simp only [Matrix.mul_apply, Matrix.reindex_apply, Matrix.submatrix_apply]
   rw [Equiv.sum_comp E.symm (fun p => A (E.symm i) p * B p (E.symm j))]
 
+/-- Reindexing the identity matrix by an equivalence gives the identity matrix. -/
 private theorem reindex_one_eq {m n : Type} [Fintype m] [Fintype n] [DecidableEq m]
     [DecidableEq n] (E : m ≃ n) :
     Matrix.reindex E E (1 : Matrix m m ℂ) = 1 := by
@@ -407,6 +466,7 @@ private theorem reindex_one_eq {m n : Type} [Fintype m] [Fintype n] [DecidableEq
   simp only [Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.one_apply,
     E.symm.injective.eq_iff]
 
+/-- Reindexing by an equivalence after reindexing by its inverse restores the original matrix. -/
 private theorem reindex_reindex_symm_eq {m n : Type} [Fintype m] [Fintype n]
     [DecidableEq m] [DecidableEq n] (E : m ≃ n) (M : Matrix n n ℂ) :
     Matrix.reindex E E (Matrix.reindex E.symm E.symm M) = M := by
@@ -415,6 +475,9 @@ private theorem reindex_reindex_symm_eq {m n : Type} [Fintype m] [Fintype n]
 
 end PaidWalkMaterials
 
+/-- For a unitary ideal operator and positive tolerance, there is a channel satisfying
+`PhysicalWorkspaceSpec` with peak space at least `D`. It has a normalized seed and unitary
+initialization-action-discard realization after the specified register reindexing. -/
 theorem clause49 : ∀ (D : ℕ) (ideal : Operator D), ideal ∈ Matrix.unitaryGroup (Fin D) ℂ →
     ∀ ε : ℝ, 0 < ε →
       ∃ (channel : QuantumChannel D D) (peakSpace ancilla retryBudget : ℕ)
@@ -465,6 +528,8 @@ theorem clause49 : ∀ (D : ℕ) (ideal : Operator D), ideal ∈ Matrix.unitaryG
         reindex_reindex_symm_eq, hUd, Matrix.conjTranspose_reindex]
     rw [hkey]
 
+/-- For an isometric frame, nonnegative `δ`, `κ ≥ 1`, and positive `ε`, there is a frame
+implementation satisfying `FrameTransportSuccess` whose recorded error is at most `δ + ε`. -/
 theorem clause45 : ∀ (H I : Type) [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
     (F : Matrix H I ℂ), Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry F →
     ∀ (δ κ : ℝ), 0 ≤ δ → 1 ≤ κ →
@@ -624,6 +689,8 @@ section Clause9Materials
 
 open Polynomial
 
+/-- A sum over indices from zero through `N` splits into the stated even-index and odd-index
+sums. -/
 private theorem sum_range_split_parity {M : Type*} [AddCommMonoid M] (f : ℕ → M) :
     ∀ N : ℕ, ∑ n ∈ Finset.range (N + 1), f n
       = ∑ k ∈ Finset.range (N / 2 + 1), f (2 * k)
@@ -661,6 +728,8 @@ private theorem sum_range_split_parity {M : Type*} [AddCommMonoid M] (f : ℕ �
       rw [hC, show 2 * m + 1 + 1 = 2 * (m + 1) from by omega]
       abel
 
+/-- Evaluating the even coefficient part gives the sum of `p.coeff (2 * k) * y ^ k` over its
+defining range. -/
 private theorem eval_evenPolyPart (p : Polynomial ℝ) (y : ℝ) :
     (evenPolyPart p).eval y = ∑ k ∈ Finset.range (p.natDegree / 2 + 1), p.coeff (2 * k) * y ^ k := by
   unfold evenPolyPart
@@ -668,6 +737,8 @@ private theorem eval_evenPolyPart (p : Polynomial ℝ) (y : ℝ) :
   exact Finset.sum_congr rfl fun k _ => by
     simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- Evaluating the odd coefficient part gives the sum of `p.coeff (2 * k + 1) * y ^ k` over its
+defining range. -/
 private theorem eval_oddPolyPart (p : Polynomial ℝ) (y : ℝ) :
     (oddPolyPart p).eval y
       = ∑ k ∈ Finset.range ((p.natDegree + 1) / 2), p.coeff (2 * k + 1) * y ^ k := by
@@ -676,6 +747,8 @@ private theorem eval_oddPolyPart (p : Polynomial ℝ) (y : ℝ) :
   exact Finset.sum_congr rfl fun k _ => by
     simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- A real polynomial evaluated at `x` equals its even coefficient part at `x²` plus `x` times
+its odd coefficient part at `x²`. -/
 private theorem evenOdd_recon (p : Polynomial ℝ) (x : ℝ) :
     p.eval x = (evenPolyPart p).eval (x * x) + x * (oddPolyPart p).eval (x * x) := by
   have h1 : p.eval x = ∑ n ∈ Finset.range (p.natDegree + 1), p.coeff n * x ^ n :=
@@ -695,6 +768,8 @@ private theorem evenOdd_recon (p : Polynomial ℝ) (x : ℝ) :
     Finset.sum_congr rfl fun k _ => by rw [pow_succ, hX2 k]; ring
   rw [hA, hB]
 
+/-- The real-part polynomial evaluates as the finite sum of the real coefficient parts times
+powers of the argument. -/
 private theorem eval_polyRealPart (P : Polynomial ℂ) (x : ℝ) :
     (polyRealPart P).eval x = ∑ n ∈ Finset.range (P.natDegree + 1), (P.coeff n).re * x ^ n := by
   unfold polyRealPart
@@ -702,6 +777,8 @@ private theorem eval_polyRealPart (P : Polynomial ℂ) (x : ℝ) :
   exact Finset.sum_congr rfl fun n _ => by
     simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- The imaginary-part polynomial evaluates as the finite sum of the imaginary coefficient parts
+times powers of the argument. -/
 private theorem eval_polyImagPart (P : Polynomial ℂ) (x : ℝ) :
     (polyImagPart P).eval x = ∑ n ∈ Finset.range (P.natDegree + 1), (P.coeff n).im * x ^ n := by
   unfold polyImagPart
@@ -709,6 +786,8 @@ private theorem eval_polyImagPart (P : Polynomial ℂ) (x : ℝ) :
   exact Finset.sum_congr rfl fun n _ => by
     simp [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- At a real argument, a complex polynomial equals its real-part polynomial plus `i` times its
+imaginary-part polynomial. -/
 private theorem reIm_split (P : Polynomial ℂ) (x : ℝ) :
     P.eval (x : ℂ) = (((polyRealPart P).eval x : ℝ) : ℂ)
       + Complex.I * (((polyImagPart P).eval x : ℝ) : ℂ) := by
@@ -728,6 +807,7 @@ private theorem reIm_split (P : Polynomial ℂ) (x : ℝ) :
     Finset.sum_congr rfl (fun n _ => hterm (P.coeff n) n), Finset.sum_add_distrib,
     ← Finset.mul_sum]
 
+/-- Bounds on both `|u + v|` and `|u - v|` by `c` imply separate bounds `|u| ≤ c` and `|v| ≤ c`. -/
 private theorem abs_le_of_pair {u v c : ℝ} (h1 : |u + v| ≤ c) (h2 : |u - v| ≤ c) :
     |u| ≤ c ∧ |v| ≤ c := by
   have hsum : |u + v| + |u - v| ≤ 2 * c := by linarith
@@ -745,10 +825,12 @@ private theorem abs_le_of_pair {u v c : ℝ} (h1 : |u + v| ≤ c) (h2 : |u - v| 
     rw [abs_mul, abs_two] at key
     linarith
 
+/-- A polynomial composed with `X²` is unchanged by further composition with `-X`. -/
 private theorem sq_comp_neg_X (g : Polynomial ℝ) :
     (g.comp (X * X)).comp (-X) = g.comp (X * X) := by
   rw [Polynomial.comp_assoc, Polynomial.mul_comp, Polynomial.X_comp, neg_mul_neg]
 
+/-- Composing a real polynomial with `X²` has the real parity indexed by `2 * g.natDegree + 2`. -/
 private theorem evenLift_parity (g : Polynomial ℝ) :
     Qatlib.Concepts.QspSimulation.Achievability.HasRealParity (2 * g.natDegree + 2)
       (g.comp (X * X)) := by
@@ -760,6 +842,8 @@ private theorem evenLift_parity (g : Polynomial ℝ) :
   rw [hp]
   simp
 
+/-- Multiplying a real polynomial in `X²` by `X` has the real parity indexed by `2 * g.natDegree
++ 3`. -/
 private theorem oddLift_parity (g : Polynomial ℝ) :
     Qatlib.Concepts.QspSimulation.Achievability.HasRealParity (2 * g.natDegree + 3)
       (X * g.comp (X * X)) := by
@@ -773,6 +857,7 @@ private theorem oddLift_parity (g : Polynomial ℝ) :
   rw [hC, neg_one_mul]
   exact (neg_mul_eq_neg_mul X (g.comp (X * X))).symm
 
+/-- The degree of `g` composed with `X²` is at most `2 * g.natDegree + 2`. -/
 private theorem evenLift_degree (g : Polynomial ℝ) :
     (g.comp (X * X)).degree ≤ ((2 * g.natDegree + 2 : ℕ) : WithBot ℕ) := by
   have h2 : (X * X : Polynomial ℝ).natDegree = 2 := by
@@ -781,6 +866,7 @@ private theorem evenLift_degree (g : Polynomial ℝ) :
   rw [h2] at h1
   exact Polynomial.degree_le_of_natDegree_le (by omega)
 
+/-- The degree of `X * g(X²)` is at most `2 * g.natDegree + 3`. -/
 private theorem oddLift_degree (g : Polynomial ℝ) :
     (X * g.comp (X * X)).degree ≤ ((2 * g.natDegree + 3 : ℕ) : WithBot ℕ) := by
   have h2 : (X * X : Polynomial ℝ).natDegree = 2 := by
@@ -797,6 +883,11 @@ end Clause9Materials
 
 open Polynomial in
 
+/-- For a Hermitian contraction with the specified exact block encoding and complementary signal
+sectors, a polynomial bounded by `1 / 4` on `[-1, 1]` possesses real and imaginary
+mixed-parity implementations. Their phase responses reconstruct the four parity components,
+and the compressed linear combination approximates `Polynomial.aeval Hm P` within the sum of
+their errors, with the stated normalization and resource identities [GilyenSuLowWiebe2019]. -/
 theorem clause43 : ∀ (D : ℕ) (Hm : Operator D), Hmᴴ = Hm → schattenTop Hm ≤ 1 →
     ∀ (K : Type) [Fintype K] [DecidableEq K]
       (Ub : Matrix K K ℂ) (Lb : Matrix K (Fin D) ℂ) (Rb : Matrix K (Fin D) ℂ)
@@ -984,11 +1075,14 @@ theorem clause43 : ∀ (D : ℕ) (Hm : Operator D), Hmᴴ = Hm → schattenTop H
   · refine ⟨by simp, by simp, le_refl 1, le_refl 1, norm_nonneg _, le_refl 0,
     rfl, rfl, rfl, rfl⟩
 
+/-- Every finite backend compilation on a zero-width register has an empty gate list. -/
 private theorem zero_backend_gates_nil (comp : FiniteBackendCompilation 0) : comp.gates = [] := by
   cases h : comp.gates with
   | nil => rfl
   | cons g _ => exact (zero_gate_impossible g).elim
 
+/-- A zero-width finite backend compilation cannot realize minus identity with total error at
+most one. -/
 theorem zero_backend_neg_one_impossible (comp : FiniteBackendCompilation 0) :
     ¬ (finiteBackendRealizes (-1 : Matrix (Reg 0) (Reg 0) ℂ) comp ∧ comp.totalError ≤ 1) := by
   intro h
@@ -1004,6 +1098,8 @@ theorem zero_backend_neg_one_impossible (comp : FiniteBackendCompilation 0) :
   rw [hn] at hb
   linarith [h.2]
 
+/-- The stated universal polynomial gate-bound compilation guarantee for source words and their
+adjoints is false when zero-width registers are included. -/
 theorem clause12_zero_register_false :
     ¬ (∃ (Cg Dg : ℕ),
       ∀ (w : ℕ) (U Pblk Qblk : Matrix (Reg w) (Reg w) ℂ) (Φ : List ℝ)

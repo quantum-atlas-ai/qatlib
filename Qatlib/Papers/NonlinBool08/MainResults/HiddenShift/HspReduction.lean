@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
 import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+
+/-!
+# Reduction of bent hidden shifts to subgroup hiding
+
+Uses translated sign functions `qfun` to build the two-branch function `hidingFun`. Bentness
+makes the translated functions distinct, and the hidden-shift promise gives an exact description
+of the collisions between the two branches. See [Roetteler2008].
+
+## Main statements
+
+* `qfun_injective`: the translated sign function uniquely determines its translation.
+* `hidingFun_eq_iff`: collisions are equality or the paired hidden-shift relation.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,9 +36,11 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.HiddenShift
 
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- The translated sign function sending `y` to `eps (f (x + y))`. -/
 def qfun {n : ℕ} (f : BVec n → ZMod 2) (x : BVec n) (y : BVec n) : ℤ :=
   eps (f (x + y))
 
+/-- For a bent function, distinct translations give distinct sign functions. -/
 theorem qfun_injective {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) :
     Function.Injective (qfun f) := by
   intro x x' hxx
@@ -44,9 +64,13 @@ theorem qfun_injective {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) :
   · rw [if_neg h] at hsum
     exact absurd hsum.symm (pow_ne_zero n (by norm_num : (2 : ℤ) ≠ 0))
 
+/-- The two-branch function-valued map selecting a translate of the sign of `f` or `g` according
+to a binary branch bit. -/
 def hidingFun {n : ℕ} (f g : BVec n → ZMod 2) (b : ZMod 2) (x y : BVec n) : ℤ :=
   if b = 0 then qfun f x y else qfun g x y
 
+/-- Under the hidden-shift promise, the branch-one value at `x` is the translated sign function
+of `f` at `x + s`. -/
 lemma hidingFun_one {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
     (hg : HidesShiftOn f g s) (x : BVec n) :
     hidingFun f g 1 x = qfun f (x + s) := by
@@ -58,12 +82,17 @@ lemma hidingFun_one {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
   congr 2
   abel
 
+/-- For binary vectors, `(x + s) + x` equals `s`. -/
 lemma add_add_self_left {n : ℕ} (x s : BVec n) : (x + s) + x = s := by
   rw [add_comm (x + s) x, ← add_assoc, BentCore.add_self_bvec, zero_add]
 
+/-- For binary vectors, `x + (x + s)` equals `s`. -/
 lemma add_add_self_right {n : ℕ} (x s : BVec n) : x + (x + s) = s := by
   rw [← add_assoc, BentCore.add_self_bvec, zero_add]
 
+/-- For bent `f` and a hidden shift `s`, two values of `hidingFun` agree exactly when the inputs
+coincide or their branch bits differ and their vector components sum to `s`. See [Roetteler,
+Theorem 7][Roetteler2008]. -/
 theorem hidingFun_eq_iff {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
     (hf : Bent f) (hg : HidesShiftOn f g s) (b b' : ZMod 2) (x x' : BVec n) :
     hidingFun f g b x = hidingFun f g b' x' ↔

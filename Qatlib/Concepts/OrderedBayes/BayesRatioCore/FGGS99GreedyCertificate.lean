@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# Obstruction to a universal greedy entropy certificate
+
+This module proves `fGGS99GreedyCertificate_obstruction` by evaluating the entropy of the
+uniform distribution on 2^23 points. Its entropy is 23 bits, which exceeds the universal upper
+bound required by `FGGS99GreedyCertificateContract`. The certificate is associated with the
+ordered search discussion in [BenOrHassidim2007] and the invariant algorithms of
+[FarhiEtAl1999].
+
+## Main statements
+
+* `fGGS99GreedyCertificate_obstruction`: the specified certificate contract is false.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +34,9 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSearch200
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- The universal entropy requirement in `FGGS99GreedyCertificateContract` fails for the uniform
+distribution on 2^23 points. This refutes the specified certificate associated with the
+ordered search discussion in [BenOrHassidim2007]. -/
 theorem fGGS99GreedyCertificate_obstruction : ¬ FGGS99GreedyCertificateContract := by
   intro h
   let Q : Fin (2 ^ 23) → ℝ := fun _ => 1 / ((2 : ℝ) ^ 23)

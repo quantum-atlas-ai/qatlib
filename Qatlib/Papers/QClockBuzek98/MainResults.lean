@@ -102,6 +102,31 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Clock amplitude costs and entropy estimates
+
+The module defines a finite nearest-neighbor cost operator and evaluates its quadratic form on
+binomial, constant, and half-shifted sine amplitude families. The sine-family calculations give
+explicit norm and cost formulas, a boundary correction, and two-sided cost and inverse-size
+resolution bounds.
+
+The entropy part defines finite Shannon entropy using natural logarithms, conditional entropy,
+and mutual information. `holevoBound` proves the finite-distribution entropy bound, and
+`clockConstraintBounds` combines it with the sine-family resolution estimate. See
+[BuzekDerkaMassar1999].
+
+## Main statements
+
+* `costForm_sine`: evaluates the cost of the half-shifted sine family.
+* `optimalCost_two_sided`: bounds its normalized cost above and below.
+* `holevoBound`: bounds entropy on N + 1 outcomes by log(N + 1).
+* `clockConstraintBounds`: collects the resolution and entropy estimates.
+
+## References
+
+* [Bužek et al., 1999][BuzekDerkaMassar1999]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Finset
@@ -109,30 +134,40 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QClockBuzek98.MainResults
 
+/-- The angular parameter `Real.pi / (N + 1)`. -/
 def theta (N : ℕ) : ℝ := Real.pi / (N + 1)
 
+/-- The angular parameter `theta N` is positive for every natural `N`. -/
 lemma theta_pos (N : ℕ) : 0 < theta N := by
   unfold theta; positivity
 
+/-- For `N ≥ 1`, the angular parameter `theta N` is strictly less than π. -/
 lemma theta_lt_pi {N : ℕ} (hN : 1 ≤ N) : theta N < Real.pi := by
   unfold theta
   rw [div_lt_iff₀ (by positivity)]
   have h1 : (1:ℝ) ≤ (N:ℝ) := by exact_mod_cast hN
   nlinarith [Real.pi_pos]
 
+/-- The half-shifted sine amplitude `Real.sin (theta N * ((m : ℝ) + 1 / 2))`. -/
 def sineAmplitude (N : ℕ) (m : ℕ) : ℝ := Real.sin (theta N * ((m:ℝ) + 1/2))
 
+/-- The nearest-neighbor operator with diagonal coefficient two and adjacent coefficients minus
+one, omitting neighbors outside the index interval from zero to `N`. -/
 def costOp (N : ℕ) (a : ℕ → ℝ) (m : ℕ) : ℝ :=
   2 * a m
     - (if m + 1 ≤ N then a (m + 1) else 0)
     - (if 1 ≤ m then a (m - 1) else 0)
 
+/-- The quadratic form obtained by summing `a m * costOp N a m` over indices from zero to `N`. -/
 def costForm (N : ℕ) (a : ℕ → ℝ) : ℝ :=
   ∑ m ∈ range (N + 1), a m * costOp N a m
 
+/-- The sum of squared real amplitudes over indices from zero to `N`. -/
 def normSq (N : ℕ) (a : ℕ → ℝ) : ℝ :=
   ∑ m ∈ range (N + 1), (a m) ^ 2
 
+/-- For `N ≥ 1`, the sum of `Real.cos (theta N * (2 * (m : ℝ) + 1))` over indices from zero to
+`N` is zero. -/
 lemma sum_cos_odd {N : ℕ} (hN : 1 ≤ N) :
     (∑ m ∈ range (N + 1), Real.cos (theta N * (2 * (m:ℝ) + 1))) = 0 := by
   have hpos := theta_pos N
@@ -162,6 +197,8 @@ lemma sum_cos_odd {N : ℕ} (hN : 1 ≤ N) :
   simp only [hlast, Real.sin_two_pi, Real.sin_zero, sub_zero] at key
   exact (mul_eq_zero.mp key).resolve_left (by positivity)
 
+/-- For `N ≥ 1`, the sum of `Real.cos (2 * theta N * ((m : ℝ) + 1))` over indices below `N` is
+minus one. -/
 lemma sum_cos_even {N : ℕ} (hN : 1 ≤ N) :
     (∑ m ∈ range N, Real.cos (2 * theta N * ((m:ℝ) + 1))) = -1 := by
   have hpos := theta_pos N
@@ -203,6 +240,8 @@ lemma sum_cos_even {N : ℕ} (hN : 1 ≤ N) :
   · exact absurd h (by positivity)
   · linarith
 
+/-- For `N ≥ 1`, the sum of the squared half-shifted sine amplitudes over indices from zero to
+`N` is `((N : ℝ) + 1) / 2`. -/
 lemma sum_sq_sin {N : ℕ} (hN : 1 ≤ N) :
     (∑ m ∈ range (N + 1), (Real.sin (theta N * ((m:ℝ) + 1/2)))^2) = ((N:ℝ)+1)/2 := by
   have hcos : ∑ m ∈ range (N+1), Real.cos (2*(theta N * ((m:ℝ)+1/2))) = 0 := by
@@ -218,15 +257,20 @@ lemma sum_sq_sin {N : ℕ} (hN : 1 ≤ N) :
   rw [hstep, Finset.sum_const, Finset.card_range, nsmul_eq_mul, ← Finset.sum_div, hcos]
   push_cast; ring
 
+/-- For `N ≥ 1`, the squared norm of `sineAmplitude N` is `((N : ℝ) + 1) / 2`. This evaluates
+the sine family used in the clock-state analysis of [BuzekDerkaMassar1999]. -/
 theorem sine_normSq {N : ℕ} (hN : 1 ≤ N) :
     normSq N (sineAmplitude N) = ((N:ℝ)+1)/2 := by
   unfold normSq sineAmplitude
   exact sum_sq_sin hN
 
+/-- The product `Real.sin A * Real.sin B` equals `(Real.cos (A - B) - Real.cos (A + B)) / 2`. -/
 lemma sin_mul_sin_eq (A B : ℝ) :
     Real.sin A * Real.sin B = (Real.cos (A - B) - Real.cos (A + B)) / 2 := by
   rw [Real.cos_sub, Real.cos_add]; ring
 
+/-- The sine at `3 * theta N / 2` equals `(1 + 2 * Real.cos (theta N)) * Real.sin (theta N /
+2)`. -/
 lemma sin_three_half (N : ℕ) :
     Real.sin (3 * theta N / 2) = (1 + 2 * Real.cos (theta N)) * Real.sin (theta N / 2) := by
   have h := Real.sin_sub_sin (3 * theta N / 2) (theta N / 2)
@@ -238,6 +282,8 @@ lemma sin_three_half (N : ℕ) :
     linarith [h]
   rw [key]; ring
 
+/-- Adjacent half-shifted sine values sum to twice the central value multiplied by `Real.cos
+(theta N)`. -/
 lemma sine_step_relation (N : ℕ) (m : ℕ) :
     Real.sin (theta N * ((m:ℝ) + 3/2)) + Real.sin (theta N * ((m:ℝ) - 1/2))
       = 2 * Real.cos (theta N) * Real.sin (theta N * ((m:ℝ) + 1/2)) := by
@@ -248,6 +294,9 @@ lemma sine_step_relation (N : ℕ) (m : ℕ) :
   rw [e1, e2] at h
   rw [h]; ring
 
+/-- The scalar expression `2 - 2 * Real.cos (theta N)` equals `4 * (Real.sin (theta N / 2)) ^
+2`. This is the trigonometric identity used in the sine-family estimates related to
+[BuzekDerkaMassar1999]. -/
 theorem sine_eigenvalue_eq (N : ℕ) :
     2 - 2 * Real.cos (theta N) = 4 * (Real.sin (theta N / 2))^2 := by
   have h := Real.sin_sq_eq_half_sub (theta N / 2)
@@ -255,12 +304,17 @@ theorem sine_eigenvalue_eq (N : ℕ) :
   rw [e] at h
   linarith [h]
 
+/-- The scalar expression `2 - 2 * Real.cos (theta N)` is at most `(theta N) ^ 2`. This bounds
+the interior spectral parameter used in the clock estimates of [BuzekDerkaMassar1999]. -/
 theorem sine_eigenvalue_le_theta_sq (N : ℕ) :
     2 - 2 * Real.cos (theta N) ≤ (theta N)^2 := by
   rw [sine_eigenvalue_eq]
   have hs : (Real.sin (theta N / 2))^2 ≤ (theta N / 2)^2 := Real.sin_sq_le_sq
   nlinarith [hs]
 
+/-- At indices strictly between zero and `N`, `costOp` acts on the sine family by multiplication
+by `2 - 2 * Real.cos (theta N)`. This is the interior recurrence used in the clock-state
+calculations related to [BuzekDerkaMassar1999]. -/
 theorem sine_interior_eigen (N : ℕ) {m : ℕ} (hm0 : 0 < m) (hmN : m < N) :
     costOp N (sineAmplitude N) m = (2 - 2 * Real.cos (theta N)) * sineAmplitude N m := by
   have hm1 : m + 1 ≤ N := by omega
@@ -277,6 +331,9 @@ theorem sine_interior_eigen (N : ℕ) {m : ℕ} (hm0 : 0 < m) (hmN : m < N) :
   have hstep := sine_step_relation N m
   linarith [hstep]
 
+/-- For `N ≥ 1`, the left boundary value of `costOp` on the sine family equals the interior
+eigenvalue expression minus `sineAmplitude N 0`. This records the boundary correction in the
+sine-family calculation related to [BuzekDerkaMassar1999]. -/
 theorem sine_left_boundary (N : ℕ) (hN : 1 ≤ N) :
     costOp N (sineAmplitude N) 0 =
       (2 - 2 * Real.cos (theta N)) * sineAmplitude N 0 - sineAmplitude N 0 := by
@@ -293,6 +350,8 @@ theorem sine_left_boundary (N : ℕ) (hN : 1 ≤ N) :
     rw [hbound]; ring
   simpa using this
 
+/-- The cost form equals twice the squared norm minus twice the sum of adjacent amplitude
+products. -/
 theorem costForm_offdiag (N : ℕ) (a : ℕ → ℝ) :
     costForm N a = 2 * normSq N a - 2 * (∑ m ∈ range N, a m * a (m+1)) := by
   unfold costForm normSq
@@ -331,8 +390,10 @@ theorem costForm_offdiag (N : ℕ) (a : ℕ → ℝ) :
   rw [hA, hB, hC]
   ring
 
+/-- The square root of the binomial probability `(Nat.choose N m : ℝ) / (2 : ℝ) ^ N`. -/
 def prodAmplitude (N m : ℕ) : ℝ := Real.sqrt ((Nat.choose N m : ℝ) / (2:ℝ)^N)
 
+/-- The binomial amplitude family `prodAmplitude N` has squared norm one. -/
 theorem prod_normSq (N : ℕ) : normSq N (prodAmplitude N) = 1 := by
   unfold normSq prodAmplitude
   have hterm : ∀ m, (Real.sqrt ((Nat.choose N m : ℝ) / (2:ℝ)^N))^2 =
@@ -346,6 +407,9 @@ theorem prod_normSq (N : ℕ) : normSq N (prodAmplitude N) = 1 := by
   rw [Nat.cast_pow, Nat.cast_ofNat]
   field_simp
 
+/-- The binomial family's cost equals twice one minus the adjacent-binomial square-root sum
+divided by `2 ^ N`. This is the product-family cost expression associated with
+[BuzekDerkaMassar1999]. -/
 theorem costForm_prod (N : ℕ) :
     costForm N (prodAmplitude N) =
       2 * (1 - (∑ m ∈ range N,
@@ -368,8 +432,10 @@ theorem costForm_prod (N : ℕ) :
   rw [Finset.sum_div]
   ring
 
+/-- The constant amplitude `1 / Real.sqrt ((N : ℝ) + 1)`. -/
 def phaseAmplitude (N : ℕ) (_m : ℕ) : ℝ := 1 / Real.sqrt ((N:ℝ)+1)
 
+/-- The constant amplitude family `phaseAmplitude N` has squared norm one. -/
 theorem phase_normSq (N : ℕ) : normSq N (phaseAmplitude N) = 1 := by
   unfold normSq phaseAmplitude
   have hpos : (0:ℝ) < (N:ℝ)+1 := by positivity
@@ -382,6 +448,8 @@ theorem phase_normSq (N : ℕ) : normSq N (phaseAmplitude N) = 1 := by
   push_cast
   field_simp
 
+/-- The constant amplitude family has cost `2 / ((N : ℝ) + 1)`. This evaluates the phase-family
+cost associated with [BuzekDerkaMassar1999]. -/
 theorem costForm_phase (N : ℕ) :
     costForm N (phaseAmplitude N) = 2/((N:ℝ)+1) := by
   rw [costForm_offdiag, phase_normSq]
@@ -399,11 +467,15 @@ theorem costForm_phase (N : ℕ) :
   field_simp
   ring
 
+/-- The square root of the constant family's normalized cost equals `Real.sqrt (2 / ((N : ℝ) +
+1))`. -/
 theorem phaseResolution (N : ℕ) :
     Real.sqrt (costForm N (phaseAmplitude N) / normSq N (phaseAmplitude N))
       = Real.sqrt (2/((N:ℝ)+1)) := by
   rw [costForm_phase, phase_normSq, div_one]
 
+/-- For `N ≥ 1`, the sum of adjacent sine-amplitude products equals `((N : ℝ) * Real.cos (theta
+N) + 1) / 2`. -/
 theorem sine_offdiag (N : ℕ) (hN : 1 ≤ N) :
     (∑ m ∈ range N, sineAmplitude N m * sineAmplitude N (m+1)) =
       ((N:ℝ) * Real.cos (theta N) + 1) / 2 := by
@@ -423,6 +495,7 @@ theorem sine_offdiag (N : ℕ) (hN : 1 ≤ N) :
       nsmul_eq_mul, sum_cos_even hN]
   ring
 
+/-- For `N ≥ 1`, the sine-family cost equals `2 * (N : ℝ) * (Real.sin (theta N / 2)) ^ 2`. -/
 theorem costForm_sine (N : ℕ) (hN : 1 ≤ N) :
     costForm N (sineAmplitude N) = 2 * (N:ℝ) * (Real.sin (theta N / 2))^2 := by
   rw [costForm_offdiag, sine_normSq hN, sine_offdiag N hN]
@@ -433,6 +506,7 @@ theorem costForm_sine (N : ℕ) (hN : 1 ≤ N) :
     linarith [h]
   rw [hs]; ring
 
+/-- For `N ≥ 1`, the sine family's cost divided by its squared norm is at most `(theta N) ^ 2`. -/
 theorem optimalCost_rayleigh (N : ℕ) (hN : 1 ≤ N) :
     costForm N (sineAmplitude N) / normSq N (sineAmplitude N) ≤ (theta N)^2 := by
   rw [costForm_sine N hN, sine_normSq hN]
@@ -442,6 +516,7 @@ theorem optimalCost_rayleigh (N : ℕ) (hN : 1 ≤ N) :
   rw [div_le_iff₀ (by positivity : (0:ℝ) < ((N:ℝ)+1)/2)]
   nlinarith [hs, hN0, hth]
 
+/-- For `N ≥ 1`, the square root of the sine family's normalized cost is at most `theta N`. -/
 theorem optimalTimeResolution (N : ℕ) (hN : 1 ≤ N) :
     Real.sqrt (costForm N (sineAmplitude N) / normSq N (sineAmplitude N)) ≤ theta N := by
   have hray := optimalCost_rayleigh N hN
@@ -449,6 +524,9 @@ theorem optimalTimeResolution (N : ℕ) (hN : 1 ≤ N) :
       ≤ Real.sqrt ((theta N)^2) := Real.sqrt_le_sqrt hray
     _ = theta N := Real.sqrt_sq (le_of_lt (theta_pos N))
 
+/-- For `N ≥ 1`, the sine family's normalized cost lies between `4 * (N : ℝ) / ((N : ℝ) + 1) ^
+3` and `(theta N) ^ 2`. This gives two-sided scalar cost estimates related to the clock
+analysis of [BuzekDerkaMassar1999]. -/
 theorem optimalCost_two_sided (N : ℕ) (hN : 1 ≤ N) :
     (4*(N:ℝ)/((N:ℝ)+1)^3)
         ≤ costForm N (sineAmplitude N) / normSq N (sineAmplitude N) ∧
@@ -488,6 +566,8 @@ theorem optimalCost_two_sided (N : ℕ) (hN : 1 ≤ N) :
   rw [hrew] at hmul
   exact hmul
 
+/-- For `N ≥ 1`, the square root of the sine family's normalized cost is at most `Real.pi / (N :
+ℝ)`. This gives an inverse-size resolution bound associated with [BuzekDerkaMassar1999]. -/
 theorem optimalTimeResolution_le_pi_div_N (N : ℕ) (hN : 1 ≤ N) :
     Real.sqrt (costForm N (sineAmplitude N) / normSq N (sineAmplitude N))
       ≤ Real.pi / (N:ℝ) := by
@@ -500,15 +580,22 @@ theorem optimalTimeResolution_le_pi_div_N (N : ℕ) (hN : 1 ≤ N) :
     nlinarith [Real.pi_pos]
   linarith
 
+/-- For `N ≥ 1`, the sine family has the stated exact cost and normalized square-root cost at
+most `theta N`. These are scalar sine-family estimates related to [BuzekDerkaMassar1999]. -/
 theorem optimalState_scaling (N : ℕ) (hN : 1 ≤ N) :
     costForm N (sineAmplitude N) = 2 * (N:ℝ) * (Real.sin (theta N / 2))^2 ∧
     Real.sqrt (costForm N (sineAmplitude N) / normSq N (sineAmplitude N)) ≤ theta N :=
   ⟨costForm_sine N hN, optimalTimeResolution N hN⟩
 
+/-- Finite Shannon entropy `∑ i, Real.negMulLog (p i)`, using natural logarithms. -/
 def shannonEntropy {n : ℕ} (p : Fin n → ℝ) : ℝ := ∑ i, Real.negMulLog (p i)
 
+/-- The constant function on `Fin n` with value `(1 : ℝ) / n`. -/
 def uniformDist (n : ℕ) : Fin n → ℝ := fun _ => (1:ℝ)/n
 
+/-- For `n ≥ 1`, the Shannon entropy of `uniformDist n` is `Real.log (n : ℝ)`. This is the
+uniform-distribution entropy used in the information-content discussion of
+[BuzekDerkaMassar1999]. -/
 theorem uniformEntropy {n : ℕ} (hn : 1 ≤ n) :
     shannonEntropy (uniformDist n) = Real.log (n:ℝ) := by
   unfold shannonEntropy uniformDist
@@ -523,6 +610,9 @@ theorem uniformEntropy {n : ℕ} (hn : 1 ≤ n) :
   rw [hterm]
   field_simp
 
+/-- A nonnegative probability distribution on `Fin (N + 1)` has Shannon entropy at most
+`Real.log ((N : ℝ) + 1)` for `N ≥ 1`. This finite entropy estimate supports the
+information-content bound discussed in [BuzekDerkaMassar1999]. -/
 theorem holevoBound (N : ℕ) (hN : 1 ≤ N) {p : Fin (N+1) → ℝ}
     (hp0 : ∀ i, 0 ≤ p i) (hp1 : ∑ i, p i = 1) :
     shannonEntropy p ≤ Real.log ((N:ℝ) + 1) := by
@@ -556,19 +646,26 @@ theorem holevoBound (N : ℕ) (hN : 1 ≤ N) {p : Fin (N+1) → ℝ}
   have hc : 0 < (1:ℝ)/((N:ℝ)+1) := by positivity
   exact le_of_mul_le_mul_left hj hc
 
+/-- The first marginal obtained by summing `P (x, y)` over the second coordinate. -/
 def margFst {n : ℕ} (P : Fin n × Fin n → ℝ) (x : Fin n) : ℝ := ∑ y, P (x, y)
 
+/-- The second marginal obtained by summing `P (x, y)` over the first coordinate. -/
 def margSnd {n : ℕ} (P : Fin n × Fin n → ℝ) (y : Fin n) : ℝ := ∑ x, P (x, y)
 
+/-- The conditional first-coordinate function at `y`, given by `P (x, y) / margSnd P y`, with
+value zero when that marginal is zero. -/
 def condDist {n : ℕ} (P : Fin n × Fin n → ℝ) (y : Fin n) : Fin n → ℝ :=
   fun x => if margSnd P y = 0 then 0 else P (x, y) / margSnd P y
 
+/-- The sum of the entropies of `condDist P y`, weighted by `margSnd P y`. -/
 def condEntropy {n : ℕ} (P : Fin n × Fin n → ℝ) : ℝ :=
   ∑ y, margSnd P y * shannonEntropy (condDist P y)
 
+/-- The entropy of the first marginal minus the conditional entropy. -/
 def mutualInfo {n : ℕ} (P : Fin n × Fin n → ℝ) : ℝ :=
   shannonEntropy (margFst P) - condEntropy P
 
+/-- A finite function with values in `[0, 1]` has nonnegative Shannon entropy. -/
 lemma shannonEntropy_nonneg {n : ℕ} {p : Fin n → ℝ}
     (h0 : ∀ i, 0 ≤ p i) (h1 : ∀ i, p i ≤ 1) : 0 ≤ shannonEntropy p := by
   unfold shannonEntropy
@@ -576,6 +673,8 @@ lemma shannonEntropy_nonneg {n : ℕ} {p : Fin n → ℝ}
   intro i _
   exact Real.negMulLog_nonneg (h0 i) (h1 i)
 
+/-- If all entries of `P` are nonnegative, every conditional value `condDist P y x` is
+nonnegative. -/
 lemma condDist_nonneg {n : ℕ} {P : Fin n × Fin n → ℝ}
     (hP : ∀ x y, 0 ≤ P (x, y)) (y : Fin n) (x : Fin n) :
     0 ≤ condDist P y x := by
@@ -586,6 +685,8 @@ lemma condDist_nonneg {n : ℕ} {P : Fin n × Fin n → ℝ}
       unfold margSnd
       exact Finset.sum_nonneg (fun i _ => hP i y)) (Ne.symm h)))
 
+/-- If all entries of `P` are nonnegative, every conditional value `condDist P y x` is at most
+one. -/
 lemma condDist_le_one {n : ℕ} {P : Fin n × Fin n → ℝ}
     (hP : ∀ x y, 0 ≤ P (x, y)) (y : Fin n) (x : Fin n) :
     condDist P y x ≤ 1 := by
@@ -602,6 +703,7 @@ lemma condDist_le_one {n : ℕ} {P : Fin n × Fin n → ℝ}
     rw [div_le_one hq]
     exact hle
 
+/-- A nonnegative joint function has nonnegative conditional entropy. -/
 lemma condEntropy_nonneg {n : ℕ} {P : Fin n × Fin n → ℝ}
     (hP : ∀ x y, 0 ≤ P (x, y)) : 0 ≤ condEntropy P := by
   unfold condEntropy
@@ -613,22 +715,29 @@ lemma condEntropy_nonneg {n : ℕ} {P : Fin n × Fin n → ℝ}
   · exact shannonEntropy_nonneg (fun x => condDist_nonneg hP y x)
       (fun x => condDist_le_one hP y x)
 
+/-- For a nonnegative joint function, mutual information is at most the entropy of the first
+marginal. -/
 lemma mutualInfo_le_entropy {n : ℕ} {P : Fin n × Fin n → ℝ}
     (hP : ∀ x y, 0 ≤ P (x, y)) :
     mutualInfo P ≤ shannonEntropy (margFst P) := by
   unfold mutualInfo
   linarith [condEntropy_nonneg hP]
 
+/-- The sum of the first marginal equals the total sum of the joint function. -/
 lemma sum_margFst {n : ℕ} (P : Fin n × Fin n → ℝ) :
     ∑ x, margFst P x = ∑ p, P p := by
   unfold margFst
   rw [Fintype.sum_prod_type]
 
+/-- The first marginal of a nonnegative joint function is nonnegative. -/
 lemma margFst_nonneg {n : ℕ} {P : Fin n × Fin n → ℝ}
     (hP : ∀ x y, 0 ≤ P (x, y)) (x : Fin n) : 0 ≤ margFst P x := by
   unfold margFst
   exact Finset.sum_nonneg (fun i _ => hP x i)
 
+/-- A nonnegative joint distribution of total mass one on `Fin n × Fin n` has mutual information
+at most `Real.log (n : ℝ)` when `n ≥ 1`. This is the finite information bound used in the
+discussion related to [BuzekDerkaMassar1999]. -/
 lemma mutualInfo_le_log {n : ℕ} (hn : 1 ≤ n) {P : Fin n × Fin n → ℝ}
     (hP : ∀ x y, 0 ≤ P (x, y)) (hsum : ∑ p, P p = 1) :
     mutualInfo P ≤ Real.log (n:ℝ) := by
@@ -661,6 +770,9 @@ lemma mutualInfo_le_log {n : ℕ} (hn : 1 ≤ n) {P : Fin n × Fin n → ℝ}
     exact le_of_mul_le_mul_left hj hc
   exact (mutualInfo_le_entropy hP).trans hbound
 
+/-- For `N ≥ 1`, the uniform distribution on `N + 1` outcomes has entropy `Real.log ((N : ℝ) +
+1)`, and every nonnegative probability distribution on those outcomes has entropy at most
+that value. This records the finite entropy bounds associated with [BuzekDerkaMassar1999]. -/
 theorem informationContent (N : ℕ) (hN : 1 ≤ N) :
     shannonEntropy (uniformDist (N+1)) = Real.log ((N:ℝ)+1) ∧
     (∀ (p : Fin (N+1) → ℝ), (∀ i, 0 ≤ p i) → (∑ i, p i = 1) →
@@ -668,6 +780,8 @@ theorem informationContent (N : ℕ) (hN : 1 ≤ N) :
   ⟨by simpa using uniformEntropy (n := N+1) (by omega),
    fun p a b => holevoBound N hN a b⟩
 
+/-- For `N ≥ 1`, the sine family's normalized square-root cost is at most `Real.pi / (N + 1)`,
+and the uniform distribution on `N + 1` outcomes has entropy `Real.log ((N : ℝ) + 1)`. -/
 theorem sineResolution_entropy (N : ℕ) (hN : 1 ≤ N) :
     Real.sqrt (costForm N (sineAmplitude N) / normSq N (sineAmplitude N))
         ≤ Real.pi / (N+1)
@@ -676,6 +790,9 @@ theorem sineResolution_entropy (N : ℕ) (hN : 1 ≤ N) :
   · exact optimalTimeResolution N hN
   · simpa using uniformEntropy (n := N+1) (by omega)
 
+/-- For `N ≥ 1`, the sine family's normalized square-root cost is at most `Real.pi / (N : ℝ)`,
+while entropy on `N + 1` outcomes is bounded by and attains `Real.log ((N : ℝ) + 1)`. These
+combine the scalar resolution and entropy estimates associated with [BuzekDerkaMassar1999]. -/
 theorem clockConstraintBounds (N : ℕ) (hN : 1 ≤ N) :
     Real.sqrt (costForm N (sineAmplitude N) / normSq N (sineAmplitude N))
         ≤ Real.pi / (N:ℝ)

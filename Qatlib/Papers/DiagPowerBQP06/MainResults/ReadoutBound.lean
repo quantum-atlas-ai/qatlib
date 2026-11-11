@@ -10,6 +10,27 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Tactic
 
+/-!
+# Readout error and spectral error budgets
+
+This module bounds errors caused by replacing a bounded spectral value with a finite weighted
+readout. It uses the Lipschitz bound for powers on the unit interval, a bound on the mass of a
+readout-error event, and weighted triangle inequalities to assemble the error budget.
+
+These constructions accompany the results of [JanzingWocjan2006a].
+
+## Main statements
+
+* `readout_moment_error`: bounds the weighted powered-readout error by event mass and resolution
+  terms.
+* `spectral_triangle_error`: preserves a common error bound under probability weighting.
+* `total_error_budget`: combines three one-third error allocations.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,6 +38,8 @@ open Finset
 
 namespace Qatlib.Papers.DiagPowerBQP06.MainResults.ReadoutBound
 
+/-- For real numbers of absolute value at most one, the difference of their `m`th powers is
+bounded by `m` times their difference in absolute value. -/
 theorem abs_pow_sub_pow_le_of_abs_le_one (z lam : ℝ) (m : ℕ)
     (hz : |z| ≤ 1) (hlam : |lam| ≤ 1) :
     |z ^ m - lam ^ m| ≤ (m : ℝ) * |z - lam| := by
@@ -32,6 +55,9 @@ theorem abs_pow_sub_pow_le_of_abs_le_one (z lam : ℝ) (m : ℕ)
           gcongr
       _ = ((n + 1 : ℕ) : ℝ) * |z - lam| := by ring
 
+/-- For probability weights and readouts in `[-1, 1]`, an error-event mass bound `θ` at
+threshold `2 * π * η` bounds the powered-readout mean error by `2 * θ + m * (2 * π * η)`.
+See [JanzingWocjan2006a]. -/
 theorem readout_moment_error
     {Ω : Type*} [Fintype Ω]
     (w : Ω → ℝ) (Z : Ω → ℝ) (lam θ η : ℝ) (m : ℕ)
@@ -129,6 +155,8 @@ theorem readout_moment_error
         + |∑ ω ∈ univ \ Bad, w ω * ((Z ω) ^ m - lam ^ m)| := abs_add_le _ _
     _ ≤ 2 * θ + (m : ℝ) * (2 * Real.pi * η) := add_le_add hbad hgood
 
+/-- A probability-weighted average of pointwise errors at most `ε / 3` has error at most `ε /
+3`. See [JanzingWocjan2006a]. -/
 theorem spectral_triangle_error
     {ι : Type*} [Fintype ι]
     (w E lam : ι → ℝ) (ε : ℝ)
@@ -158,6 +186,8 @@ theorem spectral_triangle_error
         ring
     _ = ε / 3 := by rw [hsum, mul_one]
 
+/-- Three quantities each bounded above by `ε / 3` have sum at most `ε`. See
+[JanzingWocjan2006a]. -/
 theorem total_error_budget {a b c ε : ℝ}
     (ha : a ≤ ε / 3) (hb : b ≤ ε / 3) (hc : c ≤ ε / 3) (hε : 0 ≤ ε) :
     a + b + c ≤ ε := by

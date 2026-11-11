@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+
+/-!
+# Restricted sparse-walk spectral specification
+
+`SparseWalkEigenphasesRestricted` specifies normalized eigenvectors for the walk built from an
+isometry and a self-adjoint unitary involution. It includes the two arcsine eigenvalues,
+orthogonality away from the spectral endpoints, and a phase-weighted decomposition of the
+embedded input eigenvector. Background and related constructions are discussed in
+[LowChuang2017].
+
+## Main statements
+
+* `SparseWalkEigenphasesRestricted`: the restricted walk eigenphase and embedding property.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 open scoped Matrix.Norms.L2Operator
 
+/-- Specifies the two normalized walk eigenvectors with eigenvalues exp(i arcsin(c ev)) and
+−exp(−i arcsin(c ev)), together with their embedding decomposition. The vectors are required
+to be orthogonal when |c ev| < 1. -/
 def SparseWalkEigenphasesRestricted : Prop :=
   ∀ (I W : Type) [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (H : Matrix I I ℂ) (c : ℝ), 0 < c → ‖(c : ℂ) • H‖ ≤ 1 →

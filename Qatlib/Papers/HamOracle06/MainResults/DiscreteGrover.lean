@@ -59,21 +59,48 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Discrete Grover rotation and rounded query time
+
+This module defines the rotation parameter `discreteBetaMagnitude`, the real step count
+`discreteGroverSteps`, and the ceiling-rounded time `discreteGroverTime`. It proves a
+squared-cosine recursion, the target identity for the real step count, and bounds placing the
+rounded time within one step duration of its real-valued counterpart. See [Mochon2007] for the
+Hamiltonian oracle formulation.
+
+## Main statements
+
+* `discreteGrover_zeroError_ratio`: For N > 1 and a positive arcsine of the rotation parameter,
+  the squared cosine after the real step count equals 1 / N.
+* `discreteGroverTime_spec`: For Δ > 0 and a nonnegative real step count, the rounded query time
+  lies between Δ times that count and that value plus Δ, with a strict upper bound.
+* `discreteGroverTime_minimal`: For Δ > 0, every natural m below the ceiling of the real step
+  count satisfies mΔ < `discreteGroverSteps N Δ` · Δ.
+
+## References
+
+* [Mochon, 2007][Mochon2007]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
 
 namespace Qatlib.Papers.HamOracle06.MainResults
 
+/-- The scalar rotation parameter 2 sin(πΔ / 2)√(N − 1) / N. -/
 def discreteBetaMagnitude (N Δ : ℝ) : ℝ :=
   2 * Real.sin (Real.pi * Δ / 2) * Real.sqrt (N - 1) / N
 
+/-- The real step count arccos(1 / √N) divided by arcsin(`discreteBetaMagnitude N Δ`). -/
 def discreteGroverSteps (N Δ : ℝ) : ℝ :=
   Real.arccos (1 / Real.sqrt N) / Real.arcsin (discreteBetaMagnitude N Δ)
 
+/-- The step duration Δ multiplied by the natural-number ceiling of `discreteGroverSteps N Δ`. -/
 def discreteGroverTime (N Δ : ℝ) : ℝ :=
   Δ * (Nat.ceil (discreteGroverSteps N Δ) : ℝ)
 
+/-- For N > 1 and 0 ≤ Δ ≤ 2, `discreteBetaMagnitude N Δ` is nonnegative. -/
 theorem discreteBetaMagnitude_nonneg (N Δ : ℝ) (hN : 1 < N)
     (hΔ0 : 0 ≤ Δ) (hΔ2 : Δ ≤ 2) : 0 ≤ discreteBetaMagnitude N Δ := by
   unfold discreteBetaMagnitude
@@ -86,6 +113,7 @@ theorem discreteBetaMagnitude_nonneg (N Δ : ℝ) (hN : 1 < N)
   have hsqrt : 0 ≤ Real.sqrt (N - 1) := Real.sqrt_nonneg _
   exact div_nonneg (mul_nonneg (mul_nonneg (by norm_num) hsin) hsqrt) hN0.le
 
+/-- For N > 1 and 0 < Δ < 2, `discreteBetaMagnitude N Δ` is strictly positive. -/
 theorem discreteBetaMagnitude_pos (N Δ : ℝ) (hN : 1 < N)
     (hΔ0 : 0 < Δ) (hΔ2 : Δ < 2) : 0 < discreteBetaMagnitude N Δ := by
   unfold discreteBetaMagnitude
@@ -98,6 +126,7 @@ theorem discreteBetaMagnitude_pos (N Δ : ℝ) (hN : 1 < N)
   have hsqrt : 0 < Real.sqrt (N - 1) := Real.sqrt_pos.mpr (by linarith)
   exact div_pos (mul_pos (mul_pos (by norm_num) hsin) hsqrt) hN0
 
+/-- For N > 1 and 0 < Δ < 2, the real discrete Grover step count is nonnegative. -/
 theorem discreteGroverSteps_nonneg (N Δ : ℝ) (hN : 1 < N)
     (hΔ0 : 0 < Δ) (hΔ2 : Δ < 2) : 0 ≤ discreteGroverSteps N Δ := by
   unfold discreteGroverSteps
@@ -106,6 +135,8 @@ theorem discreteGroverSteps_nonneg (N Δ : ℝ) (hN : 1 < N)
     Real.arcsin_pos.mpr (discreteBetaMagnitude_pos N Δ hN hΔ0 hΔ2)
   exact div_nonneg harccos harcsin.le
 
+/-- Under the stated first-quadrant bounds on β and u, the squared cosine of u + arcsin β
+satisfies the recursion expressed using nonnegative square roots. -/
 theorem discreteGrover_recursion {β u : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1)
     (hu0 : 0 ≤ u) (hu1 : u + Real.arcsin β ≤ Real.pi / 2) :
     Real.cos (u + Real.arcsin β) ^ 2 =
@@ -131,6 +162,8 @@ theorem discreteGrover_recursion {β u : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1
     _ = (Real.sqrt (1 - β ^ 2) * Real.cos u - β * Real.sin u) ^ 2 := by
           rw [Real.cos_arcsin, Real.sin_arcsin (by linarith) hβ1]; ring
 
+/-- For N > 1 and a positive arcsine of the rotation parameter, the squared cosine after the
+real step count equals 1 / N. See [Mochon2007]. -/
 theorem discreteGrover_zeroError_ratio (N Δ : ℝ) (hN : 1 < N)
     (hβ : 0 < Real.arcsin (discreteBetaMagnitude N Δ)) :
     Real.cos (Real.arcsin (discreteBetaMagnitude N Δ) *
@@ -152,11 +185,14 @@ theorem discreteGrover_zeroError_ratio (N Δ : ℝ) (hN : 1 < N)
       simpa using hle
   rw [Real.cos_arccos hmem.1 hmem.2, div_pow, one_pow, Real.sq_sqrt hN0.le]
 
+/-- For Δ ≥ 0, the ceiling-rounded query time is at least Δ times the real step count. -/
 theorem discreteGroverTime_ge (N Δ : ℝ) (hΔ : 0 ≤ Δ) :
     Δ * discreteGroverSteps N Δ ≤ discreteGroverTime N Δ := by
   unfold discreteGroverTime
   exact mul_le_mul_of_nonneg_left (Nat.le_ceil (discreteGroverSteps N Δ)) hΔ
 
+/-- For Δ > 0 and a nonnegative real step count, the rounded query time is strictly less than Δ
+times that count plus Δ. -/
 theorem discreteGroverTime_lt (N Δ : ℝ) (hsteps : 0 ≤ discreteGroverSteps N Δ)
     (hΔ : 0 < Δ) :
     discreteGroverTime N Δ < Δ * discreteGroverSteps N Δ + Δ := by
@@ -168,18 +204,23 @@ theorem discreteGroverTime_lt (N Δ : ℝ) (hsteps : 0 ≤ discreteGroverSteps N
         < Δ * (discreteGroverSteps N Δ + 1) := mul_lt_mul_of_pos_left h1 hΔ
     _ = Δ * discreteGroverSteps N Δ + Δ := by ring
 
+/-- For Δ > 0 and a nonnegative real step count, the rounded query time lies between Δ times
+that count and that value plus Δ, with a strict upper bound. See [Mochon2007]. -/
 theorem discreteGroverTime_spec (N Δ : ℝ) (hsteps : 0 ≤ discreteGroverSteps N Δ)
     (hΔ : 0 < Δ) :
     Δ * discreteGroverSteps N Δ ≤ discreteGroverTime N Δ ∧
       discreteGroverTime N Δ < Δ * discreteGroverSteps N Δ + Δ :=
   ⟨discreteGroverTime_ge N Δ hΔ.le, discreteGroverTime_lt N Δ hsteps hΔ⟩
 
+/-- For Δ > 0, every natural m below the ceiling of the real step count satisfies mΔ <
+`discreteGroverSteps N Δ` · Δ. See [Mochon2007]. -/
 theorem discreteGroverTime_minimal (N Δ : ℝ) (hΔ : 0 < Δ) (m : ℕ)
     (hm : m < Nat.ceil (discreteGroverSteps N Δ)) :
     (m : ℝ) * Δ < discreteGroverSteps N Δ * Δ := by
   have h := Nat.lt_ceil.mp hm
   nlinarith
 
+/-- At step duration 1, the rotation parameter equals 2√(N − 1) / N. See [Mochon2007]. -/
 theorem discreteBetaMagnitude_one (N : ℝ) :
     discreteBetaMagnitude N 1 = 2 * Real.sqrt (N - 1) / N := by
   unfold discreteBetaMagnitude

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.BatchProbability
+
+/-!
+# Sampling protocols for actual PCA vectors
+
+Builds the proposal, acceptance coin, and joint norm-estimation and rejection-sampling record
+for lifted PCA outputs. It identifies the exact output distribution and bounds failure of one
+access protocol, as used in the sample-and-query construction of [Tang2021].
+
+## Main statements
+
+* `pca_actual_protocol_output_law`: For a nonzero PCA output, bounded rejection sampling fails
+  with mass `(1 - 1 / phi)^B` and returns each coordinate with the remaining mass times its
+  normalized squared amplitude [Tang2021].
+* `pca_actual_protocol_failure`: For a nonzero output with inflation at most `4 * q * K`, the
+  prescribed norm and rejection budgets bound total protocol failure by `2 * alpha` [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,11 +38,14 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SqEstimation.RejectionSample
 
+/-- The Boolean distribution concentrated on `false`. -/
 def pcaFalseCoin : FinDist Bool where
   prob b := if b then 0 else 1
   nonneg b := by cases b <;> norm_num
   sum_one := by simp
 
+/-- The coordinate proposal for an actual PCA output, using the weighted row mixture when its
+energy is positive and a point distribution otherwise. -/
 def pcaActualProposal {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (rows : Fin q→Fin n)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) : FinDist (Fin d) :=
@@ -29,6 +53,8 @@ def pcaActualProposal {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     pcaVectorProposal A hA hd rows (pcaOutputCoefficients W i) hweight
   else pcaPointLaw hd
 
+/-- The acceptance ratio for a linear combination and its envelope lies in the interval `[0,
+1]`. -/
 theorem pca_actual_ratio_range {q d : ℕ} (c : Fin q→ℂ) (u : Fin q→Fin d→ℂ) (j : Fin d) :
     0≤sqRatio (sqLinearValue c u) (sqLinearEnvelope c u) j ∧
       sqRatio (sqLinearValue c u) (sqLinearEnvelope c u) j≤1 := by
@@ -38,6 +64,8 @@ theorem pca_actual_ratio_range {q d : ℕ} (c : Fin q→ℂ) (u : Fin q→Fin d�
   · exact (div_le_one (lt_of_le_of_ne (Complex.normSq_nonneg _) (Ne.symm hz))).mpr
       (pca_linear_dominance c u j)
 
+/-- The Boolean acceptance law whose success probability is the squared-amplitude ratio of the
+PCA output to its envelope. -/
 def pcaActualCoin {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (rows : Fin q→Fin n)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) (j : Fin d) : FinDist Bool where
@@ -52,21 +80,29 @@ def pcaActualCoin {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     · exact (pca_actual_ratio_range _ _ j).1
   sum_one := by simp
 
+/-- The joint law of a proposed coordinate and its acceptance outcome for an actual PCA vector. -/
 def pcaActualTrial {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (rows : Fin q→Fin n)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) : FinDist (Fin d×Bool) :=
   sqTrialLaw (pcaActualProposal A hA hd rows W i) (pcaActualCoin A hA rows W i)
 
+/-- The joint law of independent norm-estimation batches and an independent rejection-sampling
+record. -/
 def pcaProtocolLaw {d : ℕ} (trial : FinDist (Fin d×Bool)) (r B C : ℕ) :
     FinDist ((Fin (2*r+1)→Fin B→Fin d×Bool) × (Fin C→Fin d×Bool)) :=
   pcaJointLaw (independentSampleLaw (fun _ : Fin (2*r+1) =>
     independentSampleLaw (fun _ : Fin B => trial)))
     (fun _ => independentSampleLaw (fun _ : Fin C => trial))
 
+/-- The protocol failure predicate: the squared-norm estimate has relative error greater than `1
+/ 100`, or rejection sampling returns no coordinate. -/
 def pcaProtocolBad {d : ℕ} (energy envelopeEnergy : ℝ) (q r B C : ℕ)
     (z : (Fin (2*r+1)→Fin B→Fin d×Bool) × (Fin C→Fin d×Bool)) : Prop :=
   (1/100:ℝ)*energy < |(pcaNormRun envelopeEnergy q r B z.1).1-energy| ∨ (sqRejectRun z.2).1=none
 
+/-- For a nonzero PCA output, bounded rejection sampling fails with mass `(1 - 1 / phi)^B` and
+returns each coordinate with the remaining mass times its normalized squared amplitude
+[Tang2021]. -/
 theorem pca_actual_protocol_output_law {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (hq : 0<q) (rows : Fin q→Fin n)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q)
@@ -93,6 +129,8 @@ theorem pca_actual_protocol_output_law {n d q : ℕ} (A : Matrix (Fin n) (Fin d)
   simp_rw [pca_output_energy,pca_output_coordinate] at h
   exact h
 
+/-- For a nonzero output with inflation at most `4 * q * K`, the prescribed norm and rejection
+budgets bound total protocol failure by `2 * alpha` [Tang2021]. -/
 theorem pca_actual_protocol_failure {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (hq : 0<q) (rows : Fin q→Fin n)
     (W : Matrix (Fin q) (Fin q) ℂ) (i : Fin q) (K alpha : ℝ)

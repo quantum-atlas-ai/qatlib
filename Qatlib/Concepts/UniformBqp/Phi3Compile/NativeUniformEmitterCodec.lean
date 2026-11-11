@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachine
+
+/-!
+# Self-delimiting codes for native circuit descriptions
+
+This module defines self-delimiting Boolean encodings of words, natural numbers, and lists,
+together with parsers and injectivity proofs. The two-state `selfCodeParserMachine` scans the
+first encoded word with a linear emission bound.
+
+The circuit interfaces record compiled gate counts and ordered wire skeletons. `frontier1`
+packages these encoding properties with the existence and resource bound of an exact
+finite-window Phi3 simulation.
+
+For background, see [Yao1993].
+
+## Main statements
+
+* `natSelfParse_natSelfCode`: parsing recovers a number and preserves the suffix.
+* `pairSelfCode_injective`: pair codes determine both components.
+* `frontier1`: combined coding and finite-window compilation guarantees.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,24 +52,34 @@ open Qatlib.Concepts.CircuitImpl.Phi3Universal
 open Qatlib.Concepts.UniformBqp.Phi3Compile
 open Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachine
 
+/-- Encodes a Boolean bit as the two-bit word `[false, b]`. -/
 def selfCodeCell (b : Bool) : List Bool := [false, b]
 
+/-- Encodes a Boolean word by prefixing each bit with `false` and appending the terminator
+`true`. -/
 def selfCodeWord (bs : List Bool) : List Bool :=
   bs.flatMap selfCodeCell ++ [true]
 
+/-- Encodes a natural number by applying `selfCodeWord` to its binary digits. -/
 def natSelfCode (n : ℕ) : List Bool := selfCodeWord n.bits
 
+/-- Encodes two natural numbers by concatenating their self-delimiting codes. -/
 def pairSelfCode (n t : ℕ) : List Bool := natSelfCode n ++ natSelfCode t
 
+/-- Interprets a Boolean list as a binary natural number, with the least significant bit first. -/
 def bitsToNat : List Bool → ℕ
   | [] => 0
   | b :: bs => 2 * bitsToNat bs + b.toNat
 
+/-- Parses one self-delimiting Boolean word, returning its decoded bits and unconsumed suffix
+when successful. -/
 def parseSelfCodeWord : List Bool → Option (List Bool × List Bool)
   | true :: rest => some ([], rest)
   | false :: b :: rest => (parseSelfCodeWord rest).map fun p => (b :: p.1, p.2)
   | _ => none
 
+/-- Parsing an encoded Boolean word followed by a suffix recovers the original word and that
+suffix. -/
 theorem parseSelfCodeWord_selfCodeWord (bs : List Bool) (rest : List Bool) :
     parseSelfCodeWord (selfCodeWord bs ++ rest) = some (bs, rest) := by
   induction bs generalizing rest with
@@ -57,6 +92,7 @@ theorem parseSelfCodeWord_selfCodeWord (bs : List Bool) (rest : List Bool) :
       simp only [parseSelfCodeWord, ih]
       rfl
 
+/-- Equal self-delimiting word codes have equal underlying Boolean words. -/
 theorem selfCodeWord_injective {bs bs' : List Bool}
     (h : selfCodeWord bs = selfCodeWord bs') : bs = bs' := by
   have e : parseSelfCodeWord (selfCodeWord bs ++ [])
@@ -64,6 +100,8 @@ theorem selfCodeWord_injective {bs bs' : List Bool}
   rw [parseSelfCodeWord_selfCodeWord bs [], parseSelfCodeWord_selfCodeWord bs' []] at e
   exact congrArg Prod.fst (Option.some.inj e)
 
+/-- For every natural number below a given bound, decoding its binary digits recovers the
+number. -/
 theorem bitsToNat_bits_aux : ∀ (k n : ℕ), n < k → bitsToNat n.bits = n := by
   intro k
   induction k with
@@ -83,9 +121,11 @@ theorem bitsToNat_bits_aux : ∀ (k n : ℕ), n < k → bitsToNat n.bits = n := 
             ih r (by omega)]
           rfl
 
+/-- Decoding the binary digits of a natural number recovers that number. -/
 theorem bitsToNat_bits (n : ℕ) : bitsToNat n.bits = n :=
   bitsToNat_bits_aux (n + 1) n (Nat.lt_succ_self n)
 
+/-- Equal self-delimiting natural-number codes have equal encoded numbers. -/
 theorem natSelfCode_injective {n n' : ℕ} (h : natSelfCode n = natSelfCode n') : n = n' := by
   have e : parseSelfCodeWord (natSelfCode n ++ [])
       = parseSelfCodeWord (natSelfCode n' ++ []) := by rw [h]
@@ -95,27 +135,39 @@ theorem natSelfCode_injective {n n' : ℕ} (h : natSelfCode n = natSelfCode n') 
   have h2 := congrArg bitsToNat hb
   rwa [bitsToNat_bits, bitsToNat_bits] at h2
 
+/-- Parses two consecutive self-delimiting Boolean words and returns both decoded words and the
+remaining suffix. -/
 def pairParse (e : List Bool) : Option ((List Bool × List Bool) × List Bool) :=
   (parseSelfCodeWord e).bind fun p =>
     (parseSelfCodeWord p.2).map fun p' => ((p.1, p'.1), p'.2)
 
+/-- Parses a self-delimiting binary natural number and returns the number together with the
+remaining suffix. -/
 def natSelfParse (e : List Bool) : Option (ℕ × List Bool) :=
   (parseSelfCodeWord e).map fun p => (bitsToNat p.1, p.2)
 
+/-- Parsing an encoded natural number followed by a suffix recovers the number and preserves the
+suffix. -/
 theorem natSelfParse_natSelfCode (n : ℕ) (rest : List Bool) :
     natSelfParse (natSelfCode n ++ rest) = some (n, rest) := by
   have h := parseSelfCodeWord_selfCodeWord n.bits rest
   simp only [natSelfParse, natSelfCode, h, Option.map_some, bitsToNat_bits]
 
+/-- Parses a specified number of consecutive self-delimiting natural numbers, returning the
+decoded list and remaining suffix. -/
 def natSelfCodesParse : ℕ → List Bool → Option (List ℕ × List Bool)
   | 0, e => some ([], e)
   | k + 1, e =>
       (natSelfParse e).bind fun p =>
         (natSelfCodesParse k p.2).map fun q => (p.1 :: q.1, q.2)
 
+/-- Encodes a list of natural numbers by its self-delimiting length followed by the codes of its
+entries. -/
 def natSelfCodesCode (ns : List ℕ) : List Bool :=
   natSelfCode ns.length ++ ns.flatMap natSelfCode
 
+/-- Parsing as many consecutive number codes as there are entries recovers the list and
+preserves the appended suffix. -/
 theorem natSelfCodesParse_flatMap (ns : List ℕ) (rest : List Bool) :
     natSelfCodesParse ns.length ((ns.flatMap natSelfCode) ++ rest) = some (ns, rest) := by
   induction ns generalizing rest with
@@ -129,15 +181,19 @@ theorem natSelfCodesParse_flatMap (ns : List ℕ) (rest : List Bool) :
       simp only [natSelfCodesParse, natSelfParse_natSelfCode n _, ih, Option.bind_some,
         Option.map_some]
 
+/-- Parses a list of natural numbers whose self-delimiting length precedes its entries. -/
 def natListSelfParse (e : List Bool) : Option (List ℕ × List Bool) :=
   (natSelfParse e).bind fun p => (natSelfCodesParse p.1 p.2).map fun q => (q.1, q.2)
 
+/-- Parsing an encoded list of natural numbers recovers the list and preserves the appended
+suffix. -/
 theorem natListSelfParse_natSelfCodesCode (ns : List ℕ) (rest : List Bool) :
     natListSelfParse (natSelfCodesCode ns ++ rest) = some (ns, rest) := by
   simp only [natListSelfParse, natSelfCodesCode, List.append_assoc,
     natSelfParse_natSelfCode, natSelfCodesParse_flatMap ns, Option.bind_some,
     Option.map_some]
 
+/-- Equal length-prefixed list codes determine equal lists of natural numbers. -/
 theorem natSelfCodesCode_injective {ns ns' : List ℕ}
     (h : natSelfCodesCode ns = natSelfCodesCode ns') : ns = ns' := by
   have e : natListSelfParse (natSelfCodesCode ns ++ [])
@@ -145,6 +201,7 @@ theorem natSelfCodesCode_injective {ns ns' : List ℕ}
   rw [natListSelfParse_natSelfCodesCode ns [], natListSelfParse_natSelfCodesCode ns' []] at e
   exact congrArg Prod.fst (Option.some.inj e)
 
+/-- Parsing a pair code returns the binary digits of both numbers and an empty suffix. -/
 theorem pairParse_pairSelfCode (n t : ℕ) :
     pairParse (pairSelfCode n t) = some ((n.bits, t.bits), []) := by
   have h1 : parseSelfCodeWord (natSelfCode n ++ natSelfCode t)
@@ -156,6 +213,7 @@ theorem pairParse_pairSelfCode (n t : ℕ) :
   simp only [List.append_nil] at h2
   simp only [pairParse, pairSelfCode, h1, Option.bind_some, h2, Option.map_some]
 
+/-- Equality of self-delimiting pair codes implies equality of both natural-number components. -/
 theorem pairSelfCode_injective {n t n' t' : ℕ}
     (h : pairSelfCode n t = pairSelfCode n' t') : n = n' ∧ t = t' := by
   have hp : pairParse (pairSelfCode n t) = pairParse (pairSelfCode n' t') := by rw [h]
@@ -169,11 +227,14 @@ theorem pairSelfCode_injective {n t n' t' : ℕ}
   rw [bitsToNat_bits, bitsToNat_bits] at e2
   exact ⟨e1, e2⟩
 
+/-- The self-delimiting codes of the pairs `(1, 21)` and `(5, 5)` are distinct. -/
 theorem frozenCollisionPair_separated : pairSelfCode 1 21 ≠ pairSelfCode 5 5 := by
   intro h
   obtain ⟨e, -⟩ := pairSelfCode_injective h
   omega
 
+/-- The two-state tape machine that scans pairs beginning with `false` and halts upon reaching a
+terminator in state zero. -/
 def selfCodeParserMachine : Turing.TM0.Machine (Option Bool) (Fin 2) :=
   fun l γ =>
     if l = 0 then
@@ -185,16 +246,21 @@ def selfCodeParserMachine : Turing.TM0.Machine (Option Bool) (Fin 2) :=
       | some _ => some (0, Turing.TM0.Stmt.move Turing.Dir.right)
       | none => none
 
+/-- In state zero, the parser moves right over `false` and enters state one. -/
 @[simp] theorem parserMachine_zero_false :
     selfCodeParserMachine 0 (some false)
       = some (1, Turing.TM0.Stmt.move Turing.Dir.right) := rfl
 
+/-- In state zero, the parser halts upon reading the terminator `true`. -/
 @[simp] theorem parserMachine_zero_true : selfCodeParserMachine 0 (some true) = none := rfl
 
+/-- In state one, the parser moves right over any Boolean bit and returns to state zero. -/
 @[simp] theorem parserMachine_one_some (b : Bool) :
     selfCodeParserMachine 1 (some b)
       = some (0, Turing.TM0.Stmt.move Turing.Dir.right) := rfl
 
+/-- A successful machine step reduces a run with budget `s + 1` to the run from the successor
+configuration with budget `s`. -/
 theorem haltRun_step_live {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     {s : ℕ} {c c' : Turing.TM0.Cfg (Option Bool) (Fin (q + 1))}
     (h : Turing.TM0.step M c = some c') :
@@ -205,12 +271,16 @@ theorem haltRun_step_live {q : ℕ} (M : Turing.TM0.Machine (Option Bool) (Fin (
         | some c'' => TM0HaltRun M s c'' := rfl
   rw [heq, h]
 
+/-- Moving right twice across two specified tape cells transfers them to the left portion in
+reverse order. -/
 theorem tape_mk₂_move_right_pair {Γ : Type} [Inhabited Γ]
     (L : List Γ) (a₀ a₁ : Γ) (r : List Γ) :
     ((Turing.Tape.mk₂ L (a₀ :: a₁ :: r)).move Turing.Dir.right).move Turing.Dir.right
       = Turing.Tape.mk₂ (a₁ :: a₀ :: L) r := by
   simp [Turing.Tape.mk₂, Turing.Tape.mk', Turing.Tape.move, Turing.ListBlank.cons_mk]
 
+/-- After one right move, the right tape entry at index `m` equals the previous entry at index
+`m + 1`. -/
 theorem tape_move_right_right₀_nth_succ {Γ : Type} [Inhabited Γ]
     (T : Turing.Tape Γ) (m : ℕ) :
     (T.move Turing.Dir.right).right₀.nth m = T.right₀.nth (m + 1) := by
@@ -218,6 +288,8 @@ theorem tape_move_right_right₀_nth_succ {Γ : Type} [Inhabited Γ]
   push_cast
   rfl
 
+/-- After `j` right moves, the right tape entry at index `i` equals the original entry at index
+`j + i`. -/
 theorem tape_iterate_move_right_right₀ : ∀ {Γ : Type} [Inhabited Γ]
     (T : Turing.Tape Γ) (j i : ℕ),
     ((Turing.Tape.move Turing.Dir.right)^[j] T).right₀.nth i
@@ -232,10 +304,14 @@ theorem tape_iterate_move_right_right₀ : ∀ {Γ : Type} [Inhabited Γ]
       have hidx : j + i + 1 = j + 1 + i := by omega
       rw [hidx]
 
+/-- The right tape entry of a tape initialized from a list is the corresponding default-valued
+list entry. -/
 theorem tape_mk₁_right₀_nth {Γ : Type} [Inhabited Γ] (l : List Γ) (n : ℕ) :
     (Turing.Tape.mk₁ l).right₀.nth n = l.getI n := by
   simp [Turing.Tape.mk₁, Turing.Tape.mk₂]
 
+/-- After twice the decoded word length in steps, the parser remains in state zero with its head
+shifted to the terminator. -/
 theorem parser_run (bs : List Bool) :
     ∀ (L : List (Option Bool)) (rest : List Bool),
       TM0HaltRun selfCodeParserMachine (2 * bs.length)
@@ -333,6 +409,8 @@ theorem parser_run (bs : List Bool) :
       rw [hiter]
       exact ih (some b :: some false :: L) rest
 
+/-- Concatenating the two-bit cell codes produces a word of length twice the original word
+length. -/
 theorem selfCodeCell_flatMap_length (bs : List Bool) :
     (bs.flatMap selfCodeCell).length = 2 * bs.length := by
   induction bs with
@@ -343,12 +421,15 @@ theorem selfCodeCell_flatMap_length (bs : List Bool) :
       simp only [List.length_cons]
       omega
 
+/-- The self-delimiting code of a Boolean word has length twice the word length plus one. -/
 theorem selfCodeWord_length (bs : List Bool) :
     (selfCodeWord bs).length = 2 * bs.length + 1 := by
   rw [selfCodeWord, List.length_append, selfCodeCell_flatMap_length]
   have h1 : (List.length [true] : ℕ) = 1 := rfl
   omega
 
+/-- Default-valued indexing beyond the first part of a concatenated Boolean tape agrees with
+indexing the suffix. -/
 theorem getI_map_some_append : ∀ (A B : List Bool) (i : ℕ),
     ((A ++ B).map some).getI (A.length + i) = (B.map some).getI i := by
   intro A
@@ -365,11 +446,15 @@ theorem getI_map_some_append : ∀ (A B : List Bool) (i : ℕ),
       rw [List.getD_cons_succ]
       exact ih B i
 
+/-- An encoded word followed by a suffix consists of the encoded cells followed by `true` and
+that suffix. -/
 theorem selfCodeWord_append (bs : List Bool) (rest : List Bool) :
     selfCodeWord bs ++ rest
       = (bs.flatMap selfCodeCell) ++ (true :: rest) := by
   simp [selfCodeWord]
 
+/-- The parser emits the terminator and remaining suffix from an encoded word, with polynomial
+parameters `2` and `1`. -/
 theorem parser_emits (bs rest : List Bool) :
     TM0EmitsPoly selfCodeParserMachine 2 1 (selfCodeWord bs ++ rest)
       (true :: rest) := by
@@ -409,6 +494,8 @@ theorem parser_emits (bs rest : List Bool) :
     rw [hnth, selfCodeWord_append, happ]
     rfl
 
+/-- On a pair code, the parser emits the first terminator followed by the second number code,
+with polynomial parameters `2` and `1`. -/
 theorem parser_emits_pair (n t : ℕ) :
     TM0EmitsPoly selfCodeParserMachine 2 1 (pairSelfCode n t)
       (true :: natSelfCode t) := by
@@ -416,21 +503,27 @@ theorem parser_emits_pair (n t : ℕ) :
   rw [h]
   exact parser_emits n.bits (natSelfCode t)
 
+/-- Encodes the gate count of the compiled Phi3 word as a self-delimiting natural number. -/
 def gateDescWord {w : ℕ} (gs : List (Phi3Gate w)) : List Bool :=
   natSelfCode (GateCount (phi3Compile gs))
 
+/-- Lists the three wire indices of each Phi3 gate in gate order. -/
 def phi3WireSkeleton {w : ℕ} (gs : List (Phi3Gate w)) : List ℕ :=
   gs.flatMap fun g => [(g.wires 0).val, (g.wires 1).val, (g.wires 2).val]
 
+/-- Encodes the ordered Phi3 wire skeleton as a self-delimiting list of natural numbers. -/
 def phi3SkeletonCode {w : ℕ} (gs : List (Phi3Gate w)) : List Bool :=
   natSelfCodesCode (phi3WireSkeleton gs)
 
+/-- Parsing a Phi3 skeleton code recovers its ordered wire indices and preserves the appended
+suffix. -/
 theorem natListSelfParse_phi3SkeletonCode {w : ℕ} (gs : List (Phi3Gate w))
     (rest : List Bool) :
     natListSelfParse (phi3SkeletonCode gs ++ rest)
       = some (phi3WireSkeleton gs, rest) :=
   natListSelfParse_natSelfCodesCode _ rest
 
+/-- The wire skeleton contains exactly three indices per Phi3 gate. -/
 theorem phi3WireSkeleton_length {w : ℕ} (gs : List (Phi3Gate w)) :
     (phi3WireSkeleton gs).length = 3 * gs.length := by
   induction gs with
@@ -443,6 +536,8 @@ theorem phi3WireSkeleton_length {w : ℕ} (gs : List (Phi3Gate w)) :
       rw [List.length_append, h3len, ih]
       omega
 
+/-- Equal Phi3 skeleton codes determine equal gate-list lengths and equal ordered wire
+skeletons. -/
 theorem phi3SkeletonCode_determined {w : ℕ} {gs gs' : List (Phi3Gate w)}
     (h : phi3SkeletonCode gs = phi3SkeletonCode gs') :
     gs.length = gs'.length ∧ phi3WireSkeleton gs = phi3WireSkeleton gs' := by
@@ -455,6 +550,8 @@ theorem phi3SkeletonCode_determined {w : ℕ} {gs gs' : List (Phi3Gate w)}
   have h3 : 3 * gs.length = 3 * gs'.length := by omega
   exact ⟨Nat.mul_left_cancel (by omega) h3, hsk⟩
 
+/-- Equal self-delimiting pair codes yield equal values of any description function on the
+encoded pair. -/
 theorem desc_determined_by_code (desc : ℕ → ℕ → List Bool)
     (n t n' t' : ℕ) (h : pairSelfCode n t = pairSelfCode n' t') :
     desc n t = desc n' t' := by
@@ -463,6 +560,8 @@ theorem desc_determined_by_code (desc : ℕ → ℕ → List Bool)
   subst e2
   rfl
 
+/-- A general native machine has an exact Phi3 window simulation whose gate-count description
+encodes the gate-list length and whose length satisfies the stated padding bound. -/
 theorem generalPhi3_cellTable_gateDesc {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : GeneralNativeMachine Q A) (n t : ℕ)
     (hn : 0 < n) (ht : 0 < t) :
@@ -490,6 +589,8 @@ theorem generalPhi3_cellTable_gateDesc {Q A : Type} [Fintype Q] [DecidableEq Q]
       (generalBasisCode Q A) (generalBasisCode_injective Q A) _ (windowEncode c)).trans
       (qtmPhi3_windowEmbed_image _ c)
 
+/-- Combines injective pair coding, parser correctness and emission, description consistency,
+skeleton recovery, and bounded exact Phi3 window simulation for a general native machine. -/
 theorem frontier1 {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     (M : GeneralNativeMachine Q A) :
     (∀ n t n' t' : ℕ, pairSelfCode n t = pairSelfCode n' t' → n = n' ∧ t = t') ∧

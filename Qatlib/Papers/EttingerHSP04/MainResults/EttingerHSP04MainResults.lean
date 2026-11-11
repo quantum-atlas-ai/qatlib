@@ -10,6 +10,28 @@ import Mathlib.GroupTheory.Coset.Basic
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
+/-!
+# Subgroup tests and hidden subgroup success bounds
+
+This module defines subgroup averaging on oracle states and their tensor powers, proves norm
+contraction and overlap bounds, and analyzes the disturbance caused by subgroup tests. It also
+supplies matrix correction identities and conditional success bounds for states close to an
+ideal outcome. This develops part of the framework of [EttingerHoyerKnill2004].
+
+## Main statements
+
+* `coupletAvg_initialCouplet_normSq`: computes the averaged oracle state's squared norm as |K ∩
+  H| / |K|.
+* `lemma4_distance_bound`: bounds the disturbance from testing a subgroup that is not a period
+  subgroup.
+* `theorem1_reduction`: chooses a tensor power giving the requested success bound under a
+  state-distance hypothesis.
+
+## References
+
+* [Ettinger et al., 2004][EttingerHoyerKnill2004]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 set_option linter.unusedSectionVars false
@@ -23,33 +45,43 @@ open scoped BigOperators Classical
 variable {G : Type*} [Group G] [Fintype G] [DecidableEq G]
 variable {β : Type*} [Fintype β] [DecidableEq β]
 
+/-- The function `f` is invariant under right multiplication by every element of `H`. -/
 def IsHPeriodic (f : G → β) (H : Subgroup G) : Prop :=
   ∀ g h : G, h ∈ H → f (g * h) = f g
 
+/-- The function `f` is invariant under right multiplication precisely by the elements of `H`. -/
 def IsStrictlyHPeriodic (f : G → β) (H : Subgroup G) : Prop :=
   IsHPeriodic f H ∧ ∀ g h : G, f (g * h) = f g → h ∈ H
 
+/-- Periodicity with respect to a subgroup implies periodicity with respect to each smaller
+subgroup. -/
 theorem IsHPeriodic.mono {f : G → β} {H K : Subgroup G} (hKH : K ≤ H)
     (hf : IsHPeriodic f H) : IsHPeriodic f K := by
   intro g k hk
   exact hf g k (hKH hk)
 
+/-- Every function is periodic with respect to the trivial subgroup. -/
 theorem isHPeriodic_bot (f : G → β) : IsHPeriodic f (⊥ : Subgroup G) := by
   intro g h hh
   have h1 : h = 1 := by simpa using hh
   subst h1
   simp
 
+/-- For a strictly `H`-periodic function, right multiplication preserves its value exactly when
+the multiplier belongs to `H`. -/
 theorem IsStrictlyHPeriodic.periodic_iff {f : G → β} {H : Subgroup G}
     (hf : IsStrictlyHPeriodic f H) (g h : G) : f (g * h) = f g ↔ h ∈ H :=
   ⟨hf.2 g h, hf.1 g h⟩
 
+/-- The average of `ψ` over the translates `g * k` with `k` in `K`. -/
 noncomputable def cosetAvg (K : Subgroup G) (ψ : QState G) : QState G :=
   fun g => ((Fintype.card ↥K : ℂ))⁻¹ * ∑ k : ↥K, ψ (g * (k : G))
 
+/-- The amplitudes of `ψ` are invariant under right multiplication by elements of `K`. -/
 def RightKInvariant (K : Subgroup G) (ψ : QState G) : Prop :=
   ∀ g k : G, k ∈ K → ψ (g * k) = ψ g
 
+/-- Subgroup averaging fixes a state invariant under right multiplication by `K`. -/
 theorem cosetAvg_eq_self_of_invariant {K : Subgroup G} {ψ : QState G}
     (hψ : RightKInvariant K ψ) : cosetAvg K ψ = ψ := by
   funext g
@@ -62,6 +94,7 @@ theorem cosetAvg_eq_self_of_invariant {K : Subgroup G} {ψ : QState G}
   simp only [cosetAvg, hsum]
   field_simp
 
+/-- Averaging over `K` produces amplitudes invariant under right multiplication by `K`. -/
 theorem cosetAvg_invariant (K : Subgroup G) (ψ : QState G) {g k : G} (hk : k ∈ K) :
     cosetAvg K ψ (g * k) = cosetAvg K ψ g := by
   simp only [cosetAvg]
@@ -77,6 +110,7 @@ theorem cosetAvg_invariant (K : Subgroup G) (ψ : QState G) {g k : G} (hk : k �
           rw [Subgroup.coe_mul, mul_assoc]
     _ = ∑ k' : ↥K, ψ (g * (k' : G)) := h
 
+/-- Subgroup averaging is idempotent. -/
 theorem cosetAvg_idem (K : Subgroup G) (ψ : QState G) :
     cosetAvg K (cosetAvg K ψ) = cosetAvg K ψ := by
   funext g
@@ -103,11 +137,13 @@ theorem cosetAvg_idem (K : Subgroup G) (ψ : QState G) :
   simp only [hinner, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   field_simp
 
+/-- Subgroup averaging preserves addition of states. -/
 theorem cosetAvg_add (K : Subgroup G) (ψ φ : QState G) :
     cosetAvg K (ψ + φ) = cosetAvg K ψ + cosetAvg K φ := by
   funext g
   simp only [cosetAvg, Pi.add_apply, Finset.sum_add_distrib, mul_add]
 
+/-- Subgroup averaging commutes with complex scalar multiplication. -/
 theorem cosetAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState G) :
     cosetAvg K (a • ψ) = a • cosetAvg K ψ := by
   funext g
@@ -116,6 +152,7 @@ theorem cosetAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState G) :
   intro k _
   ring
 
+/-- Subgroup averaging does not increase the sum of squared amplitude norms. -/
 theorem cosetAvg_contract {K : Subgroup G} (ψ : QState G) :
     (∑ g, ‖cosetAvg K ψ g‖ ^ 2) ≤ ∑ g, ‖ψ g‖ ^ 2 := by
   haveI : Nonempty ↥K := ⟨⟨1, K.one_mem⟩⟩
@@ -171,9 +208,12 @@ theorem cosetAvg_contract {K : Subgroup G} (ψ : QState G) :
           rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
           field_simp
 
+/-- The uniform oracle graph state with amplitude `1 / √|G|` on pairs `(g, f g)` and zero
+elsewhere. -/
 noncomputable def initialCouplet (f : G → β) : QState (G × β) :=
   fun p => if p.2 = f p.1 then ((Real.sqrt (Fintype.card G : ℝ) : ℂ))⁻¹ else 0
 
+/-- The uniform oracle graph state is normalized. -/
 theorem initialCouplet_normalized (f : G → β) : Normalized (initialCouplet f) := by
   have hNpos : 0 < Fintype.card G := Fintype.card_pos
   have hNposR : (0:ℝ) < (Fintype.card G : ℝ) := by exact_mod_cast hNpos
@@ -199,9 +239,11 @@ theorem initialCouplet_normalized (f : G → β) : Normalized (initialCouplet f)
   rw [hs]
   exact mul_inv_cancel₀ hNposR.ne'
 
+/-- Average the first register of a two-register state over right multiplication by `K`. -/
 noncomputable def coupletAvg (K : Subgroup G) (ψ : QState (G × β)) : QState (G × β) :=
   fun p => ((Fintype.card ↥K : ℂ))⁻¹ * ∑ k : ↥K, ψ (p.1 * (k : G), p.2)
 
+/-- Averaging the first register fixes the oracle graph state of a `K`-periodic function. -/
 theorem coupletAvg_eq_self_of_periodic {K : Subgroup G} {f : G → β}
     (hf : IsHPeriodic f K) : coupletAvg K (initialCouplet f) = initialCouplet f := by
   funext p
@@ -218,11 +260,13 @@ theorem coupletAvg_eq_self_of_periodic {K : Subgroup G} {f : G → β}
     nsmul_eq_mul]
   field_simp
 
+/-- Averaging the first register preserves addition of two-register states. -/
 theorem coupletAvg_add (K : Subgroup G) (ψ φ : QState (G × β)) :
     coupletAvg K (ψ + φ) = coupletAvg K ψ + coupletAvg K φ := by
   funext p
   simp only [coupletAvg, Pi.add_apply, Finset.sum_add_distrib, mul_add]
 
+/-- Averaging the first register commutes with complex scalar multiplication. -/
 theorem coupletAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState (G × β)) :
     coupletAvg K (a • ψ) = a • coupletAvg K ψ := by
   funext p
@@ -231,12 +275,14 @@ theorem coupletAvg_smul (K : Subgroup G) (a : ℂ) (ψ : QState (G × β)) :
   intro k _
   ring
 
+/-- Subgroup averaging on the first register, bundled as a complex linear map. -/
 noncomputable def coupletAvgLM (K : Subgroup G) :
     QState (G × β) →ₗ[ℂ] QState (G × β) where
   toFun := coupletAvg K
   map_add' := coupletAvg_add K
   map_smul' := coupletAvg_smul K
 
+/-- Averaging the first register does not increase the sum of squared amplitude norms. -/
 theorem coupletAvg_contract (K : Subgroup G) (ψ : QState (G × β)) :
     (∑ p : G × β, ‖coupletAvg K ψ p‖ ^ 2) ≤ ∑ p : G × β, ‖ψ p‖ ^ 2 := by
 
@@ -257,15 +303,20 @@ theorem coupletAvg_contract (K : Subgroup G) (ψ : QState (G × β)) :
   intro b _
   exact cosetAvg_contract (fun x => ψ (x, b))
 
+/-- The `s`-fold tensor power of a two-register state, with amplitudes given by coordinatewise
+products. -/
 noncomputable def multisetState (ψ : QState (G × β)) (s : ℕ) :
     QState (Fin s → G × β) :=
   fun p => ∏ i, ψ (p i)
 
+/-- Average each group register of an `s`-couplet state independently over right multiplication
+by `K`. -/
 noncomputable def projS (K : Subgroup G) (s : ℕ)
     (φ : QState (Fin s → G × β)) : QState (Fin s → G × β) :=
   fun p => ((Fintype.card ↥K : ℂ) ^ s)⁻¹ *
     ∑ kvec : (Fin s → ↥K), φ (fun i => ((p i).1 * (kvec i : G), (p i).2))
 
+/-- Averaging all copies of a tensor power equals the tensor power of the averaged state. -/
 theorem projS_multisetState (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ) :
     projS K s (multisetState ψ s) = multisetState (coupletAvg K ψ) s := by
   funext p
@@ -279,11 +330,13 @@ theorem projS_multisetState (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ) :
   simp only [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
   rw [inv_pow]
 
+/-- Averaging all group registers preserves addition. -/
 theorem projS_add (K : Subgroup G) (s : ℕ) (φ ψ : QState (Fin s → G × β)) :
     projS K s (φ + ψ) = projS K s φ + projS K s ψ := by
   funext p
   simp only [projS, Pi.add_apply, Finset.sum_add_distrib, mul_add]
 
+/-- Averaging all group registers commutes with complex scalar multiplication. -/
 theorem projS_smul (K : Subgroup G) (s : ℕ) (a : ℂ)
     (φ : QState (Fin s → G × β)) :
     projS K s (a • φ) = a • projS K s φ := by
@@ -293,18 +346,23 @@ theorem projS_smul (K : Subgroup G) (s : ℕ) (a : ℂ)
   intro k _
   ring
 
+/-- Averaging all group registers of an `s`-couplet state, bundled as a complex linear map. -/
 noncomputable def projSLM (K : Subgroup G) (s : ℕ) :
     QState (Fin s → G × β) →ₗ[ℂ] QState (Fin s → G × β) where
   toFun := projS K s
   map_add' := projS_add K s
   map_smul' := projS_smul K s
 
+/-- Subgroup averaging fixes every tensor power of the oracle graph state of a `K`-periodic
+function. -/
 theorem projS_fixes_multisetState_of_periodic {K : Subgroup G} {f : G → β}
     (hf : IsHPeriodic f K) (s : ℕ) :
     projS K s (multisetState (initialCouplet f) s) =
       multisetState (initialCouplet f) s := by
   rw [projS_multisetState, coupletAvg_eq_self_of_periodic hf]
 
+/-- The squared norm of the `s`-fold tensor power is the `s`th power of the original squared
+norm. -/
 theorem multisetState_normSq (ψ : QState (G × β)) (s : ℕ) :
     (∑ p : Fin s → G × β, ‖multisetState ψ s p‖ ^ 2) =
       (∑ q : G × β, ‖ψ q‖ ^ 2) ^ s := by
@@ -324,6 +382,8 @@ theorem multisetState_normSq (ψ : QState (G × β)) (s : ℕ) :
     _ = (∑ q : G × β, ‖ψ q‖ ^ 2) ^ s := by
           rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+/-- If one averaged copy has squared norm at most `1 / 2`, then the averaged `s`-fold tensor
+power has squared norm at most `(1 / 2) ^ s`. -/
 theorem projS_normSq_le (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ)
     (h : ∑ q : G × β, ‖coupletAvg K ψ q‖ ^ 2 ≤ (1/2 : ℝ)) :
     ∑ p : Fin s → G × β, ‖projS K s (multisetState ψ s) p‖ ^ 2 ≤ (1/2 : ℝ) ^ s := by
@@ -332,14 +392,17 @@ theorem projS_normSq_le (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ)
 
 variable {I : Type*} [Fintype I]
 
+/-- The Euclidean norm of a finitely indexed complex state. -/
 noncomputable def stateNorm (ψ : QState I) : ℝ :=
   ‖(EuclideanSpace.equiv I ℂ).symm ψ‖
 
+/-- The square of `stateNorm` is the sum of squared amplitude norms. -/
 theorem stateNorm_sq (ψ : QState I) :
     stateNorm ψ ^ 2 = ∑ i, ‖ψ i‖ ^ 2 := by
   rw [stateNorm, EuclideanSpace.norm_sq_eq]
   simp
 
+/-- The Euclidean state norm satisfies the triangle inequality. -/
 theorem stateNorm_add_le (u v : QState I) :
     stateNorm (u + v) ≤ stateNorm u + stateNorm v := by
   rw [stateNorm]
@@ -349,6 +412,7 @@ theorem stateNorm_add_le (u v : QState I) :
   rw [h]
   exact norm_add_le _ _
 
+/-- The norm of `u` is at most the norm of `v` plus the norm of `u - v`. -/
 theorem stateNorm_sub_le (u v : QState I) :
     stateNorm u ≤ stateNorm v + stateNorm (u - v) := by
   have h := stateNorm_add_le v (u - v)
@@ -358,15 +422,18 @@ section Tensor
 
 variable {σ Ω : Type*}
 
+/-- The product state with amplitude `q a * φ x` at `(a, x)`. -/
 noncomputable def prodState (q : QState σ) (φ : QState Ω) : QState (σ × Ω) :=
   fun p => q p.1 * φ p.2
 
+/-- A product state whose second factor is zero is zero. -/
 @[simp] theorem prodState_zero_right (q : QState σ) :
     prodState q (0 : QState Ω) = 0 := by
   funext p
   obtain ⟨a, x⟩ := p
   simp [prodState]
 
+/-- The squared norm of a product state is the product of the squared norms of its factors. -/
 theorem prodState_normSq [Fintype σ] [Fintype Ω] (q : QState σ) (φ : QState Ω) :
     (∑ p : σ × Ω, ‖prodState q φ p‖ ^ 2) =
       (∑ a, ‖q a‖ ^ 2) * (∑ x, ‖φ x‖ ^ 2) := by
@@ -381,19 +448,24 @@ theorem prodState_normSq [Fintype σ] [Fintype Ω] (q : QState σ) (φ : QState 
   simp only [hterm]
   rw [Finset.sum_mul]
 
+/-- The Euclidean state norm is the square root of the sum of squared amplitude norms. -/
 theorem stateNorm_eq_sqrt [Fintype I] (ψ : QState I) :
     stateNorm ψ = Real.sqrt (∑ i, ‖ψ i‖ ^ 2) := by
   rw [← stateNorm_sq ψ, Real.sqrt_sq (show (0:ℝ) ≤ stateNorm ψ from norm_nonneg _)]
 
+/-- The norm of a product state is the product of the norms of its factors. -/
 theorem stateNorm_prodState [Fintype σ] [Fintype Ω] (q : QState σ) (φ : QState Ω) :
     stateNorm (prodState q φ) = stateNorm q * stateNorm φ := by
   rw [stateNorm_eq_sqrt, prodState_normSq, stateNorm_eq_sqrt, stateNorm_eq_sqrt,
     Real.sqrt_mul (by positivity)]
 
+/-- Apply a complex linear map to each of the two registers of a state. -/
 noncomputable def tensorPair (A : QState σ →ₗ[ℂ] QState σ) (B : QState Ω →ₗ[ℂ] QState Ω)
     (ξ : QState (σ × Ω)) : QState (σ × Ω) :=
   fun p => A (fun a => B (fun x => ξ (a, x)) p.2) p.1
 
+/-- Applying a pair of linear maps to a product state applies each map to its corresponding
+factor. -/
 theorem tensorPair_prodState (A : QState σ →ₗ[ℂ] QState σ) (B : QState Ω →ₗ[ℂ] QState Ω)
     (q : QState σ) (φ : QState Ω) :
     tensorPair A B (prodState q φ) = prodState (A q) (B φ) := by
@@ -411,12 +483,15 @@ theorem tensorPair_prodState (A : QState σ →ₗ[ℂ] QState σ) (B : QState �
   rw [hA, A.map_smul]
   simp [Pi.smul_apply, smul_eq_mul, mul_comm]
 
+/-- The test operator `Q ⊗ P + id ⊗ (id - P)` on a two-register state. -/
 noncomputable def testFun (Q : QState σ →ₗ[ℂ] QState σ) (P : QState Ω →ₗ[ℂ] QState Ω)
     (ξ : QState (σ × Ω)) : QState (σ × Ω) :=
   tensorPair Q P ξ +
     tensorPair (LinearMap.id : QState σ →ₗ[ℂ] QState σ)
       ((LinearMap.id : QState Ω →ₗ[ℂ] QState Ω) - P) ξ
 
+/-- When `P` fixes the second factor, the test applies `Q` to the first factor and fixes the
+second. -/
 theorem testFun_prodState_of_fixed (Q : QState σ →ₗ[ℂ] QState σ)
     (P : QState Ω →ₗ[ℂ] QState Ω) (q : QState σ) (φ : QState Ω) (hP : P φ = φ) :
     testFun Q P (prodState q φ) = prodState (Q q) φ := by
@@ -427,6 +502,7 @@ theorem testFun_prodState_of_fixed (Q : QState σ →ₗ[ℂ] QState σ)
   rw [hzero, prodState_zero_right, hP]
   simp
 
+/-- The change induced by a test on a product state is the product of `Q q - q` and `P φ`. -/
 theorem testFun_sub_prodState (Q : QState σ →ₗ[ℂ] QState σ)
     (P : QState Ω →ₗ[ℂ] QState Ω) (q : QState σ) (φ : QState Ω) :
     testFun Q P (prodState q φ) - prodState q φ = prodState (Q q - q) (P φ) := by
@@ -438,9 +514,12 @@ theorem testFun_sub_prodState (Q : QState σ →ₗ[ℂ] QState σ)
 
 end Tensor
 
+/-- The number of elements `k` of `K` for which `f (g * k) = b`. -/
 noncomputable def fiberCard (f : G → β) (K : Subgroup G) (g : G) (b : β) : ℕ :=
   (Finset.univ.filter (fun k : ↥K => f (g * (k : G)) = b)).card
 
+/-- For a strictly `H`-periodic function, every nonempty fiber on `g * K` has cardinality `|K ∩
+H|`. -/
 theorem fiberCard_eq_of_strict {H : Subgroup G} {f : G → β}
     (hf : IsStrictlyHPeriodic f H) (K : Subgroup G) {g : G} {k₀ : ↥K} {b : β}
     (hk₀ : f (g * (k₀ : G)) = b) :
@@ -473,6 +552,7 @@ theorem fiberCard_eq_of_strict {H : Subgroup G} {f : G → β}
     simp only [Subgroup.coe_inv]
     group
 
+/-- The fiber cardinalities of `f` on `g * K` sum to `|K|`. -/
 theorem sum_fiberCard (f : G → β) (K : Subgroup G) (g : G) :
     (∑ b : β, fiberCard f K g b) = Fintype.card ↥K := by
   unfold fiberCard
@@ -485,6 +565,8 @@ theorem sum_fiberCard (f : G → β) (K : Subgroup G) (g : G) :
   rw [Finset.sum_comm]
   simp
 
+/-- For a strictly `H`-periodic function, the sum of squared fiber cardinalities on `g * K`
+equals `|K ∩ H| * |K|`. -/
 theorem sum_sq_fiberCard {H : Subgroup G} {f : G → β} (hf : IsStrictlyHPeriodic f H)
     (K : Subgroup G) (g : G) :
     (∑ b : β, (fiberCard f K g b : ℝ) ^ 2) =
@@ -513,6 +595,8 @@ theorem sum_sq_fiberCard {H : Subgroup G} {f : G → β} (hf : IsStrictlyHPeriod
           rw [← Nat.cast_sum, sum_fiberCard]
         rw [hsumR]
 
+/-- The sum of oracle graph amplitudes over `g * K` is the fiber cardinality multiplied by `1 /
+√|G|`. -/
 theorem sum_initialCouplet_eq_card {f : G → β} (K : Subgroup G) (g : G) (b : β) :
     (∑ k : ↥K, initialCouplet f (g * (k : G), b)) =
       ((Real.sqrt (Fintype.card G : ℝ) : ℂ))⁻¹ * (fiberCard f K g b : ℂ) := by
@@ -530,6 +614,8 @@ theorem sum_initialCouplet_eq_card {f : G → β} (K : Subgroup G) (g : G) (b : 
   simp only [fiberCard]
   rw [mul_comm]
 
+/-- The squared amplitude of the averaged oracle graph state is the squared fiber cardinality
+times the squared averaging and normalization factors. -/
 theorem norm_sq_couplet_eq {f : G → β} (K : Subgroup G) (g : G) (b : β) :
     ‖coupletAvg K (initialCouplet f) (g, b)‖ ^ 2 =
       (((Real.sqrt (Fintype.card G : ℝ))⁻¹) ^ 2 * (Fintype.card ↥K : ℝ)⁻¹ ^ 2) *
@@ -545,6 +631,8 @@ theorem norm_sq_couplet_eq {f : G → β} (K : Subgroup G) (g : G) (b : β) :
   rw [norm_mul, norm_mul, hK, hG, hn, mul_pow, mul_pow]
   ring
 
+/-- For a strictly `H`-periodic function, the squared norm of its `K`-averaged oracle graph
+state equals `|K ∩ H| / |K|`. -/
 theorem coupletAvg_initialCouplet_normSq {H : Subgroup G} {f : G → β}
     (hf : IsStrictlyHPeriodic f H) (K : Subgroup G) :
     (∑ p : G × β, ‖coupletAvg K (initialCouplet f) p‖ ^ 2) =
@@ -579,6 +667,8 @@ theorem coupletAvg_initialCouplet_normSq {H : Subgroup G} {f : G → β}
         rw [hc]
         field_simp
 
+/-- The intersection `K ⊓ H` viewed as a subgroup of `K` is equivalent to the same intersection
+viewed in the ambient group. -/
 noncomputable def subgroupOfInfEquiv (K H : Subgroup G) :
     ↥((K ⊓ H).subgroupOf K) ≃ ↥(K ⊓ H) where
   toFun x := ⟨(x.1 : G), x.2⟩
@@ -586,6 +676,8 @@ noncomputable def subgroupOfInfEquiv (K H : Subgroup G) :
   left_inv x := by cases x with | mk _ _ => rfl
   right_inv y := by cases y with | mk _ _ => rfl
 
+/-- If a strictly `H`-periodic function is not `K`-periodic, its averaged oracle graph state has
+squared norm at most `1 / 2`. -/
 theorem coupletAvg_initialCouplet_le_half {H : Subgroup G} {f : G → β}
     (hf : IsStrictlyHPeriodic f H) {K : Subgroup G} (hK : ¬ IsHPeriodic f K) :
     (∑ p : G × β, ‖coupletAvg K (initialCouplet f) p‖ ^ 2) ≤ (1/2 : ℝ) := by
@@ -623,6 +715,7 @@ theorem coupletAvg_initialCouplet_le_half {H : Subgroup G} {f : G → β}
     exact_mod_cast hle
   linarith
 
+/-- The square root of `(1 / 2) ^ s` equals the real power with exponent `s / 2`. -/
 theorem sqrt_inv_two_pow (s : ℕ) :
     Real.sqrt ((1/2 : ℝ) ^ s) = (1/2 : ℝ) ^ ((s : ℝ) / 2) := by
   rw [Real.sqrt_eq_rpow]
@@ -630,6 +723,8 @@ theorem sqrt_inv_two_pow (s : ℕ) :
   rw [Real.rpow_mul (by norm_num : (0:ℝ) ≤ 1/2)]
   rw [Real.rpow_natCast]
 
+/-- A test for a period subgroup transports the first factor from `q` to `q'` whenever `Q q =
+q'`. See [EttingerHoyerKnill2004]. -/
 theorem lemma3_test_transport
     {σ : Type*} (Q : QState σ →ₗ[ℂ] QState σ) {K : Subgroup G} {f : G → β}
     (hf : IsHPeriodic f K) (s : ℕ) (q q' : QState σ) (hQ : Q q = q') :
@@ -640,6 +735,8 @@ theorem lemma3_test_transport
     projS_fixes_multisetState_of_periodic hf s
   rw [testFun_prodState_of_fixed Q (projSLM K s) q _ hP, hQ]
 
+/-- For normalized `q` and a norm-preserving `Q`, testing a nonperiod subgroup changes the
+tensor-product state by norm at most `2 * (1 / 2) ^ (s / 2)`. See [EttingerHoyerKnill2004]. -/
 theorem lemma4_distance_bound {σ : Type*} [Fintype σ]
     {H : Subgroup G} {f : G → β} (hf : IsStrictlyHPeriodic f H)
     {K : Subgroup G} (hK : ¬ IsHPeriodic f K) (s : ℕ)
@@ -683,11 +780,14 @@ theorem lemma4_distance_bound {σ : Type*} [Fintype σ]
       ≤ 2 * (1/2 : ℝ) ^ ((s : ℝ) / 2) :=
         mul_le_mul hQnorm hPnorm (by rw [stateNorm]; exact norm_nonneg _) (by norm_num)
 
+/-- The state obtained by applying the time-indexed maps `T` successively to `init`. -/
 def iteratedState {Ω : Type*} (T : ℕ → QState Ω → QState Ω) (init : QState Ω) :
     ℕ → QState Ω
   | 0 => init
   | (j+1) => T j (iteratedState T init j)
 
+/-- If each of the first `j` steps changes the state by at most `2 * (1 / 2) ^ (s / 2)`, the
+total change is at most `2 * j * (1 / 2) ^ (s / 2)`. See [EttingerHoyerKnill2004]. -/
 theorem lemma5_iterated_distance {Ω : Type*} [Fintype Ω]
     (T : ℕ → QState Ω → QState Ω) (init : QState Ω) (s j : ℕ)
     (hstep : ∀ i < j, stateNorm (iteratedState T init (i+1) - iteratedState T init i) ≤
@@ -722,6 +822,8 @@ theorem lemma5_iterated_distance {Ω : Type*} [Fintype Ω]
         _ = (2 * ((j : ℝ) + 1)) * (1/2 : ℝ) ^ ((s : ℝ) / 2) := by ring
         _ = 2 * (((j + 1 : ℕ) : ℝ)) * (1/2 : ℝ) ^ ((s : ℝ) / 2) := by push_cast; ring
 
+/-- If `M.mulVec x = y` and every entry of `y` is `1 / 4` or `3 / 4`, the corresponding row sum
+of `M` against `x` has one of those values. See [EttingerHoyerKnill2004]. -/
 theorem lemma6_ancilla_projection {r : ℕ} (M : Matrix (Fin r) (Fin r) ℝ)
     (x y : Fin r → ℝ) (hMx : M.mulVec x = y)
     (hy : ∀ ν, y ν = 1/4 ∨ y ν = 3/4) (ν : Fin r) :
@@ -732,6 +834,8 @@ theorem lemma6_ancilla_projection {r : ℕ} (M : Matrix (Fin r) (Fin r) ℝ)
   rw [h]
   exact hy ν
 
+/-- If every entry of an `r` by `r` matrix is bounded by `r⁻²` and `r > 0`, entries of its `(k +
+1)`st power are bounded by `r⁻(k + 2)`. -/
 theorem delta_pow_entry_bound {r : ℕ} (hr : 0 < r) (Δ : Matrix (Fin r) (Fin r) ℝ)
     (hΔ : ∀ i j, |Δ i j| ≤ ((r : ℝ)⁻¹) ^ 2) :
     ∀ k : ℕ, ∀ i j : Fin r, |(Δ ^ (k + 1)) i j| ≤ ((r : ℝ)⁻¹) ^ (k + 2) := by
@@ -764,10 +868,13 @@ theorem delta_pow_entry_bound {r : ℕ} (hr : 0 < r) (Δ : Matrix (Fin r) (Fin r
                   rw [show k + 3 = (k + 2) + 1 by ring]
                   exact (pow_succ _ _).symm
 
+/-- The finite matrix geometric series satisfies `(1 - Δ) * ∑ k < N, Δ ^ k = 1 - Δ ^ N`. -/
 theorem delta_neumann_telescope {r : ℕ} (Δ : Matrix (Fin r) (Fin r) ℝ) (N : ℕ) :
     (1 - Δ) * (∑ k ∈ Finset.range N, Δ ^ k) = 1 - Δ ^ N := by
   simpa using mul_neg_geom_sum Δ N
 
+/-- Combines the finite matrix geometric-series identity with the entrywise power bound under
+the hypothesis `|Δ i j| ≤ r⁻²`. See [EttingerHoyerKnill2004]. -/
 theorem lemma6_neumann_core {r : ℕ} (hr : 0 < r) (Δ : Matrix (Fin r) (Fin r) ℝ)
     (hΔ : ∀ i j, |Δ i j| ≤ ((r : ℝ)⁻¹) ^ 2) (N : ℕ) :
     (1 - Δ) * (∑ k ∈ Finset.range N, Δ ^ k) = 1 - Δ ^ N ∧
@@ -778,9 +885,12 @@ section MeasurementBound
 
 variable {Ω : Type*} [Fintype Ω]
 
+/-- The sum of squared amplitude norms for states whose first register equals `ν`. -/
 noncomputable def outcomeProb {r : ℕ} (ψ : QState (Fin r × Ω)) (ν : Fin r) : ℝ :=
   ∑ p : Fin r × Ω, if p.1 = ν then ‖ψ p‖ ^ 2 else 0
 
+/-- A normalized state supported entirely on first-register outcome `ν` has outcome probability
+one. See [EttingerHoyerKnill2004]. -/
 theorem outcomeProb_of_supported {r : ℕ} {ψ : QState (Fin r × Ω)} (ν : Fin r)
     (hnorm : (∑ p, ‖ψ p‖ ^ 2) = 1) (h : ∀ p, p.1 ≠ ν → ψ p = 0) :
     outcomeProb ψ ν = 1 := by
@@ -792,12 +902,16 @@ theorem outcomeProb_of_supported {r : ℕ} {ψ : QState (Fin r × Ω)} (ν : Fin
   · simp [hp]
   · simp [hp, h p hp]
 
+/-- The outcome probability equals the sum of squared amplitude norms over the filtered set of
+indices with first coordinate `ν`. -/
 theorem outcomeProb_eq_sum_filter {r : ℕ} (ψ : QState (Fin r × Ω)) (ν : Fin r) :
     outcomeProb ψ ν =
       ∑ p ∈ (Finset.univ.filter (fun p : Fin r × Ω => p.1 = ν)), ‖ψ p‖ ^ 2 := by
   unfold outcomeProb
   rw [Finset.sum_filter]
 
+/-- For normalized states, the difference in a fixed outcome probability is at most twice their
+Euclidean distance. See [EttingerHoyerKnill2004]. -/
 theorem outcomeProb_close {r : ℕ} {ψ φ : QState (Fin r × Ω)} (ν : Fin r)
     (hψ : (∑ p, ‖ψ p‖ ^ 2) = 1) (hφ : (∑ p, ‖φ p‖ ^ 2) = 1) :
     |outcomeProb ψ ν - outcomeProb φ ν| ≤ 2 * stateNorm (ψ - φ) := by
@@ -875,6 +989,9 @@ theorem outcomeProb_close {r : ℕ} {ψ φ : QState (Fin r × Ω)} (ν : Fin r)
           (by rw [stateNorm]; exact norm_nonneg _)
     _ = 2 * stateNorm (ψ - φ) := by ring
 
+/-- A normalized state within distance `2 * r * (1 / 2) ^ (s / 2)` of a normalized state
+supported on `ν` has outcome probability at least `1 - 4 * r * (1 / 2) ^ (s / 2)`. See
+[EttingerHoyerKnill2004]. -/
 theorem theorem2_success_probability {r s : ℕ}
     (Ψ Φ : QState (Fin r × (Fin s → G × β))) (ν : Fin r)
     (hΨ : (∑ p, ‖Ψ p‖ ^ 2) = 1) (hΦ : (∑ p, ‖Φ p‖ ^ 2) = 1)
@@ -894,6 +1011,8 @@ end MeasurementBound
 
 section QueryAlgorithm
 
+/-- For positive `ε` and `r ≥ 1`, some tensor-power parameter `s` makes `4 * r * (1 / 2) ^ (s /
+2)` at most `ε`. See [EttingerHoyerKnill2004]. -/
 theorem exists_test_count (r : ℕ) (hr : 1 ≤ r) (ε : ℝ) (hε : 0 < ε) :
     ∃ s : ℕ, 4 * (r : ℝ) * (1/2 : ℝ) ^ ((s : ℝ) / 2) ≤ ε := by
   have hrR : (0 : ℝ) < 4 * (r : ℝ) := by
@@ -909,6 +1028,9 @@ theorem exists_test_count (r : ℕ) (hr : 1 ≤ r) (ε : ℝ) (hε : 0 < ε) :
   rw [mul_div_cancel₀ _ (ne_of_gt hrR)] at h
   exact le_of_lt h
 
+/-- For `r ≥ 1` and positive `ε`, chooses `s` so that normalized states satisfying the specified
+ideal-support and distance hypotheses have outcome probability at least `1 - ε`. See
+[EttingerHoyerKnill2004]. -/
 theorem theorem1_reduction {r : ℕ} (hr : 1 ≤ r) (ε : ℝ) (hε : 0 < ε) :
     ∃ s : ℕ, ∀ (Ψ Φ : QState (Fin r × (Fin s → G × β))) (ν : Fin r),
       (∑ p, ‖Ψ p‖ ^ 2) = 1 → (∑ p, ‖Φ p‖ ^ 2) = 1 →

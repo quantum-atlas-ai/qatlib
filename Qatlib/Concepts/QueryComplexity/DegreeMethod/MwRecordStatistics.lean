@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwAlternating
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Bernoulli statistics of alternating measurement records
+
+For a normalized clean eigenvector, agreement records of alternating projective measurements
+follow the independent Bernoulli law `recordLaw`. The agreement count has expectation `n * p`,
+and concentration estimates give explicit upper bounds on threshold acceptance and rejection
+events.
+
+The mathematical background is developed in [MarriottWatrous2005].
+
+## Main statements
+
+* `record_event_probability`: identifies record-event mass with Bernoulli event probability.
+* `record_expectation`: computes the expected agreement count.
+* `record_concentration`: bounds deviations of the agreement count.
+* `threshold_soundness`: bounds acceptance when the threshold is separated above the eigenvalue.
+
+## References
+
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 
@@ -22,16 +45,21 @@ open scoped BigOperators Classical
 set_option warningAsError false
 noncomputable section
 
+/-- The Boolean probability distribution assigning probability `p` to true and `1 - p` to false. -/
 def bernoulli (p : ℝ) (hp : p ∈ Set.Icc 0 1) : FinDist Bool where
   prob b := if b then p else 1 - p
   nonneg b := by cases b <;> dsimp <;> linarith [hp.1, hp.2]
   sum_one := by simp
 
+/-- The product distribution of `n` independent Boolean variables with success probability `p`. -/
 def recordLaw (n : ℕ) (p : ℝ) (hp : p ∈ Set.Icc 0 1) : FinDist (Fin n → Bool) :=
   independent fun _ => bernoulli p hp
 
+/-- The number of true agreement bits in a finite record, regarded as a real number. -/
 def agreements {n : ℕ} (z : Fin n → Bool) : ℝ := ∑ i, if z i then 1 else 0
 
+/-- The recursively defined weight of a finite-function record equals the product of its
+individual Bernoulli factors. -/
 theorem recordWeight_ofFn {n : ℕ} (p : ℝ) (z : Fin n → Bool) :
     recordWeight p (List.ofFn z) = ∏ i, if z i then p else 1 - p := by
   have h (zs : List Bool) : recordWeight p zs = (zs.map fun b => if b then p else 1 - p).prod := by
@@ -43,6 +71,8 @@ theorem recordWeight_ofFn {n : ℕ} (p : ℝ) (z : Fin n → Bool) :
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- For a normalized vector fixed by `Q` with compressed eigenvalue `p`, the mass of each
+length-`n` branch equals its probability under `recordLaw n p hp`. -/
 theorem record_probability (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (ψ : QState H) (p : ℝ) (hp : p ∈ Set.Icc 0 1)
@@ -54,11 +84,15 @@ theorem record_probability (P Q : Matrix H H ℂ)
   rw [hm, mul_one]
   rfl
 
+/-- The sum of unnormalized branch masses over all length-`n` agreement records satisfying
+`event`. -/
 def recordEvent (P Q : Matrix H H ℂ) (ψ : QState H) (n : ℕ)
     (event : (Fin n → Bool) → Prop) : ℝ :=
   ∑ z ∈ Finset.univ.filter event,
     MeasureProb (branchState Q P (List.ofFn z) ψ) Finset.univ
 
+/-- For a normalized clean eigenvector, record-event mass equals the event probability under the
+independent Bernoulli record law. -/
 theorem record_event_probability (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (ψ : QState H) (p : ℝ) (hp : p ∈ Set.Icc 0 1)
@@ -67,6 +101,8 @@ theorem record_event_probability (P Q : Matrix H H ℂ)
     recordEvent P Q ψ n event = eventMass (recordLaw n p hp) event := by
   exact Finset.sum_congr rfl fun z _ => record_probability P Q hP hQ ψ p hp hfix heig hψ z
 
+/-- For a normalized vector fixed by `Q` with compressed eigenvalue `p ∈ [0, 1]`, the total mass
+of all length-`n` branches is one. -/
 theorem record_total (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (ψ : QState H) (p : ℝ) (hp : p ∈ Set.Icc 0 1)
@@ -76,6 +112,7 @@ theorem record_total (P Q : Matrix H H ℂ)
   simp_rw [record_probability P Q hP hQ ψ p hp hfix heig hψ]
   exact (recordLaw n p hp).sum_one
 
+/-- The expected number of agreements under `recordLaw n p hp` is `n * p`. -/
 theorem record_expectation (n : ℕ) (p : ℝ) (hp : p ∈ Set.Icc 0 1) :
     (recordLaw n p hp).expect agreements = n * p := by
   have he : @agreements n = weightedSum (fun _ : Fin n => (1 : ℝ))
@@ -85,6 +122,8 @@ theorem record_expectation (n : ℕ) (p : ℝ) (hp : p ∈ Set.Icc 0 1) :
   rw [he, recordLaw, ProbabilityInterfaces.independent_weighted_expectation]
   simp [bernoulli, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect]
 
+/-- For a normalized clean eigenvector, the probability of an agreement-count deviation at least
+`n * d` is at most `2 * exp (-2 * (n * d)^2 / n)` when `n, d > 0`. -/
 theorem record_concentration (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (ψ : QState H) (p : ℝ) (hp : p ∈ Set.Icc 0 1)
@@ -107,6 +146,8 @@ theorem record_concentration (P Q : Matrix H H ℂ)
     from record_expectation n p hp] at h
   simpa [recordLaw] using! h
 
+/-- If `p + d ≤ threshold`, a normalized clean eigenvector exceeds the agreement threshold with
+probability at most `2 * exp (-2 * (n * d)^2 / n)` when `n, d > 0`. -/
 theorem threshold_soundness (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (ψ : QState H) (p : ℝ) (hp : p ∈ Set.Icc 0 1)
@@ -130,6 +171,8 @@ theorem threshold_soundness (P Q : Matrix H H ℂ)
       rw [← record_event_probability P Q hP hQ ψ p hp hfix heig hψ]
       exact record_concentration P Q hP hQ ψ p hp hfix heig hψ n hn d hd
 
+/-- If `threshold + d ≤ p`, a normalized clean eigenvector falls below the agreement threshold
+with probability at most `2 * exp (-2 * (n * d)^2 / n)` when `n, d > 0`. -/
 theorem threshold_completeness (P Q : Matrix H H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
     (ψ : QState H) (p : ℝ) (hp : p ∈ Set.Icc 0 1)

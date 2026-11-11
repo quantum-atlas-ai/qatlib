@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
 import Mathlib.RingTheory.RootsOfUnity.Complex
+
+/-!
+# Weighted Fourier columns and projection bounds
+
+Defines the biased root weights `muEpsWeight`, the weighted Fourier columns `fourierUnitVec`,
+and the matrix `Ftilde`. Weight bounds and the discrete Fourier norm identity yield squared-norm
+bounds with factors `1 - ε` and `1 + 2 * ε`.
+
+The projection estimates control overlaps with an orthonormal prefix under explicit expansion
+and frame hypotheses. These estimates support the conditional construction of a biased Fourier
+unitary with triangular support and large diagonal mass. See [TangWright2025].
+
+## Main statements
+
+* `lemma36_singular_values`: squared-norm bounds for multiplication by `Ftilde`.
+* `lemma37_projection_bound`: a frame bound controls orthonormal projection mass.
+* `lemma33_biased_fourier_unitary`: the unitary construction from orthonormal expansion and
+  prefix-overlap bounds.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -20,6 +44,8 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 set_option warningAsError false
 
+/-- The condition that the root index lies between zero and `q / 4`, or between `q - q / 4` and
+`q - 1`. -/
 def isRightHalf (q : ℕ) (g : Fin q) : Prop :=
   (g : ℕ) ≤ q / 4 ∨ q - q / 4 ≤ (g : ℕ)
 
@@ -27,16 +53,22 @@ instance (q : ℕ) (g : Fin q) : Decidable (isRightHalf q g) := by
   unfold isRightHalf
   infer_instance
 
+/-- The root weight consisting of the uniform contribution `(1 - ε) / q` plus `ε / halfCount q`
+on the selected arc. -/
 def muEpsWeight (ε : ℝ) (q : ℕ) (g : Fin q) : ℝ :=
   (1 - ε) * (q : ℝ)⁻¹ +
     if isRightHalf q g then ε * (halfCount q : ℝ)⁻¹ else 0
 
+/-- The Fourier column with entries `sqrt(muEpsWeight ε q g) * phase q g ^ k`. -/
 def fourierUnitVec (ε : ℝ) (q : ℕ) (k : Fin q) : Fin q → ℂ :=
   fun g => (Real.sqrt (muEpsWeight ε q g) : ℂ) * phase q g ^ (k : ℕ)
 
+/-- The entry of the weighted Fourier matrix in row `g` and column `k`. -/
 def Ftilde (ε : ℝ) (q : ℕ) (g k : Fin q) : ℂ :=
   (Real.sqrt (muEpsWeight ε q g) : ℂ) * phase q g ^ (k : ℕ)
 
+/-- For `q > 1` and nonnegative `ε`, each biased weight lies between `(1 - ε) / q` and `(1 + 2 *
+ε) / q`. -/
 theorem muEpsWeight_bounds (q : ℕ) (hq : 1 < q) (ε : ℝ) (hε0 : 0 ≤ ε)
     (g : Fin q) :
     (1 - ε) / (q : ℝ) ≤ muEpsWeight ε q g ∧
@@ -68,6 +100,7 @@ theorem muEpsWeight_bounds (q : ℕ) (hq : 1 < q) (ε : ℝ) (hε0 : 0 ≤ ε)
       rw [if_neg h, add_zero]
       exact mul_le_mul_of_nonneg_right (by linarith) (inv_nonneg.mpr hq0.le)
 
+/-- For `q > 1` and `ε ∈ [0, 1]`, every biased weight is nonnegative. -/
 theorem muEpsWeight_nonneg (q : ℕ) (hq : 1 < q) (ε : ℝ) (hε0 : 0 ≤ ε)
     (hε1 : ε ≤ 1) (g : Fin q) : 0 ≤ muEpsWeight ε q g := by
   have hq0 : (0 : ℝ) < (q : ℝ) := by exact_mod_cast (by omega : 0 < q)
@@ -75,6 +108,8 @@ theorem muEpsWeight_nonneg (q : ℕ) (hq : 1 < q) (ε : ℝ) (hε0 : 0 ≤ ε)
   have h2 : 0 ≤ (1 - ε) / (q : ℝ) := div_nonneg (by linarith) hq0.le
   linarith
 
+/-- For positive `q`, the number of root indices satisfying `isRightHalf q` is `halfCount q`,
+expressed as a real indicator sum. -/
 theorem card_rightHalf (q : ℕ) (hq : 0 < q) :
     ∑ g : Fin q, (if isRightHalf q g then (1 : ℝ) else 0)
       = ((halfCount q : ℕ) : ℝ) := by
@@ -130,6 +165,7 @@ theorem card_rightHalf (q : ℕ) (hq : 0 < q) :
   push_cast
   ring
 
+/-- For positive `q` and `ε ∈ [0, 1]`, the biased weights sum to one. -/
 theorem sum_muEpsWeight (q : ℕ) (hq : 0 < q) (ε : ℝ) (_hε0 : 0 ≤ ε) (_hε1 : ε ≤ 1) :
     ∑ g : Fin q, muEpsWeight ε q g = 1 := by
   have hhc : (0 : ℝ) < ((halfCount q : ℕ) : ℝ) := by
@@ -161,6 +197,7 @@ theorem sum_muEpsWeight (q : ℕ) (hq : 0 < q) (ε : ℝ) (_hε0 : 0 ≤ ε) (_h
           rw [hsum0, hsumc, mul_assoc, inv_mul_cancel₀ hhc.ne', mul_one]
           linarith
 
+/-- For positive `q`, `omega q` is a primitive `q`th root of unity. -/
 private theorem omega_prim (q : ℕ) (hq : 0 < q) : IsPrimitiveRoot (omega q) q := by
   have hom : omega q = Complex.exp (2 * (Real.pi : ℂ) * Complex.I / (q : ℂ)) := by
     rw [omega]
@@ -171,13 +208,17 @@ private theorem omega_prim (q : ℕ) (hq : 0 < q) : IsPrimitiveRoot (omega q) q 
   rw [hom]
   exact Complex.isPrimitiveRoot_exp q hq.ne'
 
+/-- For positive `q`, the `q`th power of `omega q` is one. -/
 private theorem omega_pow_q (q : ℕ) (hq : 0 < q) : omega q ^ q = 1 :=
   (omega_prim q hq).pow_eq_one
 
+/-- For positive `q`, the `i`th power of `omega q` equals one exactly when `q` divides `i`. -/
 private theorem omega_pow_eq_one_iff (q : ℕ) (hq : 0 < q) (i : ℕ) :
     omega q ^ i = 1 ↔ q ∣ i :=
   (omega_prim q hq).pow_eq_one_iff_dvd i
 
+/-- The character sum with frequency `i` over all `q` root indices is `q` when `q` divides `i`
+and zero otherwise. -/
 private theorem charSum (q : ℕ) (hq : 0 < q) (i : ℕ) :
     ∑ g : Fin q, omega q ^ ((g : ℕ) * i) = if q ∣ i then (q : ℂ) else 0 := by
   rw [Fin.sum_univ_eq_sum_range (fun g => omega q ^ (g * i)) q]
@@ -203,6 +244,7 @@ private theorem charSum (q : ℕ) (hq : 0 < q) (i : ℕ) :
     · exact h0
     · exact absurd (sub_eq_zero.mp h1) hr1
 
+/-- Conjugating `omega q ^ (g * l)` replaces the exponent factor `l` by `q - l`. -/
 private theorem star_omega (q : ℕ) (hq : 0 < q) (g l : Fin q) :
     star (omega q ^ ((g : ℕ) * (l : ℕ))) = omega q ^ ((g : ℕ) * (q - (l : ℕ))) := by
   have hzw : omega q ^ ((g : ℕ) * (l : ℕ)) * omega q ^ ((g : ℕ) * (q - (l : ℕ))) = 1 := by
@@ -222,6 +264,8 @@ private theorem star_omega (q : ℕ) (hq : 0 < q) (g l : Fin q) :
     _ = 1 * omega q ^ ((g : ℕ) * (q - (l : ℕ))) := by rw [hst]
     _ = omega q ^ ((g : ℕ) * (q - (l : ℕ))) := by ring
 
+/-- For positive `q`, the unnormalized discrete Fourier transform multiplies the sum of squared
+coordinate norms by `q`. -/
 private theorem dft_tight (q : ℕ) (hq : 0 < q) (v : Fin q → ℂ) :
     ∑ g : Fin q, ‖∑ k : Fin q, omega q ^ ((g : ℕ) * (k : ℕ)) * v k‖ ^ 2
       = q * ∑ k : Fin q, ‖v k‖ ^ 2 := by
@@ -320,10 +364,14 @@ private theorem dft_tight (q : ℕ) (hq : 0 < q) (v : Fin q → ℂ) :
     _ = (q : ℂ) * ∑ k : Fin q, (v k * star (v k)) := (Finset.mul_sum _ _ _).symm
     _ = ((q * ∑ k : Fin q, ‖v k‖ ^ 2 : ℝ) : ℂ) := hR.symm
 
+/-- For positive `q`, the discrete Fourier transform with entries `omega q ^ (g * k)` satisfies
+the squared-norm identity with factor `q`. -/
 theorem actual_dft_tight (q : ℕ) (hq : 0 < q) (v : Fin q → ℂ) :
     ∑ g : Fin q, ‖∑ k : Fin q, omega q ^ ((g : ℕ) * (k : ℕ)) * v k‖ ^ 2
       = q * ∑ k : Fin q, ‖v k‖ ^ 2 := dft_tight q hq v
 
+/-- A sum over `Fin k`, embedded into `Fin q` for `k ≤ q`, equals the full sum with an indicator
+for indices below `k`. -/
 private theorem sum_fin_lt {q : ℕ} (k : ℕ) (hk : k ≤ q) (f : Fin q → ℝ) :
     ∑ i : Fin k, f (Fin.castLE hk i)
       = ∑ i : Fin q, (if (i : ℕ) < k then f i else 0) := by
@@ -350,6 +398,8 @@ private theorem sum_fin_lt {q : ℕ} (k : ℕ) (hk : k ≤ q) (f : Fin q → ℝ
     _ = ∑ i : Fin q, (if (i : ℕ) < k then f i else 0) := by
         rw [← Finset.sum_filter (fun i : Fin q => (i : ℕ) < k) f]
 
+/-- For `q > 1` and `0 < ε < 1/2`, multiplication by `Ftilde` has squared norm between `(1 - ε)`
+and `(1 + 2 * ε)` times the input squared norm [Tang and Wright, Lemma 3.6][TangWright2025]. -/
 theorem lemma36_singular_values (q : ℕ) (hq : 1 < q) (ε : ℝ)
     (hε0 : 0 < ε) (hε1 : ε < 1 / 2) :
     ∀ v : Fin q → ℂ,
@@ -420,6 +470,9 @@ theorem lemma36_singular_values (q : ℕ) (hq : 1 < q) (ε : ℝ)
       _ = ((1 + 2 * ε) / (q : ℝ)) * (q * ∑ i : Fin q, ‖v i‖ ^ 2) := by rw [hdft]
       _ = (1 + 2 * ε) * ∑ i : Fin q, ‖v i‖ ^ 2 := by field_simp
 
+/-- Under the stated orthonormal expansion and lower frame bound with `0 < ε < 1`, the squared
+projection coordinates of `v` are bounded by `(1 - ε)⁻¹` times its squared overlaps with `F`
+[Tang and Wright, Lemma 3.7][TangWright2025]. -/
 theorem lemma37_projection_bound {q k : ℕ} (_hk : 0 < k) (ε : ℝ)
     (_hε0 : 0 < ε) (hε1 : ε < 1)
     (F : Fin k → Fin q → ℂ) (u : Fin k → Fin q → ℂ)
@@ -519,6 +572,9 @@ theorem lemma37_projection_bound {q k : ℕ} (_hk : 0 < k) (ε : ℝ)
     _ ≤ (1 - ε)⁻¹ * ∑ j : Fin k, ‖∑ x : Fin q, star (F j x) * v x‖ ^ 2 :=
         mul_le_mul_of_nonneg_left hfr' (inv_nonneg.mpr hεpos.le)
 
+/-- Under the prefix expansion and frame hypotheses, an off-diagonal squared-overlap bound of `2
+* ε^2` bounds the projection mass of column `k` onto the prefix by `2 * ε^2 / (1 - ε)` [Tang
+and Wright, Lemma 3.8][TangWright2025]. -/
 theorem lemma38_projection_diagonal {q k : ℕ} (hk : 0 < k) (hkq : k < q)
     (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
     (F : Fin q → Fin q → ℂ) (u : Fin k → Fin q → ℂ)
@@ -574,6 +630,10 @@ theorem lemma38_projection_diagonal {q k : ℕ} (hk : 0 < k) (hkq : k < q)
           mul_le_mul_of_nonneg_left hoff (inv_nonneg.mpr hεpos.le)
     _ = 2 * ε ^ 2 / (1 - ε) := by field_simp
 
+/-- For `q > 1` and `0 < ε < 1/2`, the stated orthonormal expansion, triangular support, and
+prefix-overlap bounds yield a unitary taking column `k` to a normalized vector supported at
+indices at most `k`, with squared diagonal mass at least `1 - 4 * ε^2` [Tang and Wright,
+Lemma 3.3][TangWright2025]. -/
 theorem lemma33_biased_fourier_unitary (q : ℕ) (hq : 1 < q) (ε : ℝ)
     (hε0 : 0 < ε) (hε1 : ε < 1 / 2)
     (u : Fin q → Fin q → ℂ)

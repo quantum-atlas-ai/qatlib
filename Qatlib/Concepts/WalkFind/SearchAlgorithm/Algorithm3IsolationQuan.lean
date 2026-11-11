@@ -17,6 +17,28 @@ import Mathlib.Data.Finset.Card
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationAsymptotics
+
+/-!
+# Quantitative isolation of a collision
+
+This module proves `Algorithm3Isolation` by comparing retention under approximately independent
+permutations with independent sampling. Binomial occupancy estimates and a packing dichotomy
+control the probability of retaining no collision relative to retaining a unique collision.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `approxIndependent_iid_event`: gives the permutation-to-independent-sampling error bound.
+* `collision_packing_dichotomy`: gives either small collision support or many disjoint
+  collisions.
+* `algorithm3Isolation_quantitative`: proves an explicit isolation error estimate.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,12 +52,16 @@ noncomputable section
 namespace Qatlib.Concepts.WalkFind.SearchAlgorithm
 open scoped Classical BigOperators
 
+/-- Pointwise implication of finite seed events implies the corresponding inequality of event
+probabilities. -/
 theorem eventProbability_mono {R : ℕ} {P Q : Fin R → Prop}
     (h : ∀ s, P s → Q s) : eventProbability P ≤ eventProbability Q := by
   apply div_le_div_of_nonneg_right _ (Nat.cast_nonneg R)
   exact_mod_cast Finset.card_le_card (show Finset.univ.filter P ⊆ Finset.univ.filter Q from
     fun s hs => Finset.mem_filter.mpr ⟨Finset.mem_univ _, h s (Finset.mem_filter.mp hs).2⟩)
 
+/-- Every finite seed event has probability between zero and one, including the convention for
+an empty seed space. -/
 theorem eventProbability_bounds {R : ℕ} (P : Fin R → Prop) :
     0 ≤ eventProbability P ∧ eventProbability P ≤ 1 := by
   constructor
@@ -47,10 +73,14 @@ theorem eventProbability_bounds {R : ℕ} (P : Fin R → Prop) :
       rw [Finset.card_univ, Fintype.card_fin] at h
       exact_mod_cast h
 
+/-- The finite seed event probability is the sum of its indicator values divided by the number
+of seeds. -/
 theorem eventProbability_indicator {R : ℕ} (P : Fin R → Prop) :
     eventProbability P = (∑ s : Fin R, if P s then (1 : ℝ) else 0)/R := by
   simp [eventProbability, Finset.sum_boole]
 
+/-- An event on images of distinct inputs is the sum of the probabilities of its injective image
+tuples. -/
 theorem permutationCylinder_partition {q R m : ℕ}
     (π : Fin R → Equiv.Perm (Fin q)) (i : Fin m → Fin q)
     (hi : Function.Injective i) (V : (Fin m → Fin q) → Prop) :
@@ -97,6 +127,8 @@ theorem permutationCylinder_partition {q R m : ℕ}
     have : j = f := (funext h).symm
     exact hv (this ▸ (Finset.mem_filter.mp hj).2.2)
 
+/-- Approximate independence bounds an event on `m` distinct inputs between `1 - η` and `1 + η`
+times its uniform injective-tuple probability. -/
 theorem approxIndependent_cylinder {q R d m : ℕ} {η : ℝ}
     {π : Fin R → Equiv.Perm (Fin q)} (hπ : ApproxIndependent d η π)
     (hmd : m ≤ d) (hmq : m ≤ q) (i : Fin m → Fin q)
@@ -121,6 +153,7 @@ theorem approxIndependent_cylinder {q R d m : ℕ} {η : ℝ}
         (hπ m hmd hmq i j hi (Finset.mem_filter.mp hj).2.1).2
       _ = _ := by simp; ring
 
+/-- A planned retention step preserves well-formedness of the frame. -/
 theorem nextFrame_wellFormed {k N : ℕ} {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (hf : frameWellFormed f) (s : Fin P.seeds) :
     frameWellFormed (nextFrame P s) := by
@@ -135,6 +168,8 @@ theorem nextFrame_wellFormed {k N : ℕ} {f : Algorithm3Frame N}
       have hcast := (P.permutation s).symm.injective hpre
       exact Fin.ext (congrArg (fun z : Fin P.q => z.val) hcast)
 
+/-- An original index lies in the next frame exactly when a current frame position representing
+it is mapped below the retained cutoff. -/
 theorem mem_frameSet_nextFrame {k N : ℕ} {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (s : Fin P.seeds) (v : Fin N) :
     v ∈ frameSet (nextFrame P s) ↔ ∃ j : Fin f.size,
@@ -161,6 +196,8 @@ theorem mem_frameSet_nextFrame {k N : ℕ} {f : Algorithm3Frame N}
     rw [dif_pos hbound]
     exact hj
 
+/-- The set represented by the next frame is contained in the set represented by the current
+frame. -/
 theorem frameSet_nextFrame_subset {k N : ℕ} {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (s : Fin P.seeds) :
     frameSet (nextFrame P s) ⊆ frameSet f := by
@@ -168,20 +205,25 @@ theorem frameSet_nextFrame_subset {k N : ℕ} {f : Algorithm3Frame N}
   obtain ⟨j,hj,_⟩ := (mem_frameSet_nextFrame P s v).mp hv
   exact Finset.mem_filter.mpr ⟨Finset.mem_univ _,j,hj⟩
 
+/-- A collision in the next frame is also a collision in the current frame. -/
 theorem frameHasCollision_nextFrame {k N M : ℕ} {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (s : Fin P.seeds) (x : Fin N → ZMod M)
     (h : frameHasCollision k x (nextFrame P s)) : frameHasCollision k x f := by
   obtain ⟨S,hS,hcollision⟩ := h
   exact ⟨S, hS.trans (frameSet_nextFrame_subset P s), hcollision⟩
 
+/-- The binomial mass `choose m l * p^l * (1 - p)^(m - l)`. -/
 def collisionBinomialMass (m : ℕ) (p : ℝ) (l : ℕ) : ℝ :=
   (m.choose l : ℝ)*p^l*(1-p)^(m-l)
 
+/-- The binomial mass is nonnegative when `p` lies in `[0, 1]`. -/
 theorem collisionBinomialMass_nonneg (m : ℕ) {p : ℝ} (hp0 : 0 ≤ p)
     (hp1 : p ≤ 1) (l : ℕ) : 0 ≤ collisionBinomialMass m p l := by
   exact mul_nonneg (mul_nonneg (Nat.cast_nonneg _) (pow_nonneg hp0 _))
     (pow_nonneg (sub_nonneg.mpr hp1) _)
 
+/-- Adjacent binomial masses satisfy the standard recurrence for `l < m`, after multiplication
+by `l + 1` and `1 - p`. -/
 theorem collisionBinomialMass_recurrence (m l : ℕ) (p : ℝ) (hl : l < m) :
     (l+1 : ℝ)*collisionBinomialMass m p (l+1)*(1-p) =
       (m-l : ℝ)*collisionBinomialMass m p l*p := by
@@ -199,6 +241,8 @@ theorem collisionBinomialMass_recurrence (m l : ℕ) (p : ℝ) (hl : l < m) :
         (p^l*p*(1-p)^(m-(l+1))*(1-p)) := by ring
     _ = _ := by rw [hc]; ring
 
+/-- If `k ≤ m` and `2 * k * (1 - p) ≤ p` with `0 < p ≤ 1`, each binomial mass below level `k` is
+at most half the next mass. -/
 theorem collisionBinomialMass_step (k m l : ℕ) (hkm : k ≤ m) (hlk : l < k)
     (p : ℝ) (hp0 : 0 < p) (hp1 : p ≤ 1) (hpkeep : 2*k*(1-p) ≤ p) :
     2*collisionBinomialMass m p l ≤ collisionBinomialMass m p (l+1) := by
@@ -218,6 +262,8 @@ theorem collisionBinomialMass_step (k m l : ℕ) (hkm : k ≤ m) (hlk : l < k)
   have hprod := mul_le_mul_of_nonneg_right hcoef hnxt
   nlinarith [mul_pos hn hp0]
 
+/-- Under the stated retention-ratio condition, the sum of binomial masses below `k` is at most
+the mass at `k`. -/
 theorem collisionBinomialMass_no_le_unique (k m : ℕ) (hkm : k ≤ m)
     (p : ℝ) (hp0 : 0 < p) (hp1 : p ≤ 1) (hpkeep : 2*k*(1-p) ≤ p) :
     (∑ l ∈ Finset.range k, collisionBinomialMass m p l) ≤
@@ -238,6 +284,8 @@ theorem collisionBinomialMass_no_le_unique (k m : ℕ) (hkm : k ≤ m)
       linarith
   exact hprefix k le_rfl
 
+/-- The number of injective functions from `Fin m` to `Fin q` is the descending factorial
+`q.descFactorial m`. -/
 theorem injectiveTuple_card (q m : ℕ) :
     ((Finset.univ : Finset (Fin m → Fin q)).filter Function.Injective).card =
       q.descFactorial m := by
@@ -250,6 +298,8 @@ theorem injectiveTuple_card (q m : ℕ) :
   rw [← Fintype.card_subtype, Fintype.card_congr e, Fintype.card_embedding_eq]
   simp
 
+/-- For positive `q` and `m ≤ q`, the failure probability of injectivity for an independent
+uniform `m`-tuple is at most `m^2 / q`. -/
 theorem descFactorial_birthday_loss (q m : ℕ) (hq : 0 < q) (hm : m ≤ q) :
     1-(q.descFactorial m : ℝ)/(q : ℝ)^m ≤ (m : ℝ)^2/q := by
   have hqr : (0 : ℝ) < q := by exact_mod_cast hq
@@ -272,6 +322,8 @@ theorem descFactorial_birthday_loss (q m : ℕ) (hq : 0 < q) (hm : m ≤ q) :
   rw [hmul, neg_div] at htotal
   linarith
 
+/-- The difference between the conditional ratio `a / i` and the full ratio `(a + b) / t` is at
+most `1 - i / t` under the stated mass bounds. -/
 private theorem conditionalCounting_gap (a b i t : ℝ) (hi : 0 < i)
     (hit : i ≤ t) (ha : 0 ≤ a) (hai : a ≤ i) (hb : 0 ≤ b) (hbit : b ≤ t-i) :
     |a/i-(a+b)/t| ≤ 1-i/t := by
@@ -290,6 +342,8 @@ private theorem conditionalCounting_gap (a b i t : ℝ) (hi : 0 < i)
   constructor <;> nlinarith [mul_nonneg (sub_nonneg.mpr hg1) hx0,
     mul_nonneg (sub_nonneg.mpr hg1) (sub_nonneg.mpr hx1)]
 
+/-- Conditioning a uniform finite sample on a nonempty subset changes any event probability by
+at most the probability outside that subset. -/
 theorem uniformConditioning_gap {Ω : Type} [Fintype Ω] [DecidableEq Ω]
     (I : Finset Ω) (hI : 0 < I.card) (V : Ω → Prop) :
     |((I.filter V).card : ℝ)/I.card -
@@ -325,6 +379,8 @@ theorem uniformConditioning_gap {Ω : Type} [Fintype Ω] [DecidableEq Ω]
   · have hreal : (I.card : ℝ)+K.card ≤ Fintype.card Ω := by exact_mod_cast hk
     linarith
 
+/-- For `m ≤ q` and positive `q`, uniform injective-tuple and independent uniform-tuple event
+probabilities differ by at most `m^2 / q`. -/
 theorem injectiveTuple_iid_gap (q m : ℕ) (hq : 0 < q) (hm : m ≤ q)
     (V : (Fin m → Fin q) → Prop) :
     |(((Finset.univ : Finset (Fin m → Fin q)).filter
@@ -340,6 +396,8 @@ theorem injectiveTuple_iid_gap (q m : ℕ) (hq : 0 < q) (hm : m ≤ q)
     Fintype.card_fin, Nat.cast_pow] at hgap
   exact le_trans hgap (descFactorial_birthday_loss q m hq hm)
 
+/-- An approximately independent permutation changes an event on `m` distinct inputs from its
+independent uniform probability by at most `η + m^2 / q` [Ambainis2007ElementDistinctness]. -/
 theorem approxIndependent_iid_event {q R d m : ℕ} {η : ℝ}
     {π : Fin R → Equiv.Perm (Fin q)} (hq : 0 < q) (hη : 0 ≤ η)
     (hπ : ApproxIndependent d η π) (hmd : m ≤ d) (hmq : m ≤ q)
@@ -373,13 +431,17 @@ theorem approxIndependent_iid_event {q R d m : ℕ} {η : ℝ}
   change |ref- _| ≤ _ at hgap
   exact le_trans (abs_sub_le _ ref _) (add_le_add happrox hgap)
 
+/-- The subset of `T` consisting of indices that belong to some `k`-collision in `T`. -/
 def collisionSupport {q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (T : Finset (Fin q)) : Finset (Fin q) :=
   T.filter (fun i => ∃ S, CollisionIn k x T S ∧ i ∈ S)
 
+/-- The collision support is contained in its ambient set. -/
 theorem collisionSupport_subset {q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (T : Finset (Fin q)) : collisionSupport k x T ⊆ T := Finset.filter_subset _ _
 
+/-- For `U ⊆ T`, a specified set is a collision in `U` exactly when it is a collision in `U`
+intersected with the collision support of `T`. -/
 theorem collisionIn_support_iff {q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (T U S : Finset (Fin q)) (hUT : U ⊆ T) :
     CollisionIn k x U S ↔ CollisionIn k x (U ∩ collisionSupport k x T) S := by
@@ -393,10 +455,13 @@ theorem collisionIn_support_iff {q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
   · rintro ⟨hS,hcol⟩
     exact ⟨hS.trans Finset.inter_subset_left,hcol⟩
 
+/-- The set of indexed positions whose supplied image values lie below the cutoff. -/
 def selectedTuplePositions {q m : ℕ} (cut : ℕ) (i : Fin m → Fin q)
     (images : Fin m → Fin q) : Finset (Fin q) :=
   (Finset.univ.filter (fun z => (images z).val < cut)).image i
 
+/-- Selecting positions from an enumeration of `S` by their permutation images equals filtering
+`S` by the same cutoff. -/
 theorem selectedTuplePositions_permutation {q R : ℕ} (S : Finset (Fin q))
     (π : Fin R → Equiv.Perm (Fin q)) (s : Fin R) (cut : ℕ) :
     selectedTuplePositions cut (S.orderEmbOfFin rfl) (fun z => π s (S.orderEmbOfFin rfl z)) =
@@ -415,6 +480,8 @@ theorem selectedTuplePositions_permutation {q R : ℕ} (S : Finset (Fin q))
     obtain ⟨z,hz⟩ := hrange
     exact ⟨z,hz ▸ hcut,hz⟩
 
+/-- Collisions in the retained set are exactly collisions among the selected positions of the
+collision-support enumeration. -/
 theorem retained_collision_tuple_iff {q R M : ℕ} (k : ℕ)
     (x : Fin q → ZMod M) (T : Finset (Fin q))
     (π : Fin R → Equiv.Perm (Fin q)) (s : Fin R) (S : Finset (Fin q)) :
@@ -433,6 +500,8 @@ theorem retained_collision_tuple_iff {q R M : ℕ} (k : ℕ)
   exact (collisionIn_support_iff k x T (retained k T π s) S
     (Finset.filter_subset _ _)).trans (by rw [heq])
 
+/-- When the collision support has size at most `d`, the no-collision event under retention
+differs from its independent-sampling version by at most `η + m^2 / q`. -/
 theorem collisionSupport_none_iid_gap {q R M d : ℕ} {η : ℝ}
     (k : ℕ) (x : Fin q → ZMod M) (T : Finset (Fin q))
     (π : Fin R → Equiv.Perm (Fin q)) (hq : 0 < q) (hη : 0 ≤ η)
@@ -464,6 +533,8 @@ theorem collisionSupport_none_iid_gap {q R M d : ℕ} {η : ℝ}
   convert! h using 1
   congr
 
+/-- When the collision support has size at most `d`, the unique-collision event under retention
+differs from its independent-sampling version by at most `η + m^2 / q`. -/
 theorem collisionSupport_unique_iid_gap {q R M d : ℕ} {η : ℝ}
     (k : ℕ) (x : Fin q → ZMod M) (T : Finset (Fin q))
     (π : Fin R → Equiv.Perm (Fin q)) (hq : 0 < q) (hη : 0 ≤ η)
@@ -493,6 +564,8 @@ theorem collisionSupport_unique_iid_gap {q R M d : ℕ} {η : ℝ}
   rw [hevent]
   exact h
 
+/-- The number of `t`-tuples whose every entry satisfies `P` is the `t`th power of the number of
+entries satisfying `P`. -/
 theorem iidBlocks_card {β : Type} [Fintype β] [DecidableEq β]
     (t : ℕ) (P : β → Prop) :
     ((Finset.univ : Finset (Fin t → β)).filter (fun f => ∀ a, P (f a))).card =
@@ -506,6 +579,7 @@ theorem iidBlocks_card {β : Type} [Fintype β] [DecidableEq β]
   rw [← Fintype.card_subtype, Fintype.card_congr e, Fintype.card_fun]
   simp only [Fintype.card_fin,Fintype.card_subtype]
 
+/-- The number of `k`-tuples with a specified coordinate in `B` is `B.card * q^(k - 1)`. -/
 theorem iidCoordinate_card (k q : ℕ) (a : Fin k) (B : Finset (Fin q)) :
     ((Finset.univ : Finset (Fin k → Fin q)).filter (fun f => f a ∈ B)).card =
       B.card*q^(k-1) := by
@@ -531,6 +605,8 @@ theorem iidCoordinate_card (k q : ℕ) (a : Fin k) (B : Finset (Fin q)) :
     simp
   simp only [Fintype.card_fin,Fintype.card_coe,hc]
 
+/-- The number of `k`-tuples with at least one coordinate in `B` is at most `k * B.card * q^(k -
+1)`. -/
 theorem iidBadBlock_card (k q : ℕ) (B : Finset (Fin q)) :
     ((Finset.univ : Finset (Fin k → Fin q)).filter (fun f => ∃ a, f a ∈ B)).card ≤
       k*B.card*q^(k-1) := by
@@ -545,6 +621,8 @@ theorem iidBadBlock_card (k q : ℕ) (B : Finset (Fin q)) :
       Finset.card_biUnion_le
     _ = _ := by simp [iidCoordinate_card, Nat.mul_assoc]
 
+/-- If `2 * k * B.card ≤ q` with positive `k` and `q`, the probability that each of `t`
+independent blocks meets `B` is at most `2^(-t)`. -/
 theorem iidAllBadBlocks_probability (k q t : ℕ) (hk : 0 < k) (hq : 0 < q)
     (B : Finset (Fin q)) (hB : 2*k*B.card ≤ q) :
     (((Finset.univ : Finset (Fin t → Fin k → Fin q)).filter
@@ -576,6 +654,8 @@ theorem iidAllBadBlocks_probability (k q t : ℕ) (hk : 0 < k) (hq : 0 < q)
   ext f
   simp [bad]
 
+/-- The complement of the retained prefix has cardinality at most the amount specified by `2 * k
+* outside.card ≤ q`. -/
 theorem retained_outside_card (k q : ℕ) :
     2*k*((Finset.univ : Finset (Fin q)).filter
       (fun j => Nat.ceil ((2*k : ℝ)/(2*k+1)*q) ≤ j.val)).card ≤ q := by
@@ -607,6 +687,8 @@ theorem retained_outside_card (k q : ℕ) :
     exact_mod_cast hreal
   convert! hnat using 1
 
+/-- If retention leaves no collision, each supplied collision block has an element whose
+permutation image lies outside the retained prefix. -/
 theorem retained_none_misses_blocks {q R M t : ℕ} (k : ℕ)
     (x : Fin q → ZMod M) (T : Finset (Fin q))
     (π : Fin R → Equiv.Perm (Fin q)) (s : Fin R)
@@ -625,6 +707,8 @@ theorem retained_none_misses_blocks {q R M t : ℕ} (k : ℕ)
   exact Finset.mem_filter.mpr ⟨(hblocks a).1 (Finset.mem_image.mpr
     ⟨z,Finset.mem_univ _,rfl⟩),h z⟩
 
+/-- Flattening a block-indexed tuple preserves the count of assignments for which every block
+meets `B`. -/
 theorem iidFlatAllBad_card (k q t : ℕ) (B : Finset (Fin q)) :
     ((Finset.univ : Finset (Fin (t*k) → Fin q)).filter
       (fun f => ∀ a : Fin t, ∃ z : Fin k, f (finProdFinEquiv (a,z)) ∈ B)).card =
@@ -659,6 +743,8 @@ theorem iidFlatAllBad_card (k q t : ℕ) (B : Finset (Fin q)) :
       right_inv := fun f => Subtype.ext (e.right_inv f.1) }
   rw [← Fintype.card_subtype,← Fintype.card_subtype,Fintype.card_congr e']
 
+/-- Given `t` disjoint collision blocks and sufficient approximate independence, the
+no-collision probability after retention is at most `2^(-t) + η + (t * k)^2 / q`. -/
 theorem disjointBlocks_none_bound {q R M d t : ℕ} {η : ℝ}
     (k : ℕ) (hk : 0 < k) (hq : 0 < q) (hη : 0 ≤ η)
     (x : Fin q → ZMod M) (T : Finset (Fin q))
@@ -713,6 +799,8 @@ theorem disjointBlocks_none_bound {q R M d t : ℕ} {η : ℝ}
     _ ≤ (1/2 : ℝ)^t+(η+((t*k : ℕ) : ℝ)^2/q) := add_le_add hflatHalf le_rfl
     _ = _ := by ring
 
+/-- For positive `k`, there exists a pairwise disjoint family of collisions whose union
+intersects every collision in `T`. -/
 theorem exists_maximal_collision_packing {q M : ℕ} (k : ℕ) (hk : 0 < k)
     (x : Fin q → ZMod M) (T : Finset (Fin q)) :
     ∃ P : Finset (Finset (Fin q)),
@@ -757,6 +845,8 @@ theorem exists_maximal_collision_packing {q M : ℕ} (k : ℕ) (hk : 0 < k)
   rw [Finset.card_insert_of_notMem hnot] at hcontr
   omega
 
+/-- If every collision intersects `U`, each value class in `T` outside `U` has fewer than `k`
+elements. -/
 theorem maximalPacking_remainingClass_lt {q M : ℕ} (k : ℕ)
     (x : Fin q → ZMod M) (T U : Finset (Fin q))
     (hmax : ∀ S, CollisionIn k x T S → ¬Disjoint S U) (v : ZMod M) :
@@ -773,6 +863,8 @@ theorem maximalPacking_remainingClass_lt {q M : ℕ} (k : ℕ)
   intro i hi hU
   exact (Finset.mem_sdiff.mp (Finset.mem_filter.mp (hS hi)).1).2 hU
 
+/-- The collision support has size at most `2 * k * P.card` when `P` consists of collisions and
+its union intersects every collision. -/
 theorem maximalPacking_support_card {q M : ℕ} (k : ℕ)
     (x : Fin q → ZMod M) (T : Finset (Fin q)) (P : Finset (Finset (Fin q)))
     (hblocks : ∀ S ∈ P, CollisionIn k x T S)
@@ -819,6 +911,8 @@ theorem maximalPacking_support_card {q M : ℕ} (k : ℕ)
     _ ≤ k*P.card+(k-1)*P.card := Nat.add_le_add hUcard hleftcard
     _ ≤ _ := by nlinarith [Nat.sub_le k 1]
 
+/-- For positive `k`, either the collision support has size at most `2 * k * (t - 1)` or there
+are `t` pairwise disjoint indexed collisions [Ambainis2007ElementDistinctness]. -/
 theorem collision_packing_dichotomy {q M : ℕ} (k : ℕ) (hk : 0 < k)
     (x : Fin q → ZMod M) (T : Finset (Fin q)) (t : ℕ) :
     (collisionSupport k x T).card ≤ 2*k*(t-1) ∨
@@ -857,6 +951,8 @@ theorem collision_packing_dichotomy {q M : ℕ} (k : ℕ) (hk : 0 < k)
       rw [Finset.image_orderEmbOfFin_univ]
       exact hblocks (e a).1 (e a).2
 
+/-- The number of functions satisfying independent coordinate constraints is the product of the
+numbers of allowed values at each coordinate. -/
 theorem iidConstraints_card {α β : Type} [Fintype α] [DecidableEq α]
     [Fintype β] [DecidableEq β] (P : α → β → Prop) :
     ((Finset.univ : Finset (α → β)).filter (fun f => ∀ z, P z (f z))).card =
@@ -870,6 +966,8 @@ theorem iidConstraints_card {α β : Type} [Fintype α] [DecidableEq α]
   rw [← Fintype.card_subtype,Fintype.card_congr e,Fintype.card_pi]
   simp only [Fintype.card_subtype]
 
+/-- The number of `m`-tuples whose coordinates in `B` occur at exactly `S` is `B.card^S.card *
+(q - B.card)^(m - S.card)`. -/
 theorem iidMask_card (m q : ℕ) (B : Finset (Fin q)) (S : Finset (Fin m)) :
     ((Finset.univ : Finset (Fin m → Fin q)).filter
       (fun f => Finset.univ.filter (fun z => f z ∈ B) = S)).card =
@@ -914,6 +1012,8 @@ theorem iidMask_card (m q : ℕ) (B : Finset (Fin q)) (S : Finset (Fin m)) :
     simp
   rw [hposS,hnotS,Finset.card_compl,Fintype.card_fin]
 
+/-- The number of `m`-tuples having exactly `l` coordinates in `B` is the stated binomial
+coefficient times the two occupancy powers. -/
 theorem iidOccupancy_card (m q l : ℕ) (B : Finset (Fin q)) :
     ((Finset.univ : Finset (Fin m → Fin q)).filter
       (fun f => (Finset.univ.filter (fun z => f z ∈ B)).card = l)).card =
@@ -938,6 +1038,8 @@ theorem iidOccupancy_card (m q l : ℕ) (B : Finset (Fin q)) :
       rw [iidMask_card,hcard]
     _ = _ := by simp [Finset.card_powersetCard,Nat.mul_assoc]
 
+/-- For positive `q` and `l ≤ m`, the probability of exactly `l` coordinates in `B` is the
+binomial mass with parameter `B.card / q`. -/
 theorem iidOccupancy_probability (m q l : ℕ) (hq : 0 < q) (hl : l ≤ m)
     (B : Finset (Fin q)) :
     (((Finset.univ : Finset (Fin m → Fin q)).filter
@@ -963,6 +1065,8 @@ theorem iidOccupancy_probability (m q l : ℕ) (hq : 0 < q) (hl : l ≤ m)
   rw [hpident,div_pow,div_pow,hqpow]
   field_simp
 
+/-- Under the stated positive-size and retention-ratio hypotheses, fewer-than-`k` occupancy
+assignments are no more numerous than exactly-`k` assignments. -/
 theorem iidOccupancy_less_le_equal (k m q : ℕ) (hkm : k ≤ m) (hq : 0 < q)
     (B : Finset (Fin q)) (hBpos : 0 < B.card) (hkeep : 2*k*(q-B.card) ≤ B.card) :
     ((Finset.univ : Finset (Fin m → Fin q)).filter
@@ -1011,6 +1115,8 @@ theorem iidOccupancy_less_le_equal (k m q : ℕ) (hkm : k ≤ m) (hq : 0 < q)
       _ = _ := (iidOccupancy_probability m q k hq hkm B).symm
   exact_mod_cast (div_le_div_iff_of_pos_right (pow_pos hqp m)).mp hprob
 
+/-- Counts of events depending separately on a finite subset and its complement multiply to give
+the count of their conjunction. -/
 theorem iidSubsetEvents_card {α β : Type} [Fintype α] [DecidableEq α]
     [Fintype β] [DecidableEq β] (I : Finset α)
     (P : (I → β) → Prop) (Q : ({z : α // z ∉ I} → β) → Prop) :
@@ -1041,6 +1147,8 @@ theorem iidSubsetEvents_card {α β : Type} [Fintype α] [DecidableEq α]
   rw [← Fintype.card_subtype,Fintype.card_congr e',Fintype.card_prod,
     Fintype.card_subtype,Fintype.card_subtype]
 
+/-- There is no collision in `T` exactly when the chosen value class has size below `k` and its
+complement contains no collision. -/
 theorem collisionIn_value_class_none_iff {q M : ℕ} (k : ℕ)
     (x : Fin q → ZMod M) (T : Finset (Fin q)) (v : ZMod M) :
     (¬∃ S, CollisionIn k x T S) ↔
@@ -1073,6 +1181,8 @@ theorem collisionIn_value_class_none_iff {q M : ℕ} (k : ℕ)
       intro hI
       exact huv ((hu i hi).symm.trans (Finset.mem_filter.mp hI).2)
 
+/-- If a value class has exactly `k` elements and its complement contains no collision, then `T`
+contains a unique collision. -/
 theorem collisionIn_value_class_unique {q M : ℕ} (k : ℕ)
     (x : Fin q → ZMod M) (T : Finset (Fin q)) (v : ZMod M)
     (hk : (T.filter (fun i => x i = v)).card = k)
@@ -1096,6 +1206,8 @@ theorem collisionIn_value_class_unique {q M : ℕ} (k : ℕ)
     intro hI
     exact huv ((hu i hi).symm.trans (Finset.mem_filter.mp hI).2)
 
+/-- Reindexing a finite domain by `Fin` of its cardinality preserves the count of any occupancy
+event. -/
 theorem iidDomainOccupancy_card {α : Type} [Fintype α] [DecidableEq α]
     (q : ℕ) (B : Finset (Fin q)) (V : ℕ → Prop) :
     ((Finset.univ : Finset (α → Fin q)).filter
@@ -1137,6 +1249,8 @@ theorem iidDomainOccupancy_card {α : Type} [Fintype α] [DecidableEq α]
       right_inv := fun f => Subtype.ext (ef.right_inv f.1) }
   simpa only [Fintype.card_subtype] using! Fintype.card_congr e
 
+/-- For an arbitrary finite domain, the stated retention-ratio hypotheses bound the count of
+occupancy below `k` by the count of occupancy equal to `k`. -/
 theorem iidDomainOccupancy_less_le_equal {α : Type} [Fintype α] [DecidableEq α]
     (k q : ℕ) (hkm : k ≤ Fintype.card α) (hq : 0 < q)
     (B : Finset (Fin q)) (hBpos : 0 < B.card) (hkeep : 2*k*(q-B.card) ≤ B.card) :
@@ -1155,6 +1269,8 @@ theorem iidDomainOccupancy_less_le_equal {α : Type} [Fintype α] [DecidableEq �
     _ = _ := by
       convert! (iidDomainOccupancy_card (α := α) q B (fun n => n = k)).symm using 1 <;> congr
 
+/-- The retained mask on a subset, mapped to the ambient type, is the intersection of the
+ambient mask with that subset. -/
 theorem iidMask_subtype_image {α : Type} [Fintype α] [DecidableEq α]
     (q : ℕ) (B : Finset (Fin q)) (I : Finset α) (f : α → Fin q) :
     ((Finset.univ : Finset I).filter (fun z : I => f z.val ∈ B)).image Subtype.val =
@@ -1168,6 +1284,8 @@ theorem iidMask_subtype_image {α : Type} [Fintype α] [DecidableEq α]
   · rintro ⟨hz,hI⟩
     exact ⟨⟨z,hI⟩,hz,rfl⟩
 
+/-- The retained mask on a subset's complement, mapped to the ambient type, is the ambient mask
+with that subset removed. -/
 theorem iidMask_compl_image {α : Type} [Fintype α] [DecidableEq α]
     (q : ℕ) (B : Finset (Fin q)) (I : Finset α) (f : α → Fin q) :
     ((Finset.univ : Finset {z : α // z ∉ I}).filter (fun z : {z : α // z ∉ I} => f z.val ∈ B)).image Subtype.val =
@@ -1181,6 +1299,8 @@ theorem iidMask_compl_image {α : Type} [Fintype α] [DecidableEq α]
   · rintro ⟨hz,hI⟩
     exact ⟨⟨z,hI⟩,hz,rfl⟩
 
+/-- When the input has a collision and the stated retention ratio holds, independent sampling
+yields no more no-collision assignments than unique-collision assignments. -/
 theorem iidCollision_none_le_unique (k m q M : ℕ) (hq : 0 < q)
     (x : Fin m → ZMod M) (hx : HasCollision k x) (B : Finset (Fin q))
     (hBpos : 0 < B.card) (hkeep : 2*k*(q-B.card) ≤ B.card) :
@@ -1259,6 +1379,7 @@ theorem iidCollision_none_le_unique (k m q M : ℕ) (hq : 0 < q)
       convert! hexactCount.symm using 1 <;> congr
     _ ≤ _ := Finset.card_le_card huniqueSubset
 
+/-- An injective index map transports a collision and its ambient set to their images. -/
 theorem collisionIn_image_map {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (i : Fin m → Fin q) (hi : Function.Injective i) (U S : Finset (Fin m))
     (h : CollisionIn k (fun z => x (i z)) U S) :
@@ -1271,6 +1392,8 @@ theorem collisionIn_image_map {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     obtain ⟨a,ha,rfl⟩ := Finset.mem_image.mp hz
     exact hv a ha
 
+/-- Every collision in the image of an injective index map lifts to a collision in its domain
+with the specified image. -/
 theorem collisionIn_image_preimage {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (i : Fin m → Fin q) (hi : Function.Injective i) (U : Finset (Fin m))
     (S : Finset (Fin q)) (h : CollisionIn k x (U.image i) S) :
@@ -1293,6 +1416,8 @@ theorem collisionIn_image_preimage {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod M
   · intro z hz
     exact hv (i z) (Finset.mem_filter.mp hz).2
 
+/-- An injective index map preserves the existence of a collision in the corresponding ambient
+sets. -/
 theorem collisionIn_image_exists_iff {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (i : Fin m → Fin q) (hi : Function.Injective i) (U : Finset (Fin m)) :
     (∃ S, CollisionIn k x (U.image i) S) ↔
@@ -1304,6 +1429,8 @@ theorem collisionIn_image_exists_iff {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod
   · rintro ⟨S,hS⟩
     exact ⟨S.image i,collisionIn_image_map k x i hi U S hS⟩
 
+/-- An injective index map preserves the existence of a unique collision in the corresponding
+ambient sets. -/
 theorem collisionIn_image_unique_iff {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod M)
     (i : Fin m → Fin q) (hi : Function.Injective i) (U : Finset (Fin m)) :
     (∃! S, CollisionIn k x (U.image i) S) ↔
@@ -1321,6 +1448,7 @@ theorem collisionIn_image_unique_iff {m q M : ℕ} (k : ℕ) (x : Fin q → ZMod
     obtain ⟨W,hW,himage⟩ := collisionIn_image_preimage k x i hi U S hS
     rw [← himage,huniq W hW]
 
+/-- The retained prefix satisfies `2 * k * (q - B.card) ≤ B.card`. -/
 theorem retained_prefix_keep_ratio (k q : ℕ) :
     let B := (Finset.univ : Finset (Fin q)).filter
       (fun j => j.val < Nat.ceil ((2*k : ℝ)/(2*k+1)*q))
@@ -1346,6 +1474,7 @@ theorem retained_prefix_keep_ratio (k q : ℕ) :
   rw [hcard]
   exact hnat
 
+/-- For positive `k` and `q`, the retained prefix is nonempty. -/
 theorem retained_prefix_positive (k q : ℕ) (hk : 0 < k) (hq : 0 < q) :
     0 < ((Finset.univ : Finset (Fin q)).filter
       (fun j => j.val < Nat.ceil ((2*k : ℝ)/(2*k+1)*q))).card := by
@@ -1357,6 +1486,8 @@ theorem retained_prefix_positive (k q : ℕ) (hk : 0 < k) (hq : 0 < q) :
       (by exact_mod_cast hq)
   exact Finset.card_pos.mpr ⟨⟨0,hq⟩,hzero⟩
 
+/-- If `T` contains a collision, independent selection on its collision support gives no more
+no-collision assignments than unique-collision assignments. -/
 theorem collisionSupport_iid_none_le_unique {q M : ℕ} (k : ℕ) (hk : 0 < k)
     (hq : 0 < q) (x : Fin q → ZMod M) (T : Finset (Fin q))
     (hcollision : ∃ S, CollisionIn k x T S) :
@@ -1408,6 +1539,8 @@ theorem collisionSupport_iid_none_le_unique {q M : ℕ} (k : ℕ) (hk : 0 < k)
   exact iidCollision_none_le_unique k A.card q M hq (fun z => x (i z)) hlocal B
     (retained_prefix_positive k q hk hq) (retained_prefix_keep_ratio k q)
 
+/-- For collision support of size at most `d`, approximate independence bounds the no-collision
+probability by the unique-collision probability plus `2 * (η + support.card^2 / q)`. -/
 theorem collisionSupport_none_le_unique {q R M d : ℕ} {η : ℝ}
     (k : ℕ) (hk : 0 < k) (hq : 0 < q) (hη : 0 ≤ η)
     (x : Fin q → ZMod M) (T : Finset (Fin q)) (π : Fin R → Equiv.Perm (Fin q))
@@ -1444,6 +1577,9 @@ theorem collisionSupport_none_le_unique {q R M d : ℕ} {η : ℝ}
       eventProbability (fun s => ∃! S, CollisionIn k x (retained k T π s) S)+2*err
   nlinarith
 
+/-- Under the stated size, logarithm, collision, and approximate-independence hypotheses, the
+no-collision probability is at most the unique-collision probability plus the explicit
+geometric, inverse-size, and logarithmic error [Ambainis2007ElementDistinctness]. -/
 theorem algorithm3Isolation_quantitative {q R M N : ℕ} (k : ℕ) (hk : 2 ≤ k)
     (hN : 0 < N) (hlog : 2 ≤ Real.log (N : ℝ))
     (x : Fin q → ZMod M) (T : Finset (Fin q)) (π : Fin R → Equiv.Perm (Fin q))
@@ -1542,6 +1678,7 @@ open scoped Topology
 end
 end IsolationAsymptotics
 
+/-- The Algorithm 3 isolation proposition holds [Ambainis2007ElementDistinctness]. -/
 theorem algorithm3Isolation_answer : Algorithm3Isolation := by
   intro k hk ε hε
   obtain ⟨N0,hthreshold⟩ :=

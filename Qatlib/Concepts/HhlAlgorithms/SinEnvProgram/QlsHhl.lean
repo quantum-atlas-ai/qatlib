@@ -9,6 +9,29 @@ import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
 import Qatlib.Concepts.HhlErrorBridge.FilterStability
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.SpecRestrictedSubgoalHarr
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.CostRestrictedSubgoalHarr
+
+/-!
+# Correctness and limitations of sine-envelope HHL
+
+This module proves workspace and postselection estimates for the sine-envelope HHL circuit of
+[HarrowHassidimLloyd2009]. It also gives clean-input isometries, a coarse sparse-access
+construction, and a signed filter program.
+
+The final result `not_clause60` refutes the stated conjunction of signed-program guarantees,
+whose postselection target is an unnormalized branch.
+
+## Main statements
+
+* `clause58`: joint postselection, workspace error, and relative mass estimates.
+* `clause59`: clean-input isometries and an operator error bound.
+* `clause54`: sparse synthesis and oracle-perturbation guarantees.
+* `not_clause60`: failure of the proposed signed-program specification.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -65,10 +88,13 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The Euclidean norm of a finite state is the square root of the sum of its squared coordinate
+norms. -/
 private theorem qls_normVec_sqrt {I : Type} [Fintype I] [DecidableEq I] (v : QState I) :
     ‖toEuclidean_fromVec v‖ = (∑ p, ‖v p‖ ^ 2).sqrt := by
   rw [← Real.sqrt_sq (norm_nonneg _), norm_toEuclidean_fromVec_sq]
 
+/-- For `M ≥ 2`, the signed decoded label lies in `[-1/2, 1/2]`. -/
 private theorem qls_decode_bounded (M : ℕ) (z : Fin M) (hM : 2 ≤ M) :
     -1/2 ≤ sinEnvelopeDecode M z ∧ sinEnvelopeDecode M z ≤ 1/2 := by
   have hm0 : (0:ℝ) < M := by exact_mod_cast (show 0 < M by omega)
@@ -85,6 +111,7 @@ private theorem qls_decode_bounded (M : ℕ) (z : Fin M) (hM : 2 ≤ M) :
     have hzup : (z.val:ℝ)/(M:ℝ) < 1 := (div_lt_one hm0).mpr hz1
     constructor <;> linarith only [hzlo,hzup]
 
+/-- Circular phase distance equals absolute difference when that difference is at most `1/2`. -/
 private theorem qls_phase_dist_eq_abs_of_le_half {x y : ℝ} (h : |x - y| ≤ 1/2) :
     phaseDistance x y = |x - y| := by
   have hlo : (0:ℝ) ≤ x - y + 1/2 := by
@@ -109,6 +136,7 @@ private theorem qls_phase_dist_eq_abs_of_le_half {x y : ℝ} (h : |x - y| ≤ 1/
     rw [hx]
     norm_num
 
+/-- Subtracting one from the second phase leaves circular phase distance unchanged. -/
 private theorem qls_phase_dist_sub_one_right (x y : ℝ) :
     phaseDistance x (y-1) = phaseDistance x y := by
   unfold phaseDistance
@@ -118,6 +146,8 @@ private theorem qls_phase_dist_sub_one_right (x y : ℝ) :
   congr 1
   ring
 
+/-- Signed decoding preserves the circular distance from a phase to the corresponding grid
+label. -/
 private theorem qls_decode_distance (M : ℕ) (φ : ℝ) (z : Fin M) :
     phaseDistance φ (sinEnvelopeDecode M z) = phaseDistance φ ((z.val:ℝ)/(M:ℝ)) := by
   unfold sinEnvelopeDecode
@@ -125,6 +155,8 @@ private theorem qls_decode_distance (M : ℕ) (φ : ℝ) (z : Fin M) :
   · rfl
   · exact qls_phase_dist_sub_one_right _ _
 
+/-- For `x ∈ [0, 1/4]` and `y ∈ [-1/2, 1/2]`, absolute difference is at most three times
+circular phase distance. -/
 private theorem qls_signed_phase_distance (x y : ℝ) (hx : 0 ≤ x) (hx' : x ≤ 1/4)
     (hy : -1/2 ≤ y) (hy' : y ≤ 1/2) :
     |x-y| ≤ 3*phaseDistance x y := by
@@ -143,6 +175,8 @@ private theorem qls_signed_phase_distance (x y : ℝ) (hx : 0 ≤ x) (hx' : x �
     rw [abs_of_nonneg (by linarith only [hlo]),abs_of_nonpos (by linarith only [hx',hy])]
     linarith only [hx',hy]
 
+/-- Unitary preparation followed by a unitary change of basis preserves the sum of squared
+amplitudes. -/
 private theorem qls_beta_total {D : ℕ} (V B : Operator D) (ψ : QState (Fin D))
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     ∑ i, ‖(Vᴴ *ᵥ (B *ᵥ ψ)) i‖^2 = ∑ i, ‖ψ i‖^2 := by
@@ -151,6 +185,7 @@ private theorem qls_beta_total {D : ℕ} (V B : Operator D) (ψ : QState (Fin D)
   have hb := sum_normSq_mulVec_of_mem_unitaryGroup hB ψ
   simpa only [Complex.normSq_eq_norm_sq] using! hv.trans hb
 
+/-- The combined flag mass equals `1/4` whenever `d > 0` and `x ≤ 2*d`. -/
 private theorem qls_flag_mass_low (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) :
     sinEnvelopeFlagMass d x = 1/4 := by
   by_cases he : x = 2*d
@@ -169,6 +204,7 @@ private theorem qls_flag_mass_low (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) :
     · simp only [if_neg hl]
       norm_num
 
+/-- Below the threshold `d > 0`, the filters have values zero and `1/2`. -/
 private theorem qls_filter_const_le (d x : ℝ) (hd : 0 < d) (hx : x ≤ d) :
     sinEnvelopeFilterF d x = 0 ∧ sinEnvelopeFilterG d x = 1/2 := by
   have h2 : ¬ 2*d ≤ x := by intro h; linarith
@@ -184,6 +220,7 @@ private theorem qls_filter_const_le (d x : ℝ) (hd : 0 < d) (hx : x ≤ d) :
     norm_num
   · simp [if_neg hl]
 
+/-- For a phase in `[0, 1/4]`, the flag mass is at least `min (1/4) (16*d^2)` when `d > 0`. -/
 private theorem qls_flag_mass_lower (d θ : ℝ) (hd : 0 < d) (hθ : 0 ≤ θ) (hθ' : θ ≤ 1/4) :
     min (1/4) (16*d^2) ≤ sinEnvelopeFlagMass d θ := by
   rcases le_or_gt θ (2*d) with hlow | hhigh
@@ -204,6 +241,8 @@ private theorem qls_flag_mass_lower (d θ : ℝ) (hd : 0 < d) (hθ : 0 ≤ θ) (
     simp only [zero_pow (by norm_num : (2:ℕ) ≠ 0), add_zero]
     exact le_trans (min_le_right _ _) h4
 
+/-- For positive `d`, `M ≥ 2`, and `φ ∈ [0, 1/4]`, the kernel-weighted squared error of both
+filters, multiplied by `(d*M)^2`, is at most `2205` times the ideal flag mass. -/
 private theorem qls_joint_filter_error (M : ℕ) (hM : 2 ≤ M) (φ d : ℝ) (hd : 0 < d)
     (hφ : 0 ≤ φ) (hφ' : φ ≤ 1/4) :
     (∑ z : Fin M, ‖sinEnvelopeKernel M φ z‖^2 *
@@ -320,6 +359,8 @@ private theorem qls_joint_filter_error (M : ℕ) (hM : 2 ≤ M) (φ d : ℝ) (hd
     nlinarith [hmassnn, hpi2]
   exact (mul_le_mul_of_nonneg_right hsum2 (sq_nonneg _)).trans hcle
 
+/-- A finite real sum with two independent factors splits into the product of their sums and the
+remaining double sum. -/
 private theorem qls_four_factor {α β γ δ : Type} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
     (w : α → ℝ) (v : β → ℝ) (c : γ → ℝ) (g : γ → δ → ℝ) :
     (∑ a : α, ∑ b : β, ∑ s : γ, ∑ k : δ, w a * v b * (c s * g s k)) =
@@ -376,6 +417,8 @@ private theorem qls_four_factor {α β γ δ : Type} [Fintype α] [Fintype β] [
   rw [step6]
   ring
 
+/-- The ideal state's probability of the joint flag event equals `sinEnvelopeIdealMass` when `V`
+is unitary. -/
 private theorem qls_ideal_joint_mass {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -571,6 +614,7 @@ private theorem qls_ideal_joint_mass {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : F
   rw [hsum3]
   rfl
 
+/-- Matrix multiplication distributes over a finite sum of states. -/
 private theorem qls_mulVec_sum {H ι : Type} [Fintype H] [DecidableEq H] [Fintype ι]
     (A : Matrix H H ℂ) (f : ι → QState H) :
     A *ᵥ (∑ i, f i) = ∑ i, A *ᵥ f i := by
@@ -579,12 +623,14 @@ private theorem qls_mulVec_sum {H ι : Type} [Fintype H] [DecidableEq H] [Fintyp
   simp_rw [Finset.mul_sum]
   rw [Finset.sum_comm]
 
+/-- Scaling the right tensor factor scales the tensor state. -/
 private theorem qls_tensorState_smul_right {I J : Type} (ψ : QState I) (c : ℂ) (w : QState J) :
     TensorState ψ (c • w) = c • TensorState ψ w := by
   funext p
   simp only [TensorState, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- Tensoring on the left distributes over a finite linear combination of right factors. -/
 private theorem qls_tensorState_sum_smul_right {I J ι : Type} [Fintype ι]
     (ψ : QState I) (β : ι → ℂ) (f : ι → QState J) :
     TensorState ψ (∑ i, β i • f i) = ∑ i, β i • TensorState ψ (f i) := by
@@ -593,12 +639,14 @@ private theorem qls_tensorState_sum_smul_right {I J ι : Type} [Fintype ι]
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun i _ => by ring
 
+/-- The phase-flag embedding commutes with complex scalar multiplication. -/
 private theorem qls_phaseFlagEmbed_smul {I : Type} (M : ℕ) (c : ℂ) (ψ : QState (Fin M × I)) :
     phaseFlagEmbed M (c • ψ) = c • phaseFlagEmbed M ψ := by
   funext p
   obtain ⟨x, b, i⟩ := p
   cases b <;> simp [phaseFlagEmbed]
 
+/-- The phase-flag embedding commutes with finite sums. -/
 private theorem qls_phaseFlagEmbed_sum {I ι : Type} [Fintype ι] (M : ℕ)
     (f : ι → QState (Fin M × I)) :
     phaseFlagEmbed M (∑ i, f i) = ∑ i, phaseFlagEmbed M (f i) := by
@@ -606,6 +654,7 @@ private theorem qls_phaseFlagEmbed_sum {I ι : Type} [Fintype ι] (M : ℕ)
   obtain ⟨x, b, i⟩ := p
   cases b <;> simp [phaseFlagEmbed, Finset.sum_apply]
 
+/-- A tensor state with the Boolean flag set to false equals its phase-flag embedding. -/
 private theorem qls_clean_embed {D : ℕ} (M : ℕ) (m₀ : Fin M) (ψ : QState (Fin 3 × Fin D)) :
     TensorState (Qatlib.Foundations.PureStateMath.Ket m₀) (TensorState (Qatlib.Foundations.PureStateMath.Ket false) ψ) =
       phaseFlagEmbed (I := Fin 3 × Fin D) M (TensorState (Qatlib.Foundations.PureStateMath.Ket m₀) ψ) := by
@@ -613,6 +662,7 @@ private theorem qls_clean_embed {D : ℕ} (M : ℕ) (m₀ : Fin M) (ψ : QState 
   obtain ⟨x, b, s, i⟩ := p
   cases b <;> simp [TensorState, phaseFlagEmbed, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The phase-flag embedding is the relabeling of a tensor state with Boolean flag false. -/
 private theorem qls_phaseFlagEmbed_eq_sector {D M : ℕ}
     (φ : QState (Fin M × (Fin 3 × Fin D))) :
     phaseFlagEmbed (I := Fin 3 × Fin D) M φ =
@@ -622,6 +672,8 @@ private theorem qls_phaseFlagEmbed_eq_sector {D M : ℕ}
   cases s <;> simp [phaseFlagEmbed, relabelState, sinEnvelopeSectorEquiv, TensorState,
       Qatlib.Foundations.PureStateMath.Ket]
 
+/-- Applying a lifted gate to an embedded state equals embedding the gate's action on that
+state. -/
 private theorem qls_liftGate_apply {D M : ℕ}
     (G : Matrix (Fin M × (Fin 3 × Fin D)) (Fin M × (Fin 3 × Fin D)) ℂ)
     (φ : QState (Fin M × (Fin 3 × Fin D))) :
@@ -631,6 +683,8 @@ private theorem qls_liftGate_apply {D M : ℕ}
   rw [sinEnvelopeLiftGate, qls_phaseFlagEmbed_eq_sector, applyGate_relabelGate,
     applyGate_tensorGate, applyGate_one, ← qls_phaseFlagEmbed_eq_sector]
 
+/-- The preparation gate applies `B` to the data register while preserving the phase and
+three-level flag basis states. -/
 private theorem qls_prepMain_apply {D M : ℕ} (m₀ : Fin M) (B : Operator D) (ψ : QState (Fin D)) :
     sinEnvelopePrepMain (M := M) B *ᵥ
         TensorState (Qatlib.Foundations.PureStateMath.Ket m₀) (TensorState (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 3)) ψ) =
@@ -643,6 +697,8 @@ private theorem qls_prepMain_apply {D M : ℕ} (m₀ : Fin M) (B : Operator D) (
   rw [sinEnvelopePrepMain, hprod, applyGate_relabelGate, applyGate_tensorGate_prodAssoc,
     applyGate_one, applyGate_one]
 
+/-- A column of unitary `V` is an eigenvector of the continuous HHL oracle with eigenvalue `exp
+(2*π*i*eig i)`. -/
 private theorem qls_oracle_column {D : ℕ} (eig : Fin D → ℝ)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D) :
     continuousHHLOracle eig V *ᵥ (V *ᵥ Qatlib.Foundations.PureStateMath.Ket i) =
@@ -662,6 +718,8 @@ private theorem qls_oracle_column {D : ℕ} (eig : Fin D → ℝ)
     · simp [Qatlib.Foundations.PureStateMath.Ket, hk]
   rw [hd, Matrix.mulVec_smul]
 
+/-- Tensoring an oracle eigenvector with a three-level flag state preserves its oracle
+eigenvalue. -/
 private theorem qls_oracleLift_eigen {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D) (g : QState (Fin 3)) :
     (TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) (continuousHHLOracle eig V)) *ᵥ
@@ -674,6 +732,8 @@ private theorem qls_oracleLift_eigen {D : ℕ} (eig : Fin D → ℝ) (V : Operat
     qls_oracle_column eig V hV i]
   exact qls_tensorState_smul_right g _ _
 
+/-- Forward sine-envelope phase estimation maps a clean phase register and an oracle eigenvector
+to the corresponding kernel state. -/
 private theorem qls_forward_image_eigen {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D)
     (g : QState (Fin 3)) :
@@ -707,6 +767,8 @@ private theorem qls_forward_image_eigen {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig 
           from rfl, ← run_eq_evaluate]
         exact hmain
 
+/-- The ideal filtered state expands in the columns of `V`, weighted by the prepared input's
+spectral coordinates. -/
 private theorem qls_ideal_state_expansion {D : ℕ} (eig : Fin D → ℝ) (V B : Operator D)
     (ψ : QState (Fin D)) (d : ℝ) :
     (fun p : Fin 3 × Fin D =>
@@ -725,6 +787,8 @@ private theorem qls_ideal_state_expansion {D : ℕ} (eig : Fin D → ℝ) (V B :
   intro i _
   ring
 
+/-- The HHL word evaluates to preparation, forward phase estimation, flag rotation, and the
+adjoint forward operator in matrix composition order. -/
 private theorem qls_word_eval {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U : Operator D) (d : ℝ)
     (B : Operator D) :
     evaluate (sinEnvelopeOracleLift (D := D) (M := M) U) (sinEnvelopeHHLWord M hM d B) =
@@ -739,6 +803,8 @@ private theorem qls_word_eval {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U : Operator D
   simp only [evaluate, instructionMatrix, mul_one]
   noncomm_ring
 
+/-- Forward phase estimation of a prepared input expands as a sum of embedded kernel states in
+the eigenbasis. -/
 private theorem qls_forward_spectral {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D))
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -763,6 +829,8 @@ private theorem qls_forward_spectral {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D →
   exact congrArg ((Vᴴ *ᵥ (B *ᵥ ψ)) i • ·)
     (qls_forward_image_eigen M hM eig V hV i (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 3)))
 
+/-- Forward phase estimation of the ideal filtered state expands into kernel states tensored
+with the ideal spectral flag vectors. -/
 private theorem qls_forward_ideal {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -786,6 +854,7 @@ private theorem qls_forward_ideal {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
   exact congrArg ((Vᴴ *ᵥ (B *ᵥ ψ)) i • ·)
     (qls_forward_image_eigen M hM eig V hV i (sinEnvelopeHVector d (eig i)))
 
+/-- A block-diagonal matrix acts independently on each block of a state. -/
 private theorem qls_blockDiag_mulVec {C : Type} [Fintype C] [DecidableEq C] {n : ℕ}
     (W : C → Matrix (Fin n) (Fin n) ℂ) (v : QState (C × Fin n)) (c : C) (i : Fin n) :
     (BlockDiag W *ᵥ v) (c, i) = (W c *ᵥ (fun i' => v (c, i'))) i := by
@@ -804,6 +873,8 @@ private theorem qls_blockDiag_mulVec {C : Type} [Fintype C] [DecidableEq C] {n :
   · intro h
     exact absurd (Finset.mem_univ c) h
 
+/-- The flag gate replaces the zero flag by the filter vector at each decoded label, weighted by
+the phase kernel. -/
 private theorem qls_flagGate_kernel_apply {D : ℕ} (M : ℕ) (d : ℝ) (hd : 0 < d)
     (θ : ℝ) (w : QState (Fin D)) :
     sinEnvelopeFlagGate (D := D) (M := M) d *ᵥ
@@ -831,6 +902,7 @@ private theorem qls_flagGate_kernel_apply {D : ℕ} (M : ℕ) (d : ℝ) (hd : 0 
     (sin_envelope_flag_rotation_unitary_and_column d (sinEnvelopeDecode M z) hd).2]
   simp [TensorState, Pi.smul_apply, smul_eq_mul, mul_assoc]
 
+/-- The lifted flag gate applies the decoded filter vector inside the phase-flag embedding. -/
 private theorem qls_liftFlag_kernel_apply {D : ℕ} (M : ℕ) (d : ℝ) (hd : 0 < d)
     (θ : ℝ) (w : QState (Fin D)) :
     sinEnvelopeLiftGate (sinEnvelopeFlagGate (D := D) (M := M) d) *ᵥ
@@ -842,6 +914,8 @@ private theorem qls_liftFlag_kernel_apply {D : ℕ} (M : ℕ) (d : ℝ) (hd : 0 
             TensorState (sinEnvelopeHVector d (sinEnvelopeDecode M p.1)) w p.2) := by
   rw [qls_liftGate_apply, qls_flagGate_kernel_apply M d hd θ w]
 
+/-- The flagged forward output is a spectral sum of kernel amplitudes and decoded filter
+vectors. -/
 private theorem qls_flag_image {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ) (hd : 0 < d)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -863,6 +937,8 @@ private theorem qls_flag_image {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
   exact congrArg ((Vᴴ *ᵥ (B *ᵥ ψ)) i • ·)
     (qls_liftFlag_kernel_apply M d hd (eig i) (V *ᵥ Qatlib.Foundations.PureStateMath.Ket i))
 
+/-- The spectral filter-error state vanishes on Boolean flag true and has the stated coordinate
+sum on flag false. -/
 private theorem qls_diff_apply {D M : ℕ} (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ)
     (p : Fin M × (Bool × (Fin 3 × Fin D))) :
@@ -886,9 +962,13 @@ private theorem qls_diff_apply {D M : ℕ} (eig : Fin D → ℝ)
   intro i _
   ring
 
+/-- The squared complex norm of the difference of two real numbers equals their squared real
+difference. -/
 private theorem qls_norm_coe_sub_sq (x y : ℝ) : ‖(x : ℂ) - (y : ℂ)‖ ^ 2 = (x - y) ^ 2 := by
   rw [← Complex.ofReal_sub, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- The flag-weighted squared norm of the embedded spectral error reduces to sums over phase,
+flag, and data coordinates. -/
 private theorem qls_diff_weighted_reduce {D M : ℕ} (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ) (w : Fin 3 → ℝ) :
     (∑ p : Fin M × (Bool × (Fin 3 × Fin D)),
@@ -950,6 +1030,8 @@ private theorem qls_diff_weighted_reduce {D M : ℕ} (eig : Fin D → ℝ)
   rw [qls_diff_apply]
   simp
 
+/-- Unitarity of `V` turns the flag-weighted spectral error sum into squared spectral
+coefficients times kernel-weighted filter errors. -/
 private theorem qls_diff_weighted_parseval {D M : ℕ} (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ) (w : Fin 3 → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -1062,6 +1144,8 @@ private theorem qls_diff_weighted_parseval {D M : ℕ} (eig : Fin D → ℝ)
     rw [Finset.sum_congr rfl (fun z _ => hpt z), ← Finset.mul_sum]
   rw [hstep3]
 
+/-- The squared norm of the embedded spectral error equals the sum of kernel-weighted
+flag-vector errors weighted by squared spectral coefficients. -/
 private theorem qls_diff_parseval {D M : ℕ} (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -1104,6 +1188,8 @@ private theorem qls_diff_parseval {D M : ℕ} (eig : Fin D → ℝ)
   intro i _
   simp only [one_mul]
 
+/-- Restricting the spectral error to the joint flag event retains exactly the squared errors of
+the two filters. -/
 private theorem qls_diff_parseval_joint {D M : ℕ} (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -1195,17 +1281,20 @@ private theorem qls_diff_parseval_joint {D M : ℕ} (eig : Fin D → ℝ)
     rw [hs3 z]
   rw [hz]
 
+/-- A workspace matrix is block diagonal in the three-level flag coordinate. -/
 private def qls_flag_diag {D M : ℕ}
     (G : Matrix (Fin M × (Bool × (Fin 3 × Fin D))) (Fin M × (Bool × (Fin 3 × Fin D))) ℂ) :
     Prop :=
   ∀ p p' : Fin M × (Bool × (Fin 3 × Fin D)), p.2.2.1 ≠ p'.2.2.1 → G p p' = 0
 
+/-- The identity matrix is block diagonal in the three-level flag coordinate. -/
 private theorem qls_flag_diag_one {D M : ℕ} :
     qls_flag_diag (1 : Matrix (Fin M × (Bool × (Fin 3 × Fin D)))
       (Fin M × (Bool × (Fin 3 × Fin D))) ℂ) := by
   intro p p' h
   exact Matrix.one_apply_ne (fun he => h (by rw [he]))
 
+/-- Products preserve block diagonality in the three-level flag coordinate. -/
 private theorem qls_flag_diag_mul {D M : ℕ}
     {G G' : Matrix (Fin M × (Bool × (Fin 3 × Fin D))) (Fin M × (Bool × (Fin 3 × Fin D))) ℂ}
     (hG : qls_flag_diag G) (hG' : qls_flag_diag G') : qls_flag_diag (G * G') := by
@@ -1217,12 +1306,15 @@ private theorem qls_flag_diag_mul {D M : ℕ}
   · rw [hG' p'' p' (fun hh => h (h1.trans hh)), mul_zero]
   · rw [hG p p'' h1, zero_mul]
 
+/-- Taking the adjoint preserves block diagonality in the three-level flag coordinate. -/
 private theorem qls_flag_diag_adjoint {D M : ℕ}
     {G : Matrix (Fin M × (Bool × (Fin 3 × Fin D))) (Fin M × (Bool × (Fin 3 × Fin D))) ℂ}
     (hG : qls_flag_diag G) : qls_flag_diag Gᴴ := by
   intro p p' h
   simp [Matrix.conjTranspose_apply, hG p' p h.symm]
 
+/-- A phase-register matrix tensored with the identity preserves the three-level flag
+coordinate. -/
 private theorem qls_flag_diag_tensor_one {D M : ℕ} (T : Matrix (Fin M) (Fin M) ℂ) :
     qls_flag_diag (TensorGate T
       (1 : Matrix (Bool × (Fin 3 × Fin D)) (Bool × (Fin 3 × Fin D)) ℂ)) := by
@@ -1232,6 +1324,7 @@ private theorem qls_flag_diag_tensor_one {D M : ℕ} (T : Matrix (Fin M) (Fin M)
   rw [tensorGate_apply,
     Matrix.one_apply_ne (fun he => h (Prod.ext_iff.mp (Prod.ext_iff.mp he).2 |>.1)), mul_zero]
 
+/-- The controlled phase-threshold permutation preserves the three-level flag coordinate. -/
 private theorem qls_flag_diag_perm {D M : ℕ} (k : ℕ) :
     qls_flag_diag (D := D) (M := M)
       (permMatrix (phaseThresholdFlip (I := Fin 3 × Fin D) M k)) := by
@@ -1243,6 +1336,7 @@ private theorem qls_flag_diag_perm {D M : ℕ} (k : ℕ) :
     rfl
   simp [permMatrix, hne]
 
+/-- The lifted oracle preserves the three-level flag coordinate. -/
 private theorem qls_flag_diag_oracleLift {D M : ℕ} (U : Operator D) :
     qls_flag_diag (D := D) (M := M) (sinEnvelopeOracleLift U) := by
   intro p p' h
@@ -1267,6 +1361,7 @@ private theorem qls_flag_diag_oracleLift {D M : ℕ} (U : Operator D) :
       rw [hif, tensorGate_apply, Matrix.one_apply_ne h, zero_mul]
   · rw [if_neg hb]
 
+/-- Every instruction in the phase-threshold loop preserves the three-level flag coordinate. -/
 private theorem qls_flag_diag_loop_step {D : ℕ} (M n : ℕ) (U : Operator D) :
     ∀ s ∈ phaseThresholdLoop (I := Fin 3 × Fin D) M n,
       qls_flag_diag (instructionMatrix (sinEnvelopeOracleLift (D := D) (M := M) U)
@@ -1285,6 +1380,8 @@ private theorem qls_flag_diag_loop_step {D : ℕ} (M n : ℕ) (U : Operator D) :
       · exact qls_flag_diag_oracleLift U
       · exact qls_flag_diag_perm n
 
+/-- Every instruction in the forward sine-envelope word preserves the three-level flag
+coordinate. -/
 private theorem qls_flag_diag_forwardWord {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U : Operator D) :
     ∀ c ∈ sinEnvelopeForwardWord (I := Fin 3 × Fin D) M hM,
       qls_flag_diag (instructionMatrix (sinEnvelopeOracleLift (D := D) (M := M) U) c) := by
@@ -1297,6 +1394,8 @@ private theorem qls_flag_diag_forwardWord {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U 
   · exact qls_flag_diag_loop_step M _ U s hs
   · exact qls_flag_diag_tensor_one _
 
+/-- Evaluating a word whose instruction matrices preserve the three-level flag coordinate also
+preserves that coordinate. -/
 private theorem qls_flag_diag_evaluate {D M : ℕ}
     (O : Matrix (Fin M × (Bool × (Fin 3 × Fin D))) (Fin M × (Bool × (Fin 3 × Fin D))) ℂ)
     (l : List (AdjointStep (Fin M × (Bool × (Fin 3 × Fin D))))) :
@@ -1309,6 +1408,8 @@ private theorem qls_flag_diag_evaluate {D M : ℕ}
     exact qls_flag_diag_mul (hl c List.mem_cons_self)
       (ih (fun c' hc' => hl c' (List.mem_cons_of_mem _ hc')))
 
+/-- A unitary that is block diagonal in the three-level flag coordinate preserves the
+probability of the joint flag event. -/
 private theorem qls_measureProb_flag_diag_joint {D M : ℕ}
     {G : Matrix (Fin M × (Bool × (Fin 3 × Fin D))) (Fin M × (Bool × (Fin 3 × Fin D))) ℂ}
     (hG : qls_flag_diag G) (hGu : G ∈ Matrix.unitaryGroup _ ℂ)
@@ -1354,15 +1455,20 @@ private theorem qls_measureProb_flag_diag_joint {D M : ℕ}
   simp only [← Complex.normSq_eq_norm_sq]
   exact sum_normSq_mulVec_of_mem_unitaryGroup hGu _
 
+/-- The total mass of a state collapsed to an event equals the original mass of that event. -/
 private theorem qls_measureProb_collapse_univ {I : Type} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) : MeasureProb (Collapse ψ S) Finset.univ = MeasureProb ψ S := by
   simpa only [MeasureProb, BornProb] using! sum_normSq_collapse ψ S
 
+/-- Postmeasurement on an event equals postmeasurement on the whole space after collapsing to
+that event. -/
 private theorem qls_postMeasure_collapse_univ {I : Type} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) : PostMeasure (Collapse ψ S) Finset.univ = PostMeasure ψ S := by
   funext i
   simp [PostMeasure, qls_measureProb_collapse_univ ψ S, collapse_apply]
 
+/-- Normalizing a postmeasurement state again leaves it unchanged when the event has positive
+probability. -/
 private theorem qls_conditional_postMeasure {I : Type} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) (h : 0 < MeasureProb ψ S) :
     sinEnvelopeConditionalOutput (PostMeasure ψ S) = PostMeasure ψ S := by
@@ -1384,6 +1490,8 @@ private theorem qls_conditional_postMeasure {I : Type} [Fintype I] [DecidableEq 
   rw [hsum]
   simp
 
+/-- An error below the ideal event amplitude implies positive actual event mass and bounds the
+postmeasurement error by twice the relative amplitude error. -/
 private theorem qls_postMeasure_joint_gap {I : Type} [Fintype I] [DecidableEq I]
     (out ideal : QState I) (S : Finset I) {ε : ℝ}
     (hclose : ‖toEuclidean_fromVec (Collapse out S - Collapse ideal S)‖ ≤ ε)
@@ -1406,12 +1514,14 @@ private theorem qls_postMeasure_joint_gap {I : Type} [Fintype I] [DecidableEq I]
     rw [hmass] at h
     exact h.2
 
+/-- Collapsing to a fixed event commutes with subtraction. -/
 private theorem qls_collapse_sub {I : Type} [Fintype I] [DecidableEq I] (φ ψ : QState I)
     (S : Finset I) : Collapse φ S - Collapse ψ S = Collapse (φ - ψ) S := by
   funext i
   simp only [collapse_apply, Pi.sub_apply]
   split_ifs <;> simp
 
+/-- A computational basis ket has total squared amplitude one. -/
 private theorem qls_ket_norm_sq {I : Type} [Fintype I] [DecidableEq I] (j : I) :
     ∑ i : I, ‖(Qatlib.Foundations.PureStateMath.Ket j : QState I) i‖ ^ 2 = 1 := by
   rw [Finset.sum_eq_single j]
@@ -1420,6 +1530,8 @@ private theorem qls_ket_norm_sq {I : Type} [Fintype I] [DecidableEq I] (j : I) :
     simp [Qatlib.Foundations.PureStateMath.Ket, hij]
   · intro h; exact absurd (Finset.mem_univ j) h
 
+/-- For positive `d`, unitary preparation and eigenbasis matrices, and spectrum in `[0, 1/4]`,
+the ideal joint flag mass is at least `min (1/4) (16*d^2)`. -/
 private theorem qls_ideal_mass_lower {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (j : Fin D) (d : ℝ) (hd : 0 < d)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -1445,6 +1557,8 @@ private theorem qls_ideal_mass_lower {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : F
         Finset.sum_le_sum (fun i _ => hper i)
     _ = sinEnvelopeIdealMass M hM eig V B j d := hmass.symm
 
+/-- The actual-minus-ideal workspace state is the adjoint forward operator applied to the
+spectral decoded-filter error. -/
 private theorem qls_workspace_diff {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (ψ : QState (Fin D)) (d : ℝ) (hd : 0 < d)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -1518,6 +1632,9 @@ private theorem qls_workspace_diff {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
   rw [hflag, hE2, ← Finset.sum_sub_distrib]
   exact Finset.sum_congr rfl fun i _ => (smul_sub _ _ _).symm
 
+/-- There is a positive universal resolution constant yielding positive joint postselection mass
+and conditional error at most `ε`; the statement also packages workspace and relative
+flag-mass bounds under their resolution hypotheses. See [HarrowHassidimLloyd2009]. -/
 theorem clause58 :
     ∃ C : ℕ, 0 < C ∧
       ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
@@ -1806,10 +1923,12 @@ theorem clause58 :
         hbudget'
   exact key
 
+/-- Complex conjugation fixes every coordinate of a computational basis ket. -/
 private theorem qls_star_ket {I : Type} [Fintype I] [DecidableEq I] (j i : I) :
     (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Ket j i) = Qatlib.Foundations.PureStateMath.Ket j i := by
   by_cases h : i = j <;> simp [Qatlib.Foundations.PureStateMath.Ket, h]
 
+/-- Computational basis kets have Kronecker-delta inner products. -/
 private theorem qls_ket_prod {I : Type} [Fintype I] [DecidableEq I] (j j' : I) :
     (∑ i : I, (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Ket j i) * Qatlib.Foundations.PureStateMath.Ket j' i) = if j = j' then (1 : ℂ) else 0 := by
   rw [show (∑ i : I, (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Ket j i) * Qatlib.Foundations.PureStateMath.Ket j' i) = ∑ i : I, Qatlib.Foundations.PureStateMath.Ket j i * Qatlib.Foundations.PureStateMath.Ket j' i from
@@ -1828,6 +1947,7 @@ private theorem qls_ket_prod {I : Type} [Fintype I] [DecidableEq I] (j j' : I) :
       rw [ket_apply, if_pos rfl, ket_apply, if_neg h, mul_zero]
     · rw [ket_apply, if_neg hi, zero_mul]
 
+/-- A unitary matrix preserves the coordinate inner product of finite states. -/
 private theorem qls_inner_mulVec {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (x y : QState I) :
     (∑ i, (starRingEnd ℂ) ((U *ᵥ x) i) * (U *ᵥ y) i) =
@@ -1881,6 +2001,7 @@ private theorem qls_inner_mulVec {I : Type} [Fintype I] [DecidableEq I]
           · intro hh; exact absurd (Finset.mem_univ j) hh
         rw [hs, if_pos rfl, mul_one]
 
+/-- Every finite state is the sum of its coordinates times the computational basis kets. -/
 private theorem qls_ket_basis {D : ℕ} (ψ : QState (Fin D)) :
     ψ = ∑ j : Fin D, ψ j • Qatlib.Foundations.PureStateMath.Ket j := by
   funext k
@@ -1891,6 +2012,8 @@ private theorem qls_ket_basis {D : ℕ} (ψ : QState (Fin D)) :
     rw [ket_apply, if_neg (Ne.symm hj), mul_zero]
   · intro hh; exact absurd (Finset.mem_univ k) hh
 
+/-- A finite complex sum with two independent factors splits into the product of their sums and
+the remaining double sum. -/
 private theorem qls_four_factor_c {α β γ δ : Type} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
     (w : α → ℂ) (v : β → ℂ) (c : γ → ℂ) (g : γ → δ → ℂ) :
     (∑ a : α, ∑ b : β, ∑ s : γ, ∑ k : δ, w a * v b * (c s * g s k)) =
@@ -1947,6 +2070,8 @@ private theorem qls_four_factor_c {α β γ δ : Type} [Fintype α] [Fintype β]
   rw [step6]
   ring
 
+/-- Computational basis inputs with identical clean workspace registers have Kronecker-delta
+inner products. -/
 private theorem qls_clean_inner {D M : ℕ} (m0 : Fin M) (j j' : Fin D) :
     (∑ p : Fin M × (Bool × (Fin 3 × Fin D)),
         (starRingEnd ℂ)
@@ -2052,6 +2177,7 @@ private theorem qls_clean_inner {D M : ℕ} (m0 : Fin M) (j j' : Fin D) :
   rw [hz, hb, hsp]
   ring
 
+/-- The sum of the squares of the coordinates of a computational basis ket is one. -/
 private theorem qls_ket_self {I : Type} [Fintype I] [DecidableEq I] (j : I) :
     (∑ i : I, Qatlib.Foundations.PureStateMath.Ket j i * Qatlib.Foundations.PureStateMath.Ket j i) = 1 := by
   have h := qls_ket_prod j j
@@ -2060,23 +2186,29 @@ private theorem qls_ket_self {I : Type} [Fintype I] [DecidableEq I] (j : I) :
     Finset.sum_congr rfl fun i _ => by rw [qls_star_ket]]
   rw [h, if_pos rfl]
 
+/-- Scaling both arguments of a complex inner-product term multiplies it by the squared norm of
+the scalar. -/
 private theorem qls_star_mul_scale (h z w : ℂ) :
     (starRingEnd ℂ) (h * z) * (h * w) = ((‖h‖ ^ 2 : ℝ) : ℂ) * ((starRingEnd ℂ) z * w) := by
   have hh : (starRingEnd ℂ) h * h = ((‖h‖ ^ 2 : ℝ) : ℂ) := by
     rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
   rw [map_mul, mul_mul_mul_comm, hh]
 
+/-- Matrix multiplication commutes with a finite linear combination of states. -/
 private theorem qls_mulVec_sum_smul {H ι : Type} [Fintype H] [DecidableEq H] [Fintype ι]
     (A : Matrix H H ℂ) (β : ι → ℂ) (g : ι → QState H) :
     A *ᵥ (∑ i, β i • g i) = ∑ i, β i • (A *ᵥ g i) :=
   (qls_mulVec_sum A (fun i => β i • g i)).trans
     (Finset.sum_congr rfl fun i _ => Matrix.mulVec_smul _ _ _)
 
+/-- Matrix action on a state is the linear combination of its columns with the state's
+coordinates. -/
 private theorem qls_mulVec_basis {D : ℕ} (A : Operator D) (w : QState (Fin D)) :
     A *ᵥ w = ∑ j : Fin D, w j • (A *ᵥ Qatlib.Foundations.PureStateMath.Ket j) := by
   conv_lhs => rw [qls_ket_basis w]
   exact qls_mulVec_sum_smul A (fun j => w j) (fun j => Qatlib.Foundations.PureStateMath.Ket j)
 
+/-- A finite complex sum factors into two independent sums and a remaining double sum. -/
 private theorem qls_three_factor_c {α β γ δ : Type} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
     (w : α → ℂ) (v : β → ℂ) (g : γ → δ → ℂ) :
     (∑ a : α, ∑ b : β, ∑ s : γ, ∑ k : δ, w a * v b * g s k) =
@@ -2129,6 +2261,7 @@ private theorem qls_three_factor_c {α β γ δ : Type} [Fintype α] [Fintype β
   rw [step5]
   ring
 
+/-- The actual clean-input operator acts by the linear combination of basis-input HHL runs. -/
 private theorem qls_cleanOp_run_mulVec {D M : ℕ} (hM : 2 ≤ M) (U : Operator D) (d : ℝ)
     (B : Operator D) (v : QState (Fin D)) :
     sinEnvelopeActualCleanOp M hM U d B *ᵥ v =
@@ -2138,6 +2271,7 @@ private theorem qls_cleanOp_run_mulVec {D M : ℕ} (hM : 2 ≤ M) (U : Operator 
     Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
   exact Finset.sum_congr rfl fun j _ => mul_comm _ _
 
+/-- The ideal clean-input operator acts by the linear combination of ideal basis-input states. -/
 private theorem qls_cleanOp_ideal_mulVec {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (d : ℝ) (v : QState (Fin D)) :
     sinEnvelopeIdealCleanOp M hM eig V d B *ᵥ v =
@@ -2147,6 +2281,8 @@ private theorem qls_cleanOp_ideal_mulVec {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D
     Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
   exact Finset.sum_congr rfl fun j _ => mul_comm _ _
 
+/-- The difference of clean-input operators acts as the difference of the corresponding linear
+combinations of output states. -/
 private theorem qls_cleanOp_diff_mulVec {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (d : ℝ) (v : QState (Fin D)) :
     (sinEnvelopeActualCleanOp M hM (continuousHHLOracle eig V) d B -
@@ -2155,6 +2291,8 @@ private theorem qls_cleanOp_diff_mulVec {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D 
         (∑ j : Fin D, v j • sinEnvelopeHHLIdeal M hM eig V d B j) := by
   rw [Matrix.sub_mulVec, qls_cleanOp_run_mulVec, qls_cleanOp_ideal_mulVec]
 
+/-- Embedding a state with clean workspace registers commutes with its computational-basis
+expansion. -/
 private theorem qls_clean_tensor_sum {D M : ℕ} (hM : 2 ≤ M) (v : QState (Fin D)) :
     TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0, by omega⟩ : Fin M))
         (TensorState (Qatlib.Foundations.PureStateMath.Ket false) (TensorState (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 3)) v)) =
@@ -2170,6 +2308,8 @@ private theorem qls_clean_tensor_sum {D M : ℕ} (hM : 2 ≤ M) (v : QState (Fin
     rw [h2, qls_tensorState_sum_smul_right]
   rw [hinner, qls_tensorState_sum_smul_right]
 
+/-- A linear combination of basis-input runs equals evaluation of the HHL word on the same input
+with clean workspace. -/
 private theorem qls_run_sum {D M : ℕ} (hM : 2 ≤ M) (U : Operator D) (d : ℝ) (B : Operator D)
     (v : QState (Fin D)) :
     (∑ j : Fin D, v j • sinEnvelopeHHLRun M hM U d B j) =
@@ -2179,6 +2319,7 @@ private theorem qls_run_sum {D M : ℕ} (hM : 2 ≤ M) (U : Operator D) (d : ℝ
   rw [qls_clean_tensor_sum hM, qls_mulVec_sum]
   exact Finset.sum_congr rfl fun j _ => (Matrix.mulVec_smul _ _ _).symm
 
+/-- The spectral ideal filter acts linearly on the computational-basis expansion of the input. -/
 private theorem qls_ideal_pointwise {D : ℕ} (eig : Fin D → ℝ) (V B : Operator D) (d : ℝ)
     (s : Fin 3) (v : QState (Fin D)) (k : Fin D) :
     (∑ j : Fin D, v j *
@@ -2192,6 +2333,8 @@ private theorem qls_ideal_pointwise {D : ℕ} (eig : Fin D → ℝ) (V B : Opera
   rw [hAB B v, h, Finset.sum_apply]
   exact Finset.sum_congr rfl fun j _ => by simp [Pi.smul_apply, smul_eq_mul]
 
+/-- A linear combination of ideal basis-input outputs equals the spectral filtered input
+tensored with clean phase and Boolean registers. -/
 private theorem qls_ideal_sum {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
     (d : ℝ) (v : QState (Fin D)) :
     (∑ j : Fin D, v j • sinEnvelopeHHLIdeal M hM eig V d B j) =
@@ -2226,6 +2369,8 @@ private theorem qls_ideal_sum {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ) (
     rw [← qls_tensorState_sum_smul_right]
   rw [h1, h2, hcore]
 
+/-- The ideal filtered data-and-flag outputs for computational basis inputs have Kronecker-delta
+inner products. -/
 private theorem qls_ideal_sk_inner {D : ℕ} (eig : Fin D → ℝ) (V B : Operator D) (d : ℝ)
     (hd : 0 < d) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (j j' : Fin D) :
@@ -2274,6 +2419,7 @@ private theorem qls_ideal_sk_inner {D : ℕ} (eig : Fin D → ℝ) (V B : Operat
   rw [Finset.sum_congr rfl (fun i _ => hi i)]
   rw [qls_inner_mulVec (mem_unitaryGroup_adjoint hV), qls_inner_mulVec hB, qls_ket_prod]
 
+/-- A unitary matrix preserves the sum of squared coordinate norms. -/
 private theorem qls_norm_mulVec_unitary {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (w : QState I) :
     (∑ p : I, ‖(U *ᵥ w) p‖ ^ 2) = ∑ p : I, ‖w p‖ ^ 2 := by
@@ -2281,6 +2427,8 @@ private theorem qls_norm_mulVec_unitary {I : Type} [Fintype I] [DecidableEq I]
   simp only [Complex.normSq_eq_norm_sq] at h
   exact h
 
+/-- The actual clean-input operator has orthonormal columns for positive `d` and unitary `V` and
+`B`. -/
 private theorem qls_actual_column_inner {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (d : ℝ) (hd : 0 < d) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (j j' : Fin D) :
@@ -2302,6 +2450,8 @@ private theorem qls_actual_column_inner {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D 
   rw [qls_inner_mulVec hword]
   exact qls_clean_inner (⟨0, by omega⟩ : Fin M) j j'
 
+/-- The ideal clean-input operator has orthonormal columns for positive `d` and unitary `V` and
+`B`. -/
 private theorem qls_ideal_column_inner {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (d : ℝ) (hd : 0 < d) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (j j' : Fin D) :
@@ -2368,6 +2518,8 @@ private theorem qls_ideal_column_inner {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D �
   rw [hfac, qls_ket_self, qls_ket_self, one_mul, one_mul,
     qls_ideal_sk_inner eig V B d hd hV hB j j']
 
+/-- The actual clean-input operator satisfies `Aᴴ * A = 1` under the stated positivity and
+unitarity hypotheses. -/
 private theorem qls_actual_isometry {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (d : ℝ) (hd : 0 < d) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -2380,6 +2532,8 @@ private theorem qls_actual_isometry {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → 
     = if j = j' then (1 : ℂ) else 0
   exact qls_actual_column_inner hM eig V B d hd hV hB j j'
 
+/-- The ideal clean-input operator satisfies `Aᴴ * A = 1` under the stated positivity and
+unitarity hypotheses. -/
 private theorem qls_ideal_isometry {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (d : ℝ) (hd : 0 < d) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -2391,6 +2545,8 @@ private theorem qls_ideal_isometry {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
     = if j = j' then (1 : ℂ) else 0
   exact qls_ideal_column_inner hM eig V B d hd hV hB j j'
 
+/-- For positive `d`, unitary `V` and `B`, and spectrum in `[0, 1/4]`, the difference of actual
+and ideal clean-input operators has Euclidean norm bound `21/(d*M)`. -/
 private theorem qls_cleanOp_bound {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
     (d : ℝ) (hd : 0 < d) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -2454,6 +2610,9 @@ private theorem qls_cleanOp_bound {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
   rw [Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq hη.le] at hs
   exact hs
 
+/-- The actual and ideal clean-input operators are isometries with error bound `21/(d*M)` under
+the stated resolution condition; the statement also includes the workspace estimate and the
+restricted grid specification. See [HarrowHassidimLloyd2009]. -/
 theorem clause59 :
     (∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (d : ℝ),
         V ∈ Matrix.unitaryGroup (Fin D) ℂ → B ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -2495,11 +2654,14 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib
 open Qatlib
 open Qatlib
+/-- A coarse synthesis consisting of a Pauli X gate on the first wire beyond the encoded data,
+in both directions. -/
 noncomputable def coarseSparseSynthesis (S : SparseAccessSystem) (hw : qlsBitWidth S.dim < S.wireCount) :
     SparseHamiltonianSynthesis S :=
   ⟨[.local [.inl (⟨qlsBitWidth S.dim,hw⟩,PauliX)]],
     [.local [.inl (⟨qlsBitWidth S.dim,hw⟩,PauliX)]]⟩
 
+/-- The forward coarse synthesis evaluates to Pauli X on the first wire beyond the encoded data. -/
 theorem coarseSparseSynthesis_matrix (S : SparseAccessSystem)
     (hw : qlsBitWidth S.dim < S.wireCount) :
     (coarseSparseSynthesis S hw).matrix S (coarseSparseSynthesis S hw).forward =
@@ -2507,6 +2669,7 @@ theorem coarseSparseSynthesis_matrix (S : SparseAccessSystem)
   simp [coarseSparseSynthesis,SparseHamiltonianSynthesis.matrix,sparsePipelineMatrix,
     sparseStepMatrix,reflectionProgramMatrix,reflectionGateMatrix]
 
+/-- Compressing the coarse synthesis to the encoded data subspace gives the zero matrix. -/
 theorem coarseSparseSynthesis_zero_corner (S : SparseAccessSystem)
     (hw : qlsBitWidth S.dim < S.wireCount) :
     qlsCompressMatrix (qlsDataEmbed S.dim S.wireCount)
@@ -2516,6 +2679,8 @@ theorem coarseSparseSynthesis_zero_corner (S : SparseAccessSystem)
   simp only [qlsCompressMatrix,Matrix.of_apply,wireGate_apply]
   simp [qlsDataEmbed,PauliX,permMatrix]
 
+/-- The coarse synthesis satisfies `ImplementsAt` at precision index zero for any supplied
+unitary eigenbasis. -/
 theorem coarseSparseSynthesis_implements (S : SparseAccessSystem)
     (hw : qlsBitWidth S.dim < S.wireCount) (eig : Fin S.dim → ℝ) (V : Operator S.dim)
     (hV : V ∈ Matrix.unitaryGroup _ ℂ) :
@@ -2530,6 +2695,7 @@ theorem coarseSparseSynthesis_implements (S : SparseAccessSystem)
   exact ⟨l2_norm_unitary_le_one (continuous_hhl_oracle_unitary eig V hV),
     l2_norm_unitary_le_one (continuous_hhl_oracle_unitary eig V hV)⟩
 
+/-- Every fixed synthesis satisfies `BudgetBounded` with constants chosen for that instance. -/
 theorem instance_dependent_sparse_budget (S : SparseAccessSystem) (Y : SparseHamiltonianSynthesis S)
     (s k : ℕ) : SparseHamiltonianSynthesis.BudgetBounded S Y s k := by
   let f := sparsePipelineLedger S.data Y.forward
@@ -2542,6 +2708,8 @@ theorem instance_dependent_sparse_budget (S : SparseAccessSystem) (Y : SparseHam
   all_goals dsimp only [c,f,b] at hc ⊢
   all_goals omega
 
+/-- A Hermitian sparse-data matrix has a real spectrum and a unitary diagonalization expressed
+by `continuousHHLMatrix`. -/
 theorem sparse_spectral_certificate (S : SparseAccessSystem) (hS : S.data.matrix.IsHermitian) :
     ∃ (eig : Fin S.dim → ℝ) (V : Operator S.dim),
       V ∈ Matrix.unitaryGroup _ ℂ ∧ continuousHHLMatrix eig V = S.data.matrix := by
@@ -2549,6 +2717,7 @@ theorem sparse_spectral_certificate (S : SparseAccessSystem) (hS : S.data.matrix
   · exact hS.eigenvectorUnitary.property
   · exact hS.spectral_theorem.symm
 
+/-- A well-formed adjoint circuit evaluated at a contraction is a contraction. -/
 theorem evaluate_contraction {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : ‖U‖ ≤ 1) (cs : List (AdjointStep I))
     (hcs : WellFormedAdjointCircuit cs) : ‖evaluate U cs‖ ≤ 1 := by
@@ -2565,6 +2734,7 @@ theorem evaluate_contraction {I : Type} [Fintype I] [DecidableEq I]
     exact (Matrix.l2_opNorm_mul _ _).trans
       ((mul_le_mul hc hi (norm_nonneg _) zero_le_one).trans_eq (one_mul 1))
 
+/-- The controlled zero oracle has operator norm at most one. -/
 theorem zero_control_contraction {I : Type} [Fintype I] [DecidableEq I] :
     ‖controlOracle (0 : Matrix I I ℂ)‖ ≤ 1 := by
   have he : (controlOracle (0 : Matrix I I ℂ))ᴴ * controlOracle 0 = controlOracle 0 := by
@@ -2573,6 +2743,7 @@ theorem zero_control_contraction {I : Type} [Fintype I] [DecidableEq I] :
   rw [Matrix.star_eq_conjTranspose,he] at hn
   nlinarith [norm_nonneg (controlOracle (0 : Matrix I I ℂ))]
 
+/-- The sine-envelope lift of the zero oracle has operator norm at most one. -/
 theorem zero_sin_oracle_contraction (D M : ℕ) :
     ‖sinEnvelopeOracleLift (D := D) (M := M) 0‖ ≤ 1 := by
   simp only [sinEnvelopeOracleLift,TensorGate,Matrix.kronecker_zero]
@@ -2580,6 +2751,8 @@ theorem zero_sin_oracle_contraction (D M : ℕ) :
   exact (mul_le_mul l2_norm_one_le zero_control_contraction (norm_nonneg _) zero_le_one).trans_eq
     (one_mul 1)
 
+/-- The sine-envelope run using the zero oracle has Euclidean norm at most one for unitary input
+preparation. -/
 theorem coarse_sin_run_norm (D M : ℕ) (hM : 2 ≤ M) (B : Operator D) (j : Fin D)
     (d : ℝ) (hd : 0 < d) (hB : B ∈ Matrix.unitaryGroup _ ℂ) :
     ‖toEuclidean_fromVec (qlsSynthAccessRun M hM 0 d B j)‖ ≤ 1 := by
@@ -2596,6 +2769,8 @@ theorem coarse_sin_run_norm (D M : ℕ) (hM : 2 ≤ M) (B : Operator D) (j : Fin
   simp only [tensorState_l2_norm,hk,mul_one] at hi
   exact hi.trans hn
 
+/-- The zero-oracle run satisfies the stated coarse transport bound, combining `η` with the
+precision-zero synthesis factor. -/
 theorem coarse_sin_transport (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (j : Fin D) (d η : ℝ)
     (hV : V ∈ Matrix.unitaryGroup _ ℂ) (hB : B ∈ Matrix.unitaryGroup _ ℂ)
@@ -2632,6 +2807,8 @@ theorem coarse_sin_transport (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ)
     hc.trans (le_mul_of_one_le_right (by linarith only [hc]) hp)
   linarith only [ht,hn,hr,hprod,hη]
 
+/-- Every legal sparse access system has spectral and synthesis certificates with the stated
+transport bound; a separate uniform-HHL estimate controls perturbations of a unitary oracle. -/
 theorem clause54 : (
 ∀ (S : SparseAccessSystem) (s : ℕ), S.Legal s →
     ∃ (eig : Fin S.dim → ℝ) (V : Operator S.dim)
@@ -2674,10 +2851,13 @@ theorem clause54 : (
     exact coarse_sin_transport S.dim M hM eig V B j d η hV hB hd hη hη1 heig hb
   · exact uniform_offgrid_hhl_actual_unitary_access_noise
 
+/-- The signed extension uses an odd success filter and an even secondary filter obtained from
+the positive-phase filters. -/
 noncomputable def canonicalSignedFilter : SignedSinEnvelopeFilter where
   filterF d θ := (if θ < 0 then -1 else 1) * sinEnvelopeFilterF d |θ|
   filterG d θ := sinEnvelopeFilterG d |θ|
 
+/-- The canonical signed filter satisfies `SignedSinEnvelopeFilter.Consistent`. -/
 theorem canonicalSignedFilter_consistent : canonicalSignedFilter.Consistent := by
   have hz (d : ℝ) (hd : 0 < d) : sinEnvelopeFilterF d 0 = 0 ∧ sinEnvelopeFilterG d 0 = 1/2 := by
     simp [sinEnvelopeFilterF,sinEnvelopeFilterG,show ¬ 2*d ≤ 0 by linarith,not_le_of_gt hd]
@@ -2704,9 +2884,12 @@ theorem canonicalSignedFilter_consistent : canonicalSignedFilter.Consistent := b
 open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- The diagonal three-level gate flips the success coordinate's sign exactly when the phase is
+negative. -/
 noncomputable def signedWellPhase (θ : ℝ) : Matrix (Fin 3) (Fin 3) ℂ :=
   Matrix.diagonal (fun i => if i=1 ∧ θ<0 then -1 else 1)
 
+/-- The signed success-coordinate phase gate is unitary. -/
 theorem signedWellPhase_unitary (θ : ℝ) : signedWellPhase θ ∈ Matrix.unitaryGroup _ ℂ := by
   rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose]
   simp only [signedWellPhase,Matrix.diagonal_conjTranspose,Matrix.diagonal_mul_diagonal]
@@ -2715,10 +2898,14 @@ theorem signedWellPhase_unitary (θ : ℝ) : signedWellPhase θ ∈ Matrix.unita
   funext i
   by_cases hi : i=1 ∧ θ<0 <;> simp [hi]
 
+/-- The canonical signed program combines the signed filters with the positive-phase rotation
+followed by a success-coordinate sign correction. -/
 noncomputable def canonicalSignedProgram : SignedSinEnvelopeProgram where
   filter := canonicalSignedFilter
   rotation d θ := signedWellPhase θ * sinEnvelopeFlagRotation d |θ|
 
+/-- For positive `d`, the canonical signed rotation is unitary and maps the zero flag ket to its
+filter vector. -/
 theorem canonicalSignedProgram_rotation (d θ : ℝ) (hd : 0<d) :
     canonicalSignedProgram.rotation d θ ∈ Matrix.unitaryGroup _ ℂ ∧
     canonicalSignedProgram.rotation d θ *ᵥ Qatlib.Foundations.PureStateMath.Ket (0:Fin 3) = canonicalSignedProgram.filter.hVector d θ := by
@@ -2740,6 +2927,7 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
+/-- The canonical signed word is well formed, with `2*(M-1)` queries and `4*(M-1)+6` gates. -/
 theorem canonicalSignedProgram_word_laws (D M : ℕ) (hM : 2 ≤ M) (d : ℝ)
     (B : Operator D) (hd : 0<d) (hB : B ∈ Matrix.unitaryGroup _ ℂ) :
     WellFormedAdjointCircuit (canonicalSignedProgram.word M hM d B) ∧
@@ -2768,6 +2956,8 @@ theorem canonicalSignedProgram_word_laws (D M : ℕ) (hM : 2 ≤ M) (d : ℝ)
       adjointGateCount_adjointCircuit,adjointGateCount,h]
     omega
 
+/-- For the scalar phase `1/4` and threshold `1/8`, every consistent signed filter has well
+target equal to one half of the success ket. -/
 theorem signed_well_target_half (P : SignedSinEnvelopeProgram) (hc : P.filter.Consistent)
     (M : ℕ) (hM : 2 ≤ M) :
     P.wellTarget M hM (fun _ : Fin 1 => (1/4:ℝ)) 1 (1/8) 1 0 =
@@ -2782,6 +2972,8 @@ theorem signed_well_target_half (P : SignedSinEnvelopeProgram) (hc : P.filter.Co
     simp [SignedSinEnvelopeProgram.wellTarget,qlsWellBranch,SignedSinEnvelopeProgram.ideal,
       TensorState,Qatlib.Foundations.PureStateMath.Ket,Matrix.mulVec,dotProduct,SignedSinEnvelopeFilter.hVector,hf]
 
+/-- For the scalar phase `1/4` and threshold `1/8`, the well target of a consistent signed
+filter has Euclidean norm `1/2`. -/
 theorem signed_well_target_norm (P : SignedSinEnvelopeProgram) (hc : P.filter.Consistent)
     (M : ℕ) (hM : 2 ≤ M) :
     ‖toEuclidean_fromVec (P.wellTarget M hM (fun _ : Fin 1 => (1/4:ℝ)) 1 (1/8) 1 0)‖ = 1/2 := by
@@ -2793,6 +2985,8 @@ theorem signed_well_target_norm (P : SignedSinEnvelopeProgram) (hc : P.filter.Co
   rw [norm_smul,hk]
   norm_num
 
+/-- The least-squares overlap is one for the one-dimensional matrix with eigenvalue `1/4` and
+the unit basis input. -/
 theorem quarter_scalar_overlap : leastSquaresOverlap
     (continuousHHLMatrix (fun _ : Fin 1 => (1/4:ℝ)) 1)
     ((1 : Operator 1) *ᵥ Qatlib.Foundations.PureStateMath.Ket 0) = 1 := by
@@ -2815,6 +3009,8 @@ theorem quarter_scalar_overlap : leastSquaresOverlap
   rw [hr,Matrix.one_mulVec,Matrix.one_mulVec]
   exact (normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket (0:Fin 1))
 
+/-- No signed sine-envelope program and constant satisfy the full stated conjunction of filter,
+circuit, approximation, and postselection guarantees. -/
 theorem not_clause60 : ¬ (
 ∃ (P : SignedSinEnvelopeProgram) (C : ℕ),
 

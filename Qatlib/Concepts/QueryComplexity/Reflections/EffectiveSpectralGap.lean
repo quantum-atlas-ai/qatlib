@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapContracts
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Zero-witness counterexample to an effective-gap contract
+
+Proves `effectiveSpectralGap_contract_false` using empty row and ordinary-column spaces, leaving
+a single isolated root vertex. The uncorrected contract permits the zero witness, so its overlap
+premise holds while the asserted zero-energy root-mass bound fails.
+
+This example explains the nonzero-witness condition in the corrected effective-gap formulation
+related to [Reichardt2011].
+
+## Main statements
+
+* `effectiveSpectralGap_contract_false`: the contract without a nonzero-witness premise is
+  false.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -15,6 +36,8 @@ namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 open scoped BigOperators
 
+/-- The uncorrected proposition `EffectiveSpectralGap` is false because it allows a zero
+witness. -/
 theorem effectiveSpectralGap_contract_false : ¬ EffectiveSpectralGap := by
   classical
   intro h

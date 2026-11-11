@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyStat
 import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Self-tomography with an inverse-cubic copy bound
+
+This module proves `epsilonCubedSelfTomography` by combining phase-label decoding, a spectral
+good-event projector, and fresh-copy QPE error bounds. For `0 < ε ≤ 1 / 2`, the chosen grid and
+repetition budgets give decoding error at most `ε`, good-event mass at least `8 / π² - ε`, and
+copy count at most `1000 / ε³`.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `label_decode`: the good-label decoding error bound.
+* `selfTomography_budget`: explicit grid, repetition, and copy budgets.
+* `epsilonCubedSelfTomography`: the complete self-tomography guarantee.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +47,7 @@ open Matrix
 open scoped ComplexOrder Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- For `M ≥ 2` and `0 ≤ r ≤ 1`, a good phase label decodes to within `2 / M` of `r`. -/
 private theorem label_decode (M : ℕ) (hM : 2 ≤ M) (r : ℝ)
     (hr0 : 0 ≤ r) (hr1 : r ≤ 1) (z : Fin M) (hz : z ∈ qpeGoodLabels M r) :
     |qpeLabelDecode M z-r| ≤ 2/(M:ℝ) := by
@@ -65,6 +88,8 @@ private theorem label_decode (M : ℕ) (hM : 2 ≤ M) (r : ℝ)
     · rw [min_eq_right hx]
       constructor <;> linarith
 
+/-- For `0 < ε ≤ 1 / 2`, the prescribed ceilings give a valid grid, positive repetition count,
+decoding and simulation errors at most `ε`, and copy count at most `1000 / ε³`. -/
 private theorem selfTomography_budget (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1/2) :
     let M : ℕ := Nat.ceil (2/ε)
     let n : ℕ := Nat.ceil (8*(M:ℝ)*Real.pi^2/ε)
@@ -117,18 +142,24 @@ private theorem selfTomography_budget (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1
       _ ≤ 1000/ε^3 := by gcongr; nlinarith
   exact ⟨hM,hprec,herr,hcost,hn⟩
 
+/-- Extends `V` to the phase-label and control registers by tensoring with their identity
+operators. -/
 private noncomputable def eigenBasis (D M : ℕ) (V : Operator D) :=
   TensorGate (1:Operator M) (TensorGate (1:Matrix Bool Bool ℂ) V)
+/-- The diagonal indicator matrix of good label-eigenvalue pairs on the false control branch. -/
 private noncomputable def goodDiagonal (D M : ℕ) (eig : Fin D → ℝ) :
     Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ :=
   Matrix.diagonal fun p => if p.2.1 then 0 else
     if p.1 ∈ qpeGoodLabels M (eig p.2.2) then 1 else 0
 
+/-- Extending a unitary eigenbasis by identity operators gives a unitary matrix on the full QPE
+register. -/
 private theorem basis_unitary (D M : ℕ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     eigenBasis D M V ∈ Matrix.unitaryGroup (Fin M × (Bool × Fin D)) ℂ :=
   tensorGate_unitary one_mem_unitaryGroup_ℂ (tensorGate_unitary one_mem_unitaryGroup_ℂ hV)
 
+/-- The self-tomography good-event matrix is the conjugate of `goodDiagonal` by `eigenBasis`. -/
 private theorem projector_basis (D M : ℕ) (V : Operator D) (eig : Fin D → ℝ) :
     qpeSelfTomographyGoodProjector D M V eig =
       eigenBasis D M V * goodDiagonal D M eig * (eigenBasis D M V)ᴴ := by
@@ -144,6 +175,7 @@ private theorem projector_basis (D M : ℕ) (V : Operator D) (eig : Fin D → �
   cases b <;> cases c <;> by_cases hp : p=q <;>
     simp [hp, ite_mul, apply_ite, RCLike.star_def]
 
+/-- For unitary `V`, the operator norm of the self-tomography good-event matrix is at most one. -/
 private theorem projector_norm (D M : ℕ) (V : Operator D) (eig : Fin D → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     ‖qpeSelfTomographyGoodProjector D M V eig‖ ≤ 1 := by
@@ -163,10 +195,14 @@ private theorem projector_norm (D M : ℕ) (V : Operator D) (eig : Fin D → ℝ
     _ ≤ (1*1)*1 := by gcongr
     _ = 1 := by norm_num
 
+/-- The QPE kernel state at eigenphase `-eig i / 2`, tensored with the false control state and
+basis vector `i`. -/
 private noncomputable def kernelBasisState (D M : ℕ) (eig : Fin D → ℝ) (i : Fin D) :
     QState (Fin M × (Bool × Fin D)) := fun p =>
   if p.2.1 then 0 else qpeKernel M (-eig i/2) p.1 * Qatlib.Foundations.PureStateMath.Ket i p.2.2
 
+/-- Applying `eigenBasis` to `kernelBasisState` replaces the system basis vector by the
+corresponding column of `V`. -/
 private theorem basis_kernel (D M : ℕ) (V : Operator D) (eig : Fin D → ℝ) (i : Fin D) :
     ApplyGate (eigenBasis D M V) (kernelBasisState D M eig i) =
       fun p => if p.2.1 then 0 else qpeKernel M (-eig i/2) p.1 * V p.2.2 i := by
@@ -177,6 +213,8 @@ private theorem basis_kernel (D M : ℕ) (V : Operator D) (eig : Fin D → ℝ) 
   cases b <;> simp [Qatlib.Foundations.PureStateMath.Ket, ite_mul, apply_ite]
   ring
 
+/-- Conjugating an outer product by `U` gives the outer product of the vector transformed by
+`U`. -/
 private theorem outer_conj {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (ψ : QState I) :
     U*outerProduct ψ*Uᴴ = outerProduct (ApplyGate U ψ) := by
@@ -190,6 +228,7 @@ private theorem outer_conj {I : Type*} [Fintype I] [DecidableEq I]
   simp only [RCLike.star_def]
   ring
 
+/-- Simultaneous unitary conjugation of two matrices preserves the trace of their product. -/
 private theorem trace_conj_pair {I : Type*} [Fintype I] [DecidableEq I]
     (W A B : Matrix I I ℂ) (hW : W ∈ Matrix.unitaryGroup I ℂ) :
     Matrix.trace ((W*A*Wᴴ)*(W*B*Wᴴ)) = Matrix.trace (A*B) := by
@@ -204,6 +243,8 @@ private theorem trace_conj_pair {I : Type*} [Fintype I] [DecidableEq I]
     _ = Matrix.trace (A*B) := by
       rw [Matrix.trace_mul_cycle, hh, Matrix.one_mul]
 
+/-- The trace pairing of `goodDiagonal` with a kernel-state outer product equals the sum of
+squared kernel amplitudes over good labels. -/
 private theorem kernel_good_trace (D M : ℕ) (eig : Fin D → ℝ) (i : Fin D) :
     (Matrix.trace (goodDiagonal D M eig * outerProduct (kernelBasisState D M eig i))).re =
       ∑ z ∈ qpeGoodLabels M (eig i), ‖qpeKernel M (-eig i/2) z‖^2 := by
@@ -217,6 +258,8 @@ private theorem kernel_good_trace (D M : ℕ) (eig : Fin D → ℝ) (i : Fin D) 
   intro z _
   rw [← Complex.ofReal_pow, Complex.ofReal_re]
 
+/-- For a density operator with the stated unitary spectral decomposition and nonnegative
+eigenvalues, ideal QPE has good-event mass at least `8 / π²` when `M ≥ 2`. -/
 private theorem ideal_good_mass (D M : ℕ) (hM : 2 ≤ M) (ρ V : Operator D)
     (eig : Fin D → ℝ) (hρ : IsDensityOperator ρ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -251,6 +294,8 @@ private theorem ideal_good_mass (D M : ℕ) (hM : 2 ≤ M) (ρ V : Operator D)
       exact offgrid_phase_window_probability M (-eig i/2) hM
     _ = 8/Real.pi^2 := by rw [← Finset.sum_mul, hsum, one_mul]
 
+/-- Proves the self-tomography specification with good-event mass at least `8 / π² - ε` and copy
+count at most `1000 / ε³` for `0 < ε ≤ 1 / 2` [LloydMohseniRebentrost2014]. -/
 theorem epsilonCubedSelfTomography : EpsilonCubedSelfTomography := by
   intro D ρ V eig ε hρ hV hs he hε hε1
   (try dsimp only)

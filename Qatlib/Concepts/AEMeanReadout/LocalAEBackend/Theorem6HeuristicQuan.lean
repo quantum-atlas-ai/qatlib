@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+
+/-!
+# Quantum speedup of heuristic search
+
+`bhmt_theorem6_heuristic` bounds the distributional quantum search cost by `400` times the
+square root of the classical average-time quantity. The proof combines finite-horizon search
+bounds with averaging, assuming every supported input has a successful seed, as in
+[BrassardEtAl2002].
+
+## Main statements
+
+* `bhmt_theorem6_heuristic`: the distributional square-root cost bound.
+* `bhmt_theorem6_heuristic_contract`: the packaged heuristic-search specification.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,7 @@ open scoped ENNReal
 
 set_option maxHeartbeats 800000
 
+/-- For positive `h` and `n`, rewrites `400 / sqrt (h / n)` as `400 * sqrt (n / h)`. -/
 private theorem cost_flip {h n : ℕ} (hh : 0 < h) (hn : 0 < n) :
     (400:ℝ)/Real.sqrt (((h:ℝ))/((n:ℝ))) = 400 * Real.sqrt (((n:ℝ))/((h:ℝ))) := by
   have h0 : (0:ℝ) ≤ (h:ℝ) := Nat.cast_nonneg _
@@ -30,6 +50,8 @@ private theorem cost_flip {h n : ℕ} (hh : 0 < h) (hn : 0 < n) :
   have hnp : (0:ℝ) < Real.sqrt ((n:ℝ)) := Real.sqrt_pos.mpr (by exact_mod_cast hn)
   field_simp
 
+/-- For an input with at least one successful heuristic seed, the expected second search cost is
+at most `400 * sqrt (n / heuristicGoodCount n G f)`. -/
 private theorem per_instance_chi_cost {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (T : ℕ) (f : Fin n → Bool)
     (hf : 0 < BHMTTh6.heuristicGoodCount n G f) :
@@ -52,6 +74,9 @@ private theorem per_instance_chi_cost {n : ℕ} (hn : 0 < n)
   rw [hmass, hcard, cost_flip hf hn] at hE
   exact hE
 
+/-- If every supported input has a successful heuristic seed, the average quantum second-counter
+cost is at most `400` times the square root of the classical average-time quantity [Brassard
+et al., Theorem 6][BrassardEtAl2002]. -/
 theorem bhmt_theorem6_heuristic : ∀ (n : ℕ) (hn : 0 < n) (G : (Fin n → Bool) → Fin n → Fin n)
     (D : PMF (Fin n → Bool)) (T : ℕ),
     (∀ f ∈ D.support, 0 < BHMTTh6.heuristicGoodCount n G f) →
@@ -129,6 +154,7 @@ theorem bhmt_theorem6_heuristic : ∀ (n : ℕ) (hn : 0 < n) (G : (Fin n → Boo
   rw [Finset.sum_congr rfl (fun f _ => hre f), ← Finset.mul_sum]
   exact mul_le_mul_of_nonneg_left hCS (by norm_num)
 
+/-- Packages the distributional heuristic-search cost bound as `Theorem6HeuristicSpec.expected`. -/
 theorem bhmt_theorem6_heuristic_contract :
     Theorem6HeuristicSpec.expected :=
   bhmt_theorem6_heuristic

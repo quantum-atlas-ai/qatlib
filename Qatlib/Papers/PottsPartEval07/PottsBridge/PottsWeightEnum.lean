@@ -41,6 +41,25 @@ import Mathlib.GroupTheory.Index
 import Mathlib.Tactic
 import Mathlib.Tactic.Abel
 
+/-!
+# Potts partition sums and cocycle weight enumerators
+
+The graph coboundary sends a vertex coloring to the differences of its endpoint colors. Counting
+its fibers relates a sum over colorings to the Hamming-weight enumerator of its image, yielding
+`potts_weight_enumerator` with a factor equal to the coboundary kernel size [GeraciLidar2008].
+
+## Main statements
+
+* `sum_coboundary_eq`: A sum over colorings equals the kernel size times the sum over image
+  words.
+* `potts_weight_enumerator`: The edge-normalized Potts sum equals the kernel size times the code
+  weight enumerator.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.PottsBridge
@@ -51,6 +70,7 @@ variable {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E] [DecidableEq E]
 
 variable (q : ℕ) [NeZero q] (ends : E → V × V)
 
+/-- The additive map taking a vertex coloring to its endpoint differences on edges. -/
 def coboundary : (V → ZMod q) →+ (E → ZMod q) where
   toFun σ := fun e => σ (ends e).1 - σ (ends e).2
   map_zero' := by
@@ -62,15 +82,21 @@ def coboundary : (V → ZMod q) →+ (E → ZMod q) where
     simp only [Pi.add_apply]
     abel
 
+/-- The coboundary at an edge is the color at its first endpoint minus the color at its second
+endpoint. -/
 @[simp] lemma coboundary_apply (σ : V → ZMod q) (e : E) :
     coboundary q ends σ e = σ (ends e).1 - σ (ends e).2 := rfl
 
+/-- The number of edges on which a word over `ZMod q` is nonzero. -/
 def hammingWeight (w : E → ZMod q) : ℕ :=
   (Finset.univ.filter fun e => w e ≠ 0).card
 
+/-- The finite set of edges whose endpoints have the same color. -/
 def monochromatic (σ : V → ZMod q) : Finset E :=
   Finset.univ.filter fun e => σ (ends e).1 = σ (ends e).2
 
+/-- The Hamming weight of a coloring's coboundary plus its number of monochromatic edges equals
+the total number of edges [GeraciLidar2008]. -/
 theorem weight_add_monochromatic (σ : V → ZMod q) :
     hammingWeight q (coboundary q ends σ) + (monochromatic q ends σ).card = Fintype.card E := by
   have hfil : (Finset.univ.filter fun e => ¬ σ (ends e).1 = σ (ends e).2)
@@ -86,12 +112,15 @@ theorem weight_add_monochromatic (σ : V → ZMod q) :
   unfold hammingWeight monochromatic
   omega
 
+/-- The number of vertex colorings whose coboundary is zero. -/
 noncomputable def kernelSize : ℕ :=
   (Finset.univ.filter fun σ : V → ZMod q => coboundary q ends σ = 0).card
 
+/-- The univariate Hamming-weight enumerator of the image of the graph coboundary. -/
 noncomputable def codeWeightEnum (y : ℝ) : ℝ :=
   ∑ w ∈ Finset.univ.image (coboundary q ends), y ^ hammingWeight q w
 
+/-- Every nonempty fiber of the graph coboundary has cardinality equal to its kernel size. -/
 theorem fiber_card_eq_kernelSize (w : E → ZMod q)
     (hw : w ∈ Finset.univ.image (coboundary q ends)) :
     (Finset.univ.filter fun σ : V → ZMod q => coboundary q ends σ = w).card
@@ -103,6 +132,8 @@ theorem fiber_card_eq_kernelSize (w : E → ZMod q)
   have h := AddMonoidHom.card_fiber_eq_of_mem_range (coboundary q ends) hx hy
   simpa [kernelSize] using h
 
+/-- The sum of weight monomials over vertex colorings is the kernel size times the weight sum
+over coboundary image words [GeraciLidar2008]. -/
 theorem sum_coboundary_eq (y : ℝ) :
     (∑ σ : V → ZMod q, y ^ hammingWeight q (coboundary q ends σ))
       = (kernelSize q ends : ℝ)
@@ -119,9 +150,13 @@ theorem sum_coboundary_eq (y : ℝ) :
   intro w hw
   rw [Finset.sum_const, fiber_card_eq_kernelSize q ends w hw, nsmul_eq_mul]
 
+/-- The partition sum assigning a coloring the inverse of `y` raised to its number of
+monochromatic edges. -/
 noncomputable def pottsZ (y : ℝ) : ℝ :=
   ∑ σ : V → ZMod q, (y ^ (monochromatic q ends σ).card)⁻¹
 
+/-- For nonzero `y`, multiplying the Potts partition sum by `y` to the edge count gives the
+kernel size times the code weight enumerator [GeraciLidar2008]. -/
 theorem potts_weight_enumerator (y : ℝ) (hy : y ≠ 0) :
     y ^ Fintype.card E * pottsZ q ends y
       = (kernelSize q ends : ℝ) * codeWeightEnum q ends y := by

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.WreathGroup
+
+/-!
+# Decomposition of wreath-product subgroups
+
+This module proves `lemma_4_1`, which expresses a wreath-product subgroup as the join of its
+intersection with the base subgroup and its intersection with its swapped image. A binary
+residue-class dichotomy supports the proof. This development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `ZMod2_eq_zero_or_one`: every binary residue is zero or one.
+* `lemma_4_1`: the subgroup decomposition by the base and swapped intersection.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,10 +34,13 @@ open Qatlib.Papers.NonabelianHSP98.MainResults.WreathGroup.Wreath
 
 variable {n : ℕ}
 
+/-- Every element of `ZMod 2` is either zero or one. -/
 lemma ZMod2_eq_zero_or_one (a : ZMod 2) : a = 0 ∨ a = 1 := by
   have h : ∀ a : ZMod 2, a = 0 ∨ a = 1 := by decide
   exact h a
 
+/-- A wreath-product subgroup is the join of its intersection with the base subgroup and its
+intersection with its swapped image. This is Lemma 4.1 of [RoettelerBeth1998]. -/
 theorem lemma_4_1 (U : Subgroup (Wreath n)) :
     U = (U ⊓ base n) ⊔ (U ⊓ conjSub U) := by
   apply le_antisymm

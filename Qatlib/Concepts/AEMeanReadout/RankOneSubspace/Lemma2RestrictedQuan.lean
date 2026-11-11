@@ -9,6 +9,23 @@ import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedStat
 
+/-!
+# Good and bad components under a phase iterate
+
+This module derives the action of `RankOneReflection.iterate` on vectors restricted to marked
+and unmarked coordinates. It combines the diagonal phase action with the first-column
+outer-product identity to obtain the formulas of [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `zoo_counting_good_bad_phase_action`: the iterate formulas on arbitrary good and bad
+  components.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 open scoped BigOperators
 open scoped Matrix
 
@@ -16,6 +33,7 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
+/-- The marked phase diagonal multiplies the good component of any vector by `ϕ`. -/
 lemma zoo_counting_good_bad_phase_action_good_eigen
     {n : ℕ} (g : Fin (n + 1) → Bool) (ϕ : ℂ) (v : Fin (n + 1) → ℂ) :
     Matrix.diagonal (fun i => if g i then ϕ else 1) *ᵥ RankOneReflection.goodPart g v =
@@ -25,6 +43,7 @@ lemma zoo_counting_good_bad_phase_action_good_eigen
   by_cases h : g i <;>
     simp [RankOneReflection.goodPart, h, Pi.smul_apply, smul_eq_mul]
 
+/-- The marked phase diagonal leaves the bad component of any vector unchanged. -/
 lemma zoo_counting_good_bad_phase_action_bad_eigen
     {n : ℕ} (g : Fin (n + 1) → Bool) (ϕ : ℂ) (v : Fin (n + 1) → ℂ) :
     Matrix.diagonal (fun i => if g i then ϕ else 1) *ᵥ RankOneReflection.badPart g v =
@@ -34,6 +53,8 @@ lemma zoo_counting_good_bad_phase_action_bad_eigen
   by_cases h : g i <;>
     simp [RankOneReflection.badPart, h, Pi.smul_apply, smul_eq_mul]
 
+/-- An outer-product matrix sends `w` to its second factor's dot product with `w`, multiplied by
+its first factor. -/
 lemma zoo_counting_good_bad_phase_action_vecMulVec_mulVec
     {n : ℕ} (u v w : Fin (n + 1) → ℂ) :
     Matrix.vecMulVec u v *ᵥ w = (v ⬝ᵥ w) • u := by
@@ -43,6 +64,8 @@ lemma zoo_counting_good_bad_phase_action_vecMulVec_mulVec
   rw [Finset.sum_mul]
   exact Finset.sum_congr rfl fun j _ => by ring
 
+/-- For an eigenvector of the marked phase diagonal, expands the iterate as minus its eigenvalue
+times the vector plus a first-column correction. -/
 lemma zoo_counting_good_bad_phase_action_of_eigen
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (φ ϕ ψ : ℂ) (w : Fin (n + 1) → ℂ) (hA : A * A.conjTranspose = 1)
@@ -61,6 +84,9 @@ lemma zoo_counting_good_bad_phase_action_of_eigen
   simp only [Pi.add_apply, Pi.neg_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- When `A * A.conjTranspose = 1`, gives explicit first-column correction formulas for the
+iterate on the good and bad components of any vector [Brassard et al., Lemma
+2][BrassardHoyerTapp1998Counting]. -/
 theorem zoo_counting_good_bad_phase_action :
     ∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
     (g : Fin (n + 1) → Bool) (φ ϕ : ℂ) (v : Fin (n + 1) → ℂ),

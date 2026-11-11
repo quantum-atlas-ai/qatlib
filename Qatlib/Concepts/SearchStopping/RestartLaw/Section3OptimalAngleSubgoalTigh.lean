@@ -22,12 +22,37 @@ import Mathlib.Tactic.NormNum.BigOperators
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Mathlib.Topology.Algebra.Module.ModuleTopology
+
+/-!
+# Certified enclosure of the restart angle root
+
+Proves `section3OptimalAngleSubgoal` by enclosing sine and cosine with alternating Taylor sums
+and certifying opposite endpoint signs. The result isolates a unique solution of `Real.tan (z /
+2) = z` in the prescribed rational interval. For the quantum-search analysis, see
+[BoyerEtAl1998].
+
+## Main statements
+
+* `angleEndpoint_lower`: At `z = 2.33112`, the expression `Real.sin (z / 2) - z * Real.cos (z /
+  2)` is strictly negative.
+* `angleEndpoint_upper`: At `z = 2.33113`, the expression `Real.sin (z / 2) - z * Real.cos (z /
+  2)` is strictly positive.
+* `section3OptimalAngleSubgoal`: Establishes `Section3OptimalAngleSubgoal`, isolating a unique
+  root of `Real.tan (z / 2) = z` between 2.33112 and 2.33113.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.SearchStopping.RestartLaw
 
 open Finset Filter
 
+/-- For `0 ≤ x ≤ 5 / 4`, the factorial-scaled sequence `x ^ (2 * n + d) / (2 * n + d)!` is
+antitone. -/
 private theorem angleTerms_antitone (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (d : ℕ) :
     Antitone (fun n : ℕ => x ^ (2 * n + d) / ((2 * n + d).factorial : ℝ)) := by
   apply antitone_nat_of_succ_le
@@ -54,6 +79,8 @@ private theorem angleTerms_antitone (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) 
       exact hsq.trans hm
     _ = x ^ m * ((m + 2).factorial : ℝ) := by rw [hf]; ring
 
+/-- For `0 ≤ x ≤ 5 / 4`, even and odd truncation lengths of the sine Taylor series give lower
+and upper bounds for `Real.sin x`. -/
 private theorem angleSin_bounds (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (k : ℕ) :
     (∑ i ∈ range (2 * k), (-1 : ℝ) ^ i * x ^ (2 * i + 1) / ((2 * i + 1).factorial : ℝ))
       ≤ Real.sin x ∧ Real.sin x ≤
@@ -64,6 +91,8 @@ private theorem angleSin_bounds (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (k :
     And.intro (ha.alternating_series_le_tendsto (by simpa only [mul_div_assoc] using ht) k)
       (ha.tendsto_le_alternating_series (by simpa only [mul_div_assoc] using ht) k)
 
+/-- For `0 ≤ x ≤ 5 / 4`, even and odd truncation lengths of the cosine Taylor series give lower
+and upper bounds for `Real.cos x`. -/
 private theorem angleCos_bounds (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (k : ℕ) :
     (∑ i ∈ range (2 * k), (-1 : ℝ) ^ i * x ^ (2 * i) / ((2 * i).factorial : ℝ))
       ≤ Real.cos x ∧ Real.cos x ≤
@@ -74,6 +103,8 @@ private theorem angleCos_bounds (x : ℝ) (hx : 0 ≤ x) (hu : x ≤ 5 / 4) (k :
     And.intro (ha.alternating_series_le_tendsto (by simpa only [mul_div_assoc] using! ht) k)
       (ha.tendsto_le_alternating_series (by simpa only [mul_div_assoc] using! ht) k)
 
+/-- At `z = 2.33112`, the expression `Real.sin (z / 2) - z * Real.cos (z / 2)` is strictly
+negative. -/
 private theorem angleEndpoint_lower :
     Real.sin ((233112 / 100000 : ℝ) / 2) -
       (233112 / 100000 : ℝ) * Real.cos ((233112 / 100000 : ℝ) / 2) < 0 := by
@@ -82,6 +113,8 @@ private theorem angleEndpoint_lower :
   norm_num [Finset.sum_range_succ] at hs hc
   linarith only [hs.2, hc.1]
 
+/-- At `z = 2.33113`, the expression `Real.sin (z / 2) - z * Real.cos (z / 2)` is strictly
+positive. -/
 private theorem angleEndpoint_upper :
     0 < Real.sin ((233113 / 100000 : ℝ) / 2) -
       (233113 / 100000 : ℝ) * Real.cos ((233113 / 100000 : ℝ) / 2) := by
@@ -90,6 +123,8 @@ private theorem angleEndpoint_upper :
   norm_num [Finset.sum_range_succ] at hs hc
   linarith only [hs.1, hc.2]
 
+/-- Establishes `Section3OptimalAngleSubgoal`, isolating a unique root of `Real.tan (z / 2) = z`
+between 2.33112 and 2.33113. -/
 theorem section3OptimalAngleSubgoal : Section3OptimalAngleSubgoal := by
   let g : ℝ → ℝ := fun z => Real.sin (z / 2) - z * Real.cos (z / 2)
   have hg : Continuous g := by dsimp [g]; fun_prop

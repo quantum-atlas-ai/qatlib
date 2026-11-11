@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.DysonSegmentEvolution
 import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+
+/-!
+# Grouping Dyson grid evolution into segments
+
+This module relates left-ordered matrix products to circuit evaluation and groups a uniform
+Hamiltonian grid into equal blocks. `dysonGridSegment` is the product of the exact single-step
+Hamiltonian evolutions in one block, and Hermitian samples make each segment unitary. These
+identities connect segmented circuits to the supplied grid evolution used in the algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `piecewiseLeftProduct_blocks`: flattens products of consecutive blocks.
+* `dysonGridSegment_product`: identifies the reversed segment circuit with the full uniform-grid
+  evolution.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,6 +72,8 @@ namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Enumerating a function on reversed finite indices produces the reverse of its original
+enumeration. -/
 private theorem list_ofFn_rev {α : Type*} {n : ℕ} (f : Fin n → α) :
     List.ofFn (fun i => f i.rev) = (List.ofFn f).reverse := by
   apply List.ext_getElem (by simp)
@@ -61,6 +84,7 @@ private theorem list_ofFn_rev {α : Type*} {n : ℕ} (f : Fin n → α) :
   simp only [Fin.rev, Fin.val_mk]
   omega
 
+/-- Enumerating `f` on `Fin n` equals mapping `f` over `List.range n`. -/
 private theorem list_ofFn_nat {α : Type*} (f : ℕ → α) (n : ℕ) :
     List.ofFn (fun i : Fin n => f i.val) = (List.range n).map f := by
   apply List.ext_getElem (by simp)
@@ -70,6 +94,8 @@ private theorem list_ofFn_nat {α : Type*} (f : ℕ → α) (n : ℕ) :
 section Product
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The left-ordered product of `n + m` factors splits into the product of the last `m` factors
+followed by the first `n` factors. -/
 theorem piecewiseLeftProduct_add (f : ℕ → Matrix I I ℂ) (n m : ℕ) :
     piecewiseLeftProduct f (n + m) =
       piecewiseLeftProduct (fun j => f (n + j)) m * piecewiseLeftProduct f n := by
@@ -79,6 +105,8 @@ theorem piecewiseLeftProduct_add (f : ℕ → Matrix I I ℂ) (n m : ℕ) :
     rw [show n + (m+1) = (n+m)+1 by omega, piecewiseLeftProduct, ih,
       piecewiseLeftProduct, mul_assoc]
 
+/-- Taking `S` consecutive left-ordered products of `M` factors equals the left-ordered product
+of all `S * M` factors. -/
 theorem piecewiseLeftProduct_blocks (f : ℕ → Matrix I I ℂ) (M S : ℕ) :
     piecewiseLeftProduct (fun i => piecewiseLeftProduct (fun j => f (i*M+j)) M) S =
       piecewiseLeftProduct f (S*M) := by
@@ -88,6 +116,8 @@ theorem piecewiseLeftProduct_blocks (f : ℕ → Matrix I I ℂ) (M S : ℕ) :
     rw [piecewiseLeftProduct, ih, show (S+1)*M = S*M+M by ring,
       piecewiseLeftProduct_add]
 
+/-- Evaluating the canonical word on a family indexed in reverse order gives its left-ordered
+product. -/
 theorem unitaryFamilyEvaluate_reverse_product (f : ℕ → Matrix I I ℂ) (S : ℕ) :
     unitaryFamilyEvaluate (fun i : Fin S => f i.rev.val) (unitaryFamilyWord S) =
       piecewiseLeftProduct f S := by
@@ -96,6 +126,7 @@ theorem unitaryFamilyEvaluate_reverse_product (f : ℕ → Matrix I I ℂ) (S : 
   rw [list_ofFn_rev (fun i : Fin S => f i.val), list_ofFn_nat,
     piecewiseLeftProduct_eq_reverse_prod]
 
+/-- A finite left-ordered product of unitary matrices is unitary. -/
 theorem piecewiseLeftProduct_unitary (f : ℕ → Matrix I I ℂ) (n : ℕ)
     (hf : ∀ j < n, f j ∈ Matrix.unitaryGroup I ℂ) :
     piecewiseLeftProduct f n ∈ Matrix.unitaryGroup I ℂ := by
@@ -105,9 +136,13 @@ theorem piecewiseLeftProduct_unitary (f : ℕ → Matrix I I ℂ) (n : ℕ)
     exact (Matrix.unitaryGroup I ℂ).mul_mem
       (hf n (by omega)) (ih (fun j hj => hf j (by omega)))
 
+/-- The left-ordered product of `M` Hamiltonian evolution steps of duration `h`, starting at
+sample index `q * M`. -/
 def dysonGridSegment (F : ℕ → Matrix I I ℂ) (h : ℝ) (M q : ℕ) : Matrix I I ℂ :=
   piecewiseLeftProduct (fun j => HamiltonianEvolution (F (q*M+j)) h) M
 
+/-- A grid segment is unitary when its sample Hamiltonians are Hermitian and its segment index
+is less than `S`. -/
 theorem dysonGridSegment_unitary (F : ℕ → Matrix I I ℂ) (h : ℝ) (M S q : ℕ)
     (hq : q < S) (hF : ∀ j < S*M, (F j).IsHermitian) :
     dysonGridSegment F h M q ∈ Matrix.unitaryGroup I ℂ := by
@@ -119,6 +154,8 @@ theorem dysonGridSegment_unitary (F : ℕ → Matrix I I ℂ) (h : ℝ) (M S q :
   rw [Nat.succ_mul] at hqM
   omega
 
+/-- Evolution on the uniform grid with spacing `h` equals the left-ordered product of the
+corresponding Hamiltonian steps. -/
 theorem suppliedGridEvolution_uniform (F : ℕ → Matrix I I ℂ) (h : ℝ) (N : ℕ) :
     suppliedGridEvolution (fun j => (j : ℝ)*h) F N =
       piecewiseLeftProduct (fun j => HamiltonianEvolution (F j) h) N := by
@@ -129,6 +166,8 @@ theorem suppliedGridEvolution_uniform (F : ℕ → Matrix I I ℂ) (h : ℝ) (N 
   push_cast
   ring
 
+/-- Evaluating the `S` segments in reverse index order reproduces the supplied uniform-grid
+evolution over `S * M` steps. -/
 theorem dysonGridSegment_product (F : ℕ → Matrix I I ℂ) (h : ℝ) (M S : ℕ) :
     unitaryFamilyEvaluate (fun i : Fin S => dysonGridSegment F h M i.rev.val)
       (unitaryFamilyWord S) = suppliedGridEvolution (fun j => (j : ℝ)*h) F (S*M) := by

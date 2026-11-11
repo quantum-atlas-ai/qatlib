@@ -10,6 +10,27 @@ import Mathlib.Algebra.Module.Submodule.Lattice
 import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 import Mathlib.LinearAlgebra.Dimension.Constructions
 import Mathlib.Tactic
+
+/-!
+# Irreducibility of the two-dimensional Jones example
+
+This module proves irreducibility of the explicit pair `sig1_21`, `sig2_21` under the nontrivial
+fifth-root and parameter equations. It first rules out a common nonzero eigenvector, then shows
+that a subspace invariant under both matrices is zero or the whole space.
+
+These calculations supply the two-dimensional irreducibility argument used in
+[FreedmanLarsenWang2000].
+
+## Main statements
+
+* `sig21_no_common_eigenvector`: The generator pair has no common nonzero eigenvector.
+* `sig21_irreducible`: A common invariant subspace is trivial.
+
+## References
+
+* [Freedman et al., 2000][FreedmanLarsenWang2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,9 +43,12 @@ open Qatlib.Papers.ModularFunct00.MainResults.Examples
 
 variable {q : ℂ}
 
+/-- A subspace of `ℂ²` is invariant when multiplication by each of the two given matrices
+preserves it. -/
 def IsInvariant (A B : CM 2) (W : Submodule ℂ (Fin 2 → ℂ)) : Prop :=
   (∀ x ∈ W, A.mulVec x ∈ W) ∧ (∀ x ∈ W, B.mulVec x ∈ W)
 
+/-- For a nontrivial fifth root of unity `q`, the quantity `q^2 + q + 1` is nonzero. -/
 lemma fiveRoot_quantum_three_ne_zero {q : ℂ} (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1) :
     q ^ 2 + q + 1 ≠ 0 := by
   intro h
@@ -41,6 +65,8 @@ lemma fiveRoot_quantum_three_ne_zero {q : ℂ} (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
     rw [h6, pow_succ, hq5, one_mul]
   exact hq1 (hq6'.symm.trans hq6)
 
+/-- Under the stated fifth-root and parameter equations, `sig1_21` and `sig2_21 s` have no
+common nonzero eigenvector; see [FreedmanLarsenWang2000]. -/
 theorem sig21_no_common_eigenvector {q s : ℂ} (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
     (hs : s ^ 2 * q = q ^ 2 + q + 1) :
     ¬ ∃ v : Fin 2 → ℂ, v ≠ 0 ∧ ∃ α β : ℂ,
@@ -98,6 +124,8 @@ theorem sig21_no_common_eigenvector {q s : ℂ} (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1
     rw [hBcoord, hv0z, mul_zero] at hB0
     exact (mul_ne_zero hb01 hv1) hB0
 
+/-- Under the stated fifth-root and parameter equations, any subspace invariant under both
+explicit generators is either zero or the whole space; see [FreedmanLarsenWang2000]. -/
 theorem sig21_irreducible {q s : ℂ} (hq5 : q ^ 5 = 1) (hq1 : q ≠ 1)
     (hs : s ^ 2 * q = q ^ 2 + q + 1)
     (W : Submodule ℂ (Fin 2 → ℂ))

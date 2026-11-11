@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.InnerProductSpace.Spectrum
 
+/-!
+# Projection and overlap bounds for perturbations
+
+This module proves real inner-product-space estimates supporting the perturbation arguments of
+[KempeKitaevRegev2006]. It bounds symmetric projections, excludes low-energy vectors from a
+high-energy subspace, controls projected eigenvector components, and turns an effective energy
+bound into a squared-overlap estimate.
+
+## Main statements
+
+* `lower_proj_ne_zero`: Shows that a low-energy vector has a nonzero complementary component.
+* `proj_component_le`: Bounds the high-energy component of a perturbed eigenvector.
+* `overlap_gap_bound`: Controls overlap with an isolated reference eigenvector.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -19,6 +38,7 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDim
 
 omit [FiniteDimensional ℝ E] in
 
+/-- A symmetric idempotent real linear map does not increase vector norms. -/
 theorem norm_proj_le (P : E →ₗ[ℝ] E) (hPidem : ∀ x, P (P x) = P x)
     (hPsymm : ∀ x y, ⟪P x, y⟫ = ⟪x, P y⟫) (x : E) : ‖P x‖ ≤ ‖x‖ := by
   have hperp : ⟪P x, x - P x⟫ = 0 := by
@@ -34,6 +54,9 @@ theorem norm_proj_le (P : E →ₗ[ℝ] E) (hPidem : ∀ x, P (P x) = P x)
 
 omit [FiniteDimensional ℝ E] in
 
+/-- A nonzero vector fixed by `P` cannot have perturbed quadratic energy at most `lamStar *
+‖x‖^2` when the stated high-energy lower bound and perturbation bound leave a strict gap
+[KempeKitaevRegev2006]. -/
 theorem below_cutoff_not_Lplus (P : E →ₗ[ℝ] E) (H V : E →ₗ[ℝ] E)
     {lamStar lamPlus b : ℝ} (hgap : lamStar + b < lamPlus)
     (hH : ∀ y : E, P y = y → lamPlus * ‖y‖ ^ 2 ≤ ⟪y, H y⟫)
@@ -49,6 +72,9 @@ theorem below_cutoff_not_Lplus (P : E →ₗ[ℝ] E) (H V : E →ₗ[ℝ] E)
 
 omit [FiniteDimensional ℝ E] in
 
+/-- For linear maps `P` and `P'` summing to the identity, the component `P' x` of a nonzero
+low-energy vector is nonzero under the stated gap and perturbation bounds
+[KempeKitaevRegev2006]. -/
 theorem lower_proj_ne_zero (P P' : E →ₗ[ℝ] E) (H V : E →ₗ[ℝ] E)
     (hPP' : ∀ x, P x + P' x = x)
     {lamStar lamPlus b : ℝ} (hgap : lamStar + b < lamPlus)
@@ -65,6 +91,7 @@ theorem lower_proj_ne_zero (P P' : E →ₗ[ℝ] E) (H V : E →ₗ[ℝ] E)
 
 omit [FiniteDimensional ℝ E] in
 
+/-- A quadratic lower bound `c * ‖y‖^2 ≤ inner y (H y)` implies `c * ‖y‖ ≤ ‖H y‖`. -/
 theorem norm_le_norm_apply_of_quad_le (H : E →ₗ[ℝ] E) {c : ℝ} (_hc : 0 ≤ c) (y : E)
     (h : c * ‖y‖ ^ 2 ≤ ⟪y, H y⟫) : c * ‖y‖ ≤ ‖H y‖ := by
   have h2 : ⟪y, H y⟫ ≤ ‖y‖ * ‖H y‖ := real_inner_le_norm y (H y)
@@ -76,6 +103,8 @@ theorem norm_le_norm_apply_of_quad_le (H : E →ₗ[ℝ] E) {c : ℝ} (_hc : 0 �
 
 omit [FiniteDimensional ℝ E] in
 
+/-- Under the stated projection, commutation, gap, and perturbation hypotheses, a perturbed
+eigenvector satisfies `‖P x‖ * (lamPlus - mu) ≤ b * ‖x‖` [KempeKitaevRegev2006]. -/
 theorem proj_component_le (P : E →ₗ[ℝ] E) (hPidem : ∀ x, P (P x) = P x)
     (hPsymm : ∀ x y, ⟪P x, y⟫ = ⟪x, P y⟫)
     (H V : E →ₗ[ℝ] E) (hHcomm : ∀ x, P (H x) = H (P x))
@@ -109,6 +138,8 @@ theorem proj_component_le (P : E →ₗ[ℝ] E) (hPidem : ∀ x, P (P x) = P x)
 
 omit [FiniteDimensional ℝ E] in
 
+/-- The remainder after subtracting the component of `x` along a unit vector `v` is orthogonal
+to `v`. -/
 theorem inner_remainder_eq_zero {v x : E} (hv : ‖v‖ = 1) :
     ⟪x - ⟪v, x⟫ • v, v⟫ = 0 := by
   rw [inner_sub_left, real_inner_smul_left, real_inner_comm v x, real_inner_comm v v,
@@ -117,6 +148,9 @@ theorem inner_remainder_eq_zero {v x : E} (hv : ‖v‖ = 1) :
 
 omit [FiniteDimensional ℝ E] in
 
+/-- For a symmetric effective operator with a normalized eigenvector at `lam1` and complementary
+energy at least `lam2 > lam1`, a unit vector of energy at most `lam1 + 2 * eps` has squared
+overlap at least `1 - 2 * eps / (lam2 - lam1)` [KempeKitaevRegev2006]. -/
 theorem overlap_gap_bound (Heff : E →ₗ[ℝ] E)
     (hHeff : ∀ x y, ⟪Heff x, y⟫ = ⟪x, Heff y⟫)
     {lam1 lam2 eps : ℝ} (hgap : 0 < lam2 - lam1)

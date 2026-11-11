@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LinearSystems09.InputModel.QlsHhlRefinedDefs
+
+/-!
+# Refined HHL preparation and error bounds
+
+This module refines the HHL input-model estimates from [HarrowHassidimLloyd2009] using explicit
+resource ledgers, half-grid preparation errors, and rectangular solution extraction. It also
+records signed-filter identities and error-budget conditions, including the obstruction caused
+by zero least-squares overlap.
+
+## Main statements
+
+* `clause53_endpoint`: Collects preparation resource counts and dyadic approximation bounds.
+* `clause55_endpoint`: Packages dilation resources and least-squares extraction properties.
+* `clause60_endpoint`: Collects signed-filter mass, phase, and error-budget facts.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -30,6 +50,8 @@ open scoped BigOperators
 open Matrix
 open Qatlib
 
+/-- The access ledger records `m * d` oracle calls and controlled synthesis steps, and preserves
+the supplied bit-time and workspace counts. -/
 theorem thresholdGoal_access_ledger_counts (m d bitTime workspace : ℕ) :
     (hhlAccessLedger m d bitTime workspace).oracleCalls = m * d ∧
       (hhlAccessLedger m d bitTime workspace).controlledSynthesis = m * d ∧
@@ -37,11 +59,14 @@ theorem thresholdGoal_access_ledger_counts (m d bitTime workspace : ℕ) :
       (hhlAccessLedger m d bitTime workspace).peakWorkspace = workspace := by
   exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-- The oracle-call count in the access ledger is monotone in the round and phase-step counts. -/
 theorem thresholdGoal_access_ledger_mono (m m' d d' : ℕ) (hm : m ≤ m') (hd : d ≤ d') :
     (hhlAccessLedger m d 0 0).oracleCalls ≤ (hhlAccessLedger m' d' 0 0).oracleCalls := by
   simp only [hhlAccessLedger]
   exact Nat.mul_le_mul hm hd
 
+/-- Collects the exact oracle and synthesis counts and monotonicity of the oracle count for the
+access ledger. -/
 theorem thresholdGoal_endpoint :
     (∀ m d bitTime workspace : ℕ,
       (hhlAccessLedger m d bitTime workspace).oracleCalls = m * d ∧
@@ -51,6 +76,8 @@ theorem thresholdGoal_endpoint :
   refine ⟨fun m d bitTime workspace => ⟨rfl, rfl⟩, fun m m' d d' hm hd => ?_⟩
   exact thresholdGoal_access_ledger_mono m m' d d' hm hd
 
+/-- For positive `n`, the logarithm of the Simon-reduction runtime is `α * log (36 * n) + (3 * α
++ 4 * β) * n * log 2` [HarrowHassidimLloyd2009]. -/
 theorem clause11_simon_runtime_exponent (α β : ℝ) (n : ℕ) (hn : 0 < n) :
     Real.log (simonReductionRuntime α β n)
       = α * Real.log (36 * (n : ℝ)) + (3 * α + 4 * β) * (n : ℝ) * Real.log 2 := by
@@ -92,17 +119,21 @@ theorem clause11_simon_runtime_exponent (α β : ℝ) (n : ℕ) (hn : 0 < n) :
       simp only [simonConditionNumber]
       ring
 
+/-- Packages the explicit logarithmic Simon-reduction runtime formula for all positive `n`. -/
 theorem clause11_endpoint :
     ∀ α β : ℝ, ∀ n : ℕ, 0 < n →
       Real.log (simonReductionRuntime α β n)
         = α * Real.log (36 * (n : ℝ)) + (3 * α + 4 * β) * (n : ℝ) * Real.log 2 :=
   fun α β n hn => clause11_simon_runtime_exponent α β n hn
 
+/-- The controlled-synthesis count equals the oracle-call count in the access ledger. -/
 theorem clause13_controlled_synthesis_eq_oracle (m d bitTime workspace : ℕ) :
     (hhlAccessLedger m d bitTime workspace).controlledSynthesis =
       (hhlAccessLedger m d bitTime workspace).oracleCalls := by
   rfl
 
+/-- Collects equality of synthesis and oracle counts and monotonicity of the synthesis count in
+rounds and phase steps. -/
 theorem clause13_endpoint :
     (∀ m d bitTime workspace : ℕ,
       (hhlAccessLedger m d bitTime workspace).controlledSynthesis =
@@ -115,11 +146,14 @@ theorem clause13_endpoint :
   simp only [hhlAccessLedger]
   exact Nat.mul_le_mul hm hd
 
+/-- For nonnegative per-step error, cumulative quantization error is monotone in the number of
+steps. -/
 theorem walkGoal_cumulative_quantization_error (n n' : ℕ) (ε : ℝ) (hε : 0 ≤ ε) (hn : n ≤ n') :
     cumulativeQuantizationError n ε ≤ cumulativeQuantizationError n' ε := by
   simp only [cumulativeQuantizationError]
   exact mul_le_mul_of_nonneg_right (by exact_mod_cast hn) hε
 
+/-- Packages monotonicity of cumulative quantization error for nonnegative per-step error. -/
 theorem walkGoal_endpoint :
     ∀ n n' : ℕ, ∀ ε : ℝ, 0 ≤ ε → n ≤ n' →
       cumulativeQuantizationError n ε ≤ cumulativeQuantizationError n' ε :=
@@ -127,6 +161,8 @@ theorem walkGoal_endpoint :
 
 section Clause12
 
+/-- For positive `M`, reflection of a half-grid index sends its angle to `π` minus the original
+angle. -/
 theorem clause12_halfGridAngle_mirror (M : ℕ) (hM : 0 < M) (τ : Fin M) :
     halfGridAngle M (halfGridMirrorIndex M τ) = Real.pi - halfGridAngle M τ := by
   have hcast : ((M - 1 - τ.val : ℕ) : ℝ) = (M : ℝ) - 1 - (τ.val : ℝ) := by
@@ -145,6 +181,7 @@ theorem clause12_halfGridAngle_mirror (M : ℕ) (hM : 0 < M) (τ : Fin M) :
   field_simp
   ring
 
+/-- The dyadic half-grid angle differs from the exact angle by at most `π / 2^k`. -/
 theorem clause12_halfGridAngle_dyadic_bound (M k : ℕ) (hM : 0 < M) (τ : Fin M) :
     |halfGridAngleDyadic M k τ - halfGridAngle M τ| ≤ Real.pi / 2 ^ k := by
   let X : ℝ := ((2 * (τ.val : ℝ) + 1) / (2 * (M : ℝ))) * 2 ^ k
@@ -194,6 +231,7 @@ theorem clause12_halfGridAngle_dyadic_bound (M k : ℕ) (hM : 0 < M) (τ : Fin M
       ≤ Real.pi * (1 / 2 ^ k) := mul_le_mul_of_nonneg_left hq (Real.pi_pos.le)
     _ = Real.pi / 2 ^ k := by ring
 
+/-- The sum of squared cosine and sine errors for a dyadic angle is at most `2 * (π / 2^k)^2`. -/
 theorem clause12_prep_amplitude_error (M k : ℕ) (hM : 0 < M) (τ : Fin M) :
     (Real.cos (halfGridAngleDyadic M k τ) - Real.cos (halfGridAngle M τ)) ^ 2 +
       (Real.sin (halfGridAngleDyadic M k τ) - Real.sin (halfGridAngle M τ)) ^ 2
@@ -226,6 +264,8 @@ theorem clause12_prep_amplitude_error (M k : ℕ) (hM : 0 < M) (τ : Fin M) :
       _ = (Real.pi / 2 ^ k) ^ 2 := (pow_two _).symm
   nlinarith [h1, h2]
 
+/-- For positive `M`, the average squared trigonometric preparation error is at most `(2 * π /
+2^k)^2`. -/
 theorem clause12_prep_l2_error (M k : ℕ) (hM : 0 < M) :
     (∑ τ : Fin M,
       ((Real.cos (halfGridAngleDyadic M k τ) - Real.cos (halfGridAngle M τ)) ^ 2 +
@@ -252,6 +292,8 @@ theorem clause12_prep_l2_error (M k : ℕ) (hM : 0 < M) :
         calc 2 * (Real.pi / 2 ^ k) ^ 2 ≤ 4 * (Real.pi / 2 ^ k) ^ 2 := hstep
           _ = (2 * Real.pi / 2 ^ k) ^ 2 := by ring
 
+/-- The symmetrized half-grid chirp equals `I` times the uniform amplitude times the sine of the
+half-grid angle. -/
 theorem clause12_symmetrized_scaled (M : ℕ) (hM : 0 < M) (τ : Fin M) :
     halfGridSymmetrized M τ
       = Complex.I * halfGridAmplitude M * (Real.sin (halfGridAngle M τ) : ℂ) := by
@@ -272,6 +314,8 @@ theorem clause12_symmetrized_scaled (M : ℕ) (hM : 0 < M) (τ : Fin M) :
   push_cast
   ring
 
+/-- The sine-envelope state equals `sqrt 2` times the uniform half-grid amplitude times the sine
+of the half-grid angle. -/
 theorem clause12_sinEnvelope_scaled (M : ℕ) (hM : 0 < M) (τ : Fin M) :
     Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL.sinEnvelopeState M τ
       = (Real.sqrt 2 : ℂ) * halfGridAmplitude M * (Real.sin (halfGridAngle M τ) : ℂ) := by
@@ -296,6 +340,7 @@ theorem clause12_sinEnvelope_scaled (M : ℕ) (hM : 0 < M) (τ : Fin M) :
   push_cast
   field_simp
 
+/-- The symmetrized half-grid state is `I / sqrt 2` times the sine-envelope state. -/
 theorem clause12_symmetrized_eq_sinEnvelope (M : ℕ) (hM : 0 < M) :
     ∀ τ : Fin M, halfGridSymmetrized M τ
       = (Complex.I / (Real.sqrt 2 : ℂ)) * Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL.sinEnvelopeState M τ := by
@@ -303,6 +348,8 @@ theorem clause12_symmetrized_eq_sinEnvelope (M : ℕ) (hM : 0 < M) :
   rw [clause12_symmetrized_scaled M hM τ, clause12_sinEnvelope_scaled M hM τ]
   field_simp
 
+/-- Collects preparation gate, workspace, and parameter-bit counts, their stated monotonicity
+properties, dyadic approximation bounds, mirror symmetry, and the sine-envelope identity. -/
 theorem clause53_endpoint :
 
     (∀ M k : ℕ, prepGateCount M k = 3 * M) ∧
@@ -352,6 +399,8 @@ end Clause12
 
 section Clause14
 
+/-- Extracting the solution block after applying the dilation pseudoinverse to the embedded
+input yields the least-squares vector [HarrowHassidimLloyd2009]. -/
 theorem clause14_solution_block_roundtrip {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     dilationSolutionBlock (matrixPseudoinverse (Qatlib.Concepts.QlsReadoutSpec.RectDilation.hermitianDilation A) *ᵥ Qatlib.Concepts.QlsReadoutSpec.RectDilation.dilationInput b)
@@ -364,6 +413,8 @@ theorem clause14_solution_block_roundtrip {O I : Type} [Fintype O] [DecidableEq 
   unfold dilationSolutionBlock
   exact hred.symm
 
+/-- The squared mass of the extracted solution block is at most the sum of the squared masses of
+both dilation blocks. -/
 theorem clause14_extraction_contraction {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (x : QState (O ⊕ I)) :
     (∑ i : I, ‖(dilationSolutionBlock x) i‖ ^ 2)
@@ -372,23 +423,29 @@ theorem clause14_extraction_contraction {O I : Type} [Fintype O] [DecidableEq O]
   have hnonneg : 0 ≤ (∑ o : O, ‖x (Sum.inl o)‖ ^ 2) := by positivity
   nlinarith
 
+/-- The squared norm of the right-hand side splits into squared least-squares overlap and
+squared residual norm. -/
 theorem clause14_residual_budget {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     ‖stateVector b‖ ^ 2 = (leastSquaresOverlap A b) ^ 2 +
       ‖stateVector (A *ᵥ leastSquaresVector A b - b)‖ ^ 2 :=
   (leastSquares_overlap_and_zero A b).2.2.2
 
+/-- The least-squares overlap vanishes exactly when the least-squares vector is zero. -/
 theorem clause14_zero_overlap_iff {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     leastSquaresOverlap A b = 0 ↔ leastSquaresVector A b = 0 :=
   (leastSquares_overlap_and_zero A b).2.1
 
+/-- The least-squares direction is `none` when the least-squares vector vanishes. -/
 theorem clause14_zero_overlap_direction {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O)
     (h : leastSquaresVector A b = 0) : leastSquaresDirection A b = none := by
   unfold leastSquaresDirection
   rw [if_pos h]
 
+/-- When the least-squares overlap is zero, the residual norm equals the norm of the right-hand
+side. -/
 theorem clause14_zero_overlap_residual {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O)
     (h : leastSquaresOverlap A b = 0) :
@@ -400,6 +457,8 @@ theorem clause14_zero_overlap_residual {O I : Type} [Fintype O] [DecidableEq O]
   nlinarith [sq_nonneg (‖stateVector (A *ᵥ leastSquaresVector A b - b)‖
     - ‖stateVector b‖)]
 
+/-- The dilation route ledger records the supplied preparation cost, `m + n` Hamiltonian levels,
+`n` extraction levels, and their total. -/
 theorem clause14_route_ledger (m n prepareGates : ℕ) :
     (dilationRouteLedger m n prepareGates).prepareGates = prepareGates ∧
       (dilationRouteLedger m n prepareGates).hamiltonianLevels = dilationSize m n ∧
@@ -408,11 +467,14 @@ theorem clause14_route_ledger (m n prepareGates : ℕ) :
         = prepareGates + dilationSize m n + n := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;> rfl
 
+/-- The total dilation route count is monotone in both dimensions and the preparation count. -/
 theorem clause14_route_ledger_mono (m m' n n' p p' : ℕ) (hm : m ≤ m') (hn : n ≤ n') (hp : p ≤ p') :
     (dilationRouteLedger m n p).totalGates ≤ (dilationRouteLedger m' n' p').totalGates := by
   simp only [dilationRouteLedger, dilationSize]
   omega
 
+/-- Collects dilation size and resource counts, monotonicity, solution-block extraction, the
+residual decomposition, and zero-overlap properties [HarrowHassidimLloyd2009]. -/
 theorem clause55_endpoint :
 
     (∀ m n : ℕ, dilationSize m n = m + n) ∧
@@ -466,6 +528,8 @@ end Clause14
 
 section Clause16
 
+/-- The canonical signed filter has the same squared flag mass as the unsigned filter evaluated
+at the absolute spectral parameter. -/
 theorem clause16_signed_flag_mass_eq_unsigned (d θ : ℝ) :
     canonicalSignedFilter.filterF d θ ^ 2 + canonicalSignedFilter.filterG d θ ^ 2
       = sinEnvelopeFilterF d |θ| ^ 2 + sinEnvelopeFilterG d |θ| ^ 2 := by
@@ -477,6 +541,7 @@ theorem clause16_signed_flag_mass_eq_unsigned (d θ : ℝ) :
   rw [hf, hg]
   by_cases hθ : θ < 0 <;> simp [hθ] <;> ring
 
+/-- The squared flag mass of the canonical signed filter is even in the spectral parameter. -/
 theorem clause16_signed_kernel_even (d θ : ℝ) :
     canonicalSignedFilter.filterF d θ ^ 2 + canonicalSignedFilter.filterG d θ ^ 2
       = canonicalSignedFilter.filterF d (-θ) ^ 2 + canonicalSignedFilter.filterG d (-θ) ^ 2 := by
@@ -498,19 +563,23 @@ theorem clause16_signed_kernel_even (d θ : ℝ) :
       ring
     · rw [if_neg hθ, if_neg hneg]
 
+/-- Each diagonal entry of the signed well-phase matrix has complex norm one. -/
 theorem clause16_sign_phase_columns (θ : ℝ) (i : Fin 3) : ‖signedWellPhase θ i i‖ = 1 := by
   by_cases h : i = 1 ∧ θ < 0
   · simp [signedWellPhase, h]
   · simp [signedWellPhase, h]
 
+/-- The first-order signed-filter budget is `C / (d * M)`. -/
 theorem clause16_first_order_budget (C d M : ℝ) :
     signedFirstOrderBudget C d M = C / (d * M) := rfl
 
+/-- The first-order signed-filter budget is positive when `C`, `d`, and `M` are positive. -/
 theorem clause16_first_order_budget_pos (C d M : ℝ) (hC : 0 < C) (hd : 0 < d) (hM : 0 < M) :
     0 < signedFirstOrderBudget C d M := by
   unfold signedFirstOrderBudget
   positivity
 
+/-- For positive parameters, increasing `d` decreases the first-order signed-filter budget. -/
 theorem clause16_first_order_budget_mono (C d d' M : ℝ) (hC : 0 < C) (hd : 0 < d) (hd' : 0 < d')
     (h : d ≤ d') (hM : 0 < M) :
     signedFirstOrderBudget C d' M ≤ signedFirstOrderBudget C d M := by
@@ -526,10 +595,14 @@ theorem clause16_first_order_budget_mono (C d d' M : ℝ) (hC : 0 < C) (hd : 0 <
   unfold signedFirstOrderBudget
   exact h2
 
+/-- The signed error budget is the sum of the first-order term, `32 / 2^k`, and `2 * (M - 1) *
+δ`. -/
 theorem clause16_error_budget_sum (C d M : ℝ) (k : ℕ) (δ : ℝ) :
     signedErrorBudget C d M k δ
       = signedFirstOrderBudget C d M + 32 / 2 ^ k + 2 * (M - 1) * δ := rfl
 
+/-- Zero least-squares overlap prevents a nonnegative signed error budget from being strictly
+less than `d` times that overlap. -/
 theorem clause16_zero_overlap_blocks_success {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (C d M : ℝ) (k : ℕ) (δ : ℝ)
     (hτ : leastSquaresOverlap A b = 0) (hE : 0 ≤ signedErrorBudget C d M k δ) :
@@ -537,10 +610,15 @@ theorem clause16_zero_overlap_blocks_success {O I : Type} [Fintype O] [Decidable
   rw [hτ, mul_zero]
   linarith
 
+/-- Post-measurement conditioning on an event of positive measurement probability yields a
+normalized state. -/
 theorem clause16_normalized_well_target {I : Type} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) (h : 0 < MeasureProb ψ S) : Normalized (PostMeasure ψ S) :=
   normalized_postMeasure h
 
+/-- Collects signed-filter mass symmetry, unit phase norms, first-order and total budget
+properties, the zero-overlap obstruction, and normalization after positive-probability
+conditioning. -/
 theorem clause60_endpoint :
 
     (∀ d θ : ℝ,

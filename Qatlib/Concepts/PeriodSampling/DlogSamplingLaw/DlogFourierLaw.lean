@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+
+/-!
+# Fourier laws for the discrete-logarithm state
+
+Proves normalization of `dlogTwoDimState` and derives its single-fiber exponential-sum amplitude
+when `g` generates the nonzero residues. The calculation includes the reciprocal Fourier-modulus
+factor and supplies the sampling-law analysis associated with [Shor1997].
+
+## Main statements
+
+* `dlog_state_normalized`: Proves normalization of the two-dimensional state.
+* `dlog_single_fiber_amplitude`: Computes the amplitude over a generator fiber.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,10 +41,13 @@ namespace Qatlib.Concepts.PeriodSampling.DlogSamplingLaw
 open Matrix
 open scoped Classical BigOperators
 
+/-- Applying a matrix gate to a basis ket gives the corresponding matrix column. -/
 private theorem applyGate_ket_entry {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (k t : I) : ApplyGate A (Ket k) t = A t k := by
   simp [ApplyGate, Matrix.mulVec, dotProduct, Ket, mul_ite]
 
+/-- A Fourier-matrix entry at an embedded `Fin N` index equals the corresponding off-grid phase
+when `N ≤ q`. -/
 theorem dlog_qft_column (N q : ℕ) (hNq : N ≤ q) (a : Fin N) (c : Fin q) :
     QFTMatrix q c (Fin.castLE hNq a) = offGridPhase q ((a.val : ℝ)/(q : ℝ)) c := by
   rw [qftMatrix_apply, primRoot_zpow_eq_exp, offGridPhase]
@@ -36,6 +57,7 @@ theorem dlog_qft_column (N q : ℕ) (hNq : N ≤ q) (a : Fin N) (c : Fin q) :
   push_cast
   ring
 
+/-- The two-dimensional discrete-logarithm state is normalized when `p > 1` and `p < q`. -/
 theorem dlog_state_normalized (p q : ℕ) [NeZero p] (g x : ZMod p)
     (hp : 1 < p) (hpq : p < q) : Normalized (dlogTwoDimState p q g x) := by
   let P := p-1
@@ -90,6 +112,8 @@ theorem dlog_state_normalized (p q : ℕ) [NeZero p] (g x : ZMod p)
   push_cast
   field_simp
 
+/-- If `g` has order `p - 1` and `x = g ^ r`, the fiber equation `g ^ a * x ^ (p - 1 - b) = g ^
+k` is equivalent to `a = (r * b + k) % (p - 1)`. -/
 theorem dlog_generator_fiber (p : ℕ) [NeZero p] (g x : ZMod p) (hp : 1 < p)
     (ho : orderOf g = p-1) (r k : ℕ) (hx : x = g ^ r) (a b : Fin (p-1)) :
     g ^ a.val * x ^ (p-1-b.val) = g ^ k ↔ a.val = (r*b.val+k) % (p-1) := by
@@ -114,6 +138,8 @@ theorem dlog_generator_fiber (p : ℕ) [NeZero p] (g x : ZMod p) (hp : 1 < p)
   rw [he]
   simp only [Nat.ModEq, Nat.mod_eq_of_lt a.isLt]
 
+/-- Expresses the amplitude at `(c, d, g ^ k)` as the stated single exponential sum with
+prefactor `((p - 1 : ℕ) : ℂ)⁻¹ * (q : ℂ)⁻¹`, under the generator and modulus assumptions. -/
 theorem dlog_single_fiber_amplitude (p q : ℕ) [NeZero p] (g x : ZMod p)
     (hp : 1 < p) (hpq : p < q) (ho : orderOf g = p-1) (r k : ℕ)
     (hx : x = g ^ r) (c d : Fin q) :

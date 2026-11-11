@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockPhysicalTime
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorHistoryBorn
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule
+
+/-!
+# Rational budgets for projector-history readout
+
+`clockBits`, `precisionBits`, and `clockSize` choose rationally specified dyadic resources for a
+projector-history integral. The resulting quadrature and simulation errors each fit within `eps
+/ 8`, giving a total bias of at most `eps / 4`.
+
+`massCap` transfers an integral upper bound to the scaled measured probability. This resource
+accounting supports amplitude-estimation readout in the setting of [BrassardEtAl2002].
+
+## Main statements
+
+* `quadrature_budget_rat`: bounds the midpoint contribution for the selected clock.
+* `simulation_budget_rat`: bounds the simulation contribution for the selected precision.
+* `integral_bias`: bounds the physical integral readout bias.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -57,16 +79,23 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 open MeasureTheory
 open scoped Classical BigOperators Interval Matrix.Norms.L2Operator
 
+/-- The dyadic clock bit count chosen from the rational threshold `4 * α * T² / eps`. -/
 def clockBits (α T eps : ℚ) : ℕ :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits (4*α*T^2/eps)
 
+/-- The dyadic precision bit count chosen to control the accumulated simulation error for the
+selected clock. -/
 def precisionBits (α T eps : ℚ) : ℕ :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits (16*T*((clockBits α T eps+1 : ℕ) : ℚ)/eps)
 
+/-- The power-of-two clock size determined by `clockBits`. -/
 def clockSize (α T eps : ℚ) : ℕ := 2^(clockBits α T eps)
 
+/-- The rational mass cap `Jbar + eps / 4`. -/
 def massCap (Jbar eps : ℚ) : ℚ := Jbar + eps/4
 
+/-- An integral upper bound and bias at most `eps / 4` imply that the scaled probability is
+bounded by `massCap Jbar eps`. -/
 theorem mass_cap_of_bias (T eps Jbar : ℚ) (J p : ℝ)
     (hJ : J ≤ (Jbar : ℝ)) (hbias : |J-(T:ℝ)*p| ≤ (eps:ℝ)/4) :
     (T:ℝ)*p ≤ (massCap Jbar eps : ℝ) := by
@@ -75,9 +104,12 @@ theorem mass_cap_of_bias (T eps Jbar : ℚ) (J p : ℝ)
   push_cast
   linarith
 
+/-- The selected dyadic clock size is positive. -/
 theorem clockSize_pos (α T eps : ℚ) : 0 < clockSize α T eps := by
   exact pow_pos (by decide) _
 
+/-- For positive `eps`, the selected clock makes the rational midpoint error term at most `eps /
+8`. -/
 theorem quadrature_budget_rat (α T eps : ℚ) (heps : 0 < eps) :
     α*T^2/(2*(clockSize α T eps : ℚ)) ≤ eps/8 := by
   have hh :=
@@ -93,6 +125,8 @@ theorem quadrature_budget_rat (α T eps : ℚ) (heps : 0 < eps) :
   apply (div_le_iff₀ (by positivity : (0 : ℚ) < 2*(clockSize α T eps : ℚ))).mpr
   nlinarith
 
+/-- For positive `eps`, the selected precision makes the rational simulation error term at most
+`eps / 8`. -/
 theorem simulation_budget_rat (α T eps : ℚ) (heps : 0 < eps) :
     2*T*((clockBits α T eps+1 : ℕ) : ℚ)/(2 : ℚ)^(precisionBits α T eps) ≤ eps/8 := by
   have hh := Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.dyadicBits_bound
@@ -106,12 +140,16 @@ theorem simulation_budget_rat (α T eps : ℚ) (heps : 0 < eps) :
 variable {W I E A : Type} [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
   [Fintype E] [DecidableEq E] [Fintype A] [DecidableEq A]
 
+/-- A matrix encoded as a unitary block has operator norm at most one. -/
 theorem projector_norm_le_one (Pi : Matrix I I ℂ) (U : Matrix (A × I) (A × I) ℂ)
     (a : A) (h : ProjectedUnitaryEncoding Pi U (encodingFiber a) (encodingFiber a)) :
     ‖Pi‖ ≤ 1 := by
   rw [← h.encoded]
   exact l2_norm_compress_le_one h.left_isometry h.unitary h.right_isometry
 
+/-- Under the Hamiltonian and projector encoding hypotheses and the prescribed history-state
+accuracy, the physical integral differs from the scaled observed probability by at most `eps
+/ 4`. -/
 theorem integral_bias (α T eps : ℚ) (hα : 0 < α) (hT : 0 < T) (heps : 0 < eps)
     (H Pi : Matrix I I ℂ) (hH : H.IsHermitian)
     (UH : Matrix W W ℂ) (F : Matrix W I ℂ)

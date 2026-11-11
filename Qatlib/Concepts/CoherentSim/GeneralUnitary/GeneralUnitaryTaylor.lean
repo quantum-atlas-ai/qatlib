@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorConsumers
+
+/-!
+# Taylor encodings for general unitary summands
+
+`general_unitary_taylor_actual_segment_encoding` constructs a scale-two encoding of the matrix
+exponential for a real linear combination of unitary summands. Its factorial remainder bound
+requires a small segment but does not require each summand to be Hermitian, extending the Taylor
+encoding construction of [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `general_unitary_taylor_actual_segment_encoding`: A scale-two block encoding with factorial
+  truncation error.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,6 +57,9 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- For unitary summands and coefficient mass times segment duration at most `1 / 2`, the
+evaluated Taylor word block-encodes the evolution at scale two with error `2 / (K + 1)!`.
+See [BerryEtAl2015Taylor]. -/
 theorem general_unitary_taylor_actual_segment_encoding :
     ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
       (h : J → ℝ) (U : J → Matrix I I ℂ) (j₀ : J) (τ : ℝ) (K : ℕ),

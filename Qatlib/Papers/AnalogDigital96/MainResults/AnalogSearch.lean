@@ -9,6 +9,26 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Tactic
 import Qatlib.Papers.AnalogDigital96.MainResults.EvolutionBridge
+
+/-!
+# Analog quantum search from the Hamiltonian exponential
+
+The Hamiltonian `analogHamiltonian` is the energy-scaled sum of the starting and target rank-one
+matrices. Its sum and difference relations give an exact transition amplitude and Born
+probability, leading to certain success at the resonant time and a uniform-start specialization.
+This development supports the treatment in [FarhiGutmann1998a].
+
+## Main statements
+
+* `analog_search_probability`: the exact probability formula at time `t`.
+* `analog_search_probability_at_tm`: probability one at `π/(2 * E * x)`.
+* `uniform_search_success`: every basis target is found at time `π * sqrt(N)/(2 * E)`.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998a]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,11 +46,15 @@ local notation "qInner" => Qatlib.Foundations.PureStateMath.Inner
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The analog search Hamiltonian given by `E` times the sum of the rank-one matrices associated
+with `w` and `s`. -/
 def analogHamiltonian (E : ℝ) (s w : QState I) : Matrix I I ℂ :=
   (E : ℂ) • (outerProduct w + outerProduct s)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The analog search Hamiltonian is Hermitian for real energy `E` and arbitrary starting and
+target vectors. -/
 theorem analogHamiltonian_isHermitian (E : ℝ) (s w : QState I) :
     (analogHamiltonian E s w).IsHermitian := by
   unfold analogHamiltonian
@@ -40,6 +64,8 @@ theorem analogHamiltonian_isHermitian (E : ℝ) (s w : QState I) :
   exact Matrix.IsHermitian.smul ((outerProduct_isHermitian w).add
     (outerProduct_isHermitian s)) hE
 
+/-- For normalized `s` and `w` with real overlap `x`, the vector `s + w` satisfies the
+eigenvalue relation with value `E * (1 + x)`. -/
 theorem analogHamiltonian_eigen_plus (E x : ℝ) (s w : QState I)
     (hs : Normalized s) (hw : Normalized w) (hsw : qInner s w = (x : ℂ)) :
     analogHamiltonian E s w *ᵥ (s + w) = ((E * (1 + x) : ℝ) : ℂ) • (s + w) := by
@@ -56,6 +82,8 @@ theorem analogHamiltonian_eigen_plus (E x : ℝ) (s w : QState I)
   push_cast
   ring
 
+/-- For normalized `s` and `w` with real overlap `x`, the vector `s - w` satisfies the
+eigenvalue relation with value `E * (1 - x)`. -/
 theorem analogHamiltonian_eigen_minus (E x : ℝ) (s w : QState I)
     (hs : Normalized s) (hw : Normalized w) (hsw : qInner s w = (x : ℂ)) :
     analogHamiltonian E s w *ᵥ (s - w) = ((E * (1 - x) : ℝ) : ℂ) • (s - w) := by
@@ -72,6 +100,8 @@ theorem analogHamiltonian_eigen_minus (E x : ℝ) (s w : QState I)
   push_cast
   ring
 
+/-- The half-weighted combination of the two spectral phases equals `exp(-I * t * E) * (x *
+cos(E * x * t) - I * sin(E * x * t))`. -/
 theorem phase_combination (E x t : ℝ) :
     (2⁻¹ : ℂ) * (Complex.exp ((-Complex.I * (t : ℂ)) * ((E * (1 + x) : ℝ) : ℂ)) *
         ((x : ℂ) + 1)) +
@@ -92,6 +122,9 @@ theorem phase_combination (E x t : ℝ) :
   push_cast
   ring
 
+/-- For normalized starting and target states with real overlap `x`, the evolved target
+amplitude is `exp(-I * t * E) * (x * cos(E * x * t) - I * sin(E * x * t))`
+[FarhiGutmann1998a]. -/
 theorem analogEvolution_amplitude (E x t : ℝ) (s w : QState I)
     (hs : Normalized s) (hw : Normalized w) (hsw : qInner s w = (x : ℂ)) :
     qInner w (HamiltonianEvolution (analogHamiltonian E s w) t *ᵥ s) =
@@ -121,6 +154,8 @@ theorem analogEvolution_amplitude (E x t : ℝ) (s w : QState I)
   simp only [inner_add_state, inner_sub_state, inner_smul_state, hws, hww]
   exact phase_combination E x t
 
+/-- For normalized states with real overlap `x`, the target probability at time `t` is `sin(E *
+x * t)^2 + x^2 * cos(E * x * t)^2` [Farhi and Gutmann, Eq. 11][FarhiGutmann1998a]. -/
 theorem analog_search_probability (E x t : ℝ) (s w : QState I)
     (hs : Normalized s) (hw : Normalized w) (hsw : qInner s w = (x : ℂ)) :
     ‖qInner w (HamiltonianEvolution (analogHamiltonian E s w) t *ᵥ s)‖ ^ 2 =
@@ -138,6 +173,8 @@ theorem analog_search_probability (E x t : ℝ) (s w : QState I)
   rw [hz, ← Complex.normSq_eq_norm_sq, Complex.normSq_add_mul_I]
   ring
 
+/-- For positive energy and positive real overlap `x`, the normalized-state target probability
+is one at time `π/(2 * E * x)` [Farhi and Gutmann, Eq. 12][FarhiGutmann1998a]. -/
 theorem analog_search_probability_at_tm (E x : ℝ) (s w : QState I)
     (hs : Normalized s) (hw : Normalized w) (hsw : qInner s w = (x : ℂ))
     (hE : 0 < E) (hx : 0 < x) :
@@ -149,12 +186,16 @@ theorem analog_search_probability_at_tm (E x : ℝ) (s w : QState I)
   rw [harg, Real.sin_pi_div_two, Real.cos_pi_div_two]
   ring
 
+/-- The average squared overlap of a normalized state with the columns of a unitary matrix is
+the reciprocal of the positive dimension [FarhiGutmann1998a]. -/
 theorem basis_overlap_average (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (w : QState I) (hw : Normalized w) (_hN : 0 < Fintype.card I) :
     (∑ i, ‖qInner (fun j => V j i) w‖ ^ 2) / (Fintype.card I : ℝ) =
       1 / (Fintype.card I : ℝ) := by
   rw [spectral_weights_sum V w hV hw]
 
+/-- For positive energy and dimension parameter, substituting overlap `1/sqrt N` gives search
+time `π * sqrt N/(2 * E)`. -/
 theorem search_time_typical (E N : ℝ) (hE : 0 < E) (hN : 0 < N) :
     Real.pi / (2 * E * (1 / Real.sqrt N)) = Real.pi * Real.sqrt N / (2 * E) := by
   have hsqrt : 0 < Real.sqrt N := Real.sqrt_pos.2 hN
@@ -162,6 +203,8 @@ theorem search_time_typical (E N : ℝ) (hE : 0 < E) (hN : 0 < N) :
   rw [hden]
   field_simp [hsqrt.ne', hE.ne']
 
+/-- For positive `E` and `N` with `1/sqrt N ≤ x ≤ 1`, the search time `π/(2 * E * x)` lies
+between `π/(2 * E)` and `π * sqrt N/(2 * E)`. -/
 theorem search_time_order (E x N : ℝ) (hE : 0 < E) (hN : 0 < N)
     (hx_low : 1 / Real.sqrt N ≤ x) (hx_high : x ≤ 1) :
     Real.pi / (2 * E) ≤ Real.pi / (2 * E * x) ∧
@@ -181,15 +224,21 @@ theorem search_time_order (E x N : ℝ) (hE : 0 < E) (hN : 0 < N)
           mul_le_mul_of_nonneg_left hxinv (by positivity)
       _ = Real.pi * Real.sqrt N / (2 * E) := by ring
 
+/-- The overlap of the uniform state with any basis target is the real scalar `1/sqrt(card I)`
+embedded in the complex numbers. -/
 theorem uniform_target_overlap (w : I) :
     qInner (Uniform I) (Ket w) = ((1 / Real.sqrt (Fintype.card I) : ℝ) : ℂ) := by
   simp [Qatlib.Foundations.PureStateMath.Inner, Uniform, Ket, dotProduct]
 
+/-- Hamiltonian evolution under the analog search Hamiltonian preserves normalization of the
+starting state [FarhiGutmann1998a]. -/
 theorem analog_search_normalized (E t : ℝ) (s w : QState I) (hs : Normalized s) :
     Normalized (HamiltonianEvolution (analogHamiltonian E s w) t *ᵥ s) := by
   exact normalized_applyGate
       (hamiltonianEvolution_unitary (analogHamiltonian_isHermitian E s w) t) hs
 
+/-- Starting from the uniform state, every basis target has Born probability one at time `π *
+sqrt(card I)/(2 * E)` when `E > 0` [FarhiGutmann1998a]. -/
 theorem uniform_search_success (w : I) (E : ℝ) (hE : 0 < E) :
     BornProb (HamiltonianEvolution (analogHamiltonian E (Uniform I) (Ket w))
       (Real.pi * Real.sqrt (Fintype.card I) / (2 * E)) *ᵥ Uniform I) w = 1 := by

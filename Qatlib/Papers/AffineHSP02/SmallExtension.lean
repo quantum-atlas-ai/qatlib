@@ -9,6 +9,24 @@ import Mathlib.GroupTheory.QuotientGroup.Defs
 import Mathlib.GroupTheory.OrderOfElement
 import Mathlib.Tactic
 
+/-!
+# Lifting subgroup generators through a quotient
+
+For a normal subgroup `K`, describes fibers of the quotient projection inside a subgroup `L` as
+cosets of `L ⊓ K`. The theorem `closure_union_lifts` reconstructs generators for `L` from lifts
+of generators of its quotient image and generators of its intersection with the kernel. See
+[MooreEtAl2002].
+
+## Main statements
+
+* `fiber_mem_coset`: the quotient fiber inside `L` is a coset of `L ⊓ K`.
+* `closure_union_lifts`: quotient-image lifts and kernel-intersection generators generate `L`.
+
+## References
+
+* [Moore et al., 2002][MooreEtAl2002]
+-/
+
 set_option autoImplicit false
 
 open scoped BigOperators
@@ -17,8 +35,11 @@ namespace Qatlib.Papers.AffineHSP02.SmallExtension
 
 variable {G : Type*} [Group G]
 
+/-- The canonical group homomorphism from `G` to the quotient by the normal subgroup `K`. -/
 abbrev proj (K : Subgroup G) [K.Normal] : G →* G ⧸ K := QuotientGroup.mk' K
 
+/-- For `x ∈ L`, an element `y` belongs to `L` and has the same quotient image as `x` exactly
+when `y = x * k` for some `k ∈ L ⊓ K`. -/
 theorem fiber_mem_coset (K : Subgroup G) [K.Normal] (L : Subgroup G) {x : G}
     (hx : x ∈ L) (y : G) :
     y ∈ L ∧ proj K y = proj K x ↔ ∃ k ∈ L ⊓ K, y = x * k := by
@@ -42,6 +63,8 @@ theorem fiber_mem_coset (K : Subgroup G) [K.Normal] (L : Subgroup G) {x : G}
       exact MonoidHom.mem_ker.mp hker
     rw [hk1, mul_one]
 
+/-- If `x ∈ L` and `x` and `y` have the same quotient image, membership of `y` in `L` is
+equivalent to `y = x * k` for some `k ∈ L ⊓ K`. -/
 theorem mem_iff_mul_mem_inter (K : Subgroup G) [K.Normal] (L : Subgroup G) {x : G}
     (hx : x ∈ L) (y : G) (hyx : proj K y = proj K x) :
     y ∈ L ↔ ∃ k ∈ L ⊓ K, y = x * k := by
@@ -51,6 +74,8 @@ theorem mem_iff_mul_mem_inter (K : Subgroup G) [K.Normal] (L : Subgroup G) {x : 
   · intro h
     exact ((fiber_mem_coset K L hx y).mpr h).1
 
+/-- If the images of `S ⊆ L` generate the quotient image of `L` and `T ⊆ L ⊓ K` generates `L ⊓
+K`, then `S ∪ T` generates `L`. -/
 theorem closure_union_lifts (K : Subgroup G) [K.Normal] (L : Subgroup G)
     (S T : Set G) (hS : S ⊆ L) (hT : T ⊆ L ⊓ K)
     (himg : L.map (proj K) = Subgroup.closure (proj K '' S))

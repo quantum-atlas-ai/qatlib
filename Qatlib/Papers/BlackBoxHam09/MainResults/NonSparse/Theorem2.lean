@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+/-!
+# Theorem 2 query expression estimates
+
+This module proves positivity and monotonicity properties of `theorem2QueryExpr`, together with
+denominator, square root, and accumulated error inequalities. The declaration
+`theorem2_improved_sparsity` collects these scalar estimates under the stated sparse Hamiltonian
+and parameter hypotheses.
+
+The estimates support the improved sparsity analysis of Theorem 2 in [BerryChilds2012].
+
+## Main statements
+
+* `theorem2_query_mono_time` and `theorem2_query_mono_delta` give query expression monotonicity.
+* `theorem2_improved_sparsity` collects the scalar estimates.
+
+## References
+
+* [Berry and Childs, 2012][BerryChilds2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,10 +42,15 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι] [Inhabited ι] {D L : ℕ}
 
+/-- The regularized iterated logarithm `loglogSafe D` is strictly positive for every natural
+number `D`. -/
 theorem loglogSafe_pos (D : ℕ) : 0 < loglogSafe D := by
   unfold loglogSafe
   exact lt_of_lt_of_le zero_lt_one (le_max_left _ _)
 
+/-- For nonnegative `loglogSafe D` and `Λ * t`, factor the Theorem 2 query expression into
+separate powers of `D`, `loglogSafe D`, `Λ * t`, and `δ`. See [Berry and Childs, Theorem
+2][BerryChilds2012]. -/
 theorem theorem2QueryExpr_eq {Λ t δ : ℝ} (hlog : 0 ≤ loglogSafe D) (hΛt : 0 ≤ Λ * t) :
     theorem2QueryExpr Λ D t δ =
       Real.rpow (D : ℝ) (2 / 3) * Real.rpow (loglogSafe D) (4 / 3) *
@@ -38,6 +64,8 @@ theorem theorem2QueryExpr_eq {Λ t δ : ℝ} (hlog : 0 ≤ loglogSafe D) (hΛt :
   rw [hmul]
   ring
 
+/-- The Theorem 2 query expression is positive when `D`, `Λ`, `t`, and `δ` are positive. See
+[Berry and Childs, Theorem 2][BerryChilds2012]. -/
 theorem theorem2_query_pos {Λ t δ : ℝ} (hD : 0 < D) (hΛ : 0 < Λ) (ht : 0 < t)
     (hδ : 0 < δ) :
     0 < theorem2QueryExpr Λ D t δ := by
@@ -51,6 +79,8 @@ theorem theorem2_query_pos {Λ t δ : ℝ} (hD : 0 < D) (hΛ : 0 < Λ) (ht : 0 <
   have h4 : 0 < Real.rpow δ (-(1 / 3)) := Real.rpow_pos_of_pos hδ _
   positivity
 
+/-- For positive `D`, `Λ`, `t`, and `δ`, increasing time from `t` to `t'` increases the Theorem
+2 query expression weakly. See [Berry and Childs, Theorem 2][BerryChilds2012]. -/
 theorem theorem2_query_mono_time {Λ t t' δ : ℝ} (hD : 0 < D) (hΛ : 0 < Λ)
     (ht : 0 < t) (htt : t ≤ t') (hδ : 0 < δ) :
     theorem2QueryExpr Λ D t δ ≤ theorem2QueryExpr Λ D t' δ := by
@@ -72,6 +102,9 @@ theorem theorem2_query_mono_time {Λ t t' δ : ℝ} (hD : 0 < D) (hΛ : 0 < Λ)
     positivity
   nlinarith [hmono, hfac]
 
+/-- For positive `D`, `Λ`, `t`, and `δ`, increasing the error tolerance from `δ` to `δ'`
+decreases the Theorem 2 query expression weakly. See [Berry and Childs, Theorem
+2][BerryChilds2012]. -/
 theorem theorem2_query_mono_delta {Λ t δ δ' : ℝ} (hD : 0 < D) (hΛ : 0 < Λ)
     (ht : 0 < t) (hδ : 0 < δ) (hδδ : δ ≤ δ') :
     theorem2QueryExpr Λ D t δ' ≤ theorem2QueryExpr Λ D t δ := by
@@ -91,6 +124,8 @@ theorem theorem2_query_mono_delta {Λ t δ δ' : ℝ} (hD : 0 < D) (hΛ : 0 < Λ
     positivity
   nlinarith [hmono, hfac]
 
+/-- If `L ≥ 2`, the parameters are positive, and `sqrt δ ≤ Λ * t`, then `L ^ (3 / 2) * Λ ^ 2 * t
+^ 2 / (2 * δ)` is at least one. See [Berry and Childs, Theorem 2][BerryChilds2012]. -/
 theorem theorem2_denominator_ge_one {L : ℕ} {Λ t δ : ℝ} (hL : 2 ≤ L) (hΛ : 0 < Λ)
     (ht : 0 < t) (hδ : 0 < δ) (hcond : Real.sqrt δ ≤ Λ * t) :
     1 ≤ Real.rpow (L : ℝ) (3 / 2) * Λ ^ 2 * t ^ 2 / (2 * δ) := by
@@ -129,6 +164,9 @@ theorem theorem2_denominator_ge_one {L : ℕ} {Λ t δ : ℝ} (hL : 2 ≤ L) (h�
       Real.rpow (L : ℝ) (3 / 2) * Λ ^ 2 * t ^ 2 / δ := by ring
   nlinarith [hprod, hδ]
 
+/-- For the stated positive parameters, a lower bound `τ ≥ δ / (L ^ (3 / 2) * Λ ^ 2 * t)`
+implies `sqrt (δ * τ / (L ^ (3 / 2) * t)) ≤ Λ * τ`. See [Berry and Childs, Theorem
+2][BerryChilds2012]. -/
 theorem theorem2_sqrt_bound {L : ℕ} {Λ t δ τ : ℝ} (hΛ : 0 < Λ) (hL : 0 < L)
     (ht : 0 < t) (hδ : 0 < δ) (hτ : 0 < τ)
     (h : δ / (Real.rpow (L : ℝ) (3 / 2) * Λ ^ 2 * t) ≤ τ) :
@@ -141,6 +179,8 @@ theorem theorem2_sqrt_bound {L : ℕ} {Λ t δ τ : ℝ} (hΛ : 0 < Λ) (hL : 0 
   rw [div_le_iff₀ (by positivity : 0 < Real.rpow (L : ℝ) (3 / 2) * t)]
   nlinarith [hmul, hτ, mul_pos hτ hτ, hc, hΛ, ht]
 
+/-- For `L ≥ 1` and positive `δ`, an error `e ≤ δ / L ^ (3 / 2)` satisfies the accumulated bound
+`L * e ≤ δ`. See [Berry and Childs, Theorem 2][BerryChilds2012]. -/
 theorem theorem2_error_terms {L : ℕ} {δ e : ℝ} (hL : 1 ≤ L) (hδ : 0 < δ)
     (he : e ≤ δ / Real.rpow (L : ℝ) (3 / 2)) :
     (L : ℝ) * e ≤ δ := by
@@ -163,6 +203,9 @@ theorem theorem2_error_terms {L : ℕ} {δ e : ℝ} (hL : 1 ≤ L) (hδ : 0 < δ
     _ = δ / Real.sqrt (L : ℝ) := by field_simp
     _ ≤ δ := div_le_self hδ.le hsqrt1
 
+/-- Under the stated sparse Hamiltonian and parameter hypotheses, collect positivity and time
+and tolerance monotonicity of the query expression with three scalar denominator and error
+bounds. These are arithmetic ingredients for Theorem 2 of [BerryChilds2012]. -/
 theorem theorem2_improved_sparsity
     (BB : BlackBox ι D L) {Λ t δ : ℝ}
     (hsp : IsColumnSparse BB.H D) (hD : 0 < D)

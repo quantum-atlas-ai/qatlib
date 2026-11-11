@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Optimal threshold allocation contract
+
+Defines `ThresholdOptimalThresholdAllocation` for nonnegative weights with positive total
+weight. The thresholds proportional to the two-thirds powers sum to one, lie in the unit
+interval, and attain `quasinorm23`; the contract also requires global optimality among supported
+allocations and uniqueness for positive weights. This captures the threshold optimization used
+in [LowSu2026].
+
+## Main statements
+
+* `ThresholdOptimalThresholdAllocation`: states feasibility, objective value, optimality, and
+  the positive-weight uniqueness criterion.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -24,6 +44,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The contract that thresholds proportional to the two-thirds powers of nonnegative weights
+form a unit-sum allocation attaining `quasinorm23`, minimize the objective over nonnegative
+unit-sum allocations positive wherever the weights are positive, and are the unique strictly
+positive minimizer when all weights are positive. -/
 def ThresholdOptimalThresholdAllocation : Prop :=
   ∀ (n : ℕ) (w : Fin n → ℝ),
     (∀ j, 0 ≤ w j) → 0 < (∑ j, w j) →

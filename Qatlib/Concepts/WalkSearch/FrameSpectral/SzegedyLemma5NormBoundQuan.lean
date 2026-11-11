@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundStat
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Contraction of the bipartite discriminant
+
+This module proves the squared Euclidean norm contraction of the cross-frame map `Aᴴ * B` for
+isometric frames. The theorem `szegedyLemma5NormBound` applies the resulting estimate to the
+bipartite discriminant and identifies the common frame image for a +1 source eigenvector. The
+quantum walk spectral framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `cross_contract`: Squared norm contraction of the cross-frame matrix.
+* `szegedyLemma5NormBound`: Discriminant contraction and the +1 equality property.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -26,6 +45,8 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- For isometric frames `A` and `B`, applying `Aᴴ * B` cannot increase the sum of squared
+coordinate norms. -/
 private theorem cross_contract {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (hA : IsIsometry A)
@@ -43,6 +64,9 @@ private theorem cross_contract {H I J : Type} [Fintype H] [DecidableEq H]
   have hs := pow_le_pow_left₀ (norm_nonneg _) hv' 2
   simpa only [norm_toEuclidean_fromVec_sq] using! hs
 
+/-- For isometric frames, the bipartite discriminant contracts the squared Euclidean norm, and
+every +1 source eigenvector has equal images under the two frames [Szegedy, Lemma
+5][Szegedy2004]. -/
 theorem szegedyLemma5NormBound : SzegedyLemma5NormBound := by
   intro H I J _ _ _ _ _ _ A B hA hB
   constructor

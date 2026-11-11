@@ -8,6 +8,27 @@ import Qatlib.Papers.FermLinOpt04.MainResults.Model.Closure
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Data.List.Nodup
 import Mathlib.Algebra.Ring.Parity
+
+/-!
+# Majorana monomial products and Gaussian traces
+
+`wordProd` forms ordered products of Majorana generators. The module proves commutation signs,
+vanishing traces, and diagonal trace pairings for the monomials `monomial S`. The resulting
+formulas evaluate traces of `gaussianOp` against odd and even monomials, with the even case
+expressed using `pfaffianSub`.
+
+These constructions belong to the formalization of [Bravyi2005Fermionic].
+
+## Main statements
+
+* `trace_monomial_mul_offdiag`: distinct monomials have zero trace pairing.
+* `trace_gaussianOp_mul_monomial_even`: evaluates an even Gaussian correlator by a Pfaffian.
+
+## References
+
+* [Bravyi, 2005][Bravyi2005Fermionic]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,25 +43,34 @@ open Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
 
 namespace Qatlib.Papers.FermLinOpt04.MainResults.Model
 
+/-- The ordered product of the Majorana generators indexed by the list `l`. -/
 noncomputable def wordProd {n : ℕ} (l : List (Fin (2 * n))) : Fock n :=
   (l.map gen).prod
 
+/-- The product of the empty Majorana word is the identity. -/
 @[simp] theorem wordProd_nil {n : ℕ} : wordProd ([] : List (Fin (2 * n))) = 1 := rfl
 
+/-- Prepending an index to a Majorana word multiplies its product on the left by the
+corresponding generator. -/
 @[simp] theorem wordProd_cons {n : ℕ} (a : Fin (2 * n)) (l : List (Fin (2 * n))) :
     wordProd (a :: l) = gen a * wordProd l := rfl
 
+/-- The product of a concatenation of Majorana words is the product of their ordered products. -/
 theorem wordProd_append {n : ℕ} (l₁ l₂ : List (Fin (2 * n))) :
     wordProd (l₁ ++ l₂) = wordProd l₁ * wordProd l₂ := by
   simp only [wordProd, List.map_append, List.prod_append]
 
+/-- A Majorana monomial is the ordered word product of its indices sorted increasingly. -/
 theorem monomial_eq_wordProd {n : ℕ} (S : Finset (Fin (2 * n))) :
     monomial S = wordProd (S.sort (· ≤ ·)) := rfl
 
+/-- The square of any natural power of negative one in the complex numbers is one. -/
 theorem neg_one_pow_mul_self (k : ℕ) : (-1 : ℂ) ^ k * (-1 : ℂ) ^ k = 1 := by
   rw [← pow_add]
   exact Even.neg_one_pow ⟨k, by ring⟩
 
+/-- Moving a generator across a word contributes one minus sign for each index different from
+its own. -/
 theorem gen_mul_wordProd {n : ℕ} (a : Fin (2 * n)) (l : List (Fin (2 * n))) :
     gen a * wordProd l
       = ((-1 : ℂ) ^ (l.filter (fun b => b != a)).length) • (wordProd l * gen a) := by
@@ -76,6 +106,8 @@ theorem gen_mul_wordProd {n : ℕ} (a : Fin (2 * n)) (l : List (Fin (2 * n))) :
           Matrix.mul_assoc (gen x) (gen a) (wordProd t), ih, Matrix.mul_smul,
           Matrix.mul_assoc (gen x) (wordProd t) (gen a), hsign]
 
+/-- Moving a generator absent from the word from right to left contributes the sign given by the
+word length. -/
 theorem wordProd_mul_gen {n : ℕ} (l : List (Fin (2 * n))) (a : Fin (2 * n)) (h : a ∉ l) :
     wordProd l * gen a = ((-1 : ℂ) ^ l.length) • (gen a * wordProd l) := by
   have hmain := gen_mul_wordProd a l
@@ -87,12 +119,14 @@ theorem wordProd_mul_gen {n : ℕ} (l : List (Fin (2 * n))) (a : Fin (2 * n)) (h
           rw [smul_smul]
     _ = ((-1 : ℂ) ^ l.length) • (gen a * wordProd l) := by rw [hmain]
 
+/-- A Majorana word of odd length is an odd operator. -/
 theorem isOddOp_wordProd {n : ℕ} {l : List (Fin (2 * n))} (h : Odd l.length) :
     IsOddOp (wordProd l) :=
   (parity_prod (l.map gen) (fun X hX => by
     obtain ⟨a, _, rfl⟩ := List.mem_map.mp hX
     exact IsOddOp.gen a)).2 (by rwa [List.length_map])
 
+/-- Every odd Fock operator has zero trace. -/
 theorem trace_eq_zero_of_isOddOp {n : ℕ} {X : Fock n} (h : IsOddOp X) :
     Matrix.trace X = 0 := by
   have hc : Matrix.trace (parityOp * X * parityOp) = Matrix.trace X := by
@@ -102,11 +136,15 @@ theorem trace_eq_zero_of_isOddOp {n : ℕ} {X : Fock n} (h : IsOddOp X) :
   have h2 : (2 : ℂ) * Matrix.trace X = 0 := by linear_combination -hc
   exact (mul_eq_zero.mp h2).resolve_left (by norm_num)
 
+/-- An index occurs once in a sorted finite set if it belongs to the set, and zero times
+otherwise. -/
 theorem count_sort {n : ℕ} (S : Finset (Fin (2 * n))) (a : Fin (2 * n)) :
     (S.sort (· ≤ ·)).count a = if a ∈ S then 1 else 0 := by
   rw [List.Nodup.count (Finset.sort_nodup S (· ≤ ·))]
   simp
 
+/-- A list containing an element exactly once splits at that element into two lists containing
+no further occurrence. -/
 theorem exists_split_count_one {α : Type*} [BEq α] [LawfulBEq α] {l : List α} {a : α}
     (h : l.count a = 1) : ∃ l₁ l₂, l = l₁ ++ a :: l₂ ∧ a ∉ l₁ ∧ a ∉ l₂ := by
   induction l with
@@ -125,6 +163,8 @@ theorem exists_split_count_one {α : Type*} [BEq α] [LawfulBEq α] {l : List α
         · exact hx rfl
         · exact h1 hm'
 
+/-- An even-length Majorana word has zero trace if its distinguished middle index occurs nowhere
+else. -/
 theorem trace_wordProd_split {n : ℕ} (l₁ l₂ : List (Fin (2 * n))) (a : Fin (2 * n))
     (h₁ : a ∉ l₁) (h₂ : a ∉ l₂) (hlen : Even (l₁.length + l₂.length + 1)) :
     Matrix.trace (wordProd (l₁ ++ a :: l₂)) = 0 := by
@@ -171,6 +211,8 @@ theorem trace_wordProd_split {n : ℕ} (l₁ l₂ : List (Fin (2 * n))) (a : Fin
     linear_combination hsc
   exact (mul_eq_zero.mp htwo).resolve_left (by norm_num)
 
+/-- The trace pairing of two Majorana monomials with distinct index sets is zero. See
+[Bravyi2005Fermionic]. -/
 theorem trace_monomial_mul_offdiag {n : ℕ} {S T : Finset (Fin (2 * n))} (hST : S ≠ T) :
     Matrix.trace (monomial S * monomial T) = 0 := by
   rw [monomial_eq_wordProd, monomial_eq_wordProd, ← wordProd_append]
@@ -203,6 +245,7 @@ theorem trace_monomial_mul_offdiag {n : ℕ} {S T : Finset (Fin (2 * n))} (hST :
       simpa [List.length_append, List.length_cons, Nat.add_assoc] using! heven'
   · exact trace_eq_zero_of_isOddOp (isOddOp_wordProd hodd)
 
+/-- The identity on the `n`-mode Fock space has trace `2 ^ n`. -/
 theorem trace_one_fock {n : ℕ} : Matrix.trace (1 : Fock n) = ((2 : ℂ) ^ n) := by
   rw [Matrix.trace_one]
   have hcard : Fintype.card (Reg n) = 2 ^ n := card_reg n
@@ -210,6 +253,8 @@ theorem trace_one_fock {n : ℕ} : Matrix.trace (1 : Fock n) = ((2 : ℂ) ^ n) :
   push_cast
   ring
 
+/-- Repeating a word with no duplicate indices gives the identity multiplied by the sign with
+exponent `Nat.choose l.length 2`. -/
 theorem wordProd_self {n : ℕ} (l : List (Fin (2 * n))) (h : l.Nodup) :
     wordProd (l ++ l) = ((-1 : ℂ) ^ Nat.choose l.length 2) • (1 : Fock n) := by
   induction l with
@@ -239,6 +284,8 @@ theorem wordProd_self {n : ℕ} (l : List (Fin (2 * n))) (h : l.Nodup) :
       rw [wordProd_append, hstep, hcomm, Matrix.smul_mul, Matrix.mul_smul, hkey,
         ← wordProd_append, hε, smul_smul]
 
+/-- The square of a Majorana monomial is the identity times the sign with exponent `Nat.choose
+S.card 2`. -/
 theorem monomial_mul_self {n : ℕ} (S : Finset (Fin (2 * n))) :
     monomial S * monomial S
       = ((-1 : ℂ) ^ Nat.choose S.card 2) • (1 : Fock n) := by
@@ -246,11 +293,15 @@ theorem monomial_mul_self {n : ℕ} (S : Finset (Fin (2 * n))) :
   rw [monomial_eq_wordProd, ← wordProd_append]
   simpa [Finset.length_sort] using! h
 
+/-- The trace of a squared Majorana monomial is `2 ^ n` times the sign determined by the number
+of index pairs. -/
 theorem trace_monomial_mul_self {n : ℕ} (S : Finset (Fin (2 * n))) :
     Matrix.trace (monomial S * monomial S)
       = ((-1 : ℂ) ^ Nat.choose S.card 2) * ((2 : ℂ) ^ n) := by
   rw [monomial_mul_self, Matrix.trace_smul, trace_one_fock, smul_eq_mul]
 
+/-- Multiplying `Complex.I ^ p` by the sign with exponent `Nat.choose (2 * p) 2` gives
+`(-Complex.I) ^ p`. -/
 theorem i_pow_choose (p : ℕ) :
     Complex.I ^ p * ((-1 : ℂ) ^ Nat.choose (2 * p) 2) = (-Complex.I) ^ p := by
   have hcho : Nat.choose (2 * p) 2 = p * (2 * p - 1) := by
@@ -266,6 +317,7 @@ theorem i_pow_choose (p : ℕ) :
       rw [hexp, pow_add, pow_mul, show ((-1 : ℂ) ^ 2) = 1 by norm_num, one_pow, mul_one]
   rw [hcho, hsign, ← mul_pow, show Complex.I * (-1 : ℂ) = -Complex.I by ring]
 
+/-- The trace of a Gaussian operator multiplied by an odd-degree Majorana monomial is zero. -/
 theorem trace_gaussianOp_mul_monomial_odd {n : ℕ}
     (M : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ) (C : ℂ) {T : Finset (Fin (2 * n))}
     (hT : Odd T.card) : Matrix.trace (gaussianOp M C * monomial T) = 0 := by
@@ -281,6 +333,8 @@ theorem trace_gaussianOp_mul_monomial_odd {n : ℕ}
     omega
   rw [trace_monomial_mul_offdiag hne, mul_zero, mul_zero]
 
+/-- For an even index set, the Gaussian trace pairing is the corresponding submatrix Pfaffian
+times `C * 2 ^ n` and the phase `(-Complex.I) ^ (T.card / 2)`. See [Bravyi2005Fermionic]. -/
 theorem trace_gaussianOp_mul_monomial_even {n : ℕ}
     (M : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ) (C : ℂ) {T : Finset (Fin (2 * n))}
     (hT : Even T.card) :

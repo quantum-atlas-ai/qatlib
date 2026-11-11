@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.PoissonMesh
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
 import Mathlib.MeasureTheory.Integral.Prod
+
+/-!
+# Sampling estimates for analytic strip functions
+
+This module obtains normal convergence of mesh translates from integrability of a function and
+its derivative. For holomorphic strip functions, bounded horizontal norm integrals provide
+derivative integrability and hence the sampling hypotheses needed for the quadrature estimates
+of [AftabAnTrivisa2026].
+
+## Main statements
+
+* `normal_convergence_of_strip`: normal convergence from strip mass bounds.
+* `analytic_strip_mesh_error_of_norm_decay`: the exponential mesh error estimate with norm
+  decay.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,10 +43,13 @@ section Real
 
 variable [NormedSpace ℝ E]
 
+/-- The sum of the integrals of `‖g‖` and `‖deriv g‖` over the integer cell `[n, n + 1]`. -/
 def cellMass (g : ℝ → E) (n : ℤ) : ℝ :=
   (∫ t : ℝ in (n : ℝ)..(n : ℝ) + 1, ‖g t‖) +
     ∫ t : ℝ in (n : ℝ)..(n : ℝ) + 1, ‖deriv g t‖
 
+/-- The oscillation of a differentiable function between two points in an interval is bounded by
+the integral of its derivative norm over that interval. -/
 theorem norm_sub_le_cell_deriv (g : ℝ → E) (hg : Differentiable ℝ g)
     (hdi : Integrable (deriv g)) (a b x y : ℝ) (hx : x ∈ Icc a b) (hy : y ∈ Icc a b) :
     ‖g x - g y‖ ≤ ∫ t : ℝ in a..b, ‖deriv g t‖ := by
@@ -42,6 +65,8 @@ theorem norm_sub_le_cell_deriv (g : ℝ → E) (hg : Differentiable ℝ g)
   · rw [norm_sub_rev]
     exact hd x y (le_of_not_ge hxy) hx.1 hy.2
 
+/-- The norm of a differentiable function at any point of an integer cell is bounded by
+`cellMass`, assuming integrability of the function and its derivative. -/
 theorem norm_le_cellMass (g : ℝ → E) (hg : Differentiable ℝ g) (hi : Integrable g)
     (hdi : Integrable (deriv g)) (n : ℤ) (x : ℝ) (hx : x ∈ Icc (n : ℝ) ((n : ℝ) + 1)) :
     ‖g x‖ ≤ cellMass g n := by
@@ -57,15 +82,20 @@ theorem norm_le_cellMass (g : ℝ → E) (hg : Differentiable ℝ g) (hi : Integ
   rw [intervalIntegral.integral_add hi.norm.intervalIntegrable intervalIntegrable_const] at h
   simpa [cellMass, D] using h
 
+/-- The mass of every integer cell is nonnegative. -/
 theorem cellMass_nonneg (g : ℝ → E) (n : ℤ) : 0 ≤ cellMass g n := by
   apply add_nonneg <;> apply intervalIntegral.integral_nonneg (by linarith) <;>
     intro t _ <;> exact norm_nonneg _
 
+/-- Integrability of a function and its derivative implies summability of the integer cell
+masses. -/
 theorem summable_cellMass (g : ℝ → E) (hi : Integrable g) (hdi : Integrable (deriv g)) :
     Summable (cellMass g) := by
   simpa only [cellMass, zero_add] using!
     (hi.norm.hasSum_intervalIntegral 0).summable.add (hdi.norm.hasSum_intervalIntegral 0).summable
 
+/-- A differentiable continuous function with integrable function and derivative has normally
+convergent integer translates on every compact set. -/
 theorem normal_convergence_of_integrable_deriv (g : C(ℝ, E)) (hg : Differentiable ℝ (g : ℝ → E))
     (hi : Integrable (g : ℝ → E)) (hdi : Integrable (deriv (g : ℝ → E))) :
     ∀ K : Compacts ℝ,
@@ -108,6 +138,8 @@ section Complex
 
 variable [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- A holomorphic function on a positive-width strip with uniformly bounded integrable interior
+slices has an integrable complex derivative along the real axis. -/
 theorem integrable_complex_deriv (f : ℂ → E) (ρ M : ℝ) (hρ : 0 < ρ)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
     (hi : ∀ y ∈ Ioo (-ρ) ρ, Integrable (fun x : ℝ => f ((x : ℂ) + y * I)))
@@ -180,6 +212,8 @@ theorem integrable_complex_deriv (f : ℂ → E) (ρ M : ℝ) (hρ : 0 < ρ)
 
 omit [CompleteSpace E] in
 
+/-- The derivative of the real-axis restriction equals the complex derivative at each real point
+for a function holomorphic on a positive-width strip. -/
 theorem real_axis_hasDerivAt (f : ℂ → E) (ρ : ℝ) (hρ : 0 < ρ)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ}) (x : ℝ) :
     HasDerivAt (fun t : ℝ => f (t : ℂ)) (deriv f (x : ℂ)) x := by
@@ -188,6 +222,8 @@ theorem real_axis_hasDerivAt (f : ℂ → E) (ρ : ℝ) (hρ : 0 < ρ)
   have hd := (hf.differentiableAt (ht (Icc_mem_nhds (by linarith) hρ))).hasDerivAt
   simpa using! hd.scomp x (Complex.ofRealCLM.hasDerivAt (x := x))
 
+/-- Uniformly bounded integrable horizontal slices of a holomorphic strip function imply normal
+convergence of its mesh translates on compact sets. -/
 theorem normal_convergence_of_strip (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 < h)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
     (hi : ∀ y ∈ Ioo (-ρ) ρ, Integrable (fun x : ℝ => f ((x : ℂ) + y * I)))
@@ -213,6 +249,8 @@ theorem normal_convergence_of_strip (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ
   rw [ContinuousMap.norm_eq_iSup_norm]
   rfl
 
+/-- A holomorphic strip function with uniform decay and bounded integrable interior slices has
+mesh error at most `2M / (exp (2πρ / h) - 1)`. -/
 theorem strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 < h)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
     (hd : StripContour.UniformDecay f (-ρ) ρ)
@@ -223,6 +261,8 @@ theorem strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 <
   PoissonMesh.strip_mesh_error f ρ M h hρ hh hf hd hi hm
     (normal_convergence_of_strip f ρ M h hρ hh hf hi hm)
 
+/-- Analyticity near the closed strip, uniform decay, and bounded integrable interior slices
+give mesh error at most `2M / (exp (2πρ / h) - 1)`. -/
 theorem analytic_strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) (hh : 0 < h)
     (hf : AnalyticOnNhd ℂ f {z : ℂ | |z.im| ≤ ρ})
     (hd : StripContour.UniformDecay f (-ρ) ρ)
@@ -232,6 +272,9 @@ theorem analytic_strip_mesh_error (f : ℂ → E) (ρ M h : ℝ) (hρ : 0 < ρ) 
       2 * M / (Real.exp (2 * Real.pi * ρ / h) - 1) :=
   strip_mesh_error f ρ M h hρ hh (by simpa only [abs_le] using hf.differentiableOn) hd hi hm
 
+/-- Analyticity near the closed strip, uniform decay with respect to the complex norm, and
+bounded integrable interior slices give the exponential mesh error bound of [Aftab et al.,
+Lemma 4.13][AftabAnTrivisa2026]. -/
 theorem analytic_strip_mesh_error_of_norm_decay (f : ℂ → E) (ρ M h : ℝ)
     (hρ : 0 < ρ) (hh : 0 < h)
     (hf : AnalyticOnNhd ℂ f {z : ℂ | |z.im| ≤ ρ})

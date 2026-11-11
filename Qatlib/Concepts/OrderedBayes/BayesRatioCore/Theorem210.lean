@@ -9,6 +9,27 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# A zero-fuel obstruction to generalized recovery
+
+This module disproves `Theorem2_10Contract`, the local generalized comparison-recovery contract
+associated with ordered search [BenOrHassidim2007]. Its recovery clause requires a positive
+probability of a correctly halted output for every fuel value.
+
+`theorem2_10_obstruction` uses one cut, sixteen ranks, a uniform initial posterior, answer
+probabilities `3 / 4` and `1 / 4`, and error tolerance `1 / 2`. The information and small-mass
+hypotheses hold, but zero fuel leaves the execution active and contradicts the recovery clause.
+
+## Main statements
+
+* `theorem2_10_obstruction`: negation of the local generalized recovery contract.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,8 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib
 
+/-- The local generalized recovery contract is false. A valid sixteen-rank, one-cut instance
+violates its positive success requirement at zero fuel. -/
 theorem theorem2_10_obstruction : ¬ Theorem2_10Contract := by
   intro h
   let p : Fin 2 → ℝ := fun h => if h = 0 then 3 / 4 else 1 / 4

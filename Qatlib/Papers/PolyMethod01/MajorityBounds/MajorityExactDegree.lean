@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Algebra.BigOperators.Intervals
+
+/-!
+# Exact polynomial degree of strict majority
+
+The predicate `majorityValue` is true when strictly more than half of the input bits are true.
+The top Möbius coefficient is computed as an alternating binomial sum and shown to be nonzero
+for positive input size, yielding exact degree equal to the number of variables. These results
+accompany the polynomial-method analysis in [BealsEtAl2001].
+
+## Main statements
+
+* `mobiusCoef_majority_top_ne_zero`: For positive `n`, the top Möbius coefficient of strict
+  majority is nonzero.
+* `majority_exactDegree`: The exact real polynomial degree of strict majority on `n` bits is
+  `n`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,18 +42,25 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
 open scoped Classical BigOperators
 
+/-- The Boolean strict-majority predicate, true when twice the number of true input bits exceeds
+`n`. -/
 def majorityValue {n : ℕ} (x : Fin n → Bool) : Bool :=
   decide (n < 2 * (Finset.univ.filter (fun i => x i = true)).card)
 
+/-- The Boolean characteristic function `chiSet T` is true at `i` exactly when `i` belongs to
+`T`. -/
 @[simp] theorem chiSet_apply {n : ℕ} (T : Finset (Fin n)) (i : Fin n) :
     chiSet T i = true ↔ i ∈ T := by
   simp [chiSet]
 
+/-- Strict majority on the characteristic word of `T` is true exactly when `n < 2 * T.card`. -/
 theorem majorityValue_chiSet {n : ℕ} (T : Finset (Fin n)) :
     majorityValue (chiSet T) = true ↔ n < 2 * T.card := by
   classical
   simp [majorityValue]
 
+/-- The top Möbius coefficient of strict majority is the alternating binomial sum weighted by
+its threshold indicator. -/
 theorem mobiusCoef_majority_top (n : ℕ) :
     mobiusCoef (majorityValue (n := n)) (Finset.univ) =
       ∑ k ∈ Finset.range (n + 1),
@@ -65,6 +93,8 @@ theorem mobiusCoef_majority_top (n : ℕ) :
   rw [nsmul_eq_mul]
   ring
 
+/-- For `m ≤ n`, the alternating partial binomial sum through `m` equals `(-1) ^ m * choose (n -
+1) m` over the reals. -/
 theorem alternating_choose_partial (n : ℕ) :
     ∀ m ≤ n,
       (∑ k ∈ Finset.range (m + 1), ((-1 : ℝ) ^ k * (n.choose k : ℝ))) =
@@ -90,6 +120,8 @@ theorem alternating_choose_partial (n : ℕ) :
       rw [hp]
       ring
 
+/-- The strict-majority inequality `n < 2 * k` is equivalent to `n / 2 + 1 ≤ k` for natural
+numbers. -/
 theorem majority_threshold_iff (n k : ℕ) :
     n < 2 * k ↔ n / 2 + 1 ≤ k := by
   have h : n / 2 < k ↔ n < k * 2 := Nat.div_lt_iff_lt_mul (by norm_num : 0 < 2)
@@ -102,6 +134,8 @@ theorem majority_threshold_iff (n k : ℕ) :
     have h2 : n < k * 2 := h.mp h1
     omega
 
+/-- For positive `n`, reflecting the alternating binomial tail above the majority threshold
+gives the stated alternating initial sum. -/
 theorem majority_tail_reflect (n : ℕ) (hn : 0 < n) :
     (∑ k ∈ Finset.range (n + 1 - (n / 2 + 1)),
         (-1 : ℝ) ^ (n - (n / 2 + 1 + k)) * (n.choose (n / 2 + 1 + k) : ℝ)) =
@@ -122,6 +156,8 @@ theorem majority_tail_reflect (n : ℕ) (hn : 0 < n) :
     rw [← Nat.choose_symm hk']
   rw [harg, hchoose]
 
+/-- For positive `n`, the alternating binomial sum weighted by the strict-majority indicator is
+nonzero. -/
 theorem majority_top_alternating_ne_zero (n : ℕ) (hn : 0 < n) :
     (∑ k ∈ Finset.range (n + 1),
       (-1 : ℝ) ^ (n - k) * (if n < 2 * k then 1 else 0) * (n.choose k : ℝ)) ≠ 0 := by
@@ -172,11 +208,13 @@ theorem majority_top_alternating_ne_zero (n : ℕ) (hn : 0 < n) :
   have hsign : (-1 : ℝ) ^ (n + 1 - (n / 2 + 1) - 1) ≠ 0 := pow_ne_zero _ (by norm_num)
   exact mul_ne_zero hsign (ne_of_gt hcast)
 
+/-- For positive `n`, the top Möbius coefficient of strict majority is nonzero. -/
 theorem mobiusCoef_majority_top_ne_zero (n : ℕ) (hn : 0 < n) :
     mobiusCoef (majorityValue (n := n)) (Finset.univ) ≠ 0 := by
   rw [mobiusCoef_majority_top]
   exact majority_top_alternating_ne_zero n hn
 
+/-- The Möbius degree of strict majority on `n` bits is `n`. -/
 theorem majority_mobiusDegree (n : ℕ) :
     mobiusDegree (majorityValue (n := n)) = n := by
   classical
@@ -194,11 +232,15 @@ theorem majority_mobiusDegree (n : ℕ) :
           card_le_mobiusDegree (mobiusCoef_majority_top_ne_zero (m + 1) (Nat.succ_pos m))
         simpa using! hpos
 
+/-- The exact real polynomial degree of strict majority on `n` bits is `n`. See [Beals et al.,
+2001][BealsEtAl2001]. -/
 theorem majority_exactDegree (n : ℕ) :
     exactDegree (majorityValue (n := n)) = n := by
   rw [← mobiusDegree_eq_exactDegree]
   exact majority_mobiusDegree n
 
+/-- Every real multivariate polynomial representing strict majority on `n` bits has total degree
+at least `n`. -/
 theorem majority_totalDegree_ge (n : ℕ) (p : MvPolynomial (Fin n) ℝ)
     (hp : ∀ x : Fin n → Bool, boolEval p x = if majorityValue x then (1 : ℝ) else 0) :
     n ≤ p.totalDegree := by

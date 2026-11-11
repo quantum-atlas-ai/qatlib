@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.MatProdVerify04.MainResults.TrialAmplification
 import Mathlib.Analysis.SpecialFunctions.Exp
+
+/-!
+# Geometric bounds for repeated hits
+
+`escape_le_exp` bounds repeated failure by an exponential, and `geometric_hit_bound` gives a
+linear lower bound on the complementary hit probability when the total trial mass is at most
+one. `hit_mass_product` transports this estimate to independent Boolean trials. The paper
+context is [BuhrmanSpalek2006].
+
+## Main statements
+
+* `escape_le_exp`: exponential upper bound on failure.
+* `hit_mass_product`: lower bound on at least one successful trial.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +34,7 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
+/-- For `x ≤ 1`, bounds `(1 - x) ^ t` by `exp (-t * x)`. See [BuhrmanSpalek2006]. -/
 theorem escape_le_exp {x : ℝ} (hx1 : x ≤ 1) (t : ℕ) :
     (1 - x) ^ t ≤ Real.exp (-((t : ℝ) * x)) := by
   have hbase : 0 ≤ 1 - x := by linarith
@@ -28,6 +48,8 @@ theorem escape_le_exp {x : ℝ} (hx1 : x ≤ 1) (t : ℕ) :
     ring
   exact hstep.trans hmul.le
 
+/-- For `0 ≤ x ≤ 1` and `t * x ≤ 1`, the probability expression `1 - (1 - x) ^ t` is at least `t
+* x / 2`. See [BuhrmanSpalek2006]. -/
 theorem geometric_hit_bound {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) (t : ℕ)
     (htx : (t : ℝ) * x ≤ 1) :
     (t : ℝ) * x / 2 ≤ 1 - (1 - x) ^ t := by
@@ -57,6 +79,9 @@ theorem geometric_hit_bound {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) (t : ℕ)
     linarith
   linarith
 
+/-- If each Boolean trial succeeds with probability at least `x`, where `0 ≤ x ≤ 1` and `t * x ≤
+1`, then `t` independent trials contain a success with probability at least `t * x / 2`. See
+[BuhrmanSpalek2006]. -/
 theorem hit_mass_product (trial : FinDist Bool) (t : ℕ) {x : ℝ}
     (hx0 : 0 ≤ x) (hx1 : x ≤ 1) (htx : (t : ℝ) * x ≤ 1) (hsucc : x ≤ trial.prob true) :
     (t : ℝ) * x / 2 ≤ trial.probEvent (L := t) (fun ω => ∃ i, ω i = true) := by

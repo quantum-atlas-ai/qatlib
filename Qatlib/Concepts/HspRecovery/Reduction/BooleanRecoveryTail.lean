@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryRank
+
+/-!
+# Exponential tails for Boolean subgroup recovery
+
+This module specializes the rank-based recovery bounds to a sample budget equal to
+`booleanOrthogonalRank H + k`. An elementary power inequality bounds the failure mass by `2 ^
+(-k)` and the success mass from below by its complement. See [Simon1997] for the mathematical
+background.
+
+## Main statements
+
+* `two_pow_sub_one_div_two_pow_add_le_half_pow`: the numerical tail inequality.
+* `hiddenSubgroupFreshSamples_boolean_success_ge_rank_add_budget`: success at least `1 - (1 / 2)
+  ^ k` with rank plus `k` samples.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkFind.UniformThree
@@ -15,6 +35,8 @@ namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
 open scoped Classical
 
+/-- For natural numbers `r` and `k`, `(2 ^ r - 1) / 2 ^ (r + k)` is at most `(1 / 2) ^ k` as a
+real number. -/
 theorem two_pow_sub_one_div_two_pow_add_le_half_pow (r k : ℕ) :
     (((2 : ℝ) ^ r - 1) / (2 : ℝ) ^ (r + k)) ≤ (1 / 2 : ℝ) ^ k := by
   have hden : 0 < (2 : ℝ) ^ (r + k) := by positivity
@@ -29,6 +51,8 @@ theorem two_pow_sub_one_div_two_pow_add_le_half_pow (r k : ℕ) :
 variable {n : ℕ}
 variable {R : Type*} [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- For a hiding oracle, using `booleanOrthogonalRank H + k` fresh samples gives recovery
+failure mass at most `ENNReal.ofReal ((1 / 2) ^ k)`. -/
 theorem hiddenSubgroupFreshSamples_boolean_failure_le_rank_add_budget
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (k : ℕ) :
@@ -43,6 +67,8 @@ theorem hiddenSubgroupFreshSamples_boolean_failure_le_rank_add_budget
   exact ENNReal.ofReal_le_ofReal
     (two_pow_sub_one_div_two_pow_add_le_half_pow (booleanOrthogonalRank H) k)
 
+/-- For a hiding oracle, using `booleanOrthogonalRank H + k` fresh samples gives exact recovery
+mass at least `ENNReal.ofReal (1 - (1 / 2) ^ k)`. -/
 theorem hiddenSubgroupFreshSamples_boolean_success_ge_rank_add_budget
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H) (e : BooleanVec n ≃ AddChar (BooleanVec n) ℂ) (k : ℕ) :

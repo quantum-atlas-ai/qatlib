@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKnownAQuan
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Stat
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+/-!
+# Exact search under a cardinality promise
+
+`bhmt_theorem16_promise_exact` proves the bounded cardinality-promise formulation of exact
+search from [BrassardEtAl2002]. The proof identifies the Fourier-prepared marked mass and
+verifies normalization and program costs; `not_bhmt_theorem16_contract` also refutes the
+unrestricted contract.
+
+## Main statements
+
+* `not_bhmt_theorem16_contract`: failure of the contract without a bound on the promised
+  cardinality.
+* `bhmt_theorem16_promise_exact`: exact search for promised cardinality between one and `N`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,7 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 
+/-- The unrestricted promise-search specification `Theorem16Spec.expected` is false. -/
 theorem not_bhmt_theorem16_contract :
     ¬ Theorem16Spec.expected := by
   intro h
@@ -41,6 +62,8 @@ theorem not_bhmt_theorem16_contract :
 
 set_option autoImplicit false
 
+/-- The exact-amplification program with iteration parameter `m` contains exactly `m`
+instructions with label five. -/
 theorem promise_program_marks (m : ℕ) :
     marksCount (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.program m) = m := by
   induction m with
@@ -51,6 +74,8 @@ theorem promise_program_marks (m : ℕ) :
     norm_num at *
     omega
 
+/-- The marked-instruction count plus one is bounded by the call count of the
+exact-amplification program. -/
 theorem promise_program_mark_budget (m : ℕ) :
     marksCount (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.program m) + 1 ≤
       Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.calls (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.program m) := by
@@ -58,6 +83,8 @@ theorem promise_program_mark_budget (m : ℕ) :
       Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.program_calls]
   omega
 
+/-- The marked-instruction count plus one is bounded by the call count of the program chosen by
+the exact-amplification design. -/
 theorem promise_design_mark_budget (a : ℝ) :
     marksCount (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design a).2 + 1 ≤
       Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.calls (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design a).2 := by
@@ -66,6 +93,7 @@ theorem promise_design_mark_budget (a : ℝ) :
   · norm_num [marksCount, Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.calls]
   · exact promise_program_mark_budget _
 
+/-- If `0 < t₀ ≤ N`, the marked fraction `t₀ / N` lies in `(0, 1]`. -/
 theorem promise_probability_domain (N t₀ : ℕ) (hN : 0 < N) (ht : 0 < t₀)
     (hbound : t₀ ≤ N) : 0 < (t₀ : ℝ)/(N : ℝ) ∧ (t₀ : ℝ)/(N : ℝ) ≤ 1 := by
   have hNr : (0 : ℝ) < N := by exact_mod_cast hN
@@ -73,11 +101,13 @@ theorem promise_probability_domain (N t₀ : ℕ) (hN : 0 < N) (ht : 0 < t₀)
   · exact div_pos (by exact_mod_cast ht) hNr
   · exact (div_le_one hNr).mpr (by exact_mod_cast hbound)
 
+/-- The marked projection associated with an empty marked set is zero. -/
 theorem promise_empty_projection (N : ℕ) :
     Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.goodProjection (finEB N) (fun i : Fin N => (i.val : ℤ))
       (markLabels N ∅) = 0 := by
   simp [Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.goodProjection, markLabels]
 
+/-- For an empty marked set, every promise-search program has zero marked mass. -/
 theorem promise_zero_good_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : S.card = 0) (r : ℝ) (prog : List (Fin 6)) :
     promiseGoodMass hN S r prog = 0 := by
@@ -89,6 +119,8 @@ section Generic
 
 variable {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
 
+/-- Equality of the sums of self-inner-products of two vector pairs implies equality of their
+total squared norms. -/
 private lemma inner_norm_pair (z w x y : H)
     (h : inner ℂ z z + inner ℂ w w = inner ℂ x x + inner ℂ y y) :
     ‖z‖^2 + ‖w‖^2 = ‖x‖^2 + ‖y‖^2 := by
@@ -98,6 +130,8 @@ private lemma inner_norm_pair (z w x y : H)
   simp only [norm_sq_eq_re_inner (𝕜 := ℂ)]
   exact hc
 
+/-- Expands the self-inner-product of a real linear combination of two vectors into diagonal and
+cross terms. -/
 private lemma combo_inner (r₁ r₂ : ℝ) (x y : H) :
     inner ℂ ((r₁:ℂ) • x + (r₂:ℂ) • y) ((r₁:ℂ) • x + (r₂:ℂ) • y) =
       ((r₁:ℂ))^2 * inner ℂ x x + ((r₂:ℂ))^2 * inner ℂ y y +
@@ -106,6 +140,7 @@ private lemma combo_inner (r₁ r₂ : ℝ) (x y : H) :
     Complex.conj_ofReal]
   ring
 
+/-- The Householder reflection about a unit vector preserves self-inner-products. -/
 private lemma householder_inner (e x : H) (he : ‖e‖ = 1) :
     inner ℂ (-x + (2 * inner ℂ e x) • e) (-x + (2 * inner ℂ e x) • e) = inner ℂ x x := by
   have hee : inner ℂ e e = 1 := by
@@ -117,6 +152,7 @@ private lemma householder_inner (e x : H) (he : ‖e‖ = 1) :
   norm_num
   ring
 
+/-- The reflection defined by an orthogonal projection preserves self-inner-products. -/
 private lemma star_reflection_inner (K : Submodule ℂ H) [K.HasOrthogonalProjection] (x : H) :
     inner ℂ (x - (2:ℂ) • K.starProjection x) (x - (2:ℂ) • K.starProjection x)
       = inner ℂ x x := by
@@ -146,6 +182,8 @@ private lemma star_reflection_inner (K : Submodule ℂ H) [K.HasOrthogonalProjec
         ring
     _ = inner ℂ x x := by rw [sub_add_cancel]
 
+/-- Each exact-amplification instruction preserves the sum of self-inner-products of the two
+state components when `r ∈ [0, 1]`. -/
 private lemma step_inner_sq (A : H ≃ₗᵢ[ℂ] H) (e : H) (K : Submodule ℂ H)
     [K.HasOrthogonalProjection] (r : ℝ) (he : ‖e‖ = 1) (hr : 0 ≤ r) (hr1 : r ≤ 1)
     (k : Fin 6) (v : H × H) :
@@ -183,6 +221,8 @@ private lemma step_inner_sq (A : H ≃ₗᵢ[ℂ] H) (e : H) (K : Submodule ℂ 
   · simp only [Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.step]
     rw [star_reflection_inner]
 
+/-- An exact-amplification run starting from a unit vector has total squared norm one when `r ∈
+[0, 1]`. -/
 private theorem run_total_norm_sq (A : H ≃ₗᵢ[ℂ] H) (e : H) (K : Submodule ℂ H)
     [K.HasOrthogonalProjection] (r : ℝ) (he : ‖e‖ = 1) (hr : 0 ≤ r) (hr1 : r ≤ 1)
     (prog : List (Fin 6)) :
@@ -213,6 +253,7 @@ end Generic
 section Euclidean
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 
+/-- The canonical finite Hilbert basis vector is the corresponding coordinate single vector. -/
 private lemma finEB_single (N : ℕ) (i : Fin N) :
     finEB N i = EuclideanSpace.single i (1:ℂ) := by
   have h : finEB N = (EuclideanSpace.basisFun (Fin N) ℂ).toHilbertBasis := rfl
@@ -220,6 +261,7 @@ private lemma finEB_single (N : ℕ) (i : Fin N) :
   exact (congrFun (OrthonormalBasis.coe_toHilbertBasis
     (EuclideanSpace.basisFun (Fin N) ℂ)) i).trans (by simp)
 
+/-- The integer-label marked predicate holds on coordinate `i` exactly when `i ∈ S`. -/
 private lemma markLabels_iff (N : ℕ) (S : Finset (Fin N)) (i : Fin N) :
     markLabels N S (i.val : ℤ) = true ↔ i ∈ S := by
   simp only [markLabels, decide_eq_true_eq]
@@ -231,6 +273,8 @@ private lemma markLabels_iff (N : ℕ) (S : Finset (Fin N)) (i : Fin N) :
   · intro hi
     exact Finset.mem_image.mpr ⟨i, hi, rfl⟩
 
+/-- Projecting the sum of all coordinate basis vectors onto the marked subspace gives the sum
+over marked coordinates. -/
 private lemma proj_sum_marked (N : ℕ) (S : Finset (Fin N)) :
     (Submodule.span ℂ ((fun i : Fin N => finEB N i) ''
         {i : Fin N | markLabels N S ((i : Fin N).val : ℤ)})).topologicalClosure.starProjection
@@ -276,6 +320,8 @@ private lemma proj_sum_marked (N : ℕ) (S : Finset (Fin N)) :
     rw [← Submodule.orthogonal_orthogonal_eq_closure, Submodule.triorthogonal_eq_orthogonal]]
   exact hdKorth
 
+/-- The Fourier transform sends the zero coordinate basis vector to the normalized uniform
+superposition. -/
 private lemma qft_uniform (N : ℕ) (hN : 0 < N) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.unitaryEuclidean (Qatlib.Concepts.SpectralFilter.PhaseReadout.QFTMatrix N)
         (Qatlib.Concepts.SpectralFilter.PhaseReadout.qftMatrix_unitary hN)) (finEB N ⟨0, hN⟩)
@@ -308,6 +354,8 @@ private lemma qft_uniform (N : ℕ) (hN : 0 < N) :
     simp
   rw [hA, hsm]
 
+/-- The squared norm of a sum of distinct vectors from a Hilbert basis equals the number of
+summands. -/
 private lemma orth_norm_sum_sq {H : Type} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     {ι : Type} [Fintype ι] (b : HilbertBasis ι ℂ H) (s : Finset ι) :
     ‖∑ i ∈ s, b i‖^2 = (s.card : ℝ) := by
@@ -318,6 +366,7 @@ private lemma orth_norm_sum_sq {H : Type} [NormedAddCommGroup H] [InnerProductSp
   rw [h1, h2]
   simp
 
+/-- The marked mass of the Fourier-prepared zero basis vector is `S.card / N`. -/
 private theorem qft_mark_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
     ‖(Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.goodProjection (finEB N) (fun i : Fin N => (i.val : ℤ)) (markLabels N S))
       ((Qatlib.Concepts.QueryComplexity.DegreeMethod.unitaryEuclidean (Qatlib.Concepts.SpectralFilter.PhaseReadout.QFTMatrix N)
@@ -337,6 +386,9 @@ private theorem qft_mark_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
 
 end Euclidean
 
+/-- Establishes exact search for the promise that the marked cardinality is zero or a known `t₀`
+with `0 < t₀ ≤ N`, including normalization and inverse-square-root call bounds [Brassard et
+al., Theorem 16][BrassardEtAl2002]. -/
 theorem bhmt_theorem16_promise_exact : BHMTTh16.Theorem16 := by
   refine ⟨Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design, 1, Real.pi/2+2, Real.pi/2+2,
     by norm_num, by positivity, by positivity, ?_⟩

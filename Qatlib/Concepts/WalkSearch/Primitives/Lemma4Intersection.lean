@@ -12,6 +12,26 @@ import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
 
+/-!
+# Avoidance bounds for uniform subsets
+
+`avoidingSubsets` enumerates fixed-size vertex subsets disjoint from a given set, and
+`emptyProb` expresses their relative frequency. The module derives binomial, product, power, and
+exponential formulas and bounds, then specializes them to degree tests and graph sampling.
+
+These estimates support subset-finding algorithms of the kind studied in [ChildsEisenberg2003].
+
+## Main statements
+
+* `emptyProb_exp_form`: two exponential bounds for subset avoidance.
+* `lemma3_per_edge_avoid`: inverse-cubic avoidance under the sampling-size condition.
+* `fact2_single_round_hit_le_tenth`: a small-hit-probability estimate.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -21,9 +41,11 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 
 variable {n : ℕ}
 
+/-- The finite family of `m`-element subsets of `Fin n` that are disjoint from `X`. -/
 def avoidingSubsets (X : Finset (Fin n)) (m : ℕ) : Finset (Finset (Fin n)) :=
   (Finset.univ.powersetCard m).filter fun Y => Disjoint Y X
 
+/-- There are `(n - X.card).choose m` subsets of size `m` avoiding `X`. -/
 theorem avoidingSubsets_card (X : Finset (Fin n)) (m : ℕ) :
     (avoidingSubsets X m).card = (n - X.card).choose m := by
   have h : avoidingSubsets X m = (Finset.univ \ X).powersetCard m := by
@@ -34,17 +56,22 @@ theorem avoidingSubsets_card (X : Finset (Fin n)) (m : ℕ) :
   rw [h, Finset.card_powersetCard, Finset.card_sdiff, Finset.card_univ,
     Fintype.card_fin, Finset.inter_univ]
 
+/-- The family of `m`-element subsets of `Fin n` has cardinality `n.choose m`. -/
 theorem subsetSpace_card (m : ℕ) :
     (Finset.univ.powersetCard m : Finset (Finset (Fin n))).card = n.choose m := by
   rw [Finset.card_powersetCard, Finset.card_univ, Fintype.card_fin]
 
+/-- The cardinality ratio of `m`-element subsets avoiding `X` to all `m`-element subsets. -/
 def emptyProb (X : Finset (Fin n)) (m : ℕ) : ℝ :=
   ((avoidingSubsets X m).card : ℝ) / (n.choose m : ℝ)
 
+/-- Expresses `emptyProb X m` as the ratio of `(n - X.card).choose m` to `n.choose m`. -/
 theorem emptyProb_eq_choose_ratio (X : Finset (Fin n)) (m : ℕ) :
     emptyProb X m = ((n - X.card).choose m : ℝ) / (n.choose m : ℝ) := by
   simp only [emptyProb, avoidingSubsets_card]
 
+/-- For `m ≤ n`, the real binomial coefficient is the falling product of `m` factors divided by
+`m.factorial`. -/
 theorem choose_cast_eq_prod_div {m : ℕ} (hm : m ≤ n) :
     (n.choose m : ℝ) = (∏ i ∈ Finset.range m, ((n : ℝ) - (i : ℝ))) / (m.factorial : ℝ) := by
   have h1 : ((n.descFactorial m : ℕ) : ℝ) = (m.factorial : ℝ) * (n.choose m : ℝ) := by
@@ -63,6 +90,8 @@ theorem choose_cast_eq_prod_div {m : ℕ} (hm : m ≤ n) :
   rw [eq_div_iff hf]
   linarith [h1]
 
+/-- Under the size assumptions, subset-avoidance probability is the ratio of falling products
+for `n - X.card` and `n`. -/
 theorem emptyProb_eq_prod_ratio (X : Finset (Fin n)) {m : ℕ} (hmn : m ≤ n)
     (hmk : m ≤ n - X.card) :
     emptyProb X m =
@@ -81,6 +110,8 @@ theorem emptyProb_eq_prod_ratio (X : Finset (Fin n)) {m : ℕ} (hmn : m ≤ n)
     positivity
   rw [div_div_div_cancel_right₀ hf]
 
+/-- Bounds subset avoidance above by `(1 - X.card / n) ^ m` under the stated positivity and size
+assumptions. -/
 theorem emptyProb_le_pow (X : Finset (Fin n)) {m : ℕ} (hn : 0 < n) (hmn : m ≤ n)
     (hmk : m + X.card ≤ n) :
     emptyProb X m ≤ (1 - (X.card : ℝ) / (n : ℝ)) ^ m := by
@@ -117,6 +148,8 @@ theorem emptyProb_le_pow (X : Finset (Fin n)) {m : ℕ} (hn : 0 < n) (hmn : m �
     have hprod : (0 : ℝ) ≤ (i : ℝ) * (X.card : ℝ) := by positivity
     nlinarith [hprod]
 
+/-- Bounds subset avoidance below by `(1 - X.card / (n - m)) ^ m` under the stated size
+assumptions. -/
 theorem emptyProb_ge_pow (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
     (hmk : m + X.card ≤ n) :
     (1 - (X.card : ℝ) / ((n : ℝ) - (m : ℝ))) ^ m ≤ emptyProb X m := by
@@ -145,6 +178,7 @@ theorem emptyProb_ge_pow (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
       positivity
     nlinarith [hstep]
 
+/-- For positive `n` and `m ≤ n`, subset avoidance is at most `exp (-m * X.card / n)`. -/
 theorem emptyProb_le_exp (X : Finset (Fin n)) {m : ℕ} (hn : 0 < n) (hmn : m ≤ n) :
     emptyProb X m ≤ Real.exp (-((m : ℝ) * (X.card : ℝ) / (n : ℝ))) := by
   by_cases hcase : m + X.card ≤ n
@@ -175,6 +209,7 @@ theorem emptyProb_le_exp (X : Finset (Fin n)) {m : ℕ} (hn : 0 < n) (hmn : m �
     rw [emptyProb_eq_choose_ratio, hzero, zero_div]
     exact (Real.exp_pos _).le
 
+/-- If `m + X.card < n`, subset avoidance is at least `exp (-m * X.card / (n - m - X.card))`. -/
 theorem emptyProb_ge_exp (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
     (hmk : m + X.card < n) :
     Real.exp (-((m : ℝ) * (X.card : ℝ) / ((n : ℝ) - (m : ℝ) - (X.card : ℝ)))) ≤
@@ -216,6 +251,8 @@ theorem emptyProb_ge_exp (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
   exact (pow_le_pow_left₀ (Real.exp_pos _).le hexp_le m).trans
     (emptyProb_ge_pow X hmn hmk.le)
 
+/-- Combines exponential upper and lower bounds for subset avoidance in terms of the sampling
+and target-set fractions. -/
 theorem emptyProb_exp_form (X : Finset (Fin n)) {m : ℕ} (hn : 0 < n) (hmn : m < n)
     (hmk : m + X.card < n) :
     (Real.exp (-((n : ℝ) * (((X.card : ℝ) / (n : ℝ)) * ((m : ℝ) / (n : ℝ))) *
@@ -241,6 +278,8 @@ theorem emptyProb_exp_form (X : Finset (Fin n)) {m : ℕ} (hn : 0 < n) (hmn : m 
   · rw [harith_le]
     exact emptyProb_le_exp X hn hmn.le
 
+/-- If at least `n ^ δ` vertices are sampled and `X.card > 10 * n ^ (1 - δ)`, the avoidance
+probability is at most one tenth. -/
 theorem fact2_single_round_miss_le_tenth (X : Finset (Fin n)) {m : ℕ} {δ : ℝ}
     (hn : 0 < n) (hmn : m ≤ n) (hc : (n : ℝ) ^ δ ≤ (m : ℝ))
     (hdeg : 10 * (n : ℝ) ^ (1 - δ) < (X.card : ℝ)) :
@@ -267,6 +306,8 @@ theorem fact2_single_round_miss_le_tenth (X : Finset (Fin n)) {m : ℕ} {δ : �
   exact ((emptyProb_le_exp X hn hmn).trans
     (Real.exp_le_exp.mpr (by linarith))).trans hexp10
 
+/-- Under the target-size and logarithmic sampling-size assumptions, subset avoidance is at most
+`1 / n ^ 3`. -/
 theorem lemma3_per_edge_avoid {ε : ℝ} (X : Finset (Fin n)) {m : ℕ}
     (hn : 1 < n) (hX : (n : ℝ) ^ (1 - ε) ≤ (X.card : ℝ))
     (hm : 4 * (n : ℝ) ^ ε * ((Nat.log 2 n : ℝ) + 1) ≤ (m : ℝ)) (hmn : m ≤ n) :
@@ -316,6 +357,8 @@ theorem lemma3_per_edge_avoid {ε : ℝ} (X : Finset (Fin n)) {m : ℕ}
   exact ((emptyProb_le_exp X (by omega) hmn).trans
     (Real.exp_le_exp.mpr (by linarith))).trans (hexp.le.trans hone)
 
+/-- Under the degree-test sampling assumptions, ten times the number of avoiding subsets is at
+most `n.choose m`. -/
 theorem fact2_single_round_miss_card_le (X : Finset (Fin n)) {m : ℕ} {δ : ℝ}
     (hn : 0 < n) (hmn : m ≤ n) (hpos : 0 < n.choose m) (hc : (n : ℝ) ^ δ ≤ (m : ℝ))
     (hdeg : 10 * (n : ℝ) ^ (1 - δ) < (X.card : ℝ)) :
@@ -327,6 +370,8 @@ theorem fact2_single_round_miss_card_le (X : Finset (Fin n)) {m : ℕ} {δ : ℝ
     simpa using h
   exact_mod_cast hreal
 
+/-- Under the per-edge sampling assumptions, the number of avoiding subsets multiplied by `n ^
+3` is at most `n.choose m`. -/
 theorem lemma3_per_edge_avoid_card {ε : ℝ} (X : Finset (Fin n)) {m : ℕ}
     (hn : 1 < n) (hX : (n : ℝ) ^ (1 - ε) ≤ (X.card : ℝ))
     (hm : 4 * (n : ℝ) ^ ε * ((Nat.log 2 n : ℝ) + 1) ≤ (m : ℝ)) (hmn : m ≤ n)
@@ -340,6 +385,8 @@ theorem lemma3_per_edge_avoid_card {ε : ℝ} (X : Finset (Fin n)) {m : ℕ}
     simpa using h
   exact_mod_cast hreal
 
+/-- Under the size assumptions, the complement of subset avoidance is at most `m * X.card / (n -
+m)` over the reals. -/
 theorem one_sub_emptyProb_le (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
     (hmk : m + X.card ≤ n) :
     1 - emptyProb X m ≤ (m : ℝ) * (X.card : ℝ) / ((n : ℝ) - (m : ℝ)) := by
@@ -364,6 +411,7 @@ theorem one_sub_emptyProb_le (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
   rw [← hrewrite]
   exact h2
 
+/-- The stated small-target condition bounds the probability of intersecting `X` by one tenth. -/
 theorem fact2_single_round_hit_le_tenth (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
     (hmk : m + X.card ≤ n) (hsize : 10 * ((m : ℝ) * (X.card : ℝ)) ≤ (n : ℝ) - (m : ℝ)) :
     1 - emptyProb X m ≤ 1 / 10 := by
@@ -374,6 +422,8 @@ theorem fact2_single_round_hit_le_tenth (X : Finset (Fin n)) {m : ℕ} (hmn : m 
   rw [div_le_iff₀ hden]
   linarith
 
+/-- Under the small-target condition, ten times the number of intersecting subsets is at most
+the total number of subsets. -/
 theorem fact2_single_round_hit_card_le (X : Finset (Fin n)) {m : ℕ} (hmn : m < n)
     (hmk : m + X.card ≤ n) (hsize : 10 * ((m : ℝ) * (X.card : ℝ)) ≤ (n : ℝ) - (m : ℝ))
     (hpos : 0 < n.choose m) :

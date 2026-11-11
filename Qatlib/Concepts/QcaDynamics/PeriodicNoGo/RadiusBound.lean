@@ -8,6 +8,26 @@ import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.FiniteKernel
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic
 import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.KernelTransport
+
+/-!
+# Radius bounds for periodic scalar dynamics
+
+Proves injectivity of residue maps on integer difference boxes when every coordinate period is
+greater than four times the neighborhood radius. This gives a concrete `KernelNonalias`
+criterion and reduces unitary periodic scalar updates to a phase times a translation, following
+the scalar obstruction of [Meyer1996].
+
+## Main statements
+
+* `radius_kernel_nonalias`: derives nonaliasing from coordinate period bounds.
+* `periodic_radius_noGo`: gives the phase-translation conclusion for quotient weights.
+* `periodic_radius_matrix_noGo`: gives the conclusion directly from matrix unitarity.
+
+## References
+
+* [Meyer, 1996][Meyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +37,7 @@ open Matrix
 open Qatlib.Concepts.QcaDynamics.ScalarNoGo
 namespace Qatlib.Concepts.QcaDynamics.PeriodicNoGo
 
+/-- Reduction modulo `n` is injective on the integers from `-2r` to `2r` when `4 * r < n`. -/
 theorem residue_injective_on_difference_box (n r : ℕ) (hn : 4*r<n)
     (x y : ℤ) (hx : -(2*(r:ℤ)) ≤ x ∧ x ≤ 2*(r:ℤ))
     (hy : -(2*(r:ℤ)) ≤ y ∧ y ≤ 2*(r:ℤ))
@@ -30,6 +51,8 @@ theorem residue_injective_on_difference_box (n r : ℕ) (hn : 4*r<n)
     have hz : x-y=0 := Int.eq_zero_of_dvd_of_nonneg_of_lt (by omega) (by omega) hdvd'
     omega
 
+/-- Coordinatewise reduction is injective on the integer box from `-2r` to `2r` when each
+coordinate period exceeds `4 * r`. -/
 theorem product_residue_injective_on_difference_box (d r : ℕ) (n : Fin d → ℕ)
     (hn : ∀i,4*r<n i) (x y : Fin d → ℤ)
     (hx : ∀i, -(2*(r:ℤ)) ≤ x i ∧ x i ≤ 2*(r:ℤ))
@@ -38,11 +61,14 @@ theorem product_residue_injective_on_difference_box (d r : ℕ) (n : Fin d → �
   funext i
   exact residue_injective_on_difference_box (n i) r (hn i) (x i) (y i) (hx i) (hy i) (h i)
 
+/-- The additive homomorphism reducing each integer coordinate modulo its specified period. -/
 def residueHom (d : ℕ) (n : Fin d → ℕ) : (Fin d → ℤ) →+ (∀ i, ZMod (n i)) where
   toFun x i := (x i : ZMod (n i))
   map_zero' := by funext i; simp
   map_add' x y := by funext i; simp
 
+/-- A neighborhood in the radius `r` integer box satisfies `KernelNonalias` for coordinatewise
+residue maps whenever every period exceeds `4 * r`. -/
 theorem radius_kernel_nonalias (d r : ℕ) (n : Fin d → ℕ)
     (hn : ∀ i, 4*r<n i) (A : Weights (Fin d → ℤ))
     (hA : ∀ e ∈ A.neighborhood, ∀ i, -(r:ℤ) ≤ e i ∧ e i ≤ r) :
@@ -60,6 +86,8 @@ theorem radius_kernel_nonalias (d r : ℕ) (n : Fin d → ℕ)
   intro i
   exact congrFun hxy i
 
+/-- Unitary quotient weights from a radius `r` integer neighborhood with periods greater than `4
+* r` act as a single translation times a scalar of norm one; see [Meyer1996]. -/
 theorem periodic_radius_noGo (d r : ℕ) (n : Fin d → ℕ)
     (hn : ∀ i, 4*r<n i) (A : Weights (Fin d → ℤ))
     (hA : ∀ e ∈ A.neighborhood, ∀ i, -(r:ℤ) ≤ e i ∧ e i ≤ r)
@@ -72,6 +100,8 @@ theorem periodic_radius_noGo (d r : ℕ) (n : Fin d → ℕ)
     (instIsOrderedAddMonoidLexPi d) _ _ _ (residueHom d n) A
     (radius_kernel_nonalias d r n hn A hA) hU
 
+/-- A unitary finite kernel from periodic radius `r` weights, with every period greater than `4
+* r`, acts on every field as a phase times a single translation. -/
 theorem periodic_radius_matrix_noGo (d r : ℕ) (n : Fin d → ℕ)
     [∀ i, NeZero (n i)] (hn : ∀ i, 4*r<n i) (A : Weights (Fin d → ℤ))
     (hA : ∀ e ∈ A.neighborhood, ∀ i, -(r:ℤ) ≤ e i ∧ e i ≤ r)

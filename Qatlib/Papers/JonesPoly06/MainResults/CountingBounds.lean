@@ -9,6 +9,26 @@ import Mathlib.Algebra.Order.Floor.Ring
 import Mathlib.Data.Complex.Basic
 import Mathlib.Tactic
 
+/-!
+# Product identities and numerical gap extraction
+
+This module supplies algebraic and real-arithmetic support for counting reductions.
+`SourceLemma51` factors a common scalar from a product and records zero-factor and idempotence
+consequences; the remaining results classify promised probability gaps and recover an integer
+from a sufficiently accurate normalized estimate. See [WocjanYard2006].
+
+## Main statements
+
+* `gap_decision`: If p lies in [0, 1] and either p ≥ 3/4 or p ≤ 1/4, an estimate within 1/8
+  identifies the corresponding case by testing z ≥ 1/2 versus z < 1/2.
+* `msb_bits_extract`: If b approximates N/2^n with error less than 1/2^(n + 1), rounding b2^n by
+  the floor of b2^n + 1/2 recovers N under the stated range hypotheses.
+
+## References
+
+* [Wocjan and Yard, 2006][WocjanYard2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +38,9 @@ section TemperleyLieb
 
 variable {R : Type*} [CommRing R]
 
+/-- In the ambient commutative ring, a common factor c can be extracted from a p-fold product; a
+zero factor annihilates the product, and a product of idempotents is idempotent; see
+[WocjanYard2006]. -/
 theorem SourceLemma51 {p : ℕ} (c : R) (e : Fin p → R) :
     (∏ i, (c * e i) = c ^ p * ∏ i, e i) ∧
     (∀ j : Fin p, e j = 0 → ∏ i, (c * e i) = 0) ∧
@@ -35,6 +58,8 @@ theorem SourceLemma51 {p : ℕ} (c : R) (e : Fin p → R) :
 
 end TemperleyLieb
 
+/-- If p lies in [0, 1] and either p ≥ 3/4 or p ≤ 1/4, an estimate within 1/8 identifies the
+corresponding case by testing z ≥ 1/2 versus z < 1/2; see [WocjanYard2006]. -/
 theorem gap_decision (p z : ℝ) (_hp0 : 0 ≤ p) (_hp : p ≤ 1)
     (hz : |z - p| ≤ 1 / 8) (hpromise : 3 / 4 ≤ p ∨ p ≤ 1 / 4) :
     (1 / 2 ≤ z → 3 / 4 ≤ p) ∧ (z < 1 / 2 → p ≤ 1 / 4) := by
@@ -49,6 +74,8 @@ theorem gap_decision (p z : ℝ) (_hp0 : 0 ≤ p) (_hp : p ≤ 1)
     · linarith [hz.2, hz2]
     · exact h
 
+/-- Under the promised probability gap and error at most 1/8, testing z > 1/2 versus z ≤ 1/2
+identifies the high versus low case. -/
 theorem gap_decision_strict (p z : ℝ) (_hp0 : 0 ≤ p) (_hp : p ≤ 1)
     (hz : |z - p| ≤ 1 / 8) (hpromise : 3 / 4 ≤ p ∨ p ≤ 1 / 4) :
     (1 / 2 < z → 3 / 4 ≤ p) ∧ (z ≤ 1 / 2 → p ≤ 1 / 4) := by
@@ -63,6 +90,8 @@ theorem gap_decision_strict (p z : ℝ) (_hp0 : 0 ≤ p) (_hp : p ≤ 1)
     · linarith [hz.2, hz2]
     · exact h
 
+/-- If b approximates N/2^n with error less than 1/2^(n + 1), rounding b2^n by the floor of b2^n
++ 1/2 recovers N under the stated range hypotheses; see [WocjanYard2006]. -/
 theorem msb_bits_extract (n N : ℕ) (_hN : N < 2 ^ n) (b : ℝ)
     (_hb0 : 0 ≤ b) (hb : |b - (N : ℝ) / 2 ^ n| < 1 / 2 ^ (n + 1)) :
     ⌊b * 2 ^ n + 1 / 2⌋ = (N : ℤ) := by
@@ -93,6 +122,8 @@ theorem msb_bits_extract (n N : ℕ) (_hN : N < 2 ^ n) (b : ℝ)
   · push_cast
     linarith
 
+/-- For positive n and N < 2^n, the normalized count N/2^n is at least one half exactly when N ≥
+2^(n − 1); see [WocjanYard2006]. -/
 theorem msb_threshold (n N : ℕ) (hn : 0 < n) (_hN : N < 2 ^ n) :
     (1 / 2 ≤ (N : ℝ) / 2 ^ n ↔ 2 ^ (n - 1) ≤ N) := by
   have h2n : (0 : ℝ) < 2 ^ n := by positivity

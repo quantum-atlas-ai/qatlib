@@ -10,6 +10,31 @@ import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
 import Mathlib.Logic.Equiv.Fin.Basic
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Matrix.PosDef
+
+/-!
+# Finite and Haar twirling channels
+
+This module proves complete positivity, trace preservation, invariance, and idempotence for
+finite-group twirls and for twirls defined using `HaarUnitaryMeasure`. The matrix and
+amplification arguments implement the standard averaging of unitary conjugations [Watrous2018].
+
+For qubits, the Pauli twirl is the completely depolarizing map. The module also records the
+existence of a 24-element family satisfying `QubitTwoDesignMoments` and the impossibility of the
+unrestricted complex-input identity `QubitSecondMomentUnboundaried`.
+
+## Main statements
+
+* `clause4_conj1`: finite unitary representation twirls are invariant idempotent channels.
+* `clause4_conj2`: Pauli twirling sends an operator to half its trace times the identity.
+* `clause4_conj3`: the Haar twirl satisfies `CPTPFunction` and the stated projection identities.
+* `g4`: the finite, Haar, Pauli, and qubit moment results together.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -30,6 +55,7 @@ namespace Qatlib.Concepts.ChannelTheory.TwirlChannel
 set_option maxHeartbeats 800000
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid
 
+/-- Right multiplication by a fixed group element does not change a finite sum over the group. -/
 theorem sum_mul_right_reindex {G : Type} [Group G] [Fintype G] {M : Type*} [AddCommMonoid M]
     (W : G → M) (h : G) : ∑ g, W (g * h) = ∑ k, W k := by
   let e : G ≃ G := ⟨fun x => x * h, fun x => x * h⁻¹,
@@ -38,6 +64,7 @@ theorem sum_mul_right_reindex {G : Type} [Group G] [Fintype G] {M : Type*} [AddC
   rw [he]
   exact Equiv.sum_comp e W
 
+/-- Left multiplication by a fixed group element does not change a finite sum over the group. -/
 theorem sum_mul_left_reindex {G : Type} [Group G] [Fintype G] {M : Type*} [AddCommMonoid M]
     (W : G → M) (h : G) : ∑ g, W (h * g) = ∑ k, W k := by
   let e : G ≃ G := ⟨fun x => h * x, fun x => h⁻¹ * x,
@@ -46,20 +73,27 @@ theorem sum_mul_left_reindex {G : Type} [Group G] [Fintype G] {M : Type*} [AddCo
   rw [he]
   exact Equiv.sum_comp e W
 
+/-- The sum of a constant over a finite type equals its cardinality, cast to `ℂ`, times that
+constant. -/
 theorem sum_const_card_smul {G : Type} [Fintype G] {M : Type*} [AddCommMonoid M] [Module ℂ M]
     (c : M) : (∑ _j : G, c) = ((Fintype.card G : ℂ)) • c := by
   rw [Finset.sum_const, Finset.card_univ]
   exact (Nat.cast_smul_eq_nsmul ℂ (Fintype.card G) c).symm
 
+/-- The finite-family twirl is the inverse-cardinality-weighted sum of conjugations by the
+family matrices. -/
 theorem familyTwirl_apply {J : Type} [Fintype J] {D : ℕ} (U : J → Operator D) (ρ : Operator D) :
     FamilyTwirl U ρ = ((Fintype.card J : ℂ)⁻¹) • ∑ j, U j * ρ * (U j).conjTranspose := by
   show ((Fintype.card J : ℂ)⁻¹) • (∑ j, conjBranch (U j)) ρ = _
   simp only [LinearMap.sum_apply, conjBranch_apply]
 
+/-- Conjugation by a unitary matrix preserves the trace. -/
 theorem trace_conj_unitary {D : ℕ} {V : Operator D} (hV : IsUnitaryMatrix V) (A : Operator D) :
     Matrix.trace (V * A * V.conjTranspose) = Matrix.trace A := by
   rw [Matrix.trace_mul_cycle, hV.1, Matrix.one_mul]
 
+/-- Multiplying a completely positive map by a nonnegative real scalar preserves complete
+positivity. -/
 theorem completelyPositive_real_smul {D E : ℕ} {F : Operator D →ₗ[ℂ] Operator E}
     (hF : CompletelyPositive F) {c : ℝ} (hc : 0 ≤ c) :
     CompletelyPositive (((c : ℝ) : ℂ) • F) := by
@@ -71,6 +105,7 @@ theorem completelyPositive_real_smul {D E : ℕ} {F : Operator D →ₗ[ℂ] Ope
   rw [he]
   exact (hF r A hA).smul (RCLike.nonneg_iff.mpr ⟨hc, rfl⟩)
 
+/-- The finite group-indexed average of matrix conjugation branches is completely positive. -/
 theorem familyTwirl_completelyPositive {G : Type} [Group G] [Fintype G] {D : ℕ}
     (U : G → Operator D) : CompletelyPositive (FamilyTwirl U) := by
   have hsum : CompletelyPositive (∑ j : G, conjBranch (U j)) :=
@@ -80,6 +115,7 @@ theorem familyTwirl_completelyPositive {G : Type} [Group G] [Fintype G] {D : ℕ
   rw [show FamilyTwirl U = ((Fintype.card G : ℂ)⁻¹) • (∑ j : G, conjBranch (U j)) from rfl, hscal]
   exact completelyPositive_real_smul hsum (inv_nonneg.mpr (Nat.cast_nonneg _))
 
+/-- The twirl associated with a finite unitary representation preserves the trace. -/
 theorem familyTwirl_tracePreserving {G : Type} [Group G] [Fintype G] {D : ℕ}
     {U : G → Operator D} (hU : IsUnitaryRep U) : TracePreserving (FamilyTwirl U) := by
   intro A
@@ -96,6 +132,8 @@ theorem familyTwirl_tracePreserving {G : Type} [Group G] [Fintype G] {D : ℕ}
   rw [familyTwirl_apply U A, Matrix.trace_smul, smul_eq_mul, Matrix.trace_sum, hsum,
     ← mul_assoc, inv_mul_cancel₀ hcard, one_mul]
 
+/-- Successive conjugations by a unitary representation equal conjugation by the product group
+element. -/
 theorem familyTwirl_conj_conj {G : Type} [Group G] [Fintype G] {D : ℕ} {U : G → Operator D}
     (hU : IsUnitaryRep U) (g k : G) (ρ : Operator D) :
     U g * (U k * ρ * (U k).conjTranspose) * (U g).conjTranspose
@@ -103,6 +141,8 @@ theorem familyTwirl_conj_conj {G : Type} [Group G] [Fintype G] {D : ℕ} {U : G 
   rw [hU.2.2 g k, Matrix.conjTranspose_mul]
   simp only [← Matrix.mul_assoc]
 
+/-- Conjugating the input by a member of a finite unitary representation leaves its twirl
+unchanged. -/
 theorem familyTwirl_conj_invariant {G : Type} [Group G] [Fintype G] {D : ℕ} {U : G → Operator D}
     (hU : IsUnitaryRep U) (g : G) (ρ : Operator D) :
     FamilyTwirl U (U g * ρ * (U g).conjTranspose) = FamilyTwirl U ρ := by
@@ -115,6 +155,8 @@ theorem familyTwirl_conj_invariant {G : Type} [Group G] [Fintype G] {D : ℕ} {U
   rw [sum_mul_right_reindex (fun m : G => U m * ρ * (U m).conjTranspose) g,
     ← familyTwirl_apply U ρ]
 
+/-- Applying the twirl of a finite unitary representation twice gives the same result as
+applying it once. -/
 theorem familyTwirl_idempotent {G : Type} [Group G] [Fintype G] {D : ℕ} {U : G → Operator D}
     (hU : IsUnitaryRep U) (ρ : Operator D) :
     FamilyTwirl U (FamilyTwirl U ρ) = FamilyTwirl U ρ := by
@@ -154,6 +196,8 @@ theorem familyTwirl_idempotent {G : Type} [Group G] [Fintype G] {D : ℕ} {U : G
     rw [mul_assoc, inv_mul_cancel₀ hcard, mul_one]
   rw [smul_smul, hscal]
 
+/-- The sum of conjugations by the identity and three Pauli matrices equals twice the input
+trace times the identity. -/
 theorem pauli_family_conj_sum (ρ : Operator 2) :
     ∑ j : Fin 4, pauliFourFamily j * ρ * (pauliFourFamily j).conjTranspose
       = ((2 : ℂ) * Matrix.trace ρ) • 1 := by
@@ -196,6 +240,8 @@ theorem pauli_family_conj_sum (ρ : Operator 2) :
   all_goals try simp only [Complex.I_sq, Complex.I_mul_I]
   all_goals ring
 
+/-- The four-element Pauli twirl sends every qubit operator to one half of its trace times the
+identity. -/
 theorem clause4_conj2 (ρ : Operator 2) :
     FamilyTwirl pauliFourFamily ρ = (Matrix.trace ρ * (2 : ℂ)⁻¹) • 1 := by
   rw [familyTwirl_apply pauliFourFamily ρ, pauli_family_conj_sum]
@@ -205,10 +251,14 @@ theorem clause4_conj2 (ρ : Operator 2) :
   apply congrArg (fun z : ℂ => z • (1 : Operator 2))
   field_simp; ring
 
+/-- No weighted finite qubit matrix family satisfies `QubitSecondMomentUnboundaried`, which
+requires the second-moment identity for arbitrary complex test matrices. -/
 theorem clause4_conj5 {J : Type} [Fintype J] (prob : J → ℝ) (Uf : J → Operator 2) :
     ¬ QubitSecondMomentUnboundaried prob Uf :=
   qubit_real_second_moment_impossible prob Uf
 
+/-- There exists a family of 24 qubit matrices satisfying the unitarity and moment identities in
+`QubitTwoDesignMoments`. -/
 theorem clause4_conj4 : ∃ f : Fin 24 → Operator 2, QubitTwoDesignMoments f := by
   obtain ⟨f, hu, h1, h2⟩ := qubit_conjugation_two_design_exists
   refine ⟨f, ?_, h1, h2⟩
@@ -218,6 +268,8 @@ theorem clause4_conj4 : ∃ f : Fin 24 → Operator 2, QubitTwoDesignMoments f :
   rw [Matrix.star_eq_conjTranspose] at ha hb
   exact ⟨hb, ha⟩
 
+/-- The twirl of a finite unitary representation is completely positive, trace preserving,
+idempotent, and invariant under conjugating the input by the representation. -/
 theorem clause4_conj1 (D : ℕ) (G : Type) (hG : Fintype G) (hGg : Group G) (U : G → Operator D)
     (hU : IsUnitaryRep U) :
     CompletelyPositive (FamilyTwirl U) ∧ TracePreserving (FamilyTwirl U) ∧
@@ -231,10 +283,13 @@ theorem clause4_conj1 (D : ℕ) (G : Type) (hG : Fintype G) (hGg : Group G) (U :
 
 attribute [local instance] operatorMeasurableSpace
 
+/-- Evaluation at a fixed matrix entry is measurable for the entrywise measurable structure. -/
 theorem measurable_operator_entry {D : ℕ} (i j : Fin D) :
     Measurable (fun A : Operator D => A i j) := by
   fun_prop
 
+/-- A function between finite operator spaces is measurable exactly when each output entry is a
+measurable function. -/
 theorem measurable_matrix_iff {D E : ℕ} {f : Operator D → Operator E} :
     Measurable f ↔ ∀ i j : Fin E, Measurable (fun A : Operator D => f A i j) := by
   show @Measurable (Operator D) ((Fin E) → (Fin E) → ℂ) operatorMeasurableSpace
@@ -257,6 +312,7 @@ theorem measurable_matrix_iff {D E : ℕ} {f : Operator D → Operator E} :
     intro j
     exact h i j
 
+/-- Left multiplication by a fixed operator is measurable. -/
 theorem measurable_operator_mul_left {D : ℕ} (W : Operator D) :
     Measurable (fun A : Operator D => W * A) := by
   rw [measurable_matrix_iff]
@@ -267,6 +323,7 @@ theorem measurable_operator_mul_left {D : ℕ} (W : Operator D) :
   rw [h]
   fun_prop
 
+/-- Right multiplication by a fixed operator is measurable. -/
 theorem measurable_operator_mul_right {D : ℕ} (W : Operator D) :
     Measurable (fun A : Operator D => A * W) := by
   rw [measurable_matrix_iff]
@@ -277,6 +334,7 @@ theorem measurable_operator_mul_right {D : ℕ} (W : Operator D) :
   rw [h]
   fun_prop
 
+/-- Each entry of the conjugation `A * ρ * Aᴴ` is a measurable function of `A`. -/
 theorem measurable_conjEntry {D : ℕ} (ρ : Operator D) (i j : Fin D) :
     Measurable (fun A : Operator D => (A * ρ * A.conjTranspose) i j) := by
   have h : (fun A : Operator D => (A * ρ * A.conjTranspose) i j)
@@ -286,22 +344,26 @@ theorem measurable_conjEntry {D : ℕ} (ρ : Operator D) (i j : Fin D) :
   rw [h]
   fun_prop
 
+/-- Nested matrix conjugation by `W` and then `A` equals conjugation by `A * W`. -/
 theorem mul_conj_conj_assoc {D : ℕ} (A W ρ : Operator D) :
     A * (W * ρ * W.conjTranspose) * A.conjTranspose
       = (A * W) * ρ * (A * W).conjTranspose := by
   rw [Matrix.conjTranspose_mul]
   simp only [← Matrix.mul_assoc]
 
+/-- A `HaarUnitaryMeasure` assigns full measure to unitary matrices. -/
 theorem haar_ae_unitary {D : ℕ} (H : HaarUnitaryMeasure D) :
     ∀ᵐ A ∂H.μ, IsUnitaryMatrix A := by
   rw [MeasureTheory.ae_iff]
   exact H.supportedOnUnitary
 
+/-- The real-valued measure of the whole operator space under a `HaarUnitaryMeasure` is one. -/
 theorem haar_prob_real_univ {D : ℕ} (H : HaarUnitaryMeasure D) :
     (H.μ).real Set.univ = 1 := by
   rw [MeasureTheory.Measure.real_def, H.isProb.measure_univ]
   simp
 
+/-- Every entry of a finite unitary matrix has norm at most one. -/
 theorem unitary_entry_norm_le_one {D : ℕ} {V : Operator D} (hV : IsUnitaryMatrix V)
     (p q : Fin D) : ‖V p q‖ ≤ 1 := by
   have hform : (V.conjTranspose * V) q q = ∑ p : Fin D, star (V p q) * V p q := by
@@ -336,6 +398,7 @@ theorem unitary_entry_norm_le_one {D : ℕ} {V : Operator D} (hV : IsUnitaryMatr
   have hsqrt : ‖V p q‖ ≤ Real.sqrt 1 := (Real.le_sqrt h0 (by norm_num)).mpr hle
   rwa [Real.sqrt_one] at hsqrt
 
+/-- Each entry of a matrix conjugation is integrable against a `HaarUnitaryMeasure`. -/
 theorem haar_conjEntry_integrable {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Operator D)
     (i j : Fin D) : MeasureTheory.Integrable
       (fun B : Operator D => (B * ρ * B.conjTranspose) i j) H.μ := by
@@ -366,6 +429,7 @@ theorem haar_conjEntry_integrable {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Ope
           _ = ‖ρ m k‖ := by ring
     _ = ∑ a : Fin D, ∑ b : Fin D, ‖ρ a b‖ := Finset.sum_comm
 
+/-- Conjugating the input by any unitary leaves its Haar twirl unchanged. -/
 theorem haarTwirl_conj_invariant {D : ℕ} (H : HaarUnitaryMeasure D)
     (W ρ : Operator D) (hW : IsUnitaryMatrix W) :
     HaarTwirl H (W * ρ * W.conjTranspose) = HaarTwirl H ρ := by
@@ -384,6 +448,7 @@ theorem haarTwirl_conj_invariant {D : ℕ} (H : HaarUnitaryMeasure D)
     (measurable_operator_mul_right W)
     (Measurable.stronglyMeasurable (measurable_conjEntry ρ i j))).symm
 
+/-- The Haar-twirled operator is fixed by conjugation with any unitary matrix. -/
 theorem haarTwirl_unitary_conj_fixed {D : ℕ} (H : HaarUnitaryMeasure D)
     (A ρ : Operator D) (hA : IsUnitaryMatrix A) :
     A * HaarTwirl H ρ * A.conjTranspose = HaarTwirl H ρ := by
@@ -442,6 +507,8 @@ theorem haarTwirl_unitary_conj_fixed {D : ℕ} (H : HaarUnitaryMeasure D)
     (measurable_operator_mul_left A)
     (Measurable.stronglyMeasurable (measurable_conjEntry ρ i j))).symm
 
+/-- The Haar twirl satisfies `HaarProjectionFormula`, expressing it as the integral of twirls of
+conjugated inputs. -/
 theorem haar_projection_formula {D : ℕ} (H : HaarUnitaryMeasure D) :
     HaarProjectionFormula H := by
   intro ρ i j
@@ -466,6 +533,7 @@ theorem haar_projection_formula {D : ℕ} (H : HaarUnitaryMeasure D) :
     rw [one_smul]
   exact hkey.symm
 
+/-- Applying the Haar twirl twice yields the same operator as applying it once. -/
 theorem haarTwirl_idempotent {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Operator D) :
     HaarTwirl H (HaarTwirl H ρ) = HaarTwirl H ρ := by
   ext i j
@@ -480,6 +548,7 @@ theorem haarTwirl_idempotent {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Operator
     haar_prob_real_univ H, one_smul]
   rfl
 
+/-- The Haar twirl preserves the matrix trace. -/
 theorem haarTwirl_tracePreserving {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Operator D) :
     Matrix.trace (HaarTwirl H ρ) = Matrix.trace ρ := by
   have htr : ∀ᵐ A ∂H.μ, Matrix.trace (A * ρ * A.conjTranspose) = Matrix.trace ρ := by
@@ -504,6 +573,8 @@ theorem haarTwirl_tracePreserving {D : ℕ} (H : HaarUnitaryMeasure D) (ρ : Ope
     _ = Matrix.trace ρ := by
         simp only [MeasureTheory.integral_const, haar_prob_real_univ H, one_smul]
 
+/-- Each entry of the blockwise amplification of a Haar twirl equals the integral of the
+corresponding amplified conjugation entry. -/
 theorem channelAmplificationFn_haarTwirl {D r : ℕ} (H : HaarUnitaryMeasure D)
     (A : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) (x y : Fin r × Fin D) :
     ChannelAmplificationFn (HaarTwirl H) r A x y
@@ -511,6 +582,7 @@ theorem channelAmplificationFn_haarTwirl {D r : ℕ} (H : HaarUnitaryMeasure D)
           (fun M : Operator D => ChannelAmplification (conjBranch M) r A x y) := by
   rfl
 
+/-- Each entry of an amplified conjugation map is integrable against a `HaarUnitaryMeasure`. -/
 theorem channelAmplification_conjEntry_integrable {D r : ℕ} (H : HaarUnitaryMeasure D)
     (A : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) (u v : Fin r × Fin D) :
     MeasureTheory.Integrable
@@ -518,6 +590,7 @@ theorem channelAmplification_conjEntry_integrable {D r : ℕ} (H : HaarUnitaryMe
   haveI : MeasureTheory.IsProbabilityMeasure H.μ := H.isProb
   exact haar_conjEntry_integrable H (fun i j => A (u.1, i) (v.1, j)) u.2 v.2
 
+/-- Every finite blockwise amplification of the Haar twirl preserves positive semidefiniteness. -/
 theorem haarTwirl_amplification_posSemidef {D r : ℕ} (H : HaarUnitaryMeasure D)
     (A : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) (hA : A.PosSemidef) :
     (ChannelAmplificationFn (HaarTwirl H) r A).PosSemidef := by
@@ -639,6 +712,8 @@ theorem haarTwirl_amplification_posSemidef {D r : ℕ} (H : HaarUnitaryMeasure D
       rw [hz, MeasureTheory.integral_zero]
     exact RCLike.nonneg_iff.mpr ⟨hre, him⟩
 
+/-- The Haar twirl satisfies `CPTPFunction`, is idempotent and invariant under unitary
+conjugation of the input, and satisfies `HaarProjectionFormula`. -/
 theorem clause4_conj3 (D : ℕ) (H : HaarUnitaryMeasure D) :
     CPTPFunction (HaarTwirl H) ∧
       (∀ ρ : Operator D, HaarTwirl H (HaarTwirl H ρ) = HaarTwirl H ρ) ∧
@@ -648,6 +723,10 @@ theorem clause4_conj3 (D : ℕ) (H : HaarUnitaryMeasure D) :
   ⟨⟨fun r A hA => haarTwirl_amplification_posSemidef H A hA, haarTwirl_tracePreserving H⟩,
     haarTwirl_idempotent H, haarTwirl_conj_invariant H, haar_projection_formula H⟩
 
+/-- Finite representation twirls and Haar twirls have the stated channel, invariance, and
+projection properties, and Pauli twirling is completely depolarizing. The theorem also
+supplies a 24-element qubit moment family and rules out the unrestricted complex-input
+second-moment identity. -/
 theorem g4 :
     (∀ (D : ℕ) (G : Type) (_ : Fintype G) (_ : Group G) (U : G → Operator D),
       IsUnitaryRep U →

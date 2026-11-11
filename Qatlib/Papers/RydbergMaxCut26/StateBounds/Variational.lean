@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.StateBounds.CliffordIsotropy
+
+/-!
+# Variational QMC bounds from secondary energies
+
+The predicate `GroundDensity` expresses physicality and global energy minimality among density
+matrices. Isotropic averaging converts a secondary ground energy into a QMC lower bound; the
+variants `eta_ground_lower`, `eta_lower_edges`, and `eta_lower_clipped` incorporate a positive
+energy-quality parameter. See [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `secondary_ground_lower`: derives a QMC lower bound from a secondary ground density.
+* `eta_lower_edges`: writes the quality-dependent bound as an edge sum.
+* `eta_lower_clipped`: gives the clipped bound for nonnegative weights.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -18,15 +38,22 @@ open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.EnergyBounds
 open Qatlib.Papers.RydbergMaxCut26.MomentSdp.Phase
 open Qatlib.Papers.RydbergMaxCut26.StateBounds.Clifford
 
+/-- The condition that `ρ` is positive semidefinite, has trace one, and minimizes the energy of
+`H` among all density matrices. -/
 def GroundDensity {I : Type*} [Fintype I] (H ρ : Matrix I I ℂ) : Prop :=
   ρ.PosSemidef ∧ ρ.trace=1 ∧ ∀ σ : Matrix I I ℂ, σ.PosSemidef → σ.trace=1 → energy H ρ≤energy H σ
 
+/-- The weighted sum of `1 - c * t` equals the total weight minus `c` times the weighted sum of
+`t`. -/
 theorem weighted_denom_sum {E : Type*} [Fintype E] (w t : E → ℝ) (c : ℝ) :
     (∑ e,w e*(1-c*t e))=(∑ e,w e)-c*(∑ e,w e*t e) := by
   have he : ∀ e,w e*(1-c*t e)=w e-c*(w e*t e) := by intro e;ring
   simp_rw [he]
   rw [Finset.sum_sub_distrib,← Finset.mul_sum]
 
+/-- For distinct edge endpoints, minus one quarter of the total weight plus three eighths of the
+secondary ground energy bounds below the QMC energy of every physical density; see
+[CrostaSaubanereHuber2026]. -/
 theorem secondary_ground_lower {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ)
     (ρR : Matrix (Reg n) (Reg n) ℂ) (hR : GroundDensity (secondaryHamiltonian ends w) ρR)
@@ -39,6 +66,8 @@ theorem secondary_ground_lower {n : ℕ} {E : Type*} [Fintype E]
     _ = energy (qmcHamiltonian ends w) (isotropicState n ρ) := (isotropic_energy_relation ends hends w ρ hρ htr).symm
     _ = _ := isotropic_qmc_energy ends hends w ρ hρ htr
 
+/-- For distinct edge endpoints and a secondary ground density, `-1/4 * ∑ e, w e * (1 - 3 *
+tParam ρR i j)` bounds below every physical QMC energy. -/
 theorem ground_lower_edges {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ)
     (ρR : Matrix (Reg n) (Reg n) ℂ) (hR : GroundDensity (secondaryHamiltonian ends w) ρR)
@@ -53,6 +82,9 @@ theorem ground_lower_edges {n : ℕ} {E : Type*} [Fintype E]
   rw [he]
   exact h
 
+/-- For positive `η`, if the secondary energy of `ρA` is at most `η` times the secondary ground
+energy, then minus one quarter of the total weight plus `3 / (8 * η)` times the energy of
+`ρA` bounds below every physical QMC energy. -/
 theorem eta_ground_lower {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ)
     (ρR : Matrix (Reg n) (Reg n) ℂ) (hR : GroundDensity (secondaryHamiltonian ends w) ρR)
@@ -69,6 +101,8 @@ theorem eta_ground_lower {n : ℕ} {E : Type*} [Fintype E]
     _ ≤ -(1/4:ℝ)*(∑ e,w e)+(3/8:ℝ)*energy (secondaryHamiltonian ends w) ρR := by linarith
     _ ≤ _ := hbase
 
+/-- Under the positive-`η` secondary energy-quality inequality, the weighted expression `-1/4 *
+∑ e, w e * (1 - (3 / η) * tParam ρA i j)` bounds below every physical QMC energy. -/
 theorem eta_lower_edges {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ)
     (ρR : Matrix (Reg n) (Reg n) ℂ) (hR : GroundDensity (secondaryHamiltonian ends w) ρR)
@@ -85,6 +119,9 @@ theorem eta_lower_edges {n : ℕ} {E : Type*} [Fintype E]
   rw [he]
   exact h
 
+/-- Under the positive-`η` secondary energy-quality inequality and nonnegative edge weights,
+replacing each edge factor by `max (1 - (3 / η) * tParam ρA i j) 0` gives a QMC lower bound;
+see [CrostaSaubanereHuber2026]. -/
 theorem eta_lower_clipped {n : ℕ} {E : Type*} [Fintype E]
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ) (hw : ∀ e,0≤w e)
     (ρR : Matrix (Reg n) (Reg n) ℂ) (hR : GroundDensity (secondaryHamiltonian ends w) ρR)

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.NoSignalCode.NoSignallingMessageCount
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+
+/-!
+# Message counts for quantum assemblages
+
+`povm_weight_nonneg` provides nonnegative measurement weights for positive semidefinite
+operators. Applying the no-signalling counting argument to a quantum assemblage with a common
+trace-one sum yields `quantum_assemblage_message_count`. These bounds formalize the
+no-signalling communication argument for teleportation [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `povm_weight_nonneg`: The real trace of a POVM effect times a positive semidefinite operator
+  is nonnegative.
+* `quantum_assemblage_message_count`: If positive assemblages share a trace-one sum and
+  message-dependent POVMs decode each input with total weight one, then the input alphabet has
+  at most as many elements as the message alphabet [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,7 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePOVMTraceDistance
 
+/-- The real trace of a POVM effect times a positive semidefinite operator is nonnegative. -/
 theorem povm_weight_nonneg {X : Type} [Fintype X] [DecidableEq X] {d : ℕ}
     (E : FinitePOVM X d) (A : Operator d) (hA : A.PosSemidef) (x : X) :
     0 ≤ (Matrix.trace (E.effect x * A)).re := by
@@ -27,6 +50,9 @@ theorem povm_weight_nonneg {X : Type} [Fintype X] [DecidableEq X] {d : ℕ}
   simp only [Matrix.diagonal_apply_eq] at h
   exact (Complex.nonneg_iff.mp h).1
 
+/-- If positive assemblages share a trace-one sum and message-dependent POVMs decode each input
+with total weight one, then the input alphabet has at most as many elements as the message
+alphabet [BennettEtAl1993Teleportation]. -/
 theorem quantum_assemblage_message_count
     {X M : Type} [Fintype X] [DecidableEq X] [Fintype M] {d : ℕ}
     (x₀ : X) (τ : X → M → Operator d) (σ : Operator d)

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GraphEnergy.ZeroEnergy.LazyGraphDefs
+
+/-!
+# Stationarity and reversibility of the lazy graph walk
+
+This module verifies nonnegative normalized transition rows and stationary weights for the lazy
+graph kernel. It proves detailed balance and global balance, including the zero-volume
+convention. These classical reversible-chain properties underlie the quantum-walk construction
+of [Szegedy2004].
+
+## Main statements
+
+* `kernel_sum` and `stationary_sum`: normalization of transition and stationary weights.
+* `detailed_balance` and `global_balance`: reversibility and stationarity.
+* `g1`: the combined stochastic and stationary laws.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,24 +40,28 @@ variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
 omit [DecidableEq V] in
 
+/-- Every real vertex degree is nonnegative. -/
 lemma degree_nonneg (x : V) : 0 ≤ degree G x := by
   unfold degree
   exact Finset.sum_nonneg fun _ _ => by split_ifs <;> norm_num
 
 omit [DecidableEq V] in
 
+/-- The graph volume is nonnegative. -/
 lemma volume_nonneg : 0 ≤ volume G := by
   unfold volume
   exact Finset.sum_nonneg fun x _ => degree_nonneg G x
 
 omit [DecidableEq V] in
 
+/-- If graph volume is zero, every vertex has degree zero. -/
 lemma degree_eq_zero_of_volume_eq_zero (hv : volume G = 0) (x : V) : degree G x = 0 := by
   unfold volume at hv
   exact (Finset.sum_eq_zero_iff_of_nonneg fun i _ => degree_nonneg G i).1 hv x (mem_univ x)
 
 omit [DecidableEq V] in
 
+/-- A vertex of degree zero is adjacent to no vertex. -/
 lemma not_adj_of_degree_eq_zero {x : V} (hx : degree G x = 0) (y : V) : ¬ G.Adj x y := by
   intro h
   unfold degree at hx
@@ -47,6 +71,7 @@ lemma not_adj_of_degree_eq_zero {x : V} (hx : degree G x = 0) (y : V) : ¬ G.Adj
       hx y (mem_univ y)
   simp [h] at hterm
 
+/-- Every entry of the lazy graph kernel is nonnegative. -/
 lemma kernel_nonneg (x y : V) : 0 ≤ kernel G x y := by
   by_cases hx : degree G x = 0
   · simp [kernel, hx]
@@ -64,6 +89,7 @@ lemma kernel_nonneg (x y : V) : 0 ≤ kernel G x y := by
       · norm_num
     exact add_nonneg h1 h2
 
+/-- Summing a fixed scalar supported at the diagonal index returns that scalar. -/
 lemma sum_diag (x : V) (c : ℝ) : ∑ y : V, (if x = y then c else 0) = c := by
   have hswap : ∀ y, (if x = y then c else 0) = (if y = x then c else 0) := by
     intro y
@@ -73,6 +99,7 @@ lemma sum_diag (x : V) (c : ℝ) : ∑ y : V, (if x = y then c else 0) = c := by
   simp_rw [hswap]
   simp [Finset.sum_ite_eq']
 
+/-- Each row of the lazy graph kernel sums to one. -/
 lemma kernel_sum (x : V) : ∑ y, kernel G x y = 1 := by
   by_cases hx : degree G x = 0
   · simp only [kernel, hx, ite_true]
@@ -103,6 +130,7 @@ lemma kernel_sum (x : V) : ∑ y, kernel G x y = 1 := by
 
 omit [DecidableEq V] in
 
+/-- Each stationary vertex weight is nonnegative. -/
 lemma stationary_nonneg [Nonempty V] (x : V) : 0 ≤ stationary G x := by
   by_cases hv : volume G = 0
   · have hcard : (0 : ℝ) < Fintype.card V := by exact_mod_cast Fintype.card_pos
@@ -114,6 +142,7 @@ lemma stationary_nonneg [Nonempty V] (x : V) : 0 ≤ stationary G x := by
 
 omit [DecidableEq V] in
 
+/-- The stationary weights on a nonempty finite vertex type sum to one. -/
 lemma stationary_sum [Nonempty V] : ∑ x, stationary G x = 1 := by
   by_cases hv : volume G = 0
   · have hcard : (Fintype.card V : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
@@ -125,6 +154,7 @@ lemma stationary_sum [Nonempty V] : ∑ x, stationary G x = 1 := by
     unfold volume
     exact div_self hvpos.ne'
 
+/-- The stationary transition weight from `x` to `y` equals that from `y` to `x`. -/
 lemma detailed_balance [Nonempty V] (x y : V) :
     stationary G x * kernel G x y = stationary G y * kernel G y x := by
   by_cases hv : volume G = 0
@@ -167,6 +197,8 @@ lemma detailed_balance [Nonempty V] (x y : V) :
           · have hadj' : ¬ G.Adj y x := fun h => hadj (G.adj_symm h)
             simp [hxy, Ne.symm hxy, hadj, hadj']
 
+/-- Summing the stationary incoming transition weights at a vertex returns its stationary
+weight. -/
 lemma global_balance [Nonempty V] (y : V) :
     ∑ x, stationary G x * kernel G x y = stationary G y := by
   calc ∑ x, stationary G x * kernel G x y
@@ -176,6 +208,8 @@ lemma global_balance [Nonempty V] (y : V) :
     _ = stationary G y * ∑ x, kernel G y x := by rw [Finset.mul_sum]
     _ = stationary G y := by rw [kernel_sum G y, mul_one]
 
+/-- The lazy graph kernel and stationary weights are nonnegative and normalized and satisfy both
+detailed balance and global balance. -/
 theorem g1 :
     ∀ (V : Type) [Fintype V] [DecidableEq V] [Nonempty V]
       (G : SimpleGraph V) [DecidableRel G.Adj],

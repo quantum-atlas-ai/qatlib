@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+
+/-!
+# Concrete consumers of prepared quantum search
+
+This module instantiates prepared amplitude amplification with a two-dimensional preparation
+whose marked probability is one quarter and whose marked amplitude carries an arbitrary unit
+complex phase. The examples make the amplification and sampling guarantees of [BrassardEtAl2002]
+explicit at the level of executed states, success probabilities, and resource counts.
+
+## Main statements
+
+* `prepared_search_quarter_mass_consumer`: obtain the marked basis state, up to its unit phase,
+  after one amplification query.
+* `prepared_search_bit_sampled_consumer`: compute exact success mass and expected resources for
+  a bit-sampled search instance.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,10 +45,14 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Matrix
 open scoped ENNReal Classical
 
+/-- The two-dimensional rotation preparation composed with a diagonal phase on the marked basis
+vector. -/
 noncomputable def preparedQuarterA (ζ : ℂ) : Operator 2 :=
   Matrix.diagonal (fun i : Fin 2 => if i = 0 then 1 else ζ) *
     ((!![((Real.sqrt 3 / 2 : ℝ) : ℂ), -(1/2 : ℂ); (1/2 : ℂ), ((Real.sqrt 3 / 2 : ℝ) : ℂ)] : Matrix (Fin 2) (Fin 2) ℂ) : Matrix (Fin 2) (Fin 2) ℂ)
 
+/-- The real two-dimensional rotation with cosine `√3/2` and sine `1/2`, viewed as a complex
+matrix, is unitary. -/
 private theorem rotation_unitary :
     (!![((Real.sqrt 3 / 2 : ℝ) : ℂ), -(1/2 : ℂ); (1/2 : ℂ), ((Real.sqrt 3 / 2 : ℝ) : ℂ)] : Matrix (Fin 2) (Fin 2) ℂ)
       ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
@@ -66,6 +91,7 @@ private theorem rotation_unitary :
     rw [Complex.conj_ofReal, hcm, haa]
     norm_num
 
+/-- A two-dimensional diagonal matrix with entries one and a unit complex number `ζ` is unitary. -/
 private theorem diagonal_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
     Matrix.diagonal (fun i : Fin 2 => if i = 0 then 1 else ζ)
       ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
@@ -83,10 +109,12 @@ private theorem diagonal_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
       simp [hzz]
   · simp [hij]
 
+/-- The quarter-probability preparation is unitary when its phase parameter has norm one. -/
 private theorem preparedQuarterA_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
     preparedQuarterA ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   (Matrix.unitaryGroup (Fin 2) ℂ).mul_mem (diagonal_unitary hζ) rotation_unitary
 
+/-- The amplitude of basis label one in the prepared quarter-probability state equals `ζ / 2`. -/
 private theorem preparedAAState_quarter_one (ζ : ℂ) :
     (preparedAAState (preparedQuarterA ζ) (0 : Fin 2)) 1 = ζ * (1/2 : ℂ) := by
   show (∑ j : Fin 2, (Matrix.diagonal (fun i : Fin 2 => if i = 0 then 1 else ζ) *
@@ -94,6 +122,8 @@ private theorem preparedAAState_quarter_one (ζ : ℂ) :
   rw [Fin.sum_univ_two]
   simp [Ket, Matrix.mul_apply, Matrix.diagonal_apply, Matrix.of_apply, Fin.isValue]
 
+/-- For unit `ζ`, the preparation has marked mass `1/4`, and one prepared amplification step
+returns `ζ • Ket 1` using one query and four gates [BrassardEtAl2002]. -/
 theorem prepared_search_quarter_mass_consumer :
     ∀ ζ : ℂ, ‖ζ‖=1 →
     preparedQuarterA ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧
@@ -149,6 +179,7 @@ theorem prepared_search_quarter_mass_consumer :
       ({1} : Finset (Fin 2)) 1 hA).2.2.1
     rw [hgc]
 
+/-- Evaluate `(15/16) / 3 * (3/2)` as `15/32` in the extended nonnegative reals. -/
 private theorem num_event_fin :
     (((15/16 : ℝ≥0∞)) / (((3:ℕ):ℝ≥0∞))) * ((3/2 : ℝ≥0∞)) = 15/32 := by
   rw [show ((15/16:ℝ≥0∞)) = ENNReal.ofReal ((15/16:ℝ)) from by
@@ -166,6 +197,7 @@ private theorem num_event_fin :
   congr 1
   norm_num
 
+/-- Evaluate `2 * (1 + 1/4)` as `5/2` in the extended nonnegative reals. -/
 private theorem num_bits_fin :
     (((2:ℕ):ℝ≥0∞)) * (1 + ((1/4:ℝ≥0∞))) = 5/2 := by
   rw [show ((1/4:ℝ≥0∞)) = ENNReal.ofReal ((1/4:ℝ)) from by
@@ -181,14 +213,17 @@ private theorem num_bits_fin :
   congr 1
   norm_num
 
+/-- The extended nonnegative real quotient of two by itself is one. -/
 private theorem num_div_two_self : (((2:ℝ≥0∞)) / (((2:ℝ≥0∞)))) = 1 := by
   rw [div_eq_mul_inv, ENNReal.mul_inv_cancel (by norm_num : ((2:ℝ≥0∞)) ≠ 0)
     (by norm_num : ((2:ℝ≥0∞)) ≠ ⊤)]
 
+/-- Evaluate `(15/16) * (2/2)` as `15/16` in the extended nonnegative reals. -/
 private theorem num_query_fin :
     ((15/16:ℝ≥0∞)) * (((2:ℝ≥0∞)) / ((2:ℝ≥0∞))) = ((15/16:ℝ≥0∞)) := by
   rw [num_div_two_self, mul_one]
 
+/-- Evaluate `(15/16) * (3 * (2/2) + 1)` as `15/4` in the extended nonnegative reals. -/
 private theorem num_gates_fin :
     ((15/16:ℝ≥0∞)) * (((3:ℝ≥0∞)) * (((2:ℝ≥0∞)) / ((2:ℝ≥0∞))) + ((1:ℝ≥0∞))) = 15/4 := by
   rw [num_div_two_self,
@@ -204,6 +239,9 @@ private theorem num_gates_fin :
   congr 1
   norm_num
 
+/-- For the stated quarter-probability sampled search, success mass is `15/32`, expected
+sampled-bit and query counts are `5/2` and `15/16`, and expected returned gate count is
+`15/4`. -/
 theorem prepared_search_bit_sampled_consumer :
     ∀ (ζ : ℂ) (hζ : ‖ζ‖=1) (hA : preparedQuarterA ζ ∈ Matrix.unitaryGroup (Fin 2) ℂ),
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAASampled (preparedQuarterA ζ) hA 0 {1} 2 3 2)

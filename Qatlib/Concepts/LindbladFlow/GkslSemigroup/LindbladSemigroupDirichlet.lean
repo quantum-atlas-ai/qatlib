@@ -21,6 +21,32 @@ import Mathlib.Analysis.ODE.Gronwall
 import QuantumInfo.ForMathlib.HermitianMat.Inner
 import QuantumInfo.Entropy.DPI
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+
+/-!
+# Heisenberg duality and Lindblad Dirichlet identities
+
+`gkslHeisenbergMap` is the trace-dual generator on observables. The module proves that it
+annihilates the identity and that KMS self-adjointness with respect to a positive semidefinite
+reference implies stationarity of that reference. It also computes the exact evolution and norm
+of a generator eigenmode.
+
+The carré-du-champ identity expresses the product-rule defect as a sum of jump-commutator
+products. For a stationary Hermitian reference this gives a Dirichlet trace formula, nonnegative
+when the reference is positive semidefinite, in the generator framework of [Lindblad1976].
+
+## Main statements
+
+* `lindblad_heisenberg_trace_dual`: relate Schrödinger and Heisenberg generators.
+* `stationary_of_heisenberg_kmsSelfAdjoint`: deduce reference stationarity.
+* `gkslHeisenbergMap_carre`: compute the carré-du-champ identity.
+* `gkslHeisenberg_dirichlet_trace_nonneg`: prove nonnegativity of the stationary Dirichlet
+  trace.
+
+## References
+
+* [Lindblad, 1976][Lindblad1976]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
@@ -37,12 +63,15 @@ namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 open Filter
 open scoped Topology
 
+/-- The Heisenberg-picture GKSL generator as a complex-linear map on observables. -/
 noncomputable def gkslHeisenbergMap {D : ℕ} (G : GKSL D) : Operator D →ₗ[ℂ] Operator D :=
   Complex.I • (LinearMap.mulLeft ℂ G.ham - LinearMap.mulRight ℂ G.ham) +
     ∑ j, ((LinearMap.mulLeft ℂ (G.jumps j)ᴴ).comp (LinearMap.mulRight ℂ (G.jumps j)) -
       (1 / 2 : ℂ) • (LinearMap.mulLeft ℂ ((G.jumps j)ᴴ * G.jumps j) +
         LinearMap.mulRight ℂ ((G.jumps j)ᴴ * G.jumps j)))
 
+/-- Expands the Heisenberg generator into its Hamiltonian commutator and adjoint-jump
+dissipators. -/
 theorem gkslHeisenbergMap_apply {D : ℕ} (G : GKSL D) (X : Operator D) :
     gkslHeisenbergMap G X = Complex.I • (G.ham * X - X * G.ham) +
       ∑ j, ((G.jumps j)ᴴ * X * G.jumps j -
@@ -51,6 +80,7 @@ theorem gkslHeisenbergMap_apply {D : ℕ} (G : GKSL D) (X : Operator D) :
     LinearMap.sub_apply, LinearMap.sum_apply, LinearMap.comp_apply, LinearMap.mulLeft_apply,
     LinearMap.mulRight_apply, Matrix.mul_assoc]
 
+/-- The Heisenberg generator annihilates the identity observable. -/
 theorem gkslHeisenbergMap_one {D : ℕ} (G : GKSL D) : gkslHeisenbergMap G 1 = 0 := by
   rw [gkslHeisenbergMap_apply]
   simp only [Matrix.mul_one, Matrix.one_mul, sub_self, smul_zero, zero_add]
@@ -58,6 +88,7 @@ theorem gkslHeisenbergMap_one {D : ℕ} (G : GKSL D) : gkslHeisenbergMap G 1 = 0
   intro j _
   module
 
+/-- The Schrödinger and Heisenberg generators are dual under the bilinear trace pairing. -/
 theorem lindblad_heisenberg_trace_dual {D : ℕ} (G : GKSL D) (ρ X : Operator D) :
     Matrix.trace (lindbladApply G ρ * X) = Matrix.trace (ρ * gkslHeisenbergMap G X) := by
   rw [gkslHeisenbergMap_apply]
@@ -95,6 +126,8 @@ theorem lindblad_heisenberg_trace_dual {D : ℕ} (G : GKSL D) (ρ X : Operator D
   congr 1
   exact Finset.sum_congr rfl fun j _ => hj j
 
+/-- A positive semidefinite reference for which the Heisenberg generator is KMS-self-adjoint is
+annihilated by the Schrödinger generator. -/
 theorem lindbladApply_eq_zero_of_heisenberg_kmsSelfAdjoint {D : ℕ} (G : GKSL D) (ρ : Operator D)
     (hρ : ρ.PosSemidef) (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) :
     lindbladApply G ρ = 0 := by
@@ -105,10 +138,13 @@ theorem lindbladApply_eq_zero_of_heisenberg_kmsSelfAdjoint {D : ℕ} (G : GKSL D
   rw [← kmsInner_one_left ρ _ hρ.nonneg, hself, gkslHeisenbergMap_one]
   simp [kmsInner]
 
+/-- A positive semidefinite reference for which the Heisenberg generator is KMS-self-adjoint is
+stationary under Lindblad evolution. -/
 theorem stationary_of_heisenberg_kmsSelfAdjoint {D : ℕ} (G : GKSL D) (ρ : Operator D)
     (hρ : ρ.PosSemidef) (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) : IsStationary G ρ :=
   stationary_of_generator_zero G ρ (lindbladApply_eq_zero_of_heisenberg_kmsSelfAdjoint G ρ hρ hself)
 
+/-- A generator eigenmode with eigenvalue `z` evolves by the scalar `exp(t * z)`. -/
 theorem lindbladSemigroup_eigenmode {D : ℕ} (G : GKSL D) (ρ : Operator D) (z : ℂ)
     (h : lindbladApply G ρ = z • ρ) (t : ℝ) :
     lindbladSemigroup G t ρ = Complex.exp ((t : ℂ) * z) • ρ := by
@@ -131,12 +167,15 @@ theorem lindbladSemigroup_eigenmode {D : ℕ} (G : GKSL D) (ρ : Operator D) (z 
   simp only [hterm, ← Complex.exp_eq_exp_ℂ] at hm
   exact (lindbladSemigroup_hasSum G t ρ).unique hm
 
+/-- The norm of a generator eigenmode evolves by the factor `exp(t * z.re)`. -/
 theorem norm_lindbladSemigroup_eigenmode {D : ℕ} (G : GKSL D) (ρ : Operator D) (z : ℂ)
     (h : lindbladApply G ρ = z • ρ) (t : ℝ) :
     ‖lindbladSemigroup G t ρ‖ = Real.exp (t * z.re) * ‖ρ‖ := by
   rw [lindbladSemigroup_eigenmode G ρ z h t, norm_smul, Complex.norm_exp]
   simp
 
+/-- The product-rule defect of a single Heisenberg dissipator is the product of its two jump
+commutators. -/
 private theorem dissipator_carre {D : ℕ} (L X Y : Operator D) :
     (Lᴴ * (Xᴴ * Y) * L - (1 / 2 : ℂ) • (Lᴴ * L * (Xᴴ * Y) + (Xᴴ * Y) * Lᴴ * L)) -
       (Lᴴ * X * L - (1 / 2 : ℂ) • (Lᴴ * L * X + X * Lᴴ * L))ᴴ * Y -
@@ -149,6 +188,7 @@ private theorem dissipator_carre {D : ℕ} (L X Y : Operator D) :
     Matrix.smul_mul, Matrix.mul_smul, smul_add, Matrix.mul_assoc]
   module
 
+/-- The Hamiltonian part of the Heisenberg generator has zero product-rule defect. -/
 private theorem hamiltonian_carre {D : ℕ} (G : GKSL D) (X Y : Operator D) :
     Complex.I • (G.ham * (Xᴴ * Y) - (Xᴴ * Y) * G.ham) -
       (Complex.I • (G.ham * X - X * G.ham))ᴴ * Y -
@@ -159,6 +199,8 @@ private theorem hamiltonian_carre {D : ℕ} (G : GKSL D) (X Y : Operator D) :
     smul_sub, Matrix.mul_assoc]
   module
 
+/-- The Heisenberg generator's carré-du-champ expression is the sum of products of jump
+commutators [Lindblad1976]. -/
 theorem gkslHeisenbergMap_carre {D : ℕ} (G : GKSL D) (X Y : Operator D) :
     gkslHeisenbergMap G (Xᴴ * Y) - (gkslHeisenbergMap G X)ᴴ * Y -
       Xᴴ * gkslHeisenbergMap G Y =
@@ -182,6 +224,7 @@ theorem gkslHeisenbergMap_carre {D : ℕ} (G : GKSL D) (X Y : Operator D) :
       rw [hh, zero_add]
       exact Finset.sum_congr rfl fun j _ => dissipator_carre (G.jumps j) X Y
 
+/-- The diagonal carré-du-champ expression of the Heisenberg generator is positive semidefinite. -/
 theorem gkslHeisenbergMap_carre_posSemidef {D : ℕ} (G : GKSL D) (X : Operator D) :
     (gkslHeisenbergMap G (Xᴴ * X) - (gkslHeisenbergMap G X)ᴴ * X -
       Xᴴ * gkslHeisenbergMap G X).PosSemidef := by
@@ -190,6 +233,8 @@ theorem gkslHeisenbergMap_carre_posSemidef {D : ℕ} (G : GKSL D) (X : Operator 
   exact Finset.sum_nonneg fun j _ =>
     (Matrix.posSemidef_conjTranspose_mul_self (G.jumps j * X - X * G.jumps j)).nonneg
 
+/-- For a Hermitian weight, the real weighted trace pairing is symmetric in its two operator
+arguments. -/
 private theorem trace_pair_re_symm {D : ℕ} {ρ : Operator D} (hρ : ρ.IsHermitian)
     (X Y : Operator D) :
     (Matrix.trace (ρ * Xᴴ * Y)).re = (Matrix.trace (ρ * Yᴴ * X)).re := by
@@ -200,6 +245,8 @@ private theorem trace_pair_re_symm {D : ℕ} {ρ : Operator D} (hρ : ρ.IsHermi
   rw [← Matrix.mul_assoc Yᴴ X ρ, Matrix.trace_mul_comm (Yᴴ * X) ρ] at hr
   simpa only [Matrix.mul_assoc] using! hr.symm
 
+/-- For a stationary Hermitian reference, the negative real generator pairing equals half the
+sum of the weighted squared jump-commutator traces. -/
 theorem gkslHeisenberg_dirichlet_trace {D : ℕ} (G : GKSL D) {ρ : Operator D}
     (hρ : ρ.IsHermitian) (hstationary : lindbladApply G ρ = 0) (X : Operator D) :
     -(Matrix.trace (ρ * Xᴴ * gkslHeisenbergMap G X)).re =
@@ -230,6 +277,7 @@ theorem gkslHeisenberg_dirichlet_trace {D : ℕ} (G : GKSL D) {ρ : Operator D}
   rw [hright] at hcarre
   linarith
 
+/-- The stationary Dirichlet trace is nonnegative for a positive semidefinite reference. -/
 theorem gkslHeisenberg_dirichlet_trace_nonneg {D : ℕ} (G : GKSL D) {ρ : Operator D}
     (hρ : ρ.PosSemidef) (hstationary : lindbladApply G ρ = 0) (X : Operator D) :
     0 ≤ -(Matrix.trace (ρ * Xᴴ * gkslHeisenbergMap G X)).re := by

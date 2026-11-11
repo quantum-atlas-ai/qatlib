@@ -73,6 +73,28 @@ import Mathlib.Topology.Algebra.Ring.Real
 import Mathlib.Topology.Defs.Basic
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# One-bit oracle evolution and its time lower bound
+
+This module defines the two-component rotation `oneBitEvol`, proves its initial value and
+differential equations, and evaluates it at time 1/2. The theorem `oneBit_zeroError_minimumTime`
+combines this endpoint with a lower bound for angular trajectories starting at zero and having
+speed at most π/2. See [Mochon2007] for the Hamiltonian oracle formulation.
+
+## Main statements
+
+* `oneBitEvol_solves_ODE`: The components of `oneBitEvol` satisfy the coupled rotation equations
+  with angular speed π / 2.
+* `oneBit_zeroError_minimumTime`: The evolution `oneBitEvol` reaches (√2 / 2, √2 / 2) at time 1
+  / 2, and every angular trajectory satisfying the stated derivative and speed bounds and the
+  target cosine requires at least that time.
+
+## References
+
+* [Mochon, 2007][Mochon2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -81,12 +103,15 @@ noncomputable section
 
 namespace Qatlib.Papers.HamOracle06.MainResults
 
+/-- The two-component evolution (cos(πt / 2), sin(πt / 2)). -/
 def oneBitEvol (t : ℝ) : ℝ × ℝ :=
   (Real.cos (Real.pi / 2 * t), Real.sin (Real.pi / 2 * t))
 
+/-- The one-bit evolution starts at the vector (1, 0). -/
 theorem oneBitEvol_initial : oneBitEvol 0 = (1, 0) := by
   simp [oneBitEvol]
 
+/-- The derivative of cos(πt / 2) is −(π / 2) sin(πt / 2). -/
 theorem oneBitEvol_fst_hasDerivAt (t : ℝ) :
     HasDerivAt (fun s => Real.cos (Real.pi / 2 * s))
       (-(Real.pi / 2) * Real.sin (Real.pi / 2 * t)) t := by
@@ -99,6 +124,7 @@ theorem oneBitEvol_fst_hasDerivAt (t : ℝ) :
   convert! h using 1
   ring
 
+/-- The derivative of sin(πt / 2) is (π / 2) cos(πt / 2). -/
 theorem oneBitEvol_snd_hasDerivAt (t : ℝ) :
     HasDerivAt (fun s => Real.sin (Real.pi / 2 * s))
       ((Real.pi / 2) * Real.cos (Real.pi / 2 * t)) t := by
@@ -111,6 +137,8 @@ theorem oneBitEvol_snd_hasDerivAt (t : ℝ) :
   convert! h using 1
   ring
 
+/-- The components of `oneBitEvol` satisfy the coupled rotation equations with angular speed π /
+2. See [Mochon2007]. -/
 theorem oneBitEvol_solves_ODE (t : ℝ) :
     HasDerivAt (fun s => (oneBitEvol s).1) (-(Real.pi / 2) * (oneBitEvol t).2) t ∧
       HasDerivAt (fun s => (oneBitEvol s).2) ((Real.pi / 2) * (oneBitEvol t).1) t := by
@@ -118,11 +146,14 @@ theorem oneBitEvol_solves_ODE (t : ℝ) :
   · simpa [oneBitEvol] using oneBitEvol_fst_hasDerivAt t
   · simpa [oneBitEvol] using oneBitEvol_snd_hasDerivAt t
 
+/-- At time 1 / 2, the one-bit evolution equals (√2 / 2, √2 / 2). -/
 theorem oneBitEvol_final : oneBitEvol (1 / 2) = (Real.sqrt 2 / 2, Real.sqrt 2 / 2) := by
   have harg : Real.pi / 2 * (1 / 2) = Real.pi / 4 := by ring
   unfold oneBitEvol
   rw [harg, Real.cos_pi_div_four, Real.sin_pi_div_four]
 
+/-- A differentiable angular trajectory starting at zero, with speed bounded by π / 2 on [0, T),
+and satisfying cos(φ(T)) = √2 / 2 requires T ≥ 1 / 2. -/
 theorem oneBit_lowerBound (φ u : ℝ → ℝ) (T : ℝ) (hT : 0 ≤ T) (hφ0 : φ 0 = 0)
     (hderiv : ∀ x ∈ Set.Icc (0 : ℝ) T, HasDerivWithinAt φ (u x) (Set.Icc 0 T) x)
     (hbound : ∀ x ∈ Set.Ico (0 : ℝ) T, |u x| ≤ Real.pi / 2)
@@ -141,6 +172,9 @@ theorem oneBit_lowerBound (φ u : ℝ → ℝ) (T : ℝ) (hT : 0 ≤ T) (hφ0 : 
     exact lt_irrefl _ hcoslt
   nlinarith [Real.pi_pos]
 
+/-- The evolution `oneBitEvol` reaches (√2 / 2, √2 / 2) at time 1 / 2, and every angular
+trajectory satisfying the stated derivative and speed bounds and the target cosine requires
+at least that time. See [Mochon2007]. -/
 theorem oneBit_zeroError_minimumTime :
     (oneBitEvol (1 / 2) = (Real.sqrt 2 / 2, Real.sqrt 2 / 2)) ∧
       (∀ (φ u : ℝ → ℝ) (T : ℝ), 0 ≤ T → φ 0 = 0 →

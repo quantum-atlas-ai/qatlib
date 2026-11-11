@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QBoltzmann16.MainResults.BoundBasedQBM
+
+/-!
+# Visible sectors of a finite Gibbs model
+
+The matrix `visibleInclusion` embeds the hidden space into a fixed visible-basis sector. This
+module computes the compressed entries and visible projectors, proves that these projectors
+resolve the identity, and normalizes their finite Gibbs probabilities in the model of
+[AminEtAl2018].
+
+The theorem `source_visible_training_bound` combines normalization with compressed-partition
+probability lower bounds and the resulting weighted negative-log loss bound.
+
+## Main statements
+
+* `visible_projectors_sum`: the visible projectors sum to the identity.
+* `visible_probability_sum`: the visible Gibbs probabilities sum to one.
+* `source_visible_training_bound`: normalization and the bound-based training inequality.
+
+## References
+
+* [Amin et al., 2018][AminEtAl2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,21 +37,29 @@ open Matrix
 open scoped BigOperators ComplexOrder Matrix Matrix.Norms.L2Operator
 namespace Qatlib.Papers.QBoltzmann16.MainResults
 
+/-- The basis embedding of the hidden register into the full product register with visible
+coordinate fixed to `v`. -/
 def visibleInclusion {M H : ℕ} (v : Fin M) : Matrix (Fin (M*H)) (Fin H) ℂ :=
   fun i j=>if i=finProdFinEquiv (v,j) then 1 else 0
 
+/-- The visible-sector embedding is isometric: its conjugate transpose multiplied by itself is
+the identity [AminEtAl2018]. -/
 theorem visibleInclusion_gram {M H : ℕ} (v : Fin M) :
     (visibleInclusion (H := H) v)ᴴ*visibleInclusion (H := H) v=1 := by
   classical
   ext i j
   simp [visibleInclusion,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.one_apply,eq_comm]
 
+/-- Compressing to visible sector `v` selects the entries of the full operator whose row and
+column both have visible coordinate `v` [AminEtAl2018]. -/
 theorem visible_clamp_entry {M H : ℕ} (v : Fin M) (A : Operator (M*H)) (i j : Fin H) :
     clampHamiltonian (visibleInclusion (H := H) v) A i j =
       A (finProdFinEquiv (v,i)) (finProdFinEquiv (v,j)) := by
   classical
   simp [clampHamiltonian,visibleInclusion,Matrix.mul_apply,Matrix.conjTranspose_apply,ite_mul,mul_ite]
 
+/-- The visible-sector projector has entry one exactly on diagonal positions with visible
+coordinate `v`, and zero elsewhere [AminEtAl2018]. -/
 theorem visible_projector_entry {M H : ℕ} (v : Fin M) (r s : Fin (M*H)) :
     (visibleInclusion (H := H) v*(visibleInclusion (H := H) v)ᴴ) r s =
       if (finProdFinEquiv.symm r).1=v ∧ r=s then 1 else 0 := by
@@ -46,6 +77,7 @@ theorem visible_projector_entry {M H : ℕ} (v : Fin M) (r s : Fin (M*H)) :
     · simp [visibleInclusion,Matrix.mul_apply,Matrix.conjTranspose_apply,hsv,Ne.symm hsv]
   · simp [visibleInclusion,Matrix.mul_apply,Matrix.conjTranspose_apply,mul_ite,hrv]
 
+/-- The projectors onto all visible sectors sum to the full identity operator. -/
 theorem visible_projectors_sum {M H : ℕ} :
     (∑v : Fin M,visibleInclusion (H := H) v*(visibleInclusion (H := H) v)ᴴ)=1 := by
   classical
@@ -55,6 +87,8 @@ theorem visible_projectors_sum {M H : ℕ} :
     simp [Matrix.sum_apply,visible_projector_entry]
   · simp [Matrix.sum_apply,visible_projector_entry,h]
 
+/-- For a Hermitian Hamiltonian in positive full dimension, the finite Gibbs probabilities of
+all visible sectors sum to one [AminEtAl2018]. -/
 theorem visible_probability_sum {M H : ℕ} (A : Operator (M*H))
     (hD : 0 < M*H) (hA : A.IsHermitian) :
     (∑v : Fin M,marginalizedProbability (M*H) A (visibleInclusion (H := H) v*(visibleInclusion (H := H) v)ᴴ))=1 := by
@@ -67,6 +101,10 @@ theorem visible_probability_sum {M H : ℕ} (A : Operator (M*H))
   rw [← Finset.sum_div,hr]
   exact div_self (gibbsPartition_pos (M*H) A hD hA).ne'
 
+/-- For a Hermitian Hamiltonian in positive full and hidden dimensions and nonnegative visible
+data weights, the visible probabilities sum to one, each compressed partition ratio bounds
+its probability from below, and these ratios give an upper bound on the weighted
+negative-log loss [AminEtAl2018]. -/
 theorem source_visible_training_bound {M H : ℕ} (A : Operator (M*H))
     (hD : 0 < M*H) (hH : 0 < H) (hA : A.IsHermitian)
     (data : Fin M → ℝ) (hd : ∀v,0 ≤ data v) :

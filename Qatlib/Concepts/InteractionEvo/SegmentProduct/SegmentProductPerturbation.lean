@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.OperatorErrors.OperatorError
+
+/-!
+# Matrix product perturbation estimates
+
+`segment_product_perturbation_sandwich` bounds the difference of finite matrix products by
+weighted local differences. When all factors are contractions,
+`segment_product_perturbation_contraction_sum` reduces this to the sum of the local errors.
+These estimates support the interaction-picture simulation analysis of [LowWiebe2018].
+
+## Main statements
+
+* `segment_product_perturbation_sandwich`: the weighted local-error estimate.
+* `segment_product_perturbation_contraction_sum`: the contraction specialization.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -15,6 +34,8 @@ namespace Qatlib.Concepts.InteractionEvo.SegmentProduct
 
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Bounds the operator norm of a matrix product indexed by `List.range M` by the product of the
+individual operator norms. -/
 private theorem segment_range_norm_prod_le {I : Type} [Fintype I] [DecidableEq I]
     (g : ℕ → Matrix I I ℂ) (M : ℕ) :
     ‖((List.range M).map g).prod‖ ≤ ∏ j ∈ Finset.range M, ‖g j‖ := by
@@ -25,6 +46,8 @@ private theorem segment_range_norm_prod_le {I : Type} [Fintype I] [DecidableEq I
       List.prod_append, List.prod_cons, List.prod_nil, mul_one, Finset.prod_range_succ]
     exact (norm_mul_le _ _).trans (mul_le_mul_of_nonneg_right ih (norm_nonneg _))
 
+/-- Bounds the difference of two finite matrix products by the sum of local differences weighted
+by products of the indicated surrounding factor norms. -/
 theorem segment_product_perturbation_sandwich
     (I : Type) [Fintype I] [DecidableEq I] (f g : ℕ → Matrix I I ℂ) (M : ℕ) :
     ‖((List.range M).map f).prod - ((List.range M).map g).prod‖ ≤
@@ -82,6 +105,8 @@ theorem segment_product_perturbation_sandwich
       (add_le_add (mul_le_mul_of_nonneg_right ih (norm_nonneg _))
         (mul_le_mul_of_nonneg_right (segment_range_norm_prod_le g M) (norm_nonneg _)))
 
+/-- For two sequences of contractions, bounds the norm of the difference of their first `M`
+products by the sum of their first `M` factorwise differences. -/
 theorem segment_product_perturbation_contraction_sum
     (I : Type) [Fintype I] [DecidableEq I] (f g : ℕ → Matrix I I ℂ) (M : ℕ)
     (hf : ∀ j < M, ‖f j‖ ≤ 1) (hg : ∀ j < M, ‖g j‖ ≤ 1) :

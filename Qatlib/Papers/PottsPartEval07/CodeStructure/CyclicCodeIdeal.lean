@@ -51,6 +51,24 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Cyclic codes and polynomial shift invariance
+
+The cyclic shift `cyclicShift` is bundled as the linear endomorphism `shiftEnd`. The module
+proves that this endomorphism satisfies the polynomial relation X^n - 1 = 0 and characterizes
+cyclic submodules by closure under polynomial evaluation at the shift [GeraciLidar2008].
+
+## Main statements
+
+* `shiftEnd_pow_n`: The n-fold shift is the identity.
+* `isCyclicCode_iff`: Cyclic codes are precisely the submodules preserved by every polynomial in
+  the shift.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.CodeStructure
@@ -59,8 +77,11 @@ open scoped BigOperators
 
 variable {n : ℕ} {R : Type*} [CommRing R]
 
+/-- Shifts a word cyclically by sending its coordinate at `i` to the previous coordinate `i -
+1`. -/
 def cyclicShift (v : ZMod n → R) : ZMod n → R := fun i => v (i - 1)
 
+/-- The cyclic shift on words indexed by `ZMod n`, bundled as an `R`-linear endomorphism. -/
 noncomputable def shiftEnd : Module.End R (ZMod n → R) where
   toFun := cyclicShift
   map_add' := by
@@ -72,11 +93,14 @@ noncomputable def shiftEnd : Module.End R (ZMod n → R) where
     ext i
     simp [cyclicShift]
 
+/-- Evaluating `shiftEnd` on a word gives its cyclic shift. -/
 @[simp] lemma shiftEnd_apply (v : ZMod n → R) : shiftEnd v = cyclicShift v := rfl
 
+/-- A linear code is cyclic when it is closed under `cyclicShift`. -/
 def IsCyclicCode (C : Submodule R (ZMod n → R)) : Prop :=
   ∀ v ∈ C, cyclicShift v ∈ C
 
+/-- Applying the cyclic shift `k` times translates the coordinate index by subtraction of `k`. -/
 theorem shiftEnd_pow_apply (k : ℕ) (v : ZMod n → R) :
     (shiftEnd (n := n) (R := R) ^ k) v = fun i => v (i - (k : ZMod n)) := by
   induction k with
@@ -89,6 +113,7 @@ theorem shiftEnd_pow_apply (k : ℕ) (v : ZMod n → R) :
       push_cast
       ring
 
+/-- The n-th power of the cyclic shift endomorphism on `ZMod n` is the identity. -/
 theorem shiftEnd_pow_n : (shiftEnd (n := n) (R := R)) ^ n = 1 := by
   ext v i
   rw [shiftEnd_pow_apply]
@@ -96,11 +121,13 @@ theorem shiftEnd_pow_n : (shiftEnd (n := n) (R := R)) ^ n = 1 := by
   rw [hzero]
   simp
 
+/-- Evaluating the polynomial X^n - 1 at the cyclic shift endomorphism gives zero. -/
 theorem aeval_X_pow_sub_one :
     Polynomial.aeval (shiftEnd (n := n) (R := R))
       ((Polynomial.X : Polynomial R) ^ n - 1) = 0 := by
   rw [map_sub, map_pow, Polynomial.aeval_X, map_one, shiftEnd_pow_n, sub_self]
 
+/-- Every power of the shift endomorphism preserves a cyclic code. -/
 theorem shiftEnd_pow_mem (C : Submodule R (ZMod n → R)) (hC : IsCyclicCode C) :
     ∀ (k : ℕ) {v : ZMod n → R}, v ∈ C → (shiftEnd (n := n) (R := R) ^ k) v ∈ C := by
   intro k
@@ -111,6 +138,8 @@ theorem shiftEnd_pow_mem (C : Submodule R (ZMod n → R)) (hC : IsCyclicCode C) 
       rw [pow_succ', Module.End.mul_apply]
       exact hC _ (ih hv)
 
+/-- Evaluating any polynomial at the shift endomorphism preserves membership in a cyclic code
+[GeraciLidar2008]. -/
 theorem aeval_mem (C : Submodule R (ZMod n → R)) (hC : IsCyclicCode C)
     (p : Polynomial R) {v : ZMod n → R} (hv : v ∈ C) :
     Polynomial.aeval (shiftEnd (n := n) (R := R)) p v ∈ C := by
@@ -121,6 +150,7 @@ theorem aeval_mem (C : Submodule R (ZMod n → R)) (hC : IsCyclicCode C)
   rw [LinearMap.smul_apply]
   exact Submodule.smul_mem _ _ (shiftEnd_pow_mem C hC i hv)
 
+/-- A submodule preserved by every polynomial in the shift is a cyclic code. -/
 theorem isCyclicCode_of_aeval (C : Submodule R (ZMod n → R))
     (h : ∀ (p : Polynomial R) (v : ZMod n → R), v ∈ C →
       Polynomial.aeval (shiftEnd (n := n) (R := R)) p v ∈ C) :
@@ -129,6 +159,8 @@ theorem isCyclicCode_of_aeval (C : Submodule R (ZMod n → R))
   have := h Polynomial.X v hv
   simpa [Polynomial.aeval_X, shiftEnd_apply] using this
 
+/-- A submodule is cyclic if and only if every polynomial in the shift preserves it
+[GeraciLidar2008]. -/
 theorem isCyclicCode_iff (C : Submodule R (ZMod n → R)) :
     IsCyclicCode C ↔
       ∀ (p : Polynomial R) (v : ZMod n → R), v ∈ C →

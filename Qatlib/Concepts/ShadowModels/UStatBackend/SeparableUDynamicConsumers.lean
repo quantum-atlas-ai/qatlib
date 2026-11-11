@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.UStatBackend.SeparableUDynamic
 import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
+
+/-!
+# Separable U-statistics for Pauli observables
+
+This module specializes the separable U-statistic program to rational sparse Pauli estimators on
+tensor Pauli records. It proves unbiased estimation of products of observable expectations,
+variance and tail bounds, and exact table and update counts for nonlinear classical-shadow
+estimation [HuangKuengPreskill2020].
+
+## Main statements
+
+* `separable_u_actual_pauli_moment_consumer`: products of sparse Pauli expectations.
+* `separable_u_actual_pauli_variance_and_tail`: finite-sample error bounds.
+* `separable_u_actual_pauli_mean_and_program`: unbiasedness and program-size counts.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +42,8 @@ namespace Qatlib.Concepts.ShadowModels.UStatBackend
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The real cast of the counted rational local sparse sample equals `sparsePauliValue` on the
+same record. -/
 private theorem sep_local_sample_cast {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (o : Fin n → Fin 3 × Bool) :
     ((localSparseSampleCounted w c o).1 : ℝ) = sparsePauliValue w c o := by
@@ -29,6 +51,8 @@ private theorem sep_local_sample_cast {n q : ℕ} (w : Fin q → Fin n → Optio
   simp only [Rat.cast_sum,Rat.cast_mul,Rat.cast_prod,sparsePauliValue,tensorPauliValue]
   simp_rw [← localPauliValueQ_cast,localPauliValueQ]
 
+/-- For `r ≤ m`, applying the separable U-statistic to sparse Pauli samples is unbiased for the
+product of the `r` real observable expectations. See [HuangKuengPreskill2020]. -/
 theorem separable_u_actual_pauli_moment_consumer (n m r q : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin r → Fin q → Fin n → Option (Fin 3)) (c : Fin r → Fin q → ℚ)
     (hr : r ≤ m) :
@@ -42,6 +66,8 @@ theorem separable_u_actual_pauli_moment_consumer (n m r q : ℕ) (ρ : Operator 
   simp_rw [sep_local_sample_cast]
   exact (sparse_pauli_exact_energy_variance_and_bound n q ρ hρ (w j) (c j)).1
 
+/-- With at least two records, the order-two separable Pauli estimator has expectation equal to
+the product of the two real observable expectations. -/
 theorem separable_u_actual_pauli_second_moment (n m q : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin 2 → Fin q → Fin n → Option (Fin 3)) (c : Fin 2 → Fin q → ℚ)
     (hm : 2 ≤ m) :
@@ -51,6 +77,8 @@ theorem separable_u_actual_pauli_second_moment (n m q : ℕ) (ρ : Operator (2^n
       (Matrix.trace (sparsePauliObservable (w 1) (c 1)*ρ)).re := by
   simpa only [Fin.prod_univ_two] using separable_u_actual_pauli_moment_consumer n m 2 q ρ hρ w c hm
 
+/-- With at least three records, the order-three separable Pauli estimator has expectation equal
+to the product of the three real observable expectations. -/
 theorem separable_u_actual_pauli_third_moment (n m q : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin 3 → Fin q → Fin n → Option (Fin 3)) (c : Fin 3 → Fin q → ℚ)
     (hm : 3 ≤ m) :
@@ -62,6 +90,9 @@ theorem separable_u_actual_pauli_third_moment (n m q : ℕ) (ρ : Operator (2^n)
   simpa only [Fin.prod_univ_three] using
       separable_u_actual_pauli_moment_consumer n m 3 q ρ hρ w c hm
 
+/-- Under the stated product-kernel bound, the Pauli separable estimator has mean squared error
+at most `4 * r ^ 2 * B ^ 2 / m` about the product of observable expectations, and its
+deviation probability is at most that bound divided by `eps ^ 2`. -/
 theorem separable_u_actual_pauli_variance_and_tail (n m r q : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin r → Fin q → Fin n → Option (Fin 3)) (c : Fin r → Fin q → ℚ)
     (B eps : ℝ) (hm : 0 < m) (hr : r ≤ m) (hB : 0 ≤ B) (heps : 0 < eps)
@@ -84,6 +115,8 @@ theorem separable_u_actual_pauli_variance_and_tail (n m r q : ℕ) (ρ : Operato
     (fun j x => (localSparseSampleCounted (w j) (c j) x).1) B eps hm hr hB heps hb
   simpa only [he] using h
 
+/-- The Pauli separable estimator is unbiased for the product of observable expectations, and
+its program counts `m * r * 2 ^ (r - 1)` updates with `2 ^ r` final table entries. -/
 theorem separable_u_actual_pauli_mean_and_program (n m r q : ℕ) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin r → Fin q → Fin n → Option (Fin 3)) (c : Fin r → Fin q → ℚ)
     (hr : r ≤ m) :

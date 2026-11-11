@@ -14,6 +14,29 @@ import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Refined assumptions for query-space transport
+
+This module defines refined transport specifications with explicit clean-space structure,
+normalized tree inputs, and unitary oracle assumptions. It also introduces general angle-valued
+phase oracles, additive value-fiber readout laws, and the query-tail truncation specification.
+
+These definitions make the hypotheses of standard circuit and measurement arguments explicit;
+see [NielsenChuang2010].
+
+## Main statements
+
+* `correctedBridgeAdversaryTransport`: normalized adaptive adversary transport specification
+* `unitaryHybridDistance`: hybrid-distance specification for unitary oracles
+* `generalNoBaselinePhaseToBit`: measurement invariance under constant phase offsets
+* `generalValueReadoutLaw`: answer-register readout as value-fiber mass
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -42,6 +65,8 @@ section CleanScope
 
 variable {I J F : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
+/-- The specification of a clean circuit lift with a fixed basis ancilla, tensor-identity oracle
+and readout extensions, and unchanged resource counts. -/
 def cleanSpaceScope (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J)
     (C : Circuit I) (ψ₀ : QState I) (C' : Circuit (I × J)) (ψ' : QState (I × J)) : Prop :=
   C' = LiftCircuitTo J C ∧
@@ -58,11 +83,15 @@ section NormalizedTree
 variable {X : Type} [Fintype X] [DecidableEq X] {n : ℕ} {W : Type}
   [Fintype W] [DecidableEq W]
 
+/-- The conjunction of input-state normalization and the observed tree's bounded-error
+condition. -/
 def normalizedTreeBoundedError (input : X → Fin n → Bool) (f : X → Bool)
     (P : ObservedCircuit ((Fin n × Bool) × W))
     (ψ : QState ((Fin n × Bool) × W)) (ε : ℝ) : Prop :=
   Normalized ψ ∧ treeBoundedError input f P ψ ε
 
+/-- The adaptive purification and adversary-bound specification under positive input length,
+well-formedness, normalized input, bounded error, and a valid adversary matrix. -/
 def correctedBridgeAdversaryTransport (input : X → Fin n → Bool) (f : X → Bool)
     (Γ : Matrix X X ℂ) (ε : ℝ) (P : ObservedCircuit ((Fin n × Bool) × W))
     (ψ : QState ((Fin n × Bool) × W)) : Prop :=
@@ -73,6 +102,8 @@ def correctedBridgeAdversaryTransport (input : X → Fin n → Bool) (f : X → 
       (1 - 2 * Real.sqrt (ε * (1 - ε))) * advWeightNorm Γ ≤
         2 * observedQueryDepth P * advFilterBound input Γ
 
+/-- The existence of an adaptive purification bridge, a valid adversary matrix, and the stated
+query-depth adversary inequality. -/
 def unrestrictedAdversaryTransport (input : X → Fin n → Bool) (f : X → Bool)
     (Γ : Matrix X X ℂ) (ε : ℝ) (P : ObservedCircuit ((Fin n × Bool) × W)) : Prop :=
   ∃ (R : ℕ) (C : Circuit ((Fin n × Bool) × (W × Fin (R + 1) × Bool))),
@@ -87,21 +118,28 @@ section GeneralPhase
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The diagonal phase oracle with entries `exp (I * θ x)`. -/
 noncomputable def phaseOracleOfAngle (θ : I → ℝ) : Matrix I I ℂ :=
   Matrix.diagonal fun x => Complex.exp (Complex.I * (θ x : ℂ))
 
+/-- The phase oracle obtained by adding the same real offset `c` to every phase angle. -/
 noncomputable def phaseOracleOffset (θ : I → ℝ) (c : ℝ) : Matrix I I ℂ :=
   phaseOracleOfAngle (fun x => θ x + c)
 
+/-- The specification that adding a constant to all oracle phases preserves every fixed
+circuit's measurement probabilities. -/
 def generalNoBaselinePhaseToBit (θ : I → ℝ) (c : ℝ) : Prop :=
   ∀ (C : Circuit I) (ψ : QState I) (S : Finset I),
     MeasureProb (Run (phaseOracleOffset θ c) C ψ) S =
       MeasureProb (Run (phaseOracleOfAngle θ) C ψ) S
 
+/-- The total squared amplitude of input indices whose value under `v` equals `z`. -/
 noncomputable def valueFiberMass {X R : Type} [Fintype X] [DecidableEq X]
     [AddCommGroup R] [Fintype R] [DecidableEq R] (v : X → R) (ψ : QState X) (z : R) : ℝ :=
   ∑ x : X, if v x = z then ‖ψ x‖ ^ 2 else 0
 
+/-- The equality between a single additive-oracle answer-register probability and the
+squared-amplitude mass of the corresponding value fiber. -/
 def generalValueReadoutLaw {X R : Type} [Fintype X] [DecidableEq X]
     [AddCommGroup R] [Fintype R] [DecidableEq R] (v : X → R) (ψ : QState X) (z : R) : Prop :=
   MarginalProbRight
@@ -114,6 +152,8 @@ section CorrectedHybrid
 
 variable {K : Type} [Fintype K] [DecidableEq K] [Nonempty K]
 
+/-- The hybrid-distance bound for unitary oracle matrices, a unitary circuit, and a normalized
+input with at most `Q` queries. -/
 def unitaryHybridDistance (O O' : Matrix K K ℂ) (C : Circuit K) (ψ : QState K)
     (Q : ℕ) : Prop :=
   O ∈ Matrix.unitaryGroup K ℂ → O' ∈ Matrix.unitaryGroup K ℂ →
@@ -128,6 +168,8 @@ section CorrectedCharge
 variable {X : Type} [Fintype X] [DecidableEq X] [Nonempty X] {n : ℕ} {W : Type}
   [Fintype W] [DecidableEq W]
 
+/-- The query-depth adversary inequality under positive input length, tree well-formedness,
+normalized input, bounded error, and adversary validity. -/
 def normalizedTreeAdversaryBound
     (input : X → Fin n → Bool) (f : X → Bool) (Γ : Matrix X X ℂ) (ε : ℝ)
     (P : ObservedCircuit ((Fin n × Bool) × W))
@@ -143,6 +185,8 @@ section TruncatedTail
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The specification of the acceptance split at each query cutoff, exact truncated acceptance,
+and the expected-query tail inequality. -/
 def truncatedTailLaw (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) : Prop :=
   ∀ K : ℕ,
     observedAcceptance O P ψ =

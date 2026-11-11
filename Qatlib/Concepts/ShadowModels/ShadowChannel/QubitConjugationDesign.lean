@@ -10,6 +10,30 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.Ring
+
+/-!
+# Qubit conjugation moment design
+
+This module exhibits a 24-element unitary qubit family with the stated first-moment identity and
+a second-moment identity for Hermitian test operators. Explicit matrix calculations establish
+the complex moment formulas before passing to their real parts.
+
+The module also proves that extending the real second-moment identity to arbitrary complex test
+operators is impossible. The imaginary identity operator supplies a counterexample, explaining
+the Hermitian hypotheses in `qubit_conjugation_two_design_exists`. See [HuangKuengPreskill2020]
+for background.
+
+## Main statements
+
+* `qubit_real_second_moment_impossible`: the obstruction for unrestricted complex tests.
+* `qubit_conjugation_unitary`: unitarity of the explicit normalized family.
+* `qubit_conjugation_two_design_exists`: existence with Hermitian second-moment tests.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
@@ -18,8 +42,11 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- The computational basis projector at qubit basis index zero used to test conjugation moment
+identities. -/
 noncomputable def designProbePure : Operator 2 := Matrix.diagonal ![1, 0]
 
+/-- The probe `designProbePure` is a pure density operator. -/
 theorem designProbePure_isPure : IsPureDensityOperator designProbePure := by
   refine ⟨⟨?_, ?_⟩, ?_⟩
   · apply Matrix.PosSemidef.diagonal
@@ -30,6 +57,8 @@ theorem designProbePure_isPure : IsPureDensityOperator designProbePure := by
     fin_cases i <;> fin_cases j <;>
       norm_num [designProbePure, Matrix.mul_apply, Matrix.diagonal, Fin.sum_univ_two]
 
+/-- For every qubit matrix `U`, the trace pairing of the imaginary identity with `Uᴴ *
+designProbePure * U` has zero real part. -/
 theorem imaginary_identity_overlap_zero (U : Operator 2) :
     (Matrix.trace ((Complex.I • (1 : Operator 2)) * Uᴴ * designProbePure * U)).re = 0 := by
   have hq := designProbePure_isPure.1.1.conjTranspose_mul_mul_same U
@@ -38,6 +67,8 @@ theorem imaginary_identity_overlap_zero (U : Operator 2) :
   simp only [Matrix.smul_mul, Matrix.trace_smul, smul_eq_mul,
     Complex.mul_re, Complex.I_re, Complex.I_im, zero_mul, one_mul, hi, sub_zero]
 
+/-- No finite real-weighted qubit matrix family satisfies the displayed real second-moment
+formula for all pure states and all complex test operators. -/
 theorem qubit_real_second_moment_impossible {J : Type} [Fintype J]
     (prob : J → ℝ) (Uf : J → Operator 2) :
     ¬ (∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A B : Operator 2,
@@ -57,6 +88,8 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators
 
+/-- There is no 24-element unitary qubit family satisfying the displayed first and real second
+moments when the second moment is required for arbitrary complex test operators. -/
 theorem not_qubit_conjugation_two_design_contract :
     ¬ (∃ f : Fin 24 → Operator 2,
       (∀ i, f i ∈ Matrix.unitaryGroup (Fin 2) ℂ) ∧
@@ -83,6 +116,7 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- The explicit table of 24 qubit matrices used before normalization in the conjugation design. -/
 noncomputable def qubitConjugationRaw : Fin 24 → Operator 2 := ![
 !![1, 0; 0, 1],
 !![0, 1; 1, 0],
@@ -109,14 +143,22 @@ noncomputable def qubitConjugationRaw : Fin 24 → Operator 2 := ![
 !![1, -Complex.I; Complex.I, -1],
 !![1, Complex.I; -Complex.I, -1]]
 
+/-- The normalization factor, equal to one for the first eight matrices and `1 / sqrt 2` for the
+remaining matrices. -/
 noncomputable def qubitConjugationScale (i : Fin 24) : ℝ :=
   if i.val < 8 then 1 else 1 / Real.sqrt 2
+/-- The squared normalization weight, equal to one for the first eight matrices and one half for
+the remaining matrices. -/
 noncomputable def qubitConjugationWeight (i : Fin 24) : ℂ :=
   if i.val < 8 then 1 else 1 / 2
 
+/-- The 24 qubit matrices obtained by scaling `qubitConjugationRaw` by their real normalization
+factors. -/
 noncomputable def qubitConjugationFamily (i : Fin 24) : Operator 2 :=
   (qubitConjugationScale i : ℂ) • qubitConjugationRaw i
 
+/-- The square of each real normalization factor, cast to the complexes, equals its conjugation
+weight. -/
 private lemma qubitConjugationScale_sq (i : Fin 24) : (qubitConjugationScale i : ℂ)^2 = qubitConjugationWeight i := by
   have hs : (Real.sqrt 2)^2 = 2 := Real.sq_sqrt (by norm_num)
   have hz : Real.sqrt 2 ≠ 0 := by positivity
@@ -129,8 +171,11 @@ private lemma qubitConjugationScale_sq (i : Fin 24) : (qubitConjugationScale i :
     simpa only [Complex.ofReal_pow, Complex.ofReal_div, Complex.ofReal_one,
         Complex.ofReal_ofNat] using congrArg Complex.ofReal hr
 
+/-- Complex conjugation fixes the complex cast of a real number. -/
 private lemma design_star_real (r : ℝ) : star (r : ℂ) = (r : ℂ) := Complex.conj_ofReal r
 
+/-- A trace overlap with a normalized family member is the corresponding raw overlap multiplied
+by its squared normalization weight. -/
 private lemma qubit_conjugation_overlap (i : Fin 24) (P A : Operator 2) :
     Matrix.trace (A * (qubitConjugationFamily i)ᴴ * P * qubitConjugationFamily i) =
     qubitConjugationWeight i * Matrix.trace (A * (qubitConjugationRaw i)ᴴ * P * qubitConjugationRaw i) := by
@@ -141,6 +186,7 @@ private lemma qubit_conjugation_overlap (i : Fin 24) (P A : Operator 2) :
       (qubitConjugationScale i : ℂ)^2 * Matrix.trace (A * (qubitConjugationRaw i)ᴴ * P * qubitConjugationRaw i) by ring,
     qubitConjugationScale_sq]
 
+/-- Every matrix in the normalized 24-element qubit conjugation family is unitary. -/
 lemma qubit_conjugation_unitary (i : Fin 24) : qubitConjugationFamily i ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff, Matrix.star_eq_conjTranspose]
   simp only [qubitConjugationFamily, Matrix.conjTranspose_smul, design_star_real, Matrix.mul_smul, Matrix.smul_mul,
@@ -149,6 +195,8 @@ lemma qubit_conjugation_unitary (i : Fin 24) : qubitConjugationFamily i ∈ Matr
     norm_num [qubitConjugationRaw, qubitConjugationWeight, Matrix.mul_apply, Fin.sum_univ_two,
       Matrix.conjTranspose_apply, Matrix.smul_apply, Matrix.one_apply, Matrix.vecMul, dotProduct]
 
+/-- The sum of the 24 complex conjugation overlaps equals twelve times the product of the traces
+of the test operator and input matrix. -/
 private lemma qubit_conjugation_first_complex (P A : Operator 2) :
     (∑ i, Matrix.trace (A * (qubitConjugationFamily i)ᴴ * P * qubitConjugationFamily i)) =
       12 * Matrix.trace A * Matrix.trace P := by
@@ -159,6 +207,8 @@ private lemma qubit_conjugation_first_complex (P A : Operator 2) :
   simp [Complex.I_sq]
   ring
 
+/-- Writing `t = trace P` and `s = trace (P * P)`, the complex second-moment sum is `(8*t² -
+4*s) * trace A * trace B + (8*s - 4*t²) * trace (A * B)`. -/
 private lemma qubit_conjugation_second_complex_raw (P A B : Operator 2) :
     (∑ i, Matrix.trace (A * (qubitConjugationFamily i)ᴴ * P * qubitConjugationFamily i) *
       Matrix.trace (B * (qubitConjugationFamily i)ᴴ * P * qubitConjugationFamily i)) =
@@ -173,6 +223,7 @@ private lemma qubit_conjugation_second_complex_raw (P A B : Operator 2) :
   simp [Complex.I_sq]
   ring
 
+/-- The trace of a Hermitian qubit matrix has zero imaginary part. -/
 private lemma design_hermitian_trace_im (A : Operator 2) (hA : A.IsHermitian) :
     (Matrix.trace A).im = 0 := by
   have hh : star (Matrix.trace A) = Matrix.trace A := by
@@ -181,6 +232,7 @@ private lemma design_hermitian_trace_im (A : Operator 2) (hA : A.IsHermitian) :
   change -(Matrix.trace A).im = (Matrix.trace A).im at hi
   linarith
 
+/-- The trace of a product of two Hermitian qubit matrices has zero imaginary part. -/
 private lemma design_hermitian_pair_im (A B : Operator 2)
     (hA : A.IsHermitian) (hB : B.IsHermitian) :
     (Matrix.trace (A * B)).im = 0 := by
@@ -191,6 +243,9 @@ private lemma design_hermitian_pair_im (A B : Operator 2)
   change -(Matrix.trace (A * B)).im = (Matrix.trace (A * B)).im at hi
   linarith
 
+/-- There exists a 24-element unitary qubit family whose average pure-state overlap is half the
+real test trace and whose Hermitian-test second moment equals the displayed trace formula
+divided by six. -/
 theorem qubit_conjugation_two_design_exists :
     ∃ f : Fin 24 → Operator 2,
       (∀ i, f i ∈ Matrix.unitaryGroup (Fin 2) ℂ) ∧

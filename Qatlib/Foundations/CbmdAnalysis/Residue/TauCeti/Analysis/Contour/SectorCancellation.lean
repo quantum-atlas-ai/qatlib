@@ -8,6 +8,30 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.TangentForcing
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HigherOrder.Asymptotics
+
+/-!
+# Cancellation across flat contour crossings
+
+Proves cancellation of higher-pole primitive differences across a flat crossing. Matching powers
+of normalized one-sided tangents yield a vanishing difference along approaches with equal
+radius.
+
+`antiderivative_diff_across_crossing_tendsto_zero` is a local estimate used in the contour
+analysis associated with [WangEtAl2026].
+
+## Main statements
+
+* `smul_pow_eq_of_div_norm_pow_eq`: Equality of powers of normalized tangent directions persists
+  after both directions are scaled to the same real radius.
+* `antiderivative_diff_across_crossing_tendsto_zero`: At an order-`n` flat crossing with nonzero
+  one-sided derivatives, matching tangent powers make the difference of the order-`k` pole
+  primitives tend to zero along equal-radius approaches, for `2 ≤ k ≤ n`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -20,6 +44,8 @@ namespace TauCeti.Contour
 
 open Filter Set Topology
 
+/-- Equality of powers of normalized tangent directions persists after both directions are
+scaled to the same real radius. -/
 theorem smul_pow_eq_of_div_norm_pow_eq (L_minus L_plus : ℂ) (k : ℕ)
     (h_B : (L_plus / (‖L_plus‖ : ℂ)) ^ (k - 1) = ((-L_minus) / (‖L_minus‖ : ℂ)) ^ (k - 1)) (ε : ℝ) :
     (((ε / ‖L_plus‖ : ℝ) • L_plus : ℂ)) ^ (k - 1) =
@@ -31,6 +57,9 @@ theorem smul_pow_eq_of_div_norm_pow_eq (L_minus L_plus : ℂ) (k : ℕ)
     rw [div_mul_eq_mul_div, mul_div_assoc]
   rw [h_smul ‖L_plus‖ L_plus, h_smul ‖L_minus‖ (-L_minus), mul_pow, mul_pow, h_B]
 
+/-- At an order-`n` flat crossing with nonzero one-sided derivatives, matching tangent powers
+make the difference of the order-`k` pole primitives tend to zero along equal-radius
+approaches, for `2 ≤ k ≤ n`. -/
 theorem antiderivative_diff_across_crossing_tendsto_zero
     {γ : ℝ → ℂ} {t₀ : ℝ} {s L_minus L_plus : ℂ} {n k : ℕ} (h_flat : FlatOfOrder γ t₀ n)
     (hL_minus : L_minus ≠ 0) (hL_plus : L_plus ≠ 0)

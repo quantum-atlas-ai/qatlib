@@ -7,11 +7,35 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecificLimits.Normed
 import Mathlib.Analysis.SpecificLimits.Basic
 
+/-!
+# Classical sampling at high marked density
+
+This module treats classical sampling when the marked density exceeds three quarters. It proves
+that the geometric first-success expectation is N/t < 4/3 and that the probability of k
+consecutive failures is at most (1/4)ᵏ.
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `classical_sampling_constant_expected_time`: For 0 < N and 3N/4 < t ≤ N, the geometric
+  first-success expectation sums to N/t < 4/3, and the k-failure factor is at most (1/4)ᵏ for
+  every k.
+* `classical_sampling_expected_probes_lt_four_thirds`: For positive N and t > 3N/4, the ratio
+  N/t is strictly less than 4/3.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.QSearchBoyer98.MainResults
 
+/-- For 0 < N and 3N/4 < t ≤ N, the geometric first-success expectation sums to N/t < 4/3, and
+the k-failure factor is at most (1/4)ᵏ for every k [BoyerEtAl1998]. -/
 theorem classical_sampling_constant_expected_time (N t : ℕ) (hN : 0 < N)
     (hdense : 3 * (N : ℝ) / 4 < t) (htN : t ≤ N) :
     HasSum (fun k : ℕ => (1 - (t : ℝ) / N) ^ k * ((t : ℝ) / N) * ((k : ℝ) + 1))
@@ -55,6 +79,7 @@ theorem classical_sampling_constant_expected_time (N t : ℕ) (hN : 0 < N)
       rw [hq, hp]; linarith
     simpa [hq, hp] using pow_le_pow_left₀ hq_nonneg hq_le k
 
+/-- For positive N and t > 3N/4, the ratio N/t is strictly less than 4/3. -/
 theorem classical_sampling_expected_probes_lt_four_thirds (N t : ℕ) (hN : 0 < N)
     (hdense : 3 * (N : ℝ) / 4 < t) : (N : ℝ) / t < 4 / 3 := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN

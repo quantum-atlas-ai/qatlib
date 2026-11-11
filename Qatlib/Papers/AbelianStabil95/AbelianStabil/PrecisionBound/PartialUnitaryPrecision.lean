@@ -8,11 +8,31 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Normed.Operator.LinearIsometry
 import Mathlib.Analysis.Normed.Group.Submodule
 
+/-!
+# Precision for partial unitary operators
+
+`PartialOp` consists of input and output subspaces joined by a linear isometric equivalence.
+`PartialOp.Represents` expresses domain and codomain inclusion together with a relative error
+bound on the original domain; the module proves additive composition error, preservation of the
+bound under inversion, and zero-error self-representation. The development follows [Kitaev1995].
+
+## Main statements
+
+* `partialComp_error`: adds precision errors for compatible compositions.
+* `partialInv_error`: transfers the error bound to inverse maps on the original codomain.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.PrecisionBound
 
+/-- A partial unitary operator specified by domain and codomain subspaces and a linear isometric
+equivalence between them. -/
 structure PartialOp (E : Type*) [NormedAddCommGroup E] [InnerProductSpace ℂ E] where
 
   dom : Submodule ℂ E
@@ -25,6 +45,8 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
 namespace PartialOp
 
+/-- The precision relation requiring inclusion of the original domain and codomain and an error
+at most `δ * ‖ξ‖` on the original domain. -/
 structure Represents (U U' : PartialOp E) (δ : ℝ) : Prop where
 
   dom_le : U.dom ≤ U'.dom
@@ -34,6 +56,9 @@ structure Represents (U U' : PartialOp E) (δ : ℝ) : Prop where
   error : ∀ ξ : U.dom,
     ‖(U.iso ξ : E) - (U'.iso ⟨ξ, dom_le ξ.2⟩ : E)‖ ≤ δ * ‖(ξ : E)‖
 
+/-- For two compatible pairs of partial operators satisfying precision bounds `δ₁` and `δ₂`, the
+composed outputs differ by at most `(δ₁ + δ₂) * ‖ξ‖` on the original input domain. This
+implements the partial-operator extension of [Kitaev, 1995, Lemma 3][Kitaev1995]. -/
 theorem partialComp_error (U₁ U₁' U₂ U₂' : PartialOp E) (δ₁ δ₂ : ℝ)
     (h₁ : Represents U₁ U₁' δ₁) (h₂ : Represents U₂ U₂' δ₂)
     (hc : U₁.cod ≤ U₂.dom) (hc' : U₁'.cod ≤ U₂'.dom) :
@@ -78,6 +103,8 @@ theorem partialComp_error (U₁ U₁' U₂ U₂' : PartialOp E) (δ₁ δ₂ : �
     _ ≤ δ₂ * ‖(a : E)‖ + δ₁ * ‖(ξ : E)‖ := add_le_add hstep1 hstep2
     _ = (δ₁ + δ₂) * ‖(ξ : E)‖ := by rw [hanorm]; ring
 
+/-- If one partial operator represents another with error `δ`, their inverse outputs on the
+original codomain differ by at most `δ * ‖η‖`, as used in [Kitaev1995]. -/
 theorem partialInv_error (U U' : PartialOp E) (δ : ℝ) (h : Represents U U' δ)
     (η : U.cod) :
     ‖((U'.iso.symm ⟨(η : E), h.cod_le η.2⟩ : U'.dom) : E) -
@@ -107,6 +134,7 @@ theorem partialInv_error (U U' : PartialOp E) (δ : ℝ) (h : Represents U U' δ
     _ ≤ δ * ‖(ξ : E)‖ := h.error ξ
     _ = δ * ‖(η : E)‖ := by rw [hξnorm]
 
+/-- Every partial unitary operator represents itself with zero error, as used in [Kitaev1995]. -/
 theorem represents_zero (U : PartialOp E) : Represents U U 0 := by
   refine ⟨le_rfl, le_rfl, ?_⟩
   intro ξ

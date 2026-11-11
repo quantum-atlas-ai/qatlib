@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
+
+/-!
+# Unitary family words and inverse query counts
+
+This module relates concatenation and reversed adjoint words to matrix products and records one
+primitive query per word entry. For shared-frame unitary block encodings with common error, the
+full family word has error at most `m ^ 2 * ε`, while both the forward and reversed words have
+`m` queries, complementing the product bounds of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `unitaryFamilyEvaluate_reverse_adjoint`: reversed adjoint evaluation gives the product
+  adjoint.
+* `shared_ancilla_word_common_error_and_paid_inverse`: the common-error bound and forward and
+  reverse query counts.
+
+## References
+
+* [Gilyén, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -20,8 +41,11 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The primitive query count of an index word, defined as its list length. -/
 def unitaryFamilyQueries {m : ℕ} (cs : List (Fin m)) : ℕ := cs.length
 
+/-- Evaluating a concatenation of words equals the product of their evaluations in the same
+order. -/
 theorem unitaryFamilyEvaluate_append {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
     (U : Fin m → Matrix H H ℂ) (cs ds : List (Fin m)) :
     unitaryFamilyEvaluate U (cs++ds) = unitaryFamilyEvaluate U cs * unitaryFamilyEvaluate U ds := by
@@ -29,6 +53,8 @@ theorem unitaryFamilyEvaluate_append {H : Type} [Fintype H] [DecidableEq H] {m :
   | nil => simp [unitaryFamilyEvaluate]
   | cons i cs ih => simp [unitaryFamilyEvaluate,ih,Matrix.mul_assoc]
 
+/-- Evaluating the adjoint family along the reversed word gives the adjoint of the original word
+evaluation. -/
 theorem unitaryFamilyEvaluate_reverse_adjoint {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
     (U : Fin m → Matrix H H ℂ) (cs : List (Fin m)) :
     unitaryFamilyEvaluate (fun i => (U i)ᴴ) cs.reverse = (unitaryFamilyEvaluate U cs)ᴴ := by
@@ -37,6 +63,10 @@ theorem unitaryFamilyEvaluate_reverse_adjoint {H : Type} [Fintype H] [DecidableE
   | cons i cs ih => simp [List.reverse_cons,unitaryFamilyEvaluate_append,unitaryFamilyEvaluate,
       ih,Matrix.conjTranspose_mul]
 
+/-- A natural-order family product of shared-frame scale-one unitary block encodings with common
+error `ε` has error bound `m ^ 2 * ε`; the forward and reversed words each use `m` queries,
+and evaluating the adjoint family along the reversed word gives the product adjoint. See
+[GilyenSuLowWiebe2019]. -/
 theorem shared_ancilla_word_common_error_and_paid_inverse :
 ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
  (m : ℕ) (A : Fin m→Matrix I I ℂ) (U : Fin m→Matrix H H ℂ) (F : Matrix H I ℂ) (ε : ℝ),

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.Lattice
+
+/-!
+# Dispersion positivity and secular-root upper bounds
+
+This module identifies the zero mode of the periodic lattice dispersion and proves positivity at
+every nonzero lattice index. These facts give nonnegativity of the first lattice sum and an
+upper bound on a negative secular root when the coupling exceeds that sum, as in
+[ChildsGoldstone2004].
+
+## Main statements
+
+* `dispersion_waveVector_eq_zero_iff`: the dispersion vanishes exactly at the zero lattice
+  index.
+* `latSum1_nonneg`: nonnegativity of the first lattice sum.
+* `ground_energy_bound`: explicit upper bound on the negative root magnitude above the first
+  lattice sum.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,16 +39,22 @@ open Finset
 
 variable {d : ℕ}
 
+/-- For positive side length, every wave-vector coordinate has absolute value strictly less than
+`2 * Real.pi`. -/
 theorem abs_waveVector_lt_two_pi {n : ℕ} (hn : 0 < n) (m : Fin d → ZMod n) (j : Fin d) :
     |waveVector n m j| < 2 * Real.pi := by
   have h := abs_waveVector_le_pi hn m j
   linarith [Real.pi_pos]
 
+/-- For positive side length, the cosine of a wave-vector coordinate is one exactly when that
+coordinate is zero. -/
 theorem cos_waveVector_eq_one_iff {n : ℕ} (hn : 0 < n) (m : Fin d → ZMod n) (j : Fin d) :
     Real.cos (waveVector n m j) = 1 ↔ waveVector n m j = 0 := by
   obtain ⟨h1, h2⟩ := abs_lt.mp (abs_waveVector_lt_two_pi hn m j)
   exact Real.cos_eq_one_iff_of_lt_of_lt h1 h2
 
+/-- For positive side length, a wave-vector coordinate vanishes exactly when the corresponding
+periodic lattice coordinate is zero. -/
 theorem waveVector_eq_zero_iff {n : ℕ} [NeZero n] (hn : 0 < n) (m : Fin d → ZMod n)
     (j : Fin d) : waveVector n m j = 0 ↔ m j = 0 := by
   have hpi : (0:ℝ) < Real.pi := Real.pi_pos
@@ -47,6 +75,8 @@ theorem waveVector_eq_zero_iff {n : ℕ} [NeZero n] (hn : 0 < n) (m : Fin d → 
   · intro h
     simp [waveVector, h]
 
+/-- For positive side length, the dispersion of a lattice wave vector vanishes exactly at the
+zero lattice index. -/
 theorem dispersion_waveVector_eq_zero_iff {n : ℕ} [NeZero n] (hn : 0 < n)
     (m : Fin d → ZMod n) : dispersion (waveVector n m) = 0 ↔ m = 0 := by
   rw [dispersion_eq_zero_iff]
@@ -59,12 +89,14 @@ theorem dispersion_waveVector_eq_zero_iff {n : ℕ} [NeZero n] (hn : 0 < n)
     intro j
     simp [waveVector]
 
+/-- For positive side length, every nonzero lattice index has strictly positive dispersion. -/
 theorem dispersion_waveVector_pos {n : ℕ} [NeZero n] (hn : 0 < n) {m : Fin d → ZMod n}
     (hm : m ≠ 0) : 0 < dispersion (waveVector n m) := by
   rcases (dispersion_nonneg (waveVector n m)).eq_or_lt with h | h
   · exact absurd ((dispersion_waveVector_eq_zero_iff hn m).mp h.symm) hm
   · exact h
 
+/-- The first lattice sum is nonnegative for positive side length in every dimension. -/
 theorem latSum1_nonneg {n : ℕ} [NeZero n] (hn : 0 < n) (d : ℕ) : 0 ≤ latSum1 n d := by
   unfold latSum1
   refine mul_nonneg (by positivity) ?_
@@ -72,6 +104,9 @@ theorem latSum1_nonneg {n : ℕ} [NeZero n] (hn : 0 < n) (d : ℕ) : 0 ≤ latSu
   intro m _
   exact inv_nonneg.2 (dispersion_nonneg _)
 
+/-- For positive coupling and side length, if the coupling exceeds the first lattice sum, every
+negative secular root has magnitude at most `γ / (n ^ d * (γ - latSum1 n d))`
+[ChildsGoldstone2004]. -/
 theorem ground_energy_bound {γ : ℝ} {n d : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     (hL : latSum1 n d < γ) {E₀ : ℝ} (hE₀ : E₀ < 0) (hF : secular γ n d E₀ = 1) :
     |E₀| ≤ γ / ((n : ℝ) ^ d * (γ - latSum1 n d)) := by

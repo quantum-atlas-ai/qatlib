@@ -10,6 +10,27 @@ import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Tactic
 
+/-!
+# Uniform-state optimum for the window functional
+
+The functional `sourceWindowCost` depends on the sum and squared norm of a finite real sequence.
+For nonnegative window parameter and positive dimension, the normalized uniform vector minimizes
+this functional, with explicit value `1 - ε * (q + 1) / (2 * π)`. The phase-estimation setting
+is described in [VanDamEtAl2007].
+
+## Main statements
+
+* `source_window_cost_uniform`: For positive `q`, the uniform vector has window cost `1 - ε * (q
+  + 1) / (2 * π)`.
+* `source_window_cost_uniform_optimal`: For positive `q` and nonnegative `ε`, the uniform vector
+  minimizes the window-cost functional among real sequences of squared norm one on the first `q`
+  entries.
+
+## References
+
+* [van Dam et al., 2007][VanDamEtAl2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,13 +38,17 @@ namespace Qatlib.Papers.PhaseEst07.MainResults.WindowState
 
 open scoped BigOperators
 
+/-- The constant real sequence with value `1 / sqrt q`. -/
 noncomputable def sourceUniformVector (q : ℕ) : ℕ → ℝ := fun _ => 1 / Real.sqrt (q : ℝ)
 
+/-- The window-cost functional expressed through the squared sum and squared norm of the first
+`q` entries. -/
 noncomputable def sourceWindowCost (q : ℕ) (ε : ℝ) (x : ℕ → ℝ) : ℝ :=
   (1 - ε / Real.pi) -
     (ε / (2 * Real.pi)) *
       ((∑ k ∈ Finset.range q, x k) ^ 2 - ∑ k ∈ Finset.range q, (x k) ^ 2)
 
+/-- For positive `q`, the uniform vector has squared norm one on its first `q` entries. -/
 theorem source_uniform_vector_normalized (q : ℕ) (hq : 1 ≤ q) :
     ∑ k ∈ Finset.range q, (sourceUniformVector q k) ^ 2 = 1 := by
   have hqpos : (0 : ℝ) < (q : ℝ) := by exact_mod_cast hq
@@ -34,6 +59,7 @@ theorem source_uniform_vector_normalized (q : ℕ) (hq : 1 ≤ q) :
   rw [Finset.sum_congr rfl hterm, Finset.sum_const, Finset.card_range, nsmul_eq_mul]
   field_simp
 
+/-- For positive `q`, the sum of the first `q` entries of the uniform vector is `sqrt q`. -/
 theorem source_uniform_vector_sum (q : ℕ) (hq : 1 ≤ q) :
     ∑ k ∈ Finset.range q, sourceUniformVector q k = Real.sqrt (q : ℝ) := by
   have hqpos : (0 : ℝ) < (q : ℝ) := by exact_mod_cast hq
@@ -42,6 +68,8 @@ theorem source_uniform_vector_sum (q : ℕ) (hq : 1 ≤ q) :
   unfold sourceUniformVector
   rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one_div, div_eq_iff hsqne, hsq]
 
+/-- For positive `q`, the uniform vector has window cost `1 - ε * (q + 1) / (2 * π)`. See [van
+Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_window_cost_uniform (q : ℕ) (hq : 1 ≤ q) (ε : ℝ) :
     sourceWindowCost q ε (sourceUniformVector q)
       = 1 - ε * ((q : ℝ) + 1) / (2 * Real.pi) := by
@@ -53,6 +81,9 @@ theorem source_window_cost_uniform (q : ℕ) (hq : 1 ≤ q) (ε : ℝ) :
   field_simp
   ring
 
+/-- For positive `q` and nonnegative `ε`, the uniform vector minimizes the window-cost
+functional among real sequences of squared norm one on the first `q` entries. See [van Dam
+et al., 2007][VanDamEtAl2007]. -/
 theorem source_window_cost_uniform_optimal (q : ℕ) (hq : 1 ≤ q) (ε : ℝ) (hε : 0 ≤ ε)
     (x : ℕ → ℝ) (hx : ∑ k ∈ Finset.range q, (x k) ^ 2 = 1) :
     sourceWindowCost q ε x ≥ sourceWindowCost q ε (sourceUniformVector q) := by

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
 import Mathlib.Algebra.Order.Floor.Semiring
+
+/-!
+# Query bounds for binary clock signal words
+
+`segmentSum` and `queryLedger` sum the segment and query costs of the dyadic clock pulses. A
+common factor controlled by `rMax` bounds each pulse cost.
+
+The resulting explicit ledger bound depends linearly on `q+1+2*|τ|`, with the stated precision
+and logarithmic segment factor for quantum signal processing simulation [LowChuang2017].
+
+## Main statements
+
+* `segmentSum_le`: the total segment count is at most `q+1+2*|τ|`.
+* `instructions_query_bound`: the compiled instruction word satisfies the explicit ledger bound.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -54,13 +74,18 @@ open Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory
 open Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
 open scoped BigOperators
 
+/-- The computed signal segment count for the full simulation time `τ`. -/
 def rMax (τ : ℚ) : ℕ := computedSignalSegments τ
+/-- The sum of computed signal segment counts over all dyadic clock pulse axes. -/
 def segmentSum (q : ℕ) (τ : ℚ) : ℕ :=
   ((DyadicClockPulses.axes q).map (fun a => computedSignalSegments (atomTime q τ a))).sum
+/-- The common query-cost factor `27*(128*(k+clog₂(rMax τ)+16)+1)`. -/
 def factor (τ : ℚ) (k : ℕ) : ℕ := 27 * (128 * (k + Nat.clog 2 (rMax τ) + 16) + 1)
+/-- The total query cost summed over all dyadic clock pulses. -/
 def queryLedger (q : ℕ) (τ : ℚ) (k : ℕ) : ℕ :=
   ((DyadicClockPulses.axes q).map (fun a => queryCost (atomTime q τ a) k)).sum
 
+/-- Every dyadic clock pulse time has absolute value at most `|τ|`. -/
 theorem atom_abs_le (q : ℕ) (τ : ℚ) (a : Option (Fin q)) : |atomTime q τ a| ≤ |τ| := by
   have hd := DyadicClockPulses.denominator_pos q
   have hD := DyadicClockPulses.denominator_one_le q
@@ -80,11 +105,13 @@ theorem atom_abs_le (q : ℕ) (τ : ℚ) (a : Option (Fin q)) : |atomTime q τ a
   rw [atomTime, abs_mul, abs_of_nonneg hc.1]
   exact mul_le_of_le_one_right (abs_nonneg τ) hc.2
 
+/-- The segment count of each dyadic pulse is at most the full-time segment count `rMax τ`. -/
 theorem segment_le_rMax (q : ℕ) (τ : ℚ) (a : Option (Fin q)) :
     computedSignalSegments (atomTime q τ a) ≤ rMax τ := by
   apply max_le_max le_rfl
   exact Nat.ceil_mono (mul_le_mul_of_nonneg_left (atom_abs_le q τ a) (by norm_num))
 
+/-- The computed segment count for time `t` is at most `1+2*|t|`. -/
 theorem segment_upper (t : ℚ) : (computedSignalSegments t : ℚ) ≤ 1 + 2 * |t| := by
   have hc := (Nat.ceil_lt_add_one (by positivity : 0 ≤ (2 : ℚ) * |t|)).le
   unfold computedSignalSegments
@@ -95,6 +122,8 @@ theorem segment_upper (t : ℚ) : (computedSignalSegments t : ℚ) ≤ 1 + 2 * |
     change (1 : ℚ) ≤ 1 + 2 * |t|
     linarith [abs_nonneg t]
 
+/-- The sum of segment counts over a pulse list is bounded by its length plus twice the sum of
+absolute pulse times. -/
 private theorem sum_segments (q : ℕ) (τ : ℚ) (as : List (Option (Fin q))) :
     ((as.map (fun a => computedSignalSegments (atomTime q τ a))).sum : ℚ) ≤
       (as.length : ℚ) + 2 * (as.map (fun a => |atomTime q τ a|)).sum := by
@@ -104,6 +133,7 @@ private theorem sum_segments (q : ℕ) (τ : ℚ) (as : List (Option (Fin q))) :
     simp only [List.map_cons, List.sum_cons, List.length_cons, Nat.cast_add, Nat.cast_one]
     linarith [segment_upper (atomTime q τ a)]
 
+/-- The total dyadic segment count is at most `q+1+2*|τ|` as a rational inequality. -/
 theorem segmentSum_le (q : ℕ) (τ : ℚ) :
     (segmentSum q τ : ℚ) ≤ ((q + 1 : ℕ) : ℚ) + 2 * |τ| := by
   have hh := sum_segments q τ (DyadicClockPulses.axes q)
@@ -118,10 +148,12 @@ theorem segmentSum_le (q : ℕ) (τ : ℚ) :
     add_le_add le_rfl hg
   exact hh.trans ha
 
+/-- The total dyadic segment count is at most `q+1+2*|τ|` as a real inequality. -/
 theorem segmentSum_le_real (q : ℕ) (τ : ℚ) :
     (segmentSum q τ : ℝ) ≤ ((q + 1 : ℕ) : ℝ) + 2 * |(τ : ℝ)| := by
   exact_mod_cast segmentSum_le q τ
 
+/-- Each pulse query cost is bounded by its segment count times the common factor `factor τ k`. -/
 theorem atom_query_le (q : ℕ) (τ : ℚ) (k : ℕ) (a : Option (Fin q)) :
     queryCost (atomTime q τ a) k ≤ computedSignalSegments (atomTime q τ a) * factor τ k := by
   have hl := Nat.clog_mono_right 2 (segment_le_rMax q τ a)
@@ -133,6 +165,8 @@ theorem atom_query_le (q : ℕ) (τ : ℚ) (k : ℕ) (a : Option (Fin q)) :
     omega
   exact Nat.mul_le_mul_left _ hf
 
+/-- The total query cost of a pulse list is bounded by its total segment count times `factor τ
+k`. -/
 private theorem sum_queries (q : ℕ) (τ : ℚ) (k : ℕ) (as : List (Option (Fin q))) :
     (as.map (fun a => queryCost (atomTime q τ a) k)).sum ≤
       (as.map (fun a => computedSignalSegments (atomTime q τ a))).sum * factor τ k := by
@@ -142,10 +176,12 @@ private theorem sum_queries (q : ℕ) (τ : ℚ) (k : ℕ) (as : List (Option (F
     simp only [List.map_cons, List.sum_cons]
     exact (Nat.add_le_add (atom_query_le q τ k a) ih).trans_eq (by ring)
 
+/-- At zero simulation time, the total dyadic segment count equals `q+1`. -/
 theorem segmentSum_zero (q : ℕ) : segmentSum q 0 = q + 1 := by
   simp [segmentSum, atomTime, computedSignalSegments, DyadicClockPulses.axes,
     List.map_ofFn, Function.comp_def, add_comm]
 
+/-- The total dyadic query ledger is strictly positive. -/
 theorem queryLedger_pos (q : ℕ) (τ : ℚ) (k : ℕ) : 0 < queryLedger q τ k := by
   unfold queryLedger
   rw [DyadicClockPulses.axes, List.map_cons, List.sum_cons]
@@ -154,6 +190,7 @@ theorem queryLedger_pos (q : ℕ) (τ : ℚ) (k : ℕ) : 0 < queryLedger q τ k 
   apply Nat.mul_pos (computed_signal_segment_size _).1
   omega
 
+/-- The rational query ledger is at most `27*((q+1)+2*|τ|)*(128*(k+clog₂(rMax τ)+16)+1)`. -/
 theorem queryLedger_le (q : ℕ) (τ : ℚ) (k : ℕ) :
     (queryLedger q τ k : ℚ) ≤ 27 * (((q + 1 : ℕ) : ℚ) + 2 * |τ|) *
       (128 * ((k + Nat.clog 2 (rMax τ) + 16 : ℕ) : ℚ) + 1) := by
@@ -168,11 +205,15 @@ theorem queryLedger_le (q : ℕ) (τ : ℚ) (k : ℕ) :
       simp only [factor, Nat.cast_mul, Nat.cast_add, Nat.cast_ofNat]
       ring
 
+/-- The real cast of the query ledger satisfies the same explicit clock, time, and precision
+bound. -/
 theorem queryLedger_le_real (q : ℕ) (τ : ℚ) (k : ℕ) :
     (queryLedger q τ k : ℝ) ≤ 27 * (((q + 1 : ℕ) : ℝ) + 2 * |(τ : ℝ)|) *
       (128 * ((k + Nat.clog 2 (rMax τ) + 16 : ℕ) : ℝ) + 1) := by
   exact_mod_cast queryLedger_le q τ k
 
+/-- For a projected unitary encoding of a Hermitian matrix, the compiled signal word's query
+count satisfies the explicit dyadic ledger bound. -/
 theorem instructions_query_bound {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (q : ℕ) (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (τ : ℚ) (k : ℕ) (hA : A.IsHermitian)

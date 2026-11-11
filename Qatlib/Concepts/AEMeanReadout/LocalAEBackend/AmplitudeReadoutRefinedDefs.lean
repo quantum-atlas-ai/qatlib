@@ -17,6 +17,42 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
 import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedSubgoalMont
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
+
+/-!
+# Refined amplitude readout, counting, and search
+
+This module collects finite-precision count readouts, relative and exact counting consumers,
+adaptive search estimates, and explicit query, gate, and workspace budgets. Its
+amplitude-estimation windows, endpoint guarantees, and counting constructions develop the
+framework of [BrassardEtAl2002]; the signed-mean estimates also connect to the mean-estimation
+approach of [Montanaro2015].
+
+The native readout layer exposes rational phase inputs, counted sine and arctangent sums,
+decoder precision, and combined sampling and numerical error bounds. The final search results
+connect rounded amplitude-amplification iterations to workspace circuits and transport query
+guarantees through clean ancillas and oracle simulations.
+
+## Main statements
+
+* `nextCountReadout_error` bounds finite-precision integer count readout error.
+* `nextRelative_success` and `nextCor4_success` provide relative and exact counting success
+  bounds.
+* `cor4_expected_cost_le` bounds the expected counting cost.
+* `nextMontanaro_success_le` records a signed-mean success guarantee under its stated
+  preparation and variance hypotheses.
+* `nextApproxCount_final_layer` packages the unified final counting layer and its endpoint and
+  rounding properties.
+* `nextNativeOutput_precision` and `nextNative_same_record_success` combine native decoder
+  precision with measured-label success.
+* `nextMultiSearch_actual_upper` gives success and resource bounds for the workspace search
+  circuit.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002], Quantum amplitude amplification and estimation.
+* [Montanaro, 2015][Montanaro2015], Quantum speedup of Monte Carlo methods.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -66,13 +102,21 @@ namespace AmplitudeReadoutRefined
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The rational amplitude readout `nativeAEDecode M k z` for phase label `z` and precision
+parameter `k`. -/
 def nextLabelRecord (M k : ℕ) (z : Fin M) : ℚ := nativeAEDecode M k z
 
+/-- Rounds a real number to the integer `Int.floor (x + 1 / 2)`, so half-integer ties round
+upward. -/
 noncomputable def nextRound (x : ℝ) : ℤ := Int.floor (x + 1 / 2)
 
+/-- The integer count obtained by multiplying `nextLabelRecord M k z` by the population size `N`
+and applying `nextRound`. -/
 noncomputable def nextCountReadout (N M k : ℕ) (z : Fin M) : ℤ :=
   nextRound ((N : ℝ) * (nextLabelRecord M k z : ℝ))
 
+/-- For a nonnegative real number, its integer floor equals its natural-number floor cast to the
+integers. -/
 private theorem intFloor_eq_natFloor {y : ℝ} (hy : 0 ≤ y) :
     Int.floor y = (Nat.floor y : ℤ) := by
   rw [Int.floor_eq_iff]
@@ -81,6 +125,8 @@ private theorem intFloor_eq_natFloor {y : ℝ} (hy : 0 ≤ y) :
   · exact_mod_cast (show y < (Nat.floor y : ℝ) + 1 from
       Nat.lt_floor_add_one y)
 
+/-- The refined count readout `nextCountReadout N M k z` agrees exactly with the existing engine
+readout `aeEffCount N M k z`. -/
 theorem nextCountReadout_eq_engine (N M k : ℕ) (z : Fin M) :
     nextCountReadout N M k z = aeEffCount N M k z := by
   unfold nextCountReadout nextRound aeEffCount aeEffEstimate nextLabelRecord
@@ -89,25 +135,33 @@ theorem nextCountReadout_eq_engine (N M k : ℕ) (z : Fin M) :
   push_cast
   ring
 
+/-- The absolute error of `nextRound` is at most `1 / 2` for every real input. -/
 theorem nextRound_error (x : ℝ) : |(nextRound x : ℝ) - x| ≤ 1 / 2 := by
   have hle : (Int.floor (x + 1 / 2) : ℝ) ≤ x + 1 / 2 := Int.floor_le _
   have hlt : x + 1 / 2 < (Int.floor (x + 1 / 2) : ℝ) + 1 := Int.lt_floor_add_one _
   rw [nextRound, abs_le]
   constructor <;> linarith
 
+/-- A half-integer `n + 1 / 2` with natural `n` rounds upward to `n + 1` under `nextRound`. -/
 theorem nextRound_tie (n : ℕ) : nextRound ((n : ℝ) + 1 / 2) = (n : ℤ) + 1 := by
   rw [nextRound, Int.floor_eq_iff]
   constructor <;> push_cast <;> linarith
 
+/-- Applying `nextRound` to a natural number cast to the reals returns that same number as an
+integer. -/
 theorem nextRound_exact (n : ℕ) : nextRound (n : ℝ) = (n : ℤ) := by
   rw [nextRound, Int.floor_eq_iff]
   constructor <;> push_cast <;> linarith
 
+/-- For `0 < e` and `e ≤ 1 / 2`, the value `n + 1 / 2 - e` rounds to the natural number `n`
+under `nextRound`. -/
 theorem nextRound_below_tie (n : ℕ) (e : ℝ) (he : 0 < e) (he1 : e ≤ 1 / 2) :
     nextRound ((n : ℝ) + 1 / 2 - e) = (n : ℤ) := by
   rw [nextRound, Int.floor_eq_iff]
   constructor <;> push_cast <;> linarith
 
+/-- Every `nextCountReadout N M k z` is an integer between `0` and the population size `N`,
+inclusive. -/
 theorem nextCountReadout_valid (N M k : ℕ) (z : Fin M) :
     0 ≤ nextCountReadout N M k z ∧ nextCountReadout N M k z ≤ N := by
   have hrec := native_ae_computed_scalar_precision M k z
@@ -146,6 +200,8 @@ theorem nextCountReadout_valid (N M k : ℕ) (z : Fin M) :
   unfold nextCountReadout
   exact ⟨hfl0, hfl1⟩
 
+/-- The refined integer readout differs from `N * aeEstimate M z` by at most `N * ((2 : ℝ)⁻¹) ^
+k + 1 / 2`, combining scalar decoding error with rounding error. -/
 theorem nextCountReadout_error (N M k : ℕ) (z : Fin M) :
     |(nextCountReadout N M k z : ℝ) - (N : ℝ) * aeEstimate M z|
       ≤ (N : ℝ) * ((2 : ℝ)⁻¹) ^ k + 1 / 2 := by
@@ -173,6 +229,8 @@ theorem nextCountReadout_error (N M k : ℕ) (z : Fin M) :
     _ ≤ 1 / 2 + (N : ℝ) * ((2 : ℝ)⁻¹) ^ k := add_le_add hround hscaled
     _ = (N : ℝ) * ((2 : ℝ)⁻¹) ^ k + 1 / 2 := by ring
 
+/-- If `N * ((2 : ℝ)⁻¹) ^ k ≤ 1`, the refined count readout and `countLabelReadoutNearest N M z`
+differ by at most one. -/
 theorem nextCountReadout_one_flip (N M k : ℕ) (z : Fin M)
     (hprec : (N : ℝ) * ((2 : ℝ)⁻¹) ^ k ≤ 1) :
     |(nextCountReadout N M k z : ℝ) - (countLabelReadoutNearest N M z : ℝ)| ≤ 1 := by
@@ -260,6 +318,8 @@ theorem nextCountReadout_one_flip (N M k : ℕ) (z : Fin M)
   rw [hfloor, hnear]
   exact hd
 
+/-- For a positive population size `N`, the initial exact-counting grid `exactCountM₀ N` has
+size at least two. -/
 theorem exactCountM₀_ge_two {N : ℕ} (hN : 0 < N) : 2 ≤ exactCountM₀ N := by
   have hpi : (2:ℝ) < Real.pi := by
     have := Real.pi_gt_three
@@ -274,6 +334,8 @@ theorem exactCountM₀_ge_two {N : ℕ} (hN : 0 < N) : 2 ≤ exactCountM₀ N :=
     exact (Nat.lt_ceil (n := 1) (a := 14 * Real.pi * Real.sqrt (N : ℝ))).2 (by simpa using! hval)
   omega
 
+/-- The adaptive grid `exactCountGrid N t'₁ t'₂` has size at least two whenever both rough
+estimates lie in `[0, N]`. -/
 theorem exactCountGrid_ge_two {N : ℕ} (t'₁ t'₂ : ℝ)
     (h1 : 0 ≤ t'₁) (h1' : t'₁ ≤ (N : ℝ))
     (h2 : 0 ≤ t'₂) (h2' : t'₂ ≤ (N : ℝ)) :
@@ -300,6 +362,8 @@ theorem exactCountGrid_ge_two {N : ℕ} (t'₁ t'₂ : ℝ)
       (a := 30 * min (exactCountRough N t'₁) (exactCountRough N t'₂))).2 (by simpa using! hval)
   omega
 
+/-- For positive `N`, feeding any two scaled amplitude estimates from `exactCountM₀ N` into
+`exactCountGrid` produces a grid of size at least two. -/
 theorem exactCountGrid_ge_two_on_estimates {N : ℕ} (hN : 0 < N)
     (z₁ z₂ : Fin (exactCountM₀ N)) :
     2 ≤ exactCountGrid N ((N : ℝ) * aeEstimate (exactCountM₀ N) z₁)
@@ -319,6 +383,8 @@ theorem exactCountGrid_ge_two_on_estimates {N : ℕ} (hN : 0 < N)
   · have hle : aeEstimate (exactCountM₀ N) z₂ ≤ 1 := he₂.2
     simpa using! mul_le_mul_of_nonneg_left hle hN'
 
+/-- For positive `N`, the adaptive exact-counting grid built from any two scaled amplitude
+estimates on `exactCountM₀ N` has size at least thirty. -/
 theorem exactCountGrid_ge_thirty {N : ℕ} (hN : 0 < N)
     (z₁ z₂ : Fin (exactCountM₀ N)) :
     30 ≤ exactCountGrid N ((N : ℝ) * aeEstimate (exactCountM₀ N) z₁)
@@ -366,6 +432,9 @@ theorem exactCountGrid_ge_thirty {N : ℕ} (hN : 0 < N)
         (exactCountRough N ((N : ℝ) * aeEstimate (exactCountM₀ N) z₂)))).2 (by simpa using! hval)
   omega
 
+/-- For a bounded observable, positive `N` and `eps`, and `0 < nu ≤ 1 / 4`, the access ledger at
+each pilot-selected precision is bounded by the ledger at `unknownSigmaWorstPrecision eps`.
+The finite precision bound `hk` supplies the pilot execution's precision cap. -/
 theorem unknownSigma_worst_path_accesses
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -379,13 +448,18 @@ theorem unknownSigma_worst_path_accesses
   unfold unknownSigmaLedgerAccesses unknownSigmaAccesses
   exact Nat.add_le_add (Nat.add_le_add h.1 h.2.2.2.1) h.2.2.2.2.1
 
+/-- The two-dimensional rotation `smallRotation (Real.pi / 4)`, used to prepare a uniform source
+on `Fin 2` from basis state zero. -/
 noncomputable def nextUniformSource : Matrix (Fin 2) (Fin 2) ℂ :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.smallRotation (Real.pi / 4)
 
+/-- The uniform-source preparation matrix `nextUniformSource` is unitary. -/
 theorem nextUniformSource_unitary :
     nextUniformSource ∈ Matrix.unitaryGroup (Fin 2) ℂ :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.smallRotation_unitary _
 
+/-- Preparing basis state zero with `nextUniformSource` gives each outcome in `Fin 2`
+probability `1 / 2` under `signedMeanSource`. -/
 theorem nextUniformSource_prob (i : Fin 2) :
     (signedMeanSource nextUniformSource (0 : Fin 2) nextUniformSource_unitary).prob i
       = 1 / 2 := by
@@ -429,6 +503,8 @@ theorem nextUniformSource_prob (i : Fin 2) :
     subst hieq
     exact h0
 
+/-- The pilot event that either the empirical first moment or the empirical second moment of `f`
+differs from its source expectation by more than `nu`. -/
 abbrev nextPilotBadMoment (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (N : ℕ) (nu : ℝ) : (Fin N → I) → Prop :=
   fun ωp =>
@@ -437,6 +513,8 @@ abbrev nextPilotBadMoment (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitar
       (nu : ℝ) < |Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (fun i => (f i : ℝ)^2) ωp
         - (signedMeanSource A j hA).expect (fun i => (f i : ℝ)^2)|
 
+/-- For `N > 0` and `nu > 0`, the probability of `nextPilotBadMoment` is at most the sum of the
+source's second and fourth moments of `f`, divided by `N * nu ^ 2`. -/
 theorem nextPilotBadMoment_mass
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ)
     (N : ℕ) (nu : ℝ) (hN : 0 < N) (hnu : 0 < nu) :
@@ -446,6 +524,9 @@ theorem nextPilotBadMoment_mass
   unfold nextPilotBadMoment
   exact unknownSigma_pilot_moment_failure_mass A j hA f N nu hN hnu
 
+/-- If `N > 0`, `nu > 0`, `(8 / 9) ^ r < δ`, and the second-plus-fourth moment sum is at most `N
+* nu ^ 2 * (δ - (8 / 9) ^ r)`, then the pilot bad-moment probability is at most `δ - (8 / 9)
+^ r`. -/
 theorem nextPilotBadMoment_mass_le_reserve
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ)
     (N : ℕ) (nu : ℝ) (r : ℕ) (hN : 0 < N) (hnu : 0 < nu)
@@ -468,6 +549,10 @@ theorem nextPilotBadMoment_mass_le_reserve
     ring
   linarith
 
+/-- For any `N`, positive `nu`, and `δ > (8 / 9) ^ r`, there is a unitary two-point source and a
+rational observable with positive second moment whose second-plus-fourth moment sum exceeds
+`N * nu ^ 2 * (δ - (8 / 9) ^ r)`. Thus this moment reserve does not hold uniformly over all
+rational observables. -/
 theorem unknownSigma_tail_promise_necessary
     (N : ℕ) (nu : ℝ) (hnu : 0 < nu) (δ : ℝ) (r : ℕ) (hδ : (8/9 : ℝ)^r < δ) :
     ∃ (A : Matrix (Fin 2) (Fin 2) ℂ) (j : Fin 2)
@@ -535,18 +620,28 @@ theorem unknownSigma_tail_promise_necessary
     have hhalf : (2:ℝ) * ((n + 1 : ℕ) : ℝ)^4 / 2 = ((n + 1 : ℕ) : ℝ)^4 := by ring
     nlinarith [h4, hhalf]
 
+/-- The per-trial query parameter `(k + 2) * (2 * layerRepetitions k + 1)` for precision `k`. -/
 noncomputable def nextTrialQueries (k : ℕ) : ℕ :=
   (k + 2) * (2 * layerRepetitions k + 1)
 
+/-- The value of `nextTrialQueries` at the worst-case precision `unknownSigmaWorstPrecision
+eps`. -/
 noncomputable def nextWorstTrialQueries (eps : ℚ) : ℕ :=
   nextTrialQueries (unknownSigmaWorstPrecision eps)
 
+/-- The layer grid size `layerGrid (unknownSigmaWorstPrecision eps)` associated with the
+worst-case precision. -/
 noncomputable def nextWorstLayerGrid (eps : ℚ) : ℕ :=
   layerGrid (unknownSigmaWorstPrecision eps)
 
+/-- The inverse-layer grid count `layerGrid (unknownSigmaWorstPrecision eps) - 1`, using
+natural-number subtraction. -/
 noncomputable def nextWorstLayerGridInv (eps : ℚ) : ℕ :=
   layerGrid (unknownSigmaWorstPrecision eps) - 1
 
+/-- Expands all seven fields of `unknownSigmaLedger N r k` into explicit formulas in `N`, `2 * r
++ 1`, `nextTrialQueries k`, and `layerGrid k`. In particular, inverse-layer accesses and
+queries have the same count. -/
 theorem unknownSigmaLedger_expand (N r k : ℕ) :
     (unknownSigmaLedger N r k).sourcePreparations = N + (2*r+1) ∧
     (unknownSigmaLedger N r k).layerCopies
@@ -565,6 +660,9 @@ theorem unknownSigmaLedger_expand (N r k : ℕ) :
   unfold unknownSigmaLedger
   exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- Under the bounded-observable and positive-parameter hypotheses, every pilot-selected ledger
+is componentwise bounded by the ledger at `unknownSigmaWorstPrecision eps`. It also gives
+the explicit formulas for all seven fields of that worst-case ledger. -/
 theorem unknownSigma_worst_path_components
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -597,6 +695,9 @@ theorem unknownSigma_worst_path_components
   have he := unknownSigmaLedger_expand N r (unknownSigmaWorstPrecision eps)
   exact ⟨h, he.1, he.2.1, he.2.2.1, he.2.2.2.1, he.2.2.2.2.1, he.2.2.2.2.2.1, he.2.2.2.2.2.2⟩
 
+/-- For the full record assembled from pilot sample `ωp` and trial record `ωt`,
+`unknownSigmaResources` equals the ledger at the pilot-selected precision. The remaining
+conclusions expand all seven resource fields into explicit formulas at that precision. -/
 theorem unknownSigma_component_budget
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -629,15 +730,23 @@ theorem unknownSigma_component_budget
   have he := unknownSigmaLedger_expand N r (pilotPrecision N h f nu eps ωp)
   exact ⟨hres, he.1, he.2.1, he.2.2.1, he.2.2.2.1, he.2.2.2.2.1, he.2.2.2.2.2.1, he.2.2.2.2.2.2⟩
 
+/-- The amplitude-estimation error window `2 * Real.pi * Real.sqrt (a * (1 - a)) / M + Real.pi ^
+2 / M ^ 2` from the BHMT bound [BrassardEtAl2002]. -/
 noncomputable def nextAeWindow (M : ℕ) (a : ℝ) : ℝ :=
   2 * Real.pi * Real.sqrt (a * (1 - a)) / (M : ℝ) + Real.pi ^ 2 / (M : ℝ) ^ 2
 
+/-- The simplified amplitude-estimation window `2 * Real.pi * Real.sqrt a / M + Real.pi ^ 2 / M
+^ 2`. -/
 noncomputable def nextWindowBound (M : ℕ) (a : ℝ) : ℝ :=
   2 * Real.pi * Real.sqrt a / (M : ℝ) + Real.pi ^ 2 / (M : ℝ) ^ 2
 
+/-- The natural ceiling of `16 * Real.pi / (eps * Real.sqrt a₀)`, used as the
+amplitude-estimation grid for a positive amplitude lower bound `a₀`. -/
 noncomputable def nextRelativeGrid (a₀ eps : ℝ) : ℕ :=
   ⌈16 * Real.pi / (eps * Real.sqrt a₀)⌉₊
 
+/-- For `0 ≤ a ≤ 1`, the BHMT window `nextAeWindow M a` is bounded by the simpler window
+`nextWindowBound M a`. -/
 theorem nextAeWindow_le_bound (M : ℕ) (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     nextAeWindow M a ≤ nextWindowBound M a := by
   have hprod : a * (1 - a) ≤ a := by nlinarith
@@ -651,6 +760,8 @@ theorem nextAeWindow_le_bound (M : ℕ) (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1
   unfold nextAeWindow nextWindowBound
   linarith
 
+/-- If `0 < a₀ ≤ a ≤ 1`, `0 < eps ≤ 1`, and `0 ≤ u ≤ eps * Real.sqrt a₀ / (16 * Real.pi)`, then
+`2 * Real.pi * Real.sqrt (a * (1 - a)) * u + Real.pi ^ 2 * u ^ 2 ≤ eps * a`. -/
 private theorem nextAeWindow_poly {a₀ a eps u : ℝ}
     (ha0 : 0 < a₀) (ha0a : a₀ ≤ a) (ha1 : a ≤ 1)
     (heps : 0 < eps) (heps1 : eps ≤ 1) (hu0 : 0 ≤ u)
@@ -723,6 +834,8 @@ private theorem nextAeWindow_poly {a₀ a eps u : ℝ}
       _ ≤ eps * a := h4
   linarith
 
+/-- For positive `M`, `0 < a₀ ≤ a ≤ 1`, and `0 < eps ≤ 1`, the grid condition `16 * Real.pi /
+(eps * Real.sqrt a₀) ≤ M` makes `nextAeWindow M a` at most `eps * a`. -/
 theorem nextAeWindow_le_relative {M : ℕ} {a₀ a eps : ℝ}
     (hM : 0 < M) (ha0 : 0 < a₀) (ha0a : a₀ ≤ a) (ha1 : a ≤ 1)
     (heps : 0 < eps) (heps1 : eps ≤ 1)
@@ -765,10 +878,14 @@ theorem nextAeWindow_le_relative {M : ℕ} {a₀ a eps : ℝ}
   rw [h3, ← h2]
   exact hpoly
 
+/-- For positive `a₀` and `eps`, `nextRelativeGrid a₀ eps` is at least `16 * Real.pi / (eps *
+Real.sqrt a₀)` when cast to the reals. -/
 theorem nextRelativeGrid_lower {a₀ eps : ℝ} (ha0 : 0 < a₀) (heps : 0 < eps) :
     16 * Real.pi / (eps * Real.sqrt a₀) ≤ (nextRelativeGrid a₀ eps : ℝ) := by
   exact Nat.le_ceil _
 
+/-- For `0 < a₀ ≤ 1` and `0 < eps ≤ 1`, the relative-estimation grid `nextRelativeGrid a₀ eps`
+has size at least two. -/
 theorem nextRelativeGrid_two {a₀ eps : ℝ} (ha0 : 0 < a₀) (ha0' : a₀ ≤ 1)
     (heps : 0 < eps) (heps1 : eps ≤ 1) : 2 ≤ nextRelativeGrid a₀ eps := by
   have hlow : 16 * Real.pi / (eps * Real.sqrt a₀) ≤ (nextRelativeGrid a₀ eps : ℝ) :=
@@ -790,6 +907,8 @@ theorem nextRelativeGrid_two {a₀ eps : ℝ} (ha0 : 0 < a₀) (ha0' : a₀ ≤ 
     linarith
   exact_mod_cast (le_trans hbig hlow)
 
+/-- For `0 < a₀ ≤ a ≤ 1` and `0 < eps ≤ 1`, the chosen grid `nextRelativeGrid a₀ eps` gives an
+amplitude-estimation window at most `eps * a`. -/
 theorem nextRelativeWindow {a₀ a eps : ℝ} (ha0 : 0 < a₀) (ha0a : a₀ ≤ a) (ha1 : a ≤ 1)
     (heps : 0 < eps) (heps1 : eps ≤ 1) :
     nextAeWindow (nextRelativeGrid a₀ eps) a ≤ eps * a := by
@@ -798,6 +917,8 @@ theorem nextRelativeWindow {a₀ a eps : ℝ} (ha0 : 0 < a₀) (ha0a : a₀ ≤ 
   refine nextAeWindow_le_relative (M := nextRelativeGrid a₀ eps)
     (by omega) ha0 ha0a ha1 heps heps1 (nextRelativeGrid_lower ha0 heps)
 
+/-- The BHMT success constant `8 / Real.pi ^ 2` is strictly greater than `2 / 3`
+[BrassardEtAl2002]. -/
 theorem nextBhmtConstant_gt_two_thirds : 8 / Real.pi ^ 2 > 2 / 3 := by
   have hpi : Real.pi ^ 2 < 12 := by
     have h1 := Real.pi_lt_d2
@@ -809,6 +930,10 @@ theorem nextBhmtConstant_gt_two_thirds : 8 / Real.pi ^ 2 > 2 / 3 := by
     nlinarith
   exact h1
 
+/-- If the prepared marked probability `a` satisfies `0 < a₀ ≤ a ≤ 1` and `0 < eps ≤ 1`,
+amplitude estimation on `nextRelativeGrid a₀ eps` yields absolute error at most `eps * a`
+with probability at least `8 / Real.pi ^ 2`. This specializes the BHMT success bound to
+relative error [BrassardEtAl2002]. -/
 theorem nextRelative_success
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a₀ eps : ℝ) (ha0 : 0 < a₀) (ha0a : a₀ ≤ MeasureProb (preparedAAState A j) S)
@@ -843,6 +968,9 @@ theorem nextRelative_success
     (fun z _ _ => (aeLaw (nextRelativeGrid a₀ eps) A j S hA hM2).nonneg z)
   linarith
 
+/-- When the prepared marked probability is zero and `M ≥ 2`, the zero phase label has
+probability one, decodes to amplitude zero, and satisfies the relative-error inequality for
+any `eps`. -/
 theorem nextRelative_zero
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (M : ℕ) (hM : 2 ≤ M) (eps : ℝ)
@@ -864,6 +992,8 @@ theorem nextRelative_zero
   · simp [aeEstimate]
   · simp [aeEstimate]
 
+/-- The amplitude-estimation window `nextAeWindow M a` is at least its quadratic term `Real.pi ^
+2 / M ^ 2` for every `M` and `a`. -/
 theorem nextAeWindow_ge_second (M : ℕ) (a : ℝ) :
     Real.pi ^ 2 / (M : ℝ) ^ 2 ≤ nextAeWindow M a := by
   unfold nextAeWindow
@@ -873,6 +1003,9 @@ theorem nextAeWindow_ge_second (M : ℕ) (a : ℝ) :
     div_nonneg hmul (by positivity)
   linarith
 
+/-- For every fixed grid size `M ≥ 2` and `0 < eps ≤ 1`, some amplitude `0 < a ≤ 1` has
+`nextAeWindow M a > eps * a`. Thus this error window cannot certify relative accuracy
+uniformly down to arbitrarily small positive amplitudes on a fixed grid. -/
 theorem nextFixedGrid_insufficient (M : ℕ) (hM : 2 ≤ M) (eps : ℝ) (heps : 0 < eps)
     (heps1 : eps ≤ 1) :
     ∃ a : ℝ, 0 < a ∧ a ≤ 1 ∧ nextAeWindow M a > eps * a := by
@@ -907,6 +1040,8 @@ theorem nextFixedGrid_insufficient (M : ℕ) (hM : 2 ≤ M) (eps : ℝ) (heps : 
       nextAeWindow_ge_second M _
     linarith
 
+/-- If `0 < a₀ ≤ a`, `0 < eps ≤ 1`, and a real budget `M` is at least `16 * Real.pi / (eps *
+Real.sqrt a₀)`, then it is also at least `16 * Real.pi / (eps * Real.sqrt a)`. -/
 theorem nextRelativeGrid_forced {a₀ a eps M : ℝ} (ha0 : 0 < a₀) (ha0a : a₀ ≤ a)
     (heps : 0 < eps) (heps1 : eps ≤ 1)
     (hM : 16 * Real.pi / (eps * Real.sqrt a₀) ≤ M) :
@@ -935,6 +1070,9 @@ theorem nextRelativeGrid_forced {a₀ a eps M : ℝ} (ha0 : 0 < a₀) (ha0a : a�
           (div_eq_mul_inv (16 * Real.pi) (eps * Real.sqrt a₀)).symm
   linarith
 
+/-- For `M ≥ 2`, prepared amplitude estimation uses `M` forward accesses, `M - 1` backward
+accesses and queries, and `5 * (M - 1) + 3` gates. Its flag and Fourier access words contain
+`2 * (M - 1)` and `2` fixed macros, respectively. -/
 theorem nextRelative_access_counts (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     aeForwardAccesses (aeAccessWord (I := I) M) = M ∧
@@ -947,6 +1085,9 @@ theorem nextRelative_access_counts (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
   have h2 := prepared_ae_expanded_access_and_output M hM A j S hA
   exact ⟨h.1, h.2.1, h2.1, h2.2.1, h.2.2.1, h.2.2.2⟩
 
+/-- For `0 < a₀ ≤ 1` and `0 < eps ≤ 1`, the relative grid is at most `16 * Real.pi / (eps *
+Real.sqrt a₀) + 1`, while its real-valued size minus one is at most `16 * Real.pi / (eps *
+Real.sqrt a₀)`. -/
 theorem nextRelative_budget {a₀ eps : ℝ} (ha0 : 0 < a₀) (ha0' : a₀ ≤ 1)
     (heps : 0 < eps) (heps1 : eps ≤ 1) :
     (nextRelativeGrid a₀ eps : ℝ) ≤ 16 * Real.pi / (eps * Real.sqrt a₀) + 1 ∧
@@ -961,19 +1102,26 @@ theorem nextRelative_budget {a₀ eps : ℝ} (ha0 : 0 < a₀) (ha0' : a₀ ≤ 1
   · linarith
   · linarith
 
+/-- The finite set of seeds `r` for which the heuristic output `G F r` satisfies `F (G F r) =
+true`. -/
 def nextGoodSeeds {I : Type} [Fintype I]
     (F : I → Bool) (G : (I → Bool) → I → I) : Finset I :=
   Finset.univ.filter fun r => F (G F r) = true
 
+/-- The Boolean validation test deciding whether the heuristic output `G F r` satisfies `F`. -/
 def nextGoodSeedValid {I : Type} (F : I → Bool) (G : (I → Bool) → I → I)
     (r : I) : Bool :=
   decide (F (G F r) = true)
 
+/-- The seed-validation test `nextGoodSeedValid F G r` returns true exactly when `r` belongs to
+`nextGoodSeeds F G`. -/
 theorem nextGoodSeedValid_iff {I : Type} [Fintype I]
     (F : I → Bool) (G : (I → Bool) → I → I) (r : I) :
     nextGoodSeedValid F G r = true ↔ r ∈ nextGoodSeeds F G := by
   simp [nextGoodSeedValid, nextGoodSeeds]
 
+/-- Natural-number weights for macro gates, bits, phase queries, preparation calls, validation
+calls, and forward and backward heuristic calls in the heuristic-search cost. -/
 structure NextHeuristicWeights where
   gate : ℕ
   bit : ℕ
@@ -983,6 +1131,8 @@ structure NextHeuristicWeights where
   gForward : ℕ
   gBackward : ℕ
 
+/-- A capped seed-search trace together with its optional heuristic output and counters for
+forward heuristic calls, backward heuristic calls, and predicate validations. -/
 structure NextHeuristicTrace (I : Type) where
   seedTrace : CappedSearchTrace I
   output : Option I
@@ -990,6 +1140,8 @@ structure NextHeuristicTrace (I : Type) where
   gBackward : ℕ
   fValidation : ℕ
 
+/-- Converts a capped seed-search trace into a heuristic trace by mapping its result through `G
+F`. Each of the three added call counters equals the seed trace's validation-query count. -/
 def nextHeuristicRecord {I : Type} (F : I → Bool) (G : (I → Bool) → I → I)
     (tr : CappedSearchTrace I) : NextHeuristicTrace I :=
   { seedTrace := tr
@@ -998,6 +1150,9 @@ def nextHeuristicRecord {I : Type} (F : I → Bool) (G : (I → Bool) → I → 
   , gBackward := tr.validationQueries
   , fValidation := tr.validationQueries }
 
+/-- The probability mass function obtained by geometrically scheduled search for `nextGoodSeeds
+F G`, followed by `nextHeuristicRecord F G` to produce the heuristic output and resource
+counters. -/
 noncomputable def nextHeuristicConsumer {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ) :
@@ -1005,6 +1160,8 @@ noncomputable def nextHeuristicConsumer {I : Type} [Fintype I] [DecidableEq I]
   (searchForSchedule A hA j₀ (nextGoodSeeds F G) (nextGoodSeedValid F G)
     (geometricSearchSchedule M T)).map (nextHeuristicRecord F G)
 
+/-- The weighted sum in `ℝ≥0∞` of a heuristic trace's macro gates, bits, phase queries,
+preparation calls, predicate validations, and forward and backward heuristic calls. -/
 noncomputable def nextHeuristicCost {I : Type} (w : NextHeuristicWeights)
     (tr : NextHeuristicTrace I) : ℝ≥0∞ :=
   (w.gate : ℝ≥0∞) * (tr.seedTrace.macroGates : ℝ≥0∞)
@@ -1015,6 +1172,8 @@ noncomputable def nextHeuristicCost {I : Type} (w : NextHeuristicWeights)
     + (w.gForward : ℝ≥0∞) * (tr.gForward : ℝ≥0∞)
     + (w.gBackward : ℝ≥0∞) * (tr.gBackward : ℝ≥0∞)
 
+/-- The natural-number weighted total of the seven resource counters charged by
+`nextHeuristicCost`. -/
 def nextHeuristicTotalCost {I : Type} (w : NextHeuristicWeights)
     (tr : NextHeuristicTrace I) : ℕ :=
   w.gate * tr.seedTrace.macroGates
@@ -1025,24 +1184,33 @@ def nextHeuristicTotalCost {I : Type} (w : NextHeuristicWeights)
     + w.gForward * tr.gForward
     + w.gBackward * tr.gBackward
 
+/-- Casting `nextHeuristicTotalCost w tr` to `ℝ≥0∞` gives exactly `nextHeuristicCost w tr`. -/
 theorem nextHeuristicTotalCost_cast {I : Type} (w : NextHeuristicWeights)
     (tr : NextHeuristicTrace I) :
     (nextHeuristicTotalCost w tr : ℝ≥0∞) = nextHeuristicCost w tr := by
   simp only [nextHeuristicTotalCost, nextHeuristicCost, Nat.cast_add, Nat.cast_mul]
 
+/-- The real constant combining the seven resource weights with coefficients `400`, `300`,
+`100`, `300`, `100`, `100`, and `100` in the heuristic-search expectation bound. -/
 def nextHeuristicCostConstant (w : NextHeuristicWeights) : ℝ :=
   400 * (w.gate : ℝ) + 300 * (w.bit : ℝ) + 100 * (w.phase : ℝ)
     + 300 * (w.prepare : ℝ)
     + 100 * (w.validation : ℝ) + 100 * (w.gForward : ℝ) + 100 * (w.gBackward : ℝ)
 
+/-- The fraction of all seeds that belong to `nextGoodSeeds F G`, expressed as the real ratio of
+their cardinality to `Fintype.card I`. -/
 noncomputable def nextHeuristicDensity {I : Type} [Fintype I]
     (F : I → Bool) (G : (I → Bool) → I → I) : ℝ :=
   ((nextGoodSeeds F G).card : ℝ) / (Fintype.card I : ℝ)
 
+/-- The sum of the window sizes in `geometricSearchSchedule M T`, used as the deterministic cap
+on phase queries. -/
 def nextHeuristicSigmaP (M T : ℕ) : ℕ := (geometricSearchSchedule M T).sum
 
+/-- The amplitude-amplification angle `Real.arcsin (Real.sqrt hF)` associated with density `hF`. -/
 noncomputable def nextHeuristicAngle (hF : ℝ) : ℝ := Real.arcsin (Real.sqrt hF)
 
+/-- For a density `hF` in `[0, 1]`, the sine of `nextHeuristicAngle hF` equals `Real.sqrt hF`. -/
 theorem nextHeuristicAngle_sin {hF : ℝ} (h0 : 0 ≤ hF) (h1 : hF ≤ 1) :
     Real.sin (nextHeuristicAngle hF) = Real.sqrt hF := by
   have hsq : (Real.sqrt hF) ^ 2 = hF := Real.sq_sqrt h0
@@ -1050,10 +1218,13 @@ theorem nextHeuristicAngle_sin {hF : ℝ} (h0 : 0 ≤ hF) (h1 : hF ≤ 1) :
   unfold nextHeuristicAngle
   exact Real.sin_arcsin (by linarith [Real.sqrt_nonneg hF]) hle
 
+/-- For `0 ≤ hF ≤ 1`, the squared sine of `nextHeuristicAngle hF` is exactly `hF`. -/
 theorem nextHeuristicAngle_sq {hF : ℝ} (h0 : 0 ≤ hF) (h1 : hF ≤ 1) :
     (Real.sin (nextHeuristicAngle hF)) ^ 2 = hF := by
   rw [nextHeuristicAngle_sin h0 h1, Real.sq_sqrt h0]
 
+/-- A density strictly between zero and one has a heuristic angle strictly between zero and
+`Real.pi / 2`. -/
 theorem nextHeuristicAngle_range {hF : ℝ} (h0 : 0 < hF) (h1 : hF < 1) :
     0 < nextHeuristicAngle hF ∧ nextHeuristicAngle hF < Real.pi / 2 := by
   constructor
@@ -1072,6 +1243,8 @@ theorem nextHeuristicAngle_range {hF : ℝ} (h0 : 0 < hF) (h1 : hF < 1) :
         nlinarith [Real.sqrt_nonneg hF])
     exact hlt
 
+/-- For `0 ≤ hF ≤ 1`, `Real.sin (2 * nextHeuristicAngle hF)` equals `2 * Real.sqrt (hF * (1 -
+hF))`. -/
 theorem nextHeuristicAngle_sin_two {hF : ℝ} (h0 : 0 ≤ hF) (h1 : hF ≤ 1) :
     Real.sin (2 * nextHeuristicAngle hF) = 2 * Real.sqrt (hF * (1 - hF)) := by
   have hsq : (Real.sqrt hF) ^ 2 = hF := Real.sq_sqrt h0
@@ -1081,6 +1254,9 @@ theorem nextHeuristicAngle_sin_two {hF : ℝ} (h0 : 0 ≤ hF) (h1 : hF ≤ 1) :
     Real.sqrt_mul h0 (1 - hF)]
   ring
 
+/-- Every trace in the support of `nextHeuristicConsumer` has all three added call counters
+equal to its seed-validation count, and its output equals its seed result mapped through `G
+F`. -/
 theorem nextHeuristic_ledger_identities {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ)
@@ -1094,6 +1270,8 @@ theorem nextHeuristic_ledger_identities {I : Type} [Fintype I] [DecidableEq I]
   obtain ⟨rfl⟩ := heq
   refine ⟨rfl, rfl, rfl, rfl⟩
 
+/-- Every output returned by a supported execution of `nextHeuristicConsumer F G` satisfies the
+predicate `F`. -/
 theorem nextHeuristic_output_sound {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ)
@@ -1116,6 +1294,9 @@ theorem nextHeuristic_output_sound {I : Type} [Fintype I] [DecidableEq I]
       rw [← hgx]
       exact hF
 
+/-- Every supported heuristic-search trace uses at most `T` seed validations, forward heuristic
+calls, backward heuristic calls, and predicate validations. Its phase-query count is at most
+`nextHeuristicSigmaP M T`. -/
 theorem nextHeuristic_termination {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ)
@@ -1132,6 +1313,8 @@ theorem nextHeuristic_termination {I : Type} [Fintype I] [DecidableEq I]
   obtain ⟨hid, hval, -⟩ := hcaps
   exact ⟨hval, hid, hval, hval, hval⟩
 
+/-- The probability that `nextHeuristicConsumer` returns no output equals the probability that
+its underlying geometrically scheduled seed search returns no seed. -/
 theorem nextHeuristic_failure_event_eq {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ) :
@@ -1147,6 +1330,9 @@ theorem nextHeuristic_failure_event_eq {I : Type} [Fintype I] [DecidableEq I]
   | none => simp [hout, nextHeuristicRecord]
   | some r => simp [hout, nextHeuristicRecord]
 
+/-- If the prepared good-seed mass is `Real.sin θ ^ 2` with `0 < θ < Real.pi / 2`, and window
+`j` satisfies `1 ≤ geometricWindow M j * Real.sin (2 * θ)`, the real-valued failure
+probability is at most `(25 / 32) ^ (T - j)`. -/
 theorem nextHeuristic_total_failure {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ)
@@ -1160,6 +1346,8 @@ theorem nextHeuristic_total_failure {I : Type} [Fintype I] [DecidableEq I]
     (nextGoodSeeds F G) (nextGoodSeedValid F G) M T j θ
     (fun y => nextGoodSeedValid_iff F G y) hθ0 hθ1 hmass hMature
 
+/-- If the prepared state assigns zero probability to `nextGoodSeeds F G`, the heuristic
+consumer returns no output with probability one. -/
 theorem nextHeuristic_zero_density_fails {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ)
@@ -1170,6 +1358,9 @@ theorem nextHeuristic_zero_density_fails {I : Type} [Fintype I] [DecidableEq I]
     (nextGoodSeeds F G) (nextGoodSeedValid F G) M T
     (fun y => nextGoodSeedValid_iff F G y)).1 hmass
 
+/-- When `Real.sin (2 * θ) > 0`, the seven component bounds with coefficients `400`, `300`,
+`100`, `300`, `100`, `100`, and `100` combine into a weighted bound of `ENNReal.ofReal
+(nextHeuristicCostConstant w / Real.sin (2 * θ))`. -/
 private theorem nextHeuristic_cost_sum_le (w : NextHeuristicWeights) (θ : ℝ)
     (hsin : 0 < Real.sin (2 * θ))
     (E1 E2 E3 E4 E5 E6 E7 : ℝ≥0∞)
@@ -1265,6 +1456,9 @@ private theorem nextHeuristic_cost_sum_le (w : NextHeuristicWeights) (θ : ℝ)
     field_simp <;> ring
   exact ENNReal.ofReal_le_ofReal (by rw [heq])
 
+/-- If the prepared good-seed mass is `Real.sin θ ^ 2`, `0 < θ < Real.pi / 2`, and `1 ≤ M *
+Real.sin (2 * θ)`, then the expected heuristic cost is at most `ENNReal.ofReal
+(nextHeuristicCostConstant w / Real.sin (2 * θ))`. -/
 theorem nextHeuristic_expected_cost {I : Type} [Fintype I] [DecidableEq I]
     (F : I → Bool) (G : (I → Bool) → I → I)
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (M T : ℕ)
@@ -1306,6 +1500,10 @@ theorem nextHeuristic_expected_cost {I : Type} [Fintype I] [DecidableEq I]
   exact nextHeuristic_cost_sum_le w θ hsin
     _ _ _ _ _ _ _ hgate hbits hphase hprep hval hval hval
 
+/-- For positive `n`, specializes the heuristic expectation bound to preparation by `QFTMatrix
+n` from basis state zero. If the good-seed mass is `Real.sin θ ^ 2`, `0 < θ < Real.pi / 2`,
+and `1 ≤ M * Real.sin (2 * θ)`, the expected cost is at most `ENNReal.ofReal
+(nextHeuristicCostConstant w / Real.sin (2 * θ))`. -/
 theorem nextHeuristic_qft_expected_cost {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n)
     (M T : ℕ) (w : NextHeuristicWeights) (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -1319,12 +1517,18 @@ theorem nextHeuristic_qft_expected_cost {n : ℕ} (hn : 0 < n)
   exact nextHeuristic_expected_cost F G (QFTMatrix n) (qftMatrix_unitary hn) (⟨0, hn⟩ : Fin n)
     M T w θ hθ0 hθ1 hmass hMature
 
+/-- For seeds in `Fin n`, the heuristic density equals `(nextGoodSeeds F G).card / n` as a real
+ratio. -/
 theorem nextHeuristic_qft_density {n : ℕ}
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n) :
     nextHeuristicDensity F G = ((nextGoodSeeds F G).card : ℝ) / (n : ℝ) := by
   unfold nextHeuristicDensity
   rw [Fintype.card_fin]
 
+/-- For positive `n`, a nonempty good-seed set of density at most `1 / 2`, and `1 ≤ M * Real.sin
+(2 * nextHeuristicAngle (nextHeuristicDensity F G))`, the QFT-prepared heuristic consumer
+has expected cost at most `ENNReal.ofReal (nextHeuristicCostConstant w / Real.sqrt (2 *
+nextHeuristicDensity F G))`. -/
 theorem nextHeuristic_qft_rate_bound {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n)
     (M T : ℕ) (w : NextHeuristicWeights)
@@ -1402,6 +1606,10 @@ theorem nextHeuristic_qft_rate_bound {n : ℕ} (hn : 0 < n)
   refine hbound.trans (ENNReal.ofReal_le_ofReal ?_)
   exact hdiv
 
+/-- For positive `n`, `T ≥ 1`, a nonempty good-seed set of density at most `1 / 2`, and a mature
+initial window, the QFT-prepared expected cost is at most `ENNReal.ofReal
+((nextHeuristicCostConstant w / Real.sqrt 2) * Real.sqrt (nextHeuristicSigmaP M T * n))`.
+Maturity means `1 ≤ M * Real.sin (2 * nextHeuristicAngle (nextHeuristicDensity F G))`. -/
 theorem nextHeuristic_qft_spec_shape_bound {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n)
     (M T : ℕ) (w : NextHeuristicWeights)
@@ -1494,6 +1702,8 @@ theorem nextHeuristic_qft_spec_shape_bound {n : ℕ} (hn : 0 < n)
       have hsqrt2 : (0:ℝ) < Real.sqrt 2 := Real.sqrt_pos.2 (by norm_num)
       exact mul_le_mul_of_nonneg_left h4 (div_nonneg hCw (le_of_lt hsqrt2))
 
+/-- For positive `n`, QFT preparation from basis state zero gives the good-seed set probability
+equal to the squared sine of `nextHeuristicAngle (nextHeuristicDensity F G)`. -/
 theorem nextHeuristic_qft_mass {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n) :
     MeasureProb (preparedAAState (QFTMatrix n) (⟨0, hn⟩ : Fin n)) (nextGoodSeeds F G)
@@ -1517,6 +1727,8 @@ theorem nextHeuristic_qft_mass {n : ℕ} (hn : 0 < n)
         exact hle)
   rw [hqft, hang, nextHeuristic_qft_density]
 
+/-- For positive `n`, a nonempty good-seed set with density at most `1 / 2` has heuristic angle
+strictly between zero and `Real.pi / 2`. -/
 theorem nextHeuristic_qft_angle_range {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n)
     (hcard : 0 < (nextGoodSeeds F G).card)
@@ -1532,19 +1744,27 @@ theorem nextHeuristic_qft_angle_range {n : ℕ} (hn : 0 < n)
     exact div_pos hcardR hnR
   exact nextHeuristicAngle_range hdense (lt_of_le_of_lt hdensity (by norm_num))
 
+/-- The preliminary counting grid size `Nat.ceil (80 * Real.pi * Real.sqrt N)`. -/
 noncomputable def nextCor4RoughGrid (N : ℕ) : ℕ :=
   Nat.ceil (80 * Real.pi * Real.sqrt (N : ℝ))
 
+/-- The adaptive final counting grid size `Nat.ceil (48 * Real.sqrt ((v + 1) * (N - v + 1)))`,
+where `v = min t'₁ t'₂` is the smaller rough estimate. -/
 noncomputable def nextCor4Grid (N : ℕ) (t'₁ t'₂ : ℝ) : ℕ :=
   Nat.ceil (48 * Real.sqrt ((min t'₁ t'₂ + 1) * ((N : ℝ) - min t'₁ t'₂ + 1)))
 
+/-- The counting error window `2 * Real.pi * k * Real.sqrt (t * (N - t)) / M + Real.pi ^ 2 * k ^
+2 * N / M ^ 2` associated with the BHMT amplitude-estimation bound [BrassardEtAl2002]. -/
 noncomputable def nextCor4Window (M k : ℕ) (N : ℕ) (t : ℝ) : ℝ :=
   2 * Real.pi * (k : ℝ) * Real.sqrt (t * ((N : ℝ) - t)) / (M : ℝ) +
     Real.pi ^ 2 * (k : ℝ) ^ 2 * (N : ℝ) / (M : ℝ) ^ 2
 
+/-- The preliminary counting window `nextCor4Window (nextCor4RoughGrid N) 17 N t`, using tail
+parameter `17`. -/
 noncomputable def nextCor4RoughWindow (N : ℕ) (t : ℝ) : ℝ :=
   nextCor4Window (nextCor4RoughGrid N) 17 N t
 
+/-- For positive `N`, the preliminary counting grid `nextCor4RoughGrid N` has size at least two. -/
 theorem nextCor4_rough_grid_two {N : ℕ} (hN : 0 < N) : 2 ≤ nextCor4RoughGrid N := by
   have hpi : (3 : ℝ) < Real.pi := Real.pi_gt_three
   have hsqrt : (1 : ℝ) ≤ Real.sqrt (N : ℝ) := by
@@ -1556,6 +1776,8 @@ theorem nextCor4_rough_grid_two {N : ℕ} (hN : 0 < N) : 2 ≤ nextCor4RoughGrid
     exact (Nat.lt_ceil (n := 1) (a := 80 * Real.pi * Real.sqrt (N : ℝ))).2 (by simpa using! hval)
   omega
 
+/-- For positive `N` and `1 ≤ t ≤ N`, the preliminary counting error window `nextCor4RoughWindow
+N t` is at most `t / 2`. -/
 theorem nextCor4_rough_window_le {N : ℕ} (hN : 0 < N) {t : ℝ}
     (ht1 : 1 ≤ t) (htN : t ≤ (N : ℝ)) :
     nextCor4RoughWindow N t ≤ t / 2 := by
@@ -1646,15 +1868,22 @@ theorem nextCor4_rough_window_le {N : ℕ} (hN : 0 < N) {t : ℝ}
   unfold nextCor4RoughWindow nextCor4Window
   linarith
 
+/-- The preliminary phase labels whose scaled amplitude estimates differ from the target count
+`t` by at most `nextCor4RoughWindow N t`. -/
 noncomputable def nextCor4Good (N : ℕ) (t : ℝ) : Finset (Fin (nextCor4RoughGrid N)) :=
   Finset.univ.filter (fun z : Fin (nextCor4RoughGrid N) =>
     |(N : ℝ) * aeEstimate (nextCor4RoughGrid N) z - t| ≤ nextCor4RoughWindow N t)
 
+/-- The probability that amplitude estimation with QFT preparation on grid `M` yields a label
+whose `exactCountOutput N` equals the marked-set cardinality `S.card`. -/
 noncomputable def nextCor4FinalMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (M : ℕ)
     (hM : 2 ≤ M) : ℝ :=
   ∑ y ∈ Finset.univ.filter (fun y : Fin M => exactCountOutput N y = ((S.card : ℕ) : ℤ)),
     (aeLaw M (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN) hM).prob y
 
+/-- The total exact-counting success probability obtained from two independent preliminary
+amplitude-estimation labels and a final grid chosen by `nextCor4Grid`. It averages the final
+success mass over the product of the two preliminary label laws. -/
 noncomputable def nextCor4SuccessMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hM₀ : 2 ≤ nextCor4RoughGrid N)
     (hM : ∀ z₁ z₂ : Fin (nextCor4RoughGrid N),
@@ -1672,6 +1901,9 @@ noncomputable def nextCor4SuccessMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)
         ((N : ℝ) * aeEstimate (nextCor4RoughGrid N) z₂))
       (hM z₁ z₂))
 
+/-- For positive `N`, the preliminary QFT-prepared counting law assigns `nextCor4Good N S.card`
+probability at least `1 - 1 / (2 * (17 - 1)) = 31 / 32`, by the BHMT tail bound
+[BrassardEtAl2002]. -/
 theorem nextCor4_rough_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) :
     1 - 1 / (2 * ((17 : ℝ) - 1)) ≤
       ∑ z ∈ nextCor4Good N (S.card : ℝ),
@@ -1692,6 +1924,8 @@ theorem nextCor4_rough_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) :
   rw [hsub]
   exact h
 
+/-- For positive `N` and a marked-set cardinality at least one, each good preliminary label
+yields a scaled amplitude estimate between `S.card / 2` and `3 * S.card / 2`. -/
 theorem nextCor4_rough_range {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     {z : Fin (nextCor4RoughGrid N)} (hz : z ∈ nextCor4Good N (S.card : ℝ))
     (ht1 : 1 ≤ (S.card : ℝ)) :
@@ -1707,6 +1941,8 @@ theorem nextCor4_rough_range {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   · linarith
   · linarith
 
+/-- If both preliminary estimates lie in `[0, N]`, the adaptive final counting grid
+`nextCor4Grid N t'₁ t'₂` has size at least two. -/
 theorem nextCor4_grid_two {N : ℕ} {t'₁ t'₂ : ℝ}
     (h1 : 0 ≤ t'₁) (h1' : t'₁ ≤ (N : ℝ)) (h2 : 0 ≤ t'₂) (h2' : t'₂ ≤ (N : ℝ)) :
     2 ≤ nextCor4Grid N t'₁ t'₂ := by
@@ -1728,6 +1964,8 @@ theorem nextCor4_grid_two {N : ℕ} {t'₁ t'₂ : ℝ}
       (a := 48 * Real.sqrt ((min t'₁ t'₂ + 1) * ((N : ℝ) - min t'₁ t'₂ + 1)))).2 (by simpa using! hval)
   omega
 
+/-- For positive `N`, `1 ≤ t ≤ N / 2`, and `t / 2 ≤ v ≤ 3 * t / 2`, any grid satisfying `48 *
+Real.sqrt ((v + 1) * (N - v + 1)) ≤ M` has `nextCor4Window M 1 N t < 1 / 2`. -/
 theorem nextCor4_final_window_lt_half {N : ℕ} (hN : 0 < N) {t v : ℝ} {M : ℕ}
     (ht0 : 1 ≤ t) (htN : t ≤ (N : ℝ) / 2)
     (hv1 : t / 2 ≤ v) (hv2 : v ≤ 3 * t / 2)
@@ -1848,6 +2086,9 @@ theorem nextCor4_final_window_lt_half {N : ℕ} (hN : 0 < N) {t v : ℝ} {M : �
     _ ≤ Real.pi / 8 + Real.pi ^ 2 / 256 := add_le_add hT1 hT2
     _ < 1 / 2 := hsum
 
+/-- For positive `N` and `M ≥ 2`, if the final counting window at `S.card` is strictly less than
+`1 / 2`, the probability of exact integer output is at least `8 / Real.pi ^ 2`. The
+conclusion follows by rounding the BHMT error event [BrassardEtAl2002]. -/
 theorem nextCor4_final_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (M : ℕ)
     (hM : 2 ≤ M) (hwin : nextCor4Window M 1 N (S.card : ℝ) < 1 / 2) :
     8 / Real.pi ^ 2 ≤ nextCor4FinalMass hN S M hM := by
@@ -1973,6 +2214,8 @@ theorem nextCor4_final_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (M : ℕ
         (aeLaw M (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN) hM).prob y := hmono2
     _ = nextCor4FinalMass hN S M hM := rfl
 
+/-- The product of two preliminary success lower bounds `31 / 32` and the final lower bound `8 /
+Real.pi ^ 2` is at least `3 / 4`. -/
 theorem nextCor4_success_constant : 3 / 4 ≤ (31 / 32) * (31 / 32) * (8 / Real.pi ^ 2) := by
   have hpi : Real.pi ≤ 22 / 7 := (lt_trans Real.pi_lt_d6 (by norm_num)).le
   have hpisq : Real.pi ^ 2 ≤ ((22 : ℝ) / 7) ^ 2 := by nlinarith [Real.pi_pos, hpi]
@@ -1988,6 +2231,9 @@ theorem nextCor4_success_constant : 3 / 4 ≤ (31 / 32) * (31 / 32) * (8 / Real.
     le_div_iff₀ (by positivity : (0 : ℝ) < Real.pi ^ 2)]
   exact hstep
 
+/-- If a good-label set has mass at least `31 / 32` under a nonnegative normalized law `p`, and
+nonnegative `q` is at least `8 / Real.pi ^ 2` on each good-label pair, then its product-law
+average is at least `(31 / 32) * (31 / 32) * (8 / Real.pi ^ 2)`. -/
 private theorem nextCor4_joint_assembly {M : ℕ} (p : Fin M → ℝ) (hp0 : ∀ z, 0 ≤ p z)
     (_hp1 : ∑ z, p z = 1) (G : Finset (Fin M))
     (mG : 31 / 32 ≤ ∑ z ∈ G, p z) (q : Fin M → Fin M → ℝ) (hq0 : ∀ z₁ z₂, 0 ≤ q z₁ z₂)
@@ -2034,6 +2280,9 @@ private theorem nextCor4_joint_assembly {M : ℕ} (p : Fin M → ℝ) (hp0 : ∀
     _ ≤ ∑ z₁ ∈ G, ∑ z₂ ∈ G, p z₁ * p z₂ * q z₁ z₂ := h2
     _ ≤ ∑ z₁ : Fin M, ∑ z₂ : Fin M, p z₁ * p z₂ * q z₁ z₂ := h1
 
+/-- For positive `N` and `1 ≤ S.card ≤ N / 2`, the two-preliminary-sample adaptive counting
+construction has `nextCor4SuccessMass` at least `3 / 4`, provided its preliminary and final
+grids all have size at least two. -/
 theorem nextCor4_success {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
     (hM₀ : 2 ≤ nextCor4RoughGrid N)
@@ -2116,6 +2365,8 @@ theorem nextCor4_success {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   unfold nextCor4SuccessMass
   exact hconst.trans hmass
 
+/-- For positive `N`, `M ≥ 2`, and an empty marked set, the zero phase label has probability one
+and its exact count output is zero. -/
 theorem nextCor4_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (M : ℕ) (hM : 2 ≤ M)
     (hzero : S.card = 0) :
     ∀ y : Fin M, y.val = 0 →
@@ -2132,10 +2383,16 @@ theorem nextCor4_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (M : �
   rw [hz.2.1]
   norm_num
 
+/-- The output-bit budget `3 * Nat.clog 2 (N + 1) + 16` for the adaptive exact-counting
+construction. -/
 noncomputable def nextCor4OutputBits (N : ℕ) : ℕ := 3 * Nat.clog 2 (N + 1) + 16
 
+/-- The space budget `2 * nextCor4OutputBits N + 4` for the adaptive exact-counting
+construction. -/
 noncomputable def nextCor4SpaceBudget (N : ℕ) : ℕ := 2 * nextCor4OutputBits N + 4
 
+/-- The Corollary 4 and efficient-counting output budgets each cover `Nat.clog 2 (N + 1)`, and
+their space budgets each cover twice the corresponding output budget. -/
 theorem nextCor4_space (N : ℕ) :
     Nat.clog 2 (N + 1) ≤ nextCor4OutputBits N ∧
     2 * nextCor4OutputBits N ≤ nextCor4SpaceBudget N ∧
@@ -2156,6 +2413,8 @@ theorem nextCor4_space (N : ℕ) :
     omega
   exact ⟨h1, h2, h3, h4⟩
 
+/-- For `0 < r < 1`, every finite sum of the powers `r ^ (i + 1)` is bounded by the
+geometric-series value `r / (1 - r)`. -/
 theorem sum_pow_succ_le (r : ℝ) (hr0 : 0 < r) (hr1 : r < 1) (L : ℕ) :
     (∑ i ∈ Finset.range L, r ^ (i + 1)) ≤ r / (1 - r) := by
   have hne : r ≠ 1 := by linarith
@@ -2182,6 +2441,7 @@ theorem sum_pow_succ_le (r : ℝ) (hr0 : 0 < r) (hr1 : r < 1) (L : ℕ) :
   have hmul : r * (1 - r ^ L) ≤ r * 1 := mul_le_mul_of_nonneg_left hle hm
   exact div_le_div_of_nonneg_right (by simpa using! hmul) hden.le
 
+/-- Every natural-number power `4 ^ (j + 1)` is at least two. -/
 theorem two_le_four_pow (j : ℕ) : 2 ≤ 4 ^ (j + 1) := by
   have h1 : ∀ n : ℕ, 1 ≤ 4 ^ n := by
     intro n
@@ -2193,12 +2453,17 @@ theorem two_le_four_pow (j : ℕ) : 2 ≤ 4 ^ (j + 1) := by
   have h4 : 4 * 4 ^ j = 4 ^ j * 4 := Nat.mul_comm _ _
   omega
 
+/-- The level-`j` counting window on `nextCor4RoughGrid N`, using the tail parameter `4 ^ (j +
+1)` in `nextCor4Window`. -/
 noncomputable def ladderWindow (N : ℕ) (j : ℕ) (t : ℝ) : ℝ :=
   nextCor4Window (nextCor4RoughGrid N) (4 ^ (j + 1)) N t
 
+/-- The cost function `Real.sqrt ((v + 1) * ((N : ℝ) + 1))` used to bound the refinement ledger
+at an estimated count `v`. -/
 noncomputable def ladderCost (v : ℝ) (N : ℕ) : ℝ :=
   Real.sqrt ((v + 1) * ((N : ℝ) + 1))
 
+/-- For fixed `N`, `ladderCost` is monotone in its real-valued estimate. -/
 theorem ladderCost_mono {N : ℕ} {v w : ℝ} (hvw : v ≤ w) :
     ladderCost v N ≤ ladderCost w N := by
   have hN : (0:ℝ) ≤ (N : ℝ) + 1 := by positivity
@@ -2206,6 +2471,8 @@ theorem ladderCost_mono {N : ℕ} {v w : ℝ} (hvw : v ≤ w) :
     mul_le_mul_of_nonneg_right (by linarith) hN
   exact Real.sqrt_le_sqrt h1
 
+/-- For `N > 0` and `0 ≤ t ≤ N`, the rough-grid window is at most `k * Real.sqrt t / 40 + k ^ 2
+/ 6400`. -/
 theorem nextCor4Window_le {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t) (htN : t ≤ (N : ℝ))
     (k : ℕ) :
     nextCor4Window (nextCor4RoughGrid N) k N t
@@ -2273,6 +2540,8 @@ theorem nextCor4Window_le {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t) (htN 
   unfold nextCor4Window
   linarith
 
+/-- For `N > 0` and `0 ≤ t ≤ N`, `ladderWindow N j t` is at most `4 ^ (j + 1) * Real.sqrt t / 40
++ 16 ^ (j + 1) / 6400`, with the natural powers cast to the reals. -/
 theorem ladderWindow_le {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t) (htN : t ≤ (N : ℝ))
     (j : ℕ) :
     ladderWindow N j t ≤ ((4 ^ (j + 1) : ℕ) : ℝ) * Real.sqrt t / 40 +
@@ -2288,19 +2557,27 @@ theorem ladderWindow_le {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t) (htN : 
   rw [hk] at h
   exact h
 
+/-- The probability of rough-grid label `z` under `aeLaw` for the marked set `S`, using the QFT
+preparation of the zero basis state on `Fin N`. -/
 noncomputable def firstProb {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (z : Fin (nextCor4RoughGrid N)) : ℝ :=
   (aeLaw (nextCor4RoughGrid N) (QFTMatrix N) (⟨0, hN⟩ : Fin N) S
     (qftMatrix_unitary hN) (nextCor4_rough_grid_two hN)).prob z
 
+/-- The real count estimate `N * aeEstimate (nextCor4RoughGrid N) z` associated with a
+rough-grid label. -/
 noncomputable def firstReadout {N : ℕ} (z : Fin (nextCor4RoughGrid N)) : ℝ :=
   (N : ℝ) * aeEstimate (nextCor4RoughGrid N) z
 
+/-- The rough-grid labels whose `firstReadout` strictly exceeds `S.card` plus the level-`j`
+ladder window. -/
 noncomputable def overSet {N : ℕ} (S : Finset (Fin N)) (j : ℕ) :
     Finset (Fin (nextCor4RoughGrid N)) :=
   Finset.univ.filter (fun z =>
     (S.card : ℝ) + ladderWindow N j (S.card : ℝ) < firstReadout z)
 
+/-- For `N > 0`, the `firstProb` mass of `overSet S j` is at most `1 / (2 * (4 ^ (j + 1) - 1))`,
+with the power interpreted in the reals. -/
 theorem over_mass_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (j : ℕ) :
     (∑ z ∈ overSet S j, firstProb hN S z)
       ≤ 1 / (2 * ((((4 ^ (j + 1) : ℕ) : ℝ)) - 1)) := by
@@ -2365,6 +2642,8 @@ theorem over_mass_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (j : ℕ) :
   have hmono := Finset.sum_le_sum_of_subset_of_nonneg hsub hnonneg
   exact hmono.trans hbad
 
+/-- The product-law probability that two independent rough labels both lie in `overSet S j` is
+bounded by the square of `1 / (2 * (4 ^ (j + 1) - 1))`. -/
 theorem pair_over_mass_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (j : ℕ) :
     (∑ z ∈ (overSet S j) ×ˢ (overSet S j),
         (firstProb hN S z.1) * (firstProb hN S z.2))
@@ -2388,6 +2667,7 @@ theorem pair_over_mass_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (j : ℕ) 
       (qftMatrix_unitary hN) (nextCor4_rough_grid_two hN)).nonneg z
   exact mul_le_mul hone hone hX (div_nonneg (by norm_num) (le_of_lt hden))
 
+/-- The ladder window is nonnegative whenever `N > 0` and `0 ≤ t ≤ N`. -/
 theorem ladderWindow_nonneg {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t)
     (htN : t ≤ (N : ℝ)) (j : ℕ) :
     0 ≤ ladderWindow N j t := by
@@ -2411,6 +2691,8 @@ theorem ladderWindow_nonneg {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t)
     positivity
   linarith
 
+/-- If `t < v ≤ t + ladderWindow N L t` with `L > 0` and `0 ≤ t ≤ N`, then `ladderCost v N` is
+bounded by the base ladder cost plus the next-level costs for all crossed levels below `L`. -/
 theorem ladder_pointwise_gt {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
     (htN : t ≤ (N : ℝ)) (L : ℕ) (hL : 0 < L) (htv : t < v)
     (hcross : v ≤ t + ladderWindow N L t) :
@@ -2494,9 +2776,12 @@ theorem ladder_pointwise_gt {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
         linarith
       _ = _ := rfl
 
+/-- The smaller of the two `firstReadout` values associated with a pair of rough-grid labels. -/
 noncomputable def pairMin {N : ℕ} (z : Fin (nextCor4RoughGrid N) × Fin (nextCor4RoughGrid N)) : ℝ :=
   min (firstReadout z.1) (firstReadout z.2)
 
+/-- Pairs whose `pairMin` strictly exceeds the level-`j` threshold are exactly the Cartesian
+product `overSet S j ×ˢ overSet S j`. -/
 theorem filter_overshoot_eq {N : ℕ} (S : Finset (Fin N)) (j : ℕ) :
     ((Finset.univ : Finset (Fin (nextCor4RoughGrid N))) ×ˢ
         (Finset.univ : Finset (Fin (nextCor4RoughGrid N)))).filter
@@ -2520,6 +2805,8 @@ theorem filter_overshoot_eq {N : ℕ} (S : Finset (Fin N)) (j : ℕ) :
   rw [hmin]
   simp only [overSet, Finset.mem_filter, Finset.mem_univ, true_and]
 
+/-- The product-law mass of pairs whose `pairMin` exceeds `S.card + ladderWindow N j S.card` is
+bounded by the square of the single-label tail bound. -/
 theorem sum_pair_overshoot_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (j : ℕ) :
     (∑ z ∈ ((Finset.univ : Finset (Fin (nextCor4RoughGrid N))) ×ˢ
         (Finset.univ : Finset (Fin (nextCor4RoughGrid N)))).filter
@@ -2530,6 +2817,8 @@ theorem sum_pair_overshoot_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (j : �
   rw [filter_overshoot_eq]
   exact pair_over_mass_le hN S j
 
+/-- For `N > 0` and `0 ≤ t ≤ N / 2`, the linear term `2 * Real.pi * 4 ^ (j + 1) * Real.sqrt (t *
+(N - t)) / nextCor4RoughGrid N` is bounded by `ladderWindow N j t`. -/
 theorem ladderWindow_ge {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t)
     (htN : t ≤ (N : ℝ) / 2) (j : ℕ) :
     2 * Real.pi * ((4 ^ (j + 1) : ℕ) : ℝ) * Real.sqrt (t * ((N : ℝ) - t)) /
@@ -2559,6 +2848,9 @@ theorem ladderWindow_ge {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 0 ≤ t)
     positivity
   linarith
 
+/-- For `v` below the top of a positive finite ladder, `ladderCost v N` is bounded by
+indicator-weighted costs for `v ≤ t`, `t < v`, and each crossed ladder level, assuming `N >
+0` and `0 ≤ t ≤ N`. -/
 theorem ladder_pointwise_all {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
     (htN : t ≤ (N : ℝ)) (L : ℕ) (hL : 0 < L) (hcross : v ≤ t + ladderWindow N L t) :
     ladderCost v N
@@ -2602,6 +2894,7 @@ theorem ladder_pointwise_all {N : ℕ} (hN : 0 < N) {t v : ℝ} (ht0 : 0 ≤ t)
       · rw [if_neg hc]
     linarith
 
+/-- For `N > 0` and `1 ≤ t ≤ N / 2`, the level `N + 3` ladder window is at least `N`. -/
 theorem ladder_top_ge {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 1 ≤ t)
     (htN : t ≤ (N : ℝ) / 2) :
     (N : ℝ) ≤ ladderWindow N (N + 3) t := by
@@ -2700,6 +2993,7 @@ theorem ladder_top_ge {N : ℕ} (hN : 0 < N) {t : ℝ} (ht0 : 1 ≤ t)
             exact div_le_div_of_nonneg_right hkey (by positivity)
     _ ≤ ladderWindow N (N + 3) t := hlow
 
+/-- Every rough-grid count readout is at most `N`. -/
 theorem firstReadout_le {N : ℕ} (z : Fin (nextCor4RoughGrid N)) :
     firstReadout z ≤ (N : ℝ) := by
   have h := aeEstimate_mem (nextCor4RoughGrid N) z
@@ -2707,15 +3001,19 @@ theorem firstReadout_le {N : ℕ} (z : Fin (nextCor4RoughGrid N)) :
   have h1 := mul_le_mul_of_nonneg_left h.2 (Nat.cast_nonneg N)
   simpa using! h1
 
+/-- The minimum readout of every pair of rough-grid labels is at most `N`. -/
 theorem pairMin_le {N : ℕ} (z : Fin (nextCor4RoughGrid N) × Fin (nextCor4RoughGrid N)) :
     pairMin z ≤ (N : ℝ) := by
   simp only [pairMin]
   exact (min_le_left _ _).trans (firstReadout_le z.1)
 
+/-- The squared tail bound `(1 / (2 * (4 ^ (j + 1) - 1))) ^ 2` for the minimum of two
+independent rough readouts. -/
 noncomputable def dyadWeight (j : ℕ) : ℝ :=
   (1 / (2 * ((((4 ^ (j + 1) : ℕ) : ℝ)) - 1))) *
     (1 / (2 * ((((4 ^ (j + 1) : ℕ) : ℝ)) - 1)))
 
+/-- Every dyadic tail weight `dyadWeight j` is nonnegative. -/
 theorem dyadWeight_nonneg (j : ℕ) : 0 ≤ dyadWeight j := by
   have hden : 0 < 2 * ((((4 ^ (j + 1) : ℕ) : ℝ)) - 1) := by
     have h1 : (2:ℝ) ≤ ((4 ^ (j + 1) : ℕ) : ℝ) := by exact_mod_cast two_le_four_pow j
@@ -2723,6 +3021,7 @@ theorem dyadWeight_nonneg (j : ℕ) : 0 ≤ dyadWeight j := by
   unfold dyadWeight
   exact mul_nonneg (div_nonneg (by norm_num) hden.le) (div_nonneg (by norm_num) hden.le)
 
+/-- The level-`j` squared tail weight is at most `(4 / 9) * (1 / 16) ^ (j + 1)`. -/
 theorem dyadWeight_le {j : ℕ} :
     dyadWeight j ≤ (4/9) * (((1/16 : ℝ))^(j+1)) := by
   have h4 : (4:ℕ) ≤ 4 ^ (j + 1) := by
@@ -2769,6 +3068,8 @@ theorem dyadWeight_le {j : ℕ} :
     _ = (4/9) * ((((1/4 : ℝ))^(j+1)) * (((1/4 : ℝ))^(j+1))) := by ring
     _ = (4/9) * (((1/16 : ℝ))^(j+1)) := by rw [hsq2]
 
+/-- Multiplying `(1 / 16) ^ (j + 1)` by `2 ^ (j + 2)` gives `(1 / 4) * (1 / 8) ^ j` over the
+reals. -/
 theorem dyad_mix_two (j : ℕ) :
     ((1/16 : ℝ))^(j+1) * ((2:ℝ)^(j+2)) = (1/4) * (((1/8 : ℝ))^j) := by
   calc ((1/16 : ℝ))^(j+1) * ((2:ℝ)^(j+2))
@@ -2780,6 +3081,7 @@ theorem dyad_mix_two (j : ℕ) :
         ring
     _ = (1/4) * (((1/8 : ℝ))^j) := by norm_num
 
+/-- Multiplying `(1 / 16) ^ (j + 1)` by `4 ^ (j + 2)` gives `(1 / 4) ^ j` over the reals. -/
 theorem dyad_mix_four (j : ℕ) :
     ((1/16 : ℝ))^(j+1) * ((4:ℝ)^(j+2)) = (((1/4 : ℝ))^j) := by
   calc ((1/16 : ℝ))^(j+1) * ((4:ℝ)^(j+2))
@@ -2791,6 +3093,7 @@ theorem dyad_mix_four (j : ℕ) :
         ring
     _ = ((1/4 : ℝ))^j := by ring
 
+/-- Every finite initial sum of `dyadWeight` is at most `4 / 135`. -/
 theorem dyadWeight_sum_le (L : ℕ) :
     (∑ j ∈ Finset.range L, dyadWeight j) ≤ 4 / 135 := by
   have h := sum_pow_succ_le (1/16 : ℝ) (by norm_num) (by norm_num) L
@@ -2808,6 +3111,7 @@ theorem dyadWeight_sum_le (L : ℕ) :
       exact mul_le_mul_of_nonneg_left h' (by norm_num)
     _ = 4/135 := by norm_num
 
+/-- Every finite initial sum of `dyadWeight j * 2 ^ (j + 2)` is at most `8 / 63`. -/
 theorem dyadWeight_two_sum_le (L : ℕ) :
     (∑ j ∈ Finset.range L, dyadWeight j * ((2:ℝ)^(j+2))) ≤ 8 / 63 := by
   have h := sum_pow_succ_le (1/8 : ℝ) (by norm_num) (by norm_num) L
@@ -2860,6 +3164,7 @@ theorem dyadWeight_two_sum_le (L : ℕ) :
           _ = (4/9) * (1/4) * (8/7) := by ring
     _ = 8/63 := by norm_num
 
+/-- Every finite initial sum of `dyadWeight j * 4 ^ (j + 2)` is at most `16 / 27`. -/
 theorem dyadWeight_four_sum_le (L : ℕ) :
     (∑ j ∈ Finset.range L, dyadWeight j * ((4:ℝ)^(j+2))) ≤ 16 / 27 := by
   have h := sum_pow_succ_le (1/4 : ℝ) (by norm_num) (by norm_num) L
@@ -2902,9 +3207,12 @@ theorem dyadWeight_four_sum_le (L : ℕ) :
     _ ≤ (4/9) * (4/3) := by exact mul_le_mul_of_nonneg_left hsum4 (by norm_num)
     _ = 16/27 := by norm_num
 
+/-- If `y` is nonnegative and `x ≤ y ^ 2`, then `Real.sqrt x ≤ y`. -/
 theorem sqrt_le_of_sq_le {x y : ℝ} (hy : 0 ≤ y) (h : x ≤ y ^ 2) :
     Real.sqrt x ≤ y := (Real.sqrt_le_iff).2 ⟨hy, h⟩
 
+/-- The square root of the sum of two nonnegative reals is at most the sum of their square
+roots. -/
 theorem sqrt_add_le {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
     Real.sqrt (a + b) ≤ Real.sqrt a + Real.sqrt b := by
   apply (Real.sqrt_le_iff).2
@@ -2915,6 +3223,8 @@ theorem sqrt_add_le {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
     mul_nonneg (Real.sqrt_nonneg a) (Real.sqrt_nonneg b)
   nlinarith
 
+/-- The square root of the sum of three nonnegative reals is at most the sum of their square
+roots. -/
 theorem sqrt_add3_le {a b c : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hc : 0 ≤ c) :
     Real.sqrt (a + b + c) ≤ Real.sqrt a + Real.sqrt b + Real.sqrt c := by
   have h1 := sqrt_add_le (show 0 ≤ a + b by linarith) hc
@@ -2923,6 +3233,7 @@ theorem sqrt_add3_le {a b c : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hc : 0 ≤ c) 
     _ ≤ Real.sqrt (a + b) + Real.sqrt c := h1
     _ ≤ Real.sqrt a + Real.sqrt b + Real.sqrt c := by linarith
 
+/-- The real cast of `4 ^ (j + 2)` equals the square of the real power `2 ^ (j + 2)`. -/
 theorem four_pow_cast_sq (j : ℕ) :
     ((4 ^ (j + 2) : ℕ) : ℝ) = (((2 : ℝ)^(j + 2)))^2 := by
   have e : 2 * (j + 2) = (j + 2) + (j + 2) := by omega
@@ -2930,6 +3241,7 @@ theorem four_pow_cast_sq (j : ℕ) :
   rw [e, pow_add]
   ring
 
+/-- The real cast of `16 ^ (j + 2)` equals the square of the real power `4 ^ (j + 2)`. -/
 theorem sixteen_pow_cast_sq (j : ℕ) :
     ((16 ^ (j + 2) : ℕ) : ℝ) = (((4 : ℝ)^(j + 2)))^2 := by
   have e : 2 * (j + 2) = (j + 2) + (j + 2) := by omega
@@ -2937,20 +3249,24 @@ theorem sixteen_pow_cast_sq (j : ℕ) :
   rw [e, pow_add]
   ring
 
+/-- The square root of the real cast of `4 ^ (j + 2)` is `2 ^ (j + 2)`. -/
 theorem sqrt_four_cast (j : ℕ) :
     Real.sqrt (((4 ^ (j + 2) : ℕ) : ℝ)) = ((2 : ℝ)^(j + 2)) := by
   rw [four_pow_cast_sq, Real.sqrt_sq]
   positivity
 
+/-- The square root of the real cast of `16 ^ (j + 2)` is `4 ^ (j + 2)`. -/
 theorem sqrt_sixteen_cast (j : ℕ) :
     Real.sqrt (((16 ^ (j + 2) : ℕ) : ℝ)) = ((4 : ℝ)^(j + 2)) := by
   rw [sixteen_pow_cast_sq, Real.sqrt_sq]
   positivity
 
+/-- The real square root of `6400` is `80`. -/
 theorem sqrt_6400 : Real.sqrt 6400 = 80 := by
   rw [show (6400:ℝ) = (80:ℝ)^2 by norm_num, Real.sqrt_sq]
   norm_num
 
+/-- The ratio `Real.sqrt 2 / Real.sqrt 40` is at most `1 / 4`. -/
 theorem sqrt_two_over_sqrt_forty : Real.sqrt 2 / Real.sqrt 40 ≤ 1/4 := by
   have h1 : Real.sqrt 2 / Real.sqrt 40 = Real.sqrt (2 / 40) := by
     have h := Real.sqrt_div (x := (2:ℝ)) (by norm_num) (40:ℝ)
@@ -2960,11 +3276,14 @@ theorem sqrt_two_over_sqrt_forty : Real.sqrt 2 / Real.sqrt 40 ≤ 1/4 := by
   refine ⟨by norm_num, ?_⟩
   norm_num
 
+/-- The real square root of two is at most `3 / 2`. -/
 theorem sqrt_two_le : Real.sqrt 2 ≤ 3/2 := by
   apply (Real.sqrt_le_iff).2
   refine ⟨by norm_num, ?_⟩
   norm_num
 
+/-- For `N > 0` and `1 ≤ t ≤ N`, the cost at ladder level `j + 1` is at most `Real.sqrt (t * N)`
+times `2 + 2 ^ (j + 2) / 4 + 4 ^ (j + 2) * (3 / 2) / 80`. -/
 theorem cor4_level_cost_le {N : ℕ} (hN : 0 < N) {t : ℝ} (ht1 : 1 ≤ t)
     (htN : t ≤ (N : ℝ)) (j : ℕ) :
     ladderCost (t + ladderWindow N (j + 1) t) N
@@ -3135,6 +3454,8 @@ theorem cor4_level_cost_le {N : ℕ} (hN : 0 < N) {t : ℝ} (ht1 : 1 ≤ t)
     _ ≤ Real.sqrt (t * (N : ℝ)) *
           (2 + ((2 : ℝ)^(j + 2)) / 4 + ((4 : ℝ)^(j + 2)) * (3/2) / 80) := hfinal
 
+/-- Distributes a finite weighted sum across two indicator terms and a finite ladder sum,
+pulling out the constant coefficients and exchanging the two finite sums. -/
 theorem sum_ladder_rearrange {ι κ μ : Type*} (P : Finset (ι × κ)) (w : ι × κ → ℝ)
     (L : Finset μ) (A0 A1 : ℝ) (c1 c2 : ι × κ → Prop) (B : μ → ℝ)
     (c3 : ι × κ → μ → Prop) :
@@ -3176,6 +3497,8 @@ theorem sum_ladder_rearrange {ι κ μ : Type*} (P : Finset (ι × κ)) (w : ι 
     rw [Finset.sum_congr rfl hz, Finset.sum_comm]
   rw [h2, h3, h4]
 
+/-- For `N > 0` and `1 ≤ S.card ≤ N / 2`, the expected `ladderCost` of the minimum of two
+independent rough readouts is at most `6 * Real.sqrt (S.card * N)`. -/
 theorem cor4_expected_cost_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2) :
     (∑ z ∈ (Finset.univ : Finset (Fin (nextCor4RoughGrid N))) ×ˢ
@@ -3565,6 +3888,8 @@ theorem cor4_expected_cost_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
       have : (0:ℝ) ≤ Real.sqrt ((S.card : ℝ) * (N : ℝ)) := Real.sqrt_nonneg _
       linarith
 
+/-- For `N > 0` and `1 ≤ S.card ≤ N / 2`, the two rough-grid charges plus the expected
+refinement cost `ladderCost (pairMin z) N` total at most `650 * Real.sqrt (S.card * N)`. -/
 theorem cor4_total_ledger_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2) :
     2 * (nextCor4RoughGrid N : ℝ) +
@@ -3625,12 +3950,16 @@ theorem cor4_total_ledger_le {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
           + 6 * Real.sqrt ((S.card : ℝ) * (N : ℝ)) := by linarith
     _ ≤ 650 * Real.sqrt ((S.card : ℝ) * (N : ℝ)) := by linarith
 
+/-- The real-valued precision parameter obtained by adding one to the integer floor of `ε * t`. -/
 noncomputable def nextApproxCountPrecision (t ε : ℝ) : ℝ := (⌊ε * t⌋ : ℝ) + 1
 
+/-- The counting scale `Real.sqrt (N / p) + Real.sqrt (t * (N - t)) / p`, where `p =
+nextApproxCountPrecision t ε`. -/
 noncomputable def nextApproxCountScale (N t ε : ℝ) : ℝ :=
   Real.sqrt (N / nextApproxCountPrecision t ε) +
     Real.sqrt (t * (N - t)) / nextApproxCountPrecision t ε
 
+/-- If `ε * t` is nonnegative, then `nextApproxCountPrecision t ε` is at least one. -/
 theorem nextApproxCountPrecision_ge_one {t ε : ℝ} (hε0 : 0 ≤ ε * t) :
     1 ≤ nextApproxCountPrecision t ε := by
   have hfl : (0 : ℝ) ≤ (⌊ε * t⌋ : ℝ) := by
@@ -3638,6 +3967,7 @@ theorem nextApproxCountPrecision_ge_one {t ε : ℝ} (hε0 : 0 ≤ ε * t) :
   unfold nextApproxCountPrecision
   linarith
 
+/-- If `0 ≤ ε * t < 1`, then `nextApproxCountPrecision t ε = 1`. -/
 theorem nextApproxCountPrecision_eq_one {t ε : ℝ} (h0 : 0 ≤ ε * t) (h1 : ε * t < 1) :
     nextApproxCountPrecision t ε = 1 := by
   have hz : ⌊ε * t⌋ = 0 := Int.floor_eq_zero_iff.mpr ⟨h0, h1⟩
@@ -3645,6 +3975,7 @@ theorem nextApproxCountPrecision_eq_one {t ε : ℝ} (h0 : 0 ≤ ε * t) (h1 : �
   rw [hz]
   norm_num
 
+/-- If `1 ≤ ε * t`, then `nextApproxCountPrecision t ε` lies between `2` and `2 * (ε * t)`. -/
 theorem nextApproxCountPrecision_bounds {t ε : ℝ} (hge : 1 ≤ ε * t) :
     2 ≤ nextApproxCountPrecision t ε ∧
       nextApproxCountPrecision t ε ≤ 2 * (ε * t) := by
@@ -3659,6 +3990,8 @@ theorem nextApproxCountPrecision_bounds {t ε : ℝ} (hge : 1 ≤ ε * t) :
     unfold nextApproxCountPrecision
     linarith
 
+/-- For `N > 0`, `1 ≤ t ≤ N / 2`, `0 < ε ≤ 1`, and `1 ≤ ε * t`, the relative-counting scale `(1
+/ ε) * Real.sqrt (N / t)` is at most three times `nextApproxCountScale N t ε`. -/
 theorem nextApproxCountScale_rel_le {N t ε : ℝ} (hN : 0 < N) (ht1 : 1 ≤ t)
     (htN : t ≤ N / 2) (heps : 0 < ε) (heps1 : ε ≤ 1) (hge : 1 ≤ ε * t) :
     (1 / ε) * Real.sqrt (N / t) ≤ 3 * nextApproxCountScale N t ε := by
@@ -3715,6 +4048,8 @@ theorem nextApproxCountScale_rel_le {N t ε : ℝ} (hN : 0 < N) (ht1 : 1 ≤ t)
   rw [hkey]
   nlinarith [hS]
 
+/-- For `N > 0`, `1 ≤ t ≤ N / 2`, `ε > 0`, and `ε * t < 1`, the exact-counting scale `Real.sqrt
+(t * N)` is at most twice `nextApproxCountScale N t ε`. -/
 theorem nextApproxCountScale_exact_le {N t ε : ℝ} (hN : 0 < N) (ht1 : 1 ≤ t)
     (htN : t ≤ N / 2) (heps : 0 < ε) (hlt : ε * t < 1) :
     Real.sqrt (t * N) ≤ 2 * nextApproxCountScale N t ε := by
@@ -3745,6 +4080,8 @@ theorem nextApproxCountScale_exact_le {N t ε : ℝ} (hN : 0 < N) (ht1 : 1 ≤ t
   have hNpos : (0 : ℝ) < N := hN
   nlinarith [hS, Real.sqrt_nonneg (t * N)]
 
+/-- For `N > 0`, `1 ≤ t ≤ N / 2`, `ε > 0`, and `ε * N ≤ 1 / 3`, the exact-counting scale
+`Real.sqrt (t * N)` is at most twice `nextApproxCountScale N t ε`. -/
 theorem nextApproxCountScale_fallback_le {N t ε : ℝ} (hN : 0 < N) (ht1 : 1 ≤ t)
     (htN : t ≤ N / 2) (heps : 0 < ε) (hfb : ε * N ≤ 1 / 3) :
     Real.sqrt (t * N) ≤ 2 * nextApproxCountScale N t ε := by
@@ -3757,25 +4094,34 @@ theorem nextApproxCountScale_fallback_le {N t ε : ℝ} (hN : 0 < N) (ht1 : 1 �
     linarith
   exact nextApproxCountScale_exact_le hN ht1 htN heps hlt
 
+/-- The integer output of the relative-counting branch, obtained by rounding the final
+amplitude-based count estimate via `basicApproxCountOutput` after prefix `ω`. -/
 noncomputable def nextApproxCountRelOutput {N : ℕ} (ε : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (basicApproxCountFinalM ε (basicApproxCountStop N ω))) : ℤ :=
   basicApproxCountOutput N ε ω y
 
+/-- The conditional probability, after prefix `ω`, that the final integer readout differs from
+`S.card` by at most `ε * S.card`. -/
 noncomputable def nextApproxCountRelGood {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hω : 2 ≤ basicApproxCountFinalM ε (basicApproxCountStop N ω)) : ℝ :=
   basicApproxCountFinalGood hN S ε ω hω
 
+/-- The conditional probability, after prefix `ω`, that the final integer count readout is zero. -/
 noncomputable def nextApproxCountRelZero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hω : 2 ≤ basicApproxCountFinalM ε (basicApproxCountStop N ω)) : ℝ :=
   basicApproxCountFinalZero hN S ε ω hω
 
+/-- The relative-counting cost ledger for prefix `ω`, summing the visited doubling-grid sizes
+and the final grid size through `basicApproxCountTotalCost`. -/
 noncomputable def nextApproxCountRelCost {N : ℕ} (ε : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) : ℕ :=
   basicApproxCountTotalCost N ε ω
 
+/-- For `0 < ε ≤ 1`, the final grid `basicApproxCountFinalM ε s` has size at least two at every
+stopping level `s`. -/
 theorem nextApproxCountRel_grid_two (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (s : ℕ) :
     2 ≤ basicApproxCountFinalM ε s := by
   have hpi : (2 : ℝ) ≤ 20 * Real.pi ^ 2 := by
@@ -3799,6 +4145,9 @@ theorem nextApproxCountRel_grid_two (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) 
     exact_mod_cast hceil
   omega
 
+/-- For a nonempty marked set, `N > 0`, and `0 < ε ≤ 1`, the relative-counting branch achieves
+error at most `ε * S.card` with total probability at least `2 / 3`, assuming all final grids
+have size at least two. -/
 theorem nextApproxCountRel_accuracy {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hS : 0 < S.card)
     (hω : ∀ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
@@ -3810,6 +4159,8 @@ theorem nextApproxCountRel_accuracy {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   have h := bhmt_basic_approx_count_success N S hN ε hε hε1 hω
   simpa [nextApproxCountRelGood] using! h.2 hS
 
+/-- For a nonempty marked set, `N > 0`, and `0 < ε ≤ 1`, the expected relative-counting ledger
+is at most `2000 * (1 / ε) * Real.sqrt (N / S.card)`. -/
 theorem nextApproxCountRel_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hS : 0 < S.card) :
     (∑ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
@@ -3819,6 +4170,8 @@ theorem nextApproxCountRel_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   have h := bhmt_basic_approx_count_expected_cost N S hN ε hε hε1
   simpa [nextApproxCountRelCost] using! (h.2 hS).2
 
+/-- For a nonempty marked set, `N > 0`, and `0 < ε ≤ 1`, the expected relative-counting ledger
+is at least `(7 * Real.pi / 2) * (1 / ε) * Real.sqrt (N / S.card)`. -/
 theorem nextApproxCountRel_cost_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hS : 0 < S.card) :
     7 * Real.pi / 2 * (1 / ε) * Real.sqrt ((N : ℝ) / (S.card : ℝ))
@@ -3828,6 +4181,8 @@ theorem nextApproxCountRel_cost_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)
   have h := bhmt_basic_approx_count_expected_cost N S hN ε hε hε1
   simpa [nextApproxCountRelCost] using! (h.2 hS).1
 
+/-- For an empty marked set, `N > 0`, and `0 < ε ≤ 1`, the relative-counting branch outputs zero
+with total probability one, assuming all final grids have size at least two. -/
 theorem nextApproxCountRel_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hS : S.card = 0)
     (hω : ∀ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
@@ -3838,6 +4193,8 @@ theorem nextApproxCountRel_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   have h := bhmt_basic_approx_count_success N S hN ε hε hε1 hω
   simpa [nextApproxCountRelZero] using! h.1 hS
 
+/-- For an empty marked set and `N > 0`, the expected relative-counting ledger equals `2 * 2 ^
+basicApproxCountLoopCap N - 2` plus the final grid size at that cap. -/
 theorem nextApproxCountRel_zero_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hS : S.card = 0) :
     (∑ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
@@ -3848,6 +4205,8 @@ theorem nextApproxCountRel_zero_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   have h := bhmt_basic_approx_count_zero_cost hN S hS ε
   simpa [nextApproxCountRelCost] using! h
 
+/-- For `N > 0`, `nextCor4Grid` has size at least two when its two count estimates come from
+rough-grid amplitude labels. -/
 theorem nextCor4_grid_two_on_estimates {N : ℕ} (hN : 0 < N)
     (z₁ z₂ : Fin (nextCor4RoughGrid N)) :
     2 ≤ nextCor4Grid N
@@ -3866,6 +4225,8 @@ theorem nextCor4_grid_two_on_estimates {N : ℕ} (hN : 0 < N)
       mul_le_mul_of_nonneg_left h1 hN0
     linarith
 
+/-- The exact-counting branch's total success probability, given by `nextCor4SuccessMass` after
+two independent rough readouts and their selected final counting grid. -/
 noncomputable def nextApproxCountExactSuccessMass {N : ℕ} (hN : 0 < N)
     (S : Finset (Fin N)) (hM₀ : 2 ≤ nextCor4RoughGrid N)
     (hM : ∀ z₁ z₂ : Fin (nextCor4RoughGrid N),
@@ -3874,6 +4235,8 @@ noncomputable def nextApproxCountExactSuccessMass {N : ℕ} (hN : 0 < N)
         ((N : ℝ) * aeEstimate (nextCor4RoughGrid N) z₂)) : ℝ :=
   nextCor4SuccessMass hN S hM₀ hM
 
+/-- The exact-counting branch's ledger: two rough-grid charges plus the expected `ladderCost`
+evaluated at the smaller of two independent rough readouts. -/
 noncomputable def nextApproxCountExactCost {N : ℕ} (hN : 0 < N)
     (S : Finset (Fin N)) : ℝ :=
   2 * (nextCor4RoughGrid N : ℝ) +
@@ -3881,6 +4244,8 @@ noncomputable def nextApproxCountExactCost {N : ℕ} (hN : 0 < N)
       (Finset.univ : Finset (Fin (nextCor4RoughGrid N))),
       (firstProb hN S z.1) * (firstProb hN S z.2) * ladderCost (pairMin z) N)
 
+/-- For `N > 0` and `1 ≤ S.card ≤ N / 2`, the exact-counting branch returns `S.card` with
+probability at least `3 / 4`, assuming the rough and final grids have size at least two. -/
 theorem nextApproxCountExact_accuracy {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
     (hM₀ : 2 ≤ nextCor4RoughGrid N)
@@ -3891,15 +4256,22 @@ theorem nextApproxCountExact_accuracy {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)
     3 / 4 ≤ nextApproxCountExactSuccessMass hN S hM₀ hM := by
   simpa [nextApproxCountExactSuccessMass] using! nextCor4_success hN S hcard hcardN hM₀ hM
 
+/-- For `N > 0` and `1 ≤ S.card ≤ N / 2`, the exact-counting ledger is at most `650 * Real.sqrt
+(S.card * N)`. -/
 theorem nextApproxCountExact_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2) :
     nextApproxCountExactCost hN S ≤ 650 * Real.sqrt ((S.card : ℝ) * (N : ℝ)) := by
   simpa [nextApproxCountExactCost] using! cor4_total_ledger_le hN S hcard hcardN
 
+/-- The natural ceiling of `9 * Real.pi * 2 ^ basicApproxCountStop N ω`, used as the first scale
+parameter after prefix `ω`. -/
 noncomputable def nextApproxCountL1 {N : ℕ}
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) : ℕ :=
   Nat.ceil (9 * Real.pi * (2 ^ basicApproxCountStop N ω : ℝ))
 
+/-- Under the stated positive-angle and angle-size bounds, a zero prefix through level `n` and
+the crossing `(1 / 5) < 2 ^ (n + 1) * θ` force `nextApproxCountL1 ω ≥ (18 / 5) * Real.sqrt
+(N / S.card)` when `n + 1` is within the loop cap. -/
 theorem nextApproxCountL1_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : 0 < S.card) (θ : ℝ) (hθ0 : 0 < θ)
     (hangle : θ * Real.sqrt (N : ℝ) ≤ Real.pi / 2 * Real.sqrt (S.card : ℝ))
@@ -3926,13 +4298,17 @@ theorem nextApproxCountL1_lower {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
       _ ≤ 9 * Real.pi * (2 ^ basicApproxCountStop N ω : ℝ) := hmul
   linarith
 
+/-- The complement-estimation grid size `Nat.ceil (40 / Real.sqrt ε)`. -/
 noncomputable def nextApproxCountComplementGrid (ε : ℝ) : ℕ :=
   Nat.ceil (40 / Real.sqrt ε)
 
+/-- The natural ceiling of one plus twice the smaller of `Real.sqrt (r₁ / (ε * N))` and
+`Real.sqrt (r₂ / (ε * N))`. -/
 noncomputable def nextApproxCountL2 (ε : ℝ) (N : ℕ) (r₁ r₂ : ℝ) : ℕ :=
   Nat.ceil (2 * min (Real.sqrt (r₁ / (ε * (N : ℝ))))
                      (Real.sqrt (r₂ / (ε * (N : ℝ)))) + 1)
 
+/-- The second scale parameter `nextApproxCountL2 ε N r₁ r₂` is always at least one. -/
 theorem nextApproxCountL2_ge_one (ε : ℝ) (N : ℕ) (r₁ r₂ : ℝ) :
     1 ≤ nextApproxCountL2 ε N r₁ r₂ := by
   have hceil : (2 * min (Real.sqrt (r₁ / (ε * (N : ℝ))))
@@ -3952,6 +4328,8 @@ theorem nextApproxCountL2_ge_one (ε : ℝ) (N : ℕ) (r₁ r₂ : ℝ) :
     linarith
   exact_mod_cast h3.trans hceil
 
+/-- If `ε > 0`, `N > 0`, and both readouts are at least the nonnegative value `v - w`, then
+`nextApproxCountL2 ε N r₁ r₂ ≥ 2 * Real.sqrt ((v - w) / (ε * N)) + 1`. -/
 theorem nextApproxCountL2_lower_window {ε : ℝ} {N : ℕ} {r₁ r₂ v w : ℝ}
     (hε : 0 < ε) (hN : 0 < N)
     (h1 : v - w ≤ r₁) (h2 : v - w ≤ r₂) (hwv : w ≤ v) :
@@ -3978,6 +4356,8 @@ theorem nextApproxCountL2_lower_window {ε : ℝ} {N : ℕ} {r₁ r₂ v w : ℝ
     exact Nat.le_ceil _
   linarith
 
+/-- If `ε > 0`, `N > 0`, `v ≥ 0`, and both readouts are at least `v / 4`, then
+`nextApproxCountL2 ε N r₁ r₂ ≥ Real.sqrt (v / (ε * N)) + 1`. -/
 theorem nextApproxCountL2_lower_relative {ε : ℝ} {N : ℕ} {r₁ r₂ v : ℝ}
     (hε : 0 < ε) (hN : 0 < N) (hv0 : 0 ≤ v)
     (h1 : v / 4 ≤ r₁) (h2 : v / 4 ≤ r₂) :
@@ -4020,17 +4400,27 @@ theorem nextApproxCountL2_lower_relative {ε : ℝ} {N : ℕ} {r₁ r₂ v : ℝ
     ring
   linarith
 
+/-- The relative-accuracy grid parameter `Nat.ceil ((1 / Real.sqrt ε) * L₁ * (1 + L₂))`. -/
 noncomputable def nextApproxCountM1 (ε : ℝ) (L₁ L₂ : ℕ) : ℕ :=
   Nat.ceil ((1 / Real.sqrt ε) * (L₁ : ℝ) * (1 + (L₂ : ℝ)))
 
+/-- The exact-accuracy grid parameter obtained by applying `nextCor4Grid` to the two preliminary
+count estimates. -/
 noncomputable def nextApproxCountM2 (N : ℕ) (t'₁ t'₂ : ℝ) : ℕ :=
   nextCor4Grid N t'₁ t'₂
 
+/-- Selects the smaller of the relative-accuracy and exact-accuracy grid parameters `M₁` and
+`M₂`. -/
 noncomputable def nextApproxCountM (M₁ M₂ : ℕ) : ℕ := min M₁ M₂
 
+/-- The final amplitude-estimation grid size `Nat.ceil (10 * Real.pi * M)` associated with a
+selected parameter `M`. -/
 noncomputable def nextApproxCountFinalGrid (M : ℕ) : ℕ :=
   Nat.ceil (10 * Real.pi * (M : ℝ))
 
+/-- Under the stated positive square-root identities and lower bounds on `M` and `M'`, the
+counting window `2 * Real.pi * st * sc / M' + Real.pi ^ 2 * N / M' ^ 2` is at most `ε * t /
+3`. -/
 theorem nextApproxCount_window_le {ε t N M M' se sN st sc : ℝ}
     (hse : se ^ 2 = ε) (hse0 : 0 < se)
     (hst : st ^ 2 = t) (hst0 : 0 < st)
@@ -4147,6 +4537,9 @@ theorem nextApproxCount_window_le {ε t N M M' se sN st sc : ℝ}
     nlinarith [hkey]
   linarith [hT1, hT2, hS1, hS2, hsum, hgoal]
 
+/-- For `ε > 0`, `N > 0`, and `0 < t ≤ N / 2`, the stated lower bounds on `L₁` and `L₂` make the
+final grid from `nextApproxCountM1` yield a parameter-one counting window at most `ε * t /
+3`. -/
 theorem nextApproxCountM1_adequate {ε t : ℝ} {N : ℕ} {L₁ L₂ : ℕ}
     (hε : 0 < ε) (hN : 0 < N) (ht : 0 < t) (htN : t ≤ (N : ℝ) / 2)
     (hL1 : (18 / 5) * Real.sqrt ((N : ℝ) / t) ≤ (L₁ : ℝ))
@@ -4203,6 +4596,8 @@ theorem nextApproxCountM1_adequate {ε t : ℝ} {N : ℕ} {L₁ L₂ : ℕ}
     Real.sqrt_mul (by positivity : (0 : ℝ) ≤ t) ((N : ℝ) - t)
   simpa [nextCor4Window, hsqrt] using! hwin
 
+/-- For `0 ≤ t ≤ N`, enlarging a positive grid from `M` to `M'` can only decrease
+`nextCor4Window` at a fixed tail parameter `k`. -/
 theorem nextCor4Window_mono_grid {M M' k : ℕ} {N : ℕ} {t : ℝ}
     (hM : (M : ℝ) ≤ (M' : ℝ)) (hM0 : 0 < (M : ℝ))
     (ht0 : 0 ≤ t) (htN : t ≤ (N : ℝ)) :
@@ -4236,6 +4631,9 @@ theorem nextCor4Window_mono_grid {M M' k : ℕ} {N : ℕ} {t : ℝ}
   unfold nextCor4Window
   linarith
 
+/-- For `N > 0`, `1 ≤ t ≤ N / 2`, and `t / 2 ≤ v ≤ 3 * t / 2`, a parameter `M₂ ≥ 48 * Real.sqrt
+((v + 1) * (N - v + 1))` makes the final parameter-one counting window strictly less than `1
+/ 2`. -/
 theorem nextApproxCountM2_adequate {N : ℕ} (hN : 0 < N) {t v : ℝ} {M₂ : ℕ}
     (ht1 : 1 ≤ t) (htN : t ≤ (N : ℝ) / 2)
     (hv1 : t / 2 ≤ v) (hv2 : v ≤ 3 * t / 2)
@@ -4265,6 +4663,9 @@ theorem nextApproxCountM2_adequate {N : ℕ} (hN : 0 < N) {t v : ℝ} {M₂ : �
     (k := 1) (N := N) (t := t) hgrid hM₂pos (by positivity) (by linarith)
   exact lt_of_le_of_lt hmono hwin
 
+/-- Under the relative-grid and exact-grid adequacy hypotheses, choosing the smaller parameter
+with `nextApproxCountM` gives a final parameter-one counting window either at most `ε * t /
+3` or strictly less than `1 / 2`. -/
 theorem nextApproxCountM_adequate {ε t : ℝ} {N : ℕ} {L₁ L₂ M₂ : ℕ} {v : ℝ}
     (hε : 0 < ε) (hN : 0 < N) (ht : 0 < t) (ht1 : 1 ≤ t) (htN : t ≤ (N : ℝ) / 2)
     (hL1 : (18 / 5) * Real.sqrt ((N : ℝ) / t) ≤ (L₁ : ℝ))
@@ -4296,12 +4697,17 @@ open Qatlib.Concepts.EstimatorLaws.MergedEstimator
 open Qatlib.Concepts.EstimatorLaws.TvStability
 set_option warningAsError false
 
+/-- The access ledger `2 * (k + 2) * (2 * layerRepetitions k + 1) * layerGrid k` for the
+positive and negative layered estimates in one signed trial. -/
 def nextMontanaroTrialAccessCount (k : ℕ) : ℕ :=
   2 * (k + 2) * (2 * layerRepetitions k + 1) * layerGrid k
 
+/-- The total access ledger for `2 * r + 1` signed trials, charging
+`nextMontanaroTrialAccessCount k` and one additional center-sampling access per trial. -/
 def nextMontanaroUAccessCount (k r : ℕ) : ℕ :=
   (2 * r + 1) * (nextMontanaroTrialAccessCount k + 1)
 
+/-- For every real `x ≤ 1` and natural `r`, `(1 - x) ^ r * (1 + r * x) ≤ 1`. -/
 theorem nextMontanaro_pow_mul_le_one (x : ℝ) (hx1 : x ≤ 1) (r : ℕ) :
     (1 - x) ^ r * (1 + (r : ℝ) * x) ≤ 1 := by
   induction r with
@@ -4320,6 +4726,7 @@ theorem nextMontanaro_pow_mul_le_one (x : ℝ) (hx1 : x ≤ 1) (r : ℕ) :
         _ ≤ (1 - x) ^ r * (1 + (r : ℝ) * x) := mul_le_mul_of_nonneg_left hkey hpow
         _ ≤ 1 := ih
 
+/-- For `r ≥ 336`, the intrinsic amplification term `(143 / 144) ^ r` is at most `3 / 10`. -/
 theorem nextMontanaro_intrinsic_le (r : ℕ) (hr : 336 ≤ r) :
     (143 / 144 : ℝ) ^ r ≤ 3 / 10 := by
   have hkey := nextMontanaro_pow_mul_le_one (1 / 144 : ℝ) (by norm_num) r
@@ -4342,6 +4749,8 @@ theorem nextMontanaro_intrinsic_le (r : ℕ) (hr : 336 ≤ r) :
       _ ≤ 1 := hkey
   nlinarith
 
+/-- For `0 ≤ γ ≤ 1`, the center-sampling term `(2 * r + 1) * γ` is at most `(Real.pi ^ 2 /
+Real.sqrt 6) * (2 * r + 1) * Real.sqrt γ`. -/
 theorem nextMontanaro_center_charged (r : ℕ) (γ : ℝ)
     (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) :
     (2 * r + 1) * γ ≤ (Real.pi ^ 2 / Real.sqrt 6) *
@@ -4379,6 +4788,11 @@ theorem nextMontanaro_center_charged (r : ℕ) (γ : ℝ)
           _ ≤ (Real.pi ^ 2 / Real.sqrt 6) * (((2 * r + 1 : ℕ) : ℝ) * Real.sqrt γ) := h1
           _ = _ := by ring
 
+/-- For unitary preparations with payoff-value L1 distance at most `2 * γ`, target variance at
+most `σ ^ 2`, `σ > 0`, `k ≥ 4`, `r ≥ 336`, and `0 ≤ γ ≤ 1`, the median's probability of
+error exceeding `9 * σ * (1 / 2) ^ k` is at most `3 / 10 + (Real.pi ^ 2 / Real.sqrt 6) *
+nextMontanaroUAccessCount k r * Real.sqrt γ`. This charges the preparation perturbation to
+the full access ledger in the setting of Lemma 18 of [Montanaro2015]. -/
 theorem nextMontanaro_failure_le {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ)
     (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ)
@@ -4415,6 +4829,9 @@ theorem nextMontanaro_failure_le {I : Type} [Fintype I] [DecidableEq I]
     ring
   exact hbound.trans (by linarith [h1, h2, hXY])
 
+/-- Under the unitary, variance, depth, repetition, and payoff-distance hypotheses of
+`nextMontanaro_failure_le`, setting `γ = 0` makes the complement of the error event have
+probability at least `2 / 3`. -/
 theorem nextMontanaro_success_le {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ)
     (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ)
@@ -4447,6 +4864,8 @@ theorem nextMontanaro_success_le {I : Type} [Fintype I] [DecidableEq I]
     simpa using! hbound
   linarith
 
+/-- Expands `nextMontanaroUAccessCount k r` to `(2 * r + 1) * (2 ^ (k + 7) * (k + 2) ^ 2 * (16 *
+k + 33) + 1)`. -/
 theorem nextMontanaro_resource_closed_form (k r : ℕ) :
     nextMontanaroUAccessCount k r
       = (2 * r + 1) * (2 ^ (k + 7) * (k + 2) ^ 2 * (16 * k + 33) + 1) := by
@@ -4461,11 +4880,14 @@ theorem nextMontanaro_resource_closed_form (k r : ℕ) :
     ring
   simp [nextMontanaroUAccessCount, nextMontanaroTrialAccessCount, hsched]
 
+/-- Rewrites the signed estimator's accuracy window `9 * σ * (1 / 2) ^ k` as `9 * σ * (2 ^ k)⁻¹`
+over the reals. -/
 theorem nextMontanaro_accuracy_window (σ : ℚ) (k : ℕ) :
     9 * (σ : ℝ) * (1 / 2 : ℝ) ^ k = 9 * (σ : ℝ) * ((2 : ℝ) ^ k)⁻¹ := by
   have hinv : (1 / 2 : ℝ) = ((2 : ℝ))⁻¹ := by norm_num
   rw [hinv, inv_pow]
 
+/-- Every real `X ≥ 1` lies below some real power `2 ^ k` that is strictly less than `2 * X`. -/
 theorem nextMontanaro_depth_exists (X : ℝ) (hX : 1 ≤ X) :
     ∃ k : ℕ, X ≤ 2 ^ k ∧ 2 ^ k < 2 * X := by
   have htwo : ∀ m : ℕ, m + 1 ≤ 2 ^ m := by
@@ -4511,6 +4933,8 @@ theorem nextMontanaro_depth_exists (X : ℝ) (hX : 1 ≤ X) :
     rw [hpow]
     nlinarith
 
+/-- If `2 ^ k ≤ C`, then the signed estimator's total access ledger is at most `(2 * r + 1) * (C
+* 128 * (k + 2) ^ 2 * (16 * k + 33) + 1)`. -/
 theorem nextMontanaro_resource_rate_nat (k r C : ℕ) (hk2 : 2 ^ k ≤ C) :
     nextMontanaroUAccessCount k r
       ≤ (2 * r + 1) * (C * 128 * (k + 2) ^ 2 * (16 * k + 33) + 1) := by
@@ -4528,6 +4952,9 @@ theorem nextMontanaro_resource_rate_nat (k r C : ℕ) (hk2 : 2 ^ k ≤ C) :
     _ = (2 * r + 1) * (C * 128 * (k + 2) ^ 2 * (16 * k + 33) + 1) := by
           norm_num [Nat.pow_succ]
 
+/-- The single-trial signed-estimator law consisting of a center sample and positive and
+negative layered records, with the required preparation-unitarity proofs supplied
+automatically. -/
 noncomputable def nextMontanaroSignedLaw {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -4538,16 +4965,24 @@ noncomputable def nextMontanaroSignedLaw {I : Type} [Fintype I] [DecidableEq I]
     (fun x l => nativeLayerPrepare_unitary A
       (fun i => max 0 ((f x - f i) / (4 * σ))) k l hA (fun _ => le_max_left _ _))
 
+/-- The Born-probability expectation of payoff `f` in the state obtained by applying `A` to
+basis state `j`. -/
 noncomputable def nextMontanaroTargetMean {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) : ℝ :=
   ∑ i, BornProb (ApplyGate A (Qatlib.Foundations.PureStateMath.Ket j)) i * (f i : ℝ)
 
+/-- The event that the median of `2 * r + 1` signed trial outputs differs from `μ` by strictly
+more than `9 * σ * (1 / 2) ^ k`. -/
 def nextMontanaroFailureEvent {I : Type} [Fintype I] [DecidableEq I]
     (f : I → ℚ) (σ : ℚ) (k r : ℕ) (μ : ℝ) :
     (Fin (2 * r + 1) → I × (LayerRecord k × LayerRecord k)) → Prop :=
   fun ξ => 9 * (σ : ℝ) * (1 / 2 : ℝ) ^ k
     < |(nativeSignedOutputMedian f σ k r ξ : ℝ) - μ|
 
+/-- Under the unitary, payoff-distance, target-variance, depth, and repetition hypotheses of
+`nextMontanaro_failure_le`, the named event `nextMontanaroFailureEvent` under
+`nextMontanaroSignedLaw` has probability at most `3 / 10 + (Real.pi ^ 2 / Real.sqrt 6) *
+nextMontanaroUAccessCount k r * Real.sqrt γ`. -/
 theorem nextMontanaro_failure_le' {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ)
     (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ)
@@ -4562,6 +4997,8 @@ theorem nextMontanaro_failure_le' {I : Type} [Fintype I] [DecidableEq I]
           * Real.sqrt γ := by
   exact nextMontanaro_failure_le A₁ A₂ j f σ k r γ hA₁ hA₂ hk hσ hγ0 hγ1 hd hr hvar
 
+/-- Under the hypotheses of `nextMontanaro_success_le`, including `γ = 0`, the complement of
+`nextMontanaroFailureEvent` under `nextMontanaroSignedLaw` has probability at least `2 / 3`. -/
 theorem nextMontanaro_success_le' {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ)
     (hA₁ : A₁ ∈ Matrix.unitaryGroup I ℂ) (hA₂ : A₂ ∈ Matrix.unitaryGroup I ℂ)
@@ -4575,6 +5012,7 @@ theorem nextMontanaro_success_le' {I : Type} [Fintype I] [DecidableEq I]
       (nextMontanaroFailureEvent f σ k r (nextMontanaroTargetMean A₂ j f)) := by
   exact nextMontanaro_success_le A₁ A₂ j f σ k r γ hA₁ hA₂ hk hσ hγ0 hγ1 hd hr hvar hγ
 
+/-- The payoff-value L1 distance between a preparation matrix and itself is zero. -/
 theorem nextMontanaro_value_dist_self {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℚ) :
     payoffValueL1Dist A A j f = 0 := by
@@ -4583,9 +5021,11 @@ theorem nextMontanaro_value_dist_self {I : Type} [Fintype I] [DecidableEq I]
   intro v _
   simp
 
+/-- Defines the even final counting grid as twice the natural ceiling of `5 * Real.pi * M`. -/
 noncomputable def nextApproxCountFinalGridEven (M : ℕ) : ℕ :=
   2 * Nat.ceil (5 * Real.pi * (M : ℝ))
 
+/-- The even final counting grid is at least `10 * Real.pi * M` after coercion to the reals. -/
 theorem nextApproxCountFinalGridEven_ge (M : ℕ) :
     10 * Real.pi * (M : ℝ) ≤ (nextApproxCountFinalGridEven M : ℝ) := by
   have hceil : 5 * Real.pi * (M : ℝ) ≤ (Nat.ceil (5 * Real.pi * (M : ℝ)) : ℝ) :=
@@ -4597,6 +5037,7 @@ theorem nextApproxCountFinalGridEven_ge (M : ℕ) :
   rw [nextApproxCountFinalGridEven, hcast]
   linarith
 
+/-- The original final counting grid is no larger than the even final counting grid. -/
 theorem nextApproxCountFinalGrid_le_even (M : ℕ) :
     (nextApproxCountFinalGrid M : ℝ) ≤ (nextApproxCountFinalGridEven M : ℝ) := by
   have hceil : 5 * Real.pi * (M : ℝ) ≤ (Nat.ceil (5 * Real.pi * (M : ℝ)) : ℝ) :=
@@ -4614,6 +5055,7 @@ theorem nextApproxCountFinalGrid_le_even (M : ℕ) :
   rw [nextApproxCountFinalGrid, nextApproxCountFinalGridEven, hcast]
   exact_mod_cast hnat
 
+/-- The real value of `nextApproxCountFinalGrid M` is positive whenever `M` is at least one. -/
 theorem nextApproxCountFinalGrid_pos {M : ℕ} (hM : 1 ≤ M) :
     0 < (nextApproxCountFinalGrid M : ℝ) := by
   unfold nextApproxCountFinalGrid
@@ -4623,10 +5065,12 @@ theorem nextApproxCountFinalGrid_pos {M : ℕ} (hM : 1 ≤ M) :
     nlinarith [Real.pi_pos]
   exact_mod_cast h
 
+/-- The grid `nextApproxCountFinalGridEven M` is divisible by two. -/
 theorem nextApproxCountFinalGridEven_even (M : ℕ) : 2 ∣ nextApproxCountFinalGridEven M := by
   refine ⟨Nat.ceil (5 * Real.pi * (M : ℝ)), ?_⟩
   simp [nextApproxCountFinalGridEven]
 
+/-- The even final counting grid is at least two whenever its input `M` is at least one. -/
 theorem nextApproxCountFinalGridEven_two {M : ℕ} (hM : 1 ≤ M) :
     2 ≤ nextApproxCountFinalGridEven M := by
   have hpos : (0 : ℝ) < 5 * Real.pi * (M : ℝ) := by positivity
@@ -4634,9 +5078,14 @@ theorem nextApproxCountFinalGridEven_two {M : ℕ} (hM : 1 ≤ M) :
   unfold nextApproxCountFinalGridEven
   omega
 
+/-- Builds the final counting grid by applying `nextApproxCountFinalGridEven` to the minimum of
+`nextApproxCountM1` and `M₂`. -/
 noncomputable def nextApproxCountUnifiedGrid (ε : ℝ) (L₁ L₂ M₂ : ℕ) : ℕ :=
   nextApproxCountFinalGridEven (nextApproxCountM (nextApproxCountM1 ε L₁ L₂) M₂)
 
+/-- For a nonempty domain and a grid of size at least two, the QFT-prepared amplitude-estimation
+law assigns mass at least `8 / Real.pi ^ 2` to labels whose scaled estimate lies within
+`nextCor4Window M 1 N S.card` of the marked count. -/
 theorem nextCountingWindow_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (M : ℕ) (hM : 2 ≤ M) :
     8 / Real.pi ^ 2 ≤
@@ -4716,6 +5165,9 @@ theorem nextCountingWindow_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
           |(N : ℝ) * aeEstimate M y - (S.card : ℝ)| ≤ nextCor4Window M 1 N (S.card : ℝ)),
         (aeLaw M (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN) hM).prob y := hmono1
 
+/-- When every input is marked and the grid is even and at least two, the QFT-prepared counting
+law returns `N` through `exactCountOutput` with probability one. This is the full-marked
+endpoint used in approximate counting in [Brassard et al., Theorem 18][BrassardEtAl2002]. -/
 theorem nextApproxCount_final_one {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (M : ℕ) (hM : 2 ≤ M) (hdiv : 2 ∣ M) (hcard : S.card = N) :
     (∑ y ∈ Finset.univ.filter (fun y : Fin M => exactCountOutput N y = (N : ℤ)),
@@ -4769,6 +5221,9 @@ theorem nextApproxCount_final_one {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     le_trans (le_of_eq hone.symm) hmono
   exact le_antisymm hle hge
 
+/-- When no input is marked and the grid is at least two, the QFT-prepared counting law returns
+zero through `exactCountOutput` with probability one. This is the empty-set endpoint used in
+approximate counting in [Brassard et al., Theorem 18][BrassardEtAl2002]. -/
 theorem nextApproxCount_final_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (M : ℕ) (hM : 2 ≤ M) (hcard : S.card = 0) :
     (∑ y ∈ Finset.univ.filter (fun y : Fin M => exactCountOutput N y = 0),
@@ -4834,6 +5289,8 @@ theorem nextApproxCount_final_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
         (aeLaw M (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN) hM).prob y) := hmono'
   exact le_antisymm hle hge
 
+/-- If `ε * S.card` is at least one and the unrounded scaled estimate has error at most one
+third of that tolerance, `exactCountOutput` has error at most `ε * S.card`. -/
 theorem nextApproxCount_output_accuracy {N : ℕ} (S : Finset (Fin N)) {M : ℕ}
     (ε : ℝ) (hεt : 1 ≤ ε * (S.card : ℝ)) {z : Fin M}
     (hz : |(N : ℝ) * aeEstimate M z - (S.card : ℝ)| ≤ ε * (S.card : ℝ) / 3) :
@@ -4851,6 +5308,9 @@ theorem nextApproxCount_output_accuracy {N : ℕ} (S : Finset (Fin N)) {M : ℕ}
   rw [abs_le]
   constructor <;> linarith
 
+/-- Given positive square-root witnesses for `ε`, `t`, `N - t`, and `N` and the stated lower
+bound on `m`, bounds the two-term counting error at `nextApproxCountFinalGridEven m` by `ε *
+t / 3`. -/
 theorem nextApproxCount_even_window_le {ε t N : ℝ} {m : ℕ} {se sN st sc : ℝ}
     (hse : se ^ 2 = ε) (hse0 : 0 < se)
     (hst : st ^ 2 = t) (hst0 : 0 < st)
@@ -4862,6 +5322,9 @@ theorem nextApproxCount_even_window_le {ε t N : ℝ} {m : ℕ} {se sN st sc : �
   refine nextApproxCount_window_le hse hse0 hst hst0 hsc hsc0 hsN hsN0 hM ?_
   exact nextApproxCountFinalGridEven_ge m
 
+/-- Restates the even-grid counting-window bound: the positive square-root witnesses and lower
+bound on `m` imply an error window of at most `ε * t / 3` at `nextApproxCountFinalGridEven
+m`. -/
 theorem nextApproxCount_unified_window_le {ε t N : ℝ} {m : ℕ} {se sN st sc : ℝ}
     (hse : se ^ 2 = ε) (hse0 : 0 < se)
     (hst : st ^ 2 = t) (hst0 : 0 < st)
@@ -4872,6 +5335,8 @@ theorem nextApproxCount_unified_window_le {ε t N : ℝ} {m : ℕ} {se sN st sc 
       + Real.pi ^ 2 * (N : ℝ) / (nextApproxCountFinalGridEven m : ℝ) ^ 2 ≤ ε * t / 3 :=
   nextApproxCount_even_window_le hse hse0 hst hst0 hsc hsc0 hsN hsN0 hM
 
+/-- The candidate grid parameter `nextApproxCountM1 ε L₁ L₂` is at least one when `ε` and `L₁`
+are positive. -/
 theorem nextApproxCountM1_one {ε : ℝ} (hε : 0 < ε) {L₁ L₂ : ℕ} (hL1 : 0 < (L₁ : ℝ)) :
     1 ≤ nextApproxCountM1 ε L₁ L₂ := by
   have hpos : (0 : ℝ) < (1 / Real.sqrt ε) * (L₁ : ℝ) * (1 + (L₂ : ℝ)) := by positivity
@@ -4880,6 +5345,9 @@ theorem nextApproxCountM1_one {ε : ℝ} (hε : 0 < ε) {L₁ L₂ : ℕ} (hL1 :
   unfold nextApproxCountM1
   omega
 
+/-- For a positive tolerance, a count between one and `N / 2`, and a coarse estimate between `t
+/ 2` and `3 * t / 2`, the stated lower bounds on `L₁`, `L₂`, and `M₂` make the unified
+counting window either at most `ε * t / 3` or strictly below one half. -/
 theorem nextApproxCountM_adequate_even {ε t : ℝ} {N : ℕ} {L₁ L₂ M₂ : ℕ} {v : ℝ}
     (hε : 0 < ε) (hN : 0 < N) (ht : 0 < t) (ht1 : 1 ≤ t) (htN : t ≤ (N : ℝ) / 2)
     (hL1 : (18 / 5) * Real.sqrt ((N : ℝ) / t) ≤ (L₁ : ℝ))
@@ -4927,6 +5395,8 @@ theorem nextApproxCountM_adequate_even {ε t : ℝ} {N : ℕ} {L₁ L₂ M₂ : 
     hle hpos hgt (by linarith)
   exact hbase.elim (fun h => Or.inl (hmono.trans h)) (fun h => Or.inr (hmono.trans_lt h))
 
+/-- The rounded count `exactCountOutput N y` differs from the scaled amplitude estimate `N *
+aeEstimate M y` by at most one half. -/
 theorem nextApproxCount_output_round {N : ℕ} {M : ℕ} {y : Fin M} :
     |((exactCountOutput N y : ℝ)) - (N : ℝ) * aeEstimate M y| ≤ 1 / 2 := by
   unfold exactCountOutput
@@ -4937,6 +5407,7 @@ theorem nextApproxCount_output_round {N : ℕ} {M : ℕ} {y : Fin M} :
   rw [abs_le]
   constructor <;> linarith
 
+/-- The unified counting grid has size at least two when `ε`, `L₁`, and `M₂` are positive. -/
 theorem nextApproxCountUnifiedGrid_two {ε : ℝ} (hε : 0 < ε) {L₁ L₂ M₂ : ℕ}
     (hL1 : 0 < (L₁ : ℝ)) (hM₂ : 0 < (M₂ : ℝ)) :
     2 ≤ nextApproxCountUnifiedGrid ε L₁ L₂ M₂ := by
@@ -4951,6 +5422,10 @@ theorem nextApproxCountUnifiedGrid_two {ε : ℝ} (hε : 0 < ε) {L₁ L₂ M₂
     omega
   exact nextApproxCountFinalGridEven_two hmin
 
+/-- For positive tolerance and positive grid inputs, packages the unified grid's counting-window
+mass bound, probability-one empty and full endpoints, and rounding error bound. It also
+transfers unrounded error at most `ε * S.card / 3` to rounded error at most `ε * S.card`
+when that tolerance is at least one. -/
 theorem nextApproxCount_final_layer {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hε : 0 < ε) (L₁ L₂ M₂ : ℕ) (hL1 : 0 < (L₁ : ℝ)) (hM₂ : 0 < (M₂ : ℝ)) :
     (8 / Real.pi ^ 2 ≤
@@ -4996,22 +5471,31 @@ theorem nextApproxCount_final_layer {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   · intro hεt y hy
     exact nextApproxCount_output_accuracy S ε hεt hy
 
+/-- Forms the rational phase input `piRatApprox (k + 8) * z.val / M` for the native amplitude
+decoder. -/
 def nextNativeInput (M k : ℕ) (z : Fin M) : ℚ :=
   piRatApprox (k + 8) * z.val / M
 
+/-- Runs `nativeAESinCounted` on `nextNativeInput M k z`, returning the rational sine
+approximation together with its term count. -/
 def nextNativePhaseInversion (M k : ℕ) (z : Fin M) : ℚ × ℕ :=
   nativeAESinCounted (nextNativeInput M k z) k
 
+/-- The value returned by `nextNativePhaseInversion` equals `nativeAESin` evaluated on the same
+native phase input. -/
 theorem nextNativePhaseInversion_value (M k : ℕ) (z : Fin M) :
     (nextNativePhaseInversion M k z).1 = nativeAESin (nextNativeInput M k z) k := by
   have h := congrArg Prod.fst (nativeAESin_value_and_terms (nextNativeInput M k z) k)
   simpa [nextNativePhaseInversion] using! h
 
+/-- The native phase-inversion computation records exactly `8 * (k + 8)` sine-series terms. -/
 theorem nextNativePhaseInversion_terms (M k : ℕ) (z : Fin M) :
     (nextNativePhaseInversion M k z).2 = 8 * (k + 8) := by
   have h := congrArg Prod.snd (nativeAESin_value_and_terms (nextNativeInput M k z) k)
   simpa [nextNativePhaseInversion] using! h
 
+/-- Expresses the real value of the native sine approximation as the alternating sine Taylor sum
+with `8 * (k + 8)` terms at `nextNativeInput M k z`. -/
 theorem nextNative_phaseInversion_term_structure (M k : ℕ) (z : Fin M) :
     (nativeAESin (nextNativeInput M k z) k : ℝ) =
       ∑ j ∈ Finset.range (8 * (k + 8)),
@@ -5019,10 +5503,13 @@ theorem nextNative_phaseInversion_term_structure (M k : ℕ) (z : Fin M) :
           ((2 * j + 1).factorial : ℝ) :=
   nativeAESin_cast (nextNativeInput M k z) k
 
+/-- Squares the rational value produced by `nextNativePhaseInversion` and clamps the result to
+the interval from zero to one. -/
 def nextNativeOutput (M k : ℕ) (z : Fin M) : ℚ :=
   let p := (nextNativePhaseInversion M k z).1
   max 0 (min 1 (p ^ 2))
 
+/-- The refined native output agrees exactly with the established decoder `nativeAEDecode`. -/
 theorem nextNativeOutput_eq_frozen (M k : ℕ) (z : Fin M) :
     nextNativeOutput M k z = nativeAEDecode M k z := by
   have h := nextNativePhaseInversion_value M k z
@@ -5030,6 +5517,8 @@ theorem nextNativeOutput_eq_frozen (M k : ℕ) (z : Fin M) :
   rw [h]
   rfl
 
+/-- The rational native output lies between zero and one and differs from `aeEstimate M z` by at
+most `((2 : ℝ)⁻¹) ^ k`. -/
 theorem nextNativeOutput_precision (M k : ℕ) (z : Fin M) :
     0 ≤ nextNativeOutput M k z ∧ nextNativeOutput M k z ≤ 1 ∧
       |(nextNativeOutput M k z : ℝ) - aeEstimate M z| ≤ ((2 : ℝ)⁻¹) ^ k := by
@@ -5037,17 +5526,23 @@ theorem nextNativeOutput_precision (M k : ℕ) (z : Fin M) :
   rw [← nextNativeOutput_eq_frozen] at h
   exact h
 
+/-- Selects the native counting layer using `nextCor4Grid N t'₁ t'₂`. -/
 noncomputable def nextNativeLayerSelect (N : ℕ) (t'₁ t'₂ : ℝ) : ℕ :=
   nextCor4Grid N t'₁ t'₂
 
+/-- The native layer selector agrees with `nextCor4Grid` on every input. -/
 theorem nextNativeLayerSelect_eq (N : ℕ) (t'₁ t'₂ : ℝ) :
     nextNativeLayerSelect N t'₁ t'₂ = nextCor4Grid N t'₁ t'₂ := rfl
 
+/-- If both preliminary count estimates lie between zero and `N`, the native layer selector
+returns a grid of size at least two. -/
 theorem nextNativeLayerSelect_legal {N : ℕ} {t'₁ t'₂ : ℝ}
     (h1 : 0 ≤ t'₁) (h1' : t'₁ ≤ (N : ℝ)) (h2 : 0 ≤ t'₂) (h2' : t'₂ ≤ (N : ℝ)) :
     2 ≤ nextNativeLayerSelect N t'₁ t'₂ :=
   nextCor4_grid_two h1 h1' h2 h2'
 
+/-- For `N = 8`, the native layer selector returns `144` on estimates `(0, 0)` and `240` on
+estimates `(4, 4)`. -/
 theorem nextNativeLayerSelect_result_dependent :
     nextNativeLayerSelect 8 0 0 = 144 ∧ nextNativeLayerSelect 8 4 4 = 240 := by
   constructor
@@ -5070,17 +5565,26 @@ theorem nextNativeLayerSelect_result_dependent :
     rw [hmin, hsq, hsqrt, hval, Nat.ceil_intCast]
     simp
 
+/-- Defines the amplitude-estimation input error as `2 * Real.pi * Real.sqrt (a * (1 - a)) / M +
+Real.pi ^ 2 / M ^ 2`. -/
 noncomputable def nextNativeInputError (M : ℕ) (a : ℝ) : ℝ :=
   2 * Real.pi * Real.sqrt (a * (1 - a)) / (M : ℝ) + Real.pi ^ 2 / (M : ℝ) ^ 2
 
+/-- Defines the native decoder error allowance as `((2 : ℝ)⁻¹) ^ k`. -/
 noncomputable def nextNativeDecoderError (k : ℕ) : ℝ := ((2 : ℝ)⁻¹) ^ k
 
+/-- Expands the sum of `nextNativeInputError` and `nextNativeDecoderError` into its
+amplitude-estimation and finite-precision terms. -/
 theorem nextNative_error_split (M : ℕ) (k : ℕ) (a : ℝ) :
     nextNativeInputError M a + nextNativeDecoderError k =
       2 * Real.pi * Real.sqrt (a * (1 - a)) / (M : ℝ) +
         Real.pi ^ 2 / (M : ℝ) ^ 2 + ((2 : ℝ)⁻¹) ^ k := by
   simp [nextNativeInputError, nextNativeDecoderError]
 
+/-- Under the QFT-prepared amplitude-estimation law, the same measured label yields a native
+scaled output within `N` times the sum of the amplitude-estimation window and decoder error
+of `N * a` with mass at least `8 / Real.pi ^ 2`, where `a` is the prepared marked
+probability. -/
 theorem nextNative_same_record_success {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
     (S : Finset (Fin N)) :
     let a := MeasureProb (preparedAAState (QFTMatrix N) (⟨0, hN⟩ : Fin N)) S
@@ -5094,6 +5598,9 @@ theorem nextNative_same_record_success {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 
     (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN)
   simpa only [nextNativeOutput_eq_frozen] using! h.1
 
+/-- For a unitary preparation and a grid of size at least two, records `M` forward accesses, `M
+- 1` backward accesses and queries, and `5 * (M - 1) + 3` circuit gates. The native
+phase-inversion term count is `8 * (k + 8)`. -/
 theorem nextNative_access_ledger (M : ℕ) (hM : 2 ≤ M) (k : ℕ) (z : Fin M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     aeForwardAccesses (aeAccessWord (I := I) M) = M ∧
@@ -5105,12 +5612,15 @@ theorem nextNative_access_ledger (M : ℕ) (hM : 2 ≤ M) (k : ℕ) (z : Fin M)
     nextRelative_access_counts M hM A j S hA
   exact ⟨h1, h2, h3, h4, nextNativePhaseInversion_terms M k z⟩
 
+/-- Recursively accumulates the first `L` rational terms of the alternating arctangent series
+and counts one term at each step. -/
 def nextNativeAtanCounted (x : ℚ) : ℕ → ℚ × ℕ
   | 0 => (0, 0)
   | L + 1 =>
       ((nextNativeAtanCounted x L).1 + (-1 : ℚ) ^ L * x ^ (2 * L + 1) / (2 * L + 1),
         (nextNativeAtanCounted x L).2 + 1)
 
+/-- The value component of `nextNativeAtanCounted x L` equals `atanRatSeries x L`. -/
 theorem nextNativeAtanCounted_value (x : ℚ) (L : ℕ) :
     (nextNativeAtanCounted x L).1 = atanRatSeries x L := by
   induction L with
@@ -5120,6 +5630,7 @@ theorem nextNativeAtanCounted_value (x : ℚ) (L : ℕ) :
       rw [nextNativeAtanCounted, atanRatSeries]
       rw [ih]
 
+/-- The term-count component of `nextNativeAtanCounted x L` is exactly `L`. -/
 theorem nextNativeAtanCounted_terms (x : ℚ) (L : ℕ) :
     (nextNativeAtanCounted x L).2 = L := by
   induction L with
@@ -5129,43 +5640,58 @@ theorem nextNativeAtanCounted_terms (x : ℚ) (L : ℕ) :
       rw [nextNativeAtanCounted]
       rw [ih]
 
+/-- Combines the counted arctangent sums at `1 / 5` and `1 / 239` with coefficients `16` and
+`-4`, using `k + 3` terms in each sum and adding their term counts. -/
 def nextNativePiCounted (k : ℕ) : ℚ × ℕ :=
   ((nextNativeAtanCounted ((1 / 5 : ℚ)) (k + 3)).1 * 16 -
       (nextNativeAtanCounted ((1 / 239 : ℚ)) (k + 3)).1 * 4,
     (nextNativeAtanCounted ((1 / 5 : ℚ)) (k + 3)).2 +
       (nextNativeAtanCounted ((1 / 239 : ℚ)) (k + 3)).2)
 
+/-- The value component of the counted pi computation is `piRatApprox k`. -/
 theorem nextNativePiCounted_value (k : ℕ) :
     (nextNativePiCounted k).1 = piRatApprox k := by
   unfold nextNativePiCounted piRatApprox
   rw [nextNativeAtanCounted_value, nextNativeAtanCounted_value]
   ring
 
+/-- The counted pi computation uses exactly `2 * (k + 3)` arctangent-series terms. -/
 theorem nextNativePiCounted_terms (k : ℕ) :
     (nextNativePiCounted k).2 = 2 * (k + 3) := by
   unfold nextNativePiCounted
   rw [nextNativeAtanCounted_terms, nextNativeAtanCounted_terms]
   omega
 
+/-- Defines the native GCD-operation ledger as the term count of `nextNativePiCounted (k + 8)`,
+plus one and the `8 * (k + 8)` sine-series terms. -/
 def nextNativeGcdCount (k : ℕ) : ℕ :=
   (nextNativePiCounted (k + 8)).2 + 1 + 8 * (k + 8)
 
+/-- Expands the native GCD-operation ledger to `2 * (k + 11) + 1 + 8 * (k + 8)`. -/
 theorem nextNativeGcdCount_eq (k : ℕ) :
     nextNativeGcdCount k = 2 * (k + 11) + 1 + 8 * (k + 8) := by
   rw [nextNativeGcdCount, nextNativePiCounted_terms]
 
+/-- Sets the native decoder's persistent cell budget to two. -/
 def nextNativePersistentCells : ℕ := 2
 
+/-- Sets the native decoder's peak cell budget to one more than `nextNativePersistentCells`. -/
 def nextNativePeakCells : ℕ := nextNativePersistentCells + 1
 
+/-- The native persistent cell budget is no larger than its peak cell budget. -/
 theorem nextNativePersistent_le_peak :
     nextNativePersistentCells ≤ nextNativePeakCells := by
   unfold nextNativePeakCells
   omega
 
+/-- Defines the native classical macro count as three times each of the sine-series and
+pi-series term counts, totaling `3 * (8 * (k + 8)) + 3 * (2 * (k + 11))`. -/
 noncomputable def nextNativeClassicalMacros (k : ℕ) : ℕ :=
   3 * (8 * (k + 8)) + 3 * (2 * (k + 11))
 
+/-- For a unitary preparation and a grid of size at least two, gives the amplitude-estimation
+circuit gate count `5 * (M - 1) + 3` together with the explicit native classical macro
+count. -/
 theorem nextNativeGateLedger (M : ℕ) (hM : 2 ≤ M) (k : ℕ) (A : Matrix I I ℂ) (j : I)
     (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     GateCount (countedAECircuit M A j) = 5 * (M - 1) + 3 ∧
@@ -5174,6 +5700,8 @@ theorem nextNativeGateLedger (M : ℕ) (hM : 2 ≤ M) (k : ℕ) (A : Matrix I I 
     nextRelative_access_counts M hM A j S hA
   refine ⟨h4, rfl⟩
 
+/-- Packages the native sine value and term count, agreement with `nativeAEDecode`, output
+bounds between zero and one, and error at most `((2 : ℝ)⁻¹) ^ k` relative to `aeEstimate`. -/
 def nextNativeOutputSpec (M k : ℕ) (z : Fin M) : Prop :=
   (nextNativePhaseInversion M k z).1 = nativeAESin (nextNativeInput M k z) k ∧
   (nextNativePhaseInversion M k z).2 = 8 * (k + 8) ∧
@@ -5181,21 +5709,31 @@ def nextNativeOutputSpec (M k : ℕ) (z : Fin M) : Prop :=
   0 ≤ nextNativeOutput M k z ∧ nextNativeOutput M k z ≤ 1 ∧
     |(nextNativeOutput M k z : ℝ) - aeEstimate M z| ≤ ((2 : ℝ)⁻¹) ^ k
 
+/-- Every native output satisfies `nextNativeOutputSpec`, including its value, term count,
+range, and precision requirements. -/
 theorem nextNativeOutputSpec_holds (M k : ℕ) (z : Fin M) : nextNativeOutputSpec M k z :=
   ⟨nextNativePhaseInversion_value M k z, nextNativePhaseInversion_terms M k z,
     nextNativeOutput_eq_frozen M k z, nextNativeOutput_precision M k z⟩
 
+/-- Packages the native layer selector's agreement with `nextCor4Grid` and lower bound of two at
+`(8, 0, 0)`, together with the explicit values `144` at `(8, 0, 0)` and `240` at `(8, 4,
+4)`. -/
 def nextNativeLayerSpec : Prop :=
   nextNativeLayerSelect 8 0 0 = nextCor4Grid 8 0 0 ∧
   2 ≤ nextNativeLayerSelect 8 0 0 ∧
   nextNativeLayerSelect 8 0 0 = 144 ∧ nextNativeLayerSelect 8 4 4 = 240
 
+/-- The native layer selector satisfies all concrete equalities and the size bound collected in
+`nextNativeLayerSpec`. -/
 theorem nextNativeLayerSpec_holds : nextNativeLayerSpec :=
   ⟨nextNativeLayerSelect_eq 8 0 0,
     nextNativeLayerSelect_legal (N := 8) (t'₁ := 0) (t'₂ := 0)
       (by norm_num) (by norm_num) (by norm_num) (by norm_num),
     nextNativeLayerSelect_result_dependent.1, nextNativeLayerSelect_result_dependent.2⟩
 
+/-- Packages the decomposition of the native error allowance and the `8 / Real.pi ^ 2` lower
+bound on the mass of labels whose scaled native output is within the combined error window
+of the prepared marked count. -/
 def nextNativeRecordSpec {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
     (S : Finset (Fin N)) : Prop :=
   nextNativeInputError M (MeasureProb (preparedAAState (QFTMatrix N) (⟨0, hN⟩ : Fin N)) S) +
@@ -5211,12 +5749,16 @@ def nextNativeRecordSpec {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
      (aeLaw M (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN) hM).prob z)
      ≥ 8 / Real.pi ^ 2)
 
+/-- The native readout satisfies `nextNativeRecordSpec` for every positive domain size and
+amplitude-estimation grid of size at least two. -/
 theorem nextNativeRecordSpec_holds {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
     (S : Finset (Fin N)) : nextNativeRecordSpec hN M k hM S :=
   ⟨nextNative_error_split M k
       (MeasureProb (preparedAAState (QFTMatrix N) (⟨0, hN⟩ : Fin N)) S),
     nextNative_same_record_success hN M k hM S⟩
 
+/-- Packages the QFT-prepared readout's forward and backward access counts, query and circuit
+gate counts, and native sine-series term count. -/
 def nextNativeAccessSpec {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M) (z : Fin M)
     (S : Finset (Fin N)) : Prop :=
   aeForwardAccesses (aeAccessWord (I := Fin N) M) = M ∧
@@ -5225,10 +5767,14 @@ def nextNativeAccessSpec {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M) (z : 
   GateCount (countedAECircuit M (QFTMatrix N) (⟨0, hN⟩ : Fin N)) = 5 * (M - 1) + 3 ∧
   (nextNativePhaseInversion M k z).2 = 8 * (k + 8)
 
+/-- The QFT-prepared native readout satisfies the access, query, gate, and sine-term identities
+in `nextNativeAccessSpec`. -/
 theorem nextNativeAccessSpec_holds {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
     (z : Fin M) (S : Finset (Fin N)) : nextNativeAccessSpec hN M k hM z S :=
   nextNative_access_ledger M hM k z (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN)
 
+/-- Packages the native GCD ledger, the comparison of persistent and peak cell budgets, the
+QFT-prepared circuit gate count, and the classical macro count. -/
 def nextNativeResourceSpec {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
     (S : Finset (Fin N)) : Prop :=
   nextNativeGcdCount k = 2 * (k + 11) + 1 + 8 * (k + 8) ∧
@@ -5236,6 +5782,8 @@ def nextNativeResourceSpec {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
   GateCount (countedAECircuit M (QFTMatrix N) (⟨0, hN⟩ : Fin N)) = 5 * (M - 1) + 3 ∧
   nextNativeClassicalMacros k = 3 * (8 * (k + 8)) + 3 * (2 * (k + 11))
 
+/-- The QFT-prepared native readout satisfies every resource identity and cell-budget comparison
+in `nextNativeResourceSpec`. -/
 theorem nextNativeResourceSpec_holds {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M)
     (S : Finset (Fin N)) : nextNativeResourceSpec hN M k hM S :=
   ⟨nextNativeGcdCount_eq k, nextNativePersistent_le_peak,
@@ -5244,12 +5792,19 @@ theorem nextNativeResourceSpec_holds {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 
     (nextNativeGateLedger M hM k (QFTMatrix N) (⟨0, hN⟩ : Fin N) S
       (qftMatrix_unitary hN)).2⟩
 
+/-- Defines the search angle as `Real.arcsin (Real.sqrt (t / N))`. -/
 noncomputable def nextMultiSearchAngle (t N : ℝ) : ℝ :=
   Real.arcsin (Real.sqrt (t / N))
 
+/-- Chooses the search iteration count as the natural floor of `Real.pi / (4 *
+nextMultiSearchAngle t N)`. -/
 noncomputable def nextMultiSearchIterations (t N : ℝ) : ℕ :=
   Nat.floor (Real.pi / (4 * nextMultiSearchAngle t N))
 
+/-- For `0 < t ≤ N / 2` and `N ≥ 2`, gives the search angle's range and sine-square identity,
+bounds the rounded amplified angle's distance from `Real.pi / 2` by the original angle, and
+bounds the iteration count by `Real.pi * Real.sqrt (N / t) / 4`. The amplified sine-square
+success is at least `1 - t / N`. -/
 theorem nextMultiSearch_angle_and_rounding {t N : ℝ} (ht0 : 0 < t) (htN : t ≤ N / 2)
     (hN : (2 : ℝ) ≤ N) :
     let θ := nextMultiSearchAngle t N
@@ -5332,6 +5887,8 @@ theorem nextMultiSearch_angle_and_rounding {t N : ℝ} (ht0 : 0 < t) (htN : t �
     linarith
   exact ⟨hθ0, hθ1, hsin2, hgap, hkk, hsuccess⟩
 
+/-- Hadamard preparation from the zero register assigns marked probability `S.card /
+Fintype.card (Reg n)` to every set `S`. -/
 theorem nextMultiSearch_uniform_mass {n : ℕ} (S : Finset (Reg n)) :
     MeasureProb (preparedAAState (HadamardN n) (ZeroStr n)) S
       = (S.card : ℝ) / (Fintype.card (Reg n) : ℝ) := by
@@ -5339,6 +5896,8 @@ theorem nextMultiSearch_uniform_mass {n : ℕ} (S : Finset (Reg n)) :
       (ApplyGate (HadamardN n) (Qatlib.Foundations.PureStateMath.Ket (ZeroStr n))) S = _
   rw [applyGate_hadamardN_ket_zero, measureProb_uniform]
 
+/-- The prepared marking reflection for `S` equals the phase oracle for the Boolean membership
+predicate of `S`. -/
 theorem nextMultiSearch_mark_eq_phaseOracle {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) :
     preparedMark S = PhaseOracle (fun y => decide (y ∈ S)) := by
@@ -5353,10 +5912,16 @@ theorem nextMultiSearch_mark_eq_phaseOracle {I : Type} [Fintype I] [DecidableEq 
     · simp [hx]
   · simp [h]
 
+/-- Defines search success as membership of the data register in `S`, allowing every value of
+the Boolean ancilla and workspace register. -/
 def nextMultiSearchEvent {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (S : Finset (Reg n)) : Finset ((Reg n × Bool) × W) :=
   (S ×ˢ (Finset.univ : Finset Bool)) ×ˢ (Finset.univ : Finset W)
 
+/-- The workspace Grover circuit is unitary, uses `k` queries and `3 * k + 3` gates, and runs
+the prepared amplitude-amplification computation on the data register. From the specified
+basis input, its final state is the tensor product of that computation's output, `Minus`,
+and the original workspace basis state. -/
 theorem nextMultiSearch_program {W : Type} [Fintype W] [DecidableEq W]
     (n k : ℕ) (w : W) (f : Reg n → Bool) :
     IsUnitaryCircuit (workspaceGroverCircuit (W := W) n k) ∧
@@ -5369,6 +5934,10 @@ theorem nextMultiSearch_program {W : Type} [Fintype W] [DecidableEq W]
             (Qatlib.Foundations.PureStateMath.Ket (ZeroStr n))) Minus) (Qatlib.Foundations.PureStateMath.Ket w) :=
   workspace_grover_bit_semantics_and_cost n k w f
 
+/-- For a nonempty marked set of size at most half the register space and `n ≥ 2`, the selected
+workspace Grover circuit succeeds with probability at least `1 - S.card / Fintype.card (Reg
+n)`. It is unitary, uses exactly the selected iteration count in queries and `3 * k + 3`
+gates, and its query count is at most `Real.pi * Real.sqrt (N / t) / 4`. -/
 theorem nextMultiSearch_actual_upper {W : Type} [Fintype W] [DecidableEq W]
     (n : ℕ) (w : W) (S : Finset (Reg n)) (hn : 2 ≤ n)
     (ht0 : (0 : ℝ) < S.card)
@@ -5422,6 +5991,8 @@ theorem nextMultiSearch_actual_upper {W : Type} [Fintype W] [DecidableEq W]
     rw [hQC]
     exact hkk
 
+/-- For an empty marked set, the Hadamard-prepared marked probability is zero and the prepared
+marking operator is the identity. -/
 theorem nextMultiSearch_zero_branch {n : ℕ} (S : Finset (Reg n)) (hS : S = ∅) :
     MeasureProb (preparedAAState (HadamardN n) (ZeroStr n)) S = 0 ∧
       preparedMark S = 1 := by
@@ -5431,18 +6002,28 @@ theorem nextMultiSearch_zero_branch {n : ℕ} (S : Finset (Reg n)) (hS : S = ∅
   · ext i j
     simp [preparedMark, Projector, hS]
 
+/-- A normalized unitary search circuit with query bound `Q` and uniform success lower bound `p`
+extends to a circuit with a clean ancilla initialized at `j₀`, preserving the query bound
+and measured success probabilities. -/
 theorem nextSearch_upper_transport {I J F : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J]
     (O : F → Matrix I I ℂ) (Acc : F → Finset I) (j₀ : J) (Q : ℕ) (p : ℝ) :
     Qatlib.Concepts.StoppingCore.InterruptBridge.cleanUpperTransport O Acc j₀ Q p :=
   Qatlib.Concepts.StoppingCore.InterruptBridge.cleanUpperTransport_fixed O Acc j₀ Q p
 
+/-- Provides the adversary lower-bound transport for circuits with a clean initialized ancilla.
+Under the validity, error, normalization, and success premises in
+`cleanAncillaLowerTransport`, the adversary inequality bounds the query count of the
+enlarged circuit. -/
 theorem nextSearch_lower_transport {J X : Type} [Fintype J] [DecidableEq J]
     [Fintype X] [DecidableEq X] [Nonempty X] {n : ℕ}
     (input : X → Fin n → Bool) (f : X → Bool) (Γ : Matrix X X ℂ) (ε : ℝ) :
     Qatlib.Concepts.StoppingCore.InterruptBridge.cleanAncillaLowerTransport J input f Γ ε :=
   Qatlib.Concepts.StoppingCore.InterruptBridge.cleanAncillaLowerTransport_fixed input f Γ ε
 
+/-- Produces access ledgers witnessing `bitToPhaseSimulation` for the given circuit and input
+state. The simulation preserves query count and every measured-event probability while
+adding two fixed gates per query. -/
 theorem nextSearch_bit_phase_simulation {I : Type} [Fintype I] [DecidableEq I]
     {W : Type} [Fintype W] [DecidableEq W] (f : I → Bool)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) :

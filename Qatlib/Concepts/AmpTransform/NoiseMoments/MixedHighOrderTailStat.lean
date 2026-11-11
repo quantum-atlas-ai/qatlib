@@ -5,11 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+/-!
+# Specification of higher noise-intensity tails
+
+`MixedHighOrderTail` states fourth-moment and deviation bounds for centered affine character-sum
+intensity under uniform noise sampling. It uses the variance correction for nonzero frequencies
+satisfying 2y = 0, refining the noise-moment setting of [Cornwell2014].
+
+## Main statements
+
+* `MixedHighOrderTail`: The contract bounding the centered affine intensity's fourth moment by
+  the stated uniform magnitude factor times its resonance-corrected variance, and its tail at t
+  > 0 by that variance divided by t².
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 open scoped Classical
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments
 
+/-- The contract bounding the centered affine intensity's fourth moment by the stated uniform
+magnitude factor times its resonance-corrected variance, and its tail at t > 0 by that
+variance divided by t². -/
 def MixedHighOrderTail : Prop :=
   ∀ (N L : ℕ) [NeZero N] (y : ZMod N) (c : ℂ) (b : ℝ), y ≠ 0 →
     let S := fun ω : Fin L → ZMod N => ∑ i, ZMod.stdAddChar (ω i * y)

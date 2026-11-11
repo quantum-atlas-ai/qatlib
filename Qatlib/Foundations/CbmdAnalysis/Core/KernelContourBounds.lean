@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelAuxiliary
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Bounds on rectangular integer-kernel contours
+
+`integerContourKernel` combines the lattice factor with the polynomial regulator, and
+`integerContourIntegrand` applies it to a vector-valued function `U`. Product formulas for their
+norms reduce contour estimates to lower bounds on distances to the poles.
+
+For functions with the prescribed half-plane exponential growth, the module bounds vertical
+half-grid lines and horizontal lines away from the poles. The resulting integral estimates and
+limits support contour deformations for [WangEtAl2026].
+
+## Main statements
+
+* `integerContourIntegrand_vertical_le`: bounds the integrand on vertical half-grid lines.
+* `integerContour_horizontal_integral_le`: bounds horizontal integrals independently of their
+  endpoints.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -15,18 +38,24 @@ namespace CBMD
 open scoped BigOperators Topology
 open Filter MeasureTheory
 
+/-- The positive normalization product `6 * ∏ j ∈ range m, ((j + 1)² + 4)`. -/
 noncomputable def kernelNormalization (m : ℕ) : ℝ :=
   6 * ∏ j ∈ Finset.range m, (((j : ℝ) + 1) ^ 2 + 4)
 
+/-- The kernel normalization product is strictly positive. -/
 theorem kernelNormalization_pos (m : ℕ) : 0 < kernelNormalization m := by
   unfold kernelNormalization
   positivity
 
+/-- The scalar contour kernel with numerator `exp (-2πa) - 1` and denominator given by the
+target factor, integer regulator, and lattice exponential factor. -/
 noncomputable def integerContourKernel (m : ℕ) (a : ℝ) (z : ℂ) : ℂ :=
   (Real.exp (-2 * Real.pi * a) - 1 : ℝ) /
     ((z + Complex.I) * integerRegulator m z *
       (Complex.exp (-2 * (Real.pi : ℂ) * Complex.I * (a : ℂ) * z) - 1))
 
+/-- The regulator norm equals the product of the top and row pole distances divided by
+`kernelNormalization m`. -/
 theorem integerRegulator_norm_complex (m : ℕ) (z : ℂ) :
     ‖integerRegulator m z‖ =
       (‖z - 2 * Complex.I‖ *
@@ -37,6 +66,8 @@ theorem integerRegulator_norm_complex (m : ℕ) (z : ℂ) :
   norm_num
   ring
 
+/-- The kernel norm equals the lattice factor norm times the normalization divided by the
+product of target, top, and row pole distances. -/
 theorem integerContourKernel_norm (m : ℕ) (a : ℝ) (z : ℂ) :
     ‖integerContourKernel m a z‖ =
       ‖latticePoleFactor a z‖ * kernelNormalization m /
@@ -47,6 +78,7 @@ theorem integerContourKernel_norm (m : ℕ) (a : ℝ) (z : ℂ) :
   simp only [div_eq_mul_inv, mul_inv_rev, inv_inv]
   ring
 
+/-- For positive spacing and `z.im ≤ -1`, the lattice factor norm is at most one. -/
 theorem latticePoleFactor_norm_le_lower {a : ℝ} (ha : 0 < a) (z : ℂ) (hz : z.im ≤ -1) :
     ‖latticePoleFactor a z‖ ≤ 1 := by
   let t : ℝ := 2 * Real.pi * a
@@ -74,6 +106,8 @@ theorem latticePoleFactor_norm_le_lower {a : ℝ} (ha : 0 < a) (z : ℂ) (hz : z
   apply (div_le_one hdenpos).mpr
   linarith
 
+/-- On the vertical half-grid line with real part `(n + 1/2) / a`, the lattice exponential
+equals `-exp (2πa y)`. -/
 theorem lattice_exponential_vertical {a : ℝ} (ha : 0 < a) (n : ℤ) (y : ℝ) :
     Complex.exp (-2 * (Real.pi : ℂ) * Complex.I * (a : ℂ) *
       ((((n : ℝ) + 1 / 2) / a : ℝ) + (y : ℂ) * Complex.I)) =
@@ -91,6 +125,8 @@ theorem lattice_exponential_vertical {a : ℝ} (ha : 0 < a) (n : ℤ) (y : ℝ) 
   rw [he, Complex.exp_sub_pi_mul_I, Complex.exp_add,
     Complex.exp_int_mul_two_pi_mul_I, mul_one, ← Complex.ofReal_exp]
 
+/-- For positive spacing, the lattice factor on a vertical half-grid line has norm at most both
+one and `exp (-2πa y)`. -/
 theorem latticePoleFactor_norm_vertical_bounds {a : ℝ} (ha : 0 < a) (n : ℤ) (y : ℝ) :
     let z : ℂ := ((((n : ℝ) + 1 / 2) / a : ℝ) : ℂ) + (y : ℂ) * Complex.I
     ‖latticePoleFactor a z‖ ≤ 1 ∧
@@ -121,6 +157,8 @@ theorem latticePoleFactor_norm_vertical_bounds {a : ℝ} (ha : 0 < a) (n : ℤ) 
         div_le_div_of_nonneg_left (by norm_num) (Real.exp_pos _) (by linarith)
       _ = _ := by rw [show -2 * Real.pi * a * y = -(2 * Real.pi * a * y) by ring, Real.exp_neg]; exact one_div _
 
+/-- If `|z.re| > m`, the full pole-distance denominator is at least `(|z.re| - m) ^ (2 * m +
+3)`. -/
 theorem contour_denominator_vertical_lower (m : ℕ) (z : ℂ) (hz : m < |z.re|) :
     (|z.re| - m) ^ (2 * m + 3) ≤
       ‖z + Complex.I‖ * ‖z - 2 * Complex.I‖ *
@@ -159,6 +197,7 @@ theorem contour_denominator_vertical_lower (m : ℕ) (z : ℂ) (hz : m < |z.re|)
     _ ≤ _ := mul_le_mul (mul_le_mul h₁ h₂ hd.le (norm_nonneg _)) hp
       (by positivity) (by positivity)
 
+/-- If `|z.im| ≥ 3`, the full pole-distance denominator is at least `z.re² + (|z.im| - 2)²`. -/
 theorem contour_denominator_horizontal_lower (m : ℕ) (z : ℂ) (hz : 3 ≤ |z.im|) :
     z.re ^ 2 + (|z.im| - 2) ^ 2 ≤
       ‖z + Complex.I‖ * ‖z - 2 * Complex.I‖ *
@@ -194,6 +233,8 @@ theorem contour_denominator_horizontal_lower (m : ℕ) (z : ℂ) (hz : 3 ≤ |z.
     nlinarith [mul_le_mul hsqrt₁ hsqrt₂ hsq₀ hn₁]
   exact ho.trans (by nlinarith [mul_nonneg hn₁ hn₂])
 
+/-- If `ρ ≤ 2πa` and `N` is bounded above by both one and `exp (-2πa y)`, then `N * exp (max y 0
+* ρ) ≤ 1`. -/
 private theorem lattice_times_growth_le {a ρ y N : ℝ} (hρ : ρ ≤ 2 * Real.pi * a)
     (hN : N ≤ 1) (hNe : N ≤ Real.exp (-2 * Real.pi * a * y)) :
     N * Real.exp (max y 0 * ρ) ≤ 1 := by
@@ -210,9 +251,13 @@ private theorem lattice_times_growth_le {a ρ y N : ℝ} (hρ : ρ ≤ 2 * Real.
 section Integrand
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- The vector-valued integrand obtained by scalar multiplication of `U z` by the integer
+contour kernel. -/
 noncomputable def integerContourIntegrand (m : ℕ) (a : ℝ) (U : ℂ → E) (z : ℂ) : E :=
   integerContourKernel m a z • U z
 
+/-- A positive lower bound `d` for the pole-distance denominator and a bound of one on the
+lattice factor times `‖U z‖` give an integrand norm bound of `kernelNormalization m / d`. -/
 private theorem contour_norm_le_of_lattice_growth (m : ℕ) (a : ℝ) (U : ℂ → E) (z : ℂ)
     {d : ℝ} (hd : 0 < d)
     (hden : d ≤ ‖z + Complex.I‖ * ‖z - 2 * Complex.I‖ *
@@ -235,6 +280,8 @@ private theorem contour_norm_le_of_lattice_growth (m : ℕ) (a : ℝ) (U : ℂ �
       simpa only [mul_one] using mul_le_mul_of_nonneg_left hLU (kernelNormalization_pos m).le
     _ ≤ _ := div_le_div_of_nonneg_left (kernelNormalization_pos m).le hd hden
 
+/-- Under the stated growth and spacing bounds, the integrand on a vertical half-grid line
+outside `[-m, m]` is bounded by the normalization divided by `(|z.re| - m) ^ (2 * m + 3)`. -/
 theorem integerContourIntegrand_vertical_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (n : ℤ) (y : ℝ)
@@ -254,6 +301,8 @@ theorem integerContourIntegrand_vertical_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
         simpa only [him] using mul_le_mul_of_nonneg_left (hU z) (norm_nonneg _)
       _ ≤ 1 := lattice_times_growth_le hρ hb.1 hb.2
 
+/-- Under the stated growth and spacing bounds, the integrand norm for `|z.im| ≥ 3` is at most
+`kernelNormalization m / (z.re² + (|z.im| - 2)²)`. -/
 theorem integerContourIntegrand_horizontal_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (z : ℂ) (hz : 3 ≤ |z.im|) :
@@ -279,6 +328,9 @@ theorem integerContourIntegrand_horizontal_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a
     _ ≤ 1 := lattice_times_growth_le hρ hb.1 hb.2
 variable [NormedSpace ℝ E]
 
+/-- Under the stated growth and spacing bounds, a vertical half-grid segment outside the row
+indices has integral norm bounded by its length times `kernelNormalization m / (|z.re| - m)
+^ (2 * m + 3)`. -/
 theorem integerContour_vertical_integral_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (n : ℤ) (b c : ℝ)
@@ -291,6 +343,9 @@ theorem integerContour_vertical_integral_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
   rw [norm_smul, Complex.norm_I, one_mul]
   exact integerContourIntegrand_vertical_le m ha hρ U hU n y hx
 
+/-- Under the stated growth and spacing bounds, a horizontal segment at height `|y| ≥ 3` has
+integral norm at most `kernelNormalization m * π / (|y| - 2)`, independently of its
+endpoints. -/
 theorem integerContour_horizontal_integral_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (y b c : ℝ) (hy : 3 ≤ |y|) :
@@ -332,6 +387,8 @@ theorem integerContour_horizontal_integral_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a
     (mul_nonneg (kernelNormalization_pos m).le (inv_nonneg.mpr hd.le))
   convert! hmul using 1 <;> ring
 
+/-- With the stated growth and spacing bounds, horizontal integrals at heights `Y` and `-Y` tend
+to zero as `Y` tends to infinity, for arbitrary endpoint functions. -/
 theorem integerContour_horizontal_integrals_tendsto_zero (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (b c : ℝ → ℝ) :
@@ -354,6 +411,8 @@ theorem integerContour_horizontal_integrals_tendsto_zero (m : ℕ) {a ρ : ℝ} 
       (by rw [abs_neg, abs_of_nonneg (by linarith : 0 ≤ Y)]; exact hY)
     simpa only [Complex.ofReal_neg, abs_neg, abs_of_nonneg (by linarith : 0 ≤ Y)] using h
 
+/-- With the stated growth and spacing bounds, integrals over a fixed vertical interval tend to
+zero along both positive and negative half-grid lines. -/
 theorem integerContour_vertical_integrals_tendsto_zero (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) (b c : ℝ) :

@@ -8,6 +8,26 @@ import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
 import Mathlib.Data.Fintype.CardEmbedding
 import Mathlib.Data.List.FinRange
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Ordered higher U-statistics
+
+This module enumerates ordered tuples of distinct record indices and defines real and rational
+higher U-statistic evaluators. It proves unbiasedness for asymmetric kernels, exact evaluation
+counts, and overlap-based variance and tail bounds, providing a finite backend for nonlinear
+shadow estimation [HuangKuengPreskill2020].
+
+## Main statements
+
+* `higher_u_ordered_enumeration_and_cost`: tuple enumeration and exact kernel counts.
+* `higher_u_asymmetric_unbiased_and_empty`: unbiasedness, including the empty tuple.
+* `higher_u_same_records_tail_and_rational_fold`: rational correctness and a tail bound.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,22 +38,30 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.ShadowModels.UStatBackend
 open scoped Classical BigOperators
 
+/-- The recursively enumerated ordered lists of `r` distinct indices from `Fin m`. -/
 def higherUTuples (m : ℕ) : ℕ → List (List (Fin m))
   | 0 => [[]]
   | r+1 => (List.finRange m).flatMap (fun i => (higherUTuples m r).filterMap
       (fun xs => if i ∈ xs then none else some (i::xs)))
 
+/-- The mean of a list kernel on `r` independent draws from a finite distribution. -/
 noncomputable def higherUMean {X : Type} [Fintype X] (p : FinDist X) (r : ℕ) (h : List X → ℝ) : ℝ :=
   ∑ ω : Fin r → X, p.probOf ω * h (List.ofFn ω)
 
+/-- The average real kernel value over ordered tuples of distinct record indices, together with
+the number of tuples evaluated. -/
 noncomputable def higherUCounted {X : Type} (m r : ℕ) (h : List X → ℝ) (ω : Fin m → X) : ℝ × ℕ :=
   let a := (higherUTuples m r).foldl (fun a xs => (a.1+h (xs.map ω),a.2+1)) (0,0)
   (a.1/(higherUTuples m r).length,a.2)
 
+/-- The rational kernel average over ordered tuples of distinct record indices, together with
+its evaluation count. -/
 def higherUCountedQ {X : Type} (m r : ℕ) (h : List X → ℚ) (ω : Fin m → X) : ℚ × ℕ :=
   let a := (higherUTuples m r).foldl (fun a xs => (a.1+h (xs.map ω),a.2+1)) (0,0)
   (a.1/(higherUTuples m r).length,a.2)
 
+/-- Filtering out lists containing `i` and then prepending `i` equals the corresponding
+conditional `filterMap`. -/
 private theorem higher_filterMap_cons {α : Type} [DecidableEq α] (i : α) (xs : List (List α)) :
     xs.filterMap (fun ys => if i∈ys then none else some (i::ys))=
       (xs.filter (fun ys => decide (i∉ys))).map (List.cons i) := by
@@ -41,6 +69,8 @@ private theorem higher_filterMap_cons {α : Type} [DecidableEq α] (i : α) (xs 
   | nil => rfl
   | cons ys xs ih => by_cases hy : i∈ys <;> simp [hy,ih]
 
+/-- A list belongs to `higherUTuples m r` exactly when it has length `r` and no repeated
+indices. -/
 theorem higherUTuples_mem (m r : ℕ) (xs : List (Fin m)) :
     xs∈higherUTuples m r ↔ xs.length=r ∧ xs.Nodup := by
   induction r generalizing xs with
@@ -60,6 +90,7 @@ theorem higherUTuples_mem (m r : ℕ) (xs : List (Fin m)) :
       · rintro ⟨hl,hi,hn⟩
         exact ⟨x,xs,⟨(ih xs).mpr ⟨hl,hn⟩,hi⟩,rfl,rfl⟩
 
+/-- The enumeration of ordered distinct-index tuples contains no duplicate lists. -/
 theorem higherUTuples_nodup (m r : ℕ) : (higherUTuples m r).Nodup := by
   induction r with
   | zero => simp [higherUTuples]
@@ -77,6 +108,8 @@ theorem higherUTuples_nodup (m r : ℕ) : (higherUTuples m r).Nodup := by
       obtain ⟨zs,_,hj⟩ := List.mem_map.mp hxj
       exact hij (List.cons.inj (hi.trans hj.symm)).1
 
+/-- The equivalence between embeddings of `Fin r` into `Fin m` and the finite set of enumerated
+ordered tuples. -/
 private noncomputable def higherTupleEquiv (m r : ℕ) :
     (Fin r ↪ Fin m) ≃ (higherUTuples m r).toFinset := by
   classical
@@ -107,6 +140,7 @@ private noncomputable def higherTupleEquiv (m r : ℕ) :
       · intro i hi hi'
         simp }
 
+/-- The number of ordered tuples of `r` distinct indices from `Fin m` is `m.descFactorial r`. -/
 theorem higherUTuples_length (m r : ℕ) : (higherUTuples m r).length=m.descFactorial r := by
   classical
   have hc := Fintype.card_congr (higherTupleEquiv m r)
@@ -114,6 +148,8 @@ theorem higherUTuples_length (m r : ℕ) : (higherUTuples m r).length=m.descFact
   rw [← List.toFinset_card_of_nodup (higherUTuples_nodup m r)]
   exact hc.symm
 
+/-- A counted additive fold over an additive monoid returns the initial value plus the mapped
+sum and increases the count by the list length. -/
 private theorem higher_fold_value_count {α R : Type} [AddMonoid R]
     (f : α → R) (xs : List α) (a : R×ℕ) :
     xs.foldl (fun a x => (a.1+f x,a.2+1)) a =
@@ -122,6 +158,9 @@ private theorem higher_fold_value_count {α R : Type} [AddMonoid R]
   | nil => simp
   | cons x xs ih => simp [ih,add_assoc,Nat.add_comm]
 
+/-- The tuple list enumerates exactly the duplicate-free lists of length `r`, has no duplicates
+and length `m.descFactorial r`, and the counted evaluator returns their normalized kernel
+sum with that exact evaluation count. -/
 theorem higher_u_ordered_enumeration_and_cost :
     ∀ (m r : ℕ), (higherUTuples m r).Nodup ∧
     (higherUTuples m r).length=m.descFactorial r ∧
@@ -134,6 +173,8 @@ theorem higher_u_ordered_enumeration_and_cost :
   intro X h ω
   simp [higherUCounted,higher_fold_value_count,higherUTuples_length]
 
+/-- Summation over the tuple enumeration equals summation over embeddings of `Fin r` into `Fin
+m`. -/
 theorem higherUTuples_sum (m r : ℕ) (f : List (Fin m)→ℝ) :
     ((higherUTuples m r).map f).sum =
       ∑ a : Fin r ↪ Fin m,f (List.ofFn a) := by
@@ -143,6 +184,7 @@ theorem higherUTuples_sum (m r : ℕ) (f : List (Fin m)→ℝ) :
     (fun xs : (higherUTuples m r).toFinset=>f xs.1)
   simpa only [Finset.sum_coe_sort,higherTupleEquiv] using! he.symm
 
+/-- Expectation commutes with a finite list sum. -/
 private theorem higher_expect_list {Ω A : Type} [Fintype Ω] (w : Ω→ℝ)
     (xs : List A) (f : Ω→A→ℝ) :
     (∑ ω,w ω*(xs.map (f ω)).sum)=
@@ -151,6 +193,8 @@ private theorem higher_expect_list {Ω A : Type} [Fintype Ω] (w : Ω→ℝ)
   | nil => simp
   | cons a xs ih => simp only [List.map_cons,List.sum_cons,mul_add,Finset.sum_add_distrib,ih]
 
+/-- A kernel evaluated on any enumerated tuple of distinct record indices has expectation
+`higherUMean p r h`. -/
 private theorem higher_tuple_expect {X : Type} [Fintype X] (p : FinDist X)
     (m r : ℕ) (h : List X→ℝ) (xs : List (Fin m)) (hx : xs∈higherUTuples m r) :
     (∑ ω : Fin m→X,p.probOf ω*h (xs.map ω))=higherUMean p r h := by
@@ -163,6 +207,9 @@ private theorem higher_tuple_expect {X : Type} [Fintype X] (p : FinDist X)
   have he := finite_pair_record_marginal p f f.injective (fun v=>h (List.ofFn v))
   simpa only [FinDist.probOf,hmap,higherUMean] using he
 
+/-- For `r ≤ m`, the ordered higher U-statistic is unbiased without a symmetry assumption on the
+kernel; the order-zero evaluator performs one kernel evaluation. See
+[HuangKuengPreskill2020]. -/
 theorem higher_u_asymmetric_unbiased_and_empty :
     ∀ (X : Type) [Fintype X] (p : FinDist X) (m r : ℕ) (h : List X→ℝ),r ≤ m →
     (∑ ω : Fin m→X,p.probOf ω*(higherUCounted m r h ω).1)=higherUMean p r h ∧
@@ -181,6 +228,8 @@ theorem higher_u_asymmetric_unbiased_and_empty :
   · intro omega
     simp [higherUCounted,higherUTuples]
 
+/-- For positive `m`, the number of embeddings sending a fixed coordinate to a fixed index is
+`m.descFactorial r / m`, expressed as a real-valued indicator sum. -/
 private theorem higher_embedding_coordinate_count (m r : ℕ) (hm : 0 < m)
     (j : Fin r) (i : Fin m) :
     (∑ f : Fin r ↪ Fin m,if f j=i then (1:ℝ) else 0)=(m.descFactorial r:ℝ)/(m:ℝ) := by
@@ -212,6 +261,8 @@ private theorem higher_embedding_coordinate_count (m r : ℕ) (hm : 0 < m)
   apply (eq_div_iff hmR.ne').mpr
   simpa only [mul_comm] using hmul
 
+/-- For positive `m`, the number of pairs of embeddings with overlapping images is at most `r ^
+2 * (m.descFactorial r) ^ 2 / m`. -/
 private theorem higher_embedding_overlap_count (m r : ℕ) (hm : 0 < m) :
     (∑ f : Fin r ↪ Fin m,∑ g : Fin r ↪ Fin m,
       if ∃ i j,f i=g j then (1:ℝ) else 0) ≤
@@ -256,6 +307,8 @@ private theorem higher_embedding_overlap_count (m r : ℕ) (hm : 0 < m) :
         Fintype.card_fin,nsmul_eq_mul]
       ring
 
+/-- If the absolute kernel value is at most a nonnegative `B` on lists of length `r`, then its
+independent-sample mean has absolute value at most `B`. -/
 private theorem higherUMean_abs_le {X : Type} [Fintype X] (p : FinDist X)
     (r : ℕ) (h : List X→ℝ) (B : ℝ) (hB : 0≤B)
     (hb : ∀ xs : List X,xs.length=r → |h xs|≤B) : |higherUMean p r h|≤B := by
@@ -270,6 +323,8 @@ private theorem higherUMean_abs_le {X : Type} [Fintype X] (p : FinDist X)
       exact mul_le_mul_of_nonneg_left (hb _ List.length_ofFn) (hn ω)
     _ = B := by rw [← Finset.sum_mul,p.sum_probOf r,one_mul]
 
+/-- Centering a length-`r` kernel by `higherUMean` gives expectation zero under the `r`-sample
+product law. -/
 private theorem higher_center_mean {X : Type} [Fintype X] (p : FinDist X)
     (r : ℕ) (h : List X→ℝ) :
     (∑ v : Fin r→X,p.probOf v*(h (List.ofFn v)-higherUMean p r h))=0 := by
@@ -277,6 +332,7 @@ private theorem higher_center_mean {X : Type} [Fintype X] (p : FinDist X)
   simp only [mul_sub,Finset.sum_sub_distrib,← Finset.sum_mul,p.sum_probOf,one_mul]
   exact sub_self _
 
+/-- Centered kernel values on embeddings with disjoint images have covariance zero. -/
 private theorem higher_disjoint_covariance {X : Type} [Fintype X] (p : FinDist X)
     (m r : ℕ) (h : List X→ℝ) (f g : Fin r ↪ Fin m)
     (hd : ∀ i j,f i≠g j) :
@@ -319,6 +375,8 @@ private theorem higher_disjoint_covariance {X : Type} [Fintype X] (p : FinDist X
     ring
   rw [hf,higher_center_mean p r h,zero_mul]
 
+/-- For a kernel bounded in absolute value by `B`, the covariance on two embeddings is at most
+`4 * B ^ 2` times the indicator that their images overlap. -/
 private theorem higher_covariance_le_overlap {X : Type} [Fintype X] (p : FinDist X)
     (m r : ℕ) (h : List X→ℝ) (B : ℝ) (hB : 0≤B)
     (hb : ∀ xs : List X,xs.length=r → |h xs|≤B) (f g : Fin r ↪ Fin m) :
@@ -345,6 +403,8 @@ private theorem higher_covariance_le_overlap {X : Type} [Fintype X] (p : FinDist
   · have hd : ∀ i j,f i≠g j := by intro i j he; exact hc ⟨i,j,he⟩
     rw [if_neg hc,higher_disjoint_covariance p m r h f g hd,mul_zero]
 
+/-- The counted higher U-statistic equals the sum of kernel values over embeddings divided by
+`m.descFactorial r`. -/
 private theorem higher_counted_embedding_mean {X : Type} (m r : ℕ)
     (h : List X→ℝ) (ω : Fin m→X) :
     (higherUCounted m r h ω).1=
@@ -352,6 +412,8 @@ private theorem higher_counted_embedding_mean {X : Type} (m r : ℕ)
   rw [(higher_u_ordered_enumeration_and_cost m r).2.2.2 X h ω |>.2,higherUTuples_sum]
   simp only [List.map_ofFn]
 
+/-- For positive `m`, `r ≤ m`, and a kernel bounded by `B`, the higher U-statistic mean squared
+error is at most `4 * r ^ 2 * B ^ 2 / m`. -/
 theorem higher_u_overlap_covariance_and_variance :
     ∀ (X : Type) [Fintype X] (p : FinDist X) (m r : ℕ) (h : List X→ℝ) (B : ℝ),
     0 < m → r ≤ m → 0≤B → (∀ xs : List X,xs.length=r → |h xs|≤B) →
@@ -404,12 +466,15 @@ theorem higher_u_overlap_covariance_and_variance :
       div_le_div_of_nonneg_right hsum (sq_nonneg N)
     _ = _ := by field_simp
 
+/-- Casting a rational list sum to the reals equals summing the real casts of its entries. -/
 private theorem higher_list_sum_cast (xs : List ℚ) :
     (xs.sum:ℝ)=(xs.map (fun q : ℚ=>(q:ℝ))).sum := by
   induction xs with
   | nil => simp
   | cons x xs ih => simp [Rat.cast_add,ih]
 
+/-- The rational higher U-statistic casts to the real evaluator with the cast kernel and uses
+exactly `m.descFactorial r` evaluations. -/
 theorem higherUCountedQ_cast {X : Type} (m r : ℕ) (h : List X→ℚ) (ω : Fin m→X) :
     ((higherUCountedQ m r h ω).1:ℝ)=(higherUCounted m r (fun xs=>(h xs:ℝ)) ω).1 ∧
       (higherUCountedQ m r h ω).2=m.descFactorial r := by
@@ -418,6 +483,8 @@ theorem higherUCountedQ_cast {X : Type} (m r : ℕ) (h : List X→ℚ) (ω : Fin
     higherUTuples_length]
   simp
 
+/-- A finite nonnegative weighted mean squared error bound `V` gives a deviation-weight bound `V
+/ eps ^ 2` for positive `eps`. -/
 private theorem higher_finite_chebyshev {Ω : Type} [Fintype Ω]
     (w f : Ω→ℝ) (μ V eps : ℝ) (hw : ∀ ω,0≤w ω) (heps : 0<eps)
     (hv : (∑ ω,w ω*(f ω-μ)^2)≤V) :
@@ -436,6 +503,9 @@ private theorem higher_finite_chebyshev {Ω : Type} [Fintype Ω]
       (Finset.filter_subset _ _) (fun ω _ _=>mul_nonneg (hw ω) (sq_nonneg _))
     _ ≤ V := hv
 
+/-- Under the bounded-kernel and sample-size hypotheses, the rational evaluator agrees with the
+real evaluator, has the exact falling-factorial count, and its deviation probability is at
+most `4 * r ^ 2 * B ^ 2 / (m * eps ^ 2)`. -/
 theorem higher_u_same_records_tail_and_rational_fold :
     ∀ (X : Type) [Fintype X] (p : FinDist X) (m r : ℕ) (h : List X→ℚ) (B eps : ℝ),
     0 < m → r ≤ m → 0≤B → 0<eps → (∀ xs : List X,xs.length=r → |(h xs:ℝ)|≤B) →

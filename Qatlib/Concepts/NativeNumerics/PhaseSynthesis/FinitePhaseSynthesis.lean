@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+/-!
+# Finite rational phase synthesis
+
+This module searches finite Gaussian-rational phase grids for a polynomial response with a
+certified rational coefficient score. The construction concerns quantum signal processing
+polynomial transformations as in [GilyenSuLowWiebe2019].
+
+For a real target of degree at most `d`, the required parity, and magnitude at most one on
+`[-1,1]`, positive tolerance ensures that `finitePhaseSynthesis` returns unit phases whose real
+response approximates the target uniformly. The result also records exact search and
+response-work counters.
+
+## Main statements
+
+* `phase_grid_actual_search_sound_complete`: Finite-grid enumeration and the search correctness
+  and cost invariants.
+* `accepted_score_accuracy`: An accepted score bounds the uniform response error.
+* `finite_rational_phase_synthesis_terminates`: Existence of a successful synthesis result with
+  unit phases, accuracy, and work counts.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.BlockEncoding
@@ -25,17 +51,24 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.PhaseGeometry.Phase Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Enumerates all length-`d` words with entries in `List.range N`. -/
 def gridWords (N : ℕ) : ℕ → List (List ℕ)
   | 0 => [[]]
   | d+1 => (List.range N).flatMap (fun j => (gridWords N d).map (List.cons j))
+/-- Decodes a grid word into a base phase from its head and a phase list from its tail, using
+`gone` for out-of-range lookups. -/
 def decodeGridWord (points : List GaussianRat) (w : List ℕ) : PhaseData :=
   ⟨points.getD (w.headD 0) gone,w.tail.map (fun j => points.getD j gone)⟩
+/-- The optional accepted phase data and counts of tested words, response rounds, and
+coefficient visits from a grid search. -/
 structure SearchResult where
   value : Option PhaseData
   tested : ℕ
   responseRounds : ℕ
   coefficientVisits : ℕ
 
+/-- Searches grid words in order and returns the first decoded phase packet whose rational score
+is at most `tol`, accumulating work counters until success or exhaustion. -/
 def findGridWord (p : List ℚ) (d : ℕ) (tol : ℚ) (points : List GaussianRat) :
     List (List ℕ) → SearchResult
   | [] => ⟨none,0,0,0⟩
@@ -45,9 +78,16 @@ def findGridWord (p : List ℚ) (d : ℕ) (tol : ℚ) (points : List GaussianRat
     if q.1.1 ≤ tol then ⟨some data,1,q.1.2,q.2⟩ else
       let r := findGridWord p d tol points tail
       ⟨r.value,r.tested+1,r.responseRounds+q.1.2,r.coefficientVisits+q.2⟩
+/-- The base-two ceiling logarithm of the denominator of the rational tolerance. -/
 def phaseToleranceBits (eps : ℚ) : ℕ := Nat.clog 2 eps.den
+/-- The grid exponent `k + Nat.clog 2 (32 * phaseConstant d)` used for degree `d` and precision
+`k`. -/
 def phaseGridBits (d k : ℕ) : ℕ := k+Nat.clog 2 (32*phaseConstant d)
+/-- The dyadic phase backend precision chosen from `k`, `phaseGridBits d k`, and the coefficient
+stability constant. -/
 def phaseBackendBits (d k : ℕ) : ℕ := k+phaseGridBits d k+Nat.clog 2 (4*phaseConstant d)
+/-- The optional synthesized phase data and counters for backend calls, table multiplications,
+tested candidates, response rounds, and coefficient visits. -/
 structure SynthesisResult where
   value : Option PhaseData
   backendCalls : ℕ
@@ -56,6 +96,8 @@ structure SynthesisResult where
   responseRounds : ℕ
   coefficientVisits : ℕ
 
+/-- Tests the all-one phase packet first, then searches a numerically generated finite phase
+grid if necessary, returning an optional result and all accumulated work counters. -/
 def finitePhaseSynthesis (p : List ℚ) (d : ℕ) (eps : ℚ) : SynthesisResult :=
   let k := phaseToleranceBits eps
   let tol := (1/2:ℚ)^k
@@ -69,14 +111,18 @@ def finitePhaseSynthesis (p : List ℚ) (d : ℕ) (eps : ℚ) : SynthesisResult 
     let result := findGridWord p d tol table.1 (gridWords N (d+1))
     ⟨result.value,1,table.2,result.tested+1,result.responseRounds+q0.1.2,
       result.coefficientVisits+q0.2⟩
+/-- The real polynomial whose coefficient list is `p`, with zero coefficients beyond the list. -/
 noncomputable def realTarget (p : List ℚ) : Polynomial ℝ :=
   ∑ i ∈ Finset.range p.length, C ((p.getD i 0:ℚ):ℝ)*X^i
 
+/-- There are exactly `N^n` grid words of length `n`. -/
 theorem gridWords_length (N n : ℕ) : (gridWords N n).length = N^n := by
   induction n with
   | zero => simp [gridWords]
   | succ n ih => simp [gridWords,List.length_flatMap,ih,pow_succ,Nat.mul_comm]
 
+/-- A word belongs to `gridWords N n` exactly when it has length `n` and all entries are less
+than `N`. -/
 theorem gridWords_mem (N n : ℕ) (w : List ℕ) : w ∈ gridWords N n ↔ w.length = n ∧ ∀ j ∈ w,j < N := by
   induction n generalizing w with
   | zero => cases w <;> simp [gridWords]
@@ -85,14 +131,20 @@ theorem gridWords_mem (N n : ℕ) (w : List ℕ) : w ∈ gridWords N n ↔ w.len
     | nil => simp [gridWords,List.mem_flatMap,List.mem_map]
     | cons j js => simp [gridWords,List.mem_flatMap,List.mem_map,ih,and_left_comm,and_assoc]
 
+/-- Decoding a word of length `d+1` produces exactly `d` non-base phases. -/
 theorem decodeGridWord_length (points : List GaussianRat) (w : List ℕ) (d : ℕ) (hw : w.length = d+1) :
     (decodeGridWord points w).phases.length = d := by simp [decodeGridWord,List.length_tail,hw]
 
+/-- Scoring phase data performs one response round per phase and visits exactly `d+1`
+coefficients. -/
 theorem scoreData_counts (p : List ℚ) (d : ℕ) (data : PhaseData) :
     (scoreData p d data).1.2 = data.phases.length ∧ (scoreData p d data).2 = d+1 := by
   have h := (gaussian_response_native_coefficients data.base data.phases).2.2.2 p d
   exact ⟨h.1,h.2.1⟩
 
+/-- The grid search satisfies the stated work-count bounds, every returned packet comes from an
+acceptable word of phase length `d`, and the search succeeds whenever an acceptable word
+exists. -/
 theorem findGridWord_spec (p : List ℚ) (d : ℕ) (tol : ℚ) (points : List GaussianRat)
     (words : List (List ℕ)) (hw : ∀ w ∈ words,w.length = d+1) :
     let result := findGridWord p d tol points words
@@ -131,6 +183,9 @@ theorem findGridWord_spec (p : List ℚ) (d : ℕ) (tol : ℚ) (points : List Ga
         · subst a; exact False.elim (hs hscore)
         · exact hi.2.2.2.2 ⟨a,ha,hscore⟩
 
+/-- Grid enumeration has exactly `N^n` words with the stated membership criterion, and searching
+length-`d+1` words is sound and complete for the score threshold with exact per-test work
+counts. -/
 theorem phase_grid_actual_search_sound_complete : ∀ (N n : ℕ), (gridWords N n).length=N^n ∧
   (∀ w : List ℕ, w ∈ gridWords N n ↔ w.length=n ∧ ∀ j ∈ w,j<N) ∧
   (∀ (p : List ℚ) (d : ℕ) (tol : ℚ) (points : List GaussianRat),
@@ -149,6 +204,7 @@ theorem phase_grid_actual_search_sound_complete : ∀ (N n : ℕ), (gridWords N 
     (fun w hw => ((gridWords_mem N (d+1) w).mp hw).1)
   simpa only [gridWords_length] using h
 
+/-- The coefficient at `i` of `realTarget p` is the real cast of `p.getD i 0`. -/
 theorem realTarget_coeff (p : List ℚ) (i : ℕ) : (realTarget p).coeff i = ((p.getD i 0:ℚ):ℝ) := by
   simp only [realTarget]
   by_cases hi : i < p.length
@@ -156,6 +212,8 @@ theorem realTarget_coeff (p : List ℚ) (i : ℕ) : (realTarget p).coeff i = ((p
   · have he : p.getD i 0 = 0 := List.getD_eq_default p 0 (by omega)
     simp [hi]
 
+/-- For positive rational `eps`, the dyadic threshold determined by `phaseToleranceBits eps` is
+at most `eps`. -/
 theorem phaseTolerance_le (eps : ℚ) (heps : 0 < eps) : (1/2:ℚ)^phaseToleranceBits eps ≤ eps := by
   have hden : (0:ℚ) < eps.den := by exact_mod_cast eps.den_pos
   have hnum : (1:ℚ) ≤ eps.num := by
@@ -170,6 +228,7 @@ theorem phaseTolerance_le (eps : ℚ) (heps : 0 < eps) : (1/2:ℚ)^phaseToleranc
     _ ≤ (eps.num:ℚ)/(eps.den:ℚ) := div_le_div_of_nonneg_right hnum hden.le
     _ = eps := Rat.num_div_den eps
 
+/-- A degree bound of `d` for `realTarget p` implies its natural degree is at most `d`. -/
 theorem target_natDegree_le (p : List ℚ) (d : ℕ) (hp : (realTarget p).degree ≤ (d:WithBot ℕ)) :
     (realTarget p).natDegree ≤ d := by
   by_cases hz : realTarget p = 0
@@ -177,6 +236,8 @@ theorem target_natDegree_le (p : List ℚ) (d : ℕ) (hp : (realTarget p).degree
   · rw [Polynomial.degree_eq_natDegree hz] at hp
     exact_mod_cast hp
 
+/-- For a target of degree at most `d` and `d` phases, the rational score bounds the real
+response error at every point of `[-1,1]`. -/
 theorem scoreData_uniform_error (p : List ℚ) (d : ℕ) (data : PhaseData)
     (hlen : data.phases.length = d) (hdegree : (realTarget p).degree ≤ (d:WithBot ℕ))
     (x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
@@ -209,11 +270,15 @@ theorem scoreData_uniform_error (p : List ℚ) (d : ℕ) (data : PhaseData)
       have hb : |x|^i ≤ 1 := pow_le_one₀ (abs_nonneg x) (abs_le.mpr hx)
       exact (mul_le_mul_of_nonneg_left hb (abs_nonneg _)).trans_eq (mul_one _)
 
+/-- At an index within a list's length, looking up in its mapped list equals mapping the
+original lookup, regardless of the lookup defaults. -/
 theorem mapped_getD_valid {A B : Type} (f : A → B) (w : List A) (a : A) (b : B) (i : ℕ) (hi : i < w.length) :
     (w.map f).getD i b = f (w.getD i a) := by
   rw [List.getD_eq_getElem (w.map f) b (by simpa using hi),List.getD_eq_getElem w a hi]
   simp
 
+/-- A finite grid covering unit phases within `eta` supplies a same-length index word
+approximating every entry of a given unit-phase list. -/
 theorem phase_indices_cover (points : List GaussianRat) (N : ℕ) (eta : ℝ)
     (hcover : ∀ v : ℂ,‖v‖ = 1 → ∃ j : ℕ,j < N ∧ ‖gaussianRatComplex (points.getD j gone)-v‖ ≤ eta)
     (zs : List ℂ) (hz : ∀ z ∈ zs,IsPhase z) :
@@ -234,6 +299,8 @@ theorem phase_indices_cover (points : List GaussianRat) (N : ℕ) (eta : ℝ)
       | zero => simpa using he
       | succ i => simpa using ht i (by simpa using hi)
 
+/-- A unit phase grid covering the circle within `eta` contains a word whose decoded base and
+phase list are unit and approximate the given packet entrywise within `eta`. -/
 theorem phase_comparison_word (points : List GaussianRat) (N : ℕ) (eta : ℝ)
     (hunit : ∀ j < N,‖gaussianRatComplex (points.getD j gone)‖ = 1)
     (hcover : ∀ v : ℂ,‖v‖ = 1 → ∃ j : ℕ,j < N ∧ ‖gaussianRatComplex (points.getD j gone)-v‖ ≤ eta)
@@ -263,8 +330,11 @@ theorem phase_comparison_word (points : List GaussianRat) (N : ℕ) (eta : ℝ)
       rw [mapped_getD_valid (fun a => gaussianRatComplex (points.getD a gone)) w 0 1 i hiw]
       exact hs i hi
 
+/-- The coefficient stability constant `phaseConstant d` is positive. -/
 theorem phaseConstant_pos (d : ℕ) : 0 < phaseConstant d := by unfold phaseConstant; positivity
 
+/-- The chosen grid and backend precisions make the phase coverage error at most `(1/2)^k / (2 *
+phaseConstant d)`. -/
 theorem phase_grid_budget (d k : ℕ) :
     8/(2^phaseGridBits d k:ℕ)+((2^phaseGridBits d k:ℕ):ℝ)*((2:ℝ)⁻¹)^phaseBackendBits d k ≤
       (1/2:ℝ)^k/(2*(phaseConstant d:ℝ)) := by
@@ -293,6 +363,8 @@ theorem phase_grid_budget (d k : ℕ) :
   push_cast
   exact (add_le_add hA hB).trans_eq (by ring)
 
+/-- If a response plus its coefficient conjugate is twice the real target, each real response
+coefficient equals the corresponding rational target coefficient cast to ℝ. -/
 theorem comparison_real_coeff (p : List ℚ) (base : ℂ) (zs : List ℂ)
     (he : responseP base zs+conjugatePolynomial (responseP base zs) = C (2:ℂ)*(realTarget p).map Complex.ofRealHom)
     (i : ℕ) : ((responseP base zs).coeff i).re = ((p.getD i 0:ℚ):ℝ) := by
@@ -304,6 +376,8 @@ theorem comparison_real_coeff (p : List ℚ) (base : ℂ) (zs : List ℂ)
   change ((responseP base zs).coeff i).re+((responseP base zs).coeff i).re = 2*((p.getD i 0:ℚ):ℝ) at h
   linarith
 
+/-- When a comparison response has the target's real coefficients, the candidate's rational
+score is bounded by its coefficient-norm distance from that response through degree `d`. -/
 theorem scoreData_comparison_le (p : List ℚ) (d : ℕ) (data : PhaseData) (base : ℂ) (zs : List ℂ)
     (hc : ∀ i,((responseP base zs).coeff i).re = ((p.getD i 0:ℚ):ℝ)) :
     ((scoreData p d data).1.1:ℝ) ≤
@@ -315,6 +389,8 @@ theorem scoreData_comparison_le (p : List ℚ) (d : ℕ) (data : PhaseData) (bas
   rw [← hc i,← Complex.sub_re]
   exact Complex.abs_re_le_norm _
 
+/-- A target satisfying the degree, parity, and interval magnitude bounds has an acceptable word
+on the chosen actual phase grid at score threshold `(1/2)^k`. -/
 theorem synthesis_grid_acceptable (p : List ℚ) (d k : ℕ)
     (hpdeg : (realTarget p).degree ≤ (d:WithBot ℕ))
     (hparity : Qatlib.Concepts.QspSimulation.Achievability.HasRealParity d (realTarget p))
@@ -359,6 +435,8 @@ theorem synthesis_grid_acceptable (p : List ℚ) (d k : ℕ)
   apply (Rat.cast_le (K:=ℝ)).mp
   simpa only [Rat.cast_pow,Rat.cast_div,Rat.cast_one,Rat.cast_ofNat] using hh
 
+/-- Decoding a valid grid word from unit table entries produces a unit base and unit phase
+entries. -/
 theorem decodeGridWord_units (points : List GaussianRat) (N d : ℕ) (w : List ℕ)
     (hw : w ∈ gridWords N (d+1)) (hu : ∀ j < N,‖gaussianRatComplex (points.getD j gone)‖ = 1) :
     ‖gaussianRatComplex (decodeGridWord points w).base‖ = 1 ∧
@@ -372,6 +450,8 @@ theorem decodeGridWord_units (points : List GaussianRat) (N d : ℕ) (w : List �
     obtain ⟨i,hi,rfl⟩ := List.mem_map.mp hz
     exact hu i (hm.2 i (List.mem_cons_of_mem j hi))
 
+/-- For positive `eps`, a degree-`d` target and length-`d` packet with accepted dyadic score
+have real response error at most `eps` uniformly on `[-1,1]`. -/
 theorem accepted_score_accuracy (p : List ℚ) (d : ℕ) (eps : ℚ) (data : PhaseData)
     (heps : 0 < eps) (hp : (realTarget p).degree ≤ (d:WithBot ℕ)) (hlen : data.phases.length = d)
     (hs : (scoreData p d data).1.1 ≤ (1/2:ℚ)^phaseToleranceBits eps) :
@@ -383,6 +463,9 @@ theorem accepted_score_accuracy (p : List ℚ) (d : ℕ) (eps : ℚ) (data : Pha
       Rat.cast_le.mpr (hs.trans (phaseTolerance_le eps heps))
   exact (scoreData_uniform_error p d data hlen hp x hx).trans hscore
 
+/-- For a target satisfying the degree, parity, and interval magnitude bounds and positive
+`eps`, finite synthesis returns `d` unit phases and a unit base with uniform real response
+error at most `eps`, together with the stated score and work-count guarantees. -/
 theorem finite_rational_phase_synthesis_terminates : ∀ (p : List ℚ) (d : ℕ) (eps : ℚ), 0<eps →
   (realTarget p).degree ≤ (d:WithBot ℕ) →
   Qatlib.Concepts.QspSimulation.Achievability.HasRealParity d (realTarget p) →

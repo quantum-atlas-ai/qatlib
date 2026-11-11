@@ -80,6 +80,32 @@ import Mathlib.Topology.Algebra.InfiniteSum.SummationFilter
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 import Qatlib.Papers.QStringMatch00.MainResults.Corollary1
+
+/-!
+# Cost bounds for quantum string matching
+
+This module combines scalar cost expressions for the string-matching analysis of
+[RameshVinay2000]. `mainCost` adds preprocessing to the product of outer oracle calls and the
+cost of a block oracle; `main_result_cost` bounds this expression by an explicit constant times
+`shapeBound` for `1 ≤ m ≤ n` and nonnegative cost parameters.
+
+The numerical inequalities in `main_result_success` show that the constants `3 / 4` and `(3 / 4)
+^ 2` exceed one half. `outer_calls_via_corollary1` relates the outer-call budget to a repetition
+count supplied by the search corollary.
+
+## Main statements
+
+* `main_result_cost`: an explicit upper bound on the total scalar cost.
+* `main_cost_success_bounds`: nonnegativity, the cost upper bound, and the numerical
+  success-constant inequalities.
+* `outer_calls_via_corollary1`: existence of a repetition count whose cost fits within
+  `outerOracleCalls`.
+
+## References
+
+* [Ramesh and Vinay, 2000][RameshVinay2000]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,23 +114,34 @@ noncomputable section
 
 namespace Qatlib.Papers.QStringMatch00.MainResults.MainResult
 
+/-- The real-valued block-count expression `2 * n / m + 1` used in the outer search cost model. -/
 def blockCount (n m : ℕ) : ℝ := 2 * (n : ℝ) / m + 1
 
+/-- The outer-search call budget `4800 * Q * (Real.log (64 * Q) + 1)`, where `Q = (29 / 2) *
+Real.sqrt (blockCount n m)`. -/
 def outerOracleCalls (n m : ℕ) : ℝ :=
   4800 * ((29 / 2) * Real.sqrt (blockCount n m)) *
     (Real.log (64 * ((29 / 2) * Real.sqrt (blockCount n m))) + 1)
 
+/-- The block-oracle cost expression `A * Real.sqrt m * (Real.log m + 1)`. -/
 def blockOracleCost (m : ℕ) (A : ℝ) : ℝ := A * Real.sqrt m * (Real.log m + 1)
 
+/-- The preprocessing cost expression `P * Real.sqrt m * (Real.log m + 1) ^ 2`. -/
 def preprocessCost (m : ℕ) (P : ℝ) : ℝ := P * Real.sqrt m * (Real.log m + 1) ^ 2
 
+/-- The total scalar cost obtained by adding preprocessing to the outer-call budget multiplied
+by the block-oracle cost. -/
 def mainCost (n m : ℕ) (A P : ℝ) : ℝ :=
   outerOracleCalls n m * blockOracleCost m A + preprocessCost m P
 
+/-- The sum `(Real.sqrt n + Real.sqrt m) * (Real.log (n / m + 2) + 1) * Real.log (m + 2) +
+Real.sqrt m * Real.log (m + 2) ^ 2`, with natural sizes coerced to the reals. -/
 def shapeBound (n m : ℕ) : ℝ :=
   (Real.sqrt n + Real.sqrt m) * (Real.log ((n : ℝ) / m + 2) + 1) * Real.log (m + 2)
     + Real.sqrt m * Real.log (m + 2) ^ 2
 
+/-- For positive `m`, the square root of `blockCount n m` is at most twice `Real.sqrt (n / m) +
+1`. -/
 lemma sqrt_blockCount_le (n m : ℕ) (hm : 0 < m) :
     Real.sqrt (blockCount n m) ≤ 2 * (Real.sqrt ((n : ℝ) / m) + 1) := by
   have hx : (0 : ℝ) ≤ (n : ℝ) / m := by positivity
@@ -119,6 +156,8 @@ lemma sqrt_blockCount_le (n m : ℕ) (hm : 0 < m) :
         Real.sqrt_le_sqrt hB
     _ = 2 * (Real.sqrt ((n : ℝ) / m) + 1) := Real.sqrt_sq (by positivity)
 
+/-- For positive `m`, the logarithmic factor in the outer-call budget is at most `1856 *
+(Real.log (n / m + 2) + 1)`. -/
 lemma log_outer_le (n m : ℕ) (hm : 0 < m) :
     Real.log (64 * ((29 / 2) * Real.sqrt (blockCount n m))) + 1 ≤
       1856 * (Real.log ((n : ℝ) / m + 2) + 1) := by
@@ -161,6 +200,7 @@ lemma log_outer_le (n m : ℕ) (hm : 0 < m) :
   have hL0 : 0 ≤ Real.log ((n : ℝ) / m + 2) := Real.log_nonneg (by linarith)
   linarith
 
+/-- For `m ≥ 1`, `Real.log m + 1` is at most twice `Real.log (m + 2)`. -/
 lemma log_succ_le (m : ℕ) (hm : 1 ≤ m) :
     Real.log (m : ℝ) + 1 ≤ 2 * Real.log ((m : ℝ) + 2) := by
   have hmR : (0 : ℝ) < (m : ℝ) := by exact_mod_cast hm
@@ -178,6 +218,8 @@ lemma log_succ_le (m : ℕ) (hm : 1 ≤ m) :
     (Real.log_le_log_iff hmR (by positivity)).mpr (by linarith)
   linarith
 
+/-- For `m ≥ 1` and nonnegative `A`, the block-oracle cost is at most `2 * A * Real.sqrt m *
+Real.log (m + 2)`. -/
 lemma blockOracleCost_le (m : ℕ) (hm : 1 ≤ m) (A : ℝ) (hA : 0 ≤ A) :
     blockOracleCost m A ≤ 2 * A * Real.sqrt m * Real.log ((m : ℝ) + 2) := by
   unfold blockOracleCost
@@ -186,6 +228,8 @@ lemma blockOracleCost_le (m : ℕ) (hm : 1 ≤ m) (A : ℝ) (hA : 0 ≤ A) :
   have hprod := mul_le_mul_of_nonneg_left hlog (mul_nonneg hA hsqrt)
   nlinarith [hprod]
 
+/-- For `m ≥ 1` and nonnegative `P`, the preprocessing cost is at most `4 * P * Real.sqrt m *
+Real.log (m + 2) ^ 2`. -/
 lemma preprocessCost_le (m : ℕ) (hm : 1 ≤ m) (P : ℝ) (hP : 0 ≤ P) :
     preprocessCost m P ≤ 4 * P * Real.sqrt m * Real.log ((m : ℝ) + 2) ^ 2 := by
   unfold preprocessCost
@@ -199,6 +243,9 @@ lemma preprocessCost_le (m : ℕ) (hm : 1 ≤ m) (P : ℝ) (hP : 0 ≤ P) :
   have hprod := mul_le_mul_of_nonneg_left hsq (mul_nonneg hP hsqrt)
   nlinarith [hprod]
 
+/-- For `1 ≤ m ≤ n` and nonnegative `A` and `P`, `mainCost n m A P` is at most `(4800 * 29 *
+1856 * 2 * A + 4 * P + 1) * shapeBound n m`. This gives an explicit scalar cost bound for
+the main analysis of [RameshVinay2000]. -/
 theorem main_result_cost
     (n m : ℕ) (hm : 1 ≤ m) (_hmn : m ≤ n) (A P : ℝ) (hA : 0 ≤ A) (hP : 0 ≤ P) :
     mainCost n m A P ≤ (4800 * 29 * 1856 * 2 * A + 4 * P + 1) * shapeBound n m := by
@@ -300,10 +347,14 @@ theorem main_result_cost
   have h2 := mul_le_mul_of_nonneg_right h4P hV0
   linarith [hstep2, hpre, h1, h2]
 
+/-- Both `(3 / 4) ^ 2` and `3 / 4`, viewed as real numbers, exceed one half. -/
 theorem main_result_success :
     ((3 / 4 : ℝ) ^ 2 > 1 / 2) ∧ ((3 / 4 : ℝ) > 1 / 2) := by
   constructor <;> norm_num
 
+/-- For `1 ≤ m ≤ n` and nonnegative cost parameters, the total scalar cost is nonnegative and
+satisfies the explicit `shapeBound` estimate, and both numerical success constants exceed
+one half. These are the combined scalar bounds for the analysis of [RameshVinay2000]. -/
 theorem main_cost_success_bounds
     (n m : ℕ) (hm : 1 ≤ m) (hmn : m ≤ n) (A P : ℝ) (hA : 0 ≤ A) (hP : 0 ≤ P) :
     0 ≤ mainCost n m A P ∧
@@ -344,6 +395,10 @@ theorem main_cost_success_bounds
 
 open Qatlib.Papers.QStringMatch00.MainResults.Corollary1 in
 
+/-- For `m ≥ 1` and `1 ≤ N ≤ blockCount n m`, there is a natural repetition count `r` with
+positive base search budget and `(2 * r + 1) * (8 * ((29 / 2) * Real.sqrt N)) ≤
+outerOracleCalls n m`. This specializes the cost bound from Corollary 1 of
+[RameshVinay2000]. -/
 theorem outer_calls_via_corollary1 (n m N : ℕ) (hm : 1 ≤ m) (hN1 : 1 ≤ N)
     (hN : (N : ℝ) ≤ blockCount n m) :
     ∃ r : ℕ, 0 < (29 / 2) * Real.sqrt (N : ℝ) ∧

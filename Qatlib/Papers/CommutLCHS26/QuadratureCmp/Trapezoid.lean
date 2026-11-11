@@ -8,6 +8,30 @@ import Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 import Mathlib.Analysis.SumIntegralComparisons
 import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 import Mathlib.Topology.Algebra.InfiniteSum.Real
+
+/-!
+# Finite trapezoidal rules and truncation tails
+
+This module constructs finite trapezoidal sums for the LCHS integral and compares omitted
+lattice terms with continuous coefficient tails, supporting the quadrature estimates in
+[AftabAnTrivisa2026]. Evenness, monotonicity, and integrability of the real coefficient norm
+give summability and tail bounds.
+
+The rounded cutoff `cutoff R h` defines the finite rule and its physical radius. The module
+distinguishes the scalar majorizing tail `continuousTail` from the actual matrix error
+`operatorTruncationError`.
+
+## Main statements
+
+* `finite_error_le_continuousTail`: Bounds finite-rule error by mesh error plus continuous tail.
+* `rounded_tail_bounds`: Controls the tail after rounding the cutoff.
+* `operatorTruncationError_le`: Bounds operator truncation by the scalar coefficient tail.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +43,8 @@ open scoped Topology BigOperators Matrix.Norms.L2Operator ComplexOrder
 open Qatlib.Papers.CommutLCHS26.MainResults
 open KernelStrip
 
+/-- For a nonnegative integrable function antitone on `[a, ∞)`, the samples at `a + j + 1` are
+summable and their sum is at most the integral over `(a, ∞)`. -/
 theorem antitone_tail_on (f : ℝ → ℝ) (a : ℝ) (hf : AntitoneOn f (Ici a))
     (hn : ∀ x, 0 ≤ f x) (hi : Integrable f) :
     Summable (fun j : ℕ => f (a + (j + 1 : ℕ))) ∧
@@ -35,12 +61,16 @@ theorem antitone_tail_on (f : ℝ → ℝ) (a : ℝ) (hf : AntitoneOn f (Ici a))
   exact ⟨summable_of_sum_range_le (fun _ => hn _) hb,
     Real.tsum_le_of_sum_range_le (fun _ => hn _) hb⟩
 
+/-- For a nonnegative integrable function antitone on `[0, ∞)`, the samples beyond a nonnegative
+shift `a` are summable and bounded in sum by the integral over `(a, ∞)`. -/
 theorem antitone_tail (f : ℝ → ℝ) (hf : AntitoneOn f (Ici 0))
     (hn : ∀ x, 0 ≤ f x) (hi : Integrable f) {a : ℝ} (ha : 0 ≤ a) :
     Summable (fun j : ℕ => f (a + (j + 1 : ℕ))) ∧
       (∑' j : ℕ, f (a + (j + 1 : ℕ))) ≤ ∫ x in Ioi a, f x :=
   antitone_tail_on f a (hf.mono (fun _ hx => ha.trans hx)) hn hi
 
+/-- For positive `b`, expresses the real-axis coefficient norm as a Gaussian factor divided by
+`sqrt(1 + x ^ 2) * sqrt(b ^ 2 + x ^ 2) ^ n`, with its explicit prefactor. -/
 theorem real_norm (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
     ‖coefficient n b c d (x : ℂ)‖ =
       ((b + 1) ^ n / (2 * Real.pi) * Real.exp (d - 1 / (4 * c ^ 2))) *
@@ -56,6 +86,7 @@ theorem real_norm (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
   simp only [ofReal_im, ofReal_re, zero_pow two_ne_zero, add_zero, mul_one,
     zero_add, neg_div, sub_eq_add_neg]
 
+/-- For positive `b`, the norm of the coefficient on the real axis is antitone on `[0, ∞)`. -/
 theorem real_norm_antitone (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
     AntitoneOn (fun x : ℝ => ‖coefficient n b c d (x : ℂ)‖) (Set.Ici 0) := by
   intro x hx y hy hxy
@@ -75,10 +106,12 @@ theorem real_norm_antitone (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
   exact (div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_left he hC)
     (hDx.le.trans hD)).trans (div_le_div_of_nonneg_left (by positivity) hDx hD)
 
+/-- For positive `b`, the norm of the coefficient on the real axis is even. -/
 theorem real_norm_even (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
     ‖coefficient n b c d ((-x : ℝ) : ℂ)‖ = ‖coefficient n b c d (x : ℂ)‖ := by
   simp only [real_norm n b c d (-x) hb, real_norm n b c d x hb, neg_sq]
 
+/-- For positive `b` and `c`, the real-axis coefficient norm is integrable. -/
 theorem real_norm_integrable (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c) :
     MeasureTheory.Integrable (fun x : ℝ => ‖coefficient n b c d (x : ℂ)‖) := by
   have hf : Continuous (fun x : ℝ => coefficient n b c d (x : ℂ)) := by
@@ -93,6 +126,8 @@ theorem real_norm_integrable (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c) :
     (Or.inr hb) (by norm_num) (z := (x : ℂ)) (by simp)
   simpa only [norm_norm, ofReal_im, ofReal_re, max_self, zero_mul, Real.exp_zero, mul_one] using! h
 
+/-- For positive mesh step, the step-weighted lattice tail of a nonnegative integrable function
+antitone on `[0, ∞)` is bounded by its integral beyond `h * N`. -/
 theorem scaled_antitone_tail (f : ℝ → ℝ) (hf : AntitoneOn f (Ici 0))
     (hn : ∀ x, 0 ≤ f x) (hi : Integrable f) (N : ℕ) {h : ℝ} (hh : 0 < h) :
     Summable (fun j : ℕ => f (h * ((N : ℝ) + (j + 1 : ℕ)))) ∧
@@ -110,10 +145,13 @@ theorem scaled_antitone_tail (f : ℝ → ℝ) (hf : AntitoneOn f (Ici 0))
     mul_inv_cancel₀ hh.ne', one_mul] at hb
   exact hb
 
+/-- Indexes the integer lattice outside `[-N, N]` by two copies of the natural numbers, using
+positive and negative tail indices. -/
 def tailIndex (N : ℕ) : ℕ ⊕ ℕ → {q : ℤ // q ∉ Finset.Icc (-(N : ℤ)) N}
   | Sum.inl j => ⟨(N : ℤ) + j + 1, by simp only [Finset.mem_Icc]; omega⟩
   | Sum.inr j => ⟨-((N : ℤ) + j + 1), by simp only [Finset.mem_Icc]; omega⟩
 
+/-- The positive-and-negative tail indexing map `tailIndex N` is bijective. -/
 theorem tailIndex_bijective (N : ℕ) : Function.Bijective (tailIndex N) := by
   constructor
   · intro x y h
@@ -133,10 +171,14 @@ theorem tailIndex_bijective (N : ℕ) : Function.Bijective (tailIndex N) := by
       simp only [tailIndex]
       omega
 
+/-- The equivalence between two copies of the natural numbers and the integer indices outside
+`[-N, N]` induced by `tailIndex`. -/
 noncomputable def tailEquiv (N : ℕ) : (ℕ ⊕ ℕ) ≃
     {q : ℤ // q ∉ Finset.Icc (-(N : ℤ)) N} :=
   Equiv.ofBijective (tailIndex N) (tailIndex_bijective N)
 
+/-- For positive `b`, `c`, and mesh step, the coefficient norms sampled on the full integer
+lattice are summable. -/
 theorem summable_coefficient_norm (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {h : ℝ} (hh : 0 < h) :
     Summable (fun q : ℤ => ‖coefficient n b c d ((h * (q : ℝ) : ℝ) : ℂ)‖) := by
@@ -159,6 +201,8 @@ theorem summable_coefficient_norm (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 <
     simpa only [Nat.cast_zero, zero_add, Nat.cast_add, Nat.cast_one] using! ht
   exact Summable.of_nat_of_neg_add_one (by simpa only [Int.cast_natCast] using! hp) hm
 
+/-- For positive `b`, `c`, and mesh step, the two-sided coefficient norm tail outside `[-N, N]`
+equals twice its positive tail. -/
 theorem coefficient_tail_eq (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (N : ℕ) {h : ℝ} (hh : 0 < h) :
     (∑' q : {q : ℤ // q ∉ Finset.Icc (-(N : ℤ)) N},
@@ -189,13 +233,17 @@ theorem coefficient_tail_eq (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
       (hs.comp_injective Sum.inl_injective).tsum_sum (hs.comp_injective Sum.inr_injective)
     _ = _ := by rw [hp, hm]; ring
 
+/-- The step-weighted sum of coefficient norms at lattice indices outside `[-N, N]`. -/
 def latticeTail (n : ℕ) (b c d h : ℝ) (N : ℕ) : ℝ :=
   h * ∑' q : {q : ℤ // q ∉ Finset.Icc (-(N : ℤ)) N},
     ‖coefficient n b c d ((h * (q.val : ℝ) : ℝ) : ℂ)‖
 
+/-- Twice the integral of the real-axis coefficient norm over `x > R`. -/
 def continuousTail (n : ℕ) (b c d R : ℝ) : ℝ :=
   2 * ∫ x in Ioi R, ‖coefficient n b c d (x : ℂ)‖
 
+/-- For positive `b`, `c`, and mesh step, the lattice coefficient tail beyond index `N` is
+bounded by the continuous tail beyond `h * N`. -/
 theorem latticeTail_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (N : ℕ) {h : ℝ} (hh : 0 < h) :
     latticeTail n b c d h N ≤ continuousTail n b c d (h * N) := by
@@ -205,6 +253,7 @@ theorem latticeTail_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (fun _ => norm_nonneg _) (real_norm_integrable n b c d hb hc) N hh).2
   nlinarith
 
+/-- For positive `b` and `c`, the continuous coefficient tail is antitone in its radius. -/
 theorem continuousTail_antitone (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c) :
     Antitone (continuousTail n b c d) := by
   intro R S hRS
@@ -217,6 +266,8 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- For Hermitian `H`, positive semidefinite `L`, and nonnegative time, the real-axis matrix
+integrand norm is bounded by the scalar coefficient norm. -/
 theorem norm_real_integrand_le (n : ℕ) (b c d : ℝ)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T : ℝ} (hT : 0 ≤ T) (x : ℝ) :
@@ -227,6 +278,8 @@ theorem norm_real_integrand_le (n : ℕ) (b c d : ℝ)
       norm_propagator_le H L hH hL hT (x : ℂ)
   simpa only [mul_one] using! mul_le_mul_of_nonneg_left hv (norm_nonneg _)
 
+/-- For positive `b`, `c`, and mesh step, the norms of matrix integrand samples on the integer
+lattice are summable under the stated matrix assumptions. -/
 theorem summable_integrand_norm (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T h : ℝ} (hT : 0 ≤ T) (hh : 0 < h) :
@@ -234,10 +287,13 @@ theorem summable_integrand_norm (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c
   (summable_coefficient_norm n b c d hb hc hh).of_nonneg_of_le
     (fun _ => norm_nonneg _) (fun _ => norm_real_integrand_le n b c d H L hH hL hT _)
 
+/-- The finite trapezoidal LCHS sum with mesh step `h` and integer indices from `-N` to `N`. -/
 def finiteIdeal (n : ℕ) (b c d T h : ℝ) (H L : Matrix ι ι ℂ) (N : ℕ) : Matrix ι ι ℂ :=
   h • ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
     integrand n b c d T H L ((h * (q : ℝ) : ℝ) : ℂ)
 
+/-- The norm difference between the infinite mesh sum and the finite trapezoidal rule is bounded
+by the scalar lattice tail under the stated positivity and matrix assumptions. -/
 theorem mesh_sub_finite_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T h : ℝ} (hT : 0 ≤ T) (hh : 0 < h) (N : ℕ) :
@@ -258,6 +314,9 @@ theorem mesh_sub_finite_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (fun q => norm_real_integrand_le n b c d H L hH hL hT _)
     ((summable_coefficient_norm n b c d hb hc hh).subtype _)
 
+/-- Bounds the finite trapezoidal quadrature error by the exponential strip-mass mesh bound plus
+the scalar lattice tail, for an admissible strip displacement. This gives the finite-rule
+estimate associated with [Aftab et al., Proposition 4.14][AftabAnTrivisa2026]. -/
 theorem finite_error_le_latticeTail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ h : ℝ} (hT : 0 ≤ T) (hρ₀ : 0 < ρ) (hρ : ρ < 1)
@@ -270,24 +329,34 @@ theorem finite_error_le_latticeTail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0
     (_root_.add_le_add (integrand_mesh_error n b c d hb hc H L hH hL hT hρ₀ hρ hbn hh)
       (mesh_sub_finite_le n b c d hb hc H L hH hL hT hh N))
 
+/-- The natural-number ceiling of `R / h`, used as the symmetric lattice cutoff. -/
 def cutoff (R h : ℝ) : ℕ := Nat.ceil (R / h)
 
+/-- The physical radius `h * cutoff R h` of the rounded lattice rule. -/
 def radius (R h : ℝ) : ℝ := h * cutoff R h
 
+/-- The symmetric integer interval determined by `cutoff R h` has exactly `2 * cutoff R h + 1`
+nodes. This is the exact node count used in [Aftab et al., Corollary
+4.15][AftabAnTrivisa2026]. -/
 theorem node_count (R h : ℝ) :
     (Finset.Icc (-(cutoff R h : ℤ)) (cutoff R h)).card = 2 * cutoff R h + 1 := by
   rw [Int.card_Icc]
   omega
 
+/-- For positive mesh step, the rounded radius is at least the requested radius `R`. -/
 theorem le_radius (R : ℝ) {h : ℝ} (hh : 0 < h) : R ≤ radius R h := by
   have he := (div_le_iff₀ hh).mp (Nat.le_ceil (R / h))
   simpa only [radius, cutoff, mul_comm] using! he
 
+/-- For nonnegative `R` and positive mesh step, the rounded radius is strictly less than `R +
+h`. -/
 theorem radius_lt_add {R h : ℝ} (hR : 0 ≤ R) (hh : 0 < h) : radius R h < R + h := by
   have he := mul_lt_mul_of_pos_left (Nat.ceil_lt_add_one (div_nonneg hR hh.le)) hh
   have hid : h * (R / h + 1) = R + h := by field_simp
   simpa only [radius, cutoff, hid] using! he
 
+/-- Every retained lattice node has absolute coordinate at most the rounded radius when the mesh
+step is nonnegative. -/
 theorem node_le_radius (R h : ℝ) (hh : 0 ≤ h) (q : ℤ)
     (hq : q ∈ Finset.Icc (-(cutoff R h : ℤ)) (cutoff R h)) :
     |h * (q : ℝ)| ≤ radius R h := by
@@ -295,6 +364,9 @@ theorem node_le_radius (R h : ℝ) (hh : 0 ≤ h) (q : ℤ)
     exact_mod_cast abs_le.mpr (Finset.mem_Icc.mp hq)
   simpa only [abs_mul, abs_of_nonneg hh, radius] using! mul_le_mul_of_nonneg_left hq' hh
 
+/-- Expresses the finite trapezoidal rule as a sum of propagators weighted by the mesh step
+times the scalar coefficient. This gives the propagator weights for the quadrature operator
+in [AftabAnTrivisa2026]. -/
 theorem finiteIdeal_eq_weighted (n : ℕ) (b c d T h : ℝ) (H L : Matrix ι ι ℂ) (N : ℕ) :
     finiteIdeal n b c d T h H L N =
       ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
@@ -307,6 +379,8 @@ theorem finiteIdeal_eq_weighted (n : ℕ) (b c d T h : ℝ) (H L : Matrix ι ι 
   simp only [integrand, Matrix.smul_apply, smul_eq_mul, Complex.real_smul]
   ring
 
+/-- For an admissible strip and positive mesh step, the finite rule at `cutoff R h` has error
+bounded by the exponential strip-mass mesh term plus `continuousTail n b c d R`. -/
 theorem finite_error_le_continuousTail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T ρ h : ℝ} (hT : 0 ≤ T) (hρ₀ : 0 < ρ) (hρ : ρ < 1)
@@ -319,6 +393,8 @@ theorem finite_error_le_continuousTail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc 
   exact _root_.add_le_add le_rfl ((latticeTail_le n b c d hb hc _ hh).trans
     (continuousTail_antitone n b c d hb hc (le_radius R hh)))
 
+/-- The rounded lattice tail is bounded by the continuous tail at the rounded radius, which is
+in turn bounded by the continuous tail at the requested radius. -/
 theorem rounded_tail_bounds (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (R : ℝ) {h : ℝ} (hh : 0 < h) :
     latticeTail n b c d h (cutoff R h) ≤ continuousTail n b c d (radius R h) ∧
@@ -328,6 +404,8 @@ theorem rounded_tail_bounds (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- For nonnegative `R` and positive `b` and `c`, the continuous tail equals the integral of the
+coefficient norm over `|x| > R`. -/
 theorem continuousTail_eq_integral (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     {R : ℝ} (hR : 0 ≤ R) :
     continuousTail n b c d R =
@@ -364,10 +442,14 @@ theorem continuousTail_eq_integral (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 
   rw [hs, setIntegral_union hd measurableSet_Ioi hi.integrableOn hi.integrableOn, hn]
   ring
 
+/-- The norm of the difference between the full matrix integral and its truncation to `[-R, R]`.
+This is the operator truncation quantity used in [AftabAnTrivisa2026]. -/
 def operatorTruncationError (n : ℕ) (b c d T : ℝ) (H L : Matrix ι ι ℂ) (R : ℝ) : ℝ :=
   ‖(∫ x : ℝ, integrand n b c d T H L (x : ℂ)) -
     ∫ x in Icc (-R) R, integrand n b c d T H L (x : ℂ)‖
 
+/-- Under the stated positivity and matrix assumptions, the operator truncation error equals the
+norm of the matrix integral over `|x| > R`. -/
 theorem operatorTruncationError_eq_tail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T : ℝ} (hT : 0 ≤ T) (R : ℝ) :
@@ -382,6 +464,8 @@ theorem operatorTruncationError_eq_tail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc
   unfold operatorTruncationError
   rw [← setIntegral_compl measurableSet_Icc hi, hs]
 
+/-- For nonnegative radius, the operator truncation error is bounded by the scalar continuous
+coefficient tail under the stated positivity and matrix assumptions. -/
 theorem operatorTruncationError_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T R : ℝ} (hT : 0 ≤ T) (hR : 0 ≤ R) :

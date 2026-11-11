@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.MatrixGeometry.TangentProject.EnergyGradient
 import Qatlib.Foundations.MatrixGeometry.TangentProject.ProjectedHessian
 import Qatlib.Papers.RiemCircuit26.HessianGeometry.RiemannianHessian
+
+/-!
+# Cost derivatives on the unitary group
+
+Relates the real part of the matrix cost to `energy` and connects ambient derivatives to the
+unitary-group gradient and Hessian expressions. For Hermitian observable and state data, tangent
+directional derivatives are represented by the real Frobenius pairing and the projected gradient
+derivative is `hessianTangent`. See [LaiEtAl2026].
+
+## Main statements
+
+* `actual_gradient_representation`: represents the tangent derivative of the real cost.
+* `actual_hessian_projected_fderiv`: identifies the projected derivative of the gradient
+  extension.
+
+## References
+
+* [Lai et al., 2026][LaiEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,9 +39,13 @@ namespace Qatlib.Papers.RiemCircuit26.AccessGeometry
 open Qatlib.Papers.RiemCircuit26.HessianGeometry
 open Qatlib.Foundations.MatrixGeometry.TangentProject
 
+/-- The real part of `cost O ψ U` equals `energy O ψ U` [LaiEtAl2026]. -/
 theorem actual_cost_eq {p : ℕ} (O ψ U : Mat p) : (cost O ψ U).re = energy O ψ U := by
   simp only [cost, energy, stateMap, Matrix.mul_assoc]
 
+/-- For Hermitian `O` and `ψ`, unitary `U`, and tangent `V`, the real cost derivative in
+direction `V` is the real Frobenius pairing of `comm O (U * ψ * Uᴴ) * U` with `V`
+[LaiEtAl2026]. -/
 theorem actual_gradient_representation {p : ℕ} (O ψ U V : Mat p)
     (hO : Oᴴ = O) (hψ : ψᴴ = ψ) (hU : U ∈ Matrix.unitaryGroup (Fin p) ℂ)
     (hV : IsTangent U V) :
@@ -35,6 +59,9 @@ theorem actual_gradient_representation {p : ℕ} (O ψ U V : Mat p)
   change realFrob ((2 : ℝ) • (O * U * ψ)) V = realFrob (gradientExtension O ψ U) V
   linarith
 
+/-- For Hermitian data, unitary `U`, and skew-Hermitian `Ω`, the tangent projection of the
+derivative of `gradientExtension` in direction `Ω * U` equals `hessianTangent O (U * ψ * Uᴴ)
+Ω U` [LaiEtAl2026]. -/
 theorem actual_hessian_projected_fderiv {p : ℕ} (O ψ U Ω : Mat p)
     (hO : Oᴴ = O) (hψ : ψᴴ = ψ) (hU : U ∈ Matrix.unitaryGroup (Fin p) ℂ)
     (hΩ : Ωᴴ = -Ω) :
@@ -48,6 +75,8 @@ theorem actual_hessian_projected_fderiv {p : ℕ} (O ψ U Ω : Mat p)
   push_cast
   ring
 
+/-- For Hermitian data, unitary `U`, and skew-Hermitian `Ω`, the corresponding `hessianTangent`
+value is tangent at `U`. -/
 theorem actual_hessian_tangent {p : ℕ} (O ψ U Ω : Mat p)
     (hO : Oᴴ = O) (hψ : ψᴴ = ψ) (hU : U ∈ Matrix.unitaryGroup (Fin p) ℂ)
     (hΩ : Ωᴴ = -Ω) : IsTangent U (hessianTangent O (U * ψ * Uᴴ) Ω U) := by

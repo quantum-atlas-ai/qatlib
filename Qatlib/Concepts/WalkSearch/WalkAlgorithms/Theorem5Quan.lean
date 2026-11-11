@@ -9,6 +9,23 @@ import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
 import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Quan
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+
+/-!
+# Corrected subgraph candidate-search guarantees
+
+This module establishes `theorem5_answer`, the corrected contract for `hAlg`, including sound
+candidate output, a finite-seed failure bound, and a cost estimate retaining the
+collision-solver constant. It also proves `theorem5_unbounded_constant_obstruction`, refuting
+the original contract whose cost bound omits that dependence.
+
+These statements concern the abstract candidate-search component of quantum subgraph search as
+surveyed in [Ambainis2005].
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.WalkSearch.CollisionSearch
@@ -18,6 +35,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- Every candidate returned by `hAlg` satisfies `hCandRel` for the given pattern graph and
+distinguished vertex. -/
 theorem hAlg_sound {n k : ℕ} (adj : Fin n → Fin n → Bool) (H : OGraph k) (hv : Fin k)
     (kcs : KCollisionSolver) (r qH : ℕ) (stape : ℕ → kcs.seed) :
     (match hAlg adj H hv kcs r qH stape with
@@ -29,11 +48,14 @@ theorem hAlg_sound {n k : ℕ} (adj : Fin n → Fin n → Bool) (H : OGraph k) (
     have hv := kcs.sound r (hCandRel adj H hv) (r * r) r qH (stape 0) hr
     simp [hAlg, hr, hv]
 
+/-- The loopless undirected graph on `Fin k` whose edge set is empty. -/
 def emptyOGraph (k : ℕ) : OGraph k where
   edges := ∅
   symm := by intro a b h; cases h
   loopless := by intro a; simp
 
+/-- The original `theorem5` contract is false because its cost constant cannot bound
+collision-solver interfaces with arbitrarily large charges. -/
 theorem theorem5_unbounded_constant_obstruction : ¬ theorem5 := by
   intro h
   obtain ⟨r, hr, _, hu, _, _, hc⟩ := h 1 4 (by norm_num) (by norm_num)
@@ -52,6 +74,8 @@ theorem theorem5_unbounded_constant_obstruction : ¬ theorem5 := by
   rw [heval] at hb
   norm_num at hb
 
+/-- Establishes the corrected subgraph candidate-search contract `Theorem5`, with least-power
+subset sizes and a cost bound retaining the collision-solver constant; see [Ambainis2005]. -/
 theorem theorem5_answer : Theorem5 := by
   intro n k hk hn H hv adj kcs qH _hκ
   obtain ⟨r, hr, hl, hu⟩ := correctedSubsetWindow (n^(k-1)) k

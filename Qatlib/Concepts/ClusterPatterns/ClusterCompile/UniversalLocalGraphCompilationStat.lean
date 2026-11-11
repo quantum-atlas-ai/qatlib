@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+/-!
+# Specification of universal local graph compilation
+
+This module defines `UniversalLocalGraphCompilation` for legal lists of single-qubit and CNOT
+gates, expressing the one-way compilation objective of [RaussendorfBriegel2000]. The
+specification combines network legality and counts, logical semantics up to a unit-norm scalar,
+uniformly weighted instrument branches, finite-reference output, and exact leaf execution costs.
+
+## Main statements
+
+* `UniversalLocalGraphCompilation`: For local counts `a` and `b`, requires `4*a + 2*b`
+  measurements and at most `16*a + 10*b + 2*n` gates per accepted leaf.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +44,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The specification of graph compilation for legal local gate lists, including exact network
+counts, logical semantics up to phase, uniform instrument branches, finite-reference output,
+and leaf resource bounds. -/
 def UniversalLocalGraphCompilation : Prop :=
   ∀ (n : ℕ) (gs : List (ReflectionGate n)), reflectionLegal gs →
     let G := mbqcGraphWord gs

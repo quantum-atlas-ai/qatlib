@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAARobust
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFLongTime
+
+/-!
+# Accuracy of amplified multi-product blocks
+
+This module turns raw slice error estimates into scale-one block encodings for the amplified
+multi-product construction of [AftabAnTrivisa2026]. With the chosen segment count and 0 < ε ≤ 1,
+compressed block powers approximate the full-time target within ε/12, and each measured slice
+has failure probability at most ε/(6r).
+
+## Main statements
+
+* `slice_encoding`: gives the scale-one encoding for a single slice.
+* `block_power_error`: bounds the full-time compressed block error.
+* `slice_failure`: bounds the per-slice failure probability.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -31,6 +51,8 @@ variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K]
 
 omit [DecidableEq K] in
 
+/-- For the chosen segment count r, the raw multi-product slice error is at most ε/(12πr) under
+the stated Hermitian and cancellation hypotheses. -/
 theorem raw_slice_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (ha : ∑ j, a j = 1)
     (m : ℕ) (hm : 0 < m) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -57,12 +79,15 @@ theorem raw_slice_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ =
 
 omit [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K] in
 
+/-- For positive r and ε ≤ 1, the slice budget ε/(12πr) is at most 1/5. -/
 theorem slice_budget_small (ε : ℝ) (hε1 : ε ≤ 1) (r : ℕ) (hr : 0 < r) :
     ε / (12 * Real.pi * (r : ℝ)) ≤ 1 / 5 := by
   have hrR : (1 : ℝ) ≤ (r : ℝ) := by exact_mod_cast hr
   apply (div_le_iff₀ (by positivity : 0 < 12 * Real.pi * (r : ℝ))).mpr
   nlinarith [Real.pi_gt_three]
 
+/-- Under the stated hypotheses and 0 < ε ≤ 1, the amplified slice is a scale-one block encoding
+of the exact slice with error ε/(12r). -/
 theorem slice_encoding (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (ha : ∑ j, a j = 1)
     (m : ℕ) (hm : 0 < m) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -88,10 +113,13 @@ theorem slice_encoding (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = 
     _ ≤ Real.pi * (ε / (12 * Real.pi * (r : ℝ))) := mul_le_mul_of_nonneg_left he Real.pi_pos.le
     _ = _ := by change Real.pi * (ε / (12 * Real.pi * (r : ℝ))) = ε / (12 * (r : ℝ)); field_simp
 
+/-- The compression of the amplified multi-product operator to its scaled frame. -/
 def block (xs : List (Matrix I I ℂ)) (q : K → ℕ) (a : K → ℝ) (t : ℝ) : Matrix I I ℂ :=
   compress (scaleEightFrame (MPFOAALCU.frame a)) (MPFOAALCU.amplified xs q a t)
     (scaleEightFrame (MPFOAALCU.frame a))
 
+/-- The r-th power of the compressed amplified slice approximates the full-time target
+exponential within ε/12. -/
 theorem block_power_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (ha : ∑ j, a j = 1)
     (m : ℕ) (hm : 0 < m) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -113,6 +141,8 @@ theorem block_power_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ
   rw [Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF.target_power _ T r hr] at hb
   exact hb.trans (by apply le_of_eq; field_simp)
 
+/-- For a normalized input, a chosen amplified slice has postselection failure probability at
+most ε/(6r). -/
 theorem slice_failure (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (ha : ∑ j, a j = 1)
     (m : ℕ) (hm : 0 < m) (hmom : ∀ k, 0 < k → k < m → coefficientWeight q a k = 0)
@@ -141,6 +171,8 @@ theorem slice_failure (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A
 
 omit [Fintype K] [DecidableEq K] in
 
+/-- For the Chebyshev construction, the repeated compressed amplified slice approximates the
+full-time target within ε/12. -/
 theorem chebyshev_block_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (m : ℕ) (hm : 0 < m) (T ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ‖block xs (ChebyshevNodes.node m) (ChebyshevNodes.weight m)
@@ -154,6 +186,8 @@ theorem chebyshev_block_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, 
 
 omit [Fintype K] [DecidableEq K] in
 
+/-- For a normalized input, the amplified Chebyshev slice has postselection failure probability
+at most ε/(6r). -/
 theorem chebyshev_slice_failure (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (m : ℕ) (hm : 0 < m) (T ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ψ : QState I) (hψ : Normalized ψ) :

@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.PrnJump.SharedLayout
+
+/-!
+# Native compiled LCG jump circuits
+
+This module compiles each controlled affine LCG step into native reflection gates using a shared
+arithmetic workspace. `nativeWord` concatenates these steps over the exponent positions,
+implementing the coherent PRN jump needed by the Monte Carlo construction of [KanekoEtAl2020].
+
+The basis theorems preserve the exponent bits and restore the clean frame around the updated
+residue. The resource theorems give legality, explicit length bounds, zero query count, and an
+inverse word of the same length.
+
+## Main statements
+
+* `full_native_basis`: identifies the full native circuit with the indexed LCG iterate.
+* `strided_native_basis`: implements strided jumps with the full exponent width.
+* `native_resources`: bounds native length and states exact circuit counts.
+* `native_inverse`: establishes the adjoint-word inverse identity.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -24,12 +48,18 @@ open Qatlib.Papers.MonteCarloInt20.PrnJump.NativeArithmetic
 open Qatlib.Papers.MonteCarloInt20.PrnJump.Shared
 open Qatlib.Papers.MonteCarloInt20.PrnJump.Affine
 
+/-- The total native register width for residue and exponent inputs, shared
+multiplication/addition scratch, and an equally sized output workspace. -/
 abbrev width (n k : ℕ) := ((n+1)+k)+max (mulScratch (n+1) k) (addScratch (n+1) k)+((n+1)+k)
 
+/-- The native input frame containing an encoded residue and exponent bits, with scratch and
+output workspace initialized to zero. -/
 def frame {n k : ℕ} (bits : Reg k) (x : ZMod (2^n)) : Reg (width n k) :=
   booleanDAGInput ((n+1)+k) (commonScratch (n+1) k) ((n+1)+k)
     (Fin.append (encode n x) bits) (fun _ => false)
 
+/-- On a clean frame, the compiled shared-workspace multiplication applies the unit multiplier
+exactly when control bit `q` is true and preserves the frame layout. -/
 theorem mul_basis {n k : ℕ} (q : Fin k) (a : (ZMod (2^n))ˣ) (x : ZMod (2^n)) (bits : Reg k) :
     Run 1 (reflectionCompile (commonMul (n+1) k q (encode n (a:ZMod (2^n))) (modulusBits n)))
       (Ket (frame bits x)) = Ket (frame bits (if bits q then (a:ZMod (2^n))*x else x)) := by
@@ -45,6 +75,8 @@ theorem mul_basis {n k : ℕ} (q : Fin k) (a : (ZMod (2^n))ˣ) (x : ZMod (2^n)) 
   · have hb' : bits q = false := Bool.eq_false_iff.mpr hb
     simpa only [frame,hb',Bool.false_eq_true,ite_false] using! h
 
+/-- On a clean frame, the compiled shared-workspace addition adds `c` exactly when control bit
+`q` is true and preserves the frame layout. -/
 theorem add_basis {n k : ℕ} (q : Fin k) (c x : ZMod (2^n)) (bits : Reg k) :
     Run 1 (reflectionCompile (commonAdd (n+1) k q (encode n c) (modulusBits n)))
       (Ket (frame bits x)) = Ket (frame bits (if bits q then x+c else x)) := by
@@ -55,11 +87,15 @@ theorem add_basis {n k : ℕ} (q : Fin k) (c x : ZMod (2^n)) (bits : Reg k) :
   · have hb' : bits q = false := Bool.eq_false_iff.mpr hb
     simpa only [frame,hb',Bool.false_eq_true,ite_false] using! h
 
+/-- The native reflection word for the controlled multiplication and addition implementing the
+power-of-two LCG step at bit `q`. -/
 noncomputable def rung {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (q : Fin k) :
     List (ReflectionGate (width n k)) :=
   commonMul (n+1) k q (encode n ((powerPair n a c q.val).1:ZMod (2^n))) (modulusBits n) ++
   commonAdd (n+1) k q (encode n (powerPair n a c q.val).2) (modulusBits n)
 
+/-- On a clean frame, one native rung applies `2 ^ q.val` LCG steps when bit `q` is true and
+otherwise leaves the residue unchanged. -/
 theorem rung_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c x : ZMod (2^n)) (q : Fin k) (bits : Reg k) :
     Run 1 (reflectionCompile (rung a c q)) (Ket (frame bits x)) =
       Ket (frame bits (if bits q then lcg (a:ZMod (2^n)) c x (2^q.val) else x)) := by
@@ -77,9 +113,12 @@ theorem rung_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c x : ZMod (2^n)) (q : Fin 
   · have hb' : bits q = false := Bool.eq_false_iff.mpr hb
     simp only [hb',Bool.false_eq_true,ite_false]
 
+/-- Concatenate the native controlled affine rungs over the supplied list of exponent positions. -/
 noncomputable def nativeWord {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (qs : List (Fin k)) :
     List (ReflectionGate (width n k)) := qs.flatMap (rung a c)
 
+/-- The compiled native word preserves the exponent bits and updates the framed residue by the
+LCG iterate with exponent `exponent qs bits`. -/
 theorem native_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n))
     (qs : List (Fin k)) (bits : Reg k) (x : ZMod (2^n)) :
     Run 1 (reflectionCompile (nativeWord a c qs)) (Ket (frame bits x)) =
@@ -94,11 +133,15 @@ theorem native_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n))
     · rw [ih]
       simp only [exponent,List.map_cons,List.sum_cons,h,if_true,lcg_restart]
 
+/-- Using all exponent positions, the compiled native jump advances the framed residue by the
+unsigned value of the exponent word and restores the remaining frame [KanekoEtAl2020]. -/
 theorem full_native_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c x : ZMod (2^n)) (bits : Reg k) :
     Run 1 (reflectionCompile (nativeWord a c (List.ofFn (fun q : Fin k => q)))) (Ket (frame bits x)) =
       Ket (frame bits (lcg (a:ZMod (2^n)) c x (booleanWordLSBValue k bits))) := by
   simpa only [exponent_all] using! native_basis a c (List.ofFn (fun q : Fin k => q)) bits x
 
+/-- For positive coordinate width, the compiled native word over `s + d + 1` bits performs the
+LCG jump to the encoded strided sample-coordinate position. -/
 theorem strided_native_basis (n s d : ℕ) (hd : 0<d) (a : (ZMod (2^n))ˣ) (c x : ZMod (2^n))
     (j : Fin (2^s)) (i : Fin (2^d+1)) :
     let bits := Bits.ofNat (s+d+1) (strided (2^d) j i)
@@ -107,8 +150,10 @@ theorem strided_native_basis (n s d : ℕ) (hd : 0<d) (a : (ZMod (2^n))ˣ) (c x 
   (try dsimp only)
   rw [full_native_basis,Bits.ofNat_value,Nat.mod_eq_of_lt (strided_bit_bound s d hd j i)]
 
+/-- The native rung-length bound `6660 * (n + 1) ^ 2 + 5770 * (n + 1) + 370 * k + 2400`. -/
 def rungBound (n k : ℕ) := 6660*(n+1)^2+5770*(n+1)+370*k+2400
 
+/-- Each native rung is legal and has length at most `rungBound n k`. -/
 theorem rung_resources {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (q : Fin k) :
     reflectionLegal (rung a c q) ∧ (rung a c q).length ≤ rungBound n k := by
   let aa := encode n ((powerPair n a c q.val).1:ZMod (2^n))
@@ -125,6 +170,8 @@ theorem rung_resources {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (q : Fi
   dsimp only [rungBound]
   omega
 
+/-- The native word is legal and has length at most `qs.length * rungBound n k`; its compiled
+circuit uses zero queries and one known gate per word element. -/
 theorem native_resources {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (qs : List (Fin k)) :
     reflectionLegal (nativeWord a c qs) ∧
     (nativeWord a c qs).length ≤ qs.length*rungBound n k ∧
@@ -141,10 +188,13 @@ theorem native_resources {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (qs :
       omega
   exact ⟨h.1,h.2,queryCount_reflectionCompile _,gateCount_reflectionCompile _⟩
 
+/-- The compiled native jump word is a unitary circuit. -/
 theorem native_unitary {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (qs : List (Fin k)) :
     IsUnitaryCircuit (reflectionCompile (nativeWord a c qs)) :=
   (local_reflection_gate_support_unitarity_counts _ _ (native_resources a c qs).1).1
 
+/-- The adjoint native word evaluates to a left inverse of the original native-word matrix and
+has the same length. -/
 theorem native_inverse {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) (qs : List (Fin k)) :
     reflectionProgramMatrix (reflectionAdjoint (nativeWord a c qs))*reflectionProgramMatrix (nativeWord a c qs)=1 ∧
     (reflectionAdjoint (nativeWord a c qs)).length = (nativeWord a c qs).length := by

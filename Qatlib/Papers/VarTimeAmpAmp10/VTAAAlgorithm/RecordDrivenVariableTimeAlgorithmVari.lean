@@ -13,6 +13,27 @@ import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenSectorTransport
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenWindowBounds
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenBornTransport
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenFinalRoundCalibration
+
+/-!
+# Verification of the record-driven variable-time algorithm
+
+This module proves `RecordDrivenVariableTimeAlgorithm` for the record-driven construction
+associated with [Ambainis2012]. The proof handles pipelines of length at most sixteen separately
+from longer pipelines, combines median estimation with cascade gain bounds, and establishes the
+specified good-record, success, direction, and time guarantees.
+
+## Main statements
+
+* `rdvt_chain_large`: live-mass and gain-product bounds for longer pipelines.
+* `rdvt_chain_small`: zero prefix amplification and exact cost for short pipelines.
+* `recordDrivenVariableTimeAlgorithm_answer`: verification of the full record-driven
+  specification.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -39,6 +60,7 @@ variable {C : Type} [Fintype C] [DecidableEq C]
 
 omit [DecidableEq C] in
 
+/-- Measurement mass on any sector is nonnegative. -/
 theorem rdvt_measure_nonneg (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     0 ≤ MeasureProb ψ S := by
   unfold MeasureProb BornProb
@@ -46,6 +68,9 @@ theorem rdvt_measure_nonneg (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
 
 set_option maxHeartbeats 4000000 in
 
+/-- For a legal supported pipeline with more than sixteen stages, the stated success floor and
+recordwise estimation bounds yield domination of original live masses, the positive-prefix
+floor `1 / (7 * m)`, and the displayed product-of-gains comparison. -/
 private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (hl : GrowingVtLegal stages history) (hm : 1 ≤ stages.length)
@@ -472,6 +497,9 @@ private theorem rdvt_chain_large {C : Type} [Fintype C] [DecidableEq C]
 
 set_option maxHeartbeats 4000000 in
 
+/-- For a legal supported pipeline of at most sixteen stages under the stated stopping and
+success hypotheses, the record-driven schedule is zero, cascade live masses equal the
+original live masses, and full cascade time is `2 ^ m - 1`. -/
 private theorem rdvt_chain_small {C : Type} [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C)
     (hl : GrowingVtLegal stages history) (_hm : 1 ≤ stages.length)
@@ -562,6 +590,7 @@ private theorem rdvt_chain_small {C : Type} [Fintype C] [DecidableEq C]
     geom_sum_Ico (by norm_num : (2:ℝ) ≠ 1) (Nat.zero_le stages.length)]
   norm_num
 
+/-- The sorted median of an odd family of values in `[0, 1]` also lies in `[0, 1]`. -/
 private theorem rdvt_sorted_median_mem {r : ℕ} {v : Fin (2*r+1) → ℝ}
     (hb : ∀ i, v i ∈ Set.Icc (0:ℝ) 1) :
     sortedBlockMedian r v ∈ Set.Icc (0:ℝ) 1 := by
@@ -578,6 +607,7 @@ private theorem rdvt_sorted_median_mem {r : ℕ} {v : Fin (2*r+1) → ℝ}
   have hfin : (insertionSortCounted (List.ofFn v)).1.getD r 0 ∈ Set.Icc (0:ℝ) 1 := hi ▸ hb i
   exact hfin
 
+/-- Every record-driven median estimate lies in `[0, 1]`. -/
 private theorem rdvt_median_range (M : ℕ) (l : RecordDrivenLabels M) :
     recordDrivenEstimate M l ∈ Set.Icc (0:ℝ) 1 := by
   show sortedBlockMedian (recordDrivenRepetitions M)
@@ -590,6 +620,9 @@ private theorem rdvt_median_range (M : ℕ) (l : RecordDrivenLabels M) :
 
 set_option maxHeartbeats 4000000 in
 
+/-- The record-driven construction satisfies `RecordDrivenVariableTimeAlgorithm`, the stated
+finite-record amplification specification associated with [Ambainis, Algorithm
+3][Ambainis2012]. -/
 theorem recordDrivenVariableTimeAlgorithm_answer : RecordDrivenVariableTimeAlgorithm := by
   intro C _ _ stages history hl hm j₀ hj hs m Ψ p hrun hfloor
   refine ⟨(recordDrivenLaw_probability stages history j₀ hl).1,

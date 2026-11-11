@@ -9,6 +9,26 @@ import Mathlib.Analysis.Calculus.SmoothSeries
 import Mathlib.Analysis.Calculus.Deriv.Pow
 import Mathlib.Analysis.Normed.Module.Basic
 
+/-!
+# Kummer's differential equation
+
+This module defines `confHyper` by its confluent hypergeometric power series, together with the
+reindexed derivative series `confHyperDeriv` and `confHyperSecond`. Under nonvanishing
+conditions on all shifted parameters, it justifies differentiation and proves Kummer's
+differential equation. Such analytic solutions form infrastructure for evolution equations, with
+quantum annealing as a motivating application area [KadowakiNishimori1998].
+
+## Main statements
+
+* `hasDerivAt_confHyper`: identify the first derivative of the series sum.
+* `hasDerivAt_confHyperDeriv`: identify its second derivative.
+* `kummer_equation`: prove `zF'' + (b - z)F' - aF = 0`.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,14 +37,21 @@ namespace Qatlib.Foundations.SpecialFuncs.KummerODE
 open Complex Filter
 open scoped Topology
 
+/-- The confluent hypergeometric function defined as the infinite sum of `confCoeff a b n * z ^
+n`. -/
 def confHyper (a b z : ℂ) : ℂ := ∑' n : ℕ, confCoeff a b n * z ^ n
 
+/-- The power series obtained by formally differentiating the confluent hypergeometric series
+once and reindexing. -/
 def confHyperDeriv (a b z : ℂ) : ℂ :=
   ∑' n : ℕ, confCoeff a b (n + 1) * ((n : ℂ) + 1) * z ^ n
 
+/-- The power series obtained by formally differentiating the confluent hypergeometric series
+twice and reindexing. -/
 def confHyperSecond (a b z : ℂ) : ℂ :=
   ∑' n : ℕ, confCoeff a b (n + 2) * ((n : ℂ) + 2) * ((n : ℂ) + 1) * z ^ n
 
+/-- The confluent hypergeometric series has value one at zero. -/
 theorem confHyper_zero (a b : ℂ) : confHyper a b 0 = 1 := by
   unfold confHyper
   rw [tsum_eq_single 0]
@@ -32,6 +59,8 @@ theorem confHyper_zero (a b : ℂ) : confHyper a b 0 = 1 := by
   · intro n hn
     rw [zero_pow hn, mul_zero]
 
+/-- Under the shifted-parameter nonvanishing hypotheses and `S ≥ 1`, the norms of the reindexed
+first-derivative terms weighted by `S ^ n` are summable. -/
 theorem summable_norm_confCoeff_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (S : ℝ) (hS : 1 ≤ S) :
     Summable (fun n : ℕ => ‖confCoeff a b (n + 1)‖ * ((n : ℝ) + 1) * S ^ n) := by
@@ -47,6 +76,7 @@ theorem summable_norm_confCoeff_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + 
   have hfac : (0 : ℝ) ≤ ‖confCoeff a b (n + 1)‖ * ((n : ℝ) + 1) := by positivity
   exact mul_le_mul_of_nonneg_left hSpow hfac
 
+/-- For every natural `n`, the real number `n + 1` is bounded by `4 * 2 ^ n`. -/
 theorem natCast_add_one_le_four_mul_two_pow (n : ℕ) : (n : ℝ) + 1 ≤ 4 * 2 ^ n := by
   induction n with
   | zero => norm_num
@@ -57,6 +87,8 @@ theorem natCast_add_one_le_four_mul_two_pow (n : ℕ) : (n : ℝ) + 1 ≤ 4 * 2 
       rw [hcast, pow_succ]
       nlinarith
 
+/-- Under the shifted-parameter nonvanishing hypotheses and `T ≥ 1`, the series with terms
+`‖confCoeff a b (n + 2)‖ * (n + 2) * T ^ n` is summable. -/
 theorem summable_norm_confCoeff_succ_succ_mul_pow_base (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (T : ℝ) (hT : 1 ≤ T) :
     Summable (fun n : ℕ => ‖confCoeff a b (n + 2)‖ * ((n : ℝ) + 2) * T ^ n) := by
@@ -72,6 +104,8 @@ theorem summable_norm_confCoeff_succ_succ_mul_pow_base (a b : ℂ) (ha : ∀ n :
   field_simp
   ring
 
+/-- Under the shifted-parameter nonvanishing hypotheses and `S ≥ 1`, the norms of the reindexed
+second-derivative terms weighted by `S ^ n` are summable. -/
 theorem summable_norm_confCoeff_succ_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (S : ℝ) (hS : 1 ≤ S) :
     Summable (fun n : ℕ => ‖confCoeff a b (n + 2)‖ * ((n : ℝ) + 2) * ((n : ℝ) + 1) * S ^ n) := by
@@ -94,6 +128,8 @@ theorem summable_norm_confCoeff_succ_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ,
         mul_le_mul_of_nonneg_left hle hc
     _ = 4 * (‖confCoeff a b (n + 2)‖ * ((n : ℝ) + 2) * (2 * S) ^ n) := by ring
 
+/-- Under the shifted-parameter nonvanishing hypotheses and `R ≥ 1`, the series with terms
+`‖confCoeff a b n‖ * n * R ^ (n - 1)` is summable. -/
 theorem summable_norm_confCoeff_nat_mul_pow_pred (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (R : ℝ) (hR : 1 ≤ R) :
     Summable (fun n : ℕ => ‖confCoeff a b n‖ * (n : ℝ) * R ^ (n - 1)) := by
@@ -118,6 +154,8 @@ theorem summable_norm_confCoeff_nat_mul_pow_pred (a b : ℂ) (ha : ∀ n : ℕ, 
       = ‖confCoeff a b n‖ * ((n : ℝ) * R ^ (n - 1)) := by ring
     _ ≤ ‖confCoeff a b n‖ * (2 * (1 + R)) ^ n := mul_le_mul_of_nonneg_left hkey hc
 
+/-- Under the shifted-parameter nonvanishing hypotheses and `R ≥ 1`, the series with terms
+`‖confCoeff a b (n + 1)‖ * (n + 1) * n * R ^ (n - 1)` is summable. -/
 theorem summable_norm_confCoeff_succ_mul_pow_pred (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (R : ℝ) (hR : 1 ≤ R) :
     Summable (fun n : ℕ =>
@@ -144,11 +182,14 @@ theorem summable_norm_confCoeff_succ_mul_pow_pred (a b : ℂ) (ha : ∀ n : ℕ,
     _ ≤ (‖confCoeff a b (n + 1)‖ * ((n : ℝ) + 1)) * (2 * (1 + R)) ^ n :=
         mul_le_mul_of_nonneg_left hkey hc
 
+/-- The complex norm of a natural number plus one equals that positive real number. -/
 theorem norm_natCast_add_one (n : ℕ) : ‖(n : ℂ) + 1‖ = (n : ℝ) + 1 := by
   rw [show ((n : ℂ) + 1) = ((n + 1 : ℕ) : ℂ) by push_cast; ring, Complex.norm_natCast]
   push_cast
   ring
 
+/-- Under the shifted-parameter nonvanishing hypotheses, the termwise derivative series of
+`confHyper` is summable at every complex point. -/
 theorem summable_confCoeff_deriv_mul (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     Summable (fun n : ℕ => confCoeff a b n * (n : ℂ) * z ^ (n - 1)) := by
@@ -165,6 +206,8 @@ theorem summable_confCoeff_deriv_mul (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     pow_le_pow_left₀ (norm_nonneg _) hzR (n - 1)
   exact mul_le_mul_of_nonneg_left hle (by positivity)
 
+/-- Under the shifted-parameter nonvanishing hypotheses, the reindexed first-derivative series
+is summable at every complex point. -/
 theorem summable_confCoeff_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     Summable (fun n : ℕ => confCoeff a b (n + 1) * ((n : ℂ) + 1) * z ^ n) := by
@@ -180,6 +223,8 @@ theorem summable_confCoeff_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠
   have hle : ‖z‖ ^ n ≤ R ^ n := pow_le_pow_left₀ (norm_nonneg _) hzR n
   exact mul_le_mul_of_nonneg_left hle (by positivity)
 
+/-- Under the shifted-parameter nonvanishing hypotheses, the termwise derivative series of
+`confHyperDeriv` is summable at every complex point. -/
 theorem summable_confCoeff_succ_deriv_mul (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     Summable (fun n : ℕ => confCoeff a b (n + 1) * ((n : ℂ) + 1) * (n : ℂ) * z ^ (n - 1)) := by
@@ -196,6 +241,8 @@ theorem summable_confCoeff_succ_deriv_mul (a b : ℂ) (ha : ∀ n : ℕ, a + n �
     pow_le_pow_left₀ (norm_nonneg _) hzR (n - 1)
   exact mul_le_mul_of_nonneg_left hle (by positivity)
 
+/-- Under the shifted-parameter nonvanishing hypotheses, the reindexed second-derivative series
+is summable at every complex point. -/
 theorem summable_confCoeff_succ_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     Summable (fun n : ℕ => confCoeff a b (n + 2) * ((n : ℂ) + 2) * ((n : ℂ) + 1) * z ^ n) := by
@@ -216,6 +263,8 @@ theorem summable_confCoeff_succ_succ_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + 
   have hle : ‖z‖ ^ n ≤ R ^ n := pow_le_pow_left₀ (norm_nonneg _) hzR n
   exact mul_le_mul_of_nonneg_left hle (by positivity)
 
+/-- Under the shifted-parameter nonvanishing hypotheses, `confHyperDeriv` equals the unreindexed
+termwise derivative sum of `confHyper`. -/
 theorem confHyperDeriv_eq_tsum (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     confHyperDeriv a b z = ∑' n : ℕ, confCoeff a b n * (n : ℂ) * z ^ (n - 1) := by
@@ -231,6 +280,8 @@ theorem confHyperDeriv_eq_tsum (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
   push_cast
   ring
 
+/-- Under the shifted-parameter nonvanishing hypotheses, `confHyperSecond` equals the
+unreindexed termwise derivative sum of `confHyperDeriv`. -/
 theorem confHyperSecond_eq_tsum (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     confHyperSecond a b z
@@ -250,6 +301,8 @@ theorem confHyperSecond_eq_tsum (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
   push_cast
   ring
 
+/-- Under the shifted-parameter nonvanishing hypotheses, `confHyper` has complex derivative
+`confHyperDeriv` at every point. -/
 theorem hasDerivAt_confHyper (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     HasDerivAt (confHyper a b) (confHyperDeriv a b z) z := by
@@ -288,6 +341,8 @@ theorem hasDerivAt_confHyper (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
   rw [← confHyperDeriv_eq_tsum a b ha hb z] at hmain
   exact hmain
 
+/-- Under the shifted-parameter nonvanishing hypotheses, `confHyperDeriv` has complex derivative
+`confHyperSecond` at every point. -/
 theorem hasDerivAt_confHyperDeriv (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     HasDerivAt (confHyperDeriv a b) (confHyperSecond a b z) z := by
@@ -328,6 +383,9 @@ theorem hasDerivAt_confHyperDeriv (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
   rw [← confHyperSecond_eq_tsum a b ha hb z] at hmain
   exact hmain
 
+/-- Under the shifted-parameter nonvanishing hypotheses, the series-defined confluent
+hypergeometric function satisfies Kummer's equation `zF'' + (b - z)F' - aF = 0` at every
+complex point. -/
 theorem kummer_equation (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     z * deriv (deriv (confHyper a b)) z + (b - z) * deriv (confHyper a b) z

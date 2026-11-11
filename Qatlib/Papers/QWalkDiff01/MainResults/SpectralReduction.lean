@@ -8,6 +8,30 @@ import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
 import Qatlib.Papers.QWalkDiff01.MainResults.Defs
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Tactic
+
+/-!
+# Spectral reduction of the glued-tree Hamiltonian
+
+The reduced glued-tree Hamiltonian is expressed as a diagonal matrix plus nearest-neighbor
+shifts and shown to commute with column reversal. For nonzero coupling, the eigenvector
+recurrence forces each eigenspace to be spanned by any of its nonzero vectors and relates
+endpoint coordinates by a sign.
+
+These facts give equal-magnitude endpoint overlaps and the reciprocal lower bound for the
+root-to-root limiting distribution in [ChildsFarhiGutmann2002].
+
+## Main statements
+
+* `reducedHamiltonian_shift_decomp`: gives the tridiagonal decomposition.
+* `eigenspace_subsingleton`: shows proportionality of vectors with the same eigenvalue.
+* `reducedHamiltonian_rightRoot_lower_bound`: bounds the limiting distribution below by `1 / (2
+  * n + 1)`.
+
+## References
+
+* [Childs et al., 2002][ChildsFarhiGutmann2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,33 +43,43 @@ open scoped BigOperators InnerProductSpace RealInnerProductSpace
 
 namespace Qatlib.Papers.QWalkDiff01.MainResults
 
+/-- Column reversal on `Fin (2 * n + 1)`, sending `j` to `2 * n - j`. -/
 def revFin (n : ℕ) (j : Fin (2*n+1)) : Fin (2*n+1) := ⟨2*n - j.val, by omega⟩
 
+/-- The value of a reversed column index is `2 * n - j.val`. -/
 @[simp] lemma revFin_val (n : ℕ) (j : Fin (2*n+1)) : (revFin n j).val = 2*n - j.val := rfl
 
+/-- Reversing a column index twice returns the original index. -/
 lemma revFin_involutive (n : ℕ) (j : Fin (2*n+1)) : revFin n (revFin n j) = j := by
   ext
   simp [revFin]
   omega
 
+/-- Column reversal sends the left endpoint to the right endpoint. -/
 lemma revFin_zero (n : ℕ) : revFin n 0 = ⟨2*n, by omega⟩ := by
   ext
   simp [revFin]
 
+/-- The matrix with ones on the first superdiagonal and zeros elsewhere. -/
 def upShift (m : ℕ) : Matrix (Fin m) (Fin m) ℝ := fun j k => if j.val + 1 = k.val then 1 else 0
 
+/-- The matrix with ones on the first subdiagonal and zeros elsewhere. -/
 def downShift (m : ℕ) : Matrix (Fin m) (Fin m) ℝ := fun j k => if k.val + 1 = j.val then 1 else 0
 
+/-- The downward shift is the transpose of the upward shift. -/
 lemma downShift_eq_transpose (m : ℕ) : downShift m = (upShift m)ᵀ := by
   ext j k
   simp [upShift, downShift, eq_comm]
 
+/-- The transpose of the upward shift equals the downward shift. -/
 lemma upShift_eq_transpose_downShift (m : ℕ) : (upShift m)ᵀ = downShift m :=
   (downShift_eq_transpose m).symm
 
+/-- The transpose of the downward shift equals the upward shift. -/
 lemma downShift_transpose (m : ℕ) : (downShift m)ᵀ = upShift m := by
   rw [downShift_eq_transpose, Matrix.transpose_transpose]
 
+/-- The upward shift reads the next coordinate, using zero beyond the final index. -/
 lemma upShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
     (upShift m *ᵥ v) j = if h : j.val + 1 < m then v ⟨j.val + 1, h⟩ else 0 := by
   unfold Matrix.mulVec dotProduct upShift
@@ -66,6 +100,7 @@ lemma upShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
       exact h (he ▸ x.isLt)
     simp [hne]
 
+/-- The downward shift reads the preceding coordinate, using zero at index zero. -/
 lemma downShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
     (downShift m *ᵥ v) j = if h : 0 < j.val then v ⟨j.val - 1, by omega⟩ else 0 := by
   unfold Matrix.mulVec dotProduct downShift
@@ -88,9 +123,13 @@ lemma downShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
     have hne : x.val + 1 ≠ j.val := by omega
     simp [hne]
 
+/-- The diagonal coefficient of the reduced Hamiltonian: `2 * γ` at the endpoints and middle
+column, and `3 * γ` elsewhere. -/
 def gapDiag (n : ℕ) (γ : ℝ) (j : Fin (2*n+1)) : ℝ :=
   if j.val = 0 ∨ j.val = n ∨ j.val = 2*n then 2*γ else 3*γ
 
+/-- The reduced Hamiltonian is its diagonal part plus `-√2 * γ` times the sum of the two
+nearest-neighbor shifts. -/
 theorem reducedHamiltonian_shift_decomp (n : ℕ) (γ : ℝ) :
     reducedHamiltonian n γ =
       Matrix.diagonal (gapDiag n γ) +
@@ -109,6 +148,8 @@ theorem reducedHamiltonian_shift_decomp (n : ℕ) (γ : ℝ) :
       · simp [hij, h1, h2]
       · simp [hij, h1, h2]
 
+/-- Matrix multiplication by the reduced Hamiltonian is the diagonal contribution plus the two
+adjacent-coordinate contributions. -/
 lemma reducedHamiltonian_mulVec (n : ℕ) (γ : ℝ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
     (reducedHamiltonian n γ *ᵥ v) j = gapDiag n γ j * v j +
       (-Real.sqrt 2 * γ) * ((if h : j.val + 1 < 2*n+1 then v ⟨j.val + 1, h⟩ else 0)
@@ -117,6 +158,7 @@ lemma reducedHamiltonian_mulVec (n : ℕ) (γ : ℝ) (v : Fin (2*n+1) → ℝ) (
   simp only [Matrix.add_mulVec, Matrix.smul_mulVec, Pi.add_apply, Pi.smul_apply,
     Matrix.mulVec_diagonal, upShift_mulVec, downShift_mulVec, smul_eq_mul]
 
+/-- The diagonal coefficients of the reduced Hamiltonian are invariant under column reversal. -/
 lemma gapDiag_rev (n : ℕ) (γ : ℝ) (j : Fin (2*n+1)) :
     gapDiag n γ (revFin n j) = gapDiag n γ j := by
   unfold gapDiag
@@ -130,11 +172,14 @@ lemma gapDiag_rev (n : ℕ) (γ : ℝ) (j : Fin (2*n+1)) :
     · rintro (h | h | h) <;> omega
   rw [if_congr hiff rfl rfl]
 
+/-- The reduced Hamiltonian is Hermitian. -/
 lemma reducedHamiltonian_isHermitian (n : ℕ) (γ : ℝ) :
     (reducedHamiltonian n γ).IsHermitian := by
   rw [Matrix.IsHermitian, Matrix.conjTranspose_eq_transpose_of_trivial,
     reducedHamiltonian_transpose]
 
+/-- Taking the next coordinate after reversal equals reversing the preceding coordinate, with
+zero boundary values. -/
 lemma swap_up_down (n : ℕ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
     (if h : (revFin n j).val + 1 < 2*n+1 then v ⟨(revFin n j).val + 1, h⟩ else 0)
       = (if h : 0 < j.val then v (revFin n ⟨j.val - 1, by omega⟩) else 0) := by
@@ -151,6 +196,8 @@ lemma swap_up_down (n : ℕ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
       simp only [revFin_val]; omega
     rw [dif_neg hc, dif_neg hj]
 
+/-- Taking the preceding coordinate after reversal equals reversing the next coordinate, with
+zero boundary values. -/
 lemma swap_down_up (n : ℕ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
     (if h : 0 < (revFin n j).val then v ⟨(revFin n j).val - 1, by omega⟩ else 0)
       = (if h : j.val + 1 < 2*n+1 then v (revFin n ⟨j.val + 1, h⟩) else 0) := by
@@ -164,6 +211,7 @@ lemma swap_down_up (n : ℕ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
       simp only [revFin_val]; omega
     rw [dif_neg hc, dif_neg hj]
 
+/-- The reduced Hamiltonian commutes with reversal of vector coordinates. -/
 lemma reducedHamiltonian_mulVec_rev (n : ℕ) (γ : ℝ) (v : Fin (2*n+1) → ℝ) :
     reducedHamiltonian n γ *ᵥ (fun j => v (revFin n j)) =
       fun j => (reducedHamiltonian n γ *ᵥ v) (revFin n j) := by
@@ -172,6 +220,8 @@ lemma reducedHamiltonian_mulVec_rev (n : ℕ) (γ : ℝ) (v : Fin (2*n+1) → �
   rw [swap_up_down, swap_down_up, gapDiag_rev]
   ring
 
+/-- For nonzero coupling, a vector satisfying the eigenvalue equation and vanishing at the left
+endpoint is zero. -/
 lemma eq_zero_of_row {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ} {v : Fin (2*n+1) → ℝ}
     (hv : reducedHamiltonian n γ *ᵥ v = μ • v) (h0 : v 0 = 0) : v = 0 := by
   have hcoef : (-Real.sqrt 2 * γ) ≠ 0 := by
@@ -210,6 +260,8 @@ lemma eq_zero_of_row {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ} {v : Fin (
   funext j
   exact key j.val j.isLt
 
+/-- For nonzero coupling, every vector with a given eigenvalue is a scalar multiple of any
+nonzero vector with that eigenvalue. -/
 lemma eigenspace_subsingleton {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ}
     {v w : Fin (2*n+1) → ℝ} (hv : reducedHamiltonian n γ *ᵥ v = μ • v)
     (hw : reducedHamiltonian n γ *ᵥ w = μ • w) (hv0 : v ≠ 0) : ∃ c : ℝ, w = c • v := by
@@ -231,6 +283,8 @@ lemma eigenspace_subsingleton {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ}
   simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h
   simpa only [Pi.smul_apply, smul_eq_mul] using sub_eq_zero.mp h
 
+/-- For nonzero coupling, the endpoint coordinates of a nonzero eigenvector differ by a real
+factor whose square is one. -/
 lemma eigenvector_rev {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ} {v : Fin (2*n+1) → ℝ}
     (hv : reducedHamiltonian n γ *ᵥ v = μ • v) (hv0 : v ≠ 0) :
     ∃ c : ℝ, v ⟨2*n, by omega⟩ = c * v 0 ∧ c * c = 1 := by
@@ -261,6 +315,7 @@ lemma eigenvector_rev {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ} {v : Fin 
       exact e.symm
     exact mul_right_cancel₀ hv0' this
 
+/-- Every vector in the Hermitian eigenvector basis of the reduced Hamiltonian is nonzero. -/
 lemma basis_ne_zero (n : ℕ) (γ : ℝ) (r : Fin (2*n+1)) :
     (⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) ≠ 0 := by
   intro h
@@ -272,12 +327,16 @@ lemma basis_ne_zero (n : ℕ) (γ : ℝ) (r : Fin (2*n+1)) :
   rw [h2] at h1
   simp at h1
 
+/-- For nonzero coupling, each basis eigenvector has endpoint coordinates related by a factor
+whose square is one. -/
 lemma basis_second_eq (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) (r : Fin (2*n+1)) :
     ∃ c : ℝ, (⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) ⟨2*n, by omega⟩
       = c * (⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) 0 ∧ c * c = 1 :=
   eigenvector_rev hγ ((reducedHamiltonian_isHermitian n γ).mulVec_eigenvectorBasis r)
     (basis_ne_zero n γ r)
 
+/-- For nonzero coupling, the squared product of the endpoint coordinates of a basis eigenvector
+equals the fourth power of its left endpoint coordinate. -/
 lemma basis_term_fourth (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) (r : Fin (2*n+1)) :
     ((⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) 0 *
       (⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) ⟨2*n, by omega⟩) ^ 2
@@ -289,6 +348,7 @@ lemma basis_term_fourth (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) (r : Fin (2*n+1)) 
       = (c * c) * ((⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) 0) ^ 4 := by ring
   rw [this, hcc, one_mul]
 
+/-- The squares of the left endpoint coordinates of the orthonormal eigenbasis sum to one. -/
 lemma basis_parseval (n : ℕ) (γ : ℝ) :
     ∑ r : Fin (2*n+1), ((⇑((reducedHamiltonian_isHermitian n γ).eigenvectorBasis r)) 0) ^ 2 = 1 := by
   have h := OrthonormalBasis.sum_sq_inner_right
@@ -296,6 +356,8 @@ lemma basis_parseval (n : ℕ) (γ : ℝ) :
     (EuclideanSpace.single (0 : Fin (2*n+1)) (1 : ℝ))
   simpa [EuclideanSpace.inner_single_right] using h
 
+/-- For nonzero coupling, the sum of squared endpoint-coordinate products is at least `1 / (2 *
+n + 1)`, yielding the estimate used in [ChildsFarhiGutmann2002]. -/
 theorem sum_fourth_pow_lower_bound (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) :
     (1 : ℝ) / (2*n+1) ≤
       ∑ r : Fin (2*n+1),
@@ -327,6 +389,8 @@ theorem sum_fourth_pow_lower_bound (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) :
   rw [h2'] at h2
   exact h2
 
+/-- For nonzero coupling, each basis eigenvector has equal absolute overlaps with the two
+endpoint basis states. -/
 theorem eigenbasis_parity (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) (r : Fin (2*n+1)) :
     |⟪(reducedHamiltonian_isHermitian n γ).eigenvectorBasis r,
         EuclideanSpace.single (0 : Fin (2*n+1)) (1:ℝ)⟫_ℝ|
@@ -352,6 +416,8 @@ theorem eigenbasis_parity (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) (r : Fin (2*n+1)
     nlinarith [abs_nonneg c]
   rw [hc1, one_mul]
 
+/-- For nonzero coupling, the root-to-root limiting distribution in the reduced Hamiltonian
+eigenbasis is at least `1 / (2 * n + 1)`. See [ChildsFarhiGutmann2002]. -/
 theorem reducedHamiltonian_rightRoot_lower_bound (n : ℕ) (γ : ℝ) (hγ : γ ≠ 0) :
     1 / ((2 * n + 1 : ℕ) : ℝ) ≤
       limitingDistribution (reducedHamiltonian_isHermitian n γ).eigenvectorBasis

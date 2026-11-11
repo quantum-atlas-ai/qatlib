@@ -8,6 +8,27 @@ import Qatlib.Papers.QWalkGraphs00.MainResults.Core
 import Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
 import Mathlib.Data.Matrix.Mul
 import Mathlib.Algebra.Star.BigOperators
+
+/-!
+# Character decomposition of Cayley walks
+
+The coined step `cayleyStep` on a finite abelian group reduces on character-product vectors to
+the smaller matrix `twistedCoin`. These identities support the uniform limiting-distribution
+criterion for Cayley walks in [AharonovEtAl2001Walks], under explicit assumptions on the
+eigenvalues, coefficients, and vertex weights.
+
+## Main statements
+
+* `cayleyStep_eigenvector`: lifts a twisted-coin eigenvector to the full walk.
+* `uniform_limit_of_uniform_eigenvectors`: gives a uniform limit from uniform vertex weights and
+  distinct eigenvalues.
+* `cayley_uniform_limit`: specializes the criterion to character-product vectors.
+
+## References
+
+* [Aharonov et al., 2001][AharonovEtAl2001Walks]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -25,12 +46,17 @@ variable {A ι : Type*} [AddCommGroup A] [Fintype A] [DecidableEq A]
 
 variable {Coin V : Type*} [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V]
 
+/-- The coined Cayley step whose entry from `q` to `p` is `C p.1 q.1` when `p.2 = q.2 + shift
+q.1`, and zero otherwise. -/
 def cayleyStep (C : Matrix ι ι ℂ) (shift : ι → A) : Matrix (ι × A) (ι × A) ℂ :=
   fun p q => C p.1 q.1 * (if p.2 = q.2 + shift q.1 then (1 : ℂ) else 0)
 
+/-- The coin matrix with column `b` multiplied by the character factor `χ (-shift b)`. -/
 def twistedCoin (C : Matrix ι ι ℂ) (shift : ι → A) (χ : A → ℂ) : Matrix ι ι ℂ :=
   fun a b => C a b * χ (-(shift b))
 
+/-- On a product of a coin vector and an additive character, the Cayley step acts by the twisted
+coin on the coin factor. See [Aharonov et al., Theorem 3.6][AharonovEtAl2001Walks]. -/
 theorem cayleyStep_mulVec_character
     (C : Matrix ι ι ℂ) (shift : ι → A) (χ : A → ℂ)
     (hχadd : ∀ v w, χ (v + w) = χ v * χ w)
@@ -71,6 +97,9 @@ theorem cayleyStep_mulVec_character
   intro b _
   ring
 
+/-- A twisted-coin eigenvector multiplied by its character satisfies the full Cayley-step
+eigenvalue equation with the same eigenvalue. See [Aharonov et al., Theorem
+3.6][AharonovEtAl2001Walks]. -/
 theorem cayleyStep_eigenvector
     (C : Matrix ι ι ℂ) (shift : ι → A) (χ : A → ℂ)
     (hχadd : ∀ v w, χ (v + w) = χ v * χ w)
@@ -86,6 +115,8 @@ theorem cayleyStep_eigenvector
 
 omit [AddCommGroup A] [Fintype A] [DecidableEq A] [DecidableEq ι] in
 
+/-- The vertex weight of a coin-character product factors as the squared norm of the coin vector
+times the squared norm of the character value. -/
 theorem nodeWeight_character (c : ι → ℂ) (χ : A → ℂ) (v : A) :
     ∑ a : ι, Complex.normSq (c a * χ v)
       = (∑ a : ι, Complex.normSq (c a)) * Complex.normSq (χ v) := by
@@ -96,12 +127,17 @@ theorem nodeWeight_character (c : ι → ℂ) (χ : A → ℂ) (v : A) :
 
 omit [AddCommGroup A] [DecidableEq A] [DecidableEq ι] in
 
+/-- A normalized coin vector multiplied by character values of squared norm `1 / card A` has
+uniform vertex weight. See [Aharonov et al., Theorem 3.6][AharonovEtAl2001Walks]. -/
 theorem nodeWeight_character_uniform (c : ι → ℂ) (χ : A → ℂ)
     (hc : ∑ a : ι, Complex.normSq (c a) = 1)
     (hχ : ∀ v : A, Complex.normSq (χ v) = (Fintype.card A : ℝ)⁻¹) (v : A) :
     ∑ a : ι, Complex.normSq (c a * χ v) = (Fintype.card A : ℝ)⁻¹ := by
   rw [nodeWeight_character, hc, one_mul, hχ v]
 
+/-- If a state expands in eigenvectors with distinct unit-modulus eigenvalues, uniform vertex
+weights, and coefficients of total squared norm one, its averaged vertex probabilities
+converge to the uniform distribution. -/
 theorem uniform_limit_of_uniform_eigenvectors
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (φ : (Coin × V) → ((Coin × V) → ℂ)) (lam : (Coin × V) → ℂ)
@@ -128,6 +164,9 @@ theorem uniform_limit_of_uniform_eigenvectors
 
 omit [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V] in
 
+/-- Under the stated character, normalization, and distinct unit-modulus eigenvalue hypotheses,
+the averaged Cayley-walk vertex probabilities converge to `1 / card A`. See [Aharonov et
+al., Theorem 3.6][AharonovEtAl2001Walks]. -/
 theorem cayley_uniform_limit
     (C : Matrix ι ι ℂ) (shift : ι → A)
     (cv : (ι × A) → ι → ℂ) (chr : (ι × A) → A → ℂ) (mu : (ι × A) → ℂ)

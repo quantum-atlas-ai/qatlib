@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedCompositions
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedSegments
+
+/-!
+# Grouped integral remainders for ordered conjugations
+
+This module identifies the grouped composition expansion of a conjugation remainder with its
+recursive ordered form. It expands the outer remainder into explicit commutator integrals and
+matches the last grouping level to that expansion, in the commutator-scaling setting of
+[ChildsEtAl2021Trotter].
+
+The theorem `frontier1` combines this identity with segmented error bounds, an explicit
+tolerance-based segment choice, and label-visit counts.
+
+## Main statements
+
+* `outer_integrals_compositions`: expansion of the outer remainder over degrees and ordered
+  compositions.
+* `groupedIntegralRemainder_eq_orderedRemainder`: equality of the grouped and recursive
+  remainders for positive order.
+* `frontier1`: remainder identity, segmented estimates, selected accuracy, and tagged visit
+  counts.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExt
 set_option autoImplicit false
@@ -27,6 +53,8 @@ open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I]
 
+/-- Expresses `orderedOuterRemainder` as a finite sum of integrals of conjugated iterated
+commutators, with the corresponding Taylor weights. -/
 theorem outer_integrals (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ) (t : ℝ) :
     orderedOuterRemainder X xs B p t =
       ∑ k : Fin p, ∫ u in 0..t,
@@ -44,12 +72,15 @@ theorem outer_integrals (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p :
   (try dsimp only)
   rw [smul_smul]
 
+/-- Conjugation by a fixed matrix exponential commutes with the interval integral of a
+continuous matrix-valued function. -/
 theorem conjugation_integral (X : Matrix I I ℂ) (f : ℝ → Matrix I I ℂ)
     (hf : Continuous f) (s t : ℝ) :
     (∫ u in 0..t, pfConjExp X (f u) s) = pfConjExp X (∫ u in 0..t, f u) s := by
   let L : Matrix I I ℂ →L[ℝ] Matrix I I ℂ := (pfConjExpLinear X s).toContinuousLinearMap
   exact L.intervalIntegral_comp_comm (hf.intervalIntegrable 0 t)
 
+/-- Combines the finitely many terms of `orderedOuterRemainder` into a single interval integral. -/
 theorem outer_integral_sum (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p : ℕ) (t : ℝ) :
     orderedOuterRemainder X xs B p t =
       ∫ u in 0..t, ∑ k : Fin p,
@@ -64,6 +95,8 @@ theorem outer_integral_sum (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (
   exact (hscalar.smul (pfConjExp_contDiff X
     (pfAdPower X (pfConjCoeff xs B k.val) (p-k.val))).continuous).intervalIntegrable 0 t
 
+/-- Prepending a generator leaves `srcGen` unchanged at indices at most the length of the
+original list. -/
 theorem srcGen_cons (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (j : ℕ) (hj' : j ≤ xs.length) :
     srcGen (X::xs) j = srcGen xs j := by
@@ -71,6 +104,8 @@ theorem srcGen_cons (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
   have he : xs.length+1-j=(xs.length-j)+1 := by omega
   rw [he,List.getD_cons_succ]
 
+/-- Prepending a generator leaves `groupedRepetition` unchanged when the composition length does
+not exceed the original list length. -/
 theorem groupedRepetition_cons (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (q : List ℕ) (hq : q.length ≤ xs.length) :
     groupedRepetition (X::xs) q = groupedRepetition xs q := by
@@ -79,6 +114,8 @@ theorem groupedRepetition_cons (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
   intro i _
   rw [srcGen_cons X xs (i.val+1) (by have := i.isLt; omega)]
 
+/-- A grouped integral term whose composition fits in the tail is conjugated by the new leading
+exponential when a generator is prepended. -/
 theorem groupedIntegralTerm_cons (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (p : ℕ) (q : List ℕ) (hq' : q.length ≤ xs.length) (t : ℝ) :
     groupedIntegralTerm (X::xs) B p q t =
@@ -92,6 +129,8 @@ theorem groupedIntegralTerm_cons (X B : Matrix I I ℂ) (xs : List (Matrix I I �
   rw [he,List.take_succ_cons]
   simp only [pfConjWord]
 
+/-- Splits the grouped remainder for a nonempty word into the conjugated tail remainder and the
+sum over compositions at the final level. -/
 theorem groupedIntegralRemainder_cons (X B : Matrix I I ℂ)
     (xs : List (Matrix I I ℂ)) (p : ℕ) (t : ℝ) :
     groupedIntegralRemainder (X::xs) B p t =
@@ -111,6 +150,7 @@ theorem groupedIntegralRemainder_cons (X B : Matrix I I ℂ)
   exact groupedIntegralTerm_cons X B xs p q
     (by have := (Finset.mem_Icc.mp hk).2; omega) t
 
+/-- Lifting `sourceParts s r` with a final part `j` recovers `Fin.cons j r`. -/
 theorem groupedLift_last (s j : ℕ) (r : Fin s → ℕ) :
     groupedLift (s+1) (s+1) (sourceParts s r++[j]) = Fin.cons j r := by
   funext i
@@ -128,6 +168,8 @@ theorem groupedLift_last (s j : ℕ) (r : Fin s → ℕ) :
     change s-1-(s-1-a.val)=a.val
     omega
 
+/-- The final-level grouped repetition is the ordered composition word for the tail followed by
+`j` copies of the leading generator. -/
 theorem groupedRepetition_last (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (j : ℕ) (r : Fin xs.length → ℕ) :
     groupedRepetition (X::xs) (sourceParts xs.length r++[j]) =
@@ -138,6 +180,8 @@ theorem groupedRepetition_last (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
   rw [groupedLift_last,pfOrderedCompositionWord_cons]
   simp only [Fin.cons_zero,Fin.cons_succ]
 
+/-- The product of factorials of the source parts equals the product of factorials of the
+entries of `r`. -/
 theorem sourceParts_factorial_prod (s : ℕ) (r : Fin s → ℕ) :
     (((sourceParts s r).map Nat.factorial).prod : ℝ) = ∏ i,((r i).factorial : ℝ) := by
   simp only [sourceParts,List.map_ofFn,List.prod_ofFn,Nat.cast_prod]
@@ -151,6 +195,8 @@ theorem sourceParts_factorial_prod (s : ℕ) (r : Fin s → ℕ) :
       omega
     _ = _ := Equiv.prod_comp Fin.revPerm (fun i => ((r i).factorial : ℝ))
 
+/-- Evaluates the final-level grouped scalar as a Taylor integral weight times the reciprocal
+product of composition factorials. -/
 theorem groupedScalar_last (s p : ℕ) (n : Fin p) (r : Fin s → ℕ) (t u : ℝ) :
     groupedScalar p (sourceParts s r++[p-n.val]) t u =
       (t^n.val * ((t-u)^(p-n.val-1) / ((p-n.val-1).factorial:ℝ))) *
@@ -161,6 +207,8 @@ theorem groupedScalar_last (s p : ℕ) (n : Fin p) (r : Fin s → ℕ) (t u : �
   simp only [div_eq_mul_inv,mul_inv_rev]
   ring
 
+/-- Expands a final-level grouped integral term into an integral of conjugated iterated
+commutators with explicit factorial weights. -/
 theorem groupedIntegralTerm_last (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (p : ℕ) (n : Fin p) (r : Fin xs.length → ℕ) (t : ℝ) :
     groupedIntegralTerm (X::xs) B p (sourceParts xs.length r++[p-n.val]) t =
@@ -178,6 +226,8 @@ theorem groupedIntegralTerm_last (X B : Matrix I I ℂ) (xs : List (Matrix I I �
   rw [hx]
   simp only [groupedScalar_last]
 
+/-- Expands a scaled conjugated commutator of `pfConjCoeff` into a sum over ordered
+compositions. -/
 theorem coeff_integrand (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (n d : ℕ) (a u : ℝ) :
     a • pfConjExp X (pfAdPower X (pfConjCoeff xs B n) d) u =
@@ -192,6 +242,8 @@ theorem coeff_integrand (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
   rw [map_smul,smul_smul]
   rfl
 
+/-- Expresses the outer remainder as a double sum over Taylor degrees and ordered compositions
+of explicit commutator integrals. -/
 theorem outer_integrals_compositions (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (p : ℕ) (t : ℝ) :
     orderedOuterRemainder X xs B p t =
@@ -213,6 +265,7 @@ theorem outer_integrals_compositions (X B : Matrix I I ℂ) (xs : List (Matrix I
   exact (hc.smul (pfConjExp_contDiff X
     (pfAdPower X (pfNestedCommList (B::pfOrderedCompositionWord xs r)) (p-n.val))).continuous).intervalIntegrable 0 t
 
+/-- The sum of grouped integral terms at the final level equals `orderedOuterRemainder`. -/
 theorem grouped_last_level (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (p : ℕ) (t : ℝ) :
     (∑ q∈groupedCompositions p (xs.length+1),groupedIntegralTerm (X::xs) B p q t) =
@@ -224,6 +277,8 @@ theorem grouped_last_level (X B : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
   intro r _
   exact groupedIntegralTerm_last X B xs p n r t
 
+/-- For positive order, the grouped integral remainder equals the recursively defined ordered
+remainder. -/
 theorem groupedIntegralRemainder_eq_orderedRemainder (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (hp : 1 ≤ p) (t : ℝ) :
     groupedIntegralRemainder xs B p t = orderedRemainder xs B p t := by
@@ -234,12 +289,17 @@ theorem groupedIntegralRemainder_eq_orderedRemainder (xs : List (Matrix I I ℂ)
     rw [groupedIntegralRemainder_cons,grouped_last_level,ih]
     exact (pfConjWord_remainder_cons X B xs p t).symm
 
+/-- Identifies the grouped integral remainder with the ordered remainder for every positive
+order. -/
 theorem grouped_identity [DecidableEq I] (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (hp : 1 ≤ p) (t : ℝ) :
     groupedIntegralRemainder xs B p t=orderedRemainder xs B p t := by
   cases Subsingleton.elim ‹DecidableEq I› (Classical.decEq I)
   exact groupedIntegralRemainder_eq_orderedRemainder xs B p hp t
 
+/-- For a matched skew-Hermitian word of positive order, combines the grouped remainder identity
+with ordered and raw commutator error bounds. The selected tagged word attains the requested
+tolerance and has the stated number of visits to each label. -/
 theorem frontier1 [DecidableEq I] {m : ℕ} (xs : List (Matrix I I ℂ))
     (lab : Fin xs.length → Fin m) (B H : Matrix I I ℂ) (p r : ℕ) (t ε : ℝ)
     (hp : 1 ≤ p) (hr : 0<r) (hε : 0<ε)

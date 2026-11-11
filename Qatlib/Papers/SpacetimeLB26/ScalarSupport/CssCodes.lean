@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+/-!
+# Scalar CSS code and erasure estimates
+
+This module defines binomial masses and upper tails and proves Chernoff bounds using binary
+relative entropy. For the analysis in [BhartiHaugTanggara2026], it derives CSS parameter and
+erasure resource estimates from explicit code-existence hypotheses and combines assumed cost
+bounds into a uniform two-sided comparison.
+
+## Main statements
+
+* `css_erasure_construction`: Given the assumed CSS family, choose realizable parameters with
+  dimension at least `K + 1`, an error value at most `ε` satisfying the stated Chernoff bound,
+  and block length bounded by a constant times `K + 1 + log (2*S/ε)`.
+* `optimal_worst_case_circuit_size`: The assumed lower and upper bounds imply uniform positive
+  constant multiples of `S * (K + log (S/ε))` bounding `Cmin` for all sufficiently large `S` and
+  `0 < ε ≤ ε0`.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,12 +38,15 @@ namespace Qatlib.Papers.SpacetimeLB26.ScalarSupport.CssCodes
 open scoped BigOperators
 open Finset
 
+/-- The binomial mass expression `choose N x * p^x * (1-p)^(N-x)`. -/
 def binomPMF (N : ℕ) (p : ℝ) (x : ℕ) : ℝ :=
   (N.choose x : ℝ) * p ^ x * (1 - p) ^ (N - x)
 
+/-- The sum of binomial masses from `ceil (Δ * N)` through `N`. -/
 def binomTail (N : ℕ) (p Δ : ℝ) : ℝ :=
   ∑ x ∈ Finset.Icc (Nat.ceil (Δ * (N : ℝ))) N, binomPMF N p x
 
+/-- Binary relative entropy `binaryKL Δ p` is positive when `0 < p < Δ < 1`. -/
 theorem binaryKL_pos (p Δ : ℝ) (hp : 0 < p) (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
     0 < binaryKL Δ p := by
   have hΔp : 0 < Δ := lt_trans hp hpΔ
@@ -63,6 +89,7 @@ theorem binaryKL_pos (p Δ : ℝ) (hp : 0 < p) (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
   show 0 < Δ * Real.log (Δ / p) + (1 - Δ) * Real.log ((1 - Δ) / (1 - p))
   linarith [hstrict1, hloglb2]
 
+/-- For `0 < p < Δ < 1`, the binomial upper tail is bounded by `exp (-N * binaryKL Δ p)`. -/
 theorem binomial_chernoff_tail (N : ℕ) (p Δ : ℝ) (hp : 0 < p)
     (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
     binomTail N p Δ ≤ Real.exp (-(N : ℝ) * binaryKL Δ p) := by
@@ -196,11 +223,16 @@ theorem binomial_chernoff_tail (N : ℕ) (p Δ : ℝ) (hp : 0 < p)
   rw [mul_one] at h1
   exact h1
 
+/-- Combine the binomial Chernoff upper bound with strict positivity of its relative-entropy
+rate. -/
 theorem binomial_chernoff
     (N : ℕ) (p Δ : ℝ) (_hN : 1 ≤ N) (hp : 0 < p) (hpΔ : p < Δ) (hΔ1 : Δ < 1) :
     binomTail N p Δ ≤ Real.exp (-(N : ℝ) * binaryKL Δ p) ∧ 0 < binaryKL Δ p :=
   ⟨binomial_chernoff_tail N p Δ hp hpΔ hΔ1, binaryKL_pos p Δ hp hpΔ hΔ1⟩
 
+/-- From the supplied CSS existence theorem and an intermediate relative distance, obtain a
+positive block-length threshold beyond which realizable CSS parameters have rate at least
+`R` and relative distance at least `Δ`. See [BhartiHaugTanggara2026]. -/
 theorem css_gilbert_varshamov
     (Δ R δGV : ℝ) (RealizableCss : ℕ → ℕ → ℕ → Prop)
     (_hΔ0 : 0 < Δ) (_hΔ : Δ < δGV) (_hGV : IsGilbertVarshamovRate δGV)
@@ -229,6 +261,9 @@ theorem css_gilbert_varshamov
   · exact le_trans (mul_le_mul_of_nonneg_right hR''ge (Nat.cast_nonneg N)) hKN
   · exact le_trans (mul_le_mul_of_nonneg_right (le_of_lt hΔlt') (Nat.cast_nonneg N)) hdN
 
+/-- Given the assumed CSS family, choose realizable parameters with dimension at least `K + 1`,
+an error value at most `ε` satisfying the stated Chernoff bound, and block length bounded by
+a constant times `K + 1 + log (2*S/ε)`. See [BhartiHaugTanggara2026]. -/
 theorem css_erasure_construction
     (p Δ R δGV : ℝ) (RealizableCss : ℕ → ℕ → ℕ → Prop)
     (hp : 0 < p) (hpΔ : p < Δ) (hΔ : Δ < δGV) (hGV : IsGilbertVarshamovRate δGV)
@@ -353,6 +388,9 @@ theorem css_erasure_construction
   exact ⟨N0, N, KN, dN, c0, 2 * (S : ℝ) * Real.exp (-(binaryKL Δ p) * (N : ℝ)),
     hc0pos, hN0', hreal, hKN, hdN, le_trans hcap hKN, le_refl _, hexpbound, hwidth⟩
 
+/-- The assumed lower and upper bounds imply uniform positive constant multiples of `S * (K +
+log (S/ε))` bounding `Cmin` for all sufficiently large `S` and `0 < ε ≤ ε0`. See
+[BhartiHaugTanggara2026]. -/
 theorem optimal_worst_case_circuit_size
     (p ε0 : ℝ) (hp : 0 < p) (hp1 : p < 1) (_hε0 : 0 < ε0) (hε01 : ε0 < 1)
     (Cmin : ℕ → ℕ → ℝ → ℝ)

@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExtDefs
+
+/-!
+# Ordered derivatives and segment accuracy specifications
+
+This module proves smoothness and an ordered derivative-level decomposition for conjugation by
+exponential words. It identifies the Taylor integral remainder and the grouping of integral
+levels, providing analytic components for the product-formula framework [ChildsEtAl2021Trotter].
+
+It also proves the raw-budget segment guarantee and computes the two-generator degree-two error
+as half the commutator, including optimality of that coefficient when the commutator is nonzero.
+The structures `Clause49Spec`, `Clause50Spec`, and `Clause51Spec` collect these results into
+explicit propositions.
+
+## Main statements
+
+* `pfConjWord_hasDerivAt_levelSum`: ordered level decomposition of the derivative.
+* `pfConjWord_taylor_integral_remainder`: Taylor integral remainder for conjugation words.
+* `clause50_epsilon_error`: segmented accuracy under the raw-budget condition.
+* `clause51_constant_optimal`: optimality of the half-commutator coefficient.
+* `stageB_trotter_commutator_clause49`: proof of the analytic remainder specification.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -35,21 +61,25 @@ noncomputable section
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- A matrix commutes with the exponential of any real scalar multiple of itself. -/
 theorem exp_smul_comm (X : Matrix I I ℂ) (t : ℝ) :
     NormedSpace.exp (t • X) * X = X * NormedSpace.exp (t • X) := by
   have h : Commute X (t • X) := (Commute.refl X).smul_right t
   exact h.exp_right.eq.symm
 
+/-- Exponential conjugation preserves addition of the conjugated matrices. -/
 theorem pfConjExp_add (X C D : Matrix I I ℂ) (t : ℝ) :
     pfConjExp X (C + D) t = pfConjExp X C t + pfConjExp X D t := by
   simp only [pfConjExp]
   noncomm_ring
 
+/-- Exponential conjugation commutes with real scalar multiplication of the conjugated matrix. -/
 theorem pfConjExp_smul (X C : Matrix I I ℂ) (a : ℝ) (t : ℝ) :
     pfConjExp X (a • C) t = a • pfConjExp X C t := by
   simp only [pfConjExp]
   noncomm_ring
 
+/-- Conjugating the zero matrix by a product word gives zero. -/
 theorem pfConjWord_zero (xs : List (Matrix I I ℂ)) (t : ℝ) :
     pfConjWord xs 0 t = 0 := by
   induction xs with
@@ -58,6 +88,7 @@ theorem pfConjWord_zero (xs : List (Matrix I I ℂ)) (t : ℝ) :
     rw [pfConjWord]
     simp only [ih, pfConjExp, zero_mul, mul_zero]
 
+/-- Conjugation by a product word preserves matrix addition. -/
 theorem pfConjWord_add (xs : List (Matrix I I ℂ)) (C D : Matrix I I ℂ) (t : ℝ) :
     pfConjWord xs (C + D) t = pfConjWord xs C t + pfConjWord xs D t := by
   induction xs with
@@ -66,6 +97,7 @@ theorem pfConjWord_add (xs : List (Matrix I I ℂ)) (C D : Matrix I I ℂ) (t : 
     rw [pfConjWord, pfConjWord, ih]
     exact pfConjExp_add X _ _ t
 
+/-- Conjugation by a product word commutes with finite sums of matrices. -/
 theorem pfConjWord_sum (xs : List (Matrix I I ℂ)) (s : Finset ℕ)
     (f : ℕ → Matrix I I ℂ) (t : ℝ) :
     pfConjWord xs (∑ i ∈ s, f i) t = ∑ i ∈ s, pfConjWord xs (f i) t := by
@@ -78,6 +110,8 @@ theorem pfConjWord_sum (xs : List (Matrix I I ℂ)) (s : Finset ℕ)
     rw [Finset.sum_insert ha]
     rw [pfConjWord_add, ih]
 
+/-- A finite sum of matrices conjugated by the same exponential equals the conjugation of their
+sum. -/
 theorem pfConjExp_sum (X : Matrix I I ℂ) (s : Finset ℕ)
     (f : ℕ → Matrix I I ℂ) (t : ℝ) :
     (∑ k ∈ s, pfConjExp X (f k) t) = pfConjExp X (∑ k ∈ s, f k) t := by
@@ -91,6 +125,8 @@ theorem pfConjExp_sum (X : Matrix I I ℂ) (s : Finset ℕ)
     rw [Finset.sum_insert ha]
     rw [pfConjExp_add, ih]
 
+/-- Conjugation by a product of matrix exponentials is infinitely differentiable as a function
+of real time. -/
 theorem pfConjWord_contDiff (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) :
     ContDiff ℝ ∞ (pfConjWord xs B) := by
   induction xs with
@@ -100,12 +136,16 @@ theorem pfConjWord_contDiff (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) :
     simpa only [pfConjWord, pfConjExp, Function.comp_def] using!
       ((trotter_exp_contDiff X).mul ih).mul hn
 
+/-- The zeroth derivative-level term for `X :: xs` is the conjugation by `X` of its commutator
+with the tail-conjugated seed. -/
 theorem orderedLevelTerm_cons_zero (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (τ : ℝ) :
     orderedLevelTerm (X :: xs) B 0 τ =
       pfConjExp X (pfComm X (pfConjWord xs B τ)) τ := by
   simp [orderedLevelTerm, pfConjWord]
 
+/-- A successor derivative-level term for `X :: xs` is the corresponding tail term conjugated by
+`X`. -/
 theorem orderedLevelTerm_cons_succ (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (k : ℕ) (τ : ℝ) :
     orderedLevelTerm (X :: xs) B (Nat.succ k) τ = pfConjExp X (orderedLevelTerm xs B k τ) τ := by
@@ -118,6 +158,8 @@ theorem orderedLevelTerm_cons_succ (X : Matrix I I ℂ) (xs : List (Matrix I I �
   simp only [orderedLevelTerm, htake, hget, hdrop]
   rw [pfConjWord]
 
+/-- Splits a sum over `range (n+1)` into its zeroth term and the sum of its successor-indexed
+terms. -/
 theorem sum_range_cons_split {M : Type} [AddCommMonoid M] (n : ℕ) (f : ℕ → M) :
     (∑ k ∈ Finset.range (Nat.succ n), f k) =
       f 0 + ∑ k ∈ Finset.range n, f (Nat.succ k) := by
@@ -129,6 +171,8 @@ theorem sum_range_cons_split {M : Type} [AddCommMonoid M] (n : ℕ) (f : ℕ →
     rw [h, ih]
     simp [Finset.sum_range_succ, add_assoc]
 
+/-- The derivative of the conjugation word at `t` is the sum of its ordered derivative-level
+terms. -/
 theorem pfConjWord_hasDerivAt_levelSum (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
     (t : ℝ) :
     HasDerivAt (pfConjWord xs B) (orderedLevelSum xs B t) t := by
@@ -195,6 +239,8 @@ theorem pfConjWord_hasDerivAt_levelSum (xs : List (Matrix I I ℂ)) (B : Matrix 
     simp only [pfConjExp, pfComm]
     noncomm_ring
 
+/-- For positive order `p`, the conjugation-word truncation error is the Taylor-weighted
+integral of its `p`th iterated derivative. -/
 theorem pfConjWord_taylor_integral_remainder (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (hp : 0 < p) (t : ℝ) :
     pfConjWord xs B t - pfConjTrunc xs B p t =
@@ -235,12 +281,15 @@ theorem pfConjWord_taylor_integral_remainder (xs : List (Matrix I I ℂ))
     rw [← hpoly2, hrem, hp1]
     exact intervalIntegral.integral_congr hcongr
 
+/-- The grouped integral remainder is the sum of its grouped integral levels from one to the
+generator-list length. -/
 theorem groupedIntegralRemainder_eq_level_sum {I : Type} [Fintype I]
     (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) (t : ℝ) :
     groupedIntegralRemainder xs B p t =
       ∑ k ∈ Finset.Icc 1 xs.length, groupedIntegralLevel xs B p k t := by
   rfl
 
+/-- Every member of `groupedCompositions p k` has length `k`. -/
 theorem groupedCompositions_length {p k : ℕ} {q : List ℕ}
     (hq : q ∈ groupedCompositions p k) : q.length = k := by
   classical
@@ -249,6 +298,8 @@ theorem groupedCompositions_length {p k : ℕ} {q : List ℕ}
   rw [← ha]
   simp [List.length_ofFn]
 
+/-- Expands a grouped integral level as a sum of weighted inner conjugation integrals followed
+by outer prefix conjugation. -/
 theorem groupedIntegralLevel_outer_inner {I : Type} [Fintype I]
     (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p k : ℕ) (t : ℝ) :
     groupedIntegralLevel xs B p k t =
@@ -269,20 +320,27 @@ theorem groupedIntegralLevel_outer_inner {I : Type} [Fintype I]
     rw [hlen]
   rw [hterm]
 
+/-- The degree-one coefficient of the two-generator product is `X + Y`. -/
 theorem clause51_first_order_agrees (X Y : Matrix I I ℂ) :
     suzukiSeries [X, Y] 1 = X + Y := by
   simp [suzukiSeries_cons_one, suzukiSeries_nil_succ, add_comm]
 
+/-- The degree-two coefficient of the two-generator product differs from that of `exp (t •
+(X+Y))` by one half of `pfComm X Y`. -/
 theorem clause51_second_order_deviates (X Y : Matrix I I ℂ) :
     suzukiSeries [X, Y] 2 - (((2 : ℕ).factorial : ℝ)⁻¹) • (X + Y) ^ 2 =
       (1 / 2 : ℝ) • pfComm X Y :=
   clause22_leading_coeff_pair X Y
 
+/-- The norm of the two-generator degree-two coefficient error is one half of the commutator
+norm. -/
 theorem clause51_second_order_norm (X Y : Matrix I I ℂ) :
     ‖suzukiSeries [X, Y] 2 - (((2 : ℕ).factorial : ℝ)⁻¹) • (X + Y) ^ 2‖
       = (1 / 2 : ℝ) * ‖pfComm X Y‖ := by
   rw [clause51_second_order_deviates, norm_smul, Real.norm_eq_abs, abs_of_nonneg (by norm_num)]
 
+/-- When the commutator is nonzero, any positive constant bounding the degree-two coefficient
+error by that commutator norm is at least one half. -/
 theorem clause51_constant_optimal (X Y : Matrix I I ℂ) (hne : pfComm X Y ≠ 0)
     (c : ℝ) (hc : 0 < c)
     (h : ‖suzukiSeries [X, Y] 2 - (((2 : ℕ).factorial : ℝ)⁻¹) • (X + Y) ^ 2‖
@@ -296,12 +354,15 @@ theorem clause51_constant_optimal (X Y : Matrix I I ℂ) (hne : pfComm X Y ≠ 0
     mul_lt_mul_of_pos_right hcon hpos
   linarith
 
+/-- The commutator norm of two generators is bounded by their order-two raw commutator budget. -/
 theorem clause51_raw_budget_slack (X Y : Matrix I I ℂ) :
     ‖pfComm X Y‖ ≤ pfCommAlphaSelf [X, Y] 2 := by
   have h := clause22_leading_budget_pair X Y
   rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (by norm_num)] at h
   linarith
 
+/-- For a real base at least one and a positive natural exponent, the power is at least the
+base. -/
 theorem pow_ge_base_of_one_le {a : ℝ} (ha : 1 ≤ a) (n : ℕ) (hn : 1 ≤ n) : a ≤ a ^ n := by
   induction n with
   | zero => omega
@@ -313,6 +374,8 @@ theorem pow_ge_base_of_one_le {a : ℝ} (ha : 1 ≤ a) (n : ℕ) (hn : 1 ≤ n) 
     · have h1 : (1 : ℝ) ≤ a ^ n := one_le_pow₀ ha
       nlinarith
 
+/-- For positive order, the selected raw segment count raised to that order dominates
+`rawTrotterBudgetFactor`. -/
 theorem rawTrotterSegments_pow_ge (xs : List (Matrix I I ℂ)) (p : ℕ) (hp : 1 ≤ p)
     (t ε : ℝ) :
     ((rawTrotterSegments xs p t ε : ℝ) ^ p) ≥ rawTrotterBudgetFactor xs p t ε := by
@@ -337,6 +400,8 @@ theorem rawTrotterSegments_pow_ge (xs : List (Matrix I I ℂ)) (p : ℕ) (hp : 1
       pow_ge_base_of_one_le hr1 p hp
     exact hrA.trans hrpow
 
+/-- A matched skew-Hermitian word has segmented error at most a positive tolerance whenever the
+positive segment count satisfies the stated raw-budget inequality. -/
 theorem clause50_epsilon_error (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ)
     (p r : ℕ) (hp : 1 ≤ p) (hr : 0 < r)
     (hanti : ∀ X ∈ xs, Xᴴ = -X) (hH : Hᴴ = -H)
@@ -369,12 +434,16 @@ theorem clause50_epsilon_error (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ)
       (r : ℝ) ^ p * ε := mul_le_mul_of_nonneg_right hseg hε.le
   nlinarith
 
+/-- The segmented visit count equals the segment count times the label multiplicity in the base
+generator list. -/
 theorem segment_visits_eq (xs : List (Matrix I I ℂ)) {m : ℕ}
     (lab : Fin xs.length → Fin m) (r : ℕ) (j : Fin m) :
     segmentLabelVisits xs lab r j =
       r * ((List.finRange xs.length).filter (fun i => lab i = j)).length := by
   rfl
 
+/-- Under the stated matching and skew-Hermitian hypotheses, the repeated exponential factor
+list has length `r * xs.length`. -/
 theorem clause50_visit_ledger (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p r : ℕ)
     (hp : 1 ≤ p) (hr : 0 < r) (hanti : ∀ X ∈ xs, Xᴴ = -X) (hH : Hᴴ = -H)
     (hmatch : ∀ n : ℕ, n ≤ p → suzukiSeries xs n = ((n.factorial : ℝ)⁻¹) • H ^ n)
@@ -384,6 +453,8 @@ theorem clause50_visit_ledger (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) 
   have hsc := trotterCommutatorScalingCorrected I xs H p r hp hr hanti hH hmatch t
   exact hsc.2.1
 
+/-- The specification collecting smoothness, derivative-level decomposition, Taylor integral
+remainders, and the level grouping of the conjugation remainder. -/
 structure Clause49Spec : Prop where
 
   smooth : ∀ {I : Type} [Fintype I] [DecidableEq I] (xs : List (Matrix I I ℂ))
@@ -412,6 +483,8 @@ structure Clause49Spec : Prop where
           (∫ τ in 0..t, (groupedScalar p q t τ) •
             pfConjWord [srcGen xs k] (pfNestedCommList (B :: groupedRepetition xs q)) τ) t
 
+/-- Establishes the smoothness, derivative, and integral-remainder statements collected in
+`Clause49Spec`. -/
 theorem stageB_trotter_commutator_clause49 : Clause49Spec where
   smooth := pfConjWord_contDiff
   levelDecomposition := pfConjWord_hasDerivAt_levelSum
@@ -419,6 +492,8 @@ theorem stageB_trotter_commutator_clause49 : Clause49Spec where
   levelGrouping := groupedIntegralRemainder_eq_level_sum
   outerInner := groupedIntegralLevel_outer_inner
 
+/-- The specification collecting raw segment selection, tolerance guarantees for matched
+skew-Hermitian words, word length, and label visits. -/
 structure Clause50Spec : Prop where
 
   segmentSelectorDominates : ∀ {I : Type} [Fintype I] [DecidableEq I]
@@ -447,12 +522,16 @@ structure Clause50Spec : Prop where
     segmentLabelVisits xs lab r j =
       r * ((List.finRange xs.length).filter (fun i => lab i = j)).length
 
+/-- Establishes the segment-selection, error, and visit-count statements collected in
+`Clause50Spec`. -/
 theorem stageB_trotter_commutator_clause50 : Clause50Spec where
   segmentSelectorDominates := rawTrotterSegments_pow_ge
   epsilonError := clause50_epsilon_error
   visitLedger := clause50_visit_ledger
   labelVisits := segment_visits_eq
 
+/-- The specification collecting the two-generator first- and second-order coefficients, the
+sharp half-commutator error constant, and the raw-budget comparison. -/
 structure Clause51Spec : Prop where
 
   firstOrderAgrees : ∀ {I : Type} [Fintype I] [DecidableEq I] (X Y : Matrix I I ℂ),
@@ -476,6 +555,8 @@ structure Clause51Spec : Prop where
   rawBudgetSlack : ∀ {I : Type} [Fintype I] [DecidableEq I] (X Y : Matrix I I ℂ),
     ‖pfComm X Y‖ ≤ pfCommAlphaSelf [X, Y] 2
 
+/-- Establishes the coefficient identities, optimal constant, and budget comparison collected in
+`Clause51Spec`. -/
 theorem stageB_trotter_commutator_clause51 : Clause51Spec where
   firstOrderAgrees := clause51_first_order_agrees
   secondOrderDeviates := clause51_second_order_deviates

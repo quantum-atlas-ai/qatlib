@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+/-!
+# Partition operations for classification
+
+Defines `partitionPayload`, the disjoint-partition invariant for the remaining pairs and the two
+moved components of a classification run. Helper results recover subset bounds and extend the
+invariant when pairs are added to the edge bucket or prepended to the removal trace; see
+[Ambainis2005] for the graph-search setting.
+
+## Main statements
+
+* `partitionPayload`: The assertion that `left`, `T.toFinset`, and `E` cover `S`, are pairwise
+  disjoint, and the trace list `T` has no repetitions.
+* `partitionPayload_addT`: A partition of `Sd` extends to one of `S` by prepending a
+  repetition-free trace `D` when `Sd` and `D.toFinset` are disjoint and cover `S`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -14,11 +35,14 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The assertion that `left`, `T.toFinset`, and `E` cover `S`, are pairwise disjoint, and the
+trace list `T` has no repetitions. -/
 def partitionPayload (S left : Finset (Fin n×Fin n)) (T : List (Fin n×Fin n))
     (E : Finset (Fin n×Fin n)) : Prop :=
   left∪T.toFinset∪E=S ∧ Disjoint left T.toFinset ∧ Disjoint left E ∧
     Disjoint T.toFinset E ∧ T.Nodup
 
+/-- Each of the three components of a partition payload is a subset of its original set. -/
 theorem partitionPayload_subsets {S left : Finset (Fin n×Fin n)} {T : List (Fin n×Fin n)}
     {E : Finset (Fin n×Fin n)} (h : partitionPayload S left T E) :
     left⊆S ∧ T.toFinset⊆S ∧ E⊆S := by
@@ -26,6 +50,7 @@ theorem partitionPayload_subsets {S left : Finset (Fin n×Fin n)} {T : List (Fin
   exact ⟨Finset.subset_union_left.trans Finset.subset_union_left,
     Finset.subset_union_right.trans Finset.subset_union_left,Finset.subset_union_right⟩
 
+/-- A partition of `S \ D` extends to a partition of `S` by adding `D ⊆ S` to the edge bucket. -/
 theorem partitionPayload_addE {S left D E : Finset (Fin n×Fin n)} {T : List (Fin n×Fin n)}
     (hD : D⊆S) (h : partitionPayload (S\D) left T E) :
     partitionPayload S left T (D∪E) := by
@@ -59,6 +84,8 @@ theorem partitionPayload_addE {S left D E : Finset (Fin n×Fin n)} {T : List (Fi
     · exact (Finset.mem_sdiff.mp (hT ht)).2 hd
     · exact Finset.disjoint_left.mp h.2.2.2.1 ht he
 
+/-- A partition of `Sd` extends to one of `S` by prepending a repetition-free trace `D` when
+`Sd` and `D.toFinset` are disjoint and cover `S`. -/
 theorem partitionPayload_addT {S Sd left E : Finset (Fin n×Fin n)} {D T : List (Fin n×Fin n)}
     (hU : Sd∪D.toFinset=S) (hDis : Disjoint Sd D.toFinset) (hDN : D.Nodup)
     (h : partitionPayload Sd left T E) : partitionPayload S left (D++T) E := by

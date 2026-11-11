@@ -8,6 +8,29 @@ import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
 import Qatlib.Concepts.MatrixAccess.FrameFilterProd
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+/-!
+# Specification of corrected block preconditioning
+
+`BlockPreconditioningCorrectedSubgoal` packages the exact one-flag block encoding and projected
+encoding of a state-scaled matrix, together with the scaling intertwining and inverse
+identities. For consistent normalized right-hand sides it additionally requires the
+pseudoinverse product and direction formulas; under the stated spectral and solution-norm
+promises it bounds the preconditioned pseudoinverse norm and nonzero singular values.
+
+The encoding specification uses the projected-unitary framework of quantum singular value
+transformation [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `BlockPreconditioningCorrectedSubgoal`: States encoding identities and the
+  consistency-dependent spectral guarantees.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +57,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
+/-- The corrected subgoal specifies exact preconditioned encodings and scaling inverses,
+pseudoinverse identities for consistent right-hand sides, and a preconditioned pseudoinverse
+norm bound `2 * c ^ 2 * κ` with the corresponding nonzero singular-value lower bound. -/
 def BlockPreconditioningCorrectedSubgoal : Prop :=
   (∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (b : QState O) (s : ℝ),

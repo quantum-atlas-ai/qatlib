@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QIntegration00.MainResults.Defs
+
+/-!
+# Conditional query order for quantum integration
+
+Assumed cost and error estimates yield an upper query bound for `complexityOf`; an assumed
+lower-bound family yields the matching lower power. The theorem `theorem1_query_order` combines
+these estimates into `IsThetaQuantumQuery` on a prescribed error interval. See [Novak2001] for
+the paper context.
+
+## Main statements
+
+* `query_upper_bound`: The assumed inverse-parameter cost and power error estimates bound the
+  complexity by `C * c^(1/(1+γ)) * ε^(-1/(1+γ))` for `0 < ε ≤ c`.
+* `query_lower_bound`: The assumed lower bound at errors `t^(1+1/γ)` gives the lower query bound
+  `c * ε^(-1/(1+γ))` for `0 < ε ≤ 1`.
+* `theorem1_query_order`: The assumed upper estimates and lower-bound family imply
+  `IsThetaQuantumQuery` with lower constant `c_lw` and upper constant `C * c^(1/(1+γ))` on the
+  stated interval.
+
+## References
+
+* [Novak, 2001][Novak2001]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -15,6 +39,8 @@ namespace Qatlib.Papers.QIntegration00.MainResults.QueryTheorem
 
 open Defs
 
+/-- The assumed inverse-parameter cost and power error estimates bound the complexity by `C *
+c^(1/(1+γ)) * ε^(-1/(1+γ))` for `0 < ε ≤ c`. -/
 theorem query_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     (hcost : ∀ t ∈ Set.Ioc (0 : ℝ) 1, cost t ≤ C * t⁻¹)
@@ -62,6 +88,8 @@ theorem query_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c
     _ = C * (c ^ (1 / (1 + γ)) * ε ^ (-1 / (1 + γ))) := by rw [htinv]
     _ = C * c ^ (1 / (1 + γ)) * ε ^ (-1 / (1 + γ)) := by ring
 
+/-- The assumed lower bound at errors `t^(1+1/γ)` gives the lower query bound `c * ε^(-1/(1+γ))`
+for `0 < ε ≤ 1`. -/
 theorem query_lower_bound {γ c : ℝ} (hγ : 0 < γ) (hc : 0 < c)
     {cost error : ℝ → ℝ} {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hnw : ∀ t ∈ Set.Ioc (0 : ℝ) 1,
@@ -92,6 +120,9 @@ theorem query_lower_bound {γ c : ℝ} (hγ : 0 < γ) (hc : 0 < c)
   rw [hte, htl] at h
   exact h
 
+/-- The assumed upper estimates and lower-bound family imply `IsThetaQuantumQuery` with lower
+constant `c_lw` and upper constant `C * c^(1/(1+γ))` on the stated interval. See
+[Novak2001]. -/
 theorem theorem1_query_order {γ c C c_lw : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     (hclw : 0 < c_lw)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)

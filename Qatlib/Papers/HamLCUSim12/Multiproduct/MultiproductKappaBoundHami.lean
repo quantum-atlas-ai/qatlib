@@ -7,11 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundHami
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassBounds
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundStat
+
+/-!
+# A lower scale for the multiproduct mass ratio
+
+This module proves `multiproductKappaBound` by combining the first-k coefficient estimate with
+positive and negative mass bounds. The conclusion is expressed without division: an explicit
+nonnegative scale times the negative mass is bounded by the positive mass. See [ChildsWiebe2012]
+for the multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `multiproductKappaBound`: Under the analytic and terminal-node separation hypotheses, the
+  negative coefficient mass times 2^(−1/2) k^(−5/2) exp(−2k(1 + log η / 2 − γ)) is at most the
+  positive coefficient mass.
+* `multiproduct_bound_scale`: For K > 0 and any real A, the product K(√2 K^(3/2)
+  exp(2KA))(2^(−1/2) K^(−5/2) exp(−2KA)) equals 1.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical
 
+/-- For K > 0 and any real A, the product K(√2 K^(3/2) exp(2KA))(2^(−1/2) K^(−5/2) exp(−2KA))
+equals 1. -/
 theorem multiproduct_bound_scale (K A : ℝ) (hK : 0 < K) :
     K*(Real.sqrt 2*K^((3 : ℝ)/2)*Real.exp (2*K*A))*
       ((2 : ℝ)^(-(1 : ℝ)/2)*K^(-(5 : ℝ)/2)*Real.exp (-(2*K)*A)) = 1 := by
@@ -25,6 +49,9 @@ theorem multiproduct_bound_scale (K A : ℝ) (hK : 0 < K) :
     ring
   rw [← Real.exp_log hp, hl, Real.exp_zero]
 
+/-- Under the analytic and terminal-node separation hypotheses, the negative coefficient mass
+times 2^(−1/2) k^(−5/2) exp(−2k(1 + log η / 2 − γ)) is at most the positive coefficient
+mass. See [ChildsWiebe2012]. -/
 theorem multiproductKappaBound : MultiproductKappaBound := by
   intro k hk γ η hγ hη hE hF hc
   have hkR : (0 : ℝ) < k := by exact_mod_cast (by omega : 0 < k)

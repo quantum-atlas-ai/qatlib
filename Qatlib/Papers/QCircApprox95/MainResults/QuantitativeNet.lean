@@ -8,6 +8,24 @@ import Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
 import Qatlib.Papers.QCircApprox95.MainResults.MeasureBounds
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+
+/-!
+# Quantitative unitary nets at small radii
+
+The module computes the real dimension of complex square matrices and simplifies a volumetric
+net bound. For at least one qubit and `0 < δ ≤ 1 / 2`, `quantitative_unitary_net` gives a finite
+net consisting of unitaries with an explicit cardinality bound. See [Knill1995].
+
+## Main statements
+
+* `finrank_matrix_real`: computes real dimension as 2N².
+* `quantitative_unitary_net`: bounds net size by `(2 / δ) ^ (2 ^ (4 * n))`.
+
+## References
+
+* [Knill, 1995][Knill1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,7 @@ open scoped ENNReal BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.QCircApprox95.MainResults
 
+/-- The real dimension of the space of complex `N`-by-`N` matrices is `2 * (N * N)`. -/
 theorem finrank_matrix_real (N : ℕ) :
     Module.finrank ℝ (Matrix (Fin N) (Fin N) ℂ) = 2 * (N * N) := by
   change Module.finrank ℝ (Fin N → Fin N → ℂ) = 2 * (N * N)
@@ -27,6 +46,7 @@ theorem finrank_matrix_real (N : ℕ) :
   push_cast
   ring
 
+/-- For `0 < δ ≤ 1 / 2`, the quantity `1 + 4 / δ` is at most `(2 / δ) ^ 2`. -/
 theorem one_add_four_div_le_sq {δ : ℝ} (hδ0 : 0 < δ) (hδ : δ ≤ 1 / 2) :
     1 + 4 / δ ≤ (2 / δ) ^ 2 := by
   have hsq : δ ^ 2 ≤ δ / 2 := by
@@ -40,6 +60,9 @@ theorem one_add_four_div_le_sq {δ : ℝ} (hδ0 : 0 < δ) (hδ : δ ≤ 1 / 2) :
   rw [he]
   exact key
 
+/-- For `n ≥ 1` and `0 < δ ≤ 1 / 2`, the displayed volumetric bound is at most `(2 / δ) ^ (2 ^
+(4 * n))`. This is the arithmetic reduction for the net estimate of Lemma 4.4 in
+[Knill1995]. -/
 theorem net_card_arithmetic (n : ℕ) (hn : 1 ≤ n) {δ : ℝ}
     (hδ0 : 0 < δ) (hδ : δ ≤ 1 / 2) :
     (1 + 4 / δ) ^ (2 * (2 ^ n) * (2 ^ n)) ≤
@@ -80,6 +103,9 @@ theorem net_card_arithmetic (n : ℕ) (hn : 1 ≤ n) {δ : ℝ}
     _ ≤ (2 / δ) ^ (N * N * N * N) := hpow''
     _ = (2 / δ) ^ (2 ^ (4 * n)) := by rw [hNpow]
 
+/-- For `n ≥ 1` and `0 < δ ≤ 1 / 2`, there is a finite unitary δ-net in dimension `2 ^ n` with
+cardinality at most `(2 / δ) ^ (2 ^ (4 * n))`. This gives a small-radius version of the net
+estimate in Lemma 4.4 of [Knill1995]. -/
 theorem quantitative_unitary_net (n : ℕ) (hn : 1 ≤ n) {δ : ℝ}
     (hδ0 : 0 < δ) (hδ : δ ≤ 1 / 2) :
     ∃ s : Finset (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ),

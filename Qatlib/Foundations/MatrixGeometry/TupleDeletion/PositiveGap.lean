@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.GramGap
+
+/-!
+# Positive eigenvalue bounds for deletion Gram matrices
+
+Uses the quadratic Gram gap to bound every positive eigenvalue possessing a nonzero eigenvector.
+The general bound retains the natural-number fiber cardinality; `deletionGram_source_gap`
+simplifies it to `Fintype.card L - 2 * Fintype.card I + 2` under the stated nonempty-coordinate
+and cardinality hypotheses. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `deletionGram_positive_eigenvalue`: For a nonempty finite label type, a positive eigenvalue
+  with a nonzero eigenvector of the deletion Gram action is at least `a - Fintype.card I + 1`,
+  where `a = Fintype.card L - (Fintype.card I - 1)` is computed in the natural numbers.
+* `deletionGram_source_gap`: If `0 < Fintype.card I ≤ Fintype.card L`, every positive eigenvalue
+  with a nonzero eigenvector of the deletion Gram action is at least `(Fintype.card L : ℝ) - 2 *
+  Fintype.card I + 2` [MagniezZur2026].
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +37,9 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- For a nonempty finite label type, a positive eigenvalue with a nonzero eigenvector of the
+deletion Gram action is at least `a - Fintype.card I + 1`, where `a = Fintype.card L -
+(Fintype.card I - 1)` is computed in the natural numbers. -/
 theorem deletionGram_positive_eigenvalue (v : EuclideanSpace ℂ (InjectiveTuple I L)) (hv : v ≠ 0)
     (hL : 0 < Fintype.card L) (ev : ℝ) (hev : 0 < ev)
     (he : deletionGramAction v=(ev : ℂ) • v) :
@@ -29,6 +55,9 @@ theorem deletionGram_positive_eigenvalue (v : EuclideanSpace ℂ (InjectiveTuple
   apply (mul_le_mul_iff_right₀ hp).mp
   nlinarith [h]
 
+/-- If `0 < Fintype.card I ≤ Fintype.card L`, every positive eigenvalue with a nonzero
+eigenvector of the deletion Gram action is at least `(Fintype.card L : ℝ) - 2 * Fintype.card
+I + 2` [MagniezZur2026]. -/
 theorem deletionGram_source_gap (v : EuclideanSpace ℂ (InjectiveTuple I L)) (hv : v ≠ 0)
     (hI : 0 < Fintype.card I) (hIL : Fintype.card I ≤ Fintype.card L)
     (ev : ℝ) (hev : 0 < ev) (he : deletionGramAction v=(ev : ℂ) • v) :

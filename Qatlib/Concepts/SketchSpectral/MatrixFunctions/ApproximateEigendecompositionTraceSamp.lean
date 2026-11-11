@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.ApproximateEigendecompositionTraceStat
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTracePerturbationSamp
+
+/-!
+# Trace estimates from approximate eigendecompositions
+
+The module proves exponential and trace identities for an isometric compression, together with
+scalar estimates used to control polar correction and exponential error.
+`approximateEigendecompositionTrace` bounds the relative error of a partition-function estimate
+from an approximate eigendecomposition, as in [ChiaEtAl2022].
+
+## Main statements
+
+* `isometry_exp_trace`: The real exponential trace of an isometric compression equals the
+  smaller exponential trace plus the difference of the ambient dimensions.
+* `approximateEigendecompositionTrace`: A sufficiently accurate approximate eigendecomposition
+  with the stated near-isometry bounds estimates the exponential trace with relative error at
+  most `2 * (exp 1 - 1) * ε`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralSketch.NearIsometry
@@ -18,6 +40,7 @@ open Matrix NormedSpace Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- For an isometry `V`, the exponential of `V * D * Vᴴ` equals `1 + V * (exp D - 1) * Vᴴ`. -/
 theorem isometry_exp_sandwich {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (V : Matrix I J ℂ) (D : Matrix J J ℂ)
     (hV : Vᴴ * V = 1) :
@@ -52,6 +75,8 @@ theorem isometry_exp_sandwich {I J : Type} [Fintype I] [DecidableEq I]
   rw [ha, hd, hm]
   simp only [hp, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- The real exponential trace of an isometric compression equals the smaller exponential trace
+plus the difference of the ambient dimensions. -/
 theorem isometry_exp_trace {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (V : Matrix I J ℂ) (D : Matrix J J ℂ)
     (hV : Vᴴ * V = 1) :
@@ -62,6 +87,7 @@ theorem isometry_exp_trace {I J : Type} [Fintype I] [DecidableEq I]
   simp only [Matrix.trace_one, Complex.add_re, Complex.sub_re, Complex.natCast_re]
   ring
 
+/-- For `0 ≤ δ ≤ 1 / 4`, the coefficient `δ * (2 - δ) / (1 - δ)²` is at most `4 * δ`. -/
 theorem polar_trace_coefficient_le {δ : ℝ} (hδ : 0 ≤ δ) (hsmall : δ ≤ 1/4) :
     δ*(2-δ)/(1-δ)^2 ≤ 4*δ := by
   have hp : 0 < (1-δ)^2 := sq_pos_of_pos (by linarith)
@@ -70,6 +96,7 @@ theorem polar_trace_coefficient_le {δ : ℝ} (hδ : 0 ≤ δ) (hsmall : δ ≤ 
   have := mul_le_mul_of_nonneg_left hc hδ
   nlinarith
 
+/-- For `0 ≤ ε ≤ 1 / 2`, `exp (2 * ε) - 1` is at most `2 * (exp 1 - 1) * ε`. -/
 theorem gibbs_exp_chord {ε : ℝ} (hε : 0 ≤ ε) (hsmall : ε ≤ 1/2) :
     Real.exp (2*ε)-1 ≤ 2*(Real.exp 1-1)*ε := by
   have hc := convexOn_exp.2 (Set.mem_univ (0 : ℝ)) (Set.mem_univ (1 : ℝ))
@@ -77,6 +104,9 @@ theorem gibbs_exp_chord {ε : ℝ} (hε : 0 ≤ ε) (hsmall : ε ≤ 1/2) :
   simp only [smul_eq_mul, mul_zero, mul_one, zero_add, Real.exp_zero] at hc
   nlinarith
 
+/-- A sufficiently accurate approximate eigendecomposition with the stated near-isometry bounds
+estimates the exponential trace with relative error at most `2 * (exp 1 - 1) * ε`. See
+[ChiaEtAl2022]. -/
 theorem approximateEigendecompositionTrace : ApproximateEigendecompositionTrace := by
   intro I _ _ H hH r d D hD Ut ε δ hε hsmall hδeps hδnorm hGram happrox
   have hδ : 0 ≤ δ := (norm_nonneg _).trans hGram

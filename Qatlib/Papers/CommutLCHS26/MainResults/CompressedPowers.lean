@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+
+/-!
+# Errors of powers of compressed amplified operators
+
+This module propagates the error of a compressed coherent oblivious amplitude amplification
+operator through repeated powers. It supplies contraction and weighted error estimates for the
+repeated simulation constructions associated with [AftabAnTrivisa2026].
+
+## Main statements
+
+* `compressed_power_error`: gives contraction and an error bound linear in the repetition count.
+* `compressed_power_error_le_six`: bounds the power error by 6rε.
+* `weighted_compressed_power_error`: combines these estimates with complex weights.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +43,8 @@ open Qatlib.Foundations.OperatorErrors.OperatorError
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- For unitary V and U and an isometry R, the compressed amplified operator is a contraction
+and its r-th power error is at most r times the coherent amplification error. -/
 theorem compressed_power_error (V : Matrix I I ℂ) (U : Matrix H H ℂ)
     (R : Matrix H I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hR : IsIsometry R) (r : ℕ) :
@@ -39,6 +60,7 @@ theorem compressed_power_error (V : Matrix I I ℂ) (U : Matrix H H ℂ)
     (mul_le_mul_of_nonneg_left
       (coherent_oaa_compressed_error V U R _ hV h).2 (Nat.cast_nonneg r))
 
+/-- A local encoding error bounded by ε ≤ 1 yields compressed amplified power error at most 6rε. -/
 theorem compressed_power_error_le_six (V : Matrix I I ℂ) (U : Matrix H H ℂ)
     (R : Matrix H I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hR : IsIsometry R)
@@ -58,6 +80,8 @@ theorem compressed_power_error_le_six (V : Matrix I I ℂ) (U : Matrix H H ℂ)
         mul_le_mul_of_nonneg_left herr (Nat.cast_nonneg r)
       _ = 6 * (r : ℝ) * ε := by ring)
 
+/-- The error of a weighted sum of compressed amplified powers is at most the sum of the weight
+norms times 6r times their local error bounds. -/
 theorem weighted_compressed_power_error {J : Type} [Fintype J]
     (V : J → Matrix I I ℂ) (U : J → Matrix H H ℂ) (R : Matrix H I ℂ)
     (w : J → ℂ) (ε : J → ℝ) (hV : ∀ i, V i ∈ Matrix.unitaryGroup I ℂ)

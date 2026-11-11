@@ -16,6 +16,26 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.SplitIfs
 
+/-!
+# Finite pure states and elementary quantum gates
+
+This module represents basis-indexed amplitude vectors by `QState`, defines normalization and
+Born weights, and develops unitary matrix action through `ApplyGate` and `Inner`. It also
+constructs Boolean registers, elementary qubit gates, the register Hadamard transform, and
+Hamiltonian evolution, following the finite-dimensional framework of [NielsenChuang2010].
+
+## Main statements
+
+* `normalized_applyGate`: unitary matrices preserve normalized states.
+* `hadamardN_unitary`: the register Hadamard transform is unitary.
+* `hamiltonianEvolution_unitary`: Hermitian generators give unitary evolution.
+* `state_ket_expansion`: expand a state in the computational basis.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 namespace Qatlib.Foundations.PureStateMath
 
 open Matrix
@@ -25,21 +45,27 @@ set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The type of Boolean registers of length `n`. -/
 abbrev Reg (n : ℕ) := Fin n → Bool
 
+/-- The length-`n` register whose bits are all `false`. -/
 def ZeroStr (n : ℕ) : Reg n := fun _ => false
 
+/-- There are `2 ^ n` Boolean registers of length `n`. -/
 theorem card_reg (n : ℕ) : Fintype.card (Reg n) = 2 ^ n := by
   rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
 
+/-- The equivalence sending `false` to zero and `true` to one in `Fin 2`. -/
 def boolEquivFin2 : Bool ≃ Fin 2 where
   toFun b := if b then 1 else 0
   invFun k := if k = 0 then false else true
   left_inv b := by cases b <;> rfl
   right_inv k := by fin_cases k <;> rfl
 
+/-- Split a register of length `n + 1` into a register of length `n` and one Boolean bit. -/
 def regSuccEquiv (n : ℕ) : Reg (n + 1) ≃ Reg n × Bool := Fin.succFunEquiv Bool n
 
+/-- A recursively defined equivalence between length-`n` Boolean registers and `Fin (2 ^ n)`. -/
 def bitVecEquiv : (n : ℕ) → Reg n ≃ Fin (2 ^ n)
   | 0 => Equiv.ofUnique (Reg 0) (Fin 1)
   | n + 1 =>
@@ -47,10 +73,12 @@ def bitVecEquiv : (n : ℕ) → Reg n ≃ Fin (2 ^ n)
       ((Equiv.prodCongr (bitVecEquiv n) boolEquivFin2).trans
         (finProdFinEquiv.trans (Equiv.cast (congrArg Fin (Nat.pow_succ 2 n).symm))))
 
+/-- Every register of length zero is sent to zero by `bitVecEquiv`. -/
 @[simp] theorem bitVecEquiv_zero (x : Reg 0) : bitVecEquiv 0 x = 0 := by
   haveI : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
   exact Subsingleton.elim _ _
 
+/-- The all-zero register is sent to zero by `bitVecEquiv`. -/
 theorem bitVecEquiv_zeroStr (n : ℕ) : bitVecEquiv n (ZeroStr n) = 0 := by
   induction n with
   | zero =>
@@ -73,48 +101,66 @@ theorem bitVecEquiv_zeroStr (n : ℕ) : bitVecEquiv n (ZeroStr n) = 0 := by
     rw [h3 (Nat.pow_succ 2 n).symm]
     simp [finProdFinEquiv, boolEquivFin2]
 
+/-- The inverse of `bitVecEquiv` sends zero to the all-zero register. -/
 theorem bitVecEquiv_symm_zero (n : ℕ) : (bitVecEquiv n).symm 0 = ZeroStr n := by
   rw [Equiv.symm_apply_eq]
   exact (bitVecEquiv_zeroStr n).symm
 
+/-- Complex amplitudes indexed by a basis type `I`, without a normalization constraint. -/
 abbrev QState (I : Type*) := I → ℂ
 
+/-- The computational basis vector with amplitude one at `i` and zero elsewhere. -/
 def Ket (i : I) : QState I := fun j => if j = i then 1 else 0
 
+/-- The amplitude of `Ket i` at `i` is one. -/
 @[simp] theorem ket_self (i : I) : Ket i i = 1 := by simp [Ket]
 
+/-- The amplitude of a computational basis vector is given by the Kronecker delta. -/
 theorem ket_apply (i j : I) : Ket i j = if j = i then 1 else 0 := rfl
 
+/-- A computational basis vector has zero amplitude at every distinct index. -/
 theorem ket_ne {i j : I} (h : j ≠ i) : Ket i j = 0 := by simp [Ket, h]
 
+/-- The predicate that the sum of squared amplitude norms equals one. -/
 noncomputable def Normalized (ψ : QState I) : Prop := ∑ i, ‖ψ i‖ ^ 2 = 1
 
+/-- The squared norm of the amplitude at `i`, interpreted as a Born probability for a normalized
+state. -/
 noncomputable def BornProb (ψ : QState I) (i : I) : ℝ := ‖ψ i‖ ^ 2
 
+/-- Every squared amplitude norm is nonnegative. -/
 theorem bornProb_nonneg (ψ : QState I) (i : I) : 0 ≤ BornProb ψ i := by
   unfold BornProb; positivity
 
+/-- A computational basis state has Born weight one at its own index and zero elsewhere. -/
 theorem bornProb_ket (i j : I) : BornProb (Ket i) j = if j = i then 1 else 0 := by
   unfold BornProb Ket; split_ifs <;> simp
 
+/-- Every computational basis vector is normalized. -/
 theorem normalized_ket (i : I) : Normalized (Ket i) := by
   unfold Normalized
   rw [Finset.sum_eq_single i (fun j _ hj => by simp [Ket, hj]) (by simp)]
   simp
 
+/-- The Born probabilities of a normalized state sum to one. -/
 theorem bornProb_sum_eq_one {ψ : QState I} (hψ : Normalized ψ) : ∑ i, BornProb ψ i = 1 := hψ
 
+/-- The sum of Born weights over a finite set of basis outcomes. -/
 noncomputable def MeasureProb (ψ : QState I) (S : Finset I) : ℝ := ∑ i ∈ S, BornProb ψ i
 
+/-- The Born weight of any finite set of outcomes is nonnegative. -/
 theorem measureProb_nonneg (ψ : QState I) (S : Finset I) : 0 ≤ MeasureProb ψ S :=
   Finset.sum_nonneg fun i _ => bornProb_nonneg ψ i
 
+/-- Measuring a normalized state in the full basis has total probability one. -/
 theorem measureProb_univ {ψ : QState I} (hψ : Normalized ψ) :
     MeasureProb ψ Finset.univ = 1 := hψ
 
+/-- The constant amplitude vector with amplitude `1 / sqrt (Fintype.card I)`. -/
 noncomputable def Uniform (I : Type*) [Fintype I] : QState I :=
   fun _ => (Real.sqrt (Fintype.card I) : ℂ)⁻¹
 
+/-- The uniform amplitude vector is normalized when the basis has positive cardinality. -/
 theorem normalized_uniform (hN : 0 < Fintype.card I) : Normalized (Uniform I) := by
   have hpos : (0 : ℝ) < (Fintype.card I : ℝ) := Nat.cast_pos.mpr hN
   have hsqrt : (0 : ℝ) < Real.sqrt (Fintype.card I) := Real.sqrt_pos_of_pos hpos
@@ -124,15 +170,20 @@ theorem normalized_uniform (hN : 0 < Fintype.card I) : Normalized (Uniform I) :=
     rw [norm_inv, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hsqrt.le]
   rw [h1, inv_pow, Real.sq_sqrt hpos.le, mul_inv_cancel₀ hpos.ne']
 
+/-- Apply a square complex matrix to an amplitude vector by matrix-vector multiplication. -/
 noncomputable def ApplyGate (U : Matrix I I ℂ) (ψ : QState I) : QState I := U.mulVec ψ
 
+/-- The identity matrix acts as the identity on states. -/
 @[simp] theorem applyGate_one (ψ : QState I) : ApplyGate 1 ψ = ψ := by
   unfold ApplyGate; simp
 
+/-- Applying a matrix product is equivalent to applying the right factor followed by the left
+factor. -/
 theorem applyGate_mul (U V : Matrix I I ℂ) (ψ : QState I) :
     ApplyGate (U * V) ψ = ApplyGate U (ApplyGate V ψ) := by
   unfold ApplyGate; rw [Matrix.mulVec_mulVec]
 
+/-- A unitary matrix preserves the sum of each amplitude times its complex conjugate. -/
 theorem sum_mul_conj_mulVec_of_mem_unitaryGroup {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     (∑ i, (U *ᵥ ψ) i * (starRingEnd ℂ) ((U *ᵥ ψ) i)) = ∑ j, ψ j * (starRingEnd ℂ) (ψ j) := by
@@ -181,6 +232,7 @@ theorem sum_mul_conj_mulVec_of_mem_unitaryGroup {U : Matrix I I ℂ}
           (fun h => absurd (Finset.mem_univ j) h)]
         rw [if_pos rfl, mul_one]
 
+/-- A unitary matrix preserves the sum of squared complex amplitude norms. -/
 theorem sum_normSq_mulVec_of_mem_unitaryGroup {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     ∑ i, Complex.normSq ((U *ᵥ ψ) i) = ∑ j, Complex.normSq (ψ j) := by
@@ -189,6 +241,7 @@ theorem sum_normSq_mulVec_of_mem_unitaryGroup {U : Matrix I I ℂ}
   simp_rw [← Complex.mul_conj]
   exact sum_mul_conj_mulVec_of_mem_unitaryGroup hU ψ
 
+/-- Applying a unitary matrix preserves normalization. -/
 theorem normalized_applyGate {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ)
     {ψ : QState I} (hψ : Normalized ψ) : Normalized (ApplyGate U ψ) := by
   unfold Normalized at hψ ⊢
@@ -197,8 +250,10 @@ theorem normalized_applyGate {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGrou
   simp_rw [← Complex.normSq_eq_norm_sq]
   exact sum_normSq_mulVec_of_mem_unitaryGroup hU ψ
 
+/-- The zero-one matrix with entry one at `(i, j)` exactly when `i = σ j`. -/
 def permMatrix (σ : I → I) : Matrix I I ℂ := Matrix.of fun i j => if i = σ j then (1 : ℂ) else 0
 
+/-- The matrix associated with an involution squares to the identity. -/
 theorem permMatrix_mul_self {σ : I → I} (hσ : Function.Involutive σ) :
     permMatrix σ * permMatrix σ = 1 := by
   ext i j
@@ -207,6 +262,7 @@ theorem permMatrix_mul_self {σ : I → I} (hσ : Function.Involutive σ) :
     (fun h => absurd (Finset.mem_univ (σ j)) h)]
   simp [hσ j]
 
+/-- The matrix associated with an involution equals its conjugate transpose. -/
 theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
     (permMatrix σ)ᴴ = permMatrix σ := by
   ext i j
@@ -217,11 +273,14 @@ theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
   · have hij : i ≠ σ j := fun e => hji (by rw [← hσ j, ← e])
     rw [if_neg hji, if_neg hij, map_zero]
 
+/-- The matrix associated with an involution is unitary. -/
 theorem permMatrix_unitary {σ : I → I} (hσ : Function.Involutive σ) :
     permMatrix σ ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, permMatrix_conjTranspose hσ]
   exact permMatrix_mul_self hσ
 
+/-- For an involution `σ`, the amplitude after applying `permMatrix σ` at `i` is the original
+amplitude at `σ i`. -/
 theorem applyGate_permMatrix {σ : I → I} (hσ : Function.Involutive σ) (ψ : QState I) (i : I) :
     ApplyGate (permMatrix σ) ψ i = ψ (σ i) := by
   simp only [ApplyGate, permMatrix, Matrix.mulVec, dotProduct, Matrix.of_apply]
@@ -233,6 +292,7 @@ theorem applyGate_permMatrix {σ : I → I} (hσ : Function.Involutive σ) (ψ :
     simp [hne]
   · simp
 
+/-- The matrix of an involution sends `Ket j` to `Ket (σ j)`. -/
 theorem applyGate_permMatrix_ket {σ : I → I} (hσ : Function.Involutive σ) (j : I) :
     ApplyGate (permMatrix σ) (Ket j) = Ket (σ j) := by
   funext i
@@ -243,59 +303,75 @@ theorem applyGate_permMatrix_ket {σ : I → I} (hσ : Function.Involutive σ) (
   · have h' : σ i ≠ j := fun e => h (by rw [← e, hσ i])
     simp [Ket, h, h']
 
+/-- The single-qubit Hadamard matrix with Boolean basis indices. -/
 noncomputable def Hadamard : Matrix Bool Bool ℂ :=
   Matrix.of fun a b : Bool => (Real.sqrt 2 : ℂ)⁻¹ * (if a && b then -1 else 1)
 
+/-- The square of the real square root of two, embedded in the complex numbers, is two. -/
 theorem sqrt2_sq : ((Real.sqrt 2 : ℂ)) ^ 2 = 2 := by
   rw [show ((Real.sqrt 2 : ℂ)) ^ 2 = ((Real.sqrt 2 ^ 2 : ℝ) : ℂ) by push_cast; ring,
     Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   norm_num
 
+/-- The Hadamard matrix squares to the identity. -/
 theorem hadamard_mul_self : Hadamard * Hadamard = 1 := by
   ext i j
   simp only [Hadamard, Matrix.mul_apply, Matrix.of_apply, Fintype.sum_bool, Matrix.one_apply]
   rcases i <;> rcases j <;> simp <;> ring_nf <;> norm_num [sqrt2_sq]
 
+/-- The Hadamard matrix equals its conjugate transpose. -/
 theorem hadamard_conjTranspose : Hadamardᴴ = Hadamard := by
   ext i j
   simp only [Hadamard, Matrix.conjTranspose_apply, Matrix.of_apply, Bool.and_comm]
   rcases i <;> rcases j <;> simp [Complex.conj_ofReal]
 
+/-- The Hadamard matrix is unitary. -/
 theorem hadamard_unitary : Hadamard ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff']
   rw [show star Hadamard = Hadamard from hadamard_conjTranspose]
   exact hadamard_mul_self
 
+/-- The qubit state with both amplitudes equal to `1 / sqrt 2`. -/
 noncomputable def Plus : QState Bool := fun b => Hadamard b false
 
+/-- The qubit state with amplitudes `1 / sqrt 2` and `-1 / sqrt 2` at `false` and `true`. -/
 noncomputable def Minus : QState Bool := fun b => Hadamard b true
 
+/-- The Hadamard gate sends `Ket false` to `Plus`. -/
 theorem applyGate_hadamard_ket_false : ApplyGate Hadamard (Ket false) = Plus := by
   funext b
   simp [ApplyGate, Matrix.mulVec, dotProduct, Ket, Plus]
 
+/-- The Hadamard gate sends `Ket true` to `Minus`. -/
 theorem applyGate_hadamard_ket_true : ApplyGate Hadamard (Ket true) = Minus := by
   funext b
   simp [ApplyGate, Matrix.mulVec, dotProduct, Ket, Minus]
 
+/-- The state `Plus` is normalized. -/
 theorem normalized_plus : Normalized Plus := by
   rw [← applyGate_hadamard_ket_false]
   exact normalized_applyGate hadamard_unitary (normalized_ket false)
 
+/-- The state `Minus` is normalized. -/
 theorem normalized_minus : Normalized Minus := by
   rw [← applyGate_hadamard_ket_true]
   exact normalized_applyGate hadamard_unitary (normalized_ket true)
 
+/-- The Pauli X matrix, defined as the permutation matrix of Boolean negation. -/
 noncomputable def PauliX : Matrix Bool Bool ℂ := permMatrix Bool.not
 
+/-- The Pauli X matrix is unitary. -/
 theorem pauliX_unitary : PauliX ∈ Matrix.unitaryGroup Bool ℂ :=
   permMatrix_unitary Bool.not_not
 
+/-- The Pauli X gate flips a computational basis bit. -/
 theorem applyGate_pauliX_ket (b : Bool) : ApplyGate PauliX (Ket b) = Ket (!b) :=
   applyGate_permMatrix_ket Bool.not_not b
 
+/-- The diagonal Pauli Z matrix with entries one at `false` and minus one at `true`. -/
 noncomputable def PauliZ : Matrix Bool Bool ℂ := Matrix.diagonal fun a => if a then (-1 : ℂ) else 1
 
+/-- The Pauli Z matrix squares to the identity. -/
 theorem pauliZ_mul_self : PauliZ * PauliZ = 1 := by
   unfold PauliZ
   rw [Matrix.diagonal_mul_diagonal, ← Matrix.diagonal_one]
@@ -303,6 +379,7 @@ theorem pauliZ_mul_self : PauliZ * PauliZ = 1 := by
   funext a
   split_ifs <;> ring
 
+/-- The Pauli Z matrix equals its conjugate transpose. -/
 theorem pauliZ_conjTranspose : PauliZᴴ = PauliZ := by
   unfold PauliZ
   rw [Matrix.diagonal_conjTranspose]
@@ -311,12 +388,15 @@ theorem pauliZ_conjTranspose : PauliZᴴ = PauliZ := by
   simp only [Pi.star_apply]
   split_ifs <;> simp
 
+/-- The Pauli Z matrix is unitary. -/
 theorem pauliZ_unitary : PauliZ ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, pauliZ_conjTranspose]
   exact pauliZ_mul_self
 
+/-- The Boolean permutation `(c, d) ↦ (c, d xor c)` underlying controlled NOT. -/
 def cnotFlip : Bool × Bool → Bool × Bool := fun p => (p.1, p.2 ^^ p.1)
 
+/-- Applying the controlled-NOT Boolean permutation twice returns the original pair. -/
 theorem cnotFlip_involutive : Function.Involutive cnotFlip := by
   intro p
   obtain ⟨c, d⟩ := p
@@ -324,17 +404,22 @@ theorem cnotFlip_involutive : Function.Involutive cnotFlip := by
   congr 1
   rw [Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
 
+/-- The controlled-NOT matrix with the first Boolean component as control. -/
 noncomputable def CNOT : Matrix (Bool × Bool) (Bool × Bool) ℂ := permMatrix cnotFlip
 
+/-- The controlled-NOT matrix is unitary. -/
 theorem cnot_unitary : CNOT ∈ Matrix.unitaryGroup (Bool × Bool) ℂ :=
   permMatrix_unitary cnotFlip_involutive
 
+/-- Controlled NOT sends `Ket (c, d)` to `Ket (c, d xor c)`. -/
 theorem applyGate_cnot_ket (c d : Bool) : ApplyGate CNOT (Ket (c, d)) = Ket (c, d ^^ c) :=
   applyGate_permMatrix_ket cnotFlip_involutive (c, d)
 
+/-- The diagonal qubit phase gate with entries one and `exp (iθ)`. -/
 noncomputable def Rz (θ : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.diagonal fun a => if a then Complex.exp ((θ : ℂ) * Complex.I) else 1
 
+/-- The phase gate `Rz θ` is unitary for every real angle. -/
 theorem rz_unitary (θ : ℝ) : Rz θ ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   unfold Rz
@@ -351,15 +436,20 @@ theorem rz_unitary (θ : ℝ) : Rz θ ∈ Matrix.unitaryGroup Bool ℂ := by
 
 variable {n : ℕ}
 
+/-- The register Hadamard matrix whose entries are products of single-bit Hadamard entries. -/
 noncomputable def HadamardN (n : ℕ) : Matrix (Reg n) (Reg n) ℂ :=
   Matrix.of fun x y => ∏ i, Hadamard (x i) (y i)
 
+/-- Every entry in the `false` column of the Hadamard matrix is `1 / sqrt 2`. -/
 theorem hadamard_apply_false (a : Bool) : Hadamard a false = (Real.sqrt 2 : ℂ)⁻¹ := by
   simp [Hadamard]
 
+/-- Every entry in the `false` row of the Hadamard matrix is `1 / sqrt 2`. -/
 theorem hadamard_false_apply (b : Bool) : Hadamard false b = (Real.sqrt 2 : ℂ)⁻¹ := by
   simp [Hadamard]
 
+/-- The column of `HadamardN n` indexed by the all-zero register has constant entry `(1 / sqrt
+2) ^ n`. -/
 theorem hadamardN_apply_zero_right (z : Reg n) :
     HadamardN n z (ZeroStr n) = ((Real.sqrt 2 : ℂ)⁻¹) ^ n := by
   simp only [HadamardN, Matrix.of_apply]
@@ -367,6 +457,8 @@ theorem hadamardN_apply_zero_right (z : Reg n) :
     funext i; rw [ZeroStr, hadamard_apply_false], Finset.prod_const, Finset.card_univ,
     Fintype.card_fin]
 
+/-- The row of `HadamardN n` indexed by the all-zero register has constant entry `(1 / sqrt 2) ^
+n`. -/
 theorem hadamardN_apply_zero_left (z : Reg n) :
     HadamardN n (ZeroStr n) z = ((Real.sqrt 2 : ℂ)⁻¹) ^ n := by
   simp only [HadamardN, Matrix.of_apply]
@@ -374,9 +466,12 @@ theorem hadamardN_apply_zero_left (z : Reg n) :
     funext i; rw [ZeroStr, hadamard_false_apply], Finset.prod_const, Finset.card_univ,
     Fintype.card_fin]
 
+/-- The product of two complex copies of `1 / sqrt 2` is `1 / 2`. -/
 theorem inv_sqrt2_mul_self : ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = (2 : ℂ)⁻¹ := by
   rw [← mul_inv, ← sqrt2_sq, sq]
 
+/-- Multiplying the all-zero basis vector by the register Hadamard matrix gives constant
+amplitude `(1 / sqrt 2) ^ n`. -/
 theorem hadamardN_mulVec_ket_zero :
     (HadamardN n).mulVec (Ket (ZeroStr n)) = fun _ => ((Real.sqrt 2 : ℂ)⁻¹) ^ n := by
   funext z
@@ -384,6 +479,7 @@ theorem hadamardN_mulVec_ket_zero :
     Finset.sum_ite_eq', Finset.mem_univ, if_true]
   exact hadamardN_apply_zero_right z
 
+/-- The register Hadamard gate prepares the uniform state from the all-zero basis state. -/
 theorem applyGate_hadamardN_ket_zero (n : ℕ) :
     ApplyGate (HadamardN n) (Ket (ZeroStr n)) = Uniform (Reg n) := by
   have hsqrt : Real.sqrt ((2 : ℝ) ^ n) = (Real.sqrt 2) ^ n := by
@@ -395,6 +491,8 @@ theorem applyGate_hadamardN_ket_zero (n : ℕ) :
   funext i
   simp [Uniform, hsqrt, inv_pow]
 
+/-- Each register Hadamard entry is `(1 / sqrt 2) ^ n` times the product of the bitwise overlap
+signs. -/
 theorem hadamardN_apply (y z : Reg n) :
     HadamardN n y z = ((Real.sqrt 2 : ℂ)⁻¹) ^ n * ∏ i, (if y i && z i then (-1 : ℂ) else 1) := by
   simp only [HadamardN, Matrix.of_apply]
@@ -403,6 +501,7 @@ theorem hadamardN_apply (y z : Reg n) :
     funext i; simp [Hadamard]]
   rw [Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+/-- Boolean sign characters have inner product `2 ^ n` for equal registers and zero otherwise. -/
 theorem bv_orthogonality (u v : Reg n) :
     (∑ z : Reg n, ∏ i,
         ((if u i && z i then (-1 : ℂ) else 1) * (if v i && z i then (-1 : ℂ) else 1)))
@@ -424,6 +523,7 @@ theorem bv_orthogonality (u v : Reg n) :
     obtain ⟨j, hj⟩ := h
     exact Finset.prod_eq_zero (Finset.mem_univ j) (by simp [hj])
 
+/-- Every entry of the register Hadamard matrix is fixed by complex conjugation. -/
 theorem hadamardN_conj (y z : Reg n) :
     (starRingEnd ℂ) (HadamardN n y z) = HadamardN n y z := by
   rw [hadamardN_apply, map_mul, map_pow, map_inv₀, Complex.conj_ofReal, map_prod]
@@ -432,6 +532,7 @@ theorem hadamardN_conj (y z : Reg n) :
   intro i _
   split_ifs <;> simp
 
+/-- The Hadamard matrix on an `n`-bit register is unitary. -/
 theorem hadamardN_unitary (n : ℕ) : HadamardN n ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   ext x y
@@ -465,15 +566,18 @@ theorem hadamardN_unitary (n : ℕ) : HadamardN n ∈ Matrix.unitaryGroup (Reg n
       inv_mul_cancel₀ (by norm_num : (2 : ℂ) ≠ 0), one_pow]
   · rw [if_neg (by rwa [← funext_iff]), if_neg hxy, mul_zero]
 
+/-- The matrix exponential of a skew-Hermitian matrix is unitary. -/
 theorem exp_unitary_of_skewHermitian {A : Matrix I I ℂ} (h : Aᴴ = -A) :
     NormedSpace.exp A ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, ← Matrix.exp_conjTranspose, h,
     ← Matrix.exp_add_of_commute (-A) A ((Commute.refl A).neg_left), neg_add_cancel,
     NormedSpace.exp_zero]
 
+/-- The matrix exponential `exp (-itH)` for a complex matrix `H` and real time `t`. -/
 noncomputable def HamiltonianEvolution (H : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
   NormedSpace.exp ((-Complex.I * (t : ℂ)) • H)
 
+/-- Evolution generated by a Hermitian matrix is unitary at every real time. -/
 theorem hamiltonianEvolution_unitary {H : Matrix I I ℂ} (hH : H.IsHermitian) (t : ℝ) :
     HamiltonianEvolution H t ∈ Matrix.unitaryGroup I ℂ := by
   apply exp_unitary_of_skewHermitian
@@ -482,11 +586,13 @@ theorem hamiltonianEvolution_unitary {H : Matrix I I ℂ} (hH : H.IsHermitian) (
   simp only [RCLike.star_def, map_neg, map_mul, Complex.conj_I, Complex.conj_ofReal,
     neg_mul, neg_neg]
 
+/-- Hamiltonian evolution at time zero is the identity matrix. -/
 @[simp] theorem hamiltonianEvolution_zero (H : Matrix I I ℂ) :
     HamiltonianEvolution H 0 = 1 := by
   simp only [HamiltonianEvolution, Complex.ofReal_zero, mul_zero, zero_smul]
   exact NormedSpace.exp_zero
 
+/-- Evolution for a sum of times is the product of the corresponding evolution matrices. -/
 theorem hamiltonianEvolution_add (H : Matrix I I ℂ) (s t : ℝ) :
     HamiltonianEvolution H (s + t) = HamiltonianEvolution H s * HamiltonianEvolution H t := by
   unfold HamiltonianEvolution
@@ -496,25 +602,32 @@ theorem hamiltonianEvolution_add (H : Matrix I I ℂ) (s t : ℝ) :
   rw [hsplit, Matrix.exp_add_of_commute]
   exact ((Commute.refl H).smul_left _).smul_right _
 
+/-- Evolution for time `-t` followed algebraically by evolution for time `t` gives the identity. -/
 theorem hamiltonianEvolution_neg (H : Matrix I I ℂ) (t : ℝ) :
     HamiltonianEvolution H (-t) * HamiltonianEvolution H t = 1 := by
   rw [← hamiltonianEvolution_add, neg_add_cancel, hamiltonianEvolution_zero]
 
+/-- The complex inner product of amplitude vectors, conjugate-linear in the first argument. -/
 noncomputable def Inner (ψ φ : QState I) : ℂ := star ψ ⬝ᵥ φ
 
+/-- The inner product is the sum of conjugated first amplitudes times second amplitudes. -/
 theorem inner_apply (ψ φ : QState I) : Inner ψ φ = ∑ i, (starRingEnd ℂ) (ψ i) * φ i := by
   simp only [Inner, dotProduct, Pi.star_apply, RCLike.star_def]
 
+/-- The inner product of a vector with itself is the complex embedding of its sum of squared
+amplitude norms. -/
 theorem inner_self (ψ : QState I) : Inner ψ ψ = ∑ i, ((‖ψ i‖ ^ 2 : ℝ) : ℂ) := by
   rw [inner_apply]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+/-- An amplitude vector is normalized exactly when its inner product with itself is one. -/
 theorem normalized_iff_inner_self (ψ : QState I) : Normalized ψ ↔ Inner ψ ψ = 1 := by
   rw [inner_self, ← Complex.ofReal_sum]
   unfold Normalized
   exact_mod_cast Iff.rfl
 
+/-- Computational basis vectors have Kronecker-delta inner products. -/
 theorem inner_ket_ket (i j : I) : Inner (Ket i) (Ket j) = if i = j then 1 else 0 := by
   rw [inner_apply, Finset.sum_eq_single i]
   · simp [Ket]
@@ -522,6 +635,7 @@ theorem inner_ket_ket (i j : I) : Inner (Ket i) (Ket j) = if i = j then 1 else 0
     simp [Ket, hk]
   · simp
 
+/-- Applying the same unitary matrix to two vectors preserves their inner product. -/
 theorem inner_applyGate {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ φ : QState I) :
     Inner (ApplyGate U ψ) (ApplyGate U φ) = Inner ψ φ := by
   have hUU : Uᴴ * U = 1 := by
@@ -538,6 +652,7 @@ open scoped ComplexOrder
 set_option linter.unusedSectionVars false
 namespace Qatlib.Foundations.PureStateMath
 
+/-- A diagonal complex matrix is unitary if all its diagonal entries have norm one. -/
 theorem diagonal_mem_unitaryGroup {I : Type*} [Fintype I] [DecidableEq I] (d : I → ℂ)
     (h : ∀ i, ‖d i‖ = 1) : Matrix.diagonal d ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, Matrix.diagonal_conjTranspose,
@@ -551,6 +666,7 @@ theorem diagonal_mem_unitaryGroup {I : Type*} [Fintype I] [DecidableEq I] (d : I
   rw [Complex.normSq_eq_conj_mul_self] at hi
   exact hi
 
+/-- A diagonal matrix acts by multiplying each amplitude by the corresponding diagonal entry. -/
 theorem applyGate_diagonal {I : Type*} [Fintype I] [DecidableEq I] (d : I → ℂ)
     (ψ : QState I) : ApplyGate (Matrix.diagonal d) ψ = fun i => d i * ψ i := by
   funext i
@@ -571,6 +687,7 @@ set_option linter.unusedVariables false
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.PureStateMath
 
+/-- Applying a matrix to `Ket j` yields its `j`th column. -/
 theorem applyGate_eq_mulVec_ket (A : Matrix I I ℂ) (j : I) (i : I) :
     ApplyGate A (Ket j) i = A i j := by
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Ket]
@@ -590,6 +707,8 @@ set_option autoImplicit false
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.PureStateMath
 
+/-- For an orthonormal family, the squared norm of a finite linear combination is the sum of the
+squared coefficient norms. -/
 theorem sum_norm_sq_orthonormal {J : Type} [Fintype J]
     (v : J → QState I) (d : J → ℂ)
     (hv : ∀ j k, Inner (v j) (v k) = if j = k then 1 else 0) :
@@ -609,6 +728,8 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 namespace Qatlib.Foundations.PureStateMath
 
+/-- Every finite amplitude vector is the sum of its amplitudes times the corresponding
+computational basis vectors. -/
 theorem state_ket_expansion {I : Type*} [Fintype I] [DecidableEq I] (ψ : QState I) :
     ψ = ∑ x, ψ x • Ket x := by
   funext z
@@ -623,6 +744,8 @@ open Matrix
 variable {I : Type*} [Fintype I] [DecidableEq I]
 namespace Qatlib.Foundations.PureStateMath
 
+/-- A rectangular matrix can be moved from the first inner-product argument to the second by
+taking its conjugate transpose. -/
 theorem inner_mulVec_left_rect {I K : Type*} [Fintype I] [DecidableEq I] [Fintype K]
     [DecidableEq K] (M : Matrix K I ℂ) (ψ : QState I) (φ : QState K) :
     Inner (M *ᵥ ψ) φ = Inner ψ (Mᴴ *ᵥ φ) := by

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGData
+
+/-!
+# Reversible implementations of Boolean nodes
+
+`boolean_node_basis` proves that the compiled implementation of a Boolean node XORs its value
+into a target wire and preserves every other wire. The source wires precede the target, so each
+source is distinct from it.
+
+`boolean_node_resources` proves legality, a bound of fifteen reflection steps, and zero oracle
+queries. Conjunction with distinct sources uses the local Toffoli implementation. The circuit
+background is described in [BarencoEtAl1995].
+
+## Main statements
+
+* `boolean_node_resources`: legality and gate bounds for one node.
+* `boolean_node_basis`: exact action on computational basis states.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +38,7 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 namespace Qatlib.Concepts.MatrixAccess.RitzPipeline
 open scoped Classical BigOperators
 
+/-- A source index below `n`, embedded in `Fin L`, is distinct from the target index `n`. -/
 private theorem boolean_source_ne_target {n L : ℕ} (h : n < L) (a : Fin n) :
     Fin.castLE h.le a ≠ (⟨n,h⟩ : Fin L) := by
   intro he
@@ -24,6 +47,7 @@ private theorem boolean_source_ne_target {n L : ℕ} (h : n < L) (a : Fin n) :
   simp only [Fin.val_castLE] at hv
   omega
 
+/-- Embedding two distinct source indices in the larger wire set preserves their distinctness. -/
 private theorem boolean_sources_ne {n L : ℕ} (h : n < L) (a b : Fin n)
     (hab : a ≠ b) : Fin.castLE h.le a ≠ Fin.castLE h.le b := by
   intro he
@@ -31,12 +55,16 @@ private theorem boolean_sources_ne {n L : ℕ} (h : n < L) (a b : Fin n)
   apply Fin.ext
   simpa only [Fin.val_castLE] using congrArg (fun i : Fin L => i.val) he
 
+/-- A Pauli X gate on wire `t` flips that bit of a computational basis state and preserves every
+other bit. -/
 private theorem boolean_wire_x_basis {L : ℕ} (t : Fin L) (x : Reg L) :
     ApplyGate (wireGate L t PauliX) (Ket x) =
       Ket (Function.update x t (!(x t))) := by
   rw [applyGate_wireGate_ket]
   cases ht : x t <;> simp [PauliX,permMatrix]
 
+/-- The reflection implementation of a Boolean node is legal, uses at most fifteen steps, and
+makes no oracle queries. Its compiled gate count equals its step count. -/
 theorem boolean_node_resources {n L : ℕ} (node : BooleanNode n) (h : n < L) :
     reflectionLegal (booleanNodeSteps node h) ∧
     (booleanNodeSteps node h).length ≤ 15 ∧
@@ -67,6 +95,8 @@ theorem boolean_node_resources {n L : ℕ} (node : BooleanNode n) (h : n < L) :
         exact ⟨hlegal,by simpa only [hlength] using (le_rfl : (15:ℕ) ≤ 15)⟩
   exact ⟨hl.1,hl.2,queryCount_reflectionCompile _,gateCount_reflectionCompile _⟩
 
+/-- The compiled Boolean-node circuit XORs the node value into target wire `n` on a basis state,
+preserving all other wires. -/
 theorem boolean_node_basis {n L : ℕ} (node : BooleanNode n) (h : n < L) (x : Reg L) :
     Run (1 : Matrix (Reg L) (Reg L) ℂ) (reflectionCompile (booleanNodeSteps node h)) (Ket x) =
       Ket (Function.update x (⟨n,h⟩ : Fin L)

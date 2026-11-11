@@ -13,6 +13,28 @@ import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Chebyshev reciprocal approximation
+
+This module defines `nearOptimalReciprocalPolynomial` by truncating an odd Chebyshev expansion
+with binomial tail coefficients. It proves the full reciprocal expansion, concentration bounds
+for the coefficients, uniform truncation error, and degree and normalization bounds for QSVT
+inversion. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `nearOptimalReciprocal_full_expansion`: the full odd Chebyshev expansion of the reciprocal
+  polynomial.
+* `nearOptimalReciprocal_family_degree_parity`: odd parity and the degree bound `32 * κ * log (κ
+  / ε)`.
+* `nearOptimalReciprocal_error_bounds`: the combined reciprocal, truncation, and size estimates.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,12 +46,17 @@ namespace Qatlib.Concepts.QsvtCore.LinearSystems
 open Polynomial
 open scoped Classical BigOperators
 
+/-- The geometric reciprocal truncation index `ceil (κ * κ * log (κ / ε))`. -/
 def nearOptimalReciprocalB (κ ε : ℝ) : ℕ := Nat.ceil (κ*κ*Real.log (κ/ε))
 
+/-- The Chebyshev truncation index obtained by taking the ceiling of `√(b * log (4 * b / ε))`,
+where `b = nearOptimalReciprocalB κ ε`. -/
 def nearOptimalReciprocalJ (κ ε : ℝ) : ℕ :=
   Nat.ceil (Real.sqrt ((nearOptimalReciprocalB κ ε : ℝ)*
     Real.log (4*(nearOptimalReciprocalB κ ε : ℝ)/ε)))
 
+/-- The odd Chebyshev sum through index `nearOptimalReciprocalJ κ ε`, with alternating
+coefficients given by normalized binomial tails. -/
 def nearOptimalReciprocalPolynomial (κ ε : ℝ) : Polynomial ℝ :=
   let b := nearOptimalReciprocalB κ ε
   let J := nearOptimalReciprocalJ κ ε
@@ -38,16 +65,22 @@ def nearOptimalReciprocalPolynomial (κ ε : ℝ) : Polynomial ℝ :=
       (∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ)) /
         (2 : ℝ)^(2*b))*Polynomial.Chebyshev.T ℝ ((2*j+1 : ℕ) : ℤ)
 
+/-- The odd Chebyshev reciprocal sum through index `J` with normalized binomial tail
+coefficients determined by `b`. -/
 def nearOptimalReciprocalTruncation (b J : ℕ) : Polynomial ℝ :=
   ∑ j ∈ Finset.range (J+1), Polynomial.C
     (4*(-1 : ℝ)^j *
       (∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ)) /
         (2 : ℝ)^(2*b))*Polynomial.Chebyshev.T ℝ ((2*j+1 : ℕ) : ℤ)
 
+/-- The near optimal reciprocal polynomial is the truncation at its designated indices
+`nearOptimalReciprocalB` and `nearOptimalReciprocalJ`. -/
 theorem nearOptimalReciprocalPolynomial_eq_truncation (κ ε : ℝ) :
     nearOptimalReciprocalPolynomial κ ε =
       nearOptimalReciprocalTruncation (nearOptimalReciprocalB κ ε) (nearOptimalReciprocalJ κ ε) := rfl
 
+/-- The truncated reciprocal sum has degree at most `2 * J + 1`, has that real parity, and
+vanishes at zero. -/
 theorem nearOptimalReciprocalTruncation_degree_parity (b J : ℕ) :
     (nearOptimalReciprocalTruncation b J).degree ≤ ((2*J+1 : ℕ) : WithBot ℕ) ∧
     Qatlib.Concepts.QspSimulation.Achievability.HasRealParity (2*J+1)
@@ -88,6 +121,8 @@ theorem nearOptimalReciprocalTruncation_degree_parity (b J : ℕ) :
     intro j _
     ring
 
+/-- For `κ > 1` and `0 < ε ≤ 1 / 2`, the truncation indices satisfy `b ≥ 1`, `J ≥ 2`, and `2 * J
++ 1 ≤ 32 * κ * log (κ / ε)`. -/
 theorem nearOptimalReciprocal_cutoff_bounds (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2) :
     let b : ℕ := Nat.ceil (κ*κ*Real.log (κ/ε))
     let J : ℕ := Nat.ceil (Real.sqrt ((b : ℝ)*Real.log (4*(b : ℝ)/ε)))
@@ -165,6 +200,9 @@ theorem nearOptimalReciprocal_cutoff_bounds (κ ε : ℝ) (hκ : 1 < κ) (hε : 
   change 2*(J : ℝ)+1 ≤ 32*κ*L
   nlinarith
 
+/-- For the stated parameters, the reciprocal family has positive truncation indices, odd
+parity, zero constant response, and degree bounded by `32 * κ * log (κ / ε)`; see [Gilyén et
+al., Lemma 40][GilyenSuLowWiebe2019]. -/
 theorem nearOptimalReciprocal_family_degree_parity (κ ε : ℝ)
     (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε < 1/2) :
     1 ≤ nearOptimalReciprocalB κ ε ∧ 2 ≤ nearOptimalReciprocalJ κ ε ∧
@@ -187,6 +225,8 @@ theorem nearOptimalReciprocal_family_degree_parity (κ ε : ℝ)
   · simpa only [Nat.cast_add, Nat.cast_mul, Nat.cast_ofNat, Nat.cast_one,
       nearOptimalReciprocalJ, nearOptimalReciprocalB] using! hd
 
+/-- The geometric reciprocal polynomial at the designated index approximates `x⁻¹` within `ε` on
+`[κ⁻¹, 1]` for `κ > 1` and positive `ε`. -/
 theorem nearOptimalReciprocal_geometric_error (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε) (x : ℝ)
     (hx : x ∈ Set.Icc κ⁻¹ 1) :
     let b : ℕ := Nat.ceil (κ*κ*Real.log (κ/ε))
@@ -217,6 +257,7 @@ theorem nearOptimalReciprocal_geometric_error (κ ε : ℝ) (hκ : 1 < κ) (hε 
   have hm := mul_le_mul_of_nonneg_right hpow hκ0.le
   simpa only [div_mul_cancel₀ _ hκ0.ne'] using! hm
 
+/-- The geometric reciprocal error bound extends to every real `x` with `κ⁻¹ ≤ |x| ≤ 1`. -/
 theorem nearOptimalReciprocal_geometric_error_of_abs (κ ε : ℝ)
     (hκ : 1 < κ) (hε : 0 < ε) (x : ℝ) (hx : |x| ∈ Set.Icc κ⁻¹ 1) :
     |(Qatlib.Concepts.QsvtCore.LinearSystems.reciprocalPolynomial (nearOptimalReciprocalB κ ε)).eval x-x⁻¹| ≤ ε := by
@@ -232,6 +273,8 @@ theorem nearOptimalReciprocal_geometric_error_of_abs (κ ε : ℝ)
             neg_sub_neg, abs_sub_comm]
       _ ≤ ε := hneg
 
+/-- Twice the upper half of row `2 * b` of the binomial coefficients, plus the central
+coefficient, equals `2 ^ (2 * b)`. -/
 private theorem nearOptimalReciprocal_binomial_partition (b : ℕ) :
     2*(∑ i ∈ Finset.Ico 1 (b+1), (2*b).choose (b+i))+(2*b).choose b = 2^(2*b) := by
   have hl : (∑ m ∈ Finset.range b, (2*b).choose m) =
@@ -260,11 +303,14 @@ private theorem nearOptimalReciprocal_binomial_partition (b : ℕ) :
   rw [Finset.sum_range_succ, Nat.sum_range_choose, ← hr, hl] at he
   omega
 
+/-- Twice the strictly upper half binomial sum is at most the total binomial mass `2 ^ (2 * b)`. -/
 private theorem nearOptimalReciprocal_binomial_half_tail (b : ℕ) :
     2*(∑ i ∈ Finset.Ico 1 (b+1), (2*b).choose (b+i)) ≤ 2^(2*b) := by
   have h := nearOptimalReciprocal_binomial_partition b
   omega
 
+/-- Each normalized alternating binomial tail coefficient of the odd Chebyshev expansion has
+absolute value at most two. -/
 private theorem nearOptimalReciprocal_coefficient_size (b j : ℕ) :
     |4*(-1 : ℝ)^j*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ))/(2 : ℝ)^(2*b)| ≤ 2 := by
   have hN := nearOptimalReciprocal_binomial_half_tail b
@@ -283,11 +329,14 @@ private theorem nearOptimalReciprocal_coefficient_size (b j : ℕ) :
   rw [div_le_iff₀ hden]
   nlinarith
 
+/-- Every integer indexed Chebyshev polynomial of the first kind has absolute value at most one
+on `[-1, 1]`. -/
 private theorem nearOptimalReciprocal_chebyshev_size (n : ℤ) (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(Polynomial.Chebyshev.T ℝ n).eval x| ≤ 1 := by
   rw [← Real.cos_arccos hx.1 hx.2, Polynomial.Chebyshev.T_real_cos]
   exact Real.abs_cos_le_one _
 
+/-- For `J ≥ 1`, the truncated reciprocal sum has absolute value at most `4 * J` on `[-1, 1]`. -/
 theorem nearOptimalReciprocalTruncation_abs_le (b J : ℕ) (hJ : 1 ≤ J) (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(nearOptimalReciprocalTruncation b J).eval x| ≤ 4*(J : ℝ) := by
   unfold nearOptimalReciprocalTruncation
@@ -305,6 +354,8 @@ theorem nearOptimalReciprocalTruncation_abs_le (b J : ℕ) (hJ : 1 ≤ J) (x : �
       have hJr : (1 : ℝ) ≤ J := by exact_mod_cast hJ
       nlinarith
 
+/-- Under the stated parameter hypotheses, the near optimal reciprocal polynomial has absolute
+value at most `4 * nearOptimalReciprocalJ κ ε` on `[-1, 1]`. -/
 theorem nearOptimalReciprocal_size_bound (κ ε : ℝ)
     (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
@@ -315,6 +366,8 @@ theorem nearOptimalReciprocal_size_bound (κ ε : ℝ)
   change 2 ≤ nearOptimalReciprocalJ κ ε at hJ
   omega
 
+/-- Scaling the near optimal reciprocal polynomial by `(4 * nearOptimalReciprocalJ κ ε)⁻¹`
+bounds its absolute value by one on `[-1, 1]`. -/
 theorem nearOptimalReciprocal_scale_bounded (κ ε : ℝ)
     (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
@@ -328,6 +381,8 @@ theorem nearOptimalReciprocal_scale_bounded (κ ε : ℝ)
   rw [abs_mul, abs_inv, abs_of_pos hp]
   exact (inv_mul_le_one₀ hp).mpr (nearOptimalReciprocal_size_bound κ ε hκ hε hε1 x hx)
 
+/-- The exponential moment of the normalized centered binomial coefficients in row `2 * b`
+equals `cosh t ^ (2 * b)`. -/
 private theorem nearOptimalReciprocal_binomial_mgf (b : ℕ) (t : ℝ) :
     (∑ m ∈ Finset.range (2*b+1),
       (((2*b).choose m : ℝ)/(2 : ℝ)^(2*b))*
@@ -346,6 +401,8 @@ private theorem nearOptimalReciprocal_binomial_mgf (b : ℕ) (t : ℝ) :
   rw [hterm m hm]
   ring
 
+/-- For positive `b`, the normalized binomial tail from offset `k` through `b` is at most `exp
+(-k ^ 2 / b)`. -/
 theorem nearOptimalReciprocal_binomial_tail (b k : ℕ) (hb : 0 < b) :
     (∑ i ∈ Finset.Ico k (b+1), ((2*b).choose (b+i) : ℝ)/(2 : ℝ)^(2*b)) ≤
       Real.exp (-((k : ℝ)^2)/(b : ℝ)) := by
@@ -403,6 +460,8 @@ theorem nearOptimalReciprocal_binomial_tail (b k : ℕ) (hb : 0 < b) :
       field_simp
       ring
 
+/-- A binomial weighted sum in row `n + 2` equals the row `n` sum against `f i + 2 * f (i + 1) +
+f (i + 2)`. -/
 private theorem nearOptimalReciprocal_binomial_two_step {R : Type*} [CommSemiring R] (n : ℕ) (f : ℕ → R) :
     (∑ i ∈ Finset.range (n+3), ((n+2).choose i : R)*f i) =
       ∑ i ∈ Finset.range (n+1), (n.choose i : R)*(f i+2*f (i+1)+f (i+2)) := by
@@ -414,14 +473,17 @@ private theorem nearOptimalReciprocal_binomial_two_step {R : Type*} [CommSemirin
   intro i _
   ring
 
+/-- The normalized alternating even Chebyshev sum indexed by binomial row `2 * b`. -/
 private def nearOptimalReciprocal_evenBinomial (b : ℕ) : Polynomial ℝ :=
   C ((-1 : ℝ)^b/(2 : ℝ)^(2*b)) *
     ∑ m ∈ Finset.range (2*b+1), ((2*b).choose m : Polynomial ℝ)*
       (C ((-1 : ℝ)^m)*Chebyshev.T ℝ (2*(m : ℤ)-2*(b : ℤ)))
 
+/-- The even binomial Chebyshev polynomial at index zero is one. -/
 private theorem nearOptimalReciprocal_evenBinomial_zero :
     nearOptimalReciprocal_evenBinomial 0 = 1 := by simp [nearOptimalReciprocal_evenBinomial]
 
+/-- Increasing the even binomial Chebyshev index multiplies the polynomial by `1 - X ^ 2`. -/
 private theorem nearOptimalReciprocal_evenBinomial_succ (b : ℕ) : nearOptimalReciprocal_evenBinomial (b+1) = (1-X^2)*nearOptimalReciprocal_evenBinomial b := by
   unfold nearOptimalReciprocal_evenBinomial
   have hN : 2*(b+1)=2*b+2 := by omega
@@ -474,11 +536,14 @@ private theorem nearOptimalReciprocal_evenBinomial_succ (b : ℕ) : nearOptimalR
       _ = _ := by rw [ht]
   rw [← mul_assoc, hscale, mul_assoc]
 
+/-- The even binomial Chebyshev polynomial equals `(1 - X ^ 2) ^ b`. -/
 private theorem nearOptimalReciprocal_evenBinomial_eq (b : ℕ) : nearOptimalReciprocal_evenBinomial b = (1-X^2)^b := by
   induction b with
   | zero => simp [nearOptimalReciprocal_evenBinomial_zero]
   | succ b ih => rw [nearOptimalReciprocal_evenBinomial_succ, ih, pow_succ' (1-X^2 : Polynomial ℝ) b]
 
+/-- The even binomial polynomial can be written as a sum of constant polynomial coefficients
+times the even Chebyshev basis. -/
 private theorem nearOptimalReciprocal_evenBinomial_as_sum (b : ℕ) : nearOptimalReciprocal_evenBinomial b =
     ∑ m ∈ Finset.range (2*b+1),
       C (((-1 : ℝ)^(b+m)*((2*b).choose m : ℝ))/(2 : ℝ)^(2*b))*
@@ -495,6 +560,7 @@ private theorem nearOptimalReciprocal_evenBinomial_as_sum (b : ℕ) : nearOptima
   rw [pow_add]
   ring
 
+/-- For `m ≤ 2 * b`, the signs `(-1) ^ (2 * b - m)` and `(-1) ^ m` agree. -/
 private theorem nearOptimalReciprocal_even_sign_sub (b m : ℕ) (hm : m ≤ 2*b) : (-1 : ℝ)^(2*b-m) = (-1 : ℝ)^m := by
   apply mul_right_cancel₀ (pow_ne_zero m (by norm_num : (-1 : ℝ) ≠ 0))
   calc
@@ -504,6 +570,8 @@ private theorem nearOptimalReciprocal_even_sign_sub (b m : ℕ) (hm : m ≤ 2*b)
       rw [← pow_add, ← two_mul]
       exact (even_two_mul m).neg_one_pow.symm
 
+/-- Pairing symmetric Chebyshev terms expands `(1 - X ^ 2) ^ b` as a central constant plus
+positive even degree terms. -/
 private theorem nearOptimalReciprocal_even_paired (b : ℕ) : (1-X^2 : Polynomial ℝ)^b =
     C (((2*b).choose b : ℝ)/(2 : ℝ)^(2*b)) +
       ∑ i ∈ Finset.Ico 1 (b+1),
@@ -577,6 +645,8 @@ private theorem nearOptimalReciprocal_even_paired (b : ℕ) : (1-X^2 : Polynomia
       congr 1
       ring
 
+/-- A sum of adjacent products `H j * V j + H j * V (j + 1)` decomposes into boundary terms and
+a sum with adjacent coefficients. -/
 private theorem nearOptimalReciprocal_adjacent_telescope {R : Type*} [CommRing R] (H V : ℕ → R) (b : ℕ) :
     (∑ j ∈ Finset.range b, (H j*V j+H j*V (j+1))) =
       H 0*V 0-H b*V b +
@@ -591,6 +661,8 @@ private theorem nearOptimalReciprocal_adjacent_telescope {R : Type*} [CommRing R
     rw [show b+1-1=b by omega]
     ring
 
+/-- A binomial tail beginning at offset `i ≤ b` splits into its first coefficient and the tail
+beginning at `i + 1`. -/
 private theorem nearOptimalReciprocal_tail_step (b i : ℕ) (hi : i ≤ b) :
     (∑ k ∈ Finset.Ico i (b+1), ((2*b).choose (b+k) : ℝ)) =
       ((2*b).choose (b+i) : ℝ) +
@@ -600,6 +672,8 @@ private theorem nearOptimalReciprocal_tail_step (b i : ℕ) (hi : i ≤ b) :
     Finset.sum_range_succ (fun k => ((2*b).choose (b+k) : ℝ)) i]
   ring
 
+/-- Adjacent alternating binomial tail coefficients add to the negative normalized signed
+binomial coefficient at offset `i`. -/
 private theorem nearOptimalReciprocal_adjacent_coefficient (b i : ℕ) (hi : 1 ≤ i) (hib : i ≤ b) :
     C (2*(-1 : ℝ)^(i-1)*(∑ k ∈ Finset.Ico i (b+1), ((2*b).choose (b+k) : ℝ))/(2 : ℝ)^(2*b)) +
       C (2*(-1 : ℝ)^i*(∑ k ∈ Finset.Ico (i+1) (b+1), ((2*b).choose (b+k) : ℝ))/(2 : ℝ)^(2*b)) =
@@ -611,10 +685,15 @@ private theorem nearOptimalReciprocal_adjacent_coefficient (b i : ℕ) (hi : 1 �
   congr 1
   ring
 
+/-- The constant polynomial equal to half the alternating binomial tail coefficient of the odd
+expansion. -/
 private def nearOptimalReciprocal_halfCoefficient (b j : ℕ) : Polynomial ℝ :=
   C (2*(-1 : ℝ)^j*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ))/(2 : ℝ)^(2*b))
+/-- The Chebyshev polynomial of the first kind with degree `2 * j`. -/
 private def nearOptimalReciprocal_evenBasis (j : ℕ) : Polynomial ℝ := Chebyshev.T ℝ ((2*j : ℕ) : ℤ)
 
+/-- Multiplying one odd Chebyshev expansion term by `X` gives the sum of its two neighboring
+even basis terms with half coefficients. -/
 private theorem nearOptimalReciprocal_X_odd_term (b j : ℕ) :
     X*(C (4*(-1 : ℝ)^j*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ))/(2 : ℝ)^(2*b))*
       Chebyshev.T ℝ ((2*j+1 : ℕ) : ℤ)) =
@@ -636,6 +715,8 @@ private theorem nearOptimalReciprocal_X_odd_term (b j : ℕ) :
     _ = nearOptimalReciprocal_halfCoefficient b j*(2*X*Chebyshev.T ℝ ((2*j+1 : ℕ) : ℤ)) := by ring
     _ = _ := by rw [ht]; ring
 
+/-- The initial half coefficient is one minus the normalized central binomial coefficient,
+viewed as a constant polynomial. -/
 private theorem nearOptimalReciprocal_halfCoefficient_zero (b : ℕ) : nearOptimalReciprocal_halfCoefficient b 0 =
     1-C (((2*b).choose b : ℝ)/(2 : ℝ)^(2*b)) := by
   have hp := nearOptimalReciprocal_binomial_partition b
@@ -649,6 +730,7 @@ private theorem nearOptimalReciprocal_halfCoefficient_zero (b : ℕ) : nearOptim
   field_simp
   linarith
 
+/-- Multiplying the full odd Chebyshev sum by `X` gives `1 - (1 - X ^ 2) ^ b`. -/
 private theorem nearOptimalReciprocal_X_full_odd (b : ℕ) :
     X*(∑ j ∈ Finset.range b,
       C (4*(-1 : ℝ)^j*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ))/(2 : ℝ)^(2*b))*
@@ -680,6 +762,7 @@ private theorem nearOptimalReciprocal_X_full_odd (b : ℕ) :
       nearOptimalReciprocal_even_paired]
   ring
 
+/-- The full binomial tail Chebyshev sum equals `reciprocalPolynomial b`. -/
 theorem nearOptimalReciprocal_full_expansion (b : ℕ) : (∑ j ∈ Finset.range b,
     C (4*(-1 : ℝ)^j*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ))/(2 : ℝ)^(2*b))*
       Chebyshev.T ℝ ((2*j+1 : ℕ) : ℤ)) = Qatlib.Concepts.QsvtCore.LinearSystems.reciprocalPolynomial b := by
@@ -687,9 +770,13 @@ theorem nearOptimalReciprocal_full_expansion (b : ℕ) : (∑ j ∈ Finset.range
   rw [nearOptimalReciprocal_X_full_odd,
       Qatlib.Concepts.QsvtCore.LinearSystems.X_mul_reciprocalPolynomial]
 
+/-- The real coefficient of the degree `2 * j + 1` term in the reciprocal Chebyshev expansion at
+index `b`. -/
 private def nearOptimalReciprocal_coef (b j : ℕ) : ℝ :=
   4*(-1 : ℝ)^j*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ))/(2 : ℝ)^(2*b)
 
+/-- The absolute value of a reciprocal Chebyshev coefficient is four times its normalized
+binomial tail. -/
 private theorem nearOptimalReciprocal_coef_abs (b j : ℕ) : |nearOptimalReciprocal_coef b j| =
     4*(∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ)/(2 : ℝ)^(2*b)) := by
   have hs : 0 ≤ (∑ i ∈ Finset.Ico (j+1) (b+1), ((2*b).choose (b+i) : ℝ)) := by positivity
@@ -700,10 +787,13 @@ private theorem nearOptimalReciprocal_coef_abs (b j : ℕ) : |nearOptimalRecipro
   norm_num
   ring
 
+/-- The reciprocal Chebyshev coefficient vanishes when its index `j` is at least `b`. -/
 private theorem nearOptimalReciprocal_coef_zero (b j : ℕ) (hj : b ≤ j) : nearOptimalReciprocal_coef b j = 0 := by
   have he : Finset.Ico (j+1) (b+1) = ∅ := Finset.Ico_eq_empty_of_le (by omega)
   simp [nearOptimalReciprocal_coef, he]
 
+/-- Beyond the selected Chebyshev cutoff, each omitted coefficient has absolute value at most `ε
+/ nearOptimalReciprocalB κ ε`. -/
 private theorem nearOptimalReciprocal_omitted_coef (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (j : ℕ) (hj : nearOptimalReciprocalJ κ ε+1 ≤ j) :
     |nearOptimalReciprocal_coef (nearOptimalReciprocalB κ ε) j| ≤ ε/(nearOptimalReciprocalB κ ε : ℝ) := by
@@ -737,6 +827,8 @@ private theorem nearOptimalReciprocal_omitted_coef (κ ε : ℝ) (hκ : 1 < κ) 
   have hc : 4*(ε/(4*(b : ℝ)))=ε/(b : ℝ) := by ring
   rwa [hc] at hh
 
+/-- Under the stated parameter hypotheses, the Chebyshev truncation differs from the geometric
+reciprocal polynomial by at most `ε` throughout `[-1, 1]`. -/
 theorem nearOptimalReciprocal_truncation_error (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     |(nearOptimalReciprocalPolynomial κ ε).eval x-
@@ -788,6 +880,8 @@ theorem nearOptimalReciprocal_truncation_error (κ ε : ℝ) (hκ : 1 < κ) (hε
     rw [← hs, sub_self, abs_zero]
     exact hε.le
 
+/-- For `κ⁻¹ ≤ |x| ≤ 1`, the near optimal reciprocal polynomial approximates `x⁻¹` with error at
+most `2 * ε` under the stated parameter hypotheses. -/
 theorem nearOptimalReciprocal_error_of_abs (κ ε : ℝ)
     (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2)
     (x : ℝ) (hx : |x| ∈ Set.Icc κ⁻¹ 1) :
@@ -804,6 +898,9 @@ theorem nearOptimalReciprocal_error_of_abs (κ ε : ℝ)
       (nearOptimalReciprocal_geometric_error_of_abs κ ε hκ hε x hx)
     _ = 2*ε := by ring
 
+/-- The reciprocal family satisfies the geometric and truncation error bounds, the size bound,
+reciprocal error at most `2 * ε` on `[κ⁻¹, 1]`, and unit boundedness after scaling; see
+[Gilyén et al., Lemma 40][GilyenSuLowWiebe2019]. -/
 theorem nearOptimalReciprocal_error_bounds (κ ε : ℝ)
     (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε < 1/2) :
     (∀ x ∈ Set.Icc κ⁻¹ 1,

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessSize
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeNorm
+
+/-!
+# Size bounds for scaled history encodings
+
+The encoding `scaledEncoding` increases the dyadic width while retaining the generated integer
+terms. The module bounds this width and the serialized bit length, culminating in the explicit
+cubic estimate `scaledEncoding_bitlength_polynomial`. See [KempeKitaevRegev2006].
+
+## Main statements
+
+* `scaledEncoding_terms_eq`: The scaled encoding and the original encoding have the same list of
+  integer terms.
+* `scaledEncoding_width_polynomial`: With base precision `3 * (gs.length + n) + 64`, the scaled
+  encoding width is at most `133 * (gs.length + n) + 195`.
+* `scaledEncoding_bitlength_polynomial`: With base precision `3 * (gs.length + n) + 64`, the
+  scaled encoding has bit length at most `2000000 * (gs.length + n + 1)^3`.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
@@ -20,6 +42,8 @@ open  Qatlib.Concepts.QmaCompleteness.HistoryHam
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- At any encoding width, the real and imaginary integer entries of generated output terms have
+natural absolute value at most `2^(baseb + outputPenalty gs.length aux.card + 3)`. -/
 theorem fixedOutput_num_cap (n baseb width : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     ∀t∈(toLhEncoding width (outputTerms n baseb gs aux out)).terms,∀p q,
@@ -32,6 +56,8 @@ theorem fixedOutput_num_cap (n baseb width : ℕ) (gs : List FiniteGateCode)
   exact outputTerms_natAbsCap n baseb gs aux out u hu
     (nativeIndexDecode u.support p) (nativeIndexDecode u.support q)
 
+/-- The serialized output encoding at arbitrary width satisfies the displayed bound in the
+circuit size, width, base precision, and output penalty. -/
 theorem fixedOutput_bitlength_general (n baseb width : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (qmaClause3ToBits (toLhEncoding width (outputTerms n baseb gs aux out))).length ≤
@@ -44,26 +70,33 @@ theorem fixedOutput_bitlength_general (n baseb width : ℕ) (gs : List FiniteGat
     (fixedOutput_num_cap n baseb width gs aux out)
   simpa only [toLhEncoding,List.length_map,outputTerms_length] using h
 
+/-- The generated output terms encoded at width `baseb + 1 + scaleBits (outputPenalty gs.length
+aux.card)`. -/
 def scaledEncoding (n baseb : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) : LhEncoding :=
   toLhEncoding (baseb+1+Qatlib.Concepts.QueryComplexity.DegreeMethod.scaleBits (outputPenalty gs.length aux.card))
     (outputTerms n baseb gs aux out)
 
+/-- The scaled encoding and the original encoding have the same list of integer terms. -/
 theorem scaledEncoding_terms_eq (n baseb : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (scaledEncoding n baseb gs aux out).terms=(actualEncoding n baseb gs aux out).terms := rfl
 
+/-- The scaled encoding is five-local. -/
 theorem scaledEncoding_local (n baseb : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     lhLocal 5 (scaledEncoding n baseb gs aux out) :=
   toLhEncoding_local _ 5 _ (outputTerms_local n baseb gs aux out)
 
+/-- The additional scaling precision for `outputPenalty m a` is at most `130 * (m + a + 1)`. -/
 theorem scaleBits_outputPenalty_le (m a : ℕ) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.scaleBits (outputPenalty m a) ≤ 130*(m+a+1) := by
   have h := (Qatlib.Concepts.QueryComplexity.DegreeMethod.scaleDen_bounds (outputPenalty m a)).2.2.2
   dsimp [outputPenalty] at h ⊢
   omega
 
+/-- The bit length of the scaled encoding satisfies the displayed explicit bound, including its
+additional scaling precision. -/
 theorem scaledEncoding_bitlength_general (n baseb : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (qmaClause3ToBits (scaledEncoding n baseb gs aux out)).length ≤
@@ -73,6 +106,8 @@ theorem scaledEncoding_bitlength_general (n baseb : ℕ) (gs : List FiniteGateCo
         (10*(gs.length+n)+4096*(baseb+outputPenalty gs.length aux.card+3)+10276) :=
   fixedOutput_bitlength_general n baseb _ gs aux out
 
+/-- With base precision `3 * (gs.length + n) + 64`, the scaled encoding width is at most `133 *
+(gs.length + n) + 195`. -/
 theorem scaledEncoding_width_polynomial (n : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (scaledEncoding n (3*(gs.length+n)+64) gs aux out).width ≤
@@ -84,6 +119,8 @@ theorem scaledEncoding_width_polynomial (n : ℕ) (gs : List FiniteGateCode)
     Qatlib.Concepts.QueryComplexity.DegreeMethod.scaleBits (outputPenalty gs.length aux.card) ≤ 133*(gs.length+n)+195
   omega
 
+/-- With base precision `3 * (gs.length + n) + 64`, the scaled encoding has bit length at most
+`2000000 * (gs.length + n + 1)^3`. -/
 theorem scaledEncoding_bitlength_polynomial (n : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (qmaClause3ToBits (scaledEncoding n (3*(gs.length+n)+64) gs aux out)).length ≤

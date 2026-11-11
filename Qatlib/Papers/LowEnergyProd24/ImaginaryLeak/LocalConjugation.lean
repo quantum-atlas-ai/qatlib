@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LowEnergyProd24.LocalModel.SupportedSeries
 import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.Hadamard
 import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Weights
+
+/-!
+# Local imaginary-time conjugation and leakage
+
+Support-sensitive bounds on repeated commutators with the total Hamiltonian control
+imaginary-time conjugation of a local operator. The geometric bound `actual_local_conjugation`
+yields a half-radius estimate and an exponential bound on transitions between separated energy
+sectors in `actual_local_leakage`. See [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_adIter_norm`: For nonnegative `J` and an operator supported on at most `(m + 1) * k`
+  sites, the `n`-fold commutator with the total Hamiltonian has norm at most `n! * choose (n +
+  m) m * (J * k * d)^n * ‖A‖`.
+* `actual_local_conjugation`: For nonnegative `J` and `lam` with `lam * J * k * d < 1`,
+  imaginary-time weighting of an operator supported on at most `(m + 1) * k` sites has norm at
+  most `‖A‖ / (1 - lam * J * k * d)^(m + 1)`.
+* `actual_local_leakage`: For positive `J`, `k`, and `d`, the transition block from energies at
+  most `Δ` to energies above `Λ` of an operator supported on at most `(m + 1) * k` sites has
+  norm at most `exp(-(Λ - Δ) / (2 * J * k * d)) * 2^(m + 1) * ‖A‖`.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +50,8 @@ variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) :=
     NormedAlgebra.restrictScalars ℝ ℂ _
 
+/-- Repeated commutation with the total Hamiltonian equals nesting commutators with the full
+selected interaction set at every level. -/
 theorem actual_adIter (h : Hamiltonian N R M k d J) (A : Matrix (Register N) (Register N) ℂ) (n : ℕ) :
     adIter h.total n A=nested h A (List.replicate n Finset.univ) := by
   induction n with
@@ -32,6 +60,9 @@ theorem actual_adIter (h : Hamiltonian N R M k d J) (A : Matrix (Register N) (Re
     rw [adIter,List.replicate_succ,nested,ih,← total_selected]
     rfl
 
+/-- For nonnegative `J` and an operator supported on at most `(m + 1) * k` sites, the `n`-fold
+commutator with the total Hamiltonian has norm at most `n! * choose (n + m) m * (J * k *
+d)^n * ‖A‖`. -/
 theorem actual_adIter_norm (h : Hamiltonian N R M k d J) (hJ : 0 ≤ J) (s : Finset (Fin N))
     (m : ℕ) (hs : s.card ≤ (m+1)*k) (A : Matrix (Register N) (Register N) ℂ) (hA : A∈onSupport s) (n : ℕ) :
     ‖adIter h.total n A‖ ≤ (n.factorial:ℝ)*((n+m).choose m:ℝ)*(J*k*d)^n*‖A‖ := by
@@ -44,6 +75,8 @@ theorem actual_adIter_norm (h : Hamiltonian N R M k d J) (hJ : 0 ≤ J) (s : Fin
   push_cast
   ring
 
+/-- For nonnegative `J` and `lam`, the degree-`n` Hadamard term of an operator supported on at
+most `(m + 1) * k` sites has norm at most `choose (n + m) m * (lam * J * k * d)^n * ‖A‖`. -/
 theorem actual_hadamard_term (h : Hamiltonian N R M k d J) (hJ : 0 ≤ J) (s : Finset (Fin N))
     (m : ℕ) (hs : s.card ≤ (m+1)*k) (A : Matrix (Register N) (Register N) ℂ) (hA : A∈onSupport s)
     (lam : ℝ) (hlam : 0 ≤ lam) (n : ℕ) :
@@ -57,6 +90,9 @@ theorem actual_hadamard_term (h : Hamiltonian N R M k d J) (hJ : 0 ≤ J) (s : F
       field_simp
       ring
 
+/-- For nonnegative `J` and `lam` with `lam * J * k * d < 1`, imaginary-time weighting of an
+operator supported on at most `(m + 1) * k` sites has norm at most `‖A‖ / (1 - lam * J * k *
+d)^(m + 1)`. -/
 theorem actual_local_conjugation (h : Hamiltonian N R M k d J) (hJ : 0 ≤ J) (s : Finset (Fin N))
     (m : ℕ) (hs : s.card ≤ (m+1)*k) (A : Matrix (Register N) (Register N) ℂ) (hA : A∈onSupport s)
     (lam : ℝ) (hlam : 0 ≤ lam) (hsmall : lam*J*k*d < 1) :
@@ -76,6 +112,8 @@ theorem actual_local_conjugation (h : Hamiltonian N R M k d J) (hJ : 0 ≤ J) (s
   convert hb using 1
   ring
 
+/-- For positive `J`, `k`, and `d`, weighting at `1 / (2 * J * k * d)` increases the norm of an
+operator supported on at most `(m + 1) * k` sites by at most the factor `2^(m + 1)`. -/
 theorem actual_local_conjugation_half (h : Hamiltonian N R M k d J) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (s : Finset (Fin N)) (m : ℕ) (hs : s.card ≤ (m+1)*k)
     (A : Matrix (Register N) (Register N) ℂ) (hA : A∈onSupport s) :
@@ -91,6 +129,9 @@ theorem actual_local_conjugation_half (h : Hamiltonian N R M k d J) (hJ : 0 < J)
   norm_num
   ring
 
+/-- For positive `J`, `k`, and `d`, the transition block from energies at most `Δ` to energies
+above `Λ` of an operator supported on at most `(m + 1) * k` sites has norm at most `exp(-(Λ
+- Δ) / (2 * J * k * d)) * 2^(m + 1) * ‖A‖`. -/
 theorem actual_local_leakage (h : Hamiltonian N R M k d J) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (s : Finset (Fin N)) (m : ℕ) (hs : s.card ≤ (m+1)*k)
     (A : Matrix (Register N) (Register N) ℂ) (hA : A∈onSupport s) (Δ Λ : ℝ) :

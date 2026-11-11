@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+
+/-!
+# Definitions for finite-bit execution charges
+
+This module defines `jointFiniteBitCharge` as the maximum branch charge of a joint program and
+`zeroPriceBranch` as the predicate that a branch has cost zero. These definitions provide the
+accounting vocabulary for the execution charge identities. See [NielsenChuang2010] for quantum
+computation background.
+
+## Main statements
+
+* `jointFiniteBitCharge`: records the maximum branch charge.
+* `zeroPriceBranch`: expresses zero branch cost.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -20,10 +39,12 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option linter.unusedVariables false
 
+/-- The maximum branch charge of a joint program, used as its finite-bit charge. -/
 noncomputable def jointFiniteBitCharge {S O X : Type} [Fintype S] [Fintype X] {D E : ℕ}
     (P : JointProgram S O X D E) : ℕ :=
   maxCharge P
 
+/-- The predicate that the branch at classical state `s` has zero cost. -/
 def zeroPriceBranch {S O X : Type} [Fintype X] {D E : ℕ}
     (P : JointProgram S O X D E) (s : S) : Prop :=
   P.cost s = 0

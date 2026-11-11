@@ -6,6 +6,20 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
 import Qatlib.Papers.MeasFlowDet07.MainResults.PlaneAnachronical
+
+/-!
+# Proportionality tests for measurement-plane projections
+
+The XZ-plane projection formulas at angles `0`, `π`, and `π / 2` imply global
+proportionality when the two slices of the comparison state are linearly
+independent. The module also gives a counterexample to the unqualified
+proportionality statement encoded here: angle-dependent unit phases alone do
+not force a single global proportionality factor.
+
+The measurement-flow context is [BrowneEtAl2007] and
+[Danos & Kashefi, one-way determinism][DanosKashefi2006]. The independence
+hypothesis and the counterexample are explicit parts of this formal treatment.
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,9 +33,12 @@ open Matrix
 
 namespace Qatlib.Papers.MeasFlowDet07.MainResults
 
+/-- The action of a qubit operator on the final index of an array of qubit amplitudes. -/
 def planeProjAct {m : ℕ} (P : Operator 2) (Ψ : Fin m → Fin 2 → ℂ) : Fin m → Fin 2 → ℂ :=
   fun x k => ∑ j : Fin 2, P k j * Ψ x j
 
+/-- The false-outcome `XZ` projector at angle zero keeps the zeroth component and sets the other
+component to zero. -/
 theorem planeProjAct_XZ_zero_apply {m : ℕ} (Ψ : Fin m → Fin 2 → ℂ) (x : Fin m) (k : Fin 2) :
     planeProjAct (MbqcPlaneBasis .XZ 0 false) Ψ x k = if k = 0 then Ψ x 0 else 0 := by
   fin_cases k <;>
@@ -29,6 +46,8 @@ theorem planeProjAct_XZ_zero_apply {m : ℕ} (Ψ : Fin m → Fin 2 → ℂ) (x :
       pauliX, pauliZ, Real.cos_zero, Real.sin_zero]
   all_goals ring
 
+/-- The false-outcome `XZ` projector at angle `π` keeps the first component and sets the other
+component to zero. -/
 theorem planeProjAct_XZ_pi_apply {m : ℕ} (Ψ : Fin m → Fin 2 → ℂ) (x : Fin m) (k : Fin 2) :
     planeProjAct (MbqcPlaneBasis .XZ Real.pi false) Ψ x k = if k = 1 then Ψ x 1 else 0 := by
   fin_cases k <;>
@@ -36,6 +55,8 @@ theorem planeProjAct_XZ_pi_apply {m : ℕ} (Ψ : Fin m → Fin 2 → ℂ) (x : F
       pauliX, pauliZ, Real.cos_pi, Real.sin_pi]
   all_goals ring
 
+/-- The false-outcome `XZ` projector at angle `π / 2` sends each component to half the sum of
+the two input components. -/
 theorem planeProjAct_XZ_pi_div_two_apply {m : ℕ} (Ψ : Fin m → Fin 2 → ℂ) (x : Fin m)
     (k : Fin 2) :
     planeProjAct (MbqcPlaneBasis .XZ (Real.pi / 2) false) Ψ x k
@@ -45,6 +66,9 @@ theorem planeProjAct_XZ_pi_div_two_apply {m : ℕ} (Ψ : Fin m → Fin 2 → ℂ
       pauliX, pauliZ, Real.cos_pi_div_two, Real.sin_pi_div_two] <;>
     ring
 
+/-- Proportional XZ projections at three angles imply global proportionality
+under linear independence of the comparison slices. For measurement-plane
+background, see [Browne et al., generalized flow][BrowneEtAl2007]. -/
 theorem planeLemma_of_linearIndependent {m : ℕ} (Ψ Ψ' : Fin m → Fin 2 → ℂ)
     (hli : LinearIndependent ℂ ![fun x => Ψ' x 0, fun x => Ψ' x 1])
     (h0 : ∃ c : ℂ, planeProjAct (MbqcPlaneBasis .XZ 0 false) Ψ
@@ -98,9 +122,12 @@ theorem planeLemma_of_linearIndependent {m : ℕ} (Ψ Ψ' : Fin m → Fin 2 → 
   · simp [e0 x, h0c]
   · simp [e1 x, h1c]
 
+/-- The qubit vector with real components `cos (a / 2)` and `sin (a / 2)`. -/
 def mbqcPlaneStateXZ (a : ℝ) : Fin 2 → ℂ :=
   ![Complex.ofReal (Real.cos (a / 2)), Complex.ofReal (Real.sin (a / 2))]
 
+/-- The false-outcome `XZ` plane basis operator is the rank one matrix formed from
+`mbqcPlaneStateXZ a`. -/
 theorem mbqcPlaneBasis_XZ_false_rankOne (a : ℝ) :
     MbqcPlaneBasis .XZ a false
       = Matrix.of fun k j => mbqcPlaneStateXZ a k * mbqcPlaneStateXZ a j := by
@@ -121,6 +148,8 @@ theorem mbqcPlaneBasis_XZ_false_rankOne (a : ℝ) :
     have h := Complex.sin_sq_add_cos_sq (↑a * (1 / 2 : ℂ))
     linear_combination -h
 
+/-- Expresses the action of the false-outcome `XZ` projector as its defining vector times the
+scalar contraction with the input amplitudes. -/
 theorem planeProjAct_XZ_rankOne {m : ℕ} (a : ℝ) (Ψ : Fin m → Fin 2 → ℂ) (x : Fin m)
     (k : Fin 2) :
     planeProjAct (MbqcPlaneBasis .XZ a false) Ψ x k
@@ -130,6 +159,8 @@ theorem planeProjAct_XZ_rankOne {m : ℕ} (a : ℝ) (Ψ : Fin m → Fin 2 → �
   simp only [planeProjAct, Matrix.of_apply, Fin.sum_univ_two]
   ring
 
+/-- The complex number formed by the zeroth component plus `i` times the first component of
+`mbqcPlaneStateXZ a` is nonzero. -/
 theorem mbqcPlaneStateXZ_sum_ne_zero (a : ℝ) :
     mbqcPlaneStateXZ a 0 + mbqcPlaneStateXZ a 1 * Complex.I ≠ 0 := by
   intro h
@@ -142,10 +173,13 @@ theorem mbqcPlaneStateXZ_sum_ne_zero (a : ℝ) :
   rw [h] at hnsq
   simp at hnsq
 
+/-- The ratio of the zeroth component minus `i` times the first component to the corresponding
+sum for `mbqcPlaneStateXZ a`. -/
 def planeLemmaPhase (a : ℝ) : ℂ :=
   (mbqcPlaneStateXZ a 0 - mbqcPlaneStateXZ a 1 * Complex.I)
     / (mbqcPlaneStateXZ a 0 + mbqcPlaneStateXZ a 1 * Complex.I)
 
+/-- The complex phase `planeLemmaPhase a` has norm one. -/
 theorem planeLemmaPhase_norm (a : ℝ) : ‖planeLemmaPhase a‖ = 1 := by
   have hy := mbqcPlaneStateXZ_sum_ne_zero a
   have hconj : (mbqcPlaneStateXZ a 0 - mbqcPlaneStateXZ a 1 * Complex.I)
@@ -156,12 +190,16 @@ theorem planeLemmaPhase_norm (a : ℝ) : ‖planeLemmaPhase a‖ = 1 := by
   rw [planeLemmaPhase, hconj, norm_div, Complex.norm_conj,
     div_self (norm_ne_zero_iff.mpr hy)]
 
+/-- The amplitude array with one spectator index and qubit components `1` and `-i`. -/
 def planeLemmaCounterA : Fin 1 → Fin 2 → ℂ :=
   fun _ k => if k = 0 then 1 else -Complex.I
 
+/-- The amplitude array with one spectator index and qubit components `1` and `i`. -/
 def planeLemmaCounterB : Fin 1 → Fin 2 → ℂ :=
   fun _ k => if k = 0 then 1 else Complex.I
 
+/-- Counterexample to dropping the independence requirement in the local
+measurement-plane formulation motivated by [BrowneEtAl2007]. -/
 theorem planeLemma_literal_false :
     ∃ Ψ Ψ' : Fin 1 → Fin 2 → ℂ,
       (∀ a : ℝ, ∃ c : ℂ, ‖c‖ = 1 ∧

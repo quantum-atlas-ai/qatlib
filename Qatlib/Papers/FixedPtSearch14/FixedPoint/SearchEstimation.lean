@@ -8,6 +8,30 @@ import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchEstimationDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CountingCertainty
+
+/-!
+# Search and counting endpoint theorems
+
+This module assembles search, mean-estimation, and counting endpoints used alongside the
+fixed-point-search formalization [YoderLowChuang2014]. The results combine probability bounds
+with record transport, precision requirements, and explicit access or space ledgers.
+
+The endpoint bundles cover shifted search schedules, unknown-variance estimation, certainty
+amplification, relative estimation, heuristic consumers, and exact or approximate counting under
+their stated input promises.
+
+## Main statements
+
+* `clause78_endpoint`: Shifted search schedules, survival, and expected access bounds.
+* `clause8_endpoint`: Unknown-variance estimation with pilot-tail and ledger bounds.
+* `clause87_endpoint`: Relative amplitude-estimation accuracy and exact access counts.
+* `clause86_endpoint`: Relative and exact counting branches with cost bounds.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -52,6 +76,9 @@ namespace SearchEstimationCore
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Bundles the shifted-depth search identities, per-round and inverse-square-root expected
+access bounds, sound successful outputs, and survival behavior. It also identifies the
+limiting stopped-ledger expectation and bounds it for positive marked mass. -/
 theorem clause78_endpoint :
 
     (∀ (M : ℕ) (i : Fin M), sourceDepth M i = i.val + 1) ∧
@@ -143,6 +170,10 @@ theorem clause78_endpoint :
   · intro A hA j₀ S ha
     exact s2_unbounded_stop_cost_retains_sqrt_a_budget A hA j₀ S ha
 
+/-- Under the bounded-payoff, pilot-precision, and failure-budget hypotheses, the
+unknown-variance estimator has normalized law, failure mass at most the stated
+pilot-plus-median bound, and the stated expected and worst-case access bounds. The bundle
+also supplies moment bounds and the pilot-tail reserve implications. -/
 theorem clause8_endpoint
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -240,6 +271,9 @@ theorem clause8_endpoint
       A j hA f nu eps N h K r hk ωp ωt
     exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.2.2.2⟩
 
+/-- Bundles exact amplification to certainty for integral and phase-adjusted nonintegral
+branches, together with projector-conjugation and iterate identities. It includes the
+preparation-access bound for the chosen certainty branch. -/
 theorem clause81_endpoint :
 
     (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
@@ -308,6 +342,9 @@ theorem clause81_endpoint :
         ≤ 2 * (CountingCertainty.nextHalfStep θ + 1)) := by
   exact AmplitudeReadoutRefined.clause22_endpoint
 
+/-- Bundles Boolean evaluation and controlled-phase implementation of the prepared mark with
+record-wise and joint oracle-cost transport for counting procedures. The accompanying
+identities separate mark, preparation, control, and fixed-operation costs. -/
 theorem clause84_endpoint
     (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -396,6 +433,10 @@ theorem clause84_endpoint
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.clause84_endpoint
     A j S hA N hN Sc ε hε hM0 hM
 
+/-- For a positive promised mass and `0 < ε ≤ 1`, the selected relative grid attains relative
+error `ε` with probability at least `8 / π² > 2/3` and has the stated exact access ledger.
+The bundle includes grid-size bounds, zero-endpoint implications, and a fixed-grid
+small-mass obstruction. -/
 theorem clause87_endpoint
     (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -430,6 +471,10 @@ theorem clause87_endpoint
       16 * Real.pi / (ε * Real.sqrt (MeasureProb (preparedAAState A j) S)) ≤ M) :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined.clause92_endpoint A j S hA a₀ ε ha0 ha0a ha1 hε hε1
 
+/-- Under the good-seed density and mature-window hypotheses, the heuristic consumer returns
+only valid outputs and preserves the seed-search validation counts. Its failure mass has the
+stated geometric bound, and its weighted expected cost satisfies both displayed
+inverse-density bounds. -/
 theorem clause80_endpoint
     {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n)
@@ -490,6 +535,9 @@ theorem clause80_endpoint
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined.clause87_endpoint hn F G M T j w hT hcard hdensity
     hMature hWin
 
+/-- Under the cardinality and grid promises, the exact-counting construction succeeds with mass
+at least `3/4` and has total expected cost at most `650 * √(|S|N)`. The bundle includes
+output-space bounds, rough-estimate tail bounds, and the ladder-cost estimate. -/
 theorem clause89_endpoint
     {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
@@ -540,6 +588,10 @@ theorem clause89_endpoint
       ≤ 650 * Real.sqrt ((S.card : ℝ) * (N : ℝ))) :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined.clause94_endpoint hN S hcard hcardN hM₀ hM
 
+/-- Under the grid and stopping-scale promises, relative counting has success mass at least
+`3/4` for strict error below `|S| / c`, with the stated lower and upper expected costs
+proportional to `c * √(N / |S|)`. The bundle includes rounding, final-window, and
+prefix-scale guarantees. -/
 theorem clause88_endpoint
     {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 0 < (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
@@ -600,6 +652,10 @@ theorem clause88_endpoint
             ≤ (2 : ℝ) ^ basicApproxCountStop N ω)) :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined.clause93_endpoint hN S hcard hcardN c hc hω hscale
 
+/-- Under the cardinality, grid, and angle-crossing hypotheses, the relative and exact counting
+branches satisfy their stated success and expected-cost bounds. The bundle also records
+precision regimes, zero-count implications, output-space bounds, and final-grid window
+estimates. -/
 theorem clause86_endpoint
     {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
@@ -678,6 +734,8 @@ theorem clause86_endpoint
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefined.clause91_endpoint hN S hcard hcardN ε hε hε1 hM₀ hM hω
     θ hθ0 hangle n hn hcross
 
+/-- The native counting readout satisfies the output, layer, record, access, and resource
+specifications at the supplied record and precision. -/
 theorem clause82_endpoint {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M) (z : Fin M)
     (S : Finset (Fin N)) :
 

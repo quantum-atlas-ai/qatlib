@@ -40,6 +40,27 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Quantum mean estimation with pilot-selected precision
+
+This module combines independent pilot samples with median-amplified signed mean estimation when
+the variance is initially unknown. `unknownSigmaLaw` records the pilot and the trials at the
+selected precision, while moment concentration controls failure and expected access costs in the
+quantum Monte Carlo setting of [Montanaro2015].
+
+## Main statements
+
+* `unknownSigma_failure_bound`: the combined pilot and median failure bound.
+* `unknownSigma_resources_eq`: the exact resource ledger at the selected precision.
+* `unknownSigma_expected_accesses_le`: an expected-access bound using good-pilot and worst-case
+  precision bounds.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -74,21 +95,30 @@ open Filter
 open scoped Topology
 set_option warningAsError false
 
+/-- The law of `N` independent pilot samples from the prepared signed-mean source. -/
 noncomputable def unknownSigmaPilotLaw
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (N : ℕ) : FinDist (Fin N → I) :=
   independentSampleLaw (fun _ => signedMeanSource A j hA)
 
+/-- The pilot-selected precision represented as an element of `Fin K` using the supplied uniform
+upper bound. -/
 def unknownSigmaPilotIndex (N h : ℕ) (f : I → ℚ) (nu eps : ℚ)
     (K : ℕ) (hk : ∀ ω : Fin N → I, pilotPrecision N h f nu eps ω < K) (ω : Fin N → I) : Fin K :=
   ⟨pilotPrecision N h f nu eps ω, hk ω⟩
 
+/-- The record of `2 * r + 1` signed-mean trials at precision `k`, each containing a source
+sample and two layer records. -/
 abbrev unknownSigmaTrialRecord (I : Type) [Fintype I] [DecidableEq I] (r : ℕ) (k : ℕ) : Type :=
   Fin (2*r+1) → (I × (LayerRecord k × LayerRecord k))
 
+/-- The dependent full record containing a precision index, pilot samples, and signed-mean trial
+records at that precision. -/
 abbrev unknownSigmaFullRecord (I : Type) [Fintype I] [DecidableEq I] (N K r : ℕ) : Type :=
   Sigma (fun k : Fin K => (Fin N → I) × (unknownSigmaTrialRecord I r k.val))
 
+/-- The law of one signed-mean trial at precision `k` using the scale selected by the pilot
+record. -/
 noncomputable def unknownSigmaTrialLaw
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -98,6 +128,8 @@ noncomputable def unknownSigmaTrialLaw
     FinDist (I × (LayerRecord k.val × LayerRecord k.val)) :=
   signedMeanLaw k.val A j (fun i => (f i : ℝ)) (pilotScale N h f nu ωp) hA
 
+/-- The joint weight of a precision, pilot record, and repeated-trial record, with zero weight
+unless the precision equals the pilot-selected index. -/
 noncomputable def unknownSigmaProbAt
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -109,6 +141,7 @@ noncomputable def unknownSigmaProbAt
       (unknownSigmaTrialLaw A j hA f nu eps N h K r hk k ωp).probOf ωt
     else 0)
 
+/-- The probability weight of a full pilot-and-trial record. -/
 noncomputable def unknownSigmaProb
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -117,6 +150,8 @@ noncomputable def unknownSigmaProb
     (rec : unknownSigmaFullRecord I N K r) : ℝ :=
   unknownSigmaProbAt A j hA f nu eps N h K r hk rec.1 rec.2.1 rec.2.2
 
+/-- The normalized finite distribution on full records obtained by sampling the pilot and then
+independent trials at its selected precision. -/
 noncomputable def unknownSigmaLaw
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -186,6 +221,8 @@ noncomputable def unknownSigmaLaw
             simp only [mul_one]
             exact (unknownSigmaPilotLaw A j hA N).sum_one
 
+/-- The median signed-mean estimate computed from the trial records using their precision and
+pilot-selected scale. -/
 noncomputable def unknownSigmaEstimate
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -195,6 +232,7 @@ noncomputable def unknownSigmaEstimate
   signedMeanMedian rec.1.val r (fun i => (f i : ℝ))
     (pilotScale N h f nu rec.2.1) rec.2.2
 
+/-- The absolute deviation of the median signed-mean estimate from the source expectation. -/
 noncomputable def unknownSigmaDeviation
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -204,6 +242,8 @@ noncomputable def unknownSigmaDeviation
   |signedMeanMedian k.val r (fun i => (f i : ℝ)) (pilotScale N h f nu ωp) ωt -
     (signedMeanSource A j hA).expect (fun i => (f i : ℝ))|
 
+/-- The event that the median signed-mean estimate differs from the source expectation by more
+than `eps`. -/
 def unknownSigmaFails
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -212,6 +252,8 @@ def unknownSigmaFails
     (rec : unknownSigmaFullRecord I N K r) : Prop :=
   (eps : ℝ) < unknownSigmaDeviation A j hA f nu eps N h K r hk rec.1 rec.2.1 rec.2.2
 
+/-- The conditional failure mass of the repeated-trial estimate for a fixed precision and pilot
+record. -/
 noncomputable def unknownSigmaTrialFail
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -222,6 +264,8 @@ noncomputable def unknownSigmaTrialFail
     (unknownSigmaTrialLaw A j hA f nu eps N h K r hk k ωp).probOf ωt *
     (if unknownSigmaFails A j hA f nu eps N h K r hk ⟨k, (ωp, ωt)⟩ then 1 else 0)
 
+/-- For bounded `f`, positive pilot size and accuracy parameters, and `0 < nu ≤ 1/4`, the
+failure mass is at most `(8/9)^r + 2 / (N * nu^2)`. -/
 theorem unknownSigma_failure_bound
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -541,6 +585,8 @@ theorem unknownSigma_failure_bound
           exact add_le_add (mul_le_mul_of_nonneg_left hgoodmass hpow) hbad'
         simpa using! hstep
 
+/-- If the combined pilot and median failure bound is at most `δ ∈ (0, 1)`, the estimate
+succeeds with probability at least `1 - δ` under the stated boundedness assumptions. -/
 theorem unknownSigma_success_bound
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -560,14 +606,18 @@ theorem unknownSigma_success_bound
     unknownSigma_failure_bound A j hA f nu eps N h K r hk hN hf hnu hnu1 heps
   linarith
 
+/-- The second raw moment of `f` under the prepared signed-mean source. -/
 noncomputable def unknownSigmaSecondMoment (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) : ℝ :=
   (signedMeanSource A j hA).expect (fun i => (f i : ℝ)^2)
 
+/-- The fourth raw moment of `f` under the prepared signed-mean source. -/
 noncomputable def unknownSigmaFourthMoment (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) : ℝ :=
   (signedMeanSource A j hA).expect (fun i => (f i : ℝ)^4)
 
+/-- The probability of the union of two events on independent sample records is at most the sum
+of their probabilities. -/
 theorem unknownSigma_probEvent_union {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (E F : (Fin L → X) → Prop) :
     p.probEvent (L := L) (fun ω => E ω ∨ F ω)
@@ -591,6 +641,8 @@ theorem unknownSigma_probEvent_union {X : Type} [Fintype X] [DecidableEq X] {L :
   rw [Finset.sum_filter]
   exact h2
 
+/-- If `|f i| ≤ 1` for every source label, its second and fourth raw moments are each at most
+one. -/
 theorem unknownSigma_bounded_moments
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (hf : ∀ i, |f i| ≤ 1) :
@@ -620,6 +672,7 @@ theorem unknownSigma_bounded_moments
             exact mul_le_mul_of_nonneg_left (hquartic i) ((signedMeanSource A j hA).nonneg i)
       _ = 1 := by simpa using! (signedMeanSource A j hA).sum_one
 
+/-- The variance of `f` under the source distribution is at most its second raw moment. -/
 theorem unknownSigma_variance_le_second_moment
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) :
@@ -633,6 +686,7 @@ theorem unknownSigma_variance_le_second_moment
   rw [h]
   nlinarith [sq_nonneg ((signedMeanSource A j hA).expect (fun i => (f i : ℝ)))]
 
+/-- The square of the source variance of `f` is at most its fourth raw moment. -/
 theorem unknownSigma_fourth_moment_ge_variance_sq
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) :
@@ -665,6 +719,9 @@ theorem unknownSigma_fourth_moment_ge_variance_sq
     exact Finset.sum_nonneg fun i _ => mul_nonneg ((signedMeanSource A j hA).nonneg i) (sq_nonneg _)
   nlinarith [hsq, hnonneg]
 
+/-- For positive pilot size and tolerance, the probability that either empirical first or second
+moment exceeds its tolerance is at most the sum of the second and fourth moments divided by
+`N * nu^2`. -/
 theorem unknownSigma_pilot_moment_failure_mass
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (N : ℕ) (nu : ℝ) (hN : 0 < N) (hnu : 0 < nu) :
@@ -731,25 +788,35 @@ theorem unknownSigma_pilot_moment_failure_mass
     _ = (unknownSigmaSecondMoment A j hA f + unknownSigmaFourthMoment A j hA f)
         / ((N : ℝ)*(nu : ℝ)^2) := by ring
 
+/-- The scale bound `sqrt (sigmaSq + 6 * nu) + 2 / 2^h` for a pilot with controlled moment
+errors. -/
 noncomputable def unknownSigmaScaleBound (sigmaSq nu h : ℝ) : ℝ :=
   Real.sqrt (sigmaSq + 6*nu) + 2/(2:ℝ)^h
 
+/-- The precision bound, with minimum four, computed from the good-pilot scale bound and target
+error. -/
 noncomputable def unknownSigmaGoodPrecision (sigmaSq nu h eps : ℝ) : ℕ :=
   max 4 (Nat.clog 2 ((Int.ceil ((8*unknownSigmaScaleBound sigmaSq nu h)/eps) : ℤ).toNat+1))
 
+/-- The worst-case pilot precision bound, with minimum four, computed from the rational target
+error. -/
 def unknownSigmaWorstPrecision (eps : ℚ) : ℕ :=
   max 4 (Nat.clog 2 ((Int.ceil (16/eps) : ℤ).toNat+1))
 
+/-- Componentwise comparison of all fields of two quantum-mean resource ledgers. -/
 def unknownSigmaLedgerLe (a b : QuantumMeanResources) : Prop :=
   a.sourcePreparations ≤ b.sourcePreparations ∧ a.layerCopies ≤ b.layerCopies ∧
   a.measurements ≤ b.measurements ∧ a.layerForward ≤ b.layerForward ∧
   a.layerInverse ≤ b.layerInverse ∧ a.queries ≤ b.queries ∧ a.gates ≤ b.gates
 
+/-- Componentwise addition of two quantum-mean resource ledgers. -/
 def unknownSigmaAddResources (a b : QuantumMeanResources) : QuantumMeanResources :=
   ⟨a.sourcePreparations + b.sourcePreparations, a.layerCopies + b.layerCopies,
     a.measurements + b.measurements, a.layerForward + b.layerForward,
     a.layerInverse + b.layerInverse, a.queries + b.queries, a.gates + b.gates⟩
 
+/-- The explicit resource ledger for `N` pilot samples and `2 * r + 1` signed-mean trials at
+precision `k`. -/
 noncomputable def unknownSigmaLedger (N r k : ℕ) : QuantumMeanResources :=
   let m := 2*r+1
   let q := (k+2)*(2*layerRepetitions k+1)
@@ -757,6 +824,8 @@ noncomputable def unknownSigmaLedger (N r k : ℕ) : QuantumMeanResources :=
     m*(2*q*(layerGrid k-1)), m*(2*q*(layerGrid k-1)),
     N + m*(1+2*q*(5*(layerGrid k-1)+3))⟩
 
+/-- The resources of a full execution record, adding pilot-sampling resources to those of the
+signed-mean median trials. -/
 noncomputable def unknownSigmaResources
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -766,12 +835,18 @@ noncomputable def unknownSigmaResources
     (signedMeanMedianResources rec.1.val r A j
       (fun i => (rec.2.2 i).1) (fun i => (f i : ℝ)) (pilotScale N h f nu rec.2.1))
 
+/-- The total number of source preparations and forward and inverse layer accesses in a resource
+ledger. -/
 def unknownSigmaAccesses (res : QuantumMeanResources) : ℕ :=
   res.sourcePreparations + res.layerForward + res.layerInverse
 
+/-- The access count extracted from the explicit ledger at pilot size `N`, repetition parameter
+`r`, and precision `k`. -/
 noncomputable def unknownSigmaLedgerAccesses (N r k : ℕ) : ℕ :=
   unknownSigmaAccesses (unknownSigmaLedger N r k)
 
+/-- The pilot event that the empirical first moment or empirical second moment differs from its
+expectation by more than `nu`. -/
 def unknownSigmaBadMoments (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (N : ℕ) (nu : ℝ)
     (ωp : Fin N → I) : Prop :=
@@ -780,6 +855,8 @@ def unknownSigmaBadMoments (A : Matrix I I ℂ) (j : I)
   (nu : ℝ) < |Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (fun i => (f i : ℝ)^2) ωp
       - (signedMeanSource A j hA).expect (fun i => (f i : ℝ)^2)|
 
+/-- The pilot event that both empirical first and second moments differ from their expectations
+by at most `nu`. -/
 def unknownSigmaGoodMoments (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (N : ℕ) (nu : ℝ)
     (ωp : Fin N → I) : Prop :=
@@ -788,6 +865,7 @@ def unknownSigmaGoodMoments (A : Matrix I I ℂ) (j : I)
   |Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (fun i => (f i : ℝ)^2) ωp
       - (signedMeanSource A j hA).expect (fun i => (f i : ℝ)^2)| ≤ nu
 
+/-- The good-pilot moment event is exactly the complement of the bad-pilot moment event. -/
 theorem unknownSigma_good_iff_not_bad
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (N : ℕ) (nu : ℝ)
@@ -804,16 +882,19 @@ theorem unknownSigma_good_iff_not_bad
     · exact le_of_not_gt (fun hb => hnb (Or.inl hb))
     · exact le_of_not_gt (fun hb => hnb (Or.inr hb))
 
+/-- The layer grid size is nondecreasing in precision. -/
 theorem unknownSigma_layerGrid_mono {k₁ k₂ : ℕ} (h : k₁ ≤ k₂) :
     layerGrid k₁ ≤ layerGrid k₂ := by
   unfold layerGrid
   exact Nat.mul_le_mul (Nat.pow_le_pow_right (by norm_num : (0:ℕ) < 2) (by omega)) (by omega)
 
+/-- The number of layer repetitions is nondecreasing in precision. -/
 theorem unknownSigma_layerRepetitions_mono {k₁ k₂ : ℕ} (h : k₁ ≤ k₂) :
     layerRepetitions k₁ ≤ layerRepetitions k₂ := by
   unfold layerRepetitions
   omega
 
+/-- The explicit resource ledger is componentwise nondecreasing in precision. -/
 theorem unknownSigma_ledger_mono {N r k₁ k₂ : ℕ} (h : k₁ ≤ k₂) :
     unknownSigmaLedgerLe (unknownSigmaLedger N r k₁) (unknownSigmaLedger N r k₂) := by
   have hrep := unknownSigma_layerRepetitions_mono h
@@ -845,6 +926,7 @@ theorem unknownSigma_ledger_mono {N r k₁ k₂ : ℕ} (h : k₁ ≤ k₂) :
   · exact Nat.add_le_add_left
       (Nat.mul_le_mul_left (2*r+1) (Nat.add_le_add_left h2qg5 1)) N
 
+/-- The access count of the explicit ledger is nondecreasing in precision. -/
 theorem unknownSigma_ledgerAccesses_mono {N r k₁ k₂ : ℕ} (h : k₁ ≤ k₂) :
     unknownSigmaLedgerAccesses N r k₁ ≤ unknownSigmaLedgerAccesses N r k₂ := by
   have hrep := unknownSigma_layerRepetitions_mono h
@@ -864,6 +946,8 @@ theorem unknownSigma_ledgerAccesses_mono {N r k₁ k₂ : ℕ} (h : k₁ ≤ k�
     (Nat.add_le_add (by omega) (Nat.mul_le_mul_left (2*r+1) h2qg))
     (Nat.mul_le_mul_left (2*r+1) h2qg1)
 
+/-- The pilot-only mean program uses `N` source preparations, `N` measurements, and `N` gates,
+with every layer and query count zero. -/
 theorem unknownSigma_pilot_ledger (A : Matrix I I ℂ) (N : ℕ) :
     meanProgramResources 0 N A [] = ⟨N, 0, N, 0, 0, 0, N⟩ := by
   have hl := meanProgramResources_labels 0 N A []
@@ -877,6 +961,7 @@ theorem unknownSigma_pilot_ledger (A : Matrix I I ℂ) (N : ℕ) :
   · simp [meanProgramResources]
   · simp [meanProgramResources, hsrc]
 
+/-- The resources of each full record equal the explicit ledger at the record's precision. -/
 theorem unknownSigma_resources_eq
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -892,6 +977,8 @@ theorem unknownSigma_resources_eq
   simp only [Nat.zero_add]
   rfl
 
+/-- Under the stated boundedness and parameter conditions, a good pilot selects precision at
+most `unknownSigmaGoodPrecision` evaluated at the true source variance. -/
 theorem unknownSigma_good_precision_le
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -938,6 +1025,8 @@ theorem unknownSigma_good_precision_le
   refine Nat.clog_mono_right 2 ?_
   exact Nat.add_le_add_right (Int.toNat_le_toNat hqceil) 1
 
+/-- Under the stated boundedness and parameter conditions, every execution using its
+pilot-selected precision has resources bounded componentwise by the worst-precision ledger. -/
 theorem unknownSigma_budget_worst_path
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -955,6 +1044,8 @@ theorem unknownSigma_budget_worst_path
   rw [unknownSigma_resources_eq A j hA f nu eps N h K r hk]
   exact unknownSigma_ledger_mono hprec
 
+/-- Under the stated boundedness and parameter conditions, every pilot-selected ledger is
+bounded componentwise by the worst-precision ledger. -/
 theorem unknownSigma_budget_worst_path_pilot
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -968,6 +1059,7 @@ theorem unknownSigma_budget_worst_path_pilot
       hN hf hnu hnu1 heps).2.2
   exact unknownSigma_ledger_mono hprec
 
+/-- The expected source and layer access count under the full pilot-and-trial law. -/
 noncomputable def unknownSigmaExpectedAccesses
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -982,6 +1074,8 @@ noncomputable instance unknownSigma_badMoments_decidable (A : Matrix I I ℂ) (j
   unfold unknownSigmaBadMoments
   infer_instance
 
+/-- The expected access count can be computed from the pilot law alone by averaging the ledger
+at its selected precision. -/
 theorem unknownSigma_expected_accesses_eq_pilot
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)
@@ -1071,6 +1165,8 @@ theorem unknownSigma_expected_accesses_eq_pilot
     rw [hstep]
   rw [h1, h2, h3]
 
+/-- The bad-pilot mass is at most the sum of the second and fourth source moments divided by `N
+* nu^2` for positive pilot size and tolerance. -/
 theorem unknownSigma_pilot_bad_mass
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (N : ℕ) (nu : ℝ) (hN : 0 < N) (hnu : 0 < nu) :
@@ -1092,6 +1188,9 @@ theorem unknownSigma_pilot_bad_mass
   rw [hconv]
   exact h
 
+/-- Under the stated boundedness and parameter conditions, expected accesses are at most the
+good-precision ledger accesses plus the moment failure bound times the worst-precision
+ledger accesses. -/
 theorem unknownSigma_expected_accesses_le
     (A : Matrix I I ℂ) (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (f : I → ℚ) (nu eps : ℚ) (N h : ℕ) (K r : ℕ)

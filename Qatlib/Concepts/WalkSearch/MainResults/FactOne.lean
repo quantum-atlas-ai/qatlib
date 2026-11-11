@@ -64,6 +64,28 @@ import Mathlib.Topology.MetricSpace.Pseudo.Constructions
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Errors of approximate line reflections
+
+`lineProj`, `lineRefl`, and `reflError` describe projection onto a vector span, reflection about
+that span, and the discrepancy of a linear isometry from this reflection. The error vanishes on
+a fixed reference vector, and the assumed homogeneous bound specializes to a unit vector bound
+on its orthogonal complement. For background on search via quantum walks, see
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `lineProj`: The orthogonal projection onto the complex span of `u`, viewed as a continuous
+  linear endomorphism of the ambient space.
+* `reflError_bound_unit`: For a unit vector orthogonal to `u`, the homogeneous discrepancy
+  hypothesis bounds the reflection error by `β`; see [Magniez et al., Fact
+  1][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
@@ -72,26 +94,35 @@ namespace Qatlib.Concepts.WalkSearch.MainResults.FactOne
 variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W]
   [FiniteDimensional ℂ W]
 
+/-- The orthogonal projection onto the complex span of `u`, viewed as a continuous linear
+endomorphism of the ambient space. -/
 noncomputable def lineProj (u : W) : W →L[ℂ] W :=
   (Submodule.subtypeL (Submodule.span ℂ {u})).comp
     (Submodule.orthogonalProjection (Submodule.span ℂ {u}))
 
+/-- The continuous linear map `2 • lineProj u - id` reflecting about the span of `u`. -/
 noncomputable def lineRefl (u : W) : W →L[ℂ] W :=
   2 • lineProj u - ContinuousLinearMap.id ℂ W
 
+/-- The pointwise difference between the linear isometry `R` and reflection about the span of
+`u`. -/
 noncomputable def reflError (R : W ≃ₗᵢ[ℂ] W) (u : W) : W → W :=
   fun ψ => R ψ - ((2 : ℂ) • lineProj u ψ - ψ)
 
+/-- Projection onto the span of `u` fixes `u`. -/
 theorem lineProj_apply_self (u : W) : lineProj u u = u := by
   have h : lineProj u u = (Submodule.span ℂ ({u} : Set W)).starProjection u := rfl
   rw [h, Submodule.starProjection_eq_self_iff.mpr (Submodule.mem_span_singleton_self u)]
 
+/-- Projection onto the span of `u` vanishes on its orthogonal complement. -/
 theorem lineProj_apply_eq_zero_of_mem_orthogonal {u ψ : W}
     (hψ : ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ) : lineProj u ψ = 0 := by
   have h : lineProj u ψ = (Submodule.span ℂ ({u} : Set W)).starProjection ψ := rfl
   rw [h, (Submodule.starProjection_apply_eq_zero_iff
     (K := Submodule.span ℂ ({u} : Set W))).mpr hψ]
 
+/-- If `R` fixes `u`, its reflection error at `u` is zero, as in [Magniez et al., Fact
+1][MagniezNayakRolandSantha2011]. -/
 theorem reflError_apply_self (R : W ≃ₗᵢ[ℂ] W) (u : W) (hfix : R u = u) :
     reflError R u u = 0 := by
   have hlin : lineProj u u = u := lineProj_apply_self u
@@ -99,6 +130,7 @@ theorem reflError_apply_self (R : W ≃ₗᵢ[ℂ] W) (u : W) (hfix : R u = u) :
   rw [hlin, hfix]
   module
 
+/-- On the orthogonal complement of the span of `u`, the reflection error equals `R ψ + ψ`. -/
 theorem reflError_apply_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W}
     (hψ : ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ) :
     reflError R u ψ = R ψ + ψ := by
@@ -107,6 +139,8 @@ theorem reflError_apply_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W}
   rw [hzero]
   module
 
+/-- The assumed homogeneous reflection discrepancy bound implies `‖reflError R u ψ‖ ≤ β * ‖ψ‖`
+for vectors orthogonal to `u`. -/
 theorem reflError_bound_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W} {β : ℝ}
     (hψ : ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ)
     (hbound : ∀ ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ,
@@ -118,6 +152,8 @@ theorem reflError_bound_of_mem_orthogonal (R : W ≃ₗᵢ[ℂ] W) {u ψ : W} {�
   rw [reflError_apply_of_mem_orthogonal R hψ, ← hEq]
   exact hbound ψ hψ
 
+/-- For a unit vector orthogonal to `u`, the homogeneous discrepancy hypothesis bounds the
+reflection error by `β`; see [Magniez et al., Fact 1][MagniezNayakRolandSantha2011]. -/
 theorem reflError_bound_unit (R : W ≃ₗᵢ[ℂ] W) {u ψ : W} {β : ℝ}
     (hψ : ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ) (hunit : ‖ψ‖ = 1)
     (hbound : ∀ ψ ∈ (Submodule.span ℂ ({u} : Set W))ᗮ,

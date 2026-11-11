@@ -9,6 +9,30 @@ import Mathlib.Analysis.SpecificLimits.Normed
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
+
+/-!
+# Cauchy coefficients and weighted coefficient budgets
+
+`cauchyCoefficient` extracts the coefficients of a Cauchy power series.
+`cauchyCoefficient_hasSum` recovers a holomorphic function inside its defining circle, while
+`cauchyCoefficient_norm_le` and `cauchyCoefficient_weighted_sum_le` control coefficient norms
+from a bound on the circle. `cbmd_cauchy_coefficient_budget` specializes the weighted estimate
+to the shifted circle used by CBMD.
+
+The coefficient budget is an analytic ingredient for the constructions associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `cauchyCoefficient_hasSum` recovers the function inside the defining circle.
+* `cauchyCoefficient_weighted_sum_le` bounds a weighted sum of coefficient norms.
+* `cbmd_cauchy_coefficient_budget` gives the specialized CBMD coefficient budget.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,9 +46,13 @@ namespace CBMD
 open Complex Metric Set
 open scoped BigOperators NNReal ENNReal
 
+/-- The coefficient of order `n` in the Cauchy power series of `f` centered at `c` and defined
+using radius `R`. -/
 noncomputable def cauchyCoefficient (f : ℂ → ℂ) (c : ℂ) (R : ℝ) (n : ℕ) : ℂ :=
   (cauchyPowerSeries f c R).coeff n
 
+/-- If `R > 0` and `f` is complex differentiable on the closed disk centered at `c` with radius
+`R`, its Cauchy series sums to `f (c + u)` whenever `‖u‖ < R`. -/
 theorem cauchyCoefficient_hasSum
     (f : ℂ → ℂ) (c : ℂ) (R : ℝ) (hR : 0 < R)
     (hf : DifferentiableOn ℂ f (closedBall c R))
@@ -41,6 +69,8 @@ theorem cauchyCoefficient_hasSum
     cauchyCoefficient, R']
   exact mul_comm _ _
 
+/-- For `R > 0`, a norm bound `M` for `f` on the circle centered at `c` bounds its coefficient
+of order `n` by `M * R⁻¹ ^ n`. -/
 theorem cauchyCoefficient_norm_le
     (f : ℂ → ℂ) (c : ℂ) (R M : ℝ) (hR : 0 < R)
     (hbound : ∀ z ∈ sphere c R, ‖f z‖ ≤ M) (n : ℕ) :
@@ -58,6 +88,8 @@ theorem cauchyCoefficient_norm_le
     simpa only [mul_assoc] using mul_le_mul_of_nonneg_left (hbound z hz)
       (mul_nonneg (pow_nonneg (inv_nonneg.mpr hR.le) n) (inv_nonneg.mpr hR.le))
 
+/-- For `0 ≤ r < R` and `R > 0`, a norm bound `M` on the defining circle makes the coefficient
+norms weighted by `r ^ n` summable, with sum at most `M / (1 - r / R)`. -/
 theorem cauchyCoefficient_weighted_sum_le
     (f : ℂ → ℂ) (c : ℂ) (R r M : ℝ) (hR : 0 < R) (hr0 : 0 ≤ r) (hrR : r < R)
     (hbound : ∀ z ∈ sphere c R, ‖f z‖ ≤ M) :
@@ -81,6 +113,9 @@ theorem cauchyCoefficient_weighted_sum_le
       rw [tsum_mul_left, tsum_geometric_of_lt_one hq0 hq1]
       exact (div_eq_mul_inv M (1 - r / R)).symm
 
+/-- For `0 < g ≤ 1 / 2`, a norm bound `M` on the circle of radius `1 / 2` centered at `(1 + g) /
+2` bounds the coefficient norms weighted by `r ^ n` by `(2 / g) * M`, where `r = (1 - g) / 2
++ g / 4`. The weighted series is summable. -/
 theorem cbmd_cauchy_coefficient_budget
     (f : ℂ → ℂ) (g M : ℝ) (hg0 : 0 < g) (hg1 : g ≤ 1 / 2)
     (hbound : ∀ z ∈ sphere (((1 + g) / 2 : ℝ) : ℂ) (1 / 2), ‖f z‖ ≤ M) :

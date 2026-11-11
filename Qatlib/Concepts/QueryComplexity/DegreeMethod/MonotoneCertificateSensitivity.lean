@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+
+/-!
+# Certificates and block sensitivity for monotone functions
+
+For a monotone Boolean function, a certificate at a true input can be reduced to coordinates
+whose input values are true. The finite-set indicator lemmas support the proof that
+`oneCertificateComplexity` is bounded by `blockSensitivity`.
+
+The mathematical background is developed in [BealsEtAl2001].
+
+## Main statements
+
+* `qc_cert_filter_ones`: removes false coordinates from a certificate at a true input.
+* `monotone_oneCertificate_le_blockSensitivity`: bounds one-certificate complexity by block
+  sensitivity.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
@@ -18,13 +39,17 @@ open Qatlib
 open Qatlib
 open scoped Classical
 
+/-- The Boolean characteristic function of a finite set of input coordinates. -/
 private def qcIndicate {N : ℕ} (S : Finset (Fin N)) : Fin N → Bool :=
   fun i => decide (i ∈ S)
 
+/-- The indicator of `S` is true at `i` exactly when `i` belongs to `S`. -/
 private theorem qcIndicate_eq_true {N : ℕ} {S : Finset (Fin N)} {i : Fin N} :
     qcIndicate S i = true ↔ i ∈ S := by
   simp [qcIndicate]
 
+/-- Flipping a singleton coordinate present in a finite-set indicator gives the indicator of the
+set with that coordinate erased. -/
 private theorem qcIndicate_erase {N : ℕ} (S : Finset (Fin N)) {i : Fin N} (hi : i ∈ S) :
     flipBlock (qcIndicate S) {i} = qcIndicate (S.erase i) := by
   funext j
@@ -37,6 +62,8 @@ private theorem qcIndicate_erase {N : ℕ} (S : Finset (Fin N)) {i : Fin N} (hi 
     · have hjE : j ∉ S.erase i := fun h => hjS (Finset.mem_of_mem_erase h)
       simp [flipBlock, qcIndicate, hj, hjS, hjE]
 
+/-- For a monotone Boolean function at a true input, retaining only the true coordinates of a
+certificate still gives a certificate. -/
 private theorem qc_cert_filter_ones {N : ℕ} {f : (Fin N → Bool) → Bool}
     (hmono : ∀ x y : Fin N → Bool, (∀ i : Fin N, x i = true → y i = true) →
         f x = true → f y = true)
@@ -66,6 +93,8 @@ private theorem qc_cert_filter_ones {N : ℕ} {f : (Fin N → Bool) → Bool}
   have hfy := hmono z y hzle hzf
   rw [hfy, hx]
 
+/-- The one-certificate complexity of a monotone Boolean function is at most its block
+sensitivity. -/
 theorem monotone_oneCertificate_le_blockSensitivity {N : ℕ} {f : (Fin N → Bool) → Bool}
     (hmono : ∀ x y : Fin N → Bool, (∀ i : Fin N, x i = true → y i = true) →
         f x = true → f y = true) :

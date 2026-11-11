@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CurveletLiu08.MainResults.RadialVariance
+
+/-!
+# Shell variance estimates
+
+This module controls the shell cutoff parameter and normalizes assumed perpendicular and
+parallel variance estimates. The theorem `source_theorem4` uses a positive cutoff probability to
+pass from restricted integrals to conditional means.
+
+These constructions accompany the results of [Liu2009].
+
+## Main statements
+
+* `etaC_pos`: proves positivity of the shell cutoff under positive scale parameters.
+* `etaC_le_eps`: bounds the shell cutoff using the radius comparison.
+* `source_theorem4`: derives conditional shell variance bounds from integral bounds.
+
+## References
+
+* [Liu, 2009][Liu2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +37,8 @@ open scoped InnerProductSpace RealInnerProductSpace
 
 namespace Qatlib.Papers.CurveletLiu08.MainResults
 
+/-- The shell cutoff `(δ / βtilde) * (n - 2) / exp 1` is positive when `δ = ε * β`, the scale
+parameters are positive, and `n ≥ 4`. See [Liu2009]. -/
 theorem etaC_pos (n : ℕ) (hn : 4 ≤ n) (β βtilde δ ε ηc : ℝ)
     (hε : 0 < ε) (hβ : 0 < β) (hβt : 0 < βtilde) (hδ : δ = ε * β)
     (hηc : ηc = (δ / βtilde) * ((n : ℝ) - 2) / Real.exp 1) :
@@ -27,6 +50,8 @@ theorem etaC_pos (n : ℕ) (hn : 4 ≤ n) (β βtilde δ ε ηc : ℝ)
   have hδpos : 0 < ε * β := mul_pos hε hβ
   positivity
 
+/-- If `β ≤ βtilde` and `δ = ε * β`, the shell cutoff is at most `ε * ((n - 2) / exp 1)` under
+the given nonnegativity assumptions. See [Liu2009]. -/
 theorem etaC_le_eps (n : ℕ) (hn : 4 ≤ n) (β βtilde δ ε ηc : ℝ)
     (hε : 0 ≤ ε) (hβt : 0 < βtilde) (hδ : δ = ε * β) (hβle : β ≤ βtilde)
     (hηc : ηc = (δ / βtilde) * ((n : ℝ) - 2) / Real.exp 1) :
@@ -43,6 +68,9 @@ theorem etaC_le_eps (n : ℕ) (hn : 4 ≤ n) (β βtilde δ ε ηc : ℝ)
     _ ≤ ε * 1 * (((n : ℝ) - 2) / Real.exp 1) := by gcongr
     _ = ε * (((n : ℝ) - 2) / Real.exp 1) := by ring
 
+/-- The assumed shell integral estimates yield the displayed conditional perpendicular and
+parallel variance bounds when the cutoff probability is positive. This is the normalization
+step for Theorem 4 of [Liu2009]. -/
 theorem source_theorem4
     (n : ℕ) (_hn : 4 ≤ n) (β βtilde δ ε ηc S : ℝ)
     (_hβ : 0 < β) (_hβt : 0 < βtilde) (_hδ : δ = ε * β) (hS : 1 ≤ S)

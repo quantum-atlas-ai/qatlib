@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.Amplification.Theorem413MajorityVoteAmpStat
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Majority vote amplification theorem
+
+This module proves `theorem4_13MajorityVoteAmplification` by executing an odd number of tensor
+copies and applying the majority failure estimate. The result applies to unitary circuits with
+zero queries, tracks the exact gate count, and realizes the finite circuit amplification
+statement associated with Theorem 4.13 of [BennettEtAl1997].
+
+## Main statements
+
+* `theorem4_13MajorityVoteAmplification`: amplify success from at least 2/3 to at least 1 − ε by
+  majority voting.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -17,11 +36,14 @@ open Matrix
 
 open scoped Classical
 
+/-- The identity matrix is unitary. -/
 private theorem one_mem_unitaryGroup' {I : Type} [Fintype I] [DecidableEq I] :
     (1 : Matrix I I ℂ) ∈ Matrix.unitaryGroup I ℂ := by
   refine Matrix.mem_unitaryGroup_iff'.mpr ?_
   simp
 
+/-- For a normalized state, the probability of a complementary event is one minus the
+probability of the event. -/
 private theorem measureProb_compl {I : Type} [Fintype I] [DecidableEq I] {ψ : QState I}
     (hψ : Normalized ψ) (S : Finset I) :
     MeasureProb ψ Sᶜ = 1 - MeasureProb ψ S := by
@@ -30,6 +52,10 @@ private theorem measureProb_compl {I : Type} [Fintype I] [DecidableEq I] {ψ : Q
   rw [measureProb_univ hψ] at hsum
   linarith
 
+/-- Any unitary circuit with zero queries and success probability at least 2/3 has an odd
+repetition circuit with majority success at least 1 − ε for every ε > 0 and gate count equal
+to the copy count times the original count. This is the finite circuit amplification
+statement associated with [Bennett et al., Theorem 4.13][BennettEtAl1997]. -/
 theorem theorem4_13MajorityVoteAmplification : Theorem4_13MajorityVoteAmplification := by
   intro I _ _ C x₀ v b ε hC hC0 hb hε
   obtain ⟨r, hr⟩ := exists_pow_lt_of_lt_one hε (by norm_num : (8 / 9 : ℝ) < 1)

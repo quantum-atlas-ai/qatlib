@@ -11,6 +11,32 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Adaptive relative quantum counting
+
+This module defines relative-counting readouts and their probability and cost guarantees,
+following the counting analysis of [BrassardHoyerTapp1998Counting]. The final grid
+`countRelFinalGrid` depends on the observed stopping scale, and `countRelOutput` rounds a
+Fourier-prepared amplitude estimate to an integer.
+
+The zero-prefix estimates control the selected scale, while `countRel_joint_success` combines
+prefix and final-stage probabilities. Expected cost bounds average over all prefix records for a
+nonempty marked set.
+
+## Main statements
+
+* `countRelFinalGood_of_precision`: conditional success probability at least `31/32`.
+* `countRel_zero_branch`: deterministic output zero for an empty marked set.
+* `countRel_joint_success`: overall relative-counting success probability at least `3/4`.
+* `countRel_expected_cost`: explicit upper and lower expected cost bounds.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,13 +60,18 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 namespace CountRelNext
 
+/-- The counting error radius `2πk√(t(N-t))/M + π²k²N/M²` for grid size `M` and window parameter
+`k`. -/
 noncomputable def countRelWindow (M k : ℕ) (N : ℕ) (t : ℝ) : ℝ :=
   2 * Real.pi * (k : ℝ) * Real.sqrt (t * ((N : ℝ) - t)) / (M : ℝ) +
     Real.pi ^ 2 * (k : ℝ) ^ 2 * (N : ℝ) / (M : ℝ) ^ 2
 
+/-- The final relative-counting grid size `⌈340π²c·2^s⌉` at stopping scale `s`. -/
 noncomputable def countRelFinalGrid (c : ℝ) (s : ℕ) : ℕ :=
   Nat.ceil (340 * Real.pi ^ 2 * c * (2 ^ s : ℝ))
 
+/-- The Fourier-prepared amplitude-estimation distribution at the final grid determined by the
+prefix record `ω`. -/
 noncomputable def countRelFinalLaw {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (c : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hω : 2 ≤ countRelFinalGrid c (basicApproxCountStop N ω)) :
@@ -48,22 +79,28 @@ noncomputable def countRelFinalLaw {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (
   aeLaw (countRelFinalGrid c (basicApproxCountStop N ω)) (QFTMatrix N) ⟨0, hN⟩ S
     (qftMatrix_unitary hN) hω
 
+/-- The integer count obtained by applying `⌊x + 1/2⌋` to the final amplitude estimate scaled by
+`N`. -/
 noncomputable def countRelOutput {N : ℕ} (c : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (countRelFinalGrid c (basicApproxCountStop N ω))) : ℤ :=
   ⌊(N : ℝ) * aeEstimate (countRelFinalGrid c (basicApproxCountStop N ω)) y + 1 / 2⌋
 
+/-- The event that the rounded final count has absolute error strictly less than `S.card / c`. -/
 noncomputable def countRelGood {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (c : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (countRelFinalGrid c (basicApproxCountStop N ω))) : Prop :=
   |((countRelOutput c ω y : ℤ) : ℝ) - (S.card : ℝ)| < (S.card : ℝ) / c
 
+/-- The probability, under `countRelFinalLaw`, that the final rounded count satisfies
+`countRelGood`. -/
 noncomputable def countRelFinalGood {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (c : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hω : 2 ≤ countRelFinalGrid c (basicApproxCountStop N ω)) : ℝ :=
   ∑ y ∈ Finset.univ.filter (countRelGood hN S c ω),
     (countRelFinalLaw hN S c ω hω).prob y
 
+/-- The final relative-counting grid has at least two points whenever `c ≥ 1`. -/
 theorem countRel_grid_two {c : ℝ} (hc : 1 ≤ c) (s : ℕ) : 2 ≤ countRelFinalGrid c s := by
   have hpi2 : (9 : ℝ) < Real.pi ^ 2 := by nlinarith [Real.pi_gt_three, Real.pi_pos]
   have hD : (1 : ℝ) < 340 * Real.pi ^ 2 := by nlinarith
@@ -82,6 +119,8 @@ theorem countRel_grid_two {c : ℝ} (hc : 1 ≤ c) (s : ℕ) : 2 ≤ countRelFin
       (a := 340 * Real.pi ^ 2 * c * (2 ^ s : ℝ))).2 (by simpa using! hval)
   omega
 
+/-- The stated lower bounds on the grid and stopping scale make the `k = 17` counting window at
+most `17 * (t / c) / 64` for `0 < t ≤ N` and `c ≥ 1`. -/
 theorem countRel_window_le {N : ℕ} {c t : ℝ} {s : ℕ} {M : ℕ}
     (hN : 0 < N) (ht0 : 0 < t) (htN : t ≤ (N : ℝ)) (hc : 1 ≤ c)
     (hM : 340 * Real.pi ^ 2 * c * (2 ^ s : ℝ) ≤ (M : ℝ))
@@ -197,6 +236,8 @@ theorem countRel_window_le {N : ℕ} {c t : ℝ} {s : ℕ} {M : ℕ}
     linarith
   linarith
 
+/-- Rounding a real value within `17 * (m / c) / 64` of a positive integer `m` gives error
+strictly less than `m / c` when `c ≥ 1`. -/
 theorem countRel_round_lt {m : ℕ} {c x : ℝ} (hm : 0 < m) (hc : 1 ≤ c)
     (hx : |x - (m : ℝ)| ≤ 17 * ((m : ℝ) / c) / 64) :
     |((⌊x + 1 / 2⌋ : ℤ) : ℝ) - (m : ℝ)| < (m : ℝ) / c := by
@@ -235,6 +276,8 @@ theorem countRel_round_lt {m : ℕ} {c x : ℝ} (hm : 0 < m) (hc : 1 ≤ c)
       abs_sub_le _ _ _
     linarith
 
+/-- The stated lower bound on the observed stopping scale makes the final `k = 17` counting
+window at most `17 * (S.card / c) / 64`. -/
 theorem countRel_window_at_grid {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 < S.card)
     (c : ℝ) (hc : 1 ≤ c)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
@@ -251,6 +294,8 @@ theorem countRel_window_at_grid {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS 
     exact Nat.le_ceil _
   exact countRel_window_le hN hcard htN hc hM hscale
 
+/-- For a nonempty marked set and `c ≥ 1`, the stated final-window bound gives relative-counting
+success probability at least `31/32`. -/
 theorem countRelFinalGood_of_precision {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 < S.card)
     (c : ℝ) (hc : 1 ≤ c)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
@@ -304,6 +349,8 @@ theorem countRelFinalGood_of_precision {N : ℕ} (hN : 0 < N) (S : Finset (Fin N
   have hconst : (31 / 32 : ℝ) = 1 - 1 / (2 * ((17 : ℝ) - 1)) := by norm_num
   exact hconst.le.trans (hk'.trans hmass)
 
+/-- When the marked set is empty and `c ≥ 1`, the final law assigns probability one to label
+zero, whose rounded output is zero. -/
 theorem countRel_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : S.card = 0)
     (c : ℝ) (hc : 1 ≤ c)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
@@ -325,15 +372,20 @@ theorem countRel_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : S
   rw [countRelOutput]
   norm_num [aeEstimate]
 
+/-- The predicate that all prefix observations with index less than `n` are zero. -/
 noncomputable def countRelPrefixZero (N : ℕ) (n : ℕ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) : Prop :=
   ∀ l : Fin (basicApproxCountLoopCap N), l.val < n → basicApproxCountObserved N ω l = 0
 
+/-- A zero prefix of length `n` forces the stopping index to be at least `n + 1`, provided that
+stage is within the loop cap [BrassardHoyerTapp1998Counting]. -/
 theorem countRelStop_of_prefix {N n : ℕ} (hn : n + 1 ≤ basicApproxCountLoopCap N)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (hz : countRelPrefixZero N n ω) : n + 1 ≤ basicApproxCountStop N ω :=
   basicApproxCountStop_of_prefix hn ω hz
 
+/-- If `2^n * θ ≤ 1/5` and the stated angle and loop-cap hypotheses hold, zero prefixes of
+length `n` have total weight at least `7/8` [BrassardHoyerTapp1998Counting]. -/
 theorem countRel_prefix_zero_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (ha : (S.card : ℝ) / N = Real.sin θ ^ 2)
@@ -344,6 +396,8 @@ theorem countRel_prefix_zero_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   have h := basicApproxCount_prefix_zero_lower hN S θ hθ0 hθ1 ha n hn hsmall
   exact h
 
+/-- A zero prefix followed by the stated dyadic angle crossing forces the stopping scale to be
+at least `(2 / (5π)) * √(N / S.card)` [BrassardHoyerTapp1998Counting]. -/
 theorem countRel_exit_scale {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 < S.card)
     (θ : ℝ) (hθ0 : 0 < θ)
     (hangle : θ * Real.sqrt (N : ℝ) ≤ Real.pi / 2 * Real.sqrt (S.card : ℝ))
@@ -395,6 +449,9 @@ theorem countRel_exit_scale {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 
   rw [hsqrtdiv, mul_div_assoc']
   exact (div_le_iff₀ hsqrtt).2 h3
 
+/-- For a nonempty marked set and `c ≥ 1`, averaging final relative-counting success over prefix
+records gives probability at least `3/4` [Brassard et al., Corollary
+3][BrassardHoyerTapp1998Counting]. -/
 theorem countRel_joint_success {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 < S.card)
     (c : ℝ) (hc : 1 ≤ c) :
     (3 / 4 : ℝ) ≤ ∑ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
@@ -437,6 +494,8 @@ theorem countRel_joint_success {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS :
   have hconst : (3 / 4 : ℝ) ≤ 7 / 8 * (31 / 32) := by norm_num
   exact hconst.trans (hmass'.trans hsum)
 
+/-- For positive `c`, the relative-counting final grid equals `basicApproxCountFinalM` with
+accuracy parameter `1 / (17 * c)`. -/
 theorem countRelFinalGrid_eq (c : ℝ) (hc : 0 < c) (s : ℕ) :
     countRelFinalGrid c s = basicApproxCountFinalM (1 / (17 * c)) s := by
   unfold countRelFinalGrid basicApproxCountFinalM
@@ -444,10 +503,14 @@ theorem countRelFinalGrid_eq (c : ℝ) (hc : 0 < c) (s : ℕ) :
   field_simp
   ring
 
+/-- The basic approximate-counting total cost evaluated with accuracy parameter `1 / (17 * c)`. -/
 noncomputable def countRelTotalCost (N : ℕ) (c : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) : ℕ :=
   basicApproxCountTotalCost N (1 / (17 * c)) ω
 
+/-- For a nonempty marked set and `c ≥ 1`, the expected total cost lies between
+`(119π/2)c√(N/S.card)` and `34000c√(N/S.card)` [Brassard et al., Corollary
+3][BrassardHoyerTapp1998Counting]. -/
 theorem countRel_expected_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : 0 < S.card)
     (c : ℝ) (hc : 1 ≤ c) :
     (119 * Real.pi / 2) * c * Real.sqrt ((N : ℝ) / (S.card : ℝ))
@@ -493,6 +556,8 @@ theorem countRel_expected_cost {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS :
         have hconst : 2000 * (17 * c) = 34000 * c := by ring
         rw [hconst]
 
+/-- For a nonempty marked set and `c ≥ 1`, the expected total cost is at most `34000 * (c +
+log(log(N + 2))) * √(N/S.card)` [BrassardHoyerTapp1998Counting]. -/
 theorem countRel_expected_cost_source_form {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : 0 < S.card) (c : ℝ) (hc : 1 ≤ c) :
     (∑ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),

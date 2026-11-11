@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.Fourier
+
+/-!
+# Second moments of biased Fourier overlaps
+
+Computes the second moment of the finite biased weights and relates it to the Gram overlaps of
+`fourierUnitVec`. Column normalization separates the diagonal term, giving an off-diagonal
+squared-overlap sum bounded by `2 * eps^2` for `q > 1` and `eps ∈ [0, 1]`. See [TangWright2025].
+
+## Main statements
+
+* `actual_weight_second_moment`: the exact second-moment formula for the biased weights.
+* `actual_gram_second_moment`: the Gram-column squared norm equals the weight second moment.
+* `actual_offdiag_budget`: the off-diagonal squared-overlap bound.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +33,8 @@ open scoped BigOperators
 namespace Qatlib.Papers.AmpInvReqTang26.BiasedFourier
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 
+/-- For positive `q`, `q` times the sum of the squared biased weights equals `1 + eps^2 * (q /
+halfCount q - 1)`. -/
 theorem actual_weight_second_moment (q : ℕ) (hq : 0 < q) (eps : ℝ) :
     (q:ℝ) * ∑ g : Fin q, (muEpsWeight eps q g)^2 =
       1 + eps^2 * ((q:ℝ)/(halfCount q:ℝ)-1) := by
@@ -34,6 +55,8 @@ theorem actual_weight_second_moment (q : ℕ) (hq : 0 < q) (eps : ℝ) :
   field_simp
   ring
 
+/-- For `q > 1` and `eps ∈ [0, 1]`, the sum of squared overlaps with a fixed weighted Fourier
+column equals `q` times the sum of squared biased weights. -/
 theorem actual_gram_second_moment (q : ℕ) (hq : 1 < q) (eps : ℝ)
     (he0 : 0 ≤ eps) (he1 : eps ≤ 1) (k : Fin q) :
     ∑ j : Fin q, ‖∑ g : Fin q,
@@ -79,6 +102,7 @@ theorem actual_gram_second_moment (q : ℕ) (hq : 1 < q) (eps : ℝ)
   intro j _
   rw [← hterm j, norm_star]
 
+/-- For `q > 1` and `eps ∈ [0, 1]`, each weighted Fourier column has total squared mass one. -/
 theorem actual_column_norm (q : ℕ) (hq : 1 < q) (eps : ℝ)
     (he0 : 0 ≤ eps) (he1 : eps ≤ 1) (k : Fin q) :
     ∑ g : Fin q, ‖fourierUnitVec eps q k g‖^2 = 1 := by
@@ -90,6 +114,8 @@ theorem actual_column_norm (q : ℕ) (hq : 1 < q) (eps : ℝ)
     exact Real.sq_sqrt (hmu g)
   rw [Finset.sum_congr rfl (fun g _ => hterm g), sum_muEpsWeight q (by omega) eps he0 he1]
 
+/-- For `q > 1` and `eps ∈ [0, 1]`, the inner product of a weighted Fourier column with itself
+is one. -/
 theorem actual_column_self (q : ℕ) (hq : 1 < q) (eps : ℝ)
     (he0 : 0 ≤ eps) (he1 : eps ≤ 1) (k : Fin q) :
     (∑ g : Fin q, star (fourierUnitVec eps q k g) * fourierUnitVec eps q k g) = 1 := by
@@ -99,6 +125,8 @@ theorem actual_column_self (q : ℕ) (hq : 1 < q) (eps : ℝ)
   simp only [h, ← Complex.ofReal_sum, actual_column_norm q hq eps he0 he1 k,
     Complex.ofReal_one]
 
+/-- For `q > 1` and `eps ∈ [0, 1]`, the sum of squared overlaps of a fixed weighted Fourier
+column with all other columns is at most `2 * eps^2`. -/
 theorem actual_offdiag_budget (q : ℕ) (hq : 1 < q) (eps : ℝ)
     (he0 : 0 ≤ eps) (he1 : eps ≤ 1) (k : Fin q) :
     ∑ j : Fin q, (if j ≠ k then ‖∑ g : Fin q,

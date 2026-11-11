@@ -6,12 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.ReversibleOperationDefs
 
+/-!
+# Clean reversible implementation of a bijection
+
+`lemma2_representable` combines XOR-evaluation sequences for a bijection and its inverse with
+two register-copy operations. Under the specified basis and cost assumptions, it implements the
+bijection in the first register and returns the second register to zero. The development follows
+[Kitaev1995].
+
+## Main statements
+
+* `lemma2_representable`: constructs a basis sequence with cost `2 * L + 2 * L' + 4 * n`.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel
 
 open Qatlib.Foundations.PureStateMath
 
+/-- Given the specified XOR-evaluation sequences for `G` and its inverse and the two copy
+operations, there is a basis sequence of cost `2 * L + 2 * L' + 4 * n` sending `(x, 0)` to
+`(G x, 0)`. This is the reversible bijection construction of [Kitaev, 1995, Lemma
+2][Kitaev1995]. -/
 theorem lemma2_representable
     {n : ℕ} (G : Reg n ≃ Reg n) (L L' : ℕ)
     (B : RevBasis (Reg n × Reg n))

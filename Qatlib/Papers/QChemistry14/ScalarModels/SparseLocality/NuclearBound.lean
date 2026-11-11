@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+/-!
+# Nuclear-attraction size scaling
+
+This module factors the scalar uniform-ball nuclear-entry bound into a prefactor and `N^(2/3)`.
+It also transports a bound in nuclear count to the same real-power scaling in a proportionally
+related basis size. See [McCleanEtAl2014].
+
+## Main statements
+
+* `nuclear_attraction_scaling`: For nonnegative charge and nuclear count and positive density,
+  the scalar nuclear-entry bound equals `betaAB ρ S Z * N^(2/3)`.
+* `max_oei_scaling`: If `M = c * N` with `c > 0` and `N ≥ 0`, a bound `hmax ≤ β * N^(2/3)`
+  implies `hmax ≤ (β * c^(-2/3)) * M^(2/3)` under the stated sign assumptions.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,8 @@ namespace Qatlib.Papers.QChemistry14.ScalarModels.SparseLocality
 
 open Qatlib.Papers.QChemistry14.ScalarModels.Definitions
 
+/-- For nonnegative charge and nuclear count and positive density, the scalar nuclear-entry
+bound equals `betaAB ρ S Z * N^(2/3)`. -/
 theorem nuclear_attraction_scaling (Z N ρ S : ℝ)
     (hZ : 0 ≤ Z) (hN : 0 ≤ N) (hρ : 0 < ρ) (_hS : 0 ≤ S) :
     nuclearEntryBound ρ S Z N = betaAB ρ S Z * N ^ (2 / 3 : ℝ) := by
@@ -28,6 +50,8 @@ theorem nuclear_attraction_scaling (Z N ρ S : ℝ)
   rw [Real.mul_rpow hA hN]
   ring
 
+/-- If `M = c * N` with `c > 0` and `N ≥ 0`, a bound `hmax ≤ β * N^(2/3)` implies `hmax ≤ (β *
+c^(-2/3)) * M^(2/3)` under the stated sign assumptions. See [McCleanEtAl2014]. -/
 theorem max_oei_scaling (hmax β M c N : ℝ)
     (hc : 0 < c) (hN : 0 ≤ N) (_hβ : 0 ≤ β) (hM : M = c * N)
     (hbound : hmax ≤ β * N ^ (2 / 3 : ℝ)) :

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ConversionCore.GarbageBound.NoncoherentLowerBoundStat
 import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+/-!
+# Query lower bounds with garbage states
+
+`stateConversionNoncoherentLowerBound` constructs certificates for noncoherent conversion, where
+target Gram matrices may be multiplied entrywise by a positive semidefinite matrix with diagonal
+one. Phase alignment converts an absolute overlap guarantee into the certificate bounds `2 *
+Real.sqrt (2 * ε)` and `2 * T`.
+
+The mathematical context is discussed in [LeeEtAl2011].
+
+## Main statements
+
+* `stateConversionNoncoherentLowerBound`: The intermediate Gram matrix and adjusted garbage
+  matrix certificates.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +44,10 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 
 namespace Qatlib.Concepts.ConversionCore.GarbageBound
 
+/-- A unitary `T`-query circuit with absolute overlaps at least √(1 − ε) with the specified
+garbage target family yields positive semidefinite matrices `σ'` and `S'`, with diagonal one
+for `S'`, and unfiltered and query-filtered certificate budgets 2√(2ε) and 2T for 0 < ε ≤ 1
+[Lee et al., Theorem 4.9][LeeEtAl2011]. -/
 theorem stateConversionNoncoherentLowerBound : StateConversionNoncoherentLowerBound := by
   classical
   intro X _ _ n T R input ε hε hε1 ρ σ hρ hσ χ hχ S hS hSdiag hgram C hT hC hov

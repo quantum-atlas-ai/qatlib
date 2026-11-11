@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedStat
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedProtocol
+
+/-!
+# Success fiber of the corrected signed LCU protocol
+
+This module proves `Theorem3LCUFiberCorrected` for the signed linear-combination circuit
+associated with Theorem 3 of [ChildsWiebe2012]. The all-false ancilla fiber applies the signed
+sum of system matrices divided by the total absolute coefficient mass.
+
+The proof combines the positive and negative prefix fibers using their weight ratio and the
+independence of the final control bit from the negative prefix.
+
+## Main statements
+
+* `theorem3LCUFiberCorrected`: identifies the all-false output fiber with the normalized signed
+  sum.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +39,9 @@ namespace Qatlib.Papers.HamLCUSim12.LCUDeferred
 open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 
+/-- Under the hypotheses of `Theorem3LCUFiberCorrected`, the corrected protocol output at
+`cwZero k` is `(∑ q, c q • U q) *ᵥ ψ` divided by `∑ q, |c q|`, as required for the signed
+LCU construction of [Childs and Wiebe, Theorem 3][ChildsWiebe2012]. -/
 theorem theorem3LCUFiberCorrected : Theorem3LCUFiberCorrected := by
   intro k I _ _ _hk U _hU c hc hp hn ψ x
   have hy : IndependentLCUBit (cwControlBit k c) (-cwNegativeCircuitCorrected k c U) :=

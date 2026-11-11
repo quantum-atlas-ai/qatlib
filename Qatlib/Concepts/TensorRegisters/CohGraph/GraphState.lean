@@ -86,6 +86,24 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Normalized coherent graph states
+
+The vector `graphState f` is the equal-amplitude superposition of the tagged basis states `(i, f
+i)` over a finite nonempty input type. Its norm is one, and its inner product with another graph
+state equals the fraction of agreeing inputs. For background, see [NielsenChuang2010].
+
+## Main statements
+
+* `graph_inner_quotient`: the inner product is the agreement count divided by the input
+  cardinality.
+* `graphState_norm`: coherent graph states have unit norm.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.TensorRegisters.CohGraph
@@ -94,9 +112,13 @@ open scoped ComplexConjugate
 
 variable {I O : Type*} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 
+/-- The coherent superposition of basis vectors `(i, f i)`, each with amplitude `1 /
+√(Fintype.card I)`. -/
 noncomputable def graphState (f : I → O) : EuclideanSpace ℂ (I × O) :=
   ∑ i, EuclideanSpace.single (i,f i) ((Real.sqrt (Fintype.card I : ℝ))⁻¹ : ℂ)
 
+/-- The inner product of two graph states is their agreement count times the square of the
+inverse square root of the input cardinality. -/
 theorem graph_inner (f g : I → O) :
     inner ℂ (graphState f) (graphState g) =
       ((Finset.univ.filter (fun i => f i = g i)).card : ℂ) *
@@ -110,6 +132,8 @@ theorem graph_inner (f g : I → O) :
   rw [← Finset.sum_filter]
   simp only [Finset.sum_const, nsmul_eq_mul, pow_two]
 
+/-- The inner product of two graph states equals the fraction of inputs on which their functions
+agree. -/
 theorem graph_inner_quotient (f g : I → O) :
     inner ℂ (graphState f) (graphState g) =
       ((Finset.univ.filter (fun i => f i = g i)).card : ℂ) / (Fintype.card I : ℂ) := by
@@ -120,6 +144,7 @@ theorem graph_inner_quotient (f g : I → O) :
 
 variable [Nonempty I]
 
+/-- The coherent graph state of a function on a finite nonempty input type has norm one. -/
 theorem graphState_norm (f : I → O) : ‖graphState f‖ = 1 := by
   have h := graph_inner_quotient f f
   simp only [Finset.filter_true, Finset.card_univ] at h

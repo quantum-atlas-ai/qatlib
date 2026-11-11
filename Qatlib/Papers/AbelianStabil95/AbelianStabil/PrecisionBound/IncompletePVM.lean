@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.PrecisionBound.Lemmas3To5
+
+/-!
+# Completing an incomplete projective measurement
+
+`completedEffect` adds a complementary outcome to a finite family of projections, and
+`completedPOVM` packages the completed family as a finite POVM. The complement identities
+support `lemma4_incomplete_orthogonal`, which bounds the total probability difference on the
+original outcomes by the trace norm of the difference of density operators. The development
+follows [Kitaev1995].
+
+## Main statements
+
+* `completedPOVM`: constructs a POVM including the complementary outcome.
+* `lemma4_incomplete_orthogonal`: bounds the original-outcome probability differences by trace
+  norm.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +41,13 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 variable {Ω : Type} [Fintype Ω] [DecidableEq Ω] {d : ℕ}
 
+/-- The effects indexed by `Option Ω`, using `P i` at `some i` and `1 - ∑ i, P i` at `none`. -/
 def completedEffect (P : Ω → Operator d) : Option Ω → Operator d
   | some i => P i
   | none => 1 - ∑ i, P i
 
+/-- The finite POVM obtained by adding the complementary effect, assuming the original effects
+and their complement are Hermitian idempotents. -/
 def completedPOVM (P : Ω → Operator d)
     (hproj : ∀ i, P i * P i = P i)
     (hherm : ∀ i, Matrix.conjTranspose (P i) = P i)
@@ -52,6 +76,8 @@ def completedPOVM (P : Ω → Operator d)
 
 omit [DecidableEq Ω] in
 
+/-- The complement of a finite sum of pairwise orthogonal idempotents is idempotent, as used in
+[Kitaev1995]. -/
 theorem complement_mul_self (P : Ω → Operator d)
     (hproj : ∀ i, P i * P i = P i)
     (horth : ∀ i j, i ≠ j → P i * P j = 0) :
@@ -71,12 +97,17 @@ theorem complement_mul_self (P : Ω → Operator d)
 
 omit [DecidableEq Ω] in
 
+/-- The complement of a finite sum of Hermitian matrices is Hermitian, as used in [Kitaev1995]. -/
 theorem complement_conjTranspose (P : Ω → Operator d)
     (hherm : ∀ i, Matrix.conjTranspose (P i) = P i) :
     Matrix.conjTranspose (1 - ∑ i, P i) = 1 - ∑ i, P i := by
   rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_one, Matrix.conjTranspose_sum]
   simp [hherm]
 
+/-- For a finite pairwise orthogonal family of Hermitian projections, the sum of absolute
+probability differences on the original outcomes is at most the trace norm of the
+density-operator difference. This is the incomplete-measurement form of [Kitaev, 1995, Lemma
+4][Kitaev1995]. -/
 theorem lemma4_incomplete_orthogonal
     (P : Ω → Operator d)
     (hproj : ∀ i, P i * P i = P i)

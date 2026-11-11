@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+
+/-!
+# Disentangling a qubit with rotation multiplexors
+
+`twoGate_block` moves an arbitrary pair of amplitudes into a single computational basis
+coordinate. Applying this construction blockwise yields `theorem9_disentangle` and
+`theorem9_disentangle_one`, which disentangle the Boolean register into either basis value. See
+[ShendeBullockMarkov2006] for the paper's setting.
+
+## Main statements
+
+* `blockDiagonal_mulVec`: The action of a block diagonal qubit family on a state is the
+  corresponding qubit action in each fixed label sector.
+* `theorem9_disentangle_one`: Any state on a Boolean register and a finite label register can be
+  transformed by Z- then Y-rotation multiplexors into a state supported only on the true Boolean
+  sector.
+
+## References
+
+* [Shende et al., 2006][ShendeBullockMarkov2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +40,8 @@ noncomputable section
 
 namespace Qatlib.Papers.QLogicSynth04.MainResults
 
+/-- The action of a block diagonal qubit family on a state is the corresponding qubit action in
+each fixed label sector. -/
 theorem blockDiagonal_mulVec {N : Type*} [Fintype N] [DecidableEq N]
     (M : N → Matrix Bool Bool ℂ) (ψ : Bool × N → ℂ) :
     Matrix.blockDiagonal M *ᵥ ψ =
@@ -30,6 +54,8 @@ theorem blockDiagonal_mulVec {N : Type*} [Fintype N] [DecidableEq N]
   · intro b _ hne; simp [Ne.symm hne]
   · intro h; exact absurd (Finset.mem_univ c) h
 
+/-- For arbitrary amplitudes `a, b`, a Z rotation followed by a Y rotation maps the vector to
+one supported only at `false`. -/
 lemma twoGate_block (a b : ℂ) :
     ∃ (φ θ : ℝ) (r : ℂ),
       (paperRy θ * paperRz φ) *ᵥ (fun i : Bool => if i then b else a) =
@@ -101,6 +127,9 @@ lemma twoGate_block (a b : ℂ) :
     · simp [Pi.smul_apply, Complex.real_smul]
     · simp [Pi.smul_apply]
 
+/-- Any state on a Boolean register and a finite label register can be transformed by Z- then
+Y-rotation multiplexors into a state supported only on the false Boolean sector. See
+[ShendeBullockMarkov2006]. -/
 theorem theorem9_disentangle {N : Type*} [Fintype N] [DecidableEq N] (ψ : Bool × N → ℂ) :
     ∃ (φ θ : N → ℝ) (r : N → ℂ),
       (Matrix.blockDiagonal (fun c => paperRy (θ c)) *
@@ -114,6 +143,9 @@ theorem theorem9_disentangle {N : Type*} [Fintype N] [DecidableEq N] (ψ : Bool 
   rw [← Matrix.blockDiagonal_mul, blockDiagonal_mulVec]
   exact congrArg (fun v => v d) (hr c)
 
+/-- Any state on a Boolean register and a finite label register can be transformed by Z- then
+Y-rotation multiplexors into a state supported only on the true Boolean sector. See
+[ShendeBullockMarkov2006]. -/
 theorem theorem9_disentangle_one {N : Type*} [Fintype N] [DecidableEq N]
     (ψ : Bool × N → ℂ) :
     ∃ (φ θ : N → ℝ) (r : N → ℂ),

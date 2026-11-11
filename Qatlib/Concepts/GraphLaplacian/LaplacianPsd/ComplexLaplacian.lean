@@ -9,6 +9,24 @@ import Mathlib.Analysis.Matrix.Hermitian
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic
 
+/-!
+# Positive semidefiniteness of the complex graph Laplacian
+
+This module compares the complex and real combinatorial Laplacians. Splitting a complex vector
+into real and imaginary parts expresses the real part of its Laplacian energy as a sum of real
+energies and proves `complex_laplacian_posSemidef`. The matrix positivity background is given in
+[Bhatia1997].
+
+## Main statements
+
+* `complex_laplacian_energy_re`: the real and imaginary energy decomposition.
+* `complex_laplacian_posSemidef`: positivity of the complex Laplacian.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,12 +38,16 @@ namespace Qatlib.Concepts.GraphLaplacian.LaplacianPsd
 variable {V : Type} [Fintype V] [DecidableEq V]
 variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
+/-- Every entry of the complex graph Laplacian is the complex coercion of the corresponding real
+Laplacian entry. -/
 theorem complex_laplacian_entry (i j : V) :
     G.lapMatrix ℂ i j = ((G.lapMatrix ℝ i j : ℝ) : ℂ) := by
   simp only [SimpleGraph.lapMatrix, Matrix.sub_apply, SimpleGraph.degMatrix,
     Matrix.diagonal_apply, SimpleGraph.adjMatrix_apply]
   split_ifs <;> simp
 
+/-- The real part of the complex Laplacian quadratic form is the sum of the real Laplacian
+quadratic forms of the real and imaginary parts. -/
 theorem complex_laplacian_energy_re (z : V → ℂ) :
     (star z ⬝ᵥ (G.lapMatrix ℂ *ᵥ z)).re =
       (fun i => (z i).re) ⬝ᵥ (G.lapMatrix ℝ *ᵥ (fun i => (z i).re)) +
@@ -40,6 +62,7 @@ theorem complex_laplacian_energy_re (z : V → ℂ) :
   intro i _
   simp [Pi.star_apply, complex_laplacian_entry, hre, him, Complex.mul_re, Complex.mul_im]
 
+/-- The combinatorial Laplacian over the complex numbers is positive semidefinite. -/
 theorem complex_laplacian_posSemidef : (G.lapMatrix ℂ).PosSemidef := by
   apply Matrix.PosSemidef.of_dotProduct_mulVec_nonneg (G.isHermitian_lapMatrix ℂ)
   intro z

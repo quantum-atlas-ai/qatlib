@@ -10,6 +10,28 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.Data.Complex.Basic
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Data.Finsupp.Basic
+
+/-!
+# Path sums and hypergeometric propagators
+
+This module defines the odd and even path amplitudes and their finite binomially weighted sums.
+For nonzero cosine and the stated positive light-cone coordinates, it rewrites these sums as
+terminating Gauss hypergeometric expressions. See [Meyer1996a].
+
+## Main statements
+
+* `pathSumOdd_eq_hypergeometric`: For `u ≥ 1` and `cos θ ≠ 0`, the odd path sum equals the
+  stated Gauss hypergeometric expression with parameters `1 - u`, `-v`, and one at argument
+  `-tan² θ`.
+* `pathSumEven_eq_hypergeometric`: For `u, v ≥ 1` and `cos θ ≠ 0`, the even path sum equals the
+  stated Gauss hypergeometric expression with parameters `1 - u`, `1 - v`, and two at argument
+  `-tan² θ`.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +44,7 @@ open Qatlib.Concepts.QcaDynamics.PathCoeffs
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- For `c ≠ 0` and `n ≤ m`, factor `(a * b)^n * c^(m - n)` as `c^m * (a * (b / c))^n`. -/
 lemma factor_pow {a b c : ℂ} {n m : ℕ} (hc : c ≠ 0) (h : n ≤ m) :
     (a * b) ^ n * c ^ (m - n) = c ^ m * (a * (b / c)) ^ n := by
   have hbc : b ^ n = (b / c) ^ n * c ^ n := by
@@ -34,12 +57,16 @@ lemma factor_pow {a b c : ℂ} {n m : ℕ} (hc : c ≠ 0) (h : n ≤ m) :
       rw [← pow_add, Nat.add_sub_of_le h]
     _ = c ^ m * (a * (b / c)) ^ n := by rw [mul_pow]; ring
 
+/-- The path amplitude with `2 * k - 1` sine factors and the remaining cosine factors. -/
 def oddAmp (θ : ℝ) (u v k : ℕ) : ℂ :=
   (I * (Real.sin θ : ℂ)) ^ (2 * k - 1) * (Real.cos θ : ℂ) ^ (u + v - (2 * k - 1))
 
+/-- The path amplitude with `2 * k` sine factors and the remaining cosine factors. -/
 def evenAmp (θ : ℝ) (u v k : ℕ) : ℂ :=
   (I * (Real.sin θ : ℂ)) ^ (2 * k) * (Real.cos θ : ℂ) ^ (u + v - 2 * k)
 
+/-- When `cos θ ≠ 0` and `2 * k - 1 ≤ u + v`, the odd amplitude factors into `cos θ^(u + v)`
+times `(i * tan θ)^(2 * k - 1)`. -/
 theorem oddAmp_factor (θ : ℝ) (u v k : ℕ) (h : 2 * k - 1 ≤ u + v) (hc : Real.cos θ ≠ 0) :
     oddAmp θ u v k =
       (Real.cos θ : ℂ) ^ (u + v) * (I * (Real.tan θ : ℂ)) ^ (2 * k - 1) := by
@@ -52,6 +79,8 @@ theorem oddAmp_factor (θ : ℝ) (u v k : ℕ) (h : 2 * k - 1 ≤ u + v) (hc : R
   rw [factor_pow (a := I) (b := (Real.sin θ : ℂ)) (c := (Real.cos θ : ℂ)) hc' h]
   rw [htan]
 
+/-- When `cos θ ≠ 0` and `2 * k ≤ u + v`, the even amplitude factors into `cos θ^(u + v)` times
+`(i * tan θ)^(2 * k)`. -/
 theorem evenAmp_factor (θ : ℝ) (u v k : ℕ)
     (h : 2 * k ≤ u + v) (hc : Real.cos θ ≠ 0) :
     evenAmp θ u v k =
@@ -65,14 +94,20 @@ theorem evenAmp_factor (θ : ℝ) (u v k : ℕ)
   rw [factor_pow (a := I) (b := (Real.sin θ : ℂ)) (c := (Real.cos θ : ℂ)) hc' h]
   rw [htan]
 
+/-- The finite sum of odd path amplitudes weighted by the binomial multiplicity `choose (u - 1)
+k * choose v k`. -/
 def pathSumOdd (θ : ℝ) (u v : ℕ) : ℂ :=
   ∑ k ∈ Finset.range (min u (v + 1)),
     ((Nat.choose (u - 1) k : ℂ) * (Nat.choose v k : ℂ)) * oddAmp θ u v (k + 1)
 
+/-- The finite sum of even path amplitudes weighted by the binomial multiplicity `choose u (k +
+1) * choose (v - 1) k`. -/
 def pathSumEven (θ : ℝ) (u v : ℕ) : ℂ :=
   ∑ k ∈ Finset.range (min u v),
     ((Nat.choose u (k + 1) : ℂ) * (Nat.choose (v - 1) k : ℂ)) * evenAmp θ u v (k + 1)
 
+/-- For `u ≥ 1` and `cos θ ≠ 0`, the odd path sum equals the stated Gauss hypergeometric
+expression with parameters `1 - u`, `-v`, and one at argument `-tan² θ`. See [Meyer1996a]. -/
 theorem pathSumOdd_eq_hypergeometric (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u)
     (hc : Real.cos θ ≠ 0) :
     pathSumOdd θ u v =
@@ -96,6 +131,9 @@ theorem pathSumOdd_eq_hypergeometric (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u)
     show 2 * (j + 1) - 1 = 2 * j + 1 by omega, pow_succ, pow_mul, hphase]
   ring
 
+/-- For `u, v ≥ 1` and `cos θ ≠ 0`, the even path sum equals the stated Gauss hypergeometric
+expression with parameters `1 - u`, `1 - v`, and two at argument `-tan² θ`. See
+[Meyer1996a]. -/
 theorem pathSumEven_eq_hypergeometric (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u)
     (hv : 1 ≤ v) (hc : Real.cos θ ≠ 0) :
     pathSumEven θ u v =
@@ -126,6 +164,8 @@ theorem pathSumEven_eq_hypergeometric (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u)
   rw [hpath, even_binomial_sum_gauss u v hu hv, hparamu, hparamv]
   ring
 
+/-- Every complex linear map on finitely supported lattice sequences preserves superpositions of
+the form `φ + c • ψ`. -/
 theorem linearMap_superposition (E : (ℤ →₀ ℂ) →ₗ[ℂ] (ℤ →₀ ℂ)) :
     ∀ (φ ψ : ℤ →₀ ℂ) (c : ℂ), E (φ + c • ψ) = E φ + c • E ψ := by
   intro φ ψ c

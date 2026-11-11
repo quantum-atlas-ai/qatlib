@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
+
+/-!
+# Termination and expected costs of rational rejection sampling
+
+`rationalStopLaw` records the accepted label and positive stopping time of unbounded rational
+rejection sampling. Its label marginal is the normalized integer-weight distribution, and
+finite-cutoff label masses converge monotonically to it.
+
+Geometric-series identities give finite expected bit and comparison costs and identify them as
+the limits of finite-execution expectations. See [TemmeEtAl2011] for background.
+
+## Main statements
+
+* `rational_unbounded_actual_first_stop_law`: The sampler terminates with total mass one, finite
+  label masses converge monotonically to normalized weights, pending mass tends to zero, and the
+  stopping law records the first-stop masses.
+* `rational_unbounded_expected_resources_and_limits`: The expected trial, bit, and comparison
+  costs are the stated geometric ratios; bit and comparison expectations are finite, and
+  finite-cutoff expectations converge to these values.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.FairRandomBits.RationalReject
@@ -24,12 +49,17 @@ section Termination
 
 variable {N : ℕ}
 
+/-- The total mass of first acceptance at a specified label, summed over all possible preceding
+rejection counts. -/
 noncomputable def rationalTerminalMass (w : Fin N → ℕ) (b : ℕ) (j : Fin N) : ℝ≥0∞ :=
   ∑' t : ℕ, rationalFirstStop w b t j
 
+/-- The joint mass of an accepted label and a positive trial count, with zero mass at trial
+count zero. -/
 noncomputable def rationalStopMass (w : Fin N → ℕ) (b : ℕ) (z : Fin N × ℕ) : ℝ≥0∞ :=
   if z.2 = 0 then 0 else rationalFirstStop w b (z.2 - 1) z.1
 
+/-- The one-trial rational rejection mass is at most one. -/
 private theorem rational_reject_le_one (w : Fin N → ℕ) (b : ℕ) :
     rationalRejectMass w b ≤ 1 := by
   have hmul : rationalRejectMass w b * ((2 ^ b : ℕ) : ℝ≥0∞)
@@ -46,6 +76,8 @@ private theorem rational_reject_le_one (w : Fin N → ℕ) (b : ℕ) :
         rw [div_eq_mul_inv, ENNReal.mul_inv_cancel
           (by exact ne_of_gt (by exact_mod_cast Nat.two_pow_pos b)) (by simp)]
 
+/-- When the ticket range covers the total weight, the success mass is the total weight divided
+by `2 ^ b`. -/
 private theorem rational_one_sub_reject (w : Fin N → ℕ) (b : ℕ)
     (hb : weightTotal w ≤ 2 ^ b) :
     1 - rationalRejectMass w b =
@@ -64,6 +96,8 @@ private theorem rational_one_sub_reject (w : Fin N → ℕ) (b : ℕ)
     ne_of_lt (lt_of_le_of_lt (rational_reject_le_one w b) (by simp))
   exact (ENNReal.eq_sub_of_add_eq hqtop hadd).symm
 
+/-- Positive total weight and a covering ticket range make the one-trial rejection mass strictly
+less than one. -/
 private theorem rational_reject_lt_one (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     rationalRejectMass w b < 1 := by
@@ -72,6 +106,8 @@ private theorem rational_reject_lt_one (w : Fin N → ℕ) (b : ℕ)
   have hDtop : ((2 ^ b : ℕ) : ℝ≥0∞) ≠ ⊤ := by simp
   exact ENNReal.mul_pos hWne (ENNReal.inv_ne_zero.mpr hDtop)
 
+/-- The mass of first acceptance at label `j` after `t` rejections is the geometric rejection
+factor times `w j / 2 ^ b`. -/
 private theorem rational_first_stop_formula (w : Fin N → ℕ) (b t : ℕ) (j : Fin N)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     rationalFirstStop w b t j = (rationalRejectMass w b) ^ t *
@@ -84,6 +120,7 @@ private theorem rational_first_stop_formula (w : Fin N → ℕ) (b t : ℕ) (j :
           ((w j : ℝ≥0∞) / ((2 ^ b : ℕ) : ℝ≥0∞)) := by
             exact mul_div_assoc _ _ _
 
+/-- The total terminal mass of label `j` is its weight divided by the total weight. -/
 private theorem rational_terminal_mass_eq_ratio (w : Fin N → ℕ) (b : ℕ) (j : Fin N)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     rationalTerminalMass w b j = (w j : ℝ≥0∞) / (weightTotal w : ℝ≥0∞) := by
@@ -108,6 +145,7 @@ private theorem rational_terminal_mass_eq_ratio (w : Fin N → ℕ) (b : ℕ) (j
           ENNReal.inv_ne_top.mpr hD0
         exact ENNReal.mul_div_mul_right _ _ hDinv0 hDinvtop
 
+/-- For positive total weight and a covering ticket range, the terminal label masses sum to one. -/
 private theorem rational_stop_masses_sum_one (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     (∑ j : Fin N, rationalTerminalMass w b j) = 1 := by
@@ -120,6 +158,8 @@ private theorem rational_stop_masses_sum_one (w : Fin N → ℕ) (b : ℕ)
           rw [← Nat.cast_sum, weightTotal]
     _ = 1 := ENNReal.mul_inv_cancel (by positivity) (by simp)
 
+/-- The probability distribution of the accepted label and the positive number of trials until
+acceptance. -/
 noncomputable def rationalStopLaw (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) : PMF (Fin N × ℕ) := by
   let mass : Fin N × ℕ → ℝ≥0∞ := rationalStopMass w b
@@ -135,10 +175,14 @@ noncomputable def rationalStopLaw (w : Fin N → ℕ) (b : ℕ)
     simpa [hmass] using hs'
   exact ⟨mass, hs⟩
 
+/-- The stopping law assigns to each label-time pair its defining stopping mass. -/
 @[simp] theorem rationalStopLaw_apply (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) (z : Fin N × ℕ) :
     rationalStopLaw w b hW hb z = rationalStopMass w b z := rfl
 
+/-- The sampler terminates with total mass one, finite label masses converge monotonically to
+normalized weights, pending mass tends to zero, and the stopping law records the first-stop
+masses. -/
 theorem rational_unbounded_actual_first_stop_law (N : ℕ) (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     (rationalRejectMass w b < 1) ∧
@@ -229,6 +273,8 @@ theorem rational_unbounded_actual_first_stop_law (N : ℕ) (w : Fin N → ℕ) (
     intro t
     simp [rationalStopMass]
 
+/-- The geometric series weighted by `t + 1` equals the square of the inverse of `1 - q` in
+extended nonnegative reals. -/
 private theorem geometric_succ_moment (q : ℝ≥0∞) :
     (∑' t : ℕ, q^t * (t+1 : ℝ≥0∞)) = (1-q)⁻¹ * (1-q)⁻¹ := by
   calc
@@ -254,6 +300,8 @@ private theorem geometric_succ_moment (q : ℝ≥0∞) :
       rw [tsum_prod_type']
       simp only [ENNReal.tsum_mul_left, ENNReal.tsum_mul_right, ENNReal.tsum_geometric]
 
+/-- The geometric series weighted by `t` equals `q` times the square of the inverse of `1 - q`
+in extended nonnegative reals. -/
 private theorem geometric_nat_moment (q : ℝ≥0∞) :
     (∑' t : ℕ, q^t * (t : ℝ≥0∞)) = q * ((1-q)⁻¹ * (1-q)⁻¹) := by
   rw [tsum_eq_zero_add' ENNReal.summable]
@@ -261,6 +309,8 @@ private theorem geometric_nat_moment (q : ℝ≥0∞) :
   simp_rw [mul_assoc]
   rw [ENNReal.tsum_mul_left, geometric_succ_moment]
 
+/-- Expectations under the stopping law expand as a finite label sum and a geometric sum over
+preceding rejections. -/
 theorem rationalStopLaw_expectation (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     (f : Fin N × ℕ → ℝ≥0∞) :
@@ -276,6 +326,8 @@ theorem rationalStopLaw_expectation (w : Fin N → ℕ) (b : ℕ)
     Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, if_false, Nat.add_sub_cancel,
     rational_first_stop_formula w b _ j hW hb]
 
+/-- The expected affine cost in the rejection count and terminal label is the stated one-trial
+numerator divided by the success mass. -/
 private theorem rationalStopLaw_affine (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     (a : ℝ≥0∞) (c : Fin N → ℝ≥0∞) :
@@ -317,6 +369,8 @@ private theorem rationalStopLaw_affine (w : Fin N → ℕ) (b : ℕ)
   rw [hcancel, ← add_mul]
   rfl
 
+/-- The expected trial, bit, and comparison costs are the stated geometric ratios; bit and
+comparison expectations are finite, and finite-cutoff expectations converge to these values. -/
 theorem rational_unbounded_expected_resources_and_limits (N : ℕ) (w : Fin N → ℕ)
     (b : ℕ) (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b) :
     let q := rationalRejectMass w b

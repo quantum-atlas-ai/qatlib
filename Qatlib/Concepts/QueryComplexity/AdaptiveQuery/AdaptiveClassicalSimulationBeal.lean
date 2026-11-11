@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationStat
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundBeal
 import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityDominanceCorollaryBeal
+
+/-!
+# Classical simulation of adaptive quantum queries
+
+This module proves `AdaptiveClassicalSimulation` from the adaptive block sensitivity query bound
+and deterministic decision tree bounds. A well formed observed circuit of query depth `T`
+computing a total Boolean function with error at most one third yields an exact deterministic
+query tree of cost at most `4096T⁶`.
+
+The result implements the polynomial relation between deterministic and bounded error quantum
+query complexity developed in [BealsEtAl2001].
+
+## Main statements
+
+* `adaptiveClassicalSimulation_of_queryBound`: derives classical simulation from adaptive block
+  sensitivity bounds.
+* `adaptiveClassicalSimulation`: gives the exact deterministic tree and complexity bound.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +41,9 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Matrix
 open scoped Classical BigOperators
 
+/-- The adaptive block sensitivity query bound implies an exact deterministic simulation with at
+most `4096T⁶` queries for any well formed observed circuit of depth `T` computing with error
+at most one third. -/
 theorem adaptiveClassicalSimulation_of_queryBound
     (hquery : AdaptiveBlockSensitivityQueryBound) : AdaptiveClassicalSimulation := by
   intro n W _ _ _ P ψ f hP hψ herr
@@ -36,6 +62,10 @@ theorem adaptiveClassicalSimulation_of_queryBound
     _ = blockSensitivity f^3 := by ring
     _ ≤ _ := hcube
 
+/-- A total Boolean function computed by a well formed observed circuit of query depth `T` with
+error at most one third has an exact deterministic query tree and deterministic query
+complexity bounded by `4096T⁶`. This follows the polynomial method of [Beals et al., Theorem
+5.4][BealsEtAl2001]. -/
 theorem adaptiveClassicalSimulation : AdaptiveClassicalSimulation :=
   adaptiveClassicalSimulation_of_queryBound adaptiveBlockSensitivityQueryBound
 

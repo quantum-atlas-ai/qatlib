@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+
+/-!
+# Two-phase amplitude formulas
+
+This module computes the real and imaginary parts of `wordAmp [a, b] x` explicitly. These
+formulas describe the two-phase case of the quantum signal processing word model that underlies
+the Hamiltonian simulation construction of [LowChuang2017].
+
+The real part is a quadratic expression in `x` with coefficients `Real.cos (a + b)` and
+`Real.cos (a - b)` on `[-1, 1]`. The imaginary part factors as `Real.sqrt (1 - x^2) * x` times
+the sum of those cosines, providing concrete identities for examining amplitude constraints.
+
+## Main statements
+
+* `wordAmp_two_re` evaluates the real part for `x` in `[-1, 1]`.
+* `wordAmp_two_im` gives the factored imaginary part for every real `x`.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +40,8 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 
 open Matrix Polynomial
 
+/-- For `x` in `[-1, 1]`, the real part of the two-phase amplitude is `x^2 * cos (a + b) - (1 -
+x^2) * cos (a - b)`. -/
 theorem wordAmp_two_re (a b x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
     (wordAmp [a,b] x).re = x^2 * Real.cos (a+b) - (1-x^2) * Real.cos (a-b) := by
   have hs : (Real.sqrt (1-x^2)) ^ 2 = 1-x^2 := Real.sq_sqrt (by nlinarith [hx.1, hx.2])
@@ -29,6 +53,8 @@ theorem wordAmp_two_re (a b x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :
   simp only [Real.sq_sqrt (show (0:ℝ) ≤ 2 by norm_num), hs]
   ring
 
+/-- The imaginary part of the two-phase amplitude is `sqrt (1 - x^2) * x * (cos (a + b) + cos (a
+- b))` for every real `x`. -/
 theorem wordAmp_two_im (a b x : ℝ) :
     (wordAmp [a,b] x).im = Real.sqrt (1-x^2) * x *
       (Real.cos (a+b) + Real.cos (a-b)) := by

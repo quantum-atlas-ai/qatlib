@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTOperatorActualRecordsStat
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
+
+/-!
+# Operator accuracy for actual even SVT records
+
+`evenSVTOperatorActualRecords` proves an operator-norm accuracy guarantee for the two-sketch
+output built from actual compact records. The row and conditional-column laws are exact
+squared-norm laws, and the explicit budgets control the failure probability as in the even
+singular value transformation analysis of [ChiaEtAl2022].
+
+## Main statements
+
+* `evenSVTOperatorActualRecords`: Exact row and conditional-column sampling with the specified
+  regularity and budgets gives a joint record law for which the even-SVT output has
+  operator-norm error greater than `ε` with probability at most `δ`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -20,6 +40,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Exact row and conditional-column sampling with the specified regularity and budgets gives a
+joint record law for which the even-SVT output has operator-norm error greater than `ε` with
+probability at most `δ`. See [ChiaEtAl2022]. -/
 theorem evenSVTOperatorActualRecords : EvenSVTOperatorActualRecords := by
   intro K C _ _ _ _ A r c f fbar L Lbar d ε δ η₁ η₂ qs condQ
     hr hc hL hLb hd hε hδ hδ1 hA hη₁ hη₂ hbudget hε₁ hε₂ hband hqs hcond hLip hLipb hcons

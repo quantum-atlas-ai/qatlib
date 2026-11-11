@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.TruncTaylor14.Discard.DiscardLinearMap
+
+/-!
+# Specification of finite diamond-error discard simulation
+
+This module states `SourceDiscardFiniteDiamond`, combining channel properties and circuit
+resources for the Taylor reset-and-discard simulator. It requires finite diamond distance at
+most `2⁻ᵏ` and an explicit trace-norm bound for every finite reference extension, together with
+exact query and gate counts. See [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `SourceDiscardFiniteDiamond`: Finite diamond-distance and circuit-resource specification.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -37,6 +55,10 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators ENNReal ComplexOrder Matrix.Norms.L2Operator
 
+/-- The proposition requiring the Taylor discard simulator to be completely positive and trace
+preserving, have finite diamond distance at most `2⁻ᵏ` and reference trace-norm error at
+most `2 * 2⁻ᵏ * ‖X‖₁`, and satisfy the stated circuit well-formedness and exact resource
+counts under the simulation hypotheses. -/
 def SourceDiscardFiniteDiamond : Prop :=
   ∀ (J : Type) [Fintype J] [DecidableEq J] (D : ℕ)
     (h : J → ℝ) (U : J → Operator D) (j₀ : J) (t Λ : ℝ) (k : ℕ),

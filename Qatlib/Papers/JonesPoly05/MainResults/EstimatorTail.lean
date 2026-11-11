@@ -8,6 +8,26 @@ import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic.FinCases
 
+/-!
+# Tail bounds for complex sample means
+
+`complexEstimate` combines empirical real and imaginary means, while `complexDeviation` centers
+them at their expectations. The module proves real and complex exponential tail bounds for
+bounded observations and the existence of a positive sample budget for prescribed positive error
+and failure parameters. See [AharonovJonesLandau2009].
+
+## Main statements
+
+* `complex_estimator_tail`: For positive L, B, and ε, real and imaginary observations in [−B, B]
+  give complex deviation probability at most 4 exp(−Lε²/(8B²)).
+* `exists_sample_budget`: For positive B, ε, and δ, some positive natural sample count makes 4
+  exp(−Lε²/(8B²)) at most δ.
+
+## References
+
+* [Aharonov et al., 2009][AharonovJonesLandau2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,6 +40,8 @@ open Qatlib.Concepts.SketchArith.SketchBuild
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- For positive L, B, and ε, observations in [−B, B] have empirical-mean deviation probability
+at most 2 exp(−Lε²/(2B²)); see [AharonovJonesLandau2009]. -/
 theorem bounded_avg_tail (p : FinDist X) (f : X → ℝ) (L : ℕ) {B ε : ℝ}
     (hL : 0 < L) (hB : 0 < B) (hε : 0 < ε)
     (hf : ∀ x, f x ∈ Set.Icc (-B) B) :
@@ -53,13 +75,17 @@ theorem bounded_avg_tail (p : FinDist X) (f : X → ℝ) (L : ℕ) {B ε : ℝ}
     ring
   rw [he]
 
+/-- The complex number formed from the deviations of the empirical real and imaginary means from
+their expectations. -/
 def complexDeviation (p : FinDist X) {L : ℕ} (re im : X → ℝ) (ω : Fin L → X) : ℂ :=
   (↑(FinDist.avg re ω - p.expect re) : ℂ) +
     (↑(FinDist.avg im ω - p.expect im) : ℂ) * Complex.I
 
+/-- The complex estimate whose real and imaginary parts are the corresponding empirical means. -/
 def complexEstimate {X : Type} {L : ℕ} (re im : X → ℝ) (ω : Fin L → X) : ℂ :=
   (↑(FinDist.avg re ω) : ℂ) + (↑(FinDist.avg im ω) : ℂ) * Complex.I
 
+/-- Subtracting the complex expectation from `complexEstimate` gives `complexDeviation`. -/
 theorem complexEstimate_sub (p : FinDist X) {L : ℕ} (re im : X → ℝ) (ω : Fin L → X) :
     complexEstimate re im ω -
         ((↑(p.expect re) : ℂ) + (↑(p.expect im) : ℂ) * Complex.I) =
@@ -68,6 +94,8 @@ theorem complexEstimate_sub (p : FinDist X) {L : ℕ} (re im : X → ℝ) (ω : 
   push_cast
   ring
 
+/-- Inclusion of events implies an inequality between their probabilities under the finite
+product sampling distribution. -/
 theorem probEvent_mono {L : ℕ} (p : FinDist X) {E F : (Fin L → X) → Prop}
     [DecidablePred E] [DecidablePred F] (h : ∀ ω, E ω → F ω) :
     p.probEvent E ≤ p.probEvent F := by
@@ -78,6 +106,8 @@ theorem probEvent_mono {L : ℕ} (p : FinDist X) {E F : (Fin L → X) → Prop}
   · intro ω _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- The probability of the union of two sampling events is at most the sum of their
+probabilities. -/
 theorem probEvent_or_le {L : ℕ} (p : FinDist X) (E1 E2 : (Fin L → X) → Prop)
     [DecidablePred E1] [DecidablePred E2] :
     p.probEvent (fun ω => E1 ω ∨ E2 ω) ≤ p.probEvent E1 + p.probEvent E2 := by
@@ -88,6 +118,8 @@ theorem probEvent_or_le {L : ℕ} (p : FinDist X) (E1 E2 : (Fin L → X) → Pro
   have hw : 0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
   by_cases h1 : E1 ω <;> by_cases h2 : E2 ω <;> simp [h1, h2] <;> linarith
 
+/-- For positive L, B, and ε, real and imaginary observations in [−B, B] give complex deviation
+probability at most 4 exp(−Lε²/(8B²)); see [AharonovJonesLandau2009]. -/
 theorem complex_estimator_tail (p : FinDist X) (re im : X → ℝ) (L : ℕ) {B ε : ℝ}
     (hL : 0 < L) (hB : 0 < B) (hε : 0 < ε)
     (hre : ∀ x, re x ∈ Set.Icc (-B) B) (him : ∀ x, im x ∈ Set.Icc (-B) B) :
@@ -133,6 +165,8 @@ theorem complex_estimator_tail (p : FinDist X) (re im : X → ℝ) (L : ℕ) {B 
         2 * Real.exp (-(L : ℝ) * ε ^ 2 / (8 * B ^ 2)) := add_le_add hE1 hE2
     _ = 4 * Real.exp (-(L : ℝ) * ε ^ 2 / (8 * B ^ 2)) := by ring
 
+/-- For positive B, ε, and δ, some positive natural sample count makes 4 exp(−Lε²/(8B²)) at most
+δ; see [AharonovJonesLandau2009]. -/
 theorem exists_sample_budget {B ε δ : ℝ} (hB : 0 < B) (hε : 0 < ε) (hδ : 0 < δ) :
     ∃ L : ℕ, 0 < L ∧ 4 * Real.exp (-(L : ℝ) * ε ^ 2 / (8 * B ^ 2)) ≤ δ := by
   rcases le_or_gt 4 δ with h4 | h4

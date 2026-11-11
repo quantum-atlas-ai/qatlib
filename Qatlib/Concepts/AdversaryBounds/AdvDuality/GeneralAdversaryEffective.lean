@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffectiveDefs
+
+/-!
+# Effective adversary bounds with loss and truncation
+
+Develops loss accounting for observed and instrument circuits, including conservation of branch
+mass, bounds on loss probabilities, and preservation of answers under query truncation. The
+adversary endpoints connect successful computation to filtered matrix norms in the framework of
+[LeeEtAl2011].
+
+The module also constructs two-input witnesses using `cutWitness` and proves finite attainment
+results for `certifiedCutCost` and `effectiveCertifiedValue`.
+
+## Main statements
+
+* `lossTag_no_deletion` and `instrument_lossTag_no_deletion`: partition total mass into answers
+  and loss.
+* `clause16_loss_tagged_endpoint`: bound adversary progress by query depth.
+* `clause21_truncation_loss_endpoint`: combine a query tail bound, normalization, and answer
+  retention.
+* `effectiveCertifiedValue_attained`: attain the effective certificate value on a pair with
+  different outputs.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -32,6 +59,8 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- For a well-formed observed circuit with unitary oracle and normalized input, answer mass and
+loss mass sum to one. -/
 theorem lossTag_no_deletion {I Y : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (program : ObservedCircuit I)
     (hprogram : observedWellFormed program) (ψ : QState I) (hψ : Normalized ψ)
@@ -46,6 +75,8 @@ theorem lossTag_no_deletion {I Y : Type} [Fintype I] [DecidableEq I]
   rw [hcompl]
   simpa only [branchMass, measureProb_univ hψ] using! h
 
+/-- If a well-formed observed circuit returns a specified answer with mass at least `1 - eps`,
+its loss mass is at most `eps`. -/
 theorem lossTag_loss_mass_le {I Y : Type} [Fintype I] [DecidableEq I] [DecidableEq Y]
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (program : ObservedCircuit I)
     (hprogram : observedWellFormed program) (ψ : QState I) (hψ : Normalized ψ)
@@ -61,6 +92,9 @@ theorem lossTag_loss_mass_le {I Y : Type} [Fintype I] [DecidableEq I] [Decidable
     lossTag_no_deletion O hO program hprogram ψ hψ decode
   linarith
 
+/-- A loss-tagged observed circuit that succeeds with error at most `eps ∈ [0, 1/2]` satisfies
+`(1 - 2 * Real.sqrt (eps * (1 - eps)) - 2 * eps) * ‖Gamma‖ ≤ 2 * observedQueryDepth P *
+maxFilterNorm input Gamma` for every Hermitian witness vanishing on equal outputs. -/
 theorem clause16_loss_tagged_endpoint
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     {n q : ℕ} [NeZero q] {W : Type} [Fintype W]
@@ -79,6 +113,8 @@ theorem clause16_loss_tagged_endpoint
   intro x y hxy
   exact hz x y (Sum.inl.inj hxy)
 
+/-- The loss event for an instrument decoder is the Boolean complement of the event of returning
+any answer. -/
 theorem instrumentLossTagLossEvent_eq_not_any {Y : Type} (decode : InstrumentLossDecode Y)
     (accepted : Bool) (outcomes : List (ℕ × ℕ)) :
     instrumentLossTagLossEvent decode accepted outcomes
@@ -86,6 +122,7 @@ theorem instrumentLossTagLossEvent_eq_not_any {Y : Type} (decode : InstrumentLos
   cases h : decode accepted outcomes <;>
     simp [instrumentLossTagLossEvent, instrumentLossTagAnyAnswerEvent, h]
 
+/-- Returning the specified instrument-decoded answer implies returning some answer. -/
 theorem instrumentLossTagAnswerEvent_le_any {Y : Type} [DecidableEq Y]
     (decode : InstrumentLossDecode Y) (y : Y) (accepted : Bool) (outcomes : List (ℕ × ℕ))
     (h : instrumentLossTagAnswerEvent decode y accepted outcomes = true) :
@@ -96,6 +133,8 @@ theorem instrumentLossTagAnswerEvent_le_any {Y : Type} [DecidableEq Y]
   | inr t =>
     simp [instrumentLossTagAnswerEvent, hdec] at h
 
+/-- For a positive semidefinite initial operator, inclusion of events on all generated
+instrument traces implies the corresponding inequality of event masses. -/
 private theorem instrumentEventMass_mono {d : ℕ} (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef)
     (E₁ E₂ : Bool → List (ℕ × ℕ) → Bool)
@@ -117,6 +156,8 @@ private theorem instrumentEventMass_mono {d : ℕ} (O : Operator d) (P : Instrum
     · simp only [if_neg h1, if_neg h2]
       exact le_rfl
 
+/-- Summing a function over a flattened list equals the sum of its sums over the constituent
+lists. -/
 private theorem sum_map_flatten {γ : Type} (l : List (List γ)) (g : γ → ℝ) :
     ((l.flatten).map g).sum = (l.map fun x => (x.map g).sum).sum := by
   induction l with
@@ -127,6 +168,8 @@ private theorem sum_map_flatten {γ : Type} (l : List (List γ)) (g : γ → ℝ
     simp only [List.map_cons, List.sum_cons]
     rw [ih]
 
+/-- The sum over flattened trace lists indexed by `Fin s` equals the finite sum of the
+individual list sums. -/
 private theorem instrument_ofFn_flatten_mass {d s : ℕ} (X : Fin s → List (MixedBranchTrace d))
     (g : MixedBranchTrace d → ℝ) :
     ((List.ofFn X).flatten.map g).sum = ∑ o : Fin s, ((X o).map g).sum := by
@@ -140,6 +183,8 @@ private theorem instrument_ofFn_flatten_mass {d s : ℕ} (X : Fin s → List (Mi
     rfl
   exact h2
 
+/-- The total mass after a leading gate equals the continuation's total mass on the conjugated
+initial operator. -/
 private theorem instrument_gate_mass {d : ℕ} (O : Operator d) (G : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) :
     instrumentTotalMass O (.step (.gate G) P) rho
@@ -153,6 +198,8 @@ private theorem instrument_gate_mass {d : ℕ} (O : Operator d) (G : Operator d)
   rw [show (fun t : MixedBranchTrace d => mixedMass {t with gates := t.gates + 1}) = mixedMass
     from funext hmass]
 
+/-- The total mass after a leading query equals the continuation's total mass on the
+oracle-conjugated initial operator. -/
 private theorem instrument_query_mass {d : ℕ} (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) :
     instrumentTotalMass O (.step .query P) rho
@@ -166,6 +213,8 @@ private theorem instrument_query_mass {d : ℕ} (O : Operator d) (P : Instrument
   rw [show (fun t : MixedBranchTrace d => mixedMass {t with queries := t.queries + 1}) = mixedMass
     from funext hmass]
 
+/-- The total mass of an instrument node is the sum of the continuation masses over its outcome
+branches. -/
 private theorem instrument_instrument_mass {d s : ℕ} (O : Operator d) (I : Instrument (Fin s) d d)
     (next : Fin s → InstrumentCircuit d) (rho : Operator d) :
     instrumentTotalMass O (.instrument s I next) rho
@@ -182,6 +231,8 @@ private theorem instrument_instrument_mass {d s : ℕ} (O : Operator d) (I : Ins
   simp only [List.map_map, Function.comp_def]
   rw [show (fun t : MixedBranchTrace d => mixedMass {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s, o.val) :: t.outcomes}) = mixedMass from funext (hmass o)]
 
+/-- A well-formed instrument circuit with a unitary oracle preserves the real part of the trace
+as its total branch mass. -/
 theorem instrument_total_mass {d : ℕ} (O : Operator d)
     (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ) (P : InstrumentCircuit d)
     (hP : instrumentCircuitWellFormed P) (rho : Operator d) :
@@ -205,6 +256,8 @@ theorem instrument_total_mass {d : ℕ} (O : Operator d)
       _ = (Matrix.trace (∑ o : Fin s, I.branch o rho)).re := by rw [Matrix.trace_sum]
       _ = (Matrix.trace rho).re := congrArg Complex.re (I.total rho)
 
+/-- If two event contributions sum to each trace's mass, their total event masses sum to the
+mass of the universal event. -/
 private theorem instrumentEventMass_add {d : ℕ} (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (E₁ E₂ : Bool → List (ℕ × ℕ) → Bool)
     (h : ∀ t : MixedBranchTrace d,
@@ -223,6 +276,7 @@ private theorem instrumentEventMass_add {d : ℕ} (O : Operator d) (P : Instrume
   rw [heq]
   simp
 
+/-- The instrument-decoded answer mass and loss mass partition the total branch mass. -/
 theorem instrument_lossTag_no_deletion {d : ℕ} {Y : Type} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) (decode : InstrumentLossDecode Y) :
     instrumentLossTagAnyAnswerMass O P rho decode + instrumentLossTagLossMass O P rho decode
@@ -242,6 +296,8 @@ theorem instrument_lossTag_no_deletion {d : ℕ} {Y : Type} (O : Operator d)
   simpa only [instrumentLossTagAnyAnswerMass, instrumentLossTagLossMass,
       instrumentTotalMass] using! h
 
+/-- For a well-formed instrument circuit on a density operator with unitary oracle, success mass
+at least `1 - eps` implies loss mass at most `eps`. -/
 theorem instrument_lossTag_loss_mass_le {d : ℕ} {Y : Type} (O : Operator d)
     (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ) (P : InstrumentCircuit d)
     (hP : instrumentCircuitWellFormed P) (rho : Operator d) (hrho : IsDensityOperator rho)
@@ -263,6 +319,8 @@ theorem instrument_lossTag_loss_mass_le {d : ℕ} {Y : Type} (O : Operator d)
     simp [htr]
   linarith
 
+/-- For a positive semidefinite initial operator, the query cost contributed by loss branches is
+bounded by the circuit's expected query count. -/
 theorem instrument_lossTag_loss_queries_le_expected {d : ℕ} {Y : Type} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) (hrho : rho.PosSemidef)
     (decode : InstrumentLossDecode Y) :
@@ -278,6 +336,9 @@ theorem instrument_lossTag_loss_queries_le_expected {d : ℕ} {Y : Type} (O : Op
   · simp only [h]
     exact mul_nonneg (hm t ht) (Nat.cast_nonneg _)
 
+/-- A well-formed loss-tagged instrument circuit succeeding with error at most `eps ∈ [0, 1/2]`
+bounds the error-adjusted Hermitian witness norm by twice its query budget times
+`maxFilterNorm input Gamma`. -/
 theorem clause16_instrument_loss_tagged_endpoint
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     {n q d : ℕ} [NeZero q] {W : Type} [Fintype W]
@@ -297,6 +358,9 @@ theorem clause16_instrument_loss_tagged_endpoint
   intro x y hxy
   exact hz x y (Sum.inl.inj hxy)
 
+/-- For positive `K` and a positive semidefinite initial operator, query truncation has tail
+mass at most the expected query count divided by `K`, retains answer mass up to the
+corresponding `K + 1` bound, and preserves well-formedness. -/
 theorem clause21_instrument_truncation_loss_endpoint {d : ℕ} {Y : Type} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) (hrho : rho.PosSemidef) (K : ℕ) (hK : 0 < K)
     (decode : InstrumentLossDecode Y) :
@@ -313,6 +377,8 @@ theorem clause21_instrument_truncation_loss_endpoint {d : ℕ} {Y : Type} (O : O
   · intro hP
     exact truncateInstrumentQueries_legal P hP K
 
+/-- A well-formed query-truncated observed circuit with unitary oracle and normalized input has
+total event mass one. -/
 theorem clause21_truncation_conserves_weight {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (P : ObservedCircuit I)
     (ψ : QState I) (hψ : Normalized ψ) (K : ℕ)
@@ -321,6 +387,8 @@ theorem clause21_truncation_conserves_weight {I : Type} [Fintype I] [DecidableEq
   have h := observedEventMass_true O hO (truncateObservedQueries P K) hPt ψ
   simpa only [branchMass, measureProb_univ hψ] using! h
 
+/-- Truncating an observed circuit at query budget `K` reduces its answer mass by at most
+`expectedObservedQueries O P ψ / (K + 1)`. -/
 theorem clause21_truncation_keeps_answers {I Y : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) (K : ℕ)
     (decode : LossDecode Y) :
@@ -333,12 +401,15 @@ theorem clause21_truncation_keeps_answers {I Y : Type} [Fintype I] [DecidableEq 
       | .inr _ => false)
   simpa only [lossTagAnyAnswerEvent] using! h
 
+/-- The sum of branch mass times query count over observed traces decoded as loss. -/
 noncomputable def lossTagLossQueryCost {I Y : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) (decode : LossDecode Y) : ℝ :=
   (List.map (fun t =>
     if lossTagLossEvent decode t then branchMass t.state * (t.queries : ℝ) else 0)
     (observedTraces O P ψ)).sum
 
+/-- The query cost contributed by loss-tagged observed branches is at most the total expected
+query count. -/
 theorem lossTag_loss_queries_le_expected {I Y : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I) (decode : LossDecode Y) :
     lossTagLossQueryCost O P ψ decode ≤ expectedObservedQueries O P ψ := by
@@ -355,6 +426,9 @@ theorem lossTag_loss_queries_le_expected {I Y : Type} [Fintype I] [DecidableEq I
   unfold lossTagLossQueryCost
   exact List.sum_le_sum (fun t _ => hterm t)
 
+/-- For positive `K`, combines the observed query tail bound, normalization of the well-formed
+truncation, and an answer-mass decrease bounded by the expected query count divided by `K +
+1`. -/
 theorem clause21_truncation_loss_endpoint {I Y : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (P : ObservedCircuit I)
     (ψ : QState I) (hψ : Normalized ψ) (K : ℕ) (hK : 0 < K)
@@ -370,6 +444,8 @@ theorem clause21_truncation_loss_endpoint {I Y : Type} [Fintype I] [DecidableEq 
     clause21_truncation_conserves_weight O hO P ψ hψ K hPt,
     clause21_truncation_keeps_answers O P ψ K decode⟩
 
+/-- The adversary filter is the Hadamard product of the input-difference filter with the witness
+matrix. -/
 theorem genAdvFilter_eq_genFilterDelta {X κ A : Type} [DecidableEq A]
     (input : X → κ → A) (Γ : Matrix X X ℂ) (i : κ) :
     genAdvFilter input Γ i = genFilterDelta input i ⊙ Γ := by
@@ -377,6 +453,8 @@ theorem genAdvFilter_eq_genFilterDelta {X κ A : Type} [DecidableEq A]
   by_cases h : input x i = input y i <;>
     simp [genAdvFilter, genFilterDelta, Matrix.hadamard_apply, h]
 
+/-- The general adversary value is bounded by the filtered gamma-two norm of the
+function-evaluation Gram difference, as in [LeeEtAl2011]. -/
 theorem genAdversaryValue_le_queryDelta {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
     (input : X → Fin n → A) (f : X → E) :
@@ -393,6 +471,8 @@ theorem genAdversaryValue_le_queryDelta {X E : Type} [Fintype X] [DecidableEq X]
   rw [hzero] at h
   exact h
 
+/-- A matrix vanishing on equal outputs whose input-difference filters have norm at most one has
+norm bounded by the filtered gamma-two value. -/
 theorem gen_witness_le_filteredGamma2 {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
     (input : X → Fin n → A) (f : X → E) (Γ : Matrix X X ℂ)
@@ -409,6 +489,7 @@ theorem gen_witness_le_filteredGamma2 {X E : Type} [Fintype X] [DecidableEq X]
 
 set_option linter.unusedVariables false in
 
+/-- If the maximum adversary filter norm is zero, every adversary filter matrix is zero. -/
 theorem gen_degenerate_filter {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
     (input : X → Fin n → A) (f : X → E) (Γ : Matrix X X ℂ)
@@ -421,6 +502,7 @@ theorem gen_degenerate_filter {X E : Type} [Fintype X] [DecidableEq X]
     exact le_antisymm hle (by simp)
   exact norm_eq_zero.mp hj
 
+/-- A nonzero witness with zero maximum filter norm has infinite `advPmWitnessValue`. -/
 theorem gen_degenerate_witness_value_top {X κ A : Type} [Fintype X] [DecidableEq X]
     [Fintype κ] [DecidableEq κ] [DecidableEq A]
     (input : X → κ → A) (Γ : Matrix X X ℂ) (hne : Γ ≠ 0)
@@ -440,6 +522,8 @@ theorem gen_degenerate_witness_value_top {X κ A : Type} [Fintype X] [DecidableE
   rw [ENNReal.div_eq_top]
   exact Or.inl ⟨hpos, rfl⟩
 
+/-- Combines the filtered gamma-two upper bound on the general adversary value with vanishing
+filters and infinite witness value for a nonzero degenerate witness. -/
 theorem clause20_general_alphabet_bridge_endpoint {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
     (input : X → Fin n → A) (f : X → E) (Γ : Matrix X X ℂ) (hne : Γ ≠ 0)
@@ -451,6 +535,7 @@ theorem clause20_general_alphabet_bridge_endpoint {X E : Type} [Fintype X] [Deci
   refine ⟨genAdversaryValue_le_queryDelta input f, gen_degenerate_filter input f Γ hm, ?_⟩
   exact gen_degenerate_witness_value_top input Γ hne hm
 
+/-- The two-input cut witness is Hermitian. -/
 theorem cutWitness_hermitian {X : Type} [DecidableEq X] (x y : X) :
     (cutWitness x y).IsHermitian := by
   have hT : (cutWitness x y)ᵀ = cutWitness x y := by
@@ -464,6 +549,8 @@ theorem cutWitness_hermitian {X : Type} [DecidableEq X] (x y : X) :
   simp [Matrix.conjTranspose_apply, cutWitness, Matrix.single, Matrix.add_apply, and_comm,
     add_comm]
 
+/-- A cut witness joining inputs with different outputs vanishes on every pair with equal
+outputs. -/
 theorem cutWitness_support {X E : Type} [DecidableEq X] {g : X → E} (x y : X)
     (hgy : g x ≠ g y) (x' y' : X) (h : g x' = g y') : cutWitness x y x' y' = 0 := by
   have h1 : ¬ (x = x' ∧ y = y') := by
@@ -474,6 +561,7 @@ theorem cutWitness_support {X E : Type} [DecidableEq X] {g : X → E} (x y : X)
     exact hgy h.symm
   simp [cutWitness, Matrix.single, Matrix.add_apply, h1, h2]
 
+/-- The cut witness between inputs with different outputs is nonzero. -/
 theorem cutWitness_ne_zero {X E : Type} [DecidableEq X] {g : X → E} (x y : X)
     (hgy : g x ≠ g y) : cutWitness x y ≠ 0 := by
   intro h
@@ -483,6 +571,7 @@ theorem cutWitness_ne_zero {X E : Type} [DecidableEq X] {g : X → E} (x y : X)
   have hz : cutWitness x y x y = 0 := by rw [h]; simp
   linarith
 
+/-- The operator norm of a cut witness between distinct inputs is at least one. -/
 theorem cutWitness_norm_ge_one {X : Type} [Fintype X] [DecidableEq X] (x y : X) (hxy : x ≠ y) :
     1 ≤ ‖cutWitness x y‖ := by
   have hentry : ‖cutWitness x y x y‖ = 1 := by
@@ -491,6 +580,8 @@ theorem cutWitness_norm_ge_one {X : Type} [Fintype X] [DecidableEq X] (x y : X) 
   rw [hentry] at hbound
   simpa using! hbound
 
+/-- A coordinate separating the two inputs leaves their cut witness unchanged under adversary
+filtering. -/
 theorem genAdvFilter_cutWitness {X κ A : Type} [DecidableEq X] [DecidableEq A]
     (input : X → κ → A) (x y : X) (j : κ) (hsep : input x j ≠ input y j) :
     genAdvFilter input (cutWitness x y) j = cutWitness x y := by
@@ -508,6 +599,8 @@ theorem genAdvFilter_cutWitness {X κ A : Type} [DecidableEq X] [DecidableEq A]
       exact hsep.symm hab
     simp [genAdvFilter, hik, cutWitness, Matrix.single, Matrix.add_apply, h1, h2]
 
+/-- A coordinate on which the two inputs agree sends their cut witness to zero under adversary
+filtering. -/
 theorem genAdvFilter_cutWitness_zero {X κ A : Type} [DecidableEq X] [DecidableEq A]
     (input : X → κ → A) (x y : X) (j : κ) (hsep : input x j = input y j) :
     genAdvFilter input (cutWitness x y) j = 0 := by
@@ -522,6 +615,7 @@ theorem genAdvFilter_cutWitness_zero {X κ A : Type} [DecidableEq X] [DecidableE
     simp [genAdvFilter, huv, cutWitness, Matrix.single, Matrix.add_apply, h1, h2]
   · simp [genAdvFilter, huv]
 
+/-- Filtering a cut witness cannot increase its operator norm. -/
 theorem genAdvFilter_cutWitness_le {X κ A : Type} [Fintype X] [DecidableEq X] [DecidableEq A]
     (input : X → κ → A) (x y : X) (j : κ) :
     ‖genAdvFilter input (cutWitness x y) j‖ ≤ ‖cutWitness x y‖ := by
@@ -530,12 +624,15 @@ theorem genAdvFilter_cutWitness_le {X κ A : Type} [Fintype X] [DecidableEq X] [
     simp
   · rw [genAdvFilter_cutWitness input x y j h]
 
+/-- The maximum filter norm of a cut witness is bounded by the norm of that witness. -/
 theorem maxFilterNorm_cutWitness_le {X κ A : Type} [Fintype X] [DecidableEq X] [Fintype κ]
     [DecidableEq A] [Nonempty κ] (input : X → κ → A) (x y : X) :
     maxFilterNorm input (cutWitness x y) ≤ ‖cutWitness x y‖ := by
   unfold maxFilterNorm
   exact ciSup_le fun i => genAdvFilter_cutWitness_le input x y i
 
+/-- At a Boolean coordinate separating two inputs, its extended nonnegative cost is bounded by
+the cost-weighted ratio of the cut witness norm to its filter norm. -/
 theorem cutWitness_certified_coordinate {X κ : Type} [Fintype X] [DecidableEq X] [Fintype κ]
     [DecidableEq κ] (input : X → κ → Bool) (β : κ → ℝ≥0∞) (x y : X) (j : κ)
     (hsep : input x j ≠ input y j) :
@@ -563,6 +660,8 @@ theorem cutWitness_certified_coordinate {X κ : Type} [Fintype X] [DecidableEq X
     (Or.inl ENNReal.ofReal_ne_top)).2
   exact mul_le_mul_of_nonneg_left hB (bot_le)
 
+/-- If two inputs with different outputs are separated by a coordinate, the negative-weight
+adversary value is at least one. -/
 theorem clause18_effective_cut_witness_endpoint {X Y κ A : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     [Fintype κ] [DecidableEq A] [Nonempty κ] (input : X → κ → A) (f : X → Y) (x y : X)
     (hgy : f x ≠ f y) (hsep : ∃ j, input x j ≠ input y j) :
@@ -607,6 +706,8 @@ theorem clause18_effective_cut_witness_endpoint {X Y κ A : Type} [Fintype X] [D
         (∀ x' y', f x' = f y' → Γ x' y' = 0) ∧ Γ ≠ 0} => advPmWitnessValue input Γ.1)
       ⟨cutWitness x y, hadm.1, hadm.2.1, hadm.2.2⟩)
 
+/-- The certified cut cost is bounded by the real-valued cost of every coordinate separating the
+two inputs. -/
 theorem certifiedCutCost_le_of_separating {X κ A : Type} [Fintype X] [DecidableEq X]
     [Fintype κ] [DecidableEq κ] [DecidableEq A] (input : X → κ → A) (β : κ → ℝ≥0∞)
     (x y : X) (j : κ) (hsep : input x j ≠ input y j) :
@@ -617,6 +718,8 @@ theorem certifiedCutCost_le_of_separating {X κ A : Type} [Fintype X] [Decidable
   rw [dif_pos ⟨j, hj⟩]
   exact Finset.inf'_le _ hj
 
+/-- If a separating coordinate exists, some separating coordinate attains the certified cut cost
+after applying `ENNReal.toReal` to its cost. -/
 theorem certifiedCutCost_attained {X κ A : Type} [Fintype X] [DecidableEq X]
     [Fintype κ] [DecidableEq κ] [DecidableEq A] (input : X → κ → A) (β : κ → ℝ≥0∞)
     (x y : X) (hsep : ∃ j, input x j ≠ input y j) :
@@ -631,6 +734,8 @@ theorem certifiedCutCost_attained {X κ A : Type} [Fintype X] [DecidableEq X]
   rw [dif_pos hne]
   exact hjval.symm
 
+/-- If the output function takes two different values, a pair with different outputs attains the
+effective certified value. -/
 theorem effectiveCertifiedValue_attained {X E κ A : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] [Fintype κ] [DecidableEq κ] [DecidableEq A]
     (input : X → κ → A) (g : X → E) (β : κ → ℝ≥0∞)
@@ -646,6 +751,8 @@ theorem effectiveCertifiedValue_attained {X E κ A : Type} [Fintype X] [Decidabl
   rw [dif_pos hne]
   exact hpval.symm
 
+/-- Every pair with different outputs has certified cut cost at most the effective certified
+value. -/
 theorem effectiveCertifiedValue_ge_of_pair {X E κ A : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] [Fintype κ] [DecidableEq κ] [DecidableEq A]
     (input : X → κ → A) (g : X → E) (β : κ → ℝ≥0∞) (x y : X) (hgy : g x ≠ g y) :
@@ -656,6 +763,9 @@ theorem effectiveCertifiedValue_ge_of_pair {X E κ A : Type} [Fintype X] [Decida
   rw [dif_pos hne]
   exact Finset.le_sup' (fun p : X × X => certifiedCutCost input β p.1 p.2) hmem
 
+/-- A separated pair with different outputs provides a separating coordinate with cost at least
+its certified cut cost, bounds that cut cost by the effective certified value, and yields
+adversary value at least one. -/
 theorem clause18_effective_certificate_cost_endpoint
     {X E κ A : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E]
     [Fintype κ] [DecidableEq κ] [DecidableEq A] [Nonempty κ]

@@ -9,6 +9,27 @@ import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+/-!
+# Specification of native conditional risk estimation
+
+This module defines `NativeCVaRFiniteRestricted` using explicit rational median sampling and
+bisection. The specification combines a conditional-mean error guarantee with a bound on the
+number of sampling calls.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `NativeCVaRFiniteRestricted`: The proposition that the explicit native CVaR sampler satisfies
+  the stated quantile and tail-mean failure bound and uses at most `Nat.clog 2 xs.length + 3`
+  sampling calls on its support, under the given precision and margin conditions.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,6 +62,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition that the explicit native CVaR sampler satisfies the stated quantile and
+tail-mean failure bound and uses at most `Nat.clog 2 xs.length + 3` sampling calls on its
+support, under the given precision and margin conditions. -/
 def NativeCVaRFiniteRestricted : Prop :=
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
       (loss : I → ℚ) (xs : List ℚ) (q ε : ℚ) (rotationBits bits M r v : ℕ)

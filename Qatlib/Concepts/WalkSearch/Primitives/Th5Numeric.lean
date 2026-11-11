@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
+
+/-!
+# Obstruction to a logarithm-free subgraph cost bound
+
+`logarithmicSetupCollisionSolver` is a rejecting solver whose charge contains a logarithmic
+setup factor. The module uses exact fourth-power windows and a real-exponent identity to refute
+`Th5Numeric`, clarifying the numerical assumptions in subset-finding cost estimates
+[ChildsEisenberg2003].
+
+## Main statements
+
+* `fourth_power_window`: identify the least fourth-power window at powers of two.
+* `th5Numeric_obstruction`: the numerical contract is false.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
@@ -17,6 +36,8 @@ noncomputable section
 
 namespace Qatlib.Concepts.WalkSearch.Primitives
 
+/-- A collision solver that always returns `none`, has exponent zero, and charges `(Nat.log 2 (n
++ 1) + 2) * s`. -/
 def logarithmicSetupCollisionSolver : KCollisionSolver where
   seed := Unit
   seedFin := inferInstance
@@ -34,6 +55,7 @@ def logarithmicSetupCollisionSolver : KCollisionSolver where
     exact Nat.mul_le_mul_left (Nat.log 2 (n + 1) + 2)
       (Nat.le_add_right s ((n / r) ^ (k / 2) * (c + Nat.sqrt r * u)))
 
+/-- The two fourth-power window inequalities for `2 ^ (4 * m)` force `r = 2 ^ (3 * m)`. -/
 theorem fourth_power_window (m r : ℕ)
     (hl : (2 ^ (4 * m)) ^ (4 - 1) ≤ r ^ 4)
     (hu : (r - 1) ^ 4 < (2 ^ (4 * m)) ^ (4 - 1)) : r = 2 ^ (3 * m) := by
@@ -47,6 +69,8 @@ theorem fourth_power_window (m r : ℕ)
     (Nat.pow_lt_pow_iff_left (by decide : 4 ≠ 0)).mp hu
   omega
 
+/-- The real power `(2 ^ (4 * m)) ^ (2 - 2 / 4)` equals the real cast of `2 ^ (3 * m) * 2 ^ (3 *
+m)`. -/
 theorem fourth_power_headline (m : ℕ) :
     ((2 ^ (4 * m) : ℕ) : ℝ) ^ ((2 : ℝ) - 2 / (4 : ℝ)) =
       (((2 ^ (3 * m)) * (2 ^ (3 * m)) : ℕ) : ℝ) := by
@@ -59,6 +83,7 @@ theorem fourth_power_headline (m : ℕ) :
   congr 1
   omega
 
+/-- The proposition `Th5Numeric` is false. -/
 theorem th5Numeric_obstruction : ¬ Th5Numeric := by
   intro h
   obtain ⟨C, hC, hb⟩ := h 4 (by decide) logarithmicSetupCollisionSolver (by decide)

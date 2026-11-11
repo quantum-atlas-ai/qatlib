@@ -13,6 +13,27 @@ import Mathlib.Data.Nat.Basic
 import Mathlib.Data.Nat.Cast.Defs
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesAuxiliary
+
+/-!
+# Rounded-node simulation bounds
+
+The proposition `Lemma12IntegerNodesCorrected` specifies the numerical guarantees for the
+rounded terminal multiproduct node. It packages node separation, exponent bounds,
+coefficient-mass control, lower bounds for `retryCount`, and the resulting explicit cost
+estimate under the stated coefficient hypotheses. See [ChildsWiebe2012] for the multiproduct and
+linear-combination simulation framework.
+
+## Main statements
+
+* `Lemma12IntegerNodesCorrected`: The proposition collecting rounded-node separation, exponent
+  and coefficient bounds, repetition lower bounds, and the cost estimate for 0.305 < η < 0.312,
+  k ≥ 1, and the stated simulation parameters and coefficient hypotheses.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
@@ -20,6 +41,9 @@ namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open Real
 open scoped BigOperators
 
+/-- The proposition collecting rounded-node separation, exponent and coefficient bounds,
+repetition lower bounds, and the cost estimate for 0.305 < η < 0.312, k ≥ 1, and the stated
+simulation parameters and coefficient hypotheses. -/
 noncomputable def Lemma12IntegerNodesCorrected : Prop :=
   ∀ η : ℝ, 305 / 1000 < η → η < 312 / 1000 →
   ∀ k : ℕ, 1 ≤ k →

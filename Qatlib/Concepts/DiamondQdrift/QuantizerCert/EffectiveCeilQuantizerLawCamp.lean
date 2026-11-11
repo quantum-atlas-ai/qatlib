@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawStat
+
+/-!
+# Certified ceiling quantizer bounds
+
+This module proves the precision, mass, and probability approximation guarantees for
+`effectiveCeilQuantizer`. Rational lower approximation errors provide a sufficient precision
+certificate and an explicit bound on the selected precision.
+
+The normalized integer weights approximate the target law with total absolute error at most `4 *
+L / M`, supporting finite sampling in the qDRIFT setting of [Campbell2019].
+
+## Main statements
+
+* `ceilQuantizerCert_of_pow_bound`: a sufficient binary precision bound.
+* `effectiveCeilQuantizer_mass_and_l1`: mass and normalized probability error bounds.
+* `effectiveCeilQuantizerLaw`: the complete effective quantizer specification.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +41,7 @@ namespace Qatlib.Concepts.DiamondQdrift.QuantizerCert
 open Matrix
 open scoped Classical BigOperators
 
+/-- The rational lower mass is at most the target mass, with deficit at most `L * 2⁻ᵏ`. -/
 private theorem rat_lower_mass_bounds {L : ℕ} {h : Fin L → ℝ} {q : Fin L → ℕ → ℚ}
     (hor : ∀ j, RatLowerOracle (h j) (q j)) (k : ℕ) :
     ratLowerMass q k ≤ ∑ j, h j ∧
@@ -32,6 +55,8 @@ private theorem rat_lower_mass_bounds {L : ℕ} {h : Fin L → ℝ} {q : Fin L �
     _ = (L : ℝ)*((2 : ℝ)⁻¹)^k := by
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- The precision inequality `L * (2 * M + 3) ≤ (∑ j, h j) * 2 ^ k` ensures the ceiling
+quantizer certificate. -/
 theorem ceilQuantizerCert_of_pow_bound {L M : ℕ} {h : Fin L → ℝ} {q : Fin L → ℕ → ℚ}
     (hor : ∀ j, RatLowerOracle (h j) (q j))
     {k : ℕ} (hk : (L : ℝ)*(2*(M : ℝ)+3) ≤ (∑ j, h j)*((2 : ℝ)^k)) :
@@ -51,6 +76,9 @@ theorem ceilQuantizerCert_of_pow_bound {L M : ℕ} {h : Fin L → ℝ} {q : Fin 
     linarith only [h3, hdef]
   exact hgoal
 
+/-- Under valid lower oracles, positive target mass and scale, and the precision certificate,
+total integer weight lies between `M` and `M + 2 * L`, and normalized law error is at most
+`4 * L / M`. -/
 theorem effectiveCeilQuantizer_mass_and_l1 {L M : ℕ} {h : Fin L → ℝ}
     {q : Fin L → ℕ → ℚ} {k : ℕ} (hor : ∀ j, RatLowerOracle (h j) (q j))
     (hlam : 0 < ∑ j, h j) (hM : 0 < M) (hcert : ceilQuantizerCert M q k) :
@@ -321,6 +349,8 @@ theorem effectiveCeilQuantizer_mass_and_l1 {L M : ℕ} {h : Fin L → ℝ}
     _ ≤ 4*(L : ℝ)/M :=
         div_le_div_of_nonneg_left (by positivity) hMR hWM
 
+/-- The least certified precision exists under positive mass and scale and satisfies the stated
+precision, integer mass, and normalized law approximation bounds. -/
 theorem effectiveCeilQuantizerLaw : EffectiveCeilQuantizerLaw := by
   intro L M h q hor hlam hM
   (try dsimp only)

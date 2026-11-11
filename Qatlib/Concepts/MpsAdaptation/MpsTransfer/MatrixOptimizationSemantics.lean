@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationReceipt
+
+/-!
+# Operational semantics of weighted program mixtures
+
+This module identifies receipt probabilities and costs with pure-state evaluations of the
+corresponding hybrid programs. `Family.continuation` connects selector configurations to the
+selected program or a timeout return.
+
+`Family.cappedProgram_receipt` proves agreement of successful output probabilities, while
+`Family.cappedProgram_counts` expands count-sensitive evaluation over coin paths. The pure-state
+and instrument semantics follow the quantum-computation setting of [NielsenChuang2010].
+
+## Main statements
+
+* `coin_paths_expectation`: Finite coin-path sums agree with expectations under the induced law.
+* `Family.output_pure_eval`: Leaf output probabilities agree with pure-state program evaluation.
+* `Family.cappedProgram_receipt`: The capped hybrid program has the successful output
+  probabilities specified by receipts.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +49,8 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Qatlib
 open scoped ENNReal Classical
 
+/-- The weighted sum of a nonnegative function over coin paths equals its expectation under the
+induced outcome-and-length law, converted to a real number. -/
 theorem coin_paths_expectation {A : Type} (p : CoinCode A) (g : A × ℕ → ℝ)
     (hg : ∀ z, 0 ≤ g z) :
     (p.paths.map (fun z => CoinCode.wordWeight z.2 * g (z.1,z.2.length))).sum =
@@ -41,6 +67,7 @@ theorem coin_paths_expectation {A : Type} (p : CoinCode A) (g : A × ℕ → ℝ
     simpa only [List.map_ofFn, Function.comp_def] using h.symm
   rw [hlist, List.sum_ofFn]
 
+/-- The probability of the equality event at a point equals the probability mass at that point. -/
 theorem pmf_event_value {A : Type} (p : PMF A) (i : A) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun j => j = i) = p i := by
   classical
@@ -52,6 +79,8 @@ namespace Family
 
 variable {K D m : ℕ}
 
+/-- For a pure input density operator, a family member's output mass equals its
+branch-mass-weighted pure-state evaluation. -/
 theorem output_pure_eval (F : Family K D m) (ψ : QState (Fin D))
     (hstate : F.state = outerProduct ψ) (u : Fin K) (i : Fin m) :
     (F.output u i).toReal =
@@ -69,12 +98,16 @@ theorem output_pure_eval (F : Family K D m) (ψ : QState (Fin D))
   exact (F.program u).eval_instrument F.oracle F.oracle_unitary (F.legal u) ψ
     (fun j => if j = i then 1 else 0)
 
+/-- The hybrid continuation that executes the selected family member and wraps its output in
+`some`, returning `none` on timeout. -/
 def continuation (F : Family K D m) (z : Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.Configuration
     (ℕ × ℕ) (Fin K × ℕ × ℕ) × ℕ) : HybridProgram D (Option (Fin m)) :=
   match rejectionOutcome z.1 with
   | .inl u => (F.program u).bind fun i => .ret (some i)
   | .inr _ => .ret none
 
+/-- For a pure input density operator, expected leaf cost equals count-sensitive program
+evaluation from zero counts. -/
 theorem leaf_cost_pure (F : Family K D m) (ψ : QState (Fin D))
     (hstate : F.state = outerProduct ψ) (u : Fin K) (g : HybridCounts → ℕ) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (F.leaves u)
@@ -90,6 +123,8 @@ theorem leaf_cost_pure (F : Family K D m) (ψ : QState (Fin D))
   exact (F.program u).evalCounts_instrument F.oracle F.oracle_unitary (F.legal u) ψ
     (fun _ c => (g c : ℝ))
 
+/-- On a pure input state, the capped program's probability of a successful output agrees with
+the corresponding capped receipt probability. -/
 theorem cappedProgram_receipt (F : Family K D m) (ψ : QState (Fin D))
     (hstate : F.state = outerProduct ψ) (w : Fin K → ℕ) (b fuel : ℕ) (i : Fin m) :
     (F.cappedProgram w b fuel).eval F.oracle ψ
@@ -134,6 +169,8 @@ theorem cappedProgram_receipt (F : Family K D m) (ψ : QState (Fin D))
   funext z
   exact hn z
 
+/-- Count-sensitive evaluation of the capped program is the weighted sum over selector coin
+paths, adding each path's bit length before evaluating its continuation. -/
 theorem cappedProgram_counts (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
     (ψ : QState (Fin D)) (c : HybridCounts)
     (g : Option (Fin m) → QState (Fin D) → HybridCounts → ℝ) :

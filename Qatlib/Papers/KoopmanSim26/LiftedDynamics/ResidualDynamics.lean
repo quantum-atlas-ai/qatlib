@@ -9,6 +9,32 @@ import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
 import Mathlib.Analysis.Calculus.FDeriv.Comp
 import Mathlib.Tactic
 
+/-!
+# Calculus of lifted residual dynamics
+
+For an observable vector along a nonlinear trajectory, `lifted_hasDerivAt` applies the chain
+rule and `liftResidual` records the defect from a chosen finite linear generator. These
+constructions provide the calculus behind the distinction between exact finite closure and
+learned projection residuals in [ZhangEtAl2026].
+
+The module develops forced-solution and Duhamel formulas both with global hypotheses and with
+hypotheses restricted to a finite interval. Contractivity of a dissipative matrix exponential
+then turns the residual integral into a Euclidean error bound.
+
+## Main statements
+
+- `lifted_eq_forced` identifies the observable trajectory as a forced linear solution.
+* `lifted_residual_duhamel` and `lifted_residual_duhamel_on_interval` express the propagation
+  error as an integral.
+* `exact_lifted_closure` and `exact_lifted_closure_on_interval` recover exact matrix evolution
+  from vanishing residual.
+- `dissipative_exp_norm` and the residual norm bounds control errors without exponential growth.
+
+## References
+
+- [Zhang et al., 2026][ZhangEtAl2026]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -22,6 +48,9 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.KoopmanSim26.LiftedDynamics.Calculus
 
+/-- If the trajectory derivative is `f(x(t))` and the observable derivative at `x(t)` is
+`Dg(x(t))`, then the lifted trajectory has derivative `Dg(x(t))(f(x(t)))`. This is the
+chain-rule identity for the lifted observable in [ZhangEtAl2026]. -/
 theorem lifted_hasDerivAt {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] (x : ℝ → E) (f : E → E) (g : E → QState I)
     (Dg : E → E →L[ℝ] QState I) (t : ℝ)
@@ -29,11 +58,15 @@ theorem lifted_hasDerivAt {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     HasDerivAt (fun s => g (x s)) (Dg (x t) (f (x t))) t :=
   hg.comp_hasDerivAt t hx
 
+/-- The quantity `liftResidual` is the lifted closure residual at time `t`, defined as
+`Dg(x(t))(f(x(t))) - A g(x(t))`. -/
 def liftResidual {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] (A : Matrix I I ℂ) (x : ℝ → E) (f : E → E)
     (g : E → QState I) (Dg : E → E →L[ℝ] QState I) (t : ℝ) : QState I :=
   Dg (x t) (f (x t))-A *ᵥ g (x t)
 
+/-- The ordered evolution associated with the constant coefficient `-A` from `s` to `t` equals
+`exp((t-s) A)`. -/
 theorem ordered_const_exp {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (s t : ℝ) :
     orderedEvolution (fun _ => -A) s t=NormedSpace.exp ((t-s) • A) := by
@@ -47,6 +80,9 @@ theorem ordered_const_exp {I : Type} [Fintype I] [DecidableEq I]
     (orderedEvolution_hasDerivAt _ continuous_const s)
   exact (congrFun he t).symm
 
+/-- If `x' = f(x)` and `Dg` is the derivative of `g` along `x` at every real time, with
+continuous residual, then the lifted trajectory is the forced linear solution with generator
+`A`, forcing `liftResidual`, and initial value `g(x(0))`. -/
 theorem lifted_eq_forced {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (x : ℝ → E) (f : E → E) (g : E → QState I) (Dg : E → E →L[ℝ] QState I)
@@ -61,6 +97,9 @@ theorem lifted_eq_forced {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
   simp only [liftResidual,Matrix.neg_mulVec,neg_neg]
   abel
 
+/-- If `x' = f(x)` and `Dg` is the derivative of `g` along `x` at every real time, with
+continuous residual, then the error between the lifted trajectory and homogeneous matrix
+evolution equals the Duhamel integral of the propagated residual. -/
 theorem lifted_residual_duhamel {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (x : ℝ → E) (f : E → E) (g : E → QState I) (Dg : E → E →L[ℝ] QState I)
@@ -73,6 +112,8 @@ theorem lifted_residual_duhamel {E : Type*} [NormedAddCommGroup E] [NormedSpace 
   simp only [orderedForcedSolution,ordered_const_exp,sub_zero] at he
   exact sub_eq_iff_eq_add.mpr (by simpa only [add_comm] using! he)
 
+/-- If `x' = f(x)`, `Dg` is the derivative of `g` along `x`, and `Dg(x(t))(f(x(t))) = A g(x(t))`
+at every real time, then the lifted trajectory equals `exp(t A) g(x(0))` for every time. -/
 theorem exact_lifted_closure {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (x : ℝ → E) (f : E → E) (g : E → QState I) (Dg : E → E →L[ℝ] QState I)
@@ -88,6 +129,9 @@ theorem exact_lifted_closure {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ
   simp only [hr,Matrix.mulVec_zero,intervalIntegral.integral_zero] at he
   exact sub_eq_zero.mp he
 
+/-- If `x' = f(x)` and `Dg` is the derivative of `g` along `x` at every real time, with
+continuous residual, then the lifted propagation error equals the residual-forced linear
+solution with zero initial value. -/
 theorem lifted_error_eq_zero_forced {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (x : ℝ → E) (f : E → E) (g : E → QState I) (Dg : E → E →L[ℝ] QState I)
@@ -99,6 +143,9 @@ theorem lifted_error_eq_zero_forced {E : Type*} [NormedAddCommGroup E] [NormedSp
   rw [lifted_residual_duhamel A x f g Dg hx hg hr t]
   simp only [orderedForcedSolution,ordered_const_exp,sub_zero,Matrix.mulVec_zero,zero_add]
 
+/-- For dissipative `A`, assume `x' = f(x)` and that `Dg` is the derivative of `g` along `x` at
+every real time, with continuous residual. The Euclidean lifted error at any nonnegative
+time is bounded by the integral of the residual norm. -/
 theorem lifted_residual_norm_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (hA : ((-A)+(-A).conjTranspose).PosSemidef)
@@ -114,6 +161,8 @@ theorem lifted_residual_norm_bound {E : Type*} [NormedAddCommGroup E] [NormedSpa
   have hz : toEuclidean_fromVec (0:QState I)=0 := rfl
   simpa only [hz,norm_zero,zero_add] using! he
 
+/-- The derivative of a matrix-vector product is the derivative matrix applied to the current
+vector plus the current matrix applied to the derivative vector. -/
 theorem matrix_vector_deriv {I : Type} [Fintype I] [DecidableEq I]
     {M : ℝ → Matrix I I ℂ} {u : ℝ → QState I} {M' : Matrix I I ℂ} {u' : QState I} {t : ℝ}
     (hM : HasDerivAt M M' t) (hu : HasDerivAt u u' t) :
@@ -125,6 +174,9 @@ theorem matrix_vector_deriv {I : Type} [Fintype I] [DecidableEq I]
   simpa only [Matrix.mulVec,dotProduct,Finset.sum_add_distrib] using!
     HasDerivAt.fun_sum (fun j (_ : j ∈ Finset.univ) => (hm j).mul (hv j))
 
+/-- If `x' = f(x)` and `Dg` is the derivative of `g` along `x` on `[0, T]`, with continuous
+residual there, then the lifted propagation error at nonnegative `T` equals the propagated
+residual integral over that interval. -/
 theorem lifted_residual_duhamel_on_interval {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (x : ℝ → E) (f : E → E) (g : E → QState I) (Dg : E → E →L[ℝ] QState I)
@@ -156,6 +208,8 @@ theorem lifted_residual_duhamel_on_interval {E : Type*} [NormedAddCommGroup E] [
     (fun s hs => hd s (by simpa only [Set.uIcc_of_le hT] using! hs)) hint
   simpa only [M,sub_self,zero_smul,NormedSpace.exp_zero,Matrix.one_mulVec,sub_zero] using! hi.symm
 
+/-- If `x' = f(x)`, `Dg` is the derivative of `g` along `x`, and `Dg(x(s))(f(x(s))) = A g(x(s))`
+throughout `[0, T]`, then the lifted endpoint equals `exp(T A) g(x(0))` for nonnegative `T`. -/
 theorem exact_lifted_closure_on_interval {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (x : ℝ → E) (f : E → E) (g : E → QState I) (Dg : E → E →L[ℝ] QState I)
@@ -180,6 +234,8 @@ theorem exact_lifted_closure_on_interval {E : Type*} [NormedAddCommGroup E] [Nor
   rw [hi] at he
   exact sub_eq_zero.mp he
 
+/-- If `-(A + A†)` is positive semidefinite, then `exp(t A)` has Euclidean operator norm at most
+one for nonnegative `t`. -/
 theorem dissipative_exp_norm {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (hA : ((-A)+(-A).conjTranspose).PosSemidef) (t : ℝ) (ht : 0 ≤ t) :
     ‖NormedSpace.exp (t • A)‖ ≤ 1 := by
@@ -188,6 +244,9 @@ theorem dissipative_exp_norm {I : Type} [Fintype I] [DecidableEq I] (A : Matrix 
   simpa only [Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution,
     smul_neg,neg_smul,neg_neg] using! h
 
+/-- For dissipative `A`, assume `x' = f(x)`, that `Dg` is the derivative of `g` along `x`, and
+that the residual is continuous on `[0, T]` with nonnegative `T`. The Euclidean lifted
+endpoint error is at most the integral of the residual norm. -/
 theorem lifted_residual_norm_bound_on_interval {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
     (hA : ((-A)+(-A).conjTranspose).PosSemidef)

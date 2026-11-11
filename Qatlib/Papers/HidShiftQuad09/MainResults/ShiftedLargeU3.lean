@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HidShiftQuad09.MainResults.Defs
 import Qatlib.Papers.HidShiftQuad09.MainResults.FindCloseQuadratic
+
+/-!
+# Bent spectra and supplied quadratic approximations
+
+This module develops spectral and approximation consequences used in the large-third-Gowers-norm
+discussion of [Roetteler2009]. Bent functions have nonzero Fourier coefficients and a
+representation by signs times their common magnitude.
+
+Given a quadratic polynomial with the stated high absolute correlation, `largeU3_findClose`
+derives the disagreement alternative. The theorem `largeU3_step1_success` transfers the earlier
+perturbation estimate under the supplied vector-overlap assumptions.
+
+## Main statements
+
+* `bent_fourier_sign`: extracts the sign pattern of a bent spectrum.
+* `largeU3_findClose`: deduces disagreement bounds from an existing correlated quadratic.
+* `largeU3_step1_success`: gives the conditional success-overlap lower bound.
+
+## References
+
+* [Roetteler, 2009][Roetteler2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +39,7 @@ namespace Qatlib.Papers.HidShiftQuad09.MainResults.ShiftedLargeU3
 open scoped BigOperators RealInnerProductSpace
 open Qatlib.Papers.HidShiftQuad09.MainResults.Defs
 
+/-- Every Fourier coefficient of a bent Boolean function is nonzero. [Roetteler2009]. -/
 theorem bent_fourierCoeff_ne_zero {n : ℕ} (f : Cube n → ZMod 2) (hb : bent f)
     (w : Cube n) : fourierCoeff f w ≠ 0 := by
   intro h
@@ -25,6 +49,8 @@ theorem bent_fourierCoeff_ne_zero {n : ℕ} (f : Cube n → ZMod 2) (hb : bent f
     Real.rpow_pos_of_pos (by norm_num) _
   linarith
 
+/-- The Fourier coefficients of a bent function factor as signs in `{1, -1}` times the common
+magnitude `2 ^ (-n / 2)`. [Roetteler2009]. -/
 theorem bent_fourier_sign {n : ℕ} (f : Cube n → ZMod 2) (hb : bent f) :
     ∃ σ : Cube n → ℝ,
       (∀ w, σ w = 1 ∨ σ w = -1) ∧
@@ -44,6 +70,8 @@ theorem bent_fourier_sign {n : ℕ} (f : Cube n → ZMod 2) (hb : bent f) :
       (2 : ℝ) ^ (-(n : ℝ) / 2)
     rw [div_mul_cancel₀ _ hcne]
 
+/-- A correlation greater than `1 - 4 * ε` in absolute value with a quadratic polynomial forces
+disagreement less than `2 * ε` or greater than `1 - 2 * ε`. [Roetteler2009]. -/
 theorem close_of_largeU3_input {n : ℕ} (f : Cube n → ZMod 2) (q : QuadPoly n)
     (ε : ℝ) (hcorr : 1 - 4 * ε < |corr f q.eval|) :
     disagreeFrac f q.eval < 2 * ε ∨ 1 - 2 * ε < disagreeFrac f q.eval := by
@@ -52,6 +80,9 @@ theorem close_of_largeU3_input {n : ℕ} (f : Cube n → ZMod 2) (q : QuadPoly n
   · left; linarith
   · right; linarith
 
+/-- If a quadratic polynomial with absolute correlation greater than `1 - 4 * ε` exists, one
+exists with that correlation and the corresponding small- or large-disagreement alternative.
+[Roetteler2009]. -/
 theorem largeU3_findClose (n : ℕ) (ε : ℝ) (f : Cube n → ZMod 2)
     (hinv : ∃ q : QuadPoly n, 1 - 4 * ε < |corr f q.eval|) :
     ∃ q : QuadPoly n,
@@ -60,6 +91,8 @@ theorem largeU3_findClose (n : ℕ) (ε : ℝ) (f : Cube n → ZMod 2)
   obtain ⟨q, hq⟩ := hinv
   exact ⟨q, hq, close_of_largeU3_input f q ε hq⟩
 
+/-- Under the specified high-correlation and unit-vector overlap assumptions, the squared
+success overlap is bounded below by a positive multiple of `1 - n * ε`. [Roetteler2009]. -/
 theorem largeU3_step1_success
     (n : ℕ) (hn : 0 < n) (ε : ℝ) (f : Cube n → ZMod 2) (q : QuadPoly n)
     (hε0 : 0 ≤ ε)

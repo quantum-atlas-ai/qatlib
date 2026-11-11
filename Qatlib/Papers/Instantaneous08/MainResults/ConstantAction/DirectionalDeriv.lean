@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.CodeWeight
+
+/-!
+# Directional differences and X-program bias
+
+This module defines `fdiff` as the signed action at `a` minus the signed action at `a + s`. It
+rewrites the π/8 X-program bias using this finite difference, following the
+directional-difference formulation of Lemma 5 in [ShepherdBremner2009].
+
+## Main statements
+
+* `fdiff_eq`: expresses the finite difference through selected-row weights.
+* `bias_eq_cosSq_fdiff`: gives the bias as a cosine-squared average.
+* `bias_eq_one_iff`: characterizes unit bias by pointwise unit cosine squares.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,15 +37,20 @@ open Qatlib.Papers.Instantaneous08.MainResults.XProgram
 
 attribute [local instance] Classical.propDecidable
 
+/-- The finite difference `actSum p a - actSum p (a + s)` of the signed action in direction `s`. -/
 def fdiff {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) : ℝ :=
   actSum p a - actSum p (a + s)
 
+/-- The finite difference equals twice the selected-row count minus four times the induced code
+weight. See [ShepherdBremner2009]. -/
 theorem fdiff_eq {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) :
     fdiff p s a = 2 * ((nSub p s : ℝ) - 2 * (codeWeight p s a : ℝ)) := by
   unfold fdiff
   rw [actSum_shift]
   ring
 
+/-- At action π/8, the bias in direction `s` is the uniform average of `cos (π / 16 * fdiff p s
+a) ^ 2`, following [Shepherd and Bremner, Lemma 5][ShepherdBremner2009]. -/
 theorem bias_eq_cosSq_fdiff {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n) :
     (∑ x : F2Vec n,
         (if dot x s = 0 then prob p (fun _ => Real.pi / 8) x else 0)) =
@@ -64,6 +88,8 @@ theorem bias_eq_cosSq_fdiff {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n) :
   field_simp
   ring
 
+/-- The π/8 X-program bias equals one if and only if every cosine-square term in its
+finite-difference average equals one. -/
 theorem bias_eq_one_iff {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n) :
     (∑ x : F2Vec n,
         (if dot x s = 0 then prob p (fun _ => Real.pi / 8) x else 0)) = 1 ↔

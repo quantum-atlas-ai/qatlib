@@ -8,6 +8,25 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.Data.Complex.Basic
 import Mathlib.Tactic
 
+/-!
+# Spatial operators on a spin register
+
+This module models the spatial-only action underlying spin-free simulation in [Whitfield2013].
+The matrix `liftSpatial A` acts as `A` on the spatial index and as the identity on the spin
+index, and `productState` fixes a chosen spin label.
+
+## Main statements
+
+* `liftSpatial_mul` and `liftSpatial_conjTranspose`: compatibility with multiplication and
+  adjoints.
+* `liftSpatial_unitary`: preservation of the two unitary identities.
+* `spinFree_simulation`: unitary spatial evolution of the spatial component of a product state.
+
+## References
+
+* [Whitfield, 2013][Whitfield2013]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.SpinFreeSim13.ConditionalLift
@@ -16,9 +35,12 @@ open Matrix
 
 variable {R S : Type*}
 
+/-- Lifts a spatial matrix to the product register by tensoring its entries with the identity on
+the spin index. -/
 def liftSpatial [DecidableEq S] (A : Matrix R R ℂ) : Matrix (R × S) (R × S) ℂ :=
   fun a b => A a.1 b.1 * (if a.2 = b.2 then (1 : ℂ) else 0)
 
+/-- The spatial lift of the identity matrix is the identity on the product register. -/
 theorem liftSpatial_one [DecidableEq R] [DecidableEq S] :
     liftSpatial (R := R) (S := S) (1 : Matrix R R ℂ) = 1 := by
   ext a b
@@ -30,6 +52,8 @@ theorem liftSpatial_one [DecidableEq R] [DecidableEq S] :
       simp [h, h1, h2]
     · simp [h, h1]
 
+/-- Summing a product of two complex Kronecker deltas over the intermediate index gives the
+delta between the exterior indices. -/
 theorem sum_ite_delta {S : Type*} [Fintype S] [DecidableEq S] (x z : S) :
     (∑ y : S, (if x = y then (1 : ℂ) else 0) * (if y = z then (1 : ℂ) else 0))
       = (if x = z then 1 else 0) := by
@@ -44,6 +68,7 @@ theorem sum_ite_delta {S : Type*} [Fintype S] [DecidableEq S] (x z : S) :
     · subst hxy; simp [h]
     · simp [hxy]
 
+/-- The spatial lift preserves matrix multiplication. -/
 theorem liftSpatial_mul [Fintype R] [Fintype S] [DecidableEq S] (A B : Matrix R R ℂ) :
     liftSpatial (R := R) (S := S) (A * B) = liftSpatial A * liftSpatial B := by
   ext a b
@@ -68,6 +93,7 @@ theorem liftSpatial_mul [Fintype R] [Fintype S] [DecidableEq S] (A B : Matrix R 
           intro y _
           ring
 
+/-- The spatial lift commutes with conjugate transpose. -/
 theorem liftSpatial_conjTranspose [Fintype R] [Fintype S] [DecidableEq S] (A : Matrix R R ℂ) :
     liftSpatial (R := R) (S := S) A.conjTranspose = (liftSpatial A).conjTranspose := by
   ext a b
@@ -76,9 +102,12 @@ theorem liftSpatial_conjTranspose [Fintype R] [Fintype S] [DecidableEq S] (A : M
   · rw [if_pos h, if_pos h.symm]; simp
   · rw [if_neg h, if_neg (fun hh => h hh.symm)]; simp
 
+/-- The product amplitude with spatial component `ψ` and spin component supported at `s0`. -/
 def productState [DecidableEq S] (ψ : R → ℂ) (s0 : S) : R × S → ℂ :=
   fun a => ψ a.1 * (if a.2 = s0 then (1 : ℂ) else 0)
 
+/-- A lifted spatial matrix acts on the spatial component of a product state and preserves its
+fixed spin component. -/
 theorem liftSpatial_mulVec_productState [Fintype R] [Fintype S] [DecidableEq S]
     (U : Matrix R R ℂ) (ψ : R → ℂ) (s0 : S) :
     liftSpatial U *ᵥ productState ψ s0 = productState (U *ᵥ ψ) s0 := by
@@ -103,6 +132,8 @@ theorem liftSpatial_mulVec_productState [Fintype R] [Fintype S] [DecidableEq S]
     _ = (∑ x : R, U a.1 x * ψ x) * (if a.2 = s0 then (1 : ℂ) else 0) := by
           rw [Finset.sum_mul]
 
+/-- If a spatial matrix satisfies both unitary identities, its spatial lift satisfies both
+identities on the product register. -/
 theorem liftSpatial_unitary [Fintype R] [Fintype S] [DecidableEq R] [DecidableEq S]
     (U : Matrix R R ℂ)
     (hU : U.conjTranspose * U = 1 ∧ U * U.conjTranspose = 1) :
@@ -112,6 +143,7 @@ theorem liftSpatial_unitary [Fintype R] [Fintype S] [DecidableEq R] [DecidableEq
   · rw [← liftSpatial_conjTranspose, ← liftSpatial_mul, hU.1, liftSpatial_one]
   · rw [← liftSpatial_conjTranspose, ← liftSpatial_mul, hU.2, liftSpatial_one]
 
+/-- The spatial lift is injective when the spin index type is nonempty. -/
 theorem liftSpatial_injective [DecidableEq S] [Nonempty S] :
     Function.Injective (liftSpatial : Matrix R R ℂ → Matrix (R × S) (R × S) ℂ) := by
   intro A B h
@@ -119,6 +151,8 @@ theorem liftSpatial_injective [DecidableEq S] [Nonempty S] :
   have h' := congrFun (congrFun h (r, Classical.arbitrary S)) (r', Classical.arbitrary S)
   simpa [liftSpatial] using h'
 
+/-- A unitary spatial matrix lifts to a unitary matrix on the product register and acts on a
+product state by evolving only its spatial component. See [Whitfield2013]. -/
 theorem spinFree_simulation [Fintype R] [Fintype S] [DecidableEq R] [DecidableEq S]
     (U : Matrix R R ℂ)
     (hU : U.conjTranspose * U = 1 ∧ U * U.conjTranspose = 1)

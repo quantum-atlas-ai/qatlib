@@ -17,6 +17,26 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedStat
+
+/-!
+# LCU success bounds and saturating circuits
+
+This module proves the LCU success bound `theorem13Corrected` and constructs unitary preparation
+and unpreparation matrices attaining it. It also computes explicit scalar-branch examples,
+including a one-parameter phase family, within the linear-combination framework
+[ChildsWiebe2012].
+
+## Main statements
+
+* `theorem13Corrected`: The coefficient-mass success-probability bound.
+* `fig3SaturatingSuccess`: Unitary ancillary gates attaining the bound.
+* `theorem13RefutedByPhaseFamily`: Explicit phase-family success and distance formulas.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LinearCombination
@@ -31,6 +51,8 @@ set_option linter.unusedSimpArgs false
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The Figure 3 LCU circuit is unitary when all selected branches and both ancillary gates are
+unitary. -/
 theorem fig3CircuitUnitary (U : J → Matrix I I ℂ) (hU : ∀ m, U m ∈ Matrix.unitaryGroup I ℂ)
     (A B : Matrix J J ℂ) (hA : A ∈ Matrix.unitaryGroup J ℂ)
     (hB : B ∈ Matrix.unitaryGroup J ℂ) :
@@ -39,6 +61,8 @@ theorem fig3CircuitUnitary (U : J → Matrix I I ℂ) (hU : ∀ m, U m ∈ Matri
     (tensorGate_unitary hB (Submonoid.one_mem _))
     (Submonoid.mul_mem _ (select_unitary U hU) (tensorGate_unitary hA (Submonoid.one_mem _)))
 
+/-- Each output coordinate of the Figure 3 circuit is the sum of branch outputs weighted by the
+corresponding preparation-column and unpreparation-row entries. -/
 theorem fig3Fiber (U : J → Matrix I I ℂ) (A B : Matrix J J ℂ) (j₀ : J) (ψ : QState I)
     (j : J) (i : I) :
     (Fig3Circuit U A B *ᵥ TensorState (Ket j₀) ψ) (j, i)
@@ -89,6 +113,8 @@ theorem fig3Fiber (U : J → Matrix I I ℂ) (A B : Matrix J J ℂ) (j₀ : J) (
   simp only [hselect]
   exact Finset.sum_congr rfl fun m _ => by rw [mulVec_ket_apply, mul_assoc]
 
+/-- When the ancillary coefficient products equal `K * C m`, the selected-fiber success mass
+equals `‖K‖²` times the squared norm of the weighted branch output. -/
 theorem fig3SuccessProb_of_coeff (U : J → Matrix I I ℂ) (A B : Matrix J J ℂ) (C : J → ℂ)
     (j₀ : J) (K : ℂ) (hA3 : ∀ m, B j₀ m * A m j₀ = K * C m) (ψ : QState I) :
     Fig3SuccessProb U A B j₀ ψ
@@ -119,6 +145,8 @@ theorem fig3SuccessProb_of_coeff (U : J → Matrix I I ℂ) (A B : Matrix J J �
   exact Finset.sum_congr rfl fun i _ => by
     rw [hfib i, norm_mul, mul_pow]
 
+/-- The sum of products of two nonnegative real families is bounded by the product of their
+Euclidean norms. -/
 theorem cauchySchwarzSum (x y : J → ℝ) (hx : ∀ m, 0 ≤ x m) (hy : ∀ m, 0 ≤ y m) :
     ∑ m, x m * y m ≤ Real.sqrt (∑ m, x m ^ 2) * Real.sqrt (∑ m, y m ^ 2) := by
   have h := abs_real_inner_le_norm (x := WithLp.toLp 2 x) (WithLp.toLp 2 y)
@@ -133,6 +161,7 @@ theorem cauchySchwarzSum (x y : J → ℝ) (hx : ∀ m, 0 ≤ x m) (hy : ∀ m, 
     _ ≤ |∑ m, y m * x m| := le_abs_self _
     _ ≤ _ := h
 
+/-- Each column of a unitary matrix has squared norm sum one. -/
 theorem fig3ColNormSq {A : Matrix J J ℂ} (hA : A ∈ Matrix.unitaryGroup J ℂ) (j₀ : J) :
     ∑ m, ‖A m j₀‖ ^ 2 = 1 := by
   have h0 := (Matrix.mem_unitaryGroup_iff' (A := A)).mp hA
@@ -149,6 +178,7 @@ theorem fig3ColNormSq {A : Matrix J J ℂ} (hA : A ∈ Matrix.unitaryGroup J ℂ
     rw [Finset.sum_congr rfl fun m _ => conv m, e]
   exact_mod_cast s
 
+/-- Each row of a unitary matrix has squared norm sum one. -/
 theorem fig3RowNormSq {B : Matrix J J ℂ} (hB : B ∈ Matrix.unitaryGroup J ℂ) (j₀ : J) :
     ∑ m, ‖B j₀ m‖ ^ 2 = 1 := by
   have h0 := (Matrix.mem_unitaryGroup_iff (A := B)).mp hB
@@ -165,6 +195,9 @@ theorem fig3RowNormSq {B : Matrix J J ℂ} (hB : B ∈ Matrix.unitaryGroup J ℂ
     rw [Finset.sum_congr rfl fun m _ => conv m, e]
   exact_mod_cast s
 
+/-- For unitary branches and ancillary gates satisfying the coefficient factorization, the
+normalized-input success probability is bounded by the squared weighted-output norm divided
+by the squared total coefficient norm [ChildsWiebe2012]. -/
 theorem theorem13Corrected : Theorem13Corrected := by
   intro J I _ _ _ _ U hU C hsC A hA B hB j₀ K hA3 ψ hψ
   have hred := fig3SuccessProb_of_coeff U A B C j₀ K hA3 ψ
@@ -199,6 +232,8 @@ section ColumnCompletion
 
 variable {K₁ : Type} [Fintype K₁] [DecidableEq K₁]
 
+/-- Every complex vector with squared norm sum one can be prescribed as a specified column of a
+unitary matrix. -/
 theorem existsUnitaryColumn (j₀ : K₁) (v : QState K₁) (hv : ∑ m, ‖v m‖ ^ 2 = 1) :
     ∃ A : Matrix K₁ K₁ ℂ, A ∈ Matrix.unitaryGroup K₁ ℂ ∧ ∀ m, A m j₀ = v m := by
   classical
@@ -384,6 +419,8 @@ theorem existsUnitaryColumn (j₀ : K₁) (v : QState K₁) (hv : ∑ m, ‖v m�
 
 end ColumnCompletion
 
+/-- For a coefficient family of positive total norm, there are unitary ancillary gates whose
+selected row-column products equal the coefficients divided by their total norm. -/
 theorem fig3SaturatingCircuit (j₀ : J) (C : J → ℂ)
     (hs : 0 < ∑ m, ‖C m‖) :
     ∃ A B : Matrix J J ℂ, A ∈ Matrix.unitaryGroup J ℂ ∧ B ∈ Matrix.unitaryGroup J ℂ ∧
@@ -453,6 +490,8 @@ theorem fig3SaturatingCircuit (j₀ : J) (C : J → ℂ)
             rw [one_div, Complex.ofReal_inv, div_eq_inv_mul]
             ring
 
+/-- For a coefficient family of positive total norm, unitary ancillary gates attain success mass
+equal to the squared weighted-output norm divided by the squared total coefficient norm. -/
 theorem fig3SaturatingSuccess (U : J → Matrix I I ℂ) (C : J → ℂ) (hs : 0 < ∑ m, ‖C m‖)
     (j₀ : J) (ψ : QState I) :
     ∃ A B : Matrix J J ℂ, A ∈ Matrix.unitaryGroup J ℂ ∧ B ∈ Matrix.unitaryGroup J ℂ ∧
@@ -471,30 +510,37 @@ theorem fig3SaturatingSuccess (U : J → Matrix I I ℂ) (C : J → ℂ) (hs : 0
       div_eq_inv_mul, ← inv_pow]
   exact hK
 
+/-- The complex number given by the nonnegative real square root of `2 / 3`. -/
 private noncomputable def cwSqrtTwoThirds : ℂ := ((Real.sqrt (2 / 3) : ℝ) : ℂ)
 
+/-- The complex number given by the nonnegative real square root of `1 / 3`. -/
 private noncomputable def cwSqrtOneThird : ℂ := ((Real.sqrt (1 / 3) : ℝ) : ℂ)
 
+/-- The product of `cwSqrtTwoThirds` with itself equals `2 / 3`. -/
 theorem cwSqrtTwoThirds_sq : cwSqrtTwoThirds * cwSqrtTwoThirds = 2 / 3 := by
   unfold cwSqrtTwoThirds
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   push_cast
   norm_num
 
+/-- The product of `cwSqrtOneThird` with itself equals `1 / 3`. -/
 theorem cwSqrtOneThird_sq : cwSqrtOneThird * cwSqrtOneThird = 1 / 3 := by
   unfold cwSqrtOneThird
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   push_cast
   norm_num
 
+/-- The square of `cwSqrtTwoThirds` equals `2 / 3`. -/
 theorem cwSqrtTwoThirds_pow : cwSqrtTwoThirds ^ 2 = 2 / 3 := by
   rw [pow_two]
   exact cwSqrtTwoThirds_sq
 
+/-- The square of `cwSqrtOneThird` equals `1 / 3`. -/
 theorem cwSqrtOneThird_pow : cwSqrtOneThird ^ 2 = 1 / 3 := by
   rw [pow_two]
   exact cwSqrtOneThird_sq
 
+/-- A scalar multiple of the identity is unitary whenever the complex scalar has norm one. -/
 theorem scalarOne_mem_unitaryGroup {z : ℂ} (hz : ‖z‖ = 1) :
     z • (1 : Matrix I I ℂ) ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, Matrix.conjTranspose_smul,
@@ -506,11 +552,14 @@ theorem scalarOne_mem_unitaryGroup {z : ℂ} (hz : ‖z‖ = 1) :
   rw [starRingEnd_apply] at hone
   rw [hone, one_smul]
 
+/-- The Boolean-indexed rotation matrix with diagonal entries `√(2 / 3)` and off-diagonal
+entries `-√(1 / 3)` and `√(1 / 3)`. -/
 noncomputable def cwRotation : Matrix Bool Bool ℂ :=
   Matrix.of fun j m =>
     if j then (if m then cwSqrtTwoThirds else cwSqrtOneThird)
     else if m then -cwSqrtOneThird else cwSqrtTwoThirds
 
+/-- The explicit Boolean-indexed rotation `cwRotation` is unitary. -/
 theorem cwRotation_unitary : cwRotation ∈ Matrix.unitaryGroup Bool ℂ := by
   have hreal : ∀ j m : Bool, (starRingEnd ℂ) (cwRotation j m) = cwRotation j m := by
     intro j m
@@ -528,6 +577,8 @@ theorem cwRotation_unitary : cwRotation ∈ Matrix.unitaryGroup Bool ℂ := by
     norm_num <;>
     ring
 
+/-- The selected row-column product of `cwRotation` equals one third of the coefficient two or
+minus one, according to the Boolean branch. -/
 theorem cwRotation_coeff (m : Bool) :
     cwRotation false m * cwRotation m false = (1 / 3 : ℂ) * (if m then -1 else 2) := by
   rcases m <;>
@@ -537,14 +588,18 @@ theorem cwRotation_coeff (m : Bool) :
   · rw [← cwSqrtOneThird_sq]
     ring
 
+/-- The one-dimensional branch family consisting of the identity and its negative. -/
 noncomputable def cwBranchesTwoMinusOne : Bool → Matrix (Fin 1) (Fin 1) ℂ :=
   fun m => (if m then -1 else (1 : ℂ)) • 1
 
+/-- Each branch in `cwBranchesTwoMinusOne` is unitary. -/
 theorem cwBranchesTwoMinusOne_mem_unitaryGroup (m : Bool) :
     cwBranchesTwoMinusOne m ∈ Matrix.unitaryGroup (Fin 1) ℂ := by
   refine scalarOne_mem_unitaryGroup ?_
   rcases m <;> simp [cwBranchesTwoMinusOne]
 
+/-- The explicit rotation realizes the coefficients two and minus one with factor `1 / 3`, and
+the corresponding identity and negative-identity branches give success probability one. -/
 theorem theorem13RefutedByTwoMinusOne :
     (∀ m : Bool, cwRotation false m * cwRotation m false
         = (1 / 3 : ℂ) * (if m then -1 else (2 : ℂ))) ∧
@@ -570,29 +625,37 @@ theorem theorem13RefutedByTwoMinusOne :
   rw [hket, hnorm, Fin.sum_univ_one]
   norm_num
 
+/-- The complex phase candidate with real part `(n² - 1) / (n² + 1)` and imaginary part `2 * n /
+(n² + 1)`. -/
 noncomputable def cwZ (n : ℕ) : ℂ :=
   (((n : ℝ) ^ 2 - 1) / ((n : ℝ) ^ 2 + 1) : ℝ)
     + (((2 * (n : ℝ)) / ((n : ℝ) ^ 2 + 1) : ℝ)) * Complex.I
 
+/-- The real part of `cwZ n` equals `(n² - 1) / (n² + 1)`. -/
 theorem cwZ_re (n : ℕ) : (cwZ n).re = ((n : ℝ) ^ 2 - 1) / ((n : ℝ) ^ 2 + 1) := by
   rw [cwZ, Complex.add_re, Complex.mul_re, Complex.I_re, Complex.I_im, Complex.ofReal_re,
     Complex.ofReal_im]
   ring
 
+/-- The imaginary part of `cwZ n` equals `2 * n / (n² + 1)`. -/
 theorem cwZ_im (n : ℕ) : (cwZ n).im = (2 * (n : ℝ)) / ((n : ℝ) ^ 2 + 1) := by
   rw [cwZ, Complex.add_im, Complex.mul_im, Complex.I_re, Complex.I_im, Complex.ofReal_re,
     Complex.ofReal_im]
   ring
 
+/-- For positive `n`, the squared norm of `cwZ n` is one. -/
 theorem cwZ_normSq (n : ℕ) (hn : 0 < n) : ‖cwZ n‖ ^ 2 = 1 := by
   rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply, cwZ_re, cwZ_im]
   have hne : ((n : ℝ) ^ 2 + 1) ≠ 0 := by positivity
   field_simp
   ring
 
+/-- The one-dimensional branch family consisting of the identity and the scalar phase `cwZ n`
+times the identity. -/
 noncomputable def cwBranchesPhase (n : ℕ) : Bool → Matrix (Fin 1) (Fin 1) ℂ :=
   fun m => (if m then cwZ n else (1 : ℂ)) • 1
 
+/-- For positive `n`, each operator in the phase branch family is unitary. -/
 theorem cwBranchesPhase_mem_unitaryGroup {n : ℕ} (hn : 0 < n) (m : Bool) :
     cwBranchesPhase n m ∈ Matrix.unitaryGroup (Fin 1) ℂ := by
   refine scalarOne_mem_unitaryGroup ?_
@@ -605,6 +668,9 @@ theorem cwBranchesPhase_mem_unitaryGroup {n : ℕ} (hn : 0 < n) (m : Bool) :
       · exact absurd h' (by linarith [norm_nonneg (cwZ n)])
     rw [h1]
 
+/-- For `n ≥ 1`, the explicit phase family has success probability `(n² + 9) / (9 * (n² + 1))`,
+failure probability below `8 / 9`, and squared branch distance `4 / (n² + 1)`. The phase has
+squared norm one. -/
 theorem theorem13RefutedByPhaseFamily (n : ℕ) (hn : 1 ≤ n) :
     ‖cwZ n‖ ^ 2 = 1 ∧
       Fig3SuccessProb (cwBranchesPhase n) cwRotation cwRotation false (Ket (0 : Fin 1))

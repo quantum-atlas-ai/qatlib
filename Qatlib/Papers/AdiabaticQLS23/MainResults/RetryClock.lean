@@ -8,6 +8,31 @@ import Qatlib.Concepts.FairRandomBits.GeometricRetry
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import Qatlib.Papers.AdiabaticQLS23.MainResults.FilterCost
 import Mathlib.Tactic
+
+/-!
+# Paid clocks for geometric QLS retries
+
+Connects a Bernoulli failure model to the paid branch clock for repeated QLS attempts in
+[CostaEtAl2025]. The theorem `actualPaidClock` proves zero nontermination mass, finite expected
+paid time, and the exact expression `G + B * q / (1 - q)`.
+
+The budget lemmas compare this clock with the exact filtering and adiabatic costs, then with
+`paperTotalCost` under explicit bounds on branch costs and the failure probability.
+
+## Main statements
+
+* `actualPaidClock`: Evaluates the expected paid time and proves finiteness.
+* `actualReceipt`: Gives the probability of success at paid time `n * B + G`.
+* `paid_clock_le_paper_cost`: Bounds the paid clock by the paper cost under the domination
+  condition.
+* `paid_clock_le_corrected_cost`: Uses an upper bound `δ` on the failure probability as the cost
+  parameter.
+
+## References
+
+* [Costa et al., 2025][CostaEtAl2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,13 +42,17 @@ open scoped ENNReal
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.FairRandomBits.GeometricRetry
 
+/-- The Bernoulli distribution with success outcome `true` of mass `1 - q` and failure outcome
+`false` of mass `q`. -/
 def failureCoin (q : ℝ) (h0 : 0 ≤ q) (_h1 : q < 1) : PMF Bool :=
   PMF.bernoulli ((1-q).toNNReal) (Real.toNNReal_le_one.mpr (by linarith))
 
+/-- The success mass of `failureCoin q h0 h1` is `ENNReal.ofReal (1 - q)`. -/
 @[simp] theorem failureCoin_true (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1) :
     failureCoin q h0 h1 true = ENNReal.ofReal (1-q) := by
   simp [failureCoin, PMF.bernoulli_apply, ENNReal.ofReal]
 
+/-- The failure mass of `failureCoin q h0 h1` is `ENNReal.ofReal q`. -/
 @[simp] theorem failureCoin_false (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1) :
     failureCoin q h0 h1 false = ENNReal.ofReal q := by
   simp only [failureCoin, PMF.bernoulli_apply, Bool.cond_false]
@@ -32,6 +61,9 @@ def failureCoin (q : ℝ) (h0 : 0 ≤ q) (_h1 : q < 1) : PMF Bool :=
   congr 1
   ring
 
+/-- For `0 ≤ q < 1` and positive branch costs `G` and `B`, the retry clock has zero
+nontermination mass, finite expected paid time, and real expectation `G + B * q / (1 - q)`.
+See [CostaEtAl2025]. -/
 theorem actualPaidClock (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
     (G B : ℕ) (hG : 0 < G) (hB : 0 < B) :
     generalNeverMass (branchClockNext (branchRetryNext (failureCoin q h0 h1) G B))
@@ -54,6 +86,8 @@ theorem actualPaidClock (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
     failureCoin_false, failureCoin_true, ENNReal.toReal_ofReal h0,
     ENNReal.toReal_ofReal (by linarith : 0 ≤ 1-q)]
 
+/-- For `0 ≤ q < 1` and positive branch costs, the joint mass of success at paid time `n * B +
+G` has real value `q ^ n * (1 - q)`. See [CostaEtAl2025]. -/
 theorem actualReceipt (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
     (G B : ℕ) (hG : 0 < G) (hB : 0 < B) (n : ℕ) :
     (branchHaltJoint (branchRetryNext (failureCoin q h0 h1) G B)
@@ -62,6 +96,8 @@ theorem actualReceipt (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
   simp [ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_ofReal, h0,
     show 0 ≤ 1-q by linarith]
 
+/-- If `G ≤ A + F` and `B ≤ A + F / 2`, the expected paid time is bounded by `F + (F / 2) *
+expectedFailures q + A * expectedAttempts q`. -/
 theorem paid_cost_le_exact_budget (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
     (G B : ℕ) (hG : 0 < G) (hB : 0 < B) (A F : ℝ)
     (hg : (G:ℝ) ≤ A+F) (hb : (B:ℝ) ≤ A+F/2) :
@@ -79,6 +115,8 @@ theorem paid_cost_le_exact_budget (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
       field_simp [ne_of_gt (show (0:ℝ) < 1-q by linarith)]
       ring
 
+/-- Under the stated branch-cost and positivity bounds, `q ≤ δ < 1`, `r < 1`, and `δ ≤ 2 * r - r
+^ 2`, the expected paid time is at most `paperTotalCost α κ Δ εf r`. See [CostaEtAl2025]. -/
 theorem paid_clock_le_paper_cost (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
     (G B : ℕ) (hG : 0 < G) (hB : 0 < B)
     (α κ Δ εf δ r : ℝ) (hα : 0 ≤ α) (hκ : 0 ≤ κ) (hΔ : 0 < Δ)
@@ -97,6 +135,8 @@ theorem paid_clock_le_paper_cost (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
   rw [he] at hp
   exact hp.trans (actual_cost_le_paper_cost hα hκ hΔ hε0 hε2 h0 hqd hδ hr hdom)
 
+/-- Under the stated branch-cost and positivity bounds and `q ≤ δ < 1`, the expected paid time
+is at most `paperTotalCost α κ Δ εf δ`. See [CostaEtAl2025]. -/
 theorem paid_clock_le_corrected_cost (q : ℝ) (h0 : 0 ≤ q) (h1 : q < 1)
     (G B : ℕ) (hG : 0 < G) (hB : 0 < B)
     (α κ Δ εf δ : ℝ) (hα : 0 ≤ α) (hκ : 0 ≤ κ) (hΔ : 0 < Δ)

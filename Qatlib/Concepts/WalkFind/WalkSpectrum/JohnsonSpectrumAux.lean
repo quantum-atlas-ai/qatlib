@@ -11,6 +11,30 @@ import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Data.Fintype.Pi
+
+/-!
+# Residual estimates for the Johnson walk
+
+`jwIdealWalk` replaces the first Johnson-walk half-step by the diagonal `jwSignCorrection`. The
+module computes block residual energies and bounds the Euclidean distance between the actual and
+ideal walks.
+
+The estimates combine with orthogonality to a vector concentrated at coordinate zero to localize
+eigenvalues near the ideal block phases and bound their distances from 1 and −1. See
+[Ambainis2007ElementDistinctness] for the mathematical background.
+
+## Main statements
+
+* `jwWalk_ideal_residual_norm`: norm bound for the walk perturbation.
+* `jwWalk_eigenvalue_localization_of_start_weight`: localization using a start-vector weight
+  bound.
+* `jwIdealBlock_amplification_bounds`: bounds for amplified ideal phases.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
@@ -20,15 +44,23 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- The complex number `1 - 2 * ε + 2 * I * sqrt (ε - ε²)` associated with an ideal Johnson-walk
+block. -/
 noncomputable def jwIdealBlockPhase (ε : ℝ) : ℂ :=
   (1-2*ε : ℝ) + Complex.I * (2*Real.sqrt (ε-ε*ε) : ℝ)
 
+/-- The diagonal matrix assigning sign −1 to coordinates whose Boolean `jwPsiCoord` component is
+true and sign 1 to the remaining coordinates. -/
 noncomputable def jwSignCorrection (k : ℕ) : Matrix (Fin (2*k+1)) (Fin (2*k+1)) ℂ :=
   Matrix.diagonal fun i => if (jwPsiCoord k i).2 then -1 else 1
 
+/-- The ideal Johnson walk obtained by composing `jwSignCorrection` with the second half-step
+`jwStep2`. -/
 noncomputable def jwIdealWalk (k r : ℕ) : Matrix (Fin (2*k+1)) (Fin (2*k+1)) ℂ :=
   jwStep2 k r * jwSignCorrection k
 
+/-- Decomposes a sum over `Fin (2 * k + 1)` into the `k` coordinate pairs and the final
+coordinate. -/
 theorem jwSumPairs {A : Type*} [AddCommMonoid A] (k : ℕ)
     (f : Fin (2*k+1) → A) :
     (∑ i, f i) =
@@ -61,12 +93,16 @@ theorem jwSumPairs {A : Type*} [AddCommMonoid A] (k : ℕ)
     simp only [Fin.val_last]
     exact Nat.mod_eq_of_lt (by omega)
 
+/-- Applying `jwSignCorrection` multiplies each coordinate by the sign determined by its Boolean
+type. -/
 theorem jwSignCorrection_action (k : ℕ) (v : Fin (2*k+1) → ℂ)
     (i : Fin (2*k+1)) :
     (jwSignCorrection k *ᵥ v) i = (if (jwPsiCoord k i).2 then -1 else 1)*v i := by
   classical
   simp [jwSignCorrection, Matrix.mulVec, dotProduct, Matrix.diagonal_apply]
 
+/-- On a coordinate indexed by `jwPairIndex k a j`, the sign correction multiplies by −1 when
+`a` is true and by 1 otherwise. -/
 theorem jwSignCorrection_pair_action (k : ℕ) (v : Fin (2*k+1) → ℂ)
     (a : Bool) (j : Fin k) :
     (jwSignCorrection k *ᵥ v) (jwPairIndex k a j) =
@@ -74,10 +110,13 @@ theorem jwSignCorrection_pair_action (k : ℕ) (v : Fin (2*k+1) → ℂ)
   rw [jwSignCorrection_action]
   cases a <;> simp [jwPairIndex,jwPsiCoord,Nat.add_mod]
 
+/-- The sign correction fixes the final coordinate of every vector. -/
 theorem jwSignCorrection_last_action (k : ℕ) (v : Fin (2*k+1) → ℂ) :
     (jwSignCorrection k *ᵥ v) (Fin.last (2*k)) = v (Fin.last (2*k)) := by
   simp [jwSignCorrection_action,jwPsiCoord]
 
+/-- For `0 ≤ e ≤ 1`, the squared residual energy between `jwD2 e` and the diagonal sign matrix
+is `4 * e` times the input energy. -/
 theorem jwD2_sign_residual_energy (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
     (x y : ℂ) :
     Complex.normSq ((jwD2 e false false - 1)*x + jwD2 e false true*y) +
@@ -87,6 +126,8 @@ theorem jwD2_sign_residual_energy (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
   norm_num [jwD2, Complex.normSq_apply]
   linear_combination 4*(x.re^2+x.im^2+y.re^2+y.im^2)*hs
 
+/-- For `0 ≤ e ≤ 1`, the ideal rotation block minus the identity has squared residual energy `4
+* e` times the input energy. -/
 theorem jwD2_rotation_energy_sub_one (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
     (x y : ℂ) :
     Complex.normSq ((jwD2 e false false - 1)*x - jwD2 e false true*y) +
@@ -94,6 +135,8 @@ theorem jwD2_rotation_energy_sub_one (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
       4*e*(Complex.normSq x + Complex.normSq y) := by
   simpa using! jwD2_sign_residual_energy e he he1 x (-y)
 
+/-- For `0 ≤ e ≤ 1`, the ideal rotation block plus the identity has squared residual energy `4 *
+(1 - e)` times the input energy. -/
 theorem jwD2_rotation_energy_add_one (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
     (x y : ℂ) :
     Complex.normSq ((jwD2 e false false + 1)*x - jwD2 e false true*y) +
@@ -103,6 +146,8 @@ theorem jwD2_rotation_energy_add_one (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
   norm_num [jwD2, Complex.normSq_apply]
   linear_combination 4*(x.re^2+x.im^2+y.re^2+y.im^2)*hs
 
+/-- Expresses the squared residual between the first half-step and the sign correction as a sum
+of pair energies weighted by `4 * (k - j) / (N - r)`, when `r < N` and `k ≤ N - r`. -/
 theorem jwStep1_sign_residual_energy (k N r : ℕ) (hNr : r < N)
     (hkr : k ≤ N-r) (v : Fin (2*k+1) → ℂ) :
     (∑ i, Complex.normSq ((jwStep1 k N r *ᵥ v) i -
@@ -136,6 +181,8 @@ theorem jwStep1_sign_residual_energy (k N r : ℕ) (hNr : r < N)
     (v (jwPairIndex k false j)) (v (jwPairIndex k true j)) using 1
   congr 1 <;> ring_nf
 
+/-- When `r < N` and `k ≤ N - r`, the squared residual between the first half-step and the sign
+correction is at most `4 * k / (N - r)` times the input energy. -/
 theorem jwStep1_sign_residual_bound (k N r : ℕ) (hNr : r < N)
     (hkr : k ≤ N-r) (v : Fin (2*k+1) → ℂ) :
     (∑ i, Complex.normSq ((jwStep1 k N r *ᵥ v) i -
@@ -168,6 +215,7 @@ theorem jwStep1_sign_residual_bound (k N r : ℕ) (hNr : r < N)
       rw [jwSumPairs]
       exact le_add_of_nonneg_right (Complex.normSq_nonneg _)
 
+/-- The second half-step preserves the sum of squared coordinate norms when `k ≤ r + 1`. -/
 theorem jwStep2_energy (k r : ℕ) (hkr : k ≤ r+1)
     (v : Fin (2*k+1) → ℂ) :
     (∑ i, Complex.normSq ((jwStep2 k r *ᵥ v) i)) =
@@ -187,6 +235,8 @@ theorem jwStep2_energy (k r : ℕ) (hkr : k ≤ r+1)
   rw [hdot,hdot] at h
   exact Complex.ofReal_injective h
 
+/-- Under the stated size conditions, the squared residual between the actual and ideal Johnson
+walks is at most `4 * k / (N - r)` times the input energy. -/
 theorem jwWalk_ideal_residual_bound (k N r : ℕ) (hNr : r < N)
     (hkN : k ≤ N-r) (hkr : k ≤ r+1) (v : Fin (2*k+1) → ℂ) :
     (∑ i, Complex.normSq ((jwWalk k N r *ᵥ v) i -
@@ -199,6 +249,8 @@ theorem jwWalk_ideal_residual_bound (k N r : ℕ) (hNr : r < N)
   rw [hvec,jwStep2_energy k r hkr]
   exact jwStep1_sign_residual_bound k N r hNr hkN v
 
+/-- The sign correction acts on reversed pair coordinates by the sign determined by the Boolean
+pair label. -/
 theorem jwSignCorrection_rev_pair_action (k : ℕ) (v : Fin (2*k+1) → ℂ)
     (a : Bool) (j : Fin k) :
     (jwSignCorrection k *ᵥ v) (jwPairIndex k a j).rev =
@@ -208,6 +260,8 @@ theorem jwSignCorrection_rev_pair_action (k : ℕ) (v : Fin (2*k+1) → ℂ)
     cases a <;> simp [jwPsiCoord,jwPairIndex,Fin.val_rev] <;> omega
   rw [ha]
 
+/-- Expresses the ideal walk on each reversed pair as the corresponding `jwD2` block with the
+second input coordinate negated. -/
 theorem jwIdealWalk_pair_action (k r : ℕ) (v : Fin (2*k+1) → ℂ)
     (a : Bool) (j : Fin k) :
     (jwIdealWalk k r *ᵥ v) (jwPairIndex k a j).rev =
@@ -217,11 +271,13 @@ theorem jwIdealWalk_pair_action (k r : ℕ) (v : Fin (2*k+1) → ℂ)
     jwSignCorrection_rev_pair_action,jwSignCorrection_rev_pair_action]
   simp [sub_eq_add_neg]
 
+/-- The ideal Johnson walk fixes coordinate zero of every vector. -/
 theorem jwIdealWalk_zero_action (k r : ℕ) (v : Fin (2*k+1) → ℂ) :
     (jwIdealWalk k r *ᵥ v) 0 = v 0 := by
   rw [jwIdealWalk,← Matrix.mulVec_mulVec,jwStep2_zero_action]
   simp [jwSignCorrection_action,jwPsiCoord]
 
+/-- Decomposes a sum over `Fin (2 * k + 1)` into reversed coordinate pairs and coordinate zero. -/
 theorem jwSumRevPairs {A : Type*} [AddCommMonoid A] (k : ℕ)
     (f : Fin (2*k+1) → A) :
     (∑ i, f i) =
@@ -230,6 +286,8 @@ theorem jwSumRevPairs {A : Type*} [AddCommMonoid A] (k : ℕ)
   rw [← Equiv.sum_comp (Fin.revPerm (n := 2*k+1)) f,jwSumPairs]
   simp [Fin.revPerm]
 
+/-- When `k ≤ r + 1`, the squared residual of the ideal walk from the identity is the sum of
+reversed pair energies weighted by `4 * (k - j) / (r + 1)`. -/
 theorem jwIdealWalk_energy_sub_one (k r : ℕ) (hkr : k ≤ r+1)
     (v : Fin (2*k+1) → ℂ) :
     (∑ i, Complex.normSq ((jwIdealWalk k r *ᵥ v) i-v i)) =
@@ -252,6 +310,9 @@ theorem jwIdealWalk_energy_sub_one (k r : ℕ) (hkr : k ≤ r+1)
     (v (jwPairIndex k false j).rev) (v (jwPairIndex k true j).rev) using 1
   congr 1 <;> ring_nf
 
+/-- When `k ≤ r + 1`, the squared norm of the ideal walk plus the input is the sum of reversed
+pair energies weighted by `4 * (1 - (k - j) / (r + 1))`, together with four times the energy
+at coordinate zero. -/
 theorem jwIdealWalk_energy_add_one (k r : ℕ) (hkr : k ≤ r+1)
     (v : Fin (2*k+1) → ℂ) :
     (∑ i, Complex.normSq ((jwIdealWalk k r *ᵥ v) i+v i)) =
@@ -276,6 +337,8 @@ theorem jwIdealWalk_energy_add_one (k r : ℕ) (hkr : k ≤ r+1)
   · simp [Complex.normSq_apply]
     ring
 
+/-- When `2 * k ≤ r + 1`, the squared norm of the ideal walk plus the input is at least twice
+the input energy. -/
 theorem jwIdealWalk_energy_add_one_lower (k r : ℕ) (hkr : 2*k ≤ r+1)
     (v : Fin (2*k+1) → ℂ) :
     2*(∑ i, Complex.normSq (v i)) ≤
@@ -293,29 +356,37 @@ theorem jwIdealWalk_energy_add_one_lower (k r : ℕ) (hkr : 2*k ≤ r+1)
       (add_nonneg (Complex.normSq_nonneg _) (Complex.normSq_nonneg _))
   · nlinarith [Complex.normSq_nonneg (v 0)]
 
+/-- The Euclidean norm of a finite complex coordinate vector, defined through `EuclideanSpace`. -/
 noncomputable def jwL2Norm {n : ℕ} (v : Fin n → ℂ) : ℝ :=
   ‖(WithLp.toLp 2 v : EuclideanSpace ℂ (Fin n))‖
 
+/-- The square of `jwL2Norm` equals the sum of the squared norms of the coordinates. -/
 theorem jwL2Norm_sq {n : ℕ} (v : Fin n → ℂ) :
     jwL2Norm v^2 = ∑ i, Complex.normSq (v i) := by
   simp [jwL2Norm,EuclideanSpace.norm_sq_eq,Complex.normSq_eq_norm_sq]
 
+/-- A nonzero vector has strictly positive `jwL2Norm`. -/
 theorem jwL2Norm_pos {n : ℕ} (v : Fin n → ℂ) (hv : v ≠ 0) : 0 < jwL2Norm v := by
   apply norm_pos_iff.mpr
   intro h
   apply hv
   exact congrArg WithLp.ofLp h
 
+/-- The Euclidean norm `jwL2Norm` is nonnegative. -/
 theorem jwL2Norm_nonneg {n : ℕ} (v : Fin n → ℂ) : 0 ≤ jwL2Norm v := norm_nonneg _
 
+/-- Scaling a vector by a complex scalar multiplies `jwL2Norm` by the scalar's norm. -/
 theorem jwL2Norm_smul {n : ℕ} (c : ℂ) (v : Fin n → ℂ) :
     jwL2Norm (c • v) = ‖c‖*jwL2Norm v := by
   exact norm_smul c (WithLp.toLp 2 v : EuclideanSpace ℂ (Fin n))
 
+/-- The norm `jwL2Norm` satisfies the triangle inequality. -/
 theorem jwL2Norm_add_le {n : ℕ} (v w : Fin n → ℂ) :
     jwL2Norm (v+w) ≤ jwL2Norm v+jwL2Norm w := by
   exact norm_add_le (WithLp.toLp 2 v : EuclideanSpace ℂ (Fin n)) (WithLp.toLp 2 w)
 
+/-- Under the stated size conditions, the norm of the actual-minus-ideal walk residual is at
+most `2 * sqrt (k / (N - r))` times the input norm. -/
 theorem jwWalk_ideal_residual_norm (k N r : ℕ) (hNr : r < N)
     (hkN : k ≤ N-r) (hkr : k ≤ r+1) (v : Fin (2*k+1) → ℂ) :
     jwL2Norm (jwWalk k N r *ᵥ v - jwIdealWalk k r *ᵥ v) ≤
@@ -335,6 +406,8 @@ theorem jwWalk_ideal_residual_norm (k N r : ℕ) (hNr : r < N)
       rw [mul_pow,mul_pow,hs]
       ring
 
+/-- Under the stated size conditions, an eigenvalue with a nonzero eigenvector has distance at
+least `sqrt 2 - 2 * sqrt (k / (N - r))` from −1. -/
 theorem jwWalk_eigenvalue_gap_neg_one_sharp (k N r : ℕ) (hNr : r < N)
     (hkN : k ≤ N-r) (hkr : 2*k ≤ r+1) (μ : ℂ) (v : Fin (2*k+1) → ℂ)
     (heigen : jwWalk k N r *ᵥ v = μ • v) (hv : v ≠ 0) :
@@ -362,6 +435,8 @@ theorem jwWalk_eigenvalue_gap_neg_one_sharp (k N r : ℕ) (hNr : r < N)
       ‖μ+1‖*jwL2Norm v := by nlinarith
   exact (mul_le_mul_iff_left₀ hvp).mp h
 
+/-- For `k ≥ 1` and `r < N`, bounds the sharp perturbation error `2 * sqrt (k / (N - r))` by the
+stated larger spectral error. -/
 theorem jwSpectral_error_dominates_sharp (k N r : ℕ) (hk : 1 ≤ k) (hNr : r < N) :
     2*Real.sqrt ((k : ℝ)/(N-r)) ≤
       (2 : ℝ)^(((k : ℝ)+2)/2)*2*Real.sqrt 2*Real.sqrt ((k : ℝ)^3/(N-r)) := by
@@ -383,6 +458,8 @@ theorem jwSpectral_error_dominates_sharp (k N r : ℕ) (hk : 1 ≤ k) (hNr : r <
     _ = 1*2*1*Real.sqrt ((k : ℝ)^3/(N-r)) := by ring
     _ ≤ _ := by gcongr
 
+/-- Bounds the distance of a Johnson-walk eigenvalue from −1 by `sqrt 2` minus the stated
+spectral error, under the given size conditions. -/
 theorem jwWalk_eigenvalue_gap_neg_one (k N r : ℕ) (hk : 1 ≤ k) (hNr : r < N)
     (hkN : k ≤ N-r) (hkr : 2*k ≤ r+1) (μ : ℂ) (v : Fin (2*k+1) → ℂ)
     (heigen : jwWalk k N r *ᵥ v = μ • v) (hv : v ≠ 0) :
@@ -392,9 +469,13 @@ theorem jwWalk_eigenvalue_gap_neg_one (k N r : ℕ) (hk : 1 ≤ k) (hNr : r < N)
   have herr := jwSpectral_error_dominates_sharp k N r hk hNr
   linarith
 
+/-- The vector obtained by replacing coordinate zero by zero and retaining all other
+coordinates. -/
 def jwEraseZero {n : ℕ} (v : Fin (n+1) → ℂ) : Fin (n+1) → ℂ :=
   fun i => if i = 0 then 0 else v i
 
+/-- The squared norm of a vector splits into the squared norm after erasing coordinate zero and
+the energy of that coordinate. -/
 theorem jwEraseZero_energy {n : ℕ} (v : Fin (n+1) → ℂ) :
     jwL2Norm (jwEraseZero v)^2 + Complex.normSq (v 0) = jwL2Norm v^2 := by
   rw [jwL2Norm_sq,jwL2Norm_sq]
@@ -405,6 +486,8 @@ theorem jwEraseZero_energy {n : ℕ} (v : Fin (n+1) → ℂ) :
     by_cases hi : i=0 <;> simp [jwEraseZero,hi]
   simpa [Finset.sum_add_distrib] using h
 
+/-- The Hermitian inner product splits into the inner product after erasing coordinate zero and
+the contribution at coordinate zero. -/
 theorem jwEraseZero_inner {n : ℕ} (v s : Fin (n+1) → ℂ) :
     (star (jwEraseZero v) ⬝ᵥ jwEraseZero s) + star (v 0)*s 0 = star v ⬝ᵥ s := by
   have h : (∑ i : Fin (n+1), (star (jwEraseZero v i)*jwEraseZero s i +
@@ -414,6 +497,8 @@ theorem jwEraseZero_inner {n : ℕ} (v s : Fin (n+1) → ℂ) :
     by_cases hi : i=0 <;> simp [jwEraseZero,hi]
   simpa [Finset.sum_add_distrib,dotProduct] using h
 
+/-- The absolute value of the Hermitian inner product is bounded by the product of the Euclidean
+norms. -/
 theorem jwL2Inner_cauchy {n : ℕ} (v s : Fin n → ℂ) :
     ‖star v ⬝ᵥ s‖ ≤ jwL2Norm v*jwL2Norm s := by
   have h := norm_inner_le_norm (𝕜 := ℂ) (WithLp.toLp 2 v : EuclideanSpace ℂ (Fin n))
@@ -422,6 +507,8 @@ theorem jwL2Inner_cauchy {n : ℕ} (v s : Fin n → ℂ) :
   rw [dotProduct_comm] at h
   exact h
 
+/-- For orthogonal vectors `v` and `s`, bounds the energy of `v` weighted by `s 0` using the
+energy remaining after erasing `v 0`. -/
 theorem jwEraseZero_orthogonal_energy {n : ℕ} (v s : Fin (n+1) → ℂ)
     (horth : star v ⬝ᵥ s = 0) :
     Complex.normSq (s 0)*jwL2Norm v^2 ≤
@@ -439,6 +526,8 @@ theorem jwEraseZero_orthogonal_energy {n : ℕ} (v s : Fin (n+1) → ℂ)
   have hs := jwEraseZero_energy s
   nlinarith
 
+/-- If `v` is orthogonal to `s` and at least half the energy of `s` lies at its nonzero
+coordinate zero, then `jwL2Norm v` is at most `sqrt 2` times the norm of `jwEraseZero v`. -/
 theorem jwEraseZero_orthogonal_norm_ratio {n : ℕ} (v s : Fin (n+1) → ℂ)
     (horth : star v ⬝ᵥ s = 0)
     (hweight : jwL2Norm s^2 ≤ 2*Complex.normSq (s 0))
@@ -451,18 +540,22 @@ theorem jwEraseZero_orthogonal_norm_ratio {n : ℕ} (v s : Fin (n+1) → ℂ)
   rw [mul_pow,Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   exact hsquare
 
+/-- Erasing coordinate zero cannot increase the Euclidean norm. -/
 theorem jwEraseZero_norm_le {n : ℕ} (v : Fin (n+1) → ℂ) :
     jwL2Norm (jwEraseZero v) ≤ jwL2Norm v := by
   apply (sq_le_sq₀ (jwL2Norm_nonneg _) (jwL2Norm_nonneg _)).mp
   have h := jwEraseZero_energy v
   linarith [Complex.normSq_nonneg (v 0)]
 
+/-- A reversed pair index is distinct from coordinate zero. -/
 theorem jwPairIndex_rev_ne_zero (k : ℕ) (a : Bool) (j : Fin k) :
     (jwPairIndex k a j).rev ≠ 0 := by
   intro h
   have hh := congrArg Fin.val h
   cases a <;> simp [jwPairIndex,Fin.val_rev] at hh <;> omega
 
+/-- When `k ≤ r + 1`, the squared residual of the ideal walk from the identity is at least `4 /
+(r + 1)` times the energy away from coordinate zero. -/
 theorem jwIdealWalk_energy_sub_one_lower (k r : ℕ) (hkr : k ≤ r+1)
     (v : Fin (2*k+1) → ℂ) :
     (4/(r+1) : ℝ)*jwL2Norm (jwEraseZero v)^2 ≤
@@ -487,6 +580,8 @@ theorem jwIdealWalk_energy_sub_one_lower (k r : ℕ) (hkr : k ≤ r+1)
     _ = 4*((1 : ℝ)/(r+1)) := by ring
     _ ≤ _ := mul_le_mul_of_nonneg_left hdiv (by norm_num)
 
+/-- When `k ≤ r + 1`, the ideal-walk residual norm is at least `2 / sqrt (r + 1)` times the norm
+after erasing coordinate zero. -/
 theorem jwIdealWalk_norm_sub_one_lower (k r : ℕ) (hkr : k ≤ r+1)
     (v : Fin (2*k+1) → ℂ) :
     (2/Real.sqrt (r+1 : ℝ))*jwL2Norm (jwEraseZero v) ≤
@@ -496,6 +591,9 @@ theorem jwIdealWalk_norm_sub_one_lower (k r : ℕ) (hkr : k ≤ r+1)
   simpa only [show (2 : ℝ)^2=4 by norm_num] using
     jwIdealWalk_energy_sub_one_lower k r hkr v
 
+/-- For a nonzero eigenvector orthogonal to `s`, whose nonzero coordinate zero carries at least
+half its energy, the eigenvalue's distance from 1 is at least `2 / sqrt (r + 1) - 2 * sqrt 2
+* sqrt (k / (N - r))` under the stated size conditions. -/
 theorem jwWalk_eigenvalue_gap_one_of_start_weight (k N r : ℕ) (hNr : r < N)
     (hkN : k ≤ N-r) (hkr : k ≤ r+1) (μ : ℂ) (v s : Fin (2*k+1) → ℂ)
     (heigen : jwWalk k N r *ᵥ v = μ • v) (hv : v ≠ 0)
@@ -531,6 +629,8 @@ theorem jwWalk_eigenvalue_gap_one_of_start_weight (k N r : ℕ) (hNr : r < N)
       jwL2Norm (jwEraseZero v) ≤ ‖μ-1‖*jwL2Norm (jwEraseZero v) := by nlinarith
   exact (mul_le_mul_iff_left₀ hvQp).mp h
 
+/-- For `k ≥ 1` and `r < N`, the stated spectral error dominates the projected perturbation
+error `2 * sqrt 2 * sqrt (k / (N - r))`. -/
 theorem jwSpectral_error_dominates_projected (k N r : ℕ) (hk : 1 ≤ k) (hNr : r < N) :
     2*Real.sqrt 2*Real.sqrt ((k : ℝ)/(N-r)) ≤
       (2 : ℝ)^(((k : ℝ)+2)/2)*2*Real.sqrt 2*Real.sqrt ((k : ℝ)^3/(N-r)) := by
@@ -549,6 +649,8 @@ theorem jwSpectral_error_dominates_projected (k N r : ℕ) (hk : 1 ≤ k) (hNr :
     _ = 1*2*Real.sqrt 2*Real.sqrt ((k : ℝ)^3/(N-r)) := by ring
     _ ≤ _ := by gcongr
 
+/-- Decomposes the squared residual of an ideal block at `μ` into contributions from
+`jwIdealBlockPhase e` and its complex conjugate. -/
 theorem jwIdealBlock_residual_energy (e : ℝ) (μ x y : ℂ) :
     Complex.normSq ((jwD2 e false false-μ)*x-jwD2 e false true*y) +
       Complex.normSq (jwD2 e true false*x-(jwD2 e true true+μ)*y) =
@@ -557,12 +659,16 @@ theorem jwIdealBlock_residual_energy (e : ℝ) (μ x y : ℂ) :
   norm_num [jwD2,jwIdealBlockPhase,Complex.normSq_apply,Complex.star_def]
   ring
 
+/-- The squared norms of `x + I * y` and `x - I * y` sum to twice the total energy of `x` and
+`y`. -/
 theorem jwIdealBlock_coefficient_energy (x y : ℂ) :
     Complex.normSq (x+Complex.I*y) + Complex.normSq (x-Complex.I*y) =
       2*(Complex.normSq x+Complex.normSq y) := by
   simp [Complex.normSq_apply]
   ring
 
+/-- A common lower bound on the squared distances from `μ` to both ideal block phases gives the
+same lower bound on the residual energy relative to the input energy. -/
 theorem jwIdealBlock_residual_lower (e a : ℝ) (μ x y : ℂ)
     (hp : a ≤ Complex.normSq (jwIdealBlockPhase e-μ))
     (hm : a ≤ Complex.normSq (star (jwIdealBlockPhase e)-μ)) :
@@ -576,6 +682,8 @@ theorem jwIdealBlock_residual_lower (e a : ℝ) (μ x y : ℂ)
   have h3 := congrArg (fun z : ℝ => a*z) hc
   nlinarith
 
+/-- Strict lower bounds on both squared phase distances yield a strict residual-energy bound
+when the input pair has positive energy. -/
 theorem jwIdealBlock_residual_strict_lower (e a : ℝ) (μ x y : ℂ)
     (hp : a < Complex.normSq (jwIdealBlockPhase e-μ))
     (hm : a < Complex.normSq (star (jwIdealBlockPhase e)-μ))
@@ -595,6 +703,9 @@ theorem jwIdealBlock_residual_strict_lower (e a : ℝ) (μ x y : ℂ)
     have h2 := mul_lt_mul_of_pos_right hm hy
     nlinarith
 
+/-- Under the stated size and start-vector weight conditions, an eigenvalue with a nonzero
+eigenvector orthogonal to the start vector lies within squared distance `8 * k / (N - r)` of
+an ideal block phase or its conjugate. -/
 theorem jwWalk_eigenvalue_localization_of_start_weight (k N r : ℕ) (hNr : r < N)
     (hkN : k ≤ N-r) (hkr : k ≤ r+1) (μ : ℂ) (v s : Fin (2*k+1) → ℂ)
     (heigen : jwWalk k N r *ᵥ v = μ • v) (hv : v ≠ 0)
@@ -670,6 +781,8 @@ theorem jwWalk_eigenvalue_localization_of_start_weight (k N r : ℕ) (hNr : r < 
   rw [← Finset.mul_sum] at hsum
   linarith
 
+/-- For `1 ≤ k` and `2 * k ≤ r + 1`, bounds the ideal phase multiplied by `jwT2 k r` between `π
+/ (3 * sqrt k)` and 3, and bounds `jwT2 k r` by `4 * sqrt (r + 1) / (3 * sqrt k)`. -/
 theorem jwIdealBlock_amplification_bounds (k r : ℕ) (hk : 1 ≤ k) (hr : 2*k ≤ r+1)
     (j : Fin k) :
     Real.pi/(3*Real.sqrt (k : ℝ)) ≤
@@ -747,6 +860,8 @@ theorem jwIdealBlock_amplification_bounds (k r : ℕ) (hk : 1 ≤ k) (hr : 2*k �
           (mul_le_mul_of_nonneg_right (by norm_num : (5/4 : ℝ) ≤ 4/3) (le_of_lt hR))
           (le_of_lt hK)
 
+/-- The stated population bound makes the perturbation error multiplied by `jwT2 k r` at most `1
+/ (6 * π * sqrt k)`. -/
 theorem jwT2_perturbation_bound (k N r : ℕ) (hk : 1 ≤ k) (hr : 2*k ≤ r+1)
     (hsize : (512*Real.pi^2*k*(r+1) : ℝ) ≤ N-r) :
     (jwT2 k r : ℝ)*(2*Real.sqrt 2*Real.sqrt ((k : ℝ)/(N-r))) ≤

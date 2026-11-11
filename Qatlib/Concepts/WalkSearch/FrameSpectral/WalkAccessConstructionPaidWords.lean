@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionCircuitLemmas
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionKernel
+
+/-!
+# Finite gate realization of lazy matching access
+
+This module verifies legality and execution of the lazy matching setup, update, and check words.
+The setup word exactly prepares the two-neighbor row record, the update word computes the
+neighbor register, and the check word writes marked membership into a flag.
+
+The theorem `hasPaidWalkAccess_lazy` packages these constructions as `HasPaidWalkAccess` for
+every positive register width, using the identity encoding and a constant setup cost function.
+These results concern the quantum walk framework of [Szegedy2004].
+
+## Main statements
+
+* `setup_run`: Exact row record preparation by the finite setup word.
+* `check_run`: Exact marked membership flag computation.
+* `hasPaidWalkAccess_lazy`: The full paid access specification for lazy matching.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -36,6 +59,7 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- For positive register width, the lazy setup word is legal on the doubled workspace. -/
 lemma lazySetupWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (lazySetupWord m) = true := by
   rw [finiteWordLegal, lazySetupWord, List.all_append, List.all_map]
   simp only [Bool.and_eq_true]
@@ -46,12 +70,14 @@ lemma lazySetupWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (la
     simp [finiteCodeLegal, hb.1, hb.2.1, hb.2.2]
   · simp [finiteCodeLegal, show m + m - 1 < m + m by omega]
 
+/-- For positive register width, the lazy update word is legal on the doubled workspace. -/
 lemma lazyUpdateWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (lazyUpdateWord m) = true := by
   rw [finiteWordLegal, lazyUpdateWord, List.all_map, List.all_eq_true]
   intro p hp
   have hb := highCnotPairs_bound hp
   simp [finiteCodeLegal, hb.1, hb.2.1, hb.2.2]
 
+/-- For positive register width, the lazy check word is legal on the doubled workspace. -/
 lemma lazyCheckWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (lazyCheckWord m) = true := by
   rw [finiteWordLegal, lazyCheckWord, List.all_eq_true]
   intro g hg
@@ -60,16 +86,20 @@ lemma lazyCheckWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (la
   simp [finiteCodeLegal, show m - 1 < m + m by omega, show m < m + m by omega,
     show m - 1 ≠ m by omega]
 
+/-- A function updated at `w` takes the assigned value at `w`. -/
 lemma functionUpdate_same {α : Sort u} {β : α → Sort v} [DecidableEq α] (f : (a : α) → β a)
     (w : α) (v : β w) : Function.update f w v w = v := by
   rw [Function.update]
   rw [dif_pos rfl]
 
+/-- Updating a function at `w` leaves its value unchanged at any different argument. -/
 lemma functionUpdate_noteq {α : Sort u} {β : α → Sort v} [DecidableEq α] (f : (a : α) → β a)
     (w j : α) (v : β w) (h : j ≠ w) : Function.update f w v j = f j := by
   rw [Function.update]
   rw [dif_neg h]
 
+/-- Replacing the final workspace bit of a lazy row record by `b` yields the vertex concatenated
+with `lazyRowBasis x b`. -/
 lemma lazyRowRecord_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (w : Fin (m + m))
     (hw : w.val = m + m - 1) (b : Bool) :
     Function.update (lazyRowRecord m x) w b = regCat x (lazyRowBasis x b) := by
@@ -99,6 +129,8 @@ lemma lazyRowRecord_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (w : Fin (m + m)
         simp only [lazyRowBasis]
         rw [if_neg (by omega : ¬ (j.val - m) + 1 = m)]
 
+/-- Applying a Hadamard gate to the final bit of a lazy row record produces the equal-amplitude
+superposition of its two neighbor records. -/
 lemma setup_applyGate {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (w : Fin (m + m)) (hw : w.val = m + m - 1) :
     ApplyGate (wireGate (m + m) w Hadamard) (Qatlib.Foundations.PureStateMath.Ket (lazyRowRecord m x))
       = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ • Qatlib.Foundations.PureStateMath.Ket (regCat x (lazyRowBasis x false))
@@ -109,6 +141,8 @@ lemma setup_applyGate {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (w : Fin (m + m)) (hw
   simp [Hadamard]
   rw [lazyRowRecord_update hm x w hw false, lazyRowRecord_update hm x w hw true]
 
+/-- The lazy setup word executes on a padded vertex basis state and returns exactly the lazy
+matching row record state. -/
 lemma setup_run {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
     finiteWordRun (m + m) (lazySetupWord m) (Qatlib.Foundations.PureStateMath.Ket (regPad (m + m) m x))
       = some (rowBasisRecordState (lazyMatchingKernel m) m (m + m) (fun y => y) x) := by
@@ -137,6 +171,8 @@ lemma setup_run {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
   rw [← cast_sqrt_half]
   rw [run_nil]
 
+/-- The lazy update word sends a vertex and base index basis register to the vertex and its
+corresponding neighbor basis register. -/
 lemma update_run {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (j : ℕ) :
     finiteWordRun (m + m) (lazyUpdateWord m)
         (Qatlib.Foundations.PureStateMath.Ket (regPad (m + m) (m + m) (regCat x (lazyMatchingIndexNat j)))) =
@@ -161,15 +197,18 @@ lemma update_run {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (j : ℕ) :
       exact ⟨by omega, by omega⟩
   rw [hblock, regPad_self, cnotFold_baseRecord hm x j, regPad_self]
 
+/-- A register belongs to the lazy marked set exactly when its top bit is true. -/
 lemma mem_lazyMarkedSet_iff {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
     (x (lazyTopIndex m hm) = true) ↔ (x ∈ lazyMarkedSet m hm) := by
   rw [lazyMarkedSet, Finset.mem_filter]
   simp only [Finset.mem_univ, true_and]
 
+/-- A vertex coordinate of a vertex-plus-flag concatenation equals the corresponding vertex bit. -/
 lemma regCat_vertex_value {m : ℕ} (x : Reg m) (s : Reg 1) (i : Fin (m + 1)) (hi : i.val < m) :
     regCat x s i = x ⟨i.val, hi⟩ :=
   regCat_apply_left x s i hi
 
+/-- The last coordinate of a vertex-plus-flag concatenation equals the unique flag bit. -/
 lemma regCat_flag_value {m : ℕ} (x : Reg m) (s : Reg 1) (v : ℕ) (hv : v < m + 1) (hi : v = m) :
     regCat x s ⟨v, hv⟩ = s ⟨0, by omega⟩ := by
   have hle : m ≤ v := by omega
@@ -177,8 +216,10 @@ lemma regCat_flag_value {m : ℕ} (x : Reg m) (s : Reg 1) (v : ℕ) (hv : v < m 
   refine regCat_apply_right' x s ⟨v, hv⟩ hle ⟨0, by omega⟩ ?_
   omega
 
+/-- The top bit of the vertex register, used to indicate membership in the lazy marked set. -/
 def lazyMarkedBit (m : ℕ) (hm : 1 ≤ m) (x : Reg m) : Bool := x (lazyTopIndex m hm)
 
+/-- The lazy marked bit equals the Boolean decision of membership in the lazy marked set. -/
 lemma lazyMarkedBit_eq_decide {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
     lazyMarkedBit m hm x = decide (x ∈ lazyMarkedSet m hm) := by
   unfold lazyMarkedBit
@@ -194,6 +235,8 @@ lemma lazyMarkedBit_eq_decide {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
       exact hp
     simp [hb, hdec]
 
+/-- Updating the flag wire in the padded vertex and false-flag register yields the padded
+register with the assigned flag. -/
 lemma regPad_flagged_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (f : Bool) :
     Function.update (regPad (m + m) (m + 1) (regCat x (fun _ => false))) (lazyFlagWire m hm) f
       = regPad (m + m) (m + 1) (regCat x (fun _ => f)) := by
@@ -227,6 +270,8 @@ lemma regPad_flagged_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (f : Bool) :
         omega
     · rw [dif_neg h1, dif_neg h1]
 
+/-- The XOR of the false flag wire and the control wire in the initial padded register equals
+the marked membership bit. -/
 lemma check_flag_value {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
     Bool.xor ((regPad (m + m) (m + 1) (regCat x (fun _ => false))) (lazyFlagWire m hm))
       ((regPad (m + m) (m + 1) (regCat x (fun _ => false))) (lazyCtlWire m hm))
@@ -252,6 +297,8 @@ lemma check_flag_value {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
   rw [hflag, hctl]
   simp [lazyMarkedBit_eq_decide hm x]
 
+/-- The lazy check word preserves the vertex and writes its marked membership into the initially
+false flag. -/
 lemma check_run {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
     finiteWordRun (m + m) (lazyCheckWord m)
         (Qatlib.Foundations.PureStateMath.Ket (regPad (m + m) (m + 1) (regCat x (fun _ => false)))) =
@@ -276,6 +323,9 @@ lemma check_run {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
   rw [hctl_eq, hflag_eq]
   rw [check_flag_value hm x, regPad_flagged_update hm x, run_nil]
 
+/-- For positive register width, the lazy matching kernel and marked set possess paid walk
+access using the specified setup, update, and check words, identity encoding, and constant
+setup cost. -/
 theorem hasPaidWalkAccess_lazy {m : ℕ} (hm : 1 ≤ m) :
     HasPaidWalkAccess (P := lazyMatchingKernel m) (S := lazyMarkedSet m hm)
       (a := m) (w := m + m) (enc := fun x => x)

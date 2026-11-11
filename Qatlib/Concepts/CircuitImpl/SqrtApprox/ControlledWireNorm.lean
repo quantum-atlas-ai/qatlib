@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Norm bound for a controlled single-wire gate
+
+This module separates a target wire from the remaining register by `elementaryWireSplit`. The
+resulting tensor representation of `multiWireState` reduces a controlled register operation to
+single-qubit blocks, as used in the multi-controlled gate constructions of [BarencoEtAl1995].
+
+## Main statements
+
+* `elementary_wire_fiber_split`: the target-wire state as a relabeled tensor state.
+* `elementary_controlled_distance`: the register operation's distance from identity is at most
+  `‖U - 1‖`.
+
+## References
+
+* [Barenco et al., 1995, Section 7][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,12 +41,15 @@ namespace Qatlib.Concepts.CircuitImpl.SqrtApprox
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Applying a matrix to a basis ket returns the matrix column indexed by that basis element. -/
 private theorem elementary_apply_ket {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (x y : I) : ApplyGate A (Qatlib.Foundations.PureStateMath.Ket x) y=A y x := by
   simp [ApplyGate,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,mul_ite]
 
+/-- Registers whose target bit is false, used to label the remaining-wire configurations. -/
 abbrev ElementaryWireLabel {N : ℕ} (t : Fin N) := {x : Reg N // x t=false}
 
+/-- Split a register into a label with its target bit cleared and the original target bit. -/
 def elementaryWireSplit {N : ℕ} (t : Fin N) : Reg N ≃ (ElementaryWireLabel t × Bool) where
   toFun x := (⟨Function.update x t false, by simp⟩, x t)
   invFun p := Function.update p.1.1 t p.2
@@ -40,6 +62,8 @@ def elementaryWireSplit {N : ℕ} (t : Fin N) : Reg N ≃ (ElementaryWireLabel t
       exact Function.update_eq_self_iff.mpr p.1.2.symm
     · simp
 
+/-- A target-wire state is the relabeling of the tensor product of its remaining-wire basis
+label and its single-qubit state. -/
 theorem elementary_wire_fiber_split {N : ℕ} (t : Fin N) (x : Reg N) (φ : QState Bool) :
     multiWireState t x φ = relabelState (elementaryWireSplit t).symm
       (TensorState (Qatlib.Foundations.PureStateMath.Ket ((elementaryWireSplit t x).1)) φ) := by
@@ -68,6 +92,8 @@ theorem elementary_wire_fiber_split {N : ℕ} (t : Fin N) (x : Reg N) (φ : QSta
   cases hz : z t <;> by_cases h : (elementaryWireSplit t z).1 = (elementaryWireSplit t x).1 <;>
     simp [h]
 
+/-- If `G` applies `U` exactly when all specified control bits are true and otherwise acts
+identically, then `‖G - 1‖ ≤ ‖U - 1‖`, provided the controls avoid the target. -/
 theorem elementary_controlled_distance {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hct : ∀ i < m, c i≠t) (U : Matrix Bool Bool ℂ) (G : Matrix (Reg N) (Reg N) ℂ)
     (hG : ∀ x φ, ApplyGate G (multiWireState t x φ) = multiWireState t x

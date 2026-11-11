@@ -8,6 +8,26 @@ import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonQuan
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralDefs
 import Qatlib.Concepts.WalkSearch.ProjectorCS
+
+/-!
+# Classical and quantum detection scale comparison
+
+This module combines classical detection and corrected random-power quantum detection bounds for
+a symmetric chain with gap parameter `δ` and marked fraction at least `ε`. It gives the success
+threshold, integer-length estimate, and weighted cost inequalities expressing the square-root
+detection scale of [Szegedy2004].
+
+## Main statements
+
+* `source_main_sqrt_de_rule`: combines success lower bounds with classical and quantum length
+  scales.
+* `source_main_sqrt_de_rule_priced`: bounds the corresponding weighted cost expressions.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +45,11 @@ open Qatlib.Concepts.Execution.WorkspaceCP
 
 namespace Qatlib.Papers.QWalkSpectra04.EndToEnd.MainRule
 
+/-- For a symmetric chain with `0 < δ ≤ 1`, marked fraction at least positive `ε`, and a
+compatible unitary preparation, classical detection at lengths at least `1000 / (δ * ε)` and
+the averaged corrected quantum detector both have success at least `1 / 32`. The quantum
+averaging length is at most `1000 / √(δ * ε) + 1`, and its real scale does not exceed the
+classical one; see [Szegedy2004]. -/
 theorem source_main_sqrt_de_rule
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ) (j : I)
@@ -67,6 +92,9 @@ theorem source_main_sqrt_de_rule
     exact mul_le_mul_of_nonneg_left hsqrt_ge (by norm_num)
   exact ⟨hclass, hquant, hLlt.le, hgain⟩
 
+/-- For `0 < δ, ε ≤ 1` and nonnegative step weights, the rounded classical and quantum cost
+expressions satisfy the stated affine bounds, and `1000 / √(δ * ε) ≤ 1000 / (δ * ε)`. See
+[Szegedy2004]. -/
 theorem source_main_sqrt_de_rule_priced
     (δ ε : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (w0 w1 w2 : ℝ) (h1 : 0 ≤ w1) (h2 : 0 ≤ w2) :

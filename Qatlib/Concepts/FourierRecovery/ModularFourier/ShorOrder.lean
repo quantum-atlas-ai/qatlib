@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.ShorOrderDefs
+
+/-!
+# Soundness and resource bounds for Shor order finding
+
+This module proves arithmetic preprocessing bounds, exact circuit resource identities, and
+soundness of the factors extracted from classical and quantum attempt outcomes in the order
+finding approach of [Shor1997]. `factorTreeOf_complete` gives a complete factor tree under the
+hypothesis that the supplied splitter succeeds on every relevant composite input.
+
+The module also proves compact encoding bounds and isometric measurement identities, constructs
+`orderConditionalLaw` by conditioning on verified order recovery, and assembles these results in
+the endpoint propositions `clause2_endpoint` through `clause6_endpoint`.
+
+## Main statements
+
+* `perfectPowerDivisor_sound`: a returned perfect power divisor is a proper divisor.
+* `attemptOutcomeFactor_sound`: every factor returned from an attempt is a proper divisor.
+* `factorTreeOf_complete`: a splitter satisfying the stated success hypothesis yields a complete
+  tree.
+* `orderGoodMass_pos`: sufficiently large clocks give positive mass to verified order recovery
+  for nontrivial orders.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -28,6 +55,8 @@ open Matrix
 open scoped Classical BigOperators ComplexConjugate
 set_option warningAsError false
 
+/-- Raising natural numbers to a positive exponent preserves a strict inequality between their
+bases. -/
 theorem pow_lt_pow_of_lt_base (a b n : ℕ) (h : a < b) (hb : 0 < b) (hn : 0 < n) :
     a ^ n < b ^ n := by
   induction n with
@@ -43,6 +72,7 @@ theorem pow_lt_pow_of_lt_base (a b n : ℕ) (h : a < b) (hb : 0 < b) (hn : 0 < n
           have h2 := Nat.mul_lt_mul_of_pos_right h (by positivity : 0 < b ^ n)
           simpa [mul_comm] using! h2
 
+/-- For a natural base at least one, powers are monotone in the exponent. -/
 theorem pow_le_pow_same (a m n : ℕ) (ha : 1 ≤ a) (hmn : m ≤ n) : a ^ m ≤ a ^ n := by
   induction n generalizing m with
   | zero =>
@@ -59,25 +89,31 @@ theorem pow_le_pow_same (a m n : ℕ) (ha : 1 ≤ a) (hmn : m ≤ n) : a ^ m ≤
       simp only [pow_succ]
       exact le_rfl
 
+/-- Squaring the square of a natural number gives its fourth power. -/
 theorem pow_mul4 (x : ℕ) : (x ^ 2) ^ 2 = x ^ 4 := by
   calc (x ^ 2) ^ 2 = x ^ 2 * x ^ 2 := by rw [pow_succ, pow_one]
     _ = x ^ (2 + 2) := by rw [Nat.pow_add]
     _ = x ^ 4 := by norm_num
 
+/-- Multiplying a natural number by its fourth power gives its fifth power. -/
 theorem pow_mul5 (x : ℕ) : x * x ^ 4 = x ^ 5 := by
   calc x * x ^ 4 = x ^ 1 * x ^ 4 := by rw [pow_one]
     _ = x ^ (1 + 4) := by rw [Nat.pow_add]
     _ = x ^ 5 := by norm_num
 
+/-- Every natural number is strictly less than two raised to its order bit length. -/
 theorem lt_two_pow_orderBitLength (N : ℕ) : N < 2 ^ orderBitLength N := by
   unfold orderBitLength
   by_cases hN : N = 0
   · simp [hN]
   · exact (Nat.log_lt_iff_lt_pow Nat.one_lt_two hN).mp (by omega)
 
+/-- For a nonzero natural number `N`, `2 ^ Nat.log 2 N` is at most `N`. -/
 theorem two_pow_le_of_log2 (N : ℕ) (hN : N ≠ 0) : 2 ^ (Nat.log 2 N) ≤ N := by
   exact (Nat.le_log_iff_pow_le Nat.one_lt_two hN).mp (le_refl (Nat.log 2 N))
 
+/-- The least natural number satisfying a decidable predicate is independent of the chosen proof
+of existence. -/
 theorem find_congr {p : ℕ → Prop} [DecidablePred p] {H1 H2 : ∃ n, p n} :
     Nat.find H1 = Nat.find H2 := by
   apply (Nat.find_eq_iff H1).mpr
@@ -85,11 +121,14 @@ theorem find_congr {p : ℕ → Prop} [DecidablePred p] {H1 H2 : ∃ n, p n} :
   intro n hn
   exact Nat.find_min H2 hn
 
+/-- For a positive exponent, `intRoot e N` is one less than the least natural number whose `e`th
+power exceeds `N`. -/
 theorem intRoot_eq_find (e N : ℕ) (he : 1 ≤ e) :
     intRoot e N = Nat.find (powExceedWitness e N he) - 1 := by
   unfold intRoot
   rw [dif_neg (by omega : e ≠ 0)]
 
+/-- For a positive exponent, the least natural number whose power exceeds `N` is positive. -/
 theorem find_pow_exceeds_pos (e N : ℕ) (he : 1 ≤ e) :
     0 < Nat.find (powExceedWitness e N he) := by
   by_contra hc
@@ -99,6 +138,8 @@ theorem find_pow_exceeds_pos (e N : ℕ) (he : 1 ≤ e) :
   rw [Nat.zero_pow (by omega : 0 < e)] at h0
   omega
 
+/-- The least natural number whose `e`th power exceeds `N` has power greater than `N`, while its
+predecessor has power at most `N`. -/
 theorem find_pow_exceeds (e N : ℕ) (he : 1 ≤ e) :
     (Nat.find (powExceedWitness e N he)) ^ e > N ∧
       (Nat.find (powExceedWitness e N he) - 1) ^ e ≤ N := by
@@ -116,10 +157,13 @@ theorem find_pow_exceeds (e N : ℕ) (he : 1 ≤ e) :
     exact Nat.lt_add_one _
   exact hmin _ hlt hgt
 
+/-- For a positive exponent, the `e`th power of the integer root of `N` is at most `N`. -/
 theorem intRoot_pow_le (e N : ℕ) (he : 1 ≤ e) : intRoot e N ^ e ≤ N := by
   rw [intRoot_eq_find e N he]
   exact (find_pow_exceeds e N he).2
 
+/-- For a positive exponent, the successor of the integer root of `N` has `e`th power greater
+than `N`. -/
 theorem intRoot_succ_pow_gt (e N : ℕ) (he : 1 ≤ e) : (intRoot e N + 1) ^ e > N := by
   rw [intRoot_eq_find e N he]
   have h := (find_pow_exceeds e N he).1
@@ -128,6 +172,8 @@ theorem intRoot_succ_pow_gt (e N : ℕ) (he : 1 ≤ e) : (intRoot e N + 1) ^ e >
   rw [hstep]
   exact h
 
+/-- If `N = m ^ e` with `m` and `e` at least two, then `m` belongs to the computed set of
+perfect power divisors of `N`. -/
 theorem mem_perfectPowerDivisors (N m e : ℕ) (hm : 2 ≤ m) (he : 2 ≤ e) (hN : m ^ e = N) :
     m ∈ perfectPowerDivisors N := by
   have h2e : 2 ^ e ≤ N := by
@@ -169,6 +215,7 @@ theorem mem_perfectPowerDivisors (N m e : ℕ) (hm : 2 ≤ m) (he : 2 ≤ e) (hN
   · rw [hroot]
     exact ⟨he, hm, hN⟩
 
+/-- Every member of `perfectPowerDivisors N` divides `N` and lies strictly between one and `N`. -/
 theorem perfectPowerDivisors_sound (N : ℕ) (d : ℕ) (hd : d ∈ perfectPowerDivisors N) :
     1 < d ∧ d < N ∧ d ∣ N := by
   obtain ⟨e, he, hroot⟩ := Finset.mem_image.mp hd
@@ -191,6 +238,7 @@ theorem perfectPowerDivisors_sound (N : ℕ) (d : ℕ) (hd : d ∈ perfectPowerD
       exact mul_comm _ _
     exact hde
 
+/-- Every divisor returned by `evenDivisor` divides `N` and lies strictly between one and `N`. -/
 theorem evenDivisor_sound (N : ℕ) (d : ℕ) (hd : evenDivisor N = some d) :
     1 < d ∧ d < N ∧ d ∣ N := by
   rw [evenDivisor] at hd
@@ -200,6 +248,8 @@ theorem evenDivisor_sound (N : ℕ) (d : ℕ) (hd : evenDivisor N = some d) :
     exact ⟨by omega, by omega, by omega⟩
   · simp at hd
 
+/-- Every divisor returned by `perfectPowerDivisor` divides `N` and lies strictly between one
+and `N`. -/
 theorem perfectPowerDivisor_sound (N : ℕ) (d : ℕ) (hd : perfectPowerDivisor N = some d) :
     1 < d ∧ d < N ∧ d ∣ N := by
   rw [perfectPowerDivisor] at hd
@@ -224,6 +274,7 @@ theorem perfectPowerDivisor_sound (N : ℕ) (d : ℕ) (hd : perfectPowerDivisor 
       rw [hmap] at hmem2
       exact perfectPowerDivisors_sound N d hmem2
 
+/-- The preprocessing bit cost is bounded by `polyLogBound 1 4 N`. -/
 theorem preprocessBitCost_le (N : ℕ) : preprocessBitCost N ≤ polyLogBound 1 4 N := by
   have hb : 1 ≤ orderBitLength N := by unfold orderBitLength; omega
   have h1 : orderBitLength N ≤ orderBitLength N + 1 := Nat.le_add_right _ _
@@ -238,6 +289,8 @@ theorem preprocessBitCost_le (N : ℕ) : preprocessBitCost N ≤ polyLogBound 1 
   unfold preprocessBitCost polyLogBound
   omega
 
+/-- For positive `c` and `d`, `polyLogBound c d N` dominates `orderBitLength N`, as required by
+`PolyLogDominates`. -/
 theorem polyLogDominates (c d N : ℕ) (hc : 0 < c) (hd : 0 < d) :
     PolyLogDominates c d N := by
   refine ⟨hc, hd, ?_⟩
@@ -253,6 +306,8 @@ theorem polyLogDominates (c d N : ℕ) (hc : 0 < c) (hd : 0 < d) :
   unfold polyLogBound
   omega
 
+/-- Every unit modulo a nonzero prime `N` satisfies `PrimeDirectionWitness N a`, namely `a ^ (N
+- 1) = 1`. -/
 theorem primeDirectionWitness_of_prime (N : ℕ) [NeZero N] (hp : Nat.Prime N)
     (a : (ZMod N)ˣ) : PrimeDirectionWitness N a := by
   have hcard : Fintype.card (ZMod N)ˣ = N - 1 := by
@@ -265,6 +320,7 @@ theorem primeDirectionWitness_of_prime (N : ℕ) [NeZero N] (hp : Nat.Prime N)
   rw [← hcard]
   exact hstep
 
+/-- A proper divisor certificate for `N` implies that `N` is not prime. -/
 theorem compositeCertificate_imp_notPrime (N d : ℕ) (h : CompositeCertificate N d) :
     ¬ Nat.Prime N := by
   intro hp
@@ -273,6 +329,7 @@ theorem compositeCertificate_imp_notPrime (N d : ℕ) (h : CompositeCertificate 
   · omega
   · omega
 
+/-- The local QFT has gate count `localQftGateCount n`, zero oracle queries, and space cost `n`. -/
 theorem localQft_ledger (n : ℕ) :
     GateCount (localProgramCircuit (localQFT n)) = localQftGateCount n ∧
       QueryCount (localProgramCircuit (localQFT n)) = 0 ∧
@@ -280,18 +337,24 @@ theorem localQft_ledger (n : ℕ) :
   have h := localQFT_exact_gate_counts_and_wires n
   refine ⟨h.2.2.2.1, h.2.2.2.2.1, rfl⟩
 
+/-- For a positive clock size `M`, the modular order circuit uses `M * (M - 1) / 2` queries and
+`M * (M - 1) + 2` gates. -/
 theorem modularOrder_ledger (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) :
     QueryCount (modularOrderCircuit N M a) = M * (M - 1) / 2 ∧
       GateCount (modularOrderCircuit N M a) = M * (M - 1) + 2 :=
   (modular_order_exact_query_macro_ledger N M a hM).2
 
+/-- The order verification product equals the corresponding natural power of the modular unit. -/
 theorem orderVerification_is_power (N : ℕ) [NeZero N] (a : (ZMod N)ˣ) (q : ℕ) :
     orderVerificationProduct N a q = a ^ q := orderVerificationProduct_eq_pow N a q
 
+/-- The counted Euclidean algorithm returns the greatest common divisor and performs at most `b`
+counted steps on input `(a, b)`. -/
 theorem euclidCounted_ledger (a b : ℕ) :
     (euclidCounted a b).1 = Nat.gcd a b ∧ (euclidCounted a b).2 ≤ b :=
   ⟨euclidCounted_gcd a b, euclidCounted_count a b⟩
 
+/-- The Euclidean bit cost at the order bit length of `N` is bounded by `polyLogBound 1 5 N`. -/
 theorem euclidBitCost_le_polyLog (N : ℕ) :
     euclidBitCost (orderBitLength N) ≤ polyLogBound 1 5 N := by
   have hb : 1 ≤ orderBitLength N := by unfold orderBitLength; omega
@@ -317,6 +380,8 @@ theorem euclidBitCost_le_polyLog (N : ℕ) :
       _ = (orderBitLength N + 1) ^ 5 := pow_mul5 _
   exact hmain
 
+/-- The attempt ledger bound dominates the rejected attempt ledger in its bit, query, gate, and
+space coordinates. -/
 theorem attemptLedgerBound_ge_rejected (N M k : ℕ) :
     (rejectedLedger k).bits ≤ (attemptLedgerBound N M k).bits ∧
       (rejectedLedger k).queries ≤ (attemptLedgerBound N M k).queries ∧
@@ -332,6 +397,8 @@ theorem attemptLedgerBound_ge_rejected (N M k : ℕ) :
   · simp only [rejectedLedger, attemptLedgerBound]
     omega
 
+/-- A factor returned from a classical gcd outcome divides `N` and lies strictly between one and
+`N`. -/
 theorem attemptOutcomeFactor_classical_sound (N M : ℕ) [NeZero N] (y : ZMod N)
     (d : ℕ) (h : attemptOutcomeFactor N M (.classicalGcd y) = some d) :
     1 < d ∧ d < N ∧ d ∣ N := by
@@ -341,6 +408,8 @@ theorem attemptOutcomeFactor_classical_sound (N M : ℕ) [NeZero N] (y : ZMod N)
     exact ⟨by omega, by omega, (Nat.gcd_dvd _ _).1⟩
   · simp at h
 
+/-- A factor returned from a quantum order outcome divides `N` and lies strictly between one and
+`N`. -/
 theorem attemptOutcomeFactor_quantum_sound (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (yz : Fin M × Fin M) (d : ℕ)
     (h : attemptOutcomeFactor N M (.quantumOrder a yz) = some d) :
@@ -353,6 +422,8 @@ theorem attemptOutcomeFactor_quantum_sound (N M : ℕ) [NeZero N] (a : (ZMod N)�
     rw [hq, Option.bind_some] at hbind
     exact orderFactor_sound N a q d hbind
 
+/-- Every factor returned from any attempt outcome divides `N` and lies strictly between one and
+`N`. -/
 theorem attemptOutcomeFactor_sound (N M : ℕ) [NeZero N] (t : AttemptOutcome N M)
     (d : ℕ) (h : attemptOutcomeFactor N M t = some d) :
     1 < d ∧ d < N ∧ d ∣ N := by
@@ -361,6 +432,8 @@ theorem attemptOutcomeFactor_sound (N M : ℕ) [NeZero N] (t : AttemptOutcome N 
   | classicalGcd y => exact attemptOutcomeFactor_classical_sound N M y d h
   | quantumOrder a yz => exact attemptOutcomeFactor_quantum_sound N M a yz d h
 
+/-- At a first successful attempt, factor extraction returns a value, and every returned value
+is a proper divisor of `N`. -/
 theorem firstSuccessAt_sound (N M R : ℕ) [NeZero N] (ω : Fin R → AttemptOutcome N M)
     (j : Fin R) (h : firstSuccessAt (N := N) (M := M) (R := R) ω j) :
     (attemptOutcomeFactor N M (ω j)).isSome ∧
@@ -369,6 +442,8 @@ theorem firstSuccessAt_sound (N M R : ℕ) [NeZero N] (ω : Fin R → AttemptOut
   intro d hd
   exact attemptOutcomeFactor_sound N M (ω j) d hd
 
+/-- With fuel at least `n` and a splitter that succeeds on every composite between two and `n`,
+the tree has root and leaf product `n`, and each leaf is at most one or prime. -/
 theorem factorTreeOfFuel_spec (split : ∀ n, Option (ProperDivisor n)) :
     ∀ fuel n, n ≤ fuel →
       (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
@@ -429,6 +504,8 @@ theorem factorTreeOfFuel_spec (split : ∀ n, Option (ProperDivisor n)) :
           · exact hL.2.2 p hp
           · exact hR.2.2 p hp
 
+/-- If the splitter succeeds on every composite between two and `n`, then the factor tree for
+`n` is complete. -/
 theorem factorTreeOf_complete (split : ∀ n, Option (ProperDivisor n)) :
     ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
       (factorTreeOf split n).complete := by
@@ -439,31 +516,40 @@ theorem factorTreeOf_complete (split : ∀ n, Option (ProperDivisor n)) :
   · rw [h.1, h.2.1]
   · exact h.2.2
 
+/-- For a computation isometry `V`, the compiled matrix `V * T * Vᴴ` intertwines with `T`
+through `V`. -/
 theorem compiledMeasurement_matrix_eq {Ω H : Type} [Fintype Ω] [Fintype H]
     (V : Matrix H Ω ℂ) (T : Matrix Ω Ω ℂ) (hV : ComputationIsometry V) :
     (V * T * Vᴴ) * V = V * T := by
   rw [Matrix.mul_assoc, hV, Matrix.mul_one]
 
+/-- Applying the compiled matrix `V * T * Vᴴ` equals successive application of `Vᴴ`, `T`, and
+`V` to the state. -/
 theorem compiledMeasurement_action_eq {Ω H : Type} [Fintype Ω] [Fintype H]
     (V : Matrix H Ω ℂ) (T : Matrix Ω Ω ℂ) (φ : QState H) :
     (V * T * Vᴴ) *ᵥ φ = V *ᵥ (T *ᵥ (Vᴴ *ᵥ φ)) := by
   rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
 
+/-- The orbit Fourier matrix of a finite abelian group has conjugate transpose times itself
+equal to the identity. -/
 theorem orbitFourier_isometry (G : Type*) [AddCommGroup G] [Fintype G] [DecidableEq G] :
     (orbitFourierMatrix G)ᴴ * orbitFourierMatrix G = (1 : Matrix G G ℂ) :=
   Qatlib.Concepts.WalshMoment.Forrelation.fourierMatrix_conjTranspose_mul
 
+/-- The compact record width provides at least `m` binary labels when `m` is nonzero. -/
 theorem compactRecordWidth_bound (m : ℕ) (hm : m ≠ 0) : m ≤ 2 ^ compactRecordWidth m := by
   unfold compactRecordWidth
   have h2 := (Nat.log_lt_iff_lt_pow Nat.one_lt_two hm).mp
     (by omega : Nat.log 2 m < Nat.log 2 m + 1)
   omega
 
+/-- Squaring `x ^ b` gives `x ^ (2 * b)` for natural numbers. -/
 theorem pow_two_mul (x b : ℕ) : (x ^ b) ^ 2 = x ^ (2 * b) := by
   calc (x ^ b) ^ 2 = x ^ b * x ^ b := by rw [pow_succ, pow_one]
     _ = x ^ (b + b) := by rw [Nat.pow_add]
     _ = x ^ (2 * b) := by congr 1; omega
 
+/-- For every `N > 1`, there is a power of two `q` satisfying `N ^ 2 ≤ q < 2 * N ^ 2`. -/
 theorem originalClockWindow_exists (N : ℕ) (hN : 1 < N) :
     ∃ q, OriginalClockWindow N q := by
   have hex : ∃ t, N ^ 2 ≤ 2 ^ t := by
@@ -495,6 +581,8 @@ theorem originalClockWindow_exists (N : ℕ) (hN : 1 < N) :
     (Nat.mul_lt_mul_left (by omega : (0:ℕ) < 2)).mpr hprev
   omega
 
+/-- For `N > 1`, a modular unit of order greater than one, and a clock size exceeding `2 * N ^
+2`, the verified order recovery event has positive mass. -/
 theorem orderGoodMass_pos (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     (hN : 1 < N) (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M) :
     0 < orderGoodMass N M a hM := by
@@ -514,6 +602,8 @@ theorem orderGoodMass_pos (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     simpa [orderGoodMass, OrderGoodEvent] using! h
   exact lt_of_lt_of_le hpos hbound
 
+/-- The modular order distribution conditioned on `OrderGoodEvent`, obtained by dividing its
+masses on that event by the positive mass `orderGoodMass`. -/
 noncomputable def orderConditionalLaw (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     (hpos : 0 < orderGoodMass N M a hM) : FinDist (Fin M) where
   prob := fun y =>
@@ -538,12 +628,16 @@ noncomputable def orderConditionalLaw (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (h
       exact div_self (ne_of_gt hpos)
     exact hsum
 
+/-- The conditional order distribution assigns zero probability to labels outside
+`OrderGoodEvent`. -/
 theorem orderConditionalLaw_prob_eq_zero (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     (hpos : 0 < orderGoodMass N M a hM) (y : Fin M)
     (hy : ¬ OrderGoodEvent N M a y) :
     (orderConditionalLaw N M a hM hpos).prob y = 0 := by
   simp [orderConditionalLaw, hy]
 
+/-- On `OrderGoodEvent`, the conditional probability equals the modular order probability
+divided by `orderGoodMass`. -/
 theorem orderConditionalLaw_prob_eq (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     (hpos : 0 < orderGoodMass N M a hM) (y : Fin M)
     (hy : OrderGoodEvent N M a y) :
@@ -551,10 +645,14 @@ theorem orderConditionalLaw_prob_eq (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM 
       = (modularOrderLaw N M a hM).prob y / orderGoodMass N M a hM := by
   simp [orderConditionalLaw, hy]
 
+/-- Every member of `smallPrimePowers m` divides `m`. -/
 theorem smallPrimePowers_dvd (m : ℕ) (w : ℕ) (hw : w ∈ smallPrimePowers m) : w ∣ m := by
   obtain ⟨p, hp, rfl⟩ := Finset.mem_image.mp hw
   exact (Finset.mem_filter.mp hp).2.2.1
 
+/-- The conjunction of polylogarithmic domination, proper divisor soundness for preprocessing,
+the preprocessing cost bound, the prime direction property, and the validity of composite
+certificates. -/
 def clause2_endpoint : Prop :=
   (∀ (c d N : ℕ), 0 < c → 0 < d → PolyLogDominates c d N) ∧
   (∀ (N d : ℕ), evenDivisor N = some d → 1 < d ∧ d < N ∧ d ∣ N) ∧
@@ -564,6 +662,8 @@ def clause2_endpoint : Prop :=
   (∀ (N : ℕ) [NeZero N] (hp : Nat.Prime N) (a : (ZMod N)ˣ), PrimeDirectionWitness N a) ∧
   (∀ (N d : ℕ), CompositeCertificate N d → ¬ Nat.Prime N)
 
+/-- The arithmetic preprocessing and certification properties collected in `clause2_endpoint`
+hold. -/
 theorem clause2_endpoint_holds : clause2_endpoint := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro c d N hc hd
@@ -576,6 +676,9 @@ theorem clause2_endpoint_holds : clause2_endpoint := by
     exact primeDirectionWitness_of_prime N hp a
   · exact compositeCertificate_imp_notPrime
 
+/-- The conjunction of the local QFT and modular order circuit counts, order verification
+identity, Euclidean correctness and cost bounds, and domination of the rejected attempt
+ledger. -/
 def clause3_endpoint : Prop :=
   (∀ n : ℕ, GateCount (localProgramCircuit (localQFT n)) = localQftGateCount n ∧
       QueryCount (localProgramCircuit (localQFT n)) = 0 ∧
@@ -592,6 +695,8 @@ def clause3_endpoint : Prop :=
       (rejectedLedger k).gates ≤ (attemptLedgerBound N M k).gates ∧
       (rejectedLedger k).space ≤ (attemptLedgerBound N M k).space)
 
+/-- The circuit, verification, Euclidean, and rejected attempt resource properties collected in
+`clause3_endpoint` hold. -/
 theorem clause3_endpoint_holds : clause3_endpoint := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact localQft_ledger
@@ -602,6 +707,8 @@ theorem clause3_endpoint_holds : clause3_endpoint := by
   · exact euclidBitCost_le_polyLog
   · exact attemptLedgerBound_ge_rejected
 
+/-- The conjunction of proper divisor soundness for attempt outcomes and first successes,
+together with factor tree completeness under the splitter success hypothesis. -/
 def clause4_endpoint : Prop :=
   (∀ (N M : ℕ) [NeZero N] (t : AttemptOutcome N M) (d : ℕ),
       attemptOutcomeFactor N M t = some d → 1 < d ∧ d < N ∧ d ∣ N) ∧
@@ -614,6 +721,8 @@ def clause4_endpoint : Prop :=
       (∀ m, 2 ≤ m → m ≤ n → ∀ h : ¬Nat.Prime m, split m ≠ none) →
         (factorTreeOf split n).complete)
 
+/-- The factor extraction soundness and conditional factor tree completeness properties
+collected in `clause4_endpoint` hold. -/
 theorem clause4_endpoint_holds : clause4_endpoint := by
   refine ⟨?_, ?_, ?_⟩
   · intro N M _ t d h
@@ -623,6 +732,8 @@ theorem clause4_endpoint_holds : clause4_endpoint := by
   · intro split n hne
     exact factorTreeOf_complete split n hne
 
+/-- The conjunction of the compiled measurement matrix and action identities, orbit Fourier
+isometry, and the compact record width bound. -/
 def clause5_endpoint : Prop :=
   (∀ (Ω H : Type) [Fintype Ω] [Fintype H] (V : Matrix H Ω ℂ) (T : Matrix Ω Ω ℂ),
       ComputationIsometry V → (V * T * Vᴴ) * V = V * T) ∧
@@ -633,6 +744,8 @@ def clause5_endpoint : Prop :=
       (orbitFourierMatrix G)ᴴ * orbitFourierMatrix G = (1 : Matrix G G ℂ)) ∧
   (∀ m : ℕ, m ≠ 0 → m ≤ 2 ^ compactRecordWidth m)
 
+/-- The compiled measurement, Fourier isometry, and record width properties collected in
+`clause5_endpoint` hold. -/
 theorem clause5_endpoint_holds : clause5_endpoint := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro Ω H _ _ V T hV
@@ -644,6 +757,9 @@ theorem clause5_endpoint_holds : clause5_endpoint := by
   · intro m hm
     exact compactRecordWidth_bound m hm
 
+/-- The conjunction of power of two clock window existence, positive verified recovery mass and
+its conditional probability formula under the stated size and order assumptions, and
+divisibility of small prime powers. -/
 def clause6_endpoint : Prop :=
   (∀ N : ℕ, 1 < N → ∃ q, OriginalClockWindow N q) ∧
   (∀ (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M) (hN : 1 < N)
@@ -656,6 +772,8 @@ def clause6_endpoint : Prop :=
             (modularOrderLaw N M a hM).prob y / orderGoodMass N M a hM else 0) ∧
   (∀ m w : ℕ, w ∈ smallPrimePowers m → w ∣ m)
 
+/-- The clock window, conditional recovery distribution, and prime power divisibility properties
+collected in `clause6_endpoint` hold. -/
 theorem clause6_endpoint_holds : clause6_endpoint := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro N hN

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+
+/-!
+# Specification of bipartite discriminant block action
+
+The proposition `SzegedyLemma6BlockAction` expresses the zero diagonal block structure of the
+bipartite discriminant. It specifies the separate images of the left and right source components
+from the image of their direct sum, without requiring the frames to be isometries. The quantum
+walk spectral framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `SzegedyLemma6BlockAction`: Separate actions on the two source summands.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +34,8 @@ open Qatlib.Concepts.SpectralFilter.BusySpectrum
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- The requirement that a discriminant image `(a, b) ↦ (a', b')` separates into `(a, 0) ↦ (0,
+b')` and `(0, b) ↦ (a', 0)` [Szegedy, Lemma 6][Szegedy2004]. -/
 def SzegedyLemma6BlockAction : Prop :=
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)

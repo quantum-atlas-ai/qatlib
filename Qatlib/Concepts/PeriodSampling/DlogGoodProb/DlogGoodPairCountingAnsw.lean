@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingStat
 import Mathlib.Algebra.Order.Round
 import Mathlib.Combinatorics.Pigeonhole
+
+/-!
+# Counting good discrete-logarithm pairs
+
+Shows that every small-residue first coordinate extends to a good pair and bounds the number of
+such first coordinates. These finite counting estimates prove `dlogGoodPairCounting`, supplying
+the combinatorial input for the discrete-logarithm probability analysis associated with
+[Shor1997].
+
+## Main statements
+
+* `dlog_extend_small_residue`: Extends a small-residue first coordinate to a good pair.
+* `dlog_small_residue_real_count`: Gives the real lower bound `q / 12` on the number of small
+  residues.
+* `dlogGoodPairCounting`: Proves the counting contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,7 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Every small-residue first coordinate extends to a good pair when `q > 0`. -/
 theorem dlog_extend_small_residue (p q r : ℕ) (hq : 0 < q) (c : Fin q)
     (hc : dlogSmallResidue p q c) : ∃ d : Fin q, dlogGoodPair p q r c d := by
   let u : ℝ := (r : ℝ)*(c : ℕ) - (r : ℝ)/((p-1 : ℕ) : ℝ)*
@@ -39,6 +61,8 @@ theorem dlog_extend_small_residue (p q r : ℕ) (hq : 0 < q) (c : Fin q)
   rw [hs]
   exact abs_sub_round u
 
+/-- The number of good pairs is at least the number of small-residue first coordinates when `q >
+0`. -/
 theorem dlog_good_pairs_ge_small (p q r : ℕ) (hq : 0 < q) :
     (Finset.univ.filter fun c : Fin q => dlogSmallResidue p q c).card ≤
       (Finset.univ.filter fun cd : Fin q × Fin q => dlogGoodPair p q r cd.1 cd.2).card := by
@@ -64,6 +88,8 @@ theorem dlog_good_pairs_ge_small (p q r : ℕ) (hq : 0 < q) :
   rw [Finset.card_image_of_injective _ hf] at hh
   exact hh
 
+/-- If `z` and `w` are congruent modulo a positive `q` and `-q < 2 * w ≤ q`, then the centered
+residue of `z` is `w`. -/
 private theorem dlog_centered_eq (q z w : ℤ) (_hq : 0 < q)
     (hmod : z % q = w % q) (hw : -q < 2*w ∧ 2*w ≤ q) : centeredResidue q z = w := by
   unfold centeredResidue
@@ -77,6 +103,8 @@ private theorem dlog_centered_eq (q z w : ℤ) (_hq : 0 < q)
     rw [hr, if_neg (by omega : ¬w+q ≤ q/2)]
     ring
 
+/-- For positive `q`, at least `q / 12` first coordinates satisfy the small-residue condition,
+with natural-number division in the bound. -/
 theorem dlog_small_residue_count (p q : ℕ) (hq : 0 < q) :
     q/12 ≤ (Finset.univ.filter fun c : Fin q => dlogSmallResidue p q c).card := by
   by_cases hq12 : q < 12
@@ -165,6 +193,8 @@ theorem dlog_small_residue_count (p q : ℕ) (hq : 0 < q) :
   rw [Finset.card_image_of_injective _ he] at himg
   exact hb.trans himg
 
+/-- For positive `q`, the real cardinality of the small-residue first coordinates is at least
+`(q : ℝ) / 12`. -/
 theorem dlog_small_residue_real_count (p q : ℕ) (hq : 0 < q) :
     (q : ℝ)/12 ≤ ((Finset.univ.filter fun c : Fin q => dlogSmallResidue p q c).card : ℝ) := by
   letI : NeZero q := ⟨ne_of_gt hq⟩
@@ -264,6 +294,8 @@ theorem dlog_small_residue_real_count (p q : ℕ) (hq : 0 < q) :
   apply (div_le_iff₀ (by norm_num : (0 : ℝ) < 12)).mpr
   exact_mod_cast (by simpa only [mul_comm] using! hcount)
 
+/-- Establishes the lower bounds on small-residue coordinates and good pairs used in the
+discrete-logarithm counting analysis associated with [Shor1997]. -/
 theorem dlogGoodPairCounting : DlogGoodPairCounting := by
   intro p q r _ _hprime hp hpq
   have hq : 0 < q := by omega

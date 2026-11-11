@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Primitives.FiniteMajority
 import Qatlib.Concepts.WalkSearch.Primitives.TriangleSearchCorrectedDefinitions
+
+/-!
+# Sampling bounds for degree-test rounds
+
+Counts the tapes on which a single neighbor-sampling round misses a vertex's neighborhood and
+bounds the corresponding hit and miss fractions. The module also identifies the hit-round
+counter and controls the exponential tail for the prescribed logarithmic round count, supporting
+degree tests in the graph-search setting of [Ambainis2005].
+
+## Main statements
+
+* `miss_round_fraction`: For `n > 0`, the fraction of length-`c` tapes missing the neighborhood
+  of `v` is `(1 - degOf G.edges v / n) ^ c`.
+* `logarithmic_round_tail`: For `n > 0`, the exponential majority-tail expression with `64 *
+  (Nat.log 2 n + 2)` rounds is at most `1 / n ^ 3`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -15,8 +36,11 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n c : ℕ}
 
+/-- The event that at least one of the `c` sampled vertices is adjacent to `v`. -/
 def roundHit (G : UGraph n) (v : Fin n) (s : Fin c→Fin n) : Prop := ∃ j,(v,s j)∈G.edges
 
+/-- The number of length-`c` sampling tapes that miss the neighborhood of `v` is `(n - degOf
+G.edges v) ^ c`. -/
 theorem miss_round_card (G : UGraph n) (v : Fin n) :
     (Finset.univ.filter (fun s : Fin c→Fin n=>¬roundHit G v s)).card=(n-degOf G.edges v)^c := by
   have he : Finset.univ.filter (fun s : Fin c→Fin n=>¬roundHit G v s) =
@@ -26,6 +50,8 @@ theorem miss_round_card (G : UGraph n) (v : Fin n) :
   rw [he,avoiding_tape_card]
   rfl
 
+/-- For `n > 0`, the fraction of length-`c` tapes missing the neighborhood of `v` is `(1 - degOf
+G.edges v / n) ^ c`. -/
 theorem miss_round_fraction (G : UGraph n) (v : Fin n) (hn : 0<n) :
     ((Finset.univ.filter (fun s : Fin c→Fin n=>¬roundHit G v s)).card:ℝ)/
       (Fintype.card (Fin c→Fin n):ℝ) = (1-(degOf G.edges v:ℝ)/(n:ℝ))^c := by
@@ -35,6 +61,8 @@ theorem miss_round_fraction (G : UGraph n) (v : Fin n) (hn : 0<n) :
   congr 1
   field_simp
 
+/-- If `degOf G.edges v * c / n ≥ 10` and `n > 0`, the fraction of single-round tapes missing
+the neighborhood is at most `1 / 5`. -/
 theorem high_degree_miss_fraction (G : UGraph n) (v : Fin n) (hn : 0<n)
     (hlarge : 10≤(degOf G.edges v:ℝ)*(c:ℝ)/(n:ℝ)) :
     ((Finset.univ.filter (fun s : Fin c→Fin n=>¬roundHit G v s)).card:ℝ)/
@@ -57,6 +85,8 @@ theorem high_degree_miss_fraction (G : UGraph n) (v : Fin n) (hn : 0<n)
       norm_num at hh ⊢
       linarith
 
+/-- If `c * degOf G.edges v / n ≤ 1 / 5` and `n > 0`, the fraction of single-round tapes hitting
+the neighborhood is at most `1 / 5`. -/
 theorem low_degree_hit_fraction (G : UGraph n) (v : Fin n) (hn : 0<n)
     (hsmall : (c:ℝ)*(degOf G.edges v:ℝ)/(n:ℝ)≤1/5) :
     ((Finset.univ.filter (fun s : Fin c→Fin n=>roundHit G v s)).card:ℝ)/
@@ -82,6 +112,8 @@ theorem low_degree_hit_fraction (G : UGraph n) (v : Fin n) (hn : 0<n)
   rw [he,show 1+(-(degOf G.edges v:ℝ)/(n:ℝ))=1-(degOf G.edges v:ℝ)/(n:ℝ) by ring] at hber
   linarith
 
+/-- The counter `hitRounds` equals the number of round indices whose sampling tapes satisfy
+`roundHit`. -/
 theorem hitRounds_eq_card_roundHit (G : UGraph n) (v : Fin n) (K c : ℕ) (tape : Fin K→Fin c→Fin n) :
     hitRounds G v K c tape=(Finset.univ.filter (fun i=>roundHit G v (tape i))).card := by
   unfold hitRounds
@@ -89,6 +121,8 @@ theorem hitRounds_eq_card_roundHit (G : UGraph n) (v : Fin n) (K c : ℕ) (tape 
   ext i
   simp [roundHit]
 
+/-- For `n > 0`, the exponential majority-tail expression with `64 * (Nat.log 2 n + 2)` rounds
+is at most `1 / n ^ 3`. -/
 theorem logarithmic_round_tail (n : ℕ) (hn : 0<n) :
     2*Real.exp (-9*(64*(Nat.log 2 n+2):ℕ)/50)≤1/(n:ℝ)^3 := by
   have hnR : (0:ℝ)<n := by exact_mod_cast hn

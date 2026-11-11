@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
 import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseHadamardTest
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.HadamardWord
+
+/-!
+# Repeated phase samples with fresh controls
+
+`runPhase` and `runDist` describe two blocks of Hadamard-test samples, at phases `φ` and `φ + 1
+/ 4`. `freshControlState` realizes their product amplitudes with a common data state, and
+`freshControl_controlLaw` identifies the control marginal with `eigenphaseSampleLaw` when the
+data state is normalized. The development follows [Kitaev1995].
+
+## Main statements
+
+* `freshControl_controlLaw`: identifies the control sampling law.
+* `repeatedQueryWord_counts`: computes `2 * s` queries and `4 * s` ordinary gates.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +43,7 @@ namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Multiplication of `eigenPhase φ` by the imaginary unit shifts the phase by one quarter. -/
 theorem i_mul_eigenPhase (φ : ℝ) :
     Complex.I * eigenPhase φ = eigenPhase (φ + 1 / 4) := by
   unfold eigenPhase
@@ -40,11 +60,15 @@ theorem i_mul_eigenPhase (φ : ℝ) :
   rw [hhalf]
   ring
 
+/-- An eigenvector of `U` with phase `φ` is an eigenvector of `i • U` with phase `φ + 1 / 4`, as
+used in [Kitaev1995]. -/
 theorem iU_eigenvector (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hU : U *ᵥ ψ = eigenPhase φ • ψ) :
     ((Complex.I : ℂ) • U) *ᵥ ψ = eigenPhase (φ + 1 / 4) • ψ := by
   rw [Matrix.smul_mulVec, hU, smul_smul, i_mul_eigenPhase]
 
+/-- The Hadamard query word for `i • U` preserves the eigenvector and produces the control state
+and cosine probabilities at phase `φ + 1 / 4`, as used in [Kitaev1995]. -/
 theorem iU_queryWord_eigenstate (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hU : U *ᵥ ψ = eigenPhase φ • ψ) :
     Run (eigenphaseControlledGate I ((Complex.I : ℂ) • U)) (hadamardQueryWord I)
@@ -57,20 +81,31 @@ theorem iU_queryWord_eigenstate (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
   hadamardQueryWord_eigenstate I ((Complex.I : ℂ) • U) ψ (φ + 1 / 4)
     (iU_eigenvector U ψ φ hU)
 
+/-- The phase factor for a run index: phase `φ` in the first `s` runs and phase `φ + 1 / 4` in
+the next `s`. -/
 def runPhase (φ : ℝ) (s : ℕ) (j : Fin (s + s)) : ℂ :=
   if (j : ℕ) < s then eigenPhase φ else eigenPhase (φ + 1 / 4)
 
+/-- The Hadamard-bit distribution at phase `φ` for the first `s` runs and at phase `φ + 1 / 4`
+for the next `s`. -/
 def runDist (φ : ℝ) (s : ℕ) (j : Fin (s + s)) : FinDist Bool :=
   if (j : ℕ) < s then hadamardBitDist φ else hadamardBitDist (φ + 1 / 4)
 
+/-- The probability of a bit under `runDist` equals its Born probability in the Hadamard-test
+bit state specified by `runPhase`. -/
 theorem runDist_prob (φ : ℝ) (s : ℕ) (j : Fin (s + s)) (b : Bool) :
     (runDist φ s j).prob b = BornProb (hadamardTestBitState (runPhase φ s j)) b := by
   unfold runDist runPhase
   split_ifs <;> rfl
 
+/-- The data amplitudes multiplied by the product of the `2 * s` Hadamard-test control
+amplitudes. -/
 def freshControlState (ψ : QState I) (φ : ℝ) (s : ℕ) : QState (I × (Fin (s + s) → Bool)) :=
   fun p => ψ p.1 * ∏ j : Fin (s + s), hadamardTestBitState (runPhase φ s j) (p.2 j)
 
+/-- The Born probability of a data index and control record factors into the data Born
+probability and the product of the individual control Born probabilities, as used in
+[Kitaev1995]. -/
 theorem bornProb_freshControlState (ψ : QState I) (φ : ℝ) (s : ℕ)
     (i : I) (ω : Fin (s + s) → Bool) :
     BornProb (freshControlState ψ φ s) (i, ω)
@@ -84,6 +119,8 @@ theorem bornProb_freshControlState (ψ : QState I) (φ : ℝ) (s : ℕ)
     exact Finset.prod_congr rfl fun j _ => (pow_two _).symm
   rw [hsq]
 
+/-- For a normalized data state, summing the joint Born probabilities over the data index yields
+the probability of the control record under `eigenphaseSampleLaw`, as used in [Kitaev1995]. -/
 theorem freshControl_controlLaw (ψ : QState I) (hψ : Normalized ψ) (φ : ℝ) (s : ℕ)
     (ω : Fin (s + s) → Bool) :
     (∑ i, BornProb (freshControlState ψ φ s) (i, ω))
@@ -99,6 +136,8 @@ theorem freshControl_controlLaw (ψ : QState I) (hψ : Normalized ψ) (φ : ℝ)
     simp only [runDist_prob]
   rw [key]
 
+/-- Repeating the one-query, two-gate Hadamard word `2 * s` times gives `2 * s` queries and `4 *
+s` ordinary gates, as used in [Kitaev1995]. -/
 theorem repeatedQueryWord_counts (s : ℕ) :
     2 * s * QueryCount (hadamardQueryWord I) = 2 * s ∧
     2 * s * GateCount (hadamardQueryWord I) = 4 * s := by

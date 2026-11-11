@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Sear
+
+/-!
+# Auxiliary bounds for tolerant amplification
+
+Establishes norm, success, and cost estimates for the repeated attempts used in tolerant MNRS
+amplitude amplification [MagniezNayakRolandSantha2011]. The results handle zero marked mass,
+normalization of unsuccessful branches, and confinement of successive attempts to the unmarked
+ray of an invariant plane.
+
+## Main statements
+
+* `mnrs_zero_mass_tolerant_success`: Under the stated fixed-state hypotheses, zero initial
+  marked mass gives zero tolerant success through level `n`.
+* `mnrs_tolerant_attempt_cost_bound`: Bounds the sum of recursive amplification costs through
+  `max tMax 1` by `2 * 3 ^ tMax * (c₁ * (Real.log (1 / γ) + 3) + c₂)` under the logarithmic
+  reflection-cost schedule.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,7 @@ variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDim
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 noncomputable section
 
+/-- The normalized unmarked remainder `leftoverState M ψ` has norm at most one. -/
 theorem mnrs_leftover_norm_le (M : Submodule ℂ W) (ψ : W) : ‖leftoverState M ψ‖ ≤ 1 := by
   change ‖NormedSpace.normalize (unmarkedPart M ψ)‖ ≤ 1
   by_cases h : unmarkedPart M ψ = 0
@@ -24,6 +47,8 @@ theorem mnrs_leftover_norm_le (M : Submodule ℂ W) (ψ : W) : ‖leftoverState 
 end
 noncomputable section
 
+/-- If the initial state has norm at most one, every state produced by the tolerant attempt
+recursion also has norm at most one. -/
 theorem mnrs_attempt_norm_le (M : Submodule ℂ W) (A : ℕ → W ≃ₗᵢ[ℂ] W)
     (x₀ : W) (hx : ‖x₀‖ ≤ 1) (i : ℕ) : ‖attemptState M A x₀ i‖ ≤ 1 := by
   cases i with
@@ -32,6 +57,7 @@ theorem mnrs_attempt_norm_le (M : Submodule ℂ W) (A : ℕ → W ≃ₗᵢ[ℂ]
 end
 noncomputable section
 
+/-- For a vector of norm at most one, its marked mass lies in `[0, 1]`. -/
 theorem mnrs_marked_mass_bounds (M : Submodule ℂ W) (ψ : W) (hψ : ‖ψ‖ ≤ 1) :
     0 ≤ markedMass M ψ ∧ markedMass M ψ ≤ 1 := by
   have hp : ‖markProj M ψ‖ ≤ 1 := (M.norm_starProjection_apply_le ψ).trans hψ
@@ -42,6 +68,8 @@ theorem mnrs_marked_mass_bounds (M : Submodule ℂ W) (ψ : W) (hψ : ‖ψ‖ �
 end
 noncomputable section
 
+/-- The cumulative tolerant success value is at least the initial marked mass when the initial
+state has norm at most one. -/
 theorem mnrs_tolerant_success_ge_initial (M : Submodule ℂ W) (A : ℕ → W ≃ₗᵢ[ℂ] W)
     (x₀ : W) (hx : ‖x₀‖ ≤ 1) (n : ℕ) :
     markedMass M x₀ ≤ tolerantSuccess M A x₀ n := by
@@ -60,6 +88,9 @@ theorem mnrs_tolerant_success_ge_initial (M : Submodule ℂ W) (A : ℕ → W �
 end
 noncomputable section
 
+/-- If the initial marked mass is zero, the unmarking operation is the identity on the unmarked
+subspace, and each reflection fixes the preceding state, all recursive states through level
+`n` equal the initial state. -/
 theorem mnrs_zero_mass_raa_fix (M : Submodule ℂ W) (U : W ≃ₗᵢ[ℂ] W)
     (hU : ∀ z ∈ Mᗮ, U z = z) (x₀ : W) (hp : markedMass M x₀ = 0)
     (R : ℕ → W ≃ₗᵢ[ℂ] W) (n : ℕ)
@@ -85,6 +116,8 @@ theorem mnrs_zero_mass_raa_fix (M : Submodule ℂ W) (U : W ≃ₗᵢ[ℂ] W)
 end
 noncomputable section
 
+/-- Under the stated fixed-state hypotheses, zero initial marked mass gives zero tolerant
+success through level `n`. -/
 theorem mnrs_zero_mass_tolerant_success (M : Submodule ℂ W) (U : W ≃ₗᵢ[ℂ] W)
     (hU : ∀ z ∈ Mᗮ, U z = z) (x₀ : W) (hx : ‖x₀‖ = 1) (hp : markedMass M x₀ = 0)
     (R : ℕ → W ≃ₗᵢ[ℂ] W) (n : ℕ)
@@ -123,6 +156,8 @@ theorem mnrs_zero_mass_tolerant_success (M : Submodule ℂ W) (U : W ≃ₗᵢ[�
 end
 noncomputable section
 
+/-- Bounds the sum of recursive amplification costs through `max tMax 1` by `2 * 3 ^ tMax * (c₁
+* (Real.log (1 / γ) + 3) + c₂)` under the logarithmic reflection-cost schedule. -/
 theorem mnrs_tolerant_attempt_cost_bound (γ c₁ c₂ : ℝ) (hγ : 0 < γ) (hγ1 : γ ≤ 1)
     (hc₁ : 0 ≤ c₁) (hc₂ : 0 ≤ c₂) (costR : ℕ → ℝ) (costMark : ℝ) (tMax : ℕ)
     (hcost : ∀ i, 1 ≤ i → i ≤ max tMax 1 → costR i ≤ c₁*Real.log (1/betaAt γ i))
@@ -171,6 +206,8 @@ theorem mnrs_tolerant_attempt_cost_bound (γ c₁ c₂ : ℝ) (hγ : 0 < γ) (h�
 end
 noncomputable section
 
+/-- The cumulative tolerant success through `n` is at least the marked mass of any individual
+attempt indexed by `j ∈ Finset.Icc 1 n`. -/
 theorem mnrs_tolerant_success_ge_attempt (M : Submodule ℂ W) (A : ℕ → W ≃ₗᵢ[ℂ] W)
     (x₀ : W) (hx : ‖x₀‖ ≤ 1) (n j : ℕ) (hj : j ∈ Finset.Icc 1 n) :
     markedMass M (A j (attemptState M A x₀ (j-1))) ≤ tolerantSuccess M A x₀ n := by
@@ -197,6 +234,8 @@ theorem mnrs_tolerant_success_ge_attempt (M : Submodule ℂ W) (A : ℕ → W �
 end
 noncomputable section
 
+/-- If no attempt through level `n` has marked mass one, every normalized remainder through that
+level is a unit vector. -/
 theorem mnrs_attempt_unit_before (M : Submodule ℂ W) (A : ℕ → W ≃ₗᵢ[ℂ] W)
     (x₀ : W) (hx : ‖x₀‖ = 1) (n : ℕ)
     (hno : ∀ j, 1 ≤ j → j ≤ n → markedMass M (A j (attemptState M A x₀ (j-1))) ≠ 1) :
@@ -220,6 +259,8 @@ theorem mnrs_attempt_unit_before (M : Submodule ℂ W) (A : ℕ → W ≃ₗᵢ[
 end
 noncomputable section
 
+/-- The unmarked remainder of a vector in the span of a marked vector `g` and an unmarked vector
+`v` is a scalar multiple of `v`. -/
 private theorem mnrs_leftover_plane (M : Submodule ℂ W) (g v z : W)
     (hg : g ∈ M) (hv : v ∈ Mᗮ) (hz : z ∈ Submodule.span ℂ ({g,v} : Set W)) :
     ∃ c : ℂ, leftoverState M z = c • v := by
@@ -237,6 +278,8 @@ private theorem mnrs_leftover_plane (M : Submodule ℂ W) (g v z : W)
 end
 noncomputable section
 
+/-- If each amplification map preserves the good-bad plane, every positive-index remainder
+through level `n` is a scalar multiple of the unmarked vector `v`. -/
 theorem mnrs_attempt_bad_ray (M : Submodule ℂ W) (g v : W) (hg : g ∈ M) (hv : v ∈ Mᗮ)
     (A : ℕ → W ≃ₗᵢ[ℂ] W) (x₀ : W) (hx : x₀ ∈ Submodule.span ℂ ({g,v} : Set W))
     (n : ℕ)
@@ -263,6 +306,8 @@ end
 noncomputable section
 omit [FiniteDimensional ℂ W] in
 
+/-- A unit good-bad superposition with nonnegative cosine and squared sine at most `1 / 12` lies
+within distance `Real.sqrt (1 / 6)` of its unit unmarked vector. -/
 private theorem mnrs_bad_ray_distance (g v x : W) (_hg : ‖g‖ = 1) (hv : ‖v‖ = 1)
     (ho : inner ℂ g v = 0) (hx : ‖x‖ = 1) (θ : ℝ)
     (hdecomp : x = (Real.sin θ : ℂ) • g+(Real.cos θ : ℂ) • v)

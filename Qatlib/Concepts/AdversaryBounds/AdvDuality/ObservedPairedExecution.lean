@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryVisits
 import Mathlib.Tactic.Abel
+
+/-!
+# Paired observed executions and inner products
+
+`observedPairedTraces` and `observedPairedVisits` run an observed circuit with two oracles while
+pairing equal measurement outcomes. Their projections recover the individual executions, and
+`observed_paired_inner_telescope` expresses the change in the sum of terminal inner products as
+a sum of query contributions. This supplies an adaptive branchwise identity for hybrid arguments
+of the kind used in [BennettEtAl1997].
+
+## Main statements
+
+* `observedPairedTraces_metadata`: Paired terminal traces have equal classical metadata.
+* `observed_paired_inner_telescope`: Only query steps contribute to the change in summed paired
+  inner products.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- Pairs terminal traces of the same observed circuit under two oracles and initial states,
+matching the measurement outcomes in both executions. -/
 noncomputable def observedPairedTraces (A B : Matrix I I ℂ) :
     ObservedCircuit I → QState I → QState I → List (BranchTrace I × BranchTrace I)
   | .halt accepted, psi, phi =>
@@ -54,6 +77,8 @@ noncomputable def observedPairedTraces (A B : Matrix I I ℂ) :
             ({ t.1 with measurements := t.1.measurements + 1, outcomes := (2, 1) :: t.1.outcomes },
               { t.2 with measurements := t.2.measurements + 1, outcomes := (2, 1) :: t.2.outcomes }))
 
+/-- Lists pairs of states immediately before corresponding oracle queries, following matching
+measurement outcomes in the two executions. -/
 noncomputable def observedPairedVisits (A B : Matrix I I ℂ) :
     ObservedCircuit I → QState I → QState I → List (QState I × QState I)
   | .halt _, _, _ => []
@@ -71,6 +96,8 @@ noncomputable def observedPairedVisits (A B : Matrix I I ℂ) :
       observedPairedVisits A B onTrue
         (ProjectiveBranch M true psi) (ProjectiveBranch M true phi)
 
+/-- Projecting paired terminal traces onto their first components recovers the observed traces
+for oracle `A` and initial state `psi`. -/
 theorem observedPairedTraces_left (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi phi : QState I) :
     (observedPairedTraces A B P psi phi).map Prod.fst = observedTraces A P psi := by
@@ -112,6 +139,8 @@ theorem observedPairedTraces_left (A B : Matrix I I ℂ) (P : ObservedCircuit I)
           ts.map (fun t => { t with measurements := t.measurements + 1, outcomes := (2, 1) :: t.outcomes }))
           (ihTrue (ProjectiveBranch M true psi) (ProjectiveBranch M true phi)))
 
+/-- Projecting paired terminal traces onto their second components recovers the observed traces
+for oracle `B` and initial state `phi`. -/
 theorem observedPairedTraces_right (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi phi : QState I) :
     (observedPairedTraces A B P psi phi).map Prod.snd = observedTraces B P phi := by
@@ -153,6 +182,8 @@ theorem observedPairedTraces_right (A B : Matrix I I ℂ) (P : ObservedCircuit I
           ts.map (fun t => { t with measurements := t.measurements + 1, outcomes := (2, 1) :: t.outcomes }))
           (ihTrue (ProjectiveBranch M true psi) (ProjectiveBranch M true phi)))
 
+/-- The first components of paired query visits are exactly the states recorded by
+`observedQueryVisits` for oracle `A`. -/
 theorem observedPairedVisits_left (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi phi : QState I) :
     (observedPairedVisits A B P psi phi).map Prod.fst =
@@ -172,6 +203,8 @@ theorem observedPairedVisits_left (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     simp only [observedPairedVisits, observedQueryVisits, List.map_append,
       ihFalse, ihTrue]
 
+/-- The second components of paired query visits are exactly the states recorded by
+`observedQueryVisits` for oracle `B`. -/
 theorem observedPairedVisits_right (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi phi : QState I) :
     (observedPairedVisits A B P psi phi).map Prod.snd =
@@ -191,6 +224,8 @@ theorem observedPairedVisits_right (A B : Matrix I I ℂ) (P : ObservedCircuit I
     simp only [observedPairedVisits, observedQueryVisits, List.map_append,
       ihFalse, ihTrue]
 
+/-- Every pair of terminal traces has equal acceptance flags, query counts, gate counts,
+measurement counts, and outcome histories. -/
 theorem observedPairedTraces_metadata (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi phi : QState I) (t : BranchTrace I × BranchTrace I)
     (ht : t ∈ observedPairedTraces A B P psi phi) :
@@ -234,6 +269,8 @@ theorem observedPairedTraces_metadata (A B : Matrix I I ℂ) (P : ObservedCircui
       exact ⟨ha, hq, hg, congrArg (fun k : ℕ => k + 1) hm,
         congrArg (fun os : List (ℕ × ℕ) => (2, 1) :: os) ho⟩
 
+/-- Summing inner products of the two states collapsed onto matching measurement fibers recovers
+their original inner product. -/
 private theorem paired_inner_collapse_partition (psi phi : QState I) {n : ℕ}
     (label : I → Fin n) :
     (∑ o : Fin n,
@@ -255,6 +292,8 @@ private theorem paired_inner_collapse_partition (psi phi : QState I) {n : ℕ}
 
 omit [DecidableEq I] in
 
+/-- Applying an orthogonal projector to both arguments of the inner product equals applying it
+only to the second argument. -/
 private theorem paired_inner_projector {M : Matrix I I ℂ}
     (hM : IsOrthogonalProjector M) (psi phi : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (ApplyGate M psi) (ApplyGate M phi) = Qatlib.Foundations.PureStateMath.Inner psi (ApplyGate M phi) := by
@@ -268,11 +307,14 @@ private theorem paired_inner_projector {M : Matrix I I ℂ}
 
 omit [DecidableEq I] in
 
+/-- The inner product is additive in its second argument. -/
 private theorem paired_inner_add_right (psi phi chi : QState I) :
     Qatlib.Foundations.PureStateMath.Inner psi (phi + chi) = Qatlib.Foundations.PureStateMath.Inner psi phi + Qatlib.Foundations.PureStateMath.Inner psi chi := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.add_apply, mul_add,
       Finset.sum_add_distrib]
 
+/-- The sum of inner products over the two matching branches of an orthogonal projective
+measurement equals the original inner product. -/
 private theorem paired_inner_projective_add {M : Matrix I I ℂ}
     (hM : IsOrthogonalProjector M) (psi phi : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (ProjectiveBranch M false psi) (ProjectiveBranch M false phi) +
@@ -286,6 +328,8 @@ private theorem paired_inner_projective_add {M : Matrix I I ℂ}
     simp [ApplyGate, Matrix.sub_mulVec]
   rw [hsum]
 
+/-- For a well-formed observed circuit, the sum of terminal paired inner products equals the
+initial inner product plus the sum of inner-product changes at paired query visits. -/
 theorem observed_paired_inner_telescope (A B : Matrix I I ℂ) (P : ObservedCircuit I)
     (hP : observedWellFormed P) (psi phi : QState I) :
     ((observedPairedTraces A B P psi phi).map

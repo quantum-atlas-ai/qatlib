@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonTruncationStat
+
+/-!
+# Dyson grid source-parameter statement
+
+`Lemma5DysonSourceParameters` specifies a sufficient grid-size and truncation-order condition
+for approximating a finite-dimensional ordered evolution. It uses a continuous derivative field
+and a bound on the Hermitian Hamiltonian over the interval. These estimates support the
+interaction-picture simulation analysis of [LowWiebe2018].
+
+## Main statements
+
+* `Lemma5DysonSourceParameters`: the proposition asserting total operator-norm error at most ε.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +33,8 @@ namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that a short-time Hermitian evolution has Dyson grid error at most ε when
+the explicit derivative-integral grid-size condition and factorial tail bound hold. -/
 def Lemma5DysonSourceParameters : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (H Hd : ℝ → Matrix I I ℂ) (t Λ ε : ℝ) (K M : ℕ),
     Continuous H → Continuous Hd →

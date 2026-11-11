@@ -5,9 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Contracts
+
+/-!
+# Bounded cardinality-promise search specification
+
+`BHMTTh16.Theorem16` states the exact-search contract for the promise that the marked
+cardinality is either zero or a known integer `t₀` with `0 < t₀ ≤ N`. It includes state
+normalization, exact marked-mass conclusions, and inverse-square-root program-cost bounds as in
+[BrassardEtAl2002].
+
+## Main statements
+
+* `BHMTTh16.Theorem16`: the bounded exact promise-search specification.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
+/-- Specifies exact promise search for `0 < t₀ ≤ N`, with marked mass one in the nonempty
+promised case, marked mass zero in the empty case, and inverse-square-root cost bounds. -/
 def Theorem16 : Prop :=
   ∃ (design : ℝ → ℝ × List (Fin 6)) (c C C₂ : ℝ),
     0 < c ∧ 0 < C ∧ 0 < C₂ ∧

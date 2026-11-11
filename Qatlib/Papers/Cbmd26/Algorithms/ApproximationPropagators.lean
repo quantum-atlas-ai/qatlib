@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximationEntire
 import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorGrowth
+
+/-!
+# Bounded polynomial approximation of wave and Bessel propagators
+
+`wave_scalar_real` and `bessel_scalar_real` establish reality for real scalar inputs, and the
+corresponding circle bounds control growth by `exp (|t| * sqrt (2 * b))`.
+`wave_bounded_polynomial_exists` and `bessel_bounded_polynomial_exists` then give explicit
+degree budgets, uniform bounds on `[-1, 1]`, and approximation error on `[g, 1]`.
+
+These results provide approximation inputs for the wave and Bessel dynamics considered in
+[WangEtAl2026].
+
+## Main statements
+
+* `wave_bounded_polynomial_exists` gives bounded polynomial approximation of the wave
+  propagator.
+* `bessel_bounded_polynomial_exists` gives the corresponding Bessel approximation.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +40,7 @@ noncomputable section
 namespace CBMD
 open Complex Polynomial Metric Set
 
+/-- The scalar wave propagator is real when its spectral parameter and time are real. -/
 theorem wave_scalar_real (x t : ℝ) :
     ((_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator (x : ℂ) (t : ℂ)).re : ℂ) =
       _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator (x : ℂ) (t : ℂ) := by
@@ -24,6 +48,7 @@ theorem wave_scalar_real (x t : ℝ) :
   simp only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator, smul_eq_mul, Complex.conj_tsum,
     map_mul, map_inv₀, map_natCast, map_pow, map_neg, Complex.conj_ofReal]
 
+/-- The scalar Bessel propagator is real when its spectral parameter and time are real. -/
 theorem bessel_scalar_real (x t : ℝ) :
     ((_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator (x : ℂ) (t : ℂ)).re : ℂ) =
       _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator (x : ℂ) (t : ℂ) := by
@@ -31,6 +56,8 @@ theorem bessel_scalar_real (x t : ℝ) :
   simp only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator, smul_eq_mul, Complex.conj_tsum,
     map_mul, map_inv₀, map_natCast, map_pow, map_neg, map_div₀, map_ofNat, Complex.conj_ofReal]
 
+/-- For nonnegative `b` and real `t`, the scaled scalar wave propagator on the radius-two circle
+has norm at most `exp (|t| * sqrt (2 * b))`. -/
 theorem wave_scalar_circle_bound (b t : ℝ) (hb : 0 ≤ b)
     (z : ℂ) (hz : z ∈ sphere (0 : ℂ) 2) :
     ‖_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator ((b : ℂ) * z) (t : ℂ)‖ ≤
@@ -39,6 +66,8 @@ theorem wave_scalar_circle_bound (b t : ℝ) (hb : 0 ≤ b)
   simpa only [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hb, hn, mul_comm b 2]
     using _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.wavePropagator_norm_le_exp ((b : ℂ) * z) (t : ℂ)
 
+/-- For nonnegative `b` and real `t`, the scaled scalar Bessel propagator on the radius-two
+circle has norm at most `exp (|t| * sqrt (2 * b))`. -/
 theorem bessel_scalar_circle_bound (b t : ℝ) (hb : 0 ≤ b)
     (z : ℂ) (hz : z ∈ sphere (0 : ℂ) 2) :
     ‖_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator ((b : ℂ) * z) (t : ℂ)‖ ≤
@@ -47,6 +76,9 @@ theorem bessel_scalar_circle_bound (b t : ℝ) (hb : 0 ≤ b)
   simpa only [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hb, hn, mul_comm b 2]
     using _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator_norm_le_exp ((b : ℂ) * z) (t : ℂ)
 
+/-- For nonnegative `b`, real `t`, and positive `g` and `ε`, a complex polynomial approximates
+the scaled wave propagator within `ε` on `[g, 1]` while remaining bounded by `1 + ε` on
+`[-1, 1]`. Its degree satisfies the stated dyadic budget using `exp (|t| * sqrt (2 * b))`. -/
 theorem wave_bounded_polynomial_exists (b t g ε : ℝ)
     (hb : 0 ≤ b) (hg : 0 < g) (hε : 0 < ε) :
     ∃ P : Polynomial ℂ,
@@ -73,6 +105,9 @@ theorem wave_bounded_polynomial_exists (b t g ε : ℝ)
   · intro x _
     simpa only [← Complex.ofReal_mul] using wave_scalar_real (b * x) t
 
+/-- For nonnegative `b`, real `t`, and positive `g` and `ε`, a complex polynomial approximates
+the scaled Bessel propagator within `ε` on `[g, 1]` while remaining bounded by `1 + ε` on
+`[-1, 1]`. Its degree satisfies the stated dyadic budget using `exp (|t| * sqrt (2 * b))`. -/
 theorem bessel_bounded_polynomial_exists (b t g ε : ℝ)
     (hb : 0 ≤ b) (hg : 0 < g) (hε : 0 < ε) :
     ∃ P : Polynomial ℂ,

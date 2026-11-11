@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt
+
+/-!
+# Execution of the raw square-root program
+
+The global store `memory` and the reader, product, loop, and writer embeddings describe how the
+raw square-root subroutines share stacks. The embedding lemmas transport reads and updates, and
+the execution lemmas compose parsing, preprocessing, trial iteration, framing, cleanup, and
+final output transfer.
+
+The theorem `complete` establishes the encoded input/output behavior within `executionBudget`,
+leaving only the reversed output word on the final stack. For background on the classical
+machine model, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `frontend`: initialization and parsing reconstruct the input registers.
+* `preprocess_call`: the product subroutine prepares the integer ratio.
+* `loop_call`: the embedded loop performs the requested number of updates.
+* `complete`: the entire raw program realizes the specified encoded transformation.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +48,8 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec (Bits framed)
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- Combines the parser stacks, nine registers, six working stacks, framed-writer stacks, and
+raw input/output word into the global store. -/
 def memory (A : FramedTake.Slot → Bits) (R : Fin 9 → Bits) (W : Fin 6 → Bits)
     (F : FrameCopy.Slot → Bits) (raw : Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits
   | 0 => A .reader | 1 => A .markers | 2 => A .payload | 3 => A .count
@@ -34,10 +61,13 @@ def memory (A : FramedTake.Slot → Bits) (R : Fin 9 → Bits) (W : Fin 6 → Bi
   | 26 => F .temporary | 27 => F .markers | 28 => F .header | 29 => F .output
   | _ => raw
 
+/-- Embeds a reader store into global memory while fixing multiplication workspace, writer
+workspace, and the raw word. -/
 def readerFrame (W : Fin 6 → Bits) (F : FrameCopy.Slot → Bits) (raw : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader.Slot (Fin 9) → Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   memory (fun s => S (.inl s)) (fun i => S (.inr i)) W F raw
 
+/-- Reading an embedded reader stack recovers its original contents. -/
 theorem readerFrame_at (W : Fin 6 → Bits) (F : FrameCopy.Slot → Bits) (raw : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader.Slot (Fin 9) → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader.Slot (Fin 9)) :
     readerFrame W F raw S (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.readCode i)=S i := by
@@ -45,6 +75,7 @@ theorem readerFrame_at (W : Fin 6 → Bits) (F : FrameCopy.Slot → Bits) (raw :
   | inl s => cases s <;> rfl
   | inr i => fin_cases i <;> rfl
 
+/-- Updating a reader stack commutes with embedding the reader store into global memory. -/
 theorem readerFrame_update (W : Fin 6 → Bits) (F : FrameCopy.Slot → Bits) (raw : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader.Slot (Fin 9) → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader.Slot (Fin 9)) (bits : Bits) :
     readerFrame W F raw (Function.update S i bits)=
@@ -53,6 +84,8 @@ theorem readerFrame_update (W : Fin 6 → Bits) (F : FrameCopy.Slot → Bits) (r
   | inl s => cases s <;> funext j <;> fin_cases j <;> rfl
   | inr i => fin_cases i <;> funext j <;> fin_cases j <;> rfl
 
+/-- Reading one framed field into an empty destination register preserves the unread suffix and
+other memory components, with a cubic execution bound. -/
 theorem read_call (index : Fin 5) (R : Fin 9 → Bits) (W : Fin 6 → Bits)
     (F : FrameCopy.Slot → Bits) (raw bits tail : Bits) (hfresh : R (readDst index)=[]) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program
@@ -71,9 +104,13 @@ theorem read_call (index : Fin 5) (R : Fin 9 → Bits) (W : Fin 6 → Bits)
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- The register store containing the four rational-parameter words and the binary precision
+counter, with all product registers empty. -/
 def inputRegisters (k : ℕ) (qN qD sN sD : Bits) : Fin 9 → Bits
   | 0 => qN | 1 => qD | 2 => sN | 3 => sD | 8 => k.bits | _ => []
 
+/-- The five-field reader reconstructs the input registers and enters preprocessing with a cubic
+execution bound. -/
 theorem read_all (k : ℕ) (qN qD sN sD : Bits) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program
       ⟨some (.read 0 (.take (.read (.read .unary)))),default,
@@ -133,16 +170,22 @@ theorem read_all (k : ℕ) (qN qD sN sD : Bits) :
     10000*(1+(framed sD).length)^3 ≤ 50000*N^3
   nlinarith
 
+/-- Embeds the initial transfer store as the raw word and parser-reader word with all other
+stacks empty. -/
 def initialFrame (S : Fin 2 → Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   memory (FramedTake.store (S 1) [] [] []) (fun _ => []) (fun _ => []) (fun _ => []) (S 0)
 
+/-- Reading either initial-transfer stack through its global code returns its original contents. -/
 theorem initialFrame_at (S : Fin 2 → Bits) (i : Fin 2) : initialFrame S (initCode i)=S i := by
   fin_cases i <;> rfl
 
+/-- Updating an initial-transfer stack commutes with its global embedding. -/
 theorem initialFrame_update (S : Fin 2 → Bits) (i : Fin 2) (bits : Bits) :
     initialFrame (Function.update S i bits)=Function.update (initialFrame S) (initCode i) bits := by
   fin_cases i <;> funext j <;> fin_cases j <;> rfl
 
+/-- Initial transfer reverses the raw input into the parser-reader stack with a quadratic
+execution bound. -/
 theorem init_call (word : Bits) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program (TM2.init 30 word.reverse)
       ⟨some (.read 0 (.take (.read (.read .unary)))),default,
@@ -172,6 +215,8 @@ theorem init_call (word : Bits) :
   rw [hc,hc0]
   nlinarith
 
+/-- Initialization and field reading reconstruct all input registers and enter preprocessing
+with a cubic execution bound. -/
 theorem frontend (k : ℕ) (qN qD sN sD : Bits) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program (TM2.init 30 (input k qN qD sN sD).reverse)
       ⟨some (.preprocess (.call 0 (.copy false .emit))),default,
@@ -185,14 +230,18 @@ theorem frontend (k : ℕ) (qN qD sN sD : Bits) :
   change 10*N^2+50000*N^3 ≤ 60000*N^3
   nlinarith
 
+/-- Extends the eight preprocessing registers by a ninth register holding the precision word. -/
 def extendRegisters (R : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Register → Bits) (precision : Bits) : Fin 9 → Bits
   | 0 => R 0 | 1 => R 1 | 2 => R 2 | 3 => R 3 | 4 => R 4
   | 5 => R 5 | 6 => R 6 | 7 => R 7 | _ => precision
 
+/-- Embeds the preprocessing store into global memory while preserving the parser, writer, raw
+word, and precision word. -/
 def productFrame (A : FramedTake.Slot → Bits) (F : FrameCopy.Slot → Bits) (raw precision : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Slot → Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   memory A (extendRegisters (fun i => S (.inr i)) precision) (fun i => S (.inl i)) F raw
 
+/-- Reading an embedded preprocessing stack recovers its original contents. -/
 theorem productFrame_at (A : FramedTake.Slot → Bits) (F : FrameCopy.Slot → Bits) (raw precision : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Slot → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Slot) :
     productFrame A F raw precision S (productCode i)=S i := by
@@ -200,6 +249,7 @@ theorem productFrame_at (A : FramedTake.Slot → Bits) (F : FrameCopy.Slot → B
   | inl i => fin_cases i <;> rfl
   | inr i => fin_cases i <;> rfl
 
+/-- Updating a preprocessing stack commutes with its global embedding. -/
 theorem productFrame_update (A : FramedTake.Slot → Bits) (F : FrameCopy.Slot → Bits) (raw precision : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Slot → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Slot) (bits : Bits) :
     productFrame A F raw precision (Function.update S i bits)=
@@ -208,6 +258,8 @@ theorem productFrame_update (A : FramedTake.Slot → Bits) (F : FrameCopy.Slot �
   | inl i => fin_cases i <;> funext j <;> fin_cases j <;> rfl
   | inr i => fin_cases i <;> funext j <;> fin_cases j <;> rfl
 
+/-- The embedded preprocessing program computes the two squares and two products while
+preserving the precision word, with a quartic execution bound. -/
 theorem preprocess_call (k : ℕ) (qN qD sN sD : Bits) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program
       ⟨some (.preprocess (.call 0 (.copy false .emit))),default,
@@ -239,23 +291,31 @@ theorem preprocess_call (k : ℕ) (qN qD sN sD : Bits) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hstart] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Places the loop stacks that overlap parser workspace into the corresponding parser
+positions, retaining the reader and output words. -/
 def loopReader (reader out : Bits) (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot → Bits) : FramedTake.Slot → Bits
   | .reader => reader | .markers => S (.inl 8) | .payload => S (.inl 9)
   | .count => S (.inl 10) | .temporary => S (.inl 11)
   | .header => S (.inr 1) | .output => out
 
+/-- Updates the shared register positions with loop right-hand side, denominator, and counter
+stacks. -/
 def loopRegisters (R : Fin 9 → Bits) (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot → Bits) : Fin 9 → Bits
   | 0 => R 0 | 1 => R 1 | 2 => R 2 | 3 => R 3 | 4 => R 4
   | 5 => S (.inl 3) | 6 => R 6 | 7 => S (.inl 2) | _ => S (.inr 0)
 
+/-- Extracts the six working-stack positions from a loop store. -/
 def loopWorking (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot → Bits) : Fin 6 → Bits
   | 0 => S (.inl 0) | 1 => S (.inl 1) | 2 => S (.inl 4)
   | 3 => S (.inl 5) | 4 => S (.inl 6) | _ => S (.inl 7)
 
+/-- Embeds the loop store into global memory while retaining the unshared registers, writer
+workspace, and input/output words. -/
 def loopFrame (R : Fin 9 → Bits) (F : FrameCopy.Slot → Bits) (raw reader out : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot → Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   memory (loopReader reader out S) (loopRegisters R S) (loopWorking S) F raw
 
+/-- Reading an embedded loop stack recovers its original contents. -/
 theorem loopFrame_at (R : Fin 9 → Bits) (F : FrameCopy.Slot → Bits) (raw reader out : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot) :
     loopFrame R F raw reader out S (loopCode i)=S i := by
@@ -263,6 +323,7 @@ theorem loopFrame_at (R : Fin 9 → Bits) (F : FrameCopy.Slot → Bits) (raw rea
   | inl i => fin_cases i <;> rfl
   | inr i => fin_cases i <;> rfl
 
+/-- Updating a loop stack commutes with its global embedding. -/
 theorem loopFrame_update (R : Fin 9 → Bits) (F : FrameCopy.Slot → Bits) (raw reader out : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot) (bits : Bits) :
     loopFrame R F raw reader out (Function.update S i bits)=
@@ -271,6 +332,8 @@ theorem loopFrame_update (R : Fin 9 → Bits) (F : FrameCopy.Slot → Bits) (raw
   | inl i => fin_cases i <;> funext j <;> fin_cases j <;> rfl
   | inr i => fin_cases i <;> funext j <;> fin_cases j <;> rfl
 
+/-- An embedded loop with counter value `k` performs `k` data updates, clears its counter, and
+enters framed output with the stated execution bound. -/
 theorem loop_call (k : ℕ) (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local)
     (R : Fin 9 → Bits) (F : FrameCopy.Slot → Bits) (raw reader out : Bits)
     (hnum : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue counter=k) :
@@ -290,21 +353,27 @@ theorem loop_call (k : ℕ) (counter : Bits) (d : Qatlib.Concepts.QueryComplexit
     Option.map_none,Option.getD_none] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Combines the nine registers and six working stacks into the fifteen-register store used by
+the writer. -/
 def joinRegisters (R : Fin 9 → Bits) (W : Fin 6 → Bits) : Fin 15 → Bits
   | 0 => R 0 | 1 => R 1 | 2 => R 2 | 3 => R 3 | 4 => R 4
   | 5 => R 5 | 6 => R 6 | 7 => R 7 | 8 => R 8
   | 9 => W 0 | 10 => W 1 | 11 => W 2 | 12 => W 3 | 13 => W 4 | _ => W 5
 
+/-- Extracts the nine register positions from the writer store. -/
 def writerRegisters (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15) → Bits) : Fin 9 → Bits :=
   fun i => S (.inr (Fin.castLE (by decide) i))
 
+/-- Extracts the six working-stack positions from the writer store. -/
 def writerWorking (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15) → Bits) : Fin 6 → Bits :=
   fun i => S (.inr ⟨9+i.val,by omega⟩)
 
+/-- Embeds a writer store into global memory while preserving parser workspace and the raw word. -/
 def writerFrame (A : FramedTake.Slot → Bits) (raw : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15) → Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   memory A (writerRegisters S) (writerWorking S) (fun s => S (.inl s)) raw
 
+/-- Reading an embedded writer stack recovers its original contents. -/
 theorem writerFrame_at (A : FramedTake.Slot → Bits) (raw : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15) → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15)) :
     writerFrame A raw S (writeCode i)=S i := by
@@ -312,6 +381,7 @@ theorem writerFrame_at (A : FramedTake.Slot → Bits) (raw : Bits)
   | inl s => cases s <;> rfl
   | inr i => fin_cases i <;> rfl
 
+/-- Updating a writer stack commutes with its global embedding. -/
 theorem writerFrame_update (A : FramedTake.Slot → Bits) (raw : Bits)
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15) → Bits) (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.Slot (Fin 15)) (bits : Bits) :
     writerFrame A raw (Function.update S i bits)=
@@ -320,6 +390,8 @@ theorem writerFrame_update (A : FramedTake.Slot → Bits) (raw : Bits)
   | inl s => cases s <;> funext j <;> fin_cases j <;> rfl
   | inr i => fin_cases i <;> funext j <;> fin_cases j <;> rfl
 
+/-- Embedding a canonical writer store agrees with the corresponding decomposition of global
+memory. -/
 theorem writerFrame_store (A : FramedTake.Slot → Bits) (raw : Bits) (R : Fin 9 → Bits)
     (W : Fin 6 → Bits) (source out : Bits) :
     writerFrame A raw (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter.store (joinRegisters R W) source out)=
@@ -327,6 +399,8 @@ theorem writerFrame_store (A : FramedTake.Slot → Bits) (raw : Bits) (R : Fin 9
   funext i
   fin_cases i <;> rfl
 
+/-- A framed write prepends the selected register frame to the output buffer, preserving
+registers and other workspace, with a cubic execution bound. -/
 theorem emit_call (index : Fin 3) (A : FramedTake.Slot → Bits) (raw : Bits)
     (R : Fin 9 → Bits) (W : Fin 6 → Bits) (out : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program
@@ -347,9 +421,12 @@ theorem emit_call (index : Fin 3) (A : FramedTake.Slot → Bits) (raw : Bits)
     writerFrame_store] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- The preprocessed product-register store extended by the binary precision counter. -/
 def preparedRegisters (k : ℕ) (qN qD sN sD : Bits) : Fin 9 → Bits :=
   extendRegisters (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.result qN qD sN sD) k.bits
 
+/-- Launching prepares the scaled right-hand side and reset loop state and enters counter
+decrement with the stated quadratic execution bound. -/
 theorem launch_call (k : ℕ) (qN qD sN sD : Bits) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program
       ⟨some .launch,default,
@@ -375,6 +452,8 @@ theorem launch_call (k : ℕ) (qN qD sN sD : Bits) :
       (2*((Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Preprocess.numerator qN sD).length+1)+3+0))+0 ≤ _
     nlinarith
 
+/-- The three framed writes produce the scale numerator, scale denominator, and result frames in
+the output buffer with the stated execution bound. -/
 theorem emit_all (A : FramedTake.Slot → Bits) (raw : Bits) (R : Fin 9 → Bits)
     (W : Fin 6 → Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program
@@ -395,6 +474,8 @@ theorem emit_all (A : FramedTake.Slot → Bits) (raw : Bits) (R : Fin 9 → Bits
     11000*(1+(R 2).length+(framed (R 3)++framed (W 2)).length)^3 ≤ _
   exact le_of_eq (by ring)
 
+/-- One cleanup phase empties its selected stack and advances to the next phase with a quadratic
+execution bound. -/
 theorem drain_call (index : Fin 29) (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program ⟨some (.drain index 0),v,S⟩
       ⟨some (nextDrain index),Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.putIO v none,Function.update S (Fin.castLE (by decide) index) []⟩
@@ -430,11 +511,13 @@ theorem drain_call (index : Fin 29) (S : Qatlib.Concepts.QueryComplexity.DegreeM
   rw [hc,Normalization.drain_clock]
   nlinarith
 
+/-- Empties all global stacks whose indices are less than the given cutoff. -/
 def clearBefore
     (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits)
     (n : ℕ) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot →
     Bits := fun i => if i.val<n then [] else S i
 
+/-- Clearing the stack at the cutoff increases the cleared prefix by one. -/
 theorem clearBefore_step (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits) (i : Fin 29) :
     Function.update (clearBefore S i.val) (Fin.castLE (by decide) i) []=
       clearBefore S (i.val+1) := by
@@ -454,11 +537,15 @@ theorem clearBefore_step (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.Effec
     · rw [if_pos hlt,if_pos (by omega)]
     · rw [if_neg hlt,if_neg (by omega)]
 
+/-- The cleanup label at an index below 29, and the output-transfer label thereafter. -/
 def drainLabel (index : ℕ) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Label :=
   if h : index<29 then .drain ⟨index,h⟩ 0 else .output 0
 
+/-- Advancing a cleanup stage agrees with increasing its natural-number label index by one. -/
 theorem nextDrain_label (i : Fin 29) : nextDrain i=drainLabel (i.val+1) := rfl
 
+/-- If all original stack lengths are at most `H`, the remaining `n` cleanup stages cost at most
+`10 * n * (1 + H)^2`. -/
 theorem drains_from (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local) (H : ℕ) (hH : ∀ i, (S i).length≤H) :
     ∀ (n i : ℕ), i+n=29 →
       Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program ⟨some (drainLabel i),Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.putIO v none,clearBefore S i⟩
@@ -495,6 +582,8 @@ theorem drains_from (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveN
     apply (hStep'.trans hRest).mono
     exact le_of_eq (by ring)
 
+/-- All twenty-nine workspace stacks can be cleared with execution bound `290 * (1 + H)^2` when
+every stack length is at most `H`. -/
 theorem drain_all (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local) (H : ℕ) (hH : ∀ i, (S i).length≤H) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program ⟨some (.drain 0 0),Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.putIO v none,S⟩
       ⟨some (.output 0),Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.putIO v none,clearBefore S 29⟩ (290*(1+H)^2) := by
@@ -505,16 +594,21 @@ theorem drain_all (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNum
   rw [hzero] at h
   exact h
 
+/-- Embeds the two output-transfer stacks into an otherwise empty global store. -/
 def outputFrame (S : Fin 2 → Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   Function.update (Function.update (fun _ => []) 29 (S 0)) 30 (S 1)
 
+/-- Reading either embedded output-transfer stack recovers its original contents. -/
 theorem outputFrame_at (S : Fin 2 → Bits) (i : Fin 2) : outputFrame S (outputCode i)=S i := by
   fin_cases i <;> rfl
 
+/-- Updating an output-transfer stack commutes with its global embedding. -/
 theorem outputFrame_update (S : Fin 2 → Bits) (i : Fin 2) (bits : Bits) :
     outputFrame (Function.update S i bits)=Function.update (outputFrame S) (outputCode i) bits := by
   fin_cases i <;> funext j <;> fin_cases j <;> rfl
 
+/-- With the raw stack empty, final output transfer halts with only the reversed output-buffer
+word remaining, within the stated execution bound. -/
 theorem output_call (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Local) (hraw : S 30=[]) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program ⟨some (.output 0),v,clearBefore S 29⟩
       ⟨none,default,Function.update (fun _ : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot => []) 30 (S 29).reverse⟩
@@ -548,19 +642,25 @@ theorem output_call (S : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveN
     refine ⟨1,?_,?_⟩ <;> rfl
   exact e0.trans e1
 
+/-- The loop data after `k` updates from the preprocessed initial data. -/
 def completedData (k : ℕ) (qN qD sN sD : Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data :=
   (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data.next^[k]) (data qN qD sN sD)
 
+/-- The global register component after the loop has completed and cleared its counter. -/
 def completedRegisters (k : ℕ) (qN qD sN sD : Bits) : Fin 9 → Bits :=
   loopRegisters (preparedRegisters k qN qD sN sD) (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.store [] [] (completedData k qN qD sN sD))
 
+/-- The six working-stack contents after loop completion. -/
 def completedWorking (k : ℕ) (qN qD sN sD : Bits) : Fin 6 → Bits :=
   loopWorking (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.store [] [] (completedData k qN qD sN sD))
 
+/-- The global memory after loop completion and framed output, before workspace cleanup. -/
 def lastMemory (k : ℕ) (qN qD sN sD : Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot → Bits :=
   memory (FramedTake.store [] [] [] []) (completedRegisters k qN qD sN sD)
     (completedWorking k qN qD sN sD) (FrameCopy.store [] [] [] [] [] (output k qN qD sN sD)) []
 
+/-- The sum of the execution budgets for parsing, preprocessing, loop execution, framed output,
+cleanup, and final transfer. -/
 noncomputable def executionBudget (k : ℕ) (qN qD sN sD : Bits) : ℕ :=
   let d := completedData k qN qD sN sD
   60000*(1+(input k qN qD sN sD).length)^3+
@@ -572,6 +672,8 @@ noncomputable def executionBudget (k : ℕ) (qN qD sN sD : Bits) : ℕ :=
     290*(1+Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackHeight (lastMemory k qN qD sN sD))^2+
     (10*(1+(output k qN qD sN sD).length)^2+1)
 
+/-- The raw square-root program transforms encoded input into encoded output, halting with only
+the reversed output word on stack 30 within `executionBudget`. -/
 theorem complete (k : ℕ) (qN qD sN sD : Bits) :
     Execution Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.program (TM2.init 30 (input k qN qD sN sD).reverse)
       ⟨none,default,Function.update (fun _ : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareRawSqrt.Slot => []) 30 (output k qN qD sN sD).reverse⟩

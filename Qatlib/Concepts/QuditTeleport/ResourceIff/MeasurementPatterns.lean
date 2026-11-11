@@ -24,6 +24,32 @@ import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingTele
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+
+/-!
+# LOCC teleportation branches and resource bounds
+
+This module develops operator identities and leaf decompositions for finite LOCC teleportation
+in the setting of [BennettEtAl1993Teleportation]. It proves that each leaf of a successful
+protocol with a positive semidefinite resource acts on Bob's output as a scalar multiple of the
+identity, and relates the number of leaves to the protocol's communication cost.
+
+Polarization and positivity arguments reduce the branch analysis to pure inputs. For a
+normalized pure resource, `pure_resource_scalar_bound` bounds the scalar of a contractive local
+product branch by `1 / n²`.
+
+## Main statements
+
+* `eq_smul_id_of_posSummand`: a positive linear summand of the identity is scalar.
+* `loccChannel_eq_sum_leafOps`: decomposition of an LOCC channel into local leaf operators.
+* `loccLeafScalars_sum_one`: successful teleportation has leaf scalars summing to one.
+* `loccLeafCount_le_two_pow_loccBits`: leaf count is bounded by the exponential of communication
+  cost.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -48,6 +74,9 @@ open Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- For every positive dimension, the actual qudit teleportation branches form an instrument
+whose forgotten channel is the identity. Each outcome has probability `1 / n²` on density
+operators and its conditional state is the input. -/
 theorem clause1_conj1 :
     (∀ (n : ℕ) [NeZero n],
       ∃ I : Instrument (Fin n × Fin n) n n,
@@ -58,12 +87,17 @@ theorem clause1_conj1 :
           ∀ hp : 0 < instrumentProb I ρ o, I.conditionalState ρ o hp = ρ)) :=
   qudit_actual_instrument_and_conditional_recovery
 
+/-- Each corrected qubit teleportation branch acts as one quarter of the identity even with an
+arbitrary finite reference system, and summing the branches recovers the joint operator. -/
 theorem clause1_conj2 :
     (∀ (R : ℕ) (ρ : Matrix (Fin 2 × Fin R) (Fin 2 × Fin R) ℂ) (o : Bool × Bool),
       tensorLeft (teleportCorrectedInstrument.branch o) ρ = (1 / 4 : ℂ) • ρ ∧
         (∑ o : Bool × Bool, tensorLeft (teleportCorrectedInstrument.branch o) ρ) = ρ) :=
   bell_reference_channel_identity
 
+/-- Collects the resource marginal converse, maximally entangled resource teleportation and pure
+resource characterization together with the restricted communication, message guessing, and
+redundant coding statements. -/
 theorem clause1_conj5 :
     QuditResourceMarginalConverse ∧ QuditMaxEntResourceTeleportation ∧
       QuditPureResourceMaxEntForm ∧ CommBoundRestricted ∧
@@ -72,6 +106,8 @@ theorem clause1_conj5 :
     quditPureResourceMaxEntForm, commBoundRestricted,
     prearrivalMessageGuessing, collapsedMessageGuessing, redundantCodingReliability⟩
 
+/-- A positive semidefinite operator bounded above by `outerProduct v` is a scalar multiple of
+that outer product. -/
 theorem psd_summand_outerProduct {n : ℕ} (v : QState (Fin n)) (A : Operator n)
     (hA : A.PosSemidef) (hB : (outerProduct v - A).PosSemidef) :
     ∃ c : ℂ, A = c • outerProduct v := by
@@ -176,12 +212,16 @@ theorem psd_summand_outerProduct {n : ℕ} (v : QState (Fin n)) (A : Operator n)
     rw [hdiv, div_mul_eq_mul_div]
     ring
 
+/-- The rank one operator `|v⟩⟨w|`, with entries `v i * star (w j)`. -/
 private noncomputable def ketBra {n : ℕ} (v w : QState (Fin n)) : Operator n :=
   Matrix.of fun i j => v i * star (w j)
 
+/-- Evaluates the entries of `ketBra v w` as `v i * star (w j)`. -/
 private theorem ketBra_apply {n : ℕ} (v w : QState (Fin n)) (i j : Fin n) :
     ketBra v w i j = v i * star (w j) := rfl
 
+/-- Expresses `ketBra v w` as a complex linear combination of four outer products by
+polarization. -/
 private theorem ketBra_polarization {n : ℕ} (v w : QState (Fin n)) :
     ketBra v w = (1 / 4 : ℂ) • (outerProduct (v + w) - outerProduct (v - w)) +
       (Complex.I / 4) •
@@ -198,6 +238,8 @@ private theorem ketBra_polarization {n : ℕ} (v w : QState (Fin n)) :
   simp only [Complex.I_sq]
   ring
 
+/-- Expands `outerProduct (v + t • w)` into the two diagonal outer products and the two mixed
+ket bra terms. -/
 private theorem outerProduct_add_smul {n : ℕ} (v w : QState (Fin n)) (t : ℂ) :
     outerProduct (v + t • w) =
       outerProduct v + star t • ketBra v w + t • ketBra w v + (t * star t) • outerProduct w := by
@@ -206,6 +248,7 @@ private theorem outerProduct_add_smul {n : ℕ} (v w : QState (Fin n)) (t : ℂ)
     Pi.add_apply, Pi.smul_apply, smul_eq_mul, starRingEnd_apply, star_add, star_mul]
   ring
 
+/-- Expands an operator in the matrix units formed from computational basis ket bra operators. -/
 private theorem matrix_eq_sum_ketBra {n : ℕ} (σ : Operator n) :
     σ = ∑ k : Fin n, ∑ l : Fin n, σ k l • ketBra (Qatlib.Foundations.PureStateMath.Ket k) (Qatlib.Foundations.PureStateMath.Ket l) := by
   ext i j
@@ -229,6 +272,7 @@ private theorem matrix_eq_sum_ketBra {n : ℕ} (σ : Operator n) :
   rw [Finset.sum_congr rfl (fun x _ => hx x)]
   simp
 
+/-- A complex linear map that fixes every outer product fixes every operator. -/
 theorem eq_of_outerProduct_fixed {n : ℕ} (G : Operator n → Operator n)
     (hadd : ∀ A B : Operator n, G (A + B) = G A + G B)
     (hsmul : ∀ (c : ℂ) (A : Operator n), G (c • A) = c • G A)
@@ -265,6 +309,9 @@ theorem eq_of_outerProduct_fixed {n : ℕ} (G : Operator n → Operator n)
   intro l _
   rw [hsmul, hbra]
 
+/-- If a complex linear map scales each outer product individually, its scalars agree on any two
+distinct computational basis vectors. It scales both associated off diagonal matrix units by
+that common scalar. -/
 private theorem posSummand_basis_pair {n : ℕ} (M : Operator n → Operator n)
     (hadd : ∀ A B : Operator n, M (A + B) = M A + M B)
     (hsmul : ∀ (c : ℂ) (A : Operator n), M (c • A) = c • M A)
@@ -450,6 +497,8 @@ private theorem posSummand_basis_pair {n : ℕ} (M : Operator n → Operator n)
     simp only [Matrix.smul_apply, smul_eq_mul]
     linear_combination (M1 i j - M2 i j) / 2
 
+/-- A complex linear map on a nonzero dimensional operator space is a scalar multiple of the
+identity if both it and its complement preserve positive semidefiniteness. -/
 theorem eq_smul_id_of_posSummand {n : ℕ} [NeZero n] (M : Operator n → Operator n)
     (hadd : ∀ A B : Operator n, M (A + B) = M A + M B)
     (hsmul : ∀ (c : ℂ) (A : Operator n), M (c • A) = c • M A)
@@ -520,6 +569,7 @@ theorem eq_smul_id_of_posSummand {n : ℕ} [NeZero n] (M : Operator n → Operat
       _ = s (Qatlib.Foundations.PureStateMath.Ket k₀) • σ := congrArg (fun x => s (Qatlib.Foundations.PureStateMath.Ket k₀) • x) hsumexp.symm
   rw [hleft, hright]
 
+/-- Every natural number is bounded by two raised to the ceiling of its base two logarithm. -/
 theorem nat_le_two_pow_ceil_log (n : ℕ) :
     n ≤ 2 ^ (Nat.ceil (Real.log n / Real.log 2)) := by
   have h2 : (0 : ℝ) < Real.log 2 := Real.log_pos (by norm_num)
@@ -542,6 +592,7 @@ theorem nat_le_two_pow_ceil_log (n : ℕ) :
       exact hmul
     exact_mod_cast hle
 
+/-- The number of leaves of an LOCC protocol is at most `2 ^ LoccBits proto`. -/
 theorem loccLeafCount_le_two_pow_loccBits {D E : ℕ} (proto : LoccProtocol D E) :
     LoccLeafCount proto ≤ 2 ^ LoccBits proto := by
   induction proto with
@@ -605,10 +656,14 @@ theorem loccLeafCount_le_two_pow_loccBits {D E : ℕ} (proto : LoccProtocol D E)
           Finset.univ.sup fun i => LoccBits (next i)) := (pow_add _ _ _).symm
       _ = 2 ^ LoccBits (LoccProtocol.stepB n ks next) := rfl
 
+/-- Any lower bound on an LOCC protocol's leaf count is also a lower bound on `2 ^ LoccBits
+proto`. -/
 theorem loccBits_pow_ge_of_leafCount {D E : ℕ} {proto : LoccProtocol D E} {m : ℕ}
     (h : m ≤ LoccLeafCount proto) : m ≤ 2 ^ LoccBits proto :=
   h.trans (loccLeafCount_le_two_pow_loccBits proto)
 
+/-- Lists the pairs of accumulated local operators along all leaves of an LOCC protocol,
+composing each local step with the operators of its continuation. -/
 noncomputable def loccLeafOps {D E : ℕ} : LoccProtocol D E → List (Operator D × Operator E)
   | .halt => [(1, 1)]
   | .stepA _ ks next => Finset.univ.toList.flatMap fun i =>
@@ -616,6 +671,8 @@ noncomputable def loccLeafOps {D E : ℕ} : LoccProtocol D E → List (Operator 
   | .stepB _ ks next => Finset.univ.toList.flatMap fun i =>
       (loccLeafOps (next i)).map fun p => (p.1, p.2 * ks i)
 
+/-- Rewrites a mapped sum over a flattened list as the sum of the mapped sums over its
+constituent lists. -/
 private theorem list_sum_flatMap {α β γ : Type} [AddCommMonoid γ] (l : List α)
     (f : α → List β) (g : β → γ) :
     ((l.flatMap f).map g).sum = (l.map fun a => ((f a).map g).sum).sum := by
@@ -624,6 +681,7 @@ private theorem list_sum_flatMap {α β γ : Type} [AddCommMonoid γ] (l : List 
   | cons x l ih => simp [List.flatMap_cons, List.map_cons, List.sum_cons, List.map_append,
       List.sum_append, ih]
 
+/-- Moves fixed left and right matrix factors outside a mapped list sum. -/
 private theorem list_sum_map_sandwich {α ι : Type} [Fintype ι] [DecidableEq ι] (l : List α)
     (A B : Matrix ι ι ℂ) (g : α → Matrix ι ι ℂ) :
     (l.map fun x => A * g x * B).sum = A * (l.map g).sum * B := by
@@ -634,6 +692,8 @@ private theorem list_sum_map_sandwich {α ι : Type} [Fintype ι] [DecidableEq �
     simp only [List.map_cons, List.sum_cons]
     noncomm_ring
 
+/-- Splits a mapped list sum into the contribution of a chosen member and the sum after erasing
+one occurrence. -/
 private theorem list_map_sum_erase {α : Type} {m : ℕ} (f : α → Operator m) :
     ∀ (l : List α) (p : α), p ∈ l → (l.map f).sum = f p + ((l.erase p).map f).sum := by
   classical
@@ -650,6 +710,8 @@ private theorem list_map_sum_erase {α : Type} {m : ℕ} (f : α → Operator m)
       rw [ih p (List.mem_of_ne_of_mem (fun h => hx h.symm) hp)]
       abel
 
+/-- Conjugation by a tensor product of local operator products equals successive conjugation by
+the corresponding tensor product operators. -/
 private theorem tensorGate_sandwich_mul {D E : ℕ} (a a' : Operator D) (b b' : Operator E)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     TensorGate (a * a') (b * b') * ρ * (TensorGate (a * a') (b * b'))ᴴ =
@@ -657,6 +719,7 @@ private theorem tensorGate_sandwich_mul {D E : ℕ} (a a' : Operator D) (b b' : 
   rw [← tensorGate_mul, Matrix.conjTranspose_mul]
   noncomm_ring
 
+/-- A finite sum in the first factor commutes with `TensorGate`. -/
 private theorem sum_tensorGate_left {I J m : ℕ} (f : Fin m → Operator I) (g : Operator J) :
     (∑ i : Fin m, TensorGate (f i) g) = TensorGate (∑ i : Fin m, f i) g := by
   ext x y
@@ -664,6 +727,7 @@ private theorem sum_tensorGate_left {I J m : ℕ} (f : Fin m → Operator I) (g 
   obtain ⟨c, d⟩ := y
   simp only [Matrix.sum_apply, tensorGate_apply, Finset.sum_mul]
 
+/-- A finite sum in the second factor commutes with `TensorGate`. -/
 private theorem sum_tensorGate_right {I J m : ℕ} (g : Operator I) (f : Fin m → Operator J) :
     (∑ i : Fin m, TensorGate g (f i)) = TensorGate g (∑ i : Fin m, f i) := by
   ext x y
@@ -673,6 +737,8 @@ private theorem sum_tensorGate_right {I J m : ℕ} (g : Operator I) (f : Fin m �
 
 set_option maxHeartbeats 1000000
 
+/-- Expresses an LOCC channel as the sum of conjugations by the tensor products of its leaf
+operators. -/
 theorem loccChannel_eq_sum_leafOps {D E : ℕ} (P : LoccProtocol D E)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     LoccChannel P ρ =
@@ -763,6 +829,7 @@ theorem loccChannel_eq_sum_leafOps {D E : ℕ} (P : LoccProtocol D E)
       _ = ((loccLeafOps (LoccProtocol.stepB m ks next)).map fun p =>
             TensorGate p.1 p.2 * ρ * (TensorGate p.1 p.2)ᴴ).sum := rfl
 
+/-- The leaf count of an LOCC protocol equals the length of its list of local leaf operators. -/
 theorem loccLeafCount_eq_length {D E : ℕ} (P : LoccProtocol D E) :
     LoccLeafCount P = (loccLeafOps P).length := by
   induction P with
@@ -792,6 +859,8 @@ theorem loccLeafCount_eq_length {D E : ℕ} (P : LoccProtocol D E) :
           simp only [List.length_map]
       _ = (loccLeafOps (LoccProtocol.stepB m ks next)).length := rfl
 
+/-- For a complete LOCC protocol, the tensor products of its leaf operators satisfy the Kraus
+completeness relation. -/
 theorem loccComplete_leafOps {D E : ℕ} {P : LoccProtocol D E} (h : LoccComplete P) :
     ((loccLeafOps P).map fun p => (TensorGate p.1 p.2)ᴴ * TensorGate p.1 p.2).sum = 1 := by
   revert h
@@ -920,52 +989,65 @@ theorem loccComplete_leafOps {D E : ℕ} {P : LoccProtocol D E} (h : LoccComplet
       _ = TensorGate (1 : Operator D) (∑ i : Fin m, (ks i)ᴴ * ks i) := sum_tensorGate_right _ _
       _ = 1 := by rw [hK, tensorGate_one]
 
+/-- The map on Bob's output obtained by adjoining resource `ω` to an input, applying the local
+operators `a` and `b`, and tracing out Alice. -/
 noncomputable def loccLeafMap {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) : Operator n → Operator n :=
   fun ρ => loccBobMarginal n (TensorGate a b * teleportLoccJoint n ρ ω * (TensorGate a b)ᴴ)
 
+/-- Taking Bob's marginal preserves addition. -/
 theorem loccBobMarginal_add {n : ℕ}
     (X Y : Matrix (Fin (n * n) × Fin n) (Fin (n * n) × Fin n) ℂ) :
     loccBobMarginal n (X + Y) = loccBobMarginal n X + loccBobMarginal n Y := by
   simp only [loccBobMarginal, relabelGate, Matrix.reindex_apply, Matrix.submatrix_add,
     Pi.add_apply, partialTrace_add]
 
+/-- Taking Bob's marginal preserves complex scalar multiplication. -/
 theorem loccBobMarginal_smul {n : ℕ} (c : ℂ)
     (X : Matrix (Fin (n * n) × Fin n) (Fin (n * n) × Fin n) ℂ) :
     loccBobMarginal n (c • X) = c • loccBobMarginal n X := by
   simp only [loccBobMarginal, relabelGate, Matrix.reindex_apply, Matrix.submatrix_smul,
     Pi.smul_apply, partialTrace_smul]
 
+/-- Bob's marginal of the zero operator is zero. -/
 theorem loccBobMarginal_zero {n : ℕ} :
     loccBobMarginal n (0 : Matrix (Fin (n * n) × Fin n) (Fin (n * n) × Fin n) ℂ) = 0 := by
   have h := loccBobMarginal_smul (n := n) 0
     (0 : Matrix (Fin (n * n) × Fin n) (Fin (n * n) × Fin n) ℂ)
   simpa [zero_smul] using! h
 
+/-- Adjoining a fixed teleportation resource preserves addition of input operators. -/
 theorem teleportLoccJoint_add {n : ℕ} (ρ σ : Operator n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     teleportLoccJoint n (ρ + σ) ω = teleportLoccJoint n ρ ω + teleportLoccJoint n σ ω := by
   ext x y
   simp only [teleportLoccJoint, Matrix.add_apply, add_mul]
 
+/-- Adjoining a fixed teleportation resource preserves complex scalar multiplication of the
+input. -/
 theorem teleportLoccJoint_smul {n : ℕ} (c : ℂ) (ρ : Operator n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     teleportLoccJoint n (c • ρ) ω = c • teleportLoccJoint n ρ ω := by
   ext x y
   simp only [teleportLoccJoint, Matrix.smul_apply, smul_eq_mul, mul_assoc]
 
+/-- The map induced by a fixed pair of local leaf operators and a fixed resource preserves
+addition. -/
 theorem loccLeafMap_add {n : ℕ} {a : Operator (n * n)} {b : Operator n}
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (ρ σ : Operator n) :
     loccLeafMap a b ω (ρ + σ) = loccLeafMap a b ω ρ + loccLeafMap a b ω σ := by
   simp only [loccLeafMap, teleportLoccJoint_add, Matrix.mul_add, Matrix.add_mul,
     loccBobMarginal_add]
 
+/-- The map induced by a fixed pair of local leaf operators and a fixed resource preserves
+complex scalar multiplication. -/
 theorem loccLeafMap_smul {n : ℕ} {a : Operator (n * n)} {b : Operator n}
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (c : ℂ) (ρ : Operator n) :
     loccLeafMap a b ω (c • ρ) = c • loccLeafMap a b ω ρ := by
   simp only [loccLeafMap, teleportLoccJoint_smul, Matrix.mul_smul, Matrix.smul_mul,
     loccBobMarginal_smul]
 
+/-- Taking Bob's marginal commutes with a mapped list sum. -/
 private theorem loccBobMarginal_list_sum {n : ℕ} {α : Type} (l : List α)
     (f : α → Matrix (Fin (n * n) × Fin n) (Fin (n * n) × Fin n) ℂ) :
     loccBobMarginal n (l.map f).sum = (l.map fun p => loccBobMarginal n (f p)).sum := by
@@ -973,6 +1055,8 @@ private theorem loccBobMarginal_list_sum {n : ℕ} {α : Type} (l : List α)
   | nil => simp only [List.map_nil, List.sum_nil, loccBobMarginal_zero]
   | cons x l ih => simp only [List.map_cons, List.sum_cons, loccBobMarginal_add, ih]
 
+/-- For a successful LOCC teleportation protocol, the sum of all leaf maps recovers each input
+density operator. -/
 theorem loccTeleport_sum_leafMap {n : ℕ} [NeZero n]
     (proto : LoccProtocol (n * n) n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (h : LoccTeleportSuccess n proto ω) (ρ : Operator n) (hρ : IsDensityOperator ρ) :
@@ -984,10 +1068,13 @@ theorem loccTeleport_sum_leafMap {n : ℕ} [NeZero n]
   rw [htele ρ hρ] at key
   simpa only [loccLeafMap] using! key.symm
 
+/-- Regroups the input and resource indices into Alice's combined register and Bob's register. -/
 private def loccJointEquiv (n : ℕ) : (Fin n × (Fin n × Fin n)) ≃ (Fin (n * n) × Fin n) :=
   (Equiv.prodAssoc (Fin n) (Fin n) (Fin n)).symm.trans
     ((finProdFinEquiv (m := n) (n := n)).prodCongr (Equiv.refl (Fin n)))
 
+/-- The joint teleportation operator is the tensor product of the input and resource, relabeled
+into the LOCC register convention. -/
 theorem teleportLoccJoint_eq_relabel {n : ℕ} (ρ : Operator n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     teleportLoccJoint n ρ ω = relabelGate (loccJointEquiv n) (TensorGate ρ ω) := by
@@ -997,6 +1084,8 @@ theorem teleportLoccJoint_eq_relabel {n : ℕ} (ρ : Operator n)
   simp [teleportLoccJoint, tensorGate_apply, relabelGate, Matrix.reindex_apply,
     loccJointEquiv, Equiv.prodAssoc, Equiv.prodCongr, finProdFinEquiv]
 
+/-- A local leaf map with a positive semidefinite resource sends positive semidefinite inputs to
+positive semidefinite outputs. -/
 theorem loccLeafMap_pos {n : ℕ} {a : Operator (n * n)} {b : Operator n}
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
     (ρ : Operator n) (hρ : ρ.PosSemidef) :
@@ -1010,36 +1099,44 @@ theorem loccLeafMap_pos {n : ℕ} {a : Operator (n * n)} {b : Operator n}
       hj.conjTranspose_mul_mul_same (TensorGate a b)ᴴ
   exact partialTrace_posSemidef (converse_relabel_positive _ _ hs)
 
+/-- A local leaf map sends the zero operator to zero. -/
 theorem loccLeafMap_zero {n : ℕ} {a : Operator (n * n)} {b : Operator n}
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     loccLeafMap a b ω (0 : Operator n) = 0 := by
   have h := @loccLeafMap_smul n a b ω (0 : ℂ) (0 : Operator n)
   simpa [zero_smul] using! h
 
+/-- A mapped list sum vanishes when every mapped value is zero. -/
 private theorem list_sum_map_zero {α : Type} {n : ℕ} (l : List α) (f : α → Operator n)
     (hf : ∀ p, f p = 0) : (l.map f).sum = 0 := by
   induction l with
   | nil => simp
   | cons x l ih => simp only [List.map_cons, List.sum_cons, hf, ih]; simp
 
+/-- Moves a fixed complex scalar outside a mapped list sum of operators. -/
 private theorem list_sum_map_smul {α : Type} {n : ℕ} (c : ℂ) (l : List α)
     (f : α → Operator n) : (l.map fun p => c • f p).sum = c • (l.map f).sum := by
   induction l with
   | nil => simp
   | cons x l ih => simp only [List.map_cons, List.sum_cons, ih, smul_add]
 
+/-- A list sum of scalar multiples of a fixed operator equals the sum of the scalars times that
+operator. -/
 private theorem list_sum_map_smul_const {α : Type} {n : ℕ} (l : List α) (c : α → ℂ)
     (X : Operator n) : (l.map fun p => c p • X).sum = ((l.map c).sum) • X := by
   induction l with
   | nil => simp
   | cons x l ih => simp only [List.map_cons, List.sum_cons, ih, add_smul]
 
+/-- A mapped list sum of positive semidefinite operators is positive semidefinite. -/
 private theorem list_sum_posSemidef {n : ℕ} {α : Type} (l : List α) (f : α → Operator n)
     (hf : ∀ p, (f p).PosSemidef) : (l.map f).sum.PosSemidef := by
   induction l with
   | nil => simp only [List.map_nil, List.sum_nil]; exact PosSemidef.zero
   | cons x l ih => simp only [List.map_cons, List.sum_cons]; exact (hf x).add ih
 
+/-- In positive dimension, the outer product of the zeroth computational basis vector is a
+density operator. -/
 theorem isDensity_outerProduct_ket_zero {n : ℕ} [NeZero n] :
     IsDensityOperator (outerProduct (Qatlib.Foundations.PureStateMath.Ket (⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩ : Fin n))) := by
   refine ⟨outerProduct_posSemidef _, ?_⟩
@@ -1052,6 +1149,8 @@ theorem isDensity_outerProduct_ket_zero {n : ℕ} [NeZero n] :
     simp [Qatlib.Foundations.PureStateMath.Ket, hb0]
   · intro hk; exact absurd (Finset.mem_univ _) hk
 
+/-- For a successful LOCC teleportation protocol, the sum of all leaf maps fixes every positive
+semidefinite operator. -/
 theorem loccTeleport_sum_leafMap_psd {n : ℕ} [NeZero n]
     (proto : LoccProtocol (n * n) n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (h : LoccTeleportSuccess n proto ω) (A : Operator n) (hA : A.PosSemidef) :
@@ -1098,6 +1197,9 @@ theorem loccTeleport_sum_leafMap_psd {n : ℕ} [NeZero n]
     rw [h3, one_smul, one_smul] at h2
     exact h2
 
+/-- For a successful LOCC teleportation protocol with a positive semidefinite resource,
+subtracting any leaf output from a positive semidefinite input leaves a positive
+semidefinite operator. -/
 theorem loccLeafMap_compl_pos {n : ℕ} [NeZero n]
     (proto : LoccProtocol (n * n) n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (hω : ω.PosSemidef) (h : LoccTeleportSuccess n proto ω)
@@ -1113,6 +1215,8 @@ theorem loccLeafMap_compl_pos {n : ℕ} [NeZero n]
   rw [hsub]
   exact list_sum_posSemidef _ _ (fun q => loccLeafMap_pos ω hω A hA)
 
+/-- Each leaf map of a successful LOCC teleportation protocol with a positive semidefinite
+resource is a scalar multiple of the identity on operators. -/
 theorem loccLeafMap_eq_smul {n : ℕ} [NeZero n]
     (proto : LoccProtocol (n * n) n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (hω : ω.PosSemidef) (h : LoccTeleportSuccess n proto ω)
@@ -1124,12 +1228,16 @@ theorem loccLeafMap_eq_smul {n : ℕ} [NeZero n]
     (fun A hA => loccLeafMap_pos ω hω A hA)
     (fun A hA => loccLeafMap_compl_pos proto ω hω h p hp A hA)
 
+/-- Extracts a leaf map's scalar from its zeroth diagonal entry on the outer product of the
+zeroth computational basis vector. -/
 noncomputable def loccLeafScalar {n : ℕ} [NeZero n] (a : Operator (n * n)) (b : Operator n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) : ℂ :=
   loccLeafMap a b ω (outerProduct (Qatlib.Foundations.PureStateMath.Ket (⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩ : Fin n)))
     (⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩ : Fin n)
     (⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩ : Fin n)
 
+/-- Every leaf map of a successful LOCC teleportation protocol with a positive semidefinite
+resource scales all operators by its `loccLeafScalar`. -/
 theorem loccLeafMap_smul_id_on_leaves {n : ℕ} [NeZero n]
     (proto : LoccProtocol (n * n) n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (hω : ω.PosSemidef) (h : LoccTeleportSuccess n proto ω) :
@@ -1147,6 +1255,8 @@ theorem loccLeafMap_smul_id_on_leaves {n : ℕ} [NeZero n]
   rw [hsc]
   exact hc
 
+/-- The leaf scalars of a successful LOCC teleportation protocol with a positive semidefinite
+resource sum to one. -/
 theorem loccLeafScalars_sum_one {n : ℕ} [NeZero n]
     (proto : LoccProtocol (n * n) n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (hω : ω.PosSemidef) (h : LoccTeleportSuccess n proto ω) :
@@ -1170,11 +1280,14 @@ theorem loccLeafScalars_sum_one {n : ℕ} [NeZero n]
   simp only [Matrix.smul_apply, outerProduct_apply] at h00
   simpa [Qatlib.Foundations.PureStateMath.Ket] using! h00
 
+/-- The product of an input vector and a resource vector, indexed by Alice's combined register
+and Bob's register. -/
 private def loccJointVec {n : ℕ} (ψ : QState (Fin n)) (W : QState (Fin n × Fin n)) :
     QState (Fin (n * n) × Fin n) :=
   fun x => ψ ((finProdFinEquiv (m := n) (n := n)).symm x.1).1 *
     W (((finProdFinEquiv (m := n) (n := n)).symm x.1).2, x.2)
 
+/-- Adjoining two pure outer products gives the outer product of their joint vector. -/
 private theorem teleportLoccJoint_outerProduct {n : ℕ} (ψ : QState (Fin n))
     (W : QState (Fin n × Fin n)) :
     teleportLoccJoint n (outerProduct ψ) (outerProduct W) = outerProduct (loccJointVec ψ W) := by
@@ -1185,10 +1298,13 @@ private theorem teleportLoccJoint_outerProduct {n : ℕ} (ψ : QState (Fin n))
   rw [map_mul (starRingEnd ℂ)]
   ac_rfl
 
+/-- Expresses a matrix vector product coordinate as the sum of matrix entries times vector
+coordinates. -/
 private theorem mulVec_eq_sum {ι : Type} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℂ) (x : QState ι) (i : ι) : (A *ᵥ x) i = ∑ j, A i j * x j := by
   simp [Matrix.mulVec, dotProduct]
 
+/-- Conjugating an outer product by `K` gives the outer product of `K *ᵥ v`. -/
 private theorem sandwich_outerProduct {ι : Type} [Fintype ι] [DecidableEq ι]
     (K : Matrix ι ι ℂ) (v : QState ι) :
     K * outerProduct v * Kᴴ = outerProduct (K *ᵥ v) := by
@@ -1215,6 +1331,7 @@ private theorem sandwich_outerProduct {ι : Type} [Fintype ι] [DecidableEq ι]
     ← Complex.star_def]
   exact hL.trans hR.symm
 
+/-- Computes Bob's marginal of a pure outer product by summing over Alice's register. -/
 private theorem loccBobMarginal_outerProduct {n : ℕ} (z : QState (Fin (n * n) × Fin n)) :
     loccBobMarginal n (outerProduct z) = fun k k' =>
       ∑ u : Fin (n * n), z (u, k) * star (z (u, k')) := by
@@ -1224,6 +1341,8 @@ private theorem loccBobMarginal_outerProduct {n : ℕ} (z : QState (Fin (n * n) 
   simp only [Equiv.prodComm]
   exact Finset.sum_congr rfl fun x _ => rfl
 
+/-- If `1 - A` is positive semidefinite, the quadratic form of `A` is bounded above by the
+squared norm form. -/
 private theorem quad_le_of_psd_sub {m : Type} [Fintype m] [DecidableEq m]
     (A : Matrix m m ℂ) (h : PosSemidef (1 - A)) (x : QState m) :
     star x ⬝ᵥ (A *ᵥ x) ≤ star x ⬝ᵥ x := by
@@ -1238,6 +1357,8 @@ private theorem quad_le_of_psd_sub {m : Type} [Fintype m] [DecidableEq m]
     simp only [Complex.sub_im] at him
     exact (sub_eq_zero.mp him.symm).symm
 
+/-- A tensor product of matrices acts on a product vector by applying each matrix to its
+corresponding factor. -/
 private theorem tensorGate_mulVec_prod {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (U : Matrix I I ℂ) (V : Matrix J J ℂ)
     (x : QState I) (y : QState J) :
@@ -1256,6 +1377,9 @@ private theorem tensorGate_mulVec_prod {I J : Type} [Fintype I] [DecidableEq I]
     rw [Finset.sum_congr rfl fun a _ => h2 a, ← Finset.sum_mul]
   exact h1
 
+/-- If a row family's Gram matrix is a scalar multiple of the outer product of a nonzero vector,
+every row is proportional to that vector. The scalar is the sum of the squared moduli of the
+proportionality coefficients. -/
 private theorem product_of_rank_one_gram {m n : ℕ} (Z : Fin m → Fin n → ℂ)
     (ψ : QState (Fin n)) (d : ℂ)
     (h : ∀ k k', ∑ u : Fin m, Z u k * star (Z u k') = d * ψ k * star (ψ k')) (hψ : ψ ≠ 0) :
@@ -1336,6 +1460,8 @@ private theorem product_of_rank_one_gram {m n : ℕ} (Z : Fin m → Fin n → �
     rw [Finset.sum_congr rfl fun u _ => h1 u, ← Finset.sum_div, h00,
       mul_div_cancel_right₀ d hne]
 
+/-- If a complex linear map sends every nonzero vector to a product with that vector as its
+second factor, the first factor can be chosen independently of the input. -/
 private theorem const_product_amplitude {m n : ℕ} [NeZero n]
     (S : QState (Fin n) → QState (Fin m × Fin n))
     (hadd : ∀ (ψ φ : QState (Fin n)) (u : Fin m) (k : Fin n),
@@ -1446,19 +1572,25 @@ private theorem const_product_amplitude {m n : ℕ} [NeZero n]
   · rw [hψ, hzero, Pi.zero_apply, mul_zero]
   · exact hkey ψ hψ u k
 
+/-- The sum of the squared complex norms of the coordinates of a finite vector. -/
 private noncomputable def nrm2 {ι : Type} [Fintype ι] (v : QState ι) : ℝ := ∑ i, ‖v i‖ ^ 2
 
+/-- The squared coordinate norm `nrm2` is nonnegative. -/
 private theorem nrm2_nonneg {ι : Type} [Fintype ι] (v : QState ι) : 0 ≤ nrm2 v :=
   Finset.sum_nonneg fun i _ => sq_nonneg (‖v i‖)
 
+/-- The squared coordinate norm equals the real part of the vector's inner product with itself. -/
 private theorem nrm2_eq_re_inner {ι : Type} [Fintype ι] (v : QState ι) :
     nrm2 v = (Qatlib.Foundations.PureStateMath.Inner v v).re := by
   rw [nrm2, ← norm_toEuclidean_fromVec_sq, norm_toEuclidean_sq_eq_re_inner]
 
+/-- The inner product of a vector with itself is the complex embedding of `nrm2 v`. -/
 private theorem inner_self_eq_ofReal_nrm2 {ι : Type} [Fintype ι] (v : QState ι) :
     (Qatlib.Foundations.PureStateMath.Inner v v : ℂ) = (nrm2 v : ℝ) := by
   rw [inner_self, ← Complex.ofReal_sum, nrm2]
 
+/-- The squared norm of an inner product is bounded by the product of the squared coordinate
+norms. -/
 private theorem abs_inner_sq_le {ι : Type} [Fintype ι] (x y : QState ι) :
     ‖Qatlib.Foundations.PureStateMath.Inner x y‖ ^ 2 ≤ nrm2 x * nrm2 y := by
   have h1 : ‖Qatlib.Foundations.PureStateMath.Inner x y‖ ≤ ‖toEuclidean_fromVec x‖ * ‖toEuclidean_fromVec y‖ := by
@@ -1469,10 +1601,14 @@ private theorem abs_inner_sq_le {ι : Type} [Fintype ι] (x y : QState ι) :
   rw [mul_pow, norm_toEuclidean_fromVec_sq, norm_toEuclidean_fromVec_sq] at h5
   exact h5
 
+/-- The joint input and resource vector after applying the tensor product of the two local
+operators. -/
 private noncomputable def loccGateVec {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (ψ : QState (Fin n)) (W : QState (Fin n × Fin n)) : QState (Fin (n * n) × Fin n) :=
   TensorGate a b *ᵥ loccJointVec ψ W
 
+/-- Conjugating a pure joint teleportation operator by the local tensor product gives the outer
+product of `loccGateVec`. -/
 private theorem teleport_sandwich_outerProduct {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (ψ : QState (Fin n)) (W : QState (Fin n × Fin n)) :
     TensorGate a b * teleportLoccJoint n (outerProduct ψ) (outerProduct W) * (TensorGate a b)ᴴ
@@ -1480,6 +1616,7 @@ private theorem teleport_sandwich_outerProduct {n : ℕ} (a : Operator (n * n)) 
   rw [teleportLoccJoint_outerProduct, sandwich_outerProduct]
   rfl
 
+/-- Moves a matrix adjoint across the conjugated dot product. -/
 private theorem dotProduct_star_mulVec_adjoint {ι : Type} [Fintype ι] [DecidableEq ι]
     (M : Matrix ι ι ℂ) (u v : QState ι) :
     star u ⬝ᵥ (Mᴴ *ᵥ v) = star (M *ᵥ u) ⬝ᵥ v := by
@@ -1494,6 +1631,8 @@ private theorem dotProduct_star_mulVec_adjoint {ι : Type} [Fintype ι] [Decidab
     rw [← Finset.sum_mul]
   rw [hL, hR, Finset.sum_comm]
 
+/-- Summing a matrix row against computational basis coordinates selects the corresponding
+matrix entry. -/
 private theorem ket_gate_sum {n : ℕ} (b : Operator n) (i' l : Fin n) :
     (∑ k : Fin n, b k l * Qatlib.Foundations.PureStateMath.Ket k i') = b i' l := by
   rw [Finset.sum_eq_single i']
@@ -1504,6 +1643,8 @@ private theorem ket_gate_sum {n : ℕ} (b : Operator n) (i' l : Fin n) :
   · intro hi
     exact absurd (Finset.mem_univ i') hi
 
+/-- Expands the `(u, k)` coordinate of the locally transformed joint vector for computational
+basis input `k` as a sum over the input and resource indices. -/
 private theorem loccGateVec_ket_expand {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (W : QState (Fin n × Fin n)) (k : Fin n) (u : Fin (n * n)) :
     loccGateVec a b (Qatlib.Foundations.PureStateMath.Ket k) W (u, k)
@@ -1528,6 +1669,8 @@ private theorem loccGateVec_ket_expand {n : ℕ} (a : Operator (n * n)) (b : Ope
   exact Finset.sum_congr rfl fun i' _ => Finset.sum_congr rfl fun m _ =>
     Finset.sum_congr rfl fun l _ => by ac_rfl
 
+/-- Rewrites the sum of diagonal input and Bob coordinates of `loccGateVec` using Alice's
+operator and Bob's action on the resource rows. -/
 private theorem loccGateVec_ket_sum {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (W : QState (Fin n × Fin n)) (u : Fin (n * n)) :
     (∑ k : Fin n, loccGateVec a b (Qatlib.Foundations.PureStateMath.Ket k) W (u, k))
@@ -1564,6 +1707,8 @@ private theorem loccGateVec_ket_sum {n : ℕ} (a : Operator (n * n)) (b : Operat
   refine Finset.sum_congr rfl fun i' _ => Finset.sum_congr rfl fun m _ => ?_
   rw [hstep i' m, ← Finset.mul_sum, ← mulVec_eq_sum b (fun l => W (m, l)) i']
 
+/-- Expands the complex conjugate of a coordinate of `aᴴ *ᵥ χ` as a sum involving entries of
+`a`. -/
 private theorem star_conjTranspose_mulVec {n : ℕ} (a : Operator (n * n))
     (χ : Fin (n * n) → ℂ) (x : Fin (n * n)) :
     star ((aᴴ *ᵥ χ) x) = ∑ u : Fin (n * n), star (χ u) * a u x := by
@@ -1571,6 +1716,8 @@ private theorem star_conjTranspose_mulVec {n : ℕ} (a : Operator (n * n))
   refine Finset.sum_congr rfl fun u _ => ?_
   rw [Matrix.conjTranspose_apply, star_mul, star_star]
 
+/-- Expresses the contraction of computational basis leaf outputs against `χ` as a sum of inner
+products between Alice's adjoint slices and Bob's transformed resource rows. -/
 private theorem trace_profile {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (χ : Fin (n * n) → ℂ) (W : QState (Fin n × Fin n)) :
     (∑ k : Fin n, ∑ u : Fin (n * n), star (χ u) * loccGateVec a b (Qatlib.Foundations.PureStateMath.Ket k) W (u, k))
@@ -1623,6 +1770,7 @@ private theorem trace_profile {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     rw [star_conjTranspose_mulVec]
   rw [hL, hR]
 
+/-- Moves one adjoint factor across the inner product in the squared norm of `aᴴ *ᵥ χ`. -/
 private theorem adjoint_profile {n : ℕ} (a : Operator (n * n)) (χ : Fin (n * n) → ℂ) :
     Qatlib.Foundations.PureStateMath.Inner (aᴴ *ᵥ χ) (aᴴ *ᵥ χ) = Qatlib.Foundations.PureStateMath.Inner χ (a *ᵥ (aᴴ *ᵥ χ)) := by
   have hL : Qatlib.Foundations.PureStateMath.Inner (aᴴ *ᵥ χ) (aᴴ *ᵥ χ)
@@ -1645,12 +1793,16 @@ private theorem adjoint_profile {n : ℕ} (a : Operator (n * n)) (χ : Fin (n * 
   rw [hL, hmid]
   exact (inner_apply _ _).symm
 
+/-- The squared coordinate norm of a product vector is the product of the squared coordinate
+norms of its factors. -/
 private theorem nrm2_prod {ι κ : Type} [Fintype ι] [Fintype κ]
     (f : QState ι) (g : QState κ) :
     nrm2 (fun p : ι × κ => f p.1 * g p.2) = nrm2 f * nrm2 g := by
   simp only [nrm2, Fintype.sum_prod_type, norm_mul, mul_pow]
   rw [Finset.sum_congr rfl fun i _ => (Finset.mul_sum _ _ _).symm, Finset.sum_mul]
 
+/-- If `TensorGate a b` is a contraction in the positive semidefinite order, the product of the
+squared norms of its local outputs is bounded by that of its inputs. -/
 private theorem quad_prod_bound {n : ℕ} (a : Operator (n * n)) (b : Operator n)
     (hcontr : PosSemidef (1 - (TensorGate a b)ᴴ * TensorGate a b))
     (x : QState (Fin (n * n))) (y : QState (Fin n)) :
@@ -1673,6 +1825,8 @@ private theorem quad_prod_bound {n : ℕ} (a : Operator (n * n)) (b : Operator n
   rw [hdef, hdef', nrm2_prod, nrm2_prod] at hre
   exact hre
 
+/-- For a normalized pure resource, a contractive local product branch that scales every nonzero
+pure input by a common scalar has scalar at most `1 / n²` in the complex order. -/
 private theorem pure_resource_scalar_bound {n : ℕ} [NeZero n]
     (a : Operator (n * n)) (b : Operator n) (W : QState (Fin n × Fin n)) (d : ℂ)
     (hW : Normalized W)

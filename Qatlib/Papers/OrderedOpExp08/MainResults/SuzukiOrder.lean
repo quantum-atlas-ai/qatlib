@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OrderedOpExp08.MainResults.TaylorRemainder
 
+/-!
+# Orders of recursive Suzuki formulas
+
+Provides explicit norm-error bounds for recursive Suzuki products of fixed skew-Hermitian
+generators. The recursion-depth and order-indexed forms record the power of the step size and
+its factorial coefficient in the analysis of [WiebeEtAl2010].
+
+## Main statements
+
+* `theorem2_suzuki_recursion_order`: bounds the error at recursive depth `k`.
+* `corollary1_lts_order`: reindexes the bound to order `2 * k`.
+
+## References
+
+* [Wiebe et al., 2010][WiebeEtAl2010]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
@@ -19,6 +36,9 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 
+/-- For a skew-Hermitian generator list and sum, the depth-`k` recursive Suzuki error is bounded
+by the stated prefix-multinomial coefficient times `|t| ^ (2 * (k + 1) + 1)` divided by its
+factorial [WiebeEtAl2010]. -/
 theorem theorem2_suzuki_recursion_order {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (t : ℝ)
     (hhs : ∀ X ∈ hs, Xᴴ = -X) (hH : hs.sumᴴ = -hs.sum) :
@@ -36,6 +56,9 @@ theorem theorem2_suzuki_recursion_order {I : Type} [Fintype I] [DecidableEq I]
     (recursiveSuzukiGenerators_antiHermitian hs k hhs) hH
   simpa using! h
 
+/-- For `k ≥ 1` and a skew-Hermitian generator list and sum, the depth-`k − 1` Suzuki error is
+bounded by the stated prefix-multinomial coefficient times `|t| ^ (2 * k + 1) / (2 * k +
+1)!` [WiebeEtAl2010]. -/
 theorem corollary1_lts_order {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (hk : 1 ≤ k) (t : ℝ)
     (hhs : ∀ X ∈ hs, Xᴴ = -X) (hH : hs.sumᴴ = -hs.sum) :

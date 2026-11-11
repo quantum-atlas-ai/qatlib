@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.PolynomialSecant
 import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+
+/-!
+# Polynomial estimates for two spectral sectors
+
+This module splits an involution into the factors `plus` and `minus` and factors polynomial
+differences on the resulting scalar-action sectors. The secant identities and norm estimates
+provide two-sector operator bounds for the analysis surrounding [AftabAnTrivisa2026].
+
+## Main statements
+
+* `decomposition`: the two-sector secant factorization.
+* `two_sector_bound`: an operator norm bound for the combined sector expression.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,12 +41,15 @@ open Qatlib.Foundations.PureStateMath
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The positive sector factor `(1 + T) / 2` associated with a matrix `T`. -/
 def plus (T : Matrix I I ℂ) : Matrix I I ℂ := (1 / 2 : ℂ) • (1 + T)
 
+/-- The negative sector factor `(1 - T) / 2` associated with a matrix `T`. -/
 def minus (T : Matrix I I ℂ) : Matrix I I ℂ := (1 / 2 : ℂ) • (1 - T)
 
 omit [Fintype I] in
 
+/-- The positive and negative sector factors sum to the identity. -/
 theorem split_sum (T : Matrix I I ℂ) : plus T + minus T = 1 := by
   unfold plus minus
   rw [← smul_add]
@@ -38,6 +59,7 @@ theorem split_sum (T : Matrix I I ℂ) : plus T + minus T = 1 := by
 
 omit [Fintype I] in
 
+/-- The positive sector factor minus the negative sector factor equals `T`. -/
 theorem split_sub (T : Matrix I I ℂ) : plus T - minus T = T := by
   unfold plus minus
   rw [← smul_sub]
@@ -45,18 +67,22 @@ theorem split_sub (T : Matrix I I ℂ) : plus T - minus T = T := by
   rw [h, smul_add, ← add_smul]
   norm_num
 
+/-- An involution acts as the identity on its positive sector factor. -/
 theorem plus_action (T : Matrix I I ℂ) (hT : T * T = 1) : T * plus T = plus T := by
   unfold plus
   rw [Matrix.mul_smul, Matrix.mul_add, Matrix.mul_one, hT]
   congr 1
   abel
 
+/-- An involution acts as minus the identity on its negative sector factor. -/
 theorem minus_action (T : Matrix I I ℂ) (hT : T * T = 1) : T * minus T = -minus T := by
   unfold minus
   rw [Matrix.mul_smul, Matrix.mul_sub, Matrix.mul_one, hT, ← smul_neg]
   congr 1
   abel
 
+/-- If left multiplication by `Y` acts on `P` with scalar `a`, then its `n`th power acts with
+scalar `aⁿ`. -/
 theorem power_action (Y P : Matrix I I ℂ) (a : ℂ) (hY : Y * P = a • P) (n : ℕ) :
     Y ^ n * P = a ^ n • P := by
   induction n with
@@ -64,12 +90,16 @@ theorem power_action (Y P : Matrix I I ℂ) (a : ℂ) (hY : Y * P = a • P) (n 
   | succ n ih =>
     rw [pow_succ', Matrix.mul_assoc, ih, Matrix.mul_smul, hY, smul_smul, pow_succ]
 
+/-- If left multiplication by `Y` acts on `P` with scalar `a`, then polynomial evaluation at `Y`
+acts with scalar `p.eval a`. -/
 theorem polynomial_action (Y P : Matrix I I ℂ) (a : ℂ) (hY : Y * P = a • P) (p : Polynomial ℂ) :
     aeval Y p * P = p.eval a • P := by
   rw [Polynomial.aeval_eq_sum_range, Finset.sum_mul]
   simp_rw [Matrix.smul_mul, power_action Y P a hY, smul_smul]
   rw [← Finset.sum_smul, Polynomial.eval_eq_sum_range]
 
+/-- The difference between a polynomial evaluated at `X` and its scalar value at `a` factors
+through the evaluated secant and `X - a • 1`. -/
 theorem aeval_factor (X : Matrix I I ℂ) (p : Polynomial ℂ) (a : ℂ) :
     aeval X p - p.eval a • 1 = aeval X (secant p a) * (X - a • 1) := by
   calc
@@ -77,6 +107,8 @@ theorem aeval_factor (X : Matrix I I ℂ) (p : Polynomial ℂ) (a : ℂ) :
     _ = aeval X (secant p a * (Polynomial.X - C a)) := by rw [factor, mul_comm]
     _ = _ := by simp [Algebra.algebraMap_eq_smul_one]
 
+/-- On a scalar-action sector of `Y`, the difference of polynomial evaluations at `X` and `Y`
+factors through the secant and `X - Y`. -/
 theorem sector_difference (X Y P : Matrix I I ℂ) (a : ℂ) (hY : Y * P = a • P) (p : Polynomial ℂ) :
     (aeval X p - aeval Y p) * P = aeval X (secant p a) * (X - Y) * P := by
   have hp := polynomial_action Y P a hY p
@@ -88,6 +120,8 @@ theorem sector_difference (X Y P : Matrix I I ℂ) (a : ℂ) (hY : Y * P = a •
     _ = aeval X (secant p a) * ((X - a • 1) * P) := by rw [aeval_factor, Matrix.mul_assoc]
     _ = _ := by rw [he, Matrix.mul_assoc]
 
+/-- For an involution `T`, the difference of polynomial evaluations at `X` and `s • T` splits
+into the two secant expressions on its positive and negative sectors. -/
 theorem decomposition (X T : Matrix I I ℂ) (hT : T * T = 1) (s : ℂ) (p : Polynomial ℂ) :
     aeval X p - aeval (s • T) p =
       aeval X (secant p s) * (X - s • T) * plus T +
@@ -100,6 +134,8 @@ theorem decomposition (X T : Matrix I I ℂ) (hT : T * T = 1) (s : ℂ) (p : Pol
     _ = _ := by rw [Matrix.mul_add, sector_difference X (s • T) (plus T) s hp,
       sector_difference X (s • T) (minus T) (-s) hm]
 
+/-- A polynomial taking values `1` and `-1` at `s` and `-s` evaluates at `s • T` to the
+involution `T`. -/
 theorem target_polynomial (T : Matrix I I ℂ) (hT : T * T = 1) (s : ℂ) (p : Polynomial ℂ)
     (hp : p.eval s = 1) (hm : p.eval (-s) = -1) : aeval (s • T) p = T := by
   have hsp : (s • T) * plus T = s • plus T := by rw [Matrix.smul_mul, plus_action T hT]
@@ -111,6 +147,8 @@ theorem target_polynomial (T : Matrix I I ℂ) (hT : T * T = 1) (s : ℂ) (p : P
       rw [Matrix.mul_add, polynomial_action _ _ s hsp, polynomial_action _ _ (-s) hsm]
     _ = _ := by rw [hp, hm, one_smul, neg_one_smul, ← sub_eq_add_neg, split_sub]
 
+/-- For vectors of equal norm, the sum of the norms of their half-sum and half-difference is at
+most `3 / 2` times that norm. -/
 theorem split_vectors_bound {E : Type} [SeminormedAddCommGroup E] [InnerProductSpace ℂ E]
     (x y : E) (hy : ‖y‖ = ‖x‖) :
     ‖(1 / 2 : ℂ) • (x + y)‖ + ‖(1 / 2 : ℂ) • (x - y)‖ ≤ (3 / 2 : ℝ) * ‖x‖ := by
@@ -123,15 +161,20 @@ theorem split_vectors_bound {E : Type} [SeminormedAddCommGroup E] [InnerProductS
   norm_num
   nlinarith [sq_nonneg (‖x + y‖ - ‖x - y‖)]
 
+/-- The Euclidean linear map associated with a unitary matrix preserves vector norms. -/
 theorem unitary_action_norm (T : Matrix I I ℂ) (hT : T ∈ unitaryGroup I ℂ) (x : EuclideanSpace ℂ I) :
     ‖Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) T x‖ = ‖x‖ := by
   exact norm_toEuclideanCLM_of_mem_unitaryGroup hT x
 
+/-- The norm of a matrix applied to a Euclidean vector is at most the operator norm times the
+vector norm. -/
 theorem apply_norm_le (G : Matrix I I ℂ) (x : EuclideanSpace ℂ I) :
     ‖Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) G x‖ ≤ ‖G‖ * ‖x‖ := by
   simpa only [Matrix.l2_opNorm_toEuclideanCLM] using
     (Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) G).le_opNorm x
 
+/-- If `T` is unitary and both sector multipliers have norm at most nonnegative `L`, the
+combined two-sector expression has norm at most `(3 / 2) L ‖E‖`. -/
 theorem two_sector_bound (T E Gp Gm : Matrix I I ℂ) (hT : T ∈ unitaryGroup I ℂ)
     (L : ℝ) (hL : 0 ≤ L) (hp : ‖Gp‖ ≤ L) (hm : ‖Gm‖ ≤ L) :
     ‖Gp * E * plus T + Gm * E * minus T‖ ≤ (3 / 2 : ℝ) * L * ‖E‖ := by

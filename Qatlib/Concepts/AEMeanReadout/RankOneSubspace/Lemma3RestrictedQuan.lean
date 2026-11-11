@@ -13,12 +13,33 @@ import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedStat
 
+/-!
+# Two-dimensional action of rank-one phase amplification
+
+This module expresses the phase iterate on the good and bad parts of the first column of `A`.
+Their overlaps are their squared masses, yielding explicit coefficients and invariance of their
+span, as in [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `zoo_counting_two_dimensional_phase_action_span_invariant`: invariance of the good and bad
+  span.
+* `zoo_counting_two_dimensional_phase_action`: the two component action formulas.
+* `zoo_counting_two_dimensional_phase_action_contract`: the packaged two-dimensional action
+  specification.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 open scoped BigOperators
 
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
+/-- If `A * A.conjTranspose = 1`, every column of `A` has total squared modulus one. -/
 lemma zoo_counting_two_dimensional_phase_action_col_normSq
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
     (hA : A * A.conjTranspose = 1) (k : Fin (n + 1)) :
@@ -35,6 +56,8 @@ lemma zoo_counting_two_dimensional_phase_action_col_normSq
     rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self]
   exact_mod_cast h2
 
+/-- The overlap of the first column with its good component equals the complex embedding of that
+component's squared mass. -/
 lemma zoo_counting_two_dimensional_phase_action_overlap_good
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool) :
     (∑ i, star (A i 0) * RankOneReflection.goodPart g (fun i => A i 0) i : ℂ) =
@@ -45,6 +68,8 @@ lemma zoo_counting_two_dimensional_phase_action_overlap_good
   by_cases h : g i <;>
     simp [RankOneReflection.goodPart, h, ← Complex.normSq_eq_conj_mul_self]
 
+/-- The overlap of the first column with its bad component equals the complex embedding of that
+component's squared mass. -/
 lemma zoo_counting_two_dimensional_phase_action_overlap_bad
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool) :
     (∑ i, star (A i 0) * RankOneReflection.badPart g (fun i => A i 0) i : ℂ) =
@@ -55,6 +80,8 @@ lemma zoo_counting_two_dimensional_phase_action_overlap_bad
   by_cases h : g i <;>
     simp [RankOneReflection.badPart, h, ← Complex.normSq_eq_conj_mul_self]
 
+/-- If `A * A.conjTranspose = 1`, the bad mass of the first column equals one minus its good
+mass. -/
 lemma zoo_counting_two_dimensional_phase_action_bad_normSq
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (hA : A * A.conjTranspose = 1) :
@@ -69,6 +96,8 @@ lemma zoo_counting_two_dimensional_phase_action_bad_normSq
   rw [← hcol, Finset.sum_congr rfl (fun i _ => hsplit i), Finset.sum_add_distrib]
   ring
 
+/-- Expresses the phase iterate on the good and bad first-column components as linear
+combinations of those components with coefficients determined by the good mass. -/
 lemma zoo_counting_two_dimensional_phase_action_collected
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (φ ϕ : ℂ) (hA : A * A.conjTranspose = 1) :
@@ -114,6 +143,8 @@ lemma zoo_counting_two_dimensional_phase_action_collected
     rw [hi]
     ring
 
+/-- The phase iterate preserves the complex span of the good and bad parts of the first column
+when `A * A.conjTranspose = 1`. -/
 lemma zoo_counting_two_dimensional_phase_action_span_invariant
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (φ ϕ : ℂ) (hA : A * A.conjTranspose = 1) :
@@ -146,6 +177,9 @@ lemma zoo_counting_two_dimensional_phase_action_span_invariant
       rw [Matrix.mulVec_smul]
       exact Submodule.smul_mem _ r ih
 
+/-- For unit-modulus phase parameters and `A * A.conjTranspose = 1`, gives the two-dimensional
+action formulas on the good and bad first-column components in terms of their good mass
+[Brassard et al., Lemma 3][BrassardHoyerTapp1998Counting]. -/
 theorem zoo_counting_two_dimensional_phase_action :
     ∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
     (g : Fin (n + 1) → Bool) (φ ϕ : ℂ),
@@ -164,6 +198,7 @@ theorem zoo_counting_two_dimensional_phase_action :
   intro n A g φ ϕ hA _hφ _hϕ
   exact zoo_counting_two_dimensional_phase_action_collected A g φ ϕ hA
 
+/-- Packages the two-dimensional component action formulas as `Lemma3RestrictedSpec.expected`. -/
 theorem zoo_counting_two_dimensional_phase_action_contract :
     Lemma3RestrictedSpec.expected :=
   zoo_counting_two_dimensional_phase_action

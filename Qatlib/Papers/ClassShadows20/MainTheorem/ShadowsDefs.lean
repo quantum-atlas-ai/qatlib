@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffectiveDefs
+
+/-!
+# General samplers and computational basis packing
+
+`generalSampler` packages a positive member count and a sufficient fair-bit count as a
+`MemberSampler`. `basisPackingFamily` uses the computational basis as a finite state family with
+separation parameter `sqrt 2`. The distance lemmas compute the exact Euclidean distance between
+distinct basis states.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `generalSampler`: constructs the finite-member sampler data.
+* `basis_distance`: computes the distance between distinct computational basis states.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -18,17 +39,21 @@ open Qatlib.Papers.ClassShadows20.MainTheorem
 
 set_option linter.unusedSectionVars false
 
+/-- The `MemberSampler` with `m` members and `b` fair bits, using the supplied positivity and
+capacity proofs. -/
 def generalSampler (m b : ℕ) (hm : 0 < m) (hb : m ≤ 2 ^ b) : MemberSampler where
   size := m
   fairBits := b
   size_pos := hm
   size_le := hb
 
+/-- The family of all `d` computational basis states with proposed separation `sqrt 2`. -/
 noncomputable def basisPackingFamily (d : ℕ) : PackingFamily d where
   size := d
   points := fun i => Qatlib.Foundations.PureStateMath.Ket i
   sep := Real.sqrt 2
 
+/-- The squared Euclidean distance between two distinct computational basis states is two. -/
 theorem basis_distance_sq (d : ℕ) (i j : Fin d) (h : i ≠ j) :
     (‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket i - Qatlib.Foundations.PureStateMath.Ket j)‖ : ℝ) ^ 2 = 2 := by
   rw [EuclideanSpace.norm_sq_eq]
@@ -57,6 +82,7 @@ theorem basis_distance_sq (d : ℕ) (i j : Fin d) (h : i ≠ j) :
   rw [Finset.sum_add_distrib, hone, htwo]
   norm_num
 
+/-- The Euclidean distance between two distinct computational basis states is `sqrt 2`. -/
 theorem basis_distance (d : ℕ) (i j : Fin d) (h : i ≠ j) :
     ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket i - Qatlib.Foundations.PureStateMath.Ket j)‖ = Real.sqrt 2 := by
   have hsq := basis_distance_sq d i j h

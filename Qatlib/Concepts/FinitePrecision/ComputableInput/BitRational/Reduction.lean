@@ -5,12 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Gcd
+
+/-!
+# Bitwise fraction reduction
+
+This module verifies fraction reduction by the computed bitwise GCD followed by two binary
+divisions. For a positive denominator, `binomial_reduce_fraction` supplies coprimality,
+positivity, size monotonicity, and a gate bound, allowing `binomialReducedRat` to construct a
+rational value.
+
+For background on classical computation and its resource models, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `binomial_reduce_fraction`: correctness and bounds for reduced natural fractions.
+* `binomialReducedRat`: rational construction from the verified reduced pair.
+* `binomial_reduced_rat`: identifies the constructed rational with `mkRat`.
+
+## References
+
+* [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- Binary division of inputs of length at most `w` with a positive divisor uses at most `22 * w
+^ 2` gates. -/
 private theorem quotient_cost (xs ys : List Bool) (w : ℕ)
     (hx : xs.length ≤ w) (hy : ys.length ≤ w) (hp : 0 < binomialBitValue ys) :
     (binomialBitDivmod ys xs).gates ≤ 22*w^2 := by
@@ -18,6 +42,9 @@ private theorem quotient_cost (xs ys : List Bool) (w : ℕ)
   have hm := Nat.mul_le_mul hx (Nat.add_le_add hx hy)
   nlinarith
 
+/-- For positive `d`, fraction reduction returns `(a / Nat.gcd a d, d / Nat.gcd a d)` with
+coprime entries, positive denominator, and entries bounded by the inputs. Its gate count is
+at most `w * (44 * w ^ 2 + 2 * w) + 44 * w ^ 2` for `w = max a.size d.size`. -/
 theorem binomial_reduce_fraction (a d : ℕ) (hd : 0 < d) :
     let w := max a.size d.size
     let r := binomialReduceFraction a d
@@ -55,11 +82,14 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- Constructs a rational from the verified reduced numerator and positive denominator,
+retaining the reduction gate count. -/
 def binomialReducedRat (a d : ℕ) (hd : 0 < d) : ℚ × ℕ :=
   let r := binomialReduceFraction a d
   (⟨(r.1.1 : ℤ),r.1.2,(binomial_reduce_fraction a d hd).2.2.1.ne',
     by simpa only [Int.natAbs_natCast] using (binomial_reduce_fraction a d hd).2.1⟩,r.2)
 
+/-- The value returned by `binomialReducedRat` equals `mkRat (a : ℤ) d`. -/
 theorem binomial_reduced_rat (a d : ℕ) (hd : 0 < d) :
     (binomialReducedRat a d hd).1 = mkRat (a : ℤ) d := by
   have h := (binomial_reduce_fraction a d hd).1

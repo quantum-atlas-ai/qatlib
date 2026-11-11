@@ -11,6 +11,31 @@ import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Order.Filter.AtTopBot.Field
+
+/-!
+# Inverse-schedule amplitude and limiting weight
+
+This module evaluates the squared norm of the explicit two-mode amplitude
+`inverseScheduleAsymptoticAmplitude` from the inverse-schedule analysis of
+[KadowakiNishimori1998]. The result reproduces `inverseScheduleDisplayedWeight` through its
+oscillatory bracket.
+
+It proves large-time limits for the displayed weight and complement, rewrites the leading weight
+as a logistic expression, and establishes its exponential equivalent as the schedule parameter
+grows.
+
+## Main statements
+
+* `inverseSchedule_modulus_sq_eq15`: computes the squared norm of the two-mode expression.
+* `inverseSchedule_displayed_complement_tendsto`: gives the large-time complement limit.
+* `inverseSchedule_logistic_tail_asymptotic`: gives the exponential equivalent of the logistic
+  tail.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,25 +46,33 @@ namespace Qatlib.Papers.TITCMTReport98.MainResults
 open Complex Filter
 open scoped Topology
 
+/-- The inverse-schedule bracket containing an exponential constant, an oscillatory `1 / t`
+term, and a `1 / t ^ 2` term. -/
 def inverseScheduleBracket (h c t : ℝ) : ℝ :=
   Real.exp (-(Real.pi * c)) + c * Real.cos (2 * h * t) / (h * t)
     + c ^ 2 * Real.exp (Real.pi * c) / (4 * h ^ 2 * t ^ 2)
 
+/-- The explicit sum of two oscillatory exponential terms multiplied by `inverseScheduleCoeff h
+c`. -/
 def inverseScheduleAsymptoticAmplitude (h c : ℝ) (t : ℝ) : ℂ :=
   inverseScheduleCoeff h c *
     (Complex.exp (-(I * (h : ℂ) * (t : ℂ)) - (Real.pi * (c : ℂ)) / 2)
       + (c : ℂ) * Complex.exp (I * (h : ℂ) * (t : ℂ) + (Real.pi * (c : ℂ)) / 2)
           / (2 * (h : ℂ) * (t : ℂ)))
 
+/-- The square of `exp a` equals `exp (2 * a)`. -/
 theorem exp_sq (a : ℝ) : Real.exp a ^ 2 = Real.exp (2 * a) := by
   rw [sq, ← Real.exp_add]
   congr 1
   ring
 
+/-- The product `exp (-a) * exp a` equals one. -/
 theorem exp_neg_mul_exp (a : ℝ) : Real.exp (-a) * Real.exp a = 1 := by
   rw [← Real.exp_add]
   simp
 
+/-- The squared norm of `X * exp (-iθ) + Y * exp (iθ)` for real `X` and `Y` equals `X ^ 2 + Y ^
+2 + 2XY * cos (2θ)`. -/
 theorem twoMode_modulus_sq (X Y θ : ℝ) :
     ‖(X : ℂ) * Complex.exp (-(θ : ℂ) * I) + (Y : ℂ) * Complex.exp ((θ : ℂ) * I)‖ ^ 2
       = X ^ 2 + Y ^ 2 + 2 * X * Y * Real.cos (2 * θ) := by
@@ -69,6 +102,8 @@ theorem twoMode_modulus_sq (X Y θ : ℝ) :
     ring
   linear_combination key + (X ^ 2 + Y ^ 2 - 2 * X * Y) * hcs
 
+/-- Separates the real exponential amplitudes from the two oscillatory phases in the
+inverse-schedule expression. -/
 theorem inverseSchedule_amplitude_factor (h c t : ℝ) :
     Complex.exp (-(I * (h : ℂ) * (t : ℂ)) - (Real.pi * (c : ℂ)) / 2)
         + (c : ℂ) * Complex.exp (I * (h : ℂ) * (t : ℂ) + (Real.pi * (c : ℂ)) / 2)
@@ -96,6 +131,8 @@ theorem inverseSchedule_amplitude_factor (h c t : ℝ) :
     field_simp
   rw [e1, e2]
 
+/-- For positive `h`, `c`, and `t`, the squared norm of the explicit asymptotic amplitude equals
+`sinh (πc) / sinh (2πc)` times `inverseScheduleBracket h c t` [KadowakiNishimori1998]. -/
 theorem inverseSchedule_modulus_sq_eq15 (h c t : ℝ) (hh : 0 < h) (hc : 0 < c) (ht : 0 < t) :
     ‖inverseScheduleAsymptoticAmplitude h c t‖ ^ 2
       = Real.sinh (Real.pi * c) / Real.sinh (2 * Real.pi * c)
@@ -131,11 +168,15 @@ theorem inverseSchedule_modulus_sq_eq15 (h c t : ℝ) (hh : 0 < h) (hc : 0 < c) 
   unfold inverseScheduleBracket
   ring
 
+/-- The displayed inverse-schedule weight equals the hyperbolic-sine prefactor times
+`inverseScheduleBracket`. -/
 theorem inverseScheduleDisplayedWeight_eq_bracket (h c t : ℝ) :
     inverseScheduleDisplayedWeight h c t
       = Real.sinh (Real.pi * c) / Real.sinh (2 * Real.pi * c)
           * inverseScheduleBracket h c t := rfl
 
+/-- For positive `h`, the inverse-schedule bracket tends to `exp (-πc)` as time tends to
+infinity. -/
 theorem inverseScheduleBracket_tendsto (h c : ℝ) (hh : 0 < h) :
     Tendsto (fun t : ℝ => inverseScheduleBracket h c t) atTop
       (𝓝 (Real.exp (-(Real.pi * c)))) := by
@@ -180,6 +221,8 @@ theorem inverseScheduleBracket_tendsto (h c : ℝ) (hh : 0 < h) :
   have hsum := ((tendsto_const_nhds (x := Real.exp (-(Real.pi * c)))).add hcos).add hsq
   simpa [inverseScheduleBracket, add_zero] using hsum
 
+/-- For positive `h`, the displayed inverse-schedule weight tends to `sinh (πc) / sinh (2πc) *
+exp (-πc)` as time tends to infinity. -/
 theorem inverseSchedule_displayed_weight_tendsto (h c : ℝ) (hh : 0 < h) :
     Tendsto (fun t : ℝ => inverseScheduleDisplayedWeight h c t) atTop
       (𝓝 (Real.sinh (Real.pi * c) / Real.sinh (2 * Real.pi * c) * Real.exp (-(Real.pi * c)))) := by
@@ -187,6 +230,7 @@ theorem inverseSchedule_displayed_weight_tendsto (h c : ℝ) (hh : 0 < h) :
     (Real.sinh (Real.pi * c) / Real.sinh (2 * Real.pi * c))
   simpa [inverseScheduleDisplayedWeight_eq_bracket, mul_comm, mul_left_comm, mul_assoc] using h
 
+/-- For positive `c`, the leading hyperbolic-sine expression equals `1 / (exp (2πc) + 1)`. -/
 theorem inverseSchedule_leading_eq (c : ℝ) (hc : 0 < c) :
     Real.sinh (Real.pi * c) / Real.sinh (2 * Real.pi * c) * Real.exp (-(Real.pi * c))
       = 1 / (Real.exp (2 * Real.pi * c) + 1) := by
@@ -203,6 +247,8 @@ theorem inverseSchedule_leading_eq (c : ℝ) (hc : 0 < c) :
   rw [hexp2]
   field_simp
 
+/-- For positive `h` and `c`, the displayed inverse-schedule complement tends to `1 - 1 / (exp
+(2πc) + 1)` as time tends to infinity [KadowakiNishimori1998]. -/
 theorem inverseSchedule_displayed_complement_tendsto (h c : ℝ) (hh : 0 < h) (hc : 0 < c) :
     Tendsto (fun t : ℝ => inverseScheduleDisplayedComplement h c t) atTop
       (𝓝 (1 - 1 / (Real.exp (2 * Real.pi * c) + 1))) := by
@@ -211,6 +257,8 @@ theorem inverseSchedule_displayed_complement_tendsto (h c : ℝ) (hh : 0 < h) (h
   have h := (tendsto_const_nhds (x := (1 : ℝ))).sub hexc
   simpa [inverseScheduleDisplayedComplement] using h
 
+/-- The logistic tail `1 / (exp (2πc) + 1)` is asymptotically equivalent to `exp (-2πc)` as `c`
+tends to infinity [KadowakiNishimori1998]. -/
 theorem inverseSchedule_logistic_tail_asymptotic :
     Asymptotics.IsEquivalent atTop
       (fun c : ℝ => 1 / (Real.exp (2 * Real.pi * c) + 1))
@@ -242,6 +290,8 @@ theorem inverseSchedule_logistic_tail_asymptotic :
   filter_upwards with c
   exact (heq c).symm
 
+/-- As `c` tends to infinity, the logistic complement is asymptotically equivalent to `1 - exp
+(-2πc)`. -/
 theorem inverseSchedule_logistic_complement_asymptotic :
     Asymptotics.IsEquivalent atTop
       (fun c : ℝ => 1 - 1 / (Real.exp (2 * Real.pi * c) + 1))
@@ -272,6 +322,8 @@ theorem inverseSchedule_logistic_complement_asymptotic :
       / (1 - Real.exp (-(2 * Real.pi * c)))) atTop (𝓝 (1 / 1)) := hnum.div hden (by norm_num)
   simpa using! hq
 
+/-- The logistic complement `1 - 1 / (exp (2πc) + 1)` is strictly less than one for every real
+`c`. -/
 theorem inverseSchedule_logistic_complement_lt_one (c : ℝ) :
     1 - 1 / (Real.exp (2 * Real.pi * c) + 1) < 1 := by
   have hden : 0 < Real.exp (2 * Real.pi * c) + 1 := by positivity

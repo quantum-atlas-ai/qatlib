@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.CVaRCumulativeRotationFees
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedQuan
+
+/-!
+# Conditional risk readout with rotation construction bounds
+
+This module combines the native CVaR readout guarantee and sampling-call bound with rational
+square-root construction and payoff-approximation bounds. The combined result is exposed as
+`riskCVaRCumulativeRotationFees`.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `riskCVaRCumulativeRotationFees`: The cumulative CVaR specification combines the native
+  readout error and supportwise call-count guarantees with rational square-root construction and
+  payoff-approximation bounds; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,9 @@ noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 open Matrix
 
+/-- The cumulative CVaR specification combines the native readout error and supportwise
+call-count guarantees with rational square-root construction and payoff-approximation
+bounds; see [WoernerEgger2019]. -/
 theorem riskCVaRCumulativeRotationFees : CVaRCumulativeRotationFees := by
   intro I _ _ A j loss xs q ε rotationBits bits M r v hA hM hloss hxs hs hsupport hq0 hq1 heps hv hwindow habove hbelow hp
   have hmain := riskNativeCVaRFinite I A j loss xs q ε rotationBits bits M r v

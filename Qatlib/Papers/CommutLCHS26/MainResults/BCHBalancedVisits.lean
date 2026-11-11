@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHMatrixBudget
+
+/-!
+# Balanced visits and commutator profiles
+
+This module proves homogeneity and invariance properties of nested commutator profiles used in
+[AftabAnTrivisa2026]. The result `alphaComm_balanced` shows that a nonnegative rationally
+weighted repetition of generators preserves the profile when the formal sum of weighted letters
+is unchanged.
+
+The remaining results handle scalar multiplication, reindexing by an equivalence, and conversion
+between a finite family and its list representation.
+
+## Main statements
+
+* `alphaComm_smul`: Scaling every generator by `c` multiplies the degree-`n` commutator profile
+  by `‖c‖^n`.
+* `alphaComm_balanced`: A nonnegative rationally weighted family of generator visits has the
+  same commutator profile when its formal weighted letter sum equals the original letter sum.
+* `alphaComm_reindex`: Reindexing a finite generator family by an equivalence preserves its
+  commutator profile.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +45,8 @@ open BCHDynkin BCHWordPowers BCHCloneBudget BCHCommBudget
 section Algebra
 variable {A R : Type} [Ring A] [CommRing R] [Algebra R A]
 
+/-- Scaling every entry of a list by `c` scales its right-nested bracket by `c` raised to the
+list length. -/
 theorem rightBracket_smul (c : R) (xs : List A) :
     rightBracket (xs.map (fun X => c • X)) = c ^ xs.length • rightBracket xs := by
   induction xs with
@@ -39,6 +67,7 @@ end Algebra
 section ScalarBudget
 variable {B K : Type} [NormedRing B] [NormedField K] [NormedAlgebra K B]
 
+/-- Scaling every generator by `c` multiplies the degree-`n` commutator profile by `‖c‖^n`. -/
 theorem alphaComm_smul {Γ : ℕ} (X : Fin Γ → B) (c : K) (n : ℕ) :
     alphaComm (fun i => c • X i) n = ‖c‖ ^ n * alphaComm X n := by
   unfold alphaComm
@@ -51,6 +80,8 @@ theorem alphaComm_smul {Γ : ℕ} (X : Fin Γ → B) (c : K) (n : ℕ) :
 
 end ScalarBudget
 
+/-- Substituting `c` times a relabeled letter into each letter of a word gives `c` to the word
+length times the relabeled word. -/
 theorem evaluate_uniform_word {α β : Type} (c : ℚ) (base : β → α) (w : List β) :
     evaluateWords (fun j => c • letter (base j)) (word w) =
       c ^ w.length • word (w.map base) := by
@@ -65,6 +96,8 @@ theorem evaluate_uniform_word {α β : Type} (c : ℚ) (base : β → α) (w : L
 section Norm
 variable {B : Type} [NormedRing B] [NormedAlgebra ℝ B] [Algebra ℚ B]
 
+/-- For nonnegative rational `c`, evaluating the bracket-norm word functional after uniform
+weighted relabeling equals the bracket norm of the weighted generators. -/
 theorem wordFunctional_weighted_norm {α β : Type} (X : α → B) (base : β → α)
     (c : ℚ) (hc : 0 ≤ c) (w : List β) :
     wordFunctional (fun u => ‖rightBracket (u.map X)‖)
@@ -79,6 +112,8 @@ theorem wordFunctional_weighted_norm {α β : Type} (X : α → B) (base : β �
   simp only [← Rat.cast_smul_eq_qsmul ℝ, smul_eq_mul, norm_smul, Real.norm_eq_abs,
     Rat.cast_pow, abs_of_nonneg (pow_nonneg hreal w.length)]
 
+/-- A nonnegative rationally weighted family of generator visits has the same commutator profile
+when its formal weighted letter sum equals the original letter sum. -/
 theorem alphaComm_balanced {Γ Λ : ℕ} (X : Fin Γ → B) (base : Fin Λ → Fin Γ)
     (c : ℚ) (hc : 0 ≤ c)
     (hbalance : (∑ j : Fin Λ, c • letter (base j)) = ∑ i : Fin Γ, letter i)
@@ -103,6 +138,7 @@ theorem alphaComm_balanced {Γ Λ : ℕ} (X : Fin Γ → B) (base : Fin Λ → F
 
 omit [NormedAlgebra ℝ B] [Algebra ℚ B] in
 
+/-- Reindexing a finite generator family by an equivalence preserves its commutator profile. -/
 theorem alphaComm_reindex {Γ Λ : ℕ} (X : Fin Γ → B) (e : Fin Λ ≃ Fin Γ) (n : ℕ) :
     alphaComm (fun i => X (e i)) n = alphaComm X n := by
   let E : (Fin n → Fin Λ) ≃ (Fin n → Fin Γ) := Equiv.piCongrRight (fun _ => e)
@@ -111,6 +147,8 @@ theorem alphaComm_reindex {Γ Λ : ℕ} (X : Fin Γ → B) (e : Fin Λ ≃ Fin �
 
 omit [NormedAlgebra ℝ B] [Algebra ℚ B] in
 
+/-- Converting a finite generator family to `List.ofFn` and indexing that list preserves its
+commutator profile. -/
 theorem alphaComm_get_ofFn {Γ : ℕ} (X : Fin Γ → B) (n : ℕ) :
     alphaComm (List.ofFn X).get n = alphaComm X n := by
   let e : Fin (List.ofFn X).length ≃ Fin Γ :=

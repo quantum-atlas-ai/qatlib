@@ -11,6 +11,31 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Vanishing
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.FilledHull
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.AbsolutelyContinuous.Basic
+
+/-!
+# Winding numbers on unbounded complementary components
+
+Proves vanishing winding numbers on unbounded connected components of a curve's complement. For
+closed piecewise C1 curves, an avoiding ray implies vanishing, and containment in a set
+containing its filled hull implies null homology.
+
+These geometric criteria support residue arguments associated with [WangEtAl2026].
+
+## Main statements
+
+* `windingNumber_eq_zero_of_unbounded_component`: The winding number of a closed continuous
+  curve vanishes at points in unbounded complementary components, under the stated
+  countable-exception differentiability and derivative integrability hypotheses.
+* `IsPiecewiseC1On.windingNumber_eq_zero_of_ray`: The winding number of a closed piecewise C1
+  curve about `w` is zero if a ray from `w` in a nonzero direction avoids the image.
+* `IsPiecewiseC1On.isNullHomologous_of_filledHull_subset`: A closed piecewise C1 curve contained
+  in a set that contains its filled hull is null homologous in that set.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +49,9 @@ open scoped Topology
 
 namespace TauCeti.Contour
 
+/-- For a continuous curve with interval-integrable derivative and integer winding numbers off
+its image, the winding number vanishes on every unbounded connected component of the
+complement. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumber_eq_zero_of_unbounded_component_of_integer
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : ContinuousOn γ (uIcc a b))
     (hderiv : IntervalIntegrable (deriv γ) volume a b)
@@ -38,6 +66,9 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.ContinuousOn.windingNumbe
   exact (ContinuousOn.windingNumber_eq_of_mem_connectedComponentIn_of_integer hγ hderiv hint hw).symm.trans
     (hKgood hwK).2
 
+/-- The winding number of a closed continuous curve vanishes at points in unbounded
+complementary components, under the stated countable-exception differentiability and
+derivative integrability hypotheses. -/
 theorem windingNumber_eq_zero_of_unbounded_component {γ : ℝ → ℂ} {a b : ℝ} {P : Set ℝ}
     (hclosed : γ a = γ b) (hP : P.Countable) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγ_diff : ∀ t ∈ Ioo (min a b) (max a b) \ P, DifferentiableAt ℝ γ t)
@@ -49,6 +80,8 @@ theorem windingNumber_eq_zero_of_unbounded_component {γ : ℝ → ℂ} {a b : �
   exact ContinuousOn.windingNumber_eq_zero_of_unbounded_component_of_integer hγ_cont hderiv_int
     (fun _ hz ↦ AbsolutelyContinuousOnInterval.exists_int_windingNumber hac hclosed hz) hcomp
 
+/-- The winding number of a closed piecewise C1 curve vanishes at points in unbounded connected
+components of its image complement. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.windingNumber_eq_zero_of_unbounded_component
     {γ : ℝ → ℂ} {a b : ℝ} (hγ : IsPiecewiseC1On γ a b) (hclosed : γ a = γ b)
     {w : ℂ} (hcomp : ¬IsBounded (connectedComponentIn ((γ '' uIcc a b)ᶜ) w)) :
@@ -57,6 +90,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.w
   exact TauCeti.Contour.windingNumber_eq_zero_of_unbounded_component hclosed hP
     hγ.continuousOn hγ_diff hγ.intervalIntegrable_deriv hcomp
 
+/-- The winding number of a closed piecewise C1 curve about `w` is zero if a ray from `w` in a
+nonzero direction avoids the image. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.windingNumber_eq_zero_of_ray {γ : ℝ → ℂ} {a b : ℝ}
     (hγ : IsPiecewiseC1On γ a b) (hclosed : γ a = γ b) {w v : ℂ} (hv : v ≠ 0)
     (hray : ∀ c : ℝ, 0 ≤ c → w + (c : ℂ) * v ∉ γ '' uIcc a b) :
@@ -88,6 +123,8 @@ theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.w
   rw [hnorm] at hge
   linarith
 
+/-- A closed piecewise C1 curve contained in a set that contains its filled hull is null
+homologous in that set. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.IsPiecewiseC1On.isNullHomologous_of_filledHull_subset
     {γ : ℝ → ℂ} {a b : ℝ} {U : Set ℂ} (hγ : IsPiecewiseC1On γ a b) (hclosed : γ a = γ b)
     (hγU : MapsTo γ (uIcc a b) U)

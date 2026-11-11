@@ -10,10 +10,31 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.EstimatorLaws.TvStability.SeparationCorRestrictedSubgoalStat
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma7Quan
+
+/-!
+# Restricted amplitude separation bound
+
+Proves the restricted squared-sine perturbation bound obtained by shifting an angle by one
+phase-grid step. It applies the existing angle-error estimate to the displacement `π / M`,
+providing the amplitude-error comparison used in the estimation analysis of [Montanaro2015].
+
+## Main statements
+
+* `separationCorollaryRestrictedSubgoal` bounds the amplitude change by `2 * ε * sqrt (a * (1 -
+  a)) + ε²` when `π / M ≤ ε`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
 namespace Qatlib.Concepts.EstimatorLaws.TvStability
 
+/-- Proves the restricted amplitude-error bound for the shift `θ ↦ θ + π / M`, with `a = sin²
+θ`, `0 ≤ θ ≤ π`, and `π / M ≤ ε`. The conclusion is the squared-sine perturbation estimate
+used in the amplitude-estimation analysis of [Montanaro2015]. -/
 theorem separationCorollaryRestrictedSubgoal : SeparationCorollaryRestrictedSubgoal := by
   intro a θ M hM ha hθ hθπ ε hε hεM
   have hMpos : (0 : ℝ) < M := by exact_mod_cast hM

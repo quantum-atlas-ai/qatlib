@@ -10,6 +10,28 @@ import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
 import Mathlib.Data.Matrix.ColumnRowPartitioned
 import Mathlib.Tactic.Abel
 import Mathlib.Tactic.Linarith
+
+/-!
+# A polynomial contraction from a triangular block matrix
+
+This module proves that `B + A * A` has operator norm at most one whenever the upper triangular
+block matrix with diagonal blocks A and upper-right block B is a contraction. The proof uses
+`triangular_defect_certificate` to express the polynomial defect as a congruence of the block
+matrix defect.
+
+The positivity and operator norm arguments use the matrix analysis framework of [Bhatia1997]; a
+one-dimensional example attains the bound.
+
+## Main statements
+
+* `triangular_joint_polynomial_norm_le_one`: proves the polynomial contraction bound.
+* `triangular_joint_polynomial_norm_attainer`: exhibits equality in dimension one.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.MatrixAccess.MatrixBackend.TriangularPolynomialContraction
@@ -22,6 +44,8 @@ noncomputable local instance triangularMatrixCStar {J : Type}
 
 variable {R : Type} [Fintype R] [DecidableEq R]
 
+/-- The congruence of the defect of the block matrix [[A, B], [0, A]] by the block column [A; I]
+equals the defect of B + A². -/
 theorem triangular_defect_certificate (A B : Matrix R R ℂ) :
     (Matrix.fromRows A (1 : Matrix R R ℂ))ᴴ *
       (1 - (Matrix.fromBlocks A B 0 A)ᴴ * Matrix.fromBlocks A B 0 A) *
@@ -45,6 +69,7 @@ theorem triangular_defect_certificate (A B : Matrix R R ℂ) :
         Matrix.fromCols_mul_fromRows, Matrix.conjTranspose_one, Matrix.one_mul]
       abel
 
+/-- A finite complex matrix has operator norm at most one if I - MᴴM is positive semidefinite. -/
 private theorem triangular_norm_le_one_of_defect (M : Matrix R R ℂ)
     (hdefect : (1 - Mᴴ * M).PosSemidef) : ‖M‖ ≤ 1 := by
   have hp : 0 ≤ Mᴴ * M := (Matrix.posSemidef_conjTranspose_mul_self M).nonneg
@@ -54,6 +79,8 @@ private theorem triangular_norm_le_one_of_defect (M : Matrix R R ℂ)
   rw [Matrix.l2_opNorm_conjTranspose_mul_self] at hn
   nlinarith [norm_nonneg M]
 
+/-- If the block matrix [[A, B], [0, A]] is a contraction, then B + A² is a contraction in the
+L2 operator norm. -/
 theorem triangular_joint_polynomial_norm_le_one (A B : Matrix R R ℂ)
     (hΔ : ‖Matrix.fromBlocks A B 0 A‖ ≤ 1) : ‖B + A * A‖ ≤ 1 := by
   let Δ : Matrix (R ⊕ R) (R ⊕ R) ℂ := Matrix.fromBlocks A B 0 A
@@ -72,6 +99,7 @@ theorem triangular_joint_polynomial_norm_le_one (A B : Matrix R R ℂ)
     rwa [hcertificate] at h
   exact triangular_norm_le_one_of_defect (B + A * A) hpoly
 
+/-- The block matrix [[0, I], [0, 0]] has operator norm at most one. -/
 theorem triangular_identity_injection_admissible :
     ‖Matrix.fromBlocks (0 : Matrix R R ℂ) (1 : Matrix R R ℂ)
       (0 : Matrix R R ℂ) (0 : Matrix R R ℂ)‖ ≤ 1 := by
@@ -94,6 +122,8 @@ theorem triangular_identity_injection_admissible :
     exact Matrix.posSemidef_conjTranspose_mul_self K
   exact triangular_norm_le_one_of_defect Δ hdefect
 
+/-- The choice A = 0 and B = I in dimension one satisfies the block contraction condition and
+gives ‖B + A²‖ = 1. -/
 theorem triangular_joint_polynomial_norm_attainer :
     ‖Matrix.fromBlocks (0 : Matrix (Fin 1) (Fin 1) ℂ)
       (1 : Matrix (Fin 1) (Fin 1) ℂ) (0 : Matrix (Fin 1) (Fin 1) ℂ)

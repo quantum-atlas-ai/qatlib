@@ -9,10 +9,30 @@ import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Tactic
 
+/-!
+# Finite character sums and orthonormal response states
+
+`vecChar` is the standard character of a dot product over vectors in `ZMod A`. Character
+orthogonality and the normalization factor `normC` show that the amplitude functions `stateAmp`
+form an orthonormal family for the finite inner product defined here. See [TerhalSmolin1998] for
+the source development.
+
+## Main statements
+
+* `sum_vecChar`: evaluates the full character sum, vanishing away from the zero label.
+* `proj_family_diagonal`: evaluates the rank-one maps associated with an orthonormal family.
+* `inner_stateAmp`: proves the normalized response states have Kronecker-delta inner products.
+
+## References
+
+* [Terhal and Smolin, 1998][TerhalSmolin1998]
+-/
+
 namespace Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
 
 open Finset
 
+/-- An additive character maps a finite sum to the product of its values on the summands. -/
 theorem map_finsetSum_eq_prod {ι A M : Type*} [AddCommMonoid A] [CommMonoid M]
     (ψ : AddChar A M) (s : Finset ι) (f : ι → A) :
     ψ (∑ i ∈ s, f i) = ∏ i ∈ s, ψ (f i) := by
@@ -22,13 +42,18 @@ theorem map_finsetSum_eq_prod {ι A M : Type*} [AddCommMonoid A] [CommMonoid M]
   | insert a s ha ih =>
       rw [Finset.sum_insert ha, Finset.prod_insert ha, AddChar.map_add_eq_mul, ih]
 
+/-- The complex standard additive character evaluated on the dot product of two vectors over
+`ZMod A`. -/
 noncomputable def vecChar {A m : ℕ} [NeZero A] (z s : Fin m → ZMod A) : ℂ :=
   ZMod.stdAddChar (∑ i, s i * z i)
 
+/-- The vector character with zero label is identically one. -/
 theorem vecChar_zero_left {A m : ℕ} [NeZero A] (s : Fin m → ZMod A) :
     vecChar (0 : Fin m → ZMod A) s = 1 := by
   simp [vecChar]
 
+/-- For a fixed label, the vector character maps addition of arguments to multiplication of
+values. -/
 theorem vecChar_add' {A m : ℕ} [NeZero A] (z s t : Fin m → ZMod A) :
     vecChar z (s + t) = vecChar z s * vecChar z t := by
   unfold vecChar
@@ -39,6 +64,8 @@ theorem vecChar_add' {A m : ℕ} [NeZero A] (z s t : Fin m → ZMod A) :
   intro i _
   simp only [Pi.add_apply, add_mul]
 
+/-- Multiplying the character labeled by `z` by the character labeled by `-z'` gives the
+character labeled by `z - z'`. -/
 theorem vecChar_sub_mul {A m : ℕ} [NeZero A] (z z' s : Fin m → ZMod A) :
     vecChar z s * vecChar (-z') s = vecChar (z - z') s := by
   unfold vecChar
@@ -50,16 +77,20 @@ theorem vecChar_sub_mul {A m : ℕ} [NeZero A] (z z' s : Fin m → ZMod A) :
   simp only [Pi.sub_apply, Pi.neg_apply, mul_sub]
   ring
 
+/-- The standard complex additive character of `ZMod A` has norm one at every argument. -/
 theorem norm_stdAddChar {A : ℕ} [NeZero A] (t : ZMod A) :
     ‖ZMod.stdAddChar t‖ = 1 := by
   rw [ZMod.stdAddChar_apply]
   exact Circle.norm_coe _
 
+/-- Complex conjugation of the standard additive character is evaluation at the negated
+argument. -/
 theorem star_stdAddChar {A : ℕ} [NeZero A] (t : ZMod A) :
     star (ZMod.stdAddChar t) = ZMod.stdAddChar (-t) := by
   have h := AddChar.map_neg_eq_inv (ZMod.stdAddChar (N := A)) t
   rw [Complex.star_def, ← Complex.inv_eq_conj (norm_stdAddChar t), h]
 
+/-- Complex conjugation of a vector character negates its label. -/
 theorem star_vecChar {A m : ℕ} [NeZero A] (z s : Fin m → ZMod A) :
     star (vecChar z s) = vecChar (-z) s := by
   unfold vecChar
@@ -71,6 +102,8 @@ theorem star_vecChar {A m : ℕ} [NeZero A] (z s : Fin m → ZMod A) :
   simp only [Pi.neg_apply]
   ring
 
+/-- The sum of a vector character over all arguments is `A ^ m` for the zero label and zero
+otherwise. -/
 theorem sum_vecChar {A m : ℕ} [NeZero A] (z : Fin m → ZMod A) :
     (∑ s : Fin m → ZMod A, vecChar z s) = if z = 0 then ((A : ℂ) ^ m) else 0 := by
   classical
@@ -100,8 +133,11 @@ theorem sum_vecChar {A m : ℕ} [NeZero A] (z : Fin m → ZMod A) :
     refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
     simp [hi]
 
+/-- The complex reciprocal of the square root of the natural number `q`, used to normalize
+finite amplitude vectors. -/
 noncomputable def normC (q : ℕ) : ℂ := ((Real.sqrt (q : ℝ) : ℝ) : ℂ)⁻¹
 
+/-- For positive `q`, the square of `normC q` is the complex reciprocal of `q`. -/
 theorem normC_mul_self {q : ℕ} (hq : 0 < q) : normC q * normC q = ((q : ℂ))⁻¹ := by
   unfold normC
   rw [← mul_inv]
@@ -109,17 +145,23 @@ theorem normC_mul_self {q : ℕ} (hq : 0 < q) : normC q * normC q = ((q : ℂ))�
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by positivity)]
   simp
 
+/-- The normalization factor `normC q` is nonzero when `q > 0`. -/
 theorem normC_ne_zero {q : ℕ} (hq : 0 < q) : normC q ≠ 0 := by
   intro h
   have hm := normC_mul_self hq
   rw [h, zero_mul] at hm
   exact (inv_ne_zero (by exact_mod_cast (ne_of_gt hq))) hm.symm
 
+/-- The finite complex inner product obtained by summing `star (u x) * v x` over all
+coordinates. -/
 noncomputable def inner {ι : Type*} [Fintype ι] (u v : ι → ℂ) : ℂ := ∑ x, star (u x) * v x
 
+/-- The rank-one map sending `v` to `inner φ v` times `φ`. -/
 noncomputable def proj {ι : Type*} [Fintype ι] (φ v : ι → ℂ) : ι → ℂ :=
   fun x => inner φ v * φ x
 
+/-- For an orthonormal family, the rank-one map associated with one member fixes that member and
+sends every differently indexed member to zero. -/
 theorem proj_family_diagonal {ι : Type*} [Fintype ι] [DecidableEq ι]
     (state : ι → ι → ℂ)
     (horth : ∀ i j, inner (state i) (state j) = if i = j then (1 : ℂ) else 0) :
@@ -133,9 +175,11 @@ theorem proj_family_diagonal {ι : Type*} [Fintype ι] [DecidableEq ι]
     funext x
     simp
 
+/-- The vector character multiplied by the normalization factor `normC (A ^ m)`. -/
 noncomputable def stateAmp {A m : ℕ} [NeZero A] (z s : Fin m → ZMod A) : ℂ :=
   normC (A ^ m) * vecChar z s
 
+/-- For positive `A`, each normalized character amplitude vector is nonzero. -/
 theorem stateAmp_ne_zero {A m : ℕ} [NeZero A] (hA : 0 < A)
     (z : Fin m → ZMod A) : stateAmp z ≠ 0 := by
   intro h
@@ -146,6 +190,8 @@ theorem stateAmp_ne_zero {A m : ℕ} [NeZero A] (hA : 0 < A)
 
 set_option maxHeartbeats 1000000 in
 
+/-- For positive `A`, the inner product of two normalized character states is one when their
+labels coincide and zero otherwise. -/
 theorem inner_stateAmp {A m : ℕ} [NeZero A] (hA : 0 < A) (z z' : Fin m → ZMod A) :
     inner (stateAmp z) (stateAmp z') = if z = z' then 1 else 0 := by
   classical

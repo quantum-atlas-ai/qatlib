@@ -10,6 +10,30 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Data.Finsupp.BigOperators
 import Lean.Elab.Tactic.Omega
 import Mathlib.Tactic.Ring
+
+/-!
+# Finite noncommutative polynomial responses
+
+The module expands powers of `ncTransition` into words and recovers a noncommutative polynomial
+from finite transition, injection, and collection data. A truncating state recursion gives both
+a degree bound and vanishing of the transition power applied to the injection.
+
+`nc_response_evaluation` identifies the resulting finite matrix response with `ncPolyEval`, and
+`nc_response` packages these conclusions uniformly over finite matrix substitutions. The block
+and Kronecker matrix algebra has standard background in [HornJohnson1991].
+
+## Main statements
+
+* `nc_response_degree_bound`: truncation bounds the length of words with nonzero coefficients.
+* `nc_response_injection_truncation`: the truncated transition power annihilates the injection.
+* `nc_response`: the finite response evaluates the noncommutative polynomial for every finite
+  matrix substitution.
+
+## References
+
+* [Horn and Johnson, 1991][HornJohnson1991]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +45,7 @@ open scoped BigOperators
 variable {J X S : Type} [Fintype J] [Fintype X] [DecidableEq X]
   [Fintype S] [DecidableEq S]
 
+/-- The finite set of all words of a given length over the finite alphabet `J`. -/
 private noncomputable def ncWords (J : Type) [Fintype J] : ℕ → Finset (List J)
   | 0 => by
       classical
@@ -30,6 +55,7 @@ private noncomputable def ncWords (J : Type) [Fintype J] : ℕ → Finset (List 
       exact (Finset.univ : Finset J).biUnion
         (fun j : J => (ncWords J n).image (List.cons j))
 
+/-- Membership in `ncWords J n` is equivalent to having length `n`. -/
 private theorem ncWords_mem (w : List J) (n : ℕ) :
     w ∈ ncWords J n ↔ w.length = n := by
   classical
@@ -40,6 +66,8 @@ private theorem ncWords_mem (w : List J) (n : ℕ) :
       | nil => simp [ncWords]
       | cons j w => simp [ncWords, ih, List.length_cons]
 
+/-- A sum over words of length `n + 1` splits into a sum over the first letter and words of
+length `n`. -/
 private theorem ncWords_sum_succ {E : Type} [AddCommMonoid E]
     (n : ℕ) (f : List J → E) :
     (∑ w ∈ ncWords J (n + 1), f w) = ∑ j, ∑ w ∈ ncWords J n, f (j :: w) := by
@@ -59,6 +87,8 @@ private theorem ncWords_sum_succ {E : Type} [AddCommMonoid E]
 
 omit [DecidableEq S] in
 
+/-- Multiplication by `T ⊗ A` applies `T` to the response vector and multiplies the response
+matrix on the left by `A`. -/
 theorem nc_transition_response_tensor (T : Matrix X X ℂ)
     (A M : Matrix S S ℂ) (v : EuclideanSpace ℂ X) :
     Matrix.kronecker T A * ncResponseTensor v M =
@@ -78,6 +108,8 @@ theorem nc_transition_response_tensor (T : Matrix X X ℂ)
 
 omit [DecidableEq X] [DecidableEq S] in
 
+/-- Collecting a response tensor yields `A * M` scaled by the coordinate pairing of the
+collection coefficients with the response vector. -/
 theorem nc_collect_response_tensor (c : X → ℂ) (A M : Matrix S S ℂ)
     (v : EuclideanSpace ℂ X) :
     ncCollectTensor c A * ncResponseTensor v M =
@@ -92,6 +124,8 @@ theorem nc_collect_response_tensor (c : X → ℂ) (A M : Matrix S S ℂ)
   intro z _hz
   ring
 
+/-- A transition power applied to the injection expands as a sum of response tensors indexed by
+words of that length, assuming the state recursion. -/
 private theorem nc_response_power_words (T : J → Matrix X X ℂ)
     (H : List J → EuclideanSpace ℂ X)
     (hrec : ∀ j w, (T j).toEuclideanLin (H w) = H (j :: w))
@@ -114,6 +148,8 @@ private theorem nc_response_power_words (T : J → Matrix X X ℂ)
 
 omit [Fintype J] [DecidableEq X] in
 
+/-- If response states vanish at lengths at least `D` and generate the nonempty-word
+coefficients, every word with nonzero coefficient has length at most `D`. -/
 theorem nc_response_degree_bound (H : List J → EuclideanSpace ℂ X)
     (C : J → X → ℂ) (q : NCPoly J) (D : ℕ)
     (htruncate : ∀ w, D ≤ w.length → H w = 0)
@@ -130,6 +166,8 @@ theorem nc_response_degree_bound (H : List J → EuclideanSpace ℂ X)
         simp
       exact hne hzero
 
+/-- A noncommutative polynomial with all nonzero coefficients at word lengths at most `D`
+evaluates as the sum of its homogeneous word contributions from length zero through `D`. -/
 private theorem nc_poly_degree_sum (A : J → Matrix S S ℂ) (q : NCPoly J) (D : ℕ)
     (hbound : ∀ w, q w ≠ 0 → w.length ≤ D) :
     ncPolyEval A q =
@@ -163,6 +201,8 @@ private theorem nc_poly_degree_sum (A : J → Matrix S S ℂ) (q : NCPoly J) (D 
       intro t _ht
       exact hfiber t
 
+/-- Under the state and coefficient recursions, collecting the `n`th transition response yields
+the polynomial contribution from words of length `n + 1`. -/
 private theorem nc_collection_power_words (T : J → Matrix X X ℂ)
     (H : List J → EuclideanSpace ℂ X) (C : J → X → ℂ) (q : NCPoly J)
     (hrec : ∀ j w, (T j).toEuclideanLin (H w) = H (j :: w))
@@ -187,6 +227,8 @@ private theorem nc_collection_power_words (T : J → Matrix X X ℂ)
     _ = ∑ w ∈ ncWords J (n + 1), q w • ncWordEval A w :=
       (ncWords_sum_succ n (fun w => q w • ncWordEval A w)).symm
 
+/-- If the state recursion vanishes on words of length at least `D`, the `D`th transition power
+annihilates the injection. -/
 theorem nc_response_injection_truncation (T : J → Matrix X X ℂ)
     (H : List J → EuclideanSpace ℂ X) (D : ℕ)
     (hrec : ∀ j w, (T j).toEuclideanLin (H w) = H (j :: w))
@@ -202,6 +244,8 @@ theorem nc_response_injection_truncation (T : J → Matrix X X ℂ)
   ext p y
   simp [ncResponseTensor]
 
+/-- Under the state recursion, truncation, and coefficient identities, the constant term plus
+the finite collected transition sum equals the noncommutative polynomial evaluation. -/
 theorem nc_response_evaluation (T : J → Matrix X X ℂ)
     (H : List J → EuclideanSpace ℂ X) (C : J → X → ℂ)
     (d : ℂ) (q : NCPoly J) (D : ℕ)
@@ -229,6 +273,9 @@ theorem nc_response_evaluation (T : J → Matrix X X ℂ)
       exact nc_collection_power_words T H C q hrec hq A t
     _ = ncPolyEval A q := by simpa only [add_comm] using! heval.symm
 
+/-- A truncating response realization bounds the polynomial's word degree by `D` and, for every
+finite matrix substitution, gives both injection truncation and the finite response
+evaluation identity. -/
 theorem nc_response (T : J → Matrix X X ℂ) (H : List J → EuclideanSpace ℂ X)
     (C : J → X → ℂ) (d : ℂ) (q : NCPoly J) (D : ℕ)
     (hrec : ∀ j w, (T j).toEuclideanLin (H w) = H (j :: w))

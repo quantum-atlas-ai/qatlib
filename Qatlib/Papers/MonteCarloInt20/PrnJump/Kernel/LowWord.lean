@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+
+/-!
+# Low-bit truncation of Boolean words
+
+`booleanWordLow` restricts a Boolean word to its least significant positions. The value theorem
+identifies this restriction with reduction modulo a power of two, providing a word-arithmetic
+identity for the PRN circuit implementation associated with [KanekoEtAl2020].
+
+## Main statements
+
+* `boolean_word_low_value`: identifies low-bit extraction with reduction modulo `2 ^ m`.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,8 +33,11 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Restrict a word of width `W` to its first `m` bit positions, assuming `m ≤ W`. -/
 def booleanWordLow (W m : ℕ) (hm : m ≤ W) (a : Reg W) : Reg m := fun j => a (Fin.castLE hm j)
 
+/-- The unsigned little-endian value of the low `m` bits equals the full word value modulo `2 ^
+m`. -/
 theorem boolean_word_low_value (W m : ℕ) (hm : m ≤ W) (a : Reg W) :
     booleanWordLSBValue m (booleanWordLow W m hm a) = booleanWordLSBValue W a % 2^m := by
   obtain ⟨k,rfl⟩ := Nat.exists_eq_add_of_le hm

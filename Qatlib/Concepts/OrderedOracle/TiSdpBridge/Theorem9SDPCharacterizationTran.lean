@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.Theorem9SDPCharacterizationStat
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramRankOne
+
+/-!
+# Proof of the ordered search SDP characterization
+
+This module proves `Theorem9SDPCharacterization`. Polynomial coefficient vectors give feasible
+matrices through `gramOuter`; conversely, rank-one Gram representatives with the same
+generalized traces yield polynomial witnesses without decreasing the terminal coefficient bound.
+This relates the matrix and polynomial descriptions used in semidefinite approaches to ordered
+search [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `tiPolyConditions_implies_tiSDPFeasible`: constructs feasible Gram matrices from polynomial
+  data.
+* `tiSDPFeasible_implies_tiPolyConditions`: extracts polynomial witnesses from feasible
+  matrices.
+* `theorem9SDPCharacterization`: combines the two implications.
+
+## References
+
+* [Childs, Landahl and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +40,7 @@ open scoped BigOperators ComplexOrder
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge
 namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 
+/-- Every entry of the Gram outer product of `tiDirichletVec n` equals the reciprocal of `n`. -/
 theorem tiDirichletVec_gram (n : ℕ) : ∀ i j : Fin n,
     gramOuter (tiDirichletVec n) i j = (n : ℂ)⁻¹ := by
   intro i j
@@ -25,6 +49,8 @@ theorem tiDirichletVec_gram (n : ℕ) : ∀ i j : Fin n,
   rw [← pow_two, inv_pow, ← Complex.ofReal_pow, Real.sq_sqrt (Nat.cast_nonneg n)]
   simp
 
+/-- Polynomial witnesses satisfying `tiPolyConditions n k ε` yield witnesses for `tiSDPFeasible
+n k ε`. -/
 theorem tiPolyConditions_implies_tiSDPFeasible (n k : ℕ) [NeZero n] (ε : ℝ)
     (h : tiPolyConditions n k ε) : tiSDPFeasible n k ε := by
   classical
@@ -45,6 +71,8 @@ theorem tiPolyConditions_implies_tiSDPFeasible (n k : ℕ) [NeZero n] (ε : ℝ)
     rw [matrixLaurent_outer_eq_abs_sq _ hcircle, matrixLaurent_outer_eq_abs_sq _ hcircle]
     simpa only [tiPolyEval] using congrArg (fun r : ℝ => ((r ^ 2 : ℝ) : ℂ)) (hroot t ht z hz)
 
+/-- Feasible translation-invariant SDP matrices yield coefficient vectors satisfying
+`tiPolyConditions n k ε`. -/
 theorem tiSDPFeasible_implies_tiPolyConditions (n k : ℕ) [NeZero n] (ε : ℝ)
     (h : tiSDPFeasible n k ε) : tiPolyConditions n k ε := by
   classical
@@ -110,6 +138,9 @@ theorem tiSDPFeasible_implies_tiPolyConditions (n k : ℕ) [NeZero n] (ε : ℝ)
     change ‖tiPolyEval (p t) z‖^2=‖tiPolyEval (p (t-1)) z‖^2 at hs
     nlinarith [norm_nonneg (tiPolyEval (p t) z),norm_nonneg (tiPolyEval (p (t-1)) z)]
 
+/-- Translation-invariant SDP feasibility and the polynomial conditions are equivalent for every
+nonzero search size, query count, and real error parameter, in the ordered search setting of
+[ChildsLandahlParrilo2007]. -/
 theorem theorem9SDPCharacterization : Theorem9SDPCharacterization := by
   intro n k _ ε
   exact ⟨tiSDPFeasible_implies_tiPolyConditions n k ε,tiPolyConditions_implies_tiSDPFeasible n k ε⟩

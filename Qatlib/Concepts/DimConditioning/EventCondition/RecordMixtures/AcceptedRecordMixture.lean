@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.AcceptedRecordWeights
 import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.InstrumentRecordMixture
 import Qatlib.Concepts.DimConditioning.EventCondition.RecordMixtures.RecordForgottenInstrument
+
+/-!
+# Accepted record mixtures and conditional error
+
+This module expresses the accepted conditional state after forgetting a classical record as a
+posterior weighted mixture of record representatives. `conditional_error` bounds its trace
+distance by the good record error and posterior bad record mass.
+
+`output_bound` combines acceptance and posterior estimates to give an explicit error bound. The
+instrument and trace distance framework is described in [Watrous2018].
+
+## Main statements
+
+* `conditional_mixture`: the accepted state as a normalized record mixture.
+* `output_bound`: positive acceptance and error at most `η + ζ / (1 - ζ - δ)`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +41,9 @@ variable {R : Type} [Fintype R] [DecidableEq R] {N D : ℕ}
 
 omit [DecidableEq R] in
 
+/-- At positive acceptance probability, the accepted conditional state after forgetting the
+record is the mixture of accepted record representatives weighted by their posterior
+probabilities. -/
 theorem conditional_mixture (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument (R × Bool) N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N)
     (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ) (target : Qatlib.Foundations.PureStateMath.Operator D)
     (hs : 0 < Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb (Qatlib.Concepts.DimConditioning.EventCondition.RecordForgottenInstrument.forgetRecord I) ρ true) :
@@ -33,6 +57,8 @@ theorem conditional_mixture (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrume
   intro r _
   rw [smul_smul,Complex.ofReal_div,div_eq_mul_inv,mul_comm]
 
+/-- If every positive probability good accepted record is within trace distance `η` of the
+target, the accepted state is within `η` plus its posterior bad record mass. -/
 theorem conditional_error (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument (R × Bool) N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N)
     (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ) (target : Qatlib.Foundations.PureStateMath.Operator D) (ht : Qatlib.Foundations.PureStateMath.IsDensityOperator target)
     (good : Finset R) (η : ℝ) (hη : 0 ≤ η)
@@ -54,6 +80,9 @@ theorem conditional_error (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
     · exact hgood r hr hp
     · simpa only [sub_self,Matrix.traceNorm_zero,zero_div] using hη
 
+/-- Good record error `η`, total bad record mass at most `ζ`, and good record rejection fraction
+at most `δ`, with `ζ + δ < 1`, ensure acceptance at least `1 - ζ - δ` and accepted trace
+distance at most `η + ζ / (1 - ζ - δ)`. -/
 theorem output_bound (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument (R × Bool) N D) (ρ : Qatlib.Foundations.PureStateMath.Operator N)
     (hρ : Qatlib.Foundations.PureStateMath.IsDensityOperator ρ) (target : Qatlib.Foundations.PureStateMath.Operator D) (ht : Qatlib.Foundations.PureStateMath.IsDensityOperator target)
     (good : Finset R) (η ζ δ : ℝ) (hη : 0 ≤ η) (hζ : 0 ≤ ζ) (hδ : 0 ≤ δ) (hsmall : ζ+δ < 1)

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalStat
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MaximalSubgroupEnumerationSubgoalQuan
+
+/-!
+# Generation from nearly uniform subgroup samples
+
+This module proves `NearUniformGenerationSubgoal` by combining independent-sample probability
+identities with a finite proper-subgroup cover. Failure to generate the target subgroup is
+covered by samples outside it or by all samples lying in one proper subgroup, yielding the
+stated union bound. For background, see [Kitaev1995].
+
+## Main statements
+
+* `asp_proper_subgroup_card_half`: bounds a proper subgroup by half the ambient group order.
+* `nearUniformGenerationSubgoal`: proves the near-uniform generation failure bound.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -18,6 +37,7 @@ set_option maxHeartbeats 800000
 namespace Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open scoped BigOperators Classical
 
+/-- Pointwise equivalent events on independent finite sample records have equal probability. -/
 theorem asp_probability_congr {X : Type*} [Fintype X] [DecidableEq X]
     (l : ℕ) (μ : FinDist X) (E F : (Fin l → X) → Prop)
     [DecidablePred E] [DecidablePred F] (hEF : ∀ hs, E hs ↔ F hs) :
@@ -30,6 +50,8 @@ theorem asp_probability_congr {X : Type*} [Fintype X] [DecidableEq X]
   · intro hs _
     rfl
 
+/-- Pointwise implication between sample-record events implies the corresponding probability
+inequality. -/
 theorem asp_probability_mono {X : Type*} [Fintype X] [DecidableEq X]
     (l : ℕ) (μ : FinDist X) (E F : (Fin l → X) → Prop)
     [DecidablePred E] [DecidablePred F] (hEF : ∀ hs, E hs → F hs) :
@@ -40,6 +62,8 @@ theorem asp_probability_mono {X : Type*} [Fintype X] [DecidableEq X]
   · intro hs _ _
     exact Finset.prod_nonneg (fun i _ => μ.nonneg (hs i))
 
+/-- The probability of a finite union of sample-record events is bounded by the sum of their
+probabilities. -/
 theorem asp_probability_union {X J : Type*} [Fintype X] [DecidableEq X] [Fintype J]
     (l : ℕ) (μ : FinDist X) (E : J → (Fin l → X) → Prop)
     [∀ j, DecidablePred (E j)] [DecidablePred (fun hs => ∃ j, E j hs)] :
@@ -57,6 +81,8 @@ theorem asp_probability_union {X J : Type*} [Fintype X] [DecidableEq X] [Fintype
   rw [e.symm.sum_comp (fun j => FinDist.probEvent μ (E j))] at hu
   exact hu
 
+/-- The probability that a fixed coordinate of an independent sample record lies in a finite set
+equals the single-sample mass of that set. -/
 theorem asp_probability_coordinate {X : Type*} [Fintype X] [DecidableEq X]
     (l : ℕ) (μ : FinDist X) (i : Fin l) (A : Finset X) :
     FinDist.probEvent μ (fun hs : Fin l → X => hs i ∈ A)=∑ x ∈ A, μ.prob x := by
@@ -71,6 +97,8 @@ theorem asp_probability_coordinate {X : Type*} [Fintype X] [DecidableEq X]
       FinDist.expect_coord μ i (fun x => if x ∈ A then (1 : ℝ) else 0)
     _ = _ := by simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_mem, Finset.univ_inter]
 
+/-- The probability that all `l` independent samples lie in a finite set is its single-sample
+mass raised to `l`. -/
 theorem asp_probability_all {X : Type*} [Fintype X] [DecidableEq X]
     (l : ℕ) (μ : FinDist X) (A : Finset X) :
     FinDist.probEvent μ (fun hs : Fin l → X => ∀ i, hs i ∈ A)=(∑ x ∈ A, μ.prob x)^l := by
@@ -96,6 +124,7 @@ theorem asp_probability_all {X : Type*} [Fintype X] [DecidableEq X]
       simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_mem, Finset.univ_inter, Finset.prod_const,
         Finset.card_univ, Fintype.card_fin]
 
+/-- A proper subgroup of a finite abelian group has cardinality at most half the group order. -/
 theorem asp_proper_subgroup_card_half {H : Type*} [AddCommGroup H] [Fintype H]
     (L : AddSubgroup H) (hL : L < ⊤) : 2*Fintype.card L ≤ Fintype.card H := by
   have hi : 2 ≤ L.index := by have := L.one_lt_index_of_ne_top hL.ne; omega
@@ -104,6 +133,8 @@ theorem asp_proper_subgroup_card_half {H : Type*} [AddCommGroup H] [Fintype H]
   rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card] at hc
   nlinarith
 
+/-- Summing masses over the image of a finite set of subgroup elements equals summing their
+ambient probabilities on the subtype. -/
 theorem asp_subtype_mass {G : Type*} [AddCommGroup G] [Fintype G] [DecidableEq G]
     (H : AddSubgroup G) (μ : FinDist G) (A : Finset ↥H) :
     (∑ x ∈ A.image (fun h : H => (h : G)), μ.prob x)=∑ h ∈ A, μ.prob (h : G) := by
@@ -111,6 +142,10 @@ theorem asp_subtype_mass {G : Type*} [AddCommGroup G] [Fintype G] [DecidableEq G
   intro a _ b _ he
   exact Subtype.ext he
 
+/-- For a distribution within nonnegative δ of uniform subgroup masses on every subset, there is
+a proper-subgroup covering family of size less than the subgroup order. The probability that
+`l` independent samples fail to generate that subgroup is at most `l*δ +
+maxs.card*(1/2+δ)^l`. -/
 theorem nearUniformGenerationSubgoal : NearUniformGenerationSubgoal := by
   intro l G _ _ _ H μ δ hδ hnear
   obtain ⟨maxs,hproper,hcover,hcount⟩ := maximalSubgroupEnumerationSubgoal ↥H

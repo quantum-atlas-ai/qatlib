@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
 import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+
+/-!
+# Envelope rejection and linear-combination access models
+
+`SQEnvelope` expresses positive target energy and pointwise squared-norm domination. The
+proposal-and-coin model defines rejection records, a counted stopping rule, and acceptance-based
+norm estimates; the linear-combination model constructs a square-root envelope and a joint
+mixture proposal whose coordinate marginal samples that envelope. For background, see
+[ChiaEtAl2022].
+
+## Main statements
+
+* `sq_rejection_envelope_single_trial`: computes the acceptance rate and accepted-coordinate
+  mass.
+* `sq_rejection_linear_combination_access`: establishes the combined envelope, its energy, the
+  normalized mixture, and exact point-query count.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -17,44 +39,65 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The target has positive squared norm and is pointwise dominated in squared complex norm by
+the envelope. -/
 def SQEnvelope {I : Type} [Fintype I] (u uh : I→ℂ) : Prop :=
   0< (∑ i, Complex.normSq (u i)) ∧ ∀ i, Complex.normSq (u i)≤ Complex.normSq (uh i)
+/-- The coordinatewise ratio of target squared norm to envelope squared norm, using real
+division. -/
 noncomputable def sqRatio {I : Type} (u uh : I→ℂ) (i : I) : ℝ :=
   Complex.normSq (u i)/Complex.normSq (uh i)
+/-- The joint probability of a proposal index and its conditional acceptance-coin outcome. -/
 noncomputable def sqTrialMass {I : Type} [Fintype I]
     (p : FinDist I) (coin : I→FinDist Bool) (z : I×Bool) : ℝ :=
   p.prob z.1*(coin z.1).prob z.2
+/-- The product of the single-trial masses along a finite proposal-and-coin record. -/
 noncomputable def sqTrialProduct {I : Type} [Fintype I] {B : ℕ}
     (p : FinDist I) (coin : I→FinDist Bool) (ω : Fin B→I×Bool) : ℝ :=
   ∏ b, sqTrialMass p coin (ω b)
+/-- Return the index of the first accepted pair in a list, or `none` if all are rejected,
+charging four operations per inspected pair. -/
 def sqRejectList {I : Type} : List (I×Bool)→Option I×ℕ
   | [] => (none,0)
   | z::zs => if z.2 then (some z.1,4) else
       let q:= sqRejectList zs; (q.1,q.2+4)
+/-- Apply the counted first-acceptance rule to the list associated with a finite trial record. -/
 def sqRejectRun {I : Type} {B : ℕ} (ω : Fin B→I×Bool) : Option I×ℕ :=
   sqRejectList (List.ofFn ω)
+/-- Estimate squared norm by multiplying an envelope-energy scale by the median of `2 * r + 1`
+block acceptance frequencies. -/
 noncomputable def sqNormSquaredEstimate {I : Type} (d : ℝ) (r B : ℕ)
     (ω : Fin (2*r+1)→Fin B→I×Bool) : ℝ :=
   d*sortedBlockMedian r (fun j=> (∑ b, if (ω j b).2 then (1:ℝ) else 0)/(B:ℝ))
+/-- The coordinate value of a finite complex linear combination of input vectors. -/
 noncomputable def sqLinearValue {J I : Type} [Fintype J] (c : J→ℂ)
     (u : J→I→ℂ) (i : I) : ℂ := ∑ j, c j*u j i
+/-- The real square-root envelope whose squared magnitude is the number of summands times the
+sum of squared weighted envelope entries. -/
 noncomputable def sqLinearEnvelope {J I : Type} [Fintype J] (c : J→ℂ)
     (uh : J→I→ℂ) (i : I) : ℂ :=
   (Real.sqrt ((Fintype.card J:ℝ)*∑ j,Complex.normSq (c j*uh j i)):ℂ)
+/-- The joint component-and-coordinate proposal mass, proportional to the squared weighted
+envelope entry and normalized by the total weighted envelope energy. -/
 noncomputable def sqMixtureMass {J I : Type} [Fintype J] [Fintype I]
     (c : J→ℂ) (uh : J→I→ℂ) (z : J×I) : ℝ :=
   Complex.normSq (c z.1*uh z.1 z.2)/(∑ j,Complex.normSq (c j)*(∑ i, Complex.normSq ((uh j) i)))
+/-- Evaluate a linear-combination coordinate by a finite summation fold, recording one query per
+summand. -/
 noncomputable def sqLinearQuery {J I : Type} [Fintype J] (c : J→ℂ)
     (u : J→I→ℂ) (i : I) : ℂ×ℕ :=
   (List.ofFn (fun j : Fin (Fintype.card J)=> (Fintype.equivFin J).symm j)).foldl
     (fun a j => (a.1+c j*u j i,a.2+1)) (0,0)
 
+/-- A valid envelope has positive energy, and the target energy is bounded by the envelope
+energy. -/
 theorem sqEnvelope_energy {I : Type} [Fintype I] (u uh : I→ℂ) (h : SQEnvelope u uh) :
     0 < (∑ i,Complex.normSq (uh i)) ∧
     (∑ i,Complex.normSq (u i)) ≤ ∑ i,Complex.normSq (uh i) := by
   have he := Finset.sum_le_sum (fun i (_ : i ∈ Finset.univ) => h.2 i)
   exact ⟨h.1.trans_le he,he⟩
 
+/-- Under `SQEnvelope`, each target-to-envelope squared-norm ratio lies in the unit interval. -/
 theorem sqRatio_range {I : Type} [Fintype I] (u uh : I→ℂ) (h : SQEnvelope u uh) (i : I) :
     0 ≤ sqRatio u uh i ∧ sqRatio u uh i ≤ 1 := by
   refine ⟨div_nonneg (Complex.normSq_nonneg _) (Complex.normSq_nonneg _),?_⟩
@@ -62,6 +105,8 @@ theorem sqRatio_range {I : Type} [Fintype I] (u uh : I→ℂ) (h : SQEnvelope u 
   · simp [sqRatio,hz]
   · exact (div_le_one (lt_of_le_of_ne (Complex.normSq_nonneg _) (Ne.symm hz))).mpr (h.2 i)
 
+/-- Exact squared-envelope proposals and ratio acceptance coins yield accepted-coordinate mass
+equal to target squared magnitude divided by total envelope energy. -/
 theorem sqTrial_true_mass {I : Type} [Fintype I] (u uh : I→ℂ)
     (p : FinDist I) (coin : I→FinDist Bool) (h : SQEnvelope u uh)
     (hp : ∀ i,p.prob i=Complex.normSq (uh i)/(∑ i,Complex.normSq (uh i)))
@@ -73,6 +118,10 @@ theorem sqTrial_true_mass {I : Type} [Fintype I] (u uh : I→ℂ)
     simp [hz,hu]
   · field_simp
 
+/-- For an exact envelope proposal and ratio coin, the envelope-to-target energy ratio is at
+least one, each acceptance parameter lies in the unit interval, and the acceptance rate is
+the reciprocal energy ratio. Accepted-coordinate masses are target squared magnitudes
+divided by envelope energy, as in [Chia et al., Lemma 3.5][ChiaEtAl2022]. -/
 theorem sq_rejection_envelope_single_trial : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (u uh : I→ℂ) (p : FinDist I) (coin : I→FinDist Bool),
     SQEnvelope u uh → (∀ i,p.prob i=Complex.normSq (uh i)/(∑ i,Complex.normSq (uh i))) →
@@ -89,6 +138,7 @@ theorem sq_rejection_envelope_single_trial : ∀ (I : Type) [Fintype I] [Decidab
   rw [← Finset.sum_div]
   field_simp
 
+/-- The finite joint distribution of a proposal index and its conditional Boolean coin outcome. -/
 noncomputable def sqTrialLaw {I : Type} [Fintype I] (p : FinDist I) (coin : I→FinDist Bool) : FinDist (I×Bool) where
   prob := sqTrialMass p coin
   nonneg z := mul_nonneg (p.nonneg z.1) ((coin z.1).nonneg z.2)
@@ -96,6 +146,8 @@ noncomputable def sqTrialLaw {I : Type} [Fintype I] (p : FinDist I) (coin : I→
     simp only [sqTrialMass,Fintype.sum_prod_type,← Finset.mul_sum,(coin _).sum_one,mul_one]
     exact p.sum_one
 
+/-- The squared magnitude of the combined envelope is the number of components times the sum of
+squared weighted envelope entries. -/
 theorem sqLinearEnvelope_normSq {J I : Type} [Fintype J] (c : J→ℂ) (uh : J→I→ℂ) (i : I) :
     Complex.normSq (sqLinearEnvelope c uh i) =
       (Fintype.card J : ℝ)*∑ j,Complex.normSq (c j*uh j i) := by
@@ -105,6 +157,8 @@ theorem sqLinearEnvelope_normSq {J I : Type} [Fintype J] (c : J→ℂ) (uh : J�
     (Fintype.card J : ℝ)*∑ j,Complex.normSq (c j*uh j i) by
       exact mul_nonneg (Nat.cast_nonneg _) (Finset.sum_nonneg (fun j _ => Complex.normSq_nonneg _)))
 
+/-- If each input has a valid envelope, the combined square-root envelope pointwise dominates
+the squared magnitude of their linear combination. -/
 theorem sqLinearEnvelope_dominates {J I : Type} [Fintype J] [Fintype I]
     (c : J→ℂ) (u uh : J→I→ℂ) (h : ∀ j,SQEnvelope (u j) (uh j)) (i : I) :
     Complex.normSq (sqLinearValue c u i) ≤ Complex.normSq (sqLinearEnvelope c uh i) := by
@@ -125,12 +179,16 @@ theorem sqLinearEnvelope_dominates {J I : Type} [Fintype J] [Fintype I]
       rw [Complex.normSq_mul]
       exact mul_le_mul_of_nonneg_left ((h j).2 i) (Complex.normSq_nonneg _)
 
+/-- A fold that adds one complex contribution and one count per entry returns the initial sum
+plus all contributions and the initial count plus the list length. -/
 theorem sq_linear_fold {J : Type} (f : J→ℂ) (l : List J) (a : ℂ×ℕ) :
     l.foldl (fun a j => (a.1+f j,a.2+1)) a = (a.1+(l.map f).sum,a.2+l.length) := by
   induction l generalizing a with
   | nil => simp
   | cons j l ih => simp [ih,add_assoc,Nat.add_comm]
 
+/-- The counted coordinate query equals the linear-combination value and uses exactly one query
+per component. -/
 theorem sqLinearQuery_value_count {J I : Type} [Fintype J] (c : J→ℂ) (u : J→I→ℂ) (i : I) :
     (sqLinearQuery c u i).1 = sqLinearValue c u i ∧ (sqLinearQuery c u i).2=Fintype.card J := by
   unfold sqLinearQuery
@@ -140,6 +198,10 @@ theorem sqLinearQuery_value_count {J I : Type} [Fintype J] (c : J→ℂ) (u : J�
   · exact (Fintype.equivFin J).symm.sum_comp (fun j => c j*u j i)
   · trivial
 
+/-- A nonzero linear combination of enveloped inputs has the specified dominating envelope and
+weighted energy formula. The joint mixture is normalized, its coordinate marginal is the
+squared-envelope law, and each point query uses exactly the number of components, giving the
+closure interface of [Chia et al., Lemma 3.6][ChiaEtAl2022]. -/
 theorem sq_rejection_linear_combination_access : ∀ (J I : Type) [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (c : J→ℂ) (u uh : J→I→ℂ),
     (∀ j,SQEnvelope (u j) (uh j)) → 0 < (∑ i,Complex.normSq (sqLinearValue c u i)) →

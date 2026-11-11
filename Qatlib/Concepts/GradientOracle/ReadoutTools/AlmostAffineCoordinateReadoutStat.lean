@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportStat
+
+/-!
+# Specification of almost-affine coordinate readout
+
+`AlmostAffineCoordinateReadout` states a per-coordinate success bound when the phase is close to
+affine on all but a `1/1000` fraction of the grid. It includes unitarity and resource counts for
+the robust gradient readout associated with [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `AlmostAffineCoordinateReadout`: each signed coordinate estimate has error at most `4/2^n`
+  with probability at least `2/3`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +37,9 @@ namespace Qatlib.Concepts.GradientOracle.ReadoutTools
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The proposition that an almost-affine phase on all but a `1/1000` fraction of the grid gives
+each signed coordinate error at most `4/2^n` with probability at least `2/3`, together with
+unitarity and circuit counts. -/
 def AlmostAffineCoordinateReadout : Prop :=
   ∀ (d n : ℕ) (hN : 0 < 2^n) (φ : GradientGrid d (2^n) → ℝ)
     (g : Fin d → ℝ) (c : ℝ) (S : Finset (GradientGrid d (2^n))),

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPowerSimon97.Recovery.ExpectedTimeRestrictedStat
 import Qatlib.Papers.QPowerSimon97.Recovery.WeightedConstantCost
+
+/-!
+# Expected cost of verified Simon retries
+
+Proves `expectedTimeRestricted` for the verified Simon retry kernel. In addition to almost-sure
+exact recovery, it bounds oracle work uniformly over finite execution fuel and bounds the
+limiting classical work, giving a restricted expected-cost formulation associated with Theorem
+3.2 of [Simon1997].
+
+## Main statements
+
+* `expectedTimeRestricted`: The restricted verified Simon retry procedure recovers the promised
+  secret almost surely, has expected oracle work at most `2 * ((n + 3) * Tf n)` for every finite
+  fuel, and has limiting expected classical work at most `2 * simonBlockOpsBound n` [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AbelianDecoders.SimonDecoding
@@ -24,6 +44,9 @@ open Qatlib.Concepts.AbelianDecoders.SimonDecoding Qatlib.Concepts.HspRecovery.B
 open Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelian Qatlib.Concepts.HspRecovery.Distinguisher
 open scoped Classical ENNReal
 
+/-- The restricted verified Simon retry procedure recovers the promised secret almost surely,
+has expected oracle work at most `2 * ((n + 3) * Tf n)` for every finite fuel, and has
+limiting expected classical work at most `2 * simonBlockOpsBound n` [Simon1997]. -/
 theorem expectedTimeRestricted : ExpectedTimeRestricted := by
   intro n R _ _ _ f s Tf hf
   have h := simon_verified_unbounded_expected_queries_and_cutoff n R f s hf

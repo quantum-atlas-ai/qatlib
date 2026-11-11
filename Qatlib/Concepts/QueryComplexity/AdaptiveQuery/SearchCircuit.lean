@@ -13,6 +13,29 @@ import Mathlib.Tactic.Linarith
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.Tensor
+
+/-!
+# Grover search circuits and bit oracle compilation
+
+This module exposes Grover search as `SearchCircuit` and `SearchState`, proves its query count
+and normalization laws, and constructs a principal angle for a nonempty proper marked set.
+
+Using `WithMinus`, it compiles phase oracle circuits into bit oracle circuits with the same
+query count and preserves address event probabilities. The phase kickback and amplitude
+amplification background is described in [BrassardEtAl2002].
+
+## Main statements
+
+* `search_circuit_laws`: query count and normalization of the search state.
+* `search_principal_angle`: a principal angle whose squared sine is the marked fraction.
+* `search_bit_oracle_compile_phase`: phase oracle simulation by a bit oracle with a minus
+  ancilla.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -24,17 +47,22 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.SearchStopping.KnownCount
 open scoped BigOperators
 
+/-- The Grover search circuit with `j` iterations on the address type `I`. -/
 noncomputable abbrev SearchCircuit (I : Type*) [Fintype I] [DecidableEq I] (j : ℕ) :=
   GroverCircuit I j
 
+/-- The Grover state after `j` iterations for the marked set `A`. -/
 noncomputable abbrev SearchState {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (j : ℕ) := GroverState A j
 
+/-- The tensor product of a state with the minus qubit state. -/
 noncomputable abbrev WithMinus {I : Type*} (ψ : QState I) := TensorState ψ Minus
 
 alias search_grover_success := Qatlib.Concepts.SearchStopping.KnownCount.measureProb_groverState
 alias search_grover_state := Qatlib.Concepts.SearchStopping.KnownCount.groverState_eq
 
+/-- In positive dimension, the search circuit uses `j` queries and produces a normalized search
+state whose empty and full event probabilities are zero and one. -/
 theorem search_circuit_laws {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (j : ℕ) :
     QueryCount (SearchCircuit I j) = j ∧ Normalized (SearchState A j) ∧
@@ -44,6 +72,8 @@ theorem search_circuit_laws {I : Type*} [Fintype I] [DecidableEq I]
     measureProb_univ (normalized_groverState hN A j)⟩
   simp [MeasureProb]
 
+/-- For a nonempty proper marked set, there is an angle strictly between zero and half pi whose
+squared sine is the marked fraction and whose double angle sine is positive. -/
 theorem search_principal_angle {I : Type*} [Fintype I] (A : Finset I)
     (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     ∃ θ : ℝ, 0 < θ ∧ θ < Real.pi / 2 ∧
@@ -65,6 +95,8 @@ theorem search_principal_angle {I : Type*} [Fintype I] (A : Finset I)
       Real.sq_sqrt hp.le]
   · exact Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
 
+/-- Lifting a phase oracle circuit to a bit oracle circuit with a minus ancilla preserves its
+query count, simulates its output state, and preserves every address event probability. -/
 theorem search_bit_oracle_compile_phase {I : Type*} [Fintype I] [DecidableEq I]
     (f : I → Bool) (C : Circuit I) (ψ : QState I) :
     QueryCount (LiftCircuit C) = QueryCount C ∧

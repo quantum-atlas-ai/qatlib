@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
 import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+
+/-!
+# Success ratio and runtime specification
+
+`SuccessRatioAndRuntime` packages the probability ratio for nonzero amplified Fourier outcomes
+and the expected counted query budget for verified period recovery. Its two clauses use the
+marked progression promise and the additional separation assumptions needed for continued
+fraction decoding. See [Cornwell2014] for background.
+
+## Main statements
+
+* `SuccessRatioAndRuntime`: The conjunction of amplified versus baseline nonzero outcome
+  probability bounds and an expected query budget for fresh, verified period recovery.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,8 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.SuccessRatio
 
+/-- The conjunction of amplified versus baseline nonzero outcome probability bounds and an
+expected query budget for fresh, verified period recovery. -/
 def SuccessRatioAndRuntime : Prop :=
   (  ∀ (N : ℕ) (hN : 0 < N) (s M P : ℕ) (f : Fin N → Bool),
     2 ≤ M → 0 < P → s + (M - 1) * P < N → 2 * M ≤ N → AQMarkPromise f s M P →

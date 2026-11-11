@@ -10,6 +10,24 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.De
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.DSlope.Continuous
 import Mathlib.Analysis.Calculus.ParametricIntervalIntegral
 import Mathlib.Analysis.Calculus.FDeriv.Measurable
+
+/-!
+# Differentiability of the first Dixon component
+
+This module proves that the divided-difference integral `dixonH1` is holomorphic on the
+function's open domain. Measurability and uniform derivative estimates justify differentiation
+under the integral, supplying a step of the Dixon contour argument supporting [WangEtAl2026].
+
+## Main statements
+
+* `dslope_deriv_product_norm_bound`: domination of the differentiated integrand.
+* `differentiableOn_dixonH1`: holomorphicity of the first Dixon component.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -26,6 +44,8 @@ section
 
 variable {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ} {a b : ℝ} {w₀ : ℂ}
 
+/-- For holomorphic `f`, differentiating the divided difference in its first argument agrees
+with differentiating the swapped divided difference. -/
 private theorem dslope_first_arg_hasDerivAt (hU : IsOpen U) (hf : DifferentiableOn ℂ f U) {c w : ℂ}
     (hc : c ∈ U) (hw : w ∈ U) :
     HasDerivAt (fun w' ↦ dslope f w' c) (deriv (dslope f c) w) w :=
@@ -33,17 +53,23 @@ private theorem dslope_first_arg_hasDerivAt (hU : IsOpen U) (hf : Differentiable
     (hU.mem_nhds hw)).hasDerivAt.congr_of_eventuallyEq
     (Filter.Eventually.of_forall fun _ ↦ dslope_comm f _ _)
 
+/-- A holomorphic divided difference composed with a continuous curve in its domain is
+continuous in the curve parameter. -/
 private theorem dslope_comp_curve_continuousOn (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U) {w : ℂ} (hw : w ∈ U) :
     ContinuousOn (fun t ↦ dslope f w (γ t)) (uIcc a b) :=
   ((continuousOn_dslope (hU.mem_nhds hw)).mpr
     ⟨hf.continuousOn, hf.differentiableAt (hU.mem_nhds hw)⟩).comp hγ_cont hγU
 
+/-- A continuous scalar factor times the ordinary derivative of a complex curve is almost
+everywhere strongly measurable on the integration interval. -/
 private theorem factor_mul_deriv_aestronglyMeasurable {g : ℝ → ℂ} (hg : ContinuousOn g (uIcc a b)) :
     AEStronglyMeasurable (fun t ↦ g t * deriv γ t) (volume.restrict (Ι a b)) :=
   ((hg.mono Set.uIoc_subset_uIcc).aestronglyMeasurable measurableSet_uIoc).mul
     (stronglyMeasurable_deriv γ).aestronglyMeasurable
 
+/-- An open neighborhood of `w₀` contains `w₀ + s n` for a sequence of nonzero increments
+tending to zero. -/
 private theorem exists_seq_ne_add_mem_tendsto (hU : IsOpen U) (hw₀ : w₀ ∈ U) :
     ∃ s : ℕ → ℂ, (∀ n, s n ≠ 0) ∧ (∀ n, w₀ + s n ∈ U) ∧
       Filter.Tendsto s Filter.atTop (𝓝 0) := by
@@ -62,6 +88,8 @@ private theorem exists_seq_ne_add_mem_tendsto (hU : IsOpen U) (hw₀ : w₀ ∈ 
     have h := (Complex.continuous_ofReal.tendsto (0 : ℝ)).comp h_real
     rwa [Complex.ofReal_zero] at h
 
+/-- The divided-difference difference quotient times the curve derivative is almost everywhere
+strongly measurable under the holomorphicity and curve continuity assumptions. -/
 private theorem dslope_diffquot_aestronglyMeasurable (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U) (hw₀ : w₀ ∈ U) {s : ℂ}
     (hs : w₀ + s ∈ U) :
@@ -74,6 +102,8 @@ private theorem dslope_diffquot_aestronglyMeasurable (hU : IsOpen U) (hf : Diffe
   · exact (continuousOn_dslope_first_arg (hU.mem_nhds hw₀) hf.continuousOn
       (hf.differentiableAt (hU.mem_nhds hw₀))).comp hγ_cont hγU
 
+/-- The derivative of the divided difference times the curve derivative is almost everywhere
+strongly measurable under the holomorphicity and curve continuity assumptions. -/
 private theorem dslope_deriv_mul_deriv_aestronglyMeasurable (hU : IsOpen U)
     (hf : DifferentiableOn ℂ f U) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγU : ∀ t ∈ uIcc a b, γ t ∈ U) (hw₀ : w₀ ∈ U) :
@@ -97,6 +127,8 @@ private theorem dslope_deriv_mul_deriv_aestronglyMeasurable (hU : IsOpen U)
   simp_rw [h_q_eq]
   exact (h_diff.hasDerivAt.tendsto_slope.comp hy).mul_const _
 
+/-- A uniform derivative bound for divided differences gives the product bound `C * ‖deriv γ t‖`
+on a smaller ball. -/
 private theorem dslope_deriv_product_norm_bound {C δ : ℝ}
     (h_dslope_bd : ∀ c ∈ γ '' uIcc a b, ∀ w ∈ Metric.ball w₀ δ, ‖deriv (dslope f c) w‖ ≤ C)
     {ε : ℝ} (hball : Metric.ball w₀ ε ⊆ Metric.ball w₀ δ) :
@@ -107,6 +139,8 @@ private theorem dslope_deriv_product_norm_bound {C δ : ℝ}
   exact mul_le_mul_of_nonneg_right
     (h_dslope_bd (γ t) ⟨t, Set.uIoc_subset_uIcc ht, rfl⟩ w (hball hw)) (norm_nonneg _)
 
+/-- The integral defining `dixonH1` is complex differentiable at each point of the open
+holomorphic domain when the curve derivative is integrable. -/
 private theorem differentiableAt_dixonH1_integral (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U)
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b) (hw₀ : w₀ ∈ U) :
@@ -134,6 +168,8 @@ private theorem differentiableAt_dixonH1_integral (hU : IsOpen U) (hf : Differen
     exact (dslope_first_arg_hasDerivAt hU hf (hγU t (Set.uIoc_subset_uIcc ht))
       (hball_U hw)).mul_const (deriv γ t)
 
+/-- The divided-difference component `dixonH1` is holomorphic on the open domain containing the
+continuous curve, assuming its derivative is interval integrable. -/
 theorem differentiableOn_dixonH1 (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U)
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b) :

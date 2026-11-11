@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QWalkGraphs00.MainResults.Amplify.Amplification
 import Qatlib.Papers.QWalkGraphs00.MainResults.Times
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Amplification and relative sampling error
+
+An ℓ¹ error bounded by a multiple of a lower bound for the reference masses yields a relative
+error bound on every subset. Combining this observation with contraction gives
+`amplified_sampling_bound`, the sampling estimate associated with Theorem 5.2 of
+[AharonovEtAl2001Walks].
+
+## Main statements
+
+* `l1_bound_implies_sampling_at`: converts an ℓ¹ bound to relative subset error.
+* `amplified_sampling_bound`: applies the conversion after repeated amplification.
+
+## References
+
+* [Aharonov et al., 2001][AharonovEtAl2001Walks]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,10 +41,15 @@ open Qatlib.Papers.QWalkGraphs00.MainResults.Times
 variable {Coin V : Type*} [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V]
 variable {π : V → ℝ} {ε : ℝ}
 
+/-- The real logarithmic ratio `log (1 / minπ) / log (1 / ε)` used to express amplification
+depth. -/
 def amplificationSteps (ε minπ : ℝ) : ℝ := Real.log (1 / minπ) / Real.log (1 / ε)
 
 omit [DecidableEq V] in
 
+/-- If `π` is nonnegative with each mass at least `minπ`, an ℓ¹ error at most `ε' * minπ` bounds
+the error on every subset by `ε'` times its reference mass. See [Aharonov et al., Theorem
+5.2][AharonovEtAl2001Walks]. -/
 theorem l1_bound_implies_sampling_at (σ π : V → ℝ) (ε' minπ : ℝ) (X : Finset V)
     (hL1 : l1Norm (σ - π) ≤ ε' * minπ)
     (hnn : ∀ v, 0 ≤ π v) (hmin : ∀ v, minπ ≤ π v)
@@ -57,6 +81,9 @@ theorem l1_bound_implies_sampling_at (σ π : V → ℝ) (ε' minπ : ℝ) (X : 
 
 omit [DecidableEq V] in
 
+/-- If `ε^k * δ ≤ ε' * minπ`, repeated amplification of a mass-one function with initial ℓ¹
+error at most `δ` satisfies the relative subset sampling bound for nonnegative `π` with
+masses at least `minπ`. See [Aharonov et al., Theorem 5.2][AharonovEtAl2001Walks]. -/
 theorem amplified_sampling_bound (A : AmplificationStep (V := V) π ε) (hε : 0 ≤ ε)
     (k : ℕ) (σ : V → ℝ) (δ ε' minπ : ℝ)
     (hσ : ∑ v, σ v = 1) (hπ : ∑ v, π v = 1)

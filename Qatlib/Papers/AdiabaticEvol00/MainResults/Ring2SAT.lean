@@ -8,6 +8,29 @@ import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Sinc
 import Mathlib.Analysis.SpecificLimits.Basic
 
+/-!
+# Two-dimensional block formulas for ring 2-SAT
+
+This module defines `ringBlock`, its radicand, and the two closed energy expressions
+`ringEnergyPlus` and `ringEnergyMinus`, and proves matching trace and determinant formulas. It
+minimizes the radicand by completing the square, derives block-gap bounds, and proves that the
+expression `ringGapFormula` evaluated at `s = 2 / 3` is asymptotic to `4 * Real.pi / (3 * n)`.
+The mathematical context is [FarhiEtAl2000].
+
+## Main statements
+
+* `ringBlockGap_min`: When `Real.cos θ ≥ 0`, the difference of the two block-energy expressions
+  is at least `2 * Real.sqrt (4 * Real.sin θ ^ 2 / (5 + 4 * Real.cos θ))`.
+* `ring_gap_asymptotic`: The ratio of `ringGapFormula n` to `4 * Real.pi / (3 * n)` tends to one
+  as `n` tends to infinity.
+* `ring_required_time_cubic`: For positive `n`, the assumptions `0 ≤ E ≤ n` and `1 / n ≤ g` give
+  the cubic upper bound `E / g ^ 2 ≤ n ^ 3`.
+
+## References
+
+* [Farhi et al., 2000][FarhiEtAl2000]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,12 +41,16 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.AdiabaticEvol00.MainResults
 open scoped Matrix.Norms.L2Operator ComplexOrder BigOperators
 
+/-- The two-dimensional complex Hermitian block with diagonal entries `s + s * Real.cos θ` and
+`4 - 3 * s - s * Real.cos θ` and off-diagonal entries `±i * s * Real.sin θ`. -/
 def ringBlock (θ s : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(((s + s * Real.cos θ) : ℝ) : ℂ),
      (Complex.I * (((s * Real.sin θ) : ℝ) : ℂ));
      (-(Complex.I * (((s * Real.sin θ) : ℝ) : ℂ))),
      (((4 - 3 * s - s * Real.cos θ) : ℝ) : ℂ)]
 
+/-- A two-dimensional matrix with real diagonal entries and off-diagonal entries `i * c` and `-i
+* c` is Hermitian. -/
 theorem hermitian_two (a c d : ℝ) :
     (!![((a : ℝ) : ℂ), (Complex.I * ((c : ℝ) : ℂ));
         (-(Complex.I * ((c : ℝ) : ℂ))), ((d : ℝ) : ℂ)] :
@@ -33,14 +60,18 @@ theorem hermitian_two (a c d : ℝ) :
   fin_cases i <;> fin_cases j <;>
     simp [Complex.conj_I, Complex.conj_ofReal]
 
+/-- The ring 2-SAT block is Hermitian for every real angle and interpolation parameter. -/
 theorem ringBlock_isHermitian (θ s : ℝ) : (ringBlock θ s).IsHermitian :=
   hermitian_two (s + s * Real.cos θ) (s * Real.sin θ) (4 - 3 * s - s * Real.cos θ)
 
+/-- The trace of the ring block equals the real number `4 - 2 * s`, embedded in the complex
+numbers. -/
 theorem ringBlock_trace (θ s : ℝ) :
     (ringBlock θ s).trace = ((4 - 2 * s : ℝ) : ℂ) := by
   simp [ringBlock, Matrix.trace, Fin.sum_univ_two]
   ring
 
+/-- For every complex `z`, the product `Complex.I * z * (Complex.I * z)` equals `-z ^ 2`. -/
 theorem complex_i_mul_self_mul (z : ℂ) : Complex.I * z * (Complex.I * z) = -z ^ 2 := by
   have h : Complex.I * Complex.I = -1 := by
     rw [← pow_two]
@@ -49,6 +80,8 @@ theorem complex_i_mul_self_mul (z : ℂ) : Complex.I * z * (Complex.I * z) = -z 
     _ = -1 * (z * z) := by rw [h]
     _ = -z ^ 2 := by ring
 
+/-- The ring-block determinant equals the product of its diagonal entries minus `(s * Real.sin
+θ) ^ 2`, embedded in the complex numbers. -/
 theorem ringBlock_det (θ s : ℝ) :
     (ringBlock θ s).det =
       (((s + s * Real.cos θ) * (4 - 3 * s - s * Real.cos θ) -
@@ -58,27 +91,37 @@ theorem ringBlock_det (θ s : ℝ) :
   rw [complex_i_mul_self_mul ((s : ℂ) * Complex.sin (θ : ℂ))]
   ring
 
+/-- The real determinant expression simplifies to `4 * s * (1 - s) * (1 + Real.cos θ)`. -/
 theorem ringBlock_det_real (θ s : ℝ) :
     (s + s * Real.cos θ) * (4 - 3 * s - s * Real.cos θ) - (s * Real.sin θ) ^ 2 =
       4 * s * (1 - s) * (1 + Real.cos θ) := by
   linear_combination (-(s ^ 2)) * Real.sin_sq_add_cos_sq θ
 
+/-- The ring-block determinant is `4 * s * (1 - s) * (1 + Real.cos θ)`, embedded in the complex
+numbers. -/
 theorem ringBlock_det_closed (θ s : ℝ) :
     (ringBlock θ s).det = ((4 * s * (1 - s) * (1 + Real.cos θ) : ℝ) : ℂ) := by
   rw [ringBlock_det, ringBlock_det_real]
 
+/-- The real expression `(2 - 3 * s) ^ 2 + 4 * s * (1 - s) * (1 - Real.cos θ)` appearing under
+the block-energy square root. -/
 def ringRadicand (θ s : ℝ) : ℝ :=
   (2 - 3 * s) ^ 2 + 4 * s * (1 - s) * (1 - Real.cos θ)
 
+/-- The upper block-energy expression `2 - s + Real.sqrt (ringRadicand θ s)`. -/
 def ringEnergyPlus (θ s : ℝ) : ℝ := 2 - s + Real.sqrt (ringRadicand θ s)
 
+/-- The lower block-energy expression `2 - s - Real.sqrt (ringRadicand θ s)`. -/
 def ringEnergyMinus (θ s : ℝ) : ℝ := 2 - s - Real.sqrt (ringRadicand θ s)
 
+/-- The two block-energy expressions sum to `4 - 2 * s`. -/
 theorem ringEnergy_sum (θ s : ℝ) :
     ringEnergyPlus θ s + ringEnergyMinus θ s = 4 - 2 * s := by
   unfold ringEnergyPlus ringEnergyMinus
   ring
 
+/-- When the radicand is nonnegative, the two block-energy expressions have product `4 * s * (1
+- s) * (1 + Real.cos θ)`. -/
 theorem ringEnergy_product (θ s : ℝ) (hR : 0 ≤ ringRadicand θ s) :
     ringEnergyPlus θ s * ringEnergyMinus θ s = 4 * s * (1 - s) * (1 + Real.cos θ) := by
   unfold ringEnergyPlus ringEnergyMinus
@@ -87,6 +130,8 @@ theorem ringEnergy_product (θ s : ℝ) (hR : 0 ≤ ringRadicand θ s) :
   unfold ringRadicand
   nlinarith [h]
 
+/-- For a nonnegative radicand, the ring-block trace and determinant equal the sum and product
+of the two defined energy expressions [FarhiEtAl2000]. -/
 theorem ringBlock_spectrum (θ s : ℝ) (hR : 0 ≤ ringRadicand θ s) :
     (ringBlock θ s).trace = ((ringEnergyPlus θ s + ringEnergyMinus θ s : ℝ) : ℂ) ∧
     (ringBlock θ s).det = ((ringEnergyPlus θ s * ringEnergyMinus θ s : ℝ) : ℂ) := by
@@ -94,24 +139,32 @@ theorem ringBlock_spectrum (θ s : ℝ) (hR : 0 ≤ ringRadicand θ s) :
   · rw [ringBlock_trace, ringEnergy_sum]
   · rw [ringBlock_det_closed, ringEnergy_product θ s hR]
 
+/-- At `s = 2 / 3`, the ring radicand equals `(8 / 9) * (1 - Real.cos θ)`. -/
 theorem ringRadicand_two_thirds (θ : ℝ) :
     ringRadicand θ (2 / 3) = 8 / 9 * (1 - Real.cos θ) := by
   unfold ringRadicand
   ring
 
+/-- The difference of the two block-energy expressions at angle `Real.pi / n` and interpolation
+parameter `2 / 3`. -/
 def ringGapFormula (n : ℕ) : ℝ :=
   ringEnergyPlus (Real.pi / n) (2 / 3) - ringEnergyMinus (Real.pi / n) (2 / 3)
 
+/-- The defined ring gap expression is twice the square root of the radicand at angle `Real.pi /
+n` and parameter `2 / 3`. -/
 theorem ringGapFormula_eq (n : ℕ) :
     ringGapFormula n = 2 * Real.sqrt (ringRadicand (Real.pi / n) (2 / 3)) := by
   unfold ringGapFormula ringEnergyPlus ringEnergyMinus
   ring
 
+/-- The difference of the upper and lower block-energy expressions equals twice the square root
+of the radicand. -/
 theorem ringEnergy_gap (θ s : ℝ) :
     ringEnergyPlus θ s - ringEnergyMinus θ s = 2 * Real.sqrt (ringRadicand θ s) := by
   unfold ringEnergyPlus ringEnergyMinus
   ring
 
+/-- If `Real.cos θ ≠ 1`, the ring radicand is strictly positive for every `s ∈ [0, 1]`. -/
 theorem ringRadicand_pos {θ : ℝ} (hθ : Real.cos θ ≠ 1) :
     ∀ s ∈ Set.Icc (0 : ℝ) 1, 0 < ringRadicand θ s := by
   intro s hs
@@ -135,6 +188,8 @@ theorem ringRadicand_pos {θ : ℝ} (hθ : Real.cos θ ≠ 1) :
     subst hseq
     norm_num
 
+/-- The ring radicand is the sum of its quadratic coefficient times the squared displacement
+from its vertex and its explicit vertex value. -/
 theorem ringRadicand_complete_square (θ s : ℝ) :
     ringRadicand θ s =
       (9 - 4 * (1 - Real.cos θ)) *
@@ -148,12 +203,16 @@ theorem ringRadicand_complete_square (θ s : ℝ) :
   field_simp
   ring
 
+/-- At `s = (6 - 2 * (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ))`, the radicand equals `4 *
+(1 - Real.cos θ) * (2 - (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ))`. -/
 theorem ringRadicand_vertex (θ : ℝ) :
     ringRadicand θ ((6 - 2 * (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ))) =
       4 * (1 - Real.cos θ) * (2 - (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ)) := by
   rw [ringRadicand_complete_square]
   simp
 
+/-- When `Real.cos θ ≥ 0`, the quadratic vertex parameter of the ring radicand belongs to `[0,
+1]`. -/
 theorem ring_vertex_mem {θ : ℝ} (hcos : 0 ≤ Real.cos θ) :
     (6 - 2 * (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ)) ∈ Set.Icc (0 : ℝ) 1 := by
   have hle : Real.cos θ ≤ 1 := Real.cos_le_one θ
@@ -162,6 +221,7 @@ theorem ring_vertex_mem {θ : ℝ} (hcos : 0 ≤ Real.cos θ) :
   · rw [div_le_one (by nlinarith)]
     nlinarith
 
+/-- When `Real.cos θ ≥ 0`, the ring radicand at its vertex is at most its value at any real `s`. -/
 theorem ringRadicand_vertex_le {θ s : ℝ} (hcos : 0 ≤ Real.cos θ) :
     ringRadicand θ ((6 - 2 * (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ))) ≤
       ringRadicand θ s := by
@@ -175,6 +235,8 @@ theorem ringRadicand_vertex_le {θ s : ℝ} (hcos : 0 ≤ Real.cos θ) :
   rw [ringRadicand_complete_square]
   linarith
 
+/-- The explicit vertex value of the ring radicand equals `4 * Real.sin θ ^ 2 / (5 + 4 *
+Real.cos θ)`. -/
 theorem ringRadicand_vertex_sin (θ : ℝ) :
     4 * (1 - Real.cos θ) * (2 - (1 - Real.cos θ)) / (9 - 4 * (1 - Real.cos θ)) =
       4 * Real.sin θ ^ 2 / (5 + 4 * Real.cos θ) := by
@@ -189,6 +251,8 @@ theorem ringRadicand_vertex_sin (θ : ℝ) :
   field_simp [hden]
   ring
 
+/-- When `Real.cos θ ≥ 0`, the difference of the two block-energy expressions is at least `2 *
+Real.sqrt (4 * Real.sin θ ^ 2 / (5 + 4 * Real.cos θ))` [FarhiEtAl2000]. -/
 theorem ringBlockGap_min (θ : ℝ) (hcos : 0 ≤ Real.cos θ) (s : ℝ) :
     2 * Real.sqrt (4 * Real.sin θ ^ 2 / (5 + 4 * Real.cos θ)) ≤
       ringEnergyPlus θ s - ringEnergyMinus θ s := by
@@ -199,6 +263,8 @@ theorem ringBlockGap_min (θ : ℝ) (hcos : 0 ≤ Real.cos θ) (s : ℝ) :
   have := Real.sqrt_le_sqrt hv
   linarith
 
+/-- For `0 ≤ θ ≤ Real.pi`, the square-root form of the vertex gap equals `4 * Real.sin θ /
+Real.sqrt (5 + 4 * Real.cos θ)`. -/
 theorem ringBlockGap_min_exact (θ : ℝ) (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi) :
     2 * Real.sqrt (4 * Real.sin θ ^ 2 / (5 + 4 * Real.cos θ)) =
       4 * Real.sin θ / Real.sqrt (5 + 4 * Real.cos θ) := by
@@ -210,6 +276,7 @@ theorem ringBlockGap_min_exact (θ : ℝ) (h0 : 0 ≤ θ) (hπ : θ ≤ Real.pi)
   rw [hsq, Real.sqrt_div' _ (le_of_lt hden), Real.sqrt_sq (by positivity)]
   ring
 
+/-- At `s = 2 / 3`, the radicand equals `((4 / 3) * Real.sin (θ / 2)) ^ 2`. -/
 theorem ringRadicand_two_thirds_sq (θ : ℝ) :
     ringRadicand θ (2 / 3) = ((4 / 3) * Real.sin (θ / 2)) ^ 2 := by
   rw [ringRadicand_two_thirds]
@@ -220,6 +287,8 @@ theorem ringRadicand_two_thirds_sq (θ : ℝ) :
   rw [h]
   ring
 
+/-- For `n ≥ 1`, the defined ring gap expression equals `(8 / 3) * Real.sin (Real.pi / (2 * n))`
+[FarhiEtAl2000]. -/
 theorem ringGapFormula_eq_sin (n : ℕ) (hn : 1 ≤ n) :
     ringGapFormula n = 8 / 3 * Real.sin (Real.pi / (2 * (n : ℝ))) := by
   rw [ringGapFormula_eq, ringRadicand_two_thirds_sq]
@@ -240,6 +309,8 @@ theorem ringGapFormula_eq_sin (n : ℕ) (hn : 1 ≤ n) :
   rw [harg]
   ring
 
+/-- The ratio `Real.sin (Real.pi / (2 * n)) / (Real.pi / (2 * n))` tends to one as the natural
+number `n` tends to infinity. -/
 theorem tendsto_sin_div_pi :
     Filter.Tendsto
       (fun n : ℕ => Real.sin (Real.pi / (2 * (n : ℝ))) / (Real.pi / (2 * (n : ℝ))))
@@ -261,6 +332,8 @@ theorem tendsto_sin_div_pi :
     Real.sin (Real.pi / (2 * (n : ℝ))) / (Real.pi / (2 * (n : ℝ)))
   rw [Real.sinc_of_ne_zero hne]
 
+/-- The ratio of `ringGapFormula n` to `4 * Real.pi / (3 * n)` tends to one as `n` tends to
+infinity [FarhiEtAl2000]. -/
 theorem ring_gap_asymptotic :
     Filter.Tendsto
       (fun n : ℕ => ringGapFormula n / (4 * Real.pi / (3 * (n : ℝ))))
@@ -273,6 +346,8 @@ theorem ring_gap_asymptotic :
   field_simp
   ring
 
+/-- For positive `n`, the assumptions `0 ≤ E ≤ n` and `1 / n ≤ g` give the cubic upper bound `E
+/ g ^ 2 ≤ n ^ 3` [FarhiEtAl2000]. -/
 theorem ring_required_time_cubic {E g : ℝ} {n : ℕ} (hn : 0 < (n : ℝ))
     (hE : E ≤ (n : ℝ)) (hg : 1 / (n : ℝ) ≤ g) (hE0 : 0 ≤ E) :
     E / g ^ 2 ≤ (n : ℝ) ^ 3 :=

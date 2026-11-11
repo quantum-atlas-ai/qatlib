@@ -19,6 +19,33 @@ import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Mathlib.Analysis.Matrix.Order
 import Qatlib.Foundations.OperatorErrors.OperatorError
+
+/-!
+# Weighted adversary matrix composition
+
+`weightedAdvGamma` composes an outer Boolean adversary matrix with inner matrices through
+shifted factors `‖Gg i‖ • 1 + Gg i`. Lifting, compression, and positive semidefinite
+Hadamard-product estimates establish exact formulas for the composed matrix norm and its
+coordinate-filter norms, following the negative-weight composition framework of
+[HoyerLeeSpalek2007].
+
+The module derives weighted witness inequalities and a bounded-error query-circuit lower bound.
+It also constructs extreme eigenvectors under sufficient nonemptiness hypotheses and exhibits an
+empty-block counterexample to the unrestricted extreme-eigenvector contract.
+
+## Main statements
+
+* `weightedAdvGamma_norm_eq`: factor the composed norm into the outer and inner norms.
+* `weightedAdvGamma_filter_norm_eq`: factor each composed coordinate-filter norm.
+* `weightedAdvGamma_actual_lower_bound`: apply the composed witness to a query circuit.
+* `weightedAdvGamma_original_extreme_contract_false`: refute the contract that lacks a
+  nonempty-domain condition.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,10 +65,14 @@ namespace Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
 open Matrix BigOperators
 open scoped Classical Matrix.Norms.L2Operator ComplexOrder ENNReal MatrixOrder
 
+/-- Lift each column of `S` into the block indexed by its label under `e`, filling the other
+label blocks with zero. -/
 noncomputable def weightedAdvLift {Y F T : Type} [DecidableEq F]
     (e : Y → F) (S : Matrix T Y ℂ) : Matrix (F×T) Y ℂ :=
   fun z x => if z.1=e x then S z.2 x else 0
 
+/-- The Gram matrix of `weightedAdvLift e S` equals `Sᴴ * S` within equal-label blocks and is
+zero between different-label blocks. -/
 theorem weightedAdvLift_gram {Y F T : Type} [Fintype F] [Fintype T]
     [DecidableEq F] (e : Y → F) (S : Matrix T Y ℂ) (x y : Y) :
     ((weightedAdvLift e S)ᴴ*weightedAdvLift e S) x y =
@@ -51,6 +82,8 @@ theorem weightedAdvLift_gram {Y F T : Type} [Fintype F] [Fintype T]
   · simp [weightedAdvLift,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type,h]
   · simp [weightedAdvLift,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type,h,Ne.symm h]
 
+/-- Compressing `A` tensored with the identity by `weightedAdvLift e S` gives entry `A (e x) (e
+y) * (Sᴴ * S) x y`. -/
 theorem weightedAdvLift_compression {Y F T : Type} [Fintype F] [Fintype T]
     [DecidableEq F] [DecidableEq T] (e : Y → F) (S : Matrix T Y ℂ)
     (A : Matrix F F ℂ) (x y : Y) :
@@ -60,6 +93,7 @@ theorem weightedAdvLift_compression {Y F T : Type} [Fintype F] [Fintype T]
   simp [weightedAdvLift,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type,
     TensorGate,Matrix.one_apply,Finset.mul_sum,apply_ite,mul_left_comm,mul_comm]
 
+/-- If `‖V‖ * ‖V‖ ≤ r`, the norm of `Vᴴ * (A ⊗ 1) * V` is at most `r * ‖A‖`. -/
 theorem weightedAdv_compression_norm_le {Y F T : Type} [Fintype Y] [Fintype F] [Fintype T]
     [DecidableEq Y] [DecidableEq F] [DecidableEq T]
     (V : Matrix (F×T) Y ℂ) (A : Matrix F F ℂ) (r : ℝ)
@@ -73,6 +107,8 @@ theorem weightedAdv_compression_norm_le {Y F T : Type} [Fintype Y] [Fintype F] [
     _ = (‖V‖*‖V‖)*‖A‖ := by ring
     _ ≤ r*‖A‖ := mul_le_mul_of_nonneg_right hV (norm_nonneg _)
 
+/-- For Hermitian `A` and positive semidefinite `B`, the operator norm of their Hadamard product
+is at most `‖A‖` times the supremum of the real diagonal entries of `B`. -/
 theorem weightedAdv_hadamard_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
     (A : Matrix Y Y ℂ) (_hA : A.IsHermitian) (B : Matrix Y Y ℂ) (hB : B.PosSemidef) :
     ‖Matrix.hadamard A B‖≤(⨆ y,(B y y).re)*‖A‖ := by
@@ -113,6 +149,8 @@ theorem weightedAdv_hadamard_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
     rw [← he]
     exact weightedAdv_compression_norm_le V A d hvn
 
+/-- For a matrix vanishing on equal-output pairs, multiplying an eigenvector by the Boolean
+output sign negates its eigenvalue. -/
 theorem weightedAdv_bipartite_flip {Y : Type} [Fintype Y] (g : Y → Bool)
     (G : Matrix Y Y ℂ) (hz : ∀ x y,g x=g y → G x y=0)
     (u : QState Y) (lam : ℂ) (he : G*ᵥu=lam • u) :
@@ -135,6 +173,8 @@ theorem weightedAdv_bipartite_flip {Y : Type} [Fintype Y] (g : Y → Bool)
   rw [hx]
   ring
 
+/-- A nonzero eigenvector with nonzero eigenvalue for an output-bipartite matrix has a nonzero
+coordinate in each Boolean output fiber. -/
 theorem weightedAdv_bipartite_fiber_nonzero {Y : Type} [Fintype Y] (g : Y → Bool)
     (G : Matrix Y Y ℂ) (hz : ∀ x y,g x=g y → G x y=0)
     (u : QState Y) (hu : u≠0) (lam : ℂ) (hlam : lam≠0) (he : G*ᵥu=lam • u) (b : Bool) :
@@ -160,6 +200,8 @@ theorem weightedAdv_bipartite_fiber_nonzero {Y : Type} [Fintype Y] (g : Y → Bo
     rw [hr] at hx
     exact (mul_eq_zero.mp hx.symm).resolve_left hlam
 
+/-- A Hermitian output-bipartite matrix on a nonempty finite domain possesses a nonzero
+eigenvector with eigenvalue equal to its operator norm. -/
 theorem weightedAdv_positive_eigenvector {Y : Type} [Fintype Y] [DecidableEq Y] [Nonempty Y]
     (g : Y → Bool) (G : Matrix Y Y ℂ) (hG : G.IsHermitian)
     (hz : ∀ x y,g x=g y → G x y=0) :
@@ -190,6 +232,7 @@ theorem weightedAdv_positive_eigenvector {Y : Type} [Fintype Y] [DecidableEq Y] 
     rw [hc] at he'
     exact ⟨w,hw,he'⟩
 
+/-- A finite square matrix with strictly positive operator norm has a nonempty index type. -/
 theorem weightedAdv_nonempty_of_norm_pos {Y : Type} [Fintype Y] [DecidableEq Y]
     (G : Matrix Y Y ℂ) (hG : 0<‖G‖) : Nonempty Y := by
   by_contra hy
@@ -198,6 +241,8 @@ theorem weightedAdv_nonempty_of_norm_pos {Y : Type} [Fintype Y] [DecidableEq Y]
   rw [hg,norm_zero] at hG
   exact lt_irrefl 0 hG
 
+/-- The absolute value of a real eigenvalue associated with a nonzero vector is at most the
+matrix operator norm. -/
 theorem weightedAdv_eigenvalue_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
     (G : Matrix Y Y ℂ) (w : QState Y) (hw : w≠0) (lam : ℝ)
     (he : G*ᵥw=(lam : ℂ) • w) : |lam|≤‖G‖ := by
@@ -221,10 +266,13 @@ theorem weightedAdv_eigenvalue_norm_le {Y : Type} [Fintype Y] [DecidableEq Y]
 variable {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
 variable [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
 
+/-- Retain the entries of `Gamma` whose inputs differ at coordinate `c`, replacing all other
+entries by zero. -/
 noncomputable def weightedAdvFilter {X : Type} {κ : Type} [DecidableEq κ]
     (input : X → κ → Bool) (Gamma : Matrix X X ℂ) (c : κ) : Matrix X X ℂ :=
   fun x y => if input x c ≠ input y c then Gamma x y else 0
 
+/-- Read the inner input bit indexed by the block-coordinate pair `c` from the block tuple `x`. -/
 def weightedAdvInput {X : Fin k → Type} {n : Fin k → ℕ}
     (gin : ∀ i, X i → Fin (n i) → Bool) (x : (i : Fin k) → X i)
     (c : (i : Fin k) × Fin (n i)) : Bool :=
@@ -232,6 +280,8 @@ def weightedAdvInput {X : Fin k → Type} {n : Fin k → ℕ}
 
 set_option linter.unusedVariables false in
 
+/-- The composed matrix whose entry is the outer matrix evaluated at inner output strings times
+the product of the shifted inner-matrix entries. -/
 noncomputable def weightedAdvGamma
     (g : ∀ i, X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -240,6 +290,8 @@ noncomputable def weightedAdvGamma
   fun x y => Gf (fun i => g i (x i)) (fun i => g i (y i)) *
     ∏ i, (Matrix.diagonal (fun _ : X i => (‖Gg i‖ : ℂ)) + Gg i) (x i) (y i)
 
+/-- The composed adversary matrix is Hermitian when the outer and all inner matrices are
+Hermitian. -/
 theorem weightedAdvGamma_isHermitian
     (g : ∀ i, X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -261,6 +313,8 @@ theorem weightedAdvGamma_isHermitian
   intro i _
   exact (hK i).apply (x i) (y i)
 
+/-- If the outer matrix vanishes on equal outer outputs, the composed matrix vanishes on equal
+composed outputs. -/
 theorem weightedAdvGamma_same_output_zero
     (g : ∀ i, X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -271,6 +325,8 @@ theorem weightedAdvGamma_same_output_zero
     weightedAdvGamma g f Gf Gg x y = 0 := by
   simp [weightedAdvGamma, hzf _ _ hxy]
 
+/-- Hadamard multiplication by a fixed positive semidefinite matrix is monotone in the positive
+semidefinite matrix order. -/
 theorem weightedAdv_hadamard_mono {Y : Type} [Fintype Y]
     (B : Matrix Y Y ℂ) (hB : B.PosSemidef) : Monotone (fun A => Matrix.hadamard A B) := by
   intro A C hAC
@@ -282,6 +338,7 @@ theorem weightedAdv_hadamard_mono {Y : Type} [Fintype Y]
   rw [he] at hPSD
   exact hPSD
 
+/-- For Hermitian `G`, the shifted matrix `‖G‖ • 1 + G` is positive semidefinite. -/
 theorem weightedAdv_factor_posSemidef {Y : Type} [Fintype Y] [DecidableEq Y]
     (G : Matrix Y Y ℂ) (hG : G.IsHermitian) :
     (diagonal (fun _ : Y => (‖G‖ : ℂ))+G).PosSemidef := by
@@ -303,6 +360,8 @@ theorem weightedAdv_factor_posSemidef {Y : Type} [Fintype Y] [DecidableEq Y]
     rw [hm] at hb
     simpa only [sub_neg_eq_add,add_comm] using hb
 
+/-- The matrix formed by the product of the shifted inner-matrix entries is positive
+semidefinite when every inner matrix is Hermitian. -/
 theorem weightedAdv_product_posSemidef
     (Gg : ∀ i, Matrix (X i) (X i) ℂ) (hGg : ∀ i,(Gg i).IsHermitian) :
     Matrix.PosSemidef (fun x y : (i : Fin k) → X i =>
@@ -325,6 +384,8 @@ theorem weightedAdv_product_posSemidef
       exact (hk i).hadamard ih
   exact hp Finset.univ
 
+/-- For Hermitian inner matrices vanishing on equal inner outputs, the composed matrix norm is
+at most the outer norm times the product of inner norms. -/
 theorem weightedAdvGamma_norm_le
     (g : ∀ i, X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -375,6 +436,8 @@ theorem weightedAdvGamma_norm_le
 
 omit [∀ i, DecidableEq (X i)] in
 
+/-- Regroup a sum over block tuples by their Boolean output strings, factoring each output fiber
+into a product of coordinate-fiber sums. -/
 theorem weightedAdv_sum_by_outputs (g : ∀ i,X i → Bool)
     (a : (Fin k → Bool) → ℂ) (p : ∀ i,X i → ℂ) :
     (∑ y : (i : Fin k) → X i,a (fun i => g i (y i))*∏ i,p i (y i))=
@@ -404,6 +467,8 @@ theorem weightedAdv_sum_by_outputs (g : ∀ i,X i → Bool)
       intro y _
       simp [mul_ite]
 
+/-- If `u` is a norm-eigenvalue eigenvector of an output-bipartite matrix `G`, summing the
+action of `‖G‖ • 1 + G` over either output fiber gives `‖G‖ * u x` at every coordinate. -/
 theorem weightedAdv_factor_fiber_action {Y : Type} [Fintype Y] [DecidableEq Y]
     (g : Y → Bool) (G : Matrix Y Y ℂ) (hz : ∀ x y,g x=g y → G x y=0)
     (u : QState Y) (he : G*ᵥu=(‖G‖ : ℂ) • u) (x : Y) (b : Bool) :
@@ -433,6 +498,10 @@ theorem weightedAdv_factor_fiber_action {Y : Type} [Fintype Y] [DecidableEq Y]
     simp_rw [hp]
     exact congrFun he x
 
+/-- For Hermitian outer and inner matrices, output-bipartite inner matrices with positive norms
+yield a nonzero composed eigenvector whose real eigenvalue has magnitude `‖Gf‖ * ∏ i, ‖Gg
+i‖`. This is the product-eigenvector construction associated with [Hoyer, Lee, and Spalek,
+Lemma 16][HoyerLeeSpalek2007]. -/
 theorem weightedAdvGamma_product_eigenvector
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -499,6 +568,9 @@ theorem weightedAdvGamma_product_eigenvector
         ring
   · rw [abs_mul,abs_of_nonneg (Finset.prod_nonneg (fun i _ => norm_nonneg (Gg i))),habsf]
 
+/-- For Hermitian outer and inner matrices with the inner same-output zero condition, the
+composed matrix norm equals `‖Gf‖ * ∏ i, ‖Gg i‖`, as in [Hoyer, Lee, and Spalek, Lemma
+16][HoyerLeeSpalek2007]. -/
 theorem weightedAdvGamma_norm_eq
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -519,6 +591,9 @@ theorem weightedAdvGamma_norm_eq
     rw [hp,mul_zero]
     exact norm_nonneg _
 
+/-- On a nonempty product input domain, Hermitian outer and output-bipartite inner matrices
+yield a nonzero composed eigenvector whose real eigenvalue has magnitude equal to the
+product of the outer and inner norms. -/
 theorem weightedAdvGamma_extreme_eigenvector
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -537,6 +612,7 @@ theorem weightedAdvGamma_extreme_eigenvector
     simp [Normalized] at hw
   exact ⟨w,lam,hne,he,hn.trans (weightedAdvGamma_norm_eq g f Gf Gg hGf hGg hzg)⟩
 
+/-- Coordinate filtering preserves the Hermitian property of an adversary matrix. -/
 theorem weightedAdvFilter_isHermitian {Y κ : Type} [DecidableEq κ]
     (input : Y → κ → Bool) (G : Matrix Y Y ℂ) (hG : G.IsHermitian) (c : κ) :
     (weightedAdvFilter input G c).IsHermitian := by
@@ -547,12 +623,15 @@ theorem weightedAdvFilter_isHermitian {Y κ : Type} [DecidableEq κ]
   · have he : input x c=input y c := not_ne_iff.mp h
     simp [weightedAdvFilter,he]
 
+/-- Coordinate filtering preserves the condition that entries vanish on equal-output pairs. -/
 theorem weightedAdvFilter_same_output_zero {Y κ : Type} [DecidableEq κ]
     (input : Y → κ → Bool) (g : Y → Bool) (G : Matrix Y Y ℂ)
     (hz : ∀ x y,g x=g y → G x y=0) (c : κ) (x y : Y) (he : g x=g y) :
     weightedAdvFilter input G c x y=0 := by
   simp [weightedAdvFilter,hz x y he]
 
+/-- Filtering the composition at block `p`, coordinate `q`, equals composing the outer matrix
+filtered at `p` with the inner family updated by filtering its `p`th matrix at `q`. -/
 theorem weightedAdvGamma_filter_identity
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -597,6 +676,9 @@ theorem weightedAdvGamma_filter_identity
     · simp [hb,hg,hzg p _ _ hg]
     · simp [hb,hg,Matrix.add_apply,hxy,advFilter]
 
+/-- Under the Hermitian and output-zero hypotheses, the composed filter norm at `(p, q)` equals
+the outer filter norm at `p` times the inner filter norm at `q` times all other inner norms.
+This supplies a norm identity for the composition argument of [HoyerLeeSpalek2007]. -/
 theorem weightedAdvGamma_filter_norm_eq
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -634,6 +716,10 @@ theorem weightedAdvGamma_filter_norm_eq
   rw [hprod]
   ring
 
+/-- If every inner weighted norm ratio in block `p` is at least `β p` and all inner norms are
+positive, each composed coordinate ratio is at least `β p` times the outer norm-to-filter
+ratio. This is the witness inequality used in the composition framework of
+[HoyerLeeSpalek2007]. -/
 theorem weightedAdvGamma_composition_value
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -672,6 +758,10 @@ theorem weightedAdvGamma_composition_value
       exact mul_le_mul_of_nonneg_left hb
           (div_nonneg (norm_nonneg Gf) (norm_nonneg (advFilter id Gf p)))
 
+/-- A normalized unitary circuit computing the composed Boolean function with error `eps` in
+`[0, 1/2]` satisfies the adversary inequality with numerator `(1 - 2 * sqrt(eps * (1 -
+eps))) * ‖Gf‖ * ∏ i, ‖Gg i‖` and the stated supremum of factored filter norms. This applies
+the composition framework of [HoyerLeeSpalek2007] to the circuit's query count. -/
 theorem weightedAdvGamma_actual_lower_bound
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
@@ -743,6 +833,7 @@ theorem weightedAdvGamma_actual_lower_bound
 
 omit [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)] in
 
+/-- If any input block is empty, there is no nonzero state vector on the product input domain. -/
 theorem weightedAdvGamma_no_nonzero_vector_of_empty_block
     (p : Fin k) [IsEmpty (X p)] :
     ¬ ∃ weight : QState ((i : Fin k) → X i), weight ≠ 0 := by
@@ -751,6 +842,8 @@ theorem weightedAdvGamma_no_nonzero_vector_of_empty_block
   funext x
   exact isEmptyElim (x p)
 
+/-- A one-block construction over `Empty` satisfies the Hermitian and inner output-zero
+conditions but has no nonzero composed extreme eigenvector. -/
 theorem weightedAdvGamma_empty_block_obstruction :
     let g : ∀ _i : Fin 1, Empty → Bool := fun _ _ => false
     let f : (Fin 1 → Bool) → Bool := fun _ => false
@@ -769,6 +862,9 @@ theorem weightedAdvGamma_empty_block_obstruction :
     exact weightedAdvGamma_no_nonzero_vector_of_empty_block (X := fun _ : Fin 1 => Empty)
       0 ⟨weight, hweight⟩
 
+/-- The unrestricted proposition that every Hermitian composition with output-bipartite inner
+matrices possesses a nonzero eigenvector attaining the product of norms, without a
+nonempty-domain hypothesis. -/
 def WeightedAdvExtremeOriginalContract : Prop :=
   ∀ (k : ℕ) (X : Fin k → Type) [∀ i,Fintype (X i)] [∀ i,DecidableEq (X i)]
     (g : ∀ i,X i → Bool) (f : (Fin k → Bool) → Bool)
@@ -779,6 +875,8 @@ def WeightedAdvExtremeOriginalContract : Prop :=
         weightedAdvGamma g f Gf Gg*ᵥweight=(lam : ℂ) • weight ∧
         |lam|=‖Gf‖*∏ i,‖Gg i‖
 
+/-- The unrestricted extreme-eigenvector contract is false, as witnessed by the empty-block
+construction. -/
 theorem weightedAdvGamma_original_extreme_contract_false : ¬WeightedAdvExtremeOriginalContract := by
   intro h
   have hc := weightedAdvGamma_empty_block_obstruction

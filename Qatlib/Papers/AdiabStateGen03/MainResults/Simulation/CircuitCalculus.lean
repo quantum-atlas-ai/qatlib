@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Mathlib.Analysis.Normed.Ring.Basic
 
+/-!
+# Circuit composition and state transfer
+
+This module defines the identity circuit `circId` and circuit composition `circComp`, and proves
+closure of the circuit-size predicates under composition. It establishes transitivity of
+`TransfersState` and propagates `Generable` and `QSamples` through state transfers;
+`simulatable_zero` supplies the zero-Hamiltonian base case. The mathematical context is
+[AharonovTaShma2007].
+
+## Main statements
+
+* `simulatable_zero`: The zero Hamiltonian is simulatable.
+* `TransfersState.trans`: Efficient approximate state transfer is transitive.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +35,7 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- The circuit with identity operator and size zero. -/
 def circId (n : ℕ) : Circuit n where
   unitary := 1
   size := 0
@@ -23,12 +43,15 @@ def circId (n : ℕ) : Circuit n where
     intro ψ
     simp
 
+/-- The operator of the identity circuit is the identity. -/
 @[simp] lemma circId_unitary (n : ℕ) : (circId n).unitary = 1 := rfl
 
+/-- The identity circuit satisfies `PolySize3` for every choice of time and accuracy parameters. -/
 theorem polySize3_circId (n : ℕ) (t α : ℝ) : PolySize3 n t α (circId n) := by
   refine ⟨0, 0, ?_⟩
   simp [circId]
 
+/-- The zero Hamiltonian is simulatable. -/
 theorem simulatable_zero : Simulatable (0 : Ham n) := by
   intro t _ht α hα _hα1
   refine ⟨circId n, polySize3_circId n t α, ?_⟩
@@ -43,6 +66,8 @@ theorem simulatable_zero : Simulatable (0 : Ham n) := by
   rw [circId_unitary, h, sub_self, norm_zero]
   exact hα.le
 
+/-- The circuit obtained by composing the operators of `C₁` and `C₂`, applying `C₂` first, and
+adding their sizes. -/
 def circComp (C₁ C₂ : Circuit n) : Circuit n where
   unitary := C₁.unitary.comp C₂.unitary
   size := C₁.size + C₂.size
@@ -52,12 +77,15 @@ def circComp (C₁ C₂ : Circuit n) : Circuit n where
       _ ≤ ‖C₂.unitary ψ‖ := C₁.contract _
       _ ≤ ‖ψ‖ := C₂.contract ψ
 
+/-- The operator of circuit composition is the composition of the two circuit operators. -/
 @[simp] lemma circComp_unitary (C₁ C₂ : Circuit n) :
     (circComp C₁ C₂).unitary = C₁.unitary.comp C₂.unitary := rfl
 
+/-- The size of a composed circuit is the sum of the component sizes. -/
 @[simp] lemma circComp_size (C₁ C₂ : Circuit n) :
     (circComp C₁ C₂).size = C₁.size + C₂.size := rfl
 
+/-- Composition preserves the polynomial circuit-size predicate `PolySize`. -/
 theorem PolySize.circComp {C₁ C₂ : Circuit n} (h₁ : PolySize C₁) (h₂ : PolySize C₂) :
     PolySize (circComp C₁ C₂) := by
   obtain ⟨c₁, k₁, h₁⟩ := h₁
@@ -83,6 +111,7 @@ theorem PolySize.circComp {C₁ C₂ : Circuit n} (h₁ : PolySize C₁) (h₂ :
   push_cast
   nlinarith
 
+/-- Composition preserves `PolySize3` at common positive time and accuracy parameters. -/
 theorem PolySize3.circComp {C₁ C₂ : Circuit n} {t α : ℝ}
     (ht : 0 < t) (hα : 0 < α)
     (h₁ : PolySize3 n t α C₁) (h₂ : PolySize3 n t α C₂) :
@@ -115,6 +144,7 @@ theorem PolySize3.circComp {C₁ C₂ : Circuit n} {t α : ℝ}
   push_cast
   nlinarith
 
+/-- Efficient approximate state transfer is transitive. -/
 theorem TransfersState.trans {ψ φ χ : State n}
     (h₁ : TransfersState ψ φ) (h₂ : TransfersState φ χ) : TransfersState ψ χ := by
   intro ε hε
@@ -139,10 +169,12 @@ theorem TransfersState.trans {ψ φ χ : State n}
     _ ≤ ε / 2 + ε / 2 := add_le_add hd₁ hd₂
     _ = ε := by ring
 
+/-- A transfer from a generable state produces a generable state. -/
 theorem Generable.trans {φ χ : State n} (h₁ : Generable φ)
     (h₂ : TransfersState φ χ) : Generable χ :=
   TransfersState.trans h₁ h₂
 
+/-- A transfer from a quantum-samplable state produces a quantum-samplable state. -/
 theorem QSamples.trans {φ χ : State n} (h₁ : QSamples φ)
     (h₂ : TransfersState φ χ) : QSamples χ :=
   Generable.trans h₁ h₂

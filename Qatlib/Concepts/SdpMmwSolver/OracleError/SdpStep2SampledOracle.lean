@@ -9,6 +9,27 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
+
+/-!
+# Sampled oracle bounds on a good event
+
+`not_sdpStep2SampledOracle` refutes the proposed sampled-oracle contract without sample
+approximation assumptions. `sdpStep2SampledOracleOnGoodEvent` supplies the width and separation
+bounds when empirical cost and expectation are related to their true weighted values.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpStep2SampledOracleOnGoodEvent`: Under the stated empirical approximation, acceptance, and
+  scale bounds, scaling `q` by κN satisfies `sdpSampledWidthBudget` and
+  `sdpSampledSeparationSlack`. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,8 @@ noncomputable section
 namespace Qatlib.Concepts.SdpMmwSolver.OracleError
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
+/-- The proposed sampled-oracle contract is false without assumptions relating empirical
+averages to the true distribution. -/
 theorem not_sdpStep2SampledOracle : ¬ SdpStep2SampledOracle := by
   intro h
   let b : Fin 2 → ℝ := fun i => if i = 0 then 1 else 10
@@ -37,6 +60,8 @@ theorem not_sdpStep2SampledOracle : ¬ SdpStep2SampledOracle := by
   have hw := hf.1
   norm_num [b, q, Fin.sum_univ_two, sdpSampledWidthBudget] at hw
 
+/-- Under the stated empirical approximation, acceptance, and scale bounds, scaling `q` by κN
+satisfies `sdpSampledWidthBudget` and `sdpSampledSeparationSlack`. See [BrandaoSvore2017]. -/
 theorem sdpStep2SampledOracleOnGoodEvent (m M N : ℕ)
     (b e q : Fin m → ℝ) (idx : Fin M → Fin m) (c α R κ ν : ℝ)
     (hscale : 0 < κ * (N : ℝ)) (hgrid : κ * (N : ℝ) ≤ α)

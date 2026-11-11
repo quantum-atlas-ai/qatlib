@@ -5,6 +5,20 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.FiniteStats.BornEstimator.BornLaw
+
+/-!
+# Positive context-overlap matrices
+
+The overlap matrix of a finite family of contexts is the weighted sum of outer
+products of their indicator vectors. Nonnegative context weights make this
+matrix positive semidefinite. The same conclusion holds after multiplying the
+two matrix indices by arbitrary real vertex weights.
+
+These are Gram-matrix positivity arguments [Bhatia2007], used here in finite
+measurement statistics; see [Watrous, *The Theory of Quantum Information*][Watrous2018]
+for the quantum statistical setting.
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,9 +27,13 @@ namespace Qatlib.Foundations.FiniteStats.BornEstimator
 open scoped Classical BigOperators
 variable {V K : Type*} [Fintype V] [DecidableEq V] [Fintype K]
 
+/-- The weighted overlap of context indicators, expressed as a sum of rank-one
+matrices; see [Bhatia, *Positive Definite Matrices*][Bhatia2007]. -/
 def contextOverlap (C : K → Finset V) (q : K → ℝ) : Matrix V V ℝ :=
   fun i j => ∑ k,q k*(if i∈C k then 1 else 0)*(if j∈C k then 1 else 0)
 
+/-- The overlap matrix formed by summing context indicator outer products with nonnegative
+weights is positive semidefinite; this is the overlap Gram matrix used in [XuEtAl2026]. -/
 theorem contextOverlap_psd (C : K → Finset V) (q : K → ℝ) (hq : ∀ k,0 ≤ q k) :
     (contextOverlap C q).PosSemidef := by
   have h := Matrix.posSemidef_sum Finset.univ (fun k _ =>
@@ -24,6 +42,8 @@ theorem contextOverlap_psd (C : K → Finset V) (q : K → ℝ) (hq : ∀ k,0 �
   ext i j
   simp [contextOverlap,Matrix.sum_apply,Matrix.vecMulVec_apply]
 
+/-- Vertex weighting preserves positivity when the context weights are
+nonnegative [Bhatia2007]. -/
 theorem weighted_contextOverlap_psd (C : K → Finset V) (q : K → ℝ) (hq : ∀ k,0 ≤ q k) (a : V → ℝ) :
     (Matrix.of (fun i j => a i*a j*contextOverlap C q i j)).PosSemidef := by
   have h := Matrix.posSemidef_sum Finset.univ (fun k _ =>

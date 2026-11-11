@@ -18,6 +18,27 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapContracts
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Counterexample to the uncorrected bipartite gap contract
+
+Refutes `BipartiteEffectiveGap` by constructing a bounded witness family whose marked adjacency
+has a kernel vector with a nonzero root coordinate on a false input. A complete Hermitian
+eigenframe converts the claimed zero-energy mass bound into a contradiction.
+
+The counterexample concerns the uncorrected local contract; the dual-feasible, complement-marked
+formulation is developed separately in the reflection-query framework of [Reichardt2011].
+
+## Main statements
+
+* `bipartiteEffectiveGap_contract_false`: the uncorrected bipartite effective-gap proposition is
+  false.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 
@@ -27,6 +48,8 @@ namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 open scoped BigOperators
 
+/-- A finite Hermitian matrix possesses a complete orthonormal eigenframe indexed by a finite
+natural-number range, with real eigenvalues. -/
 private theorem reflections_complete_frame {S : Type} [Fintype S] [DecidableEq S]
     (A : Matrix S S ℂ) (hA : A.IsHermitian) :
     ∃ (k : ℕ) (V : Matrix S (Fin k) ℂ) (ρ : Fin k → ℝ),
@@ -66,6 +89,8 @@ private theorem reflections_complete_frame {S : Type} [Fintype S] [DecidableEq S
     rw [Matrix.mul_diagonal] at he ⊢
     simpa only [V, ρ, Matrix.mul_apply] using he
 
+/-- If the zero-eigenvalue spectral mass at coordinate `r` is zero in a complete eigenframe,
+every kernel vector vanishes at `r`. -/
 private theorem reflections_zero_gap_kernel_coordinate
     {S : Type} [Fintype S] [DecidableEq S] (A : Matrix S S ℂ) (hA : A.IsHermitian)
     (r : S) (k : ℕ) (V : Matrix S (Fin k) ℂ) (ρ : Fin k → ℝ)
@@ -102,6 +127,8 @@ private theorem reflections_zero_gap_kernel_coordinate
   change (∑ i : Fin k, V r i*q i)=0
   exact Finset.sum_eq_zero (fun i _ => hterm i)
 
+/-- A column-side kernel vector of a biadjacency matrix extends by zero to a kernel vector of
+its block adjacency matrix. -/
 private theorem reflections_block_kernel {R C : Type} [Fintype R] [DecidableEq R]
     [Fintype C] [DecidableEq C] (B : Matrix R C ℂ) (ψ : QState C)
     (hψ : B*ᵥ ψ=0) : blockAdjacency B*ᵥ Sum.elim 0 ψ=0 := by
@@ -110,6 +137,7 @@ private theorem reflections_block_kernel {R C : Type} [Fintype R] [DecidableEq R
     simp [blockAdjacency, Matrix.mulVec, dotProduct, Fintype.sum_sum_type,
       show ∀ r, (∑ c, B r c*ψ c)=0 from congrFun hψ]
 
+/-- The uncorrected proposition `BipartiteEffectiveGap` is false. -/
 theorem bipartiteEffectiveGap_contract_false : ¬ BipartiteEffectiveGap := by
   classical
   intro h

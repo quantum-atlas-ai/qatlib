@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary2FixedBudgetQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
+
+/-!
+# Approximate-counting windows
+
+`levelSet` packages a Boolean predicate as a finite marked set. The approximate-counting law and
+fixed-budget specialization are combined with an explicit precision threshold that makes the
+counting error less than one half. The mathematical context is [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `source_theorem5_approximate_counting`: For positive `N`, at most `N/2` marked indices, and `P
+  ≥ 4`, the amplitude-estimation law places probability at least `8/π²` in the strict Theorem 5
+  counting window [BrassardHoyerTapp1998Counting].
+* `source_theorem5_half_window`: Under the stated positive-count and precision hypotheses, the
+  counting estimate lies strictly within one half of the true count with probability at least
+  `8/π²` [BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,9 +43,13 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
 open scoped BigOperators
 
+/-- The finite set of indices at which a Boolean predicate is true. -/
 def levelSet {N : ℕ} (F : Fin N → Bool) : Finset (Fin N) :=
   Finset.univ.filter (fun i => F i = true)
 
+/-- For positive `N`, at most `N/2` marked indices, and `P ≥ 4`, the amplitude-estimation law
+places probability at least `8/π²` in the strict Theorem 5 counting window
+[BrassardHoyerTapp1998Counting]. -/
 theorem source_theorem5_approximate_counting (N P : ℕ) (F : Fin N → Bool)
     (hN : 0 < N) (ht : (levelSet F).card ≤ N / 2) (hP : 4 ≤ P) :
     8 / Real.pi ^ 2 ≤
@@ -35,6 +61,9 @@ theorem source_theorem5_approximate_counting (N P : ℕ) (F : Fin N → Bool)
           (le_trans (by norm_num) hP)).prob z :=
   theorem5ApproximateCounting N P (levelSet F) hN ht hP
 
+/-- When `P = c√N` with `c > 0` and `P ≥ 4`, the counted circuit uses `P - 1` queries and the
+stated simplified counting window has probability at least `8/π²`
+[BrassardHoyerTapp1998Counting]. -/
 theorem source_corollary2_fixed_budget (N P : ℕ) (F : Fin N → Bool) (c : ℝ)
     (hN : 0 < N) (ht : (levelSet F).card ≤ N / 2) (hc : 0 < c)
     (hPc : (P : ℝ) = c * Real.sqrt (N : ℝ)) (hP : 4 ≤ P) :
@@ -47,6 +76,8 @@ theorem source_corollary2_fixed_budget (N P : ℕ) (F : Fin N → Bool) (c : ℝ
             (le_trans (by norm_num) hP)).prob z :=
   corollary2FixedBudget N P (levelSet F) c hN ht hc hPc hP
 
+/-- For `0 < t ≤ N`, precision greater than `π(2 + √6)√(tN)` makes the stated counting error
+bound strictly less than one half. -/
 theorem source_counting_window_lt_half (N t P : ℕ) (ht : 0 < t) (htN : t ≤ N)
     (hP : Real.pi * (2 + Real.sqrt 6) * Real.sqrt ((t : ℝ) * (N : ℝ)) < (P : ℝ)) :
     2 * Real.pi / (P : ℝ) * Real.sqrt ((t : ℝ) * (N : ℝ)) +
@@ -92,6 +123,9 @@ theorem source_counting_window_lt_half (N t P : ℕ) (ht : 0 < t) (htN : t ≤ N
     nlinarith [hs6]
   linarith [hfirst, hsecond, hkey]
 
+/-- Under the stated positive-count and precision hypotheses, the counting estimate lies
+strictly within one half of the true count with probability at least `8/π²`
+[BrassardHoyerTapp1998Counting]. -/
 theorem source_theorem5_half_window (N P : ℕ) (F : Fin N → Bool)
     (hN : 0 < N) (ht : (levelSet F).card ≤ N / 2) (hP : 4 ≤ P)
     (htpos : 0 < (levelSet F).card)

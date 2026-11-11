@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+
+/-!
+# Maximally entangled form of pure teleportation resources
+
+`quditPureResourceMaxEntForm` combines the resource marginal converse with the characterization
+of pure vectors having maximally mixed marginals. A normalized pure resource supporting fixed
+correction teleportation is therefore expressible as an equal weight sum of paired orthonormal
+vectors.
+
+This is the qudit resource form corresponding to the pure resource discussion in
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `quditPureResourceMaxEntForm`: derives the orthonormal family form of a pure teleportation
+  resource.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +42,9 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- A normalized pure qudit resource supporting fixed unitary correction teleportation can be
+written as a maximally entangled vector built from two orthonormal families
+[BennettEtAl1993Teleportation]. -/
 theorem quditPureResourceMaxEntForm : QuditPureResourceMaxEntForm := by
   intro n _ K U Ψ hΨ htele
   let e := Equiv.prodComm (Fin n) (Fin n)

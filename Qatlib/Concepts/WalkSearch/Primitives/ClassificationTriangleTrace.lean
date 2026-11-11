@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationPartition
+
+/-!
+# Triangle counts from classification traces
+
+Shows that the triangle-removal list produced by classification satisfies `removalTraceBound`,
+including when traces from recursive stages are concatenated. This gives a triangle-count bound
+of `n.choose 2 * τ` for the moved pair set, a combinatorial component of the graph-search
+analysis; see [Ambainis2005].
+
+## Main statements
+
+* `classifyScan_triangle_trace`: The classification scan's moved triangle trace satisfies the
+  removal threshold `τ` relative to its remaining pair set.
+* `classifyScan_triCount_bound`: The triangle count of the scan's moved triangle pair set is at
+  most `n.choose 2 * τ`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,8 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- Concatenating the two removal traces preserves the threshold `τ` when their residual sets
+satisfy the stated containment condition. -/
 theorem removalTraceBound_append {Sd left : Finset (Fin n×Fin n)} {D T : List (Fin n×Fin n)} {τ : ℕ}
     (hD : removalTraceBound Sd D τ) (hT : removalTraceBound left T τ)
     (hsub : left∪T.toFinset⊆Sd) : removalTraceBound left (D++T) τ := by
@@ -36,6 +59,8 @@ theorem removalTraceBound_append {Sd left : Finset (Fin n×Fin n)} {D T : List (
     rw [List.getElem_append_right hge,List.drop_append,List.drop_eq_nil_iff.mpr hge,List.nil_append]
     exact hT (i-D.length) hi'
 
+/-- The classification scan's moved triangle trace satisfies the removal threshold `τ` relative
+to its remaining pair set. -/
 theorem classifyScan_triangle_trace (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) :
@@ -63,6 +88,7 @@ theorem classifyScan_triangle_trace (G : UGraph n) (sgs : SGSExecution) (τ K c 
         rcases p with ⟨w,w'⟩
         exact hd
 
+/-- The triangle count of the scan's moved triangle pair set is at most `n.choose 2 * τ`. -/
 theorem classifyScan_triCount_bound (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) :

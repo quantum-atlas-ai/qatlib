@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+
+/-!
+# Fourier circuit costs and finite fair-bit sampling
+
+Collects the exact Fourier matrix implementation and gate cost together with a bounded fair-bit
+rejection sampler. `three_label_bounded_fair_bits_impossible` rules out exact equal fibers for
+three labels from a fixed number of fair bits, while `aqFairLabelSampler` gives uniform returned
+labels with bounded failure probability and bit cost. The Fourier construction has the
+background of [NielsenChuang2010].
+
+## Main statements
+
+* `aqLocalQFT_actual_matrix_and_cost`: states the Fourier matrix identity, exact gate count, and
+  zero query count.
+* `aqFairLabelSampler_distribution_and_bits`: bounds the sampler's failure probability and bit
+  costs.
+* `three_label_bounded_fair_bits_impossible`: rules out an exact uniform three-label map from
+  fixed-length bit strings.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 open scoped ENNReal BigOperators
@@ -20,6 +44,8 @@ open Qatlib.Concepts.QftPreparation.LocalQFTImplementation
 
 namespace Qatlib.Concepts.QftPreparation.LocalQft
 
+/-- No map from `2 ^ k` equally likely bit strings to three labels has all three fibers of equal
+cardinality. -/
 theorem three_label_bounded_fair_bits_impossible (k : ℕ) :
     ¬ ∃ f : Fin (2 ^ k) → Fin 3, ∀ x y : Fin 3,
       (Finset.univ.filter (fun b => f b = x)).card =
@@ -35,9 +61,14 @@ theorem three_label_bounded_fair_bits_impossible (k : ℕ) :
   have hbad : 3 ∣ 2 := Nat.prime_three.dvd_of_dvd_pow hd
   norm_num at hbad
 
+/-- The finite rejection sampler for `C` labels, using `Nat.clog 2 C` fair bits per attempt and
+at most `fuel` attempts. -/
 noncomputable def aqFairLabelSampler (C fuel : ℕ) :=
   finiteCoinRun (Nat.clog 2 C) C fuel
 
+/-- For positive `C`, each returned label has mass `(1 - coinRejectMass (Nat.clog 2 C) C ^ fuel)
+/ C`, pending mass is at most `1 / 2 ^ fuel`, expected bit cost is at most `2 * Nat.clog 2
+C`, and bit cost is bounded by `fuel * Nat.clog 2 C`. -/
 theorem aqFairLabelSampler_distribution_and_bits (C fuel : ℕ) (hC : 0 < C) :
     (∀ j : Fin C, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (aqFairLabelSampler C fuel)
       (fun z => z.1 = Sum.inl j) =
@@ -52,6 +83,8 @@ theorem aqFairLabelSampler_distribution_and_bits (C fuel : ℕ) (hC : 0 < C) :
   exact ⟨hd.2, hc.2.2.1, hc.2.2.2,
     (finite_coin_actual_bit_cost (Nat.clog 2 C) C fuel hc.1).1⟩
 
+/-- The local Fourier program implements the relabeled `QFTMatrix (2 ^ n)` using `n + n * (n -
+1) / 2 + n / 2` gates and zero queries. -/
 theorem aqLocalQFT_actual_matrix_and_cost (n : ℕ) :
     localProgramMatrix (localQFT n) =
       relabelGate (bitVecEquiv n).symm (QFTMatrix (2 ^ n)) ∧

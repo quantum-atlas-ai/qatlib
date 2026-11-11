@@ -9,6 +9,29 @@ import Qatlib.Papers.MonteCarloInt20.MainResults.InnerValidity
 import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingGrover
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.TokenPreservingAmplitudeEstimation
+
+/-!
+# Controlled Grover words for the inner preparation
+
+This module converts the inner preparation circuit to an adjoint instruction word and constructs
+its controlled Grover iterate. The token-preserving construction supports the nested
+amplitude-estimation scheme of [KanekoEtAl2020], with explicit active and inactive control
+branches.
+
+The evaluation and count theorems retain the preparation queries, and
+`controlled_minus_not_global` distinguishes a controlled sign from a global sign.
+
+## Main statements
+
+* `optimized_body_grover`: identifies the optimized word with the controlled prepared iterate.
+* `optimized_body_branches`: gives the identity and Grover diagonal control blocks.
+* `optimized_inner_ae_counts`: counts the inner amplitude-estimation queries.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -41,9 +64,12 @@ noncomputable local instance controlDecision (n s d p : ℕ) :
 noncomputable local instance phaseDecision (n s d p M : ℕ) :
     DecidableEq (Inner M (BodyReg n s d p)) := instDecidableEqProd
 
+/-- Convert a circuit to an adjoint instruction word by reversing its list order and replacing
+query tokens by forward oracle steps. -/
 def operatorWord {I : Type} (C : Circuit I) : List (AdjointStep I) :=
   C.reverse.map (fun s => match s with | .gate U => .gate U | .query => .forward)
 
+/-- The converted adjoint instruction word evaluates to the original circuit matrix. -/
 theorem operatorWord_eval {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (C : Circuit I) :
     evaluate O (operatorWord C)=runMatrix O C := by
   induction C with
@@ -58,6 +84,8 @@ theorem operatorWord_eval {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I
       change evaluate O (operatorWord C)*(O*1)=runMatrix O C*O
       rw [ih,Matrix.mul_one]
 
+/-- Conversion to an adjoint instruction word preserves the query count and the known-gate
+count. -/
 theorem operatorWord_counts {I : Type} (C : Circuit I) :
     adjointQueryCount (operatorWord C)=QueryCount C ∧ adjointGateCount (operatorWord C)=GateCount C := by
   induction C with
@@ -76,6 +104,7 @@ theorem operatorWord_counts {I : Type} (C : Circuit I) :
       rw [ih.1,ih.2]
       constructor <;> omega
 
+/-- A unitary circuit converts to a well-formed adjoint instruction word. -/
 theorem operatorWord_wellFormed {I : Type} [Fintype I] [DecidableEq I] (C : Circuit I) (hC : IsUnitaryCircuit C) :
     WellFormedAdjointCircuit (operatorWord C) := by
   intro V hV
@@ -88,18 +117,23 @@ theorem operatorWord_wellFormed {I : Type} [Fintype I] [DecidableEq I] (C : Circ
     subst V
     exact hC U hs'
 
+/-- The adjoint instruction word representing the sample-specific inner body circuit. -/
 def bodyWord {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) : List (AdjointStep (BodyReg n s d p)) :=
   operatorWord (bodyCircuit (d:=d) (p:=p) a c seed j)
 
+/-- The inner body word evaluates against the term oracle to the matrix `innerBody`. -/
 theorem bodyWord_eval {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
     evaluate (H:=BodyReg n s d p) (bodyOracle termCode j) (bodyWord (d:=d) (p:=p) a c seed j)=innerBody a c seed termCode j := by
   rw [bodyWord,operatorWord_eval,bodyCircuit_eval]
 
+/-- The inner body instruction word is well formed. -/
 theorem bodyWord_wellFormed {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     WellFormedAdjointCircuit (bodyWord (d:=d) (p:=p) a c seed j) :=
   operatorWord_wellFormed _ (bodyCircuit_unitary (d:=d) (p:=p) a c seed j)
 
+/-- The inner body word uses two oracle steps and twice the full native-word length plus four
+known gates. -/
 theorem bodyWord_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     adjointQueryCount (bodyWord (d:=d) (p:=p) a c seed j)=2 ∧
     adjointGateCount (bodyWord (d:=d) (p:=p) a c seed j)=2*(nativeWord a c (List.ofFn (fun q : Fin (s+d+1) => q))).length+4 := by
@@ -107,6 +141,8 @@ theorem bodyWord_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n
   rw [(bodyCircuit_counts (d:=d) (p:=p) a c seed j).1,(bodyCircuit_counts (d:=d) (p:=p) a c seed j).2] at h
   exact h
 
+/-- The token-preserving Grover word evaluates to the controlled prepared
+amplitude-amplification iterate for the actual inner body [KanekoEtAl2020]. -/
 theorem optimized_body_grover {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
     evaluate (H:=Bool × BodyReg n s d p) (parallelOracle (J:=Bool) (bodyOracle termCode j))
@@ -118,6 +154,8 @@ theorem optimized_body_grover {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMo
   rw [bodyWord_eval a c seed termCode j] at h
   exact h
 
+/-- The optimized controlled Grover word has the identity matrix on the false control block and
+the prepared iterate on the true control block [KanekoEtAl2020]. -/
 theorem optimized_body_branches {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) (x y : BodyReg n s d p) :
     evaluate (H:=Bool × BodyReg n s d p) (parallelOracle (J:=Bool) (bodyOracle termCode j))
@@ -129,6 +167,8 @@ theorem optimized_body_branches {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : Z
   rw [optimized_body_grover a c seed termCode j]
   constructor <;> simp [controlOracle,select]
 
+/-- Controlling the negative prepared iterate differs from globally negating the controlled
+prepared iterate [KanekoEtAl2020]. -/
 theorem controlled_minus_not_global {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
     controlOracle (-preparedAAIterate (innerBody a c seed termCode j) (bodySeed n s d p seed) (bodyGood n s d p))≠
@@ -138,6 +178,8 @@ theorem controlled_minus_not_global {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed
     V (false,bodySeed n s d p seed) (false,bodySeed n s d p seed)) h
   norm_num [controlOracle,select] at he
 
+/-- The optimized controlled Grover word uses four oracle steps and four times the full
+native-word length plus ten known gates. -/
 theorem optimized_grover_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     adjointQueryCount (TokenPreservingGrover.instructions (H:=BodyReg n s d p) (bodyWord (d:=d) (p:=p) a c seed j) (bodySeed n s d p seed) (bodyGood n s d p))=4 ∧
     adjointGateCount (TokenPreservingGrover.instructions (H:=BodyReg n s d p) (bodyWord (d:=d) (p:=p) a c seed j) (bodySeed n s d p seed) (bodyGood n s d p))=
@@ -148,6 +190,8 @@ theorem optimized_grover_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : Z
   rw [(bodyWord_counts (d:=d) (p:=p) a c seed j).1,(bodyWord_counts (d:=d) (p:=p) a c seed j).2] at h
   constructor <;> omega
 
+/-- For positive `M`, the token-preserving inner amplitude-estimation word uses exactly `2 * (2
+* M - 1)` term-oracle steps [KanekoEtAl2020]. -/
 theorem optimized_inner_ae_counts {n s d p : ℕ} (M : ℕ) (hM : 0<M)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     adjointQueryCount (TokenPreservingAmplitudeEstimation.instructions (H:=BodyReg n s d p) M (bodyWord (d:=d) (p:=p) a c seed j) (bodySeed n s d p seed) (bodyGood n s d p))=2*(2*M-1) := by

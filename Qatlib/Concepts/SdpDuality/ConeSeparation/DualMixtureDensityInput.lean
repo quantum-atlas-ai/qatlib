@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureDensityInput
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimization
+
+/-!
+# Density evaluation of SDP dual mixtures
+
+This module connects an SDP `History` to density evaluation of a finite mixture program.
+`densityMasses` adds the rational offset mass to the recorded round masses, and `densityWeights`
+converts these selector masses into integer grid weights. `sampleDist_same_record` identifies
+the normalized certificate distribution with the corresponding mixture of the offset sampler
+family's outputs.
+
+For a positive number of rounds, nonnegative round precision, and positive rational certificate
+parameters, `density_certificate_error` bounds the successful-output L1 error of the capped
+density program by its rejection tail plus an explicit grid error. These sampling constructions
+support the certificate viewpoint in quantum SDP algorithms [BrandaoSvore2017].
+
+## Main statements
+
+* `densityMasses` and `densityWeights`: rational selector masses and their integer grid
+  approximation.
+* `sampleDist_same_record`: the certificate distribution uses the sampler laws recorded by the
+  same history.
+* `density_certificate_error`: successful-output L1 error is at most the rejection tail plus
+  twice `(T+1)/((n+1)*totalMass)`.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
@@ -23,12 +52,19 @@ open Qatlib
 open scoped Classical ENNReal
 variable {T D m γ Nmax M L Q : ℕ}
 
+/-- Forms the `T+1` rational selector masses from the offset `δ*α/(2*R)` and the recorded round
+masses `H.masses ε`. -/
 def densityMasses (H : History T D m γ Nmax M L Q) (ε δ α R : ℚ) : Fin (T+1) → ℚ :=
   selectorMasses T (δ*α/(2*R)) (H.masses ε)
 
+/-- Applies `gridWeights` at resolution parameter `n` to the history's rational `densityMasses`,
+producing natural weights on `Fin (T+1)`. -/
 def densityWeights (H : History T D m γ Nmax M L Q) (ε δ α R : ℚ) (n : ℕ) :
     Fin (T+1) → ℕ := gridWeights ((Qatlib.Concepts.SdpDuality.ConeSeparation.densityMasses H) ε δ α R) n
 
+/-- For `T > 0`, `ε ≥ 0`, and positive rational `δ`, `α`, and `R`, expresses the normalized SDP
+certificate distribution as the mixture of the offset family's real output laws weighted by
+normalized `densityMasses`. -/
 theorem sampleDist_same_record (H : History T D m γ Nmax M L Q)
     (hT : 0 < T) (ε δ α R : ℚ) (hε : 0 ≤ ε) (hδ : 0 < δ) (hα : 0 < α) (hR : 0 < R)
     (j₀ : Fin m) (i : Fin m) :
@@ -46,6 +82,10 @@ theorem sampleDist_same_record (H : History T D m γ Nmax M L Q)
   rw [sdpDualSampleDist, H.certificate_eq, hs]
   exact hn.2 i
 
+/-- For `T > 0`, `ε ≥ 0`, and positive rational `δ`, `α`, and `R`, bounds the successful-output
+L1 error of the grid-weighted capped density program from `sdpDualSampleDist`. The bound is
+`(rationalRejectMass w (blockWidth w)^fuel).toReal + 2*((T+1)/(n+1))/totalMass`, where `w`
+is `densityWeights` and `totalMass` is the real sum of `densityMasses`. -/
 theorem density_certificate_error (H : History T D m γ Nmax M L Q)
     (hT : 0 < T) (ε δ α R : ℚ) (hε : 0 ≤ ε) (hδ : 0 < δ) (hα : 0 < α) (hR : 0 < R)
     (j₀ : Fin m) (n fuel : ℕ) :

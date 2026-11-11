@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Filtered norm composition and product specification
+
+The proposition `FilteredNormCompositionAndProducts` collects the guarded filter composition
+inequality, the direct-sum maximum identity, and the tensor-product multiplicativity identity
+for rectangular filtered values. These statements describe the product calculus associated with
+filtered γ₂ [LeeEtAl2011].
+
+## Main statements
+
+* `FilteredNormCompositionAndProducts`: The conjunction of a guarded filter composition bound,
+  the maximum formula for direct sums, and multiplicativity for tensor products of rectangular
+  filtered values.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of a guarded filter composition bound, the maximum formula for direct sums,
+and multiplicativity for tensor products of rectangular filtered values. -/
 def FilteredNormCompositionAndProducts : Prop :=
   (∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n m : ℕ) (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ)

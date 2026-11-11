@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
 
+/-!
+# Invariant spans for general-phase amplification
+
+The good and bad parts sum to the original vector. `source_invariant_span_two` and
+`source_invariant_span_four` show that the general-phase iterate preserves the spans generated
+by these projections of the prepared state and an additional vector. The mathematical context is
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `source_invariant_span_two`: Assuming `A * A.conjTranspose = 1`, the general-phase iterate
+  preserves the span of the good and bad parts of the prepared column of `A`.
+* `source_invariant_span_four`: Assuming `A * A.conjTranspose = 1`, the general-phase iterate
+  preserves the span of the good and bad parts of an arbitrary vector together with those of the
+  prepared column.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,11 +37,14 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 open scoped BigOperators
 
+/-- The good and bad projections of a finite complex vector sum to that vector. -/
 theorem source_goodPart_add_badPart {n : ℕ} (g : Fin (n + 1) → Bool)
     (v : Fin (n + 1) → ℂ) : goodPart g v + badPart g v = v := by
   funext i
   by_cases h : g i <;> simp [goodPart, badPart, h]
 
+/-- Assuming `A * A.conjTranspose = 1`, the general-phase iterate preserves the span of the good
+and bad parts of the prepared column of `A`. See [BrassardHoyerTapp1998Counting]. -/
 theorem source_invariant_span_two {n : ℕ}
     (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (φ ϕ : ℂ) (hA : A * A.conjTranspose = 1) :
@@ -32,6 +56,9 @@ theorem source_invariant_span_two {n : ℕ}
           Set (Fin (n + 1) → ℂ)) :=
   zoo_counting_two_dimensional_phase_action_span_invariant A g φ ϕ hA
 
+/-- Assuming `A * A.conjTranspose = 1`, the general-phase iterate preserves the span of the good
+and bad parts of an arbitrary vector together with those of the prepared column. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem source_invariant_span_four {n : ℕ}
     (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (φ ϕ : ℂ) (Υ : Fin (n + 1) → ℂ) (hA : A * A.conjTranspose = 1) :

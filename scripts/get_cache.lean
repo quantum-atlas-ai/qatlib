@@ -18,9 +18,19 @@ def runCmd (cmd : String) (args : Array String) (env : Array (String × Option S
   }
   child.wait
 
+def runLakeCacheGet (pkg scope : String) (cfgPath : System.FilePath) : IO UInt32 :=
+  IO.FS.withTempDir fun tmpDir => do
+    let curlRcFile := tmpDir / ".curlrc"
+    IO.FS.writeFile curlRcFile "connect-timeout = 15\nspeed-time = 20\nspeed-limit = 1024\nretry = 3\nretry-delay = 1\n"
+    runCmd "lake" #["cache", "get", s!"--package={pkg}", s!"--scope={scope}"] #[
+      ("LAKE_CONFIG", some cfgPath.toString),
+      ("CURL_HOME", some tmpDir.toString)
+    ]
+
 def main (args : List String) : IO UInt32 := do
   let skipMathlib := args.contains "--no-mathlib"
   let skipPhyslib := args.contains "--no-physlib"
+  let skipQatlib := args.contains "--no-qatlib"
 
   unless skipMathlib do
     println! "=== [1/3] Fetching upstream Mathlib cache ==="
@@ -37,22 +47,21 @@ def main (args : List String) : IO UInt32 := do
     let physlibCfg := cwd / ".lake" / "packages" / "Physlib" / "lake-cache.toml"
     if ← physlibCfg.pathExists then
       let physlibScope := s!"physlib-master/{tc}/physlib"
-      let rc2 ← runCmd "lake" #["cache", "get", "--package=Physlib", s!"--scope={physlibScope}"]
-        #[("LAKE_CONFIG", some physlibCfg.toString)]
+      let rc2 ← runLakeCacheGet "Physlib" physlibScope physlibCfg
       if rc2 != 0 then
         IO.eprintln "Warning: `lake cache get --package=Physlib` returned non-zero exit code."
 
-  println! "=== [3/3] Fetching Qatlib build cache ==="
-  let rootCfg := cwd / "lake-cache.toml"
-  let depCfg := cwd / ".lake" / "packages" / "Qatlib" / "lake-cache.toml"
-  let cfgPath? ←
-    if ← rootCfg.pathExists then pure (some rootCfg)
-    else if ← depCfg.pathExists then pure (some depCfg)
-    else pure none
-  if let some cfgPath := cfgPath? then
-    let scope := s!"qatlib-main/{tc}/qatlib"
-    let rc3 ← runCmd "lake" #["cache", "get", "--package=Qatlib", s!"--scope={scope}"]
-      #[("LAKE_CONFIG", some cfgPath.toString)]
-    if rc3 != 0 then
-      println! "Note: No prebuilt Qatlib cache found for this revision; `lake build` will compile locally."
+  unless skipQatlib do
+    println! "=== [3/3] Fetching Qatlib build cache ==="
+    let rootCfg := cwd / "lake-cache.toml"
+    let depCfg := cwd / ".lake" / "packages" / "Qatlib" / "lake-cache.toml"
+    let cfgPath? ←
+      if ← rootCfg.pathExists then pure (some rootCfg)
+      else if ← depCfg.pathExists then pure (some depCfg)
+      else pure none
+    if let some cfgPath := cfgPath? then
+      let scope := s!"qatlib-main/{tc}/qatlib"
+      let rc3 ← runLakeCacheGet "Qatlib" scope cfgPath
+      if rc3 != 0 then
+        println! "Note: No prebuilt Qatlib cache found for this revision; `lake build` will compile locally."
   return 0

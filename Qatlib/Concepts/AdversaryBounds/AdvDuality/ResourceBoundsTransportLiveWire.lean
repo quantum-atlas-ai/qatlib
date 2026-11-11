@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+
+/-!
+# Dynamic live-wire resource accounting
+
+This module computes live-wire and workspace peaks from execution trails and proves composition
+and exchange identities. Work totals are invariant under exchanging two words; the corresponding
+peak and final-live identities require both words to restore the initial live-wire list. These
+resource distinctions complement the circuit model in [NielsenChuang2010].
+
+Concrete examples distinguish reset and uncomputation from release, show that peak space is not
+an allocation or word-length count, and compute the resources of `lcuDynamicWord`. The module
+also proves additive composition of reference-error bounds and records stopping-cost ledgers.
+
+## Main statements
+
+* `account_livePeak_formula`: The live peak is the maximum of the initial size and the live-wire
+  trail.
+* `account_livePeak_exchange`: Exchanging balanced words preserves live peak.
+* `ref_error_combination`: Reference errors add under the stated nonexpansiveness assumptions.
+* `lcu_dynamic_word`: The LCU word has its synthesis gate count and peak workspace one.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +51,8 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
 noncomputable section
 
+/-- The intrinsic account of a dynamic step has live peak zero before execution-dependent
+live-wire accounting. -/
 theorem stepAccount_livePeak_zero (s : DynStep) : s.stepAccount.livePeak = 0 := by
   cases s with
   | oracle b ws => cases b <;> rfl
@@ -32,6 +60,8 @@ theorem stepAccount_livePeak_zero (s : DynStep) : s.stepAccount.livePeak = 0 := 
 end
 noncomputable section
 
+/-- The intrinsic account of a dynamic step has workspace peak zero before execution-dependent
+live-wire accounting. -/
 theorem stepAccount_peakWorkspace_zero (s : DynStep) : s.stepAccount.peakWorkspace = 0 := by
   cases s with
   | oracle b ws => cases b <;> rfl
@@ -39,6 +69,8 @@ theorem stepAccount_peakWorkspace_zero (s : DynStep) : s.stepAccount.peakWorkspa
 end
 noncomputable section
 
+/-- Executing one dynamic step updates the live peak to the maximum of its previous value and
+the new live-list length. -/
 theorem step_acc_livePeak (base : ℕ) (st : RunState) (s : DynStep) :
     (step base st s).acc.livePeak = max st.acc.livePeak (applyLive st.live s).length := by
   simp only [step, Account.seq, stepAccount_livePeak_zero]
@@ -46,6 +78,8 @@ theorem step_acc_livePeak (base : ℕ) (st : RunState) (s : DynStep) :
 end
 noncomputable section
 
+/-- Executing one dynamic step updates the workspace peak using the new live-list length minus
+the base size. -/
 theorem step_acc_peakWorkspace (base : ℕ) (st : RunState) (s : DynStep) :
     (step base st s).acc.peakWorkspace =
       max st.acc.peakWorkspace ((applyLive st.live s).length - base) := by
@@ -54,10 +88,12 @@ theorem step_acc_peakWorkspace (base : ℕ) (st : RunState) (s : DynStep) :
 end
 noncomputable section
 
+/-- The maximum of a nonempty trail is the maximum of its head and the maximum of its tail. -/
 theorem maxTrail_cons (x : ℕ) (xs : List ℕ) : maxTrail (x :: xs) = max x (maxTrail xs) := rfl
 end
 noncomputable section
 
+/-- Taking the maximum of three natural numbers satisfies the associative law. -/
 theorem max_assoc_comm (a b c : ℕ) : max (max a b) c = max a (max b c) := by
   calc max (max a b) c = max (max b a) c := by rw [Nat.max_comm a b]
     _ = max b (max a c) := Nat.max_assoc _ _ _
@@ -67,6 +103,7 @@ theorem max_assoc_comm (a b c : ℕ) : max (max a b) c = max a (max b c) := by
 end
 noncomputable section
 
+/-- The maximum of concatenated trails is the maximum of their separate maxima. -/
 theorem maxTrail_append (a b : List ℕ) : maxTrail (a ++ b) = max (maxTrail a) (maxTrail b) := by
   induction a with
   | nil => simp [maxTrail]
@@ -81,6 +118,8 @@ theorem maxTrail_append (a b : List ℕ) : maxTrail (a ++ b) = max (maxTrail a) 
 end
 noncomputable section
 
+/-- The live-wire trail of a concatenated word is the first trail followed by the second trail
+starting from the first word's final live list. -/
 theorem liveTrail_append (live : List ℕ) (a b : List DynStep) :
     liveTrail live (a ++ b) = liveTrail live a ++ liveTrail (liveAfter live a) b := by
   induction a generalizing live with
@@ -90,6 +129,8 @@ theorem liveTrail_append (live : List ℕ) (a b : List DynStep) :
 end
 noncomputable section
 
+/-- The workspace trail of a concatenated word is the first trail followed by the second trail
+starting from the first word's final live list. -/
 theorem wsTrail_append (base : ℕ) (live : List ℕ) (a b : List DynStep) :
     wsTrail base live (a ++ b) = wsTrail base live a ++ wsTrail base (liveAfter live a) b := by
   induction a generalizing live with
@@ -99,6 +140,8 @@ theorem wsTrail_append (base : ℕ) (live : List ℕ) (a b : List DynStep) :
 end
 noncomputable section
 
+/-- The final live peak is the maximum of the initial account peak and the maximum live-wire
+trail value. -/
 theorem runFrom_livePeak (base : ℕ) (st : RunState) (ops : List DynStep) :
     (runFrom base st ops).acc.livePeak = max st.acc.livePeak (maxTrail (liveTrail st.live ops)) := by
   induction ops generalizing st with
@@ -113,6 +156,8 @@ theorem runFrom_livePeak (base : ℕ) (st : RunState) (ops : List DynStep) :
 end
 noncomputable section
 
+/-- The final workspace peak is the maximum of the initial account peak and the maximum
+workspace-trail value. -/
 theorem runFrom_peakWorkspace (base : ℕ) (st : RunState) (ops : List DynStep) :
     (runFrom base st ops).acc.peakWorkspace =
       max st.acc.peakWorkspace (maxTrail (wsTrail base st.live ops)) := by
@@ -128,6 +173,8 @@ theorem runFrom_peakWorkspace (base : ℕ) (st : RunState) (ops : List DynStep) 
 end
 noncomputable section
 
+/-- A word's live peak is the maximum of the base size and the maximum live-wire trail starting
+from `List.range base`. -/
 theorem account_livePeak_formula (base : ℕ) (ops : List DynStep) :
     (account base ops).livePeak = max base (maxTrail (liveTrail (List.range base) ops)) := by
   rw [account, runTrace_eq, runFrom_livePeak]
@@ -135,6 +182,8 @@ theorem account_livePeak_formula (base : ℕ) (ops : List DynStep) :
 end
 noncomputable section
 
+/-- A word's workspace peak is the maximum of zero and the workspace trail starting from
+`List.range base`. -/
 theorem account_peakWorkspace_formula (base : ℕ) (ops : List DynStep) :
     (account base ops).peakWorkspace = max 0 (maxTrail (wsTrail base (List.range base) ops)) := by
   rw [account, runTrace_eq, runFrom_peakWorkspace]
@@ -142,6 +191,7 @@ theorem account_peakWorkspace_formula (base : ℕ) (ops : List DynStep) :
 end
 noncomputable section
 
+/-- Applying the live-list updates from the base live list yields `finalLive base ops`. -/
 theorem liveAfter_range_base (base : ℕ) (ops : List DynStep) :
     liveAfter (List.range base) ops = finalLive base ops := by
   unfold finalLive
@@ -150,6 +200,8 @@ theorem liveAfter_range_base (base : ℕ) (ops : List DynStep) :
 end
 noncomputable section
 
+/-- The final live list of a concatenated word is obtained by applying the second word's updates
+to the first word's final live list. -/
 theorem finalLive_append (base : ℕ) (a b : List DynStep) :
     finalLive base (a ++ b) = liveAfter (finalLive base a) b := by
   have h1 : finalLive base (a ++ b) = (runTrace base (a ++ b)).live := rfl
@@ -158,11 +210,14 @@ theorem finalLive_append (base : ℕ) (a b : List DynStep) :
 end
 noncomputable section
 
+/-- The empty dynamic word is balanced for every base size. -/
 theorem balanced_nil (base : ℕ) : balanced base [] := by
   rfl
 end
 noncomputable section
 
+/-- Exchanging two dynamic words preserves forward and adjoint queries, Hamiltonian calls and
+ticks, macro and basic gates, depth, and classical-bit totals. -/
 theorem account_work_exchange_conj (base : ℕ) (a b : List DynStep) :
     (account base (a ++ b)).queries = (account base (b ++ a)).queries ∧
     (account base (a ++ b)).adjointQueries = (account base (b ++ a)).adjointQueries ∧
@@ -184,6 +239,7 @@ theorem account_work_exchange_conj (base : ℕ) (a b : List DynStep) :
 end
 noncomputable section
 
+/-- Exchanging two dynamic words preserves their full work ledger. -/
 theorem account_work_exchange (base : ℕ) (a b : List DynStep) :
     workOf (account base (a ++ b)) = workOf (account base (b ++ a)) := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := account_work_exchange_conj base a b
@@ -193,6 +249,7 @@ theorem account_work_exchange (base : ℕ) (a b : List DynStep) :
 end
 noncomputable section
 
+/-- Exchanging two words that are each balanced at the same base preserves the live peak. -/
 theorem account_livePeak_exchange (base : ℕ) (a b : List DynStep)
     (ha : balanced base a) (hb : balanced base b) :
     (account base (a ++ b)).livePeak = (account base (b ++ a)).livePeak := by
@@ -207,6 +264,7 @@ theorem account_livePeak_exchange (base : ℕ) (a b : List DynStep)
 end
 noncomputable section
 
+/-- Exchanging two words that are each balanced at the same base preserves the workspace peak. -/
 theorem account_peakWorkspace_exchange (base : ℕ) (a b : List DynStep)
     (ha : balanced base a) (hb : balanced base b) :
     (account base (a ++ b)).peakWorkspace = (account base (b ++ a)).peakWorkspace := by
@@ -221,6 +279,7 @@ theorem account_peakWorkspace_exchange (base : ℕ) (a b : List DynStep)
 end
 noncomputable section
 
+/-- Exchanging two words that are each balanced at the same base preserves the final live list. -/
 theorem finalLive_exchange (base : ℕ) (a b : List DynStep)
     (ha : balanced base a) (hb : balanced base b) :
     finalLive base (a ++ b) = finalLive base (b ++ a) := by
@@ -233,6 +292,7 @@ theorem finalLive_exchange (base : ℕ) (a b : List DynStep)
 end
 noncomputable section
 
+/-- The coordinate-sum vector norm `vnorm` satisfies the triangle inequality. -/
 theorem vnorm_add_le {n : ℕ} (x y : Fin n → ℂ) : vnorm (x + y) ≤ vnorm x + vnorm y := by
   unfold vnorm
   calc (∑ i : Fin n, ‖(x + y) i‖) ≤ ∑ i : Fin n, (‖x i‖ + ‖y i‖) := by
@@ -241,6 +301,8 @@ theorem vnorm_add_le {n : ℕ} (x y : Fin n → ℂ) : vnorm (x + y) ≤ vnorm x
 end
 noncomputable section
 
+/-- Reference-error bounds for two matrix factors add under multiplication when `A` and `B'` are
+nonexpansive and the stated error parameters are nonnegative. -/
 theorem ref_error_combination (d r : ℕ) (A A' B B' : Matrix (Fin (d * r)) (Fin (d * r)) ℂ)
     (εA εB : ℝ) (hεA : 0 ≤ εA) (_hεB : 0 ≤ εB)
     (hA : Nonexpansive A) (hB' : Nonexpansive B')
@@ -274,6 +336,8 @@ theorem ref_error_combination (d r : ℕ) (A A' B B' : Matrix (Fin (d * r)) (Fin
 end
 noncomputable section
 
+/-- The LCU/QSVT account has basic-gate count equal to the synthesis and truncation counts added
+together, with zero forward queries, adjoint queries, Hamiltonian calls, and live peak. -/
 theorem lqAccount_ledgers (n q : ℕ) :
     (lqAccount n q).basicGates = Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.lqSynthOpCount n + Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.lqJaTruncOpCount q ∧
     (lqAccount n q).queries = 0 ∧ (lqAccount n q).adjointQueries = 0 ∧
@@ -282,11 +346,14 @@ theorem lqAccount_ledgers (n q : ℕ) :
 end
 noncomputable section
 
+/-- The stopping account's classical-bit total is the sum of the preparation and trial costs. -/
 theorem stoppingAccount_ledgers (prep trial : ℕ) :
     (stoppingAccount prep trial).classicalBits = prep + trial := rfl
 end
 noncomputable section
 
+/-- The stopping account charges preparation plus trial bits; two accounts with costs two and
+three charge ten bits, matching the stated alternating-retry expected cost. -/
 theorem stopping_consumer_same_execution (prep trial : ℕ) :
     (stoppingAccount prep trial).classicalBits = prep + trial ∧
     (Account.seq (stoppingAccount 2 3) (stoppingAccount 2 3)).classicalBits = 10 ∧
@@ -295,6 +362,7 @@ theorem stopping_consumer_same_execution (prep trial : ℕ) :
 end
 noncomputable section
 
+/-- There exist dynamic words for which the shorter word has strictly larger live peak. -/
 theorem peak_space_is_dynamic :
     ∃ (a b : List DynStep),
       b.length < a.length ∧ (account 0 a).livePeak < (account 0 b).livePeak := by
@@ -311,21 +379,26 @@ theorem peak_space_is_dynamic :
 end
 noncomputable section
 
+/-- Resetting a wire leaves the live-wire list unchanged. -/
 theorem applyLive_reset (live : List ℕ) (w : ℕ) :
     applyLive live (DynStep.reset w) = live := rfl
 end
 noncomputable section
 
+/-- Uncomputing a wire leaves the live-wire list unchanged. -/
 theorem applyLive_uncompute (live : List ℕ) (w : ℕ) :
     applyLive live (DynStep.uncompute w) = live := rfl
 end
 noncomputable section
 
+/-- Releasing a dirty wire erases it from the live-wire list. -/
 theorem applyLive_releaseDirty (live : List ℕ) (w : ℕ) :
     applyLive live (DynStep.releaseDirty w) = live.erase w := rfl
 end
 noncomputable section
 
+/-- Allocation, clean release, dirty release, reset, and uncomputation carry classical-bit
+charges one, two, four, three, and three, respectively. -/
 theorem dynStep_release_bitCharges (w : ℕ) :
     (DynStep.alloc w).stepAccount.classicalBits = 1 ∧
     (DynStep.releaseClean w).stepAccount.classicalBits = 2 ∧
@@ -337,6 +410,8 @@ theorem dynStep_release_bitCharges (w : ℕ) :
 end
 noncomputable section
 
+/-- Allocating and then releasing a dirty wire has live and workspace peaks one, classical-bit
+cost five, depth two, and an empty final live list. -/
 theorem discard_charges_peak :
     (account 0 [DynStep.alloc 0, DynStep.releaseDirty 0]).livePeak = 1 ∧
       (account 0 [DynStep.alloc 0, DynStep.releaseDirty 0]).peakWorkspace = 1 ∧
@@ -347,6 +422,8 @@ theorem discard_charges_peak :
 end
 noncomputable section
 
+/-- Allocation followed by reset leaves the wire live and the word unbalanced; adding a clean
+release makes the word balanced. -/
 theorem reset_keeps_wire_live :
     finalLive 0 [DynStep.alloc 0, DynStep.reset 0] = [0] ∧
       ¬ balanced 0 [DynStep.alloc 0, DynStep.reset 0] ∧
@@ -364,6 +441,8 @@ theorem reset_keeps_wire_live :
 end
 noncomputable section
 
+/-- Allocation followed by uncomputation leaves the wire live and the word unbalanced; adding a
+clean release makes the word balanced. -/
 theorem uncompute_keeps_wire_live :
     finalLive 0 [DynStep.alloc 0, DynStep.uncompute 0] = [0] ∧
       ¬ balanced 0 [DynStep.alloc 0, DynStep.uncompute 0] ∧
@@ -381,6 +460,8 @@ theorem uncompute_keeps_wire_live :
 end
 noncomputable section
 
+/-- Allocation, reset, and clean release have classical-bit cost six, depth three, and live and
+workspace peaks one. -/
 theorem reset_discharge_ledger :
     (account 0 [DynStep.alloc 0, DynStep.reset 0, DynStep.releaseClean 0]).classicalBits = 6 ∧
       (account 0 [DynStep.alloc 0, DynStep.reset 0, DynStep.releaseClean 0]).depth = 3 ∧
@@ -390,6 +471,8 @@ theorem reset_discharge_ledger :
 end
 noncomputable section
 
+/-- Repeating allocation and clean release three times has live and workspace peaks one,
+classical-bit cost nine, and depth six. -/
 theorem peak_not_allocation_count :
     (account 0 (repeatWord [DynStep.alloc 0, DynStep.releaseClean 0] 3)).livePeak = 1 ∧
       (account 0 (repeatWord [DynStep.alloc 0, DynStep.releaseClean 0] 3)).peakWorkspace = 1 ∧
@@ -399,6 +482,8 @@ theorem peak_not_allocation_count :
 end
 noncomputable section
 
+/-- Repeating a macro step `k` times gives a constant live-wire trail of length `k` at the
+initial live-list length. -/
 theorem liveTrail_replicate_macro (live : List ℕ) (k : ℕ) (g : FiniteGateCode) :
     liveTrail live (List.replicate k (DynStep.macro g)) = List.replicate k live.length := by
   induction k with
@@ -412,6 +497,8 @@ theorem liveTrail_replicate_macro (live : List ℕ) (k : ℕ) (g : FiniteGateCod
 end
 noncomputable section
 
+/-- Repeating a macro step `k` times gives a constant workspace trail at the initial live-list
+length minus the base. -/
 theorem wsTrail_replicate_macro (base : ℕ) (live : List ℕ) (k : ℕ) (g : FiniteGateCode) :
     wsTrail base live (List.replicate k (DynStep.macro g)) =
       List.replicate k (live.length - base) := by
@@ -426,6 +513,7 @@ theorem wsTrail_replicate_macro (base : ℕ) (live : List ℕ) (k : ℕ) (g : Fi
 end
 noncomputable section
 
+/-- A list of repeated macro steps preserves the live-wire list. -/
 theorem liveAfter_replicate_macro (live : List ℕ) (k : ℕ) (g : FiniteGateCode) :
     liveAfter live (List.replicate k (DynStep.macro g)) = live := by
   induction k with
@@ -438,6 +526,7 @@ theorem liveAfter_replicate_macro (live : List ℕ) (k : ℕ) (g : FiniteGateCod
 end
 noncomputable section
 
+/-- The maximum of `k` copies of `x` is zero when `k` is zero and `x` otherwise. -/
 theorem maxTrail_replicate (x : ℕ) (k : ℕ) :
     maxTrail (List.replicate k x) = if k = 0 then 0 else x := by
   induction k with
@@ -452,6 +541,7 @@ theorem maxTrail_replicate (x : ℕ) (k : ℕ) :
 end
 noncomputable section
 
+/-- A word of `k` macro steps has basic-gate count `k`. -/
 theorem counters_replicate_macro (k : ℕ) (g : FiniteGateCode) :
     (counters (List.replicate k (DynStep.macro g))).basicGates = k := by
   induction k with
@@ -464,6 +554,7 @@ theorem counters_replicate_macro (k : ℕ) (g : FiniteGateCode) :
 end
 noncomputable section
 
+/-- The basic-gate count of the LCU dynamic word is `n * (8 * n + 28)`. -/
 theorem counters_lcuDynamicWord (n : ℕ) :
     (counters (lcuDynamicWord n)).basicGates = n * (8 * n + 28) := by
   have h2 : (counters [DynStep.alloc 0, DynStep.uncompute 0]).basicGates = 0 := by
@@ -482,6 +573,8 @@ theorem counters_lcuDynamicWord (n : ℕ) :
 end
 noncomputable section
 
+/-- The LCU word's live-wire trail stays at the initial size for `n * (8 * n + 28)` steps and
+then records two steps at that size plus one. -/
 theorem liveTrail_lcuDynamicWord (live : List ℕ) (n : ℕ) :
     liveTrail live (lcuDynamicWord n) =
       List.replicate (n * (8 * n + 28)) live.length ++ [live.length + 1, live.length + 1] := by
@@ -493,6 +586,8 @@ theorem liveTrail_lcuDynamicWord (live : List ℕ) (n : ℕ) :
 end
 noncomputable section
 
+/-- The LCU word's workspace trail is obtained by subtracting the base from its initial live
+size and from the size after one additional wire becomes live. -/
 theorem wsTrail_lcuDynamicWord (base : ℕ) (live : List ℕ) (n : ℕ) :
     wsTrail base live (lcuDynamicWord n) =
       List.replicate (n * (8 * n + 28)) (live.length - base) ++
@@ -505,6 +600,8 @@ theorem wsTrail_lcuDynamicWord (base : ℕ) (live : List ℕ) (n : ℕ) :
 end
 noncomputable section
 
+/-- The LCU dynamic word has basic-gate count `lqSynthOpCount n` and both live peak and
+workspace peak equal to one. -/
 theorem lcu_dynamic_word (n : ℕ) :
     (account 0 (lcuDynamicWord n)).basicGates = Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.lqSynthOpCount n ∧
     (account 0 (lcuDynamicWord n)).livePeak = 1 ∧

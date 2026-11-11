@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# Overlap bounds from separating projective outcomes
+
+This module first proves a scalar square-root bound for two success probabilities separated by
+error `ε`. It then proves `lemma4_overlap_bound`: unit vectors distinguished by a self-adjoint
+idempotent with error at most `ε ≤ 1/2` have overlap at most `2*sqrt (ε*(1 - ε))`, the
+final-state estimate in [HoyerNeerbekShi2001].
+
+## Main statements
+
+* `lemma4_overlap_bound`: For a self-adjoint idempotent `P` and unit vectors `u`, `v` with `‖P
+  u‖^2 ≥ 1 - ε` and `‖P v‖^2 ≤ ε`, their overlap is at most `2*sqrt (ε*(1 - ε))` when `0 ≤ ε ≤
+  1/2`, as in [Hoyer et al., Lemma 4][HoyerNeerbekShi2001].
+
+## References
+
+* [Hoyer et al., 2001][HoyerNeerbekShi2001]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +35,8 @@ namespace Qatlib.Papers.SortDistinct01.MainResults.OverlapBound
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- If `1 - ε ≤ p ≤ 1`, `0 ≤ q ≤ ε`, and `0 ≤ ε ≤ 1/2`, then `sqrt p*sqrt q + sqrt (1 - p)*sqrt
+(1 - q) ≤ 2*sqrt (ε*(1 - ε))`, the scalar estimate underlying [HoyerNeerbekShi2001]. -/
 theorem overlap_numeric_bound {p q ε : ℝ}
     (hp : 1 - ε ≤ p) (hp1 : p ≤ 1) (hq0 : 0 ≤ q) (hq : q ≤ ε)
     (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) :
@@ -88,6 +109,9 @@ theorem overlap_numeric_bound {p q ε : ℝ}
   have hfinal := Real.sqrt_le_sqrt hsq'
   rwa [Real.sqrt_sq hg0, Real.sqrt_sq hrhs0] at hfinal
 
+/-- For a self-adjoint idempotent `P` and unit vectors `u`, `v` with `‖P u‖^2 ≥ 1 - ε` and `‖P
+v‖^2 ≤ ε`, their overlap is at most `2*sqrt (ε*(1 - ε))` when `0 ≤ ε ≤ 1/2`, as in [Hoyer et
+al., Lemma 4][HoyerNeerbekShi2001]. -/
 theorem lemma4_overlap_bound
     (P : E →L[ℂ] E)
     (hidem : ∀ x, P (P x) = P x)

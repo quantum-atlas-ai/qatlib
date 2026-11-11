@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Isometric
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Coherent unitary square-root chains
+
+This module packages the existence of successive unitary square roots with a quantitative
+approach to identity. `UnitarySqrtChainSpec` requires each term to square to its predecessor and
+bounds its distance from identity by `π / 2^j`, supplying the square-root data used in
+multi-controlled synthesis [BarencoEtAl1995].
+
+## Main statements
+
+* `unitary_sqrt_chain_spec`: every unitary matrix on a nonempty finite index type possesses such
+  a chain.
+
+## References
+
+* [Barenco et al., 1995, Section 7][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,9 @@ namespace Qatlib.Concepts.CircuitImpl.SqrtApprox
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Every unitary matrix on a nonempty finite index type possesses a sequence starting at that
+matrix, with each term unitary, each successor squaring to its predecessor, and distance
+from identity at most `π / 2^j`. -/
 def UnitarySqrtChainSpec : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (U : Matrix I I ℂ), U ∈ Matrix.unitaryGroup I ℂ →
@@ -25,6 +47,8 @@ def UnitarySqrtChainSpec : Prop :=
       (∀ j, Vseq (j + 1) * Vseq (j + 1) = Vseq j) ∧
       (∀ j, ‖(Vseq j - 1 : Matrix I I ℂ)‖ ≤ Real.pi / (2 ^ j : ℝ))
 
+/-- Every unitary matrix on a nonempty finite index type possesses the coherent square-root
+chain specified by `UnitarySqrtChainSpec`. -/
 theorem unitary_sqrt_chain_spec : UnitarySqrtChainSpec := by
   intro I _ _ _ U hU
   letI : CStarAlgebra (Matrix I I ℂ) := {}

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonSpectrum
 import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ProductGap
+
+/-!
+# Gap bounds for product Johnson walks
+
+This module combines the Johnson-chain contraction estimates with the product-chain theorem for
+the claw-finding walk of [Tani2009]. For subset sizes at least two and at most half the
+corresponding domain sizes, it obtains the reciprocal-size gap bound for the product.
+
+## Main statements
+
+* `johnsonVertex_nonempty`: existence of vertices under `k ≤ n`.
+* `productJohnson_spectralGap`: a bound with parameter `min (1/l) (1/m)`.
+* `productJohnson_spectralGap_inv_right`: the parameter `1/m` when `l ≤ m`.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +36,7 @@ open Qatlib.Concepts.WalkSearch.ProjectorCS
 open Qatlib.Concepts.WalkSearch.TwoLevelLower (IsTransitionMatrix)
 open scoped BigOperators
 
+/-- There exists a `k`-element subset of `Fin n` whenever `k ≤ n`. -/
 theorem johnsonVertex_nonempty {n k : ℕ} (h : k ≤ n) : Nonempty (JohnsonVertex n k) := by
   classical
   refine ⟨⟨(Finset.range k).attach.map ?_, ?_⟩⟩
@@ -27,6 +47,7 @@ theorem johnsonVertex_nonempty {n k : ℕ} (h : k ≤ n) : Nonempty (JohnsonVert
         simpa using congrArg (fun z : Fin n => (z : ℕ)) hxy)
   · simp
 
+/-- A bound `SpectralGapAtLeast P δ` implies the bound at any `δ'` with `0 ≤ δ' ≤ δ ≤ 1`. -/
 theorem spectralGap_mono {I : Type*} [Fintype I] {P : I → I → ℝ} {δ δ' : ℝ}
     (h : SpectralGapAtLeast P δ) (_hδ'0 : 0 ≤ δ') (hδ'δ : δ' ≤ δ) (hδ1 : δ ≤ 1) :
     SpectralGapAtLeast P δ' := by
@@ -46,6 +67,8 @@ theorem spectralGap_mono {I : Type*} [Fintype I] {P : I → I → ℝ} {δ δ' :
   calc sqNorm (act P v) ≤ (1 - δ) ^ 2 * sqNorm v := hg v hv
     _ ≤ (1 - δ') ^ 2 * sqNorm v := mul_le_mul_of_nonneg_right hsq hsqv
 
+/-- For `2 ≤ l`, `2*l ≤ N`, `2 ≤ m`, and `2*m ≤ M`, the product Johnson chain satisfies
+`SpectralGapAtLeast` with parameter `min (1/l) (1/m)`; see [Tani2009]. -/
 theorem productJohnson_spectralGap {N M l m : ℕ}
     (hl2 : 2 ≤ l) (hln : 2 * l ≤ N) (hm2 : 2 ≤ m) (hmn : 2 * m ≤ M) :
     SpectralGapAtLeast (chainProduct (johnsonChain N l) (johnsonChain M m))
@@ -61,6 +84,8 @@ theorem productJohnson_spectralGap {N M l m : ℕ}
   exact spectralGap_chainProduct (by positivity) h1l (by positivity) h1m
     (johnsonChain_spectralGap hl2 hln) (johnsonChain_spectralGap hm2 hmn)
 
+/-- Under the Johnson size conditions and `l ≤ m`, the product Johnson chain satisfies
+`SpectralGapAtLeast` with parameter `1/m`, as used in [Tani2009]. -/
 theorem productJohnson_spectralGap_inv_right {N M l m : ℕ}
     (hl2 : 2 ≤ l) (hln : 2 * l ≤ N) (hm2 : 2 ≤ m) (hmn : 2 * m ≤ M)
     (hlm : l ≤ m) :

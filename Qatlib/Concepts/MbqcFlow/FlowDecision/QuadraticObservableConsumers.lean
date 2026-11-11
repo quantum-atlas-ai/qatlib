@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticObservableShadows
+
+/-!
+# A degenerate quadratic Pauli shadow example
+
+Specializes quadratic shadow estimation to `TensorGate pauliZ pauliZ` on the maximally mixed
+qubit. The kernel factors into two Pauli Z snapshot values, and its conditional mean vanishes,
+yielding an exact second-moment formula for the pairwise statistic.
+
+The module also computes fresh-measurement, pair-evaluation, and median-processing counts. The
+quadratic-estimator variance setting is developed in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `quadratic_z_square_degenerate_variance_consumer`: zero mean and exact second moment `18 / (m
+  * (m - 1))`.
+* `quadratic_z_actual_resources`: measurement and classical processing counts.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -23,6 +45,7 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder
 set_option autoImplicit false
 
+/-- The one-qubit tensor Pauli word supported on the Z axis is `pauliZ`. -/
 private theorem quadratic_z_word : tensorPauliWord 1 (fun _ => some (2 : Fin 3)) = pauliZ := by
   have h0 : (bitVecEquiv 1).symm 0 = (fun _ => false) := by
     apply (bitVecEquiv 1).injective
@@ -38,6 +61,8 @@ private theorem quadratic_z_word : tensorPauliWord 1 (fun _ => some (2 : Fin 3))
       pauliProductDensity, Fin.prod_univ_one, h0, h1, boolEquivFin2,
       pauliMatrix_two, pauliZ]
 
+/-- The quadratic shadow kernel for `pauliZ ⊗ pauliZ` factors into the two one-qubit Pauli Z
+snapshot values. -/
 theorem quadratic_z_kernel (a b : Fin 1 → Fin 3 × Bool) :
     quadraticShadowKernel 1 (TensorGate pauliZ pauliZ) a b =
       tensorPauliValue (fun _ => some (2 : Fin 3)) a *
@@ -49,11 +74,14 @@ theorem quadratic_z_kernel (a b : Fin 1 → Fin 3 × Bool) :
   simp [Complex.mul_re]
   ring
 
+/-- The trace pairing of Pauli Z with the maximally mixed qubit is zero. -/
 private theorem quadratic_z_target :
     Matrix.trace (pauliZ * ((1/2:ℂ) • (1:Operator 2))) = 0 := by
   norm_num [Matrix.mul_smul, Matrix.mul_one, Matrix.trace_smul, Matrix.trace,
     Fin.sum_univ_two, pauliZ]
 
+/-- For the maximally mixed qubit, averaging the quadratic Z kernel over its second record gives
+zero for every first record. -/
 theorem quadratic_z_conditional_zero
     (hρ : IsDensityOperator ((1/2:ℂ) • (1:Operator 2)))
     (a : Fin 1 → Fin 3 × Bool) :
@@ -65,6 +93,9 @@ theorem quadratic_z_conditional_zero
   rw [quadratic_z_target]
   simp
 
+/-- For at least two records from the maximally mixed qubit, the quadratic Z U-statistic has
+mean zero and second moment `18 / (m * (m - 1))`. This is a concrete degenerate-kernel
+variance example in the setting of [HuangKuengPreskill2020]. -/
 theorem quadratic_z_square_degenerate_variance_consumer (m : ℕ)
     (hρ : IsDensityOperator ((1/2:ℂ) • (1:Operator 2))) (hm : 2 ≤ m) :
     let ρ : Operator (2^1) := (1/2:ℂ) • 1
@@ -129,6 +160,8 @@ theorem quadratic_z_square_degenerate_variance_consumer (m : ℕ)
     calc _ = 2/((m:ℝ)*(m-1:ℕ))*9 := hh
       _ = _ := by ring
 
+/-- Gives the exact quantum resource and pair-evaluation counts for `2 * r + 1` blocks of `m`
+one-qubit records, together with the median read count and quadratic comparison bound. -/
 theorem quadratic_z_actual_resources (m r : ℕ)
     (ω : Fin (2*r+1) → Fin m → Fin 1 → Fin 3 × Bool) :
     tensorPauliFreshResourceCounts 1 m (2*r+1) ω =

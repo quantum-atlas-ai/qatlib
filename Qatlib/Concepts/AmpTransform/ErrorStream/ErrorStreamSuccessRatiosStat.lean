@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+/-!
+# Success-ratio specification for an error stream
+
+`ErrorStreamSuccessRatios` states exact event probabilities for amplified Fourier sampling
+relative to two baseline procedures. It includes upper and lower bounds on the amplification
+ratio under the half-density assumption, for events excluding zero as in [Cornwell2014].
+
+## Main statements
+
+* `ErrorStreamSuccessRatios`: Specifies the exact amplified-to-phase and
+  amplified-to-hidden-subgroup event probability ratios, together with upper and lower bounds on
+  `aqRatio`, for noisy progressions and events excluding zero.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- Specifies the exact amplified-to-phase and amplified-to-hidden-subgroup event probability
+ratios, together with upper and lower bounds on `aqRatio`, for noisy progressions and events
+excluding zero. -/
 def ErrorStreamSuccessRatios : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (s M L P : ℕ) (G : Finset (Fin N)) (h : Fin N → Bool)
     (E : Finset (Fin N)),

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonSparseHam09.MainResults.Lemma4PromiseProbability
+
+/-!
+# Counting sign-sum promise strings
+
+Relates sign sums of Boolean strings to their number of true bits and counts the corresponding
+level sets by binomial coefficients. Bitwise complementation identifies positive and negative
+levels, yielding an exact formula for `probOf` on the parity-adjusted promise set. See
+[ChildsKothari2010] for the surrounding analysis.
+
+## Main statements
+
+* `card_signSum_pos`: For `B ≤ M` of the same parity as `M`, the number of strings with sign sum
+  `B` is `M.choose ((M + B) / 2)`.
+* `card_promiseStrings`: For positive `B ≤ M` of the same parity as `M`, the promise set has
+  cardinality `2 * M.choose ((M + B) / 2)`.
+* `probOf_promiseSet_eq`: If `0 < promiseB M ≤ M`, the promise-set probability is `2 * M.choose
+  ((M + promiseB M) / 2) / 2^M`.
+
+## References
+
+* [Childs and Kothari, 2010][ChildsKothari2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,9 +40,12 @@ open scoped Matrix.Norms.L2Operator BigOperators
 
 namespace Qatlib.Papers.NonSparseHam09.MainResults
 
+/-- Negating a Boolean bit negates its real sign. -/
 lemma signOf_not (b : Bool) : signOf (!b) = -signOf b := by
   cases b <;> simp [signOf]
 
+/-- The sum of the signs of a length-`M` Boolean string is twice its number of true bits minus
+`M` [ChildsKothari2010]. -/
 lemma signSum_eq (M : ℕ) (b : Fin M → Bool) :
     ∑ i, signVec b i
       = 2 * ((Finset.univ.filter (fun i => b i)).card : ℝ) - (M : ℝ) := by
@@ -39,11 +65,14 @@ lemma signSum_eq (M : ℕ) (b : Fin M → Bool) :
     _ = 2 * ((Finset.univ.filter (fun i => b i)).card : ℝ) - (M : ℝ) := by
         rw [hcount]
 
+/-- If `B` and `M` have the same parity, then `M + B` is divisible by two. -/
 lemma two_dvd_add_of_mod_two_eq {M B : ℕ} (hpar : B % 2 = M % 2) : 2 ∣ M + B := by
   refine Nat.dvd_of_mod_eq_zero ?_
   rw [Nat.add_mod, hpar, ← two_mul]
   exact Nat.mul_mod_right 2 (M % 2)
 
+/-- For `B ≤ M` of the same parity as `M`, sign sum `B` is equivalent to having exactly `(M + B)
+/ 2` true bits [ChildsKothari2010]. -/
 lemma signSum_eq_iff (M B : ℕ) (hBM : B ≤ M) (hpar : B % 2 = M % 2) (b : Fin M → Bool) :
     (∑ i, signVec b i = (B : ℝ)) ↔
       (Finset.univ.filter (fun i => b i)).card = (M + B) / 2 := by
@@ -63,6 +92,8 @@ lemma signSum_eq_iff (M B : ℕ) (hBM : B ≤ M) (hpar : B % 2 = M % 2) (b : Fin
     rw [h]
     linarith
 
+/-- For `B ≤ M` of the same parity as `M`, the number of strings with sign sum `B` is `M.choose
+((M + B) / 2)` [ChildsKothari2010]. -/
 theorem card_signSum_pos (M B : ℕ) (hBM : B ≤ M) (hpar : B % 2 = M % 2) :
     (Finset.univ.filter (fun b : Fin M → Bool => ∑ i, signVec b i = (B : ℝ))).card
       = M.choose ((M + B) / 2) := by
@@ -104,12 +135,14 @@ theorem card_signSum_pos (M B : ℕ) (hBM : B ≤ M) (hpar : B % 2 = M % 2) :
   rw [hcard, Finset.card_powersetCard]
   simp
 
+/-- Bitwise complementation negates the sum of the associated signs. -/
 lemma signSum_not (M : ℕ) (b : Fin M → Bool) :
     ∑ i, signVec (fun j => !b j) i = -∑ i, signVec b i := by
   rw [← Finset.sum_neg_distrib]
   refine Finset.sum_congr rfl fun i _ => ?_
   exact signOf_not (b i)
 
+/-- The numbers of strings with sign sums `-B` and `B` are equal [ChildsKothari2010]. -/
 lemma card_signSum_neg (M B : ℕ) :
     (Finset.univ.filter (fun b : Fin M → Bool => ∑ i, signVec b i = -(B : ℝ))).card
       = (Finset.univ.filter (fun b : Fin M → Bool => ∑ i, signVec b i = (B : ℝ))).card := by
@@ -128,6 +161,8 @@ lemma card_signSum_neg (M B : ℕ) :
     rw [signSum_not]
     constructor <;> intro h <;> linarith
 
+/-- For positive `B ≤ M` of the same parity as `M`, the promise set has cardinality `2 *
+M.choose ((M + B) / 2)` [ChildsKothari2010]. -/
 theorem card_promiseStrings (M B : ℕ) (hBM : B ≤ M) (hpos : 0 < B) (hpar : B % 2 = M % 2) :
     (promiseStrings M B).card = 2 * M.choose ((M + B) / 2) := by
   classical
@@ -150,12 +185,15 @@ theorem card_promiseStrings (M B : ℕ) (hBM : B ≤ M) (hpos : 0 < B) (hpar : B
     card_signSum_neg M B, card_signSum_pos M B hBM hpar]
   ring
 
+/-- The bias `promiseB M` has the same parity as `M` [ChildsKothari2010]. -/
 lemma promiseB_mod_two (M : ℕ) : promiseB M % 2 = M % 2 := by
   unfold promiseB
   rw [Nat.add_mod, Nat.mul_mod_right 2
     (Nat.floor (Real.sqrt (M * Real.log (M : ℝ)) / 2))]
   simp [Nat.mod_eq_of_lt (Nat.mod_lt M (by norm_num : 0 < 2))]
 
+/-- If `0 < promiseB M ≤ M`, the promise-set probability is `2 * M.choose ((M + promiseB M) / 2)
+/ 2^M` [ChildsKothari2010]. -/
 theorem probOf_promiseSet_eq (M : ℕ) (hBM : promiseB M ≤ M) (hpos : 0 < promiseB M) :
     probOf M (fun b => b ∈ promiseSet M)
       = 2 * (M.choose ((M + promiseB M) / 2) : ℝ) / (2 : ℝ) ^ M := by

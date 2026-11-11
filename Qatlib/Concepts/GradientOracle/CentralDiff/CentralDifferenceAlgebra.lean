@@ -8,11 +8,33 @@ import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
 import Mathlib.Algebra.Group.ForwardDiff
 import Mathlib.Data.Nat.Choose.Sum
 
+/-!
+# Binomial algebra for central differences
+
+The module proves alternating-sign and binomial-sum identities used in central-difference
+exactness. `centralDiff_alternating_power_zero` cancels shifted monomials of degree below the
+difference order, while `centralDiff_choose_ratio` rewrites the coefficient ratio using central
+binomial coefficients. See [GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDiff_alternating_sign`: For `i ≤ n`, multiplying the signs with exponents `n` and `n -
+  i` gives the sign with exponent `i`.
+* `centralDiff_alternating_power_zero`: The alternating binomial sum of a shifted monomial of
+  degree `j < n` vanishes.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 open scoped BigOperators fwdDiff
 
+/-- For `i ≤ n`, multiplying the signs with exponents `n` and `n - i` gives the sign with
+exponent `i`. -/
 theorem centralDiff_alternating_sign (n i : ℕ) (hi : i≤n) :
     (-1 : ℝ)^n*(-1 : ℝ)^(n-i)=(-1 : ℝ)^i := by
   have hn : (-1 : ℝ)^n=(-1 : ℝ)^(n-i)*(-1 : ℝ)^i := by
@@ -23,6 +45,7 @@ theorem centralDiff_alternating_sign (n i : ℕ) (hi : i≤n) :
     _ = ((-1 : ℝ)^(n-i)*(-1 : ℝ)^(n-i))*(-1 : ℝ)^i := by ring
     _ = _ := by rw [hs,one_mul]
 
+/-- The alternating binomial sum of a shifted monomial of degree `j < n` vanishes. -/
 theorem centralDiff_alternating_power_zero (n j : ℕ) (hj : j<n) (a : ℝ) :
     (∑ i ∈ Finset.range (n+1),(-1 : ℝ)^i*(Nat.choose n i : ℝ)*(a+(i : ℝ))^j)=0 := by
   have he := congrFun (fwdDiff_iter_pow_eq_zero_of_lt (R := ℝ) hj) a
@@ -40,6 +63,8 @@ theorem centralDiff_alternating_power_zero (n j : ℕ) (hj : j<n) (a : ℝ) :
       ring
     _ = 0 := by rw [hs,mul_zero]
 
+/-- For `l ≤ m`, the ratio of binomial coefficients `choose m l / choose (m + l) l` equals
+`choose (2 * m) (m + l) / choose (2 * m) m`. -/
 theorem centralDiff_choose_ratio (m l : ℕ) (hl : l≤m) :
     (Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ)=
       (Nat.choose (2*m) (m+l) : ℝ)/(Nat.choose (2*m) m : ℝ) := by

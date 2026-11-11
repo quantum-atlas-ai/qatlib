@@ -9,6 +9,27 @@ import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Algebra.Ring.Prod
 import Mathlib.Algebra.Group.Equiv.TypeTags
+
+/-!
+# Chinese remainder coordinates for a conditional semidirect-product decomposition
+
+`crtMulEquiv` expresses a cyclic group of coprime product modulus in Chinese remainder
+coordinates. Under explicit hypotheses that the transported action fixes the first factor
+pointwise and preserves the second factor, `theorem1_main_reduction` splits off the first factor
+and produces an action on the remaining cyclic group. See [ChiKimLee2006] for the mathematical
+setting.
+
+## Main statements
+
+* `crtMulEquiv`: constructs the cyclic-group isomorphism with factors ordered as `M` and `pk`.
+* `theorem1_main_reduction`: constructs the residual action and the conditional product
+  decomposition.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,8 @@ namespace Qatlib.Papers.SemiDirectHSP06.MainResults
 
 open SemidirectProduct
 
+/-- The multiplicative equivalence between the multiplicative type tag of an additive product
+and the product of its multiplicative type tags. -/
 def mulProdEquiv (A B : Type*) [AddMonoid A] [AddMonoid B] :
     Multiplicative (A × B) ≃* Multiplicative A × Multiplicative B where
   toFun x := (Multiplicative.ofAdd x.toAdd.1, Multiplicative.ofAdd x.toAdd.2)
@@ -26,6 +49,8 @@ def mulProdEquiv (A B : Type*) [AddMonoid A] [AddMonoid B] :
   right_inv y := by rcases y with ⟨a, b⟩; cases a; cases b; rfl
   map_mul' x y := by cases x; cases y; rfl
 
+/-- For coprime `pk` and `M`, the Chinese remainder equivalence from the multiplicatively
+written cyclic group modulo `pk * M` to the factors modulo `M` and `pk`. -/
 def crtMulEquiv {pk M : ℕ} (hcop : Nat.Coprime pk M) :
     Multiplicative (ZMod (pk * M)) ≃*
       Multiplicative (ZMod M) × Multiplicative (ZMod pk) :=
@@ -34,6 +59,10 @@ def crtMulEquiv {pk M : ℕ} (hcop : Nat.Coprime pk M) :
         (RingEquiv.prodComm (R := ZMod pk) (S := ZMod M)).toAddEquiv)).trans
     (mulProdEquiv (ZMod M) (ZMod pk))
 
+/-- For coprime `pk` and `M`, if the action transported through `crtMulEquiv` fixes the `M`
+factor pointwise and preserves the `pk` factor, the original semidirect product splits as
+the `M` factor times a semidirect product on the `pk` factor. See [Chi et al., 2006, Theorem
+1][ChiKimLee2006]. -/
 theorem theorem1_main_reduction
     {M pk p : ℕ} (_hp : p.Prime) (hcop : Nat.Coprime pk M)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (pk * M))))

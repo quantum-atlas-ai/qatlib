@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinearDE20.PolynomialStep.ActualEulerVariance
+
+/-!
+# Trace normalization with positive variance noise
+
+This module defines `normalizePositive` and bounds the effect of adding positive semidefinite
+noise before normalization. It applies the estimate to the reduced Euler output, expressing the
+normalized error through the entangling residual and the positive ideal target mass in the step
+analysis of [LloydEtAl2020].
+
+## Main statements
+
+* `normalizePositive_density`: A positive semidefinite matrix with positive real trace becomes
+  positive semidefinite with trace one after normalization.
+* `positive_add_normalization`: Adding positive semidefinite noise to a positive semidefinite
+  matrix of positive trace changes its normalization by at most twice the noise trace divided by
+  the total trace.
+* `actualEuler_normalized_error`: For normalized environment and positive ideal target trace,
+  the normalized Euler error is bounded by twice the residual noise mass divided by ideal mass
+  plus noise mass.
+
+## References
+
+* [Lloyd et al., 2020][LloydEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,14 +43,18 @@ open Qatlib.Concepts.TensorRegisters.RegisterModel.EnvironmentFrame
 
 namespace Qatlib.Papers.NonlinearDE20.PolynomialStep.Model
 
+/-- Rescale a matrix by the reciprocal of its real trace, viewed as a complex scalar. -/
 def normalizePositive {I : Type} [Fintype I] (ρ : Matrix I I ℂ) : Matrix I I ℂ :=
   (((ρ.trace.re)⁻¹:ℝ):ℂ) •ρ
 
+/-- The trace norm of a positive semidefinite matrix equals the real part of its trace. -/
 theorem positive_traceNorm {I : Type} [Fintype I] (ρ : Matrix I I ℂ) (hρ : ρ.PosSemidef) :
     ρ.traceNorm=ρ.trace.re := by
   have h := congrArg Complex.re hρ.traceNorm_eq_trace
   simpa using h
 
+/-- A positive semidefinite matrix with positive real trace becomes positive semidefinite with
+trace one after normalization. -/
 theorem normalizePositive_density {I : Type} [Fintype I] (ρ : Matrix I I ℂ) (hρ : ρ.PosSemidef)
     (hp : 0<ρ.trace.re) : (normalizePositive ρ).PosSemidef ∧ (normalizePositive ρ).trace=1 := by
   have hi := (RCLike.nonneg_iff.mp hρ.trace_nonneg).2
@@ -36,6 +65,8 @@ theorem normalizePositive_density {I : Type} [Fintype I] (ρ : Matrix I I ℂ) (
   · rw [normalizePositive,Matrix.trace_smul,ht]
     simp [hp.ne']
 
+/-- Adding positive semidefinite noise to a positive semidefinite matrix of positive trace
+changes its normalization by at most twice the noise trace divided by the total trace. -/
 theorem positive_add_normalization {I : Type} [Fintype I]
     (P V : Matrix I I ℂ) (hP : P.PosSemidef) (hV : V.PosSemidef) (hq : 0<P.trace.re) :
     (normalizePositive (P+V)-normalizePositive P).traceNorm≤
@@ -71,6 +102,8 @@ theorem positive_add_normalization {I : Type} [Fintype I]
     _ ≤ ((((q+d)⁻¹:ℝ):ℂ) •V).traceNorm+((((q+d)⁻¹-q⁻¹:ℝ):ℂ) •P).traceNorm := Matrix.traceNorm_add_le _ _
     _ = _ := by rw [hfirst,hsecond];change d/(q+d)+d/(q+d)=2*d/(q+d);ring
 
+/-- For normalized environment and positive ideal target trace, the normalized Euler error is
+bounded by twice the residual noise mass divided by ideal mass plus noise mass. -/
 theorem actualEuler_normalized_error {I E : Type} [Fintype I] [Fintype E] [DecidableEq I] [DecidableEq E]
     (F : Matrix (I×E) (I×E) ℂ) (q : E→ℂ) (hq : (∑ a : E,Complex.normSq (q a))=1)
     (x : I→ℂ) (c : ℂ) (hp : 0<(outer (idealEulerVector F q x c)).trace.re) :

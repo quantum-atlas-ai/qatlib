@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.EmpiricalL1Concentration
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
+/-!
+# Accuracy of empirical finite distributions
+
+This module computes the coordinate and total mean squared errors of the empirical histogram
+from independent samples. `mean_bound` controls expected L1 error by `sqrt ((card X - 1) / n)`,
+and `accuracy_tail` adds an exponential upper tail. These are classical sampling estimates in
+the finite Monte Carlo framework [Montanaro2015].
+
+## Main statements
+
+* `total_mse`: For `n > 0`, the expected sum of squared histogram errors equals `(1 - ∑ x,
+  (p.prob x) ^ 2) / n`.
+* `mean_bound`: For `n > 0`, the expected empirical L1 error is at most `sqrt ((card X - 1) /
+  n)`.
+* `accuracy_tail`: For `n > 0` and `u > 0`, the probability of empirical L1 error at least `sqrt
+  ((card X - 1) / n) + u` is at most `exp (-u ^ 2 * n / 2)`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.EmpiricalL1Accuracy
 open scoped BigOperators Classical
@@ -14,13 +36,16 @@ open EmpiricalL1Concentration
 noncomputable section
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The distribution of a length `n` record of independent samples from `p`. -/
 def law (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin n → X) :=
   Qatlib.Concepts.MonteCarloMean.FinDistBounds.independentSampleLaw (fun _ => p)
 
+/-- The expectation of the indicator of `x` equals its probability mass under `p`. -/
 private theorem indicator_mean (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (x : X) :
     p.expect (fun y => if y=x then (1 : ℝ) else 0) = p.prob x := by
   simp [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, mul_ite]
 
+/-- The variance of the indicator of `x` equals `p.prob x * (1 - p.prob x)`. -/
 private theorem indicator_variance (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (x : X) :
     p.variance (fun y => if y=x then (1 : ℝ) else 0) = p.prob x*(1-p.prob x) := by
   rw [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.variance, indicator_mean]
@@ -33,6 +58,8 @@ private theorem indicator_variance (p : Qatlib.Concepts.MonteCarloMean.FinDistBo
     p.sum_one]
   ring
 
+/-- For `n > 0`, the mean squared error of the empirical mass at `x` equals `p.prob x * (1 -
+p.prob x) / n`. -/
 private theorem coordinate_mse (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (hn : 0 < n) (x : X) :
     (law p n).expect (fun w => (histogram w x-p.prob x)^2) =
       p.prob x*(1-p.prob x)/(n : ℝ) := by
@@ -40,6 +67,8 @@ private theorem coordinate_mse (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds
   rw [indicator_mean, indicator_variance] at h
   exact h
 
+/-- For `n > 0`, the expected sum of squared histogram errors equals `(1 - ∑ x, (p.prob x) ^ 2)
+/ n`. -/
 theorem total_mse (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (hn : 0 < n) :
     (law p n).expect (fun w => ∑ x, (histogram w x-p.prob x)^2) =
       (1-∑ x, (p.prob x)^2)/(n : ℝ) := by
@@ -55,6 +84,7 @@ theorem total_mse (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (
       simp_rw [show ∀ x, p.prob x*(1-p.prob x) = p.prob x-(p.prob x)^2 from fun x => by ring]
       rw [Finset.sum_sub_distrib, p.sum_one]
 
+/-- The square of a finite distribution expectation is at most the expectation of the square. -/
 private theorem expect_sq_ge_sq_expect {Y : Type} [Fintype Y] [DecidableEq Y]
     (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist Y) (f : Y → ℝ) : (p.expect f)^2 ≤ p.expect (fun y => (f y)^2) := by
   have h := Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul Finset.univ
@@ -64,6 +94,7 @@ private theorem expect_sq_ge_sq_expect {Y : Type} [Fintype Y] [DecidableEq Y]
   simpa only [p.sum_one, one_mul,
       Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect] using h
 
+/-- For `n > 0`, the square of the expected empirical L1 error is at most `(card X - 1) / n`. -/
 theorem mean_sq_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (hn : 0 < n) :
     ((law p n).expect (deviation p.prob))^2 ≤
       ((Fintype.card X : ℝ)-1)/(n : ℝ) := by
@@ -93,6 +124,7 @@ theorem mean_sq_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist 
   dsimp [C] at hmean'
   nlinarith
 
+/-- For `n > 0`, the expected empirical L1 error is at most `sqrt ((card X - 1) / n)`. -/
 theorem mean_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (hn : 0 < n) :
     (law p n).expect (deviation p.prob) ≤
       Real.sqrt (((Fintype.card X : ℝ)-1)/(n : ℝ)) := by
@@ -102,6 +134,8 @@ theorem mean_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) 
   have hn0 := Real.sqrt_nonneg (((Fintype.card X : ℝ)-1)/(n : ℝ))
   nlinarith
 
+/-- For `n > 0` and `u > 0`, the probability of empirical L1 error at least `sqrt ((card X - 1)
+/ n) + u` is at most `exp (-u ^ 2 * n / 2)`. -/
 theorem accuracy_tail (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (hn : 0 < n) (u : ℝ) (hu : 0 < u) :
     p.probEvent (fun w : Fin n → X =>
       Real.sqrt (((Fintype.card X : ℝ)-1)/(n : ℝ))+u ≤ deviation p.prob w) ≤

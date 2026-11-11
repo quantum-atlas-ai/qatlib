@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedWordLedgerStat
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+/-!
+# Resource counts for expanded polynomial readout
+
+This module proves `polyFigTwoExpandedWordLedger`, combining a polynomial bound on the rotation
+word with exact repeated amplitude-estimation access, query, and gate counts.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `polyFigTwoExpandedWordLedger`: The expanded angle word satisfies the stated polynomial length
+  bound, and `2 * r + 1` amplitude-estimation repetitions have the displayed exact forward,
+  backward, query, and gate counts; see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.RiskEstimation.PolyRotation
@@ -15,6 +35,9 @@ namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix
 set_option warningAsError false
 
+/-- The expanded angle word satisfies the stated polynomial length bound, and `2 * r + 1`
+amplitude-estimation repetitions have the displayed exact forward, backward, query, and gate
+counts; see [WoernerEgger2019]. -/
 theorem polyFigTwoExpandedWordLedger : PolyFigTwoExpandedWordLedger := by
   intro n u hn A j c fp M r _ hM
   refine ⟨?_, ?_⟩

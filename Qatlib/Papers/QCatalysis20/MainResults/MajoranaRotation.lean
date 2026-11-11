@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.Fermion
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
 import Qatlib.Foundations.MatrixGeometry.AxisRotations.SphericalAngles
+
+/-!
+# Majorana pair rotations
+
+This module defines the trigonometric Majorana rotation and derives its adjoint and conjugation
+action from the Clifford relations. It also records the involution, anticommutation, and
+Hermitian properties of the concrete finite Majorana matrices. See [VonBurgEtAl2021].
+
+## Main statements
+
+* `rotation_conj_self`: Conjugation by a Majorana pair rotation sends its first generator to the
+  cosine-sine combination with angle `2 * θ`.
+* `rotation_conj_next`: Conjugation by a Majorana pair rotation sends its second generator to
+  `cos (2 * θ) • γ q - sin (2 * θ) • γ p`.
+* `frozen_majorana_herm`: Every concrete finite Majorana matrix is Hermitian.
+
+## References
+
+* [von Burg et al., 2021][VonBurgEtAl2021]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,11 +44,13 @@ namespace Qatlib.Papers.QCatalysis20.MainResults
 
 variable {N : ℕ} {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- The matrix `cos θ • 1 + sin θ • (γ p * γ q)` associated with a pair of Majorana indices. -/
 def majoranaRotation (γ : Fin N → Matrix H H ℂ) (p q : Fin N) (θ : ℝ) :
     Matrix H H ℂ :=
   (Real.cos θ : ℂ) • (1 : Matrix H H ℂ) +
     (Real.sin θ : ℂ) • (γ p * γ q)
 
+/-- The product of two distinct anticommuting involutions squares to minus the identity. -/
 theorem pairGenerator_sq (γ : Fin N → Matrix H H ℂ)
     (hsq : ∀ p, γ p * γ p = 1)
     (hanti : ∀ p q, p ≠ q → γ p * γ q = -(γ q * γ p)) (p q : Fin N) (hpq : p≠q) :
@@ -41,6 +64,8 @@ theorem pairGenerator_sq (γ : Fin N → Matrix H H ℂ)
     _ = -((γ p * γ p) * (γ q * γ q)) := by noncomm_ring
     _ = -(1 : Matrix H H ℂ) := by rw [hsq p, hsq (q), mul_one]
 
+/-- For distinct Hermitian anticommuting generators, the adjoint rotation reverses the sign of
+its sine term. -/
 theorem majoranaRotation_adjoint (γ : Fin N → Matrix H H ℂ)
     (hherm : ∀ p, (γ p)ᴴ = γ p)
     (hanti : ∀ p q, p ≠ q → γ p * γ q = -(γ q * γ p)) (p q : Fin N) (hpq : p≠q) (θ : ℝ) :
@@ -56,6 +81,7 @@ theorem majoranaRotation_adjoint (γ : Fin N → Matrix H H ℂ)
   simp only [Matrix.conjTranspose_one, Complex.star_def, Complex.conj_ofReal, smul_neg,
     sub_eq_add_neg]
 
+/-- Expand the product of the two linear factors `c • 1 ± s • J` around an arbitrary matrix. -/
 theorem rotation_conj_expand (J C : Matrix H H ℂ) (c s : ℂ) :
     (c • (1 : Matrix H H ℂ) - s • J) * C * (c • (1 : Matrix H H ℂ) + s • J) =
       (c * c) • C + (c * s) • (C * J) - (s * c) • (J * C) - (s * s) • (J * C * J) := by
@@ -63,6 +89,8 @@ theorem rotation_conj_expand (J C : Matrix H H ℂ) (c s : ℂ) :
     smul_sub, smul_smul]
   module
 
+/-- Conjugation by a Majorana pair rotation sends its first generator to the cosine-sine
+combination with angle `2 * θ`. -/
 theorem rotation_conj_self (γ : Fin N → Matrix H H ℂ)
     (hsq : ∀ p, γ p * γ p = 1)
     (hanti : ∀ p q, p ≠ q → γ p * γ q = -(γ q * γ p))
@@ -91,6 +119,8 @@ theorem rotation_conj_self (γ : Fin N → Matrix H H ℂ)
   simp only [smul_neg]
   module
 
+/-- Conjugation by a Majorana pair rotation sends its second generator to `cos (2 * θ) • γ q -
+sin (2 * θ) • γ p`. -/
 theorem rotation_conj_next (γ : Fin N → Matrix H H ℂ)
     (hsq : ∀ p, γ p * γ p = 1)
     (hanti : ∀ p q, p ≠ q → γ p * γ q = -(γ q * γ p))
@@ -115,6 +145,8 @@ theorem rotation_conj_next (γ : Fin N → Matrix H H ℂ)
   simp only [smul_neg]
   module
 
+/-- Conjugation by a Majorana pair rotation fixes each generator with an index distinct from
+both rotated indices. -/
 theorem rotation_conj_other (γ : Fin N → Matrix H H ℂ)
     (hsq : ∀ p, γ p * γ p = 1)
     (hanti : ∀ p q, p ≠ q → γ p * γ q = -(γ q * γ p))
@@ -149,14 +181,17 @@ theorem rotation_conj_other (γ : Fin N → Matrix H H ℂ)
   conv_rhs => rw [← one_smul ℂ (γ r), ← htrig]
   module
 
+/-- Each concrete finite Majorana matrix squares to the identity. -/
 theorem frozen_majorana_sq {n : ℕ} (a : Fin (2 * n)) :
     majorana a * majorana a = 1 :=
   Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation.majorana_sq a
 
+/-- Concrete finite Majorana matrices with distinct indices anticommute. -/
 theorem frozen_majorana_anticommute {n : ℕ} (a b : Fin (2 * n)) (h : a ≠ b) :
     majorana a * majorana b = -(majorana b * majorana a) :=
   Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation.majorana_anticommute a b h
 
+/-- Each concrete even Majorana matrix is Hermitian. -/
 theorem frozen_majoranaEven_herm {n : ℕ} (k : Fin n) :
     (majoranaEven k)ᴴ = majoranaEven k := by
   have h1 : (creation k)ᴴ = annihilation k := by
@@ -166,6 +201,7 @@ theorem frozen_majoranaEven_herm {n : ℕ} (k : Fin n) :
   unfold majoranaEven
   rw [Matrix.conjTranspose_add, h1, h2, add_comm]
 
+/-- Each concrete odd Majorana matrix is Hermitian. -/
 theorem frozen_majoranaOdd_herm {n : ℕ} (k : Fin n) :
     (majoranaOdd k)ᴴ = majoranaOdd k := by
   have h1 : (creation k)ᴴ = annihilation k := by
@@ -179,6 +215,7 @@ theorem frozen_majoranaOdd_herm {n : ℕ} (k : Fin n) :
     smul_neg]
   module
 
+/-- Every concrete finite Majorana matrix is Hermitian. -/
 theorem frozen_majorana_herm {n : ℕ} (a : Fin (2 * n)) :
     (majorana a)ᴴ = majorana a := by
   have hk : a.val / 2 < n := by omega

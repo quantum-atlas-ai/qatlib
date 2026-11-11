@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompressedOracleBoundsDefs
+
+/-!
+# Compressed database bounds for bit oracle circuits
+
+This module relates the compressed database execution `databaseXorRun` to ordinary bit oracle
+execution averaged over Bernoulli inputs. The connection uses Hadamard conversion between bit
+and phase queries, as described in [NielsenChuang2010], and gives exact full-state, marginal,
+and event probability formulas.
+
+The compressed oracle changes records only at the queried address. Consequently the database
+support is bounded by the query count, and binomial moments of its record count satisfy explicit
+bounds.
+
+## Main statements
+
+* `databaseXor_fullstate`: decompressed amplitudes factor into a Bernoulli amplitude and an
+  ordinary oracle amplitude.
+* `databaseXor_event`: database event probabilities equal Bernoulli averages.
+* `databaseXor_support`: databases larger than the query budget have zero amplitude.
+* `databaseXor_moment`: bounds binomial moments of the number of records.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -25,6 +51,8 @@ open scoped BigOperators
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- Running the lifted bit-to-phase compiled circuit with the compressed oracle equals running
+the original lifted circuit with `databaseXorOracle`. -/
 theorem run_databaseXor_compiled (p : ℝ) (C : Circuit ((I × Bool) × W))
     (v : QState (((I × Bool) × W) × (I → Bool))) :
     Run (compressedOracle p) (tensorLiftCircuit (bitToPhaseCircuitSameInput C)) v =
@@ -45,11 +73,15 @@ theorem run_databaseXor_compiled (p : ℝ) (C : Circuit ((I × Bool) × W))
       rw [← applyGate_mul, ← applyGate_mul]
       exact ih _
 
+/-- The compressed database bit oracle execution equals `compressedRunState` of the bit-to-phase
+compiled circuit. -/
 theorem databaseXorRun_eq_compiled (p : ℝ) (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) :
     databaseXorRun p C ψ = compressedRunState p (bitToPhaseCircuitSameInput C) ψ :=
   (run_databaseXor_compiled p C _).symm
 
+/-- For `p ∈ [0, 1]`, decompression identifies the database bit oracle execution with the joint
+phase oracle execution of the compiled circuit from a Bernoulli database state. -/
 theorem decompressedXorRun_eq_joint (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) :
     decompressedXorRun p C ψ =
@@ -64,6 +96,8 @@ theorem decompressedXorRun_eq_joint (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     compressed_run_from_empty p hp0 hp1, ← applyGate_mul, tensorGate_mul,
     Matrix.one_mul, hF, tensorGate_one, applyGate_one]
 
+/-- For `p ∈ [0, 1]`, each decompressed joint amplitude is the Bernoulli input amplitude times
+the ordinary bit oracle circuit amplitude for that input. -/
 theorem databaseXor_fullstate (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (q : (I × Bool) × W) (x : I → Bool) :
@@ -72,6 +106,8 @@ theorem databaseXor_fullstate (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   rw [decompressedXorRun_eq_joint p hp0 hp1, joint_run_expansion,
     run_bitToPhaseCircuitSameInput]
 
+/-- For `p ∈ [0, 1]`, the reduced algorithm matrix is the Bernoulli-weighted sum of outer
+products of the ordinary bit oracle output states. -/
 theorem databaseXor_marginal (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (q q' : (I × Bool) × W) :
@@ -82,11 +118,14 @@ theorem databaseXor_marginal (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   simpa only [run_bitToPhaseCircuitSameInput] using!
     compressed_marginal p hp0 hp1 (bitToPhaseCircuitSameInput C) ψ q q'
 
+/-- Bit-to-phase compilation preserves query count and adds two gates per query. -/
 theorem databaseXor_compilation_cost (C : Circuit ((I × Bool) × W)) :
     QueryCount (bitToPhaseCircuitSameInput C) = QueryCount C ∧
       GateCount (bitToPhaseCircuitSameInput C) = GateCount C + 2 * QueryCount C :=
   ⟨bitToPhaseCircuitSameInput_queryCount C, bitToPhaseCircuitSameInput_gateCount C⟩
 
+/-- Lifting the bit-to-phase compiled circuit preserves the original query count and adds two
+gates per query to the original gate count. -/
 theorem databaseXor_joint_cost (C : Circuit ((I × Bool) × W)) :
     QueryCount (tensorLiftCircuit (bitToPhaseCircuitSameInput C)) = QueryCount C ∧
       GateCount (tensorLiftCircuit (bitToPhaseCircuitSameInput C)) =
@@ -105,6 +144,8 @@ theorem databaseXor_joint_cost (C : Circuit ((I × Bool) × W)) :
   rw [bitToPhaseCircuitSameInput_gateCount] at hg
   exact ⟨hq, hg⟩
 
+/-- For `p ∈ [0, 1]`, a circuit with at most `t` queries has zero compressed amplitude on
+databases with more than `t` records. -/
 theorem databaseXor_support (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W)) (t : ℕ)
     (ht : QueryCount C ≤ t) (q : (I × Bool) × W) (d : I → Bool)
@@ -113,6 +154,8 @@ theorem databaseXor_support (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   exact database_support_bound p hp0 hp1 _ ψ t
     (by simpa only [bitToPhaseCircuitSameInput_queryCount] using! ht) q d hd
 
+/-- Summing compressed joint Born probabilities over databases gives the Bernoulli average of
+ordinary bit oracle Born probabilities. -/
 theorem databaseXor_born_marginal (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (q : (I × Bool) × W) :
@@ -123,6 +166,8 @@ theorem databaseXor_born_marginal (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   simpa only [BornProb, mul_assoc, Complex.mul_conj, Complex.star_def,
     Complex.normSq_eq_norm_sq, ← Complex.ofReal_mul, Complex.ofReal_re] using! h
 
+/-- For `p ∈ [0, 1]`, the compressed execution probability of an algorithm event equals the
+Bernoulli average of its ordinary bit oracle execution probabilities. -/
 theorem databaseXor_event (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (ψ : QState ((I × Bool) × W))
     (S : Finset ((I × Bool) × W)) :
@@ -133,6 +178,8 @@ theorem databaseXor_event (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl fun _ _ => (Finset.mul_sum _ _ _).symm
 
+/-- For `p ∈ [0, 1]`, compressed database execution of a unitary circuit from a normalized
+algorithm state is normalized. -/
 theorem databaseXor_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (hC : IsUnitaryCircuit C)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ) :
@@ -151,6 +198,7 @@ theorem databaseXor_normalized (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     simpa using! hs.symm
   exact h.trans hmass
 
+/-- Applying `U` tensored with the identity acts on each fixed second-register slice by `U`. -/
 private theorem tensor_one_slice {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (U : Matrix A A ℂ) (v : QState (A × B)) (a : A) (b : B) :
     ApplyGate (TensorGate U (1 : Matrix B B ℂ)) v (a, b) =
@@ -158,6 +206,8 @@ private theorem tensor_one_slice {A B : Type} [Fintype A] [DecidableEq A]
   simp [ApplyGate, Matrix.mulVec, dotProduct, tensorGate_apply, Fintype.sum_prod_type,
     Matrix.one_apply, mul_ite]
 
+/-- The database target Hadamard acts by summing over the Boolean response register while fixing
+the address, workspace, and database. -/
 theorem databaseTargetHadamard_apply (v : QState (((I × Bool) × W) × (I → Bool)))
     (j : I) (b : Bool) (w : W) (d : I → Bool) :
     ApplyGate databaseTargetHadamard v (((j, b), w), d) =
@@ -166,6 +216,8 @@ theorem databaseTargetHadamard_apply (v : QState (((I × Bool) × W) × (I → B
   simp [ApplyGate, Matrix.mulVec, dotProduct, tensorGate_apply, Fintype.sum_prod_type,
     Matrix.one_apply, ite_mul]
 
+/-- The compressed oracle acts within each fixed algorithm basis slice by a sum over database
+indices. -/
 private theorem compressedOracle_apply_slice (p : ℝ)
     (v : QState (((I × Bool) × W) × (I → Bool))) (q : (I × Bool) × W) (d : I → Bool) :
     ApplyGate (compressedOracle p) v (q, d) =
@@ -179,6 +231,8 @@ private theorem compressedOracle_apply_slice (p : ℝ)
     rw [compressed_oracle_offdiag p q r d e (Ne.symm hr), zero_mul]
   · simp
 
+/-- The action of the database bit oracle expands as a target Hadamard, compressed oracle
+action, and target Hadamard. -/
 theorem databaseXorOracle_apply (p : ℝ) (v : QState (((I × Bool) × W) × (I → Bool)))
     (j : I) (b : Bool) (w : W) (d : I → Bool) :
     ApplyGate (databaseXorOracle p) v (((j, b), w), d) =
@@ -188,6 +242,8 @@ theorem databaseXorOracle_apply (p : ℝ) (v : QState (((I × Bool) × W) × (I 
   simp only [databaseXorOracle, applyGate_mul, databaseTargetHadamard_apply,
     compressedOracle_apply_slice]
 
+/-- For `p ∈ [0, 1]`, each fixed-address database bit oracle entry is a Hadamard sum of the
+identity branch and the local compressed query branch. -/
 theorem databaseXorOracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (j : I) (b a : Bool) (w : W) (d e : I → Bool) :
     databaseXorOracle p (((j, b), w), d) (((j, a), w), e) =
@@ -211,6 +267,7 @@ theorem databaseXorOracle_entry (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   simp only [mul_ite, mul_zero, Finset.sum_ite_eq'] at h
   simpa only [compressed_oracle_entry p hp0 hp1, Finset.mem_univ, ite_true, mul_assoc] using! h
 
+/-- A database bit oracle matrix entry vanishes when its address or workspace indices differ. -/
 theorem databaseXorOracle_offblock (p : ℝ) (j k : I) (b a : Bool) (w v : W)
     (d e : I → Bool) (h : j ≠ k ∨ w ≠ v) :
     databaseXorOracle p (((j, b), w), d) (((k, a), v), e) = 0 := by
@@ -221,6 +278,8 @@ theorem databaseXorOracle_offblock (p : ℝ) (j k : I) (b a : Bool) (w v : W)
   simpa only [ApplyGate, Matrix.mulVec, dotProduct, Ket, mul_ite, mul_one,
     mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true] using! he
 
+/-- For `p ∈ [0, 1]`, a nonzero database bit oracle entry preserves every database coordinate
+other than the queried address. -/
 theorem databaseXorOracle_locality (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (j : I) (b a : Bool) (w : W) (d e : I → Bool)
     (h : databaseXorOracle p (((j, b), w), d) (((j, a), w), e) ≠ 0) :
@@ -233,6 +292,8 @@ theorem databaseXorOracle_locality (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
   intro c _
   cases c <;> simp [hn, hde]
 
+/-- For `p ∈ [0, 1]`, a nonzero database bit oracle transition increases the record count by at
+most one. -/
 theorem databaseXorOracle_card_step (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (j : I) (b a : Bool) (w : W) (d e : I → Bool)
     (h : databaseXorOracle p (((j, b), w), d) (((j, a), w), e) ≠ 0) :
@@ -247,6 +308,9 @@ theorem databaseXorOracle_card_step (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
         hl k hkj] using! hk
   exact (Finset.card_le_card hs).trans (Finset.card_insert_le _ _)
 
+/-- For a normalized unitary execution with at most `t` queries, the expected value of
+`Nat.choose (databaseCard d) k` is at most `Nat.choose t k * (2 * Real.sqrt (p * (1 - p))) ^
+k` when `p ∈ [0, 1]`. -/
 theorem databaseXor_moment (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (C : Circuit ((I × Bool) × W)) (hC : IsUnitaryCircuit C)
     (ψ : QState ((I × Bool) × W)) (hψ : Normalized ψ)
@@ -261,6 +325,7 @@ theorem databaseXor_moment (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
 
 omit [DecidableEq I] in
 
+/-- A database has at least two records exactly when it records at two distinct addresses. -/
 theorem databaseHasRecords_two_iff (d : I → Bool) :
     databaseHasRecords 2 d ↔
       ∃ j k : I, j ≠ k ∧ databaseRecordsAt j d ∧ databaseRecordsAt k d := by
@@ -275,6 +340,8 @@ theorem databaseHasRecords_two_iff (d : I → Bool) :
         k, (by simpa [databaseSupport] using! hk : k ∈ databaseSupport d), hjk⟩
     omega
 
+/-- For `p ∈ [0, 1]`, two consecutive database bit oracle queries restore the algorithm state
+tensored with the empty database basis state. -/
 theorem databaseXorRun_two_queries (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (ψ : QState ((I × Bool) × W)) :
     databaseXorRun p [Step.query, Step.query] ψ = TensorState ψ (Ket (fun _ => false)) := by

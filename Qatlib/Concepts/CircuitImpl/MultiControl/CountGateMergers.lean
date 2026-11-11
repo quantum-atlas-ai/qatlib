@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliGadget
+
+/-!
+# Commutation and merging of elementary gates
+
+This module provides matrix identities for sliding gates, merging consecutive single-wire gates,
+and replacing equivalent words inside commutators. Disjoint-wire commutation and control-phase
+commutation support the elementary-gate simplifications used in [BarencoEtAl1995].
+
+Adjoint and spectator lemmas transport signed basis actions through unused-wire updates and
+inverses, retaining the scalar factor under the stated hypotheses.
+
+## Main statements
+
+* `source_merge_singles`: Replacement of consecutive `U` and `V` gates by `V * U`.
+* `source_signed_spectator_inverse`: Inverse signed action with an arbitrary spectator value.
+* `source_quad_matrix_congr`: Replacement of equivalent words in a commutator.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,12 +43,15 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators
 
+/-- Two finite complex matrices are equal if their actions agree on every computational basis
+vector. -/
 private theorem matrix_eq_of_ket_action {I : Type} [Fintype I] [DecidableEq I]
     {A B : Matrix I I ℂ} (h : ∀ x, ApplyGate A (Qatlib.Foundations.PureStateMath.Ket x) = ApplyGate B (Qatlib.Foundations.PureStateMath.Ket x)) : A=B := by
   ext y x
   have hh := congrFun (h x) y
   simpa [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket] using! hh
 
+/-- Single-wire matrices on distinct register wires commute. -/
 theorem source_wireGate_commute {N : ℕ} (a b : Fin N) (hab : a ≠ b)
     (U V : Matrix Bool Bool ℂ) :
     wireGate N a U * wireGate N b V = wireGate N b V * wireGate N a U := by
@@ -39,6 +64,7 @@ theorem source_wireGate_commute {N : ℕ} (a b : Fin N) (hab : a ≠ b)
     Function.update_comm hab, Function.update_comm hab]
   module
 
+/-- A CNOT commutes with a single-wire matrix on a wire distinct from its control and target. -/
 theorem source_cnot_wireGate_commute {N : ℕ} (a b w : Fin N)
     (hab : a ≠ b) (hwa : w ≠ a) (hwb : w ≠ b) (U : Matrix Bool Bool ℂ) :
     cnotGate N a b * wireGate N w U = wireGate N w U * cnotGate N a b := by
@@ -50,6 +76,7 @@ theorem source_cnot_wireGate_commute {N : ℕ} (a b w : Fin N)
     Function.update_of_ne hwb]
   rw [Function.update_comm hwb, Function.update_comm hwb]
 
+/-- A CNOT commutes with a diagonal gate on its control wire. -/
 theorem source_cnot_control_phase_commute {N : ℕ} (a b : Fin N)
     (hab : a ≠ b) (d : Bool → ℂ) :
     cnotGate N a b * wireGate N a (diagonal d) =
@@ -65,6 +92,8 @@ theorem source_cnot_control_phase_commute {N : ℕ} (a b : Fin N)
   simp only [applyGate_mul, hd, reflectionApplyGate_smul,
     applyGate_cnotGate_ket N a b hab, Function.update_of_ne hab]
 
+/-- A single-wire matrix commutes with the program matrix of a legal gate word that avoids its
+wire. -/
 theorem source_wireGate_commute_table {N : ℕ} (w : Fin N) (U : Matrix Bool Bool ℂ)
     (gs : List (ReflectionGate N)) (hgs : reflectionLegal gs)
     (havoid : ∀ g ∈ gs, w ∉ reflectionGateWires g) :
@@ -87,6 +116,8 @@ theorem source_wireGate_commute_table {N : ℕ} (w : Fin N) (U : Matrix Bool Boo
     simp only [reflectionProgramMatrix]
     rw [← Matrix.mul_assoc, ih htail hat, Matrix.mul_assoc, hc, ← Matrix.mul_assoc]
 
+/-- A diagonal gate commutes with a legal word whose single-wire gates and CNOT targets avoid
+its wire. -/
 theorem source_controlPhase_commute_table {N : ℕ} (w : Fin N) (d : Bool → ℂ)
     (gs : List (ReflectionGate N)) (hgs : reflectionLegal gs)
     (havoid : ∀ g ∈ gs, match g with
@@ -114,6 +145,8 @@ theorem source_controlPhase_commute_table {N : ℕ} (w : Fin N) (d : Bool → �
     simp only [reflectionProgramMatrix]
     rw [← Matrix.mul_assoc, ih htail hat, Matrix.mul_assoc, hc, ← Matrix.mul_assoc]
 
+/-- A gate can be moved before a prefix word without changing the program matrix when their
+matrices commute. -/
 theorem source_slide_gate {N : ℕ} (g : ReflectionGate N)
     (xs ys : List (ReflectionGate N))
     (hcomm : reflectionGateMatrix g * reflectionProgramMatrix xs =
@@ -124,6 +157,8 @@ theorem source_slide_gate {N : ℕ} (g : ReflectionGate N)
     Matrix.one_mul, Matrix.mul_assoc]
   rw [hcomm]
 
+/-- Two consecutive single-wire gates with matrices `U` and `V` can be merged into one gate with
+matrix `V * U`. -/
 theorem source_merge_singles {N : ℕ} (w : Fin N) (U V : Matrix Bool Bool ℂ)
     (xs ys : List (ReflectionGate N)) :
     reflectionProgramMatrix (xs ++ [.inl (w,U), .inl (w,V)] ++ ys) =
@@ -132,12 +167,15 @@ theorem source_merge_singles {N : ℕ} (w : Fin N) (U V : Matrix Bool Bool ℂ)
     reflectionGateMatrix, Matrix.one_mul]
   rw [← Matrix.mul_assoc, wireGate_mul, Matrix.mul_assoc]
 
+/-- Running a compiled reflection-gate word commutes with complex scalar multiplication of
+states. -/
 theorem source_run_smul {N : ℕ} (gs : List (ReflectionGate N))
     (z : ℂ) (ψ : QState (Reg N)) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile gs) (z • ψ) =
       z • Run 1 (reflectionCompile gs) ψ := by
   simp only [run_reflectionCompile, reflectionApplyGate_smul]
 
+/-- Running the adjoint of a legal gate word after the word itself restores the input state. -/
 theorem source_adjoint_after {N : ℕ} (gs : List (ReflectionGate N))
     (hgs : reflectionLegal gs) (ψ : QState (Reg N)) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile (reflectionAdjoint gs))
@@ -149,6 +187,7 @@ theorem source_adjoint_after {N : ℕ} (gs : List (ReflectionGate N))
       Matrix.mem_unitaryGroup_iff'.mp (reflectionProgramMatrix_unitary gs hgs)
   rw [hu, applyGate_one]
 
+/-- Taking the adjoint of a gate word preserves avoidance of a wire. -/
 theorem source_adjoint_avoids {N : ℕ} (gs : List (ReflectionGate N)) (z : Fin N)
     (havoid : ∀ g ∈ gs, z ∉ reflectionGateWires g) :
     ∀ g ∈ reflectionAdjoint gs, z ∉ reflectionGateWires g := by
@@ -159,6 +198,8 @@ theorem source_adjoint_avoids {N : ℕ} (gs : List (ReflectionGate N)) (z : Fin 
   rcases q with ⟨w,U⟩ | ⟨a,b⟩ <;>
     simpa only [reflectionGateAdjoint, reflectionGateWires] using! ha
 
+/-- If a legal word implements an involutive basis-state map, its adjoint implements the same
+map on basis states. -/
 theorem source_adjoint_involutive_action {N : ℕ} (gs : List (ReflectionGate N))
     (hgs : reflectionLegal gs) (F : Reg N → Reg N) (hF : Function.Involutive F)
     (hrun : ∀ x, Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile gs) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (F x))
@@ -168,11 +209,15 @@ theorem source_adjoint_involutive_action {N : ℕ} (gs : List (ReflectionGate N)
   rw [hrun, hF x] at h
   exact h
 
+/-- A single-wire `PauliX` gate sends a register basis vector to the vector with that wire's bit
+negated. -/
 private theorem wire_flip_ket {N : ℕ} (t : Fin N) (x : Reg N) :
     ApplyGate (wireGate N t PauliX) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t (!x t)) := by
   rw [applyGate_wireGate_ket]
   cases hx : x t <;> simp [PauliX, permMatrix, hx]
 
+/-- A signed basis-state action of a legal word avoiding wire `t` remains valid with the same
+scalar after setting that spectator bit to any Boolean value. -/
 theorem source_signed_spectator_forward {N : ℕ} (gs : List (ReflectionGate N))
     (hgs : reflectionLegal gs) (t : Fin N) (havoid : ∀ g ∈ gs, t ∉ reflectionGateWires g)
     (x y : Reg N) (z : ℂ) (hyt : y t = x t)
@@ -193,6 +238,8 @@ theorem source_signed_spectator_forward {N : ℕ} (gs : List (ReflectionGate N))
     rw [hvf]
     exact hh
 
+/-- If a legal word avoiding `t` sends `Ket x` to `z • Ket y` with `z * z = 1`, its adjoint
+sends the spectator-updated `Ket y` back to the spectator-updated `z • Ket x`. -/
 theorem source_signed_spectator_inverse {N : ℕ} (gs : List (ReflectionGate N))
     (hgs : reflectionLegal gs) (t : Fin N) (havoid : ∀ g ∈ gs, t ∉ reflectionGateWires g)
     (x y : Reg N) (z : ℂ) (hz : z*z=1) (hyt : y t = x t)
@@ -207,6 +254,8 @@ theorem source_signed_spectator_inverse {N : ℕ} (gs : List (ReflectionGate N))
   have hs := congrArg (fun ψ : QState (Reg N) => z • ψ) hh
   simpa only [smul_smul, hz, one_smul] using! hs
 
+/-- Replacing either legal word in a commutator by a legal word with the same program matrix
+preserves the commutator program matrix. -/
 theorem source_quad_matrix_congr {N : ℕ} (as bs xs ys : List (ReflectionGate N))
     (has : reflectionLegal as) (hbs : reflectionLegal bs) (hxs : reflectionLegal xs) (hys : reflectionLegal ys)
     (hA : reflectionProgramMatrix as = reflectionProgramMatrix xs)

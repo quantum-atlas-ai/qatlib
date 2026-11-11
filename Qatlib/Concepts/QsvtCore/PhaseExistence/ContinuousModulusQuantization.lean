@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ContinuousModulusGridSchur
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
 
+/-!
+# Spectral quantization and continuous functional calculus
+
+This module quantizes the spectra of Hermitian contractions on a uniform grid and compares their
+functional-calculus responses through divided differences. `coarseOperator` and `coarseResponse`
+retain an eigenbasis while replacing eigenvalues by lower grid points.
+
+The estimates culminate in `th20_main`, proving the logarithmic modulus-of-continuity bound
+packaged as `Th20MainBound` in the setting of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `coarse_response_distance`: bounds the quantized response difference by a grid harmonic
+  factor.
+* `hermitian_modulus_grid_bound`: bounds the original response difference using the grid size.
+* `th20_main`: establishes the bound with `modulusRobustnessFactor`.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -40,6 +62,7 @@ set_option warningAsError false
 variable {I J K : Type} [Fintype I] [DecidableEq I]
   [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K]
 
+/-- Every ordered eigenvalue of a Hermitian contraction lies in [-1, 1]. -/
 theorem contraction_spectrum {A : Matrix I I ℂ} (hA : A.IsHermitian) (hn : ‖A‖ ≤ 1)
     (i : Fin (Fintype.card I)) : orderedHermitianValues hA i ∈ Set.Icc (-1:ℝ) 1 := by
   have hv := Matrix.l2_opNorm_mulVec A (orderedHermitianBasis hA i)
@@ -51,6 +74,9 @@ theorem contraction_spectrum {A : Matrix I I ℂ} (hA : A.IsHermitian) (hn : ‖
 
 omit [DecidableEq I] in
 
+/-- In the row and column eigenbases, an entry of the difference of two spectral diagonal
+operators is the difference of their spectral coefficients times the corresponding
+basis-overlap entry. -/
 theorem cross_coordinates
     (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (c : OrthonormalBasis K ℂ (EuclideanSpace ℂ I)) (f : J → ℂ) (g : K → ℂ)
@@ -67,6 +93,8 @@ theorem cross_coordinates
   rw [hm,Matrix.sub_apply,Matrix.diagonal_mul,Matrix.mul_diagonal]
   ring
 
+/-- Changing the row and column coordinates by orthonormal bases preserves the operator norm of
+a square matrix. -/
 theorem basis_coordinates_norm
     (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (c : OrthonormalBasis K ℂ (EuclideanSpace ℂ I)) (S : Matrix I I ℂ) :
@@ -92,17 +120,24 @@ theorem basis_coordinates_norm
     ‖S‖ = ‖basisColumns b*((basisColumns b)ᴴ*S*basisColumns c)*(basisColumns c)ᴴ‖ := congrArg norm he.symm
     _ ≤ ‖(basisColumns b)ᴴ*S*basisColumns c‖ := bound _ _ _ hb hc'
 
+/-- The natural floor of 2/δ, giving the number of full grid intervals across [-1, 1] for
+positive spacing δ. -/
 def gridSize (δ : ℝ) : ℕ := Nat.floor (2/δ)
+/-- The kth grid point -1 + δk. -/
 def gridPoint (δ : ℝ) (k : ℕ) : ℝ := -1+δ*k
 
+/-- For positive δ and x in [-1, 1], the natural floor of (x + 1)/δ is at most `gridSize δ`. -/
 theorem gridIndex_le (δ : ℝ) (hδ : 0<δ) (x : ℝ) (hx : x∈Set.Icc (-1:ℝ) 1) :
     Nat.floor ((x+1)/δ)≤gridSize δ := by
   apply Nat.floor_mono
   exact div_le_div_of_nonneg_right (by linarith [hx.2]) hδ.le
 
+/-- The finite grid index given by the natural floor of (x + 1)/δ for x in [-1, 1] and δ > 0. -/
 def gridIndex (δ : ℝ) (hδ : 0<δ) (x : ℝ) (hx : x∈Set.Icc (-1:ℝ) 1) : Fin (gridSize δ+1) :=
   ⟨Nat.floor ((x+1)/δ),Nat.lt_succ_of_le (gridIndex_le δ hδ x hx)⟩
 
+/-- For δ > 0 and x in [-1, 1], rounding x down to its indexed grid point produces an error in
+[0, δ). -/
 theorem gridIndex_error (δ : ℝ) (hδ : 0<δ) (x : ℝ) (hx : x∈Set.Icc (-1:ℝ) 1) :
     0≤x-gridPoint δ (gridIndex δ hδ x hx).val ∧
       x-gridPoint δ (gridIndex δ hδ x hx).val<δ := by
@@ -112,6 +147,7 @@ theorem gridIndex_error (δ : ℝ) (hδ : 0<δ) (x : ℝ) (hx : x∈Set.Icc (-1:
   dsimp [gridPoint,gridIndex]
   constructor <;> nlinarith
 
+/-- Every grid point indexed by `Fin (gridSize δ + 1)` lies in [-1, 1] when δ > 0. -/
 theorem gridPoint_mem (δ : ℝ) (hδ : 0<δ) (k : Fin (gridSize δ+1)) :
     gridPoint δ k.val∈Set.Icc (-1:ℝ) 1 := by
   have hn : (gridSize δ:ℝ)≤2/δ := Nat.floor_le (div_nonneg (by norm_num) hδ.le)
@@ -124,6 +160,7 @@ theorem gridPoint_mem (δ : ℝ) (hδ : 0<δ) (k : Fin (gridSize δ+1)) :
   dsimp [gridPoint]
   constructor <;> linarith
 
+/-- The grid has at least one full interval when 0 < δ ≤ 2. -/
 theorem gridSize_pos (δ : ℝ) (hδ : 0<δ) (hδ2 : δ≤2) : 0<gridSize δ := by
   by_contra hn
   have he : gridSize δ=0 := by omega
@@ -134,6 +171,8 @@ theorem gridSize_pos (δ : ℝ) (hδ : 0<δ) (hδ2 : δ≤2) : 0<gridSize δ := 
   have hb : 1≤2/δ := (one_le_div₀ hδ).mpr hδ2
   linarith
 
+/-- For a response with modulus of continuity ω, the norm of an increment between consecutive
+grid samples is at most ω(δ). -/
 theorem grid_f_increment (δ : ℝ) (hδ : 0<δ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
     (hω : ModulusOfContinuity f ω) (k : Fin (gridSize δ)) :
     ‖gridIncrement (gridSize δ) (fun q => f (gridPoint δ q)) k‖≤ω δ := by
@@ -143,20 +182,26 @@ theorem grid_f_increment (δ : ℝ) (hδ : 0<δ) (f : ℝ → ℂ) (ω : ℝ →
     simp only [gridPoint,Nat.cast_add,Nat.cast_one]; ring
   simpa only [gridIncrement,he,abs_of_pos hδ] using! hh
 
+/-- The lower grid index of an ordered eigenvalue of a Hermitian contraction. -/
 def quantizationIndex {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : ‖A‖≤1)
     (δ : ℝ) (hδ : 0<δ) (i : Fin (Fintype.card I)) : Fin (gridSize δ+1) :=
   gridIndex δ hδ (orderedHermitianValues hA i) (contraction_spectrum hA hA1 i)
 
+/-- The spectral approximation obtained by replacing each eigenvalue of a Hermitian contraction
+with its lower grid point. -/
 def coarseOperator {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : ‖A‖≤1)
     (δ : ℝ) (hδ : 0<δ) : Matrix I I ℂ :=
   spectralDiagonal (orderedHermitianBasis hA)
     (fun i => (gridPoint δ (quantizationIndex hA hA1 δ hδ i).val:ℂ))
 
+/-- The spectral operator obtained by evaluating f at the lower grid point of each eigenvalue of
+a Hermitian contraction. -/
 def coarseResponse {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : ‖A‖≤1)
     (δ : ℝ) (hδ : 0<δ) (f : ℝ → ℂ) : Matrix I I ℂ :=
   spectralDiagonal (orderedHermitianBasis hA)
     (fun i => f (gridPoint δ (quantizationIndex hA hA1 δ hδ i).val))
 
+/-- A Hermitian contraction differs from its coarse grid operator by operator norm at most δ. -/
 theorem coarse_operator_error {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : ‖A‖≤1)
     (δ : ℝ) (hδ : 0<δ) : ‖A-coarseOperator hA hA1 δ hδ‖≤δ := by
   calc
@@ -171,6 +216,8 @@ theorem coarse_operator_error {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : �
       rw [← Complex.ofReal_sub,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg he.1]
       exact he.2.le
 
+/-- For a response with modulus of continuity ω, the functional calculus of a Hermitian
+contraction differs from its coarse response by operator norm at most ω(δ). -/
 theorem coarse_response_error {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : ‖A‖≤1)
     (δ : ℝ) (hδ : 0<δ) (f : ℝ → ℂ) (ω : ℝ → ℝ) (hω : ModulusOfContinuity f ω) :
     ‖hermitianFunction A hA f-coarseResponse hA hA1 δ hδ f‖≤ω δ := by
@@ -185,6 +232,8 @@ theorem coarse_response_error {A : Matrix I I ℂ} (hA : A.IsHermitian) (hA1 : �
   rw [abs_of_nonneg he.1]
   exact he.2.le
 
+/-- If two Hermitian contractions are within δ in operator norm, their coarse grid operators are
+within 3δ. -/
 theorem coarse_pair_distance {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖≤1) (hB1 : ‖B‖≤1) (δ : ℝ) (hδ : 0<δ) (hAB : ‖A-B‖≤δ) :
     ‖coarseOperator hA hA1 δ hδ-coarseOperator hB hB1 δ hδ‖≤3*δ := by
@@ -201,12 +250,16 @@ theorem coarse_pair_distance {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B
     _ ≤ (δ+δ)+δ := add_le_add (add_le_add ha hAB) hb
     _ = _ := by ring
 
+/-- The matrix whose (i, j) entry is the difference of the row and column grid indices times the
+corresponding entry of W. -/
 def indexDifference (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (W : Matrix I J ℂ) : Matrix I J ℂ := fun i j =>
   (((r i).val:ℂ)-((c j).val:ℂ))*W i j
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] [Fintype K] [DecidableEq K] in
 
+/-- The entrywise product of the grid divided-difference matrix and `indexDifference` equals the
+sampled response difference multiplied entrywise by W. -/
 theorem gridDividedDifference_index (n : ℕ) (r : I → Fin (n+1)) (c : J → Fin (n+1))
     (z : ℕ → ℂ) (W : Matrix I J ℂ) :
     gridDividedDifference n r c z ⊙ indexDifference n r c W=
@@ -224,6 +277,8 @@ theorem gridDividedDifference_index (n : ℕ) (r : I → Fin (n+1)) (c : J → F
 
 omit [DecidableEq I] in
 
+/-- In mixed spectral coordinates, the difference of two grid-valued spectral operators equals δ
+times the index-difference matrix of the basis overlaps. -/
 theorem grid_coordinates
     (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (c : OrthonormalBasis K ℂ (EuclideanSpace ℂ I)) (δ : ℝ) (n : ℕ)
@@ -237,6 +292,8 @@ theorem grid_coordinates
   push_cast
   ring
 
+/-- If two Hermitian contractions are within δ > 0, the index-difference matrix formed from
+their quantization indices and basis overlaps has operator norm at most three. -/
 theorem coarse_index_norm {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖≤1) (hB1 : ‖B‖≤1) (δ : ℝ) (hδ : 0<δ) (hAB : ‖A-B‖≤δ) :
     ‖indexDifference (gridSize δ) (quantizationIndex hA hA1 δ hδ) (quantizationIndex hB hB1 δ hδ)
@@ -258,6 +315,9 @@ theorem coarse_index_norm {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.Is
     _ ≤ 3*δ := coarse_pair_distance hA hB hA1 hB1 δ hδ hAB
     _ = δ*3 := by ring
 
+/-- Expresses the difference of two coarse responses in their mixed eigenbases as the entrywise
+product of a grid divided-difference matrix and the index-difference matrix of the basis
+overlaps. -/
 theorem coarse_response_coordinates {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖≤1) (hB1 : ‖B‖≤1) (δ : ℝ) (hδ : 0<δ) (f : ℝ → ℂ) :
     (basisColumns (orderedHermitianBasis hA)).conjTranspose*(coarseResponse hA hA1 δ hδ f-
@@ -271,10 +331,13 @@ theorem coarse_response_coordinates {A B : Matrix I I ℂ} (hA : A.IsHermitian) 
   ext i j
   exact cross_coordinates _ _ _ _ i j
 
+/-- The finite odd harmonic sum `oddHarmonic n` is nonnegative. -/
 theorem oddHarmonic_nonneg (n : ℕ) : 0≤oddHarmonic n := by
   unfold oddHarmonic
   exact Finset.sum_nonneg (fun _ _ => by positivity)
 
+/-- For Hermitian contractions within δ > 0 and a response with modulus ω, bounds the coarse
+response difference by `6 * ω δ * oddHarmonic (gridSize δ)`. -/
 theorem coarse_response_distance {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖≤1) (hB1 : ‖B‖≤1) (δ : ℝ) (hδ : 0<δ) (hAB : ‖A-B‖≤δ)
     (f : ℝ → ℂ) (ω : ℝ → ℝ) (hω : ModulusOfContinuity f ω) :
@@ -297,6 +360,8 @@ theorem coarse_response_distance {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB
       (mul_nonneg (mul_nonneg (by norm_num) hD) (oddHarmonic_nonneg _))
     _ = _ := by ring
 
+/-- For Hermitian contractions within δ > 0, the functional-calculus response difference is at
+most `(8 + 6 * Real.log (gridSize δ)) * ω δ` when ω is a modulus of continuity. -/
 theorem hermitian_modulus_grid_bound {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian)
     (hA1 : ‖A‖≤1) (hB1 : ‖B‖≤1) (δ : ℝ) (hδ : 0<δ) (hAB : ‖A-B‖≤δ)
     (f : ℝ → ℂ) (ω : ℝ → ℝ) (hω : ModulusOfContinuity f ω) :
@@ -321,6 +386,7 @@ theorem hermitian_modulus_grid_bound {A B : Matrix I I ℂ} (hA : A.IsHermitian)
     _ ≤ _ := mul_le_mul_of_nonneg_right
       (by have hh := oddHarmonic_le (gridSize δ); linarith) (modulus_nonneg hω hδ.le)
 
+/-- The natural logarithm of three is at least one. -/
 private theorem log_three_ge_one : (1:ℝ)≤Real.log 3 := by
   have h8 : Real.log (8:ℝ)=3*Real.log 2 := by
     rw [show (8:ℝ)=2^3 by norm_num,Real.log_pow]
@@ -332,6 +398,8 @@ private theorem log_three_ge_one : (1:ℝ)≤Real.log 3 := by
   rw [h8,h9] at hm
   linarith [Real.log_two_gt_d9]
 
+/-- For 0 < δ ≤ 2, the coefficient `8 + 6 * Real.log (gridSize δ)` is at most
+`modulusRobustnessFactor δ`. -/
 theorem grid_printed_coefficient (δ : ℝ) (hδ : 0<δ) (hδ2 : δ≤2) :
     8+6*Real.log (gridSize δ) ≤ modulusRobustnessFactor δ := by
   have hnpos := gridSize_pos δ hδ hδ2
@@ -355,6 +423,9 @@ theorem grid_printed_coefficient (δ : ℝ) (hδ : 0<δ) (hδ2 : δ≤2) :
     unfold modulusRobustnessFactor
     nlinarith [sq_nonneg (Real.log (2/δ+1)-1)]
 
+/-- Establishes `Th20MainBound`, bounding the functional-calculus difference of Hermitian
+contractions at positive distance by their modulus of continuity times
+`modulusRobustnessFactor` [Gilyén et al., Theorem 20][GilyenSuLowWiebe2019]. -/
 theorem th20_main : Th20MainBound := by
   intro H _ _ A B hA hB f ω hA1 hB1 hω hδ
   have hg := hermitian_modulus_grid_bound hA hB hA1 hB1 ‖A-B‖ hδ (le_refl _) f ω hω

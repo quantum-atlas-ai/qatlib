@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Bridge
+
+/-!
+# Contracting components in a bridge decomposition
+
+This module proves geometric-decay estimates for scalar recurrences and their vector components.
+For a bridge between orthogonal complementary subspaces, it finds a unit vector whose projected
+image has norm less than one and whose complementary component is nonzero. See
+[AharonovArad2011].
+
+## Main statements
+
+* `contraction_recurrence`: solves a scalar multiplicative recurrence.
+* `contraction_approach_B`: makes the recurrent component arbitrarily small.
+* `bridge_contraction_factor`: finds a strictly contracting projected image.
+
+## References
+
+* [Aharonov and Arad, 2011][AharonovArad2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,8 @@ namespace Qatlib.Papers.BQPJonesPoly06.MainResults.Model
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
 
+/-- If `‖a‖ < 1`, the values `‖c * a ^ n‖` become smaller than any positive tolerance. See
+[Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem geom_decay_complex (a c : ℂ) (ha : ‖a‖ < 1) :
     ∀ ε : ℝ, 0 < ε → ∃ n : ℕ, ‖c * a ^ n‖ < ε := by
   intro ε hε
@@ -23,6 +45,8 @@ theorem geom_decay_complex (a c : ℂ) (ha : ‖a‖ < 1) :
   obtain ⟨N, hN⟩ := (Metric.tendsto_atTop.mp hc) ε hε
   exact ⟨N, by simpa [dist_eq_norm] using hN N le_rfl⟩
 
+/-- If `0 ≤ r < 1`, some `c * r ^ n` is smaller than any given positive tolerance, for every
+real `c`. See [Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem geom_decay_real (r c : ℝ) (hr0 : 0 ≤ r) (hr : r < 1) :
     ∀ ε : ℝ, 0 < ε → ∃ n : ℕ, c * r ^ n < ε := by
   intro ε hε
@@ -35,6 +59,8 @@ theorem geom_decay_real (r c : ℝ) (hr0 : 0 ≤ r) (hr : r < 1) :
   rw [Real.dist_eq, sub_zero] at h
   exact ⟨N, lt_of_le_of_lt (le_abs_self _) h⟩
 
+/-- A scalar sequence satisfying `x (n + 1) = a * x n` has the form `x n = x 0 * a ^ n`. See
+[Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem contraction_recurrence (x : ℕ → ℂ) (a : ℂ)
     (hx : ∀ n, x (n + 1) = a * x n) :
     ∀ n, x n = x 0 * a ^ n := by
@@ -45,6 +71,9 @@ theorem contraction_recurrence (x : ℕ → ℂ) (a : ℂ)
 
 omit [FiniteDimensional ℂ E] in
 
+/-- For a unit vector `u`, a scalar recurrence with multiplier of norm less than one yields
+arbitrarily small values of `‖(x n) • u‖`. See [Aharonov and Arad, Lemma
+6.1][AharonovArad2011]. -/
 theorem contraction_A_component_decay (u : E) (hu : ‖u‖ = 1) (x : ℕ → ℂ) (a : ℂ)
     (hx : ∀ n, x (n + 1) = a * x n) (ha : ‖a‖ < 1) :
     ∀ ε : ℝ, 0 < ε → ∃ n : ℕ, ‖(x n) • u‖ < ε := by
@@ -56,6 +85,8 @@ theorem contraction_A_component_decay (u : E) (hu : ‖u‖ = 1) (x : ℕ → �
 
 omit [FiniteDimensional ℂ E] in
 
+/-- Some term `(x n) • u + β • v` lies arbitrarily close to `β • v` when the scalar recurrence
+multiplier has norm less than one. See [Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem contraction_approach_B (u v : E) (hu : ‖u‖ = 1) (x : ℕ → ℂ) (a β : ℂ)
     (hx : ∀ n, x (n + 1) = a * x n) (ha : ‖a‖ < 1) :
     ∀ ε : ℝ, 0 < ε →
@@ -67,10 +98,14 @@ theorem contraction_approach_B (u v : E) (hu : ‖u‖ = 1) (x : ℕ → ℂ) (a
   rw [hsimp]
   exact hN
 
+/-- The orthogonal projection of `x` onto `A` belongs to `A`. -/
 theorem starProjection_mem (A : Submodule ℂ E) (x : E) : A.starProjection x ∈ A := by
   rw [Submodule.starProjection_apply]
   exact Subtype.coe_prop _
 
+/-- A bridge between orthogonal complementary subspaces has a unit vector in `A` whose image
+projects onto `A` with norm less than one. See [Aharonov and Arad, Lemma
+6.1][AharonovArad2011]. -/
 theorem bridge_contraction_factor {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (W : E ≃ₗᵢ[ℂ] E) (hW : IsBridge A B W) :
     ∃ u ∈ A, ‖u‖ = 1 ∧ ‖A.starProjection (W u)‖ < 1 := by
@@ -100,6 +135,8 @@ theorem bridge_contraction_factor {A B : Submodule ℂ E} (hBA : Aᗮ = B)
   have hPsq : ‖A.starProjection (W u)‖ ^ 2 < 1 := by nlinarith
   nlinarith [norm_nonneg (A.starProjection (W u))]
 
+/-- A bridge between orthogonal complementary subspaces has a unit vector in `A` whose image has
+a nonzero component orthogonal to `A`. See [Aharonov and Arad, Lemma 6.1][AharonovArad2011]. -/
 theorem bridge_b_component_ne_zero {A B : Submodule ℂ E} (hBA : Aᗮ = B)
     (W : E ≃ₗᵢ[ℂ] E) (hW : IsBridge A B W) :
     ∃ u ∈ A, ‖u‖ = 1 ∧ (W u : E) - A.starProjection (W u) ≠ 0 := by

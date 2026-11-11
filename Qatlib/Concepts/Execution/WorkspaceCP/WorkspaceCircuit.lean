@@ -8,6 +8,32 @@ import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceEmbedding
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
 import Qatlib.Concepts.Execution.WorkspaceCP.InstrumentIsometryPadding
 import Mathlib.Logic.Equiv.Fin.Basic
+
+/-!
+# Compilation of circuits with changing workspace
+
+`WorkspaceCircuit` describes finite circuits whose instrument branches can change the auxiliary
+dimension. Its trace semantics records terminal states, outcomes, acceptance, and query counts;
+`workspaceCapacity` and `workspaceFits` bound all intermediate workspace dimensions.
+
+The compiler `compileWorkspaceCircuit` embeds such a circuit into a fixed ambient workspace and
+adds a complementary instrument outcome. It preserves restored outcome statistics and expected
+query counts exactly. Quantum instruments and their trace semantics are treated in
+[Watrous2018].
+
+## Main statements
+
+* `workspaceTraces_total`: well-formed circuits with a unitary oracle preserve total trace mass.
+* `workspaceCircuit_compile_statistic`: compilation preserves statistics of acceptance and
+  restored records.
+* `workspaceCircuit_compile_expected`: compilation preserves the unconditioned expected query
+  count.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -25,6 +51,8 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical ComplexOrder
 
+/-- A terminal execution record carrying its workspace width, unnormalized state, acceptance
+flag, query count, and instrument outcomes. -/
 structure WorkspaceTrace (d : ℕ) where
   width : ℕ
   state : Operator (d*width)
@@ -32,6 +60,8 @@ structure WorkspaceTrace (d : ℕ) where
   queries : ℕ
   outcomes : List (ℕ×ℕ)
 
+/-- A finite circuit with halting, gates, oracle queries, and instruments that may change the
+workspace width. -/
 inductive WorkspaceCircuit (d : ℕ) : ℕ → Type where
   | halt {k : ℕ} (accepted : Bool) : WorkspaceCircuit d k
   | gate {k : ℕ} (G : Operator (d*k)) (next : WorkspaceCircuit d k) : WorkspaceCircuit d k
@@ -39,12 +69,15 @@ inductive WorkspaceCircuit (d : ℕ) : ℕ → Type where
   | instrument {k : ℕ} (s l : ℕ) (I : Instrument (Fin s) (d*k) (d*l))
       (next : Fin s → WorkspaceCircuit d l) : WorkspaceCircuit d k
 
+/-- Every gate in the workspace circuit is unitary, recursively along all instrument branches. -/
 def workspaceCircuitWellFormed {d : ℕ} : {k : ℕ} → WorkspaceCircuit d k → Prop
   | _, .halt _ => True
   | _, .gate G next => G ∈ Matrix.unitaryGroup _ ℂ ∧ workspaceCircuitWellFormed next
   | _, .query next => workspaceCircuitWellFormed next
   | _, .instrument _ _ _ next => ∀ o, workspaceCircuitWellFormed (next o)
 
+/-- The list of terminal traces obtained by executing a workspace circuit with oracle `U` on an
+input operator. -/
 noncomputable def workspaceTraces {d : ℕ} (U : Operator d) :
     {k : ℕ} → WorkspaceCircuit d k → Operator (d*k) → List (WorkspaceTrace d)
   | k, .halt b, rho => [⟨k, rho, b, 0, []⟩]
@@ -56,18 +89,25 @@ noncomputable def workspaceTraces {d : ℕ} (U : Operator d) :
       (List.ofFn fun o : Fin s => (workspaceTraces U (next o) (I.branch o rho)).map fun t =>
         {t with outcomes := (s,o.val)::t.outcomes}).flatten
 
+/-- The real part of the trace of a terminal state's operator. -/
 noncomputable def workspaceMass {d : ℕ} (t : WorkspaceTrace d) : ℝ :=
   (trace t.state).re
 
+/-- The sum of terminal trace masses weighted by a function of acceptance and the outcome
+record. -/
 noncomputable def workspaceCircuitStatistic {d k : ℕ} (U : Operator d)
     (P : WorkspaceCircuit d k) (rho : Operator (d*k))
     (f : Bool → List (ℕ×ℕ) → ℝ) : ℝ :=
   ((workspaceTraces U P rho).map fun t => workspaceMass t * f t.accepted t.outcomes).sum
 
+/-- The sum of terminal query counts weighted by their trace masses, without conditioning on
+acceptance. -/
 noncomputable def workspaceCircuitExpectedQueries {d k : ℕ} (U : Operator d)
     (P : WorkspaceCircuit d k) (rho : Operator (d*k)) : ℝ :=
   ((workspaceTraces U P rho).map fun t => workspaceMass t * t.queries).sum
 
+/-- Every terminal state is positive semidefinite when the input operator is positive
+semidefinite. -/
 theorem workspaceTraces_posSemidef {d k : ℕ} (U : Operator d)
     (P : WorkspaceCircuit d k) (rho : Operator (d*k)) (hrho : rho.PosSemidef)
     (t : WorkspaceTrace d) (ht : t ∈ workspaceTraces U P rho) : t.state.PosSemidef := by
@@ -87,6 +127,8 @@ theorem workspaceTraces_posSemidef {d k : ℕ} (U : Operator d)
       obtain ⟨u,hu,rfl⟩ := List.mem_map.mp ht
       exact ih o _ ((I.cp o).positive hrho) u hu
 
+/-- For a well-formed circuit and unitary oracle, the sum of terminal masses equals the real
+part of the input trace. -/
 theorem workspaceTraces_total {d k : ℕ} (U : Operator d)
     (hU : U ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (P : WorkspaceCircuit d k) (hP : workspaceCircuitWellFormed P) (rho : Operator (d*k)) :
@@ -107,6 +149,7 @@ theorem workspaceTraces_total {d k : ℕ} (U : Operator d)
       simp_rw [ih _ (hP _)]
       exact sum_instrumentProb I rho
 
+/-- The expected query count is nonnegative on a positive semidefinite input. -/
 theorem workspaceCircuitExpectedQueries_nonneg {d k : ℕ} (U : Operator d)
     (P : WorkspaceCircuit d k) (rho : Operator (d*k)) (hrho : rho.PosSemidef) :
     0 ≤ workspaceCircuitExpectedQueries U P rho := by
@@ -117,18 +160,22 @@ theorem workspaceCircuitExpectedQueries_nonneg {d k : ℕ} (U : Operator d)
   exact mul_nonneg ((RCLike.nonneg_iff.mp
     (workspaceTraces_posSemidef U P rho hrho t ht).trace_nonneg).1) (Nat.cast_nonneg _)
 
+/-- The largest workspace width occurring in a finite circuit, including its input and
+instrument output widths. -/
 def workspaceCapacity {d : ℕ} : {k : ℕ} → WorkspaceCircuit d k → ℕ
   | k, .halt _ => k
   | k, .gate _ next => max k (workspaceCapacity next)
   | k, .query next => max k (workspaceCapacity next)
   | k, .instrument _ l _ next => max k (max l (Finset.univ.sup fun o => workspaceCapacity (next o)))
 
+/-- All input, output, and recursively encountered workspace widths are at most `K`. -/
 def workspaceFits {d : ℕ} (K : ℕ) : {k : ℕ} → WorkspaceCircuit d k → Prop
   | k, .halt _ => k ≤ K
   | k, .gate _ next => k ≤ K ∧ workspaceFits K next
   | k, .query next => k ≤ K ∧ workspaceFits K next
   | k, .instrument _ l _ next => k ≤ K ∧ l ≤ K ∧ ∀ o, workspaceFits K (next o)
 
+/-- A circuit fitting into width `K` has input width at most `K`. -/
 theorem workspaceFits_input_le {d k K : ℕ} (P : WorkspaceCircuit d k)
     (hfit : workspaceFits K P) : k ≤ K := by
   cases P with
@@ -137,6 +184,7 @@ theorem workspaceFits_input_le {d k K : ℕ} (P : WorkspaceCircuit d k)
   | query next => exact hfit.1
   | instrument s l I next => exact hfit.1
 
+/-- A bound on `workspaceCapacity` ensures that the circuit fits into the given ambient width. -/
 theorem workspaceFits_of_capacity_le {d k : ℕ} (P : WorkspaceCircuit d k) (K : ℕ)
     (h : workspaceCapacity P ≤ K) : workspaceFits K P := by
   induction P with
@@ -151,6 +199,8 @@ theorem workspaceFits_of_capacity_le {d k : ℕ} (P : WorkspaceCircuit d k) (K :
       exact (Finset.le_sup (f := fun o => workspaceCapacity (next o)) (Finset.mem_univ o)).trans
         ((Nat.le_max_right _ _).trans ((Nat.le_max_right _ _).trans h))
 
+/-- The fixed-workspace version of an instrument, with one extra outcome for the complement of
+the embedded input space. -/
 private noncomputable def workspacePaddedInstrument {d k l K s : ℕ}
     (hk : k ≤ K) (hl : l ≤ K) (I : Instrument (Fin s) (d*k) (d*l)) :
     Instrument (Fin (s+1)) (d*K) (d*K) :=
@@ -166,6 +216,7 @@ private noncomputable def workspacePaddedInstrument {d k l K s : ℕ}
       change trace (∑ a : Fin (s+1), J.branch (finSuccEquiv s a) A) = trace A
       exact (congrArg trace ((finSuccEquiv s).sum_comp (fun o => J.branch o A))).trans (J.total A))
 
+/-- The extra complementary outcome has zero output on an embedded input operator. -/
 private theorem workspacePaddedInstrument_none {d k l K s : ℕ}
     (hk : k ≤ K) (hl : l ≤ K) (I : Instrument (Fin s) (d*k) (d*l)) (A : Operator (d*k)) :
     (workspacePaddedInstrument hk hl I).branch 0 (conjBranch (workspaceEmbedding (d := d) hk) A) = 0 := by
@@ -177,6 +228,8 @@ private theorem workspacePaddedInstrument_none {d k l K s : ℕ}
     (workspaceEmbedding (d := d) hk) (workspaceEmbedding_isometry (d := d) hk)
     (workspaceEmbedding (d := d) hl) (workspaceEmbedding_isometry (d := d) hl) A
 
+/-- On an embedded input, each original outcome of the padded instrument returns the embedded
+original branch output. -/
 private theorem workspacePaddedInstrument_some {d k l K s : ℕ}
     (hk : k ≤ K) (hl : l ≤ K) (I : Instrument (Fin s) (d*k) (d*l))
     (o : Fin s) (A : Operator (d*k)) :
@@ -191,6 +244,8 @@ private theorem workspacePaddedInstrument_some {d k l K s : ℕ}
     (workspaceEmbedding (d := d) hk) (workspaceEmbedding_isometry (d := d) hk)
     (workspaceEmbedding (d := d) hl) (workspaceEmbedding_isometry (d := d) hl) o A
 
+/-- Compile a workspace circuit into an instrument circuit of width `K`, using padded
+instruments and completed gates. -/
 noncomputable def compileWorkspaceCircuit {d : ℕ} (K : ℕ) :
     {k : ℕ} → (P : WorkspaceCircuit d k) → workspaceFits K P → InstrumentCircuit (d*K)
   | _, .halt b, _ => .halt b
@@ -203,6 +258,8 @@ noncomputable def compileWorkspaceCircuit {d : ℕ} (K : ℕ) :
           | none => .halt false
           | some o => compileWorkspaceCircuit K (next o) (hfit.2.2 o))
 
+/-- Recover the original instrument outcome record from a compiled circuit's record by removing
+the padding offsets. -/
 def restoreWorkspaceRecord {d : ℕ} : {k : ℕ} → WorkspaceCircuit d k →
     List (ℕ×ℕ) → List (ℕ×ℕ)
   | _, .halt _, rec => rec
@@ -215,6 +272,7 @@ def restoreWorkspaceRecord {d : ℕ} : {k : ℕ} → WorkspaceCircuit d k →
         | some o => (s,o.val)::restoreWorkspaceRecord (next o) rec
       else []
 
+/-- Compilation into a fitting ambient workspace preserves circuit well-formedness. -/
 theorem compileWorkspaceCircuit_wellFormed {d k : ℕ} (K : ℕ) (P : WorkspaceCircuit d k)
     (hfit : workspaceFits K P) (hP : workspaceCircuitWellFormed P) :
     instrumentCircuitWellFormed (compileWorkspaceCircuit K P hfit) := by
@@ -229,6 +287,8 @@ theorem compileWorkspaceCircuit_wellFormed {d k : ℕ} (K : ℕ) (P : WorkspaceC
       | none => simp only [h, instrumentCircuitWellFormed]
       | some o => simpa only [h] using! ih o (hfit.2.2 o) (hP o)
 
+/-- Compilation preserves every trace-weighted payoff depending on acceptance, query count, and
+the restored outcome record. -/
 private theorem workspace_compile_payoff {d k : ℕ} (U : Operator d) (K : ℕ)
     (P : WorkspaceCircuit d k) (hfit : workspaceFits K P)
     (rho : Operator (d*k)) (f : Bool → ℕ → List (ℕ×ℕ) → ℝ) :
@@ -269,6 +329,8 @@ private theorem workspace_compile_payoff {d k : ℕ} (U : Operator d) (K : ℕ)
       simpa only [restoreWorkspaceRecord, Fin.val_succ, Fin.isLt, Nat.succ_lt_succ_iff,
         dif_pos, finSuccEquiv_succ, workspaceMass] using! h
 
+/-- Compilation preserves every trace-weighted statistic of acceptance and restored instrument
+outcomes. -/
 theorem workspaceCircuit_compile_statistic {d k : ℕ} (U : Operator d) (K : ℕ)
     (P : WorkspaceCircuit d k) (hfit : workspaceFits K P)
     (rho : Operator (d*k)) (f : Bool → List (ℕ×ℕ) → ℝ) :
@@ -279,6 +341,7 @@ theorem workspaceCircuit_compile_statistic {d k : ℕ} (U : Operator d) (K : ℕ
     workspaceCircuitStatistic U P rho f :=
   workspace_compile_payoff U K P hfit rho (fun b _ rec => f b rec)
 
+/-- Compilation preserves the unconditioned expected number of oracle queries exactly. -/
 theorem workspaceCircuit_compile_expected {d k : ℕ} (U : Operator d) (K : ℕ)
     (P : WorkspaceCircuit d k) (hfit : workspaceFits K P)
     (rho : Operator (d*k)) :

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Boolean cube characters and Krawtchouk sums
+
+Defines Boolean cube characters, Hamming weight and distance, and character correlations of
+finite distributions. `cubeChar_mul` and `cubeChar_pair` give the character product identities,
+while `krawtchouk_char_sum` expresses the sum of fixed-weight characters as a Krawtchouk
+polynomial. For Boolean Fourier methods in quantum learning, see [AticiServedio2007].
+
+## Main statements
+
+* `cubeChar_mul`: The product of two Boolean cube characters is the character indexed by the
+  symmetric difference of their coordinate sets.
+* `cubeChar_pair`: Multiplying the values of one character at two registers gives its value on
+  their coordinatewise equality register.
+* `krawtchouk_char_sum`: The sum of all weight-`k` Boolean cube characters at `x` equals
+  `krawtchouk N k (cubeWeight x)`.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
@@ -13,30 +36,43 @@ namespace Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
 
+/-- The Boolean cube character on `S`, the product of signs taking value one at true coordinates
+and minus one at false coordinates. -/
 def cubeChar {N : ℕ} (S : Finset (Fin N)) (x : Reg N) : ℝ :=
   ∏ i ∈ S, if x i then 1 else -1
 
+/-- The number of false coordinates in a Boolean register. -/
 def cubeWeight {N : ℕ} (x : Reg N) : ℕ := ∑ i, if x i then 0 else 1
 
+/-- The Hamming distance between two Boolean registers, computed as the number of false
+coordinates in their coordinatewise equality register. -/
 def cubeDist {N : ℕ} (x y : Reg N) : ℕ := cubeWeight fun i => x i == y i
 
+/-- The expectation of the character `cubeChar S` under the finite distribution `p`. -/
 def cubeAlpha {N : ℕ} (p : FinDist (Reg N)) (S : Finset (Fin N)) : ℝ :=
   p.expect (cubeChar S)
 
+/-- The sum of squared character expectations over all coordinate subsets of cardinality `k`. -/
 def cubeAlphaWeightMass {N : ℕ} (p : FinDist (Reg N)) (k : ℕ) : ℝ :=
   ∑ S ∈ Finset.univ.powerset.filter (fun S => S.card = k), (cubeAlpha p S) ^ 2
 
+/-- The sum of squared character expectations over all nonempty coordinate subsets. -/
 def cubeAlphaTotalMass {N : ℕ} (p : FinDist (Reg N)) : ℝ :=
   ∑ S ∈ Finset.univ.powerset.erase ∅, (cubeAlpha p S) ^ 2
 
+/-- The predicate that the weight-`k` squared-correlation mass is at least `β` times both the
+total nonconstant squared-correlation mass and `Δ`. -/
 def IsCorrelationConcentrated {N : ℕ} (p : FinDist (Reg N)) (Δ : ℝ) (k : ℕ) (β : ℝ) : Prop :=
   β * cubeAlphaTotalMass p ≤ cubeAlphaWeightMass p k ∧
     β * Δ ≤ cubeAlphaWeightMass p k
 
+/-- The real-valued Krawtchouk sum `∑ j ≤ k, (-1) ^ j * choose t j * choose (N - t) (k - j)`. -/
 def krawtchouk (N k t : ℕ) : ℝ :=
   ∑ j ∈ Finset.range (k + 1),
     (-1 : ℝ) ^ j * (Nat.choose t j : ℝ) * (Nat.choose (N - t) (k - j) : ℝ)
 
+/-- The uniform finite distribution on Boolean registers of length `N`, assigning mass `(1 / 2)
+^ N` to each register. -/
 noncomputable def cubeUniformDist (N : ℕ) : FinDist (Reg N) where
   prob _ := (1 / 2 : ℝ) ^ N
   nonneg _ := by positivity
@@ -45,6 +81,8 @@ noncomputable def cubeUniformDist (N : ℕ) : FinDist (Reg N) where
 
 open scoped Classical symmDiff
 
+/-- The product of two Boolean cube characters is the character indexed by the symmetric
+difference of their coordinate sets. -/
 theorem cubeChar_mul {N : ℕ} (S T : Finset (Fin N)) (x : Reg N) :
     cubeChar S x * cubeChar T x = cubeChar (S ∆ T) x := by
   classical
@@ -82,6 +120,8 @@ theorem cubeChar_mul {N : ℕ} (S T : Finset (Fin N)) (x : Reg N) :
         · simp [Finset.mem_symmDiff, Finset.mem_insert, hia]
       rw [hunion, hcube a S ha, hcube a _ hnot, mul_assoc, ih]
 
+/-- Multiplying the values of one character at two registers gives its value on their
+coordinatewise equality register. -/
 theorem cubeChar_pair {N : ℕ} (S : Finset (Fin N)) (a b : Reg N) :
     cubeChar S a * cubeChar S b = cubeChar S (fun i => a i == b i) := by
   classical
@@ -89,6 +129,8 @@ theorem cubeChar_pair {N : ℕ} (S : Finset (Fin N)) (a b : Reg N) :
   refine Finset.prod_congr rfl fun i _ => ?_
   by_cases hxa : a i <;> by_cases hxb : b i <;> simp [hxa, hxb]
 
+/-- The sum of all weight-`k` Boolean cube characters at `x` equals `krawtchouk N k (cubeWeight
+x)`. -/
 theorem krawtchouk_char_sum {N k : ℕ} (x : Reg N) :
     ∑ S ∈ Finset.univ.powerset.filter (fun S => S.card = k), cubeChar S x
       = krawtchouk N k (cubeWeight x) := by

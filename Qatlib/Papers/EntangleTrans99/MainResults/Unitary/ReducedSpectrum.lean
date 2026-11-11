@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.EntangleTrans99.MainResults.Unitary.SchmidtUnitary
+
+/-!
+# Reduced spectra and local unitary conjugation
+
+This module proves unitary conjugacy of Hermitian matrices with equal eigenvalue functions and
+applies this to reduced matrices of normalized bipartite pure states with equal Schmidt spectra.
+These results support the local-unitary spectral analysis in [Nielsen1999].
+
+It also relates a unitary on the first subsystem to conjugation of its reduced matrix and proves
+that `schmidtRotated` preserves the Schmidt spectrum while making the reduced matrix diagonal.
+
+## Main statements
+
+* `exists_unitary_conj_of_eigenvalues_eq`: constructs a unitary conjugation from equality of
+  spectra.
+* `reducedHermitian_apply_tensorLeft`: describes the reduced matrix after a local unitary.
+* `reducedHermitian_schmidtRotated`: identifies the diagonal reduced matrix in Schmidt
+  coordinates.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +49,8 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 
 variable {D E : ℕ}
 
+/-- Hermitian matrices with equal indexed eigenvalue functions are conjugate by a unitary matrix
+[Nielsen1999]. -/
 theorem exists_unitary_conj_of_eigenvalues_eq {d : ℕ} (A B : HermitianMat (Fin d) ℂ)
     (h : A.H.eigenvalues = B.H.eigenvalues) :
     ∃ U : Matrix.unitaryGroup (Fin d) ℂ,
@@ -61,6 +87,8 @@ theorem exists_unitary_conj_of_eigenvalues_eq {d : ℕ} (A B : HermitianMat (Fin
           X.conj ((UA * UB⁻¹ : Matrix.unitaryGroup (Fin d) ℂ) :
             Matrix (Fin d) (Fin d) ℂ)) hB.symm
 
+/-- Normalized bipartite pure states with equal Schmidt spectra have unitarily conjugate reduced
+Hermitian matrices on the first subsystem [Nielsen1999]. -/
 theorem reducedHermitian_unitary_conj_of_spectrum_eq
     (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (φ : QState (Fin D × Fin E)) (hφ : Normalized φ)
@@ -69,6 +97,8 @@ theorem reducedHermitian_unitary_conj_of_spectrum_eq
       reducedHermitian ψ hψ = (reducedHermitian φ hφ).conj (U : Matrix (Fin D) (Fin D) ℂ) :=
   exists_unitary_conj_of_eigenvalues_eq (reducedHermitian ψ hψ) (reducedHermitian φ hφ) h
 
+/-- Applying a unitary to the first subsystem conjugates its reduced Hermitian matrix by that
+unitary [Nielsen1999]. -/
 theorem reducedHermitian_apply_tensorLeft (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (U : Matrix (Fin D) (Fin D) ℂ) (_hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hψ' : Normalized (ApplyGate (TensorGate U (1 : Operator E)) ψ)) :
@@ -84,6 +114,9 @@ theorem reducedHermitian_apply_tensorLeft (ψ : QState (Fin D × Fin E)) (hψ : 
   rw [hred]
   exact partialTrace_outerProduct_apply_tensorLeft D E U ψ
 
+/-- If the reduced Hermitian matrix of `ψ` is the unitary conjugate of that of `φ`, it equals
+the reduced Hermitian matrix obtained by applying that unitary to the first subsystem of `φ`
+[Nielsen1999]. -/
 theorem reducedHermitian_eq_of_unitary_conj
     (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ)
     (φ : QState (Fin D × Fin E)) (hφ : Normalized φ)
@@ -96,12 +129,16 @@ theorem reducedHermitian_eq_of_unitary_conj
           (1 : Operator E)) φ) hφ' := by
   rw [hU, reducedHermitian_apply_tensorLeft φ hφ (U : Matrix (Fin D) (Fin D) ℂ) U.property hφ']
 
+/-- The normalized state `schmidtRotated ψ hψ` has the same Schmidt spectrum as `ψ`
+[Nielsen1999]. -/
 theorem schmidtSpectrum_schmidtRotated (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     schmidtSpectrum (schmidtRotated ψ hψ) (schmidtRotated_normalized ψ hψ)
       = schmidtSpectrum ψ hψ :=
   schmidtSpectrum_apply_tensorLeft ψ hψ (schmidtUnitary ψ hψ).val.conjTranspose
     (schmidtUnitary_conjTranspose_mem ψ hψ) (schmidtRotated_normalized ψ hψ)
 
+/-- The reduced Hermitian matrix of `schmidtRotated ψ hψ` is diagonal with diagonal entries
+given by the Schmidt spectrum of `ψ` [Nielsen1999]. -/
 theorem reducedHermitian_schmidtRotated (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     reducedHermitian (schmidtRotated ψ hψ) (schmidtRotated_normalized ψ hψ)
       = HermitianMat.diagonal ℂ (schmidtSpectrum ψ hψ) := by

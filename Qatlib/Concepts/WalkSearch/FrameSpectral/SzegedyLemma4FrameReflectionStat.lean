@@ -8,6 +8,24 @@ import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionDefs
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+/-!
+# Specification of orthonormal frame reflections
+
+The proposition `SzegedyLemma4FrameReflection` states the projection and reflection laws for an
+arbitrary finite orthonormal family. The matrix `paperFrameProjection` fixes each frame vector
+and annihilates every state orthogonal to the family, while its reflection acts with signs +1
+and −1 on these parts. The quantum walk spectral framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `SzegedyLemma4FrameReflection`: Orthogonal projection and reflection laws for finite frames.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -18,6 +36,9 @@ open Matrix
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- The orthonormal frame projection and reflection statement: the outer product sum is an
+orthogonal projector, and projection and reflection have the specified actions on frame
+vectors and their orthogonal complement [Szegedy, Lemma 4][Szegedy2004]. -/
 def SzegedyLemma4FrameReflection : Prop :=
   ∀ (H ι : Type) [Fintype H] [DecidableEq H] [Fintype ι] [DecidableEq ι]
       (v : ι → QState H),

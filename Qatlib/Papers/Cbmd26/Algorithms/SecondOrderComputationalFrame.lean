@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderDecodedWord
 import Qatlib.Papers.Cbmd26.Algorithms.StaticComputationalFrame
+
+/-!
+# Computational Success Frames for Second-Order Circuits
+
+`secondOrderComputationalEquiv` separates the system register from `SecondOrderAncillas`, and
+`secondOrderCleanAncilla` specifies the clean ancilla value. This identifies
+`secondOrderDecodedFrame` with a computational tag and `secondOrderSuccessEvent` with its
+measurement event.
+
+`secondOrderInputLift` applies a system preparation gate uniformly over the ancillas. The
+resulting preparation and projector identities connect the decoded second-order CBMD circuits
+associated with the cited paper to computational-basis input and success measurements. See
+[WangEtAl2026].
+
+## Main statements
+
+* `secondOrderDecodedFrame_computational` identifies the decoded frame with a reindexed
+  computational tag.
+* `secondOrderDecodedFrame_rangeProjector` identifies its range projector with the projector of
+  `secondOrderSuccessEvent`.
+* `secondOrderInputLift_unitary` preserves unitarity of an input gate.
+* `secondOrderInputLift_prepare` prepares the decoded-frame state from the specified clean basis
+  state.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,8 +84,12 @@ variable {J Anc I : Type} [Fintype J] [DecidableEq J] [Fintype Anc] [DecidableEq
 local instance cbmdSecondOrderComputationalFrameInstance1 : DecidableEq (PreparedPredicateLabels (Fin 4) J Bool) :=
   inferInstanceAs (DecidableEq ((Fin 4 × J) × (Bool × Bool)))
 
+/-- The ancilla register combining the outer Boolean control, prepared predicate labels, and
+original encoding ancilla for the second-order circuit. -/
 abbrev SecondOrderAncillas (J Anc : Type) := Bool × (PreparedPredicateLabels (Fin 4) J Bool × Anc)
 
+/-- Reassociates the second-order workspace into the product of `SecondOrderAncillas` and the
+system register. -/
 def secondOrderComputationalEquiv : SecondOrderSpace J (Anc × I) ≃
     SecondOrderAncillas J Anc × I where
   toFun := fun ⟨b,l,a,i⟩ => ((b,l,a),i)
@@ -64,14 +97,20 @@ def secondOrderComputationalEquiv : SecondOrderSpace J (Anc × I) ≃
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The clean second-order ancilla value with false control bits, branch zero, sample label
+`j₀`, and original ancilla `a₀`. -/
 def secondOrderCleanAncilla (j₀ : J) (a₀ : Anc) : SecondOrderAncillas J Anc :=
   (false,(((0,j₀),(false,false)),a₀))
 
+/-- The computational-basis event whose separated ancilla register equals
+`secondOrderCleanAncilla j₀ a₀`. -/
 def secondOrderSuccessEvent (j₀ : J) (a₀ : Anc) :
     Finset (SecondOrderSpace J (Anc × I)) :=
   Finset.univ.filter fun p =>
     (secondOrderComputationalEquiv p).1 = secondOrderCleanAncilla j₀ a₀
 
+/-- Lifts a system gate to the second-order workspace by applying it in parallel over all
+separated ancilla values. -/
 def secondOrderInputLift (B : Matrix I I ℂ) :
     Matrix (SecondOrderSpace J (Anc × I)) (SecondOrderSpace J (Anc × I)) ℂ :=
   (parallelOracle (J := SecondOrderAncillas J Anc) B).submatrix
@@ -79,6 +118,8 @@ def secondOrderInputLift (B : Matrix I I ℂ) :
 
 omit [Fintype J] [Fintype Anc] [Fintype I] in
 
+/-- For the computational original-ancilla frame, the second-order decoded frame is the
+reindexed computational tag at the clean second-order ancilla value. -/
 theorem secondOrderDecodedFrame_computational (j₀ : J) (a₀ : Anc) :
     secondOrderDecodedFrame j₀ (tagFrame a₀ (1 : Matrix I I ℂ)) =
       reindexFrame secondOrderComputationalEquiv
@@ -89,6 +130,8 @@ theorem secondOrderDecodedFrame_computational (j₀ : J) (a₀ : Anc) :
     Matrix.one_apply, Prod.ext_iff]
   split_ifs <;> simp_all
 
+/-- The range projector of the computational second-order decoded frame equals the projector of
+`secondOrderSuccessEvent`. -/
 theorem secondOrderDecodedFrame_rangeProjector (j₀ : J) (a₀ : Anc) :
     rangeProjector (secondOrderDecodedFrame j₀ (tagFrame a₀ (1 : Matrix I I ℂ))) =
       Projector (secondOrderSuccessEvent (I := I) j₀ a₀) := by
@@ -108,6 +151,7 @@ theorem secondOrderDecodedFrame_rangeProjector (j₀ : J) (a₀ : Anc) :
   simp [Projector, Matrix.diagonal_apply, computationalTagEvent,
     secondOrderSuccessEvent]
 
+/-- Lifting a unitary system gate to the second-order workspace preserves unitarity. -/
 theorem secondOrderInputLift_unitary (B : Matrix I I ℂ)
     (hB : B ∈ Matrix.unitaryGroup I ℂ) :
     secondOrderInputLift (J := J) (Anc := Anc) B ∈
@@ -116,6 +160,8 @@ theorem secondOrderInputLift_unitary (B : Matrix I I ℂ)
     (parallelOracle_unitary (J := SecondOrderAncillas J Anc) hB)
     (secondOrderComputationalEquiv (J := J) (Anc := Anc) (I := I)).symm
 
+/-- If `B` prepares `ψ` from basis state `i₀`, its second-order lift prepares the decoded-frame
+embedding of `ψ` from the specified clean workspace basis state. -/
 theorem secondOrderInputLift_prepare (B : Matrix I I ℂ) (j₀ : J) (a₀ : Anc) (i₀ : I)
     (ψ : QState I) (hB : ApplyGate B (Ket i₀) = ψ) :
     ApplyGate (secondOrderInputLift (J := J) (Anc := Anc) B)

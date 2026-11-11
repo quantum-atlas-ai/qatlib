@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridDensityEvaluation
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemantics
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureMassApproximation
+
+/-!
+# Density evaluation of capped dual mixtures
+
+This module relates density-matrix evaluation of a program family to its finite leaf laws,
+including hybrid resource counts. Capped weighted sampling has output and count receipts, and
+its successful-output L1 error is controlled by the rejection tail.
+
+Rational grid masses then approximate normalized mixtures and dual vectors by actual
+density-evaluated programs. The dual-mixture interpretation is motivated by quantum semidefinite
+programming; see [BrandaoSvore2017].
+
+## Main statements
+
+* `cappedProgram_density_count_receipt`: count-sensitive density evaluation equals a capped-law
+  expectation.
+* `capped_success_error`: the rejection tail adds to successful-output L1 error.
+* `grid_dual_error`: a grid-based capped program approximates the normalized dual vector with an
+  explicit bound.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,13 +51,18 @@ open scoped Classical ENNReal ComplexOrder
 namespace Family
 variable {K D m : ℕ}
 
+/-- The program family obtained by replacing its input state and density proof with a specified
+density operator. -/
 def withDensity (F : Family K D m) (ρ : Operator D) (hρ : IsDensityOperator ρ) : Family K D m :=
   { F with state := ρ, density := hρ }
 
+/-- Replacing a family's input density operator leaves its capped program unchanged. -/
 theorem cappedProgram_withDensity (F : Family K D m) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (w : Fin K → ℕ) (b fuel : ℕ) :
     (F.withDensity ρ hρ).cappedProgram w b fuel = F.cappedProgram w b fuel := rfl
 
+/-- The real output mass at `i` equals density evaluation of the program with the trace-weighted
+indicator of output `i`. -/
 theorem output_density_eval (F : Family K D m) (u : Fin K) (i : Fin m) :
     (F.output u i).toReal = (F.program u).evalDensity F.oracle F.state
       (fun j σ => (Matrix.trace σ).re * if j = i then 1 else 0) := by
@@ -48,6 +78,8 @@ theorem output_density_eval (F : Family K D m) (u : Fin K) (i : Fin m) :
   exact Qatlib.Concepts.AdversaryBounds.AdvDuality.evalDensity_instrument F.oracle F.oracle_unitary _ (F.legal u) F.state
     (fun j => if j = i then 1 else 0)
 
+/-- For a nonnegative output payoff, density evaluation interpreted as an extended nonnegative
+real equals its expectation over the program's leaf law. -/
 theorem density_leaf_expectation (F : Family K D m) (u : Fin K)
     (f : Fin m → ℝ) (hf : ∀ i, 0 ≤ f i) :
     ENNReal.ofReal ((F.program u).evalDensity F.oracle F.state
@@ -64,6 +96,8 @@ theorem density_leaf_expectation (F : Family K D m) (u : Fin K)
   · intro i _
     exact mul_nonneg (instrumentProb_nonneg _ F.density.1 _) (hf _)
 
+/-- For a nonnegative payoff on optional outputs, capped-program density evaluation equals the
+real value of its expectation under the capped record law. -/
 theorem cappedProgram_density_expectation (F : Family K D m)
     (w : Fin K → ℕ) (b fuel : ℕ) (f : Option (Fin m) → ℝ) (hf : ∀ i, 0 ≤ f i) :
     (F.cappedProgram w b fuel).evalDensity F.oracle F.state
@@ -103,6 +137,8 @@ theorem cappedProgram_density_expectation (F : Family K D m)
   exact congrArg
       (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (weightedSampler w b fuel).law) (funext hn)
 
+/-- The density-evaluated mass of each optional output equals the corresponding real mass of the
+capped law pushed forward by `cappedValue`. -/
 theorem cappedProgram_density_receipt (F : Family K D m)
     (w : Fin K → ℕ) (b fuel : ℕ) (i : Option (Fin m)) :
     (F.cappedProgram w b fuel).evalDensity F.oracle F.state
@@ -117,6 +153,8 @@ theorem cappedProgram_density_receipt (F : Family K D m)
   funext r
   split_ifs <;> rfl
 
+/-- Count-sensitive evaluation of the capped program expands as a sum over weighted sampler
+paths, adding each path's coin-word length to the initial counts. -/
 theorem cappedProgram_density_counts (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
     (c : HybridCounts) (g : Option (Fin m) → Operator D → HybridCounts → ℝ) :
     (F.cappedProgram w b fuel).evalDensityCounts F.oracle F.state c g =
@@ -125,6 +163,8 @@ theorem cappedProgram_density_counts (F : Family K D m) (w : Fin K → ℕ) (b f
           (c.plus ⟨0,0,0,z.2.length⟩) g)).sum :=
   Qatlib.Concepts.AdversaryBounds.AdvDuality.evalDensityCounts_ofCoins _ _ _ _ _ _
 
+/-- Trace-weighted count-sensitive evaluation equals a sum over instrument leaves, using each
+leaf's probability, output, and counts added to the initial counts. -/
 theorem density_counts_sum (F : Family K D m) (u : Fin K) (c : HybridCounts)
     (f : Fin m → HybridCounts → ℝ) :
     (F.program u).evalDensityCounts F.oracle F.state c (fun a σ c' => (Matrix.trace σ).re*f a c') =
@@ -137,6 +177,8 @@ theorem density_counts_sum (F : Family K D m) (u : Fin K) (c : HybridCounts)
   rw [(F.program u).probability_law]
   exact (mul_assoc _ _ _).symm
 
+/-- For nonnegative payoffs of outputs and counts, density evaluation interpreted as a
+nonnegative extended real equals expectation under the leaf law with accumulated counts. -/
 theorem density_counts_expectation (F : Family K D m) (u : Fin K) (c : HybridCounts)
     (f : Fin m → HybridCounts → ℝ) (hf : ∀ a c', 0 ≤ f a c') :
     ENNReal.ofReal ((F.program u).evalDensityCounts F.oracle F.state c
@@ -152,6 +194,8 @@ theorem density_counts_expectation (F : Family K D m) (u : Fin K) (c : HybridCou
   · intro i _
     exact mul_nonneg (instrumentProb_nonneg _ F.density.1 _) (hf _ _)
 
+/-- Starting from zero counts, trace-weighted evaluation of a nonnegative output-and-count
+payoff equals the real expectation of that payoff under the capped record law. -/
 theorem cappedProgram_density_count_receipt (F : Family K D m)
     (w : Fin K → ℕ) (b fuel : ℕ) (f : Option (Fin m) → HybridCounts → ℝ)
     (hf : ∀ a c, 0 ≤ f a c) :
@@ -200,6 +244,9 @@ theorem cappedProgram_density_count_receipt (F : Family K D m)
   exact congrArg
       (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (weightedSampler w b fuel).law) (funext hn)
 
+/-- For positive weights fitting the sampling block, the L1 distance between capped
+successful-output masses and the stopped output law equals the rejection mass raised to
+`fuel`. -/
 theorem capped_success_l1 (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b) :
     (∑ i, |(((F.capped w b fuel).map F.cappedValue) (some i)).toReal -
@@ -212,6 +259,8 @@ theorem capped_success_l1 (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
     map_some_apply] at h
   linarith
 
+/-- If the stopped output law has L1 error at most `ε` from `q`, successful density outputs of
+the capped program have error at most `ε` plus the rejection tail. -/
 theorem capped_success_error (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     (q : Fin m → ℝ) (ε : ℝ)
@@ -223,6 +272,8 @@ theorem capped_success_error (F : Family K D m) (w : Fin K → ℕ) (b fuel : �
   exact (l1_triangle _ (fun i => (((F.stopped w b hW hb).map F.value) i).toReal) q).trans
     (by rw [F.capped_success_l1 w b fuel hW hb]; exact add_le_add (le_refl _) he)
 
+/-- Extending `q` by zero at failure, the full optional-output L1 error of the capped density
+program is at most `ε` plus twice the rejection tail. -/
 theorem capped_joint_error (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     (q : Fin m → ℝ) (ε : ℝ)
@@ -239,6 +290,9 @@ theorem capped_joint_error (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
 
 end Family
 
+/-- Positive total selector mass gives a positive dual scale and expresses the normalized dual
+vector as the normalized selector-weighted linear combination of the offset family's real
+outputs. -/
 theorem dual_mixture_normalized {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
     (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ)
     (hS : 0 < ∑ u, (selectorMasses T a μ u : ℝ)) :
@@ -267,6 +321,9 @@ theorem dual_mixture_normalized {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
     field_simp [hTr.ne', hS.ne']
     ring
 
+/-- For nonnegative rational mixture masses of positive total, the capped grid program's
+successful-output L1 error is at most the rejection tail plus twice K/((n + 1) times the
+total mass). -/
 theorem grid_capped_error {K D m : ℕ} (F : Family K D m) (v : Fin K → ℚ)
     (hv : ∀ u, 0 ≤ v u) (hS : 0 < ∑ u, (v u : ℝ)) (n fuel : ℕ) :
     let w := gridWeights v n
@@ -285,6 +342,9 @@ theorem grid_capped_error {K D m : ℕ} (F : Family K D m) (v : Fin K → ℚ)
     hW (blockWidth_capacity _) _ _ he
   simpa only [E, gridEffective, gridWeights, mul_div_assoc] using h
 
+/-- For nonnegative rational dual parameters with positive selector total, the dual scale is
+positive and the dual vector equals that scale times the stopped offset-family output
+probabilities. -/
 theorem dual_actual_output_nonnegative {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
     (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ) (ha : 0 ≤ a) (hμ : ∀ t, 0 ≤ μ t)
     (hS : 0 < ∑ u, (selectorMasses T a μ u : ℝ)) :
@@ -303,6 +363,9 @@ theorem dual_actual_output_nonnegative {T D m : ℕ} (F : Family T D m) (j₀ : 
   simp_rw [(intWeights_normalization _ (selectorMasses_nonneg a μ ha hμ) hS).2]
   exact (div_eq_iff hn.1.ne').mp hi |>.trans (mul_comm _ _)
 
+/-- Grid-based capped density evaluation agrees with the capped optional-output law and
+approximates the normalized dual vector in L1 by the rejection tail plus twice (T + 1)/((n +
+1) times total selector mass). -/
 theorem grid_dual_error {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
     (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ) (ha : 0 ≤ a) (hμ : ∀ t, 0 ≤ μ t)
     (hS : 0 < ∑ u, (selectorMasses T a μ u : ℝ)) (n fuel : ℕ) :
@@ -332,6 +395,9 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureDensityInput
 open Qatlib
 open Qatlib
 
+/-- The grid-weighted capped offset program has exact density-output receipts and
+successful-output L1 error from the normalized dual vector bounded by the rejection tail
+plus the stated selector-grid error. -/
 theorem frontier1 {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
     (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ) (ha : 0 ≤ a) (hμ : ∀ t, 0 ≤ μ t)
     (hS : 0 < ∑ u, (selectorMasses T a μ u : ℝ)) (n fuel : ℕ) :

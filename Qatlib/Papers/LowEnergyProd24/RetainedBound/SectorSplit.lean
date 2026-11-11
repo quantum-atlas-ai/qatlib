@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
+
+/-!
+# Spectral splitting and state-tail error bounds
+
+This module separates error on a low-energy input sector into a retained output part and a
+high-energy leakage part. For product words, `actual_state_tail_bound` combines repeated-step
+error control with the actual high-energy component of a normalized input state, following
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_error_sector_split`: Splits restricted error at a larger output cutoff.
+* `actual_state_tail_bound`: Bounds state error by repeated low-energy error and twice the input
+  tail norm.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +38,8 @@ open Qatlib.Papers.LowEnergyProd24.ProductError
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- For `Δ ≤ Λ`, the error of any matrix approximation on the input sector below `Δ` is bounded
+by its retained error below `Λ` plus leakage above `Λ`. -/
 theorem actual_error_sector_split (h : Hamiltonian N R M k d J) (W : Matrix (Register N) (Register N) ℂ)
     (t Δ Λ : ℝ) (hΔ : Δ ≤ Λ) :
     ‖(W-evolve h.total t)*low h.total h.total_hermitian Δ‖ ≤
@@ -36,6 +58,8 @@ theorem actual_error_sector_split (h : Hamiltonian N R M k d J) (W : Matrix (Reg
   rw [he]
   exact norm_add_le _ _
 
+/-- For a unit vector, the error after `r` product-word powers is at most `r` times the one-step
+low-energy operator error plus twice the high-energy tail norm. -/
 theorem actual_state_tail_bound (h : Hamiltonian N R M k d J) (stages : List (ℝ × Fin M))
     (t Δ : ℝ) (r : ℕ) (ψ : EuclideanSpace ℂ (Register N)) (hψ : ‖ψ‖=1) :
     ‖(Matrix.toEuclideanCLM (n := Register N) (𝕜 := ℂ)) (approximate h stages t^r-evolve h.total t^r) ψ‖ ≤

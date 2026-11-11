@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.TruncTaylor14.Discard.DiscardActualSimulationSimu
 import Qatlib.Concepts.ReferenceError.DensityToRaw.FiniteReferenceDensityError
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+/-!
+# Linear-map semantics of Taylor discard simulation
+
+This module represents one amplified reset-and-discard step by its Kraus sum
+`sourceDiscardLinearMap` and defines its iterates. It proves complete positivity and trace
+preservation for unitary workspaces, identifies reset-and-discard semantics on arbitrary
+operators and reference extensions, and shows that the Taylor workspace construction commutes
+with adjoining an idle reference. See [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `sourceDiscardLinearMap_channel`: Channel properties of a single discard step.
+* `sourceDiscardLinearMap_semantics`: Iterated semantics with and without a reference system.
+* `sourceTaylorDiscardWorkspace_reference`: Compatibility of the Taylor workspace with idle
+  references.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -45,29 +67,38 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The complex linear map obtained by summing conjugation branches of the amplified workspace
+matrix from the initialized ancilla fiber. -/
 def sourceDiscardLinearMap {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J) :
     Operator D →ₗ[ℂ] Operator D :=
   let A := ObliviousAmplitudeAmplification (FiberProjector j₀) W
   ∑ j : J, conjBranch (fun i k => A (j, i) (j₀, k))
 
+/-- Repeated composition of `sourceDiscardLinearMap`, with the identity map at iteration zero. -/
 def sourceDiscardLinearIterate {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J) :
     ℕ → (Operator D →ₗ[ℂ] Operator D)
   | 0 => LinearMap.id
   | n + 1 => (sourceDiscardLinearIterate W j₀ n).comp (sourceDiscardLinearMap W j₀)
 
+/-- The workspace matrix tensored with the identity on a reference of dimension `r`, using the
+grouped ancilla-system-reference indexing. -/
 def sourceDiscardWorkspaceReference {J : Type} {D : ℕ} (r : ℕ)
     (W : Matrix (J × Fin D) (J × Fin D) ℂ) :
     Matrix (J × (Fin D × Fin r)) (J × (Fin D × Fin r)) ℂ :=
   fun x y => W (x.1, x.2.1) (y.1, y.2.1) *
     (if x.2.2 = y.2.2 then 1 else 0)
 
+/-- The Taylor LCU adjoint circuit substituted into the source discard oblivious-amplification
+word. -/
 def sourceTaylorDiscardWord {J I : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (h : J → ℝ) (j₀ : J) (τ : ℝ) (K : ℕ) :=
   substituteAdjointCircuit (taylorLCUWord (I := I) h j₀ τ K)
     (sourceDiscardOAAWord (rangeProjector (taylorFrame (I := I) j₀ K)))
 
+/-- The evaluated Taylor LCU workspace matrix relabeled to separate the discard ancilla from the
+system. -/
 def sourceTaylorDiscardWorkspace {J I : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (h : J → ℝ) (U : J → Matrix I I ℂ)
     (j₀ : J) (τ : ℝ) (K : ℕ) :
@@ -76,6 +107,8 @@ def sourceTaylorDiscardWorkspace {J I : Type} [Fintype J] [DecidableEq J]
   relabelGate (taylorDiscardEquiv J I K)
     (evaluate (taylorQuery U K) (taylorLCUWord h j₀ τ K))
 
+/-- The Taylor discard linear map iterated for the selected segment count, segment time, and
+truncation cutoff. -/
 def sourceTaylorDiscardChannel {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (h : J → ℝ) (U : J → Operator D) (j₀ : J) (t Λ : ℝ) (k : ℕ) :
     Operator D →ₗ[ℂ] Operator D :=
@@ -84,6 +117,8 @@ def sourceTaylorDiscardChannel {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (sourceTaylorDiscardWorkspace h U j₀ (t / (r : ℝ)) (sourceDiscardCutoffKey r k))
     (taylorEmptyLabel J (sourceDiscardCutoffKey r k), (false, j₀)) r
 
+/-- The Kraus sum from an amplified workspace equals `ResetDiscardStepCorrected` on every input
+matrix. -/
 theorem sourceDiscard_kraus_step {J I : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (W : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     (X : Matrix I I ℂ) :
@@ -98,6 +133,8 @@ theorem sourceDiscard_kraus_step {J I : Type} [Fintype J] [DecidableEq J]
   intro a _
   exact Finset.sum_comm
 
+/-- A unitary workspace makes `sourceDiscardLinearMap` completely positive and trace preserving.
+See [BerryEtAl2015Taylor]. -/
 theorem sourceDiscardLinearMap_channel :
   ∀ (J : Type) [Fintype J] [DecidableEq J] (D : ℕ)
     (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J),
@@ -122,6 +159,7 @@ theorem sourceDiscardLinearMap_channel :
       simpa only [sourceDiscardLinearMap, LinearMap.sum_apply] using!
         (Instrument.ofKraus K hk).total X⟩
 
+/-- The complex algebra homomorphism adjoining the identity on a finite reference system. -/
 private noncomputable def sourceReferenceAlgHom (D r : ℕ) :
     Operator D →ₐ[ℂ] Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ where
   toFun A := TensorGate A 1
@@ -134,6 +172,8 @@ private noncomputable def sourceReferenceAlgHom (D r : ℕ) :
     change c • TensorGate (1 : Operator D) (1 : Operator r) = c • 1
     rw [tensorGate_one]
 
+/-- Hamiltonian evolution of `H` tensored with the reference identity equals the evolution of
+`H` tensored with that identity. See [BerryEtAl2015Taylor]. -/
 theorem sourceTaylorReferenceEvolution :
   ∀ (D r : ℕ) (H : Operator D) (t : ℝ),
     Qatlib.Concepts.QspSimulation.Achievability.hamiltonianEvolution (TensorGate H (1 : Operator r)) t =
@@ -147,6 +187,8 @@ theorem sourceTaylorReferenceEvolution :
   rw [map_smul] at he
   exact he.symm
 
+/-- The algebra homomorphism extending a workspace matrix by an idle reference while retaining
+the grouped product indices. -/
 private def workspaceReferenceHom (J I R : Type) [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R] :
     Matrix (J × I) (J × I) ℂ →ₐ[ℂ] Matrix (J × (I × R)) (J × (I × R)) ℂ where
@@ -167,6 +209,7 @@ private def workspaceReferenceHom (J I R : Type) [Fintype J] [DecidableEq J]
     by_cases hrs : r = s <;>
       simp [Algebra.algebraMap_eq_smul_one, Matrix.one_apply, Prod.ext_iff, hrs]
 
+/-- The workspace reference extension commutes with conjugate transpose. -/
 private theorem workspaceReference_star {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (W : Matrix (J × I) (J × I) ℂ) :
@@ -174,6 +217,8 @@ private theorem workspaceReference_star {J I R : Type} [Fintype J] [DecidableEq 
   ext ⟨a, i, r⟩ ⟨b, k, s⟩
   by_cases hrs : r = s <;> simp [workspaceReferenceHom, Matrix.conjTranspose_apply, hrs, eq_comm]
 
+/-- The workspace reference extension sends an initialized-fiber projector to the corresponding
+extended-fiber projector. -/
 private theorem workspaceReference_fiber {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R] (j₀ : J) :
     workspaceReferenceHom J I R (FiberProjector (I := I) j₀) =
@@ -181,6 +226,8 @@ private theorem workspaceReference_fiber {J I R : Type} [Fintype J] [DecidableEq
   ext ⟨a, i, r⟩ ⟨b, k, s⟩
   by_cases hrs : r = s <;> simp [workspaceReferenceHom, FiberProjector, Prod.ext_iff, hrs]
 
+/-- The workspace reference extension commutes with oblivious amplitude amplification about the
+initialized fiber. -/
 private theorem workspaceReference_oaa {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (W : Matrix (J × I) (J × I) ℂ) (j₀ : J) :
@@ -189,12 +236,16 @@ private theorem workspaceReference_oaa {J I R : Type} [Fintype J] [DecidableEq J
   simp only [ObliviousAmplitudeAmplification, map_neg, map_mul, map_sub, map_one,
     map_ofNat, Matrix.star_eq_conjTranspose, workspaceReference_star, workspaceReference_fiber]
 
+/-- Evaluating the source discard linear map on a matrix agrees with the corrected
+reset-and-discard step. -/
 private theorem sourceDiscardLinearMap_step {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J) (X : Operator D) :
     sourceDiscardLinearMap W j₀ X = ResetDiscardStepCorrected W j₀ X := by
   simpa only [sourceDiscardLinearMap, LinearMap.sum_apply, conjBranch_apply] using!
     sourceDiscard_kraus_step W j₀ X
 
+/-- Extending the source discard map by a reference identity agrees with the corrected discard
+step for the extended workspace. -/
 private theorem sourceDiscardLinearMap_reference_step {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J) (r : ℕ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -220,6 +271,8 @@ private theorem sourceDiscardLinearMap_reference_step {J : Type} [Fintype J] [De
     rfl
   rw [hk]
 
+/-- Source discard iterates agree with repeated corrected reset-and-discard steps on system
+operators and on all finite reference extensions. See [BerryEtAl2015Taylor]. -/
 theorem sourceDiscardLinearMap_semantics :
   ∀ (J : Type) [Fintype J] [DecidableEq J] (D : ℕ)
     (W : Matrix (J × Fin D) (J × Fin D) ℂ) (j₀ : J),
@@ -249,6 +302,8 @@ local instance (priority := 10000) sourceProdProdFast {α β γ : Type} [Decidab
     [DecidableEq β] [DecidableEq γ] : DecidableEq ((α × β) × γ) :=
   @instDecidableEqProd (α × β) γ (@instDecidableEqProd α β _ _) _
 
+/-- The algebra homomorphism adjoining an idle reference to a Taylor workspace through the
+discard-index relabelings. -/
 private def taylorReferenceHom (J I R : Type) [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R] (K : ℕ) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I)))
@@ -259,6 +314,8 @@ private def taylorReferenceHom (J I R : Type) [Fintype J] [DecidableEq J]
     ((workspaceReferenceHom (TaylorWordLabel J K × (Bool × J)) I R).comp
       (Matrix.reindexAlgEquiv ℂ ℂ (taylorDiscardEquiv J I K)).toAlgHom)
 
+/-- Each entry of the Taylor reference extension is the original workspace entry times the
+Kronecker delta on reference indices. -/
 private theorem taylorReferenceHom_apply {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R] (K : ℕ)
     (W : Matrix (TaylorWordLabel J K × (Bool × (J × I)))
@@ -269,6 +326,8 @@ private theorem taylorReferenceHom_apply {J I R : Type} [Fintype J] [DecidableEq
         (y.1, (y.2.1, (y.2.2.1, y.2.2.2.1))) *
       (if x.2.2.2.2 = y.2.2.2.2 then 1 else 0) := rfl
 
+/-- The Taylor reference extension sends the query matrix to the query for component unitaries
+tensored with the reference identity. -/
 private theorem taylorReference_query {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (U : J → Matrix I I ℂ) (K : ℕ) :
@@ -280,6 +339,8 @@ private theorem taylorReference_query {J I R : Type} [Fintype J] [DecidableEq J]
     simp [hrs, taylorQuery, TensorGate, controlOracle, select, Matrix.one_apply,
       Prod.ext_iff, mul_ite, ite_mul]
 
+/-- The Taylor reference extension preserves an ancilla matrix tensored with the identity on the
+remaining registers. -/
 private theorem taylorReference_ancilla {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (K : ℕ) (P : Matrix (TaylorWordLabel J K) (TaylorWordLabel J K) ℂ) :
@@ -291,6 +352,8 @@ private theorem taylorReference_ancilla {J I R : Type} [Fintype J] [DecidableEq 
   by_cases hrs : r = s <;>
     simp [hrs, TensorGate, Matrix.one_apply, Prod.ext_iff, mul_ite]
 
+/-- The Taylor reference extension sends each route matrix to the corresponding route matrix
+with the extended system. -/
 private theorem taylorReference_route {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (j₀ : J) {K : ℕ} (j : Fin K) :
@@ -301,6 +364,8 @@ private theorem taylorReference_route {J I R : Type} [Fintype J] [DecidableEq J]
   by_cases hrs : r = s <;> cases v <;>
     simp [hrs, taylorRouteMatrix, permMatrix, taylorRouteSwap, Prod.ext_iff]
 
+/-- The Taylor reference extension commutes with evaluation of every block list of length at
+most the truncation cutoff. -/
 private theorem taylorReference_blocks {J I R : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] [Fintype R] [DecidableEq R]
     (U : J → Matrix I I ℂ) (j₀ : J) (K : ℕ) :
@@ -317,6 +382,9 @@ private theorem taylorReference_blocks {J I R : Type} [Fintype J] [DecidableEq J
       List.nil_append, evaluate, instructionMatrix, map_mul,
       taylorReference_route, taylorReference_query, ih]
 
+/-- Building the Taylor discard workspace from component operators tensored with an idle
+reference equals extending the original workspace by that reference. See
+[BerryEtAl2015Taylor]. -/
 theorem sourceTaylorDiscardWorkspace_reference :
   ∀ (J : Type) [Fintype J] [DecidableEq J] (D r : ℕ)
     (h : J → ℝ) (U : J → Operator D) (j₀ : J) (τ : ℝ) (K : ℕ),

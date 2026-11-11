@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.LcuFrame.Walk
+
+/-!
+# Eigenphases of the LCU walk
+
+Computes the action of `walk` on `phiP` and `phiM`, with eigenvalues `E ± i√(1 - E²)`. The
+theorem `actual_eigenphase` expresses these scalars as exponentials with phases `± arccos E`;
+`full_walk_eigenvectors` packages unitarity and normalized eigenvectors under the stated
+hypotheses. See [PoulinEtAl2018] for related background.
+
+## Main statements
+
+* `actual_eigenphase`: When `E² < 1`, the scalars `E ± i√(1 - E²)` equal `exp(± i arccos E)`.
+* `full_walk_eigenvectors`: For normalized weights and a normalized eigenstate of the
+  Hamiltonian with Hermitian involutory blocks and `E² < 1`, the walk is unitary and the two
+  phase states have unit Hilbert norm and eigenvalues `exp(± i arccos E)`; also `cos (arccos E)
+  = E` [PoulinEtAl2018].
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +36,8 @@ noncomputable section
 open Matrix
 variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- For normalized weights, involutory blocks, and a Hamiltonian eigenstate with `E² < 1`, the
+walk acts on `phiP` by the scalar `E + i√(1 - E²)`. -/
 theorem walk_phiP (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (hP2 : ∀ j, P j*P j=1)
     (heig : ham β P *ᵥ φ=(E : ℂ) • φ) (hE : E^2<1) :
@@ -28,6 +52,8 @@ theorem walk_phiP (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E 
   simp only [Complex.I_sq]
   ring
 
+/-- For normalized weights, involutory blocks, and a Hamiltonian eigenstate with `E² < 1`, the
+walk acts on `phiM` by the scalar `E - i√(1 - E²)`. -/
 theorem walk_phiM (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (hP2 : ∀ j, P j*P j=1)
     (heig : ham β P *ᵥ φ=(E : ℂ) • φ) (hE : E^2<1) :
@@ -44,6 +70,7 @@ theorem walk_phiM (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E 
 
 omit [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I] in
 
+/-- When `E² < 1`, the scalars `E ± i√(1 - E²)` equal `exp(± i arccos E)`. -/
 theorem actual_eigenphase (E : ℝ) (hE : E^2<1) :
     (E : ℂ)+Complex.I*(Real.sqrt (1-E^2) : ℂ) =
       Complex.exp ((Real.arccos E : ℂ)*Complex.I) ∧
@@ -59,6 +86,10 @@ theorem actual_eigenphase (E : ℝ) (hE : E^2<1) :
     push_cast
     ring
 
+/-- For normalized weights and a normalized eigenstate of the Hamiltonian with Hermitian
+involutory blocks and `E² < 1`, the walk is unitary and the two phase states have unit
+Hilbert norm and eigenvalues `exp(± i arccos E)`; also `cos (arccos E) = E`
+[PoulinEtAl2018]. -/
 theorem full_walk_eigenvectors (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (hφ : Normalized φ)
     (hPH : ∀ j, (P j)ᴴ=P j) (hP2 : ∀ j, P j*P j=1)

@@ -9,6 +9,30 @@ import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Topology.Algebra.InfiniteSum.Order
+
+/-!
+# Native rational decoding of amplitude estimates
+
+`nativeAESin` evaluates a finite rational sine series, and `nativeAEDecode` uses it to decode a
+measured phase label into a rational amplitude estimate in `[0,1]`. The decoder approximates
+`aeEstimate` with a certified error of at most `2⁻ᵏ`.
+
+`nativeAESinCounted` records the number of series terms. The same measurement record retains the
+amplitude estimation success probability from [BrassardEtAl2002], with the decoder error added
+to the statistical tolerance.
+
+## Main statements
+
+* `native_ae_computed_scalar_precision`: the rational decoder lies in `[0,1]` and has certified
+  precision.
+* `native_ae_same_record_bhmt_success`: rational decoding preserves the BHMT success bound with
+  added error `2⁻ᵏ`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,14 +47,19 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- A rational sine approximation obtained by summing `8*(k+8)` terms of the sine power series
+at `x`. -/
 def nativeAESin (x : ℚ) (k : ℕ) : ℚ :=
   (List.range (8 * (k + 8))).foldl (fun z j =>
     z + (-1 : ℚ) ^ j * x ^ (2 * j + 1) / (Nat.factorial (2 * j + 1) : ℚ)) 0
 
+/-- Decode a phase label using a rational approximation to π and `nativeAESin`, then clip the
+squared value to `[0,1]`. -/
 def nativeAEDecode (M k : ℕ) (z : Fin M) : ℚ :=
   let x := piRatApprox (k + 8) * z.val / M
   max 0 (min 1 ((nativeAESin x k) ^ 2))
 
+/-- A left fold that adds `f j` over `List.range n` equals the corresponding finite sum. -/
 private theorem native_fold_sum {R : Type*} [AddCommMonoid R] (f : ℕ → R)
     (n : ℕ) : (List.range n).foldl (fun z j => z + f j) 0 =
       ∑ j ∈ Finset.range n, f j := by
@@ -39,6 +68,7 @@ private theorem native_fold_sum {R : Type*} [AddCommMonoid R] (f : ℕ → R)
   | zero => simp
   | succ n ih => simp [List.range_succ, Finset.sum_range_succ, ih]
 
+/-- Casting `nativeAESin` to the reals gives the finite sine power series with `8*(k+8)` terms. -/
 theorem nativeAESin_cast (x : ℚ) (k : ℕ) :
     (nativeAESin x k : ℝ) =
       ∑ j ∈ Finset.range (8 * (k + 8)),
@@ -48,6 +78,7 @@ theorem nativeAESin_cast (x : ℚ) (k : ℕ) :
   push_cast
   rfl
 
+/-- The factorial tail factor `4^(7+n)/(7+n)!` is bounded above by `4*2⁻ⁿ`. -/
 private theorem native_factorial_block_bound (n : ℕ) :
     (4 : ℝ) ^ (7 + n) / ((7 + n).factorial : ℝ) ≤ 4 * ((2 : ℝ)⁻¹) ^ n := by
   have hf : (Nat.factorial 7 : ℝ) * (8 : ℝ) ^ n ≤ ((7 + n).factorial : ℝ) := by
@@ -61,6 +92,7 @@ private theorem native_factorial_block_bound (n : ℕ) :
     _ ≤ _ := mul_le_mul_of_nonneg_right (by norm_num :
       (4 : ℝ) ^ 7 / (Nat.factorial 7 : ℝ) ≤ 4) (by positivity)
 
+/-- For `|x| ≤ 4`, the real value of `nativeAESin x k` approximates `sin x` within `2⁻⁽ᵏ⁺⁵⁾`. -/
 theorem nativeAESin_error (x : ℚ) (k : ℕ) (hx : |(x : ℝ)| ≤ 4) :
     |(nativeAESin x k : ℝ) - Real.sin (x : ℝ)| ≤ ((2 : ℝ)⁻¹) ^ (k + 5) := by
   let L := 8 * (k + 8)
@@ -119,6 +151,8 @@ theorem nativeAESin_error (x : ℚ) (k : ℕ) (hx : |(x : ℝ)| ≤ 4) :
       norm_num
       ring
 
+/-- Clipping a squared real value to `[0,1]` cannot increase its distance from a square at most
+one. -/
 private theorem native_clip_square_distance (p s : ℝ) (hs : s ^ 2 ≤ 1) :
     |max 0 (min 1 (p ^ 2)) - s ^ 2| ≤ |p ^ 2 - s ^ 2| := by
   rw [max_eq_right (le_min zero_le_one (sq_nonneg p))]
@@ -129,6 +163,8 @@ private theorem native_clip_square_distance (p s : ℝ) (hs : s ^ 2 ≤ 1) :
       abs_of_nonneg (by linarith : 0 ≤ p ^ 2 - s ^ 2)]
     linarith
 
+/-- The rational decoder lies in `[0,1]` and differs from the ideal amplitude estimate by at
+most `2⁻ᵏ`. -/
 theorem native_ae_computed_scalar_precision :
     ∀ (M k : ℕ) (z : Fin M), 0 ≤ nativeAEDecode M k z ∧
       nativeAEDecode M k z ≤ 1 ∧
@@ -217,11 +253,14 @@ theorem native_ae_computed_scalar_precision :
   rw [hcast, heq]
   exact (native_clip_square_distance p (Real.sin θ) (Real.sin_sq_le_one θ)).trans hsquare
 
+/-- Evaluate the rational sine series together with a counter incremented once per term. -/
 def nativeAESinCounted (x : ℚ) (k : ℕ) : ℚ × ℕ :=
   (List.range (8 * (k + 8))).foldl (fun z j =>
     (z.1 + (-1 : ℚ) ^ j * x ^ (2 * j + 1) / (Nat.factorial (2 * j + 1) : ℚ),
       z.2 + 1)) (0, 0)
 
+/-- A paired additive fold returns the scalar fold value and the initial counter plus the list
+length. -/
 private theorem native_fold_counter (f : ℕ → ℚ) (xs : List ℕ) (v : ℚ) (c : ℕ) :
     xs.foldl (fun z j => (z.1 + f j, z.2 + 1)) (v, c) =
       (xs.foldl (fun z j => z + f j) v, c + xs.length) := by
@@ -233,12 +272,14 @@ private theorem native_fold_counter (f : ℕ → ℚ) (xs : List ℕ) (v : ℚ) 
     congr 1
     omega
 
+/-- The counted evaluator returns `nativeAESin x k` and exactly `8*(k+8)` terms. -/
 theorem nativeAESin_value_and_terms (x : ℚ) (k : ℕ) :
     nativeAESinCounted x k = (nativeAESin x k, 8 * (k + 8)) := by
   unfold nativeAESinCounted nativeAESin
   rw [native_fold_counter]
   simp
 
+/-- At zero input, the counted sine evaluator returns zero and exactly `8*(k+8)` terms. -/
 theorem nativeAESin_counted_zero (k : ℕ) : nativeAESinCounted 0 k = (0, 8 * (k + 8)) := by
   rw [nativeAESin_value_and_terms]
   have hs : nativeAESin 0 k = 0 := by
@@ -249,6 +290,8 @@ theorem nativeAESin_counted_zero (k : ℕ) : nativeAESinCounted 0 k = (0, 8 * (k
     simp
   rw [hs]
 
+/-- For `M ≥ 2`, the rational decoder satisfies the BHMT error bound plus `2⁻ᵏ` with probability
+at least `8/π²` under the same `aeLaw` record [BrassardEtAl2002]. -/
 theorem native_ae_same_record_bhmt_success :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M k : ℕ) (hM : 2 ≤ M)
       (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ),

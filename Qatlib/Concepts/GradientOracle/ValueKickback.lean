@@ -8,6 +8,29 @@ import Qatlib.Concepts.SignalPrimitive.GridGradient.GridGradientConsumers
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
 import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+
+/-!
+# Value-oracle phase kickback for gradients
+
+This module defines modular addition oracles, their Fourier character states, and lifted
+gradient circuits. It proves clean phase kickback, one-query resource counts, and measurement
+stability under phase approximation for the finite-grid gradient construction of
+[Jordan2005Gradient].
+
+## Main statements
+
+* `gradient_value_query_actual_kickback`: a value query is unitary and multiplies the data
+  amplitudes by the value character.
+* `gradient_value_one_query_clean_fourier_consumer`: the character register factors out of the
+  gradient output.
+* `gradient_value_precision_actual_readout_event`: modular phase error at most `δ` changes an
+  event probability by at most `4*π*δ`.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -30,28 +53,38 @@ namespace Qatlib.Concepts.GradientOracle.ValueKickback
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The modular addition oracle matrix mapping the basis label `(x,y)` to `(x,y+v x)`. -/
 noncomputable def gradientValueOracle {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) : Matrix (X × ZMod Q) (X × ZMod Q) ℂ :=
   fun x y => if x.1 = y.1 ∧ x.2 = y.2 + v y.1 then 1 else 0
 
+/-- The inverse-square-root-scaled conjugate standard additive character on the target register
+modulo `Q`. -/
 noncomputable def gradientKickState (Q : ℕ) [NeZero Q] : ZMod Q → ℂ :=
   fun y => (Real.sqrt (Q : ℝ) : ℂ)⁻¹ * star (ZMod.stdAddChar y)
 
+/-- The real phase table obtained by dividing each canonical modular value representative by
+`Q`. -/
 noncomputable def gradientValuePhase {X : Type} (Q : ℕ) [NeZero Q]
     (v : X → ZMod Q) : X → ℝ := fun x => ((v x).val : ℝ) / Q
 
+/-- The gradient circuit lifted to a value register, tensoring fixed data gates with identity
+and retaining oracle-query steps. -/
 noncomputable def gradientValueWord (d M Q : ℕ) [NeZero Q] :
     Circuit (GradientGrid d M × ZMod Q) :=
   (gradientWord d M).map (fun s => match s with
     | .query => Step.query
     | .gate U => Step.gate (TensorGate U (1 : Matrix (ZMod Q) (ZMod Q) ℂ)))
 
+/-- The gradient value-oracle matrix equals the modular addition oracle for the same table. -/
 private theorem gradientValueOracle_eq_addOracle {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) : gradientValueOracle Q v = AddOracle v := by
   rw [addOracle_eq_permMatrix]
   ext x y
   simp [gradientValueOracle, permMatrix, addOracleEquiv, Prod.ext_iff]
 
+/-- Translating the argument of the conjugate additive character by `-a` multiplies it by the
+additive character at `a`. -/
 private theorem gradient_character_shift (Q : ℕ) [NeZero Q] (y a : ZMod Q) :
     star (ZMod.stdAddChar (y - a)) = ZMod.stdAddChar a * star (ZMod.stdAddChar y) := by
   have hmul : ZMod.stdAddChar (y - a) * ZMod.stdAddChar a = ZMod.stdAddChar y := by
@@ -69,6 +102,9 @@ private theorem gradient_character_shift (Q : ℕ) [NeZero Q] (y a : ZMod Q) :
       ring
     _ = _ := by rw [hmul]
 
+/-- The value oracle is unitary and acts on a data state tensored with `gradientKickState` by
+multiplying each data amplitude by the standard character of its stored value. See
+[Jordan2005Gradient]. -/
 theorem gradient_value_query_actual_kickback :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (Q : ℕ) [NeZero Q]
       (v : X → ZMod Q) (ψ : X → ℂ),
@@ -87,6 +123,7 @@ theorem gradient_value_query_actual_kickback :
   rw [gradient_character_shift]
   ring
 
+/-- The standard additive character at `a` equals `exp (2*π*i*a.val/Q)`. -/
 private theorem gradient_std_character_phase (Q : ℕ) [NeZero Q] (a : ZMod Q) :
     ZMod.stdAddChar a = Complex.exp (2 * Real.pi * Complex.I * ((a.val : ℝ) / Q)) := by
   rw [ZMod.stdAddChar_apply, ZMod.toCircle_apply]
@@ -94,12 +131,15 @@ private theorem gradient_std_character_phase (Q : ℕ) [NeZero Q] (a : ZMod Q) :
   push_cast
   field_simp
 
+/-- The circuit lift that tensors fixed gates with the target-register identity and keeps each
+query step. -/
 private noncomputable def gradientValueLift {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (C : Circuit X) : Circuit (X × ZMod Q) :=
   C.map (fun s => match s with
     | .query => Step.query
     | .gate U => Step.gate (TensorGate U (1 : Matrix (ZMod Q) (ZMod Q) ℂ)))
 
+/-- The explicit value-register circuit lift equals `LiftCircuitTo (ZMod Q)`. -/
 private theorem gradientValueLift_eq {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (C : Circuit X) :
     gradientValueLift Q C = LiftCircuitTo (ZMod Q) C := by
@@ -109,6 +149,9 @@ private theorem gradientValueLift_eq {X : Type} [Fintype X] [DecidableEq X]
     cases s <;> simp only [gradientValueLift, List.map_cons, LiftCircuitTo]
     all_goals exact congrArg (List.cons _) ih
 
+/-- Running a lifted circuit with the value oracle on a character-register tensor state equals
+running the character-valued diagonal phase oracle on the data, with the character register
+unchanged. -/
 private theorem gradientValueLift_run {X : Type} [Fintype X] [DecidableEq X]
     (Q : ℕ) [NeZero Q] (v : X → ZMod Q) (C : Circuit X) (ψ : QState X) :
     Run (gradientValueOracle Q v) (gradientValueLift Q C)
@@ -137,6 +180,8 @@ private theorem gradientValueLift_run {X : Type} [Fintype X] [DecidableEq X]
       rw [hquery]
       exact ih _
 
+/-- The value-oracle gradient circuit produces the phase-gradient readout with a clean character
+register and uses one query and `2*d` fixed gates. See [Jordan2005Gradient]. -/
 theorem gradient_value_one_query_clean_fourier_consumer :
     ∀ (d M Q : ℕ) (hM : 0 < M) [NeZero Q] (v : GradientGrid d M → ZMod Q),
       Run (gradientValueOracle Q v) (gradientValueWord d M Q)
@@ -169,6 +214,7 @@ theorem gradient_value_one_query_clean_fourier_consumer :
   rw [gradientValueLift_eq, queryCount_liftCircuitTo, gateCount_liftCircuitTo]
   exact (gradient_coordinate_qft_word_unitarity d M hM).2
 
+/-- The modular character kickback state is normalized for every nonzero target-register size. -/
 theorem gradientKickState_normalized (Q : ℕ) [NeZero Q] : Normalized (gradientKickState Q) := by
   have hQ : 0 < (Q : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne Q)
   have hn (y : ZMod Q) : ‖gradientKickState Q y‖ ^ 2 = (Q : ℝ)⁻¹ := by
@@ -179,6 +225,8 @@ theorem gradientKickState_normalized (Q : ℕ) [NeZero Q] : Normalized (gradient
   unfold Normalized
   simp [hn, ZMod.card, hQ.ne']
 
+/-- Marginalizing the value-oracle gradient output over the target register gives the same
+data-event probability as the corresponding phase-gradient readout. -/
 theorem gradient_value_actual_data_marginal (d M Q : ℕ) (hM : 0 < M) [NeZero Q]
     (v : GradientGrid d M → ZMod Q) (S : Finset (GradientGrid d M)) :
     MeasureProb (Run (gradientValueOracle Q v) (gradientValueWord d M Q)
@@ -188,6 +236,9 @@ theorem gradient_value_actual_data_marginal (d M Q : ℕ) (hM : 0 < M) [NeZero Q
   rw [(gradient_value_one_query_clean_fourier_consumer d M Q hM v).1]
   exact measureProb_tensorState_left (gradientKickState_normalized Q) _ S
 
+/-- If the decoded value phase differs from a target phase by at most `δ ≥ 0` modulo integers at
+each input, every gradient-readout event probability changes by at most `4*π*δ`. See
+[Jordan2005Gradient]. -/
 theorem gradient_value_precision_actual_readout_event :
     ∀ (d M Q : ℕ) (hM : 0 < M) [NeZero Q]
       (v : GradientGrid d M → ZMod Q) (φ : GradientGrid d M → ℝ)

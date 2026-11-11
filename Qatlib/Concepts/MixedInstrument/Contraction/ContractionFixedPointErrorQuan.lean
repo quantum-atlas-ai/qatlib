@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedInstrument.Contraction.ContractionFixedPointErrorStat
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+/-!
+# Fixed point error for contractive channels
+
+This module proves `contractionFixedPointError`, bounding the distance from a channel fixed
+point to an approximate fixed point by the residual divided by `1 - η`. Contraction is required
+on density operators, as in the fixed point estimate of [TemmeEtAl2011].
+`globalContractionDensityFixedPointImpossible` rules out the corresponding strict contraction on
+all operators when a density fixed point exists.
+
+## Main statements
+
+* `contractionFixedPointError`: A channel contracting density operators by `η < 1` has fixed
+  point error at most `ε / (1 - η)` whenever the reference density operator has residual at most
+  `ε`; see [Temme et al., Eq. (44)][TemmeEtAl2011].
+* `globalContractionDensityFixedPointImpossible`: A quantum channel with a density fixed point
+  cannot contract the Schatten one distance between all operators by a factor strictly less than
+  one.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -13,6 +37,9 @@ open Qatlib.Concepts.AdaptiveCP.BranchTrace
 
 namespace Qatlib.Concepts.MixedInstrument.Contraction
 
+/-- A channel contracting density operators by `η < 1` has fixed point error at most `ε / (1 -
+η)` whenever the reference density operator has residual at most `ε`; see [Temme et al., Eq.
+(44)][TemmeEtAl2011]. -/
 theorem contractionFixedPointError : ContractionFixedPointError := by
   intro D T sigma rho hs hrho hfix eta _he0 he1 hcontract eps _heps herr
   have htri : SchattenOne (sigma - rho) ≤
@@ -25,6 +52,8 @@ theorem contractionFixedPointError : ContractionFixedPointError := by
   apply (le_div_iff₀ (sub_pos.mpr he1)).mpr
   nlinarith
 
+/-- A quantum channel with a density fixed point cannot contract the Schatten one distance
+between all operators by a factor strictly less than one. -/
 theorem globalContractionDensityFixedPointImpossible (D : ℕ) (T : QuantumChannel D D)
     (sigma : Operator D) (hs : IsDensityOperator sigma) (hfix : T.map sigma = sigma)
     (eta : ℝ) (heta : eta < 1)

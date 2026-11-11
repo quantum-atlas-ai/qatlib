@@ -8,6 +8,31 @@ import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+
+/-!
+# Bernoulli subset laws and mixed Fourier moments
+
+`bernoulliSubsetLaw` realizes independent Bernoulli noise as a finite distribution on subsets of
+`ZMod N`. The module computes its cardinality law and moments, then decomposes sums over noise
+disjoint from a signal set into fixed-cardinality layers of its complement.
+
+The complement transport retains the avoidance factor `(1 - p) ^ A.card`.
+`bernoulli_mixed_second_moment` evaluates the resulting signal-plus-noise Fourier second moment,
+including the cross term.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `bernoulli_subset_actual_law`: subset masses, binomial cardinality law, mean, and variance.
+* `bernoulli_conditional_complement_uniform`: uniformity after fixing a complement layer.
+* `bernoulli_mixed_second_moment`: the mixed Fourier moment formula.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -20,9 +45,12 @@ noncomputable section
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 open scoped Classical BigOperators
 
+/-- The binomial level weight `choose n l * p ^ l * (1 - p) ^ (n - l)`. -/
 private def bernoulliLevelWeight (n : ℕ) (p : ℝ) (l : ℕ) : ℝ :=
   (n.choose l : ℝ) * p^l * (1-p)^(n-l)
 
+/-- Split a weighted sum over `n + 1` Bernoulli sites according to the last site's false and
+true contributions. -/
 private theorem bernoulli_level_succ (n : ℕ) (p : ℝ) (f : ℕ → ℝ) :
     (∑ l ∈ Finset.range (n+2), bernoulliLevelWeight (n+1) p l * f l) =
       (1-p)*(∑ l ∈ Finset.range (n+1), bernoulliLevelWeight n p l * f l) +
@@ -42,6 +70,7 @@ private theorem bernoulli_level_succ (n : ℕ) (p : ℝ) (f : ℕ → ℝ) :
     rw [pow_succ]
     ring
 
+/-- The binomial level weights sum to one. -/
 private theorem bernoulli_level_mass (n : ℕ) (p : ℝ) :
     (∑ l ∈ Finset.range (n+1), bernoulliLevelWeight n p l) = 1 := by
   induction n with
@@ -52,6 +81,7 @@ private theorem bernoulli_level_mass (n : ℕ) (p : ℝ) :
     rw [h, ih]
     ring
 
+/-- The first moment of the binomial level weights is `n * p`. -/
 private theorem bernoulli_level_first (n : ℕ) (p : ℝ) :
     (∑ l ∈ Finset.range (n+1), bernoulliLevelWeight n p l * (l : ℝ)) = (n : ℝ)*p := by
   induction n with
@@ -65,6 +95,7 @@ private theorem bernoulli_level_first (n : ℕ) (p : ℝ) :
     rw [ih, hshift, Nat.cast_add, Nat.cast_one]
     ring
 
+/-- The second factorial moment of the binomial level weights is `n * (n - 1) * p ^ 2`. -/
 private theorem bernoulli_level_factorial (n : ℕ) (p : ℝ) :
     (∑ l ∈ Finset.range (n+1), bernoulliLevelWeight n p l * ((l : ℝ)*((l : ℝ)-1))) =
       (n : ℝ)*((n : ℝ)-1)*p^2 := by
@@ -88,6 +119,8 @@ private theorem bernoulli_level_factorial (n : ℕ) (p : ℝ) :
     rw [ih, hshift, Nat.cast_add, Nat.cast_one]
     ring
 
+/-- Evaluate a binomially weighted quadratic written in the basis `1`, `l`, and `l * (l - 1)`
+using its first two factorial moments. -/
 theorem bernoulli_quadratic_level_sum (n : ℕ) (p a b c : ℝ) :
     (∑ l ∈ Finset.range (n+1), (n.choose l : ℝ)*p^l*(1-p)^(n-l)*
       (a+b*(l : ℝ)+c*((l : ℝ)*((l : ℝ)-1)))) =
@@ -107,12 +140,15 @@ theorem bernoulli_quadratic_level_sum (n : ℕ) (p a b c : ℝ) :
       rw [bernoulli_level_mass, bernoulli_level_first, bernoulli_level_factorial]
       ring
 
+/-- Group a sum over all subsets of `C` by cardinality, with multiplicity `C.card.choose l`. -/
 private theorem bernoulli_layer_sum {X : Type} [DecidableEq X]
     (C : Finset X) (f : ℕ → ℝ) :
     (∑ S ∈ C.powerset, f S.card) =
       ∑ l ∈ Finset.range (C.card+1), (C.card.choose l : ℝ)*f l := by
   simpa only [nsmul_eq_mul] using (Finset.sum_powerset_apply_card f (x := C))
 
+/-- Convert a Bernoulli-weighted subset sum depending only on cardinality to a binomial level
+sum. -/
 private theorem bernoulli_subset_card_expect {X : Type} [DecidableEq X]
     (C : Finset X) (p : ℝ) (f : ℕ → ℝ) :
     (∑ S ∈ C.powerset, p^S.card*(1-p)^(C.card-S.card)*f S.card) =
@@ -120,6 +156,8 @@ private theorem bernoulli_subset_card_expect {X : Type} [DecidableEq X]
   simpa only [bernoulliLevelWeight, mul_assoc] using
     bernoulli_layer_sum C (fun l => p^l*(1-p)^(C.card-l)*f l)
 
+/-- The finite Bernoulli subset distribution on `ZMod N` with point mass `p ^ S.card * (1 - p) ^
+(N - S.card)`. -/
 def bernoulliSubsetLaw (N : ℕ) [NeZero N] (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
     FinDist (Finset (ZMod N)) where
   prob S := p^S.card*(1-p)^(N-S.card)
@@ -129,6 +167,9 @@ def bernoulliSubsetLaw (N : ℕ) [NeZero N] (p : ℝ) (hp : 0 ≤ p) (hp1 : p �
     simp only [Finset.powerset_univ, Finset.card_univ, ZMod.card, mul_one] at h
     exact h.trans (bernoulli_level_mass N p)
 
+/-- Construct the Bernoulli subset law, identify its binomial cardinality masses, and prove
+cardinality mean `N * p` and variance `N * p * (1 - p)`; see [Cornwell, Section
+3.1][Cornwell2014]. -/
 theorem bernoulli_subset_actual_law :
   ∀ (N : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∃ d : FinDist (Finset (ZMod N)),
@@ -167,6 +208,7 @@ theorem bernoulli_subset_actual_law :
         bernoulli_quadratic_level_sum N p (((N : ℝ)*p)^2) (1-2*(N : ℝ)*p) 1
       _ = _ := by ring
 
+/-- Factor the common Bernoulli point weight out of a sum over subsets of fixed cardinality. -/
 private theorem bernoulli_fixed_level_sum (N : ℕ) [NeZero N] (p : ℝ)
     (d : FinDist (Finset (ZMod N)))
     (hd : ∀ S, d.prob S = p^S.card*(1-p)^(N-S.card))
@@ -178,6 +220,8 @@ private theorem bernoulli_fixed_level_sum (N : ℕ) [NeZero N] (p : ℝ)
   intro S hS
   rw [hd S, (Finset.mem_powersetCard.mp hS).2]
 
+/-- Decompose the Bernoulli-weighted sum over subsets disjoint from `A` into complement
+cardinality layers, with prefactor `(1 - p) ^ A.card`. -/
 theorem bernoulli_complement_transport (N : ℕ) [NeZero N] (p : ℝ)
     (d : FinDist (Finset (ZMod N)))
     (hd : ∀ S, d.prob S = p^S.card*(1-p)^(N-S.card))
@@ -213,6 +257,9 @@ theorem bernoulli_complement_transport (N : ℕ) [NeZero N] (p : ℝ)
       intro S hS
       rw [(Finset.mem_powersetCard.mp hS).2]
 
+/-- For `0 < p < 1` and a feasible complement layer, conditioning on that layer gives the
+uniform fixed-cardinality mean and its explicit mass, together with the complement-layer
+decomposition; see [Cornwell2014]. -/
 theorem bernoulli_conditional_complement_uniform :
   ∀ (N : ℕ) [NeZero N] (p : ℝ), 0 < p → p < 1 →
     ∀ (d : FinDist (Finset (ZMod N))),
@@ -246,6 +293,8 @@ theorem bernoulli_conditional_complement_uniform :
   have hq0 : 1-p ≠ 0 := (sub_pos.mpr hp1).ne'
   field_simp
 
+/-- Express the Bernoulli-weighted sum over subsets of the complement of `A` using binomial
+weights and uniform fixed-cardinality means. -/
 theorem bernoulli_complement_mean_transport (N : ℕ) [NeZero N] (p : ℝ)
     (d : FinDist (Finset (ZMod N)))
     (hd : ∀ S, d.prob S = p^S.card*(1-p)^(N-S.card))
@@ -264,6 +313,9 @@ theorem bernoulli_complement_mean_transport (N : ℕ) [NeZero N] (p : ℝ)
   rw [conditionalNoiseMean, Finset.card_powersetCard]
   field_simp
 
+/-- For a complement of size at least two, compute the mixed signal-plus-noise Fourier second
+moment under binomial layer mixing and the corresponding unnormalized disjoint-noise sum;
+see [Cornwell, Section 3.4.4][Cornwell2014]. -/
 theorem bernoulli_mixed_second_moment :
   ∀ (N : ℕ) [NeZero N] (p : ℝ), 0 ≤ p → p ≤ 1 →
     ∀ (d : FinDist (Finset (ZMod N))),

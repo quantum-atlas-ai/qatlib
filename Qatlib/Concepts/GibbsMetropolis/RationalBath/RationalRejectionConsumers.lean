@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionTermination
 import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
+
+/-!
+# Consumers of counted rational rejection sampling
+
+`rationalThenAttempt` and `rationalInfiniteThenAttempt` compose rational-weight selection with a
+label-dependent costed computation. The module relates the sampler to finite-coin ticket
+sampling and proves event and expected-cost formulas for both finite and unbounded execution.
+
+An effective cutoff bounds failure probability and resource costs, while weights one, two, and
+three provide an explicit worked instance. See [TemmeEtAl2011] for background.
+
+## Main statements
+
+* `rational_effective_truncation_consumer`: Choosing the ceiling logarithmic bit width bounds
+  cutoff failure by `(1 / 2) ^ fuel`, gives exact label deficits, and bounds expected and
+  supported bit and comparison costs.
+* `rational_counted_attempt_actual_consumer`: The composed cutoff and unbounded samplers have
+  the stated ticket projection, event probabilities, and exact expectations for random bits,
+  comparisons, and downstream cost.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.FairRandomBits.RationalReject
@@ -21,6 +46,8 @@ namespace Qatlib.Concepts.GibbsMetropolis.RationalBath
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal Classical
 
+/-- When the ticket range covers the total weight, the mean number of comparisons in one
+rejection trial is at most `N`. -/
 private theorem rational_mean_le (N : ℕ) (w : Fin N → ℕ) (b : ℕ)
     (hb : weightTotal w ≤ 2^b) : rationalMeanComparisons w b ≤ (N : ℝ≥0∞) := by
   have hnum : (∑ j : Fin N, w j * (j.val+1)) + (2^b-weightTotal w)*N ≤ (2^b)*N := by
@@ -40,6 +67,8 @@ private theorem rational_mean_le (N : ℕ) (w : Fin N → ℕ) (b : ℕ)
     _ = (N : ℝ≥0∞) := by
       rw [Nat.cast_mul, mul_comm, ENNReal.mul_div_cancel_right (by positivity) (by simp)]
 
+/-- Choosing the ceiling logarithmic bit width bounds cutoff failure by `(1 / 2) ^ fuel`, gives
+exact label deficits, and bounds expected and supported bit and comparison costs. -/
 theorem rational_effective_truncation_consumer (N : ℕ) (w : Fin N → ℕ)
     (fuel : ℕ) (hW : 0 < weightTotal w) :
     let b := Nat.clog 2 (weightTotal w)
@@ -80,6 +109,9 @@ theorem rational_effective_truncation_consumer (N : ℕ) (w : Fin N → ℕ)
     calc _ ≤ (N : ℝ≥0∞)*2 := mul_le_mul' (rational_mean_le N w b hb) htail
       _ = ((2*N : ℕ) : ℝ≥0∞) := by simp [mul_comm]
 
+/-- For weights one, two, and three, the sampler has rejection probability one quarter, terminal
+probabilities one sixth, one third, and one half, and the stated exact decoding and expected
+costs. -/
 theorem rational_one_two_three_actual_consumer :
     let w := (![1,2,3] : Fin 3 → ℕ)
     weightTotal w = 6 ∧ rationalRejectMass w 3 = 1/4 ∧
@@ -136,6 +168,8 @@ theorem rational_one_two_three_actual_consumer :
         (ne_of_lt (ENNReal.div_lt_top (by finiteness) hden)) (by finiteness)).mp
       norm_num [ENNReal.toReal_sub_of_le (by norm_num : (1/4 : ℝ≥0∞) ≤ 1) (by simp)]
 
+/-- Run a cutoff rational rejection sampler and then the computation for its accepted label,
+recording bit, comparison, and downstream costs. -/
 noncomputable def rationalThenAttempt {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     {A : Type} (F : Fin N → CostedLaw A) : PMF (Option A × ℕ × ℕ × ℕ) :=
   PMF.bind (rationalRejectionRun w b fuel) fun z =>
@@ -143,12 +177,16 @@ noncomputable def rationalThenAttempt {N : ℕ} (w : Fin N → ℕ) (b fuel : �
     | .inl (j,B,D) => (F j).map fun y => (some y.1,B,D,y.2)
     | .inr (B,D) => PMF.pure (none,B,D,0)
 
+/-- Run the unbounded rational stopping law followed by the accepted label's computation,
+recording its bit, comparison, and downstream costs. -/
 noncomputable def rationalInfiniteThenAttempt {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     {A : Type} (F : Fin N → CostedLaw A) : PMF (A × ℕ × ℕ × ℕ) :=
   PMF.bind (rationalStopLaw w b hW hb) fun z =>
     (F z.1).map fun y => (y.1,b*z.2,N*(z.2-1)+z.1.val+1,y.2)
 
+/-- Two maps agreeing on the support of a probability mass function have equal pushforward
+distributions. -/
 private theorem pmf_map_congr_on_support {X Y : Type} (p : PMF X) (f g : X → Y)
     (h : ∀ x ∈ p.support, f x = g x) : p.map f = p.map g := by
   ext y
@@ -159,6 +197,8 @@ private theorem pmf_map_congr_on_support {X Y : Type} (p : PMF X) (f g : X → Y
   · simp [hx]
   · rw [h x ((PMF.mem_support_iff _ _).mpr hx)]
 
+/-- Transporting terminal states through a map that intertwines the one-step kernels commutes
+with finite execution and preserves its cost. -/
 private theorem map_runFor {X Y : Type} (k : Unit → PMF (Configuration Unit X))
     (l : Unit → PMF (Configuration Unit Y)) (f : X → Y)
     (hk : (k ()).map (Sum.map f id) = l ()) (fuel : ℕ) :
@@ -193,6 +233,8 @@ private theorem map_runFor {X Y : Type} (k : Unit → PMF (Configuration Unit X)
       simpa only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge, PMF.map_comp,
           Function.comp_def] using hi
 
+/-- Decoding accepted finite-coin tickets transports the one-step coin kernel to the rational
+rejection kernel. -/
 theorem rationalRejectionNext_ticket_transport {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) :
     (finiteCoinNext b (weightTotal w) ()).map (Sum.map (weightTicket w hW) id) =
@@ -214,6 +256,8 @@ theorem rationalRejectionNext_ticket_transport {N : ℕ} (w : Fin N → ℕ) (b 
     rw [hd]
     simp [coinStep, decodeBoundedBits, u, hu]
 
+/-- Finite rational rejection outcomes and bit counts agree with decoded finite-coin execution
+outcomes and costs. -/
 theorem rationalRejectionRun_ticket_transport {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) :
     (rationalRejectionRun w b fuel).map (fun z => (rejectionOutcome z.1,rejectionBits z.1)) =
@@ -232,6 +276,8 @@ theorem rationalRejectionRun_ticket_transport {N : ℕ} (w : Fin N → ℕ) (b f
   have hr := congrArg (fun p => p.map (fun z => (z.1,b*z.2))) hrun
   simpa only [finiteCoinRun, PMF.map_comp, Function.comp_def] using hl.trans hr.symm
 
+/-- A point mass of a pushforward distribution equals the probability of the corresponding
+preimage event. -/
 private theorem map_point_mass {X Y : Type} (p : PMF X) (f : X → Y) (y : Y) :
     p.map f y = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => f x = y) := by
   simp only [PMF.map_apply, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event,
@@ -242,6 +288,8 @@ private theorem map_point_mass {X Y : Type} (p : PMF X) (f : X → Y) (y : Y) :
   · simp [h]
   · simp only [if_neg h, if_neg (Ne.symm h), mul_zero]
 
+/-- The expectation of a terminal-label observable is the sum of its values weighted by the
+terminal-label event masses. -/
 private theorem expectation_outcome {X : Type} {N : ℕ} (p : PMF X)
     (f : X → Configuration Unit (Fin N)) (v : Fin N → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun x => (f x).elim v (fun _ => 0)) =
@@ -251,6 +299,8 @@ private theorem expectation_outcome {X : Type} {N : ℕ} (p : PMF X)
   rw [tsum_sum_type', tsum_fintype]
   simp only [Sum.elim_inl, Sum.elim_inr, mul_zero, tsum_zero, add_zero, map_point_mass]
 
+/-- An observable vanishing on failure has expectation equal to the cutoff success factor times
+the normalized-weight average of its downstream expectations. -/
 private theorem rationalThenAttempt_observable {N : ℕ} (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     {A : Type} (F : Fin N → CostedLaw A) (g : Option A × ℕ → ℝ≥0∞)
@@ -278,6 +328,8 @@ private theorem rationalThenAttempt_observable {N : ℕ} (w : Fin N → ℕ) (b 
   intro j _
   ring
 
+/-- An observable depending only on the final label has expectation equal to its
+normalized-weight average under the stopping law. -/
 private theorem rationalStopLaw_bucket_expectation {N : ℕ} (w : Fin N → ℕ) (b : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b) (f : Fin N → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (rationalStopLaw w b hW hb) (fun z => f z.1) =
@@ -293,6 +345,8 @@ private theorem rationalStopLaw_bucket_expectation {N : ℕ} (w : Fin N → ℕ)
     simp [rationalStopMass, rationalTerminalMass]
   rw [hm, (rational_unbounded_actual_first_stop_law N w b hW hb).2.2.1 j |>.2.1]
 
+/-- Projecting away comparison costs identifies the composed rational sampler with the
+corresponding finite-coin ticket computation. -/
 private theorem rationalThenAttempt_ticket_projection {N : ℕ} (w : Fin N → ℕ)
     (b fuel : ℕ) (hW : 0 < weightTotal w) {A : Type} (F : Fin N → CostedLaw A) :
     (rationalThenAttempt w b fuel F).map (fun z => (z.1,z.2.1,z.2.2.2)) =
@@ -317,6 +371,8 @@ private theorem rationalThenAttempt_ticket_projection {N : ℕ} (w : Fin N → �
   rcases z with ⟨c,B⟩
   cases c <;> rfl
 
+/-- The composed cutoff and unbounded samplers have the stated ticket projection, event
+probabilities, and exact expectations for random bits, comparisons, and downstream cost. -/
 theorem rational_counted_attempt_actual_consumer (N : ℕ) (w : Fin N → ℕ)
     (b fuel : ℕ) (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2^b)
     (A : Type) (F : Fin N → CostedLaw A) (E : A → Prop) :

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputQuan
 import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+
+/-!
+# Lower bounds on the unmarked Johnson population
+
+This module bounds the number of subsets meeting a removed set by a union estimate and deduces a
+lower bound for subsets avoiding that set. Under `2*k*(r+1) ≤ N`, these estimates show that the
+zero-intersection false type accounts for at least half the total starting population in the
+Johnson-walk reduction [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `jw_choose_removal_bound`: the subset-removal union bound.
+* `jw_choose_avoid_half`: at least half the subsets avoid the removed set.
+* `jwStart_zero_population_half`: the corresponding Johnson-population bound.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +33,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- For `k ≤ N` and positive `s`, `choose N s` is at most `choose (N-k) s + k*choose (N-1)
+(s-1)`. -/
 theorem jw_choose_removal_bound (N k s : ℕ) (hkN : k ≤ N) (hs : 0 < s) :
     Nat.choose N s ≤ Nat.choose (N - k) s + k * Nat.choose (N - 1) (s - 1) := by
   induction k with
@@ -31,6 +53,7 @@ theorem jw_choose_removal_bound (N k s : ℕ) (hkN : k ≤ N) (hs : 0 < s) :
           k * Nat.choose (N - 1) (s - 1) := by rw [hp]
       _ ≤ _ := by simp only [Nat.add_mul, Nat.one_mul]; omega
 
+/-- If `N > 0`, `k ≤ N`, `s > 0`, and `2*k*s ≤ N`, then `choose N s ≤ 2*choose (N-k) s`. -/
 theorem jw_choose_avoid_half (N k s : ℕ) (hN : 0 < N) (hkN : k ≤ N)
     (hs : 0 < s) (hsize : 2 * k * s ≤ N) :
     Nat.choose N s ≤ 2 * Nat.choose (N - k) s := by
@@ -43,6 +66,8 @@ theorem jw_choose_avoid_half (N k s : ℕ) (hN : 0 < N) (hkN : k ≤ N)
   have hsize' := Nat.mul_le_mul_right (Nat.choose N s) hsize
   nlinarith
 
+/-- Under the stated size assumptions and `2*k*(r+1) ≤ N`, the total starting population is at
+most twice the population of type `(0, false)`. -/
 theorem jwStart_zero_population_half (k N r : ℕ) (hN : 0 < N)
     (hkr : k ≤ r) (hkNr : k ≤ N - r) (hrN : r ≤ N)
     (hsize : 2 * k * (r + 1) ≤ N) :

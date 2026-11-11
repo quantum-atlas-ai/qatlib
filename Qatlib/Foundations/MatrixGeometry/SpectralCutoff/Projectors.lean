@@ -93,6 +93,26 @@ import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.Order.Hom.Esakia
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Finite-dimensional spectral cutoff projectors
+
+Defines the eigenvalue mask `mask`, the spectral projector `low` for eigenvalues at most a real
+threshold, and its complement `high`. Both projectors are Hermitian, idempotent, positive
+semidefinite contractions; ordered thresholds give nesting and orthogonality of separated
+spectral subspaces. See [HejaziZiniArrazola2024] for related background.
+
+## Main statements
+
+* `low_nested`: For `Δ ≤ Λ`, multiplying the low-energy projectors at `Δ` and `Λ` gives the
+  projector at `Δ`.
+* `separated_orthogonal`: For `Δ ≤ Λ`, the projector onto energies above `Λ` annihilates the
+  projector onto energies at most `Δ`.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section
@@ -102,14 +122,20 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOr
 namespace Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The diagonal indicator of eigenvalues of `H` that are at most `Δ`, in the eigenvector
+coordinates supplied by `hH`. -/
 def mask (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) : Matrix I I ℂ :=
   diagonal (fun i=>if hH.eigenvalues i ≤ Δ then 1 else 0)
 
+/-- The spectral projector of `H` onto eigenvalues at most `Δ`, obtained by conjugating `mask`
+by the eigenvector unitary. -/
 def low (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) : Matrix I I ℂ :=
   conjStarAlgAut ℂ (Matrix I I ℂ) hH.eigenvectorUnitary (mask H hH Δ)
 
+/-- The complementary spectral projector `1 - low H hH Δ`. -/
 def high (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) : Matrix I I ℂ := 1-low H hH Δ
 
+/-- The diagonal eigenvalue mask is Hermitian. -/
 theorem mask_hermitian (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     (mask H hH Δ)ᴴ=mask H hH Δ := by
   ext i j
@@ -118,6 +144,7 @@ theorem mask_hermitian (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     by_cases he:hH.eigenvalues i ≤ Δ <;> simp [mask,Matrix.conjTranspose_apply,he]
   · simp [mask,Matrix.conjTranspose_apply,hij,Ne.symm hij]
 
+/-- The diagonal eigenvalue mask is idempotent. -/
 theorem mask_square (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     mask H hH Δ*mask H hH Δ=mask H hH Δ := by
   rw [mask,Matrix.diagonal_mul_diagonal]
@@ -125,47 +152,57 @@ theorem mask_square (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
   funext i
   split_ifs <;> norm_num
 
+/-- The low-energy spectral projector is Hermitian. -/
 theorem low_hermitian (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     (low H hH Δ)ᴴ=low H hH Δ := by
   change star (conjStarAlgAut ℂ (Matrix I I ℂ) hH.eigenvectorUnitary (mask H hH Δ))=_
   rw [← map_star]
   exact congrArg _ (mask_hermitian H hH Δ)
 
+/-- The low-energy spectral projector is idempotent. -/
 theorem low_square (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     low H hH Δ*low H hH Δ=low H hH Δ := by
   exact (map_mul _ _ _).symm.trans (congrArg _ (mask_square H hH Δ))
 
+/-- The low-energy spectral projector has operator norm at most one. -/
 theorem low_norm (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     ‖low H hH Δ‖ ≤ 1 := by
   have h:=Matrix.l2_opNorm_conjTranspose_mul_self (low H hH Δ)
   rw [low_hermitian,low_square] at h
   nlinarith [norm_nonneg (low H hH Δ)]
 
+/-- The complementary high-energy spectral projector is Hermitian. -/
 theorem high_hermitian (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     (high H hH Δ)ᴴ=high H hH Δ := by simp only [high,Matrix.conjTranspose_sub,Matrix.conjTranspose_one,low_hermitian]
 
+/-- The complementary high-energy spectral projector is idempotent. -/
 theorem high_square (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     high H hH Δ*high H hH Δ=high H hH Δ := by
   have h:=low_square H hH Δ
   unfold high
   noncomm_ring [h]
 
+/-- The high-energy spectral projector has operator norm at most one. -/
 theorem high_norm (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     ‖high H hH Δ‖ ≤ 1 := by
   have h:=Matrix.l2_opNorm_conjTranspose_mul_self (high H hH Δ)
   rw [high_hermitian,high_square] at h
   nlinarith [norm_nonneg (high H hH Δ)]
 
+/-- The low-energy spectral projector is positive semidefinite. -/
 theorem low_psd (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     (low H hH Δ).PosSemidef := by
   have h:=Matrix.posSemidef_conjTranspose_mul_self (low H hH Δ)
   rwa [low_hermitian,low_square] at h
 
+/-- The high-energy spectral projector is positive semidefinite. -/
 theorem high_psd (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ : ℝ) :
     (high H hH Δ).PosSemidef := by
   have h:=Matrix.posSemidef_conjTranspose_mul_self (high H hH Δ)
   rwa [high_hermitian,high_square] at h
 
+/-- For `Δ ≤ Λ`, multiplying the low-energy projectors at `Δ` and `Λ` gives the projector at
+`Δ`. -/
 theorem low_nested (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ Λ : ℝ) (h : Δ ≤ Λ) :
     low H hH Δ*low H hH Λ=low H hH Δ := by
   unfold low
@@ -178,6 +215,8 @@ theorem low_nested (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ Λ : ℝ) (h : 
   · simp [hi,hi.trans h]
   · simp [hi]
 
+/-- For `Δ ≤ Λ`, the projector onto energies above `Λ` annihilates the projector onto energies
+at most `Δ`. -/
 theorem separated_orthogonal (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ Λ : ℝ) (h : Δ ≤ Λ) :
     high H hH Λ*low H hH Δ=0 := by
   have he:=low_nested H hH Δ Λ h

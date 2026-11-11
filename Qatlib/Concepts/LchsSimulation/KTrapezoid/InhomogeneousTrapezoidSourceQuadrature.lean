@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceDefs
+
+/-!
+# Trapezoidal source error specification
+
+`InhomogeneousTrapezoidSourceQuadrature` specifies an error bound for trapezoidal discretization
+of the variation-of-constants source integral. The time-grid term uses bounds on first
+derivatives of the generator fields and the first two derivatives of the source, alongside the
+static LCHS error. See [AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `InhomogeneousTrapezoidSourceQuadrature`: The source quadrature specification combining a
+  second-order trapezoidal time error, controlled by the stated generator and source derivative
+  bounds, with the static LCHS cutoff and grid error.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -34,6 +54,9 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 end InhomogeneousTrapezoidDefinitions
 
+/-- The source quadrature specification combining a second-order trapezoidal time error,
+controlled by the stated generator and source derivative bounds, with the static LCHS cutoff
+and grid error. -/
 def InhomogeneousTrapezoidSourceQuadrature : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L L' H H' : ℝ → Matrix I I ℂ)
     (b b' b'' : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)

@@ -13,6 +13,33 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# KMS inner products and norm bounds
+
+This module defines the square-root-weighted trace pairing `kmsInner`, its associated quantity
+`kmsNorm`, and centering by the state expectation through `kmsCenter`. It proves conjugate
+symmetry, nonnegativity, a commutator identity, and comparison with the operator norm for
+density operators.
+
+Positive definiteness of the state gives definiteness of the KMS norm. A one-dimensional
+counterexample records why the identity for pairing with the identity operator requires
+positivity. Matrix square roots and trace inequalities are treated in [Bhatia1997].
+
+## Main statements
+
+* `kmsInner`: The KMS trace pairing `tr(Xᴴ √ρ Y √ρ)`, using the continuous functional calculus
+  square root.
+* `kmsNorm_le_opNorm`: For a density operator `ρ`, the KMS norm of `X` is bounded by its
+  operator norm.
+* `kmsNorm_eq_zero_iff`: For positive definite `ρ`, the KMS norm of `X` vanishes exactly when
+  `X` is zero.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,12 +54,16 @@ open scoped MatrixOrder ComplexOrder
 
 variable {D : ℕ}
 
+/-- The KMS trace pairing `tr(Xᴴ √ρ Y √ρ)`, using the continuous functional calculus square
+root. -/
 noncomputable def kmsInner (ρ : Operator D) (X Y : Operator D) : ℂ :=
   Matrix.trace (Xᴴ * CFC.sqrt ρ * Y * CFC.sqrt ρ)
 
+/-- The square root of the real part of `kmsInner ρ X X`. -/
 noncomputable def kmsNorm (ρ : Operator D) (X : Operator D) : ℝ :=
   Real.sqrt (Complex.re (kmsInner ρ X X))
 
+/-- The operator obtained by subtracting `tr(ρ O)` times the identity from `O`. -/
 noncomputable def kmsCenter (ρ : Operator D) (O : Operator D) : Operator D :=
   O - (Matrix.trace (ρ * O)) • (1 : Operator D)
 
@@ -40,22 +71,27 @@ section Proofs
 
 open scoped Matrix.Norms.L2Operator
 
+/-- For positive semidefinite `ρ`, pairing the identity with `Y` gives `tr(Y ρ)`. -/
 theorem kmsInner_one_left (ρ Y : Operator D) (hρ : 0 ≤ ρ) :
     kmsInner ρ 1 Y = Matrix.trace (Y * ρ) := by
   simp only [kmsInner,Matrix.conjTranspose_one,Matrix.one_mul]
   rw [Matrix.trace_mul_cycle (CFC.sqrt ρ) Y (CFC.sqrt ρ),
     CFC.sqrt_mul_sqrt_self ρ hρ,Matrix.trace_mul_comm]
 
+/-- Centering an operator with respect to a density operator makes its KMS pairing with the
+identity vanish. -/
 theorem kmsInner_center_one_left {ρ : Operator D} (hρ : IsDensityOperator ρ)
     (O : Operator D) : kmsInner ρ 1 (kmsCenter ρ O) = 0 := by
   rw [kmsInner_one_left _ _ hρ.1.nonneg,kmsCenter,Matrix.sub_mul,
     Matrix.smul_mul,Matrix.one_mul,Matrix.trace_sub,Matrix.trace_smul,hρ.2,
     smul_eq_mul,mul_one,Matrix.trace_mul_comm,sub_self]
 
+/-- The trace of a positive semidefinite matrix is nonnegative in the complex order. -/
 theorem trace_nonneg_of_nonneg {Q : Operator D} (hQ : 0 ≤ Q) :
     (0 : ℂ) ≤ Matrix.trace Q :=
   Matrix.PosSemidef.trace_nonneg (Matrix.nonneg_iff_posSemidef.mp hQ)
 
+/-- The matrix trace preserves the positive semidefinite order. -/
 theorem trace_mono_nonneg {P Q : Operator D} (h : P ≤ Q) :
     Matrix.trace P ≤ Matrix.trace Q := by
   have h1 := trace_nonneg_of_nonneg (sub_nonneg.mpr h)
@@ -69,6 +105,7 @@ theorem trace_mono_nonneg {P Q : Operator D} (h : P ≤ Q) :
     linarith
   exact Complex.le_def.mpr ⟨by linarith, by linarith⟩
 
+/-- The KMS trace pairing is conjugate symmetric. -/
 theorem kmsInner_conjSym (ρ X Y : Operator D) :
     kmsInner ρ X Y = star (kmsInner ρ Y X) := by
   have hS : (CFC.sqrt ρ)ᴴ = CFC.sqrt ρ :=
@@ -83,6 +120,8 @@ theorem kmsInner_conjSym (ρ X Y : Operator D) :
   exact (Matrix.trace_mul_comm (Xᴴ * CFC.sqrt ρ * Y) (CFC.sqrt ρ)).trans
     (by simp only [Matrix.mul_assoc])
 
+/-- The KMS self-pairing is the trace of the Gram matrix of `ρ^(1/4) X ρ^(1/4)`, with fractional
+powers expressed by iterated square roots. -/
 theorem kmsInner_self_eq (ρ X : Operator D) :
     kmsInner ρ X X = Matrix.trace
       ((CFC.sqrt (CFC.sqrt ρ) * X * CFC.sqrt (CFC.sqrt ρ))ᴴ *
@@ -104,6 +143,7 @@ theorem kmsInner_self_eq (ρ X : Operator D) :
   rw [show Xᴴ * P * (P * X) * CFC.sqrt ρ = Xᴴ * CFC.sqrt ρ * X * CFC.sqrt ρ from by
       simp only [Matrix.mul_assoc, ← hPP]]
 
+/-- The KMS self-pairing is nonnegative in the complex order. -/
 theorem kmsInner_self_nonneg (ρ X : Operator D) : (0 : ℂ) ≤ kmsInner ρ X X := by
   have h1 : (0 : ℂ) ≤ Matrix.trace
       ((CFC.sqrt (CFC.sqrt ρ) * X * CFC.sqrt (CFC.sqrt ρ))ᴴ *
@@ -113,10 +153,14 @@ theorem kmsInner_self_nonneg (ρ X : Operator D) : (0 : ℂ) ≤ kmsInner ρ X X
   rw [kmsInner_self_eq]
   exact h1
 
+/-- The real part of the KMS self-pairing is nonnegative. -/
 theorem kmsInner_re_self_nonneg (ρ X : Operator D) :
     0 ≤ Complex.re (kmsInner ρ X X) :=
   (Complex.le_def.mp (kmsInner_self_nonneg ρ X)).1
 
+/-- For positive semidefinite `ρ`, the squared Hilbert–Schmidt norm of the commutator of `√ρ`
+and `X` equals the sum of the two weighted quadratic traces minus twice the KMS
+self-pairing. -/
 theorem kms_commutator_identity (ρ X : Operator D) (hρ0 : 0 ≤ ρ) :
     Matrix.trace ((CFC.sqrt ρ * X - X * CFC.sqrt ρ)ᴴ * (CFC.sqrt ρ * X - X * CFC.sqrt ρ))
       = Matrix.trace (ρ * Xᴴ * X) + Matrix.trace (ρ * X * Xᴴ)
@@ -155,6 +199,8 @@ theorem kms_commutator_identity (ρ X : Operator D) (hρ0 : 0 ≤ ρ) :
   simp only [Matrix.trace_sub, tAC, tAD, tBC, tBD]
   ring
 
+/-- The identity `kmsInner ρ 1 Y = tr(Y ρ)` does not hold for all one-dimensional operators
+without a positivity hypothesis. -/
 theorem kmsInner_one_left_unrestricted_false :
     ¬ (∀ (ρ Y : Operator 1), kmsInner ρ 1 Y = Matrix.trace (Y * ρ)) := by
   intro h
@@ -162,6 +208,7 @@ theorem kmsInner_one_left_unrestricted_false :
   rw [h] at hn
   norm_num [Matrix.trace,Matrix.diag,Fin.sum_univ_one] at hn
 
+/-- The trace of `Aᴴ A` is the sum of the squared Euclidean norms of the columns of `A`. -/
 private theorem kms_trace_gram_columns (A : Operator D) :
     Matrix.trace (Aᴴ * A) =
       ((∑ j, ‖toEuclidean_fromVec (fun i => A i j)‖ ^ 2 : ℝ) : ℂ) := by
@@ -173,6 +220,8 @@ private theorem kms_trace_gram_columns (A : Operator D) :
   intro i _
   rw [Complex.star_def,← Complex.normSq_eq_conj_mul_self,Complex.normSq_eq_norm_sq]
 
+/-- The trace of the Gram matrix of `X S` is at most `‖X‖²` times the trace of the Gram matrix
+of `S`. -/
 private theorem kms_trace_gram_mul_bound (X S : Operator D) :
     Matrix.trace ((X * S)ᴴ * (X * S)) ≤
       ((‖X‖ : ℝ) ^ 2 : ℂ) * Matrix.trace (Sᴴ * S) := by
@@ -185,6 +234,7 @@ private theorem kms_trace_gram_mul_bound (X S : Operator D) :
     ‖X‖ * ‖toEuclidean_fromVec (fun i => S i j)‖ at hn
   simpa only [mul_pow] using pow_le_pow_left₀ (norm_nonneg _) hn 2
 
+/-- For positive semidefinite `ρ`, the weighted trace of `Xᴴ X` is bounded by `‖X‖² tr(ρ)`. -/
 private theorem kms_trace_conjTranspose_mul_bound {ρ : Operator D} (hρ0 : 0 ≤ ρ)
     (X : Operator D) :
     Matrix.trace (ρ * (Xᴴ * X)) ≤ ((‖X‖ : ℝ) ^ 2 : ℂ) * Matrix.trace ρ := by
@@ -199,6 +249,8 @@ private theorem kms_trace_conjTranspose_mul_bound {ρ : Operator D} (hρ0 : 0 �
   have ht : Matrix.trace (Sᴴ * S) = Matrix.trace ρ := by rw [hS,hSS]
   simpa only [he,ht] using kms_trace_gram_mul_bound X S
 
+/-- For positive semidefinite `ρ`, either quadratic product `Xᴴ X` or `X Xᴴ` has weighted trace
+at most `‖X‖² tr(ρ)`. -/
 theorem kms_trace_bound {ρ : Operator D} (hρ0 : 0 ≤ ρ) {X Q : Operator D}
     (hQ : Q = Xᴴ * X ∨ Q = X * Xᴴ) :
     Matrix.trace (ρ * Q) ≤ ((‖X‖ : ℝ) ^ 2 : ℂ) * Matrix.trace ρ := by
@@ -207,6 +259,7 @@ theorem kms_trace_bound {ρ : Operator D} (hρ0 : 0 ≤ ρ) {X Q : Operator D}
   · simpa only [Matrix.conjTranspose_conjTranspose,Matrix.l2_opNorm_conjTranspose]
       using kms_trace_conjTranspose_mul_bound hρ0 Xᴴ
 
+/-- For a density operator `ρ`, the KMS norm of `X` is bounded by its operator norm. -/
 theorem kmsNorm_le_opNorm {ρ : Operator D} (hρ : IsDensityOperator ρ) (X : Operator D) :
     kmsNorm ρ X ≤ ‖X‖ := by
   have hρ0 : 0 ≤ ρ := hρ.1.nonneg
@@ -227,6 +280,7 @@ theorem kmsNorm_le_opNorm {ρ : Operator D} (hρ : IsDensityOperator ρ) (X : Op
   have hnonneg : 0 ≤ kmsNorm ρ X := Real.sqrt_nonneg _
   nlinarith [norm_nonneg X]
 
+/-- For positive definite `ρ`, the KMS norm of `X` vanishes exactly when `X` is zero. -/
 theorem kmsNorm_eq_zero_iff {ρ : Operator D} (hρ : ρ.PosDef) (X : Operator D) :
     kmsNorm ρ X = 0 ↔ X = 0 := by
   have hρpsd : ρ.PosSemidef := Matrix.PosDef.posSemidef hρ

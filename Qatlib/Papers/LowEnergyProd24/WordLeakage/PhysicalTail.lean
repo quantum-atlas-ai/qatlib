@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalCoefficients
 import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+/-!
+# Weighted defect tails for physical Hamiltonians
+
+This module defines the original physical generator defect and sums its weighted coefficient
+tail after lower-order cancellation. It bounds the weighted norm by a geometric majorant,
+transporting the defect-tail estimates used in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_defect_tail`: Sums the physical coefficient series starting at the cancellation order.
+* `actual_defect_bound`: Bounds the weighted physical defect by the geometric tail expression.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,9 +40,13 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- The instantaneous generator of the original physical product word minus the original total
+generator. -/
 def defect (h : PhysicalHamiltonian N R M k d J) (stages : List (ℝ × Fin M)) (t : ℝ) :=
   generator (stages.map (stageGenerator h)) t-totalGenerator h
 
+/-- For positive cancellation order `p`, the series of weighted physical coefficients with
+powers `t ^ (n + p)` sums to the weighted physical defect. -/
 theorem actual_defect_tail (h : PhysicalHamiltonian N R M k d J) (stages : List (ℝ × Fin M))
     (p : ℕ) (hp : 0 < p) (horder : lowerOrderCancellation h stages p) (lam t : ℝ) :
     HasSum (fun n : ℕ => t^(n+p) • weighted h.total (physicalCoefficient h stages (n+p)) lam)
@@ -51,6 +73,9 @@ theorem actual_defect_tail (h : PhysicalHamiltonian N R M k d J) (stages : List 
   rw [he]
   exact hs
 
+/-- Under physical locality and lower-order cancellation, the weighted defect norm is bounded by
+the explicit geometric tail with ratio `2 * J * k * d * timeBudget stages * t < 1`
+[HejaziZiniArrazola2024]. -/
 theorem actual_defect_bound (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))

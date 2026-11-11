@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+
+/-!
+# Least squares solution states and postselection
+
+`leastSquaresVector` applies the Moore-Penrose pseudoinverse to the input, while
+`IsEuclideanLeastSquares` specifies a residual minimizer of minimum norm. The module proves the
+normal equations, orthogonal residual decomposition, and uniqueness properties underlying the
+quantum linear systems setting of [HarrowHassidimLloyd2009].
+
+`IsLeastSquaresSolutionState` specifies approximation to the normalized solution direction.
+Block-encoding and counted QSVT results connect this specification to postselection probability
+and output error, and an augmented matrix formulation gives a unique ridge-regularized
+minimizer.
+
+## Main statements
+
+* `leastSquares_minimum_residual_and_norm`: the pseudoinverse solution minimizes residual and
+  norm.
+* `leastSquares_actual_postselection`: bound success probability and normalized solution error.
+* `ridge_regularized_unique_minimizer`: positive regularization yields a unique minimizer.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -30,14 +56,18 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- The vector obtained by applying the Moore-Penrose pseudoinverse of `A` to `b`. -/
 noncomputable def leastSquaresVector {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) : QState I :=
   matrixPseudoinverse A *ᵥ b
 
+/-- The Euclidean norm of the projection of `b` given by `A * matrixPseudoinverse A`. -/
 noncomputable def leastSquaresOverlap {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) : ℝ :=
   ‖stateVector ((A * matrixPseudoinverse A) *ᵥ b)‖
 
+/-- The property that `x` minimizes the Euclidean residual and has minimum norm among all
+residual minimizers. -/
 def IsEuclideanLeastSquares {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (x : QState I) : Prop :=
   (∀ y : QState I, ‖stateVector (A *ᵥ x - b)‖ ≤ ‖stateVector (A *ᵥ y - b)‖) ∧
@@ -45,21 +75,26 @@ def IsEuclideanLeastSquares {O I : Type} [Fintype O] [DecidableEq O]
       (∀ z : QState I, ‖stateVector (A *ᵥ y - b)‖ ≤ ‖stateVector (A *ᵥ z - b)‖) →
         ‖stateVector x‖ ≤ ‖stateVector y‖
 
+/-- The normalized pseudoinverse solution, or `none` when the pseudoinverse solution is zero. -/
 noncomputable def leastSquaresDirection {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) : Option (QState I) :=
   if leastSquaresVector A b = 0 then none
   else some (PostMeasure (leastSquaresVector A b) Finset.univ)
 
+/-- The property that `φ` is normalized and lies within `η` of the normalized direction of a
+nonzero minimum-norm least squares solution. -/
 def IsLeastSquaresSolutionState {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (φ : QState I)
     (η : ℝ) : Prop :=
   ∃ x : QState I, IsEuclideanLeastSquares A b x ∧ x ≠ 0 ∧ Normalized φ ∧
     ‖stateVector φ - NormedSpace.normalize (stateVector x)‖ ≤ η
 
+/-- The matrix formed by stacking `A` above `sqrt lam` times the identity. -/
 noncomputable def ridgeAugmentedMatrix {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (lam : ℝ) : Matrix (O ⊕ I) I ℂ :=
   Matrix.fromRows A ((Real.sqrt lam : ℂ) • 1)
 
+/-- Extend the input vector by zero on the added coordinates of the ridge-augmented system. -/
 def ridgeAugmentedInput {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (b : QState O) : QState (O ⊕ I) :=
   Sum.elim b 0
@@ -70,6 +105,7 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- The pure-state inner product is additive in its first argument. -/
 theorem Inner_add_left (u v w : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (u + v) w = Qatlib.Foundations.PureStateMath.Inner u w + Qatlib.Foundations.PureStateMath.Inner v w := by
   simp only [Qatlib.Foundations.PureStateMath.Inner]
@@ -77,6 +113,7 @@ theorem Inner_add_left (u v w : QState I) :
 
 omit [DecidableEq I] in
 
+/-- The pure-state inner product is additive in its second argument. -/
 theorem Inner_add_right (u v w : QState I) :
     Qatlib.Foundations.PureStateMath.Inner u (v + w) = Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner u w := by
   simp only [Qatlib.Foundations.PureStateMath.Inner]
@@ -84,6 +121,7 @@ theorem Inner_add_right (u v w : QState I) :
 
 omit [DecidableEq I] in
 
+/-- The pure-state inner product distributes over subtraction in its second argument. -/
 theorem Inner_sub_right (u v w : QState I) :
     Qatlib.Foundations.PureStateMath.Inner u (v - w) = Qatlib.Foundations.PureStateMath.Inner u v - Qatlib.Foundations.PureStateMath.Inner u w := by
   simp only [Qatlib.Foundations.PureStateMath.Inner]
@@ -91,9 +129,11 @@ theorem Inner_sub_right (u v w : QState I) :
 
 omit [DecidableEq I] in
 
+/-- The pure-state inner product with the zero vector in its second argument vanishes. -/
 theorem Inner_zero_right (u : QState I) : Qatlib.Foundations.PureStateMath.Inner u 0 = 0 := by
     simp [Qatlib.Foundations.PureStateMath.Inner]
 
+/-- Exchanging the arguments of the pure-state inner product takes its complex conjugate. -/
 theorem Inner_rev (u v : QState I) : Qatlib.Foundations.PureStateMath.Inner v u = (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Inner u v) := by
   rw [inner_apply, inner_apply,
     show (∑ i, (starRingEnd ℂ) (v i) * u i)
@@ -106,17 +146,23 @@ theorem Inner_rev (u v : QState I) : Qatlib.Foundations.PureStateMath.Inner v u 
 
 omit [DecidableEq I] in
 
+/-- Move a matrix from the first argument of the inner product to its conjugate transpose in the
+second argument. -/
 theorem Inner_mulVec {O : Type} [Fintype O] (A : Matrix O I ℂ) (u : QState I) (v : QState O) :
     Qatlib.Foundations.PureStateMath.Inner (A *ᵥ u) v = Qatlib.Foundations.PureStateMath.Inner u (Aᴴ *ᵥ v) := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, star_mulVec, dotProduct_mulVec]
 
 omit [DecidableEq I] in
 
+/-- The squared Euclidean norm of a state vector is the sum of the squared norms of its
+coordinates. -/
 theorem stateVector_norm_sq_sum (ψ : QState I) :
     ‖stateVector ψ‖ ^ 2 = ∑ i, ‖ψ i‖ ^ 2 := by
   rw [stateVector_norm_sq]
   simp [MeasureProb, BornProb]
 
+/-- The squared Euclidean norm of a state vector equals the real part of its inner product with
+itself. -/
 theorem stateVector_norm_sq_eq_re_inner (ψ : QState I) :
     ‖stateVector ψ‖ ^ 2 = (Qatlib.Foundations.PureStateMath.Inner ψ ψ).re := by
   rw [inner_self, ← Complex.ofReal_sum, Complex.ofReal_re]
@@ -124,11 +170,13 @@ theorem stateVector_norm_sq_eq_re_inner (ψ : QState I) :
 
 omit [DecidableEq I] in
 
+/-- Expand the inner product of `u + v` with itself into its four constituent terms. -/
 theorem Inner_add_add (u v : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (u + v) (u + v) = Qatlib.Foundations.PureStateMath.Inner u u + Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner v u + Qatlib.Foundations.PureStateMath.Inner v v := by
   rw [Inner_add_left, Inner_add_right, Inner_add_right]
   ring
 
+/-- Orthogonal state vectors satisfy the Pythagorean identity for their sum. -/
 theorem stateVector_norm_sq_add_of_inner_eq_zero {O : Type} [Fintype O] [DecidableEq O]
     {u v : QState O} (h : Qatlib.Foundations.PureStateMath.Inner u v = 0) :
     ‖stateVector (u + v)‖ ^ 2 = ‖stateVector u‖ ^ 2 + ‖stateVector v‖ ^ 2 := by
@@ -141,16 +189,19 @@ theorem stateVector_norm_sq_add_of_inner_eq_zero {O : Type} [Fintype O] [Decidab
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Conversion to a Euclidean state vector preserves subtraction. -/
 theorem stateVector_sub {O : Type} (u v : QState O) :
     stateVector (u - v) = stateVector u - stateVector v := rfl
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Conversion to a Euclidean state vector preserves addition. -/
 theorem stateVector_add {O : Type} (u v : QState O) :
     stateVector (u + v) = stateVector u + stateVector v := rfl
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Conversion to a Euclidean state vector preserves multiplication by a real scalar. -/
 theorem stateVector_real_smul {O : Type} (r : ℝ) (u : QState O) :
     stateVector (r • u) = r • stateVector u := rfl
 
@@ -162,6 +213,8 @@ variable {I O : Type} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
 omit [DecidableEq O] in
 
+/-- The conjugate transpose of `A` is unchanged by right multiplication by `A *
+matrixPseudoinverse A`. -/
 theorem conjTranspose_mul_mul_matrixPseudoinverse (A : Matrix O I ℂ) :
     Aᴴ * (A * matrixPseudoinverse A) = Aᴴ := by
   calc
@@ -171,11 +224,14 @@ theorem conjTranspose_mul_mul_matrixPseudoinverse (A : Matrix O I ℂ) :
 
 omit [DecidableEq O] in
 
+/-- The product of the pseudoinverse, its conjugate transpose, and `A`'s conjugate transpose
+equals the pseudoinverse. -/
 theorem matrixPseudoinverse_mul_conjTranspose_mul_conjTranspose (A : Matrix O I ℂ) :
     matrixPseudoinverse A * (matrixPseudoinverse A)ᴴ * Aᴴ = matrixPseudoinverse A := by
   rw [Matrix.mul_assoc, ← Matrix.conjTranspose_mul, mul_matrixPseudoinverse_adjoint,
     ← Matrix.mul_assoc, matrixPseudoinverse_mul_self]
 
+/-- The projector `matrixPseudoinverse A * A` fixes the least squares solution vector. -/
 theorem matrixPseudoinverse_mul_mulVec_pseudoinverse (A : Matrix O I ℂ) (b : QState O) :
     (matrixPseudoinverse A * A) *ᵥ leastSquaresVector A b = leastSquaresVector A b := by
   show (matrixPseudoinverse A * A) *ᵥ (matrixPseudoinverse A *ᵥ b) =
@@ -184,6 +240,8 @@ theorem matrixPseudoinverse_mul_mulVec_pseudoinverse (A : Matrix O I ℂ) (b : Q
 
 omit [DecidableEq O] in
 
+/-- Projecting any solution of the normal equations by `matrixPseudoinverse A * A` gives the
+pseudoinverse solution. -/
 theorem normalSolution_project_mulVec (A : Matrix O I ℂ) (b : QState O) {y : QState I}
     (hy : Aᴴ *ᵥ (A *ᵥ y - b) = 0) :
     (matrixPseudoinverse A * A) *ᵥ y = matrixPseudoinverse A *ᵥ b := by
@@ -196,6 +254,8 @@ theorem normalSolution_project_mulVec (A : Matrix O I ℂ) (b : QState O) {y : Q
 
 end Penrose
 
+/-- The pseudoinverse solution satisfies the normal equations, maps to the projected input, and
+gives orthogonal projected and residual components. -/
 theorem leastSquares_projection_and_normal {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     Aᴴ *ᵥ (A *ᵥ leastSquaresVector A b - b) = 0 ∧
@@ -211,6 +271,8 @@ theorem leastSquares_projection_and_normal {O I : Type} [Fintype O] [DecidableEq
       Matrix.mulVec_mulVec b (A * matrixPseudoinverse A) (A * matrixPseudoinverse A),
       (matrixPseudoinverse_projectors A).1.1, sub_self]
 
+/-- The squared residual at any vector splits into the optimal squared residual and the squared
+norm of its image displacement from the pseudoinverse solution. -/
 theorem leastSquares_residual_pythagoras {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (y : QState I) :
     ‖stateVector (A *ᵥ y - b)‖^2 = ‖stateVector (A *ᵥ leastSquaresVector A b - b)‖^2 +
@@ -227,6 +289,9 @@ theorem leastSquares_residual_pythagoras {O I : Type} [Fintype O] [DecidableEq O
     simp
   rw [hdecomp, stateVector_norm_sq_add_of_inner_eq_zero hcross]
 
+/-- The pseudoinverse solution minimizes residual and then norm; any minimum-norm least squares
+solution with the same norm equals it. This supplies the minimum-norm solution property used
+in [HarrowHassidimLloyd2009]. -/
 theorem leastSquares_minimum_residual_and_norm {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     IsEuclideanLeastSquares A b (leastSquaresVector A b) ∧
@@ -296,6 +361,7 @@ theorem leastSquares_minimum_residual_and_norm {O I : Type} [Fintype O] [Decidab
     (stateVector_eq_zero_iff _).mp (norm_eq_zero.mp (sq_eq_zero_iff.mp hdsq))
   exact sub_eq_zero.mp hd
 
+/-- A vector minimizes the Euclidean residual if and only if it satisfies the normal equations. -/
 theorem leastSquares_minimizer_iff_normal {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (y : QState I) :
     (∀ z : QState I, ‖stateVector (A *ᵥ y - b)‖ ≤ ‖stateVector (A *ᵥ z - b)‖) ↔
@@ -331,6 +397,8 @@ theorem leastSquares_minimizer_iff_normal {O I : Type} [Fintype O] [DecidableEq 
       linarith
     exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp hsq
 
+/-- The least squares overlap vanishes exactly when the solution does, is bounded by the
+solution norm for a contraction, and gives the orthogonal decomposition of the input norm. -/
 theorem leastSquares_overlap_and_zero {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     leastSquaresOverlap A b = ‖stateVector ((A * matrixPseudoinverse A) *ᵥ b)‖ ∧
@@ -388,6 +456,8 @@ theorem leastSquares_overlap_and_zero {O I : Type} [Fintype O] [DecidableEq O]
     rw [hflip]
     linarith [hpyth]
 
+/-- The least squares direction is absent exactly for a zero solution, and any returned vector
+satisfies the solution-state specification with zero error. -/
 theorem leastSquares_direction_spec {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     (leastSquaresDirection A b = none ↔ leastSquaresVector A b = 0) ∧
@@ -410,6 +480,9 @@ theorem leastSquares_direction_spec {O I : Type} [Fintype O] [DecidableEq O]
     rw [stateVector_postMeasure_univ, sub_self]
     simp
 
+/-- Under the stated contraction, normalization, and error-gap assumptions, applying an
+approximation to a positive scaled pseudoinverse gives a nonzero vector whose normalized
+direction has error at most `2 * ε / (c * leastSquaresOverlap A b)`. -/
 theorem leastSquares_approximate_application {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (T : Matrix I O ℂ) (b : QState O)
     (c ε : ℝ) (hc : 0 < c) (hε : 0 ≤ ε) (hb : Normalized b) (hA : ‖A‖ ≤ 1)
@@ -467,6 +540,9 @@ theorem leastSquares_approximate_application {O I : Type} [Fintype O] [Decidable
     exact hnorm.trans (div_le_div_of_nonneg_left (mul_nonneg (by norm_num) hε)
       (mul_pos hc hγpos) htarget)
 
+/-- Under the block-encoding and error-gap assumptions, postselection succeeds with probability
+at least `((c * leastSquaresOverlap A b - ε) / α)^2` and returns a solution state with the
+stated error bound. -/
 theorem leastSquares_actual_postselection {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] (A : Matrix O I ℂ)
     (U W : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (b : QState O)
@@ -524,6 +600,9 @@ theorem leastSquares_actual_postselection {H O I : Type} [Fintype H] [DecidableE
     exact happ.2.2.trans (div_le_div_of_nonneg_left (mul_nonneg (by norm_num) hW.error_nonneg)
       (mul_pos hc hγpos) htarget)
 
+/-- An odd QSVT phase list approximating the scaled reciprocal on positive singular values
+yields a circuit with `zs.length` queries and `zs.length + 1` gates, together with the
+stated postselection probability and solution-state error bounds. -/
 theorem leastSquares_counted_qsvt_output {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] (A : Matrix O I ℂ)
     (U : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (b : QState O) (base : ℂ)
@@ -551,6 +630,8 @@ variable {I O : Type} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
 omit [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O] in
 
+/-- The conjugate transpose of a vertically stacked matrix is the horizontal concatenation of
+the conjugate transposes. -/
 theorem conjTranspose_fromRows (A₁ : Matrix O I ℂ) (A₂ : Matrix I I ℂ) :
     (Matrix.fromRows A₁ A₂)ᴴ = Matrix.fromCols A₁ᴴ A₂ᴴ := by
   ext i j
@@ -559,11 +640,13 @@ theorem conjTranspose_fromRows (A₁ : Matrix O I ℂ) (A₂ : Matrix I I ℂ) :
 
 omit [Fintype I] in
 
+/-- The identity scaled by the real square root of `lam` is self-adjoint. -/
 theorem sqrt_smul_one_conjTranspose (lam : ℝ) :
     ((Real.sqrt lam : ℂ) • (1 : Matrix I I ℂ))ᴴ = (Real.sqrt lam : ℂ) • 1 := by
   rw [Matrix.conjTranspose_smul, Matrix.conjTranspose_one]
   simp
 
+/-- For nonnegative `lam`, the Gram matrix of the ridge augmentation is `Aᴴ * A + lam • 1`. -/
 theorem ridgeAugmented_gram (A : Matrix O I ℂ) (lam : ℝ) (hlam : 0 ≤ lam) :
     (ridgeAugmentedMatrix A lam)ᴴ * ridgeAugmentedMatrix A lam = Aᴴ * A + (lam : ℂ) • 1 := by
   rw [ridgeAugmentedMatrix, conjTranspose_fromRows, sqrt_smul_one_conjTranspose,
@@ -572,6 +655,7 @@ theorem ridgeAugmented_gram (A : Matrix O I ℂ) (lam : ℝ) (hlam : 0 ≤ lam) 
   rw [Matrix.smul_mul, Matrix.mul_smul, Matrix.mul_one, smul_smul, ← Complex.ofReal_mul,
     Real.mul_self_sqrt hlam]
 
+/-- Applying the adjoint of the augmented matrix to the zero-extended input gives `Aᴴ *ᵥ b`. -/
 theorem ridgeAugmented_adjoint_input (A : Matrix O I ℂ) (b : QState O) (lam : ℝ) :
     (ridgeAugmentedMatrix A lam)ᴴ *ᵥ ridgeAugmentedInput b = Aᴴ *ᵥ b := by
   rw [ridgeAugmentedMatrix, conjTranspose_fromRows, sqrt_smul_one_conjTranspose,
@@ -580,6 +664,8 @@ theorem ridgeAugmented_adjoint_input (A : Matrix O I ℂ) (b : QState O) (lam : 
   have hinr : (ridgeAugmentedInput (I := I) b ∘ Sum.inr : QState I) = 0 := rfl
   rw [hinl, hinr, Matrix.mulVec_zero, add_zero]
 
+/-- For nonnegative `lam`, the augmented squared residual equals the original squared residual
+plus `lam` times the squared solution norm. -/
 theorem ridge_augmented_residual {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (lam : ℝ) (x : QState I)
     (hlam : 0 ≤ lam) :
@@ -615,6 +701,8 @@ theorem ridge_augmented_residual {O I : Type} [Fintype O] [DecidableEq O]
 
 end Ridge
 
+/-- For positive `lam`, the augmented pseudoinverse solution satisfies the regularized normal
+equations and uniquely minimizes the ridge objective. -/
 theorem ridge_regularized_unique_minimizer {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) (lam : ℝ) (hlam : 0 < lam) :
     let x := leastSquaresVector (ridgeAugmentedMatrix A lam) (ridgeAugmentedInput b)
@@ -679,6 +767,8 @@ theorem ridge_regularized_unique_minimizer {O I : Type} [Fintype O] [DecidableEq
     exact sub_eq_zero.mp hyi
   exact ⟨hridge, hobj, huniq⟩
 
+/-- Rescaling the postselection vector by `α / c` approximates the least squares vector within
+`ε / c`, and its residual lies between the optimum and the optimum plus `‖A‖ * ε / c`. -/
 theorem leastSquares_actual_rescaled_residual {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] (A : Matrix O I ℂ)
     (W : Matrix H H ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) (b : QState O) (c α ε : ℝ)

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Spectral linear-system problems
+
+`LinearSystemProblem` records a Hermitian matrix, normalized right-hand side, orthonormal
+eigenvectors, and real eigenvalues with absolute values between one and `κ`. The module derives
+the spectral inverse action and a lower bound on its squared norm, providing algebraic
+ingredients for [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `LinearSystemProblem`: the finite spectral linear-system data.
+* `inverse_action`: the inverse-eigenvalue expansion solves the system.
+* `accept_mass_lower_bound`: its squared coefficient norm is at least `1 / κ²`.
+
+## References
+
+* [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
@@ -13,6 +33,8 @@ namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 open Matrix
 open scoped Matrix
 
+/-- A finite Hermitian linear system with normalized right-hand side, an orthonormal eigenvector
+family expanding that input, and eigenvalue magnitudes between one and `κ`. -/
 structure LinearSystemProblem (I : Type*) [Fintype I] [DecidableEq I] where
 
   A : Matrix I I ℂ
@@ -43,6 +65,8 @@ set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The inner product of a finite linear combination with a fixed state is the sum of the inner
+products weighted by conjugate coefficients. -/
 theorem inner_sum_smul_left (β : I → ℂ) (v : I → QState I) (φ : QState I) :
     Inner (∑ i, β i • v i) φ = ∑ i, (starRingEnd ℂ) (β i) * Inner (v i) φ := by
   simp only [inner_apply]
@@ -56,6 +80,8 @@ theorem inner_sum_smul_left (β : I → ℂ) (v : I → QState I) (φ : QState I
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Finset.mul_sum]
 
+/-- The inner product with a finite linear combination in the second argument is the
+corresponding coefficient-weighted sum. -/
 theorem inner_sum_smul_right (ψ : QState I) (β : I → ℂ) (v : I → QState I) :
     Inner ψ (∑ i, β i • v i) = ∑ i, β i * Inner ψ (v i) := by
   simp only [inner_apply]
@@ -71,9 +97,11 @@ theorem inner_sum_smul_right (ψ : QState I) (β : I → ℂ) (v : I → QState 
 
 namespace LinearSystemProblem
 
+/-- Every eigenvalue in a `LinearSystemProblem` is nonzero. -/
 theorem eigval_ne_zero (p : LinearSystemProblem I) (i : I) : p.eigval i ≠ 0 :=
   abs_pos.mp (zero_lt_one.trans_le (p.hκ i).1)
 
+/-- The index type of a `LinearSystemProblem` is nonempty. -/
 theorem nonempty (p : LinearSystemProblem I) : Nonempty I := by
   cases isEmpty_or_nonempty I with
   | inl h =>
@@ -84,13 +112,17 @@ theorem nonempty (p : LinearSystemProblem I) : Nonempty I := by
     exact absurd hb' zero_ne_one
   | inr h => exact h
 
+/-- The spectral bound parameter of a `LinearSystemProblem` is at least one. -/
 theorem one_le_κ (p : LinearSystemProblem I) : 1 ≤ p.κ := by
   obtain ⟨i₀⟩ := p.nonempty
   exact (p.hκ i₀).1.trans (p.hκ i₀).2
 
+/-- The spectral bound parameter of a `LinearSystemProblem` is positive. -/
 theorem κ_pos (p : LinearSystemProblem I) : 0 < p.κ :=
   zero_lt_one.trans_le p.one_le_κ
 
+/-- The squared norms of the coefficients in an eigenvector expansion of the normalized
+right-hand side sum to one. -/
 theorem b_norm_sq (p : LinearSystemProblem I) {β : I → ℂ}
     (hβ : p.b = ∑ i, β i • p.eigvec i) : ∑ i, ‖β i‖ ^ 2 = 1 := by
   have hbb : Inner p.b p.b = 1 := (normalized_iff_inner_self p.b).mp p.hb
@@ -108,6 +140,8 @@ theorem b_norm_sq (p : LinearSystemProblem I) {β : I → ℂ}
   rw [← Complex.ofReal_sum, ← Complex.ofReal_one] at hbb
   exact Complex.ofReal_injective hbb
 
+/-- Dividing the eigenvector-expansion coefficients by their eigenvalues produces a solution of
+`A *ᵥ x = b`. -/
 theorem inverse_action (p : LinearSystemProblem I) {β : I → ℂ}
     (hβ : p.b = ∑ i, β i • p.eigvec i) :
     p.A *ᵥ (∑ i, (β i / ((p.eigval i : ℂ))) • p.eigvec i) = p.b := by
@@ -116,6 +150,7 @@ theorem inverse_action (p : LinearSystemProblem I) {β : I → ℂ}
   rw [Matrix.mulVec_smul, p.eigvec_eig i, smul_smul,
     div_mul_cancel₀ _ (Complex.ofReal_ne_zero.mpr (p.eigval_ne_zero i))]
 
+/-- The sum of squared norms of the inverse-eigenvalue coefficients is at least `1 / κ²`. -/
 theorem accept_mass_lower_bound (p : LinearSystemProblem I) {β : I → ℂ}
     (hβ : p.b = ∑ i, β i • p.eigvec i) :
     1 / p.κ ^ 2 ≤ ∑ i, ‖β i / ((p.eigval i : ℂ))‖ ^ 2 := by
@@ -135,6 +170,7 @@ theorem accept_mass_lower_bound (p : LinearSystemProblem I) {β : I → ℂ}
   calc 1 / p.κ ^ 2 = ∑ i, ‖β i‖ ^ 2 / p.κ ^ 2 := hsum.symm
     _ ≤ ∑ i, ‖β i / ((p.eigval i : ℂ))‖ ^ 2 := Finset.sum_le_sum fun i _ => hterm i
 
+/-- The sum of squared norms of the inverse-eigenvalue coefficients is positive. -/
 theorem accept_mass_pos (p : LinearSystemProblem I) {β : I → ℂ}
     (hβ : p.b = ∑ i, β i • p.eigvec i) :
     0 < ∑ i, ‖β i / ((p.eigval i : ℂ))‖ ^ 2 :=

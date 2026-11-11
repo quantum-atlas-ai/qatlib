@@ -13,6 +13,28 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Crossing
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Crossing.Windows
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.ExitTime
+
+/-!
+# Splitting truncated contour integrals at exit times
+
+Constructs radius-dependent exit times on both sides of a unique contour crossing with nonzero
+one-sided derivative limits. Radial monotonicity and integrability then split the truncated
+contour integral into ordinary integrals outside the exit times.
+
+`exists_exit_times_truncated_integral_split` supports the local principal-value analysis
+associated with [WangEtAl2026].
+
+## Main statements
+
+* `exists_exit_times_truncated_integral_split`: At a unique crossing with nonzero one-sided
+  derivative limits, constructs equal-radius exit times tending to the crossing and an eventual
+  splitting of the truncated integral into the two outer integrals.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -25,6 +47,8 @@ namespace TauCeti.Contour
 
 open Filter MeasureTheory Set Topology
 
+/-- Radial truncation leaves the integral unchanged when the curve is almost everywhere farther
+than `ε` from the reference point. -/
 private theorem integral_truncated_eq_of_ae_gt {γ : ℝ → ℂ} {g : ℂ → ℂ} {s : ℂ} {l u ε : ℝ}
     (hlu : l ≤ u) (h_gt : ∀ᵐ t ∂MeasureTheory.volume, t ∈ Ioc l u → ε < ‖γ t - s‖) :
     ∫ t in l..u, (if ‖γ t - s‖ > ε then g (γ t) * deriv γ t else 0) =
@@ -34,6 +58,9 @@ private theorem integral_truncated_eq_of_ae_gt {γ : ℝ → ℂ} {g : ℂ → �
   filter_upwards [h_gt] with t ht htm
   rw [if_pos (ht htm)]
 
+/-- A continuous curve with nonzero one-sided derivative limits at a crossing has a smaller
+parameter window where distance from the crossing is strictly increasing to the right and
+strictly decreasing to the left. -/
 private theorem exists_monotone_leave_radius {γ : ℝ → ℂ} {s : ℂ} {t₀ r : ℝ}
     {L_R L_L : ℂ} (hr_pos : 0 < r) (h_at : γ t₀ = s)
     (hγ_cont : ContinuousOn γ (Icc (t₀ - r) (t₀ + r))) (hL_R : L_R ≠ 0) (hL_L : L_L ≠ 0)
@@ -70,6 +97,8 @@ private theorem exists_monotone_leave_radius {γ : ℝ → ℂ} {s : ℂ} {t₀ 
     rw [h_at, heq, sub_self, norm_zero] at h_strict
     exact absurd h_strict (lt_irrefl 0)
 
+/-- The radially truncated integral vanishes between two radius-`ε` exit points when distance is
+monotone on either side of the crossing. -/
 private theorem integral_truncated_eq_zero_between_exits {γ : ℝ → ℂ} {g : ℂ → ℂ} {s : ℂ}
     {t₀ ρ ε cₗ cᵣ : ℝ} (hmono : MonotoneOn (fun t => ‖γ t - s‖) (Icc t₀ (t₀ + ρ)))
     (hanti : AntitoneOn (fun t => ‖γ t - s‖) (Icc (t₀ - ρ) t₀))
@@ -91,6 +120,8 @@ private theorem integral_truncated_eq_zero_between_exits {γ : ℝ → ℂ} {g :
       hmono ⟨h_ge.le, le_trans ht.2 hcᵣ.2.le⟩ ⟨hcᵣ.1.le, hcᵣ.2.le⟩ ht.2
     rwa [hεᵣ] at h_bd
 
+/-- On the interval ending at a left exit point, radial truncation leaves the integral unchanged
+under strict radial decrease near the crossing and a larger distance bound farther away. -/
 private theorem integral_truncated_eq_of_left_exit {γ : ℝ → ℂ} {g : ℂ → ℂ} {s : ℂ}
     {t₀ ρ l m ε cₗ : ℝ} (h_lb : l ≤ cₗ) (hcₗ : cₗ ∈ Ioo (t₀ - ρ) t₀)
     (hεₗ : ‖γ cₗ - s‖ = ε) (hεm : ε < m)
@@ -108,6 +139,9 @@ private theorem integral_truncated_eq_of_left_exit {γ : ℝ → ℂ} {g : ℂ �
       hanti ⟨h_ge, by linarith [hcₗ.2, h_t_lt]⟩ ⟨hcₗ.1.le, hcₗ.2.le⟩ h_t_lt
     rwa [hεₗ] at h_bd
 
+/-- On the interval starting at a right exit point, radial truncation leaves the integral
+unchanged under strict radial increase near the crossing and a larger distance bound farther
+away. -/
 private theorem integral_truncated_eq_of_right_exit {γ : ℝ → ℂ} {g : ℂ → ℂ} {s : ℂ}
     {t₀ ρ u m ε cᵣ : ℝ} (h_ub : cᵣ ≤ u) (hcᵣ : cᵣ ∈ Ioo t₀ (t₀ + ρ))
     (hεᵣ : ‖γ cᵣ - s‖ = ε) (hεm : ε < m)
@@ -122,6 +156,8 @@ private theorem integral_truncated_eq_of_right_exit {γ : ℝ → ℂ} {g : ℂ 
     rwa [hεᵣ] at h_bd
   · exact lt_of_lt_of_le hεm (h_far t ⟨h_gt.le, ht.2⟩)
 
+/-- Splits an integrable radially truncated integral into two untruncated outer integrals at
+exit points, using radial monotonicity and distance bounds away from the crossing. -/
 private theorem integral_truncated_eq_add_of_exit_points {γ : ℝ → ℂ} {g : ℂ → ℂ} {s : ℂ}
     {t₀ ρ l u m ε cₗ cᵣ : ℝ} (h_lb : l ≤ cₗ) (h_ub : cᵣ ≤ u)
     (hmono : StrictMonoOn (fun t => ‖γ t - s‖) (Icc t₀ (t₀ + ρ)))
@@ -149,6 +185,9 @@ private theorem integral_truncated_eq_add_of_exit_points {γ : ℝ → ℂ} {g :
     integral_truncated_eq_of_left_exit h_lb hcₗ hεₗ hεm hanti h_far_L,
     integral_truncated_eq_of_right_exit h_ub hcᵣ hεᵣ hεm hmono h_far_R]
 
+/-- At a unique crossing with nonzero one-sided derivative limits, constructs equal-radius exit
+times tending to the crossing and an eventual splitting of the truncated integral into the
+two outer integrals. -/
 theorem exists_exit_times_truncated_integral_split {γ : ℝ → ℂ} {s : ℂ} {l t₀ u : ℝ}
     {L_R L_L : ℂ} (hlt : l < t₀) (htu : t₀ < u) (h_at : γ t₀ = s)
     (hγ_cont : ContinuousOn γ (Icc l u)) (hL_R : L_R ≠ 0) (hL_L : L_L ≠ 0)

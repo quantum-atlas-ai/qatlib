@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumBudgetStat
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedBudgetLaws
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptAqua
+
+/-!
+# Budget guarantees for interrupted minimum search
+
+This module proves the probability and budget laws of interrupted minimum search, including
+preservation of a current global minimum and agreement between recursive evaluators and
+probability laws. It compares interrupted success with atomic budget success.
+
+The theorem `interrupted_charged_half` establishes success at least one half at `chargedBudget
+N`, providing the charged-budget form of the minimum-finding guarantee in [DurrHoyer1996].
+
+## Main statements
+
+* `interrupted_minimum_expectation`: For nonnegative payoffs, expectation under the interrupted
+  minimum-search law equals the embedded real evaluator.
+* `interrupted_charged_half`: Uniformly initialized interrupted minimum search succeeds with
+  probability at least one half at `chargedBudget N`, in the setting of [DurrHoyer1996].
+* `interruptedMinimumBudget`: Establishes the probability, support, observation, comparison, and
+  one-half success guarantees collected in `InterruptedMinimumBudget` [DurrHoyer1996].
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +52,7 @@ open Qatlib.Concepts.SearchStopping.GroverSuccess Qatlib.Concepts.SearchStopping
 open scoped ENNReal BigOperators Classical
 variable {N : ℕ} {α : Type*} [LinearOrder α]
 
+/-- The interrupted minimum-search evaluator is nonnegative for nonnegative payoffs. -/
 theorem interrupted_minimum_nonneg (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (payoff : Fin N → ℕ → ℝ)
     (hp : ∀ i r, 0 ≤ payoff i r) :
@@ -44,6 +70,7 @@ theorem interrupted_minimum_nonneg (T : Fin N → α) (initialization : ℕ)
       · exact hp _ _
     · exact hp _ _
 
+/-- The interrupted minimum-search evaluator sends the constant-one payoff to one. -/
 theorem interrupted_minimum_one (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) :
     interruptedMinimumEvalWithInit T initialization budget current (fun _ _ => 1) = 1 := by
@@ -66,6 +93,8 @@ theorem interrupted_minimum_one (T : Fin N → α) (initialization : ℕ)
         (search_exponential_schedule N hN).2.1 _ _
     · rfl
 
+/-- Every supported interrupted minimum-search result has remaining budget at most the initial
+budget. -/
 theorem interrupted_minimum_remaining (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (x : Fin N × ℕ)
     (hx : x ∈ (interruptedMinimumPMFWithInit T initialization hN budget current).support) :
@@ -90,6 +119,8 @@ theorem interrupted_minimum_remaining (T : Fin N → α) (initialization : ℕ)
     · have heq := (PMF.mem_support_pure_iff _ _).mp hx
       simp [heq]
 
+/-- If the current index is a global minimum, every supported interrupted minimum-search result
+retains that index. -/
 theorem interrupted_minimum_output (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (hmin : ∀ j, T current ≤ T j)
     (x : Fin N × ℕ)
@@ -110,6 +141,8 @@ theorem interrupted_minimum_output (T : Fin N → α) (initialization : ℕ)
         exact congrArg Prod.fst ((PMF.mem_support_pure_iff _ _).mp hxy)
     · exact congrArg Prod.fst ((PMF.mem_support_pure_iff _ _).mp hx)
 
+/-- For nonnegative payoffs, expectation under the interrupted minimum-search law equals the
+embedded real evaluator. -/
 theorem interrupted_minimum_expectation (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (payoff : Fin N → ℕ → ℝ)
     (hp : ∀ i r, 0 ≤ payoff i r) :
@@ -146,6 +179,7 @@ theorem interrupted_minimum_expectation (T : Fin N → α) (initialization : ℕ
           · exact hp _ _)
     · exact Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure _ _
 
+/-- The interrupted minimum-search evaluator preserves pointwise order of payoffs. -/
 theorem interrupted_minimum_mono (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (f g : Fin N → ℕ → ℝ)
     (hfg : ∀ i r, f i r ≤ g i r) :
@@ -165,6 +199,8 @@ theorem interrupted_minimum_mono (T : Fin N → α) (initialization : ℕ)
       · exact hfg _ _
     · exact hfg _ _
 
+/-- Interrupted minimum search succeeds with probability one when its current index is already a
+global minimum. -/
 theorem interrupted_success_of_minimum (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (hmin : ∀ j, T current ≤ T j) :
     interruptedMinimumSuccessWithInit T initialization budget current = 1 := by
@@ -190,6 +226,8 @@ theorem interrupted_success_of_minimum (T : Fin N → α) (initialization : ℕ)
         (search_exponential_schedule N hN).2.1 _ _
     · rfl
 
+/-- The current index's minimum indicator is bounded by the interrupted minimum-search success
+probability. -/
 theorem interrupted_success_indicator_le (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) :
     (if ∀ j, T current ≤ T j then (1 : ℝ) else 0) ≤
@@ -199,6 +237,8 @@ theorem interrupted_success_indicator_le (T : Fin N → α) (initialization : �
   · rw [if_neg hm]
     exact interrupted_minimum_nonneg T initialization hN budget current _ (by intro i r; positivity)
 
+/-- Interrupted minimum-search success is at least the atomic finite-budget success with the
+same initialization charge. -/
 theorem interrupted_success_dominates (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) :
     minimumBudgetSuccessWithInit T initialization budget current ≤
@@ -233,6 +273,8 @@ theorem interrupted_success_dominates (T : Fin N → α) (initialization : ℕ)
               split_ifs <;> norm_num
       · rw [if_neg hpaid, if_neg hpaid]
 
+/-- The partial observation mass on strictly improving indices equals the observed acceptance
+probability of the interrupted phase attempt. -/
 theorem interrupted_observation_acceptance (T : Fin N → α) (hN : 0 < N)
     (current : Fin N) (j r : ℕ) :
     (∑ i ∈ strictMarked T current, partialObsMass (strictMarked T current) j r i) =
@@ -248,12 +290,15 @@ theorem interrupted_observation_acceptance (T : Fin N → α) (hN : 0 < N)
   rw [Finset.sum_product]
   simp
 
+/-- Uniformly initialized interrupted minimum search succeeds with probability at least one half
+at `chargedBudget N`, in the setting of [DurrHoyer1996]. -/
 theorem interrupted_charged_half (T : Fin N → α) (hN : 0 < N) :
     (1 / 2 : ℝ) ≤ interruptedChargedInitialSuccess T (chargedBudget N) := by
   apply (charged_initial_success_half T hN).trans
   apply div_le_div_of_nonneg_right _ (Nat.cast_nonneg N)
   exact Finset.sum_le_sum fun i _ => interrupted_success_dominates T (initCharge N) hN _ i
 
+/-- The uniformly initialized interrupted minimum-search success probability is at most one. -/
 theorem interrupted_charged_le_one (T : Fin N → α) (hN : 0 < N) (budget : ℕ) :
     interruptedChargedInitialSuccess T budget ≤ 1 := by
   have hs : (∑ i : Fin N, interruptedMinimumSuccessWithInit T (initCharge N) budget i) ≤
@@ -268,6 +313,8 @@ theorem interrupted_charged_le_one (T : Fin N → α) (hN : 0 < N) (budget : ℕ
   simpa only [interruptedChargedInitialSuccess, Finset.sum_const, Finset.card_univ,
     Fintype.card_fin, nsmul_eq_mul, mul_one, div_self hn] using! h
 
+/-- Establishes the probability, support, observation, comparison, and one-half success
+guarantees collected in `InterruptedMinimumBudget` [DurrHoyer1996]. -/
 theorem interruptedMinimumBudget : InterruptedMinimumBudget := by
   intro N hN α _ T
   exact ⟨fun initialization budget current payoff hp =>

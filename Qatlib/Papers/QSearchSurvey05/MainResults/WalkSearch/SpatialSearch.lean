@@ -12,6 +12,25 @@ import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Search bounds on finite grids
+
+This module records the grid cardinality and search estimates associated with the spatial search
+discussion of [Ambainis2005]. The statements `theorem41_unique_2d` and `theorem41_general_query`
+give a unique item bound on two dimensional grids and retry reach and iteration bounds for
+nonempty marked sets on higher dimensional grids.
+
+## Main statements
+
+* `theorem41_unique_2d`: Gives a √(n²) log(n²) fixed space query bound.
+* `theorem41_general_query`: Gives explicit retry reach and prefix iteration estimates.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,9 +45,12 @@ open Qatlib.Concepts.SearchStopping.UnknownCount
 
 namespace Qatlib.Papers.QSearchSurvey05.MainResults
 
+/-- A d dimensional grid with n cells per coordinate has cardinality n^d. See [Ambainis2005]. -/
 theorem gridCard (d n : ℕ) : Fintype.card (GridCell d n) = n ^ d := by
   simp [GridCell]
 
+/-- There is a positive universal constant C such that unique item search on an n by n grid, for
+n ≥ 2, has error at most one half within C√(n²) log(n²) queries. See [Ambainis2005]. -/
 theorem theorem41_unique_2d :
     ∃ C : ℝ, 0 < C ∧ ∀ n : ℕ, 2 ≤ n → ∃ k : ℕ,
       FixedSpaceQueryUpperBound (MarkOracle (I := GridCell 2 n)) (fun w => {w}) (1 / 2) k ∧
@@ -74,6 +96,9 @@ theorem theorem41_unique_2d :
         apply mul_le_mul_of_nonneg_left hlog
         positivity
 
+/-- For d ≥ 1 and n ≥ 2, gives a common retry index K ≤ 6√(n^d) for every nonempty marked set,
+with retry reach at most 3/4 and worst prefix iteration count at most 7√(n^d). See
+[Ambainis2005]. -/
 theorem theorem41_general_query (d n : ℕ) (_hd : 1 ≤ d) (hn : 2 ≤ n) :
     ∃ K : ℕ, (K : ℝ) ≤ 6 * Real.sqrt ((n : ℝ) ^ d) ∧
       ∀ A : Finset (GridCell d n), 0 < A.card →

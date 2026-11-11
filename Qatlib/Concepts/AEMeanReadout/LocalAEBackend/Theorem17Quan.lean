@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Stat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
+
+/-!
+# Success and expected cost of exact counting
+
+`bhmt_theorem17_exact_count` proves the success and expected-cost specification for the adaptive
+exact-counting procedure in [BrassardEtAl2002]. Preliminary concentration bounds control the
+final grid, and a half-integer rounding window gives success probability at least 2/3.
+
+## Main statements
+
+* `bhmt_exact_count_zero_success`: certainty for an empty marked set.
+* `bhmt_theorem17_exact_count`: the exact-counting success and cost contract.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +38,8 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 set_option autoImplicit false
 
+/-- For an empty marked set, the amplitude-estimation law is concentrated at the zero grid
+label. -/
 private theorem zero_count_prob {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
     (hS : S.card=0) (M : ℕ) (hM : 2≤M) (z : Fin M) :
     (aeLaw M (QFTMatrix N) ⟨0,hN⟩ S (qftMatrix_unitary hN) hM).prob z =
@@ -33,6 +53,7 @@ private theorem zero_count_prob {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
   rw [hk]
   by_cases hz : z=⟨0,by omega⟩ <;> simp [Ket,hz,eq_comm]
 
+/-- Exact counting returns zero with probability one when the marked set is empty. -/
 theorem bhmt_exact_count_zero_success {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
     (hS : S.card=0) (hM₀ : 2≤exactCountM₀ N)
     (hM : ∀ z₁ z₂ : Fin (exactCountM₀ N),
@@ -43,6 +64,8 @@ theorem bhmt_exact_count_zero_success {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
   simp [exactCountSuccessMass,zero_count_prob hN S hS,exactCountOutput,aeEstimate,hS]
   norm_num
 
+/-- For an empty marked set, the expected cost is twice the preliminary grid size plus the final
+grid size selected by two zero estimates. -/
 theorem bhmt_exact_count_zero_cost_eq {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
     (hS : S.card=0) (hM₀ : 2≤exactCountM₀ N)
     (hM : ∀ z₁ z₂ : Fin (exactCountM₀ N),
@@ -52,6 +75,7 @@ theorem bhmt_exact_count_zero_cost_eq {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
   classical
   simp [exactCountCostMass,zero_count_prob hN S hS,aeEstimate]
 
+/-- For an empty marked set, the expected cost is at most `1000 * sqrt (N + 1)`. -/
 theorem bhmt_exact_count_zero_cost_bound {N : ℕ} (hN : 0<N) (S : Finset (Fin N))
     (hS : S.card=0) (hM₀ : 2≤exactCountM₀ N)
     (hM : ∀ z₁ z₂ : Fin (exactCountM₀ N),
@@ -76,6 +100,8 @@ theorem bhmt_exact_count_zero_cost_bound {N : ℕ} (hN : 0<N) (S : Finset (Fin N
   simp only [zero_add,sub_zero,one_mul,min_self]
   nlinarith
 
+/-- The corrected final estimation error constant `2 * π * sqrt 2 / 30 + 4 * π^2 / 30^2` is
+strictly less than 1/2. -/
 theorem bhmt_exact_count_corrected_window :
     2*Real.pi*Real.sqrt 2/30+4*Real.pi^2/30^2 < (1:ℝ)/2 := by
   have hs0 := Real.sqrt_nonneg (2:ℝ)
@@ -87,6 +113,8 @@ theorem bhmt_exact_count_corrected_window :
   have hp2 : Real.pi^2 ≤ 16 := by nlinarith [Real.pi_pos]
   nlinarith
 
+/-- An estimate at distance strictly less than 1/2 from a natural number rounds to that number
+under `floor (x + 1/2)`. -/
 theorem bhmt_exact_count_round (t : ℕ) (x : ℝ) (hx : |x-(t:ℝ)|<(1:ℝ)/2) :
     (⌊x+1/2⌋:ℤ)=(t:ℤ) := by
   apply Int.floor_eq_iff.mpr
@@ -101,18 +129,22 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh17
 open scoped Classical
 set_option autoImplicit false
 
+/-- The real constant `π` is strictly less than `22/7`. -/
 private theorem ec_pi_lt_22_7 : Real.pi < 22/7 :=
   lt_trans Real.pi_lt_d6 (by norm_num)
 
+/-- The preliminary grid size is at least `14 * π * sqrt N`. -/
 private theorem ec_m0_ge (N : ℕ) :
     14*Real.pi*Real.sqrt (N:ℝ) ≤ (exactCountM₀ N : ℝ) :=
   Nat.le_ceil _
 
+/-- For positive `N`, the preliminary grid size is positive. -/
 private theorem ec_m0_pos (N : ℕ) (hN : 0 < N) : 0 < (exactCountM₀ N : ℝ) := by
   refine lt_of_lt_of_le ?_ (ec_m0_ge N)
   exact mul_pos (mul_pos (by norm_num) Real.pi_pos)
     (Real.sqrt_pos.mpr (by exact_mod_cast hN))
 
+/-- The square of the preliminary grid size is at least `196 * π^2 * N`. -/
 private theorem ec_m0_sq (N : ℕ) :
     196*Real.pi^2*(N:ℝ) ≤ ((exactCountM₀ N : ℝ))^2 := by
   have h0 : 0 ≤ 14*Real.pi*Real.sqrt (N:ℝ) := by positivity
@@ -122,6 +154,7 @@ private theorem ec_m0_sq (N : ℕ) :
     rw [mul_pow, mul_pow, Real.sq_sqrt (Nat.cast_nonneg N)]; ring] at h1
   exact h1
 
+/-- Every scaled amplitude-estimation readout lies in the interval `[0, N]`. -/
 private theorem ec_readout_mem (N M : ℕ) (z : Fin M) :
     0 ≤ (N:ℝ)*aeEstimate M z ∧ (N:ℝ)*aeEstimate M z ≤ (N:ℝ) := by
   have h1 : (Real.sin (Real.pi*(z.val : ℝ)/(M:ℝ)))^2 ≤ 1 := Real.sin_sq_le_one _
@@ -129,9 +162,11 @@ private theorem ec_readout_mem (N M : ℕ) (z : Fin M) :
   exact ⟨mul_nonneg (Nat.cast_nonneg _) (sq_nonneg _),
     by nlinarith [h1, (Nat.cast_nonneg N : (0:ℝ) ≤ (N:ℝ))]⟩
 
+/-- The real-valued cardinality of a subset of `Fin N` is at most `N`. -/
 private theorem ec_card_le {N : ℕ} (S : Finset (Fin N)) : (S.card : ℝ) ≤ (N : ℝ) := by
   exact_mod_cast (show S.card ≤ N by simpa using S.card_le_univ)
 
+/-- For `x ∈ [0, N]`, the rough-scale radicand `(x + 1) * (N - x + 1)` is at least `N + 1`. -/
 private theorem ec_rough_sq_ge (N : ℕ) (x : ℝ) (hx0 : 0 ≤ x) (hxN : x ≤ (N:ℝ)) :
     (N:ℝ)+1 ≤ (x+1)*((N:ℝ)-x+1) := by
   have h1 : 0 ≤ x*((N:ℝ)-x) := mul_nonneg hx0 (by linarith)
@@ -139,6 +174,8 @@ private theorem ec_rough_sq_ge (N : ℕ) (x : ℝ) (hx0 : 0 ≤ x) (hxN : x ≤ 
   rw [h2]
   linarith
 
+/-- If the target lies within two of either endpoint, every readout in `[0, N]` gives
+rough-scale radicand at least `t * (N - t) / 2`. -/
 private theorem ec_near_R (N : ℕ) (t : ℝ) (ht0 : 0 ≤ t) (htN : t ≤ (N:ℝ))
     (hnear : t ≤ 2 ∨ (N:ℝ)-t ≤ 2) (x : ℝ) (hx0 : 0 ≤ x) (hxN : x ≤ (N:ℝ)) :
     t*((N:ℝ)-t)/2 ≤ (x+1)*((N:ℝ)-x+1) := by
@@ -149,6 +186,8 @@ private theorem ec_near_R (N : ℕ) (t : ℝ) (ht0 : 0 ≤ t) (htN : t ≤ (N:�
     · nlinarith [mul_le_mul_of_nonneg_right h ht0]
   nlinarith
 
+/-- For a target at least three from either endpoint, the stated preliminary error window
+ensures rough-scale radicand at least `t * (N - t) / 2`. -/
 private theorem ec_far_R (N : ℕ) (hN : 0 < N) (t : ℝ) (ht0 : 0 ≤ t) (htN : t ≤ (N:ℝ))
     (hfar : 3 ≤ t ∧ 3 ≤ (N:ℝ)-t)
     (x : ℝ) (_hx0 : 0 ≤ x) (_hxN : x ≤ (N:ℝ))
@@ -205,6 +244,8 @@ private theorem ec_far_R (N : ℕ) (hN : 0 < N) (t : ℝ) (ht0 : 0 ≤ t) (htN :
       linarith
     linarith
 
+/-- For integer `k ≥ 2`, the preliminary estimate lies in the stated `k`-dependent count-error
+window with probability at least `1 - 1 / (2 * (k - 1))`. -/
 private theorem ec_window_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     (hM₀ : 2 ≤ exactCountM₀ N) (k : ℕ) (hk : 2 ≤ k) :
     1 - 1/(2*((k:ℝ)-1)) ≤ ∑ z ∈ Finset.univ.filter (fun z : Fin (exactCountM₀ N) =>
@@ -251,6 +292,8 @@ private theorem ec_window_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     exact (aeLaw (exactCountM₀ N) (QFTMatrix N) (⟨0,hN⟩ : Fin N) S
       (qftMatrix_unitary hN) hM₀).nonneg z
 
+/-- The preliminary estimate lies within `sqrt (t * (N - t) / N) + 1/4` of the marked
+cardinality `t` with probability at least `11/12`. -/
 private theorem ec_good_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     (hM₀ : 2 ≤ exactCountM₀ N) :
     11/12 ≤ ∑ z ∈ Finset.univ.filter (fun z : Fin (exactCountM₀ N) =>
@@ -301,6 +344,8 @@ private theorem ec_good_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     exact (aeLaw (exactCountM₀ N) (QFTMatrix N) (⟨0,hN⟩ : Fin N) S
       (qftMatrix_unitary hN) hM₀).nonneg z
 
+/-- The final estimate rounds to the exact marked cardinality when its error and grid size
+satisfy the stated bounds. -/
 private theorem ec_final_window_output {N : ℕ} (S : Finset (Fin N))
     {M : ℕ} (hM : 2 ≤ M) (y : Fin M)
     (hD9 : 900*(S.card:ℝ)*((N:ℝ)-S.card) ≤ 2*((M:ℝ)^2))
@@ -352,6 +397,8 @@ private theorem ec_final_window_output {N : ℕ} (S : Finset (Fin N))
   have hfin := hy.trans (add_le_add ht1 ht2)
   exact bhmt_exact_count_round S.card ((N:ℝ)*aeEstimate M y) (lt_of_le_of_lt hfin hlt)
 
+/-- If both preliminary rough radicands are sufficiently large, the conditional final
+exact-counting success probability is at least `8 / π^2`. -/
 private theorem ec_conditional_final {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (_hM₀ : 2 ≤ exactCountM₀ N)
     (hM : ∀ z₁ z₂ : Fin (exactCountM₀ N),
@@ -446,10 +493,13 @@ private theorem ec_conditional_final {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
       ((N:ℝ)*aeEstimate (exactCountM₀ N) z₂)) (QFTMatrix N) (⟨0,hN⟩ : Fin N) S
       (qftMatrix_unitary hN) (hM z₁ z₂)).nonneg y
 
+/-- A double sum of products over the same finite set factors into the product of the two sums. -/
 private theorem ec_double_sum_prod {M : ℕ} (s : Finset (Fin M)) (f g : Fin M → ℝ) :
     ∑ z₁ ∈ s, ∑ z₂ ∈ s, f z₁ * g z₂ = (∑ z ∈ s, f z)*(∑ z ∈ s, g z) := by
   rw [Finset.sum_mul_sum]
 
+/-- A constant averaged against two normalized copies of a finite weight function equals that
+constant. -/
 private theorem ec_double_sum_const {M : ℕ} (pp : Fin M → ℝ) (hp1 : ∑ z, pp z = 1) (a : ℝ) :
     ∑ z₁, ∑ z₂, pp z₁*(pp z₂*a) = a := by
   have hinner : ∀ z₁ : Fin M, ∑ z₂, pp z₁*(pp z₂*a) = pp z₁*a := by
@@ -459,12 +509,15 @@ private theorem ec_double_sum_const {M : ℕ} (pp : Fin M → ℝ) (hp1 : ∑ z,
     rw [hshape, ← Finset.sum_mul, hp1, one_mul]
   rw [Finset.sum_congr rfl (fun z₁ _ => hinner z₁), ← Finset.sum_mul, hp1, one_mul]
 
+/-- Interchanges a finite sum of layers with the two finite readout sums. -/
 private theorem ec_sum_swap3 {M : ℕ} (f : Fin M → Fin M → ℕ → ℝ) (s : Finset ℕ) :
     ∑ z₁, ∑ z₂, ∑ j ∈ s, f z₁ z₂ j = ∑ j ∈ s, ∑ z₁, ∑ z₂, f z₁ z₂ j := by
   have hinner : ∀ z₁ : Fin M, (∑ z₂, ∑ j ∈ s, f z₁ z₂ j) = ∑ j ∈ s, ∑ z₂, f z₁ z₂ j :=
     fun z₁ => Finset.sum_comm
   rw [Finset.sum_congr rfl (fun z₁ _ => hinner z₁), Finset.sum_comm]
 
+/-- A lower bound `1 - b` on an event's mass gives an upper bound `b` on the complementary mass
+for normalized weights. -/
 private theorem ec_complement_mass {M : ℕ} (pp : Fin M → ℝ) (hp1 : ∑ z, pp z = 1)
     (P : Fin M → Prop) [DecidablePred P] (b : ℝ)
     (hmass : 1 - b ≤ ∑ z ∈ Finset.univ.filter P, pp z) :
@@ -477,6 +530,8 @@ private theorem ec_complement_mass {M : ℕ} (pp : Fin M → ℝ) (hp1 : ∑ z, 
   rw [hp1] at hsplit
   linarith
 
+/-- Two preliminary good events of mass at least `11/12`, together with conditional success at
+least `8 / π^2`, give the corresponding product lower bound on joint success. -/
 private theorem ec_joint_assembly {M : ℕ} (p : Fin M → ℝ) (hp0 : ∀ z, 0 ≤ p z)
     (_hp1 : ∑ z, p z = 1) (G : Finset (Fin M))
     (mG : 11/12 ≤ ∑ z ∈ G, p z) (q : Fin M → Fin M → ℝ) (hq0 : ∀ z₁ z₂, 0 ≤ q z₁ z₂)
@@ -522,6 +577,7 @@ private theorem ec_joint_assembly {M : ℕ} (p : Fin M → ℝ) (hp0 : ∀ z, 0 
     _ ≤ ∑ z₁ ∈ G, ∑ z₂ ∈ G, p z₁ * p z₂ * q z₁ z₂ := h2
     _ ≤ ∑ z₁ : Fin M, ∑ z₂ : Fin M, p z₁ * p z₂ * q z₁ z₂ := h1
 
+/-- The product `(11/12)^2 * (8 / π^2)` is at least `2/3`. -/
 private theorem ec_success_constant : 2/3 ≤ (11/12)*(11/12)*(8/Real.pi^2) := by
   have hpi : Real.pi ≤ 22/7 := ec_pi_lt_22_7.le
   have hpisq : Real.pi^2 ≤ ((22:ℝ)/7)^2 := by nlinarith [Real.pi_pos, hpi]
@@ -535,6 +591,8 @@ private theorem ec_success_constant : 2/3 ≤ (11/12)*(11/12)*(8/Real.pi^2) := b
     le_div_iff₀ (by positivity : (0:ℝ) < Real.pi^2)]
   exact hstep
 
+/-- The adaptive exact-counting success mass is at least `2/3` for valid preliminary and final
+grids. -/
 private theorem ec_success_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hM₀ : 2 ≤ exactCountM₀ N)
     (hM : ∀ z₁ z₂ : Fin (exactCountM₀ N),
@@ -594,6 +652,7 @@ private theorem ec_success_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
         (qftMatrix_unitary hN) (hM z₁ z₂)).nonneg y))
     (fun z₁ hz₁ z₂ hz₂ => ec_conditional_final hN S hM₀ hM z₁ z₂ (hR z₁ hz₁) (hR z₂ hz₂)))
 
+/-- Bounds a nonnegative integer by a base term and the dyadic layers below a finite cap. -/
 private theorem ec_dyadic_layer (c : ℝ) (hc : 0 ≤ c) (m J : ℕ) (hm : (m:ℝ) ≤ c*(2:ℝ)^J) :
     (m:ℝ) ≤ 2*c + ∑ j ∈ Finset.range J,
       (if c*(2:ℝ)^j < (m:ℝ) then 2*c*(2:ℝ)^j else 0) := by
@@ -627,22 +686,27 @@ private theorem ec_dyadic_layer (c : ℝ) (hc : 0 ≤ c) (m J : ℕ) (hm : (m:�
         rwa [show c*(2:ℝ)^(J+1) = 2*c*(2:ℝ)^J from by rw [pow_succ]; ring] at hm
       linarith
 
+/-- The first `J` terms of the geometric series with ratio 1/2 sum to `2 - 2 * (1/2)^J`. -/
 private theorem ec_half_pow_sum (J : ℕ) :
     ∑ j ∈ Finset.range J, (1/2:ℝ)^j = 2 - 2*((1/2:ℝ)^J) := by
   induction J with
   | zero => norm_num
   | succ J ih => rw [Finset.sum_range_succ, ih, pow_succ]; ring
 
+/-- The square of the reciprocal of `2^j` equals `(1/4)^j`. -/
 private theorem ec_one_half_sq (j : ℕ) :
     ((1:ℝ)/((2:ℝ)^j))*((1:ℝ)/((2:ℝ)^j)) = ((1:ℝ)/4)^j := by
   have h1 : (1:ℝ)/((2:ℝ)^j) = ((1:ℝ)/2)^j := by rw [one_div, ← inv_pow, one_div]
   rw [h1, ← pow_add, show ((1:ℝ)/4) = ((1:ℝ)/2)*((1:ℝ)/2) from by norm_num, mul_pow]
   exact pow_add _ j j
 
+/-- The product `2^j * (1/4)^j` equals `(1/2)^j`. -/
 private theorem ec_two_four (j : ℕ) : (2:ℝ)^j*((1:ℝ)/4)^j = ((1:ℝ)/2)^j := by
   rw [← mul_pow]
   norm_num
 
+/-- A dyadic tail bound of `(1/4)^j` and a finite cap bound the expected integer-valued cost by
+`6 * c`. -/
 private theorem ec_dyadic_expectation {M : ℕ} (p : Fin M → ℝ)
     (F : Fin M → Fin M → ℕ) (c : ℝ) (hc : 0 ≤ c)
     (h0 : ∀ z, 0 ≤ p z) (h1 : ∑ z, p z = 1) (J : ℕ)
@@ -739,6 +803,8 @@ private theorem ec_dyadic_expectation {M : ℕ} (p : Fin M → ℝ)
               (pow_nonneg (show (0:ℝ) ≤ (1/2:ℝ) by norm_num) J)
           linarith
 
+/-- A preliminary estimate in the stated `k`-window has rough scale at most `3 * k * sqrt ((t +
+1) * (N - t + 1))`. -/
 private theorem ec_rough_R_bound (N : ℕ) (hN : 0 < N) (t : ℝ) (ht0 : 0 ≤ t)
     (htN : t ≤ (N:ℝ)) (k : ℝ) (hk1 : 1 ≤ k) (x : ℝ) (hx0 : 0 ≤ x) (hxN : x ≤ (N:ℝ))
     (hwin : |x-t| ≤ k*Real.sqrt (t*((N:ℝ)-t)/(N:ℝ)) + k^2) :
@@ -825,6 +891,8 @@ private theorem ec_rough_R_bound (N : ℕ) (hN : 0 < N) (t : ℝ) (ht0 : 0 ≤ t
       (mul_nonneg (mul_nonneg (show (0:ℝ) ≤ 3 by norm_num) hk2) hB)] at habs
   exact hfinal
 
+/-- If the first preliminary estimate lies in its `k`-window, the adaptive grid is at most `120
+* k` times the target rough scale. -/
 private theorem ec_grid_le_of_window (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     (k : ℝ) (hk1 : 1 ≤ k) (z₁ z₂ : Fin (exactCountM₀ N))
     (hwin : |(N:ℝ)*aeEstimate (exactCountM₀ N) z₁-(S.card:ℝ)| ≤
@@ -873,6 +941,7 @@ private theorem ec_grid_le_of_window (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     _ ≤ 120*k*Real.sqrt (((S.card : ℝ)+1)*((N : ℝ)-(S.card : ℝ)+1)) := by
         nlinarith [hk1, hB1, hB]
 
+/-- A natural-valued function on a finite type has a uniform dyadic upper bound. -/
 private theorem ec_exists_dyadic_cap {ι : Type} [Fintype ι] (F : ι → ℕ) :
     ∃ J : ℕ, ∀ z : ι, (F z : ℝ) ≤ (2:ℝ)^J := by
   refine ⟨Finset.sup Finset.univ F, fun z => ?_⟩
@@ -888,6 +957,8 @@ private theorem ec_exists_dyadic_cap {ι : Type} [Fintype ι] (F : ι → ℕ) :
   rw [h4] at h3
   linarith
 
+/-- The exact-counting expected cost is at most `1000 * sqrt ((S.card + 1) * (N - S.card + 1))`
+for valid grids. -/
 private theorem ec_cost_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hM₀ : 2 ≤ exactCountM₀ N)
     (hM : ∀ z₁ z₂ : Fin (exactCountM₀ N),
@@ -1192,6 +1263,8 @@ private theorem ec_cost_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
       (2*((exactCountM₀ N : ℝ)))]
   linarith [hdy, hM₀b, hB]
 
+/-- Establishes exact-counting success probability at least `2/3` and the explicit expected-cost
+bound in `Theorem17Spec.expected` [Brassard et al., Theorem 17][BrassardEtAl2002]. -/
 theorem bhmt_theorem17_exact_count :
     Theorem17Spec.expected := by
   intro N hN S hM₀ hM

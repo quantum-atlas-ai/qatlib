@@ -6,11 +6,31 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# A scalar comparison for powered-update costs
+
+This module verifies that multiplying the two-level cost scale by `u ^ (1 / 5) * v ^ (1 / 5)`
+cannot decrease it when all size and batching parameters are at least one. This is the algebraic
+comparison used in the charged cost model for Theorem 3.2.1 of [Itakura2005].
+
+## Main statements
+
+* `theorem321_powering_no_improvement`: Bounds the base power-law expression by its batch-factor
+  multiple.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.CommuteTest05.MainResults.Theorem321
 
+/-- For `k, n, u, v ≥ 1`, the expression `k ^ (4 / 5) * n ^ (9 / 5)` is at most its product with
+`u ^ (1 / 5) * v ^ (1 / 5)`. This is the scalar cost comparison associated with [Itakura,
+Theorem 3.2.1][Itakura2005]. -/
 theorem theorem321_powering_no_improvement
     (k n u v : ℝ) (hk : 1 ≤ k) (hn : 1 ≤ n) (hu : 1 ≤ u) (hv : 1 ≤ v) :
     k ^ ((4 : ℝ) / 5) * n ^ ((9 : ℝ) / 5) ≤

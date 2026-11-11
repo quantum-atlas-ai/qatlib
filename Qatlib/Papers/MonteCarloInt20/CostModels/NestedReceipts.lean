@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
 import Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
+
+/-!
+# Executed nested words, access counts, and accuracy
+
+This module connects `nestedWord` to the matrix execution of its outer amplitude-estimation
+circuit. It proves the exact total source-access count `(2 * N - 1) * (2 * M - 1)` and
+identifies measured outer events with the corresponding `nestedLaw` probabilities.
+
+Under unitary preparation, the stated phase and payoff-range assumptions, and a Lipschitz
+derivative for the payoff, `executed_nested_accuracy` combines the outer estimation window with
+the inner error budget. This supplies an executed-circuit accuracy statement for the nested
+construction studied in [KanekoEtAl2020].
+
+## Main statements
+
+* `nested_total_source_accesses`: Compute the sum of forward and backward source accesses.
+* `nestedWord_event`: Identify output-event probabilities with the finite nested law.
+* `executed_nested_accuracy`: Bound total output error with probability at least `8 / π^2`.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -33,8 +57,12 @@ noncomputable local instance fullDecision (n M N : ℕ) (I : Type) [DecidableEq 
     DecidableEq (Qatlib.Papers.MonteCarloInt20.MainResults.NestedBorn.Inner N ((Reg n × Qatlib.Papers.MonteCarloInt20.MainResults.NestedBorn.Inner M I) × Bool)) :=
   instDecidableEqProd
 
+/-- The outer amplitude-estimation register containing the sample register, inner estimation
+register, and payoff flag. -/
 abbrev OuterReg (n M N : ℕ) (I : Type) := Inner N ((Reg n × Inner M I) × Bool)
 
+/-- The matrix evaluation of `nestedWord` equals the run matrix of the stated counted outer
+amplitude-estimation circuit. -/
 theorem nestedWord_eval {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 0 < M) (A : Reg n → Matrix I I ℂ) (i₀ : I)
     (S : Reg n → Finset I) (D : ℝ) (g : ℝ → ℝ) :
@@ -47,6 +75,8 @@ theorem nestedWord_eval {I : Type} [Fintype I] [DecidableEq I]
   rw [preparationWord_eval] at h
   exact h
 
+/-- For positive inner and outer sizes, the counted outer circuit has `N - 1` queries, and its
+access word has `N` forward and `N - 1` backward preparation accesses. -/
 theorem outer_counts {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 0 < M) (hN : 0 < N) (A : Reg n → Matrix I I ℂ) (i₀ : I)
     (S : Reg n → Finset I) (D : ℝ) (g : ℝ → ℝ) :
@@ -58,6 +88,8 @@ theorem outer_counts {I : Type} [Fintype I] [DecidableEq I]
     ((ZeroStr n,innerSeed M hM i₀),false)).1,
     (prepared_ae_separate_access_counts N hN).1,(prepared_ae_separate_access_counts N hN).2.1⟩
 
+/-- For positive inner and outer sizes, the sum of forward and backward source accesses in the
+nested word equals `(2 * N - 1) * (2 * M - 1)`. -/
 theorem nested_total_source_accesses {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 0 < M) (hN : 0 < N) (A : Reg n → Matrix I I ℂ) (i₀ : I)
     (S : Reg n → Finset I) (D : ℝ) (g : ℝ → ℝ) :
@@ -72,6 +104,8 @@ theorem nested_total_source_accesses {I : Type} [Fintype I] [DecidableEq I]
   rw [hN2,hM2]
   ring
 
+/-- With unitary preparations, payoff values in `[0, 1]`, and `M, N ≥ 2`, the executed nested
+word's probability of any outer-index event equals its probability under `nestedLaw`. -/
 theorem nestedWord_event {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)
@@ -90,6 +124,9 @@ theorem nestedWord_event {I : Type} [Fintype I] [DecidableEq I]
     ((ZeroStr n,innerSeed M (by omega) i₀),false) (Finset.univ.filter (fun p => p.2=true))
     (outerPreparation_unitary n M hM A i₀ S hA D g hg) P).symm
 
+/-- Under the stated unitary, phase-matching, payoff-range, and Lipschitz-derivative hypotheses
+with `M, N ≥ 2`, the executed estimate is within `outerWindow + innerBudget` of `idealMean`
+with probability at least `8 / Real.pi^2`; see [KanekoEtAl2020]. -/
 theorem executed_nested_accuracy {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)

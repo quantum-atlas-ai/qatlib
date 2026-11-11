@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# State-dependent costs in randomized execution
+
+The operations `weightedTick` and `weightedRunFor` attach natural state-dependent charges to a
+randomized execution while preserving its configuration marginal. The module proves resume
+identities and stability of `weightedHaltJoint` when every running step has positive cost.
+
+Such explicit cost accounting is useful in randomized quantum algorithm analyses, including the
+Monte Carlo setting of [Montanaro2015].
+
+## Main statements
+
+* `weighted_finite_run_resume_and_marginal`: composition across fuel splits and preservation of
+  marginals
+* `weightedRunFor_unit_cost`: recovery of unit-cost execution
+* `weighted_first_halt_stable_and_total_partition`: positive-cost stability and eventual mass
+  partition
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
@@ -22,20 +46,27 @@ open scoped Classical BigOperators ENNReal
 
 variable {S O : Type} [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
 
+/-- One execution step charging `cost s` in a running state and preserving a halted output at
+zero additional cost. -/
 noncomputable def weightedTick (next : S → PMF (O ⊕ S)) (cost : S → ℕ) :
     O ⊕ S → CostedLaw (O ⊕ S)
   | .inl o => CostedLaw.ret (.inl o)
   | .inr s => (next s).map (fun d => (d, cost s))
 
+/-- Finite execution with state-dependent natural costs, accumulated by binding successive
+weighted ticks. -/
 noncomputable def weightedRunFor (next : S → PMF (O ⊕ S)) (cost : S → ℕ) :
     ℕ → O ⊕ S → CostedLaw (O ⊕ S)
   | 0, cfg => CostedLaw.ret cfg
   | fuel + 1, cfg => CostedLaw.bind (weightedTick next cost cfg)
       (weightedRunFor next cost fuel)
 
+/-- Zero fuel returns the initial configuration with zero cost. -/
 @[simp] theorem weightedRunFor_zero (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) : weightedRunFor next c 0 cfg = CostedLaw.ret cfg := rfl
 
+/-- A weighted execution starting from a halted output returns that output with zero cost for
+every fuel. -/
 @[simp] theorem weightedRunFor_halted (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (fuel : ℕ) (o : O) :
     weightedRunFor next c fuel (.inl o) = CostedLaw.ret (.inl o) := by
@@ -43,6 +74,8 @@ noncomputable def weightedRunFor (next : S → PMF (O ⊕ S)) (cost : S → ℕ)
   | zero => rfl
   | succ fuel ih => simpa [weightedRunFor, weightedTick] using ih
 
+/-- A weighted run with fuel `m + n` equals an `m`-step run followed by an `n`-step
+continuation, adding their costs. -/
 theorem weightedRunFor_add (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (m n : ℕ) (cfg : O ⊕ S) :
     weightedRunFor next c (m + n) cfg =
@@ -55,6 +88,7 @@ theorem weightedRunFor_add (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     funext x
     exact ih x
 
+/-- Forgetting the cost after a costed bind agrees with binding the configuration marginals. -/
 theorem costedLaw_map_fst_bind {α β : Type*} (p : CostedLaw α)
     (f : α → CostedLaw β) :
     (CostedLaw.bind p f).map Prod.fst =
@@ -62,6 +96,7 @@ theorem costedLaw_map_fst_bind {α β : Type*} (p : CostedLaw α)
   simp only [CostedLaw.bind, CostedLaw.charge, PMF.map_bind, PMF.map_comp,
     PMF.bind_map, Function.comp_def]
 
+/-- State-dependent costs leave the configuration marginal of finite execution unchanged. -/
 theorem weightedRunFor_marginal (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (n : ℕ) (cfg : O ⊕ S) :
     (weightedRunFor next c n cfg).map Prod.fst =
@@ -74,6 +109,8 @@ theorem weightedRunFor_marginal (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     cases cfg <;>
       simp [weightedTick, RandomizedExecution.tick, PMF.map_comp, Function.comp_def]
 
+/-- Weighted finite execution composes across fuel splits and has the same configuration
+marginal as unit-cost execution. -/
 theorem weighted_finite_run_resume_and_marginal :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (c : S → ℕ) (m n : ℕ) (cfg : O ⊕ S),
@@ -84,6 +121,7 @@ theorem weighted_finite_run_resume_and_marginal :
   intro S O _ _ _ _ next c m n cfg
   exact ⟨weightedRunFor_add next c m n cfg, weightedRunFor_marginal next c n cfg⟩
 
+/-- Constant unit costs recover the original randomized finite execution law. -/
 theorem weightedRunFor_unit_cost (next : S → PMF (O ⊕ S)) (n : ℕ) (cfg : O ⊕ S) :
     weightedRunFor next (fun _ => 1) n cfg = RandomizedExecution.runFor next n cfg := by
   induction n generalizing cfg with
@@ -96,16 +134,21 @@ theorem weightedRunFor_unit_cost (next : S → PMF (O ⊕ S)) (n : ℕ) (cfg : O
     funext d
     exact ih d
 
+/-- The mass of halting with output `o` and total cost `k` in the weighted run with fuel `k`. -/
 noncomputable def weightedHaltJoint (next : S → PMF (O ⊕ S)) (cost : S → ℕ)
     (cfg : O ⊕ S) (o : O) (k : ℕ) : ℝ≥0∞ :=
   weightedRunFor next cost k cfg (.inl o, k)
 
+/-- A weighted run from `s` first samples `next s`, then continues with one less fuel and
+charges `c s`. -/
 theorem weightedRunFor_succ_running (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (n : ℕ) (s : S) :
     weightedRunFor next c (n+1) (.inr s) =
       (next s).bind (fun d => CostedLaw.charge (c s) (weightedRunFor next c n d)) := by
   simp [weightedRunFor, weightedTick, CostedLaw.bind, PMF.bind_map, Function.comp_def]
 
+/-- The point mass of a weighted successor run is a sum over the first transition with cost
+shifted by `c s`, or zero if the cost is too small. -/
 theorem weightedRunFor_succ_running_point (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (n : ℕ) (s : S) (d : O ⊕ S) (k : ℕ) :
     weightedRunFor next c (n+1) (.inr s) (d,k) =
@@ -116,6 +159,8 @@ theorem weightedRunFor_succ_running_point (next : S → PMF (O ⊕ S)) (c : S �
   · rfl
   · simp
 
+/-- If every running step costs at least one, halted mass at cost `k` stabilizes once fuel
+reaches `k`. -/
 theorem weightedRunFor_halt_stable (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) (o : O) (k fuel : ℕ) (h : k ≤ fuel) :
     weightedRunFor next c fuel cfg (.inl o,k) = weightedHaltJoint next c cfg o k := by
@@ -142,6 +187,7 @@ theorem weightedRunFor_halt_stable (next : S → PMF (O ⊕ S)) (c : S → ℕ)
             ih (k+1-c s) (by have := hc s; omega) x k (by have := hc s; omega)]
         · rfl
 
+/-- For a fixed halted output and cost, its weighted finite-run mass is monotone in the fuel. -/
 theorem weightedRunFor_halt_monotone (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (o : O) (k : ℕ) :
     Monotone (fun n => weightedRunFor next c n cfg (.inl o,k)) := by
@@ -152,6 +198,8 @@ theorem weightedRunFor_halt_monotone (next : S → PMF (O ⊕ S)) (c : S → ℕ
     CostedLaw.charge x.2 (weightedRunFor next c 1 x.1) (.inl o,k)) (.inl o,k)
   simpa [weightedRunFor_halted, CostedLaw.charge_ret, PMF.pure_apply] using h
 
+/-- Under positive step costs, the supremum of the finite halted masses equals
+`weightedHaltJoint`. -/
 theorem weightedRunFor_halt_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (hc : ∀ s, 1 ≤ c s) (cfg : O ⊕ S) (o : O) (k : ℕ) :
     (⨆ n, weightedRunFor next c n cfg (.inl o,k)) = weightedHaltJoint next c cfg o k := by
@@ -165,6 +213,8 @@ theorem weightedRunFor_halt_iSup (next : S → PMF (O ⊕ S)) (c : S → ℕ)
       _ = _ := weightedRunFor_halt_stable next c hc cfg o k _ (le_max_right _ _)
   · exact le_iSup (fun n => weightedRunFor next c n cfg (.inl o,k)) k
 
+/-- A countable sum commutes with the supremum of a pointwise monotone sequence of extended
+nonnegative real functions. -/
 theorem weighted_tsum_iSup {α : Type*} (f : α → ℕ → ℝ≥0∞)
     (hf : ∀ a, Monotone (f a)) :
     (∑' a, ⨆ n, f a n) = ⨆ n, ∑' a, f a n := by
@@ -172,6 +222,8 @@ theorem weighted_tsum_iSup {α : Type*} (f : α → ℕ → ℝ≥0∞)
   simp_rw [ENNReal.finsetSum_iSup_of_monotone hf]
   exact iSup_comm
 
+/-- The pending event of weighted execution has the same mass as unit-cost execution at the same
+fuel. -/
 theorem weightedRunFor_pending (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n : ℕ) :
     CostedLaw.event (weightedRunFor next c n cfg) (fun z => ∃ s, z.1 = Sum.inr s) =
@@ -182,6 +234,7 @@ theorem weightedRunFor_pending (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   rw [← CostedLaw.event_map _ Prod.fst (fun d => ∃ s, d = Sum.inr s),
     weightedRunFor_marginal, CostedLaw.event_map]
 
+/-- The total halted mass of a finite weighted run plus its pending mass equals one. -/
 theorem weightedRunFor_partition (next : S → PMF (O ⊕ S)) (c : S → ℕ)
     (cfg : O ⊕ S) (n : ℕ) :
     (∑' o, ∑' k, weightedRunFor next c n cfg (.inl o,k)) + pendingMass next cfg n = 1 := by
@@ -195,6 +248,8 @@ theorem weightedRunFor_partition (next : S → PMF (O ⊕ S)) (c : S → ℕ)
   rw [he, ← tsum_sum_type' (F := fun d : O ⊕ S => ∑' k, weightedRunFor next c n cfg (d,k)),
     ← tsum_prod_type' (F := fun z : (O ⊕ S) × ℕ => weightedRunFor next c n cfg z), PMF.tsum_coe]
 
+/-- Positive step costs give stability of the weighted halting joint masses and a partition of
+unit mass into eventual halting and nontermination. -/
 theorem weighted_first_halt_stable_and_total_partition :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (c : S → ℕ) (cfg : O ⊕ S),

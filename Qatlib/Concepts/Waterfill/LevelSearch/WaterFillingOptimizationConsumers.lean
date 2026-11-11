@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
+
+/-!
+# Error bounds for computed water-fill preparations
+
+This module transfers rational bisection estimates to mass error and to the event probability of
+numeric water-fill state preparation. The latter combines the level-search error with a
+precision contribution of `64 / 2 ^ b` for the rejection-sampling construction associated with
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `computedWaterLevel_mass_error`: Bound mass error after a fixed number of bisections.
+* `computed_waterlevel_same_unknown_state_numeric_mass`: Bound the event-probability error of
+  numeric preparation.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,8 @@ namespace Qatlib.Concepts.Waterfill.LevelSearch
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The mass error at the computed upper bisection endpoint is at most twice the source-target
+overlap times the initial upper level divided by `2 ^ k`. -/
 theorem computedWaterLevel_mass_error (m k : ℕ) (π σ : Fin m → ℚ) (q : ℚ)
     (h : ∀ j, 0 ≤ π j ∧ 0 < σ j) (hq : 0 ≤ q) (hqmax : q ≤ ∑ j, (π j)^2) :
     |waterMass π σ (computedWaterLevel π σ q k)-(q : ℝ)| ≤
@@ -48,6 +70,9 @@ theorem computedWaterLevel_mass_error (m k : ℕ) (π σ : Fin m → ℚ) (q : �
     _ ≤ 2*(∑ j, (π j : ℝ)*(σ j : ℝ))*((γ-a : ℚ) : ℝ) := her
     _ = _ := by rw [hw]; ring
 
+/-- For normalized component states and a unitary source preparation, the event probability of
+the numeric water-fill preparation differs from `q` by at most the bisection mass bound plus
+`64 / 2 ^ b`; see [OzolsRoettelerRoland2013]. -/
 theorem computed_waterlevel_same_unknown_state_numeric_mass
     (m D k b : ℕ) (π σ : Fin m → ℚ) (q : ℚ)
     (ξ : Fin m → QState (Fin D)) (A : Matrix (Fin m×Fin D) (Fin m×Fin D) ℂ)

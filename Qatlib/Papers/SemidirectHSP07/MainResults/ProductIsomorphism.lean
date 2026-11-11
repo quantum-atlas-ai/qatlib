@@ -10,6 +10,34 @@ import Mathlib.GroupTheory.Index
 import Mathlib.Algebra.Group.Subgroup.Finite
 import Mathlib.GroupTheory.SpecificGroups.Cyclic
 import Mathlib.Data.Nat.Totient
+
+/-!
+# Separating a trivially acted-on cyclic factor
+
+This module supplies the group-theoretic facts behind the product isomorphism discussed in
+[CosmePortugal2007]. It counts automorphisms of `Cyc n`, proves triviality of actions whose
+source and automorphism-group orders are coprime, and shows that automorphisms of finite
+products of coprime orders preserve the two factors.
+
+The construction `semidirectProdMulEquiv` separates a factor on which the action is trivial. The
+specialized `source_isomorphism` uses the explicit action `prodAct ψ` on the product of cyclic
+factors.
+
+## Main statements
+
+- `card_mulAut_cyc` computes the automorphism-group cardinality as Euler's totient.
+* `hom_to_mulAut_cyc_eq_one` proves triviality of the indicated action on the distinct-prime
+  cyclic factor.
+* `mulAut_prod_coprime_decomposes` expresses each automorphism as a pair of factor
+  automorphisms.
+* `semidirectProdMulEquiv` and `source_isomorphism` construct the product separation for the
+  stated actions.
+
+## References
+
+* [Cosme and Portugal, 2007][CosmePortugal2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +48,8 @@ namespace Qatlib.Papers.SemidirectHSP07.MainResults
 
 open scoped commutatorElement
 
+/-- For nonzero `n`, the automorphism group of `Cyc n` has natural cardinality `Nat.totient n`
+[CosmePortugal2007]. -/
 theorem card_mulAut_cyc (n : ℕ) [NeZero n] :
     Nat.card (MulAut (Cyc n)) = Nat.totient n := by
   haveI : Finite (Cyc n) := Finite.of_fintype (Multiplicative (ZMod n))
@@ -27,6 +57,8 @@ theorem card_mulAut_cyc (n : ℕ) [NeZero n] :
     IsCyclic.card_mulAut (Cyc n)
   simpa [card_Cyc] using h
 
+/-- An action of a finite group `C` on a finite group `A` is trivial if the orders of `C` and
+`MulAut A` are coprime. -/
 theorem hom_to_mulAut_coprime_eq_one
     {C A : Type*} [Group C] [Group A] [Finite C] [Finite A]
     (hcop : Nat.Coprime (Nat.card C) (Nat.card (MulAut A)))
@@ -40,6 +72,8 @@ theorem hom_to_mulAut_coprime_eq_one
   rw [← MonoidHom.range_eq_bot_iff]
   exact Subgroup.eq_bot_of_card_eq ψ.range (Nat.dvd_one.mp hg)
 
+/-- For distinct primes `p` and `q`, positive `s`, and `p` not dividing `q - 1`, every action of
+`Cyc (p ^ 2)` on `Cyc (q ^ s)` is trivial [CosmePortugal2007]. -/
 theorem hom_to_mulAut_cyc_eq_one
     (p q s : ℕ) (hp : p.Prime) (hq : q.Prime) (hs : 0 < s)
     (hne : p ≠ q) (hnd : ¬ p ∣ (q - 1))
@@ -63,6 +97,8 @@ theorem hom_to_mulAut_cyc_eq_one
     exact (Nat.coprime_pow_left_iff (by norm_num) p (q ^ n * (q - 1))).mpr hmul
   exact hom_to_mulAut_coprime_eq_one hcop χ
 
+/-- Constructs a multiplicative equivalence from `(A × B) ⋊[φ] C` to `A × (B ⋊[ψ] C)` when the
+action satisfies `φ c (a, b) = (a, ψ c b)`. -/
 def semidirectProdMulEquiv
     {A B C : Type*} [Group A] [Group B] [Group C]
     (φ : C →* MulAut (A × B)) (ψ : C →* MulAut B)
@@ -81,6 +117,8 @@ def semidirectProdMulEquiv
         simp [h]
       · rfl
 
+/-- The action of `C` on `A × B` that fixes the `A` coordinate and acts on the `B` coordinate
+through `ψ`. -/
 def prodAct {A B C : Type*} [Group A] [Group B] [Group C]
     (ψ : C →* MulAut B) : C →* MulAut (A × B) where
   toFun c := MulEquiv.prodCongr (MulEquiv.refl A) (ψ c)
@@ -93,11 +131,14 @@ def prodAct {A B C : Type*} [Group A] [Group B] [Group C]
     rintro ⟨a, b⟩
     simp [MulEquiv.prodCongr, Equiv.prodCongr_apply]
 
+/-- The product action evaluates as `prodAct ψ c (a, b) = (a, ψ c b)`. -/
 @[simp]
 theorem prodAct_apply {A B C : Type*} [Group A] [Group B] [Group C]
     (ψ : C →* MulAut B) (c : C) (a : A) (b : B) :
     prodAct (A := A) ψ c (a, b) = (a, ψ c b) := rfl
 
+/-- For finite groups of coprime orders, any automorphism of `A × B` sends `(1, b)` to an
+element with first coordinate one. -/
 theorem mulAut_prod_fst_eq_one_of_coprime
     {A B : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B)) (θ : MulAut (A × B))
@@ -115,6 +156,8 @@ theorem mulAut_prod_fst_eq_one_of_coprime
   rw [Nat.coprime_iff_gcd_eq_one.mp hcop] at hg
   exact orderOf_eq_one_iff.mp (Nat.dvd_one.mp hg)
 
+/-- For finite groups of coprime orders, any automorphism of `A × B` sends `(a, 1)` to an
+element with second coordinate one. -/
 theorem mulAut_prod_snd_eq_one_of_coprime
     {A B : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B)) (θ : MulAut (A × B))
@@ -132,6 +175,8 @@ theorem mulAut_prod_snd_eq_one_of_coprime
   rw [Nat.coprime_iff_gcd_eq_one.mp hcop] at hg
   exact orderOf_eq_one_iff.mp (Nat.dvd_one.mp hg)
 
+/-- Every automorphism of a product of finite groups of coprime orders acts coordinatewise
+through an automorphism of each factor. -/
 theorem mulAut_prod_coprime_decomposes
     {A B : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B)) (θ : MulAut (A × B)) :
@@ -194,6 +239,9 @@ theorem mulAut_prod_coprime_decomposes
   rw [hg, he]
   simp
 
+/-- Under the stated prime, positivity, and divisibility assumptions, the semidirect product
+with explicit action `prodAct ψ` is multiplicatively equivalent to `Cyc (q ^ s) × (Cyc (p ^
+r) ⋊[ψ] Cyc (p ^ 2))` [CosmePortugal2007]. -/
 theorem source_isomorphism
     (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime) (hs : 0 < s)
     (hne : p ≠ q) (hnd : ¬ p ∣ (q - 1))

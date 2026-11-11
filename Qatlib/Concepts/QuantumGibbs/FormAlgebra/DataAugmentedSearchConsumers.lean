@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.CountedWalk.DataAugmentedSzegedy
+
+/-!
+# Data-tag transport for phase-based search
+
+This module lifts phase-estimation, detection, reflection, and search operations to a register
+carrying coherent classical data tags. It proves exact state and measurement transport and gives
+an explicit controlled-update ledger in the quantum-walk search setting of
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `dataTagSearchState`: Exact transport of the phase-search state.
+* `data_augmented_actual_phase_search_event_transport`: Preservation of the marked measurement
+  probability.
+* `data_augmented_qpe_actual_controlled_updates_and_paid_inverse`: Controlled QPE semantics and
+  exact forward and inverse costs.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -33,6 +55,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- The equivalence regrouping the auxiliary register, flag, workspace, and data tag so that the
+tag is the final factor. -/
 def dataFlagTagSplit (A H : Type) (b : ℕ) :
     (A × (Bool × (H × Reg b))) ≃ ((A × (Bool × H)) × Reg b) where
   toFun p := ((p.1,(p.2.1,p.2.2.1)),p.2.2.2)
@@ -40,6 +64,8 @@ def dataFlagTagSplit (A H : Type) (b : ℕ) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- Lift a matrix to the data-tag register and relabel the factors into the auxiliary, flag, and
+tagged-workspace ordering. -/
 noncomputable def dataFlagMatrix {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (U : Matrix (A × (Bool × H)) (A × (Bool × H)) ℂ) :
@@ -47,12 +73,16 @@ noncomputable def dataFlagMatrix {A H : Type} [Fintype A] [DecidableEq A]
   relabelGate (dataFlagTagSplit A H b).symm
     (dataTagWalk b (fun p : A × (Bool × H) => d p.2.2) U)
 
+/-- Embed a state with its prescribed workspace-dependent data tag and relabel the register
+factors. -/
 noncomputable def dataFlagEmbed {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (ψ : QState (A × (Bool × H))) : QState (A × (Bool × (H × Reg b))) :=
   relabelState (dataFlagTagSplit A H b).symm
     (dataTagEmbed b (fun p : A × (Bool × H) => d p.2.2) ψ)
 
+/-- The lifted matrix entry is the original entry when the two tag-XOR-data residuals agree, and
+is zero otherwise. -/
 theorem dataFlagMatrix_apply {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (U : Matrix (A × (Bool × H)) (A × (Bool × H)) ℂ)
@@ -62,6 +92,8 @@ theorem dataFlagMatrix_apply {A H : Type} [Fintype A] [DecidableEq A]
       then U (p.1,(p.2.1,p.2.2.1)) (q.1,(q.2.1,q.2.2.1)) else 0 := by
   exact dataTagWalk_apply b _ U _ _
 
+/-- A data-flag embedded state has its original amplitude exactly on the prescribed data tag and
+is zero elsewhere. -/
 theorem dataFlagEmbed_apply {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (ψ : QState (A × (Bool × H))) (p : A × (Bool × (H × Reg b))) :
@@ -69,12 +101,14 @@ theorem dataFlagEmbed_apply {A H : Type} [Fintype A] [DecidableEq A]
       then ψ (p.1,(p.2.1,p.2.2.1)) else 0 :=
   dataTagEmbed_apply b _ ψ _
 
+/-- Data-flag lifting preserves the identity matrix. -/
 theorem dataFlagMatrix_one {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b) :
     dataFlagMatrix (A := A) b d 1 = 1 := by
   rw [dataFlagMatrix, dataTagWalk_one,
       Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_one]
 
+/-- Data-flag lifting preserves matrix multiplication. -/
 theorem dataFlagMatrix_mul {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (U V : Matrix (A × (Bool × H)) (A × (Bool × H)) ℂ) :
@@ -83,6 +117,7 @@ theorem dataFlagMatrix_mul {A H : Type} [Fintype A] [DecidableEq A]
       Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul]
   rfl
 
+/-- Data-flag lifting commutes with conjugate transpose. -/
 theorem dataFlagMatrix_adjoint {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (U : Matrix (A × (Bool × H)) (A × (Bool × H)) ℂ) :
@@ -90,6 +125,7 @@ theorem dataFlagMatrix_adjoint {A H : Type} [Fintype A] [DecidableEq A]
   rw [dataFlagMatrix, dataTagWalk_adjoint]
   rfl
 
+/-- Applying a lifted matrix to an embedded state equals embedding the original matrix's output. -/
 theorem dataFlagMatrix_embed {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (U : Matrix (A × (Bool × H)) (A × (Bool × H)) ℂ) (ψ : QState (A × (Bool × H))) :
@@ -98,6 +134,7 @@ theorem dataFlagMatrix_embed {A H : Type} [Fintype A] [DecidableEq A]
   rw [dataFlagMatrix, dataFlagEmbed, applyGate_relabelGate]
   exact congrArg (relabelState (dataFlagTagSplit A H b).symm) (dataTagWalk_embed b _ U ψ)
 
+/-- Pointwise XOR with the same tag preserves and reflects equality of bit registers. -/
 private theorem tagXor_cancel_iff (b : ℕ) (x y z : Reg b) :
     (fun i => x i ^^ z i) = (fun i => y i ^^ z i) ↔ x = y := by
   constructor
@@ -105,6 +142,8 @@ private theorem tagXor_cancel_iff (b : ℕ) (x y z : Reg b) :
     cases hx : x i <;> cases hy : y i <;> cases hz : z i <;> simp_all
   · rintro rfl; rfl
 
+/-- Lifting a parallel controlled oracle gives the parallel controlled oracle of the data-tagged
+walk. -/
 theorem dataFlagMatrix_oracle {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b) (W : Matrix H H ℂ) :
     dataFlagMatrix (A := A) b d (parallelOracle (controlOracle W)) =
@@ -116,6 +155,8 @@ theorem dataFlagMatrix_oracle {A H : Type} [Fintype A] [DecidableEq A]
       tagXor_cancel_iff]
   all_goals split_ifs <;> simp_all
 
+/-- Lifting a gate on the phase register leaves that gate unchanged and extends the identity to
+the tagged workspace. -/
 theorem dataFlagMatrix_phaseGate {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b) (Q : Matrix A A ℂ) :
     dataFlagMatrix b d (TensorGate Q (1 : Matrix (Bool × H) (Bool × H) ℂ)) =
@@ -125,6 +166,7 @@ theorem dataFlagMatrix_phaseGate {A H : Type} [Fintype A] [DecidableEq A]
     simp [dataFlagMatrix_apply, tensorGate_apply, Matrix.one_apply, Prod.ext_iff, hx,
       tagXor_cancel_iff, mul_ite]
 
+/-- Data-flag lifting carries the phase-threshold flip to the same flip on the tagged workspace. -/
 theorem dataFlagMatrix_threshold {H : Type} [Fintype H] [DecidableEq H]
     (b M n : ℕ) (d : H → Reg b) :
     dataFlagMatrix b d (permMatrix (phaseThresholdFlip (I := H) M n)) =
@@ -135,6 +177,8 @@ theorem dataFlagMatrix_threshold {H : Type} [Fintype H] [DecidableEq H]
       tagXor_cancel_iff]
   all_goals split_ifs <;> simp_all
 
+/-- Lift every fixed gate of a circuit to the data-flag register while retaining query
+instructions. -/
 noncomputable def dataFlagCircuit {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b) :
     Circuit (A × (Bool × H)) → Circuit (A × (Bool × (H × Reg b))) :=
@@ -142,6 +186,8 @@ noncomputable def dataFlagCircuit {A H : Type} [Fintype A] [DecidableEq A]
     | .gate U => .gate (dataFlagMatrix b d U)
     | .query => .query)
 
+/-- Lifting the counted phase-estimation circuit gives the counted phase circuit on the tagged
+workspace. -/
 theorem dataFlagCircuit_counted {H : Type} [Fintype H] [DecidableEq H]
     (b M : ℕ) (d : H → Reg b) :
     dataFlagCircuit b d (countedPhaseCircuit (I := H) M) = countedPhaseCircuit (I := H × Reg b) M := by
@@ -158,6 +204,8 @@ theorem dataFlagCircuit_counted {H : Type} [Fintype H] [DecidableEq H]
   rw [show List.map _ (phaseThresholdLoop (I := H) M (M-1)) =
     dataFlagCircuit b d (phaseThresholdLoop (I := H) M (M-1)) from rfl, hl]
 
+/-- Data-flag gate lifting commutes with compilation of an ordinary circuit into the phase word
+syntax. -/
 theorem dataFlagCircuit_compile {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b) (cs : Circuit (A × (Bool × H))) :
     phaseLiftWord (dataFlagMatrix b d) (phaseCompileCircuit cs) =
@@ -167,6 +215,8 @@ theorem dataFlagCircuit_compile {A H : Type} [Fintype A] [DecidableEq A]
   funext s
   cases s <;> rfl
 
+/-- Lifting the evaluated counted phase-estimation word equals evaluating that word with the
+data-tagged controlled walk oracle. -/
 theorem dataFlagMatrix_qpe {H : Type} [Fintype H] [DecidableEq H]
     (b M : ℕ) (d : H → Reg b) (W : Matrix H H ℂ) :
     dataFlagMatrix b d (evaluate (parallelOracle (controlOracle W))
@@ -177,6 +227,7 @@ theorem dataFlagMatrix_qpe {H : Type} [Fintype H] [DecidableEq H]
     (dataFlagMatrix_mul b d) (dataFlagMatrix_adjoint b d), dataFlagMatrix_oracle,
     dataFlagCircuit_compile, dataFlagCircuit_counted]
 
+/-- Data-flag lifting commutes with extension of a gate to the phase tail registers. -/
 theorem dataFlagMatrix_tail {H : Type} [Fintype H] [DecidableEq H]
     (b M k : ℕ) (d : H → Reg b)
     (U : Matrix (PhaseReflectionSpace H M k) (PhaseReflectionSpace H M k) ℂ) :
@@ -188,6 +239,7 @@ theorem dataFlagMatrix_tail {H : Type} [Fintype H] [DecidableEq H]
   simp only [tensorGate_apply, dataFlagMatrix_apply]
   split_ifs <;> simp
 
+/-- Data-flag lifting commutes with extension of a gate to the phase head register. -/
 theorem dataFlagMatrix_head {H : Type} [Fintype H] [DecidableEq H]
     (b M k : ℕ) (d : H → Reg b)
     (U : Matrix (Fin M × (Bool × H)) (Fin M × (Bool × H)) ℂ) :
@@ -199,6 +251,8 @@ theorem dataFlagMatrix_head {H : Type} [Fintype H] [DecidableEq H]
   simp only [tensorGate_apply, dataFlagMatrix_apply]
   split_ifs <;> simp
 
+/-- Lifting the evaluated phase-detection word equals its evaluation with the data-tagged walk
+oracle. -/
 theorem dataFlagMatrix_detection {H : Type} [Fintype H] [DecidableEq H]
     (b M k : ℕ) (d : H → Reg b) (W : Matrix H H ℂ) :
     dataFlagMatrix b d (evaluate (parallelOracle (controlOracle W)) (phaseDetectionWord M k)) =
@@ -209,6 +263,8 @@ theorem dataFlagMatrix_detection {H : Type} [Fintype H] [DecidableEq H]
     rw [phaseDetectionWord_evaluate_succ, dataFlagMatrix_mul, dataFlagMatrix_tail,
       dataFlagMatrix_head, ih, dataFlagMatrix_qpe, phaseDetectionWord_evaluate_succ]
 
+/-- Lifting a diagonal matrix gives the diagonal matrix with the original entries independent of
+the added data tag. -/
 theorem dataFlagMatrix_diagonal {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (f : A × (Bool × H) → ℂ) :
@@ -218,6 +274,8 @@ theorem dataFlagMatrix_diagonal {A H : Type} [Fintype A] [DecidableEq A]
   cases c <;> cases c' <;> by_cases ha : a = a' <;> by_cases hx : x = x' <;>
     simp [dataFlagMatrix_apply, Matrix.diagonal_apply, Prod.ext_iff, ha, hx, tagXor_cancel_iff]
 
+/-- The phase-zero reflection is diagonal, with value one when every phase register is zero and
+negative one otherwise. -/
 private theorem phaseZero_diagonal {H : Type} [Fintype H] [DecidableEq H] (M k : ℕ) :
     phaseZeroReflection (I := H) M k = Matrix.diagonal
       (fun p : PhaseReflectionSpace H M k => if ∀ j, (p.1 j).val = 0 then (1 : ℂ) else -1) := by
@@ -228,12 +286,16 @@ private theorem phaseZero_diagonal {H : Type} [Fintype H] [DecidableEq H] (M k :
       norm_num [phaseZeroReflection, ReflectionAbout, Projector, phaseZeroEvent, hp]
   · simp [phaseZeroReflection, ReflectionAbout, Projector, hpq]
 
+/-- Data-flag lifting carries the phase-zero reflection to the phase-zero reflection on the
+tagged workspace. -/
 theorem dataFlagMatrix_zeroReflection {H : Type} [Fintype H] [DecidableEq H]
     (b M k : ℕ) (d : H → Reg b) :
     dataFlagMatrix b d (phaseZeroReflection (I := H) M k) =
       phaseZeroReflection (I := H × Reg b) M k := by
   rw [phaseZero_diagonal, phaseZero_diagonal, dataFlagMatrix_diagonal]
 
+/-- Lifting the evaluated phase-reflection word equals evaluating it with the data-tagged walk
+oracle. -/
 theorem dataFlagMatrix_reflection {H : Type} [Fintype H] [DecidableEq H]
     (b M k : ℕ) (d : H → Reg b) (W : Matrix H H ℂ) :
     dataFlagMatrix b d (evaluate (parallelOracle (controlOracle W)) (phaseReflectionWord M k)) =
@@ -243,6 +305,8 @@ theorem dataFlagMatrix_reflection {H : Type} [Fintype H] [DecidableEq H]
   rw [dataFlagMatrix_mul, dataFlagMatrix_mul, dataFlagMatrix_adjoint,
     dataFlagMatrix_detection, dataFlagMatrix_zeroReflection]
 
+/-- Data-flag lifting commutes with adjoining the fresh phase-register identity factors and
+relabeling their action. -/
 theorem dataFlagMatrix_freshLift {H : Type} [Fintype H] [DecidableEq H]
     (b M k t : ℕ) (d : H → Reg b)
     (U : Matrix (PhaseReflectionSpace H M k) (PhaseReflectionSpace H M k) ℂ) :
@@ -259,6 +323,7 @@ theorem dataFlagMatrix_freshLift {H : Type} [Fintype H] [DecidableEq H]
   simp only [tensorGate_apply, dataFlagMatrix_apply]
   split_ifs <;> simp
 
+/-- Lifting a fresh phase-reflection matrix gives the fresh reflection for the data-tagged walk. -/
 theorem dataFlagMatrix_freshReflection {H : Type} [Fintype H] [DecidableEq H]
     (b M k t : ℕ) (d : H → Reg b) (W : Matrix H H ℂ) :
     dataFlagMatrix b d (phaseFreshReflectionMatrix W M k t) =
@@ -266,6 +331,8 @@ theorem dataFlagMatrix_freshReflection {H : Type} [Fintype H] [DecidableEq H]
   rw [phaseFreshReflectionMatrix, dataFlagMatrix_freshLift, dataFlagMatrix_reflection]
   rfl
 
+/-- Embedding a tagged workspace into the initial phase registers equals data-flag embedding
+after the original phase embedding. -/
 theorem dataFlagEmbed_initial {H : Type} [Fintype H] [DecidableEq H]
     (b M n : ℕ) (d : H → Reg b) (ψ : QState H) :
     phaseReflectionEmbed M n (dataTagEmbed b d ψ) =
@@ -274,6 +341,7 @@ theorem dataFlagEmbed_initial {H : Type} [Fintype H] [DecidableEq H]
   simp only [phaseReflectionEmbed, dataTagEmbed_apply, dataFlagEmbed_apply]
   split_ifs <;> rfl
 
+/-- For positive `M`, adjoining fresh phase registers commutes with data-flag state embedding. -/
 theorem dataFlagEmbed_fresh {H : Type} [Fintype H] [DecidableEq H]
     (b M k t : ℕ) (hM : 0 < M) (d : H → Reg b)
     (ψ : QState (PhaseReflectionSpace H M (k*t))) :
@@ -286,6 +354,8 @@ theorem dataFlagEmbed_fresh {H : Type} [Fintype H] [DecidableEq H]
       Equiv.refl_apply, Prod.map, id_eq]
   split_ifs <;> simp
 
+/-- The phase-search check negates exactly the amplitudes whose workspace belongs to the marked
+set. -/
 private theorem dataPhaseCheck_apply {H : Type} [Fintype H] [DecidableEq H]
     (S : Finset H) (M n : ℕ) (ψ : QState (PhaseReflectionSpace H M n))
     (p : PhaseReflectionSpace H M n) :
@@ -298,6 +368,8 @@ private theorem dataPhaseCheck_apply {H : Type} [Fintype H] [DecidableEq H]
   simp only [Finset.sum_ite_irrel, Finset.sum_const_zero, Fintype.sum_ite_eq]
   exact dataTagMark_apply S (fun y => ψ (a,c,y)) x
 
+/-- The marked phase check on tagged states intertwines with data-flag embedding of the original
+check. -/
 theorem dataFlagEmbed_check {H : Type} [Fintype H] [DecidableEq H]
     (b M n : ℕ) (d : H → Reg b) (S : Finset H)
     (ψ : QState (PhaseReflectionSpace H M n)) :
@@ -308,6 +380,8 @@ theorem dataFlagEmbed_check {H : Type} [Fintype H] [DecidableEq H]
     Finset.mem_filter, Finset.mem_univ, true_and]
   split_ifs <;> simp
 
+/-- Phase search with a data-tagged walk, input, and marked set produces the data-flag embedding
+of the original search state. -/
 theorem dataTagSearchState {H : Type} [Fintype H] [DecidableEq H]
     (b M k t : ℕ) (d : H → Reg b) (W : Matrix H H ℂ) (ψ : QState H) (S : Finset H) :
     phaseSearchState (dataTagWalk b d W) (dataTagEmbed b d ψ) (dataTagMarked b S) M k t =
@@ -323,6 +397,7 @@ theorem dataTagSearchState {H : Type} [Fintype H] [DecidableEq H]
       funext p
       simp [dataFlagEmbed_apply]
 
+/-- Data-flag embedding preserves the measurement mass of a marked workspace event. -/
 theorem dataFlagMeasure {A H : Type} [Fintype A] [DecidableEq A]
     [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (ψ : QState (A × (Bool × H))) (S : Finset H) :
@@ -341,6 +416,9 @@ theorem dataFlagMeasure {A H : Type} [Fintype A] [DecidableEq A]
   simp only [hw]
   by_cases hx : x ∈ S <;> simp [hx]
 
+/-- Under the stated phase-grid and unitary-walk assumptions, adding coherent data tags
+preserves the marked-event probability of the actual phase-search state. This transports the
+search construction of [MagniezNayakRolandSantha2011]. -/
 theorem data_augmented_actual_phase_search_event_transport
     (H : Type) [Fintype H] [DecidableEq H] (b : ℕ) (d : H → Reg b)
     (W : Matrix H H ℂ) (ψ : QState H) (S : Finset H) (M k t : ℕ)
@@ -351,6 +429,9 @@ theorem data_augmented_actual_phase_search_event_transport
     MeasureProb (phaseSearchState W ψ S M k t) (Finset.univ.filter (fun x => x.2.2 ∈ S)) := by
   rw [dataTagSearchState, dataFlagMeasure]
 
+/-- For the uniform three-state transition kernel and the displayed marked set, the tagged
+phase-search instance with parameters `2, 1, 1` has marked-event probability `25/27`. This
+gives a concrete instance of the search setting in [MagniezNayakRolandSantha2011]. -/
 theorem data_augmented_uniform_three_actual_find_consumer
     (b : ℕ) (d : (Fin 3 × Fin 3) → Reg b) :
     let P : Fin 3 → Fin 3 → ℝ := fun _ _ => 1/3
@@ -366,6 +447,10 @@ theorem data_augmented_uniform_three_actual_find_consumer
     (by decide) (szegedyWalk_unitary _ hP)]
   exact phase_search_uniform_three_actual_consumer.1
 
+/-- Under the row-preparation and unitary assumptions, the expanded tagged QPE word evaluates as
+the counted phase circuit for the tagged Szegedy walk. The word and its adjoint each use `4
+* (M - 1)` queries and `8 * (M - 1) + 2` gates, making the inverse cost explicit in the
+setting of [Magniez et al., Theorem 6][MagniezNayakRolandSantha2011]. -/
 theorem data_augmented_qpe_actual_controlled_updates_and_paid_inverse
     (I : Type) [Fintype I] [DecidableEq I] (b M : ℕ) (d : (I × I) → Reg b)
     (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ)

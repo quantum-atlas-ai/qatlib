@@ -83,6 +83,26 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
+
+/-!
+# Quadrangularity conditions for unitary digraphs
+
+This module derives necessary neighborhood conditions for digraphs supporting unitary matrices,
+including Lemma 1 of [Severini2003]. Orthogonality of unitary rows yields outgoing strong
+quadrangularity; reversal supplies the incoming version, and unitarity also ensures nonempty
+neighborhoods.
+
+## Main statements
+
+* `lemma1`: Every unitary digraph is strongly quadrangular.
+* `inStronglyQuadrangular_of_isUnitaryDigraph`: Derive incoming strong quadrangularity.
+* `isUnitaryDigraph_reverse`: Reversing a unitary digraph preserves unitary realizability.
+
+## References
+
+* [Severini, 2003][Severini2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -98,6 +118,8 @@ open Matrix
 
 variable {V : Type} [Fintype V] [DecidableEq V]
 
+/-- The Hermitian inner product of two rows of a unitary matrix is one when their indices agree
+and zero otherwise. -/
 theorem unitary_row_inner {U : Matrix V V ℂ} (hU : U ∈ Matrix.unitaryGroup V ℂ)
     (a c : V) : ∑ j : V, U a j * star (U c j) = if a = c then 1 else 0 := by
   have h1 : U * star U = 1 := (Matrix.mem_unitaryGroup_iff).mp hU
@@ -105,11 +127,14 @@ theorem unitary_row_inner {U : Matrix V V ℂ} (hU : U ∈ Matrix.unitaryGroup V
   rw [Matrix.mul_apply, Matrix.one_apply] at h2
   simpa only [Matrix.star_apply] using h2
 
+/-- The row of `U` indexed by `i`, restricted to the column set `T`. -/
 def rowOn (U : Matrix V V ℂ) (T : Set V) (i : V) : ↥T → ℂ := fun c => U i c.1
 
+/-- Evaluating a restricted row at a column in `T` returns the corresponding entry of `U`. -/
 @[simp] theorem rowOn_apply (U : Matrix V V ℂ) (T : Set V) (i : V) (c : ↥T) :
     rowOn U T i c = U i c.1 := rfl
 
+/-- A unitary digraph is outgoing strongly quadrangular. -/
 theorem outStronglyQuadrangular_of_isUnitaryDigraph (D : Defs.Digraph V)
     (hD : IsUnitaryDigraph D) : OutStronglyQuadrangular D := by
   classical
@@ -229,11 +254,13 @@ theorem outStronglyQuadrangular_of_isUnitaryDigraph (D : Defs.Digraph V)
   rw [hS, hT'] at hle
   omega
 
+/-- Outgoing strong quadrangularity implies `StronglyQuadrangular`. -/
 theorem stronglyQuadrangular_of_outSQ (D : Defs.Digraph V) (h : OutStronglyQuadrangular D) :
     StronglyQuadrangular D := by
   rintro ⟨S, T, _T', hcard, _hcard', hmeet, hsub, _hmeet', _hsub'⟩
   exact h ⟨S, T, hcard, hmeet, hsub⟩
 
+/-- Outgoing strong quadrangularity implies outgoing quadrangularity. -/
 theorem outQuadrangular_of_outSQ (D : Defs.Digraph V) (h : OutStronglyQuadrangular D) :
     OutQuadrangular D := by
   classical
@@ -263,9 +290,11 @@ theorem outQuadrangular_of_outSQ (D : Defs.Digraph V) (h : OutStronglyQuadrangul
     · rw [haj, hbi, Set.inter_comm] at hx; rw [hc] at hx; exact hx
     · exact absurd (haj.trans hbj.symm) hab
 
+/-- Every unitary digraph is strongly quadrangular [Severini2003]. -/
 theorem lemma1 (D : Defs.Digraph V) : IsUnitaryDigraph D → StronglyQuadrangular D := fun hD =>
   stronglyQuadrangular_of_outSQ D (outStronglyQuadrangular_of_isUnitaryDigraph D hD)
 
+/-- A unitary digraph is outgoing quadrangular [Severini2003]. -/
 theorem outQuadrangular_of_isUnitaryDigraph (D : Defs.Digraph V) (hD : IsUnitaryDigraph D) :
     OutQuadrangular D :=
   outQuadrangular_of_outSQ D (outStronglyQuadrangular_of_isUnitaryDigraph D hD)
@@ -280,6 +309,7 @@ open Matrix
 
 variable {V : Type} [Fintype V] [DecidableEq V]
 
+/-- The reverse of a unitary digraph is a unitary digraph. -/
 theorem isUnitaryDigraph_reverse (D : Defs.Digraph V) (hD : IsUnitaryDigraph D) :
     IsUnitaryDigraph (reverse D) := by
   obtain ⟨U, hU, hpat⟩ := hD
@@ -296,11 +326,13 @@ theorem isUnitaryDigraph_reverse (D : Defs.Digraph V) (hD : IsUnitaryDigraph D) 
     simp only [star_ne_zero]
     exact hpat b a
 
+/-- A unitary digraph is incoming strongly quadrangular [Severini2003]. -/
 theorem inStronglyQuadrangular_of_isUnitaryDigraph (D : Defs.Digraph V)
     (hD : IsUnitaryDigraph D) : InStronglyQuadrangular D := by
   have h := outStronglyQuadrangular_of_isUnitaryDigraph (reverse D) (isUnitaryDigraph_reverse D hD)
   simpa [InStronglyQuadrangular, OutStronglyQuadrangular] using h
 
+/-- Every vertex of a unitary digraph has an outgoing neighbor [Severini2003]. -/
 theorem outNbrs_nonempty_of_isUnitaryDigraph (D : Defs.Digraph V) (hD : IsUnitaryDigraph D)
     (i : V) : (D.outNbrs i).Nonempty := by
   obtain ⟨U, hU, hpat⟩ := hD
@@ -312,6 +344,7 @@ theorem outNbrs_nonempty_of_isUnitaryDigraph (D : Defs.Digraph V) (hD : IsUnitar
   obtain ⟨j, -, hj⟩ := Finset.exists_ne_zero_of_sum_ne_zero hne
   exact ⟨j, mem_outNbrs.mpr ((hpat i j).mp (left_ne_zero_of_mul hj))⟩
 
+/-- Every vertex of a unitary digraph has an incoming neighbor [Severini2003]. -/
 theorem inNbrs_nonempty_of_isUnitaryDigraph (D : Defs.Digraph V)
     (hD : IsUnitaryDigraph D) (i : V) : (D.inNbrs i).Nonempty := by
   have h := outNbrs_nonempty_of_isUnitaryDigraph (reverse D) (isUnitaryDigraph_reverse D hD) i

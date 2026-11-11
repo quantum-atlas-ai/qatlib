@@ -8,6 +8,26 @@ import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ChebyshevDifferenceBoundStat
 import Mathlib.RingTheory.Polynomial.Chebyshev
 import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Chebyshev coefficient-difference bounds
+
+This module rewrites a Chebyshev expansion using second-kind polynomials and differences of
+coefficients two indices apart. It bounds evaluation on the half interval, proves a strict
+supremum bound for nonzero coefficients, and characterizes the zero difference norm. Related
+mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `chebValue_eq_sum_diffU`: Expansion through second-kind Chebyshev polynomials.
+* `differenceNorm_eq_zero_iff`: Vanishing difference norm characterizes zero coefficients.
+* `Clause21ChebyshevDifferenceBound_answer`: The coefficient-difference bound of Lemma 9.
+
+## References
+
+* [Low and Su, 2026, Lemma 9][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +44,8 @@ open Polynomial Polynomial.Chebyshev Qatlib.Concepts.QlsReadoutSpec.Amplificatio
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators
 
+/-- The real recurrence `chebT` agrees, after casting to complex numbers, with evaluation of the
+first-kind Chebyshev polynomial. -/
 private theorem chebT_eq_eval (x : ℝ) (k : ℕ) :
     ((chebT x k : ℝ) : ℂ) = (T ℂ (k : ℤ)).eval (x : ℂ) := by
   induction k using Nat.twoStepInduction with
@@ -41,6 +63,8 @@ private theorem chebT_eq_eval (x : ℝ) (k : ℕ) :
     push_cast
     ring
 
+/-- Twice the first-kind Chebyshev polynomial of integer index `n` equals the difference of the
+second-kind polynomials of indices `n` and `n - 2`. -/
 private theorem two_mul_T_eq_U_sub (n : ℤ) :
     2 * T ℂ n = U ℂ n - U ℂ (n - 2) := by
   have h := two_mul_T_eq_U_sub_U ℂ (n - 2)
@@ -48,9 +72,12 @@ private theorem two_mul_T_eq_U_sub (n : ℤ) :
   rw [h1] at h
   exact h
 
+/-- The complex Chebyshev basis value with index zero weighted by one half. -/
 private def tVal (x : ℝ) (k : ℕ) : ℂ :=
   if k = 0 then (1 / 2 : ℂ) else (chebT x k : ℂ)
 
+/-- Each first-kind Chebyshev value equals half the difference of the corresponding second-kind
+value and the value two indices earlier. -/
 private theorem chebT_eq_half_U (x : ℝ) (k : ℕ) :
     ((chebT x k : ℝ) : ℂ) =
       (1 / 2 : ℂ) * ((U ℂ (k : ℤ)).eval (x : ℂ) - (U ℂ ((k : ℤ) - 2)).eval (x : ℂ)) := by
@@ -63,6 +90,8 @@ private theorem chebT_eq_half_U (x : ℝ) (k : ℕ) :
     _ = (1 / 2 : ℂ) * ((U ℂ (k : ℤ)).eval (x : ℂ) - (U ℂ ((k : ℤ) - 2)).eval (x : ℂ)) := by
         ring
 
+/-- The half-weighted Chebyshev basis value has the stated second-kind difference formula, with
+the lower-index term omitted at index zero. -/
 private theorem tVal_eq_half_U (x : ℝ) (k : ℕ) :
     tVal x k = (1 / 2 : ℂ) * ((U ℂ (k : ℤ)).eval (x : ℂ)
       - (if k = 0 then (0 : ℂ) else (U ℂ ((k : ℤ) - 2)).eval (x : ℂ))) := by
@@ -78,20 +107,26 @@ private theorem tVal_eq_half_U (x : ℝ) (k : ℕ) :
     norm_num
   · rw [if_neg hk, if_neg hk, chebT_eq_half_U]
 
+/-- The zero-extended coefficient is zero at every index outside the original finite range. -/
 private theorem extendCoefficient_of_not_lt {n : ℕ} (c : Fin n → ℂ) (k : ℕ)
     (h : ¬(k < n)) : extendCoefficient c k = 0 := by
   show (if _ : k < n then _ else 0) = 0
   rw [dif_neg h]
 
+/-- The zero-extended coefficient agrees with the original coefficient at every index in its
+finite range. -/
 private theorem extendCoefficient_eq {n : ℕ} (c : Fin n → ℂ) (k : ℕ) (h : k < n) :
     extendCoefficient c k = c ⟨k, h⟩ := by
   show (if _ : k < n then _ else 0) = _
   rw [dif_pos h]
 
+/-- Each finite coefficient equals its zero extension evaluated at its natural index. -/
 private theorem c_eq_extend {n : ℕ} (c : Fin n → ℂ) (k : Fin n) :
     c k = extendCoefficient c k.val :=
   (extendCoefficient_eq c k.val k.isLt).symm
 
+/-- The range sum of second-kind values shifted down by two equals the sum with coefficients
+shifted up by two, using zero extension. -/
 private theorem sum_extend_shift_range {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
     (∑ m ∈ Finset.range n, extendCoefficient c m *
         (if m = 0 then (0 : ℂ) else (U ℂ ((m : ℤ) - 2)).eval (x : ℂ)))
@@ -156,6 +191,8 @@ private theorem sum_extend_shift_range {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
       exact htail
   rw [hL, hR]
 
+/-- The finite-index sum of second-kind values shifted down by two equals the sum with
+coefficients shifted up by two, using zero extension. -/
 private theorem sum_extend_shift {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
     (∑ k : Fin n, extendCoefficient c k.val *
         (if k.val = 0 then (0 : ℂ) else (U ℂ ((k.val : ℤ) - 2)).eval (x : ℂ)))
@@ -181,6 +218,8 @@ private theorem sum_extend_shift {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
   rw [hL', hL, hR', hR]
   exact sum_extend_shift_range c x
 
+/-- The half-weighted Chebyshev expansion is half the sum of second-kind Chebyshev values
+weighted by coefficient differences two indices apart. -/
 private theorem chebValue_eq_sum_diffU {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
     chebValue c x = (1 / 2 : ℂ) *
         ∑ k : Fin n, (c k - extendCoefficient c (k.val + 2)) * (U ℂ (k.val : ℤ)).eval (x : ℂ) := by
@@ -241,6 +280,8 @@ private theorem chebValue_eq_sum_diffU {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
   congr 1
   exact sum_extend_shift c x
 
+/-- On the half interval, the norm of each evaluated second-kind Chebyshev polynomial is at most
+the square root of two. -/
 private theorem uEval_abs_le_sqrt_two (x : ℝ) (k : ℕ) (hx : |x| ≤ 1 / 2) :
     ‖(U ℂ (k : ℤ)).eval (x : ℂ)‖ ≤ Real.sqrt 2 := by
   have hcomp : (U ℂ (k : ℤ)).eval (x : ℂ)
@@ -283,16 +324,20 @@ private theorem uEval_abs_le_sqrt_two (x : ℝ) (k : ℕ) (hx : |x| ≤ 1 / 2) :
     nlinarith [sq_abs a]
   exact this
 
+/-- The complex norm of one half times a number is one half its norm. -/
 private theorem norm_half (z : ℂ) : ‖(1 / 2 : ℂ) * z‖ = (1 / 2) * ‖z‖ := by
   have h12 : (1 / 2 : ℂ) = ((1 / 2 : ℝ) : ℂ) := by
     rw [Complex.ofReal_div, Complex.ofReal_one, Complex.ofReal_ofNat]
   rw [h12, Complex.norm_mul, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (by norm_num : (0 : ℝ) ≤ (1 / 2 : ℝ))]
 
+/-- The coefficient-difference norm is nonnegative. -/
 private theorem diffNorm_nonneg {n : ℕ} (c : Fin n → ℂ) : 0 ≤ differenceNorm c := by
   show 0 ≤ Real.sqrt _
   exact Real.sqrt_nonneg _
 
+/-- On the half interval, the expansion norm is at most `sqrt 2 / 2` times `sqrt n` times the
+coefficient-difference norm. -/
 private theorem chebValue_le {n : ℕ} (c : Fin n → ℂ) (x : ℝ) (hx : |x| ≤ 1 / 2) :
     ‖chebValue c x‖ ≤ (Real.sqrt 2 / 2) * Real.sqrt n * differenceNorm c := by
   rw [chebValue_eq_sum_diffU]
@@ -356,17 +401,20 @@ private theorem chebValue_le {n : ℕ} (c : Fin n → ℂ) (x : ℝ) (hx : |x| �
       = (Real.sqrt 2 / 2) * Real.sqrt n * differenceNorm c := by ring
   exact hfin.trans (le_of_eq heq)
 
+/-- The real number `sqrt 2 / 2` is at most one. -/
 private theorem sqrt_two_div_two_le : (Real.sqrt 2 / 2 : ℝ) ≤ 1 := by
   have hs : Real.sqrt 2 ^ 2 = 2 := Real.sq_sqrt (by norm_num)
   have hn : 0 ≤ Real.sqrt 2 := Real.sqrt_nonneg 2
   nlinarith
 
+/-- The real number `sqrt 2 / 2` is strictly less than one. -/
 private theorem sqrt_two_div_two_lt : (Real.sqrt 2 / 2 : ℝ) < 1 := by
   have h : Real.sqrt 2 < 2 := by
     rw [Real.sqrt_lt (by norm_num) (by norm_num)]
     norm_num
   linarith
 
+/-- The coefficient-difference norm vanishes exactly when all coefficients vanish. -/
 private theorem differenceNorm_eq_zero_iff {n : ℕ} (c : Fin n → ℂ) :
     differenceNorm c = 0 ↔ ∀ k : Fin n, c k = 0 := by
   constructor
@@ -425,6 +473,9 @@ private theorem differenceNorm_eq_zero_iff {n : ℕ} (c : Fin n → ℂ) :
       rw [hsum, Real.sqrt_zero]
     exact this
 
+/-- The Chebyshev expansion satisfies the pointwise difference-norm bound on the half interval,
+with a strict supremum bound for nonzero coefficients and the stated zero case. See [Low and
+Su, Lemma 9][LowSu2026]. -/
 theorem Clause21ChebyshevDifferenceBound_answer : Clause21ChebyshevDifferenceBound := by
   intro n c
   refine ⟨?_, ?_, ?_⟩

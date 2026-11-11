@@ -94,6 +94,29 @@ import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Order.OrderClosed
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Entropy and Gaussian decay limits
+
+`entropy_ratio_zero` controls the logarithm of a polynomial grid size relative to the dimension.
+It yields `grid_entropy_tail_zero` and `polynomial_gaussian_tail_zero`, showing that Gaussian
+decay in `N²` dominates the grid entropy and polynomial factors occurring in the remainder
+estimates associated with [GohMuller2026].
+
+## Main statements
+
+* `entropy_ratio_zero`: For every natural degree `d`, `log(N^d+1)/N` tends to zero as `N` tends
+  to infinity.
+* `grid_entropy_tail_zero`: For `c > 0`, the product `(N^d+1)^N * exp(-cN²)` tends to zero as
+  `N` tends to infinity.
+* `polynomial_gaussian_tail_zero`: For `c > 0`, the product `N^d * exp(-cN²)` tends to zero as
+  `N` tends to infinity.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
@@ -101,6 +124,7 @@ open Filter
 open scoped Topology
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder
 
+/-- For every natural degree `d`, `log(N^d+1)/N` tends to zero as `N` tends to infinity. -/
 theorem entropy_ratio_zero (d:ℕ) :
     Tendsto (fun N:ℕ=>Real.log ((N:ℝ)^d+1)/(N:ℝ)) atTop (𝓝 0) := by
   have hl : Tendsto (fun N:ℕ=>Real.log (N:ℝ)/(N:ℝ)) atTop (𝓝 0) :=
@@ -120,6 +144,7 @@ theorem entropy_ratio_zero (d:ℕ) :
     refine hh.trans_eq ?_
     rw [Real.log_mul (by norm_num : (2:ℝ)≠0) (pow_ne_zero d hn0.ne'),Real.log_pow]
 
+/-- For `c > 0`, the product `(N^d+1)^N * exp(-cN²)` tends to zero as `N` tends to infinity. -/
 theorem grid_entropy_tail_zero (d:ℕ) (c:ℝ) (hc:0<c) :
     Tendsto (fun N:ℕ=>(((N:ℝ)^d+1)^N)*Real.exp (-c*(N:ℝ)^2)) atTop (𝓝 0) := by
   have hsmall := (entropy_ratio_zero d).eventually (eventually_lt_nhds (show (0:ℝ)<c/2 by linarith))
@@ -145,6 +170,7 @@ theorem grid_entropy_tail_zero (d:ℕ) (c:ℝ) (hc:0<c) :
   exact squeeze_zero' (Filter.Eventually.of_forall (fun N=>by positivity)) hb
     (Real.tendsto_exp_neg_atTop_nhds_zero.comp tendsto_natCast_atTop_atTop)
 
+/-- For `c > 0`, the product `N^d * exp(-cN²)` tends to zero as `N` tends to infinity. -/
 theorem polynomial_gaussian_tail_zero (d:ℕ) (c:ℝ) (hc:0<c) :
     Tendsto (fun N:ℕ=>(N:ℝ)^d*Real.exp (-c*(N:ℝ)^2)) atTop (𝓝 0) := by
   apply squeeze_zero' (Filter.Eventually.of_forall (fun N=>by positivity)) _

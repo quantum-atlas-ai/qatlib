@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
 import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
+
+/-!
+# Verified period recovery from amplified Fourier samples
+
+`aqAttempt` combines continued fraction decoding with a counted membership verifier for a marked
+arithmetic progression. The retry procedures establish recovery probabilities, worst case query
+caps, and expected query bounds, including recovery over a finite list of possible offsets. See
+[Cornwell2014] for background.
+
+## Main statements
+
+* `amplified_progression_actual_cf_decode_and_counts`: Under the progression and separation
+  hypotheses, a decoded attempt returns only the true period, succeeds on the good window, and
+  satisfies the stated membership and continued fraction operation counts. See [Cornwell2014].
+* `amplified_progression_actual_fresh_retry`: Under the progression and separation hypotheses,
+  fresh amplified samples have normalized product mass, period recovery succeeds with mass at
+  least `1 - (1 - q)^R`, costs at most `R * (k + 3)`, and has expected cost at most `(k + 3) /
+  q`. See [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -24,27 +48,37 @@ set_option maxHeartbeats 4000000
 namespace Qatlib.Concepts.AmpTransform.SuccessRatio
 open scoped Classical BigOperators
 
+/-- Checks a candidate offset and period at three progression positions, returning acceptance
+and the number of membership queries. -/
 def aqVerify {N : ℕ} (f : Fin N→Bool) (s M q : ℕ) : Bool×ℕ :=
   if h:0< q ∧ s< N ∧ s+q< N ∧ s+(M-1)*q< N then
     ([⟨s,h.2.1⟩,⟨s+q,h.2.2.1⟩,⟨s+(M-1)*q,h.2.2.2⟩]:List (Fin N)).foldl
       (fun a x=>(a.1 && f x,a.2+1)) (true,0)
   else (false,0)
+/-- Decodes a Fourier sample by continued fractions and verifies its candidate period, returning
+the optional period together with membership and decoder operation counts. -/
 def aqAttempt {N : ℕ} (f : Fin N→Bool) (s M B : ℕ) (y : Fin N) : Option ℕ×ℕ×ℕ×ℕ :=
   let d:= cfRationalDecode B N y.val;
   match d.1 with
   | none => (none,0,d.2.1,d.2.2)
   | some c => let v:= aqVerify f s M c.2;
       (if v.1 then some c.2 else none,v.2,d.2.1,d.2.2)
+/-- Tries successive samples until period verification succeeds, adding the fixed cost `k` and
+the verification cost for each attempted sample. -/
 def aqRetry {N : ℕ} (f : Fin N→Bool) (s M B k : ℕ) : List (Fin N)→Option ℕ×ℕ
   | [] => (none,0)
   | y::ys => let t:= aqAttempt f s M B y;
       match t.1 with
       | some q => (some q,k+t.2.1)
       | none => let a:= aqRetry f s M B k ys; (a.1,a.2+k+t.2.1)
+/-- Scans candidate offsets for a fixed period, returning the first verified offset and the
+accumulated membership query count. -/
 def aqOffsetScan {N : ℕ} (f : Fin N→Bool) (M q : ℕ) : List ℕ→Option ℕ×ℕ
   | [] => (none,0)
   | s::ss => let v:= aqVerify f s M q;
       if v.1 then (some s,v.2) else let a:= aqOffsetScan f M q ss; (a.1,a.2+v.2)
+/-- Decodes a sample and scans the supplied offsets for a verified offset and period, retaining
+membership and continued fraction operation counts. -/
 def aqOffsetAttempt {N : ℕ} (f : Fin N→Bool) (M B : ℕ) (offsets : List ℕ)
     (y : Fin N) : Option (ℕ×ℕ)×ℕ×ℕ×ℕ :=
   let d:= cfRationalDecode B N y.val;
@@ -52,6 +86,8 @@ def aqOffsetAttempt {N : ℕ} (f : Fin N→Bool) (M B : ℕ) (offsets : List ℕ
   | none => (none,0,d.2.1,d.2.2)
   | some c => let a:= aqOffsetScan f M c.2 offsets;
       (a.1.map (fun s=>(s,c.2)),a.2,d.2.1,d.2.2)
+/-- Retries offset and period recovery on successive samples, accumulating the fixed preparation
+cost and the membership verification cost. -/
 def aqOffsetRetry {N : ℕ} (f : Fin N→Bool) (M B k : ℕ) (offsets : List ℕ) :
     List (Fin N)→Option (ℕ×ℕ)×ℕ
   | [] => (none,0)
@@ -59,15 +95,21 @@ def aqOffsetRetry {N : ℕ} (f : Fin N→Bool) (M B k : ℕ) (offsets : List ℕ
       match t.1 with
       | some z => (some z,k+t.2.1)
       | none => let a:= aqOffsetRetry f M B k offsets ys; (a.1,a.2+k+t.2.1)
+/-- The Born weight of a Fourier outcome for the amplified state of the specified arithmetic
+progression. -/
 noncomputable def aqWeight (N : ℕ) (hN : 0< N) (M s P : ℕ) (y : Fin N) : ℝ :=
   BornProb (aqState N hN M (aqProgressionSet N s M P)) y
+/-- The product of the amplified Fourier Born weights along a finite record of fresh samples. -/
 noncomputable def aqFreshMass (N : ℕ) (hN : 0< N) (M s P : ℕ) {R : ℕ} (ω : Fin R→Fin N) : ℝ :=
   ∏ r,aqWeight N hN M s P (ω r)
 
+/-- The progression verifier uses at most three membership queries. -/
 theorem aqVerify_cost {N : ℕ} (f : Fin N → Bool) (s M q : ℕ) : (aqVerify f s M q).2 ≤ 3 := by
   unfold aqVerify
   split <;> simp
 
+/-- Under the nonwrapping marked progression promise with at least two points and positive
+period, verification accepts exactly the true offset and period. -/
 theorem aqVerify_sound {N : ℕ} (f : Fin N → Bool) (s M P s1 q : ℕ)
     (hM : 2 ≤ M) (hP : 0 < P) (hb : s+(M-1)*P < N)
     (hf : AQMarkPromise f s M P) :
@@ -117,6 +159,8 @@ theorem aqVerify_sound {N : ℕ} (f : Fin N → Bool) (s M P s1 q : ℕ)
     simp only [one_mul] at hh
     omega
 
+/-- Under the marked progression promise, the verifier accepts exactly the true period and
+offset and uses at most three membership queries. -/
 theorem amplified_progression_paid_verification_soundness : ∀ (N s M P q : ℕ) (f : Fin N→Bool),
   2≤ M → 0< P → s+(M-1)*P< N → AQMarkPromise f s M P →
   ((aqVerify f s M q).1= true ↔ q= P) ∧
@@ -126,6 +170,8 @@ theorem amplified_progression_paid_verification_soundness : ∀ (N s M P q : ℕ
   refine ⟨?_,fun s1 => aqVerify_sound f s M P s1 q hM hP hb hf,fun s1 => aqVerify_cost f s1 M q⟩
   simpa using! aqVerify_sound f s M P s q hM hP hb hf
 
+/-- A sample in `aqGoodWindow` decodes to a rational with denominator `P` when `P ≤ B` and `2 *
+B^2 < N`. -/
 theorem aq_good_decode (N P B : ℕ) (y : Fin N) (hP : 0 < P) (hPB : P ≤ B)
     (hsep : 2*B^2 < N) (hy : y ∈ aqGoodWindow N P) :
     ∃ a, (cfRationalDecode B N y.val).1 = some (a,P) := by
@@ -136,6 +182,9 @@ theorem aq_good_decode (N P B : ℕ) (y : Fin N) (hP : 0 < P) (hPB : P ≤ B)
     linarith)
   exact ⟨a,(continued_fraction_unique_window_decode_and_counts B N y.val a P hP hPB ha hcop hsep y.isLt hw').1⟩
 
+/-- Under the progression and separation hypotheses, a decoded attempt returns only the true
+period, succeeds on the good window, and satisfies the stated membership and continued
+fraction operation counts. See [Cornwell2014]. -/
 theorem amplified_progression_actual_cf_decode_and_counts : ∀ (N s M P B : ℕ) (f : Fin N→Bool) (y : Fin N),
   2≤ M → 2≤ P → s+(M-1)*P< N → P≤ B → 2*B^2< N → AQMarkPromise f s M P →
   ((aqAttempt f s M B y).1= none ∨ (aqAttempt f s M B y).1= some P) ∧
@@ -177,6 +226,8 @@ theorem amplified_progression_actual_cf_decode_and_counts : ∀ (N s M P B : ℕ
     (try dsimp only)
     split <;> exact hg
 
+/-- Offset scanning returns only the true offset with the true period, finds it when present in
+the list, and uses at most three membership queries per listed offset. -/
 theorem aqOffsetScan_spec {N : ℕ} (f : Fin N → Bool) (s M P q : ℕ)
     (hM : 2 ≤ M) (hP : 0 < P) (hb : s+(M-1)*P < N) (hf : AQMarkPromise f s M P)
     (offsets : List ℕ) :
@@ -205,6 +256,9 @@ theorem aqOffsetScan_spec {N : ℕ} (f : Fin N → Bool) (s M P q : ℕ)
       · have hc := aqVerify_cost f x M q
         omega
 
+/-- Under the progression promise and decoder separation bound, scanning a list containing the
+true offset recovers only the true offset and period, succeeds on the good window, and
+satisfies the stated operation bounds. -/
 theorem amplified_progression_finite_offset_set_actual_recovery : ∀ (N s M P B : ℕ) (f : Fin N→Bool) (offsets : List ℕ) (y : Fin N),
   2≤ M → 2≤ P → s+(M-1)*P< N → P≤ B → 2*B^2< N → AQMarkPromise f s M P → s∈offsets →
   ((aqOffsetAttempt f M B offsets y).1= none ∨ (aqOffsetAttempt f M B offsets y).1= some (s,P)) ∧
@@ -241,24 +295,32 @@ theorem amplified_progression_finite_offset_set_actual_recovery : ∀ (N s M P B
     (try dsimp only)
     split <;> exact hg
 
+/-- Repeats a counted partial procedure until its first success, charging a fixed overhead `k`
+on every attempted input. -/
 def aqRepeat {I Z : Type} (a : I → Option Z × ℕ) (k : ℕ) : List I → Option Z × ℕ
   | [] => (none,0)
   | x::xs => match (a x).1 with
     | some z => (some z,k+(a x).2)
     | none => let t := aqRepeat a k xs; (t.1,t.2+k+(a x).2)
 
+/-- The product of the weights assigned by `w` to the entries of a finite sample record. -/
 noncomputable def aqProductMass {I : Type} (w : I → ℝ) {R : ℕ} (ω : Fin R → I) : ℝ :=
   ∏ r, w (ω r)
 
+/-- A sum over records of length `R + 1` decomposes into a sum over the first entry and the
+remaining record. -/
 theorem aq_sum_records_succ {I : Type} [Fintype I] (R : ℕ) (F : (Fin (R+1) → I) → ℝ) :
     (∑ ω, F ω) = ∑ x, ∑ τ : Fin R → I, F (Fin.cons x τ) := by
   rw [← (Fin.consEquiv (fun _ : Fin (R+1) => I)).sum_comp F]
   exact Fintype.sum_prod_type _
 
+/-- The product weight of a record with first entry `x` factors as `w x` times the tail weight. -/
 @[simp] theorem aqProductMass_cons {I : Type} (w : I → ℝ) {R : ℕ} (x : I) (τ : Fin R → I) :
     aqProductMass w (Fin.cons x τ) = w x * aqProductMass w τ := by
   simp [aqProductMass,Fin.prod_univ_succ]
 
+/-- Product weights on records of any finite length sum to one when the single sample weights
+sum to one. -/
 theorem aqProductMass_total {I : Type} [Fintype I] (w : I → ℝ) (hw : ∑ x,w x = 1) (R : ℕ) :
     (∑ ω : Fin R → I, aqProductMass w ω) = 1 := by
   induction R with
@@ -267,6 +329,8 @@ theorem aqProductMass_total {I : Type} [Fintype I] (w : I → ℝ) (hw : ∑ x,w
     rw [aq_sum_records_succ]
     simp only [aqProductMass_cons,← Finset.mul_sum,ih,mul_one,hw]
 
+/-- Repeating a procedure that returns only `z` or fails preserves this property and costs at
+most the list length times the per-attempt cap. -/
 theorem aqRepeat_sound_cap {I Z : Type} (a : I → Option Z × ℕ) (z : Z) (k C : ℕ)
     (hs : ∀ x,(a x).1 = none ∨ (a x).1 = some z) (hc : ∀ x,k+(a x).2 ≤ C) (xs : List I) :
     ((aqRepeat a k xs).1 = none ∨ (aqRepeat a k xs).1 = some z) ∧
@@ -280,6 +344,8 @@ theorem aqRepeat_sound_cap {I Z : Type} (a : I → Option Z × ℕ) (z : Z) (k C
     · simp only [aqRepeat,hz,List.length_cons]
       exact ⟨Or.inr True.intro,(hc x).trans (by nlinarith)⟩
 
+/-- The total product weight of records on which every attempt fails is the single attempt
+failure weight raised to `R`. -/
 theorem aqRepeat_timeout {I Z : Type} [Fintype I] (w : I → ℝ) (a : I → Option Z × ℕ) (k R : ℕ) :
     (∑ ω : Fin R → I, if (aqRepeat a k (List.ofFn ω)).1 = none then aqProductMass w ω else 0) =
       (∑ x, if (a x).1 = none then w x else 0)^R := by
@@ -303,6 +369,8 @@ theorem aqRepeat_timeout {I Z : Type} [Fintype I] (w : I → ℝ) (a : I → Opt
     simp_rw [hx]
     rw [← Finset.sum_mul,pow_succ,mul_comm]
 
+/-- For normalized nonnegative weights and success probability at least positive `q`, the
+expected retry cost is at most `C / q` when each attempt costs at most `C`. -/
 theorem aqRepeat_expected {I Z : Type} [Fintype I] (w : I → ℝ) (a : I → Option Z × ℕ)
     (k C : ℕ) (q : ℝ) (hw0 : ∀ x,0 ≤ w x) (hw : ∑ x,w x = 1) (hq : 0 < q)
     (hb : (∑ x, if (a x).1 = none then w x else 0) ≤ 1-q)
@@ -347,6 +415,9 @@ theorem aqRepeat_expected {I Z : Type} [Fintype I] (w : I → ℝ) (a : I → Op
       _ ≤ (C:ℝ)+(1-q)*((C:ℝ)/q) := by gcongr
       _ = (C:ℝ)/q := by field_simp; ring
 
+/-- A sound retry procedure with success mass at least positive `q` succeeds within `R` fresh
+samples with mass at least `1 - (1 - q)^R`, has cost at most `R * C`, and has expected cost
+at most `C / q`. -/
 theorem aqRepeat_fresh_bounds {I Z : Type} [Fintype I] [DecidableEq I] [DecidableEq Z]
     (w : I → ℝ) (a : I → Option Z × ℕ) (z : Z) (k C : ℕ) (q : ℝ)
     (hw0 : ∀ x,0 ≤ w x) (hw : ∑ x,w x = 1) (hq : 0 < q)
@@ -387,6 +458,8 @@ theorem aqRepeat_fresh_bounds {I Z : Type} [Fintype I] [DecidableEq I] [Decidabl
   · intro ω
     simpa using! (aqRepeat_sound_cap a z k C hs hc (List.ofFn ω)).2
 
+/-- `aqRetry` is the generic retry procedure applied to the result and membership cost of
+`aqAttempt`. -/
 theorem aqRetry_as_repeat {N : ℕ} (f : Fin N → Bool) (s M B k : ℕ) (xs : List (Fin N)) :
     aqRetry f s M B k xs = aqRepeat (fun y => ((aqAttempt f s M B y).1,(aqAttempt f s M B y).2.1)) k xs := by
   induction xs with
@@ -395,6 +468,8 @@ theorem aqRetry_as_repeat {N : ℕ} (f : Fin N → Bool) (s M B k : ℕ) (xs : L
     simp only [aqRetry,aqRepeat]
     cases hn : (aqAttempt f s M B x).1 <;> simp [ih]
 
+/-- `aqOffsetRetry` is the generic retry procedure applied to the result and membership cost of
+`aqOffsetAttempt`. -/
 theorem aqOffsetRetry_as_repeat {N : ℕ} (f : Fin N → Bool) (M B k : ℕ) (offsets : List ℕ) (xs : List (Fin N)) :
     aqOffsetRetry f M B k offsets xs = aqRepeat (fun y => ((aqOffsetAttempt f M B offsets y).1,(aqOffsetAttempt f M B offsets y).2.1)) k xs := by
   induction xs with
@@ -403,6 +478,8 @@ theorem aqOffsetRetry_as_repeat {N : ℕ} (f : Fin N → Bool) (M B k : ℕ) (of
     simp only [aqOffsetRetry,aqRepeat]
     cases hn : (aqOffsetAttempt f M B offsets x).1 <;> simp [ih]
 
+/-- Any decoder that returns `z` throughout the good window has amplified success mass at least
+`aqSuccessLower` under the stated progression and separation bounds. -/
 theorem aq_attempt_mass_lower {N : ℕ} (hN : 0 < N) (s M P B : ℕ)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s+(M-1)*P < N) (hMN : 2*M ≤ N)
     (hMP : M*P ≤ N) (hPB : P ≤ B) (hsep : 2*B^2 < N)
@@ -425,6 +502,9 @@ theorem aq_attempt_mass_lower {N : ℕ} (hN : 0 < N) (s M P B : ℕ)
     · exact bornProb_nonneg _ _
     · exact le_rfl
 
+/-- Under the progression and separation hypotheses, fresh amplified samples have normalized
+product mass, period recovery succeeds with mass at least `1 - (1 - q)^R`, costs at most `R
+* (k + 3)`, and has expected cost at most `(k + 3) / q`. See [Cornwell2014]. -/
 theorem amplified_progression_actual_fresh_retry : ∀ (N : ℕ) (hN : 0< N) (s M P B R : ℕ) (f : Fin N→Bool),
   2≤ M → 2≤ P → s+(M-1)*P< N → 2*M≤ N → M*P≤ N → P≤ B → 2*B^2< N → AQMarkPromise f s M P →
   let k:= aqRounds N M;
@@ -458,6 +538,9 @@ theorem amplified_progression_actual_fresh_retry : ∀ (N : ℕ) (hN : 0< N) (s 
   · simpa only [aqRetry_as_repeat,a] using! hr.2.1
   · simpa only [aqRetry_as_repeat,aqFreshMass,aqProductMass,a] using! hr.2.2
 
+/-- For a candidate list containing the true offset, fresh retries recover the offset and period
+with mass at least `1 - (1 - q)^R` and satisfy the stated worst case and expected query
+bounds. See [Cornwell2014]. -/
 theorem amplified_progression_finite_offset_set_fresh_retry : ∀ (N : ℕ) (hN : 0< N) (s M P B R : ℕ)
     (f : Fin N→Bool) (offsets : List ℕ),
   2≤ M → 2≤ P → s+(M-1)*P< N → 2*M≤ N → M*P≤ N → P≤ B → 2*B^2< N → AQMarkPromise f s M P → s∈offsets →

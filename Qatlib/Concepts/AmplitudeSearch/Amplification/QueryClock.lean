@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+
+/-!
+# Query clocks for ranked BBHT search
+
+The ranked call law `queryBBHTLaw` charges each search trace its terminal Boolean query count,
+and `runQueries` adds these counts over a run. The BBHT call estimate [BoyerEtAl1998] yields an
+expected total query clock of at most `29 * Real.sqrt N` for minimum attainment, as used in the
+analysis of [DurrHoyer1996].
+
+## Main statements
+
+* `queryBBHTLaw_moment`: bounds the first query-cost moment of a call at a positive threshold.
+* `queryEnvelope_initial_bound`: bounds the expected rank-trace cost envelope.
+* `bbht_query_attainment_moment`: bounds the initial expected query clock for a sorted table.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,14 +42,19 @@ open Qatlib
 open Qatlib.Concepts.SearchStopping.GroverSuccess
 open Qatlib.Concepts.SearchStopping.UnknownCount
 open Qatlib
+/-- The ranked BBHT call law whose duration is the terminal Boolean query count of the search
+trace. -/
 noncomputable def queryBBHTLaw {N : ℕ} (e : Fin N ≃ Fin N) :
     RankedCallLaw N (SearchTrace N) :=
   bbhtJointLaw e (fun x => (TerminalBooleanQueries (ExponentialSizes N) x : ℝ))
     (fun _ => Nat.cast_nonneg _)
 
+/-- The sum of the terminal Boolean query counts of all calls in a run. -/
 noncomputable def runQueries {N : ℕ} (xs : List (SearchTrace N)) : ℕ :=
   (xs.map (TerminalBooleanQueries (ExponentialSizes N))).sum
 
+/-- The accumulated clock of `queryBBHTLaw` equals the total query count coerced to a real
+number. -/
 theorem queryBBHTLaw_clock {N : ℕ} (e : Fin N ≃ Fin N) (xs : List (SearchTrace N)) :
     (queryBBHTLaw e).runClock xs = (runQueries xs : ℝ) := by
   induction xs with
@@ -38,16 +64,22 @@ theorem queryBBHTLaw_clock {N : ℕ} (e : Fin N ≃ Fin N) (xs : List (SearchTra
       List.map_cons, List.sum_cons, Nat.cast_add] at *
     rw [ih]
 
+/-- Every search trace has a strictly positive terminal Boolean query count. -/
 theorem terminalQueries_pos {N : ℕ} (x : SearchTrace N) :
     0 < TerminalBooleanQueries (ExponentialSizes N) x := by
   unfold TerminalBooleanQueries
   omega
 
+/-- The call-cost bound `(29 / 2) * √N / √t` for a nonzero threshold `t`, with value zero at
+threshold zero. -/
 noncomputable def queryCallBound (N t : ℕ) : ℝ :=
   if t = 0 then 0 else ((29 / 2 : ℝ) * Real.sqrt N) / Real.sqrt t
 
+/-- The call-cost bound is zero at threshold zero. -/
 @[simp] theorem queryCallBound_zero (N : ℕ) : queryCallBound N 0 = 0 := by simp [queryCallBound]
 
+/-- At a positive threshold below `N`, the query-cost first moment exists and is at most
+`queryCallBound N t`, using the BBHT search bound [BoyerEtAl1998]. -/
 theorem queryBBHTLaw_moment {N : ℕ} (e : Fin N ≃ Fin N) (t : ℕ)
     (ht : 0 < t) (htN : t < N) :
     ∃ q, HasSum (fun x => (queryBBHTLaw e).mass t x * (queryBBHTLaw e).duration x) q ∧
@@ -68,6 +100,7 @@ theorem queryBBHTLaw_moment {N : ℕ} (e : Fin N ≃ Fin N) (t : ℕ)
     convert hqb using 1
     ring
 
+/-- Multiplying the call bound by `t` gives `(29 / 2) * √N * √t`. -/
 theorem queryCallBound_scaled (N t : ℕ) :
     (t : ℝ) * queryCallBound N t = ((29 / 2 : ℝ) * Real.sqrt N) * Real.sqrt t := by
   by_cases ht : t = 0
@@ -80,6 +113,8 @@ theorem queryCallBound_scaled (N t : ℕ) :
     _ = ((29 / 2 : ℝ) * Real.sqrt N) * ((t : ℝ) / Real.sqrt t) := by ring
     _ = _ := by rw [hdiv]
 
+/-- The product of the threshold and its call-cost bound does not decrease when the threshold
+increases by one. -/
 theorem queryCallBound_scaled_mono (N : ℕ) :
     ∀ t : ℕ, (t : ℝ) * queryCallBound N t ≤ (t + 1 : ℝ) * queryCallBound N (t + 1) := by
   intro t
@@ -88,6 +123,8 @@ theorem queryCallBound_scaled_mono (N : ℕ) :
   exact mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt (by exact_mod_cast Nat.le_succ t))
     (by positivity)
 
+/-- For `N > 0`, the expected rank-trace cost with call bound at rank minus one is at most `29 *
+Real.sqrt N`. -/
 theorem queryEnvelope_initial_bound (N : ℕ) (hN : 0 < N) :
     expectedTraceCost (fun r => queryCallBound N (r - 1)) N ≤ 29 * Real.sqrt N := by
   obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hN)
@@ -107,6 +144,8 @@ theorem queryEnvelope_initial_bound (N : ℕ) (hN : 0 < N) :
     (by positivity : 0 ≤ (29 / 2 : ℝ) * Real.sqrt (n + 1 : ℕ))
   nlinarith
 
+/-- For a nonempty sorted table, the initial ranked BBHT run has a nonnegative query-clock first
+moment at most `29 * Real.sqrt N`. -/
 theorem bbht_query_attainment_moment {N : ℕ} {α : Type*} [LinearOrder α]
     (T : SortedRankedTable N α) (hN : 0 < N) :
     ∃ q, HasSum (fun x : Fin N × List (SearchTrace N) =>

@@ -5,12 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Trainability23.HaarAverages.HaarInfrastructure
+
+/-!
+# Conjugation identities for matrix units
+
+This module establishes entrywise and composition identities for conjugating a matrix unit by a
+complex matrix and its adjoint. These algebraic identities prepare the matrix-unit calculations
+used in Haar averages for the trainability analysis of [RudolphEtAl2024].
+
+## Main statements
+
+* `conj_single_apply`: expresses a conjugated matrix-unit entry as a product of two matrix
+  entries.
+* `conj_single_star_mul`: factors conjugation by a product into successive conjugations.
+
+## References
+
+* [Rudolph et al., 2024][RudolphEtAl2024]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.Trainability23.HaarAverages
 
 open scoped BigOperators Matrix
 
+/-- The `(i, j)` entry of `U * E_ab * Uᴴ` equals `U i a` times the complex conjugate of `U j b`,
+where `E_ab` is the matrix unit. -/
 theorem conj_single_apply {n : Type*} [Fintype n] [DecidableEq n]
     (U : Matrix n n ℂ) (a b i j : n) :
     (U * Matrix.single a b (1 : ℂ) * star U) i j = U i a * star (U j b) := by
@@ -43,6 +64,8 @@ theorem conj_single_apply {n : Type*} [Fintype n] [DecidableEq n]
   · intro hb
     exact absurd (Finset.mem_univ b) hb
 
+/-- Conjugating a matrix unit by `U * V` and its adjoint equals first conjugating by `V` and its
+adjoint, then by `U` and its adjoint. -/
 theorem conj_single_star_mul {n : Type*} [Fintype n] [DecidableEq n]
     (U V : Matrix n n ℂ) (a b : n) :
     (U * V) * Matrix.single a b (1 : ℂ) * star (U * V)

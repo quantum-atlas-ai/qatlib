@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkDefs
 import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+
+/-!
+# Count bounds for tensor-network evaluators
+
+This module proves exact accumulated counts and upper budgets for the MPS vector,
+mixed-transfer, and PEPS strip recurrences. It then establishes the bundled propositions
+`Clause18Claim` and `Clause19Claim` using these bounds and the imported representation and
+sampling results. The contraction framework is motivated by MPS methods in [PerezGarciaEtAl2007]
+and [Schollwock2011].
+
+## Main statements
+
+* `mpsEvalWithCount_op_le`: the MPS evaluation count fits its stated budget.
+* `mpsInnerEvalWithCount_op_le`: the mixed-transfer count fits its stated budget.
+* `pepsStripEvalWithCount_op_le`: the PEPS strip count fits its stated budget.
+* `g1` and `g3`: the bundled representation, invariance, cost, and sampling claims.
+
+## References
+
+* [Perez-Garcia et al., 2007][PerezGarciaEtAl2007]
+* [Schollwock, 2011][Schollwock2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +38,7 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Qatlib
 open Qatlib.Concepts.TensorNetwork.GaugeInvariance
 
+/-- The operation count of the MPS evaluation vector at site `k` is `k * (2 * D * D)`. -/
 theorem mpsEvalVectorCount_snd_k {n d D : ℕ} {R : Type} [CommRing R] [NeZero D]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) R) (x : Fin n → Fin d) :
     ∀ k (hk : k < n), (mpsEvalVectorCount A x ⟨k, hk⟩).2 = k * (2 * D * D) := by
@@ -33,6 +57,7 @@ theorem mpsEvalVectorCount_snd_k {n d D : ℕ} {R : Type} [CommRing R] [NeZero D
       rw [hstep, ih hprev]
       ring
 
+/-- The count returned by the MPS evaluator is at most `mpsEvalOpCount n D`. -/
 theorem mpsEvalWithCount_op_le (n d D : ℕ) (hn : NeZero n) (hD : NeZero D) {R : Type} [CommRing R]
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) R) (x : Fin n → Fin d) :
     (@mpsEvalWithCount n d D R _ hn hD A x).2 ≤ mpsEvalOpCount n D := by
@@ -45,6 +70,7 @@ theorem mpsEvalWithCount_op_le (n d D : ℕ) (hn : NeZero n) (hD : NeZero D) {R 
     omega
   omega
 
+/-- The mixed transfer count at site `k` is `(k + 1) * (d * (2 * D * D * D)) + k * (2 * D * D)`. -/
 theorem mpsInnerTransferCount_snd_k {n d D : ℕ} [NeZero D]
     (A B : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     ∀ k (hk : k < n),
@@ -65,6 +91,7 @@ theorem mpsInnerTransferCount_snd_k {n d D : ℕ} [NeZero D]
       rw [hstep, ih hprev]
       ring
 
+/-- The count returned by the mixed-transfer evaluator is at most `mpsInnerOpCount n d D`. -/
 theorem mpsInnerEvalWithCount_op_le (n d D : ℕ) (hn : NeZero n) (hD : NeZero D)
     (A B : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) :
     (@mpsInnerEvalWithCount n d D hn hD A B).2 ≤ mpsInnerOpCount n d D := by
@@ -95,6 +122,7 @@ theorem mpsInnerEvalWithCount_op_le (n d D : ℕ) (hn : NeZero n) (hD : NeZero D
       _ = n * (2 * d * D * D * D + 2 * D * D) := by ring
   exact h2
 
+/-- After `j` PEPS strip steps, the accumulated count is `j * ((D ^ a) ^ 3 * (a + 2))`. -/
 theorem pepsStripFold_snd {a b d D : ℕ} [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d) (j : ℕ) :
@@ -108,6 +136,7 @@ theorem pepsStripFold_snd {a b d D : ℕ} [NeZero D]
       rw [ih]
       ring
 
+/-- The count returned by PEPS strip evaluation is at most `pepsStripOpCount a b D`. -/
 theorem pepsStripEvalWithCount_op_le (a b d D : ℕ) (hD : NeZero D)
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ)
     (x : Fin a → Fin b → Fin d) :
@@ -119,9 +148,13 @@ theorem pepsStripEvalWithCount_op_le (a b d D : ℕ) (hD : NeZero D)
     omega
   exact this
 
+/-- Establish the bundled tensor-network invariance, representation, example, and contraction
+properties in `Clause18Claim`. -/
 theorem g1 : Clause18Claim :=
   Qatlib.Concepts.TensorNetwork.GaugeInvariance.g1
 
+/-- Establish the bundled evaluation-count bounds and finite-bit MPS sampling approximation in
+`Clause19Claim`. -/
 theorem g3 : Clause19Claim := by
   refine ⟨fun n d D hn hD R _ A x => mpsEvalWithCount_op_le n d D hn hD A x,
           fun n d D hn hD A B => mpsInnerEvalWithCount_op_le n d D hn hD A B,

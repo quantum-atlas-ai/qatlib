@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetStat
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionOriginalContracts
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+/-!
+# Round budgets for rejection rewinding
+
+The failure bound `pfail n ≤ 1 / (2 * (n + 1))` implies a lower bound on `(1 - pfail n) ^ m`
+under an explicit round budget. The results apply both to abstract failure sequences and to
+`rejectFailProb` for normalized vectors fixed by a Hermitian projection.
+
+The theorem `rejectionBudget_false` records the failure of the legacy contract, whose bounds
+constrain only positive rounds while its conclusion also uses round zero. These estimates
+concern rejection rewinding in quantum Metropolis sampling [TemmeEtAl2011].
+
+## Main statements
+
+* `rejection_budget_of_pointwise_bound`: A nonnegative failure value bounded by `1 / (2 * (n +
+  1))` gives `(1 - pfail n) ^ m ≥ c` under the stated budget.
+* `rejectionBudget`: The rejection-budget contract holds when the failure estimate applies to
+  every round, including zero. See [Temme et al., 2011, Sec. 3.2][TemmeEtAl2011].
+* `rejection_budget_actual_all_rounds`: For Hermitian projections and a normalized vector fixed
+  by `P`, the budget gives `(1 - rejectFailProb P Q ψ n) ^ m ≥ c` for every natural round index.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +41,8 @@ open Qatlib.Concepts.MixedInstrument.RewindAlgebra
 namespace Qatlib.Concepts.QuantumGibbs.RejectionRewind
 open Matrix
 
+/-- If the failure bound holds at positive rounds and `(n + 1) * (2 * (1 - c)) ≥ m`, then `(1 -
+pfail n) ^ m ≥ c` for `n ≥ 1`. -/
 theorem rejection_budget_of_positive_rounds (pfail : ℕ → ℝ)
     (hfail : ∀ n, 1 ≤ n → 0 ≤ pfail n ∧ pfail n ≤ 1 / (2 * (n + 1)))
     (m n : ℕ) (c : ℝ) (hn : 1 ≤ n) (_hc : 0 ≤ c) (_hc1 : c < 1)
@@ -36,6 +64,8 @@ theorem rejection_budget_of_positive_rounds (pfail : ℕ → ℝ)
   have hbern := one_add_mul_sub_le_pow (a := 1 - pfail n) (by linarith : -1 ≤ 1 - pfail n) m
   nlinarith only [hbern,hmx]
 
+/-- For Hermitian projections and a normalized vector fixed by `P`, the stated round budget
+gives `(1 - rejectFailProb P Q ψ n) ^ m ≥ c` when `n ≥ 1`. -/
 theorem rejection_budget_actual (D : ℕ) (P Q : Qatlib.Foundations.PureStateMath.Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Fin D)) (hnorm : Qatlib.Foundations.PureStateMath.Inner ψ ψ=1)
@@ -46,6 +76,8 @@ theorem rejection_budget_actual (D : ℕ) (P Q : Qatlib.Foundations.PureStateMat
     (fun l hl => ⟨rejectFailProb_nonneg P Q ψ l,
       rejectionFailureBound D P Q hPs hPi hQs hQi ψ hnorm hψ l hl⟩) m n c hn hc hc1 hm hbudget
 
+/-- The legacy rejection-budget contract is false because it leaves the failure value at round
+zero unconstrained. -/
 theorem rejectionBudget_false : ¬ RejectionBudgetLegacy := by
   intro h
   let pfail : ℕ → ℝ := fun n => if n = 0 then 2 else 0
@@ -57,6 +89,8 @@ theorem rejectionBudget_false : ¬ RejectionBudgetLegacy := by
   have bad := h pfail hf 1 0 0 (by norm_num) (by norm_num) (by norm_num) (by norm_num)
   norm_num [pfail] at bad
 
+/-- A nonnegative failure value bounded by `1 / (2 * (n + 1))` gives `(1 - pfail n) ^ m ≥ c`
+under the stated budget. -/
 theorem rejection_budget_of_pointwise_bound (pfail : ℕ → ℝ)
     (m n : ℕ) (c : ℝ)
     (hfail : 0 ≤ pfail n ∧ pfail n ≤ 1 / (2 * (n + 1))) (_hc : 0 ≤ c) (_hc1 : c < 1)
@@ -78,10 +112,14 @@ theorem rejection_budget_of_pointwise_bound (pfail : ℕ → ℝ)
   have hbern := one_add_mul_sub_le_pow (a := 1 - pfail n) (by linarith : -1 ≤ 1 - pfail n) m
   nlinarith only [hbern,hmx]
 
+/-- The rejection-budget contract holds when the failure estimate applies to every round,
+including zero. See [Temme et al., 2011, Sec. 3.2][TemmeEtAl2011]. -/
 theorem rejectionBudget : RejectionBudget := by
   intro pfail hfail m n c hc hc1 hm hbudget
   exact rejection_budget_of_pointwise_bound pfail m n c (hfail n) hc hc1 hm hbudget
 
+/-- For Hermitian projections and a normalized vector fixed by `P`, the budget gives `(1 -
+rejectFailProb P Q ψ n) ^ m ≥ c` for every natural round index. -/
 theorem rejection_budget_actual_all_rounds (D : ℕ) (P Q : Qatlib.Foundations.PureStateMath.Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Fin D)) (hnorm : Qatlib.Foundations.PureStateMath.Inner ψ ψ=1)

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
+
+/-!
+# Complexity predicates under promise restriction
+
+The file transports the verifier predicates `InMA`, `InAM`, `InPostBPP`, `InBPPpath`, and
+`InBPPNP` to smaller yes and no promises. Each theorem reuses a verifier when every new yes
+instance and every new no instance satisfies the corresponding original promise. See
+[BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `InMA_mono`: MA membership survives restriction of both promises.
+* `InPostBPP_mono`: postselected membership survives promise restriction.
+* `InBPPNP_mono`: the NP-oracle randomized predicate survives promise restriction.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +36,8 @@ namespace Qatlib.Papers.StoquasticHam06.MainResults.Lemma4
 
 variable {α : Type*}
 
+/-- An `InMA` verifier for `L` also verifies `L'` when the yes and no predicates of `L'` imply
+those of `L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem InMA_mono (E : Encoding α) {L L' : PromiseProblem α}
     (hy : ∀ x, L'.yes x → L.yes x) (hn : ∀ x, L'.no x → L.no x) :
     InMA E L → InMA E L' := by
@@ -26,6 +48,8 @@ theorem InMA_mono (E : Encoding α) {L L' : PromiseProblem α}
   · intro hx
     exact (hW x).2 (hn x hx)
 
+/-- An `InAM` verifier for `L` also verifies `L'` when the yes and no predicates of `L'` imply
+those of `L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem InAM_mono (E : Encoding α) {L L' : PromiseProblem α}
     (hy : ∀ x, L'.yes x → L.yes x) (hn : ∀ x, L'.no x → L.no x) :
     InAM E L → InAM E L' := by
@@ -36,6 +60,8 @@ theorem InAM_mono (E : Encoding α) {L L' : PromiseProblem α}
   · intro hx
     exact (hA x).2 (hn x hx)
 
+/-- An `InPostBPP` machine for `L` also verifies `L'` when the yes and no predicates of `L'`
+imply those of `L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem InPostBPP_mono (E : Encoding α) {L L' : PromiseProblem α}
     (hy : ∀ x, L'.yes x → L.yes x) (hn : ∀ x, L'.no x → L.no x) :
     InPostBPP E L → InPostBPP E L' := by
@@ -46,6 +72,8 @@ theorem InPostBPP_mono (E : Encoding α) {L L' : PromiseProblem α}
   · intro hx
     exact (hM x).2 (hn x hx)
 
+/-- An `InBPPpath` machine for `L` also verifies `L'` when the yes and no predicates of `L'`
+imply those of `L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem InBPPpath_mono (E : Encoding α) {L L' : PromiseProblem α}
     (hy : ∀ x, L'.yes x → L.yes x) (hn : ∀ x, L'.no x → L.no x) :
     InBPPpath E L → InBPPpath E L' := by
@@ -56,6 +84,8 @@ theorem InBPPpath_mono (E : Encoding α) {L L' : PromiseProblem α}
   · intro hx
     exact (hP x).2 (hn x hx)
 
+/-- An `InBPPNP` machine for `L` also verifies `L'` when the yes and no predicates of `L'` imply
+those of `L`. See [BravyiEtAl2008Stoquastic]. -/
 theorem InBPPNP_mono (E : Encoding α) {L L' : PromiseProblem α}
     (hy : ∀ x, L'.yes x → L.yes x) (hn : ∀ x, L'.no x → L.no x) :
     InBPPNP E L → InBPPNP E L' := by

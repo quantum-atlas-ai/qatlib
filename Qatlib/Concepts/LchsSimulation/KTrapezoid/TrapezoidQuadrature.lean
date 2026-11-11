@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceQuadrature
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+
+/-!
+# Banach-space trapezoidal quadrature estimates
+
+The module proves local and composite trapezoidal error estimates from a bound on the second
+derivative. It also relates the trapezoidal sum to the left-grid sum and establishes node
+membership, weight positivity, and the total weight identity. See [AnLiuLin2023] for the
+mathematical setting.
+
+## Main statements
+
+* `inh_trapezoid_cell_error`: For a continuous Banach-space-valued function with the stated
+  first and second derivatives and second-derivative norm at most `C` on `[a, b]`, the
+  trapezoidal error is at most `C * (b - a)^3 / 12`.
+* `inh_trap_grid_error`: For the stated twice differentiable Banach-space-valued function on
+  `[s, t]`, the composite trapezoidal error is at most `(t - s) * (inhStep Mt s t)^2 * C / 12`.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +43,9 @@ open MeasureTheory
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- For a continuous Banach-space-valued function with the stated first and second derivatives
+and second-derivative norm at most `C` on `[a, b]`, the trapezoidal error is at most `C * (b
+- a)^3 / 12`. -/
 theorem inh_trapezoid_cell_error
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (F F' F'' : ℝ → E) (a b C : ℝ) (hab : a ≤ b) (hF : Continuous F)
@@ -90,6 +115,8 @@ theorem inh_trapezoid_cell_error
   dsimp [m]
   ring
 
+/-- For positive `Mt`, the composite trapezoidal sum equals the left-grid sum plus `inhStep Mt s
+t / 2` times `F t - F s`. -/
 theorem inh_trap_sum_correction
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (F : ℝ → E) (Mt : ℕ) (s t : ℝ) (hm : 0 < Mt) :
@@ -122,6 +149,8 @@ theorem inh_trap_sum_correction
   change (∑ l : Fin Mt, h • F (inhNode Mt s t l)) - (h/2) • F s + (h/2) • F t = _
   module
 
+/-- For the stated twice differentiable Banach-space-valued function on `[s, t]`, the composite
+trapezoidal error is at most `(t - s) * (inhStep Mt s t)^2 * C / 12`. -/
 theorem inh_trap_grid_error
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (F F' F'' : ℝ → E) (s t C : ℝ) (Mt : ℕ) (hst : s ≤ t) (hm : 0 < Mt)
@@ -188,6 +217,7 @@ theorem inh_trap_grid_error
       rw [← he']
       ring
 
+/-- For `s ≤ t` and positive `Mt`, every trapezoidal time-grid node lies in `[s, t]`. -/
 theorem inh_trap_node_mem (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) (hm : 0 < Mt)
     (l : Fin (Mt+1)) : inhTrapNode Mt s t l ∈ Set.Icc s t := by
   have hn : (Mt : ℝ) ≠ 0 := by exact_mod_cast hm.ne'
@@ -199,6 +229,7 @@ theorem inh_trap_node_mem (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) (hm : 0 < Mt)
   · have := mul_le_mul_of_nonneg_right hl hh
     dsimp [inhTrapNode]; linarith
 
+/-- For `s ≤ t`, every trapezoidal time-grid weight is nonnegative. -/
 theorem inh_trap_weight_nonneg (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) (l : Fin (Mt+1)) :
     0 ≤ inhTrapWeight Mt s t l := by
   unfold inhTrapWeight
@@ -206,6 +237,7 @@ theorem inh_trap_weight_nonneg (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) (l : Fin (
   · exact div_nonneg (inh_step_nonneg Mt s t hst) (by norm_num)
   · exact inh_step_nonneg Mt s t hst
 
+/-- For positive `Mt`, the trapezoidal time-grid weights sum to `t - s`. -/
 theorem inh_trap_weight_sum (Mt : ℕ) (s t : ℝ) (hm : 0 < Mt) :
     (∑ l : Fin (Mt+1), inhTrapWeight Mt s t l) = t-s := by
   have he := inh_trap_sum_correction (fun _ : ℝ => (1 : ℝ)) Mt s t hm

@@ -9,17 +9,46 @@ import Mathlib.Data.Finset.Prod
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
 
+/-!
+# An adversary family for selection query lower bounds
+
+This module represents a `d`-row input by its row positions `ZeroMat d k` and relates inputs by
+moving one position from the upper part of a row to its lower part [DurrEtAl2006]. It counts the
+resulting neighbors and bounds how many neighbors change any fixed matrix-entry indicator.
+
+The lemmas `relSet_card_odd` and `adversary_ratio_ge` provide the combinatorial and numerical
+estimates used in the selection lower-bound argument associated with Theorem 19.
+
+## Main statements
+
+* `relSet_entry_le`: At most `k / 2` related assignments change the indicator of a fixed matrix
+  entry. This is an entry-count estimate for [Dürr et al., Theorem 19][DurrEtAl2006].
+* `relSet_card_odd`: If `d` is odd and exactly `d / 2` rows are low, there are `(d / 2 + 1) * (k
+  / 2)` related assignments. This is a neighbor-count estimate for [Dürr et al., Theorem
+  19][DurrEtAl2006].
+* `adversary_ratio_ge`: If `N = d * k` and `d > 0`, then `sqrt (d * N) / (2 * sqrt 2)` is at
+  most `((d : ℝ) / 2 + 1) * sqrt ((k : ℝ) / 2)`. This supplies a numerical comparison for [Dürr
+  et al., Theorem 19][DurrEtAl2006].
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QQueryGraph04.MainResults.LowerBounds
 
 open Finset
 
+/-- A function assigning one position in `Fin k` to each of `d` rows. -/
 abbrev ZeroMat (d k : ℕ) := Fin d → Fin k
 
+/-- The finite set of positions strictly below `k / 2`. -/
 def lowPos (k : ℕ) : Finset (Fin k) :=
   (univ : Finset (Fin (k / 2))).image (Fin.castLE (Nat.div_le_self k 2))
 
+/-- A position belongs to `lowPos k` exactly when its value is less than `k / 2`. -/
 theorem mem_lowPos {k : ℕ} {j : Fin k} : j ∈ lowPos k ↔ j.val < k / 2 := by
   show j ∈ (univ : Finset (Fin (k / 2))).image (Fin.castLE (Nat.div_le_self k 2)) ↔ _
   constructor
@@ -29,6 +58,7 @@ theorem mem_lowPos {k : ℕ} {j : Fin k} : j ∈ lowPos k ↔ j.val < k / 2 := b
   · intro h
     exact mem_image.mpr ⟨⟨j.val, h⟩, mem_univ _, Fin.ext rfl⟩
 
+/-- The set of lower positions has cardinality `k / 2`. -/
 theorem lowPos_card (k : ℕ) : (lowPos k).card = k / 2 := by
   show ((univ : Finset (Fin (k / 2))).image (Fin.castLE (Nat.div_le_self k 2))).card = k / 2
   rw [show ((univ : Finset (Fin (k / 2))).image (Fin.castLE (Nat.div_le_self k 2))).card
@@ -38,20 +68,25 @@ theorem lowPos_card (k : ℕ) : (lowPos k).card = k / 2 := by
       exact Fin.ext (by simpa using congrArg (fun x : Fin k => x.val) hab))]
   simp
 
+/-- The rows whose assigned position is strictly below `k / 2`. -/
 def lowRows {d k : ℕ} (z : ZeroMat d k) : Finset (Fin d) :=
   univ.filter (fun i => (z i).val < k / 2)
 
+/-- The rows whose assigned position is at least `k / 2`. -/
 def highRows {d k : ℕ} (z : ZeroMat d k) : Finset (Fin d) :=
   univ.filter (fun i => k / 2 ≤ (z i).val)
 
+/-- A row is low exactly when its assigned position is less than `k / 2`. -/
 theorem mem_lowRows {d k : ℕ} {z : ZeroMat d k} {i : Fin d} :
     i ∈ lowRows z ↔ (z i).val < k / 2 := by
   simp [lowRows]
 
+/-- A row is high exactly when its assigned position is at least `k / 2`. -/
 theorem mem_highRows {d k : ℕ} {z : ZeroMat d k} {i : Fin d} :
     i ∈ highRows z ↔ k / 2 ≤ (z i).val := by
   simp [highRows]
 
+/-- The numbers of low and high rows sum to `d`. -/
 theorem lowRows_card_add_highRows_card {d k : ℕ} (z : ZeroMat d k) :
     (lowRows z).card + (highRows z).card = d := by
   have h := card_filter_add_card_filter_not (s := (univ : Finset (Fin d)))
@@ -63,31 +98,38 @@ theorem lowRows_card_add_highRows_card {d k : ℕ} (z : ZeroMat d k) :
   rw [e] at h
   simpa [lowRows] using h
 
+/-- The number of high rows is `d` minus the number of low rows. -/
 theorem highRows_card_eq {d k : ℕ} (z : ZeroMat d k) :
     (highRows z).card = d - (lowRows z).card := by
   have h := lowRows_card_add_highRows_card z
   omega
 
+/-- Replaces the assigned position of row `i` by `p`. -/
 def setRow {d k : ℕ} (z : ZeroMat d k) (i : Fin d) (p : Fin k) : ZeroMat d k :=
   Function.update z i p
 
+/-- The updated row of `setRow z i p` has position `p`. -/
 theorem setRow_self {d k : ℕ} (z : ZeroMat d k) (i : Fin d) (p : Fin k) :
     setRow z i p i = p := by
   simp [setRow, Function.update]
 
+/-- Updating row `i` preserves every different row. -/
 theorem setRow_of_ne {d k : ℕ} (z : ZeroMat d k) {i j : Fin d} (h : j ≠ i) (p : Fin k) :
     setRow z i p j = z j := by
   simp [setRow, Function.update, h]
 
+/-- The relation that changes exactly one row from a high position to a low position. -/
 def RelStep {d k : ℕ} (z z' : ZeroMat d k) : Prop :=
   ∃ i : Fin d, z i ≠ z' i ∧ (∀ j : Fin d, j ≠ i → z j = z' j) ∧
     k / 2 ≤ (z i).val ∧ (z' i).val < k / 2
 
+/-- The finite set of assignments obtained by replacing one high row position by a low position. -/
 noncomputable def relSet {d k : ℕ} (z : ZeroMat d k) : Finset (ZeroMat d k) := by
   classical
   exact ((highRows z) ×ˢ (lowPos k)).image
     (fun q : Fin d × Fin k => setRow z q.1 q.2)
 
+/-- Membership in `relSet z` is equivalent to replacing one high row of `z` by a low position. -/
 theorem mem_relSet {d k : ℕ} {z z' : ZeroMat d k} :
     z' ∈ relSet z ↔
       ∃ i, i ∈ highRows z ∧ ∃ p, p ∈ lowPos k ∧ setRow z i p = z' := by
@@ -102,11 +144,13 @@ theorem mem_relSet {d k : ℕ} {z z' : ZeroMat d k} :
       (fun q : Fin d × Fin k => setRow z q.1 q.2)
     exact mem_image.mpr ⟨(i, p), mem_product.mpr ⟨hi, hp⟩, rfl⟩
 
+/-- A related assignment preserves every row that is not high in the original assignment. -/
 theorem relSet_apply_of_not_mem {d k : ℕ} {z z' : ZeroMat d k} (hz' : z' ∈ relSet z)
     {i : Fin d} (hi : i ∉ highRows z) : z' i = z i := by
   obtain ⟨a, ha, p, hp, rfl⟩ := mem_relSet.mp hz'
   exact setRow_of_ne z (fun h => hi (by rw [h]; exact ha)) p
 
+/-- For a specified high row, exactly `k / 2` related assignments change that row. -/
 theorem relSet_filter_row_move {d k : ℕ} (z : ZeroMat d k) {i : Fin d}
     (hi : i ∈ highRows z) :
     ((relSet z).filter (fun z' => z' i ≠ z i)).card = k / 2 := by
@@ -139,6 +183,8 @@ theorem relSet_filter_row_move {d k : ℕ} (z : ZeroMat d k) {i : Fin d}
       simpa [setRow_self] using congrArg (fun f : ZeroMat d k => f i) hab)]
   exact lowPos_card k
 
+/-- For a specified high row and low position, exactly one related assignment places that row at
+that position. -/
 theorem relSet_filter_apply {d k : ℕ} (z : ZeroMat d k) {i : Fin d} {j : Fin k}
     (hi : i ∈ highRows z) (hj : j ∈ lowPos k) :
     ((relSet z).filter (fun z' => z' i = j)).card = 1 := by
@@ -169,9 +215,13 @@ theorem relSet_filter_apply {d k : ℕ} (z : ZeroMat d k) {i : Fin d} {j : Fin k
       exact ⟨mem_relSet.mpr ⟨i, hi, j, hj, rfl⟩, setRow_self z i j⟩
   rw [hset, card_singleton]
 
+/-- The predicate that the equality indicators for position `j` in row `i` differ between two
+assignments. -/
 abbrev diffAt {d k : ℕ} (z z' : ZeroMat d k) (i : Fin d) (j : Fin k) : Prop :=
   (z i = j) ↔ ¬ (z' i = j)
 
+/-- At most `k / 2` related assignments change the indicator of a fixed matrix entry. This is an
+entry-count estimate for [Dürr et al., Theorem 19][DurrEtAl2006]. -/
 theorem relSet_entry_le {d k : ℕ} (z : ZeroMat d k) (i : Fin d) (j : Fin k) :
     ((relSet z).filter (fun z' => diffAt z z' i j)).card ≤ k / 2 := by
   classical
@@ -218,6 +268,7 @@ theorem relSet_entry_le {d k : ℕ} (z : ZeroMat d k) (i : Fin d) (j : Fin k) :
     rw [hempty, card_empty]
     exact Nat.zero_le _
 
+/-- The number of related assignments is the number of high rows times `k / 2`. -/
 theorem relSet_card {d k : ℕ} (z : ZeroMat d k) :
     (relSet z).card = (highRows z).card * (k / 2) := by
   classical
@@ -250,6 +301,8 @@ theorem relSet_card {d k : ℕ} (z : ZeroMat d k) :
     exact card_image_of_injOn hinj
   rw [h1, card_product, lowPos_card]
 
+/-- If `d` is odd and exactly `d / 2` rows are low, there are `(d / 2 + 1) * (k / 2)` related
+assignments. This is a neighbor-count estimate for [Dürr et al., Theorem 19][DurrEtAl2006]. -/
 theorem relSet_card_odd {d k : ℕ} (hd : d % 2 = 1) (z : ZeroMat d k)
     (hz : (lowRows z).card = d / 2) :
     (relSet z).card = (d / 2 + 1) * (k / 2) := by
@@ -257,6 +310,9 @@ theorem relSet_card_odd {d k : ℕ} (hd : d % 2 = 1) (z : ZeroMat d k)
   have h : d - d / 2 = d / 2 + 1 := by omega
   rw [h]
 
+/-- If `N = d * k` and `d > 0`, then `sqrt (d * N) / (2 * sqrt 2)` is at most `((d : ℝ) / 2 + 1)
+* sqrt ((k : ℝ) / 2)`. This supplies a numerical comparison for [Dürr et al., Theorem
+19][DurrEtAl2006]. -/
 theorem adversary_ratio_ge {d k N : ℕ} (hN : N = d * k) (hd : 0 < d) :
     Real.sqrt ((d : ℝ) * (N : ℝ)) / (2 * Real.sqrt 2) ≤
       ((d : ℝ) / 2 + 1) * Real.sqrt ((k : ℝ) / 2) := by

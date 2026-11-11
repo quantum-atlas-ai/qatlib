@@ -8,6 +8,25 @@ import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Tactic
+
+/-!
+# Finite trigonometric sums for phase states
+
+These finite cosine and sine-square sums supply normalization and correlation identities for the
+phase-estimation states. The statements cover equally spaced angles, the shifted interior grid,
+and the odd-angle grid. The phase-estimation setting is described in [VanDamEtAl2007].
+
+## Main statements
+
+* `sum_sin_sq_pi_div`: For `M ≥ 2`, the squared sines of the interior angles `(j + 1) * π / M`
+  sum to `M / 2`.
+* `sum_cos_odd_zero`: For `M ≥ 2`, the cosines at angles `(2 * k + 1) * π / M` sum to zero.
+
+## References
+
+* [van Dam et al., 2007][VanDamEtAl2007]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralFilter.PhaseReadout
@@ -19,6 +38,7 @@ namespace Qatlib.Papers.PhaseEst07.MainResults.Shared
 
 open scoped BigOperators
 
+/-- For `M ≥ 2`, the cosines at the `M` equally spaced full-circle angles sum to zero. -/
 theorem sum_cos_two_pi_div (M : ℕ) (hM : 2 ≤ M) :
     ∑ k : Fin M, Real.cos (2 * Real.pi * (k : ℝ) / (M : ℝ)) = 0 := by
   have hMpos : 0 < M := by omega
@@ -44,6 +64,7 @@ theorem sum_cos_two_pi_div (M : ℕ) (hM : 2 ≤ M) :
     exact Finset.sum_congr rfl (fun y _ => (hterm y).symm)
   rw [hsum, hz, Complex.zero_re]
 
+/-- For `M ≥ 2`, the cosines of twice the interior angles `(j + 1) * π / M` sum to minus one. -/
 theorem sum_cos_shift (M : ℕ) (hM : 2 ≤ M) :
     ∑ j ∈ Finset.range (M - 1), Real.cos (2 * (((j : ℝ) + 1) * Real.pi / (M : ℝ))) = -1 := by
   have hfull := sum_cos_two_pi_div M hM
@@ -63,6 +84,7 @@ theorem sum_cos_shift (M : ℕ) (hM : 2 ≤ M) :
   rw [hcongr] at hfull
   linarith
 
+/-- For `M ≥ 2`, the squared sines of the interior angles `(j + 1) * π / M` sum to `M / 2`. -/
 theorem sum_sin_sq_pi_div (M : ℕ) (hM : 2 ≤ M) :
     ∑ j ∈ Finset.range (M - 1), Real.sin (((j : ℝ) + 1) * Real.pi / (M : ℝ)) ^ 2
       = (M : ℝ) / 2 := by
@@ -80,6 +102,7 @@ theorem sum_sin_sq_pi_div (M : ℕ) (hM : 2 ≤ M) :
   rw [hn]
   ring
 
+/-- For `M ≥ 2`, the cosines at angles `(2 * k + 1) * π / M` sum to zero. -/
 theorem sum_cos_odd_zero (M : ℕ) (hM : 2 ≤ M) :
     ∑ k : Fin M, Real.cos ((2 * (k : ℝ) + 1) * Real.pi / (M : ℝ)) = 0 := by
   have hMpos : 0 < M := by omega

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionStat
+
+/-!
+# Specification of forced LCHS window success and budgets
+
+`InhomogeneousTrapezoidWindowSuccessAndBudget` records the finite-window guarantee for a unified
+forced-solution approximation. Its assumptions include unitary preparations, vector error at
+most `ε ≤ τ / 2`, and forced output norm at least `τ`; its conclusion gives normalized iteration
+weights, a window bound, constant success, and access budgets.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `InhomogeneousTrapezoidWindowSuccessAndBudget`: specifies the window distribution, success,
+  and resource bounds.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -29,6 +50,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that the unified trapezoidal window has weights summing to one, size at most
+`2 * α / τ + 1`, success at least `1 / 8`, and per-word input and selection access counts at
+most `2 * m + 1` under the stated approximation hypotheses. -/
 def InhomogeneousTrapezoidWindowSuccessAndBudget : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
     (s t ε τ : ℝ) (K N Mt : ℕ) (B : Matrix I I ℂ) (P : Fin (Mt + 1) → Matrix I I ℂ)

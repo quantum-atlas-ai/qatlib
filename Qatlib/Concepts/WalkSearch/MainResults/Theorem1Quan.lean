@@ -12,6 +12,29 @@ import Qatlib.Concepts.WalkSearch.MainResults.SearchEventBounds
 import Qatlib.Concepts.WalkSearch.MainResults.IntegerBounds
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialTapeCounting
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialRealBudget
+
+/-!
+# The corrected combinatorial triangle theorem
+
+`combinatorial_program_sound` verifies that every reported triangle has all three edges in the
+input graph. `theorem1_answer` establishes `Theorem1`, combining this soundness with the finite
+rejection count and four term query bound under the stated search capabilities and positive
+rounded thresholds. For background on quantum search and amplitude amplification, see
+[BrassardEtAl2002].
+
+## Main statements
+
+* `combinatorial_program_sound`: For all graphs, search families, and integer parameters, the
+  combinatorial program satisfies `sourceCombSound`.
+* `theorem1_answer`: The corrected capability conditional triangle search theorem `Theorem1`
+  holds, including soundness, the rejection count bound, and the explicit four term query
+  budget.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,11 +46,15 @@ set_option maxHeartbeats 1600000
 noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 
+/-- For all graphs, search families, and integer parameters, the combinatorial program satisfies
+`sourceCombSound`. -/
 theorem combinatorial_program_sound {n : ℕ} (G : UGraph n) (sgs : SGSExecution)
     (ets : PromisedEdgeSearchFamily) (k K c dHi dLo τ tThin : ℕ) :
     sourceCombSound G sgs ets k K c dHi dLo τ tThin := sourceCombAlg_sound G sgs ets k K c dHi dLo τ tThin
 open scoped Classical
 
+/-- The corrected capability conditional triangle search theorem `Theorem1` holds, including
+soundness, the rejection count bound, and the explicit four term query budget. -/
 theorem theorem1_answer : Theorem1 := by
   intro n ε δ ε' hn hε hε1 hδ hε' hparam G family ets hfamily hets
     k K c dHi dLo τ tThin sgs hk hc hdLo

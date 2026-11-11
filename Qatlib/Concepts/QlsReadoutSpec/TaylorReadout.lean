@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.EndToEnd
 import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+
+/-!
+# Concrete Taylor simulation and phase readout
+
+This module instantiates logarithmic-cutoff Taylor simulation with Pauli Hamiltonians. It gives
+explicit query and gate counts for the noncommuting X + Z example and error-controlled
+four-point phase readout for Z with a Hadamard-prepared input. Related mathematical background
+is given in [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `log_taylor_noncommuting_xz_actual_consumer`: Concrete simulation cost and workspace error.
+* `log_taylor_z_hadamard_actual_readout`: Concrete phase-event masses and circuit costs.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -44,6 +63,7 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Either Pauli X or Pauli Z is both unitary and Hermitian. -/
 private theorem logTaylor_pauli (a : Bool) :
     (if a then pauliZ else pauliX) ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧
     (if a then pauliZ else pauliX).IsHermitian := by
@@ -55,6 +75,8 @@ private theorem logTaylor_pauli (a : Bool) :
   cases a <;> ext i j <;> fin_cases i <;> fin_cases j <;>
     norm_num [pauliX, pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The four-point QPE kernel for the two Pauli Z eigenphases is exactly the basis state at
+index three or one, respectively. -/
 private theorem logTaylor_Z_kernel (j : Fin 2) (z : Fin 4) :
     qpeKernel 4 (-(Real.pi / 2) * (if j = 0 then 1 else -1) / (2 * Real.pi)) z =
       Ket (if j = 0 then (3 : Fin 4) else 1) z := by
@@ -75,6 +97,8 @@ private theorem logTaylor_Z_kernel (j : Fin 2) (z : Fin 4) :
     convert! (offgrid_phase_geometric_and_periodic 4 0 z (by norm_num)).2.2 (1 : Fin 4) using 1
     norm_num
 
+/-- The specified Taylor circuit for X + Z has cutoff 14, 168 queries, and 388 gates, and
+approximates unit-time evolution with full-workspace error at most half the input norm. -/
 theorem log_taylor_noncommuting_xz_actual_consumer :   let h := fun _ : Fin 2 => (1:ℝ)
   let U := fun j : Fin 2 => if j=0 then pauliX else pauliZ
   let j0 : Fin 2 := 0
@@ -105,6 +129,9 @@ theorem log_taylor_noncommuting_xz_actual_consumer :   let h := fun _ : Fin 2 =>
   · simpa only [hs, hK, Nat.reduceMul, Nat.reduceAdd] using! hc.2.2.1
   · simpa only [hs, hK, pow_one] using! he
 
+/-- For `K = 2 * (k + 9)`, the specified Pauli Z readout circuit uses `36 * K` queries and `72 *
+K + 165` gates. Its mass on phase indices one and three is at least `1 - (1/2)^k`, and each
+individual mass differs from one half by at most `(1/2)^k`. -/
 theorem log_taylor_z_hadamard_actual_readout : ∀ k : ℕ,
   let h := fun _ : Unit => (1:ℝ)
   let U := fun _ : Unit => pauliZ

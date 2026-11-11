@@ -11,6 +11,32 @@ import Mathlib.Tactic
 import Qatlib.Papers.QSearchAdvice09.MainResults.PowSums
 import Qatlib.Papers.QSearchAdvice09.MainResults.Zalka
 import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchCore
+
+/-!
+# Search with advice and power-law costs
+
+This module defines probability-weighted classical and quantum search cost expressions,
+amplitude-amplification probabilities, and power-law advice distributions. It proves analytic
+upper and lower bounds, power-sum asymptotics, and conditional reductions for the cost model of
+Algorithm 3, including the exact prepared-circuit amplification law.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `prop_2_1`: For a probability distribution on a nonempty `Fin n`, the weighted
+  geometric-search bound is at most πe times the advice-weighted square-root sum.
+* `prop_2_5`: For k < 0, under the stated eventual bounds on Q, gives the ten Theta
+  classifications of `powerLawD` and `powerLawQ`, with power, logarithmic, and constant regimes
+  at the thresholds −2, −3/2, and −1.
+* `lemma_3_1`: For a unitary preparation whose marked probability is p in (0, 1), k iterations
+  of the prepared amplification circuit have marked probability sin²((2k + 1)arcsin(√p)).
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -27,42 +53,57 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
 set_option warningAsError false
 
+/-- The function p is nonnegative on `Fin n` and sums to one. -/
 def IsProbDist (n : ℕ) (p : Fin n → ℝ) : Prop :=
   (∀ x, 0 ≤ p x) ∧ ∑ x : Fin n, p x = 1
 
+/-- The advice-weighted sum of √(x + 1) over x in `Fin n`. -/
 def adviceSqrtSum {n : ℕ} (p : Fin n → ℝ) : ℝ :=
   ∑ x : Fin n, p x * Real.sqrt ((x : ℕ) + 1 : ℝ)
 
+/-- The advice-weighted average of the ordered search positions x + 1. -/
 def classicalAverageQueries {n : ℕ} (p : Fin n → ℝ) : ℝ :=
   ∑ x : Fin n, p x * ((x : ℕ) + 1 : ℝ)
 
+/-- The geometric-search upper-bound expression 2 log x + 4 + (πe/2)√x. -/
 def geometricSearchQueryUpper (x : ℝ) : ℝ :=
   2 * Real.log x + 4 + (Real.pi * Real.exp 1 / 2) * Real.sqrt x
 
+/-- The amplification success expression sin²((2k + 1)θ). -/
 def amplSuccessProb (θ : ℝ) (k : ℕ) : ℝ :=
   (Real.sin ((2 * (k : ℝ) + 1) * θ)) ^ 2
 
+/-- The sum of yᵏ over the natural-number interval 1 ≤ y ≤ n. -/
 def powerLawMass (k : ℝ) (n : ℕ) : ℝ :=
   ∑ y ∈ Finset.Icc 1 n, (y : ℝ) ^ k
 
+/-- The power-law weight (x + 1)ᵏ divided by `powerLawMass k n`. -/
 def powerLawProb (k : ℝ) (n : ℕ) (x : Fin n) : ℝ :=
   (((x : ℕ) + 1 : ℝ) ^ k) / powerLawMass k n
 
+/-- The ratio of the power sum with exponent k + 1 to the normalizing power sum with exponent k. -/
 def powerLawD (k : ℝ) (n : ℕ) : ℝ :=
   (∑ x ∈ Finset.Icc 1 n, (x : ℝ) ^ (k + 1)) / powerLawMass k n
 
+/-- The ratio of the power sum with exponent k + 1/2 to the normalizing power sum with exponent
+k. -/
 def powerLawQ (k : ℝ) (n : ℕ) : ℝ :=
   (∑ x ∈ Finset.Icc 1 n, (x : ℝ) ^ (k + 1 / 2)) / powerLawMass k n
 
+/-- The average-amplification expression 1/2 − sin(4m arcsin(√p))/(8m√(p(1 − p))). -/
 def ampAvgSuccessProb (p : ℝ) (m : ℕ) : ℝ :=
   1 / 2 - Real.sin (4 * (m : ℝ) * Real.arcsin (Real.sqrt p)) /
     (8 * (m : ℝ) * Real.sqrt (p * (1 - p)))
 
+/-- The natural floor of kⁱ, viewed as a real number. -/
 def iterCount (k : ℝ) (i : ℕ) : ℝ := ((Nat.floor (k ^ i) : ℕ) : ℝ)
 
+/-- The sum of (iterCount k i + 3)/2 over i < j. -/
 def alg3IterationCost (k : ℝ) (j : ℕ) : ℝ :=
   ∑ i ∈ Finset.range j, (iterCount k i + 3) / 2
 
+/-- The finite first-success cost sum for the geometric amplification schedule, together with
+the residual worst-case search cost. -/
 def alg3QueryModel (k px : ℝ) (n : ℕ) : ℝ :=
   let J := Nat.floor (Real.logb k (Real.sqrt (n : ℝ)))
   (∑ j ∈ Finset.range (J + 1),
@@ -71,6 +112,8 @@ def alg3QueryModel (k px : ℝ) (n : ℕ) : ℝ :=
     + (∏ i ∈ Finset.range (J + 1), (1 - ampAvgSuccessProb px (Nat.floor (k ^ i)))) *
         (alg3IterationCost k (J + 1) + (Real.pi / 4) * Real.sqrt (n : ℝ))
 
+/-- The power-law advice cost bound combining 83 times the square-root probability sum above
+density 1/n with 53√n times the remaining probability mass and the additive constant 4/3. -/
 def powerLawTstarBound (k : ℝ) (n : ℕ) : ℝ :=
   83 * (∑ x : Fin n,
         if (1 : ℝ) / (n : ℝ) < powerLawProb k n x then Real.sqrt (powerLawProb k n x) else 0)
@@ -79,6 +122,7 @@ def powerLawTstarBound (k : ℝ) (n : ℕ) : ℝ :=
           if powerLawProb k n x ≤ (1 : ℝ) / (n : ℝ) then powerLawProb k n x else 0)
     + 4 / 3
 
+/-- For positive x, log x + 2 ≤ 2√x. -/
 theorem log_add_two_le_two_sqrt (x : ℝ) (hx : 0 < x) : Real.log x + 2 ≤ 2 * Real.sqrt x := by
   have hx' : 0 < Real.sqrt x := Real.sqrt_pos.2 hx
   have hlog : Real.log x = 2 * Real.log (Real.sqrt x) := by
@@ -86,11 +130,13 @@ theorem log_add_two_le_two_sqrt (x : ℝ) (hx : 0 < x) : Real.log x + 2 ≤ 2 * 
   have hbound : Real.log (Real.sqrt x) ≤ Real.sqrt x - 1 := Real.log_le_sub_one_of_pos hx'
   linarith
 
+/-- The product πe is at least 8. -/
 theorem eight_le_pi_mul_exp_one : (8 : ℝ) ≤ Real.pi * Real.exp 1 := by
   have hp : (3 : ℝ) < Real.pi := Real.pi_gt_three
   have he : (2.7182818283 : ℝ) < Real.exp 1 := Real.exp_one_gt_d9
   nlinarith
 
+/-- For positive x, the geometric-search upper-bound expression is at most πe√x [Montanaro2011]. -/
 theorem geometricSearchQueryUpper_le (x : ℝ) (hx : 0 < x) :
     geometricSearchQueryUpper x ≤ Real.pi * Real.exp 1 * Real.sqrt x := by
   have hlog := log_add_two_le_two_sqrt x hx
@@ -106,12 +152,15 @@ theorem geometricSearchQueryUpper_le (x : ℝ) (hx : 0 < x) :
           apply mul_le_mul_of_nonneg_right _ hs
           linarith
 
+/-- For positive p, p/√p equals √p. -/
 theorem div_sqrt_self (p : ℝ) (hp : 0 < p) : p / Real.sqrt p = Real.sqrt p := by
   have hs : 0 < Real.sqrt p := Real.sqrt_pos.2 hp
   rw [div_eq_iff hs.ne']
   calc p = (Real.sqrt p) ^ 2 := (Real.sq_sqrt hp.le).symm
     _ = Real.sqrt p * Real.sqrt p := by ring
 
+/-- For a probability distribution on a nonempty `Fin n`, the weighted geometric-search bound is
+at most πe times the advice-weighted square-root sum [Montanaro2011]. -/
 theorem prop_2_1 (n : ℕ) (hn : 0 < n) (p : Fin n → ℝ) (hp : ∀ x, 0 ≤ p x)
     (hsum : ∑ x : Fin n, p x = 1) :
     (∑ x : Fin n, p x * geometricSearchQueryUpper (((x : ℕ) + 1 : ℝ)))
@@ -132,6 +181,7 @@ theorem prop_2_1 (n : ℕ) (hn : 0 < n) (p : Fin n → ℝ) (hp : ∀ x, 0 ≤ p
           intro x _
           ring
 
+/-- For n ≥ 2, 1/√n is at most sin(1/√(n − 1)). -/
 theorem one_sub_div_sqrt_le_sin (n : ℕ) (hn : 2 ≤ n) :
     1 / Real.sqrt (n : ℝ) ≤ Real.sin (1 / Real.sqrt ((n : ℝ) - 1)) := by
   have hnR : (2 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
@@ -176,6 +226,7 @@ theorem one_sub_div_sqrt_le_sin (n : ℕ) (hn : 2 ≤ n) :
     simpa using! hlin
   exact le_trans hclaim1 hclaim2
 
+/-- For n ≥ 2, arcsin(1/√n) is at most 1/√(n − 1) [Montanaro2011]. -/
 theorem arcsin_inv_sqrt_le (n : ℕ) (hn : 2 ≤ n) :
     Real.arcsin (1 / Real.sqrt (n : ℝ)) ≤ 1 / Real.sqrt ((n : ℝ) - 1) := by
   have hnR : (2 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
@@ -199,6 +250,8 @@ theorem arcsin_inv_sqrt_le (n : ℕ) (hn : 2 ≤ n) :
       linarith
   exact (Real.arcsin_le_iff_le_sin hx hy).2 (one_sub_div_sqrt_le_sin n hn)
 
+/-- For n ≥ 2, the assumed lower bound 0.206/arcsin(1/√n) − 0.316 ≤ T implies 0.206√n − 1 ≤ T
+[Montanaro2011]. -/
 theorem prop_2_3 (n : ℕ) (hn : 2 ≤ n) (T : ℝ)
     (hZalka : 0.206 / Real.arcsin (1 / Real.sqrt (n : ℝ)) - 0.316 ≤ T) :
     0.206 * Real.sqrt (n : ℝ) - 1 ≤ T := by
@@ -230,6 +283,8 @@ theorem prop_2_3 (n : ℕ) (hn : 2 ≤ n) (T : ℝ)
   have hZalka' : 0.206 / a - 0.316 ≤ T := by simpa [ha] using! hZalka
   linarith
 
+/-- For n ≥ 2, the assumed lower bound with coefficient 0.2059 and offset 0.316 implies T ≥
+0.2059√n − 1 [Montanaro2011]. -/
 theorem prop_2_3_sqrt_sharp (n : ℕ) (hn : 2 ≤ n) (T : ℝ)
     (h : 0.2059 / Real.arcsin (1 / Real.sqrt (n : ℝ)) - 0.316 ≤ T) :
     0.2059 * Real.sqrt (n : ℝ) - 1 ≤ T := by
@@ -262,6 +317,8 @@ theorem prop_2_3_sqrt_sharp (n : ℕ) (hn : 2 ≤ n) (T : ℝ)
   have h' : 0.2059 / a - 0.316 ≤ T := by simpa [ha] using! h
   nlinarith
 
+/-- A probability-weighted average of pointwise bounds T x ≥ 0.206√(x + 1) − 1 is at least 0.206
+times the weighted square-root sum minus one [Montanaro2011]. -/
 theorem prop_2_4 (n : ℕ) (p T : Fin n → ℝ) (hp : ∀ x, 0 ≤ p x)
     (hsum : ∑ x : Fin n, p x = 1)
     (hT : ∀ x : Fin n, 0.206 * Real.sqrt (((x : ℕ) + 1 : ℝ)) - 1 ≤ T x) :
@@ -283,16 +340,20 @@ theorem prop_2_4 (n : ℕ) (p T : Fin n → ℝ) (hp : ∀ x, 0 ≤ p x)
           ring
     _ ≤ ∑ x : Fin n, p x * T x := Finset.sum_le_sum (fun x _ => hterm x)
 
+/-- The classical power-law cost ratio equals sumPow(k + 1, n)/sumPow(k, n). -/
 theorem powerLawD_eq (k : ℝ) (n : ℕ) :
     powerLawD k n = sumPow (k + 1) n / sumPow k n := by
   unfold powerLawD powerLawMass
   rw [sum_Icc_one_eq_sumPow (k + 1) n, sum_Icc_one_eq_sumPow k n]
 
+/-- The quantum power-law cost ratio equals sumPow(k + 1/2, n)/sumPow(k, n). -/
 theorem powerLawQ_eq (k : ℝ) (n : ℕ) :
     powerLawQ k n = sumPow (k + 1 / 2) n / sumPow k n := by
   unfold powerLawQ powerLawMass
   rw [sum_Icc_one_eq_sumPow (k + 1 / 2) n, sum_Icc_one_eq_sumPow k n]
 
+/-- Theta estimates for the numerator and denominator power sums give a Theta estimate for
+`powerLawD` by their ratio. -/
 theorem isTheta_powerLawD {k : ℝ} {gA gB : ℕ → ℝ}
     (hA : Asymptotics.IsTheta Filter.atTop (fun n => sumPow (k + 1) n) gA)
     (hB : Asymptotics.IsTheta Filter.atTop (fun n => sumPow k n) gB) :
@@ -308,6 +369,8 @@ theorem isTheta_powerLawD {k : ℝ} {gA gB : ℕ → ℝ}
   · filter_upwards with n
     rfl
 
+/-- Theta estimates for the numerator and denominator power sums give a Theta estimate for
+`powerLawQ` by their ratio. -/
 theorem isTheta_powerLawQ {k : ℝ} {gA gB : ℕ → ℝ}
     (hA : Asymptotics.IsTheta Filter.atTop (fun n => sumPow (k + 1 / 2) n) gA)
     (hB : Asymptotics.IsTheta Filter.atTop (fun n => sumPow k n) gB) :
@@ -323,18 +386,24 @@ theorem isTheta_powerLawQ {k : ℝ} {gA gB : ℕ → ℝ}
   · filter_upwards with n
     rfl
 
+/-- A Theta estimate by nᵃ/nᵇ becomes a Theta estimate by nᶜ when a − b = c. -/
 theorem isTheta_trans_rpow {f : ℕ → ℝ} {a b c : ℝ}
     (h : Asymptotics.IsTheta Filter.atTop f (fun n : ℕ => (n : ℝ) ^ a / (n : ℝ) ^ b))
     (hc : a - b = c) :
     Asymptotics.IsTheta Filter.atTop f (fun n : ℕ => (n : ℝ) ^ c) :=
   h.trans (isTheta_rpow_div hc)
 
+/-- A Theta estimate at infinity is preserved when both functions are replaced by eventually
+equal functions. -/
 theorem isTheta_of_eventuallyEq {f₁ f₂ g₁ g₂ : ℕ → ℝ}
     (hf : f₁ =ᶠ[Filter.atTop] f₂) (hg : g₁ =ᶠ[Filter.atTop] g₂)
     (h : Asymptotics.IsTheta Filter.atTop f₁ g₁) :
     Asymptotics.IsTheta Filter.atTop f₂ g₂ :=
   isTheta_congr h hf hg
 
+/-- For k < 0, under the stated eventual bounds on Q, gives the ten Theta classifications of
+`powerLawD` and `powerLawQ`, with power, logarithmic, and constant regimes at the thresholds
+−2, −3/2, and −1 [Montanaro2011]. -/
 theorem prop_2_5 (k : ℝ) (hk : k < 0) (Q : ℕ → ℝ)
     (hQ_pos : ∀ᶠ n : ℕ in Filter.atTop, 1 ≤ Q n)
     (hQ_lo : ∀ᶠ n : ℕ in Filter.atTop, 0.206 * powerLawQ k n - 1 ≤ Q n)
@@ -483,6 +552,7 @@ theorem prop_2_5 (k : ℝ) (hk : k < 0) (Q : ℕ → ℝ)
     exact isTheta_of_eventuallyEq (by filter_upwards with n; rfl)
       (by filter_upwards with n; norm_num) hQ
 
+/-- The power-law normalizing mass is positive for n ≥ 1. -/
 theorem powerLawMass_pos (k : ℝ) (n : ℕ) (hn : 1 ≤ n) : 0 < powerLawMass k n := by
   unfold powerLawMass
   apply Finset.sum_pos
@@ -493,6 +563,7 @@ theorem powerLawMass_pos (k : ℝ) (n : ℕ) (hn : 1 ≤ n) : 0 < powerLawMass k
     exact Real.rpow_pos_of_pos hx0 k
   · exact ⟨1, by simp [hn]⟩
 
+/-- For k < 0 and n ≥ 1, the quantum power-law cost ratio is at least one. -/
 theorem powerLawQ_ge_one (k : ℝ) (hk : k < 0) (n : ℕ) (hn : 1 ≤ n) :
     1 ≤ powerLawQ k n := by
   unfold powerLawQ
@@ -506,6 +577,8 @@ theorem powerLawQ_ge_one (k : ℝ) (hk : k < 0) (n : ℕ) (hn : 1 ≤ n) :
     exact Real.rpow_le_rpow_of_exponent_le hx1 (by linarith : k ≤ k + 1 / 2)
   simpa using! hle
 
+/-- For k < 0 and n ≥ 1, the quantum power-law ratio satisfies its stated lower comparison with
+coefficient 0.206 and upper comparison with factor πe. -/
 theorem powerLawQ_sandwich (k : ℝ) (hk : k < 0) (n : ℕ) (hn : 1 ≤ n) :
     0.206 * powerLawQ k n - 1 ≤ powerLawQ k n ∧
       powerLawQ k n ≤ Real.pi * Real.exp 1 * powerLawQ k n := by
@@ -514,6 +587,8 @@ theorem powerLawQ_sandwich (k : ℝ) (hk : k < 0) (n : ℕ) (hn : 1 ≤ n) :
     nlinarith [Real.pi_gt_three, Real.exp_one_gt_d9]
   constructor <;> nlinarith
 
+/-- For 0 < ε < 1/2, some exponent between −2 and −3/2 gives a bounded quantum power-law ratio
+while n^(1/2 − ε) is bounded above in big-O by the classical ratio [Montanaro2011]. -/
 theorem cor_2_6 (ε : ℝ) (hε0 : 0 < ε) (hε : ε < 1 / 2) :
     ∃ k : ℝ, -2 < k ∧ k < -(3 : ℝ) / 2 ∧
       Asymptotics.IsBigO Filter.atTop (fun n : ℕ => (n : ℝ) ^ (1 / 2 - ε))
@@ -538,6 +613,9 @@ theorem cor_2_6 (ε : ℝ) (hε0 : 0 < ε) (hε : ε < 1 / 2) :
     simpa [hexp] using! hth.isBigO_symm
   · exact (hQ5 (by linarith)).isBigO
 
+/-- For a unitary preparation whose marked probability is p in (0, 1), k iterations of the
+prepared amplification circuit have marked probability sin²((2k + 1)arcsin(√p))
+[Montanaro2011]. -/
 theorem lemma_3_1 {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (p : ℝ) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -560,19 +638,26 @@ theorem lemma_3_1 {I : Type} [Fintype I] [DecidableEq I]
     rw [hsin, Real.sq_sqrt hp0.le]; exact hp
   exact phase_mark_success_exact A j S (Real.arcsin (Real.sqrt p)) k hA hθ0 hθ1 hp'
 
+/-- The triple (k + 1, k, k + 1) recording the amplification access counts. -/
 def amplQueryLedger (k : ℕ) : ℕ × ℕ × ℕ := (k + 1, k, k + 1)
 
+/-- The three components of the amplification query ledger are k + 1, k, and k + 1
+[Montanaro2011]. -/
 theorem lemma_3_1_query_ledger (k : ℕ) :
     (amplQueryLedger k).1 = k + 1 ∧ (amplQueryLedger k).2.1 = k ∧
       (amplQueryLedger k).2.2 = k + 1 := by
   simp [amplQueryLedger]
 
+/-- Returns the assumed analytic bound for the Algorithm 3 query model with growth factor 1.162,
+bounded by the minimum of 83/√px + 4/3 and 53√n. -/
 theorem prop_3_2_reduction (n : ℕ) (hn : 0 < n) (px : ℝ) (hpx0 : 0 < px) (hpx1 : px < 1)
     (h_analytic : alg3QueryModel 1.162 px n ≤
       min (83 / Real.sqrt px + 4 / 3) (53 * Real.sqrt (n : ℝ))) :
     alg3QueryModel 1.162 px n ≤ min (83 / Real.sqrt px + 4 / 3) (53 * Real.sqrt (n : ℝ)) :=
   h_analytic
 
+/-- Pointwise Algorithm 3 cost bounds imply the advice-averaged bound obtained by splitting
+probabilities at 1/n, with coefficients 83 and 53 and additive constant 4/3 [Montanaro2011]. -/
 theorem cor_3_3 (n : ℕ) (hn : 0 < n) (prob : Fin n → ℝ) (T : Fin n → ℝ) (Tstar : ℝ)
     (hp : ∀ x, 0 ≤ prob x) (hsum : ∑ x : Fin n, prob x = 1)
     (hT : ∀ x, T x ≤ min (83 / Real.sqrt (prob x) + 4 / 3) (53 * Real.sqrt (n : ℝ)))
@@ -658,6 +743,7 @@ theorem cor_3_3 (n : ℕ) (hn : 0 < n) (prob : Fin n → ℝ) (T : Fin n → ℝ
     linarith
   linarith
 
+/-- Eventually nonnegative functions with f ≤ g eventually satisfy f = O(g) at infinity. -/
 theorem isBigO_of_eventually_le {f g : ℕ → ℝ}
     (hf : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ f n)
     (hg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ g n)
@@ -668,6 +754,9 @@ theorem isBigO_of_eventually_le {f g : ℕ → ℝ}
   rw [Real.norm_of_nonneg hf', Real.norm_of_nonneg hg', one_mul]
   exact hle
 
+/-- Transfers the assumed power-law cost-bound estimates to an eventually nonnegative function
+Tstar dominated by that bound, yielding the stated square-root, power, logarithmic, and
+constant big-O implications [Montanaro2011]. -/
 theorem prop_3_4 (k : ℝ) (hk : k < 0) (Tstar : ℕ → ℝ)
     (h_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ Tstar n)
     (h_bound_nonneg : ∀ᶠ n : ℕ in Filter.atTop, 0 ≤ powerLawTstarBound k n)

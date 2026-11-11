@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundStat
 import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorMomentBounds
+
+/-!
+# Tensor concentration on finite symmetric grids
+
+This module proves `tensorChebyshevGridBound` from second-moment estimates for tensor
+polynomials on symmetric bounded grids. The counting estimate supplies the concentration step in
+the analytic gradient analysis associated with [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `tensorChebyshevGridBound`: the stated degree-`k` threshold is exceeded at no more than `|S|^d
+  / r^(2*k)` points.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +32,8 @@ set_option maxHeartbeats 1600000
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- Proves the tensor-polynomial tail count on nonempty symmetric grids in `[-1/2, 1/2]`, with
+the stated threshold and tail fraction `r^(-2*k)`. See [GilyenArunachalamWiebe2019]. -/
 theorem tensorChebyshevGridBound : TensorChebyshevGridBound := by
   intro d k hd hk r hr S hbound hsym hne H hH
   let P := fun y : Fin d → S => ∑ a : Fin k → Fin d,H a*(∏ i : Fin k,(y (a i) : ℝ))

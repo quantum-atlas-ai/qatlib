@@ -14,6 +14,30 @@ import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
 import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
 import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
 import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+
+/-!
+# Claims for preentangled compilation and measurement gates
+
+`Clause21Claim` packages branch and channel equivalence for preentangled compilation, resource
+counts, and zero-probability branch behavior. `Clause22Claim` packages the explicit wire, CNOT,
+and Figure 2b formulas, finite-gate execution, communication counts, and source-pulse
+factorization.
+
+These propositions organize concrete measurement-based constructions in the setting of
+[RaussendorfBriegel2000] and [RaussendorfBriegel2001], including the explicitly stated Figure 2b
+normalization boundary.
+
+## Main statements
+
+* `Clause21Claim`: the preentangled compilation specification.
+* `Clause22Claim`: the gate-construction and resource specification.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+* [Raussendorf and Briegel, 2001][RaussendorfBriegel2001]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -35,6 +59,8 @@ open Qatlib
 open Matrix
 open scoped ComplexOrder
 
+/-- The conjunction of branch and channel equivalence for preentangled compilation, the
+Bell-word resource counts, and vanishing of zero-probability branches. -/
 def Clause21Claim : Prop :=
   (∀ (n : ℕ) (gs : List (ClusterNetworkGate n)) (hg : networkLegal gs)
       (hist : Fin gs.length → Bool × Bool) (ρ : Operator (2 ^ n)),
@@ -58,6 +84,9 @@ def Clause21Claim : Prop :=
         instrumentProb (networkHistoryInstrument gs hg) ρ hist = 0 →
           (mbqcPreentangledInstrument gs hg).branch hist ρ = 0)
 
+/-- The conjunction of the wire and CNOT branch formulas, the Figure 2b normalization formula
+and its counterexample, finite-gate execution, communication counts, and source-pulse
+factorization. -/
 def Clause22Claim : Prop :=
   (∀ (a : ℝ) (ρ : Operator 2) (b b' : Bool),
     rbWireBranch a b ρ = rbWireBranch a b' ρ ∧

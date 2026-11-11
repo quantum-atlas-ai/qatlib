@@ -17,10 +17,33 @@ import Mathlib.Tactic.ByCases
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SimpRw
 
+/-!
+# Weighted hash deviation with side information
+
+The module realizes each side information class as a masked complex weight and applies the
+vector hash estimate to these masks. It bounds the average sum of absolute bucket deviations by
+a square root involving the side information cardinality, bucket cardinality, and total squared
+input weight.
+
+This finite aggregation estimate complements the sampling and sketching framework of
+[ChiaEtAl2022].
+
+## Main statements
+
+* `partition_masked_vector_mass`: masking partitions the squared input mass.
+* `weighted_hash_partition_deviation_bound`: the average partition deviation estimate.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
 open scoped BigOperators
 
+/-- A joint hash and side information bucket is a hash bucket of the weight masked to that side
+information value. -/
 private theorem partition_bucket_masked
     {H X A T : Type} [Fintype X] [DecidableEq A] [DecidableEq T]
     (hash : H → X → A) (side : X → T) (p : X → ℂ)
@@ -32,6 +55,8 @@ private theorem partition_bucket_masked
   intro x _
   by_cases hx : hash r x = a <;> simp [weightedHashPartitionWeight, hx]
 
+/-- A centered joint bucket equals the hash deviation of the weight masked to its side
+information value. -/
 private theorem partition_deviation_masked
     {H X A T : Type} [Fintype X] [Fintype A] [DecidableEq A] [DecidableEq T]
     (hash : H → X → A) (side : X → T) (p : X → ℂ)
@@ -42,6 +67,8 @@ private theorem partition_deviation_masked
   rw [partition_bucket_masked]
   rfl
 
+/-- The total vector mass of all side information masks equals the total squared norm of the
+original weights. -/
 private theorem partition_masked_vector_mass
     {X T : Type} [Fintype X] [Fintype T] [DecidableEq T]
     (side : X → T) (p : X → ℂ) :
@@ -58,6 +85,8 @@ private theorem partition_masked_vector_mass
   simp_rw [hterm]
   simp
 
+/-- Under reciprocal cardinality pair collision probabilities, the average partition deviation
+is at most `sqrt (|T| * (|A| - 1) * ∑ x, Complex.normSq (p x))`. -/
 theorem weighted_hash_partition_deviation_bound
     (H X A T : Type) [Fintype H] [Nonempty H] [Fintype X]
     [Fintype A] [Nonempty A] [DecidableEq A] [Fintype T] [DecidableEq T]

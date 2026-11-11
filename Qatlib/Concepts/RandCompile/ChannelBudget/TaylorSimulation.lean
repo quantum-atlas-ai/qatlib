@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorSimulationDefs
+
+/-!
+# Coefficient normalization for Taylor simulation
+
+This module proves coefficient-mass and preparation identities for a finite time-grid Taylor
+construction. The linear-combination method is described in [ChildsWiebe2012], and
+time-dependent Hamiltonian simulation is treated in [BerryEtAl2020Dyson].
+
+Under the stated short-time scaling condition, two cancelling padding coefficients bring the
+total coefficient mass to two. The resulting `cubeAmplitude` values are normalized, and the
+phase and preparation matrices are unitary.
+
+## Main statements
+
+* `cube_total_mass_eq_two`: computes the padded coefficient mass.
+* `cube_amplitude_sq_sum`: proves normalization of the preparation amplitudes.
+* `cubePrepare_unitary`: proves unitarity of the preparation matrix.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+* [Berry et al., 2020][BerryEtAl2020Dyson]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.ResetDiscard
 open Qatlib.Concepts.BlockEncoding.EncodingCore
@@ -21,12 +45,16 @@ open Classical
 open scoped BigOperators
 set_option warningAsError false
 
+/-- Summing products over all length-`n` choices from a finite type equals the `n`th power of
+the sum of the individual weights. -/
 private lemma sum_prod_fun {κ : Type} [Fintype κ] (n : ℕ) (f : κ → ℝ) :
     ∑ p : Fin n → κ, ∏ i, f (p i) = (∑ a, f a) ^ n := by
   have h := Finset.sum_pow' (Finset.univ : Finset κ) f n
   rw [Fintype.piFinset_univ] at h
   simpa using! h.symm
 
+/-- Summing products of absolute coefficient values over time-grid words equals the
+corresponding grid-weight sum raised to the word length. -/
 private lemma sum_prod_grid {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ)
     (n : ℕ) :
     ∑ u : Fin n → (Fin M × J), ∏ a, |h (gridTime τ M (u a).1) (u a).2|
@@ -36,6 +64,7 @@ private lemma sum_prod_grid {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ :
   rw [Fintype.piFinset_univ] at h
   simpa using! h.symm
 
+/-- The product `(a^l / c^l) * b^l` equals `(a * (b / c))^l`. -/
 private lemma pow_div_mul (a b c : ℝ) (l : ℕ) :
     (a ^ l / c ^ l) * b ^ l = (a * (b / c)) ^ l := by
   calc a ^ l / c ^ l * b ^ l = (a ^ l * b ^ l) / c ^ l := by ring
@@ -43,6 +72,8 @@ private lemma pow_div_mul (a b c : ℝ) (l : ℕ) :
     _ = (a * b / c) ^ l := by rw [← div_pow]
     _ = (a * (b / c)) ^ l := by rw [show a * b / c = a * (b / c) from by ring]
 
+/-- A Taylor word coefficient has norm equal to its time-power and factorial factor times the
+product of sampled absolute coefficients, divided by the grid-size power. -/
 theorem cubeCoeff_norm_inl {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ)
     (w : Σ l : Fin (K + 1), Fin l.val → (Fin M × J)) :
     ‖cubeCoeff h τ M K (Sum.inl w)‖ =
@@ -66,12 +97,16 @@ theorem cubeCoeff_norm_inl {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : 
   rw [cubeCoeff, norm_mul, norm_div, h1, h2, h3]
   ring
 
+/-- The sum of absolute coefficient values over all time-grid and term-index pairs equals
+`cubeLambda`. -/
 private lemma cubeLambda_eq_prod {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) :
     (∑ p : Fin M × J, |h (gridTime τ M p.1) p.2|) = cubeLambda h τ M := by
   rw [Fintype.sum_prod_type]
   unfold cubeLambda
   exact Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun m _ => rfl
 
+/-- For a positive grid size, summing coefficient norms over words of a fixed order gives
+`cubeOrderMass`. -/
 theorem cubeOrderMass_eq {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ)
     (hM : 0 < M) (l : Fin (K + 1)) :
     ∑ u : Fin l.val → (Fin M × J), ‖cubeCoeff h τ M K (Sum.inl ⟨l, u⟩)‖
@@ -101,6 +136,7 @@ theorem cubeOrderMass_eq {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : �
           _ = (|τ| * cubeScale h τ M) ^ (l.val : ℕ) / l.val.factorial := by
               unfold cubeScale; rfl
 
+/-- For a positive grid size, the total unpadded Taylor coefficient mass equals `cubeS0`. -/
 theorem cubeS0_eq {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ)
     (hM : 0 < M) :
     ∑ w : Σ l : Fin (K + 1), Fin l.val → (Fin M × J), ‖cubeCoeff h τ M K (Sum.inl w)‖
@@ -113,6 +149,8 @@ theorem cubeS0_eq {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M :
         exact Fin.sum_univ_eq_sum_range (fun l => cubeOrderMass h τ M l) (K + 1)
     _ = cubeS0 h τ M K := rfl
 
+/-- Under nonnegative scale and the short-time condition, the unpadded mass is at most `2 -
+(1/2)^K`. -/
 theorem cubeS0_le_two {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ)
     (hscale : 0 ≤ cubeScale h τ M) (hτ : |τ| * cubeScale h τ M ≤ 1 / 2) :
     cubeS0 h τ M K ≤ 2 - (1 / 2 : ℝ) ^ K := by
@@ -133,6 +171,8 @@ theorem cubeS0_le_two {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) 
         field_simp
         ring
 
+/-- The false padding label has coefficient equal to minus half the deficit of the unpadded mass
+from two. -/
 private lemma cubeCoeff_padding_false {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ)
     (M : ℕ) (K : ℕ) :
     cubeCoeff h τ M K (Sum.inr false) = -(((2 - cubeS0 h τ M K) / 2 : ℝ) : ℂ) := by
@@ -140,6 +180,8 @@ private lemma cubeCoeff_padding_false {J : Type} [Fintype J] (h : ℝ → J → 
   push_cast
   ring
 
+/-- The true padding label has coefficient equal to half the deficit of the unpadded mass from
+two. -/
 private lemma cubeCoeff_padding_true {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ)
     (M : ℕ) (K : ℕ) :
     cubeCoeff h τ M K (Sum.inr true) = (((2 - cubeS0 h τ M K) / 2 : ℝ) : ℂ) := by
@@ -147,6 +189,8 @@ private lemma cubeCoeff_padding_true {J : Type} [Fintype J] (h : ℝ → J → �
   push_cast
   ring
 
+/-- For a positive grid size and the stated short-time scale bounds, the padded Taylor
+coefficient mass is exactly two. -/
 theorem cube_total_mass_eq_two {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ)
     (K : ℕ) (hM : 0 < M) (hscale : 0 ≤ cubeScale h τ M)
     (hτ : |τ| * cubeScale h τ M ≤ 1 / 2) :
@@ -172,6 +216,8 @@ theorem cube_total_mass_eq_two {J : Type} [Fintype J] (h : ℝ → J → ℝ) (�
   rw [Fintype.sum_sum_type, cubeS0_eq h τ M K hM, hpad]
   linarith
 
+/-- For a positive grid size and the stated short-time scale bounds, the squared preparation
+amplitudes sum to one. -/
 theorem cube_amplitude_sq_sum {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ)
     (K : ℕ) (hM : 0 < M) (hscale : 0 ≤ cubeScale h τ M)
     (hτ : |τ| * cubeScale h τ M ≤ 1 / 2) :
@@ -180,6 +226,8 @@ theorem cube_amplitude_sq_sum {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ
   rw [← Finset.sum_div, cube_total_mass_eq_two h τ M K hM hscale hτ]
   norm_num
 
+/-- Every padded Taylor coefficient factors as twice the squared amplitude times its coefficient
+phase. -/
 theorem cubeCoeff_split {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ)
     (x : CubeLabel J M K) :
     cubeCoeff h τ M K x =
@@ -196,6 +244,7 @@ theorem cubeCoeff_split {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ
     rw [hcast]
     exact (mul_div_cancel₀ _ (by exact_mod_cast (ne_of_gt hn))).symm
 
+/-- The diagonal coefficient-phase gate is unitary. -/
 theorem cubePhaseGate_unitary {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ)
     (K : ℕ) :
     cubePhaseGate h τ M K ∈ Matrix.unitaryGroup (CubeLabel J M K) ℂ := by
@@ -205,6 +254,8 @@ theorem cubePhaseGate_unitary {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ
   funext x
   exact coefficientPhase_unit _
 
+/-- For a positive grid size and the stated short-time scale bounds, the Taylor preparation
+matrix is unitary. -/
 theorem cubePrepare_unitary {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ)
     (M : ℕ) (K : ℕ) (hM : 0 < M) (hscale : 0 ≤ cubeScale h τ M)
     (hτ : |τ| * cubeScale h τ M ≤ 1 / 2) :
@@ -212,6 +263,7 @@ theorem cubePrepare_unitary {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ :
   nonnegativePrepare_unitary _ _ (fun _ => Real.sqrt_nonneg _)
     (cube_amplitude_sq_sum h τ M K hM hscale hτ)
 
+/-- Under the preparation hypotheses, the preparation matrix times its adjoint is the identity. -/
 theorem cubePrepare_star_mul_one {J : Type} [Fintype J]
     (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ) (hM : 0 < M)
     (hscale : 0 ≤ cubeScale h τ M) (hτ : |τ| * cubeScale h τ M ≤ 1 / 2) :
@@ -221,6 +273,7 @@ theorem cubePrepare_star_mul_one {J : Type} [Fintype J]
   rw [Matrix.mem_unitaryGroup_iff] at hunit
   exact hunit
 
+/-- The coefficient-phase gate times its adjoint is the identity. -/
 theorem cubePhaseGate_star_mul_one {J : Type} [Fintype J]
     (h : ℝ → J → ℝ) (τ : ℝ) (M : ℕ) (K : ℕ) :
     cubePhaseGate h τ M K * star (cubePhaseGate h τ M K) = 1 := by

@@ -9,6 +9,24 @@ import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.RpowArith
 import Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.GameReductions
 import Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.TreeEmbeddingBound
 import Mathlib.Tactic
+
+/-!
+# Classical success probability bound
+
+This module combines the assumed game comparison and tree embedding estimates into the classical
+success bound used in Theorem 9 of [ChildsEtAl2003]. For `n ≥ 3` and `t ≤ 2^(n/6)`,
+`theorem9_classical_query_lower_bound` bounds the first winning event by `4 * 2^(-n/6)`.
+
+## Main statements
+
+* `theorem9_classical_query_lower_bound`: the success bound under the two preceding probability
+  estimates.
+
+## References
+
+* [Childs et al., 2003][ChildsEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +40,9 @@ namespace Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.ClassicalLower
 open Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
 open Qatlib.Papers.QWalkSpeedup02.MainResults.Common.RpowArith
 
+/-- For `n ≥ 3` and `t ≤ 2^(n/6)`, the assumed game comparison and bound on the second winning
+event imply that the first winning probability is at most `4 * 2^(-n/6)`. See [Childs et
+al., Theorem 9][ChildsEtAl2003]. -/
 theorem theorem9_classical_query_lower_bound
     {Ω : Type*} [Fintype Ω] (P : FinProb Ω) (n t : ℕ) (hn : 3 ≤ n)
     (ht : (t : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 6))

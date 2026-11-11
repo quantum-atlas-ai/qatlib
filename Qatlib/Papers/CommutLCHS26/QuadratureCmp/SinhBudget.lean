@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhError
+
+/-!
+# Budget selection for sinh quadrature
+
+This module selects the sinh quadrature mesh `step` and the tail `selectedWindow` from positive
+error budgets. Under the analytic-width and positivity hypotheses, the resulting finite rule
+satisfies the combined budget estimate associated with [AftabAnTrivisa2026].
+
+## Main statements
+
+* `step_pos`: positivity of the selected mesh step.
+* `selected_error`: a finite quadrature error bounded by the sum of mesh and tail budgets.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -24,16 +42,22 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The budget-selected sinh mesh step, capped at one and scaled by the strip half-width and
+mesh logarithm. -/
 def step (β M ε : ℝ) : ℝ := min 1 (2 * Real.pi * β / meshLog M ε)
 
+/-- The sinh window obtained from the square root of the selected tail logarithm. -/
 def selectedWindow (n : ℕ) (b c d η ε : ℝ) : ℝ :=
   window c η (Real.sqrt (tailLog (tailConstant n b c d) ε))
 
+/-- The selected mesh step is positive for positive half-width, strip mass, and error budget. -/
 theorem step_pos {β M ε : ℝ} (hβ : 0 < β) (hM : 0 < M) (hε : 0 < ε) : 0 < step β M ε := by
   have hl := meshLog_pos hM hε
   unfold step
   positivity
 
+/-- For a nonempty matrix index type and positive scales, the strip mass is positive at a
+half-width below `analyticWidth` and `π / 4`. -/
 theorem stripMass_pos [Nonempty ι] (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hβ₀ : 0 ≤ β) (hβ : β < Real.pi / 4) (T : ℝ) (H L : Matrix ι ι ℂ)
     (hw : (β : EReal) < analyticWidth n b c d T η H L) :
@@ -48,6 +72,9 @@ theorem stripMass_pos [Nonempty ι] (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (
   exact mul_pos (mul_pos (mul_pos hη hp) (Real.exp_pos _))
     (Real.sqrt_pos.mpr (div_pos (by positivity) hB))
 
+/-- The selected sinh mesh step is positive, and the selected finite rule has error at most the
+sum of the positive mesh and tail budgets under the stated analytic-width hypotheses; see
+[Aftab et al., Corollary 4.18][AftabAnTrivisa2026]. -/
 theorem selected_error [Nonempty ι] (n : ℕ) (b c d η β : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hη : 0 < η) (hβ₀ : 0 < β) (hβ : β < Real.pi / 4)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef) {T εm εt : ℝ}

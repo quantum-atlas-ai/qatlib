@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabLimit07.MainResults.RuntimeBound
+
+/-!
+# A complement dimension consequence of the runtime bound
+
+Rearranges a scalar runtime inequality to obtain a lower bound on the complementary eigenspace
+dimension. The argument uses positivity of the configuration count, solution-set size, energy
+bound, and complement dimension, together with nonnegative runtime. See [IoannouMosca2008].
+
+## Main statements
+
+* `complement_dim_ge`: A runtime lower bound implies the corresponding complement dimension
+  lower bound.
+
+## References
+
+* [Ioannou and Mosca, 2008][IoannouMosca2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +37,8 @@ open scoped BigOperators Matrix
 
 variable {n : ℕ}
 
+/-- Under the stated positivity assumptions and `T ≥ 0`, a runtime lower bound yields `(c * sqrt
+N - cardP0 / sqrt N) / (2 * cardP0 * maxF * T) ≤ compDim` [IoannouMosca2008]. -/
 theorem complement_dim_ge {c cardP0 maxF compDim T N : ℝ}
     (hN : 0 < N) (hT : 0 ≤ T) (hcard : 0 < cardP0) (hmaxF : 0 < maxF)
     (hcomp : 0 < compDim)

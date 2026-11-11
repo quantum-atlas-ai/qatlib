@@ -9,6 +9,24 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
+
+/-!
+# Quadratic information loss at a balanced cut
+
+This module proves `lemma2_3Sharp_answer` for the ordered Bayesian search analysis of
+[BenOrHassidim2007]. Under the balanced-cut and parameter hypotheses of `Lemma2_3Sharp`, the
+expected information increment is at least `queryInfo p` minus 4ε²(1 - 2p)². The proof combines
+the exact information identity with a quadratic bound on the answer entropy deficit.
+
+## Main statements
+
+* `lemma2_3Sharp_answer`: the quadratic loss estimate satisfies `Lemma2_3Sharp`.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.3][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +34,9 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- Proves `Lemma2_3Sharp`: under its balanced-cut and parameter hypotheses, expected
+information gain is at least `queryInfo p` - 4ε²(1 - 2p)² [Ben-Or and Hassidim, Lemma
+2.3][BenOrHassidim2007]. -/
 theorem lemma2_3Sharp_answer : Lemma2_3Sharp := by
   intro n a i p ε hn hp hp1 hε hcap ha hsum hqlo hqhi
   let L : ℝ := Real.log n / Real.log 2

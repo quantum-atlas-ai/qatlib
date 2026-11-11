@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+/-!
+# Contractive matrix evolution and Duhamel bounds
+
+The evolution `evolution A t` is the matrix exponential `exp (-t • A)`. Positivity of the
+Hermitian part of the generator gives contraction and exponential decay estimates; the Duhamel
+identity then bounds perturbations using the integrated damping factor `damping`. For
+background, see [ReedSimon1980I].
+
+## Main statements
+
+* `evolution_sub_eq_integral`: Duhamel formula for two constant generators.
+* `norm_evolution_sub_le_damping`: a perturbation bound with exponential damping.
+
+## References
+
+* [Reed and Simon, 1980][ReedSimon1980I]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,12 +36,16 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The matrix evolution `exp ((-t) • A)` for a constant generator `A`. -/
 def evolution (A : Matrix I I ℂ) (t : ℝ) : Matrix I I ℂ :=
   NormedSpace.exp ((-t) • A)
 
+/-- The constant-generator evolution at time zero is the identity matrix. -/
 @[simp] theorem evolution_zero (A : Matrix I I ℂ) : Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A 0 = 1 := by
   simp [Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution]
 
+/-- The exponential evolution equals the time-ordered evolution of the constant generator
+starting at zero. -/
 theorem evolution_eq_ordered (A : Matrix I I ℂ) (t : ℝ) :
     Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A t = Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution (fun _ => A) 0 t := by
   have hd (u : ℝ) : HasDerivAt (Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A) (-(A * Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A u)) u := by
@@ -33,6 +56,8 @@ theorem evolution_eq_ordered (A : Matrix I I ℂ) (t : ℝ) :
     (Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A) (Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution (fun _ => A) 0) 0 (by simp)
     hd (Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution_hasDerivAt _ continuous_const 0)) t
 
+/-- If `A + Aᴴ` is positive semidefinite, the evolution has norm at most one at every
+nonnegative time. -/
 theorem norm_evolution_le_one (A : Matrix I I ℂ)
     (hA : (A + Aᴴ).PosSemidef) {t : ℝ} (ht : 0 ≤ t) :
     ‖Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A t‖ ≤ 1 := by
@@ -40,6 +65,7 @@ theorem norm_evolution_le_one (A : Matrix I I ℂ)
   exact Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.ordered_evolution_psd_contraction I
       (fun _ => A) continuous_const (fun _ => hA) 0 t ht
 
+/-- Adding `γ • 1` to the generator multiplies the evolution by the scalar `exp (-γ * t)`. -/
 theorem evolution_scalar_shift (A : Matrix I I ℂ) (γ t : ℝ) :
     Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution (A + γ • (1 : Matrix I I ℂ)) t =
       Real.exp (-γ * t) • Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A t := by
@@ -55,6 +81,8 @@ theorem evolution_scalar_shift (A : Matrix I I ℂ) (γ t : ℝ) :
   congr 2
   ring
 
+/-- If the Hermitian part of `A - γ • 1` is positive semidefinite, the evolution norm is at most
+`exp (-γ * t)` for nonnegative time. -/
 theorem norm_evolution_le_exp (A : Matrix I I ℂ) (γ : ℝ)
     (hA : ((A - γ • (1 : Matrix I I ℂ)) +
       (A - γ • (1 : Matrix I I ℂ))ᴴ).PosSemidef)
@@ -66,6 +94,8 @@ theorem norm_evolution_le_exp (A : Matrix I I ℂ) (γ : ℝ)
   exact (mul_le_mul_of_nonneg_left (Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.norm_evolution_le_one _ hA ht)
     (Real.exp_pos _).le).trans_eq (mul_one _)
 
+/-- The difference of two constant-generator evolutions equals the integral of `evolution A s *
+(B - A) * evolution B (t - s)`. -/
 theorem evolution_sub_eq_integral (A B : Matrix I I ℂ) (t : ℝ) :
     Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A t - Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution B t =
       ∫ s in 0..t, Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution A s * (B - A) * Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution B (t - s) := by
@@ -91,9 +121,12 @@ theorem evolution_sub_eq_integral (A B : Matrix I I ℂ) (t : ℝ) :
     (((hcA.mul continuous_const).mul hcB).intervalIntegrable 0 t)
   simpa using! hi.symm
 
+/-- The integrated exponential damping factor, equal to `t` when `γ = 0` and to `(1 - exp (-γ *
+t)) / γ` otherwise. -/
 def damping (γ t : ℝ) : ℝ :=
   if γ = 0 then t else (1 - Real.exp (-γ * t)) / γ
 
+/-- The integral of `exp (-γ * s)` from zero to `t` equals `damping γ t`. -/
 theorem integral_exp_neg_mul (γ t : ℝ) :
     (∫ s in 0..t, Real.exp (-γ * s)) = Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.damping γ t := by
   by_cases hγ : γ = 0
@@ -113,6 +146,8 @@ theorem integral_exp_neg_mul (γ t : ℝ) :
         if_neg hγ, mul_zero, Real.exp_zero]
     ring
 
+/-- If `A - γ • 1` and `B` have positive semidefinite Hermitian parts, their evolution
+difference is bounded by `damping γ t * ‖A - B‖` for nonnegative time. -/
 theorem norm_evolution_sub_le_damping (A B : Matrix I I ℂ) (γ : ℝ)
     (hA : ((A - γ • (1 : Matrix I I ℂ)) +
       (A - γ • (1 : Matrix I I ℂ))ᴴ).PosSemidef)
@@ -140,6 +175,8 @@ theorem norm_evolution_sub_le_damping (A B : Matrix I I ℂ) (γ : ℝ)
       rw [intervalIntegral.integral_mul_const,
           Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.integral_exp_neg_mul]
 
+/-- For generators with positive semidefinite Hermitian parts, the evolution difference at
+nonnegative time is at most `t * ‖A - B‖`. -/
 theorem norm_evolution_sub_le (A B : Matrix I I ℂ)
     (hA : (A + Aᴴ).PosSemidef) (hB : (B + Bᴴ).PosSemidef)
     {t : ℝ} (ht : 0 ≤ t) :
@@ -147,6 +184,8 @@ theorem norm_evolution_sub_le (A B : Matrix I I ℂ)
   simpa [Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.damping] using!
       Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.norm_evolution_sub_le_damping A B 0 (by simpa using! hA) hB ht
 
+/-- If `A - γ • 1` and `B` are positive semidefinite, their evolution difference is bounded by
+`damping γ t * ‖A - B‖` for nonnegative time. -/
 theorem norm_evolution_sub_le_of_posSemidef (A B : Matrix I I ℂ) (γ : ℝ)
     (hA : (A - γ • (1 : Matrix I I ℂ)).PosSemidef) (hB : B.PosSemidef)
     {t : ℝ} (ht : 0 ≤ t) :
@@ -155,6 +194,8 @@ theorem norm_evolution_sub_le_of_posSemidef (A B : Matrix I I ℂ) (γ : ℝ)
     (by simpa only [hA.isHermitian.eq] using! hA.add hA)
     (by simpa only [hB.isHermitian.eq] using! hB.add hB) ht
 
+/-- Under the positive semidefiniteness assumptions, the Euclidean norm of the evolved-vector
+difference is at most `damping γ t * ‖A - B‖` times the input norm. -/
 theorem norm_evolution_mulVec_sub_le (A B : Matrix I I ℂ) (γ : ℝ)
     (hA : (A - γ • (1 : Matrix I I ℂ)).PosSemidef) (hB : B.PosSemidef)
     {t : ℝ} (ht : 0 ≤ t) (v : Qatlib.Foundations.PureStateMath.QState I) :

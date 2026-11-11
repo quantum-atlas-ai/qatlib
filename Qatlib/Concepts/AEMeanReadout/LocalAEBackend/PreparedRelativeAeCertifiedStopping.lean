@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeAdaptiveLaw
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesExt
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+
+/-!
+# Certified stopping with fresh median estimates
+
+This module develops QPE tail bounds and transfers them to the two-phase distribution of
+prepared amplitude estimation. Building on [BrassardEtAl2002], it forms a median of fresh
+independent AE samples and equips its selected label with certified interval endpoints and a
+relative stopping test.
+
+Median failure bounds include both a uniform geometric estimate and a bound depending on the
+marked probability. Finite product-law identities support the probability calculations, and an
+accurate median at a sufficiently fine grid satisfies the readiness test.
+
+## Main statements
+
+* `qpeKernel_phase_tail_le`: bound QPE mass outside a circular phase window.
+* `freshMedian_relative_band`: derive relative error from median certification.
+* `freshStageLaw_window_failure_precise`: give the refined median failure bound.
+* `freshMedian_fires_at_fine_stage`: establish readiness at a sufficiently fine accurate stage.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -40,6 +65,7 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The norm of `exp(2πit) - 1` equals `2 |sin(πt)|`. -/
 theorem relativeAe_qpe_chord (t : ℝ) :
     ‖Complex.exp (2 * Real.pi * Complex.I * t) - 1‖ = 2 * |Real.sin (Real.pi * t)| := by
   have he : (2 * Real.pi * Complex.I * t : ℂ) =
@@ -48,6 +74,7 @@ theorem relativeAe_qpe_chord (t : ℝ) :
     show (2 * Real.pi * t) / 2 = Real.pi * t by ring, Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- At positive circular distance `d`, the QPE kernel norm is at most `|sin(πMφ)| / (2Md)`. -/
 theorem qpeKernel_norm_le (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M)
     (hd : 0 < phaseDistance φ (z.val / (M : ℝ))) :
     ‖qpeKernel M φ z‖ ≤ |Real.sin (Real.pi * ((M : ℝ) * φ))| /
@@ -77,6 +104,8 @@ theorem qpeKernel_norm_le (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M)
     0 < 2 * (M : ℝ) * phaseDistance φ (z.val / (M : ℝ)))).mpr
   nlinarith [hmain]
 
+/-- At positive circular distance `d`, the squared QPE kernel norm is at most `sin²(πMφ) /
+(2Md)²`. -/
 theorem qpeKernel_norm_sq_le (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M)
     (hd : 0 < phaseDistance φ (z.val / (M : ℝ))) :
     ‖qpeKernel M φ z‖ ^ 2 ≤ Real.sin (Real.pi * ((M : ℝ) * φ)) ^ 2 /
@@ -85,6 +114,8 @@ theorem qpeKernel_norm_sq_le (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M)
   have hs := pow_le_pow_left₀ (norm_nonneg (qpeKernel M φ z)) h 2
   simpa only [div_pow, sq_abs] using! hs
 
+/-- For `k > 1`, the QPE mass at scaled phase distance greater than `k` is at most `sin²(πMφ) /
+(2(k - 1))`. -/
 theorem qpeKernel_phase_tail_le (M : ℕ) (hM : 0 < M) (φ k : ℝ) (hk : 1 < k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
       k < (M : ℝ) * phaseDistance φ (z.val / (M : ℝ))), ‖qpeKernel M φ z‖ ^ 2
@@ -155,6 +186,7 @@ theorem qpeKernel_phase_tail_le (M : ℕ) (hM : 0 < M) (φ k : ℝ) (hk : 1 < k)
       field_simp [ne_of_gt (sub_pos.mpr hk)]
       ring
 
+/-- The QPE mass at scaled phase distance greater than one is at most `sin²(πMφ)`. -/
 theorem qpeKernel_phase_one_tail_le (M : ℕ) (hM : 0 < M) (φ : ℝ) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
       1 < (M : ℝ) * phaseDistance φ (z.val / (M : ℝ))), ‖qpeKernel M φ z‖ ^ 2
@@ -256,6 +288,8 @@ theorem qpeKernel_phase_one_tail_le (M : ℕ) (hM : 0 < M) (φ : ℝ) :
         Real.sin (Real.pi * ((M : ℝ) * φ)) ^ 2 / 2 := add_le_add hp hn
     _ = _ := by ring
 
+/-- For marked probability `sin² θ` with `0 < θ < π/2`, the prepared AE mass farther than `k/M`
+from both eigenphases is at most `sin²(Mθ) / (2(k - 1))` for `k > 1`. -/
 theorem preparedAe_two_phase_phase_tail_le (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -309,6 +343,8 @@ theorem preparedAe_two_phase_phase_tail_le (M : ℕ) (hM : 2 ≤ M)
       rw [← Finset.sum_div, Finset.sum_add_distrib]
     _ ≤ _ := by linarith
 
+/-- For `0 < θ < π/2` and `k > 1`, the prepared AE mass outside both phase windows is at most
+`π²M²sin² θ / (8(k - 1))`. -/
 theorem preparedAe_two_phase_phase_tail_le_of_sq (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -349,6 +385,8 @@ theorem preparedAe_two_phase_phase_tail_le_of_sq (M : ℕ) (hM : 2 ≤ M)
       field_simp [ne_of_gt (sub_pos.mpr hk)]
       ring
 
+/-- If an AE event lies in events of QPE mass at most `C` for each eigenphase, its prepared AE
+mass is at most `C`. -/
 theorem preparedAe_two_phase_event_le_of_subset (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -384,6 +422,8 @@ theorem preparedAe_two_phase_event_le_of_subset (M : ℕ) (hM : 2 ≤ M)
     _ ≤ (C + C) / 2 := by linarith
     _ = C := by ring
 
+/-- For marked probability `sin² θ` with `0 < θ < π/2`, the prepared AE mass farther than `1/M`
+from both eigenphases is at most `sin²(Mθ)`. -/
 theorem preparedAe_two_phase_one_tail_le (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -410,6 +450,8 @@ theorem preparedAe_two_phase_one_tail_le (M : ℕ) (hM : 2 ≤ M)
     (fun z => 1 < (M : ℝ) * phaseDistance (-θ / Real.pi) (z.val / (M : ℝ)))
     (fun _ h => h.1) (fun _ h => h.2) _ hlo hhi
 
+/-- For marked probability `sin² θ` with `0 < θ < π/2`, the prepared AE mass outside both
+radius-`1/M` phase windows is at most `π²M²sin² θ / 4`. -/
 theorem preparedAe_two_phase_one_tail_le_of_sq (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
@@ -441,6 +483,8 @@ theorem preparedAe_two_phase_one_tail_le_of_sq (M : ℕ) (hM : 2 ≤ M)
       mul_le_mul_of_nonneg_left hθsq (sq_nonneg (M : ℝ))
     _ = _ := by ring
 
+/-- For marked probability `0 < a < 1`, the prepared AE mass farther than `1/M` from both phases
+`±arcsin(√a)/π` is at most `π²M²a / 4`. -/
 theorem preparedAe_one_tail_le (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a < 1)
@@ -462,18 +506,23 @@ theorem preparedAe_one_tail_le (M : ℕ) (hM : 2 ≤ M)
   rw [← hθa] at hresult
   simpa only [θ] using! hresult
 
+/-- The sorted median of the amplitude estimates from `2r + 1` phase labels. -/
 noncomputable def freshMedianEstimate (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) : ℝ :=
   sortedBlockMedian r (fun i => aeEstimate M (ω i))
 
+/-- The finite distribution of `2r + 1` independent prepared AE labels at adaptive stage `k`. -/
 noncomputable def freshStageLaw (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     FinDist (Fin (2 * r + 1) → Fin (adaptiveGrid k)) :=
   independent (fun _ => adaptiveStageLaw k A j S hA)
 
+/-- The probability of a fresh stage sample tuple equals its independent-sample probability
+under `adaptiveStageLaw`. -/
 @[simp] theorem freshStageLaw_prob (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (ω : Fin (2 * r + 1) → Fin (adaptiveGrid k)) :
     (freshStageLaw k r A j S hA).prob ω = (adaptiveStageLaw k A j S hA).probOf ω := rfl
 
+/-- The median estimate equals the amplitude estimate of at least one sampled label. -/
 theorem freshMedianEstimate_mem (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) :
     ∃ i, freshMedianEstimate M r ω = aeEstimate M (ω i) := by
   have hlen : ((insertionSortCounted (List.ofFn (fun i => aeEstimate M (ω i)))).1).length
@@ -491,22 +540,30 @@ theorem freshMedianEstimate_mem (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) :
   obtain ⟨i, hi⟩ := List.mem_ofFn.mp hmem'
   exact ⟨i, hi.symm⟩
 
+/-- Choose a sampled label whose amplitude estimate equals the fresh median estimate. -/
 noncomputable def freshMedianLabel (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) : Fin M :=
   ω (Classical.choose (freshMedianEstimate_mem M r ω))
 
+/-- The selected fresh median label has amplitude estimate equal to `freshMedianEstimate`. -/
 @[simp] theorem freshMedianLabel_spec (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) :
     freshMedianEstimate M r ω = aeEstimate M (freshMedianLabel M r ω) := by
   exact Classical.choose_spec (freshMedianEstimate_mem M r ω)
 
+/-- The certified lower interval endpoint for the selected fresh median label. -/
 noncomputable def freshMedianLower (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) : ℝ :=
   certifiedLowerBound M (freshMedianLabel M r ω)
 
+/-- The certified upper interval endpoint for the selected fresh median label. -/
 noncomputable def freshMedianUpper (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) : ℝ :=
   certifiedUpperBound M (freshMedianLabel M r ω)
 
+/-- The condition that the fresh median's certified interval width is at most `eps` times its
+certified lower endpoint. -/
 def freshMedianReady (eps : ℝ) (M r : ℕ) (ω : Fin (2 * r + 1) → Fin M) : Prop :=
   freshMedianUpper M r ω - freshMedianLower M r ω ≤ eps * freshMedianLower M r ω
 
+/-- For positive `eps`, a fresh median in the AE success window that satisfies readiness has
+relative error at most `eps`. -/
 theorem freshMedian_relative_band {M r : ℕ} (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ω : Fin (2 * r + 1) → Fin M) (eps : ℝ) (heps : 0 < eps)
@@ -519,6 +576,8 @@ theorem freshMedian_relative_band {M r : ℕ} (hM : 0 < M)
   rw [freshMedianLabel_spec] at hw ⊢
   exact certifiedStop_relative_band hM A j S hA (freshMedianLabel M r ω) eps heps ha1 hw hready
 
+/-- For `2r + 1` independent stage samples, the probability that the median leaves the AE window
+is at most `(8/9)^r`. -/
 theorem freshMedian_window_failure (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (adaptiveStageLaw k A j S hA).probEvent (fun ω : Fin (2 * r + 1) → Fin (adaptiveGrid k) =>
@@ -547,6 +606,8 @@ theorem freshMedian_window_failure (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S :
   exact Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.sorted_median_failure p
       (aeEstimate (adaptiveGrid k)) r a radius hr hb
 
+/-- If a single sample leaves a nonnegative error band with probability at most `1/3`, the
+sorted median of `2r + 1` independent samples fails with probability at most `(2/3)(8/9)^r`. -/
 theorem sorted_median_failure_precise {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (v : X → ℝ) (r : ℕ) (μ ε : ℝ)
     (hε : 0 ≤ ε) (hb : Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass (I := X) p (fun x : X => ε < |v x - μ|) ≤ 1 / 3) :
@@ -601,6 +662,7 @@ theorem sorted_median_failure_precise {X : Type} [Fintype X] [DecidableEq X]
       (le_div_iff₀ (by positivity)).mpr (by simpa only [mul_comm] using! hbound.trans hmoment)
     _ = _ := he
 
+/-- The fresh median's AE-window failure probability is at most `(2/3)(8/9)^r`. -/
 theorem freshMedian_window_failure_precise (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (adaptiveStageLaw k A j S hA).probEvent (fun ω : Fin (2 * r + 1) → Fin (adaptiveGrid k) =>
@@ -628,6 +690,8 @@ theorem freshMedian_window_failure_precise (k r : ℕ) (A : Matrix I I ℂ) (j :
     positivity
   exact sorted_median_failure_precise p (aeEstimate (adaptiveGrid k)) r a radius hr hb
 
+/-- If a single-sample event has mass at most `η ∈ [0, 1]`, its occurrence in a majority of `2r
++ 1` independent samples has probability at most `2^(2r + 1) η^(r + 1)`. -/
 theorem independent_majority_le {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (B : X → Prop) [DecidablePred B] (r : ℕ) (η : ℝ)
     (hη0 : 0 ≤ η) (hη1 : η ≤ 1) (hb : (∑ x ∈ Finset.univ.filter B, p.prob x) ≤ η) :
@@ -685,6 +749,8 @@ theorem independent_majority_le {X : Type} [Fintype X] [DecidableEq X]
     _ ≤ (2 : ℝ) ^ (2 * r + 1) * η ^ (r + 1) := by
       exact mul_le_mul_of_nonneg_right (by exact_mod_cast hcards) (pow_nonneg hη0 _)
 
+/-- For `0 < a < 1` and `η = π²(adaptiveGrid k)²a/4 ≤ 1`, the fresh median's window failure mass
+is at most `2^(2r + 1) η^(r + 1)`. -/
 theorem freshStageLaw_window_failure_small_amplitude (k r : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a < 1)
@@ -777,6 +843,7 @@ theorem freshStageLaw_window_failure_small_amplitude (k r : ℕ)
         exact Finset.prod_nonneg fun n _ => p.nonneg _
     _ ≤ _ := independent_majority_le p B r η (by dsimp [η]; positivity) hη hb
 
+/-- Under the explicit fresh stage law, median AE-window failure mass is at most `(8/9)^r`. -/
 theorem freshStageLaw_window_failure (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     eventMass (freshStageLaw k r A j S hA) (fun ω =>
@@ -785,6 +852,7 @@ theorem freshStageLaw_window_failure (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S
       ≤ (8 / 9 : ℝ) ^ r := by
   exact freshMedian_window_failure k r A j S hA
 
+/-- Under the explicit fresh stage law, median AE-window failure mass is at most `(2/3)(8/9)^r`. -/
 theorem freshStageLaw_window_failure_precise (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     eventMass (freshStageLaw k r A j S hA) (fun ω =>
@@ -793,12 +861,15 @@ theorem freshStageLaw_window_failure_precise (k r : ℕ) (A : Matrix I I ℂ) (j
       ≤ (2 / 3 : ℝ) * (8 / 9 : ℝ) ^ r := by
   exact freshMedian_window_failure_precise k r A j S hA
 
+/-- The mass of an event equals the expectation of its indicator under a finite distribution. -/
 theorem eventMass_eq_expect {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) [DecidablePred E] :
     eventMass p E = p.expect (fun x => if E x then 1 else 0) := by
   classical
   simp [eventMass, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, Finset.sum_filter]
 
+/-- The expectation of a product of coordinate functions under independent finite laws equals
+the product of their expectations. -/
 theorem independent_expect_prod {J : Type*} [Fintype J] [DecidableEq J]
     {X : J → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (g : ∀ i, X i → ℝ) :
@@ -818,6 +889,8 @@ theorem independent_expect_prod {J : Type*} [Fintype J] [DecidableEq J]
       (t := fun i => (Finset.univ : Finset (X i)))
       (f := fun i x => (p i).prob x * g i x)).symm
 
+/-- The probability of simultaneous coordinate events under independent finite laws equals the
+product of their probabilities. -/
 theorem independent_event_all {J : Type*} [Fintype J] [DecidableEq J]
     {X : J → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (E : ∀ i, X i → Prop) [∀ i, DecidablePred (E i)] :
@@ -848,6 +921,8 @@ theorem independent_event_all {J : Type*} [Fintype J] [DecidableEq J]
       intro i _
       exact (eventMass_eq_expect (p i) (E i)).symm
 
+/-- The probability of coordinate events indexed by a finite subset under independent laws
+equals the product of their probabilities over that subset. -/
 theorem independent_event_all_finset {J : Type*} [Fintype J] [DecidableEq J]
     {X : J → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (s : Finset J) (E : ∀ i, X i → Prop)
@@ -904,6 +979,7 @@ theorem independent_event_all_finset {J : Type*} [Fintype J] [DecidableEq J]
         · intro x _
           rfl
 
+/-- The mass of a finite union of events is at most the sum of their masses. -/
 theorem eventMass_exists_le_sum {J X : Type*} [Fintype J] [DecidableEq J]
     [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : J → X → Prop) [∀ i, DecidablePred (E i)] :
@@ -937,6 +1013,8 @@ theorem eventMass_exists_le_sum {J X : Type*} [Fintype J] [DecidableEq J]
   · rw [if_neg h]
     positivity
 
+/-- For positive marked probability `a` and `0 < eps ≤ 1`, an accurate fresh median is ready
+whenever `32π ≤ eps` times its grid size times `√a`. -/
 theorem freshMedian_fires_at_fine_stage {k r : ℕ} {ω : Fin (2 * r + 1) → Fin (adaptiveGrid k)}
     (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)

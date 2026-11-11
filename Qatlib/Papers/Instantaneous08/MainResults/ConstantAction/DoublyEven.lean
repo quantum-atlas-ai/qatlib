@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.DirectionalDeriv
 import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.YDistribution
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+/-!
+# Doubly even codes and deterministic classical bias
+
+This module develops restricted weights `wtOn`, overlap counts `ovOn`, and binary dot products
+`dotOn`. It shows that unit X-program bias at π/8 forces the induced code weights to be
+divisible by four and then forces unit bias for the classical approximation, establishing the
+implication of Theorem 2 in [ShepherdBremner2009].
+
+## Main statements
+
+* `codeWeight_dvd_four`: deduces doubly even weights from unit quantum bias.
+* `Qs_eq_zero_of_doublyEven`: deduces vanishing of the classical binary matrix.
+* `yBias_eq_one_of_xBias_eq_one`: transfers unit bias from the X-program to the classical
+  sample.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,19 +41,26 @@ open Qatlib.Papers.Instantaneous08.MainResults.XProgram
 
 attribute [local instance] Classical.propDecidable
 
+/-- The number of coordinates equal to `1` in the binary word `c`, restricted to `t`. -/
 def wtOn {k : ℕ} (t : Finset (Fin k)) (c : Fin k → ZMod 2) : ℕ :=
   (t.filter (fun i => c i = 1)).card
 
+/-- The number of coordinates in `t` where both binary words equal `1`. -/
 def ovOn {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2) : ℕ :=
   (t.filter (fun i => c1 i = 1 ∧ c2 i = 1)).card
 
+/-- The binary dot product of two words restricted to the coordinates in `t`. -/
 def dotOn {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2) : ZMod 2 :=
   ∑ i ∈ t, c1 i * c2 i
 
+/-- The cardinality of a filtered finite set equals the sum of its natural-valued predicate
+indicators. -/
 theorem card_filter_eq_sum {ι : Type} (s : Finset ι) (q : ι → Prop)
     [DecidablePred q] : (s.filter q).card = ∑ i ∈ s, if q i then 1 else 0 := by
   rw [Finset.card_eq_sum_ones, Finset.sum_filter]
 
+/-- The integer weight of a sum of binary words equals the sum of their weights minus twice
+their overlap count. -/
 theorem wtOn_add_cast {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2) :
     (wtOn t (c1 + c2) : ℤ) = (wtOn t c1 : ℤ) + (wtOn t c2 : ℤ) -
       2 * (ovOn t c1 c2 : ℤ) := by
@@ -55,6 +83,7 @@ theorem wtOn_add_cast {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2) 
   rw [Finset.sum_congr rfl (fun i _ => hpt i)]
   rw [Finset.sum_sub_distrib, Finset.sum_add_distrib, Finset.mul_sum]
 
+/-- The restricted binary dot product is the overlap count reduced modulo two. -/
 theorem dotOn_eq_ovOn {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2) :
     dotOn t c1 c2 = (ovOn t c1 c2 : ZMod 2) := by
   unfold dotOn ovOn
@@ -70,6 +99,8 @@ theorem dotOn_eq_ovOn {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2) 
     rcases ClassicalApprox.zmod2_eq_zero_or_one (c2 i) with h2 | h2 <;>
     rw [h1, h2] <;> decide
 
+/-- If the restricted weights of two words and their sum are divisible by four, their restricted
+dot product vanishes. -/
 theorem dotOn_eq_zero_of_weights {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k → ZMod 2)
     (h1 : ∃ a : ℤ, (wtOn t c1 : ℤ) = 4 * a)
     (h2 : ∃ a : ℤ, (wtOn t c2 : ℤ) = 4 * a)
@@ -91,10 +122,13 @@ theorem dotOn_eq_zero_of_weights {k : ℕ} (t : Finset (Fin k)) (c1 c2 : Fin k �
     ring
   exact hzero
 
+/-- The restricted weight of the row-dot-product word on `subRowSet p s` equals `codeWeight p s
+a`. -/
 theorem wtOn_subRowSet {n k : ℕ} (p : Fin k → F2Vec n) (s a : F2Vec n) :
     wtOn (subRowSet p s) (fun i => dot (p i) a) = codeWeight p s a := by
   rfl
 
+/-- If `cos (π * M / 8) ^ 2` equals one for an integer `M`, then eight divides `M`. -/
 theorem eight_dvd_of_cos_sq_eq_one {M : ℤ}
     (h : Real.cos (Real.pi / 8 * (M : ℝ)) ^ 2 = 1) : (8 : ℤ) ∣ M := by
   have hpi : Real.pi ≠ 0 := Real.pi_ne_zero
@@ -119,6 +153,8 @@ theorem eight_dvd_of_cos_sq_eq_one {M : ℤ}
     have : (M : ℤ) = 8 * (2 * k + 1) := by exact_mod_cast hEq
     exact ⟨2 * k + 1, by rw [this]⟩
 
+/-- Unit X-program bias at π/8 forces every induced codeword weight to be divisible by four. See
+[ShepherdBremner2009]. -/
 theorem codeWeight_dvd_four {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n)
     (h : (∑ x : F2Vec n,
         (if dot x s = 0 then prob p (fun _ => Real.pi / 8) x else 0)) = 1) :
@@ -154,6 +190,8 @@ theorem codeWeight_dvd_four {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n)
   have : (codeWeight p s a : ℤ) = 4 * (t0 - k) := by omega
   exact ⟨t0 - k, this⟩
 
+/-- If all induced codeword weights are divisible by four, every pair of induced words has zero
+restricted dot product. See [ShepherdBremner2009]. -/
 theorem dotOn_eq_zero_of_doublyEven {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n)
     (hwt : ∀ a : F2Vec n, (4 : ℤ) ∣ (codeWeight p s a : ℤ))
     (a1 a2 : F2Vec n) :
@@ -176,6 +214,8 @@ theorem dotOn_eq_zero_of_doublyEven {n k : ℕ} (p : Fin k → F2Vec n) (s : F2V
   rw [← hsum]
   exact hcw (a1 + a2)
 
+/-- If all induced codeword weights are divisible by four, the classical approximation matrix
+`Qs p s` vanishes. See [ShepherdBremner2009]. -/
 theorem Qs_eq_zero_of_doublyEven {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n)
     (hwt : ∀ a : F2Vec n, (4 : ℤ) ∣ (codeWeight p s a : ℤ)) :
     ClassicalApprox.Qs p s = 0 := by
@@ -194,6 +234,8 @@ theorem Qs_eq_zero_of_doublyEven {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec 
   unfold dotOn at this
   simpa [dot, dotProduct_single_one] using this
 
+/-- Unit X-program bias at π/8 implies unit bias for the classical sample, as in [Shepherd and
+Bremner, Theorem 2][ShepherdBremner2009]. -/
 theorem yBias_eq_one_of_xBias_eq_one {n k : ℕ} (p : Fin k → F2Vec n) (s : F2Vec n)
     (h : (∑ x : F2Vec n,
         (if dot x s = 0 then prob p (fun _ => Real.pi / 8) x else 0)) = 1) :

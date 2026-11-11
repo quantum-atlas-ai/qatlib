@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
 import Mathlib.Algebra.Polynomial.Derivative
+
+/-!
+# Formal matrix logarithms of exponential words
+
+`logCoefficient` and `logSeries` define matrix formal logarithms through the exponent variable
+in power polynomials. The coefficients `exponentCoefficient` recover the factorial relations
+needed to reconstruct a normalized series from its logarithm degree by degree.
+
+The module also proves reversal symmetry, conjugate transpose compatibility, real scaling, and
+the first and cubic Strang logarithm formulas. These formal identities support the symmetric
+product formula analysis of [AftabAnTrivisa2026].
+
+## Main statements
+
+* `exp_log_coefficient`: reconstructs each coefficient of a series with constant coefficient
+  one.
+* `symmetric_logCoefficient_even`: gives vanishing of even logarithm coefficients for symmetric
+  words.
+* `symmetric_logCoefficient_skew`: gives skew Hermitian logarithm coefficients for symmetric
+  skew Hermitian inputs.
+* `strang_logCoefficient_three`: computes the cubic double commutator expression.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,12 +48,16 @@ open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The matrix obtained by extracting the linear coefficient in the exponent variable from the
+degree `n` power polynomial. -/
 def logCoefficient (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) : Matrix I I ℂ :=
   fun i j => (powerPolynomial f n i j).coeff 1
 
+/-- The matrix power series with coefficients `logCoefficient f n`. -/
 def logSeries (f : PowerSeries (Matrix I I ℂ)) : PowerSeries (Matrix I I ℂ) :=
   PowerSeries.mk (logCoefficient f)
 
+/-- Complex polynomials agreeing at every natural number are equal. -/
 private theorem polynomial_eq_of_nat_eval (p q : Polynomial ℂ)
     (h : ∀ n : ℕ, p.eval (n : ℂ) = q.eval (n : ℂ)) : p = q := by
   apply Polynomial.eq_of_infinite_eval_eq
@@ -35,6 +66,8 @@ private theorem polynomial_eq_of_nat_eval (p q : Polynomial ℂ)
   rintro _ ⟨n, rfl⟩
   exact h n
 
+/-- For a series with constant coefficient one, the derivative of its power polynomial is the
+degree convolution of its logarithm coefficient with its power polynomial. -/
 theorem powerPolynomial_derivative (f : PowerSeries (Matrix I I ℂ))
     (hf : f.constantCoeff = 1) (n : ℕ) (i j : I) :
     (powerPolynomial f n i j).derivative =
@@ -54,10 +87,13 @@ theorem powerPolynomial_derivative (f : PowerSeries (Matrix I I ℂ))
     zero_add, Nat.cast_zero, Nat.cast_one, mul_one, one_mul, logCoefficient,
     powerPolynomial_eval f hf] using h
 
+/-- The matrix power series obtained by extracting the rth exponent variable coefficient of each
+power polynomial. -/
 def exponentCoefficient (f : PowerSeries (Matrix I I ℂ)) (r : ℕ) :
     PowerSeries (Matrix I I ℂ) :=
   PowerSeries.mk fun n => fun i j => (powerPolynomial f n i j).coeff r
 
+/-- For a series with constant coefficient one, the zeroth exponent coefficient series is one. -/
 theorem exponentCoefficient_zero (f : PowerSeries (Matrix I I ℂ))
     (hf : f.constantCoeff = 1) : exponentCoefficient f 0 = 1 := by
   apply PowerSeries.ext
@@ -67,6 +103,8 @@ theorem exponentCoefficient_zero (f : PowerSeries (Matrix I I ℂ))
     Polynomial.coeff_zero_eq_eval_zero, Nat.cast_zero, pow_zero] using!
     powerPolynomial_eval f hf n 0 i j
 
+/-- For a series with constant coefficient one, successive exponent coefficient series satisfy
+the formal exponential recurrence with `logSeries`. -/
 theorem exponentCoefficient_succ (f : PowerSeries (Matrix I I ℂ))
     (hf : f.constantCoeff = 1) (r : ℕ) :
     ((r + 1 : ℕ) : ℂ) • exponentCoefficient f (r + 1) =
@@ -82,6 +120,8 @@ theorem exponentCoefficient_succ (f : PowerSeries (Matrix I I ℂ))
     Polynomial.coeff_mul_C, Nat.cast_add, Nat.cast_one,
     PowerSeries.coeff_mul, Matrix.sum_apply, Matrix.mul_apply, mul_comm] using h
 
+/-- For a series with constant coefficient one, multiplying the rth exponent coefficient series
+by `r!` gives the rth power of its logarithm series. -/
 theorem exponentCoefficient_factorial (f : PowerSeries (Matrix I I ℂ))
     (hf : f.constantCoeff = 1) (r : ℕ) :
     (r.factorial : ℂ) • exponentCoefficient f r = logSeries f ^ r := by
@@ -98,6 +138,8 @@ theorem exponentCoefficient_factorial (f : PowerSeries (Matrix I I ℂ))
         rw [mul_smul_comm]
       _ = _ := by rw [ih, pow_succ']
 
+/-- For a series with constant coefficient one, the rth exponent coefficient series is the rth
+logarithm series power divided by `r!`. -/
 theorem exponentCoefficient_eq (f : PowerSeries (Matrix I I ℂ))
     (hf : f.constantCoeff = 1) (r : ℕ) :
     exponentCoefficient f r = (r.factorial : ℂ)⁻¹ • logSeries f ^ r := by
@@ -107,6 +149,8 @@ theorem exponentCoefficient_eq (f : PowerSeries (Matrix I I ℂ))
       rw [smul_smul, inv_mul_cancel₀ hr, one_smul]
     _ = _ := by rw [exponentCoefficient_factorial f hf]
 
+/-- A matrix series with constant coefficient one is recovered degree by degree by
+exponentiating its formal logarithm. -/
 theorem exp_log_coefficient (f : PowerSeries (Matrix I I ℂ))
     (hf : f.constantCoeff = 1) (n : ℕ) :
     PowerSeries.coeff n f = ∑ r ∈ Finset.range (n + 1),
@@ -128,17 +172,21 @@ theorem exp_log_coefficient (f : PowerSeries (Matrix I I ℂ))
   simpa only [exponentCoefficient, PowerSeries.coeff_mk, PowerSeries.coeff_smul,
     Matrix.smul_apply, smul_eq_mul] using! h
 
+/-- The zeroth logarithm coefficient is zero. -/
 theorem logCoefficient_zero (f : PowerSeries (Matrix I I ℂ)) : logCoefficient f 0 = 0 := by
   ext i j
   simp [logCoefficient, powerPolynomial, choosePolynomial, Polynomial.coeff_one]
 
 set_option backward.isDefEq.respectTransparency true in
 
+/-- The first logarithm coefficient is the first coefficient of the original series. -/
 theorem logCoefficient_one (f : PowerSeries (Matrix I I ℂ)) :
     logCoefficient f 1 = PowerSeries.coeff 1 f := by
   ext i j
   simp [logCoefficient, powerPolynomial, choosePolynomial, Finset.sum_range_succ]
 
+/-- The linear coefficient of the descending Pochhammer polynomial of degree `k + 1` is `(-1)^k
+* k!`. -/
 private theorem descPochhammer_linear (k : ℕ) :
     (descPochhammer ℂ (k + 1)).coeff 1 = (-1 : ℂ) ^ k * (k.factorial : ℂ) := by
   induction k with
@@ -152,6 +200,7 @@ private theorem descPochhammer_linear (k : ℕ) :
       pow_succ, Nat.cast_add, Nat.cast_one]
     ring
 
+/-- The linear coefficient of the binomial polynomial of degree `k + 1` is `(-1)^k / (k + 1)`. -/
 theorem choosePolynomial_linear (k : ℕ) :
     (choosePolynomial (k + 1)).coeff 1 = (-1 : ℂ) ^ k / (k + 1) := by
   have hk : (k.factorial : ℂ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero k
@@ -160,6 +209,8 @@ theorem choosePolynomial_linear (k : ℕ) :
     smul_eq_mul, Nat.factorial_succ, Nat.cast_mul, Nat.cast_add, Nat.cast_one]
   field_simp
 
+/-- The nth logarithm coefficient is the finite alternating sum of the nth coefficients of
+positive powers of `f - 1`, divided by their exponents. -/
 theorem logCoefficient_finite (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) :
     logCoefficient f n = ∑ k ∈ Finset.range n,
       ((-1 : ℝ) ^ k / (k + 1)) • PowerSeries.coeff n ((f - 1) ^ (k + 1)) := by
@@ -176,6 +227,7 @@ theorem logCoefficient_finite (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) :
   intro k _
   exact mul_comm _ _
 
+/-- Every even logarithm coefficient of a reversal invariant exponential word vanishes. -/
 theorem symmetric_logCoefficient_even (ws : List (Matrix I I ℂ))
     (hws : ws.reverse = ws) (n : ℕ) (hn : Even n) :
     logCoefficient (wordSeries ws) n = 0 := by
@@ -188,9 +240,12 @@ theorem symmetric_logCoefficient_even (ws : List (Matrix I I ℂ))
   change (powerPolynomial (wordSeries ws) n i j).coeff 1 = 0
   linear_combination (-1 / 2 : ℂ) * h
 
+/-- The matrix power series formed by taking the conjugate transpose of each coefficient. -/
 def adjointSeries (f : PowerSeries (Matrix I I ℂ)) : PowerSeries (Matrix I I ℂ) :=
   PowerSeries.mk fun n => (PowerSeries.coeff n f)ᴴ
 
+/-- Taking coefficientwise conjugate transpose reverses the order of power series
+multiplication. -/
 theorem adjointSeries_mul (f g : PowerSeries (Matrix I I ℂ)) :
     adjointSeries (f * g) = adjointSeries g * adjointSeries f := by
   apply PowerSeries.ext
@@ -200,6 +255,8 @@ theorem adjointSeries_mul (f g : PowerSeries (Matrix I I ℂ)) :
   rw [← Finset.Nat.sum_antidiagonal_swap]
   rfl
 
+/-- The adjoint of an exponential word series is the word series of the reversed, conjugate
+transposed list. -/
 theorem adjointSeries_word (ws : List (Matrix I I ℂ)) :
     adjointSeries (wordSeries ws) = wordSeries (ws.reverse.map Matrix.conjTranspose) := by
   have hs (X : Matrix I I ℂ) : adjointSeries (wordSeries [X]) = wordSeries [Xᴴ] := by
@@ -220,6 +277,7 @@ theorem adjointSeries_word (ws : List (Matrix I I ℂ)) :
     simp only [List.reverse_cons, List.map_append, List.map_cons, List.map_nil,
       wordSeries_append]
 
+/-- Coefficientwise conjugate transpose preserves powers of a single matrix series. -/
 theorem adjointSeries_pow (f : PowerSeries (Matrix I I ℂ)) (q : ℕ) :
     adjointSeries (f ^ q) = adjointSeries f ^ q := by
   induction q with
@@ -229,6 +287,7 @@ theorem adjointSeries_pow (f : PowerSeries (Matrix I I ℂ)) (q : ℕ) :
     cases n <;> simp [adjointSeries]
   | succ q ih => rw [pow_succ, adjointSeries_mul, ih, ← pow_succ']
 
+/-- Every coefficient of a binomial polynomial is fixed by complex conjugation. -/
 theorem choosePolynomial_real (k r : ℕ) :
     star ((choosePolynomial k).coeff r) = (choosePolynomial k).coeff r := by
   have h : (choosePolynomial k).map (starRingEnd ℂ) = choosePolynomial k := by
@@ -236,6 +295,7 @@ theorem choosePolynomial_real (k r : ℕ) :
   have hc := congrArg (fun p : Polynomial ℂ => p.coeff r) h
   simpa only [Polynomial.coeff_map, starRingEnd_apply] using! hc
 
+/-- Logarithm coefficients commute with coefficientwise conjugate transpose. -/
 theorem logCoefficient_adjoint (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) :
     logCoefficient (adjointSeries f) n = (logCoefficient f n)ᴴ := by
   have hsub : adjointSeries (f - 1) = adjointSeries f - 1 := by
@@ -254,6 +314,8 @@ theorem logCoefficient_adjoint (f : PowerSeries (Matrix I I ℂ)) (n : ℕ) :
   rw [h, choosePolynomial_real]
   exact mul_comm _ _
 
+/-- Scaling every matrix in an exponential word by a real scalar scales its nth logarithm
+coefficient by the nth power of that scalar. -/
 theorem logCoefficient_scale (ws : List (Matrix I I ℂ)) (a : ℝ) (n : ℕ) :
     logCoefficient (wordSeries (ws.map (fun X => a • X))) n =
       a ^ n • logCoefficient (wordSeries ws) n := by
@@ -270,6 +332,8 @@ theorem logCoefficient_scale (ws : List (Matrix I I ℂ)) (a : ℝ) (n : ℕ) :
   simpa only [logCoefficient, Polynomial.coeff_smul, Matrix.smul_apply,
     Complex.real_smul, Complex.ofReal_pow, smul_eq_mul] using! h
 
+/-- Every logarithm coefficient of a reversal invariant word of skew Hermitian matrices is skew
+Hermitian. -/
 theorem symmetric_logCoefficient_skew (ws : List (Matrix I I ℂ))
     (hws : ws.reverse = ws) (hskew : ∀ X ∈ ws, Xᴴ = -X) (n : ℕ) :
     (logCoefficient (wordSeries ws) n)ᴴ = -logCoefficient (wordSeries ws) n := by
@@ -284,6 +348,8 @@ theorem symmetric_logCoefficient_skew (ws : List (Matrix I I ℂ))
     simp
   · rw [hn.neg_one_pow, neg_one_smul]
 
+/-- A convergent real linear combination of logarithm coefficients of a reversal invariant skew
+Hermitian word is skew Hermitian. -/
 theorem logCoefficient_hasSum_skew (ws : List (Matrix I I ℂ))
     (hws : ws.reverse = ws) (hskew : ∀ X ∈ ws, Xᴴ = -X)
     (a : ℕ → ℝ) (v : Matrix I I ℂ)
@@ -294,20 +360,26 @@ theorem logCoefficient_hasSum_skew (ws : List (Matrix I I ℂ))
     symmetric_logCoefficient_skew ws hws hskew, smul_neg] at ht
   exact ht.unique h.neg
 
+/-- The nth coefficient of a matrix exponential word is the finite factorial weighted sum of the
+nth coefficients of powers of its logarithm series. -/
 theorem word_exp_log (ws : List (Matrix I I ℂ)) (n : ℕ) :
     suzukiSeries ws n = ∑ r ∈ Finset.range (n + 1),
       (r.factorial : ℂ)⁻¹ • PowerSeries.coeff n (logSeries (wordSeries ws) ^ r) := by
   simpa only [wordSeries, PowerSeries.coeff_mk] using!
     exp_log_coefficient (wordSeries ws) (by simp [wordSeries]) n
 
+/-- The first logarithm coefficient of the Strang series is `X + Y`. -/
 theorem strang_logCoefficient_one (X Y : Matrix I I ℂ) :
     logCoefficient (strangSeries X Y) 1 = X + Y := by
   rw [logCoefficient_one, strangSeries_first]
 
+/-- Every even logarithm coefficient of the Strang series vanishes. -/
 theorem strang_logCoefficient_even (X Y : Matrix I I ℂ) (n : ℕ) (hn : Even n) :
     logCoefficient (strangSeries X Y) n = 0 :=
   symmetric_logCoefficient_even _ rfl n hn
 
+/-- The logarithm coefficients of the Strang series are skew Hermitian when both generators are
+skew Hermitian. -/
 theorem strang_logCoefficient_skew (X Y : Matrix I I ℂ)
     (hX : Xᴴ = -X) (hY : Yᴴ = -Y) (n : ℕ) :
     (logCoefficient (strangSeries X Y) n)ᴴ = -logCoefficient (strangSeries X Y) n := by
@@ -319,6 +391,9 @@ theorem strang_logCoefficient_skew (X Y : Matrix I I ℂ)
   · exact hY
   · simp [Matrix.conjTranspose_smul, hX]
 
+/-- For a series with constant coefficient one, the cubic logarithm coefficient is its cubic
+coefficient minus half the two ordered linear quadratic products plus one third of the
+linear coefficient cubed. -/
 theorem logCoefficient_three (f : PowerSeries (Matrix I I ℂ)) (hf : f.constantCoeff = 1) :
     logCoefficient f 3 = PowerSeries.coeff 3 f -
       (1 / 2 : ℝ) • (PowerSeries.coeff 1 f * PowerSeries.coeff 2 f +
@@ -329,6 +404,8 @@ theorem logCoefficient_three (f : PowerSeries (Matrix I I ℂ)) (hf : f.constant
     Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk, hf, pow_succ]
   module
 
+/-- The cubic Strang logarithm coefficient is the sum of the indicated double commutators with
+coefficients `-1/24` and `1/12`. -/
 theorem strang_logCoefficient_three (X Y : Matrix I I ℂ) :
     logCoefficient (strangSeries X Y) 3 =
       (-1 / 24 : ℝ) • (X * (X * Y - Y * X) - (X * Y - Y * X) * X) +

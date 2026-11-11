@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.PhaseSampling
+
+/-!
+# Conditional finite-field Gauss-sum phase estimation
+
+The theorem `theorem1_fieldGaussSumEstimation` combines the Gauss-sum polar form with the
+Fourier-character phase-change identity. Its estimation guarantee is conditional on
+`PhaseAccessModel` and a polylogarithmic per-sample cost. See [VanDamSeroussi2002].
+
+## Main statements
+
+* `theorem1_fieldGaussSumEstimation`: For a nontrivial multiplicative character and nonzero
+  frequency, the Gauss sum has modulus `√(card K)` and its phase is the scalar in the
+  Fourier-character phase-change identity. Assuming `PhaseAccessModel` and a polylogarithmic
+  per-sample cost, protocols attain any positive expected absolute angular-error tolerance
+  within the stated `sampleCount` times polylogarithmic bound.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,11 @@ namespace Qatlib.Papers.GaussSumEst02.MainResults.Claims
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- For a nontrivial multiplicative character and nonzero frequency, the Gauss sum has modulus
+`√(card K)` and its phase is the scalar in the Fourier-character phase-change identity.
+Assuming `PhaseAccessModel` and a polylogarithmic per-sample cost, protocols attain any
+positive expected absolute angular-error tolerance within the stated `sampleCount` times
+polylogarithmic bound [VanDamSeroussi2002]. -/
 theorem theorem1_fieldGaussSumEstimation {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     (e : AddChar K) (hnt : χ.IsNontrivial) {β : K} (hβ : β ≠ 0)
     (perSample : ℕ → ℕ) (hper : PolyLog perSample) (M : PhaseAccessModel) :

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+
+/-!
+# Statistics preserved by instrument circuit compilation
+
+This module proves that the Kraus refinement compilation of `InstrumentCircuit` preserves linear
+terminal statistics after restoring the original outcome records. The branchwise sums reflect
+the operator-sum description of quantum instruments in [Watrous2018].
+
+The general transport identity specializes to event masses and unconditional expected query
+counts.
+
+## Main statements
+
+* `instrumentCircuit_compile_statistic`: compilation preserves every linear terminal payoff
+  after record restoration.
+* `instrumentCircuit_compile_event`: compilation preserves event masses.
+* `instrumentCircuit_compile_expected`: compilation preserves the expected number of queries.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -17,6 +40,8 @@ namespace Qatlib.Concepts.Execution.CircuitCompile
 
 open Matrix
 
+/-- Kraus compilation preserves every linear terminal payoff after restoring the original
+instrument outcome records. -/
 theorem instrumentCircuit_compile_statistic {d : ℕ} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) (F : InstrumentPayoff d) :
     ((variableKrausMixedTraces O (compileInstrumentCircuit P) rho).map fun t =>
@@ -71,10 +96,13 @@ theorem instrumentCircuit_compile_statistic {d : ℕ} (O : Operator d)
           congr 1
           exact ((Qatlib.Concepts.Execution.KrausRefinement.Instrument.branch_apply_eq_kraus I) o rho).symm
 
+/-- The real part of a finite list sum of complex numbers is the sum of their real parts. -/
 private theorem re_list_sum (xs : List ℂ) :
     xs.sum.re = (xs.map Complex.re).sum :=
   map_list_sum Complex.reAddGroupHom xs
 
+/-- Kraus compilation preserves event masses when the event is evaluated on restored instrument
+outcome records. -/
 theorem instrumentCircuit_compile_event {d : ℕ} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d)
     (E : Bool → List (ℕ × ℕ) → Bool) :
@@ -91,6 +119,7 @@ theorem instrumentCircuit_compile_event {d : ℕ} (O : Operator d)
   simp only [re_list_sum, List.map_map, Function.comp_def, hF] at h
   simpa only [variableKrausEventMass, instrumentCircuitEventMass, mixedMass] using h
 
+/-- Kraus compilation preserves the mixed-mass-weighted expected query count. -/
 theorem instrumentCircuit_compile_expected {d : ℕ} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) :
     variableKrausExpectedQueries O (compileInstrumentCircuit P) rho =

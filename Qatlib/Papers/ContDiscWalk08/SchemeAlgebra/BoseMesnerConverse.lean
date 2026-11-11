@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ContDiscWalk08.SchemeAlgebra.BoseMesnerUnitary
+
+/-!
+# Unitary coefficients in an idempotent algebra
+
+For a complete family of nonzero mutually orthogonal Hermitian idempotents, the module
+characterizes unitarity of a linear combination by unit norm of its coefficients. The phase
+representation in `exists_phase_of_unitary` gives the converse to the association-scheme unitary
+construction discussed in [Childs2010].
+
+## Main statements
+
+* `coefficients_eq`: uniqueness of coefficients in the idempotent expansion.
+* `unitary_iff_norm_coefficient_eq_one`: coefficientwise characterization of unitarity.
+* `exists_phase_of_unitary`: unitary coefficients can be written as phases.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +39,8 @@ namespace Qatlib.Papers.ContDiscWalk08.SchemeAlgebra
 
 variable {J : Type*} [Fintype J] [DecidableEq J]
 
+/-- Multiplication of two linear combinations of mutually orthogonal idempotents multiplies
+their coefficients coordinatewise. -/
 theorem sum_mul_sum {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hIdem : ∀ i, E i * E i = E i)
     (hOrth : ∀ i j, i ≠ j → E i * E j = 0)
@@ -29,6 +51,8 @@ theorem sum_mul_sum {m : ℕ} (E : Fin m → Matrix J J ℂ)
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [sum_mul_orthogonal E hIdem hOrth i (fun j => b j * a i), mul_comm (b i) (a i)]
 
+/-- The conjugate transpose of a linear combination of Hermitian matrices conjugates its
+coefficients. -/
 theorem conjTranspose_sum_smul {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hHerm : ∀ i, (E i).IsHermitian) (c : Fin m → ℂ) :
     (∑ i, c i • E i)ᴴ = ∑ i, (starRingEnd ℂ) (c i) • E i := by
@@ -36,6 +60,8 @@ theorem conjTranspose_sum_smul {m : ℕ} (E : Fin m → Matrix J J ℂ)
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [Matrix.conjTranspose_smul, (hHerm i).eq, RCLike.star_def]
 
+/-- For mutually orthogonal Hermitian idempotents, the conjugate transpose times the original
+linear combination has coefficients `conj (c i) * c i`. -/
 theorem conjTranspose_mul_self_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hHerm : ∀ i, (E i).IsHermitian)
     (hIdem : ∀ i, E i * E i = E i)
@@ -46,6 +72,8 @@ theorem conjTranspose_mul_self_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
   rw [conjTranspose_sum_smul E hHerm]
   exact sum_mul_sum E hIdem hOrth _ _
 
+/-- A zero linear combination of nonzero mutually orthogonal idempotents has every coefficient
+equal to zero. -/
 theorem sum_smul_eq_zero_coeff {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hIdem : ∀ i, E i * E i = E i)
     (hOrth : ∀ i j, i ≠ j → E i * E j = 0)
@@ -65,6 +93,7 @@ theorem sum_smul_eq_zero_coeff {m : ℕ} (E : Fin m → Matrix J J ℂ)
   · exact hc
   · exact absurd hE (hNonzero i)
 
+/-- Expansions in nonzero mutually orthogonal idempotents have unique coefficients. -/
 theorem coefficients_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hIdem : ∀ i, E i * E i = E i)
     (hOrth : ∀ i j, i ≠ j → E i * E j = 0)
@@ -78,6 +107,7 @@ theorem coefficients_eq {m : ℕ} (E : Fin m → Matrix J J ℂ)
   have := sum_smul_eq_zero_coeff E hIdem hOrth hNonzero (fun j => a j - b j) h0 i
   exact sub_eq_zero.mp this
 
+/-- A complex number of norm one satisfies `conj z * z = 1`. -/
 theorem star_mul_self_eq_one_of_norm_eq_one {z : ℂ} (hz : ‖z‖ = 1) :
     (starRingEnd ℂ) z * z = 1 := by
   rw [← Complex.normSq_eq_conj_mul_self]
@@ -86,6 +116,7 @@ theorem star_mul_self_eq_one_of_norm_eq_one {z : ℂ} (hz : ‖z‖ = 1) :
     norm_num
   exact_mod_cast hnsq
 
+/-- A complex number satisfying `conj z * z = 1` has norm one. -/
 theorem norm_eq_one_of_star_mul_self_eq_one {z : ℂ}
     (hz : (starRingEnd ℂ) z * z = 1) : ‖z‖ = 1 := by
   have hnsq : Complex.normSq z = 1 := by
@@ -96,6 +127,8 @@ theorem norm_eq_one_of_star_mul_self_eq_one {z : ℂ}
   rw [Complex.normSq_eq_norm_sq] at hnsq
   nlinarith [norm_nonneg z]
 
+/-- For a complete family of nonzero mutually orthogonal Hermitian idempotents, each coefficient
+of a unitary linear combination has norm one. -/
 theorem norm_coefficient_eq_one_of_unitary {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hHerm : ∀ i, (E i).IsHermitian)
     (hIdem : ∀ i, E i * E i = E i)
@@ -115,6 +148,9 @@ theorem norm_coefficient_eq_one_of_unitary {m : ℕ} (E : Fin m → Matrix J J �
   have hcoef := coefficients_eq E hIdem hOrth hNonzero h2 i
   exact norm_eq_one_of_star_mul_self_eq_one hcoef
 
+/-- For a complete family of nonzero mutually orthogonal Hermitian idempotents, a linear
+combination is unitary exactly when every coefficient has norm one. This is the
+idempotent-algebra characterization used in [Childs2010]. -/
 theorem unitary_iff_norm_coefficient_eq_one {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hHerm : ∀ i, (E i).IsHermitian)
     (hIdem : ∀ i, E i * E i = E i)
@@ -133,6 +169,8 @@ theorem unitary_iff_norm_coefficient_eq_one {m : ℕ} (E : Fin m → Matrix J J 
     rw [Finset.sum_congr rfl (fun i _ => by rw [hcoef i])]
     simpa using hComplete
 
+/-- The coefficients of a unitary linear combination of a complete family of nonzero mutually
+orthogonal Hermitian idempotents can each be expressed as a real phase. See [Childs2010]. -/
 theorem exists_phase_of_unitary {m : ℕ} (E : Fin m → Matrix J J ℂ)
     (hHerm : ∀ i, (E i).IsHermitian)
     (hIdem : ∀ i, E i * E i = E i)
@@ -154,12 +192,15 @@ theorem exists_phase_of_unitary {m : ℕ} (E : Fin m → Matrix J J ℂ)
   rw [mul_comm ((φ i : ℂ)) Complex.I] at h
   exact h.symm
 
+/-- The complex phase `phase φ` has norm one. -/
 theorem norm_phase (φ : ℝ) : ‖phase φ‖ = 1 := by
   unfold phase
   rw [Complex.norm_exp]
   have hre : (Complex.I * (φ : ℂ)).re = 0 := by simp
   rw [hre, Real.exp_zero]
 
+/-- The norm of a phase-weighted finite sum is at most the sum of the norms of its coefficients.
+This bounds the phase sums appearing in [Childs2010]. -/
 theorem norm_sum_phase_mul_le {m : ℕ} (a : Fin m → ℂ) (φ : Fin m → ℝ) :
     ‖∑ i, phase (φ i) * a i‖ ≤ ∑ i, ‖a i‖ := by
   refine (norm_sum_le _ _).trans (le_of_eq ?_)

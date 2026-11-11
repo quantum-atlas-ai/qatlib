@@ -9,6 +9,28 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Lower bounds for invariant insertion
+
+Bounds the ℓ¹ growth of the invariant-state recurrence using the odd reciprocal-sine sum
+`sinSum`. Reflection identities give uniform column sums for `queryAmp`, leading to the
+success-probability estimate from [FarhiEtAl1999].
+
+A logarithmic upper bound on `sinSum` then yields an eventual strict lower bound on the number
+of queries needed to reach any fixed positive success probability.
+
+## Main statements
+
+* `invariant_success_bound`: bounds success by `sinSum N ^ (2 * k) / N`.
+* `translation_invariant_query_lower_bound`: gives the eventual lower bound `log N / (2 * log
+  (log N)) < k`.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,12 +41,16 @@ namespace Qatlib.Papers.OrderedInsert99.MainResults
 
 open scoped BigOperators
 
+/-- The finite set of odd indices in `Idx N`. -/
 def oddIdx (N : ℕ) : Finset (Idx N) :=
   Finset.univ.filter (fun p => (p : ℕ) % 2 = 1)
 
+/-- The normalized sum of reciprocal sines over the odd indices of the doubled space. -/
 noncomputable def sinSum (N : ℕ) : ℝ :=
   (1 / (N : ℝ)) * ∑ p ∈ oddIdx N, (Real.sin (Real.pi * (p : ℝ) / (2 * (N : ℝ))))⁻¹
 
+/-- For positive `N` and opposite-parity indices, the query amplitude has norm `1 / N` times the
+reciprocal absolute sine of the momentum angle. -/
 lemma queryAmp_norm_odd {N : ℕ} (_hN : 0 < N) {p q : Idx N}
     (hpq : ((p : ℕ) + (q : ℕ)) % 2 = 1) :
     ‖queryAmp N p q‖ = (1 / (N : ℝ)) * |Real.sin (momAngle N p q)|⁻¹ := by
@@ -36,17 +62,21 @@ lemma queryAmp_norm_odd {N : ℕ} (_hN : 0 < N) {p q : Idx N}
   rw [div_eq_mul_inv, div_eq_mul_inv, mul_inv]
   ring
 
+/-- The query amplitude is zero when the sum of the indices is not odd. -/
 lemma queryAmp_eq_zero {N : ℕ} {p q : Idx N}
     (h : ((p : ℕ) + (q : ℕ)) % 2 ≠ 1) : queryAmp N p q = 0 := by
   unfold queryAmp
   rw [if_neg h]
 
+/-- Reflects `p` to `q − p` modulo `2 * N`. -/
 def reflect (N : ℕ) (q : Idx N) (p : Idx N) : Idx N :=
   ⟨(q.val + 2 * N - p.val) % (2 * N), Nat.mod_lt _ (by have := p.isLt; omega)⟩
 
+/-- The value of `reflect N q p` is the remainder of `q + 2 * N − p` modulo `2 * N`. -/
 lemma reflect_val (N : ℕ) (q p : Idx N) :
     (reflect N q p).val = (q.val + 2 * N - p.val) % (2 * N) := rfl
 
+/-- For fixed `q`, reflection is an involution on `Idx N`. -/
 lemma reflect_involutive (N : ℕ) (q : Idx N) : Function.Involutive (reflect N q) := by
   intro p
   apply Fin.ext
@@ -62,13 +92,18 @@ lemma reflect_involutive (N : ℕ) (q : Idx N) : Function.Involutive (reflect N 
   rw [Nat.mul_add_mod' k (2 * N) p.val]
   exact Nat.mod_eq_of_lt p.isLt
 
+/-- The zero index in `Idx N`, defined when `N` is positive. -/
 def zidx (N : ℕ) (hN : 0 < N) : Idx N := ⟨0, by omega⟩
 
+/-- The value of `zidx N hN` is zero. -/
 lemma zidx_val (N : ℕ) (hN : 0 < N) : (zidx N hN).val = 0 := rfl
 
+/-- Expands the momentum angle in terms of the natural-number values of its indices. -/
 lemma momAngle_val (N : ℕ) (p q : Idx N) :
     momAngle N p q = Real.pi * ((q.val : ℝ) - (p.val : ℝ)) / (2 * (N : ℝ)) := rfl
 
+/-- Reflection preserves the absolute sine of the momentum angle after replacing the second
+index by zero. -/
 lemma reflect_sin_abs (N : ℕ) (hN : 0 < N) (q p : Idx N) :
     |Real.sin (momAngle N p q)| = |Real.sin (momAngle N (reflect N q p) (zidx N hN))| := by
   have hNR : (N : ℝ) ≠ 0 := by exact_mod_cast Nat.pos_iff_ne_zero.mp hN
@@ -100,6 +135,7 @@ lemma reflect_sin_abs (N : ℕ) (hN : 0 < N) (q p : Idx N) :
         Real.sin_neg, Real.sin_add_pi, neg_neg]
     rw [heq]
 
+/-- The parity of the reflected index is the parity of the sum of the original indices. -/
 lemma reflect_parity (N : ℕ) (_hN : 0 < N) (q p : Idx N) :
     (reflect N q p).val % 2 = (p.val + q.val) % 2 := by
   rw [reflect_val]
@@ -107,6 +143,7 @@ lemma reflect_parity (N : ℕ) (_hN : 0 < N) (q p : Idx N) :
   rw [Nat.mod_mod_of_dvd _ hdvd]
   omega
 
+/-- Reflection reduces a query-amplitude norm to one whose second index is zero. -/
 lemma queryAmp_norm_reflect (N : ℕ) (hN : 0 < N) (q p : Idx N) :
     ‖queryAmp N p q‖ = ‖queryAmp N (reflect N q p) (zidx N hN)‖ := by
   have hp := reflect_parity N hN q p
@@ -120,6 +157,8 @@ lemma queryAmp_norm_reflect (N : ℕ) (hN : 0 < N) (q p : Idx N) :
       rw [zidx_val, Nat.add_zero, hp]; exact hpq
     rw [queryAmp_eq_zero hpq, queryAmp_eq_zero hr]
 
+/-- The sum of query-amplitude norms in any column equals the corresponding sum in the zero
+column. -/
 lemma sum_qnorm_shift (N : ℕ) (hN : 0 < N) (q : Idx N) :
     (∑ p : Idx N, ‖queryAmp N p q‖)
       = ∑ p : Idx N, ‖queryAmp N p (zidx N hN)‖ := by
@@ -133,6 +172,7 @@ lemma sum_qnorm_shift (N : ℕ) (hN : 0 < N) (q : Idx N) :
   · intro p _
     exact queryAmp_norm_reflect N hN q p
 
+/-- The sum of query-amplitude norms in the zero column is `sinSum N`. -/
 lemma sum_qnorm_zero (N : ℕ) (hN : 0 < N) :
     (∑ p : Idx N, ‖queryAmp N p (zidx N hN)‖) = sinSum N := by
   have hterm : ∀ p : Idx N, ‖queryAmp N p (zidx N hN)‖ =
@@ -172,10 +212,12 @@ lemma sum_qnorm_zero (N : ℕ) (hN : 0 < N) :
   rw [← Finset.sum_filter]
   rw [Finset.mul_sum]
 
+/-- Every column of the query-amplitude matrix has sum of norms `sinSum N` for positive `N`. -/
 lemma queryAmp_norm_sum (N : ℕ) (hN : 0 < N) (q : Idx N) :
     (∑ p : Idx N, ‖queryAmp N p q‖) = sinSum N := by
   rw [sum_qnorm_shift N hN q, sum_qnorm_zero N hN]
 
+/-- The reciprocal-sine sum `sinSum N` is nonnegative for positive `N`. -/
 lemma sinSum_nonneg (N : ℕ) (hN : 0 < N) : 0 ≤ sinSum N := by
   unfold sinSum oddIdx
   apply mul_nonneg (by positivity)
@@ -195,6 +237,7 @@ lemma sinSum_nonneg (N : ℕ) (hN : 0 < N) : 0 ≤ sinSum N := by
     have h2 : (p.val:ℝ) < 2 * (N:ℝ) := by exact_mod_cast p.isLt
     nlinarith [Real.pi_pos]
 
+/-- The query update increases the sum of amplitude norms by at most a factor of `sinSum N`. -/
 lemma queryStep_l1 (N : ℕ) (hN : 0 < N) (a : Idx N → ℂ) :
     (∑ p : Idx N, ‖queryStep N a p‖) ≤ sinSum N * ∑ q : Idx N, ‖a q‖ := by
   have hstep : ∀ p : Idx N, ‖queryStep N a p‖ ≤ ∑ q : Idx N, ‖queryAmp N p q‖ * ‖a q‖ := by
@@ -212,6 +255,7 @@ lemma queryStep_l1 (N : ℕ) (hN : 0 < N) (a : Idx N → ℂ) :
         rw [queryAmp_norm_sum N hN q]
     _ = sinSum N * ∑ q, ‖a q‖ := by rw [Finset.mul_sum]
 
+/-- Applying coordinate phases preserves each amplitude norm. -/
 lemma phaseApply_norm {N : ℕ} (α : Idx N → ℝ) (a : Idx N → ℂ) (p : Idx N) :
     ‖phaseApply α a p‖ = ‖a p‖ := by
   unfold phaseApply
@@ -221,6 +265,7 @@ lemma phaseApply_norm {N : ℕ} (α : Idx N → ℝ) (a : Idx N → ℂ) (p : Id
     exact Complex.norm_exp_ofReal_mul_I _
   rw [hexp, one_mul]
 
+/-- For positive `N`, the initial state's sum of amplitude norms is one. -/
 lemma startState_l1 (N : ℕ) (hN : 0 < N) :
     (∑ p : Idx N, ‖startState N p‖) = 1 := by
   have hf : ∀ p : Idx N, ‖startState N p‖ = if p.val = 0 then (1:ℝ) else 0 := by
@@ -235,6 +280,7 @@ lemma startState_l1 (N : ℕ) (hN : 0 < N) :
     intro h; exact hb (Fin.ext (by rw [zidx_val, h]))
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- The sum of amplitude norms after `ℓ` stages is at most `sinSum N ^ ℓ`. -/
 lemma psi_l1 (N : ℕ) (hN : 0 < N) (α : ℕ → Idx N → ℝ) :
     ∀ ℓ : ℕ, (∑ p : Idx N, ‖psi N α ℓ p‖) ≤ (sinSum N) ^ ℓ
   | 0 => by
@@ -251,11 +297,13 @@ lemma psi_l1 (N : ℕ) (hN : 0 < N) (α : ℕ → Idx N → ℝ) :
               mul_le_mul_of_nonneg_left (psi_l1 N hN α ℓ) hS
         _ = (sinSum N) ^ (ℓ + 1) := by rw [pow_succ]; ring
 
+/-- The target-amplitude norm is `1 / √N` on its specified parity class and zero elsewhere. -/
 lemma targetAmp_norm (N parity : ℕ) (_hN : 0 < N) (p : Idx N) :
     ‖targetAmp N parity p‖ = if p.val % 2 = parity then ((Real.sqrt (N:ℝ))⁻¹) else 0 := by
   unfold targetAmp
   split_ifs <;> simp [Real.sqrt_nonneg]
 
+/-- The success-amplitude norm is at most `sinSum N ^ k / √N` for positive `N`. -/
 lemma successAmplitude_bound (N k : ℕ) (hN : 0 < N) (α : ℕ → Idx N → ℝ) :
     ‖successAmplitude N k α‖ ≤ ((Real.sqrt (N:ℝ))⁻¹) * (sinSum N) ^ k := by
   unfold successAmplitude
@@ -274,6 +322,8 @@ lemma successAmplitude_bound (N k : ℕ) (hN : 0 < N) (α : ℕ → Idx N → �
         apply mul_le_mul_of_nonneg_left (psi_l1 N hN α k)
         exact le_of_lt (inv_pos.mpr (Real.sqrt_pos.mpr (by positivity)))
 
+/-- The success probability is at most `sinSum N ^ (2 * k) / N` for positive `N`
+[FarhiEtAl1999]. -/
 theorem invariant_success_bound (N k : ℕ) (hN : 0 < N) (α : ℕ → Idx N → ℝ) :
     successProbability N k α ≤ (1 / (N : ℝ)) * (sinSum N) ^ (2 * k) := by
   unfold successProbability
@@ -287,9 +337,11 @@ theorem invariant_success_bound (N k : ℕ) (hN : 0 < N) (α : ℕ → Idx N →
           rw [inv_pow, Real.sq_sqrt (by positivity : (0:ℝ) ≤ N), one_div]
         rw [hsq, ← pow_mul, mul_comm k 2, pow_mul]
 
+/-- Membership in `oddIdx N` is equivalent to having odd index value. -/
 lemma mem_oddIdx {N : ℕ} {p : Idx N} : p ∈ oddIdx N ↔ (p : ℕ) % 2 = 1 := by
   simp [oddIdx]
 
+/-- For `0 < x ≤ π / 2`, the reciprocal sine is at most `x⁻¹ + 1`. -/
 lemma inv_sin_le_inv_add_one {x : ℝ} (hx0 : 0 < x) (hx1 : x ≤ Real.pi / 2) :
     (Real.sin x)⁻¹ ≤ x⁻¹ + 1 := by
   have hsin_pos : 0 < Real.sin x := Real.sin_pos_of_pos_of_lt_pi hx0 (by nlinarith [Real.pi_pos])
@@ -325,6 +377,7 @@ lemma inv_sin_le_inv_add_one {x : ℝ} (hx0 : 0 < x) (hx1 : x ≤ Real.pi / 2) :
     field_simp
   linarith [h, heq]
 
+/-- For `0 < x < π`, the reciprocal sine is at most `x⁻¹ + (π − x)⁻¹ + 1`. -/
 lemma inv_sin_le_inv_add_inv_sub {x : ℝ} (hx0 : 0 < x) (hxπ : x < Real.pi) :
     (Real.sin x)⁻¹ ≤ x⁻¹ + (Real.pi - x)⁻¹ + 1 := by
   have hsin_pos : 0 < Real.sin x := Real.sin_pos_of_pos_of_lt_pi hx0 hxπ
@@ -343,9 +396,11 @@ lemma inv_sin_le_inv_add_inv_sub {x : ℝ} (hx0 : 0 < x) (hxπ : x < Real.pi) :
     have hxpos : (0:ℝ) < x⁻¹ := inv_pos.mpr hx0
     linarith
 
+/-- Negates a doubled-space index modulo `2 * N`. -/
 def oddbij (N : ℕ) (hN : 0 < N) (p : Idx N) : Idx N :=
   ⟨(2*N - p.val) % (2*N), Nat.mod_lt _ (by omega)⟩
 
+/-- On an odd index, `oddbij` has value `2 * N − p.val`. -/
 lemma oddbij_val_of_mem {N : ℕ} (hN : 0 < N) {p : Idx N} (hp : p ∈ oddIdx N) :
     (oddbij N hN p).val = 2*N - p.val := by
   have h1 : p.val % 2 = 1 := mem_oddIdx.mp hp
@@ -355,6 +410,7 @@ lemma oddbij_val_of_mem {N : ℕ} (hN : 0 < N) {p : Idx N} (hp : p ∈ oddIdx N)
   rw [Nat.mod_eq_of_lt]
   omega
 
+/-- The map `oddbij` preserves membership in `oddIdx N`. -/
 lemma oddbij_mem {N : ℕ} (hN : 0 < N) {p : Idx N} (hp : p ∈ oddIdx N) :
     oddbij N hN p ∈ oddIdx N := by
   rw [mem_oddIdx, oddbij_val_of_mem hN hp]
@@ -369,6 +425,7 @@ lemma oddbij_mem {N : ℕ} (hN : 0 < N) {p : Idx N} (hp : p ∈ oddIdx N) :
   rw [this]
   omega
 
+/-- Applying `oddbij` twice returns the original odd index. -/
 lemma oddbij_involutive {N : ℕ} (hN : 0 < N) {p : Idx N} (hp : p ∈ oddIdx N) :
     oddbij N hN (oddbij N hN p) = p := by
   have hp' := oddbij_mem hN hp
@@ -376,6 +433,7 @@ lemma oddbij_involutive {N : ℕ} (hN : 0 < N) {p : Idx N} (hp : p ∈ oddIdx N)
   rw [oddbij_val_of_mem hN hp', oddbij_val_of_mem hN hp]
   omega
 
+/-- Summing a function over reflected odd indices leaves the sum unchanged. -/
 lemma sum_oddbij {N : ℕ} (hN : 0 < N) (f : ℕ → ℝ) :
     (∑ p ∈ oddIdx N, f (2*N - p.val)) = ∑ p ∈ oddIdx N, f p.val := by
   refine Finset.sum_bij' (fun p _ => oddbij N hN p) (fun p _ => oddbij N hN p) ?_ ?_ ?_ ?_ ?_
@@ -386,6 +444,7 @@ lemma sum_oddbij {N : ℕ} (hN : 0 < N) (f : ℕ → ℝ) :
   · intro p hp
     rw [oddbij_val_of_mem hN hp]
 
+/-- Reindexes a sum over odd doubled-space indices as a sum over `2 * j + 1` for `j < N`. -/
 lemma test_sum {N : ℕ} (_hN : 0 < N) (f : ℕ → ℝ) :
     (∑ p ∈ oddIdx N, f p.val) = ∑ j ∈ Finset.range N, f (2*j+1) := by
   have hmem1 : ∀ p : Idx N, p ∈ oddIdx N → p.val / 2 ∈ Finset.range N := by
@@ -427,6 +486,7 @@ lemma test_sum {N : ℕ} (_hN : 0 < N) (f : ℕ → ℝ) :
   exact Finset.sum_bij' (fun p _ => p.val/2) (fun (j : ℕ) (hj : j ∈ Finset.range N) =>
       (⟨2*j+1, by have := Finset.mem_range.mp hj; omega⟩ : Idx N)) hmem1 hmem2 hinv1 hinv2 hval
 
+/-- For `m ≥ 1`, the first `m` odd reciprocal terms sum to at most `1 + log (2 * m − 1) / 2`. -/
 lemma odd_harm_le (m : ℕ) (hm : 1 ≤ m) :
     ∑ j ∈ Finset.range m, ((2*(j:ℝ)+1))⁻¹ ≤ 1 + (1/2) * Real.log (2*(m:ℝ)-1) := by
   induction m, hm using Nat.le_induction with
@@ -466,11 +526,14 @@ lemma odd_harm_le (m : ℕ) (hm : 1 ≤ m) :
       rw [hgoal]
       linarith
 
+/-- The number of odd indices is at most `2 * N`. -/
 lemma oddIdx_card_le (N : ℕ) : (oddIdx N).card ≤ 2 * N := by
   have h :=
       Finset.card_le_card (Finset.filter_subset (fun p : Idx N => (p : ℕ) % 2 = 1) Finset.univ)
   simpa [oddIdx, Idx] using h
 
+/-- For `N ≥ 1`, the normalized reciprocal-sine sum is at most `(2 / π) * log N + 4`
+[FarhiEtAl1999]. -/
 theorem sinSum_le_log (N : ℕ) (hN : 1 ≤ N) :
     sinSum N ≤ (2 / Real.pi) * Real.log (N : ℝ) + 4 := by
   have hNpos : 0 < N := hN
@@ -598,10 +661,14 @@ theorem sinSum_le_log (N : ℕ) (hN : 1 ≤ N) :
           mul_le_mul_of_nonneg_left hlogbound (by positivity)
         nlinarith [hstep, hconst]
 
+/-- There is a nonnegative constant bounding `sinSum N − (2 / π) * log N` above for every `N ≥
+3` [FarhiEtAl1999]. -/
 theorem odd_sine_sum_asymptotic :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ N : ℕ, 3 ≤ N → sinSum N ≤ (2 / Real.pi) * Real.log (N : ℝ) + C :=
   ⟨4, by norm_num, fun N hN => sinSum_le_log N (by omega)⟩
 
+/-- For fixed `0 < ε ≤ 1`, sufficiently large instances require strictly more than `log N / (2 *
+log (log N))` invariant queries to achieve success probability at least `ε` [FarhiEtAl1999]. -/
 theorem translation_invariant_query_lower_bound (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε ≤ 1) :
     ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N → ∀ k : ℕ,
       (∃ α : ℕ → Idx N → ℝ, ε ≤ successProbability N k α) →

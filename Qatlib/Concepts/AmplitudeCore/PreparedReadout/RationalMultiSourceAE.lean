@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryThreeSourceAE
+
+/-!
+# Rational readout for three-source amplitude estimation
+
+`instructions` instantiates three-source amplitude estimation with the dyadic schedule from
+`SmallProbabilitySchedule`; `decode` gives its scaled rational output. `amplitude` and `output`
+connect the preparation word to the actual marked probability and final state.
+
+Under a scaled-mass cap, the rational decoder estimates the actual scaled amplitude within `5 *
+eps / 8`; an additional center bias of `eps / 4` gives error `7 * eps / 8`. Both guarantees
+retain the success probability from [BrassardEtAl2002].
+
+## Main statements
+
+* `success_actual_mass`: proves the rational decoder guarantee for the actual scaled amplitude.
+* `success_to_center`: transfers that guarantee to a nearby target.
+* `resources`: records well-formedness and costs for each source.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -18,18 +41,26 @@ set_option warningAsError false
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- The three-source amplitude-estimation word at the dyadic grid selected by
+`SmallProbabilitySchedule`. -/
 noncomputable def instructions (T B eps : ℚ) (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H) :
     List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step (Fin (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps) × (Bool × H))) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryThreeSourceAE.instructions (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps) Aword seed S
 
+/-- The rational native amplitude decoder scaled by `T` at the selected grid and decoder
+precision. -/
 def decode (T B eps : ℚ) (z : Fin (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps)) : ℚ :=
   T * Qatlib.Concepts.AmplitudeCore.PreparedReadout.nativeAEDecode (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps)
     (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.decoderBits T eps) z
 
+/-- The marked Born probability of the state prepared by evaluating the three-source word on
+`seed`. -/
 noncomputable def amplitude (U : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ) (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H) : ℝ := Qatlib.Foundations.PureStateMath.MeasureProb (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate U Aword *ᵥ Qatlib.Foundations.PureStateMath.Ket seed) S
 
+/-- The actual output state obtained by evaluating the scheduled three-source
+amplitude-estimation instructions on their basis input. -/
 noncomputable def output (T B eps : ℚ) (U : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H) :
     Qatlib.Foundations.PureStateMath.QState (Fin (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps) × (Bool × H)) :=
@@ -38,6 +69,7 @@ noncomputable def output (T B eps : ℚ) (U : Qatlib.Concepts.AmplitudeCore.Prep
       Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryThreeSourceAE.input (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid T B eps)
         (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid_pos T B eps) seed
 
+/-- Unitary sources and a well-formed preparation word give an amplitude between zero and one. -/
 theorem amplitude_bounds (U : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ) (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H) (hU : ∀ s, U s ∈ Matrix.unitaryGroup H ℂ)
     (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword) :
@@ -45,6 +77,8 @@ theorem amplitude_bounds (U : Qatlib.Concepts.AmplitudeCore.PreparedReadout.Mult
   ⟨Qatlib.Foundations.PureStateMath.measureProb_nonneg _ _, Qatlib.Foundations.BornMetrics.EventProbability.measureProb_le_one
     (Qatlib.Foundations.PureStateMath.normalized_applyGate (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.evaluate_unitary U Aword hw hU) (Qatlib.Foundations.PureStateMath.normalized_ket seed)) _⟩
 
+/-- Under the scaled-mass cap, the rational decoded output estimates the actual scaled amplitude
+within `5 * eps / 8` with Born probability at least `8 / π²`. -/
 theorem success_actual_mass (T B eps : ℚ) (hT : 0 < T) (heps : 0 < eps)
     (U : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ) (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hU : ∀ s, U s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword)
@@ -87,6 +121,8 @@ theorem success_actual_mass (T B eps : ℚ) (hT : 0 < T) (heps : 0 < eps)
   rw [← mul_sub, abs_mul, abs_of_nonneg ht]
   exact (mul_le_mul_of_nonneg_left hdev ht).trans hs
 
+/-- A bias of at most `eps / 4` transfers the rational readout guarantee to a center `mu` with
+error at most `7 * eps / 8` and probability at least `8 / π²`. -/
 theorem success_to_center (T B eps : ℚ) (hT : 0 < T) (heps : 0 < eps)
     (U : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source → Matrix H H ℂ) (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (seed : H) (S : Finset H)
     (hU : ∀ s, U s ∈ Matrix.unitaryGroup H ℂ) (hw : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.WellFormed Aword)
@@ -104,6 +140,8 @@ theorem success_to_center (T B eps : ℚ) (hT : 0 < T) (heps : 0 < eps)
   have hg := (Finset.mem_filter.mp hz).2
   linarith
 
+/-- The scheduled instructions are well formed, multiply each source query count by `2 * grid -
+1`, and have the stated preparation and fixed-gate cost. -/
 theorem resources (T B eps : ℚ)
     (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H))
     (seed : H) (S : Finset H)

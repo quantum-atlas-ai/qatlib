@@ -16,6 +16,31 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedStat
+
+/-!
+# Amplification with known success probability
+
+This module derives the trigonometric rotation formula and good-component squared mass after
+repeated rank-one sign-phase iterations. `zoo_counting_rankone_known_success_amplification`
+proves the success lower bound for the iteration count obtained from the known angle. For
+background, see [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `zoo_counting_rankone_known_success_amplification_rotation`: For a unitary preparation with
+  initial good mass strictly between zero and one and `sin² θ` equal to that mass for `0 ≤ θ ≤
+  π/2`, the state after `j` sign-phase iterations has the stated sine and cosine coefficients at
+  angle `(2 * j + 1) * θ`. See [Brassard et al., Theorem 1][BrassardHoyerTapp1998Counting].
+* `zoo_counting_rankone_known_success_amplification`: For a unitary preparation with positive
+  initial good mass `a = sin² θ` and `0 ≤ θ ≤ π/2`, taking `Nat.floor (π / (4 * θ))` sign-phase
+  iterations gives good squared mass at least `max (1 - a) a`. See [Brassard et al., Theorem
+  2][BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +50,7 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
+/-- The prepared state is the sum of its good and bad components. -/
 lemma zoo_counting_rankone_known_success_amplification_state_split
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool) :
     (fun i => A i 0) =
@@ -33,6 +59,8 @@ lemma zoo_counting_rankone_known_success_amplification_state_split
   funext i
   by_cases h : g i <;> simp [RankOneReflection.goodPart, RankOneReflection.badPart, h]
 
+/-- Taking the good part of a linear combination of good and bad components retains exactly the
+good summand. -/
 lemma zoo_counting_rankone_known_success_amplification_goodPart_combination
     {n : ℕ} (g : Fin (n + 1) → Bool) (v : Fin (n + 1) → ℂ) (c₁ c₂ : ℂ) :
     RankOneReflection.goodPart g
@@ -43,6 +71,7 @@ lemma zoo_counting_rankone_known_success_amplification_goodPart_combination
     simp [RankOneReflection.goodPart, RankOneReflection.badPart, h,
       Pi.add_apply, Pi.smul_apply, smul_eq_mul]
 
+/-- The sum of squared coordinate norms of `c • v` equals `Complex.normSq c` times that of `v`. -/
 lemma zoo_counting_rankone_known_success_amplification_normSq_sum_smul
     {n : ℕ} (c : ℂ) (v : Fin (n + 1) → ℂ) :
     (∑ i, Complex.normSq ((c • v) i)) =
@@ -51,6 +80,8 @@ lemma zoo_counting_rankone_known_success_amplification_normSq_sum_smul
   refine Finset.sum_congr rfl (fun i _ => ?_)
   simp [Pi.smul_apply, smul_eq_mul, Complex.normSq_mul]
 
+/-- With `s = sin θ`, `c = cos θ`, `c² = b = 1 - a`, and nonzero `s` and `c`, the coefficient
+`sin (α + 2θ) / s` equals `(1 - 2a) * (sin α / s) + 2b * (cos α / c)`. -/
 lemma zoo_counting_rankone_known_success_amplification_sin_rec
     {θ a b s c α : ℝ} (hs : Real.sin θ = s) (hc : Real.cos θ = c)
     (hcq : c ^ 2 = 1 - a) (hb : b = 1 - a) (hs0 : s ≠ 0) (hc0 : c ≠ 0) :
@@ -68,6 +99,8 @@ lemma zoo_counting_rankone_known_success_amplification_sin_rec
     linear_combination 2 * Real.cos α * s * hbc
   rw [Real.sin_add, hcos2, hsin2, e1, e2, ← add_div]
 
+/-- With `s = sin θ`, `c = cos θ`, `s² = a`, `c² = 1 - a`, and nonzero `s` and `c`, the
+coefficient `cos (α + 2θ) / c` equals `(1 - 2a) * (cos α / c) - 2a * (sin α / s)`. -/
 lemma zoo_counting_rankone_known_success_amplification_cos_rec
     {θ a s c α : ℝ} (hs : Real.sin θ = s) (hc : Real.cos θ = c)
     (hsq : s ^ 2 = a) (hcq : c ^ 2 = 1 - a) (hs0 : s ≠ 0) (hc0 : c ≠ 0) :
@@ -84,6 +117,10 @@ lemma zoo_counting_rankone_known_success_amplification_cos_rec
     linear_combination -2 * Real.sin α * c * hsq
   rw [Real.cos_add, hcos2, hsin2, e1, e2, ← sub_div]
 
+/-- For a unitary preparation with initial good mass strictly between zero and one and `sin² θ`
+equal to that mass for `0 ≤ θ ≤ π/2`, the state after `j` sign-phase iterations has the
+stated sine and cosine coefficients at angle `(2 * j + 1) * θ`. See [Brassard et al.,
+Theorem 1][BrassardHoyerTapp1998Counting]. -/
 lemma zoo_counting_rankone_known_success_amplification_rotation
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (hA : A * A.conjTranspose = 1) (θ : ℝ) (hθ0 : 0 ≤ θ) (hθπ : θ ≤ Real.pi / 2)
@@ -164,6 +201,9 @@ lemma zoo_counting_rankone_known_success_amplification_rotation
       simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
       ring
 
+/-- For a unitary preparation with initial good mass `sin² θ` strictly between zero and one and
+`0 ≤ θ ≤ π/2`, the good-component squared mass after `j` iterations is `sin²((2j + 1)θ)`.
+See [BrassardHoyerTapp1998Counting]. -/
 lemma zoo_counting_rankone_known_success_amplification_success_sq
     {n : ℕ} (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (hA : A * A.conjTranspose = 1) (θ : ℝ) (hθ0 : 0 ≤ θ) (hθπ : θ ≤ Real.pi / 2)
@@ -193,6 +233,8 @@ lemma zoo_counting_rankone_known_success_amplification_success_sq
   rw [← hsq]
   field_simp [hs_ne]
 
+/-- If `0 < θ ≤ π/4` and `sin² θ = a`, the squared sine at the angle selected by `Nat.floor (π /
+(4 * θ))` is at least `1 - a`. -/
 lemma zoo_counting_rankone_known_success_amplification_floor_estimate
     {θ a : ℝ} (hθ0 : 0 < θ) (hθπ4 : θ ≤ Real.pi / 4)
     (hsin2a : Real.sin θ ^ 2 = a) :
@@ -239,6 +281,9 @@ lemma zoo_counting_rankone_known_success_amplification_floor_estimate
   rw [← hcos2θ]
   exact hsq
 
+/-- For a unitary preparation with positive initial good mass `a = sin² θ` and `0 ≤ θ ≤ π/2`,
+taking `Nat.floor (π / (4 * θ))` sign-phase iterations gives good squared mass at least `max
+(1 - a) a`. See [Brassard et al., Theorem 2][BrassardHoyerTapp1998Counting]. -/
 theorem zoo_counting_rankone_known_success_amplification :
     ∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
       (g : Fin (n + 1) → Bool),
@@ -310,6 +355,7 @@ theorem zoo_counting_rankone_known_success_amplification :
     exact zoo_counting_rankone_known_success_amplification_floor_estimate
       hθpos hθπ4 hsin2a
 
+/-- The known-success amplification theorem satisfies `Theorem2RestrictedSpec.expected`. -/
 theorem zoo_counting_rankone_known_success_amplification_contract :
     Theorem2RestrictedSpec.expected :=
   zoo_counting_rankone_known_success_amplification

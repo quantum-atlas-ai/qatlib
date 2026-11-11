@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Real-budget conversion specification
+
+`RealBudgetConversionAlgorithm` specifies a uniform legal source-word construction from a real
+alphabet-filtered Gram-matrix budget. It records a ceiling-based query bound, a real-overlap
+guarantee, zero queries in degenerate cases, and a stronger distance estimate when the error is
+at most the budget.
+
+The mathematical background is described in [LeeEtAl2011].
+
+## Main statements
+
+* `RealBudgetConversionAlgorithm`: the real-budget state-conversion interface.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -22,6 +42,8 @@ namespace Qatlib.Concepts.QueryComplexity.StateConversion
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The existence of one positive constant controlling legal conversion words from real filtered
+budgets, with the stated call, overlap, degenerate-case, and distance guarantees. -/
 def RealBudgetConversionAlgorithm : Prop :=
   ∃ c : ℕ, 0<c ∧ ∀ (X H : Type) [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (n q : ℕ)

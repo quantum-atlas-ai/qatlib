@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.Phi3Universal.Phi3UniversalityTheorem1Stat
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Exact universality of three-wire gates
+
+This module proves a quantitative form of the three-wire universality theorem in [Yao1993] by
+translating legal reflection-gate tables into three-wire gates on a register with three added
+wires. One-wire gates and controlled-NOT gates are embedded using unused selected wires,
+preserving the compiled circuit and its gate count in the synthesis framework of
+[BarencoEtAl1995].
+
+## Main statements
+
+* `phi3UniversalityTheorem1`: every unitary on `n ≥ 1` qubits has an exact, query-free
+  three-wire implementation on the embedded register, with at most `768*(n+1)^3*4^n` gates.
+
+## References
+
+* [Yao, Theorem 1][Yao1993]
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +44,8 @@ namespace Qatlib.Concepts.CircuitImpl.Phi3Universal
 open Matrix
 noncomputable section
 
+/-- Agreement off three distinct wires together with agreement on the last two selected wires is
+equivalent to agreement off the first selected wire. -/
 private theorem phi3Off_local {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.Injective w)
     (x y : Reg n) :
     ((∀ k : Fin n, (∀ q : Fin 3, w q ≠ k) → x k = y k) ∧
@@ -41,6 +64,8 @@ private theorem phi3Off_local {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.Inj
     · intro q hq
       exact h (w q) (hw.ne hq)
 
+/-- Embedding a one-wire unitary as a three-wire gate gives its direct action on the first
+selected ambient wire. -/
 private theorem phi3One_matrix {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.Injective w)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
     phi3GateMatrix (⟨w, hw, wireGate 3 0 U, wireGate_unitary 3 0 U hU⟩ : Phi3Gate n) =
@@ -51,6 +76,8 @@ private theorem phi3One_matrix {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.In
   rw [← ite_and]
   simp only [phi3Off_local w hw]
 
+/-- For distinct selected wires, agreement off them and a local update on the second wire are
+equivalent to the corresponding ambient register update. -/
 private theorem phi3Off_update {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.Injective w)
     (x y : Reg n) (v : Bool) :
     ((∀ k : Fin n, (∀ q : Fin 3, w q ≠ k) → x k = y k) ∧
@@ -74,6 +101,8 @@ private theorem phi3Off_update {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.In
     · rw [h]
       exact hu
 
+/-- Embedding the local controlled-NOT as a three-wire gate gives controlled-NOT on the first
+two selected ambient wires. -/
 private theorem phi3Cnot_matrix {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.Injective w) :
     phi3GateMatrix (⟨w, hw, cnotGate 3 0 1,
       cnotGate_unitary 3 0 1 (by decide)⟩ : Phi3Gate n) = cnotGate n (w 0) (w 1) := by
@@ -83,16 +112,21 @@ private theorem phi3Cnot_matrix {n : ℕ} (w : Fin 3 → Fin n) (hw : Function.I
   rw [← ite_and]
   simp only [phi3Off_update w hw]
 
+/-- The map selecting three ambient wires in the order `a`, `b`, `c`. -/
 private def threeWires {n : ℕ} (a b c : Fin n) : Fin 3 → Fin n := ![a, b, c]
 
+/-- Three pairwise distinct ambient wires define an injective `threeWires` selection. -/
 private theorem threeWires_injective {n : ℕ} (a b c : Fin n)
     (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) : Function.Injective (threeWires a b c) := by
   intro i j h
   fin_cases i <;> fin_cases j <;> simp_all [threeWires]
 
+/-- The additional wire at index `n` in an `(n+3)`-wire register. -/
 private def dummyZero (n : ℕ) : Fin (n + 3) := ⟨n, by omega⟩
+/-- The additional wire at index `n+1` in an `(n+3)`-wire register. -/
 private def dummyOne (n : ℕ) : Fin (n + 3) := ⟨n + 1, by omega⟩
 
+/-- A prefix data wire differs from the additional wire `dummyZero`. -/
 private theorem data_ne_dummyZero {n : ℕ} (w : Fin n) :
     knownPrefixWires n 3 w ≠ dummyZero n := by
   intro h
@@ -100,6 +134,7 @@ private theorem data_ne_dummyZero {n : ℕ} (w : Fin n) :
   change w.val = n at hv
   omega
 
+/-- A prefix data wire differs from the additional wire `dummyOne`. -/
 private theorem data_ne_dummyOne {n : ℕ} (w : Fin n) :
     knownPrefixWires n 3 w ≠ dummyOne n := by
   intro h
@@ -107,6 +142,8 @@ private theorem data_ne_dummyOne {n : ℕ} (w : Fin n) :
   change w.val = n + 1 at hv
   omega
 
+/-- Translates a legal reflection gate into a three-wire unitary gate after adding three ambient
+wires. -/
 private def phi3Translate {n : ℕ} (g : ReflectionGate n) (hg : reflectionGateLegal g) : Phi3Gate (n + 3) :=
   match g with
   | .inl (w, U) =>
@@ -122,6 +159,8 @@ private def phi3Translate {n : ℕ} (g : ReflectionGate n) (hg : reflectionGateL
       localMatrix := cnotGate 3 0 1
       localMatrix_unitary := cnotGate_unitary 3 0 1 (by decide) }
 
+/-- The translated three-wire matrix equals the original reflection-gate matrix mapped onto the
+prefix data wires. -/
 private theorem phi3Translate_matrix {n : ℕ} (g : ReflectionGate n) (hg : reflectionGateLegal g) :
     phi3GateMatrix (phi3Translate g hg) = reflectionGateMatrix (knownWireGateMap (knownPrefixWires n 3) g) := by
   rcases g with ⟨w, U⟩ | ⟨c, t⟩
@@ -134,6 +173,8 @@ private theorem phi3Translate_matrix {n : ℕ} (g : ReflectionGate n) (hg : refl
     simpa only [phi3Translate, threeWires, Matrix.cons_val_zero, Matrix.cons_val_one,
       knownWireGateMap, reflectionGateMatrix] using! h
 
+/-- A legal reflection-gate list translates to a three-wire gate list of the same length with
+exactly the mapped compiled circuit. -/
 private theorem phi3Translate_list {n : ℕ} (gs : List (ReflectionGate n)) (hgs : reflectionLegal gs) :
     ∃ ts : List (Phi3Gate (n + 3)), ts.length = gs.length ∧
       phi3Compile ts = reflectionCompile (gs.map (knownWireGateMap (knownPrefixWires n 3))) := by
@@ -147,6 +188,9 @@ private theorem phi3Translate_list {n : ℕ} (gs : List (ReflectionGate n)) (hgs
     rw [phi3Translate_matrix]
     exact congrArg (List.cons _) hcompile
 
+/-- Every unitary on `n ≥ 1` qubits has an exact query-free three-wire implementation on the
+embedding with three added wires and at most `768*(n+1)^3*4^n` gates. This is a quantitative
+form of [Yao, Theorem 1][Yao1993]. -/
 theorem phi3UniversalityTheorem1 : Phi3UniversalityTheorem1 := by
   intro n hn U hU
   obtain ⟨gs, hgs, hlen, _, _, hrun⟩ := known_unitary_no_work_actual_local_synthesis n hn U hU

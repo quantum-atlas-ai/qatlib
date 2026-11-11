@@ -8,6 +8,32 @@ import Qatlib.Papers.GaussSumEst02.RingEstimate.CharacterSums
 import Mathlib.Algebra.Ring.GeomSum
 import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
 import Mathlib.Data.Nat.Totient
+
+/-!
+# Prime-power Ramanujan sums
+
+This module evaluates ring Gauss sums for trivial multiplicative characters modulo prime powers
+and primitive additive characters. Auxiliary summation and divisibility identities separate the
+full residue sum from the nonunit contribution, yielding `ringGaussSum_trivial_ramanujan_cases`.
+See [VanDamSeroussi2002].
+
+## Main statements
+
+* `sum_nonunit_primitive`: For a primitive additive character modulo `p^r`, the nonunit sum is
+  `p^(r - 1)` exactly when that power divides the canonical frequency representative, and is
+  zero otherwise.
+* `ringGaussSum_trivial_ramanujan`: For a trivial multiplicative character modulo `p^r` and a
+  primitive additive character, the Gauss sum is the full zero-frequency contribution minus the
+  `p^(r - 1)` divisibility contribution.
+* `ringGaussSum_trivial_ramanujan_cases`: The prime-power Ramanujan sum equals the totient at
+  zero, `-p^(r - 1)` at nonzero frequencies divisible by `p^(r - 1)`, and zero at the remaining
+  frequencies.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +45,8 @@ namespace Qatlib.Papers.GaussSumEst02.RingEstimate
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- A sum over residues modulo a nonzero natural modulus equals the sum over its canonical
+natural representatives. -/
 theorem sum_zmod_eq_sum_range {n : ℕ} [NeZero n] (f : ZMod n → ℂ) :
     (∑ x : ZMod n, f x) = ∑ i ∈ Finset.range n, f (i : ZMod n) := by
   refine Finset.sum_nbij (fun x : ZMod n => x.val) ?_ ?_ ?_ ?_
@@ -29,10 +57,13 @@ theorem sum_zmod_eq_sum_range {n : ℕ} [NeZero n] (f : ZMod n → ℂ) :
     exact ZMod.val_natCast_of_lt (by simpa using hb)
   · intro a _; rw [ZMod.natCast_zmod_val]
 
+/-- For `r ≥ 1`, multiplying `p^(r - 1)` by `p` gives `p^r`. -/
 theorem pow_pred_mul {p r : ℕ} (hr : 1 ≤ r) : p ^ (r - 1) * p = p ^ r := by
   calc p ^ (r - 1) * p = p ^ ((r - 1) + 1) := (pow_succ _ _).symm
     _ = p ^ r := by congr 1; omega
 
+/-- For a prime `p` and `r ≥ 1`, summing over multiples `p*j` with `j < p^(r - 1)` equals
+summing over the multiples of `p` below `p^r`. -/
 theorem sum_range_dvd {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) (f : ℕ → ℂ) :
     (∑ j ∈ Finset.range (p ^ (r - 1)), f (p * j))
       = ∑ i ∈ (Finset.range (p ^ r)).filter (fun i => p ∣ i), f i := by
@@ -53,9 +84,12 @@ theorem sum_range_dvd {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) (f : ℕ → ℂ
     exact (Nat.div_lt_iff_lt_mul hp.pos).mpr hlt
   · intro a _; rfl
 
+/-- An additive character is primitive when the only residue mapped to one is zero. -/
 def IsPrimitiveAddChar {n : ℕ} (e : AddChar (ZMod n)) : Prop :=
   ∀ x : ZMod n, e.toFun x = 1 → x = 0
 
+/-- A primitive additive character summed at frequency `β` gives the modulus when `β = 0` and
+zero otherwise [VanDamSeroussi2002]. -/
 theorem sum_primitive_shift {n : ℕ} [NeZero n] (e : AddChar (ZMod n))
     (he : IsPrimitiveAddChar e) (β : ZMod n) :
     (∑ x : ZMod n, e.toFun (β * x)) = if β = 0 then (n : ℂ) else 0 := by
@@ -80,6 +114,8 @@ theorem sum_primitive_shift {n : ℕ} [NeZero n] (e : AddChar (ZMod n))
       rw [geom_sum_mul, hθn, sub_self]
     exact (mul_eq_zero.mp hmul).resolve_right (sub_ne_zero.mpr hθ)
 
+/-- Modulo a prime power, the nonunit contribution to a shifted additive-character sum is the
+geometric sum with ratio `e(βp)` and `p^(r - 1)` terms. -/
 theorem sum_nonunit_shift {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) [NeZero (p ^ r)]
     (e : AddChar (ZMod (p ^ r))) (β : ZMod (p ^ r)) :
     (∑ x : ZMod (p ^ r), if ¬ IsUnit x then e.toFun (β * x) else 0)
@@ -100,6 +136,7 @@ theorem sum_nonunit_shift {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) [NeZero (p ^
   rw [hcast]
   exact e.pow_apply j (β * (p : ZMod (p ^ r)))
 
+/-- If `p^(r - 1)` divides `a`, then `a*p` is zero modulo `p^r` for `r ≥ 1`. -/
 theorem mul_pow_eq_zero_of_dvd {p r a : ℕ} (hr : 1 ≤ r) (ha : p ^ (r - 1) ∣ a) :
     ((a * p : ℕ) : ZMod (p ^ r)) = 0 := by
   rw [ZMod.natCast_eq_zero_iff]
@@ -108,6 +145,8 @@ theorem mul_pow_eq_zero_of_dvd {p r a : ℕ} (hr : 1 ≤ r) (ha : p ^ (r - 1) �
   rw [hk, ← pow_pred_mul hr]
   ring
 
+/-- For prime `p` and `r ≥ 1`, vanishing of `a*p` modulo `p^r` implies divisibility of `a` by
+`p^(r - 1)`. -/
 theorem dvd_of_mul_pow_eq_zero {p r a : ℕ} (hp : p.Prime) (hr : 1 ≤ r)
     (h : ((a * p : ℕ) : ZMod (p ^ r)) = 0) : p ^ (r - 1) ∣ a := by
   rw [ZMod.natCast_eq_zero_iff] at h
@@ -115,6 +154,9 @@ theorem dvd_of_mul_pow_eq_zero {p r a : ℕ} (hp : p.Prime) (hr : 1 ≤ r)
   rw [hpr] at h
   exact (Nat.mul_dvd_mul_iff_right hp.pos).mp h
 
+/-- For a primitive additive character modulo `p^r`, the nonunit sum is `p^(r - 1)` exactly when
+that power divides the canonical frequency representative, and is zero otherwise
+[VanDamSeroussi2002]. -/
 theorem sum_nonunit_primitive {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) [NeZero (p ^ r)]
     (e : AddChar (ZMod (p ^ r))) (he : IsPrimitiveAddChar e) (β : ZMod (p ^ r)) :
     (∑ x : ZMod (p ^ r), if ¬ IsUnit x then e.toFun (β * x) else 0)
@@ -156,6 +198,7 @@ theorem sum_nonunit_primitive {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) [NeZero 
       rw [geom_sum_mul, hθn, sub_self]
     exact (mul_eq_zero.mp hmul).resolve_right (sub_ne_zero.mpr hθ)
 
+/-- The standard nontrivial additive character on `ZMod n` for `n > 1`. -/
 def zmodAddChar (n : ℕ) [NeZero n] (hn : 1 < n) : AddChar (ZMod n) where
   toFun := ⇑(ZMod.stdAddChar (N := n))
   map_zero' := ZMod.stdAddChar.map_zero_eq_one
@@ -169,6 +212,7 @@ def zmodAddChar (n : ℕ) [NeZero n] (hn : 1 < n) : AddChar (ZMod n) where
     have hn1 : n = 1 := Nat.dvd_one.mp hd
     omega
 
+/-- The standard additive character modulo `n > 1` is primitive [VanDamSeroussi2002]. -/
 theorem zmodAddChar_primitive (n : ℕ) [NeZero n] (hn : 1 < n) :
     IsPrimitiveAddChar (zmodAddChar n hn) := by
   intro x hx
@@ -177,6 +221,9 @@ theorem zmodAddChar_primitive (n : ℕ) [NeZero n] (hn : 1 < n) :
     exact (ZMod.stdAddChar.map_zero_eq_one).symm
   exact ZMod.injective_stdAddChar hx'
 
+/-- For a trivial multiplicative character modulo `p^r` and a primitive additive character, the
+Gauss sum is the full zero-frequency contribution minus the `p^(r - 1)` divisibility
+contribution [VanDamSeroussi2002]. -/
 theorem ringGaussSum_trivial_ramanujan {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r)
     [NeZero (p ^ r)] (χ : DirichletChar (p ^ r)) (e : AddChar (ZMod (p ^ r)))
     (he : IsPrimitiveAddChar e) (hχ : IsTrivialChar χ) (β : ZMod (p ^ r)) :
@@ -194,6 +241,9 @@ theorem ringGaussSum_trivial_ramanujan {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r)
   rw [hsplit, sum_primitive_shift e he β, sum_nonunit_primitive hp hr e he β,
     Nat.cast_pow]
 
+/-- The prime-power Ramanujan sum equals the totient at zero, `-p^(r - 1)` at nonzero
+frequencies divisible by `p^(r - 1)`, and zero at the remaining frequencies
+[VanDamSeroussi2002]. -/
 theorem ringGaussSum_trivial_ramanujan_cases {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r)
     [NeZero (p ^ r)] (χ : DirichletChar (p ^ r)) (e : AddChar (ZMod (p ^ r)))
     (he : IsPrimitiveAddChar e) (hχ : IsTrivialChar χ) :

@@ -10,6 +10,26 @@ import Mathlib.Analysis.Normed.Operator.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Hybrid distance bounds for oracle circuits
+
+The recursive `qleOutput` interleaves fixed operators with repeated calls to an oracle operator.
+Norm preservation and a hybrid distance estimate yield a lower bound on the number of calls
+needed to separate two nearby oracle evolutions. See [MontanaroPallister2016].
+
+## Main statements
+
+* `qleOutput_dist_le`: For norm preserving oracle and interleaving operators with `‖A - B‖ ≤ δ`,
+  the output distance after `T` calls is at most `T * δ * ‖ψ‖`.
+* `qle_black_box_lower_bound`: If two norm preserving oracles are within operator distance `2 *
+  √ε` and their outputs from a unit input are separated by at least `1 / 3`, then the call count
+  is at least `1 / (6 * √ε)`.
+
+## References
+
+* [Montanaro and Pallister, 2016][MontanaroPallister2016]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,10 +40,13 @@ namespace Qatlib.Papers.QuantumFEM15.StateDistance
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- The output after `T` calls to `A`, interleaved with the fixed operators `U 0` through `U T`. -/
 def qleOutput (U : ℕ → E →L[ℂ] E) (A : E →L[ℂ] E) : ℕ → E → E
   | 0, ψ => U 0 ψ
   | (T + 1), ψ => U (T + 1) (A (qleOutput U A T ψ))
 
+/-- If all interleaving operators and the oracle preserve norms, `qleOutput` preserves the input
+norm for every number of calls. -/
 theorem qleOutput_norm (U : ℕ → E →L[ℂ] E)
     (hU : ∀ (i : ℕ) (x : E), ‖U i x‖ = ‖x‖)
     (A : E →L[ℂ] E) (hA : ∀ x : E, ‖A x‖ = ‖x‖) :
@@ -33,6 +56,8 @@ theorem qleOutput_norm (U : ℕ → E →L[ℂ] E)
       simp only [qleOutput]
       rw [hU, hA, qleOutput_norm U hU A hA T ψ]
 
+/-- For norm preserving oracle and interleaving operators with `‖A - B‖ ≤ δ`, the output
+distance after `T` calls is at most `T * δ * ‖ψ‖`. See [MontanaroPallister2016]. -/
 theorem qleOutput_dist_le (U : ℕ → E →L[ℂ] E)
     (hU : ∀ (i : ℕ) (x : E), ‖U i x‖ = ‖x‖)
     (A B : E →L[ℂ] E) (hA : ∀ x : E, ‖A x‖ = ‖x‖)
@@ -75,6 +100,9 @@ theorem qleOutput_dist_le (U : ℕ → E →L[ℂ] E)
         _ ≤ δ * ‖ψ‖ + (T : ℝ) * δ * ‖ψ‖ := add_le_add h1 h2
         _ = ((T + 1 : ℕ) : ℝ) * δ * ‖ψ‖ := by push_cast; ring
 
+/-- For normalized states with overlap `√(1 - ε)` and an equally distant complementary pair, the
+combined Euclidean distance is at most `2 * √ε` when `0 ≤ ε ≤ 1`. See
+[MontanaroPallister2016]. -/
 theorem oracle_distance_le {ι : Type*} [Fintype ι] [DecidableEq ι]
     (ψ φ ψ' φ' : EuclideanSpace ℂ ι) (hψ : ‖ψ‖ = 1) (hφ : ‖φ‖ = 1)
     (ε : ℝ) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1)
@@ -100,6 +128,9 @@ theorem oracle_distance_le {ι : Type*} [Fintype ι] [DecidableEq ι]
         rw [Real.sqrt_mul (by norm_num : (0:ℝ) ≤ 4)]
         norm_num
 
+/-- If two norm preserving oracles are within operator distance `2 * √ε` and their outputs from
+a unit input are separated by at least `1 / 3`, then the call count is at least `1 / (6 *
+√ε)`. See [MontanaroPallister2016]. -/
 theorem qle_black_box_lower_bound (U : ℕ → E →L[ℂ] E)
     (hU : ∀ (i : ℕ) (x : E), ‖U i x‖ = ‖x‖)
     (A B : E →L[ℂ] E) (hA : ∀ x : E, ‖A x‖ = ‖x‖)

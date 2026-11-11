@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.SphereNets.Packing
+
+/-!
+# Finite nets on the unit sphere
+
+Constructs an ε-covering subset of a finite set with pairwise distances strictly greater than ε.
+In a finite-dimensional real normed space, `sphere_quantitative_net` gives a finite net on the
+unit sphere with cardinality at most `(1 + 4 / ε)^dim` for `ε > 0`. See [GohMuller2026] for
+related background.
+
+## Main statements
+
+* `finite_greedy_net`: For `ε > 0`, every finite set contains a subset whose distinct points
+  have distance greater than `ε` and which covers the original set by closed balls of radius
+  `ε`.
+* `sphere_quantitative_net`: For `ε > 0`, the unit sphere of a finite-dimensional real normed
+  space has a finite ε-net on the sphere of cardinality at most `((1 + ε / 4) / (ε / 4))^finrank
+  ℝ E`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Metric Set Module MeasureTheory
@@ -13,6 +36,8 @@ namespace Qatlib.Foundations.MatrixGeometry.SphereNets.FiniteNet
 variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
 omit [NormedSpace ℝ E] [FiniteDimensional ℝ E] in
 
+/-- For `ε > 0`, every finite set contains a subset whose distinct points have distance greater
+than `ε` and which covers the original set by closed balls of radius `ε`. -/
 theorem finite_greedy_net (C : Finset E) (ε : ℝ) (hε : 0 < ε) :
     ∃ s : Finset E,s⊆C ∧
       (∀ x∈s,∀ y∈s,x≠y→ε<dist x y) ∧
@@ -48,6 +73,8 @@ theorem finite_greedy_net (C : Finset E) (ε : ℝ) (hε : 0 < ε) :
   rw [Finset.card_insert_of_notMem hxs] at this
   omega
 
+/-- For `ε > 0`, the unit sphere of a finite-dimensional real normed space has a finite ε-net on
+the sphere of cardinality at most `((1 + ε / 4) / (ε / 4))^finrank ℝ E`. -/
 theorem sphere_quantitative_net (ε : ℝ) (hε : 0 < ε) :
     ∃ s : Finset E,
       (∀ y∈s,‖y‖=1) ∧

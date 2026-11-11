@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
 import Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradientDefs
+
+/-!
+# Finite precision Fourier gradient assembly
+
+This module transports Fourier gradient readout guarantees through finite precision phase
+recording and assembles explicit parameters for a target error budget. The algorithmic
+background is quantum numerical gradient estimation [Jordan2005Gradient]. Sharp recording
+examples and minimality results describe the chosen precision and grid size.
+
+The module also verifies basis setup and elementary QFT counts, register budgets, centered
+output bounds, certified parameter intervals, and inner product guarantees for approximate
+gradients.
+
+## Main statements
+
+* `gradient_assembled_window_probability`: the assembled parameters give success probability at
+  least `1 - ε` under the residual budget.
+* `gradientAssemblyM_minimal_is_least`: the minimal grid size is least among those meeting the
+  window budget.
+* `gradientAssemblyK_is_minimal`: lower precisions fail the recording budget.
+* `estimated_gradient_descent_direction_strict`: a sufficient error budget gives positive inner
+  product with the true gradient.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -30,6 +58,8 @@ open scoped ComplexOrder ENNReal
 open Classical BigOperators
 set_option warningAsError false
 
+/-- Replacing phase values by their precision `k` records changes each stationary phase residual
+by at most `2^(-(k + 1))`. -/
 theorem record_stationary_phase_residual_error :
     ∀ (d M k : ℕ) (g : Fin d → ℝ) (φ : GradientGrid d M → ℝ) (x : GradientGrid d M),
       |stationaryPhaseResidual d M (fun y => realRecord k (φ y)) g x
@@ -46,6 +76,9 @@ theorem record_stationary_phase_residual_error :
 
 set_option linter.unusedVariables false in
 
+/-- A stationary phase residual bound `B` gives a recorded readout window probability at least
+`1 - 16 * d / (M * w) - 4 * π * B - 4 * π / 2^(k + 1)` under the stated positivity
+hypotheses. -/
 theorem stationary_phase_window_transport_of_record :
     ∀ (d M k : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
       (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -81,6 +114,8 @@ theorem stationary_phase_window_transport_of_record :
 
 set_option linter.unusedVariables false in
 
+/-- If every phase is already an exact precision `k` record, the window probability bound has no
+additional recording loss. -/
 theorem record_window_exact_on_dyadic :
     ∀ (d M k : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
       (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -103,11 +138,13 @@ theorem record_window_exact_on_dyadic :
   rw [hread]
   exact stationary_phase_window_transport d M hM g c w B φ hM2 hw hB herror
 
+/-- Every precision `k` real record is an integer multiple of `2^(-k)`. -/
 theorem record_is_dyadic :
     ∀ (k : ℕ) (θ : ℝ), ∃ n : ℤ, realRecord k θ = (n : ℝ) / (2 : ℝ) ^ k := by
   intro k θ
   exact ⟨realRecordIndex k θ, rfl⟩
 
+/-- The absolute record index is at most `|θ| * 2^k + 1 / 2`. -/
 theorem record_index_bound :
     ∀ (k : ℕ) (θ : ℝ), |(realRecordIndex k θ : ℝ)| ≤ |θ| * (2 : ℝ) ^ k + 1 / 2 := by
   intro k θ
@@ -132,12 +169,15 @@ theorem record_index_bound :
       linarith
     _ = |θ| * (2 : ℝ) ^ k + 1 / 2 := by ring
 
+/-- The assembled gradient grid size is positive for all dimensions and tolerances. -/
 theorem gradientAssemblyM_pos (d : ℕ) (ε : ℝ) : 0 < gradientAssemblyM d ε := by
   show 0 < Nat.ceil (128 * (d : ℝ) / (ε * ε)) + 2
   omega
 
 set_option linter.unusedVariables false in
 
+/-- For positive `ε`, the assembled width, grid size, and record precision satisfy the stated
+window and recording error budgets. -/
 theorem gradient_parameter_assembly :
     ∀ (d : ℕ) (ε : ℝ) (hε : 0 < ε),
       0 < gradientAssemblyW ε ∧
@@ -187,6 +227,8 @@ theorem gradient_parameter_assembly :
 
 set_option linter.unusedVariables false in
 
+/-- The assembled parameters give window probability at least `1 - ε` when the stationary phase
+residual contributes at most `ε / 4` to the loss. -/
 theorem gradient_assembled_window_probability :
     ∀ (d : ℕ) (ε : ℝ) (hε : 0 < ε) (B : ℝ) (hB : 0 ≤ B)
       (g : Fin d → ℝ) (c : ℝ)
@@ -208,6 +250,8 @@ theorem gradient_assembled_window_probability :
 
 set_option linter.unusedVariables false in
 
+/-- For `ε ≤ 1 / 2` and gradients bounded by `1 / 4`, a sample in the assembled window gives
+coordinate errors at most `ε / 4`. -/
 theorem gradient_assembled_estimate_error :
     ∀ (d : ℕ) (ε : ℝ) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2)
       (g : Fin d → ℝ) (hg : ∀ j : Fin d, |g j| ≤ 1 / 4)
@@ -226,6 +270,8 @@ theorem gradient_assembled_estimate_error :
 
 set_option linter.unusedVariables false in
 
+/-- The combined value kickback and gradient words have total query count three and total gate
+count `2 * d + 1` in their respective ledgers. -/
 theorem gradient_assembly_ledger :
     ∀ (d M Q : ℕ) [NeZero Q] (hM : 0 < M),
       adjointQueryCount (valueComputeKickbackUncomputeWord d M Q)
@@ -240,6 +286,7 @@ theorem gradient_assembly_ledger :
   · rw [hg, hg2]
     ring
 
+/-- The recording error reaches `2^(-(k + 1))` at the first positive half step. -/
 theorem realRecord_error_attained :
     ∀ (k : ℕ),
       |(1 : ℝ) / (2 : ℝ) ^ (k + 1) - realRecord k ((1 : ℝ) / (2 : ℝ) ^ (k + 1))|
@@ -265,6 +312,8 @@ theorem realRecord_error_attained :
     ring
   rw [hkey, abs_neg, abs_of_pos (by positivity : (0 : ℝ) < 1 / (2 : ℝ) ^ (k + 1))]
 
+/-- The recording error reaches `2^(-(k + 1))` at every nonnegative odd half step of the
+precision `k` grid. -/
 theorem realRecord_error_attained_family :
     ∀ (k : ℕ) (m : ℕ),
       abs ((2 * (m : ℝ) + 1) / (2 : ℝ) ^ (k + 1)
@@ -302,6 +351,7 @@ theorem realRecord_error_attained_family :
     ring
   rw [hkey, abs_neg, abs_of_pos (by positivity : (0 : ℝ) < 1 / (2 : ℝ) ^ (k + 1))]
 
+/-- Every precision below `gradientAssemblyK ε hε` exceeds the recording loss budget `ε / 4`. -/
 theorem gradientAssemblyK_is_minimal :
     ∀ (ε : ℝ) (hε : 0 < ε) (j : ℕ), j < gradientAssemblyK ε hε →
       4 * Real.pi / (2 : ℝ) ^ (j + 1) > ε / 4 := by
@@ -319,6 +369,7 @@ theorem gradientAssemblyK_is_minimal :
     exact (lt_div_iff₀ hpos).mpr h4
   linarith
 
+/-- The minimal assembled grid size is at least two. -/
 theorem gradientAssemblyM_minimal_at_least_two (d : ℕ) (ε : ℝ) :
     2 ≤ gradientAssemblyM_minimal d ε := by
   show 2 ≤ max 2 (Nat.ceil (128 * (d : ℝ) / (ε * ε)))
@@ -326,6 +377,7 @@ theorem gradientAssemblyM_minimal_at_least_two (d : ℕ) (ε : ℝ) :
 
 set_option linter.unusedVariables false in
 
+/-- For positive `ε`, the minimal assembled grid size meets the window loss budget `ε / 2`. -/
 theorem gradientAssemblyM_minimal_meets_window :
     ∀ (d : ℕ) (ε : ℝ) (hε : 0 < ε),
       16 * (d : ℝ) / ((gradientAssemblyM_minimal d ε : ℝ) * gradientAssemblyW ε) ≤ ε / 2 := by
@@ -359,6 +411,8 @@ theorem gradientAssemblyM_minimal_meets_window :
 
 set_option linter.unusedVariables false in
 
+/-- The minimal assembled grid size is no larger than any grid of size at least two satisfying
+the window loss budget. -/
 theorem gradientAssemblyM_minimal_is_least :
     ∀ (d : ℕ) (ε : ℝ) (hε : 0 < ε) (M' : ℕ) (hM2 : 2 ≤ M'),
       16 * (d : ℝ) / ((M' : ℝ) * gradientAssemblyW ε) ≤ ε / 2 →
@@ -387,6 +441,8 @@ theorem gradientAssemblyM_minimal_is_least :
   show max 2 (Nat.ceil (128 * (d : ℝ) / (ε * ε))) ≤ M'
   exact max_le hM2 hceil'
 
+/-- The minimal grid size is at most the assembled size, and the assembled size exceeds it by at
+most two. -/
 theorem gradientAssemblyM_excess :
     ∀ (d : ℕ) (ε : ℝ),
       gradientAssemblyM_minimal d ε ≤ gradientAssemblyM d ε ∧
@@ -410,6 +466,7 @@ theorem gradientAssemblyM_excess :
       exact hh
     omega
 
+/-- When `K + k > 0`, the full range character index is zero exactly when `k = 0`. -/
 theorem fullRangeCharacterIndex_eq_zero_iff (K k : ℕ) (h : 0 < K + k) :
     fullRangeCharacterIndex K k = 0 ↔ k = 0 := by
   constructor
@@ -439,6 +496,7 @@ theorem fullRangeCharacterIndex_eq_zero_iff (K k : ℕ) (h : 0 < K + k) :
     rw [fullRangeCharacterIndex, hpow]
     exact ZMod.natCast_self (2 ^ K)
 
+/-- Swapping two specified basis labels twice returns the original label. -/
 theorem knownBasisSwap_involutive {I : Type} [DecidableEq I] (o a : I) :
     Function.Involutive (knownBasisSwap o a) := by
   intro x
@@ -463,11 +521,13 @@ theorem knownBasisSwap_involutive {I : Type} [DecidableEq I] (o a : I) :
     · have h1 : knownBasisSwap o a x = x := by simp [knownBasisSwap, hxo, hxa]
       rw [h1, h1]
 
+/-- The known basis setup matrix is unitary. -/
 theorem knownBasisSetUpGate_unitary {I : Type} [Fintype I] [DecidableEq I]
     (o a : I) :
     knownBasisSetUpGate o a ∈ Matrix.unitaryGroup I ℂ := by
   exact permMatrix_unitary (knownBasisSwap_involutive o a)
 
+/-- An involutive permutation matrix maps a basis ket to the ket of its image. -/
 theorem applyGate_permMatrix_ket {I : Type} [Fintype I] [DecidableEq I]
     {σ : I → I} (hσ : Function.Involutive σ) (x : I) :
     ApplyGate (permMatrix σ) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (σ x) := by
@@ -483,6 +543,8 @@ theorem applyGate_permMatrix_ket {I : Type} [Fintype I] [DecidableEq I]
       rwa [hσ x] at h2
     simp [Qatlib.Foundations.PureStateMath.Ket, hy, hne]
 
+/-- The known basis setup word is unitary, uses zero queries, and has gate count
+`knownBasisSetUpGates K k`. -/
 theorem knownBasisSetUpWord_isUnitary (K k : ℕ) :
     IsUnitaryCircuit (knownBasisSetUpWord K k) ∧
       QueryCount (knownBasisSetUpWord K k) = 0 ∧
@@ -502,6 +564,8 @@ theorem knownBasisSetUpWord_isUnitary (K k : ℕ) :
     · simp at hU
     simp [knownBasisSetUpGates, hk]
 
+/-- For positive total register width, the setup word maps the zero basis ket to the full range
+character index ket. -/
 theorem knownBasisSetUpWord_maps_origin :
     ∀ (K k : ℕ) (h : 0 < K + k),
       Run (1 : Matrix (ZMod (2 ^ (K + k))) (ZMod (2 ^ (K + k))) ℂ)
@@ -533,6 +597,8 @@ theorem knownBasisSetUpWord_maps_origin :
       rw [hinv, hswap]
     simp [hgate]
 
+/-- The local QFT contains `n` Hadamards, `n * (n - 1) / 2` controlled phase gates, and `n / 2`
+swaps, with total length `qftElementaryGates n`. -/
 theorem localQFT_elementary_gate_count (n : ℕ) :
     (localQFT n).countP (fun g => match g with | .h _ => true | _ => false) = n ∧
     (localQFT n).countP (fun g => match g with | .cp _ _ _ _ => true | _ => false)
@@ -544,21 +610,28 @@ theorem localQFT_elementary_gate_count (n : ℕ) :
   rw [length_eq_countP_add, hH, hCp, hSwap]
   rfl
 
+/-- The elementary QFT gate count is `n + n * (n - 1) / 2 + n / 2`. -/
 theorem qftElementaryGates_shape (n : ℕ) :
     qftElementaryGates n = n + n * (n - 1) / 2 + n / 2 := rfl
 
+/-- Expands the elementary QFT gate count for a character register of width `K + k`. -/
 theorem charPrep_elementary_gate_count (K k : ℕ) :
     qftElementaryGates (K + k) = (K + k) + (K + k) * (K + k - 1) / 2 + (K + k) / 2 := rfl
 
+/-- The readout space is the sum of the grid and character register widths, and the integer
+width equals the character width. -/
 theorem readoutSpaceBits_decomposition (d M K k : ℕ) :
     readoutSpaceBits d M K k = gridRegisterQubits d M + charRegisterQubits K k ∧
     readoutIntegerBits K k = charRegisterQubits K k := by
   simp [readoutSpaceBits, readoutIntegerBits, gridRegisterQubits, charRegisterQubits,
     Nat.add_assoc]
 
+/-- The centered output bit budget includes one sign bit beyond `Nat.clog 2 (max 2 M)`. -/
 theorem centeredOutputBits_is_signed (M : ℕ) :
     centeredOutputBits M = Nat.clog 2 (max 2 M) + 1 := rfl
 
+/-- A centered output on the grid of size `2^m`, scaled by `2^m`, has magnitude at most `2^(m -
+1)`. -/
 theorem centered_output_scaled_bound :
     ∀ (m : ℕ) (z : Fin (2 ^ m)),
       |(2 : ℝ) ^ m * centeredGridOutput (2 ^ m) z| ≤ (2 : ℝ) ^ (m - 1) := by
@@ -635,6 +708,8 @@ theorem centered_output_scaled_bound :
         exact h5
     linarith [hbound]
 
+/-- For gradients bounded by `1 / 4` and window width at most `1 / 8`, a good modular sample
+places every gradient coordinate in its parameter interval. -/
 theorem parameter_estimation_certified :
     ∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
       (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
@@ -649,6 +724,8 @@ theorem parameter_estimation_certified :
   have h' := (abs_le.mp h)
   exact ⟨by linarith, by linarith⟩
 
+/-- Two real values within positive distance `w` have floor quantizations at step `w` differing
+by at most one. -/
 theorem quantize_step_one_step :
     ∀ (w : ℝ) (hw : 0 < w) (x y : ℝ), |x - y| ≤ w →
       |(quantizeStep w x : ℝ) - (quantizeStep w y : ℝ)| ≤ 1 := by
@@ -699,6 +776,8 @@ theorem quantize_step_one_step :
       linarith
     exact hval
 
+/-- A coordinatewise gradient error bound `w` bounds the loss of inner product with the true
+gradient by `w` times its sum of absolute coordinates. -/
 theorem estimated_gradient_descent_direction :
     ∀ (d : ℕ) (g ê : Fin d → ℝ) (w : ℝ),
       (∀ j : Fin d, |ê j - g j| ≤ w) →
@@ -730,6 +809,8 @@ theorem estimated_gradient_descent_direction :
     _ ≥ ∑ j : Fin d, (-w * |g j|) := hsum
     _ = -w * (∑ j : Fin d, |g j|) := by rw [Finset.mul_sum]
 
+/-- The estimated gradient has positive inner product with the true gradient when the stated
+error budget is smaller than the squared gradient norm. -/
 theorem estimated_gradient_descent_direction_strict :
     ∀ (d : ℕ) (g ê : Fin d → ℝ) (w : ℝ),
       (∀ j : Fin d, |ê j - g j| ≤ w) →
@@ -740,6 +821,8 @@ theorem estimated_gradient_descent_direction_strict :
   have hsq : 0 ≤ ∑ j : Fin d, g j ^ 2 := by positivity
   linarith
 
+/-- The recorded readout window probability is at least one minus `gradientReadoutLoss` under
+the stationary phase hypotheses. -/
 theorem gradient_readout_loss_certificate :
     ∀ (d M k : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ)
       (φ : GradientGrid d M → ℝ) (hM2 : 2 ≤ M) (hw : 0 < w) (hB : 0 ≤ B)
@@ -758,6 +841,8 @@ theorem gradient_readout_loss_certificate :
   rw [heq]
   exact h
 
+/-- The probability lower bound `1 - gradientReadoutLoss` is at most `1 - 4 * π * B` for
+positive grid size and window width. -/
 theorem gradient_nonsmooth_ceiling :
     ∀ (d M k : ℕ) (hM : 0 < M) (B w : ℝ) (hw : 0 < w),
       1 - gradientReadoutLoss d M k B w ≤ 1 - 4 * Real.pi * B := by
@@ -770,6 +855,8 @@ theorem gradient_nonsmooth_ceiling :
   simp only [gradientReadoutLoss]
   linarith
 
+/-- For nonnegative dimension and positive accuracy and failure tolerances, `gradientHeadlineM`
+is the least grid size at least two satisfying the window loss budget. -/
 theorem gradientHeadlineM_is_least :
     ∀ (d ε δ : ℝ) (hd : 0 ≤ d) (hε : 0 < ε) (hδ : 0 < δ),
       2 ≤ gradientHeadlineM d ε δ ∧
@@ -828,6 +915,8 @@ theorem gradientHeadlineM_is_least :
     exact max_le hM2 hceil'
   exact ⟨htwo, hbudget, hleast⟩
 
+/-- A positive window and failure tolerance satisfying the Fourier loss bound must obey `w ≥ 16
+* d / (M * δ)`. -/
 theorem gradient_confidence_accuracy_floor :
     ∀ (d M : ℕ) (hM : 0 < M) (w δ : ℝ) (hw : 0 < w) (hδ : 0 < δ),
       16 * (d : ℝ) / ((M : ℝ) * w) ≤ δ → w ≥ 16 * (d : ℝ) / ((M : ℝ) * δ) := by
@@ -846,6 +935,8 @@ theorem gradient_confidence_accuracy_floor :
     nlinarith [h1]
   exact h2
 
+/-- Establishes the specification combining sharp recording error examples and minimal assembled
+precision and grid size. -/
 theorem gext_next_endpoint : stageB_fourier_gradient_gext_next_spec := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro k
@@ -863,6 +954,8 @@ theorem gext_next_endpoint : stageB_fourier_gradient_gext_next_spec := by
     · exact (gradientAssemblyM_excess d ε).1
     · exact (gradientAssemblyM_excess d ε).2
 
+/-- Combines the base first gradient specification with recorded window bounds, assembled
+success probability, and minimal parameter guarantees. -/
 theorem gext1_endpoint :
     Qatlib.Concepts.SignalPrimitive.GridGradient.stageB_fourier_gradient_gext1_spec ∧
     (∀ (d M k : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c w B : ℝ) (φ : GradientGrid d M → ℝ)
@@ -911,6 +1004,8 @@ theorem gext1_endpoint :
     · exact (gradientAssemblyM_excess d ε).1
     · exact (gradientAssemblyM_excess d ε).2
 
+/-- Establishes the specification for the least headline grid size, the residual loss ceiling,
+and the confidence versus accuracy bound. -/
 theorem gext_next2_endpoint : stageB_fourier_gradient_gext_next2_spec := by
   refine ⟨?_, ?_, ?_⟩
   · intro d ε δ hd hε hδ
@@ -920,6 +1015,8 @@ theorem gext_next2_endpoint : stageB_fourier_gradient_gext_next2_spec := by
   · intro d M hM w δ hw hδ hwin
     exact gradient_confidence_accuracy_floor d M hM w δ hw hδ hwin
 
+/-- Establishes the specification for setup and QFT resource counts, register widths, centered
+outputs, parameter intervals, and the estimated gradient inner product bound. -/
 theorem gext_next3_endpoint : stageB_fourier_gradient_gext_next3_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro K k
@@ -939,6 +1036,9 @@ theorem gext_next3_endpoint : stageB_fourier_gradient_gext_next3_spec := by
   · intro d g ê w herr
     exact estimated_gradient_descent_direction d g ê w herr
 
+/-- Combines the base second gradient specification with residual transport, exact dyadic
+records, assembled estimate accuracy, sharp recording errors, and the next parameter
+specification. -/
 theorem gext2_endpoint :
     Qatlib.Concepts.SignalPrimitive.GridGradient.stageB_fourier_gradient_gext2_spec ∧
     (∀ (d M k : ℕ) (g : Fin d → ℝ) (φ : GradientGrid d M → ℝ) (x : GradientGrid d M),
@@ -984,6 +1084,8 @@ theorem gext2_endpoint :
     exact gext_next_endpoint.2.1 k m
   · exact gext_next2_endpoint
 
+/-- Combines the base third gradient specification with the record index bound, the combined
+query and gate ledger, and the next implementation specification. -/
 theorem gext3_endpoint :
     Qatlib.Concepts.SignalPrimitive.GridGradient.stageB_fourier_gradient_gext3_spec ∧
     (∀ (k : ℕ) (θ : ℝ), |(realRecordIndex k θ : ℝ)| ≤ |θ| * (2 : ℝ) ^ k + 1 / 2) ∧

@@ -17,6 +17,27 @@ import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+/-!
+# General adversary extension imports
+
+Collects imports for general adversary bounds, adaptive-query purification, and observed and
+instrument circuit compilation. The imported `genAdvFilter` infrastructure belongs to the
+adversary framework discussed in [HoyerLeeSpalek2007].
+
+This module provides shared namespace and section setup for extensions, including spectral,
+semidefinite, and weighted-source settings; it introduces no new declarations.
+
+## Main statements
+
+* The imports expose adversary definitions together with circuit transport, purification, and
+  branch-statistics infrastructure.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

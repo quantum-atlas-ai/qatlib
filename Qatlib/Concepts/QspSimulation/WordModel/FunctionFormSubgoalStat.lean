@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.WordModel.SignalProcessing
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
+
+/-!
+# Specification of QSP polynomial entry form
+
+`FunctionFormSubgoal` specifies four polynomials representing the entries of `QSPWord` on the
+real unit interval. It records their degree bounds, their parity, and the square-root factor in
+the off-diagonal entries. Background and related constructions are discussed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `FunctionFormSubgoal`: the polynomial function-form property for every phase list.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -14,6 +32,9 @@ open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
 
 namespace Qatlib.Concepts.QspSimulation.WordModel
 
+/-- Specifies four complex polynomials representing the entries of every QSP word on [−1, 1],
+with degree and parity determined by the phase-list length. The off-diagonal entries include
+the factor i√(1 − x²). -/
 def FunctionFormSubgoal : Prop :=
   ∀ (phis : List ℝ), ∃ (P Q₁ Q₂ S : Polynomial ℂ),
     P.natDegree ≤ phis.length ∧

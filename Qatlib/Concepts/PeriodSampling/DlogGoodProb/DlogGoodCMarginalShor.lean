@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodCMarginalAnsw
+
+/-!
+# Good first-coordinate marginal bounds
+
+Proves `dlogGoodCMarginal` under the generator assumption and refutes the legacy marginal
+contract using a vanishing row for a trivial generator. The valid bounds quantify the marginal
+mass of a small-residue first coordinate in the discrete-logarithm setting of [Shor1997].
+
+## Main statements
+
+* `dlogGoodCMarginal`: Establishes the generator-based marginal contract.
+* `dlogGoodCMarginal_false`: Refutes the legacy contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,8 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 
+/-- For `p = 3`, `q = 8`, and `g = x = 1`, the total measurement probability of the row with
+first coordinate four is zero. -/
 theorem dlog_trivial_group_dark_marginal :
     MeasureProb (dlogTwoDimState 3 8 1 1)
       (Finset.univ.filter fun t : Fin 8 × Fin 8 × ZMod 3 => t.1 = 4) = 0 := by
@@ -30,6 +50,7 @@ theorem dlog_trivial_group_dark_marginal :
     exact dlog_trivial_group_dark_row _ _
   simp only [BornProb, hv, norm_zero, zero_pow (by decide : 2 ≠ 0)]
 
+/-- The legacy good-first-coordinate marginal contract is false. -/
 theorem dlogGoodCMarginal_false : ¬ DlogGoodCMarginalLegacy := by
   intro h
   have hc : dlogSmallResidue 3 8 (4 : Fin 8) := by norm_num [dlogSmallResidue, centeredResidue]
@@ -38,6 +59,8 @@ theorem dlogGoodCMarginal_false : ¬ DlogGoodCMarginalLegacy := by
   rw [dlog_trivial_group_dark_marginal] at hh
   norm_num at hh
 
+/-- Establishes the good-first-coordinate marginal bounds with the generator hypothesis in the
+discrete-logarithm setting of [Shor1997]. -/
 theorem dlogGoodCMarginal : DlogGoodCMarginal := by
   intro p q r _ g x hprime hp hx0 hpq ho hx c hc
   have hq : 0 < q := by omega
@@ -77,5 +100,6 @@ end Qatlib.Concepts.PeriodSampling.DlogGoodProb
 set_option autoImplicit false
 namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb.Shor1997
 
+/-- Re-exports the proof of `DlogGoodCMarginal` under the declaration name used by consumers. -/
 theorem DlogGoodCMarginal_proof : DlogGoodCMarginal := dlogGoodCMarginal
 end Qatlib.Concepts.PeriodSampling.DlogGoodProb.Shor1997

@@ -11,6 +11,24 @@ import Mathlib.Analysis.Calculus.DSlope
 import Mathlib.Analysis.Complex.Liouville
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.DSlope.Basic
+
+/-!
+# Continuity of extended divided differences
+
+This module establishes continuity of `dslope` in one or both arguments and a local uniform
+bound for its complex derivative over a compact family of base points. These estimates support
+the Dixon contour argument underlying the residue tools for [WangEtAl2026].
+
+## Main statements
+
+* `continuousOn_dslope_prod`: joint continuity for C¹ functions.
+* `deriv_dslope_bounded_on_compact`: a uniform local derivative bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +45,8 @@ section NontriviallyNormedField
 variable {𝕜 E : Type*} [NontriviallyNormedField 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E]
   {f : 𝕜 → E}
 
+/-- The divided difference with one fixed base point is continuous on a neighborhood where `f`
+is continuous, provided `f` is differentiable at the base point. -/
 theorem continuousOn_dslope_first_arg {U : Set 𝕜} {w₀ : 𝕜} (hU : U ∈ 𝓝 w₀)
     (hf : ContinuousOn f U) (hd : DifferentiableAt 𝕜 f w₀) :
     ContinuousOn (fun c ↦ dslope f c w₀) U := by
@@ -39,6 +59,8 @@ section RCLike
 
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E] {f : 𝕜 → E}
 
+/-- For a C¹ function on an open set, the extended divided difference is jointly continuous in
+both arguments. -/
 theorem continuousOn_dslope_prod {U : Set 𝕜} (hU : IsOpen U) (hf : ContDiffOn 𝕜 1 f U) :
     ContinuousOn (fun p : 𝕜 × 𝕜 ↦ dslope f p.1 p.2) (U ×ˢ U) := by
   rintro ⟨c₀, w₀⟩ ⟨hc₀, hw₀⟩
@@ -81,6 +103,8 @@ section Complex
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f : ℂ → E}
 
+/-- The derivative in the second argument of a holomorphic divided difference is uniformly
+bounded for the first argument in a compact set and the second near a fixed point. -/
 theorem deriv_dslope_bounded_on_compact {U : Set ℂ} (hU : IsOpen U)
     (hf : DifferentiableOn ℂ f U) {K : Set ℂ} (hK : IsCompact K) (hKU : K ⊆ U) {w₀ : ℂ}
     (hw₀ : w₀ ∈ U) :

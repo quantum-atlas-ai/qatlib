@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridTerms
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceExceptionalUnion
+
+/-!
+# Analytic central-difference error on a grid
+
+This module proves `analyticCentralDifferenceGridError` by combining tensor concentration,
+stencil-series bounds, and a union estimate over high degrees. The result supplies a finite-grid
+analytic approximation guarantee for the gradient methods associated with
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `analyticCentralDifferenceGridError`: at most a `1/1000` fraction of grid points exceed the
+  specified geometric error threshold.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
@@ -15,6 +34,9 @@ noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- For analytic functions with the specified coordinate-derivative growth, proves that at most
+`M^d/1000` grid points exceed the geometric central-difference error threshold when
+`8*R*c*m*sqrt d < 1`. See [GilyenArunachalamWiebe2019]. -/
 theorem analyticCentralDifferenceGridError : AnalyticCentralDifferenceGridError := by
   intro d m hm R c hR hc f hf hb M hconv
   by_cases hd : d=0

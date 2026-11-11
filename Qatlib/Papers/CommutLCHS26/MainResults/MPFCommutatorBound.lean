@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFMomentSeries
 import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevCondition
+
+/-!
+# Commutator-profile bounds for actual multi-product errors
+
+This module bounds the collected Dyson coefficient tail and weighted remainder using nonnegative
+commutator profiles. The resulting `errorProfile` controls the norm error of `actualMPF` under
+normalization, cancellation moments, and odd-coefficient control, supporting the
+commutator-sensitive analysis of [AftabAnTrivisa2026].
+
+## Main statements
+
+* `actualMPF_error`: bounds the actual error by coefficient mass times the profile.
+* `chebyshev_error`: specializes the bound to Chebyshev nodes and weights.
+* `chebyshev_error_harmonic`: replaces the coefficient mass by a harmonic bound.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,12 +42,14 @@ variable {I K : Type} [Fintype I] [DecidableEq I] [Fintype K]
 
 omit [DecidableEq I] [Fintype K] in
 
+/-- Every mass profile is nonnegative. -/
 theorem massProfile_nonneg (xs : List (Matrix I I ℂ)) (t : ℝ) (p k : ℕ) :
     0 ≤ massProfile xs t p k :=
   Finset.sum_nonneg fun _ _ => Finset.prod_nonneg fun _ _ => massTerm_nonneg xs t _
 
 omit [DecidableEq I] [Fintype K] in
 
+/-- Every collected order profile is nonnegative. -/
 theorem orderProfile_nonneg (xs : List (Matrix I I ℂ)) (t : ℝ) (p k : ℕ) :
     0 ≤ orderProfile xs t p k := by
   apply Finset.sum_nonneg
@@ -38,6 +60,8 @@ theorem orderProfile_nonneg (xs : List (Matrix I I ℂ)) (t : ℝ) (p k : ℕ) :
 
 omit [Fintype K] in
 
+/-- Under odd-coefficient control, the order-profile series sums to the positive-depth factorial
+polynomial in the commutator mass. -/
 theorem orderProfile_hasSum (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
     (hc : OddControl xs r J) (t : ℝ) (ht : |t| ≤ r) (p : ℕ) :
     HasSum (orderProfile xs t p)
@@ -49,6 +73,8 @@ theorem orderProfile_hasSum (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- For positive repetition counts, every inverse-power coefficient weight has absolute value at
+most the total absolute weight. -/
 theorem coefficientWeight_abs_le (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K → ℝ) (k : ℕ) :
     |coefficientWeight q a k| ≤ ∑ j, |a j| := by
   unfold coefficientWeight
@@ -60,6 +86,8 @@ theorem coefficientWeight_abs_le (q : K → ℕ) (hq : ∀ j, 0 < q j) (a : K �
   rw [abs_div, hden]
   exact div_le_self (abs_nonneg _) (one_le_pow₀ (by exact_mod_cast hq j))
 
+/-- The norm of the weighted collected coefficient tail is at most the total absolute weight
+times the corresponding scalar order-profile tail. -/
 theorem tail_norm_le (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : K → ℕ) (hq : ∀ j, 0 < q j)
     (a : K → ℝ) (t : ℝ) (ht : |t| ≤ r) (p m : ℕ) :
@@ -77,6 +105,8 @@ theorem tail_norm_le (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
   rw [← tsum_mul_left]
   exact Summable.tsum_le_tsum hb hn hm
 
+/-- Under odd-coefficient control, the weighted Dyson remainder norm is at most the absolute
+weight mass times the p-th commutator mass power divided by p factorial. -/
 theorem weightedRemainder_norm (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : K → ℕ) (hq : ∀ j, 0 < q j)
     (a : K → ℝ) (t : ℝ) (ht : |t| ≤ r) (p : ℕ) (hp : 0 < p) :
@@ -103,16 +133,22 @@ theorem weightedRemainder_norm (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs,
 
 omit [Fintype K] in
 
+/-- The sum of the collected order-profile tail from index m and the m-th commutator mass power
+divided by m factorial. -/
 def errorProfile (xs : List (Matrix I I ℂ)) (t : ℝ) (m : ℕ) : ℝ :=
   (∑' k, orderProfile xs t m (k + m)) + commutatorMass xs t ^ m / (m.factorial : ℝ)
 
 omit [DecidableEq I] [Fintype K] in
 
+/-- The commutator-based error profile is nonnegative. -/
 theorem errorProfile_nonneg (xs : List (Matrix I I ℂ)) (t : ℝ) (m : ℕ) :
     0 ≤ errorProfile xs t m :=
   add_nonneg (tsum_nonneg fun _ => orderProfile_nonneg xs t m _)
     (div_nonneg (pow_nonneg (commutatorMass_nonneg xs t) _) (Nat.cast_nonneg _))
 
+/-- For Hermitian generators with odd-coefficient control, normalized weights, and the required
+cancellation moments, the actual multi-product error is at most the absolute weight mass
+times the error profile. -/
 theorem actualMPF_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (q : K → ℕ) (hq : ∀ j, 0 < q j)
     (a : K → ℝ) (ha : ∑ j, a j = 1) (m : ℕ) (hm : 0 < m)
@@ -128,6 +164,8 @@ theorem actualMPF_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ =
     (tail_norm_le xs hxs r J hc q hq a t ht m m)
     (weightedRemainder_norm xs hxs r J hc q hq a t ht m hm)).trans_eq (by unfold errorProfile; ring))
 
+/-- Under odd-coefficient control, the Chebyshev multi-product error is bounded by the absolute
+Chebyshev weight mass times the error profile. -/
 theorem chebyshev_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (t : ℝ) (ht : |t| ≤ r)
     (m : ℕ) (hm : 0 < m) :
@@ -139,6 +177,8 @@ theorem chebyshev_error (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ =
   · intro k hk hkm
     exact (ChebyshevNodes.weight_moments m hm k hkm).trans (zero_pow (by omega))
 
+/-- Under odd-coefficient control, the Chebyshev multi-product error is at most twice the m-th
+harmonic number times the error profile. -/
 theorem chebyshev_error_harmonic (xs : List (Matrix I I ℂ)) (hxs : ∀ A ∈ xs, Aᴴ = A)
     (r : ℝ≥0) (J : ℕ) (hc : OddControl xs r J) (t : ℝ) (ht : |t| ≤ r)
     (m : ℕ) (hm : 0 < m) :

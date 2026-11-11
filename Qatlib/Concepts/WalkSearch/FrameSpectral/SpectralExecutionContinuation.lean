@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralExecutionContinuationDefs
+
+/-!
+# Spectral estimates with execution and arithmetic bounds
+
+This module augments the spectral bundles with explicit register encodings, paid access
+requirements, and the spectrum of the unmarked principal matrix. It proves quadratic form
+bounds, existence of an orthonormal eigenfamily, and exclusion of a nonzero +1 eigenvector when
+the marked set is nonempty.
+
+The endpoint theorems also include coherent sine envelope filtering, homogeneous diagonal filter
+bounds, and resource accounting. The continued fraction estimates bound `cfSteps` using the
+Fibonacci sequence `fib`. The quantum walk spectral framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `clause6_busySpectrumContent`: Amplitudes, frame geometry, and spectral gap content.
+* `coreSpectralClause33_endpoint`: The sine envelope bundle with coherent filtering
+  requirements.
+* `clause39_continuedFraction`: Fibonacci and linear bounds on Euclidean division steps.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -37,12 +62,15 @@ open Qatlib
 open Matrix
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
+/-- Reading a right-hand coordinate of a concatenated register returns the corresponding
+coordinate of the second register. -/
 theorem clause6_regCat_right {m n : ℕ} (r : Reg m) (s : Reg n) (i : Fin n) :
     regCat r s (Fin.natAdd m i) = s i := by
   simp only [regCat]
   rw [finSumFinEquiv_symm_apply_natAdd]
   rfl
 
+/-- Padding to a register width at least the original width is injective. -/
 theorem clause6_regPad_injective {w a : ℕ} (hle : a ≤ w) {q q' : Reg a}
     (h : regPad w a q = regPad w a q') : q = q' := by
   funext i
@@ -53,12 +81,16 @@ theorem clause6_regPad_injective {w a : ℕ} (hle : a ≤ w) {q q' : Reg a}
   rw [dif_pos hlt, dif_pos hlt] at hi
   simpa using! hi
 
+/-- The unmarked row frame amplitude at an unmarked row and its own source index is the square
+root of the corresponding transition entry. -/
 theorem clause6_busyFrame_amplitude {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) (x y : I) (hx : x ∉ S) :
     unmarkedRowFrame P S (x, y) ⟨x, hx⟩ = ((Real.sqrt (P x y) : ℝ) : ℂ) := by
   simp only [unmarkedRowFrame, SzegedyIsometry, Matrix.of_apply]
   simp
 
+/-- For an injective positive-width encoding, the encoded row record amplitude at the
+concatenation of the two vertex encodings equals the square root transition amplitude. -/
 theorem clause6_paidRow_amplitude {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (x y : I) (b : ℕ) (e : I → Reg b) (hb : 0 < b)
     (henc : Function.Injective e) :
@@ -114,6 +146,8 @@ theorem clause6_paidRow_amplitude {I : Type} [Fintype I] [DecidableEq I]
   simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
   exact hsum
 
+/-- For a matrix with nonnegative entries, the absolute value of the unmarked principal
+quadratic form is bounded by the corresponding sum of entrywise amplitude norms. -/
 theorem clause6_busy_quadratic_le {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (hp : ∀ i j, 0 ≤ P i j) (u : QState (busySpace S)) :
     ‖Qatlib.Foundations.PureStateMath.Inner u ((unmarkedPrincipal P S) *ᵥ u)‖ ≤
@@ -144,6 +178,8 @@ theorem clause6_busy_quadratic_le {I : Type} [Fintype I] [DecidableEq I] [Nonemp
           simp only [norm_mul, norm_star, Complex.norm_real, Real.norm_eq_abs,
             abs_of_nonneg (hp _ _)]
 
+/-- Under the symmetric chain gap hypotheses, the unmarked principal quadratic form is bounded
+in modulus by `1 - δ * markedFraction S` times the squared state norm. -/
 theorem clause6_busy_quadratic_gap {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (hgap : SymmetricChainGap P δ) (u : QState (busySpace S)) :
@@ -154,6 +190,7 @@ theorem clause6_busy_quadratic_gap {I : Type} [Fintype I] [DecidableEq I] [Nonem
   have h2 := symmetric_chain_unmarked_real_quadratic_upper P S δ hδ.le hgap (fun i => ‖u i‖)
   exact h1.trans h2
 
+/-- Embedding a finite real sum into the complex numbers equals the sum of the embedded terms. -/
 theorem clause6_sum_ofReal {I : Type} [DecidableEq I] (s : Finset I) (f : I → ℝ) :
     Finset.sum s (fun i => Complex.ofReal (f i)) = Complex.ofReal (Finset.sum s f) := by
   induction s using Finset.induction_on with
@@ -163,6 +200,7 @@ theorem clause6_sum_ofReal {I : Type} [DecidableEq I] (s : Finset I) (f : I → 
       rw [ih]
       exact (Complex.ofReal_add _ _).symm
 
+/-- A nonempty marked set in a nonempty finite state space has positive marked fraction. -/
 theorem clause6_markedFraction_pos {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (S : Finset I) (hS : S.Nonempty) : 0 < markedFraction S := by
   unfold markedFraction
@@ -172,6 +210,8 @@ theorem clause6_markedFraction_pos {I : Type} [Fintype I] [DecidableEq I] [Nonem
     exact_mod_cast h1
   exact div_pos hpos hcard
 
+/-- With positive symmetric chain gap and a nonempty marked set, no nonzero unmarked source
+state is fixed by the unmarked principal matrix. -/
 theorem clause6_busy_no_plus_one {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
     (hgap : SymmetricChainGap P δ) (hS : S.Nonempty) (u : QState (busySpace S)) :
@@ -224,6 +264,8 @@ theorem clause6_busy_no_plus_one {I : Type} [Fintype I] [DecidableEq I] [Nonempt
     exact norm_eq_zero.mp this
   exact hu huzero
 
+/-- For a symmetric transition array, the unmarked principal matrix is Hermitian and possesses
+an orthonormal eigenfamily indexed by the unmarked vertices. -/
 theorem clause6_busy_eigenfamily {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (hsym : ∀ i j, P i j = P j i) :
     ∃ (hH : (unmarkedPrincipal P S).IsHermitian)
@@ -271,6 +313,8 @@ theorem clause6_busy_eigenfamily {I : Type} [Fintype I] [DecidableEq I] [Nonempt
     rw [hconv]
     exact h
 
+/-- Paid walk access supplies an injective encoding, legal setup, update, and check words, and
+the stated setup length, update length, check length, and workspace bounds. -/
 theorem clause6_paidAccessClauses :
     ∀ {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (S : Finset I) (a w : ℕ) (enc : I → Reg a)
@@ -293,6 +337,9 @@ theorem clause6_paidAccessClauses :
   · exact hpaid.2.2.2.2.2.2.2.2.1
   · exact hpaid.2.2.2.2.2.2.2.2.2.1
 
+/-- Under the gap hypotheses and a nonempty marked set, collects the encoded amplitudes,
+unmarked frame identities, norm bound, orthonormal eigenfamily, absence of nonzero fixed
+source states, and reversible embedded fixed states. -/
 theorem clause6_busySpectrumContent :
     ∀ {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (S : Finset I) (δ : ℝ),
@@ -329,19 +376,27 @@ theorem clause6_busySpectrumContent :
   · intro π hπ hrev
     exact szegedyWalk_fixes_stationary P hP hrev
 
+/-- Establishes `Clause6BusySpectrumTransport`, combining paid access bounds with the unmarked
+source spectral content. -/
 theorem clause6_busySpectrumTransport : Clause6BusySpectrumTransport :=
   ⟨clause6_paidAccessClauses, clause6_busySpectrumContent⟩
 
+/-- Establishes `coreSpectralClause6Prop`, extending the basic walk spectral bundle by row
+access legality and unmarked source spectral transport. -/
 theorem coreSpectralClause6_endpoint : coreSpectralClause6Prop := by
   refine ⟨walk_spectral_clause6, ?_, clause6_busySpectrumTransport⟩
   intro I instI instDec instNe P S a w enc support idx nbr setupWord updateWord checkWord C hpaid
   exact ⟨hpaid.1, hpaid.2.1, hpaid.2.2.1, hpaid.2.2.2.1⟩
 
+/-- Establishes `coreSpectralClause32Prop`, combining the amplification bundle with its phase
+search schedule identity. -/
 theorem coreSpectralClause32_endpoint : coreSpectralClause32Prop := by
   refine ⟨walk_spectral_clause32, ?_⟩
   intro M k t hM
   exact phase_search_fresh_access_ledger M k t hM
 
+/-- Establishes `coreSpectralClause33Prop`, combining sine envelope bounds with coherent
+filtering, leakage estimates, and repeated word resource counts. -/
 theorem coreSpectralClause33_endpoint : coreSpectralClause33Prop := by
   refine ⟨walk_spectral_clause33, ?_⟩
   intro I J instI instDec instJ instDecJ W M k hM v c φ T η _hW hη hfar hv hc he hT hg
@@ -591,6 +646,8 @@ theorem coreSpectralClause33_endpoint : coreSpectralClause33Prop := by
   · show adjointGateCount (clause33InverseWord (I := I) M k hM) = k * (2 * (M - 1) + 2)
     rw [clause33InverseWord, adjointGateCount_swapQueries, clause33ForwardWord, hrepg, hfwc.2]
 
+/-- Establishes `coreSpectralTunableQueryProp`, combining tunable phase band filtering with the
+strengthened band classifier requirement. -/
 theorem coreSpectralTunableQuery_endpoint : coreSpectralTunableQueryProp := by
   refine ⟨walk_spectral_tunableGoal, ?_⟩
   intro J instF instD M bands phi eta hM hη hη1 hphi hbands hsep
@@ -602,9 +659,13 @@ theorem coreSpectralTunableQuery_endpoint : coreSpectralTunableQueryProp := by
     · linarith [hinside.2]
   · exact False.elim (hnot houtside)
 
+/-- Establishes `coreSpectralOptimizedTunableProp`, the optimized band reflection and
+postselection bundle. -/
 theorem coreSpectralOptimizedTunable_endpoint : coreSpectralOptimizedTunableProp :=
     walk_spectral_optGoal
 
+/-- Establishes `coreSpectralClause36Prop`, adding normalized success branch stability and
+failure branch trace norm bounds to the selective instrument estimates. -/
 theorem coreSpectralClause36_endpoint : coreSpectralClause36Prop := by
   refine ⟨walk_spectral_clause36, ?_⟩
   intro O instO decO D E R J S ρ τ p ε hρ hτ hequal hp hε hε2 hdiff
@@ -660,6 +721,9 @@ theorem coreSpectralClause36_endpoint : coreSpectralClause36Prop := by
       abs_nonneg _
     linarith
 
+/-- For an orthonormal family, a diagonal filter equal to one on `T` and bounded by `C`
+elsewhere preserves the target mass and bounds total filtered mass and leakage by the
+complementary coefficient mass. -/
 theorem clause37_diagonal_filter_bounds_homogeneous
     {I J : Type} [Fintype I] [Fintype J] [DecidableEq J]
     (v : J → QState I) (c α : J → ℂ) (T : Finset J) (C : ℝ)
@@ -731,6 +795,8 @@ theorem clause37_diagonal_filter_bounds_homogeneous
   nlinarith [norm_nonneg (toEuclidean_fromVec (z - spectralTargetState v c T)),
     mul_nonneg hC (Real.sqrt_nonneg (s - a))]
 
+/-- Establishes `coreSpectralClause37Prop`, extending degenerate phase detection estimates to
+homogeneous coefficient families. -/
 theorem coreSpectralClause37_endpoint : coreSpectralClause37Prop := by
   refine ⟨walk_spectral_clause37, ?_⟩
   intro I J instI instDec instJ instDecJ M k hM v c φ T η W hW hη hv he hT hg
@@ -798,10 +864,13 @@ theorem coreSpectralClause37_endpoint : coreSpectralClause37Prop := by
       nlinarith
     exact h1.trans h2
 
+/-- For a positive second argument, the Euclidean step count is one plus the step count after a
+single remainder operation. -/
 theorem cfSteps_eq {a b : ℕ} (hb : 1 ≤ b) : cfSteps a b = 1 + cfSteps b (a % b) := by
   obtain ⟨c, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hb)
   simp [cfSteps]
 
+/-- Each Fibonacci number is at most the next Fibonacci number. -/
 theorem fib_succ_mono (n : ℕ) : fib n ≤ fib (n + 1) := by
   induction n with
   | zero => simp [fib]
@@ -813,6 +882,8 @@ theorem fib_succ_mono (n : ℕ) : fib n ≤ fib (n + 1) := by
       simp only [fib]
       exact Nat.le_add_right _ _
 
+/-- For a positive denominator `b`, the Fibonacci number indexed by `cfSteps a b + 1` is at most
+`b`. -/
 theorem cfSteps_fib {a b : ℕ} (hb : 1 ≤ b) : fib (cfSteps a b + 1) ≤ b := by
   induction b using Nat.strong_induction_on generalizing a with
   | h b ih =>
@@ -867,6 +938,7 @@ theorem cfSteps_fib {a b : ℕ} (hb : 1 ≤ b) : fib (cfSteps a b + 1) ≤ b := 
         rw [hfib]
         exact hsum
 
+/-- The Fibonacci number `fib (n + 1)` is at least `2 ^ (n / 2)`. -/
 theorem fib_pow_two_le : ∀ n : ℕ, 2 ^ (n / 2) ≤ fib (n + 1) := by
   intro n
   induction n using Nat.strong_induction_on with
@@ -891,6 +963,8 @@ theorem fib_pow_two_le : ∀ n : ℕ, 2 ^ (n / 2) ≤ fib (n + 1) := by
           _ ≤ fib (k + 2) + fib (k + 1) := by omega
           _ ≤ fib (k + 3) := hrec
 
+/-- If `1 ≤ q ≤ 2 ^ (l + 2)`, then the Euclidean step count `cfSteps p q` is at most `2 * l +
+5`. -/
 theorem cfSteps_le {p q l : ℕ} (h1 : 1 ≤ q) (h2 : q ≤ 2 ^ (l + 2)) :
     cfSteps p q ≤ 2 * l + 5 := by
   have hfib : fib (cfSteps p q + 1) ≤ q := cfSteps_fib (a := p) (b := q) h1
@@ -909,12 +983,16 @@ theorem cfSteps_le {p q l : ℕ} (h1 : 1 ≤ q) (h2 : q ≤ 2 ^ (l + 2)) :
     (Nat.div_lt_iff_lt_mul (by omega)).mp hlt
   omega
 
+/-- For a denominator between one and `2 ^ (l + 2)`, combines the Fibonacci lower growth
+estimate with the bound `cfSteps p q ≤ 2 * l + 5`. -/
 theorem clause39_continuedFraction :
     ∀ (p q l : ℕ) (h1 : 1 ≤ q) (h2 : q ≤ 2 ^ (l + 2)),
       fib (cfSteps p q + 1) ≤ q ∧ cfSteps p q ≤ 2 * l + 5 := by
   intro p q l h1 h2
   exact ⟨cfSteps_fib (a := p) (b := q) h1, cfSteps_le (p := p) (q := q) (l := l) h1 h2⟩
 
+/-- Establishes `coreSpectralClause39Prop`, combining phase estimation, uniform sequence
+resource counts, and continued fraction step bounds. -/
 theorem coreSpectralClause39_endpoint : coreSpectralClause39Prop := by
   refine ⟨walk_spectral_clause39, ?_, clause39_continuedFraction⟩
   intro M s l ε δ I instI instDec U ψ φ hM hε hε1 hδ hδ1 hMeq hδeq hs heig

@@ -8,6 +8,26 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.LinearAlgebra.Matrix.Hermitian
 
+/-!
+# Translation invariance and finite group algebras
+
+For a finite additive commutative group, this module defines the shift matrices `shift` and
+their linear combinations `groupAlgebraElem`. It characterizes matrices in this group algebra
+both by commutation with every shift and by simultaneous translation invariance of their row and
+column indices, as in [HunzikerEtAl2003].
+
+## Main statements
+
+* `groupAlgebraElem_apply`: The entry formula v(y - z).
+* `commute_iff_eq_groupAlgebraElem`: Commutation with shifts characterizes the group algebra.
+* `commute_iff_translation_invariant`: Commutation with shifts is equivalent to translation
+  invariance.
+
+## References
+
+* [Hunziker et al., 2003][HunzikerEtAl2003]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
@@ -18,11 +38,14 @@ open scoped Matrix
 
 variable {G : Type*} [AddCommGroup G] [Fintype G] [DecidableEq G]
 
+/-- The permutation matrix for translation by `g` on a finite additive commutative group. -/
 noncomputable def shift (g : G) : Matrix G G ℂ := fun y z => if y = z + g then 1 else 0
 
+/-- The group-algebra matrix obtained by summing the shift matrices with coefficients `v`. -/
 noncomputable def groupAlgebraElem (v : G → ℂ) : Matrix G G ℂ :=
   ∑ g, v g • shift g
 
+/-- Multiplication of shift matrices corresponds to addition of their translation parameters. -/
 lemma shift_mul_shift (g h : G) : shift g * shift h = shift (g + h) := by
   ext y z
   rw [Matrix.mul_apply]
@@ -33,6 +56,7 @@ lemma shift_mul_shift (g h : G) : shift g * shift h = shift (g + h) := by
   · intro hmem
     exact absurd (Finset.mem_univ _) hmem
 
+/-- The (y, z) entry of `groupAlgebraElem v` is `v (y - z)`. -/
 lemma groupAlgebraElem_apply (v : G → ℂ) (y z : G) :
     groupAlgebraElem v y z = v (y - z) := by
   rw [groupAlgebraElem, Matrix.sum_apply]
@@ -45,6 +69,8 @@ lemma groupAlgebraElem_apply (v : G → ℂ) (y z : G) :
   · intro hmem
     exact absurd (Finset.mem_univ _) hmem
 
+/-- A matrix commutes with every shift if and only if it is a group-algebra matrix, as in
+[HunzikerEtAl2003]. -/
 theorem commute_iff_eq_groupAlgebraElem (A : Matrix G G ℂ) :
     (∀ g, A * shift g = shift g * A) ↔ ∃ v : G → ℂ, A = groupAlgebraElem v := by
   constructor
@@ -83,6 +109,8 @@ theorem commute_iff_eq_groupAlgebraElem (A : Matrix G G ℂ) :
     refine Finset.sum_congr rfl fun x _ => ?_
     rw [Matrix.smul_mul, Matrix.mul_smul, shift_mul_shift, shift_mul_shift, add_comm]
 
+/-- A matrix commutes with every shift if and only if its entries are unchanged by simultaneous
+translation of both indices, as in [HunzikerEtAl2003]. -/
 theorem commute_iff_translation_invariant (A : Matrix G G ℂ) :
     (∀ g, A * shift g = shift g * A) ↔ ∀ (g x c : G), A (x + g) (c + g) = A x c := by
   constructor

@@ -10,6 +10,27 @@ import Mathlib.Analysis.Calculus.Deriv.Slope
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Asymptotics of Johnson-walk eigenphases
+
+This module proves a half-angle identity expressing `arccos (1-2*a)` through `arcsin (sqrt a)`.
+It uses the derivative of arcsine at zero to establish the Johnson-walk phase asymptotic in
+[Ambainis2007ElementDistinctness].
+
+For fixed positive `j`, along sequences with `N` and `r` tending to infinity and `r/N` tending
+to zero, the phase divided by `2*sqrt (j/r)` tends to one.
+
+## Main statements
+
+* `arccos_half_angle`: the inverse-trigonometric half-angle identity.
+* `johnsonPhaseAsymptotic_answer`: the normalized eigenphase limit.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +43,7 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open Filter
 open scoped Topology
 
+/-- For `0 ≤ a ≤ 1`, `arccos (1-2*a)` equals `2*arcsin (sqrt a)`. -/
 private theorem arccos_half_angle (a : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1) :
     Real.arccos (1-2*a) = 2*Real.arcsin (Real.sqrt a) := by
   have hs1 := Real.sqrt_le_one.mpr ha1
@@ -35,6 +57,9 @@ private theorem arccos_half_angle (a : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1) :
   · linarith [Real.arcsin_nonneg.mpr (Real.sqrt_nonneg a)]
   · linarith [Real.arcsin_le_pi_div_two (Real.sqrt a)]
 
+/-- The Johnson eigenphase satisfies `JohnsonPhaseAsymptotic`: for fixed positive `j`, its ratio
+to `2*sqrt (j/r)` tends to one as `N,r` tend to infinity with `r/N` tending to zero
+[Ambainis2007ElementDistinctness]. -/
 theorem johnsonPhaseAsymptotic_answer : JohnsonPhaseAsymptotic := by
   intro j hj N r hN hr hsmall
   let L : ℕ → ℝ := fun n =>

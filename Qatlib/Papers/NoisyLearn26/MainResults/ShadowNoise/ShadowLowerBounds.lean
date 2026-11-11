@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
 import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+/-!
+# Scalar sums for noisy shadow lower bounds
+
+Develops binomial and even-binomial identities controlling noise-weighted sums with coefficients
+in `[0, 1]`. The module also rewrites single-block factors as powers of two and proves the
+finite Euclidean sum estimate `delta_c_bound`. See [CotlerGongKannan2025] for the surrounding
+analysis.
+
+## Main statements
+
+* `four_lemma`: For noise in `[0, 1]` and `0 ≤ K a ≤ 1`, the stated noise-weighted binomial sum
+  is at most `fLambda lam ^ n`.
+* `five_lemma`: For noise in `[0, 1]` and coefficients `K` in `[0, 1]`, the stated even-indexed
+  sum is at most `((3^n + 1) / 2) * (1 - lam)^(2n)`.
+* `delta_c_bound`: For a finite nonnegative array, the squared Euclidean norm of the sum of its
+  rows is at most the square of the sum of their Euclidean norms.
+
+## References
+
+* [Cotler et al., 2025][CotlerGongKannan2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,12 +40,15 @@ open Qatlib.Papers.NoisyLearn26.MainResults
 
 open scoped BigOperators
 
+/-- The finite chi-squared expression `∑ x, (p x - q x)² / q x`. -/
 def chiSq {X : Type*} [Fintype X] (p q : X → ℝ) : ℝ := ∑ x, (p x - q x) ^ 2 / q x
 
+/-- The noise polynomial `fLambda lam` is positive for `lam` in `[0, 1]`. -/
 theorem fLambda_pos' {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) : 0 < fLambda lam := by
   unfold fLambda
   nlinarith [sq_nonneg (lam - 1)]
 
+/-- The binomial sum `∑ a ≤ n, choose n a * x^a * y^(n-a)` equals `(x + y)^n`. -/
 theorem binomial_expansion (x y : ℝ) (n : ℕ) :
     (∑ a ∈ Finset.range (n + 1), (n.choose a : ℝ) * x ^ a * y ^ (n - a)) = (x + y) ^ n := by
   rw [add_pow]
@@ -30,6 +56,8 @@ theorem binomial_expansion (x y : ℝ) (n : ℕ) :
   intro a _
   ring
 
+/-- The binomial sum with factors `lam * (2 - lam) / 2` and `(1 - lam)²` equals `fLambda lam ^
+n` [CotlerGongKannan2025]. -/
 theorem swap_expansion (lam : ℝ) (n : ℕ) :
     (∑ a ∈ Finset.range (n + 1),
         (n.choose a : ℝ) * (lam * (2 - lam) / 2) ^ a * ((1 - lam) ^ 2) ^ (n - a)) =
@@ -40,6 +68,8 @@ theorem swap_expansion (lam : ℝ) (n : ℕ) :
     ring
   rw [h]
 
+/-- For noise in `[0, 1]` and `0 ≤ K a ≤ 1`, the stated noise-weighted binomial sum is at most
+`fLambda lam ^ n` [CotlerGongKannan2025]. -/
 theorem four_lemma {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
     (K : ℕ → ℝ) (hK0 : ∀ a, 0 ≤ K a) (hK1 : ∀ a, K a ≤ 1) :
     (∑ a ∈ Finset.range (n + 1),
@@ -63,6 +93,7 @@ theorem four_lemma {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
         simpa using this
     _ = fLambda lam ^ n := swap_expansion lam n
 
+/-- The even-indexed binomial sum is `((x + y)^n + (y - x)^n) / 2` [CotlerGongKannan2025]. -/
 theorem sum_even_choose (x y : ℝ) (n : ℕ) :
     (∑ a ∈ (Finset.range (n + 1)).filter (fun a => Even a),
         (n.choose a : ℝ) * x ^ a * y ^ (n - a)) =
@@ -107,6 +138,8 @@ theorem sum_even_choose (x y : ℝ) (n : ℕ) :
         rw [hxy, hyx]
         ring
 
+/-- For noise in `[0, 1]` and coefficients `K` in `[0, 1]`, the stated even-indexed sum is at
+most `((3^n + 1) / 2) * (1 - lam)^(2n)` [CotlerGongKannan2025]. -/
 theorem five_lemma {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
     (K : ℕ → ℝ) (hK0 : ∀ a, 0 ≤ K a) (hK1 : ∀ a, K a ≤ 1) :
     (∑ a ∈ (Finset.range (n + 1)).filter (fun a => Even a),
@@ -136,6 +169,8 @@ theorem five_lemma {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
         rw [hsum, hdiff, mul_pow, ← pow_mul]
         ring
 
+/-- For noise in `[0, 1]`, `fLambda lam ^ n / 2^n` equals `2^(-n * (1 - logb 2 (fLambda lam)))`
+[CotlerGongKannan2025]. -/
 theorem single_block_bound {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) :
     fLambda lam ^ (n : ℝ) / 2 ^ (n : ℝ) =
       (2 : ℝ) ^ (-(n : ℝ) * (1 - Real.logb 2 (fLambda lam))) := by
@@ -147,6 +182,8 @@ theorem single_block_bound {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 
   field_simp
   ring
 
+/-- For noise in `[0, 1]`, multiplying the single-block factor by `2^k` adds `k` to its base-two
+exponent [CotlerGongKannan2025]. -/
 theorem single_block_bound_multi {n k : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) :
     (2 : ℝ) ^ (k : ℝ) * fLambda lam ^ (n : ℝ) / 2 ^ (n : ℝ) =
       (2 : ℝ) ^ ((k : ℝ) - (n : ℝ) * (1 - Real.logb 2 (fLambda lam))) := by
@@ -161,6 +198,8 @@ theorem single_block_bound_multi {n k : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : 
           Real.rpow_neg (by norm_num : (0 : ℝ) ≤ 2)]
         ring
 
+/-- For a finite nonnegative array, the squared Euclidean norm of the sum of its rows is at most
+the square of the sum of their Euclidean norms [CotlerGongKannan2025]. -/
 theorem delta_c_bound {ι σ : Type*} [Fintype ι] [Fintype σ] (x : ι → σ → ℝ)
     (hx : ∀ i j, 0 ≤ x i j) :
     (∑ j, (∑ i, x i j) ^ 2) ≤ (∑ i, Real.sqrt (∑ j, (x i j) ^ 2)) ^ 2 := by

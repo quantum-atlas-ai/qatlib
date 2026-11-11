@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+
+/-!
+# Finite circuit laws for lazy matching access
+
+This module proves execution and register identities for the CNOT blocks used in lazy matching
+access. It connects finite gate codes with their matrices, evaluates legal words on basis
+states, and computes the setup, update, and check word lengths.
+
+The register lemmas describe concatenation and zero padding, while `cnotFold_target_val`
+isolates the XOR update at a uniquely targeted coordinate. These access constructions support
+the quantum walk framework of [Szegedy2004].
+
+## Main statements
+
+* `run_cnot_block_code`: Basis state execution of a CNOT block encoded by finite gate codes.
+* `finiteWordRun_of_legal`: Successful execution of legal finite words.
+* `lazy_word_lengths`: Exact lengths of the lazy matching access words.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -34,6 +57,8 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 
+/-- Membership in `highCnotPairs m` is equivalent to having control `i` and target `m + i` for
+some `i < m - 1`. -/
 lemma mem_highCnotPairs {m : ℕ} (p : Fin (m + m) × Fin (m + m)) :
     p ∈ highCnotPairs m ↔ ∃ i : Fin (m - 1), p.1.val = i.val ∧ p.2.val = m + i.val := by
   constructor
@@ -52,6 +77,7 @@ lemma mem_highCnotPairs {m : ℕ} (p : Fin (m + m) × Fin (m + m)) :
     · apply Fin.ext; exact h1.symm
     · apply Fin.ext; exact h2.symm
 
+/-- The list of CNOT control-target pairs used in lazy matching has no duplicates. -/
 lemma highCnotPairs_nodup (m : ℕ) : (highCnotPairs m).Nodup := by
   unfold highCnotPairs
   show List.Pairwise (· ≠ ·) (List.ofFn _)
@@ -61,6 +87,7 @@ lemma highCnotPairs_nodup (m : ℕ) : (highCnotPairs m).Nodup := by
   simp at hh
   omega
 
+/-- The CNOT targets in `highCnotPairs m` are pairwise distinct. -/
 lemma highCnotPairs_targets_nodup (m : ℕ) : ((highCnotPairs m).map Prod.snd).Nodup := by
   unfold highCnotPairs
   rw [List.map_ofFn]
@@ -70,6 +97,7 @@ lemma highCnotPairs_targets_nodup (m : ℕ) : ((highCnotPairs m).map Prod.snd).N
   simp at heq
   omega
 
+/-- A coordinate that is never a target of the CNOT list is unchanged by `cnotFold`. -/
 lemma cnotFold_other {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n) (t : Fin n),
     (∀ p ∈ L, p.2 ≠ t) → cnotFold L r t = r t := by
   intro L
@@ -84,6 +112,8 @@ lemma cnotFold_other {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n) (t 
     have hne : t ≠ q.2 := fun hh => h q List.mem_cons_self hh.symm
     simp [Function.update, hne]
 
+/-- If `(c, t)` is the unique pair targeting `t`, all targets are distinct, and `c` is never
+targeted, the final target bit is the original target bit XOR the original control bit. -/
 lemma cnotFold_target_val {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n) {c t : Fin n},
     (c, t) ∈ L →
     (L.map Prod.snd).Nodup →
@@ -125,6 +155,8 @@ lemma cnotFold_target_val {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n
       rw [hst, hsc] at hrec
       exact hrec
 
+/-- Executing a list of CNOT gates with distinct control and target wires on a basis state
+yields the basis state obtained by `cnotFold`. -/
 lemma run_cnot_block {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n),
     (∀ p ∈ L, p.1 ≠ p.2) →
     Run 1 (L.map fun p => Step.gate (cnotGate n p.1 p.2)) (Qatlib.Foundations.PureStateMath.Ket r) = Qatlib.Foundations.PureStateMath.Ket (cnotFold L r) := by
@@ -138,14 +170,18 @@ lemma run_cnot_block {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n),
     rw [List.map_cons, run_gate, applyGate_cnotGate_ket n p.1 p.2 hp, ih _ hL]
     rfl
 
+/-- A legal finite CNOT code denotes the corresponding CNOT gate matrix. -/
 lemma finiteCodeMatrix_cx (n : ℕ) (c t : ℕ) (h : c < n ∧ t < n ∧ c ≠ t) :
     finiteCodeMatrix n (.cx c t) = cnotGate n ⟨c, h.1⟩ ⟨t, h.2.1⟩ := by
   simp [finiteCodeMatrix, h]
 
+/-- A legal finite Hadamard code denotes a Hadamard gate on the indicated wire. -/
 lemma finiteCodeMatrix_h (n : ℕ) (w : ℕ) (h : w < n) :
     finiteCodeMatrix n (.h w) = wireGate n ⟨w, h⟩ Hadamard := by
   simp [finiteCodeMatrix, h]
 
+/-- Executing the finite gate codes of a valid CNOT list on a basis state yields the basis state
+obtained by folding the corresponding bit updates. -/
 lemma run_cnot_block_code {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n),
     (∀ p ∈ L, p.1 ≠ p.2) →
     (∀ p ∈ L, p.1.val < n ∧ p.2.val < n) →
@@ -168,6 +204,7 @@ lemma run_cnot_block_code {n : ℕ} : ∀ (L : List (Fin n × Fin n)) (r : Reg n
     rw [applyGate_cnotGate_ket n p.1 p.2 hp, ih _ hL1 hL2]
     rfl
 
+/-- Executing a concatenated circuit applies the first circuit and then the second circuit. -/
 lemma run_append {n : ℕ} : ∀ (A B : Circuit (Reg n)) (ψ : QState (Reg n)),
     Run 1 (A ++ B) ψ = Run 1 B (Run 1 A ψ) := by
   intro A
@@ -183,18 +220,24 @@ lemma run_append {n : ℕ} : ∀ (A B : Circuit (Reg n)) (ψ : QState (Reg n)),
       rw [List.cons_append, run_query]
       exact ih B _
 
+/-- A legal finite gate word executes successfully and returns the state produced by its decoded
+circuit. -/
 lemma finiteWordRun_of_legal {n : ℕ} {gs : List FiniteGateCode} (h : finiteWordLegal n gs = true)
     (ψ : QState (Reg n)) :
     finiteWordRun n gs ψ = some (Run 1 (finiteCodeCircuit n gs) ψ) := by
   rw [finiteWordRun]
   rw [if_pos h]
 
+/-- The lazy setup word has one more instruction than `highCnotPairs m`, the update word has the
+same length as that list, and the check word has length one. -/
 theorem lazy_word_lengths (m : ℕ) :
     (lazySetupWord m).length = (highCnotPairs m).length + 1 ∧
     (lazyUpdateWord m).length = (highCnotPairs m).length ∧
     (lazyCheckWord m).length = 1 := by
   simp [lazySetupWord, lazyUpdateWord, lazyCheckWord]
 
+/-- A coordinate in the left part of a concatenated register is the corresponding coordinate of
+the first register. -/
 lemma regCat_apply_left {a b : ℕ} (r : Reg a) (s : Reg b) (i : Fin (a + b)) (h : i.val < a) :
     regCat r s i = r ⟨i.val, h⟩ := by
   unfold regCat
@@ -217,6 +260,8 @@ lemma regCat_apply_left {a b : ℕ} (r : Reg a) (s : Reg b) (i : Fin (a + b)) (h
       exact Fin.val_natAdd a y
     omega
 
+/-- A coordinate in the right part of a concatenated register is the coordinate of the second
+register at the offset index. -/
 lemma regCat_apply_right {a b : ℕ} (r : Reg a) (s : Reg b) (i : Fin (a + b)) (h : a ≤ i.val) :
     regCat r s i = s ⟨i.val - a, by omega⟩ := by
   unfold regCat
@@ -239,20 +284,27 @@ lemma regCat_apply_right {a b : ℕ} (r : Reg a) (s : Reg b) (i : Fin (a + b)) (
     rw [hyeq]
     rfl
 
+/-- A right-hand coordinate of a concatenated register can be read using any index with the
+corresponding offset value. -/
 lemma regCat_apply_right' {a b : ℕ} (r : Reg a) (s : Reg b) (i : Fin (a + b)) (h : a ≤ i.val)
     (j : Fin b) (hj : j.val = i.val - a) : regCat r s i = s j := by
   rw [regCat_apply_right r s i h]
   congr 1
   exact Fin.ext hj.symm
 
+/-- Zero padding reads the original register within its width and returns false at all other
+coordinates. -/
 lemma regPad_apply' {w a : ℕ} (r : Reg a) (j : Fin w) :
     regPad w a r j = if h : j.val < a then r ⟨j.val, h⟩ else false := rfl
 
+/-- Reading a padded register at a coordinate within the original width returns the original
+bit. -/
 lemma regPad_apply {w a : ℕ} (r : Reg a) (j : Fin w) (h : j.val < a) :
     regPad w a r j = r ⟨j.val, h⟩ := by
   rw [regPad_apply']
   rw [dif_pos h]
 
+/-- Padding a register to its own width leaves it unchanged. -/
 lemma regPad_self {n : ℕ} (r : Reg n) : regPad n n r = r := by
   funext i
   have h := regPad_apply r i i.isLt

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessCorrectedStat
 import Qatlib.Concepts.QueryComplexity.Reflections.WitnessLaws
+
+/-!
+# Corrected nonzero kernel witnesses
+
+Proves `KernelWitnessCorrected` from the explicit source positive and negative witnesses. Under
+source dual feasibility and `W ≥ 1`, both witnesses are nonzero, satisfy the required kernel
+equations, and meet the root or target-overlap bounds.
+
+These witnesses implement the corrected local kernel-witness formulation associated with
+[Reichardt2011].
+
+## Main statements
+
+* `kernelWitnessCorrected`: establishes both nonzero witness clauses of the corrected contract.
+
+## References
+
+* [Reichardt, Lemma 3.1][Reichardt2011]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 900000
 noncomputable section
@@ -13,6 +33,9 @@ namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 open scoped Classical BigOperators
 
+/-- For source dual-feasible data with `W ≥ 1`, the explicit positive and negative witnesses are
+nonzero, satisfy their kernel equations, and obey the required overlap bounds. See
+[Reichardt, Lemma 3.1][Reichardt2011]. -/
 theorem kernelWitnessCorrected : KernelWitnessCorrected := by
   intro X _ _ n m input f v W hd hW
   have hw : 0 < W := by linarith

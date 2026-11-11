@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TrotterSuzuki14.MainResults.TrotterErrorOperator.Defs
 import Mathlib.Tactic
+
+/-!
+# Norm bounds for the leading second-order Trotter error
+
+This module bounds `leadingSecondOrderError` using a disjoint cover of its nested-commutator
+triples by two classes with operator bounds proportional to `Z²` and `Z`. Cardinality bounds for
+these classes give a uniform estimate proportional to `N⁴ Z⁶ + N¹⁰ Z³` for fixed time step and
+operator constant. See [BabbushEtAl2015].
+
+## Main statements
+
+* `leadingSecondOrderError_norm_le`: Explicit cardinality-dependent norm estimate.
+* `leadingSecondOrderError_norm_bigO`: Uniform bound from polynomial triple counts.
+
+## References
+
+* [Babbush et al., 2015][BabbushEtAl2015]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +40,9 @@ section NormBound
 
 variable [NormedRing A] [NormedSpace ℝ A] [DecidableEq ι]
 
+/-- For a disjoint cover of triples whose factors are bounded by `c Z²` or `c Z`, the
+leading-error norm is at most `(Δt² / 12) * 4 c³ * (oneBody.card * Z⁶ + twoBody.card * Z³)`
+when `c` and `Z` are nonnegative. -/
 theorem leadingSecondOrderError_norm_le
     (op : ι → A) (triples oneBody twoBody : Finset (Triple ι)) (Δt : ℝ)
     {c Z : ℝ} (hc : 0 ≤ c) (hZ : 0 ≤ Z)
@@ -78,6 +100,9 @@ theorem leadingSecondOrderError_norm_le
     _ = (Δt ^ 2 / 12) * (4 * c ^ 3) *
           ((oneBody.card : ℝ) * Z ^ 6 + (twoBody.card : ℝ) * Z ^ 3) := by ring
 
+/-- For fixed operators, time step, and positive `c`, there is a positive constant bounding the
+leading-error norm by `C * (N⁴ Z⁶ + N¹⁰ Z³)` under the stated disjoint-cover, factor-norm,
+and cardinality hypotheses. See [BabbushEtAl2015]. -/
 theorem leadingSecondOrderError_norm_bigO
     (op : ι → A) (Δt : ℝ) {c : ℝ} (hc : 0 < c) :
     ∃ C : ℝ, 0 < C ∧

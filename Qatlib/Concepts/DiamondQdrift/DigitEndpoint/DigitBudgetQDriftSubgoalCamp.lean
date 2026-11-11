@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftSubgoalStat
+
+/-!
+# Digit budget qDRIFT endpoint
+
+This module proves `DigitBudgetQDriftSubgoal`, assembling the digit access and step budgets with
+finite diamond error and circuit resource guarantees. It connects the rational digit
+construction to the randomized Hamiltonian simulation framework of [Campbell2019].
+
+## Main statements
+
+* `digitBudgetQDriftSubgoal`: the full digit budget and finite coin circuit specification.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +42,9 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Matrix
 open scoped BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- The digit budget construction satisfies its finite diamond error bound, digit and step
+budgets, and branchwise unitarity, zero query count, gate count, and sampling cost
+guarantees [Campbell2019]. -/
 theorem digitBudgetQDriftSubgoal : DigitBudgetQDriftSubgoal := by
   intro L D a K t ε j0 q sgn hK hε hε1 hor hp r W terms
   have hG1 := digitBudgetQDriftData_spec L a t ε q sgn hε hε1 hor hp

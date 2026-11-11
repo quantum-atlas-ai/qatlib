@@ -9,6 +9,23 @@ import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
 import Mathlib.Analysis.Fourier.FourierTransform
 
+/-!
+# Contour shifts and Fourier decay on strips
+
+This module proves contour-shift identities for vector-valued holomorphic functions with uniform
+decay on horizontal strips. Multiplying by `phase` turns these identities into the exponential
+Fourier bounds used in the quadrature analysis of [AftabAnTrivisa2026].
+
+## Main statements
+
+* `integral_shift`: invariance of integrals under a horizontal contour shift.
+* `norm_fourier_le`: exponential decay of the real-axis Fourier transform.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,18 +37,23 @@ open scoped FourierTransform
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- Uniform decay of `f (x + y I)` as `|x|` tends to infinity, uniformly for `y` in the closed
+interval `[a, b]`. -/
 def UniformDecay (f : ℂ → E) (a b : ℝ) : Prop :=
   ∀ ε > 0, ∃ R : ℝ, ∀ x : ℝ, R ≤ |x| →
     ∀ y ∈ Icc a b, ‖f ((x : ℂ) + y * I)‖ ≤ ε
 
 omit [NormedSpace ℂ E] in
 
+/-- Uniform decay on a horizontal strip restricts to any smaller strip. -/
 theorem UniformDecay.mono {f : ℂ → E} {a b c d : ℝ} (hf : UniformDecay f a b)
     (hac : a ≤ c) (hdb : d ≤ b) : UniformDecay f c d := by
   intro ε hε
   obtain ⟨R, hR⟩ := hf ε hε
   exact ⟨R, fun x hx y hy => hR x hx y ⟨hac.trans hy.1, hy.2.trans hdb⟩⟩
 
+/-- The difference between the horizontal integrals on a rectangle is bounded by twice the side
+bound times the strip height. -/
 theorem rectangle_shift_bound (f : ℂ → E) (a b R C : ℝ) (hab : a ≤ b)
     (hf : DifferentiableOn ℂ f {z : ℂ | a ≤ z.im ∧ z.im ≤ b})
     (hleft : ∀ y ∈ Icc a b, ‖f ((-R : ℝ) + y * I)‖ ≤ C)
@@ -63,6 +85,8 @@ theorem rectangle_shift_bound (f : ℂ → E) (a b R C : ℝ) (hab : a ≤ b)
       simpa only [norm_smul, norm_I, one_mul] using add_le_add hl hr
     _ = 2 * (C * (b - a)) := by rw [abs_of_nonneg (sub_nonneg.mpr hab)]; ring
 
+/-- For a holomorphic function with uniform horizontal decay, integrable horizontal slices at
+the strip boundaries have equal integrals. -/
 theorem integral_shift [CompleteSpace E] (f : ℂ → E) (a b : ℝ) (hab : a ≤ b)
     (hf : DifferentiableOn ℂ f {z : ℂ | a ≤ z.im ∧ z.im ≤ b})
     (hdecay : UniformDecay f a b)
@@ -92,12 +116,16 @@ theorem integral_shift [CompleteSpace E] (f : ℂ → E) (a b : ℝ) (hab : a �
       _ ≤ ε := (div_le_iff₀ (by linarith : 0 < b - a + 1)).mpr (by nlinarith)
   simpa only [zero_add] using le_of_tendsto hlim.norm hbound
 
+/-- The complex exponential phase `exp (-(ω I) z)`. -/
 def phase (ω : ℝ) (z : ℂ) : ℂ := Complex.exp (-((ω : ℂ) * I) * z)
 
+/-- The phase norm on the horizontal line at height `y` equals `exp (ω y)`. -/
 theorem phase_norm (ω x y : ℝ) :
     ‖phase ω ((x : ℂ) + y * I)‖ = Real.exp (ω * y) := by
   simp [phase, Complex.norm_exp, mul_re, mul_im]
 
+/-- Multiplying an integrable horizontal slice by the complex exponential phase preserves
+integrability. -/
 theorem integrable_phase (f : ℂ → E) (ω y : ℝ)
     (hf : Integrable (fun x : ℝ => f ((x : ℂ) + y * I))) :
     Integrable (fun x : ℝ => phase ω ((x : ℂ) + y * I) • f ((x : ℂ) + y * I)) := by
@@ -107,6 +135,8 @@ theorem integrable_phase (f : ℂ → E) (ω y : ℝ)
     fun_prop
   · exact Eventually.of_forall (fun x => (phase_norm ω x y).le)
 
+/-- Multiplication by the complex exponential phase preserves uniform decay on a fixed
+horizontal strip. -/
 theorem UniformDecay.mul_phase {f : ℂ → E} {a b : ℝ} (hf : UniformDecay f a b) (ω : ℝ) :
     UniformDecay (fun z => phase ω z • f z) a b := by
   let C := Real.exp (|ω| * max |a| |b|)
@@ -130,6 +160,8 @@ theorem UniformDecay.mul_phase {f : ℂ → E} {a b : ℝ} (hf : UniformDecay f 
     _ ≤ C * (ε / C) := mul_le_mul hphase (hR x hx y hy) (norm_nonneg _) (le_of_lt hC)
     _ = ε := by field_simp
 
+/-- The phase-weighted horizontal integrals of a holomorphic, uniformly decaying function agree
+at the strip boundaries when the slices are integrable. -/
 theorem phase_integral_shift [CompleteSpace E] (f : ℂ → E) (a b ω : ℝ) (hab : a ≤ b)
     (hf : DifferentiableOn ℂ f {z : ℂ | a ≤ z.im ∧ z.im ≤ b})
     (hdecay : UniformDecay f a b)
@@ -143,6 +175,8 @@ theorem phase_integral_shift [CompleteSpace E] (f : ℂ → E) (a b ω : ℝ) (h
   exact (Complex.differentiable_exp.comp
     ((differentiable_const _).mul differentiable_id)).differentiableOn
 
+/-- A bound `M` on the horizontal norm integral gives the phase-weighted integral bound `exp (ω
+y) M`. -/
 theorem phase_integral_norm (f : ℂ → E) (ω y M : ℝ)
     (hmass : (∫ x : ℝ, ‖f ((x : ℂ) + y * I)‖) ≤ M) :
     ‖∫ x : ℝ, phase ω ((x : ℂ) + y * I) • f ((x : ℂ) + y * I)‖ ≤
@@ -154,6 +188,8 @@ theorem phase_integral_norm (f : ℂ → E) (ω y M : ℝ)
       simp only [norm_smul, phase_norm, integral_const_mul]
     _ ≤ Real.exp (ω * y) * M := mul_le_mul_of_nonneg_left hmass (Real.exp_nonneg _)
 
+/-- Strip analyticity, uniform decay, and bounded integrable horizontal slices give exponential
+Fourier-integral decay `exp (-|ω| ρ) M`. -/
 theorem fourier_decay [CompleteSpace E] (f : ℂ → E) (ρ M ω : ℝ) (hρ : 0 ≤ ρ)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
     (hdecay : UniformDecay f (-ρ) ρ)
@@ -177,6 +213,8 @@ theorem fourier_decay [CompleteSpace E] (f : ℂ → E) (ρ M ω : ℝ) (hρ : 0
     rw [← hs] at hn
     simpa only [ofReal_zero, zero_mul, add_zero, abs_of_neg (lt_of_not_ge hω), neg_neg] using hn
 
+/-- The same exponential Fourier-integral bound follows when integrability and mass bounds are
+required only on interior horizontal slices. -/
 theorem fourier_decay_of_interior_mass [CompleteSpace E] (f : ℂ → E) (ρ M ω : ℝ)
     (hρ : 0 < ρ)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
@@ -199,6 +237,8 @@ theorem fourier_decay_of_interior_mass [CompleteSpace E] (f : ℂ → E) (ρ M �
     (hdecay.mono (by linarith) hr.le)
     (fun y hy => hint y (hsubset hy)) (fun y hy => hmass y (hsubset hy))
 
+/-- The Fourier transform of the real-axis restriction is bounded by `exp (-2πρ |ξ|) M` under
+the stated strip hypotheses; see [Aftab et al., Lemma 4.13][AftabAnTrivisa2026]. -/
 theorem norm_fourier_le [CompleteSpace E] (f : ℂ → E) (ρ M ξ : ℝ) (hρ : 0 < ρ)
     (hf : DifferentiableOn ℂ f {z : ℂ | -ρ ≤ z.im ∧ z.im ≤ ρ})
     (hdecay : UniformDecay f (-ρ) ρ)

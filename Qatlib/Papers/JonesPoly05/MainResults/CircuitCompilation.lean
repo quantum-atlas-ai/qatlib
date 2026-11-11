@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.JonesPoly05.MainResults.KauffmanStateSum
 import Mathlib.Data.Matrix.Basic
+
+/-!
+# Compilation of braid operators into matrix words
+
+`GateWord` and `wordMatrix` describe lists of matrices and their products. Assuming the local
+compilation property `LocalCompiles`, the module concatenates generator implementations to
+reproduce `braidOperator` with explicit length bounds. See [AharonovJonesLandau2009].
+
+## Main statements
+
+* `corollary31_braid_circuit`: Assuming `LocalCompiles`, a braid word has an exact matrix-word
+  implementation of length at most its length times c(n + k + 1)^c.
+* `corollary31_polynomial_circuit`: Assuming local compilation, there exist an exact
+  implementation of the braid operator and a natural C bounding its length by C(`B.length` + n +
+  k + 1)^C.
+
+## References
+
+* [Aharonov et al., 2009][AharonovJonesLandau2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,26 +38,34 @@ namespace Qatlib.Papers.JonesPoly05.MainResults.CircuitCompilation
 
 open Qatlib.Papers.JonesPoly05.MainResults.Kauffman
 
+/-- A finite list of complex N × N matrices. -/
 abbrev GateWord (N : ℕ) := List (Matrix (Fin N) (Fin N) ℂ)
 
+/-- The ordered matrix product of a `GateWord`. -/
 def wordMatrix {N : ℕ} (w : GateWord N) : Matrix (Fin N) (Fin N) ℂ :=
   w.prod
 
+/-- The matrix of a concatenated gate word is the product of the matrices of its two parts. -/
 theorem wordMatrix_append {N : ℕ} (u v : GateWord N) :
     wordMatrix (u ++ v) = wordMatrix u * wordMatrix v := by
   simp [wordMatrix, List.prod_append]
 
+/-- The ordered product of the matrices assigned by φ to the generator indices of a braid word. -/
 def braidOperator
     (φ : ∀ n : ℕ, Fin (n - 1) → Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     {n : ℕ} (B : BraidWord n) : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ :=
   (B.map fun g => φ n g.idx).prod
 
+/-- Every generator matrix has an exact matrix-word implementation of length at most c(n + k +
+1)^c. -/
 def LocalCompiles
     (φ : ∀ n : ℕ, Fin (n - 1) → Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (c n k : ℕ) : Prop :=
   ∀ i : Fin (n - 1), ∃ w : GateWord (2 ^ n),
     wordMatrix w = φ n i ∧ w.length ≤ c * (n + k + 1) ^ c
 
+/-- Assuming `LocalCompiles`, a braid word has an exact matrix-word implementation of length at
+most its length times c(n + k + 1)^c; see [AharonovJonesLandau2009]. -/
 theorem corollary31_braid_circuit
     (φ : ∀ n : ℕ, Fin (n - 1) → Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     {n : ℕ} (c k : ℕ) (B : BraidWord n) (h32 : LocalCompiles φ c n k) :
@@ -57,6 +86,8 @@ theorem corollary31_braid_circuit
         simp only [List.length_cons]
         nlinarith
 
+/-- For fixed c, the expression mc(n + k + 1)^c is bounded by C(m + n + k + 1)^C for some
+natural C uniformly in m, n, and k; see [AharonovJonesLandau2009]. -/
 theorem polyBounded_mul_pow (c : ℕ) :
     ∃ C : ℕ, ∀ m n k : ℕ, m * c * (n + k + 1) ^ c ≤
       C * (m + n + k + 1) ^ C := by
@@ -81,6 +112,8 @@ theorem polyBounded_mul_pow (c : ℕ) :
           Nat.pow_le_pow_right hX1 (Nat.le_succ (c + 1))
         exact Nat.mul_le_mul_left (c + 2) hexp
 
+/-- Assuming local compilation, there exist an exact implementation of the braid operator and a
+natural C bounding its length by C(`B.length` + n + k + 1)^C; see [AharonovJonesLandau2009]. -/
 theorem corollary31_polynomial_circuit
     (φ : ∀ n : ℕ, Fin (n - 1) → Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     {n : ℕ} (c k : ℕ) (B : BraidWord n) (h32 : LocalCompiles φ c n k) :

@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionMachine
+
+/-!
+# Binary products for square-root preparation
+
+The register-preserving multiplication `program` copies two source words, computes their
+product, and writes an initially empty destination while clearing its working stacks. The
+`Preprocess` program composes four such calls to form the integer numerator and denominator used
+by square-root preparation.
+
+The preprocessing outputs represent `qN * sD^2` and `qD * sN^2` under binary evaluation. The
+construction supplies explicit quartic execution bounds; see [KitaevShenVyalyi2002] for the
+classical computational background.
+
+## Main statements
+
+* `complete`: correctness and a quartic execution bound for multiplication into an empty
+  destination.
+* `Preprocess.result_value`: the numerical values of the two preprocessing products.
+* `Preprocess.complete_bound`: a quartic bound in the combined input-word lengths.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,11 +49,17 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Qatlib
 
+/-- The eight registers used for rational square-root preprocessing. -/
 abbrev Register := Fin 8
+/-- Six multiplication workspace stacks together with a family of external registers. -/
 abbrev SlotOf (K : Type) := Fin 6 ⊕ K
+/-- The multiplication workspace and the eight preprocessing registers. -/
 abbrev Slot := SlotOf Register
+/-- The multiplication-local state paired with an input/output symbol register. -/
 abbrev Local := MulVar × Symbol
 
+/-- Control labels for copying factors, multiplying, moving the result, clearing workspace, and
+halting. -/
 inductive Label where
   | copy (which : Bool) (l : NatEmit.Label)
   | multiply (l : MulLabel)
@@ -38,26 +69,36 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.copy false .emit⟩
 
+/-- Replaces the multiplication-local component while preserving the symbol register. -/
 def putMul (v : Local) (w : MulVar) : Local := (w,v.2)
+/-- Replaces the symbol register while preserving the multiplication-local state. -/
 def putIO (v : Local) (w : Symbol) : Local := (v.1,w)
 
 section ArbitraryRegisters
 variable {K : Type} [DecidableEq K]
 
+/-- Maps a copy subroutine to a source register, its temporary stack, and the selected factor
+stack. -/
 def copyCode (src : K) (which : Bool) : Fin 3 → (SlotOf K)
   | 0 => .inr src
   | 1 => .inl 2
   | _ => .inl (if which then 4 else 3)
 
+/-- Maps a transfer subroutine to the intermediate product stacks or the destination register. -/
 def moveCode (dst : K) (which : Bool) : Fin 2 → (SlotOf K)
   | 0 => .inl (if which then 1 else 0)
   | _ => if which then .inr dst else .inl 1
 
+/-- Selects the factor workspace stack cleared after multiplication. -/
 def clearCode (_ : Fin 1) : (SlotOf K) := .inl 3
 
+/-- Selects the second factor copy or the multiplication phase after a factor copy. -/
 def nextCopy (which : Bool) : Label := if which then .multiply .outer else .copy true .emit
+/-- Selects the next product transfer or the workspace-cleanup phase. -/
 def nextMove (which : Bool) : Label := if which then .clear 0 else .move true 0
 
+/-- The program that copies two source registers, multiplies them, writes the destination, and
+clears its workspace. -/
 def program (x y dst : K) : Label → TM2.Stmt (fun _ : (SlotOf K) => Bool) Label Local
   | .copy which l => StackCall.stmt (copyCode (if which then y else x) which)
       (Label.copy which) (nextCopy which) Prod.snd putIO (NatEmit.program l)
@@ -69,11 +110,13 @@ def program (x y dst : K) : Label → TM2.Stmt (fun _ : (SlotOf K) => Bool) Labe
       (Normalization.drainProgram l)
   | .done => .load (fun _ => (MulVar.init,none)) .halt
 
+/-- Combines the six working stacks with the external register store. -/
 def store (working : Fin 6 → Bits) (registers : K → Bits) : (SlotOf K) → Bits :=
   Sum.elim working registers
 
 omit [DecidableEq K] in
 
+/-- The stack map for copying either factor is injective. -/
 theorem copyCode_injective (src : K) (which : Bool) :
     Function.Injective (copyCode src which) := by
   intro a b h
@@ -81,11 +124,14 @@ theorem copyCode_injective (src : K) (which : Bool) :
 
 omit [DecidableEq K] in
 
+/-- The stack map for either product transfer is injective. -/
 theorem moveCode_injective (dst : K) (which : Bool) :
     Function.Injective (moveCode dst which) := by
   intro a b h
   cases which <;> fin_cases a <;> fin_cases b <;> simp [moveCode] at h ⊢
 
+/-- Copying a factor preserves its source and prepends its reversal to the selected factor
+stack, with the stated step count and quadratic clock bound. -/
 theorem copy_call (x y dst : K) (which : Bool) (S : (SlotOf K) → Bits) (v : Local)
     (htmp : S (.inl 2)=[]) :
     let src := if which then y else x
@@ -126,8 +172,11 @@ theorem copy_call (x y dst : K) (which : Bool) (S : (SlotOf K) → Bits) (v : Lo
     hsame,hfinal,putIO,Prod.mk.eta] at hr hc
   exact ⟨hr,hc.trans_le (NatEmit.copy_clock_bound bits (S target) v.2)⟩
 
+/-- The fixed constant used in the quartic clock bound for binary multiplication. -/
 noncomputable def mulClockConstant : ℕ := 10*sweepFactor mulProgram*(10*programNodes mulProgram+2)
 
+/-- Binary multiplication has clock cost at most `mulClockConstant * (1 + a.length +
+b.length)^4`. -/
 theorem mul_clock_bound (a b : Bits) :
     stackRunClock mulProgram (mulTotalTicks a b b.length+2) (mulStart a b) ≤
       mulClockConstant*(1+a.length+b.length)^4 := by
@@ -158,6 +207,8 @@ theorem mul_clock_bound (a b : Bits) :
       Nat.mul_le_mul (Nat.mul_le_mul_right _ ht) hHeight
     _ = _ := by dsimp [mulClockConstant,N]; ring
 
+/-- The embedded multiplication computes the product accumulator and enters result transfer
+while preserving external registers, with a quartic clock bound. -/
 theorem multiply_call (x y dst : K) (a b : Bits) (R : K → Bits) (v : Local) :
     stackRun (program x y dst) (mulTotalTicks a b b.length+2)
       ⟨some (.multiply .outer),putMul v MulVar.init,
@@ -176,6 +227,8 @@ theorem multiply_call (x y dst : K) (a b : Bits) (R : K → Bits) (v : Local) :
   simp only [StackCall.cfg,mulStart,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none] at hr hc
   exact ⟨hr,hc.trans_le (mul_clock_bound a b)⟩
 
+/-- A product-transfer phase empties its source stack and prepends the reversed source to its
+destination, with a quadratic clock bound. -/
 theorem move_call (x y dst : K) (which : Bool) (S : (SlotOf K) → Bits) (v : Local) :
     let code := moveCode dst which
     let bits := S (code 0)
@@ -212,6 +265,8 @@ theorem move_call (x y dst : K) (which : Bool) (S : (SlotOf K) → Bits) (v : Lo
   rw [hc,transfer_clock]
   nlinarith
 
+/-- The cleanup phase empties the remaining factor stack and enters the final label with a
+quadratic clock bound. -/
 theorem clear_call (x y dst : K) (S : (SlotOf K) → Bits) (v : Local) :
     stackRun (program x y dst) ((S (.inl 3)).length+1) ⟨some (.clear 0),v,S⟩ =
       some ⟨some .done,putIO v none,Function.update S (.inl 3) []⟩ ∧
@@ -243,16 +298,21 @@ theorem clear_call (x y dst : K) (S : (SlotOf K) → Bits) (v : Local) :
   rw [hc,Normalization.drain_clock]
   nlinarith
 
+/-- Updating a working stack in the combined store updates only its working-store component. -/
 theorem store_update_left (S : Fin 6 → Bits) (R : K → Bits) (i : Fin 6) (bits : Bits) :
     Function.update (store S R) (.inl i) bits=store (Function.update S i bits) R := by
   funext slot
   cases slot <;> simp [store]
 
+/-- Updating an external register in the combined store updates only its register-store
+component. -/
 theorem store_update_right (S : Fin 6 → Bits) (R : K → Bits) (i : K) (bits : Bits) :
     Function.update (store S R) (.inr i) bits=store S (Function.update R i bits) := by
   funext slot
   cases slot <;> simp [store]
 
+/-- With an empty destination, multiplication writes the product accumulator there and halts
+with empty workspace within the stated quartic execution bound. -/
 theorem complete (x y dst : K) (R : K → Bits) (hempty : R dst=[]) :
     Execution (program x y dst)
       ⟨some (.copy false .emit),(MulVar.init,none),store (fun _ => []) R⟩
@@ -355,38 +415,57 @@ end ArbitraryRegisters
 
 namespace Preprocess
 
+/-- The first source register for each of the four preprocessing multiplications. -/
 def sourceX : Fin 4 → Register | 0 => 3 | 1 => 0 | 2 => 2 | _ => 1
+/-- The second source register for each of the four preprocessing multiplications. -/
 def sourceY : Fin 4 → Register | 0 => 3 | 1 => 4 | 2 => 2 | _ => 6
+/-- The destination register for each preprocessing multiplication. -/
 def target : Fin 4 → Register | 0 => 4 | 1 => 5 | 2 => 6 | _ => 7
 
+/-- Control labels for the four preprocessing multiplication calls and termination. -/
 inductive Label where
   | call (index : Fin 4) (l : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.Label)
   | done
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.call 0 (.copy false .emit)⟩
 
+/-- Selects the next preprocessing multiplication, or the final label after the fourth call. -/
 def next (i : Fin 4) : Label :=
   if h : i.val+1<4 then .call ⟨i.val+1,h⟩ (.copy false .emit) else .done
 
+/-- The preprocessing program that computes two squares and the two products needed for the
+square-root ratio. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .call i l => StackCall.stmt id (Label.call i) (next i) id (fun _ v => v)
       (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct.program (sourceX i) (sourceY i) (target i) l)
   | .done => .halt
 
+/-- Updates the selected destination register with the corresponding binary product accumulator. -/
 def stepR (i : Fin 4) (R : Register → Bits) : Register → Bits :=
   Function.update R (target i) (mulAcc (R (sourceX i)) (R (sourceY i)) (R (sourceY i)).length)
 
+/-- Initializes the four rational-parameter registers and leaves the four product registers
+empty. -/
 def initial (qN qD sN sD : Bits) : Register → Bits
   | 0 => qN | 1 => qD | 2 => sN | 3 => sD | _ => []
 
+/-- The binary product accumulator for the square of a word. -/
 def square (bits : Bits) : Bits := mulAcc bits bits bits.length
+/-- The binary product accumulator representing the numerator word times the square of the
+scale-denominator word. -/
 def numerator (qN sD : Bits) : Bits := mulAcc qN (square sD) (square sD).length
+/-- The binary product accumulator representing the denominator word times the square of the
+scale-numerator word. -/
 def denominator (qD sN : Bits) : Bits := mulAcc qD (square sN) (square sN).length
 
+/-- The final register store containing the original words, their required squares, and the two
+preprocessing products. -/
 def result (qN qD sN sD : Bits) : Register → Bits
   | 0 => qN | 1 => qD | 2 => sN | 3 => sD | 4 => square sD
   | 5 => numerator qN sD | 6 => square sN | _ => denominator qD sN
 
+/-- A preprocessing multiplication updates its destination and advances to the next label with
+the stated quartic execution bound, provided the destination is empty. -/
 theorem call_execution (i : Fin 4) (R : Register → Bits) (hempty : R (target i)=[]) :
     Execution program
       ⟨some (.call i (.copy false .emit)),(MulVar.init,none),store (fun _ => []) R⟩
@@ -402,6 +481,8 @@ theorem call_execution (i : Fin 4) (R : Register → Bits) (hempty : R (target i
   simp only [StackCall.cfg,id_eq,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- The four-call preprocessing program halts with the specified result registers and empty
+workspace within the sum of the four multiplication budgets plus one. -/
 theorem complete (qN qD sN sD : Bits) :
     Execution program
       ⟨some (.call 0 (.copy false .emit)),(MulVar.init,none),store (fun _ => []) (initial qN qD sN sD)⟩
@@ -434,6 +515,8 @@ theorem complete (qN qD sN sD : Bits) :
     (mulClockConstant+1000)*(1+qD.length+(square sN).length)^4+1 ≤ _
   exact le_of_eq (by ring)
 
+/-- The two output product registers represent `qN * sD^2` and `qD * sN^2` under binary
+evaluation. -/
 theorem result_value (qN qD sN sD : Bits) :
     binaryValue (result qN qD sN sD 5) = binaryValue qN*(binaryValue sD)^2 ∧
     binaryValue (result qN qD sN sD 7) = binaryValue qD*(binaryValue sN)^2 := by
@@ -449,6 +532,8 @@ theorem result_value (qN qD sN sD : Bits) :
     rw [mulProgram_value]
     ring
 
+/-- Preprocessing satisfies a quartic execution bound in one plus the sum of the four input-word
+lengths. -/
 theorem complete_bound (qN qD sN sD : Bits) :
     Execution program
       ⟨some (.call 0 (.copy false .emit)),(MulVar.init,none),store (fun _ => []) (initial qN qD sN sD)⟩

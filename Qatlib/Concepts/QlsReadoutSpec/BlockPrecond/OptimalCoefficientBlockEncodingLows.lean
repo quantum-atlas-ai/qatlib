@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditionedEndpoint
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
+
+/-!
+# Optimal-coefficient encoding and its pseudoinverse obstruction
+
+This module establishes `optimalCoefficientBlockEncodingSubgoal` through the completed
+preconditioned encoding construction. It also packages
+`optimalCoefficientPseudoinverseObstruction`, an explicit normalized example at scale 1/2 where
+the unrestricted pseudoinverse product identity fails, highlighting the role of consistency in
+the encoding specification.
+
+The reciprocal block transformation is based on the quantum singular value transformation
+framework [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `optimalCoefficientPseudoinverseObstruction`: Packages the concrete failure of the
+  unrestricted pseudoinverse identity.
+* `optimalCoefficientBlockEncodingSubgoal`: Establishes the optimal-coefficient encoding
+  specification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +49,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Matrix
 
+/-- Packages scale `1 / 2` in the open unit interval, normalization of the explicit
+counterexample state, and failure of the unrestricted pseudoinverse product identity for its
+counterexample matrix. -/
 theorem optimalCoefficientPseudoinverseObstruction :
     (0 : ℝ) < 1 / 2 ∧ (1 / 2 : ℝ) < 1 ∧
       Normalized preconditioningCounterState ∧
@@ -34,6 +62,9 @@ theorem optimalCoefficientPseudoinverseObstruction :
   exact ⟨by norm_num, by norm_num, preconditioningCounterState_normalized,
     stateScaling_pseudoinverse_counterexample⟩
 
+/-- Establishes `OptimalCoefficientBlockEncodingSubgoal`, including the preconditioned
+reciprocal encoding, degree and compilation counts, success-probability lower bound, and
+normalized output error bound. -/
 theorem optimalCoefficientBlockEncodingSubgoal : OptimalCoefficientBlockEncodingSubgoal :=
   optimalCoefficientBlockEncoding_complete
 end Qatlib.Concepts.QlsReadoutSpec.BlockPrecond

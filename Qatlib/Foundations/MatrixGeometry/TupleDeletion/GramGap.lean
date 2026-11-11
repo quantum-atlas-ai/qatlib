@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinatePair
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FiniteGap
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.KernelExistence
+
+/-!
+# A quadratic gap for the deletion Gram operator
+
+Defines `deletionGramAction` on the Euclidean space of injective tuples and identifies it with
+the sum of the coordinate actions. The theorem `deletionGram_quadratic_gap` bounds its real
+quadratic form by its squared output norm, with a coefficient that retains the natural-number
+truncation in the fiber cardinality. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `deletionGramAction_sum`: The deletion Gram action is the sum of all coordinate Gram actions.
+* `deletionGram_quadratic_gap`: For a nonempty finite label type, `(a - s + 1) * Re ⟨v, G v⟩ ≤
+  ‖G v‖²` for the deletion Gram action `G`, where `s = Fintype.card I` and `a = Fintype.card L -
+  (s - 1)` is computed in the natural numbers.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,9 +38,12 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- The linear operator on injective-tuple Euclidean space represented by the deletion Gram
+matrix `deletionᴴ * deletion`. -/
 def deletionGramAction : EuclideanSpace ℂ (InjectiveTuple I L) →ₗ[ℂ] EuclideanSpace ℂ (InjectiveTuple I L) :=
   Matrix.toEuclideanLin ((deletion (I := I) (L := L))ᴴ*deletion)
 
+/-- The deletion Gram action is the sum of all coordinate Gram actions. -/
 theorem deletionGramAction_sum (v : EuclideanSpace ℂ (InjectiveTuple I L)) :
     deletionGramAction v=∑ i : I,coordinateAction (L := L) i v := by
   ext y
@@ -27,6 +51,9 @@ theorem deletionGramAction_sum (v : EuclideanSpace ℂ (InjectiveTuple I L)) :
   rw [deletion_gram_coordinates,Matrix.sum_mulVec]
   simp [coordinateAction,Matrix.toLpLin_apply]
 
+/-- For a nonempty finite label type, `(a - s + 1) * Re ⟨v, G v⟩ ≤ ‖G v‖²` for the deletion Gram
+action `G`, where `s = Fintype.card I` and `a = Fintype.card L - (s - 1)` is computed in the
+natural numbers. -/
 theorem deletionGram_quadratic_gap (v : EuclideanSpace ℂ (InjectiveTuple I L))
     (hL : 0 < Fintype.card L) :
     ((((Fintype.card L-(Fintype.card I-1) : ℕ) : ℝ)-(Fintype.card I : ℝ)+1))*

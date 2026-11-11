@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+
+/-!
+# Terminating and nonterminating execution examples
+
+This module evaluates the unbounded execution constructions on two deterministic Boolean
+kernels. The kernel `twoStepKernel` terminates with output `false` after two transitions from
+running `false`, whereas `selfLoopKernel` remains in its running state forever. These examples
+illustrate termination probabilities and expected running time in the classical computation
+setting of [KitaevShenVyalyi2002].
+
+Finite-budget laws and pending masses are computed explicitly. They yield terminal mass one at
+cost two for the first example, and nontermination mass one with infinite expected time for the
+self-loop.
+
+## Main statements
+
+* `pendingMass_eq_sum_point`: pending mass as running-state point masses at the current budget.
+* `pendingMass_twoStepKernel`: pending mass vanishes exactly from time two onward.
+* `unboundedTime_selfLoopKernel`: the self-loop has infinite unbounded expected time.
+* `unbounded_two_step_and_infinite_loop_consumers`: the combined terminal-law and expected-time
+  calculations.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 set_option linter.unusedSectionVars false
@@ -17,6 +44,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal Classical
 
+/-- The pending mass after `n` ticks from a running state is the sum of running-state point
+masses at cost exactly `n`. -/
 theorem pendingMass_eq_sum_point {S O : Type} [Fintype S] [DecidableEq S] [Fintype O]
     [DecidableEq O] (next : S → PMF (Configuration S O)) (s0 : S) (n : ℕ) :
     pendingMass next (Sum.inr s0) n
@@ -28,20 +57,27 @@ theorem pendingMass_eq_sum_point {S O : Type} [Fintype S] [DecidableEq S] [Finty
     (fun k _ hkn => runFor_point_running_off_fuel next n s0 s k hkn)
     (fun hcon => absurd (Finset.mem_range.mpr (Nat.lt_succ_self n)) hcon)]
 
+/-- A deterministic kernel that moves from running `false` to running `true`, then terminates
+with output `false`. -/
 noncomputable def twoStepKernel : Bool → PMF (Bool ⊕ Bool)
   | false => PMF.pure (Sum.inr true)
   | true => PMF.pure (Sum.inl false)
 
+/-- One tick from running `false` under `twoStepKernel` reaches running `true` at cost one. -/
 theorem tick_twoStepKernel_false : tick twoStepKernel (Sum.inr false)
     = PMF.pure ((Sum.inr true : Bool ⊕ Bool), 1) := by
   show (twoStepKernel false).map (fun cfg => (cfg, 1)) = _
   rw [show twoStepKernel false = PMF.pure (Sum.inr true : Bool ⊕ Bool) from rfl, PMF.pure_map]
 
+/-- One tick from running `true` under `twoStepKernel` terminates with output `false` at cost
+one. -/
 theorem tick_twoStepKernel_true : tick twoStepKernel (Sum.inr true)
     = PMF.pure ((Sum.inl false : Bool ⊕ Bool), 1) := by
   show (twoStepKernel true).map (fun cfg => (cfg, 1)) = _
   rw [show twoStepKernel true = PMF.pure (Sum.inl false : Bool ⊕ Bool) from rfl, PMF.pure_map]
 
+/-- One tick of `twoStepKernel` from running `true` has the pure terminated law with output
+`false` and cost one. -/
 theorem runFor_twoStepKernel_one_true :
     runFor twoStepKernel 1 (Sum.inr true)
       = PMF.pure ((Sum.inl false : Bool ⊕ Bool), 1) := by
@@ -58,6 +94,8 @@ theorem runFor_twoStepKernel_one_true :
       (runFor twoStepKernel 0 (Sum.inl false)) = _
   rw [runFor_zero, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- One tick of `twoStepKernel` from running `false` has the pure running law at state `true`
+and cost one. -/
 theorem runFor_twoStepKernel_one_false :
     runFor twoStepKernel 1 (Sum.inr false)
       = PMF.pure ((Sum.inr true : Bool ⊕ Bool), 1) := by
@@ -74,6 +112,8 @@ theorem runFor_twoStepKernel_one_false :
       (runFor twoStepKernel 0 (Sum.inr true)) = _
   rw [runFor_zero, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- Two ticks of `twoStepKernel` from running `false` terminate with output `false` and cost two
+with probability one. -/
 theorem runFor_twoStepKernel_two :
     runFor twoStepKernel 2 (Sum.inr false)
       = PMF.pure ((Sum.inl false : Bool ⊕ Bool), 2) := by
@@ -91,6 +131,8 @@ theorem runFor_twoStepKernel_two :
   rw [runFor_twoStepKernel_one_true, ← Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_charge,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- Every execution budget of at least two gives the same terminated law of `twoStepKernel` from
+running `false`, with cost two. -/
 theorem runFor_twoStepKernel_ge_two (n : ℕ) (hn : 2 ≤ n) :
     runFor twoStepKernel n (Sum.inr false)
       = PMF.pure ((Sum.inl false : Bool ⊕ Bool), 2) := by
@@ -106,6 +148,8 @@ theorem runFor_twoStepKernel_ge_two (n : ℕ) (hn : 2 ≤ n) :
       (runFor twoStepKernel (n - 2) (Sum.inl false)) = _
   rw [runFor_halted, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- The pending mass of `twoStepKernel` from running `false` is one before time two and zero
+thereafter. -/
 theorem pendingMass_twoStepKernel (n : ℕ) :
     pendingMass twoStepKernel (Sum.inr false) n = if n < 2 then (1 : ℝ≥0∞) else 0 := by
   rw [pendingMass_eq_sum_point, Fintype.sum_bool]
@@ -132,14 +176,18 @@ theorem pendingMass_twoStepKernel (n : ℕ) :
     rw [PMF.pure_apply, PMF.pure_apply, if_neg (fun h => by simp at h),
       if_neg (fun h => by simp at h), add_zero]
 
+/-- A deterministic kernel that returns its Boolean state as a running state forever. -/
 noncomputable def selfLoopKernel : Bool → PMF (Bool ⊕ Bool) :=
   fun b => PMF.pure (Sum.inr b)
 
+/-- One tick of `selfLoopKernel` from running `false` returns to that state at cost one. -/
 theorem tick_selfLoopKernel : tick selfLoopKernel (Sum.inr false)
     = PMF.pure ((Sum.inr false : Bool ⊕ Bool), 1) := by
   show (selfLoopKernel false).map (fun cfg => (cfg, 1)) = _
   rw [show selfLoopKernel false = PMF.pure (Sum.inr false : Bool ⊕ Bool) from rfl, PMF.pure_map]
 
+/-- After `n` ticks, `selfLoopKernel` from running `false` remains in that state with cost `n`
+with probability one. -/
 theorem runFor_selfLoopKernel (n : ℕ) :
     runFor selfLoopKernel n (Sum.inr false)
       = PMF.pure ((Sum.inr false : Bool ⊕ Bool), n) := by
@@ -161,6 +209,7 @@ theorem runFor_selfLoopKernel (n : ℕ) :
       rw [ih, ← Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_charge, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret,
         Nat.add_comm 1 n]
 
+/-- The self-loop kernel has pending mass one at every finite time from running `false`. -/
 theorem pendingMass_selfLoopKernel (n : ℕ) :
     pendingMass selfLoopKernel (Sum.inr false) n = 1 := by
   rw [pendingMass_eq_sum_point, runFor_selfLoopKernel, Fintype.sum_bool]
@@ -168,12 +217,14 @@ theorem pendingMass_selfLoopKernel (n : ℕ) :
       + (PMF.pure ((Sum.inr false : Bool ⊕ Bool), n)) ((Sum.inr false : Bool ⊕ Bool), n) = 1
   rw [PMF.pure_apply, PMF.pure_apply, if_neg (fun h => by simp at h), if_pos rfl, zero_add]
 
+/-- The self-loop kernel from running `false` has nontermination mass one. -/
 theorem nonterminationMass_selfLoopKernel :
     nonterminationMass selfLoopKernel (Sum.inr false) = 1 := by
   show (⨅ n : ℕ, pendingMass selfLoopKernel (Sum.inr false) n) = 1
   rw [iInf_congr pendingMass_selfLoopKernel]
   exact iInf_const
 
+/-- The self-loop kernel from running `false` has infinite unbounded expected time. -/
 theorem unboundedTime_selfLoopKernel :
     unboundedTime selfLoopKernel (Sum.inr false) = ⊤ := by
   show ∑' n : ℕ, pendingMass selfLoopKernel (Sum.inr false) n = ⊤
@@ -182,6 +233,8 @@ theorem unboundedTime_selfLoopKernel :
   rw [tsum_const_nat_ennreal]
   simp
 
+/-- The two-step kernel terminates at cost two with probability one and has unbounded expected
+time two, while the self-loop kernel has nontermination mass one and infinite expected time. -/
 theorem unbounded_two_step_and_infinite_loop_consumers :
     twoStepKernel false = PMF.pure (Sum.inr true) ∧
       twoStepKernel true = PMF.pure (Sum.inl false) ∧

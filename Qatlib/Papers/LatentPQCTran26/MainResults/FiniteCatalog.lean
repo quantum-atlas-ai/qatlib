@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LatentPQCTran26.MainResults.Definitions
+
+/-!
+# Finite atomic catalogs on compact metric spaces
+
+The sets `cell` assign each covered point to the first catalog center within a chosen radius,
+giving measurable disjoint cells. Using compactness, `lemma2_finite_catalog` constructs a
+nonempty finite weighted atomic approximation to a probability measure with arbitrarily small
+`wasserstein1` cost. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `measurable_cell`: Each first-center cell is measurable when open sets in the metric space are
+  measurable.
+* `cell_disjoint`: Cells belonging to distinct catalog indices are disjoint.
+* `lemma2_finite_catalog`: Every probability measure on a compact metric space with measurable
+  open sets has, for each positive `ε`, a nonempty finite atomic approximation with weights
+  summing to one and `wasserstein1` cost at most `ε`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,10 +40,13 @@ namespace Qatlib.Papers.LatentPQCTran26.MainResults.FiniteCatalog
 
 open Qatlib.Papers.LatentPQCTran26.MainResults
 
+/-- The points within distance `ε` of center `ρ i` that are outside all such balls with smaller
+indices. -/
 private def cell {D : Type*} [MetricSpace D] {N : ℕ} (ρ : Fin N → D) (ε : ℝ)
     (i : Fin N) : Set D :=
   {x | dist x (ρ i) < ε ∧ ∀ j : Fin N, (j : ℕ) < (i : ℕ) → ε ≤ dist x (ρ j)}
 
+/-- Each first-center cell is measurable when open sets in the metric space are measurable. -/
 private theorem measurable_cell {D : Type*} [MeasurableSpace D] [MetricSpace D]
     [OpensMeasurableSpace D] {N : ℕ} (ρ : Fin N → D) (ε : ℝ) (i : Fin N) :
     MeasurableSet (cell ρ ε i) := by
@@ -55,6 +81,7 @@ private theorem measurable_cell {D : Type*} [MeasurableSpace D] [MetricSpace D]
   rw [hcellEq]
   exact MeasurableSet.inter h1 h2
 
+/-- Cells belonging to distinct catalog indices are disjoint. -/
 private theorem cell_disjoint {D : Type*} [MetricSpace D] {N : ℕ} (ρ : Fin N → D)
     (ε : ℝ) {i j : Fin N} (hij : i ≠ j) :
     Disjoint (cell ρ ε i) (cell ρ ε j) := by
@@ -69,6 +96,9 @@ private theorem cell_disjoint {D : Type*} [MetricSpace D] {N : ℕ} (ρ : Fin N 
   · intro hmem
     exact absurd ((Set.mem_setOf_eq.mp hmem).2 j h) (not_le.2 hxj)
 
+/-- Every probability measure on a compact metric space with measurable open sets has, for each
+positive `ε`, a nonempty finite atomic approximation with weights summing to one and
+`wasserstein1` cost at most `ε` [TranEtAl2026]. -/
 theorem lemma2_finite_catalog
     {D : Type*} [MeasurableSpace D] [MetricSpace D] [OpensMeasurableSpace D] [CompactSpace D]
     (Q : Measure D) [IsProbabilityMeasure Q] :

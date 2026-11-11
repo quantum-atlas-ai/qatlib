@@ -14,6 +14,26 @@ import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# A refined success bound for amplitude amplification
+
+This module proves a cubic sine lower bound and derives the refined amplitude-amplification
+success estimate used in [Ambainis2012]. The theorem `clause88` combines this estimate with
+proportionality of the marked components and the exact count of preparation queries.
+
+## Main statements
+
+* `clause88_tight_sin_sq`: A sine-squared lower bound with a cubic correction in the amplified
+  mass.
+* `clause88`: The windowed success bound, preservation of the marked direction, and
+  preparation-query count.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -69,6 +89,7 @@ open Qatlib
 set_option warningAsError false
 noncomputable section
 
+/-- For every nonnegative real `x`, the sine is at least `x - x³ / 6`. -/
 lemma clause88_sin_ge_sub_cube (x : ℝ) (hx : 0 ≤ x) : x - x ^ 3 / 6 ≤ Real.sin x := by
   have hd : ∀ t : ℝ, HasDerivAt (fun u => Real.sin u - u + u ^ 3 / 6)
       (Real.cos t - 1 + t ^ 2 / 2) t := by
@@ -102,6 +123,8 @@ lemma clause88_sin_ge_sub_cube (x : ℝ) (hx : 0 ≤ x) : x - x ^ 3 / 6 ≤ Real
 end
 noncomputable section
 
+/-- For `0 ≤ θ ≤ π / 2` and `nθ ≤ π / 2`, the amplified sine square is at least `(1 - n² * sin²
+θ / 3) * n² * sin² θ`. -/
 lemma clause88_tight_sin_sq (n : ℕ) (θ : ℝ) (hθ : 0 ≤ θ) (hθpi : θ ≤ Real.pi / 2)
     (hwin : (n : ℝ) * θ ≤ Real.pi / 2) :
     Real.sin ((n : ℝ) * θ) ^ 2 ≥
@@ -163,6 +186,7 @@ lemma clause88_tight_sin_sq (n : ℕ) (θ : ℝ) (hθ : 0 ≤ θ) (hθpi : θ �
 end
 noncomputable section
 
+/-- Collapse onto a fixed marked set preserves addition of states. -/
 lemma clause88_collapse_add {I : Type} [Fintype I] [DecidableEq I] (u v : QState I) (S : Finset I) :
     Collapse (u + v) S = Collapse u S + Collapse v S := by
   funext i
@@ -170,6 +194,7 @@ lemma clause88_collapse_add {I : Type} [Fintype I] [DecidableEq I] (u v : QState
 end
 noncomputable section
 
+/-- Collapse onto a fixed marked set commutes with complex scalar multiplication. -/
 lemma clause88_collapse_smul {I : Type} [Fintype I] [DecidableEq I] (c : ℂ) (u : QState I)
     (S : Finset I) : Collapse (c • u) S = c • Collapse u S := by
   funext i
@@ -177,6 +202,7 @@ lemma clause88_collapse_smul {I : Type} [Fintype I] [DecidableEq I] (c : ℂ) (u
 end
 noncomputable section
 
+/-- Collapse onto a fixed marked set preserves subtraction of states. -/
 lemma clause88_collapse_sub {I : Type} [Fintype I] [DecidableEq I] (u v : QState I) (S : Finset I) :
     Collapse (u - v) S = Collapse u S - Collapse v S := by
   funext i
@@ -184,6 +210,7 @@ lemma clause88_collapse_sub {I : Type} [Fintype I] [DecidableEq I] (u v : QState
 end
 noncomputable section
 
+/-- Collapsing a state onto the same marked set twice has the same result as collapsing once. -/
 lemma clause88_collapse_idem {I : Type} [Fintype I] [DecidableEq I] (u : QState I) (S : Finset I) :
     Collapse (Collapse u S) S = Collapse u S := by
   funext i
@@ -191,6 +218,10 @@ lemma clause88_collapse_idem {I : Type} [Fintype I] [DecidableEq I] (u : QState 
 end
 noncomputable section
 
+/-- Coherent amplification holds, and for a unitary preparation with marked mass `0 ≤ δ ≤ ε ≤
+1`, `ε > 0`, and `r ≤ tightAAWindow ε`, the amplified mass is at least `tightAASuccess δ r`.
+Its marked component is proportional to the original one, and the preparation-query count is
+exactly `2 * r + 1`. [Ambainis2012] -/
 theorem clause88 :
 
   CoherentAmplification ∧

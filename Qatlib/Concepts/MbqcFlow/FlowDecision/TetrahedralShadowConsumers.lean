@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.TetrahedralShadowStatistics
+
+/-!
+# Tetrahedral shadow examples
+
+The tetrahedral estimator is evaluated on the maximally mixed qubit and on the Pauli Y
+observable. A joint concentration bound estimates all three Pauli expectations from the same
+fresh records, while `tetrahedral_zero_boundary` records the empty-sample convention. See
+[HuangKuengPreskill2020].
+
+## Main statements
+
+* `tetrahedral_mixed_state_and_y_observable_consumers`: uniform records and exact Y moments.
+* `tetrahedral_xyz_joint_actual_consumer`: a simultaneous bound for the three Pauli observables.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -21,6 +40,7 @@ set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 
+/-- The Pauli Y value of a tetrahedral snapshot is √3 times its Y sign. -/
 theorem trace_pauliY_tetraSnapshot (a : Fin 4) :
     (Matrix.trace (pauliY * tetraSnapshot a)).re = Real.sqrt 3 * (tetraSigns a 1 : ℝ) := by
   have htY : Matrix.trace pauliY = 0 := trace_pauliMatrix 1
@@ -50,6 +70,8 @@ theorem trace_pauliY_tetraSnapshot (a : Fin 4) :
   rw [Real.sq_sqrt (by norm_num : (0:ℝ) ≤ 3)]
   ring
 
+/-- For the maximally mixed qubit, tetrahedral outcomes are uniform and the Pauli Y estimator
+has mean zero and second moment 3. -/
 theorem tetrahedral_mixed_state_and_y_observable_consumers
     (hρ : IsDensityOperator ((1/2:ℂ) • (1:Operator 2))) :
     (∀ a, (tetraRecordLaw ((1/2:ℂ) • (1:Operator 2)) hρ).prob a = 1/4) ∧
@@ -94,6 +116,8 @@ theorem tetrahedral_mixed_state_and_y_observable_consumers
 
 set_option maxHeartbeats 10000000 in
 
+/-- The probability that any of the three Pauli sample means deviates by at least `ε` is bounded
+by the sum of their spectral-norm moment bounds divided by `m * ε ^ 2`. -/
 theorem tetrahedral_xyz_joint_actual_consumer (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (m : ℕ) (ε : ℝ) (hm : 0 < m) (hε : 0 < ε) :
     (∑ ω ∈ @Finset.univ.filter (Fin m → Fin 4)
@@ -111,6 +135,8 @@ theorem tetrahedral_xyz_joint_actual_consumer (ρ : Operator 2) (hρ : IsDensity
   @tetrahedral_many_observable_actual_mean_bound (Fin 3) (Fin.fintype 3) (instDecidableEqFin 3)
     ρ hρ pauliMatrix m ε hm hε (fun z => pauliMatrix_conjTranspose z)
 
+/-- With no fresh samples, the unique empty record has probability one and every tetrahedral
+sample mean is zero. -/
 theorem tetrahedral_zero_boundary (ρ : Operator 2) (hρ : IsDensityOperator ρ)
     (A : Operator 2) (ω : Fin 0 → Fin 4) :
     (tetraFreshLaw ρ hρ 0).prob ω = 1 ∧ tetraSampleMean A 0 ω = 0 := by

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticObservableShadows
 import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
+
+/-!
+# Pauli pair observables and record budgets
+
+This module represents rational linear combinations of pairs of Pauli words by
+`pauliPairObservable`. It derives their symmetrized shadow kernels, trace formulas, coefficient
+bounds, and grouped-record budgets for quadratic classical-shadow estimation
+[HuangKuengPreskill2020].
+
+## Main statements
+
+* `pauli_pair_kernel_and_estimand`: kernel, trace, Hermiticity, and symmetrization identities.
+* `pauli_pair_coefficient_mass_le`: coefficient mass bounded by the squared observable norm.
+* `quadratic_same_records_source_budget`: simultaneous concentration from shared records.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,19 +49,24 @@ namespace Qatlib.Concepts.ShadowModels.ShadowVariance
 open Matrix
 open scoped Classical BigOperators
 
+/-- A pair of tensor Pauli words on `n` qubits. -/
 def pauliPairWord (n : ℕ) := (Fin n → Option (Fin 3)) × (Fin n → Option (Fin 3))
 
+/-- Every term with nonzero coefficient has its first and second Pauli words supported in `S₁`
+and `S₂`, respectively. -/
 def pauliPairSupported {n q : ℕ} (S₁ S₂ : Finset (Fin n))
     (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ) : Prop :=
   ∀ j, c j ≠ 0 →
     (∀ i, i ∉ S₁ → (ww j).1 i = none) ∧ (∀ i, i ∉ S₂ → (ww j).2 i = none)
 
+/-- The rationally weighted sum of tensor products of the two Pauli words in each term. -/
 noncomputable def pauliPairObservable (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ :=
   ∑ j, (c j : ℂ) • TensorGate (tensorPauliWord n (ww j).1) (tensorPauliWord n (ww j).2)
 
 open scoped Matrix.Norms.L2Operator Kronecker
 
+/-- The conditional variance and kernel variance of a finite pair kernel are both nonnegative. -/
 theorem pauli_pair_variances_nonneg {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) :
     0 ≤ pairConditionalVariance p h ∧ 0 ≤ pairKernelVariance p h := by
@@ -50,6 +75,8 @@ theorem pauli_pair_variances_nonneg {X : Type} [Fintype X] (p : FinDist X)
   · exact Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ =>
       mul_nonneg (mul_nonneg (p.nonneg _) (p.nonneg _)) (sq_nonneg _)
 
+/-- The stated sample-size budget bounds `4 * C / m + 4 * K / m ^ 2` by `ε ^ 2 / 34` when `m ≥
+2` and `0 < ε ≤ 1`. -/
 private theorem pauli_pair_budget_arithmetic (m C K ε : ℝ)
     (hm : 2 ≤ m) (_hC : 0 ≤ C) (hK : 0 ≤ K) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hb : 140 * max C (Real.sqrt K) / ε^2 ≤ m) :
@@ -77,6 +104,8 @@ private theorem pauli_pair_budget_arithmetic (m C K ε : ℝ)
     _ ≤ 4 * (ε^2 / 140) + 4 * (ε^2 / 140)^2 := by gcongr
     _ ≤ ε^2 / 34 := by nlinarith
 
+/-- The stated variance-based sample budget bounds the mean squared error of the quadratic
+shadow U-statistic by `ε ^ 2 / 34`. See [HuangKuengPreskill2020]. -/
 theorem quadratic_group_variance_source_budget
     (n m : ℕ) (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)
     (O : Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -113,6 +142,10 @@ theorem quadratic_group_variance_source_budget
     (mul_le_mul_of_nonneg_right hb' hK)).trans
       (pauli_pair_budget_arithmetic m _ _ ε hm2 hC hK hε hε1 hb)
 
+/-- For the specified group size and odd number of groups, fresh-record resources have the
+displayed exact counts, each counted median uses the stated number of groups and comparison
+bound, and pair evaluations total the number of groups times `m.choose 2`. See
+[HuangKuengPreskill2020]. -/
 theorem pauli_pair_endpoint_ledger
     (n D q : ℕ) (ww : Fin D → Fin q → pauliPairWord n) (c : Fin D → Fin q → ℚ)
     (S₁ S₂ : Fin D → Finset (Fin n)) (ε δ : ℝ)
@@ -142,6 +175,7 @@ theorem pauli_pair_endpoint_ledger
     exact (quadratic_shadow_actual_quantum_and_pair_ledger _ _ _
       (pauliPairObservable n q (ww z) (c z)) ω).2
 
+/-- Every tensor Pauli word is Hermitian. -/
 theorem pauli_pair_word_hermitian (n : ℕ) (w : Fin n → Option (Fin 3)) :
     (tensorPauliWord n w).IsHermitian := by
   change (tensorPauliWord n w)ᴴ = tensorPauliWord n w
@@ -152,6 +186,7 @@ theorem pauli_pair_word_hermitian (n : ℕ) (w : Fin n → Option (Fin 3)) :
   | none => simp [tensorPauliWordFactor]
   | some a => simp [tensorPauliWordFactor, pauliMatrix_conjTranspose]
 
+/-- A rationally weighted Pauli pair observable is Hermitian. -/
 theorem pauli_pair_observable_hermitian (n q : ℕ)
     (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ) :
     (pauliPairObservable n q ww c).IsHermitian := by
@@ -161,6 +196,8 @@ theorem pauli_pair_observable_hermitian (n q : ℕ)
     (pauli_pair_word_hermitian _ _).eq]
   simp
 
+/-- The trace pairing of a Pauli pair observable with a tensor product factors into a
+coefficient-weighted sum of products of single-register trace pairings. -/
 theorem pauli_pair_complex_estimand (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (ρ ρ' : Operator (2^n)) :
     Matrix.trace (pauliPairObservable n q ww c * TensorGate ρ ρ') =
@@ -173,6 +210,8 @@ theorem pauli_pair_complex_estimand (n q : ℕ) (ww : Fin q → pauliPairWord n)
     tensorGate_mul, Matrix.trace_sum, Matrix.trace_smul,
     ht, smul_eq_mul, mul_assoc]
 
+/-- The quadratic shadow kernel of a Pauli pair observable is the average of the two orders of
+the product estimators. -/
 theorem pauli_pair_kernel_formula (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (a b : Fin n → Fin 3 × Bool) :
     quadraticShadowKernel n (pauliPairObservable n q ww c) a b =
@@ -190,6 +229,7 @@ theorem pauli_pair_kernel_formula (n q : ℕ) (ww : Fin q → pauliPairWord n)
   funext j
   ring
 
+/-- Symmetrizing a two-register observable does not increase its norm. -/
 theorem pauli_pair_symmetrization_norm {D : ℕ}
     (O : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :
     ‖quadraticSymmetric O‖ ≤ ‖O‖ := by
@@ -208,6 +248,8 @@ theorem pauli_pair_symmetrization_norm {D : ℕ}
   have ha := norm_add_le O (swapRegisterMatrix D * O * swapRegisterMatrix D)
   linarith
 
+/-- The formula replacing each complex trace factor by its real part is not valid for all
+unrestricted input operators. -/
 theorem pauli_pair_unrestricted_estimand_false :
     ¬ (∀ (n q : ℕ) (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ)
       (ρ ρ' : Operator (2^n)),
@@ -225,6 +267,7 @@ theorem pauli_pair_unrestricted_estimand_false :
   simp only [ww, Fin.sum_univ_one, hw, Matrix.one_mul, ht] at hh
   norm_num [Complex.mul_re, Complex.mul_im] at hh
 
+/-- The trace of the product of two Hermitian matrices has zero imaginary part. -/
 theorem pauli_pair_hermitian_trace_real {D : ℕ} (A B : Operator D)
     (hA : A.IsHermitian) (hB : B.IsHermitian) : (Matrix.trace (A * B)).im = 0 := by
   have hh : star (Matrix.trace (A * B)) = Matrix.trace (A * B) := by
@@ -234,6 +277,8 @@ theorem pauli_pair_hermitian_trace_real {D : ℕ} (A B : Operator D)
   change -(Matrix.trace (A * B)).im = (Matrix.trace (A * B)).im at hi
   linarith
 
+/-- For Hermitian input operators, the real trace pairing of a Pauli pair observable is the
+coefficient-weighted sum of products of real single-register trace pairings. -/
 theorem pauli_pair_real_estimand (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (ρ ρ' : Operator (2^n))
     (hρ : ρ.IsHermitian) (hρ' : ρ'.IsHermitian) :
@@ -249,6 +294,9 @@ theorem pauli_pair_real_estimand (n q : ℕ) (ww : Fin q → pauliPairWord n)
     mul_zero, sub_zero]
   norm_num
 
+/-- If every Hermitian observable satisfies the displayed group-size budget, the probability
+that any median estimate exceeds error `ε` is bounded by the number of observables times the
+stated geometric factor. -/
 theorem quadratic_same_records_source_budget (n m r : ℕ)
     (Z : Type) [Fintype Z] (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)
     (O : Z → Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ)
@@ -306,6 +354,8 @@ theorem quadratic_same_records_source_budget (n m r : ℕ)
   simp_rw [hblock, hprob] at hc
   simpa only [quadraticShadowMedian, θ, p, mul_assoc] using! hc
 
+/-- The total real coefficient of a Pauli pair word, summing all occurrences in the indexed
+presentation. -/
 noncomputable def pauliPairCoefficient {n q : ℕ} (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ)
     (u : pauliPairWord n) : ℝ := ∑ j, if ww j = u then (c j : ℝ) else 0
 
@@ -313,6 +363,8 @@ noncomputable instance pauliPairWordFintype (n : ℕ) : Fintype (pauliPairWord n
   unfold pauliPairWord
   infer_instance
 
+/-- Summing a function against the aggregated Pauli pair coefficients equals the original
+coefficient-weighted sum over terms. -/
 private theorem pauli_pair_coefficient_sum {n q : ℕ}
     (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ) (f : pauliPairWord n → ℝ) :
     ∑ u, pauliPairCoefficient ww c u * f u = ∑ j, (c j : ℝ)*f (ww j) := by
@@ -322,6 +374,8 @@ private theorem pauli_pair_coefficient_sum {n q : ℕ}
   intro j _
   simp [ite_mul]
 
+/-- The trace pairing of tensor Pauli pairs is zero for distinct pairs and `4 ^ n` for equal
+pairs. -/
 theorem pauli_pair_trace_orthogonal {n : ℕ} (u v : pauliPairWord n) :
     Matrix.trace (TensorGate (tensorPauliWord n u.1) (tensorPauliWord n u.2) *
       TensorGate (tensorPauliWord n v.1) (tensorPauliWord n v.2)) =
@@ -336,6 +390,8 @@ theorem pauli_pair_trace_orthogonal {n : ℕ} (u v : pauliPairWord n) :
     simp [he, h1, h2, ← mul_pow]
   norm_num
 
+/-- The real trace of the square of a Pauli pair observable is `4 ^ n` times the sum of squares
+of its aggregated coefficients. -/
 theorem pauli_pair_coefficient_parseval {n q : ℕ}
     (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ) :
     (Matrix.trace (pauliPairObservable n q ww c * pauliPairObservable n q ww c)).re =
@@ -366,6 +422,7 @@ theorem pauli_pair_coefficient_parseval {n q : ℕ}
     ring
   · simp [h, Ne.symm h]
 
+/-- The norm of any matrix entry is at most the norm of the matrix. -/
 private theorem pauli_pair_entry_norm {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (i j : I) : ‖A i j‖ ≤ ‖A‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖ = 1 := by
@@ -383,6 +440,8 @@ private theorem pauli_pair_entry_norm {I : Type} [Fintype I] [DecidableEq I]
   rw [he] at hi
   exact hi.trans hn
 
+/-- The sum of squares of the aggregated Pauli pair coefficients is at most the squared
+observable norm. -/
 theorem pauli_pair_coefficient_mass_le {n q : ℕ}
     (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ) :
     ∑ u, pauliPairCoefficient ww c u ^ 2 ≤ ‖pauliPairObservable n q ww c‖^2 := by
@@ -408,6 +467,8 @@ theorem pauli_pair_coefficient_mass_le {n q : ℕ}
   have hp : (0 : ℝ) < 4^n := by positivity
   nlinarith
 
+/-- A Pauli pair observable is Hermitian, has the displayed symmetrized kernel and
+complex-product trace formula, and its symmetrization has no larger norm. -/
 theorem pauli_pair_kernel_and_estimand
     (n q : ℕ) (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ)
     (ρ ρ' : Operator (2^n)) (a b : Fin n → Fin 3 × Bool) :

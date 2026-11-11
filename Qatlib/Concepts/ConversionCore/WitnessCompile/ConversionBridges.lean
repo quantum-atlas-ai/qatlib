@@ -11,6 +11,30 @@ import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemantic
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+
+/-!
+# Bridges between source conversion models
+
+The source fractional Boolean oracle agrees with the fractional phase oracle, and one fractional
+query has filtered Gram cost at most `λ*π*sqrt 2`. Continuous conversion programs translate to
+source programs without changing legality, time, or matrix semantics.
+
+The module establishes that continuous query costs do not exceed discrete word costs and
+supplies a purification identity for mixed inputs. The fractional-query estimate corresponds to
+[LeeEtAl2011].
+
+## Main statements
+
+* `source_single_step_distance`: the fractional-query Gram bound.
+* `continuousConversion_source_word_matrix`: exact embedding of source words.
+* `mixed_input_kraus_consumer`: purification and Kraus action for density operators.
+
+## References
+
+* [Lee et al., 2011, Lemma B.1][LeeEtAl2011]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -36,6 +60,8 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 noncomputable section
 
+/-- The source fractional Boolean oracle equals the fractional phase oracle at the same
+parameter. -/
 theorem source_fractional_eq {X W : Type} [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (x : X) (lam : ℝ) :
     sourceFractionalOracle (W := W) input x lam = fractionalPhaseOracle (input x) lam := by
@@ -49,6 +75,8 @@ theorem source_fractional_eq {X W : Type} [DecidableEq W] {n : ℕ}
 end
 noncomputable section
 
+/-- For nonnegative `lam`, one fractional Boolean query changes a normalized state's Gram matrix
+by filtered value at most `lam*π*sqrt 2`. This is [Lee et al., Lemma B.1][LeeEtAl2011]. -/
 theorem source_single_step_distance {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam : ℝ) (hlam : 0 ≤ lam)
@@ -65,6 +93,8 @@ end
 noncomputable section
 set_option maxHeartbeats 300000 in
 
+/-- Evolving for unit time under the negative logarithmic source oracle gives the adjoint
+alphabet oracle. -/
 theorem continuousConversion_source_inverse {X S : Type} [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     sourceVolterraMatrix (fun _ => -sourceLogOracle (W := S) input x) 1 =
@@ -93,6 +123,8 @@ theorem continuousConversion_source_inverse {X S : Type} [Fintype S] [DecidableE
 end
 set_option maxHeartbeats 300000 in
 noncomputable section
+/-- The source continuous program obtained by translating each known gate and evolution step of
+a continuous conversion program. -/
 def continuousConversion_source_steps {H : Type} (C : List (ContinuousConversionStep H)) :
     List (SourceContinuousStep H) := C.map (fun s => match s with
       | .known U => .known U
@@ -100,6 +132,7 @@ def continuousConversion_source_steps {H : Type} (C : List (ContinuousConversion
 end
 noncomputable section
 
+/-- Translating a legal continuous conversion program yields a legal source continuous program. -/
 theorem continuousConversion_source_legal {H : Type} [Fintype H] [DecidableEq H]
     (C : List (ContinuousConversionStep H))
     (hC : continuousConversionLegal C) :
@@ -110,6 +143,7 @@ theorem continuousConversion_source_legal {H : Type} [Fintype H] [DecidableEq H]
 end
 noncomputable section
 
+/-- Translation to a source continuous program preserves total query time. -/
 theorem continuousConversion_source_time {H : Type} (C : List (ContinuousConversionStep H)) :
     sourceContinuousTime (continuousConversion_source_steps C) = continuousConversionTime C := by
   unfold sourceContinuousTime continuousConversion_source_steps continuousConversionTime
@@ -121,6 +155,8 @@ theorem continuousConversion_source_time {H : Type} (C : List (ContinuousConvers
 end
 noncomputable section
 
+/-- Translation to a source continuous program preserves its matrix semantics for every oracle
+matrix. -/
 theorem continuousConversion_source_matrix {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (C : List (ContinuousConversionStep H)) :
     sourceContinuousMatrix O (continuousConversion_source_steps C) =
@@ -135,6 +171,7 @@ end
 noncomputable section
 set_option maxHeartbeats 300000 in
 
+/-- The source continuous embedding of a source word evaluates to the original word matrix. -/
 theorem continuousConversion_source_word_matrix {X S : Type} [Fintype S] [DecidableEq S]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (C : SourceWord ((Fin (n+1) × Fin (q+1)) × S)) :
@@ -148,6 +185,8 @@ theorem continuousConversion_source_word_matrix {X S : Type} [Fintype S] [Decida
 end
 noncomputable section
 
+/-- Coherent continuous source query complexity is at most coherent discrete source-word query
+complexity at the same error. -/
 theorem continuousConversion_source_coherent {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -164,6 +203,8 @@ theorem continuousConversion_source_coherent {X H : Type} [Fintype X] [Decidable
 end
 noncomputable section
 
+/-- Noncoherent continuous source query complexity is at most noncoherent discrete source-word
+query complexity at the same error. -/
 theorem continuousConversion_source_noncoherent {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε : ℝ) :
@@ -180,6 +221,8 @@ theorem continuousConversion_source_noncoherent {X H : Type} [Fintype X] [Decida
 end
 noncomputable section
 
+/-- Every density operator possesses a normalized bipartite purification whose record marginal
+is the density operator and whose recorded Kraus output has marginal `∑ k, A k*ρ*(A k)ᴴ`. -/
 theorem mixed_input_kraus_consumer {d m : ℕ} (ρ : Operator d)
     (hρ : IsDensityOperator ρ) (A : Fin m → Operator d) :
     ∃ v : QState (Fin d × Fin d), Normalized v ∧ conversionRecordMarginal v = ρ ∧

@@ -22,6 +22,27 @@ import Mathlib.Tactic.Ring
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Postselection examples for compiled QSVT
+
+This module applies the length-controlled compiler to two concrete postselection problems in the
+QSVT framework of [GilyenSuLowWiebe2019]. The first treats an unknown positive encoded scalar
+with an iterated sign polynomial; the second uses an even polynomial on a two-dimensional matrix
+with a nontrivial kernel.
+
+## Main statements
+
+* `cpp_unknown_scalar_fixed_point_postselection`: Obtain a success lower bound and the exact
+  conditional unit state in the scalar case.
+* `cpp_even_full_kernel_consumer`: Compute the compressed matrix, success probability, and
+  conditional output for a length-two example.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.BornMetrics.EventProbability
@@ -50,11 +71,15 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomial
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- The two-dimensional diagonal matrix with entries zero and one half. -/
 noncomputable def sourceKernelMatrix : Matrix (Fin 2) (Fin 2) ℂ :=
   diagonal (fun i => if i=0 then 0 else 1/2)
+/-- The two-dimensional uniform input state with amplitudes `1 / √2`. -/
 noncomputable def sourceKernelInput : QState (Fin 2) := fun _=>(Real.sqrt 2:ℂ)⁻¹
+/-- The two-dimensional output state with amplitudes `4 / 5` and `3 / 5`. -/
 noncomputable def sourceKernelOutput : QState (Fin 2) := fun i=>if i=0 then 4/5 else 3/5
 
+/-- The Euclidean linear map of a scalar identity matrix acts by scalar multiplication. -/
 private theorem source_scalar_action {I : Type} [Fintype I] [DecidableEq I]
     (σ : ℝ) (v : EuclideanSpace ℂ I) :
     ((σ : ℂ) • (1 : Matrix I I ℂ)).toEuclideanLin v = (σ : ℂ) • v := by
@@ -62,6 +87,7 @@ private theorem source_scalar_action {I : Type} [Fintype I] [DecidableEq I]
   change (((σ : ℂ) • (1 : Matrix I I ℂ)) *ᵥ (fun j => v j)) i = (σ : ℂ) * v i
   simp [Matrix.smul_mulVec]
 
+/-- Every singular value of a nonnegative scalar identity matrix equals that scalar. -/
 private theorem source_scalar_singularValues {I : Type} [Fintype I] [DecidableEq I]
     (σ : ℝ) (hσ : 0 ≤ σ) (i : Fin (Fintype.card I)) :
     matrixSingularValues ((σ : ℂ) • (1 : Matrix I I ℂ)) i = σ := by
@@ -69,6 +95,8 @@ private theorem source_scalar_singularValues {I : Type} [Fintype I] [DecidableEq
     (rightSingularBasis ((σ : ℂ) • (1 : Matrix I I ℂ))).norm_eq_one i,mul_one,
     Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg hσ]
 
+/-- The odd singular transform of a positive scalar identity is the identity scaled by the
+response at that scalar. -/
 theorem source_scalar_odd_transform {I : Type} [Fintype I] [DecidableEq I]
     (σ : ℝ) (hσ : 0 < σ) (f : ℝ → ℂ) :
     oddSingularTransform ((σ : ℂ) • (1 : Matrix I I ℂ)) f =
@@ -85,6 +113,8 @@ theorem source_scalar_odd_transform {I : Type} [Fintype I] [DecidableEq I]
   simp only [source_scalar_singularValues σ hσ.le]
   exact spectralDiagonal_const _ (f σ)
 
+/-- A positive real multiple of a normalized state has full-space probability equal to the
+squared multiplier and conditions back to the original state. -/
 private theorem source_conditional_positive_smul {I : Type} [Fintype I] [DecidableEq I]
     (c : ℝ) (hc : 0 < c) (ψ : QState I) (hψ : Normalized ψ) :
     MeasureProb ((c : ℂ) • ψ) Finset.univ = c^2 ∧
@@ -105,10 +135,14 @@ private theorem source_conditional_positive_smul {I : Type} [Fintype I] [Decidab
   simp [Pi.smul_apply,Complex.real_smul,Complex.ofReal_inv,← mul_assoc,
     inv_mul_cancel₀ (Complex.ofReal_ne_zero.mpr hc.ne')]
 
+/-- The iterated sign polynomial has real parity `3 ^ k`. -/
 private theorem source_sign_parity (k : ℕ) : HasRealParity (3^k) (signPolynomial k) := by
   have ho : Odd (3^k) := (by decide : Odd (3 : ℕ)).pow
   simp [HasRealParity,signPolynomial_comp_neg_X,ho.neg_one_pow]
 
+/-- For an encoded scalar `σ` with `0 < δ ≤ σ ≤ 1` and sign-polynomial error below one, a
+length-`3 ^ k` compiled word postselects the unit state with the stated success lower bound
+[GilyenSuLowWiebe2019]. -/
 theorem cpp_unknown_scalar_fixed_point_postselection : ∀ (H : Type) [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (L R : Matrix H Unit ℂ) (σ δ : ℝ) (k : ℕ),
   0<δ → δ≤σ → σ≤1 → signPolynomialError δ k<1 →
@@ -152,6 +186,9 @@ theorem cpp_unknown_scalar_fixed_point_postselection : ∀ (H : Type) [Fintype H
     rw [postselectionOutput,hb,hcond.2]
   · exact congrArg Prod.fst hcounts
 
+/-- A length-two compiled word for `sourceKernelMatrix` has compressed diagonal `(1, 3 / 4)`,
+success probability `25 / 32` on `sourceKernelInput`, and conditional output
+`sourceKernelOutput` [GilyenSuLowWiebe2019]. -/
 theorem cpp_even_full_kernel_consumer : ∀ (H : Type) [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (L R : Matrix H (Fin 2) ℂ),
   ProjectedUnitaryEncoding sourceKernelMatrix U L R →

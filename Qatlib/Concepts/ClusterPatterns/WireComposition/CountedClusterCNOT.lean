@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
 import Mathlib.Algebra.Ring.BooleanRing
+
+/-!
+# Counted cluster CNOT execution
+
+This module gives raw and corrected four-qubit observed programs for a cluster CNOT, using the
+second logical bit as control and the first as target. It computes physical branch columns,
+removes the raw Pauli byproducts, and derives the logical branch maps by discarding the measured
+pair.
+
+Every corrected branch is one quarter of CNOT conjugation, including reference extensions. The
+module also proves exact leaf, measurement, message, and gate counts for the measurement-based
+construction of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `cluster_cnot_actual_leaf_frame`: the corrected physical branch has amplitude one half and the
+  intended CNOT basis action.
+* `cluster_cnot_actual_branch_and_reference_channel`: exact branch maps and reference-extended
+  forgotten channel.
+* `cluster_cnot_actual_program_and_feedback_cost`: seven raw gates, ten corrected gates, and two
+  measurements per branch.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -32,34 +59,45 @@ open scoped ComplexOrder
 
 set_option maxHeartbeats 4000000
 
+/-- The Boolean-pair map that flips the first bit when the second bit is true. -/
 def clusterCNOTFlip : Bool × Bool → Bool × Bool := fun p => (p.1 ^^ p.2, p.2)
 
+/-- The permutation matrix of `clusterCNOTFlip` in Boolean pair coordinates. -/
 noncomputable def clusterCNOTb : Matrix (Bool × Bool) (Bool × Bool) ℂ :=
   permMatrix clusterCNOTFlip
 
+/-- The logical CNOT matrix relabeled to `Fin 4`, with the second bit controlling the first. -/
 noncomputable def clusterCNOTMat : Operator 4 :=
   relabelGate teleportOutcomeEquiv clusterCNOTb
 
+/-- The physical CZ between the first two vertices in Boolean product coordinates. -/
 noncomputable def clusterCNOTEdge12B :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   TensorGate clusterCZb (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)
 
+/-- The physical CZ between the second and third vertices in Boolean product coordinates. -/
 noncomputable def clusterCNOTEdge23B :
     Matrix ((Bool × Bool) × (Bool × Bool)) ((Bool × Bool) × (Bool × Bool)) ℂ :=
   Matrix.diagonal fun p => if p.1.2 && p.2.1 then (-1 : ℂ) else 1
 
+/-- The CZ between the first two vertices relabeled to `Fin 16`. -/
 noncomputable def clusterCNOTEdge12Gate : Operator 16 :=
   relabelGate clusterCZRegisterEquiv clusterCNOTEdge12B
 
+/-- The CZ between the second and third vertices relabeled to `Fin 16`. -/
 noncomputable def clusterCNOTEdge23Gate : Operator 16 :=
   relabelGate clusterCZRegisterEquiv clusterCNOTEdge23B
 
+/-- The embedding of the logical target and control into the first and fourth physical vertices,
+with the other two initialized to zero. -/
 def clusterCNOTInitialFrame : Matrix (Fin 16) (Fin 4) ℂ :=
   Matrix.of fun r i =>
     if r = clusterCZRegisterEquiv
         (((teleportOutcomeEquiv.symm i).1, false), (false, (teleportOutcomeEquiv.symm i).2))
       then 1 else 0
 
+/-- The observed cluster CNOT program with resource preparation and two measurements, before
+outcome-dependent feedback. -/
 noncomputable def clusterCNOTRawProgram : ObservedCircuit (Fin 16) :=
   .step (.gate clusterCZHdGate)
     (.step (.gate clusterCZHbGate)
@@ -71,6 +109,8 @@ noncomputable def clusterCNOTRawProgram : ObservedCircuit (Fin 16) :=
                 (.measure 2 clusterCZLabelA (fun _ka =>
                   .measure 2 clusterCZLabelD (fun _kd => .halt true)))))))))
 
+/-- The observed cluster CNOT program with resource preparation, two measurements, and three
+outcome-dependent Pauli feedback gates. -/
 noncomputable def clusterCNOTProgram : ObservedCircuit (Fin 16) :=
   .step (.gate clusterCZHdGate)
     (.step (.gate clusterCZHbGate)
@@ -86,16 +126,21 @@ noncomputable def clusterCNOTProgram : ObservedCircuit (Fin 16) :=
                         (.step (.gate (clusterCZZcGate ka))
                           (.halt true))))))))))))
 
+/-- The raw CNOT leaf indexed by the two Boolean measurement outcomes. -/
 noncomputable def clusterCNOTRawLeaf (a b : Bool) :
     Fin (observedLeafCount clusterCNOTRawProgram) :=
   Fin.cast (by rfl) (teleportOutcomeEquiv (a, b))
 
+/-- The corrected CNOT leaf indexed by the two Boolean measurement outcomes. -/
 noncomputable def clusterCNOTLeaf (a b : Bool) :
     Fin (observedLeafCount clusterCNOTProgram) :=
   Fin.cast (by rfl) (teleportOutcomeEquiv (a, b))
 
+/-- The two-bit classical message containing the CNOT measurement outcomes in order. -/
 def clusterCNOTMessage (a b : Bool) : List Bool := [a, b]
 
+/-- The logical output of a corrected physical CNOT branch, obtained by input embedding, branch
+conjugation, and tracing out the measured pair. -/
 noncomputable def clusterCNOTActualBranchCore (a b : Bool) (ρ : Operator 4) : Operator 4 :=
   relabelGate teleportOutcomeEquiv (Matrix.traceLeft
     (relabelGate clusterCZRegisterEquiv.symm
@@ -103,6 +148,7 @@ noncomputable def clusterCNOTActualBranchCore (a b : Bool) (ρ : Operator 4) : O
         * (clusterCNOTInitialFrame * ρ * clusterCNOTInitialFrame.conjTranspose)
         * (observedLeaf 1 clusterCNOTProgram (clusterCNOTLeaf a b)).operator.conjTranspose)))
 
+/-- The complex-linear map packaging `clusterCNOTActualBranchCore`. -/
 noncomputable def clusterCNOTActualBranchMap (a b : Bool) : Operator 4 →ₗ[ℂ] Operator 4 where
   toFun := clusterCNOTActualBranchCore a b
   map_add' := by
@@ -115,6 +161,8 @@ noncomputable def clusterCNOTActualBranchMap (a b : Bool) : Operator 4 →ₗ[�
     simp only [Matrix.mul_smul, Matrix.smul_mul, relabelGate_smul', traceLeft_smul4,
       RingHom.id_apply]
 
+/-- Each CNOT input-frame column is the basis vector placing the target and control in the first
+and fourth physical vertices and zeros elsewhere. -/
 theorem clusterCNOTInitialFrame_column (i : Fin 4) (r : Fin 16) :
     clusterCNOTInitialFrame r i
       = relabelState clusterCZRegisterEquiv
@@ -130,6 +178,7 @@ theorem clusterCNOTInitialFrame_column (i : Fin 4) (r : Fin 16) :
       rwa [Equiv.apply_symm_apply] at h3
     simp [clusterCNOTInitialFrame, relabelState, Qatlib.Foundations.PureStateMath.Ket, h, h2]
 
+/-- The CNOT input frame is an isometry. -/
 theorem clusterCNOTInitialFrame_isometry : IsIsometry clusterCNOTInitialFrame := by
   have hInj : ∀ i j : Fin 4,
       clusterCZRegisterEquiv (((teleportOutcomeEquiv.symm i).1, false), (false, (teleportOutcomeEquiv.symm i).2))
@@ -173,14 +222,17 @@ theorem clusterCNOTInitialFrame_isometry : IsIsometry clusterCNOTInitialFrame :=
       simp [hij]
   exact h
 
+/-- Applying the controlled first-bit flip twice returns the original Boolean pair. -/
 theorem clusterCNOTFlip_involutive : Function.Involutive clusterCNOTFlip := by
   intro ⟨t,c⟩
   change ((t ^^ c) ^^ c,c) = (t,c)
   rw [Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
 
+/-- The logical CNOT matrix is unitary. -/
 theorem clusterCNOTMat_unitary : clusterCNOTMat ∈ Matrix.unitaryGroup (Fin 4) ℂ :=
   teleportRelabelGate_mem_unitaryGroup (permMatrix_unitary clusterCNOTFlip_involutive) _
 
+/-- The physical CZ between the first two vertices is unitary. -/
 private theorem clusterCNOTEdge12Gate_unitary :
     clusterCNOTEdge12Gate ∈ Matrix.unitaryGroup (Fin 16) ℂ := by
   have h : clusterCZb ∈ Matrix.unitaryGroup (Bool × Bool) ℂ := by
@@ -189,6 +241,7 @@ private theorem clusterCNOTEdge12Gate_unitary :
   exact teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary h (Submonoid.one_mem _)) _
 
+/-- The physical CZ between the second and third vertices is unitary. -/
 private theorem clusterCNOTEdge23Gate_unitary :
     clusterCNOTEdge23Gate ∈ Matrix.unitaryGroup (Fin 16) ℂ := by
   have h : clusterCNOTEdge23B ∈ Matrix.unitaryGroup ((Bool × Bool) × (Bool × Bool)) ℂ := by
@@ -196,6 +249,8 @@ private theorem clusterCNOTEdge23Gate_unitary :
     cases b <;> cases c <;> simp
   exact teleportRelabelGate_mem_unitaryGroup h _
 
+/-- The CNOT input frame is an isometry, and the raw and corrected observed programs are well
+formed. -/
 theorem cluster_cnot_resource_preparation :
   IsIsometry clusterCNOTInitialFrame ∧
     observedWellFormed clusterCNOTRawProgram ∧ observedWellFormed clusterCNOTProgram := by
@@ -210,6 +265,8 @@ theorem cluster_cnot_resource_preparation :
       clusterCZHdGate_unitary, fun a b =>
         ⟨clusterCZXbGate_unitary b, clusterCZZbGate_unitary a, clusterCZZcGate_unitary a, trivial⟩⟩
 
+/-- The first physical CZ multiplies an amplitude by minus one exactly when the first two bits
+are true. -/
 private theorem clusterCNOTEdge12B_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCNOTEdge12B ψ =
       fun p => (if p.1.1 && p.1.2 then (-1 : ℂ) else 1) * ψ p := by
@@ -218,11 +275,15 @@ private theorem clusterCNOTEdge12B_apply (ψ : QState ((Bool × Bool) × (Bool �
   rw [show clusterCZb = Matrix.diagonal (fun q : Bool × Bool =>
     if q.1 && q.2 then (-1 : ℂ) else 1) from rfl, applyGate_diagonal]
 
+/-- The middle physical CZ multiplies an amplitude by minus one exactly when the second and
+third bits are true. -/
 private theorem clusterCNOTEdge23B_apply (ψ : QState ((Bool × Bool) × (Bool × Bool))) :
     ApplyGate clusterCNOTEdge23B ψ =
       fun p => (if p.1.2 && p.2.1 then (-1 : ℂ) else 1) * ψ p := by
   rw [clusterCNOTEdge23B, applyGate_diagonal]
 
+/-- The decoded CNOT resource column has the stated half-amplitude phase, supported where the
+output control is unchanged and the output target includes the second measurement bit. -/
 theorem clusterCNOTDecoded (t c : Bool) :
     ApplyGate (clusterCZHdB * (clusterCZHaB * (clusterCZEdgeDcB *
       (clusterCNOTEdge23B * (clusterCNOTEdge12B * (clusterCZHbB * clusterCZHdB))))))
@@ -238,6 +299,8 @@ theorem clusterCNOTDecoded (t c : Bool) :
     simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm] <;> ring_nf <;>
       try (rw [pow_two, sqrt2_inv_sq]) <;> ring_nf
 
+/-- The raw CNOT leaf operator is the ordered product of its preparation gates, decoding
+Hadamards, and the two selected outcome projectors. -/
 theorem clusterCNOTRawLeafOperator_eq (a b : Bool) :
     (observedLeaf 1 clusterCNOTRawProgram (clusterCNOTRawLeaf a b)).operator =
       (1 : Operator 16) *
@@ -247,6 +310,8 @@ theorem clusterCNOTRawLeafOperator_eq (a b : Bool) :
       clusterCNOTEdge12Gate * clusterCZHbGate * clusterCZHdGate := by
   cases a <;> cases b <;> rfl
 
+/-- The corrected CNOT leaf operator is the raw leaf followed by its three outcome-dependent
+Pauli gates. -/
 theorem clusterCNOTLeafOperator_eq (a b : Bool) :
     (observedLeaf 1 clusterCNOTProgram (clusterCNOTLeaf a b)).operator =
       clusterCZZcGate a * (clusterCZZbGate a * (clusterCZXbGate b *
@@ -261,6 +326,8 @@ theorem clusterCNOTLeafOperator_eq (a b : Bool) :
   rw [hc, clusterCNOTRawLeafOperator_eq]
   simp only [Matrix.mul_assoc, Matrix.one_mul]
 
+/-- A raw CNOT branch maps a target-control basis input to the measured outcome pair and the
+byproduct-shifted output, with the stated sign and amplitude one half. -/
 theorem clusterCNOTRawLeafColumn (a b t c : Bool) :
     ApplyGate (observedLeaf 1 clusterCNOTRawProgram (clusterCNOTRawLeaf a b)).operator
       (relabelState clusterCZRegisterEquiv (Qatlib.Foundations.PureStateMath.Ket ((t,false),(false,c)))) =
@@ -311,12 +378,16 @@ theorem clusterCNOTRawLeafColumn (a b t c : Bool) :
     cases a' <;> cases b' <;> cases x <;> cases y <;> simp
         [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- A logical CNOT matrix entry is one exactly for the basis map `(t, c) ↦ (t XOR c, c)` and
+zero otherwise. -/
 theorem clusterCNOTMat_tele_entry (x y t c : Bool) :
     clusterCNOTMat (teleportOutcomeEquiv (x,y)) (teleportOutcomeEquiv (t,c)) =
       if (x,y) = (t ^^ c,c) then (1 : ℂ) else 0 := by
   cases x <;> cases y <;> cases t <;> cases c <;>
     simp [clusterCNOTMat, relabelGate, clusterCNOTb, permMatrix, clusterCNOTFlip]
 
+/-- A corrected CNOT branch is supported on its measured outcome pair and has logical matrix
+entries equal to one half of the CNOT entries. -/
 theorem clusterCNOTLeafColumn (a b t c : Bool) :
     ApplyGate (observedLeaf 1 clusterCNOTProgram (clusterCNOTLeaf a b)).operator
       (relabelState clusterCZRegisterEquiv (Qatlib.Foundations.PureStateMath.Ket ((t,false),(false,c)))) =
@@ -342,6 +413,9 @@ theorem clusterCNOTLeafColumn (a b t c : Bool) :
     cases a' <;> cases b' <;> cases x <;> cases y <;> simp
         [Qatlib.Foundations.PureStateMath.Ket] <;> norm_num
 
+/-- The raw leaf composed with the input frame has one supported output basis index per input,
+with the outcome-dependent target shift and phase displayed explicitly. See
+[RaussendorfBriegel2000]. -/
 theorem cluster_cnot_raw_leaf_display_frame :
   ∀ (a b : Bool) (i : Fin 4) (r : Fin 16),
     ((observedLeaf 1 clusterCNOTRawProgram (clusterCNOTRawLeaf a b)).operator
@@ -367,6 +441,9 @@ theorem cluster_cnot_raw_leaf_display_frame :
     cases a' <;> cases b' <;> cases x <;> cases y <;> simp
         [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The corrected leaf composed with the input frame maps each logical basis input to the
+intended CNOT output with amplitude one half and its fixed measurement outcomes. See
+[RaussendorfBriegel2000]. -/
 theorem cluster_cnot_actual_leaf_frame :
   ∀ (a b : Bool) (i : Fin 4) (r : Fin 16),
     ((observedLeaf 1 clusterCNOTProgram (clusterCNOTLeaf a b)).operator
@@ -392,6 +469,8 @@ theorem cluster_cnot_actual_leaf_frame :
   cases a <;> cases b <;> cases t <;> cases c <;>
     cases a' <;> cases b' <;> cases x <;> cases y <;> simp
 
+/-- Embedding a logical matrix unit by the CNOT input frame gives the outer product of the
+corresponding frame columns. -/
 theorem clusterCNOTFrame_matUnit (i j : Fin 4) :
     clusterCNOTInitialFrame * clusterCZMatUnit i j * clusterCNOTInitialFrame.conjTranspose
       = matOuter (fun r => clusterCNOTInitialFrame r i)
@@ -420,6 +499,8 @@ theorem clusterCNOTFrame_matUnit (i j : Fin 4) :
   · intro k hk
     rw [if_neg hk, zero_mul]
 
+/-- On each logical matrix unit, a corrected physical CNOT branch equals one quarter of CNOT
+conjugation. -/
 theorem clusterCNOTActualBranchCore_matUnit (a d : Bool) (i j : Fin 4) :
     clusterCNOTActualBranchCore a d (clusterCZMatUnit i j)
       = (1 / 4 : ℂ) • (clusterCNOTMat * clusterCZMatUnit i j * clusterCNOTMat.conjTranspose) := by
@@ -467,6 +548,8 @@ theorem clusterCNOTActualBranchCore_matUnit (a d : Bool) (i j : Fin 4) :
     relabelGate_matOuter, htr, hcol (x, y), hcol (x', y'), hsymm _, relabelGate_matOuter,
     matOuter_smul_smul, hεreal, hεsq, ← clusterCZ_mul_matUnit_conj]
 
+/-- Each corrected physical CNOT branch map equals one quarter of conjugation by
+`clusterCNOTMat`. -/
 theorem clusterCNOTActualBranchMap_apply (a d : Bool) (ρ : Operator 4) :
     clusterCNOTActualBranchMap a d ρ = (1 / 4 : ℂ) • conjBranch clusterCNOTMat ρ := by
   have hsmul : ∀ p : Fin 4 × Fin 4,
@@ -493,6 +576,9 @@ theorem clusterCNOTActualBranchMap_apply (a d : Bool) (ρ : Operator 4) :
   refine Finset.sum_congr rfl fun p _ => ?_
   rw [conjBranch_apply, Matrix.mul_smul, Matrix.smul_mul, smul_smul]
 
+/-- Each corrected CNOT branch is one quarter of CNOT conjugation on both logical inputs and
+arbitrary reference extensions, and summing the extended branches gives the CNOT channel.
+See [RaussendorfBriegel2000]. -/
 theorem cluster_cnot_actual_branch_and_reference_channel :
   ∀ a b : Bool, ∀ ρ : Operator 4,
     clusterCNOTActualBranchMap a b ρ = (1 / 4 : ℂ) • conjBranch clusterCNOTMat ρ ∧
@@ -517,6 +603,9 @@ theorem cluster_cnot_actual_branch_and_reference_channel :
   · rw [Finset.sum_congr rfl fun o _ => by rw [hgen o.1 o.2, tensorLeft_conjBranch],
       sum_univ_boolPair_smul, show ((4 : ℂ) * (1 / 4)) = 1 from by norm_num, one_smul]
 
+/-- The raw and corrected CNOT programs each have four accepting, query-free branches with two
+measurements and injective two-bit messages, using seven and ten gates respectively. See
+[RaussendorfBriegel2000]. -/
 theorem cluster_cnot_actual_program_and_feedback_cost :
   observedLeafCount clusterCNOTRawProgram = 4 ∧ observedLeafCount clusterCNOTProgram = 4 ∧
     Function.Bijective (fun o : Bool × Bool => clusterCNOTLeaf o.1 o.2) ∧

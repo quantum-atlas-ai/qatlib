@@ -6,6 +6,39 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
 import QuantumInfo.ForMathlib.HermitianMat.CFC
+
+/-!
+# Regularized trace inequalities and approximate Gibbs regret
+
+This module develops Golden-Thompson inequalities for logarithmic inputs and positive
+regularizations. `psdRegularizedGT_monotoneOn` and `psd_regularized_gt_tendsto_trueInf` describe
+the positive-regularization limit, while `psd_inf_commuting_trueInf` identifies that limit for
+commuting positive semidefinite matrices. `psdGTInfimum_eq_trueInf_inf_sInf_empty` records the
+correction needed for the separately defined bounded-index infimum.
+
+The dyadic products `dyadicProduct` converge to the exponential of a sum and yield the equality
+criterion `gt_gap_zero_iff_commute`, using standard matrix-analysis ideas [Bhatia1997]. The
+additional theorem `clause22` transfers multiplicative-weights regret bounds to approximate
+Gibbs states and recorded observations, as needed in quantum SDP algorithms [BrandaoSvore2017].
+
+## Main statements
+
+* `regularized_gt_le` bounds the regularized logarithmic trace exponential by the regularized
+  product trace.
+* `psd_regularized_gt_tendsto_trueInf` and `psd_inf_commuting_trueInf` describe the true infimum
+  over positive regularizations.
+- `dyadicProduct_tendsto_exp` proves convergence of the dyadic Lie products.
+- `gt_gap_zero_iff_commute` characterizes equality in the Hermitian Golden-Thompson inequality.
+* `clause22` bounds regret for approximate Gibbs losses, recorded losses, and expected
+  observations.
+
+## References
+
+- [Bhatia, 1997][Bhatia1997]. Matrix Analysis.
+* [Brandao and Svore, 2017][BrandaoSvore2017]. Quantum Speed-Ups for Solving Semidefinite
+  Programs.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +54,8 @@ open Qatlib.Concepts.MatrixWeights.WeightsCore
 
 namespace Qatlib.Concepts.MatrixWeights.ApproxGibbs
 
+/-- Exponentiating the Hermitian logarithm of a positive definite matrix recovers its underlying
+matrix. -/
 theorem exp_log_mat {n : ℕ} (A : HermitianMat (Fin n) ℂ) (h : A.mat.PosDef) :
     (HermitianMat.exp (HermitianMat.log A)).mat = A.mat := by
   have hcomp : (HermitianMat.exp (HermitianMat.log A)) = A.cfc (Real.exp ∘ Real.log) := by
@@ -34,6 +69,7 @@ theorem exp_log_mat {n : ℕ} (A : HermitianMat (Fin n) ℂ) (h : A.mat.PosDef) 
     exact Real.exp_log hpos
   rw [hcomp, hcongr, HermitianMat.cfc_id]
 
+/-- The Golden-Thompson gap `gtHermitianGap H K` is nonnegative for Hermitian inputs. -/
 theorem gt_gap_nonneg {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     0 ≤ gtHermitianGap H K := by
@@ -42,6 +78,8 @@ theorem gt_gap_nonneg {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
       Qatlib.Concepts.MatrixWeights.WeightsCore.matrix_mw_golden_thompson_trace_potential n H K hH hK
   linarith
 
+/-- For positive definite `A` and `B`, bounds the real trace of `exp (log A + log B)` by the
+real trace of `A * B`. -/
 theorem log_input_gt_le {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosDef) (hB : B.mat.PosDef) :
     logInputGT A B ≤ (Matrix.trace (A.mat * B.mat)).re := by
@@ -57,11 +95,14 @@ theorem log_input_gt_le {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
   rw [hbridgeA, hbridgeB, exp_log_mat A hA, exp_log_mat B hB] at hgt
   exact hgt
 
+/-- Expresses the underlying matrix of `A + ε • 1` as `A.mat + ε • 1`. -/
 theorem mat_regularized {n : ℕ} (A : HermitianMat (Fin n) ℂ) (ε : ℝ) :
     (A + (ε : ℝ) • (1 : HermitianMat (Fin n) ℂ)).mat
       = A.mat + ε • (1 : Matrix (Fin n) (Fin n) ℂ) := by
   simp [HermitianMat.mat_add, HermitianMat.mat_smul, HermitianMat.mat_one]
 
+/-- Adding a positive scalar multiple of the identity to a positive semidefinite Hermitian
+matrix produces a positive definite matrix. -/
 theorem posDef_regularized {n : ℕ} (A : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) {ε : ℝ} (hε : 0 < ε) :
     (A + (ε : ℝ) • (1 : HermitianMat (Fin n) ℂ)).mat.PosDef := by
@@ -69,6 +110,8 @@ theorem posDef_regularized {n : ℕ} (A : HermitianMat (Fin n) ℂ)
   refine Matrix.PosDef.posSemidef_add hA ?_
   exact Matrix.PosDef.smul (α := ℝ) Matrix.PosDef.one hε
 
+/-- For positive semidefinite inputs and positive `ε`, bounds the logarithmic Golden-Thompson
+expression after regularization by the trace of the product of the regularized matrices. -/
 theorem regularized_gt_le {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) {ε : ℝ} (hε : 0 < ε) :
     psdRegularizedGT A B ε ≤ psdRegularizedProductTrace A.mat B.mat ε := by
@@ -81,6 +124,8 @@ theorem regularized_gt_le {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
   rw [mat_regularized, mat_regularized] at h
   exact h
 
+/-- The real trace of a Hermitian matrix exponential is nonnegative, including in dimension
+zero. -/
 theorem gt_trace_exp_nonneg {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (hH : H.IsHermitian) :
     0 ≤ (Matrix.trace (NormedSpace.exp H)).re := by
   have h : 0 ≤ (HermitianMat.exp (⟨H, hH⟩ : HermitianMat (Fin n) ℂ)).trace :=
@@ -89,6 +134,7 @@ theorem gt_trace_exp_nonneg {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (hH : H.I
     HermitianMat.mat_mk] at h
   exact h
 
+/-- The real trace of a Hermitian matrix exponential is strictly positive in positive dimension. -/
 theorem gt_trace_exp_pos {n : ℕ} (hn : 0 < n) (H : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) :
     0 < (Matrix.trace (NormedSpace.exp H)).re := by
@@ -99,12 +145,15 @@ theorem gt_trace_exp_pos {n : ℕ} (hn : 0 < n) (H : Matrix (Fin n) (Fin n) ℂ)
     HermitianMat.mat_mk] at h
   exact h
 
+/-- The regularized logarithmic trace exponential `psdRegularizedGT A B ε` is nonnegative for
+every real regularization parameter. -/
 theorem regularized_gt_nonneg {n : ℕ} (A B : HermitianMat (Fin n) ℂ) (ε : ℝ) :
     0 ≤ psdRegularizedGT A B ε := by
   unfold psdRegularizedGT logInputGT spectralLog
   refine gt_trace_exp_nonneg _ ?_
   exact (HermitianMat.log _).H.add (HermitianMat.log _).H
 
+/-- The real trace of the exponential is monotone in the order on Hermitian matrices. -/
 theorem trace_exp_monotone {n : ℕ} {H K : HermitianMat (Fin n) ℂ} (h : H ≤ K) :
     (Matrix.trace (NormedSpace.exp H.mat)).re ≤
       (Matrix.trace (NormedSpace.exp K.mat)).re := by
@@ -147,6 +196,8 @@ theorem trace_exp_monotone {n : ℕ} {H K : HermitianMat (Fin n) ℂ} (h : H ≤
     linarith
   exact hgt.trans hkey
 
+/-- For positive definite lower inputs, increasing either Hermitian input in matrix order can
+only increase `logInputGT`. -/
 theorem logInputGT_mono {n : ℕ} {A A' B B' : HermitianMat (Fin n) ℂ}
     (hA : A.mat.PosDef) (hB : B.mat.PosDef) (hAA' : A ≤ A') (hBB' : B ≤ B') :
     logInputGT A B ≤ logInputGT A' B' := by
@@ -160,6 +211,8 @@ theorem logInputGT_mono {n : ℕ} {A A' B B' : HermitianMat (Fin n) ℂ}
   rw [h2, h3]
   exact trace_exp_monotone hsum
 
+/-- For positive semidefinite inputs, `psdRegularizedGT A B` is monotone on the positive
+regularization parameters. -/
 theorem psdRegularizedGT_monotoneOn {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) :
     MonotoneOn (psdRegularizedGT A B) (Set.Ioi (0:ℝ)) := by
@@ -190,6 +243,8 @@ theorem psdRegularizedGT_monotoneOn {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     posDef_regularized B hB hε1
   exact logInputGT_mono hposA hposB hmonoA hmonoB
 
+/-- Expands the regularized product trace as `re (trace (A * B)) + ε * re (trace (A + B)) + ε ^
+2 * n`. -/
 theorem psdRegularizedProductTrace_eq {n : ℕ} (A B : Matrix (Fin n) (Fin n) ℂ) (ε : ℝ) :
     psdRegularizedProductTrace A B ε =
       (Matrix.trace (A * B)).re + ε * (Matrix.trace (A + B)).re + ε ^ 2 * (n : ℝ) := by
@@ -210,6 +265,8 @@ theorem psdRegularizedProductTrace_eq {n : ℕ} (A B : Matrix (Fin n) (Fin n) �
     Complex.ofReal_im, Fintype.card_fin]
   simp
 
+/-- As `ε` tends to zero through positive values, the regularized product trace converges to the
+real trace of the unregularized product. -/
 theorem regularized_product_trace_tendsto {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
     Filter.Tendsto (fun ε : ℝ => psdRegularizedProductTrace A.mat B.mat ε)
       (nhdsWithin (0:ℝ) (Set.Ioi 0)) (nhds ((Matrix.trace (A.mat * B.mat)).re)) := by
@@ -232,6 +289,7 @@ theorem regularized_product_trace_tendsto {n : ℕ} (A B : HermitianMat (Fin n) 
   rw [heq]
   exact h
 
+/-- The bounded-index infimum `psdGTInfimum A B` is nonnegative. -/
 theorem psd_inf_nonneg {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
     0 ≤ psdGTInfimum A B := by
   unfold psdGTInfimum
@@ -244,6 +302,8 @@ theorem psd_inf_nonneg {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
   · rw [ciInf_pos (show ε ∈ Set.Ioi (0:ℝ) by simpa using! hε)]
     exact regularized_gt_nonneg A B ε
 
+/-- The quantity `psdGTInfimum A B` is bounded above by every positively regularized value
+`psdRegularizedGT A B ε`. -/
 theorem psdGTInfimum_le_regularized {n : ℕ} (A B : HermitianMat (Fin n) ℂ) {ε : ℝ}
     (hε : 0 < ε) : psdGTInfimum A B ≤ psdRegularizedGT A B ε := by
   unfold psdGTInfimum
@@ -262,6 +322,8 @@ theorem psdGTInfimum_le_regularized {n : ℕ} (A B : HermitianMat (Fin n) ℂ) {
   rw [ciInf_pos (show ε ∈ Set.Ioi (0:ℝ) by simpa using! hε)] at h
   exact h
 
+/-- For positive semidefinite `A` and `B`, bounds `psdGTInfimum A B` by the real trace of their
+product. -/
 theorem psd_inf_le_product {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) :
     psdGTInfimum A B ≤ (Matrix.trace (A.mat * B.mat)).re := by
@@ -277,6 +339,8 @@ theorem psd_inf_le_product {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     filter_upwards [self_mem_nhdsWithin] with ε hε using hle ε hε
   exact ge_of_tendsto hlim hev
 
+/-- Expresses `psdGTInfimum A B` as the minimum of the infimum indexed by positive `ε` and `sInf
+∅`, recording the empty-index contribution in the bounded-index definition. -/
 theorem psdGTInfimum_eq_trueInf_inf_sInf_empty {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
     psdGTInfimum A B
       = (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε) ⊓ sInf (∅ : Set ℝ) := by
@@ -288,11 +352,15 @@ theorem psdGTInfimum_eq_trueInf_inf_sInf_empty {n : ℕ} (A B : HermitianMat (Fi
   have h1 := H (-1)
   norm_num at h1
 
+/-- Identifies the infimum indexed by the subtype of positive regularization parameters with the
+set infimum of the corresponding image of `psdRegularizedGT`. -/
 theorem psd_trueInf_eq_sInf {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
     (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε)
       = sInf (psdRegularizedGT A B '' Set.Ioi (0:ℝ)) :=
   (sInf_image' (f := psdRegularizedGT A B) (s := Set.Ioi (0:ℝ))).symm
 
+/-- For positive semidefinite inputs, the regularized logarithmic trace exponential tends to its
+infimum over positive regularization parameters as `ε` decreases to zero. -/
 theorem psd_regularized_gt_tendsto_trueInf {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) :
     Filter.Tendsto (fun ε : ℝ => psdRegularizedGT A B ε)
@@ -308,6 +376,8 @@ theorem psd_regularized_gt_tendsto_trueInf {n : ℕ} (A B : HermitianMat (Fin n)
   rw [psd_trueInf_eq_sInf A B]
   exact h
 
+/-- Adding the same real scalar multiple of the identity to two commuting Hermitian matrices
+preserves commutativity. -/
 theorem commute_regularized {n : ℕ} {A B : HermitianMat (Fin n) ℂ}
     (h : Commute A.mat B.mat) (ε : ℝ) :
     Commute (A + (ε:ℝ) • (1 : HermitianMat (Fin n) ℂ)).mat
@@ -324,6 +394,8 @@ theorem commute_regularized {n : ℕ} {A B : HermitianMat (Fin n) ℂ}
   refine Commute.add_left (Commute.add_right h hcA) ?_
   exact Commute.add_right hcB.symm hcc
 
+/-- For positive semidefinite inputs and nonnegative `ε`, the regularized product trace is at
+least the real trace of the original product. -/
 theorem regularized_product_trace_ge {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) {ε : ℝ} (hε : 0 ≤ ε) :
     (Matrix.trace (A.mat * B.mat)).re ≤ psdRegularizedProductTrace A.mat B.mat ε := by
@@ -340,6 +412,8 @@ theorem regularized_product_trace_ge {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
   have hε2 : 0 ≤ ε ^ 2 * (n : ℝ) := by positivity
   linarith
 
+/-- For commuting positive semidefinite inputs and positive `ε`, the regularized logarithmic
+trace exponential equals the regularized product trace. -/
 theorem regularized_gt_eq_product_of_commute {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) {ε : ℝ} (hε : 0 < ε)
     (hcomm : Commute A.mat B.mat) :
@@ -363,6 +437,8 @@ theorem regularized_gt_eq_product_of_commute {n : ℕ} (A B : HermitianMat (Fin 
   rw [hAε, hBε, mat_regularized, mat_regularized] at hgt
   exact hgt
 
+/-- For commuting positive semidefinite `A` and `B`, the infimum of `psdRegularizedGT A B ε`
+over positive `ε` equals the real trace of `A.mat * B.mat`. -/
 theorem psd_inf_commuting_trueInf {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) (hcomm : Commute A.mat B.mat) :
     (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε)
@@ -391,10 +467,14 @@ theorem psd_inf_commuting_trueInf {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     ge_of_tendsto (regularized_product_trace_tendsto A B) hle
   exact le_antisymm h2 h1
 
+/-- The trace of a product of three square matrices is invariant under a cyclic permutation of
+the factors. -/
 theorem trace_cycle3 {n : ℕ} (A B C : Matrix (Fin n) (Fin n) ℂ) :
     Matrix.trace (A * B * C) = Matrix.trace (B * C * A) := by
   rw [mul_assoc, Matrix.trace_mul_comm]
 
+/-- Expresses `re (trace (X ^ 2 * Y ^ 2)) - re (trace ((X * Y) ^ 2))` as negative one half of
+the real trace of the squared commutator `X * Y - Y * X`. -/
 theorem gap0_half_commutator_identity {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ) :
     (Matrix.trace (X ^ 2 * Y ^ 2)).re - (Matrix.trace ((X * Y) ^ 2)).re
       = -(1 / 2 : ℝ) * (Matrix.trace ((X * Y - Y * X) ^ 2)).re := by
@@ -430,6 +510,8 @@ theorem gap0_half_commutator_identity {n : ℕ} (X Y : Matrix (Fin n) (Fin n) �
   rw [Complex.mul_re, hscal.1, hscal.2, zero_mul, sub_zero] at hr
   exact hr
 
+/-- For Hermitian `X` and `Y`, the real trace of `X ^ 2 * Y ^ 2` is at least that of `(X * Y) ^
+2`. -/
 theorem gap0_nonneg {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
     (hX : X.IsHermitian) (hY : Y.IsHermitian) :
     0 ≤ (Matrix.trace (X ^ 2 * Y ^ 2)).re - (Matrix.trace ((X * Y) ^ 2)).re := by
@@ -437,6 +519,7 @@ theorem gap0_nonneg {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
   simp only [pow_one] at h
   linarith
 
+/-- The commutator of two Hermitian matrices is skew Hermitian. -/
 theorem commutator_skew {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
     (hX : X.IsHermitian) (hY : Y.IsHermitian) :
     Matrix.conjTranspose (X * Y - Y * X) = -(X * Y - Y * X) := by
@@ -444,6 +527,8 @@ theorem commutator_skew {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
   rw [hX.eq, hY.eq]
   noncomm_ring
 
+/-- For Hermitian inputs, the trace of the squared commutator is the negative trace of the
+commutator's conjugate transpose times itself. -/
 theorem commutator_trace_sq {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
     (hX : X.IsHermitian) (hY : Y.IsHermitian) :
     Matrix.trace ((X * Y - Y * X) ^ 2)
@@ -453,6 +538,7 @@ theorem commutator_trace_sq {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
   rw [h1, hskew, neg_mul, Matrix.trace_neg]
   ring_nf
 
+/-- A matrix `C` is zero if the real trace of `C.conjTranspose * C` vanishes. -/
 theorem gram_trace_zero {n : ℕ} (C : Matrix (Fin n) (Fin n) ℂ)
     (h : (Matrix.trace (Matrix.conjTranspose C * C)).re = 0) : C = 0 := by
   have hpsd : (Matrix.conjTranspose C * C).PosSemidef :=
@@ -466,6 +552,8 @@ theorem gram_trace_zero {n : ℕ} (C : Matrix (Fin n) (Fin n) ℂ)
     exact hre.symm
   exact Matrix.conjTranspose_mul_self_eq_zero.1 (hpsd.trace_zero htrace)
 
+/-- For Hermitian `X` and `Y`, equality between the real traces of `X ^ 2 * Y ^ 2` and `(X * Y)
+^ 2` holds exactly when `X` and `Y` commute. -/
 theorem gap0_zero_iff_commute {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
     (hX : X.IsHermitian) (hY : Y.IsHermitian) :
     (Matrix.trace (X ^ 2 * Y ^ 2)).re = (Matrix.trace ((X * Y) ^ 2)).re ↔ Commute X Y := by
@@ -495,21 +583,26 @@ theorem gap0_zero_iff_commute {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
       exact e
     rw [hpow]
 
+/-- The dyadic Lie product `(exp (H / 2 ^ m) * exp (K / 2 ^ m)) ^ (2 ^ m)` at level `m`. -/
 noncomputable def dyadicProduct {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ) (m : ℕ) :
     Matrix (Fin n) (Fin n) ℂ :=
   (NormedSpace.exp (((2 ^ m : ℕ) : ℝ)⁻¹ • H) *
     NormedSpace.exp (((2 ^ m : ℕ) : ℝ)⁻¹ • K)) ^ (2 ^ m)
 
+/-- Raising `exp (s • H)` to a natural power `q` gives `exp (((q : ℝ) * s) • H)`. -/
 theorem exp_smul_pow {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (s : ℝ) (q : ℕ) :
     (NormedSpace.exp (s • H)) ^ q = NormedSpace.exp (((q : ℝ) * s) • H) := by
   have h := Qatlib.Concepts.LchsSimulation.LchsRep.imaginary_exp_power (-H) s q
   simp only [neg_smul, smul_neg, neg_neg] at h
   exact h
 
+/-- The exponential of a real scalar multiple of a Hermitian matrix is Hermitian. -/
 theorem exp_smul_hermitian {n : ℕ} {H : Matrix (Fin n) (Fin n) ℂ}
     (hH : H.IsHermitian) (s : ℝ) : (NormedSpace.exp (s • H)).IsHermitian := by
   exact (hH.smul (by simp [IsSelfAdjoint])).exp
 
+/-- For Hermitian `X` and `Y`, bounds the real trace of `(X * Y) ^ (2 ^ (k + 1))` by that of `(X
+^ 2 * Y ^ 2) ^ (2 ^ k)`. -/
 theorem dyadic_step_trace_le {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
     (hX : X.IsHermitian) (hY : Y.IsHermitian) (k : ℕ) :
     (Matrix.trace ((X * Y) ^ (2 ^ (k + 1)))).re ≤
@@ -530,6 +623,7 @@ theorem dyadic_step_trace_le {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℂ)
   rw [hn]
   exact (Complex.re_le_norm _).trans hth
 
+/-- Twice the real reciprocal of `2 ^ (m + 1)` equals the real reciprocal of `2 ^ m`. -/
 theorem two_mul_inv_pow_succ (m : ℕ) :
     (((2 : ℕ) : ℝ) * (((2 ^ (m + 1) : ℕ) : ℝ)⁻¹)) = (((2 ^ m : ℕ) : ℝ)⁻¹) := by
   have hp : (2:ℝ) ^ m ≠ 0 := pow_ne_zero m (by norm_num)
@@ -537,6 +631,8 @@ theorem two_mul_inv_pow_succ (m : ℕ) :
   rw [pow_succ]
   field_simp [hp]
 
+/-- For Hermitian inputs, the real trace of `dyadicProduct H K m` is nonincreasing as the dyadic
+level increases. -/
 theorem dyadic_trace_monotone {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) (m : ℕ) :
     (Matrix.trace (dyadicProduct H K (m + 1))).re ≤
@@ -559,10 +655,12 @@ theorem dyadic_trace_monotone {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
   rw [hpowH, hpowK] at hstep
   exact hstep
 
+/-- At level zero, the dyadic Lie product is `exp H * exp K`. -/
 theorem dyadicProduct_zero {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ) :
     dyadicProduct H K 0 = NormedSpace.exp H * NormedSpace.exp K := by
   simp [dyadicProduct]
 
+/-- For Hermitian `H` and `K`, their exponentials commute exactly when `H` and `K` commute. -/
 theorem exp_commute_iff {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     Commute (NormedSpace.exp H) (NormedSpace.exp K) ↔ Commute H K := by
@@ -586,6 +684,8 @@ theorem exp_commute_iff {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
   rw [lH, lK] at h1
   exact h1
 
+/-- Converts a trace-distance upper bound `ξ` into the trace-norm bound `traceNorm (ρ - σ) ≤ 2 *
+ξ`. -/
 theorem traceNorm_le_two_of_traceDistance {D : ℕ} (ρ σ : Operator D) {ξ : ℝ}
     (h : Qatlib.Concepts.MixedFidelity.FidelityMetric.traceDistance ρ σ ≤ ξ) :
     Matrix.traceNorm (ρ - σ) ≤ 2 * ξ := by
@@ -594,6 +694,10 @@ theorem traceNorm_le_two_of_traceDistance {D : ℕ} (ρ σ : Operator D) {ξ : �
   have h3 : Matrix.traceNorm (ρ - σ) ≤ ξ * 2 := (div_le_iff₀ h2).mp h'
   linarith
 
+/-- For Hermitian contraction losses and approximate Gibbs density matrices with trace-distance
+errors `ξ`, bounds comparator regret by `η * T + log D / η + ∑ 2 * ξ t`. It also bounds
+recorded losses and expected finite-space observations with an additional `∑ ζ t` error,
+providing approximation estimates for SDP algorithms [BrandaoSvore2017]. -/
 theorem clause22 :
     ∀ (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) (σ : Operator D)
       (approx : ℕ → Operator D) (z ξ ζ : ℕ → ℝ),
@@ -721,10 +825,13 @@ theorem clause22 :
 
 open Filter Topology
 
+/-- The real cast of every natural power of two is nonzero. -/
 lemma dyadic_cast_ne_zero (k : ℕ) : ((2 ^ k : ℕ) : ℝ) ≠ 0 := by
   have h : (0 : ℕ) < 2 ^ k := pow_pos (by norm_num) k
   exact_mod_cast (ne_of_gt h)
 
+/-- Factors the exponential of the negatively scaled shift `‖H‖ • 1 - H` into the scalar `exp
+(-‖H‖ / 2 ^ k)` times `exp (H / 2 ^ k)`. -/
 lemma dyadic_exp_shift_left {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (k : ℕ) :
     NormedSpace.exp (-(1 / ((2 ^ k : ℕ) : ℝ)) • (‖H‖ • (1 : Operator n) - H))
       = Real.exp (-(‖H‖ * ((2 ^ k : ℕ) : ℝ)⁻¹)) •
@@ -737,6 +844,7 @@ lemma dyadic_exp_shift_left {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (k : ℕ)
   exact Qatlib.Concepts.MatrixWeights.WeightsCore.mmw_exp_scalar_shift n (((2 ^ k : ℕ) : ℝ)⁻¹ • H)
     (-(‖H‖ * ((2 ^ k : ℕ) : ℝ)⁻¹))
 
+/-- Raising `exp (-a / 2 ^ k) * exp (-b / 2 ^ k)` to the power `2 ^ k` gives `exp (-(a + b))`. -/
 lemma dyadic_scalar_pow (a b : ℝ) (k : ℕ) :
     (Real.exp (-(a * ((2 ^ k : ℕ) : ℝ)⁻¹)) * Real.exp (-(b * ((2 ^ k : ℕ) : ℝ)⁻¹))) ^ (2 ^ k)
       = Real.exp (-(a + b)) := by
@@ -752,6 +860,8 @@ lemma dyadic_scalar_pow (a b : ℝ) (k : ℕ) :
     rw [← mul_assoc, mul_comm ((2 ^ k : ℕ) : ℝ) b, mul_assoc, mul_inv_cancel₀ hne, mul_one]
   rw [mul_add, mul_neg, mul_neg, ha, hb, neg_add]
 
+/-- For Hermitian inputs, the dyadic Lie products converge to `exp (H + K)` as the dyadic level
+tends to infinity. -/
 theorem dyadicProduct_tendsto_exp {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     Filter.Tendsto (fun m : ℕ => dyadicProduct H K m) Filter.atTop
@@ -800,6 +910,7 @@ theorem dyadicProduct_tendsto_exp {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
       exact h3
     exact h2
 
+/-- Matrix convergence along a sequence implies convergence of the real parts of its traces. -/
 theorem tendsto_trace_re {n : ℕ} {f : ℕ → Matrix (Fin n) (Fin n) ℂ}
     {L : Matrix (Fin n) (Fin n) ℂ} (hf : Tendsto f atTop (𝓝 L)) :
     Tendsto (fun m => (Matrix.trace (f m)).re) atTop (𝓝 ((Matrix.trace L).re)) := by
@@ -809,6 +920,8 @@ theorem tendsto_trace_re {n : ℕ} {f : ℕ → Matrix (Fin n) (Fin n) ℂ}
     (T.continuous.tendsto L).comp hf
   exact hcomp
 
+/-- For Hermitian inputs, every dyadic level at least one has real trace bounded above by the
+real trace at level one. -/
 theorem dyadic_trace_le_one {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     ∀ m : ℕ, 1 ≤ m → (Matrix.trace (dyadicProduct H K m)).re ≤
@@ -823,6 +936,8 @@ theorem dyadic_trace_le_one {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     · refine le_trans (dyadic_trace_monotone H K hH hK (m + 1)) ?_
       exact ih (by omega)
 
+/-- For Hermitian `H` and `K`, the real trace of `exp (H + K)` is bounded above by the real
+trace of the level-one dyadic Lie product. -/
 theorem trace_dyadicProduct_ge_exp {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     (Matrix.trace (NormedSpace.exp (H + K))).re ≤ (Matrix.trace (dyadicProduct H K 1)).re := by
@@ -834,6 +949,7 @@ theorem trace_dyadicProduct_ge_exp {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     exact dyadic_trace_le_one H K hH hK m hm
   exact le_of_tendsto htr hbound
 
+/-- Scaling both matrices by the same nonzero real scalar preserves and reflects commutativity. -/
 theorem commute_smul_right_iff {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ) {c : ℝ}
     (hc : c ≠ 0) : Commute (c • H) (c • K) ↔ Commute H K := by
   constructor
@@ -850,6 +966,8 @@ theorem commute_smul_right_iff {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ) {c :
     rw [← smul_mul_smul, ← smul_mul_smul] at h1
     exact h1
 
+/-- For Hermitian inputs, the Golden-Thompson gap vanishes exactly when the two matrices
+commute. -/
 theorem gt_gap_zero_iff_commute {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     gtHermitianGap H K = 0 ↔ Commute H K := by

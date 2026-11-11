@@ -65,6 +65,26 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 
+/-!
+# Finite conditioning and total-variation bounds
+
+This module defines finite probability laws, ℓ¹ distance, total-variation distance, and the
+conditional law `tailed` on a flagged set. It proves the conditioning stability estimate and the
+exponentially small conditional error used in Theorem 4 of [PaparoEtAl2014], with positive
+flagged masses stated explicitly.
+
+## Main statements
+
+* `tailed_isProbability`: conditioning nonnegative weights gives a probability law.
+* `tailed_tv_bound`: conditioning amplifies total-variation error by at most twice the
+  reciprocal flagged mass.
+* `theorem4_classical_reflecting`: the conditional bound for exponentially accurate mixing.
+
+## References
+
+* [Paparo et al., 2014][PaparoEtAl2014]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -75,33 +95,43 @@ open scoped BigOperators
 
 variable {X : Type*} [Fintype X]
 
+/-- A finite real-valued function is a probability law when it is nonnegative at every point and
+sums to one. -/
 def IsProbability (μ : X → ℝ) : Prop := (∀ x, 0 ≤ μ x) ∧ ∑ x, μ x = 1
 
+/-- The sum of pointwise absolute differences between two functions on a finite type. -/
 def l1Dist (μ ν : X → ℝ) : ℝ := ∑ x, |μ x - ν x|
 
+/-- Half the sum of pointwise absolute differences between two finite real-valued functions. -/
 def tvDist (μ ν : X → ℝ) : ℝ := (1 / 2) * ∑ x, |μ x - ν x|
 
+/-- The finite ℓ¹ distance is nonnegative. -/
 lemma l1Dist_nonneg (μ ν : X → ℝ) : 0 ≤ l1Dist μ ν :=
   Finset.sum_nonneg fun _ _ => abs_nonneg _
 
+/-- The finite total-variation distance is nonnegative. -/
 lemma tvDist_nonneg (μ ν : X → ℝ) : 0 ≤ tvDist μ ν := by
   unfold tvDist
   positivity
 
+/-- Total-variation distance is one half of the ℓ¹ distance. -/
 lemma tvDist_eq_half_l1 (μ ν : X → ℝ) : tvDist μ ν = l1Dist μ ν / 2 := by
   unfold tvDist l1Dist
   ring
 
+/-- The ℓ¹ distance is twice the total-variation distance. -/
 lemma l1Dist_eq_two_mul_tvDist (μ ν : X → ℝ) : l1Dist μ ν = 2 * tvDist μ ν := by
   rw [tvDist_eq_half_l1]
   ring
 
+/-- The ℓ¹ distance is symmetric. -/
 lemma l1Dist_comm (μ ν : X → ℝ) : l1Dist μ ν = l1Dist ν μ := by
   unfold l1Dist
   congr 1
   funext x
   rw [abs_sub_comm]
 
+/-- The finite ℓ¹ distance satisfies the triangle inequality. -/
 lemma l1Dist_triangle (μ ν ρ : X → ℝ) :
     l1Dist μ ρ ≤ l1Dist μ ν + l1Dist ν ρ := by
   unfold l1Dist
@@ -114,6 +144,7 @@ lemma l1Dist_triangle (μ ν ρ : X → ℝ) :
         rwa [heq] at h
     _ = ∑ x, |μ x - ν x| + ∑ x, |ν x - ρ x| := Finset.sum_add_distrib
 
+/-- The finite total-variation distance satisfies the triangle inequality [PaparoEtAl2014]. -/
 lemma tvDist_triangle (μ ν ρ : X → ℝ) :
     tvDist μ ρ ≤ tvDist μ ν + tvDist ν ρ := by
   unfold tvDist
@@ -121,6 +152,7 @@ lemma tvDist_triangle (μ ν ρ : X → ℝ) :
   unfold l1Dist at h
   linarith
 
+/-- The total-variation distance between two finite probability laws is at most one. -/
 lemma tvDist_le_one {μ ν : X → ℝ} (hμ : IsProbability μ) (hν : IsProbability ν) :
     tvDist μ ν ≤ 1 := by
   have hterm : ∀ x, |μ x - ν x| ≤ μ x + ν x := by
@@ -137,6 +169,8 @@ lemma tvDist_le_one {μ ν : X → ℝ} (hμ : IsProbability μ) (hν : IsProbab
   rw [hsplit] at hsum
   linarith
 
+/-- The distance of a convex mixture from a fixed function is at most the corresponding convex
+combination of distances [PaparoEtAl2014]. -/
 lemma tvDist_convex_mix {κ ν σ πtilde : X → ℝ} {p : ℝ}
     (hmix : ∀ x, κ x = p * ν x + (1 - p) * σ x)
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
@@ -165,11 +199,15 @@ lemma tvDist_convex_mix {κ ν σ πtilde : X → ℝ} {p : ℝ}
 
 variable [DecidableEq X]
 
+/-- The total weight of a finite flagged set. -/
 def flaggedMass (π : X → ℝ) (S : Finset X) : ℝ := ∑ x ∈ S, π x
 
+/-- The function obtained by restricting weights to `S` and dividing by their total flagged
+mass. -/
 def tailed (π : X → ℝ) (S : Finset X) : X → ℝ :=
   fun x => if x ∈ S then π x / flaggedMass π S else 0
 
+/-- The restricted and normalized weights sum to one whenever their flagged mass is nonzero. -/
 lemma sum_tailed (π : X → ℝ) (S : Finset X) (hε : flaggedMass π S ≠ 0) :
     ∑ x, tailed π S x = 1 := by
   have h : ∀ x, tailed π S x = if x ∈ S then π x / flaggedMass π S else 0 := fun x => rfl
@@ -181,6 +219,7 @@ lemma sum_tailed (π : X → ℝ) (S : Finset X) (hε : flaggedMass π S ≠ 0) 
 
 omit [Fintype X] in
 
+/-- Conditioning nonnegative weights on a set of positive mass gives nonnegative values. -/
 lemma tailed_nonneg {π : X → ℝ} (hπ : ∀ x, 0 ≤ π x) {S : Finset X}
     (hε : 0 < flaggedMass π S) (x : X) : 0 ≤ tailed π S x := by
   unfold tailed
@@ -188,10 +227,14 @@ lemma tailed_nonneg {π : X → ℝ} (hπ : ∀ x, 0 ≤ π x) {S : Finset X}
   · exact div_nonneg (hπ x) hε.le
   · exact le_rfl
 
+/-- Nonnegative weights conditioned on a set of positive mass form a finite probability law
+[PaparoEtAl2014]. -/
 lemma tailed_isProbability {π : X → ℝ} (hπ : ∀ x, 0 ≤ π x) {S : Finset X}
     (hε : 0 < flaggedMass π S) : IsProbability (tailed π S) :=
   ⟨tailed_nonneg hπ hε, sum_tailed π S (ne_of_gt hε)⟩
 
+/-- The difference of two normalized terms is bounded by the sum of a denominator-perturbation
+term and a numerator-perturbation term, for positive denominators and nonnegative `a'`. -/
 lemma tail_term_bound {a a' e e' : ℝ} (ha' : 0 ≤ a') (he : 0 < e) (he' : 0 < e') :
     |a' / e' - a / e| ≤ a' * |e - e'| / (e * e') + |a' - a| / e := by
   have hden : 0 < e * e' := mul_pos he he'
@@ -211,11 +254,15 @@ lemma tail_term_bound {a a' e e' : ℝ} (ha' : 0 ≤ a') (he : 0 < e) (he' : 0 <
     _ = a' * |e - e'| / (e * e') + |a' - a| / e := by
         field_simp
 
+/-- The absolute difference of two sums over a finite set is at most the sum of their pointwise
+absolute differences. -/
 lemma abs_sum_sub_le_sum_abs {ι : Type*} (s : Finset ι) (f g : ι → ℝ) :
     |∑ x ∈ s, f x - ∑ x ∈ s, g x| ≤ ∑ x ∈ s, |f x - g x| := by
   rw [← Finset.sum_sub_distrib]
   exact Finset.abs_sum_le_sum_abs _ _
 
+/-- For positive flagged masses and nonnegative `π'`, the ℓ¹ distance between the conditional
+laws is at most twice the restricted ℓ¹ error divided by the flagged mass of `π`. -/
 lemma tail_l1_bound (π π' : X → ℝ) (S : Finset X)
     (hπ' : ∀ x, 0 ≤ π' x)
     (hε : 0 < flaggedMass π S) (hε' : 0 < flaggedMass π' S) :
@@ -279,6 +326,8 @@ lemma tail_l1_bound (π π' : X → ℝ) (S : Finset X)
           field_simp
           ring
 
+/-- For nonnegative weights with positive flagged masses, conditioning on `S` increases
+total-variation error by at most a factor of `2 / flaggedMass π S` [PaparoEtAl2014]. -/
 theorem tailed_tv_bound (π π' : X → ℝ) (S : Finset X)
     (_hπ : ∀ x, 0 ≤ π x) (hπ' : ∀ x, 0 ≤ π' x)
     (hε : 0 < flaggedMass π S) (hε' : 0 < flaggedMass π' S) :
@@ -302,6 +351,9 @@ theorem tailed_tv_bound (π π' : X → ℝ) (S : Finset X)
         rw [l1Dist_eq_two_mul_tvDist]
     _ = 2 * tvDist π' π / flaggedMass π S := by ring
 
+/-- An unconditional total-variation error at most `exp (-k₁)` gives conditional error at most
+`2 * exp (-k₁) / flaggedMass π_s S` when both flagged masses are positive [Paparo et al.,
+Theorem 4][PaparoEtAl2014]. -/
 theorem theorem4_classical_reflecting
     (π_s π₀ : X → ℝ) (S : Finset X) (k₁ : ℕ)
     (hπs : IsProbability π_s) (hπ0 : IsProbability π₀)

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartAttemptLawStat
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartSearchWordTigh
+
+/-!
+# Distribution of one verified restart attempt
+
+Proves `actualRestartAttemptLaw` by reducing verification to a deterministic membership test and
+extracting the address marginal of the search circuit. `bbhtActualRestartNextPrice_eq_map`
+expresses the full paid transition as a pushforward of the circuit samples. For the
+quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `bbhtActualRestartNextPrice_eq_map`: Expresses a paid restart transition as the search-sample
+  distribution mapped to a marked address or a retry state, paired with the fixed price.
+* `bbhtBitSearchSamples_marginal`: For a unitary preparation of the uniform state on a nonempty
+  finite space, the address marginal of the bit-search samples equals the Born probability of
+  the Grover state.
+* `actualRestartAttemptLaw`: Establishes the one-attempt law `ActualRestartAttemptLaw` for the
+  verified Grover restart transition.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -24,11 +48,14 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The verification distribution is the point mass at the Boolean membership test for `i ∈ A`. -/
 theorem bbhtVerificationLaw_eq_pure (A : Finset I) (i : I) :
     bbhtVerificationLaw A i = PMF.pure (decide (i ∈ A)) := by
   simp only [bbhtVerificationLaw, run_query_bitOracleOn_ket, Bool.false_xor,
     bornDistribution_ket, PMF.pure_map]
 
+/-- Expresses a paid restart transition as the search-sample distribution mapped to a marked
+address or a retry state, paired with the fixed price. -/
 theorem bbhtActualRestartNextPrice_eq_map (T' : Matrix I I ℂ) (v : QState I) (j : ℕ)
     (A : Finset I) (hC : IsUnitaryCircuit (bbhtBitSearchCircuit T' v j))
     (hv : Normalized v) (price : ℕ) :
@@ -39,6 +66,8 @@ theorem bbhtActualRestartNextPrice_eq_map (T' : Matrix I I ℂ) (v : QState I) (
     decide_eq_true_eq]
   rfl
 
+/-- For a unitary preparation of the uniform state on a nonempty finite space, the address
+marginal of the bit-search samples equals the Born probability of the Grover state. -/
 theorem bbhtBitSearchSamples_marginal (hN : 0 < Fintype.card I)
     (T' : Matrix I I ℂ) (v : QState I) (hT : T' ∈ Matrix.unitaryGroup I ℂ)
     (hv : Normalized v) (hprep : T' *ᵥ v = Uniform I) (A : Finset I) (j : ℕ)
@@ -59,6 +88,8 @@ theorem bbhtBitSearchSamples_marginal (hN : 0 < Fintype.card I)
     simpa only [MeasureProb, ENNReal.ofReal_one] using congrArg ENNReal.ofReal h
   rw [hm, mul_one]
 
+/-- Establishes the one-attempt law `ActualRestartAttemptLaw` for the verified Grover restart
+transition. See [BoyerEtAl1998]. -/
 theorem actualRestartAttemptLaw : ActualRestartAttemptLaw := by
   intro I _ _ hN T' v hT hv hprep A j hC price
   (try dsimp only)

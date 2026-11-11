@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.BlockEncoding.Basic
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 import Mathlib.Analysis.Normed.Module.Normalize
+
+/-!
+# Postselection and error bounds for block encodings
+
+`postselectionVector`, `postselectionProbability`, and `postselectionOutput` describe the
+compressed output, its projective branch mass, and its conditional normalized state. The module
+relates these constructions to Euclidean norms and proves probability and normalized output
+error bounds for approximate block encodings.
+
+The mathematical background is described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `postselectionProbability_eq_norm_sq`: branch mass equals the compressed squared norm.
+* `BlockEncoding.postselection_probability_error`: absolute error in the scaled success
+  probability.
+* `BlockEncoding.postselection_output_of_gap`: positive success and output accuracy under a norm
+  gap.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
@@ -23,6 +47,8 @@ open Matrix
 section Perturbation
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 
+/-- If `y` is within `η` of `x` and `η < ‖x‖`, then `y` is nonzero and the normalized vectors
+differ by at most `2 * η / ‖x‖`. -/
 theorem normalize_error_of_gap {x y : E} {η : ℝ}
     (hclose : ‖y - x‖ ≤ η) (hgap : η < ‖x‖) :
     y ≠ 0 ∧
@@ -60,6 +86,7 @@ theorem normalize_error_of_gap {x y : E} {η : ℝ}
 
 omit [NormedSpace ℝ E] in
 
+/-- A norm error at most `η` bounds the difference of squared norms by `η * (2 * ‖x‖ + η)`. -/
 theorem norm_sq_error {x y : E} {η : ℝ} (hclose : ‖y - x‖ ≤ η) :
     |‖y‖ ^ 2 - ‖x‖ ^ 2| ≤ η * (2 * ‖x‖ + η) := by
   have hη : 0 ≤ η := (norm_nonneg _).trans hclose
@@ -76,6 +103,7 @@ theorem norm_sq_error {x y : E} {η : ℝ} (hclose : ‖y - x‖ ≤ η) :
     _ ≤ η * (2 * ‖x‖ + η) := mul_le_mul_of_nonneg_left (by linarith) hη
 end Perturbation
 
+/-- A state amplitude function viewed as a vector in complex Euclidean space. -/
 noncomputable abbrev stateVector {I : Type*} (ψ : QState I) : EuclideanSpace ℂ I :=
   WithLp.toLp 2 ψ
 
@@ -84,11 +112,13 @@ variable {I : Type*} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- The squared Euclidean norm of a state vector equals its total measurement mass. -/
 theorem stateVector_norm_sq (ψ : QState I) :
     ‖stateVector ψ‖ ^ 2 = MeasureProb ψ Finset.univ := by
   simpa [MeasureProb, BornProb, stateVector] using
     (EuclideanSpace.norm_sq_eq (WithLp.toLp 2 ψ : EuclideanSpace ℂ I))
 
+/-- A state is normalized exactly when its Euclidean state vector has norm one. -/
 theorem normalized_iff_stateVector_norm (ψ : QState I) :
     Normalized ψ ↔ ‖stateVector ψ‖ = 1 := by
   constructor
@@ -104,6 +134,7 @@ theorem normalized_iff_stateVector_norm (ψ : QState I) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The Euclidean state vector is zero exactly when the amplitude function is zero. -/
 theorem stateVector_eq_zero_iff (ψ : QState I) : stateVector ψ = 0 ↔ ψ = 0 := by
   constructor
   · intro h
@@ -112,6 +143,8 @@ theorem stateVector_eq_zero_iff (ψ : QState I) : stateVector ψ = 0 ↔ ψ = 0 
     subst ψ
     rfl
 
+/-- Postmeasurement on the full outcome set scales the state by the inverse of its Euclidean
+norm. -/
 theorem postMeasure_univ_eq_smul (ψ : QState I) :
     PostMeasure ψ Finset.univ = ‖stateVector ψ‖⁻¹ • ψ := by
   have hs : Real.sqrt (MeasureProb ψ Finset.univ) = ‖stateVector ψ‖ := by
@@ -120,11 +153,13 @@ theorem postMeasure_univ_eq_smul (ψ : QState I) :
   funext i
   simp [PostMeasure, collapse_apply, hs, Complex.real_smul]
 
+/-- Postmeasurement on the full outcome set corresponds to Euclidean normalization. -/
 theorem stateVector_postMeasure_univ (ψ : QState I) :
     stateVector (PostMeasure ψ Finset.univ) = NormedSpace.normalize (stateVector ψ) := by
   rw [postMeasure_univ_eq_smul]
   rfl
 
+/-- A nonzero state has conditional state equal to its full-set postmeasurement normalization. -/
 theorem conditionalState_eq_some_of_ne_zero {ψ : QState I} (hψ : ψ ≠ 0) :
     ConditionalState ψ = some (PostMeasure ψ Finset.univ) := by
   have hn : 0 < ‖stateVector ψ‖ := norm_pos_iff.mpr fun h => hψ ((stateVector_eq_zero_iff ψ).mp h)
@@ -133,6 +168,7 @@ theorem conditionalState_eq_some_of_ne_zero {ψ : QState I} (hψ : ψ ≠ 0) :
     positivity
   simp [ConditionalState, hp]
 
+/-- The conditional state is absent exactly when the amplitude vector is zero. -/
 theorem conditionalState_eq_none_iff (ψ : QState I) : ConditionalState ψ = none ↔ ψ = 0 := by
   constructor
   · intro h
@@ -146,11 +182,16 @@ end States
 
 open scoped Matrix.Norms.L2Operator
 
+/-- The Euclidean norm of a matrix output is bounded by the matrix operator norm times the input
+norm. -/
 theorem stateVector_mulVec_norm_le {I O : Type*} [Fintype I] [Fintype O]
     [DecidableEq I] (A : Matrix O I ℂ) (ψ : QState I) :
     ‖stateVector (A *ᵥ ψ)‖ ≤ ‖A‖ * ‖stateVector ψ‖ :=
   Matrix.l2_opNorm_mulVec A (stateVector ψ)
 
+/-- For a unit input, a contraction within `η` of `B` has output squared norm at least `(‖Bψ‖ -
+η)²`, normalized output error at most `2 * η / ‖Bψ‖`, and output norm at most one, provided
+`η < ‖Bψ‖`. -/
 theorem contractive_mulVec_output_of_gap {I : Type*} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (ψ : QState I) (η : ℝ)
     (hA : ‖A‖ ≤ 1) (herr : ‖A - B‖ ≤ η) (hψ : ‖stateVector ψ‖ = 1)
@@ -172,6 +213,8 @@ theorem contractive_mulVec_output_of_gap {I : Type*} [Fintype I] [DecidableEq I]
     (normalize_error_of_gap hclose hgap).2, ?_⟩
   exact (stateVector_mulVec_norm_le A ψ).trans (by rw [hψ, mul_one]; exact hA)
 
+/-- The condition that `Aψ` is nonzero and the normalized state `φ` lies within `η` of its
+Euclidean normalization. -/
 def IsNormalizedApplication {I O : Type*} [Fintype I] [Fintype O]
     (A : Matrix O I ℂ) (ψ : QState I) (φ : QState O) (η : ℝ) : Prop :=
   A *ᵥ ψ ≠ 0 ∧ Normalized φ ∧
@@ -187,6 +230,7 @@ open scoped Matrix.Norms.L2Operator
 section Frame
 variable {H I : Type*} [Fintype H] [Fintype I] [DecidableEq I]
 
+/-- An isometric matrix preserves the inner product of state amplitude vectors. -/
 theorem IsIsometry.inner_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
     (ψ φ : QState I) : Qatlib.Foundations.PureStateMath.Inner (V *ᵥ ψ) (V *ᵥ φ) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   have h : Vᴴ * V = 1 := hV
@@ -196,23 +240,27 @@ theorem IsIsometry.inner_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
 
 variable [DecidableEq H]
 
+/-- An isometric matrix preserves total measurement mass. -/
 theorem IsIsometry.measureProb_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
     (ψ : QState I) : MeasureProb (V *ᵥ ψ) Finset.univ = MeasureProb ψ Finset.univ := by
   have he := IsIsometry.inner_mulVec hV ψ ψ
   rw [inner_self, inner_self, ← Complex.ofReal_sum, ← Complex.ofReal_sum] at he
   exact Complex.ofReal_injective he
 
+/-- An isometric matrix preserves the Euclidean norm of state vectors. -/
 theorem IsIsometry.stateVector_norm {V : Matrix H I ℂ} (hV : IsIsometry V)
     (ψ : QState I) : ‖stateVector (V *ᵥ ψ)‖ = ‖stateVector ψ‖ := by
   have he : ‖stateVector (V *ᵥ ψ)‖ ^ 2 = ‖stateVector ψ‖ ^ 2 := by
     simp only [stateVector_norm_sq, IsIsometry.measureProb_mulVec hV]
   exact (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp he
 
+/-- An isometric matrix sends normalized states to normalized states. -/
 theorem IsIsometry.normalized_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
     {ψ : QState I} (hψ : Normalized ψ) : Normalized (V *ᵥ ψ) := by
   rw [normalized_iff_stateVector_norm, IsIsometry.stateVector_norm hV]
   exact (normalized_iff_stateVector_norm ψ).mp hψ
 
+/-- Conditional normalization commutes with an isometric matrix, including the zero state. -/
 theorem IsIsometry.conditionalState_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
     (ψ : QState I) :
     ConditionalState (V *ᵥ ψ) = (ConditionalState ψ).map (fun φ => V *ᵥ φ) := by
@@ -228,19 +276,25 @@ section Postselection
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/-- The unnormalized output obtained by applying the compressed matrix `compress L U R` to the
+input state. -/
 noncomputable def postselectionVector (U : Matrix H H ℂ) (L : Matrix H O ℂ)
     (R : Matrix H I ℂ) (ψ : QState I) : QState O := compress L U R *ᵥ ψ
 
+/-- The success branch mass for projection onto the range matrix of `L` after embedding with `R`
+and applying `U`. -/
 noncomputable def postselectionProbability (U : Matrix H H ℂ) (L : Matrix H O ℂ)
     (R : Matrix H I ℂ) (ψ : QState I) : ℝ :=
   ProjectiveBranchMass (rangeProjector L) true (ApplyGate U (R *ᵥ ψ))
 
+/-- The optional normalized conditional state of the compressed output vector. -/
 noncomputable def postselectionOutput (U : Matrix H H ℂ) (L : Matrix H O ℂ)
     (R : Matrix H I ℂ) (ψ : QState I) : Option (QState O) :=
   ConditionalState (postselectionVector U L R ψ)
 
 omit [DecidableEq I] [DecidableEq O] in
 
+/-- The successful projective branch is the postselection vector embedded through `L`. -/
 theorem projectiveBranch_eq_postselection (U : Matrix H H ℂ) (L : Matrix H O ℂ)
     (R : Matrix H I ℂ) (ψ : QState I) :
     ProjectiveBranch (rangeProjector L) true (ApplyGate U (R *ᵥ ψ)) =
@@ -250,6 +304,8 @@ theorem projectiveBranch_eq_postselection (U : Matrix H H ℂ) (L : Matrix H O �
 
 omit [DecidableEq I] in
 
+/-- If `L` is isometric, the postselection probability equals the squared Euclidean norm of the
+compressed output. -/
 theorem postselectionProbability_eq_norm_sq {L : Matrix H O ℂ} (hL : IsIsometry L)
     (U : Matrix H H ℂ) (R : Matrix H I ℂ) (ψ : QState I) :
     postselectionProbability U L R ψ = ‖stateVector (postselectionVector U L R ψ)‖ ^ 2 := by
@@ -258,6 +314,8 @@ theorem postselectionProbability_eq_norm_sq {L : Matrix H O ℂ} (hL : IsIsometr
 
 omit [DecidableEq I] in
 
+/-- For an isometric left frame, the projective conditional state is the postselection output
+mapped through that frame. -/
 theorem projectiveConditionalState_eq_postselection {L : Matrix H O ℂ} (hL : IsIsometry L)
     (U : Matrix H H ℂ) (R : Matrix H I ℂ) (ψ : QState I) :
     ProjectiveConditionalState (rangeProjector L) true (ApplyGate U (R *ᵥ ψ)) =
@@ -265,6 +323,8 @@ theorem projectiveConditionalState_eq_postselection {L : Matrix H O ℂ} (hL : I
   unfold ProjectiveConditionalState postselectionOutput
   rw [projectiveBranch_eq_postselection, IsIsometry.conditionalState_mulVec hL]
 
+/-- Unitary evolution between isometric frames gives a postselection probability in `[0, 1]` for
+normalized input. -/
 theorem postselectionProbability_mem_Icc {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ)
     (hL : IsIsometry L) (hR : IsIsometry R) {ψ : QState I} (hψ : Normalized ψ) :
@@ -279,6 +339,8 @@ theorem postselectionProbability_mem_Icc {U : Matrix H H ℂ}
   unfold postselectionProbability
   linarith
 
+/-- For normalized input, a block encoding bounds the difference between `Aψ` and the scaled
+postselection vector by `ε`. -/
 theorem BlockEncoding.postselection_error {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε : ℝ}
     (h : BlockEncoding A U L R α ε) {ψ : QState I} (hψ : Normalized ψ) :
@@ -289,6 +351,8 @@ theorem BlockEncoding.postselection_error {A : Matrix O I ℂ} {U : Matrix H H �
   simpa only [Matrix.sub_mulVec, Matrix.smul_mulVec, WithLp.toLp_sub, WithLp.toLp_smul,
     postselectionVector, stateVector] using hb
 
+/-- The scaled success probability differs from `‖Aψ‖²` by at most `ε * (2 * ‖Aψ‖ + ε)` on
+normalized input. -/
 theorem BlockEncoding.postselection_probability_error {A : Matrix O I ℂ}
     {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε : ℝ}
     (h : BlockEncoding A U L R α ε) {ψ : QState I} (hψ : Normalized ψ) :
@@ -302,6 +366,8 @@ theorem BlockEncoding.postselection_probability_error {A : Matrix O I ℂ}
     ← postselectionProbability_eq_norm_sq h.left_isometry] at hm
   exact hm
 
+/-- If `ε < ‖Aψ‖` on normalized input, postselection has positive probability and returns a
+normalized application with error at most `2 * ε / ‖Aψ‖`. -/
 theorem BlockEncoding.postselection_output_of_gap {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε : ℝ}
     (h : BlockEncoding A U L R α ε) {ψ : QState I} (hψ : Normalized ψ)
@@ -333,6 +399,7 @@ theorem BlockEncoding.postselection_output_of_gap {A : Matrix O I ℂ} {U : Matr
     · rw [stateVector_postMeasure_univ]
       simpa only [NormedSpace.normalize_smul_of_pos h.normalization_pos] using herr
 
+/-- If `ε ≤ ‖Aψ‖` on normalized input, the success probability is at least `((‖Aψ‖ - ε) / α)²`. -/
 theorem BlockEncoding.postselection_probability_lower {A : Matrix O I ℂ}
     {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε : ℝ}
     (h : BlockEncoding A U L R α ε) {ψ : QState I} (hψ : Normalized ψ)

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+
+/-!
+# Schur residuals of positive Gram matrices
+
+This module defines `gramSchurVector` from the first row of a complex matrix and proves the
+corresponding Schur residual identities. For a positive semidefinite matrix with a strictly
+positive first diagonal entry, subtracting its associated rank-one Gram matrix preserves
+positive semidefiniteness and makes that diagonal entry zero. The matrix positivity background
+is developed in [Bhatia1997].
+
+## Main statements
+
+* `gramSchurVector_outer`: identifies the rank-one term entrywise.
+* `gram_schur_residual`: proves positivity and the vanishing first diagonal entry of the
+  residual.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,9 +36,13 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open scoped Classical BigOperators ComplexOrder
 variable {n : ℕ} [NeZero n]
 
+/-- The first row of `A` divided by the square root of the real part of its first diagonal
+entry. -/
 def gramSchurVector (A : Matrix (Fin n) (Fin n) ℂ) : Fin n → ℂ :=
   fun j => A 0 j/(Real.sqrt (A 0 0).re : ℂ)
 
+/-- Expands the entries of the congruence transform `Sᴴ * A * S`, where `S` subtracts the row
+`u` from the first row of the identity matrix. -/
 theorem gram_schur_transform_apply (A : Matrix (Fin n) (Fin n) ℂ)
     (u : Fin n → ℂ) (i j : Fin n) :
     let S := (1 : Matrix (Fin n) (Fin n) ℂ)-Matrix.vecMulVec (Pi.single 0 (1 : ℂ)) u
@@ -31,6 +56,8 @@ theorem gram_schur_transform_apply (A : Matrix (Fin n) (Fin n) ℂ)
     Matrix.vecMulVec]
   ring
 
+/-- For a positive semidefinite matrix with strictly positive first diagonal entry, the Gram
+outer product of `gramSchurVector A` has entries `A i 0 * A 0 j / A 0 0`. -/
 theorem gramSchurVector_outer (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef)
     (ha : 0<(A 0 0).re) (i j : Fin n) :
     gramOuter (gramSchurVector A) i j=A i 0*A 0 j/(A 0 0) := by
@@ -47,6 +74,9 @@ theorem gramSchurVector_outer (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemide
   change star (A 0 i)/(Real.sqrt (A 0 0).re : ℂ)*(A 0 j/(Real.sqrt (A 0 0).re : ℂ))=_
   rw [hstar,div_mul_div_comm,hs]
 
+/-- Subtracting the Gram outer product of `gramSchurVector A` from a positive semidefinite
+matrix with strictly positive first diagonal entry leaves a positive semidefinite matrix
+whose first diagonal entry is zero. -/
 theorem gram_schur_residual (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef)
     (ha : 0<(A 0 0).re) :
     (A-gramOuter (gramSchurVector A)).PosSemidef ∧

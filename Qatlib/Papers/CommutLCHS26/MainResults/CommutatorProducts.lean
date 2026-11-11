@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.CommutatorGrowth
+
+/-!
+# Products of commutator profile coefficients
+
+This module organizes products of odd commutator profiles using finite antidiagonals, as needed
+for the multi-product error estimates of [AftabAnTrivisa2026]. The embedding `doubleSuccessor`
+identifies nonnegative tuples with tuples of positive even entries, relating `rawProduct` and
+`positiveProduct` and giving bounds in terms of `boundingScale`.
+
+## Main statements
+
+* `positiveFiber_eq`: reindexes positive even tuples.
+* `normalized_fiber`: factors the normalization out of each antidiagonal.
+* `rawProduct_le_scale`: bounds the resulting profile product.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,13 +37,17 @@ open scoped BigOperators Classical Matrix.Norms.L2Operator
 open CommutatorGrowth BCHCommMass
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 
+/-- The injective map sending each tuple entry vᵢ to 2(vᵢ + 1). -/
 def doubleSuccessor (l : ℕ) : (Fin l → ℕ) ↪ (Fin l → ℕ) where
   toFun v i := 2 * (v i + 1)
   inj' := by intro v w h; funext i; have hi := congrFun h i; dsimp at hi; omega
 
+/-- The finite set of length-l tuples summing to j whose entries are even and at least 2. -/
 def positiveFiber (l j : ℕ) : Finset (Fin l → ℕ) :=
   (Finset.finAntidiagonal l j).filter (fun v => ∀ i, Even (v i) ∧ 2 ≤ v i)
 
+/-- The sum of the transformed tuple entries is twice the original sum plus twice the tuple
+length. -/
 theorem sum_doubleSuccessor (l : ℕ) (v : Fin l → ℕ) :
     (∑ i, doubleSuccessor l v i) = 2 * ((∑ i, v i) + l) := by
   change (∑ i, 2 * (v i + 1)) = _
@@ -32,6 +56,8 @@ theorem sum_doubleSuccessor (l : ℕ) (v : Fin l → ℕ) :
   simp only [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ,
     Fintype.card_fin, smul_eq_mul, mul_one]
 
+/-- Positive even tuples summing to 2(n + l) are exactly the images of length-l nonnegative
+tuples summing to n. -/
 theorem positiveFiber_eq (l n : ℕ) :
     positiveFiber l (2 * (n + l)) = (Finset.finAntidiagonal l n).map (doubleSuccessor l) := by
   ext w
@@ -65,19 +91,25 @@ theorem positiveFiber_eq (l n : ℕ) :
 
 variable {I : Type} [Fintype I]
 
+/-- The antidiagonal sum of products of odd commutator profiles of orders 2vᵢ + 3. -/
 def rawProduct (xs : List (Matrix I I ℂ)) (l n : ℕ) : ℝ :=
   ∑ v ∈ Finset.finAntidiagonal l n, ∏ i, pfCommAlphaSelf xs (2 * v i + 3)
 
+/-- The sum of products of commutator profiles over positive even tuples with prescribed total. -/
 def positiveProduct (xs : List (Matrix I I ℂ)) (j l : ℕ) : ℝ :=
   ∑ v ∈ positiveFiber l j, ∏ i, pfCommAlphaSelf xs (v i + 1)
 
+/-- The positive-even-tuple profile product sum is nonnegative. -/
 theorem positiveProduct_nonneg (xs : List (Matrix I I ℂ)) (j l : ℕ) :
     0 ≤ positiveProduct xs j l :=
   Finset.sum_nonneg fun _ _ => Finset.prod_nonneg fun _ _ => profile_nonneg xs _
 
+/-- The raw antidiagonal profile product sum is nonnegative. -/
 theorem rawProduct_nonneg (xs : List (Matrix I I ℂ)) (l n : ℕ) : 0 ≤ rawProduct xs l n :=
   Finset.sum_nonneg fun _ _ => Finset.prod_nonneg fun _ _ => profile_nonneg xs _
 
+/-- Reindexing positive even tuples identifies the positive product at total 2(n + l) with the
+raw product. -/
 theorem positiveProduct_eq_raw (xs : List (Matrix I I ℂ)) (l n : ℕ) :
     positiveProduct xs (2 * (n + l)) l = rawProduct xs l n := by
   rw [positiveProduct, positiveFiber_eq, Finset.sum_map]
@@ -89,6 +121,8 @@ theorem positiveProduct_eq_raw (xs : List (Matrix I I ℂ)) (l n : ℕ) :
 
 variable [DecidableEq I]
 
+/-- The sum of products of normalized odd profiles equals the raw product divided by the
+bounding scale to power 2n + 3l. -/
 theorem normalized_fiber (xs : List (Matrix I I ℂ)) (l n : ℕ) :
     (∑ v ∈ Finset.finAntidiagonal l n,
       ∏ i, (pfCommAlphaSelf xs (2 * v i + 3) / boundingScale xs ^ (2 * v i + 3))) =
@@ -103,6 +137,7 @@ theorem normalized_fiber (xs : List (Matrix I I ℂ)) (l n : ℕ) :
     omega
   rw [Finset.prod_div_distrib, Finset.prod_pow_eq_pow_sum, he]
 
+/-- The raw profile product is bounded by the bounding scale to power 2n + 3l. -/
 theorem rawProduct_le_scale (xs : List (Matrix I I ℂ)) (l n : ℕ) :
     rawProduct xs l n ≤ boundingScale xs ^ (2 * n + 3 * l) := by
   let f : ℕ → ℝ := fun j => pfCommAlphaSelf xs (2 * j + 3) / boundingScale xs ^ (2 * j + 3)

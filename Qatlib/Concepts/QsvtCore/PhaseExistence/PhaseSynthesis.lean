@@ -9,6 +9,25 @@ import Mathlib.Algebra.Polynomial.Eval.Degree
 import Mathlib.Algebra.Polynomial.Degree.Lemmas
 import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Analysis.Complex.Norm
+
+/-!
+# Phase synthesis for normalized polynomial pairs
+
+`CompletedPair` records the degree, parity, and normalization conditions on quantum signal
+processing response polynomials. The recursive construction `synthesizePair` removes a phase by
+aligning leading coefficients and reconstructs every completed pair from a phase list of the
+prescribed length. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `synthesizePair_correct`: the synthesized phases reproduce both response polynomials.
+* `completedPair_iff_response`: completed pairs are exactly the responses of phase lists.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -19,55 +38,70 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
 open Polynomial
 
+/-- The complex polynomial obtained by conjugating every coefficient of `P`. -/
 noncomputable def conjugatePolynomial (P : Polynomial ℂ) : Polynomial ℂ :=
   P.map (starRingEnd ℂ)
 
+/-- The coefficient of a conjugated polynomial is the conjugate of the original coefficient. -/
 @[simp] theorem conjugatePolynomial_coeff (P : Polynomial ℂ) (k : ℕ) :
     (conjugatePolynomial P).coeff k = star (P.coeff k) := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation sends a constant polynomial to the constant of the conjugated
+scalar. -/
 @[simp] theorem conjugatePolynomial_C (z : ℂ) :
     conjugatePolynomial (C z) = C (star z) := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation fixes the indeterminate polynomial. -/
 @[simp] theorem conjugatePolynomial_X :
     conjugatePolynomial (X : Polynomial ℂ) = X := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation fixes the zero polynomial. -/
 @[simp] theorem conjugatePolynomial_zero :
     conjugatePolynomial (0 : Polynomial ℂ) = 0 := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation fixes the constant polynomial one. -/
 @[simp] theorem conjugatePolynomial_one :
     conjugatePolynomial (1 : Polynomial ℂ) = 1 := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation preserves polynomial addition. -/
 @[simp] theorem conjugatePolynomial_add (P Q : Polynomial ℂ) :
     conjugatePolynomial (P + Q) = conjugatePolynomial P + conjugatePolynomial Q := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation preserves polynomial subtraction. -/
 @[simp] theorem conjugatePolynomial_sub (P Q : Polynomial ℂ) :
     conjugatePolynomial (P - Q) = conjugatePolynomial P - conjugatePolynomial Q := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation preserves polynomial multiplication. -/
 @[simp] theorem conjugatePolynomial_mul (P Q : Polynomial ℂ) :
     conjugatePolynomial (P * Q) = conjugatePolynomial P * conjugatePolynomial Q := by
   simp [conjugatePolynomial]
 
+/-- Coefficient conjugation commutes with natural powers. -/
 @[simp] theorem conjugatePolynomial_pow (P : Polynomial ℂ) (n : ℕ) :
     conjugatePolynomial (P ^ n) = conjugatePolynomial P ^ n := by
   simp [conjugatePolynomial]
 
+/-- Conjugating the coefficients twice recovers the original polynomial. -/
 @[simp] theorem conjugatePolynomial_conjugate (P : Polynomial ℂ) :
     conjugatePolynomial (conjugatePolynomial P) = P := by
   ext k
   simp
 
+/-- At a real argument, evaluation of the conjugated polynomial equals the conjugate of the
+evaluation. -/
 @[simp] theorem conjugatePolynomial_eval_real (P : Polynomial ℂ) (x : ℝ) :
     (conjugatePolynomial P).eval (x : ℂ) = star (P.eval (x : ℂ)) := by
   simpa [conjugatePolynomial] using
     (Polynomial.eval_map_apply (p := P) (starRingEnd ℂ) (x : ℂ))
 
+/-- Conjugating the base and every phase conjugates both response polynomials coefficientwise. -/
 theorem response_conjugate (base : ℂ) (zs : List ℂ) :
     responseP (star base) (zs.map star) = conjugatePolynomial (responseP base zs) ∧
     responseQ (star base) (zs.map star) = conjugatePolynomial (responseQ base zs) := by
@@ -78,18 +112,23 @@ theorem response_conjugate (base : ℂ) (zs : List ℂ) :
     rw [ih.1, ih.2]
     constructor <;> simp
 
+/-- The polynomial `P * conjugatePolynomial P + (1 - X ^ 2) * Q * conjugatePolynomial Q`
+encoding the weighted squared norm of a response pair on the real line. -/
 noncomputable def responsePairNorm (P Q : Polynomial ℂ) : Polynomial ℂ :=
   P * conjugatePolynomial P + (1 - X ^ 2) * Q * conjugatePolynomial Q
 
+/-- The constant polynomials associated with a phase and its conjugate multiply to one. -/
 private theorem phase_C_mul {z : ℂ} (hz : IsPhase z) :
     C (star z) * C z = (1 : Polynomial ℂ) := by
   rw [← C_mul]
   change C (star z * z) = 1
   rw [show star z * z = 1 from hz, C_1]
 
+/-- The conjugate of a complex phase is a phase. -/
 theorem isPhase_conjugate {z : ℂ} (hz : IsPhase z) : IsPhase (star z) := by
   simpa only [IsPhase, star_star, mul_comm] using hz
 
+/-- A complex number is a phase if and only if its squared norm is one. -/
 theorem isPhase_iff_normSq {z : ℂ} : IsPhase z ↔ Complex.normSq z = 1 := by
   constructor
   · exact IsPhase.normSq
@@ -98,6 +137,7 @@ theorem isPhase_iff_normSq {z : ℂ} : IsPhase z ↔ Complex.normSq z = 1 := by
     rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, h]
     rfl
 
+/-- The signal recurrence preserves the weighted polynomial norm of a response pair. -/
 private theorem responsePairNorm_signal (P Q : Polynomial ℂ) :
     responsePairNorm (X * P + (1 - X ^ 2) * Q) (P - X * Q) =
       responsePairNorm P Q := by
@@ -106,6 +146,8 @@ private theorem responsePairNorm_signal (P Q : Polynomial ℂ) :
     conjugatePolynomial_X]
   ring
 
+/-- Multiplying the two components by a phase and its conjugate preserves their weighted
+polynomial norm. -/
 private theorem responsePairNorm_phase {z : ℂ} (hz : IsPhase z) (P Q : Polynomial ℂ) :
     responsePairNorm (C z * P) (C (star z) * Q) = responsePairNorm P Q := by
   simp only [responsePairNorm, conjugatePolynomial_mul, conjugatePolynomial_C, star_star]
@@ -117,6 +159,8 @@ private theorem responsePairNorm_phase {z : ℂ} (hz : IsPhase z) (P Q : Polynom
     _ = P * conjugatePolynomial P + (1 - X ^ 2) * Q * conjugatePolynomial Q := by
       rw [phase_C_mul hz, one_mul]
 
+/-- Response polynomials built from a phase base and a list of phases have weighted polynomial
+norm one. -/
 theorem response_polynomial_normalization {base : ℂ} (hb : IsPhase base) (zs : List ℂ)
     (hzs : ∀ z ∈ zs, IsPhase z) :
     responsePairNorm (responseP base zs) (responseQ base zs) = 1 := by
@@ -130,9 +174,12 @@ theorem response_polynomial_normalization {base : ℂ} (hb : IsPhase base) (zs :
       responsePairNorm_phase (hzs z (by simp)), responsePairNorm_signal]
     exact ih (fun w hw => hzs w (List.mem_cons_of_mem z hw))
 
+/-- The parity condition `P(-X) = (-1)^n P(X)` for a complex polynomial. -/
 def HasResponseParity (n : ℕ) (P : Polynomial ℂ) : Prop :=
   P.comp (-X) = C ((-1 : ℂ) ^ n) * P
 
+/-- Degree bounds, alternating parities, and weighted polynomial normalization for a response
+pair of length `n`. -/
 structure CompletedPair (n : ℕ) (P Q : Polynomial ℂ) : Prop where
   degreeP : P.degree ≤ (n : WithBot ℕ)
   degreeQ : Q.degree < (n : WithBot ℕ)
@@ -140,18 +187,24 @@ structure CompletedPair (n : ℕ) (P Q : Polynomial ℂ) : Prop where
   parityQ : HasResponseParity (n + 1) Q
   normalization : responsePairNorm P Q = 1
 
+/-- The upper polynomial obtained by undoing a phase and a signal step on the pair `P`, `Q`. -/
 noncomputable def inverseResponseP (z : ℂ) (P Q : Polynomial ℂ) : Polynomial ℂ :=
   X * (C (star z) * P) + (1 - X ^ 2) * (C z * Q)
 
+/-- The lower polynomial obtained by undoing a phase and a signal step on the pair `P`, `Q`. -/
 noncomputable def inverseResponseQ (z : ℂ) (P Q : Polynomial ℂ) : Polynomial ℂ :=
   C (star z) * P - X * (C z * Q)
 
+/-- Applying the signal recurrence to the inverse response pair yields `P` scaled by the
+conjugate of `z` and `Q` scaled by `z`. -/
 theorem inverseResponse_signal (z : ℂ) (P Q : Polynomial ℂ) :
     X * inverseResponseP z P Q + (1 - X ^ 2) * inverseResponseQ z P Q = C (star z) * P ∧
     inverseResponseP z P Q - X * inverseResponseQ z P Q = C z * Q := by
   simp only [inverseResponseP, inverseResponseQ]
   constructor <;> ring
 
+/-- For a phase `z`, a signal step followed by the corresponding phase factors reconstructs `P`
+and `Q` from their inverse response pair. -/
 theorem inverseResponse_reconstruct {z : ℂ} (hz : IsPhase z) (P Q : Polynomial ℂ) :
     C z * (X * inverseResponseP z P Q + (1 - X ^ 2) * inverseResponseQ z P Q) = P ∧
     C (star z) * (inverseResponseP z P Q - X * inverseResponseQ z P Q) = Q := by
@@ -162,6 +215,7 @@ theorem inverseResponse_reconstruct {z : ℂ} (hz : IsPhase z) (P Q : Polynomial
       _ = P := by rw [phase_C_mul hz, one_mul]
   · rw [← mul_assoc, phase_C_mul hz, one_mul]
 
+/-- For a phase `z`, the inverse response step preserves the weighted polynomial norm. -/
 theorem inverseResponse_normalization {z : ℂ} (hz : IsPhase z) (P Q : Polynomial ℂ) :
     responsePairNorm (inverseResponseP z P Q) (inverseResponseQ z P Q) =
       responsePairNorm P Q := by
@@ -169,6 +223,7 @@ theorem inverseResponse_normalization {z : ℂ} (hz : IsPhase z) (P Q : Polynomi
   rw [responsePairNorm_signal]
   simpa only [star_star] using responsePairNorm_phase (isPhase_conjugate hz) P Q
 
+/-- The upper component of a completed pair has squared norm one at the endpoint one. -/
 theorem CompletedPair.normSq_eval_one {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) : Complex.normSq (P.eval 1) = 1 := by
   have he := congrArg (Polynomial.eval (1 : ℂ)) h.normalization
@@ -179,16 +234,20 @@ theorem CompletedPair.normSq_eval_one {n : ℕ} {P Q : Polynomial ℂ}
   have hr := congrArg Complex.re he
   simpa [Complex.normSq_apply, Complex.mul_re] using hr
 
+/-- The upper polynomial of a completed pair is nonzero. -/
 theorem CompletedPair.upper_ne_zero {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) : P ≠ 0 := by
   intro hp
   have he := h.normSq_eval_one
   simp [hp] at he
 
+/-- The phase square-root candidate given by `I` at `u = -1` and by the normalized scalar `1 +
+u` otherwise. -/
 noncomputable def halfPhase (u : ℂ) : ℂ := by
   classical
   exact if u = -1 then Complex.I else (1 + u) / (‖1 + u‖ : ℂ)
 
+/-- For a phase `u`, `halfPhase u` is a phase satisfying `star (halfPhase u) * u = halfPhase u`. -/
 theorem halfPhase_spec {u : ℂ} (hu : IsPhase u) :
     IsPhase (halfPhase u) ∧ star (halfPhase u) * u = halfPhase u := by
   classical
@@ -214,10 +273,14 @@ theorem halfPhase_spec {u : ℂ} (hu : IsPhase u) :
         (1 + star u) * u = u + star u * u := by ring
         _ = 1 + u := by rw [show star u * u = 1 from hu]; ring
 
+/-- The phase alignment candidate obtained from `halfPhase (a / b)`, with value one when `b =
+0`. -/
 noncomputable def alignPhase (a b : ℂ) : ℂ := by
   classical
   exact if b = 0 then 1 else halfPhase (a / b)
 
+/-- Scalars of equal squared norm possess a phase that aligns them by conjugate multiplication
+on the first and ordinary multiplication on the second. -/
 theorem alignPhase_spec {a b : ℂ} (h : Complex.normSq a = Complex.normSq b) :
     IsPhase (alignPhase a b) ∧ star (alignPhase a b) * a = alignPhase a b * b := by
   classical
@@ -233,6 +296,8 @@ theorem alignPhase_spec {a b : ℂ} (h : Complex.normSq a = Complex.normSq b) :
     have he' := congrArg (fun w : ℂ => w * b) he
     simpa only [mul_assoc, div_mul_cancel₀ _ hb] using he'
 
+/-- The coefficient of degree `k` in a polynomial of parity `n` satisfies the corresponding sign
+identity. -/
 theorem HasResponseParity.coeff {n : ℕ} {P : Polynomial ℂ}
     (h : HasResponseParity n P) (k : ℕ) :
     P.coeff k * (-1 : ℂ) ^ k = (-1 : ℂ) ^ n * P.coeff k := by
@@ -240,6 +305,7 @@ theorem HasResponseParity.coeff {n : ℕ} {P : Polynomial ℂ}
   have hx : (-X : Polynomial ℂ) = C (-1) * X := by simp
   simpa only [hx, Polynomial.comp_C_mul_X_coeff, coeff_C_mul] using he
 
+/-- Consecutive natural powers of complex negative one are distinct. -/
 private theorem neg_one_pow_ne_succ (n : ℕ) :
     (-1 : ℂ) ^ n ≠ (-1 : ℂ) ^ (n + 1) := by
   intro he
@@ -248,6 +314,8 @@ private theorem neg_one_pow_ne_succ (n : ℕ) :
     mul_left_cancel₀ (pow_ne_zero n (by norm_num : (-1 : ℂ) ≠ 0)) (by simpa using he)
   norm_num at hm
 
+/-- A coefficient vanishes when its degree has a sign different from the prescribed response
+parity. -/
 private theorem parity_coeff_zero {n k : ℕ} {P : Polynomial ℂ}
     (h : HasResponseParity n P) (hk : (-1 : ℂ) ^ k ≠ (-1 : ℂ) ^ n) :
     P.coeff k = 0 := by
@@ -256,6 +324,7 @@ private theorem parity_coeff_zero {n k : ℕ} {P : Polynomial ℂ}
     linear_combination he
   exact (mul_eq_zero.mp hm).resolve_right (sub_ne_zero.mpr hk)
 
+/-- An inverse response step lowers the prescribed parity indices of both components by one. -/
 theorem inverseResponse_parity {n : ℕ} {P Q : Polynomial ℂ} (z : ℂ)
     (hp : HasResponseParity (n + 1) P) (hq : HasResponseParity (n + 2) Q) :
     HasResponseParity n (inverseResponseP z P Q) ∧
@@ -267,12 +336,15 @@ theorem inverseResponse_parity {n : ℕ} {P Q : Polynomial ℂ} (z : ℂ)
       sub_comp, mul_comp, C_comp, X_comp, one_comp, pow_comp, hp, hq,
       pow_succ, map_mul, map_neg, map_one] <;> ring
 
+/-- A polynomial of degree strictly less than `n + 1` has natural degree at most `n`. -/
 private theorem degreeQ_natDegree {n : ℕ} {Q : Polynomial ℂ}
     (hq : Q.degree < ((n + 1 : ℕ) : WithBot ℕ)) : Q.natDegree ≤ n := by
   apply Polynomial.natDegree_le_iff_coeff_eq_zero.mpr
   intro k hk
   exact (degree_lt_iff_coeff_zero Q (n + 1)).mp hq k (by omega)
 
+/-- The coefficients of degrees `n + 1` and `n` in a completed pair of length `n + 1` have equal
+squared norm. -/
 theorem CompletedPair.leading_normSq {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair (n + 1) P Q) :
     Complex.normSq (P.coeff (n + 1)) = Complex.normSq (Q.coeff n) := by
@@ -312,6 +384,8 @@ theorem CompletedPair.leading_normSq {n : ℕ} {P Q : Polynomial ℂ}
   simp only [Complex.normSq_apply]
   nlinarith
 
+/-- The inverse response polynomials have natural degrees at most `n + 2` and `n + 1` under the
+given degree bounds. -/
 private theorem inverseResponse_degree_bound {n : ℕ} {P Q : Polynomial ℂ} (z : ℂ)
     (hp : P.natDegree ≤ n + 1) (hq : Q.natDegree ≤ n) :
     (inverseResponseP z P Q).natDegree ≤ n + 2 ∧
@@ -338,6 +412,8 @@ private theorem inverseResponse_degree_bound {n : ℕ} {P Q : Polynomial ℂ} (z
   · exact (Polynomial.natDegree_add_le _ _).trans (max_le hxp hdq)
   · exact (Polynomial.natDegree_sub_le _ _).trans (max_le hpC hxq)
 
+/-- Aligning the top coefficients makes the coefficients of degrees `n + 2` and `n + 1` in the
+inverse response pair vanish. -/
 theorem inverseResponse_leading_zero {n : ℕ} {P Q : Polynomial ℂ} {z : ℂ}
     (hq : Q.natDegree ≤ n)
     (halign : star z * P.coeff (n + 1) = z * Q.coeff n) :
@@ -357,6 +433,8 @@ theorem inverseResponse_leading_zero {n : ℕ} {P Q : Polynomial ℂ} {z : ℂ}
     ring
   · simp only [inverseResponseQ, coeff_sub, coeff_C_mul, coeff_X_mul, halign, sub_self]
 
+/-- Aligning the leading coefficients of a completed pair of length `n + 1` yields a phase and
+an inverse response pair completed at length `n`. -/
 theorem CompletedPair.inverse_step {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair (n + 1) P Q) :
     let z := alignPhase (P.coeff (n + 1)) (Q.coeff n)
@@ -392,6 +470,8 @@ theorem CompletedPair.inverse_step {n : ℕ} {P Q : Polynomial ℂ}
     exact coeff_eq_zero_of_natDegree_lt (lt_of_le_of_lt hbound.2 (by omega))
   · rw [inverseResponse_normalization hz.1, h.normalization]
 
+/-- Recursively synthesize a base scalar and a list of `n` phase candidates by aligning leading
+coefficients and taking inverse response steps. -/
 noncomputable def synthesizePair : ℕ → Polynomial ℂ → Polynomial ℂ → ℂ × List ℂ
   | 0, P, _ => (P.coeff 0, [])
   | n + 1, P, Q =>
@@ -399,12 +479,15 @@ noncomputable def synthesizePair : ℕ → Polynomial ℂ → Polynomial ℂ →
     let result := synthesizePair n (inverseResponseP z P Q) (inverseResponseQ z P Q)
     (result.1, z :: result.2)
 
+/-- The list produced by `synthesizePair n P Q` has length exactly `n`. -/
 theorem synthesizePair_length (n : ℕ) (P Q : Polynomial ℂ) :
     (synthesizePair n P Q).2.length = n := by
   induction n generalizing P Q with
   | zero => rfl
   | succ n ih => simp only [synthesizePair, List.length_cons, ih]
 
+/-- A completed pair of length zero consists of a constant phase polynomial and a zero lower
+polynomial. -/
 private theorem completedPair_zero {P Q : Polynomial ℂ} (h : CompletedPair 0 P Q) :
     P = C (P.coeff 0) ∧ Q = 0 ∧ IsPhase (P.coeff 0) := by
   have hp : P = C (P.coeff 0) :=
@@ -418,6 +501,8 @@ private theorem completedPair_zero {P Q : Polynomial ℂ} (h : CompletedPair 0 P
   have he := congrArg (fun p : Polynomial ℂ => p.coeff 0) hn
   simpa [responsePairNorm, IsPhase, mul_comm] using he
 
+/-- For a completed pair, synthesis produces a phase base and phases whose response polynomials
+are exactly `P` and `Q`. -/
 theorem synthesizePair_correct {n : ℕ} {P Q : Polynomial ℂ} (h : CompletedPair n P Q) :
     IsPhase (synthesizePair n P Q).1 ∧
     (∀ z ∈ (synthesizePair n P Q).2, IsPhase z) ∧
@@ -453,6 +538,8 @@ theorem synthesizePair_correct {n : ℕ} {P Q : Polynomial ℂ} (h : CompletedPa
       rw [responseQ_cons, hp, hq]
       exact (inverseResponse_reconstruct hstep.1 P Q).2
 
+/-- Every completed pair of length `n` is realized by a phase base and a list of exactly `n`
+phases. -/
 theorem exists_response_of_completedPair {n : ℕ} {P Q : Polynomial ℂ}
     (h : CompletedPair n P Q) :
     ∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧
@@ -461,6 +548,8 @@ theorem exists_response_of_completedPair {n : ℕ} {P Q : Polynomial ℂ}
   exact ⟨(synthesizePair n P Q).1, (synthesizePair n P Q).2,
     hb, hzs, synthesizePair_length n P Q, hp, hq⟩
 
+/-- Response polynomials of a phase base and phase list form a completed pair indexed by the
+list length. -/
 theorem completedPair_response {base : ℂ} (hb : IsPhase base) (zs : List ℂ)
     (hzs : ∀ z ∈ zs, IsPhase z) :
     CompletedPair zs.length (responseP base zs) (responseQ base zs) := by
@@ -480,6 +569,8 @@ theorem completedPair_response {base : ℂ} (hb : IsPhase base) (zs : List ℂ)
     simpa only [eval_comp, eval_neg, eval_X, eval_mul, eval_C, pow_succ,
       mul_neg_one] using (response_parity base zs x).2
 
+/-- A pair is completed at length `n` exactly when it is realized by a phase base and `n`
+phases, as in [Gilyén et al., Theorem 3][GilyenSuLowWiebe2019]. -/
 theorem completedPair_iff_response {n : ℕ} {P Q : Polynomial ℂ} :
     CompletedPair n P Q ↔
       ∃ (base : ℂ) (zs : List ℂ), IsPhase base ∧ (∀ z ∈ zs, IsPhase z) ∧

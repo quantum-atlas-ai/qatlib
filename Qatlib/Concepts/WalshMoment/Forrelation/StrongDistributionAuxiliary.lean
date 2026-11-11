@@ -10,6 +10,24 @@ import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
+
+/-!
+# Character energies and strong Bernoulli weights
+
+`bitDot` and `regXor` express Boolean characters on registers. `gammaOfMultiset` is the
+normalized pairwise character sum; `gammaOfMultiset_eq_characterSquare` rewrites it as a square,
+yielding nonnegativity and the bound by the sample length. `strongBernoulliWeight` assigns
+product weights to Boolean functions whose zero input is false, and its nonnegativity and
+equality with `strongBernoulliWeight_absVersion` are established.
+
+For Boolean Fourier and quantum register background, see [Roetteler, 2008][Roetteler2008] and
+[NielsenChuang2010].
+
+## References
+
+- [Nielsen and Chuang, 2010][NielsenChuang2010].
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -21,17 +39,24 @@ open scoped BigOperators
 open Classical
 set_option autoImplicit false
 
+/-- The Boolean dot product of two registers, computed modulo two using `booleanDotBool`. -/
 def bitDot {n : ℕ} (y z : Reg n) : Bool :=
   Qatlib.Concepts.HspRecovery.ReductionCore.booleanDotBool y z
 
+/-- The coordinatewise exclusive-or of two registers. -/
 abbrev regXor {n : ℕ} (x y : Reg n) : Reg n :=
   Qatlib.Concepts.HspRecovery.ReductionCore.regXor x y
 
+/-- The sum of the character signs of all ordered pairwise exclusive-ors of the indexed sample
+`s`, divided by `ℓ`. -/
 noncomputable def gammaOfMultiset (n ℓ : ℕ) (s : Fin ℓ → Reg n) (y : Reg n) : ℝ :=
   (1 / (ℓ : ℝ)) *
     ∑ i : Fin ℓ, ∑ j : Fin ℓ,
       (if bitDot y (regXor (s i) (s j)) then (-1 : ℝ) else 1)
 
+/-- The product weight with false factor `exp (-κ * |gammaOfMultiset n ℓ s y|) / 2` at each
+nonzero input `y` and the complementary true factor. The weight is zero when `u` is true at
+the zero register. -/
 noncomputable def strongBernoulliWeight_absVersion (n ℓ : ℕ) (κ : ℝ) (s : Fin ℓ → Reg n)
     (u : Reg n → Bool) : ℝ :=
   if u (ZeroStr n) then 0
@@ -41,6 +66,9 @@ noncomputable def strongBernoulliWeight_absVersion (n ℓ : ℕ) (κ : ℝ) (s :
       else if u y then 1 - Real.exp (-(κ : ℝ) * |gammaOfMultiset n ℓ s y|) / 2
       else Real.exp (-(κ : ℝ) * |gammaOfMultiset n ℓ s y|) / 2
 
+/-- The product weight with false factor `exp (-κ * gammaOfMultiset n ℓ s y) / 2` at each
+nonzero input `y` and the complementary true factor. The weight is zero when `u` is true at
+the zero register. -/
 noncomputable def strongBernoulliWeight (n ℓ : ℕ) (κ : ℝ) (s : Fin ℓ → Reg n)
     (u : Reg n → Bool) : ℝ :=
   if u (ZeroStr n) then 0
@@ -50,6 +78,8 @@ noncomputable def strongBernoulliWeight (n ℓ : ℕ) (κ : ℝ) (s : Fin ℓ �
       else if u y then 1 - Real.exp (-(κ : ℝ) * gammaOfMultiset n ℓ s y) / 2
       else Real.exp (-(κ : ℝ) * gammaOfMultiset n ℓ s y) / 2
 
+/-- The complex Boolean character on the converted registers equals the sign determined by their
+Boolean dot product. -/
 private theorem booleanCharacter_eq_bitDotSign {n : ℕ} (y z : Reg n) :
     Qatlib.Concepts.PauliClifford.ExactRank.booleanCharacter (Qatlib.Concepts.WalshMoment.Forrelation.regBooleanEquiv n y)
       (Qatlib.Concepts.WalshMoment.Forrelation.regBooleanEquiv n z) =
@@ -77,6 +107,8 @@ private theorem booleanCharacter_eq_bitDotSign {n : ℕ} (y z : Reg n) :
         simpa using! hv1
       simp [d, hone, Qatlib.Concepts.WalshMoment.Forrelation.zmod2_stdAddChar_one]
 
+/-- The real character sign of an exclusive-or is the product of the character signs of its two
+inputs. -/
 private theorem bitDot_sign_xor {n : ℕ} (y x z : Reg n) :
     (if bitDot y (regXor x z) then (-1 : ℝ) else 1) =
       (if bitDot y x then (-1 : ℝ) else 1) *
@@ -97,6 +129,8 @@ private theorem bitDot_sign_xor {n : ℕ} (y x z : Reg n) :
     cases hxor : bitDot y (regXor x z) <;>
     simp [hx, hz, hxor] at hre ⊢ <;> assumption
 
+/-- The pairwise character energy `gammaOfMultiset` equals the square of the sample's character
+sum divided by `ℓ`. -/
 theorem gammaOfMultiset_eq_characterSquare (n ℓ : ℕ) (s : Fin ℓ → Reg n)
     (y : Reg n) :
     gammaOfMultiset n ℓ s y =
@@ -134,11 +168,14 @@ theorem gammaOfMultiset_eq_characterSquare (n ℓ : ℕ) (s : Fin ℓ → Reg n)
   intro j hj
   exact hterm i j
 
+/-- The character energy `gammaOfMultiset` is nonnegative for every indexed sample and
+character. -/
 theorem gammaOfMultiset_nonneg (n ℓ : ℕ) (s : Fin ℓ → Reg n) (y : Reg n) :
     0 ≤ gammaOfMultiset n ℓ s y := by
   rw [gammaOfMultiset_eq_characterSquare]
   exact mul_nonneg (by positivity) (sq_nonneg _)
 
+/-- The absolute value of `gammaOfMultiset` is at most the sample length `ℓ`. -/
 theorem gammaOfMultiset_abs_le (n ℓ : ℕ) (s : Fin ℓ → Reg n) (y : Reg n) :
     |gammaOfMultiset n ℓ s y| ≤ (ℓ : ℝ) := by
   unfold gammaOfMultiset
@@ -191,6 +228,7 @@ theorem gammaOfMultiset_abs_le (n ℓ : ℕ) (s : Fin ℓ → Reg n) (y : Reg n)
     rw [h4] at h5
     exact h5
 
+/-- For nonnegative `κ`, every strong Bernoulli product weight is nonnegative. -/
 theorem strongBernoulliWeight_nonneg (n ℓ : ℕ) (κ : ℝ) (hκ : 0 ≤ κ) (s : Fin ℓ → Reg n)
     (u : Reg n → Bool) : 0 ≤ strongBernoulliWeight n ℓ κ s u := by
   unfold strongBernoulliWeight
@@ -217,6 +255,8 @@ theorem strongBernoulliWeight_nonneg (n ℓ : ℕ) (κ : ℝ) (hκ : 0 ≤ κ) (
           div_nonneg (Real.exp_nonneg _) (by norm_num)
         exact this
 
+/-- The strong Bernoulli weight agrees with the version using the absolute value of the
+character energy, since that energy is nonnegative. -/
 theorem strongBernoulliWeight_original_eq_absVersion (n ℓ : ℕ) (κ : ℝ)
     (s : Fin ℓ → Reg n) (u : Reg n → Bool) :
     strongBernoulliWeight n ℓ κ s u = strongBernoulliWeight_absVersion n ℓ κ s u := by

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+
+/-!
+# Scalar and nonscalar Pauli actions on CSS codes
+
+This module characterizes Pauli products acting by a scalar on a CSS codespace through
+membership of their labels in the X and Z check row spaces. The proof uses the stabilizer sum
+and trace identities from the stabilizer framework of [Gottesman1997].
+
+The theorem `logicalNonscalarRestriction` expresses CSS distance using Pauli operators with
+nonscalar action. The one-qubit code with no checks also supplies a counterexample to a distance
+formula with a differently scoped negation.
+
+## Main statements
+
+* `scalar_action_iff_mem_rowspace`: scalar action is equivalent to membership in both check row
+  spaces.
+* `logicalNonscalarRestriction`: logical labels and nonscalar action give the same distance
+  characterization.
+* `frozenDistance_counterexample`: the alternative formula fails for the one-qubit code with no
+  checks.
+
+## References
+
+* [Gottesman, 1997][Gottesman1997]
+-/
+
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
 
@@ -22,6 +48,8 @@ variable {ι κX κZ : Type*} [Fintype ι] [Fintype κX] [Fintype κZ]
 
 omit [Fintype κX] [Fintype κZ] [DecidableEq κX] [DecidableEq κZ] in
 
+/-- Membership in the CSS codespace is equivalent to being fixed by every X check and every Z
+check. -/
 theorem mem_cssCodespace_iff (c : CssData ι κX κZ) (w : (ι → ZMod 2) → ℂ) :
     w ∈ cssCodespace c ↔
       (∀ i : κX, cssPauliX (c.hX i) *ᵥ w = w) ∧
@@ -29,24 +57,30 @@ theorem mem_cssCodespace_iff (c : CssData ι κX κZ) (w : (ι → ZMod 2) → �
   simp [cssCodespace, cssXStabilized, cssZStabilized, cssXCheckKernel, cssZCheckKernel,
     sub_eq_zero]
 
+/-- The X Pauli operator with zero label fixes every vector. -/
 theorem cssPauliX_zero_vec (w : (ι → ZMod 2) → ℂ) :
     cssPauliX (0 : ι → ZMod 2) *ᵥ w = w := by
   rw [cssPauliX_zero, one_mulVec]
 
+/-- The Z Pauli operator with zero label fixes every vector. -/
 theorem cssPauliZ_zero_vec (w : (ι → ZMod 2) → ℂ) :
     cssPauliZ (0 : ι → ZMod 2) *ᵥ w = w := by
   rw [cssPauliZ_zero, one_mulVec]
 
+/-- If two X Pauli operators fix a vector, the operator with their sum label also fixes it. -/
 theorem cssPauliX_add_vec (f g : ι → ZMod 2) (w : (ι → ZMod 2) → ℂ)
     (hf : cssPauliX f *ᵥ w = w) (hg : cssPauliX g *ᵥ w = w) :
     cssPauliX (f + g) *ᵥ w = w := by
   rw [← cssPauliX_mul, ← Matrix.mulVec_mulVec, hg, hf]
 
+/-- If two Z Pauli operators fix a vector, the operator with their sum label also fixes it. -/
 theorem cssPauliZ_add_vec (f g : ι → ZMod 2) (w : (ι → ZMod 2) → ℂ)
     (hf : cssPauliZ f *ᵥ w = w) (hg : cssPauliZ g *ᵥ w = w) :
     cssPauliZ (f + g) *ᵥ w = w := by
   rw [← cssPauliZ_mul, ← Matrix.mulVec_mulVec, hg, hf]
 
+/-- A vector fixed by every X Pauli operator in a finite family is fixed by the operator with
+the summed label. -/
 theorem cssPauliX_sum_vec {κ : Type*} [Fintype κ] (f : κ → ι → ZMod 2)
     (w : (ι → ZMod 2) → ℂ) (hw : ∀ i, cssPauliX (f i) *ᵥ w = w) :
     cssPauliX (∑ i : κ, f i) *ᵥ w = w := by
@@ -59,6 +93,8 @@ theorem cssPauliX_sum_vec {κ : Type*} [Fintype κ] (f : κ → ι → ZMod 2)
       rw [Finset.sum_insert hi, cssPauliX_add_vec _ _ _ (hw i) ih]
   exact h Finset.univ
 
+/-- A vector fixed by every Z Pauli operator in a finite family is fixed by the operator with
+the summed label. -/
 theorem cssPauliZ_sum_vec {κ : Type*} [Fintype κ] (f : κ → ι → ZMod 2)
     (w : (ι → ZMod 2) → ℂ) (hw : ∀ i, cssPauliZ (f i) *ᵥ w = w) :
     cssPauliZ (∑ i : κ, f i) *ᵥ w = w := by
@@ -71,6 +107,8 @@ theorem cssPauliZ_sum_vec {κ : Type*} [Fintype κ] (f : κ → ι → ZMod 2)
       rw [Finset.sum_insert hi, cssPauliZ_add_vec _ _ _ (hw i) ih]
   exact h Finset.univ
 
+/-- Multiplication by the transpose of the X check matrix is the corresponding linear
+combination of its rows. -/
 private theorem rowX_as_sum (c : CssData ι κX κZ) (u : κX → ZMod 2) :
     c.hXᵀ *ᵥ u = ∑ i : κX, u i • c.hX i := by
   funext p
@@ -82,6 +120,8 @@ private theorem rowX_as_sum (c : CssData ι κX κZ) (u : κX → ZMod 2) :
   rw [h1, h2]
   exact Finset.sum_congr rfl fun x _ => mul_comm _ _
 
+/-- Multiplication by the transpose of the Z check matrix is the corresponding linear
+combination of its rows. -/
 private theorem rowZ_as_sum (c : CssData ι κX κZ) (v : κZ → ZMod 2) :
     c.hZᵀ *ᵥ v = ∑ j : κZ, v j • c.hZ j := by
   funext p
@@ -93,6 +133,7 @@ private theorem rowZ_as_sum (c : CssData ι κX κZ) (v : κZ → ZMod 2) :
   rw [h1, h2]
   exact Finset.sum_congr rfl fun x _ => mul_comm _ _
 
+/-- An X Pauli operator labeled by a vector in the X check row space fixes every code vector. -/
 theorem cssPauliX_row_eq_id (c : CssData ι κX κZ) (x : ι → ZMod 2)
     (hx : x ∈ LinearMap.range (Matrix.mulVecLin c.hXᵀ))
     (w : (ι → ZMod 2) → ℂ) (hw : w ∈ cssCodespace c) :
@@ -110,6 +151,7 @@ theorem cssPauliX_row_eq_id (c : CssData ι κX κZ) (x : ι → ZMod 2)
       exact hwX i
   exact cssPauliX_sum_vec (fun i => u i • c.hX i) w h
 
+/-- A Z Pauli operator labeled by a vector in the Z check row space fixes every code vector. -/
 theorem cssPauliZ_row_eq_id (c : CssData ι κX κZ) (z : ι → ZMod 2)
     (hz : z ∈ LinearMap.range (Matrix.mulVecLin c.hZᵀ))
     (w : (ι → ZMod 2) → ℂ) (hw : w ∈ cssCodespace c) :
@@ -127,6 +169,8 @@ theorem cssPauliZ_row_eq_id (c : CssData ι κX κZ) (z : ι → ZMod 2)
       exact hwZ j
   exact cssPauliZ_sum_vec (fun j => v j • c.hZ j) w h
 
+/-- A Pauli product whose two labels lie in their respective check row spaces fixes every code
+vector. -/
 theorem stabilizer_label_eq_id (c : CssData ι κX κZ) (x z : ι → ZMod 2)
     (hx : x ∈ LinearMap.range (Matrix.mulVecLin c.hXᵀ))
     (hz : z ∈ LinearMap.range (Matrix.mulVecLin c.hZᵀ))
@@ -135,6 +179,8 @@ theorem stabilizer_label_eq_id (c : CssData ι κX κZ) (x z : ι → ZMod 2)
   rw [← Matrix.mulVec_mulVec, cssPauliZ_row_eq_id c z hz w hw,
     cssPauliX_row_eq_id c x hx w hw]
 
+/-- A vector is fixed by a bit projector exactly when the underlying matrix acts with the
+selected phase. -/
 theorem cssCheckProjector_fixed_iff
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (b : ZMod 2) (v : (ι → ZMod 2) → ℂ) :
     cssCheckProjector S b *ᵥ v = v ↔ S *ᵥ v = phaseOfBit b • v := by
@@ -164,6 +210,7 @@ theorem cssCheckProjector_fixed_iff
       rw [h]
       module
 
+/-- The product of a list of matrices fixes a vector fixed by every matrix in the list. -/
 theorem list_prod_fixed
     (l : List (Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ)) (v : (ι → ZMod 2) → ℂ)
     (h : ∀ S ∈ l, S *ᵥ v = v) : l.prod *ᵥ v = v := by
@@ -173,6 +220,7 @@ theorem list_prod_fixed
     rw [List.prod_cons, ← Matrix.mulVec_mulVec,
       ih (fun T hT => h T (List.mem_cons_of_mem _ hT)), h S (by simp)]
 
+/-- A bit projector of an involution is idempotent. -/
 theorem cssCheckProjector_idem
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (hS : S * S = 1) (b : ZMod 2) :
     cssCheckProjector S b * cssCheckProjector S b = cssCheckProjector S b := by
@@ -182,20 +230,24 @@ theorem cssCheckProjector_idem
       Matrix.smul_mul, Matrix.mul_smul, smul_smul, add_mul, mul_add, neg_mul, mul_neg,
       neg_neg, one_mul, mul_one, hS] <;> norm_num <;> module
 
+/-- Any two X Pauli matrices commute. -/
 theorem cssPauliX_comm (x y : ι → ZMod 2) :
     cssPauliX x * cssPauliX y = cssPauliX y * cssPauliX x := by
   rw [cssPauliX_mul, cssPauliX_mul, add_comm]
 
+/-- Any two Z Pauli matrices commute. -/
 theorem cssPauliZ_comm (x y : ι → ZMod 2) :
     cssPauliZ x * cssPauliZ y = cssPauliZ y * cssPauliZ x := by
   rw [cssPauliZ_mul, cssPauliZ_mul, add_comm]
 
+/-- An X check and a Z check of a CSS code commute. -/
 theorem cssCheck_cross_comm (c : CssData ι κX κZ) (i : κX) (j : κZ) :
     cssPauliX (c.hX i) * cssPauliZ (c.hZ j) = cssPauliZ (c.hZ j) * cssPauliX (c.hX i) := by
   have h : bitDot (c.hX i) (c.hZ j) = 0 := by
     simpa [bitDot, dotProduct, Matrix.mul_apply] using congrFun (congrFun c.hcompat i) j
   rw [cssPauliXZ_comm, bitDot_comm, h, phaseOfBit_zero, one_smul]
 
+/-- Any two CSS check matrices commute. -/
 theorem cssCheck_commute (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) :
     cssCheck c k * cssCheck c k' = cssCheck c k' * cssCheck c k := by
   cases k with
@@ -208,6 +260,7 @@ theorem cssCheck_commute (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) :
     | inl i => exact (cssCheck_cross_comm c i j).symm
     | inr j' => exact cssPauliZ_comm (c.hZ j) (c.hZ j')
 
+/-- Bit projectors formed from two commuting matrices commute. -/
 theorem cssCheckProjector_comm
     (S T : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (b b' : ZMod 2)
     (h : S * T = T * S) :
@@ -224,6 +277,8 @@ theorem cssCheckProjector_comm
   rw [h1]
   simp only [add_assoc, add_comm, add_left_comm, mul_one, one_mul]
 
+/-- A selected bit projector absorbs a product containing it when its matrix is an involution
+commuting with all listed matrices. -/
 theorem cssCheckProjector_absorb_list
     (l : List (Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ))
     (f : (Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) → ZMod 2)
@@ -259,12 +314,15 @@ theorem cssCheckProjector_absorb_list
         _ = cssCheckProjector T (f T) * (l.map fun T => cssCheckProjector T (f T)).prod := by
               rw [ih hmem' (fun U hU => hcomm U (List.mem_cons_of_mem _ hU))]
 
+/-- Each CSS check squares to the identity. -/
 theorem cssCheck_square (c : CssData ι κX κZ) (k : κX ⊕ κZ) :
     cssCheck c k * cssCheck c k = 1 := by
   cases k with
   | inl i => exact cssPauliX_self_mul (c.hX i)
   | inr j => exact cssPauliZ_self_mul (c.hZ j)
 
+/-- A bit projector absorbs an indexed product containing it when its underlying matrix is an
+involution commuting with every indexed factor. -/
 theorem cssCheckProjector_absorb_map
     {κ : Type*} (l : List κ) (g : κ → Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (f : κ → ZMod 2)
     (k : κ) (hk : k ∈ l) (hS : g k * g k = 1)
@@ -299,6 +357,7 @@ theorem cssCheckProjector_absorb_map
         _ = cssCheckProjector (g j) (f j) * (l.map fun j => cssCheckProjector (g j) (f j)).prod := by
               rw [ih hk' (fun U hU => hcomm U (List.mem_cons_of_mem _ hU))]
 
+/-- Each check projector selected by a syndrome absorbs that syndrome projector. -/
 theorem cssSyndromeProjector_absorb (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (k : κX ⊕ κZ) :
     cssCheckProjector (cssCheck c k) (Sum.elim η.1 η.2 k) * cssSyndromeProjector c η =
@@ -311,12 +370,15 @@ theorem cssSyndromeProjector_absorb (c : CssData ι κX κZ)
   · intro j _
     exact cssCheck_commute c j k
 
+/-- A Pauli product squares to the identity multiplied by the phase of the binary pairing of its
+labels. -/
 theorem pauli_square (x z : ι → ZMod 2) :
     (cssPauliX x * cssPauliZ z) * (cssPauliX x * cssPauliZ z) =
       phaseOfBit (bitDot z x) • 1 := by
   rw [cssPauliXZ_mul, binary_add_self, binary_add_self,
     cssPauliX_zero, cssPauliZ_zero, one_mul]
 
+/-- The Hamming weight of a one-bit vector is zero for the zero vector and one otherwise. -/
 theorem bitWeight_fin1 (z : Fin 1 → ZMod 2) :
     bitWeight z = if z = 0 then 0 else 1 := by
   classical
@@ -349,6 +411,7 @@ theorem bitWeight_fin1 (z : Fin 1 → ZMod 2) :
       simp
     rw [if_neg h, bitWeight, hcard]
 
+/-- The CSS code on one qubit with no X checks and no Z checks. -/
 def oneQubitEmptyCss : CssData (Fin 1) (Fin 0) (Fin 0) where
   hX := 0
   hZ := 0
@@ -356,10 +419,12 @@ def oneQubitEmptyCss : CssData (Fin 1) (Fin 0) (Fin 0) where
     ext
     simp
 
+/-- A nonzero one-bit vector has Hamming weight one. -/
 theorem bitWeight_fin1_ne_zero {z : Fin 1 → ZMod 2} (hz : z ≠ 0) :
     bitWeight z = 1 := by
   rw [bitWeight_fin1, if_neg hz]
 
+/-- The linear map from the empty coordinate space into the one-bit space has zero range. -/
 theorem range_mulVecLin_emptyZ :
     LinearMap.range (Matrix.mulVecLin (0 : Matrix (Fin 1) (Fin 0) (ZMod 2))) = ⊥ := by
   have h : Matrix.mulVecLin (0 : Matrix (Fin 1) (Fin 0) (ZMod 2)) = 0 := by
@@ -367,11 +432,13 @@ theorem range_mulVecLin_emptyZ :
     simp
   rw [h, LinearMap.range_zero]
 
+/-- The transpose of the empty X check matrix has zero range. -/
 theorem range_mulVecLin_emptyX :
     LinearMap.range (Matrix.mulVecLin ((0 : Matrix (Fin 0) (Fin 1) (ZMod 2))ᵀ)) = ⊥ := by
   rw [Matrix.transpose_zero]
   exact range_mulVecLin_emptyZ
 
+/-- The one-qubit CSS code with no checks has distance one. -/
 theorem oneQubitEmptyCss_distance :
     cssDistance oneQubitEmptyCss = 1 := by
   classical
@@ -408,6 +475,8 @@ theorem oneQubitEmptyCss_distance :
   rw [hzset]
   simp
 
+/-- If a Pauli weight differs from `w`, no scalar can satisfy the conjunction of scalar action
+and equality of that weight to `w` for every code vector. -/
 theorem not_exists_scalar_of_weight_ne
     (c : CssData ι κX κZ) (x z : ι → ZMod 2) (w : ℕ∞)
     (hne : (pauliWeight x z : ℕ∞) ≠ w) :
@@ -419,6 +488,8 @@ theorem not_exists_scalar_of_weight_ne
   have := hφ ⟨0, h0⟩
   exact hne this.2
 
+/-- For the one-qubit code with no checks, the infimum in the distance expression with weight
+equality inside the negated scalar condition is zero. -/
 theorem frozenDistSet_oneQubitEmpty_sInf :
     (sInf {w : ℕ∞ | ∃ (x z : Fin 1 → ZMod 2),
         oneQubitEmptyCss.hX *ᵥ z = 0 ∧ oneQubitEmptyCss.hZ *ᵥ x = 0 ∧
@@ -469,6 +540,8 @@ theorem frozenDistSet_oneQubitEmpty_sInf :
   rw [heq]
   exact sInf_univ
 
+/-- The one-qubit code with no checks has distance different from the infimum defined with
+weight equality inside the negated scalar condition. -/
 theorem frozenDistance_counterexample :
     cssDistance oneQubitEmptyCss ≠
       sInf {w : ℕ∞ | ∃ (x z : Fin 1 → ZMod 2),
@@ -480,6 +553,7 @@ theorem frozenDistance_counterexample :
   rw [oneQubitEmptyCss_distance, frozenDistSet_oneQubitEmpty_sInf]
   norm_num
 
+/-- A check acts on a syndrome projector by its selected syndrome phase. -/
 theorem cssCheck_mul_syndrome (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (k : κX ⊕ κZ) :
     cssCheck c k * cssSyndromeProjector c η =
@@ -519,12 +593,14 @@ theorem cssCheck_mul_syndrome (c : CssData ι κX κZ)
   rw [Matrix.smul_mul, smul_smul, hφ, one_smul] at h
   exact h
 
+/-- Every element of `ZMod 2` adds to itself to give zero. -/
 theorem zmod2_add_self (b : ZMod 2) : b + b = 0 := by
   have h2 : (2 : ZMod 2) = 0 := by decide
   calc b + b = (2 : ZMod 2) * b := by ring
     _ = 0 * b := by rw [h2]
     _ = 0 := by ring
 
+/-- Two binary elements whose sum is zero are equal. -/
 theorem zmod2_eq_of_add_eq_zero {a b : ZMod 2} (h : a + b = 0) : a = b := by
   calc a = a + 0 := by ring
     _ = a + (b + b) := by rw [zmod2_add_self b]
@@ -532,6 +608,7 @@ theorem zmod2_eq_of_add_eq_zero {a b : ZMod 2} (h : a + b = 0) : a = b := by
     _ = 0 + b := by rw [h]
     _ = b := by ring
 
+/-- The product of two Pauli products has zero trace unless both pairs of labels sum to zero. -/
 theorem cssPauliXZ_mul_trace (x z u v : ι → ZMod 2)
     (h : ¬(x + u = 0 ∧ z + v = 0)) :
     Matrix.trace ((cssPauliX x * cssPauliZ z) * (cssPauliX u * cssPauliZ v)) = 0 := by
@@ -547,6 +624,8 @@ noncomputable local instance : Fintype
 noncomputable local instance : Fintype
     ↥(LinearMap.range (Matrix.mulVecLin c.hZᵀ)) := Fintype.ofFinite _
 
+/-- A vector in the Z check row space is orthogonal, under `bitDot`, to a vector in the X check
+row space. -/
 private theorem rows_orthogonal (u : ι → ZMod 2)
     (hu : u ∈ LinearMap.range (Matrix.mulVecLin c.hXᵀ))
     (v : ι → ZMod 2) (hv : v ∈ LinearMap.range (Matrix.mulVecLin c.hZᵀ)) :
@@ -562,21 +641,27 @@ private theorem rows_orthogonal (u : ι → ZMod 2)
   rw [dotProduct_mulVec, Matrix.mulVec_transpose, Matrix.vecMul_vecMul, hc]
   simp
 
+/-- Multiplying the transposed X check matrix by a coordinate unit vector selects the
+corresponding check row. -/
 private theorem transpose_mulVec_single (i : κX) :
     c.hXᵀ *ᵥ (Pi.single i (1 : ZMod 2)) = c.hX i := by
   funext p
   simp [Matrix.mulVec, dotProduct, Matrix.transpose_apply, Pi.single_apply]
 
+/-- Multiplying the transposed Z check matrix by a coordinate unit vector selects the
+corresponding check row. -/
 private theorem transpose_mulVec_single_Z (j : κZ) :
     c.hZᵀ *ᵥ (Pi.single j (1 : ZMod 2)) = c.hZ j := by
   funext p
   simp [Matrix.mulVec, dotProduct, Matrix.transpose_apply, Pi.single_apply]
 
+/-- The sum of Pauli products over the X and Z check row spaces. -/
 noncomputable def stabilizerSum : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ :=
   ∑ p : ↥(LinearMap.range (Matrix.mulVecLin c.hXᵀ)) ×
       ↥(LinearMap.range (Matrix.mulVecLin c.hZᵀ)),
     cssPauliX (p.1 : ι → ZMod 2) * cssPauliZ (p.2 : ι → ZMod 2)
 
+/-- Left multiplication by an X check leaves the stabilizer sum unchanged. -/
 theorem cssPauliX_row_mul_stabilizerSum (i : κX) :
     cssPauliX (c.hX i) * stabilizerSum c = stabilizerSum c := by
   classical
@@ -595,6 +680,7 @@ theorem cssPauliX_row_mul_stabilizerSum (i : κX) :
   rw [← mul_assoc, cssPauliX_mul]
   simp only [hb, Prod.fst_add, Prod.snd_add, Submodule.coe_add, zero_add]
 
+/-- Left multiplication by a Z check leaves the stabilizer sum unchanged. -/
 theorem cssPauliZ_row_mul_stabilizerSum (j : κZ) :
     cssPauliZ (c.hZ j) * stabilizerSum c = stabilizerSum c := by
   classical
@@ -616,6 +702,7 @@ theorem cssPauliZ_row_mul_stabilizerSum (j : κZ) :
     phaseOfBit_zero, one_smul, mul_assoc, cssPauliZ_mul]
   simp only [hb, Prod.fst_add, Prod.snd_add, Submodule.coe_add, add_zero, add_comm (c.hZ j)]
 
+/-- Applying the stabilizer sum to any vector yields a vector in the CSS codespace. -/
 theorem stabilizerSum_mem_codespace (w : (ι → ZMod 2) → ℂ) :
     stabilizerSum c *ᵥ w ∈ cssCodespace c := by
   rw [mem_cssCodespace_iff]
@@ -627,6 +714,7 @@ theorem stabilizerSum_mem_codespace (w : (ι → ZMod 2) → ℂ) :
     show cssPauliZ (c.hZ j) *ᵥ (stabilizerSum c *ᵥ w) = _
     rw [Matrix.mulVec_mulVec, cssPauliZ_row_mul_stabilizerSum c j]
 
+/-- Applying a matrix to a coordinate unit vector selects the corresponding matrix column. -/
 private theorem mulVec_single_entry (M : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ)
     (a b : ι → ZMod 2) :
     (M *ᵥ Pi.single b 1) a = M a b := by
@@ -634,6 +722,7 @@ private theorem mulVec_single_entry (M : Matrix (ι → ZMod 2) (ι → ZMod 2) 
 
 omit [DecidableEq κX] [DecidableEq κZ] in
 
+/-- The stabilizer sum has nonzero trace. -/
 theorem stabilizerSum_trace_ne_zero : Matrix.trace (stabilizerSum c) ≠ 0 := by
   classical
   rw [stabilizerSum, Matrix.trace_sum]
@@ -652,6 +741,8 @@ theorem stabilizerSum_trace_ne_zero : Matrix.trace (stabilizerSum c) ≠ 0 := by
 
 omit [DecidableEq κX] [DecidableEq κZ] in
 
+/-- A Pauli product with X label outside the X check row space has zero trace after
+multiplication by the stabilizer sum. -/
 theorem pauli_mul_stabilizerSum_trace_left (x z : ι → ZMod 2)
     (hnx : x ∉ LinearMap.range (Matrix.mulVecLin c.hXᵀ)) :
     Matrix.trace ((cssPauliX x * cssPauliZ z) * stabilizerSum c) = 0 := by
@@ -671,6 +762,8 @@ theorem pauli_mul_stabilizerSum_trace_left (x z : ι → ZMod 2)
 
 omit [DecidableEq κX] [DecidableEq κZ] in
 
+/-- A Pauli product with Z label outside the Z check row space has zero trace after
+multiplication by the stabilizer sum. -/
 theorem pauli_mul_stabilizerSum_trace_right (x z : ι → ZMod 2)
     (hnz : z ∉ LinearMap.range (Matrix.mulVecLin c.hZᵀ)) :
     Matrix.trace ((cssPauliX x * cssPauliZ z) * stabilizerSum c) = 0 := by
@@ -688,6 +781,8 @@ theorem pauli_mul_stabilizerSum_trace_right (x z : ι → ZMod 2)
   rw [hv']
   exact (zmod2_eq_of_add_eq_zero hj).symm
 
+/-- If a Pauli product acts by a scalar on every code vector, it multiplies the stabilizer sum
+by the same scalar. -/
 theorem pauli_mul_stabilizerSum (x z : ι → ZMod 2) (φ : ℂ)
     (hφ : ∀ v : cssCodespace c,
       (cssPauliX x * cssPauliZ z) *ᵥ (v : (ι → ZMod 2) → ℂ) =
@@ -704,6 +799,8 @@ theorem pauli_mul_stabilizerSum (x z : ι → ZMod 2) (φ : ℂ)
     ← mulVec_single_entry (φ • stabilizerSum c) a b,
     hact (Pi.single b 1), Matrix.smul_mulVec]
 
+/-- Scalar action of a Pauli product on the CSS codespace forces both labels to belong to their
+corresponding check row spaces. -/
 theorem mem_rowspace_of_scalar_action (c : CssData ι κX κZ) (x z : ι → ZMod 2) (φ : ℂ)
     (hφ : ∀ v : cssCodespace c,
       (cssPauliX x * cssPauliZ z) *ᵥ (v : (ι → ZMod 2) → ℂ) =
@@ -739,6 +836,8 @@ theorem mem_rowspace_of_scalar_action (c : CssData ι κX κZ) (x z : ι → ZMo
 
 end StabilizerSum
 
+/-- A Pauli product acts by some scalar on the CSS codespace exactly when both labels belong to
+their corresponding check row spaces; see [Gottesman1997]. -/
 theorem scalar_action_iff_mem_rowspace (c : CssData ι κX κZ) (x z : ι → ZMod 2) :
     (x ∈ LinearMap.range (Matrix.mulVecLin c.hXᵀ) ∧
       z ∈ LinearMap.range (Matrix.mulVecLin c.hZᵀ)) ↔
@@ -752,6 +851,10 @@ theorem scalar_action_iff_mem_rowspace (c : CssData ι κX κZ) (x z : ι → ZM
     exact stabilizer_label_eq_id c x z hx' hz' _ v.property
   · exact fun ⟨φ, hφ⟩ => mem_rowspace_of_scalar_action c x z φ hφ
 
+/-- For labels satisfying the CSS commutation equations, failure of joint row-space membership
+is equivalent to nonscalar action on the codespace. The CSS distance is the infimum of
+weights of such commuting Pauli products with nonscalar action, as in the stabilizer
+framework of [Gottesman1997]. -/
 theorem logicalNonscalarRestriction :
     ∀ {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
       [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ]

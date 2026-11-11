@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
 import Mathlib.Analysis.Asymptotics.Defs
+
+/-!
+# Asymptotic rates for finite moments
+
+This module extracts the constant, logarithmic, and power growth regimes of finite uniform-grid
+coefficient moments. The piecewise `rate` sharpens `momentGrowth` as the Gaussian scale tends to
+infinity, for the quadrature analysis associated with [AftabAnTrivisa2026].
+
+## Main statements
+
+* `growth_le_rate`: domination of the moment growth factor by its asymptotic rate.
+* `finite_moment_isBigO`: the resulting finite-moment asymptotic bound.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,9 +36,12 @@ open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
 
+/-- The piecewise moment rate: one below `ν = n`, `log (1 + c)` at equality, and `c^(ν - n)`
+above equality. -/
 def rate (n : ℕ) (ν c : ℝ) : ℝ :=
   if ν < n then 1 else if ν = n then Real.log (1 + c) else c ^ (ν - n)
 
+/-- The piecewise moment rate is positive for `c ≥ 1`. -/
 theorem rate_pos (n : ℕ) (ν : ℝ) {c : ℝ} (hc : 1 ≤ c) : 0 < rate n ν c := by
   unfold rate
   split_ifs
@@ -28,6 +49,8 @@ theorem rate_pos (n : ℕ) (ν : ℝ) {c : ℝ} (hc : 1 ≤ c) : 0 < rate n ν c
   · exact Real.log_pos (by linarith)
   · exact Real.rpow_pos_of_pos (by linarith) _
 
+/-- The growth function `momentGrowth` is bounded by a positive constant times `rate` uniformly
+for `c ≥ 1`. -/
 theorem growth_le_rate (n : ℕ) (ν : ℝ) :
     ∃ D : ℝ, 0 < D ∧ ∀ c : ℝ, 1 ≤ c → momentGrowth n ν c ≤ D * rate n ν c := by
   let D := max 2 (1 + 1 / Real.log 2)
@@ -50,6 +73,9 @@ theorem growth_le_rate (n : ℕ) (ν : ℝ) :
       _ ≤ 2 * c ^ (ν - n) := by linarith
       _ ≤ _ := mul_le_mul_of_nonneg_right (le_max_left _ _) (by positivity)
 
+/-- For fixed positive `b` and nonnegative moment order, finite quadrature moments are
+`O(kernelScale * rate)` as `c` tends to infinity when the mesh step is eventually in `(0,
+1]`; see [AftabAnTrivisa2026]. -/
 theorem finite_moment_isBigO (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν)
     (d h R : ℝ → ℝ) (hh : ∀ᶠ c : ℝ in atTop, 0 < h c)
     (hh1 : ∀ᶠ c : ℝ in atTop, h c ≤ 1) :

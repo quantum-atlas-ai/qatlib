@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalPiApproximation
 import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+
+/-!
+# Numerical dyadic phase circuits
+
+`numericalDyadicPhase` uses rational approximations to pi and repeated Cayley-phase squaring to
+approximate dyadic complex phases while retaining exact unit modulus. `numericalGateMatrix`
+replaces controlled phases in local QFT words while preserving the Hadamard and swap gates, in
+the Fourier-circuit setting of [NielsenChuang2010].
+
+The module proves a per-gate error of at most `2^(-k)`, a word error bounded by the gate count
+times this quantity, exact circuit counts, and explicit arithmetic term and squaring counters.
+
+## Main statements
+
+* `numerical_dyadic_phase_exact_unitarity_and_error`: combine exact unit modulus with a dyadic
+  phase-error bound.
+* `numericalProgramMatrix_error`: bound accumulated operator error for a gate word.
+* `numerical_dyadic_program_actual_error_and_counts`: bound state error and give exact gate and
+  query counts.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
@@ -28,12 +53,16 @@ open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedVariables false
 
+/-- The signed rational approximation to `2 * pi / 2^j` obtained from `piRatApprox (k + 4)`. -/
 def numericalPhaseRat (j : ℕ) (neg : Bool) (k : ℕ) : ℚ :=
   (if neg then (-1 : ℚ) else (1 : ℚ)) * (2 * piRatApprox (k + 4)) / ((2 ^ j : ℕ) : ℚ)
 
+/-- A Gaussian rational phase formed by a counted Cayley approximation to one eighth of the
+target angle followed by three squarings. -/
 def numericalDyadicPhase (j : ℕ) (neg : Bool) (k : ℕ) : GaussianRat :=
   (squareLoop (countedCayleyPhase (numericalPhaseRat j neg k / 8) (k + 4)).1 3).1
 
+/-- Rewrite the eightfold Cayley-angle error as a scaled arctangent remainder. -/
 private theorem cayley_eighth_factor (x : ℚ) (k : ℕ) :
     8 * rationalCayleyAngle (x : ℝ) (k + 4) - 8 * (x : ℝ)
       = 16 * ((2 ^ (k + 4) : ℕ) : ℝ)
@@ -46,6 +75,8 @@ private theorem cayley_eighth_factor (x : ℚ) (k : ℕ) :
   field_simp
   ring
 
+/-- For a rational input of absolute value at most one, the eightfold Cayley-angle error is at
+most `2^(-k) / 384`. -/
 private theorem cayley_eighth_error (x : ℚ) (k : ℕ) (hx : |(x : ℝ)| ≤ 1) :
     |8 * rationalCayleyAngle (x : ℝ) (k + 4) - 8 * (x : ℝ)|
       ≤ ((2 : ℝ) ⁻¹) ^ k / 384 := by
@@ -114,6 +145,8 @@ private theorem cayley_eighth_error (x : ℚ) (k : ℕ) (hx : |(x : ℝ)| ≤ 1)
     abs_of_pos (by positivity : (0 : ℝ) < 16 * ((2 ^ (k + 4) : ℕ) : ℝ))]
   exact h1.trans h2
 
+/-- Scaling a rational approximation to pi by `2 / 2^j` gives absolute error at most twice the
+original error bound. -/
 private theorem scaled_pi_error (r : ℚ) (j : ℕ) {ε : ℝ} (h : |((r : ℝ)) - Real.pi| ≤ ε) :
     |((2 : ℝ)) * (r : ℝ) / ((2 ^ j : ℕ) : ℝ)
       - 2 * Real.pi / ((2 ^ j : ℕ) : ℝ)| ≤ 2 * ε := by
@@ -129,6 +162,8 @@ private theorem scaled_pi_error (r : ℚ) (j : ℕ) {ε : ℝ} (h : |((r : ℝ))
         _root_.div_le_self (by positivity) hc
     _ ≤ 2 * ε := mul_le_mul_of_nonneg_left h (by norm_num : (0 : ℝ) ≤ 2)
 
+/-- The angle derived from `numericalPhaseRat` differs from the target dyadic phase angle by at
+most `2^(-(k + 5))`. -/
 private theorem numerical_phase_angle_deviation (j k : ℕ) (neg : Bool) :
     |8 * ((numericalPhaseRat j neg k / 8 : ℚ) : ℝ) - dyadicPhaseAngle j neg|
       ≤ ((2 : ℝ) ⁻¹) ^ (k + 5) := by
@@ -183,6 +218,8 @@ private theorem numerical_phase_angle_deviation (j k : ℕ) (neg : Bool) :
             - 2 * Real.pi / ((2 ^ j : ℕ) : ℝ)) from by ring, abs_neg]
       exact hdev
 
+/-- The numerical Gaussian rational phase has norm exactly one and differs from the target
+dyadic exponential by at most `2^(-k)`. -/
 theorem numerical_dyadic_phase_exact_unitarity_and_error (j k : ℕ) (neg : Bool) :
     ‖gaussianRatComplex (numericalDyadicPhase j neg k)‖ = 1 ∧
     ‖gaussianRatComplex (numericalDyadicPhase j neg k)
@@ -272,6 +309,8 @@ theorem numerical_dyadic_phase_exact_unitarity_and_error (j k : ℕ) (neg : Bool
   rw [hsquare, hexp8]
   exact htri
 
+/-- Interpret a local QFT gate using the numerical dyadic phase for controlled-phase gates and
+the exact matrix for Hadamard and swap gates. -/
 noncomputable def numericalGateMatrix {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
     Matrix (Reg n) (Reg n) ℂ :=
   match g with
@@ -280,6 +319,8 @@ noncomputable def numericalGateMatrix {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
   | .cp a c e neg => Matrix.diagonal fun x =>
       if x a && x c then gaussianRatComplex (numericalDyadicPhase e neg k) else 1
 
+/-- The numerical controlled-phase error is diagonal, with the scalar phase error on basis
+states where both selected bits are true and zero elsewhere. -/
 theorem numericalGateMatrix_cp_sub (n : ℕ) (k : ℕ) (a c : Fin n) (e : ℕ) (neg : Bool) :
     numericalGateMatrix k (.cp a c e neg) - localGateMatrix (.cp a c e neg)
       = Matrix.diagonal fun x : Reg n =>
@@ -293,6 +334,7 @@ theorem numericalGateMatrix_cp_sub (n : ℕ) (k : ℕ) (a c : Fin n) (e : ℕ) (
   · rw [if_pos h, if_pos h, if_pos h]
   · rw [if_neg h, if_neg h, if_neg h, sub_self]
 
+/-- Every numerical local QFT gate matrix is exactly unitary. -/
 theorem numericalGateMatrix_unitary {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
     numericalGateMatrix k g ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   cases g with
@@ -312,6 +354,8 @@ theorem numericalGateMatrix_unitary {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
       · rw [Pi.star_apply, if_neg h]
         simp
 
+/-- Each numerical local QFT gate matrix differs from its exact matrix in operator norm by at
+most `2^(-k)`. -/
 theorem numericalGateMatrix_error {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
     ‖numericalGateMatrix k g - localGateMatrix g‖ ≤ ((2 : ℝ) ⁻¹) ^ k := by
   cases g with
@@ -327,23 +371,31 @@ theorem numericalGateMatrix_error {n : ℕ} (k : ℕ) (g : LocalQFTGate n) :
       · rw [if_neg h, norm_zero]
         positivity
 
+/-- Compile a local QFT gate word into fixed circuit gates using numerical gate matrices at
+precision `k`. -/
 noncomputable def numericalDyadicCircuit {n : ℕ} (k : ℕ) (gs : List (LocalQFTGate n)) :
     Circuit (Reg n) :=
   gs.map (fun g => Step.gate (numericalGateMatrix k g))
 
+/-- The matrix of a numerical local gate word, recursively multiplying each successive gate on
+the left in execution order. -/
 noncomputable def numericalProgramMatrix {n : ℕ} (k : ℕ) :
     List (LocalQFTGate n) → Matrix (Reg n) (Reg n) ℂ
   | [] => 1
   | g :: gs => numericalProgramMatrix k gs * numericalGateMatrix k g
 
+/-- Compiling the empty numerical gate word gives the empty circuit. -/
 @[simp] theorem numericalDyadicCircuit_nil {n : ℕ} (k : ℕ) :
     numericalDyadicCircuit k ([] : List (LocalQFTGate n)) = [] := rfl
 
+/-- Compiling a nonempty word places its numerical head gate before the compiled tail. -/
 @[simp] theorem numericalDyadicCircuit_cons {n : ℕ} (k : ℕ) (g : LocalQFTGate n)
     (gs : List (LocalQFTGate n)) :
     numericalDyadicCircuit k (g :: gs) =
       Step.gate (numericalGateMatrix k g) :: numericalDyadicCircuit k gs := rfl
 
+/-- The numerical circuit acts by its program matrix, has unitary gates and unitary program
+matrix, uses no queries, and has one gate per word letter. -/
 theorem numericalDyadicProgram_run (n k : ℕ) (gs : List (LocalQFTGate n))
     (ψ : QState (Reg n)) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (numericalDyadicCircuit k gs) ψ =
@@ -392,6 +444,7 @@ theorem numericalDyadicProgram_run (n k : ℕ) (gs : List (LocalQFTGate n))
     | cons g gs ih => simp [ih]
   exact ⟨run gs ψ, wellFormed gs, unitary gs, queryCount gs, gateCount gs⟩
 
+/-- The numerical program matrix is the product of the reversed list of numerical gate matrices. -/
 theorem numericalProgramMatrix_eq_reverse_prod {n : ℕ} (k : ℕ)
     (gs : List (LocalQFTGate n)) :
     numericalProgramMatrix k gs = (gs.reverse.map (numericalGateMatrix k)).prod := by
@@ -400,6 +453,7 @@ theorem numericalProgramMatrix_eq_reverse_prod {n : ℕ} (k : ℕ)
   | cons g gs ih =>
     simp [numericalProgramMatrix, List.reverse_cons, List.map_append, List.prod_append, ih]
 
+/-- The operator error of a numerical gate word is at most its length times `2^(-k)`. -/
 theorem numericalProgramMatrix_error {n : ℕ} (k : ℕ) :
     ∀ gs : List (LocalQFTGate n),
     ‖numericalProgramMatrix k gs - localProgramMatrix gs‖
@@ -413,6 +467,8 @@ theorem numericalProgramMatrix_error {n : ℕ} (k : ℕ) :
       (fun g _ => l2_norm_unitary_le_one (localGateMatrix_unitary g))
       (fun g _ => numericalGateMatrix_error k g)
 
+/-- A numerical local QFT circuit is unitary, has zero queries and one gate per letter, and
+approximates the exact action on normalized inputs within `length * 2^(-k)`. -/
 theorem numerical_dyadic_program_actual_error_and_counts :
     ∀ (n k : ℕ) (gs : List (LocalQFTGate n)),
     IsUnitaryCircuit (numericalDyadicCircuit k gs) ∧
@@ -439,11 +495,15 @@ theorem numerical_dyadic_program_actual_error_and_counts :
         rw [(normalized_iff_norm_toEuclidean_fromVec ψ).mp hψ, mul_one]
     _ ≤ (gs.length : ℝ) * ((2 : ℝ) ⁻¹) ^ k := numericalProgramMatrix_error k gs
 
+/-- The numerical phase squaring counter `(k + 4) + 3`. -/
 def numericalPhaseSquarings (k : ℕ) : ℕ := (k + 4) + 3
 
+/-- The numerical phase squaring counter equals `k + 7`. -/
 @[simp] theorem numericalPhaseSquarings_eq (k : ℕ) :
     numericalPhaseSquarings k = k + 7 := rfl
 
+/-- Sum twice the phase squaring count for each controlled-phase gate, with zero contribution
+from other gate types. -/
 def numericalDyadicTermCount {n : ℕ} (k : ℕ) : List (LocalQFTGate n) → ℕ
   | [] => 0
   | g :: gs => numericalDyadicTermCount k gs +
@@ -451,6 +511,8 @@ def numericalDyadicTermCount {n : ℕ} (k : ℕ) : List (LocalQFTGate n) → ℕ
        | .cp _ _ _ _ => 2 * numericalPhaseSquarings k
        | _ => 0)
 
+/-- Sum the phase squaring count for each controlled-phase gate, with zero contribution from
+other gate types. -/
 def numericalDyadicSquaringCount {n : ℕ} (k : ℕ) : List (LocalQFTGate n) → ℕ
   | [] => 0
   | g :: gs => numericalDyadicSquaringCount k gs +
@@ -458,6 +520,7 @@ def numericalDyadicSquaringCount {n : ℕ} (k : ℕ) : List (LocalQFTGate n) →
        | .cp _ _ _ _ => numericalPhaseSquarings k
        | _ => 0)
 
+/-- The numerical term counter is `2 * (k + 7)` times the number of controlled-phase gates. -/
 theorem numericalDyadicTermCount_eq {n : ℕ} (k : ℕ) :
     ∀ gs : List (LocalQFTGate n),
     numericalDyadicTermCount k gs = 2 * (k + 7) * gs.countP
@@ -493,6 +556,7 @@ theorem numericalDyadicTermCount_eq {n : ℕ} (k : ℕ) :
               = List.countP (fun g => match g with | .cp _ _ _ _ => true | _ => false) gs := rfl
           rw [hunf, ih, hc]
 
+/-- The numerical squaring counter is `k + 7` times the number of controlled-phase gates. -/
 theorem numericalDyadicSquaringCount_eq {n : ℕ} (k : ℕ) :
     ∀ gs : List (LocalQFTGate n),
     numericalDyadicSquaringCount k gs = (k + 7) * gs.countP

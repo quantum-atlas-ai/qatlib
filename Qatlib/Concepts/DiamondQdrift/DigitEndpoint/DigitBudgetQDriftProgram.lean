@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.EffectiveInput.EffectiveQuantizerExactScaleCamp
 import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+
+/-!
+# Digit budgets for qDRIFT compilation
+
+This module constructs `digitBudgetQDriftData` from rational lower approximations to coefficient
+magnitudes and sign flags. It bounds the number of digit reads, the coefficient table error, and
+the simulation step count.
+
+`digitBudgetQDrift_reference_error` bounds the actual finite coin implementation uniformly over
+reference systems, giving an effective input version of the qDRIFT setting of [Campbell2019].
+
+## Main statements
+
+* `digitBudgetQDriftData_spec`: digit access, precision, and step count guarantees.
+* `digitBudgetQDrift_reference_error`: trace norm error at most `ε` times the input trace norm.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +48,8 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Finite compilation data containing coefficient precision, stored digits, a signed table,
+integer weights, digit reads, steps, rejection fuel, and base time. -/
 structure DigitBudgetQDriftData (L : ℕ) where
   precision : ℕ
   digits : List ℚ
@@ -37,6 +60,8 @@ structure DigitBudgetQDriftData (L : ℕ) where
   fuel : ℕ
   baseTime : ℚ
 
+/-- Construct qDRIFT compilation data from one rational digit column, sign flags, rational time,
+and rational error tolerance. -/
 def digitBudgetQDriftData {L : ℕ} (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool)
     (t ε : ℚ) : DigitBudgetQDriftData L :=
   let k := Nat.clog 2 (Nat.ceil (16 * (L : ℚ) * |t| / ε))
@@ -57,12 +82,18 @@ def digitBudgetQDriftData {L : ℕ} (q : Fin L → ℕ → ℚ) (sgn : Fin L →
     fuel := fairQdriftFuel n s
     baseTime := t / (2 : ℚ) ^ k }
 
+/-- The branch evolution time obtained by multiplying the stored base time by total weight and
+dividing by the step count. -/
 def digitBudgetQDriftBranchTime {L : ℕ} (r : DigitBudgetQDriftData L) : ℚ :=
   r.baseTime * (weightTotal r.weights : ℚ) / (r.steps : ℚ)
 
+/-- The natural ceiling of a rational number is unchanged when the rational is cast to the
+reals. -/
 private theorem natCeilRatCast (x : ℚ) : Nat.ceil (x : ℝ) = Nat.ceil x := by
   rw [← Int.ceil_toNat, ← Int.ceil_toNat, Rat.ceil_cast]
 
+/-- For positive `ε`, the selected binary precision satisfies `16 * L * |t| ≤ ε * 2 ^ k` over
+the rationals. -/
 private theorem precision_pow_bound (L : ℕ) (t ε : ℚ) (hε : 0 < ε) :
     16 * (L : ℚ) * |t| ≤ ε * (2 : ℚ) ^
       (Nat.clog 2 (Nat.ceil (16 * (L : ℚ) * |t| / ε))) := by
@@ -75,12 +106,16 @@ private theorem precision_pow_bound (L : ℕ) (t ε : ℚ) (hε : 0 < ε) :
   rw [div_le_iff₀ hε] at hc
   exact hc.trans_eq (mul_comm _ _)
 
+/-- The selected binary precision satisfies the corresponding real inequality `16 * L * |t| ≤ ε
+* 2 ^ k`. -/
 private theorem precision_pow_bound_real (L : ℕ) (t ε : ℚ) (hε : 0 < ε) :
     (16 : ℝ) * (L : ℝ) * |(t : ℝ)| ≤ (ε : ℝ) * (2 : ℝ) ^
       (Nat.clog 2 (Nat.ceil (16 * (L : ℚ) * |t| / ε))) := by
   have h := precision_pow_bound L t ε hε
   exact_mod_cast h
 
+/-- Each stored table entry is the oracle value at the selected precision with its specified
+sign. -/
 private theorem tableEntry {L : ℕ} (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool)
     (t ε : ℚ) (j : Fin L) :
     (digitBudgetQDriftData q sgn t ε).table j =
@@ -89,6 +124,8 @@ private theorem tableEntry {L : ℕ} (q : Fin L → ℕ → ℚ) (sgn : Fin L �
   simp only [digitBudgetQDriftData]
   rw [List.getElem_ofFn]
 
+/-- For a correct sign flag and a lower magnitude approximation, the signed absolute coefficient
+error equals the magnitude approximation deficit. -/
 private theorem signed_entry_deficit {L : ℕ} (a : Fin L → ℝ) (q : Fin L → ℕ → ℚ)
     (sgn : Fin L → Bool) (k : ℕ)
     (hor : ∀ j, RatLowerOracle |a j| (q j))
@@ -115,6 +152,8 @@ private theorem signed_entry_deficit {L : ℕ} (a : Fin L → ℝ) (q : Fin L �
       rw [Rat.cast_neg]; linarith
     rw [he, abs_neg, abs_of_nonneg (by linarith)]
 
+/-- The total absolute coefficient error of a correctly signed precision `k` table is at most `L
+/ 2 ^ k`. -/
 private theorem table_l1_error {L : ℕ} (a : Fin L → ℝ) (q : Fin L → ℕ → ℚ)
     (sgn : Fin L → Bool) (k : ℕ)
     (hor : ∀ j, RatLowerOracle |a j| (q j))
@@ -128,6 +167,8 @@ private theorem table_l1_error {L : ℕ} (a : Fin L → ℝ) (q : Fin L → ℕ 
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
     inv_pow, inv_eq_one_div, mul_one_div]
 
+/-- The dyadic weight mass divided by `2 ^ k` is at most the table magnitude sum plus `L / 2 ^
+(k + 1)`. -/
 private theorem weight_mass_bound {L : ℕ} (k : ℕ) (table : Fin L → ℚ) :
     ((weightTotal (dyadicWeights k table) : ℝ) / (2 : ℝ) ^ k) ≤
       (∑ j, |(table j : ℝ)|) + (L : ℝ) / (2 : ℝ) ^ (k + 1) := by
@@ -156,6 +197,10 @@ private theorem weight_mass_bound {L : ℕ} (k : ℕ) (table : Fin L → ℚ) :
   rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
     nsmul_eq_mul, mul_one_div]
 
+/-- Valid lower oracles and sign flags give exactly `L` digit reads, table error at most `L / 2
+^ precision`, positive step count, the precision budget, and at most `ceil (32 * λ² * t² /
+ε) + 3` steps, where `λ` is the coefficient magnitude sum. This supplies digit and step
+budgets for the qDRIFT setting of [Campbell2019]. -/
 theorem digitBudgetQDriftData_spec :
     ∀ (L : ℕ) (a : Fin L → ℝ) (t ε : ℚ)
       (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool),
@@ -273,6 +318,8 @@ theorem digitBudgetQDriftData_spec :
     omega
   exact ⟨hreads, rfl, hl1, by rw [hsteps]; exact Nat.le_max_left 1 _, hpow, hfinal⟩
 
+/-- The precision budget bounds `L * |t| / 2 ^ k` by `ε / 16` and its next precision counterpart
+by `ε / 32`. -/
 private theorem L_abs_over_pow (L : ℕ) (t ε : ℚ) (_hε : 0 < ε) (k : ℕ)
     (hpow : (16 : ℝ) * L * |(t : ℝ)| ≤ (ε : ℝ) * (2 : ℝ) ^ k) :
     (L : ℝ) * |(t : ℝ)| / (2 : ℝ) ^ k ≤ (ε : ℝ) / 16 ∧
@@ -288,6 +335,8 @@ private theorem L_abs_over_pow (L : ℕ) (t ε : ℚ) (_hε : 0 < ε) (k : ℕ)
     nlinarith [hpow]
   exact ⟨h1, h2⟩
 
+/-- The combined coefficient and weight rounding contribution is at most `3 * ε / 16` under the
+precision budget. -/
 private theorem rounding_term_bound (L : ℕ) (t ε : ℚ) (_hε : 0 < ε) (k : ℕ)
     (hpow : (16 : ℝ) * L * |(t : ℝ)| ≤ (ε : ℝ) * (2 : ℝ) ^ k) :
     2 * |(t : ℝ)| * ((L : ℝ) / (2 : ℝ) ^ k + (L : ℝ) / (2 : ℝ) ^ (k + 1)) ≤
@@ -300,6 +349,8 @@ private theorem rounding_term_bound (L : ℕ) (t ε : ℚ) (_hε : 0 < ε) (k : 
   rw [e1]
   linarith
 
+/-- The selected fair coin rejection fuel bounds `2 * n * (1 / 2) ^ fuel` by `ε / 16` under the
+stated binary precision bound. -/
 private theorem fuel_inverse_budget (n s : ℕ) (_t ε : ℚ) (hε : 0 < ε)
     (hs : (8 : ℝ) / (ε : ℝ) ≤ (2 : ℝ) ^ s) :
     2 * (n : ℝ) * ((1 / 2 : ℝ) ^ (fairQdriftFuel n s)) ≤ (ε : ℝ) / 16 := by
@@ -338,6 +389,10 @@ private theorem fuel_inverse_budget (n s : ℕ) (_t ε : ℚ) (hε : 0 < ε)
     _ ≤ 2 * (1 / 4) * ((ε : ℝ) / 8) := mul_le_mul_of_nonneg_left key (by positivity)
     _ = (ε : ℝ) / 16 := by ring
 
+/-- For Hermitian contraction terms, valid lower oracles, correct sign flags, and `0 < ε ≤ 1`,
+the actual compiled map has trace norm error at most `ε * traceNorm X` for every reference
+size and input matrix `X`. This is a finite coin implementation bound in the qDRIFT setting
+of [Campbell2019]. -/
 theorem digitBudgetQDrift_reference_error :
     ∀ (L D : ℕ) (a : Fin L → ℝ) (K : Fin L → Operator D)
     (t ε : ℚ) (j0 : Fin L) (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool),

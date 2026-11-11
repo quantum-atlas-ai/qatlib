@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntTools
+
+/-!
+# Decoding arbitrary qudit resource vectors
+
+This module computes the entries and Gram matrices of `quditResourceBranchKraus`. The entry
+formula separates the inverse Fourier coefficient from a shifted resource amplitude; when the
+first resource marginal is maximally mixed, every branch Gram matrix is `1 / n²` times the
+identity.
+
+These calculations supply the correction construction for the qudit teleportation protocol of
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `quditResourceBranchKraus_entry`: explicit branch entries for an arbitrary resource vector.
+* `quditResourceBranchKraus_gram`: uniform branch Gram matrices from a maximally mixed marginal.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +42,8 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators
 
+/-- Computes a decoded resource branch entry as an inverse Fourier entry times the resource
+amplitude at the shifted Alice index. -/
 theorem quditResourceBranchKraus_entry (n : ℕ) [NeZero n]
     (R : QState (Fin n × Fin n)) (o : Fin n × Fin n) (k j : Fin n) :
     quditResourceBranchKraus n R o k j =
@@ -33,6 +57,7 @@ theorem quditResourceBranchKraus_entry (n : ℕ) [NeZero n]
   rw [quditHaInv_apply]
   simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
 
+/-- For fixed `b`, the map `quditAdd n b` is injective in nonzero dimension. -/
 theorem quditAdd_left_injective (n : ℕ) [NeZero n] (b : Fin n) :
     Function.Injective (quditAdd n b) := by
   intro i j h
@@ -40,6 +65,7 @@ theorem quditAdd_left_injective (n : ℕ) [NeZero n] (b : Fin n) :
   simp only [quditAdd, RingEquiv.apply_symm_apply] at he
   exact (ZMod.finEquiv n).injective (add_left_cancel he)
 
+/-- Every entry of the adjoint qudit Fourier matrix has squared modulus `1 / n`. -/
 theorem quditQFT_adjoint_norm_sq (n : ℕ) [NeZero n] (a j : Fin n) :
     star ((QFTMatrix n)ᴴ a j) * (QFTMatrix n)ᴴ a j = 1 / (n : ℂ) := by
   rw [quditQFT_adjoint_entry]
@@ -57,6 +83,8 @@ theorem quditQFT_adjoint_norm_sq (n : ℕ) [NeZero n] (a j : Fin n) :
         (star (ZMod.stdAddChar _) * ZMod.stdAddChar _) := by ring
     _ = _ := by rw [hc, mul_one, qudit_sqrt_inv_sq]
 
+/-- If the resource vector has maximally mixed first marginal, each decoded branch operator has
+Gram matrix `1 / n²` times the identity. -/
 theorem quditResourceBranchKraus_gram (n : ℕ) [NeZero n]
     (R : QState (Fin n × Fin n))
     (hR : PartialTrace (outerProduct R) = (1 / (n : ℂ)) • (1 : Operator n))

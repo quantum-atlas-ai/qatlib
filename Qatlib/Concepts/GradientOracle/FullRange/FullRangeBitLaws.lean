@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueGradient
+
+/-!
+# Bit-width bounds for full-range value registers
+
+`full_range_classical_bits_guard` proves that the selected classical bit width gives a power of
+two strictly above the rational range parameter. For a range at least one,
+`full_range_classical_bits_log` compares this width with the ceiling binary logarithm, including
+an added precision-bit budget. See [Jordan2005Gradient] for background.
+
+## Main statements
+
+* `full_range_classical_bits_guard`: The power of two specified by `fullRangeClassicalBits A`
+  strictly exceeds the rational range parameter `A`.
+* `full_range_classical_bits_log`: For `A ≥ 1`, the selected bit width lies between `ceil (logb
+  2 A)` and one more, and the same comparison holds after scaling `A` by `2 ^ k` and adding `k`
+  bits.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -12,6 +34,8 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.GradientOracle.FullRange
 
+/-- The power of two specified by `fullRangeClassicalBits A` strictly exceeds the rational range
+parameter `A`. -/
 theorem full_range_classical_bits_guard (A : ℚ) :
     A < (2^fullRangeClassicalBits A : ℕ) := by
   have hb := Nat.le_pow_clog (by norm_num : 1<2) (max 2 (Nat.ceil A+1))
@@ -22,6 +46,8 @@ theorem full_range_classical_bits_guard (A : ℚ) :
     exact_mod_cast hc
   linarith
 
+/-- For `A ≥ 1`, the selected bit width lies between `ceil (logb 2 A)` and one more, and the
+same comparison holds after scaling `A` by `2 ^ k` and adding `k` bits. -/
 theorem full_range_classical_bits_log (A : ℚ) (hA : 1≤A) :
     let C := Nat.ceil (Real.logb 2 (A:ℝ))
     C≤fullRangeClassicalBits A ∧ fullRangeClassicalBits A≤C+1 ∧

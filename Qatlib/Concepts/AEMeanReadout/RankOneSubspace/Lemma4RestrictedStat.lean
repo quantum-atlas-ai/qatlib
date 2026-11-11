@@ -9,9 +9,28 @@ import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
 import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 
+/-!
+# Specification of the rank-one sign action
+
+`Lemma4RestrictedSpec.expected` records the two-dimensional action of the sign-phase iterate on
+the prepared good and bad components, together with the identity relating their squared masses.
+For background, see [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `expected`: The proposition that the rank-one sign-phase iterate has the specified good and
+  bad component formulas, with bad mass equal to one minus good mass.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 open scoped BigOperators
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedSpec
+/-- The proposition that the rank-one sign-phase iterate has the specified good and bad
+component formulas, with bad mass equal to one minus good mass. -/
 def expected : Prop :=
   (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
     (g : Fin (n + 1) → Bool),

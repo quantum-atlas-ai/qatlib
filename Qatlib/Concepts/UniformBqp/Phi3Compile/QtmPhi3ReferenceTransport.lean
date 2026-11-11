@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingQuan
 import Qatlib.Foundations.StandardModel.WindowSim.GUnitExistenceQuan
 import Qatlib.Foundations.StandardModel.WindowSim.OneRoundWindowSimulationQuan
+
+/-!
+# Transport of finite-window QTM simulations
+
+This module proves that repeated local circuit rounds reproduce finite-window QTM evolution
+under `windowEmbed`. Linearity and head-support bounds allow the one-round simulation to iterate
+without reaching the boundary.
+
+It also identifies known-wire embedding with basis padding and proves preservation of
+normalization and amplitudes at encoded basis states.
+
+For background, see [Yao1993].
+
+## Main statements
+
+* `qtmPhi3_reference_run`: repeated reference rounds simulate the window transition.
+* `qtmKnownWireEmbed_normalized`: known-wire embedding preserves normalization.
+* `qtmKnownWireEmbed_apply_image`: amplitudes are preserved on encoded basis states.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +50,7 @@ namespace Qatlib.Concepts.UniformBqp.Phi3Compile
 open Matrix
 open scoped Classical BigOperators
 
+/-- Matrix multiplication distributes over a finite sum of state vectors. -/
 private theorem mulVec_sum {I : Type*} [Fintype I] {ι : Type*} [Fintype ι]
     (M : Matrix I I ℂ) (f : ι → QState I) :
     M *ᵥ (∑ i, f i) = ∑ i, M *ᵥ f i := by
@@ -33,6 +58,7 @@ private theorem mulVec_sum {I : Type*} [Fintype I] {ι : Type*} [Fintype ι]
   simp only [Matrix.mulVec, dotProduct, Finset.sum_apply, Finset.mul_sum]
   rw [Finset.sum_comm]
 
+/-- Circuit execution preserves addition of input states. -/
 private theorem run_add {I : Type*} [Fintype I] (oracle : Matrix I I ℂ)
     (C : Circuit I) (ψ χ : QState I) :
     Run oracle C (ψ + χ) = Run oracle C ψ + Run oracle C χ := by
@@ -47,6 +73,7 @@ private theorem run_add {I : Type*} [Fintype I] (oracle : Matrix I I ℂ)
       simp only [run_query, ApplyGate, Matrix.mulVec_add]
       exact ih _ _
 
+/-- Circuit execution commutes with complex scalar multiplication. -/
 private theorem run_smul {I : Type*} [Fintype I] (oracle : Matrix I I ℂ)
     (C : Circuit I) (a : ℂ) (ψ : QState I) :
     Run oracle C (a • ψ) = a • Run oracle C ψ := by
@@ -61,6 +88,7 @@ private theorem run_smul {I : Type*} [Fintype I] (oracle : Matrix I I ℂ)
       simp only [run_query, ApplyGate, Matrix.mulVec_smul]
       exact ih _
 
+/-- Circuit execution distributes over a finite sum of input states. -/
 private theorem run_sum {I : Type*} [Fintype I] (oracle : Matrix I I ℂ)
     (C : Circuit I) {ι : Type*} [Fintype ι] (f : ι → QState I) :
     Run oracle C (∑ i, f i) = ∑ i, Run oracle C (f i) := by
@@ -77,6 +105,8 @@ private theorem run_sum {I : Type*} [Fintype I] (oracle : Matrix I I ℂ)
       simp only [run_query, ApplyGate, h]
       exact ih _
 
+/-- Every finite state vector equals the sum of its amplitudes times the corresponding basis
+kets. -/
 private theorem ket_sum {I : Type*} [Fintype I] [DecidableEq I] (φ : QState I) :
     (∑ i, φ i • Qatlib.Foundations.PureStateMath.Ket i) = φ := by
   funext j
@@ -87,6 +117,7 @@ private theorem ket_sum {I : Type*} [Fintype I] [DecidableEq I] (φ : QState I) 
     (fun hj => absurd (Finset.mem_univ j) hj)]
   simp
 
+/-- The encoding of window configurations into cell registers is injective. -/
 private theorem windowEncode_inj {t : ℕ} {Q A : Type*} :
     Function.Injective (windowEncode : WindowCfg t Q A → WReg t Q A) := by
   intro c c' h
@@ -112,14 +143,18 @@ private theorem windowEncode_inj {t : ℕ} {Q A : Type*} :
   rcases c' with ⟨hd', st', tp'⟩
   simp_all
 
+/-- Evaluating an embedded window state at an encoded configuration recovers its original
+amplitude. -/
 private theorem windowEmbed_apply {t : ℕ} {Q A : Type*} (φ : QState (WindowCfg t Q A))
     (c : WindowCfg t Q A) : windowEmbed φ (windowEncode c) = φ c :=
   windowEncode_inj.extend_apply φ 0 c
 
+/-- An embedded window state vanishes at a register outside the image of `windowEncode`. -/
 private theorem windowEmbed_apply' {t : ℕ} {Q A : Type*} (φ : QState (WindowCfg t Q A))
     (z : WReg t Q A) (hz : ∀ c, windowEncode c ≠ z) : windowEmbed φ z = 0 :=
   Function.extend_apply' φ (0 : WReg t Q A → ℂ) z (fun ⟨c, he⟩ => hz c he)
 
+/-- Embedding a configuration ket gives the ket of its encoded register. -/
 private theorem windowEmbed_ket {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (c : WindowCfg t Q A) :
     windowEmbed (Qatlib.Foundations.PureStateMath.Ket c) = Qatlib.Foundations.PureStateMath.Ket (windowEncode c) := by
@@ -136,6 +171,8 @@ private theorem windowEmbed_ket {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq
     have hzne : z ≠ windowEncode c := fun h => hz ⟨c, h.symm⟩
     simp [ket_apply, hzne]
 
+/-- An embedded window state is the sum of its configuration amplitudes times the encoded basis
+kets. -/
 private theorem windowEmbed_eq_sum {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (φ : QState (WindowCfg t Q A)) :
     windowEmbed φ = ∑ c, φ c • Qatlib.Foundations.PureStateMath.Ket (windowEncode c) := by
@@ -157,6 +194,7 @@ private theorem windowEmbed_eq_sum {t : ℕ} {Q A : Type*} [Fintype Q] [Decidabl
     have hzne : z ≠ windowEncode c := fun h => hz ⟨c, h.symm⟩
     simp [ket_apply, hzne]
 
+/-- Window embedding distributes over finite sums of states. -/
 private theorem windowEmbed_sum_gen {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] {ι : Type*} [Fintype ι]
     (F : ι → QState (WindowCfg t Q A)) :
@@ -172,6 +210,7 @@ private theorem windowEmbed_sum_gen {t : ℕ} {Q A : Type*} [Fintype Q] [Decidab
     intro i _
     rw [windowEmbed_apply' _ _ (fun c₀ hc => hz ⟨c₀, hc⟩)]
 
+/-- Window embedding commutes with complex scalar multiplication. -/
 private theorem windowEmbed_smul {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (a : ℂ)
     (φ : QState (WindowCfg t Q A)) :
@@ -185,6 +224,8 @@ private theorem windowEmbed_smul {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableE
     simp only [Pi.smul_apply, smul_eq_mul,
       windowEmbed_apply' _ _ (fun c₀ hc => hz ⟨c₀, hc⟩), mul_zero]
 
+/-- A successful cell move changes the head index by minus one, zero, or plus one according to
+its direction. -/
 private theorem moveCell_spec {t : ℕ} (d : QtmMove) (h h' : Fin (2 * t + 1))
     (hh : moveCell d h = some h') :
     (d = QtmMove.left → h'.val + 1 = h.val) ∧ (d = QtmMove.stay → h'.val = h.val) ∧
@@ -212,6 +253,8 @@ private theorem moveCell_spec {t : ℕ} (d : QtmMove) (h h' : Fin (2 * t + 1))
       exact ⟨fun hc => QtmMove.noConfusion hc, fun hc => QtmMove.noConfusion hc,
         fun _ => rfl⟩
 
+/-- A nonzero amplitude after one window step comes from a supported configuration whose head
+differs by at most one cell. -/
 private theorem windowStep_support {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : LocalQTM Q A) (β : QState (WindowCfg t Q A))
     (c' : WindowCfg t Q A) (hβ : (windowStep M *ᵥ β) c' ≠ 0) :
@@ -245,6 +288,8 @@ private theorem windowStep_support {t : ℕ} {Q A : Type*} [Fintype Q] [Decidabl
       exact absurd hterm (by simp)
   exact ⟨c, fun h0 => hnz (by simp [h0]), hb.1, hb.2⟩
 
+/-- A circuit round reproduces one window transition on an embedded state whose supported heads
+lie strictly inside the window. -/
 private theorem round_embed {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {t : ℕ} (ht : 0 < t) (M : LocalQTM Q A)
     (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
@@ -281,6 +326,7 @@ private theorem round_embed {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
             (Matrix.mulVec_smul _ _ _).symm)
     _ = windowEmbed (windowStep M *ᵥ φ) := by rw [ket_sum]
 
+/-- One window transition expands a head-support bound around the center by at most one cell. -/
 private theorem good_step {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {t : ℕ} (M : LocalQTM Q A) {r : ℕ}
     (φ : QState (WindowCfg t Q A))
@@ -292,6 +338,8 @@ private theorem good_step {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
   obtain ⟨hA, hB⟩ := hg c hc0
   exact ⟨by omega, by omega⟩
 
+/-- Repeated circuit rounds simulate the corresponding power of the window transition when the
+initial head-support radius and number of rounds fit within the window. -/
 private theorem sim_run {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {t : ℕ} (ht : 0 < t) (M : LocalQTM Q A)
     (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
@@ -318,6 +366,8 @@ private theorem sim_run {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
       ih hk (r + 1) (by omega) (windowStep M *ᵥ φ) (good_step M φ hg),
       Matrix.mulVec_mulVec, pow_succ]
 
+/-- Running `t` reference rounds on an encoded initial configuration equals the embedded state
+obtained from `t` window transitions. -/
 theorem qtmPhi3_reference_run (Q : Type) [Fintype Q] [DecidableEq Q]
     (A : Type) [Fintype A] [DecidableEq A] (M : LocalQTM Q A) (n t : ℕ) (ht : 0 < t)
     (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
@@ -339,17 +389,21 @@ theorem qtmPhi3_reference_run (Q : Type) [Fintype Q] [DecidableEq Q]
   rw [windowEmbed_ket] at hrun
   exact hrun
 
+/-- The amplitude of an embedded state at an encoded configuration equals its original
+configuration amplitude. -/
 theorem qtmPhi3_windowEmbed_image {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] {t : ℕ} (φ : QState (WindowCfg t Q A))
     (c : WindowCfg t Q A) : windowEmbed φ (windowEncode c) = φ c :=
   windowEmbed_apply φ c
 
+/-- Known-wire embedding equals finite basis padding along `knownWireExtend`. -/
 theorem qtmKnownWireEmbed_eq_pad {a b : ℕ} (e : Fin a ↪ Fin b) (ψ : QState (Reg a)) :
     knownWireEmbed e ψ = finiteBasisPadState (knownWireExtend e) ψ := by
   rw [state_ket_expansion ψ]
   simp only [knownWireEmbed_sum, knownWireEmbed_smul, knownWireEmbed_ket,
     finiteBasisPadState_sum, finiteBasisPadState_smul, finiteBasisPadState_ket]
 
+/-- Extending a register along an injective wire map gives an injective map on basis registers. -/
 theorem qtmKnownWireExtend_injective {a b : ℕ} (e : Fin a ↪ Fin b) :
     Function.Injective (knownWireExtend e) := by
   intro x y h
@@ -357,11 +411,13 @@ theorem qtmKnownWireExtend_injective {a b : ℕ} (e : Fin a ↪ Fin b) :
   have hi := congrFun h (e i)
   simpa only [knownWireExtend_at] using! hi
 
+/-- Known-wire embedding preserves normalization of a state. -/
 theorem qtmKnownWireEmbed_normalized {a b : ℕ} (e : Fin a ↪ Fin b)
     {ψ : QState (Reg a)} (hψ : Normalized ψ) : Normalized (knownWireEmbed e ψ) := by
   rw [qtmKnownWireEmbed_eq_pad]
   exact finiteBasisPadState_normalized (knownWireExtend e) (qtmKnownWireExtend_injective e) hψ
 
+/-- The amplitude at an extended basis register equals the amplitude at the original register. -/
 theorem qtmKnownWireEmbed_apply_image {a b : ℕ} (e : Fin a ↪ Fin b)
     (ψ : QState (Reg a)) (x : Reg a) : knownWireEmbed e ψ (knownWireExtend e x) = ψ x := by
   rw [qtmKnownWireEmbed_eq_pad]

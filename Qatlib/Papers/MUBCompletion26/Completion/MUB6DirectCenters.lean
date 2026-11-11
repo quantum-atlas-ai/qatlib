@@ -7,11 +7,34 @@ Authors: Qatlib Contributors
 import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.Data.Rat.Defs
 
+/-!
+# Rational centers for dimension-six candidate data
+
+This module stores rational center data for the dimension-six completion analysis of [Sun2026].
+The table `centerNumerator` gives five integer coordinates for each of 48 labels, and `center`
+divides them by the fixed `grid`.
+
+The rational constant `smallRadius` supplies the associated radius parameter; this module
+defines the data without asserting an enclosure theorem.
+
+## Main statements
+
+* `centerNumerator`: The 48 by 5 table of integer coordinate numerators.
+* `center`: The rational coordinates obtained by scaling the numerator table.
+
+## References
+
+* [Sun, 2026][Sun2026]
+-/
+
 namespace Qatlib.Papers.MUBCompletion26.Completion.MUB6DirectCenters
 
+/-- The rational scaling denominator 17592186044416 for the center data. -/
 def grid : ℚ := 17592186044416
+/-- The rational radius parameter 17592186045 divided by `grid`. -/
 def smallRadius : ℚ := 17592186045 / grid
 
+/-- The explicit integer table with five center-coordinate numerators for each of 48 labels. -/
 def centerNumerator : Fin 48 → Fin 5 → ℤ := !![
   -45541631706742,32375283909120,26182047135441,34337457503603,-49498684778955;
   -9994845980496,37289792800590,-24431863377385,28896675849664,8343467226890;
@@ -62,6 +85,7 @@ def centerNumerator : Fin 48 → Fin 5 → ℤ := !![
   -16856741098896,-51540967091332,-32408245301828,48093797900108,-49721702078241;
   -33254823377217,-10758227819723,38305300266702,-4130635843662,-33618067446467]
 
+/-- The rational center coordinate obtained by dividing `centerNumerator a j` by `grid`. -/
 def center (a : Fin 48) (j : Fin 5) : ℚ := (centerNumerator a j : ℚ) / grid
 
 end Qatlib.Papers.MUBCompletion26.Completion.MUB6DirectCenters

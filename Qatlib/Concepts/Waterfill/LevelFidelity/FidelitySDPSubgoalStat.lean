@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySDPProgram
+
+/-!
+# Statement of source-constrained fidelity SDP optimality
+
+`SourceFidelitySDPSubgoal` states that an appropriate water level yields a positive semidefinite
+`sourceWaterMatrix` with source-bounded diagonal, prescribed fidelity equality, and maximal real
+trace among feasible matrices. The hypotheses use normalized nonnegative source and positive
+target profiles with tight distinct bracket endpoints, following the water-filling optimization
+for quantum rejection sampling [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `SourceFidelitySDPSubgoal`: package water-level existence, matrix feasibility, and trace
+  optimality.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +34,9 @@ open Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
 namespace Qatlib.Concepts.Waterfill.LevelFidelity
 open scoped BigOperators ComplexOrder
 
+/-- The proposition that the stated normalized-profile and tight-bracket hypotheses yield a
+water level whose matrix is positive semidefinite, satisfies the diagonal and fidelity
+constraints, and maximizes real trace over all feasible matrices. -/
 def SourceFidelitySDPSubgoal : Prop :=
   ∀ (m : ℕ) (π σ : Fin m → ℚ) (γlo γhi : ℝ),
     (∀ i, 0 ≤ π i) → (∀ i, 0 < σ i) →

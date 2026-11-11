@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Tail bounds for revealing samples
+
+`lemma15_tail_mass` bounds the upper tail of a finite random variable taking values in the unit
+interval. Finite averaging and rescaling then give `lemma7_full`, which bounds the probability
+that a sample reveals at least an eighth of the marked mass. The paper context is
+[BuhrmanSpalek2006].
+
+## Main statements
+
+* `lemma15_tail_mass`: tail mass from a lower expectation bound.
+* `lemma7_full`: revealing sample bound obtained by finite averaging.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,8 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 
+/-- If `f ≤ 1` pointwise, its expectation is at most `β + (1 - β) * eventMass p (fun x => β ≤ f
+x)`. -/
 theorem expect_le_tail_of_unit {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) {β : ℝ}
     (hf1 : ∀ x, f x ≤ 1) :
@@ -66,6 +87,8 @@ theorem expect_le_tail_of_unit {X : Type*} [Fintype X] [DecidableEq X]
         + β * (1 - eventMass p (fun x => β ≤ f x)) := add_le_add h1 h2
     _ = β + (1 - β) * eventMass p (fun x => β ≤ f x) := by ring
 
+/-- If `f` takes values in `[0, 1]`, its expectation is at least `α`, and `0 < β < min 1 α`,
+then the mass of `β ≤ f` is strictly greater than `α - β`. See [BuhrmanSpalek2006]. -/
 theorem lemma15_tail_mass {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) {α β : ℝ}
     (hf0 : ∀ x, 0 ≤ f x) (hf1 : ∀ x, f x ≤ 1)
@@ -88,6 +111,8 @@ theorem lemma15_tail_mass {X : Type*} [Fintype X] [DecidableEq X]
     nlinarith
   linarith
 
+/-- If `ζ` takes values in `[0, ε]` for positive `ε` and has expectation at least `ε / 4`, then
+`ζ ≥ ε / 8` with probability strictly greater than `1 / 8`. See [BuhrmanSpalek2006]. -/
 theorem lemma7_revealing_sample_mass {P : Type*} [Fintype P] [DecidableEq P]
     (law : FinDist P) (ζ : P → ℝ) {ε : ℝ} (hε : 0 < ε)
     (hζ0 : ∀ v, 0 ≤ ζ v) (hζε : ∀ v, ζ v ≤ ε)
@@ -117,6 +142,7 @@ theorem lemma7_revealing_sample_mass {P : Type*} [Fintype P] [DecidableEq P]
   rw [hevent] at hmain
   linarith
 
+/-- Expresses event mass as the expectation of the event's real indicator. -/
 theorem eventMass_ite {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop)
     [DecidablePred E] :
     eventMass p E = ∑ x, p.prob x * (if E x then (1 : ℝ) else 0) := by
@@ -125,6 +151,8 @@ theorem eventMass_ite {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop)
   rw [Finset.sum_filter]
   exact Finset.sum_congr rfl (fun x _ => by by_cases h : E x <;> simp [h])
 
+/-- If every marked index is revealed with probability at least one quarter, then the expected
+revealed mass is at least one quarter of the marked mass. See [BuhrmanSpalek2006]. -/
 theorem lemma7_zeta_average {P J : Type*} [Fintype P] [DecidableEq P]
     [Fintype J] [DecidableEq J]
     (lawP : FinDist P) (lawJ : FinDist J)
@@ -169,6 +197,9 @@ theorem lemma7_zeta_average {P J : Type*} [Fintype P] [DecidableEq P]
   rw [hleft]
   exact hstep
 
+/-- If revealing implies being marked and each marked index is revealed with probability at
+least one quarter, then a sample reveals at least `ε / 8` mass with probability strictly
+greater than `1 / 8`, where `ε > 0` is the marked mass. See [BuhrmanSpalek2006]. -/
 theorem lemma7_full {P J : Type*} [Fintype P] [DecidableEq P]
     [Fintype J] [DecidableEq J]
     (lawP : FinDist P) (lawJ : FinDist J)

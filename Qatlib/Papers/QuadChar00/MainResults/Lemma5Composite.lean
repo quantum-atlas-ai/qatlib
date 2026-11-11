@@ -8,6 +8,26 @@ import Qatlib.Papers.QuadChar00.MainResults.Lemma1FullAmplitude
 import Qatlib.Papers.QuadChar00.MainResults.Lemma5GaussSums
 import Mathlib.Analysis.Fourier.ZMod
 import Mathlib.NumberTheory.LegendreSymbol.ZModChar
+
+/-!
+# Quadratic Gauss sums for composite moduli
+
+This module relates `jacobiGaussSum` to a Dirichlet character Gauss sum and computes its square
+and norm for odd squarefree moduli. Congruence classes modulo four determine its value up to
+sign. See [VanDamHallgren2000].
+
+## Main statements
+
+* `jacobiGaussSum_sq`: For odd squarefree `n > 1`, the square of the Jacobi Gauss sum is the
+  Jacobi character at minus one times `n`.
+* `jacobiGaussSum_norm`: For odd squarefree `n > 1`, the Jacobi Gauss sum has norm `Real.sqrt
+  n`.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,12 +38,15 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 open scoped BigOperators
 open MulChar ZMod
 
+/-- The Jacobi Gauss sum equals the Gauss sum of `jacobiDirichlet` against the standard additive
+character. -/
 theorem jacobiGaussSum_eq_dirichlet (n : ℕ) [NeZero n] :
     jacobiGaussSum n =
       gaussSum (jacobiDirichlet n) (ZMod.stdAddChar (N := n)) := by
   rw [jacobiGaussSum]
   rfl
 
+/-- For an odd nonzero modulus, the Jacobi character at minus one equals `χ₄ n`. -/
 lemma jacobiCharZMod_neg_one_eq_chi4 (n : ℕ) [NeZero n] (hn : Odd n) :
     jacobiCharZMod n (-1) = χ₄ n := by
   obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by
@@ -38,6 +61,8 @@ lemma jacobiCharZMod_neg_one_eq_chi4 (n : ℕ) [NeZero n] (hn : Odd n) :
   rw [jacobiSym.mod_left' hmod]
   exact jacobiSym.at_neg_one (by simpa using hn)
 
+/-- For odd squarefree `n > 1`, the square of the Jacobi Gauss sum is the Jacobi character at
+minus one times `n`. See [VanDamHallgren2000]. -/
 theorem jacobiGaussSum_sq (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (h1 : 1 < n) :
     jacobiGaussSum n ^ 2 = ((jacobiCharZMod n (-1) : ℤ) : ℂ) * (n : ℂ) := by
@@ -89,6 +114,8 @@ theorem jacobiGaussSum_sq (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
   rw [hGJ, ← pow_two] at hcomp
   exact hcomp
 
+/-- For odd squarefree `n > 1`, the Jacobi Gauss sum has norm `Real.sqrt n`. See
+[VanDamHallgren2000]. -/
 theorem jacobiGaussSum_norm (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (h1 : 1 < n) :
     ‖jacobiGaussSum n‖ = Real.sqrt (n : ℝ) := by
@@ -109,6 +136,8 @@ theorem jacobiGaussSum_norm (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree 
   rw [eq_comm]
   exact (Real.sqrt_eq_iff_eq_sq (by positivity) (by positivity)).mpr hnorm.symm
 
+/-- For odd squarefree `n > 1` congruent to one modulo four, the Jacobi Gauss sum is either `√n`
+or `-√n`. See [VanDamHallgren2000]. -/
 theorem jacobiGaussSum_eq_or_neg_sqrt (n : ℕ) [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) (h4 : n % 4 = 1) :
     jacobiGaussSum n = (Real.sqrt (n : ℝ) : ℂ) ∨
@@ -126,6 +155,8 @@ theorem jacobiGaussSum_eq_or_neg_sqrt (n : ℕ) [NeZero n] (hn : Odd n)
     norm_num
   exact sq_eq_sq_iff_eq_or_eq_neg.mp hsq
 
+/-- For odd squarefree `n > 1` congruent to three modulo four, the Jacobi Gauss sum is either `I
+* √n` or its negative. See [VanDamHallgren2000]. -/
 theorem jacobiGaussSum_eq_or_neg_I_sqrt (n : ℕ) [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) (h4 : n % 4 = 3) :
     jacobiGaussSum n = Complex.I * (Real.sqrt (n : ℝ) : ℂ) ∨

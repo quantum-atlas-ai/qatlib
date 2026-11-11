@@ -11,6 +11,24 @@ import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Quan
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Analysis.InnerProductSpace.l2Space
+
+/-!
+# General phase action including endpoint probabilities
+
+`expected` specifies the good and bad component action of `amplitudeEstimationPhaseIterate`
+without restricting the success probability to the open unit interval. This includes the cases
+where one of the two components vanishes. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `expected`: The generalized phase component action proposition, valid also when the good
+  component has squared norm zero or one.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +36,8 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5EndpointsSpec
+/-- The generalized phase component action proposition, valid also when the good component has
+squared norm zero or one. -/
 def expected : Prop :=
   (∀ (ι H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (basis : HilbertBasis ι ℂ H) (zeroIndex : ι)

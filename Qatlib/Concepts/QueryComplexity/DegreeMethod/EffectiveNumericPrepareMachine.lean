@@ -8,6 +8,30 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareProduct
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareReader
 import Mathlib.Data.Nat.Size
+
+/-!
+# Encoded preparation-loop machine
+
+The `program` parses an encoded counter and five framed data words, invokes the bounded
+preparation loop, and serializes its result. Its input and output formats are specified by
+`input` and `output`, while parsing and serialization clear their temporary stacks.
+
+The theorem `uniform_raw_loop_machine` compiles this computation to one finite-state Turing
+machine with quartic time and space bounds in the iteration count and encoded input length.
+Classical computation provides the model background in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `frontend`: parsing reconstructs the counter and data with a cubic execution bound.
+* `serializer`: the result is framed and all other stacks are cleared.
+* `complete`: the complete stack program has a quartic execution bound.
+* `uniform_raw_loop_machine`: one Turing machine handles every encoded loop instance.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,13 +54,19 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec (Bits binaryValue natBits fr
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- Additional stacks for reading input, storing output, and carrying out parsing and
+serialization. -/
 inductive Extra where
   | input | buffer | work0 | work1 | work2 | work3 | work4 | work5 | work6 | work7 | output | spare
   deriving DecidableEq,Fintype
+/-- The preparation-loop stacks together with the additional input, output, and workspace
+stacks. -/
 abbrev Slot := Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Slot ⊕ Extra
+/-- The loop-local state, framed-reader state, and input/output symbol register. -/
 abbrev Local :=
     Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Local × FramedTake.Local × Symbol
 
+/-- Control labels for parsing, loop execution, serialization, cleanup, and termination. -/
 inductive Label where
   | init (l : Fin 1)
   | nat (l : Fin 3)
@@ -52,48 +82,67 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.init 0⟩
 
+/-- Extracts the preparation-loop component of the local state. -/
 def getLoop (v : Local) := v.1
+/-- Replaces the preparation-loop component of the local state. -/
 def putLoop (v : Local)
     (w : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Local) : Local :=
     (w,v.2)
+/-- Extracts the framed-reader component of the local state. -/
 def getTake (v : Local) := v.2.1
+/-- Replaces the framed-reader component of the local state. -/
 def putTake (v : Local) (w : FramedTake.Local) : Local := (v.1,w,v.2.2)
+/-- Extracts the input/output symbol register. -/
 def getIO (v : Local) := v.2.2
+/-- Replaces the input/output symbol register. -/
 def putIO (v : Local) (w : Symbol) : Local := (v.1,v.2.1,w)
 
+/-- Maps the transfer subroutine stacks to the spare input stack and the reader stack. -/
 def initCode : Fin 2 → Slot | 0 => .inr .spare | _ => .inr .input
 
+/-- Maps the natural-number parser stacks to the input and designated workspace stacks. -/
 def natCode : Fin 3 → Slot | 0 => .inr .input | 1 => .inr .work0 | _ => .inr .work5
 
+/-- Maps the framed-field reader stacks to the input and designated workspace stacks. -/
 def fieldCode : FramedTake.Slot → Slot
   | .reader => .inr .input | .markers => .inr .work0 | .payload => .inr .work1
   | .count => .inr .work2 | .temporary => .inr .work3 | .header => .inr .work4
   | .output => .inr .work5
 
+/-- Maps a transfer subroutine to the workspace source and either the counter or a selected
+data-field destination. -/
 def transferCode (index : Option (Fin 5)) : Fin 2 → Slot
   | 0 => .inr .work5
   | _ => match index with
       | none => .inl (.inr 0)
       | some i => .inl (.inl (Fin.castLE (by decide) i))
 
+/-- Selects the next field-reader entry label, or launches the loop after the fifth field. -/
 def nextField (i : Fin 5) : Label :=
   if h : i.val+1<5 then .field ⟨i.val+1,h⟩ (.read (.read .unary)) else .launch
 
+/-- Maps the result-word reversal subroutine to the result stack and its workspace destination. -/
 def reverseACode : Fin 2 → Slot | 0 => .inl (.inl 4) | _ => .inr .work5
 
+/-- Maps the framed-copy subroutine stacks to the serialization workspace and output buffer. -/
 def encodeCode : FrameCopy.Slot → Slot
   | .source => .inr .work5 | .restore => .inr .work0 | .copy => .inr .work1
   | .count => .inr .work2 | .temporary => .inr .work3 | .markers => .inr .work4
   | .header => .inr .work6 | .output => .inr .buffer
 
+/-- Selects one of the four arithmetic input stacks or the result workspace stack for cleanup. -/
 def drainCode (i : Fin 5) (_ : Fin 1) : Slot :=
   if i.val<4 then .inl (.inl (Fin.castLE (by decide) i)) else .inr .work5
 
+/-- Selects the next cleanup label, or the output-reversal label after the last cleanup. -/
 def nextDrain (i : Fin 5) : Label :=
   if h : i.val+1<5 then .drain ⟨i.val+1,h⟩ 0 else .reverseOutput 0
 
+/-- Maps the final transfer subroutine to the output buffer and output stack. -/
 def outputCode : Fin 2 → Slot | 0 => .inr .buffer | _ => .inr .output
 
+/-- The stack-machine program that parses a counter and five data fields, executes the
+preparation loop, and serializes the result. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .init l => StackCall.stmt initCode Label.init (.nat 0) getIO putIO (transferProgram l)
   | .nat l => StackCall.stmt natCode Label.nat (.transfer none 0) getIO putIO (Parsing.natProgram l)
@@ -113,28 +162,36 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .reverseOutput l => StackCall.stmt outputCode Label.reverseOutput .done getIO putIO (transferProgram l)
   | .done => .load (fun _ => default) .halt
 
+/-- Concatenates the framed encodings of the five preparation data words. -/
 def fields (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : Bits :=
   framed d.sq4 ++ (framed d.lin2 ++ (framed d.q ++ (framed d.rhs ++ framed d.a)))
 
+/-- Encodes the iteration counter followed by the five framed preparation data words. -/
 def input (k : ℕ)
     (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : Bits :=
     natBits k ++ fields d
 
+/-- The framed result word after `k` preparation-loop updates. -/
 def output (k : ℕ)
     (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : Bits :=
     framed (((Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data.next^[k]) d).a)
 
+/-- Combines parsed loop data with an unread input suffix and empty auxiliary stacks. -/
 def parsedStore (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (reader : Bits) : Slot → Bits :=
   Sum.elim (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.store counter [] d) (fun e => if e=Extra.input then reader else [])
 
+/-- The stack map for the natural-number parser is injective. -/
 theorem natCode_injective : Function.Injective natCode := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [natCode] at h ⊢
 
+/-- The stack map for the framed-field reader is injective. -/
 theorem fieldCode_injective : Function.Injective fieldCode := by
   intro a b h
   cases a <;> cases b <;> simp [fieldCode] at h ⊢
 
+/-- Returning from the natural-number parser updates the input suffix and parser-output
+workspace in the parsed store. -/
 theorem nat_frame_final (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (before after out : Bits) :
     StackCall.frame natCode (parsedStore counter d before) (Parsing.triple after [] out) =
       Function.update (parsedStore counter d after) (.inr .work5) out := by
@@ -151,6 +208,8 @@ theorem nat_frame_final (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.De
     | exact StackCall.frame_at natCode _ _ natCode_injective 2
     | (rw [WordValidator.frame_outside natCode _ _ _ (by intro j; fin_cases j <;> simp [natCode])]; rfl)
 
+/-- The embedded natural-number parser reads the counter encoding into reversed binary form with
+the stated step count and quadratic clock bound. -/
 theorem nat_call (k : ℕ) (tail counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     stackRun program (2*k.bits.length+3)
         ⟨some (.nat 0),v,parsedStore counter d (natBits k++tail)⟩ =
@@ -178,6 +237,8 @@ theorem nat_call (k : ℕ) (tail counter : Bits) (d : Qatlib.Concepts.QueryCompl
   refine ⟨hN,?_⟩
   exact hNC.trans_le (by simpa only [List.length_nil,Nat.add_zero] using! hc)
 
+/-- Returning from the framed-field reader updates the input suffix and field-output workspace
+in the parsed store. -/
 theorem field_frame_final (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (before after out : Bits) :
     StackCall.frame fieldCode (parsedStore counter d before) (FramedTake.store after [] [] out) =
       Function.update (parsedStore counter d after) (.inr .work5) out := by
@@ -198,6 +259,8 @@ theorem field_frame_final (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.
     | exact StackCall.frame_at fieldCode _ _ fieldCode_injective FramedTake.Slot.output
     | (rw [WordValidator.frame_outside fieldCode _ _ _ (by intro j; cases j <;> simp [fieldCode])]; rfl)
 
+/-- The embedded field reader extracts a framed word in reverse order and preserves the unread
+suffix, with the stated clock bound. -/
 theorem field_call (i : Fin 5) (bits tail counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     ∃ ticks last, stackRun program ticks
         ⟨some (.field i (.read (.read .unary))),v,parsedStore counter d (framed bits++tail)⟩ =
@@ -224,6 +287,8 @@ theorem field_call (i : Fin 5) (bits tail counter : Bits) (d : Qatlib.Concepts.Q
   refine ⟨ticks,last,hN,?_⟩
   exact hNC.trans_le (by simpa only [List.length_nil,Nat.add_zero] using! hc)
 
+/-- Framing a two-stack store through an injective stack map equals updating the two selected
+caller stacks. -/
 theorem pair_frame {J : Type} [DecidableEq J] (code : Fin 2 → J)
     (hinj : Function.Injective code) (S : J → Bits) (a b : Bits) :
     StackCall.frame code S (stackPair a b) =
@@ -248,10 +313,12 @@ theorem pair_frame {J : Type} [DecidableEq J] (code : Fin 2 → J)
     · exact Ne.symm h1)]
   rw [Function.update_of_ne h1,Function.update_of_ne h0]
 
+/-- The stack map for each counter or field transfer is injective. -/
 theorem transferCode_injective (index : Option (Fin 5)) : Function.Injective (transferCode index) := by
   intro a b h
   cases index <;> fin_cases a <;> fin_cases b <;> simp [transferCode] at h ⊢
 
+/-- Clearing the parser-output workspace restores the parsed store. -/
 theorem scratch_clear (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (reader bits : Bits) :
     Function.update (Function.update (parsedStore counter d reader) (.inr .work5) bits)
       (.inr .work5) [] = parsedStore counter d reader := by
@@ -261,6 +328,7 @@ theorem scratch_clear (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.Degr
     rfl
   · simp only [Function.update_of_ne h]
 
+/-- Updating the counter stack replaces the counter word in the parsed store. -/
 theorem parsedStore_update_counter (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (reader bits : Bits) :
     Function.update (parsedStore counter d reader) (.inl (.inr 0)) bits = parsedStore bits d reader := by
   change Function.update (StackCall.leftFrame (fun e : Extra => if e=Extra.input then reader else [])
@@ -268,6 +336,8 @@ theorem parsedStore_update_counter (counter : Bits) (d : Qatlib.Concepts.QueryCo
   rw [← StackCall.leftFrame_update,Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.store_update_counter]
   rfl
 
+/-- The counter-transfer phase restores the parsed binary counter and enters the first field
+reader with a quadratic clock bound. -/
 theorem nat_transfer_call (k : ℕ) (reader : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     stackRun program (k.bits.length+1)
         ⟨some (.transfer none 0),v,
@@ -303,24 +373,30 @@ theorem nat_transfer_call (k : ℕ) (reader : Bits) (d : Qatlib.Concepts.QueryCo
   simp only [List.length_nil,Nat.add_zero]
   nlinarith
 
+/-- Selects one of the five preparation data words by its field index. -/
 def getField (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : Fin 5 → Bits
   | 0 => d.sq4 | 1 => d.lin2 | 2 => d.q | 3 => d.rhs | _ => d.a
 
+/-- Replaces the selected preparation data word. -/
 def setField (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (i : Fin 5) (bits : Bits) : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data :=
   match i with
   | 0 => { d with sq4 := bits } | 1 => { d with lin2 := bits }
   | 2 => { d with q := bits } | 3 => { d with rhs := bits } | _ => { d with a := bits }
 
+/-- Updating a selected arithmetic data stack agrees with replacing the corresponding data
+field. -/
 theorem dataStore_setField (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (i : Fin 5) (bits : Bits) :
     Function.update (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.dataStore d) (Fin.castLE (by decide) i) bits =
       Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.dataStore (setField d i bits) := by
   funext j
   fin_cases i <;> fin_cases j <;> rfl
 
+/-- Reading a selected field stack from the parsed store returns the corresponding data word. -/
 theorem parsedStore_field (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (reader : Bits) (i : Fin 5) :
     parsedStore counter d reader (.inl (.inl (Fin.castLE (by decide) i))) = getField d i := by
   fin_cases i <;> rfl
 
+/-- Updating a selected field stack agrees with replacing that field in the parsed store. -/
 theorem parsedStore_setField (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (reader : Bits)
     (i : Fin 5) (bits : Bits) :
     Function.update (parsedStore counter d reader) (.inl (.inl (Fin.castLE (by decide) i))) bits =
@@ -333,6 +409,8 @@ theorem parsedStore_setField (counter : Bits) (d : Qatlib.Concepts.QueryComplexi
     | inr j => rfl
   | inr e => rfl
 
+/-- Transferring a reversed field into an empty destination restores its original order and
+advances to the next phase with a quadratic clock bound. -/
 theorem field_transfer_call (i : Fin 5) (bits reader counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data)
     (v : Local) (hfresh : getField d i=[]) :
     stackRun program (bits.length+1)
@@ -373,6 +451,8 @@ theorem field_transfer_call (i : Fin 5) (bits reader counter : Bits) (d : Qatlib
   simp only [List.length_nil,Nat.add_zero]
   nlinarith
 
+/-- Reading and transferring a framed word into an empty data field has the stated cubic
+execution bound. -/
 theorem read_field (i : Fin 5) (bits tail counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local)
     (hfresh : getField d i=[]) :
     ∃ w, Execution program
@@ -402,9 +482,12 @@ theorem read_field (i : Fin 5) (bits tail counter : Bits) (d : Qatlib.Concepts.Q
     change _ ≤ 6000*N^3
     nlinarith
 
+/-- Preparation data with all five words empty. -/
 def emptyData : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data :=
     ⟨[],[],[],[],[]⟩
 
+/-- Reading all five framed fields reconstructs the data and enters the launch phase with a
+cubic execution bound. -/
 theorem fields_call (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     ∃ w, Execution program
       ⟨some (.field 0 (.read (.read .unary))),v,parsedStore counter emptyData (fields d)⟩
@@ -460,10 +543,13 @@ theorem fields_call (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.Degree
   refine ⟨v5,?_⟩
   exact hall.mono (by dsimp [B]; omega)
 
+/-- The stack map for initial input transfer is injective. -/
 theorem initCode_injective : Function.Injective initCode := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [initCode] at h ⊢
 
+/-- Initial transfer reverses the spare-stack input into the reader stack and enters counter
+parsing with a quadratic clock bound. -/
 theorem init_call (raw : Bits) (v : Local) :
     stackRun program (raw.length+1)
         ⟨some (.init 0),v,Function.update (fun _ : Slot => []) (.inr .spare) raw.reverse⟩ =
@@ -500,6 +586,8 @@ theorem init_call (raw : Bits) (v : Local) :
   simp only [List.length_nil,Nat.add_zero]
   nlinarith
 
+/-- The input parser reconstructs the binary counter and all five data fields with a cubic
+execution bound. -/
 theorem frontend (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) :
     ∃ w, Execution program (TM2.init (.inr .spare) (input k d).reverse)
       ⟨some .launch,w,parsedStore k.bits d []⟩
@@ -543,6 +631,8 @@ theorem frontend (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.Eff
   dsimp [N,raw] at hp hpm hpf
   nlinarith
 
+/-- Launching the loop resets its local state and enters counter decrement in one step of clock
+cost one. -/
 theorem launch_run (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     stackRun program 1 ⟨some .launch,v,parsedStore counter d []⟩ =
       some ⟨some (.loop (.counter .borrow)),putLoop v (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialRound.resetLocal,(false,none)),
@@ -552,6 +642,8 @@ theorem launch_run (counter : Bits) (d : Qatlib.Concepts.QueryComplexity.DegreeM
   · simp [stackRun,TM2.step,program,TM2.stepAux]
   · simp [stackRunClock,TM2.step,program,TM2.stepAux,stackClock]
 
+/-- The embedded loop performs `k` updates, clears its counter, and enters result reversal with
+the stated execution bound. -/
 theorem loop_call (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     Execution program ⟨some .launch,v,parsedStore k.bits d []⟩
       ⟨some (.reverseA 0),putLoop v (Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialRound.resetLocal,(false,none)),
@@ -578,13 +670,17 @@ theorem loop_call (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.Ef
     ⟨ticks,hN,hNC.trans_le hc⟩
   exact e0.trans e1
 
+/-- The parsed store with the result field moved in reverse order to the serialization
+workspace. -/
 def reversedStore (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : Slot → Bits :=
   Function.update (parsedStore [] (setField d 4 []) []) (.inr .work5) d.a.reverse
 
+/-- The stack map for result-word reversal is injective. -/
 theorem reverseACode_injective : Function.Injective reverseACode := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [reverseACode] at h ⊢
 
+/-- Reversing the result word enters framed encoding with a quadratic clock bound. -/
 theorem reverseA_call (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     stackRun program (d.a.length+1) ⟨some (.reverseA 0),v,parsedStore [] d []⟩ =
       some ⟨some (.encode (.copy false .emit)),putIO v none,reversedStore d⟩ ∧
@@ -617,10 +713,13 @@ theorem reverseA_call (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.Effectiv
   simp only [List.length_nil,Nat.add_zero]
   nlinarith
 
+/-- The stack map for framed encoding is injective. -/
 theorem encodeCode_injective : Function.Injective encodeCode := by
   intro a b h
   cases a <;> cases b <;> simp [encodeCode] at h ⊢
 
+/-- Framed encoding writes the result frame to the output buffer and enters cleanup with a cubic
+clock bound. -/
 theorem encode_call (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     ∃ ticks, stackRun program ticks ⟨some (.encode (.copy false .emit)),v,reversedStore d⟩ =
       some ⟨some (.drain 0 0),putIO v none,
@@ -662,6 +761,7 @@ theorem encode_call (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveN
   refine ⟨ticks,hN,hNC.trans_le ?_⟩
   simpa only [List.length_nil,Nat.add_zero] using! hc
 
+/-- Framing a single-stack store equals updating the selected caller stack. -/
 theorem one_frame {J : Type} [DecidableEq J] (code : Fin 1 → J) (S : J → Bits) (bits : Bits) :
     StackCall.frame code S (Normalization.singleStack bits) = Function.update S (code 0) bits := by
   have hinj : Function.Injective code := fun _ _ _ => Subsingleton.elim _ _
@@ -677,6 +777,8 @@ theorem one_frame {J : Type} [DecidableEq J] (code : Fin 1 → J) (S : J → Bit
       exact Ne.symm h)]
     rw [Function.update_of_ne h]
 
+/-- Draining a selected cleanup stack empties it and advances to the next phase with a quadratic
+execution bound. -/
 theorem drain_call (i : Fin 5) (S : Slot → Bits) (v : Local) :
     Execution program ⟨some (.drain i 0),v,S⟩
       ⟨some (nextDrain i),putIO v none,Function.update S (drainCode i 0) []⟩
@@ -699,6 +801,7 @@ theorem drain_call (i : Fin 5) (S : Slot → Bits) (v : Local) :
   rw [hNC,hc]
   nlinarith
 
+/-- The binary expansion of a natural number has length at most the number plus one. -/
 theorem bits_length_le (n : ℕ) : n.bits.length ≤ n+1 := by
   rw [Nat.size_eq_bits_len]
   apply Nat.size_le.mpr
@@ -706,12 +809,14 @@ theorem bits_length_le (n : ℕ) : n.bits.length ≤ n+1 := by
   | zero => norm_num
   | succ n ih => rw [pow_succ]; omega
 
+/-- A framed word has length at most three times its payload length plus three. -/
 theorem framed_length_le (bits : Bits) : (framed bits).length ≤ 3*bits.length+3 := by
   have h := bits_length_le bits.length
   simp only [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.framed,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits,
     List.length_append,List.length_replicate,List.length_cons,List.length_nil]
   omega
 
+/-- Each preparation update adds exactly one bit to the result word. -/
 theorem iterate_a_length (n : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) :
     (((Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data.next^[n]) d).a).length=d.a.length+n := by
   induction n with
@@ -721,6 +826,8 @@ theorem iterate_a_length (n : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMe
     change (((Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data.next^[n]) d).a).length+1=d.a.length+(n+1)
     omega
 
+/-- Cleanup clears all remaining arithmetic workspace while preserving the framed output buffer,
+with a quadratic execution bound. -/
 theorem clear_call (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     Execution program
       ⟨some (.drain 0 0),v,Function.update (reversedStore d) (.inr .buffer) (framed d.a)⟩
@@ -767,10 +874,13 @@ theorem clear_call (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNu
   rw [hfinal] at hall
   exact hall.mono (by omega)
 
+/-- The stack map for final output transfer is injective. -/
 theorem outputCode_injective : Function.Injective outputCode := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [outputCode] at h ⊢
 
+/-- Final transfer reverses the output buffer into the output stack with a quadratic clock
+bound. -/
 theorem output_call (out : Bits) (v : Local) :
     stackRun program (out.length+1)
         ⟨some (.reverseOutput 0),v,Function.update (fun _ : Slot => []) (.inr .buffer) out⟩ =
@@ -805,6 +915,8 @@ theorem output_call (out : Bits) (v : Local) :
   simp only [List.length_nil,Nat.add_zero]
   nlinarith
 
+/-- The final control label halts in one step of clock cost one without changing the stack
+store. -/
 theorem done_run (S : Slot → Bits) (v : Local) :
     stackRun program 1 ⟨some .done,v,S⟩=some ⟨none,default,S⟩ ∧
     stackRunClock program 1 ⟨some .done,v,S⟩=1 := by
@@ -812,6 +924,8 @@ theorem done_run (S : Slot → Bits) (v : Local) :
   · simp [stackRun,TM2.step,program,TM2.stepAux]
   · simp [stackRunClock,TM2.step,program,TM2.stepAux,stackClock]
 
+/-- Result serialization halts with only the reversed result frame on the output stack and has a
+cubic execution bound. -/
 theorem serializer (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) (v : Local) :
     Execution program ⟨some (.reverseA 0),v,parsedStore [] d []⟩
       ⟨none,default,Function.update (fun _ : Slot => []) (.inr .output) (framed d.a).reverse⟩
@@ -854,17 +968,21 @@ theorem serializer (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNu
   dsimp [N] at hp2 hp3 hpo hpN hOne
   nlinarith
 
+/-- The data width is at most the encoded input length. -/
 theorem width_le_input (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : d.width ≤ (input k d).length := by
   unfold Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data.width
   dsimp [input,fields,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.framed]
   simp only [List.length_append]
   omega
 
+/-- The binary counter length is at most the encoded input length. -/
 theorem counter_length_le_input (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) : k.bits.length ≤ (input k d).length := by
   dsimp [input,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits]
   simp only [List.length_append,List.length_replicate,List.length_cons,List.length_nil]
   omega
 
+/-- The full stack-machine program computes the framed iterated result and halts within the
+stated quartic execution bound. -/
 theorem complete (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data) :
     Execution program (TM2.init (.inr .spare) (input k d).reverse)
       ⟨none,default,Function.update (fun _ : Slot => []) (.inr .output) (output k d).reverse⟩
@@ -897,6 +1015,8 @@ theorem complete (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.Eff
     (1+4000000*(k+1)^2*L^2)+100000*(1+((Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data.next^[k]) d).width)^3 ≤ 2000000000*N^4
   nlinarith [hpL',hpnext,hpi,hpN,hOne]
 
+/-- A single finite-state Turing machine computes every encoded loop instance with time and
+space bounded by a common constant times the stated fourth power. -/
 theorem uniform_raw_loop_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (k : ℕ) (d : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareLoop.Data),

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PartitionFunc08.MainResults.MainTheorem
+
+/-!
+# Partition-function accuracy and walk cost
+
+The cost estimate `theorem1_walk_cost` aggregates assumed per-sample state and reflection costs
+over the ratio estimates. The theorem `theorem1_quantum_speedup` pairs this bound with a
+probability of at least three quarters for relative accuracy of the scaled product. These
+estimates form part of the partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `theorem1_walk_cost`: The assumed sample count, state cost, reflection cost, and total-cost
+  decomposition imply the stated sum of two walk-cost bounds, each proportional to `ℓ ^ 2 / sqrt
+  δ`.
+* `theorem1_quantum_speedup`: Under the per-ratio accuracy and resource-budget hypotheses, the
+  scaled product is relatively accurate with probability at least three quarters and the total
+  cost satisfies the stated walk-cost bound.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +38,9 @@ open scoped ENNReal NNReal Topology BigOperators
 
 namespace Qatlib.Papers.PartitionFunc08.MainResults.Speedup
 
+/-- The assumed sample count, state cost, reflection cost, and total-cost decomposition imply
+the stated sum of two walk-cost bounds, each proportional to `ℓ ^ 2 / sqrt δ`. See [Wocjan
+et al., 2009][WocjanEtAl2009a]. -/
 theorem theorem1_walk_cost
     {ℓ : ℕ} (hℓ : 0 < ℓ) {δ ε εR : ℝ} (hδ : 0 < δ) (hε : 0 < ε) (hεR : 0 < εR)
     {statePerSample reflPerSample samples total : ℝ}
@@ -52,6 +78,9 @@ theorem theorem1_walk_cost
     _ ≤ (ℓ : ℝ) * Real.log (4 * (ℓ : ℝ)) * (A + B) := hstep
     _ = _ := hfinal
 
+/-- Under the per-ratio accuracy and resource-budget hypotheses, the scaled product is
+relatively accurate with probability at least three quarters and the total cost satisfies
+the stated walk-cost bound. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem theorem1_quantum_speedup
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     (ℓ : ℕ) (hℓ : 0 < ℓ) {δ ε Z0 εR : ℝ} (hδ : 0 < δ) (hε0 : 0 < ε) (hε1 : ε ≤ 1)

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSVT.NumericsDefs
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost
+
+/-!
+# Rational-machine bridge for sketch arithmetic
+
+`rational_sketch_ledger` identifies the cache plan's source reads, multiplications, and row
+builds with the numerical sketch ledger. `rational_sketch_paid_native` realizes the rational
+cache computation by a native Turing machine with explicit additional time, workspace, and
+source-field counts, connecting machine costs to the sampling-based arithmetic setting of
+[ChiaEtAl2022].
+
+## Main statements
+
+* `rational_sketch_ledger`: The rational matrix-job cache plan has source-read, multiplication,
+  and row-build counts equal to the corresponding sketch arithmetic ledger fields.
+* `rational_sketch_paid_native`: A native Turing machine extends the supplied input computation
+  to execute the rational sketch cache program, producing the decoded rational result with the
+  stated additional time, workspace bound, and ledger counts.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +47,8 @@ open ConstructionStageB StageBSQNUMERICS
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 
+/-- The rational matrix-job cache plan has source-read, multiplication, and row-build counts
+equal to the corresponding sketch arithmetic ledger fields. -/
 theorem rational_sketch_ledger (matrixRows n q r c base : ℕ)
     (rows : Fin q → Fin r → Fin matrixRows) :
     let p := batchPlan n base (matrixJobs matrixRows n q r rows)
@@ -34,6 +59,9 @@ theorem rational_sketch_ledger (matrixRows n q r c base : ℕ)
    matrixJobs_multiplies matrixRows n q r base rows,
    matrixJobs_row_builds matrixRows n q r base rows⟩
 
+/-- A native Turing machine extends the supplied input computation to execute the rational
+sketch cache program, producing the decoded rational result with the stated additional time,
+workspace bound, and ledger counts. -/
 theorem rational_sketch_paid_native (a : ℕ) (P : TM0.Machine Symbol (Fin (a+1))) :
     ∃ (states : ℕ) (K : TM0.Machine Symbol (Fin (states+1))) (C : ℕ),0 < C ∧
       ∀ (matrixRows n q r : ℕ) (rows : Fin q → Fin r → Fin matrixRows)

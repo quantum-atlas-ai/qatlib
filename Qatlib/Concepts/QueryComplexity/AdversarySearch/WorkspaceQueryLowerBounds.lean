@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Workspace decision and search query lower bounds
+
+This module derives explicit query lower bounds for circuits with arbitrary finite auxiliary
+workspaces using the hybrid estimates of [BennettEtAl1997]. A normalized unitary circuit
+distinguishing the null oracle from every singleton with the stated probability gap satisfies N
+≤ 144Q²; identifying every singleton with probability at least 2/3 gives N ≤ 64Q² when N ≥ 6.
+
+## Main statements
+
+* `workspace_decision_query_lower_bound`: the decision probability gap implies N ≤ 144Q².
+* `workspace_search_query_lower_bound`: successful singleton identification implies N ≤ 64Q².
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -25,6 +44,10 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- If a unitary circuit with normalized input accepts the null oracle with probability at most
+1/3 and each singleton oracle with probability at least 2/3, the index cardinality is at
+most 144 times its squared query count. This is a finite decision bound based on
+[BennettEtAl1997]. -/
 theorem workspace_decision_query_lower_bound (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (E : Finset ((I × Bool) × W))
     (hC : IsUnitaryCircuit C) (hψ : Normalized ψ)
@@ -77,6 +100,9 @@ theorem workspace_decision_query_lower_bound (C : Circuit ((I × Bool) × W))
   have hG4 := workspace_query_hybrid_energy C ψ hC hψ
   nlinarith [hsum, hG4, sq_nonneg ((QueryCount C : ℝ))]
 
+/-- If a unitary circuit with normalized input identifies every singleton mark with probability
+at least 2/3 and the index type has at least six elements, its cardinality is at most 64
+times the squared query count. This is a finite search bound based on [BennettEtAl1997]. -/
 theorem workspace_search_query_lower_bound (C : Circuit ((I × Bool) × W))
     (ψ : QState ((I × Bool) × W)) (decode : ((I × Bool) × W) → Option I)
     (hC : IsUnitaryCircuit C) (hψ : Normalized ψ) (hcard : 6 ≤ Fintype.card I)

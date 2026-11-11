@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LaurentPolys.FiniteBitCost.FiniteQSPGates
+
+/-!
+# Perturbation bounds for finite QSP bridge operators
+
+This module proves operator-norm stability estimates for the finite QSP bridge operators used in
+the setting of [AlexisEtAl2026]. Phase errors bounded by `δ` through depth `d` produce an
+operator error at most `(2 * d + 1) * δ`, and each matrix entry is bounded by the operator norm.
+
+## Main statements
+
+* `rhw_qsp_bridge_qsp_difference`: bounds the operator error from uniformly perturbed phases.
+* `rhw_qsp_bridge_entry_bound`: bounds a matrix entry by the Euclidean operator norm.
+
+## References
+
+* [Alexis et al., 2026][AlexisEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +31,8 @@ open Polynomial Matrix
 open Qatlib.Concepts.LaurentPolys.FiniteBitCost
 open scoped Matrix.Norms.L2Operator
 
+/-- For unitary `A` and `D`, the Euclidean operator norm of `A * B - C * D` is at most `‖B - D‖
++ ‖A - C‖`. -/
 theorem rhw_qsp_bridge_mul_error (A B C D : Matrix Bool Bool ℂ)
     (hA : A∈Matrix.unitaryGroup Bool ℂ) (hD : D∈Matrix.unitaryGroup Bool ℂ) :
     ‖A*B-C*D‖≤‖B-D‖+‖A-C‖ := by
@@ -22,6 +42,9 @@ theorem rhw_qsp_bridge_mul_error (A B C D : Matrix Bool Bool ℂ)
   rw [CStarRing.norm_mem_unitary_mul _ hA,CStarRing.norm_mul_mem_unitary _ hD] at h
   exact h
 
+/-- For `x ∈ [0, 1]` and `δ ≥ 0`, phase sequences differing by at most `δ` through index `d`
+give depth-`d` QSP bridge operators differing by at most `(2 * d + 1) * δ` in Euclidean
+operator norm. This is a finite perturbation estimate in the setting of [AlexisEtAl2026]. -/
 theorem rhw_qsp_bridge_qsp_difference (ψ χ : ℕ → ℝ) (d : ℕ) (x δ : ℝ) (hx : 0≤x) (hx1 : x≤1)
     (_hδ : 0≤δ) (h : ∀ k≤d, |ψ k-χ k|≤δ) :
     ‖Qatlib.Concepts.LaurentPolys.FiniteBitCost.rhwQSPBridgeOperator ψ x d-Qatlib.Concepts.LaurentPolys.FiniteBitCost.rhwQSPBridgeOperator χ x d‖≤((2*d+1:ℕ):ℝ)*δ := by
@@ -65,6 +88,8 @@ theorem rhw_qsp_bridge_qsp_difference (ψ χ : ℕ → ℝ) (d : ℕ) (x δ : �
     push_cast at hprev ⊢
     linarith only [h1,h2,hp,hprev]
 
+/-- The norm of each entry of a complex two-by-two matrix is at most its Euclidean operator
+norm. -/
 theorem rhw_qsp_bridge_entry_bound (M : Matrix Bool Bool ℂ) (i j : Bool) : ‖M i j‖≤‖M‖ := by
   let e : EuclideanSpace ℂ Bool := PiLp.single 2 j (1:ℂ)
   have hn : ‖e‖=1 := by simp [e,PiLp.norm_single]

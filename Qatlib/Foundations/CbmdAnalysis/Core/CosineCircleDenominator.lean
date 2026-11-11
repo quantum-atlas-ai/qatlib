@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineFiniteCircle
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Lower bounds for the cosine regulator on circles
+
+This module bounds the norm of complex cosine on circles of radius `n * π` and transfers the
+estimates to `cosineRegulator`. A quadratic-root identity rewrites the exponential factor
+intrinsically in terms of `‖z‖ + z.im`, yielding the denominator control used by the contour
+arguments in [WangEtAl2026].
+
+## Main statements
+
+* `complex_cos_norm_lower_on_nat_pi_circle`: an exponential lower bound for complex cosine on an
+  integer-π circle.
+* `cosineRegulator_circle_norm_lower_of_sq`: transfers the bound through a quadratic root.
+* `cosineRegulator_circle_norm_lower_intrinsic`: expresses the bound directly in terms of the
+  contour point.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -15,6 +37,7 @@ noncomputable section
 namespace CBMD
 open Complex Metric Set
 
+/-- The squared norm of complex cosine equals `cos (q.re) ^ 2 + sinh (q.im) ^ 2`. -/
 theorem complex_cos_norm_sq (q : ℂ) :
     ‖Complex.cos q‖ ^ 2 = Real.cos q.re ^ 2 + Real.sinh q.im ^ 2 := by
   rw [Complex.sq_norm, Complex.normSq_apply, Complex.cos_eq]
@@ -29,12 +52,14 @@ theorem complex_cos_norm_sq (q : ℂ) :
   nlinarith [sq_nonneg (Real.cos q.re),
     congrArg (fun t : ℝ => t * Real.sinh q.im ^ 2) h]
 
+/-- The absolute value of the cosine of the real part is bounded by the norm of complex cosine. -/
 theorem abs_real_cos_re_le_complex_cos_norm (q : ℂ) :
     |Real.cos q.re| ≤ ‖Complex.cos q‖ := by
   have h := complex_cos_norm_sq q
   have hn := norm_nonneg (Complex.cos q)
   nlinarith [sq_abs (Real.cos q.re), sq_nonneg (Real.sinh q.im), abs_nonneg (Real.cos q.re)]
 
+/-- When `|q.im| ≥ 1`, the exponential `exp |q.im|` is at most four times `‖cos q‖`. -/
 theorem exp_abs_im_le_four_mul_cos_norm {q : ℂ} (hy : 1 ≤ |q.im|) :
     Real.exp |q.im| ≤ 4 * ‖Complex.cos q‖ := by
   have hplus := norm_sub_norm_le (Complex.exp (q * I)) (-Complex.exp (-q * I))
@@ -56,6 +81,8 @@ theorem exp_abs_im_le_four_mul_cos_norm {q : ℂ} (hy : 1 ≤ |q.im|) :
       simp only [neg_neg] at hm
       linarith)
 
+/-- On a circle of radius `n * π` with `n ≥ 1`, points with `|q.im| ≤ 1` satisfy `1 / 2 ≤ ‖cos
+q‖`. -/
 theorem half_le_cos_norm_on_nat_pi_circle {q : ℂ} {n : ℕ} (hn : 1 ≤ n)
     (hq : ‖q‖ = (n : ℝ) * Real.pi) (hy : |q.im| ≤ 1) :
     (1 : ℝ) / 2 ≤ ‖Complex.cos q‖ := by
@@ -87,6 +114,8 @@ theorem half_le_cos_norm_on_nat_pi_circle {q : ℂ} {n : ℕ} (hn : 1 ≤ n)
     _ = |Real.cos q.re| := habs
     _ ≤ ‖Complex.cos q‖ := abs_real_cos_re_le_complex_cos_norm q
 
+/-- On a circle of radius `n * π` with `n ≥ 1`, the complex cosine norm is at least `exp |q.im|
+/ (4 * exp 1)`. -/
 theorem complex_cos_norm_lower_on_nat_pi_circle {q : ℂ} {n : ℕ} (hn : 1 ≤ n)
     (hq : ‖q‖ = (n : ℝ) * Real.pi) :
     Real.exp |q.im| / (4 * Real.exp 1) ≤ ‖Complex.cos q‖ := by
@@ -99,6 +128,8 @@ theorem complex_cos_norm_lower_on_nat_pi_circle {q : ℂ} {n : ℕ} (hn : 1 ≤ 
   · have hc := exp_abs_im_le_four_mul_cos_norm (le_of_not_ge hy)
     nlinarith [mul_nonneg (norm_nonneg (Complex.cos q)) (sub_nonneg.mpr he1)]
 
+/-- For positive `γ` and `τ`, a root satisfying `q ^ 2 = I * γ * τ ^ 2 * z` over the `n`th
+cosine circle has norm `n * π`. -/
 theorem cosineCircle_root_norm {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     (n : ℕ) {z q : ℂ} (hz : ‖z‖ = cosineCircleRadius γ τ n)
     (hq : q ^ 2 = I * (γ : ℂ) * (τ : ℂ) ^ 2 * z) :
@@ -113,6 +144,8 @@ theorem cosineCircle_root_norm {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     field_simp
   exact (sq_eq_sq₀ (norm_nonneg q) (by positivity)).mp hs
 
+/-- For positive parameters and `n ≥ 1`, the cosine regulator norm on the `n`th circle is at
+least `exp |q.im| / (4 * exp 1)` for any corresponding quadratic root `q`. -/
 theorem cosineRegulator_circle_norm_lower_of_sq {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) {n : ℕ} (hn : 1 ≤ n)
     {z q : ℂ} (hz : ‖z‖ = cosineCircleRadius γ τ n)
@@ -129,6 +162,9 @@ theorem cosineRegulator_circle_norm_lower_of_sq {γ τ : ℝ}
   rw [he]
   exact complex_cos_norm_lower_on_nat_pi_circle hn (cosineCircle_root_norm hγ hτ n hz hq)
 
+/-- For positive parameters and `n ≥ 1`, the regulator norm on the `n`th cosine circle is
+bounded below by the exponential of the absolute imaginary part of its principal quadratic
+root, divided by `4 * exp 1`. -/
 theorem cosineRegulator_circle_norm_lower {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) {n : ℕ} (hn : 1 ≤ n)
     {z : ℂ} (hz : ‖z‖ = cosineCircleRadius γ τ n) :
@@ -136,6 +172,8 @@ theorem cosineRegulator_circle_norm_lower {γ τ : ℝ}
       (4 * Real.exp 1) ≤ ‖cosineRegulator γ τ z‖ :=
   cosineRegulator_circle_norm_lower_of_sq hγ hτ hn hz (Complex.cpow_ofNat_inv_pow _ 2)
 
+/-- For positive `γ` and `τ`, any root of `q ^ 2 = I * γ * τ ^ 2 * z` satisfies `|q.im| = sqrt
+(γ * τ ^ 2 * (‖z‖ + z.im) / 2)`. -/
 theorem cosineRoot_abs_im {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
     {z q : ℂ} (hq : q ^ 2 = I * (γ : ℂ) * (τ : ℂ) ^ 2 * z) :
     |q.im| = Real.sqrt (γ * τ ^ 2 * (‖z‖ + z.im) / 2) := by
@@ -151,6 +189,8 @@ theorem cosineRoot_abs_im {γ τ : ℝ} (hγ : 0 < γ) (hτ : 0 < τ)
   have him : q.im ^ 2 = γ * τ ^ 2 * (‖z‖ + z.im) / 2 := by nlinarith
   rw [← him, Real.sqrt_sq_eq_abs]
 
+/-- For positive parameters and `n ≥ 1`, the regulator norm on the `n`th cosine circle is at
+least `exp (sqrt (γ * τ ^ 2 * (‖z‖ + z.im) / 2)) / (4 * exp 1)`. -/
 theorem cosineRegulator_circle_norm_lower_intrinsic {γ τ : ℝ}
     (hγ : 0 < γ) (hτ : 0 < τ) {n : ℕ} (hn : 1 ≤ n)
     {z : ℂ} (hz : ‖z‖ = cosineCircleRadius γ τ n) :

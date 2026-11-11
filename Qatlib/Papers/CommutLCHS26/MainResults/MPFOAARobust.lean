@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAScalar
 import Qatlib.Papers.CommutLCHS26.MainResults.TwoSpectra
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAALCU
+
+/-!
+# Robustness of multi-product amplitude amplification
+
+This module controls the amplification response near a unitary target through Hermitian dilation
+and the scalar response polynomial. When the input error is at most 1/5, the compressed
+amplification word has error at most π times that input error, including the zero-round case.
+
+The circuit-substituted version supplies the same robustness estimate for the padded
+multi-product implementation associated with [AftabAnTrivisa2026].
+
+## Main statements
+
+* `polynomial_bound_all`: bounds the response under Hermitian dilation for every round choice.
+* `word_error_pi`: bounds the compressed amplified error by π times the input error.
+* `expanded_error_pi`: transfers the estimate to an expanded circuit.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -34,6 +56,7 @@ variable {I H : Type} [Fintype I] [DecidableEq I] [Fintype H] [DecidableEq H]
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- The Hermitian dilation of a unitary matrix squares to the identity. -/
 theorem dilation_square (V : Matrix I I ℂ) (hV : V ∈ unitaryGroup I ℂ) :
     hermitianDilation V * hermitianDilation V = 1 := by
   have hl : Vᴴ * V = 1 := hV.1
@@ -44,6 +67,7 @@ theorem dilation_square (V : Matrix I I ℂ) (hV : V ∈ unitaryGroup I ℂ) :
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- The Hermitian dilation of a unitary matrix is unitary. -/
 theorem dilation_unitary (V : Matrix I I ℂ) (hV : V ∈ unitaryGroup I ℂ) :
     hermitianDilation V ∈ unitaryGroup (I ⊕ I) ℂ := by
   constructor <;> simpa only [Matrix.star_eq_conjTranspose, hermitianDilation_adjoint]
@@ -51,11 +75,13 @@ theorem dilation_unitary (V : Matrix I I ℂ) (hV : V ∈ unitaryGroup I ℂ) :
 
 omit [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] in
 
+/-- Hermitian dilation commutes with multiplication by a real scalar. -/
 theorem dilation_smul (s : ℝ) (C : Matrix I I ℂ) :
     hermitianDilation ((s : ℂ) • C) = (s : ℂ) • hermitianDilation C := by
   ext i j
   cases i <;> cases j <;> simp [hermitianDilation, Matrix.conjTranspose_smul]
 
+/-- If the selected round count is positive, the selected sine amplitude is at most 1/2. -/
 theorem sine_le_half (A : ℝ) (hn : 0 < rounds A) :
     Real.sin (angle (queries A)) ≤ 1 / 2 := by
   have hq : 3 ≤ queries A := by unfold queries; omega
@@ -69,6 +95,8 @@ theorem sine_le_half (A : ℝ) (hn : 0 < rounds A) :
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- The selected response polynomial takes values 1 and -1 at the positive and negative selected
+sine amplitudes. -/
 theorem target_endpoints (A : ℝ) :
     (MPFOAAScalar.poly (rounds A)).eval (Real.sin (angle (queries A)) : ℂ) = 1 ∧
       (MPFOAAScalar.poly (rounds A)).eval (-(Real.sin (angle (queries A)) : ℂ)) = -1 := by
@@ -80,6 +108,8 @@ theorem target_endpoints (A : ℝ) :
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- For positive round count and ‖C - V‖ ≤ 1/5 with V unitary, the dilated polynomial response
+error is at most 2q sin(π/(2q)) times ‖C - V‖. -/
 theorem polynomial_bound (A : ℝ) (hn : 0 < rounds A) (C V : Matrix I I ℂ)
     (hV : V ∈ unitaryGroup I ℂ) (hd : ‖C - V‖ ≤ 1 / 5) :
     ‖aeval (hermitianDilation ((Real.sin (angle (queries A)) : ℂ) • C))
@@ -128,6 +158,7 @@ theorem polynomial_bound (A : ℝ) (hn : 0 < rounds A) (C V : Matrix I I ℂ)
 
 omit [Fintype I] [DecidableEq I] [Fintype H] [DecidableEq H] in
 
+/-- The zero-round amplification polynomial is the identity polynomial X. -/
 theorem poly_zero : MPFOAAScalar.poly 0 = (Polynomial.X : Polynomial ℂ) := by
   change responseP (-Complex.I) [Complex.I] = Polynomial.X
   rw [responseP_singleton]
@@ -135,6 +166,8 @@ theorem poly_zero : MPFOAAScalar.poly 0 = (Polynomial.X : Polynomial ℂ) := by
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- For every selected round count, a unitary target and input error at most 1/5 give the stated
+dilated response bound with factor 2q sin(π/(2q)). -/
 theorem polynomial_bound_all (A : ℝ) (C V : Matrix I I ℂ)
     (hV : V ∈ unitaryGroup I ℂ) (hd : ‖C - V‖ ≤ 1 / 5) :
     ‖aeval (hermitianDilation ((Real.sin (angle (queries A)) : ℂ) • C))
@@ -147,6 +180,8 @@ theorem polynomial_bound_all (A : ℝ) (C V : Matrix I I ℂ)
     nlinarith [norm_nonneg (C - V)]
   · exact polynomial_bound A (Nat.pos_of_ne_zero hn) C V hV hd
 
+/-- A projected sine-scaled encoding within 1/5 of a unitary target has compressed
+amplified-word error bounded by 2q sin(π/(2q)) times the input error. -/
 theorem word_error (A : ℝ) (C V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ)
     (hV : V ∈ unitaryGroup I ℂ) (hd : ‖C - V‖ ≤ 1 / 5)
     (h : ProjectedUnitaryEncoding ((Real.sin (angle (queries A)) : ℂ) • C) U R R) :
@@ -165,6 +200,7 @@ theorem word_error (A : ℝ) (C V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Ma
   apply le_trans ?_ (polynomial_bound_all A C V hV hd)
   simpa only [show (hermitianDilation V).toBlocks₁₂ = V from rfl] using! hb
 
+/-- The amplification stability factor 2q sin(π/(2q)) at the selected query count is at most π. -/
 theorem amplification_factor (A : ℝ) :
     2 * (queries A : ℝ) * Real.sin (angle (queries A)) ≤ Real.pi := by
   have hq : 0 < (queries A : ℝ) := by exact_mod_cast queries_pos A
@@ -173,6 +209,8 @@ theorem amplification_factor (A : ℝ) :
       mul_le_mul_of_nonneg_left (Real.sin_le (angle_bounds _ (queries_pos A)).1.le) (by positivity)
     _ = Real.pi := by unfold angle; field_simp
 
+/-- A projected sine-scaled encoding within 1/5 of a unitary target has compressed
+amplified-word error at most π times the input error. -/
 theorem word_error_pi (A : ℝ) (C V : Matrix I I ℂ) (U : Matrix H H ℂ) (R : Matrix H I ℂ)
     (hV : V ∈ unitaryGroup I ℂ) (hd : ‖C - V‖ ≤ 1 / 5)
     (h : ProjectedUnitaryEncoding ((Real.sin (angle (queries A)) : ℂ) • C) U R R) :
@@ -180,6 +218,8 @@ theorem word_error_pi (A : ℝ) (C V : Matrix I I ℂ) (U : Matrix H H ℂ) (R :
   (word_error A C V U R hV hd h).trans
     (mul_le_mul_of_nonneg_right (amplification_factor A) (norm_nonneg _))
 
+/-- For A ≥ 1, padding and expanding an inverse-mass circuit encoding within 1/5 of a unitary
+target yields compressed error at most π times the input error. -/
 theorem expanded_error_pi (O : Matrix H H ℂ) (A : ℝ) (hA : 1 ≤ A)
     (C V : Matrix I I ℂ) (hV : V ∈ unitaryGroup I ℂ) (hd : ‖C - V‖ ≤ 1 / 5)
     (R : Matrix H I ℂ) (cs : List (AdjointStep H))

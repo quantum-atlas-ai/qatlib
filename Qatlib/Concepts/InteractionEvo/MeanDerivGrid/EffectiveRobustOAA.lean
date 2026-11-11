@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+/-!
+# Adjoint programs and an amplification error budget
+
+This module defines instructionwise adjoints and reverses instruction order to form
+`effectiveAdjointProgram`. It proves preservation of legality and gate and query counts, and
+bounds the coherent amplification error by four times its input error on the stated small-error
+range. These operations support the amplification-based simulation framework of [LowWiebe2018].
+
+## Main statements
+
+* `effectiveAdjointProgram_legal`: adjoint programs preserve legality.
+* `effectiveOAA_error_budget`: the coherent amplification error lies between zero and `4 ε` for
+  `0 ≤ ε ≤ 1/16`.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,15 +35,20 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 
 namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 
+/-- Form an instruction adjoint by taking the fixed-gate adjoint, negating a phase angle,
+toggling a query adjoint flag, or retaining a postselection. -/
 def effectiveAdjointStep : EffectiveStep → EffectiveStep
   | .fixed g => .fixed (finiteCodeAdjoint g)
   | .phase w a b axis => .phase w (-a) b axis
   | .query slot ws cs adj => .query slot ws cs (!adj)
   | .postselect ws => .postselect ws
 
+/-- Reverse the instruction list and replace every instruction by its adjoint, keeping the
+register width. -/
 def effectiveAdjointProgram (p : EffectiveProgram) : EffectiveProgram :=
   ⟨p.width,(p.steps.map effectiveAdjointStep).reverse⟩
 
+/-- An adjoint instruction is legal exactly when the original instruction is legal. -/
 theorem effectiveAdjointStep_legal (n : ℕ) (s : EffectiveStep) :
     effectiveStepLegal n (effectiveAdjointStep s) ↔ effectiveStepLegal n s := by
   cases s with
@@ -32,6 +57,7 @@ theorem effectiveAdjointStep_legal (n : ℕ) (s : EffectiveStep) :
   | query slot ws cs adj => rfl
   | postselect ws => rfl
 
+/-- The adjoint program of a legal effective program is legal. -/
 theorem effectiveAdjointProgram_legal (p : EffectiveProgram) (hp : effectiveLegal p) :
     effectiveLegal (effectiveAdjointProgram p) := by
   intro s hs
@@ -39,6 +65,7 @@ theorem effectiveAdjointProgram_legal (p : EffectiveProgram) (hp : effectiveLega
   obtain ⟨t,ht,rfl⟩ := hs
   exact (effectiveAdjointStep_legal p.width t).mpr (hp t ht)
 
+/-- Forming the adjoint program preserves the number of oracle queries. -/
 theorem effectiveAdjointProgram_queries (p : EffectiveProgram) :
     effectiveQueries (effectiveAdjointProgram p) = effectiveQueries p := by
   rcases p with ⟨n,l⟩
@@ -47,6 +74,7 @@ theorem effectiveAdjointProgram_queries (p : EffectiveProgram) :
   | nil => rfl
   | cons s l ih => cases s <;> simp_all [effectiveAdjointStep]
 
+/-- Forming the adjoint program preserves the number of fixed and phase gate instructions. -/
 theorem effectiveAdjointProgram_gates (p : EffectiveProgram) :
     effectiveGates (effectiveAdjointProgram p) = effectiveGates p := by
   rcases p with ⟨n,l⟩
@@ -55,6 +83,8 @@ theorem effectiveAdjointProgram_gates (p : EffectiveProgram) :
   | nil => rfl
   | cons s l ih => cases s <;> simp_all [effectiveAdjointStep]
 
+/-- For `0 ≤ ε ≤ 1/16`, the coherent oblivious amplification error is nonnegative and at most `4
+ε`. -/
 theorem effectiveOAA_error_budget (ε : ℝ) (hε : 0≤ε) (hsmall : ε≤1/16) :
     0 ≤ Qatlib.Concepts.CoherentSim.CoherentOAA.coherentOAAError ε ∧ Qatlib.Concepts.CoherentSim.CoherentOAA.coherentOAAError ε ≤ 4*ε := by
   unfold Qatlib.Concepts.CoherentSim.CoherentOAA.coherentOAAError

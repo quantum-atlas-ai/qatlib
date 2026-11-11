@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9ResourceTeleportationStat
+
+/-!
+# Teleportation with Eq. (9) resources
+
+The row inner-product identities for an orthonormal two-pair resource imply that every branch
+Kraus operator has Gram matrix one quarter of the identity. The theorem
+`eq9ResourceTeleportation` obtains unitary corrections by doubling the adjoint branch operators.
+The resource setting is the qubit teleportation protocol of [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `branch_gram`: For an orthonormal two-pair resource, each branch Kraus operator satisfies `Kᴴ
+  * K = (1 / 4) • 1`.
+* `eq9ResourceTeleportation`: An orthonormal two-pair resource has unitary corrections given by
+  twice the adjoint branch Kraus operators, recovering one quarter of every input per branch.
+  See [Bennett et al., 1993, Eq. (9)][BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,15 +40,19 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 set_option maxHeartbeats 0
 
+/-- Orthogonality of two qubit vectors is symmetric. -/
 private theorem inner_reverse_zero {u v : QState (Fin 2)} (h : Qatlib.Foundations.PureStateMath.Inner u v = 0) :
     Qatlib.Foundations.PureStateMath.Inner v u = 0 := by
   have hc := congrArg (starRingEnd ℂ) h
   simpa [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Fin.sum_univ_two, map_add,
       map_mul, mul_comm] using hc
 
+/-- The two-dimensional matrix whose first and second columns are `u` and `v`. -/
 private def pairColumns (u v : QState (Fin 2)) : Operator 2 :=
   fun i j => if j = 0 then u i else v i
 
+/-- The outer products of two normalized orthogonal qubit vectors sum entrywise to the identity
+matrix. -/
 private theorem pair_complete {u v : QState (Fin 2)}
     (hu : Normalized u) (hv : Normalized v) (huv : Qatlib.Foundations.PureStateMath.Inner u v = 0) (i j : Fin 2) :
     u i * starRingEnd ℂ (u j) + v i * starRingEnd ℂ (v j) =
@@ -52,6 +78,7 @@ private theorem pair_complete {u v : QState (Fin 2)}
   simpa [Matrix.mul_apply, Matrix.conjTranspose_apply, pairColumns,
     Fin.sum_univ_two] using congrArg (fun A : Operator 2 => A i j) hc
 
+/-- A two-pair resource built from orthonormal pairs has first marginal `(1 / 2) • 1`. -/
 private theorem first_marginal {u v p q : QState (Fin 2)}
     (h : eq9OrthoPairs u v p q) :
     PartialTrace (outerProduct (eq9Resource u v p q)) = (1/2 : ℂ) • (1 : Operator 2) := by
@@ -75,6 +102,8 @@ private theorem first_marginal {u v p q : QState (Fin 2)}
       rw [hpp,hqq,hpq,hqp,sqrt2_inv_sq]
       simp [pair_complete hu hv huv i j]
 
+/-- For a Boolean-indexed orthonormal two-pair resource, the conjugate inner product of rows `b`
+and `d` is `1 / 2` when the labels agree and zero otherwise. -/
 private theorem resource_row_inner {u v p q : QState Bool} (h : eq9OrthoPairsB u v p q)
     (b d : Bool) :
     (starRingEnd ℂ (eq9ResourceB u v p q (b,false)) * eq9ResourceB u v p q (d,false) +
@@ -90,6 +119,8 @@ private theorem resource_row_inner {u v p q : QState Bool} (h : eq9OrthoPairsB u
     simpa [PartialTrace, outerProduct_apply, eq9Resource, eq9ResourceB, Fin.sum_univ_two,
     Function.comp_def, Matrix.one_apply, boolEquivFin2, mul_comm, eq_comm] using he
 
+/-- An entry of `eq9BranchKraus` is the signed sum of the two resource amplitudes selected by
+the input index, scaled by `1 / √2`. -/
 private theorem branch_entry (u v p q : QState Bool) (o : Bool × Bool) (c i : Fin 2) :
     eq9BranchKraus u v p q o c i = (Real.sqrt 2 : ℂ)⁻¹ *
       ((if false = boolEquivFin2.symm i then eq9ResourceB u v p q (o.2,boolEquivFin2.symm c) else 0) +
@@ -109,6 +140,8 @@ private theorem branch_entry (u v p q : QState Bool) (o : Bool × Bool) (c i : F
   cases o with
   | mk a b => cases a <;> cases b <;> simp [relabelState, ψ]
 
+/-- For an orthonormal two-pair resource, each branch Kraus operator satisfies `Kᴴ * K = (1 / 4)
+• 1`. -/
 private theorem branch_gram {u v p q : QState Bool} (h : eq9OrthoPairsB u v p q)
     (o : Bool × Bool) :
     (eq9BranchKraus u v p q o)ᴴ * eq9BranchKraus u v p q o =
@@ -133,6 +166,9 @@ private theorem branch_gram {u v p q : QState Bool} (h : eq9OrthoPairsB u v p q)
     | linear_combination (Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * h10
     | linear_combination -(Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * h10
 
+/-- An orthonormal two-pair resource has unitary corrections given by twice the adjoint branch
+Kraus operators, recovering one quarter of every input per branch. See [Bennett et al.,
+1993, Eq. (9)][BennettEtAl1993Teleportation]. -/
 theorem eq9ResourceTeleportation : Eq9ResourceTeleportation := by
   intro u v p q h o
   have hg := branch_gram h o

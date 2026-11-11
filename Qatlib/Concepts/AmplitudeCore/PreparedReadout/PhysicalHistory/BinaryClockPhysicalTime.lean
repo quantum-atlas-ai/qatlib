@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSingleCU
+
+/-!
+# Physical times for normalized Hamiltonian simulation
+
+`normalized` rescales a Hamiltonian by the inverse of a rational normalization factor. The
+evolution identities translate simulation time `α*T` back to physical time `T`, including every
+binary clock midpoint.
+
+`instructions` specializes the single controlled-oracle simulator to this scale, with output
+error and exact resource counts for the physical target. The simulation construction uses the
+quantum signal processing framework of [LowChuang2017].
+
+## Main statements
+
+* `midpoint_evolution`: normalization cancels at each rational midpoint time.
+* `full_output_error`: the framed physical evolution has error at most `(q+1)*2⁻ᵏ` times the
+  input norm.
+* `query_bound`: an explicit query bound depends on the clock size, physical time scale, and
+  precision.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -58,17 +83,20 @@ variable {W I : Type} [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
 noncomputable local instance executionDecidableEq (q : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q W) := BinaryClockSingleCU.newDecidableEq q W
 
+/-- Rescale `H` by the real inverse of the rational factor `α`, viewed as a complex scalar. -/
 noncomputable def normalized (α : ℚ) (H : Matrix I I ℂ) : Matrix I I ℂ :=
   (((α : ℝ)⁻¹ : ℝ) : ℂ) • H
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Rescaling a Hermitian Hamiltonian by the real normalization factor preserves Hermiticity. -/
 theorem normalized_hermitian (α : ℚ) (H : Matrix I I ℂ) (hH : H.IsHermitian) :
     (normalized α H).IsHermitian := by
   change (normalized α H)ᴴ = normalized α H
   simp only [normalized, Matrix.conjTranspose_smul, hH.eq]
   simp
 
+/-- A projected unitary encoding of `normalized α H` with positive `α` implies `‖H‖ ≤ α`. -/
 theorem source_norm_le (α : ℚ) (H : Matrix I I ℂ) (U : Matrix W W ℂ)
     (F : Matrix W I ℂ) (hα : 0 < α)
     (h : ProjectedUnitaryEncoding (normalized α H) U F F) : ‖H‖ ≤ (α : ℝ) := by
@@ -86,6 +114,8 @@ theorem source_norm_le (α : ℚ) (H : Matrix I I ℂ) (U : Matrix W W ℂ)
     _ ≤ (α : ℝ) * 1 := hm
     _ = (α : ℝ) := mul_one _
 
+/-- For positive `α`, evolving `normalized α H` for time `α*t` equals evolving `H` for physical
+time `t`. -/
 theorem evolution_scale_cancel (α : ℚ) (H : Matrix I I ℂ) (hα : 0 < α) (t : ℝ) :
     hamiltonianEvolution (normalized α H) ((α : ℝ) * t) = HamiltonianEvolution H t := by
   have ha : (α : ℝ) ≠ 0 := by exact_mod_cast hα.ne'
@@ -101,12 +131,16 @@ theorem evolution_scale_cancel (α : ℚ) (H : Matrix I I ℂ) (hα : 0 < α) (t
       _ = _ := by rw [mul_inv_cancel₀ hac, mul_one]
   rw [hc]
 
+/-- For positive `α`, normalized evolution for rational time `α*T` equals physical evolution
+under `H` for time `T`. -/
 theorem evolution_physicalTime (α T : ℚ) (H : Matrix I I ℂ) (hα : 0 < α) :
     hamiltonianEvolution (normalized α H) ((α * T : ℚ) : ℝ) =
       HamiltonianEvolution H (T : ℝ) := by
   rw [Rat.cast_mul]
   exact evolution_scale_cancel α H hα (T : ℝ)
 
+/-- At each binary clock label, normalized evolution at the scaled rational midpoint equals
+physical evolution at that midpoint. -/
 theorem midpoint_evolution (q : ℕ) (α T : ℚ) (H : Matrix I I ℂ)
     (hα : 0 < α) (x : Reg q) :
     hamiltonianEvolution (normalized α H)
@@ -118,12 +152,15 @@ theorem midpoint_evolution (q : ℕ) (α T : ℚ) (H : Matrix I I ℂ)
   rw [mul_assoc]
   exact evolution_physicalTime α _ H hα
 
+/-- The clock-controlled matrix selecting physical Hamiltonian evolution at each of the `2^q`
+midpoint times. -/
 noncomputable def physicalTarget (q : ℕ) (H : Matrix I I ℂ) (T : ℚ) :
     Matrix (Reg q × I) (Reg q × I) ℂ :=
   Qatlib.Concepts.BlockEncoding.LCU.select (fun x : Reg q => HamiltonianEvolution H
     ((T * Clock.rationalMidpoint (2 ^ q)
       (Clock.clockLabel q x) : ℚ) : ℝ))
 
+/-- The clock-controlled physical target is unitary when `H` is Hermitian. -/
 theorem physicalTarget_unitary (q : ℕ) (H : Matrix I I ℂ) (T : ℚ) (hH : H.IsHermitian) :
     physicalTarget q H T ∈ Matrix.unitaryGroup (Reg q × I) ℂ :=
   Qatlib.Concepts.BlockEncoding.LCU.select_unitary
@@ -132,6 +169,8 @@ theorem physicalTarget_unitary (q : ℕ) (H : Matrix I I ℂ) (T : ℚ) (hH : H.
         (Clock.clockLabel q x) : ℚ) : ℝ))
     (fun _ => hamiltonianEvolution_unitary hH _)
 
+/-- For positive `α`, the normalized dyadic signal target at time `α*T` equals `physicalTarget q
+H T`. -/
 theorem target_eq (q : ℕ) (α T : ℚ) (H : Matrix I I ℂ) (hα : 0 < α) :
     BinaryClockSignalWord.target q (normalized α H) (α * T) (DyadicClockPulses.axes q) =
       physicalTarget q H T := by
@@ -141,14 +180,18 @@ theorem target_eq (q : ℕ) (α T : ℚ) (H : Matrix I I ℂ) (hα : 0 < α) :
   funext x
   exact midpoint_evolution q α T H hα x
 
+/-- The single controlled-oracle simulation word with scaled simulation time `α*T`. -/
 noncomputable def instructions (q : ℕ) (F : Matrix W I ℂ) (α T : ℚ) (k : ℕ) :
     List (AdjointStep (BinaryClockSingleCU.New q W)) :=
   BinaryClockSingleCU.instructions q F (α * T) k
 
+/-- The single controlled-oracle simulator's initial frame for the encoding map `F`. -/
 noncomputable def initialFrame (q : ℕ) (F : Matrix W I ℂ) :
     Matrix (BinaryClockSingleCU.New q W) (Reg q × I) ℂ :=
   BinaryClockSingleCU.initialFrame q F
 
+/-- The physical-time initial frame is an isometry for a projected unitary encoding of the
+normalized Hermitian Hamiltonian. -/
 theorem initialFrame_isometry (q : ℕ) (α : ℚ) (H : Matrix I I ℂ)
     (U : Matrix W W ℂ) (F : Matrix W I ℂ) (hH : H.IsHermitian)
     (h : ProjectedUnitaryEncoding (normalized α H) U F F) :
@@ -156,6 +199,8 @@ theorem initialFrame_isometry (q : ℕ) (α : ℚ) (H : Matrix I I ℂ)
   BinaryClockSingleCU.initialFrame_isometry q (normalized α H) U F
     (normalized_hermitian α H hH) h
 
+/-- The framed simulator differs from the physical midpoint target by at most `(q+1)*2⁻ᵏ` times
+the input Euclidean norm. -/
 theorem full_output_error (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
     (U : Matrix W W ℂ) (F : Matrix W I ℂ) (hα : 0 < α) (hH : H.IsHermitian)
     (h : ProjectedUnitaryEncoding (normalized α H) U F F) (Ψ : QState (Reg q × I)) :
@@ -168,6 +213,8 @@ theorem full_output_error (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
   rw [target_eq q α T H hα] at he
   exact he
 
+/-- The physical-time word is well formed, has the signal query ledger at `α*T`, and adds two
+gates per query to the signal word's gate count. -/
 theorem resources (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
     (U : Matrix W W ℂ) (F : Matrix W I ℂ) (hH : H.IsHermitian)
     (h : ProjectedUnitaryEncoding (normalized α H) U F F) :
@@ -184,6 +231,8 @@ theorem resources (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
   simp only [hq] at hr
   exact hr
 
+/-- The evaluated physical-time instruction word is unitary under the stated Hermitian encoding
+assumptions. -/
 theorem actual_unitary (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
     (U : Matrix W W ℂ) (F : Matrix W I ℂ) (hH : H.IsHermitian)
     (h : ProjectedUnitaryEncoding (normalized α H) U F F) :
@@ -192,6 +241,8 @@ theorem actual_unitary (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
   BinaryClockSingleCU.instructions_unitary q (normalized α H) U F
     (α * T) k (normalized_hermitian α H hH) h
 
+/-- The physical-time query count is at most
+`27*((q+1)+2*|α*T|)*(128*(k+clog₂(rMax(α*T))+16)+1)`. -/
 theorem query_bound (q : ℕ) (α T : ℚ) (k : ℕ) (H : Matrix I I ℂ)
     (U : Matrix W W ℂ) (F : Matrix W I ℂ) (hH : H.IsHermitian)
     (h : ProjectedUnitaryEncoding (normalized α H) U F F) :

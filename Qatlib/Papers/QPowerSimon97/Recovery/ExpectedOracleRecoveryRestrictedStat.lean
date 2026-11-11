@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+/-!
+# Statement of restricted expected-query Simon recovery
+
+Defines `ExpectedOracleRecoveryRestricted` for finite additive-group-valued oracles satisfying
+the Boolean Simon promise. The statement specifies candidate verification, the retry kernel,
+almost-sure exact recovery, and an expected query bound, isolating the oracle-cost part of
+Theorem 3.2 of [Simon1997].
+
+## Main statements
+
+* `ExpectedOracleRecoveryRestricted`: The restricted verified-retry recovery statement: zero
+  nontermination mass, total halting mass one at the promised secret, and `(n + 3)` times the
+  unbounded retry time at most `2 * (n + 3)` [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.ReductionCore
@@ -27,6 +47,9 @@ open Qatlib.Concepts.HspRecovery.Distinguisher
 open Qatlib
 open Qatlib
 
+/-- The restricted verified-retry recovery statement: zero nontermination mass, total halting
+mass one at the promised secret, and `(n + 3)` times the unbounded retry time at most `2 *
+(n + 3)` [Simon1997]. -/
 def ExpectedOracleRecoveryRestricted : Prop :=
   ∀ (n : ℕ) (R : Type) [AddCommGroup R] [Fintype R] [DecidableEq R]
     (f : BooleanVec n → R) (s : Reg n),

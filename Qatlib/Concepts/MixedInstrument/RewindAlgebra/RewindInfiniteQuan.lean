@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RewindInfiniteStat
 import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.PosPart.Basic
+
+/-!
+# Infinite completion of rejection rewinding
+
+This module constructs `rewindLimitMap` as the initial stopped map plus the summable series of
+successful rewind rounds. It proves convergence of stopped maps, complete positivity, trace
+preservation, and a trace norm truncation bound of `1 / (2 * (n + 1))` on density inputs. These
+results complete the rejection process associated with [TemmeEtAl2011].
+
+## Main statements
+
+* `rewind_stopped_tendsto`: For two orthogonal projectors, the stopped rewind outputs converge
+  to the infinite rewind output on every operator.
+* `rewind_limit_cp`: The infinite rewind map associated with two orthogonal projectors is
+  completely positive.
+* `rewind_limit_tail`: On a positive semidefinite trace one input, the trace norm distance
+  between the infinite rewind output and the `n` round stopped output is at most `1 / (2 * (n +
+  1))`.
+* `rewindInfiniteCompletion`: The stopped rejection rewind maps possess the summable, completely
+  positive, trace preserving completion and truncation bound specified by
+  `RewindInfiniteCompletion`; see [TemmeEtAl2011].
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,12 +50,16 @@ namespace Qatlib.Concepts.MixedInstrument.RewindAlgebra
 open Matrix Filter
 open scoped BigOperators ComplexOrder MatrixOrder Topology Matrix.Norms.L2Operator
 
+/-- The stopped rewind map after `n` rounds equals the initial stopped map plus the first `n`
+success round maps. -/
 theorem rewind_stopped_partial (D n : ℕ) (P Q : Operator D) (X : Operator D) :
     rewindStoppedMap P Q n X=rewindStoppedMap P Q 0 X+
       ∑ k ∈ Finset.range n,rewindSuccessRoundMap P Q k X := by
   simp only [rewindStoppedMap,Finset.range_zero,Finset.sum_empty,add_zero,
     LinearMap.add_apply,LinearMap.sum_apply]
 
+/-- For two orthogonal projectors, the success round maps satisfy
+`MixedClockSeries.TraceSeriesBound`. -/
 theorem rewind_success_series_bound (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q) :
     MixedClockSeries.TraceSeriesBound (rewindSuccessRoundMap P Q) := by
@@ -43,12 +74,16 @@ theorem rewind_success_series_bound (D : ℕ) (P Q : Operator D)
     Matrix.trace_sum,Complex.re_sum] at hr
   linarith
 
+/-- The complex linear map given by the initial stopped rewind map plus the completely positive
+series limit of all success round maps for two orthogonal projectors. -/
 def rewindLimitMap (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q) :
     Operator D →ₗ[ℂ] Operator D :=
   rewindStoppedMap P Q 0+MixedClockSeries.cpSeriesLimit (rewindSuccessRoundMap P Q)
     (rewindSuccessRoundMap_cp D P Q) (rewind_success_series_bound D P Q hPs hPi hQs hQi)
 
+/-- For two orthogonal projectors and every input operator, the series of success round outputs
+is summable. -/
 theorem rewind_success_summable (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) : Summable (fun k => rewindSuccessRoundMap P Q k X) := by
@@ -59,6 +94,8 @@ theorem rewind_success_summable (D : ℕ) (P Q : Operator D)
   exact MixedClockSeries.cpSeries_entry_summable (rewindSuccessRoundMap P Q)
     (rewindSuccessRoundMap_cp D P Q) (rewind_success_series_bound D P Q hPs hPi hQs hQi) X i j
 
+/-- The infinite rewind map equals the initial stopped output plus the infinite sum of success
+round outputs. -/
 theorem rewind_limit_series (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) : rewindLimitMap D P Q hPs hPi hQs hQi X=
@@ -72,6 +109,8 @@ theorem rewind_limit_series (D : ℕ) (P Q : Operator D)
     (∑' k,(fun i j => rewindSuccessRoundMap P Q k X i j)) i j
   rw [Pi.tsum_apply hs, Pi.tsum_apply (Pi.summable.mp hs i)]
 
+/-- For two orthogonal projectors, the stopped rewind outputs converge to the infinite rewind
+output on every operator. -/
 theorem rewind_stopped_tendsto (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) : Tendsto (fun n => rewindStoppedMap P Q n X) atTop
@@ -84,6 +123,7 @@ theorem rewind_stopped_tendsto (D : ℕ) (P Q : Operator D)
   exact tendsto_const_nhds.add (MixedClockSeries.cpSeriesLimit_tendsto (rewindSuccessRoundMap P Q)
     (rewindSuccessRoundMap_cp D P Q) (rewind_success_series_bound D P Q hPs hPi hQs hQi) X)
 
+/-- The infinite rewind map associated with two orthogonal projectors is completely positive. -/
 theorem rewind_limit_cp (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q) :
     CompletelyPositive (rewindLimitMap D P Q hPs hPi hQs hQi) :=
@@ -91,6 +131,8 @@ theorem rewind_limit_cp (D : ℕ) (P Q : Operator D)
     (rewindSuccessRoundMap P Q) (rewindSuccessRoundMap_cp D P Q)
     (rewind_success_series_bound D P Q hPs hPi hQs hQi))
 
+/-- The difference between the infinite map and the stopped map after `n` rounds is the
+entrywise infinite sum of success outputs with indices `k + n`. -/
 theorem rewind_limit_sub_stopped (D n : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) :
@@ -107,6 +149,8 @@ theorem rewind_limit_sub_stopped (D n : ℕ) (P Q : Operator D)
   rw [← hs]
   abel
 
+/-- For positive semidefinite input, the infinite rewind output minus any stopped output is
+positive semidefinite. -/
 theorem rewind_limit_sub_stopped_psd (D n : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) (hX : X.PosSemidef) :
@@ -117,6 +161,8 @@ theorem rewind_limit_sub_stopped_psd (D n : ℕ) (P Q : Operator D)
       (rewindSuccessRoundMap P Q) (rewindSuccessRoundMap_cp D P Q)
       (rewind_success_series_bound D P Q hPs hPi hQs hQi) X i j))
 
+/-- For positive semidefinite input, the trace of the remaining rewind failure output tends to
+zero. -/
 theorem rewind_failure_trace_tendsto (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) (hX : X.PosSemidef) :
@@ -141,6 +187,7 @@ theorem rewind_failure_trace_tendsto (D : ℕ) (P Q : Operator D)
   rw [he]
   simpa only [Complex.ofReal_zero] using! Complex.continuous_ofReal.continuousAt.tendsto.comp hr
 
+/-- The infinite rewind map preserves the trace of every positive semidefinite input. -/
 theorem rewind_limit_trace_psd (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) (hX : X.PosSemidef) :
@@ -158,6 +205,7 @@ theorem rewind_limit_trace_psd (D : ℕ) (P Q : Operator D)
   exact tendsto_nhds_unique
       (tendsto_matrix_trace (rewind_stopped_tendsto D P Q hPs hPi hQs hQi X)) hl
 
+/-- The infinite rewind map for two orthogonal projectors is trace preserving on all operators. -/
 theorem rewind_limit_tp (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q) :
     TracePreserving (rewindLimitMap D P Q hPs hPi hQs hQi) := by
@@ -169,6 +217,8 @@ theorem rewind_limit_tp (D : ℕ) (P Q : Operator D)
   intro X
   exact congrArg (fun L : Operator D →ₗ[ℂ] ℂ => L X) he
 
+/-- On a positive semidefinite trace one input, the trace norm distance between the infinite
+rewind output and the `n` round stopped output is at most `1 / (2 * (n + 1))`. -/
 theorem rewind_limit_tail (D n : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (ρ : Operator D) (hρ : ρ.PosSemidef) (htr : Matrix.trace ρ=1) :
@@ -185,6 +235,9 @@ theorem rewind_limit_tail (D n : ℕ) (P Q : Operator D)
   have hb := rewindMixedTail D P Q hPs hPi hQs hQi ρ hρ htr n
   linarith
 
+/-- The stopped rejection rewind maps possess the summable, completely positive, trace
+preserving completion and truncation bound specified by `RewindInfiniteCompletion`; see
+[TemmeEtAl2011]. -/
 theorem rewindInfiniteCompletion : RewindInfiniteCompletion := by
   intro D P Q hPs hPi hQs hQi
   refine ⟨rewindLimitMap D P Q hPs hPi hQs hQi,?_,?_,

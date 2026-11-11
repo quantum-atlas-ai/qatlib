@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySDPSubgoalStat
+
+/-!
+# Semidefinite optimality of water-filling profiles
+
+This module proves `SourceFidelitySDPSubgoal` by expressing the trace and target overlap of
+`sourceWaterMatrix` through `levelMass` and `levelDot`. The resulting positive semidefinite
+matrix maximizes the real trace among matrices with the stated source-diagonal and fidelity
+constraints, connecting the profile optimization to quantum rejection sampling
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `water_trace`: identify the candidate matrix trace with the filled mass.
+* `water_overlap`: identify the target overlap with the squared filled dot product.
+* `sourceFidelitySDPSubgoal`: establish feasibility and trace optimality of the candidate.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,10 +35,13 @@ open Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
 namespace Qatlib.Concepts.Waterfill.LevelFidelity
 open scoped BigOperators ComplexOrder
 
+/-- The real part of the trace of `sourceWaterMatrix` equals the squared mass of its
+water-filling profile. -/
 private theorem water_trace {m : ℕ} (π σ : Fin m → ℚ) (g : ℝ) :
     (Matrix.trace (sourceWaterMatrix π σ g)).re = levelMass π σ g := by
   simp [Matrix.trace, sourceWaterMatrix, levelMass, pow_two, Complex.re_sum]
 
+/-- The real target-weighted overlap of `sourceWaterMatrix` equals the square of `levelDot`. -/
 private theorem water_overlap {m : ℕ} (π σ : Fin m → ℚ) (g : ℝ) :
     (∑ i, ∑ j, (σ i : ℂ) * sourceWaterMatrix π σ g i j * (σ j : ℂ)).re =
       levelDot π σ g ^ 2 := by
@@ -31,6 +55,9 @@ private theorem water_overlap {m : ℕ} (π σ : Fin m → ℚ) (g : ℝ) :
   intro j _
   ring
 
+/-- Under the normalized-profile and tight-bracket hypotheses, a water-filling matrix satisfies
+the source-diagonal and fidelity constraints and maximizes real trace among all feasible
+positive semidefinite matrices [OzolsRoettelerRoland2013]. -/
 theorem sourceFidelitySDPSubgoal : SourceFidelitySDPSubgoal := by
   classical
   intro m π σ γlo γhi hπ hσ hπnorm hσnorm hlohi hlow hwit hhigh hwit2 p hpmin hpmax

@@ -18,6 +18,27 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Finset.Dedup
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Deterministic membership-learning lower bounds
+
+`ClassicalMembershipLearner` specifies deterministic query and hypothesis maps, with `answers`
+generating the transcript. The module uses disagreement inequalities, dictator functions, and
+the construction `flipOff` to show n ≤ 2^T for learning all one-juntas and T ≥ (3/5)2^n for
+learning all n-juntas to error 1/5. See [AticiServedio2007].
+
+## Main statements
+
+* `classical_learning_log_lower`: A deterministic T-query learner that learns every one-junta on
+  n bits to error 1/5 satisfies n ≤ 2^T.
+* `classical_learning_pow_two_lower`: A deterministic T-query learner that learns every n-junta
+  on n bits to error 1/5 satisfies (3/5)2^n ≤ T.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,12 +50,16 @@ namespace Qatlib.Papers.JuntaLearning07.MainResults
 
 variable {n : ℕ}
 
+/-- A deterministic membership learner specified by a query map from Boolean transcripts to
+inputs and a hypothesis map from transcripts to Boolean functions. -/
 structure ClassicalMembershipLearner (n T : ℕ) where
 
   query : (Fin T → Bool) → Fin n → Bool
 
   hypothesis : (Fin T → Bool) → ((Fin n → Bool) → Bool)
 
+/-- The recursively generated answer transcript, initially all false, with the t-th coordinate
+updated at step t + 1 using the learner's query on the current transcript. -/
 def answers {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (f : (Fin n → Bool) → Bool) : (t : ℕ) → (Fin T → Bool)
   | 0 => fun _ => false
@@ -42,20 +67,26 @@ def answers {n T : ℕ} (L : ClassicalMembershipLearner n T)
       fun i : Fin T =>
         if i.val = t then f (L.query (answers L f t)) else (answers L f t) i
 
+/-- The hypothesis produced by the learner from its transcript after T answer updates against f. -/
 def classicalHypothesis {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (f : (Fin n → Bool) → Bool) : (Fin n → Bool) → Bool :=
   L.hypothesis (answers L f T)
 
+/-- For every k-junta f, the learner's final hypothesis disagrees with f on a fraction at most ε
+of inputs. -/
 def ClassicalLearnsTo {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (k : ℕ) (ε : ℝ) : Prop :=
   ∀ f : (Fin n → Bool) → Bool, IsKJunta (n := n) k f →
     disagreement f (classicalHypothesis L f) ≤ ε
 
+/-- At each input, the disagreement indicator for f and h is at most the sum of those for f and
+g and for g and h. -/
 theorem disagreement_pointwise (f g h : (Fin n → Bool) → Bool) (x : Fin n → Bool) :
     (if f x = h x then (0 : ℝ) else 1)
       ≤ (if f x = g x then (0 : ℝ) else 1) + (if g x = h x then (0 : ℝ) else 1) := by
   cases h1 : f x <;> cases h2 : g x <;> cases h3 : h x <;> simp
 
+/-- The disagreement fraction satisfies the triangle inequality; see [AticiServedio2007]. -/
 theorem disagreement_triangle (f g h : (Fin n → Bool) → Bool) :
     disagreement f h ≤ disagreement f g + disagreement g h := by
   unfold disagreement uniformExpect
@@ -74,6 +105,8 @@ theorem disagreement_triangle (f g h : (Fin n → Bool) → Bool) :
         ((2 : ℝ) ^ n)⁻¹ * (∑ x : Fin n → Bool, (if g x = h x then (0 : ℝ) else 1)) := by
         ring
 
+/-- The disagreement fraction is symmetric in its two Boolean functions; see
+[AticiServedio2007]. -/
 theorem disagreement_symm (f g : (Fin n → Bool) → Bool) :
     disagreement f g = disagreement g f := by
   unfold disagreement uniformExpect
@@ -85,12 +118,16 @@ theorem disagreement_symm (f g : (Fin n → Bool) → Bool) :
       · rw [if_pos h, if_pos h.symm]
       · rw [if_neg h, if_neg (fun hh => h hh.symm)]]
 
+/-- With zero queries, the learner's hypothesis is its output on the all-false transcript,
+independently of the target function; see [AticiServedio2007]. -/
 theorem zero_query_hypothesis_constant {n : ℕ} (L : ClassicalMembershipLearner n 0)
     (f : (Fin n → Bool) → Bool) :
     classicalHypothesis L f = L.hypothesis (fun _ => false) := by
   unfold classicalHypothesis
   rfl
 
+/-- A zero-query learner cannot learn every k-junta to error ε when two k-juntas have
+disagreement greater than 2ε; see [AticiServedio2007]. -/
 theorem zero_query_cannot_learn {n k : ℕ} (L : ClassicalMembershipLearner n 0)
     {ε : ℝ} {f g : (Fin n → Bool) → Bool}
     (hf : IsKJunta (n := n) k f) (hg : IsKJunta (n := n) k g)
@@ -114,14 +151,17 @@ open Qatlib.Concepts.ProbabilityCore.DistributionAA
 
 variable {n : ℕ}
 
+/-- The Boolean function returning the input bit at coordinate i. -/
 def dictator {n : ℕ} (i : Fin n) : (Fin n → Bool) → Bool := fun x => x i
 
+/-- Every dictator function is a one-junta. -/
 theorem dictator_isKJunta {n : ℕ} (i : Fin n) :
     IsKJunta (n := n) 1 (dictator i) := by
   refine ⟨{i}, by simp, ?_⟩
   intro x y hxy
   exact hxy i (by simp)
 
+/-- Dictator functions at distinct coordinates disagree on exactly one half of inputs. -/
 theorem disagreement_dictator_ne {n : ℕ} {i j : Fin n} (hij : i ≠ j) :
     disagreement (dictator i) (dictator j) = 1 / 2 := by
   classical
@@ -159,6 +199,8 @@ theorem disagreement_dictator_ne {n : ℕ} {i j : Fin n} (hij : i ≠ j) :
         have hpow : (2 : ℝ) ^ n ≠ 0 := by positivity
         field_simp
 
+/-- Two target functions give identical final transcripts if they agree on every query along the
+transcript generated by the first target. -/
 theorem answers_eq_of_agree_query {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (f g : (Fin n → Bool) → Bool)
     (h : ∀ t : Fin T, g (L.query (answers L f (t : ℕ))) =
@@ -184,19 +226,24 @@ theorem answers_eq_of_agree_query {n T : ℕ} (L : ClassicalMembershipLearner n 
         · rw [if_neg hi, if_neg hi, congrFun ih' i]
   exact hstep T le_rfl
 
+/-- The finite set of inputs queried along the transcript generated against f. -/
 def querySet {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (f : (Fin n → Bool) → Bool) : Finset (Fin n → Bool) :=
   Finset.univ.image (fun t : Fin T => L.query (answers L f (t : ℕ)))
 
+/-- Every input queried at a time in `Fin T` belongs to `querySet L f`. -/
 theorem mem_querySet {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (f : (Fin n → Bool) → Bool) (t : Fin T) :
     L.query (answers L f (t : ℕ)) ∈ querySet L f :=
   Finset.mem_image.mpr ⟨t, Finset.mem_univ t, rfl⟩
 
+/-- The Boolean function equal to f on P and equal to its negation outside P. -/
 def flipOff {n : ℕ} (P : Finset (Fin n → Bool)) (f : (Fin n → Bool) → Bool) :
     (Fin n → Bool) → Bool :=
   fun x => if x ∈ P then f x else !(f x)
 
+/-- Flipping f outside its query set preserves f's answer to every query made along its original
+transcript. -/
 theorem flipOff_agree_querySet {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (f : (Fin n → Bool) → Bool) (t : Fin T) :
     flipOff (querySet L f) f (L.query (answers L f (t : ℕ))) =
@@ -204,6 +251,8 @@ theorem flipOff_agree_querySet {n T : ℕ} (L : ClassicalMembershipLearner n T)
   unfold flipOff
   rw [if_pos (mem_querySet L f t)]
 
+/-- The disagreement fraction between f and `flipOff P f` is the size of the complement of P
+divided by 2^n. -/
 theorem disagreement_flipOff {n : ℕ} (f : (Fin n → Bool) → Bool)
     (P : Finset (Fin n → Bool)) :
     disagreement f (flipOff P f) = ((Finset.univ \ P).card : ℝ) / (2 : ℝ) ^ n := by
@@ -229,6 +278,8 @@ theorem disagreement_flipOff {n : ℕ} (f : (Fin n → Bool) → Bool)
   rw [hsum, div_eq_mul_inv]
   ring
 
+/-- A deterministic T-query learner that learns every one-junta on n bits to error 1/5 satisfies
+n ≤ 2^T; see [AticiServedio2007]. -/
 theorem classical_learning_log_lower {n T : ℕ} (L : ClassicalMembershipLearner n T)
     (hlearn : ClassicalLearnsTo L 1 (1 / 5)) : n ≤ 2 ^ T := by
   classical
@@ -256,6 +307,8 @@ theorem classical_learning_log_lower {n T : ℕ} (L : ClassicalMembershipLearner
   have hcard := Fintype.card_le_of_injective _ hinj
   simpa [Fintype.card_fin, Fintype.card_bool] using! hcard
 
+/-- A deterministic T-query learner that learns every n-junta on n bits to error 1/5 satisfies
+(3/5)2^n ≤ T; see [AticiServedio2007]. -/
 theorem classical_learning_pow_two_lower {n T : ℕ}
     (L : ClassicalMembershipLearner n T)
     (hlearn : ClassicalLearnsTo L n (1 / 5)) :

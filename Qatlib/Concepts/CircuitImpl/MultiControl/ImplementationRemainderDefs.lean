@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
 import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
+
+/-!
+# Finite-window transitions with explicit escape outcomes
+
+This module studies the finite-window transition of `LocalQTM` and separates the mass retained
+inside the window from transitions that leave its boundary. `windowEscapeMass` records the lost
+column mass, while `WindowFull` and `windowStepFull` include explicit escape outcomes in the
+local quantum Turing machine setting of [BernsteinVazirani1997].
+
+The full transition has orthonormal columns and preserves the squared norm of arbitrary complex
+states. Consequently, the in-window transition and all its natural powers are contractions. The
+final lemmas describe which input symbols fit in `initWindowCfg` and which initialized cells are
+blank.
+
+## Main statements
+
+* `windowStep_columnNorm_add_windowEscapeMass`: Balance between in-window column mass and escape
+  mass.
+* `windowStepFull_gram`: Orthonormality of the full transition columns.
+* `windowStepFull_state_add_esc`: Squared-norm preservation after including escape outputs.
+* `windowStep_pow_contraction`: Contraction of every natural power of the in-window transition.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +50,8 @@ section B3WindowWellformed
 variable {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q] [Fintype A]
   [DecidableEq A]
 
+/-- Two window configurations are equal when their head positions, internal states, and tapes
+are equal. -/
 private theorem windowCfg_eq {c c' : WindowCfg t Q A} (h : c.head = c'.head)
     (hs : c.state = c'.state) (ht : c.tape = c'.tape) : c = c' := by
   obtain ⟨h1, s1, τ1⟩ := c
@@ -30,6 +59,7 @@ private theorem windowCfg_eq {c c' : WindowCfg t Q A} (h : c.head = c'.head)
   simp only [WindowCfg.mk.injEq] at h hs ht ⊢
   exact ⟨h, hs, ht⟩
 
+/-- A left move from `h` reaches `k` exactly when `h` is positive and `k.val + 1 = h.val`. -/
 private lemma moveCell_left_iff {h k : Fin (2 * t + 1)} :
     moveCell QtmMove.left h = some k ↔ 0 < h.val ∧ k.val + 1 = h.val := by
   by_cases hh : h.val = 0
@@ -48,11 +78,14 @@ private lemma moveCell_left_iff {h k : Fin (2 * t + 1)} :
       show h.val - 1 = k.val
       omega
 
+/-- A stationary move from `h` reaches `k` exactly when their cell indices are equal. -/
 private lemma moveCell_stay_iff {h k : Fin (2 * t + 1)} :
     moveCell QtmMove.stay h = some k ↔ k.val = h.val := by
   simp only [moveCell, Option.some.injEq, Fin.ext_iff]
   exact eq_comm
 
+/-- A right move from `h` reaches `k` exactly when `h` is below the right boundary and `k.val =
+h.val + 1`. -/
 private lemma moveCell_right_iff {h k : Fin (2 * t + 1)} :
     moveCell QtmMove.right h = some k ↔ h.val < 2 * t ∧ k.val = h.val + 1 := by
   by_cases hh : h.val = 2 * t
@@ -71,17 +104,21 @@ private lemma moveCell_right_iff {h k : Fin (2 * t + 1)} :
       show h.val + 1 = k.val
       omega
 
+/-- A left move leaves the window exactly when the head is at cell zero. -/
 private lemma moveCell_left_none {h : Fin (2 * t + 1)} :
     moveCell QtmMove.left h = none ↔ h.val = 0 := by
   by_cases hh : h.val = 0 <;> simp [moveCell, hh]
 
+/-- A right move leaves the window exactly when the head is at cell `2 * t`. -/
 private lemma moveCell_right_none {h : Fin (2 * t + 1)} :
     moveCell QtmMove.right h = none ↔ h.val = 2 * t := by
   by_cases hh : h.val = 2 * t <;> simp [moveCell, hh]
 
+/-- A stationary head move always remains inside the window. -/
 private lemma moveCell_stay_ne_none (h : Fin (2 * t + 1)) :
     moveCell QtmMove.stay h ≠ none := by simp [moveCell]
 
+/-- For any fixed move direction, equal optional destination cells imply equal starting cells. -/
 private lemma moveCell_inj (d : QtmMove) {h₁ h₂ : Fin (2 * t + 1)}
     (h : moveCell d h₁ = moveCell d h₂) : h₁ = h₂ := by
   cases d with
@@ -109,6 +146,8 @@ private lemma moveCell_inj (d : QtmMove) {h₁ h₂ : Fin (2 * t + 1)}
       obtain ⟨_, q₂⟩ := moveCell_right_iff.mp h.symm
       exact Fin.ext (by omega)
 
+/-- Two moves from the same starting cell that reach the same in-window destination have equal
+directions. -/
 private lemma moveCell_some_inj (d₁ d₂ : QtmMove) {h k : Fin (2 * t + 1)}
     (h₁e : moveCell d₁ h = some k) (h₂e : moveCell d₂ h = some k) : d₁ = d₂ := by
   rcases d₁ with _ | _ | _ <;> rcases d₂ with _ | _ | _
@@ -133,12 +172,16 @@ private lemma moveCell_some_inj (d₁ d₂ : QtmMove) {h k : Fin (2 * t + 1)}
     have e₂ := moveCell_stay_iff.mp h₂e
     omega
 
+/-- The transition amplitude for one specified head move between two window configurations, zero
+unless the destination head is correct and the tape agrees away from the written cell. -/
 private def stepAmp (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove)
     (c' : WindowCfg t Q A) : ℂ :=
   if moveCell d c.head = some c'.head ∧
       ∀ j : Fin (2 * t + 1), j ≠ c.head → c'.tape j = c.tape j
   then M.step c.state (c.tape c.head) d c'.state (c'.tape c.head) else 0
 
+/-- A window transition entry is the sum of the move-specific amplitudes over all head
+directions. -/
 private lemma windowStep_apply (M : LocalQTM Q A) (c' c : WindowCfg t Q A) :
     windowStep M c' c = ∑ d : QtmMove, stepAmp M c d c' := by
   simp only [windowStep, Matrix.of_apply]
@@ -171,14 +214,20 @@ private lemma windowStep_apply (M : LocalQTM Q A) (c' c : WindowCfg t Q A) :
     refine Finset.sum_eq_zero fun q' _ => Finset.sum_eq_zero fun b _ =>
       if_neg (fun ht => hmc ht.1)
 
+/-- The conjugate of a window transition entry is the sum of the conjugates of its move-specific
+amplitudes. -/
 private lemma star_stepAmp_sum (M : LocalQTM Q A) (c c' : WindowCfg t Q A) :
     star (windowStep M c' c) = ∑ d : QtmMove, star (stepAmp M c d c') := by
   rw [windowStep_apply, star_sum]
 
+/-- The product of a conjugated conditional amplitude and another conditional amplitude is
+nonzero only when both conditions hold. -/
 private lemma star_ite_mul (p q : Prop) [Decidable p] [Decidable q] (x y : ℂ) :
     star (if p then x else 0) * (if q then y else 0) = if p ∧ q then star x * y else 0 := by
   by_cases hp : p <;> by_cases hq : q <;> simp [hp, hq]
 
+/-- Expands the inner product of two window transition columns into a double sum over move
+directions and a sum over output configurations. -/
 private lemma inner_expand (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
     ∑ c' : WindowCfg t Q A, star (windowStep M c' c₁) * windowStep M c' c₂ =
       ∑ d₁ : QtmMove, ∑ d₂ : QtmMove, ∑ c' : WindowCfg t Q A,
@@ -199,6 +248,8 @@ private lemma inner_expand (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
           star (stepAmp M c₁ d₁ c') * stepAmp M c₂ d₂ c' :=
         Finset.sum_congr rfl fun d₁ _ => Finset.sum_comm
 
+/-- For equal write positions and tapes agreeing away from that position, the constrained
+configuration sum reduces to a sum over the output state and the single written symbol. -/
 private lemma sum_write_one (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (2 * t + 1) → A)
     (F : WindowCfg t Q A → ℂ) (hk : k₁ = k₂)
     (hcomp : ∀ j : Fin (2 * t + 1), j ≠ k₁ → σ₁ j = σ₂ j) :
@@ -241,6 +292,8 @@ private lemma sum_write_one (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (
   exact Fintype.sum_prod_type
     (f := fun p => F ⟨k, p.1, fun j => if j = k₁ then p.2 else σ₁ j⟩)
 
+/-- For distinct write positions and tapes agreeing away from both, the two tape constraints
+uniquely determine the output tape, leaving only a sum over output states. -/
 private lemma sum_pin_two (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (2 * t + 1) → A)
     (F : WindowCfg t Q A → ℂ) (hk : k₁ ≠ k₂)
     (hcomp : ∀ j : Fin (2 * t + 1), j ≠ k₁ → j ≠ k₂ → σ₁ j = σ₂ j) :
@@ -283,6 +336,9 @@ private lemma sum_pin_two (k k₁ k₂ : Fin (2 * t + 1)) (σ₁ σ₂ : Fin (2 
       simpa [hj] using! h₁.2.2 j hne
     · simpa [hj] using! h₁.2.1 j hj
 
+/-- When two moves reach the same cell, their conjugate amplitude product is the product of
+local transition amplitudes under the combined head and tape constraints, and is zero
+otherwise. -/
 private lemma stepAmp_merge (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d₁ d₂ : QtmMove)
     (k : Fin (2 * t + 1)) (h₁e : moveCell d₁ c₁.head = some k)
     (h₂e : moveCell d₂ c₂.head = some k) (c' : WindowCfg t Q A) :
@@ -305,6 +361,9 @@ private lemma stepAmp_merge (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d�
   · rw [if_neg (fun hp => p₁ hp.1), if_neg (fun hp =>
       p₁ ⟨by rw [h₁e, hp.1], hp.2.1⟩)]
 
+/-- For a common move direction, the column inner product reduces to a local transition inner
+product when the tapes agree away from the head and both moves have the same in-window
+destination, and is zero otherwise. -/
 private lemma inner_sameMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d : QtmMove) :
     ∑ c' : WindowCfg t Q A, star (stepAmp M c₁ d c') * stepAmp M c₂ d c' =
       if (∀ j : Fin (2 * t + 1), j ≠ c₁.head → c₁.tape j = c₂.tape j) ∧
@@ -351,6 +410,9 @@ private lemma inner_sameMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d
         · simp [p₂]
       · simp [p₁]
 
+/-- For distinct source head positions whose moves reach the same cell, the amplitude inner
+product reduces to a sum over output states with written symbols fixed by the opposite
+source tapes when the tapes agree away from both heads, and is zero otherwise. -/
 private lemma cross_reduce (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d₁ d₂ : QtmMove)
     (k : Fin (2 * t + 1)) (h₁e : moveCell d₁ c₁.head = some k)
     (h₂e : moveCell d₂ c₂.head = some k) (hk : c₁.head ≠ c₂.head) :
@@ -377,11 +439,14 @@ private lemma cross_reduce (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d�
       · simp [p₂]
     · simp [p₁]
 
+/-- A finite complex inner-product sum equals the conjugate of the sum with conjugation on the
+second factor. -/
 private lemma sum_star_mul_eq (x y : Q → ℂ) :
     (∑ q, star (x q) * y q) = star (∑ q, x q * star (y q)) := by
   rw [star_sum]
   exact Finset.sum_congr rfl fun q _ => by rw [star_mul, star_star, mul_comm]
 
+/-- The summed amplitude inner product vanishes for two distinct move directions. -/
 private lemma inner_diffMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d₁ d₂ : QtmMove)
     (hd : d₁ ≠ d₂) :
     ∑ c' : WindowCfg t Q A, star (stepAmp M c₁ d₁ c') * stepAmp M c₂ d₂ c' = 0 := by
@@ -416,6 +481,8 @@ private lemma inner_diffMove (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) (d
       · simp [p₂]
     · simp [p₁]
 
+/-- In the double sum over move directions, all terms with distinct directions vanish, leaving
+the sum over equal directions. -/
 private lemma inner_offdiag_zero (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
     ∑ d₁ : QtmMove, ∑ d₂ : QtmMove,
         ∑ c' : WindowCfg t Q A, star (stepAmp M c₁ d₁ c') * stepAmp M c₂ d₂ c'
@@ -425,6 +492,8 @@ private lemma inner_offdiag_zero (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A
   rw [Finset.sum_eq_single_of_mem d₁ (Finset.mem_univ _)
     (fun d₂ _ hd₂ => inner_diffMove M c₁ c₂ d₁ d₂ (Ne.symm hd₂))]
 
+/-- The squared column norm of the window transition, expressed as a complex inner product,
+equals the sum of squared local amplitudes for moves that stay inside the window. -/
 theorem windowStep_inner_self (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     ∑ c' : WindowCfg t Q A, star (windowStep M c' c) * windowStep M c' c =
       ∑ d : QtmMove, ∑ q' : Q, ∑ b : A,
@@ -440,10 +509,13 @@ theorem windowStep_inner_self (M : LocalQTM Q A) (c : WindowCfg t Q A) :
   · rw [if_pos ⟨fun j _ => rfl, rfl, hn⟩]
     simp [hn]
 
+/-- The sum of squared local transition amplitudes for head moves that leave the finite window. -/
 def windowEscapeMass (M : LocalQTM Q A) (c : WindowCfg t Q A) : ℝ :=
   ∑ d ∈ (Finset.univ : Finset QtmMove).filter (fun d => moveCell d c.head = none),
     ∑ q' : Q, ∑ b : A, ‖M.step c.state (c.tape c.head) d q' b‖ ^ 2
 
+/-- The escape mass is the left-move mass at cell zero plus the right-move mass at cell `2 * t`,
+with each contribution zero away from its boundary. -/
 theorem windowEscapeMass_eq (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     windowEscapeMass M c =
       (if c.head.val = 0 then
@@ -458,12 +530,16 @@ theorem windowEscapeMass_eq (M : LocalQTM Q A) (c : WindowCfg t Q A) :
   by_cases hl : c.head.val = 0 <;> by_cases hr : c.head.val = 2 * t <;>
     simp [moveCell_left_none, moveCell_right_none, moveCell_stay_ne_none, hl, hr]
 
+/-- Complex conjugation by `star` agrees with the complex conjugation ring endomorphism. -/
 private lemma star_eq_starRingEnd (z : ℂ) : star z = (starRingEnd ℂ) z := rfl
 
+/-- The squared norm of a complex number is the real part of `star z * z`. -/
 private lemma normSq_eq (z : ℂ) : ‖z‖ ^ 2 = (star z * z).re := by
   rw [Complex.sq_norm, star_eq_starRingEnd, ← Complex.normSq_eq_conj_mul_self,
     Complex.ofReal_re]
 
+/-- Taking the real part of the local diagonal amplitude sum yields the sum of squared norms for
+the moves that remain in the window. -/
 private lemma re_diag_sum (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove) :
     (∑ q' : Q, ∑ b : A,
         (if moveCell d c.head = none then (0 : ℂ)
@@ -505,6 +581,7 @@ private lemma re_diag_sum (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove)
   · simp [hn]
   · simp [hn, normSq_eq]
 
+/-- The squared norm of a window transition column plus its escape mass is one. -/
 theorem windowStep_columnNorm_add_windowEscapeMass (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     (∑ c' : WindowCfg t Q A, ‖windowStep M c' c‖ ^ 2) + windowEscapeMass M c = 1 := by
   have h1 : ∑ c' : WindowCfg t Q A, ‖windowStep M c' c‖ ^ 2 =
@@ -565,6 +642,7 @@ theorem windowStep_columnNorm_add_windowEscapeMass (M : LocalQTM Q A) (c : Windo
               Finset.sum_congr rfl fun q' _ => Finset.sum_comm
           _ = 1 := M.wf_norm c.state (c.tape c.head)
 
+/-- Each window transition column has squared norm at most one. -/
 theorem windowStep_columnNorm_le_one (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     ∑ c' : WindowCfg t Q A, ‖windowStep M c' c‖ ^ 2 ≤ 1 := by
   have h := windowStep_columnNorm_add_windowEscapeMass M c
@@ -573,6 +651,7 @@ theorem windowStep_columnNorm_le_one (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     exact Finset.sum_nonneg fun b _ => sq_nonneg _
   linarith
 
+/-- A window transition column has squared norm one when its source head is at neither boundary. -/
 theorem windowStep_columnNorm_interior (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h₀ : c.head.val ≠ 0) (h₂t : c.head.val ≠ 2 * t) :
     ∑ c' : WindowCfg t Q A, ‖windowStep M c' c‖ ^ 2 = 1 := by
@@ -584,6 +663,8 @@ theorem windowStep_columnNorm_interior (M : LocalQTM Q A) (c : WindowCfg t Q A)
   rw [windowEscapeMass, hf, Finset.sum_empty] at h
   linarith
 
+/-- The complex self-inner-product of a window transition column is the complex coercion of its
+real squared norm. -/
 private lemma gram_self_cast (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     ∑ c' : WindowCfg t Q A, star (windowStep M c' c) * windowStep M c' c =
       ((∑ c' : WindowCfg t Q A, ‖windowStep M c' c‖ ^ 2 : ℝ) : ℂ) := by
@@ -593,6 +674,7 @@ private lemma gram_self_cast (M : LocalQTM Q A) (c : WindowCfg t Q A) :
       rw [star_eq_starRingEnd, ← Complex.normSq_eq_conj_mul_self, ← Complex.sq_norm]
   rw [h1, Complex.ofReal_sum]
 
+/-- Window transition columns whose source heads lie strictly inside the window are orthonormal. -/
 theorem windowStep_gram_interior (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
     (h₁₀ : c₁.head.val ≠ 0) (h₁t : c₁.head.val ≠ 2 * t)
     (h₂₀ : c₂.head.val ≠ 0) (h₂t : c₂.head.val ≠ 2 * t) :
@@ -649,9 +731,12 @@ theorem windowStep_gram_interior (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A
 
 end B3WindowWellformed
 
+/-- The type of escape outcomes, recording a move direction, output internal state, and
+resulting window tape. -/
 abbrev WindowEsc (t : ℕ) (Q A : Type*) : Type _ :=
   QtmMove × Q × (Fin (2 * t + 1) → A)
 
+/-- The disjoint union of in-window configurations and escape outcomes. -/
 abbrev WindowFull (t : ℕ) (Q A : Type*) : Type _ :=
   WindowCfg t Q A ⊕ WindowEsc t Q A
 
@@ -659,24 +744,33 @@ section B3FullOutcome
 
 variable {t : ℕ} {Q A : Type*} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
 
+/-- The amplitude of an escape outcome, zero unless the indicated move leaves the window and the
+output tape agrees with the source away from its head. -/
 def windowEscAmp (M : LocalQTM Q A) (c : WindowCfg t Q A) (e : WindowEsc t Q A) : ℂ :=
   if moveCell e.1 c.head = none ∧
       ∀ j : Fin (2 * t + 1), j ≠ c.head → e.2.2 j = c.tape j
   then M.step c.state (c.tape c.head) e.1 e.2.1 (e.2.2 c.head) else 0
 
+/-- The rectangular transition matrix combining in-window transition amplitudes with explicit
+escape amplitudes. -/
 def windowStepFull (M : LocalQTM Q A) : Matrix (WindowFull t Q A) (WindowCfg t Q A) ℂ :=
   Matrix.of fun tgt c =>
     match tgt with
     | Sum.inl c' => windowStep M c' c
     | Sum.inr e => windowEscAmp M c e
 
+/-- An in-window row of the full transition matrix agrees with the corresponding entry of
+`windowStep`. -/
 theorem windowStepFull_apply_inl (M : LocalQTM Q A) (c' c : WindowCfg t Q A) :
     windowStepFull M (Sum.inl c') c = windowStep M c' c := rfl
 
+/-- An escape row of the full transition matrix agrees with `windowEscAmp`. -/
 theorem windowStepFull_apply_inr (M : LocalQTM Q A) (e : WindowEsc t Q A)
     (c : WindowCfg t Q A) :
     windowStepFull M (Sum.inr e) c = windowEscAmp M c e := rfl
 
+/-- Expands an escape amplitude in terms of its move, output state, and output tape, using the
+local transition amplitude exactly when the escape and tape conditions hold. -/
 theorem windowEscAmp_prod (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove) (q' : Q)
     (τ' : Fin (2 * t + 1) → A) :
     windowEscAmp M c (d, q', τ') =
@@ -684,6 +778,8 @@ theorem windowEscAmp_prod (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove)
           ∀ j : Fin (2 * t + 1), j ≠ c.head → τ' j = c.tape j
       then M.step c.state (c.tape c.head) d q' (τ' c.head) else 0 := rfl
 
+/-- Summing over escape outcomes is the iterated sum over move directions, output states, and
+output tapes. -/
 private lemma sum_esc_triple {γ : Type*} [AddCommMonoid γ] (F : WindowEsc t Q A → γ) :
     ∑ e : WindowEsc t Q A, F e =
       ∑ d : QtmMove, ∑ q' : Q, ∑ τ' : Fin (2 * t + 1) → A, F (d, q', τ') := by
@@ -691,6 +787,8 @@ private lemma sum_esc_triple {γ : Type*} [AddCommMonoid γ] (F : WindowEsc t Q 
   refine Finset.sum_congr rfl fun d _ => ?_
   rw [Fintype.sum_prod_type]
 
+/-- Summing a function of one tape cell over tapes fixed at every other cell reduces to summing
+over the symbol at that cell. -/
 private lemma sum_tape_one {γ : Type*} [AddCommMonoid γ] (h : Fin (2 * t + 1))
     (σ : Fin (2 * t + 1) → A) (F : A → γ) :
     ∑ τ' : Fin (2 * t + 1) → A,
@@ -714,6 +812,7 @@ private lemma sum_tape_one {γ : Type*} [AddCommMonoid γ] (h : Fin (2 * t + 1))
   · intro τ' hτ'
     rfl
 
+/-- The sum of squared escape amplitudes equals `windowEscapeMass`. -/
 theorem windowEscAmp_mass (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     ∑ e : WindowEsc t Q A, ‖windowEscAmp M c e‖ ^ 2 = windowEscapeMass M c := by
   classical
@@ -775,6 +874,8 @@ theorem windowEscAmp_mass (M : LocalQTM Q A) (c : WindowCfg t Q A) :
       rw [h1, if_neg hd]
   rw [hswap, windowEscapeMass, ← Finset.sum_filter]
 
+/-- The Gram entry for two window transition columns is the sum of the local same-direction
+inner products for matching in-window destinations and compatible tapes. -/
 private lemma windowGram_eq (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
     ∑ c' : WindowCfg t Q A, star (windowStep M c' c₁) * windowStep M c' c₂ =
       ∑ d : QtmMove,
@@ -787,6 +888,8 @@ private lemma windowGram_eq (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
   rw [inner_expand, inner_offdiag_zero]
   refine Finset.sum_congr rfl fun d _ => inner_sameMove M c₁ c₂ d
 
+/-- The inner product of two escape-amplitude columns is zero when their source head positions
+differ. -/
 private lemma escGram_diffHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
     (hh : c₁.head ≠ c₂.head) :
     ∑ e : WindowEsc t Q A, star (windowEscAmp M c₁ e) * windowEscAmp M c₂ e = 0 := by
@@ -797,6 +900,9 @@ private lemma escGram_diffHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
   intro hcon
   exact hh (moveCell_inj e.1 (by rw [hcon.1.1, hcon.2.1]))
 
+/-- For equal source head positions, the escape inner product reduces to the local inner
+products of escaping moves when the source tapes agree away from the head, and is zero
+otherwise. -/
 private lemma escGram_sameHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
     (hh : c₁.head = c₂.head) :
     ∑ e : WindowEsc t Q A, star (windowEscAmp M c₁ e) * windowEscAmp M c₂ e =
@@ -896,6 +1002,7 @@ private lemma escGram_sameHead (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A)
       have h2 : j ≠ c₂.head := by rw [← hh]; exact hj
       exact (hcon.1.2 j hj).symm.trans (hcon.2.2 j h2)
 
+/-- The columns of the full transition matrix, including escape outcomes, are orthonormal. -/
 theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
     ∑ tgt : WindowFull t Q A, star (windowStepFull M tgt c₁) * windowStepFull M tgt c₂ =
       if c₁ = c₂ then (1 : ℂ) else 0 := by
@@ -1095,6 +1202,7 @@ theorem windowStepFull_gram (M : LocalQTM Q A) (c₁ c₂ : WindowCfg t Q A) :
     intro hcon
     exact hh (moveCell_inj d hcon.2.1)
 
+/-- Every full transition column has squared norm one. -/
 theorem windowStepFull_columnNorm (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     ∑ tgt : WindowFull t Q A, ‖windowStepFull M tgt c‖ ^ 2 = 1 := by
   have h := windowStepFull_gram M c c
@@ -1113,6 +1221,7 @@ theorem windowStepFull_columnNorm (M : LocalQTM Q A) (c : WindowCfg t Q A) :
   rw [hre, h]
   simp
 
+/-- The in-window squared column norm plus the total squared escape amplitude is one. -/
 theorem windowStepFull_window_add_esc (M : LocalQTM Q A) (c : WindowCfg t Q A) :
     (∑ c' : WindowCfg t Q A, ‖windowStep M c' c‖ ^ 2) +
       (∑ e : WindowEsc t Q A, ‖windowEscAmp M c e‖ ^ 2) = 1 := by
@@ -1129,6 +1238,8 @@ theorem windowStepFull_window_add_esc (M : LocalQTM Q A) (c : WindowCfg t Q A) :
   rw [← hsplit]
   exact h
 
+/-- For any complex input state, the sum of the squared norms of its in-window and escape
+outputs equals its input squared norm. -/
 theorem windowStepFull_state_add_esc (M : LocalQTM Q A) (φ : WindowCfg t Q A → ℂ) :
     (∑ c' : WindowCfg t Q A, ‖∑ c : WindowCfg t Q A, windowStep M c' c * φ c‖ ^ 2) +
       (∑ e : WindowEsc t Q A,
@@ -1256,6 +1367,7 @@ theorem windowStepFull_state_add_esc (M : LocalQTM Q A) (φ : WindowCfg t Q A �
   rw [← hsplit]
   exact hkey
 
+/-- The finite-window transition does not increase the squared norm of any complex input state. -/
 theorem windowStep_state_contraction (M : LocalQTM Q A) (φ : WindowCfg t Q A → ℂ) :
     ∑ c' : WindowCfg t Q A, ‖∑ c : WindowCfg t Q A, windowStep M c' c * φ c‖ ^ 2 ≤
       ∑ c : WindowCfg t Q A, ‖φ c‖ ^ 2 := by
@@ -1265,6 +1377,8 @@ theorem windowStep_state_contraction (M : LocalQTM Q A) (φ : WindowCfg t Q A �
     Finset.sum_nonneg fun e _ => sq_nonneg _
   linarith
 
+/-- Every natural power of the finite-window transition does not increase the squared norm of
+any complex input state. -/
 theorem windowStep_pow_contraction (M : LocalQTM Q A) (k : ℕ)
     (φ : WindowCfg t Q A → ℂ) :
     ∑ c' : WindowCfg t Q A,
@@ -1338,6 +1452,8 @@ theorem windowStep_pow_contraction (M : LocalQTM Q A) (k : ℕ)
       simpa only [← hW] using! h
     exact hle.trans (ih φ)
 
+/-- For an input index `i` with `i.val < t`, the initialized window tape contains `x i` at cell
+`t + 1 + i.val`. -/
 theorem initWindowCfg_tape_of_lt (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A) (i : Fin n)
     (hi : i.val < t) :
     (initWindowCfg (t := t) M n x).tape ⟨t + 1 + i.val, by omega⟩ = x i := by
@@ -1354,6 +1470,7 @@ theorem initWindowCfg_tape_of_lt (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A) 
   show t + 1 + i.val - t - 1 = i.val
   omega
 
+/-- An initialized tape cell strictly beyond `t + n` contains the machine's blank symbol. -/
 theorem initWindowCfg_tape_blank (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A)
     (j : Fin (2 * t + 1)) (hj : t + n < j.val) :
     (initWindowCfg (t := t) M n x).tape j = M.blank := by
@@ -1364,6 +1481,7 @@ theorem initWindowCfg_tape_blank (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A)
   simp only
   rw [dif_neg hneg]
 
+/-- An input index with `t ≤ i.val` has no corresponding cell `t + 1 + i.val` in the window. -/
 theorem initWindowCfg_input_outside {n : ℕ} (i : Fin n)
     (hi : t ≤ i.val) :
     ¬ ∃ j : Fin (2 * t + 1), j.val = t + 1 + i.val := by
@@ -1372,6 +1490,7 @@ theorem initWindowCfg_input_outside {n : ℕ} (i : Fin n)
   have hlt := j.isLt
   omega
 
+/-- For `t = 0`, the initialized window tape is blank at every cell. -/
 theorem initWindowCfg_tape_zero_width (M : LocalQTM Q A) {n : ℕ} (x : Fin n → A) :
     (initWindowCfg M n x : WindowCfg 0 Q A).tape = fun _ => M.blank := by
   funext j

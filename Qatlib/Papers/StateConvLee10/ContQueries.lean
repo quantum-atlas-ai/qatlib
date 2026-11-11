@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ContinuousProgram
 import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+
+/-!
+# Continuous and fractional query comparisons
+
+This module bounds the filtered Gram change caused by legal continuous query programs and by a
+single nonnegative fractional Boolean query. It also compares continuous and discrete coherent
+and noncoherent costs, with explicit error parameters and constants, in the setting of
+[LeeEtAl2011].
+
+## Main statements
+
+* `source_continuous_gram_budget`: total query time bounds filtered Gram change.
+* `source_bounded_error_models`: continuous and discrete bounded-error costs satisfy the
+  displayed comparisons.
+* `source_fractional_query_bound`: a fractional Boolean query has a linear filtered-norm bound.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -34,6 +55,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
 namespace Qatlib.Papers.StateConvLee10.ContQueries
 
+/-- For normalized input states, the filtered Gram change of a legal continuous program is at
+most `(1 + π²)` times its total query time [LeeEtAl2011]. -/
 theorem source_continuous_gram_budget {X W : Type}
     [Fintype X] [DecidableEq X] [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1))
@@ -46,6 +69,9 @@ theorem source_continuous_gram_budget {X W : Type}
   exact Qatlib.Concepts.ConversionCore.WitnessCompile.stageB_state_conversion_clause92 (X := X)
       (W := W) (n := n) (q := q) (input := input) (C := C) (hC := hC) (ψ := ψ) (hψ := hψ)
 
+/-- For normalized state families, continuous coherent and noncoherent costs are bounded by
+their discrete counterparts, and discrete costs at error `1 / 3` satisfy the displayed
+constant-factor bounds using continuous costs at error `1 / 13436928` [LeeEtAl2011]. -/
 theorem source_bounded_error_models {X H : Type}
     [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -61,6 +87,8 @@ theorem source_bounded_error_models {X H : Type}
   exact Qatlib.Concepts.ConversionCore.WitnessCompile.stageB_state_conversion_clause93 (X := X)
       (H := H) (n := n) (q := q) (input := input) (ρ := ρ) (σ := σ) (hn := hn)
 
+/-- A fractional Boolean oracle query of strength `lam ≥ 0` changes the Gram matrix by filtered
+norm at most `lam * π * sqrt 2` [LeeEtAl2011]. -/
 theorem source_fractional_query_bound {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n : ℕ}
     (input : X → Fin n → Bool) (lam : ℝ) (hlam : 0 ≤ lam)

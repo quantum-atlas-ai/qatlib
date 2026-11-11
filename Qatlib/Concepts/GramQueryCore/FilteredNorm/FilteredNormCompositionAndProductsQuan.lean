@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Composition and products of filtered norms
+
+This module proves a guarded composition bound for `sourceRectValue`, the maximum formula for
+block direct sums, and multiplicativity for tensor products with tensor-product filters. The
+proofs combine certificate constructions with Schur multiplier duality, as used in the filtered
+γ₂ calculus of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceRectValue_composition`: The rectangular filtered value is bounded by its value relative
+  to intermediate filters times the supremum of their values relative to the final filters,
+  under the stated finiteness or nonzero guard.
+
+* `sourceRectValue_directSum`: The rectangular filtered value of a direct sum with matching
+  direct-sum filters is the maximum of the two component values.
+
+* `sourceRectValue_tensor`: The rectangular filtered value is multiplicative under tensor
+  products with tensor-product filters.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +48,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Every dual-feasible multiplier gives an operator-norm lower bound on the rectangular
+filtered value. -/
 theorem sourceRectValue_dual_norm_le {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
@@ -31,6 +59,8 @@ theorem sourceRectValue_dual_norm_le {R S : Type}
   exact le_iSup (fun N : {N : Matrix R S ℂ // ∀ j, ‖Z j ⊙ N‖ ≤ 1} =>
     ENNReal.ofReal ‖A ⊙ N.val‖) ⟨M,hM⟩
 
+/-- An upper bound for the operator norm of every dual-feasible entrywise product bounds the
+rectangular filtered value. -/
 theorem sourceRectValue_le_of_dual_norm_bound {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (b : ℝ≥0∞)
@@ -39,6 +69,9 @@ theorem sourceRectValue_le_of_dual_norm_bound {R S : Type}
   rw [(rectangularSchurDuality R S n A Z).1]
   exact iSup_le fun M => h M.val M.property
 
+/-- The rectangular filtered value is bounded by its value relative to intermediate filters
+times the supremum of their values relative to the final filters, under the stated
+finiteness or nonzero guard. -/
 theorem sourceRectValue_composition {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n m : ℕ} (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ)
@@ -94,6 +127,8 @@ theorem sourceRectValue_composition {R S : Type}
   rw [← he]
   exact mul_le_mul hbound le_rfl zero_le zero_le
 
+/-- A block direct sum acts independently on the two components of a vector indexed by a sum
+type. -/
 theorem sourceDirectSum_mulVec {R S U V : Type}
     [Fintype S] [Fintype V] (A : Matrix R S ℂ) (B : Matrix U V ℂ)
     (v : QState (S ⊕ V)) :
@@ -101,6 +136,8 @@ theorem sourceDirectSum_mulVec {R S U V : Type}
   ext r
   cases r <;> simp [sourceDirectSum, Matrix.mulVec, dotProduct, Fintype.sum_sum_type]
 
+/-- Embedding a vector into the left component of a direct sum with zero right component
+preserves its Euclidean norm. -/
 theorem sourceSumState_norm_left {S V : Type} [Fintype S] [Fintype V]
     (v : QState S) : ‖toEuclidean_fromVec (Sum.elim v (0 : QState V))‖ = ‖toEuclidean_fromVec v‖ := by
   have hs := rectangularSumState_norm_sq v (0 : QState V)
@@ -110,6 +147,8 @@ theorem sourceSumState_norm_left {S V : Type} [Fintype S] [Fintype V]
   rw [hz,add_zero] at hs
   nlinarith [norm_nonneg (toEuclidean_fromVec (Sum.elim v (0 : QState V))),norm_nonneg (toEuclidean_fromVec v)]
 
+/-- Embedding a vector into the right component of a direct sum with zero left component
+preserves its Euclidean norm. -/
 theorem sourceSumState_norm_right {S V : Type} [Fintype S] [Fintype V]
     (v : QState V) : ‖toEuclidean_fromVec (Sum.elim (0 : QState S) v)‖ = ‖toEuclidean_fromVec v‖ := by
   have hs := rectangularSumState_norm_sq (0 : QState S) v
@@ -119,6 +158,7 @@ theorem sourceSumState_norm_right {S V : Type} [Fintype S] [Fintype V]
   rw [hz,zero_add] at hs
   nlinarith [norm_nonneg (toEuclidean_fromVec (Sum.elim (0 : QState S) v)),norm_nonneg (toEuclidean_fromVec v)]
 
+/-- The operator norm of a block direct sum is the maximum of the norms of its two blocks. -/
 theorem sourceDirectSum_norm {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V]
@@ -173,6 +213,8 @@ theorem sourceDirectSum_norm {R S U V : Type}
       have hh := l2_norm_mulVec_fromVec_le (sourceDirectSum A B) pad
       simpa only [hin,hout] using! hh
 
+/-- Entrywise multiplication of a block direct sum depends only on the corresponding diagonal
+blocks of the multiplier. -/
 theorem sourceDirectSum_hadamard {R S U V : Type} (A : Matrix R S ℂ) (B : Matrix U V ℂ)
     (M : Matrix (R ⊕ U) (S ⊕ V) ℂ) :
     sourceDirectSum A B ⊙ M = sourceDirectSum (A ⊙ M.submatrix Sum.inl Sum.inl)
@@ -180,6 +222,8 @@ theorem sourceDirectSum_hadamard {R S U V : Type} (A : Matrix R S ℂ) (B : Matr
   ext r s
   cases r <;> cases s <;> simp [sourceDirectSum, Matrix.hadamard_apply]
 
+/-- The rectangular filtered value of a direct sum with matching direct-sum filters is the
+maximum of the two component values. -/
 theorem sourceRectValue_directSum {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V]
@@ -203,12 +247,15 @@ theorem sourceRectValue_directSum {R S U V : Type}
         (fun j => sourceDirectSum (Y j) (Z j)) Sum.inr Sum.inr
       simpa [sourceDirectSum, Matrix.submatrix] using! hh
 
+/-- The operator norm of a tensor product is the product of the operator norms. -/
 theorem sourceTensor_norm {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V]
     (A : Matrix R S ℂ) (B : Matrix U V ℂ) : ‖sourceTensor A B‖ = ‖A‖*‖B‖ :=
   l2_norm_kronecker A B
 
+/-- The entrywise product of two tensor products is the tensor product of the corresponding
+entrywise products. -/
 theorem sourceTensor_hadamard {R S U V : Type}
     (A M : Matrix R S ℂ) (B N : Matrix U V ℂ) :
     sourceTensor A B ⊙ sourceTensor M N = sourceTensor (A ⊙ M) (B ⊙ N) := by
@@ -216,6 +263,7 @@ theorem sourceTensor_hadamard {R S U V : Type}
   simp only [sourceTensor,Matrix.hadamard_apply]
   ring
 
+/-- A sum over `Fin (n * m)` can be written as an iterated sum using `finProdFinEquiv`. -/
 theorem sourceFinProd_sum {n m : ℕ} {α : Type} [AddCommMonoid α]
     (f : Fin n → Fin m → α) :
     (∑ i : Fin (n*m), f (finProdFinEquiv.symm i).1 (finProdFinEquiv.symm i).2) = ∑ j, ∑ k, f j k := by
@@ -223,12 +271,16 @@ theorem sourceFinProd_sum {n m : ℕ} {α : Type} [AddCommMonoid α]
     _ = ∑ p : Fin n × Fin m, f p.1 p.2 := finProdFinEquiv.symm.sum_comp (fun p => f p.1 p.2)
     _ = _ := Fintype.sum_prod_type _
 
+/-- Reindexing by `finProdFinEquiv` expresses a sum over `Fin (n * m)` as a sum over `Fin n` and
+`Fin m`. -/
 theorem sourceFinProd_sum_apply {n m : ℕ} {α : Type} [AddCommMonoid α]
     (f : Fin (n*m) → α) : (∑ i, f i) = ∑ j : Fin n, ∑ k : Fin m, f (finProdFinEquiv (j,k)) := by
   calc
     _ = ∑ p : Fin n × Fin m, f (finProdFinEquiv p) := (finProdFinEquiv.sum_comp f).symm
     _ = _ := Fintype.sum_prod_type _
 
+/-- Tensoring two rectangular filtered certificates with nonnegative budgets gives a certificate
+with the product budget. -/
 theorem sourceRectCert_tensor {R S U V : Type} {n m : ℕ}
     {A : Matrix R S ℂ} {B : Matrix U V ℂ}
     {Y : Fin n → Matrix R S ℂ} {Z : Fin m → Matrix U V ℂ}
@@ -295,6 +347,8 @@ theorem sourceRectCert_tensor {R S U V : Type} {n m : ℕ}
     exact mul_le_mul hvm hym
         (Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => Complex.normSq_nonneg _) ha
 
+/-- The product of the component rectangular filtered values is bounded by the value of the
+tensor product with tensor-product filters. -/
 theorem sourceRectValue_tensor_ge {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V]
@@ -319,6 +373,8 @@ theorem sourceRectValue_tensor_ge {R S U V : Type}
   rw [sourceTensor_hadamard,sourceTensor_norm,ENNReal.ofReal_mul (norm_nonneg _)] at hh
   exact hh
 
+/-- The rectangular filtered value is multiplicative under tensor products with tensor-product
+filters. -/
 theorem sourceRectValue_tensor {R S U V : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     [Fintype U] [DecidableEq U] [Fintype V] [DecidableEq V]
@@ -350,6 +406,8 @@ theorem sourceRectValue_tensor {R S U V : Type}
     (sourceRectCert_tensor ENNReal.toReal_nonneg ENNReal.toReal_nonneg hAc hBc)
   simpa only [ENNReal.ofReal_mul ENNReal.toReal_nonneg,ENNReal.ofReal_toReal hat,ENNReal.ofReal_toReal hbt] using! hh
 
+/-- The rectangular filtered value satisfies the bundled composition bound, direct-sum formula,
+and tensor multiplicativity from [LeeEtAl2011]. -/
 theorem filteredNormCompositionAndProducts : FilteredNormCompositionAndProducts := by
   refine ⟨?_,?_,?_⟩
   · intro R S _ _ _ _ n m A Y Z h

@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
+
+/-!
+# Fourth-power comparison for exact query complexity
+
+The Möbius coefficients of a Boolean function define its canonical multilinear polynomial and
+the degree `mobiusDegree`, which is proved equal to `exactDegree`. Sensitive blocks yield a
+small set hitting all maximum-degree monomials; restricting that set lowers the degree and
+permits a recursive deterministic query-tree construction.
+
+Combining this construction with the quadratic block-sensitivity bound gives deterministic query
+complexity at most twice the fourth power of exact degree. The theorem `frontier1` also gives
+the corresponding bound in `exactMinimum`, in the polynomial-method setting of [BealsEtAl2001].
+
+## Main statements
+
+* `mobiusDegree_eq_exactDegree`: Möbius degree equals exact polynomial degree.
+* `exists_hitting`: maximum-degree monomials have a hitting set controlled by degree and block
+  sensitivity.
+* `exists_dec_tree`: a query tree is constructed with cost bounded by degree squared times block
+  sensitivity.
+* `frontier1`: the fourth-power bounds in exact degree and exact quantum query complexity.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,44 +56,58 @@ noncomputable section
 
 variable {N : ℕ}
 
+/-- The Boolean characteristic input of a finite set of coordinates. -/
 def chiSet (T : Finset (Fin N)) : Fin N → Bool := fun i => i ∈ T
 
+/-- The Boolean input that is false at every coordinate. -/
 def zeroInput : Fin N → Bool := fun _ => false
 
+/-- The characteristic input of the empty set is the all-false input. -/
 @[simp] theorem chiSet_empty : chiSet (∅ : Finset (Fin N)) = zeroInput := by
   funext i; simp [chiSet, zeroInput]
 
+/-- Embeds a Boolean value into the real numbers as zero or one. -/
 def bval (b : Bool) : ℝ := if b then 1 else 0
 
+/-- The real encoding of `true` is one. -/
 @[simp] theorem bval_true : bval true = 1 := rfl
 
+/-- The real encoding of `false` is zero. -/
 @[simp] theorem bval_false : bval false = 0 := rfl
 
+/-- Equality of real Boolean encodings implies equality of the Boolean values. -/
 theorem bval_injective {a b : Bool} (h : bval a = bval b) : a = b := by
   cases a <;> cases b <;> simp_all [bval]
 
+/-- Embeds a Boolean input into the real zero-one cube coordinatewise. -/
 def cubePoint (x : Fin N → Bool) : Fin N → ℝ := fun i => if x i then 1 else 0
 
+/-- The finite set of coordinates where a Boolean input is true. -/
 def suppOf (x : Fin N → Bool) : Finset (Fin N) := Finset.univ.filter (fun i => x i = true)
 
+/-- A coordinate belongs to the support of a Boolean input exactly when its value is true. -/
 theorem mem_suppOf {x : Fin N → Bool} {i : Fin N} : i ∈ suppOf x ↔ x i = true := by
   simp [suppOf]
 
+/-- The characteristic input of a Boolean input's support recovers that input. -/
 theorem chiSet_suppOf (x : Fin N → Bool) : chiSet (suppOf x) = x := by
   funext i
   by_cases h : x i <;> simp [chiSet, mem_suppOf, h]
 
+/-- Flipping a block of the all-false input gives the characteristic input of that block. -/
 theorem flipBlock_zeroInput (B : Finset (Fin N)) :
     flipBlock zeroInput B = chiSet B := by
   funext i
   by_cases h : i ∈ B <;> simp [flipBlock, chiSet, zeroInput, h]
 
+/-- A block whose flip changes the function value is nonempty. -/
 theorem BlockSensitive_nonempty {f : (Fin N → Bool) → Bool} {x : Fin N → Bool}
     {B : Finset (Fin N)} (h : BlockSensitive f x B) : B.Nonempty := by
   by_contra hne
   rw [Finset.not_nonempty_iff_eq_empty.mp hne] at h
   exact h rfl
 
+/-- The alternating sum over subsets is one for the empty set and zero otherwise. -/
 theorem sum_pow_neg_one_powerset {α : Type} [DecidableEq α] (S : Finset α) :
     ∑ U ∈ S.powerset, (-1 : ℝ) ^ U.card = if S = ∅ then 1 else 0 := by
   classical
@@ -102,6 +143,8 @@ theorem sum_pow_neg_one_powerset {α : Type} [DecidableEq α] (S : Finset α) :
     rw [if_neg hne]
     ring
 
+/-- For `T ⊆ U`, the alternating sum over subsets of `U` containing `T` is one exactly when `T =
+U`. -/
 theorem sum_sign_subset_eq {α : Type} [DecidableEq α] (T U : Finset α) (hTU : T ⊆ U) :
     ∑ S ∈ U.powerset, (if T ⊆ S then (-1 : ℝ) ^ (S \ T).card else 0)
       = if T = U then 1 else 0 := by
@@ -148,9 +191,13 @@ theorem sum_sign_subset_eq {α : Type} [DecidableEq α] (T U : Finset α) (hTU :
       exact Finset.eq_empty_iff_forall_notMem.mp heq i (Finset.mem_sdiff.mpr ⟨hi, hc⟩)
     rw [if_neg hTe, if_neg hne]
 
+/-- The Boolean-lattice Möbius coefficient obtained by alternating the real function values over
+subsets of the given coordinate set. -/
 def mobiusCoef (f : (Fin N → Bool) → Bool) (S : Finset (Fin N)) : ℝ :=
   ∑ T ∈ S.powerset, (-1 : ℝ) ^ (S \ T).card * bval (f (chiSet T))
 
+/-- The alternating sum weighted by complement cardinality is one for the empty set and zero
+otherwise. -/
 theorem sum_sign_powerset_self (S : Finset (Fin N)) :
     ∑ T ∈ S.powerset, (-1 : ℝ) ^ (S \ T).card = if S = ∅ then 1 else 0 := by
   classical
@@ -188,6 +235,8 @@ theorem sum_sign_powerset_self (S : Finset (Fin N)) :
     · rfl
   rw [hnbij, sum_pow_neg_one_powerset]
 
+/-- A nonempty set has zero Möbius coefficient if the function is constant on all characteristic
+inputs of its subsets. -/
 theorem mobiusCoef_eq_zero_of_const {f : (Fin N → Bool) → Bool} {S : Finset (Fin N)}
     (hne : S.Nonempty) (hc : ∀ T ∈ S.powerset, f (chiSet T) = f zeroInput) :
     mobiusCoef f S = 0 := by
@@ -200,6 +249,8 @@ theorem mobiusCoef_eq_zero_of_const {f : (Fin N → Bool) → Bool} {S : Finset 
   rw [mobiusCoef, Finset.sum_congr rfl (fun T hT => h1 T hT), ← Finset.mul_sum,
     sum_sign_powerset_self, if_neg hne.ne_empty, mul_zero]
 
+/-- Summing the Boolean-lattice Möbius transform over all subsets recovers the value at the full
+set. -/
 theorem moebius_inversion_sum {α : Type} [DecidableEq α] (U : Finset α) (F : Finset α → ℝ) :
     ∑ S ∈ U.powerset, ∑ T ∈ S.powerset, (-1 : ℝ) ^ (S \ T).card * F T = F U := by
   classical
@@ -243,13 +294,17 @@ theorem moebius_inversion_sum {α : Type} [DecidableEq α] (U : Finset α) (F : 
         · intro T hT hne
           rw [if_neg hne, mul_zero]
 
+/-- The squarefree monomial given by the product of variables indexed by a finite set. -/
 def supMono (S : Finset (Fin N)) : MvPolynomial (Fin N) ℝ :=
   ∏ i ∈ S, MvPolynomial.X i
 
+/-- Inserting a new coordinate into a squarefree monomial multiplies it by that coordinate's
+variable. -/
 theorem supMono_insert {S : Finset (Fin N)} {i : Fin N} (h : i ∉ S) :
     supMono (insert i S) = MvPolynomial.X i * supMono S := by
   simp only [supMono, Finset.prod_insert h]
 
+/-- The total degree of the squarefree monomial is at most the cardinality of its index set. -/
 theorem supMono_totalDegree (S : Finset (Fin N)) :
     (supMono S).totalDegree ≤ S.card := by
   classical
@@ -261,6 +316,8 @@ theorem supMono_totalDegree (S : Finset (Fin N)) :
     rw [MvPolynomial.totalDegree_X] at h1
     omega
 
+/-- A squarefree monomial evaluates to one on a Boolean input exactly when every indexed
+coordinate is true, and to zero otherwise. -/
 theorem eval_supMono (S : Finset (Fin N)) (x : Fin N → Bool) :
     MvPolynomial.eval (cubePoint x) (supMono S) = if S ⊆ suppOf x then (1 : ℝ) else 0 := by
   classical
@@ -280,9 +337,12 @@ theorem eval_supMono (S : Finset (Fin N)) (x : Fin N → Bool) :
     have hx : ¬ (x i = true) := fun h => hi.2 (mem_suppOf.mpr h)
     simp only [MvPolynomial.eval_X, cubePoint, if_neg hx]
 
+/-- The canonical multilinear polynomial formed from the Boolean function's Möbius coefficients. -/
 def canonPoly (f : (Fin N → Bool) → Bool) : MvPolynomial (Fin N) ℝ :=
   ∑ S ∈ Finset.univ.powerset, MvPolynomial.C (mobiusCoef f S) * supMono S
 
+/-- Evaluating the canonical polynomial on a Boolean input sums the Möbius coefficients over
+subsets of its support. -/
 theorem eval_canonPoly_sum (f : (Fin N → Bool) → Bool) (x : Fin N → Bool) :
     MvPolynomial.eval (cubePoint x) (canonPoly f)
       = ∑ S ∈ (suppOf x).powerset, mobiusCoef f S := by
@@ -301,6 +361,7 @@ theorem eval_canonPoly_sum (f : (Fin N → Bool) → Bool) (x : Fin N → Bool) 
     exact ⟨fun h => ⟨Finset.subset_univ S, h⟩, fun h => h.2⟩
   rw [hset, Finset.sum_filter]
 
+/-- The canonical polynomial represents the Boolean function exactly on the Boolean cube. -/
 theorem canonPoly_represents (f : (Fin N → Bool) → Bool) (g : Fin N → Bool) :
     boolEval (canonPoly f) g = if f g then (1 : ℝ) else 0 := by
   have h1 : MvPolynomial.eval (cubePoint g) (canonPoly f)
@@ -313,13 +374,17 @@ theorem canonPoly_represents (f : (Fin N → Bool) → Bool) (g : Fin N → Bool
   rw [show (fun i => if g i then (1 : ℝ) else 0) = cubePoint g from rfl, h1, h2]
   rfl
 
+/-- The maximum cardinality of a coordinate set with nonzero Möbius coefficient, with value zero
+when there are no such sets. -/
 noncomputable def mobiusDegree (f : (Fin N → Bool) → Bool) : ℕ :=
   (Finset.univ.powerset.filter (fun S => mobiusCoef f S ≠ 0)).sup Finset.card
 
+/-- A coordinate set with nonzero Möbius coefficient has cardinality at most the Möbius degree. -/
 theorem card_le_mobiusDegree {f : (Fin N → Bool) → Bool} {S : Finset (Fin N)}
     (h : mobiusCoef f S ≠ 0) : S.card ≤ mobiusDegree f :=
   Finset.le_sup (Finset.mem_filter.mpr ⟨Finset.mem_powerset.mpr (Finset.subset_univ S), h⟩)
 
+/-- The canonical polynomial's total degree is at most the Möbius degree. -/
 theorem totalDegree_canonPoly_le (f : (Fin N → Bool) → Bool) :
     (canonPoly f).totalDegree ≤ mobiusDegree f := by
   classical
@@ -339,17 +404,21 @@ theorem totalDegree_canonPoly_le (f : (Fin N → Bool) → Bool) :
       Finset.mem_filter.mpr ⟨hS, hc⟩
     exact hcm.trans ((supMono_totalDegree S).trans (Finset.le_sup hmem))
 
+/-- The finitely supported exponent vector taking value one on the given set and zero elsewhere. -/
 def indExp (S : Finset (Fin N)) : Fin N →₀ ℕ :=
   Finsupp.equivFunOnFinite.symm (fun i => if i ∈ S then 1 else 0)
 
+/-- The indicator exponent vector is one on its defining set and zero outside it. -/
 theorem indExp_apply (S : Finset (Fin N)) (i : Fin N) :
     indExp S i = if i ∈ S then 1 else 0 := by
   simp [indExp]
 
+/-- The support of an indicator exponent vector is its defining set. -/
 theorem indExp_support (S : Finset (Fin N)) : (indExp S).support = S := by
   ext i
   simp [indExp_apply]
 
+/-- The sum of the indicator exponents equals the cardinality of the defining set. -/
 theorem indExp_sum_card (S : Finset (Fin N)) : (indExp S).sum (fun _ e => e) = S.card := by
   classical
   have h1 : (indExp S).sum (fun _ e => e) = ∑ i : Fin N, (indExp S i) :=
@@ -365,6 +434,8 @@ theorem indExp_sum_card (S : Finset (Fin N)) : (indExp S).sum (fun _ e => e) = S
       _ = S.card := by rw [hfilter, Finset.card_eq_sum_ones]
   rw [h1, h2]
 
+/-- Every multilinear real polynomial representing the Boolean function has its coefficient at
+`indExp S` equal to `mobiusCoef f S`. -/
 theorem multilinear_coeff_eq_mobius (f : (Fin N → Bool) → Bool)
     (q : MvPolynomial (Fin N) ℝ)
     (hq : ∀ g : Fin N → Bool, MvPolynomial.eval (cubePoint g) q = bval (f g))
@@ -521,6 +592,7 @@ theorem multilinear_coeff_eq_mobius (f : (Fin N → Bool) → Bool)
     rw [if_neg (fun heq => hne (hmlind d hd heq)), mul_zero]
   rw [Finset.sum_eq_single (indExp S) h₁ h₀, indExp_support, if_pos rfl, mul_one]
 
+/-- The Möbius degree is at most the exact polynomial degree. -/
 theorem mobiusDegree_le_exactDegree (f : (Fin N → Bool) → Bool) :
     mobiusDegree f ≤ exactDegree f := by
   classical
@@ -556,6 +628,7 @@ theorem mobiusDegree_le_exactDegree (f : (Fin N → Bool) → Bool) :
     exact (key p hpmem).trans_eq hpd'
   exact hfinal _ (Nat.sInf_mem (hne.image fun p => p.totalDegree))
 
+/-- The exact polynomial degree is at most the Möbius degree. -/
 theorem exactDegree_le_mobiusDegree (f : (Fin N → Bool) → Bool) :
     exactDegree f ≤ mobiusDegree f := by
   have hrep : ∀ g, boolEval (canonPoly f) g = if f g then (1 : ℝ) else 0 :=
@@ -565,10 +638,13 @@ theorem exactDegree_le_mobiusDegree (f : (Fin N → Bool) → Bool) :
     ⟨canonPoly f, hrep, rfl⟩
   exact (Nat.sInf_le hmem).trans (totalDegree_canonPoly_le f)
 
+/-- The Möbius degree equals the exact polynomial degree. -/
 theorem mobiusDegree_eq_exactDegree (f : (Fin N → Bool) → Bool) :
     mobiusDegree f = exactDegree f :=
   le_antisymm (mobiusDegree_le_exactDegree f) (exactDegree_le_mobiusDegree f)
 
+/-- A nonempty set with nonzero Möbius coefficient contains a block sensitive at the all-false
+input. -/
 theorem exists_sensitive_of_mobiusCoef {f : (Fin N → Bool) → Bool} {S : Finset (Fin N)}
     (h0 : mobiusCoef f S ≠ 0) (hne : S.Nonempty) :
     ∃ B ∈ S.powerset, BlockSensitive f zeroInput B := by
@@ -581,6 +657,7 @@ theorem exists_sensitive_of_mobiusCoef {f : (Fin N → Bool) → Bool} {S : Fins
   rw [flipBlock_zeroInput T] at hns
   exact hns.symm
 
+/-- A Boolean function of Möbius degree zero is constant. -/
 theorem constant_of_mobiusDegree_zero {f : (Fin N → Bool) → Bool}
     (h : mobiusDegree f = 0) (x : Fin N → Bool) : f x = f zeroInput := by
   classical
@@ -606,9 +683,13 @@ theorem constant_of_mobiusDegree_zero {f : (Fin N → Bool) → Bool}
   rw [show (fun i => if x i then (1 : ℝ) else 0) = cubePoint x from rfl, h1, h3] at h2
   exact bval_injective h2.symm
 
+/-- The coordinate sets of maximum cardinality among the nonzero Möbius coefficients. -/
 def maxonomials (f : (Fin N → Bool) → Bool) : Finset (Finset (Fin N)) :=
   Finset.univ.powerset.filter fun S => mobiusCoef f S ≠ 0 ∧ S.card = mobiusDegree f
 
+/-- Any finite family of maximum-degree monomials for a function of positive degree has a
+pairwise disjoint family of sensitive blocks hitting every monomial. Each block lies in a
+monomial of the family and has size at most the Möbius degree. -/
 theorem greedy_blocks (f : (Fin N → Bool) → Bool) (hD : 1 ≤ mobiusDegree f) :
     ∀ k : ℕ, ∀ 𝓜 : Finset (Finset (Fin N)), 𝓜.card ≤ k → 𝓜 ⊆ maxonomials f →
       ∃ 𝔅 : Finset (Finset (Fin N)),
@@ -698,6 +779,8 @@ theorem greedy_blocks (f : (Fin N → Bool) → Bool) (hD : 1 ≤ mobiusDegree f
       subst hempty'
       exact ⟨∅, by simp, by simp, by simp, by simp⟩
 
+/-- For positive Möbius degree, there is a set hitting every maximum-degree monomial whose size
+is at most the degree times the block sensitivity. -/
 theorem exists_hitting {f : (Fin N → Bool) → Bool} (hD : 1 ≤ mobiusDegree f) :
     ∃ H : Finset (Fin N),
       (∀ M ∈ maxonomials f, (M ∩ H).Nonempty) ∧
@@ -730,9 +813,12 @@ theorem exists_hitting {f : (Fin N → Bool) → Bool} (hD : 1 ≤ mobiusDegree 
       _ ≤ blockSensitivity f * mobiusDegree f := Nat.mul_le_mul_right _ hbsat
       _ = mobiusDegree f * blockSensitivity f := Nat.mul_comm _ _
 
+/-- The input taking values from `a` on `H` and from `y` outside `H`. -/
 def combine (H : Finset (Fin N)) (a y : Fin N → Bool) : Fin N → Bool :=
   fun i => if i ∈ H then a i else y i
 
+/-- Flipping coordinates before fixing those in `H` is equivalent to flipping only the
+coordinates outside `H` afterward. -/
 theorem combine_flipBlock (H : Finset (Fin N)) (a y : Fin N → Bool) (B : Finset (Fin N)) :
     combine H a (flipBlock y B) = flipBlock (combine H a y) (B \ H) := by
   funext i
@@ -742,14 +828,17 @@ theorem combine_flipBlock (H : Finset (Fin N)) (a y : Fin N → Bool) (B : Finse
     · simp [combine, flipBlock, hiH, hiB]
     · simp [combine, flipBlock, hiH, hiB]
 
+/-- The combined input agrees with `a` on `H`. -/
 theorem combine_at (H : Finset (Fin N)) (a y : Fin N → Bool) {i : Fin N} (hi : i ∈ H) :
     combine H a y i = a i := by
   simp [combine, hi]
 
+/-- The combined input agrees with `y` outside `H`. -/
 theorem combine_out (H : Finset (Fin N)) (a y : Fin N → Bool) {i : Fin N} (hi : i ∉ H) :
     combine H a y i = y i := by
   simp [combine, hi]
 
+/-- Block sensitivity at any input is at most the global block sensitivity. -/
 theorem blockSensitivityAt_le (f : (Fin N → Bool) → Bool) (x : Fin N → Bool) :
     blockSensitivityAt f x ≤ blockSensitivity f := by
   have hmem : blockSensitivityAt f x ∈
@@ -761,6 +850,7 @@ theorem blockSensitivityAt_le (f : (Fin N → Bool) → Bool) (x : Fin N → Boo
   rw [blockSensitivity]
   exact h5
 
+/-- Fixing coordinates does not increase block sensitivity at the corresponding input. -/
 theorem blockSensitivityAt_combine_le (f : (Fin N → Bool) → Bool)
     (H : Finset (Fin N)) (a y : Fin N → Bool) :
     blockSensitivityAt (fun y' => f (combine H a y')) y
@@ -809,6 +899,7 @@ theorem blockSensitivityAt_combine_le (f : (Fin N → Bool) → Bool)
     have hempty : B₁ ∩ B₂ = ∅ := hdisj B₁ h₁ B₂ h₂ hneB
     exact Finset.subset_empty.mp fun x hx => hempty ▸ hsub hx
 
+/-- Fixing coordinates does not increase global block sensitivity. -/
 theorem blockSensitivity_combine_le (f : (Fin N → Bool) → Bool)
     (H : Finset (Fin N)) (a : Fin N → Bool) :
     blockSensitivity (fun y' => f (combine H a y')) ≤ blockSensitivity f := by
@@ -817,6 +908,8 @@ theorem blockSensitivity_combine_le (f : (Fin N → Bool) → Bool)
   obtain ⟨y, -, rfl⟩ := Finset.mem_image.mp hb
   exact (blockSensitivityAt_combine_le f H a y).trans (blockSensitivityAt_le f (combine H a y))
 
+/-- The Möbius degree is at most the total degree of any real polynomial representing the
+Boolean function. -/
 theorem mobiusDegree_le_rep (f : (Fin N → Bool) → Bool) (p : MvPolynomial (Fin N) ℝ)
     (hp : ∀ g, boolEval p g = if f g then (1 : ℝ) else 0) :
     mobiusDegree f ≤ p.totalDegree := by
@@ -840,6 +933,8 @@ theorem mobiusDegree_le_rep (f : (Fin N → Bool) → Bool) (p : MvPolynomial (F
   have h3 : (multilinearize p).totalDegree ≤ p.totalDegree := multilinearize_totalDegree_le p
   omega
 
+/-- Fixing a set of coordinates hitting every maximum-degree monomial strictly lowers a positive
+Möbius degree. -/
 theorem mobiusDegree_restrict_lt (f : (Fin N → Bool) → Bool)
     (H : Finset (Fin N)) (a : Fin N → Bool)
     (hhit : ∀ M ∈ maxonomials f, (M ∩ H).Nonempty) (hD : 1 ≤ mobiusDegree f) :
@@ -970,6 +1065,7 @@ theorem mobiusDegree_restrict_lt (f : (Fin N → Bool) → Bool)
     exact hrep g)
   omega
 
+/-- Block sensitivity is at most twice the square of the exact polynomial degree. -/
 theorem blockSensitivity_le_two_mul_exactDegree_sq (f : (Fin N → Bool) → Bool) :
     blockSensitivity f ≤ 2 * exactDegree f ^ 2 := by
   have hpoly : ∀ x : Fin N → Bool,
@@ -998,11 +1094,14 @@ theorem blockSensitivity_le_two_mul_exactDegree_sq (f : (Fin N → Bool) → Boo
     exact_mod_cast hn2
   linarith
 
+/-- Replaces the coordinates listed by their values in `x`, retaining the initial assignment at
+all other coordinates. -/
 def extendPartial (x : Fin N → Bool) :
     List (Fin N) → (Fin N → Bool) → (Fin N → Bool)
   | [], p0 => p0
   | i :: rest, p0 => extendPartial x rest (fun j => if j = i then x i else p0 j)
 
+/-- Extending a partial assignment leaves coordinates outside the queried list unchanged. -/
 theorem extendPartial_not_mem {x : Fin N → Bool} {j : Fin N} :
     ∀ (l : List (Fin N)) (p0 : Fin N → Bool), j ∉ l →
       extendPartial x l p0 j = p0 j := by
@@ -1017,6 +1116,7 @@ theorem extendPartial_not_mem {x : Fin N → Bool} {j : Fin N} :
         rw [extendPartial, ih _ hmem]
         simp [hji]
 
+/-- Extending a partial assignment makes each coordinate in the queried list agree with `x`. -/
 theorem extendPartial_agrees {x : Fin N → Bool} {j : Fin N} :
     ∀ (l : List (Fin N)) (p0 : Fin N → Bool), j ∈ l →
       extendPartial x l p0 j = x j := by
@@ -1034,6 +1134,8 @@ theorem extendPartial_agrees {x : Fin N → Bool} {j : Fin N} :
       · rw [extendPartial]
         exact ih _ (by simp [hji] at hj; exact hj)
 
+/-- Queries the listed coordinates in order, updates the partial assignment, and continues with
+the tree selected by that assignment. -/
 def queryChain (l : List (Fin N)) (p0 : Fin N → Bool)
     (next : (Fin N → Bool) → BoolQueryTree (Fin N) Bool) : BoolQueryTree (Fin N) Bool :=
   match l with
@@ -1042,6 +1144,8 @@ def queryChain (l : List (Fin N)) (p0 : Fin N → Bool)
       (queryChain rest (fun j => if j = i then false else p0 j) next)
       (queryChain rest (fun j => if j = i then true else p0 j) next)
 
+/-- Running a query chain has the same output as its continuation evaluated at the completed
+partial assignment. -/
 theorem queryChain_run (l : List (Fin N)) (p0 : Fin N → Bool)
     (next : (Fin N → Bool) → BoolQueryTree (Fin N) Bool) (x : Fin N → Bool) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run x (queryChain l p0 next)).1
@@ -1064,6 +1168,8 @@ theorem queryChain_run (l : List (Fin N)) (p0 : Fin N → Bool)
         rw [hp]
         exact ih _
 
+/-- A query chain adds at most its list length to a uniform bound on the continuation's query
+count. -/
 theorem queryChain_maxQueries (l : List (Fin N)) (p0 : Fin N → Bool)
     (next : (Fin N → Bool) → BoolQueryTree (Fin N) Bool) (M : ℕ)
     (hM : ∀ a : Fin N → Bool, (next a).MaxQueries ≤ M) :
@@ -1077,6 +1183,8 @@ theorem queryChain_maxQueries (l : List (Fin N)) (p0 : Fin N → Bool)
       have h2 := ih (fun j => if j = i then true else p0 j)
       omega
 
+/-- A Boolean function of Möbius degree at most `k` has a deterministic query tree computing it
+with at most `k * (k * blockSensitivity f)` queries. -/
 theorem exists_dec_tree : ∀ (k : ℕ) (f : (Fin N → Bool) → Bool), mobiusDegree f ≤ k →
     ∃ t : BoolQueryTree (Fin N) Bool,
       (∀ x : Fin N → Bool, (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run x t).1 = f x) ∧
@@ -1141,6 +1249,8 @@ theorem exists_dec_tree : ∀ (k : ℕ) (f : (Fin N → Bool) → Bool), mobiusD
             omega
           exact hchain.trans hle
 
+/-- Deterministic query complexity is at most the square of the Möbius degree times block
+sensitivity. -/
 theorem deterministicQueryComplexity_le (f : (Fin N → Bool) → Bool) :
     deterministicQueryComplexity f
       ≤ mobiusDegree f * (mobiusDegree f * blockSensitivity f) := by
@@ -1148,12 +1258,15 @@ theorem deterministicQueryComplexity_le (f : (Fin N → Bool) → Bool) :
   unfold deterministicQueryComplexity
   exact (Nat.sInf_le (Set.mem_range.mpr ⟨⟨t, fun x => htrun x⟩, rfl⟩)).trans htmax
 
+/-- Deterministic query complexity is at most the square of the exact polynomial degree times
+block sensitivity. -/
 theorem deterministicQueryComplexity_le_mul (f : (Fin N → Bool) → Bool) :
     deterministicQueryComplexity f
       ≤ exactDegree f * (exactDegree f * blockSensitivity f) := by
   rw [← mobiusDegree_eq_exactDegree]
   exact deterministicQueryComplexity_le f
 
+/-- Deterministic query complexity is at most twice the fourth power of exact polynomial degree. -/
 theorem det_le_two_exactDegree_fourth (f : (Fin N → Bool) → Bool) :
     deterministicQueryComplexity f ≤ 2 * exactDegree f ^ 4 := by
   have h1 := deterministicQueryComplexity_le_mul f
@@ -1166,6 +1279,9 @@ theorem det_le_two_exactDegree_fourth (f : (Fin N → Bool) → Bool) :
     _ ≤ exactDegree f * (exactDegree f * (2 * exactDegree f ^ 2)) := h3
     _ = 2 * exactDegree f ^ 4 := by ring
 
+/-- Deterministic query complexity is at most `2 * exactDegree f ^ 4` and at most `32 *
+exactMinimum f ^ 4`, giving the exact-query fourth-power comparison discussed in
+[BealsEtAl2001]. -/
 theorem frontier1 (f : (Fin N → Bool) → Bool) :
     deterministicQueryComplexity f ≤ 2 * exactDegree f ^ 4 ∧
       deterministicQueryComplexity f ≤ 32 * exactMinimum f ^ 4 := by

@@ -9,6 +9,29 @@ import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQua
 import Mathlib.Tactic.LinearCombination
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Gram bounds and general output states
+
+Relates alphabet query words and output overlaps to filtered and unfiltered Gram bounds. A legal
+word has a filtered certificate with budget twice its query count, while sufficiently close
+normalized states have a controlled unfiltered Gram difference [LeeEtAl2011].
+
+Conversely, an unfiltered certificate yields a unitary approximation after finite padding and
+hence a legal word with zero oracle calls.
+
+## Main statements
+
+* `sourceGram_word_cert`: bounds Gram change by twice the call count.
+* `sourceGram_overlap_budget`: bounds unfiltered Gram distance using real overlaps.
+* `sourceGram_free_word`: constructs a zero-query approximate conversion.
+* `generalOutputGramBridges`: proves the combined Gram bridge specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,16 +52,21 @@ namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 open Matrix
 open scoped Classical BigOperators
 
+/-- The total squared amplitude of a finite pure state, expressed as a sum of `Complex.normSq`. -/
 private noncomputable def sourceGramMass {H : Type} [Fintype H] (ψ : QState H) : ℝ :=
   ∑ i, Complex.normSq (ψ i)
 
+/-- The total squared amplitude `sourceGramMass ψ` is nonnegative. -/
 private theorem sourceGramMass_nonneg {H : Type} [Fintype H] (ψ : QState H) : 0 ≤ sourceGramMass ψ :=
   Finset.sum_nonneg fun i _ => Complex.normSq_nonneg (ψ i)
 
+/-- A normalized state has total squared amplitude one. -/
 private theorem sourceGramMass_normalized {H : Type} [Fintype H] {ψ : QState H}
     (hψ : Normalized ψ) : sourceGramMass ψ = 1 := by
   simpa only [sourceGramMass, Complex.normSq_eq_norm_sq] using! hψ
 
+/-- Expands the total squared amplitude of a real linear combination using the two masses and
+the real part of their inner product. -/
 private theorem sourceGramMass_combination {H : Type} [Fintype H] (ψ φ : QState H) (a b : ℝ) :
     sourceGramMass (fun i => (a : ℂ) * ψ i + (b : ℂ) * φ i) =
       a ^ 2 * sourceGramMass ψ + b ^ 2 * sourceGramMass φ + 2 * a * b * (Qatlib.Foundations.PureStateMath.Inner ψ φ).re := by
@@ -54,6 +82,8 @@ private theorem sourceGramMass_combination {H : Type} [Fintype H] (ψ φ : QStat
   rw [show (Qatlib.Foundations.PureStateMath.Inner ψ φ).re = ∑ i, (star (ψ i) * φ i).re by
     simp [inner_apply, RCLike.star_def]]
 
+/-- Expands the inner product of two real linear combinations into its four pairwise inner
+products. -/
 private theorem sourceGram_inner_combination {H : Type} [Fintype H]
     (ψ φ ξ η : QState H) (a b c d : ℝ) :
     Qatlib.Foundations.PureStateMath.Inner (fun i => (a : ℂ) * ψ i + (b : ℂ) * φ i)
@@ -73,6 +103,7 @@ private theorem sourceGram_inner_combination {H : Type} [Fintype H]
     ring]
   simp only [Finset.sum_add_distrib, ← Finset.mul_sum]
 
+/-- Conjugating a pure state inner product exchanges its arguments. -/
 private theorem sourceGram_inner_conj {H : Type} [Fintype H] (ψ φ : QState H) :
     star (Qatlib.Foundations.PureStateMath.Inner ψ φ) = Qatlib.Foundations.PureStateMath.Inner φ ψ := by
   classical
@@ -81,6 +112,8 @@ private theorem sourceGram_inner_conj {H : Type} [Fintype H] (ψ φ : QState H) 
   intro i _
   ring
 
+/-- The inner product of states on a sum type is the sum of the inner products on its two
+components. -/
 private theorem sourceGram_inner_sum {H K : Type} [Fintype H] [Fintype K]
     (a b : QState H) (p q : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (Sum.elim a p) (Sum.elim b q) = Qatlib.Foundations.PureStateMath.Inner a b + Qatlib.Foundations.PureStateMath.Inner p q := by
@@ -89,6 +122,8 @@ private theorem sourceGram_inner_sum {H K : Type} [Fintype H] [Fintype K]
 
 set_option maxHeartbeats 1000000 in
 
+/-- A nonnegative unfiltered certificate budget `ε` between normalized state families yields a
+unitary on a finite padded space with pointwise Euclidean error at most `Real.sqrt (2*ε)`. -/
 theorem sourceGram_unitary_L2_of_cert {H X : Type}
     [Fintype H] [DecidableEq H] [Fintype X] [DecidableEq X]
     {ε : ℝ} (hε : 0 ≤ ε) (ρ σ : X → QState H)
@@ -184,6 +219,8 @@ theorem sourceGram_unitary_L2_of_cert {H X : Type}
   rw [herr]
   exact he
 
+/-- For normalized states and `0 ≤ ε ≤ 1`, real overlaps at least `Real.sqrt (1-ε)` bound the
+unfiltered Gram difference by `2*Real.sqrt (2*ε)`. -/
 theorem sourceGram_overlap_budget {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] (ρ σ : X → QState H) (ε : ℝ)
     (hn : ∀ x, Normalized (ρ x) ∧ Normalized (σ x)) (hε : 0≤ε) (hε1 : ε≤1)
@@ -198,11 +235,14 @@ theorem sourceGram_overlap_budget {X H : Type} [Fintype X] [DecidableEq X]
   have hh := Real.sqrt_le_sqrt (show ε≤2*ε by linarith)
   linarith
 
+/-- Encodes an original state basis with a chosen Boolean tag and places auxiliary basis
+elements in distinct nonzero workspace positions. -/
 def sourceGramPaddingCode {H K : Type} [Fintype K] (h0 : H) (tag : Bool) :
     H ⊕ K → SourceSpace 0 0 H (Fintype.card K+1)
   | .inl h => ((0,0),((tag,h),0))
   | .inr k => ((0,0),((false,h0),((Fintype.equivFin K) k).succ))
 
+/-- The tagged padding code for a state space and a finite auxiliary space is injective. -/
 theorem sourceGramPaddingCode_injective {H K : Type} [Fintype K] (h0 : H) (tag : Bool) :
     Function.Injective (sourceGramPaddingCode (K:=K) h0 tag) := by
   intro p t he
@@ -228,9 +268,11 @@ theorem sourceGramPaddingCode_injective {H K : Type} [Fintype K] (h0 : H) (tag :
       have hpt := (Fintype.equivFin K).injective (Fin.ext (Nat.add_right_cancel hh))
       exact congrArg Sum.inr hpt
 
+/-- The standard basis frame associated with a basis map `e`. -/
 def sourceGramFrame {S T : Type} [DecidableEq S] (e : T → S) : Matrix S T ℂ :=
   fun s t => if s=e t then 1 else 0
 
+/-- An injective basis map gives an isometric standard basis frame. -/
 theorem sourceGramFrame_isometry {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (e : T → S) (he : Function.Injective e) :
     (sourceGramFrame e)ᴴ*sourceGramFrame e=1 := by
@@ -242,6 +284,8 @@ theorem sourceGramFrame_isometry {S T : Type} [Fintype S] [DecidableEq S]
     simp [hs]
   · simp
 
+/-- The padding frame sends an original state with zero auxiliary component to its tagged clean
+source embedding. -/
 theorem sourceGramFrame_clean {H K : Type} [Fintype H] [DecidableEq H] [Fintype K]
     (h0 : H) (tag : Bool) (ψ : QState H) :
     sourceGramFrame (sourceGramPaddingCode (K:=K) h0 tag) *ᵥ Sum.elim ψ (0 : K → ℂ)=
@@ -255,6 +299,8 @@ theorem sourceGramFrame_clean {H K : Type} [Fintype H] [DecidableEq H] [Fintype 
     simp [Ne.symm hh]
   · simp
 
+/-- For normalized states and nonnegative `δ`, an unfiltered Gram bound of `δ` yields a legal
+zero-query word converting clean source states within Euclidean error `Real.sqrt (2*δ)`. -/
 theorem sourceGram_free_word {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] (ρ σ : X → QState H) (δ : ℝ)
     (hn : ∀ x, Normalized (ρ x) ∧ Normalized (σ x)) (hδ : 0≤δ)
@@ -294,6 +340,8 @@ theorem sourceGram_free_word {X H : Type} [Fintype X] [DecidableEq X]
     rw [isometry_mulVec_norm hE1]
     exact herr x
 
+/-- The alphabet oracle permutation that adds the padded input symbol to the answer register and
+preserves the address and workspace. -/
 def sourceGramAlphabetEquiv {X S : Type} {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     ((Fin (n+1) × Fin (q+1)) × S) ≃ ((Fin (n+1) × Fin (q+1)) × S) where
@@ -302,11 +350,14 @@ def sourceGramAlphabetEquiv {X S : Type} {n q : ℕ}
   left_inv p := by simp
   right_inv p := by simp
 
+/-- The conjugate transpose of a permutation matrix is the permutation matrix of the inverse
+equivalence. -/
 theorem sourceGramPermutation_adjoint {S : Type} [DecidableEq S] (e : S ≃ S) :
     (permMatrix e)ᴴ=permMatrix e.symm := by
   ext i j
   simp [permMatrix,Matrix.conjTranspose_apply,Equiv.eq_symm_apply,eq_comm]
 
+/-- A permutation matrix acts on amplitudes by composition with the inverse permutation. -/
 theorem sourceGramPermutation_apply {S : Type} [Fintype S] [DecidableEq S]
     (e : S ≃ S) (ψ : QState S) (p : S) : (permMatrix e *ᵥ ψ) p=ψ (e.symm p) := by
   simp only [Matrix.mulVec,dotProduct,permMatrix,Matrix.of_apply]
@@ -317,6 +368,8 @@ theorem sourceGramPermutation_apply {S : Type} [Fintype S] [DecidableEq S]
     simp [he]
   · simp
 
+/-- A forward alphabet oracle shifts the argument of each amplitude by the negative input
+symbol, while its adjoint shifts by the positive input symbol. -/
 theorem sourceGramAlphabet_apply {X S : Type} [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) (adj : Bool)
     (ψ : QState ((Fin (n+1) × Fin (q+1)) × S)) (j : Fin (n+1)) (a : Fin (q+1)) (w : S) :
@@ -333,12 +386,16 @@ theorem sourceGramAlphabet_apply {X S : Type} [Fintype S] [DecidableEq S] {n q :
     simpa only [Equiv.symm_symm,sourceGramAlphabetEquiv,Equiv.coe_fn_mk] using!
       sourceGramPermutation_apply (sourceGramAlphabetEquiv input x).symm ψ ((j,a),w)
 
+/-- Simultaneously translating the alphabet coordinate of two state slices preserves their inner
+product. -/
 private theorem sourceGram_slice_shift_inner {S : Type} [Fintype S] {q : ℕ}
     (a b : QState (Fin (q+1) × S)) (s : Fin (q+1)) :
     Qatlib.Foundations.PureStateMath.Inner (fun p : Fin (q+1) × S => a (p.1+s,p.2)) (fun p => b (p.1+s,p.2))=Qatlib.Foundations.PureStateMath.Inner a b := by
   let e := Equiv.prodCongr (Equiv.addRight s) (Equiv.refl S)
   exact e.sum_comp (fun p => star (a p)*b p)
 
+/-- Translating the alphabet coordinate preserves the sum of squared amplitudes of a state
+slice. -/
 private theorem sourceGram_slice_shift_mass {S : Type} [Fintype S] {q : ℕ}
     (a : QState (Fin (q+1) × S)) (s : Fin (q+1)) :
     (∑ p : Fin (q+1) × S,Complex.normSq (a (p.1+s,p.2)))=
@@ -346,6 +403,8 @@ private theorem sourceGram_slice_shift_mass {S : Type} [Fintype S] {q : ℕ}
   let e := Equiv.prodCongr (Equiv.addRight s) (Equiv.refl S)
   exact e.sum_comp (fun p => Complex.normSq (a p))
 
+/-- A forward or adjoint alphabet oracle call changes the Gram matrix of normalized states by a
+filtered certificate with budget two. -/
 theorem sourceGram_one_query_cert {X S : Type} [Fintype X] [DecidableEq X]
     [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (adj : Bool)
@@ -412,6 +471,8 @@ theorem sourceGram_one_query_cert {X S : Type} [Fintype X] [DecidableEq X]
     rw [Finset.sum_sub_distrib]
     abel
 
+/-- A legal alphabet oracle word changes the Gram matrix of normalized states by a filtered
+certificate with budget twice its call count. -/
 theorem sourceGram_word_cert {X S : Type} [Fintype X] [DecidableEq X]
     [Fintype S] [DecidableEq S] {n q : ℕ}
     (input : X → Fin n → Fin (q+1))
@@ -478,12 +539,16 @@ theorem sourceGram_word_cert {X S : Type} [Fintype X] [DecidableEq X]
       rw [he]
       exact h
 
+/-- The clean source embedding with any fixed tag preserves the Gram matrix of a state family. -/
 theorem sourceGram_clean_gram {X H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : X → QState H) :
     gramStateMatrix (fun x => sourceClean n q r hr tag (ψ x))=gramStateMatrix ψ := by
   ext x y
   simp [gramStateMatrix,Qatlib.Foundations.PureStateMath.Inner,dotProduct,sourceClean,TensorState,Ket,Fintype.sum_prod_type]
 
+/-- Proves the query, overlap, and zero-query conversion bounds packaged by
+`GeneralOutputGramBridges`, including the Gram estimates of [Lee et al., Lemmas 4.7 and
+4.8][LeeEtAl2011]. -/
 theorem generalOutputGramBridges : GeneralOutputGramBridges := by
   refine ⟨?_,?_,?_⟩
   · intro X H _ _ _ _ n q r hr input ρ C hρ hC

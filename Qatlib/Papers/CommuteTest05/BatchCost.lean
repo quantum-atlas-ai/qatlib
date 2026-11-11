@@ -7,11 +7,30 @@ Authors: Qatlib Contributors
 import Mathlib.Algebra.Order.Ring.Pow
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# Bernoulli bounds for batched walk updates
+
+This module gives the exact Bernoulli inequalities for the powered survival factor `(1 - 1 / r)
+^ u` when `r ≥ 1`. They provide the rescaling estimates used to analyze batched walk updates in
+[Itakura2005].
+
+## Main statements
+
+* `powered_gap_bernoulli`: The powered gap is at most `u / r`.
+* `powered_survival_lower`: The powered survival factor is at least `1 - u / r`.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.CommuteTest05.BatchCost
 
+/-- For `r ≥ 1` and natural `u`, Bernoulli's inequality bounds `1 - (1 - 1 / r) ^ u` by `u / r`.
+This is the powered-gap rescaling used in the batching analysis of [Itakura2005]. -/
 theorem powered_gap_bernoulli (r : ℝ) (u : ℕ) (hr : 1 ≤ r) :
     1 - (1 - 1 / r) ^ u ≤ (u : ℝ) * (1 / r) := by
   have hrpos : 0 < r := lt_of_lt_of_le zero_lt_one hr
@@ -29,6 +48,8 @@ theorem powered_gap_bernoulli (r : ℝ) (u : ℕ) (hr : 1 ≤ r) :
     simpa [neg_div, mul_neg, sub_eq_add_neg] using h
   linarith
 
+/-- For `r ≥ 1` and natural `u`, the powered survival factor `(1 - 1 / r) ^ u` is at least `1 -
+u / r`, giving the complementary batching bound for [Itakura2005]. -/
 theorem powered_survival_lower (r : ℝ) (u : ℕ) (hr : 1 ≤ r) :
     1 - (u : ℝ) / r ≤ (1 - 1 / r) ^ u := by
   have h := powered_gap_bernoulli r u hr

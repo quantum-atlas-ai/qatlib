@@ -61,6 +61,25 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.SignedWtEnum99.MainResults.Pauli
+
+/-!
+# Vacuum entries and traces of binary Pauli matrices
+
+This module evaluates the vacuum entry and trace of `sMat` using its X shift and Z character. A
+nonzero Z component causes cancellation in the character sum, while a nonzero X component makes
+all diagonal entries vanish. See [KnillLaflamme1999] for the source development.
+
+## Main statements
+
+* `sMat_vacuum`: evaluates the zero-basis diagonal entry from the X component and Y weight.
+* `sum_sgn_dotz_eq_zero`: proves cancellation of a nontrivial binary character.
+* `trace_sMat`: gives trace `2 ^ n` for the zero label and zero for every other label.
+
+## References
+
+* [Knill and Laflamme, 1999][KnillLaflamme1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -71,6 +90,7 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.SignedWtEnum99.MainResults.Pauli
 
+/-- If a Pauli label has zero X component, its X shift fixes every basis label. -/
 lemma xshift_eq_self_of_xpart_eq_zero {n : ℕ} {b : PV n} (h : xpart b = 0)
     (x : Fin n → ZMod 2) : xshift b x = x := by
   funext i
@@ -79,6 +99,7 @@ lemma xshift_eq_self_of_xpart_eq_zero {n : ℕ} {b : PV n} (h : xpart b = 0)
     simpa [xpart] using this
   simp [xshift, hi]
 
+/-- If the X shift fixes a basis label, the Pauli label has zero X component. -/
 lemma add_right_eq_self {n : ℕ} {b : PV n} {x : Fin n → ZMod 2}
     (h : xshift b x = x) : xpart b = 0 := by
   funext i
@@ -88,12 +109,16 @@ lemma add_right_eq_self {n : ℕ} {b : PV n} {x : Fin n → ZMod 2}
   have h0 : x i + b (i, 1) = x i + 0 := by rw [add_zero]; exact hi
   exact add_left_cancel h0
 
+/-- For a Pauli label with zero X component, each diagonal matrix entry is the Y-weight sign
+times its Z-character sign. -/
 lemma sMat_diag_of_xpart_eq_zero {n : ℕ} {b : PV n} (h : xpart b = 0)
     (x : Fin n → ZMod 2) :
     sMat b x x = ((-1 : ℂ) ^ yWeight b) * sgn (dotz b x) := by
   have hx : x = xshift b x := (xshift_eq_self_of_xpart_eq_zero h x).symm
   rw [sMat, Matrix.of_apply, if_pos hx]
 
+/-- The vacuum entry of `sMat b` is `(-1) ^ yWeight b` when the X component vanishes and zero
+otherwise. -/
 theorem sMat_vacuum {n : ℕ} (b : PV n) :
     sMat b 0 0 = if xpart b = 0 then ((-1 : ℂ) ^ yWeight b) else 0 := by
   by_cases h : xpart b = 0
@@ -104,8 +129,10 @@ theorem sMat_vacuum {n : ℕ} (b : PV n) :
       exact h (add_right_eq_self hh.symm)
     rw [sMat_apply_ne b 0 0 hne, if_neg h]
 
+/-- The binary coordinate vector that is one at `i₀` and zero at every other index. -/
 def coord {n : ℕ} (i₀ : Fin n) : Fin n → ZMod 2 := fun i => if i = i₀ then 1 else 0
 
+/-- Adding the coordinate vector at `i₀` adds `b (i₀, 0)` to the Z pairing. -/
 lemma dotz_coord_add {n : ℕ} (b : PV n) (i₀ : Fin n) (x : Fin n → ZMod 2) :
     dotz b (x + coord i₀) = dotz b x + b (i₀, 0) := by
   unfold dotz coord
@@ -118,6 +145,7 @@ lemma dotz_coord_add {n : ℕ} (b : PV n) (i₀ : Fin n) (x : Fin n → ZMod 2) 
   · intro h
     exact absurd (Finset.mem_univ i₀) h
 
+/-- A nonzero Z component has at least one coordinate equal to one. -/
 lemma exists_zbit_one {n : ℕ} {b : PV n} (h : zpart b ≠ 0) :
     ∃ i₀ : Fin n, b (i₀, 0) = 1 := by
   by_contra hc
@@ -130,12 +158,15 @@ lemma exists_zbit_one {n : ℕ} {b : PV n} (h : zpart b ≠ 0) :
   · exact h0
   · exact absurd h1 hne
 
+/-- Adding one to a binary scalar negates its complex sign. -/
 lemma sgn_add_one (z : ZMod 2) : sgn (z + 1) = - sgn z := by
   rw [sgn_mul]
   have h1 : sgn (1 : ZMod 2) = -1 := by simp [sgn]
   rw [h1]
   ring
 
+/-- The sum of the Z-character signs over all basis labels vanishes when the Z component is
+nonzero. -/
 lemma sum_sgn_dotz_eq_zero {n : ℕ} {b : PV n} (h : zpart b ≠ 0) :
     (∑ x : Fin n → ZMod 2, sgn (dotz b x)) = 0 := by
   obtain ⟨i₀, hi₀⟩ := exists_zbit_one h
@@ -160,6 +191,7 @@ lemma sum_sgn_dotz_eq_zero {n : ℕ} {b : PV n} (h : zpart b ≠ 0) :
     exact (mul_eq_zero.mp h2').resolve_left (by norm_num)
   exact hT
 
+/-- A Pauli matrix with nonzero X component has zero trace. -/
 theorem trace_sMat_eq_zero_of_xpart_ne {n : ℕ} {b : PV n} (h : xpart b ≠ 0) :
     Matrix.trace (sMat b) = 0 := by
   unfold Matrix.trace
@@ -170,6 +202,7 @@ theorem trace_sMat_eq_zero_of_xpart_ne {n : ℕ} {b : PV n} (h : xpart b ≠ 0) 
   intro hx
   exact h (add_right_eq_self hx.symm)
 
+/-- A Pauli matrix with zero X component and nonzero Z component has zero trace. -/
 theorem trace_sMat_eq_zero_of_zpart_ne {n : ℕ} {b : PV n} (hx : xpart b = 0)
     (hz : zpart b ≠ 0) : Matrix.trace (sMat b) = 0 := by
   unfold Matrix.trace
@@ -180,6 +213,7 @@ theorem trace_sMat_eq_zero_of_zpart_ne {n : ℕ} {b : PV n} (hx : xpart b = 0)
   rw [Finset.sum_congr rfl (fun x _ => hterm x), ← Finset.mul_sum,
     sum_sgn_dotz_eq_zero hz, mul_zero]
 
+/-- A Pauli pair-vector is zero exactly when both its Z and X components are zero. -/
 lemma eq_zero_iff_parts {n : ℕ} (b : PV n) : b = 0 ↔ zpart b = 0 ∧ xpart b = 0 := by
   constructor
   · intro h
@@ -194,6 +228,7 @@ lemma eq_zero_iff_parts {n : ℕ} (b : PV n) : b = 0 ↔ zpart b = 0 ∧ xpart b
     · have := congrFun h2 i
       simpa [xpart] using this
 
+/-- The trace of `sMat b` is `2 ^ n` for the zero Pauli label and zero for every nonzero label. -/
 theorem trace_sMat {n : ℕ} (b : PV n) :
     Matrix.trace (sMat b) = if b = 0 then (2 : ℂ) ^ n else 0 := by
   by_cases hb : b = 0

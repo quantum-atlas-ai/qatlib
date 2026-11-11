@@ -8,6 +8,27 @@ import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackStat
 import Mathlib.Tactic.Linarith
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Ordinary gate implementations of QRAM access
+
+This module compiles legal QRAM access into words over the finite gate set. Controlled toggles
+and swaps give an explicit cubic gate bound, while the state semantics show that the additional
+register is returned to its zero state.
+
+The mathematical background is developed in [NielsenChuang2010].
+
+## Main statements
+
+* `ordinary_qram_fallback`: implements a legal QRAM gate with at most `200 * (b + 1)^3` finite
+  gates.
+* `ordinaryGateQRAMFallback_answer`: proves the ordinary gate fallback contract.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 set_option warningAsError false
 
@@ -30,6 +51,7 @@ namespace Qatlib.Concepts.WalkFind.QRAMModel
 open Matrix
 open scoped Classical BigOperators
 
+/-- An address read from `w` bits is strictly less than `2^w`. -/
 theorem addressValue_lt_capacity {b : ℕ} (ψ : Reg b) (a w : ℕ) :
     addressValue ψ a w < 2^w := by
   induction w with
@@ -38,6 +60,8 @@ theorem addressValue_lt_capacity {b : ℕ} (ψ : Reg b) (a w : ℕ) :
     simp only [addressValue, Finset.sum_range_succ, pow_succ] at *
     split_ifs <;> omega
 
+/-- A legal QRAM gate has an in-range target and selected memory bit, and these positions are
+distinct. -/
 theorem legal_qram_target_bounds {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) (ψ : Reg b) :
     t < b ∧ m+addressValue ψ a aw < b ∧ t ≠ m+addressValue ψ a aw := by
@@ -47,6 +71,7 @@ theorem legal_qram_target_bounds {b a aw t m ml : ℕ}
   have hv := addressValue_lt_capacity ψ a aw
   omega
 
+/-- A legal QRAM operation preserves the address value. -/
 theorem legal_qram_preserves_address {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) (ψ : Reg b) :
     addressValue (qramAction b a aw t m ψ) a aw = addressValue ψ a aw := by
@@ -63,6 +88,7 @@ theorem legal_qram_preserves_address {b a aw t m ml : ℕ}
   have him : a+i ≠ m+addressValue ψ a aw := by omega
   simp [readBit, hib, qramAction, hit, him]
 
+/-- The basis-state action of a legal QRAM gate is an involution. -/
 theorem legal_qram_involutive {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     Function.Involutive (qramAction b a aw t m) := by
@@ -91,11 +117,13 @@ theorem legal_qram_involutive {b a aw t m ml : ℕ}
       exact congrArg ψ (Fin.ext hij.symm)
     · simp [qramAction, hit, hij]
 
+/-- The matrix of a legal QRAM gate is unitary. -/
 theorem legal_qram_unitary {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     sourceCodeMatrix b (.qram a aw t m ml) ∈ Matrix.unitaryGroup (Reg b) ℂ := by
   exact permMatrix_unitary_of_injective (legal_qram_involutive hg).injective
 
+/-- A legal source-code word compiles to a unitary circuit. -/
 theorem sourceWord_unitary (b : ℕ) (cs : List SourceCode) (hcs : sourceWordLegal b cs) :
     IsUnitaryCircuit (sourceCircuit b cs) := by
   intro U hU
@@ -112,6 +140,9 @@ theorem sourceWord_unitary (b : ℕ) (cs : List SourceCode) (hcs : sourceWordLeg
     subst U
     exact legal_qram_unitary hlegal
 
+/-- A legal local source gate has a finite-gate implementation with at most `2 * b`
+zero-initialized ancillary bits and at most `(b + 1)^3` gates, restoring the ancillary
+state. -/
 theorem ordinary_local_fallback (b : ℕ) (g : FiniteGateCode)
     (hg : sourceCodeLegal b (.local g) = true) :
     ∃ (a : ℕ) (word : List FiniteGateCode),
@@ -138,11 +169,15 @@ theorem ordinary_local_fallback (b : ℕ) (g : FiniteGateCode)
     rw [hpad, hpad]
     rfl
 
+/-- The predicate restricting single-wire reflection gates to Hadamard, Pauli X, T, or inverse
+T, while allowing every controlled gate of the other constructor. -/
 def finiteReflectionKind {n : ℕ} (g : ReflectionGate n) : Prop :=
   match g with
   | .inl (_, U) => U = Hadamard ∨ U = PauliX ∨ U = tGate ∨ U = tGateAdj
   | .inr _ => True
 
+/-- Every legal reflection gate of the specified finite kind has a legal finite gate code with
+the same matrix. -/
 private theorem finiteReflection_code {n : ℕ} (g : ReflectionGate n)
     (hk : finiteReflectionKind g) (hl : reflectionGateLegal g) :
     ∃ code : FiniteGateCode, finiteCodeLegal n code = true ∧
@@ -158,6 +193,8 @@ private theorem finiteReflection_code {n : ℕ} (g : ReflectionGate n)
     exact ⟨.cx c.val t.val, by simp [finiteCodeLegal, hct],
       by simp [finiteCodeMatrix, reflectionGateMatrix, hct]⟩
 
+/-- A legal list of finite-kind reflection gates compiles to a legal finite-gate word of the
+same length and with the same circuit. -/
 theorem finiteReflection_compile {n : ℕ} (gs : List (ReflectionGate n))
     (hk : ∀ g ∈ gs, finiteReflectionKind g) (hl : reflectionLegal gs) :
     ∃ word : List FiniteGateCode, finiteWordLegal n word = true ∧
@@ -176,10 +213,12 @@ theorem finiteReflection_compile {n : ℕ} (gs : List (ReflectionGate n))
     · simp only [finiteCodeCircuit, reflectionCompile, List.map_cons] at hcirc ⊢
       rw [he, hcirc]
 
+/-- Every gate in the local Toffoli decomposition is of finite reflection kind. -/
 private theorem toffoli_finite_kind {n : ℕ} (a b t : Fin n) :
     ∀ g ∈ toffoliLocalSteps a b t, finiteReflectionKind g := by
   simp [toffoliLocalSteps, finiteReflectionKind]
 
+/-- Every gate in the borrowed-workspace prefix construction is of finite reflection kind. -/
 private theorem dirtyPrefix_finite_kind {n : ℕ} (c w : ℕ → Fin n) (r : ℕ) :
     ∀ g ∈ noWorkDirtyPrefixSteps c w r, finiteReflectionKind g := by
   induction r using Nat.twoStepInduction with
@@ -193,6 +232,7 @@ private theorem dirtyPrefix_finite_kind {n : ℕ} (c w : ℕ → Fin n) (r : ℕ
       · exact ih g hg
     · exact toffoli_finite_kind _ _ _ g hg
 
+/-- Every gate in the borrowed-workspace conjunction construction is of finite reflection kind. -/
 private theorem borrowedAnd_finite_kind {n : ℕ} (c w : ℕ → Fin n) (t : Fin n) (r : ℕ) :
     ∀ g ∈ noWorkBorrowedAndSteps c w t r, finiteReflectionKind g := by
   intro g hg
@@ -203,6 +243,8 @@ private theorem borrowedAnd_finite_kind {n : ℕ} (c w : ℕ → Fin n) (t : Fin
   · exact toffoli_finite_kind _ _ _ g hg
   · exact dirtyPrefix_finite_kind _ _ _ g hg
 
+/-- Under the wire distinctness hypotheses, a legal finite-kind reflection circuit toggles the
+target by the conjunction of `m` controls using at most `60 * m + 1` gates. -/
 theorem finite_kind_borrowed_and_table {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-2)))
     (hcw : ∀ i < m, ∀ j < m-2, c i ≠ w j)
@@ -261,6 +303,8 @@ theorem finite_kind_borrowed_and_table {N : ℕ} (c w : ℕ → Fin N) (t : Fin 
       simpa only [hm] using!
         noWorkBorrowedAndSteps_ket c w t (m+1) (by omega) hprefix hlast htarget hwork x
 
+/-- Under the wire distinctness hypotheses, a legal finite-gate word implements the
+conjunction-controlled target toggle using at most `60 * m + 1` gates. -/
 theorem finiteMultiX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-2)))
     (hcw : ∀ i < m, ∀ j < m-2, c i ≠ w j)
@@ -272,6 +316,8 @@ theorem finiteMultiX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ)
   obtain ⟨word, hword, hlength, hcompile⟩ := finiteReflection_compile gs hk hl
   exact ⟨word, hword, hlength.trans_le hlen, by simpa only [hcompile] using! hrun⟩
 
+/-- A legal finite-gate word toggles the target exactly when the control bits match `pattern`,
+using at most `62 * m + 1` gates. -/
 theorem finitePatternX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ) (pattern : Reg m)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-2)))
     (hcw : ∀ i < m, ∀ j < m-2, c i ≠ w j)
@@ -344,9 +390,12 @@ theorem finitePatternX_word {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (m : ℕ
       (Run 1 (finiteCodeCircuit N word) (Run 1 (finiteCodeCircuit N xs) (Qatlib.Foundations.PureStateMath.Ket x))) = _
     rw [hxrun, hrun, hxrun, hupdate, hflip, htarget, htest]
 
+/-- The register update that toggles bit `t` when `flag` and the source bit `s` are both true. -/
 private def finiteToggle {N : ℕ} (x : Reg N) (s t : Fin N) (flag : Bool) : Reg N :=
   Function.update x t (x t ^^ (flag && x s))
 
+/-- Three alternating conditional toggles swap distinct source and target bits when the flag is
+true and leave the register unchanged otherwise. -/
 private theorem finiteToggle_swap {N : ℕ} (x : Reg N) (s t : Fin N)
     (flag : Bool) (hst : s ≠ t) :
     finiteToggle (finiteToggle (finiteToggle x s t flag) t s flag) s t flag =
@@ -363,6 +412,8 @@ private theorem finiteToggle_swap {N : ℕ} (x : Reg N) (s t : Fin N)
         cases ht : x t <;> cases hs : x s <;> simp_all [finiteToggle, Function.update]
       · simp [finiteToggle, Function.update, hkt, hks]
 
+/-- A legal finite-gate word swaps two bits exactly when the controls match the given pattern,
+using at most `186 * (m + 1) + 3` gates. -/
 theorem finitePatternSwap_word {N : ℕ} (c w : ℕ → Fin N) (s t : Fin N)
     (m : ℕ) (pattern : Reg m)
     (hc : Set.InjOn c (Set.Iio m)) (hw : Set.InjOn w (Set.Iio (m-1)))
@@ -444,6 +495,7 @@ theorem finitePatternSwap_word {N : ℕ} (c w : ℕ → Fin N) (s t : Fin N)
     apply congrArg Qatlib.Foundations.PureStateMath.Ket
     simpa only [finiteToggle, test, decide_eq_true_eq] using! finiteToggle_swap x s t (test x) hst
 
+/-- A legal QRAM operation preserves each bit in its address region. -/
 theorem legal_qram_preserves_address_bit {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) (ψ : Reg b)
     (i : ℕ) (hi : i < aw) :
@@ -457,6 +509,8 @@ theorem legal_qram_preserves_address_bit {b a aw t m ml : ℕ}
   have him : a+i ≠ m+addressValue ψ a aw := by omega
   simp [readBit, hib, qramAction, hit, him]
 
+/-- A legal QRAM operation has a finite-gate implementation on `b + b` bits with at most `200 *
+(b + 1)^3` gates and the specified action on every basis state. -/
 theorem finiteQRAM_basis_word {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     ∃ word : List FiniteGateCode, finiteWordLegal (b+b) word = true ∧
@@ -602,10 +656,14 @@ theorem finiteQRAM_basis_word {b a aw t m ml : ℕ}
     rw [hloop ps (Finset.nodup_toList _) x]
     simp [ps]
 
+/-- The matrix product representing execution of a finite-gate word, with later gates
+multiplying on the left. -/
 private def finiteExecutionMatrix (n : ℕ) : List FiniteGateCode → Matrix (Reg n) (Reg n) ℂ
   | [] => 1
   | g::gs => finiteExecutionMatrix n gs * finiteCodeMatrix n g
 
+/-- Running a finite-gate word with identity oracle equals multiplication by its execution
+matrix. -/
 private theorem finiteExecutionMatrix_spec (n : ℕ) (gs : List FiniteGateCode) (ψ : QState (Reg n)) :
     Run 1 (finiteCodeCircuit n gs) ψ = finiteExecutionMatrix n gs *ᵥ ψ := by
   induction gs generalizing ψ with
@@ -616,6 +674,7 @@ private theorem finiteExecutionMatrix_spec (n : ℕ) (gs : List FiniteGateCode) 
     rw [ih, Matrix.mulVec_mulVec]
     rfl
 
+/-- The permutation matrix of an involution acts on amplitudes by evaluation at that involution. -/
 private theorem permutation_involution_apply {H : Type} [Fintype H] [DecidableEq H]
     (f : H → H) (hf : Function.Involutive f) (ψ : QState H) (y : H) :
     (permMatrix f *ᵥ ψ) y = ψ (f y) := by
@@ -631,6 +690,8 @@ private theorem permutation_involution_apply {H : Type} [Fintype H] [DecidableEq
     simp [hne]
   · simp
 
+/-- On the doubled register, a legal QRAM operation acts on the first component and preserves
+the second component. -/
 theorem qramAction_split {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) (x : Reg (b+b)) :
     regAppendEquiv b b (qramAction (b+b) a aw t m x) =
@@ -660,6 +721,8 @@ theorem qramAction_split {b a aw t m ml : ℕ}
     have hmem : i.val+b ≠ m+addressValue x a aw := by rw [haddr]; omega
     simp [regAppendEquiv, qramAction, ht, hmem]
 
+/-- A legal QRAM gate has an exact finite-gate implementation using `b` additional zero bits and
+at most `200 * (b + 1)^3` gates, restoring those bits to zero. -/
 theorem ordinary_qram_fallback {b a aw t m ml : ℕ}
     (hg : sourceCodeLegal b (.qram a aw t m ml) = true) :
     ∃ word : List FiniteGateCode, finiteWordLegal (b+b) word = true ∧
@@ -693,6 +756,7 @@ theorem ordinary_qram_fallback {b a aw t m ml : ℕ}
   rw [show sourceCodeMatrix b (.qram a aw t m ml) = permMatrix (qramAction b a aw t m) by rfl,
     permutation_involution_apply _ (legal_qram_involutive hg)]
 
+/-- The ordinary gate QRAM fallback proposition holds. -/
 theorem ordinaryGateQRAMFallback_answer : OrdinaryGateQRAMFallback := by
   refine ⟨200, by decide, ?_⟩
   intro b g hg hnq

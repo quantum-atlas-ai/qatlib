@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryStat
+
+/-!
+# Integer candidates from good discrete-logarithm pairs
+
+This module proves the integer-candidate recovery contract `DlogCandidateRecovery` for good
+Fourier-sampling pairs. Centered-residue divisibility gives the exact integer identity for
+`dlogCprime`, which rewrites `dlogT` and produces a rounding candidate satisfying the recovery
+congruence.
+
+The argument concerns the rounding and modular recovery step of the discrete-logarithm algorithm
+in [Shor1997]. The formal conclusion includes the stated candidate existence under a coprimality
+hypothesis.
+
+## Main statements
+
+* `dlog_centered_difference_dvd`: divisibility of the difference from a centered residue.
+* `dlog_cprime_integrality`: the exact integer formula for the scaled first coordinate.
+* `dlogT_cprime_formula`: the corresponding real expression for the good-pair phase.
+* `dlogCandidateRecovery`: existence of the rounding and exponent candidates.
+
+## References
+
+* [Shor, 1997, Section 6][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +39,7 @@ namespace Qatlib.Concepts.PeriodSampling.DlogCRTRecovery
 open scoped Classical
 set_option autoImplicit false
 
+/-- An integer differs from its centered residue modulo `q` by a multiple of `q`. -/
 theorem dlog_centered_difference_dvd (q z : ℤ) : q ∣ z-centeredResidue q z := by
   have he : z-z%q = q*(z/q) := by
     have hh := Int.emod_add_mul_ediv z q
@@ -26,11 +52,15 @@ theorem dlog_centered_difference_dvd (q z : ℤ) : q ∣ z-centeredResidue q z :
     rw [mul_add, mul_one]
     linarith
 
+/-- Multiplying `dlogCprime p q c` by `q` gives `c * (p - 1)` minus its centered residue modulo
+`q`. -/
 theorem dlog_cprime_integrality (p q : ℕ) (c : Fin q) :
     dlogCprime p q c * (q : ℤ) = ((c : ℕ)*(p-1) : ℤ) -
       centeredResidue (q : ℤ) ((c : ℕ)*(p-1) : ℤ) := by
   exact Int.ediv_mul_cancel (dlog_centered_difference_dvd _ _)
 
+/-- For `1 < p`, the quantity `dlogT` equals `d + r * dlogCprime p q c * q / (p - 1)` over the
+reals. -/
 theorem dlogT_cprime_formula (p q r : ℕ) (hp : 1 < p) (c d : Fin q) :
     dlogT p q r c d = (d : ℕ) +
       (r : ℝ)*(dlogCprime p q c : ℝ)*(q : ℝ)/((p-1 : ℕ) : ℝ) := by
@@ -47,6 +77,9 @@ theorem dlogT_cprime_formula (p q r : ℕ) (hp : 1 < p) (c d : Fin q) :
   field_simp [ne_of_gt hm]
   ring
 
+/-- For prime `p ≥ 3`, `p < q`, and `r < p - 1`, a good pair yields an integer within one half
+of `d * (p - 1) / q` satisfying the recovery congruence, together with the stated candidate
+existence under coprimality [Shor1997]. -/
 theorem dlogCandidateRecovery : DlogCandidateRecovery := by
   intro p q r _hprime hp hpq hr c d hgood
   have hm : (0 : ℝ) < (p-1 : ℕ) := by exact_mod_cast (by omega : 0 < p-1)

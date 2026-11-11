@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Mathlib.Data.Finset.Lattice.Basic
 import Qatlib.Papers.TensorNetwork08.MainResults.Cor59
+
+/-!
+# Tree-based scale for difference models
+
+Defines the tree-based approximation-scale expression `differenceScaleTree` from Corollary 5.10
+of [AradLandau2010]. It multiplies the color count by absolute weight sums over selected tree
+edges and maximum absolute weights over the remaining selected edges.
+
+The norm comparisons relate each edge's maximum, Euclidean norm, and absolute sum. Under
+disjointness, coverage, and the tree-edge cardinality condition, the tree-based scale is at most
+`differenceScale`.
+
+## Main statements
+
+* `corollary5_10_difference_algorithm`: expands the tree-based scale expression.
+* `energy_norm_comparison`: compares maximum, Euclidean norm, and absolute sum.
+* `corollary5_10_le_corollary5_9`: compares the two scale formulas.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +42,8 @@ open Qatlib.Papers.TensorNetwork08.MainResults.Cor59
 
 variable {V E C : Type*} [Fintype V] [Fintype E] [Fintype C] [Nonempty C]
 
+/-- The color count times the product of absolute edge-weight sums on `Etr` and maximum absolute
+edge weights on `Ecyc`. -/
 noncomputable def differenceScaleTree (h : E → C → ℝ) (β : ℝ)
     (Etr Ecyc : Finset E) : ℝ :=
   (Fintype.card C : ℝ) *
@@ -29,6 +54,8 @@ noncomputable def differenceScaleTree (h : E → C → ℝ) (β : ℝ)
 
 omit [Fintype E] in
 
+/-- Expands the tree-based difference-model scale into its color-count, tree-edge sum, and
+cycle-edge maximum factors. See [AradLandau2010]. -/
 theorem corollary5_10_difference_algorithm
     (h : E → C → ℝ) (β : ℝ) (Etr Ecyc : Finset E) :
     differenceScaleTree h β Etr Ecyc
@@ -38,12 +65,17 @@ theorem corollary5_10_difference_algorithm
           (Finset.univ : Finset C).sup' Finset.univ_nonempty
             (fun j : C => |edgeWeight h β e j|))) := rfl
 
+/-- For a real edge-weight vector, its maximum absolute entry is at most its Euclidean norm,
+which is at most its absolute entry sum. See [AradLandau2010]. -/
 theorem energy_norm_comparison (w : C → ℝ) :
     (Finset.univ.sup' Finset.univ_nonempty (fun j => |w j|))
         ≤ Real.sqrt (∑ j : C, |w j| ^ 2) ∧
       Real.sqrt (∑ j : C, |w j| ^ 2) ≤ ∑ j : C, |w j| :=
   ⟨sup'_abs_le_sqrt_sum_sq w, sqrt_sum_sq_le_sum_abs w⟩
 
+/-- If the selected edge sets are disjoint and cover all edges, the vertex count is positive,
+and the tree set has one fewer edge than vertices, then the tree-based scale is at most the
+Euclidean-norm scale. See [AradLandau2010]. -/
 theorem corollary5_10_le_corollary5_9 [DecidableEq E]
     (h : E → C → ℝ) (β : ℝ) (Etr Ecyc : Finset E)
     (hdisj : Disjoint Etr Ecyc) (hcover : Etr ∪ Ecyc = (Finset.univ : Finset E))

@@ -17,6 +17,29 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+
+/-!
+# Amplified Fourier probabilities and baseline ratios
+
+This module defines phase-query and hidden-subgroup baseline states and compares their
+nonzero-frequency probabilities with amplified Fourier sampling.
+`amplified_progression_success_event_probability_ratios` extends the pointwise formulas to
+events excluding zero, providing the success ratios analyzed in [Cornwell2014].
+
+## Main statements
+
+* `amplified_progression_actual_three_algorithm_probabilities`: At a nonzero frequency, gives
+  exact amplified, phase-baseline, and label-marginal hidden-subgroup probabilities in terms of
+  the squared progression Fourier sum; see [Cornwell2014].
+* `amplified_progression_success_event_probability_ratios`: For events excluding zero, the
+  amplified probability is `aqRatio N M` times the phase-baseline probability and twice that
+  ratio times the hidden-subgroup event probability; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -39,13 +62,20 @@ namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 open Matrix
 open scoped Classical BigOperators Kronecker
 
+/-- The state obtained by Fourier preparation, a phase oracle for A, and the inverse Fourier
+transform. -/
 noncomputable def aqPhaseBaseline (N : ℕ) (hN : 0< N) (A : Finset (Fin N)) : QState (Fin N) :=
   ApplyGate (QFTMatrix N)ᴴ (ApplyGate (preparedMark A) (ApplyGate (QFTMatrix N) (Ket ⟨0,hN⟩)))
+/-- The two-register baseline state obtained by uniform Fourier preparation, a Boolean bit
+oracle, and the inverse Fourier transform on the label register. -/
 noncomputable def aqQHSBaseline (N : ℕ) (hN : 0< N) (f : Fin N→Bool) : QState (Fin N×Bool) :=
   ApplyGate ((QFTMatrix N)ᴴ⊗ₖ(1:Matrix Bool Bool ℂ))
     (ApplyGate (BitOracleOn f) (TensorState (ApplyGate (QFTMatrix N) (Ket ⟨0,hN⟩)) (Ket false)))
+/-- The probability ratio N² · `aqGain N M` / (4M(N−M)), with natural subtraction in N−M. -/
 noncomputable def aqRatio (N M : ℕ) : ℝ := (N:ℝ)^2*aqGain N M/(4*(M:ℝ)*(N-M:ℕ))
 
+/-- The inverse Fourier matrix entry at y,x is the reciprocal square-root normalization times
+`aqPhase N x.val y.val`. -/
 theorem aq_inverse_entry (N : ℕ) (x y : Fin N) :
     ((QFTMatrix N)ᴴ) y x = (Real.sqrt (N:ℝ):ℂ)⁻¹*aqPhase N x.val y.val := by
   rw [Matrix.conjTranspose_apply, qftMatrix_apply]
@@ -58,6 +88,8 @@ theorem aq_inverse_entry (N : ℕ) (x y : Fin N) :
   push_cast
   ring
 
+/-- The inverse Fourier transform of the restricted uniform prepared state has amplitude equal
+to the selected phase sum divided by N. -/
 theorem aq_inverse_selected (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) (y : Fin N) :
     ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A) y =
       (N:ℂ)⁻¹*∑ x ∈ A, aqPhase N x.val y.val := by
@@ -78,6 +110,8 @@ theorem aq_inverse_selected (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) (y : Fin
     _ = ∑ x ∈ A, (N:ℂ)⁻¹*aqPhase N x.val y.val := Finset.sum_ite_mem_eq A _
     _ = _ := (Finset.mul_sum _ _ _).symm
 
+/-- For a positive-step progression contained in the domain, summing phases over its set equals
+`aqProgressionFourier`. -/
 theorem aq_progression_root_sum (N s M P y : ℕ) (hM : 0 < M) (hP : 0 < P)
     (hbound : s+(M-1)*P < N) :
     (∑ x ∈ aqProgressionSet N s M P, aqPhase N x.val y) = aqProgressionFourier N s M P y := by
@@ -100,6 +134,8 @@ theorem aq_progression_root_sum (N s M P y : ℕ) (hM : 0 < M) (hP : 0 < P)
   · intro r hr t ht h
     exact he h
 
+/-- At nonzero frequencies, the amplified progression amplitude is its Fourier sum times tan θ ·
+sin(2kθ)/M under the half-density assumptions. -/
 theorem aq_actual_nonzero_amplitude (N : ℕ) (hN : 0 < N) (s M P : ℕ) (y : Fin N)
     (hM : 0 < M) (hP : 0 < P) (hbound : s+(M-1)*P < N) (hMN : 2*M ≤ N) (hy : y.val ≠ 0) :
     aqState N hN M (aqProgressionSet N s M P) y =
@@ -156,6 +192,8 @@ theorem aq_actual_nonzero_amplitude (N : ℕ) (hN : 0 < N) (s M P : ℕ) (y : Fi
       ring
     _ = _ := congrArg (fun z : ℂ => z*aqProgressionFourier N s M P y.val) hcoeffC
 
+/-- At nonzero frequencies, the phase-query baseline amplitude is −2/N times the progression
+Fourier sum. -/
 theorem aq_phase_nonzero_amplitude (N : ℕ) (hN : 0 < N) (s M P : ℕ) (y : Fin N)
     (hM : 0 < M) (hP : 0 < P) (hbound : s+(M-1)*P < N) (hy : y.val ≠ 0) :
     aqPhaseBaseline N hN (aqProgressionSet N s M P) y =
@@ -175,6 +213,8 @@ theorem aq_phase_nonzero_amplitude (N : ℕ) (hN : 0 < N) (s M P : ℕ) (y : Fin
   push_cast
   ring
 
+/-- The hidden-subgroup baseline's Boolean slices are inverse Fourier transforms of the marked
+and complementary parts of the prepared uniform state. -/
 theorem aq_qhs_slices (N : ℕ) (hN : 0 < N) (s M P : ℕ) (f : Fin N → Bool)
     (hmark : AQMarkPromise f s M P) (y : Fin N) (b : Bool) :
     aqQHSBaseline N hN f (y,b) =
@@ -199,6 +239,9 @@ theorem aq_qhs_slices (N : ℕ) (hN : 0 < N) (s M P : ℕ) (f : Fin N → Bool)
       (TensorState (preparedAAState (QFTMatrix N) ⟨0,hN⟩) (Ket false)) (x,b)) y = _
   rw [hslice]
 
+/-- At a nonzero frequency, gives exact amplified, phase-baseline, and label-marginal
+hidden-subgroup probabilities in terms of the squared progression Fourier sum; see
+[Cornwell2014]. -/
 theorem amplified_progression_actual_three_algorithm_probabilities : ∀ (N : ℕ) (hN : 0< N) (s M P : ℕ) (f : Fin N→Bool) (y : Fin N),
   2≤ M → 0< P → s+(M-1)*P< N → 2*M≤ N → AQMarkPromise f s M P → y.val≠0 →
   let a:= aqProgressionFourier N s M P y.val;
@@ -237,6 +280,8 @@ theorem amplified_progression_actual_three_algorithm_probabilities : ∀ (N : �
     rw [← Complex.normSq_eq_norm_sq]
     ring
 
+/-- Under positive half-density assumptions, tan²(`aqAngle N M`) equals M/(N−M), with natural
+subtraction in the denominator. -/
 theorem aq_tan_density (N M : ℕ) (hN : 0 < N) (hM : 0 < M) (hMN : 2*M ≤ N) :
     (Real.tan (aqAngle N M))^2 = (M:ℝ)/(N-M:ℕ) := by
   have ht := aq_angle_properties N M hN hM hMN
@@ -249,6 +294,8 @@ theorem aq_tan_density (N M : ℕ) (hN : 0 < N) (hM : 0 < M) (hMN : 2*M ≤ N) :
   rw [Real.tan_eq_sin_div_cos, div_pow, ht.2.2.2.1, hc, hsub]
   field_simp
 
+/-- At a nonzero frequency, the amplified probability equals `aqRatio N M` times the
+phase-baseline probability and twice that ratio times the hidden-subgroup label probability. -/
 theorem aq_actual_point_ratios (N : ℕ) (hN : 0 < N) (s M P : ℕ) (f : Fin N → Bool)
     (y : Fin N) (hM : 2 ≤ M) (hP : 0 < P) (hbound : s+(M-1)*P < N)
     (hMN : 2*M ≤ N) (hmark : AQMarkPromise f s M P) (hy : y.val ≠ 0) :
@@ -269,6 +316,9 @@ theorem aq_actual_point_ratios (N : ℕ) (hN : 0 < N) (s M P : ℕ) (f : Fin N �
   · field_simp
     norm_num
 
+/-- For events excluding zero, the amplified probability is `aqRatio N M` times the
+phase-baseline probability and twice that ratio times the hidden-subgroup event probability;
+see [Cornwell2014]. -/
 theorem amplified_progression_success_event_probability_ratios : ∀ (N : ℕ) (hN : 0< N) (s M P : ℕ) (f : Fin N→Bool) (E : Finset (Fin N)),
   2≤ M → 0< P → s+(M-1)*P< N → 2*M≤ N → AQMarkPromise f s M P → (⟨0,hN⟩:Fin N)∉E →
   MeasureProb (aqState N hN M (aqProgressionSet N s M P)) E=

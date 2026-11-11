@@ -71,6 +71,24 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Magnitudes of Gauss-sum kickback factors
+
+Using Mathlib's Gauss sums, `gaussSumAt` expresses scaling of the additive character by a field
+element. A nontrivial multiplicative character and a primitive additive character give Gauss-sum
+magnitude equal to the square root of the field cardinality, so the corresponding normalized
+kickback factor has norm one [GeraciLidar2008].
+
+## Main statements
+
+* `gaussSumAt_norm_eq_sqrt`: A nonzero additive scaling preserves the square-root magnitude.
+* `kickback_eigenvalue_norm`: The normalized Gauss sum has unit norm.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.GaussAlgorithm
@@ -79,9 +97,11 @@ open scoped BigOperators ComplexConjugate
 
 variable {F : Type*} [Field F] [Fintype F]
 
+/-- The Gauss sum formed using the additive character `ψ` shifted multiplicatively by `β`. -/
 noncomputable def gaussSumAt (χ : MulChar F ℂ) (ψ : AddChar F ℂ) (β : F) : ℂ :=
   _root_.gaussSum χ (ψ.mulShift β)
 
+/-- The shifted Gauss sum equals the finite sum of `χ x * ψ (β * x)`. -/
 theorem gaussSumAt_eq (χ : MulChar F ℂ) (ψ : AddChar F ℂ) (β : F) :
     gaussSumAt χ ψ β = ∑ x : F, χ x * ψ (β * x) := by
   unfold gaussSumAt
@@ -90,6 +110,8 @@ theorem gaussSumAt_eq (χ : MulChar F ℂ) (ψ : AddChar F ℂ) (β : F) :
   intro x _
   rw [AddChar.mulShift_apply]
 
+/-- A Gauss sum for a nontrivial multiplicative character and a primitive additive character has
+norm equal to the square root of the field cardinality [GeraciLidar2008]. -/
 theorem gaussSum_norm_eq_sqrt (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddChar F ℂ)
     (hψ : ψ.IsPrimitive) :
     ‖_root_.gaussSum χ ψ‖ = Real.sqrt (Fintype.card F : ℝ) := by
@@ -107,6 +129,8 @@ theorem gaussSum_norm_eq_sqrt (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddCha
         (Real.sqrt_sq (norm_nonneg _)).symm
     _ = Real.sqrt (Fintype.card F : ℝ) := by rw [hsq]
 
+/-- Scaling a primitive additive character by a nonzero parameter gives a Gauss sum of
+square-root magnitude. -/
 theorem gaussSumAt_norm_eq_sqrt (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddChar F ℂ)
     (hψ : ψ.IsPrimitive) (β : F) (hβ : β ≠ 0) :
     ‖gaussSumAt χ ψ β‖ = Real.sqrt (Fintype.card F : ℝ) := by
@@ -116,6 +140,8 @@ theorem gaussSumAt_norm_eq_sqrt (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddC
     exact hψ (mul_ne_zero hβ ha)
   exact gaussSum_norm_eq_sqrt χ hχ (ψ.mulShift β) hshift
 
+/-- Dividing the scaled Gauss sum by the square root of the field cardinality gives a complex
+number of norm one [GeraciLidar2008]. -/
 theorem kickback_eigenvalue_norm (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddChar F ℂ)
     (hψ : ψ.IsPrimitive) (β : F) (hβ : β ≠ 0) (hQ : 0 < Fintype.card F) :
     ‖gaussSumAt χ ψ β / Complex.ofReal (Real.sqrt (Fintype.card F : ℝ))‖ = 1 := by
@@ -126,6 +152,8 @@ theorem kickback_eigenvalue_norm (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : Add
   rw [norm_div, hmod, Complex.norm_real, Real.norm_of_nonneg hpos.le]
   field_simp
 
+/-- The character-square correction of the Fourier-type amplitude equals the character amplitude
+times `gaussSumAt χ ψ β`. -/
 theorem kickback_normalised_amplitude (χ : MulChar F ℂ) (ψ : AddChar F ℂ) (β : F)
     (y : F) (hy : y ≠ 0) :
     χ y ^ 2 * ((∑ x : F, χ x * ψ (β * x * y)))

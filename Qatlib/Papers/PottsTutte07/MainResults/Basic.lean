@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PottsTutte07.MainResults.ComplexityDefs
+
+/-!
+# Entrywise matrix distance and word estimates
+
+The module establishes elementary inequalities for the sum of entrywise matrix distances,
+including product and commutator perturbation bounds. It also proves closure properties of
+unitary matrices, finite-word consequences of density, promise-threshold estimates, and
+identities for complex vector squared norms [AharonovEtAl2007].
+
+## Main statements
+
+* `entryDist_commutator_le`: Bounds the error of commutators using matrix sizes and perturbation
+  distances.
+* `dense_word_approx`: A density hypothesis yields approximating words in the given generators.
+* `promise_decide_yes`: A sufficiently accurate amplitude estimate preserves a separating
+  threshold.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,24 +38,29 @@ namespace Qatlib.Papers.PottsTutte07.MainResults
 open scoped BigOperators
 open Finset
 
+/-- The entrywise matrix distance is nonnegative. -/
 theorem entryDist_nonneg {n : Type*} [Fintype n] (A B : Matrix n n ℂ) : 0 ≤ entryDist A B :=
   Finset.sum_nonneg fun _ _ => Finset.sum_nonneg fun _ _ => norm_nonneg _
 
+/-- The entrywise distance from a matrix to itself is zero. -/
 theorem entryDist_self {n : Type*} [Fintype n] (A : Matrix n n ℂ) : entryDist A A = 0 := by
   unfold entryDist
   simp
 
+/-- The entrywise matrix distance is symmetric. -/
 theorem entryDist_comm {n : Type*} [Fintype n] (A B : Matrix n n ℂ) :
     entryDist A B = entryDist B A := by
   unfold entryDist
   refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
   rw [norm_sub_rev]
 
+/-- The distance between two matrices equals the distance of their difference from zero. -/
 theorem entryDist_eq_sub {n : Type*} [Fintype n] (A B : Matrix n n ℂ) :
     entryDist A B = entryDist (A - B) 0 := by
   unfold entryDist
   simp [Matrix.sub_apply]
 
+/-- Each value of a nonnegative function on a finite square is bounded by its double sum. -/
 theorem double_sum_entry_le {ι : Type*} [Fintype ι] (f : ι → ι → ℝ)
     (hf : ∀ a b, 0 ≤ f a b) (i j : ι) : f i j ≤ ∑ a, ∑ b, f a b := by
   have h1 : f i j ≤ ∑ b, f i b :=
@@ -43,10 +70,12 @@ theorem double_sum_entry_le {ι : Type*} [Fintype ι] (f : ι → ι → ℝ)
       (fun a _ => Finset.sum_nonneg fun b _ => hf a b) (Finset.mem_univ i)
   exact h1.trans h2
 
+/-- The norm of any individual entry difference is at most the entrywise matrix distance. -/
 theorem entryDist_entry_le {n : Type*} [Fintype n] (A B : Matrix n n ℂ) (i j : n) :
     ‖A i j - B i j‖ ≤ entryDist A B :=
   double_sum_entry_le (fun a b => ‖A a b - B a b‖) (fun _ _ => norm_nonneg _) i j
 
+/-- Matrices at zero entrywise distance are equal. -/
 theorem eq_of_entryDist_eq_zero {n : Type*} [Fintype n] (A B : Matrix n n ℂ)
     (h : entryDist A B = 0) : A = B := by
   funext i j
@@ -56,6 +85,7 @@ theorem eq_of_entryDist_eq_zero {n : Type*} [Fintype n] (A B : Matrix n n ℂ)
     exact entryDist_entry_le A B i j
   exact sub_eq_zero.mp (norm_eq_zero.mp h1)
 
+/-- The entrywise matrix distance satisfies the triangle inequality. -/
 theorem entryDist_triangle {n : Type*} [Fintype n] (A B C : Matrix n n ℂ) :
     entryDist A C ≤ entryDist A B + entryDist B C := by
   unfold entryDist
@@ -66,6 +96,8 @@ theorem entryDist_triangle {n : Type*} [Fintype n] (A B C : Matrix n n ℂ) :
   calc ‖A i j - C i j‖ = ‖(A i j - B i j) + (B i j - C i j)‖ := by ring_nf
     _ ≤ ‖A i j - B i j‖ + ‖B i j - C i j‖ := norm_add_le _ _
 
+/-- The distance of a matrix difference from zero is bounded by the sum of the two distances
+from zero. -/
 theorem entryDist_sub_zero_le {n : Type*} [Fintype n] (X Y : Matrix n n ℂ) :
     entryDist (X - Y) 0 ≤ entryDist X 0 + entryDist Y 0 := by
   unfold entryDist
@@ -76,6 +108,8 @@ theorem entryDist_sub_zero_le {n : Type*} [Fintype n] (X Y : Matrix n n ℂ) :
   refine Finset.sum_le_sum fun j _ => ?_
   exact norm_sub_le _ _
 
+/-- The distance between two matrix differences is bounded by the sum of the distances between
+corresponding terms. -/
 theorem entryDist_sub_sub_le {n : Type*} [Fintype n] (A B C D : Matrix n n ℂ) :
     entryDist (A - B) (C - D) ≤ entryDist A C + entryDist B D := by
   unfold entryDist
@@ -88,6 +122,8 @@ theorem entryDist_sub_sub_le {n : Type*} [Fintype n] (A B C D : Matrix n n ℂ) 
   rw [h]
   exact norm_sub_le _ _
 
+/-- The distance between two matrix sums is bounded by the sum of the distances between
+corresponding summands. -/
 theorem entryDist_add_le {n : Type*} [Fintype n] (A B C D : Matrix n n ℂ) :
     entryDist (A + B) (C + D) ≤ entryDist A C + entryDist B D := by
   unfold entryDist
@@ -100,6 +136,8 @@ theorem entryDist_add_le {n : Type*} [Fintype n] (A B C D : Matrix n n ℂ) :
   rw [h]
   exact norm_add_le _ _
 
+/-- Multiplying both matrices by a complex scalar scales their entrywise distance by the scalar
+norm. -/
 theorem entryDist_smul {n : Type*} [Fintype n] (c : ℂ) (A B : Matrix n n ℂ) :
     entryDist (c • A) (c • B) = ‖c‖ * entryDist A B := by
   unfold entryDist
@@ -109,10 +147,14 @@ theorem entryDist_smul {n : Type*} [Fintype n] (c : ℂ) (A B : Matrix n n ℂ) 
   refine Finset.sum_congr rfl fun j _ => ?_
   rw [Matrix.smul_apply, Matrix.smul_apply, smul_eq_mul, smul_eq_mul, ← mul_sub, norm_mul]
 
+/-- The entrywise distance of a scalar multiple from zero is the scalar norm times the original
+distance from zero. -/
 theorem entryDist_smul_zero {n : Type*} [Fintype n] (c : ℂ) (A : Matrix n n ℂ) :
     entryDist (c • A) 0 = ‖c‖ * entryDist A 0 := by
   simpa using entryDist_smul (n := n) c A 0
 
+/-- For matrices of size `card n`, the distance of their product from zero is at most `(card
+n)^3` times the product of their distances from zero. -/
 theorem entryDist_mul_zero_le {n : Type*} [Fintype n] (A B : Matrix n n ℂ) :
     entryDist (A * B) 0 ≤ (Fintype.card n : ℝ) ^ 3 * entryDist A 0 * entryDist B 0 := by
   have hA0 : 0 ≤ entryDist A 0 := entryDist_nonneg _ _
@@ -141,6 +183,8 @@ theorem entryDist_mul_zero_le {n : Type*} [Fintype n] (A B : Matrix n n ℂ) :
   simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   ring
 
+/-- The distance between `A * B` and `C * D` is bounded by `(card n)^3` times `entryDist A 0 *
+entryDist B D + entryDist A C * entryDist D 0`. -/
 theorem entryDist_mul_pair_le {n : Type*} [Fintype n] (A B C D : Matrix n n ℂ) :
     entryDist (A * B) (C * D) ≤ (Fintype.card n : ℝ) ^ 3 *
       (entryDist A 0 * entryDist B D + entryDist A C * entryDist D 0) := by
@@ -173,6 +217,8 @@ theorem entryDist_mul_pair_le {n : Type*} [Fintype n] (A B C D : Matrix n n ℂ)
     _ = (Fintype.card n : ℝ) ^ 3 *
           (entryDist A 0 * entryDist B D + entryDist A C * entryDist D 0) := by ring
 
+/-- If two matrix pairs are within `ε` and have respective size bounds `b` and `b'`, their
+commutator distance is at most `2 * (card n)^3 * ε * (b + b')`. -/
 theorem entryDist_commutator_le {n : Type*} [Fintype n]
     (V W Vt Wt : Matrix n n ℂ) (ε b b' : ℝ)
     (hε : 0 ≤ ε)
@@ -214,11 +260,13 @@ theorem entryDist_commutator_le {n : Type*} [Fintype n]
     nlinarith [this]
   nlinarith [hsplit, e1, e2, hN0, hε, hb0, hb'0]
 
+/-- The identity matrix is unitary. -/
 theorem isUnitary_one {n : Type*} [Fintype n] [DecidableEq n] :
     IsUnitary (1 : Matrix n n ℂ) := by
   unfold IsUnitary
   simp
 
+/-- The product of two unitary matrices is unitary. -/
 theorem isUnitary_mul {n : Type*} [Fintype n] [DecidableEq n] {A B : Matrix n n ℂ}
     (hA : IsUnitary A) (hB : IsUnitary B) : IsUnitary (A * B) := by
   unfold IsUnitary at *
@@ -234,6 +282,7 @@ theorem isUnitary_mul {n : Type*} [Fintype n] [DecidableEq n] {A B : Matrix n n 
       simp only [Matrix.mul_assoc]
     rw [h2, hA.2, Matrix.mul_one, hB.2]
 
+/-- The conjugate transpose of a unitary matrix is unitary. -/
 theorem isUnitary_conjTranspose {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℂ}
     (hA : IsUnitary A) : IsUnitary (Matrix.conjTranspose A) := by
   unfold IsUnitary at *
@@ -241,6 +290,7 @@ theorem isUnitary_conjTranspose {n : Type*} [Fintype n] [DecidableEq n] {A : Mat
   · rw [Matrix.conjTranspose_conjTranspose]; exact hA.2
   · rw [Matrix.conjTranspose_conjTranspose]; exact hA.1
 
+/-- A unitary matrix has nonzero determinant. -/
 theorem isUnitary_det_ne_zero {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℂ}
     (hA : IsUnitary A) : Matrix.det A ≠ 0 := by
   intro h
@@ -249,6 +299,7 @@ theorem isUnitary_det_ne_zero {n : Type*} [Fintype n] [DecidableEq n] {A : Matri
   rw [Matrix.det_mul, h, zero_mul, Matrix.det_one] at h1
   exact zero_ne_one h1
 
+/-- A diagonal matrix is unitary if and only if every diagonal entry has norm one. -/
 theorem isUnitary_diagonal_iff {n : Type*} [Fintype n] [DecidableEq n] (z : n → ℂ) :
     IsUnitary (Matrix.diagonal z) ↔ ∀ i, ‖z i‖ = 1 := by
   have hdiag : Matrix.diagonal z * Matrix.conjTranspose (Matrix.diagonal z)
@@ -294,21 +345,27 @@ theorem isUnitary_diagonal_iff {n : Type*} [Fintype n] [DecidableEq n] (z : n �
       show (Complex.normSq (z i) : ℂ) = 1
       rw [hi]; norm_num
 
+/-- A diagonal matrix whose entries all have norm one is unitary. -/
 theorem isUnitary_diagonal {n : Type*} [Fintype n] [DecidableEq n] (z : n → ℂ)
     (h : ∀ i, ‖z i‖ = 1) : IsUnitary (Matrix.diagonal z) :=
   (isUnitary_diagonal_iff z).2 h
 
+/-- The value of an empty matrix word is the identity. -/
 theorem wordEval_nil {K : ℕ} : wordEval ([] : List (Matrix (Fin K) (Fin K) ℂ)) = 1 := by
   simp [wordEval]
 
+/-- The value of a word with first letter `g` is `g` times the value of its tail. -/
 theorem wordEval_cons {K : ℕ} (g : Matrix (Fin K) (Fin K) ℂ)
     (l : List (Matrix (Fin K) (Fin K) ℂ)) : wordEval (g :: l) = g * wordEval l := by
   simp [wordEval, List.prod_cons]
 
+/-- Evaluation of concatenated matrix words equals the product of their evaluations. -/
 theorem wordEval_append {K : ℕ} (l₁ l₂ : List (Matrix (Fin K) (Fin K) ℂ)) :
     wordEval (l₁ ++ l₂) = wordEval l₁ * wordEval l₂ := by
   simp [wordEval, List.prod_append]
 
+/-- Every member of the submonoid generated by `gens` is the evaluation of a finite word with
+letters in `gens`. -/
 theorem exists_word_of_mem_generatedBy {K : ℕ}
     (gens : Set (Matrix (Fin K) (Fin K) ℂ)) (g : Matrix (Fin K) (Fin K) ℂ)
     (hg : g ∈ generatedBy gens) :
@@ -332,6 +389,8 @@ theorem exists_word_of_mem_generatedBy {K : ℕ}
       · exact h₂ z hz
     · rw [wordEval_append, e₁, e₂]
 
+/-- If the generated submonoid is dense in a target set, every target matrix has an arbitrarily
+close approximation by a finite generator word. -/
 theorem dense_word_approx {n : Type*} [Fintype n] {K : ℕ}
     (gens : Set (Matrix (Fin K) (Fin K) ℂ)) (target : Set (Matrix (Fin K) (Fin K) ℂ))
     (h : DenseIn target (generatedBy gens)) :
@@ -343,13 +402,16 @@ theorem dense_word_approx {n : Type*} [Fintype n] {K : ℕ}
   obtain ⟨word, hword, hval⟩ := exists_word_of_mem_generatedBy gens g hg
   exact ⟨word, hword, by rw [hval]; exact hd⟩
 
+/-- The natural-number bound `polyLogBound δ` is at least one. -/
 theorem one_le_polyLogBound (δ : ℝ) : 1 ≤ polyLogBound δ := by
   unfold polyLogBound
   exact Nat.le_add_left 1 _
 
+/-- The natural-number bound `polyLogBound δ` is positive. -/
 theorem polyLogBound_pos (δ : ℝ) : 0 < polyLogBound δ :=
   lt_of_lt_of_le Nat.zero_lt_one (one_le_polyLogBound δ)
 
+/-- If `‖a‖ ≤ 1`, `‖a‖² ≥ 2 / 3`, and `r` is within `1 / 100` of `a`, then `‖r‖² ≥ 1 / 2`. -/
 theorem promise_decide_yes {a r : ℂ} (ha : ‖a‖ ≤ 1) (hp : 2 / 3 ≤ ‖a‖ ^ 2)
     (h : ‖r - a‖ ≤ 1 / 100) : 1 / 2 ≤ ‖r‖ ^ 2 := by
   have hkey : ‖a‖ - ‖r‖ ≤ ‖r - a‖ := by
@@ -362,6 +424,7 @@ theorem promise_decide_yes {a r : ℂ} (ha : ‖a‖ ≤ 1) (hp : 2 / 3 ≤ ‖a
     nlinarith [sq_nonneg ((‖a‖ - 1 / 100) - ‖r‖), sq_nonneg (‖r‖ - (‖a‖ - 1 / 100))]
   nlinarith [hpow, hp, ha]
 
+/-- If `‖a‖² ≤ 1 / 3` and `r` is within `1 / 100` of `a`, then `‖r‖² ≤ 1 / 2`. -/
 theorem promise_decide_no {a r : ℂ} (hp : ‖a‖ ^ 2 ≤ 1 / 3)
     (h : ‖r - a‖ ≤ 1 / 100) : ‖r‖ ^ 2 ≤ 1 / 2 := by
   have hkey : ‖r‖ - ‖a‖ ≤ ‖r - a‖ := by
@@ -372,6 +435,8 @@ theorem promise_decide_no {a r : ℂ} (hp : ‖a‖ ^ 2 ≤ 1 / 3)
   have ha1 : ‖a‖ ≤ 1 := by nlinarith [sq_nonneg (‖a‖ - 1), sq_nonneg (‖a‖ + 1)]
   nlinarith [sq_nonneg (‖r‖ - ‖a‖), sq_nonneg (‖a‖ + 1 / 100)]
 
+/-- The bilinear dot product with a scalar multiple in its second argument is that scalar times
+the dot product. -/
 theorem dotProduct_smul_right {ι : Type*} [Fintype ι] (v w : ι → ℂ) (d : ℂ) :
     v ⬝ᵥ (d • w) = d * (v ⬝ᵥ w) := by
   rw [dotProduct, dotProduct, Finset.mul_sum]
@@ -379,6 +444,8 @@ theorem dotProduct_smul_right {ι : Type*} [Fintype ι] (v w : ι → ℂ) (d : 
   simp only [Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- A scalar multiple of the identity matrix sends a vector to the same scalar multiple of that
+vector. -/
 theorem mulVec_smul_one {ι : Type*} [Fintype ι] [DecidableEq ι] (d : ℂ) (ψ : ι → ℂ) :
     (d • (1 : Matrix ι ι ℂ)).mulVec ψ = d • ψ := by
   funext i
@@ -391,6 +458,8 @@ theorem mulVec_smul_one {ι : Type*} [Fintype ι] [DecidableEq ι] (d : ℂ) (ψ
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 
+/-- The dot product of the conjugate of a vector with itself is the complex embedding of its sum
+of squared coordinate norms. -/
 theorem dotProduct_star_eq_ofReal {ι : Type*} [Fintype ι] (u : ι → ℂ) :
     (star u) ⬝ᵥ u = ((∑ i, Complex.normSq (u i) : ℝ) : ℂ) := by
   rw [dotProduct]
@@ -400,15 +469,21 @@ theorem dotProduct_star_eq_ofReal {ι : Type*} [Fintype ι] (u : ι → ℂ) :
       exact Complex.mul_conj (u i)]
   rw [Complex.ofReal_sum]
 
+/-- The sum of squared coordinate norms is the real part of the dot product of the conjugate
+vector with itself. -/
 theorem sum_normSq_eq_re_dotProduct {ι : Type*} [Fintype ι] (u : ι → ℂ) :
     ∑ i, Complex.normSq (u i) = Complex.re ((star u) ⬝ᵥ u) := by
   rw [dotProduct_star_eq_ofReal, Complex.ofReal_re]
 
+/-- The real part of the self-pairing of `A.mulVec ψ` equals that of the quadratic expression
+using `Aᴴ * A` and `ψ`. -/
 theorem re_dotProduct_mulVec {ι : Type*} [Fintype ι] (A : Matrix ι ι ℂ) (ψ : ι → ℂ) :
     Complex.re ((star (A.mulVec ψ)) ⬝ᵥ (A.mulVec ψ))
       = Complex.re ((star ψ) ⬝ᵥ ((Matrix.conjTranspose A * A).mulVec ψ)) := by
   rw [Matrix.star_mulVec, ← Matrix.dotProduct_mulVec, Matrix.mulVec_mulVec]
 
+/-- For unitary `U`, both products of `c • U` with its conjugate transpose equal `normSq c`
+times the identity. -/
 theorem conjTranspose_smul_mul_self {n : Type*} [Fintype n] [DecidableEq n]
     (c : ℂ) (U : Matrix n n ℂ) (hU : IsUnitary U) :
     (c • U).conjTranspose * (c • U) = (Complex.normSq c : ℂ) • (1 : Matrix n n ℂ) ∧

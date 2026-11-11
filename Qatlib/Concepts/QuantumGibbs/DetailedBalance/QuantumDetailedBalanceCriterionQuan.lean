@@ -8,6 +8,22 @@ import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriter
 import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Mathlib.Analysis.CStarAlgebra.PositiveLinearMap
+
+/-!
+# A basis criterion for quantum detailed balance
+
+Given a complete orthonormal basis and probability weights, a weighted symmetry
+of channel matrix elements implies quantum detailed balance for the associated
+diagonal state. The same state is then a fixed point of the channel. The
+criterion permits zero probability weights and is stated for finite-dimensional
+quantum channels.
+
+Detailed balance and invariant Gibbs states underlie quantum Metropolis sampling
+[TemmeEtAl2011]; see also
+[Yung & Aspuru-Guzik, quantum-quantum Metropolis sampling][YungAspuruGuzik2012].
+This module proves the algebraic criterion, with its assumptions given by
+`QuantumDetailedBalanceCriterion`.
+-/
 set_option warningAsError false
 
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -23,6 +39,7 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOrder
 set_option maxRecDepth 4096
 
+/-- The product of two rank-one operators is `Inner v a` times `ketbra u b`. -/
 private theorem ketbra_mul {D : ℕ} (u v a b : QState (Fin D)) :
     ketbra u v * ketbra a b = Qatlib.Foundations.PureStateMath.Inner v a • ketbra u b := by
   ext i j
@@ -33,10 +50,12 @@ private theorem ketbra_mul {D : ℕ} (u v a b : QState (Fin D)) :
   intro k _
   ring
 
+/-- The conjugate transpose of a rank-one operator exchanges its two vectors. -/
 private theorem ketbra_star {D : ℕ} (u v : QState (Fin D)) : (ketbra u v)ᴴ = ketbra v u := by
   ext i j
   simp [ketbra, Matrix.conjTranspose_apply, mul_comm]
 
+/-- The trace of `ketbra u v` equals `Inner v u`. -/
 private theorem trace_ketbra {D : ℕ} (u v : QState (Fin D)) : Matrix.trace (ketbra u v) = Qatlib.Foundations.PureStateMath.Inner v u := by
   simp only [Matrix.trace, Matrix.diag_apply, ketbra, Matrix.of_apply,
       Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.star_apply]
@@ -44,6 +63,7 @@ private theorem trace_ketbra {D : ℕ} (u v : QState (Fin D)) : Matrix.trace (ke
   intro k _
   ring
 
+/-- The rank-one operator `ketbra u v` sends `x` to `Inner v x • u`. -/
 private theorem ketbra_action {D : ℕ} (u v x : QState (Fin D)) : ketbra u v *ᵥ x = Qatlib.Foundations.PureStateMath.Inner v x • u := by
   ext i
   simp only [ketbra, Matrix.of_apply, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Inner, Pi.star_apply,
@@ -53,14 +73,20 @@ private theorem ketbra_action {D : ℕ} (u v x : QState (Fin D)) : ketbra u v *�
   intro k _
   ring
 
+/-- Real scalar multiplication of a complex matrix agrees with multiplication by the
+corresponding complex scalar. -/
 private theorem realMatrixSmul {D : ℕ} (r : ℝ) (A : Operator D) : r • A = (r : ℂ) • A := by
   ext i j
   simp only [Matrix.smul_apply, RCLike.real_smul_eq_coe_mul, smul_eq_mul]
   rfl
 
+/-- The weighted sum of rank-one operators from `psi`, using the real coefficients `a` coerced
+to complex scalars. -/
 private noncomputable def basisDiag {D : ℕ} (psi : Fin D → QState (Fin D)) (a : Fin D → ℝ) : Operator D :=
   ∑ i, (a i : ℂ) • ketbra (psi i) (psi i)
 
+/-- For an orthonormal family, products of weighted basis-diagonal operators multiply their
+weights pointwise. -/
 private theorem basisDiag_mul {D : ℕ} (psi : Fin D → QState (Fin D))
     (horth : ∀ i j, Qatlib.Foundations.PureStateMath.Inner (psi i) (psi j) = if i = j then 1 else 0)
     (a b : Fin D → ℝ) : basisDiag psi a * basisDiag psi b = basisDiag psi (fun i => a i * b i) := by
@@ -75,6 +101,8 @@ private theorem basisDiag_mul {D : ℕ} (psi : Fin D → QState (Fin D))
     (Complex.ofReal (a i) * Complex.ofReal (b i)) * ketbra (psi i) (psi i) k l
   rw [Complex.ofReal_mul]
 
+/-- Left multiplication by a weighted orthonormal-basis diagonal operator scales `ketbra (psi n)
+(psi m)` by the weight at `n`. -/
 private theorem basisDiag_left {D : ℕ} (psi : Fin D → QState (Fin D))
     (horth : ∀ i j, Qatlib.Foundations.PureStateMath.Inner (psi i) (psi j) = if i = j then 1 else 0)
     (a : Fin D → ℝ) (n m : Fin D) :
@@ -82,6 +110,8 @@ private theorem basisDiag_left {D : ℕ} (psi : Fin D → QState (Fin D))
   simp only [basisDiag, Matrix.sum_mul, Matrix.smul_mul, ketbra_mul, horth, smul_smul]
   simp [mul_ite, ite_smul]
 
+/-- Right multiplication by a weighted orthonormal-basis diagonal operator scales `ketbra (psi
+n) (psi m)` by the weight at `m`. -/
 private theorem basisDiag_right {D : ℕ} (psi : Fin D → QState (Fin D))
     (horth : ∀ i j, Qatlib.Foundations.PureStateMath.Inner (psi i) (psi j) = if i = j then 1 else 0)
     (a : Fin D → ℝ) (n m : Fin D) :
@@ -89,6 +119,8 @@ private theorem basisDiag_right {D : ℕ} (psi : Fin D → QState (Fin D))
   simp only [basisDiag, Matrix.mul_sum, Matrix.mul_smul, ketbra_mul, horth, smul_smul]
   simp [mul_ite, ite_smul]
 
+/-- A weighted sum of rank-one diagonal operators is positive semidefinite when all real weights
+are nonnegative. -/
 private theorem basisDiag_psd {D : ℕ} (psi : Fin D → QState (Fin D))
     (a : Fin D → ℝ) (ha : ∀ i, 0 ≤ a i) : (basisDiag psi a).PosSemidef := by
   apply Matrix.posSemidef_sum
@@ -97,6 +129,8 @@ private theorem basisDiag_psd {D : ℕ} (psi : Fin D → QState (Fin D))
     exact outerProduct_posSemidef (psi i)
   exact hk.smul (by exact_mod_cast ha i)
 
+/-- Nonnegative weights summing to one on an orthonormal family give a density operator through
+`gibbsBasis`. -/
 private theorem basis_density {D : ℕ} (psi : Fin D → QState (Fin D))
     (horth : ∀ i j, Qatlib.Foundations.PureStateMath.Inner (psi i) (psi j) = if i = j then 1 else 0)
     (p : Fin D → ℝ) (hp : ∀ i, 0 ≤ p i) (hsum : ∑ i, p i = 1) :
@@ -111,6 +145,8 @@ private theorem basis_density {D : ℕ} (psi : Fin D → QState (Fin D))
   simp only [basisDiag, Matrix.trace_sum, Matrix.trace_smul, trace_ketbra, horth,
     if_true, smul_eq_mul, mul_one, ← Complex.ofReal_sum, hsum, Complex.ofReal_one]
 
+/-- For an orthonormal family with nonnegative normalized weights, the square root of
+`gibbsBasis` has the pointwise square-root weights. -/
 private theorem basis_sqrt {D : ℕ} (psi : Fin D → QState (Fin D))
     (horth : ∀ i j, Qatlib.Foundations.PureStateMath.Inner (psi i) (psi j) = if i = j then 1 else 0)
     (p : Fin D → ℝ) (hp : ∀ i, 0 ≤ p i) (hsum : ∑ i, p i = 1) :
@@ -129,6 +165,8 @@ private theorem basis_sqrt {D : ℕ} (psi : Fin D → QState (Fin D))
   exact CFC.sqrt_unique hsq (Matrix.nonneg_iff_posSemidef.mpr
     (basisDiag_psd psi _ (fun i => Real.sqrt_nonneg (p i))))
 
+/-- Sandwiching a basis rank-one operator by the square root of `gibbsBasis` scales it by `sqrt
+(p n * p m)` under the stated orthonormality and weight assumptions. -/
 private theorem basis_sandwich {D : ℕ} (psi : Fin D → QState (Fin D))
     (horth : ∀ i j, Qatlib.Foundations.PureStateMath.Inner (psi i) (psi j) = if i = j then 1 else 0)
     (p : Fin D → ℝ) (hp : ∀ i, 0 ≤ p i) (hsum : ∑ i, p i = 1) (n m : Fin D) :
@@ -137,6 +175,7 @@ private theorem basis_sandwich {D : ℕ} (psi : Fin D → QState (Fin D))
   rw [basis_sqrt psi horth p hp hsum, basisDiag_left psi horth, Matrix.smul_mul,
     basisDiag_right psi horth, smul_smul, ← Complex.ofReal_mul, ← Real.sqrt_mul (hp n)]
 
+/-- The trace of `ketbra u v * A` equals the matrix element of `A` between `v` and `u`. -/
 private theorem trace_ketbra_mul {D : ℕ} (u v : QState (Fin D)) (A : Operator D) :
     Matrix.trace (ketbra u v * A) = braKetElem A v u := by
   simp only [Matrix.trace, Matrix.diag_apply, Matrix.mul_apply, ketbra, Matrix.of_apply,
@@ -149,10 +188,13 @@ private theorem trace_ketbra_mul {D : ℕ} (u v : QState (Fin D)) (A : Operator 
   intro j _
   ring
 
+/-- The trace of `A * ketbra u v` equals the matrix element of `A` between `v` and `u`. -/
 private theorem trace_mul_ketbra {D : ℕ} (u v : QState (Fin D)) (A : Operator D) :
     Matrix.trace (A * ketbra u v) = braKetElem A v u := by
   rw [Matrix.trace_mul_comm, trace_ketbra_mul]
 
+/-- A complete vector family expands every operator as the double sum of its matrix elements
+times the corresponding rank-one operators. -/
 private theorem basis_expansion {D : ℕ} (psi : Fin D → QState (Fin D))
     (hcomplete : ∀ x : QState (Fin D), ∑ i, Qatlib.Foundations.PureStateMath.Inner (psi i) x • psi i = x)
     (A : Operator D) : A = ∑ n, ∑ m, braKetElem A (psi n) (psi m) • ketbra (psi n) (psi m) := by
@@ -175,6 +217,7 @@ private theorem basis_expansion {D : ℕ} (psi : Fin D → QState (Fin D))
       simp only [Matrix.mulVec_smul]
     _ = A *ᵥ x := by rw [hcomplete]
 
+/-- A quantum channel preserves conjugate transpose. -/
 private theorem channel_star {D : ℕ} (T : QuantumChannel D D) (A : Operator D) :
     T.map Aᴴ = (T.map A)ᴴ := by
   letI : CStarAlgebra (Operator D) := {}
@@ -183,6 +226,8 @@ private theorem channel_star {D : ℕ} (T : QuantumChannel D D) (A : Operator D)
       (T.completelyPositive.positive (Matrix.nonneg_iff_posSemidef.mp hX)))
   exact map_star P A
 
+/-- If the sandwiched trace-pairing identity holds on all rank-one operators of a complete
+family, it holds for all pairs of operators. -/
 private theorem balance_extension {D : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (S : Operator D) (psi : Fin D → QState (Fin D))
     (hcomplete : ∀ x : QState (Fin D), ∑ i, Qatlib.Foundations.PureStateMath.Inner (psi i) x • psi i = x)
@@ -205,6 +250,9 @@ private theorem balance_extension {D : ℕ} (T : Operator D →ₗ[ℂ] Operator
   intro m _
   rw [hbalanced]
 
+/-- Weighted matrix-element symmetry in a complete orthonormal basis implies
+quantum detailed balance and stationarity. For the sampling context, see
+[Temme et al., quantum Metropolis sampling][TemmeEtAl2011]. -/
 theorem quantumDetailedBalanceCriterion : QuantumDetailedBalanceCriterion := by
   intro D T psi p horth hcomplete hp hsum hcriterion
   have hs := basis_density psi horth p hp hsum

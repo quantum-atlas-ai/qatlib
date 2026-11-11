@@ -8,6 +8,34 @@ import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
 import Mathlib.Analysis.InnerProductSpace.JointEigenspace
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Discriminant spectra of bipartite reflection walks
+
+This module defines the block discriminant and concatenated coordinate map for two finite
+rectangular frames, together with the associated product of reflections. For isometric frames,
+it proves the discriminant Gram identity and constructs the two normalized, orthogonal walk
+eigenvectors associated with an interior discriminant eigenpair. These constructions follow the
+spectral correspondence of [Szegedy2004].
+
+The endpoint transport statements handle discriminant eigenvalues 1, -1, and 0. A complete
+orthonormal eigenframe spans the range of the concatenated frame, with dimension equal to its
+rank and eigenvalues classified by the endpoint phases and the interior `bipartitePhase` family.
+
+## Main statements
+
+* `bipartite_discriminant_tilde_bridge`: the Hermitian discriminant, Gram identity, and walk
+  unitarity.
+* `bipartite_normalized_tau_pair`: the normalized orthogonal pair of walk eigenvectors.
+* `bipartite_endpoint_kernel_transport`: transport at the endpoint and zero eigenvalues.
+* `bipartite_complete_busy_spectral_frame`: a complete eigenframe on the concatenated frame's
+  range.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -38,38 +66,52 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The finite-state inner product is additive in its left argument. -/
 private theorem bipartite_inner_add_left {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (u+v) w=Qatlib.Foundations.PureStateMath.Inner u w+Qatlib.Foundations.PureStateMath.Inner v w := by simp [Qatlib.Foundations.PureStateMath.Inner,star_add,add_dotProduct]
 
+/-- The finite-state inner product is additive in its right argument. -/
 private theorem bipartite_inner_add_right {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner u (v+w)=Qatlib.Foundations.PureStateMath.Inner u v+Qatlib.Foundations.PureStateMath.Inner u w := by simp [Qatlib.Foundations.PureStateMath.Inner,dotProduct_add]
 
+/-- Reversing the two arguments of the finite-state inner product complex conjugates its value. -/
 private theorem bipartite_inner_rev {K : Type} [Fintype K] (u v : QState K) :
     Qatlib.Foundations.PureStateMath.Inner v u=(starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Inner u v) := by
   exact star_dotProduct (v:=v) (w:=u)
 
+/-- The block discriminant with zero diagonal blocks and off-diagonal blocks AᴴB and BᴴA. -/
 noncomputable def bipartiteDiscriminant {H I J : Type} [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
   (A : Matrix H I ℂ) (B : Matrix H J ℂ) : Matrix (I⊕J) (I⊕J) ℂ :=
   Matrix.fromBlocks 0 (Aᴴ*B) (Bᴴ*A) 0
 
+/-- The matrix formed by concatenating the columns of `A` and `B`, mapping their direct-sum
+coordinates into the ambient state space. -/
 noncomputable def bipartiteTilde {H I J : Type} [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
   (A : Matrix H I ℂ) (B : Matrix H J ℂ) : Matrix H (I⊕J) ℂ := Matrix.fromCols A B
 
+/-- The product of the reflection about BBᴴ with the reflection about AAᴴ. -/
 noncomputable def bipartiteWalk {H I J : Type} [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
   (A : Matrix H I ℂ) (B : Matrix H J ℂ) : Matrix H H ℂ :=
   ReflectionAbout (B*Bᴴ)*ReflectionAbout (A*Aᴴ)
 
+/-- The candidate walk eigenvector formed from `A *ᵥ a` and `B *ᵥ b` with the Boolean-selected
+complex coefficient and reciprocal sqrt(1 - lam²) scaling. -/
 noncomputable def bipartiteTau {H I J : Type} [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
   (A : Matrix H I ℂ) (B : Matrix H J ℂ) (a : QState I) (b : QState J) (lam : ℝ) (s : Bool) : QState H :=
   (Real.sqrt (1-lam^2):ℂ)⁻¹•(A*ᵥa+(-(lam:ℂ)+(if s then Complex.I else -Complex.I)*(Real.sqrt (1-lam^2):ℂ))•(B*ᵥb))
 
+/-- The complex expression 2lam² - 1 minus the Boolean-selected sign of i times 2lam sqrt(1 -
+lam²). -/
 noncomputable def bipartitePhase (lam : ℝ) (s : Bool) : ℂ :=
   (2*lam^2-1:ℝ)-(if s then Complex.I else -Complex.I)*(2*lam*Real.sqrt (1-lam^2):ℝ)
 
+/-- For two isometries, the discriminant is Hermitian, the Gram matrix of their concatenated
+frame is the identity plus the discriminant, and the bipartite walk is unitary. See
+[Szegedy2004]. -/
 theorem bipartite_discriminant_tilde_bridge :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
@@ -90,6 +132,9 @@ theorem bipartite_discriminant_tilde_bridge :
       (reflectionAbout_unitary (rangeProjector_isOrthogonalProjector hB))
       (reflectionAbout_unitary (rangeProjector_isOrthogonalProjector hA))
 
+/-- For isometries and a normalized discriminant eigenpair with 0 < lam < 1, the two
+`bipartiteTau` vectors are normalized, mutually orthogonal walk eigenvectors with the
+corresponding `bipartitePhase` eigenvalues. See [SommaBoixoBarnum2007] and [Szegedy2004]. -/
 theorem bipartite_normalized_tau_pair :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -186,6 +231,9 @@ theorem bipartite_normalized_tau_pair :
   · rw [Qatlib.Concepts.AmplitudeCore.InvFreePhase.inner_smul_left,Qatlib.Concepts.AmplitudeCore.InvFreePhase.inner_smul_right,horth]
     simp
 
+/-- For isometries, the concatenated frame sends discriminant eigenvectors with eigenvalues 1
+and 0 to walk eigenvectors with eigenvalues 1 and -1, respectively, and annihilates
+discriminant eigenvectors with eigenvalue -1. See [Szegedy2004]. -/
 theorem bipartite_endpoint_kernel_transport :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) (v : QState (I⊕J)),
@@ -243,6 +291,7 @@ theorem bipartite_endpoint_kernel_transport :
     rw [hh,reflectionAbout_mulVec,Matrix.mulVec_sub,hPBx,hPBy]
     module
 
+/-- Matrix multiplication over a finite intermediate index type. -/
 private noncomputable abbrev bipartiteMatMul {M N K : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N K ℂ) : Matrix M K ℂ :=
   @HMul.hMul (Matrix M N ℂ) (Matrix N K ℂ) (Matrix M K ℂ)
@@ -250,6 +299,8 @@ private noncomputable abbrev bipartiteMatMul {M N K : Type} [Fintype N]
 
 set_option maxHeartbeats 1200000 in
 
+/-- A unitary matrix commuting with an orthogonal projector has an orthonormal eigenframe for
+the projector's range, with frame size equal to the projector rank. -/
 private theorem bipartite_unitary_projector_frame {H : Type} [Fintype H] [DecidableEq H]
     (W L : Matrix H H ℂ) (hW : W∈unitaryGroup H ℂ)
     (hL : IsOrthogonalProjector L) (hc : W*L=L*W) :
@@ -431,6 +482,8 @@ private theorem bipartite_unitary_projector_frame {H : Type} [Fintype H] [Decida
     simp only [Matrix.mul_apply,Matrix.of_apply,mul_ite,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
     simpa only [V,Matrix.mul_apply,Matrix.submatrix_apply,id_eq] using! hh
 
+/-- The orthogonal projector onto the concatenated frame's range commutes with the bipartite
+walk and has rank equal to that frame's rank. -/
 private theorem bipartite_busy_projector_commutes {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) :
@@ -467,6 +520,8 @@ private theorem bipartite_busy_projector_commutes {H I J : Type} [Fintype H] [De
       T.rank=(L*T).rank := congrArg Matrix.rank hLT.symm
       _ ≤ L.rank := Matrix.rank_mul_le_left L T
 
+/-- A complex number satisfying star z times z = 1 is 1, -1, or one of the two `bipartitePhase`
+values for some parameter strictly between zero and one. -/
 private theorem bipartite_unit_phase_classification (z : ℂ) (hz : star z*z=1) :
     z=1 ∨ z=-1 ∨ ∃ lam : ℝ,0<lam ∧ lam<1 ∧
       (z=bipartitePhase lam true ∨ z=bipartitePhase lam false) := by
@@ -525,6 +580,10 @@ private theorem bipartite_unit_phase_classification (z : ℂ) (hz : star z*z=1) 
         Complex.mul_im,Complex.I_re,Complex.I_im,Complex.neg_re,Complex.neg_im,Complex.ofReal_re,
         mul_zero,neg_one_mul,mul_neg_one,zero_mul,zero_add,zero_sub,neg_zero,neg_neg,r] using! hie
 
+/-- For two isometries, the bipartite walk has an orthonormal eigenframe spanning the
+concatenated frame's range, of size equal to its rank, with each eigenvalue equal to 1, -1,
+or a `bipartitePhase` value for a parameter in (0, 1). See [SommaBoixoBarnum2007] and
+[Szegedy2004]. -/
 theorem bipartite_complete_busy_spectral_frame :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),

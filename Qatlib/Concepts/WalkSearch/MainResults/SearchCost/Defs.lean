@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Theorem3
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Quantum walk reflection cost parameters
+
+`mnrsPhaseGap`, `mnrsQpeCopies`, and `mnrsReflectionCopies` define the angular gap and rounded
+repetition parameters used in `mnrsReflectionLedger`. The module derives explicit reflection
+cost bounds and verifies the positivity and logarithmic estimates for the scheduled errors
+`betaAt (1 / 72) i`. For background on search via quantum walks, see
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `mnrsPhaseGap`: The angular phase gap `2 * Real.arccos r` used in the MNRS cost ledger.
+* `mnrs_schedule_reflection_cost_le`: At a positive level, the reflection ledger for the
+  scheduled error has the stated `80 * π * U / sqrt δ` logarithmic bound; see [Magniez et al.,
+  Theorem 6][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,17 +37,23 @@ open scoped Real BigOperators
 
 namespace Qatlib.Concepts.WalkSearch.MainResults.SearchCost
 
+/-- The angular phase gap `2 * Real.arccos r` used in the MNRS cost ledger. -/
 noncomputable def mnrsPhaseGap (r : ℝ) : ℝ := 2 * Real.arccos r
 
+/-- The ceiling of `log (2 * π / Δ) / log 2`, specifying the phase estimation precision
+exponent. -/
 noncomputable def mnrsQpeCopies (Δ : ℝ) : ℕ :=
   Nat.ceil (Real.log (2 * Real.pi / Δ) / Real.log 2)
 
+/-- The ceiling of `log (1 / β) / log 2` plus one, specifying the reflection repetition count. -/
 noncomputable def mnrsReflectionCopies (β : ℝ) : ℕ :=
   Nat.ceil (Real.log (1 / β) / Real.log 2) + 1
 
+/-- The reflection cost ledger `4 * U * (2 * mnrsReflectionCopies β * 2^(mnrsQpeCopies Δ))`. -/
 noncomputable def mnrsReflectionLedger (U Δ β : ℝ) : ℝ :=
   4 * U * (2 * (mnrsReflectionCopies β : ℝ) * 2 ^ mnrsQpeCopies Δ)
 
+/-- For positive `y`, raising two to `Real.log y / Real.log 2` gives `y`. -/
 private theorem two_rpow_log_div_log {y : ℝ} (hy : 0 < y) :
     (2 : ℝ) ^ (Real.log y / Real.log 2) = y := by
   rw [Real.rpow_def_of_pos (by norm_num : (0 : ℝ) < 2)]
@@ -34,6 +62,7 @@ private theorem two_rpow_log_div_log {y : ℝ} (hy : 0 < y) :
     field_simp
   rw [hmul, Real.exp_log hy]
 
+/-- If `0 ≤ r ≤ 1` and `r = 1 - δ`, then `mnrsPhaseGap r ≥ 2 * Real.sqrt δ`. -/
 theorem mnrs_phaseGap_ge_two_sqrt_gap {r δ : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 1)
     (hrδ : r = 1 - δ) :
     2 * Real.sqrt δ ≤ mnrsPhaseGap r := by
@@ -51,6 +80,8 @@ theorem mnrs_phaseGap_ge_two_sqrt_gap {r δ : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 
   rw [mnrsPhaseGap]
   linarith
 
+/-- For `0 < Δ ≤ π`, the rounded phase estimation size satisfies `2^(mnrsQpeCopies Δ) ≤ 4 * π /
+Δ`; see [Magniez et al., Theorem 6][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_two_pow_qpeCopies_le {Δ : ℝ} (hΔ : 0 < Δ) (hΔπ : Δ ≤ Real.pi) :
     2 ^ mnrsQpeCopies Δ ≤ 4 * Real.pi / Δ := by
   have hpos : 0 < 2 * Real.pi / Δ := div_pos (by positivity) hΔ
@@ -77,10 +108,13 @@ theorem mnrs_two_pow_qpeCopies_le {Δ : ℝ} (hΔ : 0 < Δ) (hΔπ : Δ ≤ Real
     2 ^ mnrsQpeCopies Δ ≤ 2 * (2 * Real.pi / Δ) := hmono
     _ = 4 * Real.pi / Δ := by ring
 
+/-- The natural logarithm of two is at least `1 / 2`. -/
 private theorem half_le_log_two : (1 : ℝ) / 2 ≤ Real.log 2 := by
   have := Real.log_two_gt_d9
   linarith
 
+/-- Under the phase gap and error logarithm hypotheses, the reflection ledger is at most `80 * π
+* U / sqrt δ * log (1 / β)`; see [Magniez et al., Theorem 7][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_reflectionLedger_le {U δ Δ β : ℝ} (hU : 0 ≤ U) (hδ : 0 < δ)
     (hΔ : 0 < Δ) (hΔπ : Δ ≤ Real.pi) (hgap : 2 * Real.sqrt δ ≤ Δ)
     (hL1 : 1 ≤ Real.log (1 / β)) :
@@ -132,11 +166,13 @@ section Schedule
 
 open Qatlib.Concepts.WalkSearch.MnrsAmplify
 
+/-- The scheduled error `betaAt (1 / 72) i` is positive at every positive level. -/
 theorem mnrs_betaAt_pos {i : ℕ} (hi : 1 ≤ i) : 0 < betaAt (1 / 72) i := by
   rw [betaAt]
   have hi0 : (0 : ℝ) < (i : ℝ) := by exact_mod_cast hi
   positivity
 
+/-- The scheduled error `betaAt (1 / 72) i` is at most `1 / 4` at every positive level. -/
 theorem mnrs_betaAt_le_quarter {i : ℕ} (hi : 1 ≤ i) : betaAt (1 / 72) i ≤ 1 / 4 := by
   rw [betaAt]
   have hi1 : (1 : ℝ) ≤ (i : ℝ) := by exact_mod_cast hi
@@ -150,6 +186,7 @@ theorem mnrs_betaAt_le_quarter {i : ℕ} (hi : 1 ≤ i) : betaAt (1 / 72) i ≤ 
     nlinarith [mul_le_mul hi2 hpi3 (by norm_num) (by positivity)]
   nlinarith
 
+/-- At every positive level, `Real.log (1 / betaAt (1 / 72) i)` is at least one. -/
 theorem mnrs_betaAt_log_ge_one {i : ℕ} (hi : 1 ≤ i) :
     1 ≤ Real.log (1 / betaAt (1 / 72) i) := by
   have hpos := mnrs_betaAt_pos hi
@@ -167,6 +204,9 @@ theorem mnrs_betaAt_log_ge_one {i : ℕ} (hi : 1 ≤ i) :
     linarith
   linarith
 
+/-- At a positive level, the reflection ledger for the scheduled error has the stated `80 * π *
+U / sqrt δ` logarithmic bound; see [Magniez et al., Theorem
+6][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_schedule_reflection_cost_le {U δ Δ : ℝ} (hU : 0 ≤ U) (hδ : 0 < δ)
     (hΔ : 0 < Δ) (hΔπ : Δ ≤ Real.pi) (hgap : 2 * Real.sqrt δ ≤ Δ) {i : ℕ} (hi : 1 ≤ i) :
     mnrsReflectionLedger U Δ (betaAt (1 / 72) i) ≤

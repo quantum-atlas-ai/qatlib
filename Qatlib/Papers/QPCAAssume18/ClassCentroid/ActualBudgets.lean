@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QPCAAssume18.ClassCentroid.ActualSampler
 import Mathlib.Data.Nat.Log
 import Mathlib.Algebra.Order.Floor.Ring
+
+/-!
+# Explicit budgets for centroid estimation
+
+This module chooses the sample count and odd-median parameter for the classical nearest-centroid
+estimator of [Tang2021]. With `Z = averageNormSq u V`, each mean uses `ceil(256 * Z^2 / eps^2) +
+1` samples, while a base-four ceiling logarithm determines the median parameter from `delta`.
+
+## Main statements
+
+* `centroidSamples_budget` and `centroidSamples_upper` give the required variance budget and an
+  explicit sample-count bound.
+- `centroid_median_tail_formula` simplifies the median tail to `4^(-(r + 1))`.
+* `centroidRounds_failure` and `centroid_chosen_failure` bound the chosen estimator's failure
+  mass by `delta`.
+
+## References
+
+* [Tang, 2021][Tang2021], *Quantum principal component analysis only achieves an exponential
+  speedup because of its state preparation assumptions*, Theorem 4 and Algorithm 4.
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,10 +39,15 @@ namespace Qatlib.Papers.QPCAAssume18.ClassCentroid
 
 open Qatlib.Concepts.SqEstimation.InnerProduct
 
+/-- Chooses `ceil(256 * Z^2 / eps^2) + 1` samples for each centroid mean. -/
 def centroidSamples (Z eps : ℝ) : ℕ := ⌈256 * Z ^ 2 / eps ^ 2⌉₊ + 1
 
+/-- Chooses the median parameter as the base-four ceiling logarithm of the natural ceiling of `1
+/ delta`; the estimator uses `2 * centroidRounds delta + 1` means. -/
 def centroidRounds (delta : ℝ) : ℕ := Nat.clog 4 ⌈1 / delta⌉₊
 
+/-- For positive `eps`, the chosen sample count is positive and satisfies `256 * Z^2 ≤
+centroidSamples Z eps * eps^2`. -/
 theorem centroidSamples_budget (Z eps : ℝ) (heps : 0 < eps) :
     0 < centroidSamples Z eps ∧ 256 * Z ^ 2 ≤ (centroidSamples Z eps : ℝ) * eps ^ 2 := by
   refine ⟨by unfold centroidSamples; omega, ?_⟩
@@ -31,6 +58,7 @@ theorem centroidSamples_budget (Z eps : ℝ) (heps : 0 < eps) :
     linarith
   exact (div_le_iff₀ (sq_pos_of_pos heps)).mp hm
 
+/-- The chosen sample count is strictly less than `256 * Z^2 / eps^2 + 2`. -/
 theorem centroidSamples_upper (Z eps : ℝ) :
     (centroidSamples Z eps : ℝ) < 256 * Z ^ 2 / eps ^ 2 + 2 := by
   have hceil := Nat.ceil_lt_add_one (by positivity : 0 ≤ 256 * Z ^ 2 / eps ^ 2)
@@ -38,6 +66,7 @@ theorem centroidSamples_upper (Z eps : ℝ) :
   push_cast
   linarith
 
+/-- Simplifies the explicit componentwise-median tail expression to `(1 / 4)^(r + 1)`. -/
 theorem centroid_median_tail_formula (r : ℕ) :
     2 * (2 : ℝ) ^ (2 * r + 1) * (1 / 16 : ℝ) ^ (r + 1) =
       (1 / 4 : ℝ) ^ (r + 1) := by
@@ -52,6 +81,7 @@ theorem centroid_median_tail_formula (r : ℕ) :
         ring
       _ = (1 / 4 : ℝ) ^ (r + 1 + 1) := by rw [ih]; simp only [pow_succ]
 
+/-- For positive `delta`, the median tail expression at the chosen parameter is at most `delta`. -/
 theorem centroidRounds_failure (delta : ℝ) (hdelta : 0 < delta) :
     2 * (2 : ℝ) ^ (2 * centroidRounds delta + 1) *
       (1 / 16 : ℝ) ^ (centroidRounds delta + 1) ≤ delta := by
@@ -66,6 +96,9 @@ theorem centroidRounds_failure (delta : ℝ) (hdelta : 0 < delta) :
   rw [centroid_median_tail_formula, one_div_pow]
   exact (div_le_iff₀ (pow_pos (by norm_num : (0 : ℝ) < 4) _)).mpr hbudget
 
+/-- For positive `n`, a unit anchor, and positive `eps` and `delta`, the centroid tensor
+estimator with the chosen budgets has bad mass at most `delta`. This supplies explicit
+budgets for the classical nearest-centroid estimate in [Tang2021]. -/
 theorem centroid_chosen_failure {n d : ℕ} (anchor u : Fin d → ℂ)
     (V : Matrix (Fin n) (Fin d) ℂ) (hn : 0 < n) (ha : vectorEnergy anchor = 1)
     (eps delta : ℝ) (heps : 0 < eps) (hdelta : 0 < delta) :

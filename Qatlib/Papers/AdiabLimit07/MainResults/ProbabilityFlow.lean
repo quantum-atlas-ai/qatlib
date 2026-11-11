@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.InnerProductSpace.Calculus
 import Qatlib.Papers.AdiabLimit07.MainResults.CharacterBounds
+
+/-!
+# Probability flow for interpolated Hamiltonians
+
+Expresses entries of `hadamardHamiltonian` as sums over Walsh characters and spectral blocks,
+and proves that the interpolated Hamiltonian has real entries. Coordinatewise Schrödinger
+derivatives and off-diagonal coupling estimates then bound the rate of change of `solutionProb`.
+See [IoannouMosca2008].
+
+## Main statements
+
+* `hadamardHamiltonian_entry`: Expands a matrix entry relative to an arbitrary reference energy
+  block.
+* `genHamiltonian_offdiag_bound`: Controls off-diagonal entries by the complementary block
+  dimension.
+* `probability_flow_bound`: Bounds the absolute derivative of solution probability.
+
+## References
+
+* [Ioannou and Mosca, 2008][IoannouMosca2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +42,7 @@ open scoped BigOperators Matrix
 
 variable {n : ℕ}
 
+/-- Every Walsh character value has zero imaginary part. -/
 theorem walshChar_im (z x y : Reg n) : (walshChar z x y).im = 0 := by
   unfold walshChar
   induction (Finset.univ : Finset (Fin n)) using Finset.induction with
@@ -28,21 +51,26 @@ theorem walshChar_im (z x y : Reg n) : (walshChar z x y).im = 0 := by
     rw [Finset.prod_insert ha, Complex.mul_im, ih, mul_zero, zero_add]
     split_ifs <;> simp
 
+/-- The product of two complex numbers with zero imaginary part also has zero imaginary part. -/
 theorem im_mul_of_im_zero {a b : ℂ} (ha : a.im = 0) (hb : b.im = 0) :
     (a * b).im = 0 := by
   rw [Complex.mul_im, ha, hb]; ring
 
+/-- A finite sum of complex numbers with zero imaginary part has zero imaginary part. -/
 theorem im_sum_zero {ι : Type*} (s : Finset ι) (f : ι → ℂ) (h : ∀ i, (f i).im = 0) :
     (∑ i ∈ s, f i).im = 0 := by
   change Complex.imAddGroupHom (∑ i ∈ s, f i) = 0
   rw [map_sum]
   exact Finset.sum_eq_zero (fun i _ => h i)
 
+/-- The real part of `w * (-i * z)` is the imaginary part of `w * z`. -/
 theorem re_mul_neg_I_im (w z : ℂ) : (w * (-Complex.I * z)).re = (w * z).im := by
   simp only [Complex.mul_re, Complex.mul_im, Complex.neg_re, Complex.neg_im, Complex.I_re,
     Complex.I_im]
   ring
 
+/-- A Walsh character of the bitwise difference factors into the product of the signs for the
+two strings. -/
 theorem walshChar_factor (x y a : Reg n) :
     walshChar a x y
       = ∏ i, ((if x i && a i then (-1:ℂ) else 1) *
@@ -52,18 +80,23 @@ theorem walshChar_factor (x y a : Reg n) :
   intro i _
   cases hx : x i <;> cases hy : y i <;> cases ha : a i <;> simp_all
 
+/-- The product of two complex inverse square roots of two is the inverse of two. -/
 theorem sqrt2_inv_mul : ((Real.sqrt 2 : ℂ)⁻¹) * ((Real.sqrt 2 : ℂ)⁻¹) = ((2:ℂ))⁻¹ := by
   rw [← mul_inv]
   congr 1
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
   norm_num
 
+/-- The product of two `n`th powers of the complex inverse square root of two is the inverse of
+`2 ^ n`. -/
 theorem coeff_sqrt (n : ℕ) :
     (((Real.sqrt 2 : ℂ)⁻¹) ^ n) * (((Real.sqrt 2 : ℂ)⁻¹) ^ n) = (((2:ℕ)^n : ℂ))⁻¹ := by
   rw [← mul_pow, sqrt2_inv_mul, inv_pow]
   push_cast
   rfl
 
+/-- The product of a Hadamard entry and the conjugate entry in the same column is the normalized
+Walsh character. -/
 theorem hadamardN_entry_mul (x y a : Reg n) :
     HadamardN n x a * (starRingEnd ℂ) (HadamardN n y a)
       = (((2:ℕ)^n : ℂ))⁻¹ * walshChar a x y := by
@@ -74,6 +107,8 @@ theorem hadamardN_entry_mul (x y a : Reg n) :
   rw [← hP, ← coeff_sqrt]
   ring
 
+/-- Summing Walsh characters over all spectral blocks gives `2 ^ n` on equal indices and zero
+otherwise. -/
 theorem sum_qBlock_walsh {q : ℕ} (qIdx : Reg n → Fin (q + 1)) (x y : Reg n) :
     (∑ k : Fin (q + 1), ∑ z ∈ qBlock qIdx k, walshChar z x y)
       = (((2:ℕ)^n : ℂ)) * (if x = y then 1 else 0) := by
@@ -84,6 +119,7 @@ theorem sum_qBlock_walsh {q : ℕ} (qIdx : Reg n → Fin (q + 1)) (x y : Reg n) 
   rw [hfib, walshChar_sum]
   split_ifs <;> simp
 
+/-- A Walsh sum weighted by `F (qIdx a)` can be regrouped as a sum over the fibers of `qIdx`. -/
 theorem entry_as_fiber {q : ℕ} (F : Fin (q + 1) → ℝ) (qIdx : Reg n → Fin (q + 1)) (x y : Reg n) :
     (∑ a : Reg n, (F (qIdx a) : ℂ) * walshChar a x y)
       = ∑ k : Fin (q + 1), (F k : ℂ) * ∑ z ∈ qBlock qIdx k, walshChar z x y := by
@@ -99,6 +135,8 @@ theorem entry_as_fiber {q : ℕ} (F : Fin (q + 1) → ℝ) (qIdx : Reg n → Fin
   have hk : qIdx a = k := (Finset.mem_filter.mp ha).2
   simp [hk]
 
+/-- An entry of the Hadamard Hamiltonian is the reference energy times the identity entry minus
+the normalized block sum weighted by reference energy differences [IoannouMosca2008]. -/
 theorem hadamardHamiltonian_entry {q : ℕ} (F : Fin (q + 1) → ℝ)
     (qIdx : Reg n → Fin (q + 1)) (K : Fin (q + 1)) (x y : Reg n) :
     hadamardHamiltonian F qIdx x y
@@ -151,9 +189,11 @@ theorem hadamardHamiltonian_entry {q : ℕ} (F : Fin (q + 1) → ℝ)
     ring
   rw [hL, hR]
 
+/-- The difference of two complex numbers with zero imaginary part has zero imaginary part. -/
 theorem im_sub_of_im_zero {a b : ℂ} (ha : a.im = 0) (hb : b.im = 0) : (a - b).im = 0 := by
   simp [Complex.sub_im, ha, hb]
 
+/-- The complex inverse of `2 ^ n` has zero imaginary part. -/
 theorem im_inv_two_pow (n : ℕ) : (((((2:ℕ)^n : ℂ)))⁻¹).im = 0 := by
   rw [Complex.inv_im]
   have hz : ((((2:ℕ)^n : ℂ))).im = 0 := by
@@ -161,6 +201,7 @@ theorem im_inv_two_pow (n : ℕ) : (((((2:ℕ)^n : ℂ)))⁻¹).im = 0 := by
     rw [h]; exact Complex.ofReal_im _
   rw [hz]; simp
 
+/-- Every entry of the Hadamard Hamiltonian has zero imaginary part. -/
 theorem hadamardHamiltonian_im {q : ℕ} (F : Fin (q + 1) → ℝ)
     (qIdx : Reg n → Fin (q + 1)) (x y : Reg n) :
     (hadamardHamiltonian F qIdx x y).im = 0 := by
@@ -174,6 +215,7 @@ theorem hadamardHamiltonian_im {q : ℕ} (F : Fin (q + 1) → ℝ)
       exact im_mul_of_im_zero (by simp)
         (im_sum_zero _ _ (fun z => walshChar_im z x y))
 
+/-- Every entry of the computational Hamiltonian has zero imaginary part. -/
 theorem computationalHamiltonian_im {p : ℕ} (E : Fin (p + 1) → ℝ)
     (pIdx : Reg n → Fin (p + 1)) (x y : Reg n) :
     (computationalHamiltonian E pIdx x y).im = 0 := by
@@ -181,6 +223,7 @@ theorem computationalHamiltonian_im {p : ℕ} (E : Fin (p + 1) → ℝ)
   rw [Matrix.diagonal_apply]
   split_ifs <;> simp
 
+/-- A real affine interpolation of matrices with real entries also has real entries. -/
 theorem genHamiltonian_im (s : ℝ) {H0 H1 : Matrix (Reg n) (Reg n) ℂ}
     (h0 : ∀ x y, (H0 x y).im = 0) (h1 : ∀ x y, (H1 x y).im = 0) (x y : Reg n) :
     (genHamiltonian s H0 H1 x y).im = 0 := by
@@ -188,6 +231,8 @@ theorem genHamiltonian_im (s : ℝ) {H0 H1 : Matrix (Reg n) (Reg n) ℂ}
   rw [Matrix.add_apply, Matrix.smul_apply, Matrix.smul_apply, Complex.add_im,
     Complex.smul_im, Complex.smul_im, h0 x y, h1 x y, smul_zero, smul_zero, add_zero]
 
+/-- Along a coordinatewise Schrödinger solution, the Born probability at `x` has derivative
+twice the real part of `conj (ψ t x)` times its Schrödinger derivative. -/
 theorem hasDerivAt_bornProb {H : ℝ → Matrix (Reg n) (Reg n) ℂ}
     {ψ : ℝ → QState (Reg n)} {T : ℝ}
     (hSchrod : SchrodingerIVP H ψ T) {t : ℝ} (ht : t ∈ Set.Icc 0 T) (x : Reg n) :
@@ -202,6 +247,8 @@ theorem hasDerivAt_bornProb {H : ℝ → Matrix (Reg n) (Reg n) ℂ}
   rw [hinner] at h
   exact h
 
+/-- The solution probability has derivative equal to the sum of the coordinate Born-probability
+derivatives over the solution set. -/
 theorem hasDerivAt_solutionProb {p : ℕ} {H : ℝ → Matrix (Reg n) (Reg n) ℂ}
     (pIdx : Reg n → Fin (p + 1)) {ψ : ℝ → QState (Reg n)} {T : ℝ}
     (hSchrod : SchrodingerIVP H ψ T) {t : ℝ} (ht : t ∈ Set.Icc 0 T) :
@@ -219,6 +266,8 @@ theorem hasDerivAt_solutionProb {p : ℕ} {H : ℝ → Matrix (Reg n) (Reg n) �
   rw [hfun] at h
   exact h
 
+/-- For a matrix row with real entries, the imaginary part of a conjugated amplitude times the
+matrix action expands as a real-weighted sum. -/
 theorem im_mulVec_real (H : Matrix (Reg n) (Reg n) ℂ) (γ : QState (Reg n)) (a : ℂ)
     (x : Reg n) (hH : ∀ y, (H x y).im = 0) :
     (starRingEnd ℂ a * (H.mulVec γ) x).im
@@ -235,6 +284,7 @@ theorem im_mulVec_real (H : Matrix (Reg n) (Reg n) ℂ) (γ : QState (Reg n)) (a
       = (starRingEnd ℂ a * γ y) * H x y := by ring
   rw [hreorder, Complex.mul_im, hH y, mul_zero, zero_add, mul_comm]
 
+/-- The products `conj a * b` and `a * conj b` have imaginary parts with equal absolute values. -/
 theorem abs_im_conj_comm (a b : ℂ) :
     |(starRingEnd ℂ a * b).im| = |(a * starRingEnd ℂ b).im| := by
   have h : starRingEnd ℂ a * b = starRingEnd ℂ (a * starRingEnd ℂ b) := by
@@ -242,6 +292,8 @@ theorem abs_im_conj_comm (a b : ℂ) :
     simp
   rw [h, Complex.conj_im, abs_neg]
 
+/-- For a normalized register state, the sum of absolute imaginary parts of `conj (γ w) * γ y`
+is at most `sqrt (2 ^ n)`. -/
 theorem im_sum_abs_le_sqrt {γ : Reg n → ℂ} (hγ : Normalized γ) (w : Reg n) :
     (∑ y : Reg n, |(starRingEnd ℂ (γ w) * γ y).im|)
       ≤ Real.sqrt (((2 : ℕ) ^ n : ℝ)) := by
@@ -253,6 +305,8 @@ theorem im_sum_abs_le_sqrt {γ : Reg n → ℂ} (hγ : Normalized γ) (w : Reg n
           rw [abs_im_conj_comm]
     _ ≤ Real.sqrt (((2 : ℕ) ^ n : ℝ)) := im_inner_sum_le_sqrt hγ w
 
+/-- Under the monotonicity, nonnegativity, energy, and schedule bounds, every off-diagonal
+interpolated entry has norm at most `maxF * eigenspaceComplementDim qIdx K / 2 ^ n`. -/
 theorem genHamiltonian_offdiag_bound {q p : ℕ} (F : Fin (q + 1) → ℝ)
     (qIdx : Reg n → Fin (q + 1)) (E : Fin (p + 1) → ℝ) (pIdx : Reg n → Fin (p + 1))
     (K : Fin (q + 1))
@@ -302,6 +356,9 @@ theorem genHamiltonian_offdiag_bound {q p : ℕ} (F : Fin (q + 1) → ℝ)
     _ ≤ maxF * eigenspaceComplementDim qIdx K / N := hH0norm
     _ = maxF * eigenspaceComplementDim qIdx K / ((2 : ℕ) ^ n : ℝ) := by rw [hNN]
 
+/-- For normalized Schrödinger evolution with the stated energy and schedule bounds, the
+absolute derivative of solution probability is at most twice the solution-set size times
+`maxF` times the complement dimension, divided by `sqrt (2 ^ n)` [IoannouMosca2008]. -/
 theorem probability_flow_bound {q p : ℕ} (F : Fin (q + 1) → ℝ)
     (qIdx : Reg n → Fin (q + 1)) (E : Fin (p + 1) → ℝ) (pIdx : Reg n → Fin (p + 1))
     (K : Fin (q + 1))

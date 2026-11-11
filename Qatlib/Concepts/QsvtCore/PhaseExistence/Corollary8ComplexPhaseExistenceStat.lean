@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+
+/-!
+# Statement of complex QSP phase existence
+
+`Corollary8ComplexPhaseExistence` specifies exact realization of a complex polynomial by
+`sourcePhaseResponse`. Its hypotheses require a positive exact degree, matching response parity,
+and the real- and imaginary-axis inequalities used in QSP characterization.
+
+The conclusion includes a phase list of the prescribed length and length and parity restrictions
+on every realization, following the formulation associated with Corollary 8 of
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Corollary8ComplexPhaseExistence`: defines exact phase realization together with minimal
+  length and parity.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -21,6 +43,10 @@ open Polynomial
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
+/-- The proposition that a complex polynomial of positive exact degree d satisfying the response
+parity and QSP norm inequalities has a realizing real phase list of length d. Every phase
+list with the same response has length at least d and parity d modulo two [Gilyén et al.,
+Corollary 8][GilyenSuLowWiebe2019]. -/
 def Corollary8ComplexPhaseExistence : Prop :=
   ∀ (P : Polynomial ℂ) (d : ℕ), 0 < d → P.natDegree = d →
     Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.HasResponseParity d P →

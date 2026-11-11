@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.MainResults.PhysicalHybrid
+
+/-!
+# Physical hybrid approximation bounds
+
+`physical_energy_bound` turns a clipped scalar certificate, a secondary-energy quality bound,
+and an assumed rounding-kernel identity into an expected energy bound for the physical hybrid
+output. Its specializations `physical_651` and `physical_614` give factors 651/1000 and
+614/1000, respectively, while retaining the kernel and resource hypotheses explicitly.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `physical_energy_bound`: transfers a scalar certificate to the output distribution.
+* `physical_651`: gives the ideal-resource energy inequality.
+* `physical_614`: gives the energy inequality for secondary-energy quality 89/100.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -28,6 +50,10 @@ open Qatlib.Papers.RydbergMaxCut26.MainResults.PhysicalHybrid
 open Qatlib.Papers.RydbergMaxCut26.RatioBounds.SOS
 open Qatlib.Papers.RydbergMaxCut26.RatioBounds.Hypergeom
 
+/-- For a loopless graph with nonnegative weights, the stated secondary-energy quality,
+rounding-kernel identity, and clipped scalar certificate imply that the hybrid output has
+expected QMC energy at most `κ` times the QMC energy of any comparison density matrix `ρQ`.
+This is the physical certificate transfer underlying [CrostaSaubanereHuber2026]. -/
 theorem physical_energy_bound {Ω E : Type*} [MeasurableSpace Ω] [Fintype E]
     (μ : Measure Ω) [IsProbabilityMeasure μ] {n : ℕ}
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ) (hw : ∀ e,0 ≤ w e)
@@ -67,6 +93,10 @@ theorem physical_energy_bound {Ω E : Type*} [MeasurableSpace Ω] [Fintype E]
     (expected_product_energy μ ends hends w v hi)
     (eta_lower_clipped ends hends w hw ρR hgroundR ρA η hη hquality ρQ hQ hQtr)
 
+/-- Given a secondary ground density matrix and the stated measurable rounding-kernel identity,
+the hybrid output has expected QMC energy at most 651/1000 times that of any comparison
+density matrix on a loopless nonnegatively weighted graph. This realizes the conditional
+bound of [Crosta et al., Theorem 4][CrostaSaubanereHuber2026]. -/
 theorem physical_651 {Ω E : Type*} [MeasurableSpace Ω] [Fintype E]
     (μ : Measure Ω) [IsProbabilityMeasure μ] {n : ℕ}
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ) (hw : ∀ e,0 ≤ w e)
@@ -86,6 +116,11 @@ theorem physical_651 {Ω E : Type*} [MeasurableSpace Ω] [Fintype E]
     (651/1000) (345/1000) (by norm_num) (by norm_num) (by norm_num)
     (by simpa only [div_one,show (1:ℝ)-345/1000=655/1000 by norm_num] using clipped_651)
 
+/-- If the prepared density matrix has secondary energy at most 89/100 times the secondary
+ground energy and satisfies the stated rounding-kernel identity, the hybrid output has
+expected QMC energy at most 614/1000 times that of any comparison density matrix. This gives
+the robustness bound of [CrostaSaubanereHuber2026] for loopless graphs with nonnegative
+weights. -/
 theorem physical_614 {Ω E : Type*} [MeasurableSpace Ω] [Fintype E]
     (μ : Measure Ω) [IsProbabilityMeasure μ] {n : ℕ}
     (ends : E → Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E → ℝ) (hw : ∀ e,0 ≤ w e)

@@ -9,6 +9,28 @@ import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Measurement guarantees for local Fourier circuits
+
+This module converts operator error for approximate local Fourier programs into Born-probability
+bounds for forward and inverse execution. It also proves normalized grid-phase readout,
+exactness at sufficient bandwidth, and explicit circuit resources, using the Fourier readout
+framework described in [NielsenChuang2010].
+
+## Main statements
+
+* `approxLocalQFT_forward_inverse_born_error`: bound measurement error for both Fourier
+  directions.
+* `localQFT_grid_actual_readout_consumer`: give grid-label success, exactness, and gate counts.
+* `localQFT_three_bit_readout_and_inverse_consumer`: verify a three-bit readout and Fourier
+  round trip.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.GateVocabulary.GateVocab
@@ -32,6 +54,7 @@ set_option autoImplicit false
 
 variable {n : ℕ}
 
+/-- The conjugate transpose of a unitary bit-register matrix is unitary. -/
 theorem unitaryGroup_conjTranspose_mem {U : Matrix (Reg n) (Reg n) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Reg n) ℂ) : Uᴴ ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose,
@@ -39,6 +62,7 @@ theorem unitaryGroup_conjTranspose_mem {U : Matrix (Reg n) (Reg n) ℂ}
   have h0 := Matrix.mem_unitaryGroup_iff.mp hU
   rwa [Matrix.star_eq_conjTranspose] at h0
 
+/-- Relabeling a basis ket by an equivalence gives the ket at the image label. -/
 theorem relabelState_ket {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (i : I) : relabelState e (Ket i) = Ket (e i) := by
   funext x
@@ -48,6 +72,7 @@ theorem relabelState_ket {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [
   · rw [if_pos h, if_pos ((Equiv.symm_apply_eq e).mp h)]
   · rw [if_neg h, if_neg (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
 
+/-- Relabeling a quantum state by an equivalence preserves normalization. -/
 theorem relabelState_normalized {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (v : QState I) (hv : Normalized v) :
     Normalized (relabelState e v) := by
@@ -56,6 +81,7 @@ theorem relabelState_normalized {I J : Type*} [Fintype I] [DecidableEq I] [Finty
   rw [Equiv.sum_comp e.symm (fun i => ‖v i‖ ^ 2)]
   exact hv
 
+/-- Measuring a basis ket at its own label has probability one. -/
 theorem measureProb_ket_self {I : Type*} [Fintype I] [DecidableEq I] (t : I) :
     MeasureProb (Ket t) {t} = 1 := by
   show ∑ i ∈ {t}, BornProb (Ket t) i = 1
@@ -63,6 +89,8 @@ theorem measureProb_ket_self {I : Type*} [Fintype I] [DecidableEq I] (t : I) :
   show ‖Ket t t‖ ^ 2 = 1
   simp [Ket]
 
+/-- For a normalized input and any measurement event, forward and inverse local Fourier
+execution each differ from the ideal Born probability by at most `πn / 2^b`. -/
 theorem approxLocalQFT_forward_inverse_born_error (n b : ℕ) (ψ : QState (Reg n))
     (S : Finset (Reg n)) (hψ : Normalized ψ) :
     |MeasureProb (Run (1 : Matrix (Reg n) (Reg n) ℂ) (localProgramCircuit (approxLocalQFT n b)) ψ) S -
@@ -117,6 +145,8 @@ theorem approxLocalQFT_forward_inverse_born_error (n b : ℕ) (ψ : QState (Reg 
   exact hbound _ _ (unitaryGroup_conjTranspose_mem matU)
     (unitaryGroup_conjTranspose_mem hqftU) g9adj
 
+/-- Grid-phase readout is normalized, succeeds with probability at least `1 - πn/2^b`, is exact
+when `n ≤ b + 2`, and has the stated zero-query gate count. -/
 theorem localQFT_grid_actual_readout_consumer (n b : ℕ) (j : Fin (2 ^ n)) :
     let input := relabelState (bitVecEquiv n).symm (PhaseState (2 ^ n) j.val)
     localGridReadoutCircuit n b = localProgramCircuit (localProgramAdjoint (approxLocalQFT n b)) ∧
@@ -167,6 +197,9 @@ theorem localQFT_grid_actual_readout_consumer (n b : ℕ) (j : Fin (2 ^ n)) :
     rw [gcadj]
     exact gc.symm.trans (approxLocalQFT_actual_filter_and_cost n b).2.2.1
 
+/-- The three-bit inverse Fourier program reads phase label five as `![true, false, true]`; the
+forward program uses seven gates and its fourteen-gate forward-adjoint round trip restores
+that basis ket. -/
 theorem localQFT_three_bit_readout_and_inverse_consumer :
     let input := relabelState (bitVecEquiv 3).symm (PhaseState 8 5)
     let gs := localQFT 3

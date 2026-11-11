@@ -6,6 +6,19 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+
+/-!
+# Off-grid phase-estimation probabilities and tails
+
+The inverse-QFT phase kernel is identified with the amplitude-estimation
+readout model. Its probabilities sum to one; grid phases have an exact output,
+while non-grid phases have a sine-ratio probability formula and inverse-square
+distance bound. Window and tail estimates use circular phase distance. The
+same kernel also computes overlaps of two phase states.
+
+These estimates follow the analysis of [BrassardEtAl2002], especially
+[Brassard et al., Theorem 11][BrassardEtAl2002].
+-/
 open Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -21,6 +34,7 @@ namespace Qatlib.Papers.AmpEstBrass00.OffGridQPE
 
 open scoped BigOperators
 
+/-- The circular phase distance `phaseDistance` agrees with `bhmt11CircleDist`. -/
 theorem phaseDistance_eq_bhmt11CircleDist (x y : ℝ) :
     phaseDistance x y = bhmt11CircleDist x y := by
   have hz : |((⌊x - y + 1/2⌋ : ℤ) : ℝ)+y-x| ≤ 1/2 := by
@@ -33,15 +47,19 @@ theorem phaseDistance_eq_bhmt11CircleDist (x y : ℝ) :
   rw [phaseDistance, h, show x-y-((⌊x - y + 1/2⌋ : ℤ) : ℝ) =
     -(((⌊x - y + 1/2⌋ : ℤ) : ℝ)+y-x) by ring, abs_neg]
 
+/-- The circular phase distance is symmetric. -/
 theorem phaseDistance_comm (x y : ℝ) : phaseDistance x y = phaseDistance y x := by
   rw [phaseDistance_eq_bhmt11CircleDist, phaseDistance_eq_bhmt11CircleDist,
     bhmt_phase_estimation_theorem11_distance_symm]
 
+/-- Subtracting the same real phase from both arguments leaves their circular distance
+unchanged. -/
 theorem phaseDistance_sub_right (a b c : ℝ) :
     phaseDistance (a-c) (b-c) = phaseDistance a b := by
   have h : (a-c)-(b-c) = a-b := by ring
   simp only [phaseDistance, h]
 
+/-- The off-grid phase state agrees with the phase state used in the BHMT Theorem 11 model. -/
 theorem offGridPhase_eq_bhmt11PhaseState (M : ℕ) (φ : ℝ) :
     offGridPhase M φ = bhmt11PhaseState M φ := by
   funext y
@@ -51,6 +69,7 @@ theorem offGridPhase_eq_bhmt11PhaseState (M : ℕ) (φ : ℝ) :
   push_cast
   ring
 
+/-- The matrix `QFTMatrix M` agrees with the Fourier matrix `bhmt11QFT M`. -/
 theorem qftMatrix_eq_bhmt11QFT (M : ℕ) : QFTMatrix M = bhmt11QFT M := by
   ext a b
   rw [qftMatrix_apply, primRoot_zpow_eq_exp]
@@ -59,21 +78,27 @@ theorem qftMatrix_eq_bhmt11QFT (M : ℕ) : QFTMatrix M = bhmt11QFT M := by
   push_cast
   ring
 
+/-- The phase-estimation kernel is the corresponding coordinate of the inverse Fourier transform
+of the BHMT phase state. -/
 theorem qpeKernel_eq_bhmt11Amplitude (M : ℕ) (φ : ℝ) (z : Fin M) :
     qpeKernel M φ z = ((bhmt11QFT M).conjTranspose.mulVec (bhmt11PhaseState M φ)) z := by
   rw [qpeKernel_apply, ApplyGate, qftMatrix_eq_bhmt11QFT]
   exact congrFun (congrArg (fun ψ => (bhmt11QFT M).conjTranspose.mulVec ψ)
     (offGridPhase_eq_bhmt11PhaseState M φ)) z
 
+/-- The squared norm of the phase-estimation kernel equals the BHMT outcome mass. -/
 theorem qpeKernel_norm_sq_eq_bhmt11OutcomeMass (M : ℕ) (φ : ℝ) (z : Fin M) :
     ‖qpeKernel M φ z‖^2 = bhmt11OutcomeMass M φ z := by
   rw [qpeKernel_eq_bhmt11Amplitude]
   rfl
 
+/-- The total phase-estimation probability of grid outcomes at circular distance at most `r`
+from `ω`. -/
 noncomputable def offGridWindowMass (M : ℕ) (ω r : ℝ) : ℝ :=
   ∑ z : Fin M,
     if phaseDistance ω ((z.val : ℝ)/(M : ℝ)) ≤ r then ‖qpeKernel M ω z‖^2 else 0
 
+/-- The off-grid window mass agrees with the BHMT window mass. -/
 theorem offGridWindowMass_eq_bhmt11WindowMass (M : ℕ) (ω r : ℝ) :
     offGridWindowMass M ω r = bhmt11WindowMass M ω r := by
   unfold offGridWindowMass bhmt11WindowMass
@@ -81,11 +106,14 @@ theorem offGridWindowMass_eq_bhmt11WindowMass (M : ℕ) (ω r : ℝ) :
   rw [phaseDistance_eq_bhmt11CircleDist, qpeKernel_norm_sq_eq_bhmt11OutcomeMass,
     bhmt_phase_estimation_theorem11_distance_symm ω ((z.val : ℝ)/(M : ℝ))]
 
+/-- For positive `M`, the phase-estimation outcome masses sum to one. -/
 theorem offgrid_phase_total_mass (M : ℕ) (ω : ℝ) (hM : 0 < M) :
     ∑ z : Fin M, ‖qpeKernel M ω z‖^2 = 1 := by
   rw [Finset.sum_congr rfl (fun z _ => qpeKernel_norm_sq_eq_bhmt11OutcomeMass M ω z)]
   exact bhmt_phase_estimation_theorem11_normalization M ω hM
 
+/-- For a phase `ω ∈ [0, 1)` with integral `M * ω`, there is a grid outcome equal to `M * ω`
+whose probability is one. -/
 theorem offgrid_phase_grid_readout (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (hω0 : 0 ≤ ω) (hω1 : ω < 1) (hgrid : ∃ j : ℤ, (M : ℝ)*ω = (j : ℝ)) :
     ∃ x : Fin M, (x.val : ℝ) = (M : ℝ)*ω ∧ ‖qpeKernel M ω x‖^2 = 1 := by
@@ -93,6 +121,8 @@ theorem offgrid_phase_grid_readout (M : ℕ) (ω : ℝ) (hM : 0 < M)
     bhmt_phase_estimation_theorem11_grid M ω hM hω0 hω1 hgrid
   exact ⟨x, hx, by rw [qpeKernel_norm_sq_eq_bhmt11OutcomeMass, hmass]⟩
 
+/-- At positive circular distance from a readout point, the outcome probability
+is the squared sine ratio of [Brassard et al., Theorem 11][BrassardEtAl2002]. -/
 theorem offgrid_phase_mass_formula (M : ℕ) (ω : ℝ) (hM : 0 < M) (x : Fin M)
     (hd : 0 < phaseDistance ω ((x.val : ℝ)/(M : ℝ))) :
     ‖qpeKernel M ω x‖^2 =
@@ -105,6 +135,8 @@ theorem offgrid_phase_mass_formula (M : ℕ) (ω : ℝ) (hM : 0 < M) (x : Fin M)
   rw [bhmt_phase_estimation_theorem11_mass_formula M ω hM x hd']
   rw [← phaseDistance_eq_bhmt11CircleDist ω ((x.val : ℝ)/(M : ℝ))]
 
+/-- At positive circular distance `Δ` from the phase, an outcome has probability at most `1 / (2
+* M * Δ)^2`. -/
 theorem offgrid_phase_mass_bound (M : ℕ) (ω : ℝ) (hM : 0 < M) (x : Fin M)
     (hd : 0 < phaseDistance ω ((x.val : ℝ)/(M : ℝ))) :
     ‖qpeKernel M ω x‖^2 ≤
@@ -119,11 +151,15 @@ theorem offgrid_phase_mass_bound (M : ℕ) (ω : ℝ) (hM : 0 < M) (x : Fin M)
     _ = (1 : ℝ)/(2*(M : ℝ)*phaseDistance ω ((x.val : ℝ)/(M : ℝ)))^2 := by
         rw [← phaseDistance_eq_bhmt11CircleDist ω ((x.val : ℝ)/(M : ℝ))]
 
+/-- For `k > 1`, the phase-estimation mass within circular radius `k / M` is at least `1 - 1 /
+(2 * (k - 1))` [Brassard et al., Theorem 11][BrassardEtAl2002]. -/
 theorem offgrid_phase_window_tail (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk : 1 < k) :
     1 - 1/(2*(k - 1)) ≤ offGridWindowMass M ω (k/(M : ℝ)) := by
   rw [offGridWindowMass_eq_bhmt11WindowMass]
   exact bhmt_phase_estimation_theorem11_tail M ω hM k hk
 
+/-- The mass outside circular radius `k / M` is at most `1 / (2 * (k - 1))`
+for `k > 1` [BrassardEtAl2002]. -/
 theorem offgrid_phase_tail_mass (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk : 1 < k) :
     ∑ z ∈ Finset.univ.filter
         (fun z : Fin M => k/(M : ℝ) < phaseDistance ω ((z.val : ℝ)/(M : ℝ))),
@@ -150,12 +186,18 @@ theorem offgrid_phase_tail_mass (M : ℕ) (ω : ℝ) (hM : 0 < M) (k : ℝ) (hk 
   rw [hnot] at hsplit
   linarith
 
+/-- For `M > 2` and `ω ∈ [0, 1)`, the phase-estimation mass within circular radius `1 / M` is at
+least `8 / π^2` [Brassard et al., Theorem 11][BrassardEtAl2002]. -/
 theorem offgrid_phase_window_radius_one (M : ℕ) (ω : ℝ) (hM : 2 < M)
     (hω0 : 0 ≤ ω) (hω1 : ω < 1) :
     8/Real.pi^2 ≤ offGridWindowMass M ω (1/(M : ℝ)) := by
   rw [offGridWindowMass_eq_bhmt11WindowMass]
   exact bhmt_phase_estimation_theorem11_nearest M ω hM hω0 hω1
 
+/-- For positive `M` and `ω ∈ [0, 1)`, the outcome law is normalized, reads grid phases exactly,
+and has the sine-ratio formula and inverse-square bound off the grid. It also satisfies the
+stated window bounds, including `8 / π^2` within radius `1 / M` when `M > 2` [Brassard et
+al., Theorem 11][BrassardEtAl2002]. -/
 theorem offgrid_phase_readout_theorem11 :
     ∀ (M : ℕ) (ω : ℝ), 0 < M → 0 ≤ ω → ω < 1 →
       (∑ x : Fin M, ‖qpeKernel M ω x‖^2) = 1 ∧
@@ -184,9 +226,12 @@ theorem offgrid_phase_readout_theorem11 :
   · intro hM2
     exact offgrid_phase_window_radius_one M ω hM2 hω0 hω1
 
+/-- The complex inner product of the off-grid phase states at `ω₀` and `ω₁`. -/
 noncomputable def offGridPhaseOverlap (M : ℕ) (ω₀ ω₁ : ℝ) : ℂ :=
   ∑ y : Fin M, star (offGridPhase M ω₀ y) * offGridPhase M ω₁ y
 
+/-- For positive `M`, the contribution at index `y` to the phase-state overlap is `M⁻¹ * exp(2πi
+* y * (ω₁ - ω₀))`. -/
 private theorem offGridPhaseOverlap_term (M : ℕ) (hM : 0 < M) (ω₀ ω₁ : ℝ) (y : Fin M) :
     star (offGridPhase M ω₀ y) * offGridPhase M ω₁ y =
       (M : ℂ)⁻¹ *
@@ -216,6 +261,8 @@ private theorem offGridPhaseOverlap_term (M : ℕ) (hM : 0 < M) (ω₀ ω₁ : �
       push_cast
       ring
 
+/-- For positive `M`, the overlap of two phase states equals the phase-estimation kernel at
+phase difference `ω₁ - ω₀` and output zero. -/
 theorem offGridPhaseOverlap_eq_kernel_zero (M : ℕ) (hM : 0 < M) (ω₀ ω₁ : ℝ) :
     offGridPhaseOverlap M ω₀ ω₁ = qpeKernel M (ω₁ - ω₀) ⟨0, hM⟩ := by
   rw [(offgrid_phase_kernel_formula M (ω₁ - ω₀) ⟨0, hM⟩ hM).2.1]
@@ -226,6 +273,7 @@ theorem offGridPhaseOverlap_eq_kernel_zero (M : ℕ) (hM : 0 < M) (ω₀ ω₁ :
   congr 2
   simp
 
+/-- For positive `M`, phase states at zero circular distance have overlap of squared norm one. -/
 theorem offgrid_phase_overlap_zero_distance (M : ℕ) (hM : 0 < M) (ω₀ ω₁ : ℝ)
     (hΔ : phaseDistance ω₀ ω₁ = 0) : ‖offGridPhaseOverlap M ω₀ ω₁‖^2 = 1 := by
   have hdiff : ω₁ - ω₀ = ((-⌊ω₀ - ω₁ + 1/2⌋ : ℤ) : ℝ) := by
@@ -241,6 +289,8 @@ theorem offgrid_phase_overlap_zero_distance (M : ℕ) (hM : 0 < M) (ω₀ ω₁ 
     simpa [Ket] using hgrid
   rw [offGridPhaseOverlap_eq_kernel_zero M hM ω₀ ω₁, hk, norm_one, one_pow]
 
+/-- For positive `M` and nonzero circular distance `Δ`, the squared overlap is `sin(M * Δ * π)^2
+/ (M^2 * sin(Δ * π)^2)`. -/
 theorem offgrid_phase_overlap_nonzero_distance (M : ℕ) (hM : 0 < M) (ω₀ ω₁ : ℝ)
     (hΔ : phaseDistance ω₀ ω₁ ≠ 0) :
     ‖offGridPhaseOverlap M ω₀ ω₁‖^2 =
@@ -260,6 +310,8 @@ theorem offgrid_phase_overlap_nonzero_distance (M : ℕ) (hM : 0 < M) (ω₀ ω�
   rw [offgrid_phase_mass_formula M (ω₁ - ω₀) hM ⟨0, hM⟩ hd]
   simp only [Nat.cast_zero, zero_div, hcomm]
 
+/-- For positive `M`, the squared phase-state overlap is one at zero circular distance and
+equals the sine-ratio expression at nonzero circular distance. -/
 theorem offgrid_phase_state_overlap (M : ℕ) (hM : 0 < M) (ω₀ ω₁ : ℝ) :
     let Δ := phaseDistance ω₀ ω₁
     (Δ = 0 → ‖offGridPhaseOverlap M ω₀ ω₁‖^2 = 1) ∧

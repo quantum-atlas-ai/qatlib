@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.RankBias
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.ZMod.Basic
+
+/-!
+# Binary code identities for constant-action programs
+
+This module defines binary Hamming weight `hw`, parity `parity`, and the weight `extWt` after
+appending a parity bit. It proves the two code averages used in Lemma 3 of [ShepherdBremner2009]
+under explicit divisibility, closure, and dot-product hypotheses.
+
+## Main statements
+
+* `eq10_of_doublyEven`: evaluates the cosine-squared average for codes with doubly even
+  extensions.
+* `half_odd_of_odd_codeword`: counts odd codewords using translation by an odd codeword.
+* `eq11_of_selfDual`: evaluates the pairwise orthogonality probability as `3 / 4` under the
+  stated code hypotheses.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +41,7 @@ open Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox
 
 attribute [local instance] Classical.propDecidable
 
+/-- The squared cosine at `(8 * k + 1) * π / 8` equals the squared cosine at `π / 8`. -/
 theorem cos_sq_pi_div_eight_one (k : ℤ) :
     Real.cos (Real.pi / 8 * ((8 * k + 1 : ℤ) : ℝ)) ^ 2 = Real.cos (Real.pi / 8) ^ 2 := by
   rw [Real.cos_sq, Real.cos_sq (Real.pi / 8)]
@@ -28,6 +50,7 @@ theorem cos_sq_pi_div_eight_one (k : ℤ) :
   have harg2 : 2 * (Real.pi / 8) = Real.pi / 4 := by ring
   rw [harg, harg2, Real.cos_add_int_mul_two_pi]
 
+/-- The squared cosine at `(8 * k + 7) * π / 8` equals the squared cosine at `π / 8`. -/
 theorem cos_sq_pi_div_eight_seven (k : ℤ) :
     Real.cos (Real.pi / 8 * ((8 * k + 7 : ℤ) : ℝ)) ^ 2 = Real.cos (Real.pi / 8) ^ 2 := by
   rw [Real.cos_sq, Real.cos_sq (Real.pi / 8)]
@@ -36,14 +59,18 @@ theorem cos_sq_pi_div_eight_seven (k : ℤ) :
   have harg2 : 2 * (Real.pi / 8) = Real.pi / 4 := by ring
   rw [harg, harg2, Real.cos_add_int_mul_two_pi, Real.cos_neg]
 
+/-- The Hamming weight of a binary word, counted as the number of coordinates equal to `1`. -/
 def hw {q : ℕ} (c : Fin q → ZMod 2) : ℕ :=
   (Finset.univ.filter (fun i => c i = 1)).card
 
+/-- The parity of a binary word, defined as the sum of its coordinates in `ZMod 2`. -/
 def parity {q : ℕ} (c : Fin q → ZMod 2) : ZMod 2 := ∑ i, c i
 
+/-- The Hamming weight after extending a binary word by its parity bit. -/
 def extWt {q : ℕ} (c : Fin q → ZMod 2) : ℕ :=
   hw c + (if parity c = 1 then 1 else 0)
 
+/-- The parity of a binary word is its Hamming weight reduced modulo two. -/
 theorem parity_eq_hw_cast {q : ℕ} (c : Fin q → ZMod 2) :
     parity c = (hw c : ZMod 2) := by
   unfold parity hw
@@ -55,6 +82,8 @@ theorem parity_eq_hw_cast {q : ℕ} (c : Fin q → ZMod 2) :
   rw [h]
   exact Finset.sum_boole (fun i => c i = 1) Finset.univ
 
+/-- If the parity-extended weight is divisible by four, the original weight is congruent to zero
+or three modulo four. -/
 theorem hw_cases_of_extWt {q : ℕ} (c : Fin q → ZMod 2)
     (h : (4 : ℤ) ∣ (extWt c : ℤ)) :
     (∃ a : ℤ, (hw c : ℤ) = 4 * a) ∨ (∃ a : ℤ, (hw c : ℤ) = 4 * a + 3) := by
@@ -75,6 +104,8 @@ theorem hw_cases_of_extWt {q : ℕ} (c : Fin q → ZMod 2)
     have : (hw c : ℤ) = 4 * a - 1 := by linarith
     rw [this]; ring
 
+/-- For length congruent to seven modulo eight and parity-extended weight divisible by four, the
+codeword cosine square equals `cos (π / 8) ^ 2`. See [ShepherdBremner2009]. -/
 theorem cos_sq_eq_of_doublyEven {q : ℕ} (hq : ∃ k : ℕ, q = 8 * k + 7)
     (c : Fin q → ZMod 2) (h : (4 : ℤ) ∣ (extWt c : ℤ)) :
     Real.cos (Real.pi / 8 * ((q : ℝ) - 2 * (hw c : ℝ))) ^ 2 =
@@ -91,6 +122,9 @@ theorem cos_sq_eq_of_doublyEven {q : ℕ} (hq : ∃ k : ℕ, q = 8 * k + 7)
       rw [hqR, hwR]; push_cast; ring
     rw [hM]; exact cos_sq_pi_div_eight_one _
 
+/-- For a nonempty finite code of length congruent to seven modulo eight whose parity extensions
+have weight divisible by four, the average cosine square equals `cos (π / 8) ^ 2`. See
+[ShepherdBremner2009]. -/
 theorem eq10_of_doublyEven {q : ℕ} (hq : ∃ k : ℕ, q = 8 * k + 7)
     (C : Finset (Fin q → ZMod 2)) (hne : C.Nonempty)
     (hde : ∀ c ∈ C, (4 : ℤ) ∣ (extWt c : ℤ)) :
@@ -107,10 +141,12 @@ theorem eq10_of_doublyEven {q : ℕ} (hq : ∃ k : ℕ, q = 8 * k + 7)
     exact_mod_cast Finset.card_ne_zero.mpr hne
   rw [← mul_assoc, inv_mul_cancel₀ hcard, one_mul]
 
+/-- Every binary word added to itself is zero. -/
 theorem vec_add_self {q : ℕ} (z : Fin q → ZMod 2) : z + z = 0 := by
   funext i
   exact CharTwo.add_self_eq_zero (z i)
 
+/-- Parity is additive under addition of binary words. -/
 theorem parity_add {q : ℕ} (c1 c2 : Fin q → ZMod 2) :
     parity (c1 + c2) = parity c1 + parity c2 := by
   unfold parity
@@ -119,27 +155,36 @@ theorem parity_add {q : ℕ} (c1 c2 : Fin q → ZMod 2) :
   intro i _
   rw [Pi.add_apply]
 
+/-- A product in `ZMod 2` vanishes if and only if at least one factor vanishes. -/
 theorem zmod2_mul_eq_zero {a b : ZMod 2} : a * b = 0 ↔ a = 0 ∨ b = 0 := by
   rcases ClassicalApprox.zmod2_eq_zero_or_one a with ha | ha <;>
     rcases ClassicalApprox.zmod2_eq_zero_or_one b with hb | hb <;>
     rw [ha, hb] <;> decide
 
+/-- The real indicator of a conjunction is the product of the real indicators. -/
 theorem ind_and (p q : Prop) [Decidable p] [Decidable q] :
     (if p ∧ q then (1 : ℝ) else 0) =
       (if p then 1 else 0) * (if q then 1 else 0) := by
   by_cases hp : p <;> by_cases hq : q <;> simp [hp, hq]
 
+/-- The real indicator of a negation is one minus the real indicator of the original
+proposition. -/
 theorem ind_not (p : Prop) [Decidable p] :
     (if ¬ p then (1 : ℝ) else 0) = 1 - (if p then 1 else 0) := by
   by_cases hp : p <;> simp [hp]
 
+/-- The real indicator that a binary word has odd parity. -/
 def oddInd {q : ℕ} (c : Fin q → ZMod 2) : ℝ := if parity c = 1 then 1 else 0
 
+/-- The sum of `oddInd` over a finite code is the number of its odd-parity words, viewed as a
+real number. -/
 theorem oddInd_sum_eq_card {q : ℕ} (C : Finset (Fin q → ZMod 2)) :
     (∑ c ∈ C, oddInd c) = ((C.filter (fun c => parity c = 1)).card : ℝ) := by
   unfold oddInd
   exact Finset.sum_boole (fun c => parity c = 1) C
 
+/-- In a finite binary code containing zero and closed under addition, the existence of an odd
+codeword implies that exactly half the codewords are odd. -/
 theorem half_odd_of_odd_codeword {q : ℕ} (C : Finset (Fin q → ZMod 2))
     (_hc0 : (0 : Fin q → ZMod 2) ∈ C)
     (hadd : ∀ c1 ∈ C, ∀ c2 ∈ C, c1 + c2 ∈ C)
@@ -186,6 +231,9 @@ theorem half_odd_of_odd_codeword {q : ℕ} (C : Finset (Fin q → ZMod 2))
       · rw [add_assoc, vec_add_self, add_zero]
   omega
 
+/-- If dot products equal products of parities and the stated closure and odd-codeword
+hypotheses hold, the probability that two uniform codewords are orthogonal is `3 / 4`, as in
+[Shepherd and Bremner, Lemma 3][ShepherdBremner2009]. -/
 theorem eq11_of_selfDual {q : ℕ} (C : Finset (Fin q → ZMod 2))
     (hne : C.Nonempty)
     (hc0 : (0 : Fin q → ZMod 2) ∈ C)

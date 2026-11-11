@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.MatProductCav06.MainResults.SequentialDefs
 import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+
+/-!
+# Unitary realization of qubit sequential steps
+
+`standardTensor` extracts a qubit emission tensor from a unitary matrix using the input qubit
+value zero. `unitary_completion` constructs a unitary realization of any step isometry, giving
+the equivalence `standard_map_generates_all_mps` between the standard map and deterministic
+sequential predicates. See [SchoenEtAl2007] for the sequential generation setting.
+
+## Main statements
+
+* `unitary_completion`: extends the step columns to a unitary realization.
+* `standard_map_generates_all_mps`: equivalence with the deterministic sequential class.
+
+## References
+
+* [Schoen et al., 2007][SchoenEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,25 +38,33 @@ namespace Qatlib.Papers.MatProductCav06.MainResults
 
 open Qatlib.Concepts.GramQueryCore.GramRealization
 
+/-- The permutation that swaps the two qubit coordinates while keeping the ancillary coordinate
+fixed. -/
 def standardMap {D : ℕ} (v : Fin D × Fin 2 × Fin 2) : Fin D × Fin 2 × Fin 2 :=
   (v.1, v.2.2, v.2.1)
 
+/-- Swapping the two qubit coordinates twice is the identity. -/
 theorem standardMap_involutive {D : ℕ} :
     Function.Involutive (@standardMap D) := by
   intro v
   rcases v with ⟨a, t, b⟩
   rfl
 
+/-- The tensor formed from the columns of `U` with input qubit value zero, indexed by the output
+qubit. -/
 def standardTensor {D : ℕ} (U : Matrix (Fin D × Fin 2) (Fin D × Fin 2) ℂ) :
     Fin 2 → Matrix (Fin D) (Fin D) ℂ :=
   fun b => Matrix.of fun aOut aIn => U (aOut, b) (aIn, 0)
 
+/-- Evaluating `standardTensor U b` selects the matrix entry `U (aOut, b) (aIn, 0)`. -/
 theorem standardTensor_apply {D : ℕ}
     (U : Matrix (Fin D × Fin 2) (Fin D × Fin 2) ℂ) (b : Fin 2)
     (aOut aIn : Fin D) :
     standardTensor U b aOut aIn = U (aOut, b) (aIn, 0) :=
   rfl
 
+/-- If `Uᴴ * U = 1`, then its standard tensor satisfies the step isometry condition. See
+[SchoenEtAl2007]. -/
 theorem standardTensor_isStepIsometry {D : ℕ}
     (U : Matrix (Fin D × Fin 2) (Fin D × Fin 2) ℂ) (hU : Uᴴ * U = 1) :
     IsStepIsometry (standardTensor U) := by
@@ -52,9 +79,11 @@ theorem standardTensor_isStepIsometry {D : ℕ}
   rw [Fintype.sum_prod_type] at h
   simpa using h
 
+/-- The matrix embedding the ancillary space into the subspace with qubit value zero. -/
 def stdEmbed (D : ℕ) : Matrix (Fin D × Fin 2) (Fin D) ℂ :=
   fun ab a' => if ab.2 = 0 then (if ab.1 = a' then 1 else 0) else 0
 
+/-- The standard embedding has identity Gram matrix. -/
 theorem stdEmbed_gram (D : ℕ) : (stdEmbed D)ᴴ * (stdEmbed D) = 1 := by
   ext a b
   rw [Matrix.mul_apply, Matrix.one_apply]
@@ -81,10 +110,13 @@ theorem stdEmbed_gram (D : ℕ) : (stdEmbed D)ᴴ * (stdEmbed D) = 1 := by
       intro d hd; exact hab (hd.1.trans hd.2.symm)
     simp [h', hab]
 
+/-- The rectangular matrix obtained by stacking the two physical components of `V`. -/
 def stdColumns {D : ℕ} (V : Fin 2 → Matrix (Fin D) (Fin D) ℂ) :
     Matrix (Fin D × Fin 2) (Fin D) ℂ :=
   fun ab a' => V ab.2 ab.1 a'
 
+/-- If `V` satisfies the step isometry condition, its stacked columns and the standard embedding
+have the same Gram matrix. -/
 theorem step_to_columns {D : ℕ} (V : Fin 2 → Matrix (Fin D) (Fin D) ℂ)
     (hV : ∑ x : Fin 2, (V x)ᴴ * (V x) = 1) :
     (stdEmbed D)ᴴ * (stdEmbed D) = (stdColumns V)ᴴ * (stdColumns V) := by
@@ -94,6 +126,8 @@ theorem step_to_columns {D : ℕ} (V : Fin 2 → Matrix (Fin D) (Fin D) ℂ)
     rw [Fintype.sum_prod_type, Finset.sum_comm]
   rw [hW, hV, stdEmbed_gram]
 
+/-- Every qubit step isometry has a unitary matrix `U` satisfying `U * stdEmbed D = stdColumns
+V`. See [SchoenEtAl2007]. -/
 theorem unitary_completion {D : ℕ} (V : Fin 2 → Matrix (Fin D) (Fin D) ℂ)
     (hV : ∑ x : Fin 2, (V x)ᴴ * (V x) = 1) :
     ∃ U : Matrix (Fin D × Fin 2) (Fin D × Fin 2) ℂ,
@@ -101,6 +135,8 @@ theorem unitary_completion {D : ℕ} (V : Fin 2 → Matrix (Fin D) (Fin D) ℂ)
   gram_equal_actual_unitary_transport (Fin D × Fin 2) (Fin D) (stdEmbed D)
     (stdColumns V) (step_to_columns V hV)
 
+/-- Multiplication by the standard embedding selects the columns of `U` with input qubit value
+zero. -/
 theorem mul_stdEmbed_apply {D : ℕ}
     (U : Matrix (Fin D × Fin 2) (Fin D × Fin 2) ℂ) (b : Fin 2) (a a' : Fin D) :
     (U * stdEmbed D) (a, b) a' = U (a, b) (a', 0) := by
@@ -118,21 +154,29 @@ theorem mul_stdEmbed_apply {D : ℕ}
     simp [stdEmbed, hx]
   · intro hmem; exact absurd (Finset.mem_univ a') hmem
 
+/-- The predicate that a qubit amplitude function has a sequential representation built from
+standard tensors of unitary steps. -/
 def InStandardMapClass (n D : ℕ) (ψ : (Fin n → Fin 2) → ℂ) : Prop :=
   ∃ (U : Fin n → Matrix (Fin D × Fin 2) (Fin D × Fin 2) ℂ) (φI φF : Fin D → ℂ),
     (∀ i, (U i)ᴴ * (U i) = 1) ∧
       ∀ x, ψ x = seqAmplitude (fun i => standardTensor (U i)) φI φF x
 
+/-- Every state in the standard map class belongs to the deterministic sequential class. See
+[SchoenEtAl2007]. -/
 theorem standardMapClass_subset_det {n D : ℕ} {ψ : (Fin n → Fin 2) → ℂ}
     (h : InStandardMapClass n D ψ) : InDetSequentialClass n 2 D ψ := by
   rcases h with ⟨U, φI, φF, hU, hψ⟩
   exact ⟨fun i => standardTensor (U i), φI, φF,
     fun i => standardTensor_isStepIsometry (U i) (hU i), hψ⟩
 
+/-- Every state in the standard map class belongs to the matrix product class. See
+[SchoenEtAl2007]. -/
 theorem standardMapClass_subset_mps {n D : ℕ} {ψ : (Fin n → Fin 2) → ℂ}
     (h : InStandardMapClass n D ψ) : InMpsClass n 2 D ψ :=
   det_subset_mps (standardMapClass_subset_det h)
 
+/-- Every state in the deterministic sequential qubit class has a standard map representation.
+See [SchoenEtAl2007]. -/
 theorem det_subset_standardMapClass {n D : ℕ} {ψ : (Fin n → Fin 2) → ℂ}
     (h : InDetSequentialClass n 2 D ψ) : InStandardMapClass n D ψ := by
   classical
@@ -153,6 +197,8 @@ theorem det_subset_standardMapClass {n D : ℕ} {ψ : (Fin n → Fin 2) → ℂ}
     intro x
     rw [hψ x, hA]
 
+/-- Standard map membership is equivalent to deterministic sequential membership for qubit
+amplitude functions. See [SchoenEtAl2007]. -/
 theorem standard_map_generates_all_mps {n D : ℕ}
     (ψ : (Fin n → Fin 2) → ℂ) :
     InStandardMapClass n D ψ ↔ InDetSequentialClass n 2 D ψ := by

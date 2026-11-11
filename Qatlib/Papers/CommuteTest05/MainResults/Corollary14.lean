@@ -9,6 +9,22 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# A spectral deviation-time estimate
+
+This module proves a scalar bound for normalized spectral weights and angles whose cosines are
+the absolute values of nonnegative eigenvalues. A common eigenvalue upper bound `ρ < 1` controls
+the weighted sum of reciprocal angles, as in Corollary 14 of [Itakura2005].
+
+## Main statements
+
+* `corollary14_deviation_time_bound`: Bounds `100 * ∑ k, ν k ^ 2 / θ k` by `100 / sqrt(1 - ρ)`.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +32,10 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.CommuteTest05.MainResults.Corollary14
 
+/-- If the squared weights sum to one, the angles lie in `(0, π / 2]`, and their cosines equal
+nonnegative eigenvalues bounded by `ρ < 1`, then `100 * ∑ k, ν k ^ 2 / θ k ≤ 100 / sqrt(1 -
+ρ)`. This is the scalar deviation-time estimate associated with [Itakura, Corollary
+14][Itakura2005]. -/
 theorem corollary14_deviation_time_bound
     {κ : Type*} [Fintype κ] (ν lam θ : κ → ℝ) (ρ : ℝ)
     (hν : ∑ k, ν k ^ 2 = 1)

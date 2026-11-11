@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.MatrixResidue
 import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
+
+/-!
+# Analytic results for contour-based matrix decomposition
+
+This module exposes the matrix residue formula, the absolutely summable auxiliary-pole sampling
+identity, and the finite real-sample LCU approximation for piecewise-continuous dissipative
+evolution. These statements formalize the analytic ingredients of [WangEtAl2026].
+
+## Main statements
+
+* `matrix_residue_on_open`: integrates a meromorphic matrix function around a positive Jordan
+  contour.
+* `matrix_series_original_input`: gives the auxiliary-pole sampling identity.
+* `fast_lcu_original_input`: provides finite unitary samples with explicit error, mass,
+  frequency, and cardinality bounds.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +44,10 @@ open scoped BigOperators
 section Residue
 open scoped Topology Matrix.Norms.Elementwise
 
+/-- For an entrywise meromorphic matrix function on an open set containing the filled contour
+hull, analytic on the contour and with every interior singularity in the finite interior set
+`S`, the contour integral is `2πi` times the sum of matrix residues over `S`. This is the
+matrix residue statement of [Wang et al., Lemma 1][WangEtAl2026]. -/
 theorem matrix_residue_on_open {n m : Type*} [Fintype n] [Fintype m]
     (Γ : PositiveJordanContour) (F : ℂ → Matrix n m ℂ)
     (U : Set ℂ) (_hU : IsOpen U) (hfill : filledHull Γ.trace ⊆ U)
@@ -41,6 +66,10 @@ open scoped Topology Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {H L : ℝ → Matrix I I ℂ} {a b : ℝ}
 
+/-- For piecewise-continuous dissipative evolution and auxiliary poles avoiding the target and
+real sampling lattice, the integrated norm budget implies absolute summability of the
+auxiliary samples and the stated target-minus-series-minus-pole-corrections identity. This
+gives the sampling formula of [Wang et al., Lemma 2][WangEtAl2026]. -/
 theorem matrix_series_original_input
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (hL : ∀ t ∈ Icc a b, (L t).PosSemidef)
@@ -58,6 +87,10 @@ theorem matrix_series_original_input
   exact Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn.matrix_series_original_input
     P hH hL s hs hsTarget ha hsLattice hbudget
 
+/-- For piecewise-continuous dissipative evolution and `δ ∈ (0, 1]`, the chosen finite integer
+LCU approximates the target within `δ` using unitary real samples, with explicit
+coefficient-mass, frequency, and sample-count bounds. This is the finite-sample
+approximation underlying [Wang et al., Lemma 3][WangEtAl2026]. -/
 theorem fast_lcu_original_input
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (hL : ∀ t ∈ Icc a b, (L t).PosSemidef)

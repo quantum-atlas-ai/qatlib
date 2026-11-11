@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.KnownCount.Section6LabelSpaceLowerBoundStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryBlockTransport
+
+/-!
+# Search lower bound for labeled configuration spaces
+
+`section6LabelSpaceLowerBound` proves the phase-query lower bound when configurations carry
+labels through a surjective map. The supporting identities show that the oracle fixes
+configurations outside the target fiber and that label decoding measures that fiber.
+
+For the mathematical background, see [BealsEtAl2001].
+
+## Main statements
+
+* `section6LabelSpaceLowerBound`: For a surjective labeling of a finite configuration space,
+  phase-oracle search of target fibers has fixed-space query lower bound ⌊sin(π/8)√N⌋ at success
+  threshold 1/2, where N is the label cardinality.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +42,8 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 open Matrix
 open scoped Classical BigOperators
 
+/-- A target-fiber phase oracle fixes a basis vector whose configuration label differs from the
+target. -/
 private theorem labelOracle_fixes_single
     {I C : Type*} [Fintype I] [DecidableEq I] [Fintype C] [DecidableEq C]
     (lbl : C → I) (w : I) (c : C) (hc : lbl c ≠ w) :
@@ -32,6 +55,8 @@ private theorem labelOracle_fixes_single
     simp [SetOracle, PhaseOracle, Matrix.mulVec_diagonal, hc]
   · simp [SetOracle, PhaseOracle, Matrix.mulVec_diagonal, hj]
 
+/-- Decoding a configuration by `lbl` succeeds on target w with probability equal to the Born
+mass of the fiber of w. -/
 private theorem label_space_success
     {I C : Type*} [Fintype I] [DecidableEq I] [Fintype C] [DecidableEq C]
     (lbl : C → I) (ψ : QState C) (w : I) :
@@ -43,6 +68,9 @@ private theorem label_space_success
   intro c _
   split_ifs <;> simp
 
+/-- For a surjective labeling of a finite configuration space, phase-oracle search of target
+fibers has fixed-space query lower bound ⌊sin(π/8)√N⌋ at success threshold 1/2, where N is
+the label cardinality. -/
 theorem section6LabelSpaceLowerBound : Section6LabelSpaceLowerBound := by
   intro I Cfg _ _ _ _ lbl _hsurj
   refine ⟨⟨by norm_num, by norm_num⟩, (fun w => setOracle_unitary _), ?_⟩

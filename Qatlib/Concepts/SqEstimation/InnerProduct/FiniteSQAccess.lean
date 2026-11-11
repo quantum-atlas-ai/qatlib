@@ -7,13 +7,34 @@ Authors: Qatlib Contributors
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Complex.Basic
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Finite sample-and-query access
+
+`FiniteSQInput` packages a finite complex target vector, a dominating envelope, its cached
+squared norm, and exact squared-envelope sampling. The support and norm lemmas connect this
+access interface to the target vector. For background, see [ChiaEtAl2022].
+
+## Main statements
+
+* `finite_sq_access_support_and_norm`: bounds the target norm and identifies the sampling
+  support and forced target zeros.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.SqEstimation.InnerProduct
 
+/-- The sum of the squared complex norms of the entries of a finite vector. -/
 noncomputable def sqSquaredNorm {X : Type} [Fintype X] (v : X → ℂ) : ℝ := ∑ i, Complex.normSq (v i)
+/-- A finite target vector with a pointwise dominating complex envelope, a positive cached
+squared envelope norm, and an exact squared-envelope sampler. -/
 structure FiniteSQInput (X : Type) [Fintype X] where
   target : X → ℂ
   envelope : X → ℂ
@@ -24,9 +45,13 @@ structure FiniteSQInput (X : Type) [Fintype X] where
   domination : ∀ i, Complex.normSq (target i) ≤ Complex.normSq (envelope i)
   sample_spec : ∀ i, samples.prob i = Complex.normSq (envelope i)/sqSquaredNorm envelope
 
+/-- The squared norm of a finite complex vector is nonnegative. -/
 theorem sqSquaredNorm_nonneg {X : Type} [Fintype X] (v : X → ℂ) :
     0 ≤ sqSquaredNorm v := Finset.sum_nonneg fun _ _ => Complex.normSq_nonneg _
 
+/-- The target squared norm is bounded by the envelope squared norm. A coordinate has zero
+sampling probability exactly when its envelope entry is zero, and every such coordinate also
+has zero target entry. -/
 theorem finite_sq_access_support_and_norm (X : Type) [Fintype X] (a : FiniteSQInput X) :
     sqSquaredNorm a.target ≤ sqSquaredNorm a.envelope ∧
     (∀ i, a.samples.prob i = 0 ↔ a.envelope i = 0) ∧

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
+
+/-!
+# Function evaluation from adversary bounds
+
+This module relates bounded-error function-evaluation query cost to the adversary quantity up to
+a universal positive constant. A finite adversary bound also gives a legal query word that
+returns the function value with probability at least two thirds, following [LeeEtAl2011].
+
+## Main statements
+
+* `source_function_queries`: adversary and query cost bound each other, with legal witnessing
+  words for finite budgets.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -33,6 +51,10 @@ open Qatlib.Concepts.ConversionCore.WitnessCompile
 
 namespace Qatlib.Papers.StateConvLee10.QueryEval
 
+/-- A universal positive constant compares function-evaluation query cost with the adversary
+quantity in both directions; an adversary bound `W ≥ 0` also yields a legal word using at
+most `ceil (c * W)` queries and succeeding with probability at least two thirds
+[LeeEtAl2011]. -/
 theorem source_function_queries :
   ∃ c : ℕ, 0<c ∧ ∀ (X E : Type) [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] (n q : ℕ) (input : X → Fin n → Fin (q+1)) (f : X → E),

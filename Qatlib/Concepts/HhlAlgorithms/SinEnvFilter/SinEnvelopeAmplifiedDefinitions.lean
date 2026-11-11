@@ -12,6 +12,29 @@ import Mathlib.Data.Real.Archimedean
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# HHL amplification events and runtime specifications
+
+`sinEnvelopeAmplifiedWord` evaluates the sine-envelope HHL preparation circuit, and
+`sinEnvelopeCleanInputPoint` specifies its initial workspace index. The module defines both
+`sinEnvelopeWellSet` on the Boolean ancilla and `sinEnvelopeWellSetCorrected` on the three-state
+filter label for amplification in the setting of [HarrowHassidimLloyd2009].
+
+`SectionIIAmplifiedRuntime` states the unitarity, amplification-success, depth, and cost
+requirements using `sinEnvelopeWellSet`.
+
+## Main statements
+
+* `sinEnvelopeWellSetCorrected`: the event selecting filter label one.
+* `sinEnvelopeAmplifiedWord`: the evaluated preparation matrix used by amplification.
+* `SectionIIAmplifiedRuntime`: the proposition using the Boolean-ancilla event.
+
+## References
+
+* [Harrow et al., 2009, Section II][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,20 +68,26 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Real
 
+/-- The workspace indices whose Boolean ancilla is true. -/
 def sinEnvelopeWellSet (D M : ℕ) :
     Finset (Fin M × (Bool × (Fin 3 × Fin D))) :=
   Finset.univ.filter (fun p => p.2.1 = 1)
 
+/-- The workspace indices whose three-state filter register has label one. -/
 def sinEnvelopeWellSetCorrected (D M : ℕ) :
     Finset (Fin M × (Bool × (Fin 3 × Fin D))) :=
   Finset.univ.filter (fun p => p.2.2.1 = 1)
 
+/-- The evaluated sine-envelope HHL preparation matrix used as the input to amplitude
+amplification. -/
 noncomputable def sinEnvelopeAmplifiedWord {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (U : Operator D) (d : ℝ) (B : Operator D) :
     Matrix (Fin M × (Bool × (Fin 3 × Fin D)))
       (Fin M × (Bool × (Fin 3 × Fin D))) ℂ :=
   evaluate (sinEnvelopeOracleLift U) (sinEnvelopeHHLWord M hM d B)
 
+/-- The workspace basis index with zero phase, false Boolean ancilla, filter label zero, and
+data index `j`. -/
 def sinEnvelopeCleanInputPoint {D M : ℕ} (hM : 2 ≤ M) (j : Fin D) :
     Fin M × (Bool × (Fin 3 × Fin D)) :=
   (⟨0, by omega⟩, false, (0, j))
@@ -76,6 +105,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Real
 
+/-- The amplification proposition using `sinEnvelopeWellSet`, specifying unitarity, success
+probability at least `1 / 4`, bounded amplification depth, and an explicit cost inequality. -/
 def SectionIIAmplifiedRuntime : Prop :=
   ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
       (d η : ℝ),

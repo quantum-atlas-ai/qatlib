@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RayleighBounds
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+
+/-!
+# Spectrum of the uniform complementary projector
+
+This module identifies the possible eigenvalues and the zero eigenspace of `uniformMixer`. In
+dimension at least two, its two lowest eigenvalues are zero and one, fixing the initial endpoint
+gap of the interpolation studied in [ZhouAnLiu2026].
+
+## Main statements
+
+* `uniformMixer_zero_line`: Every vector in the kernel of the uniform-reference mixer is a
+  scalar multiple of `uniformReference`.
+* `uniformMixer_lowest_pair`: In dimension at least two, the lowest eigenvalue of the
+  uniform-reference mixer is zero and the second-lowest is one.
+* `spectralGap_zero`: The uniform-reference interpolation has spectral gap one at parameter
+  zero.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +39,7 @@ open Qatlib.Papers.ProjectorQAOA26.StageStability
 open Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- Every real eigenvalue of the uniform-reference mixer is either zero or one. -/
 theorem uniformMixer_eigenvalue_cases (z : ℝ)
     (hz : hasRealEigenvalue (uniformMixer (I := I)) z) : z = 0 ∨ z = 1 := by
   obtain ⟨x,hx,he⟩ := hz
@@ -37,6 +60,8 @@ theorem uniformMixer_eigenvalue_cases (z : ℝ)
 
 omit [Nonempty I] in
 
+/-- Every vector in the kernel of the uniform-reference mixer is a scalar multiple of
+`uniformReference`. -/
 theorem uniformMixer_zero_line (x : I → ℂ)
     (hx : uniformMixer *ᵥ x = (0 : ℂ) • x) :
     ∃ c : ℂ, x = c • (uniformReference (I := I)) := by
@@ -46,12 +71,15 @@ theorem uniformMixer_zero_line (x : I → ℂ)
       rankOne_mulVec,zero_smul] using! hx
   exact sub_eq_zero.mp hh
 
+/-- Zero is a real eigenvalue of the uniform-reference mixer. -/
 theorem uniformMixer_zero_eigenvalue : hasRealEigenvalue (uniformMixer (I := I)) 0 := by
   refine ⟨uniformReference,uniformReference_ne_zero,?_⟩
   simp only [uniformMixer,learnedGenerator,Matrix.sub_mulVec,Matrix.one_mulVec,
     rankOne_mulVec,l2inner_self_of_norm uniformReference_normalized,one_smul,
     sub_self,Complex.ofReal_zero,zero_smul]
 
+/-- In dimension at least two, the lowest eigenvalue of the uniform-reference mixer is zero and
+the second-lowest is one. -/
 theorem uniformMixer_lowest_pair (hL : 2 ≤ Fintype.card I) :
     (uniformMixer_hermitian (I := I)).eigenvalues₀ ⟨Fintype.card I-1,by omega⟩=0 ∧
       (uniformMixer_hermitian (I := I)).eigenvalues₀ ⟨Fintype.card I-2,by omega⟩=1 := by
@@ -77,6 +105,7 @@ theorem uniformMixer_lowest_pair (hL : 2 ≤ Fintype.card I) :
     · exact h
   exact ⟨hlast,hpen⟩
 
+/-- The uniform-reference interpolation has spectral gap one at parameter zero. -/
 theorem spectralGap_zero (E : I → ℝ) (hL : 2 ≤ Fintype.card I) : spectralGap E hL 0=1 := by
   obtain ⟨h0,h1⟩ := uniformMixer_lowest_pair (I := I) hL
   unfold spectralGap

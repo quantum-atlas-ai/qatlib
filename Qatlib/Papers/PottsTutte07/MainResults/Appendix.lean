@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.PottsTutte07.MainResults.Definitions
 import Qatlib.Papers.PottsTutte07.MainResults.ComplexityDefs
 import Qatlib.Papers.PottsTutte07.MainResults.Basic
+
+/-!
+# Linear algebra and commutator estimates
+
+These auxiliary statements concern vectors in complementary subspaces, prescribed images under
+linear maps, and closure under generated submonoids. The matrix lemmas derive identities for a
+polar-type factorization and an existential error bound for perturbed commutators in `entryDist`
+[AharonovEtAl2007].
+
+## Main statements
+
+* `lemmaA_1_bridge_vector`: A larger complementary subspace contains a nonzero vector whose
+  image remains in that subspace.
+* `lemmaB_1_polar_stability`: The factorization and isometry hypotheses give two exact matrix
+  identities.
+* `lemmaB_2_commutator_lipschitz`: Perturbed commutators satisfy a bound with a positive
+  existential constant.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +39,8 @@ namespace Qatlib.Papers.PottsTutte07.MainResults
 
 open scoped BigOperators
 
+/-- If complementary subspaces satisfy `finrank A < finrank B`, every linear automorphism sends
+some nonzero vector of `B` back into `B` [AharonovEtAl2007]. -/
 theorem lemmaA_1_bridge_vector
     (F : Type*) [Field F] (C : Type*) [AddCommGroup C] [Module F C] [FiniteDimensional F C]
     (A B : Submodule F C)
@@ -59,6 +84,8 @@ theorem lemmaA_1_bridge_vector
   rw [hC] at hle
   omega
 
+/-- For any nonzero vector `ψ` and any vector `φ`, there exists a linear map sending `ψ` to `φ`
+[AharonovEtAl2007]. -/
 theorem lemmaA_2_transitive_action
     (F : Type*) [Field F] (C : Type*) [AddCommGroup C] [Module F C]
     (ψ φ : C) (hψ : ψ ≠ 0) :
@@ -95,6 +122,8 @@ theorem lemmaA_2_transitive_action
   refine ⟨(LinearMap.toSpanSingleton F C φ).comp g, ?_⟩
   rw [LinearMap.comp_apply, LinearMap.toSpanSingleton_apply, hgψ, one_smul]
 
+/-- If `V` sends `a1` to `b1` and `b1` to `-a1`, then `V` squared negates both vectors
+[AharonovEtAl2007]. -/
 theorem lemmaA_3_swap_generator
     (F : Type*) [Field F] (C : Type*) [AddCommGroup C] [Module F C]
     (V : C →ₗ[F] C) (a1 b1 : C)
@@ -104,12 +133,16 @@ theorem lemmaA_3_swap_generator
   · rw [h1, h2]
   · rw [h2, map_neg, h1]
 
+/-- A submonoid containing a set of linear automorphisms also contains the submonoid generated
+by that set [AharonovEtAl2007]. -/
 theorem lemmaA_4_generate_sl
     (F : Type*) [Field F] (C : Type*) [AddCommGroup C] [Module F C]
     (Gen : Set (C ≃ₗ[F] C)) (S : Submonoid (C ≃ₗ[F] C)) (hS : Gen ⊆ S) :
     Submonoid.closure Gen ≤ S :=
   Submonoid.closure_le.mpr hS
 
+/-- If `Δ = A * P` and `A` is an isometry, with `P` self-adjoint, then `P = Aᴴ * Δ` and `Δᴴ * Δ
+= Pᴴ * P` [AharonovEtAl2007]. -/
 theorem lemmaB_1_polar_stability
     {m : ℕ} (Δ A P : Matrix (Fin m) (Fin m) ℂ)
     (hΔ : Δ = A * P)
@@ -122,6 +155,8 @@ theorem lemmaB_1_polar_stability
   · rw [hΔ, Matrix.conjTranspose_mul, Matrix.mul_assoc]
     rw [← Matrix.mul_assoc (Matrix.conjTranspose A), hA, Matrix.one_mul, hP]
 
+/-- Under the stated perturbation and size bounds, some positive real constant bounds the
+commutator error by that constant times `ε * δ` [AharonovEtAl2007]. -/
 theorem lemmaB_2_commutator_lipschitz
     {m : ℕ} (V W Vt Wt : Matrix (Fin m) (Fin m) ℂ)
     (ε δ : ℝ) (hε : 0 < ε) (hδ : 0 < δ) (hεδ : ε ≤ δ)

@@ -9,6 +9,27 @@ import Mathlib.Analysis.SpecificLimits.Normed
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Analysis.Normed.Module.Basic
 
+/-!
+# Confluent hypergeometric coefficients and convergence
+
+This module defines the rising Pochhammer symbol `poch` and confluent hypergeometric
+coefficients `confCoeff`. Under nonvanishing conditions on all shifted parameters, it proves the
+coefficient recurrence, an eventual ratio bound, and absolute convergence at every complex
+argument. These analytic estimates supply special-function infrastructure for evolution
+equations; quantum annealing provides one motivating setting [KadowakiNishimori1998].
+
+## Main statements
+
+* `confCoeff_succ_mul`: the coefficient recurrence.
+* `norm_confCoeff_ratio_eventually`: an eventual factorial-type decay bound.
+* `summable_norm_confCoeff_mul_pow`: absolute convergence for every positive radius.
+* `summable_confCoeff_mul_pow`: convergence at every complex argument.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,23 +37,31 @@ namespace Qatlib.Foundations.SpecialFuncs.KummerODE
 
 open Complex
 
+/-- The rising Pochhammer symbol evaluated at the complex parameter `a`. -/
 def poch (a : ℂ) (n : ℕ) : ℂ := (ascPochhammer ℂ n).eval a
 
+/-- The rising Pochhammer symbol of order zero is one. -/
 theorem poch_zero (a : ℂ) : poch a 0 = 1 := by simp [poch]
 
+/-- The rising Pochhammer symbol satisfies `(a)_(n+1) = (a)_n * (a + n)`. -/
 theorem poch_succ (a : ℂ) (n : ℕ) : poch a (n + 1) = poch a n * (a + n) := by
   simp [poch, ascPochhammer_succ_eval]
 
+/-- Every rising Pochhammer symbol is nonzero if all factors `a + n` are nonzero. -/
 theorem poch_ne_zero (a : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0) (n : ℕ) : poch a n ≠ 0 := by
   induction n with
   | zero => simp [poch_zero]
   | succ k ih => rw [poch_succ]; exact mul_ne_zero ih (ha k)
 
+/-- The coefficient `(a)_n / ((b)_n * n!)` of the confluent hypergeometric power series. -/
 def confCoeff (a b : ℂ) (n : ℕ) : ℂ := poch a n * (poch b n)⁻¹ * ((n.factorial : ℂ))⁻¹
 
+/-- The constant coefficient of the confluent hypergeometric series is one. -/
 theorem confCoeff_zero (a b : ℂ) : confCoeff a b 0 = 1 := by
   simp [confCoeff, poch_zero]
 
+/-- When `b + n` is nonzero, adjacent confluent coefficients satisfy `c_n * (a + n) = c_(n+1) *
+(b + n) * (n + 1)`. -/
 theorem confCoeff_succ_mul (a b : ℂ) (n : ℕ) (hb : b + n ≠ 0) :
     confCoeff a b n * (a + n) = confCoeff a b (n + 1) * ((b + n) * (n + 1)) := by
   unfold confCoeff
@@ -40,6 +69,8 @@ theorem confCoeff_succ_mul (a b : ℂ) (n : ℕ) (hb : b + n ≠ 0) :
   push_cast
   field_simp
 
+/-- Confluent coefficients are nonzero when every shifted numerator and denominator parameter is
+nonzero. -/
 theorem confCoeff_ne_zero (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (n : ℕ) : confCoeff a b n ≠ 0 := by
   unfold confCoeff
@@ -47,6 +78,8 @@ theorem confCoeff_ne_zero (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
   · exact inv_ne_zero (poch_ne_zero b hb n)
   · exact inv_ne_zero (by exact_mod_cast Nat.factorial_ne_zero n)
 
+/-- The norms of adjacent confluent coefficients satisfy the multiplicative recurrence when `b +
+n` is nonzero. -/
 theorem norm_confCoeff_succ_mul (a b : ℂ) (n : ℕ) (hb : b + n ≠ 0) :
     ‖confCoeff a b (n + 1)‖ * ‖b + n‖ * (n + 1 : ℝ) = ‖confCoeff a b n‖ * ‖a + n‖ := by
   have h := confCoeff_succ_mul a b n hb
@@ -61,6 +94,8 @@ theorem norm_confCoeff_succ_mul (a b : ℂ) (n : ℕ) (hb : b + n ≠ 0) :
       = ‖confCoeff a b (n + 1)‖ * (‖b + n‖ * (n + 1 : ℝ)) := by ring
     _ = ‖confCoeff a b n‖ * ‖a + n‖ := hnorm.symm
 
+/-- When `b + n` is nonzero, the norm of the next coefficient equals the current norm times `‖a
++ n‖ / (‖b + n‖ * (n + 1))`. -/
 theorem norm_confCoeff_succ_le (a b : ℂ) (n : ℕ) (hb : b + n ≠ 0) :
     ‖confCoeff a b (n + 1)‖
       = ‖confCoeff a b n‖ * ‖a + n‖ / (‖b + n‖ * (n + 1 : ℝ)) := by
@@ -70,12 +105,15 @@ theorem norm_confCoeff_succ_le (a b : ℂ) (n : ℕ) (hb : b + n ≠ 0) :
   rw [eq_div_iff hpos.ne']
   linear_combination h
 
+/-- The norm of a complex number plus a natural number is at most the sum of its norm and that
+natural number. -/
 theorem norm_add_nat_le (a : ℂ) (n : ℕ) : ‖a + n‖ ≤ ‖a‖ + n := by
   have : ((n : ℂ)) = ((n : ℝ) : ℂ) := by push_cast; ring
   rw [this]
   refine (norm_add_le a ((n : ℝ) : ℂ)).trans_eq ?_
   rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (by positivity)]
 
+/-- The norm of `b + n` is at least `n - ‖b‖`. -/
 theorem norm_add_nat_ge (b : ℂ) (n : ℕ) : (n : ℝ) - ‖b‖ ≤ ‖b + n‖ := by
   have hle : ‖((n : ℂ))‖ ≤ ‖b + n‖ + ‖b‖ := by
     have := norm_sub_le (b + (n : ℂ)) b
@@ -84,6 +122,8 @@ theorem norm_add_nat_ge (b : ℂ) (n : ℕ) : (n : ℝ) - ‖b‖ ≤ ‖b + n�
   rw [hn] at hle
   linarith
 
+/-- Under the nonvanishing shifted-parameter hypotheses, successive coefficient norms eventually
+satisfy the bound with factor `4 / (n + 1)`. -/
 theorem norm_confCoeff_ratio_eventually (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) :
     ∀ᶠ n : ℕ in Filter.atTop,
@@ -126,6 +166,7 @@ theorem norm_confCoeff_ratio_eventually (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠
   rw [hrhs]
   nlinarith [hstep, hbden, hcn, hbpos]
 
+/-- Every natural number, viewed as a real number, is at most its corresponding power of two. -/
 theorem natCast_le_two_pow (n : ℕ) : (n : ℝ) ≤ 2 ^ n := by
   induction n with
   | zero => simp
@@ -135,6 +176,8 @@ theorem natCast_le_two_pow (n : ℕ) : (n : ℝ) ≤ 2 ^ n := by
       rw [hcast, pow_succ]
       nlinarith
 
+/-- Under the nonvanishing shifted-parameter hypotheses, coefficient norms weighted by `S ^ n`
+are summable for every positive real `S`. -/
 theorem summable_norm_confCoeff_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (S : ℝ) (hS : 0 < S) :
     Summable (fun n : ℕ => ‖confCoeff a b n‖ * S ^ n) := by
@@ -172,6 +215,8 @@ theorem summable_norm_confCoeff_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠
   refine h3.trans_eq ?_
   ring
 
+/-- Under the nonvanishing shifted-parameter hypotheses, coefficient norms weighted by `n * S ^
+n` are summable for every positive real `S`. -/
 theorem summable_norm_confCoeff_mul_nat_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (S : ℝ) (hS : 0 < S) :
     Summable (fun n : ℕ => ‖confCoeff a b n‖ * (n : ℝ) * S ^ n) := by
@@ -188,6 +233,8 @@ theorem summable_norm_confCoeff_mul_nat_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a
     _ ≤ ‖confCoeff a b n‖ * (2 ^ n * S ^ n) := hkey
     _ = ‖confCoeff a b n‖ * (2 * S) ^ n := by rw [mul_pow]
 
+/-- Under the nonvanishing shifted-parameter hypotheses, the confluent hypergeometric power
+series is summable at every complex argument. -/
 theorem summable_confCoeff_mul_pow (a b : ℂ) (ha : ∀ n : ℕ, a + n ≠ 0)
     (hb : ∀ n : ℕ, b + n ≠ 0) (z : ℂ) :
     Summable (fun n : ℕ => confCoeff a b n * z ^ n) := by

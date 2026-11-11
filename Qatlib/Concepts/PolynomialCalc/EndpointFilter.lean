@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PolynomialCalc.ChebyshevScale
+
+/-!
+# Endpoint polynomial filters
+
+This module develops elementary bounds for hyperbolic sine and cosine and uses them to construct
+a polynomial suppressed away from the right endpoint of `[-1, 1]`. Such polynomial filters are
+part of the spectral transformation framework of [GilyenSuLowWiebe2019].
+
+`per_instance_filter` gives, for each positive gap and error below one, a polynomial bounded in
+absolute value by one, small below the gap, and close to one near the endpoint. Its degree bound
+uses positive constants chosen within the same per-instance existence statement.
+
+## Main statements
+
+* `cosh_le_inv_one_sub_half_sq`: a rational upper bound for hyperbolic cosine on `[0, 1]`.
+* `ramp_slack`: a shifted hyperbolic-cosine inequality.
+* `per_instance_filter`: existence of an endpoint filter with the stated degree and interval
+  bounds.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -13,6 +37,7 @@ open scoped BigOperators
 namespace Qatlib.Concepts.PolynomialCalc.EndpointFilter
 open Qatlib.Concepts.PolynomialCalc.ChebyshevScale
 
+/-- For nonnegative `t`, hyperbolic sine is bounded by `t * cosh t`. -/
 theorem sinh_le_self_mul_cosh {t : ℝ} (ht : 0 ≤ t) :
     Real.sinh t ≤ t * Real.cosh t := by
   rcases eq_or_lt_of_le ht with rfl | ht0
@@ -38,6 +63,7 @@ theorem sinh_le_self_mul_cosh {t : ℝ} (ht : 0 ≤ t) :
   rw [h0, sub_zero] at h1
   exact le_of_sub_nonneg (by linarith [mul_nonneg ht0.le hpos])
 
+/-- For `0 ≤ t ≤ 1`, hyperbolic cosine is bounded by `1 / (1 - t² / 2)`. -/
 theorem cosh_le_inv_one_sub_half_sq {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
     Real.cosh t ≤ 1 / (1 - t ^ 2 / 2) := by
   have hu0 : 0 ≤ t / 2 := by positivity
@@ -77,6 +103,7 @@ theorem cosh_le_inv_one_sub_half_sq {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
   rw [hfin]
   linarith
 
+/-- Hyperbolic cosine is at most two on `[0, 1]`. -/
 theorem cosh_le_two_of_le_one {z : ℝ} (hz0 : 0 ≤ z) (hz1 : z ≤ 1) :
     Real.cosh z ≤ 2 := by
   have h1 : z * z ≤ 1 := by nlinarith [hz1, mul_nonneg hz0 (sub_nonneg.2 hz1)]
@@ -88,6 +115,7 @@ theorem cosh_le_two_of_le_one {z : ℝ} (hz0 : 0 ≤ z) (hz1 : z ≤ 1) :
   rw [div_le_iff₀ h2, pow_two]
   linarith
 
+/-- For `0 ≤ t ≤ z`, the difference `cosh z - cosh (z - t)` is at least `t * sinh (z - t)`. -/
 theorem cosh_sub_cosh_ge {t z : ℝ} (ht0 : 0 ≤ t) (htz : t ≤ z) :
     t * Real.sinh (z - t) ≤ Real.cosh z - Real.cosh (z - t) := by
   rcases eq_or_lt_of_le ht0 with rfl | ht0'
@@ -104,6 +132,7 @@ theorem cosh_sub_cosh_ge {t z : ℝ} (ht0 : 0 ≤ t) (htz : t ≤ z) :
   rw [← hmul, mul_comm (Real.sinh c) t]
   exact mul_le_mul_of_nonneg_left hmono ht0
 
+/-- For nonnegative `t`, hyperbolic cosine is at least `1 + t² / 2`. -/
 theorem cosh_ge_one_add_half_sq {t : ℝ} (ht : 0 ≤ t) :
     1 + t * t / 2 ≤ Real.cosh t := by
   have hhalf : Real.cosh t
@@ -123,6 +152,7 @@ theorem cosh_ge_one_add_half_sq {t : ℝ} (ht : 0 ≤ t) :
   rw [hhalf]
   linarith
 
+/-- The inverse hyperbolic cosine of `sqrt 2` is at least one half. -/
 theorem half_le_arcosh_sqrt_two : 1 / 2 ≤ Real.arcosh (√2) := by
   have hcosh : Real.cosh (1 / 2) ≤ 8 / 7 := by
     have h := cosh_le_inv_one_sub_half_sq (t := 1 / 2) (by norm_num) (by norm_num)
@@ -139,6 +169,7 @@ theorem half_le_arcosh_sqrt_two : 1 / 2 ≤ Real.arcosh (√2) := by
     (Real.arcosh_le_arcosh (Real.cosh_pos _) (by positivity)).2 (le_trans hcosh h87)
   rwa [Real.arcosh_cosh (by norm_num)] at h12
 
+/-- For `0 ≤ rho < 1 / 2`, hyperbolic sine is at most `2 * rho`. -/
 theorem sinh_le_two_mul_of_le_half {rho : ℝ} (hrho0 : 0 ≤ rho)
     (hrholt : rho < 1 / 2) : Real.sinh rho ≤ 2 * rho := by
   have h1 : Real.sinh rho ≤ rho * Real.cosh rho := sinh_le_self_mul_cosh hrho0
@@ -152,6 +183,7 @@ theorem sinh_le_two_mul_of_le_half {rho : ℝ} (hrho0 : 0 ≤ rho)
   rw [mul_comm 2 rho]
   exact mul_le_mul_of_nonneg_left h2 hrho0
 
+/-- If `rho ≥ 0`, `sinh w ≤ cosh w`, and `sinh rho ≤ 1 - q`, then `q * cosh w ≤ cosh (w - rho)`. -/
 theorem ramp_slack {w rho q : ℝ} (hrho0 : 0 ≤ rho)
     (hsinhw : Real.sinh w ≤ Real.cosh w) (hsrhos : Real.sinh rho ≤ 1 - q) :
     q * Real.cosh w ≤ Real.cosh (w - rho) := by
@@ -172,6 +204,9 @@ theorem ramp_slack {w rho q : ℝ} (hrho0 : 0 ≤ rho)
 
 set_option maxHeartbeats 800000 in
 
+/-- For each `0 < δ, ε < 1`, there exist `0 < c < 1`, `C > 0`, and a polynomial bounded by one
+on `[-1, 1]`, by `ε` on `[-1, 1 - δ]`, and below by `1 - ε` on `[1 - c * δ, 1]`. Its degree
+is at most `C * δ ^ (-1 / 2) * log (1 / ε)`, with `c` and `C` chosen for that instance. -/
 theorem per_instance_filter
     (δ ε : ℝ) (hδ0 : 0 < δ) (hδ1 : δ < 1) (hε0 : 0 < ε) (hε1 : ε < 1) :
     ∃ c : ℝ, 0 < c ∧ c < 1 ∧ ∃ C : ℝ, 0 < C ∧ ∃ p : Polynomial ℝ,

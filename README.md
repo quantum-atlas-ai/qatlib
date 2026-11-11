@@ -7,6 +7,7 @@
 **基于 Lean 4 的量子计算与量子信息形式化数学库**
 
 [![Lint](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml)
+[![Build](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml)
 [![Cache](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/publish-cache.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/publish-cache.yml)
 [![api_docs](https://img.shields.io/badge/doc-API_docs-blue)](https://quantum-atlas-ai.github.io/qatlib/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
@@ -33,21 +34,23 @@
 
 ### <a id="as-dependency"></a>作为下游依赖引入
 
-在下游项目的 `lakefile.toml` 中添加：
+请确保下游项目的 `lean-toolchain` 与本仓库一致（当前为 `leanprover/lean4:v4.35.0`），并在 `lakefile.toml` 中添加：
 
 ```toml
 [[require]]
 name = "Qatlib"
 git = "https://github.com/quantum-atlas-ai/qatlib.git"
-rev = "v4.35.0"
+rev = "main" # 跟踪最新合入定理（推荐）；若需固定在工具链发布基线可填 "v4.35.0"
 ```
 
-拉取依赖与三层预编译缓存（`Mathlib` + `Physlib` + `Qatlib`），无需在本地从头编译 `Qatlib`：
+首次引入（或后续需要同步上游最新合入定理时），依次运行以下两条命令以更新源码锁文件（`lake-manifest.json`）并拉取三层预编译缓存（`Mathlib` + `Physlib` + `Qatlib`），无需在本地从头编译 `Qatlib`：
 
 ```bash
 lake update
 lake exe get_cache
 ```
+
+> **提示**：Lake 通过 `lake-manifest.json` 锁定具体 Commit。日常开发中只要不主动运行 `lake update`，上游 `main` 分支的更新不会影响你本地的构建状态；当你运行 `lake update`（或 `lake update Qatlib`）拉取上游新定理后，请配套执行一次 `lake exe get_cache` 下载对应的预编译缓存。
 
 随后即可在 `.lean` 文件中导入总入口或按需导入具体子模块：
 

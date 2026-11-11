@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
 import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+
+/-!
+# Finite diamond-distance bounds for qDRIFT
+
+This module defines the exact and capped fair-bit qDRIFT linear maps and relates their
+extensions to reference-assisted execution. Uniform trace-norm estimates yield finite
+diamond-distance bounds, including the zero-weight identity case and computed budgets with
+pathwise resource ledgers.
+
+The mathematical background is described in [Campbell2019].
+
+## Main statements
+
+* `exact_qdrift_actual_finite_diamond_budget`: exact-sampling error and precision budgets.
+* `fair_qdrift_actual_finite_diamond_output`: the capped sampler's error bound.
+* `fair_qdrift_computed_finite_diamond_and_ledgers`: computed error and resource guarantees.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -28,15 +50,21 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The `n`-step mixture-power map formed from Hamiltonian evolutions sampled from `d` with time
+increment `t * lam / n`. -/
 noncomputable def exactQdriftMap {L D : ℕ} (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam t : ℝ) (n : ℕ) : Operator D →ₗ[ℂ] Operator D :=
   mixturePowerMap d (fun j => HamiltonianEvolution (K j) (t*lam/(n:ℝ))) n
+/-- The actual capped fair-bit qDRIFT mixture-power map, with the identity map used when the
+total weight is zero. -/
 noncomputable def fairQdriftActualMap {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) : Operator D →ₗ[ℂ] Operator D :=
   if weightTotal w = 0 then LinearMap.id else
     mixturePowerMap (fairQdriftLaw w j0 R)
       (fun j => HamiltonianEvolution (K j) (t*(weightTotal w:ℝ)/(n:ℝ))) n
 
+/-- Exact-sampling qDRIFT for Hermitian contractions has finite diamond distance at most `2 *
+lam² * t² / n`, with the stated positive precision-driven step budget. See [Campbell2019]. -/
 theorem exact_qdrift_actual_finite_diamond_budget : ∀ (L D : ℕ) (d : FinDist (Fin L)) (K : Fin L → Operator D)
     (lam t : ℝ) (n : ℕ), 0 ≤ lam → 0 < n →
   (∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) →
@@ -72,6 +100,8 @@ theorem exact_qdrift_actual_finite_diamond_budget : ∀ (L D : ℕ) (d : FinDist
           exact (qdrift_derived_precision_budget L D r d K lam t (2*eps) hlam (by positivity) hK).2.2 X)
       simpa using h
 
+/-- At zero total weight, both the actual fair-bit qDRIFT map and the target evolution channel
+are the identity. -/
 theorem fairQdriftActualMap_zero {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) (hW : weightTotal w=0) :
     fairQdriftActualMap w j0 n R K t = LinearMap.id ∧
@@ -87,6 +117,8 @@ theorem fairQdriftActualMap_zero {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
   ext X
   simp [conjBranch_apply]
 
+/-- Extending the actual fair-bit qDRIFT map by an identity reference gives
+`fairQdriftReferenceOutput`. -/
 theorem fairQdriftActualMap_reference {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) (r : ℕ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -97,6 +129,9 @@ theorem fairQdriftActualMap_reference {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin 
     exact (fair_bit_qdrift_actual_fresh_channel_bridge L D n R r w j0 K t X
       (Nat.pos_of_ne_zero hW)).symm
 
+/-- The actual map agrees with reference execution and has finite diamond distance at most `2 *
+(weightTotal w)² * t² / n + n * 2⁻ᴿ`, with zero distance at zero total weight. See
+[Campbell2019]. -/
 theorem fair_qdrift_actual_finite_diamond_output : ∀ (L D n R : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t : ℝ), 0 < n →
   (∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) →
@@ -126,6 +161,9 @@ theorem fair_qdrift_actual_finite_diamond_output : ∀ (L D n R : ℕ) (w : Fin 
     obtain ⟨hA,hB⟩ := fairQdriftActualMap_zero w j0 n R K t hW
     simp [hA,hB,finiteDiamondDistance]
 
+/-- The computed budgets give finite diamond distance at most `2⁻ˢ / 2` and, on every path, a
+unitary zero-query circuit with `n` gates and the stated sampling-cost bounds. See
+[Campbell2019]. -/
 theorem fair_qdrift_computed_finite_diamond_and_ledgers : ∀ (L D T s : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t : ℝ), 0 < weightTotal w → |t| ≤ T →
   (∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) →

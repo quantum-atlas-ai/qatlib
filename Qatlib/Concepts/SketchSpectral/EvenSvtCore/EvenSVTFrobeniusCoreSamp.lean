@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSvtCore.EvenSVTFrobeniusCoreStat
 import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+
+/-!
+# Frobenius error core for even SVT
+
+The module proves Frobenius triangle, adjoint, and mixed operator-product estimates, including a
+bound for the sandwich `Rᴴ * X * R`. These estimates establish `evenSVTFrobeniusCore_proof`,
+which propagates the two Gram errors through the matrix functions appearing in even singular
+value transformation [ChiaEtAl2022].
+
+## Main statements
+
+* `frobenius_operator_product_bounds`: Both mixed operator- and Frobenius-norm product bounds
+  hold for `A * B`. See [ChiaEtAl2022].
+* `gram_sandwich_frobenius_bound`: The Frobenius norm of `Rᴴ * X * R` is at most `‖Rᴴ * R‖`
+  times the Frobenius norm of `X`.
+* `evenSVTFrobeniusCore_proof`: Under spectral consistency, cross-spectrum Lipschitz bounds, and
+  two Gram error bounds, the even-SVT sandwich has Frobenius error at most `L * η₁ + W * (Lbar *
+  η₂)`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -19,18 +43,22 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The spectral Frobenius norm equals the Euclidean norm of the matrix entries flattened over
+the product index type. -/
 private theorem frobenius_flat {O I : Type} [Fintype O] [Fintype I] (A : Matrix O I ℂ) :
     spectralFrobenius A = ‖WithLp.toLp 2 (fun p : O × I => A p.1 p.2)‖ := by
   apply (sq_eq_sq₀ (spectralFrobenius_nonneg _) (norm_nonneg _)).mp
   rw [spectralFrobenius_sq, EuclideanSpace.norm_sq_eq]
   simp only [Complex.normSq_eq_norm_sq, Fintype.sum_prod_type]
 
+/-- The spectral Frobenius norm satisfies the triangle inequality. -/
 private theorem frobenius_add {O I : Type} [Fintype O] [Fintype I] (A B : Matrix O I ℂ) :
     spectralFrobenius (A + B) ≤ spectralFrobenius A + spectralFrobenius B := by
   rw [frobenius_flat, frobenius_flat A, frobenius_flat B]
   exact norm_add_le (WithLp.toLp 2 (fun p : O × I => A p.1 p.2))
     (WithLp.toLp 2 (fun p : O × I => B p.1 p.2))
 
+/-- Conjugate transpose preserves the spectral Frobenius norm. -/
 private theorem frobenius_adjoint {O I : Type} [Fintype O] [Fintype I] (A : Matrix O I ℂ) :
     spectralFrobenius Aᴴ = spectralFrobenius A := by
   apply (sq_eq_sq₀ (spectralFrobenius_nonneg _) (spectralFrobenius_nonneg _)).mp
@@ -38,20 +66,26 @@ private theorem frobenius_adjoint {O I : Type} [Fintype O] [Fintype I] (A : Matr
   simp only [Matrix.conjTranspose_apply, Complex.normSq_eq_norm_sq, norm_star]
   exact Finset.sum_comm
 
+/-- The spectral Frobenius norm of a matrix sum is at most the sum of the two norms. See
+[ChiaEtAl2022]. -/
 theorem frobenius_add_bound {O I : Type} [Fintype O] [Fintype I]
     (A B : Matrix O I ℂ) :
     spectralFrobenius (A + B) ≤ spectralFrobenius A + spectralFrobenius B :=
   frobenius_add A B
 
+/-- The spectral Frobenius norm is invariant under conjugate transpose. See [ChiaEtAl2022]. -/
 theorem frobenius_adjoint_eq {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) : spectralFrobenius Aᴴ = spectralFrobenius A :=
   frobenius_adjoint A
 
+/-- Negating a matrix preserves its spectral Frobenius norm. See [ChiaEtAl2022]. -/
 theorem frobenius_neg_eq {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) : spectralFrobenius (-A) = spectralFrobenius A := by
   rw [frobenius_flat, frobenius_flat]
   exact norm_neg (WithLp.toLp 2 (fun p : O × I => A p.1 p.2))
 
+/-- The Frobenius norm of `A * B` is at most the operator norm of `A` times the Frobenius norm
+of `B`. -/
 private theorem frobenius_mul_left {O I J : Type} [Fintype O] [Fintype I] [Fintype J]
     [DecidableEq I] (A : Matrix O I ℂ) (B : Matrix I J ℂ) :
     spectralFrobenius (A * B) ≤ ‖A‖ * spectralFrobenius B := by
@@ -69,6 +103,8 @@ private theorem frobenius_mul_left {O I J : Type} [Fintype O] [Fintype I] [Finty
       Finset.sum_le_sum (fun j _hj => hcol j)
     _ = _ := by rw [← Finset.mul_sum, Finset.sum_comm]
 
+/-- The Frobenius norm of `A * B` is at most the Frobenius norm of `A` times the operator norm
+of `B`. -/
 private theorem frobenius_mul_right {O I J : Type} [Fintype O] [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (A : Matrix O I ℂ) (B : Matrix I J ℂ) :
     spectralFrobenius (A * B) ≤ spectralFrobenius A * ‖B‖ := by
@@ -76,6 +112,7 @@ private theorem frobenius_mul_right {O I J : Type} [Fintype O] [Fintype I] [Fint
   exact (frobenius_mul_left Bᴴ Aᴴ).trans_eq (by
     rw [Matrix.l2_opNorm_conjTranspose, frobenius_adjoint, mul_comm])
 
+/-- Both mixed operator- and Frobenius-norm product bounds hold for `A * B`. See [ChiaEtAl2022]. -/
 theorem frobenius_operator_product_bounds {O I J : Type}
     [Fintype O] [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (A : Matrix O I ℂ) (B : Matrix I J ℂ) :
@@ -83,6 +120,7 @@ theorem frobenius_operator_product_bounds {O I J : Type}
       spectralFrobenius (A * B) ≤ spectralFrobenius A * ‖B‖ :=
   ⟨frobenius_mul_left A B, frobenius_mul_right A B⟩
 
+/-- The Frobenius norm of `Rᴴ * X * R` is at most `‖Rᴴ * R‖` times the Frobenius norm of `X`. -/
 theorem gram_sandwich_frobenius_bound {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (R : Matrix K C ℂ) (X : Matrix K K ℂ) :
     spectralFrobenius (Rᴴ * X * R) ≤ ‖Rᴴ * R‖ * spectralFrobenius X := by
@@ -93,6 +131,9 @@ theorem gram_sandwich_frobenius_bound {K C : Type} [Fintype K] [DecidableEq K]
       mul_le_mul_of_nonneg_left (frobenius_mul_right X R) (norm_nonneg _)
     _ = _ := by rw [Matrix.l2_opNorm_conjTranspose, Matrix.l2_opNorm_conjTranspose_mul_self]; ring
 
+/-- Under spectral consistency, cross-spectrum Lipschitz bounds, and two Gram error bounds, the
+even-SVT sandwich has Frobenius error at most `L * η₁ + W * (Lbar * η₂)`. See
+[ChiaEtAl2022]. -/
 theorem evenSVTFrobeniusCore_proof : EvenSVTFrobeniusCore := by
   intro K C RS CT _ _ _ _ _ _ _ _ A R Cc f fbar L Lbar η₁ η₂ W
     hL hLb _hη₁ _hη₂ hcons hLip hLipb hE₁ hE₂ hW

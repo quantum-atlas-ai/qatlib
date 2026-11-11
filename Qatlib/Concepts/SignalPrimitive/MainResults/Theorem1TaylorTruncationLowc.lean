@@ -8,6 +8,28 @@ import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationStat
 import Qatlib.Concepts.SignalPrimitive.MainResults.TaylorTruncation
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+
+/-!
+# Corrected Taylor Truncation Degree
+
+This module proves `theorem1TaylorTruncation`, the corrected Taylor degree guarantee used by the
+encoded simulation construction associated with [LowChuang2019]. For every real `τ` and positive
+`ε`, it supplies a natural cutoff `n` satisfying `2 * |τ| ≤ n + 1` and `exponentialTaylorError τ
+n ≤ ε`.
+
+The proof works with `δ = min ε 1` and chooses a cutoff using a ceiling of `4 * |τ| + 2 * log (2
+/ δ)`. It establishes the stated budget `n ≤ 4 * |τ| + 8 * log (8 / min ε 1) + 8`, which remains
+meaningful for large tolerances.
+
+## Main statements
+
+- `theorem1TaylorTruncation` proves the corrected cutoff, error, and degree bounds.
+
+## References
+
+- [Low and Chuang, 2019][LowChuang2019], Theorem 1.
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
 
@@ -32,6 +54,9 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- Proves the corrected Taylor truncation contract for every positive tolerance, using `min ε
+1` in the logarithmic degree budget. The cutoff supplies the scalar approximation bound used
+for the simulation construction associated with Theorem 1 of [LowChuang2019]. -/
 theorem theorem1TaylorTruncation : Theorem1TaylorTruncation := by
   intro τ ε hε
   let δ := min ε 1

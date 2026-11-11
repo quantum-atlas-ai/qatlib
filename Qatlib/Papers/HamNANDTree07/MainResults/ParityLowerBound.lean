@@ -12,6 +12,35 @@ import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Fintype.Powerset
 import Mathlib.Tactic
+
+/-!
+# A Hamiltonian parity lower bound
+
+This module indexes ordered pairs of Boolean inputs differing in one bit and tracks the sum
+`distanceSum` of squared distances between their evolving states. The setup `ParitySetup`
+supplies the oracle decomposition, Hermitian identities, and projection bounds used to limit the
+growth of this sum to 4 · 2^K.
+
+For norm-bounded Schrödinger trajectories with a common initial state,
+`hamiltonian_parity_lower_bound` derives T ≥ Kδ/4 from squared separation δ on every adjacent
+pair; `hamiltonian_parity_lower_bound_of_norm_sep` gives T ≥ Kδ²/4 from norm separation δ. See
+[FarhiGoldstoneGutmann2008] for the Hamiltonian NAND-tree setting.
+
+## Main statements
+
+* `numPairs_eq`: There are exactly K · 2^K ordered adjacent pairs of K-bit inputs.
+* `distance_sum_growth_bound`: For trajectories of norm at most 1 satisfying the Schrödinger
+  equations of `ParitySetup`, the adjacent-pair distance sum is continuous on [0, T] and has a
+  derivative bounded above by 4 · 2^K on (0, T).
+* `hamiltonian_parity_lower_bound`: For K > 0, δ > 0, and T ≥ 0, norm-bounded Schrödinger
+  trajectories in `ParitySetup` with a common initial state and squared separation at least δ on
+  every adjacent pair satisfy T ≥ Kδ / 4.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmann2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,19 +53,26 @@ open Set
 
 namespace Qatlib.Papers.HamNANDTree07.MainResults.ParityLowerBound
 
+/-- A Boolean input on K positions, represented by a subset of `Fin K`. -/
 abbrev ParityInstance (K : ℕ) := Set (Fin K)
 
+/-- The relation asserting that two input subsets differ at exactly one position. -/
 def Adjacent {K : ℕ} (S S' : ParityInstance K) : Prop :=
   ∃ j : Fin K,
     (∀ i : Fin K, i ≠ j → (i ∈ S ↔ i ∈ S')) ∧ (j ∈ S ↔ j ∉ S')
 
+/-- The input obtained by reversing membership of j in S and keeping every other position
+unchanged. -/
 def toggle {K : ℕ} (j : Fin K) (S : ParityInstance K) : ParityInstance K :=
   if j ∈ S then S \ {j} else insert j S
 
+/-- Membership in `toggle j S` is reversed at j and agrees with membership in S at every other
+index. -/
 lemma mem_toggle {K : ℕ} (j i : Fin K) (S : ParityInstance K) :
     i ∈ toggle j S ↔ if i = j then j ∉ S else i ∈ S := by
   by_cases hj : j ∈ S <;> by_cases hij : i = j <;> simp [toggle, hj, hij]
 
+/-- Toggling the same input position twice returns the original input. -/
 lemma toggle_toggle {K : ℕ} (j : Fin K) (S : ParityInstance K) :
     toggle j (toggle j S) = S := by
   ext i
@@ -45,19 +81,24 @@ lemma toggle_toggle {K : ℕ} (j : Fin K) (S : ParityInstance K) :
   · simp
   · simp [hij]
 
+/-- At every position different from j, S and `toggle j S` have the same membership. -/
 lemma adjacent_toggle_fst {K : ℕ} (j : Fin K) (S : ParityInstance K) :
     ∀ i : Fin K, i ≠ j → (i ∈ S ↔ i ∈ toggle j S) := by
   intro i hij
   by_cases hj : j ∈ S <;> simp [toggle, hj, hij]
 
+/-- Membership of j in S is equivalent to nonmembership of j in `toggle j S`. -/
 lemma adjacent_toggle_snd {K : ℕ} (j : Fin K) (S : ParityInstance K) :
     j ∈ S ↔ j ∉ toggle j S := by
   by_cases hj : j ∈ S <;> simp [toggle, hj]
 
+/-- Every input is adjacent to the input obtained by toggling any one of its positions. -/
 lemma adjacent_toggle {K : ℕ} (j : Fin K) (S : ParityInstance K) :
     Adjacent S (toggle j S) :=
   ⟨j, adjacent_toggle_fst j S, adjacent_toggle_snd j S⟩
 
+/-- If two descriptions of the same adjacent input pair specify differing positions i and j,
+then i = j. -/
 lemma adjacent_unique {K : ℕ} {S S' : ParityInstance K} {i j : Fin K}
     (hi : ∀ k : Fin K, k ≠ i → (k ∈ S ↔ k ∈ S')) (hii : i ∈ S ↔ i ∉ S')
     (hj : ∀ k : Fin K, k ≠ j → (k ∈ S ↔ k ∈ S')) (hjj : j ∈ S ↔ j ∉ S') :
@@ -68,9 +109,12 @@ lemma adjacent_unique {K : ℕ} {S S' : ParityInstance K} {i j : Fin K}
   · exact (hiff.mp h) h
   · exact h (hiff.mpr h)
 
+/-- The type of ordered pairs of K-bit inputs satisfying `Adjacent`. -/
 def pairIndex (K : ℕ) : Type :=
   {p : ParityInstance K × ParityInstance K // Adjacent p.1 p.2}
 
+/-- The equivalence between a position paired with an input and an ordered adjacent-input pair,
+obtained by toggling that position. -/
 def adjacentEquiv (K : ℕ) :
     (Fin K × ParityInstance K) ≃ pairIndex K where
   toFun x := ⟨(x.2, toggle x.1 x.2), adjacent_toggle x.1 x.2⟩
@@ -114,8 +158,11 @@ def adjacentEquiv (K : ℕ) :
 instance pairIndexFintype (K : ℕ) : Fintype (pairIndex K) :=
   Fintype.ofEquiv (Fin K × ParityInstance K) (adjacentEquiv K)
 
+/-- The number of ordered adjacent pairs of K-bit inputs. -/
 def numPairs (K : ℕ) : ℕ := Fintype.card (pairIndex K)
 
+/-- There are exactly K · 2^K ordered adjacent pairs of K-bit inputs. See
+[FarhiGoldstoneGutmann2008]. -/
 theorem numPairs_eq (K : ℕ) : numPairs K = K * 2 ^ K := by
   unfold numPairs
   change @Fintype.card (pairIndex K)
@@ -123,10 +170,13 @@ theorem numPairs_eq (K : ℕ) : numPairs K = K * 2 ^ K := by
   rw [Fintype.ofEquiv_card (f := adjacentEquiv K)]
   rw [Fintype.card_prod, Fintype.card_fin, Fintype.card_set, Fintype.card_fin]
 
+/-- The sum of squared state distances over all ordered adjacent-input pairs at time t. -/
 def distanceSum {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
     {K : ℕ} (ψ : ParityInstance K → ℝ → V) (t : ℝ) : ℝ :=
   ∑ p : pairIndex K, ‖ψ p.1.1 t - ψ p.1.2 t‖ ^ 2
 
+/-- If all input trajectories start at the same vector, their adjacent-pair distance sum at time
+zero is zero. -/
 theorem distanceSum_zero {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
     {K : ℕ} (ψ : ParityInstance K → ℝ → V) (ψ0 : V)
     (h : ∀ S : ParityInstance K, ψ S 0 = ψ0) :
@@ -137,6 +187,8 @@ theorem distanceSum_zero {V : Type*} [NormedAddCommGroup V] [InnerProductSpace �
   rw [h p.1.1, h p.1.2]
   simp
 
+/-- If every ordered adjacent-pair value is at least δ, their sum is at least `numPairs K` times
+δ. -/
 theorem pairSum_ge_card_mul {K : ℕ} (d : pairIndex K → ℝ) (δ : ℝ)
     (h : ∀ p : pairIndex K, δ ≤ d p) :
     (numPairs K : ℝ) * δ ≤ ∑ p : pairIndex K, d p := by
@@ -144,6 +196,8 @@ theorem pairSum_ge_card_mul {K : ℕ} (d : pairIndex K → ℝ) (δ : ℝ)
     Finset.sum_le_sum (fun p _ => h p)
   rwa [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] at hsum
 
+/-- A function continuous on [0, T], vanishing at zero, and having derivative at most C on (0,
+T) satisfies F(T) ≤ CT when T ≥ 0. -/
 theorem le_mul_of_hasDerivAt_le {F g : ℝ → ℝ} {C T : ℝ} (hT : 0 ≤ T)
     (hF0 : F 0 = 0) (hcont : ContinuousOn F (Icc 0 T))
     (hderiv : ∀ t ∈ Ioo 0 T, HasDerivAt F (g t) t)
@@ -170,6 +224,8 @@ theorem le_mul_of_hasDerivAt_le {F g : ℝ → ℝ} {C T : ℝ} (hT : 0 ≤ T)
   have h' : 0 ≤ C * T - F T := by simpa [hF0] using h
   linarith
 
+/-- For K > 0 and δ > 0, a continuous distance aggregate starting at zero, with derivative at
+most 4 · 2^K and final value at least 2^K Kδ, requires T ≥ Kδ / 4. -/
 theorem parity_lower_bound_core (K : ℕ) (hK : 0 < K) (δ T : ℝ)
     (hδ : 0 < δ) (hT : 0 ≤ T) (F g : ℝ → ℝ)
     (hF0 : F 0 = 0) (hcont : ContinuousOn F (Icc 0 T))
@@ -188,6 +244,9 @@ theorem parity_lower_bound_core (K : ℕ) (hK : 0 < K) (δ T : ℝ)
   have hdiv : (K : ℝ) * δ ≤ 4 * T := le_of_mul_le_mul_left hchain hA
   linarith
 
+/-- A Hamiltonian oracle setup recording the input-dependent decomposition, bounded scalar
+control, Hermitian identities, and orthogonal projection maps with the norm estimates needed
+for the parity argument. -/
 structure ParitySetup (K : ℕ) (V : Type*) [NormedAddCommGroup V]
     [InnerProductSpace ℂ V] where
 
@@ -234,6 +293,8 @@ section DerivBound
 
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
 
+/-- For a map satisfying the Hermitian inner-product identity, the scalar inner product of x
+with its image has zero imaginary part. -/
 lemma im_inner_herm_self {T : V → V}
     (hT : ∀ x y : V, inner ℂ (T x) y = inner ℂ x (T y)) (x : V) :
     (inner ℂ x (T x)).im = 0 := by
@@ -243,6 +304,8 @@ lemma im_inner_herm_self {T : V → V}
       _ = inner ℂ x (T x) := inner_conj_symm x (T x)
   exact Complex.conj_eq_iff_im.mp h
 
+/-- For two maps satisfying the Hermitian inner-product identity, the imaginary part of ⟨u − w,
+Tu − T'w⟩ equals that of ⟨u, Tw − T'w⟩. -/
 lemma im_inner_sub_herm {T T' : V → V}
     (hT : ∀ x y : V, inner ℂ (T x) y = inner ℂ x (T y))
     (hT' : ∀ x y : V, inner ℂ (T' x) y = inner ℂ x (T' y)) (u w : V) :
@@ -257,11 +320,15 @@ lemma im_inner_sub_herm {T T' : V → V}
   rw [h1, h2, h3]
   ring
 
+/-- Twice the real part of the inner product between the state difference and its Schrödinger
+velocity difference for two inputs. -/
 def pairDeriv {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K → ℝ → V)
     (S S' : ParityInstance K) (t : ℝ) : ℝ :=
   2 * Complex.re (inner ℂ (ψ S t - ψ S' t)
     ((-Complex.I) • (M.H S t (ψ S t) - M.H S' t (ψ S' t))))
 
+/-- For trajectories satisfying the stated Schrödinger equations, the derivative of their
+squared distance is `pairDeriv`. -/
 lemma hasDerivAt_pair {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K → ℝ → V)
     (hschr : ∀ (S : ParityInstance K) (t : ℝ),
       HasDerivAt (ψ S) ((-Complex.I) • M.H S t (ψ S t)) t)
@@ -280,6 +347,8 @@ lemma hasDerivAt_pair {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K →
   rw [hre] at h2
   simpa only [pairDeriv, smul_sub] using h2
 
+/-- For inputs differing only at j, the Hamiltonian difference acting on x equals the scalar
+control times the difference of their j-th oracle components. -/
 lemma H_sub_eq {K : ℕ} (M : ParitySetup K V) (j : Fin K) (S : ParityInstance K)
     (t : ℝ) (x : V) :
     M.H S t x - M.H (toggle j S) t x
@@ -312,6 +381,8 @@ lemma H_sub_eq {K : ℕ} (M : ParitySetup K V) (j : Fin K) (S : ParityInstance K
     abel
   rw [hcancel, hsum]
 
+/-- The adjacent-pair quantity `pairDeriv` is at most twice the sum of the squared j-th
+projected norms of the two states. -/
 lemma pair_deriv_bound {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K → ℝ → V)
     (j : Fin K) (S : ParityInstance K) (t : ℝ) :
     pairDeriv M ψ S (toggle j S) t
@@ -409,6 +480,9 @@ lemma pair_deriv_bound {K : ℕ} (M : ParitySetup K V) (ψ : ParityInstance K �
 
 end DerivBound
 
+/-- For trajectories of norm at most 1 satisfying the Schrödinger equations of `ParitySetup`,
+the adjacent-pair distance sum is continuous on [0, T] and has a derivative bounded above by
+4 · 2^K on (0, T). See [FarhiGoldstoneGutmann2008]. -/
 theorem distance_sum_growth_bound
     {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
     (K : ℕ) (M : ParitySetup K V) (T : ℝ)
@@ -531,6 +605,9 @@ theorem distance_sum_growth_bound
             linarith [hfirst, hsecond]
       _ = 4 * (2 : ℝ) ^ K := by ring
 
+/-- For K > 0, δ > 0, and T ≥ 0, norm-bounded Schrödinger trajectories in `ParitySetup` with a
+common initial state and squared separation at least δ on every adjacent pair satisfy T ≥ Kδ
+/ 4. See [FarhiGoldstoneGutmann2008]. -/
 theorem hamiltonian_parity_lower_bound
     {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
     (K : ℕ) (hK : 0 < K) (δ T : ℝ) (hδ : 0 < δ) (hT : 0 ≤ T)
@@ -559,6 +636,9 @@ theorem hamiltonian_parity_lower_bound
   exact parity_lower_bound_core K hK δ T hδ hT (distanceSum ψ) g' hF0 hcont
     hderiv hbound hsuccess
 
+/-- For K > 0, δ > 0, and T ≥ 0, norm-bounded Schrödinger trajectories in `ParitySetup` with a
+common initial state and norm separation at least δ on every adjacent pair satisfy T ≥ Kδ² /
+4. See [FarhiGoldstoneGutmann2008]. -/
 theorem hamiltonian_parity_lower_bound_of_norm_sep
     {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
     (K : ℕ) (hK : 0 < K) (δ T : ℝ) (hδ : 0 < δ) (hT : 0 ≤ T)

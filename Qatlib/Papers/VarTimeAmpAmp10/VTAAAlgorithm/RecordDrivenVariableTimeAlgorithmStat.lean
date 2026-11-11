@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascade
+
+/-!
+# Specification of the record-driven variable-time algorithm
+
+The proposition `RecordDrivenVariableTimeAlgorithm` states a finite-record amplification
+guarantee for a nonempty legal supported growing-stop pipeline starting in the running sector.
+It assumes complete final stopping and a success floor `1 / (10^12 * m³)`, and requires a
+probability law, legal words, good-record mass at least `9 / 10`, output success at least `2 /
+5`, preservation of the good-state direction, and explicit time bounds.
+
+This is the record-driven specification associated with the variable-time construction of
+[Ambainis2012]. Its output-word and total-time bounds have different polynomial factors in the
+stage count.
+
+## Main statements
+
+* `RecordDrivenVariableTimeAlgorithm`: the record-law, legality, output-state, and runtime
+  specification.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +42,12 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 set_option autoImplicit false
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 
+/-- The record-driven amplification specification for nonempty legal supported growing-stop
+pipelines starting in the running sector, with zero final running mass and success `p ≥ 1 /
+(10^12 * m³)`. It requires normalized nonnegative record weights, legal words, and a set of
+record mass at least `9 / 10` with success at least `2 / 5`, running mass at most `3 / 5`,
+the original good-state direction, output-word time at most `1000 * m² * (Tmax + reachedTav
+/ sqrt p)`, and total time at most `10^18 * m^6 * sqrt m * (Tmax + reachedTav / sqrt p)`. -/
 def RecordDrivenVariableTimeAlgorithm : Prop :=
   ∀ (C : Type) [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C),

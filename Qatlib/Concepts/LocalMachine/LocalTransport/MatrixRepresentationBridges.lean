@@ -20,6 +20,36 @@ import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.Order.Floor.Ring
 import Mathlib.Algebra.Ring.BooleanRing
+
+/-!
+# Matrix representation bridges and counterexamples
+
+This module connects phase recovery, near-isometric frames, sparse overlap encodings, quantized
+matrices, and finite numerical circuit representations. The singular value transformation
+viewpoint is developed in [GilyenSuLowWiebe2019]; the bridge statements here include their
+explicit hypotheses, error estimates, and recorded resource bounds.
+
+Alongside the positive results `clause33`, `clause41`, `clause45`, `optGoal`, and `tunableGoal`,
+the module gives counterexamples to several proposed universal representation statements. These
+identify failures involving noncontractive frame filters, the stated dynamic-schedule predicate,
+access-count bookkeeping, and column indexing.
+
+## Main statements
+
+* `clause33`: construct a phase recovery record with polynomially bounded recorded cost and
+  conditional certificates.
+* `optGoal`: combine polar correction estimates with finite frame synthesis.
+* `tunableGoal`: combine dyadic quantization, spectral perturbation, and postselection bounds.
+* `frame_filter_noncontractive_counterexample`: refute a uniform frame-filter error bound for
+  unrestricted circuit matrices.
+* `one_wire_unitary_without_dynamic_schedule`: exhibit a unitary excluded by the specified
+  schedule conditions.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -76,11 +106,14 @@ open Qatlib.Concepts.NativeNumerics.PhaseSynthesis Qatlib.Concepts.SignalPrimiti
 open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Matrix.Norms.L2Operator
 
+/-- Replace fixed gates by identity gates and replace either direction of oracle query by a
+query step. -/
 private def toFiniteBackendStep {N : ℕ} : AdjointStep (Reg N) → Step (Reg N)
   | .gate _ => .gate (1 : Matrix (Reg N) (Reg N) ℂ)
   | .forward => .query
   | .backward => .query
 
+/-- Every gate produced by `toFiniteBackendStep` has identity matrix. -/
 private theorem toFiniteBackendStep_gate_eq {N : ℕ} (s : AdjointStep (Reg N))
     (U : Matrix (Reg N) (Reg N) ℂ) (h : toFiniteBackendStep s = Step.gate U) : U = 1 := by
   cases s with
@@ -90,6 +123,7 @@ private theorem toFiniteBackendStep_gate_eq {N : ℕ} (s : AdjointStep (Reg N))
   | forward => simp [toFiniteBackendStep] at h
   | backward => simp [toFiniteBackendStep] at h
 
+/-- Mapping instructions through `toFiniteBackendStep` preserves the oracle query count. -/
 private theorem queryCount_map_toFiniteBackendStep {N : ℕ} (cs : List (AdjointStep (Reg N))) :
     QueryCount (cs.map toFiniteBackendStep) = adjointQueryCount cs := by
   induction cs with
@@ -97,6 +131,7 @@ private theorem queryCount_map_toFiniteBackendStep {N : ℕ} (cs : List (Adjoint
   | cons s cs ih =>
     cases s <;> simp [toFiniteBackendStep, adjointQueryCount, ih]
 
+/-- Mapping instructions through `toFiniteBackendStep` preserves the fixed gate count. -/
 private theorem gateCount_map_toFiniteBackendStep {N : ℕ} (cs : List (AdjointStep (Reg N))) :
     GateCount (cs.map toFiniteBackendStep) = adjointGateCount cs := by
   induction cs with
@@ -104,6 +139,8 @@ private theorem gateCount_map_toFiniteBackendStep {N : ℕ} (cs : List (AdjointS
   | cons s cs ih =>
     cases s <;> simp [toFiniteBackendStep, adjointGateCount, ih]
 
+/-- The circuit obtained by replacing fixed gates with identities lies on the numerical finite
+backend at every precision. -/
 private theorem onFiniteBackend_map_toFiniteBackendStep {N : ℕ} (k : ℕ)
     (cs : List (AdjointStep (Reg N))) : OnFiniteBackend k (cs.map toFiniteBackendStep) := by
   intro U hU
@@ -112,6 +149,7 @@ private theorem onFiniteBackend_map_toFiniteBackendStep {N : ℕ} (k : ℕ)
   subst hU1
   exact ⟨[], rfl⟩
 
+/-- The circuit obtained through `toFiniteBackendStep` has unitary fixed gates. -/
 private theorem isUnitaryCircuit_map_toFiniteBackendStep {N : ℕ}
     (cs : List (AdjointStep (Reg N))) : IsUnitaryCircuit (cs.map toFiniteBackendStep) := by
   intro U hU
@@ -120,6 +158,8 @@ private theorem isUnitaryCircuit_map_toFiniteBackendStep {N : ℕ}
   subst hU1
   exact (Matrix.unitaryGroup (Reg N) ℂ).one_mem
 
+/-- Every instruction in a well-formed adjoint-query circuit with unitary oracle has operator
+norm at most one. -/
 private theorem instruction_norm_le {N : ℕ} (O : Matrix (Reg N) (Reg N) ℂ)
     (cs : List (AdjointStep (Reg N))) (hO : O ∈ Matrix.unitaryGroup (Reg N) ℂ)
     (hcs : WellFormedAdjointCircuit cs) (s : AdjointStep (Reg N)) (hs : s ∈ cs) :
@@ -132,6 +172,8 @@ private theorem instruction_norm_le {N : ℕ} (O : Matrix (Reg N) (Reg N) ℂ)
     rw [Matrix.l2_opNorm_conjTranspose]
     exact unitary_norm_le_one hO
 
+/-- With a unitary oracle, running the circuit produced by `toFiniteBackendStep` cannot increase
+the Euclidean norm. -/
 private theorem run_toFiniteBackendStep_norm_le {N : ℕ} (O : Matrix (Reg N) (Reg N) ℂ)
     (hO : O ∈ Matrix.unitaryGroup (Reg N) ℂ) (cs : List (AdjointStep (Reg N)))
     (ψ : QState (Reg N)) :
@@ -161,6 +203,8 @@ private theorem run_toFiniteBackendStep_norm_le {N : ℕ} (O : Matrix (Reg N) (R
         _ ≤ 1 * ‖toEuclidean_fromVec ψ‖ := mul_le_mul_of_nonneg_right hOle (norm_nonneg _)
         _ = ‖toEuclidean_fromVec ψ‖ := one_mul _
 
+/-- A circuit whose instruction matrices are contractions cannot increase the Euclidean norm of
+a state vector. -/
 private theorem evaluate_mulVec_norm_le {N : ℕ} (O : Matrix (Reg N) (Reg N) ℂ)
     (cs : List (AdjointStep (Reg N))) (ψ : QState (Reg N))
     (h : ∀ s ∈ cs, ‖instructionMatrix O s‖ ≤ 1) :
@@ -183,6 +227,8 @@ private theorem evaluate_mulVec_norm_le {N : ℕ} (O : Matrix (Reg N) (Reg N) �
       _ ≤ 1 * ‖toEuclidean_fromVec ψ‖ := mul_le_mul_of_nonneg_left (ih ψ h.2) zero_le_one
       _ = ‖toEuclidean_fromVec ψ‖ := one_mul _
 
+/-- Reindexing a unitary matrix from a Boolean flag and register to a single larger register
+preserves unitarity. -/
 private theorem flagRegisterMatrix_mem_unitaryGroup {n : ℕ}
     (M : Matrix (Bool × Reg n) (Bool × Reg n) ℂ)
     (hM : M ∈ Matrix.unitaryGroup (Bool × Reg n) ℂ) :
@@ -191,6 +237,8 @@ private theorem flagRegisterMatrix_mem_unitaryGroup {n : ℕ}
   rw [hEq]
   exact (relabelGate_mem_unitaryGroup (flagRegEquiv n).symm M).2 hM
 
+/-- Filtering two well-formed circuits using an isometric frame gives a well-formed
+adjoint-query circuit. -/
 private theorem wellFormed_frameFilteredWord {w m : ℕ}
     (F : Matrix (Reg w) (Fin m) ℂ) (hF : IsIsometry F)
     (ca cb : List (AdjointStep (Reg w)))
@@ -223,6 +271,8 @@ private theorem wellFormed_frameFilteredWord {w m : ℕ}
     simpa [WellFormedAdjointCircuit] using! hfilter
   simpa [frameFilteredWord] using! ((h1.append h3).append h2)
 
+/-- Reindexing the flag and register of a well-formed adjoint-query word preserves
+well-formedness. -/
 private theorem wellFormed_flagRegWord {n : ℕ} {cs : List (AdjointStep (Bool × Reg n))}
     (hcs : WellFormedAdjointCircuit cs) : WellFormedAdjointCircuit (flagRegWord cs) := by
   induction cs with
@@ -242,6 +292,9 @@ private theorem wellFormed_flagRegWord {n : ℕ} {cs : List (AdjointStep (Bool �
       simpa only [flagRegStep, WellFormedAdjointCircuit.backward_cons_iff]
         using! ih hts
 
+/-- Collect numerical local-circuit error and count bounds, existence of finite-backend
+approximations to well-formed adjoint circuits, and the corresponding polar-corrected
+frame-filter constructions with resource ledgers. -/
 theorem clause45 :
 
   (∀ (n k : ℕ) (gs : List (LocalQFTGate n)),
@@ -361,11 +414,15 @@ theorem clause45 :
       rw [h2]
       exact hnorm
 
+/-- Extract phase data from finite phase synthesis, using an empty phase packet with unit base
+when synthesis returns no value. -/
 private def recoveryPacket (e : EffectivePhaseInput) : PhaseData :=
   match (finitePhaseSynthesis e.coeffs e.deg e.tol).value with
   | some data => data
   | none => ⟨gone, []⟩
 
+/-- The phase recovery record using `recoveryPacket`, with recorded cost `(deg + 1) *
+(phaseToleranceBits tol + 1)` and degree-based response counters. -/
 private def recoveryProgram : PhaseRecoveryProgram where
   recover := recoveryPacket
   bitCost := fun e => (e.deg + 1) * (phaseToleranceBits e.tol + 1)
@@ -375,6 +432,8 @@ private def recoveryProgram : PhaseRecoveryProgram where
   degExp := 1
   tolExp := 1
 
+/-- For admissible phase input, `recoveryProgram` satisfies the phase-length, unit-modulus,
+approximation, and counter certificate. -/
 private theorem recoveryPacket_certified (e : EffectivePhaseInput) (h : e.Admissible) :
     recoveryProgram.CertifiedAt e := by
   have hsyn := finite_rational_phase_synthesis_terminates e.coeffs e.deg e.tol
@@ -389,6 +448,8 @@ private theorem recoveryPacket_certified (e : EffectivePhaseInput) (h : e.Admiss
   rw [hrec]
   refine ⟨hlen, hbase, hphases, hscore, happrox, rfl, rfl⟩
 
+/-- For admissible phase input, the recovered phases yield the well-formed words, exact counts,
+and parity-dependent block encodings required by `WordConnectedAt`. -/
 private theorem recoveryPacket_wordConnected (e : EffectivePhaseInput) (h : e.Admissible) :
     recoveryProgram.WordConnectedAt e := by
   intro H I O _ _ _ _ _ _ A U L R henc
@@ -403,6 +464,8 @@ private theorem recoveryPacket_wordConnected (e : EffectivePhaseInput) (h : e.Ad
   rw [hrec]
   exact ⟨hWF, hq, hg, hodd, heven⟩
 
+/-- There exists a phase recovery record with polynomially bounded recorded cost and
+certification and word-connection properties for admissible range, inverse, and sign inputs. -/
 theorem clause33 :
   ∃ P : PhaseRecoveryProgram,
 
@@ -431,6 +494,8 @@ theorem clause33 :
   · intro k eps _ hadm
     exact ⟨recoveryPacket_certified _ hadm, recoveryPacket_wordConnected _ hadm⟩
 
+/-- If the Gram matrix of `A` is within `α < 1` of identity, its polar-corrected range projector
+differs from `A * Aᴴ` by at most `α * (2 - α)`. -/
 private theorem polar_projector_error {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix H I ℂ) (α : ℝ)
     (hα : 0 ≤ α) (hsmall : α < 1) (hGram : ‖Aᴴ * A - 1‖ ≤ α) :
@@ -516,6 +581,9 @@ private theorem polar_projector_error {H I : Type} [Fintype H] [DecidableEq H]
 
 set_option maxHeartbeats 800000
 
+/-- A near-isometric matrix has a range-preserving polar correction with the stated norm and
+transport bounds. Certified finite frame data also possess preparation and reflection tables
+with the stated synthesis and ledger bounds. -/
 theorem optGoal :
 
   (∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
@@ -610,14 +678,18 @@ theorem optGoal :
       unfold frameDataBitCost
       exact Nat.le_add_left _ _
 
+/-- Extend matrix rows along a map by choosing a preimage on its image and assigning zero
+outside the image. -/
 private noncomputable def zeroExtend {X Y Z : Type} (e : X → Y) (M : Matrix X Z ℂ) :
     Matrix Y Z ℂ :=
   fun y z => Function.extend e (fun x : X => M x) (fun _ : Y => (0 : Z → ℂ)) y z
 
+/-- For an injective row map, zero extension agrees with the original matrix on mapped rows. -/
 private theorem zeroExtend_apply {X Y Z : Type} {e : X → Y} (he : Function.Injective e)
     (M : Matrix X Z ℂ) (x : X) (z : Z) : zeroExtend e M (e x) z = M x z := by
   simp [zeroExtend, he.extend_apply]
 
+/-- A row outside the image of the extension map is zero in the extended matrix. -/
 private theorem zeroExtend_apply_not {X Y Z : Type} {e : X → Y} (M : Matrix X Z ℂ)
     {y : Y} (hy : ¬ ∃ x : X, e x = y) (z : Z) : zeroExtend e M y z = 0 := by
   have h : Function.extend e (fun x : X => M x) (fun _ : Y => (0 : Z → ℂ)) y
@@ -625,6 +697,8 @@ private theorem zeroExtend_apply_not {X Y Z : Type} {e : X → Y} (M : Matrix X 
     Function.extend_apply' (fun x : X => M x) (fun _ : Y => (0 : Z → ℂ)) y hy
   simp [zeroExtend, h]
 
+/-- Extending two matrices by zero along the same injective row map preserves their
+conjugate-transpose product. -/
 private theorem zeroExtend_conjTranspose_mul {X Y Z₁ Z₂ : Type} [Fintype X] [Fintype Y]
     {e : X → Y} (he : Function.Injective e) (M : Matrix X Z₁ ℂ) (N : Matrix X Z₂ ℂ) :
     (zeroExtend e M)ᴴ * (zeroExtend e N) = Mᴴ * N := by
@@ -648,6 +722,9 @@ private theorem zeroExtend_conjTranspose_mul {X Y Z₁ Z₂ : Type} [Fintype X] 
     exact ⟨x, by simp, hx⟩
   · simp [zeroExtend_apply he M x i, zeroExtend_apply he N x j]
 
+/-- Collect sparse overlap isometry and compression identities, sparse matrix norm and encoding
+bounds, and existence of a sparse pipeline with the stated approximation and call-ledger
+properties. -/
 theorem clause41 :
 
   (∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
@@ -781,6 +858,8 @@ theorem clause41 :
   · simp only [sparsePipelineLedger]
     omega
 
+/-- Rounding `x * 2^k` down and dividing by `2^k` approximates `x` with absolute error at most
+`2^(-k)`. -/
 private theorem quant_floor_error (x : ℝ) (k : ℕ) :
     |(⌊x * 2^k⌋ : ℝ) / 2^k - x| ≤ 1 / 2^k := by
   have hd : (0 : ℝ) < 2^k := by positivity
@@ -792,6 +871,8 @@ private theorem quant_floor_error (x : ℝ) (k : ℕ) :
   rw [sub_mul, div_mul_cancel₀ _ hd.ne']
   linarith
 
+/-- For positive `δ`, choosing the exponent as the ceiling of `logb 2 (2 / δ)` makes `2 /
+2^exponent` at most `δ`. -/
 private theorem quant_denominator (δ : ℝ) (hδ : 0 < δ) :
     2 / (2 : ℝ) ^ Nat.ceil (Real.logb 2 (2 / δ)) ≤ δ := by
   have h := (Real.logb_le_iff_le_rpow (by norm_num : (1 : ℝ) < 2)
@@ -801,10 +882,14 @@ private theorem quant_denominator (δ : ℝ) (hδ : 0 < δ) :
   apply (div_le_iff₀ (by positivity)).mpr
   nlinarith
 
+/-- Quantize the real and imaginary parts of each matrix entry by flooring after multiplication
+by `2^k`. -/
 private noncomputable def quantized {O I : Type} (A : Matrix O I ℂ) (k : ℕ) :
     QuantizedMatrixInput O I :=
   ⟨fun i j => (⌊(A i j).re * 2^k⌋, ⌊(A i j).im * 2^k⌋), k⟩
 
+/-- Express a dyadic complex value as the real numerator over `2^k` plus `I` times the imaginary
+numerator over `2^k`. -/
 private theorem dyadicValue_eq_pair (p : ℤ × ℤ) (k : ℕ) :
     dyadicValue p k = (((p.1 : ℝ) / 2^k : ℝ) : ℂ) +
       Complex.I * (((p.2 : ℝ) / 2^k : ℝ) : ℂ) := by
@@ -812,6 +897,8 @@ private theorem dyadicValue_eq_pair (p : ℤ × ℤ) (k : ℕ) :
   push_cast
   ring
 
+/-- Each entry of the floor-quantized matrix differs from the original entry by at most `2 /
+2^k`. -/
 private theorem quantized_entry {O I : Type} (A : Matrix O I ℂ) (k : ℕ) (o : O) (i : I) :
     ‖(quantized A k).matrix o i - A o i‖ ≤ 2 / (2:ℝ)^k := by
   have hre := quant_floor_error (A o i).re k
@@ -830,6 +917,8 @@ private theorem quantized_entry {O I : Type} (A : Matrix O I ℂ) (k : ℕ) (o :
   rw [hr, hi] at hnorm
   exact hnorm.trans ((add_le_add hre him).trans_eq (by ring))
 
+/-- An entrywise norm bound `δ` bounds the spectral Frobenius norm by the square root of the
+number of entries times `δ`. -/
 theorem spectralFrobenius_le_entry_bound {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) (δ : ℝ) (hδ : 0 ≤ δ) (hA : ∀ o i, ‖A o i‖ ≤ δ) :
     spectralFrobenius A ≤ Real.sqrt ((Fintype.card O * Fintype.card I : ℕ) : ℝ) * δ := by
@@ -849,6 +938,8 @@ theorem spectralFrobenius_le_entry_bound {O I : Type} [Fintype O] [Fintype I]
   have hn : 0 ≤ Real.sqrt ((Fintype.card O * Fintype.card I : ℕ) : ℝ) * δ := by positivity
   nlinarith
 
+/-- If `B` is within operator distance `Δ` of `A`, their Gram matrices differ by at most `(2 *
+‖A‖ + Δ) * Δ`. -/
 theorem gram_difference_le {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A B : Matrix O I ℂ) (Δ : ℝ)
     (hΔ : 0 ≤ Δ) (hAB : ‖B - A‖ ≤ Δ) :
@@ -870,10 +961,14 @@ theorem gram_difference_le {O I : Type} [Fintype O] [DecidableEq O]
         (mul_le_mul_of_nonneg_left hAB (norm_nonneg _))
     _ = _ := by ring
 
+/-- Form dyadic Hermitian data by averaging a quantized matrix with its conjugate transpose,
+increasing the denominator precision by one bit. -/
 private def symmetrizedQuantization {I : Type} (q : QuantizedMatrixInput I I) :
     QuantizedMatrixInput I I :=
   ⟨fun i j => ((q.num i j).1 + (q.num j i).1, (q.num i j).2 - (q.num j i).2), q.bits + 1⟩
 
+/-- The symmetrized entry is the average of the original entry and the conjugate of its
+transposed entry. -/
 private theorem symmetrizedQuantization_entry {I : Type}
     (q : QuantizedMatrixInput I I) (i j : I) :
     (symmetrizedQuantization q).matrix i j = (q.matrix i j + star (q.matrix j i)) / 2 := by
@@ -883,12 +978,14 @@ private theorem symmetrizedQuantization_entry {I : Type}
   field_simp
   ring
 
+/-- Symmetrizing quantized matrix data produces a Hermitian matrix. -/
 private theorem symmetrizedQuantization_hermitian {I : Type}
     (q : QuantizedMatrixInput I I) : (symmetrizedQuantization q).matrix.IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro i j
   simp [symmetrizedQuantization_entry, add_comm]
 
+/-- For a Hermitian target, symmetrization preserves any uniform entrywise approximation bound. -/
 private theorem symmetrizedQuantization_error {I : Type}
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (q : QuantizedMatrixInput I I)
     (δ : ℝ) (hδ : ∀ i j, ‖q.matrix i j - A i j‖ ≤ δ) (i j : I) :
@@ -909,6 +1006,9 @@ private theorem symmetrizedQuantization_error {I : Type}
       mul_le_mul_of_nonneg_left ((norm_add_le _ _).trans (add_le_add (hδ i j) hstar)) (by norm_num)
     _ = δ := by ring
 
+/-- Collect tunable dyadic matrix approximation bounds, Hermitian quantization, and Lipschitz
+polynomial-response stability. Under the stated nonzero-output gap, the same response words
+give postselection probability and normalized-output error bounds. -/
 theorem tunableGoal :
 
   (∀ (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
@@ -1048,6 +1148,8 @@ theorem tunableGoal :
         div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_left hηΔ (by norm_num)) (norm_nonneg _)
       exact hb.trans_eq (by dsimp [Δ]; ring)
 
+/-- A one-column dyadic frame of value `1 / 2` on the zero-qubit register, with identity input
+frame and recorded Gram error `3 / 4`. -/
 private noncomputable abbrev scaledSingletonFrame : FiniteFrameData where
   inputIndex := 1
   workspaceWires := 0
@@ -1056,12 +1158,14 @@ private noncomputable abbrev scaledSingletonFrame : FiniteFrameData where
   inputFrame := fun _ _ => 1
   gramErr := 3/4
 
+/-- Every entry of the singleton frame is `1 / 2`. -/
 private theorem scaledSingletonFrame_matrix : scaledSingletonFrame.frame =
     (fun _ : Reg 0 => fun _ : Fin 1 => (1/2 : ℂ)) := by
   ext i j
   dsimp only [FiniteFrameData.frame, scaledSingletonFrame, dyadicValue]
   norm_num
 
+/-- The Gram matrix of the scaled singleton frame is `1 / 4` times the identity. -/
 private theorem scaledSingletonFrame_gram :
     scaledSingletonFrame.frameᴴ * scaledSingletonFrame.frame =
       (1/4 : ℂ) • (1 : Matrix (Fin 1) (Fin 1) ℂ) := by
@@ -1071,6 +1175,7 @@ private theorem scaledSingletonFrame_gram :
   subst j
   norm_num [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.smul_apply, Fintype.sum_unique]
 
+/-- The scaled singleton frame satisfies the finite-frame certification conditions. -/
 private theorem scaledSingletonFrame_certified : scaledSingletonFrame.IsCertified := by
   refine ⟨?_,?_,by norm_num [scaledSingletonFrame]⟩
   · let E : Matrix (Reg 0) (Fin 1) ℂ := fun _ _ => 1
@@ -1085,6 +1190,7 @@ private theorem scaledSingletonFrame_certified : scaledSingletonFrame.IsCertifie
     rw [h,norm_smul,norm_one]
     norm_num [scaledSingletonFrame]
 
+/-- The matrix `rangeProjector` of the scaled singleton frame is `1 / 4` times the identity. -/
 private theorem scaledSingletonFrame_range : rangeProjector scaledSingletonFrame.frame =
     (1/4 : ℂ) • (1 : Matrix (Reg 0) (Reg 0) ℂ) := by
   unfold rangeProjector
@@ -1094,6 +1200,7 @@ private theorem scaledSingletonFrame_range : rangeProjector scaledSingletonFrame
   subst j
   norm_num [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.smul_apply, Fin.sum_univ_one]
 
+/-- The polar-corrected singleton frame has `rangeProjector` equal to the identity. -/
 private theorem scaledSingletonFrame_polar_range :
     rangeProjector (nearColumnPolar scaledSingletonFrame.frame) =
       (1 : Matrix (Reg 0) (Reg 0) ℂ) := by
@@ -1112,6 +1219,8 @@ private theorem scaledSingletonFrame_polar_range :
   simpa only [rangeProjector, Matrix.mul_apply, Matrix.conjTranspose_apply,
     Fin.sum_univ_one, Matrix.one_apply_eq, mul_comm] using! he
 
+/-- Filtering a single gate equal to four times identity against an empty second circuit gives
+four times the frame flag filter. -/
 private theorem filter_scalar_body (F : Matrix (Reg 0) (Fin 1) ℂ) :
     evaluate (parallelOracle (J := Bool) (1 : Matrix (Reg 0) (Reg 0) ℂ))
       (frameFilteredWord F [.gate ((4 : ℂ) • 1)] []) = (4 : ℂ) • frameFlagFilter F := by
@@ -1126,6 +1235,7 @@ private theorem filter_scalar_body (F : Matrix (Reg 0) (Fin 1) ℂ) :
       simp [TensorGate, Matrix.smul_apply, Matrix.one_apply, Prod.ext_iff, hflag, hdata]
   rw [h, Matrix.mul_smul, Matrix.mul_one]
 
+/-- The norm of any matrix entry is at most the matrix operator norm. -/
 private theorem operator_entry_bound {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (i j : I) : ‖A i j‖ ≤ ‖A‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖ = 1 := by
@@ -1142,6 +1252,8 @@ private theorem operator_entry_bound {I : Type} [Fintype I] [DecidableEq I]
   rw [he] at hi
   exact hi.trans hn
 
+/-- For the scaled singleton frame and a gate of norm four, the proposed frame-filter error
+bound `2 * gramErr * (2 - gramErr)` fails. -/
 private theorem scaledSingletonFrame_error_refutation :
     ¬ (‖evaluate (parallelOracle (J := Bool) (1 : Matrix (Reg 0) (Reg 0) ℂ))
         (frameFilteredWord scaledSingletonFrame.frame [.gate ((4 : ℂ) • 1)] []) -
@@ -1166,6 +1278,8 @@ private theorem scaledSingletonFrame_error_refutation :
   change ‖E‖ ≤ (15/8 : ℝ) at hb
   linarith
 
+/-- There exist certified frame data and a unitary oracle for which a circuit evaluation of norm
+four violates the proposed uniform polar-correction error bound for frame filtering. -/
 theorem frame_filter_noncontractive_counterexample :
     ∃ d : FiniteFrameData, d.IsCertified ∧
       ∃ (O : Matrix (Reg d.workspaceWires) (Reg d.workspaceWires) ℂ)
@@ -1183,6 +1297,8 @@ theorem frame_filter_noncontractive_counterexample :
     norm_num
   · exact lt_of_not_ge scaledSingletonFrame_error_refutation
 
+/-- The displayed conjunction of frame-filter realization, count, synthesis, and uniform error
+claims is false, as witnessed by the noncontractive frame-filter counterexample. -/
 theorem not_clause36 : ¬ (
 
   (∀ (H M : Type) [Fintype H] [DecidableEq H] [Fintype M] [DecidableEq M]
@@ -1237,17 +1353,21 @@ theorem not_clause36 : ¬ (
     [.gate ((4 : ℂ) • 1)] []
   exact scaledSingletonFrame_error_refutation herr
 
+/-- Flip the unique bit of a one-qubit register. -/
 private def oneWireFlip (x : Reg 1) : Reg 1 := fun i => !(x i)
 
+/-- The permutation matrix for flipping the unique bit of a one-qubit register. -/
 private noncomputable def oneWireFlipMatrix : Matrix (Reg 1) (Reg 1) ℂ :=
   permMatrix oneWireFlip
 
+/-- The one-wire bit-flip matrix is unitary. -/
 private theorem oneWireFlip_unitary : oneWireFlipMatrix ∈ Matrix.unitaryGroup (Reg 1) ℂ := by
   apply permMatrix_unitary
   intro x
   funext i
   exact Bool.not_not (x i)
 
+/-- The one-wire bit-flip matrix fails `IsWireLift` for every subset of its wire set. -/
 private theorem oneWireFlip_not_lift (w : Finset (Fin 1)) : ¬ IsWireLift w oneWireFlipMatrix := by
   intro h
   let a : Reg 1 := fun _ => false
@@ -1274,6 +1394,8 @@ private theorem oneWireFlip_not_lift (w : Finset (Fin 1)) : ¬ IsWireLift w oneW
     rw [hab',haa] at he
     norm_num at he
 
+/-- There exists a one-wire unitary whose single-gate circuit has no well-formed realization
+under the specified dynamic-schedule conditions. -/
 theorem one_wire_unitary_without_dynamic_schedule :
     ∃ U : Matrix (Reg 1) (Reg 1) ℂ, U ∈ Matrix.unitaryGroup (Reg 1) ℂ ∧
       ¬ ∃ s : DynSchedule 1, s.WellFormed ∧ s.Realizes 1 [.gate U] := by
@@ -1288,6 +1410,8 @@ theorem one_wire_unitary_without_dynamic_schedule :
   rw [hop] at hst
   exact oneWireFlip_not_lift st.wires hst
 
+/-- The displayed universal dynamic-schedule claims are false under the given `IsWireLift` and
+realization definitions. -/
 theorem not_clause37 : ¬ (
 
   (∀ (N : ℕ) (O : Matrix (Reg N) (Reg N) ℂ) (cs : List (AdjointStep (Reg N))),
@@ -1311,6 +1435,8 @@ theorem not_clause37 : ¬ (
   obtain ⟨s,hw,hr,_,_⟩ := h.1 1 1 [.gate U]
   exact hno ⟨s,hw,hr⟩
 
+/-- Compiled access totals count all forward and backward demands and count controlled demands
+exactly when controlled access is supplied. -/
 theorem compiled_access_word_totals {H : Type} (a : UnknownAccess H) (ds : List AccessDemand) :
     compiledCallTotals (compileAccessWord a ds) =
       ((ds.filter (· = .forward)).length, (ds.filter (· = .backward)).length,
@@ -1323,6 +1449,8 @@ theorem compiled_access_word_totals {H : Type} (a : UnknownAccess H) (ds : List 
     cases d <;> cases hf : a.suppliesControlled <;>
       simp [compileAccess, CompiledAccess.callCounts, hf]
 
+/-- The displayed access-compilation conjunction is false because its split-word counting clause
+equates totals for the whole word with counts from only a prefix. -/
 theorem not_clause38 : ¬ (
 
   (∀ (H : Type) [Fintype H] [DecidableEq H] (a : UnknownAccess H),
@@ -1362,14 +1490,18 @@ theorem not_clause38 : ¬ (
   have hf := ht.1
   norm_num [compileAccessWord, compiledCallTotals, compileAccess, CompiledAccess.callCounts] at hf
 
+/-- The explicit three-row, one-column matrix input whose first entry is one and whose other
+entries are zero. -/
 private noncomputable abbrev collidingColumn : MatrixInputModel :=
   .explicit 3 1 (fun i _ => if i = 0 then (1,0) else (0,0)) 0
 
+/-- The described matrix of `collidingColumn` is one in row zero and zero in every other row. -/
 private theorem collidingColumn_entry (i : Fin 3) (j : Fin 1) :
     collidingColumn.describedMatrix i j = if i = 0 then (1 : ℂ) else 0 := by
   fin_cases i <;> fin_cases j <;>
     norm_num [collidingColumn, MatrixInputModel.describedMatrix, dyadicValue]
 
+/-- The operator norm of the matrix described by `collidingColumn` is at most one. -/
 private theorem collidingColumn_norm : ‖collidingColumn.describedMatrix‖ ≤ 1 := by
   apply (spectral_operator_norm_le_frobenius _).trans
   change Real.sqrt (∑ i : Fin 3, ∑ j : Fin 1, Complex.normSq
@@ -1377,6 +1509,8 @@ private theorem collidingColumn_norm : ‖collidingColumn.describedMatrix‖ ≤
   simp only [collidingColumn_entry]
   norm_num [Fin.sum_univ_succ]
 
+/-- For every three-qubit state vector and real scaling factor, the displayed column
+approximation using the implicit register casts has squared error at least `1 / 2`. -/
 theorem parity_cast_column_error_lower (φ : QState (Reg 3)) (c : ℝ) :
     (1/2 : ℝ) ≤ ∑ i : Fin 3, ‖(c:ℂ) * φ i - (if i = 0 then (1:ℂ) else 0)‖^2 := by
   have he : (∑ i : Fin 3, ‖(c:ℂ) * φ i - (if i = 0 then (1:ℂ) else 0)‖^2) =
@@ -1393,6 +1527,8 @@ theorem parity_cast_column_error_lower (φ : QState (Reg 3)) (c : ℝ) :
   nlinarith [sq_nonneg (‖(c:ℂ)*φ (0 : Reg 3) - 1‖ - ‖(c:ℂ)*φ (0 : Reg 3)‖),
     sq_nonneg ‖(c:ℂ)*φ (1 : Reg 3)‖]
 
+/-- The displayed universal column-preparation, ridge-encoding, marking, and resource package is
+false, as witnessed by the column approximation lower bound. -/
 theorem not_clause44 : ¬ (
 
   (∀ (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]

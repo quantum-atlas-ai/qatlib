@@ -10,6 +10,27 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Nat.Log
 import Mathlib.Algebra.Order.Field.Basic
 import Mathlib.Tactic
+
+/-!
+# Vertex sampling without replacement
+
+`commonNbrs`, `thickPairs`, and `survivingSamplings` describe pairs whose common-neighbor sets
+can escape a uniformly chosen fixed-size sample. Applying per-pair avoidance and a union bound
+gives the inverse-linear failure estimate `lemma3_failure_prob`.
+
+The finite subset sampling is relevant to subset-finding algorithms [ChildsEisenberg2003].
+
+## Main statements
+
+* `per_pair_survival_card`: an inverse-cubic per-pair count bound.
+* `lemma3_union_bound`: combine the bounds over all thick pairs.
+* `lemma3_failure_prob`: failure probability at most `1 / n`.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,17 +44,22 @@ open Qatlib.Concepts.WalkSearch.Primitives
 
 variable {n : ℕ}
 
+/-- The vertices `x` for which both directed pairs `(a, x)` and `(b, x)` belong to `G`. -/
 def commonNbrs (G : Finset (Fin n × Fin n)) (a b : Fin n) : Finset (Fin n) :=
   Finset.univ.filter fun x => (a, x) ∈ G ∧ (b, x) ∈ G
 
+/-- The ordered pairs with at least `n ^ (1 - ε)` common outgoing neighbors. -/
 def thickPairs (G : Finset (Fin n × Fin n)) (ε : ℝ) : Finset (Fin n × Fin n) :=
   (Finset.univ : Finset (Fin n × Fin n)).filter
     fun p => (n : ℝ) ^ (1 - ε) ≤ (commonNbrs G p.1 p.2).card
 
+/-- The fixed-size vertex subsets that avoid the common-neighbor set of at least one thick pair. -/
 def survivingSamplings (G : Finset (Fin n × Fin n)) (ε : ℝ) (k : ℕ) :
     Finset (Finset (Fin n)) :=
   (thickPairs G ε).biUnion fun p => avoidingSubsets (commonNbrs G p.1 p.2) k
 
+/-- Under the sampling assumptions, the number of subsets avoiding a given large common-neighbor
+set times `n ^ 3` is at most `n.choose k`. -/
 theorem per_pair_survival_card (G : Finset (Fin n × Fin n)) (a b : Fin n) {ε : ℝ} {k : ℕ}
     (hn : 1 < n) (hX : (n : ℝ) ^ (1 - ε) ≤ (commonNbrs G a b).card)
     (hk : 4 * (n : ℝ) ^ ε * ((Nat.log 2 n : ℝ) + 1) ≤ (k : ℝ)) (hkn : k ≤ n)
@@ -41,12 +67,15 @@ theorem per_pair_survival_card (G : Finset (Fin n × Fin n)) (a b : Fin n) {ε :
     (avoidingSubsets (commonNbrs G a b) k).card * n ^ 3 ≤ n.choose k :=
   lemma3_per_edge_avoid_card (commonNbrs G a b) (ε := ε) (m := k) hn hX hk hkn hpos
 
+/-- The number of thick ordered pairs is at most `n * n`. -/
 theorem thickPairs_card_le (G : Finset (Fin n × Fin n)) (ε : ℝ) :
     (thickPairs G ε).card ≤ n * n := by
   have hle : (thickPairs G ε).card ≤ (Finset.univ : Finset (Fin n × Fin n)).card :=
     Finset.card_le_card (Finset.filter_subset _ _)
   simpa [Finset.card_univ, Fintype.card_prod] using hle
 
+/-- Under the sampling assumptions, the number of surviving samples times `n` is at most
+`n.choose k`. -/
 theorem lemma3_union_bound (G : Finset (Fin n × Fin n)) {ε : ℝ} {k : ℕ}
     (hn : 1 < n) (hk : 4 * (n : ℝ) ^ ε * ((Nat.log 2 n : ℝ) + 1) ≤ (k : ℝ)) (hkn : k ≤ n)
     (hpos : 0 < n.choose k) :
@@ -113,6 +142,8 @@ theorem lemma3_union_bound (G : Finset (Fin n × Fin n)) {ε : ℝ} {k : ℕ}
     exact le_of_mul_le_mul_right hmul hsq
   exact_mod_cast hcancel
 
+/-- Under the sampling assumptions, the fraction of fixed-size samples surviving for some thick
+pair is at most `1 / n`. -/
 theorem lemma3_failure_prob (G : Finset (Fin n × Fin n)) {ε : ℝ} {k : ℕ}
     (hn : 1 < n) (hk : 4 * (n : ℝ) ^ ε * ((Nat.log 2 n : ℝ) + 1) ≤ (k : ℝ)) (hkn : k ≤ n)
     (hpos : 0 < n.choose k) :

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LatentPQCTran26.MainResults.Definitions
 import Qatlib.Papers.LatentPQCTran26.MainResults.FiniteCatalog
 import Qatlib.Papers.LatentPQCTran26.MainResults.LatentUniversal
+
+/-!
+# A coupling bound for latent distribution approximation
+
+`theorem1_diagonal_coupling` compares an atomic target distribution and a latent pushforward by
+coupling two maps of the same latent variable. A uniform distance bound between a
+target-realizing map and an approximating map bounds their `wasserstein1` cost on a compact
+metric output space. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `theorem1_diagonal_coupling`: On a compact metric output space with measurable open sets,
+  measurable maps of a common latent probability measure that are pointwise within nonnegative
+  `δ` have `wasserstein1` cost at most `δ` when the first pushforward equals the specified
+  atomic measure.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,10 @@ namespace Qatlib.Papers.LatentPQCTran26.MainResults.Universality
 
 open Qatlib.Papers.LatentPQCTran26.MainResults
 
+/-- On a compact metric output space with measurable open sets, measurable maps of a common
+latent probability measure that are pointwise within nonnegative `δ` have `wasserstein1`
+cost at most `δ` when the first pushforward equals the specified atomic measure
+[TranEtAl2026]. -/
 theorem theorem1_diagonal_coupling
     {Z D : Type*} [MeasurableSpace Z] [MeasurableSpace D] [MetricSpace D]
     [OpensMeasurableSpace D] [CompactSpace D]

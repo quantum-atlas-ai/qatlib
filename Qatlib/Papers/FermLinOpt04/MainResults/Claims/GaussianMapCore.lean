@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
 import Mathlib.Tactic
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionExt
+
+/-!
+# Gaussian correlation-update identities
+
+This module proves equality of the two rational matrix expressions `corrUpdate` and
+`corrUpdate'` under determinant hypotheses and simplifies the update when `D = 0`. It also
+expresses the covariance of a projected operator through a weighted measurement update under the
+specified hypothesis away from the measured mode. These results formalize the indicated
+identities from [Bravyi2005Fermionic].
+
+## Main statements
+
+* `corrUpdate_inverse_form`: equates the two matrix-inverse forms.
+* `corrUpdate_zero_D`: simplifies the update to `B * M * Bᵀ + A`.
+* `measurement_correlation_update`: gives the conditional covariance identity.
+
+## References
+
+* [Bravyi, 2005][Bravyi2005Fermionic]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +41,9 @@ open Qatlib.Papers.FermLinOpt04.MainResults.Model
 
 namespace Qatlib.Papers.FermLinOpt04.MainResults.Claims
 
+/-- Under nonvanishing determinant hypotheses for `M`, `M⁻¹ + D`, and `1 + M * D`, the two
+correlation-update expressions agree. These are the inverse forms of the update formula in
+[Bravyi2005Fermionic]. -/
 theorem corrUpdate_inverse_form {n : ℕ}
     (A B D M : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ)
     (hM : M.det ≠ 0) (hMD : (M⁻¹ + D).det ≠ 0) (hI : (1 + M * D).det ≠ 0) :
@@ -34,6 +58,7 @@ theorem corrUpdate_inverse_form {n : ℕ}
   rw [hinv]
   noncomm_ring
 
+/-- For invertible `M` and `D = 0`, the correlation update is `B * M * Bᵀ + A`. -/
 theorem corrUpdate_zero_D {n : ℕ} (A B M : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ)
     (hM : M.det ≠ 0) :
     corrUpdate A B (0 : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ) M = B * M * Bᵀ + A := by
@@ -41,6 +66,8 @@ theorem corrUpdate_zero_D {n : ℕ} (A B M : Matrix (Fin (2 * n)) (Fin (2 * n)) 
   unfold corrUpdate
   rw [add_zero, Matrix.nonsing_inv_nonsing_inv M huM]
 
+/-- Under the specified covariance relation away from the measured mode, the covariance of the
+projected operator equals its Born weight times `measurementUpdate`. -/
 theorem measurement_correlation_update {n : ℕ} (M : Fock n)
     (k : Fin n) (b : Bool)
     (hAway : ∀ a c : Fin (2 * n), ¬ isModeMajorana k a → ¬ isModeMajorana k c →

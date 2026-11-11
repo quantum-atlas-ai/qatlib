@@ -72,6 +72,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite probability and Monte Carlo bounds
+
+This module defines finite probability weights, expectation, variance, product weights, and the
+sample mean for the sampling analysis of [LidarWang1999]. It proves elementary expectation
+identities, the variance bound of `1 / 4` for variables in the unit interval, and a finite
+Chebyshev inequality.
+
+The product construction is normalized by `prodProb_isProb`, and `sampleMean_expect` establishes
+unbiasedness for a positive number of samples.
+
+## Main statements
+
+* `variance_le_quarter`: bounds the variance of a variable taking values in the unit interval.
+* `chebyshev_finite`: bounds the weighted mass of deviations from the expectation.
+* `sampleMean_expect`: identifies the expected sample mean with the original expectation.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 set_option maxHeartbeats 1600000
@@ -83,17 +105,23 @@ section Single
 
 variable {α : Type*} [Fintype α]
 
+/-- A finite real weight function is a probability distribution when its weights are nonnegative
+and sum to one. -/
 def IsProb (p : α → ℝ) : Prop := (∀ a, 0 ≤ p a) ∧ (∑ a, p a = 1)
 
+/-- The finite weighted expectation of `X` with weights `p`. -/
 def expect (p X : α → ℝ) : ℝ := ∑ a, p a * X a
 
+/-- The finite weighted sum of squared deviations of `X` from `expect p X`. -/
 def variance (p X : α → ℝ) : ℝ := ∑ a, p a * (X a - expect p X) ^ 2
 
+/-- A constant has its own value as expectation when the weights sum to one. -/
 theorem expect_const (p : α → ℝ) (hsum : ∑ a, p a = 1) (c : ℝ) :
     expect p (fun _ => c) = c := by
   unfold expect
   rw [← Finset.sum_mul, hsum, one_mul]
 
+/-- Finite weighted expectation preserves pointwise addition. -/
 theorem expect_add (p X Y : α → ℝ) :
     expect p (fun a => X a + Y a) = expect p X + expect p Y := by
   unfold expect
@@ -102,6 +130,7 @@ theorem expect_add (p X Y : α → ℝ) :
   intro a _
   ring
 
+/-- Finite weighted expectation preserves pointwise subtraction. -/
 theorem expect_sub (p X Y : α → ℝ) :
     expect p (fun a => X a - Y a) = expect p X - expect p Y := by
   unfold expect
@@ -110,6 +139,7 @@ theorem expect_sub (p X Y : α → ℝ) :
   intro a _
   ring
 
+/-- A real constant factor can be pulled out of finite weighted expectation. -/
 theorem expect_mul_const (p X : α → ℝ) (c : ℝ) :
     expect p (fun a => c * X a) = c * expect p X := by
   unfold expect
@@ -118,11 +148,14 @@ theorem expect_mul_const (p X : α → ℝ) (c : ℝ) :
   intro a _
   ring
 
+/-- The expectation is nonnegative when both the weights and the values are nonnegative. -/
 theorem expect_nonneg (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a) (hX : ∀ a, 0 ≤ X a) :
     0 ≤ expect p X := by
   unfold expect
   exact Finset.sum_nonneg (fun a _ => mul_nonneg (hp a) (hX a))
 
+/-- With nonnegative weights summing to one, the expectation of a function bounded above by one
+is at most one. -/
 theorem expect_le_one (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a) (hsum : ∑ a, p a = 1)
     (hX : ∀ a, X a ≤ 1) :
     expect p X ≤ 1 := by
@@ -133,6 +166,8 @@ theorem expect_le_one (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a) (hsum : ∑ a, 
         exact mul_le_mul_of_nonneg_left (hX a) (hp a)
     _ = 1 := by simpa using hsum
 
+/-- When the weights sum to one, variance equals the second moment minus the square of the
+expectation. -/
 theorem variance_eq (p X : α → ℝ) (hsum : ∑ a, p a = 1) :
     variance p X = expect p (fun a => X a ^ 2) - (expect p X) ^ 2 := by
   have hpt : ∀ a, p a * (X a - expect p X) ^ 2 =
@@ -160,6 +195,8 @@ theorem variance_eq (p X : α → ℝ) (hsum : ∑ a, p a = 1) :
         rw [hsum, mul_one]
         ring
 
+/-- For nonnegative weights and values in the unit interval, the second moment is at most the
+first moment. -/
 theorem expect_sq_le_expect (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a)
     (hX0 : ∀ a, 0 ≤ X a) (hX1 : ∀ a, X a ≤ 1) :
     expect p (fun a => X a ^ 2) ≤ expect p X := by
@@ -169,6 +206,8 @@ theorem expect_sq_le_expect (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a)
   apply mul_le_mul_of_nonneg_left _ (hp a)
   nlinarith [hX0 a, hX1 a]
 
+/-- A finite probability distribution assigns variance at most `1 / 4` to every real function
+taking values in the unit interval. See [LidarWang1999]. -/
 theorem variance_le_quarter (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a)
     (hsum : ∑ a, p a = 1) (hX0 : ∀ a, 0 ≤ X a) (hX1 : ∀ a, X a ≤ 1) :
     variance p X ≤ 1 / 4 := by
@@ -178,6 +217,8 @@ theorem variance_le_quarter (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a)
   have hsq := expect_sq_le_expect p X hp hX0 hX1
   nlinarith [sq_nonneg (expect p X - 1 / 2)]
 
+/-- For nonnegative finite weights and positive `ε`, the weight of deviations of size at least
+`ε` is at most the variance divided by `ε²`. See [LidarWang1999]. -/
 theorem chebyshev_finite (p X : α → ℝ) (hp : ∀ a, 0 ≤ p a)
     {ε : ℝ} (hε : 0 < ε) :
     (∑ a ∈ Finset.univ.filter (fun a => ε ≤ |X a - expect p X|), p a)
@@ -218,11 +259,17 @@ section Product
 
 variable {α : Type*} [Fintype α] [DecidableEq α]
 
+/-- The product weight of a sequence of `n` outcomes, with one factor of `p` for each
+coordinate. -/
 def prodProb (p : α → ℝ) (n : ℕ) (ω : Fin n → α) : ℝ := ∏ i, p (ω i)
 
+/-- The arithmetic mean of the sampled values, expressed as the inverse of `n` times their sum
+and equal to zero when `n = 0`. -/
 def sampleMean (X : α → ℝ) (n : ℕ) (ω : Fin n → α) : ℝ :=
   (n : ℝ)⁻¹ * ∑ i, X (ω i)
 
+/-- The product weights of a finite probability distribution form a probability distribution on
+sequences of `n` outcomes. See [LidarWang1999]. -/
 theorem prodProb_isProb (p : α → ℝ) (hp : IsProb p) (n : ℕ) :
     IsProb (prodProb p n) := by
   refine ⟨fun ω => Finset.prod_nonneg (fun i _ => hp.1 _), ?_⟩
@@ -231,11 +278,15 @@ theorem prodProb_isProb (p : α → ℝ) (hp : IsProb p) (n : ℕ) :
   rw [Finset.sum_prod_piFinset]
   simp [hp.2]
 
+/-- Summing a product of coordinate functions over all finite sequences factors into the product
+of their coordinate sums. See [LidarWang1999]. -/
 theorem sum_prod_factor {n : ℕ} (g : Fin n → α → ℝ) :
     (∑ ω : Fin n → α, ∏ i, g i (ω i)) = ∏ i, ∑ x, g i x := by
   rw [← Fintype.piFinset_univ]
   simpa using Finset.sum_prod_piFinset (Finset.univ : Finset α) g
 
+/-- For a positive number of independent samples from a finite probability distribution, the
+sample mean has expectation `expect p X`. See [LidarWang1999]. -/
 theorem sampleMean_expect (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 < n) :
     expect (prodProb p n) (sampleMean X n) = expect p X := by
   classical

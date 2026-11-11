@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessStat
+
+/-!
+# Single-attempt probability and factor soundness
+
+Provides the one-sample event mass formula and soundness of the continued-fraction-based
+factoring attempt. The theorem `attemptFactor_sound` guarantees that every returned value is a
+proper nontrivial divisor, as needed by the factoring construction associated with [Shor1997].
+
+## Main statements
+
+* `singleEvent_mass`: Expands a one-sample event probability as a finite sum.
+* `attemptFactor_sound`: Proves soundness of every returned factor.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +41,8 @@ open scoped Classical
 namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 noncomputable section
 
+/-- A one-sample event probability is the sum of the masses of all outcomes satisfying its
+predicate. -/
 theorem singleEvent_mass {A : Type*} [Fintype A] [DecidableEq A]
     (p : FinDist A) (P : A → Prop) [DecidablePred P] :
     p.probEvent (L := 1) (fun ω => P (ω 0)) =
@@ -32,6 +52,7 @@ theorem singleEvent_mass {A : Type*} [Fintype A] [DecidableEq A]
 end
 noncomputable section
 
+/-- If `attemptFactor` returns `d`, then `d` divides `N` and satisfies `1 < d < N`. -/
 theorem attemptFactor_sound (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (y z : Fin M) (d : ℕ) (h : attemptFactor N M a (y, z) = some d) :
     1 < d ∧ d < N ∧ d ∣ N := by

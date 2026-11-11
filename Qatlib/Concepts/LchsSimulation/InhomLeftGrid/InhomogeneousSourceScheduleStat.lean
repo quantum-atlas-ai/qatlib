@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
+
+/-!
+# Source approximation schedule specification
+
+`InhomogeneousSourceSchedule` records explicit integer choices for the LCHS window and time
+discretization. Its conclusion includes source error at most `ε / 2` and a comparison between
+sampled source mass and its continuous integral. See [AnLiuLin2023] for the mathematical
+setting.
+
+## Main statements
+
+* `InhomogeneousSourceSchedule`: The explicit source schedule specification giving a positive
+  time-grid size, spacing at most `1 / 2`, source error at most `ε / 2`, and the stated
+  source-mass integral bound.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -26,6 +46,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The explicit source schedule specification giving a positive time-grid size, spacing at most
+`1 / 2`, source error at most `ε / 2`, and the stated source-mass integral bound. -/
 def InhomogeneousSourceSchedule : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b b' : ℝ → QState I)
     (s t ε Λ β lamL lamH bmax : ℝ),

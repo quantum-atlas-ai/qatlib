@@ -12,6 +12,30 @@ import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
 import Qatlib.Concepts.MbqcFlow.FlowDecision.FlowExtended
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
+
+/-!
+# Explicit measurement-gate identities
+
+This module computes entries of the Figure 2b pulse, frames, measurement gate, and Kraus
+matrices. In particular, `fig2b_branch_false_eq` identifies the false-outcome branch as twice
+conjugation by `rbFig2bTransferOp`.
+
+The results assemble the specifications `Clause21Claim` and `Clause22Claim` for the
+measurement-based constructions associated with [RaussendorfBriegel2000] and
+[RaussendorfBriegel2001].
+
+## Main statements
+
+* `fig2b_branch_false_eq`: the exact normalization of the false-outcome branch.
+* `g2`: the preentangled compilation specification.
+* `g3`: the explicit measurement-gate specification.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+* [Raussendorf and Briegel, 2001][RaussendorfBriegel2001]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -34,6 +58,8 @@ open Qatlib.Concepts.ChannelTheory.Stinespring
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowExt
 
+/-- The Figure 2b pulse is diagonal, with diagonal entries given by the product of the four
+displayed bit phases. -/
 private theorem fig2b_pulse_apply (x y : Reg 3) :
     rbFig2bPulse x y =
       if x = y then
@@ -60,12 +86,15 @@ private theorem fig2b_pulse_apply (x y : Reg 3) :
       · rw [if_neg hxw, zero_mul])]
     rw [if_neg hxy]
 
+/-- Every entry of the zero-angle, false-outcome XY measurement matrix is `1 / 2`. -/
 private theorem plane_basis_XY0_entry (z d : Bool) :
     MbqcPlaneBasis MbqcPlane.XY 0 false (boolEquivFin2 z) (boolEquivFin2 d) = (2 : ℂ)⁻¹ := by
   cases z <;> cases d <;>
     simp [MbqcPlaneBasis, mbqcPlaneAxisA, mbqcPlaneAxisB, pauliX, pauliY,
       Real.cos_zero, Real.sin_zero, boolEquivFin2]
 
+/-- The false-outcome Figure 2b measurement gate has entries `1 / 2` times the equality
+constraints on the two unmeasured wires. -/
 private theorem fig2b_mg_entry (x y : Reg 3) :
     rbFig2bMeasureGate false x y =
       (2 : ℂ)⁻¹ *
@@ -74,16 +103,22 @@ private theorem fig2b_mg_entry (x y : Reg 3) :
   simp only [Matrix.of_apply]
   rw [plane_basis_XY0_entry (x 0) (y 0)]
 
+/-- The Figure 2b output frame selects register entries matching `z` on wire zero and the bits
+of `j` on the remaining wires. -/
 private theorem fig2b_out_apply (z : Bool) (j : Fin 4) (x : Reg 3) :
     rbFig2bOutFrame z j x =
       (if x 0 = z then (1 : ℂ) else 0) *
         (if x 1 = (bitVecEquiv 2).symm j 0 then 1 else 0) *
         (if x 2 = (bitVecEquiv 2).symm j 1 then 1 else 0) := rfl
 
+/-- The Figure 2b input frame has amplitude `1 / sqrt 2` exactly when wire zero matches the
+input bit. -/
 private theorem fig2b_frame_apply (x : Reg 3) (i : Fin 2) :
     rbFig2bFrame x i =
       if x 0 = boolEquivFin2.symm i then (Real.sqrt 2 : ℂ)⁻¹ else 0 := rfl
 
+/-- Composing the Figure 2b output frame with the false-outcome measurement leaves `1 / 2` times
+the two output-wire equality constraints. -/
 private theorem fig2b_outmg_apply (z : Bool) (j : Fin 4) (v : Reg 3) :
     (rbFig2bOutFrame z * rbFig2bMeasureGate false) j v =
       (2 : ℂ)⁻¹ *
@@ -116,6 +151,8 @@ private theorem fig2b_outmg_apply (z : Bool) (j : Fin 4) (v : Reg 3) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The output-frame, measurement, and pulse product has the displayed output-wire constraints
+multiplied by the diagonal pulse phase and `1 / 2`. -/
 private theorem fig2b_outmgpulse_apply (z : Bool) (j : Fin 4) (w : Reg 3) :
     ((rbFig2bOutFrame z * rbFig2bMeasureGate false) * rbFig2bPulse) j w =
       (2 : ℂ)⁻¹ *
@@ -131,6 +168,7 @@ private theorem fig2b_outmgpulse_apply (z : Bool) (j : Fin 4) (w : Reg 3) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The false-outcome Figure 2b correction acts as the identity under left multiplication. -/
 private theorem fig2b_corr_mul {α : Type*} (M : Matrix (Fin 4) α ℂ) :
     rbFig2bCorrection false * M = M := by
   ext j x
@@ -143,6 +181,8 @@ private theorem fig2b_corr_mul {α : Type*} (M : Matrix (Fin 4) α ℂ) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The false-outcome Figure 2b Kraus entries have magnitude `1 / (2 * sqrt 2)`, with the
+displayed sign determined by the input and output bits. -/
 private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
     rbFig2bKraus false z j i =
       ((2 : ℂ) * (Real.sqrt 2 : ℂ))⁻¹ *
@@ -185,12 +225,15 @@ private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Every auxiliary-output Kraus matrix of the false-outcome Figure 2b branch equals
+`rbFig2bTransferOp`. -/
 private theorem fig2b_kraus_false_eq (z : Bool) :
     rbFig2bKraus false z = rbFig2bTransferOp := by
   ext j i
   rw [fig2b_kraus_false_entry]
   simp only [rbFig2bTransferOp, Matrix.of_apply, smul_eq_mul]
 
+/-- The false-outcome Figure 2b branch is twice conjugation by `rbFig2bTransferOp`. -/
 theorem fig2b_branch_false_eq (ρ : Operator 2) :
     rbFig2bBranch false ρ =
       (2 : ℂ) • (rbFig2bTransferOp * ρ * (rbFig2bTransferOp).conjTranspose) := by
@@ -199,9 +242,15 @@ theorem fig2b_branch_false_eq (ρ : Operator 2) :
   simp only [conjBranch_apply]
   module
 
+/-- Preentangled compilation satisfies all branch, channel, resource, and zero-probability
+assertions in `Clause21Claim`; see [RaussendorfBriegel2001] for the measurement-based
+setting. -/
 theorem g2 : Clause21Claim :=
   Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled.g2
 
+/-- The explicit gate constructions satisfy `Clause22Claim`, including the Figure 2b
+normalization boundary; see [RaussendorfBriegel2000] for the underlying measurement
+constructions. -/
 theorem g3 : Clause22Claim := by
   refine ⟨clause3_clause1, clause3_clause2, ?_, clause3_counter_clause3, clause3_clause4,
       clause3_clause5⟩

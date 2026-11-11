@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ImaginaryFlow.GroundLimit.GroundSpaceDamping
 import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
+
+/-!
+# Ground-eigenspace limit of transcorrelated imaginary time
+
+This module constructs the full spectral projector `eigenspaceProjector` for a selected
+eigenvalue of a finite Hermitian matrix. Its transcorrelated image `rightGround` determines the
+normalized imaginary-time limit when that eigenvalue is minimal and the retained component is
+nonzero, including degenerate ground spaces. See [McArdleTew2020].
+
+## Main statements
+
+* `eigenspaceProjector_idempotent`: Idempotence of the spectral projector.
+* `rightGround_eigen`: The retained component satisfies the transformed eigenvalue equation.
+* `actual_normalized_groundspace_limit`: Convergence to the normalized retained ground-space
+  component.
+
+## References
+
+* [McArdle and Tew, 2020][McArdleTew2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,12 +39,15 @@ open scoped BigOperators Topology Classical
 
 section ActualMatrixGroundspace
 
+/-- The complex indicator for eigenvalues equal to the eigenvalue indexed by `i0`. -/
 def eigenMask {d : ℕ} {H : Op d} (hH : H.IsHermitian) (i0 : Fin d) (i : Fin d) : ℂ :=
   if hH.eigenvalues i = hH.eigenvalues i0 then 1 else 0
 
+/-- The spectral projector onto all eigenvectors sharing the eigenvalue indexed by `i0`. -/
 def eigenspaceProjector {d : ℕ} {H : Op d} (hH : H.IsHermitian) (i0 : Fin d) : Op d :=
   eigenU hH * diagonal (eigenMask hH i0) * (eigenU hH).conjTranspose
 
+/-- The selected eigenspace projector is Hermitian. -/
 theorem eigenspaceProjector_hermitian {d : ℕ} {H : Op d} (hH : H.IsHermitian) (i0 : Fin d) :
     (eigenspaceProjector hH i0).IsHermitian := by
   have hdiag : (diagonal (eigenMask hH i0)).conjTranspose = diagonal (eigenMask hH i0) := by
@@ -35,6 +59,7 @@ theorem eigenspaceProjector_hermitian {d : ℕ} {H : Op d} (hH : H.IsHermitian) 
   simp only [eigenspaceProjector, Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose, hdiag,
     Matrix.mul_assoc]
 
+/-- The selected eigenspace projector is idempotent. -/
 theorem eigenspaceProjector_idempotent {d : ℕ} {H : Op d} (hH : H.IsHermitian) (i0 : Fin d) :
     eigenspaceProjector hH i0 * eigenspaceProjector hH i0 = eigenspaceProjector hH i0 := by
   have hU : (eigenU hH).conjTranspose * eigenU hH = 1 :=
@@ -54,6 +79,7 @@ theorem eigenspaceProjector_idempotent {d : ℕ} {H : Op d} (hH : H.IsHermitian)
         (diagonal (eigenMask hH i0) * (eigenU hH).conjTranspose), hU, Matrix.one_mul]
     _ = _ := by rw [hD]
 
+/-- Multiplying the selected spectral projector by `H` scales it by its selected eigenvalue. -/
 theorem eigenspaceProjector_eigen {d : ℕ} (H : Op d) (hH : H.IsHermitian) (i0 : Fin d) :
     H * eigenspaceProjector hH i0 =
       (hH.eigenvalues i0 : ℂ) • eigenspaceProjector hH i0 := by
@@ -80,10 +106,14 @@ theorem eigenspaceProjector_eigen {d : ℕ} (H : Op d) (hH : H.IsHermitian) (i0 
         (diagonal (eigenMask hH i0) * (eigenU hH).conjTranspose), hU, Matrix.one_mul]
     _ = _ := by rw [hD]; simp only [eigenspaceProjector, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- The component of a state obtained by conjugating the selected eigenspace projector with the
+correlator exponentials. -/
 def rightGround {d : ℕ} (g : Op d) {H : Op d} (hH : H.IsHermitian)
     (φ : State d) (i0 : Fin d) : State d :=
   Matrix.toEuclideanLin (exp (-g) * eigenspaceProjector hH i0 * exp g) φ
 
+/-- Summing the retained spectral components at the selected eigenvalue gives `rightGround`. See
+[McArdleTew2020]. -/
 theorem retained_rightComponents_eq_projector {d : ℕ} (g : Op d) {H : Op d} (hH : H.IsHermitian)
     (φ : State d) (i0 : Fin d) :
     retainedGround hH.eigenvalues (fun _ => 1) (rightComponent g hH φ) i0 =
@@ -119,6 +149,8 @@ theorem retained_rightComponents_eq_projector {d : ℕ} (g : Op d) {H : Op d} (h
   · simp only [eigenMask, if_neg hi, zero_mul, mul_zero]
     rfl
 
+/-- The retained component `rightGround` satisfies the eigenvalue equation for `tc H g` at the
+selected eigenvalue. -/
 theorem rightGround_eigen {d : ℕ} (H g : Op d) (hH : H.IsHermitian)
     (φ : State d) (i0 : Fin d) :
     Matrix.toEuclideanLin (tc H g) (rightGround g hH φ i0) =
@@ -133,6 +165,9 @@ theorem rightGround_eigen {d : ℕ} (H g : Op d) (hH : H.IsHermitian)
     rw [rightComponent_eigen H g hH φ i, hi]
   · simp only [if_neg hi, map_zero, smul_zero]
 
+/-- If the selected eigenvalue is minimal and `rightGround` is nonzero, normalized
+transcorrelated imaginary-time evolution converges to its normalization. See
+[McArdleTew2020]. -/
 theorem actual_normalized_groundspace_limit {d : ℕ} (H g : Op d) (hH : H.IsHermitian)
     (φ : State d) (i0 : Fin d)
     (hmin : ∀ i, hH.eigenvalues i0 ≤ hH.eigenvalues i)

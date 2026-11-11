@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualSampleOutputStat
+
+/-!
+# Scale and distribution of the dual output
+
+`sdpDualSampleOutput` establishes the positive scale and normalized distribution associated with
+the dual certificate. It proves the coordinatewise factorization and expresses the scale as the
+correction mass plus the average response mass.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpDualSampleOutput`: For positive α, R, and δ and nonnegative responses, the dual
+  certificate factors as a positive scale times a probability distribution, with scale equal to
+  the correction mass plus the average round mass. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +36,9 @@ open Qatlib.Concepts.SdpDuality.ConeSeparation
 namespace Qatlib.Concepts.SdpMmwSolver.SdpContract
 open scoped Classical BigOperators
 
+/-- For positive α, R, and δ and nonnegative responses, the dual certificate factors as a
+positive scale times a probability distribution, with scale equal to the correction mass
+plus the average round mass. See [BrandaoSvore2017]. -/
 theorem sdpDualSampleOutput : SdpDualSampleOutput := by
   intro D m y j₀ α R δ η hα hR hδ hy
   let T := sdpDualCertRounds D R δ η

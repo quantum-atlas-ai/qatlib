@@ -8,6 +8,26 @@ import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8CompSubgoalSta
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.AdaptiveCutUnionBound
+
+/-!
+# Composition of relative factor estimates
+
+Proves that accurate factor estimates give an accurate product, then combines the individual
+failure probabilities using a union bound. This isolates the multiplicative error step of the
+partition-function estimator in Theorem 8 of [Montanaro2015].
+
+## Main statements
+
+* `product_accuracy` turns per-factor relative error `ε / (2 * ℓ)` into relative product error
+  at most `ε`.
+* `montanaroTheorem8CompositionSubgoal` bounds the product failure probability by one quarter
+  when each factor fails with probability at most `1 / (4 * ℓ)`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.OrderedBayes.BayesRatioCore.AdaptiveCutUnionBound
@@ -20,6 +40,8 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Bounds the relative error of a product by `ε` when its positive target factors each have
+relative error at most `ε / (2 * ℓ)`, with `ℓ > 0` and `0 < ε < 1`. -/
 private theorem product_accuracy (ℓ : ℕ) (hℓ : 0 < ℓ) (v μ : Fin ℓ → ℝ)
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε < 1) (hμ : ∀ i, 0 < μ i)
     (hgood : ∀ i, |v i - μ i| ≤ (ε/(2*ℓ))*μ i) :
@@ -76,6 +98,8 @@ private theorem product_accuracy (ℓ : ℕ) (hℓ : 0 < ℓ) (v μ : Fin ℓ �
   apply abs_le.mpr
   constructor <;> nlinarith
 
+/-- Expresses an event on a single sample as the expectation of its indicator under the finite
+law. -/
 private theorem event_one_expect {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) [DecidablePred E] :
     p.probEvent (fun ω : Fin 1 → X => E (ω 0)) = p.expect (fun x => if E x then 1 else 0) := by
@@ -95,6 +119,8 @@ private theorem event_one_expect {X : Type} [Fintype X] [DecidableEq X]
       Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, mul_ite, mul_one, mul_zero]
   rfl
 
+/-- Shows that implication between events on a single sample implies the corresponding
+inequality between their probabilities. -/
 private theorem event_mono {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X)
     (E F : (Fin 1 → X) → Prop) [DecidablePred E] [DecidablePred F]
     (h : ∀ ω, E ω → F ω) : p.probEvent E ≤ p.probEvent F := by
@@ -104,6 +130,8 @@ private theorem event_mono {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X
   · intro ω _ _
     exact Finset.prod_nonneg fun _ _ => p.nonneg _
 
+/-- Proves the relative product-composition contract used in Theorem 8 of [Montanaro2015], using
+deterministic product accuracy and a union bound over factor failures. -/
 theorem montanaroTheorem8CompositionSubgoal : MontanaroTheorem8CompositionSubgoal := by
   intro X _ _ ℓ ps obs means hℓ ε hε hε1 _hmean hmeans hfail
   let E := fun (i : Fin ℓ) (ω : Fin 1 → Fin ℓ → X) =>

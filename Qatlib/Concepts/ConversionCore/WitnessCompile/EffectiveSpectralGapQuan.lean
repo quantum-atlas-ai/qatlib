@@ -9,6 +9,29 @@ import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Tactic.Module
+
+/-!
+# Effective spectral gap for two reflections
+
+For orthogonal projectors `P` and `L`, a vector annihilated by `L` has only a controlled
+component of `P*w` in the small-eigenphase subspace of the product of reflections.
+`effectiveSpectralGap` proves the bound `Θ/2` times the norm of `w` using a supplied unitary
+diagonalization.
+
+This is the effective spectral gap estimate used in reflection-based state conversion algorithms
+[LeeEtAl2011].
+
+## Main statements
+
+* `source_diagonal_mulVec_bound`: a norm bound for a diagonal matrix.
+* `effectiveSpectralGap`: the small-eigenphase projection estimate.
+
+## References
+
+* [Lee et al., 2011, Lemma 4.2][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -32,6 +55,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A diagonal matrix whose entries have norms at most a nonnegative `C` maps every vector to
+one of Euclidean norm at most `C` times the original norm. -/
 theorem source_diagonal_mulVec_bound {H : Type} [Fintype H] [DecidableEq H]
     (c : H → ℂ) (C : ℝ) (hC : 0 ≤ C) (hc : ∀ h, ‖c h‖ ≤ C) (z : QState H) :
     ‖toEuclidean_fromVec (Matrix.diagonal c *ᵥ z)‖ ≤ C*‖toEuclidean_fromVec z‖ := by
@@ -47,6 +72,9 @@ theorem source_diagonal_mulVec_bound {H : Type} [Fintype H] [DecidableEq H]
   nlinarith [norm_nonneg (toEuclidean_fromVec (Matrix.diagonal c *ᵥ z)),
     norm_nonneg (toEuclidean_fromVec z),mul_nonneg hC (norm_nonneg (toEuclidean_fromVec z))]
 
+/-- If `L*w=0`, the norm of the phase-`Θ` projection of `P*w` for the product of reflections
+about `P` and `L` is at most `Θ/2` times the norm of `w`, for `Θ ≥ 0`. This is [Lee et al.,
+Lemma 4.2][LeeEtAl2011]. -/
 theorem effectiveSpectralGap
     (H : Type) [Fintype H] [DecidableEq H] (P L V : Matrix H H ℂ)
     (angles : H → ℝ) (Θ : ℝ) (w : QState H)

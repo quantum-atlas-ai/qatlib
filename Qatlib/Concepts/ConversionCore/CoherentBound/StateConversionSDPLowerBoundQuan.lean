@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ConversionCore.CoherentBound.StateConversionSDPLowerBoundStat
 import Qatlib.Concepts.ConversionCore.CoherentBound.QueryDistanceLowerBoundQuan
+
+/-!
+# Semidefinite lower bound for coherent state conversion
+
+`stateConversionSDPLowerBound` turns the two Gram matrix certificates for coherent conversion
+into a bound on `stateConversionSDP`. At tolerance `2 * Real.sqrt (2 * ε)`, this value is at
+most twice the circuit query count.
+
+The mathematical context is discussed in [LeeEtAl2011].
+
+## Main statements
+
+* `stateConversionSDPLowerBound`: The semidefinite value bound for a successful coherent
+  conversion circuit.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +37,9 @@ open Qatlib.Concepts.GramQueryCore.GammaDuality
 
 namespace Qatlib.Concepts.ConversionCore.CoherentBound
 
+/-- For a unitary `T`-query circuit with normalized input and target families and real overlaps
+at least √(1 − ε), the state conversion SDP at tolerance 2√(2ε) is at most 2T when 0 < ε ≤ 1
+[Lee et al., Theorem 4.9][LeeEtAl2011]. -/
 theorem stateConversionSDPLowerBound : StateConversionSDPLowerBound := by
   intro X _ _ n T R input ε hε hε1 ρ σ hρ hσ C hT hC hov
   obtain ⟨σ', hσ'psd, hcert1, hcert2⟩ :=

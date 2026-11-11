@@ -33,5 +33,23 @@ import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpoi
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
 import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionResidualConsumers
+
+/-!
+# Entry point for witness-conversion results
+
+This module collects the filtered-norm, witness-geometry, and query-program results used by
+state-conversion consumers. It imports `WitnessSpectralMasses`, adaptive purification,
+native-code semantics, and the residual consumer checks without introducing new named
+mathematical declarations.
+
+The imported interfaces connect filtered Gram certificates to query algorithms in the setting of
+[LeeEtAl2011] and reflection constructions of [Reichardt2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false

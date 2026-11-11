@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLowerBound00.MainResults.Theorem2
+
+/-!
+# Adversary bound for an AND of ORs
+
+The Boolean function `andOfOrs` is an AND over `k` blocks, each containing an OR of `k` bits.
+The adversary sets `Xset` and `Yset` contain respectively inputs with one true bit per block and
+inputs with one empty block and one true bit in every other block.
+
+The relation `Rset` joins inputs differing in one bit. Explicit descriptions of its fibers give
+degree `k` and coordinate mismatch degree at most one, yielding the query lower bound
+`source_theorem4`. See [Ambainis2002] for the paper's setting.
+
+## Main statements
+
+* `blockOf`: The block index of a position in `Fin (k*k)`, obtained from the inverse product
+  equivalence.
+* `source_theorem4`: For `k ≥ 1`, a normalized phase-query trajectory with the stated
+  input-independent initialization and error at most `ε ∈ [0, 1/2]` for `andOfOrs` satisfies `(1
+  - 2*sqrt (ε*(1-ε))) * k / 2 ≤ T`.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,67 +44,90 @@ open Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
 open Qatlib.Papers.QLowerBound00.MainResults.Theorem2 (source_theorem2)
 
+/-- The block index of a position in `Fin (k*k)`, obtained from the inverse product equivalence. -/
 def blockOf (k : ℕ) (p : Fin (k * k)) : Fin k :=
   ((@finProdFinEquiv k k).symm p).1
 
+/-- The within-block index of a position in `Fin (k*k)`, obtained from the inverse product
+equivalence. -/
 def withinBlock (k : ℕ) (p : Fin (k * k)) : Fin k :=
   ((@finProdFinEquiv k k).symm p).2
 
+/-- The block index of the position encoded by `(b, j)` is `b`. -/
 @[simp] theorem blockOf_mk (k : ℕ) (b j : Fin k) :
     blockOf k (@finProdFinEquiv k k (b, j)) = b := by simp [blockOf]
 
+/-- The within-block index of the position encoded by `(b, j)` is `j`. -/
 @[simp] theorem withinBlock_mk (k : ℕ) (b j : Fin k) :
     withinBlock k (@finProdFinEquiv k k (b, j)) = j := by simp [withinBlock]
 
+/-- Encoding the block and within-block indices of a position recovers that position. -/
 theorem mk_blockWithin (k : ℕ) (p : Fin (k * k)) :
     @finProdFinEquiv k k (blockOf k p, withinBlock k p) = p := by
   simpa [blockOf, withinBlock] using Equiv.apply_symm_apply (@finProdFinEquiv k k) p
 
+/-- A position with block index `b` and within-block index `j` equals the encoding of `(b, j)`. -/
 theorem input_eq_mk {k : ℕ} (p : Fin (k * k)) {b j : Fin k}
     (hb : blockOf k p = b) (hj : withinBlock k p = j) :
     p = @finProdFinEquiv k k (b, j) := by
   rw [← mk_blockWithin k p, hb, hj]
 
+/-- Two unequal Boolean values are Boolean complements of one another. -/
 theorem bool_eq_not {a b : Bool} (h : a ≠ b) : a = !b := by
   cases a <;> cases b <;> simp_all
 
+/-- A Boolean value unequal to `false` equals `true`. -/
 theorem eq_true_of_ne_false {b : Bool} (h : b ≠ false) : b = true := by
   cases b
   · exact absurd rfl h
   · rfl
 
+/-- A Boolean value unequal to `true` equals `false`. -/
 theorem eq_false_of_ne_true {b : Bool} (h : b ≠ true) : b = false := by
   cases b
   · rfl
   · exact absurd rfl h
 
+/-- The Boolean function that is true exactly when each of the `k` blocks contains a true bit. -/
 def andOfOrs (k : ℕ) (x : Input (k * k)) : Bool := by
   classical
   exact decide (∀ b : Fin k, ∃ j : Fin k, x (@finProdFinEquiv k k (b, j)) = true)
 
+/-- The input obtained from `x` by setting every bit of block `b` to false. -/
 def zeroBlock (k : ℕ) (x : Input (k * k)) (b : Fin k) : Input (k * k) :=
   fun p => if blockOf k p = b then false else x p
 
+/-- The value of `zeroBlock k x b` at `p` is false in block `b` and equals `x p` elsewhere. -/
 theorem zeroBlock_apply (k : ℕ) (x : Input (k * k)) (b : Fin k) (p : Fin (k * k)) :
     zeroBlock k x b p = if blockOf k p = b then false else x p := rfl
 
+/-- At the position encoded by `(b', j)`, zeroing block `b` returns false if `b' = b` and the
+original bit otherwise. -/
 @[simp] theorem zeroBlock_mk (k : ℕ) (x : Input (k * k)) (b b' j : Fin k) :
     zeroBlock k x b (@finProdFinEquiv k k (b', j)) =
       if b' = b then false else x (@finProdFinEquiv k k (b', j)) := by
   rw [zeroBlock_apply, blockOf_mk]
 
+/-- The input obtained by setting the single position `(b, j)` to true and preserving every
+other bit. -/
 def fillBlock (k : ℕ) (y : Input (k * k)) (b j : Fin k) : Input (k * k) :=
   fun p => if p = @finProdFinEquiv k k (b, j) then true else y p
 
+/-- The value of `fillBlock k y b j` is true at the position encoded by `(b, j)` and equals the
+original bit elsewhere. -/
 theorem fillBlock_apply (k : ℕ) (y : Input (k * k)) (b j : Fin k) (p : Fin (k * k)) :
     fillBlock k y b j p = if p = @finProdFinEquiv k k (b, j) then true else y p := rfl
 
+/-- The input obtained by complementing the bit at `i` and preserving all other positions. -/
 def flipAt (k : ℕ) (x : Input (k * k)) (i : Fin (k * k)) : Input (k * k) :=
   fun p => if p = i then !x i else x p
 
+/-- The value of `flipAt k x i` at `p` is `!x i` when `p = i` and `x p` otherwise. -/
 theorem flipAt_apply (k : ℕ) (x : Input (k * k)) (i p : Fin (k * k)) :
     flipAt k x i p = if p = i then !x i else x p := rfl
 
+/-- If two inputs agree away from `i` and differ at `i`, the second is obtained by flipping that
+bit of the first. -/
 theorem eq_flipAt_of_diff {k : ℕ} {u v : Input (k * k)} {i : Fin (k * k)}
     (hagree : ∀ j, j ≠ i → u j = v j) (hne : u i ≠ v i) : v = flipAt k u i := by
   funext p
@@ -89,6 +137,8 @@ theorem eq_flipAt_of_diff {k : ℕ} {u v : Input (k * k)} {i : Fin (k * k)}
     rw [if_pos rfl, bool_eq_not (Ne.symm hne)]
   · rw [if_neg hp]; exact (hagree p hp).symm
 
+/-- If two inputs agree away from `i` and differ at `i`, the first is obtained by flipping that
+bit of the second. -/
 theorem flipAt_eq_of_diff {k : ℕ} {u v : Input (k * k)} {i : Fin (k * k)}
     (hagree : ∀ j, j ≠ i → u j = v j) (hne : u i ≠ v i) : u = flipAt k v i := by
   funext p
@@ -98,27 +148,36 @@ theorem flipAt_eq_of_diff {k : ℕ} {u v : Input (k * k)} {i : Fin (k * k)}
     rw [if_pos rfl, bool_eq_not hne]
   · rw [if_neg hp]; exact hagree p hp
 
+/-- The finite set of inputs with exactly one true bit in every block. -/
 def Xset (k : ℕ) : Finset (Input (k * k)) := by
   classical
   exact univ.filter (fun x => ∀ b : Fin k, ∃! j : Fin k, x (@finProdFinEquiv k k (b, j)) = true)
 
+/-- The finite set of inputs with an all-false block and exactly one true bit in every other
+block. -/
 def Yset (k : ℕ) : Finset (Input (k * k)) := by
   classical
   exact univ.filter (fun y => ∃ b0 : Fin k,
     (∀ j : Fin k, y (@finProdFinEquiv k k (b0, j)) = false) ∧
       (∀ b : Fin k, b ≠ b0 → ∃! j : Fin k, y (@finProdFinEquiv k k (b, j)) = true))
 
+/-- The relation pairing an input in `Xset` with an input in `Yset` that differs at exactly one
+position. -/
 def Rset (k : ℕ) : Finset (InputPair (k * k)) := by
   classical
   exact univ.filter (fun p =>
     p.1 ∈ Xset k ∧ p.2 ∈ Yset k ∧
       ∃ i : Fin (k * k), p.1 i ≠ p.2 i ∧ ∀ j : Fin (k * k), j ≠ i → p.1 j = p.2 j)
 
+/-- Membership in `Xset` is equivalent to the existence of exactly one true within-block
+position in every block. -/
 theorem mem_Xset {k : ℕ} {x : Input (k * k)} :
     x ∈ Xset k ↔ ∀ b : Fin k, ∃! j : Fin k, x (@finProdFinEquiv k k (b, j)) = true := by
   classical
   simp only [Xset, mem_filter, mem_univ, true_and]
 
+/-- Membership in `Yset` is equivalent to the existence of an all-false block with exactly one
+true position in every other block. -/
 theorem mem_Yset {k : ℕ} {y : Input (k * k)} :
     y ∈ Yset k ↔ ∃ b0 : Fin k,
       (∀ j : Fin k, y (@finProdFinEquiv k k (b0, j)) = false) ∧
@@ -126,17 +185,22 @@ theorem mem_Yset {k : ℕ} {y : Input (k * k)} :
   classical
   simp only [Yset, mem_filter, mem_univ, true_and]
 
+/-- Membership of a pair in `Rset` is equivalent to membership of its components in `Xset` and
+`Yset` and disagreement at exactly one position. -/
 theorem mem_Rset {k : ℕ} {p : InputPair (k * k)} :
     p ∈ Rset k ↔ p.1 ∈ Xset k ∧ p.2 ∈ Yset k ∧
       ∃ i : Fin (k * k), p.1 i ≠ p.2 i ∧ ∀ j : Fin (k * k), j ≠ i → p.1 j = p.2 j := by
   classical
   simp only [Rset, mem_filter, mem_univ, true_and]
 
+/-- A pair `(x, y)` belongs to `Rset` exactly when `x ∈ Xset`, `y ∈ Yset`, and the inputs differ
+at exactly one position. -/
 theorem mem_Rset_pair {k : ℕ} {x y : Input (k * k)} :
     (x, y) ∈ Rset k ↔ x ∈ Xset k ∧ y ∈ Yset k ∧
       ∃ i : Fin (k * k), x i ≠ y i ∧ ∀ j : Fin (k * k), j ≠ i → x j = y j := by
   simp only [mem_Rset, Prod.fst, Prod.snd]
 
+/-- Zeroing any block of an input in `Xset` produces an input in `Yset`. -/
 theorem zeroBlock_mem_Yset {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k)
     (b : Fin k) : zeroBlock k x b ∈ Yset k := by
   rw [mem_Yset]
@@ -153,6 +217,7 @@ theorem zeroBlock_mem_Yset {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k)
       rw [zeroBlock_mk, if_neg hb'] at hj''
       exact huniq j' hj''
 
+/-- Zeroing a block of an input in `Xset` changes exactly one position. -/
 theorem zeroBlock_diff {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (b : Fin k) :
     ∃ i : Fin (k * k), x i ≠ zeroBlock k x b i ∧
       ∀ j : Fin (k * k), j ≠ i → x j = zeroBlock k x b j := by
@@ -175,6 +240,8 @@ theorem zeroBlock_diff {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (b : Fi
       exact hxpt
     · rw [if_neg hpb]
 
+/-- For a related pair with first component `x ∈ Xset`, the second component is obtained by
+zeroing some block of `x`. -/
 theorem R_pair_eq_zeroBlock {k : ℕ} {x y : Input (k * k)} (hx : x ∈ Xset k)
     (hR : (x, y) ∈ Rset k) : ∃ b : Fin k, y = zeroBlock k x b := by
   obtain ⟨_, hyY, i, hne, hagree⟩ := mem_Rset_pair.mp hR
@@ -256,6 +323,7 @@ theorem R_pair_eq_zeroBlock {k : ℕ} {x y : Input (k * k)} (hx : x ∈ Xset k)
       · exact eq_false_of_ne_true hxp
     · rw [if_neg hpb]
 
+/-- For an input in `Xset`, zeroing different blocks produces different inputs. -/
 theorem zeroBlock_inj {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
     Function.Injective (fun b : Fin k => zeroBlock k x b) := by
   intro b b' hbb
@@ -270,11 +338,15 @@ theorem zeroBlock_inj {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
   rw [h1, h2] at key
   exact absurd key (by decide)
 
+/-- For fixed `x ∈ Xset`, the map sending a block to the pair `(x, zeroBlock k x b)` is
+injective. -/
 theorem pair_zeroBlock_inj {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
     Function.Injective (fun b : Fin k => (x, zeroBlock k x b)) := by
   intro b b' h
   exact zeroBlock_inj hx (congrArg Prod.snd h)
 
+/-- The relation fiber above `x ∈ Xset` consists exactly of the pairs obtained by zeroing each
+block of `x`. -/
 theorem fiber_R_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
     (Rset k).filter (fun p => p.1 = x) =
       (univ : Finset (Fin k)).image (fun b => (x, zeroBlock k x b)) := by
@@ -290,11 +362,14 @@ theorem fiber_R_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
     rw [← hbb]
     exact ⟨mem_Rset_pair.mpr ⟨hx, zeroBlock_mem_Yset hx bb, zeroBlock_diff hx bb⟩, rfl⟩
 
+/-- The relation fiber above each input in `Xset` has cardinality `k`. -/
 theorem card_fiber_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
     ((Rset k).filter (fun p => p.1 = x)).card = k := by
   rw [fiber_R_X hx, Finset.card_image_of_injective _ (pair_zeroBlock_inj hx), card_univ,
     Fintype.card_fin]
 
+/-- For a related pair whose second input has empty block `b0`, the first input is obtained by
+filling a position of that block. -/
 theorem R_pair_eq_fillBlock {k : ℕ} {x y : Input (k * k)} {b0 : Fin k}
     (hzero : ∀ j, y (@finProdFinEquiv k k (b0, j)) = false)
     (hrest : ∀ b, b ≠ b0 → ∃! j, y (@finProdFinEquiv k k (b, j)) = true)
@@ -389,6 +464,8 @@ theorem R_pair_eq_fillBlock {k : ℕ} {x y : Input (k * k)} {b0 : Fin k}
     exact hxi
   · rw [if_neg (by rw [← hi_mk]; exact hpi), hagree p hpi]
 
+/-- Filling any position of the specified empty block of `y` produces an input in `Xset`,
+provided every other block has exactly one true bit. -/
 theorem fillBlock_mem_Xset {k : ℕ} {y : Input (k * k)} {b0 : Fin k}
     (hzero : ∀ j, y (@finProdFinEquiv k k (b0, j)) = false)
     (hrest : ∀ b, b ≠ b0 → ∃! j, y (@finProdFinEquiv k k (b, j)) = true)
@@ -423,6 +500,7 @@ theorem fillBlock_mem_Xset {k : ℕ} {y : Input (k * k)} {b0 : Fin k}
       · rw [if_neg h] at hj''
         exact huniq j' hj''
 
+/-- Filling different positions in an all-false block produces different inputs. -/
 theorem fillBlock_inj {k : ℕ} {y : Input (k * k)} {b : Fin k}
     (hz : ∀ j, y (@finProdFinEquiv k k (b, j)) = false) :
     Function.Injective (fun j : Fin k => fillBlock k y b j) := by
@@ -437,12 +515,16 @@ theorem fillBlock_inj {k : ℕ} {y : Input (k * k)} {b : Fin k}
   · rw [if_pos rfl, if_neg h, hz j] at key
     exact absurd key (by decide)
 
+/-- For a fixed input with an all-false block, the pairs obtained by filling different positions
+in that block are distinct. -/
 theorem pair_fillBlock_inj {k : ℕ} {y : Input (k * k)} {b : Fin k}
     (hz : ∀ j, y (@finProdFinEquiv k k (b, j)) = false) :
     Function.Injective (fun j : Fin k => (fillBlock k y b j, y)) := by
   intro j j' h
   exact fillBlock_inj hz (congrArg Prod.fst h)
 
+/-- The relation fiber below `y ∈ Yset` consists exactly of the pairs obtained by filling each
+position of its chosen empty block. -/
 theorem fiber_R_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
     (Rset k).filter (fun p => p.2 = y) =
       (univ : Finset (Fin k)).image
@@ -465,6 +547,7 @@ theorem fiber_R_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
     · intro p hp
       rw [fillBlock_apply, if_neg (by exact hp)]
 
+/-- The relation fiber below each input in `Yset` has cardinality `k`. -/
 theorem card_fiber_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
     ((Rset k).filter (fun p => p.2 = y)).card = k := by
   rw [fiber_R_Y hy,
@@ -473,6 +556,8 @@ theorem card_fiber_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
         (Classical.choose_spec (mem_Yset.mp hy)).1),
     card_univ, Fintype.card_fin]
 
+/-- For a fixed input in `Xset` and a fixed coordinate, at most one related input differs at
+that coordinate. -/
 theorem card_diff_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (i : Fin (k * k)) :
     ((Rset k).filter (fun p => p.1 = x ∧ p.2 i ≠ x i)).card ≤ 1 := by
   classical
@@ -501,6 +586,8 @@ theorem card_diff_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (i : Fin (
   subst h2a
   simp [hb, hb']
 
+/-- For a fixed input in `Yset` and a fixed coordinate, at most one related input differs at
+that coordinate. -/
 theorem card_diff_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) (i : Fin (k * k)) :
     ((Rset k).filter (fun p => p.2 = y ∧ p.1 i ≠ y i)).card ≤ 1 := by
   classical
@@ -529,6 +616,7 @@ theorem card_diff_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) (i : Fin (
   subst h2b
   simp [ha, ha']
 
+/-- The function `andOfOrs` is true on every input in `Xset`. -/
 theorem andOfOrs_true_of_mem_Xset {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
     andOfOrs k x = true := by
   rw [andOfOrs, decide_eq_true_iff]
@@ -536,6 +624,7 @@ theorem andOfOrs_true_of_mem_Xset {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset
   obtain ⟨j, hj, -⟩ := (mem_Xset.mp hx) b
   exact ⟨j, hj⟩
 
+/-- The function `andOfOrs` is false on every input in `Yset`. -/
 theorem andOfOrs_false_of_mem_Yset {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
     andOfOrs k y = false := by
   obtain ⟨b0, hzero, -⟩ := mem_Yset.mp hy
@@ -545,6 +634,7 @@ theorem andOfOrs_false_of_mem_Yset {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yse
   rw [hzero j] at hj
   exact absurd hj (by decide)
 
+/-- For `k ≥ 1`, the set `Xset k` has positive cardinality. -/
 theorem Xset_nonempty {k : ℕ} (hk : 1 ≤ k) : 0 < (Xset k).card := by
   classical
   have hk0 : 0 < k := by omega
@@ -556,6 +646,7 @@ theorem Xset_nonempty {k : ℕ} (hk : 1 ≤ k) : 0 < (Xset k).card := by
   intro j hj
   simpa using hj
 
+/-- For `k ≥ 1`, the set `Yset k` has positive cardinality. -/
 theorem Yset_nonempty {k : ℕ} (hk : 1 ≤ k) : 0 < (Yset k).card := by
   classical
   have hk0 : 0 < k := by omega
@@ -571,6 +662,7 @@ theorem Yset_nonempty {k : ℕ} (hk : 1 ≤ k) : 0 < (Yset k).card := by
     intro j hj
     simpa [hb] using hj
 
+/-- A phase query commutes with multiplication by an input-dependent complex coefficient. -/
 theorem phaseQuery_smul' {ι : Type*} {n : ℕ} (i : Fin n) (c : Input n → ℂ)
     (ψ : ι → Input n → ℂ) :
     phaseQuery i (fun iw x => c x * ψ iw x) =
@@ -579,6 +671,9 @@ theorem phaseQuery_smul' {ι : Type*} {n : ℕ} (i : Fin n) (c : Input n → ℂ
   unfold phaseQuery
   by_cases h : x i <;> simp [h]
 
+/-- For `k ≥ 1`, a normalized phase-query trajectory with the stated input-independent
+initialization and error at most `ε ∈ [0, 1/2]` for `andOfOrs` satisfies `(1 - 2*sqrt
+(ε*(1-ε))) * k / 2 ≤ T`. See [Ambainis2002]. -/
 theorem source_theorem4 (k : ℕ) (hk : 1 ≤ k) {ι : Type*} [Fintype ι] [DecidableEq ι]
     (ψ : ℕ → ι → Input (k * k) → ℂ) (ans : ι → Bool) (T : ℕ) (ε : ℝ) (iw0 : ι)
     (hinit : ∀ iw x, ψ 0 iw x = if iw = iw0 then 1 else 0)

@@ -14,7 +14,26 @@ import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 import Mathlib.Topology.Algebra.Module.Basic
 import Mathlib.Analysis.InnerProductSpace.l2Space
 
+/-!
+# Specification of the Grover component action
+
+`expected` states the action of the Grover iterate on the orthogonal good and bad parts of a
+prepared basis state. The good subspace is the closed span of the basis vectors selected by the
+marking predicate. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `expected`: The proposition asserting the two good and bad component action formulas for the
+  Grover iterate in [Brassard et al., Lemma 1][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma1Spec
+/-- The proposition asserting the two good and bad component action formulas for the Grover
+iterate in [Brassard et al., Lemma 1][BrassardEtAl2002]. -/
 def expected : Prop :=
   (∀ (X : Set ℤ) (hzero : (0 : ℤ) ∈ X)
     (H : Type*) [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]

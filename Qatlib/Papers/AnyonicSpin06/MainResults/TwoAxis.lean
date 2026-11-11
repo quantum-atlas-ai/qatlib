@@ -12,6 +12,26 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Linarith
 import Qatlib.Papers.AnyonicSpin06.MainResults.SU2Euler
+
+/-!
+# Restrictions on three-factor two-axis decompositions
+
+For the tilted pure unit axis `vv γ`, the module computes the off-axis components of a
+three-factor product along `Iq`, `vv γ`, and `Iq`. Their squared sum is at most `sin γ ^ 2`,
+which yields `euler_two_axis_refuted`; the perpendicular choice still gives the standard Euler
+decomposition [KauffmanLomonaco2006].
+
+## Main statements
+
+* `two_axis_offaxis_le`: bounds the squared off-axis components.
+* `two_axis_orthonormal`: gives a decomposition for the perpendicular axes.
+* `euler_two_axis_refuted`: refutes the universal two-axis decomposition assertion.
+
+## References
+
+* [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,11 +46,14 @@ namespace Qatlib.Papers.AnyonicSpin06.MainResults.TwoAxis
 
 open Qatlib.Papers.AnyonicSpin06.MainResults.SU2Euler
 
+/-- The quaternionic axis `cos γ * Iq + sin γ * Jq`. -/
 def vv (γ : ℝ) : ℍ[ℝ] := (Real.cos γ : ℍ[ℝ]) * Iq + (Real.sin γ : ℍ[ℝ]) * Jq
 
+/-- The axis `vv γ` has zero real part. -/
 lemma vv_re (γ : ℝ) : (vv γ).re = 0 := by
   simp [vv, Iq, Jq]
 
+/-- The axis `vv γ` has squared norm one. -/
 lemma normSq_vv (γ : ℝ) : normSq (vv γ) = 1 := by
   unfold vv Iq Jq
   rw [Quaternion.normSq_def']
@@ -38,15 +61,20 @@ lemma normSq_vv (γ : ℝ) : normSq (vv γ) = 1 := by
     re_coe, imI_coe, imJ_coe, imK_coe]
   nlinarith [Real.sin_sq_add_cos_sq γ]
 
+/-- The `J` coordinate of `vv γ` equals `sin γ`. -/
 lemma vv_imJ (γ : ℝ) : (vv γ).imJ = Real.sin γ := by
   simp [vv, Iq, Jq]
 
+/-- The `I` coordinate of `vv γ` equals `cos γ`. -/
 lemma vv_imI (γ : ℝ) : (vv γ).imI = Real.cos γ := by
   simp [vv, Iq, Jq]
 
+/-- At angle `π / 2`, the axis `vv` equals `Jq`. -/
 lemma vv_pi_div_two : vv (Real.pi / 2) = Jq := by
   simp [vv, Jq, Real.cos_pi_div_two, Real.sin_pi_div_two]
 
+/-- The `J` and `K` coordinates of the product along axes `Iq`, `vv γ`, `Iq` are `sin b * sin γ
+* cos (a - c)` and `sin b * sin γ * sin (a - c)`, respectively [KauffmanLomonaco2006]. -/
 theorem two_axis_components (a b c γ : ℝ) :
     (expUnit a Iq * expUnit b (vv γ) * expUnit c Iq).imJ
         = Real.sin b * Real.sin γ * Real.cos (a - c) ∧
@@ -57,6 +85,8 @@ theorem two_axis_components (a b c γ : ℝ) :
       re_add, imI_add, imJ_add, imK_add, re_coe, imI_coe, imJ_coe, imK_coe,
       Real.cos_sub, Real.sin_sub] <;> ring
 
+/-- The sum of the squared `J` and `K` coordinates of the three-factor product equals `(sin b *
+sin γ) ^ 2`. -/
 theorem two_axis_offaxis_sq (a b c γ : ℝ) :
     (expUnit a Iq * expUnit b (vv γ) * expUnit c Iq).imJ ^ 2
       + (expUnit a Iq * expUnit b (vv γ) * expUnit c Iq).imK ^ 2
@@ -65,6 +95,8 @@ theorem two_axis_offaxis_sq (a b c γ : ℝ) :
   rw [h1, h2]
   nlinarith [Real.sin_sq_add_cos_sq (a - c)]
 
+/-- The sum of the squared `J` and `K` coordinates of the three-factor product is at most `sin γ
+^ 2` [KauffmanLomonaco2006]. -/
 theorem two_axis_offaxis_le (a b c γ : ℝ) :
     (expUnit a Iq * expUnit b (vv γ) * expUnit c Iq).imJ ^ 2
       + (expUnit a Iq * expUnit b (vv γ) * expUnit c Iq).imK ^ 2
@@ -73,6 +105,8 @@ theorem two_axis_offaxis_le (a b c γ : ℝ) :
   have hb : Real.sin b ^ 2 ≤ 1 := Real.sin_sq_le_one b
   nlinarith [sq_nonneg (Real.sin γ)]
 
+/-- Every unit quaternion has a three-factor decomposition along `Iq`, `vv (π / 2)`, and `Iq`
+[KauffmanLomonaco2006]. -/
 theorem two_axis_orthonormal (q : ℍ[ℝ]) (hq : normSq q = 1) :
     ∃ a b c : ℝ, q = expUnit a Iq * expUnit b (vv (Real.pi / 2)) * expUnit c Iq := by
   obtain ⟨a, b, c, h⟩ := exists_euler_angles q hq
@@ -80,6 +114,8 @@ theorem two_axis_orthonormal (q : ℍ[ℝ]) (hq : normSq q = 1) :
   rw [h, vv_pi_div_two]
   simp [expUnit, expq, expqJ]
 
+/-- The assertion `EulerTwoAxis`, requiring a three-factor decomposition for every pair of
+distinct, nonopposite pure unit axes, is false [KauffmanLomonaco2006]. -/
 theorem euler_two_axis_refuted : ¬ EulerTwoAxis := by
   intro h
   have hIq_re : (Iq).re = 0 := by simp [Iq]

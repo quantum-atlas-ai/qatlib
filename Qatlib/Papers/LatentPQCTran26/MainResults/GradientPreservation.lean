@@ -8,6 +8,29 @@ import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.Analysis.Normed.Group.Basic
 
+/-!
+# Preservation of gradient lower bounds
+
+`grad_lower_bound` controls the loss in gradient norm under bounded perturbations using a
+Lipschitz estimate. A radius of at most `g / (2 * Λ)` retains half the central lower bound, and
+the expectation lemmas integrate pointwise squared-gradient bounds against probability measures.
+See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `grad_lower_bound`: A `Λ`-Lipschitz map with norm at least `g` at `θstar` has norm at least `g
+  - Λ * γ` at `θstar + γ • s` when `Λ, γ ≥ 0` and `‖s‖ ≤ 1`.
+* `image_manifold_lower_bound`: With `Λ > 0` and `0 ≤ γ ≤ g / (2 * Λ)`, a unit-bounded
+  perturbation preserves at least half the central gradient-norm lower bound `g`.
+* `proposition7_expectation`: Under the stated radius, sign, and integrability hypotheses, a
+  pointwise gradient-norm lower bound `g / 2` gives expected squared norm at least `(g / 2) ^
+  2`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,6 +38,8 @@ open MeasureTheory
 
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.GradientPreservation
 
+/-- A `Λ`-Lipschitz map with norm at least `g` at `θstar` has norm at least `g - Λ * γ` at
+`θstar + γ • s` when `Λ, γ ≥ 0` and `‖s‖ ≤ 1`. -/
 theorem grad_lower_bound
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (grad : E → E) (Λ g γ : ℝ) (hΛ : 0 ≤ Λ) (hγ : 0 ≤ γ)
@@ -39,6 +64,8 @@ theorem grad_lower_bound
   have key : ‖grad θstar‖ - ‖grad (θstar + γ • s)‖ ≤ Λ * γ := by linarith
   linarith [hg, key]
 
+/-- With `Λ > 0` and `0 ≤ γ ≤ g / (2 * Λ)`, a unit-bounded perturbation preserves at least half
+the central gradient-norm lower bound `g`. -/
 theorem image_manifold_lower_bound
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (grad : E → E) (Λ g γ : ℝ) (hΛpos : 0 < Λ) (hγ : 0 ≤ γ)
@@ -54,6 +81,8 @@ theorem image_manifold_lower_bound
     linarith [hmul, hsimp.le, hsimp.ge]
   linarith [hbase, hkey]
 
+/-- A pointwise norm lower bound by nonnegative `c` gives expected squared norm at least `c ^ 2`
+under a probability measure, assuming integrability. -/
 theorem expected_grad_sq_lower_bound
     {Z : Type*} [MeasurableSpace Z] (r : Measure Z) [IsProbabilityMeasure r]
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
@@ -73,6 +102,8 @@ theorem expected_grad_sq_lower_bound
     rw [integral_const, probReal_univ, one_smul]
   rwa [hconst] at hmono
 
+/-- Under the stated radius, sign, and integrability hypotheses, a pointwise gradient-norm lower
+bound `g / 2` gives expected squared norm at least `(g / 2) ^ 2` [TranEtAl2026]. -/
 theorem proposition7_expectation
     {Z : Type*} [MeasurableSpace Z] (r : Measure Z) [IsProbabilityMeasure r]
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]

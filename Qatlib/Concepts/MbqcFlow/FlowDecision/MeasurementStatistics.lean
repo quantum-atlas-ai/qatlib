@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatistics
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+
+/-!
+# Variance bounds for measurement U-statistics
+
+Defines the kernel variance `kernelVarianceK` and the covariance `overlapCovarianceK` of two
+coordinate selections from an independent sample. It proves an exact overlap expansion for the
+variance of `povmUStatisticK`, a combinatorial variance bound, and a Chebyshev deviation bound.
+
+The results specialize to repeated finite POVM measurements through `frontier1_povm`. The
+measurement setting is described in [Watrous2018].
+
+## Main statements
+
+* `uStatistic_variance_overlap`: variance as a normalized sum of overlap covariances.
+* `overlapCovarianceK_disjoint`: disjoint injective selections have zero covariance.
+* `probEvent_uStatistic_le`: deviation bound from the kernel variance and overlap count.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,41 +49,55 @@ set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O]
 
+/-- The product expectation of the kernel evaluated on the coordinate selections `t` and `s` of
+an independent sample from `p`. -/
 def overlapExpectK (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) : ℝ :=
   ∑ ω : Fin n → O, p.probOf ω * h (fun i => ω (t i)) * h (fun i => ω (s i))
 
+/-- The variance of a real kernel on `k` independent outcomes drawn from `p`. -/
 noncomputable def kernelVarianceK {k : ℕ} (p : FinDist O) (h : (Fin k → O) → ℝ) : ℝ :=
   ∑ y : Fin k → O, (∏ i : Fin k, p.prob (y i)) * (h y - kernelMeanK p h) ^ 2
 
+/-- The product expectation for two coordinate selections minus the square of the independent
+kernel mean. -/
 noncomputable def overlapCovarianceK (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) : ℝ :=
   overlapExpectK p h t s - kernelMeanK p h ^ 2
 
+/-- The combinatorial bound `k * k * n ^ (k - 1)` used to count coordinate selections
+overlapping a fixed selection. -/
 def overlapDegreeBound (n k : ℕ) : ℕ := k * k * n ^ (k - 1)
 
+/-- The probabilities of all length-`n` independent sample tables sum to one. -/
 theorem probOf_sum_one (p : FinDist O) (n : ℕ) :
     ∑ ω : Fin n → O, p.probOf ω = 1 := Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.sum_probOf p n
 
+/-- Every independent sample table has nonnegative probability. -/
 theorem probOf_nonneg (p : FinDist O) {n : ℕ} (ω : Fin n → O) :
     0 ≤ p.probOf ω := Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- Reading distinct coordinates from an independent sample preserves the kernel mean. -/
 theorem read_expect (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
     (hidx : Function.Injective idx) (h : (Fin k → O) → ℝ) :
     ∑ ω : Fin n → O, p.probOf ω * h (fun i => ω (idx i)) = kernelMeanK p h :=
   povm_joint_expect p idx hidx h
 
+/-- Reading distinct coordinates from an independent sample preserves the kernel variance. -/
 theorem read_variance (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
     (hidx : Function.Injective idx) (h : (Fin k → O) → ℝ) :
     ∑ ω : Fin n → O, p.probOf ω * (h (fun i => ω (idx i)) - kernelMeanK p h) ^ 2
       = kernelVarianceK p h :=
   povm_joint_expect p idx hidx (fun y => (h y - kernelMeanK p h) ^ 2)
 
+/-- The independent kernel variance is nonnegative. -/
 theorem kernelVarianceK_nonneg {k : ℕ} (p : FinDist O) (h : (Fin k → O) → ℝ) :
     0 ≤ kernelVarianceK p h := by
   refine Finset.sum_nonneg fun y _ => ?_
   exact mul_nonneg (Finset.prod_nonneg fun i _ => p.nonneg _) (sq_nonneg _)
 
+/-- For injective coordinate selections, the overlap covariance equals the expectation of the
+product of the centered kernel values. -/
 theorem overlapCovarianceK_eq (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s) :
     overlapCovarianceK p h t s
@@ -90,12 +126,15 @@ theorem overlapCovarianceK_eq (p : FinDist O) {n k : ℕ} (h : (Fin k → O) →
   rw [hrhs, h1, h2, h3]
   ring
 
+/-- The equivalence of outcome tables obtained by precomposing with the inverse coordinate
+permutation. -/
 def precompEquiv {n : ℕ} (σ : Fin n ≃ Fin n) : (Fin n → O) ≃ (Fin n → O) where
   toFun ω := fun x => ω (σ.symm x)
   invFun ω := fun x => ω (σ x)
   left_inv ω := by funext x; simp
   right_inv ω := by funext x; simp
 
+/-- A common permutation of both coordinate selections preserves their product expectation. -/
 theorem overlapExpectK_transport (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (σ : Fin n ≃ Fin n) (t t' s s' : Fin k → Fin n)
     (ht : ∀ i, t' i = σ (t i)) (hs : ∀ i, s' i = σ (s i)) :
@@ -127,6 +166,7 @@ theorem overlapExpectK_transport (p : FinDist O) {n k : ℕ} (h : (Fin k → O) 
     (fun ω => p.probOf ω * h (fun i => ω (t i)) * h (fun i => ω (s i)))
     (fun ω => p.probOf ω * h (fun i => ω (t' i)) * h (fun i => ω (s' i))) hgo
 
+/-- A common permutation of both coordinate selections preserves their overlap covariance. -/
 theorem overlapCovarianceK_transport (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (σ : Fin n ≃ Fin n) (t t' s s' : Fin k → Fin n)
     (ht : ∀ i, t' i = σ (t i)) (hs : ∀ i, s' i = σ (s i)) :
@@ -134,6 +174,7 @@ theorem overlapCovarianceK_transport (p : FinDist O) {n k : ℕ} (h : (Fin k →
   unfold overlapCovarianceK
   rw [overlapExpectK_transport p h σ t t' s s' ht hs]
 
+/-- The overlap covariance of an injective selection with itself equals the kernel variance. -/
 theorem overlapCovarianceK_self (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t : Fin k → Fin n) (ht : Function.Injective t) :
     overlapCovarianceK p h t t = kernelVarianceK p h := by
@@ -169,12 +210,14 @@ theorem overlapCovarianceK_self (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
           - kernelMeanK p h ^ 2 := by rw [h1]
     _ = kernelVarianceK p h := by rw [hrhs, h2, h3]; ring
 
+/-- Reindexes an outcome table of length `k + k` by the sum of two copies of `Fin k`. -/
 def readSumEquiv {k : ℕ} : (Fin (k + k) → O) ≃ ((Fin k ⊕ Fin k) → O) where
   toFun z := fun c => z (finSumFinEquiv c)
   invFun w := fun x => w (finSumFinEquiv.symm x)
   left_inv z := by funext x; simp
   right_inv w := by funext c; simp
 
+/-- Splits a table indexed by `Fin k ⊕ Fin k` into its two component tables. -/
 def sumTableEquiv {k : ℕ} : ((Fin k ⊕ Fin k) → O) ≃ ((Fin k → O) × (Fin k → O)) where
   toFun w := (fun i => w (Sum.inl i), fun i => w (Sum.inr i))
   invFun pr := Sum.elim pr.1 pr.2
@@ -183,6 +226,7 @@ def sumTableEquiv {k : ℕ} : ((Fin k ⊕ Fin k) → O) ≃ ((Fin k → O) × (F
     rcases pr with ⟨a, b⟩
     rfl
 
+/-- Disjoint injective coordinate selections have zero overlap covariance. -/
 theorem overlapCovarianceK_disjoint (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s)
     (hdis : ∀ i j : Fin k, t i ≠ s j) :
@@ -307,6 +351,8 @@ theorem overlapCovarianceK_disjoint (p : FinDist O) {n k : ℕ} (h : (Fin k → 
           unfold kernelMeanK
           ring
 
+/-- The expectation of the average of two squared centered kernel values equals the average of
+their kernel variances. -/
 theorem centered_half_sum (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s) :
     (∑ ω : Fin n → O, p.probOf ω * (((h (fun i => ω (t i)) - kernelMeanK p h) ^ 2
@@ -327,6 +373,7 @@ theorem centered_half_sum (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ
   rw [Finset.sum_congr rfl fun ω _ => hmul ω, ← Finset.sum_div,
     Finset.sum_congr rfl fun ω _ => hadd ω, Finset.sum_add_distrib, hVt, hVs]
 
+/-- For injective selections, the overlap covariance is at most the kernel variance. -/
 theorem overlapCovarianceK_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s) :
     overlapCovarianceK p h t s ≤ kernelVarianceK p h := by
@@ -350,6 +397,7 @@ theorem overlapCovarianceK_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) →
   exact le_trans (Finset.sum_le_sum fun ω _ => hpoint ω)
     (le_of_eq (centered_half_sum p h t s ht hs))
 
+/-- For injective selections, the overlap covariance is at least the negative kernel variance. -/
 theorem neg_overlapCovarianceK_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s) :
     -kernelVarianceK p h ≤ overlapCovarianceK p h t s := by
@@ -386,18 +434,23 @@ theorem neg_overlapCovarianceK_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O)
   rw [centered_half_sum p h t s ht hs, hhalf] at hsum
   exact neg_le.mp hsum
 
+/-- For injective selections, the absolute overlap covariance is bounded by the kernel variance. -/
 theorem overlapCovarianceK_abs_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (t s : Fin k → Fin n) (ht : Function.Injective t) (hs : Function.Injective s) :
     |overlapCovarianceK p h t s| ≤ kernelVarianceK p h :=
   abs_le.mpr ⟨neg_overlapCovarianceK_le p h t s ht hs,
     overlapCovarianceK_le p h t s ht hs⟩
 
+/-- Summing a constant over injective coordinate selections multiplies it by `distinctTupleCount
+n k`. -/
 theorem sum_injective_const {n k : ℕ} (c : ℝ) :
     ∑ t : Fin k → Fin n, (if Function.Injective t then c else 0)
       = ((distinctTupleCount n k : ℕ) : ℝ) * c := by
   rw [← Finset.sum_filter, Finset.sum_const, nsmul_eq_mul]
   rfl
 
+/-- When `distinctTupleCount n k` is nonzero, the U-statistic variance equals the sum of all
+injective overlap covariances divided by the square of that count. -/
 theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (hN : (distinctTupleCount n k : ℕ) ≠ 0) :
     ∑ ω : Fin n → O, p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ 2
@@ -606,10 +659,13 @@ theorem uStatistic_variance_overlap (p : FinDist O) {n k : ℕ} (h : (Fin k → 
           rw [hsub]
           field_simp [hC]
 
+/-- Extends a table on the coordinates other than `i` by assigning the value `j` at `i`. -/
 def coordFiberTable {k n : ℕ} (i : Fin k) (j : Fin n)
     (g : ∀ x : {x : Fin k // x ≠ i}, Fin n) : Fin k → Fin n :=
   fun x => if hx : x = i then j else g ⟨x, hx⟩
 
+/-- Identifies tables with prescribed value `j` at coordinate `i` with tables on the remaining
+coordinates. -/
 def coordFiberEquiv {k n : ℕ} (i : Fin k) (j : Fin n) :
     {s : Fin k → Fin n // s i = j} ≃ (∀ x : {x : Fin k // x ≠ i}, Fin n) where
   toFun hs x := hs.1 x.1
@@ -629,6 +685,8 @@ def coordFiberEquiv {k n : ℕ} (i : Fin k) (j : Fin n) :
     · exact absurd hx x.2
     · rw [coordFiberTable, dif_neg hx]
 
+/-- There are `n ^ (k - 1)` functions from `Fin k` to `Fin n` with a prescribed value at a
+specified coordinate. -/
 theorem coord_fiber_card {k n : ℕ} (i : Fin k) (j : Fin n) :
     Fintype.card {s : Fin k → Fin n // s i = j} = n ^ (k - 1) := by
   have h1 : Fintype.card {x : Fin k // x = i} = 1 := Fintype.card_subtype_eq i
@@ -647,6 +705,7 @@ theorem coord_fiber_card {k n : ℕ} (i : Fin k) (j : Fin n) :
         rw [Finset.prod_const]
         simp [hcard]
 
+/-- The finite set of tables with a prescribed coordinate value has cardinality `n ^ (k - 1)`. -/
 theorem coord_fiber_filter_card {k n : ℕ} (i : Fin k) (j : Fin n) :
     ((Finset.univ : Finset (Fin k → Fin n)).filter (fun s => s i = j)).card
       = n ^ (k - 1) := by
@@ -659,6 +718,8 @@ theorem coord_fiber_filter_card {k n : ℕ} (i : Fin k) (j : Fin n) :
   rw [← hbridge]
   exact coord_fiber_card i j
 
+/-- At most `k * k * n ^ (k - 1)` injective selections share a coordinate value with a fixed
+selection. -/
 theorem overlap_index_card_le {n k : ℕ} (t : Fin k → Fin n) :
     ((Finset.univ : Finset (Fin k → Fin n)).filter
       (fun s => Function.Injective s ∧ ∃ i, ∃ j, s i = t j)).card
@@ -702,6 +763,8 @@ theorem overlap_index_card_le {n k : ℕ} (t : Fin k → Fin n) :
     ring
   exact (h1.trans (Finset.sum_le_sum fun i hi => h2 i hi)).trans_eq hsum2
 
+/-- For a nonzero distinct-tuple count, the U-statistic variance is bounded by the kernel
+variance times the overlap degree bound divided by the tuple count. -/
 theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (hN : (distinctTupleCount n k : ℕ) ≠ 0) :
     ∑ ω : Fin n → O, p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ 2
@@ -821,6 +884,8 @@ theorem uStatistic_variance_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
     _ = (kernelVarianceK p h * ((overlapDegreeBound n k : ℕ) : ℝ))
           * ((distinctTupleCount n k : ℕ) : ℝ) ^ 2 := by ring
 
+/-- For a positive threshold, the probability of a strict absolute deviation from the mean is at
+most the variance divided by the squared threshold. -/
 theorem probEvent_le_variance {X : Type} [Fintype X] {n : ℕ} (p : FinDist X)
     (f : (Fin n → X) → ℝ) (μ : ℝ) (hμ : ∑ ω : Fin n → X, p.probOf ω * f ω = μ)
     (ε : ℝ) (hε : 0 < ε) :
@@ -866,6 +931,9 @@ theorem probEvent_le_variance {X : Type} [Fintype X] {n : ℕ} (p : FinDist X)
     _ ≤ (∑ ω : Fin n → X, p.probOf ω * (f ω - μ) ^ 2) / ε ^ 2 :=
         div_le_div_of_nonneg_right hsum2 h2.le
 
+/-- For a positive threshold and nonzero distinct-tuple count, the U-statistic deviation
+probability is bounded by the kernel variance times the overlap degree bound divided by the
+tuple count and squared threshold. -/
 theorem probEvent_uStatistic_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (hN : (distinctTupleCount n k : ℕ) ≠ 0) (ε : ℝ) (hε : 0 < ε) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := n) p
@@ -887,6 +955,8 @@ theorem probEvent_uStatistic_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
           / (((distinctTupleCount n k : ℕ) : ℝ) * ε ^ 2) := by
         ring
 
+/-- Collects unbiasedness, the overlap variance formula, covariance identities, and variance and
+deviation bounds for independent finite-sample U-statistics. -/
 theorem frontier1 :
     ∀ {O : Type} [Fintype O] [DecidableEq O] (p : FinDist O) {n k : ℕ},
       (distinctTupleCount n k : ℕ) ≠ 0 → ∀ (h : (Fin k → O) → ℝ) (ε : ℝ), 0 < ε →
@@ -926,6 +996,9 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
 
 variable {D : ℕ}
 
+/-- Specializes the U-statistic expectation, overlap covariance identities, variance expansion,
+and variance and deviation bounds to repeated measurements of a density operator by a finite
+POVM. -/
 theorem frontier1_povm (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     {n k : ℕ} (hN : (distinctTupleCount n k : ℕ) ≠ 0) (h : (Fin k → O) → ℝ)
     (ε : ℝ) (hε : 0 < ε) :

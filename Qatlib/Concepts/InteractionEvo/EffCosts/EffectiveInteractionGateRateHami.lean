@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionGateRateStat
+
+/-!
+# Summed gate costs for dyadic interaction times
+
+This module bounds nonnegative dyadic interaction times and their sum, then proves
+`effectiveInteractionGateRate`. A per-time cost hypothesis yields a total bound with at most
+twice the full-duration leading cost and one additive unit per dyadic time. This accounting
+supports the interaction picture simulation framework of [LowWiebe2018].
+
+## Main statements
+
+* `effectiveInteractionGateRate`: sum the dyadic gate-cost bounds.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -13,11 +31,13 @@ namespace Qatlib.Concepts.InteractionEvo.EffCosts
 open scoped BigOperators
 set_option warningAsError false
 
+/-- A dyadic interaction time is nonnegative when the rational base duration is nonnegative. -/
 private theorem dyadicTime_nonneg (tau : ℚ) (nd j : ℕ) (ht : 0 ≤ tau) :
     0 ≤ (effectiveIPDyadicTime tau nd j : ℝ) := by
   unfold effectiveIPDyadicTime
   split_ifs <;> push_cast <;> positivity
 
+/-- For `j ≤ nd` and nonnegative `tau`, the dyadic interaction time is at most `tau`. -/
 private theorem dyadicTime_le (tau : ℚ) (nd j : ℕ) (ht : 0 ≤ tau) (hj : j ≤ nd) :
     (effectiveIPDyadicTime tau nd j : ℝ) ≤ (tau : ℝ) := by
   unfold effectiveIPDyadicTime
@@ -28,6 +48,8 @@ private theorem dyadicTime_le (tau : ℚ) (nd j : ℕ) (ht : 0 ≤ tau) (hj : j 
     apply (div_le_iff₀ (by positivity : (0 : ℝ) < 2^nd)).mpr
     exact mul_le_mul_of_nonneg_left hp (by exact_mod_cast ht)
 
+/-- The sum of dyadic interaction times indexed by zero through `nd` is at most twice the
+nonnegative base duration. -/
 private theorem dyadicTime_sum (tau : ℚ) (nd : ℕ) (ht : 0 ≤ tau) :
     (∑ j ∈ Finset.range (nd+1), (effectiveIPDyadicTime tau nd j : ℝ)) ≤ 2*(tau : ℝ) := by
   have hsum : ∑ j ∈ Finset.range nd, (2 : ℝ)^j = 2^nd-1 := by
@@ -49,6 +71,9 @@ private theorem dyadicTime_sum (tau : ℚ) (nd : ℕ) (ht : 0 ≤ tau) :
   have := div_nonneg (show (0 : ℝ) ≤ tau by exact_mod_cast ht) hp.le
   linarith
 
+/-- The per-time gate-cost hypothesis implies the aggregate bound with leading term `2 CA tau (1
++ log(1 + tau / delta))^gamma` and additive term `nd + 1`. This is a cost summation used in
+the setting of [LowWiebe2018]. -/
 theorem effectiveInteractionGateRate : EffectiveInteractionGateRate := by
   intro gamma hg tau delta nd CA cost ht hd hCA hc
   push_cast at hc

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
+
+/-!
+# Error and gate counts for matched exponential words
+
+This module bounds the coefficient series and Taylor tails of `suzukiExponentialWord`. Matching
+its coefficients to the exponential through degree `p` gives local order `p + 1`; for
+skew-Hermitian generators, repeated words yield explicit unitary gate counts and a global norm
+error bound. For background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `general_trotter_matched_local_error`: explicit error from coefficient matching.
+* `general_order_actual_word_error_and_cost`: repeated-word unitarity, length, and error.
+* `general_trotter_actual_canonical_consumer`: combines defect order conditions with the
+  repeated-word bound.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,12 +40,14 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix Asymptotics Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 
+/-- The sum of generator norms `suzukiMass xs` is nonnegative. -/
 theorem general_trotter_mass_nonneg {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) : 0 ≤ suzukiMass xs := by
   unfold suzukiMass
   exact List.sum_nonneg
       (fun x hx => by obtain ⟨Y, _, rfl⟩ := List.mem_map.mp hx; exact norm_nonneg Y)
 
+/-- The degree-`n` series term has norm at most `(|t| * suzukiMass xs) ^ n / n!`. -/
 theorem general_trotter_term_norm {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) (n : ℕ) :
     ‖t ^ n • suzukiSeries xs n‖ ≤ (|t| * suzukiMass xs) ^ n / (n.factorial : ℝ) := by
@@ -34,6 +57,7 @@ theorem general_trotter_term_norm {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left (suzukiSeries_norm_le xs n) (by positivity)
     _ = _ := by rw [mul_pow]; ring
 
+/-- The norms of the time-scaled exponential-word series coefficients form a summable sequence. -/
 theorem general_trotter_norm_summable {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) :
     Summable (fun n => ‖t ^ n • suzukiSeries xs n‖) := by
@@ -42,11 +66,14 @@ theorem general_trotter_norm_summable {I : Type} [Fintype I] [DecidableEq I]
       (NormedSpace.exp_series_hasSum_exp' (𝕂 := ℝ) (|t| * suzukiMass xs)).summable
   exact h.of_nonneg_of_le (fun _ => norm_nonneg _) (general_trotter_term_norm xs t)
 
+/-- The real exponential is the sum of its factorial power series at any real argument. -/
 private theorem general_trotter_exp_hasSum (a : ℝ) :
     HasSum (fun n : ℕ => a ^ n / (n.factorial : ℝ)) (Real.exp a) := by
   simpa only [smul_eq_mul, inv_mul_eq_div, ← Real.exp_eq_exp_ℝ] using!
     NormedSpace.exp_series_hasSum_exp' (𝕂 := ℝ) a
 
+/-- For nonnegative `a`, the exponential series tail from degree `m` is summable and bounded by
+`a ^ m / m! * exp a`. -/
 theorem general_trotter_scalar_tail (a : ℝ) (ha : 0 ≤ a) (m : ℕ) :
     Summable (fun n : ℕ => a ^ (n + m) / ((n + m).factorial : ℝ)) ∧
     (∑' n : ℕ, a ^ (n + m) / ((n + m).factorial : ℝ)) ≤
@@ -64,6 +91,8 @@ theorem general_trotter_scalar_tail (a : ℝ) (ha : 0 ≤ a) (m : ℕ) :
     hg.summable.of_nonneg_of_le (fun _ => by positivity) hterm
   exact ⟨hs, (hs.tsum_le_tsum hterm hg.summable).trans_eq hg.tsum_eq⟩
 
+/-- The exponential word's remainder below degree `m` is bounded by `exp (|t| * suzukiMass xs) *
+(|t| * suzukiMass xs) ^ m / m!`. -/
 theorem general_trotter_taylor_tail {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (t : ℝ) (m : ℕ) :
     ‖suzukiExponentialWord xs t - ∑ n ∈ Finset.range m, t ^ n • suzukiSeries xs n‖ ≤
@@ -91,6 +120,8 @@ theorem general_trotter_taylor_tail {I : Type} [Fintype I] [DecidableEq I]
     _ ≤ a ^ m / (m.factorial : ℝ) * Real.exp a := hb
     _ = _ := by ring
 
+/-- Matching the word coefficients to those of `exp (t • H)` through degree `p` gives the stated
+factorial local error bound with mass `suzukiMass xs + ‖H‖`. -/
 theorem general_trotter_matched_local_error {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p : ℕ) (t : ℝ)
     (hc : ∀ n : ℕ, n ≤ p → suzukiSeries xs n = ((n.factorial : ℝ)⁻¹) • H^n) :
@@ -123,6 +154,7 @@ theorem general_trotter_matched_local_error {I : Type} [Fintype I] [DecidableEq 
       hh.trans (hmono _ (by simp [suzukiMass]; positivity) (by simpa [suzukiMass] using! hah))
   exact (ht.trans (add_le_add hx' hh')).trans_eq (by dsimp [a]; ring)
 
+/-- The exponential of a real multiple of a skew-Hermitian matrix is unitary. -/
 theorem general_trotter_exp_unitary {I : Type} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (s : ℝ) (hX : Xᴴ = -X) :
     NormedSpace.exp (s • X) ∈ Matrix.unitaryGroup I ℂ := by
@@ -131,6 +163,9 @@ theorem general_trotter_exp_unitary {I : Type} [Fintype I] [DecidableEq I]
   change star (s • X) = -(s • X)
   simp only [star_smul, star_trivial, Matrix.star_eq_conjTranspose, hX, smul_neg]
 
+/-- For skew-Hermitian generators with coefficients matched through degree `p`, a positive
+number `r` of repeated steps gives a unitary word of length `r * xs.length` and the stated
+accumulated error bound [ChildsEtAl2021Trotter]. -/
 theorem general_order_actual_word_error_and_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (xs : List (Matrix I I ℂ))
       (H : Matrix I I ℂ) (p r : ℕ) (t : ℝ),
@@ -167,6 +202,7 @@ theorem general_order_actual_word_error_and_cost :
     exact hh.trans ((mul_le_mul_of_nonneg_left
       (general_trotter_matched_local_error xs H p (t/r) hc) (Nat.cast_nonneg r)).trans_eq (by ring))
 
+/-- Every finite exponential word is infinitely differentiable in its real time parameter. -/
 theorem general_trotter_word_contDiff {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) : ContDiff ℝ ∞ (suzukiExponentialWord xs) := by
   induction xs with
@@ -174,6 +210,8 @@ theorem general_trotter_word_contDiff {I : Type} [Fintype I] [DecidableEq I]
   | cons X xs ih =>
     simpa [suzukiExponentialWord] using! (trotter_exp_contDiff X).mul ih
 
+/-- Coefficient matching through degree `p` gives order `p + 1` for the difference between the
+exponential word and `exp (t • H)`. -/
 theorem general_trotter_word_order {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p : ℕ)
     (hc : ∀ n : ℕ, n ≤ p → suzukiSeries xs n = ((n.factorial : ℝ)⁻¹) • H^n) :
@@ -195,6 +233,9 @@ theorem general_trotter_word_order {I : Type} [Fintype I] [DecidableEq I]
   exact (general_trotter_matched_local_error xs H p t hc).trans
     (hb.trans (by gcongr; linarith))
 
+/-- For matched skew-Hermitian generators and positive `r`, combines both normalized
+differential-defect orders and multiplicative-error order with the repeated word's
+unitarity, length, and global error bound. -/
 theorem general_trotter_actual_canonical_consumer {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ) (p r : ℕ) (t : ℝ)
     (hxs : ∀ X ∈ xs, Xᴴ = -X) (hH : Hᴴ = -H) (hr : 0 < r)

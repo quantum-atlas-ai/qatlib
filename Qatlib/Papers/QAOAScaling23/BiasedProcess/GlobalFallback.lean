@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.ClassMass
+
+/-!
+# Fallback rows beyond the cost-class range
+
+This module extends the rank-indexed row family beyond the finite range of actual cost
+thresholds. It uses the full cost-class law with zero charges and false bad flags, preserving
+the normalized transition law required by the descent analysis associated with
+[ShaydulinEtAl2024].
+
+## Main statements
+
+* `prefix_after_classes`: A weight prefix whose endpoint contains all cost classes has mass one.
+* `fallback_row_law`: The fallback row's next-rank fiber mass equals the class weight divided by
+  the prefix mass.
+* `fallback_charge`: The mean charge of every fallback row is zero.
+* `fallback_bad`: The mean bad indicator of every fallback row is zero.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -16,6 +38,7 @@ open Qatlib.Papers.QAOAScaling23.WeightedCost
 namespace Qatlib.Papers.QAOAScaling23.BiasedProcess.Outside
 variable {I : Type} [Fintype I]
 
+/-- A weight prefix whose endpoint contains all cost classes has mass one. -/
 theorem prefix_after_classes (cost : I→ℝ) (p : PMF I) (k : ℕ)
     (hk : (costLevels cost).card≤k) : prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost p) k=1 := by
   have he : prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost p) (costLevels cost).card=
@@ -26,12 +49,16 @@ theorem prefix_after_classes (cost : I→ℝ) (p : PMF I) (k : ℕ)
     exact dif_neg (by simpa only [Finset.mem_range] using hj)
   rw [← he,Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights_normalized]
 
+/-- A chosen candidate representing the specified cost-class rank. -/
 def classRep (cost : I→ℝ) (j : Fin (costLevels cost).card) : I :=
   Classical.choose (costRank_surjective cost j)
 
+/-- The chosen class representative has the specified rank. -/
 theorem classRep_rank (cost : I→ℝ) (j : Fin (costLevels cost).card) :
     costRank cost (classRep cost j)=j := Classical.choose_spec (costRank_surjective cost j)
 
+/-- A zero-charge row with no bad outcomes, sampling the full cost-class law when all classes
+fit below the next-rank bound. -/
 def fallbackRow (cost : I→ℝ) (p : PMF I) (r : ℕ) (h : (costLevels cost).card≤r+1) : Row r where
   outcomes := (costLevels cost).card
   law := costClassLaw cost p
@@ -39,11 +66,13 @@ def fallbackRow (cost : I→ℝ) (p : PMF I) (r : ℕ) (h : (costLevels cost).ca
   charge _ := 0
   bad _ := false
 
+/-- The fallback candidate representative has the rank recorded by the fallback row. -/
 theorem fallback_candidate_rank (cost : I→ℝ) (p : PMF I) (r : ℕ)
     (h : (costLevels cost).card≤r+1) (a : Fin (fallbackRow cost p r h).outcomes) :
     (costRank cost (classRep cost a)).val=((fallbackRow cost p r h).next a).val := by
   exact congrArg Fin.val (classRep_rank cost a)
 
+/-- The fallback row's next-rank fiber mass equals the class weight divided by the prefix mass. -/
 theorem fallback_row_law (cost : I→ℝ) (p : PMF I) (r : ℕ)
     (h : (costLevels cost).card≤r+1) (j : Fin (r+1)) :
     (∑a,if (fallbackRow cost p r h).next a=j then ((fallbackRow cost p r h).law a).toReal else 0)=
@@ -72,11 +101,13 @@ theorem fallback_row_law (cost : I→ℝ) (p : PMF I) (r : ℕ)
       exact hj (by rw [← hv];exact a.isLt)
     exact if_neg hn
 
+/-- The mean charge of every fallback row is zero. -/
 theorem fallback_charge (cost : I→ℝ) (p : PMF I) (r : ℕ)
     (h : (costLevels cost).card≤r+1) :
     (∑a,((fallbackRow cost p r h).law a).toReal*((fallbackRow cost p r h).charge a:ℝ))=0 := by
   simp [fallbackRow]
 
+/-- The mean bad indicator of every fallback row is zero. -/
 theorem fallback_bad (cost : I→ℝ) (p : PMF I) (r : ℕ)
     (h : (costLevels cost).card≤r+1) :
     (∑a,((fallbackRow cost p r h).law a).toReal*(if (fallbackRow cost p r h).bad a then 1 else 0))=0 := by

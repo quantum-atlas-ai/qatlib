@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
 import Qatlib.Concepts.WalkSearch.Primitives.AdaptiveCheckerObstruction
+
+/-!
+# Limits of checker substitution
+
+Refutes the universal `CheckerSubstitution` proposition and proves that `th4Alg` is unchanged
+when its noisy-search argument is replaced by another having the same `κ`. These results isolate
+the role of the checker argument in the local graph-search construction; for bounded-error
+search background, see [HoyerMoscaDeWolf2003].
+
+## Main statements
+
+* `checkerSubstitution_obstruction`: The universal checker-substitution proposition
+  `CheckerSubstitution` is false.
+* `th4Alg_checker_run_irrelevant`: Replacing the noisy-search argument of `th4Alg` by another
+  with the same `κ` leaves the algorithm's result unchanged for every choice of the remaining
+  inputs and tapes.
+
+## References
+
+* [Hoyer, Mosca and de Wolf, 2003][HoyerMoscaDeWolf2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +38,7 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkSearch.Primitives
 
+/-- The universal checker-substitution proposition `CheckerSubstitution` is false. -/
 theorem checkerSubstitution_obstruction : ¬ CheckerSubstitution := by
   intro h
   obtain ⟨r, r', _hr, _hl, _hu, _hr', _hl', _hu', hcheck, _rest⟩ :=
@@ -24,6 +47,8 @@ theorem checkerSubstitution_obstruction : ¬ CheckerSubstitution := by
       (by decide) (by decide) (by decide)
   exact triCheckSpecCorrected_adaptive_obstruction r' hcheck
 
+/-- Replacing the noisy-search argument of `th4Alg` by another with the same `κ` leaves the
+algorithm's result unchanged for every choice of the remaining inputs and tapes. -/
 theorem th4Alg_checker_run_irrelevant {n : ℕ} (adj : Fin n → Fin n → Bool)
     (kcs : KCollisionSolver) (ncs ncs' : NoisySearch) (sgs : Qatlib.Concepts.WalkSearch.WalkAlgorithms.SafeGrover)
     (hκ : ncs.κ = ncs'.κ) (r r' c₀ : ℕ)

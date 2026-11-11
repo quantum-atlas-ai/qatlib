@@ -5,6 +5,20 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtLinearSolve.Angles.CountedHhlDefs
+
+/-!
+# Explicit query and gate ledgers for an HHL word
+
+The counted HHL construction separates forward and inverse oracle calls,
+proves unitarity of controlled preparation, and charges input preparation in
+its gate ledger. A resolution hypothesis yields a query-count lower estimate.
+Further identities compare fresh retries with amplification in the local
+resource model.
+
+The algorithmic background is [HarrowHassidimLloyd2009] and
+[Brassard et al., amplitude amplification][BrassardEtAl2002]. The exact constants
+and ledger identities are those of the counted construction defined here.
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -21,6 +35,10 @@ namespace Qatlib.Concepts.QsvtLinearSolve.AnglesCore
 
 open Matrix Qatlib
 
+/-- Collect the exact forward and backward HHL query counts, unitarity of controlled input
+preparation, and the preparation-inclusive gate ledger. The endpoint also records the
+distinct gate totals of one fresh retry and one amplification round in the setting of
+[HarrowHassidimLloyd2009]. -/
 theorem clause31_endpoint :
     (∀ (D M : ℕ) (c : ℝ) (B : Operator D), 0 < M →
       fwdCount (countedHHLWord (D := D) M c B) = M - 1 ∧
@@ -47,6 +65,9 @@ theorem clause31_endpoint :
   · intro tB g r q
     exact fresh_retry_is_not_amplification tB g r q
 
+/-- Collect the resolution lower estimate and the exact gate and query totals
+for the counted HHL word. Compare [Harrow, Hassidim & Lloyd][HarrowHassidimLloyd2009]
+for the linear-system algorithm motivating the construction. -/
 theorem clause30_endpoint :
     (∀ (M : ℕ) {ε : ℝ}, 0 < M → 0 < ε →
       (1 : ℝ) / (M : ℝ) ≤ ε → ((2 * (M - 1) : ℕ) : ℝ) ≥ 2 / ε - 2) ∧

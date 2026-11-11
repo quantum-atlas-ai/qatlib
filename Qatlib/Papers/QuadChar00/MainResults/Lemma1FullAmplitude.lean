@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QuadChar00.MainResults.Lemma1ModularFourier
 import Qatlib.Papers.QuadChar00.MainResults.Corollary1ShiftedJacobi
 import Mathlib.NumberTheory.DirichletCharacter.GaussSum
+
+/-!
+# The Jacobi Fourier amplitude at every frequency
+
+This module realizes the Jacobi character as the complex Dirichlet character `jacobiDirichlet`
+and proves its primitivity for odd squarefree modulus greater than one. A prime divisor cannot
+be removed from its modulus, and the conductor argument then gives primitivity.
+
+Applying the primitive-character Gauss-sum identity yields `jacobiFourierSum` for every
+frequency, including nonunits. Translation supplies the phase factor in `lemma1_amplitude_all`,
+giving the complete unnormalized Fourier-amplitude identity of Lemma 1 in [VanDamHallgren2000].
+
+## Main statements
+
+* `jacobiDirichlet_isQuadratic` and `jacobiDirichlet_inv`: quadraticity and self-inversion.
+* `jacobiDirichlet_isPrimitive`: primitivity for odd squarefree modulus greater than one.
+* `jacobiFourierSum`: the unshifted identity at every frequency.
+* `lemma1_amplitude_all`: the shifted identity with Gauss sum, shift phase, and Jacobi factor.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +41,8 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 open scoped BigOperators
 open MulChar
 
+/-- The complex Dirichlet character modulo `n` obtained by casting the integer-valued Jacobi
+character to the complex numbers. -/
 def jacobiDirichlet (n : ℕ) [NeZero n] : DirichletCharacter ℂ n where
   toFun a := (jacobiCharZMod n a : ℂ)
   map_one' := by
@@ -32,10 +58,13 @@ def jacobiDirichlet (n : ℕ) [NeZero n] : DirichletCharacter ℂ n where
     rw [h]
     norm_num
 
+/-- The value of `jacobiDirichlet n` at a residue is the complex cast of `jacobiCharZMod n` at
+that residue. -/
 @[simp]
 lemma jacobiDirichlet_apply (n : ℕ) [NeZero n] (a : ZMod n) :
     jacobiDirichlet n a = (jacobiCharZMod n a : ℂ) := rfl
 
+/-- The complex Jacobi Dirichlet character is quadratic: each value is zero, one, or minus one. -/
 lemma jacobiDirichlet_isQuadratic (n : ℕ) [NeZero n] :
     IsQuadratic (jacobiDirichlet n) := by
   intro a
@@ -55,10 +84,13 @@ lemma jacobiDirichlet_isQuadratic (n : ℕ) [NeZero n] :
     rw [jacobiDirichlet_apply, (jacobiCharZMod_eq_zero_iff_not_isUnit n a).mpr ha]
     norm_num
 
+/-- The inverse of the Jacobi Dirichlet character equals the character itself. -/
 lemma jacobiDirichlet_inv (n : ℕ) [NeZero n] :
     (jacobiDirichlet n)⁻¹ = jacobiDirichlet n :=
   IsQuadratic.inv (jacobiDirichlet_isQuadratic n)
 
+/-- For an odd squarefree modulus `n > 1` and any prime divisor `p`, the Jacobi Dirichlet
+character does not factor through modulus `n / p`. -/
 theorem jacobiDirichlet_not_factorsThrough {n : ℕ} [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) {p : ℕ} (hp : p.Prime) (hpdvd : p ∣ n) :
     ¬ DirichletCharacter.FactorsThrough (jacobiDirichlet n) (n / p) := by
@@ -147,6 +179,8 @@ theorem jacobiDirichlet_not_factorsThrough {n : ℕ} [NeZero n] (hn : Odd n)
   rw [MonoidHom.mem_ker] at hcontra
   exact hchiu hcontra
 
+/-- If every member of a finite pairwise coprime family of natural numbers divides `d`, then the
+product of the family divides `d`. -/
 lemma prod_prime_dvd_of_coprime {ι : Type*} (s : Finset ι) (f : ι → ℕ) (d : ℕ)
     (hcop : ∀ i ∈ s, ∀ j ∈ s, i ≠ j → (f i).Coprime (f j))
     (h : ∀ i ∈ s, f i ∣ d) : (∏ i ∈ s, f i) ∣ d := by
@@ -167,6 +201,8 @@ lemma prod_prime_dvd_of_coprime {ι : Type*} (s : Finset ι) (f : ι → ℕ) (d
         hcop j (Finset.mem_insert_of_mem hj) k (Finset.mem_insert_of_mem hk) hjk
     exact hcopit.mul_dvd_of_dvd_of_dvd hfi (ih hcopt ht)
 
+/-- For an odd squarefree modulus greater than one, the Jacobi Dirichlet character is primitive,
+so its conductor is the full modulus. -/
 theorem jacobiDirichlet_isPrimitive (n : ℕ) [NeZero n] (hn : Odd n)
     (hsq : Squarefree n) (h1 : 1 < n) :
     DirichletCharacter.IsPrimitive (jacobiDirichlet n) := by
@@ -205,6 +241,9 @@ theorem jacobiDirichlet_isPrimitive (n : ℕ) [NeZero n] (hn : Odd n)
     exact prod_prime_dvd_of_coprime n.primeFactors id _ hcop hpdvd
   exact Nat.dvd_antisymm hcd hnc
 
+/-- For odd squarefree `n > 1`, the unnormalized Fourier sum of the Jacobi character at any
+residue `y` equals `jacobiGaussSum n` times the Jacobi character at `y`. The identity
+includes nonunit frequencies, where the character factor is zero. -/
 theorem jacobiFourierSum (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n) (h1 : 1 < n)
     (y : ZMod n) :
     ∑ x : ZMod n, ((jacobiCharZMod n x : ℤ) : ℂ) * ZMod.stdAddChar (x * y)
@@ -225,6 +264,10 @@ theorem jacobiFourierSum (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n) 
   rw [h]
   ring
 
+/-- For odd squarefree `n > 1` and every shift and frequency, the unnormalized Fourier sum of
+the shifted Jacobi character equals the Gauss sum times the additive phase at `-(s * y)`
+times the Jacobi character at `y`. This is the full frequency identity underlying Lemma 1 of
+[VanDamHallgren2000]. -/
 theorem lemma1_amplitude_all (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (h1 : 1 < n) (s y : ZMod n) :
     ∑ x : ZMod n, ((jacobiCharZMod n (x + s) : ℤ) : ℂ) * ZMod.stdAddChar (x * y)

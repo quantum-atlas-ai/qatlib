@@ -8,6 +8,28 @@ import Qatlib.Papers.OrderedSearch06.SdpForm.Basic
 import Mathlib.Data.Matrix.Block
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Counteridentity symmetry and block reduction
+
+Symmetrizes paper semidefinite solutions under counteridentity conjugation and derives the
+corresponding block reduction from [ChildsLandahlParrilo2007]. The explicit matrix `paperU`
+transforms `paperBlockQ` into two diagonal blocks, reducing positive semidefiniteness to the two
+smaller matrices.
+
+The final identities simplify the rational parameter-count expressions for even and odd
+dimensions.
+
+## Main statements
+
+* `solvesPaperSDP_jsym`: produces a counteridentity-invariant paper solution.
+* `paperBlockQ_psd_iff`: characterizes positivity by the two reduced blocks.
+
+## References
+
+* [Childs et al., 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +46,8 @@ open Qatlib.Papers.OrderedSearch06.LaurentDefs
 
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge
 
+/-- A block diagonal matrix is positive semidefinite exactly when both diagonal blocks are
+positive semidefinite. -/
 theorem posSemidef_fromBlocks_zero {m n : Type*} [Fintype m] [Fintype n]
     [DecidableEq m] [DecidableEq n] (X : Matrix m m ℂ) (Y : Matrix n n ℂ) :
     (fromBlocks X 0 0 Y : Matrix (m ⊕ n) (m ⊕ n) ℂ).PosSemidef ↔
@@ -46,14 +70,18 @@ theorem posSemidef_fromBlocks_zero {m n : Type*} [Fintype m] [Fintype n]
     rw [hsplit]
     exact add_nonneg (hX.dotProduct_mulVec_nonneg _) (hY.dotProduct_mulVec_nonneg _)
 
+/-- Multiplying twice on the left by the counteridentity returns the original matrix. -/
 theorem counteridentity_mul_mul_assoc_apply {N : ℕ} (X : Matrix (Fin N) (Fin N) ℂ) :
     counteridentity N * (counteridentity N * X) = X := by
   rw [← Matrix.mul_assoc, counteridentity_mul_self N, Matrix.one_mul]
 
+/-- Multiplying twice on the right by the counteridentity returns the original matrix. -/
 theorem counteridentity_mul_mul_assoc_apply_right {N : ℕ} (X : Matrix (Fin N) (Fin N) ℂ) :
     (X * counteridentity N) * counteridentity N = X := by
   rw [Matrix.mul_assoc, counteridentity_mul_self N, Matrix.mul_one]
 
+/-- Left multiplication of a counteridentity conjugate by the counteridentity gives right
+multiplication of the original matrix. -/
 theorem counteridentity_mul_conj_mul {N : ℕ} (X : Matrix (Fin N) (Fin N) ℂ) :
     counteridentity N * (counteridentity N * X * counteridentity N) = X * counteridentity N := by
   rw [show counteridentity N * (counteridentity N * X * counteridentity N)
@@ -61,14 +89,18 @@ theorem counteridentity_mul_conj_mul {N : ℕ} (X : Matrix (Fin N) (Fin N) ℂ) 
     rw [← Matrix.mul_assoc]]
   rw [counteridentity_mul_mul_assoc_apply X]
 
+/-- Left multiplication of a counteridentity conjugate by the negative counteridentity gives the
+negative right-multiplied matrix. -/
 theorem neg_counteridentity_mul_conj_mul {N : ℕ} (X : Matrix (Fin N) (Fin N) ℂ) :
     (-counteridentity N) * (counteridentity N * X * counteridentity N) = -(X * counteridentity N) := by
   rw [Matrix.neg_mul, counteridentity_mul_conj_mul]
 
+/-- Applying counteridentity conjugation twice returns the original matrix. -/
 theorem counteridentity_conj_conj {N : ℕ} (X : Matrix (Fin N) (Fin N) ℂ) :
     counteridentity N * (counteridentity N * X * counteridentity N) * counteridentity N = X := by
   rw [counteridentity_mul_conj_mul, counteridentity_mul_mul_assoc_apply_right]
 
+/-- The sum of two real symmetric matrices is real symmetric. -/
 theorem isRealSymmetric_add {N : ℕ} {A B : Matrix (Fin N) (Fin N) ℂ}
     (hA : IsRealSymmetric A) (hB : IsRealSymmetric B) : IsRealSymmetric (A + B) := by
   refine ⟨?_, ?_⟩
@@ -76,6 +108,7 @@ theorem isRealSymmetric_add {N : ℕ} {A B : Matrix (Fin N) (Fin N) ℂ}
   · intro i j
     simp only [Matrix.add_apply, Complex.add_im, hA.2 i j, hB.2 i j, add_zero]
 
+/-- Multiplication by a real scalar preserves real symmetry. -/
 theorem isRealSymmetric_real_smul {N : ℕ} {A : Matrix (Fin N) (Fin N) ℂ} (c : ℝ)
     (hA : IsRealSymmetric A) : IsRealSymmetric ((c : ℂ) • A) := by
   refine ⟨?_, ?_⟩
@@ -85,9 +118,12 @@ theorem isRealSymmetric_real_smul {N : ℕ} {A : Matrix (Fin N) (Fin N) ℂ} (c 
       Complex.ofReal_im, hA.2 i j]
     ring
 
+/-- The average of a matrix and its counteridentity conjugate. -/
 def jsymPart (N : ℕ) (Q : Matrix (Fin N) (Fin N) ℂ) : Matrix (Fin N) (Fin N) ℂ :=
   (2 : ℂ)⁻¹ • (Q + counteridentity N * Q * counteridentity N)
 
+/-- The symmetrized matrix `jsymPart N Q` is invariant under counteridentity conjugation
+[ChildsLandahlParrilo2007]. -/
 theorem jsymPart_commutes (N : ℕ) (Q : Matrix (Fin N) (Fin N) ℂ) :
     counteridentity N * jsymPart N Q * counteridentity N = jsymPart N Q := by
   unfold jsymPart
@@ -97,6 +133,7 @@ theorem jsymPart_commutes (N : ℕ) (Q : Matrix (Fin N) (Fin N) ℂ) :
     rw [Matrix.mul_add, Matrix.add_mul, counteridentity_conj_conj]
   rw [hinner, add_comm]
 
+/-- Counteridentity symmetrization preserves positive semidefiniteness. -/
 theorem jsymPart_posSemidef {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ}
     (hQ : Q.PosSemidef) : (jsymPart N Q).PosSemidef := by
   unfold jsymPart
@@ -109,6 +146,7 @@ theorem jsymPart_posSemidef {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ}
   rw [show (2 : ℂ)⁻¹ = ((1 / 2 : ℝ) : ℂ) by norm_num]
   exact hsum.smul hhalf
 
+/-- Counteridentity symmetrization preserves real symmetry. -/
 theorem jsymPart_isRealSymmetric {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ}
     (hQ : IsRealSymmetric Q) : IsRealSymmetric (jsymPart N Q) := by
   unfold jsymPart
@@ -119,6 +157,7 @@ theorem jsymPart_isRealSymmetric {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ}
   rw [show (2 : ℂ)⁻¹ = ((1 / 2 : ℝ) : ℂ) by norm_num]
   exact isRealSymmetric_real_smul (1 / 2) hsum
 
+/-- Symmetrization preserves a matrix all of whose entries equal `1 / N`. -/
 theorem jsymPart_apply_entries {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ}
     (h0 : ∀ i j, Q i j = (N : ℂ)⁻¹) (i j : Fin N) :
     jsymPart N Q i j = (N : ℂ)⁻¹ := by
@@ -126,12 +165,14 @@ theorem jsymPart_apply_entries {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ}
   simp only [Matrix.smul_apply, Matrix.add_apply, counteridentity_mul_apply, h0, smul_eq_mul]
   ring
 
+/-- Counteridentity symmetrization preserves the trace. -/
 theorem jsymPart_trace (N : ℕ) (Q : Matrix (Fin N) (Fin N) ℂ) :
     (jsymPart N Q).trace = Q.trace := by
   unfold jsymPart
   rw [Matrix.trace_smul, Matrix.trace_add, counteridentity_conj_trace, smul_eq_mul]
   ring
 
+/-- For a symmetric matrix, counteridentity symmetrization preserves every generalized trace. -/
 theorem jsymPart_genTrace {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ} (hQ : Qᵀ = Q) (j : ℤ) :
     genTrace (jsymPart N Q) j = genTrace Q j := by
   unfold jsymPart
@@ -139,6 +180,8 @@ theorem jsymPart_genTrace {N : ℕ} {Q : Matrix (Fin N) (Fin N) ℂ} (hQ : Qᵀ 
       genTrace_neg_eq_of_transpose_eq Q hQ j]
   ring
 
+/-- Symmetrizing each matrix preserves the paper semidefinite constraints and makes every matrix
+invariant under counteridentity conjugation [ChildsLandahlParrilo2007]. -/
 theorem solvesPaperSDP_jsym (N k : ℕ) (Q : ℕ → Matrix (Fin N) (Fin N) ℂ)
     (h : SolvesPaperSDP N k Q) :
     SolvesPaperSDP N k (fun t => jsymPart N (Q t)) ∧
@@ -160,23 +203,30 @@ theorem solvesPaperSDP_jsym (N k : ℕ) (Q : ℕ → Matrix (Fin N) (Fin N) ℂ)
     simp only [jsymPart_genTrace (hreal t).1, jsymPart_genTrace (hreal (t - 1)).1]
     exact hstep t ht i hi
 
+/-- The doubled-space block involution with counteridentity matrices in its off-diagonal blocks. -/
 def paperJ (m : ℕ) : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ :=
   fromBlocks 0 (counteridentity m) (counteridentity m) 0
 
+/-- The block change-of-basis matrix with top row `(1, 1)` and bottom row `(counteridentity m,
+−counteridentity m)`. -/
 def paperU (m : ℕ) : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ :=
   fromBlocks 1 1 (counteridentity m) (-(counteridentity m))
 
+/-- The block matrix with top row `(A, B)` and bottom row given by the counteridentity
+conjugates of `B` and `A`. -/
 def paperBlockQ (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
     Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ :=
   fromBlocks A B (counteridentity m * B * counteridentity m)
     (counteridentity m * A * counteridentity m)
 
+/-- Computes the conjugate transpose of the block matrix `paperU`. -/
 theorem paperU_conjTranspose (m : ℕ) :
     (paperU m)ᴴ = fromBlocks (1 : Matrix (Fin m) (Fin m) ℂ) (counteridentity m)
       1 (-(counteridentity m)) := by
   rw [paperU, fromBlocks_conjTranspose]
   simp [counteridentity_conjTranspose]
 
+/-- The product of `paperU` with its conjugate transpose is twice the identity. -/
 theorem paperU_mul_conjTranspose (m : ℕ) :
     paperU m * (paperU m)ᴴ = (2 : ℂ) • (1 : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ) := by
   rw [paperU_conjTranspose, paperU, fromBlocks_multiply, ← fromBlocks_one, fromBlocks_smul,
@@ -186,6 +236,7 @@ theorem paperU_mul_conjTranspose (m : ℕ) :
       add_zero, zero_add, neg_mul, mul_neg, sub_self, add_neg_cancel, neg_neg,
       counteridentity_mul_self, two_smul]
 
+/-- The product of the conjugate transpose of `paperU` with `paperU` is twice the identity. -/
 theorem paperU_conjTranspose_mul (m : ℕ) :
     (paperU m)ᴴ * paperU m = (2 : ℂ) • (1 : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ) := by
   rw [paperU_conjTranspose, paperU, fromBlocks_multiply, ← fromBlocks_one, fromBlocks_smul,
@@ -195,6 +246,7 @@ theorem paperU_conjTranspose_mul (m : ℕ) :
       add_zero, zero_add, neg_mul, mul_neg, sub_self, add_neg_cancel, neg_neg,
       counteridentity_mul_self, two_smul]
 
+/-- The block matrix `paperJ` squares to the identity. -/
 theorem paperJ_mul_self (m : ℕ) :
     paperJ m * paperJ m = (1 : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℂ) := by
   rw [paperJ, fromBlocks_multiply, ← fromBlocks_one, fromBlocks_inj]
@@ -202,6 +254,8 @@ theorem paperJ_mul_self (m : ℕ) :
     simp only [zero_mul, mul_zero, add_zero, zero_add, counteridentity_mul_self,
       mul_one, one_mul, two_smul]
 
+/-- Conjugating `paperJ` by `paperU` gives twice the block diagonal matrix with blocks 1 and −1
+[ChildsLandahlParrilo2007]. -/
 theorem paperU_conj_paperJ (m : ℕ) :
     (paperU m)ᴴ * paperJ m * paperU m =
       (2 : ℂ) • fromBlocks (1 : Matrix (Fin m) (Fin m) ℂ) 0 0 (-(1 : Matrix (Fin m) (Fin m) ℂ)) := by
@@ -212,6 +266,8 @@ theorem paperU_conj_paperJ (m : ℕ) :
       add_zero, zero_add, neg_mul, mul_neg, counteridentity_mul_self,
       neg_neg, sub_self, neg_zero, two_smul, add_neg_cancel, neg_add_cancel]
 
+/-- The matrix `paperBlockQ m A B` is invariant under conjugation by `paperJ m`
+[ChildsLandahlParrilo2007]. -/
 theorem paperBlockQ_commutes (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
     paperJ m * paperBlockQ m A B * paperJ m = paperBlockQ m A B := by
   rw [paperJ, paperBlockQ, fromBlocks_multiply, fromBlocks_multiply, fromBlocks_inj]
@@ -220,6 +276,8 @@ theorem paperBlockQ_commutes (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
       Matrix.mul_one, Matrix.one_mul, counteridentity_mul_conj_mul,
       counteridentity_mul_mul_assoc_apply_right]
 
+/-- Conjugating `paperBlockQ` by `paperU` gives twice the block diagonal matrix with blocks `A +
+B * counteridentity m` and `A − B * counteridentity m` [ChildsLandahlParrilo2007]. -/
 theorem paperU_conj_blockQ (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
     (paperU m)ᴴ * paperBlockQ m A B * paperU m =
       (2 : ℂ) • fromBlocks (A + B * counteridentity m) 0 0
@@ -260,6 +318,9 @@ theorem paperU_conj_blockQ (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
     rw [hsubneg, two_smul]
     abel
 
+/-- The matrix `paperBlockQ m A B` is positive semidefinite exactly when both `A + B *
+counteridentity m` and `A − B * counteridentity m` are positive semidefinite
+[ChildsLandahlParrilo2007]. -/
 theorem paperBlockQ_psd_iff (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
     (paperBlockQ m A B).PosSemidef ↔
       (A + B * counteridentity m).PosSemidef ∧
@@ -295,9 +356,12 @@ theorem paperBlockQ_psd_iff (m : ℕ) (A B : Matrix (Fin m) (Fin m) ℂ) :
       (posSemidef_fromBlocks_zero _ _).mpr ⟨hE1, hE2⟩
     exact hD.smul htwo
 
+/-- The condition that `B` equals the counteridentity conjugate of its transpose. -/
 def TwistedSymmetric (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ) : Prop :=
   B = counteridentity m * Bᵀ * counteridentity m
 
+/-- Twisted symmetry of `B` is equivalent to symmetry of `counteridentity m * B`
+[ChildsLandahlParrilo2007]. -/
 theorem twistedSymmetric_iff_symm (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ) :
     TwistedSymmetric m B ↔ (counteridentity m * B)ᵀ = counteridentity m * B := by
   have hJ := counteridentity_mul_self m
@@ -321,20 +385,26 @@ theorem twistedSymmetric_iff_symm (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ) :
     rw [hBt]
     exact (counteridentity_conj_conj B).symm
 
+/-- Simplifies the rational even-dimension parameter-count expression to `m * (m + 1) * (k − 1)`
+[ChildsLandahlParrilo2007]. -/
 theorem paper_param_even (m k : ℕ) :
     (2 * (m : ℚ)) * ((2 * (m : ℚ)) / 2 + 1) * ((k : ℚ) - 1) / 2
       = (m : ℚ) * ((m : ℚ) + 1) * ((k : ℚ) - 1) := by
   ring
 
+/-- Simplifies the rational odd-dimension parameter-count expression to `(m + 1) ^ 2 * (k − 1)`
+[ChildsLandahlParrilo2007]. -/
 theorem paper_param_odd (m k : ℕ) :
     ((2 * (m : ℚ) + 1) + 1) ^ 2 * ((k : ℚ) - 1) / 4
       = ((m : ℚ) + 1) ^ 2 * ((k : ℚ) - 1) := by
   ring
 
+/-- Expresses `m * (m + 1)` as twice the rational symmetric-block count `m * (m + 1) / 2`. -/
 theorem paper_param_blocks (m : ℕ) :
     (m : ℚ) * ((m : ℚ) + 1) = 2 * ((m : ℚ) * ((m : ℚ) + 1) / 2) := by
   ring
 
+/-- The doubled finite index type `Fin m ⊕ Fin m` has cardinality `2 * m`. -/
 theorem paper_card_even (m : ℕ) : Fintype.card (Fin m ⊕ Fin m) = 2 * m := by
   rw [Fintype.card_sum, Fintype.card_fin]
   ring

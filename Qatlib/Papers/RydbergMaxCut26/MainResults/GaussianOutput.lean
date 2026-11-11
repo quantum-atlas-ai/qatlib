@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
+
+/-!
+# Physical Gaussian hybrid output
+
+Establishes that Gaussian hybrid selection defines a probability law and produces positive
+semidefinite trace-one output matrices. Its expected energy equals the Gaussian integral of the
+minimum of the fixed-state and rounded product-state energies. See [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `gaussianOutputLaw_probability`: proves that the output law is a probability measure.
+* `gaussianOutputEnergy_eq_min`: rewrites expected energy as an integral of candidate-energy
+  minima.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +42,8 @@ open Qatlib.Papers.RydbergMaxCut26.MainResults.PhysicalHybrid
 
 namespace Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
 
+/-- For loopless endpoints and a positive semidefinite trace-one input, the Gaussian hybrid
+output law is a probability measure [CrostaSaubanereHuber2026]. -/
 theorem gaussianOutputLaw_probability {n : ℕ} {E : Type*} [Fintype E]
     (ends : E→Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E→ℝ)
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1) :
@@ -31,6 +52,8 @@ theorem gaussianOutputLaw_probability {n : ℕ} {E : Type*} [Fintype E]
   outputLaw_probability _ _ _ _
     (product_energy_measurable ends hends w ρ hρ htr id (gaussian_entries_measurable n))
 
+/-- Every output matrix selected between a physical input and its Gaussian rounded product
+candidate is positive semidefinite with trace one [CrostaSaubanereHuber2026]. -/
 theorem gaussianOutputDensity_physical {n : ℕ}
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1)
     (z : GaussianSamples n×Bool) :
@@ -38,6 +61,9 @@ theorem gaussianOutputDensity_physical {n : ℕ}
       (outputDensity ρ (productCandidate ρ hρ htr id) z).trace=1 :=
   output_density ρ hρ htr _ (productCandidate_density ρ hρ htr id) z
 
+/-- For loopless endpoints and a physical input, the expected Gaussian hybrid energy equals the
+raw Gaussian integral of the minimum of the input and rounded product-candidate QMC energies
+[CrostaSaubanereHuber2026]. -/
 theorem gaussianOutputEnergy_eq_min {n : ℕ} {E : Type*} [Fintype E]
     (ends : E→Fin n×Fin n) (hends : ∀ e,(ends e).1≠(ends e).2) (w : E→ℝ)
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1) :

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
 import Mathlib.Tactic
+
+/-!
+# Trace-distance bounds from semidefinite domination
+
+`psd_native_traceNorm` identifies the trace norm of a positive semidefinite matrix with its real
+trace. `density_domination_distance` uses this identity to bound half the trace norm between
+trace-one matrices when the second dominates `(1 - delta)` times a positive semidefinite first
+matrix for `delta ≥ 0`. See [Watrous2018].
+
+## Main statements
+
+* `psd_native_traceNorm`: trace norm equals real trace on positive semidefinite matrices.
+* `density_domination_distance`: the semidefinite domination bound.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,10 +35,14 @@ open Matrix
 open scoped ComplexOrder
 variable {I : Type*} [Fintype I]
 
+/-- The trace norm of a positive semidefinite matrix equals the real part of its trace. -/
 theorem psd_native_traceNorm (A : Matrix I I ℂ) (hA : A.PosSemidef) :
     Matrix.traceNorm A=(Matrix.trace A).re := by
   simpa using congrArg Complex.re hA.traceNorm_eq_trace
 
+/-- If `rho` is positive semidefinite, both matrices have trace one, `delta ≥ 0`, and `sigma -
+(1 - delta) • rho` is positive semidefinite, then `Matrix.traceNorm (rho - sigma) / 2 ≤
+delta`. -/
 theorem density_domination_distance (rho sigma : Matrix I I ℂ)
     (hrho : rho.PosSemidef)
     (htrho : Matrix.trace rho=1) (htrsigma : Matrix.trace sigma=1)

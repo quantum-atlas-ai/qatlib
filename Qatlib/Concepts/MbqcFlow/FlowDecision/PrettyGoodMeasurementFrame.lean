@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementData
+
+/-!
+# Support identities for pretty-good frames
+
+Proves functional-calculus identities for the reciprocal square root of `ensembleGram W` and
+derives the corresponding identities for `prettyGoodFrame W`. In particular, the frame Gram
+matrix is the support projection of the original Gram matrix.
+
+The theorem `pretty_good_frame_support_contract` packages the Hermitian projection property of
+`F * Fᴴ` and positivity of its complement. The matrix-analysis background is given in
+[Bhatia1997].
+
+## Main statements
+
+* `pretty_good_frame_support_contract`: frame, Gram square-root, and support-projection
+  identities.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 
@@ -13,6 +35,8 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 open Matrix
 open scoped ComplexOrder MatrixOrder
 
+/-- For a nonnegative real number, its reciprocal square root multiplied by the number equals
+its square root. -/
 private theorem reciprocal_sqrt_mul_self (x : ℝ) (hx : 0 ≤ x) :
     (Real.sqrt x)⁻¹ * x = Real.sqrt x := by
   by_cases hzero : x = 0
@@ -25,6 +49,8 @@ private theorem reciprocal_sqrt_mul_self (x : ℝ) (hx : 0 ≤ x) :
       _ = Real.sqrt x := by
         rw [pow_two, ← mul_assoc, inv_mul_cancel₀ hpos.ne', one_mul]
 
+/-- For a nonnegative real number, the square root times its reciprocal equals zero at zero and
+one otherwise. -/
 private theorem sqrt_mul_reciprocal_eq_support (x : ℝ) (hx : 0 ≤ x) :
     Real.sqrt x * (Real.sqrt x)⁻¹ = if x = 0 then 0 else 1 := by
   by_cases hzero : x = 0
@@ -35,6 +61,8 @@ private theorem sqrt_mul_reciprocal_eq_support (x : ℝ) (hx : 0 ≤ x) :
 
 variable {I : Type} [Fintype I] [DecidableEq I] {D : ℕ}
 
+/-- The reciprocal square root of the ensemble Gram matrix times the Gram matrix equals its
+square root. -/
 private theorem ensemble_inv_sqrt_mul_gram (W : Matrix (Fin D) I ℂ) :
     (ensembleGramInvSqrt W).mat * (ensembleGram W).mat =
       (ensembleGram W).sqrt.mat := by
@@ -49,6 +77,7 @@ private theorem ensemble_inv_sqrt_mul_gram (W : Matrix (Fin D) I ℂ) :
       exact HermitianMat.cfc_congr_of_nonneg (ensembleGram_nonneg W)
         (fun x hx => reciprocal_sqrt_mul_self x hx)
 
+/-- The Gram square root times its reciprocal square root equals the Gram support projection. -/
 private theorem ensemble_sqrt_mul_inv_sqrt (W : Matrix (Fin D) I ℂ) :
     (ensembleGram W).sqrt.mat * (ensembleGramInvSqrt W).mat =
       (ensembleGram W).supportProj.mat := by
@@ -64,6 +93,8 @@ private theorem ensemble_sqrt_mul_inv_sqrt (W : Matrix (Fin D) I ℂ) :
       exact HermitianMat.cfc_congr_of_nonneg (ensembleGram_nonneg W)
         (fun x hx => sqrt_mul_reciprocal_eq_support x hx)
 
+/-- Multiplication by the Gram support projection leaves the reciprocal Gram square root
+unchanged. -/
 private theorem ensemble_inv_sqrt_mul_support (W : Matrix (Fin D) I ℂ) :
     (ensembleGramInvSqrt W).mat * (ensembleGram W).supportProj.mat =
       (ensembleGramInvSqrt W).mat := by
@@ -79,6 +110,7 @@ private theorem ensemble_inv_sqrt_mul_support (W : Matrix (Fin D) I ℂ) :
       intro x _
       by_cases hzero : x = 0 <;> simp [hzero]
 
+/-- The adjoint of the pretty-good frame times `W` equals the Gram square root. -/
 private theorem pretty_good_frame_adjoint_original (W : Matrix (Fin D) I ℂ) :
     (prettyGoodFrame W)ᴴ * W = (ensembleGram W).sqrt.mat := by
   calc
@@ -90,6 +122,8 @@ private theorem pretty_good_frame_adjoint_original (W : Matrix (Fin D) I ℂ) :
       exact Matrix.mul_assoc _ _ _
     _ = (ensembleGram W).sqrt.mat := ensemble_inv_sqrt_mul_gram W
 
+/-- The Gram matrix of the pretty-good frame equals the support projection of the original Gram
+matrix. -/
 private theorem pretty_good_frame_adjoint_frame (W : Matrix (Fin D) I ℂ) :
     (prettyGoodFrame W)ᴴ * prettyGoodFrame W =
       (ensembleGram W).supportProj.mat := by
@@ -108,10 +142,13 @@ private theorem pretty_good_frame_adjoint_frame (W : Matrix (Fin D) I ℂ) :
       rw [ensemble_inv_sqrt_mul_gram]
     _ = (ensembleGram W).supportProj.mat := ensemble_sqrt_mul_inv_sqrt W
 
+/-- The pretty-good frame is unchanged by right multiplication by the Gram support projection. -/
 private theorem pretty_good_frame_mul_support (W : Matrix (Fin D) I ℂ) :
     prettyGoodFrame W * (ensembleGram W).supportProj.mat = prettyGoodFrame W := by
   rw [prettyGoodFrame, Matrix.mul_assoc, ensemble_inv_sqrt_mul_support]
 
+/-- For the pretty-good frame `F`, proves the Gram square-root and support identities, Hermitian
+idempotence of `F * Fᴴ`, and positive semidefiniteness of its complement. -/
 theorem pretty_good_frame_support_contract
     (I : Type) [Fintype I] [DecidableEq I] (D : ℕ) (W : Matrix (Fin D) I ℂ) :
     let F := prettyGoodFrame W

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Orthogonal
+
+/-!
+# Subgroup structure of balanced orthogonal complements
+
+For a subgroup closed under `swapFun`, its orthogonal-complement set contains the identity and
+is closed under multiplication and inversion. `perpGroup` bundles this structure. The module
+also proves that closure under swapping is equivalent to being fixed by `conjSub`. This
+development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `perpGroup`: the orthogonal complement bundled as a subgroup under swap closure.
+* `perp_balanced`: orthogonal complementation preserves swap closure.
+* `conjSub_eq_of_balanced` and `balanced_of_conjSub_eq`: equivalent forms of swap invariance.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +40,7 @@ open Finset
 
 variable {n : ℕ}
 
+/-- The vector image of `g` is orthogonal to `phiSet U` exactly when `g` is in `perpSub U`. -/
 theorem phi_mem_orthV {U : Subgroup (Wreath n)} {g : Wreath n} :
     phi g ∈ orthV (phiSet U) ↔ g ∈ perpSub U := by
   rw [mem_perpSub]
@@ -32,18 +53,23 @@ theorem phi_mem_orthV {U : Subgroup (Wreath n)} {g : Wreath n} :
     rw [← phi_mu]
     exact H u hu
 
+/-- The set `perpSub U` is the inverse image under `phi` of the vector orthogonal complement of
+`phiSet U`. -/
 theorem perpSub_eq_preimage (U : Subgroup (Wreath n)) :
     perpSub U = phi ⁻¹' (orthV (phiSet U)) := by
   ext g
   rw [Set.mem_preimage]
   exact phi_mem_orthV.symm
 
+/-- The identity element belongs to the orthogonal complement of every subgroup. -/
 theorem one_mem_perpSub (U : Subgroup (Wreath n)) : (1 : Wreath n) ∈ perpSub U := by
   rw [mem_perpSub]
   intro u _
   rw [phi_mu, phi_one]
   simp [dot]
 
+/-- If `U` is closed under `swapFun`, its orthogonal-complement set is closed under
+multiplication. -/
 theorem mul_mem_perpSub (U : Subgroup (Wreath n))
     (hbal : ∀ g ∈ U, swapFun g ∈ U) {g h : Wreath n}
     (hg : g ∈ perpSub U) (hh : h ∈ perpSub U) : g * h ∈ perpSub U := by
@@ -61,6 +87,7 @@ theorem mul_mem_perpSub (U : Subgroup (Wreath n))
   have h := hstep (phi u) ⟨u, hu, rfl⟩
   rwa [← phi_mu] at h
 
+/-- If `U` is closed under `swapFun`, its orthogonal-complement set is closed under inversion. -/
 theorem inv_mem_perpSub (U : Subgroup (Wreath n))
     (hbal : ∀ g ∈ U, swapFun g ∈ U) {g : Wreath n}
     (hg : g ∈ perpSub U) : g⁻¹ ∈ perpSub U := by
@@ -76,6 +103,7 @@ theorem inv_mem_perpSub (U : Subgroup (Wreath n))
   have h := hstep (phi u) ⟨u, hu, rfl⟩
   rwa [← phi_mu] at h
 
+/-- The subgroup with carrier `perpSub U`, constructed when `U` is closed under `swapFun`. -/
 def perpGroup (U : Subgroup (Wreath n))
     (hbal : ∀ g ∈ U, swapFun g ∈ U) : Subgroup (Wreath n) where
   carrier := perpSub U
@@ -83,9 +111,11 @@ def perpGroup (U : Subgroup (Wreath n))
   one_mem' := one_mem_perpSub U
   inv_mem' := inv_mem_perpSub U hbal
 
+/-- The underlying set of `perpGroup U hbal` is `perpSub U`. -/
 lemma coe_perpGroup (U : Subgroup (Wreath n)) (hbal : ∀ g ∈ U, swapFun g ∈ U) :
     (perpGroup U hbal : Set (Wreath n)) = perpSub U := rfl
 
+/-- The orthogonal complement of a set closed under `swapFun` is closed under `swapFun`. -/
 theorem perp_balanced {S : Set (Wreath n)} (hS : ∀ s ∈ S, swapFun s ∈ S) :
     ∀ g ∈ perp S, swapFun g ∈ perp S := by
   intro g hg s hs
@@ -93,6 +123,7 @@ theorem perp_balanced {S : Set (Wreath n)} (hS : ∀ s ∈ S, swapFun s ∈ S) :
   rw [h]
   exact hg (swapFun s) (hS s hs)
 
+/-- A subgroup closed under `swapFun` is fixed by `conjSub`. -/
 theorem conjSub_eq_of_balanced (U : Subgroup (Wreath n))
     (hbal : ∀ g ∈ U, swapFun g ∈ U) : conjSub U = U := by
   ext g
@@ -103,6 +134,7 @@ theorem conjSub_eq_of_balanced (U : Subgroup (Wreath n))
   · intro hg
     exact mem_conjSub.mpr ⟨swapFun g, hbal g hg, swapFun_swapFun g⟩
 
+/-- A subgroup fixed by `conjSub` is closed under `swapFun`. -/
 theorem balanced_of_conjSub_eq (U : Subgroup (Wreath n)) (h : conjSub U = U) :
     ∀ g ∈ U, swapFun g ∈ U := by
   intro g hg

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.Quadrature.Lemma11CompositeGaussRestrictedStat
 import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
 
+/-!
+# Restricted composite Gauss bound for LCHS
+
+`lemma11CompositeGaussRestrictedCorrected` assembles cellwise Gauss remainder bounds into a
+global cutoff-interval estimate. The statement explicitly assumes derivative-norm witnesses and
+the cellwise remainder inequalities, in addition to the kernel and generator hypotheses. See
+[AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `lemma11CompositeGaussRestrictedCorrected`: Assuming the stated cellwise Gauss remainder
+  witnesses, the composite LCHS quadrature error obeys the explicit geometric bound under the
+  large-parameter condition `32 ≤ exp(1) * T * Λ`. This is a restricted form of [An, Childs, and
+  Lin, Lemma 11][AnChildsLin2026].
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 open Qatlib.Concepts.LchsSimulation.Kernel
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option autoImplicit false
@@ -18,6 +38,9 @@ open MeasureTheory Set Matrix
 open scoped Classical Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Assuming the stated cellwise Gauss remainder witnesses, the composite LCHS quadrature error
+obeys the explicit geometric bound under the large-parameter condition `32 ≤ exp(1) * T *
+Λ`. This is a restricted form of [An, Childs, and Lin, Lemma 11][AnChildsLin2026]. -/
 theorem lemma11CompositeGaussRestrictedCorrected : Lemma11CompositeGaussRestrictedCorrected := by
   intro I _ _ L H T β Λ K Q M node weight hL hH hHermL hHermH hT hΛ hlarge hβ hβ1 hK hQ hM hbound
   (try dsimp only)

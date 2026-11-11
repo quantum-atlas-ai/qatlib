@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
 import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
 import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+
+/-!
+# Statement of the quantitative ODE construction
+
+This module defines `Theorem9V3`, the quantitative V2 Taylor-system construction associated with
+Theorem 9 of [BerryEtAl2017ODE]. Under the explicit diagonalizability, sparsity, stability,
+Taylor accuracy, and solution-growth hypotheses, it requests a bounded integer gap parameter, a
+sparse overlap encoding, and a finite inverse-word output with explicit counts and accuracy.
+
+The statement includes a clipped lower bound on joint postselection and label-measurement
+success. Under an additional positive readout margin, it also gives positivity and the trace
+identity for the measured density and an error bound for normalized successful blocks.
+
+## Main statements
+
+* `Theorem9V3`: The complete proposition for the quantitative construction and guarded readout.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,6 +59,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition specifying the V2 Taylor sparse encoding, singular-value gap, inverse-word
+resources and accuracy, and clipped joint success bound under the stated ODE hypotheses. It
+also specifies the normalized successful-block error under a positive readout margin, in the
+formulation associated with [Berry et al., Theorem 9][BerryEtAl2017ODE]. -/
 def Theorem9V3 : Prop :=
   ∀ (N : Type) [Fintype N] [DecidableEq N] (s m k p kq : ℕ) (A V D : Matrix N N ℂ)
       (h g : ℝ) (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N)),

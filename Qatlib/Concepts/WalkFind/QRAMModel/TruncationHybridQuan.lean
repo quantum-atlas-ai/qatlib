@@ -8,6 +8,26 @@ import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridStat
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Mathlib.Tactic.Abel
 import Mathlib.Tactic.Linarith
+
+/-!
+# Hybrid bound for truncated unitary evolution
+
+This module proves the hybrid estimate `TruncationHybrid` for two finite sequences of unitary
+gates. Agreement away from specified bad components bounds the final state discrepancy by twice
+the sum of their Euclidean norms.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `one_step_bad`: bounds the increase of error in one unitary step.
+* `truncationHybrid_answer`: proves the accumulated hybrid bound.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +45,8 @@ namespace Qatlib.Concepts.WalkFind.QRAMModel
 open Matrix
 open scoped BigOperators
 
+/-- Executing a gate-list prefix of length `n + 1` equals applying gate `n` after executing the
+prefix of length `n`. -/
 private theorem prefix_step {H : Type} [Fintype H] [DecidableEq H]
     {T : ℕ} (U : Fin T → Matrix H H ℂ) (ψ : QState H) (n : ℕ) (hn : n < T) :
     Run 1 (((List.ofFn U).take (n+1)).map Step.gate) ψ =
@@ -32,6 +54,8 @@ private theorem prefix_step {H : Type} [Fintype H] [DecidableEq H]
   rw [List.take_succ_eq_append_getElem (by simpa using! hn), List.map_append, run_append]
   simp [ApplyGate]
 
+/-- If two unitary gates agree on the ideal state minus its bad component, the next discrepancy
+is at most twice the bad-component norm plus the previous discrepancy. -/
 private theorem one_step_bad {H : Type} [Fintype H] [DecidableEq H]
     (U V : Matrix H H ℂ) (ideal actual bad : QState H)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
@@ -67,6 +91,8 @@ private theorem one_step_bad {H : Type} [Fintype H] [DecidableEq H]
   rw [norm_applyGate_of_mem_unitaryGroup hV]
   linarith
 
+/-- The final discrepancy of the two unitary evolutions is at most twice the sum of the
+specified bad-component norms [Ambainis2007ElementDistinctness]. -/
 theorem truncationHybrid_answer : TruncationHybrid := by
   intro H _ _ T U V bad ψ hU hV hgood
   let cost : ℕ → ℝ := fun n => if h : n < T then 2*‖toEuclidean_fromVec (bad ⟨n,h⟩)‖ else 0

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
+
+/-!
+# Concentration of normalized traces
+
+The quantities `traceDeviation` and `expectedTrace` split a normalized sum of independent phases
+into its centered fluctuation and mean. Real and imaginary weighted-sum identities allow
+Hoeffding estimates to bound deviations of its complex norm. This development supports the
+treatment in [TangWright2025].
+
+## Main statements
+
+* `traceDeviation_re` and `traceDeviation_im`: centered weighted-sum expressions.
+* `trace_concentration`: deviation probability at most `0.01` when `d ≥ 48/t^2`.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,14 +40,18 @@ open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 
+/-- The normalized sum of coordinate phase values after subtracting their individual complex
+expectations. -/
 def traceDeviation {d : ℕ} {X : Fin d → Type} [∀ i, Fintype (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ) (ω : ∀ i, X i) : ℂ :=
   ((d : ℝ)⁻¹ : ℂ) * ∑ i, (phi i (ω i) - cExpect (p i) (phi i))
 
+/-- The normalized sum of the coordinate complex expectations. -/
 def expectedTrace {d : ℕ} {X : Fin d → Type} [∀ i, Fintype (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ) : ℂ :=
   ((d : ℝ)⁻¹ : ℂ) * ∑ i, cExpect (p i) (phi i)
 
+/-- The exponential tail constant `4 * exp(-6)` is at most `0.01`. -/
 theorem four_exp_neg_six_le : 4 * Real.exp (-6) ≤ 0.01 := by
   have h6 : Real.exp 6 = (Real.exp 1) ^ 6 := by
     have := Real.exp_nat_mul 6 1
@@ -43,6 +66,8 @@ theorem four_exp_neg_six_le : 4 * Real.exp (-6) ≤ 0.01 := by
   rw [show (0.01 : ℝ) = 4 * (400 : ℝ)⁻¹ by norm_num]
   gcongr
 
+/-- The real part of a finite complex expectation is the probability-weighted sum of the real
+parts. -/
 theorem cExpect_re {X : Type} [Fintype X] (p : FinDist X) (phi : X → ℂ) :
     (cExpect p phi).re = ∑ x, p.prob x * (phi x).re := by
   rw [cExpect, Complex.re_sum]
@@ -51,6 +76,8 @@ theorem cExpect_re {X : Type} [Fintype X] (p : FinDist X) (phi : X → ℂ) :
   rw [Complex.mul_re]
   simp
 
+/-- The imaginary part of a finite complex expectation is the probability-weighted sum of the
+imaginary parts. -/
 theorem cExpect_im {X : Type} [Fintype X] (p : FinDist X) (phi : X → ℂ) :
     (cExpect p phi).im = ∑ x, p.prob x * (phi x).im := by
   rw [cExpect, Complex.im_sum]
@@ -59,6 +86,8 @@ theorem cExpect_im {X : Type} [Fintype X] (p : FinDist X) (phi : X → ℂ) :
   rw [Complex.mul_im]
   simp
 
+/-- The real trace deviation equals the centered real weighted sum under the independent product
+law. -/
 theorem traceDeviation_re {d : ℕ} {X : Fin d → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ) (ω : ∀ i, X i) :
@@ -77,6 +106,8 @@ theorem traceDeviation_re {d : ℕ} {X : Fin d → Type}
   rw [cExpect_re]
   rfl
 
+/-- The imaginary trace deviation equals the centered imaginary weighted sum under the
+independent product law. -/
 theorem traceDeviation_im {d : ℕ} {X : Fin d → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ) (ω : ∀ i, X i) :
@@ -95,6 +126,9 @@ theorem traceDeviation_im {d : ℕ} {X : Fin d → Type}
   rw [cExpect_im]
   rfl
 
+/-- For independent unit-modulus phases, positive `t`, and `d ≥ 48/t^2`, the probability that
+the centered normalized trace has norm at least `t` is at most `0.01` [Tang and Wright,
+Lemma 2.6][TangWright2025]. -/
 theorem trace_concentration {d : ℕ} (hd : 0 < d) {X : Fin d → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ)

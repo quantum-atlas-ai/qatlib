@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Statement of the conjunction-toggle bound
+
+`Corollary7_4` states the elementary-gate form of the conjunction-toggle construction in
+[BarencoEtAl1995]. It specifies at least five distinct controls, separate spectator and target
+wires, legality, zero queries, a length bound of `48 * m - 108`, and exact basis-state
+semantics.
+
+## Main statements
+
+* `Corollary7_4`: The proposition specifying the conjunction-controlled target toggle.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +34,9 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.CircuitImpl.MultiControl
 
+/-- The proposition that a conjunction toggle with `m ≥ 5` distinct controls and separate
+spectator and target wires has a legal, query-free implementation using at most `48 * m -
+108` gates [Barenco et al., Corollary 7.4][BarencoEtAl1995]. -/
 def Corollary7_4 : Prop :=
   ∀ (N m : ℕ) (c : ℕ → Fin N) (s t : Fin N),
     5 ≤ m → Set.InjOn c (Set.Iio m) → (∀ i < m, c i ≠ s) → (∀ i < m, c i ≠ t) →

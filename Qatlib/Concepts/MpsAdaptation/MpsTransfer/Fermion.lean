@@ -5,6 +5,43 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionDefs
+
+/-!
+# Fermionic local gates and covariance transformations
+
+This module proves local gate-list realizations of Jordan–Wigner annihilation, creation,
+number, and hopping operators, following the encoding of [JordanWigner1928]. It establishes
+exact weighted gate-list encodings of quadratic and Hubbard Hamiltonian sums, bounds their
+defined gate, bit, and space costs, and derives two-site block representations with the
+intervening Pauli Z strings.
+
+The Majorana operators satisfy Clifford relations, and real changes of basis transform
+covariance matrices by congruence. These identities connect occupation expectations to
+covariance entries and give covariance updates under unitaries whose induced Majorana
+transformation is supplied as a hypothesis, as in fermionic linear optics
+[Bravyi2005Fermionic]. The module also proves unitarity of match gates with skew-Hermitian
+coefficients and exact evolution factorization for commuting generators.
+
+## Main statements
+
+* `jwLocalGateList_annihilation` and `jwCreationGateList_op`: exact local gate lists for
+  annihilation and creation operators.
+* `majorana_clifford`: the Majorana anticommutation relations.
+* `covarianceMatrix_congruence_of_induced`: covariance congruence under an assumed induced
+  real Majorana transformation.
+* `occupationExpectation_eq_occupationFromCovariance`: recovery of occupation from covariance
+  when the real norm trace is one.
+* `quadraticHamiltonianWord_op` and `hubbardHamiltonianWord_eq_termSum`: exact Hamiltonian
+  word representations.
+* `quadraticGenerator_adjacent_block`: a two-site block representation for consecutive modes.
+* `hamiltonianEvolution_trotter_exact_of_commute`: exact factorization for commuting generators.
+
+## References
+
+* [Jordan and Wigner, 1928][JordanWigner1928]
+* [Bravyi, 2005][Bravyi2005Fermionic]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,12 +60,16 @@ open scoped BigOperators
 open Qatlib
 open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 
+/-- The matrix entry of a gate at site `j` is the corresponding entry of `G` when the registers
+agree elsewhere, and zero otherwise. -/
 theorem localGate_apply {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2) ℂ)
     (y x : Reg n) :
     localGate j G y x =
       (if ∀ k : Fin n, k ≠ j → y k = x k then G (boolEquivFin2 (y j)) (boolEquivFin2 (x j))
        else 0) := rfl
 
+/-- Embedding a diagonal single-site matrix as `localGate` gives zero entries between distinct
+registers. -/
 theorem localGate_diagonal {n : ℕ} (j : Fin n) {G : Matrix (Fin 2) (Fin 2) ℂ}
     (hG : ∀ b c : Fin 2, G b c ≠ 0 → b = c) (y x : Reg n) (h : y ≠ x) :
     localGate j G y x = 0 := by
@@ -48,6 +89,7 @@ theorem localGate_diagonal {n : ℕ} (j : Fin n) {G : Matrix (Fin 2) (Fin 2) ℂ
     simp [hc, hz]
   · simp [hc]
 
+/-- A local Pauli Z gate has zero entries between distinct registers. -/
 theorem localGate_oneQubitZ_diagonal {n : ℕ} (j : Fin n) (y x : Reg n) (h : y ≠ x) :
     localGate j oneQubitZ y x = 0 := by
   refine localGate_diagonal j (G := oneQubitZ) ?_ y x h
@@ -56,6 +98,7 @@ theorem localGate_oneQubitZ_diagonal {n : ℕ} (j : Fin n) (y x : Reg n) (h : y 
   · exact hbc
   · simp [oneQubitZ, hbc] at hc
 
+/-- The onsite phase gate has zero entries between distinct registers. -/
 theorem onsiteLocalGate_diagonal {n : ℕ} (i : Fin n) (θ : ℝ) (y x : Reg n) (h : y ≠ x) :
     onsiteLocalGate i θ y x = 0 := by
   unfold onsiteLocalGate
@@ -66,6 +109,8 @@ theorem onsiteLocalGate_diagonal {n : ℕ} (i : Fin n) (θ : ℝ) (y x : Reg n) 
     · simp [oneQubitPhase, hbc] at hc
   exact localGate_diagonal i (G := oneQubitPhase θ) hG y x h
 
+/-- The diagonal entry of the onsite phase gate is `exp (-I * θ)` at an occupied site and one at
+an unoccupied site. -/
 theorem onsiteLocalGate_apply {n : ℕ} (i : Fin n) (θ : ℝ) (x : Reg n) :
     onsiteLocalGate i θ x x = (if x i then Complex.exp (-Complex.I * θ) else 1) := by
   unfold onsiteLocalGate
@@ -76,6 +121,7 @@ theorem onsiteLocalGate_apply {n : ℕ} (i : Fin n) (θ : ℝ) (x : Reg n) :
   · simp [hi, boolEquivFin2]
   · simp [hi, boolEquivFin2]
 
+/-- The gate count of a local gate list equals its length. -/
 theorem localGateCount_eq_length {n : ℕ} (gl : LocalGateList n) :
     localGateCount gl = gl.length := by
   induction gl with
@@ -84,6 +130,7 @@ theorem localGateCount_eq_length {n : ℕ} (gl : LocalGateList n) :
       rw [localGateCount, List.length_cons, ih]
       omega
 
+/-- Concatenating local gate lists corresponds to multiplying their operators in list order. -/
 theorem localGateListOp_append {n : ℕ} (l₁ l₂ : LocalGateList n) :
     localGateListOp (l₁ ++ l₂) = localGateListOp l₁ * localGateListOp l₂ := by
   induction l₁ with
@@ -93,6 +140,7 @@ theorem localGateListOp_append {n : ℕ} (l₁ l₂ : LocalGateList n) :
         = (localGate p.1 p.2 * localGateListOp rest) * localGateListOp l₂
       rw [ih, Matrix.mul_assoc]
 
+/-- A nonzero entry of `oneQubitZ` has equal row and column indices. -/
 theorem oneQubitZ_diagonal (b c : Fin 2) (h : oneQubitZ b c ≠ 0) : b = c := by
   by_cases hbc : b = c
   · exact hbc
@@ -100,10 +148,13 @@ theorem oneQubitZ_diagonal (b c : Fin 2) (h : oneQubitZ b c ≠ 0) : b = c := by
       simpa [oneQubitZ, Matrix.of_apply, hbc] using! h
     simp [hbc] at h2
 
+/-- The diagonal entry of `oneQubitZ` is minus one at index one and one otherwise. -/
 theorem oneQubitZ_diagEntry (b : Fin 2) :
     oneQubitZ b b = (if b = 1 then -1 else 1) := by
   simp [oneQubitZ, Matrix.of_apply]
 
+/-- A product over `Fin n` splits into the factors below `i`, the factor at `i`, and the factors
+above `i`. -/
 theorem prod_split {n : ℕ} (i : Fin n) (f : Fin n → ℂ) :
     (∏ j : Fin n, f j)
       = ((Finset.univ : Finset (Fin n)).filter (· < i)).prod f * f i
@@ -135,6 +186,8 @@ theorem prod_split {n : ℕ} (i : Fin n) (f : Fin n → ℂ) :
   rw [hmem, Finset.prod_union hdis]
   ring
 
+/-- The embedding of a diagonal single-site matrix has its corresponding local entry on the
+diagonal and zero elsewhere. -/
 theorem localGate_diag_apply {n : ℕ} (j : Fin n) {G : Matrix (Fin 2) (Fin 2) ℂ}
     (hG : ∀ b c : Fin 2, G b c ≠ 0 → b = c) (y x : Reg n) :
     localGate j G y x
@@ -160,6 +213,8 @@ theorem localGate_diag_apply {n : ℕ} (j : Fin n) {G : Matrix (Fin 2) (Fin 2) �
     · rw [if_neg hc]
       simp [hyx]
 
+/-- A list of diagonal local gates gives a diagonal operator whose diagonal entries are products
+of the local diagonal entries. -/
 theorem localGateListOp_diag {n : ℕ} :
     ∀ (gl : LocalGateList n),
       (∀ p ∈ gl, ∀ b c : Fin 2, p.2 b c ≠ 0 → b = c) →
@@ -211,6 +266,8 @@ theorem localGateListOp_diag {n : ℕ} :
         rw [hsum]
         simp [hyx]
 
+/-- Left multiplication by a diagonal matrix multiplies each entry by the diagonal entry in its
+row. -/
 theorem mul_apply_diag_left {n : ℕ} (P : Matrix (Reg n) (Reg n) ℂ) (B : Matrix (Reg n) (Reg n) ℂ)
     (hP : ∀ y x : Reg n, y ≠ x → P y x = 0) (y x : Reg n) :
     (P * B) y x = P y y * B y x := by
@@ -221,6 +278,7 @@ theorem mul_apply_diag_left {n : ℕ} (P : Matrix (Reg n) (Reg n) ℂ) (B : Matr
   · intro h
     exact absurd h (by simp)
 
+/-- The local gate list for mode `i` represents its Jordan–Wigner Pauli word [JordanWigner1928]. -/
 theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
     localGateListOp (jwLocalGateList i) = jwPauliWord i := by
   classical
@@ -345,16 +403,21 @@ theorem jwLocalGateList_op {n : ℕ} (i : Fin n) :
         ring
     rw [hLHS0, hRHS0]
 
+/-- The Jordan–Wigner local gate list represents the annihilation operator at mode `i`
+[JordanWigner1928]. -/
 theorem jwLocalGateList_annihilation {n : ℕ} (i : Fin n) :
     localGateListOp (jwLocalGateList i) = annihilation i := by
   rw [jwLocalGateList_op]
   exact ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).2.2.2.2.1 i).1.symm
 
+/-- The difference between the Jordan–Wigner gate-list operator and its Pauli word vanishes
+entrywise. -/
 theorem jwLocalGateList_error {n : ℕ} (i : Fin n) :
     ∀ (y x : Reg n), (localGateListOp (jwLocalGateList i) - jwPauliWord i) y x = 0 := by
   intro y x
   rw [jwLocalGateList_op, sub_self, Matrix.zero_apply]
 
+/-- There are `i.val` indices in `Fin n` strictly below `i`. -/
 theorem card_filter_lt {n : ℕ} (i : Fin n) :
     ((Finset.univ : Finset (Fin n)).filter (· < i)).card = i.val := by
   classical
@@ -376,23 +439,28 @@ theorem card_filter_lt {n : ℕ} (i : Fin n) :
       omega
   simpa [Finset.card_range] using! h
 
+/-- The gate count is additive under concatenation of local gate lists. -/
 theorem localGateCount_append {n : ℕ} (l₁ l₂ : LocalGateList n) :
     localGateCount (l₁ ++ l₂) = localGateCount l₁ + localGateCount l₂ := by
   induction l₁ with
   | nil => simp [localGateCount]
   | cons p rest ih => simp [localGateCount, ih, Nat.succ_add]
 
+/-- The Jordan–Wigner gate list for mode `i` contains `i.val + 1` local gates. -/
 theorem jwLocalGateList_count {n : ℕ} (i : Fin n) :
     localGateCount (jwLocalGateList i) = i.val + 1 := by
   rw [localGateCount_eq_length, jwLocalGateList, jwZPrefix, List.length_append,
     List.length_map, Finset.length_toList, card_filter_lt]
   rfl
 
+/-- Majorana indices associated with distinct modes are distinct, regardless of their
+within-mode indices. -/
 theorem majoranaIndices_ne_mode {n : ℕ} (i j : Fin n) (hij : i ≠ j) (b c : Fin 2) :
     majoranaIndices i b ≠ majoranaIndices j c := by
   intro h
   exact hij ((majoranaIndices_eq i j b c).mp h).1
 
+/-- For distinct modes, `localSlot` recovers the slot used by `localIndices`. -/
 theorem localSlot_localIndices {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p : Fin 4) :
     localSlot i j (localIndices i j p) = p := by
   rcases p with ⟨k, hk⟩
@@ -411,11 +479,14 @@ theorem localSlot_localIndices {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p : Fin 
         majoranaIndices_ne_mode j i (Ne.symm hij) 1 1
     simp [localIndices, localSlot, h1, h2, h3]
 
+/-- Every index selected by `localIndices i j` is a local Majorana index for these modes. -/
 theorem isLocalMajorana_localIndices {n : ℕ} (i j : Fin n) (p : Fin 4) :
     isLocalMajorana i j (localIndices i j p) := by
   rcases p with ⟨k, hk⟩
   interval_cases k <;> simp [isLocalMajorana, localIndices]
 
+/-- For distinct modes, the local block of a covariance update is `R * localBlock Γ i j *
+R.transpose`. -/
 theorem localBlock_covarianceUpdate {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ) (hij : i ≠ j) :
     localBlock (covarianceUpdate Γ i j R) i j = R * localBlock Γ i j * R.transpose := by
@@ -425,10 +496,13 @@ theorem localBlock_covarianceUpdate {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2
   rw [if_pos ⟨isLocalMajorana_localIndices i j p, isLocalMajorana_localIndices i j q⟩]
   rw [localSlot_localIndices i j hij p, localSlot_localIndices i j hij q]
 
+/-- The ring connectivity list has length `n` when `n` is positive. -/
 theorem length_ringConnectivity {n : ℕ} (h : 0 < n) : (ringConnectivity n).length = n := by
   have h1 : 1 ≤ n := by omega
   simp [ringConnectivity, h, length_linearConnectivity, Nat.sub_add_cancel h1]
 
+/-- A nonzero annihilation matrix entry connects registers that agree away from the annihilated
+mode. -/
 theorem annihilation_support {n : ℕ} (j : Fin n) (z x : Reg n) (h : annihilation j z x ≠ 0) :
     ∀ k : Fin n, k ≠ j → z k = x k := by
   have hcond : x j ∧ z = Function.update x j false := by
@@ -440,6 +514,7 @@ theorem annihilation_support {n : ℕ} (j : Fin n) (z x : Reg n) (h : annihilati
   intro k hk
   simp [hcond.2, hk]
 
+/-- A nonzero creation matrix entry connects registers that agree away from the created mode. -/
 theorem creation_support {n : ℕ} (i : Fin n) (y z : Reg n) (h : creation i y z ≠ 0) :
     ∀ k : Fin n, k ≠ i → y k = z k := by
   have hcond : ¬ z i ∧ y = Function.update z i true := by
@@ -451,6 +526,8 @@ theorem creation_support {n : ℕ} (i : Fin n) (y z : Reg n) (h : creation i y z
   intro k hk
   simp [hcond.2, hk]
 
+/-- The symmetric hopping operator has zero entries between registers differing at a site
+outside its two modes. -/
 theorem hoppingTerm_preservesOutside {n : ℕ} (i j : Fin n) (k : Fin n)
     (hk : k ≠ i) (hk' : k ≠ j) (y x : Reg n) (hne : y k ≠ x k) :
     (creation i * annihilation j + creation j * annihilation i) y x = 0 := by
@@ -478,6 +555,8 @@ theorem hoppingTerm_preservesOutside {n : ℕ} (i j : Fin n) (k : Fin n)
         exact absurd (hzy.trans hzx) hne
   rw [Matrix.add_apply, h1, h2, add_zero]
 
+/-- If `T` preserves all register bits outside `i` and `j`, its Hamiltonian evolution preserves
+those bits as well. -/
 theorem hamiltonianEvolution_actsOnlyOn {n : ℕ} (i j : Fin n) (T : Matrix (Reg n) (Reg n) ℂ)
     (hT : ∀ k : Fin n, k ≠ i → k ≠ j → ∀ y x : Reg n, y k ≠ x k → T y x = 0) (s : ℝ) :
     ∀ y x : Reg n, (∃ k : Fin n, k ≠ i ∧ k ≠ j ∧ y k ≠ x k) →
@@ -542,6 +621,8 @@ theorem hamiltonianEvolution_actsOnlyOn {n : ℕ} (i j : Fin n) (T : Matrix (Reg
   change NormedSpace.exp ((-Complex.I * (s : ℂ)) • T) y x = 0
   exact hkey'
 
+/-- Hamiltonian evolution of the symmetric hopping operator preserves register bits outside its
+two modes. -/
 theorem hamiltonianEvolution_hoppingTerm_actsOnlyOn {n : ℕ} (i j : Fin n) (s : ℝ) :
     ∀ y x : Reg n, (∃ k : Fin n, k ≠ i ∧ k ≠ j ∧ y k ≠ x k) →
       (HamiltonianEvolution
@@ -551,9 +632,11 @@ theorem hamiltonianEvolution_hoppingTerm_actsOnlyOn {n : ℕ} (i j : Fin n) (s :
   intro k hk hk' y x hne
   exact hoppingTerm_preservesOutside i j k hk hk' y x hne
 
+/-- Creation at a mode is the conjugate transpose of annihilation at that mode. -/
 theorem creation_eq_annihilation_conjTranspose {n : ℕ} (k : Fin n) :
     creation k = (annihilation k)ᴴ := (Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).2.1 k
 
+/-- Annihilation at a mode is the conjugate transpose of creation at that mode. -/
 theorem annihilation_eq_creation_conjTranspose {n : ℕ} (k : Fin n) :
     annihilation k = (creation k)ᴴ := by
   have h1 := ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).2.2.2.2.1 k).1
@@ -562,6 +645,7 @@ theorem annihilation_eq_creation_conjTranspose {n : ℕ} (k : Fin n) :
     _ = ((jwPauliWord k)ᴴ)ᴴ := by rw [Matrix.conjTranspose_conjTranspose]
     _ = (creation k)ᴴ := by rw [h2]
 
+/-- The number operator is Hermitian. -/
 theorem numberOp_hermitian {n : ℕ} (i : Fin n) : (numberOp i)ᴴ = numberOp i := by
   have hnum : numberOp i = (annihilation i)ᴴ * annihilation i := by
     calc numberOp i = creation i * annihilation i := ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).2.2.1 i).1
@@ -569,6 +653,8 @@ theorem numberOp_hermitian {n : ℕ} (i : Fin n) : (numberOp i)ᴴ = numberOp i 
           rw [creation_eq_annihilation_conjTranspose]
   rw [hnum, Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
 
+/-- Taking the conjugate transpose of a hopping monomial reverses its creation and annihilation
+modes. -/
 theorem creation_mul_annihilation_conjTranspose {n : ℕ} (i j : Fin n) :
     (creation i * annihilation j)ᴴ = creation j * annihilation i := by
   rw [Matrix.conjTranspose_mul]
@@ -577,6 +663,8 @@ theorem creation_mul_annihilation_conjTranspose {n : ℕ} (i j : Fin n) :
   have e2 : (creation i)ᴴ = annihilation i := (annihilation_eq_creation_conjTranspose i).symm
   rw [e1, e2]
 
+/-- The conjugate transpose of a quadratic generator conjugates its coefficients and reverses
+its hopping monomials. -/
 theorem quadraticGenerator_conjTranspose {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     (quadraticGenerator i j A)ᴴ
@@ -594,6 +682,7 @@ theorem quadraticGenerator_conjTranspose {n : ℕ} (i j : Fin n)
     creation_mul_annihilation_conjTranspose i j,
     creation_mul_annihilation_conjTranspose j i]
 
+/-- A skew-Hermitian coefficient matrix gives a skew-Hermitian quadratic generator. -/
 theorem quadraticGenerator_skewHermitian {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     (quadraticGenerator i j A)ᴴ = -quadraticGenerator i j A := by
@@ -618,11 +707,14 @@ theorem quadraticGenerator_skewHermitian {n : ℕ} (i j : Fin n)
   simp only [neg_smul]
   abel
 
+/-- The match gate generated by a skew-Hermitian coefficient matrix is unitary. -/
 theorem matchGate_unitary {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (hA : Aᴴ = -A) : matchGate i j A ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   rw [matchGate]
   exact exp_unitary_of_skewHermitian (quadraticGenerator_skewHermitian i j A hA)
 
+/-- A covariance matrix entry is minus one half of the imaginary part of the trace of the
+sandwiched Majorana commutator. -/
 theorem covarianceMatrix_eq_im {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (a b : Fin (2 * n)) :
     covarianceMatrix M a b
       = -(1 / 2 : ℝ) * (Matrix.trace
@@ -631,6 +723,7 @@ theorem covarianceMatrix_eq_im {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (a b :
   rw [Complex.mul_re]
   simp [Complex.I_re, Complex.I_im]
 
+/-- Interchanging the two indices of the covariance matrix negates its entry. -/
 theorem covarianceMatrix_antisymm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (a b : Fin (2 * n)) :
     covarianceMatrix M b a = -covarianceMatrix M a b := by
   rw [covarianceMatrix_eq_im, covarianceMatrix_eq_im]
@@ -641,40 +734,50 @@ theorem covarianceMatrix_antisymm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (a 
   rw [hneg, Matrix.mul_neg, Matrix.neg_mul, Matrix.trace_neg, Complex.neg_im]
   ring
 
+/-- Every two-mode local block of a covariance matrix is antisymmetric. -/
 theorem localBlock_covariance_antisymm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (i j : Fin n)
     (p q : Fin 4) :
     localBlock (covarianceMatrix M) i j q p = -localBlock (covarianceMatrix M) i j p q := by
   simp only [localBlock, Matrix.of_apply]
   exact covarianceMatrix_antisymm M (localIndices i j p) (localIndices i j q)
 
+/-- The trace of a finite sum of matrices equals the sum of their traces. -/
 lemma trace_sum {ι : Type*} [Fintype ι] {m : Type*} [Fintype m]
     (g : ι → Matrix m m ℂ) :
     (∑ x, g x).trace = ∑ x, (g x).trace := by
   rw [Matrix.trace_sum]
 
+/-- The trace of a matrix sandwich distributes over addition in the middle factor. -/
 lemma trace_sandwich_add {m : Type*} [Fintype m] (A B X Y : Matrix m m ℂ) :
     (A * (X + Y) * B).trace = (A * X * B).trace + (A * Y * B).trace := by
   rw [Matrix.mul_add, Matrix.add_mul, Matrix.trace_add]
 
+/-- A complex scalar multiplying the middle factor of a matrix sandwich factors out of its
+trace. -/
 lemma trace_sandwich_smul {m : Type*} [Fintype m] (A B : Matrix m m ℂ) (r : ℂ)
     (X : Matrix m m ℂ) :
     (A * (r • X) * B).trace = r * (A * X * B).trace := by
   rw [Matrix.mul_smul, Matrix.smul_mul, Matrix.trace_smul]
   rfl
 
+/-- The trace of a matrix sandwich distributes over a finite sum in the middle factor. -/
 lemma trace_sandwich_finset {ι : Type*} [Fintype ι] {m : Type*} [Fintype m]
     (A B : Matrix m m ℂ) (f : ι → Matrix m m ℂ) :
     (A * (∑ x, f x) * B).trace = ∑ x, (A * f x * B).trace := by
   rw [Matrix.mul_sum, Matrix.sum_mul, Matrix.trace_sum]
 
+/-- The trace of a matrix sandwich distributes over subtraction in the middle factor. -/
 lemma trace_sandwich_sub {m : Type*} [Fintype m] (A B X Y : Matrix m m ℂ) :
     (A * (X - Y) * B).trace = (A * X * B).trace - (A * Y * B).trace := by
   rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.trace_sub]
 
+/-- An identity matrix in the middle of a trace sandwich can be removed. -/
 lemma trace_sandwich_one {m : Type*} [Fintype m] [DecidableEq m] (A B : Matrix m m ℂ) :
     (A * (1 : Matrix m m ℂ) * B).trace = (A * B).trace := by
   rw [Matrix.mul_one]
 
+/-- The trace of a sandwiched finite linear combination equals the corresponding linear
+combination of sandwich traces. -/
 lemma trace_sandwich_smul_sum {ι : Type*} [Fintype ι] {m : Type*} [Fintype m]
     (A B : Matrix m m ℂ) (k : ι → ℂ) (Z : ι → Matrix m m ℂ) :
     (A * (∑ x, k x • Z x) * B).trace = ∑ x, (k x) * (A * Z x * B).trace := by
@@ -684,6 +787,8 @@ lemma trace_sandwich_smul_sum {ι : Type*} [Fintype ι] {m : Type*} [Fintype m]
   rw [Matrix.mul_smul, Matrix.smul_mul, Matrix.trace_smul]
   rfl
 
+/-- The trace of a sandwiched double linear combination equals the double sum of its weighted
+sandwich traces. -/
 lemma trace_sandwich_sum_sum {ι κ : Type*} [Fintype ι] [Fintype κ] {m : Type*}
     [Fintype m] (A B : Matrix m m ℂ) (k : ι → κ → ℂ)
     (Z : ι → κ → Matrix m m ℂ) :
@@ -694,6 +799,8 @@ lemma trace_sandwich_sum_sum {ι κ : Type*} [Fintype ι] [Fintype κ] {m : Type
   intro c hc
   rw [trace_sandwich_smul_sum]
 
+/-- The product of two finite matrix linear combinations expands as the double sum of pairwise
+products with multiplied coefficients. -/
 lemma sum_mul_sum {ι : Type*} [Fintype ι] {m n p : Type*} [Fintype n] [Fintype p]
     (u : ι → ℂ) (f : ι → Matrix m n ℂ) (v : ι → ℂ) (g : ι → Matrix n p ℂ) :
     (∑ c, u c • f c) * (∑ d, v d • g d) = ∑ c, ∑ d, (u c * v d) • (f c * g d) := by
@@ -705,6 +812,7 @@ lemma sum_mul_sum {ι : Type*} [Fintype ι] {m n p : Type*} [Fintype n] [Fintype
   intro d hd
   rw [Matrix.mul_smul, Matrix.smul_mul, smul_smul, mul_comm]
 
+/-- The difference of the two weighted double sums equals the weighted sum of `T c d - T d c`. -/
 lemma sum_congruence {ι : Type*} [Fintype ι] (k l : ι → ℂ) (T : ι → ι → ℂ) :
     (∑ c, ∑ d, (k c * l d) * T c d) - (∑ c, ∑ d, (l c * k d) * T c d)
       = ∑ c, ∑ d, (k c * l d) * (T c d - T d c) := by
@@ -735,6 +843,7 @@ lemma sum_congruence {ι : Type*} [Fintype ι] (k l : ι → ℂ) (T : ι → ι
   intro d hd
   ring
 
+/-- The imaginary part of a finite complex sum equals the sum of the imaginary parts. -/
 lemma im_univ_sum {ι : Type*} [Fintype ι] [DecidableEq ι] (f : ι → ℂ) :
     (∑ x, f x).im = ∑ x, (f x).im := by
   have aux : ∀ s : Finset ι, (∑ x ∈ s, f x).im = ∑ x ∈ s, (f x).im := by
@@ -745,12 +854,15 @@ lemma im_univ_sum {ι : Type*} [Fintype ι] [DecidableEq ι] (f : ι → ℂ) :
       rw [Finset.sum_insert ha, Complex.add_im, ih, Finset.sum_insert ha]
   simpa using! aux Finset.univ
 
+/-- Two real factors can be pulled outside the imaginary part of their product with a complex
+number. -/
 lemma im_real_prod {x y : ℝ} {z : ℂ} :
     (((x : ℂ) * (y : ℂ) * z).im) = x * y * z.im := by
   rw [mul_assoc, Complex.mul_im, Complex.ofReal_im, zero_mul, Complex.ofReal_re,
     Complex.mul_im, Complex.ofReal_im, zero_mul, Complex.ofReal_re]
   ring
 
+/-- The complex covariance pairing expands bilinearly over finite complex linear combinations. -/
 theorem covarianceComplexOf_sum {ι : Type*} [Fintype ι] {n : ℕ}
     (M : Matrix (Reg n) (Reg n) ℂ) (u v : ι → ℂ) (f : ι → Matrix (Reg n) (Reg n) ℂ) :
     covarianceComplexOf M (∑ c, u c • f c) (∑ d, v d • f d)
@@ -777,6 +889,7 @@ theorem covarianceComplexOf_sum {ι : Type*} [Fintype ι] {n : ℕ}
   intro d hd
   rfl
 
+/-- The real covariance pairing expands bilinearly over finite real linear combinations. -/
 theorem covarianceOf_sum {ι : Type*} [Fintype ι] [DecidableEq ι] {n : ℕ}
     (M : Matrix (Reg n) (Reg n) ℂ) (u v : ι → ℝ) (f : ι → Matrix (Reg n) (Reg n) ℂ) :
     covarianceOf M (∑ c, (u c : ℂ) • f c) (∑ d, (v d : ℂ) • f d)
@@ -806,12 +919,16 @@ theorem covarianceOf_sum {ι : Type*} [Fintype ι] [DecidableEq ι] {n : ℕ}
   intro d hd
   ring
 
+/-- A covariance matrix entry equals the covariance pairing of the corresponding Majorana
+operators. -/
 theorem covarianceMatrix_eq_covarianceOf {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
     (a b : Fin (2 * n)) :
     covarianceMatrix M a b = covarianceOf M (majorana a) (majorana b) := by
   rw [covarianceMatrix_eq_im, covarianceOf, covarianceComplexOf]
   rw [Matrix.mul_sub, Matrix.sub_mul, Matrix.trace_sub, Complex.sub_im]
 
+/-- An entry of `R * Λ * R.transpose` is the double sum of entries of `Λ` weighted by the
+corresponding rows of `R`. -/
 lemma mul_congruence_apply {m : ℕ} (R : Matrix (Fin m) (Fin m) ℝ)
     (Λ : Matrix (Fin m) (Fin m) ℝ) (p q : Fin m) :
     (R * Λ * R.transpose) p q = ∑ s, ∑ t, (R p s) * ((R q t) * Λ s t) := by
@@ -835,6 +952,8 @@ lemma mul_congruence_apply {m : ℕ} (R : Matrix (Fin m) (Fin m) ℝ)
         intro d hd
         ring
 
+/-- Changing the Majorana basis by `S` transforms the covariance matrix to `S * covarianceMatrix
+M * S.transpose`. -/
 theorem covarianceInBasis_eq_congruence {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) :
     covarianceInBasis M S = S * covarianceMatrix M * S.transpose := by
@@ -850,6 +969,8 @@ theorem covarianceInBasis_eq_congruence {n : ℕ} (M : Matrix (Reg n) (Reg n) �
   intro d hd
   rw [covarianceMatrix_eq_covarianceOf]
 
+/-- The covariance in a transformed local basis is the congruence of the original local
+covariance block by `R`. -/
 theorem localCovarianceInBasis_eq {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (i j : Fin n)
     (R : Matrix (Fin 4) (Fin 4) ℝ) :
     localCovarianceInBasis M i j R = R * localBlock (covarianceMatrix M) i j * R.transpose := by
@@ -867,11 +988,14 @@ theorem localCovarianceInBasis_eq {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (i 
   rw [← covarianceMatrix_eq_covarianceOf]
   simp only [localBlock, Matrix.of_apply]
 
+/-- For distinct modes, the local block of a covariance update equals the covariance in the
+rotated local basis. -/
 theorem covarianceUpdate_local_eq_rotatedBasis {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
     (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ) (hij : i ≠ j) :
     localBlock (covarianceUpdate (covarianceMatrix M) i j R) i j = localCovarianceInBasis M i j R := by
   rw [localBlock_covarianceUpdate (covarianceMatrix M) i j R hij, localCovarianceInBasis_eq]
 
+/-- Congruence by a real matrix preserves antisymmetry. -/
 lemma mul_congruence_antisymm {m : ℕ} (S : Matrix (Fin m) (Fin m) ℝ)
     (Λ : Matrix (Fin m) (Fin m) ℝ) (h : ∀ p q, Λ q p = -Λ p q) (p q : Fin m) :
     (S * Λ * S.transpose) q p = -(S * Λ * S.transpose) p q := by
@@ -887,6 +1011,7 @@ lemma mul_congruence_antisymm {m : ℕ} (S : Matrix (Fin m) (Fin m) ℝ)
   rw [h2]
   ring
 
+/-- The covariance matrix in any real transformed Majorana basis is antisymmetric. -/
 theorem covarianceInBasis_antisymm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (a b : Fin (2 * n)) :
     covarianceInBasis M S b a = -covarianceInBasis M S a b := by
@@ -894,6 +1019,7 @@ theorem covarianceInBasis_antisymm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
   exact mul_congruence_antisymm S (covarianceMatrix M)
     (fun p q => covarianceMatrix_antisymm M p q) a b
 
+/-- A covariance update preserves antisymmetry of the local block for distinct modes. -/
 theorem localBlock_covarianceUpdate_antisymm {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ) (hij : i ≠ j) (p q : Fin 4)
     (h : ∀ s t : Fin 4, localBlock Γ i j t s = -localBlock Γ i j s t) :
@@ -902,6 +1028,7 @@ theorem localBlock_covarianceUpdate_antisymm {n : ℕ} (Γ : Matrix (Fin (2 * n)
   rw [localBlock_covarianceUpdate Γ i j R hij]
   exact mul_congruence_antisymm R (localBlock Γ i j) h p q
 
+/-- Equal covariance matrices have equal updates for the same modes and local transformation. -/
 theorem covarianceUpdate_eq_of_covariance_eq {n : ℕ} {Γ Γ' : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ}
     (h : Γ = Γ') (i j : Fin n) (R : Matrix (Fin 4) (Fin 4) ℝ) :
     covarianceUpdate Γ i j R = covarianceUpdate Γ' i j R := by
@@ -911,19 +1038,24 @@ open Matrix
 open scoped BigOperators
 open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 
+/-- The anticommutator of annihilation at `i` and creation at `j` is the identity when the modes
+coincide and zero otherwise. -/
 theorem car_aa (n : ℕ) (i j : Fin n) :
     annihilation i * creation j + creation j * annihilation i
       = (if i = j then (1 : Matrix (Reg n) (Reg n) ℂ) else 0) :=
   ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).1 i j).1
 
+/-- Two annihilation operators have zero anticommutator. -/
 theorem car_ann (n : ℕ) (i j : Fin n) :
     annihilation i * annihilation j + annihilation j * annihilation i = 0 :=
   ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).1 i j).2.1
 
+/-- Two creation operators have zero anticommutator. -/
 theorem car_cre (n : ℕ) (i j : Fin n) :
     creation i * creation j + creation j * creation i = 0 :=
   ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).1 i j).2.2
 
+/-- A complex matrix whose sum with itself is zero is zero. -/
 theorem add_self_eq_zero_of_complex {ι κ : Type} [Fintype ι] [Fintype κ]
     (A : Matrix ι κ ℂ) (h : A + A = 0) : A = 0 := by
   ext i j
@@ -936,12 +1068,15 @@ theorem add_self_eq_zero_of_complex {ι κ : Type} [Fintype ι] [Fintype κ]
   · exact absurd hz (by norm_num)
   · exact hz
 
+/-- The even Majorana operator at mode `k`, defined as creation plus annihilation. -/
 def majoranaEven {n : ℕ} (k : Fin n) : Matrix (Reg n) (Reg n) ℂ :=
   creation k + annihilation k
 
+/-- The odd Majorana operator at mode `k`, defined as `I` times annihilation minus creation. -/
 def majoranaOdd {n : ℕ} (k : Fin n) : Matrix (Reg n) (Reg n) ℂ :=
   Complex.I • (annihilation k - creation k)
 
+/-- The Majorana operator with index `2 * k.val` equals `majoranaEven k`. -/
 theorem majorana_even_eq (n : ℕ) (k : Fin n) :
     majorana ⟨2 * k.val, by omega⟩ = majoranaEven k := by
   unfold majorana majoranaEven
@@ -950,6 +1085,7 @@ theorem majorana_even_eq (n : ℕ) (k : Fin n) :
     rw [Fin.val_mk]; omega
   simp only [h1]
 
+/-- The square of an even Majorana operator is the identity. -/
 theorem majoranaEven_sq (n : ℕ) (k : Fin n) : majoranaEven k * majoranaEven k = 1 := by
   have hann : annihilation k * annihilation k = 0 := by
     have h' : annihilation k * annihilation k + annihilation k * annihilation k = 0 := by
@@ -979,6 +1115,7 @@ open Matrix
 open scoped BigOperators
 open Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 
+/-- The Majorana operator with index `2 * k.val + 1` equals `majoranaOdd k`. -/
 theorem majorana_odd_eq (n : ℕ) (k : Fin n) :
     majorana ⟨2 * k.val + 1, by omega⟩ = majoranaOdd k := by
   unfold majorana majoranaOdd
@@ -987,6 +1124,7 @@ theorem majorana_odd_eq (n : ℕ) (k : Fin n) :
     rw [Fin.val_mk]; omega
   simp only [h1]
 
+/-- Even Majorana operators at distinct modes anticommute. -/
 theorem majoranaEven_anticommute (n : ℕ) (k l : Fin n) (hkl : k ≠ l) :
     majoranaEven k * majoranaEven l + majoranaEven l * majoranaEven k = 0 := by
   have hann : annihilation k * annihilation l + annihilation l * annihilation k = 0 :=
@@ -1025,6 +1163,7 @@ theorem majoranaEven_anticommute (n : ℕ) (k l : Fin n) (hkl : k ≠ l) :
       rw [h3, h4]
     _ = 0 := by simp
 
+/-- Multiplying a complex matrix by `I` twice equals multiplying it by minus one. -/
 lemma I_smul_I_smul {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) :
     Complex.I • (Complex.I • M) = (-1 : ℂ) • M := by
   ext i j
@@ -1033,6 +1172,7 @@ lemma I_smul_I_smul {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) :
   calc Complex.I * (Complex.I * M i j) = (Complex.I * Complex.I) * M i j := by ring
     _ = (-1) * M i j := by rw [hII]
 
+/-- The square of an odd Majorana operator is the identity. -/
 theorem majoranaOdd_sq {n : ℕ} (k : Fin n) :
     majoranaOdd k * majoranaOdd k = 1 := by
   have hsq_c : creation k * creation k = 0 := by
@@ -1064,6 +1204,7 @@ theorem majoranaOdd_sq {n : ℕ} (k : Fin n) :
   by_cases h : i = j <;>
     simp [Matrix.smul_apply, Matrix.neg_apply, Matrix.one_apply, h]
 
+/-- Odd Majorana operators at distinct modes anticommute. -/
 theorem majoranaOdd_anticommute {n : ℕ} (k l : Fin n) (hkl : k ≠ l) :
     majoranaOdd k * majoranaOdd l + majoranaOdd l * majoranaOdd k = 0 := by
   have hAA : annihilation k * annihilation l + annihilation l * annihilation k = 0 :=
@@ -1103,6 +1244,7 @@ theorem majoranaOdd_anticommute {n : ℕ} (k l : Fin n) (hkl : k ≠ l) :
           rw [← smul_add]
     _ = 0 := by rw [hX, smul_zero]
 
+/-- An even and an odd Majorana operator at distinct modes anticommute. -/
 theorem majoranaEven_majoranaOdd_anticommute {n : ℕ} (k l : Fin n) (hkl : k ≠ l) :
     majoranaEven k * majoranaOdd l + majoranaOdd l * majoranaEven k = 0 := by
   have hAA : annihilation k * annihilation l + annihilation l * annihilation k = 0 :=
@@ -1139,10 +1281,13 @@ theorem majoranaEven_majoranaOdd_anticommute {n : ℕ} (k l : Fin n) (hkl : k �
           rw [← smul_add]
     _ = 0 := by rw [hX, smul_zero]
 
+/-- Creation followed by annihilation at the same mode equals its number operator. -/
 theorem creation_mul_annihilation_eq_numberOp {n : ℕ} (k : Fin n) :
     creation k * annihilation k = numberOp k :=
   ((Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).2.2.1 k).1.symm
 
+/-- Annihilation followed by creation at the same mode equals the identity minus its number
+operator. -/
 theorem annihilation_mul_creation_eq_one_sub_numberOp {n : ℕ} (k : Fin n) :
     annihilation k * creation k = 1 - numberOp k := by
   have hcar : annihilation k * creation k + creation k * annihilation k = 1 := by
@@ -1155,6 +1300,8 @@ theorem annihilation_mul_creation_eq_one_sub_numberOp {n : ℕ} (k : Fin n) :
             rw [add_sub_cancel_right]
     _ = 1 - numberOp k := by rw [hcar, creation_mul_annihilation_eq_numberOp]
 
+/-- The even Majorana times the odd Majorana at a mode equals `I` times twice its number
+operator minus the identity. -/
 theorem majoranaEven_majoranaOdd {n : ℕ} (k : Fin n) :
     majoranaEven k * majoranaOdd k
       = Complex.I • (numberOp k + numberOp k - 1) := by
@@ -1182,6 +1329,8 @@ theorem majoranaEven_majoranaOdd {n : ℕ} (k : Fin n) :
     _ = numberOp k + numberOp k - 1 := by
           noncomm_ring
 
+/-- The odd Majorana times the even Majorana at a mode equals `I` times the identity minus twice
+its number operator. -/
 theorem majoranaOdd_majoranaEven {n : ℕ} (k : Fin n) :
     majoranaOdd k * majoranaEven k
       = Complex.I • (1 - numberOp k - numberOp k) := by
@@ -1209,6 +1358,7 @@ theorem majoranaOdd_majoranaEven {n : ℕ} (k : Fin n) :
     _ = 1 - numberOp k - numberOp k := by
           noncomm_ring
 
+/-- The even and odd Majorana operators at the same mode anticommute. -/
 theorem majoranaEven_majoranaOdd_anticommute_same (n : ℕ) (k : Fin n) :
     majoranaEven k * majoranaOdd k + majoranaOdd k * majoranaEven k = 0 := by
   have hsq_c : creation k * creation k = 0 := by
@@ -1232,6 +1382,7 @@ theorem majoranaEven_majoranaOdd_anticommute_same (n : ℕ) (k : Fin n) :
             rw [hsq_c, hsq_a]
             simp
 
+/-- The Majorana operator selected by the even within-mode index equals `majoranaEven`. -/
 theorem majoranaIndices_even (n : ℕ) (k : Fin n) :
     majorana (majoranaIndices k 0) = majoranaEven k := by
   have hidx : majoranaIndices k 0 = ⟨2 * k.val, by omega⟩ := by
@@ -1246,6 +1397,7 @@ theorem majoranaIndices_even (n : ℕ) (k : Fin n) :
   simp only [h1]
   rfl
 
+/-- The Majorana operator selected by the odd within-mode index equals `majoranaOdd`. -/
 theorem majoranaIndices_odd (n : ℕ) (k : Fin n) :
     majorana (majoranaIndices k 1) = majoranaOdd k := by
   have hidx : majoranaIndices k 1 = ⟨2 * k.val + 1, by omega⟩ := by
@@ -1260,11 +1412,15 @@ theorem majoranaIndices_odd (n : ℕ) (k : Fin n) :
   simp only [h1]
   rfl
 
+/-- The commutator of the even and odd Majorana operators at a mode is expressed in terms of its
+number operator. -/
 theorem majorana_comm {n : ℕ} (k : Fin n) :
     majoranaEven k * majoranaOdd k - majoranaOdd k * majoranaEven k
       = Complex.I • ((numberOp k + numberOp k - 1) - (1 - numberOp k - numberOp k)) := by
   rw [majoranaEven_majoranaOdd, majoranaOdd_majoranaEven, ← smul_sub]
 
+/-- The trace of the sandwiched same-mode Majorana commutator is `I` times four times the
+number-operator sandwich trace minus twice the norm trace. -/
 theorem trace_sandwich_majorana_comm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (k : Fin n) :
     (Mᴴ * (majoranaEven k * majoranaOdd k
         - majoranaOdd k * majoranaEven k) * M).trace
@@ -1301,6 +1457,8 @@ theorem trace_sandwich_majorana_comm {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) 
     ring
   rw [hsand, Matrix.trace_smul, smul_eq_mul, htr]
 
+/-- The same-mode even–odd covariance entry equals the real norm trace minus twice the real
+number-operator sandwich trace. -/
 theorem covarianceMatrix_occupation {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (k : Fin n) :
     covarianceMatrix M (majoranaIndices k 0) (majoranaIndices k 1)
       = (Matrix.trace (Mᴴ * M)).re
@@ -1312,6 +1470,8 @@ theorem covarianceMatrix_occupation {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (
   simp
   linarith
 
+/-- Twice the occupation expectation equals the real norm trace minus the same-mode even–odd
+covariance entry. -/
 theorem occupationExpectation_eq_of_covariance {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
     (k : Fin n) :
     2 * occupationExpectation M k
@@ -1321,6 +1481,8 @@ theorem occupationExpectation_eq_of_covariance {n : ℕ} (M : Matrix (Reg n) (Re
   have h := covarianceMatrix_occupation M k
   linarith
 
+/-- For a matrix with real norm trace one, the occupation expectation is recovered from its
+covariance matrix [Bravyi2005Fermionic]. -/
 theorem occupationExpectation_eq_occupationFromCovariance {n : ℕ}
     (M : Matrix (Reg n) (Reg n) ℂ) (k : Fin n)
     (hM : (Matrix.trace (Mᴴ * M)).re = 1) :
@@ -1330,6 +1492,8 @@ theorem occupationExpectation_eq_occupationFromCovariance {n : ℕ}
   rw [h, hM]
   linarith
 
+/-- An even–odd covariance entry between minus one and one yields an occupation value between
+zero and one. -/
 theorem occupationFromCovariance_bounds {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (k : Fin n) (hlo : -1 ≤ Γ (majoranaIndices k 0) (majoranaIndices k 1))
     (hhi : Γ (majoranaIndices k 0) (majoranaIndices k 1) ≤ 1) :
@@ -1337,6 +1501,8 @@ theorem occupationFromCovariance_bounds {n : ℕ} (Γ : Matrix (Fin (2 * n)) (Fi
   unfold occupationFromCovariance
   constructor <;> linarith
 
+/-- For a positive register size, the defined classical occupation cost is strictly smaller than
+the physical measurement cost. -/
 theorem occupationClassicalCost_lt_physical {n : ℕ} (k : Fin n) (h : 0 < n) :
     occupationClassicalCost k < physicalMeasurementCost n := by
   unfold occupationClassicalCost physicalMeasurementCost
@@ -1354,6 +1520,8 @@ theorem occupationClassicalCost_lt_physical {n : ℕ} (k : Fin n) (h : 0 < n) :
   have h1 : (1 : ℕ) ≤ 2 ^ (n - 1) := hpos (n - 1)
   omega
 
+/-- Every Majorana operator is the even or odd operator of its mode, according to the parity of
+its index. -/
 theorem majorana_eq_flavour (n : ℕ) (a : Fin (2 * n)) :
     majorana a = if a.val % 2 = 0 then majoranaEven ⟨a.val / 2, by omega⟩
                  else majoranaOdd ⟨a.val / 2, by omega⟩ := by
@@ -1361,6 +1529,7 @@ theorem majorana_eq_flavour (n : ℕ) (a : Fin (2 * n)) :
   · simp [majorana, majoranaEven, h]
   · simp [majorana, majoranaOdd, h]
 
+/-- The sum of two identity matrices equals twice the identity matrix. -/
 lemma one_add_one_eq_two (n : ℕ) :
     (1 : Matrix (Reg n) (Reg n) ℂ) + 1 = (2 : ℂ) • 1 := by
   ext i j
@@ -1368,6 +1537,8 @@ lemma one_add_one_eq_two (n : ℕ) :
   · subst h; simp; norm_num
   · simp [h]
 
+/-- The Majorana anticommutator is twice the identity for equal indices and zero for distinct
+indices. -/
 theorem majorana_clifford (n : ℕ) (a b : Fin (2 * n)) :
     majorana a * majorana b + majorana b * majorana a
       = (if a = b then (2 : ℂ) else 0) • (1 : Matrix (Reg n) (Reg n) ℂ) := by
@@ -1495,15 +1666,19 @@ theorem majorana_clifford (n : ℕ) (a b : Fin (2 * n)) :
         rw [if_neg (hne_same_odd ha1 hb1 h)]
         simp
 
+/-- The Gram matrix entry of two rows of the real matrix `S`, defined as their dot product. -/
 def gramMatrix {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (a b : Fin (2 * n)) : ℝ :=
   ∑ c, S a c * S b c
 
+/-- Interchanging two scalar factors does not change their product acting on a matrix over a
+commutative semiring. -/
 lemma smul_comm {m n : Type} [Fintype m] [DecidableEq m] [Fintype n] [DecidableEq n]
     {α : Type} [CommSemiring α] [AddCommMonoid α] (r s : α) (M : Matrix m n α) :
     (r * s) • M = (s * r) • M := by
   ext i j
   simp [Matrix.smul_apply, mul_comm]
 
+/-- A finite sum weighted by twice the equality indicator at `c` equals `2 * w c`. -/
 lemma sum_clifford_ite {ι : Type*} [Fintype ι] [DecidableEq ι] (w : ι → ℂ) (c : ι) :
     (∑ d, w d * (if c = d then (2 : ℂ) else 0)) = w c * 2 := by
   classical
@@ -1516,6 +1691,8 @@ lemma sum_clifford_ite {ι : Type*} [Fintype ι] [DecidableEq ι] (w : ι → �
   rw [Finset.sum_congr rfl (fun d _ => hform d), Finset.sum_ite_eq']
   simp
 
+/-- The anticommutator of transformed Majorana operators equals twice the complex row dot
+product of `S` times the identity. -/
 theorem majoranaInBasis_anticommutator {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (a b : Fin (2 * n)) :
     majoranaInBasis S a * majoranaInBasis S b + majoranaInBasis S b * majoranaInBasis S a
@@ -1566,6 +1743,7 @@ theorem majoranaInBasis_anticommutator {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin 
   apply congrArg (fun T : ℂ => T • (1 : Matrix (Reg n) (Reg n) ℂ))
   ring
 
+/-- The row Gram matrix entry of `S` equals the corresponding entry of `S * S.transpose`. -/
 theorem gramMatrix_eq_mul_transpose {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (a b : Fin (2 * n)) :
     gramMatrix S a b = (S * S.transpose) a b := by
@@ -1574,6 +1752,8 @@ theorem gramMatrix_eq_mul_transpose {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 
   intro c hc
   rw [Matrix.transpose_apply]
 
+/-- The anticommutator of transformed Majorana operators equals twice the real Gram matrix entry
+times the identity. -/
 theorem majoranaInBasis_anticommutator_real {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (a b : Fin (2 * n)) :
     majoranaInBasis S a * majoranaInBasis S b + majoranaInBasis S b * majoranaInBasis S a
@@ -1588,6 +1768,7 @@ theorem majoranaInBasis_anticommutator_real {n : ℕ} (S : Matrix (Fin (2 * n)) 
     norm_num at h5 ⊢
   exact hone
 
+/-- Complex scalars giving equal scalar multiples of the register identity matrix are equal. -/
 lemma smul_one_inj {n : ℕ} (r s : ℂ)
     (h : r • (1 : Matrix (Reg n) (Reg n) ℂ) = s • (1 : Matrix (Reg n) (Reg n) ℂ)) : r = s := by
   have h0 := congrArg (fun M : Matrix (Reg n) (Reg n) ℂ => M (fun _ => false) (fun _ => false)) h
@@ -1595,6 +1776,7 @@ lemma smul_one_inj {n : ℕ} (r s : ℂ)
   simp at h0
   exact h0
 
+/-- An orthogonal real basis transformation preserves the Majorana Clifford relations. -/
 theorem majoranaInBasis_clifford_of_orthogonal {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (hS : S * S.transpose = 1) (a b : Fin (2 * n)) :
     majoranaInBasis S a * majoranaInBasis S b + majoranaInBasis S b * majoranaInBasis S a
@@ -1608,6 +1790,8 @@ theorem majoranaInBasis_clifford_of_orthogonal {n : ℕ} (S : Matrix (Fin (2 * n
     simp
   · simp [h]
 
+/-- A real transformation whose Majorana operators satisfy the Clifford relations has `S *
+S.transpose = 1`. -/
 theorem majoranaInBasis_orthogonal_of_clifford {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (hS : ∀ a b : Fin (2 * n),
       majoranaInBasis S a * majoranaInBasis S b + majoranaInBasis S b * majoranaInBasis S a
@@ -1636,6 +1820,7 @@ theorem majoranaInBasis_orthogonal_of_clifford {n : ℕ} (S : Matrix (Fin (2 * n
       linarith
   exact hgram
 
+/-- Distinct local slots for two distinct modes select distinct Majorana indices. -/
 theorem localMajoranaIndices_ne {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p q : Fin 4)
     (hpq : p ≠ q) : localIndices i j p ≠ localIndices i j q := by
   intro hh
@@ -1644,6 +1829,7 @@ theorem localMajoranaIndices_ne {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p q : F
   rw [localSlot_localIndices i j hij p, localSlot_localIndices i j hij q] at hslot
   exact hpq hslot
 
+/-- The four Majorana operators of two distinct modes satisfy the Clifford relations. -/
 theorem localMajorana_clifford {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p q : Fin 4) :
     majorana (localIndices i j p) * majorana (localIndices i j q)
       + majorana (localIndices i j q) * majorana (localIndices i j p)
@@ -1657,6 +1843,8 @@ theorem localMajorana_clifford {n : ℕ} (i j : Fin n) (hij : i ≠ j) (p q : Fi
     rw [if_neg hpq]
     exact h
 
+/-- For distinct modes, the anticommutator of transformed local Majoranas is twice the complex
+row dot product of `R` times the identity. -/
 theorem localMajoranaInBasis_anticommutator {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (R : Matrix (Fin 4) (Fin 4) ℝ) (p q : Fin 4) :
     localMajoranaInBasis i j R p * localMajoranaInBasis i j R q
@@ -1712,6 +1900,8 @@ theorem localMajoranaInBasis_anticommutator {n : ℕ} (i j : Fin n) (hij : i ≠
   apply congrArg (fun T : ℂ => T • (1 : Matrix (Reg n) (Reg n) ℂ))
   ring
 
+/-- For distinct modes, the anticommutator of transformed local Majoranas is twice the real row
+dot product of `R` times the identity. -/
 theorem localMajoranaInBasis_anticommutator_real {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (R : Matrix (Fin 4) (Fin 4) ℝ) (p q : Fin 4) :
     localMajoranaInBasis i j R p * localMajoranaInBasis i j R q
@@ -1729,6 +1919,8 @@ theorem localMajoranaInBasis_anticommutator_real {n : ℕ} (i j : Fin n) (hij : 
     norm_num at h5 ⊢
   exact hone
 
+/-- An orthogonal local transformation preserves the Clifford relations for the Majoranas of two
+distinct modes. -/
 theorem localMajoranaInBasis_clifford_of_orthogonal {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (R : Matrix (Fin 4) (Fin 4) ℝ) (hR : R * R.transpose = 1) (p q : Fin 4) :
     localMajoranaInBasis i j R p * localMajoranaInBasis i j R q
@@ -1750,6 +1942,8 @@ theorem localMajoranaInBasis_clifford_of_orthogonal {n : ℕ} (i j : Fin n) (hij
     simp
   · simp [h]
 
+/-- If twice a real Gram entry equals the corresponding complex Clifford coefficient, the Gram
+entry is the equality indicator. -/
 lemma gramMatrix_eq_ite {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (a b : Fin (2 * n))
     (h : ((2 * gramMatrix S a b : ℝ) : ℂ) = (if a = b then 2 else 0 : ℂ)) :
     gramMatrix S a b = if a = b then 1 else 0 := by
@@ -1765,11 +1959,14 @@ lemma gramMatrix_eq_ite {n : ℕ} (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (
     simp only [if_neg hab]
     linarith
 
+/-- The conjugate transpose of a matrix product is the product of the conjugate transposes in
+reverse order. -/
 lemma mul_conjTranspose {m n p : Type} [Fintype m] [Fintype n] [Fintype p]
     (A : Matrix m n ℂ) (B : Matrix n p ℂ) : (A * B)ᴴ = Bᴴ * Aᴴ := by
   ext i j
   simp [Matrix.mul_apply, Matrix.conjTranspose_apply, star_mul]
 
+/-- When `U * Uᴴ = 1`, conjugation by `U` distributes over a product of register matrices. -/
 lemma conj_mul_conj {n : ℕ} (U X Y : Matrix (Reg n) (Reg n) ℂ)
     (hU : U * Uᴴ = 1) :
     Uᴴ * (X * Y) * U = (Uᴴ * X * U) * (Uᴴ * Y * U) := by
@@ -1778,6 +1975,8 @@ lemma conj_mul_conj {n : ℕ} (U X Y : Matrix (Reg n) (Reg n) ℂ)
       have hform : (Uᴴ * X * U) * (Uᴴ * Y * U) = Uᴴ * X * (U * Uᴴ) * Y * U := by ac_rfl
       rw [hform, hU, Matrix.mul_one]
 
+/-- When `U * Uᴴ = 1`, the anticommutator of conjugated matrices is the conjugate of their
+anticommutator. -/
 lemma conj_anticommutator {n : ℕ} (U X Y : Matrix (Reg n) (Reg n) ℂ)
     (hU : U * Uᴴ = 1) :
     (Uᴴ * X * U) * (Uᴴ * Y * U) + (Uᴴ * Y * U) * (Uᴴ * X * U) = Uᴴ * (X * Y + Y * X) * U := by
@@ -1789,6 +1988,8 @@ lemma conj_anticommutator {n : ℕ} (U X Y : Matrix (Reg n) (Reg n) ℂ)
       rw [Matrix.mul_add, Matrix.add_mul]
       ac_rfl
 
+/-- When `U * Uᴴ = 1`, multiplying `M` by `U` transfers to conjugation of both arguments of the
+complex covariance pairing. -/
 lemma covarianceComplexOf_conj {n : ℕ} (U M X Y : Matrix (Reg n) (Reg n) ℂ) (hU : U * Uᴴ = 1) :
     covarianceComplexOf (U * M) X Y = covarianceComplexOf M (Uᴴ * X * U) (Uᴴ * Y * U) := by
   have hconj : (U * M)ᴴ = Mᴴ * Uᴴ := mul_conjTranspose U M
@@ -1813,11 +2014,15 @@ lemma covarianceComplexOf_conj {n : ℕ} (U M X Y : Matrix (Reg n) (Reg n) ℂ) 
   unfold covarianceComplexOf
   rw [hconj, e1, e2]
 
+/-- When `U * Uᴴ = 1`, multiplying `M` by `U` transfers to conjugation of both arguments of the
+real covariance pairing. -/
 lemma covarianceOf_conj {n : ℕ} (U M X Y : Matrix (Reg n) (Reg n) ℂ) (hU : U * Uᴴ = 1) :
     covarianceOf (U * M) X Y = covarianceOf M (Uᴴ * X * U) (Uᴴ * Y * U) := by
   unfold covarianceOf
   rw [covarianceComplexOf_conj U M X Y hU]
 
+/-- If conjugation by `U` induces the real Majorana transformation `S` and `U * Uᴴ = 1`, the
+covariance transforms by congruence with `S`. -/
 theorem covarianceMatrix_congruence_of_induced {n : ℕ} (U M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (hU : U * Uᴴ = 1)
@@ -1838,6 +2043,8 @@ theorem covarianceMatrix_congruence_of_induced {n : ℕ} (U M : Matrix (Reg n) (
     exact this
   rw [h1, h2, h3]
 
+/-- A real Majorana transformation induced by conjugation with `U` is orthogonal when `Uᴴ * U =
+1`. -/
 theorem induced_frame_orthogonal_of_unitary {n : ℕ} (U : Matrix (Reg n) (Reg n) ℂ)
     (hU : Uᴴ * U = 1) (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (hS : ∀ a : Fin (2 * n), Uᴴ * majorana a * U = majoranaInBasis S a) :
@@ -1871,9 +2078,12 @@ theorem induced_frame_orthogonal_of_unitary {n : ℕ} (U : Matrix (Reg n) (Reg n
     smul_one_inj _ _ (hgram.symm.trans (hfr.symm.trans hconj))
   exact h3
 
+/-- The identity basis transformation leaves each Majorana operator unchanged. -/
 theorem majoranaInBasis_one {n : ℕ} (a : Fin (2 * n)) : majoranaInBasis 1 a = majorana a := by
   simp [majoranaInBasis, Matrix.one_apply]
 
+/-- Under an induced Majorana transformation `S` with `U * Uᴴ = 1`, twice the evolved occupation
+is the original real norm trace minus the transformed even–odd covariance entry. -/
 theorem occupationExpectation_congruence_of_induced_general {n : ℕ}
     (U M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
@@ -1894,6 +2104,8 @@ theorem occupationExpectation_congruence_of_induced_general {n : ℕ}
   rw [covarianceMatrix_congruence_of_induced U M S hU hS] at h2
   exact h2
 
+/-- For real norm trace one, an induced Majorana transformation `S` with `U * Uᴴ = 1` computes
+the evolved occupation from the covariance congruence. -/
 theorem occupationExpectation_congruence_of_induced {n : ℕ} (U M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
     (hU : U * Uᴴ = 1)
@@ -1913,6 +2125,8 @@ theorem occupationExpectation_congruence_of_induced {n : ℕ} (U M : Matrix (Reg
   rw [occupationExpectation_eq_occupationFromCovariance (U * M) k hnorm]
   rw [covarianceMatrix_congruence_of_induced U M S hU hS]
 
+/-- A match gate with skew-Hermitian coefficients transforms covariance by congruence with any
+real Majorana transformation it induces. -/
 theorem matchGate_covariance_congruence {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (hA : Aᴴ = -A) (M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
@@ -1923,6 +2137,8 @@ theorem matchGate_covariance_congruence {n : ℕ} (i j : Fin n) (A : Matrix (Fin
     Matrix.mem_unitaryGroup_iff.mp (matchGate_unitary i j A hA)
   exact covarianceMatrix_congruence_of_induced (matchGate i j A) M S hU hS
 
+/-- For real norm trace one, occupation after a match gate with skew-Hermitian coefficients is
+recovered from the covariance congruence of its assumed induced Majorana transformation. -/
 theorem matchGate_occupation_congruence {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (hA : Aᴴ = -A) (M : Matrix (Reg n) (Reg n) ℂ)
     (S : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ)
@@ -1935,6 +2151,8 @@ theorem matchGate_occupation_congruence {n : ℕ} (i j : Fin n) (A : Matrix (Fin
     Matrix.mem_unitaryGroup_iff.mp (matchGate_unitary i j A hA)
   exact occupationExpectation_congruence_of_induced (matchGate i j A) M S hU hS k hM
 
+/-- The defined circuit operation count plus one occupation cost is at most `64 * matchGateCount
+gl + 1`. -/
 theorem classicalSimulationCost_le {n : ℕ} (gl : MatchGateCircuit n) (k : Fin n) :
     matchGateCircuitClassicalOps gl + occupationClassicalCost k
       ≤ 64 * matchGateCount gl + 1 := by
@@ -1942,6 +2160,8 @@ theorem classicalSimulationCost_le {n : ℕ} (gl : MatchGateCircuit n) (k : Fin 
   rw [occupationClassicalCost]
   omega
 
+/-- Circuits with equal match-gate counts have equal defined classical operation counts after
+adding the same occupation cost. -/
 theorem classicalSimulationCost_indep_of_register {n m : ℕ} (gl : MatchGateCircuit n)
     (gl' : MatchGateCircuit m) (h : matchGateCount gl = matchGateCount gl') (k : Fin n) :
     matchGateCircuitClassicalOps gl + occupationClassicalCost k
@@ -1950,6 +2170,7 @@ theorem classicalSimulationCost_indep_of_register {n m : ℕ} (gl : MatchGateCir
   simp only [matchGateCircuitClassicalOps, matchGateClassicalOps]
   rw [h]
 
+/-- The even Majorana plus `I` times the odd Majorana equals twice the creation operator. -/
 theorem majorana_even_odd_sum {n : ℕ} (k : Fin n) :
     majoranaEven k + Complex.I • majoranaOdd k = (2 : ℂ) • creation k := by
   unfold majoranaEven majoranaOdd
@@ -1964,6 +2185,7 @@ theorem majorana_even_odd_sum {n : ℕ} (k : Fin n) :
   rw [h2, add_smul, one_smul]
   abel
 
+/-- The even Majorana minus `I` times the odd Majorana equals twice the annihilation operator. -/
 theorem majorana_even_odd_diff {n : ℕ} (k : Fin n) :
     majoranaEven k - Complex.I • majoranaOdd k = (2 : ℂ) • annihilation k := by
   unfold majoranaEven majoranaOdd
@@ -1978,18 +2200,22 @@ theorem majorana_even_odd_diff {n : ℕ} (k : Fin n) :
   rw [h2, add_smul, one_smul]
   abel
 
+/-- Creation is one half of the even Majorana plus `I` times the odd Majorana. -/
 theorem creation_eq_majorana_half {n : ℕ} (k : Fin n) :
     creation k = (1 / 2 : ℂ) • (majoranaEven k + Complex.I • majoranaOdd k) := by
   rw [majorana_even_odd_sum k, smul_smul]
   have h : (1 / 2 : ℂ) * 2 = 1 := by norm_num
   rw [h, one_smul]
 
+/-- Annihilation is one half of the even Majorana minus `I` times the odd Majorana. -/
 theorem annihilation_eq_majorana_half {n : ℕ} (k : Fin n) :
     annihilation k = (1 / 2 : ℂ) • (majoranaEven k - Complex.I • majoranaOdd k) := by
   rw [majorana_even_odd_diff k, smul_smul]
   have h : (1 / 2 : ℂ) * 2 = 1 := by norm_num
   rw [h, one_smul]
 
+/-- For distinct modes, half the sum of the even–even and odd–odd Majorana products equals the
+antisymmetric hopping combination. -/
 theorem cross_quad_sum {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     (1 / 2 : ℂ) • (majoranaEven i * majoranaEven j + majoranaOdd i * majoranaOdd j)
       = creation i * annihilation j - creation j * annihilation i := by
@@ -2030,6 +2256,8 @@ theorem cross_quad_sum {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     add_eq_zero_iff_eq_neg.mp hcar
   rw [hog, sub_eq_add_neg]
 
+/-- For distinct modes, half the even–odd minus odd–even Majorana products equals `I` times the
+symmetric hopping combination. -/
 theorem cross_quad_diff {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
     (1 / 2 : ℂ) • (majoranaEven i * majoranaOdd j - majoranaOdd i * majoranaEven j)
       = Complex.I • (creation i * annihilation j + creation j * annihilation i) := by
@@ -2068,6 +2296,8 @@ theorem cross_quad_diff {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
   have hI : ((1 / 2 : ℂ) * Complex.I) * 2 = Complex.I := by ring
   rw [hI]
 
+/-- For distinct modes, the quadratic generator expands as a scalar identity term and explicit
+quadratic Majorana terms. -/
 theorem quadraticGenerator_eq_majoranaForm {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     quadraticGenerator i j A
@@ -2198,6 +2428,8 @@ theorem quadraticGenerator_eq_majoranaForm {n : ℕ} (i j : Fin n) (hij : i ≠ 
             • (majoranaEven i * majoranaOdd j - majoranaOdd i * majoranaEven j) :=
       hRHS.symm
 
+/-- For a skew-Hermitian coefficient matrix, the four displayed quadratic Majorana coefficients
+have zero imaginary part. -/
 theorem quadraticGenerator_majoranaForm_coef_real {A : Matrix (Fin 2) (Fin 2) ℂ}
     (hA : Aᴴ = -A) :
     ((-(Complex.I) * A 0 0 / 2 : ℂ).im : ℂ) = 0
@@ -2248,12 +2480,15 @@ theorem quadraticGenerator_majoranaForm_coef_real {A : Matrix (Fin 2) (Fin 2) �
   · rw [Complex.div_im, Complex.mul_im]
     simp [hsumre]
 
+/-- The real local form matrix is skew-symmetric. -/
 theorem localFormMatrix_transpose (A : Matrix (Fin 2) (Fin 2) ℂ) :
     (localFormMatrix A).transpose = -(localFormMatrix A) := by
   unfold localFormMatrix
   rw [Matrix.transpose_sub]
   abel
 
+/-- The six upper-triangular entries of the local form matrix are the specified half real or
+imaginary parts of the coefficient entries. -/
 theorem localFormMatrix_apply (A : Matrix (Fin 2) (Fin 2) ℂ) :
     localFormMatrix A 0 1 = (A 0 0).im / 2
       ∧ localFormMatrix A 2 3 = (A 1 1).im / 2
@@ -2269,6 +2504,8 @@ theorem localFormMatrix_apply (A : Matrix (Fin 2) (Fin 2) ℂ) :
   · simp [localFormMatrix, localFormSym, Matrix.sub_apply, Matrix.transpose_apply]
   · simp [localFormMatrix, localFormSym, Matrix.sub_apply, Matrix.transpose_apply]
 
+/-- The six upper-triangular entries of `localFormSym` are the specified half real or imaginary
+parts of the coefficient entries. -/
 theorem localFormSym_apply (A : Matrix (Fin 2) (Fin 2) ℂ) :
     localFormSym A 0 1 = (A 0 0).im / 2 ∧
     localFormSym A 2 3 = (A 1 1).im / 2 ∧
@@ -2284,6 +2521,7 @@ theorem localFormSym_apply (A : Matrix (Fin 2) (Fin 2) ℂ) :
   · simp [localFormSym, Matrix.of_apply]
   · simp [localFormSym, Matrix.of_apply]; ring
 
+/-- The local rotation satisfies `localRotation A * (localRotation A).transpose = 1`. -/
 theorem localRotation_mul_transpose (A : Matrix (Fin 2) (Fin 2) ℂ) :
     localRotation A * (localRotation A).transpose = 1 := by
   have hskew : (localFormMatrix A).transpose = -(localFormMatrix A) :=
@@ -2298,11 +2536,13 @@ theorem localRotation_mul_transpose (A : Matrix (Fin 2) (Fin 2) ℂ) :
   rw [← Matrix.exp_add_of_commute _ _ hcomm]
   rw [add_neg_cancel, NormedSpace.exp_zero]
 
+/-- Each local Majorana index is the index of its selected mode and within-mode bit. -/
 theorem localIndices_eq_majoranaIndices {n : ℕ} (i j : Fin n) (p : Fin 4) :
     localIndices i j p = majoranaIndices (localMode i j p) (localBit p) := by
   rcases p with ⟨k, hk⟩
   interval_cases k <;> simp [localIndices, localMode, localBit, majoranaIndices]
 
+/-- For distinct modes, equality of local Majorana indices implies equality of their slots. -/
 theorem localIndices_inj {n : ℕ} (i j : Fin n) (hij : i ≠ j) (a b : Fin 4) :
     localIndices i j a = localIndices i j b → a = b := by
   intro h
@@ -2342,6 +2582,7 @@ theorem localIndices_inj {n : ℕ} (i j : Fin n) (hij : i ≠ j) (a b : Fin 4) :
       omega
   exact Fin.ext hval
 
+/-- Every local Majorana index is selected by some slot of `localIndices`. -/
 theorem exists_localIndices {n : ℕ} (i j : Fin n) (b : Fin (2 * n))
     (hb : isLocalMajorana i j b) : ∃ a : Fin 4, localIndices i j a = b := by
   rcases hb with hb | hb | hb | hb
@@ -2350,6 +2591,7 @@ theorem exists_localIndices {n : ℕ} (i j : Fin n) (b : Fin (2 * n))
   · exact ⟨⟨2, by norm_num⟩, by simp [localIndices, hb]⟩
   · exact ⟨⟨3, by norm_num⟩, by simp [localIndices, hb]⟩
 
+/-- For distinct modes, selecting the slot of a local Majorana index recovers that index. -/
 theorem localIndices_localSlot {n : ℕ} (i j : Fin n) (hij : i ≠ j) (a : Fin (2 * n))
     (ha : isLocalMajorana i j a) : localIndices i j (localSlot i j a) = a := by
   obtain ⟨p, hp⟩ := exists_localIndices i j a ha
@@ -2359,6 +2601,7 @@ theorem localIndices_localSlot {n : ℕ} (i j : Fin n) (hij : i ≠ j) (a : Fin 
     _ = localIndices i j p := by rw [h1]
     _ = a := hp
 
+/-- For distinct modes, equal local slots of local Majorana indices imply equal indices. -/
 theorem localSlot_inj_local {n : ℕ} (i j : Fin n) (hij : i ≠ j) (a b : Fin (2 * n))
     (ha : isLocalMajorana i j a) (hb : isLocalMajorana i j b) :
     localSlot i j a = localSlot i j b → a = b := by
@@ -2367,16 +2610,21 @@ theorem localSlot_inj_local {n : ℕ} (i j : Fin n) (hij : i ≠ j) (a b : Fin (
   intro h
   rw [h1, h2, h]
 
+/-- On local Majorana indices, a frame rotation has the entries of the corresponding local
+rotation at their slots. -/
 theorem frameRotation_apply_local {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (a b : Fin (2 * n)) (ha : isLocalMajorana i j a) (hb : isLocalMajorana i j b) :
     frameRotation i j A a b = (localRotation A) (localSlot i j a) (localSlot i j b) := by
   simp [frameRotation, ha, hb]
 
+/-- On indices outside the local modes, a frame rotation has identity matrix entries. -/
 theorem frameRotation_apply_away {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (a b : Fin (2 * n)) (ha : ¬ isLocalMajorana i j a) (hb : ¬ isLocalMajorana i j b) :
     frameRotation i j A a b = if a = b then 1 else 0 := by
   simp [frameRotation, ha, hb]
 
+/-- A frame rotation entry is zero when its row is local and its column is outside the local
+modes. -/
 theorem frameRotation_apply_left_local_right_away {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (a c : Fin (2 * n))
     (ha : isLocalMajorana i j a) (hc : ¬ isLocalMajorana i j c) :
@@ -2386,6 +2634,8 @@ theorem frameRotation_apply_left_local_right_away {n : ℕ} (i j : Fin n)
     exact hc (h ▸ ha)
   simp [frameRotation, ha, hc, hne]
 
+/-- A frame rotation entry is zero when its row is outside the local modes and its column is
+local. -/
 theorem frameRotation_apply_right_local_left_away {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (a c : Fin (2 * n))
     (ha : ¬ isLocalMajorana i j a) (hc : isLocalMajorana i j c) :
@@ -2395,17 +2645,21 @@ theorem frameRotation_apply_right_local_left_away {n : ℕ} (i j : Fin n)
     exact ha (h ▸ hc)
   simp [frameRotation, ha, hc, hne]
 
+/-- A frame rotation has zero off-diagonal entries between indices outside the local modes. -/
 theorem frameRotation_apply_away_neq {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (a b : Fin (2 * n)) (ha : ¬ isLocalMajorana i j a) (hb : ¬ isLocalMajorana i j b)
     (hne : a ≠ b) :
     frameRotation i j A a b = 0 := by
   simp [frameRotation, ha, hb, hne]
 
+/-- A frame rotation has diagonal entry one at each index outside the local modes. -/
 theorem frameRotation_apply_away_eq {n : ℕ} (i j : Fin n) (A : Matrix (Fin 2) (Fin 2) ℂ)
     (a : Fin (2 * n)) (ha : ¬ isLocalMajorana i j a) :
     frameRotation i j A a a = 1 := by
   simp [frameRotation, ha]
 
+/-- For distinct modes, a sum supported on their local Majorana indices reduces to the sum over
+four local slots. -/
 theorem sum_localMajorana {n : ℕ} {ι : Type} [AddCommMonoid ι] (i j : Fin n) (hij : i ≠ j)
     (φ : Fin (2 * n) → ι)
     (hzero : ∀ a, ¬ isLocalMajorana i j a → φ a = 0) :
@@ -2433,6 +2687,8 @@ theorem sum_localMajorana {n : ℕ} {ι : Type} [AddCommMonoid ι] (i j : Fin n)
       rfl
   rw [← h1, ← h2]
 
+/-- For distinct modes, a frame rotation transforms each local Majorana into the corresponding
+locally transformed Majorana. -/
 theorem majoranaInBasis_frameRotation_local {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (p : Fin 4) :
     majoranaInBasis (frameRotation i j A) (localIndices i j p)
@@ -2454,6 +2710,7 @@ theorem majoranaInBasis_frameRotation_local {n : ℕ} (i j : Fin n) (hij : i ≠
     (isLocalMajorana_localIndices i j s)]
   rw [localSlot_localIndices i j hij p, localSlot_localIndices i j hij s]
 
+/-- A frame rotation leaves Majorana operators outside the local modes unchanged. -/
 theorem majoranaInBasis_frameRotation_away {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (a : Fin (2 * n)) (ha : ¬ isLocalMajorana i j a) :
     majoranaInBasis (frameRotation i j A) a = majorana a := by
@@ -2479,6 +2736,8 @@ theorem majoranaInBasis_frameRotation_away {n : ℕ} (i j : Fin n)
   · intro h
     exact (h (Finset.mem_univ a)).elim
 
+/-- For distinct modes, the local covariance block after a frame rotation is its congruence by
+the local rotation. -/
 theorem localBlock_covarianceInBasis_frameRotation {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ)
     (i j : Fin n) (hij : i ≠ j) (A : Matrix (Fin 2) (Fin 2) ℂ) :
     localBlock (covarianceInBasis M (frameRotation i j A)) i j
@@ -2497,6 +2756,8 @@ theorem localBlock_covarianceInBasis_frameRotation {n : ℕ} (M : Matrix (Reg n)
   change localCovarianceInBasis M i j (localRotation A) p q = _
   exact hloc p q
 
+/-- For distinct modes, the frame rotation satisfies `frameRotation i j A * (frameRotation i j
+A).transpose = 1`. -/
 theorem frameRotation_mul_transpose {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     frameRotation i j A * (frameRotation i j A).transpose = 1 := by
@@ -2609,14 +2870,18 @@ theorem frameRotation_mul_transpose {n : ℕ} (i j : Fin n) (hij : i ≠ j)
       · intro h
         exact (h (Finset.mem_univ a)).elim
 
+/-- Complex square matrices indexed by the occupation registers of `n` fermionic modes. -/
 abbrev FermMat (n : ℕ) := Matrix (Reg n) (Reg n) ℂ
 
+/-- Twice a fermionic register matrix equals its sum with itself. -/
 lemma smul_two {n : ℕ} (M : FermMat n) : (2 : ℂ) • M = M + M := by
   ext i j; simp [Matrix.smul_apply, Matrix.add_apply]; ring
 
+/-- Minus twice a fermionic register matrix equals the negative of its sum with itself. -/
 lemma smul_neg_two {n : ℕ} (M : FermMat n) : (-2 : ℂ) • M = -(M + M) := by
   ext i j; simp [Matrix.smul_apply, Matrix.add_apply]; ring
 
+/-- Every Majorana operator squares to the identity. -/
 theorem majorana_sq (n : ℕ) (a : Fin (2 * n)) : majorana a * majorana a = (1 : FermMat n) := by
   have h := majorana_clifford n a a
   rw [if_pos rfl] at h
@@ -2627,12 +2892,15 @@ theorem majorana_sq (n : ℕ) (a : Fin (2 * n)) : majorana a * majorana a = (1 :
       _ = 0 := sub_eq_zero.mpr h
   exact sub_eq_zero.mp (add_self_eq_zero_of_complex _ h2)
 
+/-- Majorana operators with distinct indices anticommute. -/
 theorem majorana_anticommute (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
     majorana a * majorana b + majorana b * majorana a = 0 := by
   have h := majorana_clifford n a b
   rw [if_neg hab] at h
   simpa using! h
 
+/-- For distinct indices, the commutator of a Majorana pair with its first factor is minus twice
+its second factor. -/
 theorem majorana_comm_left (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
     majorana a * majorana b * majorana a - majorana a * majorana a * majorana b
       = (-2 : ℂ) • majorana b := by
@@ -2657,6 +2925,8 @@ theorem majorana_comm_left (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
     _ = -majorana b - majorana b := by rw [h2]
     _ = (-2 : ℂ) • majorana b := by rw [smul_neg_two, neg_add, sub_eq_add_neg]
 
+/-- For distinct indices, the commutator of a Majorana pair with its second factor is twice its
+first factor. -/
 theorem majorana_comm_right (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
     majorana a * majorana b * majorana b - majorana b * majorana a * majorana b
       = (2 : ℂ) • majorana a := by
@@ -2685,6 +2955,8 @@ theorem majorana_comm_right (n : ℕ) (a b : Fin (2 * n)) (hab : a ≠ b) :
     _ = majorana a + majorana a := by rw [h2, h3]
     _ = (2 : ℂ) • majorana a := by rw [smul_two]
 
+/-- A product of two Majorana operators commutes with a third Majorana whose index differs from
+both. -/
 theorem majorana_comm_third (n : ℕ) (a b c : Fin (2 * n)) (hab : a ≠ b) (hbc : b ≠ c)
     (hac : a ≠ c) :
     majorana a * majorana b * majorana c = majorana c * majorana a * majorana b := by
@@ -2704,6 +2976,8 @@ theorem majorana_comm_third (n : ℕ) (a b c : Fin (2 * n)) (hab : a ≠ b) (hbc
     _ = -((-(majorana c * majorana a)) * majorana b) := by rw [f2]
     _ = (majorana c * majorana a) * majorana b := by simp only [neg_mul, neg_neg]
 
+/-- The commutator of a distinct Majorana pair with another Majorana is minus twice the second
+factor, twice the first factor, or zero according to its index. -/
 theorem majoranaPair_comm {n : ℕ} (a b c : Fin (2 * n)) (hab : a ≠ b) :
     majorana a * majorana b * majorana c - majorana c * majorana a * majorana b
       = if c = a then (-2 : ℂ) • majorana b
@@ -2721,12 +2995,14 @@ theorem majoranaPair_comm {n : ℕ} (a b c : Fin (2 * n)) (hab : a ≠ b) :
       rw [h1]
       simp
 
+/-- A complex number with zero real part equals its imaginary part times `I`. -/
 theorem of_re_zero_eq (z : ℂ) (hz : z.re = 0) : z = z.im * Complex.I := by
   have h := Complex.re_add_im z
   rw [hz] at h
   simp only [Complex.ofReal_zero, zero_add] at h
   exact h.symm
 
+/-- Complex conjugation fixes the real part and negates the imaginary part. -/
 theorem conj_eq (z : ℂ) : star z = z.re - z.im * Complex.I := by
   apply Complex.ext
   · rw [RCLike.star_def, Complex.conj_re]
@@ -2734,6 +3010,8 @@ theorem conj_eq (z : ℂ) : star z = z.re - z.im * Complex.I := by
   · rw [RCLike.star_def, Complex.conj_im]
     simp [Complex.sub_im, Complex.mul_im, Complex.I_re, Complex.I_im]
 
+/-- For a skew-Hermitian two-by-two matrix, the lower off-diagonal entry is minus the conjugate
+of the upper off-diagonal entry. -/
 theorem hA_10 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) : A 1 0 = -star (A 0 1) := by
   have h := congrArg (fun M => M 1 0) hA
   have h' : star (A 0 1) = -(A 1 0) := by
@@ -2741,6 +3019,7 @@ theorem hA_10 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) : A 1 0 = -star 
   have h2 := congrArg Neg.neg h'.symm
   simpa using! h2
 
+/-- The first diagonal entry of a skew-Hermitian two-by-two matrix has zero real part. -/
 theorem hA_re_00 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) : (A 0 0).re = 0 := by
   have h := congrArg (fun M => M 0 0) hA
   have h' : star (A 0 0) = -(A 0 0) := by
@@ -2749,6 +3028,7 @@ theorem hA_re_00 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) : (A 0 0).re 
   rw [RCLike.star_def, Complex.conj_re, Complex.neg_re] at h2
   linarith
 
+/-- The second diagonal entry of a skew-Hermitian two-by-two matrix has zero real part. -/
 theorem hA_re_11 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) : (A 1 1).re = 0 := by
   have h := congrArg (fun M => M 1 1) hA
   have h' : star (A 1 1) = -(A 1 1) := by
@@ -2757,6 +3037,8 @@ theorem hA_re_11 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) : (A 1 1).re 
   rw [RCLike.star_def, Complex.conj_re, Complex.neg_re] at h2
   linarith
 
+/-- For skew-Hermitian `A`, the coefficient `(A 0 1 - A 1 0) / 4` equals half the real part of
+`A 0 1`. -/
 theorem coeff_cross {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
     (A 0 1 - A 1 0) / 4 = Complex.ofReal ((A 0 1).re / 2) := by
   have h10 := hA_10 hA
@@ -2771,6 +3053,8 @@ theorem coeff_cross {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
   push_cast
   ring
 
+/-- For skew-Hermitian `A`, the coefficient `-I * (A 0 1 + A 1 0) / 4` equals half the imaginary
+part of `A 0 1`. -/
 theorem coeff_mixed {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
     -(Complex.I) * (A 0 1 + A 1 0) / 4 = Complex.ofReal ((A 0 1).im / 2) := by
   have h10 := hA_10 hA
@@ -2790,6 +3074,7 @@ theorem coeff_mixed {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
   · simp [Complex.div_re, Complex.mul_re, Complex.I_re, Complex.I_im] <;> ring
   · simp [Complex.div_im, Complex.mul_im, Complex.I_re, Complex.I_im] <;> ring
 
+/-- The Majorana operator at within-mode index zero equals the even Majorana operator. -/
 theorem majorana_even_index {n : ℕ} (i : Fin n) :
     majorana (majoranaIndices i 0) = majoranaEven i := by
   have h : majoranaIndices i 0 = ⟨2 * i.val, by omega⟩ := by
@@ -2797,6 +3082,7 @@ theorem majorana_even_index {n : ℕ} (i : Fin n) :
     simp [majoranaIndices]
   rw [h, majorana_even_eq]
 
+/-- The Majorana operator at within-mode index one equals the odd Majorana operator. -/
 theorem majorana_odd_index {n : ℕ} (i : Fin n) :
     majorana (majoranaIndices i 1) = majoranaOdd i := by
   have h : majoranaIndices i 1 = ⟨2 * i.val + 1, by omega⟩ := by
@@ -2804,6 +3090,8 @@ theorem majorana_odd_index {n : ℕ} (i : Fin n) :
     simp [majoranaIndices]
   rw [h, majorana_odd_eq]
 
+/-- For a complex number with zero real part, `-I * z / 2` is the real embedding of half its
+imaginary part. -/
 theorem negI_mul (z : ℂ) (hz : z.re = 0) :
     -(Complex.I) * z / 2 = Complex.ofReal (z.im / 2) := by
   have hid := of_re_zero_eq z hz
@@ -2812,18 +3100,26 @@ theorem negI_mul (z : ℂ) (hz : z.re = 0) :
   · simp [Complex.div_re, Complex.mul_re, Complex.I_re, Complex.I_im] <;> ring
   · simp [Complex.div_im, Complex.mul_im, Complex.I_re, Complex.I_im] <;> ring
 
+/-- For skew-Hermitian `A`, `-I * A 0 0 / 2` is the real embedding of half the imaginary part of
+its first diagonal entry. -/
 theorem coeff_diag_00 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
     -(Complex.I) * A 0 0 / 2 = Complex.ofReal ((A 0 0).im / 2) :=
   negI_mul _ (hA_re_00 hA)
 
+/-- For skew-Hermitian `A`, `-I * A 1 1 / 2` is the real embedding of half the imaginary part of
+its second diagonal entry. -/
 theorem coeff_diag_11 {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : Aᴴ = -A) :
     -(Complex.I) * A 1 1 / 2 = Complex.ofReal ((A 1 1).im / 2) :=
   negI_mul _ (hA_re_11 hA)
 
+/-- Multiplying the complex embedding of a real number by minus one gives the embedding of its
+negative. -/
 theorem ofReal_neg_one_mul {r : ℝ} :
     (-1 : ℂ) • Complex.ofReal r = Complex.ofReal (-r) := by
   rw [neg_smul, one_smul, ← Complex.ofReal_neg]
 
+/-- Multiplying the complex embedding of a real number by two gives the embedding of twice that
+number. -/
 theorem ofReal_mul_two {r : ℝ} :
     Complex.ofReal r * (2 : ℂ) = Complex.ofReal (2 * r) := by
   have h : Complex.ofReal (2 * r) = Complex.ofReal 2 * Complex.ofReal r := by
@@ -2832,6 +3128,8 @@ theorem ofReal_mul_two {r : ℝ} :
   rw [h, h2]
   ring
 
+/-- Multiplying the complex embedding of a real number by minus two gives the embedding of minus
+twice that number. -/
 theorem ofReal_mul_neg_two {r : ℝ} :
     Complex.ofReal r * (-2 : ℂ) = Complex.ofReal (-2 * r) := by
   have h : Complex.ofReal (-2 * r) = Complex.ofReal (-2) * Complex.ofReal r := by
@@ -2840,27 +3138,34 @@ theorem ofReal_mul_neg_two {r : ℝ} :
   rw [h, h2]
   ring
 
+/-- The matrix commutator distributes over addition in its first argument. -/
 theorem comm_add {n : ℕ} (X Y Z : FermMat n) :
     (X + Y) * Z - Z * (X + Y) = (X * Z - Z * X) + (Y * Z - Z * Y) := by
   rw [Matrix.add_mul, Matrix.mul_add]
   abel
 
+/-- A complex scalar in the first argument factors out of the matrix commutator. -/
 theorem comm_smul {n : ℕ} (c : ℂ) (X Y : FermMat n) :
     (c • X) * Y - Y * (c • X) = c • (X * Y - Y * X) := by
   rw [Matrix.mul_smul, Matrix.smul_mul, smul_sub]
 
+/-- Majorana indices from distinct modes are distinct for every choice of within-mode bits. -/
 theorem localIndices_ne_ij {n : ℕ} (i j : Fin n) (hij : i ≠ j) (b c : Fin 2) :
     majoranaIndices i b ≠ majoranaIndices j c := by
   intro h
   have h2 := (majoranaIndices_eq i j b c).mp h
   omega
 
+/-- Successive complex scalar multiplications of a register matrix combine into multiplication
+of the scalars. -/
 theorem smul_smul_matrix {n : ℕ} (a b : ℂ) (M : FermMat n) :
     a • (b • M) = (a * b) • M := by
   ext i j
   simp [Matrix.smul_apply]
   ring
 
+/-- For distinct modes and skew-Hermitian coefficients, the quadratic generator is a scalar
+identity term plus six Majorana products with explicit real coefficients. -/
 theorem quadraticGenerator_eq_localForm {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     quadraticGenerator i j A
@@ -2889,6 +3194,8 @@ theorem quadraticGenerator_eq_localForm {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   rw [sub_eq_add_neg, ← neg_smul, ← Complex.ofReal_neg]
   abel
 
+/-- For distinct modes and skew-Hermitian coefficients, the generator commutator with the even
+Majorana of `i` is the displayed combination of the other three local Majoranas. -/
 theorem generator_comm_even_even {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     quadraticGenerator i j A * (majorana (majoranaIndices i 0))
@@ -2952,6 +3259,8 @@ theorem generator_comm_even_even {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   rw [ofReal_mul_neg_two, ofReal_mul_neg_two, ofReal_mul_neg_two]
   simp [localFormSym, Matrix.of_apply]
 
+/-- For distinct modes and skew-Hermitian coefficients, the generator commutator with the odd
+Majorana of `i` is the displayed combination of the other three local Majoranas. -/
 theorem generator_comm_odd_even {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     quadraticGenerator i j A * (majorana (majoranaIndices i 1))
@@ -3012,6 +3321,8 @@ theorem generator_comm_odd_even {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   obtain ⟨h01, _, _, h13, _, h12⟩ := localFormSym_apply A
   rw [h01, h12, h13]
 
+/-- For distinct modes and skew-Hermitian coefficients, the generator commutator with the even
+Majorana of `j` is the displayed combination of the other three local Majoranas. -/
 theorem generator_comm_even_j {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     quadraticGenerator i j A * (majorana (majoranaIndices j 0))
@@ -3072,6 +3383,8 @@ theorem generator_comm_even_j {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   obtain ⟨_, h23, h02, _, _, h12⟩ := localFormSym_apply A
   rw [h23, h02, h12]
 
+/-- For distinct modes and skew-Hermitian coefficients, the generator commutator with the odd
+Majorana of `j` is the displayed combination of the other three local Majoranas. -/
 theorem generator_comm_odd_j {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (hA : Aᴴ = -A) :
     quadraticGenerator i j A * (majorana (majoranaIndices j 1))
@@ -3130,6 +3443,9 @@ theorem generator_comm_odd_j {n : ℕ} (i j : Fin n) (hij : i ≠ j)
   obtain ⟨_, h23, _, h13, h03, _⟩ := localFormSym_apply A
   rw [h23, h13, h03]
 
+/-- Collects classical cost bounds, local covariance updates, Majorana Clifford relations, and
+conditional covariance congruences, together with local generator and frame-rotation
+identities. -/
 theorem clause3_endpoint_partial :
     (∀ (n : ℕ) (gl : MatchGateCircuit n),
       matchGateCircuitClassicalOps gl ≤ 64 * matchGateCount gl)
@@ -3382,6 +3698,8 @@ theorem clause3_endpoint_partial :
   fun n i j hij A hA => quadraticGenerator_eq_localForm i j hij A hA,
   fun n i j hij A hA => generator_comm_even_even i j hij A hA⟩
 
+/-- The creation matrix `sigmaPlus` is the two-by-two matrix with its sole nonzero entry equal
+to one in row one, column zero. -/
 theorem sigmaPlus_eq : sigmaPlus = !![0, 0; 1, 0] := by
   ext a b
   fin_cases a <;> fin_cases b <;>
@@ -3389,12 +3707,16 @@ theorem sigmaPlus_eq : sigmaPlus = !![0, 0; 1, 0] := by
       Matrix.sub_apply, smul_eq_mul] <;>
     norm_num
 
+/-- In Boolean indices, `sigmaPlus` has value one from an unoccupied input to an occupied output
+and zero otherwise. -/
 theorem sigmaPlus_apply (a b : Bool) :
     sigmaPlus (boolEquivFin2 a) (boolEquivFin2 b) = if a then (if b then 0 else 1) else 0 := by
   rw [sigmaPlus_eq]
   rcases a with _ | _ <;> rcases b with _ | _ <;>
     simp [boolEquivFin2]
 
+/-- The annihilation matrix `sigmaMinus` is the two-by-two matrix with its sole nonzero entry
+equal to one in row zero, column one. -/
 theorem sigmaMinus_eq : sigmaMinus = !![0, 1; 0, 0] := by
   ext a b
   fin_cases a <;> fin_cases b <;>
@@ -3402,28 +3724,34 @@ theorem sigmaMinus_eq : sigmaMinus = !![0, 1; 0, 0] := by
       smul_eq_mul] <;>
     norm_num
 
+/-- In Boolean indices, `sigmaMinus` has value one from an occupied input to an unoccupied
+output and zero otherwise. -/
 theorem sigmaMinus_apply (a b : Bool) :
     sigmaMinus (boolEquivFin2 a) (boolEquivFin2 b) = if a then 0 else if b then 1 else 0 := by
   rw [sigmaMinus_eq]
   rcases a with _ | _ <;> rcases b with _ | _ <;>
     simp [boolEquivFin2]
 
+/-- The single-qubit Pauli Z matrix is Hermitian. -/
 theorem oneQubitZ_conjTranspose :
     (oneQubitZ : Matrix (Fin 2) (Fin 2) ℂ)ᴴ = oneQubitZ := by
   ext a b
   fin_cases a <;> fin_cases b <;>
     simp [oneQubitZ, Matrix.conjTranspose_apply]
 
+/-- The conjugate transpose of the single-qubit annihilation matrix is the creation matrix. -/
 theorem sigmaMinus_conjTranspose :
     (sigmaMinus : Matrix (Fin 2) (Fin 2) ℂ)ᴴ = sigmaPlus := by
   ext a b
   fin_cases a <;> fin_cases b <;>
     simp [Matrix.conjTranspose_apply, sigmaMinus_eq, sigmaPlus_eq]
 
+/-- The conjugate transpose of the single-qubit creation matrix is the annihilation matrix. -/
 theorem sigmaPlus_conjTranspose :
     (sigmaPlus : Matrix (Fin 2) (Fin 2) ℂ)ᴴ = sigmaMinus := by
   rw [← sigmaMinus_conjTranspose, Matrix.conjTranspose_conjTranspose]
 
+/-- Taking the conjugate transpose of a local gate conjugate-transposes its single-site matrix. -/
 theorem localGate_conjTranspose {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2) ℂ) :
     (localGate j G)ᴴ = localGate j Gᴴ := by
   ext y x
@@ -3440,10 +3768,13 @@ theorem localGate_conjTranspose {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2
     rw [if_neg h, if_neg h']
     simp
 
+/-- The operator of a singleton local gate list is its local gate. -/
 theorem localGateListOp_singleton {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2) ℂ) :
     localGateListOp [(j, G)] = localGate j G := by
   simp [localGateListOp]
 
+/-- The conjugate transpose of a gate-list operator reverses the list and conjugate-transposes
+every local matrix. -/
 theorem localGateListOp_conjTranspose {n : ℕ} (gl : LocalGateList n) :
     (localGateListOp gl)ᴴ = localGateListOp (gl.reverse.map (fun p => (p.1, p.2ᴴ))) := by
   induction gl with
@@ -3454,6 +3785,7 @@ theorem localGateListOp_conjTranspose {n : ℕ} (gl : LocalGateList n) :
       rw [List.reverse_cons, List.map_append, localGateListOp_append]
       simp [localGateListOp]
 
+/-- Reversing a list of diagonal local gates leaves its operator unchanged. -/
 theorem localGateListOp_reverse_eq {n : ℕ} (gl : LocalGateList n)
     (hG : ∀ p ∈ gl, ∀ b c : Fin 2, p.2 b c ≠ 0 → b = c) :
     localGateListOp gl.reverse = localGateListOp gl := by
@@ -3467,6 +3799,8 @@ theorem localGateListOp_reverse_eq {n : ℕ} (gl : LocalGateList n)
   simp only [List.map_reverse]
   exact List.prod_reverse _
 
+/-- Replacing local matrices by two functions that agree on the list gives equal gate-list
+operators. -/
 theorem localGateListOp_map_eq_of {n : ℕ} (gl : LocalGateList n)
     (f g : (Fin n × Matrix (Fin 2) (Fin 2) ℂ) → Matrix (Fin 2) (Fin 2) ℂ)
     (h : ∀ p ∈ gl, f p = g p) :
@@ -3479,6 +3813,8 @@ theorem localGateListOp_map_eq_of {n : ℕ} (gl : LocalGateList n)
         = localGate p.1 (g p) * localGateListOp (rest.map (fun q => (q.1, g q)))
       rw [ih h', h p (by simp)]
 
+/-- Replacing every matrix in a local gate list by `G` leaves its operator unchanged when every
+matrix already equals `G`. -/
 theorem localGateListOp_map_id {n : ℕ} (gl : LocalGateList n) (G : Matrix (Fin 2) (Fin 2) ℂ)
     (hG : ∀ p ∈ gl, p.2 = G) :
     localGateListOp (gl.map (fun p => (p.1, G))) = localGateListOp gl := by
@@ -3488,6 +3824,8 @@ theorem localGateListOp_map_id {n : ℕ} (gl : LocalGateList n) (G : Matrix (Fin
   rw [h]
   simp
 
+/-- A diagonal entry of the Jordan–Wigner Z prefix is the product of occupation signs at sites
+below `i`. -/
 theorem jwZPrefix_op_diag {n : ℕ} (i : Fin n) (y : Reg n) :
     localGateListOp (jwZPrefix i) y y
       = ((Finset.univ : Finset (Fin n)).filter (· < i)).prod (fun j => (if y j then -1 else 1)) := by
@@ -3506,6 +3844,7 @@ theorem jwZPrefix_op_diag {n : ℕ} (i : Fin n) (y : Reg n) :
     rw [oneQubitZ_diagEntry, hb]
     simp [hy]
 
+/-- The operator of the Jordan–Wigner Z prefix is Hermitian. -/
 theorem jwZPrefix_op_hermitian {n : ℕ} (i : Fin n) :
     (localGateListOp (jwZPrefix i))ᴴ = localGateListOp (jwZPrefix i) := by
   rw [localGateListOp_conjTranspose]
@@ -3520,6 +3859,8 @@ theorem jwZPrefix_op_hermitian {n : ℕ} (i : Fin n) :
   exact localGateListOp_reverse_eq (jwZPrefix i)
     (fun p hp b c hbc => oneQubitZ_diagonal b c (by rw [jwZPrefix_mem i hp] at hbc; exact hbc))
 
+/-- For `i < j`, multiplying occupation-sign products below `i` and below `j` gives the sign
+product on the interval from `i` inclusive to `j` exclusive. -/
 theorem prod_paritySign_mul {n : ℕ} (i j : Fin n) (hij : i < j) (x : Reg n) :
     ((Finset.univ : Finset (Fin n)).filter (· < i)).prod (fun k => (if x k then -1 else 1 : ℂ))
       * ((Finset.univ : Finset (Fin n)).filter (· < j)).prod (fun k => (if x k then -1 else 1 : ℂ))
@@ -3578,6 +3919,8 @@ theorem prod_paritySign_mul {n : ℕ} (i j : Fin n) (hij : i < j) (x : Reg n) :
     _ = (B \ A).prod (fun k => (if x k then -1 else 1 : ℂ)) := by rw [hprod, one_mul]
     _ = C.prod (fun k => (if x k then -1 else 1 : ℂ)) := by rw [hBA]
 
+/-- The Jordan–Wigner creation gate list represents the creation operator at mode `i`
+[JordanWigner1928]. -/
 theorem jwCreationGateList_op {n : ℕ} (i : Fin n) :
     localGateListOp (jwCreationGateList i) = creation i := by
   have hadj : (localGateListOp (jwLocalGateList i))ᴴ
@@ -3604,23 +3947,29 @@ theorem jwCreationGateList_op {n : ℕ} (i : Fin n) :
     exact (Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1 n).2.1 i
   rw [h3, h1, hadj]
 
+/-- The difference between the creation gate-list operator and the creation operator vanishes
+entrywise. -/
 theorem jwCreationGateList_error {n : ℕ} (i : Fin n) :
     ∀ (y x : Reg n), (localGateListOp (jwCreationGateList i) - creation i) y x = 0 := by
   intro y x
   rw [jwCreationGateList_op, sub_self, Matrix.zero_apply]
 
+/-- Creation at mode `i` factors as its local creation matrix times the Jordan–Wigner Z-prefix
+operator. -/
 theorem jwCreationGateList_op_decomp {n : ℕ} (i : Fin n) :
     creation i = localGate i sigmaPlus * localGateListOp (jwZPrefix i) := by
   have h := (jwCreationGateList_op i).symm
   rw [jwCreationGateList, localGateListOp_append, localGateListOp_singleton] at h
   exact h
 
+/-- The Jordan–Wigner creation gate list contains `i.val + 1` local gates. -/
 theorem jwCreationGateList_count {n : ℕ} (i : Fin n) :
     localGateCount (jwCreationGateList i) = i.val + 1 := by
   rw [localGateCount_eq_length, jwCreationGateList, List.length_append, List.length_cons,
     List.length_nil, jwZPrefix, List.length_map, Finset.length_toList, card_filter_lt]
   omega
 
+/-- A nonzero entry of the single-qubit number matrix has equal row and column indices. -/
 theorem oneQubitNumber_diagonal (b c : Fin 2) (h : oneQubitNumber b c ≠ 0) : b = c := by
   by_cases hbc : b = c
   · exact hbc
@@ -3628,6 +3977,7 @@ theorem oneQubitNumber_diagonal (b c : Fin 2) (h : oneQubitNumber b c ≠ 0) : b
       simp [oneQubitNumber, Matrix.of_apply, hbc]
     exact absurd h2 h
 
+/-- The number gate list represents the number operator at its mode. -/
 theorem numberGateList_op {n : ℕ} (i : Fin n) :
     localGateListOp (numberGateList i) = numberOp i := by
   rw [numberGateList, localGateListOp_singleton]
@@ -3666,10 +4016,13 @@ theorem numberGateList_op {n : ℕ} (i : Fin n) :
       exact h (fun k hk => by rw [hxy])
     simp [hne']
 
+/-- The number gate list contains one local gate. -/
 theorem numberGateList_count {n : ℕ} (i : Fin n) :
     localGateCount (numberGateList i) = 1 := by
   simp [numberGateList, localGateCount]
 
+/-- A diagonal entry of the Z-range operator is the product of occupation signs from `i`
+inclusive to `j` exclusive. -/
 theorem zRangeGateList_op_diag {n : ℕ} (i j : Fin n) (y : Reg n) :
     localGateListOp (zRangeGateList i j) y y
       = ((Finset.univ : Finset (Fin n)).filter (fun k => i ≤ k ∧ k < j)).prod
@@ -3692,6 +4045,8 @@ theorem zRangeGateList_op_diag {n : ℕ} (i j : Fin n) (y : Reg n) :
     rw [oneQubitZ_diagEntry, hb]
     simp [hy]
 
+/-- For `i < j`, the Z-range operator equals the product of the Jordan–Wigner Z prefixes at `i`
+and `j`. -/
 theorem zRange_op_eq {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateListOp (zRangeGateList i j)
       = localGateListOp (jwZPrefix i) * localGateListOp (jwZPrefix j) := by
@@ -3736,6 +4091,7 @@ theorem zRange_op_eq {n : ℕ} (i j : Fin n) (hij : i < j) :
       rw [hdiagjxy, mul_zero, hdiagzxy]
   rw [← localGateListOp_append, hlist]
 
+/-- For `i < j`, the forward hopping gate list represents `creation i * annihilation j`. -/
 theorem hopForwardGateList_op {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateListOp (hopForwardGateList i j) = creation i * annihilation j := by
   have hdec : annihilation j = localGateListOp (jwZPrefix j) * localGate j sigmaMinus := by
@@ -3747,6 +4103,7 @@ theorem hopForwardGateList_op {n : ℕ} (i j : Fin n) (hij : i < j) :
   rw [jwCreationGateList_op_decomp, hdec, zRange_op_eq i j hij]
   simp only [Matrix.mul_assoc]
 
+/-- For `i < j`, the backward hopping gate list represents `creation j * annihilation i`. -/
 theorem hopBackwardGateList_op {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateListOp (hopBackwardGateList i j) = creation j * annihilation i := by
   have hc : ∀ k : Fin n, creation k = (annihilation k)ᴴ :=
@@ -3800,6 +4157,8 @@ theorem hopBackwardGateList_op {n : ℕ} (i j : Fin n) (hij : i < j) :
     simp only [Matrix.mul_assoc]
   rw [← h1, h2]
 
+/-- For `i < j`, the interval from `i` inclusive to `j` exclusive contains `j.val - i.val`
+indices. -/
 theorem card_filter_between {n : ℕ} (i j : Fin n) (hij : i < j) :
     ((Finset.univ : Finset (Fin n)).filter (fun k => i ≤ k ∧ k < j)).card = j.val - i.val := by
   classical
@@ -3822,6 +4181,7 @@ theorem card_filter_between {n : ℕ} (i j : Fin n) (hij : i < j) :
       exact ⟨by omega, hk1⟩
   rw [hdiff, Finset.card_sdiff_of_subset hAB, card_filter_lt j, card_filter_lt i]
 
+/-- For `i < j`, the forward hopping gate list contains `j.val - i.val + 2` local gates. -/
 theorem hopForwardGateList_count {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateCount (hopForwardGateList i j) = j.val - i.val + 2 := by
   rw [localGateCount_eq_length, hopForwardGateList, List.length_append, List.length_append,
@@ -3830,6 +4190,7 @@ theorem hopForwardGateList_count {n : ℕ} (i j : Fin n) (hij : i < j) :
   simp only [List.length_cons, List.length_nil]
   omega
 
+/-- For `i < j`, the backward hopping gate list contains `j.val - i.val + 2` local gates. -/
 theorem hopBackwardGateList_count {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateCount (hopBackwardGateList i j) = j.val - i.val + 2 := by
   rw [localGateCount_eq_length, hopBackwardGateList, List.length_append, List.length_append,
@@ -3838,14 +4199,18 @@ theorem hopBackwardGateList_count {n : ℕ} (i j : Fin n) (hij : i < j) :
   simp only [List.length_cons, List.length_nil]
   omega
 
+/-- For `i < j`, the forward hopping bit cost is `(j.val - i.val + 2) * modeAddressBits n`. -/
 theorem hopForwardGateList_bitCost {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateBitCost (hopForwardGateList i j)
       = (j.val - i.val + 2) * modeAddressBits n := by
   rw [localGateBitCost, hopForwardGateList_count i j hij]
 
+/-- The defined space cost of a forward hopping gate list is `n`. -/
 theorem hopForwardGateList_spaceCost {n : ℕ} (i j : Fin n) :
     localGateSpaceCost (hopForwardGateList i j) = n := rfl
 
+/-- For `i < j`, the quadratic generator is the sum of four coefficient-weighted number and
+hopping gate-list operators. -/
 theorem quadraticGenerator_eq_localTerms {n : ℕ} (i j : Fin n) (hij : i < j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     quadraticGenerator i j A
@@ -3861,6 +4226,8 @@ theorem quadraticGenerator_eq_localTerms {n : ℕ} (i j : Fin n) (hij : i < j)
   rw [numberGateList_op i, hopForwardGateList_op i j hij,
     hopBackwardGateList_op i j hij, numberGateList_op j]
 
+/-- A creation–annihilation product has zero entries between registers differing outside its two
+modes. -/
 theorem creation_annihilation_supports {n : ℕ} (p q : Fin n) (y x : Reg n)
     (hk : ∃ k : Fin n, k ≠ p ∧ k ≠ q ∧ y k ≠ x k) :
     (creation p * annihilation q) y x = 0 := by
@@ -3878,6 +4245,7 @@ theorem creation_annihilation_supports {n : ℕ} (p q : Fin n) (y x : Reg n)
   rw [Matrix.mul_apply]
   exact Finset.sum_eq_zero (fun z _ => hz z)
 
+/-- A quadratic generator has zero entries between registers differing outside its two modes. -/
 theorem quadraticGenerator_supports_twoModes {n : ℕ} (i j : Fin n)
     (A : Matrix (Fin 2) (Fin 2) ℂ) (y x : Reg n)
     (hk : ∃ k : Fin n, k ≠ i ∧ k ≠ j ∧ y k ≠ x k) :
@@ -3900,6 +4268,8 @@ theorem quadraticGenerator_supports_twoModes {n : ℕ} (i j : Fin n)
     creation_annihilation_supports j j y x hkJJ]
   ring
 
+/-- For `i < j`, the four local gate lists representing a quadratic generator have total gate
+count `2 * (j.val - i.val) + 6`. -/
 theorem quadraticGenerator_localTerms_count {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateCount (numberGateList i)
         + localGateCount (hopForwardGateList i j)
@@ -3910,6 +4280,7 @@ theorem quadraticGenerator_localTerms_count {n : ℕ} (i j : Fin n) (hij : i < j
     hopBackwardGateList_count i j hij, numberGateList_count]
   omega
 
+/-- The number operator is the diagonal matrix indicating occupation of its mode. -/
 theorem numberOp_eq_diagonal {n : ℕ} (i : Fin n) :
     numberOp i = Matrix.diagonal (fun x => if x i then 1 else 0) := by
   ext y x
@@ -3920,6 +4291,8 @@ theorem numberOp_eq_diagonal {n : ℕ} (i : Fin n) :
   · rw [Matrix.diagonal_apply_ne' _ h]
     simp [numberOp, Matrix.of_apply, h]
 
+/-- The onsite phase gate is diagonal, with phase `exp (-I * s)` on occupied registers and one
+on unoccupied registers. -/
 theorem onsiteLocalGate_eq_diagonal {n : ℕ} (i : Fin n) (s : ℝ) :
     onsiteLocalGate i s
       = Matrix.diagonal (fun x => if x i then Complex.exp (-Complex.I * s) else 1) := by
@@ -3949,6 +4322,7 @@ theorem onsiteLocalGate_eq_diagonal {n : ℕ} (i : Fin n) (s : ℝ) :
       simp
     · simp [hc]
 
+/-- Hamiltonian evolution under a number operator equals the corresponding onsite phase gate. -/
 theorem hamiltonianEvolution_numberOp_eq_onsiteLocalGate {n : ℕ} (i : Fin n) (s : ℝ) :
     HamiltonianEvolution (numberOp i) s = onsiteLocalGate i s := by
   have hmain : HamiltonianEvolution (numberOp i) s
@@ -3963,6 +4337,8 @@ theorem hamiltonianEvolution_numberOp_eq_onsiteLocalGate {n : ℕ} (i : Fin n) (
     · simp [hx, ← Complex.exp_eq_exp_ℂ]
   rw [hmain, onsiteLocalGate_eq_diagonal]
 
+/-- A register-indexed sum supported on two distinct registers equals the sum of its values at
+those registers. -/
 private theorem sum_pair {n : ℕ} (f : Reg n → ℂ) (a b : Reg n) (hne : a ≠ b)
     (h0 : ∀ z : Reg n, z ≠ a → z ≠ b → f z = 0) :
     (∑ z : Reg n, f z) = f a + f b := by
@@ -3979,6 +4355,7 @@ private theorem sum_pair {n : ℕ} (f : Reg n → ℂ) (a b : Reg n) (hne : a �
     simpa using! h
   rw [hsub, hset, Finset.sum_insert (by simpa using! hne), Finset.sum_singleton]
 
+/-- A register-indexed sum supported on one register equals its value at that register. -/
 private theorem sum_single {n : ℕ} (f : Reg n → ℂ) (a : Reg n)
     (h0 : ∀ z : Reg n, z ≠ a → f z = 0) :
     (∑ z : Reg n, f z) = f a := by
@@ -3992,12 +4369,16 @@ private theorem sum_single {n : ℕ} (f : Reg n → ℂ) (a : Reg n)
     simpa using! h
   rw [hsub, Finset.sum_singleton]
 
+/-- The Boolean-to-`Fin 2` equivalence sends `false` to zero. -/
 private theorem boolEquivFin2_false : boolEquivFin2 false = 0 := by
   simp [boolEquivFin2]
 
+/-- The Boolean-to-`Fin 2` equivalence sends `true` to one. -/
 private theorem boolEquivFin2_true : boolEquivFin2 true = 1 := by
   simp [boolEquivFin2]
 
+/-- A register agreeing with `y` away from `j` is obtained by updating `y` at `j` with that
+register's value. -/
 private theorem agree_update {n : ℕ} (y : Reg n) (j : Fin n) (z : Reg n)
     (h : ∀ k : Fin n, k ≠ j → y k = z k) : z = Function.update y j (z j) := by
   funext k
@@ -4006,6 +4387,8 @@ private theorem agree_update {n : ℕ} (y : Reg n) (j : Fin n) (z : Reg n)
     simp [Function.update_self]
   · simp [Function.update_of_ne hk, h k hk]
 
+/-- A local gate entry from a single-site update of `y` to `y` equals the corresponding entry of
+its local matrix. -/
 private theorem localGate_apply_update {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2) ℂ)
     (y : Reg n) (b : Bool) :
     localGate j G y (Function.update y j b) = G (boolEquivFin2 (y j)) (boolEquivFin2 b) := by
@@ -4016,6 +4399,8 @@ private theorem localGate_apply_update {n : ℕ} (j : Fin n) (G : Matrix (Fin 2)
   rw [if_pos hcond]
   simp [Function.update_self, boolEquivFin2]
 
+/-- When registers agree away from `j`, updating the row register at `j` gives the corresponding
+local matrix entry. -/
 private theorem localGate_apply_update' {n : ℕ} (j : Fin n) (H : Matrix (Fin 2) (Fin 2) ℂ)
     (y x : Reg n) (b : Bool) (hyx : ∀ k : Fin n, k ≠ j → y k = x k) :
     localGate j H (Function.update y j b) x = H (boolEquivFin2 b) (boolEquivFin2 (x j)) := by
@@ -4027,6 +4412,7 @@ private theorem localGate_apply_update' {n : ℕ} (j : Fin n) (H : Matrix (Fin 2
   rw [if_pos hcond]
   simp [Function.update_self, boolEquivFin2]
 
+/-- Multiplying two local gates at the same site embeds the product of their local matrices. -/
 theorem localGate_mul_localGate_same {n : ℕ} (j : Fin n) (G H : Matrix (Fin 2) (Fin 2) ℂ) :
     localGate j G * localGate j H = localGate j (G * H) := by
   classical
@@ -4104,12 +4490,15 @@ theorem localGate_mul_localGate_same {n : ℕ} (j : Fin n) (G H : Matrix (Fin 2)
     rw [hzero, localGate_apply]
     simp only [if_neg hyx]
 
+/-- A nonzero local gate entry connects registers that agree away from its site. -/
 private theorem localGate_ne_zero {n : ℕ} (j : Fin n) (G : Matrix (Fin 2) (Fin 2) ℂ)
     (y z : Reg n) (h : localGate j G y z ≠ 0) : ∀ k : Fin n, k ≠ j → y k = z k := by
   by_contra hcon
   rw [localGate_apply, if_neg hcon] at h
   exact h rfl
 
+/-- Successive updates at `j` and `k` leave a register value unchanged at a site distinct from
+both. -/
 private theorem update2_apply {n : ℕ} (y x : Reg n) (j k m : Fin n)
     (_hj : m ≠ j) (hk : m ≠ k) :
     Function.update (Function.update y j (x j)) k (y k) m = y m := by
@@ -4117,14 +4506,19 @@ private theorem update2_apply {n : ℕ} (y x : Reg n) (j k m : Fin n)
       = Function.update y j (x j) m := Function.update_of_ne hk (y k) (Function.update y j (x j))
   exact h1.trans (Function.update_of_ne _hj (x j) y)
 
+/-- For distinct `j` and `k`, updating `y` at `j` with `x j` and then at `k` with `y k` gives
+value `x j` at `j`. -/
 private theorem update2_apply_j {n : ℕ} (y x : Reg n) (j k : Fin n) (hk : j ≠ k) :
     Function.update (Function.update y j (x j)) k (y k) j = x j := by
   rw [Function.update_of_ne hk (y k) (Function.update y j (x j)), Function.update_self]
 
+/-- Updating `y` at `j` with `x j` and then at `k` with `y k` gives value `y k` at `k`. -/
 private theorem update2_apply_k {n : ℕ} (y x : Reg n) (j k : Fin n) (hj : k ≠ j) :
     Function.update (Function.update y j (x j)) k (y k) k = y k := by
   rw [Function.update_self]
 
+/-- For gates at distinct sites, any register giving two nonzero consecutive matrix entries is
+the specified update of the row register. -/
 private theorem localGate_mul_ne_unique {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     (G H : Matrix (Fin 2) (Fin 2) ℂ) (y x z : Reg n)
     (h1 : localGate j G y z ≠ 0) (h2 : localGate k H z x ≠ 0) :
@@ -4141,6 +4535,8 @@ private theorem localGate_mul_ne_unique {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
   rw [update2_apply y x j k m hm1 hm2]
   exact (hy m hm1).symm
 
+/-- For distinct sites, the local gate entry against the specified two-update register is the
+corresponding entry of `G`. -/
 private theorem localGate_apply_update2 {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     (G : Matrix (Fin 2) (Fin 2) ℂ) (y x : Reg n) :
     localGate j G y (Function.update (Function.update y j (x j)) k (y k))
@@ -4153,6 +4549,8 @@ private theorem localGate_apply_update2 {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     · rw [update2_apply y x j k m hm hm2]
   rw [if_pos hcond, update2_apply_j y x j k hjk]
 
+/-- For distinct sites and registers agreeing elsewhere, the local gate entry from the specified
+intermediate register is the corresponding entry of `H`. -/
 private theorem localGate_apply_update2' {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     (H : Matrix (Fin 2) (Fin 2) ℂ) (y x : Reg n)
     (hyx : ∀ m : Fin n, m ≠ j → m ≠ k → y m = x m) :
@@ -4168,6 +4566,8 @@ private theorem localGate_apply_update2' {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
       exact hyx m hm2 hm
   rw [if_pos hcond, update2_apply_k y x j k (Ne.symm hjk)]
 
+/-- For gates at distinct sites and registers agreeing elsewhere, the product entry is the
+product of the two local matrix entries. -/
 private theorem localGate_mul_ne_entry {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     (G H : Matrix (Fin 2) (Fin 2) ℂ) (y x : Reg n)
     (hyx : ∀ m : Fin n, m ≠ j → m ≠ k → y m = x m) :
@@ -4191,6 +4591,8 @@ private theorem localGate_mul_ne_entry {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
   rw [h1, localGate_apply_update2 j k hjk G y x,
     localGate_apply_update2' j k hjk H y x hyx]
 
+/-- A product of gates at distinct sites has zero entries between registers that disagree
+outside those sites. -/
 private theorem localGate_mul_ne_zero {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     (G H : Matrix (Fin 2) (Fin 2) ℂ) (y x : Reg n)
     (hyx : ¬ ∀ m : Fin n, m ≠ j → m ≠ k → y m = x m) :
@@ -4228,6 +4630,7 @@ private theorem localGate_mul_ne_zero {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
           · exact absurd (localGate_mul_ne_unique j k hjk G H y x z hz1 hz2) hz
     _ = 0 := hz0
 
+/-- Local gates at distinct sites commute. -/
 theorem localGate_mul_localGate_ne {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
     (G H : Matrix (Fin 2) (Fin 2) ℂ) :
     localGate j G * localGate k H = localGate k H * localGate j G := by
@@ -4241,6 +4644,8 @@ theorem localGate_mul_localGate_ne {n : ℕ} (j k : Fin n) (hjk : j ≠ k)
       localGate_mul_ne_zero k j (Ne.symm hjk) H G y x
         (by intro hQ; exact hyx (fun m h1 h2 => hQ m h2 h1))]
 
+/-- A local gate commutes with a gate-list operator when every site in the list differs from its
+site. -/
 theorem localGateListOp_commute_of_distinct {n : ℕ} (gl : LocalGateList n) (j : Fin n)
     (h : ∀ p ∈ gl, p.1 ≠ j) (G : Matrix (Fin 2) (Fin 2) ℂ) :
     localGateListOp gl * localGate j G = localGate j G * localGateListOp gl := by
@@ -4255,12 +4660,15 @@ theorem localGateListOp_commute_of_distinct {n : ℕ} (gl : LocalGateList n) (j 
       rw [Matrix.mul_assoc, ih hrest, ← Matrix.mul_assoc,
         ← localGate_mul_localGate_ne j p.1 (Ne.symm h1) G p.2, Matrix.mul_assoc]
 
+/-- Swapping the first two gates at distinct sites leaves a gate-list operator unchanged. -/
 theorem localGateListOp_swap {n : ℕ} (p q : Fin n × Matrix (Fin 2) (Fin 2) ℂ)
     (gl : LocalGateList n) (h : p.1 ≠ q.1) :
     localGateListOp (p :: q :: gl) = localGateListOp (q :: p :: gl) := by
   simp only [localGateListOp]
   rw [← Matrix.mul_assoc, localGate_mul_localGate_ne p.1 q.1 h p.2 q.2, Matrix.mul_assoc]
 
+/-- For distinct sites, the product of two local gates equals the two-site embedding of their
+tensor-product entries. -/
 theorem twoSiteGate_eq_localGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (G H : Matrix (Fin 2) (Fin 2) ℂ) :
     localGate i G * localGate j H
@@ -4275,6 +4683,7 @@ theorem twoSiteGate_eq_localGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     unfold twoSiteGate
     rw [Matrix.of_apply, if_neg hyx]
 
+/-- The sum of forward and backward hopping monomials is Hermitian. -/
 theorem hoppingTerm_hermitian {n : ℕ} (i j : Fin n) :
     (creation i * annihilation j + creation j * annihilation i)ᴴ
       = creation i * annihilation j + creation j * annihilation i := by
@@ -4282,12 +4691,14 @@ theorem hoppingTerm_hermitian {n : ℕ} (i j : Fin n) :
     creation_mul_annihilation_conjTranspose]
   exact add_comm _ _
 
+/-- Hamiltonian evolution under the symmetric hopping operator is unitary. -/
 theorem hamiltonianEvolution_hoppingTerm_unitary {n : ℕ} (i j : Fin n) (s : ℝ) :
     HamiltonianEvolution (creation i * annihilation j + creation j * annihilation i) s
       ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   apply hamiltonianEvolution_unitary
   exact hoppingTerm_hermitian i j
 
+/-- The commutator of the number operator with creation at the same mode equals creation. -/
 theorem numberOp_creation_commutator {n : ℕ} (i : Fin n) :
     numberOp i * creation i - creation i * numberOp i = creation i := by
   have hsq_c : creation i * creation i = 0 := by
@@ -4312,6 +4723,8 @@ theorem numberOp_creation_commutator {n : ℕ} (i : Fin n) :
     _ = creation i := by
       rw [hsq_c, Matrix.zero_mul, Matrix.mul_one, sub_zero, sub_zero]
 
+/-- The commutator of the number operator with annihilation at the same mode equals minus
+annihilation. -/
 theorem numberOp_annihilation_commutator {n : ℕ} (i : Fin n) :
     numberOp i * annihilation i - annihilation i * numberOp i = -annihilation i := by
   have hsq_a : annihilation i * annihilation i = 0 := by
@@ -4341,10 +4754,13 @@ theorem numberOp_annihilation_commutator {n : ℕ} (i : Fin n) :
           _ = 0 := by rw [hsq_a, Matrix.mul_zero]
       rw [creation_mul_annihilation_eq_numberOp i, hz, add_zero]
 
+/-- The four weighted local gate lists encoding the two number terms and two hopping terms of a
+quadratic term. -/
 def quadraticTermWord {n : ℕ} (t : QuadraticTerm n) : LocalGateSum n :=
   [(t.A 0 0, numberGateList t.i), (t.A 0 1, hopForwardGateList t.i t.j),
    (t.A 1 0, hopBackwardGateList t.i t.j), (t.A 1 1, numberGateList t.j)]
 
+/-- The operator of concatenated weighted gate lists is the sum of their operators. -/
 theorem localGateSumOp_append {n : ℕ} (l₁ l₂ : LocalGateSum n) :
     localGateSumOp (l₁ ++ l₂) = localGateSumOp l₁ + localGateSumOp l₂ := by
   induction l₁ with
@@ -4356,6 +4772,7 @@ theorem localGateSumOp_append {n : ℕ} (l₁ l₂ : LocalGateSum n) :
           rw [ih]
           abel
 
+/-- The total gate count of weighted gate lists is additive under concatenation. -/
 theorem localGateSumCount_append {n : ℕ} (l₁ l₂ : LocalGateSum n) :
     localGateSumCount (l₁ ++ l₂) = localGateSumCount l₁ + localGateSumCount l₂ := by
   induction l₁ with
@@ -4367,6 +4784,8 @@ theorem localGateSumCount_append {n : ℕ} (l₁ l₂ : LocalGateSum n) :
           rw [ih]
           omega
 
+/-- The operator of a flattened list of weighted gate lists equals the sum of their operators,
+expressed as a right fold. -/
 theorem localGateSumOp_flatMap {n : ℕ} {α : Type} (f : α → LocalGateSum n) (l : List α) :
     localGateSumOp (l.flatMap f)
       = l.foldr (fun a acc => localGateSumOp (f a) + acc) 0 := by
@@ -4375,6 +4794,8 @@ theorem localGateSumOp_flatMap {n : ℕ} {α : Type} (f : α → LocalGateSum n)
   | cons a l ih =>
       rw [List.flatMap_cons, localGateSumOp_append, List.foldr_cons, ih]
 
+/-- The gate count of a flattened list of weighted gate lists equals the sum of their counts,
+expressed as a right fold. -/
 theorem localGateSumCount_flatMap {n : ℕ} {α : Type} (f : α → LocalGateSum n) (l : List α) :
     localGateSumCount (l.flatMap f)
       = l.foldr (fun a acc => localGateSumCount (f a) + acc) 0 := by
@@ -4383,6 +4804,7 @@ theorem localGateSumCount_flatMap {n : ℕ} {α : Type} (f : α → LocalGateSum
   | cons a l ih =>
       rw [List.flatMap_cons, localGateSumCount_append, List.foldr_cons, ih]
 
+/-- The weighted gate lists of a quadratic term represent its quadratic generator. -/
 theorem quadraticTermWord_op {n : ℕ} (t : QuadraticTerm n) :
     localGateSumOp (quadraticTermWord t) = quadraticGenerator t.i t.j t.A := by
   simp only [quadraticTermWord, localGateSumOp]
@@ -4391,6 +4813,7 @@ theorem quadraticTermWord_op {n : ℕ} (t : QuadraticTerm n) :
     hopBackwardGateList_op t.i t.j t.hij]
   abel
 
+/-- The local gate count for a quadratic term is `2 * (t.j.val - t.i.val) + 6`. -/
 theorem quadraticTermWord_count {n : ℕ} (t : QuadraticTerm n) :
     localGateSumCount (quadraticTermWord t) = 2 * (t.j.val - t.i.val) + 6 := by
   simp only [quadraticTermWord, localGateSumCount]
@@ -4398,9 +4821,13 @@ theorem quadraticTermWord_count {n : ℕ} (t : QuadraticTerm n) :
     hopBackwardGateList_count t.i t.j t.hij, numberGateList_count]
   omega
 
+/-- The weighted local gate lists obtained by concatenating the encodings of a list of quadratic
+terms. -/
 def quadraticHamiltonianWord {n : ℕ} (terms : List (QuadraticTerm n)) : LocalGateSum n :=
   terms.flatMap quadraticTermWord
 
+/-- The quadratic Hamiltonian word represents the sum of the quadratic generators in its term
+list. -/
 theorem quadraticHamiltonianWord_op {n : ℕ} (terms : List (QuadraticTerm n)) :
     localGateSumOp (quadraticHamiltonianWord terms)
       = terms.foldr (fun t acc => quadraticGenerator t.i t.j t.A + acc) 0 := by
@@ -4411,12 +4838,15 @@ theorem quadraticHamiltonianWord_op {n : ℕ} (terms : List (QuadraticTerm n)) :
       simp only [List.foldr_cons]
       rw [quadraticTermWord_op, ih]
 
+/-- The difference between the quadratic Hamiltonian word operator and the sum of its generators
+is zero. -/
 theorem quadraticHamiltonianWord_error {n : ℕ} (terms : List (QuadraticTerm n)) :
     (localGateSumOp (quadraticHamiltonianWord terms)
       - terms.foldr (fun t acc => quadraticGenerator t.i t.j t.A + acc) 0) = 0 := by
   rw [quadraticHamiltonianWord_op]
   simp
 
+/-- The gate count for a quadratic term on `n` modes is at most `2 * n + 4`. -/
 theorem quadraticTermWord_count_le {n : ℕ} (t : QuadraticTerm n) :
     localGateSumCount (quadraticTermWord t) ≤ 2 * n + 4 := by
   rw [quadraticTermWord_count]
@@ -4424,6 +4854,7 @@ theorem quadraticTermWord_count_le {n : ℕ} (t : QuadraticTerm n) :
   have hi : 0 ≤ t.i.val := Nat.zero_le _
   omega
 
+/-- The gate count of a quadratic Hamiltonian word is at most `(2 * n + 4) * terms.length`. -/
 theorem quadraticHamiltonianWord_count_le {n : ℕ} (terms : List (QuadraticTerm n)) :
     localGateSumCount (quadraticHamiltonianWord terms) ≤ (2 * n + 4) * terms.length := by
   rw [quadraticHamiltonianWord, localGateSumCount_flatMap]
@@ -4438,6 +4869,8 @@ theorem quadraticHamiltonianWord_count_le {n : ℕ} (terms : List (QuadraticTerm
         ring
       omega
 
+/-- The bit cost of weighted local gate lists equals their total gate count times
+`modeAddressBits n`. -/
 theorem localGateSumBitCost_eq {n : ℕ} (l : LocalGateSum n) :
     localGateSumBitCost l = localGateSumCount l * modeAddressBits n := by
   induction l with
@@ -4449,12 +4882,15 @@ theorem localGateSumBitCost_eq {n : ℕ} (l : LocalGateSum n) :
           rw [localGateBitCost, ih]
           ring
 
+/-- The bit cost of a quadratic Hamiltonian word is at most `(2 * n + 4) * terms.length *
+modeAddressBits n`. -/
 theorem quadraticHamiltonianWord_bitCost_le {n : ℕ} (terms : List (QuadraticTerm n)) :
     localGateSumBitCost (quadraticHamiltonianWord terms)
       ≤ (2 * n + 4) * terms.length * modeAddressBits n := by
   rw [localGateSumBitCost_eq]
   exact Nat.mul_le_mul_right _ (quadraticHamiltonianWord_count_le terms)
 
+/-- The defined space cost of any weighted local gate list is at most `n`. -/
 theorem localGateSumSpaceCost_le {n : ℕ} (l : LocalGateSum n) :
     localGateSumSpaceCost l ≤ n := by
   induction l with
@@ -4465,35 +4901,44 @@ theorem localGateSumSpaceCost_le {n : ℕ} (l : LocalGateSum n) :
           simp only [localGateSumSpaceCost]
           omega
 
+/-- The defined space cost of a quadratic Hamiltonian word is at most `n`. -/
 theorem quadraticHamiltonianWord_spaceCost_le {n : ℕ} (terms : List (QuadraticTerm n)) :
     localGateSumSpaceCost (quadraticHamiltonianWord terms) ≤ n := by
   exact localGateSumSpaceCost_le (quadraticHamiltonianWord terms)
 
+/-- The concatenated weighted gate-list encodings of one-body number terms and two-mode
+quadratic terms. -/
 def generalQuadraticHamiltonianWord {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) : LocalGateSum n :=
   oneBody.flatMap oneBodyWord ++ twoBody.flatMap quadraticTermWord
 
+/-- A one-body word represents its coefficient times the number operator at its mode. -/
 theorem oneBodyWord_op {n : ℕ} (t : OneBodyTerm n) :
     localGateSumOp (oneBodyWord t) = t.h • numberOp t.i := by
   simp only [oneBodyWord, localGateSumOp]
   rw [numberGateList_op t.i]
   simp
 
+/-- A one-body word has local gate count one. -/
 theorem oneBodyWord_count {n : ℕ} (t : OneBodyTerm n) :
     localGateSumCount (oneBodyWord t) = 1 := by
   simp [oneBodyWord, localGateSumCount, numberGateList_count]
 
+/-- A one-body word operator has zero entries between distinct registers. -/
 theorem oneBodyWord_op_diagonal {n : ℕ} (t : OneBodyTerm n) (y x : Reg n) (h : y ≠ x) :
     localGateSumOp (oneBodyWord t) y x = 0 := by
   rw [oneBodyWord_op, numberOp_eq_diagonal, Matrix.smul_apply]
   rw [Matrix.diagonal_apply_ne' _ h.symm]
   simp
 
+/-- The gate count of a quadratic term word is at least six. -/
 theorem quadraticTermWord_count_ge_six {n : ℕ} (t : QuadraticTerm n) :
     6 ≤ localGateSumCount (quadraticTermWord t) := by
   rw [quadraticTermWord_count]
   omega
 
+/-- The general quadratic Hamiltonian word represents the sum of its weighted number operators
+and quadratic generators. -/
 theorem generalQuadraticHamiltonianWord_op {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) :
     localGateSumOp (generalQuadraticHamiltonianWord oneBody twoBody)
@@ -4517,6 +4962,8 @@ theorem generalQuadraticHamiltonianWord_op {n : ℕ} (oneBody : List (OneBodyTer
         rw [quadraticTermWord_op, ih]
   rw [hone, htwo]
 
+/-- The difference between the general quadratic Hamiltonian word operator and its specified sum
+of terms is zero. -/
 theorem generalQuadraticHamiltonianWord_error {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) :
     (localGateSumOp (generalQuadraticHamiltonianWord oneBody twoBody)
@@ -4525,6 +4972,8 @@ theorem generalQuadraticHamiltonianWord_error {n : ℕ} (oneBody : List (OneBody
   rw [generalQuadraticHamiltonianWord_op]
   simp
 
+/-- The general quadratic Hamiltonian word has one gate per one-body term plus `2 * (t.j.val -
+t.i.val) + 6` gates per quadratic term. -/
 theorem generalQuadraticHamiltonianWord_count {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) :
     localGateSumCount (generalQuadraticHamiltonianWord oneBody twoBody)
@@ -4549,6 +4998,8 @@ theorem generalQuadraticHamiltonianWord_count {n : ℕ} (oneBody : List (OneBody
         rw [quadraticTermWord_count, ih]
   rw [hone, htwo]
 
+/-- The general quadratic Hamiltonian word has gate count at most `oneBody.length + (2 * n + 4)
+* twoBody.length`. -/
 theorem generalQuadraticHamiltonianWord_count_le {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) :
     localGateSumCount (generalQuadraticHamiltonianWord oneBody twoBody)
@@ -4569,6 +5020,8 @@ theorem generalQuadraticHamiltonianWord_count_le {n : ℕ} (oneBody : List (OneB
         omega
   omega
 
+/-- The general quadratic Hamiltonian word has bit cost at most `(oneBody.length + (2 * n + 4) *
+twoBody.length) * modeAddressBits n`. -/
 theorem generalQuadraticHamiltonianWord_bitCost_le {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) :
     localGateSumBitCost (generalQuadraticHamiltonianWord oneBody twoBody)
@@ -4576,21 +5029,26 @@ theorem generalQuadraticHamiltonianWord_bitCost_le {n : ℕ} (oneBody : List (On
   rw [localGateSumBitCost_eq]
   exact Nat.mul_le_mul_right _ (generalQuadraticHamiltonianWord_count_le oneBody twoBody)
 
+/-- The defined space cost of a general quadratic Hamiltonian word is at most `n`. -/
 theorem generalQuadraticHamiltonianWord_spaceCost_le {n : ℕ} (oneBody : List (OneBodyTerm n))
     (twoBody : List (QuadraticTerm n)) :
     localGateSumSpaceCost (generalQuadraticHamiltonianWord oneBody twoBody) ≤ n :=
   localGateSumSpaceCost_le _
 
+/-- Every pair in `modePairList n` has its first mode strictly below its second. -/
 theorem modePairList_lt {n : ℕ} {p : Fin n × Fin n} (hp : p ∈ modePairList n) : p.1 < p.2 := by
   rw [modePairList, Finset.mem_toList] at hp
   exact (Finset.mem_filter.mp hp).2
 
+/-- The mode-pair list has length at most `n * n`. -/
 theorem modePairList_length_le (n : ℕ) : (modePairList n).length ≤ n * n := by
   rw [modePairList, Finset.length_toList]
   have h1 : modePairs n ⊆ (Finset.univ : Finset (Fin n × Fin n)) := Finset.filter_subset _ _
   have h2 := Finset.card_mono h1
   simpa [Fintype.card_prod, Fintype.card_fin] using! h2
 
+/-- A quadratic Hamiltonian word with at most `n * n` terms has gate count at most `(2 * n + 4)
+* n ^ 2`. -/
 theorem quadraticHamiltonianWord_count_le_pow {n : ℕ} (terms : List (QuadraticTerm n))
     (h : terms.length ≤ n * n) :
     localGateSumCount (quadraticHamiltonianWord terms) ≤ (2 * n + 4) * n ^ 2 := by
@@ -4600,6 +5058,8 @@ theorem quadraticHamiltonianWord_count_le_pow {n : ℕ} (terms : List (Quadratic
     _ ≤ (2 * n + 4) * (n * n) := Nat.mul_le_mul (le_refl _) h
     _ = (2 * n + 4) * n ^ 2 := by ring
 
+/-- For positive `n`, a quadratic Hamiltonian word with at most `n * n` terms has gate count at
+most `8 * n ^ 3`. -/
 theorem quadraticHamiltonianWord_count_le_cubic {n : ℕ} (terms : List (QuadraticTerm n))
     (hn : 0 < n) (h : terms.length ≤ n * n) :
     localGateSumCount (quadraticHamiltonianWord terms) ≤ 8 * n ^ 3 := by
@@ -4610,16 +5070,20 @@ theorem quadraticHamiltonianWord_count_le_cubic {n : ℕ} (terms : List (Quadrat
     _ ≤ (8 * n) * n ^ 2 := Nat.mul_le_mul h2 (le_refl _)
     _ = 8 * n ^ 3 := by ring
 
+/-- The Hubbard onsite word represents `μ` times the number operator at its mode. -/
 theorem hubbardOnsiteWord_op {n : ℕ} (μ : ℂ) (i : Fin n) :
     localGateSumOp (hubbardOnsiteWord μ i) = μ • numberOp i := by
   simp only [hubbardOnsiteWord, localGateSumOp, add_zero]
   rw [numberGateList_op]
 
+/-- The Hubbard interaction word represents `U` times the product of the two number operators. -/
 theorem hubbardInteractionWord_op {n : ℕ} (U : ℂ) (i j : Fin n) :
     localGateSumOp (hubbardInteractionWord U i j) = U • (numberOp i * numberOp j) := by
   simp only [hubbardInteractionWord, localGateSumOp, add_zero]
   rw [localGateListOp_append, numberGateList_op, numberGateList_op]
 
+/-- For `i < j`, the Hubbard hopping word represents `t` times the sum of forward and backward
+hopping monomials. -/
 theorem hubbardHoppingWord_op {n : ℕ} (t : ℂ) (i j : Fin n) (hij : i < j) :
     localGateSumOp (hubbardHoppingWord t i j)
       = t • (creation i * annihilation j + creation j * annihilation i) := by
@@ -4627,6 +5091,8 @@ theorem hubbardHoppingWord_op {n : ℕ} (t : ℂ) (i j : Fin n) (hij : i < j) :
   rw [hopForwardGateList_op i j hij, hopBackwardGateList_op i j hij]
   rw [← smul_add]
 
+/-- A right fold over a mapped list equals a right fold applying the mapping inside the folding
+function. -/
 theorem foldr_map {α : Type} {β : Type} {γ : Type} (g : α → β) (f : β → γ → γ)
     (l : List α) (b : γ) :
     (l.map g).foldr f b = l.foldr (fun a acc => f (g a) acc) b := by
@@ -4634,12 +5100,16 @@ theorem foldr_map {α : Type} {β : Type} {γ : Type} (g : α → β) (f : β �
   | nil => rfl
   | cons a l ih => simp only [List.map_cons, List.foldr_cons, ih]
 
+/-- A right fold over a concatenation folds the second list first and uses its result as the
+initial value for the first list. -/
 theorem foldr_append' {α : Type} {γ : Type} (f : α → γ → γ) (l₁ l₂ : List α) (b : γ) :
     (l₁ ++ l₂).foldr f b = l₁.foldr f (l₂.foldr f b) := by
   induction l₁ with
   | nil => rfl
   | cons a l ih => simp only [List.cons_append, List.foldr_cons, ih]
 
+/-- An additive right fold with initial value `x` equals the same fold with initial value zero
+plus `x`. -/
 theorem foldr_add_const {α : Type} {γ : Type} [AddCommMonoid γ] (g : α → γ) (l : List α)
     (x : γ) :
     l.foldr (fun a acc => g a + acc) x = l.foldr (fun a acc => g a + acc) 0 + x := by
@@ -4650,6 +5120,7 @@ theorem foldr_add_const {α : Type} {γ : Type} [AddCommMonoid γ] (g : α → �
       rw [ih]
       abel
 
+/-- Every pair in `fermionPairs n` has its first mode strictly below its second. -/
 theorem fermionPairs_lt {n : ℕ} {p : Fin n × Fin n} (hp : p ∈ fermionPairs n) : p.1 < p.2 := by
   unfold fermionPairs at hp
   rw [List.mem_flatMap] at hp
@@ -4664,6 +5135,8 @@ theorem fermionPairs_lt {n : ℕ} {p : Fin n × Fin n} (hp : p ∈ fermionPairs 
   · rw [if_neg hij] at heq
     cases heq
 
+/-- Folding Hubbard onsite word operators equals folding the corresponding weighted number
+operators with the same initial matrix. -/
 theorem hubbardOnsiteFold {n : ℕ} (l : List (Fin n)) (μ : ℂ) (acc : Matrix (Reg n) (Reg n) ℂ) :
     l.foldr (fun i acc => localGateSumOp (hubbardOnsiteWord μ i) + acc) acc
       = l.foldr (fun i acc => μ • numberOp i + acc) acc := by
@@ -4673,6 +5146,8 @@ theorem hubbardOnsiteFold {n : ℕ} (l : List (Fin n)) (μ : ℂ) (acc : Matrix 
       simp only [List.foldr_cons]
       rw [hubbardOnsiteWord_op, ih]
 
+/-- Folding Hubbard interaction word operators equals folding the corresponding weighted
+products of number operators with the same initial matrix. -/
 theorem hubbardInteractionFold {n : ℕ} (l : List (Fin n × Fin n)) (U : ℂ)
     (acc : Matrix (Reg n) (Reg n) ℂ) :
     l.foldr (fun p acc => localGateSumOp (hubbardInteractionWord U p.1 p.2) + acc) acc
@@ -4683,6 +5158,8 @@ theorem hubbardInteractionFold {n : ℕ} (l : List (Fin n × Fin n)) (U : ℂ)
       simp only [List.foldr_cons]
       rw [hubbardInteractionWord_op, ih]
 
+/-- For a list of strictly ordered mode pairs, folding Hubbard hopping word operators equals
+folding the weighted symmetric hopping operators. -/
 theorem hubbardHoppingFold {n : ℕ} {l : List (Fin n × Fin n)} (t : ℂ)
     (acc : Matrix (Reg n) (Reg n) ℂ) (hl : ∀ p ∈ l, p.1 < p.2) :
     l.foldr (fun p acc => localGateSumOp (hubbardHoppingWord t p.1 p.2) + acc) acc
@@ -4696,6 +5173,7 @@ theorem hubbardHoppingFold {n : ℕ} {l : List (Fin n × Fin n)} (t : ℂ)
       rw [hubbardHoppingWord_op t p.1 p.2 (hl p (List.mem_cons_self))]
       rw [ih (fun q hq => hl q (List.mem_cons_of_mem p hq))]
 
+/-- The Hubbard term sum equals its onsite sum plus its interaction and hopping sums. -/
 theorem hubbardTermSum_eq {n : ℕ} (t μ U : ℂ) :
     hubbardTermSum (n := n) t μ U
       = hubbardOnsiteSum (n := n) μ
@@ -4713,6 +5191,8 @@ theorem hubbardTermSum_eq {n : ℕ} (t μ U : ℂ) :
             0 (fermionPairs n))]
   rfl
 
+/-- The Hubbard Hamiltonian word represents the sum of the onsite, interaction, and hopping
+contributions. -/
 theorem hubbardHamiltonianWord_op {n : ℕ} (t μ U : ℂ) :
     localGateSumOp (hubbardHamiltonianWord (n := n) t μ U)
       = hubbardOnsiteSum (n := n) μ
@@ -4724,31 +5204,38 @@ theorem hubbardHamiltonianWord_op {n : ℕ} (t μ U : ℂ) :
   unfold hubbardOnsiteSum hubbardInteractionSum hubbardHoppingSum
   abel
 
+/-- The Hubbard Hamiltonian word operator equals `hubbardTermSum`. -/
 theorem hubbardHamiltonianWord_eq_termSum {n : ℕ} (t μ U : ℂ) :
     localGateSumOp (hubbardHamiltonianWord (n := n) t μ U) = hubbardTermSum (n := n) t μ U := by
   rw [hubbardHamiltonianWord_op, hubbardTermSum_eq]
 
+/-- The difference between the Hubbard Hamiltonian word operator and `hubbardTermSum` is zero. -/
 theorem hubbardHamiltonianWord_error {n : ℕ} (t μ U : ℂ) :
     (localGateSumOp (hubbardHamiltonianWord (n := n) t μ U) - hubbardTermSum (n := n) t μ U) = 0 := by
   rw [hubbardHamiltonianWord_eq_termSum]
   simp
 
+/-- A Hubbard onsite word has local gate count one. -/
 theorem hubbardOnsiteWord_count {n : ℕ} (μ : ℂ) (i : Fin n) :
     localGateSumCount (hubbardOnsiteWord μ i) = 1 := by
   simp only [hubbardOnsiteWord, localGateSumCount]
   rw [numberGateList_count]
 
+/-- A Hubbard interaction word has local gate count two. -/
 theorem hubbardInteractionWord_count {n : ℕ} (U : ℂ) (i j : Fin n) :
     localGateSumCount (hubbardInteractionWord U i j) = 2 := by
   simp only [hubbardInteractionWord, localGateSumCount, localGateCount_eq_length, numberGateList,
     List.length_append, List.length_cons, List.length_nil]
 
+/-- For `i < j`, a Hubbard hopping word has local gate count `2 * (j.val - i.val) + 4`. -/
 theorem hubbardHoppingWord_count {n : ℕ} (t : ℂ) (i j : Fin n) (hij : i < j) :
     localGateSumCount (hubbardHoppingWord t i j) = 2 * (j.val - i.val) + 4 := by
   simp only [hubbardHoppingWord, localGateSumCount]
   rw [hopForwardGateList_count i j hij, hopBackwardGateList_count i j hij]
   omega
 
+/-- A right fold adding a constant `k` at every list element equals `k * l.length` plus its
+initial value. -/
 theorem foldr_const {α : Type} (k : ℕ) (l : List α) (acc : ℕ) :
     l.foldr (fun _ acc => k + acc) acc = k * l.length + acc := by
   induction l with
@@ -4758,6 +5245,8 @@ theorem foldr_const {α : Type} (k : ℕ) (l : List α) (acc : ℕ) :
       rw [ih]
       omega
 
+/-- An additive right fold of nonnegative integer weights bounded by `C` is at most `C` times
+the list length. -/
 theorem foldr_count_le {α : Type} (g : α → ℕ) (C : ℕ) : ∀ (l : List α),
     (∀ a ∈ l, g a ≤ C) → l.foldr (fun a acc => g a + acc) 0 ≤ C * l.length := by
   intro l
@@ -4771,6 +5260,7 @@ theorem foldr_count_le {α : Type} (g : α → ℕ) (C : ℕ) : ∀ (l : List α
       have hih := ih hb
       omega
 
+/-- Filtering and mapping a list through an optional-valued function cannot increase its length. -/
 theorem length_filterMap_le {α : Type} {β : Type} (f : α → Option β) (l : List α) :
     (l.filterMap f).length ≤ l.length := by
   induction l with
@@ -4788,6 +5278,8 @@ theorem length_filterMap_le {α : Type} {β : Type} (f : α → Option β) (l : 
           simp only [h1, List.length_cons]
           omega
 
+/-- If each mapped list has length at most `k`, the flattened list has length at most `k` times
+the original length. -/
 theorem length_flatMap_le {α : Type} {β : Type} (f : α → List β) : ∀ (l : List α) (k : ℕ),
     (∀ a ∈ l, (f a).length ≤ k) → (l.flatMap f).length ≤ k * l.length := by
   intro l k
@@ -4801,6 +5293,7 @@ theorem length_flatMap_le {α : Type} {β : Type} (f : α → List β) : ∀ (l 
       have hih := ih hb
       omega
 
+/-- The fermionic mode-pair list has length at most `n * n`. -/
 theorem fermionPairs_length_le (n : ℕ) : (fermionPairs n).length ≤ n * n := by
   unfold fermionPairs
   refine le_trans (length_flatMap_le _ (List.finRange n) n ?_) ?_
@@ -4808,6 +5301,8 @@ theorem fermionPairs_length_le (n : ℕ) : (fermionPairs n).length ≤ n * n := 
     exact le_trans (length_filterMap_le _ _) (by simp)
   · simp
 
+/-- Folding Hubbard onsite gate counts is equivalent to adding one per mode with the same
+initial count. -/
 theorem hubbardOnsiteCountFold {n : ℕ} (l : List (Fin n)) (μ : ℂ) (acc : ℕ) :
     l.foldr (fun i acc => localGateSumCount (hubbardOnsiteWord μ i) + acc) acc
       = l.foldr (fun _ acc => 1 + acc) acc := by
@@ -4817,6 +5312,8 @@ theorem hubbardOnsiteCountFold {n : ℕ} (l : List (Fin n)) (μ : ℂ) (acc : �
       simp only [List.foldr_cons]
       rw [hubbardOnsiteWord_count, ih]
 
+/-- Folding Hubbard interaction gate counts is equivalent to adding two per mode pair with the
+same initial count. -/
 theorem hubbardInteractionCountFold {n : ℕ} (l : List (Fin n × Fin n)) (U : ℂ) (acc : ℕ) :
     l.foldr (fun p acc => localGateSumCount (hubbardInteractionWord U p.1 p.2) + acc) acc
       = l.foldr (fun _ acc => 2 + acc) acc := by
@@ -4826,6 +5323,8 @@ theorem hubbardInteractionCountFold {n : ℕ} (l : List (Fin n × Fin n)) (U : �
       simp only [List.foldr_cons]
       rw [hubbardInteractionWord_count, ih]
 
+/-- For strictly ordered mode pairs, the hopping count fold adds `2 * (p.2.val - p.1.val) + 4`
+per pair. -/
 theorem hubbardHoppingCountFold {n : ℕ} {l : List (Fin n × Fin n)} (t : ℂ) (acc : ℕ)
     (hl : ∀ p ∈ l, p.1 < p.2) :
     l.foldr (fun p acc => localGateSumCount (hubbardHoppingWord t p.1 p.2) + acc) acc
@@ -4837,6 +5336,8 @@ theorem hubbardHoppingCountFold {n : ℕ} {l : List (Fin n × Fin n)} (t : ℂ) 
       rw [hubbardHoppingWord_count t p.1 p.2 (hl p (List.mem_cons_self))]
       rw [ih (fun q hq => hl q (List.mem_cons_of_mem p hq))]
 
+/-- The Hubbard word gate count is at most `n` plus two per fermionic pair and at most `2 * n +
+4` further gates per pair. -/
 theorem hubbardHamiltonianWord_count_le {n : ℕ} (t μ U : ℂ) :
     localGateSumCount (hubbardHamiltonianWord (n := n) t μ U)
       ≤ n + 2 * (fermionPairs n).length + (2 * n + 4) * (fermionPairs n).length := by
@@ -4861,6 +5362,7 @@ theorem hubbardHamiltonianWord_count_le {n : ℕ} (t μ U : ℂ) :
   simp only [List.length_finRange, Nat.one_mul, add_zero]
   omega
 
+/-- The Hubbard Hamiltonian word has gate count at most `2 * n ^ 3 + 6 * n ^ 2 + n`. -/
 theorem hubbardHamiltonianWord_count_le_pow {n : ℕ} (t μ U : ℂ) :
     localGateSumCount (hubbardHamiltonianWord (n := n) t μ U)
       ≤ 2 * n ^ 3 + 6 * n ^ 2 + n := by
@@ -4875,6 +5377,7 @@ theorem hubbardHamiltonianWord_count_le_pow {n : ℕ} (t μ U : ℂ) :
         exact Nat.add_le_add (Nat.add_le_add_left h2 n) h3
     _ = 2 * n ^ 3 + 6 * n ^ 2 + n := by ring
 
+/-- For positive `n`, the Hubbard Hamiltonian word has gate count at most `9 * n ^ 3`. -/
 theorem hubbardHamiltonianWord_count_le_cubic {n : ℕ} (t μ U : ℂ) (hn : 0 < n) :
     localGateSumCount (hubbardHamiltonianWord (n := n) t μ U) ≤ 9 * n ^ 3 := by
   have h1 := hubbardHamiltonianWord_count_le_pow (n := n) t μ U
@@ -4888,16 +5391,20 @@ theorem hubbardHamiltonianWord_count_le_cubic {n : ℕ} (t μ U : ℂ) (hn : 0 <
     _ ≤ 2 * n ^ 3 + 6 * n ^ 3 + n ^ 3 := Nat.add_le_add (Nat.add_le_add_left h6 (2 * n ^ 3)) hp3
     _ = 9 * n ^ 3 := by ring
 
+/-- The Hubbard Hamiltonian word has bit cost at most `(2 * n ^ 3 + 6 * n ^ 2 + n) *
+modeAddressBits n`. -/
 theorem hubbardHamiltonianWord_bitCost_le {n : ℕ} (t μ U : ℂ) :
     localGateSumBitCost (hubbardHamiltonianWord (n := n) t μ U)
       ≤ (2 * n ^ 3 + 6 * n ^ 2 + n) * modeAddressBits n := by
   rw [localGateSumBitCost_eq]
   exact Nat.mul_le_mul_right _ (hubbardHamiltonianWord_count_le_pow (n := n) t μ U)
 
+/-- The defined space cost of the Hubbard Hamiltonian word is at most `n`. -/
 theorem hubbardHamiltonianWord_spaceCost_le {n : ℕ} (t μ U : ℂ) :
     localGateSumSpaceCost (hubbardHamiltonianWord (n := n) t μ U) ≤ n := by
   exact localGateSumSpaceCost_le _
 
+/-- Complex scalar multiples of commuting square matrices commute. -/
 theorem commute_smul_smul {ι : Type} [Fintype ι] [DecidableEq ι]
     {A B : Matrix ι ι ℂ} (h : Commute A B) (r q : ℂ) :
     Commute (r • A) (q • B) := by
@@ -4921,6 +5428,8 @@ theorem commute_smul_smul {ι : Type} [Fintype ι] [DecidableEq ι]
           intro z hz
           ring
 
+/-- For commuting generators, the product of their Hamiltonian evolutions at the same time
+equals evolution under their sum. -/
 theorem hamiltonianEvolution_trotter_exact_of_commute {n : ℕ}
     (T₁ T₂ : Matrix (Reg n) (Reg n) ℂ) (s : ℝ) (h : Commute T₁ T₂) :
     HamiltonianEvolution T₁ s * HamiltonianEvolution T₂ s
@@ -4938,6 +5447,7 @@ theorem hamiltonianEvolution_trotter_exact_of_commute {n : ℕ}
     ring
   rw [HamiltonianEvolution, HamiltonianEvolution, HamiltonianEvolution, hexp, hsum]
 
+/-- Number operators at any two modes commute. -/
 theorem numberOp_commute {n : ℕ} (i j : Fin n) : Commute (numberOp i) (numberOp j) := by
   rw [commute_iff_eq]
   ext y x
@@ -4949,12 +5459,15 @@ theorem numberOp_commute {n : ℕ} (i j : Fin n) : Commute (numberOp i) (numberO
     exact mul_comm _ _
   · rw [Matrix.diagonal_apply_ne' _ h, Matrix.diagonal_apply_ne' _ h]
 
+/-- The product of evolutions under two number operators equals evolution under their sum at the
+same time. -/
 theorem hamiltonianEvolution_trotter_exact_onsite {n : ℕ} (i j : Fin n) (s : ℝ) :
     HamiltonianEvolution (numberOp i) s * HamiltonianEvolution (numberOp j) s
       = HamiltonianEvolution (numberOp i + numberOp j) s := by
   exact hamiltonianEvolution_trotter_exact_of_commute (numberOp i) (numberOp j) s
     (numberOp_commute i j)
 
+/-- For `i < j`, the Z-range set is obtained by inserting `i` into the strict Z-tail set. -/
 theorem zRangeSet_eq_insert_tail {n : ℕ} (i j : Fin n) (hij : i < j) :
     zRangeSet i j = insert i (zTailSet i j) := by
   ext k
@@ -4969,16 +5482,22 @@ theorem zRangeSet_eq_insert_tail {n : ℕ} (i j : Fin n) (hij : i < j) :
     · exact ⟨by omega, by omega⟩
     · exact ⟨by omega, h2⟩
 
+/-- The local diagonal entry of a Pauli Z gate is minus one on an occupied site and one
+otherwise. -/
 theorem localGateDiagEntry_oneQubitZ {n : ℕ} (k : Fin n) (y : Reg n) :
     localGateDiagEntry (k, oneQubitZ) y = (if y k then -1 else 1) := by
   cases h : y k <;>
     simp [localGateDiagEntry, oneQubitZ_diagEntry, h, boolEquivFin2_false,
       boolEquivFin2_true]
 
+/-- In Boolean indices, the diagonal Pauli Z entry is minus one for occupation and one
+otherwise. -/
 theorem oneQubitZ_diagEntry_bool {n : ℕ} (k : Fin n) (y : Reg n) :
     oneQubitZ (boolEquivFin2 (y k)) (boolEquivFin2 (y k)) = (if y k then -1 else 1) := by
   exact localGateDiagEntry_oneQubitZ k y
 
+/-- The diagonal entry of a list of Pauli Z gates over a finite site set is the product of the
+corresponding occupation signs. -/
 theorem zListOp_diag_entry {n : ℕ} (S : Finset (Fin n)) (y : Reg n) :
     localGateListOp (S.toList.map (fun k => (k, oneQubitZ))) y y
       = S.prod (fun k => (if y k then -1 else 1)) := by
@@ -4993,6 +5512,8 @@ theorem zListOp_diag_entry {n : ℕ} (S : Finset (Fin n)) (y : Reg n) :
   intro k hk
   exact localGateDiagEntry_oneQubitZ k y
 
+/-- Adding a new site to a finite set of Pauli Z gates multiplies its operator by the local Z
+gate at that site. -/
 theorem zListOp_insert {n : ℕ} (S : Finset (Fin n)) (k : Fin n) (hk : k ∉ S) :
     localGateListOp ((insert k S).toList.map (fun m => (m, oneQubitZ)))
       = localGate k oneQubitZ * localGateListOp (S.toList.map (fun m => (m, oneQubitZ))) := by
@@ -5031,6 +5552,8 @@ theorem zListOp_insert {n : ℕ} (S : Finset (Fin n)) (k : Fin n) (hk : k ∉ S)
   · rw [hdiagL y x hyx, mul_apply_diag_left _ _ hloc y x, hdiagR y x hyx]
     simp
 
+/-- For `i < j`, the Z-range operator factors into the Z gate at `i` times the strict Z-tail
+operator. -/
 theorem zRangeGateList_op_eq {n : ℕ} (i j : Fin n) (hij : i < j) :
     localGateListOp (zRangeGateList i j)
       = localGate i oneQubitZ * localGateListOp (zTailGateList i j) := by
@@ -5041,6 +5564,7 @@ theorem zRangeGateList_op_eq {n : ℕ} (i j : Fin n) (hij : i < j) :
   rw [zRangeGateList, zTailGateList, zRangeSet_eq_insert_tail i j hij]
   exact zListOp_insert (zTailSet i j) i hnotmem
 
+/-- Right multiplication of `sigmaPlus` by the Pauli Z matrix leaves `sigmaPlus` unchanged. -/
 theorem sigmaPlus_mul_oneQubitZ : sigmaPlus * oneQubitZ = sigmaPlus := by
   have hone : oneQubitZ = !![1, 0; 0, -1] := by
     ext i j
@@ -5049,6 +5573,7 @@ theorem sigmaPlus_mul_oneQubitZ : sigmaPlus * oneQubitZ = sigmaPlus := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Matrix.mul_apply]
 
+/-- Left multiplication of `sigmaMinus` by the Pauli Z matrix leaves `sigmaMinus` unchanged. -/
 theorem oneQubitZ_mul_sigmaMinus : oneQubitZ * sigmaMinus = sigmaMinus := by
   have hone : oneQubitZ = !![1, 0; 0, -1] := by
     ext i j
@@ -5057,6 +5582,7 @@ theorem oneQubitZ_mul_sigmaMinus : oneQubitZ * sigmaMinus = sigmaMinus := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Matrix.mul_apply]
 
+/-- Every gate in a strict Z-tail list acts at a site distinct from `i`. -/
 theorem zTailGateList_ne_i {n : ℕ} (i j : Fin n) {p : Fin n × Matrix (Fin 2) (Fin 2) ℂ}
     (hp : p ∈ zTailGateList i j) : p.1 ≠ i := by
   simp only [zTailGateList, List.mem_map] at hp
@@ -5069,6 +5595,7 @@ theorem zTailGateList_ne_i {n : ℕ} (i j : Fin n) {p : Fin n × Matrix (Fin 2) 
   subst hki
   exact (Nat.lt_irrefl _ hlt)
 
+/-- Every gate in a strict Z-tail list acts at a site distinct from `j`. -/
 theorem zTailGateList_ne_j {n : ℕ} (i j : Fin n) {p : Fin n × Matrix (Fin 2) (Fin 2) ℂ}
     (hp : p ∈ zTailGateList i j) : p.1 ≠ j := by
   simp only [zTailGateList, List.mem_map] at hp
@@ -5081,6 +5608,8 @@ theorem zTailGateList_ne_j {n : ℕ} (i j : Fin n) {p : Fin n × Matrix (Fin 2) 
   subst hkj
   exact (Nat.lt_irrefl _ hlt)
 
+/-- For `i < j`, forward hopping is the two-site embedding of `hopForwardBlock` multiplied by
+the intervening Z-tail operator. -/
 theorem hopForward_twoSiteBlock {n : ℕ} (i j : Fin n) (hij : i < j) :
     creation i * annihilation j
       = twoSiteGate i j hopForwardBlock * localGateListOp (zTailGateList i j) := by
@@ -5111,6 +5640,8 @@ theorem hopForward_twoSiteBlock {n : ℕ} (i j : Fin n) (hij : i < j) :
               (localGateListOp (zTailGateList i j)), sigmaPlus_mul_oneQubitZ, ← h2]
   rw [← hopForwardGateList_op i j hij, hop]
 
+/-- For `i < j`, backward hopping is the two-site embedding of `hopBackwardBlock` multiplied by
+the intervening Z-tail operator. -/
 theorem hopBackward_twoSiteBlock {n : ℕ} (i j : Fin n) (hij : i < j) :
     creation j * annihilation i
       = twoSiteGate i j hopBackwardBlock * localGateListOp (zTailGateList i j) := by
@@ -5153,6 +5684,8 @@ theorem hopBackward_twoSiteBlock {n : ℕ} (i j : Fin n) (hij : i < j) :
             rw [← h2]
   rw [← hopBackwardGateList_op i j hij, hop]
 
+/-- A two-site gate entry is the corresponding block entry when the registers agree outside its
+two sites, and zero otherwise. -/
 theorem twoSiteGate_apply {n : ℕ} (i j : Fin n)
     (B : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) (y x : Reg n) :
     twoSiteGate i j B y x
@@ -5161,6 +5694,7 @@ theorem twoSiteGate_apply {n : ℕ} (i j : Fin n)
         else 0 := by
   rw [twoSiteGate, Matrix.of_apply]
 
+/-- The two-site embedding sends `c • B + D` to `c • twoSiteGate i j B + twoSiteGate i j D`. -/
 theorem twoSiteGate_linear {n : ℕ} (i j : Fin n) (c : ℂ)
     (B D : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     twoSiteGate i j (c • B + D) = c • twoSiteGate i j B + twoSiteGate i j D := by
@@ -5173,6 +5707,7 @@ theorem twoSiteGate_linear {n : ℕ} (i j : Fin n) (c : ℂ)
       twoSiteGate_apply, if_neg hout, twoSiteGate_apply, if_neg hout]
     simp
 
+/-- The two-site embedding preserves addition of block matrices. -/
 theorem twoSiteGate_add {n : ℕ} (i j : Fin n)
     (B D : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     twoSiteGate i j (B + D) = twoSiteGate i j B + twoSiteGate i j D := by
@@ -5184,6 +5719,8 @@ theorem twoSiteGate_add {n : ℕ} (i j : Fin n)
       twoSiteGate_apply, if_neg hout, twoSiteGate_apply, if_neg hout]
     simp
 
+/-- A complex scalar multiple of a two-site gate equals the embedding of the scalar-multiplied
+block. -/
 theorem twoSiteGate_smul {n : ℕ} (i j : Fin n) (c : ℂ)
     (B : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     c • twoSiteGate i j B = twoSiteGate i j (c • B) := by
@@ -5194,6 +5731,8 @@ theorem twoSiteGate_smul {n : ℕ} (i j : Fin n) (c : ℂ)
   · rw [Matrix.smul_apply, twoSiteGate_apply, if_neg hout, twoSiteGate_apply, if_neg hout]
     simp
 
+/-- For distinct modes, the number operator at the first mode is the two-site embedding of
+`numberBlockI`. -/
 theorem numberOp_twoSiteGate_i {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
     numberOp i = twoSiteGate i j numberBlockI := by
   ext y x
@@ -5223,6 +5762,8 @@ theorem numberOp_twoSiteGate_i {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
       exact hout (fun k hk1 hk2 => by rw [h])
     simp [hxy]
 
+/-- For distinct modes, the number operator at the second mode is the two-site embedding of
+`numberBlockJ`. -/
 theorem numberOp_twoSiteGate_j {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
     numberOp j = twoSiteGate i j numberBlockJ := by
   ext y x
@@ -5252,6 +5793,7 @@ theorem numberOp_twoSiteGate_j {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
       exact hout (fun k hk1 hk2 => by rw [h])
     simp [hxy]
 
+/-- The strict Z-tail set is empty for consecutive mode indices. -/
 theorem zTailSet_eq_empty_of_adjacent {n : ℕ} (i j : Fin n) (hadj : j.val = i.val + 1) :
     zTailSet i j = ∅ := by
   ext k
@@ -5262,11 +5804,14 @@ theorem zTailSet_eq_empty_of_adjacent {n : ℕ} (i j : Fin n) (hadj : j.val = i.
   · intro hk
     exact (by simpa using! hk : False).elim
 
+/-- The strict Z-tail gate list is empty for consecutive mode indices. -/
 theorem zTailGateList_eq_nil_of_adjacent {n : ℕ} (i j : Fin n) (hadj : j.val = i.val + 1) :
     zTailGateList i j = [] := by
   rw [zTailGateList, zTailSet_eq_empty_of_adjacent i j hadj]
   simp
 
+/-- For consecutive distinct modes, the quadratic generator is the two-site embedding of
+`generatorBlock A`. -/
 theorem quadraticGenerator_adjacent_block {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (hadj : j.val = i.val + 1) (A : Matrix (Fin 2) (Fin 2) ℂ) :
     quadraticGenerator i j A = twoSiteGate i j (generatorBlock A) := by
@@ -5302,6 +5847,8 @@ theorem quadraticGenerator_adjacent_block {n : ℕ} (i j : Fin n) (hij : i ≠ j
       _ = twoSiteGate i j (generatorBlock A) := by
             rfl
 
+/-- For `i < j`, the quadratic generator expands into two weighted number blocks and two
+weighted hopping blocks, each hopping block followed by the Z-tail operator. -/
 theorem quadraticGenerator_twoSiteBlock {n : ℕ} (i j : Fin n) (hij : i < j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     quadraticGenerator i j A
@@ -5321,6 +5868,8 @@ theorem quadraticGenerator_twoSiteBlock {n : ℕ} (i j : Fin n) (hij : i < j)
               hopForward_twoSiteBlock i j hij, hopBackward_twoSiteBlock i j hij,
               ← smul_mul]
 
+/-- For `i < j`, the quadratic generator is the sum of its weighted number blocks and a combined
+weighted hopping block multiplied by the Z-tail operator. -/
 theorem quadraticGenerator_twoSiteBlock_combined {n : ℕ} (i j : Fin n) (hij : i < j)
     (A : Matrix (Fin 2) (Fin 2) ℂ) :
     quadraticGenerator i j A
@@ -5345,39 +5894,53 @@ theorem quadraticGenerator_twoSiteBlock_combined {n : ℕ} (i j : Fin n) (hij : 
             + A 1 0 • twoSiteGate i j hopBackwardBlock) * localGateListOp (zTailGateList i j) := by
           abel
 
+/-- The two-site register coordinates are the Boolean-to-`Fin 2` images of its bits at `i` and
+`j`. -/
 theorem twoSiteBits_def {n : ℕ} (i j : Fin n) (y : Reg n) :
     twoSiteBits i j y = (boolEquivFin2 (y i), boolEquivFin2 (y j)) := rfl
 
+/-- The extension of local coordinates has first coordinate `w.1`, converted to a Boolean, at
+site `i`. -/
 theorem twoSiteExtend_bit_i {n : ℕ} (i j : Fin n) (y : Reg n) (w : Fin 2 × Fin 2) :
     twoSiteExtend i j y w i = boolEquivFin2.symm w.1 := by
   simp [twoSiteExtend]
 
+/-- For distinct sites, the extension of local coordinates has second coordinate `w.2`,
+converted to a Boolean, at site `j`. -/
 theorem twoSiteExtend_bit_j {n : ℕ} (i j : Fin n) (hij : i ≠ j) (y : Reg n)
     (w : Fin 2 × Fin 2) :
     twoSiteExtend i j y w j = boolEquivFin2.symm w.2 := by
   simp [twoSiteExtend, Ne.symm hij]
 
+/-- Extending local coordinates leaves the register unchanged outside the two sites. -/
 theorem twoSiteExtend_out {n : ℕ} (i j : Fin n) (y : Reg n) (w : Fin 2 × Fin 2) (k : Fin n)
     (hk : k ≠ i) (hk' : k ≠ j) : twoSiteExtend i j y w k = y k := by
   simp [twoSiteExtend, hk, hk']
 
+/-- Converting the bit of a local-coordinate extension at `i` to `Fin 2` recovers `w.1`. -/
 theorem boolEquivFin2_twoSiteExtend_i {n : ℕ} (i j : Fin n) (y : Reg n) (w : Fin 2 × Fin 2) :
     boolEquivFin2 (twoSiteExtend i j y w i) = w.1 := by
   rw [twoSiteExtend_bit_i]
   exact boolEquivFin2.apply_symm_apply _
 
+/-- For distinct sites, converting the bit of a local-coordinate extension at `j` to `Fin 2`
+recovers `w.2`. -/
 theorem boolEquivFin2_twoSiteExtend_j {n : ℕ} (i j : Fin n) (hij : i ≠ j) (y : Reg n)
     (w : Fin 2 × Fin 2) :
     boolEquivFin2 (twoSiteExtend i j y w j) = w.2 := by
   rw [twoSiteExtend_bit_j i j hij y w]
   exact boolEquivFin2.apply_symm_apply _
 
+/-- For distinct sites, extracting the coordinates of a local-coordinate extension recovers
+those coordinates. -/
 theorem twoSiteBits_extend {n : ℕ} (i j : Fin n) (hij : i ≠ j) (y : Reg n)
     (w : Fin 2 × Fin 2) :
     twoSiteBits i j (twoSiteExtend i j y w) = w := by
   exact Prod.ext (boolEquivFin2_twoSiteExtend_i i j y w)
     (boolEquivFin2_twoSiteExtend_j i j hij y w)
 
+/-- For distinct sites, a register agreeing with `y` elsewhere is recovered by extending its
+two-site coordinates into `y`. -/
 theorem twoSiteExtend_of_agrees {n : ℕ} (i j : Fin n) (hij : i ≠ j) (y z : Reg n)
     (h : ∀ k : Fin n, k ≠ i → k ≠ j → z k = y k) :
     twoSiteExtend i j y (twoSiteBits i j z) = z := by
@@ -5397,6 +5960,7 @@ theorem twoSiteExtend_of_agrees {n : ℕ} (i j : Fin n) (hij : i ≠ j) (y z : R
     · have hk := h k hki hkj
       simp [twoSiteExtend, hki, hkj, hk]
 
+/-- For distinct sites, multiplying two embedded blocks equals embedding their matrix product. -/
 theorem twoSiteGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (B C : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     twoSiteGate i j B * twoSiteGate i j C = twoSiteGate i j (B * C) := by
@@ -5505,6 +6069,7 @@ theorem twoSiteGate_mul {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     rw [twoSiteGate_apply, if_neg hout]
     simp
 
+/-- Embedding the identity block as a two-site gate gives the register identity matrix. -/
 theorem twoSiteGate_one {n : ℕ} (i j : Fin n) :
     twoSiteGate i j 1 = 1 := by
   ext y x
@@ -5534,6 +6099,8 @@ theorem twoSiteGate_one {n : ℕ} (i j : Fin n) :
       exact hout (fun k hk hk' => rfl)
     simp [hne]
 
+/-- For distinct sites, a natural power of an embedded two-site block equals the embedding of
+that power. -/
 theorem twoSiteGate_pow {n : ℕ} (i j : Fin n) (hij : i ≠ j)
     (B : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) (k : ℕ) :
     (twoSiteGate i j B)^k = twoSiteGate i j (B^k) := by
@@ -5546,6 +6113,9 @@ theorem twoSiteGate_pow {n : ℕ} (i j : Fin n) (hij : i ≠ j)
           = (twoSiteGate i j B)^k * twoSiteGate i j B := by rw [pow_succ]
       rw [hsq, ih, hmul, hpow]
 
+/-- Collects exact Jordan–Wigner gate-list representations, locality and evolution identities,
+quadratic and Hubbard word encodings with cost bounds, and two-site block decompositions. It
+also includes exact factorization of evolution for commuting generators. -/
 theorem clause2_endpoint_partial :
     (∀ (n : ℕ) (i : Fin n) (y x : Reg n),
       jwPauliWord i y x = ∏ j : Fin n, jwSiteFactor i j y x)

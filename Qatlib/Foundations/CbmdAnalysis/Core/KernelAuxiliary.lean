@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeights
 import Mathlib.Data.Nat.Choose.Central
 import Mathlib.Algebra.BigOperators.Intervals
+
+/-!
+# Auxiliary residues of the integer kernel
+
+The module defines the lattice factor and the residue coefficients at the auxiliary poles `2i`
+and `r + i`. Integer separation products and factorial inequalities give uniform bounds on the
+reciprocal pole products.
+
+`integerAuxiliaryCorrection` combines these auxiliary evaluations of `U`. Its norm decays
+exponentially in the spacing when the growth rate is compatible with that spacing, controlling
+the correction term in [WangEtAl2026].
+
+## Main statements
+
+* `integerPole_separation_product`: evaluates the row separation product using factorials.
+* `integerAuxiliary_norm_le`: bounds the auxiliary correction.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -15,6 +37,8 @@ set_option autoImplicit false
 namespace CBMD
 open scoped BigOperators
 
+/-- For integers `a ≤ r`, the product of the distances from `r` to integers in `Ico a r` is `(r
+- a).toNat.factorial`. -/
 private theorem prod_left_distances (a r : ℤ) (har : a ≤ r) :
     (∏ j ∈ Finset.Ico a r, |((r - j : ℤ) : ℝ)|) = ((r - a).toNat.factorial : ℝ) := by
   have hn : ((r - a).toNat : ℤ) = r - a := Int.toNat_of_nonneg (by omega)
@@ -41,6 +65,8 @@ private theorem prod_left_distances (a r : ℤ) (har : a ≤ r) :
     rw [show (r : ℝ) - ((r : ℝ) - ((i : ℝ) + 1)) = (i : ℝ) + 1 by ring]
     rw [abs_of_nonneg (by positivity)]
 
+/-- For integers `r ≤ b`, the product of the distances from `r` to integers in `Ioc r b` is `(b
+- r).toNat.factorial`. -/
 private theorem prod_right_distances (r b : ℤ) (hrb : r ≤ b) :
     (∏ j ∈ Finset.Ioc r b, |((r - j : ℤ) : ℝ)|) = ((b - r).toNat.factorial : ℝ) := by
   have hn : ((b - r).toNat : ℤ) = b - r := Int.toNat_of_nonneg (by omega)
@@ -67,6 +93,8 @@ private theorem prod_right_distances (r b : ℤ) (hrb : r ≤ b) :
     rw [show (r : ℝ) - ((r : ℝ) + ((i : ℝ) + 1)) = -((i : ℝ) + 1) by ring]
     rw [abs_neg, abs_of_nonneg (by positivity)]
 
+/-- For `r ∈ [-m, m]`, the product of its distances to the other row indices equals `(r + m)! (m
+- r)!`, with integer differences converted to natural numbers. -/
 theorem integerPole_separation_product (m : ℕ) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) :
     (∏ j ∈ (Finset.Icc (-(m : ℤ)) m).erase r, |((r - j : ℤ) : ℝ)|) =
@@ -86,6 +114,7 @@ theorem integerPole_separation_product (m : ℕ) (r : ℤ)
     omega), prod_left_distances _ _ hr'.1, prod_right_distances _ _ hr'.2]
   simp only [sub_neg_eq_add]
 
+/-- For `n ≤ 2 * m`, the product `n! (2m - n)!` is at least `(m!)²`. -/
 theorem factorial_pair_middle_le (m n : ℕ) (hn : n ≤ 2 * m) :
     m.factorial ^ 2 ≤ n.factorial * (2 * m - n).factorial := by
   have hc := Nat.choose_le_middle n (2 * m)
@@ -98,6 +127,8 @@ theorem factorial_pair_middle_le (m n : ℕ) (hn : n ≤ 2 * m) :
   rw [hsub] at hmid
   nlinarith
 
+/-- For a row index in `[-m, m]`, the product of distances to all other row indices is at least
+`(m!)²`. -/
 theorem integerPole_separation_lower (m : ℕ) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) :
     (m.factorial : ℝ) ^ 2 ≤
@@ -109,10 +140,13 @@ theorem integerPole_separation_lower (m : ℕ) (r : ℤ)
   rw [he]
   exact_mod_cast factorial_pair_middle_le m (r + m).toNat hn
 
+/-- The normalized exponential lattice factor `-(exp (-2πa) - 1) / (exp (-2πiaz) - 1)` evaluated
+at `p`. -/
 noncomputable def latticePoleFactor (a : ℝ) (p : ℂ) : ℂ :=
   -(Real.exp (-2 * Real.pi * a) - 1 : ℝ) /
     (Complex.exp (-2 * (Real.pi : ℂ) * Complex.I * (a : ℂ) * p) - 1)
 
+/-- For positive spacing and `p.im ≥ 1`, the lattice factor norm is at most `exp (-2πa * p.im)`. -/
 theorem latticePoleFactor_norm_le {a : ℝ} (ha : 0 < a) (p : ℂ) (hp : 1 ≤ p.im) :
     ‖latticePoleFactor a p‖ ≤ Real.exp (-2 * Real.pi * a * p.im) := by
   let t : ℝ := 2 * Real.pi * a
@@ -153,21 +187,28 @@ theorem latticePoleFactor_norm_le {a : ℝ} (ha : 0 < a) (p : ℂ) (hp : 1 ≤ p
       field_simp
     _ ≤ _ := mul_le_mul_of_nonneg_left hden (Real.exp_pos _).le
 
+/-- The product of normalized row factors evaluated at the top pole `2i`. -/
 noncomputable def integerTopPoleProduct (m : ℕ) : ℂ :=
   ∏ r ∈ Finset.Icc (-(m : ℤ)) m,
     (2 * Complex.I - (r : ℂ) - Complex.I) / (-(r : ℂ) - 2 * Complex.I)
 
+/-- The product of the normalized top factor and all other normalized row factors evaluated at
+the row pole `r + i`. -/
 noncomputable def integerRowPoleProduct (m : ℕ) (r : ℤ) : ℂ :=
   (((r : ℂ) + Complex.I - 2 * Complex.I) / (-3 * Complex.I)) *
     ∏ j ∈ (Finset.Icc (-(m : ℤ)) m).erase r,
       (((r : ℂ) + Complex.I - (j : ℂ) - Complex.I) / (-(j : ℂ) - 2 * Complex.I))
 
+/-- The lattice factor at `2i` divided by the top pole product. -/
 noncomputable def integerTopResidueCoefficient (m : ℕ) (a : ℝ) : ℂ :=
   latticePoleFactor a (2 * Complex.I) / integerTopPoleProduct m
 
+/-- The lattice factor at `r + i` divided by the row pole product. -/
 noncomputable def integerRowResidueCoefficient (m : ℕ) (a : ℝ) (r : ℤ) : ℂ :=
   latticePoleFactor a ((r : ℂ) + Complex.I) / integerRowPoleProduct m r
 
+/-- The reciprocal norm of the top pole product equals twice the normalization product divided
+by the row-distance product at zero. -/
 theorem integerTopPoleProduct_inv_norm (m : ℕ) :
     ‖integerTopPoleProduct m‖⁻¹ =
       2 * ((∏ j ∈ Finset.range m, (((j : ℝ) + 1) ^ 2 + 4)) /
@@ -186,11 +227,15 @@ theorem integerTopPoleProduct_inv_norm (m : ℕ) :
   simp only [inv_div]
   ring
 
+/-- The reciprocal norm of the top pole product is bounded by `2 * sinh (2π) / (2π)`, uniformly
+in `m`. -/
 theorem integerTopPoleProduct_inv_norm_le (m : ℕ) :
     ‖integerTopPoleProduct m‖⁻¹ ≤ 2 * (Real.sinh (Real.pi * 2) / (Real.pi * 2)) := by
   rw [integerTopPoleProduct_inv_norm]
   exact mul_le_mul_of_nonneg_left (regulator_numerator_ratio_upper m 0) (by norm_num)
 
+/-- The reciprocal norm of a row pole product equals the explicit ratio of normalization
+distances to the top distance and row separation product. -/
 theorem integerRowPoleProduct_inv_norm (m : ℕ) (r : ℤ) :
     ‖integerRowPoleProduct m r‖⁻¹ =
       (3 * ∏ j ∈ (Finset.Icc (-(m : ℤ)) m).erase r, ‖-(j : ℂ) - 2 * Complex.I‖) /
@@ -209,6 +254,8 @@ theorem integerRowPoleProduct_inv_norm (m : ℕ) (r : ℤ) :
   simp only [div_eq_mul_inv, mul_inv_rev]
   ring
 
+/-- For a row index in `[-m, m]`, the reciprocal norm of its pole product is at most `6 * sinh
+(2π) / (2π)`. -/
 theorem integerRowPoleProduct_inv_norm_le (m : ℕ) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) :
     ‖integerRowPoleProduct m r‖⁻¹ ≤ 6 * (Real.sinh (Real.pi * 2) / (Real.pi * 2)) := by
@@ -250,6 +297,8 @@ theorem integerRowPoleProduct_inv_norm_le (m : ℕ) (r : ℤ)
       apply (div_le_iff₀ hf).mpr
       nlinarith
 
+/-- For positive spacing, the top residue coefficient norm is at most `2 * sinh (2π) / (2π) *
+exp (-4πa)`. -/
 theorem integerTopResidueCoefficient_norm_le (m : ℕ) {a : ℝ} (ha : 0 < a) :
     ‖integerTopResidueCoefficient m a‖ ≤
       2 * (Real.sinh (Real.pi * 2) / (Real.pi * 2)) * Real.exp (-4 * Real.pi * a) := by
@@ -263,6 +312,8 @@ theorem integerTopResidueCoefficient_norm_le (m : ℕ) {a : ℝ} (ha : 0 < a) :
       mul_le_mul hl (integerTopPoleProduct_inv_norm_le m) (by positivity) (Real.exp_pos _).le
     _ = _ := by rw [show -2 * Real.pi * a * 2 = -4 * Real.pi * a by ring]; ring
 
+/-- For positive spacing and a row index in `[-m, m]`, the residue coefficient norm is at most
+`6 * sinh (2π) / (2π) * exp (-2πa)`. -/
 theorem integerRowResidueCoefficient_norm_le (m : ℕ) {a : ℝ} (ha : 0 < a) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) :
     ‖integerRowResidueCoefficient m a r‖ ≤
@@ -276,9 +327,11 @@ theorem integerRowResidueCoefficient_norm_le (m : ℕ) {a : ℝ} (ha : 0 < a) (r
       mul_le_mul hl (integerRowPoleProduct_inv_norm_le m r hr) (by positivity) (Real.exp_pos _).le
     _ = _ := mul_comm _ _
 
+/-- The constant `12 * sinh (2π) / (2π)` used to bound the auxiliary residue correction. -/
 noncomputable def kernelAuxiliaryConstant : ℝ :=
   12 * (Real.sinh (Real.pi * 2) / (Real.pi * 2))
 
+/-- The auxiliary correction constant is at least twelve. -/
 theorem kernelAuxiliaryConstant_ge_twelve : 12 ≤ kernelAuxiliaryConstant := by
   have h := kernelNormalizedProduct_le (c := 2) (by norm_num) 0
   simp only [kernelNormalizedProduct, Finset.range_zero, Finset.prod_empty] at h
@@ -288,11 +341,16 @@ theorem kernelAuxiliaryConstant_ge_twelve : 12 ≤ kernelAuxiliaryConstant := by
 section Propagator
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- The top residue contribution at `2i` plus the sum of the row residue contributions at `r +
+i` for `-m ≤ r ≤ m`. -/
 noncomputable def integerAuxiliaryCorrection (m : ℕ) (a : ℝ) (U : ℂ → E) : E :=
   integerTopResidueCoefficient m a • U (2 * Complex.I) +
     ∑ r ∈ Finset.Icc (-(m : ℤ)) m,
       integerRowResidueCoefficient m a r • U ((r : ℂ) + Complex.I)
 
+/-- Under the stated bounds on `U` at the auxiliary poles, the sum of the contribution norms is
+bounded by the explicit top term proportional to `exp (2ρ - 4πa)` and row term proportional
+to `(2m + 1) exp (ρ - 2πa)`. -/
 theorem integerAuxiliary_total_norm_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a) (U : ℂ → E)
     (hUtop : ‖U (2 * Complex.I)‖ ≤ Real.exp (2 * ρ))
     (hUrow : ∀ r ∈ Finset.Icc (-(m : ℤ)) m,
@@ -330,6 +388,8 @@ theorem integerAuxiliary_total_norm_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a) (U : 
     Nat.cast_one] at hsum
   nlinarith
 
+/-- For positive spacing with `ρ ≤ 2πa` and the stated auxiliary growth bounds, the correction
+norm is at most `kernelAuxiliaryConstant * (m + 1) * exp (ρ - 2πa)`. -/
 theorem integerAuxiliary_norm_le (m : ℕ) {a ρ : ℝ} (ha : 0 < a) (hρa : ρ ≤ 2 * Real.pi * a)
     (U : ℂ → E) (hUtop : ‖U (2 * Complex.I)‖ ≤ Real.exp (2 * ρ))
     (hUrow : ∀ r ∈ Finset.Icc (-(m : ℤ)) m, ‖U ((r : ℂ) + Complex.I)‖ ≤ Real.exp ρ) :
